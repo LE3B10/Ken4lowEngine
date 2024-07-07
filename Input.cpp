@@ -51,12 +51,12 @@ void Input::Update()
 	}
 }
 
-bool Input::PushKey(BYTE keyNumber)
+bool Input::PushKey(BYTE keyNumber) const
 {
 	return key[keyNumber] != 0;
 }
 
-bool Input::TriggerKey(BYTE keyNumber)
+bool Input::TriggerKey(BYTE keyNumber) const
 {
 	return key[keyNumber] != 0 && keyPre[keyNumber] == 0;
 }

@@ -2,6 +2,7 @@
 
 #include <Windows.h>
 
+#include <Xinput.h>					// ゲームコントローラーAPI
 #define DIRECTINPUT_VERSION		0x0800	// DirectInputのバージョン指定
 #include <dinput.h>
 
@@ -23,14 +24,14 @@ public: // メンバ変数
 	/// </summary>
 	/// <param name="keyNumber">キー番号（ DIK_0 等 ）</param>
 	/// <returns></returns>
-	bool PushKey(BYTE keyNumber);
+	bool PushKey(BYTE keyNumber) const;
 
 	/// <summary>
-	/// キーのトリガーをチェック
+	/// キーのトリガーをチェック（押した瞬間）
 	/// </summary>
 	/// <param name="keyNumber">キー番号（ DIK_0 等 ）</param>
 	/// <returns></returns>
-	bool TriggerKey(BYTE keyNumber);
+	bool TriggerKey(BYTE keyNumber) const;
 
 private:
 	ComPtr<IDirectInput8> directInput;		// DirectInputのインスタンス
