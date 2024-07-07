@@ -1199,8 +1199,10 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	//ウィンドウのｘボタンが押されるまでループ
 	while (true)
 	{
+		// メッセージ処理
 		if (winApp->ProcessMessage())
 		{
+			// ゲームループを終わる
 			break;
 		}
 
