@@ -1272,6 +1272,11 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 			// 入力の更新
 			input->Update();
 
+			if (input->TriggerKey(DIK_0))
+			{
+				OutputDebugStringA("Hit 0 \n");
+			}
+
 			//ImGuiを使う
 			ImGui_ImplDX12_NewFrame();
 			ImGui_ImplWin32_NewFrame();
