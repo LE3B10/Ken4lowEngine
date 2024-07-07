@@ -8,6 +8,8 @@
 
 #include <wrl.h>
 
+#include "WinApp.h"
+
 // 入力クラス
 class Input
 {
@@ -16,7 +18,7 @@ public:
 	template <class T> using ComPtr = Microsoft::WRL::ComPtr<T>;
 
 public: // メンバ変数
-	void Initialize(HINSTANCE hInstance, HWND hwnd);	// 初期化処理
+	void Initialize(WinApp* winApp);	// 初期化処理
 	void Update();		// 更新処理
 
 	/// <summary>
@@ -34,6 +36,9 @@ public: // メンバ変数
 	bool TriggerKey(BYTE keyNumber) const;
 
 private:
+	// WindowsAPI
+	WinApp* winApp_ = nullptr;
+
 	ComPtr<IDirectInput8> directInput;		// DirectInputのインスタンス
 	ComPtr<IDirectInputDevice8> keyboard;	// キーボードのデバイス
 
