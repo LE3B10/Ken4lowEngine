@@ -1392,7 +1392,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 		assert(SUCCEEDED(hr));
 #pragma endregion
 	}
-
+	 
 	winApp->Finalize();
 
 	delete winApp;	// WindowsAPI解放
