@@ -3,7 +3,6 @@
 
 #include <cassert>
 #include <format>
-#include <dxcapi.h>
 
 #include "externals/imgui/imgui_impl_dx12.h"
 #include "externals/imgui/imgui_impl_win32.h"
@@ -14,22 +13,6 @@
 
 using namespace Microsoft::WRL;
 using namespace LogString;
-
-// DescriptorHeapを生成する
-Microsoft::WRL::ComPtr <ID3D12DescriptorHeap> CreateDescriptorHeap(Microsoft::WRL::ComPtr <ID3D12Device> device, D3D12_DESCRIPTOR_HEAP_TYPE heapType, UINT numDescriptors, bool shadervisible)
-{
-	//ディスクリプタヒープの生成
-	Microsoft::WRL::ComPtr <ID3D12DescriptorHeap> descriptorHeap = nullptr;
-	D3D12_DESCRIPTOR_HEAP_DESC descriptorHeapDesc{};
-	descriptorHeapDesc.Type = heapType;	//レンダーターゲットビュー用
-	descriptorHeapDesc.NumDescriptors = numDescriptors;						//ダブルバッファ用に2つ。多くても別に構わない
-	descriptorHeapDesc.Flags = shadervisible ? D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE : D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
-	HRESULT hr = device->CreateDescriptorHeap(&descriptorHeapDesc, IID_PPV_ARGS(&descriptorHeap));
-	//ディスクリプタヒープが作れなかったので起動できない
-	assert(SUCCEEDED(hr));
-
-	return descriptorHeap;
-}
 
 // DepthStencilTextureを作る
 Microsoft::WRL::ComPtr <ID3D12Resource> CreateDepthStencilTextureResource(Microsoft::WRL::ComPtr <ID3D12Device> device, int32_t width, int32_t height)
@@ -67,24 +50,6 @@ Microsoft::WRL::ComPtr <ID3D12Resource> CreateDepthStencilTextureResource(Micros
 	return resource;
 }
 
-
-//CPUのDescriptorHandleを取得する関数
-D3D12_CPU_DESCRIPTOR_HANDLE GetCPUDescriptorHandle(ID3D12DescriptorHeap* descriptorHeap, uint32_t descriptorSize, uint32_t index)
-{
-	D3D12_CPU_DESCRIPTOR_HANDLE handleCPU = descriptorHeap->GetCPUDescriptorHandleForHeapStart();
-	handleCPU.ptr += (descriptorSize * index);
-	return handleCPU;
-}
-
-//GPUのDescriptorHandleを取得する関数
-D3D12_GPU_DESCRIPTOR_HANDLE GetGPUDescriptorHandle(ID3D12DescriptorHeap* descriptorHeap, uint32_t descriptorSize, uint32_t index)
-{
-	D3D12_GPU_DESCRIPTOR_HANDLE handleGPU = descriptorHeap->GetGPUDescriptorHandleForHeapStart();
-	handleGPU.ptr += (descriptorSize * index);
-	return handleGPU;
-}
-
-
 void DirectXCommon::Initialize(WinApp* winApp)
 {
 	// NULL検出
@@ -93,8 +58,93 @@ void DirectXCommon::Initialize(WinApp* winApp)
 	// メンバ変数に記録
 	this->winApp = winApp;
 
+	HRESULT hr{};
+
 	// デバイスの初期化
-	//-----------------------------------------------------------------------------------------------------------------------------------------------------
+	InitializeDevice();
+
+	// コマンド関連
+	InitializeCommands();
+
+	// スワップチェーン
+	CreateSwapChain();
+
+	// 深度バッファ
+	GenerateDepthBuffer();
+
+	// 各種デスクリプタヒープ
+	GenerateDescriptorHeaps();
+
+	// レンダーターゲットビュー
+	InitializeRenderTargets();
+
+	// 深度ステンシルビュー
+	InitializeDepthStencilView();
+
+	// フェンス
+	CreateFence();
+
+	// ビューポート矩形
+	InitializeViewport();
+
+	// シザリング矩形
+	InitializeScissoring();
+
+	// DXCコンパイラ
+	CreateDXCCompiler();
+
+	// ImGui
+	InitializeUI();
+}
+
+void DirectXCommon::Update()
+{
+
+}
+
+D3D12_CPU_DESCRIPTOR_HANDLE DirectXCommon::GetSRVCPUDescriptorHandle(uint32_t index)
+{
+	return GetCPUDescriptorHandle(srvDescriptorHeap, descriptorSizeSRV, index);
+}
+
+D3D12_GPU_DESCRIPTOR_HANDLE DirectXCommon::GetSRVGPUDescriptorHandle(uint32_t index)
+{
+	return GetGPUDescriptorHandle(srvDescriptorHeap, descriptorSizeSRV, index);
+}
+
+Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> DirectXCommon::CreateDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE heapType, UINT numDescriptors, bool shadervisible)
+{
+	//ディスクリプタヒープの生成
+	Microsoft::WRL::ComPtr <ID3D12DescriptorHeap> descriptorHeap = nullptr;
+	D3D12_DESCRIPTOR_HEAP_DESC descriptorHeapDesc{};
+	descriptorHeapDesc.Type = heapType;	//レンダーターゲットビュー用
+	descriptorHeapDesc.NumDescriptors = numDescriptors;						//ダブルバッファ用に2つ。多くても別に構わない
+	descriptorHeapDesc.Flags = shadervisible ? D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE : D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
+	HRESULT hr = device->CreateDescriptorHeap(&descriptorHeapDesc, IID_PPV_ARGS(&descriptorHeap));
+	//ディスクリプタヒープが作れなかったので起動できない
+	assert(SUCCEEDED(hr));
+
+	return descriptorHeap;
+}
+
+D3D12_CPU_DESCRIPTOR_HANDLE DirectXCommon::GetCPUDescriptorHandle(const Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> descriptorHeap, uint32_t descriptorSize, uint32_t index)
+{
+	D3D12_CPU_DESCRIPTOR_HANDLE handleCPU = descriptorHeap->GetCPUDescriptorHandleForHeapStart();
+	handleCPU.ptr += (descriptorSize * index);
+	return handleCPU;
+}
+
+D3D12_GPU_DESCRIPTOR_HANDLE DirectXCommon::GetGPUDescriptorHandle(const Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> descriptorHeap, uint32_t descriptorSize, uint32_t index)
+{
+	D3D12_GPU_DESCRIPTOR_HANDLE handleGPU = descriptorHeap->GetGPUDescriptorHandleForHeapStart();
+	handleGPU.ptr += (descriptorSize * index);
+	return handleGPU;
+}
+
+void DirectXCommon::InitializeDevice()
+{
+	HRESULT hr{};
+
 	// デバッグレイヤーをオンに
 #ifdef _DEBUG
 	ComPtr <ID3D12Debug1> debugController = nullptr;
@@ -107,20 +157,15 @@ void DirectXCommon::Initialize(WinApp* winApp)
 	}
 #endif
 
-	// IDXGIFactoryの生成
-#pragma region IDXGIFactory
-//DXGIファクトリーの生成
-	ComPtr <IDXGIFactory7> dxgiFactory = nullptr;
+	//DXGIファクトリーの生成
 	//HRESULTはWindows系のエラーコードであり、
 	//関数が成功したかどうかをSUCCEEDEDマクロ判定できる
-	HRESULT hr = CreateDXGIFactory(IID_PPV_ARGS(&dxgiFactory));
+	hr = CreateDXGIFactory(IID_PPV_ARGS(&dxgiFactory));
 	//初期化の根本的な部分でエラーが出た場合はプログラムが間違っているか、どうにもできない場合があるのでassertにしておく
 	assert(SUCCEEDED(hr));
-#pragma endregion
 
 	// アダプターの列挙
-#pragma	region Adaptor
-//使用するアダプタ用の変数。最初にnullptrを入れておく
+	//使用するアダプタ用の変数。最初にnullptrを入れておく
 	ComPtr <IDXGIAdapter4> useAdapter = nullptr;
 	//良い順にアダプタを頼む
 	for (UINT i = 0; dxgiFactory->EnumAdapterByGpuPreference(i,
@@ -141,12 +186,8 @@ void DirectXCommon::Initialize(WinApp* winApp)
 	}
 	//適切なアダプタが見つからなかったので起動できない
 	assert(useAdapter != nullptr);
-#pragma endregion
 
 	// デバイスの生成
-#pragma region D3D12Device
-// D3D12Deviceの生成
-	ComPtr <ID3D12Device> device = nullptr;
 	//機能レベルとログ出力用の文字列
 	D3D_FEATURE_LEVEL featureLevels[] = { D3D_FEATURE_LEVEL_12_2,D3D_FEATURE_LEVEL_12_1,D3D_FEATURE_LEVEL_12_0 };
 	const char* featureLevelStrings[] = { "12.2","12.1","12.0" };
@@ -166,11 +207,10 @@ void DirectXCommon::Initialize(WinApp* winApp)
 	//デバイスの生成がうまくいかなかったので起動できない
 	assert(device != nullptr);
 	Log("Complete create D3D12Device!!!\n");	//初期化完了のログを出す
-#pragma endregion
 
 	// エラー時にブレークを発生させる設定
-	// エラー・警告、すなわち停止
 #ifdef _DEBUG
+	// エラー・警告、すなわち停止
 	ID3D12InfoQueue* infoQueue = nullptr;
 	if (SUCCEEDED(device->QueryInterface(IID_PPV_ARGS(&infoQueue))))
 	{
@@ -205,127 +245,103 @@ void DirectXCommon::Initialize(WinApp* winApp)
 		infoQueue->Release();
 	}
 #endif // _DEBUG
-	//-----------------------------------------------------------------------------------------------------------------------------------------------------
+}
 
+void DirectXCommon::InitializeCommands()
+{
+	HRESULT hr{};
 
-
-	// コマンド関連
-	//-----------------------------------------------------------------------------------------------------------------------------------------------------
-#pragma region commandList
 	//コマンドロケータを生成する
-	ComPtr <ID3D12CommandAllocator> commandAllocator = nullptr;
 	hr = device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&commandAllocator));
 	//コマンドアロケータの生成がうまくいかなかったので起動できない
 	assert(SUCCEEDED(hr));
 
 	//コマンドリストを生成する
-	ComPtr <ID3D12GraphicsCommandList> commandList = nullptr;
 	hr = device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, commandAllocator.Get(), nullptr, IID_PPV_ARGS(&commandList));
 	//コマンドリストの生成がうまくいかなかったので起動できない
 	assert(SUCCEEDED(hr));
-#pragma endregion
 
-
-#pragma region commandQueue
 	//コマンドキューを生成する
-	ComPtr <ID3D12CommandQueue> commandQueue = nullptr;
-	D3D12_COMMAND_QUEUE_DESC commandQueueDesc{};
 	hr = device->CreateCommandQueue(&commandQueueDesc, IID_PPV_ARGS(&commandQueue));
 	//コマンドキューの生成がうまくいかなかったので起動できない
 	assert(SUCCEEDED(hr));
-#pragma endregion
-	//-----------------------------------------------------------------------------------------------------------------------------------------------------
-	
+}
 
+void DirectXCommon::CreateSwapChain()
+{
+	HRESULT hr{};
 
-	// スワップチェーン
-	//-----------------------------------------------------------------------------------------------------------------------------------------------------
-#pragma region SwapChain
-//スワップチェーンを生成する
-	ComPtr <IDXGISwapChain4> swapChain = nullptr;
-	DXGI_SWAP_CHAIN_DESC1 swapChainDesc{};
-	swapChainDesc.Width = WinApp::kClientWidth;								//画面の幅。ウィンドウのクライアント領域を同じものにしておく
-	swapChainDesc.Height = WinApp::kClientHeight;							//画面の高さ。ウィンドウのクライアント領域を同じものにしておく
-	swapChainDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;				//色の形式
-	swapChainDesc.SampleDesc.Count = 1;								//マルチサンプルしない
-	swapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;	//描画のターゲットとして利用する
-	swapChainDesc.BufferCount = 2;									//ダブルバッファ
-	swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;		//モニタにうつしたら、中身を破壊
-	//コマンドキュー、ウィンドウハンドル、設定を渡して生成する
+	//スワップチェーンを生成する
+	swapChainDesc.Width = WinApp::kClientWidth;						// 画面の幅。ウィンドウのクライアント領域を同じものにしておく
+	swapChainDesc.Height = WinApp::kClientHeight;					// 画面の高さ。ウィンドウのクライアント領域を同じものにしておく
+	swapChainDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;				// 色の形式
+	swapChainDesc.SampleDesc.Count = 1;								// マルチサンプルしない
+	swapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;	// 描画のターゲットとして利用する
+	swapChainDesc.BufferCount = 2;									// ダブルバッファ
+	swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;		// モニタにうつしたら、中身を破壊
+
+	// スワップチェーンの生成 - コマンドキュー、ウィンドウハンドル、設定を渡して生成する
 	hr = dxgiFactory->CreateSwapChainForHwnd(commandQueue.Get(), winApp->GetHwnd(), &swapChainDesc, nullptr, nullptr, reinterpret_cast<IDXGISwapChain1**>(swapChain.GetAddressOf()));
 	assert(SUCCEEDED(hr));
-#pragma endregion
-	//-----------------------------------------------------------------------------------------------------------------------------------------------------
+}
 
+void DirectXCommon::GenerateDepthBuffer()
+{
 
+}
 
-	// 深度バッファ
-	//-----------------------------------------------------------------------------------------------------------------------------------------------------
-	
-	//-----------------------------------------------------------------------------------------------------------------------------------------------------
-	
-
-
-	// 各種デスクリプタヒープ
-	//-----------------------------------------------------------------------------------------------------------------------------------------------------
-#pragma region DescriptorSize
+void DirectXCommon::GenerateDescriptorHeaps()
+{
 	//DescriptorSizeを取得しておく
-	const uint32_t descriptorSizeRTV = device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
-	const uint32_t descriptorSizeSRV = device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-	const uint32_t descriptorSizeDSV = device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
-#pragma endregion
+	descriptorSizeRTV = device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+	descriptorSizeSRV = device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+	descriptorSizeDSV = device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
 
-
-#pragma region DescriptorHeap
-//RTVディスクイリプタヒープの生成
-	ComPtr <ID3D12DescriptorHeap> rtvDescriptorHeap = CreateDescriptorHeap(device.Get(), D3D12_DESCRIPTOR_HEAP_TYPE_RTV, 2, false);
+	//RTVディスクイリプタヒープの生成
+	rtvDescriptorHeap = CreateDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_RTV, 2, false);
 	//SRVディスクイリプタヒープの生成
-	ComPtr <ID3D12DescriptorHeap> srvDescriptorHeap = CreateDescriptorHeap(device.Get(), D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, 128, true);
+	srvDescriptorHeap = CreateDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, 128, true);
 	//DSV用のヒープでディスクリプタの数は１。DSVはShader内で触れるものではないので、ShaderVisibleはfalse
-	ComPtr <ID3D12DescriptorHeap> dsvDescriptorHeap = CreateDescriptorHeap(device.Get(), D3D12_DESCRIPTOR_HEAP_TYPE_DSV, 1, false);
-#pragma endregion
-	//-----------------------------------------------------------------------------------------------------------------------------------------------------
-	
+	dsvDescriptorHeap = CreateDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_DSV, 1, false);
+}
 
+void DirectXCommon::InitializeRenderTargets()
+{
+	HRESULT hr{};
 
-	// レンダーターゲットビュー
-	//-----------------------------------------------------------------------------------------------------------------------------------------------------
-#pragma region SwapChainからResourceを取ってくる
-//SwapChainからResourceを引っ張ってくる
-	ComPtr <ID3D12Resource> swapChainResources[2] = { nullptr };
+	//SwapChainからResourceを引っ張ってくる
 	hr = swapChain->GetBuffer(0, IID_PPV_ARGS(&swapChainResources[0]));
 	//うまく取得できなければ起動できない
 	assert(SUCCEEDED(hr));
 	hr = swapChain->GetBuffer(1, IID_PPV_ARGS(&swapChainResources[1]));
 	assert(SUCCEEDED(hr));
-#pragma endregion
 
-
-#pragma region RTVの設定
 	//RTVの設定
-	D3D12_RENDER_TARGET_VIEW_DESC rtvDesc{};
 	rtvDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;		//出力結果をSRGBに変換して書き込む
 	rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;	//2dテクスチャとして書き込む
 	//ディスクリプタの先頭を取得する
 	D3D12_CPU_DESCRIPTOR_HANDLE rtvStartHandle = GetCPUDescriptorHandle(rtvDescriptorHeap.Get(), descriptorSizeRTV, 0);
-	//RTVを2つ作るのでディスクリプタを２つ用意
-	D3D12_CPU_DESCRIPTOR_HANDLE rtvHandles[2];
-	//まず１つ目を作る。１つ目は最初のところに作る。作る場所をこちらで指定してあげる必要がある
-	rtvHandles[0] = rtvStartHandle;
-	device->CreateRenderTargetView(swapChainResources[0].Get(), &rtvDesc, rtvHandles[0]);
-	//2つ目のディスクリプタハンドルを得る（自力で）
-	rtvHandles[1].ptr = rtvHandles[0].ptr + device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
-	//2つ目を作る
-	device->CreateRenderTargetView(swapChainResources[1].Get(), &rtvDesc, rtvHandles[1]);
-#pragma endregion
-	//-----------------------------------------------------------------------------------------------------------------------------------------------------
-	
 
+	// デスクリプタのインクリメントサイズの取得
+	UINT descriptorSize = device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+	// 裏表の2つ分
+	for (uint32_t i = 0; i < bufferCount; ++i)
+	{
+		if (i == 0)
+		{
+			rtvHandles[i] = rtvStartHandle;
+		}
+		else
+		{
+			rtvHandles[i].ptr = rtvHandles[i - 1].ptr + descriptorSize;
+		}
+		device->CreateRenderTargetView(swapChainResources[i].Get(), &rtvDesc, rtvHandles[i]);
+	}
+}
 
-	// 深度ステンシルビュー
-	//-----------------------------------------------------------------------------------------------------------------------------------------------------
-#pragma region DSV
-//DepthStencilTextureをウィンドウのサイズで作成
+void DirectXCommon::InitializeDepthStencilView()
+{
+	//DepthStencilTextureをウィンドウのサイズで作成
 	ComPtr <ID3D12Resource> depthStencilResource = CreateDepthStencilTextureResource(device.Get(), WinApp::kClientWidth, WinApp::kClientHeight);
 	//DSVの設定
 	D3D12_DEPTH_STENCIL_VIEW_DESC dsvDesc{};
@@ -333,32 +349,24 @@ void DirectXCommon::Initialize(WinApp* winApp)
 	dsvDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;	//2DTexture
 	//DSVHeapの先頭にDSVを作る
 	device->CreateDepthStencilView(depthStencilResource.Get(), &dsvDesc, GetCPUDescriptorHandle(dsvDescriptorHeap.Get(), descriptorSizeDSV, 0));
-#pragma endregion
-	//-----------------------------------------------------------------------------------------------------------------------------------------------------
-	
+}
 
+void DirectXCommon::CreateFence()
+{
+	HRESULT hr{};
 
-	// フェンス
-	//-----------------------------------------------------------------------------------------------------------------------------------------------------
-#pragma region Fence&Event
-// FenceとEventを生成する
-	ComPtr <ID3D12Fence> fence = nullptr;
-	//初期値0でFenceを作る
-	uint64_t fenceValue = 0;
+	// FenceとEventを生成する
+	// 初期値0でFenceを作る
 	hr = device->CreateFence(fenceValue, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&fence));
 	assert(SUCCEEDED(hr));
 	//FenceのSignalを待つためのイベントを作成する
 	HANDLE fenceEvent = CreateEvent(NULL, FALSE, FALSE, NULL);
 	assert(fenceEvent != nullptr);
-#pragma endregion
-	//-----------------------------------------------------------------------------------------------------------------------------------------------------
-	
+}
 
-
-	// ビューポート矩形
-	//-----------------------------------------------------------------------------------------------------------------------------------------------------
-	//ビューポート
-	D3D12_VIEWPORT viewport{};
+void DirectXCommon::InitializeViewport()
+{
+	//ビューポート矩形の設定
 	//クライアント領域のサイズと一緒に画面全体に表示
 	viewport.Width = WinApp::kClientWidth;
 	viewport.Height = WinApp::kClientHeight;
@@ -366,46 +374,35 @@ void DirectXCommon::Initialize(WinApp* winApp)
 	viewport.TopLeftY = 0;
 	viewport.MinDepth = 0.0f;
 	viewport.MaxDepth = 1.0f;
-	//-----------------------------------------------------------------------------------------------------------------------------------------------------
-	
+}
 
-	
+void DirectXCommon::InitializeScissoring()
+{
 	// シザリング矩形
-	//-----------------------------------------------------------------------------------------------------------------------------------------------------
-	//シザー矩形
-	D3D12_RECT scissorRect{};
 	//基本的にビューポートと同じ矩形が構成されるようにする
 	scissorRect.left = 0;
 	scissorRect.right = WinApp::kClientWidth;
 	scissorRect.top = 0;
 	scissorRect.bottom = WinApp::kClientHeight;
-	//-----------------------------------------------------------------------------------------------------------------------------------------------------
-	
-	
-	
-	// DXCコンパイラ
-	//-----------------------------------------------------------------------------------------------------------------------------------------------------
-#pragma region DXC_Initialization
-//dxcCompilerを初期化
-	ComPtr <IDxcUtils> dxcUtils = nullptr;
-	IDxcCompiler3* dxcCompiler = nullptr;
+}
+
+void DirectXCommon::CreateDXCCompiler()
+{
+	HRESULT hr{};
+
+	//dxcCompilerを初期化
 	hr = DxcCreateInstance(CLSID_DxcUtils, IID_PPV_ARGS(&dxcUtils));
 	assert(SUCCEEDED(hr));
 	hr = DxcCreateInstance(CLSID_DxcCompiler, IID_PPV_ARGS(&dxcCompiler));
 	assert(SUCCEEDED(hr));
 
 	//現時点でincludeはしないが、includeに対応するための設定を行っておく
-	ComPtr <IDxcIncludeHandler> includeHandler = nullptr;
 	hr = dxcUtils->CreateDefaultIncludeHandler(&includeHandler);
 	assert(SUCCEEDED(hr));
-#pragma endregion
-	//-----------------------------------------------------------------------------------------------------------------------------------------------------
-	
-	
-	
-	// ImGui
-	//-----------------------------------------------------------------------------------------------------------------------------------------------------
-#pragma region ImGuiの初期化を行いDirectX 12とWindows APIを使ってImGuiをセットアップする
+}
+
+void DirectXCommon::InitializeUI()
+{
 	IMGUI_CHECKVERSION();			// ImGuiのバージョンチェック
 	ImGui::CreateContext();			// ImGuiコンテキストの作成
 	ImGui::StyleColorsDark();		// ImGuiスタイルの設定
@@ -416,11 +413,4 @@ void DirectXCommon::Initialize(WinApp* winApp)
 		srvDescriptorHeap.Get(),
 		srvDescriptorHeap->GetCPUDescriptorHandleForHeapStart(),
 		srvDescriptorHeap->GetGPUDescriptorHandleForHeapStart());
-#pragma endregion
-	//-----------------------------------------------------------------------------------------------------------------------------------------------------
-}
-
-void DirectXCommon::Update()
-{
-	
 }
