@@ -15,9 +15,11 @@ public:
 	// namespace省略
 	template <class T> using ComPtr = Microsoft::WRL::ComPtr<T>;
 
-public: // メンバ変数
-	void Initialize(HINSTANCE hInstance, HWND hwnd);	// 初期化処理
-	void Update();		// 更新処理
+public: // メンバ関数
+	// 初期化処理
+	void Initialize(HINSTANCE hInstance, HWND hwnd);
+	// 更新処理
+	void Update();
 
 	/// <summary>
 	/// キーの押下をチェック
@@ -33,7 +35,7 @@ public: // メンバ変数
 	/// <returns></returns>
 	bool TriggerKey(BYTE keyNumber) const;
 
-private:
+private: // メンバ変数
 	ComPtr<IDirectInput8> directInput;		// DirectInputのインスタンス
 	ComPtr<IDirectInputDevice8> keyboard;	// キーボードのデバイス
 
