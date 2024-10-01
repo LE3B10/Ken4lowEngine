@@ -97,10 +97,102 @@ void DirectXCommon::Initialize(WinApp* winApp)
 	InitializeUI();
 }
 
-void DirectXCommon::Update()
+void DirectXCommon::PreDraw()
 {
+	// バックバッファの番号取得
+	UINT backBufferIndex = swapChain->GetCurrentBackBufferIndex();
 
+	// リソースバリアで書き込み可能に変更
+	D3D12_RESOURCE_BARRIER barrier{};
+	barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+	barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+
+	// 現在のリソースの状態を確認して、遷移前後の状態を設定
+	barrier.Transition.pResource = swapChainResources[backBufferIndex].Get();
+	barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_PRESENT; // 現在は表示状態
+	barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET; // 描画可能な状態に遷移
+	commandList->ResourceBarrier(1, &barrier);
+
+	//// 描画先のRTVとDSVを指定する
+	//D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle = dsvDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
+
+	//// リソースが有効かどうか確認
+	//assert(swapChainResources[backBufferIndex]); // 無効なリソースにアクセスしていないか確認
+
+	//commandList->OMSetRenderTargets(1, &rtvHandles[backBufferIndex], false, &dsvHandle);
+
+	//// 画面全体の色をクリア
+	//float clearColor[] = { 0.1f,0.25f,0.5f,1.0f };	//青っぽい色。RGBAの順
+	//commandList->ClearRenderTargetView(rtvHandles[backBufferIndex], clearColor, 0, nullptr);
+
+	//// 画面全体の深度をクリア
+	//commandList->ClearDepthStencilView(dsvHandle, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
+
+	//// SRV用のデスクリプタヒープを指定する
+	//ID3D12DescriptorHeap* descriptorHeaps[] = { srvDescriptorHeap.Get() };
+	//commandList->SetDescriptorHeaps(1, descriptorHeaps);
+
+	//// ビューポート領域の設定
+	//commandList->RSSetViewports(1, &viewport);
+
+	//// シザー矩形の設定
+	//commandList->RSSetScissorRects(1, &scissorRect);
 }
+
+//void DirectXCommon::PostDraw()
+//{
+//	HRESULT hr{};
+//
+//	// バックバッファの番号取得
+//	UINT backBufferIndex = swapChain->GetCurrentBackBufferIndex();
+//
+//	// リソースバリアで表示状態に変更
+//	D3D12_RESOURCE_BARRIER barrier{};
+//	barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+//	barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+//	barrier.Transition.pResource = swapChainResources[backBufferIndex].Get();
+//	barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET; // 描画後の状態
+//	barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_PRESENT; // 表示状態に遷移
+//	commandList->ResourceBarrier(1, &barrier);
+//
+//	// グラフィックスコマンドをクローズ
+//	hr = commandList->Close();
+//	assert(SUCCEEDED(hr));
+//
+//	// GPUコマンドの実行
+//	ID3D12CommandList* commandLists[] = { commandList.Get() };
+//	commandQueue->ExecuteCommandLists(1, commandLists);
+//
+//	// GPU画面の交換を通知
+//	//GPUとOSに画面の交換を行うよう通知する
+//	swapChain->Present(1, 0);
+//
+//	// Fenceの値を更新
+//	fenceValue++;
+//
+//	// コマンドキューにシグナルを送る
+//	commandQueue->Signal(fence.Get(), fenceValue);
+//
+//	// コマンド完了待ち
+//	HANDLE fenceEvent = CreateEvent(NULL, FALSE, FALSE, NULL);
+//	assert(fenceEvent != nullptr);
+//
+//	if (fence->GetCompletedValue() < fenceValue)
+//	{
+//		//指定したSignalにたどりついていないので、たどり着くまで待つようにイベントを設定する
+//		fence->SetEventOnCompletion(fenceValue, fenceEvent);
+//		//イベントを待つ
+//		WaitForSingleObject(fenceEvent, INFINITE);
+//	}
+//
+//	// コマンドアロケーターのリセット
+//	hr = commandAllocator->Reset();
+//	assert(SUCCEEDED(hr));
+//
+//	// コマンドリストのリセット
+//	hr = commandList->Reset(commandAllocator.Get(), nullptr);
+//	assert(SUCCEEDED(hr));
+//}
 
 D3D12_CPU_DESCRIPTOR_HANDLE DirectXCommon::GetSRVCPUDescriptorHandle(uint32_t index)
 {
@@ -359,9 +451,6 @@ void DirectXCommon::CreateFence()
 	// 初期値0でFenceを作る
 	hr = device->CreateFence(fenceValue, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&fence));
 	assert(SUCCEEDED(hr));
-	//FenceのSignalを待つためのイベントを作成する
-	HANDLE fenceEvent = CreateEvent(NULL, FALSE, FALSE, NULL);
-	assert(fenceEvent != nullptr);
 }
 
 void DirectXCommon::InitializeViewport()
@@ -413,4 +502,4 @@ void DirectXCommon::InitializeUI()
 		srvDescriptorHeap.Get(),
 		srvDescriptorHeap->GetCPUDescriptorHandleForHeapStart(),
 		srvDescriptorHeap->GetGPUDescriptorHandleForHeapStart());
-} 
+}

@@ -14,8 +14,13 @@ class DirectXCommon
 public: // メンバ関数
 	// 初期化処理
 	void Initialize(WinApp* winApp);
-	// 更新処理
-	void Update();
+	// 描画前処理
+	void PreDraw();
+	// 描画後処理
+	void PostDraw();
+
+	// スワップチェインのリサイズ確認
+	void OnResize(UINT width, UINT height);
 
 	D3D12_CPU_DESCRIPTOR_HANDLE GetSRVCPUDescriptorHandle(uint32_t index);
 	D3D12_GPU_DESCRIPTOR_HANDLE GetSRVGPUDescriptorHandle(uint32_t index);
