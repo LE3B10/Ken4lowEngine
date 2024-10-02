@@ -4,11 +4,8 @@
 
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
-void WinApp::Initialize()
+void WinApp::CreateMainWindow(uint32_t width, uint32_t height)
 {
-	//COMの初期化
-	HRESULT hr = CoInitializeEx(0, COINIT_MULTITHREADED);
-
 	// ウィンドウクラスを登録する
 	wc.lpfnWndProc = WindowProc;				 // ウィンドウプロシージャ
 	wc.lpszClassName = L"CG2WindowClass";		 // ウィンドウクラス名（なんでもいい）
@@ -18,7 +15,9 @@ void WinApp::Initialize()
 	RegisterClass(&wc);
 
 	// ウィンドウサイズを表す構造体にクライアント領域を入れる
-	RECT wrc = { 0,0,kClientWidth,kClientHeight };
+	RECT wrc = {};
+	wrc.right = width;
+	wrc.bottom = height;
 
 	// クライアント領域をmとに実際のサイズにwrcに変更してもらう
 	AdjustWindowRect(&wrc, WS_OVERLAPPEDWINDOW, false);
@@ -41,18 +40,6 @@ void WinApp::Initialize()
 	ShowWindow(hwnd, SW_SHOW);
 }
 
-void WinApp::Update()
-{
-
-}
-
-void WinApp::Finalize()
-{
-	CloseWindow(hwnd);
-	//COMの終了処理
-	CoUninitialize();
-}
-
 bool WinApp::ProcessMessage()
 {
 	MSG msg{};
@@ -68,6 +55,13 @@ bool WinApp::ProcessMessage()
 		return true;
 	}
 	return false;
+}
+
+WinApp* WinApp::GetInstance()
+{
+	static WinApp instance;
+
+	return &instance;
 }
 
 LRESULT WinApp::WindowProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)

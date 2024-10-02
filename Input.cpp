@@ -13,7 +13,7 @@ void Input::Initialize(WinApp* winApp)
 	HRESULT result{};
 
 	// DirectInputのインスタンス生成
-	result = DirectInput8Create(winApp->GetHInstance(), DIRECTINPUT_VERSION, IID_IDirectInput8, (void**)&directInput, nullptr);
+	result = DirectInput8Create(winApp->GetHInstance().hInstance, DIRECTINPUT_VERSION, IID_IDirectInput8, (void**)&directInput, nullptr);
 	assert(SUCCEEDED(result));
 	// キーボードデバイスの生成
 	result = directInput->CreateDevice(GUID_SysKeyboard, &keyboard, NULL);
