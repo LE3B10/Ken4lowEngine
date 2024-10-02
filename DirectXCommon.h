@@ -14,8 +14,6 @@ class DirectXCommon
 public: // メンバ関数
 	// 初期化処理
 	void Initialize(WinApp* winApp);
-	// 更新処理
-	void Update();
 
 	D3D12_CPU_DESCRIPTOR_HANDLE GetSRVCPUDescriptorHandle(uint32_t index);
 	D3D12_GPU_DESCRIPTOR_HANDLE GetSRVGPUDescriptorHandle(uint32_t index);
