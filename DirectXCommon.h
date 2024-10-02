@@ -97,4 +97,5 @@ private: // メンバ変数
 	Microsoft::WRL::ComPtr <IDxcUtils> dxcUtils = nullptr;
 	IDxcCompiler3* dxcCompiler = nullptr;
 	Microsoft::WRL::ComPtr <IDxcIncludeHandler> includeHandler = nullptr;
+	D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle;
 };

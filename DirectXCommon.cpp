@@ -114,7 +114,7 @@ void DirectXCommon::PreDraw()
 	commandList->ResourceBarrier(1, &barrier);
 
 	//// 描画先のRTVとDSVを指定する
-	D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle = dsvDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
+	dsvHandle = dsvDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
 
 	//// リソースが有効かどうか確認
 	assert(swapChainResources[backBufferIndex]); // 無効なリソースにアクセスしていないか確認
@@ -129,7 +129,7 @@ void DirectXCommon::PreDraw()
 
 
 	// 画面全体の深度をクリア
-	//commandList->ClearDepthStencilView(dsvHandle, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
+	commandList->ClearDepthStencilView(dsvHandle, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
 
 
 	// SRV用のデスクリプタヒープを指定する
