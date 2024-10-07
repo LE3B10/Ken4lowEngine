@@ -37,6 +37,9 @@ public: // メンバ関数
 	/// <returns></returns>
 	bool TriggerKey(BYTE keyNumber) const;
 
+	// シングルトン
+	static Input* GetInstance();
+
 private: // メンバ変数
 	// WindowsAPI
 	WinApp* winApp_ = nullptr;
@@ -46,5 +49,12 @@ private: // メンバ変数
 
 	BYTE key[256] = {};
 	BYTE keyPre[256] = {};
+
+	Input() = default;
+	~Input() = default;
+
+	// コピー禁止
+	Input(const Input&) = delete;
+	const Input& operator=(const Input&) = delete;
 };
 

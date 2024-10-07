@@ -4,7 +4,14 @@
 
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
-void WinApp::Initialize()
+WinApp* WinApp::GetInstance()
+{
+	static WinApp instance;
+
+	return &instance;
+}
+
+void WinApp::CreateMainWindow()
 {
 	//COMの初期化
 	HRESULT hr = CoInitializeEx(0, COINIT_MULTITHREADED);
@@ -39,11 +46,6 @@ void WinApp::Initialize()
 
 	//ウィンドウを表示する
 	ShowWindow(hwnd, SW_SHOW);
-}
-
-void WinApp::Update()
-{
-
 }
 
 void WinApp::Finalize()

@@ -15,12 +15,15 @@ void Input::Initialize(WinApp* winApp)
 	// DirectInputのインスタンス生成
 	result = DirectInput8Create(winApp->GetHInstance(), DIRECTINPUT_VERSION, IID_IDirectInput8, (void**)&directInput, nullptr);
 	assert(SUCCEEDED(result));
+	
 	// キーボードデバイスの生成
 	result = directInput->CreateDevice(GUID_SysKeyboard, &keyboard, NULL);
 	assert(SUCCEEDED(result));
+	
 	// 入力データ形式のセット
 	result = keyboard->SetDataFormat(&c_dfDIKeyboard); // 標準形式
 	assert(SUCCEEDED(result));
+	
 	// 排他制御レベルのセット
 	result = keyboard->SetCooperativeLevel(winApp->GetHwnd(), DISCL_FOREGROUND | DISCL_NONEXCLUSIVE | DISCL_NOWINKEY);
 	assert(SUCCEEDED(result));
@@ -62,4 +65,11 @@ bool Input::PushKey(BYTE keyNumber) const
 bool Input::TriggerKey(BYTE keyNumber) const
 {
 	return key[keyNumber] != 0 && keyPre[keyNumber] == 0;
+}
+
+Input* Input::GetInstance()
+{
+	static Input instance;
+
+	return &instance;
 }

@@ -6,18 +6,20 @@
 class WinApp
 {
 public:	// メンバ関数
-	// getter
-	HWND GetHwnd() const { return hwnd; }
-	HINSTANCE GetHInstance() const { return wc.hInstance; }
+
+	// シングルトン
+	static WinApp* GetInstance();
 
 	// 初期化処理
-	void Initialize();
-	// 更新処理
-	void Update();
+	void CreateMainWindow();
 	// 終了処理
 	void Finalize();
 	// メッセージ処理
 	bool ProcessMessage();
+
+	// getter
+	HWND GetHwnd() const { return hwnd; }
+	HINSTANCE GetHInstance() const { return wc.hInstance; }
 
 private: // メンバ関数
 	//ウィンドウプロシージャ
@@ -34,4 +36,10 @@ private: // メンバ変数
 	// ウィンドウクラスの設定
 	WNDCLASS wc{};
 
+	WinApp() = default;
+	~WinApp() = default;
+
+	// コピー禁止
+	WinApp(const WinApp&) = delete;
+	const WinApp& operator=(const WinApp&) = delete;
 };
