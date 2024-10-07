@@ -27,8 +27,8 @@ private: // メンバ関数
 
 public: // 静的メンバ変数
 	//クライアント領域サイズ
-	static const int32_t kClientWidth = 1280;
-	static const int32_t kClientHeight = 720;
+	static const uint32_t kClientWidth = 1280;
+	static const uint32_t kClientHeight = 720;
 
 private: // メンバ変数
 	// ウィンドウハンドル
