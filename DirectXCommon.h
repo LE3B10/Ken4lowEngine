@@ -18,6 +18,10 @@ public:
 	// 初期化処理
 	void Initialize(WinApp* winApp);
 
+	// 描画開始・終了処理
+	void BeginDraw();
+	void EndDraw();
+
 	// 終了処理
 	void Finalize();
 
@@ -53,6 +57,12 @@ private: // メンバ関数
 	// DXCコンパイラの生成
 	void CreateDXCCompiler();
 
+	// バリアで書き込み可能に変更
+	void ChangeBarrier();
+
+	// 画面全体をクリア
+	void ClearWindow();
+
 private: // メンバ変数
 	std::unique_ptr<DirectXDevice> device_;
 	std::unique_ptr<DirectXSwapChain> swapChain_;
@@ -65,14 +75,16 @@ private: // メンバ変数
 
 
 	Microsoft::WRL::ComPtr <ID3D12Fence> fence;
+	HANDLE fenceEvent;
 	UINT64 fenceValue = 0;
 	
 	// 描画開始・終了処理に使う
 	D3D12_VIEWPORT viewport{};
 	D3D12_RECT scissorRect{};
 
+	UINT backBufferIndex;
+
 private: // メンバ変数
-	WinApp* winApp_ = nullptr;
 
 	DirectXCommon() = default;
 	~DirectXCommon() = default;

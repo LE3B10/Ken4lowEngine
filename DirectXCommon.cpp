@@ -51,8 +51,25 @@ void DirectXCommon::Initialize(WinApp* winApp)
 	CreateDXCCompiler();
 }
 
+void DirectXCommon::BeginDraw()
+{
+	// これから書き込むバックバッファのインデックスを取得
+	backBufferIndex = swapChain_->GetSwapChain()->GetCurrentBackBufferIndex();
+
+	// バリアで書き込み可能に変更
+	ChangeBarrier();
+
+}
+
+void DirectXCommon::EndDraw()
+{
+
+}
+
 void DirectXCommon::Finalize()
 {
+	CloseHandle(fenceEvent);
+
 	device_.reset();
 	swapChain_.reset();
 }
@@ -224,10 +241,10 @@ void DirectXCommon::CreateDXCCompiler()
 	//dxcCompilerを初期化
 	Microsoft::WRL::ComPtr <IDxcUtils> dxcUtils = nullptr;
 	IDxcCompiler3* dxcCompiler = nullptr;
-	
+
 	hr = DxcCreateInstance(CLSID_DxcUtils, IID_PPV_ARGS(&dxcUtils));
 	assert(SUCCEEDED(hr));
-	
+
 	hr = DxcCreateInstance(CLSID_DxcCompiler, IID_PPV_ARGS(&dxcCompiler));
 	assert(SUCCEEDED(hr));
 
@@ -235,4 +252,44 @@ void DirectXCommon::CreateDXCCompiler()
 	Microsoft::WRL::ComPtr <IDxcIncludeHandler> includeHandler = nullptr;
 	hr = dxcUtils->CreateDefaultIncludeHandler(&includeHandler);
 	assert(SUCCEEDED(hr));
+}
+
+void DirectXCommon::ChangeBarrier()
+{
+	// TransitionBarrierの設定
+	D3D12_RESOURCE_BARRIER barrier{};
+	// 今回のバリアはTransition
+	barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+	// Noneにしておく
+	barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+	// バリアを春対象のリソース。現在のバックバッファに対して行う
+	barrier.Transition.pResource = swapChain_->GetSwapChainResources(backBufferIndex);
+	// 遷移前（現在）のResourceState
+	barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_PRESENT;
+	//遷移後のResourceState
+	barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET;
+	// TransitionBarrierを張る
+	commandList->ResourceBarrier(1, &barrier);
+}
+
+void DirectXCommon::ClearWindow()
+{
+	D3D12_CPU_DESCRIPTOR_HANDLE rtvHandles[2];
+	
+	for (uint32_t i = 0; i < 2; i++)
+	{
+		//rtvHandles[i] = descriptor_->Get
+	}
+
+	//描画先のRTVとDSVを設定する
+	D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle = dsvDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
+	
+	commandList->OMSetRenderTargets(1, &rtvHandles[backBufferIndex], false, &dsvHandle);
+	
+	//指定した色で画面全体をクリアする
+	float clearColor[] = { 0.1f,0.25f,0.5f,1.0f };	//青っぽい色。RGBAの順
+	commandList->ClearRenderTargetView(rtvHandles[backBufferIndex], clearColor, 0, nullptr);
+	
+	//指定した深度で画面全体をクリアする
+	commandList->ClearDepthStencilView(dsvHandle, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
 }
