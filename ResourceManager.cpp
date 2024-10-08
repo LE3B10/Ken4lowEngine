@@ -1,10 +1,13 @@
-#include "VertexResource.h"
+#include "ResourceManager.h"
 
 #include <cassert>
 
 #include "DirectXCommon.h"
 
-Microsoft::WRL::ComPtr<ID3D12Resource> VertexResource::CreateBufferResource(ID3D12Device* device, size_t sizeInBytes)
+#pragma comment(lib, "d3d12.lib")
+#pragma comment(lib, "dxgi.lib")
+
+Microsoft::WRL::ComPtr<ID3D12Resource> ResourceManager::CreateBufferResource(ID3D12Device* device, size_t sizeInBytes)
 {
 	//頂点リソース用のヒープ設定
 	D3D12_HEAP_PROPERTIES uploadHeapProperties{};
