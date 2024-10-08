@@ -134,22 +134,28 @@ ID3D12GraphicsCommandList* DirectXCommon::GetCommandList() const
 
 ID3D12DescriptorHeap* DirectXCommon::GetSRVDescriptorHeap() const
 {
-	return descriptor->GetDSVDescriptorHeap();
+	return descriptor->GetSRVDescriptorHeap();
 }
 
-Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> DirectXCommon::CreateDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE heapType, UINT numDescriptors, bool shadervisible)
+IDxcUtils* DirectXCommon::GetIDxcUtils() const
 {
-	//ディスクリプタヒープの生成
-	Microsoft::WRL::ComPtr <ID3D12DescriptorHeap> descriptorHeap = nullptr;
-	D3D12_DESCRIPTOR_HEAP_DESC descriptorHeapDesc{};
-	descriptorHeapDesc.Type = heapType;	//レンダーターゲットビュー用
-	descriptorHeapDesc.NumDescriptors = numDescriptors;						//ダブルバッファ用に2つ。多くても別に構わない
-	descriptorHeapDesc.Flags = shadervisible ? D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE : D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
-	HRESULT hr = device_->GetDevice()->CreateDescriptorHeap(&descriptorHeapDesc, IID_PPV_ARGS(&descriptorHeap));
-	//ディスクリプタヒープが作れなかったので起動できない
-	assert(SUCCEEDED(hr));
+	return dxcUtils.Get();
+}
 
-	return descriptorHeap;
+IDxcCompiler3* DirectXCommon::GetIDxcCompiler() const
+{
+	return dxcCompiler.Get();
+}
+
+IDxcIncludeHandler* DirectXCommon::GetIncludeHnadler() const
+{
+	return includeHandler.Get();
+}
+
+DXGI_SWAP_CHAIN_DESC1& DirectXCommon::GetSwapChainDesc()
+{
+	// TODO: return ステートメントをここに挿入します
+	return swapChain_->GetSwapChainDesc();
 }
 
 #pragma region デバッグレイヤーと警告時に停止処理
@@ -275,10 +281,6 @@ void DirectXCommon::CreateDXCCompiler()
 {
 	HRESULT hr{};
 
-	//dxcCompilerを初期化
-	Microsoft::WRL::ComPtr <IDxcUtils> dxcUtils = nullptr;
-	IDxcCompiler3* dxcCompiler = nullptr;
-
 	hr = DxcCreateInstance(CLSID_DxcUtils, IID_PPV_ARGS(&dxcUtils));
 	assert(SUCCEEDED(hr));
 
@@ -286,7 +288,6 @@ void DirectXCommon::CreateDXCCompiler()
 	assert(SUCCEEDED(hr));
 
 	//現時点でincludeはしないが、includeに対応するための設定を行っておく
-	Microsoft::WRL::ComPtr <IDxcIncludeHandler> includeHandler = nullptr;
 	hr = dxcUtils->CreateDefaultIncludeHandler(&includeHandler);
 	assert(SUCCEEDED(hr));
 }

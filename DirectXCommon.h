@@ -30,8 +30,10 @@ public: // ゲッター
 	ID3D12Device* GetDevice() const;
 	ID3D12GraphicsCommandList* GetCommandList() const;
 	ID3D12DescriptorHeap* GetSRVDescriptorHeap() const;
-
-	Microsoft::WRL::ComPtr <ID3D12DescriptorHeap> CreateDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE heapType, UINT numDescriptors, bool shadervisible);
+	IDxcUtils* GetIDxcUtils() const;
+	IDxcCompiler3* GetIDxcCompiler() const;
+	IDxcIncludeHandler* GetIncludeHnadler() const;
+	DXGI_SWAP_CHAIN_DESC1& GetSwapChainDesc();
 
 private: // メンバ関数
 
@@ -43,9 +45,6 @@ private: // メンバ関数
 
 	// コマンド関連の生成
 	void CreateCommands();
-
-	// 各種のデスクリプタヒープの生成
-	void GenerateDescriptorHeaps();
 
 	// フェンスの生成
 	void CreateFenceEvent();
@@ -74,8 +73,12 @@ private: // メンバ変数
 	Microsoft::WRL::ComPtr<ID3D12CommandAllocator> commandAllocator;
 	Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> commandList;
 
-	D3D12_COMMAND_QUEUE_DESC commandQueueDesc{};
+	Microsoft::WRL::ComPtr <IDxcUtils> dxcUtils;
+	Microsoft::WRL::ComPtr<IDxcCompiler3> dxcCompiler;
+	Microsoft::WRL::ComPtr <IDxcIncludeHandler> includeHandler;
 
+	D3D12_COMMAND_QUEUE_DESC commandQueueDesc{};
+	D3D12_DESCRIPTOR_HEAP_DESC descriptorHeapDesc{};
 
 	Microsoft::WRL::ComPtr <ID3D12Fence> fence;
 	HANDLE fenceEvent;

@@ -1,6 +1,7 @@
 #include "WinApp.h"
 #include "Input.h"
 #include "DirectXCommon.h"
+#include "ImGuiManager.h"
 
 // Windowsアプリでのエントリーポイント(main関数)
 int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
@@ -9,6 +10,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	WinApp* winApp = WinApp::GetInstance();
 	Input* input = Input::GetInstance();
 	DirectXCommon* dxCommon = DirectXCommon::GetInstance();
+	ImGuiManager* imguiManager = ImGuiManager::GetInstance();
 
 	// WindowsAPIのウィンドウ作成
 	winApp->CreateMainWindow();
@@ -18,6 +20,9 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 
 	// DirectXの初期化
 	dxCommon->Initialize(winApp);
+
+	// ImGuiManagerの初期化
+	imguiManager->Initialize(winApp, dxCommon);
 
 	while (!winApp->ProcessMessage())
 	{
@@ -41,6 +46,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 
 	winApp->Finalize();
 	dxCommon->Finalize();
+	imguiManager->Finalize();
 
 	return 0;
 }

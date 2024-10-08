@@ -17,7 +17,7 @@ void DirectXDescriptor::Initialize(ID3D12Device* device, ID3D12Resource* swapCha
 
 	// SRVディスクイリプタヒープの生成
 	descriptorHeaps[static_cast<size_t>(DescriptorType::SRV)] =
-		CreateDescriptorHeap(DescriptorType::SRV, device, D3D12_DESCRIPTOR_HEAP_TYPE_DSV, 1, false);
+		CreateDescriptorHeap(DescriptorType::SRV, device, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, 128, true);
 
 	// レンダーターゲットビューの生成
 	GenerateRTV(device, swapChainResoursec1, swapChainResoursec2);
