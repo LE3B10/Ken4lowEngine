@@ -19,6 +19,7 @@ void DirectXCommon::Initialize(WinApp* winApp)
 {
 	device_ = std::make_unique<DirectXDevice>();
 	swapChain_ = std::make_unique<DirectXSwapChain>();
+	descriptor = std::make_unique<DirectXDescriptor>();
 
 	// デバッグレイヤーをオンに
 	DebugLayer();
@@ -35,20 +36,15 @@ void DirectXCommon::Initialize(WinApp* winApp)
 	// スワップチェインの生成
 	swapChain_->Initialize(winApp, device_->GetDXGIFactory(), commandQueue.Get());
 
-	// 各種のデスクリプタヒープの生成
-	GenerateDescriptorHeaps();
-
 	// フェンスとイベントの生成
 	CreateFenceEvent();
 
-	// ビューポート矩形の初期化
-	InitializeViewport();
-
-	// シザリング矩形の初期化
-	InitializeScissoring();
-
 	// DXCコンパイラの生成
 	CreateDXCCompiler();
+
+	// RTV, DSVの初期化
+	descriptor->Initialize(device_->GetDevice(), swapChain_->GetSwapChainResources(0), swapChain_->GetSwapChainResources(1), WinApp::kClientWidth, WinApp::kClientHeight);
+
 }
 
 void DirectXCommon::BeginDraw()
@@ -59,11 +55,62 @@ void DirectXCommon::BeginDraw()
 	// バリアで書き込み可能に変更
 	ChangeBarrier();
 
+	// 画面をクリア
+	ClearWindow();
+
+	// ビューポート矩形の設定
+	InitializeViewport();
+
+	// シザリング矩形の設定
+	InitializeScissoring();
 }
 
 void DirectXCommon::EndDraw()
 {
+	HRESULT hr{};
 
+	// 画面に描く処理はすべて終わり、画面に移すので、状態を遷移
+	// 今回はRenderTargetからPresentにする
+	barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
+	barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_PRESENT;
+	//TransitionBarirrerを張る
+	commandList->ResourceBarrier(1, &barrier);
+
+	//コマンドリストの内容を確定させる。すべてのコマンドを積んでからCloseすること
+	hr = commandList->Close();
+	assert(SUCCEEDED(hr));
+
+	//GPUにコマンドリストの実行を行わせる
+	ID3D12CommandList* commandLists[] = { commandList.Get() };
+	
+	//GPUに対して積まれたコマンドを実行
+	commandQueue->ExecuteCommandLists(1, commandLists);
+	
+	//GPUとOSに画面の交換を行うよう通知する
+	swapChain_->GetSwapChain()->Present(1, 0);
+
+	//Fenceの値を更新
+	fenceValue++;
+	
+	//GPUがここまでたどり着いたときに、Fenceの値を指定した値に代入するようにSignalを送る
+	commandQueue->Signal(fence.Get(), fenceValue);
+
+	//Fenceの値が指定したSignal値にたどり着いているか確認する
+	//GetCompletedValueの初期値はFence作成時にわあ足した初期値
+	if (fence->GetCompletedValue() < fenceValue)
+	{
+		//指定したSignalにたどりついていないので、たどり着くまで待つようにイベントを設定する
+		fence->SetEventOnCompletion(fenceValue, fenceEvent);
+		//イベントを待つ
+		WaitForSingleObject(fenceEvent, INFINITE);
+	}
+
+	//次のフレーム用のコマンドリストを準備（コマンドリストのリセット）
+	hr = commandAllocator->Reset();
+	assert(SUCCEEDED(hr));
+	
+	hr = commandList->Reset(commandAllocator.Get(), nullptr);
+	assert(SUCCEEDED(hr));
 }
 
 void DirectXCommon::Finalize()
@@ -72,6 +119,7 @@ void DirectXCommon::Finalize()
 
 	device_.reset();
 	swapChain_.reset();
+	descriptor.reset();
 }
 
 ID3D12Device* DirectXCommon::GetDevice() const
@@ -82,6 +130,11 @@ ID3D12Device* DirectXCommon::GetDevice() const
 ID3D12GraphicsCommandList* DirectXCommon::GetCommandList() const
 {
 	return commandList.Get();
+}
+
+ID3D12DescriptorHeap* DirectXCommon::GetSRVDescriptorHeap() const
+{
+	return descriptor->GetDSVDescriptorHeap();
 }
 
 Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> DirectXCommon::CreateDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE heapType, UINT numDescriptors, bool shadervisible)
@@ -98,6 +151,8 @@ Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> DirectXCommon::CreateDescriptorHeap
 
 	return descriptorHeap;
 }
+
+#pragma region デバッグレイヤーと警告時に停止処理
 
 void DirectXCommon::DebugLayer()
 {
@@ -153,6 +208,8 @@ void DirectXCommon::ErrorWarning()
 #endif // _DEBUG
 }
 
+#pragma endregion
+
 void DirectXCommon::CreateCommands()
 {
 	HRESULT hr{};
@@ -172,26 +229,6 @@ void DirectXCommon::CreateCommands()
 	//コマンドキューの生成がうまくいかなかったので起動できない
 	assert(SUCCEEDED(hr));
 
-}
-
-void DirectXCommon::GenerateDescriptorHeaps()
-{
-#pragma region DescriptorHeap
-	//RTVディスクイリプタヒープの生成
-	Microsoft::WRL::ComPtr <ID3D12DescriptorHeap> rtvDescriptorHeap = CreateDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_RTV, 2, false);
-	//SRVディスクイリプタヒープの生成
-	Microsoft::WRL::ComPtr <ID3D12DescriptorHeap> srvDescriptorHeap = CreateDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, 128, true);
-	//DSV用のヒープでディスクリプタの数は１。DSVはShader内で触れるものではないので、ShaderVisibleはfalse
-	Microsoft::WRL::ComPtr <ID3D12DescriptorHeap> dsvDescriptorHeap = CreateDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_DSV, 1, false);
-#pragma endregion
-
-
-#pragma region DescriptorSize
-	//DescriptorSizeを取得しておく
-	const uint32_t descriptorSizeSRV = device_->GetDevice()->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-	const uint32_t descriptorSizeRTV = device_->GetDevice()->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
-	const uint32_t descriptorSizeDSV = device_->GetDevice()->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
-#pragma endregion
 }
 
 void DirectXCommon::CreateFenceEvent()
@@ -256,8 +293,6 @@ void DirectXCommon::CreateDXCCompiler()
 
 void DirectXCommon::ChangeBarrier()
 {
-	// TransitionBarrierの設定
-	D3D12_RESOURCE_BARRIER barrier{};
 	// 今回のバリアはTransition
 	barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
 	// Noneにしておく
@@ -274,15 +309,15 @@ void DirectXCommon::ChangeBarrier()
 
 void DirectXCommon::ClearWindow()
 {
-	D3D12_CPU_DESCRIPTOR_HANDLE rtvHandles[2];
+	D3D12_CPU_DESCRIPTOR_HANDLE rtvHandles[2]{};
 	
 	for (uint32_t i = 0; i < 2; i++)
 	{
-		//rtvHandles[i] = descriptor_->Get
+		rtvHandles[i] = descriptor->GetRTVHandles(i);
 	}
 
 	//描画先のRTVとDSVを設定する
-	D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle = dsvDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
+	D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle = descriptor->GetDSVDescriptorHeap()->GetCPUDescriptorHandleForHeapStart();
 	
 	commandList->OMSetRenderTargets(1, &rtvHandles[backBufferIndex], false, &dsvHandle);
 	

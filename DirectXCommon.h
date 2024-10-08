@@ -1,6 +1,7 @@
 #pragma once
 #include "DirectXDevice.h"
 #include "DirectXSwapChain.h"
+#include "DirectXDescriptor.h"
 
 #include <dxcapi.h>
 #include <memory>
@@ -28,6 +29,7 @@ public:
 public: // ゲッター
 	ID3D12Device* GetDevice() const;
 	ID3D12GraphicsCommandList* GetCommandList() const;
+	ID3D12DescriptorHeap* GetSRVDescriptorHeap() const;
 
 	Microsoft::WRL::ComPtr <ID3D12DescriptorHeap> CreateDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE heapType, UINT numDescriptors, bool shadervisible);
 
@@ -66,6 +68,7 @@ private: // メンバ関数
 private: // メンバ変数
 	std::unique_ptr<DirectXDevice> device_;
 	std::unique_ptr<DirectXSwapChain> swapChain_;
+	std::unique_ptr<DirectXDescriptor> descriptor;
 
 	Microsoft::WRL::ComPtr <ID3D12CommandQueue> commandQueue;
 	Microsoft::WRL::ComPtr<ID3D12CommandAllocator> commandAllocator;
@@ -78,6 +81,8 @@ private: // メンバ変数
 	HANDLE fenceEvent;
 	UINT64 fenceValue = 0;
 	
+	D3D12_RESOURCE_BARRIER barrier{};
+
 	// 描画開始・終了処理に使う
 	D3D12_VIEWPORT viewport{};
 	D3D12_RECT scissorRect{};

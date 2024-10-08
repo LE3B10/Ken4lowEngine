@@ -3,7 +3,20 @@
 #include <d3d12.h>
 #include <dxgi1_6.h>
 #include <array>
+#include <cstdint>
 #include <wrl.h>
+
+// デスクリプタの種類
+enum class DescriptorType
+{
+	RTV, // レンダーターゲットビュー
+	DSV, // デプスステンシルビュー
+	SRV, // シェーダーリソースビュー
+	DescriptorTypeNum
+};
+
+// デスクリプタの数
+static const uint32_t descriptorNum = static_cast<size_t>(DescriptorType::DescriptorTypeNum);
 
 // デスクリプタヒープの生成クラス
 class DirectXDescriptor
@@ -11,10 +24,10 @@ class DirectXDescriptor
 public: // メンバ関数
 
 	// 初期化処理
-	void Initialize(ID3D12Device* device, ID3D12Resource* swapChainResoursec1, ID3D12Resource* swapChainResoursec2);
+	void Initialize(ID3D12Device* device, ID3D12Resource* swapChainResoursec1, ID3D12Resource* swapChainResoursec2, uint32_t width, uint32_t height);
 
 	// DescriptorHeapを生成する
-	Microsoft::WRL::ComPtr <ID3D12DescriptorHeap> CreateDescriptorHeap(ID3D12Device* device, D3D12_DESCRIPTOR_HEAP_TYPE heapType, UINT numDescriptors, bool shadervisible);
+	Microsoft::WRL::ComPtr <ID3D12DescriptorHeap> CreateDescriptorHeap(DescriptorType descriptorType, ID3D12Device* device, D3D12_DESCRIPTOR_HEAP_TYPE heapType, UINT numDescriptors, bool shadervisible);
 
 	// DepthStencilTextureを生成する
 	Microsoft::WRL::ComPtr <ID3D12Resource> CreateDepthStencilTextureResource(ID3D12Device* device, int32_t width, int32_t height);
@@ -22,8 +35,14 @@ public: // メンバ関数
 	// レンダーターゲットビューの生成
 	void GenerateRTV(ID3D12Device* device, ID3D12Resource* swapChainResoursec1, ID3D12Resource* swapChainResoursec2);
 
-	// ゲッター
+	// デプスステンシルビューの生成
+	void GenerateDSV(ID3D12Device* device, uint32_t width, uint32_t height);
 
+	// ゲッター
+	ID3D12DescriptorHeap* GetDSVDescriptorHeap() const;
+	ID3D12DescriptorHeap* GetSRVDescriptorHeap() const;
+	D3D12_CPU_DESCRIPTOR_HANDLE GetRTVHandles(uint32_t num);
+	D3D12_CPU_DESCRIPTOR_HANDLE GetDSVHandle();
 
 private: // メンバ関数
 	// 指定番号のCPUデスクリプタヒープを取得する
@@ -33,18 +52,15 @@ private: // メンバ関数
 	static D3D12_GPU_DESCRIPTOR_HANDLE GetGPUDescriptorHandle(ID3D12DescriptorHeap* descriptorHeap, uint32_t descriptorSize, uint32_t index);
 
 private: // メンバ変数
-	Microsoft::WRL::ComPtr <ID3D12DescriptorHeap> descriptorHeap;
-	Microsoft::WRL::ComPtr <ID3D12DescriptorHeap> rtvDescriptorHeap;
-	Microsoft::WRL::ComPtr <ID3D12DescriptorHeap> dsvDescriptorHeap;
-	Microsoft::WRL::ComPtr <ID3D12DescriptorHeap> srvDescriptorHeap;
+	std::array<Microsoft::WRL::ComPtr <ID3D12DescriptorHeap>, descriptorNum> descriptorHeaps;
+	std::array<D3D12_DESCRIPTOR_HEAP_DESC, descriptorNum> descriptorHeapDescs;
 
 	D3D12_RENDER_TARGET_VIEW_DESC rtvDesc{};
 	D3D12_CPU_DESCRIPTOR_HANDLE rtvStartHandle;
 	D3D12_CPU_DESCRIPTOR_HANDLE rtvHandles[2];
 
-	uint32_t descriptorSizeSRV;
-	uint32_t descriptorSizeRTV;
-	uint32_t descriptorSizeDSV;
-
+	Microsoft::WRL::ComPtr <ID3D12Resource> depthStencilResource;
+	D3D12_DEPTH_STENCIL_VIEW_DESC dsvDesc{};
+	D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle;
 };
 

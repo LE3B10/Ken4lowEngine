@@ -28,6 +28,15 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 		{
 			OutputDebugStringA("Hit 0 \n");
 		}
+
+		// 描画開始処理
+		dxCommon->BeginDraw();
+
+		// 描画処理
+
+		// 描画終了処理
+		dxCommon->EndDraw();
+
 	}
 
 	winApp->Finalize();
