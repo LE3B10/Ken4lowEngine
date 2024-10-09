@@ -21,6 +21,9 @@ void DirectXCommon::Initialize(WinApp* winApp)
 	swapChain_ = std::make_unique<DirectXSwapChain>();
 	descriptor = std::make_unique<DirectXDescriptor>();
 
+	// FPS固定初期化処理
+	InitializeFixFPS();
+
 	// デバッグレイヤーをオンに
 	DebugLayer();
 
@@ -73,39 +76,41 @@ void DirectXCommon::EndDraw()
 	// 今回はRenderTargetからPresentにする
 	barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
 	barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_PRESENT;
-	//TransitionBarirrerを張る
+	// TransitionBarirrerを張る
 	commandList->ResourceBarrier(1, &barrier);
 
-	//コマンドリストの内容を確定させる。すべてのコマンドを積んでからCloseすること
+	// コマンドリストの内容を確定させる。すべてのコマンドを積んでからCloseすること
 	hr = commandList->Close();
 	assert(SUCCEEDED(hr));
 
 	//GPUにコマンドリストの実行を行わせる
 	ID3D12CommandList* commandLists[] = { commandList.Get() };
 	
-	//GPUに対して積まれたコマンドを実行
+	// GPUに対して積まれたコマンドを実行
 	commandQueue->ExecuteCommandLists(1, commandLists);
 	
 	//GPUとOSに画面の交換を行うよう通知する
 	swapChain_->GetSwapChain()->Present(1, 0);
 
-	//Fenceの値を更新
+	// Fenceの値を更新
 	fenceValue++;
 	
-	//GPUがここまでたどり着いたときに、Fenceの値を指定した値に代入するようにSignalを送る
+	// GPUがここまでたどり着いたときに、Fenceの値を指定した値に代入するようにSignalを送る
 	commandQueue->Signal(fence.Get(), fenceValue);
 
-	//Fenceの値が指定したSignal値にたどり着いているか確認する
-	//GetCompletedValueの初期値はFence作成時に渡した初期値
+	// Fenceの値が指定したSignal値にたどり着いているか確認する
 	if (fence->GetCompletedValue() < fenceValue)
 	{
-		//指定したSignalにたどりついていないので、たどり着くまで待つようにイベントを設定する
+		// 指定したSignalにたどりついていないので、たどり着くまで待つようにイベントを設定する
 		fence->SetEventOnCompletion(fenceValue, fenceEvent);
-		//イベントを待つ
+		// イベントを待つ
 		WaitForSingleObject(fenceEvent, INFINITE);
 	}
 
-	//次のフレーム用のコマンドリストを準備（コマンドリストのリセット）
+	// FPS固定更新処理
+	UpdateFixFPS();
+
+	// 次のフレーム用のコマンドリストを準備（コマンドリストのリセット）
 	hr = commandAllocator->Reset();
 	assert(SUCCEEDED(hr));
 	
@@ -147,7 +152,7 @@ IDxcCompiler3* DirectXCommon::GetIDxcCompiler() const
 	return dxcCompiler.Get();
 }
 
-IDxcIncludeHandler* DirectXCommon::GetIncludeHnadler() const
+IDxcIncludeHandler* DirectXCommon::GetIncludeHandler() const
 {
 	return includeHandler.Get();
 }
@@ -328,4 +333,39 @@ void DirectXCommon::ClearWindow()
 	
 	//指定した深度で画面全体をクリアする
 	commandList->ClearDepthStencilView(dsvHandle, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
+}
+
+void DirectXCommon::InitializeFixFPS()
+{
+	// 現在の時間を記録する - 逆行しないタイマー
+	reference_ = std::chrono::steady_clock::now();
+}
+
+void DirectXCommon::UpdateFixFPS()
+{
+	// 1/60秒ピッタリの時間
+	const std::chrono::microseconds kMinTime(uint64_t(1000000.0f / 60.0f));
+
+	// 1/60秒より技化に短い時間
+	const std::chrono::microseconds kMinCheckTime(uint64_t(1000000.0f / 65.0f));
+
+	// 現在の時間を取得する
+	std::chrono::steady_clock::time_point now = std::chrono::steady_clock::now();
+	// 前回の記録からの経過時間を取得する
+	std::chrono::microseconds elapsed =
+		std::chrono::duration_cast<std::chrono::microseconds>(now - reference_);
+
+	// 1/60秒（よりわずかに短い時間）経っていない場合
+	if (elapsed < kMinTime)
+	{
+		// 1/60秒経過するまで微小なスリープを繰り返す
+		while (std::chrono::steady_clock::now() - reference_ < kMinTime)
+		{
+			// 1マイクロ病スリープ
+			std::this_thread::sleep_for(std::chrono::microseconds(1));
+		}
+	}
+
+	// 現在の時間を記録する
+	reference_ = std::chrono::steady_clock::now();
 }

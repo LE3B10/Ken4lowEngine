@@ -138,6 +138,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="DirectXCommon.h" />
     <ClInclude Include="DirectXDescriptor.h" />
     <ClInclude Include="DirectXDevice.h" />
+    <ClInclude Include="DirectXInclude.h" />
     <ClInclude Include="DirectXSwapChain.h" />
     <ClInclude Include="externals\imgui\imconfig.h" />
     <ClInclude Include="externals\imgui\imgui.h" />

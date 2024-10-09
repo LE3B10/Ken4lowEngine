@@ -100,10 +100,10 @@ void DirectXDescriptor::GenerateRTV(ID3D12Device* device, ID3D12Resource* swapCh
 
 void DirectXDescriptor::GenerateDSV(ID3D12Device* device, uint32_t width, uint32_t height)
 {
-	//DepthStencilTextureをウィンドウのサイズで作成
+	// DepthStencilTextureをウィンドウのサイズで作成
 	depthStencilResource = CreateDepthStencilTextureResource(device, width, height);
 
-	//DSVの設定
+	// DSVの設定
 	D3D12_DEPTH_STENCIL_VIEW_DESC dsvDesc{};
 	dsvDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;			//Format。基本的にはResourceに合わせる
 	dsvDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;	//2DTexture

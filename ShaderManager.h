@@ -1,17 +1,18 @@
 #pragma once
-#include <Windows.h>
-#include <d3d12.h>
-#include <dxgi1_6.h>
-#include <dxcapi.h>
-
+#include "DirectXCommon.h"
+#include "DirectXInclude.h"
 #include "LogString.h"
 
 // シェーダーコンパイラ専用クラス
 class ShaderManager
 {
 public: // メンバ関数
+
+
+
+private: // メンバ関数
 	// CompilerShader関数
-	IDxcBlob* CompilerShader(
+	IDxcBlob* CompileShader(
 		//CompilerするShaderファイルへのパス
 		const std::wstring& filePath,
 		//Compilerに使用するProfile
@@ -21,6 +22,10 @@ public: // メンバ関数
 		IDxcCompiler3* dxcCompiler,
 		IDxcIncludeHandler* includeHandler);
 
+	void ShaderCompileObject3D(DirectXCommon* dxCommon);
+
 private: // メンバ変数
+	Microsoft::WRL::ComPtr <IDxcBlob> vertexShaderBlob;
+	Microsoft::WRL::ComPtr <IDxcBlob> pixelShaderBlob;
 };
 

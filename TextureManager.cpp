@@ -1,6 +1,10 @@
 #include "TextureManager.h"
 
-Microsoft::WRL::ComPtr<ID3D12Resource> TextureManager::CreateTextureResource(Microsoft::WRL::ComPtr<ID3D12Device> device, const DirectX::TexMetadata& metadata)
+#pragma comment(lib, "d3d12.lib")        // Direct3D 12用
+#pragma comment(lib, "dxgi.lib")         // DXGI (DirectX Graphics Infrastructure)用
+#pragma comment(lib, "dxguid.lib")       // DXGIやD3D12で使用するGUID定義用
+
+Microsoft::WRL::ComPtr<ID3D12Resource> TextureManager::CreateTextureResource(ID3D12Device* device, const DirectX::TexMetadata& metadata)
 {
 	//1. metadataを基にResourceの設定
 	D3D12_RESOURCE_DESC resourceDesc{};

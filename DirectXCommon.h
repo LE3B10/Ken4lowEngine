@@ -3,8 +3,10 @@
 #include "DirectXSwapChain.h"
 #include "DirectXDescriptor.h"
 
+#include <chrono>
 #include <dxcapi.h>
 #include <memory>
+#include <thread>
 
 // 前方宣言
 class WinApp;
@@ -32,7 +34,7 @@ public: // ゲッター
 	ID3D12DescriptorHeap* GetSRVDescriptorHeap() const;
 	IDxcUtils* GetIDxcUtils() const;
 	IDxcCompiler3* GetIDxcCompiler() const;
-	IDxcIncludeHandler* GetIncludeHnadler() const;
+	IDxcIncludeHandler* GetIncludeHandler() const;
 	DXGI_SWAP_CHAIN_DESC1& GetSwapChainDesc();
 
 private: // メンバ関数
@@ -64,6 +66,12 @@ private: // メンバ関数
 	// 画面全体をクリア
 	void ClearWindow();
 
+	// FPS固定初期化処理
+	void InitializeFixFPS();
+	
+	// FPS固定更新
+	void UpdateFixFPS();
+
 private: // メンバ変数
 	std::unique_ptr<DirectXDevice> device_;
 	std::unique_ptr<DirectXSwapChain> swapChain_;
@@ -93,6 +101,9 @@ private: // メンバ変数
 	UINT backBufferIndex;
 
 private: // メンバ変数
+
+	// 記録時間(FPS固定用)
+	std::chrono::steady_clock::time_point reference_;
 
 	DirectXCommon() = default;
 	~DirectXCommon() = default;

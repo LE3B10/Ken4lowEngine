@@ -2,11 +2,9 @@
 
 #include <cassert>
 
-#pragma comment(lib, "d3d12.lib")
-#pragma comment(lib, "dxgi.lib")
-#pragma comment(lib, "dxguid.lib")
+#pragma comment(lib, "dxcompiler.lib")   // DXC (DirectX Shader Compiler)用
 
-IDxcBlob* ShaderManager::CompilerShader(const std::wstring& filePath, const wchar_t* profile, IDxcUtils* dxcUtils, IDxcCompiler3* dxcCompiler, IDxcIncludeHandler* includeHandler)
+IDxcBlob* ShaderManager::CompileShader(const std::wstring& filePath, const wchar_t* profile, IDxcUtils* dxcUtils, IDxcCompiler3* dxcCompiler, IDxcIncludeHandler* includeHandler)
 {
 	// これからシェーダーをコンパイルする旨をログに出す
 	Log(ConvertString(std::format(L"Begin CompileShader, path:{}, profile:{}\n", filePath, profile)));
@@ -69,4 +67,15 @@ IDxcBlob* ShaderManager::CompilerShader(const std::wstring& filePath, const wcha
 	shaderError->Release();
 	// 実行用のバイナリを返却
 	return shaderBlob;
+}
+
+void ShaderManager::ShaderCompileObject3D(DirectXCommon* dxCommon)
+{
+	// Shaderをコンパイル
+	vertexShaderBlob = CompileShader(L"Resources/Shaders/Object3D.VS.hlsl", L"vs_6_0", dxCommon->GetIDxcUtils(), dxCommon->GetIDxcCompiler(), dxCommon->GetIncludeHandler());
+	assert(vertexShaderBlob != nullptr);
+
+	// Pixelをコンパイル
+	pixelShaderBlob = CompileShader(L"Resources/Shaders/Object3D.PS.hlsl", L"ps_6_0", dxCommon->GetIDxcUtils(), dxCommon->GetIDxcCompiler(), dxCommon->GetIncludeHandler());
+	assert(pixelShaderBlob != nullptr);
 }
