@@ -7,10 +7,6 @@
 class ShaderManager
 {
 public: // メンバ関数
-
-
-
-private: // メンバ関数
 	// CompilerShader関数
 	IDxcBlob* CompileShader(
 		//CompilerするShaderファイルへのパス
