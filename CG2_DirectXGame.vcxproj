@@ -117,7 +117,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClCompile Include="LogString.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="PipelineStateManager.cpp" />
-    <ClCompile Include="RanterizerStateManager.cpp" />
+    <ClCompile Include="RasterizerStateManager.cpp" />
     <ClCompile Include="ResourceManager.cpp" />
     <ClCompile Include="ResourceObject.cpp" />
     <ClCompile Include="RootSignatureManager.cpp" />
@@ -161,7 +161,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="MatrixMath.h" />
     <ClInclude Include="ModelData.h" />
     <ClInclude Include="PipelineStateManager.h" />
-    <ClInclude Include="RanterizerStateManager.h" />
+    <ClInclude Include="RasterizerStateManager.h" />
     <ClInclude Include="ResourceManager.h" />
     <ClInclude Include="ResourceObject.h" />
     <ClInclude Include="RootSignatureManager.h" />
@@ -175,15 +175,15 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="WinApp.h" />
   </ItemGroup>
   <ItemGroup>
-    <Text Include="externals\imgui\LICENSE.txt" />
-  </ItemGroup>
-  <ItemGroup>
     <ProjectReference Include="externals\DirectXTex\DirectXTex_Desktop_2022_Win10.vcxproj">
       <Project>{371b9fa9-4c90-4ac6-a123-aced756d6c77}</Project>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
     <None Include="Resources\Shaders\Object3d.hlsli" />
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="externals\imgui\LICENSE.txt" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

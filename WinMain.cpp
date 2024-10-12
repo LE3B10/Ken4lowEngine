@@ -2,6 +2,9 @@
 #include "Input.h"
 #include "DirectXCommon.h"
 #include "ImGuiManager.h"
+#include "D3DResourceLeakChecker.h"
+
+D3DResourceLeakChecker resourceLeakCheck;
 
 // Windowsアプリでのエントリーポイント(main関数)
 int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
