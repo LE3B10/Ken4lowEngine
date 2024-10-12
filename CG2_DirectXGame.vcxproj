@@ -117,8 +117,10 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClCompile Include="LogString.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="PipelineStateManager.cpp" />
+    <ClCompile Include="RanterizerStateManager.cpp" />
     <ClCompile Include="ResourceManager.cpp" />
     <ClCompile Include="ResourceObject.cpp" />
+    <ClCompile Include="RootSignatureManager.cpp" />
     <ClCompile Include="ShaderManager.cpp" />
     <ClCompile Include="TextureManager.cpp" />
     <ClCompile Include="WinApp.cpp" />
@@ -159,8 +161,10 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="MatrixMath.h" />
     <ClInclude Include="ModelData.h" />
     <ClInclude Include="PipelineStateManager.h" />
+    <ClInclude Include="RanterizerStateManager.h" />
     <ClInclude Include="ResourceManager.h" />
     <ClInclude Include="ResourceObject.h" />
+    <ClInclude Include="RootSignatureManager.h" />
     <ClInclude Include="ShaderManager.h" />
     <ClInclude Include="TextureManager.h" />
     <ClInclude Include="TransformationMatrix.h" />

@@ -34,11 +34,19 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 			OutputDebugStringA("Hit 0 \n");
 		}
 
+		// ImGuiフレーム開始
+		imguiManager->BeginFrame();
+
+		// ImGuiフレーム終了
+		imguiManager->EndFrame();
+
+
 		// 描画開始処理
 		dxCommon->BeginDraw();
 
 		// 描画処理
 
+		imguiManager->Draw();
 		// 描画終了処理
 		dxCommon->EndDraw();
 	}
