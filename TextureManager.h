@@ -1,7 +1,7 @@
 #pragma once
 #include <DirectXTex.h>
 
-#include "DirectXInclude.h"
+#include "DX12Include.h"
 #include "LogString.h"
 
 // テクスチャ管理クラス

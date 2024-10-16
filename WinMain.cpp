@@ -13,22 +13,22 @@ static const uint32_t kClientHeight = 720;
 // Windowsアプリでのエントリーポイント(main関数)
 int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 {
-	// ポインタ
+	/// ---------- シングルトンインスタンス ---------- ///
 	WinApp* winApp = WinApp::GetInstance();
 	Input* input = Input::GetInstance();
 	DirectXCommon* dxCommon = DirectXCommon::GetInstance();
 	ImGuiManager* imguiManager = ImGuiManager::GetInstance();
 
-	// WindowsAPIのウィンドウ作成
+	/// ---------- WindowsAPIのウィンドウ作成 ---------- ///
 	winApp->CreateMainWindow(kClientWidth, kClientHeight);
 
-	// 入力の初期化
+	/// ---------- 入力の初期化 ---------- ///
 	input->Initialize(winApp);
 
-	// DirectXの初期化
+	/// ---------- DirectXの初期化 ----------///
 	dxCommon->Initialize(winApp, kClientWidth, kClientHeight);
 
-	// ImGuiManagerの初期化
+	/// ---------- ImGuiManagerの初期化 ---------- ///
 	imguiManager->Initialize(winApp, dxCommon);
 
 	while (!winApp->ProcessMessage())
@@ -58,6 +58,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 		dxCommon->EndDraw();
 	}
 
+	/// ---------- 終了処理 ---------- ///
 	winApp->Finalize();
 	dxCommon->Finalize();
 	imguiManager->Finalize();

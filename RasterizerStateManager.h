@@ -1,5 +1,5 @@
 #pragma once
-#include "DirectXInclude.h"
+#include "DX12Include.h"
 
 /// -------------------------------------------------------------
 ///			ラスタライザに対する設定を管理するクラス

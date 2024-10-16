@@ -78,10 +78,15 @@ void DirectXCommon::BeginDraw()
 	ClearWindow();
 
 	// ビューポート矩形の設定
-	InitializeViewport();
+	viewport = D3D12_VIEWPORT(0.0f, 0.0f, (float)kClientWidth, (float)kClientHeight);
+	commandList->RSSetViewports(1, &viewport);
 
 	// シザリング矩形の設定
-	InitializeScissoring();
+	scissorRect = D3D12_RECT(0, 0, kClientWidth, kClientHeight);
+	commandList->RSSetScissorRects(1, &scissorRect);
+
+	// 形状を設定。PSOに設定るものとはまた別。同じものを設定るすると考える
+	commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 }
 
 
@@ -97,6 +102,7 @@ void DirectXCommon::EndDraw()
 	// 今回はRenderTargetからPresentにする
 	barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
 	barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_PRESENT;
+	
 	// TransitionBarirrerを張る
 	commandList->ResourceBarrier(1, &barrier);
 
