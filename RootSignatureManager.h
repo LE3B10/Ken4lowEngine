@@ -1,13 +1,16 @@
 #pragma once
-#include "DirectXInclude.h"
+#include "DX12Include.h"
 
-// 前方宣言
+/// ---------- 前方宣言 ---------- ///
 class DirectXCommon;
 
-// シェーダとリソースを関連付ける管理クラス
+/// -------------------------------------------------------------
+///			シェーダとリソースを関連付ける管理クラス
+/// -------------------------------------------------------------
 class RootSignatureManager
 {
-public: // メンバ関数
+public:
+	/// ---------- メンバ関数 ---------- ///
 
 	// ルートシグネチャを生成
 	void CreateRootSignature(DirectXCommon* dxCommon);
@@ -15,7 +18,13 @@ public: // メンバ関数
 	// サンプラーの設定
 	void SettingSampler();
 
-private: // メンバ変数
+	/// ---------- メンバ関数 ---------- ///
+
+	ID3D12RootSignature* GetRootSignature() const;
+
+private:
+	/// ---------- メンバ関数 ---------- ///
+
 	Microsoft::WRL::ComPtr <ID3DBlob> signatureBlob = nullptr;
 	Microsoft::WRL::ComPtr <ID3DBlob> errorBlob = nullptr;
 	Microsoft::WRL::ComPtr <ID3D12RootSignature> rootSignature = nullptr;

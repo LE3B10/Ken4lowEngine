@@ -1,4 +1,4 @@
-#include "DirectXDevice.h"
+#include "DX12Device.h"
 
 #include <cassert>
 
@@ -7,7 +7,11 @@
 #pragma comment(lib, "d3d12.lib")
 #pragma comment(lib, "dxgi.lib")
 
-void DirectXDevice::Initialize()
+
+/// -------------------------------------------------------------
+///					デバイスの初期化処理
+/// -------------------------------------------------------------
+void DX12Device::Initialize()
 {
 	//HRESULTはWindows系のエラーコードであり、
 	//関数が成功したかどうかをSUCCEEDEDマクロ判定できる
@@ -24,6 +28,7 @@ void DirectXDevice::Initialize()
 		DXGI_ADAPTER_DESC3 adapterDesc{};
 		hr = useAdapter->GetDesc3(&adapterDesc);
 		assert(SUCCEEDED(hr));	//取得できないのは一大事
+		
 		//ソフトウェアアダプタでなければ採用
 		if (!(adapterDesc.Flags & DXGI_ADAPTER_FLAG3_SOFTWARE))
 		{
@@ -40,6 +45,7 @@ void DirectXDevice::Initialize()
 	//機能レベルとログ出力用の文字列
 	D3D_FEATURE_LEVEL featureLevels[] = { D3D_FEATURE_LEVEL_12_2,D3D_FEATURE_LEVEL_12_1,D3D_FEATURE_LEVEL_12_0 };
 	const char* featureLevelStrings[] = { "12.2","12.1","12.0" };
+	
 	//高い順に生成できるか試していく
 	for (size_t i = 0; i < _countof(featureLevels); ++i)
 	{
@@ -59,12 +65,17 @@ void DirectXDevice::Initialize()
 	Log("Complete create D3D12Device!!!\n");	//初期化完了のログを出す
 }
 
-ID3D12Device* DirectXDevice::GetDevice() const
+
+
+/// -------------------------------------------------------------
+///							ゲッター
+/// -------------------------------------------------------------
+ID3D12Device* DX12Device::GetDevice() const
 {
 	return device.Get();
 }
 
-IDXGIFactory7* DirectXDevice::GetDXGIFactory() const
+IDXGIFactory7* DX12Device::GetDXGIFactory() const
 {
 	return dxgiFactory.Get();
 }

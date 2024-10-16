@@ -84,13 +84,13 @@
     <ClCompile Include="DirectXCommon.cpp">
       <Filter>ソース ファイル\DirectXCommon</Filter>
     </ClCompile>
-    <ClCompile Include="DirectXDevice.cpp">
+    <ClCompile Include="DX12Device.cpp">
       <Filter>ソース ファイル\DirectXCommon</Filter>
     </ClCompile>
-    <ClCompile Include="DirectXDescriptor.cpp">
+    <ClCompile Include="DX12Descriptor.cpp">
       <Filter>ソース ファイル\DirectXCommon</Filter>
     </ClCompile>
-    <ClCompile Include="DirectXSwapChain.cpp">
+    <ClCompile Include="DX12SwapChain.cpp">
       <Filter>ソース ファイル\DirectXCommon</Filter>
     </ClCompile>
     <ClCompile Include="ResourceManager.cpp">
@@ -118,6 +118,9 @@
       <Filter>ソース ファイル\PSO</Filter>
     </ClCompile>
     <ClCompile Include="BlendStateManager.cpp">
+      <Filter>ソース ファイル\PSO</Filter>
+    </ClCompile>
+    <ClCompile Include="InputLayoutManager.cpp">
       <Filter>ソース ファイル\PSO</Filter>
     </ClCompile>
   </ItemGroup>
@@ -172,16 +175,16 @@
     <ClInclude Include="DirectXCommon.h">
       <Filter>ヘッダー ファイル\DirectXCommon</Filter>
     </ClInclude>
-    <ClInclude Include="DirectXDescriptor.h">
+    <ClInclude Include="DX12Descriptor.h">
       <Filter>ヘッダー ファイル\DirectXCommon</Filter>
     </ClInclude>
-    <ClInclude Include="DirectXDevice.h">
+    <ClInclude Include="DX12Device.h">
       <Filter>ヘッダー ファイル\DirectXCommon</Filter>
     </ClInclude>
-    <ClInclude Include="DirectXInclude.h">
+    <ClInclude Include="DX12Include.h">
       <Filter>ヘッダー ファイル\DirectXCommon</Filter>
     </ClInclude>
-    <ClInclude Include="DirectXSwapChain.h">
+    <ClInclude Include="DX12SwapChain.h">
       <Filter>ヘッダー ファイル\DirectXCommon</Filter>
     </ClInclude>
     <ClInclude Include="VectorMath.h">
@@ -236,6 +239,9 @@
       <Filter>ヘッダー ファイル\PSO</Filter>
     </ClInclude>
     <ClInclude Include="BlendStateManager.h">
+      <Filter>ヘッダー ファイル\PSO</Filter>
+    </ClInclude>
+    <ClInclude Include="InputLayoutManager.h">
       <Filter>ヘッダー ファイル\PSO</Filter>
     </ClInclude>
   </ItemGroup>

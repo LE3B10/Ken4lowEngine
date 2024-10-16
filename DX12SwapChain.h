@@ -7,22 +7,28 @@
 #include <dxgi1_6.h>
 #include <wrl.h>
 
-// 前方宣言
+/// ---------- 前方宣言 ---------- ///
 class WinApp;
 
-class DirectXSwapChain
+/// -------------------------------------------------------------
+///				スワップチェインの生成クラス
+/// -------------------------------------------------------------
+class DX12SwapChain
 {
-public: // メンバ関数
+public:
+	/// ---------- メンバ関数 ---------- ///
 
 	// スワップチェインの生成
-	void Initialize(WinApp* winApp, IDXGIFactory7* dxgiFactory, ID3D12CommandQueue* commandQueue);
+	void Initialize(WinApp* winApp, IDXGIFactory7* dxgiFactory, ID3D12CommandQueue* commandQueue, uint32_t Width, uint32_t Height);
 
 	// ゲッター
 	IDXGISwapChain4* GetSwapChain() const;
 	ID3D12Resource* GetSwapChainResources(uint32_t num) const;
 	DXGI_SWAP_CHAIN_DESC1& GetSwapChainDesc();
 
-private: // メンバ変数
+private:
+	/// ---------- メンバ変数 ---------- ///
+
 	Microsoft::WRL::ComPtr <IDXGISwapChain4> swapChain;
 	Microsoft::WRL::ComPtr <ID3D12Resource> swapChainResources[2];
 	DXGI_SWAP_CHAIN_DESC1 swapChainDesc{};

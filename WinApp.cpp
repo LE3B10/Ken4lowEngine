@@ -4,16 +4,24 @@
 
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
+
+/// -------------------------------------------------------------
+///					シングルトンインスタンス
+/// -------------------------------------------------------------
 WinApp* WinApp::GetInstance()
 {
 	static WinApp instance;
-
 	return &instance;
 }
 
-void WinApp::CreateMainWindow()
+
+
+/// -------------------------------------------------------------
+///					メインウィンドウの作成
+/// -------------------------------------------------------------
+void WinApp::CreateMainWindow(uint32_t Width, uint32_t Height)
 {
-	//COMの初期化
+	// COMの初期化
 	HRESULT hr = CoInitializeEx(0, COINIT_MULTITHREADED);
 
 	// ウィンドウクラスを登録する
@@ -25,7 +33,9 @@ void WinApp::CreateMainWindow()
 	RegisterClass(&wc);
 
 	// ウィンドウサイズを表す構造体にクライアント領域を入れる
-	RECT wrc = { 0,0,kClientWidth,kClientHeight };
+	RECT wrc = {};
+	wrc.right = Width;
+	wrc.bottom = Height;
 
 	// クライアント領域をmとに実際のサイズにwrcに変更してもらう
 	AdjustWindowRect(&wrc, WS_OVERLAPPEDWINDOW, false);
@@ -44,21 +54,31 @@ void WinApp::CreateMainWindow()
 		wc.hInstance,			// インスタンスハンドル
 		nullptr);				// オプション
 
-	//ウィンドウを表示する
+	// ウィンドウを表示する
 	ShowWindow(hwnd, SW_SHOW);
 }
 
+
+
+/// -------------------------------------------------------------
+///							終了処理
+/// -------------------------------------------------------------
 void WinApp::Finalize()
 {
 	CloseWindow(hwnd);
-	//COMの終了処理
+	// COMの終了処理
 	CoUninitialize();
 }
 
+
+
+/// -------------------------------------------------------------
+///						メッセージ処理
+/// -------------------------------------------------------------
 bool WinApp::ProcessMessage()
 {
 	MSG msg{};
-	//Windowにメッセージが来たら最優先で処理させる
+	// Windowにメッセージが来たら最優先で処理させる
 	if (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
 	{
 		TranslateMessage(&msg);
@@ -72,6 +92,11 @@ bool WinApp::ProcessMessage()
 	return false;
 }
 
+
+
+/// -------------------------------------------------------------
+///					ウィンドウプロシージャ
+/// -------------------------------------------------------------
 LRESULT WinApp::WindowProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
 {
 #ifndef _Debug
@@ -81,16 +106,16 @@ LRESULT WinApp::WindowProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
 	}
 #endif // !_Debug
 
-	//メッセージに応じてゲーム固有の処理を行う
+	// メッセージに応じてゲーム固有の処理を行う
 	switch (msg)
 	{
-		//ウィンドウが破棄された
+		// ウィンドウが破棄された
 	case WM_DESTROY:
-		//OSに対して、アプリの終了を伝える
+		// OSに対して、アプリの終了を伝える
 		PostQuitMessage(0);
 		return 0;
 	}
 
-	//標準のメッセージ処理を行う
+	// 標準のメッセージ処理を行う
 	return DefWindowProc(hwnd, msg, wparam, lparam);
 }

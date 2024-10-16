@@ -1,10 +1,14 @@
 #pragma once
-#include "DirectXInclude.h"
+#include "DX12Include.h"
 
-// ブレンド管理クラス
+
+/// -------------------------------------------------------------
+///						ブレンド管理クラス
+/// -------------------------------------------------------------
 class BlendStateManager
 {
-public: // ブレンドモードの列挙型
+public: 
+	/// ---------- ブレンドモードの列挙型 ---------- ///
 	enum BlendMode
 	{
 		kBlendModeNone,		// ブレンドなし
@@ -16,7 +20,19 @@ public: // ブレンドモードの列挙型
 		kcountOfBlendMode,	// 利用してはいけない
 	};
 
-public: // メンバ関数
+public:
+	/// ---------- メンバ関数 ---------- ///
+	
 	D3D12_RENDER_TARGET_BLEND_DESC CreateBlend(BlendMode blendMode);
+
+	/// ---------- ゲッター ---------- ///
+
+	D3D12_RENDER_TARGET_BLEND_DESC& GetBlendDesc();
+
+private:
+	/// ---------- メンバ変数 ---------- ///
+	
+	// BlendStateの設定
+	D3D12_RENDER_TARGET_BLEND_DESC blendDesc{};
 };
 

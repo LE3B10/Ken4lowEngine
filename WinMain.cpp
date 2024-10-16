@@ -6,6 +6,10 @@
 
 D3DResourceLeakChecker resourceLeakCheck;
 
+// クライアント領域サイズ
+static const uint32_t kClientWidth = 1280;
+static const uint32_t kClientHeight = 720;
+
 // Windowsアプリでのエントリーポイント(main関数)
 int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 {
@@ -16,13 +20,13 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	ImGuiManager* imguiManager = ImGuiManager::GetInstance();
 
 	// WindowsAPIのウィンドウ作成
-	winApp->CreateMainWindow();
+	winApp->CreateMainWindow(kClientWidth, kClientHeight);
 
 	// 入力の初期化
 	input->Initialize(winApp);
 
 	// DirectXの初期化
-	dxCommon->Initialize(winApp);
+	dxCommon->Initialize(winApp, kClientWidth, kClientHeight);
 
 	// ImGuiManagerの初期化
 	imguiManager->Initialize(winApp, dxCommon);

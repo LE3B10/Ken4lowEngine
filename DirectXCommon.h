@@ -1,25 +1,32 @@
 #pragma once
-#include "DirectXDevice.h"
-#include "DirectXSwapChain.h"
-#include "DirectXDescriptor.h"
+#include "DX12Device.h"
+#include "DX12SwapChain.h"
+#include "DX12Descriptor.h"
 
 #include <chrono>
 #include <dxcapi.h>
 #include <memory>
 #include <thread>
 
-// 前方宣言
+/// ---------- 前方宣言 ---------- ///
 class WinApp;
 
-// DirectX基盤
+/// -------------------------------------------------------------
+///			DirectXCommon - DirectX12の基盤クラス
+/// -------------------------------------------------------------
 class DirectXCommon
 {
+	uint32_t kClientWidth;
+	uint32_t kClientHeight;
+
 public:
+	/// ---------- メンバ関数 ---------- ///
+
 	// シングルトン
 	static DirectXCommon* GetInstance();
 
 	// 初期化処理
-	void Initialize(WinApp* winApp);
+	void Initialize(WinApp* winApp, uint32_t Width, uint32_t Height);
 
 	// 描画開始・終了処理
 	void BeginDraw();
@@ -28,7 +35,9 @@ public:
 	// 終了処理
 	void Finalize();
 
-public: // ゲッター
+public:
+	/// ---------- ゲッター ---------- ///
+	
 	ID3D12Device* GetDevice() const;
 	ID3D12GraphicsCommandList* GetCommandList() const;
 	ID3D12DescriptorHeap* GetSRVDescriptorHeap() const;
@@ -37,7 +46,8 @@ public: // ゲッター
 	IDxcIncludeHandler* GetIncludeHandler() const;
 	DXGI_SWAP_CHAIN_DESC1& GetSwapChainDesc();
 
-private: // メンバ関数
+private:
+	/// ---------- メンバ関数 ---------- ///
 
 	// デバッグレイヤーの表示
 	void DebugLayer();
@@ -72,10 +82,12 @@ private: // メンバ関数
 	// FPS固定更新
 	void UpdateFixFPS();
 
-private: // メンバ変数
-	std::unique_ptr<DirectXDevice> device_;
-	std::unique_ptr<DirectXSwapChain> swapChain_;
-	std::unique_ptr<DirectXDescriptor> descriptor;
+private:
+	/// ---------- メンバ変数 ---------- ///
+	
+	std::unique_ptr<DX12Device> device_;
+	std::unique_ptr<DX12SwapChain> swapChain_;
+	std::unique_ptr<DX12Descriptor> descriptor;
 
 	Microsoft::WRL::ComPtr <ID3D12CommandQueue> commandQueue;
 	Microsoft::WRL::ComPtr<ID3D12CommandAllocator> commandAllocator;
@@ -100,8 +112,9 @@ private: // メンバ変数
 
 	UINT backBufferIndex;
 
-private: // メンバ変数
-
+private:
+	/// ---------- メンバ変数 ---------- ///
+	
 	// 記録時間(FPS固定用)
 	std::chrono::steady_clock::time_point reference_;
 

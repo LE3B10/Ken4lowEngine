@@ -1,10 +1,11 @@
 #include "BlendStateManager.h"
 
+
+/// -------------------------------------------------------------
+///						ブレンドを作成
+/// -------------------------------------------------------------
 D3D12_RENDER_TARGET_BLEND_DESC BlendStateManager::CreateBlend(BlendMode blendMode)
 {
-	// BlendStateの設定
-	static D3D12_RENDER_TARGET_BLEND_DESC blendDesc{};
-
 	// ブレンドするかしないか
 	blendDesc.BlendEnable = false;
 	// すべての色要素を書き込む
@@ -87,5 +88,16 @@ D3D12_RENDER_TARGET_BLEND_DESC BlendStateManager::CreateBlend(BlendMode blendMod
 		break;
 	}
 
+	return blendDesc;
+}
+
+
+
+/// -------------------------------------------------------------
+///							ゲッター
+/// -------------------------------------------------------------
+D3D12_RENDER_TARGET_BLEND_DESC& BlendStateManager::GetBlendDesc()
+{
+	// TODO: return ステートメントをここに挿入します
 	return blendDesc;
 }

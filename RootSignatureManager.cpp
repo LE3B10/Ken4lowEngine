@@ -4,6 +4,10 @@
 
 #include <cassert>
 
+
+/// -------------------------------------------------------------
+///					ルートシグネチャの作成
+/// -------------------------------------------------------------
 void RootSignatureManager::CreateRootSignature(DirectXCommon* dxCommon)
 {
 	HRESULT hr{};
@@ -41,6 +45,7 @@ void RootSignatureManager::CreateRootSignature(DirectXCommon* dxCommon)
 	// サンプラーの設定
 	SettingSampler();
 
+
 	//バイナリを元に生成
 	hr = D3D12SerializeRootSignature(&descriptionRootSignature, D3D_ROOT_SIGNATURE_VERSION_1, &signatureBlob, &errorBlob);
 	if (FAILED(hr))
@@ -55,6 +60,11 @@ void RootSignatureManager::CreateRootSignature(DirectXCommon* dxCommon)
 
 }
 
+
+
+/// -------------------------------------------------------------
+///						サンプラーの設定
+/// -------------------------------------------------------------
 void RootSignatureManager::SettingSampler()
 {
 #pragma region Samplerの設定
@@ -69,4 +79,14 @@ void RootSignatureManager::SettingSampler()
 	descriptionRootSignature.pStaticSamplers = staticSamplers;
 	descriptionRootSignature.NumStaticSamplers = _countof(staticSamplers);
 #pragma endregion
+}
+
+
+
+/// -------------------------------------------------------------
+///							ゲッター
+/// -------------------------------------------------------------
+ID3D12RootSignature* RootSignatureManager::GetRootSignature() const
+{
+	return rootSignature.Get();
 }

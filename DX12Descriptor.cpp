@@ -1,11 +1,15 @@
-#include "DirectXDescriptor.h"
+#include "DX12Descriptor.h"
 
 #include <cassert>
 
 #pragma comment(lib, "d3d12.lib")
 #pragma comment(lib, "dxgi.lib")
 
-void DirectXDescriptor::Initialize(ID3D12Device* device, ID3D12Resource* swapChainResoursec1, ID3D12Resource* swapChainResoursec2, uint32_t width, uint32_t height)
+
+/// -------------------------------------------------------------
+///				各種のデスクリプタヒープの生成
+/// -------------------------------------------------------------
+void DX12Descriptor::Initialize(ID3D12Device* device, ID3D12Resource* swapChainResoursec1, ID3D12Resource* swapChainResoursec2, uint32_t width, uint32_t height)
 {
 	// RTVディスクイリプタヒープの生成
 	descriptorHeaps[static_cast<size_t>(DescriptorType::RTV)] =
@@ -27,7 +31,12 @@ void DirectXDescriptor::Initialize(ID3D12Device* device, ID3D12Resource* swapCha
 
 }
 
-Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> DirectXDescriptor::CreateDescriptorHeap(DescriptorType descriptorType, ID3D12Device* device, D3D12_DESCRIPTOR_HEAP_TYPE heapType, UINT numDescriptors, bool shadervisible)
+
+
+/// -------------------------------------------------------------
+///				デスクリプタヒープを生成する
+/// -------------------------------------------------------------
+Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> DX12Descriptor::CreateDescriptorHeap(DescriptorType descriptorType, ID3D12Device* device, D3D12_DESCRIPTOR_HEAP_TYPE heapType, UINT numDescriptors, bool shadervisible)
 {
 	Microsoft::WRL::ComPtr <ID3D12DescriptorHeap> descriptorHeap = nullptr;
 
@@ -42,7 +51,12 @@ Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> DirectXDescriptor::CreateDescriptor
 	return descriptorHeap;
 }
 
-Microsoft::WRL::ComPtr<ID3D12Resource> DirectXDescriptor::CreateDepthStencilTextureResource(ID3D12Device* device, int32_t width, int32_t height)
+
+
+/// -------------------------------------------------------------
+///				深度ステンシルテクスチャの作成
+/// -------------------------------------------------------------
+Microsoft::WRL::ComPtr<ID3D12Resource> DX12Descriptor::CreateDepthStencilTextureResource(ID3D12Device* device, int32_t width, int32_t height)
 {
 	//生成するResourceの設定
 	D3D12_RESOURCE_DESC resourceDesc{};
@@ -78,7 +92,12 @@ Microsoft::WRL::ComPtr<ID3D12Resource> DirectXDescriptor::CreateDepthStencilText
 	return resource;
 }
 
-void DirectXDescriptor::GenerateRTV(ID3D12Device* device, ID3D12Resource* swapChainResoursec1, ID3D12Resource* swapChainResoursec2)
+
+
+/// -------------------------------------------------------------
+///				レンダーターゲットビューの生成
+/// -------------------------------------------------------------
+void DX12Descriptor::GenerateRTV(ID3D12Device* device, ID3D12Resource* swapChainResoursec1, ID3D12Resource* swapChainResoursec2)
 {
 	//RTVの設定
 	rtvDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;		//出力結果をSRGBに変換して書き込む
@@ -98,7 +117,12 @@ void DirectXDescriptor::GenerateRTV(ID3D12Device* device, ID3D12Resource* swapCh
 	device->CreateRenderTargetView(swapChainResoursec2, &rtvDesc, rtvHandles[1]);
 }
 
-void DirectXDescriptor::GenerateDSV(ID3D12Device* device, uint32_t width, uint32_t height)
+
+
+/// -------------------------------------------------------------
+///				デプスステンシルビューの生成
+/// -------------------------------------------------------------
+void DX12Descriptor::GenerateDSV(ID3D12Device* device, uint32_t width, uint32_t height)
 {
 	// DepthStencilTextureをウィンドウのサイズで作成
 	depthStencilResource = CreateDepthStencilTextureResource(device, width, height);
@@ -112,34 +136,49 @@ void DirectXDescriptor::GenerateDSV(ID3D12Device* device, uint32_t width, uint32
 	device->CreateDepthStencilView(depthStencilResource.Get(), &dsvDesc, descriptorHeaps[static_cast<size_t>(DescriptorType::DSV)]->GetCPUDescriptorHandleForHeapStart());
 }
 
-ID3D12DescriptorHeap* DirectXDescriptor::GetDSVDescriptorHeap() const
+
+
+/// -------------------------------------------------------------
+///							ゲッター
+/// -------------------------------------------------------------
+ID3D12DescriptorHeap* DX12Descriptor::GetDSVDescriptorHeap() const
 {
 	return descriptorHeaps[static_cast<size_t>(DescriptorType::DSV)].Get();
 }
 
-ID3D12DescriptorHeap* DirectXDescriptor::GetSRVDescriptorHeap() const
+ID3D12DescriptorHeap* DX12Descriptor::GetSRVDescriptorHeap() const
 {
 	return descriptorHeaps[static_cast<size_t>(DescriptorType::SRV)].Get();
 }
 
-D3D12_CPU_DESCRIPTOR_HANDLE DirectXDescriptor::GetRTVHandles(uint32_t num)
+D3D12_CPU_DESCRIPTOR_HANDLE DX12Descriptor::GetRTVHandles(uint32_t num)
 {
 	return rtvHandles[num];
 }
 
-D3D12_CPU_DESCRIPTOR_HANDLE DirectXDescriptor::GetDSVHandle()
+D3D12_CPU_DESCRIPTOR_HANDLE DX12Descriptor::GetDSVHandle()
 {
 	return dsvHandle;
 }
 
-D3D12_CPU_DESCRIPTOR_HANDLE DirectXDescriptor::GetCPUDescriptorHandle(ID3D12DescriptorHeap* descriptorHeap, uint32_t descriptorSize, uint32_t index)
+
+
+/// -------------------------------------------------------------
+///				CPU　デスクリプタハンドルのゲッター
+/// -------------------------------------------------------------
+D3D12_CPU_DESCRIPTOR_HANDLE DX12Descriptor::GetCPUDescriptorHandle(ID3D12DescriptorHeap* descriptorHeap, uint32_t descriptorSize, uint32_t index)
 {
 	D3D12_CPU_DESCRIPTOR_HANDLE handleCPU = descriptorHeap->GetCPUDescriptorHandleForHeapStart();
 	handleCPU.ptr += (descriptorSize * index);
 	return handleCPU;
 }
 
-D3D12_GPU_DESCRIPTOR_HANDLE DirectXDescriptor::GetGPUDescriptorHandle(ID3D12DescriptorHeap* descriptorHeap, uint32_t descriptorSize, uint32_t index)
+
+
+/// -------------------------------------------------------------
+///				GPU　デスクリプタハンドルのゲッター
+/// -------------------------------------------------------------
+D3D12_GPU_DESCRIPTOR_HANDLE DX12Descriptor::GetGPUDescriptorHandle(ID3D12DescriptorHeap* descriptorHeap, uint32_t descriptorSize, uint32_t index)
 {
 	D3D12_GPU_DESCRIPTOR_HANDLE handleGPU = descriptorHeap->GetGPUDescriptorHandleForHeapStart();
 	handleGPU.ptr += (descriptorSize * index);

@@ -102,9 +102,9 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClCompile Include="BlendStateManager.cpp" />
     <ClCompile Include="D3DResourceLeakChecker.cpp" />
     <ClCompile Include="DirectXCommon.cpp" />
-    <ClCompile Include="DirectXDescriptor.cpp" />
-    <ClCompile Include="DirectXDevice.cpp" />
-    <ClCompile Include="DirectXSwapChain.cpp" />
+    <ClCompile Include="DX12Descriptor.cpp" />
+    <ClCompile Include="DX12Device.cpp" />
+    <ClCompile Include="DX12SwapChain.cpp" />
     <ClCompile Include="externals\imgui\imgui.cpp" />
     <ClCompile Include="externals\imgui\imgui_demo.cpp" />
     <ClCompile Include="externals\imgui\imgui_draw.cpp" />
@@ -114,6 +114,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClCompile Include="externals\imgui\imgui_widgets.cpp" />
     <ClCompile Include="ImGuiManager.cpp" />
     <ClCompile Include="Input.cpp" />
+    <ClCompile Include="InputLayoutManager.cpp" />
     <ClCompile Include="LogString.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="PipelineStateManager.cpp" />
@@ -141,10 +142,10 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="D3DResourceLeakChecker.h" />
     <ClInclude Include="DirectionalLight.h" />
     <ClInclude Include="DirectXCommon.h" />
-    <ClInclude Include="DirectXDescriptor.h" />
-    <ClInclude Include="DirectXDevice.h" />
-    <ClInclude Include="DirectXInclude.h" />
-    <ClInclude Include="DirectXSwapChain.h" />
+    <ClInclude Include="DX12Descriptor.h" />
+    <ClInclude Include="DX12Device.h" />
+    <ClInclude Include="DX12Include.h" />
+    <ClInclude Include="DX12SwapChain.h" />
     <ClInclude Include="externals\imgui\imconfig.h" />
     <ClInclude Include="externals\imgui\imgui.h" />
     <ClInclude Include="externals\imgui\imgui_impl_dx12.h" />
@@ -155,6 +156,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="externals\imgui\imstb_truetype.h" />
     <ClInclude Include="ImGuiManager.h" />
     <ClInclude Include="Input.h" />
+    <ClInclude Include="InputLayoutManager.h" />
     <ClInclude Include="LogString.h" />
     <ClInclude Include="Material.h" />
     <ClInclude Include="Matrix4x4.h" />

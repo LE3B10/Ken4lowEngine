@@ -8,18 +8,29 @@
 
 using namespace Microsoft::WRL;
 
+
+/// -------------------------------------------------------------
+///					シングルトンインスタンス
+/// -------------------------------------------------------------
 DirectXCommon* DirectXCommon::GetInstance()
 {
 	static DirectXCommon instance;
-
 	return &instance;
 }
 
-void DirectXCommon::Initialize(WinApp* winApp)
+
+
+/// -------------------------------------------------------------
+///							初期化処理
+/// -------------------------------------------------------------
+void DirectXCommon::Initialize(WinApp* winApp, uint32_t Width, uint32_t Height)
 {
-	device_ = std::make_unique<DirectXDevice>();
-	swapChain_ = std::make_unique<DirectXSwapChain>();
-	descriptor = std::make_unique<DirectXDescriptor>();
+	device_ = std::make_unique<DX12Device>();
+	swapChain_ = std::make_unique<DX12SwapChain>();
+	descriptor = std::make_unique<DX12Descriptor>();
+
+	kClientWidth = Width;
+	kClientHeight = Height;
 
 	// FPS固定初期化処理
 	InitializeFixFPS();
@@ -37,7 +48,7 @@ void DirectXCommon::Initialize(WinApp* winApp)
 	CreateCommands();
 
 	// スワップチェインの生成
-	swapChain_->Initialize(winApp, device_->GetDXGIFactory(), commandQueue.Get());
+	swapChain_->Initialize(winApp, device_->GetDXGIFactory(), commandQueue.Get(), Width, Height);
 
 	// フェンスとイベントの生成
 	CreateFenceEvent();
@@ -46,10 +57,15 @@ void DirectXCommon::Initialize(WinApp* winApp)
 	CreateDXCCompiler();
 
 	// RTV, DSVの初期化
-	descriptor->Initialize(device_->GetDevice(), swapChain_->GetSwapChainResources(0), swapChain_->GetSwapChainResources(1), WinApp::kClientWidth, WinApp::kClientHeight);
+	descriptor->Initialize(device_->GetDevice(), swapChain_->GetSwapChainResources(0), swapChain_->GetSwapChainResources(1), Width, Height);
 
 }
 
+
+
+/// -------------------------------------------------------------
+///							描画開始処理
+/// -------------------------------------------------------------
 void DirectXCommon::BeginDraw()
 {
 	// これから書き込むバックバッファのインデックスを取得
@@ -68,6 +84,11 @@ void DirectXCommon::BeginDraw()
 	InitializeScissoring();
 }
 
+
+
+/// -------------------------------------------------------------
+///							描画終了処理
+/// -------------------------------------------------------------
 void DirectXCommon::EndDraw()
 {
 	HRESULT hr{};
@@ -85,16 +106,16 @@ void DirectXCommon::EndDraw()
 
 	//GPUにコマンドリストの実行を行わせる
 	ID3D12CommandList* commandLists[] = { commandList.Get() };
-	
+
 	// GPUに対して積まれたコマンドを実行
 	commandQueue->ExecuteCommandLists(1, commandLists);
-	
+
 	//GPUとOSに画面の交換を行うよう通知する
 	swapChain_->GetSwapChain()->Present(1, 0);
 
 	// Fenceの値を更新
 	fenceValue++;
-	
+
 	// GPUがここまでたどり着いたときに、Fenceの値を指定した値に代入するようにSignalを送る
 	commandQueue->Signal(fence.Get(), fenceValue);
 
@@ -113,11 +134,16 @@ void DirectXCommon::EndDraw()
 	// 次のフレーム用のコマンドリストを準備（コマンドリストのリセット）
 	hr = commandAllocator->Reset();
 	assert(SUCCEEDED(hr));
-	
+
 	hr = commandList->Reset(commandAllocator.Get(), nullptr);
 	assert(SUCCEEDED(hr));
 }
 
+
+
+/// -------------------------------------------------------------
+///							終了処理
+/// -------------------------------------------------------------
 void DirectXCommon::Finalize()
 {
 	CloseHandle(fenceEvent);
@@ -127,6 +153,11 @@ void DirectXCommon::Finalize()
 	descriptor.reset();
 }
 
+
+
+/// -------------------------------------------------------------
+///							ゲッター
+/// -------------------------------------------------------------
 ID3D12Device* DirectXCommon::GetDevice() const
 {
 	return device_->GetDevice();
@@ -163,8 +194,12 @@ DXGI_SWAP_CHAIN_DESC1& DirectXCommon::GetSwapChainDesc()
 	return swapChain_->GetSwapChainDesc();
 }
 
-#pragma region デバッグレイヤーと警告時に停止処理
 
+
+#pragma region デバッグレイヤーと警告時に停止処理
+/// -------------------------------------------------------------
+///					デバッグレイヤーの表示
+/// -------------------------------------------------------------
 void DirectXCommon::DebugLayer()
 {
 	// デバッグレイヤーをオンに
@@ -180,6 +215,11 @@ void DirectXCommon::DebugLayer()
 #endif
 }
 
+
+
+/// -------------------------------------------------------------
+///					エラー・警告時の処理
+/// -------------------------------------------------------------
 void DirectXCommon::ErrorWarning()
 {
 	// エラー・警告、すなわち停止
@@ -218,9 +258,13 @@ void DirectXCommon::ErrorWarning()
 	}
 #endif // _DEBUG
 }
-
 #pragma endregion
 
+
+
+/// -------------------------------------------------------------
+///						コマンド生成
+/// -------------------------------------------------------------
 void DirectXCommon::CreateCommands()
 {
 	HRESULT hr{};
@@ -242,6 +286,11 @@ void DirectXCommon::CreateCommands()
 
 }
 
+
+
+/// -------------------------------------------------------------
+///					フェンスとイベントの生成
+/// -------------------------------------------------------------
 void DirectXCommon::CreateFenceEvent()
 {
 	HRESULT hr{};
@@ -258,30 +307,41 @@ void DirectXCommon::CreateFenceEvent()
 	assert(fenceEvent != nullptr);
 }
 
+
+
+/// -------------------------------------------------------------
+///				ビューポート矩形の初期化処理
+/// -------------------------------------------------------------
 void DirectXCommon::InitializeViewport()
 {
-	//ビューポート矩形の設定
-
 	//クライアント領域のサイズと一緒に画面全体に表示
-	viewport.Width = WinApp::kClientWidth;
-	viewport.Height = WinApp::kClientHeight;
+	viewport.Width = (float)kClientWidth;
+	viewport.Height = (float)kClientHeight;
 	viewport.TopLeftX = 0;
 	viewport.TopLeftY = 0;
 	viewport.MinDepth = 0.0f;
 	viewport.MaxDepth = 1.0f;
 }
 
+
+
+/// -------------------------------------------------------------
+///				シザリング矩形の初期化処理
+/// -------------------------------------------------------------
 void DirectXCommon::InitializeScissoring()
 {
-	//シザー矩形の設定
-
 	//基本的にビューポートと同じ矩形が構成されるようにする
 	scissorRect.left = 0;
-	scissorRect.right = WinApp::kClientWidth;
+	scissorRect.right = kClientWidth;
 	scissorRect.top = 0;
-	scissorRect.bottom = WinApp::kClientHeight;
+	scissorRect.bottom = kClientHeight;
 }
 
+
+
+/// -------------------------------------------------------------
+///					DXCコンパイラーの生成
+/// -------------------------------------------------------------
 void DirectXCommon::CreateDXCCompiler()
 {
 	HRESULT hr{};
@@ -297,6 +357,11 @@ void DirectXCommon::CreateDXCCompiler()
 	assert(SUCCEEDED(hr));
 }
 
+
+
+/// -------------------------------------------------------------
+///			バリアで書き込み可能に変更する処理
+/// -------------------------------------------------------------
 void DirectXCommon::ChangeBarrier()
 {
 	// 今回のバリアはTransition
@@ -313,10 +378,15 @@ void DirectXCommon::ChangeBarrier()
 	commandList->ResourceBarrier(1, &barrier);
 }
 
+
+
+/// -------------------------------------------------------------
+///					画面全体のクリア処理
+/// -------------------------------------------------------------
 void DirectXCommon::ClearWindow()
 {
 	D3D12_CPU_DESCRIPTOR_HANDLE rtvHandles[2]{};
-	
+
 	for (uint32_t i = 0; i < 2; i++)
 	{
 		rtvHandles[i] = descriptor->GetRTVHandles(i);
@@ -324,23 +394,33 @@ void DirectXCommon::ClearWindow()
 
 	//描画先のRTVとDSVを設定する
 	D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle = descriptor->GetDSVDescriptorHeap()->GetCPUDescriptorHandleForHeapStart();
-	
+
 	commandList->OMSetRenderTargets(1, &rtvHandles[backBufferIndex], false, &dsvHandle);
-	
+
 	//指定した色で画面全体をクリアする
 	float clearColor[] = { 0.1f,0.25f,0.5f,1.0f };	//青っぽい色。RGBAの順
 	commandList->ClearRenderTargetView(rtvHandles[backBufferIndex], clearColor, 0, nullptr);
-	
+
 	//指定した深度で画面全体をクリアする
 	commandList->ClearDepthStencilView(dsvHandle, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
 }
 
+
+
+/// -------------------------------------------------------------
+///					FPS固定初期化処理
+/// -------------------------------------------------------------
 void DirectXCommon::InitializeFixFPS()
 {
 	// 現在の時間を記録する - 逆行しないタイマー
 	reference_ = std::chrono::steady_clock::now();
 }
 
+
+
+/// -------------------------------------------------------------
+///					FPS固定更新処理
+/// -------------------------------------------------------------
 void DirectXCommon::UpdateFixFPS()
 {
 	// 1/60秒ピッタリの時間

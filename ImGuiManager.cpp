@@ -8,13 +8,21 @@
 
 using namespace Microsoft::WRL;
 
+
+/// -------------------------------------------------------------
+///					シングルトンインスタンス
+/// -------------------------------------------------------------
 ImGuiManager* ImGuiManager::GetInstance()
 {
 	static ImGuiManager instance;
-
 	return &instance;
 }
 
+
+
+/// -------------------------------------------------------------
+///							初期化処理
+/// -------------------------------------------------------------
 void ImGuiManager::Initialize(WinApp* winApp, DirectXCommon* dxCommon)
 {
 #pragma region ImGuiの初期化を行いDirectX12とWindowsAPIを使ってImGuiをセットアップする
@@ -31,6 +39,11 @@ void ImGuiManager::Initialize(WinApp* winApp, DirectXCommon* dxCommon)
 #pragma endregion
 } 
 
+
+
+/// -------------------------------------------------------------
+///						フレーム開始処理
+/// -------------------------------------------------------------
 void ImGuiManager::BeginFrame()
 {
 #ifdef _DEBUG
@@ -41,6 +54,11 @@ void ImGuiManager::BeginFrame()
 #endif // _DEBUG
 }
 
+
+
+/// -------------------------------------------------------------
+///						フレーム終了処理
+/// -------------------------------------------------------------
 void ImGuiManager::EndFrame()
 {
 #ifdef _DEBUG
@@ -50,6 +68,11 @@ void ImGuiManager::EndFrame()
 
 }
 
+
+
+/// -------------------------------------------------------------
+///						描画開始処理
+/// -------------------------------------------------------------
 void ImGuiManager::Draw()
 {
 #ifdef _DEBUG
@@ -70,6 +93,11 @@ void ImGuiManager::Draw()
 #endif // _DEBUG
 }
 
+
+
+/// -------------------------------------------------------------
+///							終了処理
+/// -------------------------------------------------------------
 void ImGuiManager::Finalize()
 {
 #ifdef _DEBUG

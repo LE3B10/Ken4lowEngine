@@ -8,14 +8,17 @@
 #include <imgui_impl_dx12.h>
 #include <imgui_impl_win32.h>
 
-// 前方宣言
+/// ---------- 前方宣言 ---------- ///
 class WinApp;
 class DirectXCommon;
 
-// ImGuiManager クラス
+/// -------------------------------------------------------------
+///						ImGui管理クラス
+/// -------------------------------------------------------------
 class ImGuiManager
 {
-public: // メンバ関数
+public:
+	/// ---------- メンバ関数 ---------- ///
 
 	// シングルトン
 	static ImGuiManager* GetInstance();
@@ -35,7 +38,8 @@ public: // メンバ関数
 	// 終了処理
 	void Finalize();
 
-private: // メンバ変数
+private:
+	/// ---------- メンバ関数 ---------- ///
 
 	ImGuiManager() = default;
 	~ImGuiManager() = default;

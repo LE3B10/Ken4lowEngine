@@ -1,5 +1,9 @@
 #include "RasterizerStateManager.h"
 
+
+/// -------------------------------------------------------------
+///							設定処理
+/// -------------------------------------------------------------
 void RasterizerStateManager::SettingProcess()
 {
 #pragma region RasterizerStateの設定を行う
@@ -11,6 +15,11 @@ void RasterizerStateManager::SettingProcess()
 
 }
 
+
+
+/// -------------------------------------------------------------
+///							ゲッター
+/// -------------------------------------------------------------
 D3D12_RASTERIZER_DESC RasterizerStateManager::GetRasterizerDesc() const
 {
 	return rasterizerDesc;

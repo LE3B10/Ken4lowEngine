@@ -1,12 +1,16 @@
 #pragma once
 #include "DirectXCommon.h"
-#include "DirectXInclude.h"
+#include "DX12Include.h"
 #include "LogString.h"
 
-// シェーダーコンパイラ専用クラス
+/// -------------------------------------------------------------
+///				シェーダーコンパイラ専用クラス
+/// -------------------------------------------------------------
 class ShaderManager
 {
-public: // メンバ関数
+public:
+	/// ---------- メンバ関数 ---------- ///
+	
 	// CompilerShader関数
 	IDxcBlob* CompileShader(
 		//CompilerするShaderファイルへのパス
@@ -20,7 +24,14 @@ public: // メンバ関数
 
 	void ShaderCompileObject3D(DirectXCommon* dxCommon);
 
-private: // メンバ変数
+	/// ---------- ゲッター ---------- ///
+
+	IDxcBlob* GetVertexShaderBlob() const;
+	IDxcBlob* GetPixelShaderBlob() const;
+
+private:
+	/// ---------- メンバ変数 ---------- ///
+
 	Microsoft::WRL::ComPtr <IDxcBlob> vertexShaderBlob;
 	Microsoft::WRL::ComPtr <IDxcBlob> pixelShaderBlob;
 };

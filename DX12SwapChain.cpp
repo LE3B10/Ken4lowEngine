@@ -1,18 +1,22 @@
-#include "DirectXSwapChain.h"
+#include "DX12SwapChain.h"
 
 #include <cassert>
 
 #include "WinApp.h"
 
-void DirectXSwapChain::Initialize(WinApp* winApp, IDXGIFactory7* dxgiFactory, ID3D12CommandQueue* commandQueue)
+
+/// -------------------------------------------------------------
+///				スワップチェインの初期化処理
+/// -------------------------------------------------------------
+void DX12SwapChain::Initialize(WinApp* winApp, IDXGIFactory7* dxgiFactory, ID3D12CommandQueue* commandQueue, uint32_t Width, uint32_t Height)
 {
 	HRESULT hr{};
 
 	swapChain = nullptr;
 
 	//スワップチェーンを生成する
-	swapChainDesc.Width = WinApp::kClientWidth;						// 画面の幅。ウィンドウのクライアント領域を同じものにしておく
-	swapChainDesc.Height = WinApp::kClientHeight;					// 画面の高さ。ウィンドウのクライアント領域を同じものにしておく
+	swapChainDesc.Width = Width;									// 画面の幅。ウィンドウのクライアント領域を同じものにしておく
+	swapChainDesc.Height = Height;									// 画面の高さ。ウィンドウのクライアント領域を同じものにしておく
 	swapChainDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;				// 色の形式
 	swapChainDesc.SampleDesc.Count = 1;								// マルチサンプルしない
 	swapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;	// 描画のターゲットとして利用する
@@ -27,22 +31,27 @@ void DirectXSwapChain::Initialize(WinApp* winApp, IDXGIFactory7* dxgiFactory, ID
 	hr = swapChain->GetBuffer(0, IID_PPV_ARGS(&swapChainResources[0]));
 	//うまく取得できなければ起動できない
 	assert(SUCCEEDED(hr));
-	
+
 	hr = swapChain->GetBuffer(1, IID_PPV_ARGS(&swapChainResources[1]));
 	assert(SUCCEEDED(hr));
 }
 
-IDXGISwapChain4* DirectXSwapChain::GetSwapChain() const
+
+
+/// -------------------------------------------------------------
+///							ゲッター
+/// -------------------------------------------------------------
+IDXGISwapChain4* DX12SwapChain::GetSwapChain() const
 {
 	return swapChain.Get();
 }
 
-ID3D12Resource* DirectXSwapChain::GetSwapChainResources(uint32_t num) const
+ID3D12Resource* DX12SwapChain::GetSwapChainResources(uint32_t num) const
 {
 	return swapChainResources[num].Get();
 }
 
-DXGI_SWAP_CHAIN_DESC1& DirectXSwapChain::GetSwapChainDesc()
+DXGI_SWAP_CHAIN_DESC1& DX12SwapChain::GetSwapChainDesc()
 {
 	// TODO: return ステートメントをここに挿入します
 	return swapChainDesc;

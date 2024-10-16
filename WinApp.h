@@ -2,37 +2,42 @@
 #include <Windows.h>
 #include <cstdint>
 
-// WindowsAPI
+/// -------------------------------------------------------------
+///				WIndowsAPI - ウィンドウズ作成クラス
+/// -------------------------------------------------------------
 class WinApp
 {
-public:	// メンバ関数
+public:
+	/// ---------- メンバ関数 ---------- ///
 
 	// シングルトン
 	static WinApp* GetInstance();
 
 	// 初期化処理
-	void CreateMainWindow();
+	void CreateMainWindow(uint32_t Width, uint32_t Height);
+
 	// 終了処理
 	void Finalize();
+
 	// メッセージ処理
 	bool ProcessMessage();
 
-	// getter
+	// ゲッター
 	HWND GetHwnd() const { return hwnd; }
 	HINSTANCE GetHInstance() const { return wc.hInstance; }
 
-private: // メンバ関数
-	//ウィンドウプロシージャ
+private:
+	/// ---------- メンバ関数 ---------- ///
+
+	// ウィンドウプロシージャ
 	static LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam);
 
-public: // 静的メンバ変数
-	//クライアント領域サイズ
-	static const uint32_t kClientWidth = 1280;
-	static const uint32_t kClientHeight = 720;
+private:
+	/// ---------- メンバ関数 ---------- ///
 
-private: // メンバ変数
 	// ウィンドウハンドル
 	HWND hwnd = nullptr;
+	
 	// ウィンドウクラスの設定
 	WNDCLASS wc{};
 
