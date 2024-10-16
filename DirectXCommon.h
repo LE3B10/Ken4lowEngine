@@ -61,12 +61,6 @@ private:
 	// フェンスの生成
 	void CreateFenceEvent();
 
-	// ビューポート矩形の初期化
-	void InitializeViewport();
-
-	// シザリング矩形の初期化
-	void InitializeScissoring();
-
 	// DXCコンパイラの生成
 	void CreateDXCCompiler();
 

@@ -316,36 +316,6 @@ void DirectXCommon::CreateFenceEvent()
 
 
 /// -------------------------------------------------------------
-///				ビューポート矩形の初期化処理
-/// -------------------------------------------------------------
-void DirectXCommon::InitializeViewport()
-{
-	//クライアント領域のサイズと一緒に画面全体に表示
-	viewport.Width = (float)kClientWidth;
-	viewport.Height = (float)kClientHeight;
-	viewport.TopLeftX = 0;
-	viewport.TopLeftY = 0;
-	viewport.MinDepth = 0.0f;
-	viewport.MaxDepth = 1.0f;
-}
-
-
-
-/// -------------------------------------------------------------
-///				シザリング矩形の初期化処理
-/// -------------------------------------------------------------
-void DirectXCommon::InitializeScissoring()
-{
-	//基本的にビューポートと同じ矩形が構成されるようにする
-	scissorRect.left = 0;
-	scissorRect.right = kClientWidth;
-	scissorRect.top = 0;
-	scissorRect.bottom = kClientHeight;
-}
-
-
-
-/// -------------------------------------------------------------
 ///					DXCコンパイラーの生成
 /// -------------------------------------------------------------
 void DirectXCommon::CreateDXCCompiler()

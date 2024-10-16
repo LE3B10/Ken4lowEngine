@@ -987,7 +987,6 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 
 		// 描画終了処理
 		dxCommon->EndDraw();
-
 	}
 
 	winApp->Finalize();
