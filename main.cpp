@@ -553,10 +553,9 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 #pragma region RasterizerStateの設定を行う
 	//RasterizerStateの設定
 	D3D12_RASTERIZER_DESC rasterizerDesc{};
-	//裏面（時計回り）を表示しない
-	rasterizerDesc.CullMode = D3D12_CULL_MODE_BACK;
-	//三角形の中を塗りつぶす
-	rasterizerDesc.FillMode = D3D12_FILL_MODE_SOLID;
+	rasterizerDesc.CullMode = D3D12_CULL_MODE_BACK; // 裏面カリングを有効にする
+	rasterizerDesc.FillMode = D3D12_FILL_MODE_SOLID; // ポリゴンを塗りつぶす
+	rasterizerDesc.FrontCounterClockwise = FALSE; // 時計回りの面を表面とする（カリング方向の設定）
 #pragma endregion
 
 
@@ -954,7 +953,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 
 		// ディスクリプタヒープの設定
 		ID3D12DescriptorHeap* descriptorHeaps[] = { dxCommon->GetSRVDescriptorHeap() };
-		dxCommon->GetCommandList()->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
+		dxCommon->GetCommandList()->SetDescriptorHeaps(1, descriptorHeaps);
 
 
 		/*-----シーン（モデル）の描画設定と描画-----*/
@@ -973,6 +972,8 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 
 		// モデルの描画
 		dxCommon->GetCommandList()->DrawInstanced(UINT(modelData.vertices.size()), 1, 0, 0);
+		// 形状を設定。PSOに設定るものとはまた別。同じものを設定るすると考える
+		dxCommon->GetCommandList()->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
 		/*-----スプライトの描画設定と描画-----*/
 		dxCommon->GetCommandList()->IASetVertexBuffers(0, 1, &vertexBufferViewSprite); // スプライト用VBV
