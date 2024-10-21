@@ -12,11 +12,6 @@
 
 #include "externals/DirectXTex/DirectXTex.h"
 
-#include "externals/imgui/imgui.h"
-#include "externals/imgui/imgui_impl_dx12.h"
-#include "externals/imgui/imgui_impl_win32.h"
-extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
-
 #include "ResourceObject.h"
 
 #include "Vector2.h"
@@ -923,7 +918,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 
 		///-----ゲームの処理-----///
 
-		//transform.rotate.y += 0.03f;
+		transform.rotate.y += 0.03f;
 
 		/*-----Transform情報を作る-----*/
 		Matrix4x4 worldMatrix = MakeAffineMatrix(transform.scale, transform.rotate, transform.translate);

@@ -48,9 +48,6 @@
     <ClCompile Include="WinMain.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="LogString.cpp">
-      <Filter>ソース ファイル</Filter>
-    </ClCompile>
     <ClCompile Include="ImGuiManager.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
@@ -121,6 +118,9 @@
       <Filter>ソース ファイル\PSO</Filter>
     </ClCompile>
     <ClCompile Include="main.cpp">
+      <Filter>ソース ファイル</Filter>
+    </ClCompile>
+    <ClCompile Include="LogString.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
   </ItemGroup>
