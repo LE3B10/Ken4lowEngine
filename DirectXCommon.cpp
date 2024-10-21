@@ -78,7 +78,7 @@ void DirectXCommon::BeginDraw()
 	ClearWindow();
 
 	// ビューポート矩形の設定
-	viewport = D3D12_VIEWPORT(0.0f, 0.0f, (float)kClientWidth, (float)kClientHeight);
+	viewport = D3D12_VIEWPORT(0.0f, 0.0f, (float)kClientWidth, (float)kClientHeight, 0.0f, 1.0f);
 	commandList->RSSetViewports(1, &viewport);
 
 	// シザリング矩形の設定

@@ -245,41 +245,41 @@ void UploadTextureData(ID3D12Resource* texture, const DirectX::ScratchImage& mip
 	}
 }
 
-// DepthStencilTextureを作る
-Microsoft::WRL::ComPtr <ID3D12Resource> CreateDepthStencilTextureResource(Microsoft::WRL::ComPtr <ID3D12Device> device, int32_t width, int32_t height)
-{
-	//生成するResourceの設定
-	D3D12_RESOURCE_DESC resourceDesc{};
-	resourceDesc.Width = width;										//Textureの幅
-	resourceDesc.Height = height;									//Textureの高さ
-	resourceDesc.MipLevels = 1;										//mipmapの数
-	resourceDesc.DepthOrArraySize = 1;								//奥行 or 配列Textureの配列数
-	resourceDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;			//DepthStencilとして知用可能なフォーマット
-	resourceDesc.SampleDesc.Count = 1;								//サンプリングカウント。１固定
-	resourceDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;	//２次元
-	resourceDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;	//DepthStencilとして使う通知
-
-	//利用するHeapの設定
-	D3D12_HEAP_PROPERTIES heapPropaties{};
-	heapPropaties.Type = D3D12_HEAP_TYPE_DEFAULT;					//VRAMに作る
-
-	//深度値のクリア設定
-	D3D12_CLEAR_VALUE depthClearValue{};
-	depthClearValue.DepthStencil.Depth = 1.0f;					//1.0f（最大値）でクリア
-	depthClearValue.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;		//フォーマット。Resourceと合わせる
-
-	//Resourceの生成
-	Microsoft::WRL::ComPtr <ID3D12Resource> resource = nullptr;
-	HRESULT hr = device->CreateCommittedResource(
-		&heapPropaties,							//Heapの設定
-		D3D12_HEAP_FLAG_NONE,					//Heapの特殊な設定。特になし。
-		&resourceDesc,							//Resourceの設定
-		D3D12_RESOURCE_STATE_DEPTH_WRITE,		//深度値を書き込む状態にしておく
-		&depthClearValue,						//Clear最適地
-		IID_PPV_ARGS(&resource));				//作成するResourceポインタのポインタ
-	assert(SUCCEEDED(hr));
-	return resource;
-}
+//// DepthStencilTextureを作る
+//Microsoft::WRL::ComPtr <ID3D12Resource> CreateDepthStencilTextureResource(Microsoft::WRL::ComPtr <ID3D12Device> device, int32_t width, int32_t height)
+//{
+//	//生成するResourceの設定
+//	D3D12_RESOURCE_DESC resourceDesc{};
+//	resourceDesc.Width = width;										//Textureの幅
+//	resourceDesc.Height = height;									//Textureの高さ
+//	resourceDesc.MipLevels = 1;										//mipmapの数
+//	resourceDesc.DepthOrArraySize = 1;								//奥行 or 配列Textureの配列数
+//	resourceDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;			//DepthStencilとして知用可能なフォーマット
+//	resourceDesc.SampleDesc.Count = 1;								//サンプリングカウント。１固定
+//	resourceDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;	//２次元
+//	resourceDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;	//DepthStencilとして使う通知
+//
+//	//利用するHeapの設定
+//	D3D12_HEAP_PROPERTIES heapPropaties{};
+//	heapPropaties.Type = D3D12_HEAP_TYPE_DEFAULT;					//VRAMに作る
+//
+//	//深度値のクリア設定
+//	D3D12_CLEAR_VALUE depthClearValue{};
+//	depthClearValue.DepthStencil.Depth = 1.0f;					//1.0f（最大値）でクリア
+//	depthClearValue.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;		//フォーマット。Resourceと合わせる
+//
+//	//Resourceの生成
+//	Microsoft::WRL::ComPtr <ID3D12Resource> resource = nullptr;
+//	HRESULT hr = device->CreateCommittedResource(
+//		&heapPropaties,							//Heapの設定
+//		D3D12_HEAP_FLAG_NONE,					//Heapの特殊な設定。特になし。
+//		&resourceDesc,							//Resourceの設定
+//		D3D12_RESOURCE_STATE_DEPTH_WRITE,		//深度値を書き込む状態にしておく
+//		&depthClearValue,						//Clear最適地
+//		IID_PPV_ARGS(&resource));				//作成するResourceポインタのポインタ
+//	assert(SUCCEEDED(hr));
+//	return resource;
+//}
 
 //CPUのDescriptorHandleを取得する関数
 D3D12_CPU_DESCRIPTOR_HANDLE GetCPUDescriptorHandle(ID3D12DescriptorHeap* descriptorHeap, uint32_t descriptorSize, uint32_t index)
@@ -548,8 +548,8 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 #pragma region RasterizerStateの設定を行う
 	//RasterizerStateの設定
 	D3D12_RASTERIZER_DESC rasterizerDesc{};
-	rasterizerDesc.CullMode = D3D12_CULL_MODE_BACK; // 裏面カリングを有効にする
 	rasterizerDesc.FillMode = D3D12_FILL_MODE_SOLID; // ポリゴンを塗りつぶす
+	rasterizerDesc.CullMode = D3D12_CULL_MODE_BACK; // 裏面カリングを有効にする
 	rasterizerDesc.FrontCounterClockwise = FALSE; // 時計回りの面を表面とする（カリング方向の設定）
 #pragma endregion
 
@@ -918,7 +918,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 
 		///-----ゲームの処理-----///
 
-		transform.rotate.y += 0.03f;
+		//transform.rotate.y += 0.03f;
 
 		/*-----Transform情報を作る-----*/
 		Matrix4x4 worldMatrix = MakeAffineMatrix(transform.scale, transform.rotate, transform.translate);
@@ -975,7 +975,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 		dxCommon->GetCommandList()->IASetIndexBuffer(&indexBufferViewSprite); // IBVの設定
 		dxCommon->GetCommandList()->SetGraphicsRootConstantBufferView(0, materialResourceSprite->GetGPUVirtualAddress());
 		dxCommon->GetCommandList()->SetGraphicsRootConstantBufferView(1, transfomationMatrixResourceSprite->GetGPUVirtualAddress());
-		dxCommon->GetCommandList()->DrawIndexedInstanced(6, 1, 0, 0, 0);
+		//dxCommon->GetCommandList()->DrawIndexedInstanced(6, 1, 0, 0, 0);
 
 		/*-----ImGuiの描画-----*/
 		// ImGui描画のコマンドを積む
