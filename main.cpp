@@ -196,35 +196,37 @@ Microsoft::WRL::ComPtr <ID3D12Resource> CreateTextureResource(Microsoft::WRL::Co
 {
 	//1. metadataを基にResourceの設定
 	D3D12_RESOURCE_DESC resourceDesc{};
-	resourceDesc.Width = UINT(metadata.width);									//Textureの幅
-	resourceDesc.Height = UINT(metadata.height);								//Textureの高さ
-	resourceDesc.MipLevels = UINT16(metadata.mipLevels);						//mipmapの数
-	resourceDesc.DepthOrArraySize = UINT16(metadata.arraySize);					//奥行 or 配列Textureの配列行数
-	resourceDesc.Format = metadata.format;										//TextureのFormat
-	resourceDesc.SampleDesc.Count = 1;											//サンプリングカウント。1固定
-	resourceDesc.Dimension = D3D12_RESOURCE_DIMENSION(metadata.dimension);		//Textureの次元数。普段使っているのは二次元
+	resourceDesc.Width = UINT(metadata.width);									// Textureの幅
+	resourceDesc.Height = UINT(metadata.height);								// Textureの高さ
+	resourceDesc.MipLevels = UINT16(metadata.mipLevels);						// mipmapの数
+	resourceDesc.DepthOrArraySize = UINT16(metadata.arraySize);					// 奥行 or 配列Textureの配列行数
+	resourceDesc.Format = metadata.format;										// TextureのFormat
+	resourceDesc.SampleDesc.Count = 1;											// サンプリングカウント。1固定
+	resourceDesc.Dimension = D3D12_RESOURCE_DIMENSION(metadata.dimension);		// Textureの次元数。普段使っているのは二次元
 
 	//2. 利用するHeapの設定。非常に特殊な運用。02_04exで一般的なケース版がある
 	D3D12_HEAP_PROPERTIES heapProperties{};
-	heapProperties.Type = D3D12_HEAP_TYPE_CUSTOM;								//細かい設定を行う
-	heapProperties.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_WRITE_BACK;		//WriteBackポリシーでCPUアクセス可能
-	heapProperties.MemoryPoolPreference = D3D12_MEMORY_POOL_L0;					//プロセッサの近くに配膳
+	heapProperties.Type = D3D12_HEAP_TYPE_DEFAULT;								// 細かい設定を行う
+	heapProperties.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_WRITE_BACK;		// WriteBackポリシーでCPUアクセス可能
+	heapProperties.MemoryPoolPreference = D3D12_MEMORY_POOL_L0;					// プロセッサの近くに配膳
 
 	//3. Resourceを生成する
 	Microsoft::WRL::ComPtr <ID3D12Resource> resource = nullptr;
 	HRESULT hr = device->CreateCommittedResource(
-		&heapProperties,														//Heapの設定
-		D3D12_HEAP_FLAG_NONE,													//Heapの特殊な設定。特になし。
-		&resourceDesc,															///Resourceの設定
-		D3D12_RESOURCE_STATE_GENERIC_READ,										//初回のResourceState。Textureは基本読むだけ
-		nullptr,																//Clear最適値。使わないのでnullptr
-		IID_PPV_ARGS(&resource));												//作成するResourceポインタへのポインタ
+		&heapProperties,														// Heapの設定
+		D3D12_HEAP_FLAG_NONE,													// Heapの特殊な設定。特になし。
+		&resourceDesc,															// /Resourceの設定
+		D3D12_RESOURCE_STATE_COPY_DEST,											// データ転送される設定
+		nullptr,																// Clear最適値。使わないのでnullptr
+		IID_PPV_ARGS(&resource));												// 作成するResourceポインタへのポインタ
 	assert(SUCCEEDED(hr));
 	return resource;
 }
 
-//データを移送するUploadTextureData関数
-void UploadTextureData(ID3D12Resource* texture, const DirectX::ScratchImage& mipImages)
+// データを移送するUploadTextureData関数
+[[nodiscard]]
+Microsoft::WRL::ComPtr<ID3D12Resource> UploadTextureData(Microsoft::WRL::ComPtr<ID3D12Resource> texture, const DirectX::ScratchImage& mipImages, Microsoft::WRL::ComPtr<ID3D12Device> device,
+	Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> commandList)
 {
 	//Meta情報を取得
 	const DirectX::TexMetadata& metadata = mipImages.GetMetadata();
@@ -243,43 +245,18 @@ void UploadTextureData(ID3D12Resource* texture, const DirectX::ScratchImage& mip
 		);
 		assert(SUCCEEDED(hr));
 	}
-}
 
-//// DepthStencilTextureを作る
-//Microsoft::WRL::ComPtr <ID3D12Resource> CreateDepthStencilTextureResource(Microsoft::WRL::ComPtr <ID3D12Device> device, int32_t width, int32_t height)
-//{
-//	//生成するResourceの設定
-//	D3D12_RESOURCE_DESC resourceDesc{};
-//	resourceDesc.Width = width;										//Textureの幅
-//	resourceDesc.Height = height;									//Textureの高さ
-//	resourceDesc.MipLevels = 1;										//mipmapの数
-//	resourceDesc.DepthOrArraySize = 1;								//奥行 or 配列Textureの配列数
-//	resourceDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;			//DepthStencilとして知用可能なフォーマット
-//	resourceDesc.SampleDesc.Count = 1;								//サンプリングカウント。１固定
-//	resourceDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;	//２次元
-//	resourceDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;	//DepthStencilとして使う通知
-//
-//	//利用するHeapの設定
-//	D3D12_HEAP_PROPERTIES heapPropaties{};
-//	heapPropaties.Type = D3D12_HEAP_TYPE_DEFAULT;					//VRAMに作る
-//
-//	//深度値のクリア設定
-//	D3D12_CLEAR_VALUE depthClearValue{};
-//	depthClearValue.DepthStencil.Depth = 1.0f;					//1.0f（最大値）でクリア
-//	depthClearValue.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;		//フォーマット。Resourceと合わせる
-//
-//	//Resourceの生成
-//	Microsoft::WRL::ComPtr <ID3D12Resource> resource = nullptr;
-//	HRESULT hr = device->CreateCommittedResource(
-//		&heapPropaties,							//Heapの設定
-//		D3D12_HEAP_FLAG_NONE,					//Heapの特殊な設定。特になし。
-//		&resourceDesc,							//Resourceの設定
-//		D3D12_RESOURCE_STATE_DEPTH_WRITE,		//深度値を書き込む状態にしておく
-//		&depthClearValue,						//Clear最適地
-//		IID_PPV_ARGS(&resource));				//作成するResourceポインタのポインタ
-//	assert(SUCCEEDED(hr));
-//	return resource;
-//}
+
+
+
+
+	std::vector<D3D12_SUBRESOURCE_DATA> subresources;
+	DirectX::PrepareUpload(device, mipImages.GetImages(), mipImages.GetImageCount(), mipImages.GetMetadata(), subresources);
+
+
+
+
+}
 
 //CPUのDescriptorHandleを取得する関数
 D3D12_CPU_DESCRIPTOR_HANDLE GetCPUDescriptorHandle(ID3D12DescriptorHeap* descriptorHeap, uint32_t descriptorSize, uint32_t index)
@@ -824,40 +801,33 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 
 	// 球体の頂点データをコピー
 	VertexData* sphereVertexData = vertexData + modelData.vertices.size();
-	for (uint32_t latIndex = 0; latIndex < kSubdivision; ++latIndex)
-	{
+	auto calculateVertex = [](float lat, float lon, float u, float v) {
+		VertexData vertex;
+		vertex.position = { cos(lat) * cos(lon), sin(lat), cos(lat) * sin(lon), 1.0f };
+		vertex.texcoord = { u, v };
+		vertex.normal = { vertex.position.x, vertex.position.y, vertex.position.z };
+		return vertex;
+		};
+
+	for (uint32_t latIndex = 0; latIndex < kSubdivision; ++latIndex) {
 		float lat = -pi / 2.0f + kLatEvery * latIndex; // θ
-		for (uint32_t lonIndex = 0; lonIndex < kSubdivision; ++lonIndex)
-		{
+		float nextLat = lat + kLatEvery;
+
+		for (uint32_t lonIndex = 0; lonIndex < kSubdivision; ++lonIndex) {
 			float u = float(lonIndex) / float(kSubdivision);
 			float v = 1.0f - float(latIndex) / float(kSubdivision);
+			float lon = lonIndex * kLonEvery; // Φ
+			float nextLon = lon + kLonEvery;
 
 			uint32_t start = (latIndex * kSubdivision + lonIndex) * 6;
-			float lon = lonIndex * kLonEvery; // Φ
 
-			sphereVertexData[start + 0].position = { cos(lat) * cos(lon), sin(lat), cos(lat) * sin(lon), 1.0f };
-			sphereVertexData[start + 0].texcoord = { u, v };
-			sphereVertexData[start + 0].normal = { sphereVertexData[start + 0].position.x, sphereVertexData[start + 0].position.y, sphereVertexData[start + 0].position.z };
-
-			sphereVertexData[start + 1].position = { cos(lat + kLatEvery) * cos(lon), sin(lat + kLatEvery), cos(lat + kLatEvery) * sin(lon), 1.0f };
-			sphereVertexData[start + 1].texcoord = { u, v - 1.0f / float(kSubdivision) };
-			sphereVertexData[start + 1].normal = { sphereVertexData[start + 1].position.x, sphereVertexData[start + 1].position.y, sphereVertexData[start + 1].position.z };
-
-			sphereVertexData[start + 2].position = { cos(lat) * cos(lon + kLonEvery), sin(lat), cos(lat) * sin(lon + kLonEvery), 1.0f };
-			sphereVertexData[start + 2].texcoord = { u + 1.0f / float(kSubdivision), v };
-			sphereVertexData[start + 2].normal = { sphereVertexData[start + 2].position.x, sphereVertexData[start + 2].position.y, sphereVertexData[start + 2].position.z };
-
-			sphereVertexData[start + 3].position = { cos(lat + kLatEvery) * cos(lon + kLonEvery), sin(lat + kLatEvery), cos(lat + kLatEvery) * sin(lon + kLonEvery), 1.0f };
-			sphereVertexData[start + 3].texcoord = { u + 1.0f / float(kSubdivision), v - 1.0f / float(kSubdivision) };
-			sphereVertexData[start + 3].normal = { sphereVertexData[start + 3].position.x, sphereVertexData[start + 3].position.y, sphereVertexData[start + 3].position.z };
-
-			sphereVertexData[start + 4].position = { cos(lat) * cos(lon + kLonEvery), sin(lat), cos(lat) * sin(lon + kLonEvery), 1.0f };
-			sphereVertexData[start + 4].texcoord = { u + 1.0f / float(kSubdivision), v };
-			sphereVertexData[start + 4].normal = { sphereVertexData[start + 4].position.x, sphereVertexData[start + 4].position.y, sphereVertexData[start + 4].position.z };
-
-			sphereVertexData[start + 5].position = { cos(lat + kLatEvery) * cos(lon), sin(lat + kLatEvery), cos(lat + kLatEvery) * sin(lon), 1.0f };
-			sphereVertexData[start + 5].texcoord = { u, v - 1.0f / float(kSubdivision) };
-			sphereVertexData[start + 5].normal = { sphereVertexData[start + 5].position.x, sphereVertexData[start + 5].position.y, sphereVertexData[start + 5].position.z };
+			// 6つの頂点を計算
+			sphereVertexData[start + 0] = calculateVertex(lat, lon, u, v);
+			sphereVertexData[start + 1] = calculateVertex(nextLat, lon, u, v - 1.0f / float(kSubdivision));
+			sphereVertexData[start + 2] = calculateVertex(lat, nextLon, u + 1.0f / float(kSubdivision), v);
+			sphereVertexData[start + 3] = calculateVertex(nextLat, nextLon, u + 1.0f / float(kSubdivision), v - 1.0f / float(kSubdivision));
+			sphereVertexData[start + 4] = calculateVertex(lat, nextLon, u + 1.0f / float(kSubdivision), v);
+			sphereVertexData[start + 5] = calculateVertex(nextLat, lon, u, v - 1.0f / float(kSubdivision));
 		}
 	}
 
