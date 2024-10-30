@@ -4,8 +4,15 @@
 /// -------------------------------------------------------------
 ///							初期化処理
 /// -------------------------------------------------------------
-void PipelineStateManager::Initialize(ID3D12Device* device, RootSignatureManager& rootSignatureManager, BlendStateManager& blenderStateManager, RasterizerStateManager& rasterizerStateManager, InputLayoutManager& inputLayoutManager, ID3DBlob* vertexShaderBlob, ID3DBlob* pixelShaderBlob)
-{
+void PipelineStateManager::Initialize(
+	ID3D12Device* device,
+	RootSignatureManager& rootSignatureManager,
+	BlendStateManager& blenderStateManager,
+	RasterizerStateManager& rasterizerStateManager,
+	InputLayoutManager& inputLayoutManager,
+	ID3DBlob* vertexShaderBlob,
+	ID3DBlob* pixelShaderBlob
+){
 	HRESULT hr{};
 
 	//Depthの機能を有効化する

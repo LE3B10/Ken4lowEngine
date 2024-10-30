@@ -357,8 +357,8 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 
 	/// ---------- シングルトンインスタンス ---------- ///
 	WinApp* winApp = WinApp::GetInstance();
-	Input* input = Input::GetInstance();
 	DirectXCommon* dxCommon = DirectXCommon::GetInstance();
+	Input* input = Input::GetInstance();
 	ImGuiManager* imguiManager = ImGuiManager::GetInstance();
 
 	/// ---------- WindowsAPIのウィンドウ作成 ---------- ///
