@@ -10,9 +10,10 @@ public:
 	/// ---------- メンバ関数 ---------- ///
 
 	// 設定処理
-	void SettingProcess();
+	void Initialize();
 
-	// ゲッター
+public: /// ---------- ゲッター ---------- ///
+
 	D3D12_RASTERIZER_DESC GetRasterizerDesc() const;
 
 private:

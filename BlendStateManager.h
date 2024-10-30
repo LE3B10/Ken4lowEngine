@@ -7,9 +7,9 @@
 /// -------------------------------------------------------------
 class BlendStateManager
 {
-public: 
-	/// ---------- ブレンドモードの列挙型 ---------- ///
-	enum BlendMode
+public: /// ---------- ブレンドモードの列挙型 ---------- ///
+	
+	enum class BlendMode
 	{
 		kBlendModeNone,		// ブレンドなし
 		kBlendModeNormal,	// 通常αブレンド、デフォルト。Src * srcA + Dest * (1 - SrcA)
@@ -20,18 +20,17 @@ public:
 		kcountOfBlendMode,	// 利用してはいけない
 	};
 
-public:
-	/// ---------- メンバ関数 ---------- ///
+public: /// ---------- メンバ関数 ---------- ///
 	
-	D3D12_RENDER_TARGET_BLEND_DESC CreateBlend(BlendMode blendMode);
+	
+	void CreateBlend(BlendMode blendMode);
 
-	/// ---------- ゲッター ---------- ///
+public: /// ---------- ゲッター ---------- ///
 
 	D3D12_RENDER_TARGET_BLEND_DESC& GetBlendDesc();
 
-private:
-	/// ---------- メンバ変数 ---------- ///
-	
+private: /// ---------- メンバ変数 ---------- ///
+
 	// BlendStateの設定
 	D3D12_RENDER_TARGET_BLEND_DESC blendDesc{};
 };

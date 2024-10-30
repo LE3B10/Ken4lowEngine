@@ -9,20 +9,19 @@
 /// -------------------------------------------------------------
 class TextureManager
 {
-public:
-	/// ---------- メンバ関数 ---------- ///
+public: /// ---------- メンバ関数 ---------- ///
 	
 	// DirectX12のTextureResourceを作る
 	Microsoft::WRL::ComPtr <ID3D12Resource> CreateTextureResource(ID3D12Device* device, const DirectX::TexMetadata& metadata);
 	
-	//データを移送するUploadTextureData関数
+	// データを移送するUploadTextureData関数
 	void UploadTextureData(ID3D12Resource* texture, const DirectX::ScratchImage& mipImages);
 	
 	// Textureデータを読む
 	static DirectX::ScratchImage LoadTexture(const std::string& filePath);
 
-private:
-	/// ---------- メンバ変数 ---------- ///
+private: /// ---------- メンバ変数 ---------- ///
+	
 
 };
 

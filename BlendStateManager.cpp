@@ -4,7 +4,7 @@
 /// -------------------------------------------------------------
 ///						ブレンドを作成
 /// -------------------------------------------------------------
-D3D12_RENDER_TARGET_BLEND_DESC BlendStateManager::CreateBlend(BlendMode blendMode)
+void BlendStateManager::CreateBlend(BlendMode blendMode)
 {
 	// ブレンドするかしないか
 	blendDesc.BlendEnable = false;
@@ -15,14 +15,14 @@ D3D12_RENDER_TARGET_BLEND_DESC BlendStateManager::CreateBlend(BlendMode blendMod
 	switch (blendMode)
 	{
 		// ブレンドモードなし
-	case BlendStateManager::kBlendModeNone:
+	case BlendMode::kBlendModeNone:
 
 		blendDesc.BlendEnable = false;
-
 		break;
 
 		// 通常αブレンドモード
-	case BlendStateManager::kBlendModeNormal:
+	case BlendMode::kBlendModeNormal:
+		
 		// ノーマル
 		blendDesc.BlendEnable = true;
 		blendDesc.SrcBlend = D3D12_BLEND_SRC_ALPHA;
@@ -31,11 +31,11 @@ D3D12_RENDER_TARGET_BLEND_DESC BlendStateManager::CreateBlend(BlendMode blendMod
 		blendDesc.SrcBlendAlpha = D3D12_BLEND_ONE;
 		blendDesc.BlendOpAlpha = D3D12_BLEND_OP_ADD;
 		blendDesc.DestBlendAlpha = D3D12_BLEND_ZERO;
-
 		break;
 
 		// 加算ブレンドモード
-	case BlendStateManager::kBlendModeAdd:
+	case BlendMode::kBlendModeAdd:
+		
 		// 加算
 		blendDesc.BlendEnable = true;
 		blendDesc.SrcBlend = D3D12_BLEND_SRC_ALPHA;
@@ -44,11 +44,11 @@ D3D12_RENDER_TARGET_BLEND_DESC BlendStateManager::CreateBlend(BlendMode blendMod
 		blendDesc.SrcBlendAlpha = D3D12_BLEND_ONE;		  // アルファのソースはそのまま
 		blendDesc.BlendOpAlpha = D3D12_BLEND_OP_ADD;	  // アルファの加算操作
 		blendDesc.DestBlendAlpha = D3D12_BLEND_ZERO;	  // アルファのデスティネーションは無視
-
 		break;
 
 		// 減算ブレンドモード
-	case BlendStateManager::kBlendModeSubtract:
+	case BlendMode::kBlendModeSubtract:
+		
 		// 減算
 		blendDesc.BlendEnable = true;
 		blendDesc.SrcBlend = D3D12_BLEND_SRC_ALPHA;
@@ -56,12 +56,12 @@ D3D12_RENDER_TARGET_BLEND_DESC BlendStateManager::CreateBlend(BlendMode blendMod
 		blendDesc.DestBlend = D3D12_BLEND_ONE;
 		blendDesc.SrcBlendAlpha = D3D12_BLEND_ONE;		 // アルファのソースはそのまま
 		blendDesc.BlendOpAlpha = D3D12_BLEND_OP_ADD;	 // アルファの加算操作
-		blendDesc.DestBlendAlpha = D3D12_BLEND_ZERO;	 // アルファのデスティネーションは無視
-
+		blendDesc.DestBlendAlpha = D3D12_BLEND_ZERO;	 // アルファのデスティネーションは無
 		break;
 
 		// 乗算ブレンドモード
-	case BlendStateManager::kBlendModeMultiply:
+	case BlendMode::kBlendModeMultiply:
+		
 		// 乗算
 		blendDesc.BlendEnable = true;
 		blendDesc.SrcBlend = D3D12_BLEND_ZERO;
@@ -70,11 +70,10 @@ D3D12_RENDER_TARGET_BLEND_DESC BlendStateManager::CreateBlend(BlendMode blendMod
 		blendDesc.SrcBlendAlpha = D3D12_BLEND_ONE;		 // アルファのソースはそのまま
 		blendDesc.BlendOpAlpha = D3D12_BLEND_OP_ADD;	 // アルファの加算操作
 		blendDesc.DestBlendAlpha = D3D12_BLEND_ZERO;	 // アルファのデスティネーションは無視
-
 		break;
 
 		// スクリーンブレンドモード
-	case BlendStateManager::kBlendModeScreen:
+	case BlendMode::kBlendModeScreen:
 
 		// スクリーン
 		blendDesc.BlendEnable = true;
@@ -84,11 +83,14 @@ D3D12_RENDER_TARGET_BLEND_DESC BlendStateManager::CreateBlend(BlendMode blendMod
 		blendDesc.SrcBlendAlpha = D3D12_BLEND_ONE;		 // アルファのソースはそのまま
 		blendDesc.BlendOpAlpha = D3D12_BLEND_OP_ADD;	 // アルファの加算操作
 		blendDesc.DestBlendAlpha = D3D12_BLEND_ZERO;	 // アルファのデスティネーションは無視
+		break;
 
+		// 無効なブレンドモード
+	default:
+		// 無効なモードの処理
+		assert(false && "Invalid Blend Mode");
 		break;
 	}
-
-	return blendDesc;
 }
 
 

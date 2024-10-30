@@ -8,11 +8,10 @@
 /// -------------------------------------------------------------
 class ShaderManager
 {
-public:
-	/// ---------- メンバ関数 ---------- ///
+public: /// ---------- メンバ関数 ---------- ///
 	
 	// CompilerShader関数
-	IDxcBlob* CompileShader(
+	Microsoft::WRL::ComPtr <IDxcBlob> CompileShader(
 		//CompilerするShaderファイルへのパス
 		const std::wstring& filePath,
 		//Compilerに使用するProfile
@@ -24,13 +23,12 @@ public:
 
 	void ShaderCompileObject3D(DirectXCommon* dxCommon);
 
-	/// ---------- ゲッター ---------- ///
+public: /// ---------- ゲッター ---------- ///
 
 	IDxcBlob* GetVertexShaderBlob() const;
 	IDxcBlob* GetPixelShaderBlob() const;
 
-private:
-	/// ---------- メンバ変数 ---------- ///
+private: /// ---------- メンバ変数 ---------- ///
 
 	Microsoft::WRL::ComPtr <IDxcBlob> vertexShaderBlob;
 	Microsoft::WRL::ComPtr <IDxcBlob> pixelShaderBlob;
