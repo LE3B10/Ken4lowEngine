@@ -2,27 +2,26 @@
 //
 //#include "DirectXCommon.h"
 //
-//void PipelineStateManager::CreatePipelineStateObject(DirectXCommon* dxCommon)
+//void PipelineStateManager::CreatePipelineState(DirectXCommon* dxCommon)
 //{
 //	HRESULT hr{};
 //
-//	#pragma region グラフィックスパイプラインステートオブジェクト（Pipeline State Object, PSO）を生成する
 //	graphicsPipelineStateDesc.pRootSignature = rootSignature->GetRootSignature();								// RootSgnature
 //	graphicsPipelineStateDesc.InputLayout = inputLayoutDesc->GetInputLayoutDesc();								// InputLayout
-//	graphicsPipelineStateDesc.VS = { 
+//	graphicsPipelineStateDesc.VS = {
 //		vertexShaderBlob->GetVertexShaderBlob()->GetBufferPointer(),
-//		vertexShaderBlob->GetVertexShaderBlob()->GetBufferSize()};	// VertexDhader
+//		vertexShaderBlob->GetVertexShaderBlob()->GetBufferSize() };	// VertexDhader
 //	graphicsPipelineStateDesc.PS = {
 //		pixelShaderBlob->GetPixelShaderBlob()->GetBufferPointer(),
-//		pixelShaderBlob->GetPixelShaderBlob()->GetBufferSize()};	// PixelShader
+//		pixelShaderBlob->GetPixelShaderBlob()->GetBufferSize() };	// PixelShader
 //	graphicsPipelineStateDesc.BlendState = blendDesc->GetBlendDesc();															// BlendState
 //	graphicsPipelineStateDesc.RasterizerState = rasterizerDesc->GetRasterizerDesc();							// RasterizeerState
 //
-//	//レンダーターゲットの設定
+//	// レンダーターゲットの設定
 //	graphicsPipelineStateDesc.NumRenderTargets = 1;
 //	graphicsPipelineStateDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
 //
-//	//利用するトポロジー（形態）のタイプ。三角形
+//	// 利用するトポロジー（形態）のタイプ。三角形
 //	graphicsPipelineStateDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;					// プリミティブトポロジーの設定
 //
 //	// サンプルマスクとサンプル記述子の設定
@@ -36,5 +35,4 @@
 //	// パイプラインステートオブジェクトの生成
 //	hr = dxCommon->GetDevice()->CreateGraphicsPipelineState(&graphicsPipelineStateDesc, IID_PPV_ARGS(&graphicsPipelineState));
 //	assert(SUCCEEDED(hr));
-//#pragma endregion
 //}

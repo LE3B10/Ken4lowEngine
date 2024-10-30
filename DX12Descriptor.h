@@ -23,8 +23,7 @@ static const uint32_t descriptorNum = static_cast<size_t>(DescriptorType::Descri
 /// -------------------------------------------------------------
 class DX12Descriptor
 {
-public:
-	/// ---------- メンバ関数 ---------- ///
+public: /// ---------- メンバ関数 ---------- ///
 
 	// 初期化処理
 	void Initialize(ID3D12Device* device, ID3D12Resource* swapChainResoursec1, ID3D12Resource* swapChainResoursec2, uint32_t width, uint32_t height);
@@ -41,16 +40,7 @@ public:
 	// デプスステンシルビューの生成
 	void GenerateDSV(ID3D12Device* device, uint32_t width, uint32_t height);
 
-public:
-	/// ---------- ゲッター ---------- ///
-	
-	ID3D12DescriptorHeap* GetDSVDescriptorHeap() const;
-	ID3D12DescriptorHeap* GetSRVDescriptorHeap() const;
-	D3D12_CPU_DESCRIPTOR_HANDLE GetRTVHandles(uint32_t num);
-	D3D12_CPU_DESCRIPTOR_HANDLE GetDSVHandle();
-
-private:
-	/// ---------- メンバ関数 ---------- ///
+public: /// ---------- ゲッター ---------- ///
 
 	// 指定番号のCPUデスクリプタヒープを取得する
 	static D3D12_CPU_DESCRIPTOR_HANDLE GetCPUDescriptorHandle(ID3D12DescriptorHeap* descriptorHeap, uint32_t descriptorSize, uint32_t index);
@@ -58,8 +48,12 @@ private:
 	// 指定番号のGPUデスクリプタヒープを取得する
 	static D3D12_GPU_DESCRIPTOR_HANDLE GetGPUDescriptorHandle(ID3D12DescriptorHeap* descriptorHeap, uint32_t descriptorSize, uint32_t index);
 
-private:
-	/// ---------- メンバ変数 ---------- ///
+	ID3D12DescriptorHeap* GetDSVDescriptorHeap() const;
+	ID3D12DescriptorHeap* GetSRVDescriptorHeap() const;
+	D3D12_CPU_DESCRIPTOR_HANDLE GetRTVHandles(uint32_t num);
+	D3D12_CPU_DESCRIPTOR_HANDLE GetDSVHandle();
+
+private: /// ---------- メンバ変数 ---------- ///
 
 	std::array<Microsoft::WRL::ComPtr <ID3D12DescriptorHeap>, descriptorNum> descriptorHeaps;
 	std::array<D3D12_DESCRIPTOR_HEAP_DESC, descriptorNum> descriptorHeapDescs;

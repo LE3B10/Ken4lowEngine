@@ -40,6 +40,7 @@ public:
 	
 	ID3D12Device* GetDevice() const;
 	ID3D12GraphicsCommandList* GetCommandList() const;
+	DX12Descriptor* GetDescriptorHeap() const;
 	ID3D12DescriptorHeap* GetSRVDescriptorHeap() const;
 	IDxcUtils* GetIDxcUtils() const;
 	IDxcCompiler3* GetIDxcCompiler() const;

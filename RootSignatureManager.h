@@ -9,8 +9,7 @@ class DirectXCommon;
 /// -------------------------------------------------------------
 class RootSignatureManager
 {
-public:
-	/// ---------- メンバ関数 ---------- ///
+public: /// ---------- メンバ関数 ---------- ///
 
 	// ルートシグネチャを生成
 	void CreateRootSignature(DirectXCommon* dxCommon);
@@ -18,12 +17,11 @@ public:
 	// サンプラーの設定
 	void SettingSampler();
 
-	/// ---------- メンバ関数 ---------- ///
+	/// ---------- ゲッター ---------- ///
 
 	ID3D12RootSignature* GetRootSignature() const;
 
-private:
-	/// ---------- メンバ関数 ---------- ///
+private: /// ---------- メンバ関数 ---------- ///
 
 	Microsoft::WRL::ComPtr <ID3DBlob> signatureBlob = nullptr;
 	Microsoft::WRL::ComPtr <ID3DBlob> errorBlob = nullptr;

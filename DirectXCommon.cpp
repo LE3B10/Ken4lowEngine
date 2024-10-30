@@ -174,6 +174,11 @@ ID3D12GraphicsCommandList* DirectXCommon::GetCommandList() const
 	return commandList.Get();
 }
 
+DX12Descriptor* DirectXCommon::GetDescriptorHeap() const
+{
+	return descriptor.get();
+}
+
 ID3D12DescriptorHeap* DirectXCommon::GetSRVDescriptorHeap() const
 {
 	return descriptor->GetSRVDescriptorHeap();
