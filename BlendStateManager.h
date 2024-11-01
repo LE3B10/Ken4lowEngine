@@ -8,7 +8,8 @@
 class BlendStateManager
 {
 public: /// ---------- メンバ関数 ---------- ///
-
+	
+	
 	void CreateBlend(BlendMode blendMode);
 
 public: /// ---------- ゲッター ---------- ///
