@@ -1,25 +1,23 @@
 #pragma once
 #include "DX12Include.h"
-#include <array>
-
 
 /// -------------------------------------------------------------
-///					頂点データを管理するクラス
+///					DepthStencilDescクラス
 /// -------------------------------------------------------------
-class InputLayoutManager
+class DXDepthStencil
 {
 public: /// ---------- メンバ関数 ---------- ///
 
-	// レイアウトの設定を行う関数
-	void Initialize();
-
+	// DepthStencilの生成
+	void Create(bool depthEnable);
+	
 public: /// ---------- ゲッター ---------- ///
 
-	D3D12_INPUT_LAYOUT_DESC GetInputLayoutDesc();
+	D3D12_DEPTH_STENCIL_DESC GetDepthStencilDesc();
 
 private: /// ---------- メンバ変数 ---------- ///
 
-	D3D12_INPUT_ELEMENT_DESC inputElementDescs[3] = {};
-	D3D12_INPUT_LAYOUT_DESC inputLayoutDesc{};
+	D3D12_DEPTH_STENCIL_DESC depthStencilDesc{};
+
 };
 

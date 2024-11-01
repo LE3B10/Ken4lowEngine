@@ -98,12 +98,12 @@ void ShaderManager::ShaderCompileObject3D(DirectXCommon* dxCommon)
 /// -------------------------------------------------------------
 ///							ゲッター
 /// -------------------------------------------------------------
-IDxcBlob* ShaderManager::GetVertexShaderBlob() const
+IDxcBlob* ShaderManager::GetVertexShaderBlob()
 {
 	return vertexShaderBlob.Get();
 }
 
-IDxcBlob* ShaderManager::GetPixelShaderBlob() const
+IDxcBlob* ShaderManager::GetPixelShaderBlob()
 {
 	return pixelShaderBlob.Get();
 }

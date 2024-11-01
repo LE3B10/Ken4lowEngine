@@ -107,6 +107,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
   <ItemGroup>
     <ClCompile Include="BlendStateManager.cpp" />
     <ClCompile Include="D3DResourceLeakChecker.cpp" />
+    <ClCompile Include="DXDepthStencil.cpp" />
     <ClCompile Include="DirectXCommon.cpp" />
     <ClCompile Include="DX12Descriptor.cpp" />
     <ClCompile Include="DX12Device.cpp" />
@@ -156,12 +157,14 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
   <ItemGroup>
     <ClInclude Include="BlendStateManager.h" />
     <ClInclude Include="D3DResourceLeakChecker.h" />
+    <ClInclude Include="DXDepthStencil.h" />
     <ClInclude Include="DirectionalLight.h" />
     <ClInclude Include="DirectXCommon.h" />
     <ClInclude Include="DX12Descriptor.h" />
     <ClInclude Include="DX12Device.h" />
     <ClInclude Include="DX12Include.h" />
     <ClInclude Include="DX12SwapChain.h" />
+    <ClInclude Include="BlendModeType.h" />
     <ClInclude Include="externals\imgui\imconfig.h" />
     <ClInclude Include="externals\imgui\imgui.h" />
     <ClInclude Include="externals\imgui\imgui_impl_dx12.h" />

@@ -1,13 +1,12 @@
 #include "RootSignatureManager.h"
 #include "LogString.h"
-
-#include <cassert>
+#include "DirectXCommon.h"
 
 
 /// -------------------------------------------------------------
 ///					ルートシグネチャの作成
 /// -------------------------------------------------------------
-Microsoft::WRL::ComPtr<ID3D12RootSignature> RootSignatureManager::CreateRootSignature(ID3D12Device* device)
+Microsoft::WRL::ComPtr<ID3D12RootSignature> RootSignatureManager::CreateRootSignature(DirectXCommon* dxCommon)
 {
     // RootSignatureの設定
     D3D12_ROOT_SIGNATURE_DESC descriptionRootSignature{};
@@ -65,7 +64,7 @@ Microsoft::WRL::ComPtr<ID3D12RootSignature> RootSignatureManager::CreateRootSign
     }
 
     // バイナリをもとにルートシグネチャ生成
-    hr = device->CreateRootSignature(0, signatureBlob->GetBufferPointer(), signatureBlob->GetBufferSize(), IID_PPV_ARGS(&rootSignature));
+    hr = dxCommon->GetDevice()->CreateRootSignature(0, signatureBlob->GetBufferPointer(), signatureBlob->GetBufferSize(), IID_PPV_ARGS(&rootSignature));
     assert(SUCCEEDED(hr));
 
     return rootSignature;

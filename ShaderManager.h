@@ -21,12 +21,13 @@ public: /// ---------- メンバ関数 ---------- ///
 		IDxcCompiler3* dxcCompiler,
 		IDxcIncludeHandler* includeHandler);
 
+	// 3Dシェーダーをコンパイルする
 	void ShaderCompileObject3D(DirectXCommon* dxCommon);
 
 public: /// ---------- ゲッター ---------- ///
 
-	IDxcBlob* GetVertexShaderBlob() const;
-	IDxcBlob* GetPixelShaderBlob() const;
+	IDxcBlob* GetVertexShaderBlob();
+	IDxcBlob* GetPixelShaderBlob();
 
 private: /// ---------- メンバ変数 ---------- ///
 
