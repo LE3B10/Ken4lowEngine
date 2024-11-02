@@ -525,16 +525,14 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 			ImGui::SliderAngle("CameraRotateX", &cameraTransform.rotate.x);
 			ImGui::SliderAngle("CameraRotateY", &cameraTransform.rotate.y);
 			ImGui::SliderAngle("CameraRotateZ", &cameraTransform.rotate.z);
-
-			ImGui::DragFloat3("transformSprite", &transformSprite.translate.x, 1.0f);
 			ImGui::DragFloat3("scale", &transform.scale.x, 0.01f);
 			ImGui::DragFloat3("rotate", &transform.rotate.x, 0.01f);
 			ImGui::DragFloat3("translate", &transform.translate.x, 0.01f);
 			ImGui::Checkbox("useMonsterBall", &useMonsterBall);
 			ImGui::DragFloat3("directionalLight", &directionalLightData->direction.x, 0.01f);
-			ImGui::DragFloat2("UVTranslete", &uvTransformSprite.translate.x, 0.01f, -10.0f, 10.0f);
-			ImGui::DragFloat2("UVScale", &uvTransformSprite.scale.x, 0.01f, -10.0f, 10.0f);
-			ImGui::SliderAngle("UVRotate", &uvTransformSprite.rotate.z);
+			
+			sprite->DrawImGui();
+
 			ImGui::End();
 		}
 
@@ -556,17 +554,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 		wvpData->WVP = worldViewProjectionMatrix;
 		wvpData->World = worldMatrix;
 
-		////Sprite用のWorldViewProjectionMatrixを作る
-		//Matrix4x4 worldMatrixSprite = MakeAffineMatrix(transformSprite.scale, transformSprite.rotate, transformSprite.translate);
-		//Matrix4x4 viewMatrixSprite = MakeIdentity();
-		//Matrix4x4 projectionMatrixSprite = MakeOrthographicMatrix(0.0f, 0.0f, float(kClientWidth), float(kClientHeight), 0.0f, 100.0f);
-		//Matrix4x4 worldViewProjectionMatrixSprite = Multiply(worldMatrixSprite, Multiply(viewMatrixSprite, projectionMatrixSprite));
-
-		//transformationMatrixDataSprite->WVP = worldViewProjectionMatrixSprite;
-		//transformationMatrixDataSprite->World = worldMatrix;
-
-		/*Matrix4x4 uvTransformMatrix = MakeAffineMatrix(uvTransformSprite.scale, uvTransformSprite.rotate, uvTransformSprite.translate);
-		materialDataSprite->uvTransform = uvTransformMatrix;*/
+		sprite->Update();
 
 
 		// 描画開始処理
@@ -595,15 +583,11 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 		// 形状を設定。PSOに設定るものとはまた別。同じものを設定すると考える
 		dxCommon->GetCommandList()->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-		///*-----スプライトの描画設定と描画-----*/
-		/*sprite->SetSpriteBufferData(dxCommon->GetCommandList());
-		sprite->DrawCall(dxCommon->GetCommandList());*/
-		//dxCommon->GetCommandList()->IASetVertexBuffers(0, 1, &vertexBufferViewSprite); // スプライト用VBV
-		//dxCommon->GetCommandList()->IASetIndexBuffer(&indexBufferViewSprite); // IBVの設定
-		//dxCommon->GetCommandList()->SetGraphicsRootConstantBufferView(0, materialResourceSprite->GetGPUVirtualAddress());
-		//dxCommon->GetCommandList()->SetGraphicsRootConstantBufferView(1, transformationMatrixResourceSprite->GetGPUVirtualAddress());
-		////dxCommon->GetCommandList()->DrawIndexedInstanced(6, 1, 0, 0, 0);
 
+		///*-----スプライトの描画設定と描画-----*/
+		sprite->SetSpriteBufferData(dxCommon->GetCommandList());
+		sprite->DrawCall(dxCommon->GetCommandList());
+		
 		/*-----ImGuiの描画-----*/
 		// ImGui描画のコマンドを積む
 		imguiManager->Draw();

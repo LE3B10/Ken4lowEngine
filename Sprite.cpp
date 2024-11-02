@@ -1,9 +1,8 @@
 #include "Sprite.h"
-
 #include "DirectXCommon.h"
+#include "ImGuiManager.h"
 #include "TextureManager.h"
 #include "MatrixMath.h"
-#include "Transform.h"
 
 /// -------------------------------------------------------------
 ///							初期化処理
@@ -13,25 +12,48 @@ void Sprite::Initialize()
 	//spriteData_ = CreateSpriteData(kVertexNum, kIndexNum);
 	DirectXCommon* dxCommon = DirectXCommon::GetInstance();
 
+	transformSprite = { { 1.0f,1.0f,1.0f },{ 0.0f,0.0f,0.0f },{ 0.0f,0.0f,0.0f } };
+	uvTransformSprite = { { 1.0f, 1.0f, 1.0f }, { 0.0f,0.0f,0.0f }, { 0.0f,0.0f,0.0f } };
+
 	// スプライト用のマテリアルリソースを作成し設定する処理を行う
 	CreateMaterialResource(dxCommon);
+	
 	// スプライトの頂点バッファリソースと変換行列リソースを生成
 	CreateVertexBufferResource(dxCommon);
+	
 	// スプライトのインデックスバッファを作成および設定する
 	CreateIndexBuffer(dxCommon);
 }
 
+
+/// -------------------------------------------------------------
+///							　更新処理
+/// -------------------------------------------------------------
 void Sprite::Update()
 {
-	//Transform transformSprite{ {1.0f,1.0f,1.0f},{0.0f,0.0f,0.0f},{0.0f,0.0f,0.0f} };
-	////Sprite用のWorldViewProjectionMatrixを作る
-	//Matrix4x4 worldMatrixSprite = MakeAffineMatrix(transformSprite.scale, transformSprite.rotate, transformSprite.translate);
-	//Matrix4x4 viewMatrixSprite = MakeIdentity();
-	//Matrix4x4 projectionMatrixSprite = MakeOrthographicMatrix(0.0f, 0.0f, float(kClientWidth), float(kClientHeight), 0.0f, 100.0f);
-	//Matrix4x4 worldViewProjectionMatrixSprite = Multiply(worldMatrixSprite, Multiply(viewMatrixSprite, projectionMatrixSprite));
+	//Sprite用のWorldViewProjectionMatrixを作る
+	Matrix4x4 worldMatrixSprite = MakeAffineMatrix(transformSprite.scale, transformSprite.rotate, transformSprite.translate);
+	Matrix4x4 viewMatrixSprite = MakeIdentity();
+	Matrix4x4 projectionMatrixSprite = MakeOrthographicMatrix(0.0f, 0.0f, 1280.0f, 720.0f, 0.0f, 100.0f);
+	Matrix4x4 worldViewProjectionMatrixSprite = Multiply(worldMatrixSprite, Multiply(viewMatrixSprite, projectionMatrixSprite));
 
-	//transformationMatrixDataSprite->WVP = worldViewProjectionMatrixSprite;
-	//transformationMatrixDataSprite->World = viewMatrixSprite;
+	transformationMatrixDataSprite->WVP = worldViewProjectionMatrixSprite;
+	transformationMatrixDataSprite->World = viewMatrixSprite;
+
+	Matrix4x4 uvTransformMatrix = MakeAffineMatrix(uvTransformSprite.scale, uvTransformSprite.rotate, uvTransformSprite.translate);
+	materialDataSprite->uvTransform = uvTransformMatrix;
+}
+
+
+/// -------------------------------------------------------------
+///							ImGui描画処理
+/// -------------------------------------------------------------
+void Sprite::DrawImGui()
+{
+	ImGui::DragFloat3("transformSprite", &transformSprite.translate.x, 1.0f);
+	ImGui::DragFloat2("UVTranslete", &uvTransformSprite.translate.x, 0.01f, -10.0f, 10.0f);
+	ImGui::DragFloat2("UVScale", &uvTransformSprite.scale.x, 0.01f, -10.0f, 10.0f);
+	ImGui::SliderAngle("UVRotate", &uvTransformSprite.rotate.z);
 }
 
 
@@ -40,10 +62,10 @@ void Sprite::Update()
 /// -------------------------------------------------------------
 void Sprite::SetSpriteBufferData(ID3D12GraphicsCommandList* commandList)
 {
-	//commandList->IASetVertexBuffers(0, 1, &spriteData_->vertexBufferViewSprite); // スプライト用VBV
-	//commandList->IASetIndexBuffer(&spriteData_->indexBufferViewSprite); // IBVの設定
-	//commandList->SetGraphicsRootConstantBufferView(0, spriteData_->materialResourceSprite.Get()->GetGPUVirtualAddress());
-	//commandList->SetGraphicsRootConstantBufferView(1, spriteData_->transformationMatrixResourceSprite.Get()->GetGPUVirtualAddress());
+	commandList->IASetVertexBuffers(0, 1, &vertexBufferViewSprite); // スプライト用VBV
+	commandList->IASetIndexBuffer(&indexBufferViewSprite); // IBVの設定
+	commandList->SetGraphicsRootConstantBufferView(0, materialResourceSprite.Get()->GetGPUVirtualAddress());
+	commandList->SetGraphicsRootConstantBufferView(1, transformationMatrixResourceSprite.Get()->GetGPUVirtualAddress());
 }
 
 

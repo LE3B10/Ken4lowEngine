@@ -4,6 +4,7 @@
 #include "TransformationMatrix.h"
 #include "ResourceManager.h"
 #include "VertexData.h"
+#include "Transform.h"
 
 #include <array>
 #include <memory>
@@ -27,6 +28,8 @@ public: /// ---------- メンバ関数 ---------- ///
 	// 更新処理
 	void Update();
 
+	void DrawImGui();
+
 public: /// ---------- セッター ---------- ///
 
 	// VBV - IBV - CBVの設定（スプライト用）
@@ -46,9 +49,15 @@ private: /// ---------- メンバ変数 ---------- ///
 	// スプライトのインデックスバッファを作成
 	void CreateIndexBuffer(DirectXCommon* dxCommon);
 
-private:
+private: /// ---------- メンバ変数 ---------- ///
+
 	// CreateBuffer用
 	ResourceManager createBuffer_;
+
+	Transform transformSprite;
+	//UVTransform用の変数を用意
+	Transform uvTransformSprite;
+
 
 	//スプライト用のマテリアルソースを作る
 	Microsoft::WRL::ComPtr <ID3D12Resource> materialResourceSprite;
