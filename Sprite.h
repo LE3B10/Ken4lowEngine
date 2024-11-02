@@ -8,6 +8,8 @@
 #include <array>
 #include <memory>
 
+class DirectXCommon;
+
 /// ---------- スプライトの頂点数 ( Vertex, Index ) ----------- ///
 static const UINT kVertexNum = 6;
 static const UINT kIndexNum = 4;
@@ -17,44 +19,13 @@ static const UINT kIndexNum = 4;
 /// -------------------------------------------------------------
 class Sprite
 {
-public: /// ---------- スプライトデータの構造体 ---------- ///
-
-	struct SpriteData
-	{
-		/// ---------- 頂点バッファデータ ---------- ///
-
-		// 頂点リソース
-		Microsoft::WRL::ComPtr <ID3D12Resource> vertexResourceSprite;
-		// 頂点バッファービュー
-		D3D12_VERTEX_BUFFER_VIEW vertexBufferViewSprite{};
-		// インデックス頂点バッファリソース
-		Microsoft::WRL::ComPtr <ID3D12Resource> indexResourceSprite;
-		// インデックスバッファビュー
-		D3D12_INDEX_BUFFER_VIEW indexBufferViewSprite{};
-		// 頂点バッファデータ
-		VertexData* vertexDataSprite = nullptr;
-		// インデックスデータ
-		uint32_t* indexDataSprite = nullptr;
-
-		/// ---------- マテリアルデータ ---------- ///
-
-		// マテリアルリソース
-		Microsoft::WRL::ComPtr <ID3D12Resource> materialResourceSprite;
-		// マテリアルデータ
-		Material* materialDataSprite = nullptr;
-
-		/// ---------- 座標変換データ ---------- ///
-
-		// 座標変換行列リソース
-		Microsoft::WRL::ComPtr <ID3D12Resource> transformationMatrixResourceSprite;
-		//	座標変換行列データ
-		TransformationMatrix* transformationMatrixDataSprite = nullptr;
-	};
-
 public: /// ---------- メンバ関数 ---------- ///
 
 	// 初期化処理
 	void Initialize();
+
+	// 更新処理
+	void Update();
 
 public: /// ---------- セッター ---------- ///
 
@@ -66,13 +37,38 @@ public: /// ---------- セッター ---------- ///
 
 private: /// ---------- メンバ変数 ---------- ///
 
-	// スプライトデータ
-	std::unique_ptr<SpriteData> spriteData_;
-	// スプライトメッシュ生成
-	std::unique_ptr<SpriteData> CreateSpriteData(UINT vertexCount, UINT indexCount);
+	// スプライト用のマテリアルリソースを作成し設定する処理を行う
+	void CreateMaterialResource(DirectXCommon* dxCommon);
 
+	// スプライトの頂点バッファリソースと変換行列リソースを生成
+	void CreateVertexBufferResource(DirectXCommon* dxCommon);
+
+	// スプライトのインデックスバッファを作成
+	void CreateIndexBuffer(DirectXCommon* dxCommon);
+
+private:
 	// CreateBuffer用
 	ResourceManager createBuffer_;
 
+	//スプライト用のマテリアルソースを作る
+	Microsoft::WRL::ComPtr <ID3D12Resource> materialResourceSprite;
+	Material* materialDataSprite = nullptr;
+
+	// スプライトの頂点バッファリソースと変換行列リソースを生成
+	//Sprite用の頂点リソースを作る
+	Microsoft::WRL::ComPtr <ID3D12Resource> vertexResourceSprite;
+	//頂点バッファビューを作成する
+	D3D12_VERTEX_BUFFER_VIEW vertexBufferViewSprite{};
+	// 頂点データを設定する
+	VertexData* vertexDataSprite = nullptr;
+	//Sprite用のTransformationMatrix用のリソースを作る。Matrix4x4 1つ分のサイズを用意する
+	Microsoft::WRL::ComPtr <ID3D12Resource> transformationMatrixResourceSprite;
+	//データを書き込む
+	TransformationMatrix* transformationMatrixDataSprite = nullptr;
+
+	// スプライトのインデックスバッファを作成および設定する
+	Microsoft::WRL::ComPtr <ID3D12Resource> indexResourceSprite;
+	D3D12_INDEX_BUFFER_VIEW indexBufferViewSprite{};
+	uint32_t* indexDataSprite = nullptr;
 };
 

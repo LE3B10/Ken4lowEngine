@@ -19,7 +19,7 @@ class DirectXCommon;
 /// ---------- パイプライン列挙型 ---------- ///
 enum class PipelineType
 {
-	Object3d, // 3Dオブジェクト
+	Object3d,		// 3Dオブジェクト
 	PipelineTypeNum // 合計
 };
 

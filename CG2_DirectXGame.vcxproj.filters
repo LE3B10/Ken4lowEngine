@@ -265,10 +265,10 @@
     <ClInclude Include="TextureManager.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="BlendModeType.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
     <ClInclude Include="DXDepthStencil.h">
+      <Filter>ヘッダー ファイル\PSO</Filter>
+    </ClInclude>
+    <ClInclude Include="BlendModeType.h">
       <Filter>ヘッダー ファイル\PSO</Filter>
     </ClInclude>
   </ItemGroup>

@@ -18,6 +18,9 @@ enum class DescriptorType
 // デスクリプタの数
 static const uint32_t descriptorNum = static_cast<size_t>(DescriptorType::DescriptorTypeNum);
 
+// 最大SRV数（最大テクスチャ枚数）
+static const uint32_t kMaxSRVCount = 312;
+
 /// -------------------------------------------------------------
 ///				デスクリプタヒープの生成クラス
 /// -------------------------------------------------------------

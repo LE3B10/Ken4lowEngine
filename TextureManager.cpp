@@ -1,9 +1,25 @@
 #include "TextureManager.h"
 
+#include "DirectXCommon.h"
+
 #pragma comment(lib, "d3d12.lib")        // Direct3D 12用
 #pragma comment(lib, "dxgi.lib")         // DXGI (DirectX Graphics Infrastructure)用
 #pragma comment(lib, "dxguid.lib")       // DXGIやD3D12で使用するGUID定義用
 
+
+/// -------------------------------------------------------------
+///					シングルトンインスタンス
+/// -------------------------------------------------------------
+TextureManager* TextureManager::GetInstance()
+{
+	static TextureManager instance;
+	return &instance;
+}
+
+
+/// -------------------------------------------------------------
+///					リソースを作成する関数
+/// -------------------------------------------------------------
 Microsoft::WRL::ComPtr<ID3D12Resource> TextureManager::CreateTextureResource(ID3D12Device* device, const DirectX::TexMetadata& metadata)
 {
 	//1. metadataを基にResourceの設定
@@ -36,6 +52,11 @@ Microsoft::WRL::ComPtr<ID3D12Resource> TextureManager::CreateTextureResource(ID3
 	return resource;
 }
 
+
+
+/// -------------------------------------------------------------
+///					データを転送する関数
+/// -------------------------------------------------------------
 void TextureManager::UploadTextureData(ID3D12Resource* texture, const DirectX::ScratchImage& mipImages)
 {
 	//Meta情報を取得
@@ -57,6 +78,11 @@ void TextureManager::UploadTextureData(ID3D12Resource* texture, const DirectX::S
 	}
 }
 
+
+
+/// -------------------------------------------------------------
+///				テクスチャデータを読み込む関数
+/// -------------------------------------------------------------
 DirectX::ScratchImage TextureManager::LoadTexture(const std::string& filePath)
 {
 	//テクスチャファイルを呼んでプログラムで扱えるようにする
@@ -72,4 +98,14 @@ DirectX::ScratchImage TextureManager::LoadTexture(const std::string& filePath)
 
 	//ミップマップ付きのデータを返す
 	return mipImages;
+}
+
+void TextureManager::SetGraphicsRootDescriptorTable(ID3D12GraphicsCommandList* commandList)
+{
+	DirectXCommon* dxCommon = DirectXCommon::GetInstance();
+
+	// ディスクリプタヒープの設定
+	ID3D12DescriptorHeap* descriptorHeaps[] = { dxCommon->GetSRVDescriptorHeap() };
+	commandList->SetDescriptorHeaps(1, descriptorHeaps);
+
 }
