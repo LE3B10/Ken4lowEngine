@@ -325,7 +325,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	ModelData modelData = LoadObjFile("Resources", "axis.obj");
 
 	// Textureを読んで転送する
-	DirectX::ScratchImage mipImages = TextureManager::LoadTextureData("Resources/uvChecker.png");
+	DirectX::ScratchImage mipImages = TextureManager::LoadTexture("Resources/uvChecker.png");
 	const DirectX::TexMetadata& metadata = mipImages.GetMetadata();
 	Microsoft::WRL::ComPtr <ID3D12Resource> textureResource = CreateTextureResource(dxCommon->GetDevice(), metadata);
 	Microsoft::WRL::ComPtr <ID3D12Resource> intermediateResouece1 = UploadTextureData(textureResource.Get(), mipImages, dxCommon->GetDevice(), dxCommon->GetCommandList());
@@ -348,7 +348,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	textureManager->LoadTextureFile("Resources/uvChecker.png");*/
 
 	//2枚目のTextureを読んで転送する
-	DirectX::ScratchImage mipImages2 = TextureManager::LoadTextureData(modelData.material.textureFilePath);
+	DirectX::ScratchImage mipImages2 = TextureManager::LoadTexture(modelData.material.textureFilePath);
 	const DirectX::TexMetadata& metadata2 = mipImages2.GetMetadata();
 	Microsoft::WRL::ComPtr <ID3D12Resource> textureResource2 = CreateTextureResource(dxCommon->GetDevice(), metadata2);
 	Microsoft::WRL::ComPtr <ID3D12Resource> intermediateResouece2 = UploadTextureData(textureResource2.Get(), mipImages2, dxCommon->GetDevice(), dxCommon->GetCommandList());
