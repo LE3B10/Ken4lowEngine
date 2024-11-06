@@ -30,13 +30,35 @@ public: /// ---------- メンバ関数 ---------- ///
 
 	void DrawImGui();
 
+	// ドローコール
+	void DrawCall(ID3D12GraphicsCommandList* commandList);
+
+	// position　ゲッターとセッター
+	const Vector2& GetPosition() const { return position_; }
+	void SetPosition(const Vector2& position) { position_ = position; }
+
+	// rotation　ゲッターとセッター
+	float GetRotation() const { return rotation_; }
+	void SetRotation(float rotation) { rotation_ = rotation; }
+
+	// size ゲッターとセッター
+	const Vector2& GetSize() const { return size_; }
+	void SetSize(const Vector2& size) { size_ = size; }
+
+	// 色
+	const Vector4& GetColor() const { return materialDataSprite->color; }
+	void SetColor(const Vector4& color) {materialDataSprite->color = color;}
+
+	// アンカーのアクセッサー
+	const Vector2& GetAnchorPoint() const { return anchorPoint_; }
+	void SetAnchorPoint(const Vector2& anchorPoint) { anchorPoint_ = anchorPoint; }
+
 public: /// ---------- セッター ---------- ///
 
 	// VBV - IBV - CBVの設定（スプライト用）
 	void SetSpriteBufferData(ID3D12GraphicsCommandList* commandList);
-	
-	// ドローコール
-	void DrawCall(ID3D12GraphicsCommandList* commandList);
+
+	//void SetTransform2D(const Transform2D transform2D) { transform2D_ = transform2D; }
 
 private: /// ---------- メンバ変数 ---------- ///
 
@@ -51,13 +73,26 @@ private: /// ---------- メンバ変数 ---------- ///
 
 private: /// ---------- メンバ変数 ---------- ///
 
+	// 座標
+	Vector2 position_ = { 0.0f,0.0f };
+	// 回転
+	float rotation_;
+	// サイズ
+	Vector2 size_ = { 640.0f, 360.0f };
+
+	Vector2 anchorPoint_ = { 0.0f,0.0f };
+
+	Vector4 color_;
+
+
+private: /// ---------- メンバ変数 ---------- ///
+	
 	// CreateBuffer用
-	ResourceManager createBuffer_;
+	ResourceManager* createBuffer_ = nullptr;
 
 	Transform transformSprite;
 	//UVTransform用の変数を用意
 	Transform uvTransformSprite;
-
 
 	//スプライト用のマテリアルソースを作る
 	Microsoft::WRL::ComPtr <ID3D12Resource> materialResourceSprite;
