@@ -36,6 +36,16 @@ Vector3& Vector3::operator/=(float s)
 	return *this;
 }
 
+bool Vector3::operator==(const Vector3& other) const
+{
+	return x == other.x && y == other.y && z == other.z;
+}
+
+bool Vector3::operator!=(const Vector3& other) const
+{
+	return !(*this == other);
+}
+
 Vector3 operator+(const Vector3& v1, const Vector3& v2) { return Vector3(v1) += v2; }
 
 Vector3 operator-(const Vector3& v1, const Vector3& v2) { return Vector3(v1) -= v2; }

@@ -25,6 +25,10 @@ public:
 	friend Vector3 operator*(float s, const Vector3& v);
 	friend Vector3 operator/(const Vector3& v, float s);
 
+	// 等価演算子
+	bool operator==(const Vector3& other) const;
+	bool operator!=(const Vector3& other) const;
+
 	// [] 演算子のオーバーロード（読み取り用）
 	float operator[](int index) const {
 		switch (index) {

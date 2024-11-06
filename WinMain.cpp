@@ -3,6 +3,11 @@
 #include "DirectXCommon.h"
 #include "ImGuiManager.h"
 #include "D3DResourceLeakChecker.h"
+#include "LogString.h"
+#include "PipelineStateManager.h"
+#include "TextureManager.h"
+#include "Sprite.h"
+#include "ResourceManager.h"
 
 D3DResourceLeakChecker resourceLeakCheck;
 
