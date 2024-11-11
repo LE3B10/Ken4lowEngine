@@ -1,6 +1,7 @@
 #pragma once
 #include "DX12Include.h"
 #include "Material.h"
+#include "TextureManager.h"
 #include "TransformationMatrix.h"
 #include "ResourceManager.h"
 #include "VertexData.h"
@@ -33,6 +34,9 @@ public: /// ---------- メンバ関数 ---------- ///
 	// ドローコール
 	void DrawCall(ID3D12GraphicsCommandList* commandList);
 
+	// テクスチャの読み込みとSRV設定処理
+	void LoadAndSetTexture(DirectXCommon* dxCommon, const std::string& texturePath);
+
 	// position　ゲッターとセッター
 	const Vector2& GetPosition() const { return position_; }
 	void SetPosition(const Vector2& position) { position_ = position; }
@@ -47,7 +51,7 @@ public: /// ---------- メンバ関数 ---------- ///
 
 	// 色
 	const Vector4& GetColor() const { return materialDataSprite->color; }
-	void SetColor(const Vector4& color) {materialDataSprite->color = color;}
+	void SetColor(const Vector4& color) { materialDataSprite->color = color; }
 
 	// アンカーのアクセッサー
 	const Vector2& GetAnchorPoint() const { return anchorPoint_; }
@@ -78,7 +82,7 @@ private: /// ---------- メンバ変数 ---------- ///
 	// 回転
 	float rotation_;
 	// サイズ
-	Vector2 size_ = { 640.0f, 360.0f };
+	Vector2 size_ = { 100.0f, 100.0f };
 
 	Vector2 anchorPoint_ = { 0.0f,0.0f };
 
@@ -86,7 +90,7 @@ private: /// ---------- メンバ変数 ---------- ///
 
 
 private: /// ---------- メンバ変数 ---------- ///
-	
+
 	// CreateBuffer用
 	ResourceManager* createBuffer_ = nullptr;
 
@@ -114,5 +118,11 @@ private: /// ---------- メンバ変数 ---------- ///
 	Microsoft::WRL::ComPtr <ID3D12Resource> indexResourceSprite;
 	D3D12_INDEX_BUFFER_VIEW indexBufferViewSprite{};
 	uint32_t* indexDataSprite = nullptr;
+
+
+	Microsoft::WRL::ComPtr <ID3D12Resource> textureResource;
+	Microsoft::WRL::ComPtr <ID3D12Resource> intermediateResouece;
+	D3D12_CPU_DESCRIPTOR_HANDLE textureSrvHandleCPU;
+	D3D12_GPU_DESCRIPTOR_HANDLE textureSrvHandleGPU;
 };
 

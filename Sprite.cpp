@@ -1,8 +1,8 @@
 #include "Sprite.h"
 #include "DirectXCommon.h"
 #include "ImGuiManager.h"
-#include "TextureManager.h"
 #include "MatrixMath.h"
+
 
 /// -------------------------------------------------------------
 ///							初期化処理
@@ -12,6 +12,7 @@ void Sprite::Initialize()
 	//spriteData_ = CreateSpriteData(kVertexNum, kIndexNum);
 	DirectXCommon* dxCommon = DirectXCommon::GetInstance();
 
+	// スプライトの初期化
 	transformSprite = { { size_.x, size_.y, 1.0f }, { 0.0f, 0.0f, rotation_ }, { position_.x, position_.y, 0.0f } };
 	uvTransformSprite = { { 1.0f, 1.0f, 1.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f } };
 
@@ -99,6 +100,10 @@ void Sprite::Update()
 	indexDataSprite[4] = 4;
 	indexDataSprite[5] = 2;
 
+	transformSprite.scale = { size_.x, size_.y, 1.0f };
+	transformSprite.rotate = { 0.0f, 0.0f, rotation_ };
+	transformSprite.translate = { position_.x, position_.y, 0.0f };
+
 	//Sprite用のWorldViewProjectionMatrixを作る
 	Matrix4x4 worldMatrixSprite = MakeAffineMatrix(transformSprite.scale, transformSprite.rotate, transformSprite.translate);
 	Matrix4x4 viewMatrixSprite = MakeIdentity();
@@ -141,6 +146,8 @@ void Sprite::DrawImGui()
 /// -------------------------------------------------------------
 void Sprite::DrawCall(ID3D12GraphicsCommandList* commandList)
 {
+
+	//commandList->SetGraphicsRootDescriptorTable(2, textureSrvHandleGPU);
 	commandList->DrawIndexedInstanced(kVertexNum, 1, 0, 0, 0);
 }
 

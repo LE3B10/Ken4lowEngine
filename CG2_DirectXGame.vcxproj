@@ -128,6 +128,9 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="Matrix4x4.cpp" />
+    <ClCompile Include="Model.cpp" />
+    <ClCompile Include="ModelManager.cpp" />
+    <ClCompile Include="Object3D.cpp" />
     <ClCompile Include="PipelineStateManager.cpp" />
     <ClCompile Include="RasterizerStateManager.cpp" />
     <ClCompile Include="ResourceManager.cpp" />
@@ -181,7 +184,10 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="Material.h" />
     <ClInclude Include="Matrix4x4.h" />
     <ClInclude Include="MatrixMath.h" />
+    <ClInclude Include="Model.h" />
     <ClInclude Include="ModelData.h" />
+    <ClInclude Include="ModelManager.h" />
+    <ClInclude Include="Object3D.h" />
     <ClInclude Include="PipelineStateManager.h" />
     <ClInclude Include="RasterizerStateManager.h" />
     <ClInclude Include="ResourceManager.h" />

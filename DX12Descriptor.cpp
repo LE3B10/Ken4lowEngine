@@ -11,6 +11,11 @@
 /// -------------------------------------------------------------
 void DX12Descriptor::Initialize(ID3D12Device* device, ID3D12Resource* swapChainResoursec1, ID3D12Resource* swapChainResoursec2, uint32_t width, uint32_t height)
 {
+	// デスクリプタサイズの設定
+	descriptorSizeSRV = device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+	descriptorSizeRTV = device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+	descriptorSizeDSV = device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
+
 	// RTVディスクイリプタヒープの生成
 	descriptorHeaps[static_cast<size_t>(DescriptorType::RTV)] =
 		CreateDescriptorHeap(DescriptorType::RTV, device, D3D12_DESCRIPTOR_HEAP_TYPE_RTV, 2, false);

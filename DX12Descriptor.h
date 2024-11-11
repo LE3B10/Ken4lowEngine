@@ -56,6 +56,12 @@ public: /// ---------- ゲッター ---------- ///
 	D3D12_CPU_DESCRIPTOR_HANDLE GetRTVHandles(uint32_t num);
 	D3D12_CPU_DESCRIPTOR_HANDLE GetDSVHandle();
 
+	// デスクリプタサイズ取得用のゲッタ
+	uint32_t GetDescriptorSizeSRV() const { return descriptorSizeSRV; }
+	uint32_t GetDescriptorSizeRTV() const { return descriptorSizeRTV; }
+	uint32_t GetDescriptorSizeDSV() const { return descriptorSizeDSV; }
+
+
 private: /// ---------- メンバ変数 ---------- ///
 
 	std::array<Microsoft::WRL::ComPtr <ID3D12DescriptorHeap>, descriptorNum> descriptorHeaps;
@@ -68,5 +74,11 @@ private: /// ---------- メンバ変数 ---------- ///
 	Microsoft::WRL::ComPtr <ID3D12Resource> depthStencilResource;
 	D3D12_DEPTH_STENCIL_VIEW_DESC dsvDesc{};
 	D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle;
+
+
+	// デスクリプタのサイズ
+	uint32_t descriptorSizeSRV = 0;
+	uint32_t descriptorSizeRTV = 0;
+	uint32_t descriptorSizeDSV = 0;
 };
 

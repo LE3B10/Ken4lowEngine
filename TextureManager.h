@@ -3,15 +3,16 @@
 #include "LogString.h"
 
 #include <DirectXTex.h>
-
 #include <vector>
+
+class DirectXCommon;
 
 /// -------------------------------------------------------------
 ///					テクスチャ管理クラス
 /// -------------------------------------------------------------
 class TextureManager
 {
-private: /// ---------- テクスチャデータの構造体
+private: /// ---------- テクスチャデータの構造体 ---------- ///
 
 	// テクスチャ１枚分のデータ
 	struct TextureData
@@ -32,16 +33,17 @@ public: /// ---------- メンバ関数 ---------- ///
 	void Initialize();
 
 	// DirectX12のTextureResourceを作る
-	Microsoft::WRL::ComPtr <ID3D12Resource> CreateTextureResource(ID3D12Device* device, const DirectX::TexMetadata& metadata);
+	static Microsoft::WRL::ComPtr <ID3D12Resource> CreateTextureResource(ID3D12Device* device, const DirectX::TexMetadata& metadata);
 
 	// データを移送するUploadTextureData関数
-	void UploadTextureData(ID3D12Resource* texture, const DirectX::ScratchImage& mipImages);
+	static Microsoft::WRL::ComPtr<ID3D12Resource> UploadTextureData(ID3D12Resource* texture, const DirectX::ScratchImage& mipImages, ID3D12Device* device, ID3D12GraphicsCommandList* commandList);
 
 	// Textureデータを読む
 	static DirectX::ScratchImage LoadTexture(const std::string& filePath);
 
 	// SRVのセット
 	void SetGraphicsRootDescriptorTable(ID3D12GraphicsCommandList* commandList);
+
 
 private: /// ---------- メンバ変数 ---------- ///
 
@@ -56,4 +58,3 @@ private: /// ---------- 隠蔽 - コピー禁止 ---------- ///
 	const TextureManager& operator=(const TextureManager&) = delete;
 
 };
-

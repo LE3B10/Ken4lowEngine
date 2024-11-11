@@ -7,8 +7,7 @@
 /// -------------------------------------------------------------
 class WinApp
 {
-public:
-	/// ---------- メンバ関数 ---------- ///
+public: /// ---------- メンバ関数 ---------- ///
 
 	// シングルトン
 	static WinApp* GetInstance();
@@ -26,14 +25,12 @@ public:
 	HWND GetHwnd() const { return hwnd; }
 	HINSTANCE GetHInstance() const { return wc.hInstance; }
 
-private:
-	/// ---------- メンバ関数 ---------- ///
-
+private: /// ---------- メンバ関数 ---------- ///
+	
 	// ウィンドウプロシージャ
 	static LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam);
 
-private:
-	/// ---------- メンバ関数 ---------- ///
+private: /// ---------- メンバ関数 ---------- ///
 
 	// ウィンドウハンドル
 	HWND hwnd = nullptr;
