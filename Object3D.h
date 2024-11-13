@@ -6,6 +6,7 @@
 #include "TextureManager.h"
 #include "Material.h"
 #include "VertexData.h"
+#include "ModelData.h"
 
 #include <fstream>
 #include <sstream>
@@ -20,25 +21,10 @@
 /// -------------------------------------------------------------
 class Object3D
 {
-public: /// ---------- 構造体 ---------- ///
-
-	// MaterialDataの構造体
-	struct MaterialData
-	{
-		std::string textureFilePath;
-	};
-
-	// ModelData構造体
-	struct ModelData
-	{
-		std::vector<VertexData> vertices;
-		MaterialData material;
-	};
-
 public: /// ---------- メンバ関数 ---------- ///
 
 	// 初期化処理
-	void Initilize();
+	void Initialize();
 
 	// 更新処理
 	void Update();
@@ -46,17 +32,11 @@ public: /// ---------- メンバ関数 ---------- ///
 	// ImGui
 	void DrawImGui();
 
+	// ドローコール
+	void DrawCall(ID3D12GraphicsCommandList* commandList, UINT rootParameter, D3D12_GPU_DESCRIPTOR_HANDLE textureSRVHandleGPU);
+
 	// 共通描画設定
 	void SetObject3DBufferData(ID3D12GraphicsCommandList* commandList);
-
-	// .objファイルの読み取り
-	static ModelData LoadObjFile(const std::string& directoryPath, const std::string& filename);
-
-private: /// ---------- メンバ関数 ---------- ///
-
-	// .mtlファイルの読み取り
-	static MaterialData LoadMaterialTemplateFile(const std::string& directoryPath, const std::string& filename);
-
 
 private: /// ---------- メンバ変数 ---------- ///
 

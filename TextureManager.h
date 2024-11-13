@@ -42,7 +42,7 @@ public: /// ---------- メンバ関数 ---------- ///
 	static DirectX::ScratchImage LoadTexture(const std::string& filePath);
 
 	// SRVのセット
-	void SetGraphicsRootDescriptorTable(ID3D12GraphicsCommandList* commandList);
+	void SetGraphicsRootDescriptorTable(ID3D12GraphicsCommandList* commandList, UINT rootParameter, D3D12_GPU_DESCRIPTOR_HANDLE textureSRVHandleGPU);
 
 
 private: /// ---------- メンバ変数 ---------- ///

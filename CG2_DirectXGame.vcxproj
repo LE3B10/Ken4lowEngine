@@ -182,6 +182,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="InputLayoutManager.h" />
     <ClInclude Include="LogString.h" />
     <ClInclude Include="Material.h" />
+    <ClInclude Include="MaterialData.h" />
     <ClInclude Include="Matrix4x4.h" />
     <ClInclude Include="MatrixMath.h" />
     <ClInclude Include="Model.h" />

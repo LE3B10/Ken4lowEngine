@@ -146,8 +146,6 @@ void Sprite::DrawImGui()
 /// -------------------------------------------------------------
 void Sprite::DrawCall(ID3D12GraphicsCommandList* commandList)
 {
-
-	//commandList->SetGraphicsRootDescriptorTable(2, textureSrvHandleGPU);
 	commandList->DrawIndexedInstanced(kVertexNum, 1, 0, 0, 0);
 }
 

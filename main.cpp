@@ -1,9 +1,3 @@
-#include <format>
-#include <d3dx12.h>
-#include <dxgi1_6.h>
-#include <dxgidebug.h>
-#include <dxcapi.h>
-
 #include "WinApp.h"
 #include "Input.h"
 #include "DirectXCommon.h"
@@ -15,6 +9,7 @@
 #include "Sprite.h"
 #include "ResourceManager.h"
 #include "Object3D.h"
+#include "ModelManager.h"
 
 #include "ResourceObject.h"
 
@@ -29,12 +24,6 @@
 #include "TransformationMatrix.h"
 #include "DirectionalLight.h"
 
-#pragma comment(lib, "d3d12.lib")        // Direct3D 12用
-#pragma comment(lib, "dxgi.lib")         // DXGI (DirectX Graphics Infrastructure)用
-#pragma comment(lib, "dxguid.lib")       // DXGIやD3D12で使用するGUID定義用
-#pragma comment(lib, "dxcompiler.lib")   // DXC (DirectX Shader Compiler)用
-#pragma comment(lib, "dxguid.lib")       // DXGIデバッグ用 (dxgidebugを使用する場合)
-
 D3DResourceLeakChecker resourceLeakCheck;
 
 // クライアント領域サイズ
@@ -43,39 +32,6 @@ static const uint32_t kClientHeight = 720;
 
 // 円周率
 #define pi 3.141592653589793238462643383279502884197169399375105820974944f
-
-
-// DirectX12のTextureResourceを作る
-Microsoft::WRL::ComPtr <ID3D12Resource> CreateTextureResource(Microsoft::WRL::ComPtr <ID3D12Device> device, const DirectX::TexMetadata& metadata)
-{
-	//1. metadataを基にResourceの設定
-	D3D12_RESOURCE_DESC resourceDesc{};
-	resourceDesc.Width = UINT(metadata.width);									// Textureの幅
-	resourceDesc.Height = UINT(metadata.height);								// Textureの高さ
-	resourceDesc.MipLevels = UINT16(metadata.mipLevels);						// mipmapの数
-	resourceDesc.DepthOrArraySize = UINT16(metadata.arraySize);					// 奥行 or 配列Textureの配列行数
-	resourceDesc.Format = metadata.format;										// TextureのFormat
-	resourceDesc.SampleDesc.Count = 1;											// サンプリングカウント。1固定
-	resourceDesc.Dimension = D3D12_RESOURCE_DIMENSION(metadata.dimension);		// Textureの次元数。普段使っているのは二次元
-
-	//2. 利用するHeapの設定。非常に特殊な運用。02_04exで一般的なケース版がある
-	D3D12_HEAP_PROPERTIES heapProperties{};
-	heapProperties.Type = D3D12_HEAP_TYPE_CUSTOM;								// 細かい設定を行う
-	heapProperties.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_WRITE_BACK;		// WriteBackポリシーでCPUアクセス可能
-	heapProperties.MemoryPoolPreference = D3D12_MEMORY_POOL_L0;					// プロセッサの近くに配膳
-
-	//3. Resourceを生成する
-	Microsoft::WRL::ComPtr <ID3D12Resource> resource = nullptr;
-	HRESULT hr = device->CreateCommittedResource(
-		&heapProperties,														// Heapの設定
-		D3D12_HEAP_FLAG_NONE,													// Heapの特殊な設定。特になし。
-		&resourceDesc,															// /Resourceの設定
-		D3D12_RESOURCE_STATE_COPY_DEST,											// データ転送される設定
-		nullptr,																// Clear最適値。使わないのでnullptr
-		IID_PPV_ARGS(&resource));												// 作成するResourceポインタへのポインタ
-	assert(SUCCEEDED(hr));
-	return resource;
-}
 
 // Windowsアプリでのエントリーポイント(main関数)
 int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
@@ -86,6 +42,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	Input* input = Input::GetInstance();
 	ImGuiManager* imguiManager = ImGuiManager::GetInstance();
 	TextureManager* textureManager = TextureManager::GetInstance();
+	ModelManager* modelManager = ModelManager::GetInstance();
 
 	/// ---------- WindowsAPIのウィンドウ作成 ---------- ///
 	winApp->CreateMainWindow(kClientWidth, kClientHeight);
@@ -107,9 +64,6 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	std::vector<std::string> texturePaths = {
 		"Resources/uvChecker.png",
 		"Resources/monsterBall.png",
-		"Resources/uvChecker.png",
-		"Resources/monsterBall.png",
-		"Resources/uvChecker.png"
 	};
 
 	/// ---------- Spriteの初期化 ---------- ///
@@ -126,18 +80,18 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 
 	/// ---------- Object3Dの初期化 ----------///
 	std::unique_ptr<Object3D> object3D = std::make_unique<Object3D>();
-	object3D->Initilize();
+	object3D->Initialize();
 
 
 
 #pragma region テクスチャファイルを読み込みテクスチャリソースを作成しそれに対してSRVを設定してこれらをデスクリプタヒープにバインド
 	// モデルの読み込み
-	Object3D::ModelData modelData = Object3D::LoadObjFile("Resources", "axis.obj");
+	ModelData modelData = modelManager->LoadObjFile("Resources", "plane.obj");
 
 	// Textureを読んで転送する
-	DirectX::ScratchImage mipImages = TextureManager::LoadTexture("Resources/uvChecker.png");
+	DirectX::ScratchImage mipImages = TextureManager::LoadTexture("Resources/monsterBall.png");
 	const DirectX::TexMetadata& metadata = mipImages.GetMetadata();
-	Microsoft::WRL::ComPtr <ID3D12Resource> textureResource = CreateTextureResource(dxCommon->GetDevice(), metadata);
+	Microsoft::WRL::ComPtr <ID3D12Resource> textureResource = TextureManager::CreateTextureResource(dxCommon->GetDevice(), metadata);
 	Microsoft::WRL::ComPtr <ID3D12Resource> intermediateResouece1 = TextureManager::UploadTextureData(textureResource.Get(), mipImages, dxCommon->GetDevice(), dxCommon->GetCommandList());
 
 	// 1つ目のテクスチャのSRV設定
@@ -158,7 +112,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	// 2枚目のTextureを読んで転送する
 	DirectX::ScratchImage mipImages2 = TextureManager::LoadTexture(modelData.material.textureFilePath);
 	const DirectX::TexMetadata& metadata2 = mipImages2.GetMetadata();
-	Microsoft::WRL::ComPtr <ID3D12Resource> textureResource2 = CreateTextureResource(dxCommon->GetDevice(), metadata2);
+	Microsoft::WRL::ComPtr <ID3D12Resource> textureResource2 = TextureManager::CreateTextureResource(dxCommon->GetDevice(), metadata2);
 	Microsoft::WRL::ComPtr <ID3D12Resource> intermediateResouece2 = TextureManager::UploadTextureData(textureResource2.Get(), mipImages2, dxCommon->GetDevice(), dxCommon->GetCommandList());
 
 	// 2つ目のテクスチャのSRV設定
@@ -327,7 +281,8 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 		dxCommon->BeginDraw();
 
 		// ディスクリプタヒープの設定
-		textureManager->SetGraphicsRootDescriptorTable(dxCommon->GetCommandList());
+		ID3D12DescriptorHeap* descriptorHeaps[] = { dxCommon->GetSRVDescriptorHeap() };
+		dxCommon->GetCommandList()->SetDescriptorHeaps(1, descriptorHeaps);
 
 		/*-----シーン（モデル）の描画設定と描画-----*/
 		// ルートシグネチャとパイプラインステートの設定
@@ -337,14 +292,13 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 		// 頂点バッファの設定とプリミティブトポロジの設定
 		dxCommon->GetCommandList()->IASetVertexBuffers(0, 1, &vertexBufferView); // モデル用VBV
 
-		// 3Dオブジェクトのバッファーデータを設定
-		object3D->SetObject3DBufferData(dxCommon->GetCommandList());
-
-		// ディスクリプタテーブルの設定
-		dxCommon->GetCommandList()->SetGraphicsRootDescriptorTable(2, textureSrvHandleGPU2);
-
-		// モデルの描画
-		dxCommon->GetCommandList()->DrawInstanced(UINT(modelData.vertices.size()), 1, 0, 0);
+		// 3Dオブジェクトデータ設定
+		{
+			object3D->SetObject3DBufferData(dxCommon->GetCommandList());
+			textureManager->SetGraphicsRootDescriptorTable(dxCommon->GetCommandList(), 2, textureSrvHandleGPU2);
+			// モデルの描画
+			dxCommon->GetCommandList()->DrawInstanced(UINT(modelData.vertices.size()), 1, 0, 0);
+		}
 
 		// 形状を設定。PSOに設定るものとはまた別。同じものを設定すると考える
 		dxCommon->GetCommandList()->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
@@ -353,7 +307,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 		for (auto& sprite : sprites)
 		{
 			sprite->SetSpriteBufferData(dxCommon->GetCommandList());
-			dxCommon->GetCommandList()->SetGraphicsRootDescriptorTable(2, textureSrvHandleGPU);
+			//textureManager->SetGraphicsRootDescriptorTable(dxCommon->GetCommandList(), 2, textureSrvHandleGPU);
 			sprite->DrawCall(dxCommon->GetCommandList());
 		}
 

@@ -94,7 +94,7 @@ Microsoft::WRL::ComPtr<ID3D12Resource> TextureManager::CreateTextureResource(ID3
 		&heapProperties,														// Heapの設定
 		D3D12_HEAP_FLAG_NONE,													// Heapの特殊な設定。特になし。
 		&resourceDesc,															// /Resourceの設定
-		D3D12_RESOURCE_STATE_GENERIC_READ,										// 初回のResourceState。Textureは基本読むだけ
+		D3D12_RESOURCE_STATE_COPY_DEST,											// 初回のResourceState。Textureは基本読むだけ
 		nullptr,																// Clear最適値。使わないのでnullptr
 		IID_PPV_ARGS(&resource));												// 作成するResourceポインタへのポインタ
 	assert(SUCCEEDED(hr));
@@ -151,7 +151,7 @@ DirectX::ScratchImage TextureManager::LoadTexture(const std::string& filePath)
 	return mipImages;
 }
 
-void TextureManager::SetGraphicsRootDescriptorTable(ID3D12GraphicsCommandList* commandList)
+void TextureManager::SetGraphicsRootDescriptorTable(ID3D12GraphicsCommandList* commandList, UINT rootParameter, D3D12_GPU_DESCRIPTOR_HANDLE textureSRVHandleGPU)
 {
 	DirectXCommon* dxCommon = DirectXCommon::GetInstance();
 
@@ -159,4 +159,6 @@ void TextureManager::SetGraphicsRootDescriptorTable(ID3D12GraphicsCommandList* c
 	ID3D12DescriptorHeap* descriptorHeaps[] = { dxCommon->GetSRVDescriptorHeap() };
 	commandList->SetDescriptorHeaps(1, descriptorHeaps);
 
+	// ディスクリプタテーブルの設定
+	commandList->SetGraphicsRootDescriptorTable(rootParameter, textureSRVHandleGPU);
 }
