@@ -3,6 +3,7 @@
 #include "LogString.h"
 
 #include <DirectXTex.h>
+#include <filesystem>
 #include <vector>
 
 class DirectXCommon;
@@ -29,9 +30,6 @@ public: /// ---------- メンバ関数 ---------- ///
 	// シングルトンインスタンス
 	static TextureManager* GetInstance();
 
-	// 初期化処理
-	void Initialize();
-
 	// DirectX12のTextureResourceを作る
 	static Microsoft::WRL::ComPtr <ID3D12Resource> CreateTextureResource(ID3D12Device* device, const DirectX::TexMetadata& metadata);
 
@@ -39,16 +37,27 @@ public: /// ---------- メンバ関数 ---------- ///
 	static Microsoft::WRL::ComPtr<ID3D12Resource> UploadTextureData(ID3D12Resource* texture, const DirectX::ScratchImage& mipImages, ID3D12Device* device, ID3D12GraphicsCommandList* commandList);
 
 	// Textureデータを読む
-	static DirectX::ScratchImage LoadTexture(const std::string& filePath);
+	static DirectX::ScratchImage LoadTextureData(const std::string& filePath);
+
+	// 動的なテクスチャデータ
+	void LoadTexture(const std::string& filePath);
 
 	// SRVのセット
 	void SetGraphicsRootDescriptorTable(ID3D12GraphicsCommandList* commandList, UINT rootParameter, D3D12_GPU_DESCRIPTOR_HANDLE textureSRVHandleGPU);
 
+	// SRVのインデックスの開始番号
+	uint32_t GetTextureIndexByFilePath(const std::string& filePath);
+
+	// テクスチャ番号からGPUハンドルを取得
+	D3D12_GPU_DESCRIPTOR_HANDLE GetSrvHandleGPU(uint32_t textureIndex);
 
 private: /// ---------- メンバ変数 ---------- ///
 
 	// テクスチャデータ
 	std::vector<TextureData> textureDatas;
+
+	// SRVインデックスの開始番号
+	static uint32_t kSRVIndexTop;
 
 private: /// ---------- 隠蔽 - コピー禁止 ---------- ///
 

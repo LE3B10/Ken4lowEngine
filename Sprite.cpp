@@ -7,10 +7,12 @@
 /// -------------------------------------------------------------
 ///							初期化処理
 /// -------------------------------------------------------------
-void Sprite::Initialize()
+void Sprite::Initialize(const std::string& filePath)
 {
 	//spriteData_ = CreateSpriteData(kVertexNum, kIndexNum);
 	DirectXCommon* dxCommon = DirectXCommon::GetInstance();
+
+	textureIndex = TextureManager::GetInstance()->GetTextureIndexByFilePath(filePath);
 
 	// スプライトの初期化
 	transformSprite = { { size_.x, size_.y, 1.0f }, { 0.0f, 0.0f, rotation_ }, { position_.x, position_.y, 0.0f } };
@@ -159,6 +161,11 @@ void Sprite::SetSpriteBufferData(ID3D12GraphicsCommandList* commandList)
 	commandList->IASetIndexBuffer(&indexBufferViewSprite); // IBVの設定
 	commandList->SetGraphicsRootConstantBufferView(0, materialResourceSprite.Get()->GetGPUVirtualAddress());
 	commandList->SetGraphicsRootConstantBufferView(1, transformationMatrixResourceSprite.Get()->GetGPUVirtualAddress());
+
+	// ディスクリプタテーブルの設定
+	commandList->SetGraphicsRootDescriptorTable(2, TextureManager::GetInstance()->GetSrvHandleGPU(textureIndex));
+
+
 }
 
 
@@ -181,7 +188,7 @@ void Sprite::CreateMaterialResource(DirectXCommon* dxCommon)
 
 
 /// -------------------------------------------------------------
-///	 スプライトの頂点バッファリソースと変換行列リソースを生成
+///	  スプライトの頂点バッファリソースと変換行列リソースを生成
 /// -------------------------------------------------------------
 void Sprite::CreateVertexBufferResource(DirectXCommon* dxCommon)
 {
@@ -189,7 +196,7 @@ void Sprite::CreateVertexBufferResource(DirectXCommon* dxCommon)
 	vertexResourceSprite = createBuffer_->CreateBufferResource(dxCommon->GetDevice(), sizeof(VertexData) * 6);
 
 	vertexBufferViewSprite.BufferLocation = vertexResourceSprite->GetGPUVirtualAddress();
-	vertexBufferViewSprite.SizeInBytes = sizeof(VertexData) * 6;
+	vertexBufferViewSprite.SizeInBytes = sizeof(VertexData) * kVertexNum;
 	vertexBufferViewSprite.StrideInBytes = sizeof(VertexData);
 
 	vertexResourceSprite->Map(0, nullptr, reinterpret_cast<void**>(&vertexDataSprite));
@@ -206,15 +213,15 @@ void Sprite::CreateVertexBufferResource(DirectXCommon* dxCommon)
 
 
 /// -------------------------------------------------------------
-///	  スプライトのインデックスバッファを作成および設定する
+///	   スプライトのインデックスバッファを作成および設定する
 /// -------------------------------------------------------------
 void Sprite::CreateIndexBuffer(DirectXCommon* dxCommon)
 {
-	indexResourceSprite = createBuffer_->CreateBufferResource(dxCommon->GetDevice(), sizeof(uint32_t) * 6);
+	indexResourceSprite = createBuffer_->CreateBufferResource(dxCommon->GetDevice(), sizeof(uint32_t) * kVertexNum);
 	//リソースの先頭のアドレスから使う
 	indexBufferViewSprite.BufferLocation = indexResourceSprite->GetGPUVirtualAddress();
 	//使用するリソースのサイズはインデックス６つ分のサイズ
-	indexBufferViewSprite.SizeInBytes = sizeof(uint32_t) * 6;
+	indexBufferViewSprite.SizeInBytes = sizeof(uint32_t) * kVertexNum;
 	//インデックスはuint32_tとする
 	indexBufferViewSprite.Format = DXGI_FORMAT_R32_UINT;
 

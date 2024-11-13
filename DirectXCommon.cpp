@@ -85,7 +85,7 @@ void DirectXCommon::BeginDraw()
 	scissorRect = D3D12_RECT(0, 0, kClientWidth, kClientHeight);
 	commandList->RSSetScissorRects(1, &scissorRect);
 
-	// 形状を設定。PSOに設定るものとはまた別。同じものを設定るすると考える
+	// 形状を設定。PSOに設定するものとはまた別。同じものを設定すると考える
 	commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 }
 
@@ -429,4 +429,43 @@ void DirectXCommon::UpdateFixFPS()
 
 	// 現在の時間を記録する
 	reference_ = std::chrono::steady_clock::now();
+}
+
+
+
+void DirectXCommon::WaitCommand()
+{
+	HRESULT hr{};
+
+	// コマンドリストの内容を確定させる。すべてのコマンドを積んでからCloseすること
+	hr = commandList->Close();
+	assert(SUCCEEDED(hr));
+
+	//GPUにコマンドリストの実行を行わせる
+	ID3D12CommandList* commandLists[] = { commandList.Get() };
+
+	// GPUに対して積まれたコマンドを実行
+	commandQueue->ExecuteCommandLists(1, commandLists);
+
+	// Fenceの値を更新
+	fenceValue++;
+
+	// GPUがここまでたどり着いたときに、Fenceの値を指定した値に代入するようにSignalを送る
+	commandQueue->Signal(fence.Get(), fenceValue);
+
+	// Fenceの値が指定したSignal値にたどり着いているか確認する
+	if (fence->GetCompletedValue() < fenceValue)
+	{
+		// 指定したSignalにたどりついていないので、たどり着くまで待つようにイベントを設定する
+		fence->SetEventOnCompletion(fenceValue, fenceEvent);
+		// イベントを待つ
+		WaitForSingleObject(fenceEvent, INFINITE);
+	}
+
+	// 次のフレーム用のコマンドリストを準備（コマンドリストのリセット）
+	hr = commandAllocator->Reset();
+	assert(SUCCEEDED(hr));
+
+	hr = commandList->Reset(commandAllocator.Get(), nullptr);
+	assert(SUCCEEDED(hr));
 }

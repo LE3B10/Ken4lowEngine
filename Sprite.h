@@ -24,7 +24,7 @@ class Sprite
 public: /// ---------- メンバ関数 ---------- ///
 
 	// 初期化処理
-	void Initialize();
+	void Initialize(const std::string& filePath);
 
 	// 更新処理
 	void Update();
@@ -33,9 +33,6 @@ public: /// ---------- メンバ関数 ---------- ///
 
 	// ドローコール
 	void DrawCall(ID3D12GraphicsCommandList* commandList);
-
-	// テクスチャの読み込みとSRV設定処理
-	void LoadAndSetTexture(DirectXCommon* dxCommon, const std::string& texturePath);
 
 	// position　ゲッターとセッター
 	const Vector2& GetPosition() const { return position_; }
@@ -88,6 +85,8 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	Vector4 color_;
 
+	// テクスチャ番号
+	uint32_t textureIndex = 0;
 
 private: /// ---------- メンバ変数 ---------- ///
 
@@ -118,11 +117,5 @@ private: /// ---------- メンバ変数 ---------- ///
 	Microsoft::WRL::ComPtr <ID3D12Resource> indexResourceSprite;
 	D3D12_INDEX_BUFFER_VIEW indexBufferViewSprite{};
 	uint32_t* indexDataSprite = nullptr;
-
-
-	Microsoft::WRL::ComPtr <ID3D12Resource> textureResource;
-	Microsoft::WRL::ComPtr <ID3D12Resource> intermediateResouece;
-	D3D12_CPU_DESCRIPTOR_HANDLE textureSrvHandleCPU;
-	D3D12_GPU_DESCRIPTOR_HANDLE textureSrvHandleGPU;
 };
 

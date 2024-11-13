@@ -1,12 +1,15 @@
 #include "TextureManager.h"
 
 #include "DirectXCommon.h"
+#include "DX12Descriptor.h"
 #include <d3dx12.h>
 #include "ResourceManager.h"
 
 #pragma comment(lib, "d3d12.lib")        // Direct3D 12用
 #pragma comment(lib, "dxgi.lib")         // DXGI (DirectX Graphics Infrastructure)用
 #pragma comment(lib, "dxguid.lib")       // DXGIやD3D12で使用するGUID定義用
+
+uint32_t TextureManager::kSRVIndexTop = 1;
 
 
 /// -------------------------------------------------------------
@@ -17,54 +20,6 @@ TextureManager* TextureManager::GetInstance()
 	static TextureManager instance;
 	return &instance;
 }
-
-
-/// -------------------------------------------------------------
-///				　テクスチャの読み込みとSRVの設定
-/// -------------------------------------------------------------
-//TextureManager::TextureData* TextureManager::LoadTextureWithSRV(const std::string& filePath)
-//{
-//	DirectXCommon* dxCommon = DirectXCommon::GetInstance();
-//
-//	// 1. テクスチャが既にロード済みかをチェック
-//	for (auto& textureData : textureDatas) {
-//		if (textureData.filePath == filePath) {
-//			return &textureData;
-//		}
-//	}
-//
-//	// 2. 新しいテクスチャデータの準備
-//	DirectX::ScratchImage mipImages = LoadTexture(filePath);
-//	const DirectX::TexMetadata& metadata = mipImages.GetMetadata();
-//
-//	// 3. テクスチャリソースの作成
-//	Microsoft::WRL::ComPtr<ID3D12Resource> textureResource = CreateTextureResource(dxCommon->GetDevice(), metadata);
-//
-//	// 4. テクスチャデータをアップロード
-//	Microsoft::WRL::ComPtr<ID3D12Resource> intermediateResource = UploadTextureData(
-//		textureResource, mipImages, dxCommon->GetDevice(), dxCommon->GetCommandList());
-//
-//	// 5. SRV設定
-//	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc{};
-//	srvDesc.Format = metadata.format;
-//	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-//	srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
-//	srvDesc.Texture2D.MipLevels = UINT(metadata.mipLevels);
-//
-//	// 6. デスクリプタハンドル取得
-//	D3D12_CPU_DESCRIPTOR_HANDLE srvHandleCPU = dxCommon->GetDescriptorHeap()->GetCPUDescriptorHandle(
-//		dxCommon->GetSRVDescriptorHeap(), dxCommon->GetDescriptorHeap()->GetDescriptorSizeSRV(), static_cast<uint32_t>(textureDatas.size()));
-//	D3D12_GPU_DESCRIPTOR_HANDLE srvHandleGPU = dxCommon->GetDescriptorHeap()->GetGPUDescriptorHandle(
-//		dxCommon->GetSRVDescriptorHeap(), dxCommon->GetDescriptorHeap()->GetDescriptorSizeSRV(), static_cast<uint32_t>(textureDatas.size()));
-//
-//	// 7. SRVの作成
-//	dxCommon->GetDevice()->CreateShaderResourceView(textureResource.Get(), &srvDesc, srvHandleCPU);
-//
-//	// 8. 新しいテクスチャデータをリストに追加
-//	textureDatas.push_back({ filePath, metadata, textureResource, srvHandleCPU, srvHandleGPU });
-//
-//	return &textureDatas.back();
-//}
 
 
 /// -------------------------------------------------------------
@@ -114,7 +69,7 @@ Microsoft::WRL::ComPtr<ID3D12Resource> TextureManager::UploadTextureData(ID3D12R
 	uint64_t intermediateSize = GetRequiredIntermediateSize(texture, 0, UINT(subresources.size()));
 	Microsoft::WRL::ComPtr<ID3D12Resource> intermediateResource = ResourceManager::CreateBufferResource(device, intermediateSize);
 	UpdateSubresources(commandList, texture, intermediateResource.Get(), 0, 0, UINT(subresources.size()), subresources.data());
-	
+
 	// Textureへの転送後は利用できるよう、D3D12_RESOUCE_STATE_COPY_DESTからD3D12RESOURCE_STATE_GENERIC_READへResourceStateを変更する
 	D3D12_RESOURCE_BARRIER barrier{};
 	barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
@@ -125,16 +80,15 @@ Microsoft::WRL::ComPtr<ID3D12Resource> TextureManager::UploadTextureData(ID3D12R
 	barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_GENERIC_READ;
 
 	commandList->ResourceBarrier(1, &barrier);
-	
+
 	return intermediateResource;
 }
-
 
 
 /// -------------------------------------------------------------
 ///				テクスチャデータを読み込む関数
 /// -------------------------------------------------------------
-DirectX::ScratchImage TextureManager::LoadTexture(const std::string& filePath)
+DirectX::ScratchImage TextureManager::LoadTextureData(const std::string& filePath)
 {
 	//テクスチャファイルを呼んでプログラムで扱えるようにする
 	DirectX::ScratchImage image{};
@@ -151,6 +105,78 @@ DirectX::ScratchImage TextureManager::LoadTexture(const std::string& filePath)
 	return mipImages;
 }
 
+
+/// -------------------------------------------------------------
+///			動的なテクスチャファイルを読み込む関数のテスト
+/// -------------------------------------------------------------
+void TextureManager::LoadTexture(const std::string& filePath)
+{
+	DirectXCommon* dxCommon = DirectXCommon::GetInstance();
+
+	// ToDo① 読み込み済みテクスチャを検索
+	auto it = std::find_if(textureDatas.begin(), textureDatas.end(),
+		[&](TextureData& textureData)
+		{
+			return textureData.filePath == filePath;
+		}
+	);
+
+	// 読み込み済みなら早期リターン
+	if (it != textureDatas.end())
+	{
+		return;
+	}
+
+	// テクスチャファイルを呼んでプログラムで扱えるようにする
+	DirectX::ScratchImage image{};
+	std::wstring filePathW = ConvertString(filePath);
+	HRESULT hr = DirectX::LoadFromWICFile(filePathW.c_str(), DirectX::WIC_FLAGS_FORCE_SRGB, nullptr, image);
+	assert(SUCCEEDED(hr));
+
+	//ミップマップの作成
+	DirectX::ScratchImage mipImages{};
+	hr = DirectX::GenerateMipMaps(image.GetImages(), image.GetImageCount(), image.GetMetadata(), DirectX::TEX_FILTER_SRGB, 0, mipImages);
+	assert(SUCCEEDED(hr));
+
+	// テクスチャデータを追加
+	textureDatas.resize(textureDatas.size() + 1);
+	// 追加したテクスタデータの参照を取得する
+	TextureData& textureData = textureDatas.back();
+
+	// テクスチャデータ書き込み
+	textureData.filePath = filePath;
+	textureData.metaData = mipImages.GetMetadata();
+	textureData.resource = CreateTextureResource(dxCommon->GetDevice(), textureData.metaData);
+	
+
+	Microsoft::WRL::ComPtr<ID3D12Resource> intermediateResouece = UploadTextureData(textureData.resource.Get(), mipImages, dxCommon->GetDevice(), dxCommon->GetCommandList());
+
+	// コマンド実行が完了するまでまつ
+	dxCommon->WaitCommand();
+
+
+	// テクスチャデータの要素番号をSRVのインデックスとする
+	uint32_t srvIndex = static_cast<uint32_t>(textureDatas.size() - 1) + kSRVIndexTop;
+
+	textureData.srvHandleCPU = dxCommon->GetDescriptorHeap()->GetCPUDescriptorHandle(dxCommon->GetSRVDescriptorHeap(), dxCommon->GetDescriptorHeap()->GetDescriptorSizeSRV(), srvIndex);
+	textureData.srvHandleGPU = dxCommon->GetDescriptorHeap()->GetGPUDescriptorHandle(dxCommon->GetSRVDescriptorHeap(), dxCommon->GetDescriptorHeap()->GetDescriptorSizeSRV(), srvIndex);
+
+	// SRVの生成
+	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc{};
+	srvDesc.Format = textureData.metaData.format;
+	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+	srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;				//2Dテクスチャ
+	srvDesc.Texture2D.MipLevels = UINT(textureData.metaData.mipLevels);
+	dxCommon->GetDevice()->CreateShaderResourceView(textureData.resource.Get(), &srvDesc, textureData.srvHandleCPU);
+
+	// テクスチャ枚数上限チェック
+	assert(textureDatas.size() + kSRVIndexTop < kMaxSRVCount);
+}
+
+
+/// -------------------------------------------------------------
+///					デスクリプタテーブルの設定
+/// -------------------------------------------------------------
 void TextureManager::SetGraphicsRootDescriptorTable(ID3D12GraphicsCommandList* commandList, UINT rootParameter, D3D12_GPU_DESCRIPTOR_HANDLE textureSRVHandleGPU)
 {
 	DirectXCommon* dxCommon = DirectXCommon::GetInstance();
@@ -162,3 +188,45 @@ void TextureManager::SetGraphicsRootDescriptorTable(ID3D12GraphicsCommandList* c
 	// ディスクリプタテーブルの設定
 	commandList->SetGraphicsRootDescriptorTable(rootParameter, textureSRVHandleGPU);
 }
+
+
+/// -------------------------------------------------------------
+///						SRVの開始番号の取得
+/// -------------------------------------------------------------
+uint32_t TextureManager::GetTextureIndexByFilePath(const std::string& filePath)
+{
+	// 読み込み済みのテクスチャデータを検索
+	auto it = std::find_if(textureDatas.begin(), textureDatas.end(),
+		[&](TextureData& textureData)
+		{
+			return textureData.filePath == filePath;
+		}
+	);
+
+	// 読み込み済みなら要素番号を返す
+	if (it != textureDatas.end())
+	{
+		uint32_t textureIndex = static_cast<uint32_t>(std::distance(textureDatas.begin(), it));
+		return textureIndex;
+	}
+
+	assert(0);
+	return 0;
+}
+
+
+/// -------------------------------------------------------------
+///						GPUハンドルの取得
+/// -------------------------------------------------------------
+D3D12_GPU_DESCRIPTOR_HANDLE TextureManager::GetSrvHandleGPU(uint32_t textureIndex)
+{
+	// 範囲外指定違反チェック
+	assert(textureIndex < textureDatas.size()); // テクスチャ番号が正常範囲内である
+
+	// テクスチャデータの参照を取得
+	TextureData& textureData = textureDatas[textureIndex];
+
+	// GPUハンドルを返す
+	return textureData.srvHandleGPU;
+}
+

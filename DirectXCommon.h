@@ -32,6 +32,10 @@ public:
 	void BeginDraw();
 	void EndDraw();
 
+	// コマンドの実行待ち
+	void WaitCommand();
+
+
 	// 終了処理
 	void Finalize();
 
@@ -77,6 +81,7 @@ private:
 	// FPS固定更新
 	void UpdateFixFPS();
 
+	
 private:
 	/// ---------- メンバ変数 ---------- ///
 	
