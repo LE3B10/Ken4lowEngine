@@ -12,6 +12,8 @@
 #include "DirectionalLight.h"
 #include "Material.h"
 
+class DirectXCommon;
+
 /// -------------------------------------------------------------
 ///						　3Dモデルクラス
 /// -------------------------------------------------------------
@@ -24,6 +26,15 @@ public: /// ---------- 構造体 ---------- ///
 public: /// ---------- メンバ関数 ---------- ///
 
 	void Initialize();
+
+	// 頂点データの初期化処理
+	void InitializeMaterial(DirectXCommon* dxCommon);
+
+	// マテリアルの初期化処理
+	void InitializeTransfomation(DirectXCommon* dxCommon);
+
+	// 平行光源の初期化処理
+	void ParalllelLightSorce(DirectXCommon* dxCommon);
 	
 private: /// ---------- メンバ変数 ---------- ///
 

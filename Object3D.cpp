@@ -15,7 +15,7 @@
 void Object3D::Initialize()
 {
 	DirectXCommon* dxCommon = DirectXCommon::GetInstance();
-	
+
 	// モデル読み込み
 	modelData = ModelManager::LoadObjFile("Resources", "plane.obj");
 	
@@ -37,6 +37,77 @@ void Object3D::Initialize()
 
 	// 平行光源の初期化処理
 	ParalllelLightSorce(dxCommon);
+
+
+#pragma region 球体の頂点データを格納するためのバッファリソースを生成
+	// 分割数
+	uint32_t kSubdivision = 20;
+	// 緯度・経度の分割数に応じた角度の計算
+	float kLatEvery = pi / float(kSubdivision);
+	float kLonEvery = 2.0f * pi / float(kSubdivision);
+	// 球体の頂点数の計算
+	uint32_t TotalVertexCount = kSubdivision * kSubdivision * 6;
+
+	// バッファリソースの作成
+	vertexResource = ResourceManager::CreateBufferResource(dxCommon->GetDevice(), sizeof(VertexData) * (modelData.vertices.size() + TotalVertexCount));
+#pragma endregion
+
+
+#pragma region 頂点バッファデータの開始位置サイズおよび各頂点のデータ構造を指定
+																	 // 頂点バッファビューを作成する
+	vertexBufferView.BufferLocation = vertexResource->GetGPUVirtualAddress();									 // リソースの先頭のアドレスから使う
+	vertexBufferView.SizeInBytes = UINT(sizeof(VertexData) * (modelData.vertices.size() + TotalVertexCount));	 // 使用するリソースのサイズ
+	vertexBufferView.StrideInBytes = sizeof(VertexData);														 // 1頂点あたりのサイズ
+#pragma endregion
+
+
+#pragma region 球体の頂点位置テクスチャ座標および法線ベクトルを計算し頂点バッファに書き込む
+	VertexData* vertexData = nullptr;																			 // 頂点リソースにデータを書き込む
+	vertexResource->Map(0, nullptr, reinterpret_cast<void**>(&vertexData));										 // 書き込むためのアドレスを取得
+
+	// モデルデータの頂点データをコピー
+	std::memcpy(vertexData, modelData.vertices.data(), sizeof(VertexData) * modelData.vertices.size());
+
+
+
+
+	// 球体の頂点データをコピー
+	VertexData* sphereVertexData = vertexData + modelData.vertices.size();
+	auto calculateVertex = [](float lat, float lon, float u, float v) {
+		VertexData vertex;
+		vertex.position = { cos(lat) * cos(lon), sin(lat), cos(lat) * sin(lon), 1.0f };
+		vertex.texcoord = { u, v };
+		vertex.normal = { vertex.position.x, vertex.position.y, vertex.position.z };
+		return vertex;
+		};
+
+	for (uint32_t latIndex = 0; latIndex < kSubdivision; ++latIndex) {
+		float lat = -pi / 2.0f + kLatEvery * latIndex; // θ
+		float nextLat = lat + kLatEvery;
+
+		for (uint32_t lonIndex = 0; lonIndex < kSubdivision; ++lonIndex) {
+			float u = float(lonIndex) / float(kSubdivision);
+			float v = 1.0f - float(latIndex) / float(kSubdivision);
+			float lon = lonIndex * kLonEvery; // Φ
+			float nextLon = lon + kLonEvery;
+
+			uint32_t start = (latIndex * kSubdivision + lonIndex) * 6;
+
+			// 6つの頂点を計算
+			sphereVertexData[start + 0] = calculateVertex(lat, lon, u, v);
+			sphereVertexData[start + 1] = calculateVertex(nextLat, lon, u, v - 1.0f / float(kSubdivision));
+			sphereVertexData[start + 2] = calculateVertex(lat, nextLon, u + 1.0f / float(kSubdivision), v);
+			sphereVertexData[start + 3] = calculateVertex(nextLat, nextLon, u + 1.0f / float(kSubdivision), v - 1.0f / float(kSubdivision));
+			sphereVertexData[start + 4] = calculateVertex(lat, nextLon, u + 1.0f / float(kSubdivision), v);
+			sphereVertexData[start + 5] = calculateVertex(nextLat, lon, u, v - 1.0f / float(kSubdivision));
+		}
+	}
+
+	// アンマップ
+	vertexResource->Unmap(0, nullptr);
+
+
+
 }
 
 
@@ -79,10 +150,10 @@ void Object3D::DrawImGui()
 /// -------------------------------------------------------------
 ///					　		描画処理
 /// -------------------------------------------------------------
-void Object3D::DrawCall(ID3D12GraphicsCommandList* commandList, UINT rootParameter, D3D12_GPU_DESCRIPTOR_HANDLE textureSRVHandleGPU)
+void Object3D::DrawCall(ID3D12GraphicsCommandList* commandList)
 {
 	// ディスクリプタテーブルの設定
-	commandList->SetGraphicsRootDescriptorTable(rootParameter, textureSRVHandleGPU);
+	commandList->SetGraphicsRootDescriptorTable(2, TextureManager::GetInstance()->GetSrvHandleGPU(modelData.material.textureIndex));
 
 	// モデルの描画
 	commandList->DrawInstanced(UINT(modelData.vertices.size()), 1, 0, 0);
@@ -94,6 +165,9 @@ void Object3D::DrawCall(ID3D12GraphicsCommandList* commandList, UINT rootParamet
 /// -------------------------------------------------------------
 void Object3D::SetObject3DBufferData(ID3D12GraphicsCommandList* commandList)
 {
+
+	commandList->IASetVertexBuffers(0, 1, &vertexBufferView); // モデル用VBV
+
 	// 定数バッファビュー (CBV) とディスクリプタテーブルの設定
 	commandList->SetGraphicsRootConstantBufferView(0, materialResource->GetGPUVirtualAddress());
 	commandList->SetGraphicsRootConstantBufferView(1, wvpResource->GetGPUVirtualAddress());

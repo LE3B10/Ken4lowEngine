@@ -37,7 +37,7 @@ public: /// ---------- メンバ関数 ---------- ///
 	void DrawImGui();
 
 	// ドローコール
-	void DrawCall(ID3D12GraphicsCommandList* commandList, UINT rootParameter, D3D12_GPU_DESCRIPTOR_HANDLE textureSRVHandleGPU);
+	void DrawCall(ID3D12GraphicsCommandList* commandList);
 
 	// 共通描画設定
 	void SetObject3DBufferData(ID3D12GraphicsCommandList* commandList);

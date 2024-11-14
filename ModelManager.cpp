@@ -16,6 +16,11 @@ ModelManager* ModelManager::GetInstance()
 	return &instance;
 }
 
+void ModelManager::Initialize()
+{
+
+}
+
 
 /// -------------------------------------------------------------
 ///					　.objファイルの読み取り

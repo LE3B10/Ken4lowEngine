@@ -1,6 +1,10 @@
 #pragma once
-#include "Model.h"
+#include "VertexData.h"
 #include "ModelData.h"
+
+#include <fstream>
+#include <sstream>
+#include <string>
 
 /// -------------------------------------------------------------
 ///					モデルマネージャークラス
