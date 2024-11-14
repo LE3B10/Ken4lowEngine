@@ -32,12 +32,69 @@ public: /// ---------- メンバ関数 ---------- ///
 	// ドローコール
 	void DrawCall(ID3D12GraphicsCommandList* commandList);
 
+public: /// ---------- ゲッター ---------- ///
+
+	// 左右フリップを取得
+	bool GetFlipX() { return isFlipX_; }
+	
+	// 上下フリップを取得
+	bool GetFlipY() { return isFlipY_; }
+	
+	// 座標を取得
+	const Vector2& GetPosition() const { return position_; }
+	
+	// 回転を取得
+	float GetRotation() const { return rotation_; }
+	
+	// サイズを取得
+	const Vector2& GetSize() const { return size_; }
+	
+	// 色を取得
+	const Vector4& GetColor() const { return materialDataSprite->color; }
+	
+	// アンカーを取得
+	const Vector2& GetAnchorPoint() const { return anchorPoint_; }
+	
+	// テクスチャ左上座標を取得
+	const Vector2& GetTextureLeftTop() const { return textureLeftTop_; }
+	
+	// テクスチャ切り出しサイズを取得
+	const Vector2& GetTextureSize() { return textureSize_; }
+	
 public: /// ---------- セッター ---------- ///
+
+	// 左右フリップの設定
+	void SetFlipX(bool isFlipX) { isFlipX_ = isFlipX; }
+	
+	// 上下フリップの設定
+	void SetFlipY(bool isFlipY) { isFlipY_ = isFlipY; }
+	
+	// 座標の設定
+	void SetPosition(const Vector2& position) { position_ = position; }
+	
+	// 回転の設定
+	void SetRotation(float rotation) { rotation_ = rotation; }
+	
+	// サイズの設定
+	void SetSize(const Vector2& size) { size_ = size; }
+	
+	// 色の設定
+	void SetColor(const Vector4& color) { materialDataSprite->color = color; }
+	
+	// アンカーの設定
+	void SetAnchorPoint(const Vector2& anchorPoint) { anchorPoint_ = anchorPoint; }
+	
+	// テクスチャ左上座標の設定
+	void SetTextureLeftTop(const Vector2& textureLeftTop) { textureLeftTop_ = textureLeftTop; }
+	
+	// テクスチャ切り出しサイズの設定
+	void SetTextureSize(const Vector2& textureSize) { textureSize_ = textureSize; }
 
 	// VBV - IBV - CBVの設定（スプライト用）
 	void SetSpriteBufferData(ID3D12GraphicsCommandList* commandList);
 
-	//void SetTransform2D(const Transform2D transform2D) { transform2D_ = transform2D; }
+	// テクスチャの変更
+	void SetTexture(const std::string& filePath);
 
 private: /// ---------- メンバ関数 ---------- ///
 
@@ -52,45 +109,6 @@ private: /// ---------- メンバ関数 ---------- ///
 
 	// テクスチャ債ぞをイメージに合わせる
 	void AdjustTextureSize();
-
-public: /// ---------- ゲッターとアクセッサ ---------- ///
-
-	// 左右フリップのアクセッサ
-	bool GetFlipX() { return isFlipX_; }
-	void SetFlipX(bool isFlipX) { isFlipX_ = isFlipX; }
-
-	// 上下フリップのアクセッサ
-	bool GetFlipY() { return isFlipY_; }
-	void SetFlipY(bool isFlipY) { isFlipY_ = isFlipY; }
-
-
-	// position　ゲッターとセッター
-	const Vector2& GetPosition() const { return position_; }
-	void SetPosition(const Vector2& position) { position_ = position; }
-
-	// rotation　ゲッターとセッター
-	float GetRotation() const { return rotation_; }
-	void SetRotation(float rotation) { rotation_ = rotation; }
-
-	// size ゲッターとセッター
-	const Vector2& GetSize() const { return size_; }
-	void SetSize(const Vector2& size) { size_ = size; }
-
-	// 色
-	const Vector4& GetColor() const { return materialDataSprite->color; }
-	void SetColor(const Vector4& color) { materialDataSprite->color = color; }
-
-	// アンカーのアクセッサー
-	const Vector2& GetAnchorPoint() const { return anchorPoint_; }
-	void SetAnchorPoint(const Vector2& anchorPoint) { anchorPoint_ = anchorPoint; }
-
-	// テクスチャ左上座標のアクセッサー
-	const Vector2& GetTextureLeftTop() const { return textureLeftTop_; }
-	void SetTextureLeftTop(const Vector2& textureLeftTop) { textureLeftTop_ = textureLeftTop; }
-
-	// テクスチャ切り出しサイズのアクセッサー
-	const Vector2& GetTextureSize() { return textureSize_; }
-	void SetTextureSize(const Vector2& textureSize) { textureSize_ = textureSize; }
 
 private: /// ---------- メンバ変数 ---------- ///
 

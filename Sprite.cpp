@@ -98,7 +98,7 @@ void Sprite::Update()
 	transformationMatrixDataSprite->World = worldMatrixSprite;
 
 	// 頂点データ更新
-	//memcpy(vertexDataSprite, &vertexDataSprite[0], sizeof(VertexData) * kNumVertex);
+	memcpy(vertexDataSprite, &vertexDataSprite[0], sizeof(VertexData) * kNumVertex);
 }
 
 
@@ -123,6 +123,15 @@ void Sprite::SetSpriteBufferData(ID3D12GraphicsCommandList* commandList)
 
 	// ディスクリプタテーブルの設定
 	commandList->SetGraphicsRootDescriptorTable(2, TextureManager::GetInstance()->GetSrvHandleGPU(textureIndex));
+}
+
+
+/// -------------------------------------------------------------
+///						テクスチャの変更
+/// -------------------------------------------------------------
+void Sprite::SetTexture(const std::string& filePath)
+{
+	textureIndex = TextureManager::GetInstance()->GetTextureIndexByFilePath(filePath);
 }
 
 
