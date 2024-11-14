@@ -74,7 +74,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 
 	/// ---------- Spriteの初期化 ---------- ///
 	std::vector<std::unique_ptr<Sprite>> sprites;
-	for (uint32_t i = 0; i < 2; i++)
+	for (uint32_t i = 0; i < 1; i++)
 	{
 		sprites.push_back(std::make_unique<Sprite>());
 		sprites[i]->Initialize(texturePaths[i % 2]);
@@ -276,9 +276,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 		// 3Dオブジェクトデータ設定
 		{
 			object3D->SetObject3DBufferData(dxCommon->GetCommandList());
-			textureManager->SetGraphicsRootDescriptorTable(dxCommon->GetCommandList(), 2, textureSrvHandleGPU2);
-			// モデルの描画
-			dxCommon->GetCommandList()->DrawInstanced(UINT(modelData.vertices.size()), 1, 0, 0);
+			object3D->DrawCall(dxCommon->GetCommandList(), 2, textureSrvHandleGPU2);
 		}
 
 		///*-----スプライトの描画設定と描画-----*/

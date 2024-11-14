@@ -5,62 +5,44 @@
 #include "ResourceManager.h"
 
 #include <assert.h>
+#include "ModelManager.h"
 
 
 
 /// -------------------------------------------------------------
-///					　.objファイルの読み取り
+///					　		初期化処理
 /// -------------------------------------------------------------
 void Object3D::Initialize()
 {
-	// モデル読み込み
-	//modelData = LoadObjFile("resource", "plane.obj");
-
 	DirectXCommon* dxCommon = DirectXCommon::GetInstance();
+	
+	// モデル読み込み
+	modelData = ModelManager::LoadObjFile("Resources", "plane.obj");
+	
+	// .objファイルの参照しているテクスチャファイル読み込み
+	TextureManager::GetInstance()->LoadTexture(modelData.material.textureFilePath);
+
+	// 読み込んだテクスチャ番号を取得
+	modelData.material.textureIndex = TextureManager::GetInstance()->GetTextureIndexByFilePath(modelData.material.textureFilePath);
+
 
 	transform = { {1.0f,1.0f,1.0f},{0.0f,0.0f,0.0f},{0.0f,0.0f,0.0f} };
 	cameraTransform = { {1.0f,1.0f,1.0f},{0.0f,0.0f,0.0f},{0.0f,0.0f,-10.0f} };
 
-#pragma region マテリアル用のリソースを作成しそのリソースにデータを書き込む処理を行う
-	// マテリアル用のリソースを作る。今回はcolor1つ分のサイズを用意する
-	materialResource = ResourceManager::CreateBufferResource(dxCommon->GetDevice(), sizeof(Material));
-	// マテリアルにデータを書き込む
-	Material* materialData = nullptr;
-	// 書き込むためのアドレスを取得
-	materialResource->Map(0, nullptr, reinterpret_cast<void**>(&materialData));
-	// 今回は赤を書き込んでみる
-	materialData->color = { 1.0f, 1.0f, 1.0f, 1.0f };
-	materialData->enableLighting = true;
-	// UVTramsform行列を単位行列で初期化
-	materialData->uvTransform = MakeIdentity();
-#pragma endregion
+	// マテリアルの初期化処理
+	InitializeMaterial(dxCommon);
 
+	// 座標変換行列の初期化処理
+	InitializeTransfomation(dxCommon);
 
-
-#pragma region 平行光源のプロパティ 色 方向 強度 を格納するバッファリソースを生成しその初期値を設定
-	//平行光源用のリソースを作る
-	directionalLightResource = ResourceManager::CreateBufferResource(dxCommon->GetDevice(), sizeof(DirectionalLight));
-	//書き込むためのアドレスを取得
-	directionalLightResource->Map(0, nullptr, reinterpret_cast<void**>(&directionalLightData));
-
-	directionalLightData->color = { 1.0f,1.0f,1.0f ,1.0f };
-	directionalLightData->direction = { 0.0f,-1.0f,0.0f };
-	directionalLightData->intensity = 1.0f;
-#pragma endregion
-
-
-#pragma region WVP行列データを格納するバッファリソースを生成し初期値として単位行列を設定
-	//WVP用のリソースを作る。Matrix4x4 1つ分のサイズを用意する
-	wvpResource = ResourceManager::CreateBufferResource(dxCommon->GetDevice(), sizeof(TransformationMatrix));
-
-	//書き込むためのアドレスを取得
-	wvpResource->Map(0, nullptr, reinterpret_cast<void**>(&wvpData));
-	//単位行列を書き込んでおく
-	wvpData->World = MakeIdentity();
-	wvpData->WVP = MakeIdentity();
-#pragma endregion
+	// 平行光源の初期化処理
+	ParalllelLightSorce(dxCommon);
 }
 
+
+/// -------------------------------------------------------------
+///					　		更新処理
+/// -------------------------------------------------------------
 void Object3D::Update()
 {
 	Matrix4x4 worldMatrix = MakeAffineMatrix(transform.scale, transform.rotate, transform.translate);
@@ -73,6 +55,10 @@ void Object3D::Update()
 	wvpData->World = worldMatrix;
 }
 
+
+/// -------------------------------------------------------------
+///					　		ImGuiの描画
+/// -------------------------------------------------------------
 void Object3D::DrawImGui()
 {
 	if (ImGui::TreeNode("3DObject"))
@@ -89,16 +75,19 @@ void Object3D::DrawImGui()
 	}
 }
 
+
+/// -------------------------------------------------------------
+///					　		描画処理
+/// -------------------------------------------------------------
 void Object3D::DrawCall(ID3D12GraphicsCommandList* commandList, UINT rootParameter, D3D12_GPU_DESCRIPTOR_HANDLE textureSRVHandleGPU)
 {
-
-
 	// ディスクリプタテーブルの設定
 	commandList->SetGraphicsRootDescriptorTable(rootParameter, textureSRVHandleGPU);
 
 	// モデルの描画
-	//commandList->DrawInstanced(UINT(modelData.vertices.size()), 1, 0, 0);
+	commandList->DrawInstanced(UINT(modelData.vertices.size()), 1, 0, 0);
 }
+
 
 /// -------------------------------------------------------------
 ///					　頂点バッファの設定
@@ -109,4 +98,61 @@ void Object3D::SetObject3DBufferData(ID3D12GraphicsCommandList* commandList)
 	commandList->SetGraphicsRootConstantBufferView(0, materialResource->GetGPUVirtualAddress());
 	commandList->SetGraphicsRootConstantBufferView(1, wvpResource->GetGPUVirtualAddress());
 	commandList->SetGraphicsRootConstantBufferView(3, directionalLightResource->GetGPUVirtualAddress());
+}
+
+
+/// -------------------------------------------------------------
+///					　マテリアルの初期化処理
+/// -------------------------------------------------------------
+void Object3D::InitializeMaterial(DirectXCommon* dxCommon)
+{
+#pragma region マテリアル用のリソースを作成しそのリソースにデータを書き込む処理を行う
+	// マテリアル用のリソースを作る。今回はcolor1つ分のサイズを用意する
+	materialResource = ResourceManager::CreateBufferResource(dxCommon->GetDevice(), sizeof(Material));
+	// マテリアルにデータを書き込む
+	Material* materialData = nullptr;
+	// 書き込むためのアドレスを取得
+	materialResource->Map(0, nullptr, reinterpret_cast<void**>(&materialData));
+	// 今回は赤を書き込んでみる
+	materialData->color = { 1.0f, 1.0f, 1.0f, 1.0f };
+	materialData->enableLighting = true;
+	// UVTramsform行列を単位行列で初期化
+	materialData->uvTransform = MakeIdentity();
+#pragma endregion
+}
+
+
+/// -------------------------------------------------------------
+///					　座標変換行列の初期化処理
+/// -------------------------------------------------------------
+void Object3D::InitializeTransfomation(DirectXCommon* dxCommon)
+{
+#pragma region WVP行列データを格納するバッファリソースを生成し初期値として単位行列を設定
+	//WVP用のリソースを作る。Matrix4x4 1つ分のサイズを用意する
+	wvpResource = ResourceManager::CreateBufferResource(dxCommon->GetDevice(), sizeof(TransformationMatrix));
+
+	//書き込むためのアドレスを取得
+	wvpResource->Map(0, nullptr, reinterpret_cast<void**>(&wvpData));
+	//単位行列を書き込んでおく
+	wvpData->World = MakeIdentity();
+	wvpData->WVP = MakeIdentity();
+#pragma endregion
+}
+
+
+/// -------------------------------------------------------------
+///					　平行光源の初期化処理
+/// -------------------------------------------------------------
+void Object3D::ParalllelLightSorce(DirectXCommon* dxCommon)
+{
+#pragma region 平行光源のプロパティ 色 方向 強度 を格納するバッファリソースを生成しその初期値を設定
+	//平行光源用のリソースを作る
+	directionalLightResource = ResourceManager::CreateBufferResource(dxCommon->GetDevice(), sizeof(DirectionalLight));
+	//書き込むためのアドレスを取得
+	directionalLightResource->Map(0, nullptr, reinterpret_cast<void**>(&directionalLightData));
+
+	directionalLightData->color = { 1.0f,1.0f,1.0f ,1.0f };
+	directionalLightData->direction = { 0.0f,-1.0f,0.0f };
+	directionalLightData->intensity = 1.0f;
+#pragma endregion
 }

@@ -15,7 +15,6 @@ public: /// ---------- メンバ関数 ---------- ///
 	// 初期化処理
 	void Initialize();
 
-
 	// .objファイルの読み取り
 	static ModelData LoadObjFile(const std::string& directoryPath, const std::string& filename);
 

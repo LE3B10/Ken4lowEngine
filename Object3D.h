@@ -16,6 +16,10 @@
 // 円周率
 #define pi 3.141592653589793238462643383279502884197169399375105820974944f
 
+
+/// ---------- 前方宣言 ---------- ///
+class DirectXCommon;
+
 /// -------------------------------------------------------------
 ///						オブジェクト3Dクラス
 /// -------------------------------------------------------------
@@ -37,6 +41,18 @@ public: /// ---------- メンバ関数 ---------- ///
 
 	// 共通描画設定
 	void SetObject3DBufferData(ID3D12GraphicsCommandList* commandList);
+
+private: /// ---------- メンバ関数 ---------- ///
+
+	// 頂点データの初期化処理
+	void InitializeMaterial(DirectXCommon* dxCommon);
+
+	// マテリアルの初期化処理
+	void InitializeTransfomation(DirectXCommon* dxCommon);
+
+	// 平行光源の初期化処理
+	void ParalllelLightSorce(DirectXCommon* dxCommon);
+
 
 private: /// ---------- メンバ変数 ---------- ///
 
