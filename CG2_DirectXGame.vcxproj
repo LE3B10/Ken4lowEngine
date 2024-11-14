@@ -60,7 +60,7 @@
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <TreatWarningAsError>true</TreatWarningAsError>
-      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)Engine\WindowsAPI;$(ProjectDir)Engine\Utility\Log;$(ProjectDir)Engine\Utility\Vectors;$(ProjectDir)Engine\Utility\Matrix;$(ProjectDir)Engine\Utility;$(ProjectDir)Engine\ResourceChecker\LeakCheck;$(ProjectDir)Engine\ResourceChecker\ReleseCheck;$(ProjectDir)Engine\MultipleStructs;$(ProjectDir)Engine\Managers\PSO\BlendStateManager;$(ProjectDir)Engine\Managers\PSO\InputLayoutManager;$(ProjectDir)Engine\Managers\PSO\PipelineStateManager;$(ProjectDir)Engine\Managers\PSO\RasterizerStateManager;$(ProjectDir)Engine\Managers\PSO\RootSignatureManager;$(ProjectDir)Engine\Managers\PSO\ShaderManager;$(ProjectDir)Engine\Managers\ImGuiManager;$(ProjectDir)Engine\Managers\ModelManager;$(ProjectDir)Engine\Managers\ResourceManager;$(ProjectDir)Engine\Managers\TextureManager;$(ProjectDir)Engine\Input;$(ProjectDir)Engine\DXLib\DirectXCommon;$(ProjectDir)Engine\DXLib\DX12Descriptor;$(ProjectDir)Engine\DXLib\DX12SwapChain;$(ProjectDir)Engine\DXLib\DX12Device;$(ProjectDir)Engine\DXLib\DX12DepthStencil;$(ProjectDir)Engine\3D\Model;$(ProjectDir)Engine\3D\Object3D;$(ProjectDir)Engine\2D\Sprite;$(ProjectDir)Engine\2D\SpriteCommon;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -88,7 +88,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
       <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
-      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)Engine\WindowsAPI;$(ProjectDir)Engine\Utility\Log;$(ProjectDir)Engine\Utility\Vectors;$(ProjectDir)Engine\Utility\Matrix;$(ProjectDir)Engine\Utility;$(ProjectDir)Engine\ResourceChecker\LeakCheck;$(ProjectDir)Engine\ResourceChecker\ReleseCheck;$(ProjectDir)Engine\MultipleStructs;$(ProjectDir)Engine\Managers\PSO\BlendStateManager;$(ProjectDir)Engine\Managers\PSO\InputLayoutManager;$(ProjectDir)Engine\Managers\PSO\PipelineStateManager;$(ProjectDir)Engine\Managers\PSO\RasterizerStateManager;$(ProjectDir)Engine\Managers\PSO\RootSignatureManager;$(ProjectDir)Engine\Managers\PSO\ShaderManager;$(ProjectDir)Engine\Managers\ImGuiManager;$(ProjectDir)Engine\Managers\ModelManager;$(ProjectDir)Engine\Managers\ResourceManager;$(ProjectDir)Engine\Managers\TextureManager;$(ProjectDir)Engine\Input;$(ProjectDir)Engine\DXLib\DirectXCommon;$(ProjectDir)Engine\DXLib\DX12Descriptor;$(ProjectDir)Engine\DXLib\DX12SwapChain;$(ProjectDir)Engine\DXLib\DX12Device;$(ProjectDir)Engine\DXLib\DX12DepthStencil;$(ProjectDir)Engine\3D\Model;$(ProjectDir)Engine\3D\Object3D;$(ProjectDir)Engine\2D\Sprite;$(ProjectDir)Engine\2D\SpriteCommon;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -105,13 +105,13 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     </FxCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="BlendStateManager.cpp" />
-    <ClCompile Include="D3DResourceLeakChecker.cpp" />
-    <ClCompile Include="DXDepthStencil.cpp" />
-    <ClCompile Include="DirectXCommon.cpp" />
-    <ClCompile Include="DX12Descriptor.cpp" />
-    <ClCompile Include="DX12Device.cpp" />
-    <ClCompile Include="DX12SwapChain.cpp" />
+    <ClCompile Include="Engine\Managers\PSO\BlendStateManager\BlendStateManager.cpp" />
+    <ClCompile Include="Engine\ResourceChecker\LeakCheck\D3DResourceLeakChecker.cpp" />
+    <ClCompile Include="Engine\DXLib\DX12DepthStencil\DX12DepthStencil.cpp" />
+    <ClCompile Include="Engine\DXLib\DirectXCommon\DirectXCommon.cpp" />
+    <ClCompile Include="Engine\DXLib\DX12Descriptor\DX12Descriptor.cpp" />
+    <ClCompile Include="Engine\DXLib\DX12Device\DX12Device.cpp" />
+    <ClCompile Include="Engine\DXLib\DX12SwapChain\DX12SwapChain.cpp" />
     <ClCompile Include="externals\imgui\imgui.cpp" />
     <ClCompile Include="externals\imgui\imgui_demo.cpp" />
     <ClCompile Include="externals\imgui\imgui_draw.cpp" />
@@ -119,30 +119,30 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClCompile Include="externals\imgui\imgui_impl_win32.cpp" />
     <ClCompile Include="externals\imgui\imgui_tables.cpp" />
     <ClCompile Include="externals\imgui\imgui_widgets.cpp" />
-    <ClCompile Include="ImGuiManager.cpp" />
-    <ClCompile Include="Input.cpp" />
-    <ClCompile Include="InputLayoutManager.cpp" />
-    <ClCompile Include="LogString.cpp" />
+    <ClCompile Include="Engine\Managers\ImGuiManager\ImGuiManager.cpp" />
+    <ClCompile Include="Engine\Input\Input.cpp" />
+    <ClCompile Include="Engine\Managers\PSO\InputLayoutManager\InputLayoutManager.cpp" />
+    <ClCompile Include="Engine\Utility\Log\LogString.cpp" />
     <ClCompile Include="main.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="Matrix4x4.cpp" />
-    <ClCompile Include="Model.cpp" />
-    <ClCompile Include="ModelManager.cpp" />
-    <ClCompile Include="Object3D.cpp" />
-    <ClCompile Include="PipelineStateManager.cpp" />
-    <ClCompile Include="RasterizerStateManager.cpp" />
-    <ClCompile Include="ResourceManager.cpp" />
-    <ClCompile Include="ResourceObject.cpp" />
-    <ClCompile Include="RootSignatureManager.cpp" />
-    <ClCompile Include="ShaderManager.cpp" />
-    <ClCompile Include="Sprite.cpp" />
-    <ClCompile Include="SpriteCommon.cpp" />
-    <ClCompile Include="TextureManager.cpp" />
-    <ClCompile Include="Vector2.cpp" />
-    <ClCompile Include="Vector3.cpp" />
-    <ClCompile Include="WinApp.cpp" />
+    <ClCompile Include="Engine\Utility\Matrix\Matrix4x4.cpp" />
+    <ClCompile Include="Engine\3D\Model\Model.cpp" />
+    <ClCompile Include="Engine\Managers\ModelManager\ModelManager.cpp" />
+    <ClCompile Include="Engine\3D\Object3D\Object3D.cpp" />
+    <ClCompile Include="Engine\Managers\PSO\PipelineStateManager\PipelineStateManager.cpp" />
+    <ClCompile Include="Engine\Managers\PSO\RasterizerStateManager\RasterizerStateManager.cpp" />
+    <ClCompile Include="Engine\Managers\ResourceManager\ResourceManager.cpp" />
+    <ClCompile Include="Engine\ResourceChecker\ReleseCheck\ResourceObject.cpp" />
+    <ClCompile Include="Engine\Managers\PSO\RootSignatureManager\RootSignatureManager.cpp" />
+    <ClCompile Include="Engine\Managers\PSO\ShaderManager\ShaderManager.cpp" />
+    <ClCompile Include="Engine\2D\Sprite\Sprite.cpp" />
+    <ClCompile Include="Engine\2D\SpriteCommon\SpriteCommon.cpp" />
+    <ClCompile Include="Engine\Managers\TextureManager\TextureManager.cpp" />
+    <ClCompile Include="Engine\Utility\Vectors\Vector2.cpp" />
+    <ClCompile Include="Engine\Utility\Vectors\Vector3.cpp" />
+    <ClCompile Include="Engine\WindowsAPI\WinApp.cpp" />
     <ClCompile Include="WinMain.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
@@ -159,16 +159,16 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     </FxCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="BlendStateManager.h" />
-    <ClInclude Include="D3DResourceLeakChecker.h" />
-    <ClInclude Include="DXDepthStencil.h" />
-    <ClInclude Include="DirectionalLight.h" />
-    <ClInclude Include="DirectXCommon.h" />
-    <ClInclude Include="DX12Descriptor.h" />
-    <ClInclude Include="DX12Device.h" />
-    <ClInclude Include="DX12Include.h" />
-    <ClInclude Include="DX12SwapChain.h" />
-    <ClInclude Include="BlendModeType.h" />
+    <ClInclude Include="Engine\Managers\PSO\BlendStateManager\BlendStateManager.h" />
+    <ClInclude Include="Engine\ResourceChecker\LeakCheck\D3DResourceLeakChecker.h" />
+    <ClInclude Include="Engine\DXLib\DX12DepthStencil\DX12DepthStencil.h" />
+    <ClInclude Include="Engine\MultipleStructs\DirectionalLight.h" />
+    <ClInclude Include="Engine\DXLib\DirectXCommon\DirectXCommon.h" />
+    <ClInclude Include="Engine\DXLib\DX12Descriptor\DX12Descriptor.h" />
+    <ClInclude Include="Engine\DXLib\DX12Device\DX12Device.h" />
+    <ClInclude Include="Engine\Utility\DX12Include.h" />
+    <ClInclude Include="Engine\DXLib\DX12SwapChain\DX12SwapChain.h" />
+    <ClInclude Include="Engine\MultipleStructs\BlendModeType.h" />
     <ClInclude Include="externals\imgui\imconfig.h" />
     <ClInclude Include="externals\imgui\imgui.h" />
     <ClInclude Include="externals\imgui\imgui_impl_dx12.h" />
@@ -177,33 +177,33 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="externals\imgui\imstb_rectpack.h" />
     <ClInclude Include="externals\imgui\imstb_textedit.h" />
     <ClInclude Include="externals\imgui\imstb_truetype.h" />
-    <ClInclude Include="ImGuiManager.h" />
-    <ClInclude Include="Input.h" />
-    <ClInclude Include="InputLayoutManager.h" />
-    <ClInclude Include="LogString.h" />
-    <ClInclude Include="Material.h" />
-    <ClInclude Include="MaterialData.h" />
-    <ClInclude Include="Matrix4x4.h" />
-    <ClInclude Include="MatrixMath.h" />
-    <ClInclude Include="Model.h" />
-    <ClInclude Include="ModelData.h" />
-    <ClInclude Include="ModelManager.h" />
-    <ClInclude Include="Object3D.h" />
-    <ClInclude Include="PipelineStateManager.h" />
-    <ClInclude Include="RasterizerStateManager.h" />
-    <ClInclude Include="ResourceManager.h" />
-    <ClInclude Include="ResourceObject.h" />
-    <ClInclude Include="RootSignatureManager.h" />
-    <ClInclude Include="ShaderManager.h" />
-    <ClInclude Include="Sprite.h" />
-    <ClInclude Include="SpriteCommon.h" />
-    <ClInclude Include="TextureManager.h" />
-    <ClInclude Include="TransformationMatrix.h" />
-    <ClInclude Include="Vector2.h" />
-    <ClInclude Include="Vector3.h" />
-    <ClInclude Include="Vector4.h" />
-    <ClInclude Include="VectorMath.h" />
-    <ClInclude Include="WinApp.h" />
+    <ClInclude Include="Engine\Managers\ImGuiManager\ImGuiManager.h" />
+    <ClInclude Include="Engine\Input\Input.h" />
+    <ClInclude Include="Engine\Managers\PSO\InputLayoutManager\InputLayoutManager.h" />
+    <ClInclude Include="Engine\Utility\Log\LogString.h" />
+    <ClInclude Include="Engine\MultipleStructs\Material.h" />
+    <ClInclude Include="Engine\MultipleStructs\MaterialData.h" />
+    <ClInclude Include="Engine\Utility\Matrix\Matrix4x4.h" />
+    <ClInclude Include="Engine\MultipleStructs\MatrixMath.h" />
+    <ClInclude Include="Engine\3D\Model\Model.h" />
+    <ClInclude Include="Engine\MultipleStructs\ModelData.h" />
+    <ClInclude Include="Engine\Managers\ModelManager\ModelManager.h" />
+    <ClInclude Include="Engine\3D\Object3D\Object3D.h" />
+    <ClInclude Include="Engine\Managers\PSO\PipelineStateManager\PipelineStateManager.h" />
+    <ClInclude Include="Engine\Managers\PSO\RasterizerStateManager\RasterizerStateManager.h" />
+    <ClInclude Include="Engine\Managers\ResourceManager\ResourceManager.h" />
+    <ClInclude Include="Engine\ResourceChecker\ReleseCheck\ResourceObject.h" />
+    <ClInclude Include="Engine\Managers\PSO\RootSignatureManager\RootSignatureManager.h" />
+    <ClInclude Include="Engine\Managers\PSO\ShaderManager\ShaderManager.h" />
+    <ClInclude Include="Engine\2D\Sprite\Sprite.h" />
+    <ClInclude Include="Engine\2D\SpriteCommon\SpriteCommon.h" />
+    <ClInclude Include="Engine\Managers\TextureManager\TextureManager.h" />
+    <ClInclude Include="Engine\MultipleStructs\TransformationMatrix.h" />
+    <ClInclude Include="Engine\Utility\Vectors\Vector2.h" />
+    <ClInclude Include="Engine\Utility\Vectors\Vector3.h" />
+    <ClInclude Include="Engine\Utility\Vectors\Vector4.h" />
+    <ClInclude Include="Engine\Utility\Vectors\VectorMath.h" />
+    <ClInclude Include="Engine\WindowsAPI\WinApp.h" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="externals\DirectXTex\DirectXTex_Desktop_2022_Win10.vcxproj">

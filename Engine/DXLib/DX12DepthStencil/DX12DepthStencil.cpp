@@ -1,10 +1,10 @@
-#include "DXDepthStencil.h"
+#include "DX12DepthStencil.h"
 
 
 /// -------------------------------------------------------------
 ///					DepthStencilの生成
 /// -------------------------------------------------------------
-void DXDepthStencil::Create(bool depthEnable)
+void DX12DepthStencil::Create(bool depthEnable)
 {
 	//Depthの機能を有効化する
 	depthStencilDesc.DepthEnable = depthEnable;
@@ -14,7 +14,7 @@ void DXDepthStencil::Create(bool depthEnable)
 	depthStencilDesc.DepthFunc = D3D12_COMPARISON_FUNC_LESS_EQUAL;
 }
 
-D3D12_DEPTH_STENCIL_DESC DXDepthStencil::GetDepthStencilDesc()
+D3D12_DEPTH_STENCIL_DESC DX12DepthStencil::GetDepthStencilDesc()
 {
 	return depthStencilDesc;
 }

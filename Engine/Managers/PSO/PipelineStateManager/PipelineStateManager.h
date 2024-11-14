@@ -6,7 +6,7 @@
 #include "BlendModeType.h"
 #include "RasterizerStateManager.h"
 #include "ShaderManager.h"
-#include "DXDepthStencil.h"
+#include "DX12DepthStencil.h"
 
 #include "BlendModeType.h"
 
@@ -74,7 +74,7 @@ private: /// ---------- メンバ変数 ---------- ///
 	std::unique_ptr<BlendStateManager> blendStateManager;
 	std::unique_ptr<RasterizerStateManager> rasterizerStateManager;
 	std::unique_ptr<ShaderManager> shaderManager;
-	std::unique_ptr<DXDepthStencil> depthStencil;
+	std::unique_ptr<DX12DepthStencil> depthStencil;
 
 	// パイプラインステートディスクリプタの初期化
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC graphicsPipelineStateDesc{};

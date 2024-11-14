@@ -42,7 +42,7 @@ void PipelineStateManager::Initialize(DirectXCommon* dxCommon)
 	shaderManager->ShaderCompileObject3D(dxCommon);
 
 	/// ---------- DepthStencilの初期化 ---------- ///
-	depthStencil = std::make_unique<DXDepthStencil>();
+	depthStencil = std::make_unique<DX12DepthStencil>();
 	depthStencil->Create(true);
 
 	/// ---------- PSOを生成 ---------- ///
