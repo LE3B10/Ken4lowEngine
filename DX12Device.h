@@ -1,8 +1,5 @@
 #pragma once
-#include <Windows.h>
-#include <d3d12.h>
-#include <dxgi1_6.h>
-#include <wrl.h>
+#include "DX12Include.h"
 
 
 /// -------------------------------------------------------------
@@ -23,8 +20,8 @@ public:
 private:
 	/// ---------- メンバ変数 ---------- ///
 
-	Microsoft::WRL::ComPtr <ID3D12Device> device;
-	Microsoft::WRL::ComPtr <IDXGIFactory7> dxgiFactory;
-	Microsoft::WRL::ComPtr <IDXGIAdapter4> useAdapter;
+	ComPtr <ID3D12Device> device;
+	ComPtr <IDXGIFactory7> dxgiFactory;
+	ComPtr <IDXGIAdapter4> useAdapter;
 };
 

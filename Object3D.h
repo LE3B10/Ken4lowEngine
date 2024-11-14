@@ -49,7 +49,7 @@ private: /// ---------- メンバ変数 ---------- ///
 	// OBJファイルのデータ
 	ModelData modelData;
 	// バッファリソースの作成
-	Microsoft::WRL::ComPtr <ID3D12Resource> vertexResource;
+	ComPtr <ID3D12Resource> vertexResource;
 	// 頂点リソース内のデータを指すポインタ
 	VertexData* vertexData = nullptr;
 	// バッファリソースの使い道を補足するバッファビュー
@@ -57,9 +57,9 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	DirectionalLight* directionalLightData = nullptr;
 
-	Microsoft::WRL::ComPtr <ID3D12Resource> materialResource;
-	Microsoft::WRL::ComPtr <ID3D12Resource> wvpResource;
-	Microsoft::WRL::ComPtr <ID3D12Resource> directionalLightResource;
+	ComPtr <ID3D12Resource> materialResource;
+	ComPtr <ID3D12Resource> wvpResource;
+	ComPtr <ID3D12Resource> directionalLightResource;
 
 };
 

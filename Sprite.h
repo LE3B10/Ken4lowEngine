@@ -13,8 +13,8 @@
 class DirectXCommon;
 
 /// ---------- スプライトの頂点数 ( Vertex, Index ) ----------- ///
-static const UINT kVertexNum = 6;
-static const UINT kIndexNum = 4;
+static const UINT kNumVertex = 6;
+static const UINT kNumIndex = 4;
 
 /// -------------------------------------------------------------
 ///						スプライトクラス
@@ -29,10 +29,40 @@ public: /// ---------- メンバ関数 ---------- ///
 	// 更新処理
 	void Update();
 
-	void DrawImGui();
-
 	// ドローコール
 	void DrawCall(ID3D12GraphicsCommandList* commandList);
+
+public: /// ---------- セッター ---------- ///
+
+	// VBV - IBV - CBVの設定（スプライト用）
+	void SetSpriteBufferData(ID3D12GraphicsCommandList* commandList);
+
+	//void SetTransform2D(const Transform2D transform2D) { transform2D_ = transform2D; }
+
+private: /// ---------- メンバ関数 ---------- ///
+
+	// スプライト用のマテリアルリソースを作成し設定する処理を行う
+	void CreateMaterialResource(DirectXCommon* dxCommon);
+
+	// スプライトの頂点バッファリソースと変換行列リソースを生成
+	void CreateVertexBufferResource(DirectXCommon* dxCommon);
+
+	// スプライトのインデックスバッファを作成
+	void CreateIndexBuffer(DirectXCommon* dxCommon);
+
+	// テクスチャ債ぞをイメージに合わせる
+	void AdjustTextureSize();
+
+public: /// ---------- ゲッターとアクセッサ ---------- ///
+
+	// 左右フリップのアクセッサ
+	bool GetFlipX() { return isFlipX_; }
+	void SetFlipX(bool isFlipX) { isFlipX_ = isFlipX; }
+
+	// 上下フリップのアクセッサ
+	bool GetFlipY() { return isFlipY_; }
+	void SetFlipY(bool isFlipY) { isFlipY_ = isFlipY; }
+
 
 	// position　ゲッターとセッター
 	const Vector2& GetPosition() const { return position_; }
@@ -54,35 +84,34 @@ public: /// ---------- メンバ関数 ---------- ///
 	const Vector2& GetAnchorPoint() const { return anchorPoint_; }
 	void SetAnchorPoint(const Vector2& anchorPoint) { anchorPoint_ = anchorPoint; }
 
-public: /// ---------- セッター ---------- ///
+	// テクスチャ左上座標のアクセッサー
+	const Vector2& GetTextureLeftTop() const { return textureLeftTop_; }
+	void SetTextureLeftTop(const Vector2& textureLeftTop) { textureLeftTop_ = textureLeftTop; }
 
-	// VBV - IBV - CBVの設定（スプライト用）
-	void SetSpriteBufferData(ID3D12GraphicsCommandList* commandList);
-
-	//void SetTransform2D(const Transform2D transform2D) { transform2D_ = transform2D; }
-
-private: /// ---------- メンバ変数 ---------- ///
-
-	// スプライト用のマテリアルリソースを作成し設定する処理を行う
-	void CreateMaterialResource(DirectXCommon* dxCommon);
-
-	// スプライトの頂点バッファリソースと変換行列リソースを生成
-	void CreateVertexBufferResource(DirectXCommon* dxCommon);
-
-	// スプライトのインデックスバッファを作成
-	void CreateIndexBuffer(DirectXCommon* dxCommon);
+	// テクスチャ切り出しサイズのアクセッサー
+	const Vector2& GetTextureSize() { return textureSize_; }
+	void SetTextureSize(const Vector2& textureSize) { textureSize_ = textureSize; }
 
 private: /// ---------- メンバ変数 ---------- ///
+
+	// 左右フリップ
+	bool isFlipX_ = false;
+	// 上下フリップ
+	bool isFlipY_ = false;
 
 	// 座標
-	Vector2 position_ = { 0.0f,0.0f };
+	Vector2 position_ = { 0.0f, 0.0f };
 	// 回転
 	float rotation_;
 	// サイズ
-	Vector2 size_ = { 100.0f, 100.0f };
-
-	Vector2 anchorPoint_ = { 0.0f,0.0f };
-
+	Vector2 size_ = { 1.0f, 1.0f };
+	//アンカーポイント
+	Vector2 anchorPoint_ = { 0.0f, 0.0f };
+	// テクスチャ左上座標
+	Vector2 textureLeftTop_ = { 0.0f, 0.0f };
+	// テクスチャ切り出しサイズ
+	Vector2 textureSize_ = { 100.0f, 100.0f };
+	// 色
 	Vector4 color_;
 
 	// テクスチャ番号
@@ -93,28 +122,24 @@ private: /// ---------- メンバ変数 ---------- ///
 	// CreateBuffer用
 	ResourceManager* createBuffer_ = nullptr;
 
-	Transform transformSprite;
-	//UVTransform用の変数を用意
-	Transform uvTransformSprite;
-
 	//スプライト用のマテリアルソースを作る
-	Microsoft::WRL::ComPtr <ID3D12Resource> materialResourceSprite;
+	ComPtr <ID3D12Resource> materialResourceSprite;
 	Material* materialDataSprite = nullptr;
 
 	// スプライトの頂点バッファリソースと変換行列リソースを生成
 	//Sprite用の頂点リソースを作る
-	Microsoft::WRL::ComPtr <ID3D12Resource> vertexResourceSprite;
+	ComPtr <ID3D12Resource> vertexResourceSprite;
 	//頂点バッファビューを作成する
 	D3D12_VERTEX_BUFFER_VIEW vertexBufferViewSprite{};
 	// 頂点データを設定する
 	VertexData* vertexDataSprite = nullptr;
 	//Sprite用のTransformationMatrix用のリソースを作る。Matrix4x4 1つ分のサイズを用意する
-	Microsoft::WRL::ComPtr <ID3D12Resource> transformationMatrixResourceSprite;
+	ComPtr <ID3D12Resource> transformationMatrixResourceSprite;
 	//データを書き込む
 	TransformationMatrix* transformationMatrixDataSprite = nullptr;
 
 	// スプライトのインデックスバッファを作成および設定する
-	Microsoft::WRL::ComPtr <ID3D12Resource> indexResourceSprite;
+	ComPtr <ID3D12Resource> indexResourceSprite;
 	D3D12_INDEX_BUFFER_VIEW indexBufferViewSprite{};
 	uint32_t* indexDataSprite = nullptr;
 };

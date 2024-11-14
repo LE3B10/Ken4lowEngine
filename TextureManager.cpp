@@ -25,7 +25,7 @@ TextureManager* TextureManager::GetInstance()
 /// -------------------------------------------------------------
 ///					リソースを作成する関数
 /// -------------------------------------------------------------
-Microsoft::WRL::ComPtr<ID3D12Resource> TextureManager::CreateTextureResource(ID3D12Device* device, const DirectX::TexMetadata& metadata)
+ComPtr<ID3D12Resource> TextureManager::CreateTextureResource(ID3D12Device* device, const DirectX::TexMetadata& metadata)
 {
 	//1. metadataを基にResourceの設定
 	D3D12_RESOURCE_DESC resourceDesc{};
@@ -44,7 +44,7 @@ Microsoft::WRL::ComPtr<ID3D12Resource> TextureManager::CreateTextureResource(ID3
 	heapProperties.MemoryPoolPreference = D3D12_MEMORY_POOL_L0;					// プロセッサの近くに配膳
 
 	//3. Resourceを生成する
-	Microsoft::WRL::ComPtr <ID3D12Resource> resource = nullptr;
+	ComPtr <ID3D12Resource> resource = nullptr;
 	HRESULT hr = device->CreateCommittedResource(
 		&heapProperties,														// Heapの設定
 		D3D12_HEAP_FLAG_NONE,													// Heapの特殊な設定。特になし。
@@ -62,12 +62,12 @@ Microsoft::WRL::ComPtr<ID3D12Resource> TextureManager::CreateTextureResource(ID3
 ///					データを転送する関数
 /// -------------------------------------------------------------
 [[nodiscard]]
-Microsoft::WRL::ComPtr<ID3D12Resource> TextureManager::UploadTextureData(ID3D12Resource* texture, const DirectX::ScratchImage& mipImages, ID3D12Device* device, ID3D12GraphicsCommandList* commandList)
+ComPtr<ID3D12Resource> TextureManager::UploadTextureData(ID3D12Resource* texture, const DirectX::ScratchImage& mipImages, ID3D12Device* device, ID3D12GraphicsCommandList* commandList)
 {
 	std::vector<D3D12_SUBRESOURCE_DATA> subresources;
 	DirectX::PrepareUpload(device, mipImages.GetImages(), mipImages.GetImageCount(), mipImages.GetMetadata(), subresources);
 	uint64_t intermediateSize = GetRequiredIntermediateSize(texture, 0, UINT(subresources.size()));
-	Microsoft::WRL::ComPtr<ID3D12Resource> intermediateResource = ResourceManager::CreateBufferResource(device, intermediateSize);
+	ComPtr<ID3D12Resource> intermediateResource = ResourceManager::CreateBufferResource(device, intermediateSize);
 	UpdateSubresources(commandList, texture, intermediateResource.Get(), 0, 0, UINT(subresources.size()), subresources.data());
 
 	// Textureへの転送後は利用できるよう、D3D12_RESOUCE_STATE_COPY_DESTからD3D12RESOURCE_STATE_GENERIC_READへResourceStateを変更する
@@ -107,7 +107,7 @@ DirectX::ScratchImage TextureManager::LoadTextureData(const std::string& filePat
 
 
 /// -------------------------------------------------------------
-///			動的なテクスチャファイルを読み込む関数のテスト
+///			動的なテクスチャファイルを読み込む関数
 /// -------------------------------------------------------------
 void TextureManager::LoadTexture(const std::string& filePath)
 {
@@ -148,12 +148,11 @@ void TextureManager::LoadTexture(const std::string& filePath)
 	textureData.metaData = mipImages.GetMetadata();
 	textureData.resource = CreateTextureResource(dxCommon->GetDevice(), textureData.metaData);
 	
-
-	Microsoft::WRL::ComPtr<ID3D12Resource> intermediateResouece = UploadTextureData(textureData.resource.Get(), mipImages, dxCommon->GetDevice(), dxCommon->GetCommandList());
+	// 中間リソースデータを転送する
+	ComPtr<ID3D12Resource> intermediateResouece = UploadTextureData(textureData.resource.Get(), mipImages, dxCommon->GetDevice(), dxCommon->GetCommandList());
 
 	// コマンド実行が完了するまでまつ
 	dxCommon->WaitCommand();
-
 
 	// テクスチャデータの要素番号をSRVのインデックスとする
 	uint32_t srvIndex = static_cast<uint32_t>(textureDatas.size() - 1) + kSRVIndexTop;
@@ -228,5 +227,21 @@ D3D12_GPU_DESCRIPTOR_HANDLE TextureManager::GetSrvHandleGPU(uint32_t textureInde
 
 	// GPUハンドルを返す
 	return textureData.srvHandleGPU;
+}
+
+
+/// -------------------------------------------------------------
+///						メタデータを取得
+/// -------------------------------------------------------------
+const DirectX::TexMetadata& TextureManager::GetMetaData(uint32_t textureIndex)
+{
+	// 範囲外指定違反チェック
+	assert(textureIndex < textureDatas.size()); // テクスチャ番号が正常範囲内である
+
+	// テクスチャデータの参照を取得
+	TextureData& textureData = textureDatas[textureIndex];
+
+	// GPUハンドルを返す
+	return textureData.metaData;
 }
 

@@ -1,4 +1,5 @@
 #pragma once
+#include "DX12Include.h"
 #include "DX12Device.h"
 #include "DX12SwapChain.h"
 #include "DX12Descriptor.h"
@@ -89,18 +90,18 @@ private:
 	std::unique_ptr<DX12SwapChain> swapChain_;
 	std::unique_ptr<DX12Descriptor> descriptor;
 
-	Microsoft::WRL::ComPtr <ID3D12CommandQueue> commandQueue;
-	Microsoft::WRL::ComPtr<ID3D12CommandAllocator> commandAllocator;
-	Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> commandList;
+	ComPtr <ID3D12CommandQueue> commandQueue;
+	ComPtr<ID3D12CommandAllocator> commandAllocator;
+	ComPtr<ID3D12GraphicsCommandList> commandList;
 
-	Microsoft::WRL::ComPtr <IDxcUtils> dxcUtils;
-	Microsoft::WRL::ComPtr<IDxcCompiler3> dxcCompiler;
-	Microsoft::WRL::ComPtr <IDxcIncludeHandler> includeHandler;
+	ComPtr <IDxcUtils> dxcUtils;
+	ComPtr<IDxcCompiler3> dxcCompiler;
+	ComPtr <IDxcIncludeHandler> includeHandler;
 
 	D3D12_COMMAND_QUEUE_DESC commandQueueDesc{};
 	D3D12_DESCRIPTOR_HEAP_DESC descriptorHeapDesc{};
 
-	Microsoft::WRL::ComPtr <ID3D12Fence> fence;
+	ComPtr <ID3D12Fence> fence;
 	HANDLE fenceEvent;
 	UINT64 fenceValue = 0;
 	

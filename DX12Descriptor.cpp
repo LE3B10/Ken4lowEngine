@@ -41,9 +41,9 @@ void DX12Descriptor::Initialize(ID3D12Device* device, ID3D12Resource* swapChainR
 /// -------------------------------------------------------------
 ///				デスクリプタヒープを生成する
 /// -------------------------------------------------------------
-Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> DX12Descriptor::CreateDescriptorHeap(DescriptorType descriptorType, ID3D12Device* device, D3D12_DESCRIPTOR_HEAP_TYPE heapType, UINT numDescriptors, bool shadervisible)
+ComPtr<ID3D12DescriptorHeap> DX12Descriptor::CreateDescriptorHeap(DescriptorType descriptorType, ID3D12Device* device, D3D12_DESCRIPTOR_HEAP_TYPE heapType, UINT numDescriptors, bool shadervisible)
 {
-	Microsoft::WRL::ComPtr <ID3D12DescriptorHeap> descriptorHeap = nullptr;
+	ComPtr <ID3D12DescriptorHeap> descriptorHeap = nullptr;
 
 	//ディスクリプタヒープの生成
 	descriptorHeapDescs[static_cast<size_t>(descriptorType)].Type = heapType;	//レンダーターゲットビュー用
@@ -61,7 +61,7 @@ Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> DX12Descriptor::CreateDescriptorHea
 /// -------------------------------------------------------------
 ///				深度ステンシルテクスチャの作成
 /// -------------------------------------------------------------
-Microsoft::WRL::ComPtr<ID3D12Resource> DX12Descriptor::CreateDepthStencilTextureResource(ID3D12Device* device, int32_t width, int32_t height)
+ComPtr<ID3D12Resource> DX12Descriptor::CreateDepthStencilTextureResource(ID3D12Device* device, int32_t width, int32_t height)
 {
 	//生成するResourceの設定
 	D3D12_RESOURCE_DESC resourceDesc{};
@@ -84,7 +84,7 @@ Microsoft::WRL::ComPtr<ID3D12Resource> DX12Descriptor::CreateDepthStencilTexture
 	depthClearValue.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;		//フォーマット。Resourceと合わせる
 
 	//Resourceの生成
-	Microsoft::WRL::ComPtr <ID3D12Resource> resource = nullptr;
+	ComPtr <ID3D12Resource> resource = nullptr;
 	HRESULT hr = device->CreateCommittedResource(
 		&heapPropaties,							// Heapの設定
 		D3D12_HEAP_FLAG_NONE,					// Heapの特殊な設定。特になし。
