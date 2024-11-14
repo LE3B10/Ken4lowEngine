@@ -23,7 +23,7 @@ void ModelManager::Initialize()
 
 
 /// -------------------------------------------------------------
-///					　.objファイルの読み取り
+///					　.objファイルの読み込み
 /// -------------------------------------------------------------
 ModelData ModelManager::LoadObjFile(const std::string& directoryPath, const std::string& filename)
 {
@@ -85,6 +85,45 @@ ModelData ModelManager::LoadObjFile(const std::string& directoryPath, const std:
 
 	// 解析済みのモデルデータを返す
 	return modelData;
+}
+
+
+/// -------------------------------------------------------------
+///					　モデルファイルの読み込み
+/// -------------------------------------------------------------
+void ModelManager::LoadModel(const std::string& filePath)
+{
+	// 読み込み済みモデルを検索
+	if (models_.contains(filePath))
+	{
+		return; // 既にロード済み
+	}
+
+	// モデルの生成とファイル読み込み - 初期化
+	auto model = std::make_shared<Model>();
+	model->Initialize("Resources", filePath);
+
+	// モデルをmapコンテナに格納する
+	models_.insert(std::make_pair(filePath, model));
+}
+
+
+
+/// -------------------------------------------------------------
+///					　モデルデータの取得関数
+/// -------------------------------------------------------------
+std::shared_ptr<Model> ModelManager::FindModel(const std::string& filePath)
+{
+	auto it = models_.find(filePath);
+	if (it != models_.end()) {
+		return it->second; // 既に存在するモデルを共有
+	}
+
+	// モデルが存在しない場合、新たに作成
+	auto newModel = std::make_shared<Model>();
+	newModel->Initialize("Resources", filePath);
+	models_[filePath] = newModel;
+	return newModel;
 }
 
 

@@ -19,9 +19,6 @@ D3DResourceLeakChecker resourceLeakCheck;
 static const uint32_t kClientWidth = 1280;
 static const uint32_t kClientHeight = 720;
 
-// 円周率
-#define pi 3.141592653589793238462643383279502884197169399375105820974944f
-
 // Windowsアプリでのエントリーポイント(main関数)
 int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 {
@@ -49,6 +46,9 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	std::unique_ptr<PipelineStateManager> pipelineStateManager = std::make_unique<PipelineStateManager>();
 	pipelineStateManager->Initialize(dxCommon);
 
+	/// ---------- モデルの初期化 ---------- ///
+
+
 	// テクスチャのパスをリストで管理
 	std::vector<std::string> texturePaths = {
 		"Resources/uvChecker.png",
@@ -70,9 +70,33 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 		sprites[i]->SetPosition(Vector2(100.0f * i, 100.0f * i));
 	}
 
+
 	/// ---------- Object3Dの初期化 ----------///
-	std::unique_ptr<Object3D> object3D = std::make_unique<Object3D>();
-	object3D->Initialize();
+	std::vector<std::unique_ptr<Object3D>> objects3D;
+
+	// .objのパスをリストで管理
+	std::vector<std::string> objectFiles = {
+		"axis.obj",
+		"multiMaterial.obj",
+		"multiMesh.obj",
+		"plane.obj",
+	};
+
+	std::vector<Vector3> initialPositions = {
+	{ -1.0f, 1.0f, 0.0f},    // axis.obj の座標
+	{ 4.0f, 0.75f, 0.0f},    // multiMaterial.obj の座標
+	{ -1.0f, -2.0f, 0.0f},    // multiMesh.obj の座標
+	{ 4.0f, -2.0f, 0.0f},    // plane.obj の座標
+	};
+
+	// 各オブジェクトを初期化し、座標を設定
+	for (uint32_t i = 0; i < objectFiles.size(); ++i)
+	{
+		auto object = std::make_unique<Object3D>();
+		object->Initialize(objectFiles[i]);
+		object->SetTranslate(initialPositions[i]);
+		objects3D.push_back(std::move(object));
+	}
 
 #pragma endregion
 
@@ -97,7 +121,16 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 
 		ImGui::Begin("Test Window");
 
-		object3D->DrawImGui();
+		for (uint32_t i = 0; i < objects3D.size(); ++i)
+		{
+			ImGui::PushID(i); // オブジェクトごとにIDを区別
+			if (ImGui::TreeNode(("Object3D " + std::to_string(i)).c_str()))
+			{
+				objects3D[i]->DrawImGui();
+				ImGui::TreePop();
+			}
+			ImGui::PopID(); // IDをリセット
+		}
 
 		for (uint32_t i = 0; i < sprites.size(); i++)
 		{
@@ -129,7 +162,10 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 		imguiManager->EndFrame();
 
 		// 3Dオブジェクトの更新処理
-		object3D->Update();
+		for (const auto& object3D : objects3D)
+		{
+			object3D->Update();
+		}
 
 		// スプライトの更新処理
 		for (auto& sprite : sprites)
@@ -149,6 +185,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 		pipelineStateManager->SetGraphicsPipeline(dxCommon->GetCommandList());
 
 		// 3Dオブジェクトデータ設定
+		for (const auto& object3D : objects3D)
 		{
 			object3D->SetObject3DBufferData(dxCommon->GetCommandList());
 			object3D->DrawCall(dxCommon->GetCommandList());

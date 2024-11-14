@@ -2,9 +2,12 @@
 #include "VertexData.h"
 #include "ModelData.h"
 
+#include "Model.h"
+
 #include <fstream>
 #include <sstream>
 #include <string>
+#include <unordered_map>
 
 /// -------------------------------------------------------------
 ///					モデルマネージャークラス
@@ -19,8 +22,14 @@ public: /// ---------- メンバ関数 ---------- ///
 	// 初期化処理
 	void Initialize();
 
-	// .objファイルの読み取り
+	// .objファイルの読み込み
 	static ModelData LoadObjFile(const std::string& directoryPath, const std::string& filename);
+
+	// モデルファイルの読み込み
+	void LoadModel(const std::string& filePath);
+
+	// モデルの検索
+	std::shared_ptr<Model> FindModel(const std::string& filePath);
 
 private: /// ---------- 静的メンバ関数 ---------- ///
 
@@ -39,8 +48,15 @@ private: /// ---------- 静的メンバ関数 ---------- ///
 	// .mtlファイルの読み取り
 	static MaterialData LoadMaterialTemplateFile(const std::string& directoryPath, const std::string& filename);
 
-private:
+private: /// ---------- メンバ変数 ---------- ///
 
+	//std::map<std::string,std::unique_ptr<Model>> models_;
 
+	std::unordered_map<std::string, std::shared_ptr<Model>> models_;
+
+	ModelManager() = default;
+	~ModelManager() = default;
+	ModelManager(const ModelManager&) = delete;
+	const ModelManager& operator=(const ModelManager&) = delete;
 };
 

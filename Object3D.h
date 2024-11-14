@@ -19,6 +19,7 @@
 
 /// ---------- 前方宣言 ---------- ///
 class DirectXCommon;
+class Model;
 
 /// -------------------------------------------------------------
 ///						オブジェクト3Dクラス
@@ -28,7 +29,7 @@ class Object3D
 public: /// ---------- メンバ関数 ---------- ///
 
 	// 初期化処理
-	void Initialize();
+	void Initialize(const std::string& fileName);
 
 	// 更新処理
 	void Update();
@@ -36,25 +37,23 @@ public: /// ---------- メンバ関数 ---------- ///
 	// ImGui
 	void DrawImGui();
 
+	void CameraImGui();
+
 	// ドローコール
 	void DrawCall(ID3D12GraphicsCommandList* commandList);
 
 	// 共通描画設定
 	void SetObject3DBufferData(ID3D12GraphicsCommandList* commandList);
 
-private: /// ---------- メンバ関数 ---------- ///
+	// モデルの追加
+	void SetModel(const std::string& filePath);
 
-	// 頂点データの初期化処理
-	void InitializeMaterial(DirectXCommon* dxCommon);
-
-	// マテリアルの初期化処理
-	void InitializeTransfomation(DirectXCommon* dxCommon);
-
-	// 平行光源の初期化処理
-	void ParalllelLightSorce(DirectXCommon* dxCommon);
-
+	// 位置を設定
+	void SetTranslate(const Vector3& translate) { transform.translate = translate; }
 
 private: /// ---------- メンバ変数 ---------- ///
+
+	std::shared_ptr<Model> model_;
 
 	Transform transform;
 	Transform cameraTransform;
