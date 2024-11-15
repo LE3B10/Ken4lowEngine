@@ -7,6 +7,7 @@
 #include "Material.h"
 #include "VertexData.h"
 #include "ModelData.h"
+#include "MainCamera3D.h"
 
 #include <fstream>
 #include <sstream>
@@ -51,9 +52,13 @@ public: /// ---------- メンバ関数 ---------- ///
 	// 位置を設定
 	void SetTranslate(const Vector3& translate) { transform.translate = translate; }
 
+	void SetScale(const Vector3& scale) { transform.scale = scale; }
+
 private: /// ---------- メンバ変数 ---------- ///
 
 	std::shared_ptr<Model> model_;
+
+	MainCamera3D* camera3D_ = nullptr;
 
 	Transform transform;
 	Transform cameraTransform;

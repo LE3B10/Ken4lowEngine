@@ -70,8 +70,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 		sprites[i]->SetPosition(Vector2(100.0f * i, 100.0f * i));
 	}
 
-
-	/// ---------- Object3Dの初期化 ----------///
+	/// ---------- Object3Dの初期化 ---------- ///
 	std::vector<std::unique_ptr<Object3D>> objects3D;
 
 	// .objのパスをリストで管理
@@ -80,6 +79,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 		"multiMaterial.obj",
 		"multiMesh.obj",
 		"plane.obj",
+		//"Skydome.obj",
 	};
 
 	std::vector<Vector3> initialPositions = {
@@ -87,6 +87,11 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	{ 4.0f, 0.75f, 0.0f},    // multiMaterial.obj の座標
 	{ -1.0f, -2.0f, 0.0f},    // multiMesh.obj の座標
 	{ 4.0f, -2.0f, 0.0f},    // plane.obj の座標
+	//{ 0.0f, 0.0f, 0.0f},    // skydome.obj の座標
+	};
+
+	std::vector<Vector3> initialScales{
+		{100.0f,100.0f,100.0f},
 	};
 
 	// 各オブジェクトを初期化し、座標を設定
@@ -197,7 +202,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 		for (auto& sprite : sprites)
 		{
 			sprite->SetSpriteBufferData(dxCommon->GetCommandList());
-			sprite->DrawCall(dxCommon->GetCommandList());
+			//sprite->DrawCall(dxCommon->GetCommandList());
 		}
 
 		/*-----ImGuiの描画-----*/

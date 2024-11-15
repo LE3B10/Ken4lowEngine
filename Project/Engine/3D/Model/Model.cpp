@@ -121,6 +121,42 @@ void Model::InitializeMaterial(DirectXCommon* dxCommon)
 
 
 /// -------------------------------------------------------------
+///					　座標変換行列の初期化処理
+/// -------------------------------------------------------------
+void Model::InitializeTransfomation(DirectXCommon* dxCommon)
+{
+#pragma region WVP行列データを格納するバッファリソースを生成し初期値として単位行列を設定
+	//WVP用のリソースを作る。Matrix4x4 1つ分のサイズを用意する
+	wvpResource = ResourceManager::CreateBufferResource(dxCommon->GetDevice(), sizeof(TransformationMatrix));
+
+	//書き込むためのアドレスを取得
+	wvpResource->Map(0, nullptr, reinterpret_cast<void**>(&wvpData));
+	//単位行列を書き込んでおく
+	wvpData->World = MakeIdentity();
+	wvpData->WVP = MakeIdentity();
+#pragma endregion
+}
+
+
+/// -------------------------------------------------------------
+///					　平行光源の初期化処理
+/// -------------------------------------------------------------
+void Model::ParalllelLightSorce(DirectXCommon* dxCommon)
+{
+#pragma region 平行光源のプロパティ 色 方向 強度 を格納するバッファリソースを生成しその初期値を設定
+	//平行光源用のリソースを作る
+	directionalLightResource = ResourceManager::CreateBufferResource(dxCommon->GetDevice(), sizeof(DirectionalLight));
+	//書き込むためのアドレスを取得
+	directionalLightResource->Map(0, nullptr, reinterpret_cast<void**>(&directionalLightData));
+
+	directionalLightData->color = { 1.0f,1.0f,1.0f ,1.0f };
+	directionalLightData->direction = { 0.0f,-1.0f,0.0f };
+	directionalLightData->intensity = 1.0f;
+#pragma endregion
+}
+
+
+/// -------------------------------------------------------------
 ///				　頂点バッファデータの初期化
 /// -------------------------------------------------------------
 void Model::InitializeVertexBufferData(DirectXCommon* dxCommon)
@@ -174,40 +210,4 @@ void Model::InitializeVertexBufferData(DirectXCommon* dxCommon)
 
 	// アンマップ
 	vertexResource->Unmap(0, nullptr);
-}
-
-
-/// -------------------------------------------------------------
-///					　座標変換行列の初期化処理
-/// -------------------------------------------------------------
-void Model::InitializeTransfomation(DirectXCommon* dxCommon)
-{
-#pragma region WVP行列データを格納するバッファリソースを生成し初期値として単位行列を設定
-	//WVP用のリソースを作る。Matrix4x4 1つ分のサイズを用意する
-	wvpResource = ResourceManager::CreateBufferResource(dxCommon->GetDevice(), sizeof(TransformationMatrix));
-
-	//書き込むためのアドレスを取得
-	wvpResource->Map(0, nullptr, reinterpret_cast<void**>(&wvpData));
-	//単位行列を書き込んでおく
-	wvpData->World = MakeIdentity();
-	wvpData->WVP = MakeIdentity();
-#pragma endregion
-}
-
-
-/// -------------------------------------------------------------
-///					　平行光源の初期化処理
-/// -------------------------------------------------------------
-void Model::ParalllelLightSorce(DirectXCommon* dxCommon)
-{
-#pragma region 平行光源のプロパティ 色 方向 強度 を格納するバッファリソースを生成しその初期値を設定
-	//平行光源用のリソースを作る
-	directionalLightResource = ResourceManager::CreateBufferResource(dxCommon->GetDevice(), sizeof(DirectionalLight));
-	//書き込むためのアドレスを取得
-	directionalLightResource->Map(0, nullptr, reinterpret_cast<void**>(&directionalLightData));
-
-	directionalLightData->color = { 1.0f,1.0f,1.0f ,1.0f };
-	directionalLightData->direction = { 0.0f,-1.0f,0.0f };
-	directionalLightData->intensity = 1.0f;
-#pragma endregion
 }
