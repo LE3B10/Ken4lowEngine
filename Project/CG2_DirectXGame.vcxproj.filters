@@ -153,10 +153,10 @@
     <ClCompile Include="Engine\CameraObjects\Camera\Camera.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="MainCamera3D.cpp">
+    <ClCompile Include="Engine\CameraObjects\3DCamera\MainCamera3D.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="Object3DCommon.cpp">
+    <ClCompile Include="Engine\3D\Object3DCommon\Object3DCommon.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
   </ItemGroup>
@@ -310,10 +310,10 @@
     <ClInclude Include="Engine\CameraObjects\Camera\Camera.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="MainCamera3D.h">
+    <ClInclude Include="Engine\CameraObjects\3DCamera\MainCamera3D.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="Object3DCommon.h">
+    <ClInclude Include="Engine\3D\Object3DCommon\Object3DCommon.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
   </ItemGroup>
