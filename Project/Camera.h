@@ -15,6 +15,8 @@ public: /// ---------- メンバ関数 ---------- ///
 	// 更新処理
 	void Update();
 
+	void DrawImGui();
+
 public: /// ---------- セッター ---------- ///
 
 	void SetRotate(const Vector3& rotate) { transform.rotate = rotate; }

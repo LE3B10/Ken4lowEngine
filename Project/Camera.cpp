@@ -1,5 +1,6 @@
 #include "Camera.h"
 #include "MatrixMath.h"
+#include "ImGuiManager.h"
 
 
 Camera::Camera() :
@@ -24,4 +25,14 @@ void Camera::Update()
 	// プロジェクション行列の更新
 	projectionMatrix = MakePerspectiveFovMatrix(fovY_, aspectRatio_, nearClip_, farClip_);
 	viewProjevtionMatrix = Multiply(viewMatrix, projectionMatrix);
+}
+
+void Camera::DrawImGui()
+{
+	ImGui::Begin("Camera");
+	ImGui::DragFloat3("cameraTranslate", &transform.translate.x, 0.01f);
+	ImGui::SliderAngle("CameraRotateX", &transform.rotate.x);
+	ImGui::SliderAngle("CameraRotateY", &transform.rotate.y);
+	ImGui::SliderAngle("CameraRotateZ", &transform.rotate.z);
+	ImGui::End();
 }

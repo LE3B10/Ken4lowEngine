@@ -150,6 +150,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClCompile Include="Engine\Utility\Vectors\Vector3.cpp" />
     <ClCompile Include="Engine\WindowsAPI\WinApp.cpp" />
     <ClCompile Include="MainCamera3D.cpp" />
+    <ClCompile Include="Object3DCommon.cpp" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Resources\Shaders\Object3d.PS.hlsl">
@@ -210,6 +211,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="Engine\Utility\Vectors\VectorMath.h" />
     <ClInclude Include="Engine\WindowsAPI\WinApp.h" />
     <ClInclude Include="MainCamera3D.h" />
+    <ClInclude Include="Object3DCommon.h" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="externals\DirectXTex\DirectXTex_Desktop_2022_Win10.vcxproj">

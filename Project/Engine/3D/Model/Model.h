@@ -46,6 +46,8 @@ public: /// ---------- メンバ関数 ---------- ///
 	// ImGUiの描画
 	void DrawImGui();
 
+	
+
 public: /// ---------- ゲッタ ---------- ///
 
 	const Vector3& GetScale() const { return transform.scale; }
@@ -60,6 +62,8 @@ public: /// ---------- セッタ ---------- ///
 
 private:
 
+	void preInitialize(DirectXCommon* dxCommon);
+
 	// 頂点データの初期化処理
 	void InitializeMaterial(DirectXCommon* dxCommon);
 
@@ -70,7 +74,7 @@ private:
 	void InitializeTransfomation(DirectXCommon* dxCommon);
 
 	// 平行光源の初期化処理
-	void ParalllelLightSorce(DirectXCommon* dxCommon);
+	void ParallelLightSorce(DirectXCommon* dxCommon);
 	
 private: /// ---------- メンバ変数 ---------- ///
 
@@ -93,7 +97,7 @@ private: /// ---------- メンバ変数 ---------- ///
 	ComPtr <ID3D12Resource> directionalLightResource;
 
 	Transform transform;
-	Transform cameraTransform;
+	//Transform cameraTransform;
 
 	// wvpデータを書き込む
 	TransformationMatrix* wvpData = nullptr;

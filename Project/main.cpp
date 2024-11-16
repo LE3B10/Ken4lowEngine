@@ -9,6 +9,7 @@
 #include "Sprite.h"
 #include "ResourceManager.h"
 #include "Object3D.h"
+#include "Object3DCommon.h"
 #include "ModelManager.h"
 
 #include "ResourceObject.h"
@@ -73,6 +74,8 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	/// ---------- Object3Dの初期化 ---------- ///
 	std::vector<std::unique_ptr<Object3D>> objects3D;
 
+	std::unique_ptr<Object3DCommon> object3DCommon = std::make_unique<Object3DCommon>();
+
 	// .objのパスをリストで管理
 	std::vector<std::string> objectFiles = {
 		"axis.obj",
@@ -90,15 +93,16 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	//{ 0.0f, 0.0f, 0.0f},    // skydome.obj の座標
 	};
 
-	std::vector<Vector3> initialScales{
-		{100.0f,100.0f,100.0f},
-	};
+	Camera* camera = new Camera();
+	camera->SetRotate({ 0.0f,0.0f,0.0f });
+	camera->SetTranslate({ 0.0f,0.0f,-15.0f });
+	object3DCommon->SetDefaultCamera(camera);
 
 	// 各オブジェクトを初期化し、座標を設定
 	for (uint32_t i = 0; i < objectFiles.size(); ++i)
 	{
 		auto object = std::make_unique<Object3D>();
-		object->Initialize(objectFiles[i]);
+		object->Initialize(object3DCommon.get(), objectFiles[i]);
 		object->SetTranslate(initialPositions[i]);
 		objects3D.push_back(std::move(object));
 	}
@@ -163,6 +167,9 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 		ImGui::Checkbox("useMonsterBall", &useMonsterBall);
 
 		ImGui::End();
+
+		camera->DrawImGui();
+
 #endif // _DEBUG
 
 		/// ---------- ImGuiフレーム終了 ---------- ///
@@ -173,6 +180,8 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 		{
 			object3D->Update();
 		}
+
+		camera->Update();
 
 		// スプライトの更新処理
 		for (auto& sprite : sprites)

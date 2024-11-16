@@ -24,20 +24,9 @@ void Model::Initialize(const std::string& directoryPath, const std::string& file
 	modelData.material.textureIndex = TextureManager::GetInstance()->GetTextureIndexByFilePath(modelData.material.textureFilePath);
 
 	transform = { {1.0f,1.0f,1.0f},{0.0f,0.0f,0.0f},{0.0f,0.0f,0.0f} };
-	cameraTransform = { {1.0f,1.0f,1.0f},{0.0f,0.0f,0.0f},{0.0f,0.0f,-15.0f} };
+	/*cameraTransform = { {1.0f,1.0f,1.0f},{0.0f,0.0f,0.0f},{0.0f,0.0f,-15.0f} };*/
 
-	// マテリアルの初期化
-	InitializeMaterial(dxCommon);
-
-	// 頂点バッファデータの初期化
-	InitializeVertexBufferData(dxCommon);
-
-	// 座標変換行列の初期化処理
-	InitializeTransfomation(dxCommon);
-
-	// 平行光源の初期化処理
-	ParalllelLightSorce(dxCommon);
-
+	preInitialize(dxCommon);
 }
 
 
@@ -47,8 +36,8 @@ void Model::Initialize(const std::string& directoryPath, const std::string& file
 void Model::Update()
 {
 	Matrix4x4 worldMatrix = MakeAffineMatrix(transform.scale, transform.rotate, transform.translate);
-	Matrix4x4 camraMatrix = MakeAffineMatrix(cameraTransform.scale, cameraTransform.rotate, cameraTransform.translate);
-	Matrix4x4 viewMatrix = Inverse(camraMatrix);
+	//Matrix4x4 camraMatrix = MakeAffineMatrix(cameraTransform.scale, cameraTransform.rotate, cameraTransform.translate);
+	Matrix4x4 viewMatrix = Inverse(worldMatrix);
 	Matrix4x4 projectionMatrix = MakePerspectiveFovMatrix(0.45f, 1280.0f / 720.0f, 0.1f, 100.0f);
 	Matrix4x4 worldViewProjectionMatrix = Multiply(worldMatrix, Multiply(viewMatrix, projectionMatrix));
 
@@ -80,16 +69,21 @@ void Model::DrawCall(ID3D12GraphicsCommandList* commandList)
 
 void Model::CameraImGui()
 {
-	ImGui::DragFloat3("cameraTranslate", &cameraTransform.translate.x, 0.01f);
+	/*ImGui::DragFloat3("cameraTranslate", &cameraTransform.translate.x, 0.01f);
 	ImGui::SliderAngle("CameraRotateX", &cameraTransform.rotate.x);
 	ImGui::SliderAngle("CameraRotateY", &cameraTransform.rotate.y);
-	ImGui::SliderAngle("CameraRotateZ", &cameraTransform.rotate.z);
+	ImGui::SliderAngle("CameraRotateZ", &cameraTransform.rotate.z);*/
 }
 
 void Model::DrawImGui()
 {
 	if (ImGui::TreeNode("3DObject"))
 	{
+		/*ImGui::DragFloat3("cameraTranslate", &cameraTransform.translate.x, 0.01f);
+		ImGui::SliderAngle("CameraRotateX", &cameraTransform.rotate.x);
+		ImGui::SliderAngle("CameraRotateY", &cameraTransform.rotate.y);
+		ImGui::SliderAngle("CameraRotateZ", &cameraTransform.rotate.z);*/
+
 		ImGui::DragFloat3("scale", &transform.scale.x, 0.01f);
 		ImGui::DragFloat3("rotate", &transform.rotate.x, 0.01f);
 		ImGui::DragFloat3("translate", &transform.translate.x, 0.01f);
@@ -98,6 +92,14 @@ void Model::DrawImGui()
 	}
 }
 
+
+void Model::preInitialize(DirectXCommon* dxCommon)
+{
+	InitializeMaterial(dxCommon);
+	InitializeTransfomation(dxCommon);
+	ParallelLightSorce(dxCommon);
+	InitializeVertexBufferData(dxCommon);
+}
 
 /// -------------------------------------------------------------
 ///					　マテリアルの初期化処理
@@ -141,7 +143,7 @@ void Model::InitializeTransfomation(DirectXCommon* dxCommon)
 /// -------------------------------------------------------------
 ///					　平行光源の初期化処理
 /// -------------------------------------------------------------
-void Model::ParalllelLightSorce(DirectXCommon* dxCommon)
+void Model::ParallelLightSorce(DirectXCommon* dxCommon)
 {
 #pragma region 平行光源のプロパティ 色 方向 強度 を格納するバッファリソースを生成しその初期値を設定
 	//平行光源用のリソースを作る
