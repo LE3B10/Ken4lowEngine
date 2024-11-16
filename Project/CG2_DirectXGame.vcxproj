@@ -64,7 +64,7 @@
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <TreatWarningAsError>true</TreatWarningAsError>
-      <AdditionalIncludeDirectories>$(ProjectDir)Externals\DirectXTex;$(ProjectDir)Externals\imgui;$(ProjectDir)Engine\WindowsAPI;$(ProjectDir)Engine\Utility\Log;$(ProjectDir)Engine\Utility\Vectors;$(ProjectDir)Engine\Utility\Matrix;$(ProjectDir)Engine\Utility;$(ProjectDir)Engine\ResourceChecker\LeakCheck;$(ProjectDir)Engine\ResourceChecker\ReleseCheck;$(ProjectDir)Engine\MultipleStructs;$(ProjectDir)Engine\Managers\PSO\BlendStateManager;$(ProjectDir)Engine\Managers\PSO\InputLayoutManager;$(ProjectDir)Engine\Managers\PSO\PipelineStateManager;$(ProjectDir)Engine\Managers\PSO\RasterizerStateManager;$(ProjectDir)Engine\Managers\PSO\RootSignatureManager;$(ProjectDir)Engine\Managers\PSO\ShaderManager;$(ProjectDir)Engine\Managers\ImGuiManager;$(ProjectDir)Engine\Managers\ModelManager;$(ProjectDir)Engine\Managers\ResourceManager;$(ProjectDir)Engine\Managers\TextureManager;$(ProjectDir)Engine\Input;$(ProjectDir)Engine\DXLib\DirectXCommon;$(ProjectDir)Engine\DXLib\DX12Descriptor;$(ProjectDir)Engine\DXLib\DX12SwapChain;$(ProjectDir)Engine\DXLib\DX12Device;$(ProjectDir)Engine\DXLib\DX12DepthStencil;$(ProjectDir)Engine\3D\Model;$(ProjectDir)Engine\3D\Object3D;$(ProjectDir)Engine\2D\Sprite;$(ProjectDir)Engine\2D\SpriteCommon;$(ProjectDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)Engine\CameraObjects\Camera;$(ProjectDir)Externals\DirectXTex;$(ProjectDir)Externals\imgui;$(ProjectDir)Engine\WindowsAPI;$(ProjectDir)Engine\Utility\Log;$(ProjectDir)Engine\Utility\Vectors;$(ProjectDir)Engine\Utility\Matrix;$(ProjectDir)Engine\Utility;$(ProjectDir)Engine\ResourceChecker\LeakCheck;$(ProjectDir)Engine\ResourceChecker\ReleseCheck;$(ProjectDir)Engine\MultipleStructs;$(ProjectDir)Engine\Managers\PSO\BlendStateManager;$(ProjectDir)Engine\Managers\CameraManager;$(ProjectDir)Engine\Managers\PSO\InputLayoutManager;$(ProjectDir)Engine\Managers\PSO\PipelineStateManager;$(ProjectDir)Engine\Managers\PSO\RasterizerStateManager;$(ProjectDir)Engine\Managers\PSO\RootSignatureManager;$(ProjectDir)Engine\Managers\PSO\ShaderManager;$(ProjectDir)Engine\Managers\ImGuiManager;$(ProjectDir)Engine\Managers\ModelManager;$(ProjectDir)Engine\Managers\ResourceManager;$(ProjectDir)Engine\Managers\TextureManager;$(ProjectDir)Engine\Input;$(ProjectDir)Engine\DXLib\DirectXCommon;$(ProjectDir)Engine\DXLib\DX12Descriptor;$(ProjectDir)Engine\DXLib\DX12SwapChain;$(ProjectDir)Engine\DXLib\DX12Device;$(ProjectDir)Engine\DXLib\DX12DepthStencil;$(ProjectDir)Engine\3D\Model;$(ProjectDir)Engine\3D\Object3D;$(ProjectDir)Engine\2D\Sprite;$(ProjectDir)Engine\2D\SpriteCommon;$(ProjectDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -92,7 +92,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
       <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
-      <AdditionalIncludeDirectories>$(ProjectDir)Externals\DirectXTex;$(ProjectDir)Externals\imgui;$(ProjectDir)Engine\WindowsAPI;$(ProjectDir)Engine\Utility\Log;$(ProjectDir)Engine\Utility\Vectors;$(ProjectDir)Engine\Utility\Matrix;$(ProjectDir)Engine\Utility;$(ProjectDir)Engine\ResourceChecker\LeakCheck;$(ProjectDir)Engine\ResourceChecker\ReleseCheck;$(ProjectDir)Engine\MultipleStructs;$(ProjectDir)Engine\Managers\PSO\BlendStateManager;$(ProjectDir)Engine\Managers\PSO\InputLayoutManager;$(ProjectDir)Engine\Managers\PSO\PipelineStateManager;$(ProjectDir)Engine\Managers\PSO\RasterizerStateManager;$(ProjectDir)Engine\Managers\PSO\RootSignatureManager;$(ProjectDir)Engine\Managers\PSO\ShaderManager;$(ProjectDir)Engine\Managers\ImGuiManager;$(ProjectDir)Engine\Managers\ModelManager;$(ProjectDir)Engine\Managers\ResourceManager;$(ProjectDir)Engine\Managers\TextureManager;$(ProjectDir)Engine\Input;$(ProjectDir)Engine\DXLib\DirectXCommon;$(ProjectDir)Engine\DXLib\DX12Descriptor;$(ProjectDir)Engine\DXLib\DX12SwapChain;$(ProjectDir)Engine\DXLib\DX12Device;$(ProjectDir)Engine\DXLib\DX12DepthStencil;$(ProjectDir)Engine\3D\Model;$(ProjectDir)Engine\3D\Object3D;$(ProjectDir)Engine\2D\Sprite;$(ProjectDir)Engine\2D\SpriteCommon;$(ProjectDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)Engine\CameraObjects\Camera;$(ProjectDir)Externals\DirectXTex;$(ProjectDir)Externals\imgui;$(ProjectDir)Engine\WindowsAPI;$(ProjectDir)Engine\Utility\Log;$(ProjectDir)Engine\Utility\Vectors;$(ProjectDir)Engine\Utility\Matrix;$(ProjectDir)Engine\Utility;$(ProjectDir)Engine\ResourceChecker\LeakCheck;$(ProjectDir)Engine\ResourceChecker\ReleseCheck;$(ProjectDir)Engine\MultipleStructs;$(ProjectDir)Engine\Managers\PSO\BlendStateManager;$(ProjectDir)Engine\Managers\CameraManager;$(ProjectDir)Engine\Managers\PSO\InputLayoutManager;$(ProjectDir)Engine\Managers\PSO\PipelineStateManager;$(ProjectDir)Engine\Managers\PSO\RasterizerStateManager;$(ProjectDir)Engine\Managers\PSO\RootSignatureManager;$(ProjectDir)Engine\Managers\PSO\ShaderManager;$(ProjectDir)Engine\Managers\ImGuiManager;$(ProjectDir)Engine\Managers\ModelManager;$(ProjectDir)Engine\Managers\ResourceManager;$(ProjectDir)Engine\Managers\TextureManager;$(ProjectDir)Engine\Input;$(ProjectDir)Engine\DXLib\DirectXCommon;$(ProjectDir)Engine\DXLib\DX12Descriptor;$(ProjectDir)Engine\DXLib\DX12SwapChain;$(ProjectDir)Engine\DXLib\DX12Device;$(ProjectDir)Engine\DXLib\DX12DepthStencil;$(ProjectDir)Engine\3D\Model;$(ProjectDir)Engine\3D\Object3D;$(ProjectDir)Engine\2D\Sprite;$(ProjectDir)Engine\2D\SpriteCommon;$(ProjectDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -109,8 +109,8 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     </FxCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="Camera.cpp" />
-    <ClCompile Include="CameraManager.cpp" />
+    <ClCompile Include="Engine\CameraObjects\Camera\Camera.cpp" />
+    <ClCompile Include="Engine\Managers\CameraManager\CameraManager.cpp" />
     <ClCompile Include="Engine\Managers\PSO\BlendStateManager\BlendStateManager.cpp" />
     <ClCompile Include="Engine\ResourceChecker\LeakCheck\D3DResourceLeakChecker.cpp" />
     <ClCompile Include="Engine\DXLib\DX12DepthStencil\DX12DepthStencil.cpp" />
@@ -163,8 +163,8 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     </FxCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Camera.h" />
-    <ClInclude Include="CameraManager.h" />
+    <ClInclude Include="Engine\CameraObjects\Camera\Camera.h" />
+    <ClInclude Include="Engine\Managers\CameraManager\CameraManager.h" />
     <ClInclude Include="Engine\Managers\PSO\BlendStateManager\BlendStateManager.h" />
     <ClInclude Include="Engine\ResourceChecker\LeakCheck\D3DResourceLeakChecker.h" />
     <ClInclude Include="Engine\DXLib\DX12DepthStencil\DX12DepthStencil.h" />
