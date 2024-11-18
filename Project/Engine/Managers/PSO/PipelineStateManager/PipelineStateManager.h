@@ -8,8 +8,6 @@
 #include "ShaderManager.h"
 #include "DX12DepthStencil.h"
 
-#include "BlendModeType.h"
-
 #include <array>
 #include <memory>
 

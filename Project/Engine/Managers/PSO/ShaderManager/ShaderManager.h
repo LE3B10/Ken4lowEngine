@@ -24,6 +24,9 @@ public: /// ---------- メンバ関数 ---------- ///
 	// 3Dシェーダーをコンパイルする
 	void ShaderCompileObject3D(DirectXCommon* dxCommon);
 
+	// パーティクルシェーダーをコンパイルする
+	void ShaderCompileParticle(DirectXCommon* dxCommon);
+
 public: /// ---------- ゲッター ---------- ///
 
 	IDxcBlob* GetVertexShaderBlob();
