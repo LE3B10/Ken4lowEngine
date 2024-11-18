@@ -44,12 +44,12 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <IncludePath>$(solutionDir)externals\DirectXTex;$(solutuinDir)externals\imgui;$(IncludePath)</IncludePath>
+    <IncludePath>$(SolutionDir)Externals\DirectXTex;$(SolutuinDir)imgui;$(SolutuinDir)Externals\imgui;$(IncludePath)</IncludePath>
     <IntDir>$(SolutionDir)..\Generated\obj\$(ProjectName)\$(Configuration)\</IntDir>
     <OutDir>$(SolutionDir)..\Generated\outputs\$(Configuration)\</OutDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <IncludePath>$(solutionDir)externals\DirectXTex;$(solutuinDir)externals\imgui;$(IncludePath)</IncludePath>
+    <IncludePath>$(SolutionDir)Externals\DirectXTex;$(SolutuinDir)imgui;$(SolutuinDir)Externals\imgui;$(IncludePath)</IncludePath>
     <IntDir>$(SolutionDir)..\Generated\obj\$(ProjectName)\$(Configuration)\</IntDir>
     <OutDir>$(SolutionDir)..\Generated\outputs\$(Configuration)\</OutDir>
   </PropertyGroup>
@@ -93,6 +93,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <AdditionalIncludeDirectories>$(ProjectDir)Engine\CameraObjects\Camera;$(ProjectDir)Engine\CameraObjects\3DCamera;$(ProjectDir)Externals\DirectXTex;$(ProjectDir)Externals\imgui;$(ProjectDir)Engine\WindowsAPI;$(ProjectDir)Engine\Utility\Log;$(ProjectDir)Engine\Utility\Vectors;$(ProjectDir)Engine\Utility\Matrix;$(ProjectDir)Engine\Utility;$(ProjectDir)Engine\ResourceChecker\LeakCheck;$(ProjectDir)Engine\ResourceChecker\ReleseCheck;$(ProjectDir)Engine\MultipleStructs;$(ProjectDir)Engine\Managers\PSO\BlendStateManager;$(ProjectDir)Engine\Managers\CameraManager;$(ProjectDir)Engine\Managers\PSO\InputLayoutManager;$(ProjectDir)Engine\Managers\PSO\PipelineStateManager;$(ProjectDir)Engine\Managers\PSO\RasterizerStateManager;$(ProjectDir)Engine\Managers\PSO\RootSignatureManager;$(ProjectDir)Engine\Managers\PSO\ShaderManager;$(ProjectDir)Engine\Managers\ImGuiManager;$(ProjectDir)Engine\Managers\ModelManager;$(ProjectDir)Engine\Managers\ResourceManager;$(ProjectDir)Engine\Managers\TextureManager;$(ProjectDir)Engine\Input;$(ProjectDir)Engine\DXLib\DirectXCommon;$(ProjectDir)Engine\DXLib\DX12Descriptor;$(ProjectDir)Engine\DXLib\DX12SwapChain;$(ProjectDir)Engine\DXLib\DX12Device;$(ProjectDir)Engine\DXLib\DX12DepthStencil;$(ProjectDir)Engine\3D\Model;$(ProjectDir)Engine\3D\Object3D;$(ProjectDir)Engine\3D\Object3DCommon;$(ProjectDir)Engine\2D\Sprite;$(ProjectDir)Engine\2D\SpriteCommon;$(ProjectDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <Optimization>MinSpace</Optimization>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -230,6 +231,9 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="ParticleManager.h" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\imgui\imgui.vcxproj">
+      <Project>{b8a68560-bb16-4991-bd9f-6fcff39522b9}</Project>
+    </ProjectReference>
     <ProjectReference Include="externals\DirectXTex\DirectXTex_Desktop_2022_Win10.vcxproj">
       <Project>{371b9fa9-4c90-4ac6-a123-aced756d6c77}</Project>
     </ProjectReference>
