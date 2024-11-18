@@ -68,7 +68,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	{
 		sprites.push_back(std::make_unique<Sprite>());
 		sprites[i]->Initialize(texturePaths[i % 2]);
-		sprites[i]->SetPosition(Vector2(100.0f, 100.0f));
+		sprites[i]->SetPosition(Vector2(100.0f * i, 100.0f * i));
 	}
 
 	/// ---------- Object3Dの初期化 ---------- ///
@@ -148,16 +148,16 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 			if (ImGui::TreeNode(("Sprite" + std::to_string(i)).c_str()))
 			{
 				Vector2 position = sprites[i]->GetPosition();
-				ImGui::SliderFloat2("Position", &position.x, 0.0f, 1280.0f, "%.1f");
+				ImGui::DragFloat2("Position", &position.x, 1.0f);
 				sprites[i]->SetPosition(position);
 
-				/*float rotation = sprites[i]->GetRotation();
+				float rotation = sprites[i]->GetRotation();
 				ImGui::SliderAngle("Rotation", &rotation);
 				sprites[i]->SetRotation(rotation);
 
 				Vector2 size = sprites[i]->GetSize();
-				ImGui::DragFloat2("Size", &size.x, 1.0f, 0.0f, 0.0f, "%.1f");
-				sprites[i]->SetSize(size);*/
+				ImGui::DragFloat2("Size", &size.x, 1.0f);
+				sprites[i]->SetSize(size);
 
 				ImGui::TreePop();
 			}
@@ -211,7 +211,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 		for (auto& sprite : sprites)
 		{
 			sprite->SetSpriteBufferData(dxCommon->GetCommandList());
-			sprite->DrawCall(dxCommon->GetCommandList());
+			//sprite->DrawCall(dxCommon->GetCommandList());
 		}
 
 		/*-----ImGuiの描画-----*/

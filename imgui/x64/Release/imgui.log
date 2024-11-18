@@ -1,8 +1,0 @@
-﻿  imgui.cpp
-  imgui_demo.cpp
-  imgui_draw.cpp
-  imgui_impl_dx12.cpp
-  imgui_impl_win32.cpp
-  imgui_tables.cpp
-  imgui_widgets.cpp
-  imgui.vcxproj -> C:\Users\k023g\Downloads\GE3\CG2_DirectXGame-07_01\CG2_DirectXGame-07_01\Project\x64\Release\imgui.lib
