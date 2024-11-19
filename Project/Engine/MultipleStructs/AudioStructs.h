@@ -28,7 +28,7 @@ struct FormatChunk
 // 音声データ
 struct SoundData
 {
-	WAVEFORMATEX wfex;		  // 波形フォーマット
-	BYTE* pBuffer; // バッファの先頭アドレス
-	unsigned int bufferSize;
+	WAVEFORMATEX wfex;		 // 波形フォーマット
+	BYTE* pBuffer;			 // バッファの先頭アドレス
+	unsigned int bufferSize; // バッファのサイズ
 };

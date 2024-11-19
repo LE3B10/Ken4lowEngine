@@ -11,8 +11,7 @@
 #include "Object3D.h"
 #include "Object3DCommon.h"
 #include "ModelManager.h"
-
-#include "ResourceObject.h"
+#include "WavLoader.h"
 
 D3DResourceLeakChecker resourceLeakCheck;
 
@@ -30,6 +29,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	ImGuiManager* imguiManager = ImGuiManager::GetInstance();
 	TextureManager* textureManager = TextureManager::GetInstance();
 	ModelManager* modelManager = ModelManager::GetInstance();
+	//std::unique_ptr<AudioManager>
 
 	/// ---------- WindowsAPIのウィンドウ作成 ---------- ///
 	winApp->CreateMainWindow(kClientWidth, kClientHeight);
@@ -105,6 +105,13 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 		objects3D.push_back(std::move(object));
 	}
 
+	/// ---------- サウンドの初期化 ---------- ///
+	std::unique_ptr<WavLoader> wavLoader = std::make_unique<WavLoader>();
+	wavLoader->Initialize();
+	SoundData soundData = wavLoader->SoundLoadWave("Resources/fanfare.wav");
+	wavLoader->SoundPlayWave(soundData);
+
+
 #pragma endregion
 
 	//ウィンドウのｘボタンが押されるまでループ
@@ -112,11 +119,6 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	{
 		// 入力の更新
 		input->Update();
-
-		if (input->TriggerKey(DIK_0))
-		{
-			OutputDebugStringA("Hit 0 \n");
-		}
 
 		/// ---------- ImGuiフレーム開始 ---------- ///
 		imguiManager->BeginFrame();
@@ -219,6 +221,8 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	winApp->Finalize();
 	dxCommon->Finalize();
 	imguiManager->Finalize();
+
+	wavLoader->SoundUnload(&soundData);
 
 	return 0;
 }

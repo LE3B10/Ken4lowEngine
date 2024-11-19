@@ -69,7 +69,7 @@ SoundData WavLoader::SoundLoadWave(const char* fileName)
 	if (strncmp(data.id, "JUNK", 4) == 0)
 	{
 		// 読みより一をJUNKチャンクの終わりまで進める
-		file.seekg(data.size, std::ios_base::binary);
+		file.seekg(data.size, std::ios_base::cur);
 		// 再読み込み
 		file.read((char*)&data, sizeof(data));
 	}
