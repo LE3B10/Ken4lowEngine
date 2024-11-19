@@ -32,7 +32,7 @@ void Object3D::Initialize(Object3DCommon* object3dCommon, const std::string& fil
 	// 読み込んだテクスチャ番号を取得
 	modelData.material.textureIndex = TextureManager::GetInstance()->GetTextureIndexByFilePath(modelData.material.textureFilePath);
 
-	transform = { {100.0f,100.0f,100.0f},{0.0f,0.0f,0.0f},{0.0f,0.0f,0.0f} };
+	transform = { {1.0f,1.0f,1.0f},{0.0f,0.0f,0.0f},{0.0f,0.0f,0.0f} };
 	cameraTransform = { {1.0f,1.0f,1.0f},{0.0f,0.0f,0.0f},{0.0f,0.0f,-15.0f} };
 
 	camera_ = object3dCommon_->GetDefaultCamera();
@@ -100,7 +100,7 @@ void Object3D::DrawCall(ID3D12GraphicsCommandList* commandList)
 	commandList->SetGraphicsRootDescriptorTable(2, TextureManager::GetInstance()->GetSrvHandleGPU(modelData.material.textureIndex));
 
 	// モデルの描画
-	commandList->DrawInstanced(UINT(modelData.vertices.size() + TotalVertexCount), 1, 0, 0);
+	commandList->DrawInstanced(UINT(modelData.vertices.size()), 1, 0, 0);
 
 	//model_->DrawCall(commandList);
 }

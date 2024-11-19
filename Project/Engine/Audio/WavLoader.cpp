@@ -20,6 +20,10 @@ void WavLoader::Initialize()
 
 }
 
+
+/// -------------------------------------------------------------
+///				　	　音声データ読み込み
+/// -------------------------------------------------------------
 SoundData WavLoader::SoundLoadWave(const char* fileName)
 {
 	HRESULT result{};
@@ -93,7 +97,9 @@ SoundData WavLoader::SoundLoadWave(const char* fileName)
 }
 
 
-
+/// -------------------------------------------------------------
+///				　	　		音声再生
+/// -------------------------------------------------------------
 void WavLoader::SoundPlayWave(const SoundData& soundData)
 {
 	HRESULT result{};
@@ -115,6 +121,9 @@ void WavLoader::SoundPlayWave(const SoundData& soundData)
 
 
 
+/// -------------------------------------------------------------
+///				　	　	音声データ解放
+/// -------------------------------------------------------------
 void WavLoader::SoundUnload(SoundData* soundData)
 {
 	// バッファのメモリを解放
