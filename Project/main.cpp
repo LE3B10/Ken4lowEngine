@@ -12,6 +12,10 @@
 #include "Object3DCommon.h"
 #include "ModelManager.h"
 
+#include "GameStateManager.h"
+#include "Player.h"
+#include "Boss.h"
+
 #include "ResourceObject.h"
 
 D3DResourceLeakChecker resourceLeakCheck;
@@ -47,9 +51,6 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	std::unique_ptr<PipelineStateManager> pipelineStateManager = std::make_unique<PipelineStateManager>();
 	pipelineStateManager->Initialize(dxCommon);
 
-	/// ---------- モデルの初期化 ---------- ///
-
-
 	// テクスチャのパスをリストで管理
 	std::vector<std::string> texturePaths = {
 		"Resources/uvChecker.png",
@@ -78,21 +79,22 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 
 	// .objのパスをリストで管理
 	std::vector<std::string> objectFiles = {
-		"axis.obj",
+		"Skydome.obj",
+		/*"axis.obj",
 		"multiMaterial.obj",
 		"multiMesh.obj",
-		"plane.obj",
-		//"Skydome.obj",
+		"plane.obj",*/
 	};
 
 	std::vector<Vector3> initialPositions = {
-	{ -1.0f, 1.0f, 0.0f},    // axis.obj の座標
-	{ 4.0f, 0.75f, 0.0f},    // multiMaterial.obj の座標
-	{ -1.0f, -2.0f, 0.0f},    // multiMesh.obj の座標
-	{ 4.0f, -2.0f, 0.0f},    // plane.obj の座標
-	//{ 0.0f, 0.0f, 0.0f},    // skydome.obj の座標
+	{ 0.0f, 0.0f, 0.0f},    // skydome.obj の座標
+	//{ -1.0f, 1.0f, 0.0f},    // axis.obj の座標
+	//{ 4.0f, 0.75f, 0.0f},    // multiMaterial.obj の座標
+	//{ -1.0f, -2.0f, 0.0f},    // multiMesh.obj の座標
+	//{ 4.0f, -2.0f, 0.0f},    // plane.obj の座標
 	};
 
+	/// ---------- カメラ初期化処理 ---------- ///
 	Camera* camera = new Camera();
 	camera->SetRotate({ 0.0f,0.0f,0.0f });
 	camera->SetTranslate({ 0.0f,0.0f,-15.0f });
@@ -106,6 +108,23 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 		object->SetTranslate(initialPositions[i]);
 		objects3D.push_back(std::move(object));
 	}
+
+	/// ---------- ゲームステート初期化処理 ---------- ///
+	std::unique_ptr<GameStateManager> gameStateManager = std::make_unique<GameStateManager>();
+
+	// 初期状態をメニューに設定
+	gameStateManager->ChangeState(new MenuState);
+
+	/// ---------- プレイヤー初期化処理 ---------- ///
+	std::unique_ptr<Player> player = std::make_unique<Player>();
+	// 初期状態
+	player->ChangeState(new IdleState());
+
+	/// ---------- ボスの初期化処理 ---------- ///
+	std::unique_ptr<Boss> boss = std::make_unique<Boss>();
+	// 初期状態
+	boss->ChangeState(new BossIdleState());
+
 
 #pragma endregion
 
@@ -188,6 +207,78 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 		{
 			sprite->Update();
 		}
+
+
+		/// ---------- ステートパターン ---------- ///
+
+		// 状態の更新
+		if (input->TriggerKey(DIK_1))
+		{
+			gameStateManager->Update();
+		}
+
+		// 描画処理
+		if (input->TriggerKey(DIK_2))
+		{
+			gameStateManager->Draw();
+		}
+
+		// キー入力されたらゲームプレイに移行
+		if (input->TriggerKey(DIK_3))
+		{
+			gameStateManager->ChangeState(new GamePlayState());
+		}
+
+		/// ---------- ステートパターン ---------- ///
+
+
+		/// ---------- プレイヤー ---------- ///
+
+		// 状態更新
+		if (input->TriggerKey(DIK_4))
+		{
+			player->Update();
+		}
+
+		// 
+		if (input->TriggerKey(DIK_5))
+		{
+			player->Draw();
+		}
+		
+
+		if (input->TriggerKey(DIK_6))
+		{
+			player->ChangeState(new RunningState());
+		}
+
+		/// ---------- プレイヤー ---------- ///
+
+		/// ---------- ボス ---------- ///
+
+		if (input->TriggerKey(DIK_7))
+		{
+			// 状態更新
+			boss->Update();
+		}
+
+		if (input->TriggerKey(DIK_8))
+		{
+			boss->ChangeState(new BossAttackState()); // 攻撃状態に変更
+		}
+
+		if (input->TriggerKey(DIK_8))
+		{
+			boss->ChangeState(new EnragedState()); // 怒り状態に変更
+		}
+
+		if (input->TriggerKey(DIK_9))
+		{
+			boss->ChangeState(new BossDownState()); // ダウン状態に変更
+		}
+		
+		/// ---------- ボス ---------- ///
+
 
 		// 描画開始処理
 		dxCommon->BeginDraw();
