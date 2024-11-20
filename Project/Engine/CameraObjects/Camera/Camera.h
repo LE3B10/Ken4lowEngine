@@ -12,6 +12,9 @@ public: /// ---------- メンバ関数 ---------- ///
 	// デフォルトコンストラクタ
 	Camera();
 
+	// 初期化処理
+	void Initialize(uint32_t Width, uint32_t Height);
+
 	// 更新処理
 	void Update();
 
@@ -36,6 +39,8 @@ public: /// ---------- ゲッター ---------- ///
 	const Vector3& GetTranslate() const { return transform.translate; }
 
 private: /// ---------- メンバ変数 ----- ///
+
+	float kWidth, kHeight;
 
 	// ビュー行列関連データ
 	Transform transform;

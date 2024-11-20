@@ -29,7 +29,6 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	ImGuiManager* imguiManager = ImGuiManager::GetInstance();
 	TextureManager* textureManager = TextureManager::GetInstance();
 	ModelManager* modelManager = ModelManager::GetInstance();
-	//std::unique_ptr<AudioManager>
 
 	/// ---------- WindowsAPIのウィンドウ作成 ---------- ///
 	winApp->CreateMainWindow(kClientWidth, kClientHeight);
@@ -91,10 +90,10 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	};
 
 	/// ---------- カメラ初期化処理 ---------- ///
-	Camera* camera = new Camera();
+	std::unique_ptr<Camera>  camera = std::make_unique<Camera>();
 	camera->SetRotate({ 0.0f,0.0f,0.0f });
 	camera->SetTranslate({ 0.0f,0.0f,-15.0f });
-	object3DCommon->SetDefaultCamera(camera);
+	object3DCommon->SetDefaultCamera(camera.get());
 
 	// 各オブジェクトを初期化し、座標を設定
 	for (uint32_t i = 0; i < objectFiles.size(); ++i)
@@ -119,6 +118,11 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	{
 		// 入力の更新
 		input->Update();
+
+		if (input->TriggerKey(DIK_0))
+		{
+			OutputDebugStringA("Hit 0\n");
+		}
 
 		/// ---------- ImGuiフレーム開始 ---------- ///
 		imguiManager->BeginFrame();
@@ -187,10 +191,6 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 
 		// 描画開始処理
 		dxCommon->BeginDraw();
-
-		// ディスクリプタヒープの設定
-		ID3D12DescriptorHeap* descriptorHeaps[] = { dxCommon->GetSRVDescriptorHeap() };
-		dxCommon->GetCommandList()->SetDescriptorHeaps(1, descriptorHeaps);
 
 		/*-----シーン（モデル）の描画設定と描画-----*/
 		// ルートシグネチャとパイプラインステートの設定

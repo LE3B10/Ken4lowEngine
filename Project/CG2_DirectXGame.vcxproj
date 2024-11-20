@@ -142,9 +142,10 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClCompile Include="Engine\Game\Player\IdleState.cpp" />
     <ClCompile Include="Engine\Game\Player\IPlayerState.cpp" />
     <ClCompile Include="Engine\Game\Enemy\IBossState.cpp" />
+    <ClCompile Include="GameEngine.cpp" />
     <ClCompile Include="main.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="Engine\Utility\Matrix\Matrix4x4.cpp" />
     <ClCompile Include="Engine\3D\Model\Model.cpp" />
@@ -171,6 +172,10 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClCompile Include="Engine\Game\GameState\MenuState.cpp" />
     <ClCompile Include="Engine\Game\Player\Player.cpp" />
     <ClCompile Include="Engine\Game\Player\RunningState.cpp" />
+    <ClCompile Include="WinMain.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Resources\Shaders\Object3d.PS.hlsl">
@@ -264,6 +269,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="Engine\Game\Player\Player.h" />
     <ClInclude Include="Engine\Game\Player\RunningState.h" />
     <ClInclude Include="Engine\Game\Enemy\IBossState.h" />
+    <ClInclude Include="GameEngine.h" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="externals\DirectXTex\DirectXTex_Desktop_2022_Win10.vcxproj">

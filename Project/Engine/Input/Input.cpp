@@ -8,7 +8,7 @@
 void Input::Initialize(WinApp* winApp)
 {
 	// 借りてきたWinAppのインスタンスを記録
-	this->winApp_ = winApp;
+	winApp_ = winApp;
 
 	HRESULT result{};
 
