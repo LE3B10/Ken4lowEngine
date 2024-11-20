@@ -14,7 +14,6 @@
 #include "ModelManager.h"
 #include "WavLoader.h"
 
-
 /// -------------------------------------------------------------
 ///				　	ゲーム全体を管理するクラス
 /// -------------------------------------------------------------
@@ -55,7 +54,7 @@ private: /// ---------- メンバ変数 ---------- ///
 	std::vector<std::string> objectFiles;
 	std::vector<Vector3> initialPositions;
 
-private:
+private: /// ---------- メンバ変数 ---------- ///
 	SoundData soundData;
 };
 
