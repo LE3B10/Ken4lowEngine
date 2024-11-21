@@ -12,6 +12,7 @@
 #include "Object3DCommon.h"
 #include "ModelManager.h"
 #include "WavLoader.h"
+#include "SRVManager.h"
 
 D3DResourceLeakChecker resourceLeakCheck;
 
@@ -30,6 +31,8 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	TextureManager* textureManager = TextureManager::GetInstance();
 	ModelManager* modelManager = ModelManager::GetInstance();
 
+	std::unique_ptr<SRVManager>srvManager = std::make_unique<SRVManager>();
+
 	/// ---------- WindowsAPIのウィンドウ作成 ---------- ///
 	winApp->CreateMainWindow(kClientWidth, kClientHeight);
 
@@ -38,6 +41,8 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 
 	/// ---------- DirectXの初期化 ----------///
 	dxCommon->Initialize(winApp, kClientWidth, kClientHeight);
+
+	srvManager->Initialize(dxCommon);
 
 	/// ---------- ImGuiManagerの初期化 ---------- ///
 	imguiManager->Initialize(winApp, dxCommon);
@@ -191,6 +196,10 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 
 		// 描画開始処理
 		dxCommon->BeginDraw();
+
+		// ディスクリプタヒープの設定
+		ID3D12DescriptorHeap* descriptorHeaps[] = { dxCommon->GetSRVDescriptorHeap() };
+		dxCommon->GetCommandList()->SetDescriptorHeaps(1, descriptorHeaps);
 
 		/*-----シーン（モデル）の描画設定と描画-----*/
 		// ルートシグネチャとパイプラインステートの設定

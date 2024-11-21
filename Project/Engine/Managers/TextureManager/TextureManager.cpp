@@ -2,8 +2,9 @@
 
 #include "DirectXCommon.h"
 #include "DX12Descriptor.h"
-#include <d3dx12.h>
 #include "ResourceManager.h"
+
+#include <d3dx12.h>
 
 #pragma comment(lib, "d3d12.lib")        // Direct3D 12用
 #pragma comment(lib, "dxgi.lib")         // DXGI (DirectX Graphics Infrastructure)用

@@ -2,7 +2,6 @@
 #include "DX12Include.h"
 #include "DX12Device.h"
 #include "DX12SwapChain.h"
-#include "DX12Descriptor.h"
 
 #include <chrono>
 #include <dxcapi.h>
@@ -11,6 +10,7 @@
 
 /// ---------- 前方宣言 ---------- ///
 class WinApp;
+class DX12Descriptor;
 
 /// -------------------------------------------------------------
 ///			DirectXCommon - DirectX12の基盤クラス

@@ -11,14 +11,14 @@
 /// ---------- 前方宣言 ---------- ///
 class WinApp;
 class DirectXCommon;
+class SRVManager;
 
 /// -------------------------------------------------------------
 ///						ImGui管理クラス
 /// -------------------------------------------------------------
 class ImGuiManager
 {
-public:
-	/// ---------- メンバ関数 ---------- ///
+public:	/// ---------- メンバ関数 ---------- ///
 
 	// シングルトン
 	static ImGuiManager* GetInstance();
@@ -38,8 +38,9 @@ public:
 	// 終了処理
 	void Finalize();
 
-private:
-	/// ---------- メンバ関数 ---------- ///
+private: /// ---------- メンバ関数 ---------- ///
+
+	SRVManager* srvManager_ = nullptr;
 
 	ImGuiManager() = default;
 	~ImGuiManager() = default;

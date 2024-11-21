@@ -1,4 +1,5 @@
 #include "DirectXCommon.h"
+#include "DX12Descriptor.h"
 
 #include <cassert>
 
@@ -87,11 +88,6 @@ void DirectXCommon::BeginDraw()
 
 	// 形状を設定。PSOに設定するものとはまた別。同じものを設定すると考える
 	commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-
-	// ディスクリプタヒープの設定
-	ID3D12DescriptorHeap* descriptorHeaps[] = { descriptor->GetSRVDescriptorHeap() };
-	commandList->SetDescriptorHeaps(1, descriptorHeaps);
-
 }
 
 
