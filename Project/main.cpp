@@ -201,6 +201,8 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 		ID3D12DescriptorHeap* descriptorHeaps[] = { dxCommon->GetSRVDescriptorHeap() };
 		dxCommon->GetCommandList()->SetDescriptorHeaps(1, descriptorHeaps);
 
+		//srvManager->PreDraw();
+
 		/*-----シーン（モデル）の描画設定と描画-----*/
 		// ルートシグネチャとパイプラインステートの設定
 		pipelineStateManager->SetGraphicsPipeline(dxCommon->GetCommandList());

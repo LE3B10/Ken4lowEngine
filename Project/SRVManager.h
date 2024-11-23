@@ -1,6 +1,8 @@
 #pragma once
 #include "DX12Include.h"
+#include <mutex>
 #include <cstdint>
+#include <stdexcept>
 
 /// ---------- 前方宣言 ---------- ///
 class DirectXCommon;
@@ -33,13 +35,15 @@ public: /// ---------- メンバ関数 ---------- ///
 
 public: /// ---------- ゲッター ---------- ///
 
-	ID3D12DescriptorHeap* GetDescriptorHeap() const;
+	ID3D12DescriptorHeap* GetDescriptorHeap() const { return descriptorHeap.Get(); }
+
+	ComPtr <ID3D12DescriptorHeap> CreateDescriptorHeap(ID3D12Device* device, D3D12_DESCRIPTOR_HEAP_TYPE heapType, UINT numDescriptors, bool shadervisible);
 
 	// CPUデスクリプタヒープを取得する
-	D3D12_CPU_DESCRIPTOR_HANDLE GetCPUDescriptorHandle(UINT index);
+	D3D12_CPU_DESCRIPTOR_HANDLE GetCPUDescriptorHandle(uint32_t index);
 
 	// GPUデスクリプタヒープを取得する
-	D3D12_GPU_DESCRIPTOR_HANDLE GetGPUDescriptorHandle(UINT index);
+	D3D12_GPU_DESCRIPTOR_HANDLE GetGPUDescriptorHandle(uint32_t index);
 
 	uint32_t GetDescriptorSize() const { return descriptorSize; }
 
@@ -51,10 +55,10 @@ private: /// ---------- メンバ変数 ---------- ///
 	DirectXCommon* dxCommon_ = nullptr;
 
 	// 最大SRV数（最大テクスチャ枚数）
-	static const uint32_t kMaxSRVCount;
+	static const uint32_t kMaxSRVCount = 512;
 
 	// SRV用のデスクリプタサイズ
-	uint32_t descriptorSize;
+	uint32_t descriptorSize = 0;
 
 	// SRV用デスクリプタヒープ
 	ComPtr<ID3D12DescriptorHeap> descriptorHeap;
@@ -62,5 +66,7 @@ private: /// ---------- メンバ変数 ---------- ///
 	// 次に使用するSRVインデックス
 	uint32_t useIndex = 0;
 
+	// スレッドセーフ用
+	std::mutex allocationMutex;
 };
 

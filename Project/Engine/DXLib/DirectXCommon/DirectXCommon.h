@@ -36,7 +36,6 @@ public:
 	// コマンドの実行待ち
 	void WaitCommand();
 
-
 	// 終了処理
 	void Finalize();
 

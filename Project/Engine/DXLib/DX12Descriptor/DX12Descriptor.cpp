@@ -1,5 +1,7 @@
 #include "DX12Descriptor.h"
 
+#include "SRVManager.h"
+
 #include <cassert>
 
 #pragma comment(lib, "d3d12.lib")
@@ -11,28 +13,27 @@
 /// -------------------------------------------------------------
 void DX12Descriptor::Initialize(ID3D12Device* device, ID3D12Resource* swapChainResoursec1, ID3D12Resource* swapChainResoursec2, uint32_t width, uint32_t height)
 {
+	device_ = device;
+
 	// デスクリプタサイズの設定
-	descriptorSizeSRV = device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-	descriptorSizeRTV = device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
-	descriptorSizeDSV = device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
+	descriptorSizeSRV = device_->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+	descriptorSizeRTV = device_->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+	descriptorSizeDSV = device_->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
 
 	// RTVディスクイリプタヒープの生成
-	descriptorHeaps[static_cast<size_t>(DescriptorType::RTV)] =
-		CreateDescriptorHeap(DescriptorType::RTV, device, D3D12_DESCRIPTOR_HEAP_TYPE_RTV, 2, false);
+	rtvDescriptorHeap = CreateDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_RTV, 2, false);
 
 	// DSV用のヒープでディスクリプタの数は１。DSVはShader内で触れるものではないので、ShaderVisibleはfalse
-	descriptorHeaps[static_cast<size_t>(DescriptorType::DSV)] =
-		CreateDescriptorHeap(DescriptorType::DSV, device, D3D12_DESCRIPTOR_HEAP_TYPE_DSV, 1, false);
+	dsvDescriptorHeap = CreateDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_DSV, 1, false);
 
 	// SRVディスクイリプタヒープの生成
-	descriptorHeaps[static_cast<size_t>(DescriptorType::SRV)] =
-		CreateDescriptorHeap(DescriptorType::SRV, device, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, kMaxSRVCount, true);
+	srvDescriptorHeap = CreateDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, kMaxSRVCount, true);
 
 	// レンダーターゲットビューの生成
-	GenerateRTV(device, swapChainResoursec1, swapChainResoursec2);
+	GenerateRTV(device_, swapChainResoursec1, swapChainResoursec2);
 
 	// デプスステンシルビューの生成
-	GenerateDSV(device, width, height);
+	GenerateDSV(device_, width, height);
 
 }
 
@@ -41,15 +42,15 @@ void DX12Descriptor::Initialize(ID3D12Device* device, ID3D12Resource* swapChainR
 /// -------------------------------------------------------------
 ///				デスクリプタヒープを生成する
 /// -------------------------------------------------------------
-ComPtr<ID3D12DescriptorHeap> DX12Descriptor::CreateDescriptorHeap(DescriptorType descriptorType, ID3D12Device* device, D3D12_DESCRIPTOR_HEAP_TYPE heapType, UINT numDescriptors, bool shadervisible)
+ComPtr<ID3D12DescriptorHeap> DX12Descriptor::CreateDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE heapType, UINT numDescriptors, bool shadervisible)
 {
 	ComPtr <ID3D12DescriptorHeap> descriptorHeap = nullptr;
 
 	//ディスクリプタヒープの生成
-	descriptorHeapDescs[static_cast<size_t>(descriptorType)].Type = heapType;	//レンダーターゲットビュー用
-	descriptorHeapDescs[static_cast<size_t>(descriptorType)].NumDescriptors = numDescriptors;						//ダブルバッファ用に2つ。多くても別に構わない
-	descriptorHeapDescs[static_cast<size_t>(descriptorType)].Flags = shadervisible ? D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE : D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
-	HRESULT hr = device->CreateDescriptorHeap(&descriptorHeapDescs[static_cast<size_t>(descriptorType)], IID_PPV_ARGS(&descriptorHeap));
+	descriptorHeapDesc.Type = heapType;	//レンダーターゲットビュー用
+	descriptorHeapDesc.NumDescriptors = numDescriptors;						//ダブルバッファ用に2つ。多くても別に構わない
+	descriptorHeapDesc.Flags = shadervisible ? D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE : D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
+	HRESULT hr = device_->CreateDescriptorHeap(&descriptorHeapDesc, IID_PPV_ARGS(&descriptorHeap));
 	//ディスクリプタヒープが作れなかったので起動できない
 	assert(SUCCEEDED(hr));
 
@@ -109,7 +110,7 @@ void DX12Descriptor::GenerateRTV(ID3D12Device* device, ID3D12Resource* swapChain
 	rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;	//2dテクスチャとして書き込む
 
 	//ディスクリプタの先頭を取得する
-	rtvStartHandle = descriptorHeaps[static_cast<size_t>(DescriptorType::RTV)]->GetCPUDescriptorHandleForHeapStart();
+	rtvStartHandle = rtvDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
 
 	//まず１つ目を作る。１つ目は最初のところに作る。作る場所をこちらで指定してあげる必要がある
 	rtvHandles[0] = rtvStartHandle;
@@ -138,7 +139,7 @@ void DX12Descriptor::GenerateDSV(ID3D12Device* device, uint32_t width, uint32_t 
 	dsvDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;	//2DTexture
 
 	//DSVHeapの先頭にDSVを作る
-	device->CreateDepthStencilView(depthStencilResource.Get(), &dsvDesc, descriptorHeaps[static_cast<size_t>(DescriptorType::DSV)]->GetCPUDescriptorHandleForHeapStart());
+	device->CreateDepthStencilView(depthStencilResource.Get(), &dsvDesc, dsvDescriptorHeap->GetCPUDescriptorHandleForHeapStart());
 }
 
 
@@ -148,12 +149,12 @@ void DX12Descriptor::GenerateDSV(ID3D12Device* device, uint32_t width, uint32_t 
 /// -------------------------------------------------------------
 ID3D12DescriptorHeap* DX12Descriptor::GetDSVDescriptorHeap() const
 {
-	return descriptorHeaps[static_cast<size_t>(DescriptorType::DSV)].Get();
+	return dsvDescriptorHeap.Get();
 }
 
 ID3D12DescriptorHeap* DX12Descriptor::GetSRVDescriptorHeap() const
 {
-	return descriptorHeaps[static_cast<size_t>(DescriptorType::SRV)].Get();
+	return srvDescriptorHeap.Get();
 }
 
 D3D12_CPU_DESCRIPTOR_HANDLE DX12Descriptor::GetRTVHandles(uint32_t num)

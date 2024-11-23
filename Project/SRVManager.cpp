@@ -5,8 +5,23 @@
 #pragma comment(lib, "d3d12.lib")
 #pragma comment(lib, "dxgi.lib")
 
-// 最大SRV数（最大テクスチャ枚数）
-const uint32_t SRVManager::kMaxSRVCount = 512;
+
+//// DescriptorHeapを生成する
+//Microsoft::WRL::ComPtr <ID3D12DescriptorHeap> CreateDescriptorHeap(Microsoft::WRL::ComPtr <ID3D12Device> device, D3D12_DESCRIPTOR_HEAP_TYPE heapType, UINT numDescriptors, bool shadervisible)
+//{
+//	//ディスクリプタヒープの生成
+//	Microsoft::WRL::ComPtr <ID3D12DescriptorHeap> descriptorHeap = nullptr;
+//	D3D12_DESCRIPTOR_HEAP_DESC descriptorHeapDesc{};
+//	descriptorHeapDesc.Type = heapType;	//レンダーターゲットビュー用
+//	descriptorHeapDesc.NumDescriptors = numDescriptors;						//ダブルバッファ用に2つ。多くても別に構わない
+//	descriptorHeapDesc.Flags = shadervisible ? D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE : D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
+//	HRESULT hr = device->CreateDescriptorHeap(&descriptorHeapDesc, IID_PPV_ARGS(&descriptorHeap));
+//	//ディスクリプタヒープが作れなかったので起動できない
+//	assert(SUCCEEDED(hr));
+//
+//	return descriptorHeap;
+//}
+
 
 
 /// -------------------------------------------------------------
@@ -26,7 +41,8 @@ void SRVManager::Initialize(DirectXCommon* dxCommon)
 
 	// デスクリプタヒープの作成
 	HRESULT result = dxCommon_->GetDevice()->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(&descriptorHeap));
-	if (FAILED(result)) {
+	if (FAILED(result))
+	{
 		throw std::runtime_error("Failed to create SRV descriptor heap");
 	}
 
@@ -34,9 +50,15 @@ void SRVManager::Initialize(DirectXCommon* dxCommon)
 	descriptorSize = dxCommon_->GetDevice()->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 }
 
+
+/// -------------------------------------------------------------
+///						　スプライト用のSRV生成
+/// -------------------------------------------------------------
 void SRVManager::CreateSRVForTexture2D(uint32_t srvIndex, ID3D12Resource* pResource, DXGI_FORMAT Format, UINT MipLevels)
 {
-	assert(pResource != nullptr && "pResource is null");
+	if (!pResource) {
+		throw std::runtime_error("pResource is null in CreateSRVForTexture2D");
+	}
 
 	// srvDescの項目を埋める
 	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc{};
@@ -44,13 +66,20 @@ void SRVManager::CreateSRVForTexture2D(uint32_t srvIndex, ID3D12Resource* pResou
 	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING; // デフォルトのマッピング
 	srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;				//2Dテクスチャ
 	srvDesc.Texture2D.MipLevels = MipLevels;
+
 	// Shader Resource View を作成
 	dxCommon_->GetDevice()->CreateShaderResourceView(pResource, &srvDesc, GetCPUDescriptorHandle(srvIndex));
 }
 
+
+/// -------------------------------------------------------------
+///					ストラクチャバッファ用のSRV生成
+/// -------------------------------------------------------------
 void SRVManager::CreateSRVForStructureBuffer(uint32_t srvIndex, ID3D12Resource* pResource, UINT numElements, UINT structureByteStride)
 {
-	assert(pResource != nullptr && "pResource is null");
+	if (!pResource) {
+		throw std::runtime_error("pResource is null in CreateSRVForStructureBuffer");
+	}
 
 	// SRV 設定
 	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc{};
@@ -66,6 +95,10 @@ void SRVManager::CreateSRVForStructureBuffer(uint32_t srvIndex, ID3D12Resource* 
 	dxCommon_->GetDevice()->CreateShaderResourceView(pResource, &srvDesc, GetCPUDescriptorHandle(srvIndex));
 }
 
+
+/// -------------------------------------------------------------
+///						ヒープセットコマンド
+/// -------------------------------------------------------------
 void SRVManager::PreDraw()
 {
 	// ディスクリプタヒープの設定
@@ -73,43 +106,66 @@ void SRVManager::PreDraw()
 	dxCommon_->GetCommandList()->SetDescriptorHeaps(1, descriptorHeaps);
 }
 
+
+/// -------------------------------------------------------------
+///						SRVセットコマンド
+/// -------------------------------------------------------------
 void SRVManager::SetGraphicsRootDescriptorTable(UINT RootParameterIndex, uint32_t srvIndex)
 {
 	dxCommon_->GetCommandList()->SetGraphicsRootDescriptorTable(RootParameterIndex, GetGPUDescriptorHandle(srvIndex));
 }
 
+
+/// -------------------------------------------------------------
+///						　		確保
+/// -------------------------------------------------------------
 uint32_t SRVManager::Allocate()
 {
-	// 上限に達してないかチェック
+	std::lock_guard<std::mutex> lock(allocationMutex); // 排他制御
+
 	if (useIndex >= kMaxSRVCount)
 	{
-		assert(false && "No more SRV descriptors can be allocated");
-		return UINT32_MAX; // エラー値を返す
+		throw std::runtime_error("No more SRV descriptors can be allocated");
 	}
 
-	// return する番号を一旦記録する
-	int index = useIndex;
-
-	// 次回のために番号を1進める
-	useIndex++;
-
-	// 割り当てたインデックスを返す
-	return index;
+	return useIndex++;
 }
 
-ID3D12DescriptorHeap* SRVManager::GetDescriptorHeap() const
+
+/// -------------------------------------------------------------
+///				デスクリプタヒープを生成する
+/// -------------------------------------------------------------
+ComPtr<ID3D12DescriptorHeap> SRVManager::CreateDescriptorHeap(ID3D12Device* device, D3D12_DESCRIPTOR_HEAP_TYPE heapType, UINT numDescriptors, bool shadervisible)
 {
-	return descriptorHeap.Get();
+		//ディスクリプタヒープの生成
+	Microsoft::WRL::ComPtr <ID3D12DescriptorHeap> descriptorHeap = nullptr;
+	D3D12_DESCRIPTOR_HEAP_DESC descriptorHeapDesc{};
+	descriptorHeapDesc.Type = heapType;	//レンダーターゲットビュー用
+	descriptorHeapDesc.NumDescriptors = numDescriptors;						//ダブルバッファ用に2つ。多くても別に構わない
+	descriptorHeapDesc.Flags = shadervisible ? D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE : D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
+	HRESULT hr = device->CreateDescriptorHeap(&descriptorHeapDesc, IID_PPV_ARGS(&descriptorHeap));
+	//ディスクリプタヒープが作れなかったので起動できない
+	assert(SUCCEEDED(hr));
+
+	return descriptorHeap;
 }
 
-D3D12_CPU_DESCRIPTOR_HANDLE SRVManager::GetCPUDescriptorHandle(UINT index)
+
+/// -------------------------------------------------------------
+///				　CPUデスクリプタヒープを取得する
+/// -------------------------------------------------------------
+D3D12_CPU_DESCRIPTOR_HANDLE SRVManager::GetCPUDescriptorHandle(uint32_t index)
 {
 	D3D12_CPU_DESCRIPTOR_HANDLE handle = descriptorHeap->GetCPUDescriptorHandleForHeapStart();
 	handle.ptr += descriptorSize * index;
 	return handle;
 }
 
-D3D12_GPU_DESCRIPTOR_HANDLE SRVManager::GetGPUDescriptorHandle(UINT index)
+
+/// -------------------------------------------------------------
+///				　GPUデスクリプタヒープを取得する
+/// -------------------------------------------------------------
+D3D12_GPU_DESCRIPTOR_HANDLE SRVManager::GetGPUDescriptorHandle(uint32_t index)
 {
 	D3D12_GPU_DESCRIPTOR_HANDLE handle = descriptorHeap->GetGPUDescriptorHandleForHeapStart();
 	handle.ptr += descriptorSize * index;

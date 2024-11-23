@@ -1,22 +1,11 @@
 #pragma once
 #include "DX12Include.h"
-
-#include <array>
-
-// デスクリプタの種類
-enum class DescriptorType
-{
-	RTV,			  // レンダーターゲットビュー
-	DSV,			  // デプスステンシルビュー
-	SRV,			  // シェーダーリソースビュー
-	DescriptorTypeNum
-};
-
-// デスクリプタの数
-static const uint32_t descriptorNum = static_cast<size_t>(DescriptorType::DescriptorTypeNum);
+#include <cstdint>
 
 // 最大SRV数（最大テクスチャ枚数）
 static const uint32_t kMaxSRVCount = 512;
+
+class SRVManager;
 
 /// -------------------------------------------------------------
 ///				デスクリプタヒープの生成クラス
@@ -29,7 +18,7 @@ public: /// ---------- メンバ関数 ---------- ///
 	void Initialize(ID3D12Device* device, ID3D12Resource* swapChainResoursec1, ID3D12Resource* swapChainResoursec2, uint32_t width, uint32_t height);
 
 	// DescriptorHeapを生成する
-	ComPtr <ID3D12DescriptorHeap> CreateDescriptorHeap(DescriptorType descriptorType, ID3D12Device* device, D3D12_DESCRIPTOR_HEAP_TYPE heapType, UINT numDescriptors, bool shadervisible);
+	ComPtr <ID3D12DescriptorHeap> CreateDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE heapType, UINT numDescriptors, bool shadervisible);
 
 	// DepthStencilTextureを生成する
 	ComPtr <ID3D12Resource> CreateDepthStencilTextureResource(ID3D12Device* device, int32_t width, int32_t height);
@@ -61,8 +50,15 @@ public: /// ---------- ゲッター ---------- ///
 
 private: /// ---------- メンバ変数 ---------- ///
 
-	std::array<ComPtr <ID3D12DescriptorHeap>, descriptorNum> descriptorHeaps;
-	std::array<D3D12_DESCRIPTOR_HEAP_DESC, descriptorNum> descriptorHeapDescs;
+	SRVManager* srvManager_ = nullptr;
+
+	ID3D12Device* device_ = nullptr;
+
+	ComPtr <ID3D12DescriptorHeap> srvDescriptorHeap;
+	ComPtr <ID3D12DescriptorHeap> rtvDescriptorHeap;
+	ComPtr <ID3D12DescriptorHeap> dsvDescriptorHeap;
+
+	D3D12_DESCRIPTOR_HEAP_DESC descriptorHeapDesc{};
 
 	D3D12_RENDER_TARGET_VIEW_DESC rtvDesc{};
 	D3D12_CPU_DESCRIPTOR_HANDLE rtvStartHandle;

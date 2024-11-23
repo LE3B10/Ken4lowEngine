@@ -6,7 +6,9 @@
 #include <filesystem>
 #include <vector>
 
+/// ---------- 前方宣言 ---------- ///
 class DirectXCommon;
+class SRVManager;
 
 /// -------------------------------------------------------------
 ///					テクスチャ管理クラス
@@ -59,6 +61,8 @@ public: /// ---------- ゲッター ---------- ///
 	const DirectX::TexMetadata& GetMetaData(uint32_t textureIndex);
 
 private: /// ---------- メンバ変数 ---------- ///
+
+	SRVManager* srvManager_ = nullptr;
 
 	// テクスチャデータ
 	std::vector<TextureData> textureDatas;
