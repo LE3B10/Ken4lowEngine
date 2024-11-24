@@ -2,6 +2,7 @@
 
 #include "WinApp.h"
 #include "DirectXCommon.h"
+#include "SRVManager.h"
 
 #pragma comment(lib, "d3d12.lib")
 #pragma comment(lib, "dxgi.lib")
@@ -65,7 +66,6 @@ void ImGuiManager::EndFrame()
 	//ImGuiの内部コマンドを生成する
 	ImGui::Render();
 #endif // _DEBUG
-
 }
 
 
