@@ -113,7 +113,13 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	std::unique_ptr<WavLoader> wavLoader = std::make_unique<WavLoader>();
 	wavLoader->Initialize();
 	SoundData soundData = wavLoader->SoundLoadWave("Resources/fanfare.wav");
-	wavLoader->SoundPlayWave(soundData);
+
+	// 音量調整の呼び出し
+	IXAudio2SourceVoice* pSourceVoice = wavLoader->SoundPlayWave(soundData);
+	//wavLoader->SetVolume(pSourceVoice, 0.2f);
+	//wavLoader->SetPitch(pSourceVoice, 2.0f); // ピッチを2倍に設定
+	wavLoader->SoundPlayWaveLoop(soundData, XAUDIO2_LOOP_INFINITE); // 無限ループ再生
+	//wavLoader->StreamAudio("Resources/Get-Ready.wav");
 
 
 #pragma endregion
@@ -229,11 +235,14 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 		dxCommon->EndDraw();
 	}
 
+	// 使用後のサウンドデータの解放
+	wavLoader->SoundUnload(&soundData);
+
+	pSourceVoice->DestroyVoice();
+
 	winApp->Finalize();
 	dxCommon->Finalize();
 	imguiManager->Finalize();
-
-	wavLoader->SoundUnload(&soundData);
 
 	return 0;
 }

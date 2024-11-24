@@ -100,13 +100,12 @@ SoundData WavLoader::SoundLoadWave(const char* fileName)
 /// -------------------------------------------------------------
 ///				　	　		音声再生
 /// -------------------------------------------------------------
-void WavLoader::SoundPlayWave(const SoundData& soundData)
+IXAudio2SourceVoice* WavLoader::SoundPlayWave(const SoundData& soundData)
 {
-	HRESULT result{};
+	IXAudio2SourceVoice* pSourceVoice = nullptr;
 
 	// 波形フォーマットを元にSourceVoiceの生成
-	IXAudio2SourceVoice* pSourceVoice = nullptr;
-	result = xAudio2->CreateSourceVoice(&pSourceVoice, &soundData.wfex);
+	HRESULT result = xAudio2->CreateSourceVoice(&pSourceVoice, &soundData.wfex);
 
 	// 再生する波形のデータ形式
 	XAUDIO2_BUFFER buffer{};
@@ -116,9 +115,93 @@ void WavLoader::SoundPlayWave(const SoundData& soundData)
 
 	// 波形データの再生
 	result = pSourceVoice->SubmitSourceBuffer(&buffer);
+	assert(SUCCEEDED(result));
+
+	result = pSourceVoice->Start(0);
+	assert(SUCCEEDED(result));
+
+	return pSourceVoice; // 作成したSourceVoiceを返す
+}
+
+
+/// -------------------------------------------------------------
+///				　	　		音量調整
+/// -------------------------------------------------------------
+void WavLoader::SetVolume(IXAudio2SourceVoice* pSourceVoice, float volume)
+{
+	assert(pSourceVoice != nullptr);
+	HRESULT result = pSourceVoice->SetVolume(volume);
+	assert(SUCCEEDED(result));
+}
+
+
+/// -------------------------------------------------------------
+///				　	　		ピッチ調整
+/// -------------------------------------------------------------
+void WavLoader::SetPitch(IXAudio2SourceVoice* pSourcevoice, float pitchRatio)
+{
+	assert(pSourcevoice != nullptr);
+	HRESULT result = pSourcevoice->SetFrequencyRatio(pitchRatio);
+	assert(SUCCEEDED(result));
+}
+
+
+/// -------------------------------------------------------------
+///				　	　		ループ再生
+/// -------------------------------------------------------------
+void WavLoader::SoundPlayWaveLoop(const SoundData& soundData, int loopCount)
+{
+	HRESULT result{};
+
+	IXAudio2SourceVoice* pSourceVoice = nullptr;
+	result = xAudio2->CreateSourceVoice(&pSourceVoice, &soundData.wfex);
+
+	XAUDIO2_BUFFER buffer{};
+	buffer.pAudioData = soundData.pBuffer;
+	buffer.AudioBytes = soundData.bufferSize;
+	buffer.Flags = XAUDIO2_END_OF_STREAM;
+	buffer.LoopCount = loopCount; // 0: ループなし、XAUDIO2_LOOP_INFINITE: 無限ループ
+
+	result = pSourceVoice->SubmitSourceBuffer(&buffer);
 	result = pSourceVoice->Start();
 }
 
+
+/// -------------------------------------------------------------
+///				　	　オーディオエフェクト
+/// -------------------------------------------------------------
+void WavLoader::ApplyReverbEffct()
+{
+	XAUDIO2_EFFECT_DESCRIPTOR effects[] = {
+		{/*エフェクトの設定を記述*/}
+	};
+
+	XAUDIO2_EFFECT_CHAIN effectChain = { 1, effects };
+
+	HRESULT result = masterVoice->SetEffectChain(&effectChain);
+	assert(SUCCEEDED(result));
+}
+
+
+/// -------------------------------------------------------------
+///				　	　長いBGMを流す処理
+/// -------------------------------------------------------------
+void WavLoader::StreamAudio(const char* fileName)
+{
+
+}
+
+
+/// -------------------------------------------------------------
+///				　複数の音を連続で再生するシステム
+/// -------------------------------------------------------------
+void WavLoader::PlaySequence(const std::vector<SoundData>& soundSequence)
+{
+	for (const auto& soundData : soundSequence)
+	{
+		SoundPlayWave(soundData);
+	}
+}
 
 
 /// -------------------------------------------------------------
