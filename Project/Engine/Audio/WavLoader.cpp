@@ -6,6 +6,22 @@
 
 
 /// -------------------------------------------------------------
+///				　	　		メモリ開放
+/// -------------------------------------------------------------
+WavLoader::~WavLoader()
+{
+	StopBGM(); // BGM再生を停止
+
+	if (masterVoice) {
+		masterVoice->DestroyVoice(); // マスターボイスの解放
+		masterVoice = nullptr;
+	}
+
+	xAudio2 = nullptr; // XAudio2エンジンの解放
+}
+
+
+/// -------------------------------------------------------------
 ///				　	　		初期化処理
 /// -------------------------------------------------------------
 void WavLoader::Initialize()
@@ -22,197 +38,213 @@ void WavLoader::Initialize()
 
 
 /// -------------------------------------------------------------
-///				　	　音声データ読み込み
+///				　			非同期処理
 /// -------------------------------------------------------------
-SoundData WavLoader::SoundLoadWave(const char* fileName)
+void WavLoader::StreamAudioAsync(const char* fileName, float volume, float pitch, bool Loop)
 {
+	// 既存の再生を停止
+	StopBGM();
+
+	// 再生フラグをセット
+	isPlaying = true;
+
+	// 非同期でStreamAudioを実行
+	bgmThread = std::thread([this, fileName, volume, pitch, Loop]() {
+		StreamAudio(fileName, volume, pitch, Loop);
+		});
+}
+
+
+/// -------------------------------------------------------------
+///				　		 音楽を止める処理
+/// -------------------------------------------------------------
+void WavLoader::StopBGM()
+{
+	// スレッドが実行中の場合
+	if (bgmThread.joinable())
+	{ 
+		isPlaying = false; // 再生フラグを停止
+		bgmThread.join();  // スレッド終了を待機
+	}
+}
+
+
+/// -------------------------------------------------------------
+///                 ストリーミング再生のメイン関数
+/// -------------------------------------------------------------
+void WavLoader::StreamAudio(const char* fileName, float volume, float pitch, bool Loop)
+{
+	// 引数を代入
+	currentVolume = volume;
+	frequencyRatio = pitch;
+	loopPlayback = Loop;
+
 	HRESULT result{};
+	std::ifstream file(fileName, std::ios::binary);
+	assert(file.is_open()); // ファイルが開けなければエラー
 
-	// ファイル入力ストリームのインスタンス
-	std::ifstream file;
-	// .wavファイルをバイナリモードで開く
-	file.open(fileName, std::ios_base::binary);
-	// ファイルオープン失敗を検出する
-	assert(file.is_open());
-
-	// RIFFヘッダーの読み込み
+	// ファイルのヘッダー情報を読み取る
 	RiffHeader riff{};
-	file.read((char*)&riff, sizeof(riff));
-	// ファイルがRIFFかチェック
-	if (strncmp(riff.chunk.id, "RIFF", 4) != 0)
-	{
-		assert(0);
-	}
-	// タイプがWAVEかチェック
-	if (strncmp(riff.type, "WAVE", 4) != 0)
-	{
-		assert(0);
-	}
+	assert(ReadRiffHeader(file, riff)); // RIFF/WAVE形式を確認
 
-	// Formatチャンクの読み込み
 	FormatChunk format{};
-	// チャンクヘッダーの確認
-	file.read((char*)&format, sizeof(ChunkHeader));
-	if (strncmp(format.chunk.id, "fmt ", 4) != 0)
-	{
-		assert(0);
-	}
+	assert(ReadFormatChunk(file, format)); // フォーマットチャンクを取得
 
-	// チャンク本体の読み込み
-	assert(format.chunk.size <= sizeof(format.fmt));
-	file.read((char*)&format.fmt, format.chunk.size);
-
-	// Dataチャンクの読み込み
 	ChunkHeader data{};
-	file.read((char*)&data, sizeof(data));
-	// JUNKチャンクを検出した場合
-	if (strncmp(data.id, "JUNK", 4) == 0)
-	{
-		// 読みより一をJUNKチャンクの終わりまで進める
-		file.seekg(data.size, std::ios_base::cur);
-		// 再読み込み
-		file.read((char*)&data, sizeof(data));
-	}
+	assert(FindDataChunk(file, data)); // データチャンクの位置を特定
 
-	if (strncmp(data.id, "data", 4) != 0)
-	{
-		assert(0);
-	}
+	// XAudio2のSourceVoiceを作成
+	result = xAudio2->CreateSourceVoice(&pSourceVoice, &format.fmt);
+	assert(SUCCEEDED(result)); // SourceVoiceの作成が成功したか確認
 
-	// Dataチャンクのデータ部（波形データ）の読み込み
-	char* pBuffer = new char[data.size];
-	file.read(pBuffer, data.size);
+	// 再生を開始
+	result = pSourceVoice->Start(0);
+	assert(SUCCEEDED(result)); // 再生開始が成功したか確認
 
-	// Waveファイルを閉じる
+	// バッファを用意（1MB）
+	const size_t bufferSize = static_cast<size_t>(1) << 20;
+	std::vector<char> buffer(bufferSize);
+
+	// ピッチと音量の前回値を記録
+	float previousPitch = -1.0f;
+	float previousVolume = -1.0f;
+
+	// ストリーミングループ
+	do {
+		// ピッチと音量を更新（必要に応じて設定変更）
+		UpdatePitchAndVolume(pSourceVoice, currentVolume, frequencyRatio, previousPitch, previousVolume);
+
+		// バッファに音声データを読み込み
+		file.read(buffer.data(), bufferSize);
+		size_t bytesRead = file.gcount(); // 読み込んだバイト数
+
+		// ファイルの終端に達した場合の処理
+		if (bytesRead == 0)
+		{
+			// ループ再生する場合
+			if (loopPlayback)
+			{
+				// ループ再生時はファイルの先頭に戻る
+				file.clear(); // EOFフラグをクリア
+				file.seekg(sizeof(RiffHeader) + sizeof(FormatChunk) + sizeof(ChunkHeader), std::ios::beg);
+				continue;
+			}
+			else
+			{
+				break; // 通常再生の場合は終了
+			}
+		}
+
+		// 音声データをSourceVoiceに送信
+		SubmitAudioBuffer(pSourceVoice, buffer.data(), bytesRead);
+
+		// バッファ再生の完了を待機
+		WaitForBufferPlayback(pSourceVoice);
+
+	} while (isPlaying); // 再生フラグが有効な間、ループ
+
+	// ファイルを閉じる
 	file.close();
 
-	// returnするための音声データ
-	SoundData soundData = {};
-
-	soundData.wfex = format.fmt;
-	soundData.pBuffer = reinterpret_cast<BYTE*>(pBuffer);
-	soundData.bufferSize = data.size;
-
-	return soundData;
+	// 再生を停止し、リソースを解放
+	pSourceVoice->Stop();
+	pSourceVoice->DestroyVoice();
+	pSourceVoice = nullptr;
 }
 
 
 /// -------------------------------------------------------------
-///				　	　		音声再生
+///				　	　バッファ送信
 /// -------------------------------------------------------------
-IXAudio2SourceVoice* WavLoader::SoundPlayWave(const SoundData& soundData)
+void WavLoader::SubmitAudioBuffer(IXAudio2SourceVoice* voice, const char* buffer, size_t size)
 {
-	IXAudio2SourceVoice* pSourceVoice = nullptr;
+	// 指定されたバッファデータをXAudio2に渡す
 
-	// 波形フォーマットを元にSourceVoiceの生成
-	HRESULT result = xAudio2->CreateSourceVoice(&pSourceVoice, &soundData.wfex);
+	XAUDIO2_BUFFER xBuffer = {};
+	xBuffer.AudioBytes = static_cast<UINT32>(size);
+	xBuffer.pAudioData = reinterpret_cast<const BYTE*>(buffer);
 
-	// 再生する波形のデータ形式
-	XAUDIO2_BUFFER buffer{};
-	buffer.pAudioData = soundData.pBuffer;
-	buffer.AudioBytes = soundData.bufferSize;
-	buffer.Flags = XAUDIO2_END_OF_STREAM;
-
-	// 波形データの再生
-	result = pSourceVoice->SubmitSourceBuffer(&buffer);
-	assert(SUCCEEDED(result));
-
-	result = pSourceVoice->Start(0);
-	assert(SUCCEEDED(result));
-
-	return pSourceVoice; // 作成したSourceVoiceを返す
-}
-
-
-/// -------------------------------------------------------------
-///				　	　		音量調整
-/// -------------------------------------------------------------
-void WavLoader::SetVolume(IXAudio2SourceVoice* pSourceVoice, float volume)
-{
-	assert(pSourceVoice != nullptr);
-	HRESULT result = pSourceVoice->SetVolume(volume);
+	HRESULT result = voice->SubmitSourceBuffer(&xBuffer);
 	assert(SUCCEEDED(result));
 }
 
 
 /// -------------------------------------------------------------
-///				　	　		ピッチ調整
+///				　	　バッファ監視
 /// -------------------------------------------------------------
-void WavLoader::SetPitch(IXAudio2SourceVoice* pSourcevoice, float pitchRatio)
+void WavLoader::WaitForBufferPlayback(IXAudio2SourceVoice* voice)
 {
-	assert(pSourcevoice != nullptr);
-	HRESULT result = pSourcevoice->SetFrequencyRatio(pitchRatio);
-	assert(SUCCEEDED(result));
+	// 再生中のバッファキューが空になるまで監視
+
+	XAUDIO2_VOICE_STATE state;
+	do {
+		voice->GetState(&state);
+		Sleep(10);
+	} while (state.BuffersQueued > 0 && isPlaying);
 }
 
 
 /// -------------------------------------------------------------
-///				　	　		ループ再生
+///				　	　RIFFヘッダー読み込み
 /// -------------------------------------------------------------
-void WavLoader::SoundPlayWaveLoop(const SoundData& soundData, int loopCount)
+bool WavLoader::ReadRiffHeader(std::ifstream& file, RiffHeader& riff)
 {
-	HRESULT result{};
-
-	IXAudio2SourceVoice* pSourceVoice = nullptr;
-	result = xAudio2->CreateSourceVoice(&pSourceVoice, &soundData.wfex);
-
-	XAUDIO2_BUFFER buffer{};
-	buffer.pAudioData = soundData.pBuffer;
-	buffer.AudioBytes = soundData.bufferSize;
-	buffer.Flags = XAUDIO2_END_OF_STREAM;
-	buffer.LoopCount = loopCount; // 0: ループなし、XAUDIO2_LOOP_INFINITE: 無限ループ
-
-	result = pSourceVoice->SubmitSourceBuffer(&buffer);
-	result = pSourceVoice->Start();
+	// ファイル形式が"RIFF"かつ"Wave"であることを確認
+	file.read(reinterpret_cast<char*>(&riff), sizeof(riff));
+	return strncmp(riff.chunk.id, "RIFF", 4) == 0 && strncmp(riff.type, "WAVE", 4) == 0;
 }
 
 
 /// -------------------------------------------------------------
-///				　	　オーディオエフェクト
+///				　	フォーマットチャンク読み込み
 /// -------------------------------------------------------------
-void WavLoader::ApplyReverbEffct()
+bool WavLoader::ReadFormatChunk(std::ifstream& file, FormatChunk& format)
 {
-	XAUDIO2_EFFECT_DESCRIPTOR effects[] = {
-		{/*エフェクトの設定を記述*/}
-	};
+	// 音声フォーマットの詳細情報を取得
+	ChunkHeader header{};
+	file.read(reinterpret_cast<char*>(&header), sizeof(header));
+	if (strncmp(header.id, "fmt ", 4) != 0) return false;
 
-	XAUDIO2_EFFECT_CHAIN effectChain = { 1, effects };
-
-	HRESULT result = masterVoice->SetEffectChain(&effectChain);
-	assert(SUCCEEDED(result));
+	file.read(reinterpret_cast<char*>(&format.fmt), header.size);
+	return true;
 }
 
 
 /// -------------------------------------------------------------
-///				　	　長いBGMを流す処理
+///				　	　データチャンク探査
 /// -------------------------------------------------------------
-void WavLoader::StreamAudio(const char* fileName)
+bool WavLoader::FindDataChunk(std::ifstream& file, ChunkHeader& data)
 {
-
-}
-
-
-/// -------------------------------------------------------------
-///				　複数の音を連続で再生するシステム
-/// -------------------------------------------------------------
-void WavLoader::PlaySequence(const std::vector<SoundData>& soundSequence)
-{
-	for (const auto& soundData : soundSequence)
+	// "data"チャンクの位置を見つけてヘッダー情報を返す
+	while (true)
 	{
-		SoundPlayWave(soundData);
+		file.read(reinterpret_cast<char*>(&data), sizeof(data));
+		if (strncmp(data.id, "data", 4) == 0) return true;
+
+		file.seekg(data.size, std::ios::cur);
+		if (file.eof()) return false;
 	}
 }
 
 
 /// -------------------------------------------------------------
-///				　	　	音声データ解放
+///				　	　ピッチと音量の更新
 /// -------------------------------------------------------------
-void WavLoader::SoundUnload(SoundData* soundData)
+void WavLoader::UpdatePitchAndVolume(IXAudio2SourceVoice* voice, float volume, float pitch, float& previousPitch, float& previousVolume)
 {
-	// バッファのメモリを解放
-	delete[] soundData->pBuffer;
+	// 前回値と異なる場合のみ設定変更を行う
 
-	soundData->pBuffer = 0;
-	soundData->bufferSize = 0;
-	soundData->wfex = {};
+	 // ピッチの変更が必要な場合
+	if (voice && pitch != previousPitch)
+	{
+		voice->SetFrequencyRatio(pitch); // ピッチを設定
+		previousPitch = pitch;			  // 記録
+	}
+
+	// 音量の変更が必要な場合
+	if (voice && volume != previousVolume)
+	{
+		voice->SetVolume(volume); // 音量を設定
+		previousVolume = volume;  // 記録
+	}
 }

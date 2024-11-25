@@ -42,6 +42,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	/// ---------- DirectXの初期化 ----------///
 	dxCommon->Initialize(winApp, kClientWidth, kClientHeight);
 
+	/// ---------- SRVManagerの初期化 ---------- ///
 	srvManager->Initialize(dxCommon);
 
 	/// ---------- ImGuiManagerの初期化 ---------- ///
@@ -110,17 +111,12 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	}
 
 	/// ---------- サウンドの初期化 ---------- ///
+	//float volume = 0.5f;
+
+	const char* fileName = "Resources/Get-Ready.wav";
 	std::unique_ptr<WavLoader> wavLoader = std::make_unique<WavLoader>();
 	wavLoader->Initialize();
-	SoundData soundData = wavLoader->SoundLoadWave("Resources/fanfare.wav");
-
-	// 音量調整の呼び出し
-	IXAudio2SourceVoice* pSourceVoice = wavLoader->SoundPlayWave(soundData);
-	//wavLoader->SetVolume(pSourceVoice, 0.2f);
-	//wavLoader->SetPitch(pSourceVoice, 2.0f); // ピッチを2倍に設定
-	//wavLoader->SoundPlayWaveLoop(soundData, XAUDIO2_LOOP_INFINITE); // 無限ループ再生
-	//wavLoader->StreamAudio("Resources/Get-Ready.wav");
-
+	wavLoader->StreamAudioAsync(fileName, 0.5f, 1.0f, true);
 
 #pragma endregion
 
@@ -235,10 +231,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 		dxCommon->EndDraw();
 	}
 
-	// 使用後のサウンドデータの解放
-	wavLoader->SoundUnload(&soundData);
-
-	pSourceVoice->DestroyVoice();
+	wavLoader->StopBGM();
 
 	winApp->Finalize();
 	dxCommon->Finalize();

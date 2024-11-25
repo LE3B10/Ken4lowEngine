@@ -1,9 +1,13 @@
 #pragma once
 #include "AudioStructs.h"
 
+#include <thread> // スレッド用
+#include <atomic> // 再生フラグ用
 #include <fstream>
+
 #include <wrl.h>
 
+// 省略
 using namespace Microsoft::WRL;
 
 /// -------------------------------------------------------------
@@ -13,53 +17,64 @@ class WavLoader
 {
 public: /// ---------- メンバ関数 ---------- ///
 
+	// デストラクタでリソース解放
+	~WavLoader();
+
 	// 初期化処理
 	void Initialize();
 
-	// 音声データの読み込み関数(.wav)
-	SoundData SoundLoadWave(const char* fileName);
+	// ストリーミング再生（非同期処理）
+	void StreamAudioAsync(const char* fileName, float volume = 1.0f, float pitch = 1.0f, bool Loop = false);
 
-	// 音声再生
-	IXAudio2SourceVoice* SoundPlayWave(const SoundData& soundData);
+	// 音楽を止める
+	void StopBGM();
 
-	// 音量調整
-	void SetVolume(IXAudio2SourceVoice* pSourceVoice, float volume);
+public: /// ---------- セッター ---------- ///
+
+	// 音量調節
+	void SetStreamVolume(float volume) { currentVolume = volume; }
 
 	// ピッチ調整
-	void SetPitch(IXAudio2SourceVoice* pSourcevoice, float pitchRatio);
+	void SetStreamPitch(float pitch) { frequencyRatio = pitch; }
 
 	// ループ再生
-	void SoundPlayWaveLoop(const SoundData& soundData, int loopCount);
+	void SetLoopPlayback(bool loop) { loopPlayback = loop; }
 
-	// オーディオエフェクト
-	void ApplyReverbEffct();
+private: /// ---------- メンバ関数 ---------- ///
 
-	// ストリーミング再生
-	void StreamAudio(const char* fileName);
+	// 実際の再生処理
+	void StreamAudio(const char* fileName, float volume, float pitch, bool Loop);
 
-	// シーケンス再生
-	void PlaySequence(const std::vector<SoundData>& soundSequence);
+	// ピッチと音量調整
+	void UpdatePitchAndVolume(IXAudio2SourceVoice* voice, float volume, float pitch, float& previousPitch, float& previousVolume);
 
-	// 音声データの解放
-	void SoundUnload(SoundData* soundData);
+	// バッファ送信
+	void SubmitAudioBuffer(IXAudio2SourceVoice* voice, const char* buffer, size_t size);
 
-private:
+	// バッファ監視
+	void WaitForBufferPlayback(IXAudio2SourceVoice* voice);
 
-	//// RIFFヘッダーを読み込む
-	//RiffHeader ReadRiffHeader(std::ifstream& file);
-	//// fmt チャンクを読み込み、音声フォーマット情報を取得
-	//FormatChunk ReadFormatChunk(std::ifstream& file);
-	//// チャンクヘッダーを読み込む
-	//ChunkHeader ReadChunkHeader(std::ifstream& file);
-	//// データチャンクを読み込む
-	//std::vector<BYTE> ReadDataChunk(std::ifstream& file, const ChunkHeader& chunkHeader);
+	// RIFFヘッダー読み込み
+	bool ReadRiffHeader(std::ifstream& file, RiffHeader& riff);
+
+	// フォーマットチャンク読み込み
+	bool ReadFormatChunk(std::ifstream& file, FormatChunk& format);
+
+	// データチャンク探査
+	bool FindDataChunk(std::ifstream& file, ChunkHeader& data);
 
 
 private: /// ---------- メンバ変数 ---------- ///
 
+	IXAudio2SourceVoice* pSourceVoice = nullptr;
+
 	ComPtr<IXAudio2> xAudio2;
-
 	IXAudio2MasteringVoice* masterVoice;
+	std::atomic<bool> isPlaying; // 再生フラグ
+	std::thread bgmThread;		 // BGM再生スレッド
 
+	std::atomic<float> currentVolume = 1.0f;  // デフォルト音量
+	std::atomic<float> frequencyRatio = 1.0f; // デフォルトは通常再生
+	std::atomic<bool> loopPlayback = false;	  // ループ再生フラグ
 };
 
