@@ -118,7 +118,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	IXAudio2SourceVoice* pSourceVoice = wavLoader->SoundPlayWave(soundData);
 	//wavLoader->SetVolume(pSourceVoice, 0.2f);
 	//wavLoader->SetPitch(pSourceVoice, 2.0f); // ピッチを2倍に設定
-	//wavLoader->SoundPlayWaveLoop(soundData, XAUDIO2_LOOP_INFINITE); // 無限ループ再生
+	wavLoader->SoundPlayWaveLoop(soundData, XAUDIO2_LOOP_INFINITE); // 無限ループ再生
 	//wavLoader->StreamAudio("Resources/Get-Ready.wav");
 
 
