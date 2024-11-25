@@ -1,0 +1,36 @@
+# ---------- YAMLファイル名 ---------- #
+name: ReleseBuilds
+
+# ---------- トリガー ---------- #
+on: 
+  push:
+    branches:
+      - master
+
+# ---------- 環境変数 ---------- #
+env:
+  # リポジトリのルートディレクトリを基点としたソリューションファイルのパス
+  SOLUTION_FILE_PATH: Project/CG2_DirectXGame.sln
+  # Visual Studio の構成(Debug / Relese)
+  CONFIGURATION: Relese
+
+# ---------- ジョブ ---------- #
+jobs:
+  build:
+    runs-on: windows-2022
+
+# ---------- ステップ ---------- #
+    steps:
+      - name: CheckOut
+        uses: actions/checkout@v4
+        
+# ---------- MSBuild用設定 ---------- #
+      - name: Add MSBuild to PATH
+        uses: microsoft/setup-msbuild@v2
+        with: 
+          msbuild-architecture: x64
+
+# ---------- ラン ---------- #
+      - name: Build
+        run: |
+          msbuild ${{env.SOLUTION_FILE_PATH}} /p:Platform=x64,Configuration=${{env.CONFIGURATION}}
