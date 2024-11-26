@@ -111,7 +111,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	}
 
 	/// ---------- サウンドの初期化 ---------- ///
-	const char* fileName = "Resources/Get-Ready.wav";
+	const char* fileName = "Resources/Sounds/Get-Ready.wav";
 	std::unique_ptr<WavLoader> wavLoader = std::make_unique<WavLoader>();
 	wavLoader->Initialize();
 	wavLoader->StreamAudioAsync(fileName, 0.5f, 1.0f, true);
