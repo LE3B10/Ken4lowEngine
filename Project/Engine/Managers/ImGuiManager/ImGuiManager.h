@@ -24,7 +24,7 @@ public:	/// ---------- メンバ関数 ---------- ///
 	static ImGuiManager* GetInstance();
 
 	// 初期化処理
-	void Initialize(WinApp* winApp, DirectXCommon* dxCommon);
+	void Initialize(WinApp* winApp, DirectXCommon* dxCommon, SRVManager* srvManager);
 
 	// 開始処理
 	void BeginFrame();

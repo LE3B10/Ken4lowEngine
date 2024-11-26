@@ -6,23 +6,6 @@
 #pragma comment(lib, "dxgi.lib")
 
 
-//// DescriptorHeapを生成する
-//Microsoft::WRL::ComPtr <ID3D12DescriptorHeap> CreateDescriptorHeap(Microsoft::WRL::ComPtr <ID3D12Device> device, D3D12_DESCRIPTOR_HEAP_TYPE heapType, UINT numDescriptors, bool shadervisible)
-//{
-//	//ディスクリプタヒープの生成
-//	Microsoft::WRL::ComPtr <ID3D12DescriptorHeap> descriptorHeap = nullptr;
-//	D3D12_DESCRIPTOR_HEAP_DESC descriptorHeapDesc{};
-//	descriptorHeapDesc.Type = heapType;	//レンダーターゲットビュー用
-//	descriptorHeapDesc.NumDescriptors = numDescriptors;						//ダブルバッファ用に2つ。多くても別に構わない
-//	descriptorHeapDesc.Flags = shadervisible ? D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE : D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
-//	HRESULT hr = device->CreateDescriptorHeap(&descriptorHeapDesc, IID_PPV_ARGS(&descriptorHeap));
-//	//ディスクリプタヒープが作れなかったので起動できない
-//	assert(SUCCEEDED(hr));
-//
-//	return descriptorHeap;
-//}
-
-
 
 /// -------------------------------------------------------------
 ///						　初期化処理
@@ -104,6 +87,11 @@ void SRVManager::PreDraw()
 	// ディスクリプタヒープの設定
 	ID3D12DescriptorHeap* descriptorHeaps[] = { descriptorHeap.Get() };
 	dxCommon_->GetCommandList()->SetDescriptorHeaps(1, descriptorHeaps);
+	
+	if (useIndex >= kMaxSRVCount)
+	{
+		throw std::runtime_error("No more SRV descriptors can be allocated");
+	}
 }
 
 

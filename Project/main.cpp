@@ -46,7 +46,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	srvManager->Initialize(dxCommon);
 
 	/// ---------- ImGuiManagerの初期化 ---------- ///
-	imguiManager->Initialize(winApp, dxCommon);
+	imguiManager->Initialize(winApp, dxCommon, srvManager.get());
 
 	/// ---------- PipelineStateManagerの初期化 ---------- ///
 	std::unique_ptr<PipelineStateManager> pipelineStateManager = std::make_unique<PipelineStateManager>();
