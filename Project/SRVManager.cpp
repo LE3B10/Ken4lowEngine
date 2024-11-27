@@ -92,7 +92,7 @@ void SRVManager::PreDraw()
 	{
 		throw std::runtime_error("No more SRV descriptors can be allocated");
 	}
-}
+} 
 
 
 /// -------------------------------------------------------------
