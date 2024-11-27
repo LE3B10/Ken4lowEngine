@@ -3,6 +3,7 @@
 #include <mutex>
 #include <cstdint>
 #include <stdexcept>
+#include <queue>
 
 /// ---------- 前方宣言 ---------- ///
 class DirectXCommon;
@@ -32,6 +33,9 @@ public: /// ---------- メンバ関数 ---------- ///
 
 	// 確保
 	uint32_t Allocate();
+
+	// 解放処理
+	void Free(uint32_t srvIndex);
 
 public: /// ---------- ゲッター ---------- ///
 
@@ -68,5 +72,8 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	// スレッドセーフ用
 	std::mutex allocationMutex;
+
+	// 空きインデックスのリスト
+	std::queue<uint32_t> freeIndices;
 };
 

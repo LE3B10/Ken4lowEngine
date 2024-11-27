@@ -26,12 +26,12 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	/// ---------- シングルトンインスタンス ---------- ///
 	WinApp* winApp = WinApp::GetInstance();
 	DirectXCommon* dxCommon = DirectXCommon::GetInstance();
+	std::unique_ptr<SRVManager>srvManager = std::make_unique<SRVManager>();
 	Input* input = Input::GetInstance();
 	ImGuiManager* imguiManager = ImGuiManager::GetInstance();
 	TextureManager* textureManager = TextureManager::GetInstance();
 	ModelManager* modelManager = ModelManager::GetInstance();
 
-	std::unique_ptr<SRVManager>srvManager = std::make_unique<SRVManager>();
 
 	/// ---------- WindowsAPIのウィンドウ作成 ---------- ///
 	winApp->CreateMainWindow(kClientWidth, kClientHeight);
@@ -45,8 +45,10 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	/// ---------- SRVManagerの初期化 ---------- ///
 	srvManager->Initialize(dxCommon);
 
+	textureManager->Initialize(dxCommon, srvManager.get());
+
 	/// ---------- ImGuiManagerの初期化 ---------- ///
-	imguiManager->Initialize(winApp, dxCommon);
+	imguiManager->Initialize(winApp, dxCommon, srvManager.get());
 
 	/// ---------- PipelineStateManagerの初期化 ---------- ///
 	std::unique_ptr<PipelineStateManager> pipelineStateManager = std::make_unique<PipelineStateManager>();
@@ -111,7 +113,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	}
 
 	/// ---------- サウンドの初期化 ---------- ///
-	const char* fileName = "Resources/Get-Ready.wav";
+	const char* fileName = "Resources/Sounds/Get-Ready.wav";
 	std::unique_ptr<WavLoader> wavLoader = std::make_unique<WavLoader>();
 	wavLoader->Initialize();
 	wavLoader->StreamAudioAsync(fileName, 0.5f, 1.0f, true);
@@ -197,15 +199,11 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 		// 描画開始処理
 		dxCommon->BeginDraw();
 
-		// ディスクリプタヒープの設定
-		ID3D12DescriptorHeap* descriptorHeaps[] = { dxCommon->GetSRVDescriptorHeap() };
-		dxCommon->GetCommandList()->SetDescriptorHeaps(1, descriptorHeaps);
-
-		//srvManager->PreDraw();
+		// SRVの処理
+		srvManager->PreDraw();
 
 		/*-----シーン（モデル）の描画設定と描画-----*/
-		// ルートシグネチャとパイプラインステートの設定
-		pipelineStateManager->SetGraphicsPipeline(dxCommon->GetCommandList());
+		pipelineStateManager->SetGraphicsPipeline(dxCommon->GetCommandList()); // ルートシグネチャとパイプラインステートの設定
 
 		// 3Dオブジェクトデータ設定
 		for (const auto& object3D : objects3D)
@@ -218,7 +216,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 		for (auto& sprite : sprites)
 		{
 			sprite->SetSpriteBufferData(dxCommon->GetCommandList());
-			//sprite->DrawCall(dxCommon->GetCommandList());
+			sprite->DrawCall(dxCommon->GetCommandList());
 		}
 
 		/*-----ImGuiの描画-----*/

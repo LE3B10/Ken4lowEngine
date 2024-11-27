@@ -24,8 +24,18 @@ ImGuiManager* ImGuiManager::GetInstance()
 /// -------------------------------------------------------------
 ///							初期化処理
 /// -------------------------------------------------------------
-void ImGuiManager::Initialize(WinApp* winApp, DirectXCommon* dxCommon)
+void ImGuiManager::Initialize(WinApp* winApp, DirectXCommon* dxCommon, SRVManager* srvManager)
 {
+	srvManager_ = srvManager;
+
+	// SRVの番号を取得
+	srvIndex_ = srvManager_->Allocate();
+
+	if (srvIndex_ >= srvManager_->GetkMaxSRVCount())
+	{
+		throw std::runtime_error("Failed to allocate SRV for ImGuiManager");
+	}
+
 #pragma region ImGuiの初期化を行いDirectX12とWindowsAPIを使ってImGuiをセットアップする
 	IMGUI_CHECKVERSION();						  // ImGuiのバージョンチェック
 	ImGui::CreateContext();						  // ImGuiコンテキストの作成
@@ -34,9 +44,9 @@ void ImGuiManager::Initialize(WinApp* winApp, DirectXCommon* dxCommon)
 	ImGui_ImplDX12_Init(dxCommon->GetDevice(),	  // DirectX 12バックエンドの初期化
 		dxCommon->GetSwapChainDesc().BufferCount,
 		DXGI_FORMAT_R8G8B8A8_UNORM_SRGB,
-		dxCommon->GetSRVDescriptorHeap(),
-		dxCommon->GetSRVDescriptorHeap()->GetCPUDescriptorHandleForHeapStart(),
-		dxCommon->GetSRVDescriptorHeap()->GetGPUDescriptorHandleForHeapStart());
+		srvManager_->GetDescriptorHeap(),
+		srvManager_->GetCPUDescriptorHandle(srvIndex_),
+		srvManager_->GetGPUDescriptorHandle(srvIndex_));
 #pragma endregion
 } 
 
@@ -82,10 +92,7 @@ void ImGuiManager::Draw()
 	ComPtr<ID3D12GraphicsCommandList> commandList = dxCommon->GetCommandList();
 
 	/*-----ImGuiを描画する-----*/
-	//描画用のDescriptorHeapの設定
-	ID3D12DescriptorHeap* descriptorHeaps[] = { dxCommon->GetSRVDescriptorHeap() };
-	commandList->SetDescriptorHeaps(1, descriptorHeaps);
-	/*-----ImGuiを描画する-----*/
+	srvManager_->PreDraw();
 
 	/*-----ImGuiを描画する-----*/
 	//実際のcommandListのImGuiの描画コマンドを積む
@@ -100,6 +107,13 @@ void ImGuiManager::Draw()
 /// -------------------------------------------------------------
 void ImGuiManager::Finalize()
 {
+	// SRVが有効であるかを確認
+	if (srvIndex_ != UINT32_MAX)
+	{
+		srvManager_->Free(srvIndex_);
+		srvIndex_ = UINT32_MAX; // 無効な状態にリセット
+	}
+
 #ifdef _DEBUG
 	ImGui_ImplDX12_Shutdown();
 	ImGui_ImplWin32_Shutdown();

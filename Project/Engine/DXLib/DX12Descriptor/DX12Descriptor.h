@@ -31,19 +31,11 @@ public: /// ---------- メンバ関数 ---------- ///
 
 public: /// ---------- ゲッター ---------- ///
 
-	// 指定番号のCPUデスクリプタヒープを取得する
-	static D3D12_CPU_DESCRIPTOR_HANDLE GetCPUDescriptorHandle(ID3D12DescriptorHeap* descriptorHeap, uint32_t descriptorSize, uint32_t index);
-
-	// 指定番号のGPUデスクリプタヒープを取得する
-	static D3D12_GPU_DESCRIPTOR_HANDLE GetGPUDescriptorHandle(ID3D12DescriptorHeap* descriptorHeap, uint32_t descriptorSize, uint32_t index);
-
 	ID3D12DescriptorHeap* GetDSVDescriptorHeap() const;
-	ID3D12DescriptorHeap* GetSRVDescriptorHeap() const;
 	D3D12_CPU_DESCRIPTOR_HANDLE GetRTVHandles(uint32_t num);
 	D3D12_CPU_DESCRIPTOR_HANDLE GetDSVHandle();
 
 	// デスクリプタサイズ取得用のゲッタ
-	uint32_t GetDescriptorSizeSRV() const { return descriptorSizeSRV; }
 	uint32_t GetDescriptorSizeRTV() const { return descriptorSizeRTV; }
 	uint32_t GetDescriptorSizeDSV() const { return descriptorSizeDSV; }
 
@@ -54,7 +46,6 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	ID3D12Device* device_ = nullptr;
 
-	ComPtr <ID3D12DescriptorHeap> srvDescriptorHeap;
 	ComPtr <ID3D12DescriptorHeap> rtvDescriptorHeap;
 	ComPtr <ID3D12DescriptorHeap> dsvDescriptorHeap;
 
@@ -70,7 +61,6 @@ private: /// ---------- メンバ変数 ---------- ///
 
 
 	// デスクリプタのサイズ
-	uint32_t descriptorSizeSRV = 0;
 	uint32_t descriptorSizeRTV = 0;
 	uint32_t descriptorSizeDSV = 0;
 };

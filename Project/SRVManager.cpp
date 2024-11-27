@@ -6,23 +6,6 @@
 #pragma comment(lib, "dxgi.lib")
 
 
-//// DescriptorHeapを生成する
-//Microsoft::WRL::ComPtr <ID3D12DescriptorHeap> CreateDescriptorHeap(Microsoft::WRL::ComPtr <ID3D12Device> device, D3D12_DESCRIPTOR_HEAP_TYPE heapType, UINT numDescriptors, bool shadervisible)
-//{
-//	//ディスクリプタヒープの生成
-//	Microsoft::WRL::ComPtr <ID3D12DescriptorHeap> descriptorHeap = nullptr;
-//	D3D12_DESCRIPTOR_HEAP_DESC descriptorHeapDesc{};
-//	descriptorHeapDesc.Type = heapType;	//レンダーターゲットビュー用
-//	descriptorHeapDesc.NumDescriptors = numDescriptors;						//ダブルバッファ用に2つ。多くても別に構わない
-//	descriptorHeapDesc.Flags = shadervisible ? D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE : D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
-//	HRESULT hr = device->CreateDescriptorHeap(&descriptorHeapDesc, IID_PPV_ARGS(&descriptorHeap));
-//	//ディスクリプタヒープが作れなかったので起動できない
-//	assert(SUCCEEDED(hr));
-//
-//	return descriptorHeap;
-//}
-
-
 
 /// -------------------------------------------------------------
 ///						　初期化処理
@@ -58,6 +41,7 @@ void SRVManager::CreateSRVForTexture2D(uint32_t srvIndex, ID3D12Resource* pResou
 {
 	if (!pResource) {
 		throw std::runtime_error("pResource is null in CreateSRVForTexture2D");
+		return; // nullptr の場合は早期リターン
 	}
 
 	// srvDescの項目を埋める
@@ -79,6 +63,9 @@ void SRVManager::CreateSRVForStructureBuffer(uint32_t srvIndex, ID3D12Resource* 
 {
 	if (!pResource) {
 		throw std::runtime_error("pResource is null in CreateSRVForStructureBuffer");
+	}
+	if (srvIndex >= kMaxSRVCount) {
+		throw std::runtime_error("srvIndex out of bounds in CreateSRVForTexture2D");
 	}
 
 	// SRV 設定
@@ -121,14 +108,42 @@ void SRVManager::SetGraphicsRootDescriptorTable(UINT RootParameterIndex, uint32_
 /// -------------------------------------------------------------
 uint32_t SRVManager::Allocate()
 {
-	std::lock_guard<std::mutex> lock(allocationMutex); // 排他制御
+	// 排他制御のためのロックを取得（スレッドセーフにするため）
+	std::lock_guard<std::mutex> lock(allocationMutex);
 
-	if (useIndex >= kMaxSRVCount)
-	{
-		throw std::runtime_error("No more SRV descriptors can be allocated");
+	// 空きリストに要素がある場合は、それを利用する
+	if (!freeIndices.empty()) {
+		uint32_t index = freeIndices.front(); // 空きリストの先頭からインデックスを取得
+		freeIndices.pop(); // 空きリストから削除
+		return index; // 空いているインデックスを返す
 	}
 
-	return useIndex++;
+	// 空きリストが空の場合、次に使用可能なインデックスを確認
+	if (useIndex >= kMaxSRVCount)
+	{
+		throw std::runtime_error("No more SRV descriptors can be allocated"); // 確保可能な最大数を超えた場合は例外を投げる
+	}
+
+	// 空きリストも使用済みインデックスも残っていれば、新しいインデックスを返す
+	return useIndex++; // 次の未使用インデックスを返す（useIndexをインクリメントして更新）
+}
+
+
+/// -------------------------------------------------------------
+///						　	解放処理
+/// -------------------------------------------------------------
+void SRVManager::Free(uint32_t srvIndex)
+{
+	// 排他制御のためのロックを取得（スレッドセーフにするため）
+	std::lock_guard<std::mutex> lock(allocationMutex); 
+
+	// 解放しようとしているインデックスが有効範囲外（0以上かつ kMaxSRVCount 未満でない）場合はエラーをスロー
+	if (srvIndex >= kMaxSRVCount) {
+		throw std::runtime_error("Invalid SRV index for freeing"); // 範囲外のインデックスに対する解放操作は無効
+	}
+
+	// 解放対象のインデックスを空きリストに追加
+	freeIndices.push(srvIndex); // 再利用可能なインデックスとしてリストに登録
 }
 
 
@@ -137,7 +152,7 @@ uint32_t SRVManager::Allocate()
 /// -------------------------------------------------------------
 ComPtr<ID3D12DescriptorHeap> SRVManager::CreateDescriptorHeap(ID3D12Device* device, D3D12_DESCRIPTOR_HEAP_TYPE heapType, UINT numDescriptors, bool shadervisible)
 {
-		//ディスクリプタヒープの生成
+	//ディスクリプタヒープの生成
 	Microsoft::WRL::ComPtr <ID3D12DescriptorHeap> descriptorHeap = nullptr;
 	D3D12_DESCRIPTOR_HEAP_DESC descriptorHeapDesc{};
 	descriptorHeapDesc.Type = heapType;	//レンダーターゲットビュー用
