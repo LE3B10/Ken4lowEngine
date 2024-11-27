@@ -47,6 +47,9 @@ public: /// ---------- メンバ関数 ---------- ///
 	// 動的なテクスチャファイルの読み込み
 	void LoadTexture(const std::string& filePath);
 
+	// テクスチャの再リロード
+	void ReloadTexture(const std::string& filePath);
+
 public:	/// ---------- セッタ－	---------- ///
 
 	// SRVのセット

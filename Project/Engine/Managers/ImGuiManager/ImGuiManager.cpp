@@ -28,11 +28,13 @@ void ImGuiManager::Initialize(WinApp* winApp, DirectXCommon* dxCommon, SRVManage
 {
 	srvManager_ = srvManager;
 
+	// SRVの番号を取得
 	srvIndex_ = srvManager_->Allocate();
 
-	//srvManager_->GetCPUDescriptorHandle(srvManager_->Allocate());
-	//srvManager_->GetGPUDescriptorHandle(srvManager_->Allocate());
-
+	if (srvIndex_ >= srvManager_->GetkMaxSRVCount())
+	{
+		throw std::runtime_error("Failed to allocate SRV for ImGuiManager");
+	}
 
 #pragma region ImGuiの初期化を行いDirectX12とWindowsAPIを使ってImGuiをセットアップする
 	IMGUI_CHECKVERSION();						  // ImGuiのバージョンチェック
@@ -105,6 +107,13 @@ void ImGuiManager::Draw()
 /// -------------------------------------------------------------
 void ImGuiManager::Finalize()
 {
+	// SRVが有効であるかを確認
+	if (srvIndex_ != UINT32_MAX)
+	{
+		srvManager_->Free(srvIndex_);
+		srvIndex_ = UINT32_MAX; // 無効な状態にリセット
+	}
+
 #ifdef _DEBUG
 	ImGui_ImplDX12_Shutdown();
 	ImGui_ImplWin32_Shutdown();
