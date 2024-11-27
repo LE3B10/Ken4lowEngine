@@ -1,9 +1,10 @@
 #pragma once
+#include "d3d12.h"
 #include <string>
 
 // MaterialDataの構造体
 struct MaterialData
 {
 	std::string textureFilePath; // テクスチャファイルパス
-	uint32_t textureIndex = 0;	 // テクスチャ番号
+	D3D12_GPU_DESCRIPTOR_HANDLE gpuHandle;
 };

@@ -16,7 +16,6 @@ void DX12Descriptor::Initialize(ID3D12Device* device, ID3D12Resource* swapChainR
 	device_ = device;
 
 	// デスクリプタサイズの設定
-	descriptorSizeSRV = device_->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 	descriptorSizeRTV = device_->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
 	descriptorSizeDSV = device_->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
 
@@ -25,9 +24,6 @@ void DX12Descriptor::Initialize(ID3D12Device* device, ID3D12Resource* swapChainR
 
 	// DSV用のヒープでディスクリプタの数は１。DSVはShader内で触れるものではないので、ShaderVisibleはfalse
 	dsvDescriptorHeap = CreateDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_DSV, 1, false);
-
-	// SRVディスクイリプタヒープの生成
-	srvDescriptorHeap = CreateDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, kMaxSRVCount, true);
 
 	// レンダーターゲットビューの生成
 	GenerateRTV(device_, swapChainResoursec1, swapChainResoursec2);
@@ -152,10 +148,6 @@ ID3D12DescriptorHeap* DX12Descriptor::GetDSVDescriptorHeap() const
 	return dsvDescriptorHeap.Get();
 }
 
-ID3D12DescriptorHeap* DX12Descriptor::GetSRVDescriptorHeap() const
-{
-	return srvDescriptorHeap.Get();
-}
 
 D3D12_CPU_DESCRIPTOR_HANDLE DX12Descriptor::GetRTVHandles(uint32_t num)
 {
@@ -167,26 +159,3 @@ D3D12_CPU_DESCRIPTOR_HANDLE DX12Descriptor::GetDSVHandle()
 	return dsvHandle;
 }
 
-
-
-/// -------------------------------------------------------------
-///				CPU　デスクリプタハンドルのゲッター
-/// -------------------------------------------------------------
-D3D12_CPU_DESCRIPTOR_HANDLE DX12Descriptor::GetCPUDescriptorHandle(ID3D12DescriptorHeap* descriptorHeap, uint32_t descriptorSize, uint32_t index)
-{
-	D3D12_CPU_DESCRIPTOR_HANDLE handleCPU = descriptorHeap->GetCPUDescriptorHandleForHeapStart();
-	handleCPU.ptr += (descriptorSize * index);
-	return handleCPU;
-}
-
-
-
-/// -------------------------------------------------------------
-///				GPU　デスクリプタハンドルのゲッター
-/// -------------------------------------------------------------
-D3D12_GPU_DESCRIPTOR_HANDLE DX12Descriptor::GetGPUDescriptorHandle(ID3D12DescriptorHeap* descriptorHeap, uint32_t descriptorSize, uint32_t index)
-{
-	D3D12_GPU_DESCRIPTOR_HANDLE handleGPU = descriptorHeap->GetGPUDescriptorHandleForHeapStart();
-	handleGPU.ptr += (descriptorSize * index);
-	return handleGPU;
-}

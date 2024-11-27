@@ -116,6 +116,7 @@ uint32_t SRVManager::Allocate()
 		throw std::runtime_error("No more SRV descriptors can be allocated");
 	}
 
+	// 次の番号に移るために一つ進め、番号を返す
 	return useIndex++;
 }
 

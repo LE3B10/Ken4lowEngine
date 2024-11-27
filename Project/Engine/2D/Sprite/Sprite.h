@@ -133,7 +133,9 @@ private: /// ---------- メンバ変数 ---------- ///
 	Vector4 color_;
 
 	// テクスチャ番号
-	uint32_t textureIndex = 0;
+	D3D12_GPU_DESCRIPTOR_HANDLE gpuHandle_ = 0;
+
+	std::string filePath_;
 
 private: /// ---------- メンバ変数 ---------- ///
 
@@ -160,7 +162,5 @@ private: /// ---------- メンバ変数 ---------- ///
 	ComPtr <ID3D12Resource> indexResourceSprite;
 	D3D12_INDEX_BUFFER_VIEW indexBufferViewSprite{};
 	uint32_t* indexDataSprite = nullptr;
-
-	std::string filePath_;
 };
 

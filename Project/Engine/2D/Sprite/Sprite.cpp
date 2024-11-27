@@ -12,7 +12,11 @@ void Sprite::Initialize(const std::string& filePath)
 	//spriteData_ = CreateSpriteData(kVertexNum, kIndexNum);
 	DirectXCommon* dxCommon = DirectXCommon::GetInstance();
 
-	textureIndex = TextureManager::GetInstance()->GetTextureIndexByFilePath(filePath);
+	//textureIndex = TextureManager::GetInstance()->GetTextureIndexByFilePath(filePath);
+
+	filePath_ = filePath;
+
+	gpuHandle_ = TextureManager::GetInstance()->GetSrvHandleGPU(filePath_);
 
 	// スプライトのインデックスバッファを作成および設定する
 	CreateIndexBuffer(dxCommon);
@@ -54,7 +58,7 @@ void Sprite::Update()
 	}
 
 	// メタデータ取得
-	const DirectX::TexMetadata& metaData = TextureManager::GetInstance()->GetMetaData(textureIndex);
+	const DirectX::TexMetadata& metaData = TextureManager::GetInstance()->GetMetaData(filePath_);
 
 	// テクスチャ範囲指定
 	float tex_left = textureLeftTop_.x / metaData.width;
@@ -122,7 +126,7 @@ void Sprite::SetSpriteBufferData(ID3D12GraphicsCommandList* commandList)
 	commandList->SetGraphicsRootConstantBufferView(1, transformationMatrixResourceSprite.Get()->GetGPUVirtualAddress());
 
 	// ディスクリプタテーブルの設定
-	commandList->SetGraphicsRootDescriptorTable(2, TextureManager::GetInstance()->GetSrvHandleGPU(textureIndex));
+	commandList->SetGraphicsRootDescriptorTable(2, gpuHandle_);
 }
 
 
@@ -131,7 +135,9 @@ void Sprite::SetSpriteBufferData(ID3D12GraphicsCommandList* commandList)
 /// -------------------------------------------------------------
 void Sprite::SetTexture(const std::string& filePath)
 {
-	textureIndex = TextureManager::GetInstance()->GetTextureIndexByFilePath(filePath);
+	filePath_ = filePath;
+
+	gpuHandle_ = TextureManager::GetInstance()->GetSrvHandleGPU(filePath_);
 }
 
 
@@ -209,7 +215,7 @@ void Sprite::CreateIndexBuffer(DirectXCommon* dxCommon)
 void Sprite::AdjustTextureSize()
 {
 	// テクスチャメタデータを取得
-	const DirectX::TexMetadata& metaData = TextureManager::GetInstance()->GetMetaData(textureIndex);
+	const DirectX::TexMetadata& metaData = TextureManager::GetInstance()->GetMetaData(filePath_);
 
 	textureSize_.x = static_cast<float>(metaData.width);
 	textureSize_.y = static_cast<float>(metaData.height);

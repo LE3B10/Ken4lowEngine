@@ -26,12 +26,12 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	/// ---------- シングルトンインスタンス ---------- ///
 	WinApp* winApp = WinApp::GetInstance();
 	DirectXCommon* dxCommon = DirectXCommon::GetInstance();
+	std::unique_ptr<SRVManager>srvManager = std::make_unique<SRVManager>();
 	Input* input = Input::GetInstance();
 	ImGuiManager* imguiManager = ImGuiManager::GetInstance();
 	TextureManager* textureManager = TextureManager::GetInstance();
 	ModelManager* modelManager = ModelManager::GetInstance();
 
-	std::unique_ptr<SRVManager>srvManager = std::make_unique<SRVManager>();
 
 	/// ---------- WindowsAPIのウィンドウ作成 ---------- ///
 	winApp->CreateMainWindow(kClientWidth, kClientHeight);
@@ -44,6 +44,8 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 
 	/// ---------- SRVManagerの初期化 ---------- ///
 	srvManager->Initialize(dxCommon);
+
+	textureManager->Initialize(dxCommon, srvManager.get());
 
 	/// ---------- ImGuiManagerの初期化 ---------- ///
 	imguiManager->Initialize(winApp, dxCommon, srvManager.get());
@@ -197,15 +199,11 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 		// 描画開始処理
 		dxCommon->BeginDraw();
 
-		// ディスクリプタヒープの設定
-		ID3D12DescriptorHeap* descriptorHeaps[] = { dxCommon->GetSRVDescriptorHeap() };
-		dxCommon->GetCommandList()->SetDescriptorHeaps(1, descriptorHeaps);
-
-		//srvManager->PreDraw();
+		// SRVの処理
+		srvManager->PreDraw();
 
 		/*-----シーン（モデル）の描画設定と描画-----*/
-		// ルートシグネチャとパイプラインステートの設定
-		pipelineStateManager->SetGraphicsPipeline(dxCommon->GetCommandList());
+		pipelineStateManager->SetGraphicsPipeline(dxCommon->GetCommandList()); // ルートシグネチャとパイプラインステートの設定
 
 		// 3Dオブジェクトデータ設定
 		for (const auto& object3D : objects3D)
@@ -218,7 +216,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 		for (auto& sprite : sprites)
 		{
 			sprite->SetSpriteBufferData(dxCommon->GetCommandList());
-			//sprite->DrawCall(dxCommon->GetCommandList());
+			sprite->DrawCall(dxCommon->GetCommandList());
 		}
 
 		/*-----ImGuiの描画-----*/

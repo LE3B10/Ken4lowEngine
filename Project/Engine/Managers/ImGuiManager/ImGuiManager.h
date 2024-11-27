@@ -4,6 +4,8 @@
 #include <dxgi1_6.h>
 #include <wrl.h>
 
+#include <cstdint>
+
 #include <imgui.h>
 #include <imgui_impl_dx12.h>
 #include <imgui_impl_win32.h>
@@ -41,6 +43,9 @@ public:	/// ---------- メンバ関数 ---------- ///
 private: /// ---------- メンバ関数 ---------- ///
 
 	SRVManager* srvManager_ = nullptr;
+
+	// SRVIndex確保
+	uint32_t srvIndex_;
 
 	ImGuiManager() = default;
 	~ImGuiManager() = default;

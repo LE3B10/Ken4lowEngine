@@ -28,6 +28,12 @@ void ImGuiManager::Initialize(WinApp* winApp, DirectXCommon* dxCommon, SRVManage
 {
 	srvManager_ = srvManager;
 
+	srvIndex_ = srvManager_->Allocate();
+
+	//srvManager_->GetCPUDescriptorHandle(srvManager_->Allocate());
+	//srvManager_->GetGPUDescriptorHandle(srvManager_->Allocate());
+
+
 #pragma region ImGuiの初期化を行いDirectX12とWindowsAPIを使ってImGuiをセットアップする
 	IMGUI_CHECKVERSION();						  // ImGuiのバージョンチェック
 	ImGui::CreateContext();						  // ImGuiコンテキストの作成
@@ -37,8 +43,8 @@ void ImGuiManager::Initialize(WinApp* winApp, DirectXCommon* dxCommon, SRVManage
 		dxCommon->GetSwapChainDesc().BufferCount,
 		DXGI_FORMAT_R8G8B8A8_UNORM_SRGB,
 		srvManager_->GetDescriptorHeap(),
-		srvManager_->GetDescriptorHeap()->GetCPUDescriptorHandleForHeapStart(),
-		srvManager_->GetDescriptorHeap()->GetGPUDescriptorHandleForHeapStart());
+		srvManager_->GetCPUDescriptorHandle(srvIndex_),
+		srvManager_->GetGPUDescriptorHandle(srvIndex_));
 #pragma endregion
 } 
 
