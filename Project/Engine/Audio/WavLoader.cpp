@@ -24,16 +24,52 @@ WavLoader::~WavLoader()
 /// -------------------------------------------------------------
 ///				　	　		初期化処理
 /// -------------------------------------------------------------
-void WavLoader::Initialize()
+void WavLoader::Initialize(const char* fileName)
 {
 	HRESULT result{};
 
 	// XAudioエンジンのインスタンスを生成
 	result = XAudio2Create(&xAudio2, 0, XAUDIO2_DEFAULT_PROCESSOR);
+	if (FAILED(result)) {
+		OutputDebugStringA("Failed to initialize XAudio2\n");
+		return;
+	}
 
 	// マスターボイスを生成
 	result = xAudio2->CreateMasteringVoice(&masterVoice);
+	if (FAILED(result)) {
+		OutputDebugStringA("Failed to create MasteringVoice\n");
+		return;
+	}
 
+	// WAV ファイルを開く
+	std::ifstream file(fileName, std::ios::binary);
+	if (!file.is_open()) {
+		OutputDebugStringA("Failed to open WAV file\n");
+		return;
+	}
+
+	// WAV ファイルからフォーマット情報を取得
+	RiffHeader riff{};
+	if (!ReadRiffHeader(file, riff)) {
+		OutputDebugStringA("Invalid RIFF header\n");
+		return;
+	}
+
+	FormatChunk format{};
+	if (!ReadFormatChunk(file, format)) {
+		OutputDebugStringA("Invalid format chunk\n");
+		return;
+	}
+
+	// SourceVoice を作成
+	result = xAudio2->CreateSourceVoice(&pSourceVoice, &format.fmt);
+	if (FAILED(result)) {
+		OutputDebugStringA("Failed to create SourceVoice\n");
+		return;
+	}
+
+	OutputDebugStringA("SourceVoice created successfully\n");
 }
 
 
@@ -50,6 +86,7 @@ void WavLoader::StreamAudioAsync(const char* fileName, float volume, float pitch
 
 	// 非同期でStreamAudioを実行
 	bgmThread = std::thread([this, fileName, volume, pitch, Loop]() {
+		std::lock_guard<std::mutex> lock(sourceVoiceMutex); // 排他制御
 		StreamAudio(fileName, volume, pitch, Loop);
 		});
 }
@@ -81,21 +118,11 @@ void WavLoader::StreamAudio(const char* fileName, float volume, float pitch, boo
 
 	HRESULT result{};
 	std::ifstream file(fileName, std::ios::binary);
+	if (!file.is_open()) {
+		OutputDebugStringA("Failed to open file\n");
+		return;
+	}
 	assert(file.is_open()); // ファイルが開けなければエラー
-
-	// ファイルのヘッダー情報を読み取る
-	RiffHeader riff{};
-	assert(ReadRiffHeader(file, riff)); // RIFF/WAVE形式を確認
-
-	FormatChunk format{};
-	assert(ReadFormatChunk(file, format)); // フォーマットチャンクを取得
-
-	ChunkHeader data{};
-	assert(FindDataChunk(file, data)); // データチャンクの位置を特定
-
-	// XAudio2のSourceVoiceを作成
-	result = xAudio2->CreateSourceVoice(&pSourceVoice, &format.fmt);
-	assert(SUCCEEDED(result)); // SourceVoiceの作成が成功したか確認
 
 	// 再生を開始
 	result = pSourceVoice->Start(0);

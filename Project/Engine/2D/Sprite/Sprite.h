@@ -133,7 +133,7 @@ private: /// ---------- メンバ変数 ---------- ///
 	Vector4 color_;
 
 	// テクスチャ番号
-	D3D12_GPU_DESCRIPTOR_HANDLE gpuHandle_ = 0;
+	D3D12_GPU_DESCRIPTOR_HANDLE gpuHandle_;
 
 	std::string filePath_;
 
