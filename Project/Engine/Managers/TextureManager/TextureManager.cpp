@@ -188,8 +188,7 @@ void TextureManager::ReloadTexture(const std::string& filePath)
 void TextureManager::SetGraphicsRootDescriptorTable(ID3D12GraphicsCommandList* commandList, UINT rootParameter, D3D12_GPU_DESCRIPTOR_HANDLE textureSRVHandleGPU)
 {
 	// ディスクリプタヒープの設定
-	ID3D12DescriptorHeap* descriptorHeaps[] = { srvManager_->GetDescriptorHeap() };
-	commandList->SetDescriptorHeaps(1, descriptorHeaps);
+	srvManager_->PreDraw();
 
 	// ディスクリプタテーブルの設定
 	commandList->SetGraphicsRootDescriptorTable(rootParameter, textureSRVHandleGPU);

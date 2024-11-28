@@ -3,6 +3,7 @@
 
 #include <thread> // スレッド用
 #include <atomic> // 再生フラグ用
+#include <mutex>
 #include <fstream>
 
 #include <wrl.h>
@@ -21,7 +22,7 @@ public: /// ---------- メンバ関数 ---------- ///
 	~WavLoader();
 
 	// 初期化処理
-	void Initialize();
+	void Initialize(const char* fileName);
 
 	// ストリーミング再生（非同期処理）
 	void StreamAudioAsync(const char* fileName, float volume = 1.0f, float pitch = 1.0f, bool Loop = false);
@@ -67,6 +68,7 @@ private: /// ---------- メンバ関数 ---------- ///
 private: /// ---------- メンバ変数 ---------- ///
 
 	IXAudio2SourceVoice* pSourceVoice = nullptr;
+	std::mutex sourceVoiceMutex;
 
 	ComPtr<IXAudio2> xAudio2;
 	IXAudio2MasteringVoice* masterVoice;

@@ -27,7 +27,7 @@ void GameEngine::Initialize(uint32_t Width, uint32_t Height)
 	dxCommon->Initialize(winApp, Width, Height);
 
 	/// ---------- ImGuiManagerの初期化 ---------- ///
-	imguiManager->Initialize(winApp, dxCommon,srvManager);
+	imguiManager->Initialize(winApp, dxCommon, srvManager);
 
 	/// ---------- PipelineStateManagerの初期化 ---------- ///
 	pipelineStateManager_->Initialize(dxCommon);
@@ -85,7 +85,7 @@ void GameEngine::Initialize(uint32_t Width, uint32_t Height)
 	/// ---------- サウンドの初期化 ---------- ///
 	const char* fileName = "Resources/Sounds/Get-Ready.wav";
 	wavLoader_ = std::make_unique<WavLoader>();
-	wavLoader_->Initialize();
+	wavLoader_->Initialize(fileName);
 	wavLoader_->StreamAudioAsync(fileName, 0.5f, 1.0f, true);
 }
 
