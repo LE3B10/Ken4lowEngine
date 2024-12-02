@@ -9,6 +9,8 @@ class Camera
 {
 public: /// ---------- メンバ関数 ---------- ///
 
+	virtual ~Camera() = default;
+
 	// デフォルトコンストラクタ
 	Camera();
 

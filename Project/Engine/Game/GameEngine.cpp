@@ -1,11 +1,17 @@
 #include "GameEngine.h"
 
+// クライアント領域サイズ
+static const uint32_t kClientWidth = 1280;
+static const uint32_t kClientHeight = 720;
 
 /// -------------------------------------------------------------
 ///				　		　　初期化処理
 /// -------------------------------------------------------------
-void GameEngine::Initialize(uint32_t Width, uint32_t Height)
+void GameEngine::Initialize()
 {
+	// 基底クラスの初期化処理
+	Framework::Initialize();
+
 	/// ---------- シングルトンインスタンス ---------- ///
 	winApp = WinApp::GetInstance();
 	dxCommon = DirectXCommon::GetInstance();
@@ -17,13 +23,13 @@ void GameEngine::Initialize(uint32_t Width, uint32_t Height)
 
 
 	/// ---------- WindowsAPIのウィンドウ作成 ---------- ///
-	winApp->CreateMainWindow(Width, Height);
+	winApp->CreateMainWindow(kClientWidth, kClientHeight);
 
 	/// ---------- 入力の初期化 ---------- ///
 	input->Initialize(winApp);
 
 	/// ---------- DirectXの初期化 ----------///
-	dxCommon->Initialize(winApp, Width, Height);
+	dxCommon->Initialize(winApp, kClientWidth, kClientHeight);
 
 	/// ---------- SRVManagerの初期化 ---------- ///
 	srvManager->Initialize(dxCommon);
@@ -115,83 +121,87 @@ void GameEngine::Initialize(uint32_t Width, uint32_t Height)
 /// -------------------------------------------------------------
 void GameEngine::Update()
 {
-	//ウィンドウのｘボタンが押されるまでループ
-	while (!winApp->ProcessMessage())
+	// 基底クラスの更新処理
+	Framework::Update();
+
+	// ウィンドウメッセージ処理
+	if (winApp->ProcessMessage()) // ウィンドウクローズイベントをチェック
 	{
-		// 入力の更新
-		input->Update();
+		endRequest_ = true; // 終了フラグを設定
+		return;             // 必要なら早期リターン
+	}
 
-		if (input->TriggerKey(DIK_0))
-		{
-			OutputDebugStringA("Hit 0\n");
-		}
+	// 入力の更新
+	input->Update();
 
-		/// ---------- ImGuiフレーム開始 ---------- ///
-		imguiManager->BeginFrame();
+	if (input->TriggerKey(DIK_0))
+	{
+		OutputDebugStringA("Hit 0\n");
+	}
+
+	/// ---------- ImGuiフレーム開始 ---------- ///
+	imguiManager->BeginFrame();
 
 #ifdef _DEBUG
-		// 開発用のUIの処理。実際に開発用のUIを出す場合はここをゲーム固有の処理に置き換える
-		ImGui::ShowDemoWindow();
+	// 開発用のUIの処理。実際に開発用のUIを出す場合はここをゲーム固有の処理に置き換える
+	ImGui::ShowDemoWindow();
 
-		ImGui::Begin("Test Window");
+	ImGui::Begin("Test Window");
 
-		for (uint32_t i = 0; i < objects3D_.size(); ++i)
+	for (uint32_t i = 0; i < objects3D_.size(); ++i)
+	{
+		ImGui::PushID(i); // オブジェクトごとにIDを区別
+		if (ImGui::TreeNode(("Object3D " + std::to_string(i)).c_str()))
 		{
-			ImGui::PushID(i); // オブジェクトごとにIDを区別
-			if (ImGui::TreeNode(("Object3D " + std::to_string(i)).c_str()))
-			{
-				objects3D_[i]->DrawImGui();
-				ImGui::TreePop();
-			}
-			ImGui::PopID(); // IDをリセット
+			objects3D_[i]->DrawImGui();
+			ImGui::TreePop();
 		}
+		ImGui::PopID(); // IDをリセット
+	}
 
-		for (uint32_t i = 0; i < sprites_.size(); i++)
+	for (uint32_t i = 0; i < sprites_.size(); i++)
+	{
+		ImGui::PushID(i); // スプライトごとに異なるIDを設定
+		if (ImGui::TreeNode(("Sprite" + std::to_string(i)).c_str()))
 		{
-			ImGui::PushID(i); // スプライトごとに異なるIDを設定
-			if (ImGui::TreeNode(("Sprite" + std::to_string(i)).c_str()))
-			{
-				Vector2 position = sprites_[i]->GetPosition();
-				ImGui::DragFloat2("Position", &position.x, 1.0f);
-				sprites_[i]->SetPosition(position);
+			Vector2 position = sprites_[i]->GetPosition();
+			ImGui::DragFloat2("Position", &position.x, 1.0f);
+			sprites_[i]->SetPosition(position);
 
-				float rotation = sprites_[i]->GetRotation();
-				ImGui::SliderAngle("Rotation", &rotation);
-				sprites_[i]->SetRotation(rotation);
+			float rotation = sprites_[i]->GetRotation();
+			ImGui::SliderAngle("Rotation", &rotation);
+			sprites_[i]->SetRotation(rotation);
 
-				Vector2 size = sprites_[i]->GetSize();
-				ImGui::DragFloat2("Size", &size.x, 1.0f);
-				sprites_[i]->SetSize(size);
+			Vector2 size = sprites_[i]->GetSize();
+			ImGui::DragFloat2("Size", &size.x, 1.0f);
+			sprites_[i]->SetSize(size);
 
-				ImGui::TreePop();
-			}
-			ImGui::PopID(); // IDを元に戻す
+			ImGui::TreePop();
 		}
+		ImGui::PopID(); // IDを元に戻す
+	}
 
-		ImGui::End();
+	ImGui::End();
 
-		camera_->DrawImGui();
+	camera_->DrawImGui();
 
 #endif // _DEBUG
 
-		/// ---------- ImGuiフレーム終了 ---------- ///
-		imguiManager->EndFrame();
+	/// ---------- ImGuiフレーム終了 ---------- ///
+	imguiManager->EndFrame();
 
-		// 3Dオブジェクトの更新処理
-		for (const auto& object3D : objects3D_)
-		{
-			object3D->Update();
-		}
+	// 3Dオブジェクトの更新処理
+	for (const auto& object3D : objects3D_)
+	{
+		object3D->Update();
+	}
 
-		camera_->Update();
+	camera_->Update();
 
-		// スプライトの更新処理
-		for (auto& sprite : sprites_)
-		{
-			sprite->Update();
-		}
-
-		Draw();
+	// スプライトの更新処理
+	for (auto& sprite : sprites_)
+	{
+		sprite->Update();
 	}
 }
 
@@ -243,4 +253,7 @@ void GameEngine::Finalize()
 	winApp->Finalize();
 	dxCommon->Finalize();
 	imguiManager->Finalize();
+
+	// 基底クラスの終了処理
+	Framework::Finalize();
 }
