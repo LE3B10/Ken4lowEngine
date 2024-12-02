@@ -4,7 +4,6 @@
 #include "MatrixMath.h"
 #include "ResourceManager.h"
 
-#include <assert.h>
 #include "ModelManager.h"
 #include "Model.h"
 
