@@ -15,24 +15,26 @@
 #include "WavLoader.h"
 #include "SRVManager.h"
 
+#include "Framework.h"
+
 /// -------------------------------------------------------------
 ///				　	ゲーム全体を管理するクラス
 /// -------------------------------------------------------------
-class GameEngine
+class GameEngine : public Framework
 {
 public: /// ---------- メンバ関数 ---------- ///
 
 	// 初期化処理
-	void Initialize(uint32_t Width, uint32_t Height);
+	void Initialize() override;
 
 	// 更新処理
-	void Update();
+	void Update() override;
 
 	// 描画処理
-	void Draw();
+	void Draw() override;
 
 	// 終了処理
-	void Finalize();
+	void Finalize() override;
 
 private: /// ---------- メンバ変数 ---------- ///
 
