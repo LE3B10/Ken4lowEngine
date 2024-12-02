@@ -85,7 +85,7 @@ void GameEngine::Initialize(uint32_t Width, uint32_t Height)
 	/// ---------- サウンドの初期化 ---------- ///
 	const char* fileName = "Resources/Sounds/Get-Ready.wav";
 	wavLoader_ = std::make_unique<WavLoader>();
-	wavLoader_->Initialize(fileName);
+	//wavLoader_->Initialize(fileName);
 	wavLoader_->StreamAudioAsync(fileName, 0.5f, 1.0f, true);
 }
 

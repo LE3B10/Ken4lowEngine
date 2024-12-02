@@ -115,8 +115,18 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	/// ---------- サウンドの初期化 ---------- ///
 	const char* fileName = "Resources/Sounds/Get-Ready.wav";
 	std::unique_ptr<WavLoader> wavLoader = std::make_unique<WavLoader>();
-	wavLoader->Initialize(fileName);
-	wavLoader->StreamAudioAsync(fileName, 0.5f, 1.0f, true);
+	wavLoader->StreamAudioAsync(fileName, 0.5f, 1.0f, false);
+
+	//// 動作確認
+	//std::this_thread::sleep_for(std::chrono::seconds(2)); // 2秒再生
+	//wavLoader->PauseBGM(); // 一時停止
+
+
+	//std::this_thread::sleep_for(std::chrono::seconds(2)); // 2秒待機
+	//wavLoader->ResumeBGM(); // 再開
+
+	//std::this_thread::sleep_for(std::chrono::seconds(30)); // 再生を続ける
+	//wavLoader->StopBGM();
 
 #pragma endregion
 
