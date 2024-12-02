@@ -6,16 +6,15 @@
 /// -------------------------------------------------------------
 void GameEngine::Initialize(uint32_t Width, uint32_t Height)
 {
+	/// ---------- シングルトンインスタンス ---------- ///
 	winApp = WinApp::GetInstance();
 	dxCommon = DirectXCommon::GetInstance();
+	srvManager = std::make_unique<SRVManager>();
 	input = Input::GetInstance();
 	imguiManager = ImGuiManager::GetInstance();
 	textureManager = TextureManager::GetInstance();
 	modelManager = ModelManager::GetInstance();
 
-	pipelineStateManager_ = std::make_unique<PipelineStateManager>();
-	object3DCommon_ = std::make_unique<Object3DCommon>();
-	camera_ = std::make_unique<Camera>();
 
 	/// ---------- WindowsAPIのウィンドウ作成 ---------- ///
 	winApp->CreateMainWindow(Width, Height);
@@ -26,12 +25,19 @@ void GameEngine::Initialize(uint32_t Width, uint32_t Height)
 	/// ---------- DirectXの初期化 ----------///
 	dxCommon->Initialize(winApp, Width, Height);
 
+	/// ---------- SRVManagerの初期化 ---------- ///
+	srvManager->Initialize(dxCommon);
+
+	textureManager->Initialize(dxCommon, srvManager.get());
+
 	/// ---------- ImGuiManagerの初期化 ---------- ///
-	imguiManager->Initialize(winApp, dxCommon, srvManager);
+	imguiManager->Initialize(winApp, dxCommon, srvManager.get());
 
 	/// ---------- PipelineStateManagerの初期化 ---------- ///
+	pipelineStateManager_ = std::make_unique<PipelineStateManager>();
 	pipelineStateManager_->Initialize(dxCommon);
 
+	// テクスチャのパスをリストで管理
 	texturePaths_ = {
 		"Resources/uvChecker.png",
 		//"Resources/monsterBall.png",
@@ -51,16 +57,19 @@ void GameEngine::Initialize(uint32_t Width, uint32_t Height)
 		sprites_[i]->SetPosition(Vector2(100.0f * i, 100.0f * i));
 	}
 
+	/// ---------- Object3Dの初期化 ---------- ///
+	object3DCommon_ = std::make_unique<Object3DCommon>();
+
 	// .objのパスをリストで管理
 	objectFiles = {
-	   "axis.obj",
-	   "multiMaterial.obj",
-	   "multiMesh.obj",
-	   "plane.obj",
-	   //"Skydome.obj",
+		"axis.obj",
+		"multiMaterial.obj",
+		"multiMesh.obj",
+		"plane.obj",
+		//"Skydome.obj",
 	};
 
-	initialPositions = {
+	std::vector<Vector3> initialPositions = {
 	{ -1.0f, 1.0f, 0.0f},    // axis.obj の座標
 	{ 4.0f, 0.75f, 0.0f},    // multiMaterial.obj の座標
 	{ -1.0f, -2.0f, 0.0f},    // multiMesh.obj の座標
@@ -68,9 +77,10 @@ void GameEngine::Initialize(uint32_t Width, uint32_t Height)
 	//{ 0.0f, 0.0f, 0.0f},    // skydome.obj の座標
 	};
 
-	//camera_->Initialize(Width, Height);
+	/// ---------- カメラ初期化処理 ---------- ///
+	camera_ = std::make_unique<Camera>();
 	camera_->SetRotate({ 0.0f,0.0f,0.0f });
-	camera_->SetTranslate({ 0.0f,0.0f,-20.0f });
+	camera_->SetTranslate({ 0.0f,0.0f,-15.0f });
 	object3DCommon_->SetDefaultCamera(camera_.get());
 
 	// 各オブジェクトを初期化し、座標を設定
@@ -85,8 +95,18 @@ void GameEngine::Initialize(uint32_t Width, uint32_t Height)
 	/// ---------- サウンドの初期化 ---------- ///
 	const char* fileName = "Resources/Sounds/Get-Ready.wav";
 	wavLoader_ = std::make_unique<WavLoader>();
-	//wavLoader_->Initialize(fileName);
-	wavLoader_->StreamAudioAsync(fileName, 0.5f, 1.0f, true);
+	wavLoader_->StreamAudioAsync(fileName, 0.5f, 1.0f, false);
+
+	//// 動作確認
+	//std::this_thread::sleep_for(std::chrono::seconds(2)); // 2秒再生
+	//wavLoader->PauseBGM(); // 一時停止
+
+
+	//std::this_thread::sleep_for(std::chrono::seconds(2)); // 2秒待機
+	//wavLoader->ResumeBGM(); // 再開
+
+	//std::this_thread::sleep_for(std::chrono::seconds(30)); // 再生を続ける
+	//wavLoader->StopBGM();
 }
 
 
@@ -98,13 +118,21 @@ void GameEngine::Update()
 	//ウィンドウのｘボタンが押されるまでループ
 	while (!winApp->ProcessMessage())
 	{
-		//入力の更新
+		// 入力の更新
 		input->Update();
+
+		if (input->TriggerKey(DIK_0))
+		{
+			OutputDebugStringA("Hit 0\n");
+		}
 
 		/// ---------- ImGuiフレーム開始 ---------- ///
 		imguiManager->BeginFrame();
 
 #ifdef _DEBUG
+		// 開発用のUIの処理。実際に開発用のUIを出す場合はここをゲーム固有の処理に置き換える
+		ImGui::ShowDemoWindow();
+
 		ImGui::Begin("Test Window");
 
 		for (uint32_t i = 0; i < objects3D_.size(); ++i)
@@ -176,9 +204,11 @@ void GameEngine::Draw()
 	// 描画開始処理
 	dxCommon->BeginDraw();
 
+	// SRVの処理
+	srvManager->PreDraw();
+
 	/*-----シーン（モデル）の描画設定と描画-----*/
-	// ルートシグネチャとパイプラインステートの設定
-	pipelineStateManager_->SetGraphicsPipeline(dxCommon->GetCommandList());
+	pipelineStateManager_->SetGraphicsPipeline(dxCommon->GetCommandList()); // ルートシグネチャとパイプラインステートの設定
 
 	// 3Dオブジェクトデータ設定
 	for (const auto& object3D : objects3D_)
@@ -208,9 +238,9 @@ void GameEngine::Draw()
 /// -------------------------------------------------------------
 void GameEngine::Finalize()
 {
+	wavLoader_->StopBGM();
+
 	winApp->Finalize();
 	dxCommon->Finalize();
 	imguiManager->Finalize();
-
-	wavLoader_->StopBGM();
 }

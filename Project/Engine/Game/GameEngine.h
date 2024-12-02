@@ -42,8 +42,8 @@ private: /// ---------- メンバ変数 ---------- ///
 	ImGuiManager* imguiManager;
 	TextureManager* textureManager;
 	ModelManager* modelManager;
-	SRVManager* srvManager;
 
+	std::unique_ptr<SRVManager> srvManager;
 	std::unique_ptr<Camera> camera_;
 	std::vector<std::unique_ptr<Sprite>> sprites_;
 	std::vector<std::unique_ptr<Object3D>> objects3D_;
