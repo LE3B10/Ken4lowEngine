@@ -43,12 +43,9 @@ public: /// ---------- メンバ関数 ---------- ///
 	void CameraImGui();
 
 	// ドローコール
-	void DrawCall(ID3D12GraphicsCommandList* commandList);
+	void Draw();
 
 public: /// ---------- 設定処理 ---------- ///
-
-	// 共通描画設定
-	void SetObject3DBufferData(ID3D12GraphicsCommandList* commandList);
 
 	// モデルの追加
 	void SetModel(const std::string& filePath);
@@ -92,6 +89,7 @@ private: /// ---------- メンバ変数 ---------- ///
 
 private: /// ---------- メンバ変数 ---------- ///
 
+	DirectXCommon* dxCommon = nullptr;
 	Object3DCommon* object3dCommon_ = nullptr;
 
 	std::shared_ptr<Model> model_;

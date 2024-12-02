@@ -219,14 +219,14 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 		for (const auto& object3D : objects3D)
 		{
 			object3D->SetObject3DBufferData(dxCommon->GetCommandList());
-			object3D->DrawCall(dxCommon->GetCommandList());
+			object3D->Draw(dxCommon->GetCommandList());
 		}
 
 		///*-----スプライトの描画設定と描画-----*/
 		for (auto& sprite : sprites)
 		{
 			sprite->SetSpriteBufferData(dxCommon->GetCommandList());
-			sprite->DrawCall(dxCommon->GetCommandList());
+			sprite->Draw(dxCommon->GetCommandList());
 		}
 
 		/*-----ImGuiの描画-----*/
