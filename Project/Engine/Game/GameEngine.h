@@ -6,16 +6,11 @@
 #include "D3DResourceLeakChecker.h"
 #include "LogString.h"
 #include "PipelineStateManager.h"
-#include "TextureManager.h"
-#include "Sprite.h"
 #include "ResourceManager.h"
-#include "Object3D.h"
-#include "Object3DCommon.h"
 #include "ModelManager.h"
-#include "WavLoader.h"
-#include "SRVManager.h"
 
 #include "Framework.h"
+#include <GamePlayScene.h>
 
 /// -------------------------------------------------------------
 ///				　	ゲーム全体を管理するクラス
@@ -60,6 +55,8 @@ private: /// ---------- メンバ変数 ---------- ///
 
 
 private: /// ---------- メンバ変数 ---------- ///
-	SoundData soundData;
+
+	std::unique_ptr<GamePlayScene> scene_;
+
 };
 
