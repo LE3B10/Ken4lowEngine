@@ -272,6 +272,8 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="Engine\Game\Enemy\IBossState.h" />
     <ClInclude Include="Engine\Game\GameEngine.h" />
     <ClInclude Include="Engine\Managers\SRVManager\SRVManager.h" />
+    <ClInclude Include="Engine\Audio\PlaybackManager.h" />
+    <ClInclude Include="Engine\Audio\WavLoaderException.h" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="externals\DirectXTex\DirectXTex_Desktop_2022_Win10.vcxproj">
