@@ -143,7 +143,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClCompile Include="Engine\Game\Player\IPlayerState.cpp" />
     <ClCompile Include="Engine\Game\Enemy\IBossState.cpp" />
     <ClCompile Include="Engine\Game\GameEngine.cpp" />
-    <ClCompile Include="Framework.cpp" />
+    <ClCompile Include="Engine\Game\Framework.cpp" />
     <ClCompile Include="main.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
@@ -275,7 +275,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="Engine\Managers\SRVManager\SRVManager.h" />
     <ClInclude Include="Engine\Audio\PlaybackManager.h" />
     <ClInclude Include="Engine\Audio\WavLoaderException.h" />
-    <ClInclude Include="Framework.h" />
+    <ClInclude Include="Engine\Game\Framework.h" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="externals\DirectXTex\DirectXTex_Desktop_2022_Win10.vcxproj">
