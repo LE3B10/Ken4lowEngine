@@ -223,15 +223,13 @@ void GameEngine::Draw()
 	// 3Dオブジェクトデータ設定
 	for (const auto& object3D : objects3D_)
 	{
-		object3D->SetObject3DBufferData(dxCommon->GetCommandList());
-		object3D->DrawCall(dxCommon->GetCommandList());
+		object3D->Draw();
 	}
 
 	///*-----スプライトの描画設定と描画-----*/
 	for (auto& sprite : sprites_)
 	{
-		sprite->SetSpriteBufferData(dxCommon->GetCommandList());
-		sprite->DrawCall(dxCommon->GetCommandList());
+		sprite->Draw();
 	}
 
 	/*-----ImGuiの描画-----*/

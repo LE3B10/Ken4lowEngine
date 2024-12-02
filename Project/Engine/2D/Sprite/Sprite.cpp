@@ -10,7 +10,7 @@
 void Sprite::Initialize(const std::string& filePath)
 {
 	//spriteData_ = CreateSpriteData(kVertexNum, kIndexNum);
-	DirectXCommon* dxCommon = DirectXCommon::GetInstance();
+	dxCommon = DirectXCommon::GetInstance();
 
 	//textureIndex = TextureManager::GetInstance()->GetTextureIndexByFilePath(filePath);
 
@@ -109,24 +109,17 @@ void Sprite::Update()
 /// -------------------------------------------------------------
 ///						　スプライト描画
 /// -------------------------------------------------------------
-void Sprite::DrawCall(ID3D12GraphicsCommandList* commandList)
+void Sprite::Draw()
 {
-	commandList->DrawIndexedInstanced(kNumVertex, 1, 0, 0, 0);
-}
-
-
-/// -------------------------------------------------------------
-///			VBV - IBV - CBVの設定処理（スプライト用）
-/// -------------------------------------------------------------
-void Sprite::SetSpriteBufferData(ID3D12GraphicsCommandList* commandList)
-{
-	commandList->IASetVertexBuffers(0, 1, &vertexBufferViewSprite); // スプライト用VBV
-	commandList->IASetIndexBuffer(&indexBufferViewSprite); // IBVの設定
-	commandList->SetGraphicsRootConstantBufferView(0, materialResourceSprite.Get()->GetGPUVirtualAddress());
-	commandList->SetGraphicsRootConstantBufferView(1, transformationMatrixResourceSprite.Get()->GetGPUVirtualAddress());
+	dxCommon->GetCommandList()->IASetVertexBuffers(0, 1, &vertexBufferViewSprite); // スプライト用VBV
+	dxCommon->GetCommandList()->IASetIndexBuffer(&indexBufferViewSprite); // IBVの設定
+	dxCommon->GetCommandList()->SetGraphicsRootConstantBufferView(0, materialResourceSprite.Get()->GetGPUVirtualAddress());
+	dxCommon->GetCommandList()->SetGraphicsRootConstantBufferView(1, transformationMatrixResourceSprite.Get()->GetGPUVirtualAddress());
 
 	// ディスクリプタテーブルの設定
-	commandList->SetGraphicsRootDescriptorTable(2, gpuHandle_);
+	dxCommon->GetCommandList()->SetGraphicsRootDescriptorTable(2, gpuHandle_);
+
+	dxCommon->GetCommandList()->DrawIndexedInstanced(kNumVertex, 1, 0, 0, 0);
 }
 
 
