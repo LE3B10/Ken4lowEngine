@@ -111,6 +111,11 @@ private:
 
 	UINT backBufferIndex;
 
+	// FPS計測用
+	int frameCount_ = 0; // フレーム数
+	std::chrono::steady_clock::time_point fpsReference_; // FPS計測用基準時間
+	float currentFPS_ = 0.0f; // 現在のFPS
+
 private:
 	/// ---------- メンバ変数 ---------- ///
 	

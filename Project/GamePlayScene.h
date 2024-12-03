@@ -6,6 +6,8 @@
 #include <WavLoader.h>
 #include <SRVManager.h>
 
+#include <BaseScene.h>
+
 /// ---------- 前方宣言 ---------- ///
 class DirectXCommon;
 class ImGuiManager;
@@ -13,21 +15,21 @@ class ImGuiManager;
 /// -------------------------------------------------------------
 ///				　		ゲームプレイシーン
 /// -------------------------------------------------------------
-class GamePlayScene
+class GamePlayScene : public BaseScene
 {
 public: /// ---------- メンバ関数 ---------- ///
 
 	// 初期化処理
-	void Initialize();
+	void Initialize() override;
 
 	// 更新処理
-	void Update();
+	void Update() override;
 
 	// 描画処理
-	void Draw();
+	void Draw() override;
 
 	// 終了処理
-	void Finalize();
+	void Finalize() override;
 
 	void DrawImGui();
 

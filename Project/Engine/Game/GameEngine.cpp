@@ -11,6 +11,7 @@ void GameEngine::Initialize()
 {
 	// 基底クラスの初期化処理
 	Framework::Initialize();
+	scene_ = std::make_unique<GamePlayScene>();
 
 	/// ---------- シングルトンインスタンス ---------- ///
 	winApp = WinApp::GetInstance();
@@ -21,7 +22,7 @@ void GameEngine::Initialize()
 	textureManager = TextureManager::GetInstance();
 	modelManager = ModelManager::GetInstance();
 	pipelineStateManager_ = std::make_unique<PipelineStateManager>();
-	scene_ = std::make_unique<GamePlayScene>();
+	
 
 	/// ---------- WindowsAPIのウィンドウ作成 ---------- ///
 	winApp->CreateMainWindow(kClientWidth, kClientHeight);
