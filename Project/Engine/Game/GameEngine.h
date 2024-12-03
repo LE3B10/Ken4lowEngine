@@ -56,7 +56,7 @@ private: /// ---------- メンバ変数 ---------- ///
 
 private: /// ---------- メンバ変数 ---------- ///
 
-	std::unique_ptr<GamePlayScene> scene_;
+	std::unique_ptr<BaseScene> scene_;
 
 };
 

@@ -21,5 +21,7 @@ public: /// ---------- 純粋仮想関数 ---------- ///
 	
 	// 仮想終了処理
 	virtual void Finalize() = 0;
+
+	virtual void DrawImGui() = 0;
 };
 

@@ -1,8 +1,5 @@
 #include "GameEngine.h"
 
-// クライアント領域サイズ
-static const uint32_t kClientWidth = 1280;
-static const uint32_t kClientHeight = 720;
 
 /// -------------------------------------------------------------
 ///				　		　　初期化処理

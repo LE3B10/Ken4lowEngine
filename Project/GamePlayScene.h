@@ -31,7 +31,7 @@ public: /// ---------- メンバ関数 ---------- ///
 	// 終了処理
 	void Finalize() override;
 
-	void DrawImGui();
+	void DrawImGui() override;
 
 private: /// ---------- メンバ変数 ---------- ///
 
