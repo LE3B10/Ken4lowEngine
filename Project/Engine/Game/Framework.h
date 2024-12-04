@@ -1,4 +1,5 @@
 #pragma once
+#include "SceneManager.h"
 
 /// -------------------------------------------------------------
 ///				　			ゲーム全体
@@ -10,7 +11,7 @@ public: /// ---------- メンバ変数 ---------- ///
 	// 実行処理
 	void Run();
 
-public: /// ---------- 純粋仮想関数 ---------- ///
+public: /// ---------- 仮想メンバ関数 ---------- ///
 
 	// 仮想デストラクタ
 	virtual ~Framework() = default;
@@ -31,6 +32,8 @@ public: /// ---------- 純粋仮想関数 ---------- ///
 	virtual bool IsEndRequest() { return endRequest_; }
 
 protected: /// ---------- メンバ変数 ---------- ///
+
+	std::unique_ptr<SceneManager> sceneManager_;
 
 	bool endRequest_ = false;
 };

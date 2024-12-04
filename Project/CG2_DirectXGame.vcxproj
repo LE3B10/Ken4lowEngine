@@ -110,6 +110,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     </FxCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="BaseScene.cpp" />
     <ClCompile Include="Engine\Game\Enemy\Boss.cpp" />
     <ClCompile Include="Engine\Game\Enemy\BossAttackState.cpp" />
     <ClCompile Include="Engine\Game\Enemy\BossDownState.cpp" />
@@ -175,6 +176,8 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClCompile Include="Engine\Game\Player\Player.cpp" />
     <ClCompile Include="Engine\Game\Player\RunningState.cpp" />
     <ClCompile Include="Engine\Managers\SRVManager\SRVManager.cpp" />
+    <ClCompile Include="SceneManager.cpp" />
+    <ClCompile Include="TitleScene.cpp" />
     <ClCompile Include="WinMain.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
@@ -199,6 +202,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     </FxCompile>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="BaseScene.h" />
     <ClInclude Include="Engine\Game\Enemy\Boss.h" />
     <ClInclude Include="Engine\Game\Enemy\BossAttackState.h" />
     <ClInclude Include="Engine\Game\Enemy\BossDownState.h" />
@@ -278,6 +282,8 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="Engine\Audio\WavLoaderException.h" />
     <ClInclude Include="Engine\Game\Framework.h" />
     <ClInclude Include="GamePlayScene.h" />
+    <ClInclude Include="SceneManager.h" />
+    <ClInclude Include="TitleScene.h" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="externals\DirectXTex\DirectXTex_Desktop_2022_Win10.vcxproj">
