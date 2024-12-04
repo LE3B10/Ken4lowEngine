@@ -57,6 +57,6 @@ private: /// ---------- メンバ変数 ---------- ///
 private: /// ---------- メンバ変数 ---------- ///
 
 	// GameEngine のメンバ変数
-	std::unique_ptr<SceneManager> sceneManager_;
+	SceneManager* sceneManager_;
 };
 

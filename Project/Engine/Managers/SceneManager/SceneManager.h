@@ -27,7 +27,7 @@ public: /// ---------- メンバ関数 ---------- ///
 	void DrawImGui();
 
 	// 終了処理
-	void Fainalize();
+	void Finalize();
 
 public: /// ---------- セッタ ---------- ///
 

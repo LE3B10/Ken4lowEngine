@@ -82,7 +82,7 @@ void SceneManager::DrawImGui()
 /// -------------------------------------------------------------
 ///					　		終了処理
 /// -------------------------------------------------------------
-void SceneManager::Fainalize()
+void SceneManager::Finalize()
 {
 	if (scene_)
 	{

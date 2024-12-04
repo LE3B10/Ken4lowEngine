@@ -10,13 +10,15 @@ void GameEngine::Initialize()
 	// 基底クラスの初期化処理
 	Framework::Initialize();
 
-	// SceneManager の初期化
-	sceneManager_ = std::make_unique<SceneManager>();
-	sceneManager_->SetNextScene(std::make_unique<TitleScene>());
+	// シングルトンインスタンス取得
+	sceneManager_ = SceneManager::GetInstance();
 
-	// シーンファクトリーの生成
-	sceneFactory_ = std::make_unique<SceneFactory>();
-	SceneManager::GetInstance()->SetAbstractSceneFactory(std::move(sceneFactory_));
+	// シーンファクトリーの生成と設定
+	auto sceneFactory = std::make_unique<SceneFactory>();
+	sceneManager_->SetAbstractSceneFactory(std::move(sceneFactory));
+
+	// 最初のシーンを設定
+	sceneManager_->SetNextScene(std::make_unique<TitleScene>());
 
 	/// ---------- シングルトンインスタンス ---------- ///
 	winApp = WinApp::GetInstance();
@@ -122,7 +124,7 @@ void GameEngine::Finalize()
 	dxCommon->Finalize();
 	imguiManager->Finalize();
 
-	sceneManager_->Fainalize();
+	sceneManager_->Finalize();
 
 	// 基底クラスの終了処理
 	Framework::Finalize();
