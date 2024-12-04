@@ -57,10 +57,9 @@ void TitleScene::Update()
 	// 入力によるシーン切り替え
 	if (input->TriggerKey(DIK_RETURN)) // Enterキーが押されたら
 	{
-		auto nextScene = std::make_unique<GamePlayScene>();
 		if (sceneManager_)
 		{
-			sceneManager_->SetNextScene(std::move(nextScene));
+			sceneManager_->ChangeScene("GamePlayScene"); // シーン名を指定して変更
 		}
 
 		wavLoader_->StopBGM();
@@ -92,9 +91,21 @@ void TitleScene::Draw()
 /// -------------------------------------------------------------
 void TitleScene::Finalize()
 {
-	
+	if (!sprites_.empty())
+	{
+		sprites_.clear();
+	}
+
+	if (wavLoader_)
+	{
+		wavLoader_.reset();
+	}
 }
 
+
+/// -------------------------------------------------------------
+///				　		　ImGui描画処理
+/// -------------------------------------------------------------
 void TitleScene::DrawImGui()
 {
 	ImGui::Begin("Test Window");
