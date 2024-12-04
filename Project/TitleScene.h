@@ -3,7 +3,7 @@
 #include <TextureManager.h>
 #include <WavLoader.h>
 #include <SRVManager.h>
-
+#include "Input.h"
 #include <BaseScene.h>
 
 
@@ -37,6 +37,7 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	DirectXCommon* dxCommon_ = nullptr;
 	TextureManager* textureManager;
+	Input* input;
 
 	std::unique_ptr<WavLoader> wavLoader_;
 

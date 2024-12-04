@@ -8,7 +8,10 @@ void GameEngine::Initialize()
 {
 	// 基底クラスの初期化処理
 	Framework::Initialize();
-	scene_ = std::make_unique<GamePlayScene>();
+
+	// SceneManager の初期化
+	sceneManager_ = std::make_unique<SceneManager>();
+	sceneManager_->SetNextScene(std::make_unique<TitleScene>());
 
 	/// ---------- シングルトンインスタンス ---------- ///
 	winApp = WinApp::GetInstance();
@@ -19,7 +22,7 @@ void GameEngine::Initialize()
 	textureManager = TextureManager::GetInstance();
 	modelManager = ModelManager::GetInstance();
 	pipelineStateManager_ = std::make_unique<PipelineStateManager>();
-	
+
 
 	/// ---------- WindowsAPIのウィンドウ作成 ---------- ///
 	winApp->CreateMainWindow(kClientWidth, kClientHeight);
@@ -41,8 +44,13 @@ void GameEngine::Initialize()
 	/// ---------- PipelineStateManagerの初期化 ---------- ///
 	pipelineStateManager_->Initialize(dxCommon);
 
-	/// ---------- GamePlaySceneの初期化 ---------- ///
-	scene_->Initialize();
+	/// ---------- Sceneの初期化 ---------- ///
+	//scene_ = std::make_unique<TitleScene>();
+
+	// シーンマネージャーに最初のシーンをセット
+	//sceneManager_->SetNextScene(scene_.get());
+
+	//scene_->Initialize();
 }
 
 
@@ -64,27 +72,22 @@ void GameEngine::Update()
 	// 入力の更新
 	input->Update();
 
-	if (input->TriggerKey(DIK_0))
-	{
-		OutputDebugStringA("Hit 0\n");
-	}
-
 	/// ---------- ImGuiフレーム開始 ---------- ///
 	imguiManager->BeginFrame();
+
+	// シーンマネージャーの更新
+	sceneManager_->Update();
 
 #ifdef _DEBUG
 	// 開発用のUIの処理。実際に開発用のUIを出す場合はここをゲーム固有の処理に置き換える
 	ImGui::ShowDemoWindow();
 
 	// シーンのImGuiの描画処理
-	scene_->DrawImGui();
+	sceneManager_->DrawImGui();
 
 #endif // _DEBUG
 	/// ---------- ImGuiフレーム終了 ---------- ///
 	imguiManager->EndFrame();
-
-	// シーンの更新処理
-	scene_->Update();
 }
 
 
@@ -102,8 +105,15 @@ void GameEngine::Draw()
 	/*-----シーン（モデル）の描画設定と描画-----*/
 	pipelineStateManager_->SetGraphicsPipeline(dxCommon->GetCommandList()); // ルートシグネチャとパイプラインステートの設定
 
+
+
 	// シーンの描画処理
-	scene_->Draw();
+	//scene_->Draw();
+
+	// シーンマネージャーの描画処理
+	sceneManager_->Draw();
+
+
 
 	/*-----ImGuiの描画-----*/
 	// ImGui描画のコマンドを積む
@@ -124,8 +134,9 @@ void GameEngine::Finalize()
 	imguiManager->Finalize();
 
 	// シーンの終了処理
-	scene_->Finalize();
+	//scene_->Finalize();
 
 	// 基底クラスの終了処理
 	Framework::Finalize();
 }
+

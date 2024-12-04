@@ -10,7 +10,7 @@
 #include "ModelManager.h"
 
 #include "Framework.h"
-#include <GamePlayScene.h>
+#include <SceneManager.h>
 
 /// -------------------------------------------------------------
 ///				　	ゲーム全体を管理するクラス
@@ -56,7 +56,9 @@ private: /// ---------- メンバ変数 ---------- ///
 
 private: /// ---------- メンバ変数 ---------- ///
 
-	std::unique_ptr<BaseScene> scene_;
+	//std::unique_ptr<BaseScene> scene_;
 
+	// GameEngine のメンバ変数
+	std::unique_ptr<SceneManager> sceneManager_;
 };
 

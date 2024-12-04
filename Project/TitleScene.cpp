@@ -1,7 +1,7 @@
 #include "TitleScene.h"
 #include <DirectXCommon.h>
 #include <ImGuiManager.h>
-
+#include "SceneManager.h"
 
 /// -------------------------------------------------------------
 ///				　			　初期化処理
@@ -9,8 +9,9 @@
 void TitleScene::Initialize()
 {
 	dxCommon_ = DirectXCommon::GetInstance();
-
 	textureManager = TextureManager::GetInstance();
+	input = Input::GetInstance();
+	wavLoader_ = std::make_unique<WavLoader>();
 
 	// テクスチャのパスをリストで管理
 	texturePaths_ = {
@@ -28,13 +29,22 @@ void TitleScene::Initialize()
 	for (uint32_t i = 0; i < 1; i++)
 	{
 		sprites_.push_back(std::make_unique<Sprite>());
-		sprites_[i]->Initialize(texturePaths_[i % 2]);
+
+		// テクスチャの範囲をチェック
+		if (!texturePaths_.empty())
+		{
+			sprites_[i]->Initialize(texturePaths_[i % texturePaths_.size()]);
+		}
+		else
+		{
+			throw std::runtime_error("Texture paths list is empty!");
+		}
+
 		sprites_[i]->SetPosition(Vector2(100.0f * i, 100.0f * i));
 	}
 
 	/// ---------- サウンドの初期化 ---------- ///
 	const char* fileName = "Resources/Sounds/RPGBattle01.wav";
-	wavLoader_ = std::make_unique<WavLoader>();
 	wavLoader_->StreamAudioAsync(fileName, 0.5f, 1.0f, false);
 }
 
@@ -44,6 +54,18 @@ void TitleScene::Initialize()
 /// -------------------------------------------------------------
 void TitleScene::Update()
 {
+	// 入力によるシーン切り替え
+	if (input->TriggerKey(DIK_RETURN)) // Enterキーが押されたら
+	{
+		auto nextScene = std::make_unique<GamePlayScene>();
+		if (sceneManager_)
+		{
+			sceneManager_->SetNextScene(std::move(nextScene));
+		}
+
+		wavLoader_->StopBGM();
+	}
+
 	// スプライトの更新処理
 	for (auto& sprite : sprites_)
 	{
@@ -68,7 +90,6 @@ void TitleScene::Draw()
 /// -------------------------------------------------------------
 ///				　			　 終了処理
 /// -------------------------------------------------------------
-
 void TitleScene::Finalize()
 {
 	

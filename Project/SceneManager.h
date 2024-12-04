@@ -19,18 +19,20 @@ public: /// ---------- メンバ関数 ---------- ///
 	// 描画処理
 	void Draw();
 
+	void DrawImGui();
+
 public: /// ---------- セッタ ---------- ///
 
 	// 次のシーンの設定
-	void SetNextScene(BaseScene* nextScene) { nextScene_ = nextScene; }
+	void SetNextScene(std::unique_ptr<BaseScene> nextScene) { nextScene_ = std::move(nextScene); }
 
 private: /// ---------- メンバ関数 ---------- ///
 
-	// 今のシーン（実行中のシーン）
-	BaseScene* scene_ = nullptr;
+	// 今のシーン
+	std::unique_ptr<BaseScene> scene_;
 
 	// 次のシーン
-	BaseScene* nextScene_ = nullptr;
+	std::unique_ptr<BaseScene> nextScene_;
 
 };
 

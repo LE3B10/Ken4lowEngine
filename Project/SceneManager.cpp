@@ -9,7 +9,6 @@ SceneManager::~SceneManager()
 {
 	// 最後のシーンの終了と解放
 	scene_->Finalize();
-	delete scene_;
 }
 
 
@@ -18,26 +17,30 @@ SceneManager::~SceneManager()
 /// -------------------------------------------------------------
 void SceneManager::Update()
 {
-	// TODO: シーン切り替え機構
-
-	// 次のシーンの予約があるなら
+	// 次のシーンが設定されている場合
 	if (nextScene_)
 	{
-		// 旧シーンの終了
+		// 現在のシーンを終了する
 		if (scene_)
 		{
 			scene_->Finalize();
-			delete scene_;
 		}
 
-		// シーン切り替え
-		scene_ = nextScene_;
-		nextScene_ = nullptr;
-		// 次のシーンを初期化する
+		// 次のシーンを現在のシーンとしてセット
+		scene_ = std::move(nextScene_);
+
+		// シーンマネージャーをセット
+		scene_->SetSceneManager(this);
+
+		// 新しいシーンを初期化
+		scene_->Initialize();
 	}
 
-	// 実行中のシーンを更新する
-	scene_->Update();
+	// 現在のシーンを更新
+	if (scene_)
+	{
+		scene_->Update();
+	}
 }
 
 
@@ -47,5 +50,22 @@ void SceneManager::Update()
 /// -------------------------------------------------------------
 void SceneManager::Draw()
 {
-	scene_->Draw();
+	// 現在のシーンを描画
+	if (scene_)
+	{
+		scene_->Draw();
+	}
+}
+
+
+/// -------------------------------------------------------------
+///					　		描画処理
+/// -------------------------------------------------------------
+void SceneManager::DrawImGui()
+{
+	// 現在のシーンを描画
+	if (scene_)
+	{
+		scene_->DrawImGui();
+	}
 }

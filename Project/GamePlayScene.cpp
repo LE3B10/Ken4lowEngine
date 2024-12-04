@@ -11,10 +11,6 @@ void GamePlayScene::Initialize()
 
 	textureManager = TextureManager::GetInstance();
 
-	srvManager = std::make_unique<SRVManager>();
-
-	srvManager->Initialize(dxCommon_);
-
 	// テクスチャのパスをリストで管理
 	texturePaths_ = {
 		"Resources/uvChecker.png",
