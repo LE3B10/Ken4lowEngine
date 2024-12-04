@@ -63,9 +63,6 @@
     <ClCompile Include="Externals\imgui\imgui_widgets.cpp">
       <Filter>imgui</Filter>
     </ClCompile>
-    <ClCompile Include="main.cpp">
-      <Filter>ソース ファイル</Filter>
-    </ClCompile>
     <ClCompile Include="Engine\Managers\PSO\BlendStateManager\BlendStateManager.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
