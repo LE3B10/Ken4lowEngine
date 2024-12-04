@@ -63,6 +63,8 @@ void TitleScene::Update()
 			sceneManager_->SetNextScene(std::move(nextScene));
 		}
 
+		//SceneManager::GetInstance()->ChangeScene("GamePlayScene");
+
 		wavLoader_->StopBGM();
 	}
 
@@ -92,9 +94,21 @@ void TitleScene::Draw()
 /// -------------------------------------------------------------
 void TitleScene::Finalize()
 {
-	
+	if (!sprites_.empty())
+	{
+		sprites_.clear();
+	}
+
+	if (wavLoader_)
+	{
+		wavLoader_.reset();
+	}
 }
 
+
+/// -------------------------------------------------------------
+///				　		　ImGui描画処理
+/// -------------------------------------------------------------
 void TitleScene::DrawImGui()
 {
 	ImGui::Begin("Test Window");

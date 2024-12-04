@@ -1,5 +1,6 @@
 #pragma once
 #include "SceneManager.h"
+#include "AbstractSceneFactory.h"
 
 /// -------------------------------------------------------------
 ///				　			ゲーム全体
@@ -34,6 +35,8 @@ public: /// ---------- 仮想メンバ関数 ---------- ///
 protected: /// ---------- メンバ変数 ---------- ///
 
 	std::unique_ptr<SceneManager> sceneManager_;
+
+	std::unique_ptr<AbstractSceneFactory> sceneFactory_;
 
 	bool endRequest_ = false;
 };

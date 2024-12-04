@@ -1,4 +1,5 @@
 #include "GameEngine.h"
+#include "SceneFactory.h"
 
 
 /// -------------------------------------------------------------
@@ -13,6 +14,10 @@ void GameEngine::Initialize()
 	sceneManager_ = std::make_unique<SceneManager>();
 	sceneManager_->SetNextScene(std::make_unique<TitleScene>());
 
+	// シーンファクトリーの生成
+	sceneFactory_ = std::make_unique<SceneFactory>();
+	SceneManager::GetInstance()->SetAbstractSceneFactory(std::move(sceneFactory_));
+
 	/// ---------- シングルトンインスタンス ---------- ///
 	winApp = WinApp::GetInstance();
 	dxCommon = DirectXCommon::GetInstance();
@@ -22,7 +27,6 @@ void GameEngine::Initialize()
 	textureManager = TextureManager::GetInstance();
 	modelManager = ModelManager::GetInstance();
 	pipelineStateManager_ = std::make_unique<PipelineStateManager>();
-
 
 	/// ---------- WindowsAPIのウィンドウ作成 ---------- ///
 	winApp->CreateMainWindow(kClientWidth, kClientHeight);
@@ -43,14 +47,6 @@ void GameEngine::Initialize()
 
 	/// ---------- PipelineStateManagerの初期化 ---------- ///
 	pipelineStateManager_->Initialize(dxCommon);
-
-	/// ---------- Sceneの初期化 ---------- ///
-	//scene_ = std::make_unique<TitleScene>();
-
-	// シーンマネージャーに最初のシーンをセット
-	//sceneManager_->SetNextScene(scene_.get());
-
-	//scene_->Initialize();
 }
 
 
@@ -105,15 +101,8 @@ void GameEngine::Draw()
 	/*-----シーン（モデル）の描画設定と描画-----*/
 	pipelineStateManager_->SetGraphicsPipeline(dxCommon->GetCommandList()); // ルートシグネチャとパイプラインステートの設定
 
-
-
-	// シーンの描画処理
-	//scene_->Draw();
-
 	// シーンマネージャーの描画処理
 	sceneManager_->Draw();
-
-
 
 	/*-----ImGuiの描画-----*/
 	// ImGui描画のコマンドを積む
@@ -133,8 +122,7 @@ void GameEngine::Finalize()
 	dxCommon->Finalize();
 	imguiManager->Finalize();
 
-	// シーンの終了処理
-	//scene_->Finalize();
+	sceneManager_->Fainalize();
 
 	// 基底クラスの終了処理
 	Framework::Finalize();

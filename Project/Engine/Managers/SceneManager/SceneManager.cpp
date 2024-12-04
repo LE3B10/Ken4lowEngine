@@ -1,14 +1,22 @@
 #include "SceneManager.h"
 
 
+/// -------------------------------------------------------------
+///					　	シングルトンインスタンス
+/// -------------------------------------------------------------
+SceneManager* SceneManager::GetInstance()
+{
+	static SceneManager instance;
+	return &instance;
+}
+
 
 /// -------------------------------------------------------------
 ///					　		デストラクタ
 /// -------------------------------------------------------------
 SceneManager::~SceneManager()
 {
-	// 最後のシーンの終了と解放
-	scene_->Finalize();
+	
 }
 
 
@@ -68,4 +76,29 @@ void SceneManager::DrawImGui()
 	{
 		scene_->DrawImGui();
 	}
+}
+
+
+/// -------------------------------------------------------------
+///					　		終了処理
+/// -------------------------------------------------------------
+void SceneManager::Fainalize()
+{
+	if (scene_)
+	{
+		scene_->Finalize();
+	}
+}
+
+
+/// -------------------------------------------------------------
+///					　		終了処理
+/// -------------------------------------------------------------
+void SceneManager::ChangeScene(const std::string& sceneName)
+{
+	assert(sceneFactory_);
+	assert(nextScene_ == nullptr);
+
+	// 次のシーン生成
+	nextScene_ = sceneFactory_->CreateScene(sceneName);
 }
