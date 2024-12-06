@@ -33,12 +33,15 @@ public: /// ---------- メンバ関数 ---------- ///
 
 private: /// ---------- メンバ変数 ---------- ///
 
-	WinApp* winApp;
-	DirectXCommon* dxCommon;
-	Input* input;
-	ImGuiManager* imguiManager;
-	TextureManager* textureManager;
-	ModelManager* modelManager;
+	WinApp* winApp = nullptr;
+	DirectXCommon* dxCommon = nullptr;
+	Input* input = nullptr;
+	ImGuiManager* imguiManager = nullptr;
+	TextureManager* textureManager = nullptr;
+	ModelManager* modelManager = nullptr;
+
+	// GameEngine のメンバ変数
+	SceneManager* sceneManager_ = nullptr;
 
 	std::unique_ptr<SRVManager> srvManager;
 	std::unique_ptr<Camera> camera_;
@@ -52,11 +55,5 @@ private: /// ---------- メンバ変数 ---------- ///
 	std::vector<std::string> texturePaths_;
 	std::vector<std::string> objectFiles;
 	std::vector<Vector3> initialPositions;
-
-
-private: /// ---------- メンバ変数 ---------- ///
-
-	// GameEngine のメンバ変数
-	SceneManager* sceneManager_;
 };
 

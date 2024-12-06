@@ -90,7 +90,7 @@ private: /// ---------- メンバ変数 ---------- ///
 	std::mutex sourceVoiceMutex;
 
 	ComPtr<IXAudio2> xAudio2;
-	IXAudio2MasteringVoice* masterVoice;
+	IXAudio2MasteringVoice* masterVoice = nullptr;
 	
 	std::future<void> bgmFuture; // BGM再生スレッド
 
