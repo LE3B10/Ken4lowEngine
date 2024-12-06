@@ -127,7 +127,7 @@ private: /// ---------- メンバ変数 ---------- ///
 	// テクスチャ切り出しサイズ
 	Vector2 textureSize_ = { 100.0f, 100.0f };
 	// 色
-	Vector4 color_;
+	Vector4 color_ = {};
 
 	// テクスチャ番号
 	D3D12_GPU_DESCRIPTOR_HANDLE gpuHandle_;

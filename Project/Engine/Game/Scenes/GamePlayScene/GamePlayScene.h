@@ -40,7 +40,7 @@ public: /// ---------- メンバ関数 ---------- ///
 private: /// ---------- メンバ変数 ---------- ///
 
 	DirectXCommon* dxCommon_ = nullptr;
-	TextureManager* textureManager;
+	TextureManager* textureManager = nullptr;
 
 	std::unique_ptr<SRVManager> srvManager;
 	std::unique_ptr<Camera> camera_;
