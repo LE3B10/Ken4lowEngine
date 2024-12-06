@@ -3,145 +3,170 @@
 #include <DirectXCommon.h>
 #include <MatrixMath.h>
 #include <LogString.h>
-
+#include <SRVManager.h>
+#include <TextureManager.h>
 
 /// -------------------------------------------------------------
 ///				    シングルトンインスタンス
 /// -------------------------------------------------------------
 ParticleManager* ParticleManager::GetInstance()
 {
-    static ParticleManager instance;
-    return &instance;
+	static ParticleManager instance;
+	return &instance;
 }
 
 
 /// -------------------------------------------------------------
 ///				           初期化処理
 /// -------------------------------------------------------------
-void ParticleManager::Initialize(DirectXCommon* dxCommon)
+void ParticleManager::Initialize(DirectXCommon* dxCommon, SRVManager* srvManager)
 {
-    // ランダムエンジンの初期化
-	std::random_device seedGenerator;
-	std::mt19937 randomEngine(seedGenerator());
-
-	// ⊿t を定義。とりあえず60fps固定してあるが、実時間を計測して可変fpsで動かせるようにする
-	const float kDeltaTime = 1.0f / 60.0f;
-
-	// 描画するインスタンス数
-	uint32_t numInstance = 0;
-
-	// エミッター
-	Emitter emitter{};
-	emitter.count = 3;
-	emitter.frequency = 0.5f;
-	emitter.frequencyTime = 0.0f;
-
-	emitter.transform = {
-		{1.0f, 1.0f, 1.0f },
-		{0.0f, 0.0f, 0.0f },
-		{0.0f, 0.0f, 0.0f }
-	};
-
-	// パーティクルをリストで管理
-	std::list<Particle> particles;
+	/*
+	* 引数でDirectXCommonとSRVマネージャーのポインタを受け取ってメンバ変数に記録する
+	* ランダムエンジンの初期化
+	* パイプライン生成
+	* 頂点データの初期化（座標など）
+	* 頂点リソース生成
+	* 頂点バッファビュー（VBV）作成
+	* 頂点リソースに頂点データを書き込む　
+	*/
 
 
-	// パイプライン生成
-	D3D12_ROOT_SIGNATURE_DESC descriptionRootSignature{};
-	descriptionRootSignature.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
+	// 引数でDirectXCommonとSRVマネージャーのポインタを受け取ってメンバ変数に記録する
+	dxCommon_ = dxCommon;
+	srvManager_ = srvManager;
 
-	// ルートシグネチャ
-	D3D12_DESCRIPTOR_RANGE descriptorRangeForInstancing[1] = {};
-	descriptorRangeForInstancing[0].BaseShaderRegister = 0;
-	descriptorRangeForInstancing[0].NumDescriptors = 1;
-	descriptorRangeForInstancing[0].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
-	descriptorRangeForInstancing[0].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+	// ランダムエンジンの初期化
+	std::random_device seed;
+	randomEngin.seed(seed());
+}
 
-	// ルートパラメータ
-	D3D12_ROOT_PARAMETER rootParameters[3] = {};
-	rootParameters[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
-	rootParameters[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
-	rootParameters[0].Descriptor.ShaderRegister = 0;
 
-	rootParameters[1].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
-	rootParameters[1].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
-	rootParameters[1].DescriptorTable.pDescriptorRanges = descriptorRangeForInstancing;
-	rootParameters[1].DescriptorTable.NumDescriptorRanges = _countof(descriptorRangeForInstancing);
+/// -------------------------------------------------------------
+///				    パーティクルグループの生成
+/// -------------------------------------------------------------
+void ParticleManager::CreateParticleGroup(const std::string& name, const std::string& textureFilePath)
+{
+	/*
+	* 登録済みの名前かチェックしてassert
+	* 新たな空のパーティクルグループを作成しmコンテナに登録
+	* 新たなパーティクルグループの
+	* ・マテリアルデータにテクスチャファイルパスを設定
+	* ・テクスチャを読み込む
+	* ・マテリアルデータにテクスチャのSRVインデックスを記録
+	* ・インスタンシング用リソースの生成
+	* ・インスタンシング用にSRVを確保してSRVインデックスを記録
+	* ・SRV生成（StructuredBuffer用設定）
+	*/
 
-	rootParameters[2].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
-	rootParameters[2].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
-	rootParameters[2].DescriptorTable.pDescriptorRanges = descriptorRangeForInstancing;
-	rootParameters[2].DescriptorTable.NumDescriptorRanges = _countof(descriptorRangeForInstancing);
 
-	descriptionRootSignature.pParameters = rootParameters;
-	descriptionRootSignature.NumParameters = _countof(rootParameters);
+	assert(particleGroups.find(name) == particleGroups.end() && "Particle group alread exests!");
 
-	// Samplerの設定
-	D3D12_STATIC_SAMPLER_DESC staticSamplers[1] = {};
-	staticSamplers[0].Filter = D3D12_FILTER_MIN_MAG_MIP_LINEAR;
-	staticSamplers[0].AddressU = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
-	staticSamplers[0].AddressV = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
-	staticSamplers[0].AddressW = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
-	staticSamplers[0].ComparisonFunc = D3D12_COMPARISON_FUNC_NEVER;
-	staticSamplers[0].MaxLOD = D3D12_FLOAT32_MAX;
-	staticSamplers[0].ShaderRegister = 0;
-	staticSamplers[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+	ParticleGroup group{};
+	group.textureFilePath = textureFilePath;
 
-	descriptionRootSignature.pStaticSamplers = staticSamplers;
-	descriptionRootSignature.NumStaticSamplers = _countof(staticSamplers);
+	// テクスチャ読み込み
+	//auto texture = ResourceManager::CreateBufferResource(dxCommon_->GetDevice(), textureFilePath);
+	group.srvIndex = srvManager_->Allocate();
 
-	// シリアライズしてバイナリに変換
-	ComPtr<ID3DBlob> signatureBlob = nullptr;
-	ComPtr<ID3DBlob> errorBlob = nullptr;
-	HRESULT hr = D3D12SerializeRootSignature(&descriptionRootSignature, D3D_ROOT_SIGNATURE_VERSION_1, &signatureBlob, &errorBlob);
-	if (FAILED(hr))
+	// インスタンスバッファ作成
+	group.instancebuffer = ResourceManager::CreateBufferResource(dxCommon_->GetDevice(), sizeof(ParticleForGPU) * kNumMaxInstance);
+	group.instancebuffer->Map(0, nullptr, reinterpret_cast<void**>(&group.mappedData));
+
+	// 初期化
+	for (uint32_t i = 0; i < kNumMaxInstance; ++i)
 	{
-		Log(reinterpret_cast<char*>(errorBlob->GetBufferPointer()));
-		assert(false);
+		group.mappedData[i].WVP = MakeIdentity();
+		group.mappedData[i].World = MakeIdentity();
 	}
 
-	// バイナリをもとにルートシグネチャ生成
-	ComPtr<ID3D12RootSignature> rootSignature = nullptr;
-	hr = dxCommon->GetDevice()->CreateRootSignature(0, signatureBlob->GetBufferPointer(), signatureBlob->GetBufferSize(), IID_PPV_ARGS(&rootSignature));
+	particleGroups[name] = group;
+}
 
-	// InputLayoutの設定を行う
-	D3D12_INPUT_ELEMENT_DESC inputElementDescs[3] = {};
-	inputElementDescs[0].SemanticName = "POSITION";
-	inputElementDescs[0].SemanticIndex = 0;
-	inputElementDescs[0].Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
-	inputElementDescs[0].AlignedByteOffset = D3D12_APPEND_ALIGNED_ELEMENT;
 
-	inputElementDescs[1].SemanticName = "TEXCOOD";
-	inputElementDescs[1].SemanticIndex = 0;
-	inputElementDescs[1].Format = DXGI_FORMAT_R32G32_FLOAT;
-	inputElementDescs[1].AlignedByteOffset = D3D12_APPEND_ALIGNED_ELEMENT;
+/// -------------------------------------------------------------
+///				           　更新処理
+/// -------------------------------------------------------------
+void ParticleManager::Update()
+{
+	/*
+	* ビルボード行列の計算
+	* ビュー行列とプロジェクション行列をカメラから取得
+	* すべてのパーティクルグループについて処理する
+	* ・グループ内のすべてのパーティクルについて処理する
+	* -寿命に達していたらグループから葉ずつ
+	* -場の影響を計算（加算）
+	* -移動処理（速度を座標に加算）
+	* -経過時間を加算
+	* -ワールド行列を計算
+	* -ワールドビュープロジェクション行列を合成
+	* -インスタンシング用データ１個分の書き込み
+	*/
 
-	inputElementDescs[2].SemanticName = "NORMAL";
-	inputElementDescs[2].SemanticIndex = 0;
-	inputElementDescs[2].Format = DXGI_FORMAT_R32G32B32_FLOAT;
-	inputElementDescs[2].AlignedByteOffset = D3D12_APPEND_ALIGNED_ELEMENT;
+	for (auto& [name, group] : particleGroups)
+	{
+		UpdateParticles(group);
+	}
+}
 
-	D3D12_INPUT_LAYOUT_DESC inputLayoutDesc{};
-	inputLayoutDesc.pInputElementDescs = inputElementDescs;
-	inputLayoutDesc.NumElements = _countof(inputElementDescs);
 
-    // 頂点データの初期化（座標など）
-    
-	// 頂点リソース生成
-    ComPtr<ID3D12Resource> instanceResource = ResourceManager::CreateBufferResource(dxCommon->GetDevice(), sizeof(ParticleForGPU));
-    
-	// 頂点バッファビュー（VBV）の作成
-    
+/// -------------------------------------------------------------
+///				           　描画処理
+/// -------------------------------------------------------------
+void ParticleManager::Draw()
+{
+	/*
+	* コマンド：ルートシグネチャを設定
+	* コマンド：PSO（Pipeline State Object）を設定
+	* コマンド：プリミティブトポロジー描画形状）を設定
+	* コマンド：VBV（Vertex Buffer View）を設定
+	* すべてのパーティクルグループについて処理する
+	* ・コマンド：テクスチャのSRVのDescriptorTableを設定
+	* ・コマンド：インスタンシングデータのSRVのDescriptorTableを設定
+	* ・コマンド：DrawCall（インスタンシング描画）
+	*/
 
-    // 書き込むためのアドレスを取得
-	// 頂点リソースに頂点データを書き込む
-    ParticleForGPU* instanceData = nullptr;
-    instanceResource->Map(0, nullptr, reinterpret_cast<void**>(&instanceData));
 
-    // 単位行列を書き込んでおく
-    for (uint32_t index = 0; index < kNumMaxInstance; ++index)
-    {
-        instanceData[index].WVP = MakeIdentity();
-        instanceData[index].World = MakeIdentity();
-    }
+	for (const auto& [name, group] : particleGroups)
+	{
+		DrawParticleGroup(group);
+	}
+}
+
+
+
+void ParticleManager::UpdateParticles(ParticleGroup& group)
+{
+	auto& particles = group.particles;
+	auto mappedData = group.mappedData;
+
+	// 寿命処理と物理演算
+	uint32_t index = 0;
+	for (auto it = particles.begin(); it != particles.end();) {
+		it->currentTime += 1.0f / 60.0f;
+		if (it->currentTime >= it->lifeTime) {
+			it = particles.erase(it);
+		}
+		else {
+			it->transform.translate += it->velocity;
+			mappedData[index].World = MakeAffineMatrix(it->transform.scale, it->transform.rotate, it->transform.translate);
+			mappedData[index].color = it->color;
+			++it;
+			++index;
+		}
+	}
+	group.numParticles = index;
+}
+
+
+
+void ParticleManager::DrawParticleGroup(const ParticleGroup& group)
+{
+	auto commandList = dxCommon_->GetCommandList();
+
+	commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+	auto srvHandle = srvManager_->GetGPUDescriptorHandle(group.srvIndex);
+	commandList->SetGraphicsRootDescriptorTable(1, srvHandle);
+	commandList->DrawInstanced(6, group.numParticles, 0, 0);
 }

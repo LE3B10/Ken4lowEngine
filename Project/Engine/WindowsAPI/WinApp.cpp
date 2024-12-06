@@ -78,18 +78,18 @@ void WinApp::Finalize()
 bool WinApp::ProcessMessage()
 {
 	MSG msg{};
-	// Windowにメッセージが来たら最優先で処理させる
-	if (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
+	while (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE))
 	{
 		TranslateMessage(&msg);
 		DispatchMessage(&msg);
-	}
 
-	if (msg.message == WM_QUIT)
-	{
-		return true;
+		// WM_QUITを確認
+		if (msg.message == WM_QUIT)
+		{
+			return true; // 終了リクエストを検知
+		}
 	}
-	return false;
+	return false;  // 実行継続
 }
 
 
@@ -109,13 +109,18 @@ LRESULT WinApp::WindowProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
 	// メッセージに応じてゲーム固有の処理を行う
 	switch (msg)
 	{
+	case WM_CLOSE:
+		DestroyWindow(hwnd);
+		break;
+
 		// ウィンドウが破棄された
 	case WM_DESTROY:
 		// OSに対して、アプリの終了を伝える
 		PostQuitMessage(0);
 		return 0;
-	}
 
-	// 標準のメッセージ処理を行う
-	return DefWindowProc(hwnd, msg, wparam, lparam);
+	default:
+		return DefWindowProc(hwnd, msg, wparam, lparam);
+	}
+	return 0;
 }

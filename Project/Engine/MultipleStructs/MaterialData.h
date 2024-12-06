@@ -6,5 +6,5 @@
 struct MaterialData
 {
 	std::string textureFilePath; // テクスチャファイルパス
-	D3D12_GPU_DESCRIPTOR_HANDLE gpuHandle;
+	D3D12_GPU_DESCRIPTOR_HANDLE gpuHandle{};
 };

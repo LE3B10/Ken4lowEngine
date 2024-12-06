@@ -103,7 +103,7 @@ void DirectXCommon::EndDraw()
 	// 今回はRenderTargetからPresentにする
 	barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
 	barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_PRESENT;
-	
+
 	// TransitionBarirrerを張る
 	commandList->ResourceBarrier(1, &barrier);
 
@@ -118,7 +118,7 @@ void DirectXCommon::EndDraw()
 	commandQueue->ExecuteCommandLists(1, commandLists);
 
 	//GPUとOSに画面の交換を行うよう通知する
-	swapChain_->GetSwapChain()->Present(1, 0);
+	swapChain_->GetSwapChain()->Present(1, 0); // VSyncを無効にする 元(1, 0)
 
 	// Fenceの値を更新
 	fenceValue++;
@@ -137,6 +137,24 @@ void DirectXCommon::EndDraw()
 
 	// FPS固定更新処理
 	UpdateFixFPS();
+	
+	// FPS測定処理
+	frameCount_++; // フレームカウントを増加
+	auto now = std::chrono::steady_clock::now();
+	auto elapsed = std::chrono::duration_cast<std::chrono::seconds>(now - fpsReference_);
+
+	// 1秒経過した場合にFPSを更新
+	if (elapsed.count() >= 1)
+	{
+		currentFPS_ = static_cast<float>(frameCount_) / elapsed.count(); // FPSを計算
+		frameCount_ = 0; // カウントリセット
+		fpsReference_ = now; // 基準時間をリセット
+
+		// FPSをデバッグ出力する
+		std::ostringstream oss;
+		oss << "Current FPS: " << currentFPS_ << "\n";
+		OutputDebugStringA(oss.str().c_str());
+	}
 
 	// 次のフレーム用のコマンドリストを準備（コマンドリストのリセット）
 	hr = commandAllocator->Reset();
@@ -402,30 +420,28 @@ void DirectXCommon::InitializeFixFPS()
 void DirectXCommon::UpdateFixFPS()
 {
 	// 1/60秒ピッタリの時間
-	const std::chrono::microseconds kMinTime(uint64_t(1000000.0f / 60.0f));
-
-	// 1/60秒より技化に短い時間
-	const std::chrono::microseconds kMinCheckTime(uint64_t(1000000.0f / 65.0f));
+	const std::chrono::microseconds kMinTime(uint64_t(1000000.0f / 120.0f));
 
 	// 現在の時間を取得する
-	std::chrono::steady_clock::time_point now = std::chrono::steady_clock::now();
+	auto now = std::chrono::steady_clock::now();
 	// 前回の記録からの経過時間を取得する
-	std::chrono::microseconds elapsed =
-		std::chrono::duration_cast<std::chrono::microseconds>(now - reference_);
+	auto elapsed = std::chrono::duration_cast<std::chrono::microseconds>(now - reference_);
 
-	// 1/60秒（よりわずかに短い時間）経っていない場合
 	if (elapsed < kMinTime)
 	{
-		// 1/60秒経過するまで微小なスリープを繰り返す
-		while (std::chrono::steady_clock::now() - reference_ < kMinTime)
-		{
-			// 1マイクロ病スリープ
-			std::this_thread::sleep_for(std::chrono::microseconds(1));
-		}
-	}
+		auto sleepTime = kMinTime - elapsed;
+		auto startSleep = std::chrono::steady_clock::now();
+		std::this_thread::sleep_for(sleepTime);
+		auto endSleep = std::chrono::steady_clock::now();
 
-	// 現在の時間を記録する
-	reference_ = std::chrono::steady_clock::now();
+		// スリープ時間の誤差を考慮して次のフレーム時間を調整
+		auto actualSleep = std::chrono::duration_cast<std::chrono::microseconds>(endSleep - startSleep);
+		reference_ += (sleepTime - actualSleep);
+	}
+	else
+	{
+		reference_ = now;
+	}
 }
 
 

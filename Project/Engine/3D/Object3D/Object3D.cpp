@@ -4,7 +4,6 @@
 #include "MatrixMath.h"
 #include "ResourceManager.h"
 
-#include <assert.h>
 #include "ModelManager.h"
 #include "Model.h"
 
@@ -15,7 +14,7 @@
 /// -------------------------------------------------------------
 void Object3D::Initialize(Object3DCommon* object3dCommon, const std::string& fileName)
 {
-	DirectXCommon* dxCommon = DirectXCommon::GetInstance();
+	dxCommon = DirectXCommon::GetInstance();
 
 	object3dCommon_ = object3dCommon;
 
@@ -94,30 +93,21 @@ void Object3D::CameraImGui()
 /// -------------------------------------------------------------
 ///					　		描画処理
 /// -------------------------------------------------------------
-void Object3D::DrawCall(ID3D12GraphicsCommandList* commandList)
-{
-	// ディスクリプタテーブルの設定
-	commandList->SetGraphicsRootDescriptorTable(2, modelData.material.gpuHandle);
-
-	// モデルの描画
-	commandList->DrawInstanced(UINT(modelData.vertices.size()), 1, 0, 0);
-
-	//model_->DrawCall(commandList);
-}
-
-
-/// -------------------------------------------------------------
-///					　頂点バッファの設定
-/// -------------------------------------------------------------
-void Object3D::SetObject3DBufferData(ID3D12GraphicsCommandList* commandList)
+void Object3D::Draw()
 {
 	// 定数バッファビュー (CBV) とディスクリプタテーブルの設定
-	commandList->IASetVertexBuffers(0, 1, &vertexBufferView); // モデル用VBV
-	commandList->SetGraphicsRootConstantBufferView(0, materialResource->GetGPUVirtualAddress());
-	commandList->SetGraphicsRootConstantBufferView(1, wvpResource->GetGPUVirtualAddress());
-	commandList->SetGraphicsRootConstantBufferView(3, directionalLightResource->GetGPUVirtualAddress());
+	dxCommon->GetCommandList()->IASetVertexBuffers(0, 1, &vertexBufferView); // モデル用VBV
+	dxCommon->GetCommandList()->SetGraphicsRootConstantBufferView(0, materialResource->GetGPUVirtualAddress());
+	dxCommon->GetCommandList()->SetGraphicsRootConstantBufferView(1, wvpResource->GetGPUVirtualAddress());
+	dxCommon->GetCommandList()->SetGraphicsRootConstantBufferView(3, directionalLightResource->GetGPUVirtualAddress());
 
-	//model_->SetBufferData(commandList);
+	// ディスクリプタテーブルの設定
+	dxCommon->GetCommandList()->SetGraphicsRootDescriptorTable(2, modelData.material.gpuHandle);
+
+	// モデルの描画
+	dxCommon->GetCommandList()->DrawInstanced(UINT(modelData.vertices.size()), 1, 0, 0);
+
+	//model_->DrawCall(commandList);
 }
 
 

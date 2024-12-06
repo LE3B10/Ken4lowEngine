@@ -30,7 +30,7 @@ public: /// ---------- メンバ関数 ---------- ///
 	void Update();
 
 	// ドローコール
-	void DrawCall(ID3D12GraphicsCommandList* commandList);
+	void Draw();
 
 public: /// ---------- ゲッター ---------- ///
 
@@ -90,9 +90,6 @@ public: /// ---------- セッター ---------- ///
 	// テクスチャ切り出しサイズの設定
 	void SetTextureSize(const Vector2& textureSize) { textureSize_ = textureSize; }
 
-	// VBV - IBV - CBVの設定（スプライト用）
-	void SetSpriteBufferData(ID3D12GraphicsCommandList* commandList);
-
 	// テクスチャの変更
 	void SetTexture(const std::string& filePath);
 
@@ -130,14 +127,16 @@ private: /// ---------- メンバ変数 ---------- ///
 	// テクスチャ切り出しサイズ
 	Vector2 textureSize_ = { 100.0f, 100.0f };
 	// 色
-	Vector4 color_;
+	Vector4 color_ = {};
 
 	// テクスチャ番号
-	D3D12_GPU_DESCRIPTOR_HANDLE gpuHandle_ = 0;
+	D3D12_GPU_DESCRIPTOR_HANDLE gpuHandle_;
 
 	std::string filePath_;
 
 private: /// ---------- メンバ変数 ---------- ///
+
+	DirectXCommon* dxCommon = nullptr;
 
 	// CreateBuffer用
 	ResourceManager* createBuffer_ = nullptr;

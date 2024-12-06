@@ -27,6 +27,10 @@ void Camera::Update()
 	viewProjevtionMatrix = Multiply(viewMatrix, projectionMatrix);
 }
 
+
+/// -------------------------------------------------------------
+///							ImGui描画処理
+/// -------------------------------------------------------------
 void Camera::DrawImGui()
 {
 	ImGui::Begin("Camera");

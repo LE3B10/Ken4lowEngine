@@ -1,6 +1,5 @@
 #include "WavLoader.h"
-
-#include <cassert>
+#include "WavLoaderException.h"
 
 #pragma comment(lib, "xaudio2.lib")
 
@@ -24,16 +23,47 @@ WavLoader::~WavLoader()
 /// -------------------------------------------------------------
 ///				　	　		初期化処理
 /// -------------------------------------------------------------
-void WavLoader::Initialize()
+void WavLoader::Initialize(const char* fileName)
 {
 	HRESULT result{};
 
 	// XAudioエンジンのインスタンスを生成
 	result = XAudio2Create(&xAudio2, 0, XAUDIO2_DEFAULT_PROCESSOR);
+	if (FAILED(result)) {
+		throw WavLoaderException("Failed to initialize XAudio2");
+	}
 
 	// マスターボイスを生成
 	result = xAudio2->CreateMasteringVoice(&masterVoice);
+	if (FAILED(result)) {
+		throw WavLoaderException("Failed to create MasteringVoice");
+	}
 
+	// WAV ファイルを開く
+	std::ifstream file(fileName, std::ios::binary);
+	if (!file.is_open()) {
+		throw WavLoaderException("Failed to open WAV file: " + std::string(fileName));
+	}
+
+	// WAV ファイルからフォーマット情報を取得
+	RiffHeader riff{};
+	if (!ReadRiffHeader(file, riff)) {
+		throw WavLoaderException("Invalid RIFF header in file: " + std::string(fileName));
+	}
+
+	// フォーマットチャンク読み込み
+	FormatChunk format{};
+	if (!ReadFormatChunk(file, format)) {
+		throw WavLoaderException("Invalid format chunk in file: " + std::string(fileName));
+	}
+
+	// SourceVoice を作成
+	result = xAudio2->CreateSourceVoice(&pSourceVoice, &format.fmt);
+	if (FAILED(result)) {
+		throw WavLoaderException("Failed to create SourceVoice");
+	}
+
+	OutputDebugStringA("SourceVoice created successfully\n");
 }
 
 
@@ -48,9 +78,22 @@ void WavLoader::StreamAudioAsync(const char* fileName, float volume, float pitch
 	// 再生フラグをセット
 	isPlaying = true;
 
-	// 非同期でStreamAudioを実行
-	bgmThread = std::thread([this, fileName, volume, pitch, Loop]() {
-		StreamAudio(fileName, volume, pitch, Loop);
+	// 再生状態
+	playbackState = PlaybackState::Playing;
+
+	// 非同期タスクをstd::asyncで開始
+	bgmFuture = std::async(std::launch::async, [this, fileName, volume, pitch, Loop]()
+		{
+			try {
+				std::lock_guard<std::mutex> lock(sourceVoiceMutex); // 排他制御
+				StreamAudio(fileName, volume, pitch, Loop);
+			}
+			catch (const WavLoaderException& e){
+				OutputDebugStringA(("Error in StreamAudio: " + std::string(e.what()) + "\n").c_str());
+			}
+			catch (const std::exception& e){
+				OutputDebugStringA(("Unexpected error: " + std::string(e.what()) + "\n").c_str());
+			}
 		});
 }
 
@@ -60,12 +103,52 @@ void WavLoader::StreamAudioAsync(const char* fileName, float volume, float pitch
 /// -------------------------------------------------------------
 void WavLoader::StopBGM()
 {
+	isPlaying = false; // 再生フラグを停止
+	playbackState = PlaybackState::Stopped; // 停止
+
 	// スレッドが実行中の場合
-	if (bgmThread.joinable())
-	{ 
-		isPlaying = false; // 再生フラグを停止
-		bgmThread.join();  // スレッド終了を待機
+	if (bgmFuture.valid())
+	{
+		bgmFuture.get();  // スレッド終了を待機
 	}
+
+	if (pSourceVoice) {
+		pSourceVoice->Stop();
+		pSourceVoice->DestroyVoice();
+		pSourceVoice = nullptr;
+	}
+}
+
+
+/// -------------------------------------------------------------
+///				　		　再生の一時停止
+/// -------------------------------------------------------------
+void WavLoader::PauseBGM()
+{
+	if (playbackState == PlaybackState::Playing && pSourceVoice)
+	{
+		pSourceVoice->Stop(); // 再生を停止
+		playbackState = PlaybackState::Paused; // 一時停止
+		isPaused = true;
+	}
+
+	OutputDebugStringA("Paused\n");
+}
+
+
+/// -------------------------------------------------------------
+///				　		一時停止から再開
+/// -------------------------------------------------------------
+void WavLoader::ResumeBGM()
+{
+	if (playbackState == PlaybackState::Paused && pSourceVoice)
+	{
+		pSourceVoice->Start(); // 再生を再開
+		playbackState = PlaybackState::Playing; // 再生
+		isPaused = false;
+	}
+
+	OutputDebugStringA("Resumed\n");
 }
 
 
@@ -78,28 +161,19 @@ void WavLoader::StreamAudio(const char* fileName, float volume, float pitch, boo
 	currentVolume = volume;
 	frequencyRatio = pitch;
 	loopPlayback = Loop;
+	// 初期化処理
+	Initialize(fileName);
 
 	HRESULT result{};
+	// 音楽ファイルの読み込み
 	std::ifstream file(fileName, std::ios::binary);
-	assert(file.is_open()); // ファイルが開けなければエラー
-
-	// ファイルのヘッダー情報を読み取る
-	RiffHeader riff{};
-	assert(ReadRiffHeader(file, riff)); // RIFF/WAVE形式を確認
-
-	FormatChunk format{};
-	assert(ReadFormatChunk(file, format)); // フォーマットチャンクを取得
-
-	ChunkHeader data{};
-	assert(FindDataChunk(file, data)); // データチャンクの位置を特定
-
-	// XAudio2のSourceVoiceを作成
-	result = xAudio2->CreateSourceVoice(&pSourceVoice, &format.fmt);
-	assert(SUCCEEDED(result)); // SourceVoiceの作成が成功したか確認
+	if (!file.is_open()) {
+		OutputDebugStringA("Failed to open file\n");
+		return;
+	}
 
 	// 再生を開始
 	result = pSourceVoice->Start(0);
-	assert(SUCCEEDED(result)); // 再生開始が成功したか確認
 
 	// バッファを用意（1MB）
 	const size_t bufferSize = static_cast<size_t>(1) << 20;
@@ -165,7 +239,6 @@ void WavLoader::SubmitAudioBuffer(IXAudio2SourceVoice* voice, const char* buffer
 	xBuffer.pAudioData = reinterpret_cast<const BYTE*>(buffer);
 
 	HRESULT result = voice->SubmitSourceBuffer(&xBuffer);
-	assert(SUCCEEDED(result));
 }
 
 
@@ -175,7 +248,6 @@ void WavLoader::SubmitAudioBuffer(IXAudio2SourceVoice* voice, const char* buffer
 void WavLoader::WaitForBufferPlayback(IXAudio2SourceVoice* voice)
 {
 	// 再生中のバッファキューが空になるまで監視
-
 	XAUDIO2_VOICE_STATE state;
 	do {
 		voice->GetState(&state);
