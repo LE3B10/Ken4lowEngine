@@ -40,7 +40,7 @@ void GamePlayScene::Initialize()
 		"multiMaterial.obj",
 		"multiMesh.obj",
 		"plane.obj",
-		//"Skydome.obj",
+		"terrain.obj",
 	};
 
 	std::vector<Vector3> initialPositions = {
@@ -48,13 +48,13 @@ void GamePlayScene::Initialize()
 	{ 4.0f, 0.75f, 0.0f},    // multiMaterial.obj の座標
 	{ -1.0f, -2.0f, 0.0f},    // multiMesh.obj の座標
 	{ 4.0f, -2.0f, 0.0f},    // plane.obj の座標
-	//{ 0.0f, 0.0f, 0.0f},    // skydome.obj の座標
+	{ 0.0f, 0.0f, 0.0f},    // terrain.obj の座標
 	};
 
 	/// ---------- カメラ初期化処理 ---------- ///
 	camera_ = std::make_unique<Camera>();
-	camera_->SetRotate({ 0.0f,0.0f,0.0f });
-	camera_->SetTranslate({ 0.0f,0.0f,-15.0f });
+	camera_->SetRotate({ 0.3f,0.0f,0.0f });
+	camera_->SetTranslate({ 0.0f,10.0f,-30.0f });
 	object3DCommon_->SetDefaultCamera(camera_.get());
 
 	// 各オブジェクトを初期化し、座標を設定
@@ -108,7 +108,7 @@ void GamePlayScene::Draw()
 	///*-----スプライトの描画設定と描画-----*/
 	for (auto& sprite : sprites_)
 	{
-		sprite->Draw();
+		//sprite->Draw();
 	}
 }
 
