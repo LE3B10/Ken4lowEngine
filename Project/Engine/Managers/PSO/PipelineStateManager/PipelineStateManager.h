@@ -37,6 +37,7 @@ public: /// ---------- メンバ関数 ---------- ///
 
 	// 初期化処理
 	void Initialize(DirectXCommon* dxCommon);
+	void InitializeParticle(DirectXCommon* dxCommon);
 
 private: /// ---------- メンバ関数 ---------- ///
 

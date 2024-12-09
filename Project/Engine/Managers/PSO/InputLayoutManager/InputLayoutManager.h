@@ -12,6 +12,7 @@ public: /// ---------- メンバ関数 ---------- ///
 
 	// レイアウトの設定を行う関数
 	void Initialize();
+	void InitializeParticle();
 
 public: /// ---------- ゲッター ---------- ///
 

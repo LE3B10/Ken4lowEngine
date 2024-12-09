@@ -9,8 +9,9 @@ class BlendStateManager
 {
 public: /// ---------- メンバ関数 ---------- ///
 	
-	
 	void CreateBlend(BlendMode blendMode);
+	
+	void CreateBlendParticle(BlendMode blendMode);
 
 public: /// ---------- ゲッター ---------- ///
 

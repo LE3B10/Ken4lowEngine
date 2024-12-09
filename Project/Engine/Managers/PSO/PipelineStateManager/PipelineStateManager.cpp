@@ -49,6 +49,40 @@ void PipelineStateManager::Initialize(DirectXCommon* dxCommon)
 	CreatePipelineStateObject(dxCommon, rootSignatureManager->GetRootSignature(), blendStateManager->GetBlendDesc(), rasterizerStateManager->GetRasterizerDesc(),
 		inputLayoutManager->GetInputLayoutDesc(), depthStencil->GetDepthStencilDesc(), shaderManager->GetVertexShaderBlob(), shaderManager->GetPixelShaderBlob()
 	);
+
+	InitializeParticle(dxCommon);
+}
+
+void PipelineStateManager::InitializeParticle(DirectXCommon* dxCommon)
+{
+	/// ---------- RootSignatureManagerの初期化 ---------- ///
+	rootSignatureManager = std::make_unique<RootSignatureManager>();
+	rootSignatureManager->CreateRootSignatureForParticle(dxCommon);
+
+	/// ---------- InputLayoutManagerの初期化 ---------- ///
+	inputLayoutManager = std::make_unique<InputLayoutManager>();
+	inputLayoutManager->InitializeParticle();
+
+	/// ---------- BlendStateManagerの初期化 ---------- ///
+	blendStateManager = std::make_unique<BlendStateManager>();
+	blendStateManager->CreateBlendParticle(BlendMode::kBlendModeAdd);
+
+	/// ---------- RasterinzerStateManagerの初期化 ---------- ///
+	rasterizerStateManager = std::make_unique<RasterizerStateManager>();
+	rasterizerStateManager->InitializeParticle();
+
+	/// ---------- ShaderManagerの初期化 ---------- ///
+	shaderManager = std::make_unique<ShaderManager>();
+	shaderManager->ShaderCompileParticle(dxCommon);
+
+	/// ---------- DepthStencilの初期化 ---------- ///
+	depthStencil = std::make_unique<DX12DepthStencil>();
+	depthStencil->CreateParticle(true);
+
+	/// ---------- PSOを生成 ---------- ///
+	CreatePipelineStateObject(dxCommon, rootSignatureManager->GetRootSignature(), blendStateManager->GetBlendDesc(), rasterizerStateManager->GetRasterizerDesc(),
+		inputLayoutManager->GetInputLayoutDesc(), depthStencil->GetDepthStencilDesc(), shaderManager->GetVertexShaderBlob(), shaderManager->GetPixelShaderBlob()
+	);
 }
 
 

@@ -10,6 +10,7 @@ public: /// ---------- メンバ関数 ---------- ///
 
 	// DepthStencilの生成
 	void Create(bool depthEnable);
+	void CreateParticle(bool depthEnable);
 	
 public: /// ---------- ゲッター ---------- ///
 

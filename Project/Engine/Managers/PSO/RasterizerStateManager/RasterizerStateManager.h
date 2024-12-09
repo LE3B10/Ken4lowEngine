@@ -11,6 +11,7 @@ public:
 
 	// 設定処理
 	void Initialize();
+	void InitializeParticle();
 
 public: /// ---------- ゲッター ---------- ///
 

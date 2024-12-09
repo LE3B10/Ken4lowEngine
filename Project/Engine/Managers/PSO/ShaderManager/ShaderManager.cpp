@@ -91,14 +91,20 @@ void ShaderManager::ShaderCompileObject3D(DirectXCommon* dxCommon)
 	// Pixelをコンパイル
 	pixelShaderBlob = CompileShader(L"Resources/Shaders/Object3D.PS.hlsl", L"ps_6_0", dxCommon->GetIDxcUtils(), dxCommon->GetIDxcCompiler(), dxCommon->GetIncludeHandler());
 	assert(pixelShaderBlob != nullptr);
-
-	/*vertexShaderBlob = CompileShader(L"Resources/Shaders/Particle.VS.hlsl", L"ps_6_0", dxCommon->GetIDxcUtils(), dxCommon->GetIDxcCompiler(), dxCommon->GetIncludeHandler());
-	assert(vertexShaderBlob != nullptr);
-
-	vertexShaderBlob = CompileShader(L"Resources/Shaders/Particle.PS.hlsl", L"ps_6_0", dxCommon->GetIDxcUtils(), dxCommon->GetIDxcCompiler(), dxCommon->GetIncludeHandler());
-	assert(pixelShaderBlob != nullptr);*/
 }
 
+
+/// -------------------------------------------------------------
+///				Particleシェーダーをコンパイルする処理
+/// -------------------------------------------------------------
+void ShaderManager::ShaderCompileParticle(DirectXCommon* dxCommon)
+{
+	vertexShaderBlob = CompileShader(L"Resources/Shaders/Particle.VS.hlsl", L"vs_6_0", dxCommon->GetIDxcUtils(), dxCommon->GetIDxcCompiler(), dxCommon->GetIncludeHandler());
+	assert(vertexShaderBlob != nullptr);
+
+	pixelShaderBlob = CompileShader(L"Resources/Shaders/Particle.PS.hlsl", L"ps_6_0", dxCommon->GetIDxcUtils(), dxCommon->GetIDxcCompiler(), dxCommon->GetIncludeHandler());
+	assert(pixelShaderBlob != nullptr);
+}
 
 
 /// -------------------------------------------------------------
