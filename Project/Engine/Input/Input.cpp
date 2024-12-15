@@ -5,6 +5,13 @@
 #pragma comment(lib, "dinput8.lib")
 #pragma comment(lib, "dxguid.lib")
 
+Input* Input::GetInstance()
+{
+	static Input instance;
+
+	return &instance;
+}
+
 void Input::Initialize(WinApp* winApp)
 {
 	// 借りてきたWinAppのインスタンスを記録
@@ -31,6 +38,16 @@ void Input::Initialize(WinApp* winApp)
 	// キー配列の初期化
 	memset(key, 0, sizeof(key));
 	memset(keyPre, 0, sizeof(keyPre));
+
+	// マウスデバイスの生成
+	result = directInput->CreateDevice(GUID_SysMouse, &mouse, NULL);
+	assert(SUCCEEDED(result));
+
+	result = mouse->SetDataFormat(&c_dfDIMouse);
+	assert(SUCCEEDED(result));
+
+	result = mouse->SetCooperativeLevel(winApp_->GetHwnd(), DISCL_FOREGROUND | DISCL_NONEXCLUSIVE);
+	assert(SUCCEEDED(result));
 }
 
 void Input::Update()
@@ -55,21 +72,34 @@ void Input::Update()
 		// 取得が失敗した場合はキー配列をリセット
 		memset(key, 0, sizeof(key));
 	}
+
+	// マウスの状態の取得
+	result = mouse->Acquire();
+	if (SUCCEEDED(result))
+	{
+		result = mouse->GetDeviceState(sizeof(DIMOUSESTATE), &mouseState);
+		assert(SUCCEEDED(result));
+	}
+
 }
 
 bool Input::PushKey(BYTE keyNumber) const
 {
-	return key[keyNumber] != 0;
+	return key[keyNumber] & 0x80;
 }
 
 bool Input::TriggerKey(BYTE keyNumber) const
 {
-	return key[keyNumber] != 0 && keyPre[keyNumber] == 0;
+	return (key[keyNumber] & 0x80) && !(keyPre[keyNumber] & 0x80);
 }
 
-Input* Input::GetInstance()
+bool Input::IsMouseButtonPressed(int button) const
 {
-	static Input instance;
-
-	return &instance;
+	return (mouseState.rgbButtons[button] & 0x80) != 0;
 }
+
+DIMOUSESTATE Input::GetMouseState() const
+{
+	return mouseState;
+}
+

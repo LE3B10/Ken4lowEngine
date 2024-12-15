@@ -8,7 +8,7 @@
 void GamePlayScene::Initialize()
 {
 	dxCommon_ = DirectXCommon::GetInstance();
-
+	input = Input::GetInstance();
 	textureManager = TextureManager::GetInstance();
 
 	// テクスチャのパスをリストで管理
@@ -78,6 +78,36 @@ void GamePlayScene::Initialize()
 /// -------------------------------------------------------------
 void GamePlayScene::Update()
 {
+	input->Update();
+
+	if (input->TriggerKey(DIK_0))
+	{
+		OutputDebugStringA("0\n");
+	}
+
+	if (input->IsMouseButtonPressed(0))
+	{
+		OutputDebugStringA("Left Clicked !!\n");
+	}
+
+	if (input->IsMouseButtonPressed(1))
+	{
+		OutputDebugStringA("Right Clicked !!\n");
+	}
+
+	if (input->IsMouseButtonPressed(2))
+	{
+		OutputDebugStringA("Scroll Clicked !!\n");
+	}
+
+	// スクロールホイールの状態をチェック
+	DIMOUSESTATE mouseState = input->GetMouseState();
+	if (mouseState.lZ != 0)
+	{
+		// スクロールホイールが動いたときの処理
+		OutputDebugStringA("Scrolled !!\n");
+	}
+
 	// 3Dオブジェクトの更新処理
 	for (const auto& object3D : objects3D_)
 	{

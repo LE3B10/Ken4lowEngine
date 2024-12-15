@@ -69,6 +69,34 @@ void GameEngine::Update()
 
 	// 入力の更新
 	input->Update();
+	
+	//if (input->TriggerKey(DIK_0))
+	//{
+	//	OutputDebugStringA("0\n");
+	//}
+
+	//if (input->IsMouseButtonPressed(0))
+	//{
+	//	OutputDebugStringA("Left Clicked !!\n");
+	//}
+
+	//if (input->IsMouseButtonPressed(1))
+	//{
+	//	OutputDebugStringA("Right Clicked !!\n");
+	//}
+
+	//if (input->IsMouseButtonPressed(2))
+	//{
+	//	OutputDebugStringA("Scroll Clicked !!\n");
+	//}
+
+	//// スクロールホイールの状態をチェック
+	//DIMOUSESTATE mouseState = input->GetMouseState();
+	//if (mouseState.lZ != 0)
+	//{
+	//	// スクロールホイールが動いたときの処理
+	//	OutputDebugStringA("Scrolled !!\n");
+	//}
 
 	/// ---------- ImGuiフレーム開始 ---------- ///
 	imguiManager->BeginFrame();

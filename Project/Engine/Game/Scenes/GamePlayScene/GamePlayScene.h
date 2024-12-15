@@ -5,7 +5,7 @@
 #include <Object3DCommon.h>
 #include <WavLoader.h>
 #include <SRVManager.h>
-
+#include <Input.h>
 #include <BaseScene.h>
 
 // クライアント領域サイズ
@@ -41,6 +41,7 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	DirectXCommon* dxCommon_ = nullptr;
 	TextureManager* textureManager = nullptr;
+	Input* input = nullptr;
 
 	std::unique_ptr<SRVManager> srvManager;
 	std::unique_ptr<Camera> camera_;
