@@ -1,6 +1,5 @@
 #pragma once
 #include "DX12Include.h"
-#include <array>
 
 
 /// -------------------------------------------------------------
@@ -11,16 +10,14 @@ class InputLayoutManager
 public: /// ---------- メンバ関数 ---------- ///
 
 	// レイアウトの設定を行う関数
-	void Initialize();
-	void InitializeParticle();
+	void Initialize(PipelineType pipelineType);
 
 public: /// ---------- ゲッター ---------- ///
 
-	D3D12_INPUT_LAYOUT_DESC GetInputLayoutDesc() { return inputLayoutDesc; }
+	D3D12_INPUT_LAYOUT_DESC GetInputLayoutDesc(PipelineType pipelineType) { return inputLayoutDesc[pipelineType]; }
 
 private: /// ---------- メンバ変数 ---------- ///
 
-	D3D12_INPUT_ELEMENT_DESC inputElementDescs[3] = {};
-	D3D12_INPUT_LAYOUT_DESC inputLayoutDesc{};
+	std::array<D3D12_INPUT_LAYOUT_DESC, pipelineNum> inputLayoutDesc{};
 };
 

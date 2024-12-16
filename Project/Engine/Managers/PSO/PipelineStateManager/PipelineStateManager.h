@@ -26,7 +26,7 @@ public: /// ---------- メンバ関数 ---------- ///
 	~PipelineStateManager();
 
 	// 初期化処理
-	void Initialize(DirectXCommon* dxCommon);
+	void Initialize(DirectXCommon* dxCommon, PipelineType pipelineType, BlendMode blendMode);
 
 private: /// ---------- メンバ関数 ---------- ///
 
@@ -60,6 +60,8 @@ private: /// ---------- メンバ変数 ---------- ///
 	std::unique_ptr<RasterizerStateManager> rasterizerStateManager;
 	std::unique_ptr<ShaderManager> shaderManager;
 	std::unique_ptr<DX12DepthStencil> depthStencil;
+
+	PipelineType pipelineType_;
 
 	// パイプラインステートディスクリプタの初期化
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC graphicsPipelineStateDesc{};

@@ -6,6 +6,8 @@
 #include <WavLoader.h>
 #include <SRVManager.h>
 
+#include "ParticleManager.h"
+
 #include <BaseScene.h>
 
 // クライアント領域サイズ
@@ -49,6 +51,8 @@ private: /// ---------- メンバ変数 ---------- ///
 	std::vector<std::unique_ptr<Sprite>> sprites_;
 	std::vector<std::unique_ptr<Object3D>> objects3D_;
 	std::unique_ptr<Object3DCommon> object3DCommon_;
+
+	std::unique_ptr<ParticleManager> particleManager_;
 
 	// テクスチャのパスをリストで管理
 	std::vector<std::string> texturePaths_;

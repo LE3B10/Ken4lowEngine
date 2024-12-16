@@ -48,7 +48,7 @@ void GameEngine::Initialize()
 	imguiManager->Initialize(winApp, dxCommon, srvManager.get());
 
 	/// ---------- PipelineStateManagerの初期化 ---------- ///
-	pipelineStateManager_->Initialize(dxCommon);
+	pipelineStateManager_->Initialize(dxCommon, NormalObject3D, BlendMode::kBlendModeNone);
 }
 
 

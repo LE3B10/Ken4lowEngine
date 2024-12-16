@@ -19,19 +19,21 @@ PipelineStateManager::~PipelineStateManager()
 /// -------------------------------------------------------------
 ///							初期化処理
 /// -------------------------------------------------------------
-void PipelineStateManager::Initialize(DirectXCommon* dxCommon)
+void PipelineStateManager::Initialize(DirectXCommon* dxCommon, PipelineType pipelineType, BlendMode blendMode)
 {
+	pipelineType_ = pipelineType;
+
 	/// ---------- RootSignatureManagerの初期化 ---------- ///
 	rootSignatureManager = std::make_unique<RootSignatureManager>();
-	rootSignatureManager->CreateRootSignature(dxCommon);
+	rootSignatureManager->CreateRootSignature(dxCommon, pipelineType_);
 
 	/// ---------- InputLayoutManagerの初期化 ---------- ///
 	inputLayoutManager = std::make_unique<InputLayoutManager>();
-	inputLayoutManager->Initialize();
+	inputLayoutManager->Initialize(pipelineType_);
 
 	/// ---------- BlendStateManagerの初期化 ---------- ///
 	blendStateManager = std::make_unique<BlendStateManager>();
-	blendStateManager->CreateBlend(BlendMode::kBlendModeNone);
+	blendStateManager->CreateBlend(blendMode);
 
 	/// ---------- RasterinzerStateManagerの初期化 ---------- ///
 	rasterizerStateManager = std::make_unique<RasterizerStateManager>();
@@ -39,15 +41,15 @@ void PipelineStateManager::Initialize(DirectXCommon* dxCommon)
 
 	/// ---------- ShaderManagerの初期化 ---------- ///
 	shaderManager = std::make_unique<ShaderManager>();
-	shaderManager->ShaderCompileObject3D(dxCommon);
+	shaderManager->ShaderCompile(dxCommon, pipelineType_);
 
 	/// ---------- DepthStencilの初期化 ---------- ///
 	depthStencil = std::make_unique<DX12DepthStencil>();
 	depthStencil->Create(true);
 
 	/// ---------- PSOを生成 ---------- ///
-	CreatePipelineStateObject(dxCommon, rootSignatureManager->GetRootSignature(), blendStateManager->GetBlendDesc(), rasterizerStateManager->GetRasterizerDesc(),
-		inputLayoutManager->GetInputLayoutDesc(), depthStencil->GetDepthStencilDesc(), shaderManager->GetVertexShaderBlob(), shaderManager->GetPixelShaderBlob()
+	CreatePipelineStateObject(dxCommon, rootSignatureManager->GetRootSignature(pipelineType_), blendStateManager->GetBlendDesc(), rasterizerStateManager->GetRasterizerDesc(),
+		inputLayoutManager->GetInputLayoutDesc(pipelineType_), depthStencil->GetDepthStencilDesc(), shaderManager->GetVertexShaderBlob(pipelineType_), shaderManager->GetPixelShaderBlob(pipelineType_)
 	);
 }
 
@@ -98,6 +100,6 @@ void PipelineStateManager::SetGraphicsPipeline(ID3D12GraphicsCommandList* comman
 {
 	/*-----シーン（モデル）の描画設定と描画-----*/
 	// ルートシグネチャとパイプラインステートの設定
-	commandList->SetGraphicsRootSignature(rootSignatureManager->GetRootSignature());
+	commandList->SetGraphicsRootSignature(rootSignatureManager->GetRootSignature(pipelineType_));
 	commandList->SetPipelineState(graphicsPipelineState_.Get());
 }

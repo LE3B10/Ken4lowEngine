@@ -3,6 +3,7 @@
 #include "DX12Include.h"
 #include "LogString.h"
 
+
 /// -------------------------------------------------------------
 ///				シェーダーコンパイラ専用クラス
 /// -------------------------------------------------------------
@@ -22,16 +23,16 @@ public: /// ---------- メンバ関数 ---------- ///
 		IDxcIncludeHandler* includeHandler);
 
 	// 3Dシェーダーをコンパイルする
-	void ShaderCompileObject3D(DirectXCommon* dxCommon);
+	void ShaderCompile(DirectXCommon* dxCommon, PipelineType pipelineType);
 
 public: /// ---------- ゲッター ---------- ///
 
-	IDxcBlob* GetVertexShaderBlob() { return vertexShaderBlob.Get(); }
-	IDxcBlob* GetPixelShaderBlob() { return pixelShaderBlob.Get(); }
+	IDxcBlob* GetVertexShaderBlob(PipelineType pipelineType) { return vertexShaderBlob[pipelineType].Get(); }
+	IDxcBlob* GetPixelShaderBlob(PipelineType pipelineType) { return pixelShaderBlob[pipelineType].Get(); }
 
 private: /// ---------- メンバ変数 ---------- ///
 
-	ComPtr <IDxcBlob> vertexShaderBlob;
-	ComPtr <IDxcBlob> pixelShaderBlob;
+	std::array<ComPtr<IDxcBlob>, pipelineNum> vertexShaderBlob;
+	std::array<ComPtr<IDxcBlob>, pipelineNum> pixelShaderBlob;
 };
 

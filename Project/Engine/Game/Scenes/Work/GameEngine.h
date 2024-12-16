@@ -51,6 +51,8 @@ private: /// ---------- メンバ変数 ---------- ///
 	std::unique_ptr<PipelineStateManager> pipelineStateManager_;
 	std::unique_ptr<WavLoader> wavLoader_;
 
+	
+
 	// テクスチャのパスをリストで管理
 	std::vector<std::string> texturePaths_;
 	std::vector<std::string> objectFiles;

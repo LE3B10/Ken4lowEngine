@@ -70,6 +70,10 @@ void GamePlayScene::Initialize()
 	const char* fileName = "Resources/Sounds/Get-Ready.wav";
 	wavLoader_ = std::make_unique<WavLoader>();
 	wavLoader_->StreamAudioAsync(fileName, 0.5f, 1.0f, false);
+
+	/// ---------- ParticleManagerの初期化 ---------- ///
+	particleManager_ = std::make_unique<ParticleManager>();
+	particleManager_->Initialize(dxCommon_, srvManager.get(), camera_.get());
 }
 
 

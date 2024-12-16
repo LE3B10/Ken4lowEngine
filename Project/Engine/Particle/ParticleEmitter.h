@@ -3,7 +3,6 @@
 #include "AABB.h"
 #include "Emitter.h"
 #include "Particle.h"
-#include "ParticleEmitter.h"
 #include "ParticleForGPU.h"
 
 #include <list>

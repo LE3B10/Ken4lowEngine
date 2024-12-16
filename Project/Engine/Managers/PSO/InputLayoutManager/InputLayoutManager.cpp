@@ -18,13 +18,38 @@
 /// -------------------------------------------------------------
 ///				InputLayoutの設定を行う処理
 /// -------------------------------------------------------------
-void InputLayoutManager::Initialize()
+void InputLayoutManager::Initialize(PipelineType pipelineType)
 {
-	inputElementDescs[0] = { "POSITION", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 };
-	inputElementDescs[1] = { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT,		0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 };
-	inputElementDescs[2] = { "NORMAL"  , 0, DXGI_FORMAT_R32G32B32_FLOAT,	0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 };
+	/// -------------------------------------------------------------
+	///			3DオブジェクトのInputLayoutの設定を行う処理
+	/// -------------------------------------------------------------
+	if (pipelineType == NormalObject3D)
+	{
+		static D3D12_INPUT_ELEMENT_DESC inputElementDescs[3] = {};
+		inputElementDescs[0] = { "POSITION", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 };
+		inputElementDescs[1] = { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT,		0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 };
+		inputElementDescs[2] = { "NORMAL"  , 0, DXGI_FORMAT_R32G32B32_FLOAT,	0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 };
 
-	inputLayoutDesc.pInputElementDescs = inputElementDescs;
-	inputLayoutDesc.NumElements = _countof(inputElementDescs);
+		inputLayoutDesc[pipelineType] = {};
+		inputLayoutDesc[pipelineType].pInputElementDescs = inputElementDescs;
+		inputLayoutDesc[pipelineType].NumElements = _countof(inputElementDescs);
+	}
+
+
+	/// -------------------------------------------------------------
+	///			3DオブジェクトのInputLayoutの設定を行う処理
+	/// -------------------------------------------------------------
+	if (pipelineType == gParticle)
+	{
+		static D3D12_INPUT_ELEMENT_DESC inputElementDescs[3] = {};
+		inputElementDescs[0] = { "POSITION", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 };
+		inputElementDescs[1] = { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT,		0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 };
+		inputElementDescs[2] = { "NORMAL"  , 0, DXGI_FORMAT_R32G32B32_FLOAT,	0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 };
+
+		inputLayoutDesc[pipelineType] = {};
+		inputLayoutDesc[pipelineType].pInputElementDescs = inputElementDescs;
+		inputLayoutDesc[pipelineType].NumElements = _countof(inputElementDescs);
+	}
+
 }
 

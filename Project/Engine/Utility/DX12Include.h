@@ -1,11 +1,14 @@
 #pragma once
-
+#include <array>
+#include <cstdint>
 #include <cassert>
 
 #include <d3d12.h>
 #include <dxgi1_6.h>
 #include <dxcapi.h>
 #include <dxgidebug.h>
+
+#include "BlendModeType.h"
 
 /* ----- cpp側で書くlib一覧　-----
 * #pragma comment(lib, "d3d12.lib")        // Direct3D 12用
@@ -18,3 +21,15 @@
 #include <wrl.h>
 
 using namespace Microsoft::WRL;
+
+enum PipelineType
+{
+	NormalObject3D, // オブジェクト3D
+	gParticle, // パーティクル
+
+	kCountOfPipelineType, // パイプラインの数
+};
+
+// ブレンドモードの数
+static inline const uint32_t pipelineNum = static_cast<size_t>(PipelineType::kCountOfPipelineType);
+

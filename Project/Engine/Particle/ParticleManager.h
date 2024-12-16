@@ -7,6 +7,9 @@
 #include <DirectionalLight.h>
 #include <Emitter.h>
 #include <Particle.h>
+#include "CameraManager.h"
+
+#include "PipelineStateManager.h"
 
 #include <unordered_map>
 #include <list>
@@ -30,8 +33,6 @@ class ParticleManager
 {
 private: /// ---------- 構造体 ---------- ///
 
-
-
 	struct ParticleForGPU
 	{
 		Matrix4x4 WVP;
@@ -42,7 +43,7 @@ private: /// ---------- 構造体 ---------- ///
 	struct ParticleGroup
 	{
 		// マテリアルデータ(テクスチャファイルとテクスチャ用SRVインデックス)
-		std::string textureFilePath;
+		MaterialData materialData;
 		// パーティクルのリスト(std::list<Particle>型)
 		uint32_t srvIndex;
 		// インスタンシングデータ用SRVインデックス
@@ -60,8 +61,10 @@ public: /// ---------- メンバ関数 ---------- ///
 	//  シングルトンインスタンス
 	static ParticleManager* GetInstance();
 
+	ParticleManager() = default;
+
 	// 初期化処理
-	void Initialize(DirectXCommon* dxCommon, SRVManager* srvManager);
+	void Initialize(DirectXCommon* dxCommon, SRVManager* srvManager, Camera* camera);
 
 	// パーティクルグループの生成
 	void CreateParticleGroup(const std::string& name, const std::string& textureFilePath);
@@ -72,9 +75,16 @@ public: /// ---------- メンバ関数 ---------- ///
 	// 描画処理
 	void Draw();
 
+	// パーティクル生成関数
+	Particle MakeNewParticle(std::mt19937& randomEngine, const Vector3& translate);
+
+	// パーティクルを射出する関数
+	void Emit(const Emitter& emitter, std::mt19937& randomEngine);
+
 private: /// ---------- メンバ関数 ---------- ///
 
-	ParticleManager() = default;
+	// 頂点データの初期化
+	void InitializeVertexData();
 
 	void UpdateParticles(ParticleGroup& group);
 	void DrawParticleGroup(const ParticleGroup& group);
@@ -83,6 +93,13 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	DirectXCommon* dxCommon_ = nullptr;
 	SRVManager* srvManager_ = nullptr;
+	Camera* camera_;
+
+	ModelData modelData;
+
+	ComPtr <ID3D12Resource> vertexResource;
+
+	std::unique_ptr<PipelineStateManager> pipelineManager_;
 
 	// パーティクルグループコンテナ
 	std::unordered_map<std::string, ParticleGroup> particleGroups;

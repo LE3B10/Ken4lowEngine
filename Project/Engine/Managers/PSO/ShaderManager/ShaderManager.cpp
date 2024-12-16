@@ -80,15 +80,36 @@ Microsoft::WRL::ComPtr <IDxcBlob> ShaderManager::CompileShader(const std::wstrin
 
 
 /// -------------------------------------------------------------
-///				3Dシェーダーをコンパイルする処理
+///				シェーダーをコンパイルする処理
 /// -------------------------------------------------------------
-void ShaderManager::ShaderCompileObject3D(DirectXCommon* dxCommon)
+void ShaderManager::ShaderCompile(DirectXCommon* dxCommon, PipelineType pipelineType)
 {
-	// Shaderをコンパイル
-	vertexShaderBlob = CompileShader(L"Resources/Shaders/Object3D.VS.hlsl", L"vs_6_0", dxCommon->GetIDxcUtils(), dxCommon->GetIDxcCompiler(), dxCommon->GetIncludeHandler());
-	assert(vertexShaderBlob != nullptr);
+	/// -------------------------------------------------------------
+	///					　3Dシェーダーを読み込む
+	/// -------------------------------------------------------------
+	if (pipelineType == NormalObject3D)
+	{
+		// Shaderをコンパイル
+		vertexShaderBlob[pipelineType] = CompileShader(L"Resources/Shaders/Object3D.VS.hlsl", L"vs_6_0", dxCommon->GetIDxcUtils(), dxCommon->GetIDxcCompiler(), dxCommon->GetIncludeHandler());
+		assert(vertexShaderBlob[pipelineType] != nullptr);
 
-	// Pixelをコンパイル
-	pixelShaderBlob = CompileShader(L"Resources/Shaders/Object3D.PS.hlsl", L"ps_6_0", dxCommon->GetIDxcUtils(), dxCommon->GetIDxcCompiler(), dxCommon->GetIncludeHandler());
-	assert(pixelShaderBlob != nullptr);
+		// Pixelをコンパイル
+		pixelShaderBlob[pipelineType] = CompileShader(L"Resources/Shaders/Object3D.PS.hlsl", L"ps_6_0", dxCommon->GetIDxcUtils(), dxCommon->GetIDxcCompiler(), dxCommon->GetIncludeHandler());
+		assert(pixelShaderBlob[pipelineType] != nullptr);
+	}
+
+
+	/// -------------------------------------------------------------
+	///				パーティクルシェーダーを読み込む
+	/// -------------------------------------------------------------
+	else if (pipelineType == gParticle)
+	{
+		//Shaderをコンパイルする
+		vertexShaderBlob[pipelineType] = CompileShader(L"Resources/Shaders/Particle.VS.hlsl", L"vs_6_0", dxCommon->GetIDxcUtils(), dxCommon->GetIDxcCompiler(), dxCommon->GetIncludeHandler());
+		assert(vertexShaderBlob[pipelineType] != nullptr);
+
+		//Pixelをコンパイルする
+		pixelShaderBlob[pipelineType] = CompileShader(L"Resources/Shaders/Particle.PS.hlsl", L"ps_6_0", dxCommon->GetIDxcUtils(), dxCommon->GetIDxcCompiler(), dxCommon->GetIncludeHandler());
+		assert(pixelShaderBlob[pipelineType] != nullptr);
+	}
 }

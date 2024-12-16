@@ -5,6 +5,7 @@
 #include <LogString.h>
 #include <SRVManager.h>
 #include <TextureManager.h>
+#include <BlendModeType.h>
 
 /// -------------------------------------------------------------
 ///				    シングルトンインスタンス
@@ -19,7 +20,7 @@ ParticleManager* ParticleManager::GetInstance()
 /// -------------------------------------------------------------
 ///				           初期化処理
 /// -------------------------------------------------------------
-void ParticleManager::Initialize(DirectXCommon* dxCommon, SRVManager* srvManager)
+void ParticleManager::Initialize(DirectXCommon* dxCommon, SRVManager* srvManager, Camera* camera)
 {
 	/*
 	* 引数でDirectXCommonとSRVマネージャーのポインタを受け取ってメンバ変数に記録する
@@ -30,15 +31,38 @@ void ParticleManager::Initialize(DirectXCommon* dxCommon, SRVManager* srvManager
 	* 頂点バッファビュー（VBV）作成
 	* 頂点リソースに頂点データを書き込む　
 	*/
-
-
 	// 引数でDirectXCommonとSRVマネージャーのポインタを受け取ってメンバ変数に記録する
 	dxCommon_ = dxCommon;
 	srvManager_ = srvManager;
+	camera_ = camera;
 
 	// ランダムエンジンの初期化
 	std::random_device seed;
 	randomEngin.seed(seed());
+
+	// パイプラインの生成
+	pipelineManager_ = std::make_unique<PipelineStateManager>();
+	pipelineManager_->Initialize(dxCommon, gParticle, BlendMode::kBlendModeAdd);
+
+	// 頂点データの初期化
+	InitializeVertexData();
+
+	// 頂点リソースの生成
+	vertexResource = ResourceManager::CreateBufferResource(dxCommon_->GetDevice(), sizeof(VertexData) * (modelData.vertices.size()));
+
+	// 頂点バッファビューの生成
+	D3D12_VERTEX_BUFFER_VIEW vertexBufferView{};											 // 頂点バッファビューを作成する
+	vertexBufferView.BufferLocation = vertexResource->GetGPUVirtualAddress();				 // リソースの先頭のアドレスから使う
+	vertexBufferView.SizeInBytes = UINT(sizeof(VertexData) * (modelData.vertices.size()));	 // 使用するリソースのサイズ
+	vertexBufferView.StrideInBytes = sizeof(VertexData);									 // 1頂点あたりのサイズ
+
+	// 頂点リソースに頂点データを書き込む
+	VertexData* vertexData = nullptr; // 頂点リソースにデータを書き込む
+	vertexResource->Map(0, nullptr, reinterpret_cast<void**>(&vertexData));
+	// モデルデータの頂点データをコピー
+	std::memcpy(vertexData, modelData.vertices.data(), sizeof(VertexData) * modelData.vertices.size());
+	// アンマップ
+	vertexResource->Unmap(0, nullptr);
 }
 
 
@@ -64,12 +88,15 @@ void ParticleManager::CreateParticleGroup(const std::string& name, const std::st
 
 	// 新たに空のパーティクルグループを作成
 	ParticleGroup group{};
-	
+
 	// マテリアルデータにテクスチャファイルパスを設定
-	group.textureFilePath = textureFilePath;
+	group.materialData.textureFilePath = textureFilePath;
 
 	// テクスチャを読み込む
-	TextureManager::GetInstance()->LoadTexture(group.textureFilePath);
+	TextureManager::GetInstance()->LoadTexture(group.materialData.textureFilePath);
+
+	// マテリアルデータにテクスチャのSRVインデックスを記録
+	group.materialData.gpuHandle = TextureManager::GetInstance()->GetSrvHandleGPU(group.materialData.textureFilePath);
 
 	// インスタンシング用リソースの生成
 	group.instancebuffer = ResourceManager::CreateBufferResource(dxCommon_->GetDevice(), sizeof(ParticleForGPU) * kNumMaxInstance);
@@ -78,15 +105,8 @@ void ParticleManager::CreateParticleGroup(const std::string& name, const std::st
 	// インスタンシング用にSRVを確保してSRVインデックスを記録
 	group.srvIndex = srvManager_->Allocate();
 
-	// 初期化
-	for (uint32_t i = 0; i < kNumMaxInstance; ++i)
-	{
-		group.mappedData[i].WVP = MakeIdentity();
-		group.mappedData[i].World = MakeIdentity();
-	}
-
 	// SRV生成（StructuredBuffer用設定）
-	//srvManager_->CreateSRVForStructureBuffer(group.srvIndex, group.instancebuffer.Get(), numElements, structuredByteStride);
+	srvManager_->CreateSRVForStructureBuffer(group.srvIndex, group.instancebuffer.Get(), kNumMaxInstance, sizeof(ParticleForGPU));
 
 	// コンテナに登録
 	particleGroups[name] = group;
@@ -141,6 +161,62 @@ void ParticleManager::Draw()
 		DrawParticleGroup(group);
 	}
 }
+
+Particle ParticleManager::MakeNewParticle(std::mt19937& randomEngine, const Vector3& translate)
+{
+	Particle particle;
+
+	// 一様分布生成器を使って乱数を生成
+	std::uniform_real_distribution<float> distribution(-1.0f, 1.0f);
+	std::uniform_real_distribution<float> distColor(0.0f, 1.0f);
+	std::uniform_real_distribution<float> distTime(1.0f, 3.0f);
+
+	// 位置と速度を[-1, 1]でランダムに初期化
+	particle.transform = {
+		{ 1.0f, 1.0f, 1.0 },
+		{ 0.0f, 0.0f, 0.0f },
+		{ distribution(randomEngine), distribution(randomEngine), distribution(randomEngine) }
+	};
+
+	// 発生場所を計算
+	Vector3 randomTranslate{ distribution(randomEngine), distribution(randomEngine), distribution(randomEngine) };
+	particle.transform.translate = translate + randomTranslate;
+
+	// 色を[0, 1]でランダムに初期化
+	particle.color = { distColor(randomEngine), distColor(randomEngine), distColor(randomEngine) };
+
+	// パーティクル生成時にランダムに1秒～3秒の間生存
+	particle.lifeTime = distTime(randomEngine);
+	particle.currentTime = 0;
+	particle.velocity = { distribution(randomEngine), distribution(randomEngine), distribution(randomEngine) };
+
+	return particle;
+}
+
+
+
+void ParticleManager::Emit(const Emitter& emitter, std::mt19937& randomEngine)
+{
+
+}
+
+
+void ParticleManager::InitializeVertexData()
+{
+	// 6つの頂点を定義して四角形を表現
+	modelData.vertices.push_back({ .position = {-1.0f, 1.0f, 0.0f, 1.0f}, .texcoord = {0.0f, 0.0f}, .normal = {0.0f, 0.0f, 1.0f} });  // 左上
+	modelData.vertices.push_back({ .position = {1.0f, 1.0f, 0.0f, 1.0f}, .texcoord = {1.0f, 0.0f}, .normal = {0.0f, 0.0f, 1.0f} }); // 右上
+	modelData.vertices.push_back({ .position = {-1.0f, -1.0f, 0.0f, 1.0f}, .texcoord = {0.0f, 1.0f}, .normal = {0.0f, 0.0f, 1.0f} }); // 左下
+
+	modelData.vertices.push_back({ .position = {-1.0f, -1.0f, 0.0f, 1.0f}, .texcoord = {0.0f, 1.0f}, .normal = {0.0f, 0.0f, 1.0f} }); // 左下
+	modelData.vertices.push_back({ .position = {1.0f, 1.0f, 0.0f, 1.0f}, .texcoord = {1.0f, 0.0f}, .normal = {0.0f, 0.0f, 1.0f} }); // 右上
+	modelData.vertices.push_back({ .position = {1.0f, -1.0f, 0.0f, 1.0f}, .texcoord = {1.0f, 1.0f}, .normal = {0.0f, 0.0f, 1.0f} }); // 右下
+
+
+	// テクスチャの設定
+	modelData.material.textureFilePath = "./Resources/particle.png";
+}
+
 
 
 
