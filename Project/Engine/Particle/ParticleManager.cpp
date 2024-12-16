@@ -49,7 +49,7 @@ void ParticleManager::CreateParticleGroup(const std::string& name, const std::st
 {
 	/*
 	* 登録済みの名前かチェックしてassert
-	* 新たな空のパーティクルグループを作成しmコンテナに登録
+	* 新たな空のパーティクルグループを作成し、コンテナに登録
 	* 新たなパーティクルグループの
 	* ・マテリアルデータにテクスチャファイルパスを設定
 	* ・テクスチャを読み込む
@@ -59,19 +59,24 @@ void ParticleManager::CreateParticleGroup(const std::string& name, const std::st
 	* ・SRV生成（StructuredBuffer用設定）
 	*/
 
-
+	// 登録済みの名前かチェック
 	assert(particleGroups.find(name) == particleGroups.end() && "Particle group alread exests!");
 
+	// 新たに空のパーティクルグループを作成
 	ParticleGroup group{};
+	
+	// マテリアルデータにテクスチャファイルパスを設定
 	group.textureFilePath = textureFilePath;
 
-	// テクスチャ読み込み
-	//auto texture = ResourceManager::CreateBufferResource(dxCommon_->GetDevice(), textureFilePath);
-	group.srvIndex = srvManager_->Allocate();
+	// テクスチャを読み込む
+	TextureManager::GetInstance()->LoadTexture(group.textureFilePath);
 
-	// インスタンスバッファ作成
+	// インスタンシング用リソースの生成
 	group.instancebuffer = ResourceManager::CreateBufferResource(dxCommon_->GetDevice(), sizeof(ParticleForGPU) * kNumMaxInstance);
 	group.instancebuffer->Map(0, nullptr, reinterpret_cast<void**>(&group.mappedData));
+
+	// インスタンシング用にSRVを確保してSRVインデックスを記録
+	group.srvIndex = srvManager_->Allocate();
 
 	// 初期化
 	for (uint32_t i = 0; i < kNumMaxInstance; ++i)
@@ -80,6 +85,10 @@ void ParticleManager::CreateParticleGroup(const std::string& name, const std::st
 		group.mappedData[i].World = MakeIdentity();
 	}
 
+	// SRV生成（StructuredBuffer用設定）
+	//srvManager_->CreateSRVForStructureBuffer(group.srvIndex, group.instancebuffer.Get(), numElements, structuredByteStride);
+
+	// コンテナに登録
 	particleGroups[name] = group;
 }
 

@@ -2,7 +2,7 @@
 #include <cstdint>
 
 /// ---------- ブレンドモードの列挙型 ---------- ///
-enum class BlendMode
+enum BlendMode
 {
 	kBlendModeNone,		// ブレンドなし
 	kBlendModeNormal,	// 通常αブレンド、デフォルト。Src * srcA + Dest * (1 - SrcA)

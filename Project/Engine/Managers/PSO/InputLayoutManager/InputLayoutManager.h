@@ -12,10 +12,11 @@ public: /// ---------- メンバ関数 ---------- ///
 
 	// レイアウトの設定を行う関数
 	void Initialize();
+	void InitializeParticle();
 
 public: /// ---------- ゲッター ---------- ///
 
-	D3D12_INPUT_LAYOUT_DESC GetInputLayoutDesc();
+	D3D12_INPUT_LAYOUT_DESC GetInputLayoutDesc() { return inputLayoutDesc; }
 
 private: /// ---------- メンバ変数 ---------- ///
 

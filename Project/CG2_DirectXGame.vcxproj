@@ -162,9 +162,13 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClCompile Include="Engine\Game\Scenes\SceneFactory\SceneFactory.cpp" />
     <ClCompile Include="Engine\Managers\SceneManager\SceneManager.cpp" />
     <ClCompile Include="Engine\Game\Scenes\TitleScene\TitleScene.cpp" />
-    <ClCompile Include="WinMain.cpp">
+    <ClCompile Include="WinMainParticle.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="WinMain.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -190,11 +194,14 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="Engine\Game\Scenes\BaseScene\BaseScene.h" />
     <ClInclude Include="Engine\MultipleStructs\AABB.h" />
     <ClInclude Include="Engine\Audio\AudioManager.h" />
+    <ClInclude Include="Engine\MultipleStructs\AccelerationField.h" />
     <ClInclude Include="Engine\MultipleStructs\AudioStructs.h" />
     <ClInclude Include="Engine\MultipleStructs\Emitter.h" />
     <ClInclude Include="Engine\CameraObjects\Camera\Camera.h" />
     <ClInclude Include="Engine\Managers\CameraManager\CameraManager.h" />
     <ClInclude Include="Engine\Managers\PSO\BlendStateManager\BlendStateManager.h" />
+    <ClInclude Include="Engine\MultipleStructs\Transform.h" />
+    <ClInclude Include="Engine\MultipleStructs\VertexData.h" />
     <ClInclude Include="Engine\ResourceChecker\LeakCheck\D3DResourceLeakChecker.h" />
     <ClInclude Include="Engine\DXLib\DX12DepthStencil\DX12DepthStencil.h" />
     <ClInclude Include="Engine\MultipleStructs\DirectionalLight.h" />

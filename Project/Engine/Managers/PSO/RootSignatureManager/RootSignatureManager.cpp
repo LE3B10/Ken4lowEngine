@@ -8,6 +8,8 @@
 /// -------------------------------------------------------------
 Microsoft::WRL::ComPtr<ID3D12RootSignature> RootSignatureManager::CreateRootSignature(DirectXCommon* dxCommon)
 {
+    HRESULT hr = S_FALSE;
+
     // RootSignatureの設定
     D3D12_ROOT_SIGNATURE_DESC descriptionRootSignature{};
     descriptionRootSignature.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
@@ -56,7 +58,7 @@ Microsoft::WRL::ComPtr<ID3D12RootSignature> RootSignatureManager::CreateRootSign
     descriptionRootSignature.NumStaticSamplers = _countof(staticSamplers);
 
     // シリアライズしてバイナリに変換
-    HRESULT hr = D3D12SerializeRootSignature(&descriptionRootSignature, D3D_ROOT_SIGNATURE_VERSION_1, &signatureBlob, &errorBlob);
+    hr = D3D12SerializeRootSignature(&descriptionRootSignature, D3D_ROOT_SIGNATURE_VERSION_1, &signatureBlob, &errorBlob);
     if (FAILED(hr))
     {
         Log(reinterpret_cast<char*>(errorBlob->GetBufferPointer()));
@@ -70,11 +72,3 @@ Microsoft::WRL::ComPtr<ID3D12RootSignature> RootSignatureManager::CreateRootSign
     return rootSignature;
 }
 
-
-/// -------------------------------------------------------------
-///							ゲッター
-/// -------------------------------------------------------------
-ID3D12RootSignature* RootSignatureManager::GetRootSignature() const
-{
-	return rootSignature.Get();
-}

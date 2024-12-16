@@ -12,17 +12,17 @@ class RootSignatureManager
 public: /// ---------- メンバ関数 ---------- ///
 
 	// ルートシグネチャを生成
-	Microsoft::WRL::ComPtr<ID3D12RootSignature> CreateRootSignature(DirectXCommon* dxCommon);
+	ComPtr<ID3D12RootSignature> CreateRootSignature(DirectXCommon* dxCommon);
 
 	/// ---------- ゲッター ---------- ///
 
-	ID3D12RootSignature* GetRootSignature() const;
+	ID3D12RootSignature* GetRootSignature() const { return rootSignature.Get(); }
 
 private: /// ---------- メンバ関数 ---------- ///
 
-	Microsoft::WRL::ComPtr <ID3DBlob> signatureBlob = nullptr;
-	Microsoft::WRL::ComPtr <ID3DBlob> errorBlob = nullptr;
-	Microsoft::WRL::ComPtr <ID3D12RootSignature> rootSignature = nullptr;
+	ComPtr <ID3DBlob> signatureBlob = nullptr;
+	ComPtr <ID3DBlob> errorBlob = nullptr;
+	ComPtr <ID3D12RootSignature> rootSignature = nullptr;
 
 };
 
