@@ -24,6 +24,7 @@ public: /// ---------- メンバ関数 ---------- ///
 
 public: /// ---------- セッター ---------- ///
 
+	void SetScale(const Vector3& scale) { transform.scale = scale; }
 	void SetRotate(const Vector3& rotate) { transform.rotate = rotate; }
 	void SetTranslate(const Vector3& translate) { transform.translate = translate; }
 	void SetFovY(const float fovY) { fovY_ = fovY; }
@@ -37,7 +38,8 @@ public: /// ---------- ゲッター ---------- ///
 	const Matrix4x4& GetViewMatrix() const { return viewMatrix; }
 	const Matrix4x4& GetProjectionMatrix() const { return projectionMatrix; }
 	const Matrix4x4& GetViewProjectionMatrix() const { return viewProjevtionMatrix; }
-	const Vector3& GetRotate() const { return transform.rotate; }
+	const Vector3& GetScale() const { return transform.scale; }
+	const Vector3& GetRotation() const { return transform.rotate; }
 	const Vector3& GetTranslate() const { return transform.translate; }
 
 private: /// ---------- メンバ変数 ----- ///

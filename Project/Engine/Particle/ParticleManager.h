@@ -31,37 +31,13 @@ const uint32_t kNumMaxInstance = 100;
 /// -------------------------------------------------------------
 class ParticleManager
 {
-private: /// ---------- 構造体 ---------- ///
-
-	struct ParticleForGPU
-	{
-		Matrix4x4 WVP;
-		Matrix4x4 World;
-		Vector4 color;
-	};
-
-	struct ParticleGroup
-	{
-		// マテリアルデータ(テクスチャファイルとテクスチャ用SRVインデックス)
-		MaterialData materialData;
-		// パーティクルのリスト(std::list<Particle>型)
-		uint32_t srvIndex;
-		// インスタンシングデータ用SRVインデックス
-		ComPtr<ID3D12Resource> instancebuffer;
-		// インスタンシングリソース
-		ParticleForGPU* mappedData;
-		// インスタンス数
-		uint32_t numParticles = 0;
-		// インスタンシングデータを書き込むためのポインタ
-		std::list<Particle> particles;
-	};
-
 public: /// ---------- メンバ関数 ---------- ///
+
+	ParticleManager() = default;
+	~ParticleManager() = default;
 
 	//  シングルトンインスタンス
 	static ParticleManager* GetInstance();
-
-	ParticleManager() = default;
 
 	// 初期化処理
 	void Initialize(DirectXCommon* dxCommon, SRVManager* srvManager, Camera* camera);
@@ -81,29 +57,65 @@ public: /// ---------- メンバ関数 ---------- ///
 	// パーティクルを射出する関数
 	void Emit(const Emitter& emitter, std::mt19937& randomEngine);
 
+private: /// ---------- 構造体 ---------- ///
+
+	// GPUで使用するパーティクルの情報を格納する構造体
+	struct ParticleForGPU
+	{
+		Matrix4x4 WVP;   // ワールド・ビュー・プロジェクション行列
+		Matrix4x4 World; // ワールド行列
+		Vector4 color;   // パーティクルの色
+	};
+
+	// パーティクルグループを管理する構造体
+	struct ParticleGroup
+	{
+		MaterialData materialData;				  // マテリアルデータ(テクスチャ情報など)
+		std::list<Particle> particles;			  // パーティクルのリスト
+		uint32_t srvIndex;						  // SRVインデックス
+		ComPtr<ID3D12Resource> instancebuffer;	  // インスタンシング用バッファ
+		D3D12_CPU_DESCRIPTOR_HANDLE srvHandleCPU; // CPU用ハンドル
+		D3D12_GPU_DESCRIPTOR_HANDLE srvHandleGPU; // GPU用ハンドル
+		ParticleForGPU* mappedData;				  // バッファにマッピングされたデータ
+		uint32_t numParticles = 0;				  // パーティクル数
+	};
+
 private: /// ---------- メンバ関数 ---------- ///
 
 	// 頂点データの初期化
 	void InitializeVertexData();
-
+	
+	// パーティクルを更新
 	void UpdateParticles(ParticleGroup& group);
+	
+	// パーティクルグループを描画
 	void DrawParticleGroup(const ParticleGroup& group);
+
 
 private: /// ---------- メンバ変数 ---------- ///
 
-	DirectXCommon* dxCommon_ = nullptr;
-	SRVManager* srvManager_ = nullptr;
-	Camera* camera_;
+	// メンバ変数
+	DirectXCommon* dxCommon_ = nullptr; // DirectXの共通クラス
+	SRVManager* srvManager_ = nullptr;  // SRVマネージャー
+	Camera* camera_ = nullptr;			// カメラクラス
 
-	ModelData modelData;
+	ModelData modelData;					 // モデルデータ
+	TransformationMatrix* wvpData = nullptr; // WVP用の行列データ
 
-	ComPtr <ID3D12Resource> vertexResource;
+	ComPtr<ID3D12Resource> vertexResource;	   // 頂点リソース
+	ComPtr<ID3D12Resource> materialResource;   // マテリアルリソース
+	ComPtr<ID3D12Resource> wvpResource;		   // WVPリソース
+	ComPtr<ID3D12Resource> instancingResource; // インスタンシングリソース
 
-	std::unique_ptr<PipelineStateManager> pipelineManager_;
+	std::unique_ptr<PipelineStateManager> pipelineManager_; // パイプライン管理クラス
 
-	// パーティクルグループコンテナ
-	std::unordered_map<std::string, ParticleGroup> particleGroups;
-	std::mt19937 randomEngin;
+	std::unordered_map<std::string, ParticleGroup> particleGroups; // パーティクルグループを格納するマップ
+	std::mt19937 randomEngin; // ランダムエンジン
 
+	D3D12_VERTEX_BUFFER_VIEW vertexBufferView{}; // 頂点バッファビュー
+
+	uint32_t numInstance = 0; // インスタンス数
+	
+	Matrix4x4 backToFrontMatrix; // ビルボード行列（カメラ正面に常に向く）
 };
 

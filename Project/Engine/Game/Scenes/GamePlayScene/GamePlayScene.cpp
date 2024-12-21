@@ -88,6 +88,8 @@ void GamePlayScene::Update()
 		object3D->Update();
 	}
 
+	particleManager_->Update();
+
 	camera_->Update();
 
 	// スプライトの更新処理
@@ -114,6 +116,8 @@ void GamePlayScene::Draw()
 	{
 		sprite->Draw();
 	}
+
+	particleManager_->Draw();
 }
 
 

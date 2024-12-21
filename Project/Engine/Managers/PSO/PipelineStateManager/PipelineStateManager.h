@@ -45,6 +45,7 @@ private: /// ---------- メンバ関数 ---------- ///
 public: /// ---------- ゲッター ---------- ///
 
 	ID3D12PipelineState* GetPipelineState() const { return graphicsPipelineState_.Get(); }
+	RootSignatureManager* GetRootSignature() const { return rootSignatureManager.get(); }
 
 public: /// ---------- セッター ----- ///
 
