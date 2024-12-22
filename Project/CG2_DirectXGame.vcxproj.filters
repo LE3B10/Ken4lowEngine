@@ -63,142 +63,142 @@
     <ClCompile Include="Externals\imgui\imgui_widgets.cpp">
       <Filter>imgui</Filter>
     </ClCompile>
-    <ClCompile Include="Engine\Managers\PSO\BlendStateManager\BlendStateManager.cpp">
+    <ClCompile Include="EngineLayers\EngineLayer\Rendering\PSO\BlendStateManager\BlendStateManager.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="Engine\ResourceChecker\LeakCheck\D3DResourceLeakChecker.cpp">
+    <ClCompile Include="EngineLayers\EngineLayer\ResourceChecker\LeakCheck\D3DResourceLeakChecker.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="Engine\DXLib\DX12DepthStencil\DX12DepthStencil.cpp">
+    <ClCompile Include="EngineLayers\EngineLayer\Rendering\DXLib\DX12DepthStencil\DX12DepthStencil.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="Engine\DXLib\DirectXCommon\DirectXCommon.cpp">
+    <ClCompile Include="EngineLayers\EngineLayer\Rendering\DXLib\DirectXCommon\DirectXCommon.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="Engine\DXLib\DX12Descriptor\DX12Descriptor.cpp">
+    <ClCompile Include="EngineLayers\EngineLayer\Rendering\DXLib\DX12Descriptor\DX12Descriptor.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="Engine\DXLib\DX12Device\DX12Device.cpp">
+    <ClCompile Include="EngineLayers\EngineLayer\Rendering\DXLib\DX12Device\DX12Device.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="Engine\DXLib\DX12SwapChain\DX12SwapChain.cpp">
+    <ClCompile Include="EngineLayers\EngineLayer\Rendering\DXLib\DX12SwapChain\DX12SwapChain.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="Engine\Managers\ImGuiManager\ImGuiManager.cpp">
+    <ClCompile Include="EngineLayers\FrameworkLayer\PresentationLayer\ImGuiManager\ImGuiManager.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="Engine\Input\Input.cpp">
+    <ClCompile Include="EngineLayers\ApplicationLayer\Input\Input.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="Engine\Managers\PSO\InputLayoutManager\InputLayoutManager.cpp">
+    <ClCompile Include="EngineLayers\EngineLayer\Rendering\PSO\InputLayoutManager\InputLayoutManager.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="Engine\Utility\Log\LogString.cpp">
+    <ClCompile Include="EngineLayers\FrameworkLayer\Log\LogString.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="Engine\Utility\Matrix\Matrix4x4.cpp">
+    <ClCompile Include="EngineLayers\EngineLayer\Matrix\Matrix4x4.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="Engine\3D\Model\Model.cpp">
+    <ClCompile Include="EngineLayers\ApplicationLayer\Object\3D\Model\Model.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="Engine\Managers\ModelManager\ModelManager.cpp">
+    <ClCompile Include="EngineLayers\EngineLayer\ResourceManagement\ModelManager\ModelManager.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="Engine\3D\Object3D\Object3D.cpp">
+    <ClCompile Include="EngineLayers\ApplicationLayer\Object\3D\Object3D\Object3D.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="Engine\Managers\PSO\PipelineStateManager\PipelineStateManager.cpp">
+    <ClCompile Include="EngineLayers\EngineLayer\Rendering\PSO\PipelineStateManager\PipelineStateManager.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="Engine\Managers\PSO\RasterizerStateManager\RasterizerStateManager.cpp">
+    <ClCompile Include="EngineLayers\EngineLayer\Rendering\PSO\RasterizerStateManager\RasterizerStateManager.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="Engine\Managers\ResourceManager\ResourceManager.cpp">
+    <ClCompile Include="EngineLayers\EngineLayer\ResourceManagement\ResourceManager\ResourceManager.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="Engine\ResourceChecker\ReleseCheck\ResourceObject.cpp">
+    <ClCompile Include="EngineLayers\EngineLayer\ResourceChecker\ReleseCheck\ResourceObject.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="Engine\Managers\PSO\RootSignatureManager\RootSignatureManager.cpp">
+    <ClCompile Include="EngineLayers\EngineLayer\Rendering\PSO\RootSignatureManager\RootSignatureManager.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="Engine\Managers\PSO\ShaderManager\ShaderManager.cpp">
+    <ClCompile Include="EngineLayers\EngineLayer\Rendering\PSO\ShaderManager\ShaderManager.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="Engine\2D\Sprite\Sprite.cpp">
+    <ClCompile Include="EngineLayers\ApplicationLayer\Object\2D\Sprite\Sprite.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="Engine\2D\SpriteCommon\SpriteCommon.cpp">
+    <ClCompile Include="EngineLayers\ApplicationLayer\Object\2D\SpriteCommon\SpriteCommon.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="Engine\Managers\TextureManager\TextureManager.cpp">
+    <ClCompile Include="EngineLayers\EngineLayer\ResourceManagement\TextureManager\TextureManager.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="Engine\Utility\Vectors\Vector2.cpp">
+    <ClCompile Include="EngineLayers\EngineLayer\Vectors\Vector2.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="Engine\Utility\Vectors\Vector3.cpp">
+    <ClCompile Include="EngineLayers\EngineLayer\Vectors\Vector3.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="Engine\WindowsAPI\WinApp.cpp">
+    <ClCompile Include="EngineLayers\FrameworkLayer\WindowManagement\WindowsAPI\WinApp.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="Engine\Managers\CameraManager\CameraManager.cpp">
+    <ClCompile Include="EngineLayers\ApplicationLayer\CameraManagement\CameraManager\CameraManager.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="Engine\CameraObjects\Camera\Camera.cpp">
+    <ClCompile Include="EngineLayers\ApplicationLayer\CameraManagement\Camera\Camera.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="Engine\CameraObjects\3DCamera\MainCamera3D.cpp">
+    <ClCompile Include="EngineLayers\ApplicationLayer\CameraManagement\3DCamera\MainCamera3D.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="Engine\3D\Object3DCommon\Object3DCommon.cpp">
+    <ClCompile Include="EngineLayers\ApplicationLayer\Object\3D\Object3DCommon\Object3DCommon.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="Engine\Particle\ParticleManager.cpp">
+    <ClCompile Include="EngineLayers\EffectLayer\ParticleManager.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="Engine\Particle\ParticleEmitter.cpp">
+    <ClCompile Include="EngineLayers\EffectLayer\ParticleEmitter.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="Engine\Audio\AudioManager.cpp">
+    <ClCompile Include="EngineLayers\EngineLayer\Audio\AudioManager.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="Engine\Audio\WavLoader.cpp">
+    <ClCompile Include="EngineLayers\EngineLayer\Audio\WavLoader.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="Engine\Audio\Mp3Loader.cpp">
+    <ClCompile Include="EngineLayers\EngineLayer\Audio\Mp3Loader.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
     <ClCompile Include="WinMain.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="Engine\Game\Scenes\Work\GameEngine.cpp">
+    <ClCompile Include="EngineLayers\FrameworkLayer\Framework\GameEngine.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="Engine\Managers\SRVManager\SRVManager.cpp">
+    <ClCompile Include="EngineLayers\EngineLayer\Rendering\SRVManager\SRVManager.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="Engine\Game\Scenes\Work\Framework.cpp">
+    <ClCompile Include="EngineLayers\FrameworkLayer\Framework\Framework.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="Engine\Game\Scenes\GamePlayScene\GamePlayScene.cpp">
+    <ClCompile Include="EngineLayers\ApplicationLayer\SceneManagement\LogicLayer\GamePlayScene\GamePlayScene.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="Engine\Game\Scenes\TitleScene\TitleScene.cpp">
+    <ClCompile Include="EngineLayers\ApplicationLayer\SceneManagement\LogicLayer\TitleScene\TitleScene.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="Engine\Game\Scenes\BaseScene\BaseScene.cpp">
+    <ClCompile Include="EngineLayers\ApplicationLayer\SceneManagement\BaseScene\BaseScene.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="Engine\Managers\SceneManager\SceneManager.cpp">
+    <ClCompile Include="EngineLayers\ApplicationLayer\SceneManagement\SceneManager\SceneManager.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="Engine\Game\Scenes\SceneFactory\SceneFactory.cpp">
+    <ClCompile Include="EngineLayers\ApplicationLayer\SceneManagement\SceneFactory\SceneFactory.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="Engine\Game\Scenes\SceneFactory\AbstractSceneFactory.cpp">
+    <ClCompile Include="EngineLayers\ApplicationLayer\SceneManagement\AbstractSceneFactory\AbstractSceneFactory.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
   </ItemGroup>
@@ -237,190 +237,190 @@
     <ClInclude Include="Externals\imgui\imstb_rectpack.h">
       <Filter>imgui</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\Managers\PSO\BlendStateManager\BlendStateManager.h">
+    <ClInclude Include="EngineLayers\EngineLayer\Rendering\PSO\BlendStateManager\BlendStateManager.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\ResourceChecker\LeakCheck\D3DResourceLeakChecker.h">
+    <ClInclude Include="EngineLayers\EngineLayer\ResourceChecker\LeakCheck\D3DResourceLeakChecker.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\DXLib\DX12DepthStencil\DX12DepthStencil.h">
+    <ClInclude Include="EngineLayers\EngineLayer\Rendering\DXLib\DX12DepthStencil\DX12DepthStencil.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\MultipleStructs\DirectionalLight.h">
+    <ClInclude Include="EngineLayers\EngineLayer\MultipleStructs\DirectionalLight.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\DXLib\DirectXCommon\DirectXCommon.h">
+    <ClInclude Include="EngineLayers\EngineLayer\Rendering\DXLib\DirectXCommon\DirectXCommon.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\DXLib\DX12Descriptor\DX12Descriptor.h">
+    <ClInclude Include="EngineLayers\EngineLayer\Rendering\DXLib\DX12Descriptor\DX12Descriptor.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\DXLib\DX12Device\DX12Device.h">
+    <ClInclude Include="EngineLayers\EngineLayer\Rendering\DXLib\DX12Device\DX12Device.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\Utility\DX12Include.h">
+    <ClInclude Include="EngineLayers\EngineLayer\Rendering\DXLib\DX12Include.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\DXLib\DX12SwapChain\DX12SwapChain.h">
+    <ClInclude Include="EngineLayers\EngineLayer\Rendering\DXLib\DX12SwapChain\DX12SwapChain.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\MultipleStructs\BlendModeType.h">
+    <ClInclude Include="EngineLayers\EngineLayer\MultipleStructs\BlendModeType.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\Managers\ImGuiManager\ImGuiManager.h">
+    <ClInclude Include="EngineLayers\FrameworkLayer\PresentationLayer\ImGuiManager\ImGuiManager.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\Input\Input.h">
+    <ClInclude Include="EngineLayers\ApplicationLayer\Input\Input.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\Managers\PSO\InputLayoutManager\InputLayoutManager.h">
+    <ClInclude Include="EngineLayers\EngineLayer\Rendering\PSO\InputLayoutManager\InputLayoutManager.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\Utility\Log\LogString.h">
+    <ClInclude Include="EngineLayers\FrameworkLayer\Log\LogString.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\MultipleStructs\Material.h">
+    <ClInclude Include="EngineLayers\EngineLayer\MultipleStructs\Material.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\MultipleStructs\MaterialData.h">
+    <ClInclude Include="EngineLayers\EngineLayer\MultipleStructs\MaterialData.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\Utility\Matrix\Matrix4x4.h">
+    <ClInclude Include="EngineLayers\EngineLayer\Matrix\Matrix4x4.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\MultipleStructs\MatrixMath.h">
+    <ClInclude Include="EngineLayers\EngineLayer\MultipleStructs\MatrixMath.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\3D\Model\Model.h">
+    <ClInclude Include="EngineLayers\ApplicationLayer\Object\3D\Model\Model.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\MultipleStructs\ModelData.h">
+    <ClInclude Include="EngineLayers\EngineLayer\MultipleStructs\ModelData.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\Managers\ModelManager\ModelManager.h">
+    <ClInclude Include="EngineLayers\EngineLayer\ResourceManagement\ModelManager\ModelManager.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\3D\Object3D\Object3D.h">
+    <ClInclude Include="EngineLayers\ApplicationLayer\Object\3D\Object3D\Object3D.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\Managers\PSO\PipelineStateManager\PipelineStateManager.h">
+    <ClInclude Include="EngineLayers\EngineLayer\Rendering\PSO\PipelineStateManager\PipelineStateManager.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\Managers\PSO\RasterizerStateManager\RasterizerStateManager.h">
+    <ClInclude Include="EngineLayers\EngineLayer\Rendering\PSO\RasterizerStateManager\RasterizerStateManager.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\Managers\ResourceManager\ResourceManager.h">
+    <ClInclude Include="EngineLayers\EngineLayer\ResourceManagement\ResourceManager\ResourceManager.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\ResourceChecker\ReleseCheck\ResourceObject.h">
+    <ClInclude Include="EngineLayers\EngineLayer\ResourceChecker\ReleseCheck\ResourceObject.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\Managers\PSO\RootSignatureManager\RootSignatureManager.h">
+    <ClInclude Include="EngineLayers\EngineLayer\Rendering\PSO\RootSignatureManager\RootSignatureManager.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\Managers\PSO\ShaderManager\ShaderManager.h">
+    <ClInclude Include="EngineLayers\EngineLayer\Rendering\PSO\ShaderManager\ShaderManager.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\2D\Sprite\Sprite.h">
+    <ClInclude Include="EngineLayers\ApplicationLayer\Object\2D\Sprite\Sprite.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\2D\SpriteCommon\SpriteCommon.h">
+    <ClInclude Include="EngineLayers\ApplicationLayer\Object\2D\SpriteCommon\SpriteCommon.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\Managers\TextureManager\TextureManager.h">
+    <ClInclude Include="EngineLayers\EngineLayer\ResourceManagement\TextureManager\TextureManager.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\MultipleStructs\TransformationMatrix.h">
+    <ClInclude Include="EngineLayers\EngineLayer\MultipleStructs\TransformationMatrix.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\Utility\Vectors\Vector2.h">
+    <ClInclude Include="EngineLayers\EngineLayer\Vectors\Vector2.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\Utility\Vectors\Vector3.h">
+    <ClInclude Include="EngineLayers\EngineLayer\Vectors\Vector3.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\Utility\Vectors\Vector4.h">
+    <ClInclude Include="EngineLayers\EngineLayer\Vectors\Vector4.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\Utility\Vectors\VectorMath.h">
+    <ClInclude Include="EngineLayers\EngineLayer\Vectors\VectorMath.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\WindowsAPI\WinApp.h">
+    <ClInclude Include="EngineLayers\FrameworkLayer\WindowManagement\WindowsAPI\WinApp.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\Managers\CameraManager\CameraManager.h">
+    <ClInclude Include="EngineLayers\ApplicationLayer\CameraManagement\CameraManager\CameraManager.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\CameraObjects\Camera\Camera.h">
+    <ClInclude Include="EngineLayers\ApplicationLayer\CameraManagement\Camera\Camera.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\CameraObjects\3DCamera\MainCamera3D.h">
+    <ClInclude Include="EngineLayers\ApplicationLayer\CameraManagement\3DCamera\MainCamera3D.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\3D\Object3DCommon\Object3DCommon.h">
+    <ClInclude Include="EngineLayers\ApplicationLayer\Object\3D\Object3DCommon\Object3DCommon.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\Particle\ParticleManager.h">
+    <ClInclude Include="EngineLayers\EffectLayer\ParticleManager.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\Particle\ParticleEmitter.h">
+    <ClInclude Include="EngineLayers\EffectLayer\ParticleEmitter.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\MultipleStructs\Emitter.h">
+    <ClInclude Include="EngineLayers\EngineLayer\MultipleStructs\Emitter.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\Particle\ParticleForGPU.h">
+    <ClInclude Include="EngineLayers\EffectLayer\ParticleForGPU.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\Particle\Particle.h">
+    <ClInclude Include="EngineLayers\EffectLayer\Particle.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\MultipleStructs\AABB.h">
+    <ClInclude Include="EngineLayers\EngineLayer\MultipleStructs\AABB.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\Audio\AudioManager.h">
+    <ClInclude Include="EngineLayers\EngineLayer\Audio\AudioManager.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\Audio\WavLoader.h">
+    <ClInclude Include="EngineLayers\EngineLayer\Audio\WavLoader.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\MultipleStructs\AudioStructs.h">
+    <ClInclude Include="EngineLayers\EngineLayer\MultipleStructs\AudioStructs.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\Audio\Mp3Loader.h">
+    <ClInclude Include="EngineLayers\EngineLayer\Audio\Mp3Loader.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\Game\Scenes\Work\GameEngine.h">
+    <ClInclude Include="EngineLayers\FrameworkLayer\Framework\GameEngine.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\Managers\SRVManager\SRVManager.h">
+    <ClInclude Include="EngineLayers\EngineLayer\Rendering\SRVManager\SRVManager.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\Audio\WavLoaderException.h">
+    <ClInclude Include="EngineLayers\EngineLayer\Audio\WavLoaderException.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\Audio\PlaybackManager.h">
+    <ClInclude Include="EngineLayers\EngineLayer\Audio\PlaybackManager.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\Game\Scenes\Work\Framework.h">
+    <ClInclude Include="EngineLayers\FrameworkLayer\Framework\Framework.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\Game\Scenes\GamePlayScene\GamePlayScene.h">
+    <ClInclude Include="EngineLayers\ApplicationLayer\SceneManagement\LogicLayer\GamePlayScene\GamePlayScene.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\Game\Scenes\TitleScene\TitleScene.h">
+    <ClInclude Include="EngineLayers\ApplicationLayer\SceneManagement\LogicLayer\TitleScene\TitleScene.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\Game\Scenes\BaseScene\BaseScene.h">
+    <ClInclude Include="EngineLayers\ApplicationLayer\SceneManagement\BaseScene\BaseScene.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\Managers\SceneManager\SceneManager.h">
+    <ClInclude Include="EngineLayers\ApplicationLayer\SceneManagement\SceneManager\SceneManager.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\Game\Scenes\SceneFactory\SceneFactory.h">
+    <ClInclude Include="EngineLayers\ApplicationLayer\SceneManagement\SceneFactory\SceneFactory.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\Game\Scenes\SceneFactory\AbstractSceneFactory.h">
+    <ClInclude Include="EngineLayers\ApplicationLayer\SceneManagement\AbstractSceneFactory\AbstractSceneFactory.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
   </ItemGroup>
