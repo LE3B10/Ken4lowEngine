@@ -78,7 +78,7 @@ void GameEngine::Update()
 
 #ifdef _DEBUG
 	// 開発用のUIの処理。実際に開発用のUIを出す場合はここをゲーム固有の処理に置き換える
-	ImGui::ShowDemoWindow();
+	//ImGui::ShowDemoWindow();
 
 	// シーンのImGuiの描画処理
 	sceneManager_->DrawImGui();
