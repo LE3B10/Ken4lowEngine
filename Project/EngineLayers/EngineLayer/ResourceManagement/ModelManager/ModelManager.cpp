@@ -18,6 +18,15 @@ ModelManager* ModelManager::GetInstance()
 
 
 /// -------------------------------------------------------------
+///					シングルトンインスタンス
+/// -------------------------------------------------------------
+void ModelManager::Initialize()
+{
+
+}
+
+
+/// -------------------------------------------------------------
 ///					　.objファイルの読み込み
 /// -------------------------------------------------------------
 ModelData ModelManager::LoadObjFile(const std::string& directoryPath, const std::string& filename)

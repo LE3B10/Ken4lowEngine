@@ -19,6 +19,9 @@ public: /// ---------- メンバ関数 ---------- ///
 	// シングルトンインスタンス
 	static ModelManager* GetInstance();
 
+	// 初期化処理
+	void Initialize();
+
 	// .objファイルの読み込み
 	static ModelData LoadObjFile(const std::string& directoryPath, const std::string& filename);
 
