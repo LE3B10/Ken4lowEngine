@@ -84,12 +84,6 @@ void Object3D::DrawImGui()
 }
 
 
-void Object3D::CameraImGui()
-{
-	model_->CameraImGui();
-}
-
-
 /// -------------------------------------------------------------
 ///					　		描画処理
 /// -------------------------------------------------------------
@@ -204,12 +198,12 @@ void Object3D::InitializeVertexBufferData(DirectXCommon* dxCommon)
 	vertexBufferView.StrideInBytes = sizeof(VertexData);														 // 1頂点あたりのサイズ
 #pragma endregion
 
-	VertexData* vertexData = nullptr;																			 // 頂点リソースにデータを書き込む
-	vertexResource->Map(0, nullptr, reinterpret_cast<void**>(&vertexData));										 // 書き込むためのアドレスを取得
-
+	VertexData* vertexData = nullptr;										// 頂点リソースにデータを書き込む
+	vertexResource->Map(0, nullptr, reinterpret_cast<void**>(&vertexData)); // 書き込むためのアドレスを取得
 	// モデルデータの頂点データをコピー
 	std::memcpy(vertexData, modelData.vertices.data(), sizeof(VertexData) * modelData.vertices.size());
-
+	// アンマップ
+	vertexResource->Unmap(0, nullptr);
 
 	// 球体の頂点データをコピー
 	VertexData* sphereVertexData = vertexData + modelData.vertices.size();
@@ -242,7 +236,4 @@ void Object3D::InitializeVertexBufferData(DirectXCommon* dxCommon)
 			sphereVertexData[start + 5] = calculateVertex(nextLat, lon, u, v - 1.0f / float(kSubdivision));
 		}
 	}
-
-	// アンマップ
-	vertexResource->Unmap(0, nullptr);
 }

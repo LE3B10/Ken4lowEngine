@@ -8,6 +8,9 @@
 #include <Input.h>
 #include <BaseScene.h>
 
+#include <Player.h>
+#include <CameraManager.h>
+
 // クライアント領域サイズ
 static const uint32_t kClientWidth = 1280;
 static const uint32_t kClientHeight = 720;
@@ -46,8 +49,15 @@ private: /// ---------- メンバ変数 ---------- ///
 	// トランスフォーム
 	Transform transform_;
 
+	// プレイヤーのインスタンスを追加
+	std::unique_ptr<Player> player_;
+
 	std::unique_ptr<SRVManager> srvManager;
+	
 	std::unique_ptr<Camera> camera_;
+	std::unique_ptr<CameraManager> cameraManager_;
+
+
 	std::unique_ptr<WavLoader> wavLoader_;
 
 	std::vector<std::unique_ptr<Sprite>> sprites_;
@@ -60,20 +70,6 @@ private: /// ---------- メンバ変数 ---------- ///
 	std::vector<Vector3> initialPositions;
 
 
-	std::array<float, 3> lanePositions_ = { -3.0f, 0.0f, 3.0f };// レーンのX座標
-	int currentLaneIndex_ = 1; // 現在のレーン（中央）
-	float moveSpeed_ = 0.1f; // 線形補間のスピード
-
-	// ジャンプ処理用
-	bool isJumping_ = false;           // ジャンプ中フラグ
-	float jumpVelocity_ = 0.2f;        // ジャンプ初速度
-	float gravity_ = -0.01f;           // 重力加速度
-	float jumpHeight_ = -1.0f;          // ジャンプのY座標オフセット
-
-	// 回転処理用
-	bool isRotating_ = false;          // 回転中フラグ
-	float rotationAngle_ = 0.0f;       // 現在の回転角度
-	float rotationSpeed_ = 10.0f;      // 回転速度 (度/フレーム)
-	int rotationCount_ = 0;            // 回転カウント
+	
 };
 

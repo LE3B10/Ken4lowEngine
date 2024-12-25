@@ -40,9 +40,6 @@ public: /// ---------- メンバ関数 ---------- ///
 	// 描画処理
 	void DrawCall(ID3D12GraphicsCommandList* commandList);
 
-	// カメラ操作
-	void CameraImGui();
-
 	// ImGUiの描画
 	void DrawImGui();
 

@@ -51,10 +51,10 @@ private: /// ---------- メンバ変数 ----- ///
 
 	// プロジェクション行列関連データ
 	Matrix4x4 projectionMatrix;
-	float fovY_;		   // 水平方向視野角
+	float fovY_;		// 水平方向視野角
 	float aspectRatio_; // アスペクト比
-	float nearClip_;	   // ニアクリップ
-	float farClip_;	   // ファークリップ
+	float nearClip_;    // ニアクリップ
+	float farClip_;	    // ファークリップ
 
 	// 合成行列
 	Matrix4x4 viewProjevtionMatrix;

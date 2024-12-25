@@ -67,13 +67,6 @@ void Model::DrawCall(ID3D12GraphicsCommandList* commandList)
 	commandList->DrawInstanced(UINT(modelData.vertices.size()), 1, 0, 0);
 }
 
-void Model::CameraImGui()
-{
-	/*ImGui::DragFloat3("cameraTranslate", &cameraTransform.translate.x, 0.01f);
-	ImGui::SliderAngle("CameraRotateX", &cameraTransform.rotate.x);
-	ImGui::SliderAngle("CameraRotateY", &cameraTransform.rotate.y);
-	ImGui::SliderAngle("CameraRotateZ", &cameraTransform.rotate.z);*/
-}
 
 void Model::DrawImGui()
 {

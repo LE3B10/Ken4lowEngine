@@ -39,9 +39,6 @@ public: /// ---------- メンバ関数 ---------- ///
 	// ImGui
 	void DrawImGui();
 
-	// カメラ専用のImGui
-	void CameraImGui();
-
 	// ドローコール
 	void Draw();
 
