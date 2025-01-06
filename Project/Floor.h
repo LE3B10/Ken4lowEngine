@@ -36,10 +36,10 @@ public: /// ---------- メンバ関数 ---------- ///
 
 private: /// ---------- メンバ変数 ---------- ///
 
-	Camera* camera;
+	Camera* camera = nullptr;
 
 	std::vector<std::unique_ptr<Object3D>> floorObjects_; // 床の3Dオブジェクト
 	std::vector<Tile> tiles_; // 各床タイルの情報
-	float radius_;
+	float radius_ = 0.0f;
 };
 

@@ -3,7 +3,11 @@
 #include <Input.h>
 #include <Floor.h>
 #include <ObstacleManager.h>
+#include <SceneManager.h>
 
+/// -------------------------------------------------------------
+///                     初期化処理
+/// -------------------------------------------------------------
 void Player::Initialize(Object3DCommon* object3DCommon)
 {
 	playerObject_ = std::make_unique<Object3D>();
@@ -12,27 +16,95 @@ void Player::Initialize(Object3DCommon* object3DCommon)
 	playerObject_->SetTranslate(transform_.translate);
 }
 
+/// -------------------------------------------------------------
+///                     更新処理
+/// -------------------------------------------------------------
 void Player::Update(Input* input, Floor* floor, const ObstacleManager* obstacleManager)
+{
+	Handle(input, floor);
+
+	// 実行中の衝突判定
+	if (CheckCollisionWithObstacles(obstacleManager))
+	{
+		OutputDebugStringA("Collision detected!\n");  // 衝突時の処理
+
+		// シーン遷移をリクエスト
+		SceneManager::GetInstance()->ChangeScene("GameResultScene");
+	}
+
+	// カメラのターゲットをプレイヤー位置に設定
+	if (camera_)
+	{
+		camera_->SetTargetPosition(transform_.translate);
+	}
+
+	// 位置を更新
+	playerObject_->SetTranslate(transform_.translate);
+	playerObject_->SetRotate(transform_.rotate);
+
+	// プレイヤーオブジェクトの更新
+	playerObject_->Update();
+}
+
+/// -------------------------------------------------------------
+///                     描画処理
+/// -------------------------------------------------------------
+void Player::Draw()
+{
+	playerObject_->Draw();
+}
+
+/// -------------------------------------------------------------
+///                     衝突判定
+/// -------------------------------------------------------------
+bool Player::CheckCollisionWithObstacles(const ObstacleManager* obstacleManager)
+{
+	if (!obstacleManager) return false;
+
+	// プレイヤーのAABBを計算
+	const float playerMinX = transform_.translate.x - 0.5f;  // X最小
+	const float playerMaxX = transform_.translate.x + 0.5f;  // X最大
+	const float playerMinY = transform_.translate.y - 0.5f;  // Y最小
+	const float playerMaxY = transform_.translate.y + 0.5f;  // Y最大
+	const float playerMinZ = transform_.translate.z - 0.5f;  // Z最小
+	const float playerMaxZ = transform_.translate.z + 0.5f;  // Z最大
+
+	for (const auto& obstacle : obstacleManager->GetObstacles())
+	{
+		// 障害物のAABBを計算
+		const Transform& obstacleTransform = obstacle.GetTransform();
+		const float obstacleMinX = obstacleTransform.translate.x - 0.5f;
+		const float obstacleMaxX = obstacleTransform.translate.x + 0.5f;
+		const float obstacleMinY = obstacleTransform.translate.y - 0.5f;
+		const float obstacleMaxY = obstacleTransform.translate.y + 0.5f;
+		const float obstacleMinZ = obstacleTransform.translate.z - 0.5f;
+		const float obstacleMaxZ = obstacleTransform.translate.z + 0.5f;
+
+		// AABB判定
+		if (playerMaxX > obstacleMinX && playerMinX < obstacleMaxX &&  // X軸の重なり
+			playerMaxY > obstacleMinY && playerMinY < obstacleMaxY &&  // Y軸の重なり
+			playerMaxZ > obstacleMinZ && playerMinZ < obstacleMaxZ)    // Z軸の重なり
+		{
+			return true;  // 衝突を検出
+		}
+	}
+
+	return false;  // 衝突なし
+}
+
+void Player::Handle(Input* input, Floor* floor)
 {
 	// レーン変更
 	if (input->TriggerKey(DIK_RIGHT) && laneInfo_.currentIndex < 2)
 	{
 		laneInfo_.currentIndex++;
-
-		// 回転状態をリセット
-		rotationInfo_.isRotating = false;
-		rotationInfo_.angle = 0.0f;
-		rotationInfo_.count = 0;
+		rotationInfo_ = { false, 0.0f, 10.0f, 0 }; // 回転状態のリセット
 	}
 
 	if (input->TriggerKey(DIK_LEFT) && laneInfo_.currentIndex > 0)
 	{
 		laneInfo_.currentIndex--;
-
-		// 回転状態をリセット
-		rotationInfo_.isRotating = false;
-		rotationInfo_.angle = 0.0f;
-		rotationInfo_.count = 0;
+		rotationInfo_ = { false, 0.0f, 10.0f, 0 }; // 回転状態のリセット
 	}
 
 	// 目標位置を取得
@@ -41,47 +113,30 @@ void Player::Update(Input* input, Floor* floor, const ObstacleManager* obstacleM
 	// 線形補間で現在位置を更新
 	transform_.translate.x += (targetX - transform_.translate.x) * laneInfo_.moveSpeed;
 
-	// 床の高さを取得し、プレイヤーのY座標を固定
+	// 底の高さを取得し、プレイヤーのY座標を固定
 	if (floor)
 	{
 		float floorHeight = floor->GetFloorHeightAt(transform_.translate.x, transform_.translate.z);
-		transform_.translate.y = floorHeight; // 床の高さにY座標を合わせる
+		transform_.translate.y = floorHeight; // 底の高さにY座標を合わせる
 	}
 
 	// ジャンプ処理
 	if (input->PushKey(DIK_UP) && !jumpInfo_.isJumping)
 	{
-		// ジャンプ開始時に回転状態をリセット
-		jumpInfo_.isJumping = true;
-		jumpInfo_.height = 0.0f;
-
-		// 回転状態をリセット
-		rotationInfo_.isRotating = false;
-		rotationInfo_.angle = 0.0f;
-		rotationInfo_.count = 0;
+		jumpInfo_ = { true, 0.25f, -0.01f, 0.0f }; // ジャンプ開始
 	}
 
 	if (jumpInfo_.isJumping)
 	{
-		// 落下速度増加処理（空中で回転中の場合）
-		if (rotationInfo_.isRotating)
-		{
-			jumpInfo_.gravity = -0.03f; // 通常の倍の重力加速度
-		}
-		else
-		{
-			jumpInfo_.gravity = -0.01f; // 通常の重力加速度
-		}
-
+		// 落下速度増加処理
+		jumpInfo_.gravity = rotationInfo_.isRotating ? -0.03f : -0.01f;
 		jumpInfo_.height += jumpInfo_.velocity;  // ジャンプの上昇
 		jumpInfo_.velocity += jumpInfo_.gravity; // 重力を加算
 
 		// 地面に到達したら停止
 		if (jumpInfo_.height <= 0.0f)
 		{
-			jumpInfo_.height = 0.0f;
-			jumpInfo_.velocity = 0.25f;  // 初速度をリセット
-			jumpInfo_.isJumping = false;
+			jumpInfo_ = { false, 0.25f, -0.01f, 0.0f }; // ジャンプ閉上
 		}
 	}
 
@@ -90,9 +145,7 @@ void Player::Update(Input* input, Floor* floor, const ObstacleManager* obstacleM
 	// 回転処理
 	if (input->TriggerKey(DIK_DOWN) && !rotationInfo_.isRotating)
 	{
-		rotationInfo_.isRotating = true;
-		rotationInfo_.angle = 0.0f;
-		rotationInfo_.count = 0;
+		rotationInfo_ = { true, 0.0f, 10.0f, 0 }; // 回転開始
 	}
 
 	if (rotationInfo_.isRotating)
@@ -106,53 +159,9 @@ void Player::Update(Input* input, Floor* floor, const ObstacleManager* obstacleM
 
 		if (rotationInfo_.count >= 2) // 2回転で終了
 		{
-			rotationInfo_.isRotating = false;
-			rotationInfo_.angle = 0.0f;
+			rotationInfo_ = { false, 0.0f, 10.0f, 0 };
 		}
 	}
 
 	transform_.rotate.x = rotationInfo_.angle; // X軸回転角を更新
-
-	if (CheckCollisionWithObstacles(obstacleManager))
-	{
-		OutputDebugStringA("Collision detected!\n");  // 衝突時の処理
-	}
-
-	// カメラのターゲットをプレイヤー位置に設定
-	if (camera_)
-	{
-		camera_->SetTargetPosition(transform_.translate);
-	}
-
-	// 位置を更新
-	playerObject_->SetTranslate(transform_.translate);
-	playerObject_->SetRotate(transform_.rotate);
-	// プレイヤーオブジェクトの更新
-	playerObject_->Update();
-}
-
-void Player::Draw()
-{
-	playerObject_->Draw();
-}
-
-bool Player::CheckCollisionWithObstacles(const ObstacleManager* obstacleManager)
-{
-	if (!obstacleManager) return false;
-
-	const float collisionThresholdX = 1.0f;  // X方向の衝突閾値
-	const float collisionThresholdZ = 1.0f;  // Z方向の衝突閾値
-
-	for (const auto& obstacle : obstacleManager->GetObstacles())
-	{
-		const Transform& obstacleTransform = obstacle.GetTransform();
-
-		// XとZの差が閾値以内であれば衝突と判定
-		if (std::abs(obstacleTransform.translate.x - transform_.translate.x) < collisionThresholdX &&
-			std::abs(obstacleTransform.translate.z - transform_.translate.z) < collisionThresholdZ)
-		{
-			return true;  // 衝突を検出
-		}
-	}
-	return false;  // 衝突なし
 }

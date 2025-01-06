@@ -32,7 +32,7 @@ private: /// ---------- メンバ変数 ---------- ///
     std::vector<Obstacle> obstacles_;  // 障害物のリスト
     std::default_random_engine randomEngine_;  // 乱数生成用エンジン
     std::uniform_int_distribution<int> laneDistribution_;  // レーンのランダム選択
-    float laneWidth_;  // レーン間の幅
-    float obstacleSpacing_;  // 障害物間の距離
+    float laneWidth_ = 0.0f;  // レーン間の幅
+    float obstacleSpacing_ = 0.0f;  // 障害物間の距離
 };
 

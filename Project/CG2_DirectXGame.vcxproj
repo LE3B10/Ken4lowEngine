@@ -167,6 +167,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClCompile Include="EngineLayers\ApplicationLayer\SceneManagement\SceneManager\SceneManager.cpp" />
     <ClCompile Include="EngineLayers\ApplicationLayer\SceneManagement\LogicLayer\TitleScene\TitleScene.cpp" />
     <ClCompile Include="Floor.cpp" />
+    <ClCompile Include="GameResultScene.cpp" />
     <ClCompile Include="Obstacle.cpp" />
     <ClCompile Include="ObstacleManager.cpp" />
     <ClCompile Include="Player.cpp" />
@@ -265,6 +266,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="EngineLayers\ApplicationLayer\SceneManagement\SceneManager\SceneManager.h" />
     <ClInclude Include="EngineLayers\ApplicationLayer\SceneManagement\LogicLayer\TitleScene\TitleScene.h" />
     <ClInclude Include="Floor.h" />
+    <ClInclude Include="GameResultScene.h" />
     <ClInclude Include="Obstacle.h" />
     <ClInclude Include="ObstacleManager.h" />
     <ClInclude Include="Player.h" />

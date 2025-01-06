@@ -68,6 +68,6 @@ private: /// ---------- メンバ変数 ----- ///
 	Vector3 target_; // カメラが注視するターゲットの位置
 
 	Vector3 targetPosition_; // プレイヤーの現在位置
-	float followSpeed_ = 0.1f; // カメラの追従速度
+	float followSpeed_ = 0.05f; // カメラの追従速度
 };
 

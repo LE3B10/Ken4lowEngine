@@ -2,6 +2,7 @@
 #include <BaseScene.h>
 #include <TitleScene.h>
 #include <GamePlayScene.h>
+#include <GameResultScene.h>
 #include "AbstractSceneFactory.h"
 
 /// -------------------------------------------------------------
