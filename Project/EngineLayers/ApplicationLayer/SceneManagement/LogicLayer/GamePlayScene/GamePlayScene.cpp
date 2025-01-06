@@ -30,7 +30,7 @@ void GamePlayScene::Initialize()
 	floor_->Initialize(object3DCommon_.get(), 30, 50.0f, 10.0f, 3.0f); // 床タイルを五枚生成
 
 	obstacleManager_ = std::make_unique<ObstacleManager>();
-	obstacleManager_->Initialize(object3DCommon_.get(), 30, 50.0f, 10.0f, 3.0f);
+	obstacleManager_->Initialize(object3DCommon_.get(), 30, 80.0f, 10.0f, 3.0f);
 
 	/// ---------- サウンドの初期化 ---------- ///
 	const char* fileName = "Resources/Sounds/Get-Ready.wav";

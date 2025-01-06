@@ -12,7 +12,7 @@ class ObstacleManager
 public: /// ---------- メンバ関数 ---------- ///
 
     // 初期化処理
-    void Initialize(Object3DCommon* object3DCommon, int initialObstacleCount, float startZ, float spacing, float laneWidth);
+    void Initialize(Object3DCommon* object3DCommon, int totalObstacleCount, float startZ, float spacing, float laneWidth);
 
     // 更新処理
     void Update(float scrollSpeed);
@@ -34,5 +34,13 @@ private: /// ---------- メンバ変数 ---------- ///
     std::uniform_int_distribution<int> laneDistribution_;  // レーンのランダム選択
     float laneWidth_ = 0.0f;  // レーン間の幅
     float obstacleSpacing_ = 0.0f;  // 障害物間の距離
+    float spawnTimer_ = 0.0f; // 障害物生成用のタイマー
+    float spawnInterval_ = 2.0f; // 障害物生成の感覚（秒）
+    float initialZPosition_ = 80.0f; // 障害物生成の初期位置
+
+    int initialObstacleCount_ = 1; // ゲーム開始時に生成する障害物の数
+    int totalObstacleCount_ = 10; // 全体で生成される障害物の最大数
+    
+    Object3DCommon* object3DCommon_ = nullptr;
 };
 
