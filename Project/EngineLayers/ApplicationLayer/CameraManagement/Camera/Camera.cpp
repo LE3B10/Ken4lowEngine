@@ -18,10 +18,10 @@ Camera::Camera() :
 /// -------------------------------------------------------------
 void Camera::Update()
 {
-	float angleRadians = DegreesToRadians(-30.0f); // 30度をラジアンに変換
+	float angleRadians = DegreesToRadians(-15.0f); // 25度をラジアンに変換
 
 	if (followPlayer) {
-		float height = 15.0f; // 高さ
+		float height = 7.0f; // 高さ
 		float distance = 20.0f; // 距離
 
 		// 線形補間で追従

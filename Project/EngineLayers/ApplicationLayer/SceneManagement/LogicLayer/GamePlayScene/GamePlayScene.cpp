@@ -31,6 +31,9 @@ void GamePlayScene::Initialize()
 	player_->SetLanePositions({ -3.0f,0.0f,3.0f }); // レーンの位置を設定
 	player_->SetCamera(camera_.get());
 
+	floor_ = std::make_unique<Floor>();
+	floor_->Initialize(object3DCommon_.get(), 30, 50.0f, 10.0f, 3.0f); // 床タイルを五枚生成
+
 	/// ---------- サウンドの初期化 ---------- ///
 	const char* fileName = "Resources/Sounds/Get-Ready.wav";
 	wavLoader_ = std::make_unique<WavLoader>();
@@ -44,7 +47,10 @@ void GamePlayScene::Initialize()
 void GamePlayScene::Update()
 {
 	// プレイヤーの更新処理
-	player_->Update(input_);
+	player_->Update(input_, floor_.get());
+
+	// フロアの更新処理
+	floor_->Update(0.2f, camera_.get()); // スクロール速度を設定
 
 	// カメラの更新
 	camera_->Update();
@@ -58,6 +64,9 @@ void GamePlayScene::Draw()
 {
 	// プレイヤーの描画処理
 	player_->Draw();
+
+	// 床を描画
+	floor_->Draw(camera_.get());
 }
 
 

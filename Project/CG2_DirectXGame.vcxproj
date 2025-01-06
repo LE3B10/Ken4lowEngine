@@ -166,6 +166,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClCompile Include="EngineLayers\ApplicationLayer\SceneManagement\SceneFactory\SceneFactory.cpp" />
     <ClCompile Include="EngineLayers\ApplicationLayer\SceneManagement\SceneManager\SceneManager.cpp" />
     <ClCompile Include="EngineLayers\ApplicationLayer\SceneManagement\LogicLayer\TitleScene\TitleScene.cpp" />
+    <ClCompile Include="Floor.cpp" />
     <ClCompile Include="Player.cpp" />
     <ClCompile Include="WinMain.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
@@ -261,6 +262,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="EngineLayers\ApplicationLayer\SceneManagement\SceneFactory\SceneFactory.h" />
     <ClInclude Include="EngineLayers\ApplicationLayer\SceneManagement\SceneManager\SceneManager.h" />
     <ClInclude Include="EngineLayers\ApplicationLayer\SceneManagement\LogicLayer\TitleScene\TitleScene.h" />
+    <ClInclude Include="Floor.h" />
     <ClInclude Include="Player.h" />
   </ItemGroup>
   <ItemGroup>

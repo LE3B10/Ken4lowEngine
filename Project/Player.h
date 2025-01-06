@@ -6,6 +6,7 @@
 
 class Object3DCommon;
 class Input;
+class Floor;
 
 /// -------------------------------------------------------------
 ///				　		プレイヤーの挙動
@@ -26,9 +27,9 @@ public: /// ---------- 構造体 ---------- ///
 	struct JumpInfo
 	{
 		bool isJumping = false; // ジャンプ中フラグ
-		float velocity = 0.2f;  // ジャンプ初速度
+		float velocity = 0.25f;  // ジャンプ初速度
 		float gravity = -0.01f; // 重力加速度
-		float height = -1.0f;	// ジャンプのY座標オフセット
+		float height = 0.0f;	// ジャンプのY座標オフセット
 	};
 
 	// 回転処理用構造体
@@ -46,7 +47,7 @@ public: /// ---------- メンバ関数 ---------- ///
 	void Initialize(Object3DCommon* object3DCommon);
 
 	// 更新処理
-	void Update(Input* input);
+	void Update(Input* input, Floor* floor);
 
 	// 描画処理
 	void Draw();
@@ -57,6 +58,7 @@ public: /// ---------- メンバ関数 ---------- ///
 	void SetCamera(Camera* camera) { camera_ = camera; }
 
 	// ゲッタ
+	int GetLaneindex() const { return laneInfo_.currentIndex; } // 現在のレーンを取得
 	Transform GetTransform() const { return transform_; }
 
 private: /// ---------- メンバ関数 ---------- ///

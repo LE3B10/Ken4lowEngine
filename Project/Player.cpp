@@ -1,16 +1,17 @@
 #include "Player.h"
 #include "Object3DCommon.h"
 #include <Input.h>
+#include <Floor.h>
 
 void Player::Initialize(Object3DCommon* object3DCommon)
 {
 	playerObject_ = std::make_unique<Object3D>();
 	playerObject_->Initialize(object3DCommon, "plane.obj");
-	transform_ = { {1.0f,1.0f,1.0f}, {0.0f,0.0f,0.0f}, {0.0f,-1.0f,0.0f} };
+	transform_ = { {1.0f,1.0f,1.0f}, {0.0f,0.0f,0.0f}, {0.0f, 0.0f,0.0f} };
 	playerObject_->SetTranslate(transform_.translate);
 }
 
-void Player::Update(Input* input)
+void Player::Update(Input* input, Floor* floor)
 {
     // レーン変更
     if (input->TriggerKey(DIK_RIGHT) && laneInfo_.currentIndex < 2)
@@ -39,12 +40,19 @@ void Player::Update(Input* input)
     // 線形補間で現在位置を更新
     transform_.translate.x += (targetX - transform_.translate.x) * laneInfo_.moveSpeed;
 
+    // 床の高さを取得し、プレイヤーのY座標を固定
+    if (floor)
+    {
+        float floorHeight = floor->GetFloorHeightAt(transform_.translate.x, transform_.translate.z);
+        transform_.translate.y = floorHeight; // 床の高さにY座標を合わせる
+    }
+
     // ジャンプ処理
     if (input->PushKey(DIK_UP) && !jumpInfo_.isJumping)
     {
         // ジャンプ開始時に回転状態をリセット
         jumpInfo_.isJumping = true;
-        jumpInfo_.height = -1.0f;
+        jumpInfo_.height = 0.0f;
 
         // 回転状態をリセット
         rotationInfo_.isRotating = false;
@@ -68,10 +76,10 @@ void Player::Update(Input* input)
         jumpInfo_.velocity += jumpInfo_.gravity; // 重力を加算
 
         // 地面に到達したら停止
-        if (jumpInfo_.height <= -1.0f)
+        if (jumpInfo_.height <= 0.0f)
         {
-            jumpInfo_.height = -1.0f;
-            jumpInfo_.velocity = 0.2f;  // 初速度をリセット
+            jumpInfo_.height = 0.0f;
+            jumpInfo_.velocity = 0.25f;  // 初速度をリセット
             jumpInfo_.isJumping = false;
         }
     }
@@ -104,18 +112,17 @@ void Player::Update(Input* input)
 
     transform_.rotate.x = rotationInfo_.angle; // X軸回転角を更新
 
-    // 位置を更新
-    playerObject_->SetTranslate(transform_.translate);
-    playerObject_->SetRotate(transform_.rotate);
-
-    // プレイヤーオブジェクトの更新
-    playerObject_->Update();
-
     // カメラのターゲットをプレイヤー位置に設定
     if (camera_)
     {
         camera_->SetTargetPosition(transform_.translate);
     }
+
+    // 位置を更新
+    playerObject_->SetTranslate(transform_.translate);
+    playerObject_->SetRotate(transform_.rotate);
+    // プレイヤーオブジェクトの更新
+    playerObject_->Update();
 }
 
 void Player::Draw()

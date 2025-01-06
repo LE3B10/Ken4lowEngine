@@ -10,6 +10,7 @@
 
 #include <Player.h>
 #include <CameraManager.h>
+#include <Floor.h>
 
 // クライアント領域サイズ
 static const uint32_t kClientWidth = 1280;
@@ -63,6 +64,7 @@ private: /// ---------- メンバ変数 ---------- ///
 	std::vector<std::unique_ptr<Sprite>> sprites_;
 	std::unique_ptr<Object3D> playerObject_;
 	std::unique_ptr<Object3DCommon> object3DCommon_;
+	std::unique_ptr<Floor> floor_;
 
 	// テクスチャのパスをリストで管理
 	std::vector<std::string> texturePaths_;
