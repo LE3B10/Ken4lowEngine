@@ -14,9 +14,6 @@ public: /// ---------- メンバ関数 ---------- ///
 	// デフォルトコンストラクタ
 	Camera();
 
-	// 初期化処理
-	void Initialize(uint32_t Width, uint32_t Height);
-
 	// 更新処理
 	void Update();
 
@@ -30,6 +27,9 @@ public: /// ---------- セッター ---------- ///
 	void SetAspectRatio(const float aspectRatio) { aspectRatio_ = aspectRatio; }
 	void SetNearClip(const float nearClip) { nearClip_ = nearClip; }
 	void SetFarClip(const float farClip) { farClip_ = farClip; }
+	void SetTarget(const Vector3& targetPosition) { target_ = targetPosition; }
+	void SetTargetPosition(const Vector3& target) { targetPosition_ = target; }
+	void SetFollowSpeed(float speed) { followSpeed_ = speed; }
 
 public: /// ---------- ゲッター ---------- ///
 
@@ -40,7 +40,13 @@ public: /// ---------- ゲッター ---------- ///
 	const Vector3& GetRotate() const { return transform.rotate; }
 	const Vector3& GetTranslate() const { return transform.translate; }
 
+
 private: /// ---------- メンバ変数 ----- ///
+	float DegreesToRadians(float degrees) {
+		return degrees * (3.14159265359f / 180.0f); // π / 180
+	}
+
+	bool followPlayer = true;
 
 	float kWidth, kHeight;
 
@@ -59,5 +65,9 @@ private: /// ---------- メンバ変数 ----- ///
 	// 合成行列
 	Matrix4x4 viewProjevtionMatrix;
 
+	Vector3 target_; // カメラが注視するターゲットの位置
+
+	Vector3 targetPosition_; // プレイヤーの現在位置
+	float followSpeed_ = 0.1f; // カメラの追従速度
 };
 

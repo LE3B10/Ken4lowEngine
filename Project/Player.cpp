@@ -110,6 +110,12 @@ void Player::Update(Input* input)
 
     // プレイヤーオブジェクトの更新
     playerObject_->Update();
+
+    // カメラのターゲットをプレイヤー位置に設定
+    if (camera_)
+    {
+        camera_->SetTargetPosition(transform_.translate);
+    }
 }
 
 void Player::Draw()

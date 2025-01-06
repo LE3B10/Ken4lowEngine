@@ -2,6 +2,7 @@
 #include <Object3D.h>
 #include <array>
 #include <Transform.h>
+#include <Camera.h>
 
 class Object3DCommon;
 class Input;
@@ -14,7 +15,7 @@ class Player
 public: /// ---------- 構造体 ---------- ///
 
 	// レーン管理用構造体
-	struct LaneInfo 
+	struct LaneInfo
 	{
 		std::array<float, 3> positions = { -3.0f, 0.0f, 3.0f }; // レーンのX座標
 		int currentIndex = 1; // 現在のレーン（中央）
@@ -46,20 +47,26 @@ public: /// ---------- メンバ関数 ---------- ///
 
 	// 更新処理
 	void Update(Input* input);
-	
+
 	// 描画処理
 	void Draw();
 
 	// セッタ
 	void SetLanePositions(const std::array<float, 3>& lanePositions) { laneInfo_.positions = lanePositions; }
 
+	void SetCamera(Camera* camera) { camera_ = camera; }
+
 	// ゲッタ
 	Transform GetTransform() const { return transform_; }
 
+private: /// ---------- メンバ関数 ---------- ///
+
 private: /// ---------- メンバ変数 ---------- ///
-	
+
 	std::unique_ptr<Object3D> playerObject_;
 	Transform transform_;
+
+	Camera* camera_;  // カメラ参照
 
 	LaneInfo laneInfo_; // レーン管理
 	JumpInfo jumpInfo_; // ジャンプ処理

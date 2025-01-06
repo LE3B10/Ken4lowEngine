@@ -29,7 +29,7 @@ void GamePlayScene::Initialize()
 	player_ = std::make_unique<Player>();
 	player_->Initialize(object3DCommon_.get());
 	player_->SetLanePositions({ -3.0f,0.0f,3.0f }); // レーンの位置を設定
-
+	player_->SetCamera(camera_.get());
 
 	/// ---------- サウンドの初期化 ---------- ///
 	const char* fileName = "Resources/Sounds/Get-Ready.wav";
