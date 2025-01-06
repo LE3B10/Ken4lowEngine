@@ -7,6 +7,7 @@
 class Object3DCommon;
 class Input;
 class Floor;
+class ObstacleManager;
 
 /// -------------------------------------------------------------
 ///				　		プレイヤーの挙動
@@ -47,10 +48,12 @@ public: /// ---------- メンバ関数 ---------- ///
 	void Initialize(Object3DCommon* object3DCommon);
 
 	// 更新処理
-	void Update(Input* input, Floor* floor);
+	void Update(Input* input, Floor* floor, const ObstacleManager* obstacleManager);
 
 	// 描画処理
 	void Draw();
+
+	bool CheckCollisionWithObstacles(const ObstacleManager* obstacleManager);
 
 	// セッタ
 	void SetLanePositions(const std::array<float, 3>& lanePositions) { laneInfo_.positions = lanePositions; }

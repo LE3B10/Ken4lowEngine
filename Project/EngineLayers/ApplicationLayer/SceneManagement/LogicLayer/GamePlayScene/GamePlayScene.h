@@ -11,6 +11,7 @@
 #include <Player.h>
 #include <CameraManager.h>
 #include <Floor.h>
+#include <ObstacleManager.h>
 
 // クライアント領域サイズ
 static const uint32_t kClientWidth = 1280;
@@ -65,13 +66,11 @@ private: /// ---------- メンバ変数 ---------- ///
 	std::unique_ptr<Object3D> playerObject_;
 	std::unique_ptr<Object3DCommon> object3DCommon_;
 	std::unique_ptr<Floor> floor_;
+	std::unique_ptr<ObstacleManager> obstacleManager_;
 
 	// テクスチャのパスをリストで管理
 	std::vector<std::string> texturePaths_;
 	std::vector<std::string> objectFiles;
 	std::vector<Vector3> initialPositions;
-
-
-	
 };
 
