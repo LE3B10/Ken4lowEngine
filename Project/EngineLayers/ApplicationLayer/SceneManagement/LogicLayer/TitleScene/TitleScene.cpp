@@ -44,7 +44,7 @@ void TitleScene::Initialize()
 
 	/// ---------- サウンドの初期化 ---------- ///
 	const char* fileName = "Resources/Sounds/GameTitleBGM.wav";
-	wavLoader_->StreamAudioAsync(fileName, 0.2f, 1.0f, false);
+	wavLoader_->StreamAudioAsync(fileName, 0.2f, 1.0f, true);
 }
 
 

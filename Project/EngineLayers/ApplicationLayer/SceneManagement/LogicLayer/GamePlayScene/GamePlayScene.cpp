@@ -35,7 +35,7 @@ void GamePlayScene::Initialize()
 	/// ---------- サウンドの初期化 ---------- ///
 	const char* fileName = "Resources/Sounds/GamePlayBGM.wav";
 	wavLoader_ = std::make_unique<WavLoader>();
-	wavLoader_->StreamAudioAsync(fileName, 0.2f, 1.0f, false);
+	wavLoader_->StreamAudioAsync(fileName, 0.2f, 1.0f, true);
 }
 
 
