@@ -1,6 +1,15 @@
 #pragma once
-#include "BaseScene.h"
-#include <Input.h>
+#include <Sprite.h>
+#include <TextureManager.h>
+#include <WavLoader.h>
+#include <SRVManager.h>
+#include "Input.h"
+#include <BaseScene.h>
+
+
+/// ---------- 前方宣言 ---------- ///
+class DirectXCommon;
+class ImGuiManager;
 
 
 /// -------------------------------------------------------------
@@ -25,6 +34,14 @@ public: /// ---------- メンバ関数 ---------- ///
     void DrawImGui() override;
 
 private:
-
+    DirectXCommon* dxCommon_ = nullptr;
+    TextureManager* textureManager = nullptr;
     Input* input = nullptr;
+
+    std::unique_ptr<WavLoader> wavLoader_;
+
+    std::vector<std::unique_ptr<Sprite>> sprites_;
+
+    // テクスチャのパスをリストで管理
+    std::vector<std::string> texturePaths_;
 };

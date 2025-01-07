@@ -15,8 +15,7 @@ void TitleScene::Initialize()
 
 	// テクスチャのパスをリストで管理
 	texturePaths_ = {
-		"Resources/monsterBall.png",
-		//"Resources/uvChecker.png",
+		"Resources/GameTitle.png",
 	};
 
 	/// ---------- TextureManagerの初期化 ----------///
@@ -44,7 +43,7 @@ void TitleScene::Initialize()
 	}
 
 	/// ---------- サウンドの初期化 ---------- ///
-	const char* fileName = "Resources/Sounds/RPGBattle01.wav";
+	const char* fileName = "Resources/Sounds/GameTitleBGM.wav";
 	wavLoader_->StreamAudioAsync(fileName, 0.2f, 1.0f, false);
 }
 

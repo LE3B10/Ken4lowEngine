@@ -11,10 +11,11 @@
 void Player::Initialize(Object3DCommon* object3DCommon)
 {
 	playerObject_ = std::make_unique<Object3D>();
-	playerObject_->Initialize(object3DCommon, "plane.obj");
+	playerObject_->Initialize(object3DCommon, "player.obj");
 	transform_ = { {1.0f,1.0f,1.0f}, {0.0f,0.0f,0.0f}, {0.0f, 0.0f,0.0f} };
 	playerObject_->SetTranslate(transform_.translate);
 }
+
 
 /// -------------------------------------------------------------
 ///                     更新処理
@@ -46,6 +47,7 @@ void Player::Update(Input* input, Floor* floor, const ObstacleManager* obstacleM
 	playerObject_->Update();
 }
 
+
 /// -------------------------------------------------------------
 ///                     描画処理
 /// -------------------------------------------------------------
@@ -53,6 +55,7 @@ void Player::Draw()
 {
 	playerObject_->Draw();
 }
+
 
 /// -------------------------------------------------------------
 ///                     衝突判定
@@ -62,23 +65,23 @@ bool Player::CheckCollisionWithObstacles(const ObstacleManager* obstacleManager)
 	if (!obstacleManager) return false;
 
 	// プレイヤーのAABBを計算
-	const float playerMinX = transform_.translate.x - 0.5f;  // X最小
-	const float playerMaxX = transform_.translate.x + 0.5f;  // X最大
-	const float playerMinY = transform_.translate.y - 0.5f;  // Y最小
-	const float playerMaxY = transform_.translate.y + 0.5f;  // Y最大
-	const float playerMinZ = transform_.translate.z - 0.5f;  // Z最小
-	const float playerMaxZ = transform_.translate.z + 0.5f;  // Z最大
+	const float playerMinX = transform_.translate.x - 0.8f;  // X最小
+	const float playerMaxX = transform_.translate.x + 0.8f;  // X最大
+	const float playerMinY = transform_.translate.y - 0.8f;  // Y最小
+	const float playerMaxY = transform_.translate.y + 0.8f;  // Y最大
+	const float playerMinZ = transform_.translate.z - 0.8f;  // Z最小
+	const float playerMaxZ = transform_.translate.z + 0.8f;  // Z最大
 
 	for (const auto& obstacle : obstacleManager->GetObstacles())
 	{
 		// 障害物のAABBを計算
 		const Transform& obstacleTransform = obstacle.GetTransform();
-		const float obstacleMinX = obstacleTransform.translate.x - 0.5f;
-		const float obstacleMaxX = obstacleTransform.translate.x + 0.5f;
-		const float obstacleMinY = obstacleTransform.translate.y - 0.5f;
-		const float obstacleMaxY = obstacleTransform.translate.y + 0.5f;
-		const float obstacleMinZ = obstacleTransform.translate.z - 0.5f;
-		const float obstacleMaxZ = obstacleTransform.translate.z + 0.5f;
+		const float obstacleMinX = obstacleTransform.translate.x - 0.8f;
+		const float obstacleMaxX = obstacleTransform.translate.x + 0.8f;
+		const float obstacleMinY = obstacleTransform.translate.y - 0.8f;
+		const float obstacleMaxY = obstacleTransform.translate.y + 0.8f;
+		const float obstacleMinZ = obstacleTransform.translate.z - 0.8f;
+		const float obstacleMaxZ = obstacleTransform.translate.z + 0.8f;
 
 		// AABB判定
 		if (playerMaxX > obstacleMinX && playerMinX < obstacleMaxX &&  // X軸の重なり
@@ -92,16 +95,20 @@ bool Player::CheckCollisionWithObstacles(const ObstacleManager* obstacleManager)
 	return false;  // 衝突なし
 }
 
+
+/// -------------------------------------------------------------
+///							移動処理
+/// -------------------------------------------------------------
 void Player::Handle(Input* input, Floor* floor)
 {
 	// レーン変更
-	if (input->TriggerKey(DIK_RIGHT) && laneInfo_.currentIndex < 2)
+	if ((input->TriggerKey(DIK_RIGHT) || input->TriggerKey(DIK_D)) && laneInfo_.currentIndex < 2)
 	{
 		laneInfo_.currentIndex++;
 		rotationInfo_ = { false, 0.0f, 10.0f, 0 }; // 回転状態のリセット
 	}
 
-	if (input->TriggerKey(DIK_LEFT) && laneInfo_.currentIndex > 0)
+	if ((input->TriggerKey(DIK_LEFT) || input->TriggerKey(DIK_A)) && laneInfo_.currentIndex > 0)
 	{
 		laneInfo_.currentIndex--;
 		rotationInfo_ = { false, 0.0f, 10.0f, 0 }; // 回転状態のリセット
@@ -121,7 +128,7 @@ void Player::Handle(Input* input, Floor* floor)
 	}
 
 	// ジャンプ処理
-	if (input->PushKey(DIK_UP) && !jumpInfo_.isJumping)
+	if ((input->PushKey(DIK_UP) || input->TriggerKey(DIK_W) || input->TriggerKey(DIK_SPACE)) && !jumpInfo_.isJumping)
 	{
 		jumpInfo_ = { true, 0.25f, -0.01f, 0.0f }; // ジャンプ開始
 	}
@@ -143,7 +150,7 @@ void Player::Handle(Input* input, Floor* floor)
 	transform_.translate.y = jumpInfo_.height; // Y座標を更新
 
 	// 回転処理
-	if (input->TriggerKey(DIK_DOWN) && !rotationInfo_.isRotating)
+	if ((input->TriggerKey(DIK_DOWN) || input->TriggerKey(DIK_S)) && !rotationInfo_.isRotating)
 	{
 		rotationInfo_ = { true, 0.0f, 10.0f, 0 }; // 回転開始
 	}

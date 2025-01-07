@@ -33,7 +33,7 @@ void GamePlayScene::Initialize()
 	obstacleManager_->Initialize(object3DCommon_.get(), 30, 80.0f, 10.0f, 3.0f);
 
 	/// ---------- サウンドの初期化 ---------- ///
-	const char* fileName = "Resources/Sounds/Get-Ready.wav";
+	const char* fileName = "Resources/Sounds/GamePlayBGM.wav";
 	wavLoader_ = std::make_unique<WavLoader>();
 	wavLoader_->StreamAudioAsync(fileName, 0.2f, 1.0f, false);
 }

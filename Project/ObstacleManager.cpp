@@ -97,6 +97,6 @@ void ObstacleManager::SpawnObstacle(Object3DCommon* object3DCommon, float zPosit
 
 	// 障害物を生成
 	Obstacle obstacle;
-	obstacle.Initialize(object3DCommon, "plane.obj", transform);  // モデルファイル名を適切に設定
+	obstacle.Initialize(object3DCommon, "obstacle.obj", transform);  // モデルファイル名を適切に設定
 	obstacles_.push_back(std::move(obstacle));
 }
