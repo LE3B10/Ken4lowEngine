@@ -40,15 +40,17 @@ void GamePlayScene::Initialize()
 		"multiMaterial.obj",
 		"multiMesh.obj",
 		"plane.obj",
-		//"Skydome.obj",
+		"cube.gltf",
+		"sphere.gltf",
 	};
 
 	std::vector<Vector3> initialPositions = {
-	{ -1.0f, 1.0f, 0.0f},    // axis.obj の座標
-	{ 4.0f, 0.75f, 0.0f},    // multiMaterial.obj の座標
-	{ -1.0f, -2.0f, 0.0f},    // multiMesh.obj の座標
-	{ 4.0f, -2.0f, 0.0f},    // plane.obj の座標
-	//{ 0.0f, 0.0f, 0.0f},    // skydome.obj の座標
+		{ -2.0f, 2.0f, 10.0f},    // axis.obj の座標
+		{ 5.0f, 1.75f, 10.0f},    // multiMaterial.obj の座標
+		{ -2.0f, -3.0f, 10.0f},   // multiMesh.obj の座標
+		{ 5.0f, -3.0f, 10.0f},    // plane.obj の座標
+		{ -2.0f, 0.0f, 10.0f},    // cube.gltf の座標
+		{ 2.0f, 0.0f, 10.0f},     // sphere.gltf の座標
 	};
 
 	/// ---------- カメラ初期化処理 ---------- ///
@@ -118,7 +120,7 @@ void GamePlayScene::Draw()
 /// -------------------------------------------------------------
 void GamePlayScene::Finalize()
 {
-	
+
 }
 
 
