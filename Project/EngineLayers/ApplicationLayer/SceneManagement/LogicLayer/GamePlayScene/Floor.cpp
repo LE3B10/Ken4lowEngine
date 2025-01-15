@@ -38,7 +38,7 @@ void Floor::Update(float scrollSpeed, const Camera* camera)
         // 再配置（カメラの後方に抜けた場合）
         if (tiles_[i].transform.translate.z < camera->GetTranslate().z - 50.0f) // カメラの後方一定距離
         {
-            tiles_[i].transform.translate.z += tileCount / 3 * 10.0f; // 再配置（レーンごとの間隔調整）
+            tiles_[i].transform.translate.z += tileCount / 3.0f * 10.0f; // 再配置（レーンごとの間隔調整）
         }
 
         // 位置をオブジェクトに反映

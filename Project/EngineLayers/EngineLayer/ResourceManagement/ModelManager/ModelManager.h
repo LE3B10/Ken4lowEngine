@@ -9,6 +9,11 @@
 #include <string>
 #include <unordered_map>
 
+// Assimp
+#include <assimp/Importer.hpp>
+#include <assimp/scene.h>
+#include <assimp/postprocess.h>
+
 /// -------------------------------------------------------------
 ///					モデルマネージャークラス
 /// -------------------------------------------------------------
@@ -18,9 +23,6 @@ public: /// ---------- メンバ関数 ---------- ///
 
 	// シングルトンインスタンス
 	static ModelManager* GetInstance();
-
-	// 初期化処理
-	void Initialize();
 
 	// .objファイルの読み込み
 	static ModelData LoadObjFile(const std::string& directoryPath, const std::string& filename);
@@ -35,7 +37,7 @@ private: /// ---------- 静的メンバ関数 ---------- ///
 
 	// 頂点データを解析する関数
 	static Vector4 ParseVertex(std::istringstream& s);
-	
+
 	// テクスチャ座標データを解析する関数
 	static Vector2 ParseTexcoord(std::istringstream& s);
 
@@ -47,6 +49,32 @@ private: /// ---------- 静的メンバ関数 ---------- ///
 
 	// .mtlファイルの読み取り
 	static MaterialData LoadMaterialTemplateFile(const std::string& directoryPath, const std::string& filename);
+
+public: /// ---------- メンバ関数（Assimp）---------- ///
+
+	// モデルファイル読み込み
+	static ModelData LoadModelFile(const std::string& directoryPath, const std::string& filename);
+
+	// Objファイルを読み込む関数
+	static ModelData LoadObjFile1(const std::string& directoryPath, const std::string& filename);
+
+	// .gltfファイルを読み込む関数
+	static ModelData LoadGLTFFile(const std::string& directoryPath, const std::string& filename);
+
+private: /// ---------- メンバ関数（Assimp用）---------- ///
+
+	// AssimpのNodeから構造体に変換する関数
+	static Node ReadNode(aiNode* node);
+
+	// 
+	static void ParseMeshes(const aiScene* scene, const std::string& directoryPath, ModelData& modelData);
+
+	// gltf特有の処理
+	static void HandleGltfSpecifics(const aiScene* scene);
+
+	// obj特有の処理
+	static void HandleObjSpecifics(const aiScene* scene);
+
 
 private: /// ---------- メンバ変数 ---------- ///
 

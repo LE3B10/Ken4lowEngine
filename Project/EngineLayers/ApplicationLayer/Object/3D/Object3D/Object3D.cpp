@@ -23,7 +23,7 @@ void Object3D::Initialize(Object3DCommon* object3dCommon, const std::string& fil
 	//model_->Initialize("Resources", fileName);
 
 	// モデル読み込み
-	modelData = ModelManager::LoadObjFile("Resources", fileName);
+	modelData = ModelManager::LoadModelFile("Resources", fileName);
 
 	// .objファイルの参照しているテクスチャファイル読み込み
 	TextureManager::GetInstance()->LoadTexture(modelData.material.textureFilePath);
