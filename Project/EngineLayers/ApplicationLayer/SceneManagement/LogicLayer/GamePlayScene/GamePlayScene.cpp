@@ -1,6 +1,8 @@
 #include "GamePlayScene.h"
 #include <DirectXCommon.h>
 #include <ImGuiManager.h>
+#include <Input.h>
+#include <ParameterManager.h>
 
 /// -------------------------------------------------------------
 ///				　			　初期化処理
@@ -8,7 +10,7 @@
 void GamePlayScene::Initialize()
 {
 	dxCommon_ = DirectXCommon::GetInstance();
-
+	input_ = Input::GetInstance();
 	textureManager = TextureManager::GetInstance();
 
 	// テクスチャのパスをリストで管理

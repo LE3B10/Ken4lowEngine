@@ -18,10 +18,6 @@ void Object3D::Initialize(Object3DCommon* object3dCommon, const std::string& fil
 
 	object3dCommon_ = object3dCommon;
 
-	//// モデル読み込み
-	//model_ = std::make_unique<Model>();
-	//model_->Initialize("Resources", fileName);
-
 	// モデル読み込み
 	modelData = ModelManager::LoadModelFile("Resources", fileName);
 
@@ -36,9 +32,6 @@ void Object3D::Initialize(Object3DCommon* object3dCommon, const std::string& fil
 
 	camera_ = object3dCommon_->GetDefaultCamera();
 
-	//model_->SetRotate(transform.rotate);
-	//model_->SetTranslate(transform.translate);
-
 	preInitialize(dxCommon);
 }
 
@@ -49,10 +42,7 @@ void Object3D::Initialize(Object3DCommon* object3dCommon, const std::string& fil
 void Object3D::Update()
 {
 	Matrix4x4 worldMatrix = MakeAffineMatrix(transform.scale, transform.rotate, transform.translate);
-	Matrix4x4 worldViewProjectionMatrix;// = Multiply(worldMatrix, Multiply(viewMatrix, projectionMatrix));
-	/*Matrix4x4 camraMatrix = MakeAffineMatrix(cameraTransform.scale, cameraTransform.rotate, cameraTransform.translate);
-	Matrix4x4 viewMatrix = Inverse(camraMatrix);
-	Matrix4x4 projectionMatrix = MakePerspectiveFovMatrix(0.45f, 1280.0f / 720.0f, 0.1f, 100.0f);*/
+	Matrix4x4 worldViewProjectionMatrix;
 
 	if (camera_)
 	{
