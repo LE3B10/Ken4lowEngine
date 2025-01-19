@@ -1,5 +1,6 @@
 #include "GameEngine.h"
 #include "SceneFactory.h"
+#include "ParameterManager.h"
 
 
 /// -------------------------------------------------------------
@@ -9,6 +10,9 @@ void GameEngine::Initialize()
 {
 	// 基底クラスの初期化処理
 	Framework::Initialize();
+
+	// グローバル変数の読み込み
+	ParameterManager::GetInstance()->LoadFiles();
 
 	// シングルトンインスタンス取得
 	sceneManager_ = SceneManager::GetInstance();
@@ -79,6 +83,9 @@ void GameEngine::Update()
 #ifdef _DEBUG
 	// 開発用のUIの処理。実際に開発用のUIを出す場合はここをゲーム固有の処理に置き換える
 	ImGui::ShowDemoWindow();
+
+	// グローバル変数の更新
+	ParameterManager::GetInstance()->Update();
 
 	// シーンのImGuiの描画処理
 	sceneManager_->DrawImGui();

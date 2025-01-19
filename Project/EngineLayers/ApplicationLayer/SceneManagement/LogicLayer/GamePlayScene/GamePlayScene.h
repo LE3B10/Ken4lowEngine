@@ -14,7 +14,9 @@ static const uint32_t kClientHeight = 720;
 
 /// ---------- 前方宣言 ---------- ///
 class DirectXCommon;
+class Input;
 class ImGuiManager;
+
 
 /// -------------------------------------------------------------
 ///				　		ゲームプレイシーン
@@ -41,6 +43,7 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	DirectXCommon* dxCommon_ = nullptr;
 	TextureManager* textureManager = nullptr;
+	Input* input_ = nullptr;
 
 	std::unique_ptr<SRVManager> srvManager;
 	std::unique_ptr<Camera> camera_;
