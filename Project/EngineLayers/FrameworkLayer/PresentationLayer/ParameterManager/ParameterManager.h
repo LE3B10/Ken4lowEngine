@@ -8,8 +8,6 @@
 
 // コードの冗長を防ぐため省略
 using json = nlohmann::json;
-using Item = std::variant<int32_t, float, Vector3, bool>;
-using Group = std::map<std::string, Item>;
 
 
 /// -------------------------------------------------------------
@@ -17,7 +15,7 @@ using Group = std::map<std::string, Item>;
 /// -------------------------------------------------------------
 class ParameterManager
 {
-public: /// ---------- 構造体 ---------- ///
+private: /// ---------- 構造体 ---------- ///
 
 	// 項目構造体
 	struct Item
@@ -67,45 +65,92 @@ public: /// ---------- メンバ関数 ---------- ///
 
 public: /// ---------- 項目の設定 ---------- ///
 
-	// 値のセット（int）
-	void SetValue(const std::string& groupName, const std::string& key, int32_t value);
+	/// <summary>
+	/// 項目の値を設定するテンプレート関数
+	/// </summary>
+	/// <typeparam name="T">設定する値の型（int32_t, float, Vector3, bool のいずれか）</typeparam>
+	/// <param name="groupName">設定対象のグループ名</param>
+	/// <param name="key">設定対象の項目名</param>
+	/// <param name="value">設定する値</param>
+	template<typename T>
+	void SetValue(const std::string& groupName, const std::string& key, const T& value)
+	{
+		static_assert(std::is_same_v<T, int32_t> || std::is_same_v<T, float> ||
+			std::is_same_v<T, Vector3> || std::is_same_v<T, bool>,
+			"Unsupported type for SetValue"); // サポートされていない型の場合はコンパイルエラー
 
-	// 値のセット（float）
-	void SetValue(const std::string& groupName, const std::string& key, float value);
-
-	// 値のセット（Vector3）	
-	void SetValue(const std::string& groupName, const std::string& key, Vector3& value);
-
-	// 値のセット（bool）
-	void SetValue(const std::string& groupName, const std::string& key, bool value);
+		// グループを取得し、新しい項目を作成して設定する
+		Group& group = datas_[groupName];
+		Item newItem{};
+		newItem.value = value;
+		group.items[key] = newItem;
+	}
 
 public: /// ---------- 項目の追加 ---------- ///
 
-	// 項目の追加（int）
-	void AddItem(const std::string& groupName, const std::string& key, int32_t value);
-
-	// 項目の追加（float）
-	void AddItem(const std::string& groupName, const std::string& key, float value);
-
-	// 項目の追加（Vector3）
-	void AddItem(const std::string& groupName, const std::string& key, Vector3& value);
-
-	// 項目の追加（bool）
-	void AddItem(const std::string& groupName, const std::string& key, bool value);
+	/// <summary>
+	/// 項目を追加するテンプレート関数
+	/// </summary>
+	/// <typeparam name="T">追加する値の型（int32_t, float, Vector3, bool のいずれか）</typeparam>
+	/// <param name="groupName">追加対象のグループ名</param>
+	/// <param name="key">追加する項目の名前</param>
+	/// <param name="value">追加する項目の初期値</param>
+	template<typename T>
+	void AddItem(const std::string& groupName, const std::string& key, const T& value)
+	{
+		// キーが存在しない場合のみ項目を追加
+		if (datas_[groupName].items.find(key) == datas_[groupName].items.end())
+		{
+			SetValue(groupName, key, value);
+		}
+	}
 
 public: /// ---------- 項目の取得 ---------- ///
 
-	// 値の取得（int）
-	int32_t GetIntValue(const std::string& groupName, const std::string& key) const;
+	/// <summary>
+	/// 項目の値を取得するテンプレート関数
+	/// </summary>
+	/// <typeparam name="T">取得する値の型（int32_t, float, Vector3, bool のいずれか）</typeparam>
+	/// <param name="groupName">取得対象のグループ名</param>
+	/// <param name="key">取得対象の項目名</param>
+	/// <returns>指定された型の値を返す</returns>
+	/// <exception cref="std::runtime_error">
+	/// グループやキーが見つからない場合、または型が一致しない場合にスローされる
+	template<typename T>
+	T GetValue(const std::string& groupName, const std::string& key) const
+	{
+		static_assert(std::is_same_v<T, int32_t> || std::is_same_v<T, float> ||
+			std::is_same_v<T, Vector3> || std::is_same_v<T, bool>,
+			"Unsupported type for GetValue"); // サポートされていない型の場合はコンパイルエラー
 
-	// 値の取得（float）
-	float GetFloatValue(const std::string& groupName, const std::string& key) const;
+		// グループが存在しない場合のエラーハンドリング
+		auto groupIt = datas_.find(groupName);
+		if (groupIt == datas_.end())
+		{
+			throw std::runtime_error("Group not found: " + groupName);
+		}
 
-	// 値の取得（vector3）
-	Vector3 GetVector3Value(const std::string& groupName, const std::string& key) const;
+		// キーが存在しない場合のエラーハンドリング
+		const auto& group = groupIt->second;
+		auto itemIt = group.items.find(key);
+		if (itemIt == group.items.end())
+		{
+			throw std::runtime_error("Key not found: " + key);
+		}
 
-	// 値の取得（bool）
-	bool GetBoolValue(const std::string& groupName, const std::string& key) const;
+		// 型の一致を確認して値を取得
+		const auto& item = itemIt->second;
+		if (auto value = std::get_if<T>(&item.value))
+		{
+			return *value; // 値を返す
+		}
+
+		throw std::runtime_error("Type mismatch for key: " + key); // 型が一致しない場合
+	}
+
+private: /// ---------- メンバ関数 ---------- ///
+
+	void DrawItem(const std::string& itemName, ParameterManager::Item& item);
 
 private: /// ---------- メンバ変数 ---------- ///
 

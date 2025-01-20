@@ -9,6 +9,8 @@
 
 #include "Object3DCommon.h"
 
+#include "ParameterManager.h"
+
 /// -------------------------------------------------------------
 ///					　		初期化処理
 /// -------------------------------------------------------------
@@ -17,7 +19,7 @@ void Object3D::Initialize(Object3DCommon* object3dCommon, const std::string& fil
 	dxCommon = DirectXCommon::GetInstance();
 
 	object3dCommon_ = object3dCommon;
-
+	
 	// モデル読み込み
 	modelData = ModelManager::LoadModelFile("Resources", fileName);
 
