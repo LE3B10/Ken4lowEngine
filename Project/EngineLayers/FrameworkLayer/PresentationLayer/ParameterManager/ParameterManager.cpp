@@ -78,7 +78,7 @@ void ParameterManager::Update()
 
 
 /// -------------------------------------------------------------
-///			　			ファイルを
+///			　			ファイルを保存する処理
 /// -------------------------------------------------------------
 void ParameterManager::SaveFile(const std::string& groupName)
 {
