@@ -49,28 +49,15 @@ void ParameterManager::Update()
 		if (!ImGui::BeginMenu(groupName.c_str()))
 			continue;
 
-		for (auto& [itemName, item] : group.items)
+		for (auto& [groupName, group] : datas_)
 		{
-			// 各型ごとに個別処理
-			if (std::holds_alternative<int32_t>(item.value))
+			if (ImGui::CollapsingHeader(groupName.c_str()))
 			{
-				int32_t& value = std::get<int32_t>(item.value);
-				ImGui::SliderInt(itemName.c_str(), &value, 0, 100);
-			}
-			else if (std::holds_alternative<float>(item.value))
-			{
-				float& value = std::get<float>(item.value);
-				ImGui::SliderFloat(itemName.c_str(), &value, 0.0f, 100.0f);
-			}
-			else if (std::holds_alternative<Vector3>(item.value))
-			{
-				Vector3& value = std::get<Vector3>(item.value);
-				ImGui::SliderFloat3(itemName.c_str(), reinterpret_cast<float*>(&value), -10.0f, 10.0f);
-			}
-			else if (std::holds_alternative<bool>(item.value))
-			{
-				bool& value = std::get<bool>(item.value);
-				ImGui::Checkbox(itemName.c_str(), &value);
+				for (auto& [itemName, item] : group.items)
+				{
+					// 各アイテムの型に応じたUI描画
+					DrawItem(itemName, item);
+				}
 			}
 		}
 
@@ -91,7 +78,7 @@ void ParameterManager::Update()
 
 
 /// -------------------------------------------------------------
-///			　			項目の設定（int32_t）
+///			　			ファイルを
 /// -------------------------------------------------------------
 void ParameterManager::SaveFile(const std::string& groupName)
 {
@@ -108,20 +95,26 @@ void ParameterManager::SaveFile(const std::string& groupName)
 	// グループの全項目をループ
 	for (const auto& [itemName, item] : itGroup->second.items)
 	{
-		// 項目の型に応じて値を保存
+		/// ---------- int32_t型を保持している場合 ---------- ///
 		if (std::holds_alternative<int32_t>(item.value))
 		{
 			root[groupName][itemName] = std::get<int32_t>(item.value);
 		}
+
+		/// ---------- float型を保持している場合 ---------- ///
 		else if (std::holds_alternative<float>(item.value))
 		{
 			root[groupName][itemName] = std::get<float>(item.value);
 		}
+
+		/// ---------- Vector3を保持している場合 ---------- ///
 		else if (std::holds_alternative<Vector3>(item.value))
 		{
 			const Vector3& vec = std::get<Vector3>(item.value);
 			root[groupName][itemName] = json::array({ vec.x, vec.y, vec.z });
 		}
+
+		/// ---------- bool型を保持している場合 ---------- ///
 		else if (std::holds_alternative<bool>(item.value))
 		{
 			root[groupName][itemName] = std::get<bool>(item.value);
@@ -232,22 +225,22 @@ void ParameterManager::LoadFile(const std::string& groupName)
 			int32_t value = itItem->get<int32_t>();
 			SetValue(groupName, itemName, value);
 		}
-		
+
 		/// ---------- float型を保持している場合 ---------- ///
 		else if (itItem->is_number_float())
 		{
 			float value = itItem->get<float>();
 			SetValue(groupName, itemName, value);
 		}
-		
+
 		/// ---------- 要素数3の配列である場合 ---------- ///
 		else if (itItem->is_array() && itItem->size() == 3)
 		{
 			Vector3 value = { itItem->at(0), itItem->at(1), itItem->at(2) };
 			SetValue(groupName, itemName, value);
 		}
-		
-/// ---------- bool型を保持している場合 ---------- ///
+
+		/// ---------- bool型を保持している場合 ---------- ///
 		else if (itItem->is_boolean())
 		{
 			bool value = itItem->get<bool>();
@@ -265,208 +258,36 @@ void ParameterManager::LoadFile(const std::string& groupName)
 
 
 /// -------------------------------------------------------------
-///			　			項目の設定（int32_t）
+///                 アイテムを描画する関数
 /// -------------------------------------------------------------
-void ParameterManager::SetValue(const std::string& groupName, const std::string& key, int32_t value)
+void ParameterManager::DrawItem(const std::string& itemName, ParameterManager::Item& item)
 {
-	// グループの参照を取得
-	Group& group = datas_[groupName];
-
-	// 新しい項目のデータを設定
-	Item newItem{};
-	newItem.value = value;
-
-	// 設定した項目をstd::mapに追加
-	group.items[key] = newItem;
-}
-
-
-/// -------------------------------------------------------------
-///			　			項目の設定（float）
-/// -------------------------------------------------------------
-void ParameterManager::SetValue(const std::string& groupName, const std::string& key, float value)
-{
-	// グループの参照を取得
-	Group& group = datas_[groupName];
-
-	// 新しい項目のデータを設定
-	Item newItem{};
-	newItem.value = value;
-
-	// 設定した項目をstd::mapに追加
-	group.items[key] = newItem;
-}
-
-
-/// -------------------------------------------------------------
-///			　			項目の設定（Vector3）
-/// -------------------------------------------------------------
-void ParameterManager::SetValue(const std::string& groupName, const std::string& key, Vector3& value)
-{
-	// グループの参照を取得
-	Group& group = datas_[groupName];
-
-	// 新しい項目のデータを設定
-	Item newItem{};
-	newItem.value = value;
-
-	// 設定した項目をstd::mapに追加
-	group.items[key] = newItem;
-}
-
-
-/// -------------------------------------------------------------
-///			　			項目の設定（bool）
-/// -------------------------------------------------------------
-void ParameterManager::SetValue(const std::string& groupName, const std::string& key, bool value)
-{
-	// グループの参照を取得
-	Group& group = datas_[groupName];
-
-	// 新しい項目のデータを設定
-	Item newItem{};
-	newItem.value = value;
-
-	// 設定した項目をstd::mapに追加
-	group.items[key] = newItem;
-}
-
-
-/// -------------------------------------------------------------
-///			　			項目の追加（int32_t）
-/// -------------------------------------------------------------
-void ParameterManager::AddItem(const std::string& groupName, const std::string& key, int32_t value)
-{
-	// グループを検索または作成
-	Group& group = datas_[groupName];
-
-	// 項目が未登録なら
-	if (group.items.find(key) == group.items.end())
+	/// ---------- int32_t型を保持している場合 ---------- ///
+	if (std::holds_alternative<int32_t>(item.value))
 	{
-		SetValue(groupName, key, value);
+		int32_t& value = std::get<int32_t>(item.value);
+		ImGui::SliderInt(itemName.c_str(), &value, 0, 100);
 	}
-}
-
-
-/// -------------------------------------------------------------
-///			　			項目の追加（float）
-/// -------------------------------------------------------------
-void ParameterManager::AddItem(const std::string& groupName, const std::string& key, float value)
-{
-	// グループを検索または作成
-	Group& group = datas_[groupName];
-
-	// 項目が未登録なら
-	if (group.items.find(key) == group.items.end())
+	/// ---------- float型を保持している場合 ---------- ///
+	else if (std::holds_alternative<float>(item.value))
 	{
-		SetValue(groupName, key, value);
+		float& value = std::get<float>(item.value);
+		ImGui::SliderFloat(itemName.c_str(), &value, 0.0f, 100.0f);
 	}
-}
-
-
-/// -------------------------------------------------------------
-///			　			項目の追加（Vector3）
-/// -------------------------------------------------------------
-void ParameterManager::AddItem(const std::string& groupName, const std::string& key, Vector3& value)
-{
-	// グループを検索または作成
-	Group& group = datas_[groupName];
-
-	// 項目が未登録なら
-	if (group.items.find(key) == group.items.end())
+	/// ---------- Vector3を保持している場合 ---------- ///
+	else if (std::holds_alternative<Vector3>(item.value))
 	{
-		SetValue(groupName, key, value);
+		Vector3& value = std::get<Vector3>(item.value);
+		ImGui::SliderFloat3(itemName.c_str(), reinterpret_cast<float*>(&value), -10.0f, 10.0f);
 	}
-}
-
-
-/// -------------------------------------------------------------
-///			　			項目の追加（bool）
-/// -------------------------------------------------------------
-void ParameterManager::AddItem(const std::string& groupName, const std::string& key, bool value)
-{
-	// グループを検索または作成
-	Group& group = datas_[groupName];
-
-	// 項目が未登録なら
-	if (group.items.find(key) == group.items.end())
+	/// ---------- bool型を保持している場合 ---------- ///
+	else if (std::holds_alternative<bool>(item.value))
 	{
-		SetValue(groupName, key, value);
+		bool& value = std::get<bool>(item.value);
+		ImGui::Checkbox(itemName.c_str(), &value);
 	}
-}
-
-
-/// -------------------------------------------------------------
-///			　			値の取得（int32_t）
-/// -------------------------------------------------------------
-int32_t ParameterManager::GetIntValue(const std::string& groupName, const std::string& key) const
-{
-	// グループが存在することを確認
-	assert(datas_.find(groupName) != datas_.end());
-
-	// グループの参照を取得
-	const Group& group = datas_.at(groupName);
-
-	// キーが存在することを確認
-	assert(group.items.find(key) != group.items.end());
-
-	// 値を取得して返す
-	return std::get<int32_t>(group.items.at(key).value);
-}
-
-
-/// -------------------------------------------------------------
-///			　			値の取得（float）
-/// -------------------------------------------------------------
-float ParameterManager::GetFloatValue(const std::string& groupName, const std::string& key) const
-{
-	// グループが存在することを確認
-	assert(datas_.find(groupName) != datas_.end());
-
-	// グループの参照を取得
-	const Group& group = datas_.at(groupName);
-
-	// キーが存在することを確認
-	assert(group.items.find(key) != group.items.end());
-
-	// 値を取得して返す
-	return std::get<float>(group.items.at(key).value);
-}
-
-
-/// -------------------------------------------------------------
-///			　			値の取得（Vector3）
-/// -------------------------------------------------------------
-Vector3 ParameterManager::GetVector3Value(const std::string& groupName, const std::string& key) const
-{
-	// グループが存在することを確認
-	assert(datas_.find(groupName) != datas_.end());
-
-	// グループの参照を取得
-	const Group& group = datas_.at(groupName);
-
-	// キーが存在することを確認
-	assert(group.items.find(key) != group.items.end());
-
-	// 値を取得して返す
-	return std::get<Vector3>(group.items.at(key).value);
-}
-
-
-/// -------------------------------------------------------------
-///			　			値の取得（bool）
-/// -------------------------------------------------------------
-bool ParameterManager::GetBoolValue(const std::string& groupName, const std::string& key) const
-{
-	// グループが存在することを確認
-	assert(datas_.find(groupName) != datas_.end());
-
-	// グループの参照を取得
-	const Group& group = datas_.at(groupName);
-
-	// キーが存在することを確認
-	assert(group.items.find(key) != group.items.end());
-
-	// 値を取得して返す
-	return std::get<bool>(group.items.at(key).value);
+	else
+	{
+		ImGui::Text("Unsupported type for item: %s", itemName.c_str());
+	}
 }
