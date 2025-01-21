@@ -7,20 +7,23 @@
 #include <DirectionalLight.h>
 #include <Emitter.h>
 #include <Particle.h>
+#include "BlendModeType.h"
 
 #include <unordered_map>
 #include <list>
 #include <random>
+#include <concepts>
+
+
 
 /// ---------- 前方宣言 ----------///
 class DirectXCommon;
 class SRVManager;
+class Camera;
+class ShaderManager;
 
-// 円周率
-#define pi 3.141592653589793238462643383279502884197169399375105820974944f
-
-// 描画数
-const uint32_t kNumMaxInstance = 100;
+// Δt を定義。とりあえず60fps固定してあるが、実時間を計測して可変fpsで動かせるようにする
+const float kDeltaTime = 1.0f / 60.0f;
 
 
 /// -------------------------------------------------------------
@@ -28,9 +31,7 @@ const uint32_t kNumMaxInstance = 100;
 /// -------------------------------------------------------------
 class ParticleManager
 {
-private: /// ---------- 構造体 ---------- ///
-
-
+public: /// ---------- 構造体 ---------- ///
 
 	struct ParticleForGPU
 	{
@@ -42,7 +43,7 @@ private: /// ---------- 構造体 ---------- ///
 	struct ParticleGroup
 	{
 		// マテリアルデータ(テクスチャファイルとテクスチャ用SRVインデックス)
-		std::string textureFilePath;
+		MaterialData materialData;
 		// パーティクルのリスト(std::list<Particle>型)
 		uint32_t srvIndex;
 		// インスタンシングデータ用SRVインデックス
@@ -61,7 +62,7 @@ public: /// ---------- メンバ関数 ---------- ///
 	static ParticleManager* GetInstance();
 
 	// 初期化処理
-	void Initialize(DirectXCommon* dxCommon, SRVManager* srvManager);
+	void Initialize(DirectXCommon* dxCommon, SRVManager* srvManager, Camera* camera);
 
 	// パーティクルグループの生成
 	void CreateParticleGroup(const std::string& name, const std::string& textureFilePath);
@@ -72,21 +73,69 @@ public: /// ---------- メンバ関数 ---------- ///
 	// 描画処理
 	void Draw();
 
-private: /// ---------- メンバ関数 ---------- ///
+	// 終了処理
+	void Finalize();
 
-	ParticleManager() = default;
+	// パーティクルの発生
+	void Emit(const std::string name, const Vector3 position, uint32_t count);
 
-	void UpdateParticles(ParticleGroup& group);
-	void DrawParticleGroup(const ParticleGroup& group);
+	std::unordered_map<std::string, ParticleManager::ParticleGroup> GetParticleGroups() { return particleGroups; }
+
+private: /// ---------- ヘルパー関数 ---------- ///
+
+	// ルートシグネチャの生成
+	void CreateRootSignature();
+
+	// PSOを生成
+	void CreatePSO();
+
+	// 頂点データの初期化
+	void InitializeVertexData();
+
+	// マテリアルデータの初期化
+	void InitializeMaterialData();
+
+	// パーティクル生成器
+	Particle MakeNewParticle(std::mt19937& randomEngine, const Vector3& translate);
 
 private: /// ---------- メンバ変数 ---------- ///
+	
+	BlendMode cuurenttype = BlendMode::kBlendModeAdd;
 
 	DirectXCommon* dxCommon_ = nullptr;
 	SRVManager* srvManager_ = nullptr;
+	Camera* camera_ = nullptr;
+	ShaderManager* shaderManager = nullptr;
+
+	ComPtr <ID3D12RootSignature> rootSignature = nullptr;
+	ComPtr <ID3D12PipelineState> graphicsPipelineState = nullptr;
+	ComPtr <ID3D12Resource> materialResource;
+	ComPtr <ID3D12Resource> vertexResource;
+
+	// モデルの読み込み
+	ModelData modelData;
+
+	VertexData* vertexData = nullptr;
+	D3D12_VERTEX_BUFFER_VIEW vertexBufferView{};
 
 	// パーティクルグループコンテナ
 	std::unordered_map<std::string, ParticleGroup> particleGroups;
+
+	// ランダムエンジン
+	std::random_device seedGeneral;
 	std::mt19937 randomEngin;
 
+	// 描画数
+	const uint32_t kNumMaxInstance = 128;
+
+	bool useBillboard = true;
+
+	float radian_ = 0.0f;
+
+private: /// ---------- コピー禁止 ---------- ///
+	ParticleManager() = default;
+	~ParticleManager() = default;
+	ParticleManager(const ParticleManager&) = delete;
+	ParticleManager& operator=(const ParticleManager&) = delete;
 };
 

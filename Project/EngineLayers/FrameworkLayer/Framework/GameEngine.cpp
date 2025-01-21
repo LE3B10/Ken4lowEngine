@@ -1,6 +1,7 @@
 #include "GameEngine.h"
 #include "SceneFactory.h"
 #include "ParameterManager.h"
+#include "ParticleManager.h"
 
 
 /// -------------------------------------------------------------
@@ -33,6 +34,12 @@ void GameEngine::Initialize()
 	textureManager = TextureManager::GetInstance();
 	modelManager = ModelManager::GetInstance();
 	pipelineStateManager_ = std::make_unique<PipelineStateManager>();
+	object3DCommon_ = std::make_unique<Object3DCommon>();
+
+	camera_ = std::make_unique<Camera>();
+	camera_->SetRotate({ 0.0f,0.0f,0.0f });
+	camera_->SetTranslate({ 0.0f,0.0f,-15.0f });
+	object3DCommon_->SetDefaultCamera(camera_.get());
 
 	/// ---------- WindowsAPIのウィンドウ作成 ---------- ///
 	winApp->CreateMainWindow(kClientWidth, kClientHeight);
@@ -53,6 +60,10 @@ void GameEngine::Initialize()
 
 	/// ---------- PipelineStateManagerの初期化 ---------- ///
 	pipelineStateManager_->Initialize(dxCommon);
+
+	textureManager->LoadTexture("Resources/particle.png");
+	ParticleManager::GetInstance()->Initialize(dxCommon, srvManager.get(),camera_.get());
+	ParticleManager::GetInstance()->CreateParticleGroup("particle", "Resources/particle.png");
 }
 
 
@@ -93,6 +104,8 @@ void GameEngine::Update()
 #endif // _DEBUG
 	/// ---------- ImGuiフレーム終了 ---------- ///
 	imguiManager->EndFrame();
+
+	ParticleManager::GetInstance()->Update();
 }
 
 
@@ -117,6 +130,8 @@ void GameEngine::Draw()
 	// ImGui描画のコマンドを積む
 	imguiManager->Draw();
 
+	ParticleManager::GetInstance()->Draw();
+
 	// 描画終了処理
 	dxCommon->EndDraw();
 }
@@ -132,6 +147,8 @@ void GameEngine::Finalize()
 	imguiManager->Finalize();
 
 	sceneManager_->Finalize();
+
+	ParticleManager::GetInstance()->Finalize();
 
 	// 基底クラスの終了処理
 	Framework::Finalize();
