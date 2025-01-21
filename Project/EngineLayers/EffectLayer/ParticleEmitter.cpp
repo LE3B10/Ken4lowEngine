@@ -23,7 +23,7 @@ void ParticleEmitter::Update()
 
 	emitter.frequencyTime += kDeltaTime;
 
-	if (emitter.frequency <= emitter.frequencyTime) {
+	if (emitter.frequencyTime <= emitter.frequency) {
 
 		emitter.frequencyTime -= emitter.frequency;
 

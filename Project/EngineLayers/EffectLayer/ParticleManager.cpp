@@ -7,7 +7,6 @@
 #include <TextureManager.h>
 #include "ShaderManager.h"
 #include "Camera.h"
-#include <numbers>
 
 /// -------------------------------------------------------------
 ///				    シングルトンインスタンス
@@ -22,16 +21,18 @@ ParticleManager* ParticleManager::GetInstance()
 /// -------------------------------------------------------------
 ///				           初期化処理
 /// -------------------------------------------------------------
-void ParticleManager::Initialize(DirectXCommon* dxCommon, SRVManager* srvManager, Camera* camera)
+void ParticleManager::Initialize(DirectXCommon* dxCommon, Camera* camera)
 {
 	shaderManager = new ShaderManager();
 
 	// 引数でDirectXCommonとSRVマネージャーのポインタを受け取ってメンバ変数に記録する
 	dxCommon_ = dxCommon;
-	srvManager_ = srvManager;
 	camera_ = camera;
 
-	radian_ = std::numbers::pi_v<float>;
+
+	srvManager_ = SRVManager::GetInstance();
+	srvManager_->Initialize(dxCommon);
+
 
 	// ランダムエンジンの初期化
 	randomEngin.seed(seedGeneral());
@@ -91,7 +92,7 @@ void ParticleManager::Update()
 	Matrix4x4 viewProjectionMatrix = Multiply(viewMatrix, projectionMatrix);
 
 	// Y軸でπ/2回転させる
-	Matrix4x4 backToFrontMatrix = MakeRotateYMatrix(radian_);
+	Matrix4x4 backToFrontMatrix = MakeRotateYMatrix(std::numbers::pi_v<float>);
 	Matrix4x4 billboardMatrix{};
 
 	// ビルボード行列が有効なとき
@@ -171,11 +172,14 @@ void ParticleManager::Draw()
 	{
 		if (group.second.numParticles == 0) continue;
 
+		// マテリアルCBVを設定
+		commandList->SetGraphicsRootConstantBufferView(0, materialResource->GetGPUVirtualAddress());
+
 		// テクスチャのSRVのデスクリプタテーブルを設定
 		commandList->SetGraphicsRootDescriptorTable(1, srvManager_->GetGPUDescriptorHandle(group.second.srvIndex));
 
 		// インスタンシングデータのSRVのデスクリプタテーブルを設定
-		commandList->SetGraphicsRootDescriptorTable(2, modelData.material.gpuHandle);
+		commandList->SetGraphicsRootDescriptorTable(2, group.second.materialData.gpuHandle);
 
 		// インスタンシング描画
 		commandList->DrawInstanced(UINT(modelData.vertices.size()), group.second.numParticles, 0, 0);
@@ -186,6 +190,9 @@ void ParticleManager::Draw()
 }
 
 
+/// -------------------------------------------------------------
+///					　		解放処理
+/// -------------------------------------------------------------
 void ParticleManager::Finalize()
 {
 	// particleGroups 内のリソースを解放
@@ -198,10 +205,13 @@ void ParticleManager::Finalize()
 }
 
 
+/// -------------------------------------------------------------
+///					　パーティクル射出処理
+/// -------------------------------------------------------------
 void ParticleManager::Emit(const std::string name, const Vector3 position, uint32_t count)
 {
 	// パーティクルグループが存在するかどうか
-	assert(particleGroups.find(name) == particleGroups.end() && "Particle Group is not found");
+	assert(particleGroups.find(name) != particleGroups.end() && "Particle Group is not found");
 
 	// パーティクルグループを取得
 	ParticleGroup& particleGroup = particleGroups[name];
@@ -474,7 +484,6 @@ void ParticleManager::InitializeVertexData()
 
 	// モデルデータの頂点データをコピー
 	std::memcpy(vertexData, modelData.vertices.data(), sizeof(VertexData) * modelData.vertices.size());
-
 }
 
 
@@ -491,7 +500,7 @@ void ParticleManager::InitializeMaterialData()
 	materialResource->Map(0, nullptr, reinterpret_cast<void**>(&materialData));
 	//今回は赤を書き込んでみる
 	materialData->color = { 1.0f, 1.0f, 1.0f, 1.0f };
-	materialData->enableLighting = true;
+	materialData->enableLighting = false;
 	//UVTramsform行列を単位行列で初期化
 	materialData->uvTransform = MakeIdentity();
 }

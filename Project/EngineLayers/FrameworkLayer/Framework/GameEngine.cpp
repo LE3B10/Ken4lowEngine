@@ -28,7 +28,7 @@ void GameEngine::Initialize()
 	/// ---------- シングルトンインスタンス ---------- ///
 	winApp = WinApp::GetInstance();
 	dxCommon = DirectXCommon::GetInstance();
-	srvManager = std::make_unique<SRVManager>();
+	srvManager = SRVManager::GetInstance();
 	input = Input::GetInstance();
 	imguiManager = ImGuiManager::GetInstance();
 	textureManager = TextureManager::GetInstance();
@@ -53,17 +53,13 @@ void GameEngine::Initialize()
 	/// ---------- SRVManagerの初期化 ---------- ///
 	srvManager->Initialize(dxCommon);
 
-	textureManager->Initialize(dxCommon, srvManager.get());
+	textureManager->Initialize(dxCommon, srvManager);
 
 	/// ---------- ImGuiManagerの初期化 ---------- ///
-	imguiManager->Initialize(winApp, dxCommon, srvManager.get());
+	imguiManager->Initialize(winApp, dxCommon, srvManager);
 
 	/// ---------- PipelineStateManagerの初期化 ---------- ///
 	pipelineStateManager_->Initialize(dxCommon);
-
-	textureManager->LoadTexture("Resources/particle.png");
-	ParticleManager::GetInstance()->Initialize(dxCommon, srvManager.get(),camera_.get());
-	ParticleManager::GetInstance()->CreateParticleGroup("particle", "Resources/particle.png");
 }
 
 
@@ -104,8 +100,6 @@ void GameEngine::Update()
 #endif // _DEBUG
 	/// ---------- ImGuiフレーム終了 ---------- ///
 	imguiManager->EndFrame();
-
-	ParticleManager::GetInstance()->Update();
 }
 
 
@@ -130,8 +124,6 @@ void GameEngine::Draw()
 	// ImGui描画のコマンドを積む
 	imguiManager->Draw();
 
-	ParticleManager::GetInstance()->Draw();
-
 	// 描画終了処理
 	dxCommon->EndDraw();
 }
@@ -147,8 +139,6 @@ void GameEngine::Finalize()
 	imguiManager->Finalize();
 
 	sceneManager_->Finalize();
-
-	ParticleManager::GetInstance()->Finalize();
 
 	// 基底クラスの終了処理
 	Framework::Finalize();
