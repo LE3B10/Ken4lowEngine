@@ -13,7 +13,7 @@ void GamePlayScene::Initialize()
 	input_ = Input::GetInstance();
 	textureManager = TextureManager::GetInstance();
 
-	SRVManager::GetInstance()->Initialize(dxCommon_);
+	//SRVManager::GetInstance()->Initialize(dxCommon_);
 
 	// テクスチャのパスをリストで管理
 	texturePaths_ = {
@@ -105,7 +105,7 @@ void GamePlayScene::Update()
 	}
 
 	ParticleManager::GetInstance()->Update();
-	ParticleManager::GetInstance()->Emit(particleGroupName, { 0.0f,0.0f,0.0f }, 64);
+	ParticleManager::GetInstance()->Emit(particleGroupName, { 0.0f,0.0f,0.0f }, 32);
 }
 
 

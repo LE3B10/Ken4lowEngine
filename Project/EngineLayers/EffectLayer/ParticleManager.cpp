@@ -31,7 +31,7 @@ void ParticleManager::Initialize(DirectXCommon* dxCommon, Camera* camera)
 
 
 	srvManager_ = SRVManager::GetInstance();
-	srvManager_->Initialize(dxCommon);
+//	srvManager_->Initialize(dxCommon);
 
 
 	// ランダムエンジンの初期化
@@ -322,6 +322,8 @@ void ParticleManager::CreatePSO()
 
 	//BlendStateの設定
 	D3D12_RENDER_TARGET_BLEND_DESC blendDesc{};
+	// すべての色要素を書き込む
+	blendDesc.RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
 
 	// 各ブレンドモードの設定を行う
 	switch (cuurenttype)
