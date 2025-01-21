@@ -12,7 +12,7 @@
 #include <unordered_map>
 #include <list>
 #include <random>
-#include <concepts>
+#include <numbers>
 
 
 
@@ -62,7 +62,7 @@ public: /// ---------- メンバ関数 ---------- ///
 	static ParticleManager* GetInstance();
 
 	// 初期化処理
-	void Initialize(DirectXCommon* dxCommon, SRVManager* srvManager, Camera* camera);
+	void Initialize(DirectXCommon* dxCommon, Camera* camera);
 
 	// パーティクルグループの生成
 	void CreateParticleGroup(const std::string& name, const std::string& textureFilePath);
@@ -130,7 +130,15 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	bool useBillboard = true;
 
-	float radian_ = 0.0f;
+	// 分割数
+	uint32_t kSubdivision = 32;
+
+	// 緯度・経度の分割数に応じた角度の計算
+	float kLatEvery = std::numbers::pi_v<float> / float(kSubdivision);
+	float kLonEvery = 2.0f * std::numbers::pi_v<float> / float(kSubdivision);
+
+	// 球体の頂点数の計算
+	uint32_t TotalVertexCount = kSubdivision * kSubdivision * 6;
 
 private: /// ---------- コピー禁止 ---------- ///
 	ParticleManager() = default;

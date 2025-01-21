@@ -43,7 +43,7 @@ private: /// ---------- メンバ変数 ---------- ///
 	// GameEngine のメンバ変数
 	SceneManager* sceneManager_ = nullptr;
 
-	std::unique_ptr<SRVManager> srvManager;
+	SRVManager* srvManager = nullptr;
 	std::unique_ptr<Camera> camera_;
 	std::vector<std::unique_ptr<Sprite>> sprites_;
 	std::vector<std::unique_ptr<Object3D>> objects3D_;

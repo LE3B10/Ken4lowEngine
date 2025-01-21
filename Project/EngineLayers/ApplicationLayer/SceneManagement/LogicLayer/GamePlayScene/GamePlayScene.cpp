@@ -13,6 +13,8 @@ void GamePlayScene::Initialize()
 	input_ = Input::GetInstance();
 	textureManager = TextureManager::GetInstance();
 
+	SRVManager::GetInstance()->Initialize(dxCommon_);
+
 	// テクスチャのパスをリストで管理
 	texturePaths_ = {
 		"Resources/uvChecker.png",
@@ -74,6 +76,12 @@ void GamePlayScene::Initialize()
 	const char* fileName = "Resources/Sounds/Get-Ready.wav";
 	wavLoader_ = std::make_unique<WavLoader>();
 	wavLoader_->StreamAudioAsync(fileName, 0.5f, 1.0f, false);
+
+	particleGroupName = "particleGroupName";
+
+	textureManager->LoadTexture("Resources/particle.png");
+	ParticleManager::GetInstance()->Initialize(dxCommon_, camera_.get());
+	ParticleManager::GetInstance()->CreateParticleGroup(particleGroupName, "Resources/particle.png");
 }
 
 
@@ -95,6 +103,9 @@ void GamePlayScene::Update()
 	{
 		sprite->Update();
 	}
+
+	ParticleManager::GetInstance()->Update();
+	ParticleManager::GetInstance()->Emit(particleGroupName, { 0.0f,0.0f,0.0f }, 64);
 }
 
 
@@ -114,6 +125,8 @@ void GamePlayScene::Draw()
 	{
 		sprite->Draw();
 	}
+
+	ParticleManager::GetInstance()->Draw();
 }
 
 

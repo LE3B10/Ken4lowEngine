@@ -16,6 +16,9 @@ class SRVManager
 {
 public: /// ---------- メンバ関数 ---------- ///
 
+	// シングルトンインスタンス
+	static SRVManager* GetInstance();
+
 	// 初期化処理
 	void Initialize(DirectXCommon* dxCommon);
 
@@ -75,5 +78,12 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	// 空きインデックスのリスト
 	std::queue<uint32_t> freeIndices;
+
+private:
+
+	SRVManager() = default;
+	~SRVManager() = default;
+	SRVManager(const SRVManager&) = delete;
+	SRVManager& operator=(const SRVManager&) = delete;
 };
 
