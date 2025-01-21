@@ -1,14 +1,8 @@
 #pragma once
 #include "DX12Include.h"
 #include "AABB.h"
-#include "Emitter.h"
-#include "Particle.h"
-#include "ParticleEmitter.h"
-#include "ParticleForGPU.h"
+#include "ParticleManager.h"
 
-#include <list>
-#include <numbers>
-#include <random>
 
 /// ---------- 風のエフェクト ---------- ///
 struct WindZone
@@ -26,19 +20,22 @@ class ParticleEmitter
 public: /// ---------- メンバ関数 ---------- ///
 
 	// 初期化処理
-	void Initialize();
+	void Initialize(std::string name);
 
-	// パーティクル生成関数
-	Particle MakeNewParticle(std::mt19937& randomEngine, const Vector3& translate);
+	// 更新処理
+	void Update();
 
 	// パーティクルを射出する関数
-	std::list<Particle> Emit(const Emitter& emitter, std::mt19937& randomEngine);
-
-	// 当たり判定
-	bool IsCollision(const AABB& aabb, const Vector3& point);
+	void Emit();
 
 private: /// ---------- メンバ変数 ---------- ///
 
+	Transform transform;
 
+	Emitter emitter{};
+
+	std::string name_;
+
+	std::unordered_map<std::string, ParticleManager::ParticleGroup> particleGroups;
 };
 

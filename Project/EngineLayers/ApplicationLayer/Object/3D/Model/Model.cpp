@@ -189,7 +189,7 @@ void Model::InitializeVertexBufferData(DirectXCommon* dxCommon)
 		};
 
 	for (uint32_t latIndex = 0; latIndex < kSubdivision; ++latIndex) {
-		float lat = -pi / 2.0f + kLatEvery * latIndex; // θ
+		float lat = -std::numbers::pi_v<float> / 2.0f + kLatEvery * latIndex; // θ
 		float nextLat = lat + kLatEvery;
 
 		for (uint32_t lonIndex = 0; lonIndex < kSubdivision; ++lonIndex) {
