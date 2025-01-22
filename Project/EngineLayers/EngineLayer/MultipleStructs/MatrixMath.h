@@ -147,9 +147,9 @@ static Matrix4x4 MakeRotateYMatrix(float radian)
 {
 	Matrix4x4 result{};
 	result.m[0][0] = std::cos(radian);
-	result.m[0][2] = -std::sin(radian);
+	result.m[0][2] = std::sin(radian);
 	result.m[1][1] = 1.0f;
-	result.m[2][0] = std::sin(radian);
+	result.m[2][0] = -std::sin(radian);
 	result.m[2][2] = std::cos(radian);
 	result.m[3][3] = 1.0f;
 	return result;

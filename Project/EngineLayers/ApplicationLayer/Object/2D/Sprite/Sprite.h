@@ -117,7 +117,7 @@ private: /// ---------- メンバ変数 ---------- ///
 	// 座標
 	Vector2 position_ = { 0.0f, 0.0f };
 	// 回転
-	float rotation_;
+	float rotation_ = 0;
 	// サイズ
 	Vector2 size_ = { 1.0f, 1.0f };
 	//アンカーポイント

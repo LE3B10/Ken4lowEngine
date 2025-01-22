@@ -7,7 +7,8 @@
 #include <SRVManager.h>
 
 #include <BaseScene.h>
-#include <ParticleEmitter.h>
+
+#include "ParticleEmitter.h"
 
 // クライアント領域サイズ
 static const uint32_t kClientWidth = 1280;
@@ -17,6 +18,7 @@ static const uint32_t kClientHeight = 720;
 class DirectXCommon;
 class Input;
 class ImGuiManager;
+//class ParticleManager;
 
 
 /// -------------------------------------------------------------
@@ -42,11 +44,12 @@ public: /// ---------- メンバ関数 ---------- ///
 
 private: /// ---------- メンバ変数 ---------- ///
 
-	Transform particleTransform;
+	std::unique_ptr<ParticleEmitter> fireEmitter;
 
 	DirectXCommon* dxCommon_ = nullptr;
 	TextureManager* textureManager = nullptr;
 	Input* input_ = nullptr;
+	ParticleManager* particleManager = nullptr;
 
 	SRVManager* srvManager = nullptr;
 	std::unique_ptr<Camera> camera_;
@@ -61,10 +64,5 @@ private: /// ---------- メンバ変数 ---------- ///
 	std::vector<std::string> objectFiles;
 	std::vector<Vector3> initialPositions;
 
-
-	std::unique_ptr<ParticleEmitter> particleEmitter_;
 	std::string particleGroupName;
-
-	std::unique_ptr<Object3D > particleObject_;
 };
-
