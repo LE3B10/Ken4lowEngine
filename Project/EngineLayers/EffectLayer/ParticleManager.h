@@ -100,6 +100,8 @@ private: /// ---------- ヘルパー関数 ---------- ///
 
 private: /// ---------- メンバ変数 ---------- ///
 	
+	Transform transform;
+
 	BlendMode cuurenttype = BlendMode::kBlendModeAdd;
 
 	DirectXCommon* dxCommon_ = nullptr;

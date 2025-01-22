@@ -99,37 +99,33 @@ void ParticleManager::Update()
 	Matrix4x4 viewProjectionMatrix = Multiply(viewMatrix, projectionMatrix);
 
 	// Y軸でπ/2回転させる行列
-	Matrix4x4 backToFrontMatrix = MakeRotateYMatrix(std::numbers::pi_v<float>);
+	Matrix4x4 backToFrontMatrix = MakeIdentity();
 	// ビルボード行列を初期化
-	Matrix4x4 billboardMatrix = Multiply(billboardMatrix, viewMatrix);
+	Matrix4x4 scaleMatrix{};
+	scaleMatrix.m[3][0] = 0.0f;
+	scaleMatrix.m[3][1] = 0.0f;
+	scaleMatrix.m[3][2] = 0.0f;
 
-	// ビルボードを適用するかどうか
-	if (useBillboard)
-	{
-		// カメラの回転成分のみを抽出し、平行移動を無視
-		billboardMatrix = viewMatrix;
-		billboardMatrix.m[3][0] = 0.0f;
-		billboardMatrix.m[3][1] = 0.0f;
-		billboardMatrix.m[3][2] = 0.0f;
-	}
-	else
-	{
-		// ビルボードを使わない場合は単位行列
-		billboardMatrix = MakeIdentity();
-	}
+	Matrix4x4 translateMatrix{};
+	translateMatrix.m[3][0] = 0.0f;
+	translateMatrix.m[3][1] = 0.0f;
+	translateMatrix.m[3][2] = 0.0f;
+
+	// ビルボード
+	Matrix4x4 billboardMatrix = Multiply(backToFrontMatrix, cameraMatrix);
+	billboardMatrix.m[3][0] = 0.0f; // 平行移動成分はいらない
+	billboardMatrix.m[3][1] = 0.0f;
+	billboardMatrix.m[3][2] = 0.0f;
 
 	// パーティクルグループごとに更新処理
 	for (auto& group : particleGroups)
 	{
 		group.second.numParticles = 0; // 生存パーティクル数をリセット
 
-		for (auto particleIterator = group.second.particles.begin();
-			particleIterator != group.second.particles.end();)
+		for (std::list<Particle>::iterator particleIterator = group.second.particles.begin(); particleIterator != group.second.particles.end();)
 		{
-			Particle& particle = *particleIterator;
-
 			// 生存時間を超えたパーティクルは削除
-			if (particle.lifeTime <= particle.currentTime)
+			if ((*particleIterator).lifeTime <= (*particleIterator).currentTime)
 			{
 				particleIterator = group.second.particles.erase(particleIterator);
 				continue;
@@ -139,16 +135,18 @@ void ParticleManager::Update()
 			if (group.second.numParticles < kNumMaxInstance)
 			{
 				// 速度を適用して位置を更新
-				particle.transform.translate += particle.velocity * kDeltaTime;
-				particle.currentTime += kDeltaTime; // 経過時間を加算
+				(*particleIterator).transform.translate += (*particleIterator).velocity * kDeltaTime;
+				(*particleIterator).currentTime += kDeltaTime; // 経過時間を加算
 
 				// スケール、回転、平行移動を利用してワールド行列を作成
-				Matrix4x4 worldMatrix = MakeAffineMatrix(particle.transform.scale, particle.transform.rotate, particle.transform.translate);
+				Matrix4x4 worldMatrix = MakeAffineMatrix((*particleIterator).transform.scale, (*particleIterator).transform.rotate, (*particleIterator).transform.translate);
+				scaleMatrix = MakeScaleMatrix((*particleIterator).transform.scale);
+				translateMatrix = MakeTranslateMatrix((*particleIterator).transform.translate);
 
-				// ビルボード行列を適用
+				// ビルボードを使うかどうか
 				if (useBillboard)
 				{
-					worldMatrix = Multiply(billboardMatrix, worldMatrix);
+					worldMatrix = scaleMatrix * billboardMatrix * translateMatrix;
 				}
 
 				// ワールド・ビュー・プロジェクション行列を計算
@@ -159,8 +157,8 @@ void ParticleManager::Update()
 				group.second.mappedData[group.second.numParticles].World = worldMatrix;
 
 				// 色とアルファ値を設定
-				float alpha = 1.0f - (particle.currentTime / particle.lifeTime);
-				group.second.mappedData[group.second.numParticles].color = particle.color;
+				float alpha = 1.0f - ((*particleIterator).currentTime / (*particleIterator).lifeTime);
+				group.second.mappedData[group.second.numParticles].color = (*particleIterator).color;
 				group.second.mappedData[group.second.numParticles].color.w = alpha;
 
 				// 生存パーティクル数をカウント

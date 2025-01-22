@@ -14,9 +14,6 @@ public: /// ---------- メンバ関数 ---------- ///
 	// デフォルトコンストラクタ
 	Camera();
 
-	// 初期化処理
-	void Initialize(uint32_t Width, uint32_t Height);
-
 	// 更新処理
 	void Update();
 
