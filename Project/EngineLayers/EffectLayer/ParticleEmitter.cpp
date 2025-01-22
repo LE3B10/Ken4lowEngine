@@ -1,44 +1,22 @@
 #include "ParticleEmitter.h"
 #include <LogString.h>
 #include <DirectXCommon.h>
+#include <ParticleManager.h>
 
-void ParticleEmitter::Initialize(std::string name)
+ParticleEmitter::ParticleEmitter(ParticleManager* manager, const std::string& groupName)
+	: particleManager_(manager), groupName_(groupName), position_({ 0.0f,0.0f,0.0f }),
+	emissionRate_(10.0f), accumulatedTime_(0.0f)
 {
-	name_ = name;
-
-	emitter.count = 3;
-	emitter.frequency = 0.5f; // 0.5秒ごとに発生
-	emitter.frequencyTime = 0.0f; // 発生時刻用の時刻、0で初期化
-
-	emitter.transform = {
-		{1.0f, 1.0f, 1.0f},
-		{0.0f, 0.0f, 0.0f},
-		{0.0f, 0.0f, 0.0f}
-	};
 }
 
-void ParticleEmitter::Update()
+void ParticleEmitter::Update(float deltaTime)
 {
-	particleGroups = ParticleManager::GetInstance()->GetParticleGroups();
+    accumulatedTime_ += deltaTime;
 
-	emitter.frequencyTime += kDeltaTime;
-
-	if (emitter.frequencyTime <= emitter.frequency) {
-
-		emitter.frequencyTime -= emitter.frequency;
-
-		for (std::unordered_map<std::string, ParticleManager::ParticleGroup>::iterator particleGroupIterator = particleGroups.begin(); particleGroupIterator != particleGroups.end();) {
-
-			ParticleManager::ParticleGroup* particleGroup = &(particleGroupIterator->second);
-
-			ParticleManager::GetInstance()->Emit(name_, emitter.transform.translate, emitter.count);
-
-			++particleGroupIterator;
-		}
-	}
-}
-
-void ParticleEmitter::Emit()
-{
-	ParticleManager::GetInstance()->Emit(name_, emitter.transform.translate, emitter.count);
+    // 発生させるパーティクルの数を計算
+    int particleCount = static_cast<int>(emissionRate_ * accumulatedTime_);
+    if (particleCount > 0) {
+        particleManager_->Emit(groupName_, position_, particleCount);
+        accumulatedTime_ -= static_cast<float>(particleCount) / emissionRate_;
+    }
 }

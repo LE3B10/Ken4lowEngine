@@ -3,6 +3,7 @@
 #include <ImGuiManager.h>
 #include <Input.h>
 #include <ParameterManager.h>
+#include <ParticleManager.h>
 
 /// -------------------------------------------------------------
 ///				　			　初期化処理
@@ -12,8 +13,7 @@ void GamePlayScene::Initialize()
 	dxCommon_ = DirectXCommon::GetInstance();
 	input_ = Input::GetInstance();
 	textureManager = TextureManager::GetInstance();
-
-	//SRVManager::GetInstance()->Initialize(dxCommon_);
+	particleManager = ParticleManager::GetInstance();
 
 	// テクスチャのパスをリストで管理
 	texturePaths_ = {
@@ -77,11 +77,13 @@ void GamePlayScene::Initialize()
 	wavLoader_ = std::make_unique<WavLoader>();
 	wavLoader_->StreamAudioAsync(fileName, 0.5f, 1.0f, false);
 
-	particleGroupName = "particleGroupName";
+	textureManager->LoadTexture("Resources/uvChecker.png");
+	particleManager->Initialize(dxCommon_, camera_.get());
+	particleManager->CreateParticleGroup("fire", "Resources/uvChecker.png");
 
-	textureManager->LoadTexture("Resources/particle.png");
-	ParticleManager::GetInstance()->Initialize(dxCommon_, camera_.get());
-	ParticleManager::GetInstance()->CreateParticleGroup(particleGroupName, "Resources/particle.png");
+	fireEmitter = std::make_unique<ParticleEmitter>(particleManager, "fire");
+	fireEmitter->SetPosition({ 0.0f,0.0f,0.0f }); // 射出する位置を設定
+	fireEmitter->SetEmissionRate(100.0f);		  // 1秒間に20このパーティクルを射出
 }
 
 
@@ -104,8 +106,9 @@ void GamePlayScene::Update()
 		sprite->Update();
 	}
 
-	ParticleManager::GetInstance()->Update();
-	ParticleManager::GetInstance()->Emit(particleGroupName, { 0.0f,0.0f,0.0f }, 32);
+	// パーティクルエミッターの更新
+	fireEmitter->Update(1.0f/10.0f); // フレーム時間を渡す
+	particleManager->Update();		  // パーティクル全体の更新
 }
 
 
@@ -126,7 +129,7 @@ void GamePlayScene::Draw()
 		sprite->Draw();
 	}
 
-	ParticleManager::GetInstance()->Draw();
+	particleManager->Draw();
 }
 
 
@@ -177,6 +180,18 @@ void GamePlayScene::DrawImGui()
 			ImGui::TreePop();
 		}
 		ImGui::PopID(); // IDを元に戻す
+	}
+
+	if (ImGui::CollapsingHeader("ParticleEmitter Settings")) {
+		Vector3 position = fireEmitter->GetPosition();
+		if (ImGui::DragFloat3("Emitter Position", &position.x, 0.1f)) {
+			fireEmitter->SetPosition(position); // 射出位置を更新
+		}
+
+		float rate = fireEmitter->GetEmissionRate();
+		if (ImGui::DragFloat("Emission Rate", &rate, 1.0f, 1.0f, 100.0f)) {
+			fireEmitter->SetEmissionRate(rate); // 射出レートを更新
+		}
 	}
 
 	ImGui::End();

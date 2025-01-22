@@ -49,7 +49,7 @@ public: /// ---------- 構造体 ---------- ///
 		// インスタンシングデータ用SRVインデックス
 		ComPtr<ID3D12Resource> instancebuffer;
 		// インスタンシングリソース
-		ParticleForGPU* mappedData;
+		ParticleForGPU* mappedData = nullptr;
 		// インスタンス数
 		uint32_t numParticles = 0;
 		// インスタンシングデータを書き込むためのポインタ
@@ -128,7 +128,7 @@ private: /// ---------- メンバ変数 ---------- ///
 	// 描画数
 	const uint32_t kNumMaxInstance = 128;
 
-	bool useBillboard = true;
+	bool useBillboard = false;
 
 	// 分割数
 	uint32_t kSubdivision = 32;

@@ -55,5 +55,7 @@ private: /// ---------- メンバ変数 ---------- ///
 	std::vector<std::string> texturePaths_;
 	std::vector<std::string> objectFiles;
 	std::vector<Vector3> initialPositions;
+
+	std::string particleGroupName;
 };
 

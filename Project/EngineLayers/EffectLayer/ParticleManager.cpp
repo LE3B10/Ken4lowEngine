@@ -7,6 +7,7 @@
 #include <TextureManager.h>
 #include "ShaderManager.h"
 #include "Camera.h"
+#include <ImGuiManager.h>
 
 /// -------------------------------------------------------------
 ///				    シングルトンインスタンス
@@ -29,10 +30,7 @@ void ParticleManager::Initialize(DirectXCommon* dxCommon, Camera* camera)
 	dxCommon_ = dxCommon;
 	camera_ = camera;
 
-
 	srvManager_ = SRVManager::GetInstance();
-//	srvManager_->Initialize(dxCommon);
-
 
 	// ランダムエンジンの初期化
 	randomEngin.seed(seedGeneral());
@@ -85,64 +83,92 @@ void ParticleManager::CreateParticleGroup(const std::string& name, const std::st
 /// -------------------------------------------------------------
 void ParticleManager::Update()
 {
+	// ImGuiでuseBillboardの切り替えボタンを追加
+	ImGui::Begin("Particle Manager"); // ウィンドウの開始
+	if (ImGui::Button(useBillboard ? "Disable Billboard" : "Enable Billboard"))
+	{
+		// ボタンが押されたらuseBillboardの値を切り替える
+		useBillboard = !useBillboard;
+	}
+	ImGui::End(); // ウィンドウの終了
+
 	// ビュー行列とプロジェクション行列をカメラから取得
-	Matrix4x4 cameraMatrix = MakeAffineMatrix({ 1.0f,1.0f,1.0f }, camera_->GetRotate(), camera_->GetTranslate());
+	Matrix4x4 cameraMatrix = MakeAffineMatrix({ 1.0f, 1.0f, 1.0f }, camera_->GetRotate(), camera_->GetTranslate());
 	Matrix4x4 viewMatrix = Inverse(cameraMatrix);
 	Matrix4x4 projectionMatrix = camera_->GetProjectionMatrix();
 	Matrix4x4 viewProjectionMatrix = Multiply(viewMatrix, projectionMatrix);
 
-	// Y軸でπ/2回転させる
+	// Y軸でπ/2回転させる行列
 	Matrix4x4 backToFrontMatrix = MakeRotateYMatrix(std::numbers::pi_v<float>);
-	Matrix4x4 billboardMatrix{};
+	// ビルボード行列を初期化
+	Matrix4x4 billboardMatrix = Multiply(billboardMatrix, viewMatrix);
 
-	// ビルボード行列が有効なとき
+	// ビルボードを適用するかどうか
 	if (useBillboard)
 	{
-		// ビルボード行列の計算
-		billboardMatrix = Multiply(backToFrontMatrix, cameraMatrix);
-		billboardMatrix.m[3][0] = 0.0f; // 平行移動成分はいらない
+		// カメラの回転成分のみを抽出し、平行移動を無視
+		billboardMatrix = viewMatrix;
+		billboardMatrix.m[3][0] = 0.0f;
 		billboardMatrix.m[3][1] = 0.0f;
 		billboardMatrix.m[3][2] = 0.0f;
 	}
 	else
 	{
+		// ビルボードを使わない場合は単位行列
 		billboardMatrix = MakeIdentity();
 	}
 
-	// グループ内のすべてのパーティクルについて処理する
+	// パーティクルグループごとに更新処理
 	for (auto& group : particleGroups)
 	{
-		// 板ポリ
-		for (std::list<Particle>::iterator particleIterator = group.second.particles.begin(); particleIterator != group.second.particles.end(); )
+		group.second.numParticles = 0; // 生存パーティクル数をリセット
+
+		for (auto particleIterator = group.second.particles.begin();
+			particleIterator != group.second.particles.end();)
 		{
-			if ((*particleIterator).lifeTime <= (*particleIterator).currentTime)
+			Particle& particle = *particleIterator;
+
+			// 生存時間を超えたパーティクルは削除
+			if (particle.lifeTime <= particle.currentTime)
 			{
-				// 生存時間を過ぎていたら更新せず描画対象にしない
 				particleIterator = group.second.particles.erase(particleIterator);
 				continue;
 			}
 
+			// 最大インスタンス数を超えない場合のみ更新
 			if (group.second.numParticles < kNumMaxInstance)
 			{
-				// 速度を適用
-				(*particleIterator).transform.translate += (*particleIterator).velocity * kDeltaTime;
-				(*particleIterator).currentTime += kDeltaTime; // 経過時間を足す
+				// 速度を適用して位置を更新
+				particle.transform.translate += particle.velocity * kDeltaTime;
+				particle.currentTime += kDeltaTime; // 経過時間を加算
 
-				// worldMatrixを求める
-				Matrix4x4 worldMatrix = MakeAffineMatrix((*particleIterator).transform.scale, (*particleIterator).transform.rotate, (*particleIterator).transform.translate);
+				// スケール、回転、平行移動を利用してワールド行列を作成
+				Matrix4x4 worldMatrix = MakeAffineMatrix(particle.transform.scale, particle.transform.rotate, particle.transform.translate);
+
+				// ビルボード行列を適用
+				if (useBillboard)
+				{
+					worldMatrix = Multiply(billboardMatrix, worldMatrix);
+				}
+
+				// ワールド・ビュー・プロジェクション行列を計算
 				Matrix4x4 worldViewProjectionMatrix = Multiply(worldMatrix, viewProjectionMatrix);
 
+				// インスタンシング用データを設定
 				group.second.mappedData[group.second.numParticles].WVP = worldViewProjectionMatrix;
 				group.second.mappedData[group.second.numParticles].World = worldMatrix;
-				group.second.mappedData[group.second.numParticles].color = (*particleIterator).color;
 
-				float alpha = 1.0f - ((*particleIterator).currentTime / (*particleIterator).lifeTime);
-
+				// 色とアルファ値を設定
+				float alpha = 1.0f - (particle.currentTime / particle.lifeTime);
+				group.second.mappedData[group.second.numParticles].color = particle.color;
 				group.second.mappedData[group.second.numParticles].color.w = alpha;
-				++group.second.numParticles; // 生きているParticleの数を1つカウントする
+
+				// 生存パーティクル数をカウント
+				++group.second.numParticles;
 			}
 
-			++particleIterator; // 次のパーティクルに進める
+			// 次のパーティクルに進む
+			++particleIterator;
 		}
 	}
 }
