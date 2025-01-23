@@ -13,6 +13,7 @@
 #include <list>
 #include <random>
 #include <numbers>
+#include <AABB.h>
 
 
 
@@ -32,6 +33,19 @@ const float kDeltaTime = 1.0f / 60.0f;
 class ParticleManager
 {
 public: /// ---------- 構造体 ---------- ///
+
+	/// ---------- 風のエフェクト ---------- ///
+	struct WindZone
+	{
+		AABB area;		  // 風が吹くエリア
+		Vector3 strength; // 風の強さ
+	};
+
+	struct AccelerationField
+	{
+		Vector3 acceleration; // !< 加速度
+		AABB area;			  // !< 範囲
+	};
 
 	struct ParticleForGPU
 	{
@@ -98,6 +112,10 @@ private: /// ---------- ヘルパー関数 ---------- ///
 	// パーティクル生成器
 	Particle MakeNewParticle(std::mt19937& randomEngine, const Vector3& translate);
 
+	std::list<Particle> Emit(const Emitter& emitter, std::mt19937& randomEngine);
+
+	bool IsCollision(const AABB& aabb, const Vector3& point);
+
 private: /// ---------- メンバ変数 ---------- ///
 	
 	Transform transform;
@@ -132,6 +150,8 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	bool useBillboard = false;
 
+	bool isWind = false;
+
 	// 分割数
 	uint32_t kSubdivision = 32;
 
@@ -141,6 +161,10 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	// 球体の頂点数の計算
 	uint32_t TotalVertexCount = kSubdivision * kSubdivision * 6;
+
+	// Fieldを作る
+	AccelerationField accelerationField;
+	
 
 private: /// ---------- コピー禁止 ---------- ///
 	ParticleManager() = default;

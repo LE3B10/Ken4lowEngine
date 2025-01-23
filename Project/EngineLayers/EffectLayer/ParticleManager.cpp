@@ -9,6 +9,11 @@
 #include "Camera.h"
 #include <ImGuiManager.h>
 
+std::vector<ParticleManager::WindZone> windZones = {
+	{ { {-5.0f, -5.0f, -5.0f}, {5.0f, 5.0f, 5.0f} }, {0.1f, 0.0f, 0.0f} },
+	{ { {10.0f, -5.0f, -5.0f}, {15.0f, 5.0f, 5.0f} }, {0.0f, 0.0f, 0.1f} }
+};
+
 /// -------------------------------------------------------------
 ///				    シングルトンインスタンス
 /// -------------------------------------------------------------
@@ -34,6 +39,10 @@ void ParticleManager::Initialize(DirectXCommon* dxCommon, Camera* camera)
 
 	// ランダムエンジンの初期化
 	randomEngin.seed(seedGeneral());
+
+	accelerationField.acceleration = { 15.0f, 0.0f, 0.0f };
+	accelerationField.area.min = { -10.0f, -10.0f, -10.0f };
+	accelerationField.area.max = { 10.0f, 10.0f, 10.0f };
 
 	// パイプライン生成
 	CreatePSO();
@@ -83,6 +92,7 @@ void ParticleManager::CreateParticleGroup(const std::string& name, const std::st
 /// -------------------------------------------------------------
 void ParticleManager::Update()
 {
+#ifdef _DEBUG
 	// ImGuiでuseBillboardの切り替えボタンを追加
 	ImGui::Begin("Particle Manager"); // ウィンドウの開始
 	if (ImGui::Button(useBillboard ? "Disable Billboard" : "Enable Billboard"))
@@ -90,7 +100,14 @@ void ParticleManager::Update()
 		// ボタンが押されたらuseBillboardの値を切り替える
 		useBillboard = !useBillboard;
 	}
+
+	if (ImGui::Button(isWind ? "Disable Wind" : "Enable Wind"))
+	{
+		isWind = !isWind;
+	}
+
 	ImGui::End(); // ウィンドウの終了
+#endif // _DEBUG
 
 	// ビュー行列とプロジェクション行列をカメラから取得
 	Matrix4x4 cameraMatrix = MakeAffineMatrix({ 1.0f, 1.0f, 1.0f }, camera_->GetRotate(), camera_->GetTranslate());
@@ -160,6 +177,19 @@ void ParticleManager::Update()
 				float alpha = 1.0f - ((*particleIterator).currentTime / (*particleIterator).lifeTime);
 				group.second.mappedData[group.second.numParticles].color = (*particleIterator).color;
 				group.second.mappedData[group.second.numParticles].color.w = alpha;
+
+				if (isWind)
+				{
+					// フィールドの範囲内のパーティクルには加速度を適用する
+						// 各パーティクルに最適な風を適用
+					for (const auto& zone : windZones) {
+						if (IsCollision(accelerationField.area, (*particleIterator).transform.translate)) {
+							(*particleIterator).velocity.x += zone.strength.x;
+							(*particleIterator).velocity.y += zone.strength.y;
+							(*particleIterator).velocity.z += zone.strength.z;
+						}
+					}
+				}
 
 				// 生存パーティクル数をカウント
 				++group.second.numParticles;
@@ -562,5 +592,24 @@ Particle ParticleManager::MakeNewParticle(std::mt19937& randomEngine, const Vect
 	particle.velocity = { distribution(randomEngine),distribution(randomEngine),distribution(randomEngine) };
 
 	return particle;
+}
+
+std::list<Particle> ParticleManager::Emit(const Emitter& emitter, std::mt19937& randomEngine)
+{
+	std::list<Particle> particles;
+	for (uint32_t count = 0; count < emitter.count; ++count)
+	{
+		particles.push_back(MakeNewParticle(randomEngine, emitter.transform.translate));
+	}
+
+	return particles;
+}
+
+bool ParticleManager::IsCollision(const AABB& aabb, const Vector3& point)
+{
+	// 点がAABBの範囲内にあるかチェック
+	return (point.x >= aabb.min.x && point.x <= aabb.max.x &&
+		point.y >= aabb.min.y && point.y <= aabb.max.y &&
+		point.z >= aabb.min.z && point.z <= aabb.max.z);
 }
 

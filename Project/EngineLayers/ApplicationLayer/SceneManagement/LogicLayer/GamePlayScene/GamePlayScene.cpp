@@ -83,7 +83,7 @@ void GamePlayScene::Initialize()
 
 	fireEmitter = std::make_unique<ParticleEmitter>(particleManager, "fire");
 	fireEmitter->SetPosition({ 0.0f,0.0f,0.0f }); // 射出する位置を設定
-	fireEmitter->SetEmissionRate(100.0f);		  // 1秒間に20このパーティクルを射出
+	fireEmitter->SetEmissionRate(1200.0f);		  // 1秒間に20このパーティクルを射出
 }
 
 
@@ -107,7 +107,7 @@ void GamePlayScene::Update()
 	}
 
 	// パーティクルエミッターの更新
-	fireEmitter->Update(1.0f/10.0f); // フレーム時間を渡す
+	fireEmitter->Update(1.0f/60.0f); // フレーム時間を渡す
 	particleManager->Update();		  // パーティクル全体の更新
 }
 
