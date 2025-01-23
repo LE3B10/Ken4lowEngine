@@ -2,14 +2,6 @@
 #include "DX12Include.h"
 #include "AABB.h"
 
-
-/// ---------- 風のエフェクト ---------- ///
-struct WindZone
-{
-	AABB area;		  // 風が吹くエリア
-	Vector3 strength; // 風の強さ
-};
-
 /// ---------- 前方宣言 ---------- ///
 class ParticleManager;
 
