@@ -102,9 +102,6 @@ void GameEngine::Finalize()
 	// 基底クラスの終了処理
 	Framework::Finalize();
 
-	// グローバル変数の保存
-	ParameterManager::GetInstance()->SaveFile("Global");
-
 	// シーンマネージャーの終了処理
 	SceneManager::GetInstance()->Finalize();
 }
