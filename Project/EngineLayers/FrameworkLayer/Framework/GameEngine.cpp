@@ -15,7 +15,7 @@ void GameEngine::Initialize()
 	Input::GetInstance()->Initialize(winApp_);
 
 	// グローバル変数の読み込み
-	ParameterManager::GetInstance()->LoadFiles();
+	//ParameterManager::GetInstance()->LoadFiles();
 
 	// シーンファクトリーの生成と設定
 	auto sceneFactory = std::make_unique<SceneFactory>();
@@ -49,10 +49,10 @@ void GameEngine::Update()
 	// シーンマネージャーの更新
 	SceneManager::GetInstance()->Update();
 
-#ifdef _DEBUG // デバッグモードの場合
+//#ifdef _DEBUG // デバッグモードの場合
 
 	// グローバル変数の更新
-	ParameterManager::GetInstance()->Update();
+	//ParameterManager::GetInstance()->Update();
 
 	// シーンのImGuiの描画処理
 	SceneManager::GetInstance()->DrawImGui();
@@ -60,7 +60,7 @@ void GameEngine::Update()
 	// ParticleManagerのImGuiの描画処理
 	ParticleManager::GetInstance()->DrawImGui();
 
-#endif // _DEBUG
+//#endif // _DEBUG
 	/// ---------- ImGuiフレーム終了 ---------- ///
 	imguiManager_->EndFrame();
 }
@@ -86,7 +86,6 @@ void GameEngine::Draw()
 	ParticleManager::GetInstance()->Draw();
 
 	/*-----ImGuiの描画-----*/
-	// ImGui描画のコマンドを積む
 	imguiManager_->Draw();
 
 	// 描画終了処理

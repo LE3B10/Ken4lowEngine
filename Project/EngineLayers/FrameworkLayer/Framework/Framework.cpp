@@ -61,10 +61,8 @@ void Framework::Initialize()
 	// オブジェクト3D共通クラスの生成
 	Object3DCommon::GetInstance()->SetDefaultCamera(camera_.get());
 
-#ifdef _DEBUG // デバッグモードの場合
 	// ImGuiManagerの生成
 	ImGuiManager::GetInstance()->Initialize(winApp_, dxCommon_);
-#endif // _DEBUG
 
 	// ParticleManagerの生成
 	ParticleManager::GetInstance()->Initialize(dxCommon_, camera_.get());

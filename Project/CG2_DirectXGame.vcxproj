@@ -137,7 +137,9 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClCompile Include="EngineLayers\ApplicationLayer\Input\Input.cpp" />
     <ClCompile Include="EngineLayers\EngineLayer\Rendering\PSO\InputLayoutManager\InputLayoutManager.cpp" />
     <ClCompile Include="EngineLayers\FrameworkLayer\Log\LogString.cpp" />
-    <ClCompile Include="EngineLayers\FrameworkLayer\Framework\GameEngine.cpp" />
+    <ClCompile Include="EngineLayers\FrameworkLayer\Framework\GameEngine.cpp">
+      <DebugInformationFormat Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">EditAndContinue</DebugInformationFormat>
+    </ClCompile>
     <ClCompile Include="EngineLayers\FrameworkLayer\Framework\Framework.cpp" />
     <ClCompile Include="EngineLayers\ApplicationLayer\SceneManagement\LogicLayer\GamePlayScene\GamePlayScene.cpp" />
     <ClCompile Include="EngineLayers\EngineLayer\Matrix\Matrix4x4.cpp" />
