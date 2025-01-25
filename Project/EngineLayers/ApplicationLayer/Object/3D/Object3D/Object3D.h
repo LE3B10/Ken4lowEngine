@@ -33,6 +33,17 @@ public: /// ---------- 構造体 ---------- ///
 		Vector3 worldPosition;
 	};
 
+	// シェーダー側の点光源の構造体
+	struct PointLight
+	{
+		Vector4 color; // ライトの色
+		Vector3 position; // ライトの位置
+		float intensity; // 輝度
+		float radius; // 有効範囲
+		float decay; // 減衰率
+		float padding[2]; // パディング
+	};
+
 public: /// ---------- メンバ関数 ---------- ///
 
 	// 初期化処理
@@ -83,6 +94,9 @@ private: /// ---------- メンバ変数 ---------- ///
 	// カメラ用のリソース生成
 	void InitializeCameraResource(DirectXCommon* dxCommon);
 
+	// ポイントライトの初期化処理
+	void PointLightSource(DirectXCommon* dxCommon);
+
 private: /// ---------- メンバ変数 ---------- ///
 
 	// 分割数
@@ -90,7 +104,7 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	// 緯度・経度の分割数に応じた角度の計算
 	float kLatEvery = std::numbers::pi_v<float> / float(kSubdivision);
-	float kLonEvery = 2.0f *  std::numbers::pi_v<float> / float(kSubdivision);
+	float kLonEvery = 2.0f * std::numbers::pi_v<float> / float(kSubdivision);
 
 	// 球体の頂点数の計算
 	uint32_t TotalVertexCount = kSubdivision * kSubdivision * 6;
@@ -111,11 +125,16 @@ private: /// ---------- メンバ変数 ---------- ///
 	ComPtr <ID3D12Resource> vertexResource;
 	ComPtr <ID3D12Resource> materialResource;
 	ComPtr <ID3D12Resource> wvpResource;
+
 	ComPtr <ID3D12Resource> directionalLightResource;
 	ComPtr <ID3D12Resource> cameraResource;
+	ComPtr <ID3D12Resource> pointLightResource;
 
 	// wvpデータを書き込む
+	// カメラにデータを書き込む
+	CameraForGPU* cameraData = nullptr;
 	TransformationMatrix* wvpData = nullptr;
+	PointLight* pointLightData = nullptr;
 
 	// OBJファイルのデータ
 	ModelData modelData;

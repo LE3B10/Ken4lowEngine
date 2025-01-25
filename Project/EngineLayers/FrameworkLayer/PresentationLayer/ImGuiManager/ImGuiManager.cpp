@@ -54,12 +54,12 @@ void ImGuiManager::Initialize(WinApp* winApp, DirectXCommon* dxCommon)
 /// -------------------------------------------------------------
 void ImGuiManager::BeginFrame()
 {
-#ifdef _DEBUG
+//#ifdef _DEBUG
 	//ImGuiを使う
 	ImGui_ImplDX12_NewFrame();
 	ImGui_ImplWin32_NewFrame();
 	ImGui::NewFrame();
-#endif // _DEBUG
+//#endif // _DEBUG
 }
 
 
@@ -69,10 +69,10 @@ void ImGuiManager::BeginFrame()
 /// -------------------------------------------------------------
 void ImGuiManager::EndFrame()
 {
-#ifdef _DEBUG
+//#ifdef _DEBUG
 	//ImGuiの内部コマンドを生成する
 	ImGui::Render();
-#endif // _DEBUG
+//#endif // _DEBUG
 }
 
 
@@ -82,7 +82,7 @@ void ImGuiManager::EndFrame()
 /// -------------------------------------------------------------
 void ImGuiManager::Draw()
 {
-#ifdef _DEBUG
+//#ifdef _DEBUG
 
 	DirectXCommon* dxCommon = DirectXCommon::GetInstance();
 
@@ -94,7 +94,7 @@ void ImGuiManager::Draw()
 	/*-----ImGuiを描画する-----*/
 	//実際のcommandListのImGuiの描画コマンドを積む
 	ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), commandList.Get());
-#endif // _DEBUG
+//#endif // _DEBUG
 }
 
 
@@ -111,10 +111,10 @@ void ImGuiManager::Finalize()
 		srvIndex_ = UINT32_MAX; // 無効な状態にリセット
 	}
 
-#ifdef _DEBUG
+//#ifdef _DEBUG
 	ImGui_ImplDX12_Shutdown();
 	ImGui_ImplWin32_Shutdown();
 	ImGui::DestroyContext();
-#endif // _DEBUG
+//#endif // _DEBUG
 
 }

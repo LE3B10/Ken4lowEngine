@@ -115,7 +115,7 @@ void Model::InitializeMaterial(DirectXCommon* dxCommon)
 	materialResource->Map(0, nullptr, reinterpret_cast<void**>(&materialData));
 	// 今回は赤を書き込んでみる
 	materialData->color = { 1.0f, 1.0f, 1.0f, 1.0f };
-	materialData->enableLighting = true;
+	materialData->enableLighting = true; // 平行光源を有効にする
 	// UVTramsform行列を単位行列で初期化
 	materialData->uvTransform = MakeIdentity();
 #pragma endregion

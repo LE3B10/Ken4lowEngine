@@ -41,8 +41,8 @@ void ParticleManager::Initialize(DirectXCommon* dxCommon, Camera* camera)
 	randomEngin.seed(seedGeneral());
 
 	accelerationField.acceleration = { 15.0f, 0.0f, 0.0f };
-	accelerationField.area.min = { -10.0f, -10.0f, -10.0f };
-	accelerationField.area.max = { 10.0f, 10.0f, 10.0f };
+	accelerationField.area.min = { -10.0f, -10.0f, -30.0f };
+	accelerationField.area.max = { 10.0f, 10.0f, 30.0f };
 
 	// パイプライン生成
 	CreatePSO();
@@ -266,7 +266,6 @@ void ParticleManager::Emit(const std::string name, const Vector3 position, uint3
 
 void ParticleManager::DrawImGui()
 {
-#ifdef _DEBUG
 	// ImGuiでuseBillboardの切り替えボタンを追加
 	ImGui::Begin("Particle Manager"); // ウィンドウの開始
 	if (ImGui::Button(useBillboard ? "Disable Billboard" : "Enable Billboard"))
@@ -281,8 +280,6 @@ void ParticleManager::DrawImGui()
 	}
 
 	ImGui::End(); // ウィンドウの終了
-#endif // _DEBUG
-
 }
 
 

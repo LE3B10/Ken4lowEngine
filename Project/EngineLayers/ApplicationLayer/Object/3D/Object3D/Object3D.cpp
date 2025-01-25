@@ -70,12 +70,58 @@ void Object3D::DrawImGui()
 	ImGui::DragFloat3("Rotation", &transform.rotate.x, 0.01f);   // 回転変更
 	ImGui::DragFloat3("Scale", &transform.scale.x, 0.01f);       // スケール変更
 
-	if (ImGui::SliderFloat3("Direction", &directionalLightData->direction.x, -1.0f, 1.0f))
+	// カメラの設定
+	if (ImGui::CollapsingHeader("Camera Settings"))
 	{
-		directionalLightData->direction = Normalize(directionalLightData->direction);
+		static float cameraPosition[3] = { cameraData->worldPosition.x, cameraData->worldPosition.y, cameraData->worldPosition.z };
+		if (ImGui::SliderFloat3("Camera Position", cameraPosition, -20.0f, 20.0f))
+		{
+			cameraData->worldPosition = { cameraPosition[0], cameraPosition[1], cameraPosition[2] };
+		}
 	}
 
-	ImGui::SliderFloat("intensity", &directionalLightData->intensity, 0.0f, 10.0f);
+	// 平行光源の設定
+	if (ImGui::CollapsingHeader("Directional Light Settings"))
+	{
+		if (ImGui::SliderFloat3("Directional Light Direction", &directionalLightData->direction.x, -1.0f, 1.0f))
+		{
+			directionalLightData->direction = Normalize(directionalLightData->direction);
+		}
+		ImGui::SliderFloat("Directional Light Intensity", &directionalLightData->intensity, 0.0f, 10.0f);
+	}
+
+	// 点光源の設定
+	if (ImGui::CollapsingHeader("Point Light Settings"))
+	{
+		static float pointPosition[3] = { pointLightData->position.x, pointLightData->position.y, pointLightData->position.z };
+		static float pointIntensity = pointLightData->intensity;
+		static float pointRadius = pointLightData->radius;
+		static float pointDecay = pointLightData->decay;
+
+		// 点光源の位置
+		if (ImGui::SliderFloat3("Point Light Position", pointPosition, -10.0f, 10.0f))
+		{
+			pointLightData->position = { pointPosition[0], pointPosition[1], pointPosition[2] };
+		}
+
+		// 点光源の輝度
+		if (ImGui::SliderFloat("Point Light Intensity", &pointIntensity, 0.0f, 5.0f))
+		{
+			pointLightData->intensity = pointIntensity;
+		}
+
+		// 点光源の半径
+		if (ImGui::SliderFloat("Point Light Radius", &pointRadius, 0.0f, 20.0f))
+		{
+			pointLightData->radius = pointRadius;
+		}
+
+		// 点光源の減衰率
+		if (ImGui::SliderFloat("Point Light Decay", &pointDecay, 0.1f, 5.0f))
+		{
+			pointLightData->decay = pointDecay;
+		}
+	}
 }
 
 
@@ -97,6 +143,7 @@ void Object3D::Draw()
 	dxCommon->GetCommandList()->SetGraphicsRootDescriptorTable(2, modelData.material.gpuHandle);
 	dxCommon->GetCommandList()->SetGraphicsRootConstantBufferView(3, directionalLightResource->GetGPUVirtualAddress());
 	dxCommon->GetCommandList()->SetGraphicsRootConstantBufferView(4, cameraResource->GetGPUVirtualAddress());
+	dxCommon->GetCommandList()->SetGraphicsRootConstantBufferView(5, pointLightResource->GetGPUVirtualAddress());
 
 	// モデルの描画
 	dxCommon->GetCommandList()->DrawInstanced(UINT(modelData.vertices.size()), 1, 0, 0);
@@ -127,6 +174,7 @@ void Object3D::preInitialize(DirectXCommon* dxCommon)
 	ParallelLightSorce(dxCommon);
 	InitializeVertexBufferData(dxCommon);
 	InitializeCameraResource(dxCommon);
+	PointLightSource(dxCommon);
 }
 
 
@@ -144,7 +192,7 @@ void Object3D::InitializeMaterial(DirectXCommon* dxCommon)
 	materialResource->Map(0, nullptr, reinterpret_cast<void**>(&materialData));
 	// 今回は赤を書き込んでみる
 	materialData->color = { 1.0f, 1.0f, 1.0f, 1.0f };
-	materialData->enableLighting = true;
+	materialData->enableLighting = true; // 平行光源を有効にする
 	materialData->shininess = 1.0f;
 	materialData->uvTransform = MakeIdentity();
 #pragma endregion
@@ -182,23 +230,37 @@ void Object3D::ParallelLightSorce(DirectXCommon* dxCommon)
 	directionalLightResource->Map(0, nullptr, reinterpret_cast<void**>(&directionalLightData));
 
 	directionalLightData->color = { 1.0f,1.0f,1.0f ,1.0f };
-	directionalLightData->direction = Normalize({ 0.0f,-1.0f,0.0f });
+	directionalLightData->direction = Normalize({ 0.0f, 1.0f, 0.0f });
 	directionalLightData->intensity = 1.0f;
 #pragma endregion
 }
 
 void Object3D::InitializeCameraResource(DirectXCommon* dxCommon)
 {
-	//#pragma region カメラ用のリソースを作成し、そのリソースにデータを書き込む
 	// カメラ用のリソースを作る
 	cameraResource = ResourceManager::CreateBufferResource(dxCommon->GetDevice(), sizeof(CameraForGPU));
-	// カメラにデータを書き込む
-	CameraForGPU* cameraData = nullptr;
 	// 書き込むためのアドレスを取得
 	cameraResource->Map(0, nullptr, reinterpret_cast<void**>(&cameraData));
 	// カメラの初期位置
 	cameraData->worldPosition = { 0.0f, 0.0f, -20.0f };
-	//#pragma endregion
+}
+
+void Object3D::PointLightSource(DirectXCommon* dxCommon)
+{
+	// ポイントライト用のリソースを作る
+	pointLightResource = ResourceManager::CreateBufferResource(dxCommon->GetDevice(), sizeof(PointLight));
+	// 書き込むためのアドレスを取得
+	pointLightResource->Map(0, nullptr, reinterpret_cast<void**>(&pointLightData));
+	// ポイントライトの初期位置
+	pointLightData->position = { 0.0f, 10.0f, 0.0f };
+	// ポイントライトの色
+	pointLightData->color = { 1.0f, 1.0f, 1.0f, 1.0f };
+	// ポイントライトの輝度
+	pointLightData->intensity = 1.0f;
+	// ポイントライトの有効範囲
+	pointLightData->radius = 10.0f;
+	// ポイントライトの減衰率
+	pointLightData->decay = 1.0f;
 }
 
 

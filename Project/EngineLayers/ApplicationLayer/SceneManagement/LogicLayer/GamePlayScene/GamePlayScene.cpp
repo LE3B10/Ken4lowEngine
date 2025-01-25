@@ -20,7 +20,7 @@ void GamePlayScene::Initialize()
 
 	// .objのパスをリストで管理
 	objectFiles = {
-		"terrain.obj",
+		"terrain.gltf",
 		"sphere.gltf",
 	};
 
@@ -35,14 +35,10 @@ void GamePlayScene::Initialize()
 	camera_->SetTranslate({ 0.0f,10.0f,-30.0f });
 	object3DCommon_->SetDefaultCamera(camera_.get());
 
-	// 各オブジェクトを初期化し、座標を設定
-	for (uint32_t i = 0; i < objectFiles.size(); ++i)
-	{
-		auto object = std::make_unique<Object3D>();
-		object->Initialize(object3DCommon_.get(), objectFiles[i]);
-		object->SetTranslate(initialPositions[i]);
-		objects3D_.push_back(std::move(object));
-	}
+	// terrainの生成と初期化
+	objectTerrain_ = std::make_unique<Object3D>();
+	objectTerrain_->Initialize(object3DCommon_.get(), objectFiles[0]);
+	objectTerrain_->SetTranslate({ 0.0f,0.0f,0.0f });
 
 	/// ---------- サウンドの初期化 ---------- ///
 	const char* fileName = "Resources/Sounds/Get-Ready.wav";
@@ -64,10 +60,7 @@ void GamePlayScene::Initialize()
 /// -------------------------------------------------------------
 void GamePlayScene::Update()
 {
-	for (auto& objects3D : objects3D_)
-	{
-		objects3D->Update();
-	}
+	objectTerrain_->Update();
 
 	// カメラの更新処理
 	camera_->Update();
@@ -82,10 +75,8 @@ void GamePlayScene::Update()
 /// -------------------------------------------------------------
 void GamePlayScene::Draw()
 {
-	for (auto& objects3D : objects3D_)
-	{
-		objects3D->Draw();
-	}
+	// Terrain.obj の描画
+	objectTerrain_->Draw();
 }
 
 
@@ -105,16 +96,8 @@ void GamePlayScene::DrawImGui()
 {
 	ImGui::Begin("Test Window");
 
-	for (uint32_t i = 0; i < objects3D_.size(); ++i)
-	{
-		ImGui::PushID(i); // オブジェクトごとにIDを区別
-		if (ImGui::TreeNode(("Object3D " + std::to_string(i)).c_str()))
-		{
-			objects3D_[i]->DrawImGui();
-			ImGui::TreePop();
-		}
-		ImGui::PopID(); // IDをリセット
-	}
+	// TerrainのImGui
+	objectTerrain_->DrawImGui();
 
 	// パーティクルエミッターのImGui
 	if (ImGui::CollapsingHeader("ParticleEmitter Settings")) {
