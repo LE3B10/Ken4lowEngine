@@ -25,6 +25,14 @@ class Object3DCommon;
 /// -------------------------------------------------------------
 class Object3D
 {
+public: /// ---------- 構造体 ---------- ///
+
+	// シェーダー側のカメラ構造体
+	struct CameraForGPU
+	{
+		Vector3 worldPosition;
+	};
+
 public: /// ---------- メンバ関数 ---------- ///
 
 	// 初期化処理
@@ -72,6 +80,9 @@ private: /// ---------- メンバ変数 ---------- ///
 	// 平行光源の初期化処理
 	void ParallelLightSorce(DirectXCommon* dxCommon);
 
+	// カメラ用のリソース生成
+	void InitializeCameraResource(DirectXCommon* dxCommon);
+
 private: /// ---------- メンバ変数 ---------- ///
 
 	// 分割数
@@ -101,6 +112,7 @@ private: /// ---------- メンバ変数 ---------- ///
 	ComPtr <ID3D12Resource> materialResource;
 	ComPtr <ID3D12Resource> wvpResource;
 	ComPtr <ID3D12Resource> directionalLightResource;
+	ComPtr <ID3D12Resource> cameraResource;
 
 	// wvpデータを書き込む
 	TransformationMatrix* wvpData = nullptr;

@@ -19,7 +19,7 @@ void Object3D::Initialize(Object3DCommon* object3dCommon, const std::string& fil
 	dxCommon = DirectXCommon::GetInstance();
 
 	object3dCommon_ = object3dCommon;
-	
+
 	// モデル読み込み
 	modelData = ModelManager::LoadModelFile("Resources", fileName);
 
@@ -57,6 +57,7 @@ void Object3D::Update()
 
 	wvpData->WVP = worldViewProjectionMatrix;
 	wvpData->World = worldMatrix;
+	wvpData->WorldInversedTranspose = Transpose(Inverse(worldMatrix));
 }
 
 
@@ -65,13 +66,16 @@ void Object3D::Update()
 /// -------------------------------------------------------------
 void Object3D::DrawImGui()
 {
-	if (ImGui::TreeNode("Transform"))
+	ImGui::DragFloat3("Position", &transform.translate.x, 0.01f); // 座標変更
+	ImGui::DragFloat3("Rotation", &transform.rotate.x, 0.01f);   // 回転変更
+	ImGui::DragFloat3("Scale", &transform.scale.x, 0.01f);       // スケール変更
+
+	if (ImGui::SliderFloat3("Direction", &directionalLightData->direction.x, -1.0f, 1.0f))
 	{
-		ImGui::DragFloat3("Position", &transform.translate.x, 0.01f); // 座標変更
-		ImGui::DragFloat3("Rotation", &transform.rotate.x, 0.01f);   // 回転変更
-		ImGui::DragFloat3("Scale", &transform.scale.x, 0.01f);       // スケール変更
-		ImGui::TreePop();
+		directionalLightData->direction = Normalize(directionalLightData->direction);
 	}
+
+	ImGui::SliderFloat("intensity", &directionalLightData->intensity, 0.0f, 10.0f);
 }
 
 
@@ -90,10 +94,9 @@ void Object3D::Draw()
 	dxCommon->GetCommandList()->IASetVertexBuffers(0, 1, &vertexBufferView); // モデル用VBV
 	dxCommon->GetCommandList()->SetGraphicsRootConstantBufferView(0, materialResource->GetGPUVirtualAddress());
 	dxCommon->GetCommandList()->SetGraphicsRootConstantBufferView(1, wvpResource->GetGPUVirtualAddress());
-	dxCommon->GetCommandList()->SetGraphicsRootConstantBufferView(3, directionalLightResource->GetGPUVirtualAddress());
-
-	// ディスクリプタテーブルの設定
 	dxCommon->GetCommandList()->SetGraphicsRootDescriptorTable(2, modelData.material.gpuHandle);
+	dxCommon->GetCommandList()->SetGraphicsRootConstantBufferView(3, directionalLightResource->GetGPUVirtualAddress());
+	dxCommon->GetCommandList()->SetGraphicsRootConstantBufferView(4, cameraResource->GetGPUVirtualAddress());
 
 	// モデルの描画
 	dxCommon->GetCommandList()->DrawInstanced(UINT(modelData.vertices.size()), 1, 0, 0);
@@ -123,6 +126,7 @@ void Object3D::preInitialize(DirectXCommon* dxCommon)
 	InitializeTransfomation(dxCommon);
 	ParallelLightSorce(dxCommon);
 	InitializeVertexBufferData(dxCommon);
+	InitializeCameraResource(dxCommon);
 }
 
 
@@ -141,7 +145,7 @@ void Object3D::InitializeMaterial(DirectXCommon* dxCommon)
 	// 今回は赤を書き込んでみる
 	materialData->color = { 1.0f, 1.0f, 1.0f, 1.0f };
 	materialData->enableLighting = true;
-	// UVTramsform行列を単位行列で初期化
+	materialData->shininess = 1.0f;
 	materialData->uvTransform = MakeIdentity();
 #pragma endregion
 }
@@ -161,6 +165,7 @@ void Object3D::InitializeTransfomation(DirectXCommon* dxCommon)
 	//単位行列を書き込んでおく
 	wvpData->World = MakeIdentity();
 	wvpData->WVP = MakeIdentity();
+	wvpData->WorldInversedTranspose = MakeIdentity();
 #pragma endregion
 }
 
@@ -177,9 +182,23 @@ void Object3D::ParallelLightSorce(DirectXCommon* dxCommon)
 	directionalLightResource->Map(0, nullptr, reinterpret_cast<void**>(&directionalLightData));
 
 	directionalLightData->color = { 1.0f,1.0f,1.0f ,1.0f };
-	directionalLightData->direction = { 0.0f,-1.0f,0.0f };
+	directionalLightData->direction = Normalize({ 0.0f,-1.0f,0.0f });
 	directionalLightData->intensity = 1.0f;
 #pragma endregion
+}
+
+void Object3D::InitializeCameraResource(DirectXCommon* dxCommon)
+{
+	//#pragma region カメラ用のリソースを作成し、そのリソースにデータを書き込む
+	// カメラ用のリソースを作る
+	cameraResource = ResourceManager::CreateBufferResource(dxCommon->GetDevice(), sizeof(CameraForGPU));
+	// カメラにデータを書き込む
+	CameraForGPU* cameraData = nullptr;
+	// 書き込むためのアドレスを取得
+	cameraResource->Map(0, nullptr, reinterpret_cast<void**>(&cameraData));
+	// カメラの初期位置
+	cameraData->worldPosition = { 0.0f, 0.0f, -20.0f };
+	//#pragma endregion
 }
 
 
