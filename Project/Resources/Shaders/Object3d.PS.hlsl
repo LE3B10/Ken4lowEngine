@@ -1,5 +1,11 @@
 #include "Object3d.hlsli"
 
+//ピクセルシェーダーの出力
+struct PixelShaderOutput
+{
+    float4 color : SV_TARGET0;
+};
+
 // マテリアル
 struct Material
 {
@@ -33,20 +39,29 @@ struct PointLight
     float decay; // 減衰率
 };
 
-//ピクセルシェーダーの出力
-struct PixelShaderOutput
+// スポットライト
+struct SpotLight
 {
-    float4 color : SV_TARGET0;
+    float4 color; // ライトの色
+    float3 position; // ライトの壱
+    float intensity; // 輝度
+    float3 direction; // スポットライトの方向
+    float distance; // ライトの届く最大距離
+    float decay; // 減衰率
+    float cosFalloffStart; // 開始角度
+    float cosAngle; // スポットライトの余弦
 };
 
 ConstantBuffer<Material> gMaterial : register(b0);
 ConstantBuffer<DirectionalLight> gDirectionalLight : register(b1);
 ConstantBuffer<Camera> gCamera : register(b2);
 ConstantBuffer<PointLight> gPointLight : register(b3);
+ConstantBuffer<SpotLight> gSpotLight : register(b4);
 
 Texture2D<float4> gTexture : register(t0);
 SamplerState gSampler : register(s0);
 
+// ピクセルシェーダー (PS) のメイン関数 (メインエントリーポイント)
 PixelShaderOutput main(VertexShaderOutput input)
 {
     PixelShaderOutput output;
@@ -65,7 +80,7 @@ PixelShaderOutput main(VertexShaderOutput input)
         float3 viewDir = normalize(gCamera.worldPosition - input.worldPosition); // 視線方向（カメラ方向）
 
         // 環境光（Ambient）
-        float3 ambientColor = gMaterial.color.rgb * gDirectionalLight.color.rgb * gDirectionalLight.intensity * 0.01f; // 環境光を少し抑える
+        float3 ambientColor = gMaterial.color.rgb * gDirectionalLight.color.rgb * gDirectionalLight.intensity * 0.1f; // 環境光を少し抑える
     
         /// ---------- 平行光源の処理 ---------- ///
     
@@ -113,10 +128,38 @@ PixelShaderOutput main(VertexShaderOutput input)
             float shininess = max(gMaterial.shininess, 50.0f);
             pointSpecularColor = float3(1.0f, 1.0f, 1.0f) * pow(pointNdotH, shininess) * gPointLight.intensity;
         }
-
-   
-        // 環境光 + 拡散反射 + 鏡面反射 + 点光源の拡散反射 + 点光源の鏡面反射
-        float3 finalColor = ambientColor + diffuseColor + specularColor + pointDiffuseColor + pointSpecularColor * attenuation;
+    
+        /// ---------- スポットライトの処理 ---------- ///
+    
+        float3 spotLightDir = gSpotLight.position - input.worldPosition; // スポットライトからピクセルへの方向
+        float spotLightDistance = length(spotLightDir); // 距離
+        spotLightDir = normalize(spotLightDir); // 正規化
+    
+        // 距離減衰と逆二乗の法則を計算
+        float spotAttenuation = 1.0f / (1.0f + gSpotLight.decay * pow(spotLightDistance / (gSpotLight.distance + 1.0f), 2.0f));
+        spotAttenuation = saturate(spotAttenuation); // クランプ
+    
+        // 角度元帥の計算
+        float cosAngle = dot(-spotLightDir, normalize(gSpotLight.direction));
+        float spotAngleFactor = saturate((cosAngle - gSpotLight.cosAngle) / (gSpotLight.cosFalloffStart - gSpotLight.cosAngle)); // 緩やかに減衰
+    
+        // スポットライトの拡散反射
+        float spotNdotL = dot(normal, spotLightDir); // 法線とライト方向
+        float spotLghtHalfLambertFactor = saturate(pow(spotNdotL * 0.5f + 0.5f, 2.0f)); // ハーフランバート反射
+        float3 spotDiffuseColor = gMaterial.color.rgb * textureColor.rgb * gSpotLight.color.rgb * gSpotLight.intensity * spotLghtHalfLambertFactor * spotAttenuation * spotAngleFactor;
+    
+        // スポットライトの鏡面反射
+        float3 spotSpecularColor = float3(0.0f, 0.0f, 0.0f);
+        if (gSpotLight.intensity > 0.0f && spotNdotL > 0.0f)
+        {
+            float3 spotHalfVector = normalize(spotLightDir + viewDir); // ハーフベクトル
+            float spotNdotH = max(dot(normal, spotHalfVector), 0.0f);
+            float shininess = max(gMaterial.shininess, 50.0f);
+            spotSpecularColor = float3(1.0f, 1.0f, 1.0f) * pow(spotNdotH, shininess) * gSpotLight.intensity * spotAttenuation * spotAngleFactor;
+        }
+        
+        // 環境光 + 拡散反射 + 鏡面反射 + 点光源の拡散反射 + 点光源の鏡面反射 + スポットライトの拡散反射 + スポットライトの鏡面反射
+        float3 finalColor = /*ambientColor + */ diffuseColor + specularColor + pointDiffuseColor + pointSpecularColor * attenuation + spotDiffuseColor + spotSpecularColor;
         output.color.rgb = saturate(finalColor);
 
         // ガンマ補正を適用（必要なら）

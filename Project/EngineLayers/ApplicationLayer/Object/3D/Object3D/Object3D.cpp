@@ -122,6 +122,73 @@ void Object3D::DrawImGui()
 			pointLightData->decay = pointDecay;
 		}
 	}
+
+	// スポットライトの設定
+	// スポットライトの設定
+	if (ImGui::CollapsingHeader("Spot Light Settings"))
+	{
+		static float spotPosition[3] = { spotLightData->position.x, spotLightData->position.y, spotLightData->position.z };
+		static float spotDirection[3] = { spotLightData->direction.x, spotLightData->direction.y, spotLightData->direction.z };
+		static float spotIntensity = spotLightData->intensity;
+		static float spotDistance = spotLightData->distance;
+		static float spotDecay = spotLightData->decay;
+
+		// スポットライトの開始角度と終了角度（度単位で操作）
+		static float spotFalloffStartAngle = std::acos(spotLightData->cosFalloffStart) * 180.0f / std::numbers::pi_v<float>;
+		static float spotConeAngle = std::acos(spotLightData->cosAngle) * 180.0f / std::numbers::pi_v<float>;
+
+
+		// スポットライトの位置
+		if (ImGui::SliderFloat3("Spot Light Position", spotPosition, -10.0f, 10.0f))
+		{
+			spotLightData->position = { spotPosition[0], spotPosition[1], spotPosition[2] };
+		}
+
+		// スポットライトの方向
+		if (ImGui::SliderFloat3("Spot Light Direction", spotDirection, -1.0f, 1.0f))
+		{
+			spotLightData->direction = Normalize({ spotDirection[0], spotDirection[1], spotDirection[2] });
+		}
+
+		// スポットライトの輝度
+		if (ImGui::SliderFloat("Spot Light Intensity", &spotIntensity, 0.0f, 10.0f))
+		{
+			spotLightData->intensity = spotIntensity;
+		}
+
+		// スポットライトの距離
+		if (ImGui::SliderFloat("Spot Light Distance", &spotDistance, 0.0f, 50.0f))
+		{
+			spotLightData->distance = spotDistance;
+		}
+
+		// スポットライトの減衰率
+		if (ImGui::SliderFloat("Spot Light Decay", &spotDecay, 0.0f, 5.0f))
+		{
+			spotLightData->decay = spotDecay;
+		}
+
+		// スポットライトの開始角度（Falloff Start Angle）
+		if (ImGui::SliderFloat("Spot Light Falloff Start Angle (Degrees)", &spotFalloffStartAngle, 0.0f, 90.0f))
+		{
+			// 度をラジアンに変換し、余弦値を計算
+			spotLightData->cosFalloffStart = std::cos(spotFalloffStartAngle * std::numbers::pi_v<float> / 180.0f);
+		}
+
+		// スポットライトの終了角度（Cone Angle）
+		if (ImGui::SliderFloat("Spot Light Cone Angle (Degrees)", &spotConeAngle, 0.0f, 90.0f))
+		{
+			// 度をラジアンに変換し、余弦値を計算
+			spotLightData->cosAngle = std::cos(spotConeAngle * std::numbers::pi_v<float> / 180.0f);
+		}
+
+		// 開始角度が終了角度より大きくならないように調整
+		if (spotLightData->cosFalloffStart < spotLightData->cosAngle)
+		{
+			spotLightData->cosFalloffStart = spotLightData->cosAngle;
+			spotFalloffStartAngle = std::acos(spotLightData->cosFalloffStart) * 180.0f / std::numbers::pi_v<float>;
+		}
+	}
 }
 
 
@@ -144,6 +211,7 @@ void Object3D::Draw()
 	dxCommon->GetCommandList()->SetGraphicsRootConstantBufferView(3, directionalLightResource->GetGPUVirtualAddress());
 	dxCommon->GetCommandList()->SetGraphicsRootConstantBufferView(4, cameraResource->GetGPUVirtualAddress());
 	dxCommon->GetCommandList()->SetGraphicsRootConstantBufferView(5, pointLightResource->GetGPUVirtualAddress());
+	dxCommon->GetCommandList()->SetGraphicsRootConstantBufferView(6, spotLightResource->GetGPUVirtualAddress());
 
 	// モデルの描画
 	dxCommon->GetCommandList()->DrawInstanced(UINT(modelData.vertices.size()), 1, 0, 0);
@@ -175,6 +243,7 @@ void Object3D::preInitialize(DirectXCommon* dxCommon)
 	InitializeVertexBufferData(dxCommon);
 	InitializeCameraResource(dxCommon);
 	PointLightSource(dxCommon);
+	SpotLightSource(dxCommon);
 }
 
 
@@ -261,6 +330,31 @@ void Object3D::PointLightSource(DirectXCommon* dxCommon)
 	pointLightData->radius = 10.0f;
 	// ポイントライトの減衰率
 	pointLightData->decay = 1.0f;
+}
+
+void Object3D::SpotLightSource(DirectXCommon* dxCommon)
+{
+	// スポットライト用のリソースを作る
+	spotLightResource = ResourceManager::CreateBufferResource(dxCommon->GetDevice(), sizeof(SpotLight));
+	// 書き込むためのアドレスを取得
+	spotLightResource->Map(0, nullptr, reinterpret_cast<void**>(&spotLightData));
+	// スポットライトの色
+	spotLightData->color = { 1.0f,1.0f,1.0f,1.0f };
+	// スポットライトの位置
+	spotLightData->position = { 2.0f,2.0f,0.0f };
+	// スポットライトの距離
+	spotLightData->distance = 7.0f;
+	// スポットライトの方向
+	spotLightData->direction = Normalize({ -1.0f, -1.0f,0.0f });
+	// スポットライトの輝度
+	spotLightData->intensity = 4.0f;
+	// スポットライトの減衰率
+	spotLightData->decay = 2.0f;
+	// スポットライトの開始角度の余弦値
+	spotLightData->cosFalloffStart = std::cos(std::numbers::pi_v<float> / 6.0f);
+	// スポットライトの余弦
+	spotLightData->cosAngle = std::cos(std::numbers::pi_v<float> / 3.0f);
+	spotLightResource->Unmap(0, nullptr);
 }
 
 

@@ -21,7 +21,6 @@ void GamePlayScene::Initialize()
 	// .objのパスをリストで管理
 	objectFiles = {
 		"terrain.gltf",
-		"sphere.gltf",
 	};
 
 	std::vector<Vector3> initialPositions = {
