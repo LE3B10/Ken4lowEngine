@@ -44,6 +44,20 @@ public: /// ---------- 構造体 ---------- ///
 		float padding[2]; // パディング
 	};
 
+	// スポットライトの構造体
+	struct SpotLight
+	{
+		Vector4 color; // ライトの色
+		Vector3 position; // ライトの位置
+		float intensity; // スポットライトの方向
+		Vector3 direction; // スポットライトの方向
+		float distance; // ライトの届く最大距離
+		float decay; // 減衰率
+		float cosFalloffStart; // 開始角度の余弦値
+		float cosAngle; // スポットライトの余弦
+		float padding[2]; // パディング
+	};
+
 public: /// ---------- メンバ関数 ---------- ///
 
 	// 初期化処理
@@ -97,6 +111,9 @@ private: /// ---------- メンバ変数 ---------- ///
 	// ポイントライトの初期化処理
 	void PointLightSource(DirectXCommon* dxCommon);
 
+	// スポットライトの初期化処理
+	void SpotLightSource(DirectXCommon* dxCommon);
+
 private: /// ---------- メンバ変数 ---------- ///
 
 	// 分割数
@@ -129,13 +146,14 @@ private: /// ---------- メンバ変数 ---------- ///
 	ComPtr <ID3D12Resource> directionalLightResource;
 	ComPtr <ID3D12Resource> cameraResource;
 	ComPtr <ID3D12Resource> pointLightResource;
+	ComPtr <ID3D12Resource> spotLightResource;
 
 	// wvpデータを書き込む
 	// カメラにデータを書き込む
 	CameraForGPU* cameraData = nullptr;
 	TransformationMatrix* wvpData = nullptr;
 	PointLight* pointLightData = nullptr;
-
+	SpotLight* spotLightData = nullptr;
 	// OBJファイルのデータ
 	ModelData modelData;
 
