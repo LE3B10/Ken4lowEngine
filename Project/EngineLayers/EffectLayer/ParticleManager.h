@@ -94,6 +94,9 @@ public: /// ---------- メンバ関数 ---------- ///
 	void Emit(const std::string name, const Vector3 position, uint32_t count);
 
 	std::unordered_map<std::string, ParticleManager::ParticleGroup> GetParticleGroups() { return particleGroups; }
+	
+	// ImGuiの描画
+	void DrawImGui();
 
 private: /// ---------- ヘルパー関数 ---------- ///
 

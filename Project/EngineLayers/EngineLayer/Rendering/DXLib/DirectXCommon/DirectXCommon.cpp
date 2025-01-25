@@ -137,7 +137,7 @@ void DirectXCommon::EndDraw()
 
 	// FPS固定更新処理
 	UpdateFixFPS();
-	
+
 	// FPS測定処理
 	frameCount_++; // フレームカウントを増加
 	auto now = std::chrono::steady_clock::now();
@@ -394,7 +394,7 @@ void DirectXCommon::ClearWindow()
 	commandList->OMSetRenderTargets(1, &rtvHandles[backBufferIndex], false, &dsvHandle);
 
 	//指定した色で画面全体をクリアする
-	float clearColor[] = { 0.1f,0.25f,0.5f,1.0f };	//青っぽい色。RGBAの順
+	float clearColor[] = { 0.0f, 0.0f, 0.0f, 1.0f };	// 背景黒色
 	commandList->ClearRenderTargetView(rtvHandles[backBufferIndex], clearColor, 0, nullptr);
 
 	//指定した深度で画面全体をクリアする
