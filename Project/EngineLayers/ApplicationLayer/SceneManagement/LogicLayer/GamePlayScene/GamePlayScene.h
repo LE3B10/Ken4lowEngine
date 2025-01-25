@@ -51,7 +51,12 @@ private: /// ---------- メンバ変数 ---------- ///
 	std::unique_ptr<WavLoader> wavLoader_;
 
 	std::vector<std::unique_ptr<Sprite>> sprites_;
+	
+	std::unique_ptr<Object3D> objectTerrain_;
+	std::unique_ptr<Object3D> objectSphere_;
+
 	std::vector<std::unique_ptr<Object3D>> objects3D_;
+
 	std::unique_ptr<Object3DCommon> object3DCommon_;
 
 	// テクスチャのパスをリストで管理
