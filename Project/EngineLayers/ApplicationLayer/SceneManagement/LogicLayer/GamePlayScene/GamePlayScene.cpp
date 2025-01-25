@@ -59,8 +59,8 @@ void GamePlayScene::Initialize()
 
 	/// ---------- カメラ初期化処理 ---------- ///
 	camera_ = std::make_unique<Camera>();
-	camera_->SetRotate({ 0.0f,0.0f,0.0f });
-	camera_->SetTranslate({ 0.0f,0.0f,-15.0f });
+	camera_->SetRotate({ 0.3f,0.0f,0.0f });
+	camera_->SetTranslate({ 0.0f,10.0f,-20.0f });
 	object3DCommon_->SetDefaultCamera(camera_.get());
 
 	// 各オブジェクトを初期化し、座標を設定
@@ -82,7 +82,7 @@ void GamePlayScene::Initialize()
 	particleManager->CreateParticleGroup("fire", "Resources/uvChecker.png");
 
 	fireEmitter = std::make_unique<ParticleEmitter>(particleManager, "fire");
-	fireEmitter->SetPosition({ 0.0f,0.0f,0.0f }); // 射出する位置を設定
+	fireEmitter->SetPosition({ 0.0f,0.0f,20.0f }); // 射出する位置を設定
 	fireEmitter->SetEmissionRate(1200.0f);		  // 1秒間に20このパーティクルを射出
 }
 
@@ -136,7 +136,7 @@ void GamePlayScene::Draw()
 /// -------------------------------------------------------------
 void GamePlayScene::Finalize()
 {
-	
+
 }
 
 

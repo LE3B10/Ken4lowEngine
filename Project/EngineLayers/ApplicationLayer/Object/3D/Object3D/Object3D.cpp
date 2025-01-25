@@ -30,7 +30,6 @@ void Object3D::Initialize(Object3DCommon* object3dCommon, const std::string& fil
 	modelData.material.gpuHandle = TextureManager::GetInstance()->GetSrvHandleGPU(modelData.material.textureFilePath);
 
 	transform = { {1.0f,1.0f,1.0f},{0.0f,0.0f,0.0f},{0.0f,0.0f,0.0f} };
-	cameraTransform = { {1.0f,1.0f,1.0f},{0.0f,0.0f,0.0f},{0.0f,0.0f,-15.0f} };
 
 	camera_ = object3dCommon_->GetDefaultCamera();
 
@@ -98,8 +97,6 @@ void Object3D::Draw()
 
 	// モデルの描画
 	dxCommon->GetCommandList()->DrawInstanced(UINT(modelData.vertices.size()), 1, 0, 0);
-
-	//model_->DrawCall(commandList);
 }
 
 
@@ -117,7 +114,9 @@ void Object3D::SetModel(const std::string& filePath)
 	}
 }
 
-
+/// -------------------------------------------------------------
+///					　		前処理
+/// -------------------------------------------------------------
 void Object3D::preInitialize(DirectXCommon* dxCommon)
 {
 	InitializeMaterial(dxCommon);
@@ -125,6 +124,7 @@ void Object3D::preInitialize(DirectXCommon* dxCommon)
 	ParallelLightSorce(dxCommon);
 	InitializeVertexBufferData(dxCommon);
 }
+
 
 /// -------------------------------------------------------------
 ///					　マテリアルの初期化処理

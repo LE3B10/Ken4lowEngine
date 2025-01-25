@@ -3,7 +3,6 @@
 #include "ParameterManager.h"
 #include "ParticleManager.h"
 
-
 /// -------------------------------------------------------------
 ///				　		　　初期化処理
 /// -------------------------------------------------------------
@@ -33,7 +32,6 @@ void GameEngine::Initialize()
 	pipelineStateManager_->Initialize(dxCommon_);
 }
 
-
 /// -------------------------------------------------------------
 ///				　			更新処理
 /// -------------------------------------------------------------
@@ -59,11 +57,13 @@ void GameEngine::Update()
 	// シーンのImGuiの描画処理
 	SceneManager::GetInstance()->DrawImGui();
 
+	// ParticleManagerのImGuiの描画処理
+	ParticleManager::GetInstance()->DrawImGui();
+
 #endif // _DEBUG
 	/// ---------- ImGuiフレーム終了 ---------- ///
 	imguiManager_->EndFrame();
 }
-
 
 /// -------------------------------------------------------------
 ///				　			描画処理
@@ -93,7 +93,6 @@ void GameEngine::Draw()
 	dxCommon_->EndDraw();
 }
 
-
 /// -------------------------------------------------------------
 ///				　			終了処理
 /// -------------------------------------------------------------
@@ -105,4 +104,3 @@ void GameEngine::Finalize()
 	// シーンマネージャーの終了処理
 	SceneManager::GetInstance()->Finalize();
 }
-

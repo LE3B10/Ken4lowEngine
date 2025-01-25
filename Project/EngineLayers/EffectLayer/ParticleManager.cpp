@@ -92,23 +92,6 @@ void ParticleManager::CreateParticleGroup(const std::string& name, const std::st
 /// -------------------------------------------------------------
 void ParticleManager::Update()
 {
-//#ifdef _DEBUG
-//	// ImGuiでuseBillboardの切り替えボタンを追加
-//	ImGui::Begin("Particle Manager"); // ウィンドウの開始
-//	if (ImGui::Button(useBillboard ? "Disable Billboard" : "Enable Billboard"))
-//	{
-//		// ボタンが押されたらuseBillboardの値を切り替える
-//		useBillboard = !useBillboard;
-//	}
-//
-//	if (ImGui::Button(isWind ? "Disable Wind" : "Enable Wind"))
-//	{
-//		isWind = !isWind;
-//	}
-//
-//	ImGui::End(); // ウィンドウの終了
-//#endif // _DEBUG
-
 	// ビュー行列とプロジェクション行列をカメラから取得
 	Matrix4x4 cameraMatrix = MakeAffineMatrix({ 1.0f, 1.0f, 1.0f }, camera_->GetRotate(), camera_->GetTranslate());
 	Matrix4x4 viewMatrix = Inverse(cameraMatrix);
@@ -279,6 +262,27 @@ void ParticleManager::Emit(const std::string name, const Vector3 position, uint3
 		// パーティクルの生成と追加
 		particleGroup.particles.push_back(MakeNewParticle(randomEngin, position));
 	}
+}
+
+void ParticleManager::DrawImGui()
+{
+#ifdef _DEBUG
+	// ImGuiでuseBillboardの切り替えボタンを追加
+	ImGui::Begin("Particle Manager"); // ウィンドウの開始
+	if (ImGui::Button(useBillboard ? "Disable Billboard" : "Enable Billboard"))
+	{
+		// ボタンが押されたらuseBillboardの値を切り替える
+		useBillboard = !useBillboard;
+	}
+
+	if (ImGui::Button(isWind ? "Disable Wind" : "Enable Wind"))
+	{
+		isWind = !isWind;
+	}
+
+	ImGui::End(); // ウィンドウの終了
+#endif // _DEBUG
+
 }
 
 
