@@ -98,6 +98,7 @@ void GamePlayScene::Update()
 		object3D->Update();
 	}
 
+	// カメラの更新処理
 	camera_->Update();
 
 	// スプライトの更新処理
@@ -107,8 +108,7 @@ void GamePlayScene::Update()
 	}
 
 	// パーティクルエミッターの更新
-	fireEmitter->Update(1.0f/60.0f); // フレーム時間を渡す
-	particleManager->Update();		  // パーティクル全体の更新
+	fireEmitter->Update(1.0f / 60.0f); // フレーム時間を渡す
 }
 
 
@@ -128,8 +128,6 @@ void GamePlayScene::Draw()
 	{
 		sprite->Draw();
 	}
-
-	particleManager->Draw();
 }
 
 
@@ -138,7 +136,7 @@ void GamePlayScene::Draw()
 /// -------------------------------------------------------------
 void GamePlayScene::Finalize()
 {
-
+	
 }
 
 

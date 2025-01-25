@@ -12,54 +12,25 @@ void GameEngine::Initialize()
 	// 基底クラスの初期化処理
 	Framework::Initialize();
 
+	/// ---------- 入力の初期化 ---------- ///
+	Input::GetInstance()->Initialize(winApp_);
+
 	// グローバル変数の読み込み
 	ParameterManager::GetInstance()->LoadFiles();
 
-	// シングルトンインスタンス取得
-	sceneManager_ = SceneManager::GetInstance();
-
 	// シーンファクトリーの生成と設定
 	auto sceneFactory = std::make_unique<SceneFactory>();
-	sceneManager_->SetAbstractSceneFactory(std::move(sceneFactory));
+	SceneManager::GetInstance()->SetAbstractSceneFactory(std::move(sceneFactory));
 
 	// 最初のシーンを設定
-	sceneManager_->SetNextScene(std::make_unique<TitleScene>());
+	SceneManager::GetInstance()->SetNextScene(std::make_unique<TitleScene>());
 
 	/// ---------- シングルトンインスタンス ---------- ///
-	winApp = WinApp::GetInstance();
-	dxCommon = DirectXCommon::GetInstance();
-	srvManager = SRVManager::GetInstance();
-	input = Input::GetInstance();
-	imguiManager = ImGuiManager::GetInstance();
-	textureManager = TextureManager::GetInstance();
 	modelManager = ModelManager::GetInstance();
-	pipelineStateManager_ = std::make_unique<PipelineStateManager>();
-	object3DCommon_ = std::make_unique<Object3DCommon>();
-
-	camera_ = std::make_unique<Camera>();
-	camera_->SetRotate({ 0.0f,0.0f,0.0f });
-	camera_->SetTranslate({ 0.0f,0.0f,-15.0f });
-	object3DCommon_->SetDefaultCamera(camera_.get());
-
-	/// ---------- WindowsAPIのウィンドウ作成 ---------- ///
-	winApp->CreateMainWindow(kClientWidth, kClientHeight);
-
-	/// ---------- 入力の初期化 ---------- ///
-	input->Initialize(winApp);
-
-	/// ---------- DirectXの初期化 ----------///
-	dxCommon->Initialize(winApp, kClientWidth, kClientHeight);
-
-	/// ---------- SRVManagerの初期化 ---------- ///
-	srvManager->Initialize(dxCommon);
-
-	textureManager->Initialize(dxCommon, srvManager);
-
-	/// ---------- ImGuiManagerの初期化 ---------- ///
-	imguiManager->Initialize(winApp, dxCommon, srvManager);
 
 	/// ---------- PipelineStateManagerの初期化 ---------- ///
-	pipelineStateManager_->Initialize(dxCommon);
+	pipelineStateManager_ = std::make_unique<PipelineStateManager>();
+	pipelineStateManager_->Initialize(dxCommon_);
 }
 
 
@@ -71,35 +42,26 @@ void GameEngine::Update()
 	// 基底クラスの更新処理
 	Framework::Update();
 
-	// ウィンドウメッセージ処理
-	if (winApp->ProcessMessage()) // ウィンドウクローズイベントをチェック
-	{
-		endRequest_ = true; // 終了フラグを設定
-		return;             // 必要なら早期リターン
-	}
-
 	// 入力の更新
-	input->Update();
+	Input::GetInstance()->Update();
 
 	/// ---------- ImGuiフレーム開始 ---------- ///
-	imguiManager->BeginFrame();
+	imguiManager_->BeginFrame();
 
 	// シーンマネージャーの更新
-	sceneManager_->Update();
+	SceneManager::GetInstance()->Update();
 
-#ifdef _DEBUG
-	// 開発用のUIの処理。実際に開発用のUIを出す場合はここをゲーム固有の処理に置き換える
-	ImGui::ShowDemoWindow();
+#ifdef _DEBUG // デバッグモードの場合
 
 	// グローバル変数の更新
 	ParameterManager::GetInstance()->Update();
 
 	// シーンのImGuiの描画処理
-	sceneManager_->DrawImGui();
+	SceneManager::GetInstance()->DrawImGui();
 
 #endif // _DEBUG
 	/// ---------- ImGuiフレーム終了 ---------- ///
-	imguiManager->EndFrame();
+	imguiManager_->EndFrame();
 }
 
 
@@ -109,23 +71,26 @@ void GameEngine::Update()
 void GameEngine::Draw()
 {
 	// 描画開始処理
-	dxCommon->BeginDraw();
+	dxCommon_->BeginDraw();
 
 	// SRVの処理
-	srvManager->PreDraw();
+	SRVManager::GetInstance()->PreDraw();
 
 	/*-----シーン（モデル）の描画設定と描画-----*/
-	pipelineStateManager_->SetGraphicsPipeline(dxCommon->GetCommandList()); // ルートシグネチャとパイプラインステートの設定
+	pipelineStateManager_->SetGraphicsPipeline(dxCommon_->GetCommandList()); // ルートシグネチャとパイプラインステートの設定
 
 	// シーンマネージャーの描画処理
-	sceneManager_->Draw();
+	SceneManager::GetInstance()->Draw();
+
+	// ParticleMangerの描画処理
+	ParticleManager::GetInstance()->Draw();
 
 	/*-----ImGuiの描画-----*/
 	// ImGui描画のコマンドを積む
-	imguiManager->Draw();
+	imguiManager_->Draw();
 
 	// 描画終了処理
-	dxCommon->EndDraw();
+	dxCommon_->EndDraw();
 }
 
 
@@ -134,13 +99,13 @@ void GameEngine::Draw()
 /// -------------------------------------------------------------
 void GameEngine::Finalize()
 {
-	winApp->Finalize();
-	dxCommon->Finalize();
-	imguiManager->Finalize();
-
-	sceneManager_->Finalize();
-
 	// 基底クラスの終了処理
 	Framework::Finalize();
+
+	// グローバル変数の保存
+	ParameterManager::GetInstance()->SaveFile("Global");
+
+	// シーンマネージャーの終了処理
+	SceneManager::GetInstance()->Finalize();
 }
 

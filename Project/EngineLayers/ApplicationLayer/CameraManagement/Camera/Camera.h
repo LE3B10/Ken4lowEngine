@@ -9,6 +9,7 @@ class Camera
 {
 public: /// ---------- メンバ関数 ---------- ///
 
+	// デストラクタ
 	virtual ~Camera() = default;
 
 	// デフォルトコンストラクタ
@@ -17,36 +18,69 @@ public: /// ---------- メンバ関数 ---------- ///
 	// 更新処理
 	void Update();
 
+	// ImGui描画処理
 	void DrawImGui();
 
 public: /// ---------- セッター ---------- ///
 
+	// スケールの設定
+	void SetScale(const Vector3& scale) { transform.scale = scale; }
+
+	// 回転の設定
 	void SetRotate(const Vector3& rotate) { transform.rotate = rotate; }
+
+	// 移動の設定
 	void SetTranslate(const Vector3& translate) { transform.translate = translate; }
+
+	// 水平方向視野角の設定
 	void SetFovY(const float fovY) { fovY_ = fovY; }
+
+	// アスペクト比の設定
 	void SetAspectRatio(const float aspectRatio) { aspectRatio_ = aspectRatio; }
+
+	// ニアクリップの設定
 	void SetNearClip(const float nearClip) { nearClip_ = nearClip; }
+
+	// ファークリップの設定
 	void SetFarClip(const float farClip) { farClip_ = farClip; }
 
 public: /// ---------- ゲッター ---------- ///
 
-	const Matrix4x4& GetWorldMatrix() const { return worldMatrix; }
-	const Matrix4x4& GetViewMatrix() const { return viewMatrix; }
-	const Matrix4x4& GetProjectionMatrix() const { return projectionMatrix; }
-	const Matrix4x4& GetViewProjectionMatrix() const { return viewProjevtionMatrix; }
+	// スケールの取得
+	const Vector3& GetScale() const { return transform.scale; }
+
+	// 回転の取得
 	const Vector3& GetRotate() const { return transform.rotate; }
+
+	// 移動の取得
 	const Vector3& GetTranslate() const { return transform.translate; }
+
+	// ワールド行列データを取得
+	const Matrix4x4& GetWorldMatrix() const { return worldMatrix; }
+
+	// ビュー行列データを取得
+	const Matrix4x4& GetViewMatrix() const { return viewMatrix; }
+
+	// プロジェクション行列データを取得
+	const Matrix4x4& GetProjectionMatrix() const { return projectionMatrix; }
+
+	// 合成行列データを取得
+	const Matrix4x4& GetViewProjectionMatrix() const { return viewProjevtionMatrix; }
 
 private: /// ---------- メンバ変数 ----- ///
 
 	float kWidth, kHeight;
 
-	// ビュー行列関連データ
+	// Transform情報
 	Transform transform;
+
+	// ワールド行列データ
 	Matrix4x4 worldMatrix;
+
+	// ビュー行列データ
 	Matrix4x4 viewMatrix;
 
-	// プロジェクション行列関連データ
+	// プロジェクション行列データ
 	Matrix4x4 projectionMatrix;
 	float fovY_;		   // 水平方向視野角
 	float aspectRatio_; // アスペクト比

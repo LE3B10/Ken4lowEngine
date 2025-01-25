@@ -10,15 +10,10 @@
 
 #include "ParticleEmitter.h"
 
-// クライアント領域サイズ
-static const uint32_t kClientWidth = 1280;
-static const uint32_t kClientHeight = 720;
-
 /// ---------- 前方宣言 ---------- ///
 class DirectXCommon;
 class Input;
 class ImGuiManager;
-//class ParticleManager;
 
 
 /// -------------------------------------------------------------

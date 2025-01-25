@@ -22,10 +22,9 @@ TextureManager* TextureManager::GetInstance()
 	return &instance;
 }
 
-void TextureManager::Initialize(DirectXCommon* dxCommon, SRVManager* srvManager)
+void TextureManager::Initialize(DirectXCommon* dxCommon)
 {
 	dxCommon_ = dxCommon;
-	srvManager_ = srvManager;
 }
 
 
@@ -150,9 +149,9 @@ void TextureManager::LoadTexture(const std::string& filePath)
 	dxCommon_->WaitCommand();
 
 	// SRV確保
-	textureData.srvIndex = srvManager_->Allocate();
-	textureData.srvHandleCPU = srvManager_->GetCPUDescriptorHandle(textureData.srvIndex);
-	textureData.srvHandleGPU = srvManager_->GetGPUDescriptorHandle(textureData.srvIndex);
+	textureData.srvIndex = SRVManager::GetInstance()->Allocate();
+	textureData.srvHandleCPU = SRVManager::GetInstance()->GetCPUDescriptorHandle(textureData.srvIndex);
+	textureData.srvHandleGPU = SRVManager::GetInstance()->GetGPUDescriptorHandle(textureData.srvIndex);
 
 	// SRVの生成
 	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc{};
@@ -173,7 +172,7 @@ void TextureManager::ReloadTexture(const std::string& filePath)
 	auto it = textureDatas.find(filePath);
 	if (it != textureDatas.end())
 	{
-		srvManager_->Free(it->second.srvIndex);
+		SRVManager::GetInstance()->Free(it->second.srvIndex);
 		it->second.resource.Reset();
 	}
 
@@ -188,7 +187,7 @@ void TextureManager::ReloadTexture(const std::string& filePath)
 void TextureManager::SetGraphicsRootDescriptorTable(ID3D12GraphicsCommandList* commandList, UINT rootParameter, D3D12_GPU_DESCRIPTOR_HANDLE textureSRVHandleGPU)
 {
 	// ディスクリプタヒープの設定
-	srvManager_->PreDraw();
+	SRVManager::GetInstance()->PreDraw();
 
 	// ディスクリプタテーブルの設定
 	commandList->SetGraphicsRootDescriptorTable(rootParameter, textureSRVHandleGPU);
