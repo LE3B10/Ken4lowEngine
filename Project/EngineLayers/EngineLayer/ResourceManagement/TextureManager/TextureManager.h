@@ -33,7 +33,7 @@ public: /// ---------- メンバ関数 ---------- ///
 	// シングルトンインスタンス
 	static TextureManager* GetInstance();
 
-	void Initialize(DirectXCommon* dxCommon, SRVManager* srvManager);
+	void Initialize(DirectXCommon* dxCommon);
 
 	// DirectX12のTextureResourceを作る
 	static ComPtr <ID3D12Resource> CreateTextureResource(ID3D12Device* device, const DirectX::TexMetadata& metadata);
@@ -69,7 +69,6 @@ public: /// ---------- ゲッター ---------- ///
 private: /// ---------- メンバ変数 ---------- ///
 
 	DirectXCommon* dxCommon_ = nullptr;
-	SRVManager* srvManager_ = nullptr;
 
 	// テクスチャデータ
 	std::unordered_map<std::string, TextureData> textureDatas;

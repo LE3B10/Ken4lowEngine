@@ -1,6 +1,16 @@
 #pragma once
-#include "SceneManager.h"
-#include "AbstractSceneFactory.h"
+#include <AbstractSceneFactory.h>
+#include <SceneManager.h>
+#include <Camera.h>
+#include <ImGuiManager.h>
+#include <Object3DCommon.h>
+
+
+/// ---------- 前方宣言 ---------- ///
+class WinApp;
+class DirectXCommon;
+class SRVManager;
+
 
 /// -------------------------------------------------------------
 ///				　			ゲーム全体
@@ -34,10 +44,25 @@ public: /// ---------- 仮想メンバ関数 ---------- ///
 
 protected: /// ---------- メンバ変数 ---------- ///
 
+	// ウィンドウアプリケーション
+	WinApp* winApp_ = nullptr;
+
+	// DirectX共通クラス
+	DirectXCommon* dxCommon_ = nullptr;
+
+	// ImGuiマネージャー
+	ImGuiManager* imguiManager_ = nullptr;
+
+	// カメラ
+	std::unique_ptr<Camera> camera_;
+
+	// シーンマネージャー
 	std::unique_ptr<SceneManager> sceneManager_;
 
+	// シーンファクトリー
 	std::unique_ptr<AbstractSceneFactory> sceneFactory_;
 
+	// 終了リクエスト
 	bool endRequest_ = false;
 };
 
