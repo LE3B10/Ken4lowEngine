@@ -429,6 +429,12 @@
     <ClInclude Include="EngineLayers\FrameworkLayer\PresentationLayer\ParameterManager\ParameterManager.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
+    <ClInclude Include="EngineLayers\EngineLayer\MultipleStructs\Transform.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="EngineLayers\EngineLayer\MultipleStructs\VertexData.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="Resources\Shaders\Object3d.hlsli">

@@ -201,6 +201,8 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="EngineLayers\EngineLayer\MultipleStructs\Emitter.h" />
     <ClInclude Include="EngineLayers\ApplicationLayer\CameraManagement\Camera\Camera.h" />
     <ClInclude Include="EngineLayers\ApplicationLayer\CameraManagement\CameraManager\CameraManager.h" />
+    <ClInclude Include="EngineLayers\EngineLayer\MultipleStructs\Transform.h" />
+    <ClInclude Include="EngineLayers\EngineLayer\MultipleStructs\VertexData.h" />
     <ClInclude Include="EngineLayers\EngineLayer\Rendering\PSO\BlendStateManager\BlendStateManager.h" />
     <ClInclude Include="EngineLayers\EngineLayer\ResourceChecker\LeakCheck\D3DResourceLeakChecker.h" />
     <ClInclude Include="EngineLayers\EngineLayer\Rendering\DXLib\DX12DepthStencil\DX12DepthStencil.h" />

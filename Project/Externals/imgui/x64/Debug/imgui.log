@@ -1,1 +1,3 @@
-﻿  imgui.vcxproj -> C:\Users\k023g\Downloads\Gread2\GE3\CG2_DirectXGame-07_01\CG2_DirectXGame-07_01\Project\x64\Debug\imgui.lib
+﻿  imgui.cpp
+  imgui_tables.cpp
+  imgui.vcxproj -> C:\Users\k023g\Downloads\Gread2\GE3\CG2_DirectXGame-07_01\CG2_DirectXGame-07_01\Project\x64\Debug\imgui.lib
