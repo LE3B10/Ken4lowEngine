@@ -1,11 +1,8 @@
 #pragma once
 
-/// <summary>
-/// 4次元ベクトル
-/// </summary>
-struct Vector4 final {
-	float x;
-	float y;
-	float z;
-	float w;
+class Vector4
+{
+public: /// ---------- メンバ変数 ---------- ///
+	float x, y, z, w;
+
 };

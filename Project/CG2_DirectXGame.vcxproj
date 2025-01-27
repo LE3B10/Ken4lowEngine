@@ -201,6 +201,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="EngineLayers\EngineLayer\MultipleStructs\Emitter.h" />
     <ClInclude Include="EngineLayers\ApplicationLayer\CameraManagement\Camera\Camera.h" />
     <ClInclude Include="EngineLayers\ApplicationLayer\CameraManagement\CameraManager\CameraManager.h" />
+    <ClInclude Include="EngineLayers\EngineLayer\Matrix\MatrixMath.h" />
     <ClInclude Include="EngineLayers\EngineLayer\MultipleStructs\VertexData.h" />
     <ClInclude Include="EngineLayers\EngineLayer\MultipleStructs\WorldTransform.h" />
     <ClInclude Include="EngineLayers\EngineLayer\Rendering\PSO\BlendStateManager\BlendStateManager.h" />
@@ -213,6 +214,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="EngineLayers\EngineLayer\Rendering\DXLib\DX12Include.h" />
     <ClInclude Include="EngineLayers\EngineLayer\Rendering\DXLib\DX12SwapChain\DX12SwapChain.h" />
     <ClInclude Include="EngineLayers\EngineLayer\MultipleStructs\BlendModeType.h" />
+    <ClInclude Include="EngineLayers\EngineLayer\Vectors\VectorMath.h" />
     <ClInclude Include="Externals\imgui\imconfig.h" />
     <ClInclude Include="Externals\imgui\imgui.h" />
     <ClInclude Include="Externals\imgui\imgui_impl_dx12.h" />
@@ -228,7 +230,6 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="EngineLayers\EngineLayer\MultipleStructs\Material.h" />
     <ClInclude Include="EngineLayers\EngineLayer\MultipleStructs\MaterialData.h" />
     <ClInclude Include="EngineLayers\EngineLayer\Matrix\Matrix4x4.h" />
-    <ClInclude Include="EngineLayers\EngineLayer\MultipleStructs\MatrixMath.h" />
     <ClInclude Include="EngineLayers\ApplicationLayer\Object\3D\Model\Model.h" />
     <ClInclude Include="EngineLayers\EngineLayer\MultipleStructs\ModelData.h" />
     <ClInclude Include="EngineLayers\EngineLayer\ResourceManagement\ModelManager\ModelManager.h" />
@@ -246,7 +247,6 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="EngineLayers\EngineLayer\Vectors\Vector2.h" />
     <ClInclude Include="EngineLayers\EngineLayer\Vectors\Vector3.h" />
     <ClInclude Include="EngineLayers\EngineLayer\Vectors\Vector4.h" />
-    <ClInclude Include="EngineLayers\EngineLayer\Vectors\VectorMath.h" />
     <ClInclude Include="EngineLayers\FrameworkLayer\WindowManagement\WindowsAPI\WinApp.h" />
     <ClInclude Include="EngineLayers\ApplicationLayer\CameraManagement\3DCamera\MainCamera3D.h" />
     <ClInclude Include="EngineLayers\ApplicationLayer\Object\3D\Object3DCommon\Object3DCommon.h" />
