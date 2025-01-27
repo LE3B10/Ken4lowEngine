@@ -13,6 +13,7 @@ struct Material
     int enableLighting; // ライティングの有無
     float shininess; // 光沢度
     float4x4 uvTransform; // UVTransform
+    float padding[3]; // パディング
 };
 
 //平行光源
@@ -21,6 +22,7 @@ struct DirectionalLight
     float4 color; // ライトの色
     float3 direction; // ライトの向き
     float intensity; // 輝度
+    float padding; // パディング
 };
 
 // カメラ
@@ -37,6 +39,7 @@ struct PointLight
     float intensity; // 輝度
     float radius; // ライトの届く最大距離
     float decay; // 減衰率
+    float padding[2]; // パディング
 };
 
 // スポットライト
@@ -50,6 +53,7 @@ struct SpotLight
     float decay; // 減衰率
     float cosFalloffStart; // 開始角度
     float cosAngle; // スポットライトの余弦
+    float padding[2]; // パディング
 };
 
 ConstantBuffer<Material> gMaterial : register(b0);
@@ -70,12 +74,12 @@ PixelShaderOutput main(VertexShaderOutput input)
     float4 transformedUV = mul(float4(input.texcoord, 0.0f, 1.0f), gMaterial.uvTransform);
     float4 textureColor = gTexture.Sample(gSampler, transformedUV.xy); // テクスチャの色
     textureColor.rgb = pow(textureColor.rgb, 2.2f); // ガンマ補正済みのテクスチャの場合、リニア空間に変換
-
+    
      // 照明効果の統合
     if (gMaterial.enableLighting != 0)
     {
         // ライト方向と法線、カメラ方向の計算
-        float3 lightDir = normalize(gDirectionalLight.direction); // ライト方向（逆方向）
+        float3 lightDir = normalize(gDirectionalLight.direction); // ライト方向（逆方向）  
         float3 normal = normalize(input.normal); // 法線の正規化
         float3 viewDir = normalize(gCamera.worldPosition - input.worldPosition); // 視線方向（カメラ方向）
 
