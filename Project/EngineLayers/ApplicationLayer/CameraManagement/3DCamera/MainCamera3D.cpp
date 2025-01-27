@@ -19,10 +19,10 @@ MainCamera3D* MainCamera3D::GetInstance()
 void MainCamera3D::Initialize()
 {
 	// トランスフォームの初期化
-	transform_ = { {1.0f,1.0f,1.0f},{0.0f,0.0f,0.0f},{0.0f,0.0f, 0.0f} };
+	worldTransform_ = { {1.0f,1.0f,1.0f},{0.0f,0.0f,0.0f},{0.0f,0.0f, 0.0f} };
 
 	// アフィン変換
-	worldMatrix_ = MakeAffineMatrix(transform_.scale, transform_.rotate, transform_.translate);
+	worldMatrix_ = MakeAffineMatrix(worldTransform_.scale, worldTransform_.rotate, worldTransform_.translate);
 
 	// 透視投影行列
 	projectionMatrix_ = MakePerspectiveFovMatrix(0.45f, 1280.0f / 720.0f, 0.1f, 100.0f);
@@ -35,7 +35,7 @@ void MainCamera3D::Initialize()
 void MainCamera3D::Update()
 {
 	// アフィン変換
-	worldMatrix_ = MakeAffineMatrix(transform_.scale, transform_.rotate, transform_.translate);
+	worldMatrix_ = MakeAffineMatrix(worldTransform_.scale, worldTransform_.rotate, worldTransform_.translate);
 	// 逆行列
 	viewMatirx_ = Inverse(worldMatrix_);
 }
@@ -47,9 +47,9 @@ void MainCamera3D::Update()
 void MainCamera3D::DrawImGui()
 {
 	ImGui::Begin("3DCamera");
-	ImGui::DragFloat3("Position", &transform_.translate.x, 0.01f);
-	ImGui::SliderAngle("RotateX", &transform_.rotate.x);
-	ImGui::SliderAngle("RotateY", &transform_.rotate.y);
-	ImGui::SliderAngle("RotateZ", &transform_.rotate.z);
+	ImGui::DragFloat3("Position", &worldTransform_.translate.x, 0.01f);
+	ImGui::SliderAngle("RotateX", &worldTransform_.rotate.x);
+	ImGui::SliderAngle("RotateY", &worldTransform_.rotate.y);
+	ImGui::SliderAngle("RotateZ", &worldTransform_.rotate.z);
 	ImGui::End();
 }

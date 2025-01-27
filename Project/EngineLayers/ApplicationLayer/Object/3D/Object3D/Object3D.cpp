@@ -29,7 +29,7 @@ void Object3D::Initialize(Object3DCommon* object3dCommon, const std::string& fil
 	// 読み込んだテクスチャ番号を取得
 	modelData.material.gpuHandle = TextureManager::GetInstance()->GetSrvHandleGPU(modelData.material.textureFilePath);
 
-	transform = { {1.0f,1.0f,1.0f},{0.0f,0.0f,0.0f},{0.0f,0.0f,0.0f} };
+	worldTransform = { {1.0f,1.0f,1.0f},{0.0f,0.0f,0.0f},{0.0f,0.0f,0.0f} };
 
 	camera_ = object3dCommon_->GetDefaultCamera();
 
@@ -42,7 +42,7 @@ void Object3D::Initialize(Object3DCommon* object3dCommon, const std::string& fil
 /// -------------------------------------------------------------
 void Object3D::Update()
 {
-	Matrix4x4 worldMatrix = MakeAffineMatrix(transform.scale, transform.rotate, transform.translate);
+	Matrix4x4 worldMatrix = MakeAffineMatrix(worldTransform.scale, worldTransform.rotate, worldTransform.translate);
 	Matrix4x4 worldViewProjectionMatrix;
 
 	if (camera_)
@@ -66,9 +66,9 @@ void Object3D::Update()
 /// -------------------------------------------------------------
 void Object3D::DrawImGui()
 {
-	ImGui::DragFloat3("Position", &transform.translate.x, 0.01f); // 座標変更
-	ImGui::DragFloat3("Rotation", &transform.rotate.x, 0.01f);   // 回転変更
-	ImGui::DragFloat3("Scale", &transform.scale.x, 0.01f);       // スケール変更
+	ImGui::DragFloat3("Position", &worldTransform.translate.x, 0.01f); // 座標変更
+	ImGui::DragFloat3("Rotation", &worldTransform.rotate.x, 0.01f);   // 回転変更
+	ImGui::DragFloat3("Scale", &worldTransform.scale.x, 0.01f);       // スケール変更
 
 	// カメラの設定
 	if (ImGui::CollapsingHeader("Camera Settings"))

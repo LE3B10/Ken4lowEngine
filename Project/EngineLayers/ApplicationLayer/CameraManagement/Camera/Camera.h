@@ -1,5 +1,5 @@
 #pragma once
-#include "Transform.h"
+#include "WorldTransform.h"
 #include "Matrix4x4.h"
 
 /// -------------------------------------------------------------
@@ -24,13 +24,13 @@ public: /// ---------- メンバ関数 ---------- ///
 public: /// ---------- セッター ---------- ///
 
 	// スケールの設定
-	void SetScale(const Vector3& scale) { transform.scale = scale; }
+	void SetScale(const Vector3& scale) { worldTransform.scale = scale; }
 
 	// 回転の設定
-	void SetRotate(const Vector3& rotate) { transform.rotate = rotate; }
+	void SetRotate(const Vector3& rotate) { worldTransform.rotate = rotate; }
 
 	// 移動の設定
-	void SetTranslate(const Vector3& translate) { transform.translate = translate; }
+	void SetTranslate(const Vector3& translate) { worldTransform.translate = translate; }
 
 	// 水平方向視野角の設定
 	void SetFovY(const float fovY) { fovY_ = fovY; }
@@ -47,13 +47,13 @@ public: /// ---------- セッター ---------- ///
 public: /// ---------- ゲッター ---------- ///
 
 	// スケールの取得
-	const Vector3& GetScale() const { return transform.scale; }
+	const Vector3& GetScale() const { return worldTransform.scale; }
 
 	// 回転の取得
-	const Vector3& GetRotate() const { return transform.rotate; }
+	const Vector3& GetRotate() const { return worldTransform.rotate; }
 
 	// 移動の取得
-	const Vector3& GetTranslate() const { return transform.translate; }
+	const Vector3& GetTranslate() const { return worldTransform.translate; }
 
 	// ワールド行列データを取得
 	const Matrix4x4& GetWorldMatrix() const { return worldMatrix; }
@@ -72,7 +72,7 @@ private: /// ---------- メンバ変数 ----- ///
 	float kWidth, kHeight;
 
 	// Transform情報
-	Transform transform;
+	WorldTransform worldTransform;
 
 	// ワールド行列データ
 	Matrix4x4 worldMatrix;

@@ -8,7 +8,7 @@
 #include <string>
 #include <vector>
 
-#include "Transform.h"
+#include "WorldTransform.h"
 #include "TransformationMatrix.h"
 #include "DirectionalLight.h"
 #include "Material.h"
@@ -51,15 +51,15 @@ public: /// ---------- メンバ関数 ---------- ///
 
 public: /// ---------- ゲッタ ---------- ///
 
-	const Vector3& GetScale() const { return transform.scale; }
-	const Vector3& GetRotate() const { return transform.rotate; }
-	const Vector3& GetTranslate() const { return transform.translate; }
+	const Vector3& GetScale() const { return worldTransform.scale; }
+	const Vector3& GetRotate() const { return worldTransform.rotate; }
+	const Vector3& GetTranslate() const { return worldTransform.translate; }
 
 public: /// ---------- セッタ ---------- ///
 
-	void SetScale(const Vector3& scale) { transform.scale = scale; }
-	void SetRotate(const Vector3& rotate) { transform.rotate = rotate; }
-	void SetTranslate(const Vector3& translate) { transform.translate = translate; }
+	void SetScale(const Vector3& scale) { worldTransform.scale = scale; }
+	void SetRotate(const Vector3& rotate) { worldTransform.rotate = rotate; }
+	void SetTranslate(const Vector3& translate) { worldTransform.translate = translate; }
 
 private:
 
@@ -97,7 +97,7 @@ private: /// ---------- メンバ変数 ---------- ///
 	ComPtr <ID3D12Resource> wvpResource;
 	ComPtr <ID3D12Resource> directionalLightResource;
 
-	Transform transform;
+	WorldTransform worldTransform;
 	//Transform cameraTransform;
 
 	// wvpデータを書き込む

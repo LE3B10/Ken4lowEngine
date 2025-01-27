@@ -1,7 +1,7 @@
 #pragma once
 #include "DX12Include.h"
 #include "DirectionalLight.h"
-#include "Transform.h"
+#include "WorldTransform.h"
 #include "TransformationMatrix.h"
 #include "TextureManager.h"
 #include "Material.h"
@@ -81,7 +81,7 @@ public: /// ---------- 設定処理 ---------- ///
 	void SetModel(const std::string& filePath);
 
 	// 位置を設定
-	void SetTranslate(const Vector3& translate) { transform.translate = translate; }
+	void SetTranslate(const Vector3& translate) { worldTransform.translate = translate; }
 
 	// カメラの設定
 	void SetCamera(Camera* camera) { camera_ = camera; }
@@ -135,8 +135,8 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	Camera* camera_ = nullptr;
 
-	Transform transform;
-	Transform cameraTransform;
+	WorldTransform worldTransform;
+	WorldTransform cameraTransform;
 
 	// バッファリソースの作成
 	ComPtr <ID3D12Resource> vertexResource;

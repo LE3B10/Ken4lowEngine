@@ -23,7 +23,7 @@ void Model::Initialize(const std::string& directoryPath, const std::string& file
 	// 読み込んだテクスチャ番号を取得
 	modelData.material.gpuHandle = TextureManager::GetInstance()->GetSrvHandleGPU(modelData.material.textureFilePath);
 
-	transform = { {1.0f,1.0f,1.0f},{0.0f,0.0f,0.0f},{0.0f,0.0f,0.0f} };
+	worldTransform = { {1.0f,1.0f,1.0f},{0.0f,0.0f,0.0f},{0.0f,0.0f,0.0f} };
 	/*cameraTransform = { {1.0f,1.0f,1.0f},{0.0f,0.0f,0.0f},{0.0f,0.0f,-15.0f} };*/
 
 	preInitialize(dxCommon);
@@ -35,7 +35,7 @@ void Model::Initialize(const std::string& directoryPath, const std::string& file
 /// -------------------------------------------------------------
 void Model::Update()
 {
-	Matrix4x4 worldMatrix = MakeAffineMatrix(transform.scale, transform.rotate, transform.translate);
+	Matrix4x4 worldMatrix = MakeAffineMatrix(worldTransform.scale, worldTransform.rotate, worldTransform.translate);
 	//Matrix4x4 camraMatrix = MakeAffineMatrix(cameraTransform.scale, cameraTransform.rotate, cameraTransform.translate);
 	Matrix4x4 viewMatrix = Inverse(worldMatrix);
 	Matrix4x4 projectionMatrix = MakePerspectiveFovMatrix(0.45f, 1280.0f / 720.0f, 0.1f, 100.0f);
@@ -84,9 +84,9 @@ void Model::DrawImGui()
 		ImGui::SliderAngle("CameraRotateY", &cameraTransform.rotate.y);
 		ImGui::SliderAngle("CameraRotateZ", &cameraTransform.rotate.z);*/
 
-		ImGui::DragFloat3("scale", &transform.scale.x, 0.01f);
-		ImGui::DragFloat3("rotate", &transform.rotate.x, 0.01f);
-		ImGui::DragFloat3("translate", &transform.translate.x, 0.01f);
+		ImGui::DragFloat3("scale", &worldTransform.scale.x, 0.01f);
+		ImGui::DragFloat3("rotate", &worldTransform.rotate.x, 0.01f);
+		ImGui::DragFloat3("translate", &worldTransform.translate.x, 0.01f);
 		ImGui::DragFloat3("directionalLight", &directionalLightData->direction.x, 0.01f);
 		ImGui::TreePop();
 	}
