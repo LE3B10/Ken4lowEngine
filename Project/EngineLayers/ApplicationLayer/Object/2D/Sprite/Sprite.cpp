@@ -90,9 +90,9 @@ void Sprite::Update()
 	}
 
 	// ワールド行列の計算
-	Transform transform{ { size_.x, size_.y, 1.0f }, { 0.0f, 0.0f, rotation_ }, { position_.x, position_.y, 0.0f } };
+	WorldTransform worldTransform{ { size_.x, size_.y, 1.0f }, { 0.0f, 0.0f, rotation_ }, { position_.x, position_.y, 0.0f } };
 
-	Matrix4x4 worldMatrixSprite = MakeAffineMatrix(transform.scale, transform.rotate, transform.translate);
+	Matrix4x4 worldMatrixSprite = MakeAffineMatrix(worldTransform.scale, worldTransform.rotate, worldTransform.translate);
 
 	Matrix4x4 viewMatrixSprite = MakeIdentity();
 	Matrix4x4 projectionMatrixSprite = MakeOrthographicMatrix(0.0f, 0.0f, 1280.0f, 720.0f, 0.0f, 100.0f);

@@ -1,6 +1,6 @@
 #pragma once
 #include "Matrix4x4.h"
-#include "Transform.h"
+#include "WorldTransform.h"
 #include "Vector3.h"
 
 /// -------------------------------------------------------------
@@ -24,7 +24,7 @@ public: /// ---------- メンバ関数 ---------- ///
 
 public: /// ---------- ゲッター ---------- ///
 
-	Vector3 GetWorldPosition() const { return transform_.translate; }
+	Vector3 GetWorldPosition() const { return worldTransform_.translate; }
 	Matrix4x4 GetWorldMatrix() const { return worldMatrix_; }
 	Matrix4x4 GetViewMatrix() const { return viewMatirx_; }
 	Matrix4x4 GetProjectionMatrix() { return projectionMatrix_; }
@@ -35,6 +35,6 @@ private: /// ---------- メンバ変数 ---------- ///
 	Matrix4x4 viewMatirx_;
 	Matrix4x4 projectionMatrix_;
 
-	Transform transform_;
+	WorldTransform worldTransform_;
 };
 

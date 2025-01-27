@@ -121,7 +121,7 @@ private: /// ---------- ヘルパー関数 ---------- ///
 
 private: /// ---------- メンバ変数 ---------- ///
 	
-	Transform transform;
+	WorldTransform worldTransform;
 
 	BlendMode cuurenttype = BlendMode::kBlendModeAdd;
 
