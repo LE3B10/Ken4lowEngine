@@ -18,26 +18,24 @@ void GamePlayScene::Initialize()
 	/// ---------- Object3Dの初期化 ---------- ///
 	object3DCommon_ = std::make_unique<Object3DCommon>();
 
-	// .objのパスをリストで管理
-	objectFiles = {
-		"terrain.gltf",
-	};
-
-	std::vector<Vector3> initialPositions = {
-		{ 0.0f, 0.0f, 0.0f},     // terrain.obj の座標
-		{ 0.0f, 0.0f, 0.0f},     // sphere.gltf の座標
-	};
-
 	/// ---------- カメラ初期化処理 ---------- ///
 	camera_ = std::make_unique<Camera>();
 	camera_->SetRotate({ 0.3f,0.0f,0.0f });
-	camera_->SetTranslate({ 0.0f,10.0f,-30.0f });
+	camera_->SetTranslate({ 0.0f,20.0f,-50.0f });
+	camera_->SetFarClip(1000.0f);
 	object3DCommon_->SetDefaultCamera(camera_.get());
 
-	// terrainの生成と初期化
-	objectTerrain_ = std::make_unique<Object3D>();
-	objectTerrain_->Initialize(object3DCommon_.get(), objectFiles[0]);
-	objectTerrain_->SetTranslate({ 0.0f,0.0f,0.0f });
+	// プレイヤーの生成と初期化
+	player_ = std::make_unique<Player>();
+	player_->Initialize(object3DCommon_.get());
+
+	// 地面の生成と初期化
+	ground_ = std::make_unique<Ground>();
+	ground_->Initialize(object3DCommon_.get());
+
+	// スカイドームの生成と初期化
+	skydome_ = std::make_unique<Skydome>();
+	skydome_->Initialize(object3DCommon_.get());
 
 	/// ---------- サウンドの初期化 ---------- ///
 	const char* fileName = "Resources/Sounds/Get-Ready.wav";
@@ -51,7 +49,9 @@ void GamePlayScene::Initialize()
 /// -------------------------------------------------------------
 void GamePlayScene::Update()
 {
-	objectTerrain_->Update();
+	player_->Update();
+	ground_->Update();
+	skydome_->Update();
 
 	// カメラの更新処理
 	camera_->Update();
@@ -63,8 +63,9 @@ void GamePlayScene::Update()
 /// -------------------------------------------------------------
 void GamePlayScene::Draw()
 {
-	// Terrain.obj の描画
-	objectTerrain_->Draw();
+	player_->Draw();
+	ground_->Draw();
+	skydome_->Draw();
 }
 
 
@@ -83,9 +84,6 @@ void GamePlayScene::Finalize()
 void GamePlayScene::DrawImGui()
 {
 	ImGui::Begin("Test Window");
-
-	// TerrainのImGui
-	objectTerrain_->DrawImGui();
 
 	ImGui::End();
 

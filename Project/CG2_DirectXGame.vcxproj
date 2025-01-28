@@ -169,7 +169,10 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClCompile Include="EngineLayers\ApplicationLayer\SceneManagement\SceneManager\SceneManager.cpp" />
     <ClCompile Include="EngineLayers\ApplicationLayer\SceneManagement\LogicLayer\TitleScene\TitleScene.cpp" />
     <ClCompile Include="EngineLayers\FrameworkLayer\PresentationLayer\ParameterManager\ParameterManager.cpp" />
+    <ClCompile Include="Ground.cpp" />
     <ClCompile Include="LightManager.cpp" />
+    <ClCompile Include="Player.cpp" />
+    <ClCompile Include="Skydome.cpp" />
     <ClCompile Include="WinMain.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
@@ -267,7 +270,10 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="EngineLayers\ApplicationLayer\SceneManagement\SceneManager\SceneManager.h" />
     <ClInclude Include="EngineLayers\ApplicationLayer\SceneManagement\LogicLayer\TitleScene\TitleScene.h" />
     <ClInclude Include="EngineLayers\FrameworkLayer\PresentationLayer\ParameterManager\ParameterManager.h" />
+    <ClInclude Include="Ground.h" />
     <ClInclude Include="LightManager.h" />
+    <ClInclude Include="Player.h" />
+    <ClInclude Include="Skydome.h" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="externals\DirectXTex\DirectXTex_Desktop_2022_Win10.vcxproj">
