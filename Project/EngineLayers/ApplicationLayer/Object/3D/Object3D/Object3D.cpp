@@ -33,6 +33,8 @@ void Object3D::Initialize(Object3DCommon* object3dCommon, const std::string& fil
 
 	camera_ = object3dCommon_->GetDefaultCamera();
 
+	lightManager_.Initialize(dxCommon);
+
 	preInitialize(dxCommon);
 }
 
@@ -80,115 +82,7 @@ void Object3D::DrawImGui()
 		}
 	}
 
-	// 平行光源の設定
-	if (ImGui::CollapsingHeader("Directional Light Settings"))
-	{
-		if (ImGui::SliderFloat3("Directional Light Direction", &directionalLightData->direction.x, -1.0f, 1.0f))
-		{
-			directionalLightData->direction = Normalize(directionalLightData->direction);
-		}
-		ImGui::SliderFloat("Directional Light Intensity", &directionalLightData->intensity, 0.0f, 10.0f);
-	}
-
-	// 点光源の設定
-	if (ImGui::CollapsingHeader("Point Light Settings"))
-	{
-		static float pointPosition[3] = { pointLightData->position.x, pointLightData->position.y, pointLightData->position.z };
-		static float pointIntensity = pointLightData->intensity;
-		static float pointRadius = pointLightData->radius;
-		static float pointDecay = pointLightData->decay;
-
-		// 点光源の位置
-		if (ImGui::SliderFloat3("Point Light Position", pointPosition, -10.0f, 10.0f))
-		{
-			pointLightData->position = { pointPosition[0], pointPosition[1], pointPosition[2] };
-		}
-
-		// 点光源の輝度
-		if (ImGui::SliderFloat("Point Light Intensity", &pointIntensity, 0.0f, 5.0f))
-		{
-			pointLightData->intensity = pointIntensity;
-		}
-
-		// 点光源の半径
-		if (ImGui::SliderFloat("Point Light Radius", &pointRadius, 0.0f, 20.0f))
-		{
-			pointLightData->radius = pointRadius;
-		}
-
-		// 点光源の減衰率
-		if (ImGui::SliderFloat("Point Light Decay", &pointDecay, 0.1f, 5.0f))
-		{
-			pointLightData->decay = pointDecay;
-		}
-	}
-
-	// スポットライトの設定
-	// スポットライトの設定
-	if (ImGui::CollapsingHeader("Spot Light Settings"))
-	{
-		static float spotPosition[3] = { spotLightData->position.x, spotLightData->position.y, spotLightData->position.z };
-		static float spotDirection[3] = { spotLightData->direction.x, spotLightData->direction.y, spotLightData->direction.z };
-		static float spotIntensity = spotLightData->intensity;
-		static float spotDistance = spotLightData->distance;
-		static float spotDecay = spotLightData->decay;
-
-		// スポットライトの開始角度と終了角度（度単位で操作）
-		static float spotFalloffStartAngle = std::acos(spotLightData->cosFalloffStart) * 180.0f / std::numbers::pi_v<float>;
-		static float spotConeAngle = std::acos(spotLightData->cosAngle) * 180.0f / std::numbers::pi_v<float>;
-
-
-		// スポットライトの位置
-		if (ImGui::SliderFloat3("Spot Light Position", spotPosition, -10.0f, 10.0f))
-		{
-			spotLightData->position = { spotPosition[0], spotPosition[1], spotPosition[2] };
-		}
-
-		// スポットライトの方向
-		if (ImGui::SliderFloat3("Spot Light Direction", spotDirection, -1.0f, 1.0f))
-		{
-			spotLightData->direction = Normalize({ spotDirection[0], spotDirection[1], spotDirection[2] });
-		}
-
-		// スポットライトの輝度
-		if (ImGui::SliderFloat("Spot Light Intensity", &spotIntensity, 0.0f, 10.0f))
-		{
-			spotLightData->intensity = spotIntensity;
-		}
-
-		// スポットライトの距離
-		if (ImGui::SliderFloat("Spot Light Distance", &spotDistance, 0.0f, 50.0f))
-		{
-			spotLightData->distance = spotDistance;
-		}
-
-		// スポットライトの減衰率
-		if (ImGui::SliderFloat("Spot Light Decay", &spotDecay, 0.0f, 5.0f))
-		{
-			spotLightData->decay = spotDecay;
-		}
-
-		// スポットライトの開始角度（Falloff Start Angle）
-		if (ImGui::SliderFloat("Spot Light Falloff Start Angle (Degrees)", &spotFalloffStartAngle, 0.0f, 90.0f))
-		{
-			// 度をラジアンに変換し、余弦値を計算
-			spotLightData->cosFalloffStart = std::cos(spotFalloffStartAngle * std::numbers::pi_v<float> / 180.0f);
-		}
-
-		// スポットライトの終了角度（Cone Angle）
-		if (ImGui::SliderFloat("Spot Light Cone Angle (Degrees)", &spotConeAngle, 0.0f, 90.0f))
-		{
-			// 度をラジアンに変換し、余弦値を計算
-			spotLightData->cosAngle = std::cos(spotConeAngle * std::numbers::pi_v<float> / 180.0f);
-		}
-
-		// 開始角度が終了角度より大きくならないように調整
-		if (spotLightData->cosFalloffStart < spotLightData->cosAngle)
-		{
-			spotLightData->cosFalloffStart = spotLightData->cosAngle;
-			spotFalloffStartAngle = std::acos(spotLightData->cosFalloffStart) * 180.0f / std::numbers::pi_v<float>;
-		}
-	}
+	//lightManager_.DrawImGui();
 }
 
 
@@ -209,9 +103,8 @@ void Object3D::Draw()
 	dxCommon->GetCommandList()->SetGraphicsRootConstantBufferView(1, wvpResource->GetGPUVirtualAddress());
 	dxCommon->GetCommandList()->SetGraphicsRootDescriptorTable(2, modelData.material.gpuHandle);
 	dxCommon->GetCommandList()->SetGraphicsRootConstantBufferView(3, cameraResource->GetGPUVirtualAddress());
-	dxCommon->GetCommandList()->SetGraphicsRootConstantBufferView(4, directionalLightResource->GetGPUVirtualAddress());
-	dxCommon->GetCommandList()->SetGraphicsRootConstantBufferView(5, pointLightResource->GetGPUVirtualAddress());
-	dxCommon->GetCommandList()->SetGraphicsRootConstantBufferView(6, spotLightResource->GetGPUVirtualAddress());
+
+	lightManager_.ApplyToPipeline();
 
 	// モデルの描画
 	dxCommon->GetCommandList()->DrawInstanced(UINT(modelData.vertices.size()), 1, 0, 0);
@@ -239,11 +132,11 @@ void Object3D::preInitialize(DirectXCommon* dxCommon)
 {
 	InitializeMaterial(dxCommon);
 	InitializeTransfomation(dxCommon);
-	ParallelLightSorce(dxCommon);
+	//ParallelLightSorce(dxCommon);
 	InitializeVertexBufferData(dxCommon);
 	InitializeCameraResource(dxCommon);
-	PointLightSource(dxCommon);
-	SpotLightSource(dxCommon);
+	//PointLightSource(dxCommon);
+	//SpotLightSource(dxCommon);
 }
 
 

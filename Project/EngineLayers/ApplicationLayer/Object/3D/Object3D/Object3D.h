@@ -8,6 +8,7 @@
 #include "VertexData.h"
 #include "ModelData.h"
 #include "Camera.h"
+#include "LightManager.h"
 
 #include <fstream>
 #include <sstream>
@@ -130,6 +131,7 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	DirectXCommon* dxCommon = nullptr;
 	Object3DCommon* object3dCommon_ = nullptr;
+	LightManager lightManager_;
 
 	std::shared_ptr<Model> model_;
 
