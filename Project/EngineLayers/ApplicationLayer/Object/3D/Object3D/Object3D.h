@@ -81,12 +81,6 @@ public: /// ---------- 設定処理 ---------- ///
 	// モデルの追加
 	void SetModel(const std::string& filePath);
 
-	// スケールを設定
-	void SetScale(const Vector3& scale) { worldTransform.scale = scale; }
-
-	// 回転を設定
-	void SetRotate(const Vector3& rotate) { worldTransform.rotate = rotate; }
-
 	// 位置を設定
 	void SetTranslate(const Vector3& translate) { worldTransform.translate = translate; }
 
