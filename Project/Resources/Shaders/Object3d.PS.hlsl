@@ -126,7 +126,7 @@ PixelShaderOutput main(VertexShaderOutput input)
             float3 pointHalfVector = normalize(pointLightDir + viewDir);
             float pointNdotH = max(dot(normal, pointHalfVector), 0.0f);
             float shininess = max(gMaterial.shininess, 50.0f);
-            pointSpecularColor = float3(1.0f, 1.0f, 1.0f) * pow(pointNdotH, shininess) * gPointLight.intensity * attenuation;
+            pointSpecularColor = float3(1.0f, 1.0f, 1.0f) * pow(pointNdotH, shininess) * gPointLight.intensity;
         }
     
         /// ---------- スポットライトの処理 ---------- ///
