@@ -53,8 +53,8 @@ struct SpotLight
 };
 
 ConstantBuffer<Material> gMaterial : register(b0);
-ConstantBuffer<DirectionalLight> gDirectionalLight : register(b1);
-ConstantBuffer<Camera> gCamera : register(b2);
+ConstantBuffer<Camera> gCamera : register(b1);
+ConstantBuffer<DirectionalLight> gDirectionalLight : register(b2);
 ConstantBuffer<PointLight> gPointLight : register(b3);
 ConstantBuffer<SpotLight> gSpotLight : register(b4);
 
