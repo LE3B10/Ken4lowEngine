@@ -13,7 +13,6 @@ struct Material
     int enableLighting; // ライティングの有無
     float shininess; // 光沢度
     float4x4 uvTransform; // UVTransform
-    float padding[3]; // パディング
 };
 
 //平行光源
@@ -22,7 +21,6 @@ struct DirectionalLight
     float4 color; // ライトの色
     float3 direction; // ライトの向き
     float intensity; // 輝度
-    float padding; // パディング
 };
 
 // カメラ
@@ -39,7 +37,6 @@ struct PointLight
     float intensity; // 輝度
     float radius; // ライトの届く最大距離
     float decay; // 減衰率
-    float padding[2]; // パディング
 };
 
 // スポットライト
@@ -53,7 +50,6 @@ struct SpotLight
     float decay; // 減衰率
     float cosFalloffStart; // 開始角度
     float cosAngle; // スポットライトの余弦
-    float padding[2]; // パディング
 };
 
 ConstantBuffer<Material> gMaterial : register(b0);
@@ -130,7 +126,7 @@ PixelShaderOutput main(VertexShaderOutput input)
             float3 pointHalfVector = normalize(pointLightDir + viewDir);
             float pointNdotH = max(dot(normal, pointHalfVector), 0.0f);
             float shininess = max(gMaterial.shininess, 50.0f);
-            pointSpecularColor = float3(1.0f, 1.0f, 1.0f) * pow(pointNdotH, shininess) * gPointLight.intensity;
+            pointSpecularColor = float3(1.0f, 1.0f, 1.0f) * pow(pointNdotH, shininess) * gPointLight.intensity * attenuation;
         }
     
         /// ---------- スポットライトの処理 ---------- ///
@@ -143,7 +139,7 @@ PixelShaderOutput main(VertexShaderOutput input)
         float spotAttenuation = 1.0f / (1.0f + gSpotLight.decay * pow(spotLightDistance / (gSpotLight.distance + 1.0f), 2.0f));
         spotAttenuation = saturate(spotAttenuation); // クランプ
     
-        // 角度元帥の計算
+        // 角度減衰の計算
         float cosAngle = dot(-spotLightDir, normalize(gSpotLight.direction));
         float spotAngleFactor = saturate((cosAngle - gSpotLight.cosAngle) / (gSpotLight.cosFalloffStart - gSpotLight.cosAngle)); // 緩やかに減衰
     
@@ -163,7 +159,7 @@ PixelShaderOutput main(VertexShaderOutput input)
         }
         
         // 環境光 + 拡散反射 + 鏡面反射 + 点光源の拡散反射 + 点光源の鏡面反射 + スポットライトの拡散反射 + スポットライトの鏡面反射
-        float3 finalColor = /*ambientColor + */ diffuseColor + specularColor + pointDiffuseColor + pointSpecularColor * attenuation + spotDiffuseColor + spotSpecularColor;
+        float3 finalColor = /*ambientColor + */diffuseColor + specularColor + pointDiffuseColor + pointSpecularColor + spotDiffuseColor + spotSpecularColor;
         output.color.rgb = saturate(finalColor);
 
         // ガンマ補正を適用（必要なら）
