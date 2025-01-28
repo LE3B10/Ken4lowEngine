@@ -10,6 +10,8 @@
 
 #include "ParticleEmitter.h"
 
+#include "Player.h"
+
 /// ---------- 前方宣言 ---------- ///
 class DirectXCommon;
 class Input;
@@ -65,4 +67,9 @@ private: /// ---------- メンバ変数 ---------- ///
 	std::vector<Vector3> initialPositions;
 
 	std::string particleGroupName;
+
+private: /// ---------- プレイヤーのメンバ変数 ---------- ///
+
+	std::unique_ptr<Player> player_;
+
 };
