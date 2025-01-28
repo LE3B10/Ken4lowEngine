@@ -2,6 +2,7 @@
 #include "WorldTransform.h"
 #include "Camera.h"
 #include "Object3D.h"
+#include "Input.h"
 
 #include <vector>
 #include <memory>
@@ -14,17 +15,6 @@ class Object3DCommon;
 /// -------------------------------------------------------------
 class Player
 {
-public: /// ---------- メンバ関数 ---------- ///
-
-	// 初期化処理
-	void Initialize(Object3DCommon* object3DCommon);
-
-	// 更新処理
-	void Update();
-
-	// 描画処理
-	void Draw();
-
 private: /// ---------- 構造体 ---------- ///
 
 	struct Part
@@ -34,7 +24,27 @@ private: /// ---------- 構造体 ---------- ///
 		std::string modelFile;
 	};
 
+public: /// ---------- メンバ関数 ---------- ///
+
+	// 初期化処理
+	void Initialize(Object3DCommon* object3DCommon, Camera* camera);
+
+	// 更新処理
+	void Update();
+
+	// 描画処理
+	void Draw();
+
 private: /// ---------- メンバ変数 ---------- ///
+
+	Input* input_ = nullptr;
+	Camera* camera_ = nullptr;
+
+	Vector3 rotation_ = { 0.0f, 0.0f, 0.0f }; // 回転角度 (x, y, z)
+	Vector3 velocity = { 0.0f, 0.0f, 0.0f }; // カメラの速度
+	
+	const float damping = 0.9f;            // 減衰率（小さいほど追従がゆっくり）
+	const float stiffness = 0.1f;          // カメラの目標位置への「引っ張り力」
 
 	std::vector<Part> parts_; // 各部位をまとめて管理
 

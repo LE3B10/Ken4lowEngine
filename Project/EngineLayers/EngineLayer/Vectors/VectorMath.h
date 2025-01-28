@@ -62,7 +62,7 @@ static Vector3 Normalize(const Vector3& v)
 }
 
 //座標変換
-static Vector3 Transforms(const Vector3& vector, const Matrix4x4& matrix)
+static Vector3 Transform(const Vector3& vector, const Matrix4x4& matrix)
 {
 	Vector3 result{};
 	result.x = vector.x * matrix.m[0][0] + vector.y * matrix.m[1][0] + vector.z * matrix.m[2][0] + 1.0f * matrix.m[3][0];
@@ -84,4 +84,10 @@ static Vector3 Cross(const Vector3& v1, const Vector3& v2)
 	result.y = v1.z * v2.x - v1.x * v2.z;
 	result.z = v1.x * v2.y - v1.y * v2.x;
 	return result;
+}
+
+// 線形補間
+static Vector3 Lerp(const Vector3& start, const Vector3& end, float t)
+{
+	return start + (end - start) * t;
 }

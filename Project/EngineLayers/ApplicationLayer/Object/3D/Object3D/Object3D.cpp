@@ -1,6 +1,7 @@
 #include "Object3D.h"
 #include "ImGuiManager.h"
 #include "DirectXCommon.h"
+#include "VectorMath.h"
 #include "MatrixMath.h"
 #include "ResourceManager.h"
 
