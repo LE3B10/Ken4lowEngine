@@ -6,9 +6,19 @@
 /// -------------------------------------------------------------
 void Player::Initialize(Object3DCommon* object3DCommon)
 {
-	object3D_ = std::make_unique<Object3D>();
-	object3D_->Initialize(object3DCommon, "cube.gltf");
-	object3D_->SetTranslate({ 0.0f,0.0f,0.0f });
+	parts_ = {
+		{ {{1.0f, 1.0f, 1.0f}, {0.0f, 0.0f, 0.0f}}, nullptr, "body.gltf" },
+		{ {{1.0f, 1.0f, 1.0f}, {0.0f, 0.0f, 0.0f}, {-0.5f, 4.5f, 0.0f}}, nullptr, "L_Arm.gltf" },
+		{ {{1.0f, 1.0f, 1.0f}, {0.0f, 0.0f, 0.0f}, {0.5f, 4.5f, 0.0f}}, nullptr, "R_Arm.gltf" },
+		{ {{1.0f, 1.0f, 1.0f}, {0.0f, 0.0f, 0.0f}, {0.0f, 5.0f, 0.0f}}, nullptr, "Head.gltf" }
+	};
+
+	for (auto& part : parts_)
+	{
+		part.object3D = std::make_unique<Object3D>();
+		part.object3D->Initialize(object3DCommon, part.modelFile);
+		part.object3D->SetTranslate(part.worldTransform.translate);
+	}
 }
 
 
@@ -17,7 +27,10 @@ void Player::Initialize(Object3DCommon* object3DCommon)
 /// -------------------------------------------------------------
 void Player::Update()
 {
-	object3D_->Update();
+	for (auto& part : parts_)
+	{
+		part.object3D->Update();
+	}
 }
 
 
@@ -26,5 +39,8 @@ void Player::Update()
 /// -------------------------------------------------------------
 void Player::Draw()
 {
-	object3D_->Draw();
+	for (auto& part : parts_)
+	{
+		part.object3D->Draw();
+	}
 }
