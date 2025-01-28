@@ -237,23 +237,3 @@ static Matrix4x4 MakeViewportMatrix(float left, float top, float width, float he
 	result.m[3][3] = 1.0f;
 	return result;
 }
-
-//長さ（ノルム）
-static float Length(const Vector3& v)
-{
-	return sqrtf(powf(v.x, 2) + powf(v.y, 2) + powf(v.z, 2));
-}
-
-//正規化
-static Vector3 Normalize(const Vector3& v)
-{
-	float length = Length(v);
-	Vector3 result{};
-	if (length != 0.0)
-	{
-		result.x = v.x / length;
-		result.y = v.y / length;
-		result.z = v.z / length;
-	}
-	return result;
-}

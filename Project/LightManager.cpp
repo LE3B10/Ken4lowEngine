@@ -2,6 +2,7 @@
 #include "DirectXCommon.h"
 #include <ResourceManager.h>
 #include "MatrixMath.h"
+#include "VectorMath.h"
 #include <numbers>
 #include "ImGuiManager.h"
 

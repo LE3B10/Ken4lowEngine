@@ -27,7 +27,7 @@ void GamePlayScene::Initialize()
 
 	// プレイヤーの生成と初期化
 	player_ = std::make_unique<Player>();
-	player_->Initialize(object3DCommon_.get());
+	player_->Initialize(object3DCommon_.get(), camera_.get());
 
 	// 地面の生成と初期化
 	ground_ = std::make_unique<Ground>();

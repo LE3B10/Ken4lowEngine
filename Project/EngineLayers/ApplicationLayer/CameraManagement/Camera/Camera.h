@@ -44,6 +44,10 @@ public: /// ---------- セッター ---------- ///
 	// ファークリップの設定
 	void SetFarClip(const float farClip) { farClip_ = farClip; }
 
+	void SetTarget(const Vector3& targetPosition) { target_ = targetPosition; }
+
+	void SetTargetPosition(const Vector3& target) { targetPosition_ = target; }
+
 public: /// ---------- ゲッター ---------- ///
 
 	// スケールの取得
@@ -66,6 +70,9 @@ public: /// ---------- ゲッター ---------- ///
 
 	// 合成行列データを取得
 	const Matrix4x4& GetViewProjectionMatrix() const { return viewProjevtionMatrix; }
+
+	// カメラを取得
+	const Vector3& GetTarget() const { return target_; }
 
 private: /// ---------- メンバ変数 ----- ///
 
@@ -90,5 +97,8 @@ private: /// ---------- メンバ変数 ----- ///
 	// 合成行列
 	Matrix4x4 viewProjevtionMatrix;
 
+	Vector3 target_; // カメラが注視するターゲットの位置
+
+	Vector3 targetPosition_; // プレイヤーの現在位置
 };
 
