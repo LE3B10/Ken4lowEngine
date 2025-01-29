@@ -18,21 +18,29 @@ void GamePlayScene::Initialize()
 	/// ---------- Object3Dの初期化 ---------- ///
 	object3DCommon_ = std::make_unique<Object3DCommon>();
 
+	/// ---------- サウンドの初期化 ---------- ///
+	const char* fileName = "Resources/Sounds/Get-Ready.wav";
+	wavLoader_ = std::make_unique<WavLoader>();
+	wavLoader_->StreamAudioAsync(fileName, 0.1f, 1.0f, false);
+
 	/// ---------- カメラ初期化処理 ---------- ///
 	camera_ = std::make_unique<Camera>();
 	camera_->SetRotate({ 0.3f,0.0f,0.0f });
 	camera_->SetTranslate({ 0.0f,15.0f,-40.0f });
 	object3DCommon_->SetDefaultCamera(camera_.get());
 
-	// terrainの生成と初期化
-	objectTerrain_ = std::make_unique<Object3D>();
-	objectTerrain_->Initialize(object3DCommon_.get(), "terrain.gltf");
-	objectTerrain_->SetTranslate({ 0.0f,0.0f,0.0f });
+	// プレイヤーの生成と初期化
+	player_ = std::make_unique<Player>();
+	player_->Initialize(object3DCommon_.get());
 
-	/// ---------- サウンドの初期化 ---------- ///
-	const char* fileName = "Resources/Sounds/Get-Ready.wav";
-	wavLoader_ = std::make_unique<WavLoader>();
-	wavLoader_->StreamAudioAsync(fileName, 0.1f, 1.0f, false);
+	floorBlock_ = std::make_unique<Floor>();
+	floorBlock_->Initialize(object3DCommon_.get());
+
+	// 衝突マネージャの生成と初期化
+	collisionManager_ = std::make_unique<CollisionManager>();
+	collisionManager_->Initialize();
+
+
 }
 
 
@@ -41,8 +49,16 @@ void GamePlayScene::Initialize()
 /// -------------------------------------------------------------
 void GamePlayScene::Update()
 {
-	// オブジェクトの更新処理
-	objectTerrain_->Update();
+	// プレイヤー更新処理
+	player_->Update();
+
+	// フロアの更新処理
+	floorBlock_->Update();
+
+	// コリジョンマネージャーの更新処理
+	collisionManager_->Update();
+	// 衝突判定と応答
+	CheckAllCollisions();
 
 	// カメラの更新処理
 	camera_->Update();
@@ -54,8 +70,13 @@ void GamePlayScene::Update()
 /// -------------------------------------------------------------
 void GamePlayScene::Draw()
 {
-	// Terrain.obj の描画
-	objectTerrain_->Draw();
+	// プレイヤーの描画処理
+	player_->Draw();
+
+	// フロアの描画処理
+	floorBlock_->Draw();
+
+	collisionManager_->Draw();
 }
 
 
@@ -75,11 +96,27 @@ void GamePlayScene::DrawImGui()
 {
 	ImGui::Begin("Test Window");
 
-	// TerrainのImGui
-	objectTerrain_->DrawImGui();
-
 	ImGui::End();
 
 	// カメラのImGui
 	camera_->DrawImGui();
+}
+
+
+void GamePlayScene::CheckAllCollisions()
+{
+	// 衝突マネージャのリセ絵っと
+	collisionManager_->Reset();
+
+	/// ---------- コライダーをリストに登録 ---------- ///
+
+	// プレイヤーを登録
+	collisionManager_->AddCollider(player_.get());
+
+	// 床を登録
+	collisionManager_->AddCollider(floorBlock_.get());
+
+
+	// 衝突判定と応答
+	collisionManager_->CheckAllCollisions();
 }

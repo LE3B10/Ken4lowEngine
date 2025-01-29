@@ -15,8 +15,7 @@ void TitleScene::Initialize()
 
 	// テクスチャのパスをリストで管理
 	texturePaths_ = {
-		"Resources/monsterBall.png",
-		//"Resources/uvChecker.png",
+		"Resources/GameTitle.png"
 	};
 
 	/// ---------- TextureManagerの初期化 ----------///

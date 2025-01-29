@@ -15,7 +15,7 @@ void GameEngine::Initialize()
 	Input::GetInstance()->Initialize(winApp_);
 
 	// グローバル変数の読み込み
-	//ParameterManager::GetInstance()->LoadFiles();
+	ParameterManager::GetInstance()->LoadFiles();
 
 	// シーンファクトリーの生成と設定
 	auto sceneFactory = std::make_unique<SceneFactory>();
@@ -52,7 +52,7 @@ void GameEngine::Update()
 //#ifdef _DEBUG // デバッグモードの場合
 
 	// グローバル変数の更新
-	//ParameterManager::GetInstance()->Update();
+	ParameterManager::GetInstance()->Update();
 
 	// シーンのImGuiの描画処理
 	SceneManager::GetInstance()->DrawImGui();
