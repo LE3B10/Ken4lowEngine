@@ -98,6 +98,8 @@ void GamePlayScene::DrawImGui()
 
 	ImGui::End();
 
+	collisionManager_->DrawParameter();
+
 	// カメラのImGui
 	camera_->DrawImGui();
 }

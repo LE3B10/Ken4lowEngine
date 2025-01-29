@@ -98,6 +98,12 @@ void CollisionManager::AddCollider(Collider* other)
 	colliders_.push_back(other);
 }
 
+void CollisionManager::DrawParameter()
+{
+	ParameterManager* globalVariables = ParameterManager::GetInstance();
+	isCollider_ = globalVariables->GetValue<bool>("Collider", "isCollider");
+}
+
 
 /// -------------------------------------------------------------
 ///				コライダー２つの衝突判定と応答処理
