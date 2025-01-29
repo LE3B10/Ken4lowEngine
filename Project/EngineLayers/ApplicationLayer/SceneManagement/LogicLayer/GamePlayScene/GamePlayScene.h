@@ -67,5 +67,5 @@ private: /// ---------- メンバ変数 ---------- ///
 	std::unique_ptr<CollisionManager> collisionManager_;
 
 	std::unique_ptr<Player> player_;
-	std::unique_ptr<Floor> floorBlock_;
+	std::vector<std::unique_ptr<Floor>> floorBlocks_;
 };

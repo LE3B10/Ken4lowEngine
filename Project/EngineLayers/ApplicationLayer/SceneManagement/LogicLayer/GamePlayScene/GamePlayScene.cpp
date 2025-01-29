@@ -33,8 +33,14 @@ void GamePlayScene::Initialize()
 	player_ = std::make_unique<Player>();
 	player_->Initialize(object3DCommon_.get());
 
-	floorBlock_ = std::make_unique<Floor>();
-	floorBlock_->Initialize(object3DCommon_.get());
+	// 複数の床を生成
+	for (int i = 0; i < 5; ++i)
+	{
+		auto floor = std::make_unique<Floor>();
+		floor->Initialize(object3DCommon_.get());
+		floor->SetTranslate({ 0.0f, -2.0f, static_cast<float>(i * 10) }); // 例えば奥に配置
+		floorBlocks_.emplace_back(std::move(floor));
+	}
 
 	// 衝突マネージャの生成と初期化
 	collisionManager_ = std::make_unique<CollisionManager>();
@@ -53,7 +59,10 @@ void GamePlayScene::Update()
 	player_->Update();
 
 	// フロアの更新処理
-	floorBlock_->Update();
+	for (auto& floor : floorBlocks_)
+	{
+		floor->Update();
+	}
 
 	// コリジョンマネージャーの更新処理
 	collisionManager_->Update();
@@ -74,8 +83,12 @@ void GamePlayScene::Draw()
 	player_->Draw();
 
 	// フロアの描画処理
-	floorBlock_->Draw();
+	for (auto& floor : floorBlocks_)
+	{
+		floor->Draw();
+	}
 
+	// コリジョンマネージャーの描画処理
 	collisionManager_->Draw();
 }
 
@@ -85,7 +98,7 @@ void GamePlayScene::Draw()
 /// -------------------------------------------------------------
 void GamePlayScene::Finalize()
 {
-
+	collisionManager_->Reset();
 }
 
 
@@ -115,9 +128,11 @@ void GamePlayScene::CheckAllCollisions()
 	// プレイヤーを登録
 	collisionManager_->AddCollider(player_.get());
 
-	// 床を登録
-	collisionManager_->AddCollider(floorBlock_.get());
-
+	// 複数の床を登録
+	for (auto& floor : floorBlocks_)
+	{
+		collisionManager_->AddCollider(floor.get());
+	}
 
 	// 衝突判定と応答
 	collisionManager_->CheckAllCollisions();

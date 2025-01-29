@@ -6,7 +6,7 @@
 
 /// ---------- 前方宣言 ---------- ///
 class Object3DCommon;
-
+class Player;
 
 /// -------------------------------------------------------------
 ///						床クラス
@@ -52,6 +52,8 @@ public: /// ---------- メンバ変数 ---------- ///
 
 	// ワールドトランスフォーム
 	WorldTransform worldTransform_;
+
+	Player* player_ = nullptr;
 
 	// オブジェクト3D
 	std::unique_ptr<Object3D> object3D_;

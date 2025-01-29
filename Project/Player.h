@@ -90,6 +90,9 @@ public: /// ---------- ゲッタ ---------- ///
 	// シリアルナンバーのゲッタ
 	uint32_t GetSerialNumber() const { return serialNumber_; }
 
+	// ジャンプを取得
+	bool GetIsJumping() const { return jumpInfo_.isJumping; }
+
 private: /// ---------- メンバ変数 ---------- ///
 
 	Camera* camera_ = nullptr; // カメラ参照

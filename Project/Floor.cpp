@@ -2,6 +2,8 @@
 #include "Object3DCommon.h"
 #include "CollisionTypeIdDef.h"
 #include "Player.h"
+#include "Windows.h"
+
 
 Floor::Floor()
 {
@@ -80,7 +82,7 @@ void Floor::OnCollision(Collider* other)
 		Player* player = static_cast<Player*>(other);
 
 		// シリアルナンバー
-		uint32_t serialNumber = player->GetSerialNumber(); // 仮
+		uint32_t serialNumber = player->GetSerialNumber();
 
 		// 接触記録があれば何もせずに抜ける
 		if (contactRecord_.Check(serialNumber))
@@ -93,6 +95,8 @@ void Floor::OnCollision(Collider* other)
 
 		// 必要であればエフェクトを追加
 
+		OutputDebugStringA("Hit !!!\n");
+
 	}
 }
 
@@ -102,5 +106,44 @@ void Floor::OnCollision(Collider* other)
 /// -------------------------------------------------------------
 Vector3 Floor::GetOrientation(int index) const
 {
-	return Vector3();
+	// 回転角 (オイラー角)
+	float roll = worldTransform_.rotate.x; // Z軸回転
+	float pitch = worldTransform_.rotate.y; // X軸回転
+	float yaw = worldTransform_.rotate.z; // Y軸回転
+
+	// 回転行列の各要素を計算
+	float cosYaw = cos(yaw);
+	float sinYaw = sin(yaw);
+	float cosPitch = cos(pitch);
+	float sinPitch = sin(pitch);
+	float cosRoll = cos(roll);
+	float sinRoll = sin(roll);
+
+	// 各軸の方向ベクトルを求める
+	Vector3 xAxis(
+		cosYaw * cosRoll + sinYaw * sinPitch * sinRoll,
+		cosPitch * sinRoll,
+		sinYaw * cosRoll - cosYaw * sinPitch * sinRoll
+	);
+
+	Vector3 yAxis(
+		-cosYaw * sinRoll + sinYaw * sinPitch * cosRoll,
+		cosPitch * cosRoll,
+		-sinYaw * sinRoll - cosYaw * sinPitch * cosRoll
+	);
+
+	Vector3 zAxis(
+		sinYaw * cosPitch,
+		-sinPitch,
+		cosYaw * cosPitch
+	);
+
+	// 指定された軸を返す
+	switch (index)
+	{
+	case 0: return xAxis; // X軸方向
+	case 1: return yAxis; // Y軸方向
+	case 2: return zAxis; // Z軸方向
+	default: return Vector3(0, 0, 0);
+	}
 }

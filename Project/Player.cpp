@@ -143,28 +143,23 @@ void Player::ClearContactRecord()
 /// -------------------------------------------------------------
 void Player::OnCollision(Collider* other)
 {
-	// 衝突相手の識別番号（ID）を取得
+	// 衝突相手のIDを取得
 	uint32_t typeID = other->GetTypeID();
 
-	// 衝突相手が床なら
+	// 衝突相手が床だった場合
 	if (typeID == static_cast<uint32_t>(CollisionTypeIdDef::kFloorBlock))
 	{
-		// 床の変数
+		// 床の位置を取得
+		Floor* floor = static_cast<Floor*>(other);
+		float floorY = floor->GetTranslate().y;
 
-		// シリアルナンバー
-		uint32_t serialNumber = 0; // 仮
-
-		// 接触記録があれば何もせずに抜ける
-		if (contactRecord_.Check(serialNumber))
+		// プレイヤーのY座標を床の上に固定
+		if (worldTransform_.translate.y < floorY)
 		{
-			return;
+			worldTransform_.translate.y = floorY;
+			jumpInfo_.isJumping = false; // ジャンプを停止
+			jumpInfo_.velocity = 0.0f;
 		}
-
-		// 接触記録に登録
-		contactRecord_.Add(serialNumber);
-
-		// 必要であればエフェクトを追加
-
 	}
 }
 
@@ -174,5 +169,44 @@ void Player::OnCollision(Collider* other)
 /// -------------------------------------------------------------
 Vector3 Player::GetOrientation(int index) const
 {
-	return Vector3();
+	// 回転角 (オイラー角)
+	float roll = worldTransform_.rotate.x; // Z軸回転
+	float pitch = worldTransform_.rotate.y; // X軸回転
+	float yaw = worldTransform_.rotate.z; // Y軸回転
+
+	// 回転行列の各要素を計算
+	float cosYaw = cos(yaw);
+	float sinYaw = sin(yaw);
+	float cosPitch = cos(pitch);
+	float sinPitch = sin(pitch);
+	float cosRoll = cos(roll);
+	float sinRoll = sin(roll);
+
+	// 各軸の方向ベクトルを求める
+	Vector3 xAxis(
+		cosYaw * cosRoll + sinYaw * sinPitch * sinRoll,
+		cosPitch * sinRoll,
+		sinYaw * cosRoll - cosYaw * sinPitch * sinRoll
+	);
+
+	Vector3 yAxis(
+		-cosYaw * sinRoll + sinYaw * sinPitch * cosRoll,
+		cosPitch * cosRoll,
+		-sinYaw * sinRoll - cosYaw * sinPitch * cosRoll
+	);
+
+	Vector3 zAxis(
+		sinYaw * cosPitch,
+		-sinPitch,
+		cosYaw * cosPitch
+	);
+
+	// 指定された軸を返す
+	switch (index)
+	{
+	case 0: return xAxis; // X軸方向
+	case 1: return yAxis; // Y軸方向
+	case 2: return zAxis; // Z軸方向
+	default: return Vector3(0, 0, 0);
+	}
 }
