@@ -11,8 +11,6 @@
 #include "ParticleEmitter.h"
 
 #include "Player.h"
-#include "Ground.h"
-#include "Skydome.h"
 
 /// ---------- 前方宣言 ---------- ///
 class DirectXCommon;
@@ -54,15 +52,24 @@ private: /// ---------- メンバ変数 ---------- ///
 	std::unique_ptr<Camera> camera_;
 	std::unique_ptr<WavLoader> wavLoader_;
 
+	std::vector<std::unique_ptr<Sprite>> sprites_;
+	
+	std::unique_ptr<Object3D> objectTerrain_;
+	std::unique_ptr<Object3D> objectSphere_;
+
+	std::vector<std::unique_ptr<Object3D>> objects3D_;
+
 	std::unique_ptr<Object3DCommon> object3DCommon_;
+
+	// テクスチャのパスをリストで管理
+	std::vector<std::string> texturePaths_;
+	std::vector<std::string> objectFiles;
+	std::vector<Vector3> initialPositions;
 
 	std::string particleGroupName;
 
-private: /// ---------- メンバ変数 ---------- ///
+private: /// ---------- プレイヤーのメンバ変数 ---------- ///
 
 	std::unique_ptr<Player> player_;
-	std::unique_ptr<Ground> ground_;
-	std::unique_ptr<Skydome> skydome_;
-
 
 };
