@@ -8,7 +8,7 @@ void Skydome::Initialize(Object3DCommon* object3DCommon)
 {
 	object3D_ = std::make_unique<Object3D>();
 	object3D_->Initialize(object3DCommon, "skydome.gltf");
-	object3D_->SetScale({ 100.0f,100.0f,100.0f });
+	object3D_->SetScale({ 500.0f,500.0f,500.0f });
 	object3D_->SetTranslate({ 0.0f,0.0f,0.0f });
 }
 

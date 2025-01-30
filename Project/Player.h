@@ -22,6 +22,8 @@ private: /// ---------- 構造体 ---------- ///
 		WorldTransform worldTransform;
 		std::shared_ptr<Object3D> object3D; // shared_ptrでコピー可能
 		std::string modelFile;
+		int parentIndex = -1; // 親のインデックス (-1なら親なし)
+		Vector3 localOffset = { 0.0f, 0.0f, 0.0f }; // 親に対する相対位置
 	};
 
 public: /// ---------- メンバ関数 ---------- ///
@@ -45,6 +47,7 @@ private: /// ---------- メンバ変数 ---------- ///
 	
 	const float damping = 0.9f;            // 減衰率（小さいほど追従がゆっくり）
 	const float stiffness = 0.1f;          // カメラの目標位置への「引っ張り力」
+	const float PI = 3.141592653589793246f;
 
 	std::vector<Part> parts_; // 各部位をまとめて管理
 
