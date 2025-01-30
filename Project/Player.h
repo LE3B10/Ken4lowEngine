@@ -22,6 +22,8 @@ private: /// ---------- 構造体 ---------- ///
 		WorldTransform worldTransform;
 		std::shared_ptr<Object3D> object3D; // shared_ptrでコピー可能
 		std::string modelFile;
+		int parentIndex = -1; // 親のインデックス (-1なら親なし)
+		Vector3 localOffset = { 0.0f, 0.0f, 0.0f }; // 親に対する相対位置
 	};
 
 public: /// ---------- メンバ関数 ---------- ///
