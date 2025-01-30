@@ -47,6 +47,7 @@ private: /// ---------- メンバ変数 ---------- ///
 	
 	const float damping = 0.9f;            // 減衰率（小さいほど追従がゆっくり）
 	const float stiffness = 0.1f;          // カメラの目標位置への「引っ張り力」
+	const float PI = 3.141592653589793246f;
 
 	std::vector<Part> parts_; // 各部位をまとめて管理
 

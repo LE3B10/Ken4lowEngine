@@ -48,6 +48,9 @@ public: /// ---------- セッター ---------- ///
 
 	void SetTargetPosition(const Vector3& target) { targetPosition_ = target; }
 
+	// カメラの回転を変更
+	void Rotate(const Vector3& rotationDelta) { worldTransform.rotate += rotationDelta; }
+
 public: /// ---------- ゲッター ---------- ///
 
 	// スケールの取得
@@ -74,6 +77,11 @@ public: /// ---------- ゲッター ---------- ///
 	// カメラを取得
 	const Vector3& GetTarget() const { return target_; }
 
+	// カメラの向きを取得
+	Vector3 GetForwardDirection() const;
+
+	float GetYaw() const { return yaw_; }
+
 private: /// ---------- メンバ変数 ----- ///
 
 	float kWidth, kHeight;
@@ -93,6 +101,15 @@ private: /// ---------- メンバ変数 ----- ///
 	float aspectRatio_; // アスペクト比
 	float nearClip_;	   // ニアクリップ
 	float farClip_;	   // ファークリップ
+
+	float distance_ = 10.0f; // プレイヤーからの距離
+	float yaw_ = 0.0f;       // 現在の Y軸回転角
+	float pitch_ = 0.1f;     // 現在の X軸回転角
+
+	float PI = 3.141592653589793246f;
+
+	bool isViewChange_ = false;
+	bool prevF5Pressed_ = false; // F5キーの前回の状態を記録
 
 	// 合成行列
 	Matrix4x4 viewProjevtionMatrix;
