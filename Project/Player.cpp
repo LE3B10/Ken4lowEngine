@@ -13,17 +13,31 @@ void Player::Initialize(Object3DCommon* object3DCommon, Camera* camera)
 	camera_ = camera;
 
 	parts_ = {
-		{ {{1.0f, 1.0f, 1.0f}, {0.0f, 0.0f, 0.0f}}, nullptr, "body.gltf" },
-		{ {{1.0f, 1.0f, 1.0f}, {0.0f, 0.0f, 0.0f}, {-0.5f, 4.5f, 0.0f}}, nullptr, "L_Arm.gltf" },
-		{ {{1.0f, 1.0f, 1.0f}, {0.0f, 0.0f, 0.0f}, {0.5f, 4.5f, 0.0f}}, nullptr, "R_Arm.gltf" },
-		{ {{1.0f, 1.0f, 1.0f}, {0.0f, 0.0f, 0.0f}, {0.0f, 5.0f, 0.0f}}, nullptr, "Head.gltf" }
+		// 胴体（親なし）
+		{ {{1.0f, 1.0f, 1.0f}, {0.0f, 0.0f, 0.0f}}, nullptr, "body.gltf", -1 },
+
+		// 左腕（親は胴体）
+		{ {{1.0f, 1.0f, 1.0f}, {0.0f, 0.0f, 0.0f}, {-0.5f, 4.5f, 0.0f}}, nullptr, "L_Arm.gltf", 0 },
+
+		// 右腕（親は胴体）
+		{ {{1.0f, 1.0f, 1.0f}, {0.0f, 0.0f, 0.0f}, {0.5f, 4.5f, 0.0f}}, nullptr, "R_Arm.gltf", 0 },
+
+		// 頭（親は胴体）
+		{ {{1.0f, 1.0f, 1.0f}, {0.0f, 0.0f, 0.0f}, {0.0f, 5.0f, 0.0f}}, nullptr, "Head.gltf", 0 }
 	};
 
-	for (auto& part : parts_)
+	for (size_t i = 0; i < parts_.size(); ++i)
 	{
+		auto& part = parts_[i];
 		part.object3D = std::make_unique<Object3D>();
 		part.object3D->Initialize(object3DCommon, part.modelFile);
 		part.object3D->SetTranslate(part.worldTransform.translate);
+
+		// 子オブジェクトのローカル座標を記録
+		if (part.parentIndex != -1)
+		{
+			part.localOffset = part.worldTransform.translate - parts_[part.parentIndex].worldTransform.translate;
+		}
 	}
 }
 
@@ -33,55 +47,42 @@ void Player::Initialize(Object3DCommon* object3DCommon, Camera* camera)
 /// -------------------------------------------------------------
 void Player::Update()
 {
-	// 入力取得
+	// 移動量を初期化
+	Vector3 movement = { 0.0f, 0.0f, 0.0f };
+
+	// 入力取得 (移動)
 	if (input_->PushKey(DIK_W)) // 前進
 	{
-		for (int32_t i = 0; i < parts_.size(); ++i)
-		{
-			parts_[i].worldTransform.translate.z += 0.1f;
-		}
+		movement.z += 0.3f;
 	}
 	if (input_->PushKey(DIK_S)) // 後退
 	{
-		for (int32_t i = 0; i < parts_.size(); ++i)
-		{
-			parts_[i].worldTransform.translate.z -= 0.1f;
-		}
+		movement.z -= 0.3f;
 	}
 	if (input_->PushKey(DIK_A)) // 左移動
 	{
-		for (int32_t i = 0; i < parts_.size(); ++i)
-		{
-			parts_[i].worldTransform.translate.x -= 0.1f;
-		}
+		movement.x -= 0.3f;
 	}
 	if (input_->PushKey(DIK_D)) // 右移動
 	{
-		for (int32_t i = 0; i < parts_.size(); ++i)
+		movement.x += 0.3f;
+	}
+
+	// 胴体 (親) の移動を適用
+	parts_[0].worldTransform.translate += movement;
+
+	// 親の位置を考慮して各部位の最終的な位置を計算
+	for (size_t i = 1; i < parts_.size(); ++i)
+	{
+		int parentIndex = parts_[i].parentIndex;
+		if (parentIndex != -1)
 		{
-			parts_[i].worldTransform.translate.x += 0.1f;
+			// localOffset は初期化時に保存した相対座標
+			parts_[i].worldTransform.translate = parts_[parentIndex].worldTransform.translate + parts_[i].localOffset;
 		}
 	}
 
-	// 入力取得 (矢印キーで回転)
-	if (input_->PushKey(DIK_LEFT))  // 左回転 (Y軸)
-	{
-		//rotation_.y -= 1.0f; // 回転角度を減少
-	}
-	if (input_->PushKey(DIK_RIGHT)) // 右回転 (Y軸)
-	{
-		//rotation_.y += 1.0f; // 回転角度を増加
-	}
-	if (input_->PushKey(DIK_UP))    // 上方向 (X軸回転)
-	{
-		//rotation_.x -= 1.0f; // 回転角度を減少
-	}
-	if (input_->PushKey(DIK_DOWN))  // 下方向 (X軸回転)
-	{
-		//rotation_.x += 1.0f; // 回転角度を増加
-	}
-
-	// 部位の移動をオブジェクトに反映
+	// 各部位のオブジェクトの位置を更新
 	for (auto& part : parts_)
 	{
 		part.object3D->SetTranslate(part.worldTransform.translate);
