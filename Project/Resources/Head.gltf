@@ -17,17 +17,17 @@
 			"mesh":0,
 			"name":"Head",
 			"rotation":[
-				0.7071068286895752,
+				0.70710688829422,
 				0,
 				0,
-				0.7071068286895752
+				0.7071066498756409
 			]
 		}
 	],
 	"materials":[
 		{
 			"doubleSided":true,
-			"name":"Material.002",
+			"name":"\u30de\u30c6\u30ea\u30a2\u30eb",
 			"pbrMetallicRoughness":{
 				"baseColorTexture":{
 					"index":0
@@ -62,8 +62,8 @@
 	"images":[
 		{
 			"mimeType":"image/png",
-			"name":"Body",
-			"uri":"Body.png"
+			"name":"Head",
+			"uri":"Head.png"
 		}
 	],
 	"accessors":[

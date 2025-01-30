@@ -91,3 +91,14 @@ static Vector3 Lerp(const Vector3& start, const Vector3& end, float t)
 {
 	return start + (end - start) * t;
 }
+
+static float LerpShortAngle(float a, float b, float t)
+{
+	const float PI = 3.141592653589793246f;
+
+	// 角度を [-π, π] の範囲に収める
+	float delta = fmodf(b - a + PI, 2.0f * PI) - PI;
+	if (delta < -PI)
+		delta += 2.0f * PI;
+	return a + delta * t; // 線形補間
+}

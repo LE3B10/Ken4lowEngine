@@ -44,7 +44,7 @@ void Player::Initialize(Object3DCommon* object3DCommon, Camera* camera)
     if (camera_)
     {
         float cameraYaw = camera_->GetYaw();
-        parts_[0].worldTransform.rotate.y = cameraYaw + (PI / 2.0f); // カメラ基準で補正
+        parts_[0].worldTransform.rotate.y = cameraYaw; // カメラ基準で補正
     }
 }
 
@@ -63,6 +63,8 @@ void Player::Update()
     if (input_->PushKey(DIK_A)) { movement.x -= 1.0f; }
     if (input_->PushKey(DIK_D)) { movement.x += 1.0f; }
 
+    float targetYaw = parts_[0].worldTransform.rotate.y; // 現在の角度を基準に
+
     // カメラの向きに基づいて移動方向を計算
     if (camera_)
     {
@@ -78,18 +80,17 @@ void Player::Update()
         // 胴体（親）の移動を適用
         parts_[0].worldTransform.translate += adjustedMovement * 0.3f; // 移動速度を調整
 
-        // 移動している場合のみ向きを調整
+        // 移動している場合のみ目標角度を計算
         if (Length(adjustedMovement) > 0.001f)
         {
             Vector3 forwardDirection = Normalize(adjustedMovement);
-            parts_[0].worldTransform.rotate.y = atan2f(-forwardDirection.x, forwardDirection.z); // 軸の順序を調整
-        }
-        else
-        {
-            float cameraYaw = camera_->GetYaw();
-            parts_[0].worldTransform.rotate.y = cameraYaw + (PI / 2.0f); // カメラ基準で補正
+            targetYaw = atan2f(-forwardDirection.x, forwardDirection.z); // 移動方向を向く
         }
     }
+
+    // 現在の角度と目標角度を補間
+    float currentYaw = parts_[0].worldTransform.rotate.y;
+    parts_[0].worldTransform.rotate.y = LerpShortAngle(currentYaw, targetYaw, 0.1f); // t=0.1で補間
 
     // 親の位置と回転を考慮して各部位の最終的な位置と回転を計算
     for (size_t i = 1; i < parts_.size(); ++i)
@@ -97,12 +98,10 @@ void Player::Update()
         int parentIndex = parts_[i].parentIndex;
         if (parentIndex != -1)
         {
-            // 親の回転を適用してローカルオフセットを回転
             const Vector3& parentRotation = parts_[parentIndex].worldTransform.rotate;
             Matrix4x4 rotationMatrix = MakeRotateYMatrix(parentRotation.y);
             Vector3 rotatedOffset = Transform(parts_[i].localOffset, rotationMatrix);
 
-            // 親の位置と回転を反映
             parts_[i].worldTransform.translate = parts_[parentIndex].worldTransform.translate + rotatedOffset;
             parts_[i].worldTransform.rotate = parts_[parentIndex].worldTransform.rotate; // 親と同じ回転を適用
         }
