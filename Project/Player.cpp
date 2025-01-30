@@ -12,6 +12,9 @@ void Player::Initialize(Object3DCommon* object3DCommon, Camera* camera)
     input_ = Input::GetInstance();
     camera_ = camera;
 
+    // 浮遊ギミックの初期化
+    InitializeFlaotingGimmick();
+
     parts_ = {
         // 胴体（親なし）
         { {{1.0f, 1.0f, 1.0f}, {0.0f, 0.0f, 0.0f}}, nullptr, "body.gltf", -1 },
@@ -54,6 +57,9 @@ void Player::Initialize(Object3DCommon* object3DCommon, Camera* camera)
 /// -------------------------------------------------------------
 void Player::Update()
 {
+    // 浮遊ギミックの更新処理
+    UpdateFloatingGimmick();
+
     // 移動量を初期化
     Vector3 movement = { 0.0f, 0.0f, 0.0f };
 
@@ -70,7 +76,13 @@ void Player::Update()
     {
         Vector3 forward = camera_->GetForwardDirection();
         forward.y = 0.0f; // 水平移動のためY成分をゼロにする
-        forward = Normalize(forward);
+
+        if (Length(forward) > 0.001f) {
+            forward = Normalize(forward);
+        }
+        else {
+            forward = Vector3(0.0f, 0.0f, 1.0f); // デフォルト方向を設定
+        }
 
         Vector3 right = Normalize(Cross(Vector3(0.0f, 1.0f, 0.0f), forward)); // 水平方向の右ベクトル
 
@@ -92,7 +104,30 @@ void Player::Update()
     float currentYaw = parts_[0].worldTransform.rotate.y;
     parts_[0].worldTransform.rotate.y = LerpShortAngle(currentYaw, targetYaw, 0.1f); // t=0.1で補間
 
-    // 親の位置と回転を考慮して各部位の最終的な位置と回転を計算
+    // 腕の揺れのパラメータを常に更新
+    armSwingParameter_ += step * armSwingSpeed_;
+
+    // 揺れの大きさを移動量に応じて変化させる（移動時は大きく、静止時は小さめ）
+    float swingAmplitude = (Length(movement) > 0.001f) ? armSwingAmplitude_ : armSwingAmplitude_ * 0.5f;
+
+    // 移動しているかどうかで揺れ方を変える
+    float leftArmSwing, rightArmSwing;
+    if (Length(movement) > 0.001f) {
+        // 移動時：交互に揺れる
+        leftArmSwing = std::sin(armSwingParameter_) * swingAmplitude;
+        rightArmSwing = std::sin(armSwingParameter_ + PI) * swingAmplitude;
+    }
+    else {
+        // 静止時：同じ方向に揺れる
+        leftArmSwing = std::sin(armSwingParameter_) * swingAmplitude;
+        rightArmSwing = leftArmSwing; // 左右同じ揺れ
+    }
+
+    // 両腕の回転に適用
+    parts_[1].worldTransform.rotate.x = leftArmSwing;  // 左腕
+    parts_[2].worldTransform.rotate.x = rightArmSwing; // 右腕
+
+    // 各部位の最終的な位置と回転を計算
     for (size_t i = 1; i < parts_.size(); ++i)
     {
         int parentIndex = parts_[i].parentIndex;
@@ -103,14 +138,14 @@ void Player::Update()
             Vector3 rotatedOffset = Transform(parts_[i].localOffset, rotationMatrix);
 
             parts_[i].worldTransform.translate = parts_[parentIndex].worldTransform.translate + rotatedOffset;
-            parts_[i].worldTransform.rotate = parts_[parentIndex].worldTransform.rotate; // 親と同じ回転を適用
+            parts_[i].worldTransform.rotate.y = parentRotation.y; // Y回転のみ親と同じにする
         }
     }
 
     // 各部位のオブジェクトの位置と回転を更新
     for (auto& part : parts_)
     {
-        part.object3D->SetRotate(part.worldTransform.rotate);
+        part.object3D->SetRotate(part.worldTransform.rotate);  // 回転を適用
         part.object3D->SetTranslate(part.worldTransform.translate);
         part.object3D->Update();
     }
@@ -135,4 +170,31 @@ void Player::Draw()
     {
         part.object3D->Draw();
     }
+}
+
+
+/// -------------------------------------------------------------
+///					浮遊ギミックの初期化処理
+/// -------------------------------------------------------------
+void Player::InitializeFlaotingGimmick()
+{
+    floatingParameter_ = 0.0f;
+}
+
+
+/// -------------------------------------------------------------
+///					 浮遊ギミックの更新処理
+/// -------------------------------------------------------------
+void Player::UpdateFloatingGimmick()
+{
+    // 浮遊の振幅<m>
+    const float amplitude = 0.4f; // 浮遊の振幅
+    const float floatingSpeed = 0.02f; // 浮遊の速度を遅くする
+
+    // パラメータを1ステップ分加算
+    floatingParameter_ += step;
+    // ２πを超えたら0戻す
+    floatingParameter_ = std::fmod(floatingParameter_, 2.0f * PI);
+
+    parts_[0].worldTransform.translate.y = std::sin(floatingParameter_) * amplitude;
 }
