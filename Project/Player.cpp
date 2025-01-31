@@ -75,12 +75,16 @@ void Player::Update()
 		switch (behavior_)
 		{
 		case Behavior::kRoot:
-			// 通常行動の更新処理
+			// 通常行動の初期化処理
 			BehaviorRootInitialize();
 			break;
 		case Behavior::kAttack:
-			// 攻撃行動の更新処理
+			// 攻撃行動の初期化処理
 			BehaviorAttackInitialize();
+			break;
+		case Behavior::kDash:
+			// ダッシュ行動の初期化処理
+			BehaviorDashInitialize();
 			break;
 		}
 
@@ -96,6 +100,10 @@ void Player::Update()
 	case Behavior::kAttack:
 		// 攻撃行動の更新処理
 		BehaviorAttackUpdate();
+		break;
+	case Behavior::kDash:
+		// ダッシュ行動の更新処理
+		BehaviorDashUpdate();
 		break;
 	}
 }
@@ -197,6 +205,13 @@ void Player::BehaviorRootUpdate()
 	if (input_->TriggerKey(DIK_SPACE)) {  // スペースキーで攻撃
 		behaviorRequest_ = Behavior::kAttack;
 		return;  // すぐに処理を抜けて攻撃へ移行
+	}
+
+	// ダッシュボタンを押したら
+	if (input_->PushKey(DIK_LSHIFT))
+	{
+		behaviorRequest_ = Behavior::kDash;
+		return;
 	}
 
 	// 入力取得 (移動)
@@ -373,5 +388,146 @@ void Player::BehaviorAttackUpdate()
 		part.object3D->SetRotate(part.worldTransform.rotate);
 		part.object3D->SetTranslate(part.worldTransform.translate);
 		part.object3D->Update();
+	}
+}
+
+
+/// -------------------------------------------------------------
+///					 攻撃行動の更新処理
+/// -------------------------------------------------------------
+void Player::BehaviorDashInitialize()
+{
+	workDash_.dashParameter_ = 0;
+
+	// 右腕の回転を元の角度に戻す
+	parts_[2].worldTransform.rotate.x = PI / 2.0f;
+	parts_[1].worldTransform.rotate.x = PI / 2.0f;
+
+	// 武器の位置・回転をリセット
+	parts_[4].worldTransform.rotate = { 0.0f, 0.0f, 0.0f };
+	parts_[4].worldTransform.translate = parts_[2].worldTransform.translate; // 右腕と同期
+
+	// 移動速度をリセット
+	velocity = { 0.0f, 0.0f, 0.0f };
+
+	// 各部位のオブジェクトの位置と回転を更新
+	for (auto& part : parts_)
+	{
+		part.object3D->SetRotate(part.worldTransform.rotate);
+		part.object3D->SetTranslate(part.worldTransform.translate);
+		part.object3D->Update();
+	}
+
+	// プレイヤーの位置を基準にカメラ位置を調整
+	if (camera_)
+	{
+		camera_->SetTargetPosition(parts_[0].worldTransform.translate);
+		camera_->Update();
+	}
+}
+
+
+/// -------------------------------------------------------------
+///					 攻撃行動の更新処理
+/// -------------------------------------------------------------
+void Player::BehaviorDashUpdate()
+{
+	// **ダッシュ速度の設定**
+	const float dashSpeed = 0.5f;  // 移動速度を少し抑える
+
+	// **キー入力で攻撃に遷移**
+	if (input_->TriggerKey(DIK_SPACE)) {  // スペースキーで攻撃
+		behaviorRequest_ = Behavior::kAttack;
+		return;  // すぐに処理を抜けて攻撃へ移行
+	}
+
+	// **LShiftを離したら通常行動に戻る**
+	if (!input_->PushKey(DIK_LSHIFT))
+	{
+		behaviorRequest_ = Behavior::kRoot;
+		return;
+	}
+
+	// **移動量を初期化**
+	Vector3 movement = { 0.0f, 0.0f, 0.0f };
+
+	// **入力取得 (移動)**
+	if (input_->PushKey(DIK_W)) { movement.z += 2.0f; }
+	if (input_->PushKey(DIK_S)) { movement.z -= 2.0f; }
+	if (input_->PushKey(DIK_A)) { movement.x -= 2.0f; }
+	if (input_->PushKey(DIK_D)) { movement.x += 2.0f; }
+
+	float targetYaw = parts_[0].worldTransform.rotate.y; // 現在の角度を基準に
+
+	// **カメラの向きを考慮した移動方向を計算**
+	if (camera_)
+	{
+		Vector3 forward = camera_->GetForwardDirection();
+		forward.y = 0.0f; // 水平移動のためY成分をゼロにする
+
+		if (Length(forward) > 0.001f)
+		{
+			forward = Normalize(forward);
+		}
+		else
+		{
+			forward = Vector3(0.0f, 0.0f, 1.0f); // デフォルト方向を設定
+		}
+
+		Vector3 right = Normalize(Cross(Vector3(0.0f, 1.0f, 0.0f), forward)); // 水平方向の右ベクトル
+
+		Vector3 adjustedMovement = -forward * movement.z + -right * movement.x;
+		adjustedMovement.y = 0.0f;
+
+		// **滑らかに加速＆減速**
+		velocity = Lerp(velocity, adjustedMovement * dashSpeed, 1.0f);
+
+		// **胴体（親）の移動を適用**
+		parts_[0].worldTransform.translate += velocity;
+
+		// **カメラのターゲット位置も遅れて移動**
+		camera_->SetTargetPosition(Lerp(camera_->GetTargetPosition(), parts_[0].worldTransform.translate, 0.1f));
+
+
+		// **移動している場合のみ目標角度を計算**
+		if (Length(adjustedMovement) > 0.001f)
+		{
+			Vector3 forwardDirection = Normalize(adjustedMovement);
+			targetYaw = atan2f(-forwardDirection.x, forwardDirection.z); // 移動方向を向く
+		}
+	}
+
+	// **現在の角度と目標角度を補間**
+	float currentYaw = parts_[0].worldTransform.rotate.y;
+	parts_[0].worldTransform.rotate.y = LerpShortAngle(currentYaw, targetYaw, 0.1f); // t=0.1で補間
+
+	// **腕と武器の位置を胴体に同期**
+	for (size_t i = 1; i < parts_.size(); ++i)
+	{
+		int parentIndex = parts_[i].parentIndex;
+		if (parentIndex != -1)
+		{
+			const Vector3& parentRotation = parts_[parentIndex].worldTransform.rotate;
+			Matrix4x4 rotationMatrix = MakeRotateYMatrix(parentRotation.y);
+			Vector3 rotatedOffset = Transform(parts_[i].localOffset, rotationMatrix);
+
+			parts_[i].worldTransform.translate = parts_[parentIndex].worldTransform.translate + rotatedOffset;
+			parts_[i].worldTransform.rotate.y = parentRotation.y; // Y回転のみ親と同じにする
+		}
+	}
+
+	// **各部位のオブジェクトの位置と回転を更新**
+	for (auto& part : parts_)
+	{
+		part.object3D->SetRotate(part.worldTransform.rotate);
+		part.object3D->SetTranslate(part.worldTransform.translate);
+		part.object3D->Update();
+	}
+
+	// **プレイヤーの位置をカメラに反映**
+	if (camera_)
+	{
+		camera_->SetTargetPosition(parts_[0].worldTransform.translate);
+		camera_->Update();
 	}
 }

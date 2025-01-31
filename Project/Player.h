@@ -18,6 +18,7 @@ private: /// ---------- Behaviorの定義 ---------- ///
 	{
 		kRoot,	 // 通常状態
 		kAttack, // 攻撃中
+		kDash,	 // ダッシュ中
 	};
 
 	// 攻撃のフェーズ管理
@@ -26,6 +27,15 @@ private: /// ---------- Behaviorの定義 ---------- ///
 		kRaise, // 振り上げ
 		kSwing, // 振り下ろし
 		kEnd    // 攻撃終了
+	};
+
+private: /// ---------- 構造体 ---------- ///
+
+	// ダッシュ用ワーク
+	struct WorkDash
+	{
+		// ダッシュ用の媒介変数
+		uint32_t dashParameter_ = 0;
 	};
 
 public: /// ---------- メンバ関数 ---------- ///
@@ -59,6 +69,12 @@ private: /// ---------- メンバ関数 ---------- ///
 	// 攻撃行動の更新処理
 	void BehaviorAttackUpdate();
 
+	// ダッシュ行動初期化
+	void BehaviorDashInitialize();
+
+	// ダッシュ行動更新処理
+	void BehaviorDashUpdate();
+
 private: /// ---------- メンバ変数 ---------- ///
 
 	// 振る舞い
@@ -70,8 +86,11 @@ private: /// ---------- メンバ変数 ---------- ///
 	// 次の振る舞いをリクエスト
 	std::optional<Behavior> behaviorRequest_ = std::nullopt;
 
+	WorkDash workDash_;
+
 	Vector3 rotation_ = { 0.0f, 0.0f, 0.0f }; // 回転角度 (x, y, z)
 	Vector3 velocity = { 0.0f, 0.0f, 0.0f }; // カメラの速度
+	Vector3 targetVelocity_{};
 
 	const float damping = 0.9f;            // 減衰率（小さいほど追従がゆっくり）
 	const float stiffness = 0.1f;          // カメラの目標位置への「引っ張り力」
@@ -80,7 +99,7 @@ private: /// ---------- メンバ変数 ---------- ///
 	float floatingParameter_ = 0.0f;
 
 	// ステップを決める
-	const uint16_t periodTime = static_cast<uint16_t>(60.0f);  // 1.0f / 60.0f ではなく、フレーム数として定義
+	const uint16_t periodTime = 60;  // 1.0f / 60.0f ではなく、フレーム数として定義
 	const float step = 2.0f * PI / periodTime;
 
 	// 腕の振り用のパラメータ
