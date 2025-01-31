@@ -91,10 +91,6 @@ void GamePlayScene::Finalize()
 /// -------------------------------------------------------------
 void GamePlayScene::DrawImGui()
 {
-	ImGui::Begin("Test Window");
-
-	ImGui::End();
-
 	// カメラのImGui
 	camera_->DrawImGui();
 }
