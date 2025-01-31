@@ -51,6 +51,9 @@ public: /// ---------- メンバ関数 ---------- ///
 
 private: /// ---------- メンバ関数 ---------- ///
 
+	// 調整項目の適用
+	void ApplyGlobalVariables();
+
 	// 浮遊ギミック初期化処理
 	void InitializeFlaotingGimmick();
 

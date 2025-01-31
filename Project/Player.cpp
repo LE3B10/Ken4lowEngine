@@ -16,7 +16,7 @@ void Player::Initialize(Object3DCommon* object3DCommon, Camera* camera)
 
 	// グループを追加
 	ParameterManager::GetInstance()->CreateGroup(groupName);
-	parameterManagers->SetValue(groupName, "Test", 90);
+	parameterManagers->AddItem(groupName, "Test", 90);
 
 	// 浮遊ギミックの初期化
 	InitializeFlaotingGimmick();
@@ -130,6 +130,15 @@ void Player::Draw()
 
 		parts_[i].object3D->Draw();
 	}
+}
+
+
+/// -------------------------------------------------------------
+///					調整項目の適用処理
+/// -------------------------------------------------------------
+void Player::ApplyGlobalVariables()
+{
+
 }
 
 
