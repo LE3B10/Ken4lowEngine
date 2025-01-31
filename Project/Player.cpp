@@ -2,7 +2,7 @@
 #include "Object3DCommon.h"
 #include "VectorMath.h"
 #include "MatrixMath.h"
-
+#include "ParameterManager.h"
 
 /// -------------------------------------------------------------
 ///							初期化処理
@@ -10,6 +10,13 @@
 void Player::Initialize(Object3DCommon* object3DCommon, Camera* camera)
 {
 	BaseCharacter::Initialize(object3DCommon, camera);
+
+	ParameterManager* parameterManagers = ParameterManager::GetInstance();
+	const char* groupName = "Player";
+
+	// グループを追加
+	ParameterManager::GetInstance()->CreateGroup(groupName);
+	parameterManagers->SetValue(groupName, "Test", 90);
 
 	// 浮遊ギミックの初期化
 	InitializeFlaotingGimmick();
