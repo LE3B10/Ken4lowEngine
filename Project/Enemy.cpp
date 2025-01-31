@@ -43,18 +43,26 @@ void Enemy::Update()
 {
 	BaseCharacter::Update();
 
-    // **円運動の計算**
-    angle_ += speed_;  // 角度を増加
-    if (angle_ > 2.0f * PI) { angle_ -= 2.0f * PI; } // 2πを超えたらリセット
+    // === 円運動の処理 ===
+    angle_ += speed_;
+    if (angle_ > 2.0f * PI) { angle_ -= 2.0f * PI; }
 
-    // **円軌道の座標を計算**
     parts_[0].worldTransform.translate.x = centerPosition_.x + radius_ * std::cos(angle_);
     parts_[0].worldTransform.translate.z = centerPosition_.z + radius_ * std::sin(angle_);
-
-    // 進行方向に応じて回転させる
     parts_[0].worldTransform.rotate.y = atan2f(std::sin(angle_), std::cos(angle_));
 
-    // **子オブジェクトの最終的な位置と回転を計算**
+    // === 【追加】腕の揺れアニメーション ===
+    static float armSwingParameter = 0.0f;
+    armSwingParameter += 0.1f;  // 振りの速度を調整
+    float swingAmplitude = 0.4f; // 揺れの大きさ
+
+    float leftArmSwing = std::sin(armSwingParameter) * swingAmplitude;
+    float rightArmSwing = std::sin(armSwingParameter + PI) * swingAmplitude;
+
+    parts_[1].worldTransform.rotate.x = leftArmSwing;  // 左腕
+    parts_[2].worldTransform.rotate.x = rightArmSwing; // 右腕
+
+    // === 子オブジェクトの位置更新 ===
     for (size_t i = 1; i < parts_.size(); ++i)
     {
         int parentIndex = parts_[i].parentIndex;
@@ -63,19 +71,15 @@ void Enemy::Update()
             const Vector3& parentTranslation = parts_[parentIndex].worldTransform.translate;
             const Vector3& parentRotation = parts_[parentIndex].worldTransform.rotate;
 
-            // 親の回転行列を作成
             Matrix4x4 rotationMatrix = MakeRotateYMatrix(parentRotation.y);
-
-            // ローカルオフセットを親の回転に合わせて適用
             Vector3 rotatedOffset = Transform(parts_[i].localOffset, rotationMatrix);
 
-            // 計算結果を適用
             parts_[i].worldTransform.translate = parentTranslation + rotatedOffset;
             parts_[i].worldTransform.rotate.y = parentRotation.y;
         }
     }
 
-    // 各部位のオブジェクトの位置を更新
+    // === 各オブジェクトの位置・回転を更新 ===
     for (auto& part : parts_) {
         part.object3D->SetTranslate(part.worldTransform.translate);
         part.object3D->SetRotate(part.worldTransform.rotate);
