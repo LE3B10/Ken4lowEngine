@@ -18,6 +18,11 @@ void GamePlayScene::Initialize()
 	/// ---------- Object3Dの初期化 ---------- ///
 	object3DCommon_ = std::make_unique<Object3DCommon>();
 
+	/// ---------- サウンドの初期化 ---------- ///
+	const char* fileName = "Resources/Sounds/Get-Ready.wav";
+	wavLoader_ = std::make_unique<WavLoader>();
+	wavLoader_->StreamAudioAsync(fileName, 0.1f, 1.0f, false);
+
 	/// ---------- カメラ初期化処理 ---------- ///
 	camera_ = std::make_unique<Camera>();
 	camera_->SetRotate({ 0.3f,0.0f,0.0f });
@@ -37,10 +42,11 @@ void GamePlayScene::Initialize()
 	skydome_ = std::make_unique<Skydome>();
 	skydome_->Initialize(object3DCommon_.get());
 
-	/// ---------- サウンドの初期化 ---------- ///
-	const char* fileName = "Resources/Sounds/Get-Ready.wav";
-	wavLoader_ = std::make_unique<WavLoader>();
-	wavLoader_->StreamAudioAsync(fileName, 0.1f, 1.0f, false);
+	// スカイドームの生成と初期化
+	enemy_ = std::make_unique<Enemy>();
+	enemy_->Initialize(object3DCommon_.get(), camera_.get());
+
+	
 }
 
 
@@ -52,6 +58,7 @@ void GamePlayScene::Update()
 	player_->Update();
 	ground_->Update();
 	skydome_->Update();
+	enemy_->Update();
 
 	// カメラの更新処理
 	camera_->Update();
@@ -66,6 +73,7 @@ void GamePlayScene::Draw()
 	player_->Draw();
 	ground_->Draw();
 	skydome_->Draw();
+	enemy_->Draw();
 }
 
 

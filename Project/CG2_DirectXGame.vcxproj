@@ -114,6 +114,8 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     </FxCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="BaseCharacter.cpp" />
+    <ClCompile Include="Enemy.cpp" />
     <ClCompile Include="EngineLayers\ApplicationLayer\SceneManagement\AbstractSceneFactory\AbstractSceneFactory.cpp" />
     <ClCompile Include="EngineLayers\ApplicationLayer\SceneManagement\BaseScene\BaseScene.cpp" />
     <ClCompile Include="EngineLayers\EngineLayer\Audio\AudioManager.cpp" />
@@ -197,6 +199,8 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     </FxCompile>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="BaseCharacter.h" />
+    <ClInclude Include="Enemy.h" />
     <ClInclude Include="EngineLayers\ApplicationLayer\SceneManagement\AbstractSceneFactory\AbstractSceneFactory.h" />
     <ClInclude Include="EngineLayers\ApplicationLayer\SceneManagement\BaseScene\BaseScene.h" />
     <ClInclude Include="EngineLayers\EngineLayer\MultipleStructs\AABB.h" />
