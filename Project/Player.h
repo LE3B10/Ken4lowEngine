@@ -19,6 +19,7 @@ private: /// ---------- Behaviorの定義 ---------- ///
 		kRoot,	 // 通常状態
 		kAttack, // 攻撃中
 		kDash,	 // ダッシュ中
+		kJump,	 // ジャンプ中
 	};
 
 	// 攻撃のフェーズ管理
@@ -77,6 +78,12 @@ private: /// ---------- メンバ関数 ---------- ///
 
 	// ダッシュ行動更新処理
 	void BehaviorDashUpdate();
+
+	// ジャンプ行動の初期化処理
+	void BehaviorJumpInitialize();
+
+	// ジャンプ行動の更新処理
+	void BehaviorJumpUpdate();
 
 private: /// ---------- メンバ変数 ---------- ///
 

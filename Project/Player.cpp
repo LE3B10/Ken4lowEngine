@@ -69,7 +69,7 @@ void Player::Update()
 	BaseCharacter::Update();
 
 	// **攻撃中は浮遊ギミックを更新しない**
-	if (behavior_ != Behavior::kAttack)
+	if (behavior_ != Behavior::kAttack && behavior_ != Behavior::kJump)
 	{
 		// 浮遊ギミックの更新処理
 		UpdateFloatingGimmick();
@@ -93,6 +93,10 @@ void Player::Update()
 			// ダッシュ行動の初期化処理
 			BehaviorDashInitialize();
 			break;
+		case Behavior::kJump:
+			// ジャンプ行動の初期化処理
+			BehaviorJumpInitialize();
+			break;
 		}
 
 		behaviorRequest_ = std::nullopt;
@@ -112,6 +116,32 @@ void Player::Update()
 		// ダッシュ行動の更新処理
 		BehaviorDashUpdate();
 		break;
+	case Behavior::kJump:
+		// ジャンプ行動の更新処理
+		BehaviorJumpUpdate();
+		break;
+	}
+
+	// **親子関係の計算より前に適用**
+	for (size_t i = 1; i < parts_.size(); ++i)
+	{
+		int parentIndex = parts_[i].parentIndex;
+		if (parentIndex != -1)
+		{
+			const Vector3& parentRotation = parts_[parentIndex].worldTransform.rotate;
+			Matrix4x4 rotationMatrix = MakeRotateYMatrix(parentRotation.y);
+			Vector3 rotatedOffset = Transform(parts_[i].localOffset, rotationMatrix);
+
+			parts_[i].worldTransform.translate = parts_[parentIndex].worldTransform.translate + rotatedOffset;
+			parts_[i].worldTransform.rotate.y = parentRotation.y; // Y回転のみ親と同じにする
+		}
+	}
+
+	// **カメラのターゲットを更新**
+	if (camera_)
+	{
+		camera_->SetTargetPosition(parts_[0].worldTransform.translate);
+		camera_->Update();
 	}
 }
 
@@ -218,7 +248,7 @@ void Player::BehaviorRootUpdate()
 	Vector3 movement = { 0.0f, 0.0f, 0.0f };
 
 	// **キー入力で攻撃に遷移**
-	if (input_->TriggerKey(DIK_SPACE)) {  // スペースキーで攻撃
+	if (input_->TriggerKey(DIK_F)) {  // Fキーで攻撃
 		behaviorRequest_ = Behavior::kAttack;
 		return;  // すぐに処理を抜けて攻撃へ移行
 	}
@@ -227,6 +257,12 @@ void Player::BehaviorRootUpdate()
 	if (input_->PushKey(DIK_LSHIFT))
 	{
 		behaviorRequest_ = Behavior::kDash;
+		return;
+	}
+
+	if (input_->TriggerKey(DIK_SPACE) && behavior_ == Behavior::kRoot)
+	{
+		behaviorRequest_ = Behavior::kJump; // ジャンプ開始
 		return;
 	}
 
@@ -452,7 +488,7 @@ void Player::BehaviorDashUpdate()
 	const float dashSpeed = 0.5f;  // 移動速度を少し抑える
 
 	// **キー入力で攻撃に遷移**
-	if (input_->TriggerKey(DIK_SPACE)) {  // スペースキーで攻撃
+	if (input_->TriggerKey(DIK_F)) {  // スペースキーで攻撃
 		behaviorRequest_ = Behavior::kAttack;
 		return;  // すぐに処理を抜けて攻撃へ移行
 	}
@@ -461,6 +497,12 @@ void Player::BehaviorDashUpdate()
 	if (!input_->PushKey(DIK_LSHIFT))
 	{
 		behaviorRequest_ = Behavior::kRoot;
+		return;
+	}
+
+	if (input_->TriggerKey(DIK_SPACE))
+	{
+		behaviorRequest_ = Behavior::kJump; // ジャンプ開始
 		return;
 	}
 
@@ -541,6 +583,150 @@ void Player::BehaviorDashUpdate()
 	}
 
 	// **プレイヤーの位置をカメラに反映**
+	if (camera_)
+	{
+		camera_->SetTargetPosition(parts_[0].worldTransform.translate);
+		camera_->Update();
+	}
+}
+
+
+/// -------------------------------------------------------------
+///					 攻撃行動の更新処理
+/// -------------------------------------------------------------
+void Player::BehaviorJumpInitialize()
+{
+	// **ジャンプ初速を設定**
+	const float kJumpFirstSpeed = 1.0f; // 少し低めに調整
+	velocity.y = kJumpFirstSpeed;
+
+	// **ジャンプ開始**
+	behavior_ = Behavior::kJump;
+}
+
+
+/// -------------------------------------------------------------
+///					 攻撃行動の更新処理
+/// -------------------------------------------------------------
+void Player::BehaviorJumpUpdate()
+{
+	const float kGravityAcceleration = 0.03f; // 重力加速度を調整（滑らかな落下のために少し増加）
+	const float kHorizontalSpeed = 0.3f;      // 水平方向の移動速度を抑える
+	const float kMaxFallSpeed = -2.5f;        // 最大落下速度（制限）
+	const float groundHeight = 0.0f;          // 地面の高さ
+
+	// **重力の影響をY方向速度に加える**
+	velocity.y -= kGravityAcceleration;
+
+	// **降下速度の制限を適用**
+	if (velocity.y < kMaxFallSpeed)
+	{
+		velocity.y = kMaxFallSpeed;
+	}
+
+	// **移動量を初期化**
+	Vector3 movement = { 0.0f, 0.0f, 0.0f };
+
+	// **入力取得（移動）**
+	if (input_->PushKey(DIK_W)) { movement.z += 1.0f; }
+	if (input_->PushKey(DIK_S)) { movement.z -= 1.0f; }
+	if (input_->PushKey(DIK_A)) { movement.x -= 1.0f; }
+	if (input_->PushKey(DIK_D)) { movement.x += 1.0f; }
+
+	// **カメラの向きを考慮して移動方向を計算**
+	float targetYaw = parts_[0].worldTransform.rotate.y; // 現在の角度を基準に
+
+	// カメラの向きに基づいて移動方向を計算
+	if (camera_)
+	{
+		Vector3 forward = camera_->GetForwardDirection();
+		forward.y = 0.0f; // 水平移動のためY成分をゼロにする
+
+		if (Length(forward) > 0.001f) {
+			forward = Normalize(forward);
+		}
+		else {
+			forward = Vector3(0.0f, 0.0f, 1.0f); // デフォルト方向を設定
+		}
+
+		Vector3 right = Normalize(Cross(Vector3(0.0f, 1.0f, 0.0f), forward)); // 水平方向の右ベクトル
+
+		Vector3 adjustedMovement = -forward * movement.z + -right * movement.x;
+		adjustedMovement.y = 0.0f;
+
+		// 胴体（親）の移動を適用
+		parts_[0].worldTransform.translate += adjustedMovement * 0.3f; // 移動速度を調整
+
+		// 移動している場合のみ目標角度を計算
+		if (Length(adjustedMovement) > 0.001f)
+		{
+			Vector3 forwardDirection = Normalize(adjustedMovement);
+			targetYaw = atan2f(-forwardDirection.x, forwardDirection.z); // 移動方向を向く
+		}
+	}
+
+	// 現在の角度と目標角度を補間
+	float currentYaw = parts_[0].worldTransform.rotate.y;
+	parts_[0].worldTransform.rotate.y = LerpShortAngle(currentYaw, targetYaw, 0.1f); // t=0.1で補間
+
+	// 腕の揺れのパラメータを常に更新
+	armSwingParameter_ += step * armSwingSpeed_;
+
+	// 揺れの大きさを移動量に応じて変化させる（移動時は大きく、静止時は小さめ）
+	float swingAmplitude = (Length(movement) > 0.001f) ? armSwingAmplitude_ : armSwingAmplitude_ * 0.5f;
+
+	// 移動しているかどうかで揺れ方を変える
+	float leftArmSwing, rightArmSwing;
+	if (Length(movement) > 0.001f) {
+		// 移動時：交互に揺れる
+		leftArmSwing = std::sin(armSwingParameter_) * swingAmplitude;
+		rightArmSwing = std::sin(armSwingParameter_ + PI) * swingAmplitude;
+	}
+	else {
+		// 静止時：同じ方向に揺れる
+		leftArmSwing = std::sin(armSwingParameter_) * swingAmplitude;
+		rightArmSwing = leftArmSwing; // 左右同じ揺れ
+	}
+
+	// 両腕の回転に適用
+	parts_[1].worldTransform.rotate.x = leftArmSwing;  // 左腕
+	parts_[2].worldTransform.rotate.x = rightArmSwing; // 右腕
+
+	// **垂直方向の移動を適用**
+	parts_[0].worldTransform.translate.y += velocity.y;
+
+	// **着地判定**
+	if (parts_[0].worldTransform.translate.y <= groundHeight)
+	{
+		parts_[0].worldTransform.translate.y = groundHeight; // 地面に固定
+		velocity.y = 0.0f;                                  // 垂直速度をリセット
+		behaviorRequest_ = Behavior::kRoot;                 // 通常行動に戻る
+	}
+
+	// **各部位の最終的な位置と回転を計算**
+	for (size_t i = 1; i < parts_.size(); ++i)
+	{
+		int parentIndex = parts_[i].parentIndex;
+		if (parentIndex != -1)
+		{
+			const Vector3& parentRotation = parts_[parentIndex].worldTransform.rotate;
+			Matrix4x4 rotationMatrix = MakeRotateYMatrix(parentRotation.y);
+			Vector3 rotatedOffset = Transform(parts_[i].localOffset, rotationMatrix);
+
+			parts_[i].worldTransform.translate = parts_[parentIndex].worldTransform.translate + rotatedOffset;
+			parts_[i].worldTransform.rotate.y = parentRotation.y; // Y回転のみ親と同じにする
+		}
+	}
+
+	// **各部位のオブジェクトの位置と回転を更新**
+	for (auto& part : parts_)
+	{
+		part.object3D->SetRotate(part.worldTransform.rotate);
+		part.object3D->SetTranslate(part.worldTransform.translate);
+		part.object3D->Update();
+	}
+
+	// **カメラ位置をプレイヤーに追従**
 	if (camera_)
 	{
 		camera_->SetTargetPosition(parts_[0].worldTransform.translate);
