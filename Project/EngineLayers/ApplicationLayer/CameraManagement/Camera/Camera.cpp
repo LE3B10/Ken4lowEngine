@@ -85,7 +85,7 @@ void Camera::Update()
 			right.x, up.x, forward.x, 0,
 			right.y, up.y, forward.y, 0,
 			right.z, up.z, forward.z, 0,
-			-Dot(right, worldTransform.translate), -Dot(up, worldTransform.translate) - 20.0f, -Dot(forward, worldTransform.translate), 1
+			-Dot(right, worldTransform.translate), -Dot(up, worldTransform.translate) - 10.0f, -Dot(forward, worldTransform.translate), 1
 		};
 	}
 	else

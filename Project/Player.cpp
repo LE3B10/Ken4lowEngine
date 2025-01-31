@@ -9,24 +9,23 @@
 /// -------------------------------------------------------------
 void Player::Initialize(Object3DCommon* object3DCommon, Camera* camera)
 {
-    input_ = Input::GetInstance();
-    camera_ = camera;
+    BaseCharacter::Initialize(object3DCommon, camera);
 
     // 浮遊ギミックの初期化
     InitializeFlaotingGimmick();
 
     parts_ = {
         // 胴体（親なし）
-        { {{1.0f, 1.0f, 1.0f}, {0.0f, 0.0f, 0.0f}}, nullptr, "body.gltf", -1 },
+        { {{1.0f, 1.0f, 1.0f}, {0.0f, 0.0f, 0.0f}}, nullptr, "Player/body.gltf", -1 },
 
         // 左腕（親は胴体）
-        { {{1.0f, 1.0f, 1.0f}, {0.0f, 0.0f, 0.0f}, {-0.5f, 4.5f, 0.0f}}, nullptr, "L_Arm.gltf", 0 },
+        { {{1.0f, 1.0f, 1.0f}, {0.0f, 0.0f, 0.0f}, {-0.5f, 4.5f, 0.0f}}, nullptr, "Player/L_Arm.gltf", 0 },
 
         // 右腕（親は胴体）
-        { {{1.0f, 1.0f, 1.0f}, {0.0f, 0.0f, 0.0f}, {0.5f, 4.5f, 0.0f}}, nullptr, "R_Arm.gltf", 0 },
+        { {{1.0f, 1.0f, 1.0f}, {0.0f, 0.0f, 0.0f}, {0.5f, 4.5f, 0.0f}}, nullptr, "Player/R_Arm.gltf", 0 },
 
         // 頭（親は胴体）
-        { {{1.0f, 1.0f, 1.0f}, {0.0f, 0.0f, 0.0f}, {0.0f, 5.0f, 0.0f}}, nullptr, "Head.gltf", 0 }
+        { {{1.0f, 1.0f, 1.0f}, {0.0f, 0.0f, 0.0f}, {0.0f, 5.0f, 0.0f}}, nullptr, "Player/Head.gltf", 0 }
     };
 
     for (size_t i = 0; i < parts_.size(); ++i)
@@ -57,6 +56,8 @@ void Player::Initialize(Object3DCommon* object3DCommon, Camera* camera)
 /// -------------------------------------------------------------
 void Player::Update()
 {
+    BaseCharacter::Update();
+
     // 浮遊ギミックの更新処理
     UpdateFloatingGimmick();
 

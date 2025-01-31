@@ -106,7 +106,7 @@ private: /// ---------- メンバ変数 ----- ///
 	float yaw_ = 0.0f;       // 現在の Y軸回転角
 	float pitch_ = 0.1f;     // 現在の X軸回転角
 
-	float PI = 3.141592653589793246f;
+	const float PI = 3.1415926535897932462643383279502884197169399375f;
 
 	bool isViewChange_ = false;
 	bool prevF5Pressed_ = false; // F5キーの前回の状態を記録
