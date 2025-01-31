@@ -1,6 +1,6 @@
 #pragma once
 #include "BaseCharacter.h"
-
+#include <optional>
 
 /// ---------- 前方宣言 ---------- ///
 class Object3DCommon;
@@ -11,6 +11,23 @@ class Object3DCommon;
 /// -------------------------------------------------------------
 class Player : public BaseCharacter
 {
+private: /// ---------- Behaviorの定義 ---------- ///
+
+	// 振る舞い
+	enum class Behavior
+	{
+		kRoot,	 // 通常状態
+		kAttack, // 攻撃中
+	};
+
+	// 攻撃のフェーズ管理
+	enum class AttackPhase
+	{
+		kRaise, // 振り上げ
+		kSwing, // 振り下ろし
+		kEnd    // 攻撃終了
+	};
+
 public: /// ---------- メンバ関数 ---------- ///
 
 	// 初期化処理
@@ -30,7 +47,28 @@ private: /// ---------- メンバ関数 ---------- ///
 	// 浮遊ギミックの更新処理
 	void UpdateFloatingGimmick();
 
+	// 通常行動の初期化
+	void BehaviorRootInitialize();
+
+	// 通常行動の更新処理
+	void BehaviorRootUpdate();
+
+	// 攻撃行動の初期化処理
+	void BehaviorAttackInitialize();
+
+	// 攻撃行動の更新処理
+	void BehaviorAttackUpdate();
+
 private: /// ---------- メンバ変数 ---------- ///
+
+	// 振る舞い
+	Behavior behavior_ = Behavior::kRoot; // 通常状態
+
+	AttackPhase attackPhase_ = AttackPhase::kRaise;
+	float attackTimer_ = 0.0f;
+
+	// 次の振る舞いをリクエスト
+	std::optional<Behavior> behaviorRequest_ = std::nullopt;
 
 	Vector3 rotation_ = { 0.0f, 0.0f, 0.0f }; // 回転角度 (x, y, z)
 	Vector3 velocity = { 0.0f, 0.0f, 0.0f }; // カメラの速度
@@ -50,4 +88,5 @@ private: /// ---------- メンバ変数 ---------- ///
 	const float armSwingSpeed_ = 1.0f;  // 揺れの速さ
 	const float armSwingAmplitude_ = 0.6f;  // 揺れの振幅
 
+	bool isWeaponVisible_ = false; // 武器の表示フラグ
 };
