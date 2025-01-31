@@ -25,10 +25,11 @@ Camera::Camera() :
 void Camera::Update()
 {
 	Input* input = Input::GetInstance();
-	const float rotationSpeed = 0.005f; // 回転速度
+	const float rotationSpeed = 0.008f; // 回転速度
 	const float smoothing = 0.1f;        // 角度の補間速度
 	const float minPitch = -0.15f;  // 上方向の回転制限
 	const float maxPitch = 1.2f;   // 下方向の回転制限
+	const float cameraLagFactor = 0.01f; // カメラの追従遅延
 
 	// **カメラの初期位置をプレイヤーの真後ろにする**
 	if (yaw_ == 0.0f) {
@@ -54,6 +55,9 @@ void Camera::Update()
 
 	// **カメラの位置をプレイヤーを中心に計算**
 	Vector3 playerPosition = targetPosition_; // プレイヤーの位置
+
+	// **目標位置 (`targetPosition_`) に向かって `Lerp` で追従**
+	worldTransform.translate = Lerp(worldTransform.translate, targetPosition_, cameraLagFactor);
 
 	// 球面座標系を使用してカメラ位置を決定
 	worldTransform.translate.x = playerPosition.x + distance_ * cosf(yaw_) * cosf(pitch_);

@@ -77,6 +77,9 @@ public: /// ---------- ゲッター ---------- ///
 	// カメラを取得
 	const Vector3& GetTarget() const { return target_; }
 
+	// ターゲットの座標を取得
+	const Vector3& GetTargetPosition() const { return targetPosition_; }
+
 	// カメラの向きを取得
 	Vector3 GetForwardDirection() const;
 
