@@ -8,6 +8,9 @@ public: /// ---------- メンバ関数 ---------- ///
 
 public:	/// ---------- セッタ ---------- ///
 
+	// シングルトンインスタンス
+	static Object3DCommon* GetInstance();
+
 	// デフォルトカメラを取得
 	void SetDefaultCamera(Camera* defaultCamera) { defaultCamera_ = defaultCamera; }
 

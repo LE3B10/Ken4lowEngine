@@ -1,21 +1,9 @@
 #pragma once
 #include "DX12Include.h"
 #include "AABB.h"
-#include "Emitter.h"
-#include "Particle.h"
-#include "ParticleEmitter.h"
-#include "ParticleForGPU.h"
 
-#include <list>
-#include <numbers>
-#include <random>
-
-/// ---------- 風のエフェクト ---------- ///
-struct WindZone
-{
-	AABB area;		  // 風が吹くエリア
-	Vector3 strength; // 風の強さ
-};
+/// ---------- 前方宣言 ---------- ///
+class ParticleManager;
 
 
 /// -------------------------------------------------------------
@@ -25,20 +13,33 @@ class ParticleEmitter
 {
 public: /// ---------- メンバ関数 ---------- ///
 
-	// 初期化処理
-	void Initialize();
+	// コンストラクタ
+	ParticleEmitter(ParticleManager* manager, const std::string& groupName);
 
-	// パーティクル生成関数
-	Particle MakeNewParticle(std::mt19937& randomEngine, const Vector3& translate);
+	// 更新処理
+	void Update(float deltaTime);
 
-	// パーティクルを射出する関数
-	std::list<Particle> Emit(const Emitter& emitter, std::mt19937& randomEngine);
+	// 座標を設定する関数
+	void SetPosition(const Vector3& position) { position_ = position; }
 
-	// 当たり判定
-	bool IsCollision(const AABB& aabb, const Vector3& point);
+	// 1秒あたりの射出数
+	void SetEmissionRate(float rate) { emissionRate_ = rate; }
+
+	// 色や寿命などの設定
+	void SetParticleAttributes() {}
+	
+	// 座標を取得
+	Vector3 GetPosition() const { return position_; }
+
+	// 射出数を取得
+	float GetEmissionRate() const { return emissionRate_; }
 
 private: /// ---------- メンバ変数 ---------- ///
-
-
+	
+	ParticleManager* particleManager_; // パーティクルマネージャへの参照
+	std::string groupName_;            // 射出先のパーティクルグループ名
+	Vector3 position_;                 // 射出位置
+	float emissionRate_;               // 射出レート (1秒あたりのパーティクル数)
+	float accumulatedTime_;            // 射出タイミング計算用
 };
 

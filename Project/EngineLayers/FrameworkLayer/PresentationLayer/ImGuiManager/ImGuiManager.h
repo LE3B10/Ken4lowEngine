@@ -13,7 +13,6 @@
 /// ---------- 前方宣言 ---------- ///
 class WinApp;
 class DirectXCommon;
-class SRVManager;
 
 /// -------------------------------------------------------------
 ///						ImGui管理クラス
@@ -26,7 +25,7 @@ public:	/// ---------- メンバ関数 ---------- ///
 	static ImGuiManager* GetInstance();
 
 	// 初期化処理
-	void Initialize(WinApp* winApp, DirectXCommon* dxCommon, SRVManager* srvManager);
+	void Initialize(WinApp* winApp, DirectXCommon* dxCommon);
 
 	// 開始処理
 	void BeginFrame();
@@ -41,8 +40,6 @@ public:	/// ---------- メンバ関数 ---------- ///
 	void Finalize();
 
 private: /// ---------- メンバ関数 ---------- ///
-
-	SRVManager* srvManager_ = nullptr;
 
 	// SRVIndex確保
 	uint32_t srvIndex_;

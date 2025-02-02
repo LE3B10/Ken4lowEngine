@@ -1,6 +1,6 @@
 #pragma once
 #include <Object3D.h>
-#include <Transform.h>
+#include <WorldTransform.h>
 #include <vector>
 
 /// ---------- 前方宣言 ---------- ///

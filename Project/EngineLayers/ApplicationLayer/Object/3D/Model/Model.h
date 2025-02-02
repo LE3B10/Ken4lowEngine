@@ -7,15 +7,14 @@
 #include <sstream>
 #include <string>
 #include <vector>
+#include <numbers>
 
-#include "Transform.h"
+#include "WorldTransform.h"
 #include "TransformationMatrix.h"
 #include "DirectionalLight.h"
 #include "Material.h"
 
 class DirectXCommon;
-
-#define pi 3.141592653589793238462643383279502884197169399375105820974944f
 
 /// -------------------------------------------------------------
 ///						　3Dモデルクラス
@@ -79,8 +78,8 @@ private: /// ---------- メンバ変数 ---------- ///
 	uint32_t kSubdivision = 32;
 	
 	// 緯度・経度の分割数に応じた角度の計算
-	float kLatEvery = pi / float(kSubdivision);
-	float kLonEvery = 2.0f * pi / float(kSubdivision);
+	float kLatEvery = std::numbers::pi_v<float> / float(kSubdivision);
+	float kLonEvery = 2.0f * std::numbers::pi_v<float> / float(kSubdivision);
 
 	// 球体の頂点数の計算
 	uint32_t TotalVertexCount = kSubdivision * kSubdivision * 6;

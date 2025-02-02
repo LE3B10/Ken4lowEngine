@@ -20,18 +20,15 @@ ImGuiManager* ImGuiManager::GetInstance()
 }
 
 
-
 /// -------------------------------------------------------------
 ///							初期化処理
 /// -------------------------------------------------------------
-void ImGuiManager::Initialize(WinApp* winApp, DirectXCommon* dxCommon, SRVManager* srvManager)
+void ImGuiManager::Initialize(WinApp* winApp, DirectXCommon* dxCommon)
 {
-	srvManager_ = srvManager;
-
 	// SRVの番号を取得
-	srvIndex_ = srvManager_->Allocate();
+	srvIndex_ = SRVManager::GetInstance()->Allocate();
 
-	if (srvIndex_ >= srvManager_->GetkMaxSRVCount())
+	if (srvIndex_ >= SRVManager::GetInstance()->GetkMaxSRVCount())
 	{
 		throw std::runtime_error("Failed to allocate SRV for ImGuiManager");
 	}
@@ -44,9 +41,9 @@ void ImGuiManager::Initialize(WinApp* winApp, DirectXCommon* dxCommon, SRVManage
 	ImGui_ImplDX12_Init(dxCommon->GetDevice(),	  // DirectX 12バックエンドの初期化
 		dxCommon->GetSwapChainDesc().BufferCount,
 		DXGI_FORMAT_R8G8B8A8_UNORM_SRGB,
-		srvManager_->GetDescriptorHeap(),
-		srvManager_->GetCPUDescriptorHandle(srvIndex_),
-		srvManager_->GetGPUDescriptorHandle(srvIndex_));
+		SRVManager::GetInstance()->GetDescriptorHeap(),
+		SRVManager::GetInstance()->GetCPUDescriptorHandle(srvIndex_),
+		SRVManager::GetInstance()->GetGPUDescriptorHandle(srvIndex_));
 #pragma endregion
 } 
 
@@ -57,12 +54,12 @@ void ImGuiManager::Initialize(WinApp* winApp, DirectXCommon* dxCommon, SRVManage
 /// -------------------------------------------------------------
 void ImGuiManager::BeginFrame()
 {
-#ifdef _DEBUG
+//#ifdef _DEBUG
 	//ImGuiを使う
 	ImGui_ImplDX12_NewFrame();
 	ImGui_ImplWin32_NewFrame();
 	ImGui::NewFrame();
-#endif // _DEBUG
+//#endif // _DEBUG
 }
 
 
@@ -72,10 +69,10 @@ void ImGuiManager::BeginFrame()
 /// -------------------------------------------------------------
 void ImGuiManager::EndFrame()
 {
-#ifdef _DEBUG
+//#ifdef _DEBUG
 	//ImGuiの内部コマンドを生成する
 	ImGui::Render();
-#endif // _DEBUG
+//#endif // _DEBUG
 }
 
 
@@ -85,19 +82,19 @@ void ImGuiManager::EndFrame()
 /// -------------------------------------------------------------
 void ImGuiManager::Draw()
 {
-#ifdef _DEBUG
+//#ifdef _DEBUG
 
 	DirectXCommon* dxCommon = DirectXCommon::GetInstance();
 
 	ComPtr<ID3D12GraphicsCommandList> commandList = dxCommon->GetCommandList();
 
 	/*-----ImGuiを描画する-----*/
-	srvManager_->PreDraw();
+	SRVManager::GetInstance()->PreDraw();
 
 	/*-----ImGuiを描画する-----*/
 	//実際のcommandListのImGuiの描画コマンドを積む
 	ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), commandList.Get());
-#endif // _DEBUG
+//#endif // _DEBUG
 }
 
 
@@ -110,14 +107,14 @@ void ImGuiManager::Finalize()
 	// SRVが有効であるかを確認
 	if (srvIndex_ != UINT32_MAX)
 	{
-		srvManager_->Free(srvIndex_);
+		SRVManager::GetInstance()->Free(srvIndex_);
 		srvIndex_ = UINT32_MAX; // 無効な状態にリセット
 	}
 
-#ifdef _DEBUG
+//#ifdef _DEBUG
 	ImGui_ImplDX12_Shutdown();
 	ImGui_ImplWin32_Shutdown();
 	ImGui::DestroyContext();
-#endif // _DEBUG
+//#endif // _DEBUG
 
 }

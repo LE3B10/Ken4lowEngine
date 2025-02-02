@@ -1,7 +1,7 @@
 #pragma once
 #include <Object3D.h>
 #include <array>
-#include <Transform.h>
+#include <WorldTransform.h>
 #include <Camera.h>
 
 class Object3DCommon;

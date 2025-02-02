@@ -5,7 +5,7 @@
 #include "TransformationMatrix.h"
 #include "ResourceManager.h"
 #include "VertexData.h"
-#include "Transform.h"
+#include "WorldTransform.h"
 
 #include <array>
 #include <memory>
