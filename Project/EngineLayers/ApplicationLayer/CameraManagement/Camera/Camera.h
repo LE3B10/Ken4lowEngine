@@ -72,7 +72,7 @@ public: /// ---------- ゲッター ---------- ///
 	const Matrix4x4& GetProjectionMatrix() const { return projectionMatrix; }
 
 	// 合成行列データを取得
-	const Matrix4x4& GetViewProjectionMatrix() const { return viewProjevtionMatrix; }
+	const Matrix4x4& GetViewProjectionMatrix() const { return viewProjectionMatrix; }
 
 	// カメラを取得
 	const Vector3& GetTarget() const { return target_; }
@@ -85,9 +85,7 @@ public: /// ---------- ゲッター ---------- ///
 
 	float GetYaw() const { return yaw_; }
 
-private: /// ---------- メンバ変数 ----- ///
-
-	float kWidth, kHeight;
+private: /// ---------- メンバ変数 ---------- ///
 
 	// Transform情報
 	WorldTransform worldTransform;
@@ -115,7 +113,7 @@ private: /// ---------- メンバ変数 ----- ///
 	bool prevF5Pressed_ = false; // F5キーの前回の状態を記録
 
 	// 合成行列
-	Matrix4x4 viewProjevtionMatrix;
+	Matrix4x4 viewProjectionMatrix;
 
 	Vector3 target_; // カメラが注視するターゲットの位置
 

@@ -42,11 +42,13 @@ void GamePlayScene::Initialize()
 	skydome_ = std::make_unique<Skydome>();
 	skydome_->Initialize(object3DCommon_.get());
 
-	// スカイドームの生成と初期化
-	enemy_ = std::make_unique<Enemy>();
-	enemy_->Initialize(object3DCommon_.get(), camera_.get());
-
-	
+	// エネミーの生成と初期化
+	for (int i = 0; i < 5; i++)
+	{
+		auto enemy = std::make_unique<Enemy>();
+		enemy->Initialize(object3DCommon_.get(), camera_.get());
+		enemies_.push_back(std::move(enemy));
+	}
 }
 
 
@@ -58,8 +60,11 @@ void GamePlayScene::Update()
 	player_->Update();
 	ground_->Update();
 	skydome_->Update();
-	enemy_->Update();
-
+	// 敵キャラの更新
+	for (auto& enemy : enemies_)
+	{
+		enemy->Update();
+	}
 	// カメラの更新処理
 	camera_->Update();
 }
@@ -73,7 +78,12 @@ void GamePlayScene::Draw()
 	player_->Draw();
 	ground_->Draw();
 	skydome_->Draw();
-	enemy_->Draw();
+
+	// 敵キャラの更新
+	for (auto& enemy : enemies_)
+	{
+		enemy->Draw();
+	}
 }
 
 
@@ -82,7 +92,9 @@ void GamePlayScene::Draw()
 /// -------------------------------------------------------------
 void GamePlayScene::Finalize()
 {
-
+	enemies_.remove_if([](const std::unique_ptr<Enemy>& enemy) {
+		return enemy->IsDead();
+		});
 }
 
 
