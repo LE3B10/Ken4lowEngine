@@ -173,6 +173,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClCompile Include="EngineLayers\FrameworkLayer\PresentationLayer\ParameterManager\ParameterManager.cpp" />
     <ClCompile Include="Ground.cpp" />
     <ClCompile Include="LightManager.cpp" />
+    <ClCompile Include="PlaneProjectionShadow.cpp" />
     <ClCompile Include="Player.cpp" />
     <ClCompile Include="Skydome.cpp" />
     <ClCompile Include="WinMain.cpp">
@@ -276,6 +277,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="EngineLayers\FrameworkLayer\PresentationLayer\ParameterManager\ParameterManager.h" />
     <ClInclude Include="Ground.h" />
     <ClInclude Include="LightManager.h" />
+    <ClInclude Include="PlaneProjectionShadow.h" />
     <ClInclude Include="Player.h" />
     <ClInclude Include="Skydome.h" />
   </ItemGroup>

@@ -18,6 +18,7 @@ void Enemy::Initialize(Object3DCommon* object3DCommon, Camera* camera)
 		{ {{1.0f, 1.0f, 1.0f}, {radius_, 0.0f, 0.0f}}, nullptr, "Enemy/enemy.gltf", -1 }, // 初期位置を円周上に
 		{ {{1.0f, 1.0f, 1.0f}, {0.0f, 0.0f, 0.0f}, {0.0f, 1.5f, 0.0f}}, nullptr, "Enemy/enemy_LArm.gltf", 0 },
 		{ {{1.0f, 1.0f, 1.0f}, {0.0f, 0.0f, 0.0f}, {0.0f, 1.5f, 0.0f}}, nullptr, "Enemy/enemy_RArm.gltf", 0 },
+		{ {{1.0f, 1.0f, 1.0f}, {0.0f, 0.0f, 0.0f}, {0.0f, 1.5f, 0.0f}}, nullptr, "Shadow/shadowplane.gltf", -1 },
 	};
 
 	for (size_t i = 0; i < parts_.size(); ++i)
@@ -43,48 +44,61 @@ void Enemy::Update()
 {
 	BaseCharacter::Update();
 
-    // === 円運動の処理 ===
-    angle_ += speed_;
-    if (angle_ > 2.0f * PI) { angle_ -= 2.0f * PI; }
+	// === 円運動の処理 ===
+	angle_ += speed_;
+	if (angle_ > 2.0f * PI) { angle_ -= 2.0f * PI; }
 
-    parts_[0].worldTransform.translate.x = centerPosition_.x + radius_ * std::cos(angle_);
-    parts_[0].worldTransform.translate.z = centerPosition_.z + radius_ * std::sin(angle_);
-    parts_[0].worldTransform.rotate.y = atan2f(std::sin(angle_), std::cos(angle_));
+	parts_[0].worldTransform.translate.x = centerPosition_.x + radius_ * std::cos(angle_);
+	parts_[0].worldTransform.translate.z = centerPosition_.z + radius_ * std::sin(angle_);
+	parts_[0].worldTransform.rotate.y = atan2f(std::sin(angle_), std::cos(angle_));
 
-    // === 【追加】腕の揺れアニメーション ===
-    static float armSwingParameter = 0.0f;
-    armSwingParameter += 0.1f;  // 振りの速度を調整
-    float swingAmplitude = 0.4f; // 揺れの大きさ
+	// === 【追加】腕の揺れアニメーション ===
+	static float armSwingParameter = 0.0f;
+	armSwingParameter += 0.1f;  // 振りの速度を調整
+	float swingAmplitude = 0.4f; // 揺れの大きさ
 
-    float leftArmSwing = std::sin(armSwingParameter) * swingAmplitude;
-    float rightArmSwing = std::sin(armSwingParameter + PI) * swingAmplitude;
+	float leftArmSwing = std::sin(armSwingParameter) * swingAmplitude;
+	float rightArmSwing = std::sin(armSwingParameter + PI) * swingAmplitude;
 
-    parts_[1].worldTransform.rotate.x = leftArmSwing;  // 左腕
-    parts_[2].worldTransform.rotate.x = rightArmSwing; // 右腕
+	parts_[1].worldTransform.rotate.x = leftArmSwing;  // 左腕
+	parts_[2].worldTransform.rotate.x = rightArmSwing; // 右腕
 
-    // === 子オブジェクトの位置更新 ===
-    for (size_t i = 1; i < parts_.size(); ++i)
-    {
-        int parentIndex = parts_[i].parentIndex;
-        if (parentIndex != -1)
-        {
-            const Vector3& parentTranslation = parts_[parentIndex].worldTransform.translate;
-            const Vector3& parentRotation = parts_[parentIndex].worldTransform.rotate;
+	// === 子オブジェクトの位置更新 ===
+	for (size_t i = 1; i < parts_.size(); ++i)
+	{
+		int parentIndex = parts_[i].parentIndex;
+		if (parentIndex != -1)
+		{
+			const Vector3& parentTranslation = parts_[parentIndex].worldTransform.translate;
+			const Vector3& parentRotation = parts_[parentIndex].worldTransform.rotate;
 
-            Matrix4x4 rotationMatrix = MakeRotateYMatrix(parentRotation.y);
-            Vector3 rotatedOffset = Transform(parts_[i].localOffset, rotationMatrix);
+			Matrix4x4 rotationMatrix = MakeRotateYMatrix(parentRotation.y);
+			Vector3 rotatedOffset = Transform(parts_[i].localOffset, rotationMatrix);
 
-            parts_[i].worldTransform.translate = parentTranslation + rotatedOffset;
-            parts_[i].worldTransform.rotate.y = parentRotation.y;
-        }
-    }
+			parts_[i].worldTransform.translate = parentTranslation + rotatedOffset;
+			parts_[i].worldTransform.rotate.y = parentRotation.y;
+		}
+	}
 
-    // === 各オブジェクトの位置・回転を更新 ===
-    for (auto& part : parts_) {
-        part.object3D->SetTranslate(part.worldTransform.translate);
-        part.object3D->SetRotate(part.worldTransform.rotate);
-        part.object3D->Update();
-    }
+	// === 各オブジェクトの位置・回転を更新 ===
+	for (auto& part : parts_) {
+		part.object3D->SetTranslate(part.worldTransform.translate);
+		part.object3D->SetRotate(part.worldTransform.rotate);
+		part.object3D->Update();
+	}
+
+	// 影を胴体の位置に同期（Y座標だけ地面に固定）
+	parts_[3].worldTransform.translate.x = parts_[0].worldTransform.translate.x;
+	parts_[3].worldTransform.translate.z = parts_[0].worldTransform.translate.z;
+	parts_[3].worldTransform.translate.y = 0.01f; // 地面に固定
+
+	// 影の回転をプレイヤーと同期
+	parts_[3].worldTransform.rotate.y = parts_[0].worldTransform.rotate.y;
+
+	// 影のオブジェクト更新
+	parts_[3].object3D->SetRotate(parts_[3].worldTransform.rotate);
+	parts_[3].object3D->SetTranslate(parts_[3].worldTransform.translate);
+	parts_[3].object3D->Update();
 }
 
 
@@ -93,8 +107,13 @@ void Enemy::Update()
 /// -------------------------------------------------------------
 void Enemy::Draw()
 {
-	for (auto& part : parts_)
+	// 影を最初に描画
+	parts_[3].object3D->Draw();
+
+	for (size_t i = 0; i < parts_.size(); ++i)
 	{
-		part.object3D->Draw();
+		if (i == 3) continue; // 影はすでに描画したのでスキップ
+
+		parts_[i].object3D->Draw();
 	}
 }
