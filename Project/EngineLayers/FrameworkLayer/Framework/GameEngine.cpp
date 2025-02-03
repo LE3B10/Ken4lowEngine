@@ -49,10 +49,10 @@ void GameEngine::Update()
 	// シーンマネージャーの更新
 	SceneManager::GetInstance()->Update();
 
-//#ifdef _DEBUG // デバッグモードの場合
+#ifdef _DEBUG // デバッグモードの場合
 
 	// グローバル変数の更新
-	//ParameterManager::GetInstance()->Update();
+	ParameterManager::GetInstance()->Update();
 
 	// シーンのImGuiの描画処理
 	SceneManager::GetInstance()->DrawImGui();
@@ -60,7 +60,7 @@ void GameEngine::Update()
 	// ParticleManagerのImGuiの描画処理
 	ParticleManager::GetInstance()->DrawImGui();
 
-//#endif // _DEBUG
+#endif // _DEBUG
 	/// ---------- ImGuiフレーム終了 ---------- ///
 	imguiManager_->EndFrame();
 }

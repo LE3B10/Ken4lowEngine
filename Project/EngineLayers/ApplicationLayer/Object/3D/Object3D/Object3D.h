@@ -44,12 +44,13 @@ public: /// ---------- 設定処理 ---------- ///
 	// モデルの追加
 	void SetModel(const std::string& filePath);
 
+	void SetScale(const Vector3& scale) { transform.scale = scale; }
+
 	// 位置を設定
 	void SetTranslate(const Vector3& translate) { transform.translate = translate; }
 
 	// 回転を設定
 	void SetRotate(const Vector3& rotate) { transform.rotate = rotate; }
-
 
 	// カメラの設定
 	void SetCamera(Camera* camera) { camera_ = camera; }
