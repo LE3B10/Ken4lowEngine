@@ -35,7 +35,10 @@ void Player::Initialize(Object3DCommon* object3DCommon, Camera* camera)
 		{ {{1.0f, 1.0f, 1.0f}, {0.0f, 0.0f, 0.0f}, {0.0f, 5.0f, 0.0f}}, nullptr, "Player/Head.gltf", 0 },
 
 		// 武器
-		{ {{1.0f, 1.0f, 1.0f}, {0.0f, 0.0f, 0.0f}, {0.0f, 5.0f, 0.0f}}, nullptr, "Hammer/Hammer.gltf", 0 }
+		{ {{1.0f, 1.0f, 1.0f}, {0.0f, 0.0f, 0.0f}, {0.0f, 5.0f, 0.0f}}, nullptr, "Hammer/Hammer.gltf", 0 },
+
+		// **影**
+		{{{ 1.0f, 1.0f, 1.0f }, {0.0f, 0.0f, 0.0f}, {0.0f, 0.01f, 0.0f} }, nullptr, "Shadow/shadowplane.gltf", -1 }
 	};
 
 	for (size_t i = 0; i < parts_.size(); ++i)
@@ -122,27 +125,18 @@ void Player::Update()
 		break;
 	}
 
-	// **親子関係の計算より前に適用**
-	for (size_t i = 1; i < parts_.size(); ++i)
-	{
-		int parentIndex = parts_[i].parentIndex;
-		if (parentIndex != -1)
-		{
-			const Vector3& parentRotation = parts_[parentIndex].worldTransform.rotate;
-			Matrix4x4 rotationMatrix = MakeRotateYMatrix(parentRotation.y);
-			Vector3 rotatedOffset = Transform(parts_[i].localOffset, rotationMatrix);
+	// 影を胴体の位置に同期（Y座標だけ地面に固定）
+	parts_[5].worldTransform.translate.x = parts_[0].worldTransform.translate.x;
+	parts_[5].worldTransform.translate.z = parts_[0].worldTransform.translate.z;
+	parts_[5].worldTransform.translate.y = 0.01f; // 地面に固定
 
-			parts_[i].worldTransform.translate = parts_[parentIndex].worldTransform.translate + rotatedOffset;
-			parts_[i].worldTransform.rotate.y = parentRotation.y; // Y回転のみ親と同じにする
-		}
-	}
+	// 影の回転をプレイヤーと同期
+	parts_[5].worldTransform.rotate.y = parts_[0].worldTransform.rotate.y;
 
-	// **カメラのターゲットを更新**
-	if (camera_)
-	{
-		camera_->SetTargetPosition(parts_[0].worldTransform.translate);
-		camera_->Update();
-	}
+	// 影のオブジェクト更新
+	parts_[5].object3D->SetRotate(parts_[5].worldTransform.rotate);
+	parts_[5].object3D->SetTranslate(parts_[5].worldTransform.translate);
+	parts_[5].object3D->Update();
 }
 
 /// -------------------------------------------------------------
@@ -150,16 +144,16 @@ void Player::Update()
 /// -------------------------------------------------------------
 void Player::Draw()
 {
-	for (size_t i = 0; i < parts_.size(); ++i)
-	{
-		// **武器の描画ON/OFFを切り替え**
-		if (i == 4 && !isWeaponVisible_)
-		{
-			continue; // 武器が非表示なら描画しない
-		}
+	// 影を最初に描画
+    parts_[5].object3D->Draw();
 
-		parts_[i].object3D->Draw();
-	}
+    for (size_t i = 0; i < parts_.size(); ++i)
+    {
+        if (i == 4 && !isWeaponVisible_) continue; // 武器が非表示なら描画しない
+        if (i == 5) continue; // 影はすでに描画したのでスキップ
+
+        parts_[i].object3D->Draw();
+    }
 }
 
 
