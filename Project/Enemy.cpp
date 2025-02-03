@@ -10,15 +10,24 @@ void Enemy::Initialize(Object3DCommon* object3DCommon, Camera* camera)
 {
 	BaseCharacter::Initialize(object3DCommon, camera);
 
-	// 円運動の中心位置を決定
-	centerPosition_ = { 0.0f, 0.0f, 100.0f }; // 原点を中心にする
+	camera_ = camera;
+
+	// エネミーごとに異なる中心位置を設定（少しずらす）
+	float offsetX = static_cast<float>(rand() % 100 - 50); // -50 〜 +50 のランダム値
+	float offsetZ = static_cast<float>(rand() % 100 - 50);
+	centerPosition_ = { offsetX, 0.0f, 100.0f + offsetZ };
+
+	// **エネミーごとに異なる初期角度を設定**
+	angle_ = static_cast<float>(rand() % 360) * (PI / 180.0f); // 0 〜 360° のランダム角度
 
 	// モデルの配置
 	parts_ = {
-		{ {{1.0f, 1.0f, 1.0f}, {radius_, 0.0f, 0.0f}}, nullptr, "Enemy/enemy.gltf", -1 }, // 初期位置を円周上に
-		{ {{1.0f, 1.0f, 1.0f}, {0.0f, 0.0f, 0.0f}, {0.0f, 1.5f, 0.0f}}, nullptr, "Enemy/enemy_LArm.gltf", 0 },
-		{ {{1.0f, 1.0f, 1.0f}, {0.0f, 0.0f, 0.0f}, {0.0f, 1.5f, 0.0f}}, nullptr, "Enemy/enemy_RArm.gltf", 0 },
-		{ {{1.0f, 1.0f, 1.0f}, {0.0f, 0.0f, 0.0f}, {0.0f, 1.5f, 0.0f}}, nullptr, "Shadow/shadowplane.gltf", -1 },
+		{ {{1.0f, 1.0f, 1.0f}, {radius_, 0.0f, 0.0f}, 
+		{centerPosition_.x + radius_ * std::cos(angle_),0.0f,centerPosition_.z + radius_ * std::sin(angle_)}},
+		nullptr, "Enemy/enemy.gltf", -1 }, // 初期位置を円周上に
+		{ {{1.0f, 1.0f, 1.0f}, {0.0f, 0.0f, 0.0f}, {centerPosition_.x + radius_ * std::cos(angle_), 1.5f, centerPosition_.z + radius_ * std::sin(angle_)}}, nullptr, "Enemy/enemy_LArm.gltf", 0 },
+		{ {{1.0f, 1.0f, 1.0f}, {0.0f, 0.0f, 0.0f}, {centerPosition_.x + radius_ * std::cos(angle_), 1.5f, centerPosition_.z + radius_ * std::sin(angle_)}}, nullptr, "Enemy/enemy_RArm.gltf", 0 },
+		{ {{1.0f, 1.0f, 1.0f}, {0.0f, 0.0f, 0.0f}, {0.0f, 0.1f, 0.0f}}, nullptr, "Shadow/shadowplane.gltf", -1 },
 	};
 
 	for (size_t i = 0; i < parts_.size(); ++i)
@@ -116,4 +125,21 @@ void Enemy::Draw()
 
 		parts_[i].object3D->Draw();
 	}
+}
+
+
+/// -------------------------------------------------------------
+///						　中心座標を取得
+/// -------------------------------------------------------------
+Vector3 Enemy::GetCenterPosition() const
+{
+	// エネミー固有の中心座標の計算
+	const Vector3 offset = { 0.0f, 1.0f, 0.0f };
+	const Vector3& basePosition = parts_[0].worldTransform.translate;
+	const Vector3& baseRotation = parts_[0].worldTransform.rotate;
+
+	Matrix4x4 rotationMatrix = MakeRotateYMatrix(baseRotation.y);
+	Vector3 rotatedOffset = Transform(offset, rotationMatrix);
+
+	return basePosition + rotatedOffset;
 }
