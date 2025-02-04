@@ -12,6 +12,7 @@
 #include <CameraManager.h>
 #include <Floor.h>
 #include <ObstacleManager.h>
+#include <Skydome.h>
 
 // クライアント領域サイズ
 static const uint32_t kClientWidth = 1280;
@@ -67,6 +68,7 @@ private: /// ---------- メンバ変数 ---------- ///
 	std::unique_ptr<Object3DCommon> object3DCommon_;
 	std::unique_ptr<Floor> floor_;
 	std::unique_ptr<ObstacleManager> obstacleManager_;
+	std::unique_ptr<Skydome> skydome_;
 
 	// テクスチャのパスをリストで管理
 	std::vector<std::string> texturePaths_;

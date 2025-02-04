@@ -14,6 +14,11 @@ void GamePlayScene::Initialize()
 	/// ---------- Object3Dの初期化 ---------- ///
 	object3DCommon_ = std::make_unique<Object3DCommon>();
 
+	/// ---------- サウンドの初期化 ---------- ///
+	const char* fileName = "Resources/Sounds/GamePlayBGM.wav";
+	wavLoader_ = std::make_unique<WavLoader>();
+	wavLoader_->StreamAudioAsync(fileName, 0.2f, 1.0f, true);
+
 	/// ---------- カメラ初期化処理 ---------- ///
 	camera_ = std::make_unique<Camera>();
 	camera_->SetRotate({ 0.0f,0.0f,0.0f });
@@ -32,10 +37,8 @@ void GamePlayScene::Initialize()
 	obstacleManager_ = std::make_unique<ObstacleManager>();
 	obstacleManager_->Initialize(object3DCommon_.get(), 30, 80.0f, 10.0f, 3.0f);
 
-	/// ---------- サウンドの初期化 ---------- ///
-	const char* fileName = "Resources/Sounds/GamePlayBGM.wav";
-	wavLoader_ = std::make_unique<WavLoader>();
-	wavLoader_->StreamAudioAsync(fileName, 0.2f, 1.0f, true);
+	skydome_ = std::make_unique<Skydome>();
+	skydome_->Initialize(object3DCommon_.get());
 }
 
 
@@ -51,6 +54,9 @@ void GamePlayScene::Update()
 
 	// フロアの更新処理
 	floor_->Update(0.2f, camera_.get()); // スクロール速度を設定
+
+	// スカイドームの更新処理
+	skydome_->Update();
 
 	// カメラの更新
 	camera_->Update();
@@ -69,6 +75,9 @@ void GamePlayScene::Draw()
 
 	// 床を描画
 	floor_->Draw(camera_.get());
+
+	// スカイドームの描画処理
+	skydome_->Draw();
 }
 
 
