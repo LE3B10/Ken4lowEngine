@@ -37,6 +37,8 @@ public: /// ---------- メンバ仮想関数 ---------- ///
     // 描画処理
     virtual void Draw();
 
+    virtual Vector3 GetCenterPosition() const;
+
 protected: /// ---------- メンバ変数 ---------- ///
 
     std::vector<Part> parts_; // 各部位をまとめて管理
