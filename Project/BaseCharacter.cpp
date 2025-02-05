@@ -31,3 +31,8 @@ void BaseCharacter::Draw()
 		part.object3D->Draw();
 	}
 }
+
+Vector3 BaseCharacter::GetCenterPosition() const
+{
+	return Vector3();
+}
