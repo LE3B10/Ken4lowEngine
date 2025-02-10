@@ -109,17 +109,8 @@ private: /// ---------- メンバ変数 ---------- ///
 	// マテリアルの初期化処理
 	void InitializeTransfomation(DirectXCommon* dxCommon);
 
-	// 平行光源の初期化処理
-	void ParallelLightSorce(DirectXCommon* dxCommon);
-
 	// カメラ用のリソース生成
 	void InitializeCameraResource(DirectXCommon* dxCommon);
-
-	// ポイントライトの初期化処理
-	void PointLightSource(DirectXCommon* dxCommon);
-
-	// スポットライトの初期化処理
-	void SpotLightSource(DirectXCommon* dxCommon);
 
 private: /// ---------- メンバ変数 ---------- ///
 
@@ -151,10 +142,7 @@ private: /// ---------- メンバ変数 ---------- ///
 	ComPtr <ID3D12Resource> materialResource;
 	ComPtr <ID3D12Resource> wvpResource;
 
-	ComPtr <ID3D12Resource> directionalLightResource;
 	ComPtr <ID3D12Resource> cameraResource;
-	ComPtr <ID3D12Resource> pointLightResource;
-	ComPtr <ID3D12Resource> spotLightResource;
 
 	// wvpデータを書き込む
 	// カメラにデータを書き込む
