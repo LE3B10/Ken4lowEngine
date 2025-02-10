@@ -82,7 +82,7 @@ void Object3D::DrawImGui()
 		}
 	}
 
-	//lightManager_.DrawImGui();
+	lightManager_.DrawImGui();
 }
 
 
@@ -132,11 +132,8 @@ void Object3D::preInitialize(DirectXCommon* dxCommon)
 {
 	InitializeMaterial(dxCommon);
 	InitializeTransfomation(dxCommon);
-	//ParallelLightSorce(dxCommon);
 	InitializeVertexBufferData(dxCommon);
 	InitializeCameraResource(dxCommon);
-	//PointLightSource(dxCommon);
-	//SpotLightSource(dxCommon);
 }
 
 
@@ -180,23 +177,6 @@ void Object3D::InitializeTransfomation(DirectXCommon* dxCommon)
 }
 
 
-/// -------------------------------------------------------------
-///					　平行光源の初期化処理
-/// -------------------------------------------------------------
-void Object3D::ParallelLightSorce(DirectXCommon* dxCommon)
-{
-#pragma region 平行光源のプロパティ 色 方向 強度 を格納するバッファリソースを生成しその初期値を設定
-	//平行光源用のリソースを作る
-	directionalLightResource = ResourceManager::CreateBufferResource(dxCommon->GetDevice(), sizeof(DirectionalLight));
-	//書き込むためのアドレスを取得
-	directionalLightResource->Map(0, nullptr, reinterpret_cast<void**>(&directionalLightData));
-
-	directionalLightData->color = { 1.0f,1.0f,1.0f ,1.0f };
-	directionalLightData->direction = Normalize({ 0.0f, 1.0f, 0.0f });
-	directionalLightData->intensity = 1.0f;
-#pragma endregion
-}
-
 void Object3D::InitializeCameraResource(DirectXCommon* dxCommon)
 {
 	// カメラ用のリソースを作る
@@ -205,49 +185,6 @@ void Object3D::InitializeCameraResource(DirectXCommon* dxCommon)
 	cameraResource->Map(0, nullptr, reinterpret_cast<void**>(&cameraData));
 	// カメラの初期位置
 	cameraData->worldPosition = { 0.0f, 0.0f, -20.0f };
-}
-
-void Object3D::PointLightSource(DirectXCommon* dxCommon)
-{
-	// ポイントライト用のリソースを作る
-	pointLightResource = ResourceManager::CreateBufferResource(dxCommon->GetDevice(), sizeof(PointLight));
-	// 書き込むためのアドレスを取得
-	pointLightResource->Map(0, nullptr, reinterpret_cast<void**>(&pointLightData));
-	// ポイントライトの初期位置
-	pointLightData->position = { 0.0f, 10.0f, 0.0f };
-	// ポイントライトの色
-	pointLightData->color = { 1.0f, 1.0f, 1.0f, 1.0f };
-	// ポイントライトの輝度
-	pointLightData->intensity = 1.0f;
-	// ポイントライトの有効範囲
-	pointLightData->radius = 10.0f;
-	// ポイントライトの減衰率
-	pointLightData->decay = 1.0f;
-}
-
-void Object3D::SpotLightSource(DirectXCommon* dxCommon)
-{
-	// スポットライト用のリソースを作る
-	spotLightResource = ResourceManager::CreateBufferResource(dxCommon->GetDevice(), sizeof(SpotLight));
-	// 書き込むためのアドレスを取得
-	spotLightResource->Map(0, nullptr, reinterpret_cast<void**>(&spotLightData));
-	// スポットライトの色
-	spotLightData->color = { 1.0f,1.0f,1.0f,1.0f };
-	// スポットライトの位置
-	spotLightData->position = { 2.0f,2.0f,0.0f };
-	// スポットライトの距離
-	spotLightData->distance = 7.0f;
-	// スポットライトの方向
-	spotLightData->direction = Normalize({ -1.0f, -1.0f,0.0f });
-	// スポットライトの輝度
-	spotLightData->intensity = 4.0f;
-	// スポットライトの減衰率
-	spotLightData->decay = 2.0f;
-	// スポットライトの開始角度の余弦値
-	spotLightData->cosFalloffStart = std::cos(std::numbers::pi_v<float> / 6.0f);
-	// スポットライトの余弦
-	spotLightData->cosAngle = std::cos(std::numbers::pi_v<float> / 3.0f);
-	spotLightResource->Unmap(0, nullptr);
 }
 
 
@@ -270,6 +207,8 @@ void Object3D::InitializeVertexBufferData(DirectXCommon* dxCommon)
 	// モデルデータの頂点データをコピー
 	std::memcpy(vertexData, modelData.vertices.data(), sizeof(VertexData) * modelData.vertices.size());
 
+	// アンマップ
+	vertexResource->Unmap(0, nullptr);
 
 	// 球体の頂点データをコピー
 	VertexData* sphereVertexData = vertexData + modelData.vertices.size();
@@ -302,7 +241,4 @@ void Object3D::InitializeVertexBufferData(DirectXCommon* dxCommon)
 			sphereVertexData[start + 5] = calculateVertex(nextLat, lon, u, v - 1.0f / float(kSubdivision));
 		}
 	}
-
-	// アンマップ
-	vertexResource->Unmap(0, nullptr);
 }

@@ -264,6 +264,10 @@ void ParticleManager::Emit(const std::string name, const Vector3 position, uint3
 	}
 }
 
+
+/// -------------------------------------------------------------
+///					　パーティクルImGui描画
+/// -------------------------------------------------------------
 void ParticleManager::DrawImGui()
 {
 	// ImGuiでuseBillboardの切り替えボタンを追加
