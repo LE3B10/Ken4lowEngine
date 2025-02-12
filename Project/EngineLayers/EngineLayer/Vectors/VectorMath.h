@@ -62,7 +62,7 @@ static Vector3 Normalize(const Vector3& v)
 }
 
 //座標変換
-static Vector3 Transforms(const Vector3& vector, const Matrix4x4& matrix)
+static Vector3 Transform(const Vector3& vector, const Matrix4x4& matrix)
 {
 	Vector3 result{};
 	result.x = vector.x * matrix.m[0][0] + vector.y * matrix.m[1][0] + vector.z * matrix.m[2][0] + 1.0f * matrix.m[3][0];
