@@ -50,6 +50,9 @@ public: /// ---------- メンバ関数 ---------- ///
 	// 描画処理
 	void Draw() override;
 
+	// 中心座標を取得
+	Vector3 GetCenterPosition() const override;
+
 private: /// ---------- メンバ関数 ---------- ///
 
 	// 調整項目の適用

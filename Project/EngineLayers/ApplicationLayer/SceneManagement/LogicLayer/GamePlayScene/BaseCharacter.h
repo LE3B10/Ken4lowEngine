@@ -5,6 +5,7 @@
 #include "Input.h"
 #include <vector>
 #include <memory>
+#include "Collider.h"
 
 
 /// ---------- 前方宣言 ---------- ///
@@ -14,7 +15,7 @@ class Object3DCommon;
 /// -------------------------------------------------------------
 ///						キャラクターの基底クラス
 /// -------------------------------------------------------------
-class BaseCharacter
+class BaseCharacter : public Collider
 {
 protected: /// ---------- 構造体 ---------- ///
 

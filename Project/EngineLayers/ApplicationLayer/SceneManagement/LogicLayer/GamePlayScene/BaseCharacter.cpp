@@ -32,7 +32,18 @@ void BaseCharacter::Draw()
 	}
 }
 
+
+/// -------------------------------------------------------------
+///						　中心座標の処理
+/// -------------------------------------------------------------
 Vector3 BaseCharacter::GetCenterPosition() const
 {
-	return Vector3();
+	// ワールド座標を入れる変数
+	Vector3 worldPosition{
+		parts_[0].worldTransform.translate.x,
+		parts_[0].worldTransform.translate.y,
+		parts_[0].worldTransform.translate.z,
+	};
+
+	return worldPosition;
 }
