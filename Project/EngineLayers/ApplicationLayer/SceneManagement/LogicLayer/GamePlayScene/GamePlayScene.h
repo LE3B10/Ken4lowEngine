@@ -3,7 +3,7 @@
 #include <TextureManager.h>
 #include <Object3D.h>
 #include <WavLoader.h>
-
+#include "ParticleManager.h"
 #include <BaseScene.h>
 
 /// ---------- 前方宣言 ---------- ///
