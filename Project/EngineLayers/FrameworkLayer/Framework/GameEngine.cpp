@@ -43,6 +43,9 @@ void GameEngine::Update()
 	// 入力の更新
 	Input::GetInstance()->Update();
 
+	// デフォルトカメラの更新処理
+	defaultCamera_->Update();
+
 	/// ---------- ImGuiフレーム開始 ---------- ///
 	imguiManager_->BeginFrame();
 
@@ -50,6 +53,8 @@ void GameEngine::Update()
 	SceneManager::GetInstance()->Update();
 
 #ifdef _DEBUG // デバッグモードの場合
+
+	defaultCamera_->DrawImGui();
 
 	// グローバル変数の更新
 	ParameterManager::GetInstance()->Update();

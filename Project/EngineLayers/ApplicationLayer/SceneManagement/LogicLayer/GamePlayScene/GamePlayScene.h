@@ -2,13 +2,9 @@
 #include <Sprite.h>
 #include <TextureManager.h>
 #include <Object3D.h>
-#include <Object3DCommon.h>
 #include <WavLoader.h>
-#include <SRVManager.h>
 
 #include <BaseScene.h>
-
-#include "ParticleEmitter.h"
 
 /// ---------- 前方宣言 ---------- ///
 class DirectXCommon;
@@ -40,18 +36,13 @@ public: /// ---------- メンバ関数 ---------- ///
 
 private: /// ---------- メンバ変数 ---------- ///
 
-	std::unique_ptr<ParticleEmitter> fireEmitter;
-
 	DirectXCommon* dxCommon_ = nullptr;
 	TextureManager* textureManager = nullptr;
 	Input* input_ = nullptr;
 	ParticleManager* particleManager = nullptr;
-	SRVManager* srvManager = nullptr;
 
-	std::unique_ptr<Camera> camera_;
 	std::unique_ptr<WavLoader> wavLoader_;
 	std::unique_ptr<Object3D> objectTerrain_;
-	std::unique_ptr<Object3DCommon> object3DCommon_;
 
 	std::vector<std::unique_ptr<Sprite>> sprites_;
 

@@ -14,11 +14,10 @@
 /// -------------------------------------------------------------
 ///					　		初期化処理
 /// -------------------------------------------------------------
-void Object3D::Initialize(Object3DCommon* object3dCommon, const std::string& fileName)
+void Object3D::Initialize(const std::string& fileName)
 {
 	dxCommon = DirectXCommon::GetInstance();
-
-	object3dCommon_ = object3dCommon;
+	camera_ = Object3DCommon::GetInstance()->GetDefaultCamera();
 
 	// モデル読み込み
 	modelData = ModelManager::LoadModelFile("Resources", fileName);
@@ -30,8 +29,6 @@ void Object3D::Initialize(Object3DCommon* object3dCommon, const std::string& fil
 	modelData.material.gpuHandle = TextureManager::GetInstance()->GetSrvHandleGPU(modelData.material.textureFilePath);
 
 	worldTransform = { {1.0f,1.0f,1.0f},{0.0f,0.0f,0.0f},{0.0f,0.0f,0.0f} };
-
-	camera_ = object3dCommon_->GetDefaultCamera();
 
 	lightManager_.Initialize(dxCommon);
 

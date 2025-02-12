@@ -62,7 +62,7 @@ public: /// ---------- 構造体 ---------- ///
 public: /// ---------- メンバ関数 ---------- ///
 
 	// 初期化処理
-	void Initialize(Object3DCommon* object3dCommon, const std::string& fileName);
+	void Initialize(const std::string& fileName);
 
 	// 更新処理
 	void Update();
