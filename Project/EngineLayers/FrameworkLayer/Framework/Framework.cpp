@@ -53,19 +53,19 @@ void Framework::Initialize()
 	// テクスチャマネージャーの生成
 	TextureManager::GetInstance()->Initialize(dxCommon_);
 
-	// カメラの生成
-	camera_ = std::make_unique<Camera>();
-	camera_->SetRotate({ 0.0f,0.0f,0.0f });
-	camera_->SetTranslate({ 0.0f,0.0f,-15.0f });
+	// カメラの生成と初期化
+	defaultCamera_ = std::make_unique<Camera>();
+	defaultCamera_->SetRotate({ 0.3f,0.0f,0.0f });
+	defaultCamera_->SetTranslate({ 0.0f,15.0f,-40.0f });
 
 	// オブジェクト3D共通クラスの生成
-	Object3DCommon::GetInstance()->SetDefaultCamera(camera_.get());
+	Object3DCommon::GetInstance()->SetDefaultCamera(defaultCamera_.get());
 
 	// ImGuiManagerの生成
 	ImGuiManager::GetInstance()->Initialize(winApp_, dxCommon_);
 
 	// ParticleManagerの生成
-	ParticleManager::GetInstance()->Initialize(dxCommon_, camera_.get());
+	ParticleManager::GetInstance()->Initialize(dxCommon_, defaultCamera_.get());
 
 #pragma endregion -------------------------------------------
 
@@ -85,9 +85,6 @@ void Framework::Update()
 		endRequest_ = true; // 終了リクエストを出す
 		return;				// 終了リクエストが来たら抜ける
 	}
-
-	// Cameraの更新処理
-	camera_->Update();
 
 	// ParticleManagerの更新処理
 	ParticleManager::GetInstance()->Update();
