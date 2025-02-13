@@ -10,7 +10,6 @@
 
 #include "WorldTransform.h"
 #include "TransformationMatrix.h"
-#include "DirectionalLight.h"
 #include "Material.h"
 #include <numbers>
 
@@ -51,15 +50,15 @@ public: /// ---------- メンバ関数 ---------- ///
 
 public: /// ---------- ゲッタ ---------- ///
 
-	const Vector3& GetScale() const { return worldTransform.scale; }
-	const Vector3& GetRotate() const { return worldTransform.rotate; }
-	const Vector3& GetTranslate() const { return worldTransform.translate; }
+	const Vector3& GetScale() const { return worldTransform.scale_; }
+	const Vector3& GetRotate() const { return worldTransform.rotate_; }
+	const Vector3& GetTranslate() const { return worldTransform.translate_; }
 
 public: /// ---------- セッタ ---------- ///
 
-	void SetScale(const Vector3& scale) { worldTransform.scale = scale; }
-	void SetRotate(const Vector3& rotate) { worldTransform.rotate = rotate; }
-	void SetTranslate(const Vector3& translate) { worldTransform.translate = translate; }
+	void SetScale(const Vector3& scale) { worldTransform.scale_ = scale; }
+	void SetRotate(const Vector3& rotate) { worldTransform.rotate_ = rotate; }
+	void SetTranslate(const Vector3& translate) { worldTransform.translate_ = translate; }
 
 private:
 
@@ -110,8 +109,5 @@ private: /// ---------- メンバ変数 ---------- ///
 	VertexData* vertexData = nullptr;
 	// バッファリソースの使い道を補足するバッファビュー
 	D3D12_VERTEX_BUFFER_VIEW vertexBufferView{};
-
-	// ライトデータ
-	DirectionalLight* directionalLightData = nullptr;
 };
 

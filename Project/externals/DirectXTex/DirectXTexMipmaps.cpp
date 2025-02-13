@@ -314,7 +314,7 @@ namespace
         float maxAlphaScale = 4.0f;
         float bestError = FLT_MAX;
 
-        // Determine desired scale using a binary search. Hardcoded to 10 steps max.
+        // Determine desired scale_ using a binary search. Hardcoded to 10 steps max.
         alphaScale = 1.0f;
         constexpr size_t N = 10;
         for (size_t i = 0; i < N; ++i)

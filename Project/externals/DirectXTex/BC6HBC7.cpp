@@ -1919,11 +1919,11 @@ int D3DX_BC6H::FinishUnquantize(int comp, bool bSigned) noexcept
 {
     if (bSigned)
     {
-        return (comp < 0) ? -(((-comp) * 31) >> 5) : (comp * 31) >> 5;  // scale the magnitude by 31/32
+        return (comp < 0) ? -(((-comp) * 31) >> 5) : (comp * 31) >> 5;  // scale_ the magnitude by 31/32
     }
     else
     {
-        return (comp * 31) >> 6;                                        // scale the magnitude by 31/64
+        return (comp * 31) >> 6;                                        // scale_ the magnitude by 31/64
     }
 }
 
@@ -1987,7 +1987,7 @@ void D3DX_BC6H::GeneratePaletteQuantized(const EncodeParams* pEP, const INTEndPn
     _Analysis_assume_(uNumIndices > 0);
     const LDRColorA& Prec = ms_aInfo[pEP->uMode].RGBAPrec[0][0];
 
-    // scale endpoints
+    // scale_ endpoints
     INTEndPntPair unqEndPts;
     unqEndPts.A.r = Unquantize(endPts.A.r, Prec.r, pEP->bSigned);
     unqEndPts.A.g = Unquantize(endPts.A.g, Prec.g, pEP->bSigned);

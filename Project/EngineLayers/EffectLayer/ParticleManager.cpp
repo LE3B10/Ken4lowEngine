@@ -1,7 +1,6 @@
 #include "ParticleManager.h"
 #include <ResourceManager.h>
 #include <DirectXCommon.h>
-#include <MatrixMath.h>
 #include <LogString.h>
 #include <SRVManager.h>
 #include <TextureManager.h>
@@ -75,8 +74,8 @@ void ParticleManager::CreateParticleGroup(const std::string& name, const std::st
 	// 初期化
 	for (uint32_t i = 0; i < kNumMaxInstance; ++i)
 	{
-		group.mappedData[i].WVP = MakeIdentity();
-		group.mappedData[i].World = MakeIdentity();
+		group.mappedData[i].WVP = Matrix4x4::MakeIdentity();
+		group.mappedData[i].World = Matrix4x4::MakeIdentity();
 	}
 
 	// インスタンシング用SRVの生成
@@ -93,13 +92,13 @@ void ParticleManager::CreateParticleGroup(const std::string& name, const std::st
 void ParticleManager::Update()
 {
 	// ビュー行列とプロジェクション行列をカメラから取得
-	Matrix4x4 cameraMatrix = MakeAffineMatrix({ 1.0f, 1.0f, 1.0f }, camera_->GetRotate(), camera_->GetTranslate());
-	Matrix4x4 viewMatrix = Inverse(cameraMatrix);
+	Matrix4x4 cameraMatrix = Matrix4x4::MakeAffineMatrix({ 1.0f, 1.0f, 1.0f }, camera_->GetRotate(), camera_->GetTranslate());
+	Matrix4x4 viewMatrix = Matrix4x4::Inverse(cameraMatrix);
 	Matrix4x4 projectionMatrix = camera_->GetProjectionMatrix();
-	Matrix4x4 viewProjectionMatrix = Multiply(viewMatrix, projectionMatrix);
+	Matrix4x4 viewProjectionMatrix = Matrix4x4::Multiply(viewMatrix, projectionMatrix);
 
 	// Y軸でπ/2回転させる行列
-	Matrix4x4 backToFrontMatrix = MakeIdentity();
+	Matrix4x4 backToFrontMatrix = Matrix4x4::MakeIdentity();
 	// ビルボード行列を初期化
 	Matrix4x4 scaleMatrix{};
 	scaleMatrix.m[3][0] = 0.0f;
@@ -112,7 +111,7 @@ void ParticleManager::Update()
 	translateMatrix.m[3][2] = 0.0f;
 
 	// ビルボード
-	Matrix4x4 billboardMatrix = Multiply(backToFrontMatrix, cameraMatrix);
+	Matrix4x4 billboardMatrix = Matrix4x4::Multiply(backToFrontMatrix, cameraMatrix);
 	billboardMatrix.m[3][0] = 0.0f; // 平行移動成分はいらない
 	billboardMatrix.m[3][1] = 0.0f;
 	billboardMatrix.m[3][2] = 0.0f;
@@ -135,13 +134,13 @@ void ParticleManager::Update()
 			if (group.second.numParticles < kNumMaxInstance)
 			{
 				// 速度を適用して位置を更新
-				(*particleIterator).worldTransform.translate += (*particleIterator).velocity * kDeltaTime;
+				(*particleIterator).worldTransform.translate_ += (*particleIterator).velocity * kDeltaTime;
 				(*particleIterator).currentTime += kDeltaTime; // 経過時間を加算
 
 				// スケール、回転、平行移動を利用してワールド行列を作成
-				Matrix4x4 worldMatrix = MakeAffineMatrix((*particleIterator).worldTransform.scale, (*particleIterator).worldTransform.rotate, (*particleIterator).worldTransform.translate);
-				scaleMatrix = MakeScaleMatrix((*particleIterator).worldTransform.scale);
-				translateMatrix = MakeTranslateMatrix((*particleIterator).worldTransform.translate);
+				Matrix4x4 worldMatrix = Matrix4x4::MakeAffineMatrix((*particleIterator).worldTransform.scale_, (*particleIterator).worldTransform.rotate_, (*particleIterator).worldTransform.translate_);
+				scaleMatrix = Matrix4x4::MakeScaleMatrix((*particleIterator).worldTransform.scale_);
+				translateMatrix = Matrix4x4::MakeTranslateMatrix((*particleIterator).worldTransform.translate_);
 
 				// ビルボードを使うかどうか
 				if (useBillboard)
@@ -150,7 +149,7 @@ void ParticleManager::Update()
 				}
 
 				// ワールド・ビュー・プロジェクション行列を計算
-				Matrix4x4 worldViewProjectionMatrix = Multiply(worldMatrix, viewProjectionMatrix);
+				Matrix4x4 worldViewProjectionMatrix = Matrix4x4::Multiply(worldMatrix, viewProjectionMatrix);
 
 				// インスタンシング用データを設定
 				group.second.mappedData[group.second.numParticles].WVP = worldViewProjectionMatrix;
@@ -166,7 +165,7 @@ void ParticleManager::Update()
 					// フィールドの範囲内のパーティクルには加速度を適用する
 						// 各パーティクルに最適な風を適用
 					for (const auto& zone : windZones) {
-						if (IsCollision(accelerationField.area, (*particleIterator).worldTransform.translate)) {
+						if (IsCollision(accelerationField.area, (*particleIterator).worldTransform.translate_)) {
 							(*particleIterator).velocity.x += zone.strength.x;
 							(*particleIterator).velocity.y += zone.strength.y;
 							(*particleIterator).velocity.z += zone.strength.z;
@@ -563,14 +562,14 @@ void ParticleManager::InitializeMaterialData()
 	materialData->color = { 1.0f, 1.0f, 1.0f, 1.0f };
 	materialData->enableLighting = false;
 	//UVTramsform行列を単位行列で初期化
-	materialData->uvTransform = MakeIdentity();
+	materialData->uvTransform = Matrix4x4::MakeIdentity();
 }
 
 
 /// -------------------------------------------------------------
 ///						パーティクル生成処理
 /// -------------------------------------------------------------
-Particle ParticleManager::MakeNewParticle(std::mt19937& randomEngine, const Vector3& translate)
+ParticleManager::Particle ParticleManager::MakeNewParticle(std::mt19937& randomEngine, const Vector3& translate)
 {
 	Particle particle;
 
@@ -580,13 +579,13 @@ Particle ParticleManager::MakeNewParticle(std::mt19937& randomEngine, const Vect
 	std::uniform_real_distribution<float> distTime(1.0, 3.0f);
 
 	// 位置と速度を[-1, 1]でランダムに初期化
-	particle.worldTransform.scale = { 1.0f, 1.0f, 1.0f };
-	particle.worldTransform.rotate = { 0.0f, 0.0f, 0.0f };
-	particle.worldTransform.translate = { distribution(randomEngine),distribution(randomEngine),distribution(randomEngine) };
+	particle.worldTransform.scale_ = { 1.0f, 1.0f, 1.0f };
+	particle.worldTransform.rotate_ = { 0.0f, 0.0f, 0.0f };
+	particle.worldTransform.translate_ = { distribution(randomEngine),distribution(randomEngine),distribution(randomEngine) };
 
 	// 発生場所を計算
 	Vector3 randomTranslate{ distribution(randomEngine),distribution(randomEngine),distribution(randomEngine) };
-	particle.worldTransform.translate = translate + randomTranslate;
+	particle.worldTransform.translate_ = translate + randomTranslate;
 
 	// 色を[0, 1]でランダムに初期化
 	particle.color = { distColor(randomEngine), distColor(randomEngine), distColor(randomEngine), 1.0f };
@@ -599,12 +598,12 @@ Particle ParticleManager::MakeNewParticle(std::mt19937& randomEngine, const Vect
 	return particle;
 }
 
-std::list<Particle> ParticleManager::Emit(const Emitter& emitter, std::mt19937& randomEngine)
+std::list<ParticleManager::Particle> ParticleManager::Emit(const Emitter& emitter, std::mt19937& randomEngine)
 {
 	std::list<Particle> particles;
 	for (uint32_t count = 0; count < emitter.count; ++count)
 	{
-		particles.push_back(MakeNewParticle(randomEngine, emitter.worldTransform.translate));
+		particles.push_back(MakeNewParticle(randomEngine, emitter.worldTransform.translate_));
 	}
 
 	return particles;
@@ -617,4 +616,3 @@ bool ParticleManager::IsCollision(const AABB& aabb, const Vector3& point)
 		point.y >= aabb.min.y && point.y <= aabb.max.y &&
 		point.z >= aabb.min.z && point.z <= aabb.max.z);
 }
-

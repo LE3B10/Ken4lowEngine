@@ -35,13 +35,5 @@ private: /// ---------- メンバ変数 ---------- ///
 	std::vector<std::unique_ptr<Sprite>> sprites_;
 	std::vector<std::unique_ptr<Object3D>> objects3D_;
 	std::unique_ptr<PipelineStateManager> pipelineStateManager_;
-	std::unique_ptr<WavLoader> wavLoader_;
-
-	// テクスチャのパスをリストで管理
-	std::vector<std::string> texturePaths_;
-	std::vector<std::string> objectFiles;
-	std::vector<Vector3> initialPositions;
-
-	std::string particleGroupName;
 };
 

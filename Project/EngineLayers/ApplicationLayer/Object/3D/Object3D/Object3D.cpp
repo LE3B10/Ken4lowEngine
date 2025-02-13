@@ -1,7 +1,6 @@
 #include "Object3D.h"
 #include "ImGuiManager.h"
 #include "DirectXCommon.h"
-#include "MatrixMath.h"
 #include "ResourceManager.h"
 
 #include "ModelManager.h"
@@ -28,7 +27,7 @@ void Object3D::Initialize(const std::string& fileName)
 	// 読み込んだテクスチャ番号を取得
 	modelData.material.gpuHandle = TextureManager::GetInstance()->GetSrvHandleGPU(modelData.material.textureFilePath);
 
-	worldTransform = { {1.0f,1.0f,1.0f},{0.0f,0.0f,0.0f},{0.0f,0.0f,0.0f} };
+	worldTransform.Initialize();
 
 	lightManager_.Initialize(dxCommon);
 
@@ -41,22 +40,7 @@ void Object3D::Initialize(const std::string& fileName)
 /// -------------------------------------------------------------
 void Object3D::Update()
 {
-	Matrix4x4 worldMatrix = MakeAffineMatrix(worldTransform.scale, worldTransform.rotate, worldTransform.translate);
-	Matrix4x4 worldViewProjectionMatrix;
-
-	if (camera_)
-	{
-		const Matrix4x4& viewProjectionMatrix = camera_->GetViewProjectionMatrix();
-		worldViewProjectionMatrix = Multiply(worldMatrix, viewProjectionMatrix);
-	}
-	else
-	{
-		worldViewProjectionMatrix = worldMatrix;
-	}
-
-	wvpData->WVP = worldViewProjectionMatrix;
-	wvpData->World = worldMatrix;
-	wvpData->WorldInversedTranspose = Transpose(Inverse(worldMatrix));
+	worldTransform.Update();
 }
 
 
@@ -65,9 +49,9 @@ void Object3D::Update()
 /// -------------------------------------------------------------
 void Object3D::DrawImGui()
 {
-	ImGui::DragFloat3("Position", &worldTransform.translate.x, 0.01f); // 座標変更
-	ImGui::DragFloat3("Rotation", &worldTransform.rotate.x, 0.01f);   // 回転変更
-	ImGui::DragFloat3("Scale", &worldTransform.scale.x, 0.01f);       // スケール変更
+	ImGui::DragFloat3("Position", &worldTransform.translate_.x, 0.01f); // 座標変更
+	ImGui::DragFloat3("Rotation", &worldTransform.rotate_.x, 0.01f);   // 回転変更
+	ImGui::DragFloat3("Scale", &worldTransform.scale_.x, 0.01f);       // スケール変更
 
 	// カメラの設定
 	if (ImGui::CollapsingHeader("Camera Settings"))
@@ -97,7 +81,9 @@ void Object3D::Draw()
 	// 定数バッファビュー (CBV) とディスクリプタテーブルの設定
 	dxCommon->GetCommandList()->IASetVertexBuffers(0, 1, &vertexBufferView); // モデル用VBV
 	dxCommon->GetCommandList()->SetGraphicsRootConstantBufferView(0, materialResource->GetGPUVirtualAddress());
-	dxCommon->GetCommandList()->SetGraphicsRootConstantBufferView(1, wvpResource->GetGPUVirtualAddress());
+
+	worldTransform.SetPipeline();
+
 	dxCommon->GetCommandList()->SetGraphicsRootDescriptorTable(2, modelData.material.gpuHandle);
 	dxCommon->GetCommandList()->SetGraphicsRootConstantBufferView(3, cameraResource->GetGPUVirtualAddress());
 
@@ -128,7 +114,6 @@ void Object3D::SetModel(const std::string& filePath)
 void Object3D::preInitialize(DirectXCommon* dxCommon)
 {
 	InitializeMaterial(dxCommon);
-	InitializeTransfomation(dxCommon);
 	InitializeVertexBufferData(dxCommon);
 	InitializeCameraResource(dxCommon);
 }
@@ -150,26 +135,7 @@ void Object3D::InitializeMaterial(DirectXCommon* dxCommon)
 	materialData->color = { 1.0f, 1.0f, 1.0f, 1.0f };
 	materialData->enableLighting = true; // 平行光源を有効にする
 	materialData->shininess = 1.0f;
-	materialData->uvTransform = MakeIdentity();
-#pragma endregion
-}
-
-
-/// -------------------------------------------------------------
-///					　座標変換行列の初期化処理
-/// -------------------------------------------------------------
-void Object3D::InitializeTransfomation(DirectXCommon* dxCommon)
-{
-#pragma region WVP行列データを格納するバッファリソースを生成し初期値として単位行列を設定
-	//WVP用のリソースを作る。Matrix4x4 1つ分のサイズを用意する
-	wvpResource = ResourceManager::CreateBufferResource(dxCommon->GetDevice(), sizeof(TransformationMatrix));
-
-	//書き込むためのアドレスを取得
-	wvpResource->Map(0, nullptr, reinterpret_cast<void**>(&wvpData));
-	//単位行列を書き込んでおく
-	wvpData->World = MakeIdentity();
-	wvpData->WVP = MakeIdentity();
-	wvpData->WorldInversedTranspose = MakeIdentity();
+	materialData->uvTransform = Matrix4x4::MakeIdentity();
 #pragma endregion
 }
 

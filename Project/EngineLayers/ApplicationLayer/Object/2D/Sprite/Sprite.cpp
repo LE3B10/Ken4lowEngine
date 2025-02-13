@@ -1,7 +1,6 @@
 #include "Sprite.h"
 #include "DirectXCommon.h"
 #include "ImGuiManager.h"
-#include "MatrixMath.h"
 
 
 /// -------------------------------------------------------------
@@ -49,7 +48,7 @@ void Sprite::Update()
 		left = -left;
 		right = -right;
 	}
-	
+
 	// 上下反転
 	if (isFlipY_)
 	{
@@ -90,13 +89,16 @@ void Sprite::Update()
 	}
 
 	// ワールド行列の計算
-	WorldTransform worldTransform{ { size_.x, size_.y, 1.0f }, { 0.0f, 0.0f, rotation_ }, { position_.x, position_.y, 0.0f } };
+	WorldTransform worldTransform;
+	worldTransform.scale_ = { size_.x, size_.y, 1.0f };
+	worldTransform.rotate_ = { 0.0f, 0.0f, rotation_ };
+	worldTransform.translate_ = { position_.x, position_.y, 0.0f };
 
-	Matrix4x4 worldMatrixSprite = MakeAffineMatrix(worldTransform.scale, worldTransform.rotate, worldTransform.translate);
+	Matrix4x4 worldMatrixSprite = Matrix4x4::MakeAffineMatrix(worldTransform.scale_, worldTransform.rotate_, worldTransform.translate_);
 
-	Matrix4x4 viewMatrixSprite = MakeIdentity();
-	Matrix4x4 projectionMatrixSprite = MakeOrthographicMatrix(0.0f, 0.0f, 1280.0f, 720.0f, 0.0f, 100.0f);
-	Matrix4x4 worldViewProjectionMatrixSprite = Multiply(worldMatrixSprite, Multiply(viewMatrixSprite, projectionMatrixSprite));
+	Matrix4x4 viewMatrixSprite = Matrix4x4::MakeIdentity();
+	Matrix4x4 projectionMatrixSprite = Matrix4x4::MakeOrthographicMatrix(0.0f, 0.0f, 1280.0f, 720.0f, 0.0f, 100.0f);
+	Matrix4x4 worldViewProjectionMatrixSprite = Matrix4x4::Multiply(worldMatrixSprite, Matrix4x4::Multiply(viewMatrixSprite, projectionMatrixSprite));
 
 	transformationMatrixDataSprite->WVP = worldViewProjectionMatrixSprite;
 	transformationMatrixDataSprite->World = worldMatrixSprite;
@@ -148,7 +150,7 @@ void Sprite::CreateMaterialResource(DirectXCommon* dxCommon)
 	//SpriteはLightingしないのでfalseを設定する
 	materialDataSprite->enableLighting = false;
 	////UVTramsform行列を単位行列で初期化(スプライト用)
-	materialDataSprite->uvTransform = MakeIdentity();
+	materialDataSprite->uvTransform = Matrix4x4::MakeIdentity();
 }
 
 
@@ -172,8 +174,8 @@ void Sprite::CreateVertexBufferResource(DirectXCommon* dxCommon)
 	transformationMatrixResourceSprite->Map(0, nullptr, reinterpret_cast<void**>(&transformationMatrixDataSprite));
 
 	//単位行列を書き込んでおく
-	transformationMatrixDataSprite->World = MakeIdentity();
-	transformationMatrixDataSprite->WVP = MakeIdentity();
+	transformationMatrixDataSprite->World = Matrix4x4::MakeIdentity();
+	transformationMatrixDataSprite->WVP = Matrix4x4::MakeIdentity();
 }
 
 

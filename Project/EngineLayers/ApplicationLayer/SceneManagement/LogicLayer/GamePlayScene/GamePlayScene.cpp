@@ -23,7 +23,6 @@ void GamePlayScene::Initialize()
 	// terrainの生成と初期化
 	objectTerrain_ = std::make_unique<Object3D>();
 	objectTerrain_->Initialize("terrain.gltf");
-	objectTerrain_->SetTranslate({ 0.0f,0.0f,0.0f });
 }
 
 

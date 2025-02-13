@@ -2,11 +2,8 @@
 #include <DX12Include.h>
 #include <ModelData.h>
 #include <Material.h>
-#include <TransformationMatrix.h>
 #include <VertexData.h>
-#include <DirectionalLight.h>
 #include <Emitter.h>
-#include <Particle.h>
 #include "BlendModeType.h"
 
 #include <unordered_map>
@@ -14,8 +11,6 @@
 #include <random>
 #include <numbers>
 #include <AABB.h>
-
-
 
 /// ---------- 前方宣言 ----------///
 class DirectXCommon;
@@ -52,6 +47,15 @@ public: /// ---------- 構造体 ---------- ///
 		Matrix4x4 WVP;
 		Matrix4x4 World;
 		Vector4 color;
+	};
+
+	struct Particle
+	{
+		WorldTransform worldTransform{};	 // 位置
+		Vector3 velocity = {};	 // 速度
+		Vector4 color = {};		 // 色
+		float lifeTime = 0;		 // 生存可能な時間
+		float currentTime = 0;	 // 発生してからの経過時間
 	};
 
 	struct ParticleGroup
@@ -168,8 +172,8 @@ private: /// ---------- メンバ変数 ---------- ///
 	// Fieldを作る
 	AccelerationField accelerationField;
 	
-
 private: /// ---------- コピー禁止 ---------- ///
+
 	ParticleManager() = default;
 	~ParticleManager() = default;
 	ParticleManager(const ParticleManager&) = delete;
