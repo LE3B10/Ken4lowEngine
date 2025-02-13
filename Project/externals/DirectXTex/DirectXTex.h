@@ -549,7 +549,7 @@ namespace DirectX
     HRESULT __cdecl FlipRotate(
         _In_reads_(nimages) const Image* srcImages, _In_ size_t nimages, _In_ const TexMetadata& metadata,
         _In_ TEX_FR_FLAGS flags, _Out_ ScratchImage& result) noexcept;
-        // Flip and/or rotate image
+        // Flip and/or rotate_ image
 #endif
 
     enum TEX_FILTER_FLAGS : unsigned long

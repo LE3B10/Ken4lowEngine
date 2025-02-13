@@ -1,7 +1,7 @@
 //-------------------------------------------------------------------------------------
 // DirectXTexFlipRotate.cpp
 //
-// DirectX Texture Library - Image flip/rotate operations
+// DirectX Texture Library - Image flip/rotate_ operations
 //
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
@@ -18,7 +18,7 @@ using Microsoft::WRL::ComPtr;
 namespace
 {
     //-------------------------------------------------------------------------------------
-    // Do flip/rotate operation using WIC
+    // Do flip/rotate_ operation using WIC
     //-------------------------------------------------------------------------------------
     HRESULT PerformFlipRotateUsingWIC(
         const Image& srcImage,
@@ -63,7 +63,7 @@ namespace
 
         if (memcmp(&pfFR, &pfGUID, sizeof(GUID)) != 0)
         {
-            // Flip/rotate should return the same format as the source...
+            // Flip/rotate_ should return the same format as the source...
             return HRESULT_E_NOT_SUPPORTED;
         }
 
@@ -84,7 +84,7 @@ namespace
 
 
     //-------------------------------------------------------------------------------------
-    // Do conversion, flip/rotate using WIC, conversion cycle
+    // Do conversion, flip/rotate_ using WIC, conversion cycle
     //
     // For large images we have to use F16 instead of F32 to avoid exceeding the 32-bit
     // memory limitations of WIC.
@@ -180,7 +180,7 @@ namespace
 //=====================================================================================
 
 //-------------------------------------------------------------------------------------
-// Flip/rotate image
+// Flip/rotate_ image
 //-------------------------------------------------------------------------------------
 _Use_decl_annotations_
 HRESULT DirectX::FlipRotate(
@@ -199,7 +199,7 @@ HRESULT DirectX::FlipRotate(
 
     if (IsCompressed(srcImage.format))
     {
-        // We don't support flip/rotate operations on compressed images
+        // We don't support flip/rotate_ operations on compressed images
         return HRESULT_E_NOT_SUPPORTED;
     }
 
@@ -253,7 +253,7 @@ HRESULT DirectX::FlipRotate(
     }
     else
     {
-        // Case 2: Source format is not supported by WIC, so we have to convert, flip/rotate, and convert back
+        // Case 2: Source format is not supported by WIC, so we have to convert, flip/rotate_, and convert back
         const uint64_t expandedSize = uint64_t(srcImage.width) * uint64_t(srcImage.height) * sizeof(float) * 4;
         if (expandedSize > UINT32_MAX)
         {
@@ -277,7 +277,7 @@ HRESULT DirectX::FlipRotate(
 
 
 //-------------------------------------------------------------------------------------
-// Flip/rotate image (complex)
+// Flip/rotate_ image (complex)
 //-------------------------------------------------------------------------------------
 _Use_decl_annotations_
 HRESULT DirectX::FlipRotate(
@@ -292,7 +292,7 @@ HRESULT DirectX::FlipRotate(
 
     if (IsCompressed(metadata.format))
     {
-        // We don't support flip/rotate operations on compressed images
+        // We don't support flip/rotate_ operations on compressed images
         return HRESULT_E_NOT_SUPPORTED;
     }
 
@@ -387,7 +387,7 @@ HRESULT DirectX::FlipRotate(
         }
         else
         {
-            // Case 2: Source format is not supported by WIC, so we have to convert, flip/rotate, and convert back
+            // Case 2: Source format is not supported by WIC, so we have to convert, flip/rotate_, and convert back
             const uint64_t expandedSize = uint64_t(src.width) * uint64_t(src.height) * sizeof(float) * 4;
             if (expandedSize > UINT32_MAX)
             {

@@ -24,13 +24,13 @@ public: /// ---------- メンバ関数 ---------- ///
 public: /// ---------- セッター ---------- ///
 
 	// スケールの設定
-	void SetScale(const Vector3& scale) { worldTransform.scale = scale; }
+	void SetScale(const Vector3& scale) { worldTransform.scale_ = scale; }
 
 	// 回転の設定
-	void SetRotate(const Vector3& rotate) { worldTransform.rotate = rotate; }
+	void SetRotate(const Vector3& rotate) { worldTransform.rotate_ = rotate; }
 
 	// 移動の設定
-	void SetTranslate(const Vector3& translate) { worldTransform.translate = translate; }
+	void SetTranslate(const Vector3& translate) { worldTransform.translate_ = translate; }
 
 	// 水平方向視野角の設定
 	void SetFovY(const float fovY) { fovY_ = fovY; }
@@ -47,13 +47,13 @@ public: /// ---------- セッター ---------- ///
 public: /// ---------- ゲッター ---------- ///
 
 	// スケールの取得
-	const Vector3& GetScale() const { return worldTransform.scale; }
+	const Vector3& GetScale() const { return worldTransform.scale_; }
 
 	// 回転の取得
-	const Vector3& GetRotate() const { return worldTransform.rotate; }
+	const Vector3& GetRotate() const { return worldTransform.rotate_; }
 
 	// 移動の取得
-	const Vector3& GetTranslate() const { return worldTransform.translate; }
+	const Vector3& GetTranslate() const { return worldTransform.translate_; }
 
 	// ワールド行列データを取得
 	const Matrix4x4& GetWorldMatrix() const { return worldMatrix; }

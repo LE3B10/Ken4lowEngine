@@ -1,7 +1,6 @@
 #include "LightManager.h"
 #include "DirectXCommon.h"
 #include <ResourceManager.h>
-#include "MatrixMath.h"
 #include <numbers>
 #include "ImGuiManager.h"
 
@@ -18,7 +17,7 @@ void LightManager::Initialize(DirectXCommon* dxCommon)
 	directionalLightResource_->Map(0, nullptr, reinterpret_cast<void**>(&directionalLightData_));
 
 	directionalLightData_->color = { 1.0f,1.0f,1.0f ,1.0f };
-	directionalLightData_->direction = Normalize({ 0.0f, 1.0f, 0.0f });
+	directionalLightData_->direction = Vector3::Normalize({ 0.0f, 1.0f, 0.0f });
 	directionalLightData_->intensity = 1.0f;
 	directionalLightResource_->Unmap(0, nullptr);
 
@@ -49,7 +48,7 @@ void LightManager::Initialize(DirectXCommon* dxCommon)
 	// スポットライトの距離
 	spotLightData_->distance = 7.0f;
 	// スポットライトの方向
-	spotLightData_->direction = Normalize({ -1.0f, -1.0f,0.0f });
+	spotLightData_->direction = Vector3::Normalize({ -1.0f, -1.0f,0.0f });
 	// スポットライトの輝度
 	spotLightData_->intensity = 4.0f;
 	// スポットライトの減衰率
@@ -79,7 +78,7 @@ void LightManager::DrawImGui()
 	{
 		if (ImGui::SliderFloat3("Directional Light Direction", &directionalLightData_->direction.x, -1.0f, 1.0f))
 		{
-			directionalLightData_->direction = Normalize(directionalLightData_->direction);
+			directionalLightData_->direction = Vector3::Normalize(directionalLightData_->direction);
 		}
 		ImGui::SliderFloat("Directional Light Intensity", &directionalLightData_->intensity, 0.0f, 10.0f);
 	}
@@ -140,7 +139,7 @@ void LightManager::DrawImGui()
 		// スポットライトの方向
 		if (ImGui::SliderFloat3("Spot Light Direction", spotDirection, -1.0f, 1.0f))
 		{
-			spotLightData_->direction = Normalize({ spotDirection[0], spotDirection[1], spotDirection[2] });
+			spotLightData_->direction = Vector3::Normalize({ spotDirection[0], spotDirection[1], spotDirection[2] });
 		}
 
 		// スポットライトの輝度

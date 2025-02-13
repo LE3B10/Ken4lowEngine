@@ -2455,7 +2455,7 @@ bool ImGui::DragBehaviorT(ImGuiDataType data_type, TYPE* v, float v_speed, const
     if (axis == ImGuiAxis_Y)
         adjust_delta = -adjust_delta;
 
-    // For logarithmic use our range is effectively 0..1 so scale the delta into that range
+    // For logarithmic use our range is effectively 0..1 so scale_ the delta into that range
     if (is_logarithmic && (v_max - v_min < FLT_MAX) && ((v_max - v_min) > 0.000001f)) // Epsilon to avoid /0
         adjust_delta /= (float)(v_max - v_min);
 
@@ -8345,7 +8345,7 @@ int ImGui::PlotEx(ImGuiPlotType plot_type, const char* label, float (*values_get
     bool hovered;
     ButtonBehavior(frame_bb, id, &hovered, NULL);
 
-    // Determine scale from values if not specified
+    // Determine scale_ from values if not specified
     if (scale_min == FLT_MAX || scale_max == FLT_MAX)
     {
         float v_min = FLT_MAX;

@@ -2,7 +2,6 @@
 
 #include "ModelManager.h"
 #include "DirectXCommon.h"
-#include "MatrixMath.h"
 #include "ResourceManager.h"
 #include "TextureManager.h"
 #include "ImGuiManager.h"
@@ -23,7 +22,7 @@ void Model::Initialize(const std::string& directoryPath, const std::string& file
 	// 読み込んだテクスチャ番号を取得
 	modelData.material.gpuHandle = TextureManager::GetInstance()->GetSrvHandleGPU(modelData.material.textureFilePath);
 
-	worldTransform = { {1.0f,1.0f,1.0f},{0.0f,0.0f,0.0f},{0.0f,0.0f,0.0f} };
+	worldTransform.Initialize();
 	/*cameraTransform = { {1.0f,1.0f,1.0f},{0.0f,0.0f,0.0f},{0.0f,0.0f,-15.0f} };*/
 
 	preInitialize(dxCommon);
@@ -35,11 +34,11 @@ void Model::Initialize(const std::string& directoryPath, const std::string& file
 /// -------------------------------------------------------------
 void Model::Update()
 {
-	Matrix4x4 worldMatrix = MakeAffineMatrix(worldTransform.scale, worldTransform.rotate, worldTransform.translate);
-	//Matrix4x4 camraMatrix = MakeAffineMatrix(cameraTransform.scale, cameraTransform.rotate, cameraTransform.translate);
-	Matrix4x4 viewMatrix = Inverse(worldMatrix);
-	Matrix4x4 projectionMatrix = MakePerspectiveFovMatrix(0.45f, 1280.0f / 720.0f, 0.1f, 100.0f);
-	Matrix4x4 worldViewProjectionMatrix = Multiply(worldMatrix, Multiply(viewMatrix, projectionMatrix));
+	Matrix4x4 worldMatrix = Matrix4x4::MakeAffineMatrix(worldTransform.scale_, worldTransform.rotate_, worldTransform.translate_);
+	//Matrix4x4 camraMatrix = MakeAffineMatrix(cameraTransform.scale_, cameraTransform.rotate_, cameraTransform.translate_);
+	Matrix4x4 viewMatrix = Matrix4x4::Inverse(worldMatrix);
+	Matrix4x4 projectionMatrix = Matrix4x4::MakePerspectiveFovMatrix(0.45f, 1280.0f / 720.0f, 0.1f, 100.0f);
+	Matrix4x4 worldViewProjectionMatrix = Matrix4x4::Multiply(worldMatrix, Matrix4x4::Multiply(viewMatrix, projectionMatrix));
 
 	wvpData->WVP = worldViewProjectionMatrix;
 	wvpData->World = worldMatrix;
@@ -69,25 +68,24 @@ void Model::DrawCall(ID3D12GraphicsCommandList* commandList)
 
 void Model::CameraImGui()
 {
-	/*ImGui::DragFloat3("cameraTranslate", &cameraTransform.translate.x, 0.01f);
-	ImGui::SliderAngle("CameraRotateX", &cameraTransform.rotate.x);
-	ImGui::SliderAngle("CameraRotateY", &cameraTransform.rotate.y);
-	ImGui::SliderAngle("CameraRotateZ", &cameraTransform.rotate.z);*/
+	/*ImGui::DragFloat3("cameraTranslate", &cameraTransform.translate_.x, 0.01f);
+	ImGui::SliderAngle("CameraRotateX", &cameraTransform.rotate_.x);
+	ImGui::SliderAngle("CameraRotateY", &cameraTransform.rotate_.y);
+	ImGui::SliderAngle("CameraRotateZ", &cameraTransform.rotate_.z);*/
 }
 
 void Model::DrawImGui()
 {
 	if (ImGui::TreeNode("3DObject"))
 	{
-		/*ImGui::DragFloat3("cameraTranslate", &cameraTransform.translate.x, 0.01f);
-		ImGui::SliderAngle("CameraRotateX", &cameraTransform.rotate.x);
-		ImGui::SliderAngle("CameraRotateY", &cameraTransform.rotate.y);
-		ImGui::SliderAngle("CameraRotateZ", &cameraTransform.rotate.z);*/
+		/*ImGui::DragFloat3("cameraTranslate", &cameraTransform.translate_.x, 0.01f);
+		ImGui::SliderAngle("CameraRotateX", &cameraTransform.rotate_.x);
+		ImGui::SliderAngle("CameraRotateY", &cameraTransform.rotate_.y);
+		ImGui::SliderAngle("CameraRotateZ", &cameraTransform.rotate_.z);*/
 
-		ImGui::DragFloat3("scale", &worldTransform.scale.x, 0.01f);
-		ImGui::DragFloat3("rotate", &worldTransform.rotate.x, 0.01f);
-		ImGui::DragFloat3("translate", &worldTransform.translate.x, 0.01f);
-		ImGui::DragFloat3("directionalLight", &directionalLightData->direction.x, 0.01f);
+		ImGui::DragFloat3("scale", &worldTransform.scale_.x, 0.01f);
+		ImGui::DragFloat3("rotate", &worldTransform.rotate_.x, 0.01f);
+		ImGui::DragFloat3("translate", &worldTransform.translate_.x, 0.01f);
 		ImGui::TreePop();
 	}
 }
@@ -117,7 +115,7 @@ void Model::InitializeMaterial(DirectXCommon* dxCommon)
 	materialData->color = { 1.0f, 1.0f, 1.0f, 1.0f };
 	materialData->enableLighting = true; // 平行光源を有効にする
 	// UVTramsform行列を単位行列で初期化
-	materialData->uvTransform = MakeIdentity();
+	materialData->uvTransform = Matrix4x4::MakeIdentity();
 #pragma endregion
 }
 
@@ -134,8 +132,8 @@ void Model::InitializeTransfomation(DirectXCommon* dxCommon)
 	//書き込むためのアドレスを取得
 	wvpResource->Map(0, nullptr, reinterpret_cast<void**>(&wvpData));
 	//単位行列を書き込んでおく
-	wvpData->World = MakeIdentity();
-	wvpData->WVP = MakeIdentity();
+	wvpData->World = Matrix4x4::MakeIdentity();
+	wvpData->WVP = Matrix4x4::MakeIdentity();
 #pragma endregion
 }
 
@@ -145,16 +143,16 @@ void Model::InitializeTransfomation(DirectXCommon* dxCommon)
 /// -------------------------------------------------------------
 void Model::ParallelLightSorce(DirectXCommon* dxCommon)
 {
-#pragma region 平行光源のプロパティ 色 方向 強度 を格納するバッファリソースを生成しその初期値を設定
-	//平行光源用のリソースを作る
-	directionalLightResource = ResourceManager::CreateBufferResource(dxCommon->GetDevice(), sizeof(DirectionalLight));
-	//書き込むためのアドレスを取得
-	directionalLightResource->Map(0, nullptr, reinterpret_cast<void**>(&directionalLightData));
-
-	directionalLightData->color = { 1.0f,1.0f,1.0f ,1.0f };
-	directionalLightData->direction = { 0.0f,-1.0f,0.0f };
-	directionalLightData->intensity = 1.0f;
-#pragma endregion
+//#pragma region 平行光源のプロパティ 色 方向 強度 を格納するバッファリソースを生成しその初期値を設定
+//	//平行光源用のリソースを作る
+//	directionalLightResource = ResourceManager::CreateBufferResource(dxCommon->GetDevice(), sizeof(DirectionalLight));
+//	//書き込むためのアドレスを取得
+//	directionalLightResource->Map(0, nullptr, reinterpret_cast<void**>(&directionalLightData));
+//
+//	directionalLightData->color = { 1.0f,1.0f,1.0f ,1.0f };
+//	directionalLightData->direction = { 0.0f,-1.0f,0.0f };
+//	directionalLightData->intensity = 1.0f;
+//#pragma endregion
 }
 
 

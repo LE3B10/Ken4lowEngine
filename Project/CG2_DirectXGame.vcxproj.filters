@@ -129,9 +129,6 @@
     <ClCompile Include="EngineLayers\ApplicationLayer\Object\2D\Sprite\Sprite.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="EngineLayers\ApplicationLayer\Object\2D\SpriteCommon\SpriteCommon.cpp">
-      <Filter>ソース ファイル</Filter>
-    </ClCompile>
     <ClCompile Include="EngineLayers\EngineLayer\ResourceManagement\TextureManager\TextureManager.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
@@ -144,13 +141,7 @@
     <ClCompile Include="EngineLayers\FrameworkLayer\WindowManagement\WindowsAPI\WinApp.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="EngineLayers\ApplicationLayer\CameraManagement\CameraManager\CameraManager.cpp">
-      <Filter>ソース ファイル</Filter>
-    </ClCompile>
     <ClCompile Include="EngineLayers\ApplicationLayer\CameraManagement\Camera\Camera.cpp">
-      <Filter>ソース ファイル</Filter>
-    </ClCompile>
-    <ClCompile Include="EngineLayers\ApplicationLayer\CameraManagement\3DCamera\MainCamera3D.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
     <ClCompile Include="EngineLayers\ApplicationLayer\Object\3D\Object3DCommon\Object3DCommon.cpp">
@@ -166,9 +157,6 @@
       <Filter>ソース ファイル</Filter>
     </ClCompile>
     <ClCompile Include="EngineLayers\EngineLayer\Audio\WavLoader.cpp">
-      <Filter>ソース ファイル</Filter>
-    </ClCompile>
-    <ClCompile Include="EngineLayers\EngineLayer\Audio\Mp3Loader.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
     <ClCompile Include="WinMain.cpp">
@@ -211,6 +199,9 @@
       <Filter>ソース ファイル</Filter>
     </ClCompile>
     <ClCompile Include="EngineLayers\ApplicationLayer\SceneManagement\LogicLayer\GameOverScene\GameOverScene.cpp">
+      <Filter>ソース ファイル</Filter>
+    </ClCompile>
+    <ClCompile Include="EngineLayers\EngineLayer\MultipleStructs\WorldTransform.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
   </ItemGroup>
@@ -256,9 +247,6 @@
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
     <ClInclude Include="EngineLayers\EngineLayer\Rendering\DXLib\DX12DepthStencil\DX12DepthStencil.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayers\EngineLayer\MultipleStructs\DirectionalLight.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
     <ClInclude Include="EngineLayers\EngineLayer\Rendering\DXLib\DirectXCommon\DirectXCommon.h">
@@ -333,13 +321,7 @@
     <ClInclude Include="EngineLayers\ApplicationLayer\Object\2D\Sprite\Sprite.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="EngineLayers\ApplicationLayer\Object\2D\SpriteCommon\SpriteCommon.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
     <ClInclude Include="EngineLayers\EngineLayer\ResourceManagement\TextureManager\TextureManager.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayers\EngineLayer\MultipleStructs\TransformationMatrix.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
     <ClInclude Include="EngineLayers\EngineLayer\Vectors\Vector2.h">
@@ -354,13 +336,7 @@
     <ClInclude Include="EngineLayers\FrameworkLayer\WindowManagement\WindowsAPI\WinApp.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="EngineLayers\ApplicationLayer\CameraManagement\CameraManager\CameraManager.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
     <ClInclude Include="EngineLayers\ApplicationLayer\CameraManagement\Camera\Camera.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayers\ApplicationLayer\CameraManagement\3DCamera\MainCamera3D.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
     <ClInclude Include="EngineLayers\ApplicationLayer\Object\3D\Object3DCommon\Object3DCommon.h">
@@ -375,12 +351,6 @@
     <ClInclude Include="EngineLayers\EngineLayer\MultipleStructs\Emitter.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="EngineLayers\EffectLayer\ParticleForGPU.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayers\EffectLayer\Particle.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
     <ClInclude Include="EngineLayers\EngineLayer\MultipleStructs\AABB.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
@@ -391,9 +361,6 @@
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
     <ClInclude Include="EngineLayers\EngineLayer\MultipleStructs\AudioStructs.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayers\EngineLayer\Audio\Mp3Loader.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
     <ClInclude Include="EngineLayers\FrameworkLayer\Framework\GameEngine.h">
@@ -436,12 +403,6 @@
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
     <ClInclude Include="EngineLayers\EngineLayer\MultipleStructs\WorldTransform.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayers\EngineLayer\Matrix\MatrixMath.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayers\EngineLayer\Vectors\VectorMath.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
     <ClInclude Include="EngineLayers\EngineLayer\Rendering\PSO\RootSignatureManager\LightManager.h">

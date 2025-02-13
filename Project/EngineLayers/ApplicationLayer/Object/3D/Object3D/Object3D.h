@@ -1,8 +1,6 @@
 #pragma once
 #include "DX12Include.h"
-#include "DirectionalLight.h"
 #include "WorldTransform.h"
-#include "TransformationMatrix.h"
 #include "TextureManager.h"
 #include "Material.h"
 #include "VertexData.h"
@@ -82,13 +80,13 @@ public: /// ---------- 設定処理 ---------- ///
 	void SetModel(const std::string& filePath);
 
 	// スケールを設定
-	void SetScale(const Vector3& scale) { worldTransform.scale = scale; }
+	void SetScale(const Vector3& scale) { worldTransform.scale_ = scale; }
 
 	// 回転を設定
-	void SetRotate(const Vector3& rotate) { worldTransform.rotate = rotate; }
+	void SetRotate(const Vector3& rotate) { worldTransform.rotate_ = rotate; }
 
 	// 位置を設定
-	void SetTranslate(const Vector3& translate) { worldTransform.translate = translate; }
+	void SetTranslate(const Vector3& translate) { worldTransform.translate_ = translate; }
 
 	// カメラの設定
 	void SetCamera(Camera* camera) { camera_ = camera; }
@@ -105,9 +103,6 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	// 頂点バッファデータの初期化
 	void InitializeVertexBufferData(DirectXCommon* dxCommon);
-
-	// マテリアルの初期化処理
-	void InitializeTransfomation(DirectXCommon* dxCommon);
 
 	// カメラ用のリソース生成
 	void InitializeCameraResource(DirectXCommon* dxCommon);
@@ -135,21 +130,16 @@ private: /// ---------- メンバ変数 ---------- ///
 	Camera* camera_ = nullptr;
 
 	WorldTransform worldTransform;
-	WorldTransform cameraTransform;
 
 	// バッファリソースの作成
 	ComPtr <ID3D12Resource> vertexResource;
 	ComPtr <ID3D12Resource> materialResource;
-	ComPtr <ID3D12Resource> wvpResource;
 
 	ComPtr <ID3D12Resource> cameraResource;
 
 	// wvpデータを書き込む
 	// カメラにデータを書き込む
 	CameraForGPU* cameraData = nullptr;
-	TransformationMatrix* wvpData = nullptr;
-	PointLight* pointLightData = nullptr;
-	SpotLight* spotLightData = nullptr;
 	// OBJファイルのデータ
 	ModelData modelData;
 
@@ -157,9 +147,5 @@ private: /// ---------- メンバ変数 ---------- ///
 	VertexData* vertexData = nullptr;
 	// バッファリソースの使い道を補足するバッファビュー
 	D3D12_VERTEX_BUFFER_VIEW vertexBufferView{};
-
-	// ライトデータ
-	DirectionalLight* directionalLightData = nullptr;
-
 };
 

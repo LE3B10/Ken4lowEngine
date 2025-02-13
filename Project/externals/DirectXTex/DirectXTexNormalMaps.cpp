@@ -201,7 +201,7 @@ namespace
                     t = val2[x + 1] - c;    if (t > 0.f) delta += t;
                     t = val2[x + 2] - c;    if (t > 0.f) delta += t;
 
-                    // Average delta (divide by 8, scale by amplitude factor)
+                    // Average delta (divide by 8, scale_ by amplitude factor)
                     delta *= 0.125f * amplitude;
                     if (delta > 0.f)
                     {
