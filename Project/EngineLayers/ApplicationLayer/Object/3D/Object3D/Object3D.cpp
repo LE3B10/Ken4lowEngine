@@ -29,8 +29,6 @@ void Object3D::Initialize(const std::string& fileName)
 
 	worldTransform.Initialize();
 
-	lightManager_.Initialize(dxCommon);
-
 	preInitialize(dxCommon);
 }
 
@@ -62,14 +60,6 @@ void Object3D::DrawImGui()
 			cameraData->worldPosition = { cameraPosition[0], cameraPosition[1], cameraPosition[2] };
 		}
 	}
-
-	lightManager_.DrawImGui();
-}
-
-
-void Object3D::CameraImGui()
-{
-	model_->CameraImGui();
 }
 
 
@@ -86,8 +76,6 @@ void Object3D::Draw()
 
 	dxCommon->GetCommandList()->SetGraphicsRootDescriptorTable(2, modelData.material.gpuHandle);
 	dxCommon->GetCommandList()->SetGraphicsRootConstantBufferView(3, cameraResource->GetGPUVirtualAddress());
-
-	lightManager_.ApplyToPipeline();
 
 	// モデルの描画
 	dxCommon->GetCommandList()->DrawInstanced(UINT(modelData.vertices.size()), 1, 0, 0);
@@ -147,7 +135,7 @@ void Object3D::InitializeCameraResource(DirectXCommon* dxCommon)
 	// 書き込むためのアドレスを取得
 	cameraResource->Map(0, nullptr, reinterpret_cast<void**>(&cameraData));
 	// カメラの初期位置
-	cameraData->worldPosition = { 0.0f, 0.0f, -20.0f };
+	cameraData->worldPosition = camera_->GetTranslate();
 }
 
 

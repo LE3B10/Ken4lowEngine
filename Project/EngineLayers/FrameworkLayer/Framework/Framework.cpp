@@ -5,6 +5,8 @@
 #include <SRVManager.h>
 #include <TextureManager.h>
 #include <ParticleManager.h>
+#include <Object3DCommon.h>
+#include <DebugCamera.h>
 
 
 /// -------------------------------------------------------------
@@ -52,13 +54,19 @@ void Framework::Initialize()
 
 	// テクスチャマネージャーの生成
 	TextureManager::GetInstance()->Initialize(dxCommon_);
+	
+	// オブジェクト3D共通クラスの生成
+	Object3DCommon::GetInstance()->Initialize(dxCommon_);
 
-	// カメラの生成と初期化
+	// デフォルトカメラの生成と初期化
 	defaultCamera_ = std::make_unique<Camera>();
 	defaultCamera_->SetRotate({ 0.3f,0.0f,0.0f });
 	defaultCamera_->SetTranslate({ 0.0f,15.0f,-40.0f });
 
-	// オブジェクト3D共通クラスの生成
+	// デバッグカメラの生成
+	DebugCamera::GetInstance()->Initialize();
+
+	// デフォルトカメラの設定
 	Object3DCommon::GetInstance()->SetDefaultCamera(defaultCamera_.get());
 
 	// ImGuiManagerの生成
@@ -85,6 +93,14 @@ void Framework::Update()
 		endRequest_ = true; // 終了リクエストを出す
 		return;				// 終了リクエストが来たら抜ける
 	}
+
+#ifdef _DEBUG
+	// デバッグカメラの更新を先に行う
+	DebugCamera::GetInstance()->Update();
+#endif // _DEBUG
+
+	// 更新処理
+	Object3DCommon::GetInstance()->Update();
 
 	// ParticleManagerの更新処理
 	ParticleManager::GetInstance()->Update();

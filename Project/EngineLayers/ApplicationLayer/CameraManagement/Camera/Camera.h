@@ -24,13 +24,13 @@ public: /// ---------- メンバ関数 ---------- ///
 public: /// ---------- セッター ---------- ///
 
 	// スケールの設定
-	void SetScale(const Vector3& scale) { worldTransform.scale_ = scale; }
+	void SetScale(const Vector3& scale) { worldTransform_.scale_ = scale; }
 
 	// 回転の設定
-	void SetRotate(const Vector3& rotate) { worldTransform.rotate_ = rotate; }
+	void SetRotate(const Vector3& rotate) { worldTransform_.rotate_ = rotate; }
 
 	// 移動の設定
-	void SetTranslate(const Vector3& translate) { worldTransform.translate_ = translate; }
+	void SetTranslate(const Vector3& translate) { worldTransform_.translate_ = translate; }
 
 	// 水平方向視野角の設定
 	void SetFovY(const float fovY) { fovY_ = fovY; }
@@ -44,51 +44,60 @@ public: /// ---------- セッター ---------- ///
 	// ファークリップの設定
 	void SetFarClip(const float farClip) { farClip_ = farClip; }
 
+	// ビュー行列の設定
+	void SetViewMatrix(const Matrix4x4& viewMatrix) { viewMatrix_ = viewMatrix; }
+
+	// 射影行列の設定
+	void SetProjectionMatrix(const Matrix4x4& projectionMatrix) { projectionMatrix_ = projectionMatrix; }
+
+	// ビュー射影行列の設定
+	void SetViewProjectionMatrix(const Matrix4x4& viewProjectionMatrix) { viewProjectionMatrix_ = viewProjectionMatrix; }
+
 public: /// ---------- ゲッター ---------- ///
 
 	// スケールの取得
-	const Vector3& GetScale() const { return worldTransform.scale_; }
+	const Vector3& GetScale() const { return worldTransform_.scale_; }
 
 	// 回転の取得
-	const Vector3& GetRotate() const { return worldTransform.rotate_; }
+	const Vector3& GetRotate() const { return worldTransform_.rotate_; }
 
 	// 移動の取得
-	const Vector3& GetTranslate() const { return worldTransform.translate_; }
+	const Vector3& GetTranslate() const { return worldTransform_.translate_; }
 
 	// ワールド行列データを取得
-	const Matrix4x4& GetWorldMatrix() const { return worldMatrix; }
+	const Matrix4x4& GetWorldMatrix() const { return worldMatrix_; }
 
 	// ビュー行列データを取得
-	const Matrix4x4& GetViewMatrix() const { return viewMatrix; }
+	const Matrix4x4& GetViewMatrix() const { return viewMatrix_; }
 
 	// プロジェクション行列データを取得
-	const Matrix4x4& GetProjectionMatrix() const { return projectionMatrix; }
+	const Matrix4x4& GetProjectionMatrix() const { return projectionMatrix_; }
 
 	// 合成行列データを取得
-	const Matrix4x4& GetViewProjectionMatrix() const { return viewProjevtionMatrix; }
+	const Matrix4x4& GetViewProjectionMatrix() const { return viewProjectionMatrix_; }
 
 private: /// ---------- メンバ変数 ----- ///
 
 	float kWidth, kHeight;
 
 	// Transform情報
-	WorldTransform worldTransform;
+	WorldTransform worldTransform_;
 
 	// ワールド行列データ
-	Matrix4x4 worldMatrix;
+	Matrix4x4 worldMatrix_;
 
 	// ビュー行列データ
-	Matrix4x4 viewMatrix;
+	Matrix4x4 viewMatrix_;
 
 	// プロジェクション行列データ
-	Matrix4x4 projectionMatrix;
+	Matrix4x4 projectionMatrix_;
 	float fovY_;		   // 水平方向視野角
 	float aspectRatio_; // アスペクト比
 	float nearClip_;	   // ニアクリップ
 	float farClip_;	   // ファークリップ
 
 	// 合成行列
-	Matrix4x4 viewProjevtionMatrix;
+	Matrix4x4 viewProjectionMatrix_;
 
 };
 

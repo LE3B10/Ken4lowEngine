@@ -51,6 +51,7 @@ public:
 	friend Vector3 operator*(const Vector3& v, float s);
 	friend Vector3 operator*(float s, const Vector3& v);
 	friend Vector3 operator/(const Vector3& v, float s);
+	friend Vector3 operator*(const Matrix4x4& matrix, const Vector3& vec);
 
 	// 等価演算子
 	bool operator==(const Vector3& other) const;

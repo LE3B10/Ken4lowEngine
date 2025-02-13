@@ -26,6 +26,12 @@ void WorldTransform::Update()
 	Matrix4x4 worldMatrix = Matrix4x4::MakeAffineMatrix(scale_, rotate_, translate_);
 	Matrix4x4 worldViewProjectionMatrix;
 
+	// 親オブジェクトがあれば親のワールド行列を掛ける
+	if (parent_)
+	{
+		worldMatrix = Matrix4x4::Multiply(worldMatrix, parent_->matWorld_);
+	}
+
 	if (camera_)
 	{
 		const Matrix4x4& viewProjectionMatrix = camera_->GetViewProjectionMatrix();
