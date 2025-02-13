@@ -68,10 +68,7 @@ public: /// ---------- メンバ関数 ---------- ///
 	// ImGui
 	void DrawImGui();
 
-	// カメラ専用のImGui
-	void CameraImGui();
-
-	// ドローコール
+	// 描画処理
 	void Draw();
 
 public: /// ---------- 設定処理 ---------- ///
@@ -122,30 +119,28 @@ private: /// ---------- メンバ変数 ---------- ///
 private: /// ---------- メンバ変数 ---------- ///
 
 	DirectXCommon* dxCommon = nullptr;
-	Object3DCommon* object3dCommon_ = nullptr;
 	LightManager lightManager_;
+	Camera* camera_ = nullptr;
 
 	std::shared_ptr<Model> model_;
 
-	Camera* camera_ = nullptr;
-
+	// ワールドトランスフォーム
 	WorldTransform worldTransform;
 
 	// バッファリソースの作成
 	ComPtr <ID3D12Resource> vertexResource;
 	ComPtr <ID3D12Resource> materialResource;
-
 	ComPtr <ID3D12Resource> cameraResource;
 
-	// wvpデータを書き込む
 	// カメラにデータを書き込む
 	CameraForGPU* cameraData = nullptr;
+	
 	// OBJファイルのデータ
 	ModelData modelData;
 
 	// 頂点リソース内のデータを指すポインタ
 	VertexData* vertexData = nullptr;
+	
 	// バッファリソースの使い道を補足するバッファビュー
 	D3D12_VERTEX_BUFFER_VIEW vertexBufferView{};
 };
-

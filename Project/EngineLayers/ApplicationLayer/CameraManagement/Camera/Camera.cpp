@@ -8,12 +8,12 @@ Camera::Camera() :
 	fovY_(0.45f),
 	aspectRatio_(float(WinApp::kClientWidth) / float(WinApp::kClientHeight)),
 	nearClip_(0.1f), farClip_(100.0f),
-	worldMatrix(Matrix4x4::MakeAffineMatrix(worldTransform.scale_, worldTransform.rotate_, worldTransform.translate_)),
-	viewMatrix(Matrix4x4::Inverse(worldMatrix)),
-	projectionMatrix(Matrix4x4::MakePerspectiveFovMatrix(fovY_, aspectRatio_, nearClip_, farClip_)),
-	viewProjevtionMatrix(Matrix4x4::Multiply(viewMatrix, projectionMatrix))
+	worldMatrix_(Matrix4x4::MakeAffineMatrix(worldTransform_.scale_, worldTransform_.rotate_, worldTransform_.translate_)),
+	viewMatrix_(Matrix4x4::Inverse(worldMatrix_)),
+	projectionMatrix_(Matrix4x4::MakePerspectiveFovMatrix(fovY_, aspectRatio_, nearClip_, farClip_)),
+	viewProjectionMatrix_(Matrix4x4::Multiply(viewMatrix_, projectionMatrix_))
 {
-	worldTransform.Initialize();
+	worldTransform_.Initialize();
 }
 
 
@@ -23,12 +23,12 @@ Camera::Camera() :
 void Camera::Update()
 {
 	// ビュー行列の計算処理
-	worldMatrix = Matrix4x4::MakeAffineMatrix(worldTransform.scale_, worldTransform.rotate_, worldTransform.translate_);
-	viewMatrix = Matrix4x4::Inverse(worldMatrix);
+	worldMatrix_ = Matrix4x4::MakeAffineMatrix(worldTransform_.scale_, worldTransform_.rotate_, worldTransform_.translate_);
+	viewMatrix_ = Matrix4x4::Inverse(worldMatrix_);
 
 	// プロジェクション行列の更新
-	projectionMatrix = Matrix4x4::MakePerspectiveFovMatrix(fovY_, aspectRatio_, nearClip_, farClip_);
-	viewProjevtionMatrix = Matrix4x4::Multiply(viewMatrix, projectionMatrix);
+	projectionMatrix_ = Matrix4x4::MakePerspectiveFovMatrix(fovY_, aspectRatio_, nearClip_, farClip_);
+	viewProjectionMatrix_ = Matrix4x4::Multiply(viewMatrix_, projectionMatrix_);
 }
 
 
@@ -38,9 +38,9 @@ void Camera::Update()
 void Camera::DrawImGui()
 {
 	ImGui::Begin("Camera");
-	ImGui::DragFloat3("cameraTranslate", &worldTransform.translate_.x, 0.01f);
-	ImGui::SliderAngle("CameraRotateX", &worldTransform.rotate_.x);
-	ImGui::SliderAngle("CameraRotateY", &worldTransform.rotate_.y);
-	ImGui::SliderAngle("CameraRotateZ", &worldTransform.rotate_.z);
+	ImGui::DragFloat3("cameraTranslate", &worldTransform_.translate_.x, 0.01f);
+	ImGui::SliderAngle("CameraRotateX", &worldTransform_.rotate_.x);
+	ImGui::SliderAngle("CameraRotateY", &worldTransform_.rotate_.y);
+	ImGui::SliderAngle("CameraRotateZ", &worldTransform_.rotate_.z);
 	ImGui::End();
 }

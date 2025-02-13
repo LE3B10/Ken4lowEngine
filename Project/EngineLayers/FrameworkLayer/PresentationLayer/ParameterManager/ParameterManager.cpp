@@ -278,7 +278,7 @@ void ParameterManager::DrawItem(const std::string& itemName, ParameterManager::I
 	else if (std::holds_alternative<Vector3>(item.value))
 	{
 		Vector3& value = std::get<Vector3>(item.value);
-		ImGui::SliderFloat3(itemName.c_str(), reinterpret_cast<float*>(&value), -10.0f, 10.0f);
+		ImGui::DragFloat3(itemName.c_str(), reinterpret_cast<float*>(&value));
 	}
 	/// ---------- bool型を保持している場合 ---------- ///
 	else if (std::holds_alternative<bool>(item.value))

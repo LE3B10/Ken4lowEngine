@@ -43,8 +43,9 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	std::unique_ptr<WavLoader> wavLoader_;
 	std::unique_ptr<Object3D> objectTerrain_;
-
 	std::vector<std::unique_ptr<Sprite>> sprites_;
-
 	std::string particleGroupName;
+
+	// デバッグカメラのON/OFF用
+	bool isDebugCamera_ = false;
 };

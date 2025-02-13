@@ -12,7 +12,7 @@ class Camera;
 /// -------------------------------------------------------------
 class WorldTransform
 {
-public:
+public: /// ---------- 構造体 ---------- ///
 
 	struct TransformationMatrix final
 	{

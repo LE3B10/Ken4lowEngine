@@ -2,14 +2,26 @@
 #include <DirectXCommon.h>
 #include <ImGuiManager.h>
 #include <Input.h>
+#include "Object3DCommon.h"
 #include <ParameterManager.h>
 #include <ParticleManager.h>
+
+#ifdef _DEBUG
+#include <DebugCamera.h>
+#endif // _DEBUG
+
+
 
 /// -------------------------------------------------------------
 ///				　			　初期化処理
 /// -------------------------------------------------------------
 void GamePlayScene::Initialize()
 {
+#ifdef _DEBUG
+	// デバッグカメラの初期化
+	DebugCamera::GetInstance()->Initialize();
+#endif // _DEBUG
+
 	dxCommon_ = DirectXCommon::GetInstance();
 	input_ = Input::GetInstance();
 	textureManager = TextureManager::GetInstance();
@@ -31,6 +43,21 @@ void GamePlayScene::Initialize()
 /// -------------------------------------------------------------
 void GamePlayScene::Update()
 {
+#ifdef _DEBUG
+	if (input_->TriggerKey(DIK_F12))
+	{
+		bool debugCamState = !Object3DCommon::GetInstance()->GetDebugCamera();
+		Object3DCommon::GetInstance()->SetDebugCamera(debugCamState);
+		isDebugCamera_ = debugCamState;
+	}
+
+	if (isDebugCamera_)
+	{
+		DebugCamera::GetInstance()->Update();
+	}
+#endif // _DEBUG
+
+
 	// オブジェクトの更新処理
 	objectTerrain_->Update();
 }
@@ -41,8 +68,24 @@ void GamePlayScene::Update()
 /// -------------------------------------------------------------
 void GamePlayScene::Draw()
 {
+
+
+	/// ---------------------------------------- ///
+	/// ---------- オブジェクト3D描画 ---------- ///
+	/// ---------------------------------------- ///
+	// オブジェクト3D共通描画設定
+	Object3DCommon::GetInstance()->SetRenderSetting();
+
 	// Terrain.obj の描画
 	objectTerrain_->Draw();
+
+
+	/// ---------------------------------------- ///
+	/// ---------- オブジェクト3D描画 ---------- ///
+	/// ---------------------------------------- ///
+	
+
+
 }
 
 

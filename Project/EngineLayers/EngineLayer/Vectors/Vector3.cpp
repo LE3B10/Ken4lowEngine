@@ -131,3 +131,12 @@ Vector3 operator*(const Vector3& v, float s) { return Vector3(v) *= s; }
 Vector3 operator*(float s, const Vector3& v) { return Vector3(v) *= s; }
 
 Vector3 operator/(const Vector3& v, float s) { return Vector3(v) /= s; }
+
+Vector3 operator*(const Matrix4x4& matrix, const Vector3& vec)
+{
+	float x = matrix.m[0][0] * vec.x + matrix.m[1][0] * vec.y + matrix.m[2][0] * vec.z + matrix.m[3][0];
+	float y = matrix.m[0][1] * vec.x + matrix.m[1][1] * vec.y + matrix.m[2][1] * vec.z + matrix.m[3][1];
+	float z = matrix.m[0][2] * vec.x + matrix.m[1][2] * vec.y + matrix.m[2][2] * vec.z + matrix.m[3][2];
+
+	return Vector3(x, y, z);
+}
