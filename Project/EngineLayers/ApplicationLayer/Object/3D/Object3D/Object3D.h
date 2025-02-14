@@ -32,31 +32,6 @@ public: /// ---------- 構造体 ---------- ///
 		Vector3 worldPosition;
 	};
 
-	// シェーダー側の点光源の構造体
-	struct PointLight
-	{
-		Vector4 color; // ライトの色
-		Vector3 position; // ライトの位置
-		float intensity; // 輝度
-		float radius; // 有効範囲
-		float decay; // 減衰率
-		float padding[2]; // パディング
-	};
-
-	// スポットライトの構造体
-	struct SpotLight
-	{
-		Vector4 color; // ライトの色
-		Vector3 position; // ライトの位置
-		float intensity; // スポットライトの方向
-		Vector3 direction; // スポットライトの方向
-		float distance; // ライトの届く最大距離
-		float decay; // 減衰率
-		float cosFalloffStart; // 開始角度の余弦値
-		float cosAngle; // スポットライトの余弦
-		float padding[2]; // パディング
-	};
-
 public: /// ---------- メンバ関数 ---------- ///
 
 	// 初期化処理

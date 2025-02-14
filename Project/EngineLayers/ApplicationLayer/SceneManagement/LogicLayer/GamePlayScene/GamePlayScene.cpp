@@ -11,7 +11,6 @@
 #endif // _DEBUG
 
 
-
 /// -------------------------------------------------------------
 ///				　			　初期化処理
 /// -------------------------------------------------------------
@@ -46,17 +45,10 @@ void GamePlayScene::Update()
 #ifdef _DEBUG
 	if (input_->TriggerKey(DIK_F12))
 	{
-		bool debugCamState = !Object3DCommon::GetInstance()->GetDebugCamera();
-		Object3DCommon::GetInstance()->SetDebugCamera(debugCamState);
-		isDebugCamera_ = debugCamState;
-	}
-
-	if (isDebugCamera_)
-	{
-		DebugCamera::GetInstance()->Update();
+		Object3DCommon::GetInstance()->SetDebugCamera(!Object3DCommon::GetInstance()->GetDebugCamera());
+		isDebugCamera_ = !isDebugCamera_;
 	}
 #endif // _DEBUG
-
 
 	// オブジェクトの更新処理
 	objectTerrain_->Update();
@@ -83,7 +75,7 @@ void GamePlayScene::Draw()
 	/// ---------------------------------------- ///
 	/// ---------- オブジェクト3D描画 ---------- ///
 	/// ---------------------------------------- ///
-	
+
 
 
 }

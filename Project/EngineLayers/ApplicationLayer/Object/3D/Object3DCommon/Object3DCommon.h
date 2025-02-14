@@ -32,7 +32,7 @@ public: /// ---------- 設定 ---------- ///
 	// デフォルトカメラを取得
 	void SetDefaultCamera(Camera* defaultCamera) { defaultCamera_ = defaultCamera; }
 
-	// デバッグカメラの設定
+	// デバッグカメラ有効かどうか
 	void SetDebugCamera(bool isDebugCamera) { isDebugCamera_ = isDebugCamera; }
 
 public:	/// ---------- 取得 ---------- ///

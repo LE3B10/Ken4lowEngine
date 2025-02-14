@@ -2,6 +2,8 @@
 #include "SceneFactory.h"
 #include "ParameterManager.h"
 #include "ParticleManager.h"
+#include <DebugCamera.h>
+
 
 /// -------------------------------------------------------------
 ///				　		　　初期化処理
@@ -32,6 +34,7 @@ void GameEngine::Initialize()
 	pipelineStateManager_->Initialize(dxCommon_);
 }
 
+
 /// -------------------------------------------------------------
 ///				　			更新処理
 /// -------------------------------------------------------------
@@ -42,9 +45,16 @@ void GameEngine::Update()
 
 	// 入力の更新
 	Input::GetInstance()->Update();
-
-	// デフォルトカメラの更新処理
-	defaultCamera_->Update();
+	
+	if (Object3DCommon::GetInstance()->GetDebugCamera())
+	{
+		DebugCamera::GetInstance()->Update(); // 追加
+	}
+	else
+	{
+		// デフォルトカメラの更新処理
+		defaultCamera_->Update();
+	}
 
 	/// ---------- ImGuiフレーム開始 ---------- ///
 	imguiManager_->BeginFrame();
@@ -69,6 +79,7 @@ void GameEngine::Update()
 	/// ---------- ImGuiフレーム終了 ---------- ///
 	imguiManager_->EndFrame();
 }
+
 
 /// -------------------------------------------------------------
 ///				　			描画処理
@@ -96,6 +107,7 @@ void GameEngine::Draw()
 	// 描画終了処理
 	dxCommon_->EndDraw();
 }
+
 
 /// -------------------------------------------------------------
 ///				　			終了処理

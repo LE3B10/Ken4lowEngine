@@ -61,7 +61,7 @@ public: /// ---------- 取得 ---------- ///
 	Matrix4x4 GetProjectionMatrix() const { return projectionMatrix_; }
 
 	// ビュー射影行列を取得
-	Matrix4x4 GetViewProjectionMatirx() const { return viewProjectionMatrix_; }
+	Matrix4x4 GetViewProjectionMatrix() const { return viewProjectionMatrix_; }
 
 	// 回転角を取得
 	Vector3 GetRotate() const { return worldTransform_.rotate_; }

@@ -34,13 +34,13 @@ void Object3DCommon::Update()
 	if (isDebugCamera_)
 	{
 #ifdef _DEBUG
-		debugViewProjectionMatrix_ = DebugCamera::GetInstance()->GetViewProjectionMatirx();
+		debugViewProjectionMatrix_ = DebugCamera::GetInstance()->GetViewProjectionMatrix();
 		defaultCamera_->SetViewProjectionMatrix(debugViewProjectionMatrix_);
 #endif // _DEBUG
 	}
 	else
 	{
-		viewProjectionMatrix_ = defaultCamera_->GetViewMatrix() * defaultCamera_->GetViewProjectionMatrix();
+		viewProjectionMatrix_ = Matrix4x4::Multiply(defaultCamera_->GetViewMatrix(), defaultCamera_->GetProjectionMatrix());
 		defaultCamera_->SetViewProjectionMatrix(viewProjectionMatrix_);
 	}
 }
