@@ -34,6 +34,9 @@ void GamePlayScene::Initialize()
 	// terrainの生成と初期化
 	objectTerrain_ = std::make_unique<Object3D>();
 	objectTerrain_->Initialize("terrain.gltf");
+
+	objectBall_ = std::make_unique<Object3D>();
+	objectBall_->Initialize("sphere.gltf");
 }
 
 
@@ -52,6 +55,7 @@ void GamePlayScene::Update()
 
 	// オブジェクトの更新処理
 	objectTerrain_->Update();
+	objectBall_->Update();
 }
 
 
@@ -70,7 +74,7 @@ void GamePlayScene::Draw()
 
 	// Terrain.obj の描画
 	objectTerrain_->Draw();
-
+	objectBall_->Draw();
 
 	/// ---------------------------------------- ///
 	/// ---------- オブジェクト3D描画 ---------- ///
