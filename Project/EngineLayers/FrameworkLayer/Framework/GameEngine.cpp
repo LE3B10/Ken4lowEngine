@@ -67,6 +67,8 @@ void GameEngine::Update()
 	// グローバル変数の更新
 	ParameterManager::GetInstance()->Update();
 
+	Object3DCommon::GetInstance()->DrawImGui();
+
 	// シーンのImGuiの描画処理
 	SceneManager::GetInstance()->DrawImGui();
 

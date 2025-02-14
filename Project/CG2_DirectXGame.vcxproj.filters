@@ -204,7 +204,7 @@
     <ClCompile Include="EngineLayers\EngineLayer\MultipleStructs\WorldTransform.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="DebugCamera.cpp">
+    <ClCompile Include="EngineLayers\ApplicationLayer\CameraManagement\DebugCamera\DebugCamera.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
   </ItemGroup>
@@ -417,7 +417,7 @@
     <ClInclude Include="EngineLayers\ApplicationLayer\SceneManagement\LogicLayer\GameOverScene\GameOverScene.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="DebugCamera.h">
+    <ClInclude Include="EngineLayers\ApplicationLayer\CameraManagement\DebugCamera\DebugCamera.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
   </ItemGroup>

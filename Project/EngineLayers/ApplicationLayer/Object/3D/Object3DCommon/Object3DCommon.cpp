@@ -45,6 +45,11 @@ void Object3DCommon::Update()
 	}
 }
 
+void Object3DCommon::DrawImGui()
+{
+	lightManager_->DrawImGui();
+}
+
 
 /// -------------------------------------------------------------
 ///				　		共通描画処理設定
