@@ -20,7 +20,10 @@ void DebugCamera::Initialize()
 {
 	worldTransform_.Initialize();
 	worldTransform_.translate_ = { 0.0f,0.0f,-50.0f };
-	worldTransform_.rotate_ = { 0.0f,0.0f,0.0f };
+
+	// **デフォルト値をセット（初回のみ）**
+	ParameterManager::GetInstance()->AddItem("DebugCamera", "Position", worldTransform_.translate_);
+	ParameterManager::GetInstance()->AddItem("DebugCamera", "Rotation", worldTransform_.rotate_);
 
 	fovY_ = 0.45f;
 	aspectRatio_ = float(WinApp::kClientWidth) / float(WinApp::kClientHeight);
@@ -53,6 +56,10 @@ void DebugCamera::Update()
 
 	// ビュー射影行列を更新
 	viewProjectionMatrix_ = Matrix4x4::Multiply(viewMatrix_, projectionMatrix_);
+
+	// **最新のデータを保存**
+	ParameterManager::GetInstance()->SetValue("DebugCamera", "Position", worldTransform_.translate_);
+	ParameterManager::GetInstance()->SetValue("DebugCamera", "Rotation", worldTransform_.rotate_);
 }
 
 

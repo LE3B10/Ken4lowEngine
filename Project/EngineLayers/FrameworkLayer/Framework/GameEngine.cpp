@@ -64,8 +64,6 @@ void GameEngine::Update()
 
 #ifdef _DEBUG // デバッグモードの場合
 
-	defaultCamera_->DrawImGui();
-
 	// グローバル変数の更新
 	ParameterManager::GetInstance()->Update();
 
