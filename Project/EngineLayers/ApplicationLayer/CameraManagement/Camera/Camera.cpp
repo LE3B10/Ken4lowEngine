@@ -30,17 +30,3 @@ void Camera::Update()
 	projectionMatrix_ = Matrix4x4::MakePerspectiveFovMatrix(fovY_, aspectRatio_, nearClip_, farClip_);
 	viewProjectionMatrix_ = Matrix4x4::Multiply(viewMatrix_, projectionMatrix_);
 }
-
-
-/// -------------------------------------------------------------
-///							ImGui描画処理
-/// -------------------------------------------------------------
-void Camera::DrawImGui()
-{
-	ImGui::Begin("Camera");
-	ImGui::DragFloat3("cameraTranslate", &worldTransform_.translate_.x, 0.01f);
-	ImGui::SliderAngle("CameraRotateX", &worldTransform_.rotate_.x);
-	ImGui::SliderAngle("CameraRotateY", &worldTransform_.rotate_.y);
-	ImGui::SliderAngle("CameraRotateZ", &worldTransform_.rotate_.z);
-	ImGui::End();
-}
