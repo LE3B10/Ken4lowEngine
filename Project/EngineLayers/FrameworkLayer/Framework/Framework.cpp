@@ -55,17 +55,17 @@ void Framework::Initialize()
 	// テクスチャマネージャーの生成
 	TextureManager::GetInstance()->Initialize(dxCommon_);
 	
-	// オブジェクト3D共通クラスの生成
+	// Object3DCommonの生成
 	Object3DCommon::GetInstance()->Initialize(dxCommon_);
+
+	// デバッグカメラの生成
+	DebugCamera::GetInstance()->Initialize();
 
 	// デフォルトカメラの生成と初期化
 	defaultCamera_ = std::make_unique<Camera>();
 	defaultCamera_->SetRotate({ 0.3f,0.0f,0.0f });
 	defaultCamera_->SetTranslate({ 0.0f,15.0f,-40.0f });
-
-	// デバッグカメラの生成
-	DebugCamera::GetInstance()->Initialize();
-
+	
 	// デフォルトカメラの設定
 	Object3DCommon::GetInstance()->SetDefaultCamera(defaultCamera_.get());
 
@@ -94,12 +94,7 @@ void Framework::Update()
 		return;				// 終了リクエストが来たら抜ける
 	}
 
-#ifdef _DEBUG
-	// デバッグカメラの更新を先に行う
-	DebugCamera::GetInstance()->Update();
-#endif // _DEBUG
-
-	// 更新処理
+	// Object3DCommonの更新処理
 	Object3DCommon::GetInstance()->Update();
 
 	// ParticleManagerの更新処理
