@@ -3,6 +3,7 @@
 #include "ParameterManager.h"
 #include "ParticleManager.h"
 #include <DebugCamera.h>
+#include <Wireframe.h>
 
 
 /// -------------------------------------------------------------
@@ -100,6 +101,12 @@ void GameEngine::Draw()
 
 	// ParticleMangerの描画処理
 	ParticleManager::GetInstance()->Draw();
+
+	// ワイヤフレームの描画処理
+	Wireframe::GetInstance()->Draw();
+
+	// ワイヤーフレームのリセット
+	Wireframe::GetInstance()->Reset();
 
 	/*-----ImGuiの描画-----*/
 	imguiManager_->Draw();

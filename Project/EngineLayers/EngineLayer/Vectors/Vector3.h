@@ -38,6 +38,8 @@ public:
 	//クロス積
 	static Vector3 Cross(const Vector3& v1, const Vector3& v2);
 
+	static Vector3 CatmullRomSpline(const Vector3& P0, const Vector3& P1, const Vector3& P2, const Vector3& P3, float t);
+
 	Vector3 operator+() const;
 	Vector3 operator-() const;
 	Vector3& operator+=(const Vector3& other);
