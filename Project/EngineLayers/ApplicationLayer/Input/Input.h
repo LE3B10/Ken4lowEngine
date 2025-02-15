@@ -58,7 +58,7 @@ class Input
 {
 public: /// ---------- テンプレート ---------- ///
 
-	// namespace省略
+	// ComPtrのエイリアス
 	template <class T> using ComPtr = Microsoft::WRL::ComPtr<T>;
 
 public: /// ---------- メンバ関数 ---------- ///

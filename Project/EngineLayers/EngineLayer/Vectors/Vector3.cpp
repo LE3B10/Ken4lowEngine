@@ -74,6 +74,19 @@ Vector3 Vector3::Cross(const Vector3& v1, const Vector3& v2)
 	return result;
 }
 
+Vector3 Vector3::CatmullRomSpline(const Vector3& P0, const Vector3& P1, const Vector3& P2, const Vector3& P3, float t)
+{
+	float t2 = t * t;
+	float t3 = t2 * t;
+
+	return 0.5f * (
+		(2.0f * P1) +
+		(-P0 + P2) * t +
+		(2.0f * P0 - 5.0f * P1 + 4.0f * P2 - P3) * t2 +
+		(-P0 + 3.0f * P1 - 3.0f * P2 + P3) * t3
+		);
+}
+
 Vector3 Vector3::operator+() const { return *this; }
 
 Vector3 Vector3::operator-() const { return Vector3(-x, -y, -z); }

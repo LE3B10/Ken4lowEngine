@@ -6,6 +6,9 @@
 #include "ParticleManager.h"
 #include <BaseScene.h>
 
+#include "AABB.h"
+#include "OBB.h"
+
 /// ---------- 前方宣言 ---------- ///
 class DirectXCommon;
 class Input;
@@ -49,4 +52,17 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	// デバッグカメラのON/OFF用
 	bool isDebugCamera_ = false;
+
+	float time = 0.0f;
+
+	OBB obb{};
+
+	Vector3 baseCenter = { -10.0f, 0.0f, 0.0f }; // 三角錐の底面の中心
+	float baseSize = 2.0f; // 底面の一辺の長さ
+	float height = 3.0f; // 頂点の高さ
+	Vector3 axis = { 0.0f, 1.0f, 0.0f }; // Y軸方向に立つ三角錐
+	Vector4 color = { 1.0f, 1.0f, 1.0f, 1.0f }; // 白色
+
+	Vector3 center = { 0.0f, 0.0f, 0.0f }; // 五角柱の中心
+	float radius = 2.0f; // 底面の外接円半径
 };
