@@ -6,6 +6,8 @@
 #include "ParticleManager.h"
 #include <BaseScene.h>
 
+#include "CollisionManager.h"
+
 #include "AABB.h"
 #include "OBB.h"
 
@@ -37,6 +39,12 @@ public: /// ---------- メンバ関数 ---------- ///
 	// ImGui描画処理
 	void DrawImGui() override;
 
+
+private: /// ---------- メンバ関数 ---------- ///
+
+	// 衝突判定と応答
+	void CheckAllCollisions();
+
 private: /// ---------- メンバ変数 ---------- ///
 
 	DirectXCommon* dxCommon_ = nullptr;
@@ -48,6 +56,8 @@ private: /// ---------- メンバ変数 ---------- ///
 	std::unique_ptr<Object3D> objectTerrain_;
 	std::unique_ptr<Object3D> objectBall_;
 	std::vector<std::unique_ptr<Sprite>> sprites_;
+	std::unique_ptr<CollisionManager> collisionManager_;
+
 	std::string particleGroupName;
 
 	// デバッグカメラのON/OFF用

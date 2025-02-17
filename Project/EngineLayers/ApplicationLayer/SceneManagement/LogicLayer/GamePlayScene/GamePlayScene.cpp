@@ -38,6 +38,9 @@ void GamePlayScene::Initialize()
 
 	objectBall_ = std::make_unique<Object3D>();
 	objectBall_->Initialize("sphere.gltf");
+
+	// 衝突マネージャの生成
+	collisionManager_ = std::make_unique<CollisionManager>();
 }
 
 
@@ -81,6 +84,9 @@ void GamePlayScene::Draw()
 	// ワイヤーフレームの描画
 	Wireframe::GetInstance()->DrawGrid(100.0f, 20.0f, { 0.25f, 0.25f, 0.25f,1.0f });
 
+	// 衝突判定と応答
+	CheckAllCollisions();
+
 	/// ---------------------------------------- ///
 	/// ---------- オブジェクト3D描画 ---------- ///
 	/// ---------------------------------------- ///
@@ -110,4 +116,22 @@ void GamePlayScene::DrawImGui()
 	objectTerrain_->DrawImGui();
 
 	ImGui::End();
+}
+
+
+/// -------------------------------------------------------------
+///				　			衝突判定と応答
+/// -------------------------------------------------------------
+void GamePlayScene::CheckAllCollisions()
+{
+	// 衝突マネージャのリセット
+	collisionManager_->Reset();
+
+	// コライダーをリストに登録
+	// collisionManager_->AddCollider();
+
+	// 複数について
+	
+	// 衝突判定と応答
+	collisionManager_->CheckAllCollisions();
 }
