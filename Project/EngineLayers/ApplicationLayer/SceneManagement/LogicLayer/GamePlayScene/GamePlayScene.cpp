@@ -32,12 +32,9 @@ void GamePlayScene::Initialize()
 	wavLoader_ = std::make_unique<WavLoader>();
 	wavLoader_->StreamAudioAsync(fileName, 0.0f, 1.0f, false);
 
-	// terrainの生成と初期化
-	objectTerrain_ = std::make_unique<Object3D>();
-	objectTerrain_->Initialize("terrain.gltf");
-
-	objectBall_ = std::make_unique<Object3D>();
-	objectBall_->Initialize("sphere.gltf");
+	// プレイヤーの生成と初期化
+	player_ = std::make_unique<Player>();
+	player_->Initialize();
 
 	// 衝突マネージャの生成
 	collisionManager_ = std::make_unique<CollisionManager>();
@@ -58,9 +55,8 @@ void GamePlayScene::Update()
 	}
 #endif // _DEBUG
 
-	// オブジェクトの更新処理
-	objectTerrain_->Update();
-	objectBall_->Update();
+	// プレイヤーの更新
+	player_->Update();
 }
 
 
@@ -77,9 +73,8 @@ void GamePlayScene::Draw()
 	// オブジェクト3D共通描画設定
 	Object3DCommon::GetInstance()->SetRenderSetting();
 
-	// Terrain.obj の描画
-	objectTerrain_->Draw();
-	objectBall_->Draw();
+	// プレイヤーの描画
+	player_->Draw();
 
 	// ワイヤーフレームの描画
 	Wireframe::GetInstance()->DrawGrid(100.0f, 20.0f, { 0.25f, 0.25f, 0.25f,1.0f });
@@ -110,12 +105,9 @@ void GamePlayScene::Finalize()
 /// -------------------------------------------------------------
 void GamePlayScene::DrawImGui()
 {
-	ImGui::Begin("Test Window");
+	/*ImGui::Begin("Test Window");
 
-	// TerrainのImGui
-	objectTerrain_->DrawImGui();
-
-	ImGui::End();
+	ImGui::End();*/
 }
 
 
