@@ -18,20 +18,23 @@ public: /// ---------- 純粋仮想関数 ---------- ///
 	// 中心座標を取得する純粋仮想関数
 	virtual Vector3 GetCenterPosition() const = 0;
 
-	/// <summary>
-	/// 向き（Orientation）を取得する純粋仮想関数
-	/// </summary>
-	/// <param name="index">番号 0: X軸, 1: Y軸, 2: Z軸 </param>
-	/// <returns></returns>
-	virtual Vector3 GetOrientation(int index) const = 0; 
+public: /// ---------- デバッグ用メンバ関数 ---------- ///
 
-	// サイズを取得する純粋仮想関数
-	virtual Vector3 GetSize() const = 0;
+	// 初期化処理
+	void Initialize();
 
-public: /// ---------- メンバ関数 ---------- ///
+	// 更新処理
+	void Update();
+
+	// 描画処理
+	void Draw();
+
+public: /// ---------- 設定 ---------- ///
 
 	// 識別IDを取得
 	uint32_t GetTypeID() const { return typeID_; }
+
+public: /// ---------- 取得 ---------- ///
 
 	// 識別IDを設定
 	void SetTypeID(uint32_t typeID) { typeID_ = typeID; }
