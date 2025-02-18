@@ -148,7 +148,7 @@ Vector2 ModelManager::ParseTexcoord(std::istringstream& s)
 /// -------------------------------------------------------------
 ///					法線データを解析する
 /// -------------------------------------------------------------
-Vector3 ModelManager::ParseNormal(std::istringstream& s) 
+Vector3 ModelManager::ParseNormal(std::istringstream& s)
 {
 	Vector3 normal{};
 	s >> normal.x >> normal.y >> normal.z;
@@ -376,18 +376,14 @@ ModelData ModelManager::LoadObjFile1(const std::string& directoryPath, const std
 Node ModelManager::ReadNode(aiNode* node)
 {
 	Node result;
-	aiMatrix4x4 aiLocalMatrix = node->mTransformation;
-	aiLocalMatrix.Transpose(); // 行列を転置
 
-	// 変換をNode構造体にコピー
-	for (int i = 0; i < 4; ++i)
-	{
-		for (int j = 0; j < 4; ++j)
-		{
-			result.localMatrix.m[i][j] = aiLocalMatrix[i][j];
-		}
-	}
-
+	aiVector3D scale, translate;
+	aiQuaternion rotate;
+	node->mTransformation.Decompose(scale, rotate, translate); // assimpの行列からSRTを抽出する関数を利用
+	result.transform.scale = { scale.x,scale.y,scale.z }; // Scaleはそのまま
+	result.transform.rotate = { rotate.x,-rotate.y,-rotate.z,rotate.w }; // x軸を反転、さらに回転方向が逆なので軸を反転させる
+	result.transform.translate = { -translate.x,translate.y,translate.z }; // x軸を反転
+	result.localMatrix = Matrix4x4::MakeAffineMatrix(result.transform.scale, result.transform.rotate, result.transform.translate);
 	result.name = node->mName.C_Str();
 	result.children.resize(node->mNumChildren);
 
