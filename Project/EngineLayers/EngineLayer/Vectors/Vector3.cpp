@@ -87,6 +87,11 @@ Vector3 Vector3::CatmullRomSpline(const Vector3& P0, const Vector3& P1, const Ve
 		);
 }
 
+Vector3 Vector3::Lerp(const Vector3& start, const Vector3& end, float t)
+{
+	return start + (end - start) * t;
+}
+
 Vector3 Vector3::operator+() const { return *this; }
 
 Vector3 Vector3::operator-() const { return Vector3(-x, -y, -z); }
