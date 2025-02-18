@@ -37,11 +37,11 @@ void GamePlayScene::Initialize()
 	objectTerrain_->Initialize("terrain.gltf");
 
 	objectBall_ = std::make_unique<Object3D>();
-	objectBall_->Initialize("sphere.gltf");
+	objectBall_->Initialize("terrain.gltf");
 
 	// アニメーションマネージャの生成と初期化
 	animationManager_ = std::make_unique<AnimationManager>();
-	animationManager_->Initialize("AnimatedCube.gltf");
+	animationManager_->Initialize("walk.gltf");
 
 	// 衝突マネージャの生成
 	collisionManager_ = std::make_unique<CollisionManager>();

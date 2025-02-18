@@ -40,6 +40,9 @@ public: /// ---------- メンバ関数 ---------- ///
 	// 描画処理
 	void Draw();
 
+	// モデルデータを取得
+	const ModelData& GetModelData() const { return modelData; }
+
 private: /// ---------- メンバ関数 ---------- ///
 
 	// アニメーションを更新
@@ -47,6 +50,20 @@ private: /// ---------- メンバ関数 ---------- ///
 
 	// Animationを解析する
 	Animation LoadAnimationFile(const std::string& directoryPath, const std::string& fileName);
+
+	// ノードの階層構造からSkeltonを作成
+	Skeleton CreateSkelton(const Node& rootNode);
+
+	// ノードからJointを作成
+	int32_t CreateJoint(const Node& node, const std::optional<int32_t>& parent, std::vector<Joint>& joints);
+
+	// Skeletonの更新処理
+	void UpdateSkeleton();
+
+	// アニメーションを適用する処理
+	void ApplyAnimation(float animationTime);
+
+private: /// ---------- メンバ関数・テンプレート関数 ///
 
 	// 任意の時刻の値を取得する
 	template <typename T>
@@ -91,16 +108,6 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	WorldTransform worldTransform;
 
-	// 分割数
-	uint32_t kSubdivision = 32;
-
-	// 緯度・経度の分割数に応じた角度の計算
-	float kLatEvery = std::numbers::pi_v<float> / float(kSubdivision);
-	float kLonEvery = 2.0f * std::numbers::pi_v<float> / float(kSubdivision);
-
-	// 球体の頂点数の計算
-	uint32_t TotalVertexCount = kSubdivision * kSubdivision * 6;
-
 	DirectXCommon* dxCommon_ = nullptr;
 
 	Camera* camera_ = nullptr;
@@ -108,6 +115,7 @@ private: /// ---------- メンバ変数 ---------- ///
 	// モデルデータ
 	ModelData modelData;
 	Animation animation;
+	Skeleton skeleton;
 
 	// バッファリソースの作成
 	TransformationMatrix* wvpData = nullptr;
