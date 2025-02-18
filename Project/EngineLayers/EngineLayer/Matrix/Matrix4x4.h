@@ -2,6 +2,7 @@
 #include <cmath>
 
 class Vector3;
+class Quaternion;
 
 /// <summary>
 /// 4x4行列
@@ -47,51 +48,54 @@ public:
 	friend Matrix4x4 operator*(const Matrix4x4& m1, const Matrix4x4& m2);
 
 
-	//行列の加法
+	// 行列の加法
 	static Matrix4x4 Add(const Matrix4x4& m1, const Matrix4x4& m2);
 
-	//行列の減法
+	// 行列の減法
 	static Matrix4x4 Subtract(const Matrix4x4& m1, const Matrix4x4& m2);
 
-	//行列の積
+	// 行列の積
 	static Matrix4x4 Multiply(const Matrix4x4& m1, const Matrix4x4& m2);
 
-	//逆行列
+	// 逆行列
 	static Matrix4x4 Inverse(const Matrix4x4& matrix);
 
-	//転置行列
+	// 転置行列
 	static Matrix4x4 Transpose(const Matrix4x4& m);
 
-	//単位行列
+	// 単位行列
 	static Matrix4x4 MakeIdentity();
 
-	//拡大縮小行列
+	// 拡大縮小行列
 	static Matrix4x4 MakeScaleMatrix(const Vector3& scale);
 
-	//X軸の回転行列
+	// X軸の回転行列
 	static Matrix4x4 MakeRotateXMatrix(float radian);
 
-	//Y軸の回転行列
+	// Y軸の回転行列
 	static Matrix4x4 MakeRotateYMatrix(float radian);
 
-	//Z軸の回転行列
+	// Z軸の回転行列
 	static Matrix4x4 MakeRotateZMatrix(float radian);
 
 	// XYZ回転行列
 	static Matrix4x4 MakeRotateMatrix(const Vector3& radian);
 
-	//平行移動行列
+	// 平行移動行列
 	static Matrix4x4 MakeTranslateMatrix(const Vector3& translate);
 
-	//三次元アフィン変換行列
-	static Matrix4x4 MakeAffineMatrix(const Vector3& scale, const Vector3& radian, const Vector3& translate);
+	// 三次元アフィン変換行列（Vector3）
+	static Matrix4x4 MakeAffineMatrix(const Vector3& scale, const Vector3& rotate, const Vector3& translate);
 
-	//透視投影行列
+	// アフィン変換行列（Quaternion）
+	static Matrix4x4 MakeAffineMatrix(const Vector3& scale, const Quaternion& rotate, const Vector3& translate);
+
+	// 透視投影行列
 	static Matrix4x4 MakePerspectiveFovMatrix(float fovY, float aspectRatio, float nearClip, float farClip);
 
-	//正射影行列
+	// 正射影行列
 	static Matrix4x4 MakeOrthographicMatrix(float left, float top, float right, float bottom, float nearClip, float farClip);
 
-	//ビューポート変換行列
+	// ビューポート変換行列
 	static Matrix4x4 MakeViewportMatrix(float left, float top, float width, float height, float minDepth, float maxDepth);
 };

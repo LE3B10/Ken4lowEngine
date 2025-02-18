@@ -78,8 +78,6 @@ private: /// ---------- メンバ関数（Assimp用）---------- ///
 	
 private: /// ---------- メンバ変数 ---------- ///
 
-	//std::map<std::string,std::unique_ptr<Model>> models_;
-
 	std::unordered_map<std::string, std::shared_ptr<Model>> models_;
 
 	ModelManager() = default;

@@ -1,5 +1,6 @@
 #include "Matrix4x4.h"
 #include "Vector3.h"
+#include "Quaternion.h"
 
 Matrix4x4::Matrix4x4()
 {
@@ -256,9 +257,14 @@ Matrix4x4 Matrix4x4::MakeTranslateMatrix(const Vector3& translate)
 	return result;
 }
 
-Matrix4x4 Matrix4x4::MakeAffineMatrix(const Vector3& scale, const Vector3& radian, const Vector3& translate)
+Matrix4x4 Matrix4x4::MakeAffineMatrix(const Vector3& scale, const Vector3& rotate, const Vector3& translate)
 {
-	return  Multiply(Multiply(MakeScaleMatrix(scale), MakeRotateMatrix(radian)), MakeTranslateMatrix(translate));
+	return  Multiply(Multiply(MakeScaleMatrix(scale), MakeRotateMatrix(rotate)), MakeTranslateMatrix(translate));
+}
+
+Matrix4x4 Matrix4x4::MakeAffineMatrix(const Vector3& scale, const Quaternion& rotate, const Vector3& translate)
+{
+	return Multiply(Multiply(MakeTranslateMatrix(translate), Quaternion::MakeRotateMatrix(rotate)), MakeScaleMatrix(scale));
 }
 
 Matrix4x4 Matrix4x4::MakePerspectiveFovMatrix(float fovY, float aspectRatio, float nearClip, float farClip)
