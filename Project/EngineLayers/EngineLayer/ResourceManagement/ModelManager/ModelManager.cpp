@@ -273,7 +273,7 @@ ModelData ModelManager::LoadModelFile(const std::string& directoryPath, const st
 	{
 		// glTF ファイル読み込み (追加フラグあり)
 		scene = importer.ReadFile(filePath.c_str(),
-			aiProcess_FlipWindingOrder | aiProcess_FlipUVs | aiProcess_PreTransformVertices);
+			aiProcess_FlipWindingOrder | aiProcess_FlipUVs /*| aiProcess_PreTransformVertices*/);
 	}
 	else
 	{

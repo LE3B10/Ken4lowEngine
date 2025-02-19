@@ -2,6 +2,11 @@
 #include "Vector3.h"
 #include "Quaternion.h"
 
+Vector3 Matrix4x4::GetTranslation() const
+{
+	return { m[3][0], m[3][1], m[3][2] };
+}
+
 Matrix4x4::Matrix4x4()
 {
 	for (int i = 0; i < 4; ++i) {

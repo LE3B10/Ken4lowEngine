@@ -11,19 +11,29 @@
 /// -------------------------------------------------------------
 ///				　		 初期化処理
 /// -------------------------------------------------------------
-void AnimationManager::Initialize(const std::string& fileName)
+void AnimationManager::Initialize(const std::string& fileName, bool isAnimation, bool hasSkeleton)
 {
 	dxCommon_ = DirectXCommon::GetInstance();
 	camera_ = Object3DCommon::GetInstance()->GetDefaultCamera();
+	wireframe_ = Wireframe::GetInstance();
+
+	isAnimation_ = isAnimation;
+	hasSkeleton_ = hasSkeleton;
 
 	// モデル読み込み
-	modelData = ModelManager::LoadModelFile("Resources/AnimatedCube", fileName);
+	modelData = ModelManager::GetInstance()->LoadModelFile("Resources/AnimatedCube", fileName);
 
 	// アニメーションの読み込み
-	animation = LoadAnimationFile("Resources/AnimatedCube", fileName);
+	if (isAnimation_)
+	{
+		animation = LoadAnimationFile("Resources/AnimatedCube", fileName);
+	}
 
 	// 骨の読み込み
-	skeleton = CreateSkelton(modelData.rootNode);
+	if (hasSkeleton_)
+	{
+		skeleton = CreateSkelton(modelData.rootNode);
+	}
 
 	// .objファイルの参照しているテクスチャファイル読み込み
 	TextureManager::GetInstance()->LoadTexture(modelData.material.textureFilePath);
@@ -92,12 +102,33 @@ void AnimationManager::Initialize(const std::string& fileName)
 /// -------------------------------------------------------------
 void AnimationManager::Update()
 {
-	UpdateAnimation(1.0f / 60.0f);
+	/*if (isAnimation_ && !hasSkeleton_)
+	{
+		UpdateAnimation(1.0f / 60.0f);
+	}*/
 
-	//animationTime_ += 1.0f / 60.0f;
-	animationTime_ = std::fmod(animationTime_, animation.duration);
-	ApplyAnimation(animationTime_);
-	UpdateSkeleton();
+	if (isAnimation_ && hasSkeleton_)
+	{
+		animationTime_ += 1.0f / 120.0f;
+		animationTime_ = std::fmod(animationTime_, animation.duration);
+		ApplyAnimation(animationTime_);
+		UpdateSkeleton(skeleton);
+	}
+
+	// 骨のワイヤーフレームを更新
+	if (hasSkeleton_ && wireframe_)
+	{
+		for (const Joint& joint : skeleton.joints)
+		{
+			if (joint.parent)
+			{
+				Vector3 parentPos = skeleton.joints[*joint.parent].skeletonSpaceMatrix.GetTranslation();
+				Vector3 jointPos = joint.skeletonSpaceMatrix.GetTranslation();
+
+				wireframe_->DrawLine(parentPos, jointPos, { 1.0f, 1.0f, 0.0f, 1.0f }); // 赤色の線で骨を描画
+			}
+		}
+	}
 }
 
 
@@ -117,25 +148,6 @@ void AnimationManager::Draw()
 
 	// モデルの描画
 	commandList->DrawInstanced(UINT(modelData.vertices.size()), 1, 0, 0);
-
-
-	// ★★★ デバッグ用にJointを可視化 ★★★
-	for (const auto& joint : skeleton.joints)
-	{
-		// ① Jointの位置に球を描画
-		Wireframe::GetInstance()->DrawSphere(joint.transform.translate, 0.05f, { 1.0f, 0.0f, 0.0f, 1.0f });
-
-		// ② 親がいる場合、親子関係を線で描画
-		if (joint.parent)
-		{
-			const Joint& parentJoint = skeleton.joints[*joint.parent];
-			Wireframe::GetInstance()->DrawLine(
-				parentJoint.transform.translate,  // 親の位置
-				joint.transform.translate,       // 子の位置
-				{ 0.0f, 1.0f, 0.0f, 1.0f }         // 緑色
-			);
-		}
-	}
 }
 
 
@@ -146,22 +158,10 @@ void AnimationManager::UpdateAnimation(float deltaTime)
 {
 	animationTime_ += deltaTime;
 	animationTime_ = std::fmod(animationTime_, animation.duration);
-
-	// rootNodeAnimationが存在するか確認
-	auto it = animation.nodeAnimations.find(modelData.rootNode.name);
-	if (it == animation.nodeAnimations.end()) {
-		return; // アニメーションデータがなければ処理しない
-	}
-
-	NodeAnimation& rootNodeAnimation = it->second;
-
-	// translate, rotate, scale の keyframes が空でないかチェック
-	Vector3 translate = rootNodeAnimation.translate.empty() ? Vector3(0.0f, 0.0f, 0.0f)
-		: CalculateValue(rootNodeAnimation.translate, animationTime_);
-	Quaternion rotate = rootNodeAnimation.rotate.empty() ? Quaternion(0.0f, 0.0f, 0.0f, 1.0f)
-		: CalculateValue(rootNodeAnimation.rotate, animationTime_);
-	Vector3 scale = rootNodeAnimation.scale.empty() ? Vector3(1.0f, 1.0f, 1.0f)
-		: CalculateValue(rootNodeAnimation.scale, animationTime_);
+	NodeAnimation& rootNodeAnimation = animation.nodeAnimations[modelData.rootNode.name];
+	Vector3 translate = CalculateValue(rootNodeAnimation.translate, animationTime_);
+	Quaternion rotate = CalculateValue(rootNodeAnimation.rotate, animationTime_);
+	Vector3 scale = CalculateValue(rootNodeAnimation.scale, animationTime_);
 
 	Matrix4x4 localMatrix = Matrix4x4::MakeAffineMatrix(scale, rotate, translate);
 
@@ -178,7 +178,7 @@ void AnimationManager::UpdateAnimation(float deltaTime)
 		worldViewProjectionMatrix = worldMatrix;
 	}
 
-	wvpData->WVP = worldViewProjectionMatrix;
+	wvpData->WVP = localMatrix * worldViewProjectionMatrix;
 	wvpData->World = localMatrix * worldMatrix;
 	wvpData->WorldInversedTranspose = Matrix4x4::Transpose(Matrix4x4::Inverse(localMatrix * worldMatrix));
 }
@@ -255,7 +255,7 @@ Skeleton AnimationManager::CreateSkelton(const Node& rootNode)
 		skeleton.jointMap.emplace(joint.name, joint.index);
 	}
 
-	UpdateSkeleton();
+	UpdateSkeleton(skeleton);
 
 	return skeleton;
 }
@@ -289,17 +289,18 @@ int32_t AnimationManager::CreateJoint(const Node& node, const std::optional<int3
 /// -------------------------------------------------------------
 ///						Skeletonの更新処理
 /// -------------------------------------------------------------
-void AnimationManager::UpdateSkeleton()
+void AnimationManager::UpdateSkeleton(Skeleton& skeleton)
 {
 	// 全てのJointを更新。親が若いので通常ループで処理可能になっている
 	for (Joint& joint : skeleton.joints)
 	{
+		// **スケールを適用**
 		joint.localMatrix = Matrix4x4::MakeAffineMatrix(joint.transform.scale, joint.transform.rotate, joint.transform.translate);
 
 		// 親がいれば親の行列を掛ける
 		if (joint.parent)
 		{
-			joint.skeletonSpaceMatrix = skeleton.joints[*joint.parent].skeletonSpaceMatrix * joint.localMatrix;
+			joint.skeletonSpaceMatrix = Matrix4x4::Multiply(joint.localMatrix, skeleton.joints[*joint.parent].skeletonSpaceMatrix);
 		}
 		else
 		{
@@ -322,26 +323,32 @@ void AnimationManager::ApplyAnimation(float animationTime)
 			const NodeAnimation& rootNodeAnimation = (*it).second;
 
 			// 位置データ
-			if (!rootNodeAnimation.translate.empty()) {
+			if (!rootNodeAnimation.translate.empty())
+			{
 				joint.transform.translate = CalculateValue(rootNodeAnimation.translate, animationTime);
 			}
-			else {
+			else
+			{
 				joint.transform.translate = Vector3(0.0f, 0.0f, 0.0f); // ★デフォルト値
 			}
 
 			// 回転データ
-			if (!rootNodeAnimation.rotate.empty()) {
+			if (!rootNodeAnimation.rotate.empty())
+			{
 				joint.transform.rotate = CalculateValue(rootNodeAnimation.rotate, animationTime);
 			}
-			else {
+			else
+			{
 				joint.transform.rotate = Quaternion(0.0f, 0.0f, 0.0f, 1.0f); // ★デフォルト値
 			}
 
 			// スケールデータ
-			if (!rootNodeAnimation.scale.empty()) {
+			if (!rootNodeAnimation.scale.empty())
+			{
 				joint.transform.scale = CalculateValue(rootNodeAnimation.scale, animationTime);
 			}
-			else {
+			else
+			{
 				joint.transform.scale = Vector3(1.0f, 1.0f, 1.0f); // ★デフォルト値
 			}
 		}
