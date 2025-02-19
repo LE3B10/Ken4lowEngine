@@ -14,7 +14,7 @@
 /// ---------- 前方宣言 ---------- ///
 class DirectXCommon;
 class Camera;
-
+class Wireframe;
 
 /// -------------------------------------------------------------
 ///				　アニメーションを管理するクラス
@@ -32,7 +32,7 @@ private: /// ---------- 構造体 ---------- ///
 public: /// ---------- メンバ関数 ---------- ///
 
 	// 初期化処理
-	void Initialize(const std::string& fileName);
+	void Initialize(const std::string& fileName, bool isAnimation = false, bool hasSkeleton = false);
 
 	// 更新処理
 	void Update();
@@ -58,12 +58,12 @@ private: /// ---------- メンバ関数 ---------- ///
 	int32_t CreateJoint(const Node& node, const std::optional<int32_t>& parent, std::vector<Joint>& joints);
 
 	// Skeletonの更新処理
-	void UpdateSkeleton();
+	void UpdateSkeleton(Skeleton& skeleton);
 
 	// アニメーションを適用する処理
 	void ApplyAnimation(float animationTime);
 
-private: /// ---------- メンバ関数・テンプレート関数 ///
+private: /// ---------- メンバ関数・テンプレート関数 ---------- ///
 
 	// 任意の時刻の値を取得する
 	template <typename T>
@@ -112,10 +112,15 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	Camera* camera_ = nullptr;
 
+	Wireframe* wireframe_ = nullptr;
+
 	// モデルデータ
 	ModelData modelData;
 	Animation animation;
 	Skeleton skeleton;
+
+	bool isAnimation_ = false;
+	bool hasSkeleton_ = false;
 
 	// バッファリソースの作成
 	TransformationMatrix* wvpData = nullptr;

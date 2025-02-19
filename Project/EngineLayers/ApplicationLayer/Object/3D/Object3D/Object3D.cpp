@@ -19,7 +19,7 @@ void Object3D::Initialize(const std::string& fileName)
 	camera_ = Object3DCommon::GetInstance()->GetDefaultCamera();
 
 	// モデル読み込み
-	modelData = ModelManager::LoadModelFile("Resources", fileName);
+	modelData = ModelManager::GetInstance()->LoadModelFile("Resources", fileName);
 
 	// .objファイルの参照しているテクスチャファイル読み込み
 	TextureManager::GetInstance()->LoadTexture(modelData.material.textureFilePath);

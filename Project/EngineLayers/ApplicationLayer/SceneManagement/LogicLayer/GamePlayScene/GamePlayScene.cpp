@@ -34,14 +34,14 @@ void GamePlayScene::Initialize()
 
 	// terrainの生成と初期化
 	objectTerrain_ = std::make_unique<Object3D>();
-	objectTerrain_->Initialize("terrain.gltf");
+	objectTerrain_->Initialize("terrain.obj");
 
 	objectBall_ = std::make_unique<Object3D>();
-	objectBall_->Initialize("terrain.gltf");
+	objectBall_->Initialize("sphere.gltf");
 
 	// アニメーションマネージャの生成と初期化
 	animationManager_ = std::make_unique<AnimationManager>();
-	animationManager_->Initialize("walk.gltf");
+	animationManager_->Initialize("sneakWalk.gltf", true, true);
 
 	// 衝突マネージャの生成
 	collisionManager_ = std::make_unique<CollisionManager>();
@@ -84,8 +84,8 @@ void GamePlayScene::Draw()
 	Object3DCommon::GetInstance()->SetRenderSetting();
 
 	// Terrain.obj の描画
-	//objectTerrain_->Draw();
-	//objectBall_->Draw();
+	objectTerrain_->Draw();
+	objectBall_->Draw();
 
 	animationManager_->Draw();
 
@@ -139,7 +139,7 @@ void GamePlayScene::CheckAllCollisions()
 	// collisionManager_->AddCollider();
 
 	// 複数について
-	
+
 	// 衝突判定と応答
 	collisionManager_->CheckAllCollisions();
 }

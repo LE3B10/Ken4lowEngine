@@ -9,6 +9,10 @@ class Quaternion;
 /// </summary>
 class Matrix4x4 final {
 public:
+
+	// 平行移動成分を取得する関数を追加
+	Vector3 GetTranslation() const;
+	
 	float m[4][4];
 
 	// デフォルトコンストラクタ
