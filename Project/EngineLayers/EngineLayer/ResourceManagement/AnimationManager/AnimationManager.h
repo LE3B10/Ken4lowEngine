@@ -126,13 +126,14 @@ private: /// ---------- メンバ変数 ---------- ///
 	TransformationMatrix* wvpData = nullptr;
 	CameraForGPU* cameraData = nullptr;
 
-	ComPtr <ID3D12Resource> wvpResource;
 	ComPtr <ID3D12Resource> vertexResource;
 	ComPtr <ID3D12Resource> materialResource;
 	ComPtr <ID3D12Resource> cameraResource;
+	ComPtr <ID3D12Resource> indexResource;
 
 	// バッファリソースの使い道を補足するバッファビュー
 	D3D12_VERTEX_BUFFER_VIEW vertexBufferView{};
+	D3D12_INDEX_BUFFER_VIEW indexBufferView{};
 
 	// アニメーションタイム
 	float animationTime_ = 0.0f;

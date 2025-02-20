@@ -81,6 +81,15 @@ void AnimationManager::Initialize(const std::string& fileName, bool isAnimation,
 	cameraResource->Map(0, nullptr, reinterpret_cast<void**>(&cameraData));
 	// カメラの初期位置
 	cameraData->worldPosition = camera_->GetTranslate();
+
+	// インデックスデータを作成
+	indexResource = ResourceManager::CreateBufferResource(dxCommon_->GetDevice(), sizeof(uint32_t) * modelData.indices.size());
+	indexBufferView.BufferLocation = indexResource->GetGPUVirtualAddress();
+	indexBufferView.SizeInBytes = UINT(sizeof(uint32_t) * modelData.indices.size());
+	indexBufferView.Format = DXGI_FORMAT_R32_UINT;
+	uint32_t* indexData = nullptr;
+	indexResource->Map(0, nullptr, reinterpret_cast<void**>(&indexData));
+	std::memcpy(indexData, modelData.indices.data(), sizeof(uint32_t) * modelData.indices.size());
 }
 
 
@@ -128,6 +137,7 @@ void AnimationManager::Draw()
 
 	// 定数バッファビュー (CBV) とディスクリプタテーブルの設定
 	commandList->IASetVertexBuffers(0, 1, &vertexBufferView); // モデル用VBV
+	commandList->IASetIndexBuffer(&indexBufferView);
 	commandList->SetGraphicsRootConstantBufferView(0, materialResource->GetGPUVirtualAddress());
 	commandList->SetGraphicsRootDescriptorTable(2, modelData.material.gpuHandle);
 	commandList->SetGraphicsRootConstantBufferView(3, cameraResource->GetGPUVirtualAddress());
