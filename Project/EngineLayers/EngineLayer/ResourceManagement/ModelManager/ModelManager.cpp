@@ -474,10 +474,12 @@ void ModelManager::ParseMeshes(const aiScene* scene, const std::string& director
 	for (uint32_t meshIndex = 0; meshIndex < scene->mNumMeshes; ++meshIndex)
 	{
 		aiMesh* mesh = scene->mMeshes[meshIndex];
-		assert(mesh->HasNormals());
-		assert(mesh->HasTextureCoords(0));
+		assert(mesh->HasNormals() && mesh->HasTextureCoords(0));
 
 		// 頂点データの解析
+		std::vector<VertexData> tempVertices;
+		std::vector<uint32_t> tempIndices;
+
 		for (uint32_t faceIndex = 0; faceIndex < mesh->mNumFaces; ++faceIndex)
 		{
 			aiFace& face = mesh->mFaces[faceIndex];
@@ -499,9 +501,14 @@ void ModelManager::ParseMeshes(const aiScene* scene, const std::string& director
 				vertex.position.x *= -1.0f;
 				vertex.normal.x *= -1.0f;
 
-				modelData.vertices.push_back(vertex);
+				tempVertices.push_back(vertex);
+				tempIndices.push_back(static_cast<uint32_t>(tempVertices.size() - 1));
 			}
 		}
+
+		// 頂点データを格納
+		modelData.vertices.insert(modelData.vertices.end(), tempVertices.begin(), tempVertices.end());
+		modelData.indices.insert(modelData.indices.end(), tempIndices.begin(), tempIndices.end());
 
 		// マテリアルの解析
 		aiMaterial* material = scene->mMaterials[mesh->mMaterialIndex];
