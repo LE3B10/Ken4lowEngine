@@ -42,19 +42,6 @@ void AnimationManager::Initialize(const std::string& fileName, bool isAnimation,
 	modelData.material.gpuHandle = TextureManager::GetInstance()->GetSrvHandleGPU(modelData.material.textureFilePath);
 
 
-#pragma region WVP行列データを格納するバッファリソースを生成し初期値として単位行列を設定
-	//WVP用のリソースを作る。Matrix4x4 1つ分のサイズを用意する
-	wvpResource = ResourceManager::CreateBufferResource(DirectXCommon::GetInstance()->GetDevice(), sizeof(TransformationMatrix));
-
-	//書き込むためのアドレスを取得
-	wvpResource->Map(0, nullptr, reinterpret_cast<void**>(&wvpData));
-	//単位行列を書き込んでおく
-	wvpData->World = Matrix4x4::MakeIdentity();
-	wvpData->WVP = Matrix4x4::MakeIdentity();
-	wvpData->WorldInversedTranspose = Matrix4x4::MakeIdentity();
-#pragma endregion
-
-
 #pragma region マテリアル用のリソースを作成しそのリソースにデータを書き込む処理を行う
 	// マテリアル用のリソースを作る。今回はcolor1つ分のサイズを用意する
 	materialResource = ResourceManager::CreateBufferResource(dxCommon_->GetDevice(), sizeof(Material));
@@ -142,7 +129,6 @@ void AnimationManager::Draw()
 	// 定数バッファビュー (CBV) とディスクリプタテーブルの設定
 	commandList->IASetVertexBuffers(0, 1, &vertexBufferView); // モデル用VBV
 	commandList->SetGraphicsRootConstantBufferView(0, materialResource->GetGPUVirtualAddress());
-	commandList->SetGraphicsRootConstantBufferView(1, wvpResource->GetGPUVirtualAddress());
 	commandList->SetGraphicsRootDescriptorTable(2, modelData.material.gpuHandle);
 	commandList->SetGraphicsRootConstantBufferView(3, cameraResource->GetGPUVirtualAddress());
 
