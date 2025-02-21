@@ -63,6 +63,12 @@ private: /// ---------- メンバ関数 ---------- ///
 	// アニメーションを適用する処理
 	void ApplyAnimation(float animationTime);
 
+	// SkinClusterの生成
+	SkinCluster CreateSkinCluster( const Skeleton& skeleton, const ModelData& modelData, uint32_t descriptorSize);
+
+	// SkinClusterの更新
+	void UpdateSkinCluster(SkinCluster& skinCluster, const Skeleton& skeleton);
+
 private: /// ---------- メンバ関数・テンプレート関数 ---------- ///
 
 	// 任意の時刻の値を取得する
@@ -118,6 +124,7 @@ private: /// ---------- メンバ変数 ---------- ///
 	ModelData modelData;
 	Animation animation;
 	Skeleton skeleton;
+	SkinCluster skinCluster;
 
 	bool isAnimation_ = false;
 	bool hasSkeleton_ = false;
@@ -126,6 +133,7 @@ private: /// ---------- メンバ変数 ---------- ///
 	TransformationMatrix* wvpData = nullptr;
 	CameraForGPU* cameraData = nullptr;
 
+	ComPtr <ID3D12Resource> wvpResource;
 	ComPtr <ID3D12Resource> vertexResource;
 	ComPtr <ID3D12Resource> materialResource;
 	ComPtr <ID3D12Resource> cameraResource;

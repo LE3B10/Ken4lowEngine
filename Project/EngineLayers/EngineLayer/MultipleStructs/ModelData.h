@@ -1,4 +1,5 @@
 #pragma once
+#include "DX12Include.h"
 #include <vector>
 #include <map>
 #include <optional>
@@ -6,6 +7,8 @@
 #include "MaterialData.h"
 #include "Quaternion.h"
 #include "Matrix4x4.h"
+#include <span>
+#include <array>
 
 // EulerTransformの構造体
 struct EulerTransform
@@ -86,12 +89,55 @@ struct Node
 	std::vector<Node> children;
 };
 
+// VertexWeightDataの構造体
+struct VertexWeightData
+{
+	float weight;
+	uint32_t vertexIndex;
+};
+
+// JointWeightDataの構造体
+struct JointWeightData
+{
+	Matrix4x4 inverseBindPoseMatrix;
+	std::vector<VertexWeightData> vertexWeights;
+};
+
 // ModelData構造体
 struct ModelData
 {
+	std::map<std::string, JointWeightData> skinClusterData;
 	std::vector<VertexData> vertices;
 	std::vector<uint32_t> indices;
 	MaterialData material;
 	Node rootNode;
 };
 
+// 最大4Jointの影響を受ける
+const uint32_t kNumMaxInfluence = 4;
+
+// インフルエンスの構造体
+struct VertexInfluence
+{
+	std::array<float, kNumMaxInfluence> weights;
+	std::array<int32_t, kNumMaxInfluence> jointIndices;
+};
+
+// WellForGPUの構造体
+struct WellForGPU
+{
+	Matrix4x4 skeletonSpaceMatrix; // 位置用
+	Matrix4x4 skeletonSpaceInverceTransposeMatrix; // 法線用
+};
+
+// SkinClusterの構造体
+struct SkinCluster
+{
+	std::vector<Matrix4x4> inverseBindPoseMatrices;
+	ComPtr<ID3D12Resource> influenceResource;
+	D3D12_VERTEX_BUFFER_VIEW influenceBufferView;
+	std::span<VertexInfluence> mappedInfluence;
+	ComPtr<ID3D12Resource> paletteResource;
+	std::span<WellForGPU> mappedPalette;
+	std::pair<D3D12_CPU_DESCRIPTOR_HANDLE, D3D12_GPU_DESCRIPTOR_HANDLE> paletteSrvHandle;
+};

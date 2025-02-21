@@ -510,6 +510,32 @@ void ModelManager::ParseMeshes(const aiScene* scene, const std::string& director
 		modelData.vertices.insert(modelData.vertices.end(), tempVertices.begin(), tempVertices.end());
 		modelData.indices.insert(modelData.indices.end(), tempIndices.begin(), tempIndices.end());
 
+		// SkinCluster構築用のデータを取得
+		for (uint32_t boneIndex = 0; boneIndex < mesh->mNumBones; ++boneIndex)
+		{
+			// Jointごとの格納領域を作る
+			aiBone* bone = mesh->mBones[boneIndex];
+			std::string jointName = bone->mName.C_Str();
+			JointWeightData& jointWeightData = modelData.skinClusterData[jointName];
+
+			// InverseBindPoseMatrixの抽出
+			aiMatrix4x4 bindPoseMatrixAssimp = bone->mOffsetMatrix.Inverse();
+			aiVector3D scale, translate;
+			aiQuaternion rotate;
+			bindPoseMatrixAssimp.Decompose(scale, rotate, translate);
+			Matrix4x4 bindPoseMatrix = Matrix4x4::MakeAffineMatrix(
+				{ scale.x, scale.y, scale.z },
+				{ rotate.x, -rotate.y, -rotate.z, rotate.w },
+				{ -translate.x, translate.y, translate.z });
+			jointWeightData.inverseBindPoseMatrix = Matrix4x4::Inverse(bindPoseMatrix);
+
+			// Weight情報を取り出す
+			for (uint32_t weightIndex = 0; weightIndex < bone->mNumWeights; ++weightIndex)
+			{
+				jointWeightData.vertexWeights.push_back({ bone->mWeights[weightIndex].mWeight, bone->mWeights[weightIndex].mVertexId });
+			}
+		}
+
 		// マテリアルの解析
 		aiMaterial* material = scene->mMaterials[mesh->mMaterialIndex];
 		if (material->GetTextureCount(aiTextureType_DIFFUSE) > 0)
