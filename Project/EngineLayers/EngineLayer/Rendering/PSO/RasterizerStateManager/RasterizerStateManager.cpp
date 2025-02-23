@@ -11,13 +11,3 @@ void RasterizerStateManager::Initialize()
 	rasterizerDesc.CullMode = D3D12_CULL_MODE_NONE;  // 裏面カリングを無効にする
 	rasterizerDesc.FrontCounterClockwise = FALSE;	 // 時計回りの面を表面とする（カリング方向の設定）
 }
-
-
-
-/// -------------------------------------------------------------
-///							ゲッター
-/// -------------------------------------------------------------
-D3D12_RASTERIZER_DESC RasterizerStateManager::GetRasterizerDesc() const
-{
-	return rasterizerDesc;
-}

@@ -92,14 +92,3 @@ void BlendStateManager::CreateBlend(BlendMode blendMode)
 		break;
 	}
 }
-
-
-
-/// -------------------------------------------------------------
-///							ゲッター
-/// -------------------------------------------------------------
-D3D12_RENDER_TARGET_BLEND_DESC& BlendStateManager::GetBlendDesc()
-{
-	// TODO: return ステートメントをここに挿入します
-	return blendDesc;
-}
