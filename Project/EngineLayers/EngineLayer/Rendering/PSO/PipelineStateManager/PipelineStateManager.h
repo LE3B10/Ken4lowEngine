@@ -14,6 +14,16 @@
 /// ---------- 前方宣言 ---------- ///
 class DirectXCommon;
 
+/// ---------- パイプライン列挙型 ---------- ///
+enum class PipelineType
+{
+	Object3d,		// 3Dオブジェクト
+	PipelineTypeNum // 合計
+};
+
+// パイプラインタイプの数
+static inline const uint32_t pipelineTypeNum = static_cast<size_t>(PipelineType::PipelineTypeNum);
+
 
 /// -------------------------------------------------------------
 ///		パイプラインステートオブジェクトマネージャークラス
@@ -44,7 +54,7 @@ private: /// ---------- メンバ関数 ---------- ///
 
 public: /// ---------- ゲッター ---------- ///
 
-	ID3D12PipelineState* GetPipelineState() const { return graphicsPipelineState_.Get(); }
+	ID3D12PipelineState* GetPipelineState() const;
 
 public: /// ---------- セッター ----- ///
 
@@ -52,7 +62,10 @@ public: /// ---------- セッター ----- ///
 
 private: /// ---------- メンバ変数 ---------- ///
 
-	ComPtr <ID3D12PipelineState> graphicsPipelineState_;
+	Microsoft::WRL::ComPtr <ID3D12PipelineState> graphicsPipelineState_;
+
+	std::array<BlendMode, blendModeNum> blendModeTypes_{};
+	std::array<PipelineType, pipelineTypeNum> pipelineTypeNums_{};
 
 	std::unique_ptr<RootSignatureManager> rootSignatureManager;
 	std::unique_ptr<InputLayoutManager> inputLayoutManager;

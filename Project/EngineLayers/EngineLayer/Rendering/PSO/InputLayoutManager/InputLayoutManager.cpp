@@ -1,7 +1,12 @@
 #include "InputLayoutManager.h"
 
 
-/*------------------------------------------------------------------------------------------------------------------------------
+/// -------------------------------------------------------------
+///				InputLayoutの設定を行う処理
+/// -------------------------------------------------------------
+void InputLayoutManager::Initialize()
+{
+	/*------------------------------------------------------------------------------------------------------------------------------
 	*
 	*	1 : SemanticName		 - 頂点シェーダーで使用されるセマンティック名
 	*	2 : SemanticIndex		 - 同じセマンティック名を持つ要素が複数ある場合に使用されるインデックス
@@ -13,17 +18,20 @@
 	*
 	-------------------------------------------------------------------------------------------------------------------------------*/
 
-
-/// -------------------------------------------------------------
-///				InputLayoutの設定を行う処理
-/// -------------------------------------------------------------
-void InputLayoutManager::Initialize()
-{
-	D3D12_INPUT_ELEMENT_DESC inputElementDescs[3] = {};
 	inputElementDescs[0] = { "POSITION", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 };
 	inputElementDescs[1] = { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT,		0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 };
 	inputElementDescs[2] = { "NORMAL"  , 0, DXGI_FORMAT_R32G32B32_FLOAT,	0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 };
 
 	inputLayoutDesc.pInputElementDescs = inputElementDescs;
 	inputLayoutDesc.NumElements = _countof(inputElementDescs);
+}
+
+
+/// -------------------------------------------------------------
+///							ゲッター
+/// -------------------------------------------------------------
+D3D12_INPUT_LAYOUT_DESC InputLayoutManager::GetInputLayoutDesc()
+{
+	// TODO: return ステートメントをここに挿入します
+	return inputLayoutDesc;
 }

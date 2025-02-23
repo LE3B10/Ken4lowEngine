@@ -38,7 +38,7 @@ Microsoft::WRL::ComPtr <IDxcBlob> ShaderManager::CompileShader(const std::wstrin
 	};
 
 	// 実際にSahaderをコンパイルする
-	ComPtr <IDxcResult> shaderResult = nullptr;
+	Microsoft::WRL::ComPtr <IDxcResult> shaderResult = nullptr;
 	hr = dxcCompiler->Compile(
 		&shaderSourceBuffer,		// 読み込んだファイル
 		arguments,					// コンパイルオプション
@@ -52,7 +52,7 @@ Microsoft::WRL::ComPtr <IDxcBlob> ShaderManager::CompileShader(const std::wstrin
 	/// ---------- 3. 警告・エラーが出てないか確認する ---------- ///
 
 	// 警告・エラーが出てきたらログに出して止める
-	ComPtr <IDxcBlobUtf8> shaderError = nullptr;
+	Microsoft::WRL::ComPtr <IDxcBlobUtf8> shaderError = nullptr;
 	shaderResult->GetOutput(DXC_OUT_ERRORS, IID_PPV_ARGS(&shaderError), nullptr);
 	if (shaderError != nullptr && shaderError->GetStringLength() != 0)
 	{
@@ -65,7 +65,7 @@ Microsoft::WRL::ComPtr <IDxcBlob> ShaderManager::CompileShader(const std::wstrin
 	/// ---------- 4. Compile結果を受け取って返す ---------- ///
 
 	// コンパイル結果から実行用のバイナリ部分を取得
-	ComPtr <IDxcBlob> shaderBlob = nullptr;
+	Microsoft::WRL::ComPtr <IDxcBlob> shaderBlob = nullptr;
 	hr = shaderResult->GetOutput(DXC_OUT_OBJECT, IID_PPV_ARGS(&shaderBlob), nullptr);
 	assert(SUCCEEDED(hr));
 
@@ -76,6 +76,7 @@ Microsoft::WRL::ComPtr <IDxcBlob> ShaderManager::CompileShader(const std::wstrin
 	// 実行用のバイナリを返却
 	return shaderBlob;
 }
+
 
 
 /// -------------------------------------------------------------
@@ -90,4 +91,19 @@ void ShaderManager::ShaderCompileObject3D(DirectXCommon* dxCommon)
 	// Pixelをコンパイル
 	pixelShaderBlob = CompileShader(L"Resources/Shaders/Object3D.PS.hlsl", L"ps_6_0", dxCommon->GetIDxcUtils(), dxCommon->GetIDxcCompiler(), dxCommon->GetIncludeHandler());
 	assert(pixelShaderBlob != nullptr);
+}
+
+
+
+/// -------------------------------------------------------------
+///							ゲッター
+/// -------------------------------------------------------------
+IDxcBlob* ShaderManager::GetVertexShaderBlob()
+{
+	return vertexShaderBlob.Get();
+}
+
+IDxcBlob* ShaderManager::GetPixelShaderBlob()
+{
+	return pixelShaderBlob.Get();
 }

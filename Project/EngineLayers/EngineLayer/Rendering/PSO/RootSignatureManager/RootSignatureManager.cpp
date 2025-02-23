@@ -89,3 +89,12 @@ Microsoft::WRL::ComPtr<ID3D12RootSignature> RootSignatureManager::CreateRootSign
 
 	return rootSignature;
 }
+
+
+/// -------------------------------------------------------------
+///							ゲッター
+/// -------------------------------------------------------------
+ID3D12RootSignature* RootSignatureManager::GetRootSignature() const
+{
+	return rootSignature.Get();
+}
