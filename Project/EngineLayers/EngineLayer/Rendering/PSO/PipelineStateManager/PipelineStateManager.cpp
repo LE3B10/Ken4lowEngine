@@ -92,15 +92,6 @@ void PipelineStateManager::CreatePipelineStateObject(
 
 
 /// -------------------------------------------------------------
-///							ゲッター
-/// -------------------------------------------------------------
-ID3D12PipelineState* PipelineStateManager::GetPipelineState() const
-{
-	return graphicsPipelineState_.Get();
-}
-
-
-/// -------------------------------------------------------------
 ///						パイプラインの設定
 /// -------------------------------------------------------------
 void PipelineStateManager::SetGraphicsPipeline(ID3D12GraphicsCommandList* commandList)

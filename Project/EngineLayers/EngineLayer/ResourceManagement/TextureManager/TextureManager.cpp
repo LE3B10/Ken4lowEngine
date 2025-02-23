@@ -22,6 +22,10 @@ TextureManager* TextureManager::GetInstance()
 	return &instance;
 }
 
+
+/// -------------------------------------------------------------
+///							初期化処理
+/// -------------------------------------------------------------
 void TextureManager::Initialize(DirectXCommon* dxCommon)
 {
 	dxCommon_ = dxCommon;
@@ -54,7 +58,7 @@ ComPtr<ID3D12Resource> TextureManager::CreateTextureResource(ID3D12Device* devic
 	HRESULT hr = device->CreateCommittedResource(
 		&heapProperties,														// Heapの設定
 		D3D12_HEAP_FLAG_NONE,													// Heapの特殊な設定。特になし。
-		&resourceDesc,															// /Resourceの設定
+		&resourceDesc,															// Resourceの設定
 		D3D12_RESOURCE_STATE_COPY_DEST,											// 初回のResourceState。Textureは基本読むだけ
 		nullptr,																// Clear最適値。使わないのでnullptr
 		IID_PPV_ARGS(&resource));												// 作成するResourceポインタへのポインタ
