@@ -6,16 +6,18 @@
 /// -------------------------------------------------------------
 class RasterizerStateManager
 {
-public: /// ---------- メンバ関数 ---------- ///
+public:
+	/// ---------- メンバ関数 ---------- ///
 
 	// 設定処理
 	void Initialize();
 
 public: /// ---------- ゲッター ---------- ///
 
-	D3D12_RASTERIZER_DESC GetRasterizerDesc() const { return rasterizerDesc; }
+	D3D12_RASTERIZER_DESC GetRasterizerDesc() const;
 
-private: /// ---------- メンバ変数 ---------- ///
+private:
+	/// ---------- メンバ変数 ---------- ///
 
 	// RasterizerStateの設定
 	D3D12_RASTERIZER_DESC rasterizerDesc{};

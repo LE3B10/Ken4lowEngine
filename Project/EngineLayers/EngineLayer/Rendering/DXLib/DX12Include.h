@@ -1,5 +1,5 @@
 #pragma once
-#include <cstdint>
+
 #include <cassert>
 
 #include <d3d12.h>
@@ -18,14 +18,3 @@
 #include <wrl.h>
 
 using namespace Microsoft::WRL;
-
-// パイプラインの種類
-enum PipelineType
-{
-	TypeObject3D,  // オブジェクト3D
-	TypeParticle,  // パーティクル
-	TypePipelineNum // パイプラインの総数（カウント用）
-};
-
-// パイプラインタイプの数
-static inline const uint32_t kPipelineCount = static_cast<size_t>(PipelineType::TypePipelineNum);
