@@ -41,7 +41,7 @@ void GamePlayScene::Initialize()
 
 	// アニメーションマネージャの生成と初期化
 	animationManager_ = std::make_unique<AnimationManager>();
-	animationManager_->Initialize("walk.gltf", true);
+	animationManager_->Initialize("walk.gltf", true, true);
 
 	// 衝突マネージャの生成
 	collisionManager_ = std::make_unique<CollisionManager>();
@@ -85,7 +85,7 @@ void GamePlayScene::Draw()
 
 	// Terrain.obj の描画
 	objectTerrain_->Draw();
-	objectBall_->Draw();
+	//objectBall_->Draw();
 
 	animationManager_->Draw();
 

@@ -110,7 +110,7 @@ void AnimationManager::Update()
 		animationTime_ = std::fmod(animationTime_, animation.duration);
 		ApplyAnimation(animationTime_);
 		UpdateSkeleton(skeleton);
-		//UpdateSkinCluster(skinCluster, skeleton);
+		UpdateSkinCluster(skinCluster, skeleton);
 	}
 
 	// 骨のワイヤーフレームを更新
@@ -123,7 +123,10 @@ void AnimationManager::Update()
 				Vector3 parentPos = skeleton.joints[*joint.parent].skeletonSpaceMatrix.GetTranslation();
 				Vector3 jointPos = joint.skeletonSpaceMatrix.GetTranslation();
 
-				wireframe_->DrawLine(parentPos, jointPos, { 1.0f, 1.0f, 0.0f, 1.0f }); // 赤色の線で骨を描画
+				Log("Wireframe Line: ParentPos: " + std::to_string(parentPos.x) + ", " + std::to_string(parentPos.y) + ", " + std::to_string(parentPos.z));
+				Log("Wireframe Line: JointPos: " + std::to_string(jointPos.x) + ", " + std::to_string(jointPos.y) + ", " + std::to_string(jointPos.z));
+
+				wireframe_->DrawLine(parentPos, jointPos, { 1.0f, 1.0f, 0.0f, 1.0f });
 			}
 		}
 	}
@@ -137,8 +140,14 @@ void AnimationManager::Draw()
 {
 	auto commandList = dxCommon_->GetCommandList();
 
-	// 定数バッファビュー (CBV) とディスクリプタテーブルの設定
-	commandList->IASetVertexBuffers(0, 1, &vertexBufferView); // モデル用VBV
+	D3D12_VERTEX_BUFFER_VIEW vbvs[2] =
+	{
+		vertexBufferView,				// VertexDataのVBV
+		skinCluster.influenceBufferView // インフルエンスのVBV
+	};
+	// 配列を渡す（開始Slot番号、使用Slot数、VBVへのポインタ）
+	commandList->IASetVertexBuffers(0, 2, vbvs); // モデル用VBV
+	
 	commandList->IASetIndexBuffer(&indexBufferView);
 	commandList->SetGraphicsRootConstantBufferView(0, materialResource->GetGPUVirtualAddress());
 	commandList->SetGraphicsRootDescriptorTable(2, modelData.material.gpuHandle);
