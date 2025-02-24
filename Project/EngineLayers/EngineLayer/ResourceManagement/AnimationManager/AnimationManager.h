@@ -119,7 +119,7 @@ private: /// ---------- メンバ変数 ---------- ///
 	Camera* camera_ = nullptr;
 
 	Wireframe* wireframe_ = nullptr;
-
+	
 	// モデルデータ
 	ModelData modelData;
 	Animation animation;

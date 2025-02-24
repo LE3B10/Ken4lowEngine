@@ -8,6 +8,7 @@
 #include <Object3DCommon.h>
 #include <DebugCamera.h>
 #include <Wireframe.h>
+#include "AnimationModelCommon.h"
 
 
 /// -------------------------------------------------------------
@@ -81,6 +82,9 @@ void Framework::Initialize()
 
 	// ParticleManagerの生成
 	ParticleManager::GetInstance()->Initialize(dxCommon_, defaultCamera_.get());
+
+	// アニメーションモデル共通クラスの生成
+	AnimationModelCommon::GetInstance()->Initialize(dxCommon_);
 
 #pragma endregion -------------------------------------------
 

@@ -60,7 +60,7 @@ private: /// ---------- メンバ変数 ---------- ///
 	std::vector<std::unique_ptr<Sprite>> sprites_;
 	std::unique_ptr<CollisionManager> collisionManager_;
 
-	std::string particleGroupName;
+	const std::string& particleGroupName = "Particle";
 
 	// デバッグカメラのON/OFF用
 	bool isDebugCamera_ = false;
