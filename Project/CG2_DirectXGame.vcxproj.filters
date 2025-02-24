@@ -225,7 +225,7 @@
     <ClCompile Include="EngineLayers\EngineLayer\Quaternion\Quaternion.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="AnimationModelCommon.cpp">
+    <ClCompile Include="EngineLayers\EngineLayer\ResourceManagement\AnimationManager\AnimationModelCommon.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
   </ItemGroup>
@@ -469,7 +469,7 @@
     <ClInclude Include="EngineLayers\EngineLayer\Quaternion\Quaternion.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="AnimationModelCommon.h">
+    <ClInclude Include="EngineLayers\EngineLayer\ResourceManagement\AnimationManager\AnimationModelCommon.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
   </ItemGroup>

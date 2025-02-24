@@ -122,10 +122,6 @@ void AnimationManager::Update()
 			{
 				Vector3 parentPos = skeleton.joints[*joint.parent].skeletonSpaceMatrix.GetTranslation();
 				Vector3 jointPos = joint.skeletonSpaceMatrix.GetTranslation();
-
-				Log("Wireframe Line: ParentPos: " + std::to_string(parentPos.x) + ", " + std::to_string(parentPos.y) + ", " + std::to_string(parentPos.z));
-				Log("Wireframe Line: JointPos: " + std::to_string(jointPos.x) + ", " + std::to_string(jointPos.y) + ", " + std::to_string(jointPos.z));
-
 				wireframe_->DrawLine(parentPos, jointPos, { 1.0f, 1.0f, 0.0f, 1.0f });
 			}
 		}
