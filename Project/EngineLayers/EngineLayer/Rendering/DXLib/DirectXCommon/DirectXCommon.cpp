@@ -33,8 +33,8 @@ void DirectXCommon::Initialize(WinApp* winApp, uint32_t Width, uint32_t Height)
 	kClientWidth = Width;
 	kClientHeight = Height;
 
-	// FPS固定初期化処理
-	InitializeFixFPS();
+	// FPSカウンターの初期化
+	fpsCounter_.SetTargetFPS(60); // 60FPS
 
 	// デバッグレイヤーをオンに
 	DebugLayer();
@@ -69,6 +69,9 @@ void DirectXCommon::Initialize(WinApp* winApp, uint32_t Width, uint32_t Height)
 /// -------------------------------------------------------------
 void DirectXCommon::BeginDraw()
 {
+	// FPSカウンターの開始
+	fpsCounter_.StartFrame();
+
 	// これから書き込むバックバッファのインデックスを取得
 	backBufferIndex = swapChain_->GetSwapChain()->GetCurrentBackBufferIndex();
 
@@ -135,33 +138,15 @@ void DirectXCommon::EndDraw()
 		WaitForSingleObject(fenceEvent, INFINITE);
 	}
 
-	// FPS固定更新処理
-	UpdateFixFPS();
-
-	// FPS測定処理
-	frameCount_++; // フレームカウントを増加
-	auto now = std::chrono::steady_clock::now();
-	auto elapsed = std::chrono::duration_cast<std::chrono::seconds>(now - fpsReference_);
-
-	// 1秒経過した場合にFPSを更新
-	if (elapsed.count() >= 1)
-	{
-		currentFPS_ = static_cast<float>(frameCount_) / elapsed.count(); // FPSを計算
-		frameCount_ = 0; // カウントリセット
-		fpsReference_ = now; // 基準時間をリセット
-
-		// FPSをデバッグ出力する
-		std::ostringstream oss;
-		oss << "Current FPS: " << currentFPS_ << "\n";
-		OutputDebugStringA(oss.str().c_str());
-	}
-
 	// 次のフレーム用のコマンドリストを準備（コマンドリストのリセット）
 	hr = commandAllocator->Reset();
 	assert(SUCCEEDED(hr));
 
 	hr = commandList->Reset(commandAllocator.Get(), nullptr);
 	assert(SUCCEEDED(hr));
+
+	// FPSカウント
+	fpsCounter_.EndFrame();
 }
 
 
@@ -402,50 +387,9 @@ void DirectXCommon::ClearWindow()
 }
 
 
-
 /// -------------------------------------------------------------
-///					FPS固定初期化処理
+///						コマンドを待つ処理
 /// -------------------------------------------------------------
-void DirectXCommon::InitializeFixFPS()
-{
-	// 現在の時間を記録する - 逆行しないタイマー
-	reference_ = std::chrono::steady_clock::now();
-}
-
-
-
-/// -------------------------------------------------------------
-///					FPS固定更新処理
-/// -------------------------------------------------------------
-void DirectXCommon::UpdateFixFPS()
-{
-	// 1/60秒ピッタリの時間
-	const std::chrono::microseconds kMinTime(uint64_t(1000000.0f / 120.0f));
-
-	// 現在の時間を取得する
-	auto now = std::chrono::steady_clock::now();
-	// 前回の記録からの経過時間を取得する
-	auto elapsed = std::chrono::duration_cast<std::chrono::microseconds>(now - reference_);
-
-	if (elapsed < kMinTime)
-	{
-		auto sleepTime = kMinTime - elapsed;
-		auto startSleep = std::chrono::steady_clock::now();
-		std::this_thread::sleep_for(sleepTime);
-		auto endSleep = std::chrono::steady_clock::now();
-
-		// スリープ時間の誤差を考慮して次のフレーム時間を調整
-		auto actualSleep = std::chrono::duration_cast<std::chrono::microseconds>(endSleep - startSleep);
-		reference_ += (sleepTime - actualSleep);
-	}
-	else
-	{
-		reference_ = now;
-	}
-}
-
-
-
 void DirectXCommon::WaitCommand()
 {
 	HRESULT hr{};

@@ -99,14 +99,17 @@ void AnimationManager::Initialize(const std::string& fileName, bool isAnimation,
 /// -------------------------------------------------------------
 void AnimationManager::Update()
 {
+	// FPSの取得 deltaTimeの計算
+	float deltaTime = 1.0f / dxCommon_->GetFPSCounter().GetFPS();
+
 	if (isAnimation_ && !hasSkeleton_)
 	{
-		//UpdateAnimation(1.0f / 60.0f);
+		//UpdateAnimation(deltaTime);
 	}
 
 	if (isAnimation_ && hasSkeleton_)
 	{
-		animationTime_ += 1.0f / 60.0f;
+		animationTime_ += deltaTime;
 		animationTime_ = std::fmod(animationTime_, animation.duration);
 		ApplyAnimation(animationTime_);
 		UpdateSkeleton(skeleton);
@@ -122,10 +125,6 @@ void AnimationManager::Update()
 			{
 				Vector3 parentPos = skeleton.joints[*joint.parent].skeletonSpaceMatrix.GetTranslation();
 				Vector3 jointPos = joint.skeletonSpaceMatrix.GetTranslation();
-
-				Log("Wireframe Line: ParentPos: " + std::to_string(parentPos.x) + ", " + std::to_string(parentPos.y) + ", " + std::to_string(parentPos.z));
-				Log("Wireframe Line: JointPos: " + std::to_string(jointPos.x) + ", " + std::to_string(jointPos.y) + ", " + std::to_string(jointPos.z));
-
 				wireframe_->DrawLine(parentPos, jointPos, { 1.0f, 1.0f, 0.0f, 1.0f });
 			}
 		}
