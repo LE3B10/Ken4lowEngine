@@ -5,7 +5,6 @@
 #include <WavLoader.h>
 #include "ParticleManager.h"
 #include <BaseScene.h>
-#include "AnimationManager.h"
 
 #include "CollisionManager.h"
 
@@ -56,7 +55,6 @@ private: /// ---------- メンバ変数 ---------- ///
 	std::unique_ptr<WavLoader> wavLoader_;
 	std::unique_ptr<Object3D> objectTerrain_;
 	std::unique_ptr<Object3D> objectBall_;
-	std::unique_ptr<AnimationManager> animationManager_;
 	std::vector<std::unique_ptr<Sprite>> sprites_;
 	std::unique_ptr<CollisionManager> collisionManager_;
 

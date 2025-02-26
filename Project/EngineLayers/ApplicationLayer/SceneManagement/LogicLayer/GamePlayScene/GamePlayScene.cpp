@@ -39,10 +39,6 @@ void GamePlayScene::Initialize()
 	objectBall_ = std::make_unique<Object3D>();
 	objectBall_->Initialize("sphere.gltf");
 
-	// アニメーションマネージャの生成と初期化
-	animationManager_ = std::make_unique<AnimationManager>();
-	animationManager_->Initialize("walk.gltf", true, true);
-
 	// 衝突マネージャの生成
 	collisionManager_ = std::make_unique<CollisionManager>();
 }
@@ -65,8 +61,6 @@ void GamePlayScene::Update()
 	// オブジェクトの更新処理
 	objectTerrain_->Update();
 	objectBall_->Update();
-
-	animationManager_->Update();
 }
 
 
@@ -86,8 +80,6 @@ void GamePlayScene::Draw()
 	// Terrain.obj の描画
 	objectTerrain_->Draw();
 	//objectBall_->Draw();
-
-	animationManager_->Draw();
 
 	// ワイヤーフレームの描画
 	Wireframe::GetInstance()->DrawGrid(100.0f, 20.0f, { 0.25f, 0.25f, 0.25f,1.0f });
