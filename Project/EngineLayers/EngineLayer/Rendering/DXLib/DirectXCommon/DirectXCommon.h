@@ -2,11 +2,10 @@
 #include "DX12Include.h"
 #include "DX12Device.h"
 #include "DX12SwapChain.h"
+#include "FPSCounter.h"
 
-#include <chrono>
 #include <dxcapi.h>
 #include <memory>
-#include <thread>
 
 /// ---------- 前方宣言 ---------- ///
 class WinApp;
@@ -50,6 +49,9 @@ public:
 	IDxcIncludeHandler* GetIncludeHandler() const;
 	DXGI_SWAP_CHAIN_DESC1& GetSwapChainDesc();
 
+	// FPSの取得
+	FPSCounter& GetFPSCounter() { return fpsCounter_; }	
+
 private:
 	/// ---------- メンバ関数 ---------- ///
 
@@ -73,17 +75,11 @@ private:
 
 	// 画面全体をクリア
 	void ClearWindow();
+	
+private: /// ---------- メンバ変数 ---------- ///
+	
+	FPSCounter fpsCounter_;
 
-	// FPS固定初期化処理
-	void InitializeFixFPS();
-	
-	// FPS固定更新
-	void UpdateFixFPS();
-
-	
-private:
-	/// ---------- メンバ変数 ---------- ///
-	
 	std::unique_ptr<DX12Device> device_;
 	std::unique_ptr<DX12SwapChain> swapChain_;
 	std::unique_ptr<DX12Descriptor> descriptor;

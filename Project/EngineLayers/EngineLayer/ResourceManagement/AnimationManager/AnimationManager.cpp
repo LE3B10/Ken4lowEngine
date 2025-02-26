@@ -99,14 +99,17 @@ void AnimationManager::Initialize(const std::string& fileName, bool isAnimation,
 /// -------------------------------------------------------------
 void AnimationManager::Update()
 {
+	// FPSの取得 deltaTimeの計算
+	float deltaTime = 1.0f / dxCommon_->GetFPSCounter().GetFPS();
+
 	if (isAnimation_ && !hasSkeleton_)
 	{
-		//UpdateAnimation(1.0f / 60.0f);
+		//UpdateAnimation(deltaTime);
 	}
 
 	if (isAnimation_ && hasSkeleton_)
 	{
-		animationTime_ += 1.0f / 60.0f;
+		animationTime_ += deltaTime;
 		animationTime_ = std::fmod(animationTime_, animation.duration);
 		ApplyAnimation(animationTime_);
 		UpdateSkeleton(skeleton);

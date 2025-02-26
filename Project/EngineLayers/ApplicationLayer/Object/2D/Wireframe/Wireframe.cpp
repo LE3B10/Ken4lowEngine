@@ -129,11 +129,15 @@ void Wireframe::Reset()
 /// -------------------------------------------------------------
 void Wireframe::Finalize()
 {
-	transformationMatrixBuffer_->Release();
-	triangleData_->vertexBuffer->Release();
-	boxData_->vertexBuffer->Release();
-	boxData_->indexBuffer->Release();
-	lineData_->vertexBuffer->Release();
+	// 三角形の解放
+	delete triangleData_;
+	triangleData_ = nullptr;
+	// 矩形の解放
+	delete boxData_;
+	boxData_ = nullptr;
+	// 線の解放
+	delete lineData_;
+	lineData_ = nullptr;
 }
 
 
