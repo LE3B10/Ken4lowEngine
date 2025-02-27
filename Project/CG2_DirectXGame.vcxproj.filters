@@ -219,16 +219,16 @@
     <ClCompile Include="EngineLayers\ApplicationLayer\Colliders\ContactRecord.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="EngineLayers\EngineLayer\ResourceManagement\AnimationManager\AnimationManager.cpp">
+    <ClCompile Include="EngineLayers\EngineLayer\ResourceManagement\AnimationManager\AnimationModel.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
     <ClCompile Include="EngineLayers\EngineLayer\Quaternion\Quaternion.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="EngineLayers\EngineLayer\ResourceManagement\AnimationManager\AnimationModelCommon.cpp">
+    <ClCompile Include="EngineLayers\EngineLayer\Rendering\FPSCounter.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="FPSCounter.cpp">
+    <ClCompile Include="EngineLayers\EngineLayer\ResourceManagement\AnimationManager\AnimationModelManager.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
   </ItemGroup>
@@ -466,16 +466,16 @@
     <ClInclude Include="EngineLayers\ApplicationLayer\Colliders\ContactRecord.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="EngineLayers\EngineLayer\ResourceManagement\AnimationManager\AnimationManager.h">
+    <ClInclude Include="EngineLayers\EngineLayer\ResourceManagement\AnimationManager\AnimationModel.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
     <ClInclude Include="EngineLayers\EngineLayer\Quaternion\Quaternion.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="EngineLayers\EngineLayer\ResourceManagement\AnimationManager\AnimationModelCommon.h">
+    <ClInclude Include="EngineLayers\EngineLayer\Rendering\FPSCounter.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="FPSCounter.h">
+    <ClInclude Include="EngineLayers\EngineLayer\ResourceManagement\AnimationManager\AnimationModelManager.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
   </ItemGroup>
