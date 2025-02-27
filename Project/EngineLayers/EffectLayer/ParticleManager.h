@@ -16,7 +16,6 @@
 class DirectXCommon;
 class SRVManager;
 class Camera;
-class ShaderManager;
 
 // Δt を定義。とりあえず60fps固定してあるが、実時間を計測して可変fpsで動かせるようにする
 const float kDeltaTime = 1.0f / 60.0f;
@@ -132,7 +131,6 @@ private: /// ---------- メンバ変数 ---------- ///
 	DirectXCommon* dxCommon_ = nullptr;
 	SRVManager* srvManager_ = nullptr;
 	Camera* camera_ = nullptr;
-	ShaderManager* shaderManager = nullptr;
 
 	ComPtr <ID3D12RootSignature> rootSignature = nullptr;
 	ComPtr <ID3D12PipelineState> graphicsPipelineState = nullptr;

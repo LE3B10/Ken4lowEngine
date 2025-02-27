@@ -61,6 +61,7 @@ void GamePlayScene::Update()
 	// オブジェクトの更新処理
 	objectTerrain_->Update();
 	objectBall_->Update();
+
 }
 
 
@@ -69,6 +70,7 @@ void GamePlayScene::Update()
 /// -------------------------------------------------------------
 void GamePlayScene::Draw()
 {
+
 
 
 	/// ---------------------------------------- ///
@@ -80,6 +82,7 @@ void GamePlayScene::Draw()
 	// Terrain.obj の描画
 	objectTerrain_->Draw();
 	//objectBall_->Draw();
+
 
 	// ワイヤーフレームの描画
 	Wireframe::GetInstance()->DrawGrid(100.0f, 20.0f, { 0.25f, 0.25f, 0.25f,1.0f });

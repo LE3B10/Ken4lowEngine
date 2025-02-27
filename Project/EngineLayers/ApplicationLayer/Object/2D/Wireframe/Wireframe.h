@@ -15,7 +15,6 @@
 
 /// ---------- 前方宣言 ---------- ///
 class DirectXCommon;
-class ShaderManager;
 
 /// -------------------------------------------------------------
 ///				　	線で形状を描画するクラス
@@ -259,7 +258,6 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	// DirectXCommon
 	DirectXCommon* dxCommon_ = nullptr;
-	ShaderManager* shaderManager = nullptr;
 	// カメラ
 	Camera* camera_ = nullptr;
 

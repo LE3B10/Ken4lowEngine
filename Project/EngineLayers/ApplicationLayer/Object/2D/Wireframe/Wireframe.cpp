@@ -1216,12 +1216,12 @@ void Wireframe::CreatePSO(D3D12_PRIMITIVE_TOPOLOGY_TYPE primitiveTopologyType, C
 	rasterizerDesc.FillMode = D3D12_FILL_MODE_SOLID; // 三角形の中を塗りつぶす
 
 	// Shaderをコンパイルする
-	Microsoft::WRL::ComPtr<IDxcBlob> vertexShaderBlob = shaderManager->CompileShader(
+	Microsoft::WRL::ComPtr<IDxcBlob> vertexShaderBlob = ShaderManager::CompileShader(
 		L"Resources/Shaders/Wireframe.VS.hlsl", L"vs_6_0",
 		dxCommon_->GetIDxcUtils(), dxCommon_->GetIDxcCompiler(), dxCommon_->GetIncludeHandler());
 	assert(vertexShaderBlob != nullptr);
 
-	Microsoft::WRL::ComPtr<IDxcBlob> pixelShaderBlob = shaderManager->CompileShader(
+	Microsoft::WRL::ComPtr<IDxcBlob> pixelShaderBlob = ShaderManager::CompileShader(
 		L"Resources/Shaders/Wireframe.PS.hlsl", L"ps_6_0",
 		dxCommon_->GetIDxcUtils(), dxCommon_->GetIDxcCompiler(), dxCommon_->GetIncludeHandler());
 	assert(pixelShaderBlob != nullptr);
