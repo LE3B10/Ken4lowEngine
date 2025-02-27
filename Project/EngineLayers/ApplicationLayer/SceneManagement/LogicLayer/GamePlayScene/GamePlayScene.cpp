@@ -44,6 +44,11 @@ void GamePlayScene::Initialize()
 	ground_ = std::make_unique<Ground>();
 	ground_->Initialize();
 
+	// 追従カメラの初期化
+	followCamera_ = std::make_unique<FollowCamera>();
+	followCamera_->Initialize();
+	followCamera_->SetTarget(player_->GetWorldTransform());
+
 	// 衝突マネージャの生成
 	collisionManager_ = std::make_unique<CollisionManager>();
 }
@@ -71,6 +76,9 @@ void GamePlayScene::Update()
 
 	// 地面の更新処理
 	ground_->Update();
+
+	// 追従カメラの更新処理
+	followCamera_->Update();
 
 }
 

@@ -1,12 +1,13 @@
 #pragma once
 #include <Object3D.h>
 #include <WorldTransform.h>
-#include <Camera.h>
 
 #include <vector>
-
+#include <numbers>
 
 /// ---------- 前方宣言 ---------- ///
+class Camera;
+class Input;
 
 
 /// ---------- 部位データ構造体 ---------- ///
@@ -36,27 +37,31 @@ public: /// ---------- メンバ関数 ---------- ///
 public: /// ---------- ゲッタ ---------- ///
 
 	// カメラの取得
-	Camera* GetCamera() { return camera_.get(); }
+	Camera* GetCamera() { return camera_; }
 	
-	// ワールド変換の取得
-	WorldTransform GetWorldTransform() { return worldTransform_; }
+	// プレイヤーのワールド変換の取得
+	const WorldTransform* GetWorldTransform() { return &body_.transform; }
 
 public: /// ---------- セッタ ---------- ///
 
-
+	// カメラの設定
+	void SetCamera(Camera* camera) { camera_ = camera; }
 
 private: /// ---------- メンバ変数 ---------- ///
 
-	// カメラ
-	std::unique_ptr<Camera> camera_;
+	Input* input_ = nullptr;
 
-	// ワールド変換
-	WorldTransform worldTransform_;
+	// カメラ
+	Camera* camera_ = nullptr;
 	
 	// 体（親）
 	BodyPart body_;
 
 	// 他の部位（子）
 	std::vector<BodyPart> parts_;
+
+	// 移動速度
+	float moveSpeed_ = 0.3f;
+
 };
 
