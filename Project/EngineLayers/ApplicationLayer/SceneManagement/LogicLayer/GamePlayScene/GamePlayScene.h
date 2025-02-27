@@ -10,6 +10,7 @@
 #include "Skydome.h"
 #include "Ground.h"
 #include "FollowCamera.h"
+#include "Enemy.h"
 
 #include "CollisionManager.h"
 
@@ -63,6 +64,7 @@ private: /// ---------- メンバ変数 ---------- ///
 	std::unique_ptr<Skydome> skydome_;
 	std::unique_ptr<Ground> ground_;
 	std::unique_ptr<FollowCamera> followCamera_;
+	std::unique_ptr<Enemy> enemy_;
 	
 	// 衝突マネージャ
 	std::unique_ptr<CollisionManager> collisionManager_;

@@ -1,8 +1,5 @@
 #include "Player.h"
-#include <Object3DCommon.h>
-#include <ModelManager.h>
 #include <Input.h>
-#include <Camera.h>
 
 
 /// -------------------------------------------------------------
@@ -10,8 +7,8 @@
 /// -------------------------------------------------------------
 void Player::Initialize()
 {
-	input_ = Input::GetInstance();
-	camera_ = Object3DCommon::GetInstance()->GetDefaultCamera();
+	// 基底クラスの初期化
+	BaseCharacter::Initialize();
 
 	// 体（親）の初期化
 	body_.object = std::make_unique<Object3D>();
@@ -49,6 +46,9 @@ void Player::Initialize()
 /// -------------------------------------------------------------
 void Player::Update()
 {
+	// 基底クラスの更新
+	BaseCharacter::Update();
+
 	// 移動処理
 	Move();
 	// 浮遊ギミックの更新
@@ -65,14 +65,17 @@ void Player::Update()
 /// -------------------------------------------------------------
 void Player::Draw()
 {
-	// 体を描画
-	body_.object->Draw();
+	// 基底クラスの描画
+	BaseCharacter::Draw();
 
-	// 各部位を描画
-	for (auto& part : parts_)
-	{
-		part.object->Draw();
-	}
+	//// 体を描画
+	//body_.object->Draw();
+
+	//// 各部位を描画
+	//for (auto& part : parts_)
+	//{
+	//	part.object->Draw();
+	//}
 }
 
 
@@ -108,23 +111,6 @@ void Player::Move()
 			// 正規化して移動
 			rotatedMove = Vector3::Normalize(rotatedMove);
 			body_.transform.translate_ += rotatedMove * moveSpeed_;
-		}
-
-		// 体のワールド変換を更新
-		body_.transform.Update();
-		body_.object->SetTranslate(body_.transform.translate_);
-		body_.object->SetRotate(body_.transform.rotate_);
-		body_.object->Update();
-
-		// 各部位のワールド変換を更新
-		for (auto& part : parts_)
-		{
-			part.transform.worldRotate_ = body_.transform.worldRotate_; // 親の回転を適用
-			part.transform.Update(); // 親の影響を受ける
-
-			part.object->SetTranslate(part.transform.worldTranslate_);
-			part.object->SetRotate(part.transform.worldRotate_); // ワールド回転を適用
-			part.object->Update();
 		}
 	}
 }
@@ -162,7 +148,7 @@ void Player::UpdateFloatingGimmick()
 void Player::UpdateArmAnimation(bool isMoving)
 {
 	// 移動しているときは腕を速く振る
-	float swingSpeed = isMoving ? 0.1f : 0.02f; // 移動時と待機時で速度を変える
+	float swingSpeed = isMoving ? 0.1f : 0.052f; // 移動時と待機時で速度を変える
 
 	// アニメーションパラメータの更新
 	armSwingParameter_ += swingSpeed;
