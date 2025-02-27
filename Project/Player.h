@@ -1,46 +1,28 @@
 #pragma once
-#include <Object3D.h>
-#include <WorldTransform.h>
-
-#include <vector>
+#include <BaseCharacter.h>
 #include <numbers>
 
-/// ---------- 前方宣言 ---------- ///
-class Camera;
-class Input;
-
-
-/// ---------- 部位データ構造体 ---------- ///
-struct BodyPart
-{
-	std::unique_ptr<Object3D> object;
-	WorldTransform transform;
-};
-
 
 /// -------------------------------------------------------------
-///					プレイヤークラス
+///						　プレイヤークラス
 /// -------------------------------------------------------------
-class Player
+class Player : public BaseCharacter
 {
 public: /// ---------- メンバ関数 ---------- ///
 
 	// 初期化処理
-	void Initialize();
+	void Initialize() override;
 
 	// 更新処理
-	void Update();
+	void Update() override;
 
 	// 描画処理
-	void Draw();
+	void Draw() override;
 
 public: /// ---------- ゲッタ ---------- ///
 
 	// カメラの取得
 	Camera* GetCamera() { return camera_; }
-
-	// プレイヤーのワールド変換の取得
-	const WorldTransform* GetWorldTransform() { return &body_.transform; }
 
 public: /// ---------- セッタ ---------- ///
 
@@ -60,20 +42,7 @@ private: /// ---------- メンバ関数 ---------- ///
 
 	// 腕のアニメーション
 	void UpdateArmAnimation(bool isMoving);
-
-private: /// ---------- メンバ変数 ---------- ///
-
-	Input* input_ = nullptr;
-
-	// カメラ
-	Camera* camera_ = nullptr;
-
-	// 体（親）
-	BodyPart body_;
-
-	// 他の部位（子）
-	std::vector<BodyPart> parts_;
-
+	
 private: /// ---------- 定数 ---------- ///
 	
 	// 移動速度

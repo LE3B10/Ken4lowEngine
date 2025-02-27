@@ -49,6 +49,10 @@ void GamePlayScene::Initialize()
 	followCamera_->Initialize();
 	followCamera_->SetTarget(player_->GetWorldTransform());
 
+	// 敵の初期化
+	enemy_ = std::make_unique<Enemy>();
+	enemy_->Initialize();
+
 	// 衝突マネージャの生成
 	collisionManager_ = std::make_unique<CollisionManager>();
 }
@@ -80,6 +84,9 @@ void GamePlayScene::Update()
 	// 追従カメラの更新処理
 	followCamera_->Update();
 
+	// 敵の更新処理
+	enemy_->Update();
+
 }
 
 
@@ -105,6 +112,9 @@ void GamePlayScene::Draw()
 
 	// 地面の描画
 	ground_->Draw();
+
+	// 敵の描画
+	enemy_->Draw();
 
 	// ワイヤーフレームの描画
 	Wireframe::GetInstance()->DrawGrid(100.0f, 20.0f, { 0.25f, 0.25f, 0.25f,1.0f });
