@@ -92,6 +92,19 @@ Vector3 Vector3::Lerp(const Vector3& start, const Vector3& end, float t)
 	return start + (end - start) * t;
 }
 
+float Vector3::AngleLerp(float start, float end, float t)
+{
+	// 差を求める
+	float diff = end - start;
+
+	// 角度の範囲を -180° ~ 180° にクランプする
+	while (diff > 180.0f) { diff -= 360.0f; }
+	while (diff < -180.0f) { diff += 360.0f; }
+
+	// 最短距離で補間
+	return start + diff * t;
+}
+
 Vector3 Vector3::operator+() const { return *this; }
 
 Vector3 Vector3::operator-() const { return Vector3(-x, -y, -z); }

@@ -23,28 +23,45 @@ void WorldTransform::Initialize()
 
 void WorldTransform::Update()
 {
-	Matrix4x4 worldMatrix = Matrix4x4::MakeAffineMatrix(scale_, rotate_, translate_);
-	Matrix4x4 worldViewProjectionMatrix;
+    // ローカル変換行列を作成
+    Matrix4x4 worldMatrix = Matrix4x4::MakeAffineMatrix(scale_, rotate_, translate_);
 
-	// 親オブジェクトがあれば親のワールド行列を掛ける
-	if (parent_)
-	{
-		worldMatrix = Matrix4x4::Multiply(worldMatrix, parent_->matWorld_);
-	}
+    // 親オブジェクトがあれば親のワールド行列を掛ける
+    if (parent_)
+    {
+        worldMatrix = Matrix4x4::Multiply(worldMatrix, parent_->matWorld_);
+    }
 
-	if (camera_)
-	{
-		const Matrix4x4& viewProjectionMatrix = camera_->GetViewProjectionMatrix();
-		worldViewProjectionMatrix = Matrix4x4::Multiply(worldMatrix, viewProjectionMatrix);
-	}
-	else
-	{
-		worldViewProjectionMatrix = worldMatrix;
-	}
+    // 親がいる場合は親の回転を引き継ぐ
+    if (parent_)
+    {
+        worldRotate_ = parent_->worldRotate_ + rotate_;
+    }
+    else
+    {
+        worldRotate_ = rotate_;
+    }
 
-	wvpData->WVP = worldViewProjectionMatrix;
-	wvpData->World = worldMatrix;
-	wvpData->WorldInversedTranspose = Matrix4x4::Transpose(Matrix4x4::Inverse(worldMatrix));
+    // ワールド座標を取得
+    worldTranslate_ = { worldMatrix.m[3][0], worldMatrix.m[3][1], worldMatrix.m[3][2] };
+
+    // ビュー・プロジェクション変換を適用
+    Matrix4x4 worldViewProjectionMatrix;
+    if (camera_)
+    {
+        const Matrix4x4& viewProjectionMatrix = camera_->GetViewProjectionMatrix();
+        worldViewProjectionMatrix = Matrix4x4::Multiply(worldMatrix, viewProjectionMatrix);
+    }
+    else
+    {
+        worldViewProjectionMatrix = worldMatrix;
+    }
+
+    // ワールド行列を保存
+    matWorld_ = worldMatrix;
+    wvpData->WVP = worldViewProjectionMatrix;
+    wvpData->World = worldMatrix;
+    wvpData->WorldInversedTranspose = Matrix4x4::Transpose(Matrix4x4::Inverse(worldMatrix));
 }
 
 void WorldTransform::SetPipeline()

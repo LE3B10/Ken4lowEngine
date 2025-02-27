@@ -50,6 +50,9 @@ public: /// ---------- セッター ---------- ///
 	// ビュー射影行列の設定
 	void SetViewProjectionMatrix(const Matrix4x4& viewProjectionMatrix) { viewProjectionMatrix_ = viewProjectionMatrix; }
 
+	// カメラの注視点（ターゲット）を設定
+	void SetTarget(const Vector3& target) { target_ = target; }
+
 public: /// ---------- ゲッター ---------- ///
 
 	// スケールの取得
@@ -60,6 +63,9 @@ public: /// ---------- ゲッター ---------- ///
 
 	// 移動の取得
 	const Vector3& GetTranslate() const { return worldTransform_.translate_; }
+
+	// ワールド変換の取得
+	const WorldTransform* GetWorldTransform() const { return &worldTransform_; }
 
 	// ワールド行列データを取得
 	const Matrix4x4& GetWorldMatrix() const { return worldMatrix_; }
@@ -72,6 +78,9 @@ public: /// ---------- ゲッター ---------- ///
 
 	// 合成行列データを取得
 	const Matrix4x4& GetViewProjectionMatrix() const { return viewProjectionMatrix_; }
+
+	// カメラの注視点（ターゲット）を取得
+	const Vector3& GetTarget() const { return target_; }
 
 private: /// ---------- メンバ変数 ----- ///
 
@@ -96,5 +105,7 @@ private: /// ---------- メンバ変数 ----- ///
 	// 合成行列
 	Matrix4x4 viewProjectionMatrix_;
 
+	// ターゲット
+	Vector3 target_ = { 0.0f, 0.0f, 0.0f };
 };
 
