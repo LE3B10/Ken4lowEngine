@@ -39,6 +39,10 @@ void GamePlayScene::Initialize()
 	objectBall_ = std::make_unique<Object3D>();
 	objectBall_->Initialize("sphere.gltf");
 
+	// プレイヤーの初期化
+	player_ = std::make_unique<Player>();
+	player_->Initialize();
+
 	// 衝突マネージャの生成
 	collisionManager_ = std::make_unique<CollisionManager>();
 }
@@ -62,6 +66,9 @@ void GamePlayScene::Update()
 	objectTerrain_->Update();
 	objectBall_->Update();
 
+	// プレイヤーの更新処理
+	player_->Update();
+
 }
 
 
@@ -83,6 +90,8 @@ void GamePlayScene::Draw()
 	objectTerrain_->Draw();
 	//objectBall_->Draw();
 
+	// プレイヤーの描画
+	player_->Draw();
 
 	// ワイヤーフレームの描画
 	Wireframe::GetInstance()->DrawGrid(100.0f, 20.0f, { 0.25f, 0.25f, 0.25f,1.0f });

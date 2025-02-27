@@ -6,6 +6,8 @@
 #include "ParticleManager.h"
 #include <BaseScene.h>
 
+#include "Player.h"
+
 #include "CollisionManager.h"
 
 #include "AABB.h"
@@ -55,8 +57,14 @@ private: /// ---------- メンバ変数 ---------- ///
 	std::unique_ptr<WavLoader> wavLoader_;
 	std::unique_ptr<Object3D> objectTerrain_;
 	std::unique_ptr<Object3D> objectBall_;
-	std::vector<std::unique_ptr<Sprite>> sprites_;
 	std::unique_ptr<CollisionManager> collisionManager_;
+
+	std::unique_ptr<Player> player_;
+	
+	
+	std::vector<std::unique_ptr<Sprite>> sprites_;
+
+
 
 	const std::string& particleGroupName = "Particle";
 
