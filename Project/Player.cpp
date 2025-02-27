@@ -38,6 +38,9 @@ void Player::Initialize()
 		part.transform.parent_ = &body_.transform; // 親を設定
 		parts_.push_back(std::move(part));
 	}
+
+	// 浮遊ギミックの初期化
+	InitializeFloatingGimmick();
 }
 
 
@@ -45,6 +48,38 @@ void Player::Initialize()
 ///							更新処理
 /// -------------------------------------------------------------
 void Player::Update()
+{
+	// 移動処理
+	Move();
+	// 浮遊ギミックの更新
+	UpdateFloatingGimmick();
+
+	// 腕のアニメーション更新（移動中かどうかを渡す）
+	bool isMoving = input_->PushKey(DIK_W) || input_->PushKey(DIK_S) || input_->PushKey(DIK_A) || input_->PushKey(DIK_D);
+	UpdateArmAnimation(isMoving);
+}
+
+
+/// -------------------------------------------------------------
+///							描画処理
+/// -------------------------------------------------------------
+void Player::Draw()
+{
+	// 体を描画
+	body_.object->Draw();
+
+	// 各部位を描画
+	for (auto& part : parts_)
+	{
+		part.object->Draw();
+	}
+}
+
+
+/// -------------------------------------------------------------
+///							移動処理
+/// -------------------------------------------------------------
+void Player::Move()
 {
 	if (camera_)
 	{
@@ -96,16 +131,57 @@ void Player::Update()
 
 
 /// -------------------------------------------------------------
-///							描画処理
+///					　浮遊ギミックの初期化処理
 /// -------------------------------------------------------------
-void Player::Draw()
+void Player::InitializeFloatingGimmick()
 {
-	// 体を描画
-	body_.object->Draw();
+	// 浮遊ギミックの初期化
+	floatingParameter_ = 0.0f;
+}
 
-	// 各部位を描画
-	for (auto& part : parts_)
+
+/// -------------------------------------------------------------
+///					　浮遊ギミックの更新処理
+/// -------------------------------------------------------------
+void Player::UpdateFloatingGimmick()
+{
+	// 浮遊ギミックの更新
+	floatingParameter_ += kFloatingStep;
+	// 2πを超えたら0に戻す
+	floatingParameter_ = std::fmodf(floatingParameter_, 2.0f * std::numbers::pi_v<float>);
+	// 浮遊の振幅<m>
+	const float floatingAmplitude = 0.3f;
+	// 浮遊を座標に適用
+	body_.transform.translate_.y = floatingAmplitude * sinf(floatingParameter_);
+}
+
+
+/// -------------------------------------------------------------
+///					　腕のアニメーション更新処理
+/// -------------------------------------------------------------
+void Player::UpdateArmAnimation(bool isMoving)
+{
+	// 移動しているときは腕を速く振る
+	float swingSpeed = isMoving ? 0.1f : 0.02f; // 移動時と待機時で速度を変える
+
+	// アニメーションパラメータの更新
+	armSwingParameter_ += swingSpeed;
+
+	// 2πを超えたらリセット（ループさせる）
+	armSwingParameter_ = std::fmod(armSwingParameter_, 2.0f * std::numbers::pi_v<float>);
+
+	// 目標の振り角度をサイン波で計算
+	float targetSwingAngle = kMaxArmSwingAngle * sinf(armSwingParameter_);
+
+	// 各部位のアニメーションを適用
+	if (parts_.size() >= 2) // 腕のデータが存在するか確認
 	{
-		part.object->Draw();
+		// 左腕（現在の角度から目標角度に補間）
+		float smoothedLeft = Vector3::Lerp(parts_[1].transform.rotate_.x, isMoving ? -targetSwingAngle : -targetSwingAngle * 0.5f, 0.2f);
+		parts_[1].transform.rotate_.x = smoothedLeft;
+
+		// 右腕（現在の角度から目標角度に補間）
+		float smoothedRight = Vector3::Lerp(parts_[2].transform.rotate_.x, isMoving ? targetSwingAngle : -targetSwingAngle * 0.5f, 0.2f);
+		parts_[2].transform.rotate_.x = smoothedRight;
 	}
 }
