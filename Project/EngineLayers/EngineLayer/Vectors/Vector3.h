@@ -42,6 +42,11 @@ public:
 
 	static Vector3 Lerp(const Vector3& start, const Vector3& end, float t);
 
+	static float Lerp(float start, float end, float t)
+	{
+		return start + (end - start) * t;
+	}
+
 	static float AngleLerp(float start, float end, float t);
 
 	Vector3 operator+() const;
