@@ -27,18 +27,18 @@ public: /// ---------- メンバ関数 ---------- ///
 
 	// 初期化処理
 	void Initialize();
-	
+
 	// 更新処理
 	void Update();
-	
+
 	// 描画処理
 	void Draw();
-	
+
 public: /// ---------- ゲッタ ---------- ///
 
 	// カメラの取得
 	Camera* GetCamera() { return camera_; }
-	
+
 	// プレイヤーのワールド変換の取得
 	const WorldTransform* GetWorldTransform() { return &body_.transform; }
 
@@ -53,7 +53,7 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	// カメラ
 	Camera* camera_ = nullptr;
-	
+
 	// 体（親）
 	BodyPart body_;
 
