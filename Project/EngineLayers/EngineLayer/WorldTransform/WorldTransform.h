@@ -28,7 +28,7 @@ public: /// ---------- メンバ変数 ---------- ///
 	// ローカル回転角
 	Vector3 rotate_ = { 0.0f, 0.0f, 0.0f };
 	// ローカル座標
-	Vector3 translate_ = { 0.0f, 0.0f, 0.0f };
+	Vector3 translation_ = { 0.0f, 0.0f, 0.0f };
 	// ワールド座標
 	Vector3 worldTranslate_ = { 0.0f, 0.0f, 0.0f };
 	// ワールド回転

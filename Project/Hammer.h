@@ -27,7 +27,7 @@ public: /// ---------- ゲッター ---------- ///
 	const Vector3& GetRotation() const { return worldTransform_.rotate_; }
 
 	// 座標を取得
-	const Vector3& GetTranslate() const { return worldTransform_.translate_; }
+	const Vector3& GetTranslate() const { return worldTransform_.translation_; }
 
 public: /// ---------- セッター ---------- ///
 
@@ -38,7 +38,7 @@ public: /// ---------- セッター ---------- ///
 	void SetRotation(const Vector3& rotation) { worldTransform_.rotate_ = rotation; }
 
 	// 座標を設定
-	void SetTranslate(const Vector3& translate) { worldTransform_.translate_ = translate; }
+	void SetTranslate(const Vector3& translate) { worldTransform_.translation_ = translate; }
 
 private: /// ---------- メンバ変数 ---------- ///
 

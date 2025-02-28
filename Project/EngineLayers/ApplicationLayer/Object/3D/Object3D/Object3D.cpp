@@ -47,7 +47,7 @@ void Object3D::Update()
 /// -------------------------------------------------------------
 void Object3D::DrawImGui()
 {
-	ImGui::DragFloat3("Position", &worldTransform.translate_.x, 0.01f); // 座標変更
+	ImGui::DragFloat3("Position", &worldTransform.translation_.x, 0.01f); // 座標変更
 	ImGui::DragFloat3("Rotation", &worldTransform.rotate_.x, 0.01f);   // 回転変更
 	ImGui::DragFloat3("Scale", &worldTransform.scale_.x, 0.01f);       // スケール変更
 

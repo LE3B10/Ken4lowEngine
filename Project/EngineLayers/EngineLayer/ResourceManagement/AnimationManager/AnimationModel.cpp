@@ -171,7 +171,7 @@ void AnimationModel::UpdateAnimation(float deltaTime)
 
 	Matrix4x4 localMatrix = Matrix4x4::MakeAffineMatrix(scale, rotate, translate);
 
-	Matrix4x4 worldMatrix = Matrix4x4::MakeAffineMatrix(worldTransform.scale_, worldTransform.rotate_, worldTransform.translate_);
+	Matrix4x4 worldMatrix = Matrix4x4::MakeAffineMatrix(worldTransform.scale_, worldTransform.rotate_, worldTransform.translation_);
 	Matrix4x4 worldViewProjectionMatrix;
 
 	if (camera_)
