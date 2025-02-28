@@ -36,6 +36,13 @@ void Player::Initialize()
 		parts_.push_back(std::move(part));
 	}
 
+	// ハンマーの初期化
+	hammer_ = std::make_unique<Hammer>();
+	hammer_->Initialize();
+
+	// ハンマーの親をプレイヤーの体に設定
+	hammer_->SetParentTransform(&body_.transform);
+
 	// 浮遊ギミックの初期化
 	InitializeFloatingGimmick();
 }
@@ -49,14 +56,66 @@ void Player::Update()
 	// 基底クラスの更新
 	BaseCharacter::Update();
 
-	// 移動処理
-	Move();
 	// 浮遊ギミックの更新
 	UpdateFloatingGimmick();
 
-	// 腕のアニメーション更新（移動中かどうかを渡す）
-	bool isMoving = input_->PushKey(DIK_W) || input_->PushKey(DIK_S) || input_->PushKey(DIK_A) || input_->PushKey(DIK_D);
-	UpdateArmAnimation(isMoving);
+	// ハンマーの更新
+	if (hammer_) { hammer_->Update(); }
+
+	// 攻撃キー（例えばスペースキー）を押したら攻撃を開始
+	if (input_->PushKey(DIK_SPACE) && behavior_ == Behavior::kRoot) { behaviorRequest_ = Behavior::kAttack; }
+
+	// ビヘイビア遷移
+	if (behaviorRequest_)
+	{
+		// ビヘイビアを変更
+		behavior_ = behaviorRequest_.value();
+
+		// 各ビヘイビアごとの初期化を実行
+		switch (behavior_)
+		{
+			/// ----- ルートビヘイビア ----- ///
+		case Behavior::kRoot:
+		default:
+
+			// 通常行動の初期化
+			BehaviorRootInitialize();
+
+			break;
+
+			/// ----- アタックビヘイビア ----- ///
+		case Behavior::kAttack:
+
+			// 攻撃行動の初期化
+			BehaviorAttackInitialize();
+
+			break;
+		}
+
+		// ビヘイビアリクエストをリセット
+		behaviorRequest_ = std::nullopt;
+	}
+
+	// ビヘイビアの実行
+	switch (behavior_)
+	{
+		/// ----- ルートビヘイビア ----- ///
+	case Behavior::kRoot:
+	default:
+
+		// 通常行動の更新
+		BehaviorRootUpdate();
+
+		break;
+
+		/// ----- アタックビヘイビア ----- ///
+	case Behavior::kAttack:
+
+		// 攻撃行動の更新
+		BehaviorAttackUpdate();
+
+		break;
+	}
 }
 
 
@@ -68,14 +127,8 @@ void Player::Draw()
 	// 基底クラスの描画
 	BaseCharacter::Draw();
 
-	//// 体を描画
-	//body_.object->Draw();
-
-	//// 各部位を描画
-	//for (auto& part : parts_)
-	//{
-	//	part.object->Draw();
-	//}
+	// ハンマーの描画
+	if (isAttacking_ && hammer_) { hammer_->Draw(); }
 }
 
 
@@ -169,5 +222,110 @@ void Player::UpdateArmAnimation(bool isMoving)
 		// 右腕（現在の角度から目標角度に補間）
 		float smoothedRight = Vector3::Lerp(parts_[2].transform.rotate_.x, isMoving ? targetSwingAngle : -targetSwingAngle * 0.5f, 0.2f);
 		parts_[2].transform.rotate_.x = smoothedRight;
+	}
+}
+
+
+/// -------------------------------------------------------------
+///					　通常行動の初期化処理
+/// -------------------------------------------------------------
+void Player::BehaviorRootInitialize()
+{
+	isAttacking_ = false; // ハンマーを非表示
+	isAttackHold_ = false; // 固定フラグ解除
+	attackFrame_ = 0; // 攻撃フレームリセット
+	attackHoldFrame_ = 0; // 硬直フレームリセット
+
+	// 腕の角度をリセット
+	if (parts_.size() >= 2)
+	{
+		parts_[1].transform.rotate_ = { 0.0f, 0.0f, 0.0f }; // 左腕リセット
+		parts_[2].transform.rotate_ = { 0.0f, 0.0f, 0.0f }; // 右腕リセット
+	}
+}
+
+
+/// -------------------------------------------------------------
+///					　通常行動の更新処理
+/// -------------------------------------------------------------
+void Player::BehaviorRootUpdate()
+{
+	// 移動処理
+	Move();
+
+	// 腕のアニメーションを更新（移動中かどうか判定）
+	bool isMoving = input_->PushKey(DIK_W) || input_->PushKey(DIK_S) || input_->PushKey(DIK_A) || input_->PushKey(DIK_D);
+	UpdateArmAnimation(isMoving);
+}
+
+
+/// -------------------------------------------------------------
+///					　	攻撃行動の初期化処理
+/// -------------------------------------------------------------
+void Player::BehaviorAttackInitialize()
+{
+	attackFrame_ = 0; // 攻撃の進行フレームをリセット
+	isAttacking_ = true; // ハンマーを表示
+	isAttackHold_ = false; // 固定フラグをリセット
+	attackHoldFrame_ = 0; // 硬直フレームリセット
+}
+
+
+/// -------------------------------------------------------------
+///					　	攻撃行動の更新処理
+/// -------------------------------------------------------------
+void Player::BehaviorAttackUpdate()
+{
+	attackFrame_++; // 腕の回転を適用（両腕同じ動き）
+
+	float playerYaw = body_.transform.rotate_.y; // プレイヤーのY軸回転
+	float armAngle = 0.0f; // 腕の回転角度
+
+	if (attackFrame_ < attackSwingFrames_)
+	{
+		// 振りかぶり（前半）
+		float t = static_cast<float>(attackFrame_) / attackSwingFrames_;
+		float angle = -1.7f * (1.0f - t); // -90度 → 0度
+		hammer_->SetRotation({ -angle, playerYaw, 0.0f });
+
+		armAngle = -maxArmSwingAngle_ * (1.0f + t); // 腕を後ろに引く
+	}
+	else if (attackFrame_ < attackTotalFrames_)
+	{
+		// 振り下ろし（後半）
+		float t = static_cast<float>(attackFrame_ - attackSwingFrames_) / (attackTotalFrames_ - attackSwingFrames_);
+		float angle = -1.7f * t; // 0度 → -90度
+		hammer_->SetRotation({ -angle, playerYaw, 0.0f });
+
+		armAngle = -maxArmSwingAngle_ * (2.0f - t); // 腕を前に振る
+	}
+	else
+	{
+		// 攻撃アニメーション終了 → 角度を固定
+		if (!isAttackHold_)
+		{
+			isAttackHold_ = true; // 固定モードに切り替え
+			attackHoldFrame_ = 0; // カウンターリセット
+		}
+
+		// 攻撃後の硬直中の腕の角度（少し下げた状態）
+		armAngle = maxArmSwingAngle_ * -1.0f;
+
+		// 固定時間が経過するまでハンマーの角度を変更しない
+		attackHoldFrame_++;
+		if (attackHoldFrame_ >= attackHoldFrames_)
+		{
+			// 硬直が終わったら通常状態に戻る
+			behaviorRequest_ = Behavior::kRoot;
+			isAttacking_ = false; // ハンマーを非表示
+			isAttackHold_ = false; // フラグリセット
+		}
+	}
+
+	// 腕の回転を適用（両腕同じ動き）
+	if (parts_.size() >= 2) // 腕のデータが存在するか確認
+	{
+		parts_[1].transform.rotate_.x = armAngle; // 左腕
+		parts_[2].transform.rotate_.x = armAngle; // 右腕
 	}
 }

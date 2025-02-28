@@ -84,7 +84,7 @@ public:
 
 	// XYZ回転行列
 	static Matrix4x4 MakeRotateMatrix(const Vector3& radian);
-
+	
 	// 平行移動行列
 	static Matrix4x4 MakeTranslateMatrix(const Vector3& translate);
 
