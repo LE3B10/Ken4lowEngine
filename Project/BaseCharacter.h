@@ -2,6 +2,7 @@
 #include <Object3D.h>
 #include <WorldTransform.h>
 
+#include <numbers>
 #include <vector>
 
 /// ---------- 前方宣言 ---------- ///
