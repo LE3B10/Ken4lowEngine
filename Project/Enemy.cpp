@@ -13,7 +13,7 @@ void Enemy::Initialize()
 	body_.object = std::make_unique<Object3D>();
 	body_.object->Initialize("Enemy/enemy.gltf");
 	body_.transform.Initialize();
-	body_.transform.translate_ = { radius_, 0, 0 };
+	body_.transform.translation_ = { radius_, 0, 0 };
 
 	// 子オブジェクト（頭、腕）をリストに追加
 	std::vector<std::pair<std::string, Vector3>> partData =
@@ -28,8 +28,8 @@ void Enemy::Initialize()
 		part.object = std::make_unique<Object3D>();
 		part.object->Initialize(modelPath);
 		part.transform.Initialize();
-		part.transform.translate_ = position;
-		part.object->SetTranslate(part.transform.translate_);
+		part.transform.translation_ = position;
+		part.object->SetTranslate(part.transform.translation_);
 		part.transform.parent_ = &body_.transform; // 親を設定
 		parts_.push_back(std::move(part));
 	}
@@ -46,9 +46,9 @@ void Enemy::Update()
 
 	// 円運動を更新
 	angle_ += speed_;
-	if (angle_ > 2.0f * 3.14159265f) // 角度のリセット
+	if (angle_ > 2.0f * std::numbers::pi_v<float>) // 角度のリセット
 	{
-		angle_ -= 2.0f * 3.14159265f;
+		angle_ -= 2.0f * std::numbers::pi_v<float>;
 	}
 
 	// 新しい位置を計算
@@ -56,16 +56,19 @@ void Enemy::Update()
 	float z = radius_ * sin(angle_);
 
 	// 移動方向のベクトル
-	float velocityX = x - body_.transform.translate_.x;
-	float velocityZ = z - body_.transform.translate_.z;
+	float velocityX = x - body_.transform.translation_.x;
+	float velocityZ = z - body_.transform.translation_.z;
 
 	// 向きの計算（atan2を使用）
-	float targetAngle = atan2(-velocityX, velocityZ) * (180.0f / 3.14159265f);
-	float smoothAngle = Vector3::AngleLerp(body_.transform.rotate_.y * (180.0f / 3.14159265f), targetAngle, 0.2f);
-	body_.transform.rotate_.y = smoothAngle * (3.14159265f / 180.0f);
+	float targetAngle = atan2(-velocityX, velocityZ) * (180.0f / std::numbers::pi_v<float>);
+	float smoothAngle = Vector3::AngleLerp(body_.transform.rotate_.y * (180.0f / std::numbers::pi_v<float>), targetAngle, 0.2f);
+	body_.transform.rotate_.y = smoothAngle * (std::numbers::pi_v<float> / 180.0f);
 
 	// 位置を更新
-	body_.transform.translate_ = { x, 0, z };
+	body_.transform.translation_ = { x, 0, z };
+
+	// 腕のアニメーション更新
+	UpdateArmAnimation();
 }
 
 
@@ -76,4 +79,27 @@ void Enemy::Draw()
 {
 	// 基底クラスの描画処理
 	BaseCharacter::Draw();
+}
+
+
+/// -------------------------------------------------------------
+///						腕のアニメーション更新
+/// -------------------------------------------------------------
+void Enemy::UpdateArmAnimation()
+{
+	// アニメーションパラメータを更新
+	armSwingParameter_ += kArmSwingSpeed;
+
+	// 2πを超えたらリセット（ループ）
+	armSwingParameter_ = std::fmod(armSwingParameter_, 2.0f * std::numbers::pi_v<float>);
+
+	// 腕の振り角度をサイン波で計算
+	float targetSwingAngle = kMaxArmSwingAngle * sinf(armSwingParameter_);
+
+	// 腕のアニメーションを適用
+	if (parts_.size() >= 2) // 腕のデータが存在するか確認
+	{
+		parts_[0].transform.rotate_.x = -targetSwingAngle; // 左腕
+		parts_[1].transform.rotate_.x = targetSwingAngle;  // 右腕
+	}
 }

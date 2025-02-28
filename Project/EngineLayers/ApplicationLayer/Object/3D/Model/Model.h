@@ -52,13 +52,13 @@ public: /// ---------- ゲッタ ---------- ///
 
 	const Vector3& GetScale() const { return worldTransform.scale_; }
 	const Vector3& GetRotate() const { return worldTransform.rotate_; }
-	const Vector3& GetTranslate() const { return worldTransform.translate_; }
+	const Vector3& GetTranslate() const { return worldTransform.translation_; }
 
 public: /// ---------- セッタ ---------- ///
 
 	void SetScale(const Vector3& scale) { worldTransform.scale_ = scale; }
 	void SetRotate(const Vector3& rotate) { worldTransform.rotate_ = rotate; }
-	void SetTranslate(const Vector3& translate) { worldTransform.translate_ = translate; }
+	void SetTranslate(const Vector3& translate) { worldTransform.translation_ = translate; }
 
 private:
 

@@ -1,6 +1,8 @@
 #pragma once
 #include <BaseCharacter.h>
-#include <numbers>
+#include <Hammer.h>
+
+#include <optional>
 
 
 /// -------------------------------------------------------------
@@ -8,6 +10,22 @@
 /// -------------------------------------------------------------
 class Player : public BaseCharacter
 {
+private: /// ---------- 構造体 ---------- ///
+
+	/// ---------- 振る舞い ---------- ///
+	enum class Behavior
+	{
+		kRoot,	 // 通常状態
+		kAttack, // 攻撃中
+		kDash,	 // ダッシュ中
+	};
+
+	// ダッシュ用ワーク
+	struct WorkDash
+	{
+		uint32_t dashParameter_ = 0; // ダッシュ用媒介変数
+	};
+
 public: /// ---------- メンバ関数 ---------- ///
 
 	// 初期化処理
@@ -24,13 +42,19 @@ public: /// ---------- ゲッタ ---------- ///
 	// カメラの取得
 	Camera* GetCamera() { return camera_; }
 
+	// ダッシュフラグを取得
+	bool IsDashing() const { return behavior_ == Behavior::kDash; }
+
+	// プレイヤーの向きを取得
+	float GetYaw() const { return body_.transform.rotate_.y; }
+
 public: /// ---------- セッタ ---------- ///
 
 	// カメラの設定
 	void SetCamera(Camera* camera) { camera_ = camera; }
 
 private: /// ---------- メンバ関数 ---------- ///
-	
+
 	// 移動処理
 	void Move();
 
@@ -42,31 +66,66 @@ private: /// ---------- メンバ関数 ---------- ///
 
 	// 腕のアニメーション
 	void UpdateArmAnimation(bool isMoving);
-	
+
+private: /// ---------- ルートビヘイビア用メンバ関数 ---------- ///
+
+	// 通常行動の初期化処理
+	void BehaviorRootInitialize();
+
+	// 通常行動の更新処理
+	void BehaviorRootUpdate();
+
+	// 攻撃行動の初期化処理
+	void BehaviorAttackInitialize();
+
+	// 攻撃行動の更新処理
+	void BehaviorAttackUpdate();
+
+	// ダッシュ行動の初期化処理
+	void BehaviorDashInitialize();
+
+	// ダッシュ行動の更新処理
+	void BehaviorDashUpdate();
+
+private: /// ---------- メンバ変数 ---------- ///
+
+	// 振る舞い
+	Behavior behavior_ = Behavior::kRoot; // 現在の行動
+
+	// 次の振る舞いをリクエスト
+	std::optional<Behavior> behaviorRequest_ = std::nullopt;
+
+	// ダッシュ
+	WorkDash workDash_;
+
+	// ハンマー
+	std::unique_ptr<Hammer> hammer_;
+
 private: /// ---------- 定数 ---------- ///
-	
-	// 移動速度
-	float moveSpeed_ = 0.3f;
 
-	// 浮遊ギミックの媒介変数
-	float floatingParameter_ = 0.0f;
+	float moveSpeed_ = 0.3f; // 移動速度
+	float floatingParameter_ = 0.0f; // 浮遊ギミックの媒介変数
+	const uint16_t kFloatingCycle = 120; // 浮遊移動のサイクル<frame>
+	const float kFloatingStep = 2.0f * std::numbers::pi_v<float> / float(kFloatingCycle); // 1フレームあたりの浮遊移動量
+	float armSwingParameter_ = 0.0f; // 腕のアニメーション用の媒介変数（フレームごとに変化）
+	const float kMaxArmSwingAngle = 0.3f; // 腕の振りの最大角度（ラジアン）
+	const float kArmSwingSpeedIdle = 0.2f; // 腕の振りの速度（待機時の揺れ速度）
+	const float kArmSwingSpeedMove = 8.0f; // 移動時の腕振りの速度係数
 
-	// 浮遊移動のサイクル<frame>
-	const uint16_t kFloatingCycle = 120;
+	const float maxArmSwingAngle_ = 1.5f; // 腕の最大スイング角度（ラジアン）
 
-	// 1フレームあたりの浮遊移動量
-	const float kFloatingStep = 2.0f * std::numbers::pi_v<float> / float(kFloatingCycle);
+	// 攻撃アニメーションの状態
+	bool isAttacking_ = false; // ハンマーを描画するかどうかのフラグ
+	int attackFrame_ = 0; // 攻撃の進行フレーム
+	const int attackTotalFrames_ = 30; // 攻撃にかかるフレーム数
+	const int attackSwingFrames_ = 20; // 振りかぶり→振り下ろしのフレーム
 
-	// 腕のアニメーション用の媒介変数（フレームごとに変化）
-	float armSwingParameter_ = 0.0f;
+	bool isAttackHold_ = false; // 攻撃後に武器の角度を固定するフラグ
+	int attackHoldFrame_ = 0; // 固定状態のカウント
+	const int attackHoldFrames_ = 20; // 武器を振った後の硬直時間（20フレーム）
 
-	// 腕の振りの最大角度（ラジアン）
-	const float kMaxArmSwingAngle = 0.3f;
-
-	// 腕の振りの速度（待機時の揺れ速度）
-	const float kArmSwingSpeedIdle = 0.2f;
-
-	// 移動時の腕振りの速度係数
-	const float kArmSwingSpeedMove = 8.0f;
+	const float dashSpeed_ = 1.0f; // ダッシュ速度（通常移動の3倍くらい）
+	const uint32_t behaviorDashTime_ = 20; // ダッシュ時間（フレーム数）
+	Vector3 dashDirection_; // ダッシュの移動方向
 };
 

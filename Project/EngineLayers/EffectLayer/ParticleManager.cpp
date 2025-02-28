@@ -132,13 +132,13 @@ void ParticleManager::Update()
 			if (group.second.numParticles < kNumMaxInstance)
 			{
 				// 速度を適用して位置を更新
-				(*particleIterator).worldTransform.translate_ += (*particleIterator).velocity * kDeltaTime;
+				(*particleIterator).worldTransform.translation_ += (*particleIterator).velocity * kDeltaTime;
 				(*particleIterator).currentTime += kDeltaTime; // 経過時間を加算
 
 				// スケール、回転、平行移動を利用してワールド行列を作成
-				Matrix4x4 worldMatrix = Matrix4x4::MakeAffineMatrix((*particleIterator).worldTransform.scale_, (*particleIterator).worldTransform.rotate_, (*particleIterator).worldTransform.translate_);
+				Matrix4x4 worldMatrix = Matrix4x4::MakeAffineMatrix((*particleIterator).worldTransform.scale_, (*particleIterator).worldTransform.rotate_, (*particleIterator).worldTransform.translation_);
 				scaleMatrix = Matrix4x4::MakeScaleMatrix((*particleIterator).worldTransform.scale_);
-				translateMatrix = Matrix4x4::MakeTranslateMatrix((*particleIterator).worldTransform.translate_);
+				translateMatrix = Matrix4x4::MakeTranslateMatrix((*particleIterator).worldTransform.translation_);
 
 				// ビルボードを使うかどうか
 				if (useBillboard)
@@ -163,7 +163,7 @@ void ParticleManager::Update()
 					// フィールドの範囲内のパーティクルには加速度を適用する
 						// 各パーティクルに最適な風を適用
 					for (const auto& zone : windZones) {
-						if (IsCollision(accelerationField.area, (*particleIterator).worldTransform.translate_)) {
+						if (IsCollision(accelerationField.area, (*particleIterator).worldTransform.translation_)) {
 							(*particleIterator).velocity.x += zone.strength.x;
 							(*particleIterator).velocity.y += zone.strength.y;
 							(*particleIterator).velocity.z += zone.strength.z;
@@ -569,11 +569,11 @@ ParticleManager::Particle ParticleManager::MakeNewParticle(std::mt19937& randomE
 	// 位置と速度を[-1, 1]でランダムに初期化
 	particle.worldTransform.scale_ = { 1.0f, 1.0f, 1.0f };
 	particle.worldTransform.rotate_ = { 0.0f, 0.0f, 0.0f };
-	particle.worldTransform.translate_ = { distribution(randomEngine),distribution(randomEngine),distribution(randomEngine) };
+	particle.worldTransform.translation_ = { distribution(randomEngine),distribution(randomEngine),distribution(randomEngine) };
 
 	// 発生場所を計算
 	Vector3 randomTranslate{ distribution(randomEngine),distribution(randomEngine),distribution(randomEngine) };
-	particle.worldTransform.translate_ = translate + randomTranslate;
+	particle.worldTransform.translation_ = translate + randomTranslate;
 
 	// 色を[0, 1]でランダムに初期化
 	particle.color = { distColor(randomEngine), distColor(randomEngine), distColor(randomEngine), 1.0f };
@@ -591,7 +591,7 @@ std::list<ParticleManager::Particle> ParticleManager::Emit(const Emitter& emitte
 	std::list<Particle> particles;
 	for (uint32_t count = 0; count < emitter.count; ++count)
 	{
-		particles.push_back(MakeNewParticle(randomEngine, emitter.worldTransform.translate_));
+		particles.push_back(MakeNewParticle(randomEngine, emitter.worldTransform.translation_));
 	}
 
 	return particles;

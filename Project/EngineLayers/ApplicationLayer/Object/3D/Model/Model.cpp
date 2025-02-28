@@ -34,8 +34,8 @@ void Model::Initialize(const std::string& directoryPath, const std::string& file
 /// -------------------------------------------------------------
 void Model::Update()
 {
-	Matrix4x4 worldMatrix = Matrix4x4::MakeAffineMatrix(worldTransform.scale_, worldTransform.rotate_, worldTransform.translate_);
-	//Matrix4x4 camraMatrix = MakeAffineMatrix(cameraTransform.scale_, cameraTransform.rotate_, cameraTransform.translate_);
+	Matrix4x4 worldMatrix = Matrix4x4::MakeAffineMatrix(worldTransform.scale_, worldTransform.rotate_, worldTransform.translation_);
+	//Matrix4x4 camraMatrix = MakeAffineMatrix(cameraTransform.scale_, cameraTransform.rotate_, cameraTransform.translation_);
 	Matrix4x4 viewMatrix = Matrix4x4::Inverse(worldMatrix);
 	Matrix4x4 projectionMatrix = Matrix4x4::MakePerspectiveFovMatrix(0.45f, 1280.0f / 720.0f, 0.1f, 100.0f);
 	Matrix4x4 worldViewProjectionMatrix = Matrix4x4::Multiply(worldMatrix, Matrix4x4::Multiply(viewMatrix, projectionMatrix));
@@ -68,7 +68,7 @@ void Model::DrawCall(ID3D12GraphicsCommandList* commandList)
 
 void Model::CameraImGui()
 {
-	/*ImGui::DragFloat3("cameraTranslate", &cameraTransform.translate_.x, 0.01f);
+	/*ImGui::DragFloat3("cameraTranslate", &cameraTransform.translation_.x, 0.01f);
 	ImGui::SliderAngle("CameraRotateX", &cameraTransform.rotate_.x);
 	ImGui::SliderAngle("CameraRotateY", &cameraTransform.rotate_.y);
 	ImGui::SliderAngle("CameraRotateZ", &cameraTransform.rotate_.z);*/
@@ -78,14 +78,14 @@ void Model::DrawImGui()
 {
 	if (ImGui::TreeNode("3DObject"))
 	{
-		/*ImGui::DragFloat3("cameraTranslate", &cameraTransform.translate_.x, 0.01f);
+		/*ImGui::DragFloat3("cameraTranslate", &cameraTransform.translation_.x, 0.01f);
 		ImGui::SliderAngle("CameraRotateX", &cameraTransform.rotate_.x);
 		ImGui::SliderAngle("CameraRotateY", &cameraTransform.rotate_.y);
 		ImGui::SliderAngle("CameraRotateZ", &cameraTransform.rotate_.z);*/
 
 		ImGui::DragFloat3("scale", &worldTransform.scale_.x, 0.01f);
 		ImGui::DragFloat3("rotate", &worldTransform.rotate_.x, 0.01f);
-		ImGui::DragFloat3("translate", &worldTransform.translate_.x, 0.01f);
+		ImGui::DragFloat3("translate", &worldTransform.translation_.x, 0.01f);
 		ImGui::TreePop();
 	}
 }

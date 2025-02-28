@@ -27,7 +27,7 @@ public: /// ---------- セッター ---------- ///
 	void SetRotate(const Vector3& rotate) { worldTransform_.rotate_ = rotate; }
 
 	// 移動の設定
-	void SetTranslate(const Vector3& translate) { worldTransform_.translate_ = translate; }
+	void SetTranslate(const Vector3& translate) { worldTransform_.translation_ = translate; }
 
 	// 水平方向視野角の設定
 	void SetFovY(const float fovY) { fovY_ = fovY; }
@@ -62,7 +62,7 @@ public: /// ---------- ゲッター ---------- ///
 	const Vector3& GetRotate() const { return worldTransform_.rotate_; }
 
 	// 移動の取得
-	const Vector3& GetTranslate() const { return worldTransform_.translate_; }
+	const Vector3& GetTranslate() const { return worldTransform_.translation_; }
 
 	// ワールド変換の取得
 	const WorldTransform* GetWorldTransform() const { return &worldTransform_; }
