@@ -18,10 +18,24 @@ public: /// ---------- メンバ関数 ---------- ///
 	// 描画処理
 	void Draw() override;
 
+private: /// ---------- メンバ関数 ---------- ///
+
+	// 腕のアニメーションを更新する処理
+	void UpdateArmAnimation();
+
 private: /// ---------- メンバ変数 ---------- ///
 
 	float angle_ = 0.0f;
 	float radius_ = 100.0f;
 	float speed_ = 0.005f;
+
+	// 腕のアニメーション用の媒介変数
+	float armSwingParameter_ = 0.0f;
+
+	// 腕の振りの最大角度（ラジアン）
+	const float kMaxArmSwingAngle = 0.3f;
+
+	// 腕の振りの速度
+	const float kArmSwingSpeed = 0.1f;
 };
 
