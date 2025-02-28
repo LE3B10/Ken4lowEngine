@@ -9,7 +9,7 @@ void Hammer::Initialize()
 	object_ = std::make_unique<Object3D>();
 	object_->Initialize("Hammer/Hammer.gltf"); // ハンマーの3Dモデル
 	worldTransform_.Initialize();
-	worldTransform_.translate_ = { 0.0f, 4.5f, 0.0f }; // 初期位置（手元）
+	worldTransform_.translation_ = { 0.0f, 4.5f, 0.0f }; // 初期位置（手元）
 }
 
 
@@ -20,14 +20,14 @@ void Hammer::Update()
 {
 	if (parentTransform_)
 	{
-		worldTransform_.translate_ = parentTransform_->translate_ + offset_; // 親の座標に同期
+		worldTransform_.translation_ = parentTransform_->translation_ + offset_; // 親の座標に同期
 
 		// 親（プレイヤー）の回転を取得
 		worldTransform_.rotate_.y = parentTransform_->rotate_.y;
 	}
 
 	// TODO: プレイヤーの腕の動きに合わせる処理
-	object_->SetTranslate(worldTransform_.translate_);
+	object_->SetTranslate(worldTransform_.translation_);
 	object_->SetRotate(worldTransform_.rotate_);
 
 	// 更新処理

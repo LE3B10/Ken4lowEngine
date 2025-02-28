@@ -4,19 +4,28 @@
 
 #include <optional>
 
-/// ---------- 振る舞い ---------- ///
-enum class Behavior
-{
-	kRoot,	 // 通常状態
-	kAttack, // 攻撃中
-};
-
 
 /// -------------------------------------------------------------
 ///						　プレイヤークラス
 /// -------------------------------------------------------------
 class Player : public BaseCharacter
 {
+private: /// ---------- 構造体 ---------- ///
+
+	/// ---------- 振る舞い ---------- ///
+	enum class Behavior
+	{
+		kRoot,	 // 通常状態
+		kAttack, // 攻撃中
+		kDash,	 // ダッシュ中
+	};
+
+	// ダッシュ用ワーク
+	struct WorkDash
+	{
+		uint32_t dashParameter_ = 0; // ダッシュ用媒介変数
+	};
+
 public: /// ---------- メンバ関数 ---------- ///
 
 	// 初期化処理
@@ -32,6 +41,12 @@ public: /// ---------- ゲッタ ---------- ///
 
 	// カメラの取得
 	Camera* GetCamera() { return camera_; }
+
+	// ダッシュフラグを取得
+	bool IsDashing() const { return behavior_ == Behavior::kDash; }
+
+	// プレイヤーの向きを取得
+	float GetYaw() const { return body_.transform.rotate_.y; }
 
 public: /// ---------- セッタ ---------- ///
 
@@ -66,6 +81,12 @@ private: /// ---------- ルートビヘイビア用メンバ関数 ---------- //
 	// 攻撃行動の更新処理
 	void BehaviorAttackUpdate();
 
+	// ダッシュ行動の初期化処理
+	void BehaviorDashInitialize();
+
+	// ダッシュ行動の更新処理
+	void BehaviorDashUpdate();
+
 private: /// ---------- メンバ変数 ---------- ///
 
 	// 振る舞い
@@ -73,6 +94,9 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	// 次の振る舞いをリクエスト
 	std::optional<Behavior> behaviorRequest_ = std::nullopt;
+
+	// ダッシュ
+	WorkDash workDash_;
 
 	// ハンマー
 	std::unique_ptr<Hammer> hammer_;
@@ -99,5 +123,9 @@ private: /// ---------- 定数 ---------- ///
 	bool isAttackHold_ = false; // 攻撃後に武器の角度を固定するフラグ
 	int attackHoldFrame_ = 0; // 固定状態のカウント
 	const int attackHoldFrames_ = 20; // 武器を振った後の硬直時間（20フレーム）
+
+	const float dashSpeed_ = 1.0f; // ダッシュ速度（通常移動の3倍くらい）
+	const uint32_t behaviorDashTime_ = 20; // ダッシュ時間（フレーム数）
+	Vector3 dashDirection_; // ダッシュの移動方向
 };
 

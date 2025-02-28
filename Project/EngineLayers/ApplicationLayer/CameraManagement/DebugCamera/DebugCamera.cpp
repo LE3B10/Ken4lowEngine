@@ -19,13 +19,13 @@ DebugCamera* DebugCamera::GetInstance()
 void DebugCamera::Initialize()
 {
 	worldTransform_.Initialize();
-	worldTransform_.translate_ = { 0.0f,0.0f,-50.0f };
+	worldTransform_.translation_ = { 0.0f,0.0f,-50.0f };
 
 	fovY_ = 0.45f;
 	aspectRatio_ = float(WinApp::kClientWidth) / float(WinApp::kClientHeight);
 	nearClip_ = 0.1f;
 	farClip_ = 100.0f;
-	worldMatrix_ = Matrix4x4::MakeAffineMatrix(worldTransform_.scale_, worldTransform_.rotate_, worldTransform_.translate_);
+	worldMatrix_ = Matrix4x4::MakeAffineMatrix(worldTransform_.scale_, worldTransform_.rotate_, worldTransform_.translation_);
 	viewMatrix_ = Matrix4x4::Inverse(worldMatrix_);
 	projectionMatrix_ = Matrix4x4::MakePerspectiveFovMatrix(fovY_, aspectRatio_, nearClip_, farClip_);
 	viewProjectionMatrix_ = Matrix4x4::Multiply(viewMatrix_, projectionMatrix_);
@@ -45,7 +45,7 @@ void DebugCamera::Update()
 	rotateMatrix_ = Matrix4x4::MakeRotateMatrix(worldTransform_.rotate_);
 
 	// ワールド行列を作る
-	worldMatrix_ = Matrix4x4::MakeAffineMatrix(worldTransform_.scale_, worldTransform_.rotate_, worldTransform_.translate_);
+	worldMatrix_ = Matrix4x4::MakeAffineMatrix(worldTransform_.scale_, worldTransform_.rotate_, worldTransform_.translation_);
 
 	// ビュー行列を作る
 	viewMatrix_ = Matrix4x4::Inverse(worldMatrix_);
@@ -76,7 +76,7 @@ void DebugCamera::Move()
 	move = Vector3::Transform(move, rotateMatrix_);
 
 	// 計算した移動量を適用
-	worldTransform_.translate_ += move;
+	worldTransform_.translation_ += move;
 
 	// **カメラの角度変更**
 	if (Input::GetInstance()->PushKey(DIK_UP)) { worldTransform_.rotate_.x -= 0.04f; }

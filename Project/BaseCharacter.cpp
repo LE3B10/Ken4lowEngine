@@ -24,7 +24,7 @@ void BaseCharacter::Update()
 {
 	// 体のワールド変換を更新
 	body_.transform.Update();
-	body_.object->SetTranslate(body_.transform.translate_);
+	body_.object->SetTranslate(body_.transform.translation_);
 	body_.object->SetRotate(body_.transform.rotate_);
 	body_.object->Update();
 

@@ -48,6 +48,7 @@ void GamePlayScene::Initialize()
 	followCamera_ = std::make_unique<FollowCamera>();
 	followCamera_->Initialize();
 	followCamera_->SetTarget(player_->GetWorldTransform());
+	followCamera_->SetPlayer(player_.get());
 
 	// 敵の初期化
 	enemy_ = std::make_unique<Enemy>();

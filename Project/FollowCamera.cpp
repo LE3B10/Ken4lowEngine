@@ -2,6 +2,7 @@
 #include <Object3DCommon.h>
 #include <Camera.h>
 #include <Input.h>
+#include <Player.h>
 
 
 /// -------------------------------------------------------------
@@ -23,24 +24,34 @@ void FollowCamera::Update()
 {
 	if (!target_) return; // 追従対象が設定されていなければ何もしない
 
-	// **カメラの回転処理（左右キー）**
-	if (input_->PushKey(DIK_LEFT)) { cameraYaw_ += rotationSpeed_; } // 左回転
-	if (input_->PushKey(DIK_RIGHT)) { cameraYaw_ -= rotationSpeed_; } // 右回転
+	float targetYaw = cameraYaw_;
+	float targetPitch = cameraPitch_;
 
-	// **カメラの上下回転処理（Pitch: 上下キー）**
-	if (input_->PushKey(DIK_UP)) { cameraPitch_ -= rotationSpeed_; }// 上回転
-	if (input_->PushKey(DIK_DOWN)) { cameraPitch_ += rotationSpeed_; }// 下回転
+	// **Shiftキーで回転速度を上げる**
+	float speedMultiplier = (input_->PushKey(DIK_LSHIFT)) ? 2.0f : 1.0f;
 
-	// **X軸回転（上下）のデッドゾーン適用**
-	if (cameraPitch_ > maxPitch_) cameraPitch_ = maxPitch_;
-	if (cameraPitch_ < minPitch_) cameraPitch_ = minPitch_;
+	// **カメラの回転処理**
+	if (input_->PushKey(DIK_LEFT)) { targetYaw += rotationSpeed_ * speedMultiplier; }
+	if (input_->PushKey(DIK_RIGHT)) { targetYaw -= rotationSpeed_ * speedMultiplier; }
+	if (input_->PushKey(DIK_UP)) { targetPitch -= rotationSpeed_ * speedMultiplier; }
+	if (input_->PushKey(DIK_DOWN)) { targetPitch += rotationSpeed_ * speedMultiplier; }
 
+	targetPitch = std::clamp(targetPitch, minPitch_, maxPitch_);
 
-	// **ターゲット（プレイヤー）のワールド行列を更新**
-	const_cast<WorldTransform*>(target_)->Update();
+	// **Rキーでカメラの向きをプレイヤーの向きにリセット**
+	if (input_->PushKey(DIK_R) && player_)
+	{
+		targetYaw = player_->GetYaw();
+		targetPitch = 0.3f;
+	}
 
-	// **ターゲットのワールド座標を取得**
+	// **スムーズに角度を補間（補間速度を増やす）**
+	cameraYaw_ = std::lerp(cameraYaw_, targetYaw, 0.3f);
+	cameraPitch_ = std::lerp(cameraPitch_, targetPitch, 0.3f);
+
+	// **ターゲットの位置を補間**
 	Vector3 targetPos = target_->worldTranslate_;
+	interTarget_ = Vector3::Lerp(interTarget_, targetPos, 0.1f);
 
 	// **カメラのオフセットを回転**
 	float sinYaw = sinf(cameraYaw_);
@@ -48,7 +59,6 @@ void FollowCamera::Update()
 	float sinPitch = sinf(cameraPitch_);
 	float cosPitch = cosf(cameraPitch_);
 
-	// **オフセットを Yaw & Pitch で回転**
 	Vector3 rotatedOffset = {
 		offset_.x * cosYaw - offset_.z * sinYaw,
 		offset_.y * cosPitch - offset_.z * sinPitch,
@@ -56,15 +66,41 @@ void FollowCamera::Update()
 	};
 
 	// **カメラの位置を計算**
-	Vector3 newCameraPos = targetPos + rotatedOffset;
+	Vector3 newCameraPos = interTarget_ + rotatedOffset;
 
-	// **スムーズにカメラを移動**
+	// **カメラの補間速度を変更**
 	camera_->SetTranslate(Vector3::Lerp(camera_->GetTranslate(), newCameraPos, 0.1f));
 
-	// **カメラの回転を設定**
+	// **カメラの回転を補間**
 	Vector3 newRotation = { cameraPitch_, cameraYaw_, 0.0f };
 	camera_->SetRotate(Vector3::Lerp(camera_->GetRotate(), newRotation, 0.1f));
 
 	// **カメラの更新**
 	camera_->Update();
+}
+
+
+/// -------------------------------------------------------------
+///							リセット処理
+/// -------------------------------------------------------------
+void FollowCamera::Reset()
+{
+	// 追従対象がいれば
+	if (target_)
+	{
+		interTarget_ = target_->worldTranslate_; // 現在の位置を初期値にする
+	}
+}
+
+Vector3 FollowCamera::UpdateOffset()
+{
+	// **プレイヤーがダッシュ中か判定**
+	bool isDashing = (player_ && player_->IsDashing());
+
+	// **ダッシュ中はカメラを遠ざける**
+	Vector3 dashOffset = { 0.0f, 12.0f, -40.0f }; // 通常より少し後ろ＆上
+	Vector3 normalOffset = { 0.0f, 10.0f, -35.0f };
+
+	// **カメラのオフセットを補間**
+	return Vector3::Lerp(offset_, isDashing ? dashOffset : normalOffset, 0.1f);
 }

@@ -14,7 +14,7 @@ void Player::Initialize()
 	body_.object = std::make_unique<Object3D>();
 	body_.object->Initialize("Player/body.gltf");
 	body_.transform.Initialize();
-	body_.transform.translate_ = { 0, 0, 0 };
+	body_.transform.translation_ = { 0, 0, 0 };
 
 	// 子オブジェクト（頭、腕）をリストに追加
 	std::vector<std::pair<std::string, Vector3>> partData =
@@ -30,8 +30,8 @@ void Player::Initialize()
 		part.object = std::make_unique<Object3D>();
 		part.object->Initialize(modelPath);
 		part.transform.Initialize();
-		part.transform.translate_ = position;
-		part.object->SetTranslate(part.transform.translate_);
+		part.transform.translation_ = position;
+		part.object->SetTranslate(part.transform.translation_);
 		part.transform.parent_ = &body_.transform; // 親を設定
 		parts_.push_back(std::move(part));
 	}
@@ -65,6 +65,9 @@ void Player::Update()
 	// 攻撃キー（例えばスペースキー）を押したら攻撃を開始
 	if (input_->PushKey(DIK_SPACE) && behavior_ == Behavior::kRoot) { behaviorRequest_ = Behavior::kAttack; }
 
+	// ダッシュキー（例えば Shift キー）を押したらダッシュを開始
+	if (input_->PushKey(DIK_LSHIFT) && behavior_ == Behavior::kRoot) { behaviorRequest_ = Behavior::kDash; }
+
 	// ビヘイビア遷移
 	if (behaviorRequest_)
 	{
@@ -90,6 +93,15 @@ void Player::Update()
 			BehaviorAttackInitialize();
 
 			break;
+
+			/// ---------- ダッシュビヘイビア ----------///
+		case Behavior::kDash:
+
+			// ダッシュ行動の初期化
+			BehaviorDashInitialize();
+
+			break;
+
 		}
 
 		// ビヘイビアリクエストをリセット
@@ -113,6 +125,14 @@ void Player::Update()
 
 		// 攻撃行動の更新
 		BehaviorAttackUpdate();
+
+		break;
+
+		/// ---------- ダッシュビヘイビア ----------///
+	case Behavior::kDash:
+
+		// ダッシュ行動の更新処理
+		BehaviorDashUpdate();
 
 		break;
 	}
@@ -163,7 +183,7 @@ void Player::Move()
 
 			// 正規化して移動
 			rotatedMove = Vector3::Normalize(rotatedMove);
-			body_.transform.translate_ += rotatedMove * moveSpeed_;
+			body_.transform.translation_ += rotatedMove * moveSpeed_;
 		}
 	}
 }
@@ -191,7 +211,7 @@ void Player::UpdateFloatingGimmick()
 	// 浮遊の振幅<m>
 	const float floatingAmplitude = 0.3f;
 	// 浮遊を座標に適用
-	body_.transform.translate_.y = floatingAmplitude * sinf(floatingParameter_);
+	body_.transform.translation_.y = floatingAmplitude * sinf(floatingParameter_);
 }
 
 
@@ -327,5 +347,43 @@ void Player::BehaviorAttackUpdate()
 	{
 		parts_[1].transform.rotate_.x = armAngle; // 左腕
 		parts_[2].transform.rotate_.x = armAngle; // 右腕
+	}
+}
+
+
+/// -------------------------------------------------------------
+///					　ダッシュ行動の初期化処理
+/// -------------------------------------------------------------
+void Player::BehaviorDashInitialize()
+{
+	workDash_.dashParameter_ = 0; // カウンターリセット
+
+	float yaw = body_.transform.rotate_.y; // プレイヤーのY軸回転を使用
+	dashDirection_.x = -sinf(yaw);
+	dashDirection_.z = cosf(yaw);
+
+	dashDirection_ = Vector3::Normalize(dashDirection_); // 正規化
+}
+
+
+
+/// -------------------------------------------------------------
+///					　	ダッシュ行動の更新処理
+/// -------------------------------------------------------------
+void Player::BehaviorDashUpdate()
+{
+	// ダッシュの時間（frame）
+	const uint32_t behaviorDashTime = 20;
+
+	// ダッシュの移動
+	body_.transform.translation_ += dashDirection_ * dashSpeed_;
+
+	// 向きを固定
+	body_.transform.rotate_.y = atan2(-dashDirection_.x, dashDirection_.z);
+
+	// ダッシュ時間が終了したら通常行動に戻る
+	if (++workDash_.dashParameter_ >= behaviorDashTime)
+	{
+		behaviorRequest_ = Behavior::kRoot;
 	}
 }

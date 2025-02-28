@@ -24,7 +24,7 @@ void WorldTransform::Initialize()
 void WorldTransform::Update()
 {
     // ローカル変換行列を作成
-    Matrix4x4 worldMatrix = Matrix4x4::MakeAffineMatrix(scale_, rotate_, translate_);
+    Matrix4x4 worldMatrix = Matrix4x4::MakeAffineMatrix(scale_, rotate_, translation_);
 
     // 親オブジェクトがあれば親のワールド行列を掛ける
     if (parent_)
