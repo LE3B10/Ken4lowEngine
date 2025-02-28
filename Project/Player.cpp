@@ -68,6 +68,9 @@ void Player::Update()
 	// ダッシュキー（例えば Shift キー）を押したらダッシュを開始
 	if (input_->PushKey(DIK_LSHIFT) && behavior_ == Behavior::kRoot) { behaviorRequest_ = Behavior::kDash; }
 
+	// ジャンプキーを押したらジャンプを開始
+	if (input_->TriggerKey(DIK_F) && behavior_ == Behavior::kRoot) { behaviorRequest_ = Behavior::kJump; }
+
 	// ビヘイビア遷移
 	if (behaviorRequest_)
 	{
@@ -83,7 +86,6 @@ void Player::Update()
 
 			// 通常行動の初期化
 			BehaviorRootInitialize();
-
 			break;
 
 			/// ----- アタックビヘイビア ----- ///
@@ -91,7 +93,6 @@ void Player::Update()
 
 			// 攻撃行動の初期化
 			BehaviorAttackInitialize();
-
 			break;
 
 			/// ---------- ダッシュビヘイビア ----------///
@@ -99,9 +100,14 @@ void Player::Update()
 
 			// ダッシュ行動の初期化
 			BehaviorDashInitialize();
-
 			break;
 
+			/// ---------- ジャンプビヘイビア ----------///
+		case Behavior::kJump:
+
+			// ジャンプ行動の初期化
+			BehaviorJumpInitialize();
+			break;
 		}
 
 		// ビヘイビアリクエストをリセット
@@ -117,7 +123,6 @@ void Player::Update()
 
 		// 通常行動の更新
 		BehaviorRootUpdate();
-
 		break;
 
 		/// ----- アタックビヘイビア ----- ///
@@ -125,7 +130,6 @@ void Player::Update()
 
 		// 攻撃行動の更新
 		BehaviorAttackUpdate();
-
 		break;
 
 		/// ---------- ダッシュビヘイビア ----------///
@@ -133,7 +137,13 @@ void Player::Update()
 
 		// ダッシュ行動の更新処理
 		BehaviorDashUpdate();
+		break;
 
+		/// ---------- ジャンプビヘイビア ----------///
+	case Behavior::kJump:
+
+		// ジャンプ行動の初期化
+		BehaviorJumpUpdate();
 		break;
 	}
 }
@@ -386,4 +396,22 @@ void Player::BehaviorDashUpdate()
 	{
 		behaviorRequest_ = Behavior::kRoot;
 	}
+}
+
+
+/// -------------------------------------------------------------
+///					　	ジャンプ行動の初期化処理
+/// -------------------------------------------------------------
+void Player::BehaviorJumpInitialize()
+{
+	
+}
+
+
+/// -------------------------------------------------------------
+///					　	ジャンプ行動の更新処理
+/// -------------------------------------------------------------
+void Player::BehaviorJumpUpdate()
+{
+	
 }
