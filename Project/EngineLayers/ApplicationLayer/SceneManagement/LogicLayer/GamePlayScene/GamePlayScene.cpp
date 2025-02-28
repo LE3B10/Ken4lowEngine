@@ -32,12 +32,26 @@ void GamePlayScene::Initialize()
 	wavLoader_ = std::make_unique<WavLoader>();
 	wavLoader_->StreamAudioAsync(fileName, 0.0f, 1.0f, false);
 
-	// terrainの生成と初期化
-	objectTerrain_ = std::make_unique<Object3D>();
-	objectTerrain_->Initialize("terrain.obj");
+	// プレイヤーの初期化
+	player_ = std::make_unique<Player>();
+	player_->Initialize();
 
-	objectBall_ = std::make_unique<Object3D>();
-	objectBall_->Initialize("sphere.gltf");
+	// スカイドームの初期化
+	skydome_ = std::make_unique<Skydome>();
+	skydome_->Initialize();
+
+	// 地面の初期化
+	ground_ = std::make_unique<Ground>();
+	ground_->Initialize();
+
+	// 追従カメラの初期化
+	followCamera_ = std::make_unique<FollowCamera>();
+	followCamera_->Initialize();
+	followCamera_->SetTarget(player_->GetWorldTransform());
+
+	// 敵の初期化
+	enemy_ = std::make_unique<Enemy>();
+	enemy_->Initialize();
 
 	// 衝突マネージャの生成
 	collisionManager_ = std::make_unique<CollisionManager>();
@@ -58,9 +72,20 @@ void GamePlayScene::Update()
 	}
 #endif // _DEBUG
 
-	// オブジェクトの更新処理
-	objectTerrain_->Update();
-	objectBall_->Update();
+	// プレイヤーの更新処理
+	player_->Update();
+
+	// スカイドームの更新処理
+	skydome_->Update();
+
+	// 地面の更新処理
+	ground_->Update();
+
+	// 追従カメラの更新処理
+	followCamera_->Update();
+
+	// 敵の更新処理
+	enemy_->Update();
 
 }
 
@@ -79,10 +104,17 @@ void GamePlayScene::Draw()
 	// オブジェクト3D共通描画設定
 	Object3DCommon::GetInstance()->SetRenderSetting();
 
-	// Terrain.obj の描画
-	objectTerrain_->Draw();
-	//objectBall_->Draw();
+	// プレイヤーの描画
+	player_->Draw();
 
+	// スカイドームの描画
+	skydome_->Draw();
+
+	// 地面の描画
+	ground_->Draw();
+
+	// 敵の描画
+	enemy_->Draw();
 
 	// ワイヤーフレームの描画
 	Wireframe::GetInstance()->DrawGrid(100.0f, 20.0f, { 0.25f, 0.25f, 0.25f,1.0f });
@@ -113,12 +145,7 @@ void GamePlayScene::Finalize()
 /// -------------------------------------------------------------
 void GamePlayScene::DrawImGui()
 {
-	ImGui::Begin("Test Window");
 
-	// TerrainのImGui
-	objectTerrain_->DrawImGui();
-
-	ImGui::End();
 }
 
 

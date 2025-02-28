@@ -308,3 +308,40 @@ Matrix4x4 Matrix4x4::MakeViewportMatrix(float left, float top, float width, floa
 	result.m[3][3] = 1.0f;
 	return result;
 }
+
+Matrix4x4 Matrix4x4::MakeLookAtMatrix(const Vector3& eye, const Vector3& target, const Vector3& up)
+{
+	// 前方向ベクトル（カメラが向く方向）
+	Vector3 forward = Vector3::Normalize(target - eye);
+
+	// 右方向ベクトル（カメラのX軸）
+	Vector3 right = Vector3::Normalize(Vector3::Cross(up, forward));
+
+	// 上方向ベクトル（カメラのY軸、再計算）
+	Vector3 upNew = Vector3::Cross(forward, right);
+
+	// LookAt行列の作成
+	Matrix4x4 lookAtMatrix = {};
+
+	lookAtMatrix.m[0][0] = right.x;
+	lookAtMatrix.m[0][1] = right.y;
+	lookAtMatrix.m[0][2] = right.z;
+	lookAtMatrix.m[0][3] = -Vector3::Dot(right, eye);
+
+	lookAtMatrix.m[1][0] = upNew.x;
+	lookAtMatrix.m[1][1] = upNew.y;
+	lookAtMatrix.m[1][2] = upNew.z;
+	lookAtMatrix.m[1][3] = -Vector3::Dot(upNew, eye);
+
+	lookAtMatrix.m[2][0] = -forward.x;
+	lookAtMatrix.m[2][1] = -forward.y;
+	lookAtMatrix.m[2][2] = -forward.z;
+	lookAtMatrix.m[2][3] = Vector3::Dot(forward, eye);
+
+	lookAtMatrix.m[3][0] = 0.0f;
+	lookAtMatrix.m[3][1] = 0.0f;
+	lookAtMatrix.m[3][2] = 0.0f;
+	lookAtMatrix.m[3][3] = 1.0f;
+
+	return lookAtMatrix;
+}

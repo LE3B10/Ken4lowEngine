@@ -6,6 +6,12 @@
 #include "ParticleManager.h"
 #include <BaseScene.h>
 
+#include "Player.h"
+#include "Skydome.h"
+#include "Ground.h"
+#include "FollowCamera.h"
+#include "Enemy.h"
+
 #include "CollisionManager.h"
 
 #include "AABB.h"
@@ -53,10 +59,19 @@ private: /// ---------- メンバ変数 ---------- ///
 	ParticleManager* particleManager = nullptr;
 
 	std::unique_ptr<WavLoader> wavLoader_;
-	std::unique_ptr<Object3D> objectTerrain_;
-	std::unique_ptr<Object3D> objectBall_;
-	std::vector<std::unique_ptr<Sprite>> sprites_;
+
+	std::unique_ptr<Player> player_;
+	std::unique_ptr<Skydome> skydome_;
+	std::unique_ptr<Ground> ground_;
+	std::unique_ptr<FollowCamera> followCamera_;
+	std::unique_ptr<Enemy> enemy_;
+	
+	// 衝突マネージャ
 	std::unique_ptr<CollisionManager> collisionManager_;
+	
+	std::vector<std::unique_ptr<Sprite>> sprites_;
+
+
 
 	const std::string& particleGroupName = "Particle";
 

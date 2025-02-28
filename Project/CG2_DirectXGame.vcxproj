@@ -114,6 +114,8 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     </FxCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="BaseCharacter.cpp" />
+    <ClCompile Include="Enemy.cpp" />
     <ClCompile Include="EngineLayers\EngineLayer\ResourceManagement\AnimationManager\AnimationModelManager.cpp" />
     <ClCompile Include="EngineLayers\EngineLayer\Quaternion\Quaternion.cpp" />
     <ClCompile Include="EngineLayers\EngineLayer\ResourceManagement\AnimationManager\AnimationModel.cpp" />
@@ -177,6 +179,10 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClCompile Include="EngineLayers\ApplicationLayer\SceneManagement\LogicLayer\GameClearScene\GameClearScene.cpp" />
     <ClCompile Include="EngineLayers\ApplicationLayer\SceneManagement\LogicLayer\GameOverScene\GameOverScene.cpp" />
     <ClCompile Include="EngineLayers\EngineLayer\Rendering\FPSCounter.cpp" />
+    <ClCompile Include="FollowCamera.cpp" />
+    <ClCompile Include="Ground.cpp" />
+    <ClCompile Include="Player.cpp" />
+    <ClCompile Include="Skydome.cpp" />
     <ClCompile Include="WinMain.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
@@ -226,6 +232,8 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     </FxCompile>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="BaseCharacter.h" />
+    <ClInclude Include="Enemy.h" />
     <ClInclude Include="EngineLayers\EngineLayer\ResourceManagement\AnimationManager\AnimationModelManager.h" />
     <ClInclude Include="EngineLayers\EngineLayer\Quaternion\Quaternion.h" />
     <ClInclude Include="EngineLayers\EngineLayer\ResourceManagement\AnimationManager\AnimationModel.h" />
@@ -303,6 +311,10 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="EngineLayers\EngineLayer\MultipleStructs\OBB.h" />
     <ClInclude Include="EngineLayers\ApplicationLayer\Object\2D\Wireframe\Wireframe.h" />
     <ClInclude Include="EngineLayers\EngineLayer\Rendering\FPSCounter.h" />
+    <ClInclude Include="FollowCamera.h" />
+    <ClInclude Include="Ground.h" />
+    <ClInclude Include="Player.h" />
+    <ClInclude Include="Skydome.h" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="externals\DirectXTex\DirectXTex_Desktop_2022_Win10.vcxproj">
