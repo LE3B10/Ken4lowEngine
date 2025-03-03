@@ -2,6 +2,7 @@
 #include "DX12Include.h"
 #include "LightManager.h"
 #include "Camera.h"
+#include <BlendModeType.h>
 
 #include <memory>
 
@@ -38,6 +39,9 @@ public: /// ---------- 設定 ---------- ///
 	// デバッグカメラ有効かどうか
 	void SetDebugCamera(bool isDebugCamera) { isDebugCamera_ = isDebugCamera; }
 
+	// 
+	void SetGraphicsPipeline();
+
 public:	/// ---------- 取得 ---------- ///
 
 	// デフォルトカメラを取得
@@ -46,12 +50,29 @@ public:	/// ---------- 取得 ---------- ///
 	// デバッグカメラを取得
 	bool GetDebugCamera() { return isDebugCamera_; }
 
+private: /// ---------- メンバ関数 ---------- ///
+
+	// ルートシグネチャを生成
+	void CreateRootSignature();
+
+	// PSOを生成
+	void CreatePSO();
+
 private: /// ---------- メンバ変数 ---------- ///
 
 	DirectXCommon* dxCommon_ = nullptr;
 	
 	// デフォルトカメラ
 	Camera* defaultCamera_ = nullptr;
+
+	BlendMode blendMode = BlendMode::kBlendModeNone;
+
+	ComPtr <ID3D12PipelineState> graphicsPipelineState_;
+	ComPtr <ID3DBlob> signatureBlob;
+	ComPtr <ID3DBlob> errorBlob;
+	ComPtr <ID3D12RootSignature> rootSignature;
+
+	D3D12_INPUT_LAYOUT_DESC inputLayoutDesc{};
 
 	// ライトマネージャ
 	std::unique_ptr<LightManager> lightManager_;
