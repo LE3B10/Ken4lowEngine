@@ -20,18 +20,5 @@ public: /// ---------- メンバ関数 ---------- ///
 		IDxcUtils* dxcUtils,
 		IDxcCompiler3* dxcCompiler,
 		IDxcIncludeHandler* includeHandler);
-
-	// 3Dシェーダーをコンパイルする
-	void ShaderCompileObject3D(DirectXCommon* dxCommon);
-
-public: /// ---------- ゲッター ---------- ///
-
-	IDxcBlob* GetVertexShaderBlob();
-	IDxcBlob* GetPixelShaderBlob();
-
-private: /// ---------- メンバ変数 ---------- ///
-
-	Microsoft::WRL::ComPtr <IDxcBlob> vertexShaderBlob;
-	Microsoft::WRL::ComPtr <IDxcBlob> pixelShaderBlob;
 };
 

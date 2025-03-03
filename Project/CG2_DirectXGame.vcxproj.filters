@@ -63,9 +63,6 @@
     <ClCompile Include="Externals\imgui\imgui_widgets.cpp">
       <Filter>imgui</Filter>
     </ClCompile>
-    <ClCompile Include="EngineLayers\EngineLayer\Rendering\PSO\BlendStateManager\BlendStateManager.cpp">
-      <Filter>ソース ファイル</Filter>
-    </ClCompile>
     <ClCompile Include="EngineLayers\EngineLayer\ResourceChecker\LeakCheck\D3DResourceLeakChecker.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
@@ -90,9 +87,6 @@
     <ClCompile Include="EngineLayers\ApplicationLayer\Input\Input.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="EngineLayers\EngineLayer\Rendering\PSO\InputLayoutManager\InputLayoutManager.cpp">
-      <Filter>ソース ファイル</Filter>
-    </ClCompile>
     <ClCompile Include="EngineLayers\FrameworkLayer\Log\LogString.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
@@ -111,16 +105,10 @@
     <ClCompile Include="EngineLayers\EngineLayer\Rendering\PSO\PipelineStateManager\PipelineStateManager.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="EngineLayers\EngineLayer\Rendering\PSO\RasterizerStateManager\RasterizerStateManager.cpp">
-      <Filter>ソース ファイル</Filter>
-    </ClCompile>
     <ClCompile Include="EngineLayers\EngineLayer\ResourceManagement\ResourceManager\ResourceManager.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
     <ClCompile Include="EngineLayers\EngineLayer\ResourceChecker\ReleseCheck\ResourceObject.cpp">
-      <Filter>ソース ファイル</Filter>
-    </ClCompile>
-    <ClCompile Include="EngineLayers\EngineLayer\Rendering\PSO\RootSignatureManager\RootSignatureManager.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
     <ClCompile Include="EngineLayers\EngineLayer\Rendering\PSO\ShaderManager\ShaderManager.cpp">
@@ -192,7 +180,7 @@
     <ClCompile Include="EngineLayers\FrameworkLayer\PresentationLayer\ParameterManager\ParameterManager.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="EngineLayers\EngineLayer\Rendering\PSO\RootSignatureManager\LightManager.cpp">
+    <ClCompile Include="LightManager.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
     <ClCompile Include="EngineLayers\ApplicationLayer\SceneManagement\LogicLayer\GameClearScene\GameClearScene.cpp">
@@ -229,6 +217,9 @@
       <Filter>ソース ファイル</Filter>
     </ClCompile>
     <ClCompile Include="EngineLayers\EngineLayer\ResourceManagement\AnimationManager\AnimationModelManager.cpp">
+      <Filter>ソース ファイル</Filter>
+    </ClCompile>
+    <ClCompile Include="PipelineState.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
   </ItemGroup>
@@ -271,9 +262,6 @@
     <ClInclude Include="Externals\imgui\imstb_rectpack.h">
       <Filter>imgui</Filter>
     </ClInclude>
-    <ClInclude Include="EngineLayers\EngineLayer\Rendering\PSO\BlendStateManager\BlendStateManager.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
     <ClInclude Include="EngineLayers\EngineLayer\ResourceChecker\LeakCheck\D3DResourceLeakChecker.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
@@ -304,9 +292,6 @@
     <ClInclude Include="EngineLayers\ApplicationLayer\Input\Input.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="EngineLayers\EngineLayer\Rendering\PSO\InputLayoutManager\InputLayoutManager.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
     <ClInclude Include="EngineLayers\FrameworkLayer\Log\LogString.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
@@ -334,16 +319,10 @@
     <ClInclude Include="EngineLayers\EngineLayer\Rendering\PSO\PipelineStateManager\PipelineStateManager.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="EngineLayers\EngineLayer\Rendering\PSO\RasterizerStateManager\RasterizerStateManager.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
     <ClInclude Include="EngineLayers\EngineLayer\ResourceManagement\ResourceManager\ResourceManager.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
     <ClInclude Include="EngineLayers\EngineLayer\ResourceChecker\ReleseCheck\ResourceObject.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayers\EngineLayer\Rendering\PSO\RootSignatureManager\RootSignatureManager.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
     <ClInclude Include="EngineLayers\EngineLayer\Rendering\PSO\ShaderManager\ShaderManager.h">
@@ -436,7 +415,7 @@
     <ClInclude Include="EngineLayers\EngineLayer\WorldTransform\WorldTransform.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="EngineLayers\EngineLayer\Rendering\PSO\RootSignatureManager\LightManager.h">
+    <ClInclude Include="LightManager.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
     <ClInclude Include="EngineLayers\ApplicationLayer\SceneManagement\LogicLayer\GameClearScene\GameClearScene.h">
@@ -476,6 +455,9 @@
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
     <ClInclude Include="EngineLayers\EngineLayer\ResourceManagement\AnimationManager\AnimationModelManager.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="PipelineState.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
   </ItemGroup>

@@ -76,34 +76,3 @@ Microsoft::WRL::ComPtr <IDxcBlob> ShaderManager::CompileShader(const std::wstrin
 	// 実行用のバイナリを返却
 	return shaderBlob;
 }
-
-
-
-/// -------------------------------------------------------------
-///				3Dシェーダーをコンパイルする処理
-/// -------------------------------------------------------------
-void ShaderManager::ShaderCompileObject3D(DirectXCommon* dxCommon)
-{
-	// Shaderをコンパイル
-	vertexShaderBlob = CompileShader(L"Resources/Shaders/Object3D.VS.hlsl", L"vs_6_0", dxCommon->GetIDxcUtils(), dxCommon->GetIDxcCompiler(), dxCommon->GetIncludeHandler());
-	assert(vertexShaderBlob != nullptr);
-
-	// Pixelをコンパイル
-	pixelShaderBlob = CompileShader(L"Resources/Shaders/Object3D.PS.hlsl", L"ps_6_0", dxCommon->GetIDxcUtils(), dxCommon->GetIDxcCompiler(), dxCommon->GetIncludeHandler());
-	assert(pixelShaderBlob != nullptr);
-}
-
-
-
-/// -------------------------------------------------------------
-///							ゲッター
-/// -------------------------------------------------------------
-IDxcBlob* ShaderManager::GetVertexShaderBlob()
-{
-	return vertexShaderBlob.Get();
-}
-
-IDxcBlob* ShaderManager::GetPixelShaderBlob()
-{
-	return pixelShaderBlob.Get();
-}
