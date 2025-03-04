@@ -48,7 +48,8 @@ public:
 	IDxcCompiler3* GetIDxcCompiler() const;
 	IDxcIncludeHandler* GetIncludeHandler() const;
 	DXGI_SWAP_CHAIN_DESC1& GetSwapChainDesc();
-
+	ID3D12CommandAllocator* GetCommandAllocator() const { return commandAllocator.Get();}
+	ID3D12CommandQueue* GetCommandQueue() const { return commandQueue.Get(); }
 	// FPSの取得
 	FPSCounter& GetFPSCounter() { return fpsCounter_; }	
 
