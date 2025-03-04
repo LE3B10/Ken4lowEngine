@@ -548,7 +548,6 @@ void ParticleManager::InitializeMaterialData()
 	materialResource->Map(0, nullptr, reinterpret_cast<void**>(&materialData));
 	//今回は赤を書き込んでみる
 	materialData->color = { 1.0f, 1.0f, 1.0f, 1.0f };
-	materialData->enableLighting = false;
 	//UVTramsform行列を単位行列で初期化
 	materialData->uvTransform = Matrix4x4::MakeIdentity();
 }

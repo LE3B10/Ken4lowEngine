@@ -1,5 +1,7 @@
 #include "TitleScene.h"
 #include <DirectXCommon.h>
+#include <SpriteManager.h>
+#include <Object3DCommon.h>
 #include <ImGuiManager.h>
 #include "SceneManager.h"
 
@@ -15,8 +17,8 @@ void TitleScene::Initialize()
 
 	// テクスチャのパスをリストで管理
 	texturePaths_ = {
+		"Resources/uvChecker.png",
 		"Resources/monsterBall.png",
-		//"Resources/uvChecker.png",
 	};
 
 	/// ---------- TextureManagerの初期化 ----------///
@@ -26,7 +28,7 @@ void TitleScene::Initialize()
 	}
 
 	/// ---------- Spriteの初期化 ---------- ///
-	for (uint32_t i = 0; i < 1; i++)
+	for (uint32_t i = 0; i < texturePaths_.size(); i++)
 	{
 		sprites_.push_back(std::make_unique<Sprite>());
 
@@ -78,11 +80,23 @@ void TitleScene::Update()
 /// -------------------------------------------------------------
 void TitleScene::Draw()
 {
+	/// ---------------------------------------- ///
+	/// ----------  スプライトの描画  ---------- ///
+	/// ---------------------------------------- ///
+	// スプライトの共通描画設定
+	SpriteManager::GetInstance()->SetRenderSetting();
+
 	/// ----- スプライトの描画設定と描画 ----- ///
 	for (auto& sprite : sprites_)
 	{
 		sprite->Draw();
 	}
+
+	/// ---------------------------------------- ///
+	/// ---------- オブジェクト3D描画 ---------- ///
+	/// ---------------------------------------- ///
+	// オブジェクト3D共通描画設定
+	Object3DCommon::GetInstance()->SetRenderSetting();
 }
 
 

@@ -52,6 +52,8 @@ public: /// ---------- ゲッター ---------- ///
 	// GPUデスクリプタヒープを取得する
 	D3D12_GPU_DESCRIPTOR_HANDLE GetGPUDescriptorHandle(uint32_t index);
 
+	D3D12_SHADER_RESOURCE_VIEW_DESC GetSRVDesc() const { return srvDesc; }
+
 	uint32_t GetDescriptorSize() const { return descriptorSize; }
 
 	uint32_t GetkMaxSRVCount() const { return kMaxSRVCount; }
@@ -69,6 +71,8 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	// SRV用デスクリプタヒープ
 	ComPtr<ID3D12DescriptorHeap> descriptorHeap;
+
+	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc{};
 
 	// 次に使用するSRVインデックス
 	uint32_t useIndex = 0;

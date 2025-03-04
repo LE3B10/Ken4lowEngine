@@ -1,10 +1,7 @@
 #pragma once
 #include <DX12Include.h>
 #include <ModelData.h>
-#include <Material.h>
-#include <VertexData.h>
 #include <Emitter.h>
-#include "BlendModeType.h"
 
 #include <unordered_map>
 #include <list>
@@ -55,6 +52,20 @@ public: /// ---------- 構造体 ---------- ///
 		Vector4 color = {};		 // 色
 		float lifeTime = 0;		 // 生存可能な時間
 		float currentTime = 0;	 // 発生してからの経過時間
+	};
+
+	struct Material final
+	{
+		Vector4 color;
+		Matrix4x4 uvTransform;
+		float padding[3];
+	};
+
+	struct VertexData
+	{
+		Vector4 position;
+		Vector2 texcoord;
+		Vector3 normal;
 	};
 
 	struct ParticleGroup

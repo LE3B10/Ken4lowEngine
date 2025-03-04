@@ -3,6 +3,7 @@
 #include <ImGuiManager.h>
 #include <Input.h>
 #include "Object3DCommon.h"
+#include <SpriteManager.h>
 #include <ParameterManager.h>
 #include <ParticleManager.h>
 #include "Wireframe.h"
@@ -39,6 +40,12 @@ void GamePlayScene::Initialize()
 	objectBall_ = std::make_unique<Object3D>();
 	objectBall_->Initialize("sphere.gltf");
 
+	textureManager->LoadTexture("Resources/uvChecker.png");
+	particleManager->CreateParticleGroup("Fire", "Resources/uvChecker.png");
+	particleEmitter_ = std::make_unique<ParticleEmitter>(particleManager, "Fire");
+	particleEmitter_->SetPosition({ 0.0f,3.0f,10.0f });
+	particleEmitter_->SetEmissionRate(1000.0f);
+
 	// 衝突マネージャの生成
 	collisionManager_ = std::make_unique<CollisionManager>();
 }
@@ -62,6 +69,7 @@ void GamePlayScene::Update()
 	objectTerrain_->Update();
 	objectBall_->Update();
 
+	particleEmitter_->Update(1.0f / 120.0f);
 }
 
 
@@ -70,7 +78,11 @@ void GamePlayScene::Update()
 /// -------------------------------------------------------------
 void GamePlayScene::Draw()
 {
-
+	/// ---------------------------------------- ///
+	/// ----------  スプライトの描画  ---------- ///
+	/// ---------------------------------------- ///
+	// スプライトの共通描画設定
+	SpriteManager::GetInstance()->SetRenderSetting();
 
 
 	/// ---------------------------------------- ///

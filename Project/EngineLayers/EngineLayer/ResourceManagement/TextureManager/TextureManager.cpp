@@ -252,6 +252,18 @@ D3D12_GPU_DESCRIPTOR_HANDLE TextureManager::GetSrvHandleGPU(const std::string& f
 	return textureData.srvHandleGPU;
 }
 
+uint32_t TextureManager::GetSrvIndex(const std::string& filePath)
+{
+	// 範囲外指定違反チェック
+	assert(textureDatas.find(filePath) != textureDatas.end()); // テクスチャ番号が正常範囲内である
+
+	// テクスチャデータの参照を取得
+	TextureData& textureData = textureDatas[filePath];
+
+	// GPUハンドルを返す
+	return textureData.srvIndex;
+}
+
 
 /// -------------------------------------------------------------
 ///						メタデータを取得

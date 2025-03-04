@@ -5,6 +5,7 @@
 #include <SRVManager.h>
 #include <TextureManager.h>
 #include <ParticleManager.h>
+#include <SpriteManager.h>
 #include <Object3DCommon.h>
 #include <DebugCamera.h>
 #include <Wireframe.h>
@@ -57,6 +58,9 @@ void Framework::Initialize()
 	// テクスチャマネージャーの生成
 	TextureManager::GetInstance()->Initialize(dxCommon_);
 	
+	// スプライトマネージャの生成
+	SpriteManager::GetInstance()->Initialize(dxCommon_);
+
 	// Object3DCommonの生成
 	Object3DCommon::GetInstance()->Initialize(dxCommon_);
 

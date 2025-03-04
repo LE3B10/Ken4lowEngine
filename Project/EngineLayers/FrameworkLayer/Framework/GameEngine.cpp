@@ -27,14 +27,6 @@ void GameEngine::Initialize()
 
 	// 最初のシーンを設定
 	SceneManager::GetInstance()->SetNextScene(std::make_unique<TitleScene>());
-
-	// パイプラインステートマネージャの生成
-	pipelineStateManager_ = std::make_unique<PipelineStateManager>();
-
-	// 3Dパイプラインを作成して登録
-	auto pipeline3D = std::make_unique<Pipeline3D>(dxCommon_);
-	pipeline3D->Initialize();
-	pipelineStateManager_->AddPipeline(std::move(pipeline3D));
 }
 
 
@@ -94,9 +86,6 @@ void GameEngine::Draw()
 
 	// SRVの処理
 	SRVManager::GetInstance()->PreDraw();
-
-	// PipelineManagerを通じてパイプラインを設定
-	pipelineStateManager_->RenderAll();
 
 	// シーンマネージャーの描画処理
 	SceneManager::GetInstance()->Draw();

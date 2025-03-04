@@ -49,19 +49,27 @@ public:	/// ---------- 取得 ---------- ///
 
 private: /// ---------- メンバ変数 ---------- ///
 
+	// ルートシグネチャの生成
+	void CreateRootSignature();
+
+	// PSOを生成
+	void CreatePSO();
+
+private: /// ---------- メンバ変数 ---------- ///
+
 	DirectXCommon* dxCommon_ = nullptr;
 	
 	// デフォルトカメラ
 	Camera* defaultCamera_ = nullptr;
 
-	BlendMode blendMode = BlendMode::kBlendModeNone;
+	BlendMode blendMode_ = BlendMode::kBlendModeNone;
 
 	ComPtr <ID3D12PipelineState> graphicsPipelineState_;
-	ComPtr <ID3DBlob> signatureBlob;
-	ComPtr <ID3DBlob> errorBlob;
-	ComPtr <ID3D12RootSignature> rootSignature;
+	ComPtr <ID3DBlob> signatureBlob_;
+	ComPtr <ID3DBlob> errorBlob_;
+	ComPtr <ID3D12RootSignature> rootSignature_;
 
-	D3D12_INPUT_LAYOUT_DESC inputLayoutDesc{};
+	D3D12_INPUT_LAYOUT_DESC inputLayoutDesc_{};
 
 	// ライトマネージャ
 	std::unique_ptr<LightManager> lightManager_;

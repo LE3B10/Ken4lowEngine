@@ -63,6 +63,8 @@ public: /// ---------- ゲッター ---------- ///
 	// テクスチャ番号からGPUハンドルを取得
 	D3D12_GPU_DESCRIPTOR_HANDLE GetSrvHandleGPU(const std::string& filePath);
 
+	uint32_t GetSrvIndex(const std::string& filePath);
+
 	// メタデータを取得
 	const DirectX::TexMetadata& GetMetaData(const std::string& filePath);
 

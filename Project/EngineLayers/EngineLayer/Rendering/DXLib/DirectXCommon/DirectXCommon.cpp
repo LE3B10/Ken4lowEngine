@@ -88,9 +88,6 @@ void DirectXCommon::BeginDraw()
 	// シザリング矩形の設定
 	scissorRect = D3D12_RECT(0, 0, kClientWidth, kClientHeight);
 	commandList->RSSetScissorRects(1, &scissorRect);
-
-	// 形状を設定。PSOに設定するものとはまた別。同じものを設定すると考える
-	commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 }
 
 
