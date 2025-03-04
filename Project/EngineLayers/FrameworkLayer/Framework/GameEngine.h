@@ -9,7 +9,6 @@
 #include <Framework.h>
 #include <SceneManager.h>
 
-#include "Pipeline3D.h"
 
 /// -------------------------------------------------------------
 ///				　	ゲーム全体を管理するクラス

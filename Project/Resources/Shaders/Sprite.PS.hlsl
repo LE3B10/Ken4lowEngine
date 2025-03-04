@@ -13,7 +13,7 @@ struct PixelShaderOutput
 
 ConstantBuffer<Material> gMaterial : register(b0);
 
-Texture2D<float> gTexture : register(t0);
+Texture2D<float4> gTexture : register(t0);
 SamplerState gSampler : register(s0);
 
 PixelShaderOutput main(VertexShaderOutput input)
