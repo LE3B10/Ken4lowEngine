@@ -173,6 +173,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClCompile Include="EngineLayers\ApplicationLayer\SceneManagement\LogicLayer\GameClearScene\GameClearScene.cpp" />
     <ClCompile Include="EngineLayers\ApplicationLayer\SceneManagement\LogicLayer\GameOverScene\GameOverScene.cpp" />
     <ClCompile Include="EngineLayers\EngineLayer\Rendering\FPSCounter.cpp" />
+    <ClCompile Include="Pipeline3D.cpp" />
     <ClCompile Include="PipelineState.cpp" />
     <ClCompile Include="WinMain.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
@@ -296,6 +297,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="EngineLayers\EngineLayer\MultipleStructs\OBB.h" />
     <ClInclude Include="EngineLayers\ApplicationLayer\Object\2D\Wireframe\Wireframe.h" />
     <ClInclude Include="EngineLayers\EngineLayer\Rendering\FPSCounter.h" />
+    <ClInclude Include="Pipeline3D.h" />
     <ClInclude Include="PipelineState.h" />
   </ItemGroup>
   <ItemGroup>

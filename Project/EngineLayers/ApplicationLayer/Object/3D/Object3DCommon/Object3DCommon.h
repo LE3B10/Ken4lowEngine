@@ -39,9 +39,6 @@ public: /// ---------- 設定 ---------- ///
 	// デバッグカメラ有効かどうか
 	void SetDebugCamera(bool isDebugCamera) { isDebugCamera_ = isDebugCamera; }
 
-	// 
-	void SetGraphicsPipeline();
-
 public:	/// ---------- 取得 ---------- ///
 
 	// デフォルトカメラを取得
@@ -49,14 +46,6 @@ public:	/// ---------- 取得 ---------- ///
 
 	// デバッグカメラを取得
 	bool GetDebugCamera() { return isDebugCamera_; }
-
-private: /// ---------- メンバ関数 ---------- ///
-
-	// ルートシグネチャを生成
-	void CreateRootSignature();
-
-	// PSOを生成
-	void CreatePSO();
 
 private: /// ---------- メンバ変数 ---------- ///
 

@@ -1,28 +1,35 @@
 #pragma once
-#include "DX12Include.h"
+#include "PipelineState.h"
 
-#include <array>
+#include <vector>
 #include <memory>
-
-/// ---------- 前方宣言 ---------- ///
-class DirectXCommon;
+#include <thread>
+#include <mutex>
 
 
 /// -------------------------------------------------------------
-///		パイプラインステートオブジェクトマネージャークラス
+///				　パイプラインを管理するクラス
 /// -------------------------------------------------------------
 class PipelineStateManager
 {
 public: /// ---------- メンバ関数 ---------- ///
 
-	// デストラクタ
-	~PipelineStateManager() = default;
+	// パイプラインを追加
+	void AddPipeline(std::unique_ptr<PipelineState> pipeline);
 
-	// 初期化処理
-	void Initialize(DirectXCommon* dxCommon);
+	// 全てのパイプライン
+	void RenderAll();
+
+public: /// ---------- ゲッター ---------- ///
+
+	// パイプラインを取得
+	PipelineState* GetPipeline(size_t index);
 
 private: /// ---------- メンバ関数 ---------- ///
 
-
+	std::vector<std::unique_ptr<PipelineState>> pipelines_;
+	std::vector<std::thread> renderThreads_;
+	std::mutex renderMutex_;
+	bool running_ = true;
 };
 
