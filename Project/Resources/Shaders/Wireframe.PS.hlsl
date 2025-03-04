@@ -1,12 +1,8 @@
+#include "Wireframe.hlsli"
+
 struct PixelShaderOutput
 {
     float4 color : SV_TARGET0;
-};
-
-struct VertexShaderOutput
-{
-    float4 postion : SV_POSITION;
-    float4 color : COLOR0;
 };
 
 PixelShaderOutput main(VertexShaderOutput input)

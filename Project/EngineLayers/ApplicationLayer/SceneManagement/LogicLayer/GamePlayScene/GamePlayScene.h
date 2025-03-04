@@ -4,6 +4,7 @@
 #include <Object3D.h>
 #include <WavLoader.h>
 #include "ParticleManager.h"
+#include "ParticleEmitter.h"
 #include <BaseScene.h>
 
 #include "CollisionManager.h"
@@ -57,6 +58,7 @@ private: /// ---------- メンバ変数 ---------- ///
 	std::unique_ptr<Object3D> objectBall_;
 	std::vector<std::unique_ptr<Sprite>> sprites_;
 	std::unique_ptr<CollisionManager> collisionManager_;
+	std::unique_ptr<ParticleEmitter> particleEmitter_;
 
 	const std::string& particleGroupName = "Particle";
 

@@ -51,7 +51,6 @@ void SRVManager::CreateSRVForTexture2D(uint32_t srvIndex, ID3D12Resource* pResou
 	}
 
 	// srvDescの項目を埋める
-	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc{};
 	srvDesc.Format = Format; // テクスチャのフォーマット
 	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING; // デフォルトのマッピング
 	srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;				//2Dテクスチャ
@@ -75,7 +74,6 @@ void SRVManager::CreateSRVForStructureBuffer(uint32_t srvIndex, ID3D12Resource* 
 	}
 
 	// SRV 設定
-	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc{};
 	srvDesc.Format = DXGI_FORMAT_UNKNOWN; // 構造化バッファではフォーマットは UNKNOWN
 	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 	srvDesc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER; // バッファとして扱う

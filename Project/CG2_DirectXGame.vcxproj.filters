@@ -219,10 +219,7 @@
     <ClCompile Include="EngineLayers\EngineLayer\ResourceManagement\AnimationManager\AnimationModelManager.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="PipelineState.cpp">
-      <Filter>ソース ファイル</Filter>
-    </ClCompile>
-    <ClCompile Include="Pipeline3D.cpp">
+    <ClCompile Include="SpriteManager.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
   </ItemGroup>
@@ -239,6 +236,8 @@
     <FxCompile Include="Resources\Shaders\Wireframe.PS.hlsl" />
     <FxCompile Include="Resources\Shaders\SkinningObject3d.VS.hlsl" />
     <FxCompile Include="Resources\Shaders\SkinningObject3d.PS.hlsl" />
+    <FxCompile Include="Resources\Shaders\Sprite.PS.hlsl" />
+    <FxCompile Include="Resources\Shaders\Sprite.VS.hlsl" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Externals\imgui\imconfig.h">
@@ -460,10 +459,7 @@
     <ClInclude Include="EngineLayers\EngineLayer\ResourceManagement\AnimationManager\AnimationModelManager.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="PipelineState.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
-    <ClInclude Include="Pipeline3D.h">
+    <ClInclude Include="SpriteManager.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
   </ItemGroup>
@@ -473,6 +469,8 @@
     </None>
     <None Include="Resources\Shaders\Particle.hlsli" />
     <None Include="Resources\Shaders\SkinningObject3d.hlsli" />
+    <None Include="Resources\Shaders\Sprite.hlsli" />
+    <None Include="Resources\Shaders\Wireframe.hlsli" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="Externals\imgui\LICENSE.txt">

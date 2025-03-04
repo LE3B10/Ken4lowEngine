@@ -1,16 +1,17 @@
 #pragma once
 #include "DX12Include.h"
-#include "Material.h"
-#include "TextureManager.h"
-#include "TransformationMatrix.h"
-#include "ResourceManager.h"
-#include "VertexData.h"
 #include "WorldTransform.h"
+
+#include "Vector2.h"
+#include "Vector4.h"
 
 #include <array>
 #include <memory>
 
+
+/// ---------- 前方宣言 ---------- ///
 class DirectXCommon;
+class ResourceManager;
 
 /// ---------- スプライトの頂点数 ( Vertex, Index ) ----------- ///
 static const UINT kNumVertex = 6;
@@ -21,6 +22,28 @@ static const UINT kNumIndex = 4;
 /// -------------------------------------------------------------
 class Sprite
 {
+	// マテリアルデータの構造体
+	struct Material final
+	{
+		Vector4 color;
+		Matrix4x4 uvTransform;
+		float padding[3];
+	};
+
+	// 頂点データの構造体
+	struct VertexData
+	{
+		Vector4 position;
+		Vector2 texcoord;
+	};
+
+	// 座標変換行列データの構造体
+	struct TransformationMatrix final
+	{
+		Matrix4x4 WVP;
+		Matrix4x4 World;
+	};
+
 public: /// ---------- メンバ関数 ---------- ///
 
 	// 初期化処理
@@ -50,7 +73,7 @@ public: /// ---------- ゲッター ---------- ///
 	const Vector2& GetSize() const { return size_; }
 	
 	// 色を取得
-	const Vector4& GetColor() const { return materialDataSprite->color; }
+	const Vector4& GetColor() const { return materialData->color; }
 	
 	// アンカーを取得
 	const Vector2& GetAnchorPoint() const { return anchorPoint_; }
@@ -79,7 +102,7 @@ public: /// ---------- セッター ---------- ///
 	void SetSize(const Vector2& size) { size_ = size; }
 	
 	// 色の設定
-	void SetColor(const Vector4& color) { materialDataSprite->color = color; }
+	void SetColor(const Vector4& color) { materialData->color = color; }
 	
 	// アンカーの設定
 	void SetAnchorPoint(const Vector2& anchorPoint) { anchorPoint_ = anchorPoint; }
@@ -142,24 +165,24 @@ private: /// ---------- メンバ変数 ---------- ///
 	ResourceManager* createBuffer_ = nullptr;
 
 	//スプライト用のマテリアルソースを作る
-	ComPtr <ID3D12Resource> materialResourceSprite;
-	Material* materialDataSprite = nullptr;
+	ComPtr <ID3D12Resource> materialResource;
+	Material* materialData = nullptr;
 
 	// スプライトの頂点バッファリソースと変換行列リソースを生成
 	//Sprite用の頂点リソースを作る
-	ComPtr <ID3D12Resource> vertexResourceSprite;
+	ComPtr <ID3D12Resource> vertexResource;
 	//頂点バッファビューを作成する
-	D3D12_VERTEX_BUFFER_VIEW vertexBufferViewSprite{};
+	D3D12_VERTEX_BUFFER_VIEW vertexBufferView{};
 	// 頂点データを設定する
-	VertexData* vertexDataSprite = nullptr;
+	VertexData* vertexData = nullptr;
 	//Sprite用のTransformationMatrix用のリソースを作る。Matrix4x4 1つ分のサイズを用意する
-	ComPtr <ID3D12Resource> transformationMatrixResourceSprite;
+	ComPtr <ID3D12Resource> transformationMatrixResource;
 	//データを書き込む
-	TransformationMatrix* transformationMatrixDataSprite = nullptr;
+	TransformationMatrix* transformationMatrixData = nullptr;
 
 	// スプライトのインデックスバッファを作成および設定する
-	ComPtr <ID3D12Resource> indexResourceSprite;
-	D3D12_INDEX_BUFFER_VIEW indexBufferViewSprite{};
-	uint32_t* indexDataSprite = nullptr;
+	ComPtr <ID3D12Resource> indexResource;
+	D3D12_INDEX_BUFFER_VIEW indexBufferView{};
+	uint32_t* indexData = nullptr;
 };
 

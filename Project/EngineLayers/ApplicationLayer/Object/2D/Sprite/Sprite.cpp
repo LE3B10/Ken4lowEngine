@@ -1,5 +1,7 @@
 #include "Sprite.h"
 #include "DirectXCommon.h"
+#include "TextureManager.h"
+#include "ResourceManager.h"
 #include "ImGuiManager.h"
 
 
@@ -8,10 +10,7 @@
 /// -------------------------------------------------------------
 void Sprite::Initialize(const std::string& filePath)
 {
-	//spriteData_ = CreateSpriteData(kVertexNum, kIndexNum);
 	dxCommon = DirectXCommon::GetInstance();
-
-	//textureIndex = TextureManager::GetInstance()->GetTextureIndexByFilePath(filePath);
 
 	filePath_ = filePath;
 
@@ -68,25 +67,20 @@ void Sprite::Update()
 	/// ---------- 頂点データ設定 ---------- ///
 
 	// 左上
-	vertexDataSprite[0].position = { left, bottom, 0.0f, 1.0f };
-	vertexDataSprite[0].texcoord = { tex_left, tex_bottom };
+	vertexData[0].position = { left, bottom, 0.0f, 1.0f };
+	vertexData[0].texcoord = { tex_left, tex_bottom };
 
 	// 左下
-	vertexDataSprite[1].position = { left, top, 0.0f, 1.0f };
-	vertexDataSprite[1].texcoord = { tex_left, tex_top };
+	vertexData[1].position = { left, top, 0.0f, 1.0f };
+	vertexData[1].texcoord = { tex_left, tex_top };
 
 	// 右下
-	vertexDataSprite[2].position = { right, bottom, 0.0f, 1.0f };
-	vertexDataSprite[2].texcoord = { tex_right, tex_bottom };
+	vertexData[2].position = { right, bottom, 0.0f, 1.0f };
+	vertexData[2].texcoord = { tex_right, tex_bottom };
 
 	// 右上
-	vertexDataSprite[3].position = { right, top, 0.0f, 1.0f };
-	vertexDataSprite[3].texcoord = { tex_right, tex_top };
-
-	// 法線情報を追加する
-	for (int i = 0; i < 6; ++i) {
-		vertexDataSprite[i].normal = { 0.0f, 0.0f, -1.0f };
-	}
+	vertexData[3].position = { right, top, 0.0f, 1.0f };
+	vertexData[3].texcoord = { tex_right, tex_top };
 
 	// ワールド行列の計算
 	WorldTransform worldTransform;
@@ -100,11 +94,11 @@ void Sprite::Update()
 	Matrix4x4 projectionMatrixSprite = Matrix4x4::MakeOrthographicMatrix(0.0f, 0.0f, 1280.0f, 720.0f, 0.0f, 100.0f);
 	Matrix4x4 worldViewProjectionMatrixSprite = Matrix4x4::Multiply(worldMatrixSprite, Matrix4x4::Multiply(viewMatrixSprite, projectionMatrixSprite));
 
-	transformationMatrixDataSprite->WVP = worldViewProjectionMatrixSprite;
-	transformationMatrixDataSprite->World = worldMatrixSprite;
+	transformationMatrixData->WVP = worldViewProjectionMatrixSprite;
+	transformationMatrixData->World = worldMatrixSprite;
 
 	// 頂点データ更新
-	memcpy(vertexDataSprite, &vertexDataSprite[0], sizeof(VertexData) * kNumVertex);
+	memcpy(vertexData, &vertexData[0], sizeof(VertexData) * kNumVertex);
 }
 
 
@@ -113,10 +107,10 @@ void Sprite::Update()
 /// -------------------------------------------------------------
 void Sprite::Draw()
 {
-	dxCommon->GetCommandList()->IASetVertexBuffers(0, 1, &vertexBufferViewSprite); // スプライト用VBV
-	dxCommon->GetCommandList()->IASetIndexBuffer(&indexBufferViewSprite); // IBVの設定
-	dxCommon->GetCommandList()->SetGraphicsRootConstantBufferView(0, materialResourceSprite.Get()->GetGPUVirtualAddress());
-	dxCommon->GetCommandList()->SetGraphicsRootConstantBufferView(1, transformationMatrixResourceSprite.Get()->GetGPUVirtualAddress());
+	dxCommon->GetCommandList()->IASetVertexBuffers(0, 1, &vertexBufferView); // スプライト用VBV
+	dxCommon->GetCommandList()->IASetIndexBuffer(&indexBufferView); // IBVの設定
+	dxCommon->GetCommandList()->SetGraphicsRootConstantBufferView(0, materialResource.Get()->GetGPUVirtualAddress());
+	dxCommon->GetCommandList()->SetGraphicsRootConstantBufferView(1, transformationMatrixResource.Get()->GetGPUVirtualAddress());
 
 	// ディスクリプタテーブルの設定
 	dxCommon->GetCommandList()->SetGraphicsRootDescriptorTable(2, gpuHandle_);
@@ -142,15 +136,13 @@ void Sprite::SetTexture(const std::string& filePath)
 void Sprite::CreateMaterialResource(DirectXCommon* dxCommon)
 {
 	//スプライト用のマテリアルソースを作る
-	materialResourceSprite = createBuffer_->CreateBufferResource(dxCommon->GetDevice(), sizeof(Material));
+	materialResource = createBuffer_->CreateBufferResource(dxCommon->GetDevice(), sizeof(Material));
 
 	//書き込むためのアドレスを取得
-	materialResourceSprite->Map(0, nullptr, reinterpret_cast<void**>(&materialDataSprite));
-	materialDataSprite->color = { 1.0f, 1.0f, 1.0f, 1.0f };
-	//SpriteはLightingしないのでfalseを設定する
-	materialDataSprite->enableLighting = false;
-	////UVTramsform行列を単位行列で初期化(スプライト用)
-	materialDataSprite->uvTransform = Matrix4x4::MakeIdentity();
+	materialResource->Map(0, nullptr, reinterpret_cast<void**>(&materialData));
+	materialData->color = { 1.0f, 1.0f, 1.0f, 1.0f };
+	//UVTramsform行列を単位行列で初期化(スプライト用)
+	materialData->uvTransform = Matrix4x4::MakeIdentity();
 }
 
 
@@ -160,22 +152,22 @@ void Sprite::CreateMaterialResource(DirectXCommon* dxCommon)
 void Sprite::CreateVertexBufferResource(DirectXCommon* dxCommon)
 {
 	//Sprite用の頂点リソースを作る
-	vertexResourceSprite = createBuffer_->CreateBufferResource(dxCommon->GetDevice(), sizeof(VertexData) * kNumVertex);
+	vertexResource = createBuffer_->CreateBufferResource(dxCommon->GetDevice(), sizeof(VertexData) * kNumVertex);
 
-	vertexBufferViewSprite.BufferLocation = vertexResourceSprite->GetGPUVirtualAddress();
-	vertexBufferViewSprite.SizeInBytes = sizeof(VertexData) * kNumVertex;
-	vertexBufferViewSprite.StrideInBytes = sizeof(VertexData);
+	vertexBufferView.BufferLocation = vertexResource->GetGPUVirtualAddress();
+	vertexBufferView.SizeInBytes = sizeof(VertexData) * kNumVertex;
+	vertexBufferView.StrideInBytes = sizeof(VertexData);
 
-	vertexResourceSprite->Map(0, nullptr, reinterpret_cast<void**>(&vertexDataSprite));
+	vertexResource->Map(0, nullptr, reinterpret_cast<void**>(&vertexData));
 
 	//Sprite用のTransformationMatrix用のリソースを作る。Matrix4x4 1つ分のサイズを用意する
-	transformationMatrixResourceSprite = createBuffer_->CreateBufferResource(dxCommon->GetDevice(), sizeof(TransformationMatrix));
+	transformationMatrixResource = createBuffer_->CreateBufferResource(dxCommon->GetDevice(), sizeof(TransformationMatrix));
 	// 座標変換行列リソースにデータを書き込むためのアドレスを取得
-	transformationMatrixResourceSprite->Map(0, nullptr, reinterpret_cast<void**>(&transformationMatrixDataSprite));
+	transformationMatrixResource->Map(0, nullptr, reinterpret_cast<void**>(&transformationMatrixData));
 
 	//単位行列を書き込んでおく
-	transformationMatrixDataSprite->World = Matrix4x4::MakeIdentity();
-	transformationMatrixDataSprite->WVP = Matrix4x4::MakeIdentity();
+	transformationMatrixData->World = Matrix4x4::MakeIdentity();
+	transformationMatrixData->WVP = Matrix4x4::MakeIdentity();
 }
 
 
@@ -184,23 +176,23 @@ void Sprite::CreateVertexBufferResource(DirectXCommon* dxCommon)
 /// -------------------------------------------------------------
 void Sprite::CreateIndexBuffer(DirectXCommon* dxCommon)
 {
-	indexResourceSprite = createBuffer_->CreateBufferResource(dxCommon->GetDevice(), sizeof(uint32_t) * kNumVertex);
+	indexResource = createBuffer_->CreateBufferResource(dxCommon->GetDevice(), sizeof(uint32_t) * kNumVertex);
 	//リソースの先頭のアドレスから使う
-	indexBufferViewSprite.BufferLocation = indexResourceSprite->GetGPUVirtualAddress();
+	indexBufferView.BufferLocation = indexResource->GetGPUVirtualAddress();
 	//使用するリソースのサイズはインデックス６つ分のサイズ
-	indexBufferViewSprite.SizeInBytes = sizeof(uint32_t) * kNumVertex;
+	indexBufferView.SizeInBytes = sizeof(uint32_t) * kNumVertex;
 	//インデックスはuint32_tとする
-	indexBufferViewSprite.Format = DXGI_FORMAT_R32_UINT;
+	indexBufferView.Format = DXGI_FORMAT_R32_UINT;
 
-	indexResourceSprite->Map(0, nullptr, reinterpret_cast<void**>(&indexDataSprite));
+	indexResource->Map(0, nullptr, reinterpret_cast<void**>(&indexData));
 
 	// インデックスデータにデータを書き
-	indexDataSprite[0] = 0;
-	indexDataSprite[1] = 1;
-	indexDataSprite[2] = 2;
-	indexDataSprite[3] = 1;
-	indexDataSprite[4] = 3;
-	indexDataSprite[5] = 2;
+	indexData[0] = 0;
+	indexData[1] = 1;
+	indexData[2] = 2;
+	indexData[3] = 1;
+	indexData[4] = 3;
+	indexData[5] = 2;
 }
 
 
