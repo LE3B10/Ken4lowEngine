@@ -10,6 +10,7 @@
 
 #include "ParameterManager.h"
 
+
 /// -------------------------------------------------------------
 ///					　		初期化処理
 /// -------------------------------------------------------------
@@ -29,7 +30,15 @@ void Object3D::Initialize(const std::string& fileName)
 
 	worldTransform.Initialize();
 
-	preInitialize(dxCommon);
+	// マテリアルデータの初期化処理
+	InitializeMaterial();
+
+	// 頂点データの初期化
+	InitializeVertexBufferData();
+
+	// カメラデータの初期化処理
+	InitializeCameraResource();
+
 }
 
 
@@ -96,21 +105,11 @@ void Object3D::SetModel(const std::string& filePath)
 	}
 }
 
-/// -------------------------------------------------------------
-///					　		前処理
-/// -------------------------------------------------------------
-void Object3D::preInitialize(DirectXCommon* dxCommon)
-{
-	InitializeMaterial(dxCommon);
-	InitializeVertexBufferData(dxCommon);
-	InitializeCameraResource(dxCommon);
-}
-
 
 /// -------------------------------------------------------------
 ///					　マテリアルの初期化処理
 /// -------------------------------------------------------------
-void Object3D::InitializeMaterial(DirectXCommon* dxCommon)
+void Object3D::InitializeMaterial()
 {
 #pragma region マテリアル用のリソースを作成しそのリソースにデータを書き込む処理を行う
 	// マテリアル用のリソースを作る。今回はcolor1つ分のサイズを用意する
@@ -128,7 +127,7 @@ void Object3D::InitializeMaterial(DirectXCommon* dxCommon)
 }
 
 
-void Object3D::InitializeCameraResource(DirectXCommon* dxCommon)
+void Object3D::InitializeCameraResource()
 {
 	// カメラ用のリソースを作る
 	cameraResource = ResourceManager::CreateBufferResource(dxCommon->GetDevice(), sizeof(CameraForGPU));
@@ -142,7 +141,7 @@ void Object3D::InitializeCameraResource(DirectXCommon* dxCommon)
 /// -------------------------------------------------------------
 ///				　頂点バッファデータの初期化
 /// -------------------------------------------------------------
-void Object3D::InitializeVertexBufferData(DirectXCommon* dxCommon)
+void Object3D::InitializeVertexBufferData()
 {
 #pragma region 頂点バッファデータの開始位置サイズおよび各頂点のデータ構造を指定
 	// 頂点バッファビューを作成する

@@ -1,11 +1,13 @@
 #pragma once
 #include <Sprite.h>
-#include <TextureManager.h>
 #include <Object3D.h>
 #include <WavLoader.h>
 #include "ParticleManager.h"
 #include "ParticleEmitter.h"
 #include <BaseScene.h>
+
+#include "AnimationModel.h"
+#include "SkyBox.h"
 
 #include "CollisionManager.h"
 
@@ -49,16 +51,17 @@ private: /// ---------- メンバ関数 ---------- ///
 private: /// ---------- メンバ変数 ---------- ///
 
 	DirectXCommon* dxCommon_ = nullptr;
-	TextureManager* textureManager = nullptr;
 	Input* input_ = nullptr;
 	ParticleManager* particleManager = nullptr;
 
 	std::unique_ptr<WavLoader> wavLoader_;
 	std::unique_ptr<Object3D> objectTerrain_;
 	std::unique_ptr<Object3D> objectBall_;
-	std::vector<std::unique_ptr<Sprite>> sprites_;
+	std::unique_ptr<Sprite> sprites_;
 	std::unique_ptr<CollisionManager> collisionManager_;
 	std::unique_ptr<ParticleEmitter> particleEmitter_;
+	std::unique_ptr<AnimationModel> animationModel_;
+	std::unique_ptr<SkyBox> skyBox_;
 
 	const std::string& particleGroupName = "Particle";
 

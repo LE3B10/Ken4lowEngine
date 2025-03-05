@@ -2,8 +2,9 @@
 #include <DirectXCommon.h>
 #include <ImGuiManager.h>
 #include <Input.h>
-#include "Object3DCommon.h"
 #include <SpriteManager.h>
+#include "Object3DCommon.h"
+#include "SkyBoxManager.h"
 #include <ParameterManager.h>
 #include <ParticleManager.h>
 #include "Wireframe.h"
@@ -25,7 +26,6 @@ void GamePlayScene::Initialize()
 
 	dxCommon_ = DirectXCommon::GetInstance();
 	input_ = Input::GetInstance();
-	textureManager = TextureManager::GetInstance();
 	particleManager = ParticleManager::GetInstance();
 
 	/// ---------- サウンドの初期化 ---------- ///
@@ -40,11 +40,16 @@ void GamePlayScene::Initialize()
 	objectBall_ = std::make_unique<Object3D>();
 	objectBall_->Initialize("sphere.gltf");
 
-	textureManager->LoadTexture("Resources/uvChecker.png");
-	particleManager->CreateParticleGroup("Fire", "Resources/uvChecker.png");
+	particleManager->CreateParticleGroup("Fire", "uvChecker.png");
 	particleEmitter_ = std::make_unique<ParticleEmitter>(particleManager, "Fire");
 	particleEmitter_->SetPosition({ 0.0f,3.0f,10.0f });
 	particleEmitter_->SetEmissionRate(1000.0f);
+
+	animationModel_ = std::make_unique<AnimationModel>();
+	animationModel_->Initialize("walk.gltf", true, true);
+
+	skyBox_ = std::make_unique<SkyBox>();
+	skyBox_->Initialize("rostock_laage_airport_4k.dds");
 
 	// 衝突マネージャの生成
 	collisionManager_ = std::make_unique<CollisionManager>();
@@ -70,6 +75,10 @@ void GamePlayScene::Update()
 	objectBall_->Update();
 
 	particleEmitter_->Update(1.0f / 120.0f);
+
+	animationModel_->Update();
+
+	skyBox_->Update();
 }
 
 
@@ -78,6 +87,13 @@ void GamePlayScene::Update()
 /// -------------------------------------------------------------
 void GamePlayScene::Draw()
 {
+	/// ------------------------------------------ ///
+	/// ---------- スカイボックスの描画 ---------- ///
+	/// ------------------------------------------ ///
+	SkyBoxManager::GetInstance()->SetRenderSetting();
+	skyBox_->Draw();
+
+
 	/// ---------------------------------------- ///
 	/// ----------  スプライトの描画  ---------- ///
 	/// ---------------------------------------- ///
@@ -95,6 +111,7 @@ void GamePlayScene::Draw()
 	objectTerrain_->Draw();
 	//objectBall_->Draw();
 
+	animationModel_->Draw();
 
 	// ワイヤーフレームの描画
 	Wireframe::GetInstance()->DrawGrid(100.0f, 20.0f, { 0.25f, 0.25f, 0.25f,1.0f });

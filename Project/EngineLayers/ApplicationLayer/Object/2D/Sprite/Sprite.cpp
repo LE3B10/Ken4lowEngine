@@ -17,13 +17,13 @@ void Sprite::Initialize(const std::string& filePath)
 	gpuHandle_ = TextureManager::GetInstance()->GetSrvHandleGPU(filePath_);
 
 	// スプライトのインデックスバッファを作成および設定する
-	CreateIndexBuffer(dxCommon);
+	CreateIndexBuffer();
 
 	// スプライト用のマテリアルリソースを作成し設定する処理を行う
-	CreateMaterialResource(dxCommon);
+	CreateMaterialResource();
 
 	// スプライトの頂点バッファリソースと変換行列リソースを生成
-	CreateVertexBufferResource(dxCommon);
+	CreateVertexBufferResource();
 
 	// テクスチャサイズに合わせる
 	AdjustTextureSize();
@@ -133,10 +133,10 @@ void Sprite::SetTexture(const std::string& filePath)
 /// -------------------------------------------------------------
 ///	 スプライト用のマテリアルリソースを作成し設定する処理を行う
 /// -------------------------------------------------------------
-void Sprite::CreateMaterialResource(DirectXCommon* dxCommon)
+void Sprite::CreateMaterialResource()
 {
 	//スプライト用のマテリアルソースを作る
-	materialResource = createBuffer_->CreateBufferResource(dxCommon->GetDevice(), sizeof(Material));
+	materialResource = ResourceManager::CreateBufferResource(dxCommon->GetDevice(), sizeof(Material));
 
 	//書き込むためのアドレスを取得
 	materialResource->Map(0, nullptr, reinterpret_cast<void**>(&materialData));
@@ -149,10 +149,10 @@ void Sprite::CreateMaterialResource(DirectXCommon* dxCommon)
 /// -------------------------------------------------------------
 ///	  スプライトの頂点バッファリソースと変換行列リソースを生成
 /// -------------------------------------------------------------
-void Sprite::CreateVertexBufferResource(DirectXCommon* dxCommon)
+void Sprite::CreateVertexBufferResource()
 {
 	//Sprite用の頂点リソースを作る
-	vertexResource = createBuffer_->CreateBufferResource(dxCommon->GetDevice(), sizeof(VertexData) * kNumVertex);
+	vertexResource = ResourceManager::CreateBufferResource(dxCommon->GetDevice(), sizeof(VertexData) * kNumVertex);
 
 	vertexBufferView.BufferLocation = vertexResource->GetGPUVirtualAddress();
 	vertexBufferView.SizeInBytes = sizeof(VertexData) * kNumVertex;
@@ -161,7 +161,7 @@ void Sprite::CreateVertexBufferResource(DirectXCommon* dxCommon)
 	vertexResource->Map(0, nullptr, reinterpret_cast<void**>(&vertexData));
 
 	//Sprite用のTransformationMatrix用のリソースを作る。Matrix4x4 1つ分のサイズを用意する
-	transformationMatrixResource = createBuffer_->CreateBufferResource(dxCommon->GetDevice(), sizeof(TransformationMatrix));
+	transformationMatrixResource = ResourceManager::CreateBufferResource(dxCommon->GetDevice(), sizeof(TransformationMatrix));
 	// 座標変換行列リソースにデータを書き込むためのアドレスを取得
 	transformationMatrixResource->Map(0, nullptr, reinterpret_cast<void**>(&transformationMatrixData));
 
@@ -174,9 +174,9 @@ void Sprite::CreateVertexBufferResource(DirectXCommon* dxCommon)
 /// -------------------------------------------------------------
 ///	   スプライトのインデックスバッファを作成および設定する
 /// -------------------------------------------------------------
-void Sprite::CreateIndexBuffer(DirectXCommon* dxCommon)
+void Sprite::CreateIndexBuffer()
 {
-	indexResource = createBuffer_->CreateBufferResource(dxCommon->GetDevice(), sizeof(uint32_t) * kNumVertex);
+	indexResource = ResourceManager::CreateBufferResource(dxCommon->GetDevice(), sizeof(uint32_t) * kNumVertex);
 	//リソースの先頭のアドレスから使う
 	indexBufferView.BufferLocation = indexResource->GetGPUVirtualAddress();
 	//使用するリソースのサイズはインデックス６つ分のサイズ
