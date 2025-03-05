@@ -11,17 +11,18 @@
 
 /// ---------- 前方宣言 ---------- ///
 class DirectXCommon;
-class ResourceManager;
 
-/// ---------- スプライトの頂点数 ( Vertex, Index ) ----------- ///
-static const UINT kNumVertex = 6;
-static const UINT kNumIndex = 4;
 
 /// -------------------------------------------------------------
 ///						スプライトクラス
 /// -------------------------------------------------------------
 class Sprite
 {
+	/// ---------- 頂点数 ( Vertex, Index ) ----------- ///
+	static inline const UINT kNumVertex = 6;
+	static inline const UINT kNumIndex = 4;
+
+
 	// マテリアルデータの構造体
 	struct Material final
 	{
@@ -119,13 +120,13 @@ public: /// ---------- セッター ---------- ///
 private: /// ---------- メンバ関数 ---------- ///
 
 	// スプライト用のマテリアルリソースを作成し設定する処理を行う
-	void CreateMaterialResource(DirectXCommon* dxCommon);
+	void CreateMaterialResource();
 
 	// スプライトの頂点バッファリソースと変換行列リソースを生成
-	void CreateVertexBufferResource(DirectXCommon* dxCommon);
+	void CreateVertexBufferResource();
 
 	// スプライトのインデックスバッファを作成
-	void CreateIndexBuffer(DirectXCommon* dxCommon);
+	void CreateIndexBuffer();
 
 	// テクスチャ債ぞをイメージに合わせる
 	void AdjustTextureSize();
@@ -160,9 +161,6 @@ private: /// ---------- メンバ変数 ---------- ///
 private: /// ---------- メンバ変数 ---------- ///
 
 	DirectXCommon* dxCommon = nullptr;
-
-	// CreateBuffer用
-	ResourceManager* createBuffer_ = nullptr;
 
 	//スプライト用のマテリアルソースを作る
 	ComPtr <ID3D12Resource> materialResource;

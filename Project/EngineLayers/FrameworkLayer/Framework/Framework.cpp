@@ -10,6 +10,7 @@
 #include <DebugCamera.h>
 #include <Wireframe.h>
 #include <AnimationModelManager.h>
+#include <SkyBoxManager.h>
 
 
 /// -------------------------------------------------------------
@@ -89,6 +90,9 @@ void Framework::Initialize()
 
 	// ParticleManagerの生成
 	ParticleManager::GetInstance()->Initialize(dxCommon_, defaultCamera_.get());
+
+	// スカイボックスの生成
+	SkyBoxManager::GetInstance()->Initialize(dxCommon_);
 
 #pragma endregion -------------------------------------------
 
