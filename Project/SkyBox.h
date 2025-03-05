@@ -1,6 +1,7 @@
 #pragma once
 #include "DX12Include.h"
 #include "WorldTransform.h"
+#include "Camera.h"
 
 #include "Vector2.h"
 #include "Vector4.h"
@@ -18,7 +19,7 @@ class DirectXCommon;
 class SkyBox
 {
 private: /// ---------- 構造体 ---------- ///
-	
+
 	/// ---------- 頂点数 ( Vertex, Index ) ----------- ///
 	static inline const UINT kNumVertex = 24;
 	static inline const UINT kNumIndex = 36;
@@ -35,7 +36,7 @@ private: /// ---------- 構造体 ---------- ///
 	struct VertexData
 	{
 		Vector4 position;
-		Vector2 texcoord;
+		Vector3 texcoord;
 	};
 
 	// 座標変換行列データの構造体
@@ -71,7 +72,7 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	DirectXCommon* dxCommon_ = nullptr;
 
-	WorldTransform worldTransform_;
+	Camera* camera_ = nullptr;
 
 	// テクスチャ番号
 	D3D12_GPU_DESCRIPTOR_HANDLE gpuHandle_;
@@ -82,9 +83,9 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	ComPtr <ID3D12Resource> vertexResource;// 頂点リソースを作る
 	D3D12_VERTEX_BUFFER_VIEW vertexBufferView{};// 頂点バッファビューを作成する
-	VertexData* vertexData = nullptr;// 頂点データを設定する
-	ComPtr <ID3D12Resource> transformationMatrixResource;// TransformationMatrix用のリソース
-	TransformationMatrix* transformationMatrixData = nullptr;//データを書き込む
+	VertexData* vertexData_ = nullptr;// 頂点データを設定する
+	ComPtr <ID3D12Resource> wvpResource;// TransformationMatrix用のリソース
+	TransformationMatrix* wvpData = nullptr;//データを書き込む
 
 	// インデックスバッファを作成および設定する
 	ComPtr <ID3D12Resource> indexResource;

@@ -2,6 +2,7 @@
 #include "DirectXCommon.h"
 #include <ResourceManager.h>
 #include "TextureManager.h"
+#include "Object3DCommon.h"
 
 
 /// -------------------------------------------------------------
@@ -12,14 +13,11 @@ void SkyBox::Initialize(const std::string& filePath)
 	const std::string FilePath = "Resources/" + filePath;
 	TextureManager::GetInstance()->LoadTexture(FilePath);
 
+	camera_ = Object3DCommon::GetInstance()->GetDefaultCamera();
+
 	dxCommon_ = DirectXCommon::GetInstance();
 
 	gpuHandle_ = TextureManager::GetInstance()->GetSrvHandleGPU(FilePath);
-
-	worldTransform_.Initialize();
-	worldTransform_.scale_ = { 1.0f,1.0f,1.0f };
-	worldTransform_.rotate_ = { 0.0f,0.0f,0.0f };
-	worldTransform_.translate_ = { 0.0f,0.0f,0.0f };
 
 	// マテリアルデータの初期化
 	InitializeMaterial();
@@ -29,6 +27,15 @@ void SkyBox::Initialize(const std::string& filePath)
 
 	// インデックスデータの初期化
 	InitializeIndexData();
+
+	// TransformationMatrix用のリソースを作る。Matrix4x4 1つ分のサイズを用意する
+	wvpResource = ResourceManager::CreateBufferResource(dxCommon_->GetDevice(), sizeof(TransformationMatrix));
+	// 座標変換行列リソースにデータを書き込むためのアドレスを取得
+	wvpResource->Map(0, nullptr, reinterpret_cast<void**>(&wvpData));
+
+	// 単位行列を書き込んでおく
+	wvpData->World = Matrix4x4::MakeIdentity();
+	wvpData->WVP = Matrix4x4::MakeIdentity();
 }
 
 
@@ -37,46 +44,20 @@ void SkyBox::Initialize(const std::string& filePath)
 /// -------------------------------------------------------------
 void SkyBox::Update()
 {
-	// 右面 (+X)
-	vertexData[0].position = { 1.0f,  1.0f,  1.0f, 1.0f };
-	vertexData[1].position = { 1.0f,  1.0f, -1.0f, 1.0f };
-	vertexData[2].position = { 1.0f, -1.0f,  1.0f, 1.0f };
-	vertexData[3].position = { 1.0f, -1.0f, -1.0f, 1.0f };
-
-	// 左面 (-X)
-	vertexData[4].position = { -1.0f,  1.0f, -1.0f, 1.0f };
-	vertexData[5].position = { -1.0f,  1.0f,  1.0f, 1.0f };
-	vertexData[6].position = { -1.0f, -1.0f, -1.0f, 1.0f };
-	vertexData[7].position = { -1.0f, -1.0f,  1.0f, 1.0f };
-
-	// 前面 (+Z)
-	vertexData[8].position = { -1.0f,  1.0f,  1.0f, 1.0f };
-	vertexData[9].position = { 1.0f,  1.0f,  1.0f, 1.0f };
-	vertexData[10].position = { -1.0f, -1.0f,  1.0f, 1.0f };
-	vertexData[11].position = { 1.0f, -1.0f,  1.0f, 1.0f };
-
-	// 後面 (-Z)
-	vertexData[12].position = { 1.0f,  1.0f, -1.0f, 1.0f };
-	vertexData[13].position = { -1.0f,  1.0f, -1.0f, 1.0f };
-	vertexData[14].position = { 1.0f, -1.0f, -1.0f, 1.0f };
-	vertexData[15].position = { -1.0f, -1.0f, -1.0f, 1.0f };
-
-	// 上面 (+Y)
-	vertexData[16].position = { -1.0f,  1.0f, -1.0f, 1.0f };
-	vertexData[17].position = { 1.0f,  1.0f, -1.0f, 1.0f };
-	vertexData[18].position = { -1.0f,  1.0f,  1.0f, 1.0f };
-	vertexData[19].position = { 1.0f,  1.0f,  1.0f, 1.0f };
-
-	// 下面 (-Y)
-	vertexData[20].position = { -1.0f, -1.0f,  1.0f, 1.0f };
-	vertexData[21].position = { 1.0f, -1.0f,  1.0f, 1.0f };
-	vertexData[22].position = { -1.0f, -1.0f, -1.0f, 1.0f };
-	vertexData[23].position = { 1.0f, -1.0f, -1.0f, 1.0f };
-
-	// 頂点データ更新
-	memcpy(vertexData, &vertexData[0], sizeof(VertexData) * kNumVertex);
+	// ワールド行列の計算
+	WorldTransform worldTransform_;
+	worldTransform_.scale_ = { 40.0f, 40.0f, 40.0f };
+	worldTransform_.rotate_ = { 0.0f, 0.0f, 0.0f };
+	worldTransform_.translate_ = { 0.0f, 0.0f, 0.0f };
 
 	Matrix4x4 worldMatrix = Matrix4x4::MakeAffineMatrix(worldTransform_.scale_, worldTransform_.rotate_, worldTransform_.translate_);
+
+	Matrix4x4 viewMatrix = camera_->GetViewMatrix();
+	Matrix4x4 projectionMatrix = camera_->GetProjectionMatrix();
+	Matrix4x4 worldViewProjectionMatrix = Matrix4x4::Multiply(worldMatrix, Matrix4x4::Multiply(viewMatrix, projectionMatrix));
+
+	wvpData->WVP = worldViewProjectionMatrix;
+	wvpData->World = worldMatrix;
 }
 
 
@@ -90,11 +71,12 @@ void SkyBox::Draw()
 	commandList->IASetVertexBuffers(0, 1, &vertexBufferView); // スプライト用VBV
 	commandList->IASetIndexBuffer(&indexBufferView); // IBVの設定
 	commandList->SetGraphicsRootConstantBufferView(0, materialResource.Get()->GetGPUVirtualAddress());
+	commandList->SetGraphicsRootConstantBufferView(1, wvpResource->GetGPUVirtualAddress());
 
 	// ディスクリプタテーブルの設定
 	commandList->SetGraphicsRootDescriptorTable(2, gpuHandle_);
 
-	//commandList->DrawIndexedInstanced(kNumVertex, 1, 0, 0, 0);
+	commandList->DrawIndexedInstanced(kNumVertex, 1, 0, 0, 0);
 }
 
 
@@ -125,16 +107,26 @@ void SkyBox::InitializeVertexBufferData()
 	vertexBufferView.SizeInBytes = sizeof(VertexData) * kNumVertex;
 	vertexBufferView.StrideInBytes = sizeof(VertexData);
 
-	vertexResource->Map(0, nullptr, reinterpret_cast<void**>(&vertexData));
+	vertexResource->Map(0, nullptr, reinterpret_cast<void**>(&vertexData_));
 
-	// TransformationMatrix用のリソースを作る。Matrix4x4 1つ分のサイズを用意する
-	transformationMatrixResource = ResourceManager::CreateBufferResource(dxCommon_->GetDevice(), sizeof(TransformationMatrix));
-	// 座標変換行列リソースにデータを書き込むためのアドレスを取得
-	transformationMatrixResource->Map(0, nullptr, reinterpret_cast<void**>(&transformationMatrixData));
+	// スカイボックスの頂点データ（8頂点）
+	VertexData vertexData[] = {
+		// 前面
+		{{-1.0f,  1.0f, -1.0f, 1.0f}, {-1.0f,  1.0f, -1.0f}}, // 左上
+		{{ 1.0f,  1.0f, -1.0f, 1.0f}, { 1.0f,  1.0f, -1.0f}}, // 右上
+		{{-1.0f, -1.0f, -1.0f, 1.0f}, {-1.0f, -1.0f, -1.0f}}, // 左下
+		{{ 1.0f, -1.0f, -1.0f, 1.0f}, { 1.0f, -1.0f, -1.0f}}, // 右下
 
-	// 単位行列を書き込んでおく
-	transformationMatrixData->World = Matrix4x4::MakeIdentity();
-	transformationMatrixData->WVP = Matrix4x4::MakeIdentity();
+		// 背面
+		{{-1.0f,  1.0f,  1.0f, 1.0f}, {-1.0f,  1.0f,  1.0f}}, // 左上
+		{{ 1.0f,  1.0f,  1.0f, 1.0f}, { 1.0f,  1.0f,  1.0f}}, // 右上
+		{{-1.0f, -1.0f,  1.0f, 1.0f}, {-1.0f, -1.0f,  1.0f}}, // 左下
+		{{ 1.0f, -1.0f,  1.0f, 1.0f}, { 1.0f, -1.0f,  1.0f}}, // 右下
+	};
+
+	// 頂点データ更新
+	memcpy(vertexData, &vertexData, sizeof(VertexData) * kNumVertex);
+
 }
 
 
@@ -154,16 +146,22 @@ void SkyBox::InitializeIndexData()
 	// インデックスデータのマッピング
 	indexResource->Map(0, nullptr, reinterpret_cast<void**>(&indexData));
 
-	// インデックスデータの設定（1面 = 2つの三角形 = 6インデックス）
-	uint32_t indices[] =
-	{
-		0, 1, 2,  2, 1, 3,  // 右面 (+X)
-		4, 5, 6,  6, 5, 7,  // 左面 (-X)
-		8, 9, 10, 10, 9, 11, // 前面 (+Z)
-		12, 13, 14, 14, 13, 15, // 後面 (-Z)
-		16, 17, 18, 18, 17, 19, // 上面 (+Y)
-		20, 21, 22, 22, 21, 23  // 下面 (-Y)
+	// スカイボックスのインデックスデータ（36インデックス）
+	uint32_t indexData[] = {
+		// 前面
+		0, 1, 2, 2, 1, 3,
+		// 背面
+		5, 4, 7, 7, 4, 6,
+		// 左面
+		4, 0, 6, 6, 0, 2,
+		// 右面
+		1, 5, 3, 3, 5, 7,
+		// 上面
+		4, 5, 0, 0, 5, 1,
+		// 下面
+		2, 3, 6, 6, 3, 7
 	};
 
-	memcpy(indexData, indices, sizeof(uint32_t) * kNumIndex);
+
+	memcpy(indexData, indexData, sizeof(uint32_t) * kNumIndex);
 }
