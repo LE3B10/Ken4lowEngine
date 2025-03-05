@@ -21,7 +21,7 @@ class SkyBox
 private: /// ---------- 構造体 ---------- ///
 
 	/// ---------- 頂点数 ( Vertex, Index ) ----------- ///
-	static inline const UINT kNumVertex = 24;
+	static inline const UINT kNumVertex = 36;
 	static inline const UINT kNumIndex = 36;
 
 	// マテリアルデータの構造体
@@ -57,6 +57,12 @@ public: /// ---------- メンバ関数 ---------- ///
 	// 描画処理
 	void Draw();
 
+	// デバッグカメラの有無
+	void SetDebugCamera(bool isDebugCamera) { isDebugCamera_ = isDebugCamera; }
+
+	// デバッグカメラの有無を取得
+	bool GetDebugCamera() { return isDebugCamera_; }
+
 private: /// ---------- メンバ関数 ---------- ///
 
 	// マテリアルデータの初期化処理
@@ -74,6 +80,9 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	Camera* camera_ = nullptr;
 
+	// ワールド行列の計算
+	WorldTransform worldTransform_;
+
 	// テクスチャ番号
 	D3D12_GPU_DESCRIPTOR_HANDLE gpuHandle_;
 
@@ -90,6 +99,11 @@ private: /// ---------- メンバ変数 ---------- ///
 	// インデックスバッファを作成および設定する
 	ComPtr <ID3D12Resource> indexResource;
 	D3D12_INDEX_BUFFER_VIEW indexBufferView{};
-	uint32_t* indexData = nullptr;
+	uint32_t* indexData_ = nullptr;
+
+	Matrix4x4 worldViewProjectionMatrix;
+	Matrix4x4 viewProjectionMatrix_;
+	Matrix4x4 debugViewProjectionMatrix_;
+	bool isDebugCamera_ = false;
 };
 

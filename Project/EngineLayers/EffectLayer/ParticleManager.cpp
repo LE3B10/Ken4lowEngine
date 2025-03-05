@@ -7,6 +7,7 @@
 #include "ShaderManager.h"
 #include "Camera.h"
 #include <ImGuiManager.h>
+#include <DebugCamera.h>
 
 std::vector<ParticleManager::WindZone> windZones = {
 	{ { {-5.0f, -5.0f, -5.0f}, {5.0f, 5.0f, 5.0f} }, {0.1f, 0.0f, 0.0f} },
@@ -150,8 +151,23 @@ void ParticleManager::Update()
 					worldMatrix = scaleMatrix * billboardMatrix * translateMatrix;
 				}
 
+				if (isDebugCamera_)
+				{
+				#ifdef _DEBUG
+					debugViewProjectionMatrix_ = DebugCamera::GetInstance()->GetViewProjectionMatrix();
+					camera_->SetViewProjectionMatrix(debugViewProjectionMatrix_);
+					worldViewProjectionMatrix = Matrix4x4::Multiply(worldMatrix, debugViewProjectionMatrix_);
+				#endif // _DEBUG
+				}
+				else
+				{
+					viewProjectionMatrix_ = Matrix4x4::Multiply(camera_->GetViewMatrix(), camera_->GetProjectionMatrix());
+					camera_->SetViewProjectionMatrix(viewProjectionMatrix_);
+					worldViewProjectionMatrix = Matrix4x4::Multiply(worldMatrix, viewProjectionMatrix_);
+				}
+
 				// ワールド・ビュー・プロジェクション行列を計算
-				Matrix4x4 worldViewProjectionMatrix = Matrix4x4::Multiply(worldMatrix, viewProjectionMatrix);
+				//worldViewProjectionMatrix = Matrix4x4::Multiply(worldMatrix, viewProjectionMatrix);
 
 				// インスタンシング用データを設定
 				group.second.mappedData[group.second.numParticles].WVP = worldViewProjectionMatrix;

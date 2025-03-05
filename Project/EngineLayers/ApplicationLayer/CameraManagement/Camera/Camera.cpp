@@ -30,3 +30,11 @@ void Camera::Update()
 	projectionMatrix_ = Matrix4x4::MakePerspectiveFovMatrix(fovY_, aspectRatio_, nearClip_, farClip_);
 	viewProjectionMatrix_ = Matrix4x4::Multiply(viewMatrix_, projectionMatrix_);
 }
+
+void Camera::DrawImGui()
+{
+	ImGui::Begin("Camera");
+	ImGui::DragFloat3("Position", &worldTransform_.translate_.x, 0.1f);
+	ImGui::DragFloat3("Rotation", &worldTransform_.rotate_.x, 0.01f);
+	ImGui::End();
+}

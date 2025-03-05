@@ -3,6 +3,7 @@
 #include <ResourceManager.h>
 #include "TextureManager.h"
 #include "Object3DCommon.h"
+#include "DebugCamera.h"
 
 
 /// -------------------------------------------------------------
@@ -18,6 +19,10 @@ void SkyBox::Initialize(const std::string& filePath)
 	dxCommon_ = DirectXCommon::GetInstance();
 
 	gpuHandle_ = TextureManager::GetInstance()->GetSrvHandleGPU(FilePath);
+
+	worldTransform_.scale_ = { 50.0f, 50.0f, 50.0f };
+	worldTransform_.rotate_ = { 0.0f, 0.0f, 0.0f };
+	worldTransform_.translate_ = { 0.0f, 0.0f, 0.0f };
 
 	// マテリアルデータの初期化
 	InitializeMaterial();
@@ -44,17 +49,22 @@ void SkyBox::Initialize(const std::string& filePath)
 /// -------------------------------------------------------------
 void SkyBox::Update()
 {
-	// ワールド行列の計算
-	WorldTransform worldTransform_;
-	worldTransform_.scale_ = { 40.0f, 40.0f, 40.0f };
-	worldTransform_.rotate_ = { 0.0f, 0.0f, 0.0f };
-	worldTransform_.translate_ = { 0.0f, 0.0f, 0.0f };
 
 	Matrix4x4 worldMatrix = Matrix4x4::MakeAffineMatrix(worldTransform_.scale_, worldTransform_.rotate_, worldTransform_.translate_);
-
-	Matrix4x4 viewMatrix = camera_->GetViewMatrix();
-	Matrix4x4 projectionMatrix = camera_->GetProjectionMatrix();
-	Matrix4x4 worldViewProjectionMatrix = Matrix4x4::Multiply(worldMatrix, Matrix4x4::Multiply(viewMatrix, projectionMatrix));
+	if (isDebugCamera_)
+	{
+#ifdef _DEBUG
+		debugViewProjectionMatrix_ = DebugCamera::GetInstance()->GetViewProjectionMatrix();
+		camera_->SetViewProjectionMatrix(debugViewProjectionMatrix_);
+		worldViewProjectionMatrix = Matrix4x4::Multiply(worldMatrix, debugViewProjectionMatrix_);
+#endif // _DEBUG
+	}
+	else
+	{
+		viewProjectionMatrix_ = Matrix4x4::Multiply(camera_->GetViewMatrix(), camera_->GetProjectionMatrix());
+		camera_->SetViewProjectionMatrix(viewProjectionMatrix_);
+		worldViewProjectionMatrix = Matrix4x4::Multiply(worldMatrix, viewProjectionMatrix_);
+	}
 
 	wvpData->WVP = worldViewProjectionMatrix;
 	wvpData->World = worldMatrix;
@@ -109,24 +119,44 @@ void SkyBox::InitializeVertexBufferData()
 
 	vertexResource->Map(0, nullptr, reinterpret_cast<void**>(&vertexData_));
 
-	// スカイボックスの頂点データ（8頂点）
-	VertexData vertexData[] = {
-		// 前面
-		{{-1.0f,  1.0f, -1.0f, 1.0f}, {-1.0f,  1.0f, -1.0f}}, // 左上
-		{{ 1.0f,  1.0f, -1.0f, 1.0f}, { 1.0f,  1.0f, -1.0f}}, // 右上
-		{{-1.0f, -1.0f, -1.0f, 1.0f}, {-1.0f, -1.0f, -1.0f}}, // 左下
-		{{ 1.0f, -1.0f, -1.0f, 1.0f}, { 1.0f, -1.0f, -1.0f}}, // 右下
+	// 右面（+X）
+	vertexData_[0] = { {  1.0f,  1.0f,  1.0f, 1.0f }, {  1.0f,  1.0f,  1.0f } };
+	vertexData_[1] = { {  1.0f,  1.0f, -1.0f, 1.0f }, {  1.0f,  1.0f, -1.0f } };
+	vertexData_[2] = { {  1.0f, -1.0f,  1.0f, 1.0f }, {  1.0f, -1.0f,  1.0f } };
+	vertexData_[3] = { {  1.0f, -1.0f, -1.0f, 1.0f }, {  1.0f, -1.0f, -1.0f } };
 
-		// 背面
-		{{-1.0f,  1.0f,  1.0f, 1.0f}, {-1.0f,  1.0f,  1.0f}}, // 左上
-		{{ 1.0f,  1.0f,  1.0f, 1.0f}, { 1.0f,  1.0f,  1.0f}}, // 右上
-		{{-1.0f, -1.0f,  1.0f, 1.0f}, {-1.0f, -1.0f,  1.0f}}, // 左下
-		{{ 1.0f, -1.0f,  1.0f, 1.0f}, { 1.0f, -1.0f,  1.0f}}, // 右下
-	};
+	// 左面（-X）
+	vertexData_[4] = { { -1.0f,  1.0f, -1.0f, 1.0f }, { -1.0f,  1.0f, -1.0f } };
+	vertexData_[5] = { { -1.0f,  1.0f,  1.0f, 1.0f }, { -1.0f,  1.0f,  1.0f } };
+	vertexData_[6] = { { -1.0f, -1.0f, -1.0f, 1.0f }, { -1.0f, -1.0f, -1.0f } };
+	vertexData_[7] = { { -1.0f, -1.0f,  1.0f, 1.0f }, { -1.0f, -1.0f,  1.0f } };
+
+	// 前面（+Z）
+	vertexData_[8] = { { -1.0f,  1.0f,  1.0f, 1.0f }, { -1.0f,  1.0f,  1.0f } };
+	vertexData_[9] = { {  1.0f,  1.0f,  1.0f, 1.0f }, {  1.0f,  1.0f,  1.0f } };
+	vertexData_[10] = { { -1.0f, -1.0f,  1.0f, 1.0f }, { -1.0f, -1.0f,  1.0f } };
+	vertexData_[11] = { {  1.0f, -1.0f,  1.0f, 1.0f }, {  1.0f, -1.0f,  1.0f } };
+
+	// 背面（-Z）
+	vertexData_[12] = { { -1.0f,  1.0f, -1.0f, 1.0f }, { -1.0f,  1.0f, -1.0f } };
+	vertexData_[13] = { {  1.0f,  1.0f, -1.0f, 1.0f }, {  1.0f,  1.0f, -1.0f } };
+	vertexData_[14] = { { -1.0f, -1.0f, -1.0f, 1.0f }, { -1.0f, -1.0f, -1.0f } };
+	vertexData_[15] = { {  1.0f, -1.0f, -1.0f, 1.0f }, {  1.0f, -1.0f, -1.0f } };
+
+	// 上面（+Y）
+	vertexData_[16] = { { -1.0f,  1.0f, -1.0f, 1.0f }, { -1.0f,  1.0f, -1.0f } };
+	vertexData_[17] = { {  1.0f,  1.0f, -1.0f, 1.0f }, {  1.0f,  1.0f, -1.0f } };
+	vertexData_[18] = { { -1.0f,  1.0f,  1.0f, 1.0f }, { -1.0f,  1.0f,  1.0f } };
+	vertexData_[19] = { {  1.0f,  1.0f,  1.0f, 1.0f }, {  1.0f,  1.0f,  1.0f } };
+
+	// 下面（-Y）
+	vertexData_[20] = { { -1.0f, -1.0f,  1.0f, 1.0f }, { -1.0f, -1.0f,  1.0f } };
+	vertexData_[21] = { {  1.0f, -1.0f,  1.0f, 1.0f }, {  1.0f, -1.0f,  1.0f } };
+	vertexData_[22] = { { -1.0f, -1.0f, -1.0f, 1.0f }, { -1.0f, -1.0f, -1.0f } };
+	vertexData_[23] = { {  1.0f, -1.0f, -1.0f, 1.0f }, {  1.0f, -1.0f, -1.0f } };
 
 	// 頂点データ更新
-	memcpy(vertexData, &vertexData, sizeof(VertexData) * kNumVertex);
-
+	memcpy(vertexData_, &vertexData_[0], sizeof(VertexData) * kNumVertex);
 }
 
 
@@ -144,24 +174,33 @@ void SkyBox::InitializeIndexData()
 	indexBufferView.Format = DXGI_FORMAT_R32_UINT;
 
 	// インデックスデータのマッピング
-	indexResource->Map(0, nullptr, reinterpret_cast<void**>(&indexData));
+	indexResource->Map(0, nullptr, reinterpret_cast<void**>(&indexData_));
 
-	// スカイボックスのインデックスデータ（36インデックス）
-	uint32_t indexData[] = {
-		// 前面
-		0, 1, 2, 2, 1, 3,
-		// 背面
-		5, 4, 7, 7, 4, 6,
-		// 左面
-		4, 0, 6, 6, 0, 2,
-		// 右面
-		1, 5, 3, 3, 5, 7,
-		// 上面
-		4, 5, 0, 0, 5, 1,
-		// 下面
-		2, 3, 6, 6, 3, 7
-	};
+	// インデックスバッファの順番を修正（時計回り）
 
+	// 右面（+X）
+	indexData_[0] = 2; indexData_[1] = 1; indexData_[2] = 0;
+	indexData_[3] = 3; indexData_[4] = 1; indexData_[5] = 2;
 
-	memcpy(indexData, indexData, sizeof(uint32_t) * kNumIndex);
+	// 左面（-X）
+	indexData_[6] = 6; indexData_[7] = 5; indexData_[8] = 4;
+	indexData_[9] = 7; indexData_[10] = 5; indexData_[11] = 6;
+
+	// 前面（+Z）
+	indexData_[12] = 10; indexData_[13] = 9; indexData_[14] = 8;
+	indexData_[15] = 11; indexData_[16] = 9; indexData_[17] = 10;
+
+	// 後面（-Z）
+	indexData_[18] = 12; indexData_[19] = 13; indexData_[20] = 14;
+	indexData_[21] = 14; indexData_[22] = 13; indexData_[23] = 15;
+
+	// 上面（+Y）
+	indexData_[24] = 17; indexData_[25] = 16; indexData_[26] = 18;
+	indexData_[27] = 17; indexData_[28] = 18; indexData_[29] = 19;
+
+	// 下面（-Y）
+	indexData_[30] = 21; indexData_[31] = 20; indexData_[32] = 22;
+	indexData_[33] = 21; indexData_[34] = 22; indexData_[35] = 23;
+
+	memcpy(indexData_, &indexData_[0], sizeof(uint32_t) * kNumIndex);
 }

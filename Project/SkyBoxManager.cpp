@@ -146,8 +146,8 @@ void SkyBoxManager::CreatePSO()
 	// RasterizerStateの設定
 	D3D12_RASTERIZER_DESC rasterizerDesc{};
 	rasterizerDesc.FillMode = D3D12_FILL_MODE_SOLID; // ポリゴンを塗りつぶす
-	rasterizerDesc.CullMode = D3D12_CULL_MODE_FRONT;  // 裏面カリングを無効にする
-	rasterizerDesc.FrontCounterClockwise = FALSE;	 // 時計回りの面を表面とする（カリング方向の設定）
+	rasterizerDesc.CullMode = D3D12_CULL_MODE_FRONT; // **スカイボックスの内側を描画するために前面カリング**
+	rasterizerDesc.FrontCounterClockwise = FALSE;   // **時計回りを表面として扱う**
 
 	// Shaderをコンパイル
 	ComPtr <IDxcBlob> vertexShaderBlob = ShaderManager::CompileShader(L"Resources/Shaders/SkyBox.VS.hlsl", L"vs_6_0", dxCommon_->GetIDxcUtils(), dxCommon_->GetIDxcCompiler(), dxCommon_->GetIncludeHandler());
@@ -161,7 +161,7 @@ void SkyBoxManager::CreatePSO()
 	D3D12_DEPTH_STENCIL_DESC depthStencilDesc{};
 	//Depthの機能を有効化する
 	depthStencilDesc.DepthEnable = true;
-	depthStencilDesc.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ALL;  // 書き込みを有効に
+	depthStencilDesc.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ZERO; // 書き込みを有効に
 	depthStencilDesc.DepthFunc = D3D12_COMPARISON_FUNC_LESS_EQUAL; // 近いものが描画されるように
 
 	// パイプラインステートディスクリプタの初期化
