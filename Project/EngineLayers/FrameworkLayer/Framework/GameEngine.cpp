@@ -5,6 +5,7 @@
 #include <DebugCamera.h>
 #include <Wireframe.h>
 #include <DirectXCommon.h>
+#include "Object3DCommon.h"
 
 
 /// -------------------------------------------------------------
@@ -40,7 +41,7 @@ void GameEngine::Update()
 
 	// 入力の更新
 	Input::GetInstance()->Update();
-	
+
 	if (Object3DCommon::GetInstance()->GetDebugCamera())
 	{
 		DebugCamera::GetInstance()->Update(); // 追加
@@ -62,6 +63,9 @@ void GameEngine::Update()
 	// グローバル変数の更新
 	ParameterManager::GetInstance()->Update();
 
+	defaultCamera_->DrawImGui();
+
+	// ImGuiを描画
 	Object3DCommon::GetInstance()->DrawImGui();
 
 	// シーンのImGuiの描画処理

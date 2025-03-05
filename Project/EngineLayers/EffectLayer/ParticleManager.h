@@ -112,6 +112,12 @@ public: /// ---------- メンバ関数 ---------- ///
 	// ImGuiの描画
 	void DrawImGui();
 
+	// デバッグカメラの有無
+	void SetDebugCamera(bool isDebugCamera) { isDebugCamera_ = isDebugCamera; }
+
+	// デバッグカメラの有無を取得
+	bool GetDebugCamera() { return isDebugCamera_; }
+
 private: /// ---------- ヘルパー関数 ---------- ///
 
 	// ルートシグネチャの生成
@@ -143,6 +149,10 @@ private: /// ---------- メンバ変数 ---------- ///
 	SRVManager* srvManager_ = nullptr;
 	Camera* camera_ = nullptr;
 
+	Matrix4x4 worldViewProjectionMatrix;
+	Matrix4x4 debugViewProjectionMatrix_;
+	Matrix4x4 viewProjectionMatrix_;
+
 	ComPtr <ID3D12RootSignature> rootSignature = nullptr;
 	ComPtr <ID3D12PipelineState> graphicsPipelineState = nullptr;
 	ComPtr <ID3D12Resource> materialResource;
@@ -167,6 +177,8 @@ private: /// ---------- メンバ変数 ---------- ///
 	bool useBillboard = false;
 
 	bool isWind = false;
+
+	bool isDebugCamera_ = false;
 
 	// 分割数
 	uint32_t kSubdivision = 32;
