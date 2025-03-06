@@ -11,6 +11,7 @@
 #include <Wireframe.h>
 #include <AnimationModelManager.h>
 #include <SkyBoxManager.h>
+#include <PostEffectManager.h>
 
 
 /// -------------------------------------------------------------
@@ -93,6 +94,9 @@ void Framework::Initialize()
 
 	// スカイボックスの生成
 	SkyBoxManager::GetInstance()->Initialize(dxCommon_);
+
+	// ポストエフェクトマネージャの生成
+	PostEffectManager::GetInstance()->Initialieze(dxCommon_);
 
 #pragma endregion -------------------------------------------
 

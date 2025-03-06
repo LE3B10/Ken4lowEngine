@@ -180,7 +180,7 @@
     <ClCompile Include="EngineLayers\FrameworkLayer\PresentationLayer\ParameterManager\ParameterManager.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="LightManager.cpp">
+    <ClCompile Include="EngineLayers\EngineLayer\LightManager\LightManager.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
     <ClCompile Include="EngineLayers\ApplicationLayer\SceneManagement\LogicLayer\GameClearScene\GameClearScene.cpp">
@@ -219,13 +219,16 @@
     <ClCompile Include="EngineLayers\EngineLayer\ResourceManagement\AnimationManager\AnimationModelManager.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="SpriteManager.cpp">
+    <ClCompile Include="EngineLayers\EngineLayer\Managers\SpriteManager.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="SkyBoxManager.cpp">
+    <ClCompile Include="EngineLayers\EngineLayer\Managers\SkyBoxManager.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="SkyBox.cpp">
+    <ClCompile Include="EngineLayers\ApplicationLayer\Object\SkyBox.cpp">
+      <Filter>ソース ファイル</Filter>
+    </ClCompile>
+    <ClCompile Include="PostEffectManager.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
   </ItemGroup>
@@ -246,6 +249,8 @@
     <FxCompile Include="Resources\Shaders\Sprite.VS.hlsl" />
     <FxCompile Include="Resources\Shaders\SkyBox.VS.hlsl" />
     <FxCompile Include="Resources\Shaders\SkyBox.PS.hlsl" />
+    <FxCompile Include="Resources\Shaders\NoEffect.PS.hlsl" />
+    <FxCompile Include="Resources\Shaders\FullScreen.VS.hlsl" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Externals\imgui\imconfig.h">
@@ -425,7 +430,7 @@
     <ClInclude Include="EngineLayers\EngineLayer\WorldTransform\WorldTransform.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="LightManager.h">
+    <ClInclude Include="EngineLayers\EngineLayer\LightManager\LightManager.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
     <ClInclude Include="EngineLayers\ApplicationLayer\SceneManagement\LogicLayer\GameClearScene\GameClearScene.h">
@@ -467,13 +472,16 @@
     <ClInclude Include="EngineLayers\EngineLayer\ResourceManagement\AnimationManager\AnimationModelManager.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="SpriteManager.h">
+    <ClInclude Include="EngineLayers\EngineLayer\Managers\SpriteManager.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="SkyBoxManager.h">
+    <ClInclude Include="EngineLayers\EngineLayer\Managers\SkyBoxManager.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="SkyBox.h">
+    <ClInclude Include="EngineLayers\ApplicationLayer\Object\SkyBox.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="PostEffectManager.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
   </ItemGroup>
@@ -486,6 +494,7 @@
     <None Include="Resources\Shaders\Sprite.hlsli" />
     <None Include="Resources\Shaders\Wireframe.hlsli" />
     <None Include="Resources\Shaders\SkyBox.hlsli" />
+    <None Include="Resources\Shaders\FullScreen.hlsli" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="Externals\imgui\LICENSE.txt">

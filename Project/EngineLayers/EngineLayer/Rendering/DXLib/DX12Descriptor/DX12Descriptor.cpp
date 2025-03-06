@@ -138,6 +138,15 @@ void DX12Descriptor::GenerateDSV(ID3D12Device* device, uint32_t width, uint32_t 
 	device->CreateDepthStencilView(depthStencilResource.Get(), &dsvDesc, dsvDescriptorHeap->GetCPUDescriptorHandleForHeapStart());
 }
 
+void DX12Descriptor::CreateRTVForTexture2D(ID3D12Device* device, ID3D12Resource* resource, D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle)
+{
+	D3D12_RENDER_TARGET_VIEW_DESC rtvDesc{};
+	rtvDesc.Format = resource->GetDesc().Format;
+	rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
+
+	device->CreateRenderTargetView(resource, &rtvDesc, rtvHandle);
+}
+
 
 
 /// -------------------------------------------------------------

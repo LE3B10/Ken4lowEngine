@@ -108,6 +108,24 @@ void SRVManager::SetGraphicsRootDescriptorTable(UINT RootParameterIndex, uint32_
 
 
 /// -------------------------------------------------------------
+///						深度バッファのSRVを作成
+/// -------------------------------------------------------------
+void SRVManager::CreateSRVForDepthBuffer(uint32_t srvIndex, ID3D12Resource* depthBuffer)
+{
+	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc{};
+	srvDesc.Format = DXGI_FORMAT_R24_UNORM_X8_TYPELESS; // 24bit 深度
+	srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+	srvDesc.Texture2D.MostDetailedMip = 0;
+	srvDesc.Texture2D.MipLevels = 1;
+	srvDesc.Texture2D.ResourceMinLODClamp = 0.0f;
+
+	D3D12_CPU_DESCRIPTOR_HANDLE srvHandle = GetCPUDescriptorHandle(srvIndex);
+	dxCommon_->GetDevice()->CreateShaderResourceView(depthBuffer, &srvDesc, srvHandle);
+}
+
+
+/// -------------------------------------------------------------
 ///						　		確保
 /// -------------------------------------------------------------
 uint32_t SRVManager::Allocate()

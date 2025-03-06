@@ -1,9 +1,9 @@
 #include "DirectXCommon.h"
-#include "DX12Descriptor.h"
+#include "WinApp.h"
+#include "PostEffectManager.h"
 
 #include <cassert>
 
-#include "WinApp.h"
 
 #pragma comment(lib,"dxcompiler.lib")
 
@@ -99,13 +99,19 @@ void DirectXCommon::EndDraw()
 {
 	HRESULT hr{};
 
-	// 画面に描く処理はすべて終わり、画面に移すので、状態を遷移
-	// 今回はRenderTargetからPresentにする
+	backBufferIndex = swapChain_->GetSwapChain()->GetCurrentBackBufferIndex();
+
 	barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
 	barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_PRESENT;
 
 	// TransitionBarirrerを張る
 	commandList->ResourceBarrier(1, &barrier);
+
+	/*ChangeBarrier(D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET,swapChain_->GetSwapChainResources(backBufferIndex));
+
+	ChangeBarrier(D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_DEPTH_WRITE, descriptor->GetDepthStencilBuffer());
+
+	PostEffectManager::GetInstance()->SetBarrier(D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_RENDER_TARGET);*/
 
 	// コマンドリストの内容を確定させる。すべてのコマンドを積んでからCloseすること
 	hr = commandList->Close();
@@ -161,47 +167,60 @@ void DirectXCommon::Finalize()
 }
 
 
+/// -------------------------------------------------------------
+///					レンダーテクスチャの設定処理
+/// -------------------------------------------------------------
+void DirectXCommon::SetRenderTexture()
+{
+	// FPSカウンターの開始
+	fpsCounter_.StartFrame();
+
+	// DSVハンドルを取得
+	D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle = descriptor->GetDSVDescriptorHeap()->GetCPUDescriptorHandleForHeapStart();
+
+	// バックバッファのレンダーターゲットを無効にする
+	commandList->OMSetRenderTargets(0, nullptr, false, nullptr);
+
+	// レンダ―テクスチャを描画先に設定
+	PostEffectManager::GetInstance()->BeginDraw();
+
+	// 深度ステンシルをクリア
+	commandList->ClearDepthStencilView(dsvHandle, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
+
+	// ビューポートとシザリング矩形を設定
+	commandList->RSSetViewports(1, &viewport);
+	commandList->RSSetScissorRects(1, &scissorRect);
+}
+
 
 /// -------------------------------------------------------------
-///							ゲッター
+///				　スワップチェーン描画の設定処理
 /// -------------------------------------------------------------
-ID3D12Device* DirectXCommon::GetDevice() const
+void DirectXCommon::SetSwapChain()
 {
-	return device_->GetDevice();
+	// バックバッファインデックスを取得
+	backBufferIndex = swapChain_->GetSwapChain()->GetCurrentBackBufferIndex();
+
+	ChangeBarrier(D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET, swapChain_->GetSwapChainResources(backBufferIndex));
+
+	ChangeBarrier(D3D12_RESOURCE_STATE_DEPTH_WRITE, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, descriptor->GetDepthStencilBuffer());
+
+	// ポストエフェクトのバリアを設定
+	PostEffectManager::GetInstance()->SetBarrier(D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+
+	// 描画先のRTVを設定
+	commandList->OMSetRenderTargets(1, &rtvHandles[backBufferIndex], false, nullptr);
+
+	// クリアカラー
+	float clearColor[] = { 0.0f, 0.0f, 0.0f, 1.0 };
+
+	// 画面の色をクリア
+	commandList->ClearRenderTargetView(rtvHandles[backBufferIndex], clearColor, 0, nullptr);
+
+	// ビューポートとシザリング矩形を設定
+	commandList->RSSetViewports(1, &viewport);
+	commandList->RSSetScissorRects(1, &scissorRect);
 }
-
-ID3D12GraphicsCommandList* DirectXCommon::GetCommandList() const
-{
-	return commandList.Get();
-}
-
-DX12Descriptor* DirectXCommon::GetDescriptorHeap() const
-{
-	return descriptor.get();
-}
-
-
-IDxcUtils* DirectXCommon::GetIDxcUtils() const
-{
-	return dxcUtils.Get();
-}
-
-IDxcCompiler3* DirectXCommon::GetIDxcCompiler() const
-{
-	return dxcCompiler.Get();
-}
-
-IDxcIncludeHandler* DirectXCommon::GetIncludeHandler() const
-{
-	return includeHandler.Get();
-}
-
-DXGI_SWAP_CHAIN_DESC1& DirectXCommon::GetSwapChainDesc()
-{
-	// TODO: return ステートメントをここに挿入します
-	return swapChain_->GetSwapChainDesc();
-}
-
 
 
 #pragma region デバッグレイヤーと警告時に停止処理
@@ -222,7 +241,6 @@ void DirectXCommon::DebugLayer()
 	}
 #endif
 }
-
 
 
 /// -------------------------------------------------------------
@@ -269,7 +287,6 @@ void DirectXCommon::ErrorWarning()
 #pragma endregion
 
 
-
 /// -------------------------------------------------------------
 ///						コマンド生成
 /// -------------------------------------------------------------
@@ -295,7 +312,6 @@ void DirectXCommon::CreateCommands()
 }
 
 
-
 /// -------------------------------------------------------------
 ///					フェンスとイベントの生成
 /// -------------------------------------------------------------
@@ -314,7 +330,6 @@ void DirectXCommon::CreateFenceEvent()
 	HANDLE fenceEvent = CreateEvent(NULL, FALSE, FALSE, NULL);
 	assert(fenceEvent != nullptr);
 }
-
 
 
 /// -------------------------------------------------------------
@@ -336,10 +351,20 @@ void DirectXCommon::CreateDXCCompiler()
 }
 
 
-
 /// -------------------------------------------------------------
 ///			バリアで書き込み可能に変更する処理
 /// -------------------------------------------------------------
+void DirectXCommon::ChangeBarrier(D3D12_RESOURCE_STATES stateBefore, D3D12_RESOURCE_STATES stateAfter, ID3D12Resource* resource)
+{
+	barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+	barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+	barrier.Transition.pResource = resource;
+	barrier.Transition.StateBefore = stateBefore;
+	barrier.Transition.StateAfter = stateAfter;
+	commandList->ResourceBarrier(1, &barrier);
+}
+
+
 void DirectXCommon::ChangeBarrier()
 {
 	// 今回のバリアはTransition
@@ -357,14 +382,11 @@ void DirectXCommon::ChangeBarrier()
 }
 
 
-
 /// -------------------------------------------------------------
 ///					画面全体のクリア処理
 /// -------------------------------------------------------------
 void DirectXCommon::ClearWindow()
 {
-	D3D12_CPU_DESCRIPTOR_HANDLE rtvHandles[2]{};
-
 	for (uint32_t i = 0; i < 2; i++)
 	{
 		rtvHandles[i] = descriptor->GetRTVHandles(i);
@@ -376,7 +398,7 @@ void DirectXCommon::ClearWindow()
 	commandList->OMSetRenderTargets(1, &rtvHandles[backBufferIndex], false, &dsvHandle);
 
 	//指定した色で画面全体をクリアする
-	float clearColor[] = { 0.0f, 0.0f, 0.0f, 1.0f };	// 背景黒色
+	float clearColor[] = { 0.0f, 0.0f, 0.0f, 1.0f };
 	commandList->ClearRenderTargetView(rtvHandles[backBufferIndex], clearColor, 0, nullptr);
 
 	//指定した深度で画面全体をクリアする

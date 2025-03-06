@@ -93,7 +93,7 @@ void GamePlayScene::Draw()
 	/// ---------- スカイボックスの描画 ---------- ///
 	/// ------------------------------------------ ///
 	SkyBoxManager::GetInstance()->SetRenderSetting();
-	skyBox_->Draw();
+	//skyBox_->Draw();
 
 
 	/// ---------------------------------------- ///
