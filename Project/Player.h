@@ -16,8 +16,9 @@ private: /// ---------- 構造体 ---------- ///
 	enum class Behavior
 	{
 		kRoot,	 // 通常状態
-		kAttack, // 攻撃中
-		kDash,	 // ダッシュ中
+		kAttack, // 攻撃状態
+		kDash,	 // ダッシュ状態
+		kJump,	 // ジャンプ状態
 	};
 
 	// ダッシュ用ワーク
@@ -87,6 +88,12 @@ private: /// ---------- ルートビヘイビア用メンバ関数 ---------- //
 	// ダッシュ行動の更新処理
 	void BehaviorDashUpdate();
 
+	// ジャンプ行動の初期化処理
+	void BehaviorJumpInitialize();
+
+	// ジャンプ行動の更新処理
+	void BehaviorJumpUpdate();
+
 private: /// ---------- メンバ変数 ---------- ///
 
 	// 振る舞い
@@ -127,5 +134,12 @@ private: /// ---------- 定数 ---------- ///
 	const float dashSpeed_ = 1.0f; // ダッシュ速度（通常移動の3倍くらい）
 	const uint32_t behaviorDashTime_ = 20; // ダッシュ時間（フレーム数）
 	Vector3 dashDirection_; // ダッシュの移動方向
+
+	// 速度
+	Vector3 velocity_ = {};
+	const float jumpPower_ = 1.0f;   // ジャンプ力
+	const float gravity_ = 0.02f;    // 重力加速度
+	bool isJumping_ = false;         // ジャンプ中かどうかのフラグ
+	float jumpVelocity_ = 0.0f;      // 現在の上昇速度
 };
 
