@@ -21,11 +21,33 @@ private: /// ---------- 構造体 ---------- ///
 		kJump,	 // ジャンプ状態
 	};
 
+	// 攻撃用のワーク
+	struct WorkAttack
+	{
+		uint32_t attackParameter_ = 0; // 攻撃ギミックの媒介変数
+		int32_t conboIndex = 0;		   // コンボ
+		int32_t inComboPhase = 0;	   // コンボフェーズ
+		bool comboNext = false;		   // 次のコンボを確認
+	};
+
+	// 攻撃用定数
+	struct ConstAttack
+	{
+		uint32_t anticipationTime; // 振りかぶりの時間<frame>
+		uint32_t chargeTime;	   // 溜めの時間
+		uint32_t swingTime;		   // 攻撃振りの時間
+		uint32_t recoveryTime;	   // 硬直時間
+		float anticipationSpeed;   // 振りかぶりの移動の速さ
+		float chargeSpeed;		   // 溜めの移動の速さ
+		float swingSpeed;		   // 攻撃振りの移動の速さ
+	};
+
 	// ダッシュ用ワーク
 	struct WorkDash
 	{
 		uint32_t dashParameter_ = 0; // ダッシュ用媒介変数
 	};
+
 
 public: /// ---------- メンバ関数 ---------- ///
 
@@ -105,6 +127,9 @@ private: /// ---------- メンバ変数 ---------- ///
 	// ダッシュ
 	WorkDash workDash_;
 
+	// 攻撃
+	WorkAttack workAttack_;
+
 	// ハンマー
 	std::unique_ptr<Hammer> hammer_;
 
@@ -123,13 +148,13 @@ private: /// ---------- 定数 ---------- ///
 
 	// 攻撃アニメーションの状態
 	bool isAttacking_ = false; // ハンマーを描画するかどうかのフラグ
-	int attackFrame_ = 0; // 攻撃の進行フレーム
-	const int attackTotalFrames_ = 30; // 攻撃にかかるフレーム数
-	const int attackSwingFrames_ = 20; // 振りかぶり→振り下ろしのフレーム
+	uint32_t attackFrame_ = 0; // 攻撃の進行フレーム
 
-	bool isAttackHold_ = false; // 攻撃後に武器の角度を固定するフラグ
-	int attackHoldFrame_ = 0; // 固定状態のカウント
-	const int attackHoldFrames_ = 20; // 武器を振った後の硬直時間（20フレーム）
+	// コンボ数
+	static const int ComboNum = 3;
+
+	// コンボ定数表
+	static const std::array<ConstAttack, ComboNum> kComboAttacks_;
 
 	const float dashSpeed_ = 1.0f; // ダッシュ速度（通常移動の3倍くらい）
 	const uint32_t behaviorDashTime_ = 20; // ダッシュ時間（フレーム数）
@@ -142,4 +167,3 @@ private: /// ---------- 定数 ---------- ///
 	bool isJumping_ = false;         // ジャンプ中かどうかのフラグ
 	float jumpVelocity_ = 0.0f;      // 現在の上昇速度
 };
-
