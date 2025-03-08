@@ -2,6 +2,15 @@
 #include <Input.h>
 
 
+/// ---------- コンボ定数表 ---------- ///
+const std::array<Player::ConstAttack, Player::ComboNum> Player::kComboAttacks_ = 
+{ {
+	{10, 5, 15, 20, 0.5f, 0.2f, 1.0f},  // 1段目: 横振り
+	{12, 7, 18, 25, 0.6f, 0.3f, 1.2f},  // 2段目: 縦振り
+	{15, 10, 20, 30, 0.8f, 0.5f, 1.5f}  // 3段目: 回転攻撃
+} };
+
+
 /// -------------------------------------------------------------
 ///							初期化処理
 /// -------------------------------------------------------------
@@ -66,13 +75,13 @@ void Player::Update()
 	if (hammer_) { hammer_->Update(); }
 
 	// 攻撃キー（例えばスペースキー）を押したら攻撃を開始
-	if (input_->PushKey(DIK_F) && behavior_ == Behavior::kRoot) { behaviorRequest_ = Behavior::kAttack; }
+	if (input_->TriggerKey(DIK_F) && behavior_ == Behavior::kRoot) { behaviorRequest_ = Behavior::kAttack; }
 
 	// ダッシュキー（例えば Shift キー）を押したらダッシュを開始
 	if (input_->PushKey(DIK_LSHIFT) && behavior_ == Behavior::kRoot) { behaviorRequest_ = Behavior::kDash; }
 
 	// ジャンプキーを押したらジャンプを開始
-	if (input_->TriggerKey(DIK_SPACE) && behavior_ == Behavior::kRoot) { behaviorRequest_ = Behavior::kJump; }
+	if (input_->PushKey(DIK_SPACE) && behavior_ == Behavior::kRoot) { behaviorRequest_ = Behavior::kJump; }
 
 	// ビヘイビア遷移
 	if (behaviorRequest_)
@@ -265,17 +274,8 @@ void Player::UpdateArmAnimation(bool isMoving)
 void Player::BehaviorRootInitialize()
 {
 	isAttacking_ = false; // ハンマーを非表示
-	isAttackHold_ = false; // 固定フラグ解除
 	attackFrame_ = 0; // 攻撃フレームリセット
-	attackHoldFrame_ = 0; // 硬直フレームリセット
 	isJumping_ = false; // ジャンプフラグをリセット
-
-	// 腕の角度をリセット
-	if (parts_.size() >= 2)
-	{
-		parts_[1].transform.rotate_ = { 0.0f, 0.0f, 0.0f }; // 左腕リセット
-		parts_[2].transform.rotate_ = { 0.0f, 0.0f, 0.0f }; // 右腕リセット
-	}
 }
 
 
@@ -300,8 +300,7 @@ void Player::BehaviorAttackInitialize()
 {
 	attackFrame_ = 0; // 攻撃の進行フレームをリセット
 	isAttacking_ = true; // ハンマーを表示
-	isAttackHold_ = false; // 固定フラグをリセット
-	attackHoldFrame_ = 0; // 硬直フレームリセット
+	workAttack_.comboNext = false; // 次のコンボ受付をリセット
 }
 
 
@@ -311,49 +310,82 @@ void Player::BehaviorAttackInitialize()
 void Player::BehaviorAttackUpdate()
 {
 	attackFrame_++; // 腕の回転を適用（両腕同じ動き）
-
 	float playerYaw = body_.transform.rotate_.y; // プレイヤーのY軸回転
 	float armAngle = 0.0f; // 腕の回転角度
 
-	if (attackFrame_ < attackSwingFrames_)
+	const ConstAttack& attackData = kComboAttacks_[workAttack_.conboIndex];
+
+	int attackTotalFrames_ = attackData.anticipationTime + attackData.swingTime + attackData.recoveryTime;
+	int attackSwingFrames_ = attackData.swingTime;
+	int attackHoldFrames_ = attackData.recoveryTime;
+
+	// 腕の角度補間
+	if (workAttack_.inComboPhase == 0)
 	{
-		// 振りかぶり（前半）
 		float t = static_cast<float>(attackFrame_) / attackSwingFrames_;
-		float angle = -1.7f * (1.0f - t); // -90度 → 0度
-		hammer_->SetRotation({ -angle, playerYaw, 0.0f });
-
-		armAngle = -maxArmSwingAngle_ * (1.0f + t); // 腕を後ろに引く
+		armAngle = -maxArmSwingAngle_ * (1.0f + t);
 	}
-	else if (attackFrame_ < attackTotalFrames_)
+	else if (workAttack_.inComboPhase == 1)
 	{
-		// 振り下ろし（後半）
-		float t = static_cast<float>(attackFrame_ - attackSwingFrames_) / (attackTotalFrames_ - attackSwingFrames_);
-		float angle = -1.7f * t; // 0度 → -90度
-		hammer_->SetRotation({ -angle, playerYaw, 0.0f });
-
-		armAngle = -maxArmSwingAngle_ * (2.0f - t); // 腕を前に振る
+		float t = static_cast<float>(attackFrame_) / (attackTotalFrames_ - attackSwingFrames_);
+		armAngle = -maxArmSwingAngle_ * (2.0f - t);
 	}
 	else
 	{
-		// 攻撃アニメーション終了 → 角度を固定
-		if (!isAttackHold_)
-		{
-			isAttackHold_ = true; // 固定モードに切り替え
-			attackHoldFrame_ = 0; // カウンターリセット
-		}
-
-		// 攻撃後の硬直中の腕の角度（少し下げた状態）
 		armAngle = maxArmSwingAngle_ * -1.0f;
+	}
 
-		// 固定時間が経過するまでハンマーの角度を変更しない
-		attackHoldFrame_++;
-		if (attackHoldFrame_ >= attackHoldFrames_)
+	switch (workAttack_.inComboPhase)
+	{
+	case 0: // 振りかぶり
+		if (attackFrame_ < attackData.anticipationTime)
 		{
-			// 硬直が終わったら通常状態に戻る
-			behaviorRequest_ = Behavior::kRoot;
-			isAttacking_ = false; // ハンマーを非表示
-			isAttackHold_ = false; // フラグリセット
+			float t = static_cast<float>(attackFrame_) / attackData.anticipationTime;
+			hammer_->SetRotation({ 1.7f * (1.0f - t), body_.transform.rotate_.y, 0.0f });
 		}
+		else
+		{
+			workAttack_.inComboPhase = 1;
+			attackFrame_ = 0;
+		}
+		break;
+
+	case 1: // 振り下ろし
+		if (attackFrame_ < attackData.swingTime)
+		{
+			float t = static_cast<float>(attackFrame_) / attackData.swingTime;
+			hammer_->SetRotation({ 1.7f * t, body_.transform.rotate_.y, 0.0f });
+		}
+		else
+		{
+			workAttack_.inComboPhase = 2;
+			attackFrame_ = 0;
+		}
+		break;
+
+	case 2: // 硬直 & コンボ受付
+		if (input_->TriggerKey(DIK_F))
+		{
+			workAttack_.comboNext = true;
+		}
+
+		if (attackFrame_ >= attackData.recoveryTime)
+		{
+			if (workAttack_.comboNext && workAttack_.conboIndex + 1 < ComboNum)
+			{
+				workAttack_.conboIndex++;
+				workAttack_.inComboPhase = 0;
+				BehaviorAttackInitialize();
+			}
+			else
+			{
+				behaviorRequest_ = Behavior::kRoot;
+				isAttacking_ = false;
+				workAttack_.conboIndex = 0;
+				workAttack_.inComboPhase = 0;
+			}
+		}
+		break;
 	}
 
 	// 腕の回転を適用（両腕同じ動き）
