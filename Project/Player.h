@@ -137,7 +137,7 @@ private: /// ---------- 定数 ---------- ///
 
 	// 速度
 	Vector3 velocity_ = {};
-	const float jumpPower_ = 5.0f;   // ジャンプ力
+	const float jumpPower_ = 1.0f;   // ジャンプ力
 	const float gravity_ = 0.02f;    // 重力加速度
 	bool isJumping_ = false;         // ジャンプ中かどうかのフラグ
 	float jumpVelocity_ = 0.0f;      // 現在の上昇速度

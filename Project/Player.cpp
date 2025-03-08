@@ -57,19 +57,22 @@ void Player::Update()
 	BaseCharacter::Update();
 
 	// 浮遊ギミックの更新
-	UpdateFloatingGimmick();
+	if (!isJumping_)
+	{
+		UpdateFloatingGimmick();
+	}
 
 	// ハンマーの更新
 	if (hammer_) { hammer_->Update(); }
 
 	// 攻撃キー（例えばスペースキー）を押したら攻撃を開始
-	if (input_->PushKey(DIK_SPACE) && behavior_ == Behavior::kRoot) { behaviorRequest_ = Behavior::kAttack; }
+	if (input_->PushKey(DIK_F) && behavior_ == Behavior::kRoot) { behaviorRequest_ = Behavior::kAttack; }
 
 	// ダッシュキー（例えば Shift キー）を押したらダッシュを開始
 	if (input_->PushKey(DIK_LSHIFT) && behavior_ == Behavior::kRoot) { behaviorRequest_ = Behavior::kDash; }
 
 	// ジャンプキーを押したらジャンプを開始
-	if (input_->TriggerKey(DIK_F) && behavior_ == Behavior::kRoot) { behaviorRequest_ = Behavior::kJump; }
+	if (input_->TriggerKey(DIK_SPACE) && behavior_ == Behavior::kRoot) { behaviorRequest_ = Behavior::kJump; }
 
 	// ビヘイビア遷移
 	if (behaviorRequest_)
@@ -265,6 +268,7 @@ void Player::BehaviorRootInitialize()
 	isAttackHold_ = false; // 固定フラグ解除
 	attackFrame_ = 0; // 攻撃フレームリセット
 	attackHoldFrame_ = 0; // 硬直フレームリセット
+	isJumping_ = false; // ジャンプフラグをリセット
 
 	// 腕の角度をリセット
 	if (parts_.size() >= 2)
@@ -404,7 +408,11 @@ void Player::BehaviorDashUpdate()
 /// -------------------------------------------------------------
 void Player::BehaviorJumpInitialize()
 {
-	
+	if (!isJumping_)
+	{
+		isJumping_ = true;
+		jumpVelocity_ = jumpPower_; // ジャンプ初速度を設定
+	}
 }
 
 
@@ -413,5 +421,23 @@ void Player::BehaviorJumpInitialize()
 /// -------------------------------------------------------------
 void Player::BehaviorJumpUpdate()
 {
-	
+	if (isJumping_)
+	{
+		// 重力を適用
+		jumpVelocity_ -= gravity_;
+
+		// 位置を更新
+		body_.transform.translation_.y += jumpVelocity_;
+
+		// 移動処理
+		Move();
+
+		// 地面に着いたらジャンプ終了
+		if (body_.transform.translation_.y <= 0.0f)
+		{
+			body_.transform.translation_.y = 0.0f;
+			isJumping_ = false;
+			behaviorRequest_ = Behavior::kRoot; // 通常状態に戻す
+		}
+	}
 }
