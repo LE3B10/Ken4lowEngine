@@ -107,12 +107,6 @@ void DirectXCommon::EndDraw()
 	// TransitionBarirrerを張る
 	commandList->ResourceBarrier(1, &barrier);
 
-	/*ChangeBarrier(D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET,swapChain_->GetSwapChainResources(backBufferIndex));
-
-	ChangeBarrier(D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_DEPTH_WRITE, descriptor->GetDepthStencilBuffer());
-
-	PostEffectManager::GetInstance()->SetBarrier(D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_RENDER_TARGET);*/
-
 	// コマンドリストの内容を確定させる。すべてのコマンドを積んでからCloseすること
 	hr = commandList->Close();
 	assert(SUCCEEDED(hr));
@@ -164,62 +158,6 @@ void DirectXCommon::Finalize()
 	device_.reset();
 	swapChain_.reset();
 	descriptor.reset();
-}
-
-
-/// -------------------------------------------------------------
-///					レンダーテクスチャの設定処理
-/// -------------------------------------------------------------
-void DirectXCommon::SetRenderTexture()
-{
-	// FPSカウンターの開始
-	fpsCounter_.StartFrame();
-
-	// DSVハンドルを取得
-	D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle = descriptor->GetDSVDescriptorHeap()->GetCPUDescriptorHandleForHeapStart();
-
-	// バックバッファのレンダーターゲットを無効にする
-	commandList->OMSetRenderTargets(0, nullptr, false, nullptr);
-
-	// レンダ―テクスチャを描画先に設定
-	PostEffectManager::GetInstance()->BeginDraw();
-
-	// 深度ステンシルをクリア
-	commandList->ClearDepthStencilView(dsvHandle, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
-
-	// ビューポートとシザリング矩形を設定
-	commandList->RSSetViewports(1, &viewport);
-	commandList->RSSetScissorRects(1, &scissorRect);
-}
-
-
-/// -------------------------------------------------------------
-///				　スワップチェーン描画の設定処理
-/// -------------------------------------------------------------
-void DirectXCommon::SetSwapChain()
-{
-	// バックバッファインデックスを取得
-	backBufferIndex = swapChain_->GetSwapChain()->GetCurrentBackBufferIndex();
-
-	ChangeBarrier(D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET, swapChain_->GetSwapChainResources(backBufferIndex));
-
-	ChangeBarrier(D3D12_RESOURCE_STATE_DEPTH_WRITE, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, descriptor->GetDepthStencilBuffer());
-
-	// ポストエフェクトのバリアを設定
-	PostEffectManager::GetInstance()->SetBarrier(D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-
-	// 描画先のRTVを設定
-	commandList->OMSetRenderTargets(1, &rtvHandles[backBufferIndex], false, nullptr);
-
-	// クリアカラー
-	float clearColor[] = { 0.0f, 0.0f, 0.0f, 1.0 };
-
-	// 画面の色をクリア
-	commandList->ClearRenderTargetView(rtvHandles[backBufferIndex], clearColor, 0, nullptr);
-
-	// ビューポートとシザリング矩形を設定
-	commandList->RSSetViewports(1, &viewport);
-	commandList->RSSetScissorRects(1, &scissorRect);
 }
 
 
@@ -354,17 +292,6 @@ void DirectXCommon::CreateDXCCompiler()
 /// -------------------------------------------------------------
 ///			バリアで書き込み可能に変更する処理
 /// -------------------------------------------------------------
-void DirectXCommon::ChangeBarrier(D3D12_RESOURCE_STATES stateBefore, D3D12_RESOURCE_STATES stateAfter, ID3D12Resource* resource)
-{
-	barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-	barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
-	barrier.Transition.pResource = resource;
-	barrier.Transition.StateBefore = stateBefore;
-	barrier.Transition.StateAfter = stateAfter;
-	commandList->ResourceBarrier(1, &barrier);
-}
-
-
 void DirectXCommon::ChangeBarrier()
 {
 	// 今回のバリアはTransition

@@ -6,7 +6,6 @@
 #include <Wireframe.h>
 #include <DirectXCommon.h>
 #include "Object3DCommon.h"
-#include "PostEffectManager.h"
 
 
 /// -------------------------------------------------------------
@@ -90,9 +89,8 @@ void GameEngine::Draw()
 	/// ---------- シーン描画 ---------- ///
 	/// -------------------------------- ///
 
-	// 描画開始処理（レンダ―テクスチャを描画対象に設定）
+	// 描画開始処理
 	dxCommon_->BeginDraw();
-	//dxCommon_->SetRenderTexture();
 
 	// SRVの処理
 	SRVManager::GetInstance()->PreDraw();
@@ -108,18 +106,6 @@ void GameEngine::Draw()
 
 	// ワイヤーフレームのリセット
 	Wireframe::GetInstance()->Reset();
-
-	/// ------------------------------------------ ///
-	/// ---------- ポストエフェクト描画 ---------- ///
-	/// ------------------------------------------ ///
-
-	// スワップチェーンを描画対象に設定
-	//dxCommon_->SetSwapChain();
-
-	// ポストエフェクトの描画処理
-	//PostEffectManager::GetInstance()->Draw("NoEffect");
-
-
 
 	/*-----ImGuiの描画-----*/
 	imguiManager_->Draw();

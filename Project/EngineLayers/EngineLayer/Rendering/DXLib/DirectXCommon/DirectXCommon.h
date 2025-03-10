@@ -39,14 +39,6 @@ public: /// ---------- メンバ関数 ---------- ///
 	// 終了処理
 	void Finalize();
 
-public: /// ---------- セッター ---------- ///
-
-	// レンダーテクスチャの設定
-	void SetRenderTexture();
-
-	// スワップチェーンの設定
-	void SetSwapChain();
-
 public: /// ---------- ゲッター ---------- ///
 
 	ID3D12Device* GetDevice() const { return device_->GetDevice(); }
@@ -80,7 +72,6 @@ private: /// ---------- メンバ関数 ---------- ///
 
 	// バリアで書き込み可能に変更
 	void ChangeBarrier();
-	void ChangeBarrier(D3D12_RESOURCE_STATES stateBefore, D3D12_RESOURCE_STATES stateAfter, ID3D12Resource* resource);
 
 	// 画面全体をクリア
 	void ClearWindow();
