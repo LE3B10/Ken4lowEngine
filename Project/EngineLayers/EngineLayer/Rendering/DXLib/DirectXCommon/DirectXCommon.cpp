@@ -1,9 +1,9 @@
 #include "DirectXCommon.h"
-#include "DX12Descriptor.h"
+#include "WinApp.h"
+#include "PostEffectManager.h"
 
 #include <cassert>
 
-#include "WinApp.h"
 
 #pragma comment(lib,"dxcompiler.lib")
 
@@ -99,8 +99,8 @@ void DirectXCommon::EndDraw()
 {
 	HRESULT hr{};
 
-	// 画面に描く処理はすべて終わり、画面に移すので、状態を遷移
-	// 今回はRenderTargetからPresentにする
+	backBufferIndex = swapChain_->GetSwapChain()->GetCurrentBackBufferIndex();
+
 	barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
 	barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_PRESENT;
 
@@ -161,49 +161,6 @@ void DirectXCommon::Finalize()
 }
 
 
-
-/// -------------------------------------------------------------
-///							ゲッター
-/// -------------------------------------------------------------
-ID3D12Device* DirectXCommon::GetDevice() const
-{
-	return device_->GetDevice();
-}
-
-ID3D12GraphicsCommandList* DirectXCommon::GetCommandList() const
-{
-	return commandList.Get();
-}
-
-DX12Descriptor* DirectXCommon::GetDescriptorHeap() const
-{
-	return descriptor.get();
-}
-
-
-IDxcUtils* DirectXCommon::GetIDxcUtils() const
-{
-	return dxcUtils.Get();
-}
-
-IDxcCompiler3* DirectXCommon::GetIDxcCompiler() const
-{
-	return dxcCompiler.Get();
-}
-
-IDxcIncludeHandler* DirectXCommon::GetIncludeHandler() const
-{
-	return includeHandler.Get();
-}
-
-DXGI_SWAP_CHAIN_DESC1& DirectXCommon::GetSwapChainDesc()
-{
-	// TODO: return ステートメントをここに挿入します
-	return swapChain_->GetSwapChainDesc();
-}
-
-
-
 #pragma region デバッグレイヤーと警告時に停止処理
 /// -------------------------------------------------------------
 ///					デバッグレイヤーの表示
@@ -222,7 +179,6 @@ void DirectXCommon::DebugLayer()
 	}
 #endif
 }
-
 
 
 /// -------------------------------------------------------------
@@ -269,7 +225,6 @@ void DirectXCommon::ErrorWarning()
 #pragma endregion
 
 
-
 /// -------------------------------------------------------------
 ///						コマンド生成
 /// -------------------------------------------------------------
@@ -295,7 +250,6 @@ void DirectXCommon::CreateCommands()
 }
 
 
-
 /// -------------------------------------------------------------
 ///					フェンスとイベントの生成
 /// -------------------------------------------------------------
@@ -316,7 +270,6 @@ void DirectXCommon::CreateFenceEvent()
 }
 
 
-
 /// -------------------------------------------------------------
 ///					DXCコンパイラーの生成
 /// -------------------------------------------------------------
@@ -334,7 +287,6 @@ void DirectXCommon::CreateDXCCompiler()
 	hr = dxcUtils->CreateDefaultIncludeHandler(&includeHandler);
 	assert(SUCCEEDED(hr));
 }
-
 
 
 /// -------------------------------------------------------------
@@ -357,14 +309,11 @@ void DirectXCommon::ChangeBarrier()
 }
 
 
-
 /// -------------------------------------------------------------
 ///					画面全体のクリア処理
 /// -------------------------------------------------------------
 void DirectXCommon::ClearWindow()
 {
-	D3D12_CPU_DESCRIPTOR_HANDLE rtvHandles[2]{};
-
 	for (uint32_t i = 0; i < 2; i++)
 	{
 		rtvHandles[i] = descriptor->GetRTVHandles(i);
@@ -376,7 +325,7 @@ void DirectXCommon::ClearWindow()
 	commandList->OMSetRenderTargets(1, &rtvHandles[backBufferIndex], false, &dsvHandle);
 
 	//指定した色で画面全体をクリアする
-	float clearColor[] = { 0.0f, 0.0f, 0.0f, 1.0f };	// 背景黒色
+	float clearColor[] = { 0.0f, 0.0f, 0.0f, 1.0f };
 	commandList->ClearRenderTargetView(rtvHandles[backBufferIndex], clearColor, 0, nullptr);
 
 	//指定した深度で画面全体をクリアする

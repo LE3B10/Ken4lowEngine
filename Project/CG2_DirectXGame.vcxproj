@@ -64,7 +64,7 @@
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <TreatWarningAsError>true</TreatWarningAsError>
-      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)Externals\assimp\include;$(ProjectDir)EngineLayers\FrameworkLayer\Log;$(ProjectDir)EngineLayers\FrameworkLayer\Framework;$(ProjectDir)EngineLayers\FrameworkLayer\WindowManagement\WindowsAPI;$(ProjectDir)EngineLayers\FrameworkLayer\WindowManagement;$(ProjectDir)EngineLayers\FrameworkLayer\PresentationLayer\ImGuiManager;$(ProjectDir)EngineLayers\FrameworkLayer\PresentationLayer\ParameterManager;$(ProjectDir)EngineLayers\FrameworkLayer\PresentationLayer;$(ProjectDir)EngineLayers\FrameworkLayer;$(ProjectDir)EngineLayers\EngineLayer\Vectors;$(ProjectDir)EngineLayers\EngineLayer\ResourceChecker\ReleseCheck;$(ProjectDir)EngineLayers\EngineLayer\ResourceChecker\LeakCheck;$(ProjectDir)EngineLayers\EngineLayer\ResourceChecker;$(ProjectDir)EngineLayers\EngineLayer\Quaternion;$(ProjectDir)EngineLayers\EngineLayer\WorldTransform;$(ProjectDir)EngineLayers\EngineLayer\Matrix;$(ProjectDir)EngineLayers\EngineLayer\MultipleStructs;$(ProjectDir)EngineLayers\EngineLayer\Audio;$(ProjectDir)EngineLayers\EngineLayer\ResourceManagement\ResourceManager;$(ProjectDir)EngineLayers\EngineLayer\ResourceManagement\ModelManager;$(ProjectDir)EngineLayers\EngineLayer\ResourceManagement\TextureManager;$(ProjectDir)EngineLayers\EngineLayer\ResourceManagement\AnimationManager;$(ProjectDir)EngineLayers\EngineLayer\ResourceManagement;$(ProjectDir)EngineLayers\EngineLayer\Rendering\PSO\ShaderManager;$(ProjectDir)EngineLayers\EngineLayer\Rendering\PSO\PipelineStateManager;$(ProjectDir)EngineLayers\EngineLayer\Rendering\PSO;$(ProjectDir)EngineLayers\EngineLayer\Rendering\SRVManager;$(ProjectDir)EngineLayers\EngineLayer\Rendering\DXLib\DX12DepthStencil;$(ProjectDir)EngineLayers\EngineLayer\Rendering\DXLib\DirectXCommon;$(ProjectDir)EngineLayers\EngineLayer\Rendering\DXLib\DX12SwapChain;$(ProjectDir)EngineLayers\EngineLayer\Rendering\DXLib\DX12Descriptor;$(ProjectDir)EngineLayers\EngineLayer\Rendering\DXLib\DX12Device;$(ProjectDir)EngineLayers\EngineLayer\Rendering\DXLib;$(ProjectDir)EngineLayers\EngineLayer\Rendering;$(ProjectDir)EngineLayers\EngineLayer;$(ProjectDir)EngineLayers\EffectLayer;$(ProjectDir)EngineLayers\ApplicationLayer\Colliders;$(ProjectDir)EngineLayers\ApplicationLayer\Input;$(ProjectDir)EngineLayers\ApplicationLayer\CameraManagement\DebugCamera;$(ProjectDir)EngineLayers\ApplicationLayer\CameraManagement\Camera;$(ProjectDir)EngineLayers\ApplicationLayer\CameraManagement;$(ProjectDir)EngineLayers\ApplicationLayer\Object\3D\Object3DCommon;$(ProjectDir)EngineLayers\ApplicationLayer\Object\3D\Object3D;$(ProjectDir)EngineLayers\ApplicationLayer\Object\3D\Model;$(ProjectDir)EngineLayers\ApplicationLayer\Object\3D;$(ProjectDir)EngineLayers\ApplicationLayer\Object\2D\Wireframe;$(ProjectDir)EngineLayers\ApplicationLayer\Object\2D\Sprite;$(ProjectDir)EngineLayers\ApplicationLayer\Object\2D;$(ProjectDir)EngineLayers\ApplicationLayer\Object;$(ProjectDir)EngineLayers\ApplicationLayer\SceneManagement\SceneManager;$(ProjectDir)EngineLayers\ApplicationLayer\SceneManagement\BaseScene;$(ProjectDir)EngineLayers\ApplicationLayer\SceneManagement\SceneFactory;$(ProjectDir)EngineLayers\ApplicationLayer\SceneManagement\AbstractSceneFactory;$(ProjectDir)EngineLayers\ApplicationLayer\SceneManagement\LogicLayer\TitleScene;$(ProjectDir)EngineLayers\ApplicationLayer\SceneManagement\LogicLayer\GamePlayScene;$(ProjectDir)EngineLayers\ApplicationLayer\SceneManagement\LogicLayer\GameClearScene;$(ProjectDir)EngineLayers\ApplicationLayer\SceneManagement\LogicLayer\GameOverScene;$(ProjectDir)EngineLayers\ApplicationLayer\SceneManagement\LogicLayer;$(ProjectDir)EngineLayers\ApplicationLayer\SceneManagement;$(ProjectDir)EngineLayers\ApplicationLayer;$(ProjectDir)EngineLayers;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)Externals\assimp\include;$(ProjectDir)EngineLayers\FrameworkLayer\Log;$(ProjectDir)EngineLayers\FrameworkLayer\Framework;$(ProjectDir)EngineLayers\FrameworkLayer\WindowManagement\WindowsAPI;$(ProjectDir)EngineLayers\FrameworkLayer\WindowManagement;$(ProjectDir)EngineLayers\FrameworkLayer\PresentationLayer\ImGuiManager;$(ProjectDir)EngineLayers\FrameworkLayer\PresentationLayer\ParameterManager;$(ProjectDir)EngineLayers\FrameworkLayer\PresentationLayer;$(ProjectDir)EngineLayers\FrameworkLayer;$(ProjectDir)EngineLayers\EngineLayer\Managers;$(ProjectDir)EngineLayers\EngineLayer\LightManager;$(ProjectDir)EngineLayers\EngineLayer\Vectors;$(ProjectDir)EngineLayers\EngineLayer\ResourceChecker\ReleseCheck;$(ProjectDir)EngineLayers\EngineLayer\ResourceChecker\LeakCheck;$(ProjectDir)EngineLayers\EngineLayer\ResourceChecker;$(ProjectDir)EngineLayers\EngineLayer\Quaternion;$(ProjectDir)EngineLayers\EngineLayer\WorldTransform;$(ProjectDir)EngineLayers\EngineLayer\Matrix;$(ProjectDir)EngineLayers\EngineLayer\MultipleStructs;$(ProjectDir)EngineLayers\EngineLayer\Audio;$(ProjectDir)EngineLayers\EngineLayer\ResourceManagement\ResourceManager;$(ProjectDir)EngineLayers\EngineLayer\ResourceManagement\ModelManager;$(ProjectDir)EngineLayers\EngineLayer\ResourceManagement\TextureManager;$(ProjectDir)EngineLayers\EngineLayer\ResourceManagement\AnimationManager;$(ProjectDir)EngineLayers\EngineLayer\ResourceManagement;$(ProjectDir)EngineLayers\EngineLayer\Rendering\PSO\ShaderManager;$(ProjectDir)EngineLayers\EngineLayer\Rendering\PSO\PipelineStateManager;$(ProjectDir)EngineLayers\EngineLayer\Rendering\PSO;$(ProjectDir)EngineLayers\EngineLayer\Rendering\SRVManager;$(ProjectDir)EngineLayers\EngineLayer\Rendering\DXLib\DX12DepthStencil;$(ProjectDir)EngineLayers\EngineLayer\Rendering\DXLib\DirectXCommon;$(ProjectDir)EngineLayers\EngineLayer\Rendering\DXLib\DX12SwapChain;$(ProjectDir)EngineLayers\EngineLayer\Rendering\DXLib\DX12Descriptor;$(ProjectDir)EngineLayers\EngineLayer\Rendering\DXLib\DX12Device;$(ProjectDir)EngineLayers\EngineLayer\Rendering\DXLib;$(ProjectDir)EngineLayers\EngineLayer\Rendering;$(ProjectDir)EngineLayers\EngineLayer;$(ProjectDir)EngineLayers\EffectLayer;$(ProjectDir)EngineLayers\ApplicationLayer\Colliders;$(ProjectDir)EngineLayers\ApplicationLayer\Input;$(ProjectDir)EngineLayers\ApplicationLayer\CameraManagement\DebugCamera;$(ProjectDir)EngineLayers\ApplicationLayer\CameraManagement\Camera;$(ProjectDir)EngineLayers\ApplicationLayer\CameraManagement;$(ProjectDir)EngineLayers\ApplicationLayer\Object\3D\Object3DCommon;$(ProjectDir)EngineLayers\ApplicationLayer\Object\3D\Object3D;$(ProjectDir)EngineLayers\ApplicationLayer\Object\3D\Model;$(ProjectDir)EngineLayers\ApplicationLayer\Object\3D;$(ProjectDir)EngineLayers\ApplicationLayer\Object\2D\Wireframe;$(ProjectDir)EngineLayers\ApplicationLayer\Object\2D\Sprite;$(ProjectDir)EngineLayers\ApplicationLayer\Object\2D;$(ProjectDir)EngineLayers\ApplicationLayer\Object;$(ProjectDir)EngineLayers\ApplicationLayer\SceneManagement\SceneManager;$(ProjectDir)EngineLayers\ApplicationLayer\SceneManagement\BaseScene;$(ProjectDir)EngineLayers\ApplicationLayer\SceneManagement\SceneFactory;$(ProjectDir)EngineLayers\ApplicationLayer\SceneManagement\AbstractSceneFactory;$(ProjectDir)EngineLayers\ApplicationLayer\SceneManagement\LogicLayer\TitleScene;$(ProjectDir)EngineLayers\ApplicationLayer\SceneManagement\LogicLayer\GamePlayScene;$(ProjectDir)EngineLayers\ApplicationLayer\SceneManagement\LogicLayer\GameClearScene;$(ProjectDir)EngineLayers\ApplicationLayer\SceneManagement\LogicLayer\GameOverScene;$(ProjectDir)EngineLayers\ApplicationLayer\SceneManagement\LogicLayer;$(ProjectDir)EngineLayers\ApplicationLayer\SceneManagement;$(ProjectDir)EngineLayers\ApplicationLayer;$(ProjectDir)EngineLayers;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -94,7 +94,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
       <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
-      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)Externals\assimp\include;$(ProjectDir)EngineLayers\FrameworkLayer\Log;$(ProjectDir)EngineLayers\FrameworkLayer\Framework;$(ProjectDir)EngineLayers\FrameworkLayer\WindowManagement\WindowsAPI;$(ProjectDir)EngineLayers\FrameworkLayer\WindowManagement;$(ProjectDir)EngineLayers\FrameworkLayer\PresentationLayer\ImGuiManager;$(ProjectDir)EngineLayers\FrameworkLayer\PresentationLayer\ParameterManager;$(ProjectDir)EngineLayers\FrameworkLayer\PresentationLayer;$(ProjectDir)EngineLayers\FrameworkLayer;$(ProjectDir)EngineLayers\EngineLayer\Vectors;$(ProjectDir)EngineLayers\EngineLayer\ResourceChecker\ReleseCheck;$(ProjectDir)EngineLayers\EngineLayer\ResourceChecker\LeakCheck;$(ProjectDir)EngineLayers\EngineLayer\ResourceChecker;$(ProjectDir)EngineLayers\EngineLayer\Quaternion;$(ProjectDir)EngineLayers\EngineLayer\WorldTransform;$(ProjectDir)EngineLayers\EngineLayer\Matrix;$(ProjectDir)EngineLayers\EngineLayer\MultipleStructs;$(ProjectDir)EngineLayers\EngineLayer\Audio;$(ProjectDir)EngineLayers\EngineLayer\ResourceManagement\ResourceManager;$(ProjectDir)EngineLayers\EngineLayer\ResourceManagement\ModelManager;$(ProjectDir)EngineLayers\EngineLayer\ResourceManagement\TextureManager;$(ProjectDir)EngineLayers\EngineLayer\ResourceManagement\AnimationManager;$(ProjectDir)EngineLayers\EngineLayer\ResourceManagement;$(ProjectDir)EngineLayers\EngineLayer\Rendering\PSO\ShaderManager;$(ProjectDir)EngineLayers\EngineLayer\Rendering\PSO\PipelineStateManager;$(ProjectDir)EngineLayers\EngineLayer\Rendering\PSO;$(ProjectDir)EngineLayers\EngineLayer\Rendering\SRVManager;$(ProjectDir)EngineLayers\EngineLayer\Rendering\DXLib\DX12DepthStencil;$(ProjectDir)EngineLayers\EngineLayer\Rendering\DXLib\DirectXCommon;$(ProjectDir)EngineLayers\EngineLayer\Rendering\DXLib\DX12SwapChain;$(ProjectDir)EngineLayers\EngineLayer\Rendering\DXLib\DX12Descriptor;$(ProjectDir)EngineLayers\EngineLayer\Rendering\DXLib\DX12Device;$(ProjectDir)EngineLayers\EngineLayer\Rendering\DXLib;$(ProjectDir)EngineLayers\EngineLayer\Rendering;$(ProjectDir)EngineLayers\EngineLayer;$(ProjectDir)EngineLayers\EffectLayer;$(ProjectDir)EngineLayers\ApplicationLayer\Colliders;$(ProjectDir)EngineLayers\ApplicationLayer\Input;$(ProjectDir)EngineLayers\ApplicationLayer\CameraManagement\DebugCamera;$(ProjectDir)EngineLayers\ApplicationLayer\CameraManagement\Camera;$(ProjectDir)EngineLayers\ApplicationLayer\CameraManagement;$(ProjectDir)EngineLayers\ApplicationLayer\Object\3D\Object3DCommon;$(ProjectDir)EngineLayers\ApplicationLayer\Object\3D\Object3D;$(ProjectDir)EngineLayers\ApplicationLayer\Object\3D\Model;$(ProjectDir)EngineLayers\ApplicationLayer\Object\3D;$(ProjectDir)EngineLayers\ApplicationLayer\Object\2D\Wireframe;$(ProjectDir)EngineLayers\ApplicationLayer\Object\2D\Sprite;$(ProjectDir)EngineLayers\ApplicationLayer\Object\2D;$(ProjectDir)EngineLayers\ApplicationLayer\Object;$(ProjectDir)EngineLayers\ApplicationLayer\SceneManagement\SceneManager;$(ProjectDir)EngineLayers\ApplicationLayer\SceneManagement\BaseScene;$(ProjectDir)EngineLayers\ApplicationLayer\SceneManagement\SceneFactory;$(ProjectDir)EngineLayers\ApplicationLayer\SceneManagement\AbstractSceneFactory;$(ProjectDir)EngineLayers\ApplicationLayer\SceneManagement\LogicLayer\TitleScene;$(ProjectDir)EngineLayers\ApplicationLayer\SceneManagement\LogicLayer\GamePlayScene;$(ProjectDir)EngineLayers\ApplicationLayer\SceneManagement\LogicLayer\GameClearScene;$(ProjectDir)EngineLayers\ApplicationLayer\SceneManagement\LogicLayer\GameOverScene;$(ProjectDir)EngineLayers\ApplicationLayer\SceneManagement\LogicLayer;$(ProjectDir)EngineLayers\ApplicationLayer\SceneManagement;$(ProjectDir)EngineLayers\ApplicationLayer;$(ProjectDir)EngineLayers;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)Externals\assimp\include;$(ProjectDir)EngineLayers\FrameworkLayer\Log;$(ProjectDir)EngineLayers\FrameworkLayer\Framework;$(ProjectDir)EngineLayers\FrameworkLayer\WindowManagement\WindowsAPI;$(ProjectDir)EngineLayers\FrameworkLayer\WindowManagement;$(ProjectDir)EngineLayers\FrameworkLayer\PresentationLayer\ImGuiManager;$(ProjectDir)EngineLayers\FrameworkLayer\PresentationLayer\ParameterManager;$(ProjectDir)EngineLayers\FrameworkLayer\PresentationLayer;$(ProjectDir)EngineLayers\FrameworkLayer;$(ProjectDir)EngineLayers\EngineLayer\Managers;$(ProjectDir)EngineLayers\EngineLayer\LightManager;$(ProjectDir)EngineLayers\EngineLayer\Vectors;$(ProjectDir)EngineLayers\EngineLayer\ResourceChecker\ReleseCheck;$(ProjectDir)EngineLayers\EngineLayer\ResourceChecker\LeakCheck;$(ProjectDir)EngineLayers\EngineLayer\ResourceChecker;$(ProjectDir)EngineLayers\EngineLayer\Quaternion;$(ProjectDir)EngineLayers\EngineLayer\WorldTransform;$(ProjectDir)EngineLayers\EngineLayer\Matrix;$(ProjectDir)EngineLayers\EngineLayer\MultipleStructs;$(ProjectDir)EngineLayers\EngineLayer\Audio;$(ProjectDir)EngineLayers\EngineLayer\ResourceManagement\ResourceManager;$(ProjectDir)EngineLayers\EngineLayer\ResourceManagement\ModelManager;$(ProjectDir)EngineLayers\EngineLayer\ResourceManagement\TextureManager;$(ProjectDir)EngineLayers\EngineLayer\ResourceManagement\AnimationManager;$(ProjectDir)EngineLayers\EngineLayer\ResourceManagement;$(ProjectDir)EngineLayers\EngineLayer\Rendering\PSO\ShaderManager;$(ProjectDir)EngineLayers\EngineLayer\Rendering\PSO\PipelineStateManager;$(ProjectDir)EngineLayers\EngineLayer\Rendering\PSO;$(ProjectDir)EngineLayers\EngineLayer\Rendering\SRVManager;$(ProjectDir)EngineLayers\EngineLayer\Rendering\DXLib\DX12DepthStencil;$(ProjectDir)EngineLayers\EngineLayer\Rendering\DXLib\DirectXCommon;$(ProjectDir)EngineLayers\EngineLayer\Rendering\DXLib\DX12SwapChain;$(ProjectDir)EngineLayers\EngineLayer\Rendering\DXLib\DX12Descriptor;$(ProjectDir)EngineLayers\EngineLayer\Rendering\DXLib\DX12Device;$(ProjectDir)EngineLayers\EngineLayer\Rendering\DXLib;$(ProjectDir)EngineLayers\EngineLayer\Rendering;$(ProjectDir)EngineLayers\EngineLayer;$(ProjectDir)EngineLayers\EffectLayer;$(ProjectDir)EngineLayers\ApplicationLayer\Colliders;$(ProjectDir)EngineLayers\ApplicationLayer\Input;$(ProjectDir)EngineLayers\ApplicationLayer\CameraManagement\DebugCamera;$(ProjectDir)EngineLayers\ApplicationLayer\CameraManagement\Camera;$(ProjectDir)EngineLayers\ApplicationLayer\CameraManagement;$(ProjectDir)EngineLayers\ApplicationLayer\Object\3D\Object3DCommon;$(ProjectDir)EngineLayers\ApplicationLayer\Object\3D\Object3D;$(ProjectDir)EngineLayers\ApplicationLayer\Object\3D\Model;$(ProjectDir)EngineLayers\ApplicationLayer\Object\3D;$(ProjectDir)EngineLayers\ApplicationLayer\Object\2D\Wireframe;$(ProjectDir)EngineLayers\ApplicationLayer\Object\2D\Sprite;$(ProjectDir)EngineLayers\ApplicationLayer\Object\2D;$(ProjectDir)EngineLayers\ApplicationLayer\Object;$(ProjectDir)EngineLayers\ApplicationLayer\SceneManagement\SceneManager;$(ProjectDir)EngineLayers\ApplicationLayer\SceneManagement\BaseScene;$(ProjectDir)EngineLayers\ApplicationLayer\SceneManagement\SceneFactory;$(ProjectDir)EngineLayers\ApplicationLayer\SceneManagement\AbstractSceneFactory;$(ProjectDir)EngineLayers\ApplicationLayer\SceneManagement\LogicLayer\TitleScene;$(ProjectDir)EngineLayers\ApplicationLayer\SceneManagement\LogicLayer\GamePlayScene;$(ProjectDir)EngineLayers\ApplicationLayer\SceneManagement\LogicLayer\GameClearScene;$(ProjectDir)EngineLayers\ApplicationLayer\SceneManagement\LogicLayer\GameOverScene;$(ProjectDir)EngineLayers\ApplicationLayer\SceneManagement\LogicLayer;$(ProjectDir)EngineLayers\ApplicationLayer\SceneManagement;$(ProjectDir)EngineLayers\ApplicationLayer;$(ProjectDir)EngineLayers;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <Optimization>MinSpace</Optimization>
     </ClCompile>
     <Link>
@@ -169,13 +169,14 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClCompile Include="EngineLayers\ApplicationLayer\SceneManagement\SceneManager\SceneManager.cpp" />
     <ClCompile Include="EngineLayers\ApplicationLayer\SceneManagement\LogicLayer\TitleScene\TitleScene.cpp" />
     <ClCompile Include="EngineLayers\FrameworkLayer\PresentationLayer\ParameterManager\ParameterManager.cpp" />
-    <ClCompile Include="LightManager.cpp" />
+    <ClCompile Include="EngineLayers\EngineLayer\LightManager\LightManager.cpp" />
     <ClCompile Include="EngineLayers\ApplicationLayer\SceneManagement\LogicLayer\GameClearScene\GameClearScene.cpp" />
     <ClCompile Include="EngineLayers\ApplicationLayer\SceneManagement\LogicLayer\GameOverScene\GameOverScene.cpp" />
     <ClCompile Include="EngineLayers\EngineLayer\Rendering\FPSCounter.cpp" />
-    <ClCompile Include="SkyBox.cpp" />
-    <ClCompile Include="SkyBoxManager.cpp" />
-    <ClCompile Include="SpriteManager.cpp" />
+    <ClCompile Include="EngineLayers\ApplicationLayer\Object\SkyBox.cpp" />
+    <ClCompile Include="EngineLayers\EngineLayer\Managers\SkyBoxManager.cpp" />
+    <ClCompile Include="EngineLayers\EngineLayer\Managers\SpriteManager.cpp" />
+    <ClCompile Include="PostEffectManager.cpp" />
     <ClCompile Include="WinMain.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
@@ -183,6 +184,18 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClCompile Include="EngineLayers\ApplicationLayer\Object\2D\Wireframe\Wireframe.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <FxCompile Include="Resources\Shaders\FullScreen.VS.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Vertex</ShaderType>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </FxCompile>
+    <FxCompile Include="Resources\Shaders\NoEffect.PS.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </FxCompile>
     <FxCompile Include="Resources\Shaders\Object3d.PS.hlsl">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
@@ -312,15 +325,16 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="EngineLayers\ApplicationLayer\SceneManagement\SceneManager\SceneManager.h" />
     <ClInclude Include="EngineLayers\ApplicationLayer\SceneManagement\LogicLayer\TitleScene\TitleScene.h" />
     <ClInclude Include="EngineLayers\FrameworkLayer\PresentationLayer\ParameterManager\ParameterManager.h" />
-    <ClInclude Include="LightManager.h" />
+    <ClInclude Include="EngineLayers\EngineLayer\LightManager\LightManager.h" />
     <ClInclude Include="EngineLayers\ApplicationLayer\SceneManagement\LogicLayer\GameClearScene\GameClearScene.h" />
     <ClInclude Include="EngineLayers\ApplicationLayer\SceneManagement\LogicLayer\GameOverScene\GameOverScene.h" />
     <ClInclude Include="EngineLayers\EngineLayer\MultipleStructs\OBB.h" />
     <ClInclude Include="EngineLayers\ApplicationLayer\Object\2D\Wireframe\Wireframe.h" />
     <ClInclude Include="EngineLayers\EngineLayer\Rendering\FPSCounter.h" />
-    <ClInclude Include="SkyBox.h" />
-    <ClInclude Include="SkyBoxManager.h" />
-    <ClInclude Include="SpriteManager.h" />
+    <ClInclude Include="EngineLayers\ApplicationLayer\Object\SkyBox.h" />
+    <ClInclude Include="EngineLayers\EngineLayer\Managers\SkyBoxManager.h" />
+    <ClInclude Include="EngineLayers\EngineLayer\Managers\SpriteManager.h" />
+    <ClInclude Include="PostEffectManager.h" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="externals\DirectXTex\DirectXTex_Desktop_2022_Win10.vcxproj">
@@ -331,15 +345,34 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
-    <None Include="Resources\Shaders\Object3d.hlsli">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
+    <None Include="Resources\Shaders\FullScreen.hlsli">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </None>
-    <None Include="Resources\Shaders\Particle.hlsli" />
-    <None Include="Resources\Shaders\SkinningObject3d.hlsli" />
-    <None Include="Resources\Shaders\Sprite.hlsli" />
-    <None Include="Resources\Shaders\Wireframe.hlsli" />
-    <None Include="Resources\Shaders\SkyBox.hlsli" />
+    <None Include="Resources\Shaders\Object3d.hlsli">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </None>
+    <None Include="Resources\Shaders\Particle.hlsli">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </None>
+    <None Include="Resources\Shaders\SkinningObject3d.hlsli">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </None>
+    <None Include="Resources\Shaders\Sprite.hlsli">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </None>
+    <None Include="Resources\Shaders\Wireframe.hlsli">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </None>
+    <None Include="Resources\Shaders\SkyBox.hlsli">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Text Include="Externals\imgui\LICENSE.txt" />

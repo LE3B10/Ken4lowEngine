@@ -34,6 +34,9 @@ public: /// ---------- メンバ関数 ---------- ///
 	// SRVセットコマンド
 	void SetGraphicsRootDescriptorTable(UINT RootParameterIndex, uint32_t srvIndex);
 
+	// 深度バッファのSRVを作成
+	void CreateSRVForDepthBuffer(uint32_t srvIndex, ID3D12Resource* depthBuffer);
+
 	// 確保
 	uint32_t Allocate();
 

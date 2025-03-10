@@ -2,14 +2,16 @@
 #include "DX12Include.h"
 #include "DX12Device.h"
 #include "DX12SwapChain.h"
+#include "DX12Descriptor.h"
 #include "FPSCounter.h"
 
 #include <dxcapi.h>
 #include <memory>
+#include <Vector4.h>
 
 /// ---------- 前方宣言 ---------- ///
 class WinApp;
-class DX12Descriptor;
+
 
 /// -------------------------------------------------------------
 ///			DirectXCommon - DirectX12の基盤クラス
@@ -19,8 +21,7 @@ class DirectXCommon
 	uint32_t kClientWidth;
 	uint32_t kClientHeight;
 
-public:
-	/// ---------- メンバ関数 ---------- ///
+public: /// ---------- メンバ関数 ---------- ///
 
 	// シングルトン
 	static DirectXCommon* GetInstance();
@@ -38,23 +39,21 @@ public:
 	// 終了処理
 	void Finalize();
 
-public:
-	/// ---------- ゲッター ---------- ///
-	
-	ID3D12Device* GetDevice() const;
-	ID3D12GraphicsCommandList* GetCommandList() const;
-	DX12Descriptor* GetDescriptorHeap() const;
-	IDxcUtils* GetIDxcUtils() const;
-	IDxcCompiler3* GetIDxcCompiler() const;
-	IDxcIncludeHandler* GetIncludeHandler() const;
-	DXGI_SWAP_CHAIN_DESC1& GetSwapChainDesc();
-	ID3D12CommandAllocator* GetCommandAllocator() const { return commandAllocator.Get();}
+public: /// ---------- ゲッター ---------- ///
+
+	ID3D12Device* GetDevice() const { return device_->GetDevice(); }
+	ID3D12GraphicsCommandList* GetCommandList() const { return commandList.Get(); }
+	DX12Descriptor* GetDescriptorHeap() const { return descriptor.get(); }
+	IDxcUtils* GetIDxcUtils() const { return dxcUtils.Get(); }
+	IDxcCompiler3* GetIDxcCompiler() const { return dxcCompiler.Get(); }
+	IDxcIncludeHandler* GetIncludeHandler() const { return includeHandler.Get(); }
+	DXGI_SWAP_CHAIN_DESC1& GetSwapChainDesc() const { return swapChain_->GetSwapChainDesc(); }
+	ID3D12CommandAllocator* GetCommandAllocator() const { return commandAllocator.Get(); }
 	ID3D12CommandQueue* GetCommandQueue() const { return commandQueue.Get(); }
 	// FPSの取得
-	FPSCounter& GetFPSCounter() { return fpsCounter_; }	
+	FPSCounter& GetFPSCounter() { return fpsCounter_; }
 
-private:
-	/// ---------- メンバ関数 ---------- ///
+private: /// ---------- メンバ関数 ---------- ///
 
 	// デバッグレイヤーの表示
 	void DebugLayer();
@@ -76,9 +75,9 @@ private:
 
 	// 画面全体をクリア
 	void ClearWindow();
-	
+
 private: /// ---------- メンバ変数 ---------- ///
-	
+
 	FPSCounter fpsCounter_;
 
 	std::unique_ptr<DX12Device> device_;
@@ -95,29 +94,23 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	D3D12_COMMAND_QUEUE_DESC commandQueueDesc{};
 	D3D12_DESCRIPTOR_HEAP_DESC descriptorHeapDesc{};
+	D3D12_CPU_DESCRIPTOR_HANDLE rtvHandles[2]{};
 
 	ComPtr <ID3D12Fence> fence;
 	HANDLE fenceEvent;
 	UINT64 fenceValue = 0;
-	
+
 	D3D12_RESOURCE_BARRIER barrier{};
 
 	// 描画開始・終了処理に使う
 	D3D12_VIEWPORT viewport{};
 	D3D12_RECT scissorRect{};
 
-	UINT backBufferIndex;
+	UINT backBufferIndex = 0;
 
-	// FPS計測用
-	int frameCount_ = 0; // フレーム数
-	std::chrono::steady_clock::time_point fpsReference_; // FPS計測用基準時間
-	float currentFPS_ = 0.0f; // 現在のFPS
+	const Vector4 kRenderTextureClearColor_ = { 0.0f, 0.0f, 0.0f, 1.0f }; // 黒で統一
 
-private:
-	/// ---------- メンバ変数 ---------- ///
-	
-	// 記録時間(FPS固定用)
-	std::chrono::steady_clock::time_point reference_;
+private: /// ---------- メンバ変数 ---------- ///
 
 	DirectXCommon() = default;
 	~DirectXCommon() = default;
@@ -126,4 +119,3 @@ private:
 	DirectXCommon(const DirectXCommon&) = delete;
 	const DirectXCommon& operator=(const DirectXCommon&) = delete;
 };
-

@@ -29,12 +29,15 @@ public: /// ---------- メンバ関数 ---------- ///
 	// デプスステンシルビューの生成
 	void GenerateDSV(ID3D12Device* device, uint32_t width, uint32_t height);
 
+	// レンダーターゲットビューの生成 (新規追加)
+	void CreateRTVForTexture2D(ID3D12Device* device, ID3D12Resource* resource, D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle);
+
 public: /// ---------- ゲッター ---------- ///
 
 	ID3D12DescriptorHeap* GetDSVDescriptorHeap() const;
 	D3D12_CPU_DESCRIPTOR_HANDLE GetRTVHandles(uint32_t num);
 	D3D12_CPU_DESCRIPTOR_HANDLE GetDSVHandle();
-
+	ID3D12Resource* GetDepthStencilBuffer() const { return depthStencilResource.Get(); }
 	// デスクリプタサイズ取得用のゲッタ
 	uint32_t GetDescriptorSizeRTV() const { return descriptorSizeRTV; }
 	uint32_t GetDescriptorSizeDSV() const { return descriptorSizeDSV; }
