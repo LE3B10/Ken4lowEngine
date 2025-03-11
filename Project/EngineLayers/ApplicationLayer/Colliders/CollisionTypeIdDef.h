@@ -4,8 +4,8 @@
 /// ---------- 識別IDの定義 ---------- ///
 enum class CollisionTypeIdDef : uint32_t
 {
-	kDefault,		 // デフォルトID
-	kPlayer,		 // プレイヤーID
-	kWeapon,		 // 武器ID
-	kEnemy,			 // エネミーID
+	kDefault,		 // デフォルトID - 0
+	kPlayer,		 // プレイヤーID - 1
+	kWeapon,		 // ウェポンID - 2
+	kEnemy,			 // エネミーID - 3
 };

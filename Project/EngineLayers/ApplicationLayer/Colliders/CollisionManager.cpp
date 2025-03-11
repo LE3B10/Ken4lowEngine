@@ -1,5 +1,51 @@
 #include "CollisionManager.h"
 #include "Collider.h"
+#include "ParameterManager.h"
+
+
+/// -------------------------------------------------------------
+///							初期化処理
+/// -------------------------------------------------------------
+void CollisionManager::Initialize()
+{
+	isCollider_ = true;
+	ParameterManager::GetInstance()->CreateGroup("Collider");
+	ParameterManager::GetInstance()->AddItem("Collider", "isCollider", isCollider_);
+}
+
+
+/// -------------------------------------------------------------
+///							更新処理
+/// -------------------------------------------------------------
+void CollisionManager::Update()
+{
+	isCollider_ = ParameterManager::GetInstance()->GetValue<bool>("Collider", "isCollider");
+
+	// 非表示なら抜ける
+	if (!isCollider_) return;
+
+	// 更新処理
+	for (Collider* collider : colliders_)
+	{
+		collider->Update();
+	}
+}
+
+
+/// -------------------------------------------------------------
+///							描画処理
+/// -------------------------------------------------------------
+void CollisionManager::Draw()
+{
+	// 非表示なら抜ける
+	if (!isCollider_) return;
+
+	// 更新処理
+	for (Collider* collider : colliders_)
+	{
+		collider->Draw();
+	}
+}
 
 
 /// -------------------------------------------------------------
@@ -47,9 +93,59 @@ void CollisionManager::AddCollider(Collider* other)
 
 
 /// -------------------------------------------------------------
+///						コライダー削除処理
+/// -------------------------------------------------------------
+void CollisionManager::RemoveCollider(Collider* collider)
+{
+	colliders_.remove(collider);
+}
+
+
+/// -------------------------------------------------------------
 ///				コライダー２つの衝突判定と応答処理
 /// -------------------------------------------------------------
 void CollisionManager::CheckCollisionPair(Collider* colliderA, Collider* colliderB)
 {
-	
+	// 球体同士の衝突判定
+	if (CheckSphereCollisitons(colliderA, colliderB))
+	{
+		// コライダーAの衝突時コールバックを呼び出す
+		colliderA->OnCollision(colliderB);
+		// コライダーBの衝突時コールバックを呼び出す
+		colliderB->OnCollision(colliderA);
+
+		// 当たっていたら赤に
+		colliderA->SetColor({ 1.0f,0.0f,0.0f,1.0f });
+		colliderB->SetColor({ 1.0f,0.0f,0.0f,1.0f });
+	}
+	else
+	{
+		// 当たっていなかったら白に
+		colliderA->SetColor({ 1.0f,1.0f,1.0f,1.0f });
+		colliderB->SetColor({ 1.0f,1.0f,1.0f,1.0f });
+	}
+}
+
+
+/// -------------------------------------------------------------
+///					球体同士の衝突判定処理
+/// -------------------------------------------------------------
+bool CollisionManager::CheckSphereCollisitons(Collider* colliderA, Collider* colliderB)
+{
+	// コライダーAの座標を取得
+	Vector3 positionA = colliderA->GetCenterPosition();
+
+	// コライダーBの座標を取得
+	Vector3 positionB = colliderB->GetCenterPosition();
+
+	// 座標の差分ベクトル
+	Vector3 subtract = positionB - positionA;
+
+	// AとBの距離を求める
+	float distance = Vector3::Length(subtract);
+
+	// コライダーAとコライダーBの半径の加算
+	float radiusSum = colliderA->GetRadius() + colliderB->GetRadius();
+
+	return distance <= radiusSum;
 }

@@ -25,7 +25,7 @@ bool ContactRecord::Check(uint32_t number)
 /// -------------------------------------------------------------
 ///						履歴を削除する処理
 /// -------------------------------------------------------------
-void ContactRecord::Crear()
+void ContactRecord::Clear()
 {
 	// 履歴を削除
 	record_.clear();
