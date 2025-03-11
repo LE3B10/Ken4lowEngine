@@ -1,15 +1,26 @@
 #include "Player.h"
 #include <Input.h>
+#include <Hammer.h>
+#include "CollisionManager.h"
+#include "CollisionTypeIdDef.h"
 
 
 /// ---------- コンボ定数表 ---------- ///
-const std::array<Player::ConstAttack, Player::ComboNum> Player::kComboAttacks_ = 
+const std::array<Player::ConstAttack, Player::ComboNum> Player::kComboAttacks_ =
 { {
-	{10, 5, 15, 20, 0.5f, 0.2f, 1.0f},  // 1段目: 横振り
-	{12, 7, 18, 25, 0.6f, 0.3f, 1.2f},  // 2段目: 縦振り
-	{15, 10, 20, 30, 0.8f, 0.5f, 1.5f}  // 3段目: 回転攻撃
+	{12, 10, 20, 20, 0.8f, 0.5f, 1.5f},  // 1段目: 横振り
+	{12, 10, 20, 20, 0.8f, 0.5f, 1.5f},  // 2段目: 縦振り
+	{12, 10, 20, 20, 0.8f, 0.5f, 1.5f}  // 3段目: 回転攻撃
 } };
 
+
+Player::Player()
+{
+	// シリアルナンバーを振る
+	serialNumber_ = nextSerialNumber_;
+	// 次のシリアルナンバーに1を足す
+	++nextSerialNumber_;
+}
 
 /// -------------------------------------------------------------
 ///							初期化処理
@@ -18,6 +29,14 @@ void Player::Initialize()
 {
 	// 基底クラスの初期化
 	BaseCharacter::Initialize();
+	Collider::SetTypeID(static_cast<uint32_t>(CollisionTypeIdDef::kPlayer));
+
+	TextureManager::GetInstance()->LoadTexture("Resources/particle.png");
+
+	particleManager_ = ParticleManager::GetInstance();
+	particleManager_->CreateParticleGroup("fire", "Resources/particle.png");
+
+	particleEmitter_ = std::make_unique<ParticleEmitter>(particleManager_, "fire");
 
 	// 体（親）の初期化
 	body_.object = std::make_unique<Object3D>();
@@ -45,10 +64,6 @@ void Player::Initialize()
 		parts_.push_back(std::move(part));
 	}
 
-	// ハンマーの初期化
-	hammer_ = std::make_unique<Hammer>();
-	hammer_->Initialize();
-
 	// ハンマーの親をプレイヤーの体に設定
 	hammer_->SetParentTransform(&body_.transform);
 
@@ -66,7 +81,7 @@ void Player::Update()
 	BaseCharacter::Update();
 
 	// 浮遊ギミックの更新
-	if (!isJumping_)
+	if (!isJumping_ && !isAttacking_)
 	{
 		UpdateFloatingGimmick();
 	}
@@ -171,6 +186,28 @@ void Player::Draw()
 
 	// ハンマーの描画
 	if (isAttacking_ && hammer_) { hammer_->Draw(); }
+}
+
+
+/// -------------------------------------------------------------
+///						衝突時の判定処理
+/// -------------------------------------------------------------
+void Player::OnCollision(Collider* other)
+{
+	particleEmitter_->SetPosition({ body_.transform.translation_.x,body_.transform.translation_.y + 3.0f,body_.transform.translation_.z });
+	particleEmitter_->SetEmissionRate(1000.0f);
+	particleEmitter_->Update(1.0f / 30.0f);
+}
+
+
+/// -------------------------------------------------------------
+///						中心座標を取得する処理
+/// -------------------------------------------------------------
+Vector3 Player::GetCenterPosition() const
+{
+	const Vector3 offset = { 0.0f,3.0f,0.0f };
+	Vector3 worldPosition = body_.transform.translation_ + offset;
+	return worldPosition;
 }
 
 
@@ -301,6 +338,7 @@ void Player::BehaviorAttackInitialize()
 	attackFrame_ = 0; // 攻撃の進行フレームをリセット
 	isAttacking_ = true; // ハンマーを表示
 	workAttack_.comboNext = false; // 次のコンボ受付をリセット
+	hammer_->ClearContactRecord(); // ハンマーの接触履歴を削除
 }
 
 

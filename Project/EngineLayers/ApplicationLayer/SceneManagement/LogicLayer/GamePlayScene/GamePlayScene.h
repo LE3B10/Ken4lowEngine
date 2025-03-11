@@ -11,6 +11,8 @@
 #include "Ground.h"
 #include "FollowCamera.h"
 #include "Enemy.h"
+#include "LockOn.h"
+#include "Hammer.h"
 
 #include "CollisionManager.h"
 
@@ -64,7 +66,9 @@ private: /// ---------- メンバ変数 ---------- ///
 	std::unique_ptr<Skydome> skydome_;
 	std::unique_ptr<Ground> ground_;
 	std::unique_ptr<FollowCamera> followCamera_;
-	std::unique_ptr<Enemy> enemy_;
+	std::list<std::unique_ptr<Enemy>> enemies_;
+	std::unique_ptr<LockOn> lockOn_;
+	std::unique_ptr<Hammer> hammer_;
 	
 	// 衝突マネージャ
 	std::unique_ptr<CollisionManager> collisionManager_;

@@ -1,4 +1,5 @@
 #include "Collider.h"
+#include "Wireframe.h"
 
 
 /// -------------------------------------------------------------
@@ -15,7 +16,7 @@ void Collider::Initialize()
 /// -------------------------------------------------------------
 void Collider::Update()
 {
-
+	worldPosition_ = GetCenterPosition();
 }
 
 
@@ -24,5 +25,5 @@ void Collider::Update()
 /// -------------------------------------------------------------
 void Collider::Draw()
 {
-
+	Wireframe::GetInstance()->DrawSphere(worldPosition_, radius_, defaultColor_);
 }

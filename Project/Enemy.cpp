@@ -1,4 +1,15 @@
 #include "Enemy.h"
+#include "Hammer.h"
+#include <CollisionTypeIdDef.h>
+
+
+Enemy::Enemy()
+{
+	// シリアルナンバーを振る
+	serialNumber_ = nextSerialNumber_;
+	// 次のシリアルナンバーに1を足す
+	++nextSerialNumber_;
+}
 
 
 /// -------------------------------------------------------------
@@ -8,6 +19,7 @@ void Enemy::Initialize()
 {
 	// 基底クラスの初期化処理
 	BaseCharacter::Initialize();
+	Collider::SetTypeID(static_cast<uint32_t>(CollisionTypeIdDef::kEnemy));
 
 	// 体（親）の初期化
 	body_.object = std::make_unique<Object3D>();
@@ -52,8 +64,8 @@ void Enemy::Update()
 	}
 
 	// 新しい位置を計算
-	float x = radius_ * cos(angle_);
-	float z = radius_ * sin(angle_);
+	float x = center_.x + radius_ * cos(angle_);
+	float z = center_.y + radius_ * sin(angle_);
 
 	// 移動方向のベクトル
 	float velocityX = x - body_.transform.translation_.x;
@@ -79,6 +91,19 @@ void Enemy::Draw()
 {
 	// 基底クラスの描画処理
 	BaseCharacter::Draw();
+}
+
+void Enemy::OnCollision(Collider* other)
+{
+	std::string debugMsg = "Enemy Collided!\n";
+	OutputDebugStringA(debugMsg.c_str());
+}
+
+Vector3 Enemy::GetCenterPosition() const
+{
+	const Vector3 offset = { 0.0f,1.8f,0.0f };
+	Vector3 worldPosition = body_.transform.translation_ + offset;
+	return worldPosition;
 }
 
 

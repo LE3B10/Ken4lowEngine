@@ -2,6 +2,8 @@
 #include <Object3DCommon.h>
 #include <Input.h>
 #include <Camera.h>
+#include "ParticleManager.h"
+#include "TextureManager.h"
 
 
 /// -------------------------------------------------------------
@@ -53,4 +55,26 @@ void BaseCharacter::Draw()
 	{
 		part.object->Draw();
 	}
+}
+
+
+/// -------------------------------------------------------------
+///					　		衝突判定処理
+/// -------------------------------------------------------------
+void BaseCharacter::OnCollision(Collider* other)
+{
+
+}
+
+
+/// -------------------------------------------------------------
+///					　	中心座標を取得
+/// -------------------------------------------------------------
+Vector3 BaseCharacter::GetCenterPosition() const
+{
+	// ローカル座標でのオフセット
+	const Vector3 offset = { 0.0f,1.0f,0.0f };
+	// ワールド座標に変換
+	Vector3 worldPosition = body_.transform.translation_ + offset;
+	return worldPosition;
 }

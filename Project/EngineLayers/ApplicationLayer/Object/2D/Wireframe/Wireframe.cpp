@@ -1345,7 +1345,7 @@ void Wireframe::CreateTransformationMatrix()
 void Wireframe::CalcSphereVertexData()
 {
 	const float pi = 3.1415926535897932f;
-	const uint32_t kSubdivision = 32; // 分割数
+	const uint32_t kSubdivision = 8; // 分割数
 	const float kLonEvery = 2.0f * pi / float(kSubdivision); // 経度の1分割の角度
 	const float kLatEvery = pi / float(kSubdivision); // 緯度の1分割の角度
 

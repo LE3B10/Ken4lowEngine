@@ -1,4 +1,5 @@
 #pragma once
+#include <Windows.h>
 #include <list>
 #include <memory>
 
@@ -16,6 +17,15 @@ class CollisionManager
 {
 public: /// ---------- メンバ関数 ---------- ///
 
+	// 初期化処理
+	void Initialize();
+
+	// 更新処理
+	void Update();
+
+	// 描画処理
+	void Draw();
+
 	// リセット処理
 	void Reset();
 
@@ -25,10 +35,16 @@ public: /// ---------- メンバ関数 ---------- ///
 	// コライダーを追加
 	void AddCollider(Collider* other);
 
+	// コライダーを削除
+	void RemoveCollider(Collider* collider);
+
 private: /// ---------- メンバ関数 ---------- ///
 
 	// コライダー2つの衝突判定と応答処理
 	void CheckCollisionPair(Collider* colliderA, Collider* colliderB);
+
+	// 球体同士の衝突判定
+	bool CheckSphereCollisitons(Collider* colliderA, Collider* colliderB);
 
 private: /// ---------- メンバ変数 ---------- ///
 

@@ -18,6 +18,7 @@ void WorldTransform::Initialize()
 	wvpData->World = Matrix4x4::MakeIdentity();
 	wvpData->WVP = Matrix4x4::MakeIdentity();
 	wvpData->WorldInversedTranspose = Matrix4x4::MakeIdentity();
+    matWorld_ = Matrix4x4::MakeIdentity();  // matWorld_も初期化
 #pragma endregion
 }
 
@@ -32,30 +33,16 @@ void WorldTransform::Update()
         worldMatrix = Matrix4x4::Multiply(worldMatrix, parent_->matWorld_);
     }
 
-    // 親がいる場合は親の回転を引き継ぐ
-    if (parent_)
-    {
-        worldRotate_ = parent_->worldRotate_ + rotate_;
-    }
-    else
-    {
-        worldRotate_ = rotate_;
-    }
+    // 親の回転を引き継ぐ
+    worldRotate_ = parent_ ? parent_->worldRotate_ + rotate_ : rotate_;
 
     // ワールド座標を取得
     worldTranslate_ = { worldMatrix.m[3][0], worldMatrix.m[3][1], worldMatrix.m[3][2] };
 
-    // ビュー・プロジェクション変換を適用
-    Matrix4x4 worldViewProjectionMatrix;
-    if (camera_)
-    {
-        const Matrix4x4& viewProjectionMatrix = camera_->GetViewProjectionMatrix();
-        worldViewProjectionMatrix = Matrix4x4::Multiply(worldMatrix, viewProjectionMatrix);
-    }
-    else
-    {
-        worldViewProjectionMatrix = worldMatrix;
-    }
+    // ビュー・プロジェクション変換
+    Matrix4x4 worldViewProjectionMatrix = camera_
+        ? Matrix4x4::Multiply(worldMatrix, camera_->GetViewProjectionMatrix())
+        : worldMatrix;
 
     // ワールド行列を保存
     matWorld_ = worldMatrix;

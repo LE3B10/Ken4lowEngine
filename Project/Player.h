@@ -1,8 +1,10 @@
 #pragma once
 #include <BaseCharacter.h>
-#include <Hammer.h>
 
 #include <optional>
+
+/// ---------- 前方宣言 ---------- ///
+class Hammer;
 
 
 /// -------------------------------------------------------------
@@ -51,6 +53,9 @@ private: /// ---------- 構造体 ---------- ///
 
 public: /// ---------- メンバ関数 ---------- ///
 
+	// コンストラクタ
+	Player();
+
 	// 初期化処理
 	void Initialize() override;
 
@@ -59,6 +64,12 @@ public: /// ---------- メンバ関数 ---------- ///
 
 	// 描画処理
 	void Draw() override;
+
+	// 衝突時に呼ばれる仮想関数
+	void OnCollision(Collider* other) override;
+
+	// 中心座標を取得する純粋仮想関数
+	Vector3 GetCenterPosition() const override;
 
 public: /// ---------- ゲッタ ---------- ///
 
@@ -71,10 +82,21 @@ public: /// ---------- ゲッタ ---------- ///
 	// プレイヤーの向きを取得
 	float GetYaw() const { return body_.transform.rotate_.y; }
 
+	Vector3 GetWorldPosition() const { return body_.transform.translation_; }
+
+	// 攻撃フラグを取得
+	bool GetIsAttack() { return isAttacking_; }
+
+	// シリアルナンバーを取得
+	uint32_t GetSerialNumber() { return serialNumber_; }
+
 public: /// ---------- セッタ ---------- ///
 
 	// カメラの設定
 	void SetCamera(Camera* camera) { camera_ = camera; }
+
+	// ハンマーの設定
+	void SetHammer(Hammer* hammer) { hammer_ = hammer; }
 
 private: /// ---------- メンバ関数 ---------- ///
 
@@ -131,7 +153,12 @@ private: /// ---------- メンバ変数 ---------- ///
 	WorkAttack workAttack_;
 
 	// ハンマー
-	std::unique_ptr<Hammer> hammer_;
+	Hammer* hammer_ = nullptr;
+
+	// シリアルナンバー
+	uint32_t serialNumber_ = 0;
+	// 次のシリアルナンバー
+	static inline uint32_t nextSerialNumber_ = 0;
 
 private: /// ---------- 定数 ---------- ///
 

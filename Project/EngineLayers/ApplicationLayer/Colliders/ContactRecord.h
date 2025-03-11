@@ -16,7 +16,7 @@ public: /// ---------- メンバ関数 ---------- ///
 	bool Check(uint32_t number);
 
 	// 履歴を削除する関数
-	void Crear();
+	void Clear();
 
 private: /// ---------- メンバ変数 ---------- ///
 

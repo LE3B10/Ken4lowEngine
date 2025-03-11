@@ -127,6 +127,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClCompile Include="EngineLayers\ApplicationLayer\SceneManagement\BaseScene\BaseScene.cpp" />
     <ClCompile Include="EngineLayers\EngineLayer\Audio\AudioManager.cpp" />
     <ClCompile Include="EngineLayers\ApplicationLayer\CameraManagement\Camera\Camera.cpp" />
+    <ClCompile Include="EngineLayers\EngineLayer\Vectors\Vector4.cpp" />
     <ClCompile Include="EngineLayers\EngineLayer\WorldTransform\WorldTransform.cpp" />
     <ClCompile Include="EngineLayers\EngineLayer\Rendering\PSO\BlendStateManager\BlendStateManager.cpp" />
     <ClCompile Include="EngineLayers\EngineLayer\ResourceChecker\LeakCheck\D3DResourceLeakChecker.cpp" />
@@ -182,6 +183,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClCompile Include="FollowCamera.cpp" />
     <ClCompile Include="Ground.cpp" />
     <ClCompile Include="Hammer.cpp" />
+    <ClCompile Include="LockOn.cpp" />
     <ClCompile Include="Player.cpp" />
     <ClCompile Include="Skydome.cpp" />
     <ClCompile Include="WinMain.cpp">
@@ -315,6 +317,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="FollowCamera.h" />
     <ClInclude Include="Ground.h" />
     <ClInclude Include="Hammer.h" />
+    <ClInclude Include="LockOn.h" />
     <ClInclude Include="Player.h" />
     <ClInclude Include="Skydome.h" />
   </ItemGroup>
