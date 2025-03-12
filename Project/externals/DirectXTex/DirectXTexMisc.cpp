@@ -600,7 +600,7 @@ HRESULT DirectX::EvaluateImage(
 
 
 //-------------------------------------------------------------------------------------
-// Use a user-supplied function to compute a new image from an input image
+// Use a user-supplied function to compute a new image from an input_ image
 //-------------------------------------------------------------------------------------
 _Use_decl_annotations_
 HRESULT DirectX::TransformImage(

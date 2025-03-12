@@ -231,14 +231,14 @@ HRESULT GPUCompressBC::Prepare(size_t width, size_t height, uint32_t flags, DXGI
 
     switch (format)
     {
-        // BC6H GPU compressor takes RGBAF32 as input
+        // BC6H GPU compressor takes RGBAF32 as input_
     case DXGI_FORMAT_BC6H_TYPELESS:
     case DXGI_FORMAT_BC6H_UF16:
     case DXGI_FORMAT_BC6H_SF16:
         m_srcformat = DXGI_FORMAT_R32G32B32A32_FLOAT;
         break;
 
-        // BC7 GPU compressor takes RGBA32 as input
+        // BC7 GPU compressor takes RGBA32 as input_
     case DXGI_FORMAT_BC7_TYPELESS:
     case DXGI_FORMAT_BC7_UNORM:
         m_srcformat = DXGI_FORMAT_R8G8B8A8_UNORM;
@@ -386,7 +386,7 @@ HRESULT GPUCompressBC::Compress(const Image& srcImage, const Image& destImage)
         return E_UNEXPECTED;
     }
 
-    //--- Create input texture --------------------------------------------------------
+    //--- Create input_ texture --------------------------------------------------------
     auto pDevice = m_device.Get();
     if (!pDevice)
         return E_POINTER;

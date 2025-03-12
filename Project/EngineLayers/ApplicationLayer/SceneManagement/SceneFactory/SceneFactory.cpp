@@ -13,7 +13,7 @@ std::unique_ptr<BaseScene> SceneFactory::CreateScene(const std::string& sceneNam
     // 次のシーンを生成
     std::unique_ptr<BaseScene> newScene = nullptr;
 
-    if (sceneName == "TitleScene")
+    if (sceneName == "GameTitleScene")
     {
         return std::make_unique<TitleScene>();
     }

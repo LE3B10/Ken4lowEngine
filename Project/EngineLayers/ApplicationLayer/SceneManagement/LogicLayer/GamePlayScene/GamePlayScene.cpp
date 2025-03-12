@@ -6,6 +6,7 @@
 #include <ParameterManager.h>
 #include <ParticleManager.h>
 #include "Wireframe.h"
+#include "SceneManager.h"
 
 #ifdef _DEBUG
 #include <DebugCamera.h>
@@ -65,6 +66,7 @@ void GamePlayScene::Initialize()
 	{
 		auto enemy = std::make_unique<Enemy>();
 		enemy->Initialize();
+		enemy->SetHammer(hammer_.get());
 		enemy->SetRadius(2.0f);
 
 		// ランダムな位置と角度を設定
@@ -117,6 +119,26 @@ void GamePlayScene::Update()
 		enemy->Update();
 	}
 
+	// 死亡したエネミーを削除
+	std::erase_if(enemies_, [&](const std::unique_ptr<Enemy>& enemy) {
+		if (enemy->IsDead()) {
+			collisionManager_->RemoveCollider(enemy.get());
+			return true;
+		}
+		return false;
+		});
+
+	// 全てのエネミーが倒されたらクリアシーンへ
+	if (enemies_.empty())
+	{
+		sceneManager_->ChangeScene("GameClearScene");
+	}
+
+	if (player_->IsDead())
+	{
+		sceneManager_->ChangeScene("GameOverScene");
+	}
+
 	// ロックオンの更新処理
 	lockOn_->Update(enemies_);
 
@@ -161,8 +183,10 @@ void GamePlayScene::Draw()
 	// ロックオンの描画
 	lockOn_->Draw();
 
+#ifdef _DEBUG
 	// ワイヤーフレームの描画
 	Wireframe::GetInstance()->DrawGrid(100.0f, 20.0f, { 0.25f, 0.25f, 0.25f,1.0f });
+#endif // _DEBUG
 
 	// コリジョンマネージャの描画処理
 	collisionManager_->Draw();
@@ -182,7 +206,7 @@ void GamePlayScene::Draw()
 /// -------------------------------------------------------------
 void GamePlayScene::Finalize()
 {
-
+	ParticleManager::GetInstance()->Finalize();
 }
 
 
@@ -210,6 +234,11 @@ void GamePlayScene::CheckAllCollisions()
 	for (auto& enemy : enemies_)
 	{
 		collisionManager_->AddCollider(enemy.get());
+
+		if (enemy->GetEnemyHP() <= 0)
+		{
+			collisionManager_->RemoveCollider(enemy.get());
+		}
 	}
 
 	// ハンマーを登録

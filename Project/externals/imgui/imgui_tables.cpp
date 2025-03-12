@@ -2994,7 +2994,7 @@ float ImGui::TableGetHeaderRowHeight()
 {
     // Caring for a minor edge case:
     // Calculate row height, for the unlikely case that some labels may be taller than others.
-    // If we didn't do that, uneven header height would highlight but smaller one before the tallest wouldn't catch input for all height.
+    // If we didn't do that, uneven header height would highlight but smaller one before the tallest wouldn't catch input_ for all height.
     // In your custom header row you may omit this all together and just call TableNextRow() without a height...
     ImGuiContext& g = *GImGui;
     ImGuiTable* table = g.CurrentTable;

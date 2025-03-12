@@ -595,7 +595,7 @@ namespace DirectX
         TEX_FILTER_SRGB_OUT = 0x2000000,
         TEX_FILTER_SRGB = (TEX_FILTER_SRGB_IN | TEX_FILTER_SRGB_OUT),
         // sRGB <-> RGB for use in conversion operations
-        // if the input format type is IsSRGB(), then SRGB_IN is on by default
+        // if the input_ format type is IsSRGB(), then SRGB_IN is on by default
         // if the output format type is IsSRGB(), then SRGB_OUT is on by default
 
         TEX_FILTER_FORCE_NON_WIC = 0x10000000,
@@ -672,7 +672,7 @@ namespace DirectX
         TEX_PMALPHA_SRGB_IN = 0x1000000,
         TEX_PMALPHA_SRGB_OUT = 0x2000000,
         TEX_PMALPHA_SRGB = (TEX_PMALPHA_SRGB_IN | TEX_PMALPHA_SRGB_OUT),
-        // if the input format type is IsSRGB(), then SRGB_IN is on by default
+        // if the input_ format type is IsSRGB(), then SRGB_IN is on by default
         // if the output format type is IsSRGB(), then SRGB_OUT is on by default
     };
 
@@ -707,7 +707,7 @@ namespace DirectX
         TEX_COMPRESS_SRGB_IN = 0x1000000,
         TEX_COMPRESS_SRGB_OUT = 0x2000000,
         TEX_COMPRESS_SRGB = (TEX_COMPRESS_SRGB_IN | TEX_COMPRESS_SRGB_OUT),
-        // if the input format type is IsSRGB(), then SRGB_IN is on by default
+        // if the input_ format type is IsSRGB(), then SRGB_IN is on by default
         // if the output format type is IsSRGB(), then SRGB_OUT is on by default
 
         TEX_COMPRESS_PARALLEL = 0x10000000,

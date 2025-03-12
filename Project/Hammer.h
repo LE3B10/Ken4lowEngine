@@ -1,7 +1,6 @@
 #pragma once
 #include <Object3D.h>
 #include <Collider.h>
-#include "Enemy.h"
 #include "ParticleManager.h"
 #include "ParticleEmitter.h"
 #include "ContactRecord.h"
@@ -9,7 +8,7 @@
 
 /// ---------- 前方宣言 ---------- ///
 class Player;
-
+class Enemy;
 
 /// -------------------------------------------------------------
 ///						　ハンマークラス
@@ -67,13 +66,15 @@ public: /// ---------- セッター ---------- ///
 	// プレイヤーを設定
 	void SetPlayer(Player* player) { player_ = player; }
 
+	void SetEnemy(Enemy* enemy) { enemy_ = enemy; }
+
 private: /// ---------- メンバ変数 ---------- ///
 
 	Player* player_ = nullptr;
 
 	ContactRecord contactRecord_;
 
-	std::unique_ptr<Enemy> enemy_;
+	Enemy* enemy_ = nullptr;
 
 	ParticleManager* particleManager_;
 	std::unique_ptr<Object3D> object_;

@@ -2314,7 +2314,7 @@ HRESULT DirectX::SaveToDDSFile(
                         const size_t rowPitch = images[index].rowPitch;
                         if (rowPitch < ddsRowPitch)
                         {
-                            // DDS uses 1-byte alignment, so if this is happening then the input pitch isn't actually a full line of data
+                            // DDS uses 1-byte alignment, so if this is happening then the input_ pitch isn't actually a full line of data
                             return E_FAIL;
                         }
 
@@ -2399,7 +2399,7 @@ HRESULT DirectX::SaveToDDSFile(
                         const size_t rowPitch = images[index].rowPitch;
                         if (rowPitch < ddsRowPitch)
                         {
-                            // DDS uses 1-byte alignment, so if this is happening then the input pitch isn't actually a full line of data
+                            // DDS uses 1-byte alignment, so if this is happening then the input_ pitch isn't actually a full line of data
                             return E_FAIL;
                         }
 

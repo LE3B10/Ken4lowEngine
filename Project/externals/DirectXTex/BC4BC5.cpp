@@ -189,7 +189,7 @@ namespace
         constexpr float MIN_NORM = 0.f;
         constexpr float MAX_NORM = 1.f;
 
-        // Find max/min of input texels
+        // Find max/min of input_ texels
         float fBlockMax = theTexelsU[0];
         float fBlockMin = theTexelsU[0];
         for (size_t i = 0; i < BLOCK_SIZE; ++i)
@@ -204,7 +204,7 @@ namespace
             }
         }
 
-        //  If there are boundary values in input texels, should use 4 interpolated color values to guarantee
+        //  If there are boundary values in input_ texels, should use 4 interpolated color values to guarantee
         //  the exact code of the boundary values.
         const bool bUsing4BlockCodec = (MIN_NORM == fBlockMin || MAX_NORM == fBlockMax);
 
@@ -244,7 +244,7 @@ namespace
         constexpr float MIN_NORM = -1.f;
         constexpr float MAX_NORM = 1.f;
 
-        // Find max/min of input texels
+        // Find max/min of input_ texels
         float fBlockMax = theTexelsU[0];
         float fBlockMin = theTexelsU[0];
         for (size_t i = 0; i < BLOCK_SIZE; ++i)
@@ -259,7 +259,7 @@ namespace
             }
         }
 
-        //  If there are boundary values in input texels, should use 4 interpolated color values to guarantee
+        //  If there are boundary values in input_ texels, should use 4 interpolated color values to guarantee
         //  the exact code of the boundary values.
         const bool bUsing4BlockCodec = (MIN_NORM == fBlockMin || MAX_NORM == fBlockMax);
 

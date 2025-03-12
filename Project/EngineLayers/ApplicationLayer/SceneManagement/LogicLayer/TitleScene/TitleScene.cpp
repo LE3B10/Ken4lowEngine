@@ -100,6 +100,8 @@ void TitleScene::Finalize()
 	{
 		wavLoader_.reset();
 	}
+
+	ParticleManager::GetInstance()->Finalize();
 }
 
 

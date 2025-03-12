@@ -38,6 +38,9 @@ public: /// ---------- メンバ関数 ---------- ///
 	// コライダーを削除
 	void RemoveCollider(Collider* collider);
 
+	// 判定
+	bool IsColliding(Collider* colliderA, Collider* colliderB);
+
 private: /// ---------- メンバ関数 ---------- ///
 
 	// コライダー2つの衝突判定と応答処理

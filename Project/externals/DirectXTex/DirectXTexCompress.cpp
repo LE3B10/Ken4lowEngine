@@ -730,7 +730,7 @@ HRESULT DirectX::Decompress(
 
     if (format == DXGI_FORMAT_UNKNOWN)
     {
-        // Pick a default decompressed format based on BC input format
+        // Pick a default decompressed format based on BC input_ format
         format = DefaultDecompress(cImage.format);
         if (format == DXGI_FORMAT_UNKNOWN)
         {
@@ -783,7 +783,7 @@ HRESULT DirectX::Decompress(
 
     if (format == DXGI_FORMAT_UNKNOWN)
     {
-        // Pick a default decompressed format based on BC input format
+        // Pick a default decompressed format based on BC input_ format
         format = DefaultDecompress(cImages[0].format);
         if (format == DXGI_FORMAT_UNKNOWN)
         {

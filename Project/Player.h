@@ -1,9 +1,10 @@
 #pragma once
 #include <BaseCharacter.h>
-
+#include "ContactRecord.h"
 #include <optional>
 
 /// ---------- 前方宣言 ---------- ///
+class DirectXCommon;
 class Hammer;
 
 
@@ -90,6 +91,11 @@ public: /// ---------- ゲッタ ---------- ///
 	// シリアルナンバーを取得
 	uint32_t GetSerialNumber() { return serialNumber_; }
 
+	// HPを取得
+	int GetPlayerHP() { return playerHP_; }
+
+	bool IsDead() { return isDead_; }
+
 public: /// ---------- セッタ ---------- ///
 
 	// カメラの設定
@@ -97,6 +103,9 @@ public: /// ---------- セッタ ---------- ///
 
 	// ハンマーの設定
 	void SetHammer(Hammer* hammer) { hammer_ = hammer; }
+
+	// ダメージを設定
+	void SetDamage(int damage);
 
 private: /// ---------- メンバ関数 ---------- ///
 
@@ -140,6 +149,8 @@ private: /// ---------- ルートビヘイビア用メンバ関数 ---------- //
 
 private: /// ---------- メンバ変数 ---------- ///
 
+	DirectXCommon* dxCommon_ = nullptr;
+
 	// 振る舞い
 	Behavior behavior_ = Behavior::kRoot; // 現在の行動
 
@@ -155,10 +166,20 @@ private: /// ---------- メンバ変数 ---------- ///
 	// ハンマー
 	Hammer* hammer_ = nullptr;
 
+	ContactRecord contactRecord_;
+
 	// シリアルナンバー
 	uint32_t serialNumber_ = 0;
 	// 次のシリアルナンバー
 	static inline uint32_t nextSerialNumber_ = 0;
+
+	int playerHP_ = 10;
+	bool isDead_ = false;
+
+	// 無敵時間の設定
+	bool isInvincible_ = false;
+	const float invincibleDuration_ = 1.0f; // 無敵時間（秒）
+	float invincibleTimer_ = 0.0f;
 
 private: /// ---------- 定数 ---------- ///
 

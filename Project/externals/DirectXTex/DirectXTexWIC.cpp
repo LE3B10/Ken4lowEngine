@@ -1233,7 +1233,7 @@ HRESULT DirectX::GetMetadataFromWICMemory(
     if (!pWIC)
         return E_NOINTERFACE;
 
-    // Create input stream for memory
+    // Create input_ stream for memory
     ComPtr<IWICStream> stream;
     HRESULT hr = pWIC->CreateStream(stream.GetAddressOf());
     if (FAILED(hr))
@@ -1327,7 +1327,7 @@ HRESULT DirectX::LoadFromWICMemory(
 
     image.Release();
 
-    // Create input stream for memory
+    // Create input_ stream for memory
     ComPtr<IWICStream> stream;
     HRESULT hr = pWIC->CreateStream(stream.GetAddressOf());
     if (FAILED(hr))

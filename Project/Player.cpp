@@ -1,6 +1,8 @@
 #include "Player.h"
+#include "DirectXCommon.h"
 #include <Input.h>
 #include <Hammer.h>
+#include "Enemy.h"
 #include "CollisionManager.h"
 #include "CollisionTypeIdDef.h"
 
@@ -27,6 +29,7 @@ Player::Player()
 /// -------------------------------------------------------------
 void Player::Initialize()
 {
+	dxCommon_ = DirectXCommon::GetInstance();
 	// 基底クラスの初期化
 	BaseCharacter::Initialize();
 	Collider::SetTypeID(static_cast<uint32_t>(CollisionTypeIdDef::kPlayer));
@@ -79,6 +82,17 @@ void Player::Update()
 {
 	// 基底クラスの更新
 	BaseCharacter::Update();
+
+	// 無敵時間のカウントダウン
+	if (isInvincible_)
+	{
+		invincibleTimer_ -= 1.0f / dxCommon_->GetFPSCounter().GetFPS(); // 60FPS基準で計算
+		if (invincibleTimer_ <= 0.0f)
+		{
+			isInvincible_ = false; // 無敵終了
+		}
+	}
+
 
 	// 浮遊ギミックの更新
 	if (!isJumping_ && !isAttacking_)
@@ -181,8 +195,13 @@ void Player::Update()
 /// -------------------------------------------------------------
 void Player::Draw()
 {
-	// 基底クラスの描画
-	BaseCharacter::Draw();
+
+	// 通常描画
+	if (!isInvincible_ || static_cast<int>(invincibleTimer_ * 10) % 2 == 0)
+	{
+		// 基底クラスの描画
+		BaseCharacter::Draw();
+	}
 
 	// ハンマーの描画
 	if (isAttacking_ && hammer_) { hammer_->Draw(); }
@@ -194,9 +213,17 @@ void Player::Draw()
 /// -------------------------------------------------------------
 void Player::OnCollision(Collider* other)
 {
-	particleEmitter_->SetPosition({ body_.transform.translation_.x,body_.transform.translation_.y + 3.0f,body_.transform.translation_.z });
-	particleEmitter_->SetEmissionRate(1000.0f);
-	particleEmitter_->Update(1.0f / 30.0f);
+	// 衝突相手の種別IDを取得
+	uint32_t typeID = other->GetTypeID();
+
+	if (typeID == static_cast<uint32_t>(CollisionTypeIdDef::kEnemy))
+	{
+		float deltaTime = 1.0f / dxCommon_->GetFPSCounter().GetFPS();
+		particleEmitter_->SetPosition({ body_.transform.translation_.x,body_.transform.translation_.y + 3.0f,body_.transform.translation_.z });
+		particleEmitter_->SetEmissionRate(5000.0f);
+		particleEmitter_->Update(deltaTime);
+		SetDamage(1);
+	}
 }
 
 
@@ -210,6 +237,20 @@ Vector3 Player::GetCenterPosition() const
 	return worldPosition;
 }
 
+
+void Player::SetDamage(int damage)
+{
+	if (!isInvincible_)
+	{
+		playerHP_ -= damage;
+		if (playerHP_ <= 0)
+		{
+			isDead_ = true;
+		}
+		isInvincible_ = true;           // 無敵フラグをON
+		invincibleTimer_ = invincibleDuration_; // 無敵時間をリセット
+	}
+}
 
 /// -------------------------------------------------------------
 ///							移動処理

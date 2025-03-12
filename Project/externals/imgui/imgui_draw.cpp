@@ -3021,7 +3021,7 @@ static bool ImFontAtlasBuildWithStbTruetype(ImFontAtlas* atlas)
     for (int src_i = 0; src_i < src_tmp_array.Size; src_i++)
     {
         // When merging fonts with MergeMode=true:
-        // - We can have multiple input fonts writing into a same destination font.
+        // - We can have multiple input_ fonts writing into a same destination font.
         // - dst_font->ConfigData is != from cfg which is our source configuration.
         ImFontBuildSrcData& src_tmp = src_tmp_array[src_i];
         ImFontConfig& cfg = atlas->ConfigData[src_i];

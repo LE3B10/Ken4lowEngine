@@ -141,7 +141,7 @@ namespace
 
 
     //-------------------------------------------------------------------------------------
-    // Compress using GPU, converting to the proper input format for the shader if needed
+    // Compress using GPU, converting to the proper input_ format for the shader if needed
     //-------------------------------------------------------------------------------------
     inline HRESULT GPUCompress(
         _In_ GPUCompressBC* gpubc,
