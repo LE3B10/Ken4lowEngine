@@ -1,6 +1,9 @@
 #include "Enemy.h"
+#include "DirectXCommon.h"
 #include "Hammer.h"
 #include <CollisionTypeIdDef.h>
+#include "SceneManager.h"
+#include "Player.h"
 
 
 Enemy::Enemy()
@@ -20,6 +23,8 @@ void Enemy::Initialize()
 	// 基底クラスの初期化処理
 	BaseCharacter::Initialize();
 	Collider::SetTypeID(static_cast<uint32_t>(CollisionTypeIdDef::kEnemy));
+
+	dxCommon_ = DirectXCommon::GetInstance();
 
 	// 体（親）の初期化
 	body_.object = std::make_unique<Object3D>();
@@ -56,6 +61,16 @@ void Enemy::Update()
 	// 基底クラスの更新処理
 	BaseCharacter::Update();
 
+	// 無敵時間のカウントダウン
+	if (isInvincible_)
+	{
+		invincibleTimer_ -= 1.0f / dxCommon_->GetFPSCounter().GetFPS(); // 60FPS基準で計算
+		if (invincibleTimer_ <= 0.0f)
+		{
+			isInvincible_ = false; // 無敵終了
+		}
+	}
+
 	// 円運動を更新
 	angle_ += speed_;
 	if (angle_ > 2.0f * std::numbers::pi_v<float>) // 角度のリセット
@@ -89,14 +104,37 @@ void Enemy::Update()
 /// -------------------------------------------------------------
 void Enemy::Draw()
 {
-	// 基底クラスの描画処理
-	BaseCharacter::Draw();
+	if (!isDead_)
+	{
+		// 通常描画
+		if (!isInvincible_ || static_cast<int>(invincibleTimer_ * 10) % 2 == 0)
+		{
+			// 基底クラスの描画処理
+			BaseCharacter::Draw();
+		}
+	}
 }
 
 void Enemy::OnCollision(Collider* other)
 {
-	std::string debugMsg = "Enemy Collided!\n";
-	OutputDebugStringA(debugMsg.c_str());
+	// 衝突相手の種別IDを取得
+	uint32_t typeID = other->GetTypeID();
+	OutputDebugStringA("Enemy OnCollision called.\n");
+
+	// 衝突相手が武器なら
+	if (typeID == static_cast<uint32_t>(CollisionTypeIdDef::kPlayer))
+	{
+		Player* player = static_cast<Player*>(other);
+		uint32_t serialNumber = player->GetSerialNumber();
+
+		// 接触記録があれば何もせず抜ける
+		if (contactRecord_.Check(serialNumber)) return;
+
+		// 接触記録に登録
+		contactRecord_.Add(serialNumber);
+
+		OutputDebugStringA("Collision with Player detected.\n");
+	}
 }
 
 Vector3 Enemy::GetCenterPosition() const
@@ -106,6 +144,20 @@ Vector3 Enemy::GetCenterPosition() const
 	return worldPosition;
 }
 
+
+void Enemy::SetDamage(int damage)
+{
+	if (!isInvincible_)
+	{
+		enemyHP_ -= damage;
+		if (enemyHP_ <= 0)
+		{
+			isDead_ = true;
+		}
+		isInvincible_ = true;           // 無敵フラグをON
+		invincibleTimer_ = invincibleDuration_; // 無敵時間をリセット
+	}
+}
 
 /// -------------------------------------------------------------
 ///						腕のアニメーション更新

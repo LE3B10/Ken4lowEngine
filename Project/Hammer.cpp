@@ -2,6 +2,7 @@
 #include "CollisionTypeIdDef.h"
 #include "TextureManager.h"
 #include "Player.h"
+#include "Enemy.h"
 
 
 Hammer::Hammer()
@@ -22,8 +23,6 @@ void Hammer::Initialize()
 	Collider::SetTypeID(static_cast<uint32_t>(CollisionTypeIdDef::kWeapon));
 
 	TextureManager::GetInstance()->LoadTexture("Resources/uvChecker.png");
-
-	enemy_ = std::make_unique<Enemy>();
 
 	object_ = std::make_unique<Object3D>();
 	object_->Initialize("Hammer/Hammer.gltf"); // ハンマーの3Dモデル
@@ -98,6 +97,7 @@ void Hammer::OnCollision(Collider* other)
 		// 接触記録に登録
 		contactRecord_.Add(serialNumber);
 
+		enemy->SetDamage(1);
 		OutputDebugStringA("Collision with Enemy detected.\n");
 
 		float deltaTime = 1.0f / 30.0f;

@@ -8,7 +8,7 @@
 /// -------------------------------------------------------------
 void CollisionManager::Initialize()
 {
-	isCollider_ = true;
+	isCollider_ = false;
 	ParameterManager::GetInstance()->CreateGroup("Collider");
 	ParameterManager::GetInstance()->AddItem("Collider", "isCollider", isCollider_);
 }
@@ -98,6 +98,11 @@ void CollisionManager::AddCollider(Collider* other)
 void CollisionManager::RemoveCollider(Collider* collider)
 {
 	colliders_.remove(collider);
+}
+
+bool CollisionManager::IsColliding(Collider* colliderA, Collider* colliderB)
+{
+	return false;
 }
 
 

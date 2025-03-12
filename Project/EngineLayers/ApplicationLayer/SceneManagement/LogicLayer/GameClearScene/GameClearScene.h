@@ -37,7 +37,7 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	DirectXCommon* dxCommon_ = nullptr;
 	TextureManager* textureManager = nullptr;
-	Input* input = nullptr;
+	Input* input_ = nullptr;
 
 	std::unique_ptr<WavLoader> wavLoader_;
 

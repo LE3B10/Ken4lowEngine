@@ -2872,7 +2872,7 @@ bool DirectX::Internal::LoadScanlineLinear(
 
     if (LoadScanline(pDestination, count, pSource, size, format))
     {
-        // sRGB input processing (sRGB -> Linear RGB)
+        // sRGB input_ processing (sRGB -> Linear RGB)
         if (flags & TEX_FILTER_SRGB_IN)
         {
             XMVECTOR* ptr = pDestination;
@@ -3109,7 +3109,7 @@ void DirectX::Internal::ConvertScanline(
         flags &= ~(TEX_FILTER_SRGB_IN | TEX_FILTER_SRGB_OUT);
     }
 
-    // sRGB input processing (sRGB -> Linear RGB)
+    // sRGB input_ processing (sRGB -> Linear RGB)
     if (flags & TEX_FILTER_SRGB_IN)
     {
         if (!(in->flags & CONVF_DEPTH) && ((in->flags & CONVF_FLOAT) || (in->flags & CONVF_UNORM)))

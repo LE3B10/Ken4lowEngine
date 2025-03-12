@@ -4,27 +4,38 @@
 #include <Input.h>
 #include <ParameterManager.h>
 #include <ParticleManager.h>
+#include "SceneManager.h"
+
 
 void GameOverScene::Initialize()
 {
 	dxCommon_ = DirectXCommon::GetInstance();
 	textureManager = TextureManager::GetInstance();
-	input = Input::GetInstance();
+	input_ = Input::GetInstance();
 	wavLoader_ = std::make_unique<WavLoader>();
 }
 
 void GameOverScene::Update()
 {
+	if (input_->TriggerKey(DIK_RETURN))
+	{
+		sceneManager_->ChangeScene("GameTitleScene"); // リトライ
+	}
+
+
 }
 
 void GameOverScene::Draw()
 {
+
 }
 
 void GameOverScene::Finalize()
 {
+	ParticleManager::GetInstance()->Finalize();
 }
 
 void GameOverScene::DrawImGui()
 {
+
 }
