@@ -35,6 +35,9 @@ public: /// ---------- メンバ関数 ---------- ///
 public: /// ---------- ゲッター ---------- ///
 
 	ID3D12DescriptorHeap* GetDSVDescriptorHeap() const;
+	ID3D12DescriptorHeap* GetRTVDescriptorHeap() const { return rtvDescriptorHeap.Get(); }
+	D3D12_CPU_DESCRIPTOR_HANDLE GetDSVHeadHandleStart() { return dsvDescriptorHeap->GetCPUDescriptorHandleForHeapStart(); }
+
 	D3D12_CPU_DESCRIPTOR_HANDLE GetRTVHandles(uint32_t num);
 	D3D12_CPU_DESCRIPTOR_HANDLE GetDSVHandle();
 	ID3D12Resource* GetDepthStencilBuffer() const { return depthStencilResource.Get(); }

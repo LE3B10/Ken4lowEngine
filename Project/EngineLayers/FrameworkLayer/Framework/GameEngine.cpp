@@ -6,6 +6,7 @@
 #include <Wireframe.h>
 #include <DirectXCommon.h>
 #include "Object3DCommon.h"
+#include "PostEffectManager.h"
 
 
 /// -------------------------------------------------------------
@@ -112,6 +113,10 @@ void GameEngine::Draw()
 
 	// 描画終了処理
 	dxCommon_->EndDraw();
+
+	// ポストエフェクトの描画
+	PostEffectManager::GetInstance()->RenderPostEffect();
+
 }
 
 
