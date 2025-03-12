@@ -76,18 +76,18 @@ void DirectXCommon::BeginDraw()
 	backBufferIndex = swapChain_->GetSwapChain()->GetCurrentBackBufferIndex();
 
 	// バリアで書き込み可能に変更
-	ChangeBarrier();
+	ChangeBarrier ();
 
 	// 画面をクリア
 	ClearWindow();
 
 	// ビューポート矩形の設定
 	viewport = D3D12_VIEWPORT(0.0f, 0.0f, (float)kClientWidth, (float)kClientHeight, 0.0f, 1.0f);
-	commandList->RSSetViewports(1, &viewport);
+	commandList_->RSSetViewports(1, &viewport);
 
 	// シザリング矩形の設定
 	scissorRect = D3D12_RECT(0, 0, kClientWidth, kClientHeight);
-	commandList->RSSetScissorRects(1, &scissorRect);
+	commandList_->RSSetScissorRects(1, &scissorRect);
 }
 
 
@@ -101,21 +101,20 @@ void DirectXCommon::EndDraw()
 
 	backBufferIndex = swapChain_->GetSwapChain()->GetCurrentBackBufferIndex();
 
+	// バリアで描画が完了したことを示す
 	barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
 	barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_PRESENT;
-
-	// TransitionBarirrerを張る
-	commandList->ResourceBarrier(1, &barrier);
+	commandList_->ResourceBarrier(1, &barrier);
 
 	// コマンドリストの内容を確定させる。すべてのコマンドを積んでからCloseすること
-	hr = commandList->Close();
+	hr = commandList_->Close();
 	assert(SUCCEEDED(hr));
 
 	//GPUにコマンドリストの実行を行わせる
-	ID3D12CommandList* commandLists[] = { commandList.Get() };
+	ComPtr<ID3D12CommandList> commandLists[] = { commandList_.Get() };
 
 	// GPUに対して積まれたコマンドを実行
-	commandQueue->ExecuteCommandLists(1, commandLists);
+	commandQueue->ExecuteCommandLists(1, commandLists->GetAddressOf());
 
 	//GPUとOSに画面の交換を行うよう通知する
 	swapChain_->GetSwapChain()->Present(1, 0); // VSyncを無効にする 元(1, 0)
@@ -139,7 +138,7 @@ void DirectXCommon::EndDraw()
 	hr = commandAllocator->Reset();
 	assert(SUCCEEDED(hr));
 
-	hr = commandList->Reset(commandAllocator.Get(), nullptr);
+	hr = commandList_->Reset(commandAllocator.Get(), nullptr);
 	assert(SUCCEEDED(hr));
 
 	// FPSカウント
@@ -238,7 +237,7 @@ void DirectXCommon::CreateCommands()
 	assert(SUCCEEDED(hr));
 
 	//コマンドリストを生成する
-	hr = device_->GetDevice()->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, commandAllocator.Get(), nullptr, IID_PPV_ARGS(&commandList));
+	hr = device_->GetDevice()->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, commandAllocator.Get(), nullptr, IID_PPV_ARGS(&commandList_));
 	//コマンドリストの生成がうまくいかなかったので起動できない
 	assert(SUCCEEDED(hr));
 
@@ -305,7 +304,26 @@ void DirectXCommon::ChangeBarrier()
 	//遷移後のResourceState
 	barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET;
 	// TransitionBarrierを張る
-	commandList->ResourceBarrier(1, &barrier);
+	commandList_->ResourceBarrier(1, &barrier);
+}
+
+
+/// -------------------------------------------------------------
+///				　リソース遷移の管理する処理
+/// -------------------------------------------------------------
+void DirectXCommon::TransitionResource(ID3D12Resource* resource, D3D12_RESOURCE_STATES stateBefore, D3D12_RESOURCE_STATES stateAfter)
+{
+	if (stateBefore != stateAfter)
+	{
+		D3D12_RESOURCE_BARRIER barrier = {};
+		barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+		barrier.Transition.pResource = resource;
+		barrier.Transition.StateBefore = stateBefore;
+		barrier.Transition.StateAfter = stateAfter;
+		barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+
+		commandList_->ResourceBarrier(1, &barrier);
+	}
 }
 
 
@@ -322,14 +340,14 @@ void DirectXCommon::ClearWindow()
 	//描画先のRTVとDSVを設定する
 	D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle = descriptor->GetDSVDescriptorHeap()->GetCPUDescriptorHandleForHeapStart();
 
-	commandList->OMSetRenderTargets(1, &rtvHandles[backBufferIndex], false, &dsvHandle);
+	commandList_->OMSetRenderTargets(1, &rtvHandles[backBufferIndex], false, &dsvHandle);
 
 	//指定した色で画面全体をクリアする
 	float clearColor[] = { 0.0f, 0.0f, 0.0f, 1.0f };
-	commandList->ClearRenderTargetView(rtvHandles[backBufferIndex], clearColor, 0, nullptr);
+	commandList_->ClearRenderTargetView(rtvHandles[backBufferIndex], clearColor, 0, nullptr);
 
 	//指定した深度で画面全体をクリアする
-	commandList->ClearDepthStencilView(dsvHandle, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
+	commandList_->ClearDepthStencilView(dsvHandle, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
 }
 
 
@@ -341,14 +359,14 @@ void DirectXCommon::WaitCommand()
 	HRESULT hr{};
 
 	// コマンドリストの内容を確定させる。すべてのコマンドを積んでからCloseすること
-	hr = commandList->Close();
+	hr = commandList_->Close();
 	assert(SUCCEEDED(hr));
 
 	//GPUにコマンドリストの実行を行わせる
-	ID3D12CommandList* commandLists[] = { commandList.Get() };
+	ComPtr<ID3D12CommandList> commandLists[] = { commandList_.Get() };
 
 	// GPUに対して積まれたコマンドを実行
-	commandQueue->ExecuteCommandLists(1, commandLists);
+	commandQueue->ExecuteCommandLists(1, commandLists->GetAddressOf());
 
 	// Fenceの値を更新
 	fenceValue++;
@@ -369,6 +387,6 @@ void DirectXCommon::WaitCommand()
 	hr = commandAllocator->Reset();
 	assert(SUCCEEDED(hr));
 
-	hr = commandList->Reset(commandAllocator.Get(), nullptr);
+	hr = commandList_->Reset(commandAllocator.Get(), nullptr);
 	assert(SUCCEEDED(hr));
 }

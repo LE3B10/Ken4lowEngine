@@ -39,11 +39,15 @@ public: /// ---------- メンバ関数 ---------- ///
 	// 終了処理
 	void Finalize();
 
+	// リソース遷移の管理
+	void TransitionResource(ID3D12Resource* resource, D3D12_RESOURCE_STATES stateBefore, D3D12_RESOURCE_STATES stateAfter);
+
 public: /// ---------- ゲッター ---------- ///
 
 	ID3D12Device* GetDevice() const { return device_->GetDevice(); }
-	ID3D12GraphicsCommandList* GetCommandList() const { return commandList.Get(); }
+	ID3D12GraphicsCommandList* GetCommandList() const { return commandList_.Get(); }
 	DX12Descriptor* GetDescriptorHeap() const { return descriptor.get(); }
+	DX12SwapChain* GetSwapChain() { return swapChain_.get(); }
 	IDxcUtils* GetIDxcUtils() const { return dxcUtils.Get(); }
 	IDxcCompiler3* GetIDxcCompiler() const { return dxcCompiler.Get(); }
 	IDxcIncludeHandler* GetIncludeHandler() const { return includeHandler.Get(); }
@@ -72,7 +76,7 @@ private: /// ---------- メンバ関数 ---------- ///
 
 	// バリアで書き込み可能に変更
 	void ChangeBarrier();
-
+	
 	// 画面全体をクリア
 	void ClearWindow();
 
@@ -86,7 +90,7 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	ComPtr <ID3D12CommandQueue> commandQueue;
 	ComPtr<ID3D12CommandAllocator> commandAllocator;
-	ComPtr<ID3D12GraphicsCommandList> commandList;
+	ComPtr<ID3D12GraphicsCommandList> commandList_;
 
 	ComPtr <IDxcUtils> dxcUtils;
 	ComPtr<IDxcCompiler3> dxcCompiler;
@@ -118,4 +122,4 @@ private: /// ---------- メンバ変数 ---------- ///
 	// コピー禁止
 	DirectXCommon(const DirectXCommon&) = delete;
 	const DirectXCommon& operator=(const DirectXCommon&) = delete;
-};
+	};

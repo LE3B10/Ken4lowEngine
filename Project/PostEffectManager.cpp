@@ -8,6 +8,7 @@
 #include "Camera.h"
 
 #include <cassert>
+#include <d3dx12.h>
 
 
 
@@ -23,90 +24,104 @@ void PostEffectManager::Initialieze(DirectXCommon* dxCommon)
 {
 	dxCommon_ = dxCommon;
 
-	// レンダーテクスチャの初期化処理
-	InitializeRenderTexture();
+	// レンダーテクスチャの初期化
+	CreateRenderTextureResource(sceneRenderTarget, WinApp::kClientWidth, WinApp::kClientHeight, DXGI_FORMAT_R8G8B8A8_UNORM, kRenderTextureClearColor_);
 
-	// 深度バッファのSRVを作成
-	dsvSRVIndex = SRVManager::GetInstance()->Allocate();
-	SRVManager::GetInstance()->CreateSRVForDepthBuffer(dsvSRVIndex, dxCommon_->GetDescriptorHeap()->GetDepthStencilBuffer());
+	// RTVの生成
+	InitializeRenderTarget();
 
-	// 
-	CreatePSO("NoEffect");
+	// DSVのSRVを生成
+	dsvSrvIndex = SRVManager::GetInstance()->Allocate();
+	SRVManager::GetInstance()->CreateSRVForTexture2D(dsvSrvIndex, sceneRenderTarget.Get(), DXGI_FORMAT_R8G8B8A8_UNORM, 1);
+
+	// パイプラインを生成
+	CreatePipelineState("NoEffect");
+
+
+
+}
+
+void PostEffectManager::RenderPostEffect()
+{
+	// ここでオフスクリーンレンダリング処理を行う
+	RenderPostEffectInternal();
+
+	ID3D12GraphicsCommandList* commandList = dxCommon_->GetCommandList();
+	SRVManager::GetInstance()->PreDraw();
+
+	// 描画用コマンドを発行・ポストエフェクトの適用
+	commandList->SetPipelineState(graphicsPipelineStates_["NoEffect"].Get());
+	commandList->SetGraphicsRootSignature(rootSignatures_["NoEffect"].Get());
+	commandList->IASetPrimitiveTopology(D3D10_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+	// 描画のためのバッファやリソースを設定
+	SRVManager::GetInstance()->SetGraphicsRootDescriptorTable(0, rtvSrvIndex);  // RootParameterIndexが0の場合
+	SRVManager::GetInstance()->SetGraphicsRootDescriptorTable(4, dsvSrvIndex);  // RootParameterIndexが0の場合
+
+	// 描画を発行
+	commandList->DrawInstanced(3, 1, 0, 0);
 }
 
 
-
-void PostEffectManager::BeginDraw()
+void PostEffectManager::InitializeRenderTarget()
 {
-	D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle = dxCommon_->GetDescriptorHeap()->GetDSVDescriptorHeap()->GetCPUDescriptorHandleForHeapStart();
+	// RTVの設定
+	D3D12_RENDER_TARGET_VIEW_DESC rtvDesc{};
+	rtvDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;    // 出力結果をSRGBに変換して書き込む
+	rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D; // 2Dテクスチャとして書き込む
 
-	// 描画先のRTVを設定
-	dxCommon_->GetCommandList()->OMSetRenderTargets(1, &renderTextureRTVHandle_, false, &dsvHandle);
+	// ディスクリプタの先頭を取得
+	D3D12_CPU_DESCRIPTOR_HANDLE rtvStartHandle = dxCommon_->GetDescriptorHeap()->GetRTVDescriptorHeap()->GetCPUDescriptorHandleForHeapStart();
 
-	float clearColor[] = { kRenderTextureClearColor_.x, kRenderTextureClearColor_.y, kRenderTextureClearColor_.z, kRenderTextureClearColor_.w };
+	// ディスクリプタインクリメントサイズを取得（キャッシュする）
+	UINT rtvDescriptorSize = dxCommon_->GetDevice()->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
 
-	// 描画の色をクリア
-	dxCommon_->GetCommandList()->ClearRenderTargetView(renderTextureRTVHandle_, clearColor, 0, nullptr);
-}
+	// RTVを作成するリソースのリスト
+	ID3D12Resource* swapChainResources[] = { dxCommon_->GetSwapChain()->GetSwapChainResources(0), dxCommon_->GetSwapChain()->GetSwapChainResources(1) };
 
+	// RTVハンドルの配列
+	D3D12_CPU_DESCRIPTOR_HANDLE rtvHandles[2];
 
-
-void PostEffectManager::Draw(const std::string& effectName)
-{
-	// ルートシグネチャの設定
-	dxCommon_->GetCommandList()->SetGraphicsRootSignature(rootSignatures_[effectName].Get());
-
-	// パイプラインの設定
-	dxCommon_->GetCommandList()->SetPipelineState(graphicsPipelineStates_[effectName].Get());
-
-	// トポロジーの設定
-	dxCommon_->GetCommandList()->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-
-	SRVManager::GetInstance()->SetGraphicsRootDescriptorTable(0, rtvSRVIndex);
-	SRVManager::GetInstance()->SetGraphicsRootDescriptorTable(4, dsvSRVIndex);
-
-	// 描画設定
-	dxCommon_->GetCommandList()->DrawInstanced(3, 1, 0, 0);
-}
-
-void PostEffectManager::SetBarrier(D3D12_RESOURCE_STATES stateBefore, D3D12_RESOURCE_STATES stateAfter)
-{
-	D3D12_RESOURCE_BARRIER barrier{};
-	barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-	barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
-	barrier.Transition.pResource = renderTextureResource_.Get();
-	barrier.Transition.StateBefore = stateBefore;
-	barrier.Transition.StateAfter = stateAfter;
-
-	dxCommon_->GetCommandList()->ResourceBarrier(1, &barrier);
-}
-
-
-
-void PostEffectManager::InitializeRenderTexture()
-{
-	// レンダーテクスチャリソースの生成
-	CreateRenderTextureResource(renderTextureResource_, WinApp::kClientWidth, WinApp::kClientHeight, DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, kRenderTextureClearColor_);
-
-	if (!renderTextureResource_)
+	// ループでRTVを作成
+	for (int i = 0; i < 2; ++i)
 	{
-		OutputDebugStringA("renderTextureResource_ is nullptr after creation!\n");
-		assert(false);
+		rtvHandles[i] = rtvStartHandle;
+		rtvHandles[i].ptr += i * rtvDescriptorSize; // インクリメントサイズ分ずらす
+		dxCommon_->GetDevice()->CreateRenderTargetView(swapChainResources[i], &rtvDesc, rtvHandles[i]);
 	}
 
-	rtvSRVIndex = SRVManager::GetInstance()->Allocate();
-
-	// RTVハンドルの取得
-	renderTextureRTVHandle_ = dxCommon_->GetDescriptorHeap()->GetRTVHandles(rtvSRVIndex);
-
-	// RTVの作成
-	dxCommon_->GetDescriptorHeap()->CreateRTVForTexture2D(dxCommon_->GetDevice(), renderTextureResource_.Get(), renderTextureRTVHandle_);
-
-	// SRVの作成
-	SRVManager::GetInstance()->CreateSRVForTexture2D(rtvSRVIndex, renderTextureResource_.Get(), DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, 1);
 }
 
+void PostEffectManager::RenderPostEffectInternal()
+{
+	// 描画開始前にリソース状態を変更（例：シーンの描画前のリソース遷移）
+	dxCommon_->TransitionResource(sceneRenderTarget.Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 
+	// ここでポストエフェクトの描画処理...
+
+	// 描画終了後の状態遷移（例：レンダーターゲットからプレゼント状態に戻す）
+	dxCommon_->TransitionResource(sceneRenderTarget.Get(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_RENDER_TARGET);
+}
+
+void PostEffectManager::TransitionResource(ID3D12Resource* resource, D3D12_RESOURCE_STATES state)
+{
+	// 現在の状態と遷移先の状態が異なる場合にのみ状態遷移を行う
+	if (sceneRenderTargetState_ != state)
+	{
+		D3D12_RESOURCE_BARRIER barrier = {};
+		barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+		barrier.Transition.pResource = resource;
+		barrier.Transition.StateBefore = sceneRenderTargetState_;
+		barrier.Transition.StateAfter = state;
+		barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+
+		// コマンドリストにバリアを追加
+		dxCommon_->GetCommandList()->ResourceBarrier(1, &barrier);
+
+		// 現在の状態を更新
+		sceneRenderTargetState_ = state;
+	}
+}
 
 void PostEffectManager::CreateRenderTextureResource(ComPtr<ID3D12Resource>& resource, uint32_t width, uint32_t height, DXGI_FORMAT format, const Vector4& clearColor)
 {
@@ -230,7 +245,7 @@ void PostEffectManager::CreateRootSignature(const std::string& effectName)
 }
 
 
-void PostEffectManager::CreatePSO(const std::string& effectName)
+void PostEffectManager::CreatePipelineState(const std::string& effectName)
 {
 	HRESULT hr{};
 

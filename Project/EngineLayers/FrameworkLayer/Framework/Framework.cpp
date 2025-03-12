@@ -11,6 +11,7 @@
 #include <Wireframe.h>
 #include <AnimationModelManager.h>
 #include <SkyBoxManager.h>
+#include <PostEffectManager.h>
 
 
 /// -------------------------------------------------------------
@@ -52,13 +53,13 @@ void Framework::Initialize()
 	// DirectX共通クラスの生成
 	dxCommon_ = DirectXCommon::GetInstance();
 	dxCommon_->Initialize(winApp_, WinApp::kClientWidth, WinApp::kClientHeight);
-	
+
 	// SRVマネージャーの生成
 	SRVManager::GetInstance()->Initialize(dxCommon_);
 
 	// テクスチャマネージャーの生成
 	TextureManager::GetInstance()->Initialize(dxCommon_);
-	
+
 	// スプライトマネージャの生成
 	SpriteManager::GetInstance()->Initialize(dxCommon_);
 
@@ -75,7 +76,7 @@ void Framework::Initialize()
 	defaultCamera_ = std::make_unique<Camera>();
 	defaultCamera_->SetRotate({ 0.3f,0.0f,0.0f });
 	defaultCamera_->SetTranslate({ 0.0f,15.0f,-50.0f });
-	
+
 	// デフォルトカメラの設定
 	Object3DCommon::GetInstance()->SetDefaultCamera(defaultCamera_.get());
 
@@ -84,7 +85,7 @@ void Framework::Initialize()
 
 	// ワイヤーフレームのカメラ設定
 	Wireframe::GetInstance()->SetCamera(defaultCamera_.get());
-	
+
 	// ワイヤーフレームの生成
 	Wireframe::GetInstance()->Initialize(dxCommon_);
 
@@ -93,6 +94,9 @@ void Framework::Initialize()
 
 	// スカイボックスの生成
 	SkyBoxManager::GetInstance()->Initialize(dxCommon_);
+
+	// ポストエフェクトの生成
+	PostEffectManager::GetInstance()->Initialieze(dxCommon_);
 
 #pragma endregion -------------------------------------------
 

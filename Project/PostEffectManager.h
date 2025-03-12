@@ -26,22 +26,19 @@ public: /// ---------- メンバ関数 ---------- ///
 	// 初期化処理
 	void Initialieze(DirectXCommon* dxCommon);
 
-	// 描画前処理
-	void BeginDraw();
-
-	// 描画処理
-	void Draw(const std::string& effectName);
-
-public: /// ---------- セッター ---------- ///
-
-	// バリア処理
-	void SetBarrier(D3D12_RESOURCE_STATES stateBefore, D3D12_RESOURCE_STATES stateAfter);
-
+	// オフスクリーンにシーンを描画する処理
+	void RenderPostEffect();
 
 private: /// ---------- メンバ関数 ---------- ///
 
 	// レンダーテクスチャの初期化処理
-	void InitializeRenderTexture();
+	void InitializeRenderTarget();
+
+	// 描画処理内でリソース遷移を管理
+	void RenderPostEffectInternal();
+
+	// リソース遷移を行う処理
+	void TransitionResource(ID3D12Resource* resource, D3D12_RESOURCE_STATES state);
 
 	// レンダーテクスチャリソースの生成
 	void CreateRenderTextureResource(ComPtr<ID3D12Resource>& resource, uint32_t width, uint32_t height, DXGI_FORMAT format, const Vector4& clearColor);
@@ -50,20 +47,21 @@ private: /// ---------- メンバ関数 ---------- ///
 	void CreateRootSignature(const std::string& effectName);
 
 	// PSOを生成
-	void CreatePSO(const std::string& effectName);
+	void CreatePipelineState(const std::string& effectName);
 
 private: /// ---------- メンバ変数 ---------- ///
 
 	DirectXCommon* dxCommon_ = nullptr;
 
-	// レンダーテクスチャリソース
-	ComPtr<ID3D12Resource> renderTextureResource_;
+	// レンダーテクスチャのクリアカラー
+	const Vector4 kRenderTextureClearColor_ = { 0.0f, 0.0f, 1.0f, 1.0f }; // 分かりやすいように一旦赤色にする
+	
+	// リソースの状態を追跡する変数
+	D3D12_RESOURCE_STATES sceneRenderTargetState_ = D3D12_RESOURCE_STATE_COMMON; // 初期状態を適切に設定
 
-	// レンダーテクスチャのRTVハンドル
 	D3D12_CPU_DESCRIPTOR_HANDLE renderTextureRTVHandle_;
 
-	// レンダーテクスチャのクリアカラー
-	const Vector4 kRenderTextureClearColor_ = { 0.0f, 0.0f, 0.0f, 1.0f }; // 分かりやすいように一旦赤色にする
+	ComPtr <ID3D12Resource> sceneRenderTarget;
 
 	ComPtr <ID3DBlob> signatureBlob_;
 	ComPtr <ID3DBlob> errorBlob_;
@@ -74,9 +72,8 @@ private: /// ---------- メンバ変数 ---------- ///
 	// パイプラインスレート
 	std::unordered_map<std::string, ComPtr<ID3D12PipelineState>> graphicsPipelineStates_;
 
-	// シェーダーリソースビューのインデックス
-	uint32_t rtvSRVIndex = 0;
-	uint32_t dsvSRVIndex = 0;
+	uint32_t rtvSrvIndex = 0;
+	uint32_t dsvSrvIndex = 0;
 
 private: /// ---------- コピー禁止 ---------- ///
 
