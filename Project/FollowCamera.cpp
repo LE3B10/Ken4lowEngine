@@ -36,10 +36,18 @@ void FollowCamera::Update()
 	if (input_->PushKey(DIK_UP)) { targetPitch -= rotationSpeed_ * speedMultiplier; }
 	if (input_->PushKey(DIK_DOWN)) { targetPitch += rotationSpeed_ * speedMultiplier; }
 
+	// **ゲームパッドの右スティックでカメラ操作**
+	Vector2 rightStick = input_->GetRightStick();
+	if (!input_->RStickInDeadZone())
+	{
+		targetYaw -= rightStick.x * rotationSpeed_ * 2.0f;  // 横方向
+		targetPitch -= rightStick.y * rotationSpeed_ * 2.0f; // 縦方向
+	}
+
 	targetPitch = std::clamp(targetPitch, minPitch_, maxPitch_);
 
-	// **Rキーでカメラの向きをプレイヤーの向きにリセット**
-	if (input_->PushKey(DIK_R) && player_)
+	// **Rキー or ゲームパッドのRスティック押し込みでカメラリセット**
+	if ((input_->PushKey(DIK_R) || input_->TriggerButton(XButtons.R_Thumbstick)) && player_)
 	{
 		targetYaw = player_->GetYaw();
 		targetPitch = 0.3f;
@@ -97,10 +105,12 @@ Vector3 FollowCamera::UpdateOffset()
 	// **プレイヤーがダッシュ中か判定**
 	bool isDashing = (player_ && player_->IsDashing());
 
-	// **ダッシュ中はカメラを遠ざける**
-	Vector3 dashOffset = { 0.0f, 12.0f, -40.0f }; // 通常より少し後ろ＆上
+	Vector3 dashOffset = { 0.0f, 12.0f, -40.0f };
 	Vector3 normalOffset = { 0.0f, 10.0f, -35.0f };
 
-	// **カメラのオフセットを補間**
-	return Vector3::Lerp(offset_, isDashing ? dashOffset : normalOffset, 0.1f);
+	// **ゲームパッドのLトリガーを押している間はカメラを近づける**
+	Vector3 closeOffset = { 0.0f, 8.0f, -25.0f };
+	bool isCloseView = input_->PushButton(XButtons.L_Trigger);
+
+	return Vector3::Lerp(offset_, isCloseView ? closeOffset : (isDashing ? dashOffset : normalOffset), 0.1f);
 }

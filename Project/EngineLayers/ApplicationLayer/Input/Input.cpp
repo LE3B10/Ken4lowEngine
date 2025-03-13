@@ -36,6 +36,10 @@ XButtonIDs::XButtonIDs()
 
 	Start = 12; // 'START' ボタン
 	Back = 13;  // 'BACK' ボタン
+
+	// Triggerボタン
+	L_Trigger = 14;
+	R_Trigger = 15;
 }
 
 
@@ -144,12 +148,18 @@ void Input::Update()
 	// ゲームパッドの状態を取得
 	state_ = GetGamePadState();
 
-	// ゲームパッドのボタンの状態を更新
-	for (int i = 0; i < GAMEPAD_BUTTON_NUM; i++)
+	// ボタンの状態更新
+	for (int i = 0; i < 14; i++) // 既存のボタン分
 	{
 		buttonStates_[i] = (state_.Gamepad.wButtons & XINPUT_Buttons[i]) == XINPUT_Buttons[i];
-		buttonsTriger_[i] = !prevButtonStates_[i] && buttonStates_[i]; // トリガー判定
+		buttonsTriger_[i] = !prevButtonStates_[i] && buttonStates_[i];
 	}
+
+	// トリガーの状態をボタンと同じように扱う
+	buttonStates_[XButtons.L_Trigger] = state_.Gamepad.bLeftTrigger > XINPUT_GAMEPAD_TRIGGER_THRESHOLD;
+	buttonStates_[XButtons.R_Trigger] = state_.Gamepad.bRightTrigger > XINPUT_GAMEPAD_TRIGGER_THRESHOLD;
+	buttonsTriger_[XButtons.L_Trigger] = !prevButtonStates_[XButtons.L_Trigger] && buttonStates_[XButtons.L_Trigger];
+	buttonsTriger_[XButtons.R_Trigger] = !prevButtonStates_[XButtons.R_Trigger] && buttonStates_[XButtons.R_Trigger];
 
 	// **ここで前回の状態を更新**
 	memcpy(prevButtonStates_, buttonStates_, sizeof(prevButtonStates_));
@@ -303,12 +313,15 @@ bool Input::ReleaseButton(int button) const
 /// -------------------------------------------------------------
 bool Input::PushButton(int button) const
 {
-	if (state_.Gamepad.wButtons & XINPUT_Buttons[button])
+	if (button == XButtons.L_Trigger)
 	{
-		return true;
+		return state_.Gamepad.bLeftTrigger > XINPUT_GAMEPAD_TRIGGER_THRESHOLD;
 	}
-
-	return false;
+	if (button == XButtons.R_Trigger)
+	{
+		return state_.Gamepad.bRightTrigger > XINPUT_GAMEPAD_TRIGGER_THRESHOLD;
+	}
+	return buttonStates_[button];
 }
 
 
