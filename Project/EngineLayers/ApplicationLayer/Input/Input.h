@@ -49,6 +49,9 @@ struct XButtonIDs
 
 	int Start; // 'START' ボタン
 	int Back;  // 'BACK' ボタン
+
+	// Triggerボタン
+	int L_Trigger, R_Trigger;
 };
 
 /// -------------------------------------------------------------
@@ -238,7 +241,7 @@ private: /// ---------- マウスのメンバ変数 ---------- ///
 private: /// ---------- ゲームパッドのメンバ変数 ---------- ///
 
 	XINPUT_STATE state_;						// ゲームパッドの状態
-	static const int GAMEPAD_BUTTON_NUM = 14;	// ゲームパッドのボタンの数
+	static const int GAMEPAD_BUTTON_NUM = 16;	// ゲームパッドのボタンの数
 	bool buttonStates_[GAMEPAD_BUTTON_NUM];		// ゲームパッドのボタンの状態
 	bool prevButtonStates_[GAMEPAD_BUTTON_NUM]; // 前フレームのゲームパッドのボタンの状態
 	bool buttonsTriger_[GAMEPAD_BUTTON_NUM];	// ゲームパッドのトリガーの状態

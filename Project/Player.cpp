@@ -104,13 +104,23 @@ void Player::Update()
 	if (hammer_) { hammer_->Update(); }
 
 	// 攻撃キー（例えばスペースキー）を押したら攻撃を開始
-	if (input_->TriggerKey(DIK_F) && behavior_ == Behavior::kRoot) { behaviorRequest_ = Behavior::kAttack; }
+	// 攻撃キーを押したら攻撃開始（ゲームパッド対応）
+	if ((input_->TriggerKey(DIK_F) || input_->TriggerButton(XButtons.X)) && behavior_ == Behavior::kRoot)
+	{
+		behaviorRequest_ = Behavior::kAttack;
+	}
 
-	// ダッシュキー（例えば Shift キー）を押したらダッシュを開始
-	if (input_->PushKey(DIK_LSHIFT) && behavior_ == Behavior::kRoot) { behaviorRequest_ = Behavior::kDash; }
-
-	// ジャンプキーを押したらジャンプを開始
-	if (input_->PushKey(DIK_SPACE) && behavior_ == Behavior::kRoot) { behaviorRequest_ = Behavior::kJump; }
+	// ジャンプキーを押したらジャンプ開始（ゲームパッド対応）
+	if ((input_->PushKey(DIK_SPACE) || input_->PushButton(XButtons.A)) && behavior_ == Behavior::kRoot)
+	{
+		behaviorRequest_ = Behavior::kJump;
+	}
+	
+	// ダッシュキーを押したらダッシュ開始（ゲームパッド対応）
+	if ((input_->PushKey(DIK_LSHIFT) || input_->PushButton(XButtons.R_Shoulder)) && behavior_ == Behavior::kRoot)
+	{
+		behaviorRequest_ = Behavior::kDash;
+	}
 
 	// ビヘイビア遷移
 	if (behaviorRequest_)
@@ -266,6 +276,14 @@ void Player::Move()
 		if (input_->PushKey(DIK_S)) { move.z -= moveSpeed_; } // 後退
 		if (input_->PushKey(DIK_A)) { move.x -= moveSpeed_; } // 左移動
 		if (input_->PushKey(DIK_D)) { move.x += moveSpeed_; } // 右移動
+
+		// 入力処理（ゲームパッドの左スティック）
+		Vector2 leftStick = input_->GetLeftStick();
+		if (!input_->LStickInDeadZone()) // デッドゾーンでなければ移動
+		{ 
+			move.x += leftStick.x * moveSpeed_;
+			move.z += leftStick.y * moveSpeed_;
+		}
 
 		if (move.x != 0 || move.z != 0) // 移動している時だけ向きを変える
 		{
@@ -443,7 +461,7 @@ void Player::BehaviorAttackUpdate()
 		break;
 
 	case 2: // 硬直 & コンボ受付
-		if (input_->TriggerKey(DIK_F))
+		if (input_->TriggerKey(DIK_F) || input_->TriggerButton(XButtons.X))
 		{
 			workAttack_.comboNext = true;
 		}
