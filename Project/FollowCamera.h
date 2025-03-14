@@ -38,6 +38,8 @@ public: /// ---------- ゲッタ ---------- ///
 	// 合成行列データを取得
 	const Matrix4x4& GetViewProjectionMatrix() const { return camera_->GetViewProjectionMatrix(); }
 
+	Vector3 GetPosition()const { return camera_->GetTranslate(); }
+
 public: /// ---------- セッタ ---------- ///
 
 	// 追従対象の設定
@@ -63,9 +65,6 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	// 追従対象
 	const WorldTransform* target_ = nullptr;
-
-	// カメラの座標
-	Vector3 cameraPos_ = { 0.0f, 0.0f, 0.0f };
 
 	// 追従オフセット（カメラとターゲットの相対位置）
 	Vector3 offset_ = { 0.0f, 10.0f, -35.0f }; // 後ろ上から見下ろす位置

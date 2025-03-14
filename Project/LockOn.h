@@ -32,6 +32,8 @@ public: /// ---------- メンバ関数 ---------- ///
 	// 描画処理
 	void Draw();
 
+public: /// ---------- セッター ---------- ///
+
 	// プレイヤーとカメラをセットする関数
 	void SetPlayerAndCamera(const Player* player, FollowCamera* followCamera)
 	{
@@ -39,13 +41,16 @@ public: /// ---------- メンバ関数 ---------- ///
 		followCamera_ = followCamera;
 	}
 
-private: /// ---------- セッター ---------- ///
+private: /// ---------- メンバ関数---------- ///
 
 	// 検索する処理
 	void Serching(const std::list<std::unique_ptr<Enemy>>& enemies);
 
 	// 範囲外判定処理
 	bool OutOfRangeJudgement(const std::list<std::unique_ptr<Enemy>>& enemies);
+
+	// ワールド座標 -> スクリーン座標
+	Vector3 WorldToScreen(const Vector3& positionWorld);
 
 private: /// ---------- メンバ変数 ---------- ///
 
@@ -65,7 +70,7 @@ private: /// ---------- メンバ変数 ---------- ///
 	float minDistance_ = 10.0f;
 
 	// 最大距離
-	float maxDistance_ = 30.0f;
+	float maxDistance_ = 120.0f;
 
 	// 角度範囲
 	float angleRange_ = 20.0f;
