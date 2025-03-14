@@ -84,6 +84,7 @@ void GamePlayScene::Initialize()
 	// ロックオンの生成と初期化処理
 	lockOn_ = std::make_unique<LockOn>();
 	lockOn_->Initialize();
+	lockOn_->SetPlayerAndCamera(player_.get(), followCamera_.get());
 }
 
 

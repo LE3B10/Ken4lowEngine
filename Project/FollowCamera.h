@@ -1,10 +1,9 @@
 #pragma once
 #include <WorldTransform.h>
-
+#include <Camera.h>
 #include <memory>
 
 /// ---------- 前方宣言 ---------- ///
-class Camera;
 class Input;
 class Player;
 
@@ -29,6 +28,15 @@ public: /// ---------- ゲッタ ---------- ///
 
 	// カメラの取得
 	Camera* GetCamera() { return camera_; }
+
+	// ビュー行列データを取得
+	const Matrix4x4& GetViewMatrix() const { return camera_->GetViewMatrix(); }
+
+	// プロジェクション行列データを取得
+	const Matrix4x4& GetProjectionMatrix() const { return camera_->GetProjectionMatrix(); }
+
+	// 合成行列データを取得
+	const Matrix4x4& GetViewProjectionMatrix() const { return camera_->GetViewProjectionMatrix(); }
 
 public: /// ---------- セッタ ---------- ///
 
