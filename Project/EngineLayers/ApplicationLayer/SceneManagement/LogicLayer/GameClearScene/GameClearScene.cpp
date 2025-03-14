@@ -17,7 +17,7 @@ void GameClearScene::Initialize()
 
 void GameClearScene::Update()
 {
-	if (input_->TriggerKey(DIK_RETURN))
+	if (input_->TriggerKey(DIK_RETURN) || input_->TriggerButton(XButtons.A))
 	{
 		sceneManager_->ChangeScene("GameTitleScene"); // リトライ
 	}

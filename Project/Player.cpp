@@ -103,7 +103,6 @@ void Player::Update()
 	// ハンマーの更新
 	if (hammer_) { hammer_->Update(); }
 
-	// 攻撃キー（例えばスペースキー）を押したら攻撃を開始
 	// 攻撃キーを押したら攻撃開始（ゲームパッド対応）
 	if ((input_->TriggerKey(DIK_F) || input_->TriggerButton(XButtons.X)) && behavior_ == Behavior::kRoot)
 	{
@@ -111,13 +110,13 @@ void Player::Update()
 	}
 
 	// ジャンプキーを押したらジャンプ開始（ゲームパッド対応）
-	if ((input_->PushKey(DIK_SPACE) || input_->PushButton(XButtons.A)) && behavior_ == Behavior::kRoot)
+	if ((input_->PushKey(DIK_SPACE) || input_->TriggerButton(XButtons.A)) && behavior_ == Behavior::kRoot)
 	{
 		behaviorRequest_ = Behavior::kJump;
 	}
 	
 	// ダッシュキーを押したらダッシュ開始（ゲームパッド対応）
-	if ((input_->PushKey(DIK_LSHIFT) || input_->PushButton(XButtons.R_Shoulder)) && behavior_ == Behavior::kRoot)
+	if ((input_->PushKey(DIK_LSHIFT) || input_->PushButton(XButtons.L_Trigger)) && behavior_ == Behavior::kRoot)
 	{
 		behaviorRequest_ = Behavior::kDash;
 	}
@@ -384,7 +383,7 @@ void Player::BehaviorRootUpdate()
 	Move();
 
 	// 腕のアニメーションを更新（移動中かどうか判定）
-	bool isMoving = input_->PushKey(DIK_W) || input_->PushKey(DIK_S) || input_->PushKey(DIK_A) || input_->PushKey(DIK_D);
+	bool isMoving = input_->PushKey(DIK_W) || input_->PushKey(DIK_S) || input_->PushKey(DIK_A) || input_->PushKey(DIK_D) || !input_->LStickInDeadZone();
 	UpdateArmAnimation(isMoving);
 }
 

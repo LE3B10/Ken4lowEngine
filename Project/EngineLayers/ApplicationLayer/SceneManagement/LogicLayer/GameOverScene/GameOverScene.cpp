@@ -17,7 +17,7 @@ void GameOverScene::Initialize()
 
 void GameOverScene::Update()
 {
-	if (input_->TriggerKey(DIK_RETURN))
+	if (input_->TriggerKey(DIK_RETURN) || input_->TriggerButton(XButtons.A))
 	{
 		sceneManager_->ChangeScene("GameTitleScene"); // リトライ
 	}
