@@ -48,6 +48,13 @@ void LockOn::Update(const std::list<std::unique_ptr<Enemy>>& enemies)
 		isLockedOn_ = false;
 	}
 
+	// **ロックオン中に範囲外に出たら解除**
+	if (!targetExists || (isLockedOn_ && !OutOfRangeJudgement(enemies)))
+	{
+		target_ = nullptr;
+		isLockedOn_ = false;
+	}
+
 	// ロックオン継続
 	if (target_)
 	{
@@ -68,6 +75,16 @@ void LockOn::Draw()
 	{
 		lockOnMark_->Draw();
 	}
+}
+
+Vector3 LockOn::GetTargetPosition() const
+{
+	if (target_)
+	{
+		return target_->GetCenterPosition();
+	}
+
+	return Vector3();
 }
 
 void LockOn::Serching(const std::list<std::unique_ptr<Enemy>>& enemies)
@@ -128,8 +145,41 @@ bool LockOn::OutOfRangeJudgement(const std::list<std::unique_ptr<Enemy>>& enemie
 		return false;
 	}
 
+	// カメラの位置とビュー行列を取得
+	Vector3 cameraPosition = followCamera_->GetPosition();
+	Matrix4x4 viewMatrix = followCamera_->GetViewMatrix();
 
-	// 範囲内ならロックオン維持
+	// ロックオン対象のワールド座標を取得
+	Vector3 targetPosition = target_->GetCenterPosition();
+
+	// カメラとのユークリッド距離を計算
+	float distance = Vector3::Length(targetPosition - cameraPosition);
+
+	// **1. 最大距離を超えた場合**
+	if (distance > maxDistance_)
+	{
+		isLockedOn_ = false;
+		target_ = nullptr;
+		return false;
+	}
+
+	// **2. 視野角範囲外に出た場合**
+	// ワールド座標をビュー空間に変換
+	Vector3 positionView = Vector3::Transform(targetPosition, viewMatrix);
+
+	// 視野角の範囲内かチェック
+	float arcTangent = std::atan2(
+		std::sqrt(positionView.x * positionView.x + positionView.y * positionView.y),
+		positionView.z);
+
+	if (fabs(arcTangent) > angleRange_)
+	{
+		isLockedOn_ = false;
+		target_ = nullptr;
+		return false;
+	}
+
+	// **範囲内ならロックオン維持**
 	return true;
 }
 

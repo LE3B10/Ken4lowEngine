@@ -2,10 +2,13 @@
 #include <WorldTransform.h>
 #include <Camera.h>
 #include <memory>
+#include <numbers>
 
 /// ---------- 前方宣言 ---------- ///
 class Input;
 class Player;
+class LockOn;
+class Enemy;
 
 
 /// -------------------------------------------------------------
@@ -48,9 +51,20 @@ public: /// ---------- セッタ ---------- ///
 	// プレイヤー情報を取得
 	void SetPlayer(Player* player) { player_ = player; }
 
+	// ロックオンカメラを設定
+	void SetLockOn(LockOn* lockOn) { lockOn_ = lockOn; }
+
 private: /// ---------- メンバ関数 ---------- ///
 
 	Vector3 UpdateOffset();
+
+	void HandleCameraRotation();
+
+	Vector3 CalculateCameraPosition();
+
+	void ApplyCameraTransform(const Vector3& newCameraPos);
+
+	void LookAtLockOnTarget();
 
 private: /// ---------- メンバ変数 ---------- ///
 
@@ -62,6 +76,8 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	// プレイヤー
 	Player* player_ = nullptr;
+
+	LockOn* lockOn_ = nullptr;
 
 	// 追従対象
 	const WorldTransform* target_ = nullptr;

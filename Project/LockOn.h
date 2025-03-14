@@ -34,6 +34,17 @@ public: /// ---------- メンバ関数 ---------- ///
 
 public: /// ---------- セッター ---------- ///
 
+	// ロックオンを取得
+	bool GetIsLockOn() { return isLockedOn_; }
+
+	// ロックオン対象の座標を取得
+	Vector3 GetTargetPosition() const;
+
+	// ロックオン中かを取得
+	bool ExistTarget() const { return target_ ? true : false; }
+
+public: /// ---------- セッター ---------- ///
+
 	// プレイヤーとカメラをセットする関数
 	void SetPlayerAndCamera(const Player* player, FollowCamera* followCamera)
 	{
