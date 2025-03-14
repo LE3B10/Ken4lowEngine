@@ -4,6 +4,7 @@
 #include "Vector2.h"
 #include "Vector3.h"
 
+#include <cmath>
 #include <list>
 #include <memory>
 
@@ -11,7 +12,7 @@
 /// ---------- 前方宣言 ---------- ///
 class Player;
 class Enemy;
-class Camera;
+class FollowCamera;
 class Input;
 
 
@@ -32,10 +33,10 @@ public: /// ---------- メンバ関数 ---------- ///
 	void Draw();
 
 	// プレイヤーとカメラをセットする関数
-	void SetPlayerAndCamera(const Player* player, Camera* camera)
+	void SetPlayerAndCamera(const Player* player, FollowCamera* followCamera)
 	{
 		player_ = player;
-		camera_ = camera;
+		followCamera_ = followCamera;
 	}
 
 private: /// ---------- セッター ---------- ///
@@ -49,7 +50,7 @@ private: /// ---------- セッター ---------- ///
 private: /// ---------- メンバ変数 ---------- ///
 
 	const Player* player_ = nullptr;
-	Camera* camera_ = nullptr;
+	FollowCamera* followCamera_ = nullptr;
 
 	// ロックオンマーク用のスプライト
 	std::unique_ptr<Sprite> lockOnMark_;
