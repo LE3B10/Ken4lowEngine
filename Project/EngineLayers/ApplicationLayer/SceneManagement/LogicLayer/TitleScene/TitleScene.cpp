@@ -10,7 +10,7 @@ void TitleScene::Initialize()
 {
 	dxCommon_ = DirectXCommon::GetInstance();
 	textureManager = TextureManager::GetInstance();
-	input = Input::GetInstance();
+	input_ = Input::GetInstance();
 	wavLoader_ = std::make_unique<WavLoader>();
 
 	// テクスチャのパスをリストで管理
@@ -55,7 +55,7 @@ void TitleScene::Initialize()
 void TitleScene::Update()
 {
 	// 入力によるシーン切り替え
-	if (input->TriggerKey(DIK_RETURN)) // Enterキーが押されたら
+	if (input_->TriggerKey(DIK_RETURN) || input_->TriggerButton(XButtons.A)) // Enterキーが押されたら
 	{
 		if (sceneManager_)
 		{
