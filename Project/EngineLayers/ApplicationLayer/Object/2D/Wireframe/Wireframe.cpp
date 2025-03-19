@@ -200,6 +200,37 @@ void Wireframe::DrawTriangle(const Vector3& position1, const Vector3& position2,
 
 
 /// -------------------------------------------------------------
+///				　	      四角形を描画する処理
+/// -------------------------------------------------------------
+void Wireframe::DrawBox(const Vector3& position, const Vector3& size, const Vector4& color)
+{
+	// 頂点データの設定
+	boxData_->vertexData[boxVertexIndex_ + 0].position = Vector3(position.x, position.y, position.z);
+	boxData_->vertexData[boxVertexIndex_ + 1].position = Vector3(position.x + size.x, position.y, position.z);
+	boxData_->vertexData[boxVertexIndex_ + 2].position = Vector3(position.x + size.x, position.y + size.y, position.z);
+	boxData_->vertexData[boxVertexIndex_ + 3].position = Vector3(position.x, position.y + size.y, position.z);
+
+	// カラーデータの設定
+	boxData_->vertexData[boxVertexIndex_ + 0].color = color;
+	boxData_->vertexData[boxVertexIndex_ + 1].color = color;
+	boxData_->vertexData[boxVertexIndex_ + 2].color = color;
+	boxData_->vertexData[boxVertexIndex_ + 3].color = color;
+
+	// インデックスデータの設定
+	boxData_->indexData[boxIndex_] = boxVertexIndex_ + 0;
+	boxData_->indexData[boxIndex_ + 1] = boxVertexIndex_ + 1;
+	boxData_->indexData[boxIndex_ + 2] = boxVertexIndex_ + 2;
+	boxData_->indexData[boxIndex_ + 3] = boxVertexIndex_ + 0;
+	boxData_->indexData[boxIndex_ + 4] = boxVertexIndex_ + 2;
+	boxData_->indexData[boxIndex_ + 5] = boxVertexIndex_ + 3;
+
+	// インデックスと頂点インデックスの更新
+	boxIndex_ += kBoxIndexCount;
+	boxVertexIndex_ += kBoxVertexCount;
+}
+
+
+/// -------------------------------------------------------------
 ///				　	      AABBを描画する処理
 /// -------------------------------------------------------------
 void Wireframe::DrawAABB(const AABB& aabb, const Vector4& color)
@@ -1226,6 +1257,12 @@ void Wireframe::CreatePSO(D3D12_PRIMITIVE_TOPOLOGY_TYPE primitiveTopologyType, C
 		dxCommon_->GetIDxcUtils(), dxCommon_->GetIDxcCompiler(), dxCommon_->GetIncludeHandler());
 	assert(pixelShaderBlob != nullptr);
 
+	// DepthStencilStateの設定
+	D3D12_DEPTH_STENCIL_DESC depthStencilDesc{};
+	depthStencilDesc.DepthEnable = TRUE;                     // 深度テストを有効にする
+	depthStencilDesc.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ZERO; // 深度値の書き込みを無効化
+	depthStencilDesc.DepthFunc = D3D12_COMPARISON_FUNC_LESS_EQUAL; // 小さいか等しい場合に描画
+
 	// PSOの生成
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC graphicsPipelineStateDesc{};
 	graphicsPipelineStateDesc.pRootSignature = rootSignature.Get();
@@ -1245,6 +1282,10 @@ void Wireframe::CreatePSO(D3D12_PRIMITIVE_TOPOLOGY_TYPE primitiveTopologyType, C
 	// サンプルマスクとサンプル記述子の設定
 	graphicsPipelineStateDesc.SampleDesc.Count = 1;
 	graphicsPipelineStateDesc.SampleMask = D3D12_DEFAULT_SAMPLE_MASK;
+
+	// DepthStencilステートの設定
+	graphicsPipelineStateDesc.DepthStencilState = depthStencilDesc;
+	graphicsPipelineStateDesc.DSVFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
 
 	// パイプラインステートオブジェクトの生成
 	hr = dxCommon_->GetDevice()->CreateGraphicsPipelineState(&graphicsPipelineStateDesc, IID_PPV_ARGS(&pipelineState));
@@ -1300,7 +1341,7 @@ void Wireframe::CreateBoxVertexData(BoxData* boxData)
 	boxData->indexBufferView.Format = DXGI_FORMAT_R32_UINT;
 
 	// 頂点リソースをマップ
-	boxData->vertexBuffer->Map(0, nullptr, reinterpret_cast<void**>(&boxData->indexData));
+	boxData->indexBuffer->Map(0, nullptr, reinterpret_cast<void**>(&boxData->indexData));
 }
 
 
