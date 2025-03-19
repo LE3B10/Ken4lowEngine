@@ -11,7 +11,9 @@
 #include <d3dx12.h>
 
 
-
+/// -------------------------------------------------------------
+///				　	　シングルトンインスタンス
+/// -------------------------------------------------------------
 PostEffectManager* PostEffectManager::GetInstance()
 {
 	static PostEffectManager instance;
@@ -19,7 +21,9 @@ PostEffectManager* PostEffectManager::GetInstance()
 }
 
 
-
+/// -------------------------------------------------------------
+///				　			初期化処理
+/// -------------------------------------------------------------
 void PostEffectManager::Initialieze(DirectXCommon* dxCommon)
 {
 	dxCommon_ = dxCommon;
@@ -27,82 +31,23 @@ void PostEffectManager::Initialieze(DirectXCommon* dxCommon)
 	// レンダーテクスチャの初期化
 	CreateRenderTextureResource(sceneRenderTarget, WinApp::kClientWidth, WinApp::kClientHeight, DXGI_FORMAT_R8G8B8A8_UNORM, kRenderTextureClearColor_);
 
-	// RTVの生成
-	InitializeRenderTarget();
-
-	// DSVのSRVを生成
-	dsvSrvIndex = SRVManager::GetInstance()->Allocate();
-	SRVManager::GetInstance()->CreateSRVForTexture2D(dsvSrvIndex, sceneRenderTarget.Get(), DXGI_FORMAT_R8G8B8A8_UNORM, 1);
-
 	// パイプラインを生成
-	CreatePipelineState("NoEffect");
-
-
-
+	CreatePipelineState("NormalEffect");
 }
 
+
+/// -------------------------------------------------------------
+///				　			描画処理
+/// -------------------------------------------------------------
 void PostEffectManager::RenderPostEffect()
 {
-	// ここでオフスクリーンレンダリング処理を行う
-	RenderPostEffectInternal();
-
-	ID3D12GraphicsCommandList* commandList = dxCommon_->GetCommandList();
-	SRVManager::GetInstance()->PreDraw();
-
-	// 描画用コマンドを発行・ポストエフェクトの適用
-	commandList->SetPipelineState(graphicsPipelineStates_["NoEffect"].Get());
-	commandList->SetGraphicsRootSignature(rootSignatures_["NoEffect"].Get());
-	commandList->IASetPrimitiveTopology(D3D10_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-
-	// 描画のためのバッファやリソースを設定
-	SRVManager::GetInstance()->SetGraphicsRootDescriptorTable(0, rtvSrvIndex);  // RootParameterIndexが0の場合
-	SRVManager::GetInstance()->SetGraphicsRootDescriptorTable(4, dsvSrvIndex);  // RootParameterIndexが0の場合
-
-	// 描画を発行
-	commandList->DrawInstanced(3, 1, 0, 0);
-}
-
-
-void PostEffectManager::InitializeRenderTarget()
-{
-	// RTVの設定
-	D3D12_RENDER_TARGET_VIEW_DESC rtvDesc{};
-	rtvDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;    // 出力結果をSRGBに変換して書き込む
-	rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D; // 2Dテクスチャとして書き込む
-
-	// ディスクリプタの先頭を取得
-	D3D12_CPU_DESCRIPTOR_HANDLE rtvStartHandle = dxCommon_->GetDescriptorHeap()->GetRTVDescriptorHeap()->GetCPUDescriptorHandleForHeapStart();
-
-	// ディスクリプタインクリメントサイズを取得（キャッシュする）
-	UINT rtvDescriptorSize = dxCommon_->GetDevice()->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
-
-	// RTVを作成するリソースのリスト
-	ID3D12Resource* swapChainResources[] = { dxCommon_->GetSwapChain()->GetSwapChainResources(0), dxCommon_->GetSwapChain()->GetSwapChainResources(1) };
-
-	// RTVハンドルの配列
-	D3D12_CPU_DESCRIPTOR_HANDLE rtvHandles[2];
-
-	// ループでRTVを作成
-	for (int i = 0; i < 2; ++i)
-	{
-		rtvHandles[i] = rtvStartHandle;
-		rtvHandles[i].ptr += i * rtvDescriptorSize; // インクリメントサイズ分ずらす
-		dxCommon_->GetDevice()->CreateRenderTargetView(swapChainResources[i], &rtvDesc, rtvHandles[i]);
-	}
 
 }
 
-void PostEffectManager::RenderPostEffectInternal()
-{
-	// 描画開始前にリソース状態を変更（例：シーンの描画前のリソース遷移）
-	dxCommon_->TransitionResource(sceneRenderTarget.Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 
-	// ここでポストエフェクトの描画処理...
-
-	// 描画終了後の状態遷移（例：レンダーターゲットからプレゼント状態に戻す）
-	dxCommon_->TransitionResource(sceneRenderTarget.Get(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_RENDER_TARGET);
-}
-
+/// -------------------------------------------------------------
+///				　			バリア処理
+/// -------------------------------------------------------------
 void PostEffectManager::TransitionResource(ID3D12Resource* resource, D3D12_RESOURCE_STATES state)
 {
 	// 現在の状態と遷移先の状態が異なる場合にのみ状態遷移を行う
@@ -123,6 +68,10 @@ void PostEffectManager::TransitionResource(ID3D12Resource* resource, D3D12_RESOU
 	}
 }
 
+
+/// -------------------------------------------------------------
+///				　レンダーテクスチャリソースを生成
+/// -------------------------------------------------------------
 void PostEffectManager::CreateRenderTextureResource(ComPtr<ID3D12Resource>& resource, uint32_t width, uint32_t height, DXGI_FORMAT format, const Vector4& clearColor)
 {
 	// テクスチャの設定
@@ -164,6 +113,10 @@ void PostEffectManager::CreateRenderTextureResource(ComPtr<ID3D12Resource>& reso
 	}
 }
 
+
+/// -------------------------------------------------------------
+///				　	　ルートシグネチャの生成
+/// -------------------------------------------------------------
 void PostEffectManager::CreateRootSignature(const std::string& effectName)
 {
 	// RootSignatureの設定
@@ -198,7 +151,7 @@ void PostEffectManager::CreateRootSignature(const std::string& effectName)
 	descriptorRangeDepth[0].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
 
 	// ルートシグネチャの生成
-	D3D12_ROOT_PARAMETER rootParameters[5] = {};
+	D3D12_ROOT_PARAMETER rootParameters[3] = {};
 
 	// テクスチャの設定
 	rootParameters[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;      // ディスクリプタテーブル
@@ -211,21 +164,11 @@ void PostEffectManager::CreateRootSignature(const std::string& effectName)
 	rootParameters[1].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX; // バーテックスシェーダーで使用
 	rootParameters[1].Descriptor.ShaderRegister = 0;					 // レジスタ番号
 
-	// 定数バッファ (CBV)
-	rootParameters[2].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;     // 定数バッファビュー
-	rootParameters[2].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX; // バーテックスシェーダーで使用
-	rootParameters[2].Descriptor.ShaderRegister = 1;					 // レジスタ番号
-
-	// 定数バッファ (CBV)
-	rootParameters[3].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;     // 定数バッファビュー
-	rootParameters[3].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX; // バーテックスシェーダーで使用
-	rootParameters[3].Descriptor.ShaderRegister = 2;					 // レジスタ番号
-
 	// 深度バッファテクスチャ
-	rootParameters[4].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;      // ディスクリプタテーブル
-	rootParameters[4].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL; 	           // ピクセルシェーダーで使用
-	rootParameters[4].DescriptorTable.pDescriptorRanges = descriptorRangeDepth;             // ディスクリプタテーブルの設定
-	rootParameters[4].DescriptorTable.NumDescriptorRanges = _countof(descriptorRangeDepth); // ディスクリプタテーブルの数
+	rootParameters[2].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;      // ディスクリプタテーブル
+	rootParameters[2].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL; 	           // ピクセルシェーダーで使用
+	rootParameters[2].DescriptorTable.pDescriptorRanges = descriptorRangeDepth;             // ディスクリプタテーブルの設定
+	rootParameters[2].DescriptorTable.NumDescriptorRanges = _countof(descriptorRangeDepth); // ディスクリプタテーブルの数
 
 	// ルートシグネチャの設定
 	descriptionRootSignature.pParameters = rootParameters;
@@ -245,6 +188,9 @@ void PostEffectManager::CreateRootSignature(const std::string& effectName)
 }
 
 
+/// -------------------------------------------------------------
+///				　		パイプラインを生成
+/// -------------------------------------------------------------
 void PostEffectManager::CreatePipelineState(const std::string& effectName)
 {
 	HRESULT hr{};
