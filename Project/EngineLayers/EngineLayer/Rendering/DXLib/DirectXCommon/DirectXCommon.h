@@ -76,7 +76,7 @@ private: /// ---------- メンバ関数 ---------- ///
 
 	// バリアで書き込み可能に変更
 	void ChangeBarrier();
-	
+
 	// 画面全体をクリア
 	void ClearWindow();
 
@@ -112,8 +112,6 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	UINT backBufferIndex = 0;
 
-	const Vector4 kRenderTextureClearColor_ = { 0.0f, 0.0f, 0.0f, 1.0f }; // 黒で統一
-
 private: /// ---------- メンバ変数 ---------- ///
 
 	DirectXCommon() = default;
@@ -122,4 +120,4 @@ private: /// ---------- メンバ変数 ---------- ///
 	// コピー禁止
 	DirectXCommon(const DirectXCommon&) = delete;
 	const DirectXCommon& operator=(const DirectXCommon&) = delete;
-	};
+};

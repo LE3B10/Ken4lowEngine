@@ -26,16 +26,16 @@ public: /// ---------- メンバ関数 ---------- ///
 	// 初期化処理
 	void Initialieze(DirectXCommon* dxCommon);
 
-	// オフスクリーンにシーンを描画する処理
-	void RenderPostEffect();
+	// 描画開始処理
+	void BeginDraw();
+
+	// 描画終了処理
+	void EndDraw();
 
 private: /// ---------- メンバ関数 ---------- ///
 
 	// レンダーテクスチャの初期化処理
 	void InitializeRenderTarget();
-
-	// 描画処理内でリソース遷移を管理
-	void RenderPostEffectInternal();
 
 	// リソース遷移を行う処理
 	void TransitionResource(ID3D12Resource* resource, D3D12_RESOURCE_STATES state);

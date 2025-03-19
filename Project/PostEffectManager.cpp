@@ -29,19 +29,39 @@ void PostEffectManager::Initialieze(DirectXCommon* dxCommon)
 	dxCommon_ = dxCommon;
 
 	// レンダーテクスチャの初期化
-	CreateRenderTextureResource(sceneRenderTarget, WinApp::kClientWidth, WinApp::kClientHeight, DXGI_FORMAT_R8G8B8A8_UNORM, kRenderTextureClearColor_);
-
+	InitializeRenderTarget();
+	
 	// パイプラインを生成
 	CreatePipelineState("NormalEffect");
 }
 
 
 /// -------------------------------------------------------------
-///				　			描画処理
+///				　			描画開始処理
 /// -------------------------------------------------------------
-void PostEffectManager::RenderPostEffect()
+void PostEffectManager::BeginDraw()
 {
+	
+}
 
+
+/// -------------------------------------------------------------
+///				　			描画終了処理
+/// -------------------------------------------------------------
+void PostEffectManager::EndDraw()
+{
+	
+}
+
+
+/// -------------------------------------------------------------
+///				　	レンダーターゲットの初期化処理
+/// -------------------------------------------------------------
+void PostEffectManager::InitializeRenderTarget()
+{
+	CreateRenderTextureResource(sceneRenderTarget, WinApp::kClientWidth, WinApp::kClientHeight, DXGI_FORMAT_R8G8B8A8_UNORM, kRenderTextureClearColor_);
+	
+	// RTVとSRVの生成
 }
 
 

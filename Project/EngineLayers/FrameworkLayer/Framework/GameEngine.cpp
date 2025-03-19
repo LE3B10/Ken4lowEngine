@@ -93,6 +93,9 @@ void GameEngine::Draw()
 	// 描画開始処理
 	dxCommon_->BeginDraw();
 
+	// オフスクリーンレンダリング
+	PostEffectManager::GetInstance()->BeginDraw();
+
 	// SRVの処理
 	SRVManager::GetInstance()->PreDraw();
 
@@ -102,21 +105,18 @@ void GameEngine::Draw()
 	// ParticleMangerの描画処理
 	ParticleManager::GetInstance()->Draw();
 
-	// ワイヤフレームの描画処理
+	// ワイヤフレームの描画処理＆リセット
 	Wireframe::GetInstance()->Draw();
-
-	// ワイヤーフレームのリセット
 	Wireframe::GetInstance()->Reset();
 
-	/*-----ImGuiの描画-----*/
+	// ImGui描画開始
 	imguiManager_->Draw();
+
+	// オフスクリーン描画終了
+	PostEffectManager::GetInstance()->EndDraw();
 
 	// 描画終了処理
 	dxCommon_->EndDraw();
-
-	// ポストエフェクトの描画
-	PostEffectManager::GetInstance()->RenderPostEffect();
-
 }
 
 
