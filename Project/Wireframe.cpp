@@ -196,6 +196,37 @@ void Wireframe::DrawTriangle(const Vector3& position1, const Vector3& position2,
 
 
 /// -------------------------------------------------------------
+///				　	      四角形を描画する処理
+/// -------------------------------------------------------------
+void Wireframe::DrawBox(const Vector3& position, const Vector3& size, const Vector4& color)
+{
+	// 頂点データの設定
+	boxData_->vertexData[boxVertexIndex_ + 0].position = Vector3(position.x, position.y, position.z);
+	boxData_->vertexData[boxVertexIndex_ + 1].position = Vector3(position.x + size.x, position.y, position.z);
+	boxData_->vertexData[boxVertexIndex_ + 2].position = Vector3(position.x + size.x, position.y + size.y, position.z);
+	boxData_->vertexData[boxVertexIndex_ + 3].position = Vector3(position.x, position.y + size.y, position.z);
+
+	// カラーデータの設定
+	boxData_->vertexData[boxVertexIndex_ + 0].color = color;
+	boxData_->vertexData[boxVertexIndex_ + 1].color = color;
+	boxData_->vertexData[boxVertexIndex_ + 2].color = color;
+	boxData_->vertexData[boxVertexIndex_ + 3].color = color;
+
+	// インデックスデータの設定
+	boxData_->indexData[boxIndex_] = boxVertexIndex_ + 0;
+	boxData_->indexData[boxIndex_ + 1] = boxVertexIndex_ + 1;
+	boxData_->indexData[boxIndex_ + 2] = boxVertexIndex_ + 2;
+	boxData_->indexData[boxIndex_ + 3] = boxVertexIndex_ + 0;
+	boxData_->indexData[boxIndex_ + 4] = boxVertexIndex_ + 2;
+	boxData_->indexData[boxIndex_ + 5] = boxVertexIndex_ + 3;
+
+	// インデックスと頂点インデックスの更新
+	boxIndex_ += kBoxIndexCount;
+	boxVertexIndex_ += kBoxVertexCount;
+}
+
+
+/// -------------------------------------------------------------
 ///				　	      AABBを描画する処理
 /// -------------------------------------------------------------
 void Wireframe::DrawAABB(const AABB& aabb, const Vector4& color)
@@ -1296,7 +1327,7 @@ void Wireframe::CreateBoxVertexData(BoxData* boxData)
 	boxData->indexBufferView.Format = DXGI_FORMAT_R32_UINT;
 
 	// 頂点リソースをマップ
-	boxData->vertexBuffer->Map(0, nullptr, reinterpret_cast<void**>(&boxData->indexData));
+	boxData->indexBuffer->Map(0, nullptr, reinterpret_cast<void**>(&boxData->indexData));
 }
 
 
