@@ -249,7 +249,7 @@
     <FxCompile Include="Resources\Shaders\Sprite.VS.hlsl" />
     <FxCompile Include="Resources\Shaders\SkyBox.VS.hlsl" />
     <FxCompile Include="Resources\Shaders\SkyBox.PS.hlsl" />
-    <FxCompile Include="Resources\Shaders\NoEffect.PS.hlsl" />
+    <FxCompile Include="Resources\Shaders\NormalEffect.PS.hlsl" />
     <FxCompile Include="Resources\Shaders\FullScreen.VS.hlsl" />
   </ItemGroup>
   <ItemGroup>
