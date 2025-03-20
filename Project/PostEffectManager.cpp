@@ -28,11 +28,24 @@ void PostEffectManager::Initialieze(DirectXCommon* dxCommon)
 {
 	dxCommon_ = dxCommon;
 
-	// レンダーテクスチャの初期化
-	InitializeRenderTarget();
-	
 	// パイプラインを生成
 	CreatePipelineState("NormalEffect");
+
+	// レンダーテクスチャの生成
+	auto renderTextureResource = CreateRenderTextureResource(WinApp::kClientWidth, WinApp::kClientHeight, DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, kRenderTextureClearColor_);
+
+	// RTVの設定
+	D3D12_RENDER_TARGET_VIEW_DESC rtvDesc{};
+	rtvDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB; // 出力結果を SRGB に変換
+	rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
+
+	// RTVの生成
+	//rtvHandle_ = dxCommon_->GetDescriptorHeap()->GetFreeRTVHandle();
+	//dxCommon_->GetDevice()->CreateRenderTargetView(renderTextureResource.Get(), &rtvDesc, rtvHandle_);
+
+	// SRVの設定。FormatはResourceと同じにしておく
+	rtvSrvIndex_ = SRVManager::GetInstance()->Allocate();
+	SRVManager::GetInstance()->CreateSRVForTexture2D(rtvSrvIndex_, renderTextureResource.Get(), DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, 1);
 }
 
 
@@ -41,7 +54,13 @@ void PostEffectManager::Initialieze(DirectXCommon* dxCommon)
 /// -------------------------------------------------------------
 void PostEffectManager::BeginDraw()
 {
-	
+	auto commandList = dxCommon_->GetCommandList();
+
+	D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle = dxCommon_->GetDescriptorHeap()->GetDSVDescriptorHeap()->GetCPUDescriptorHandleForHeapStart();
+
+	// 描画先のRTVを設定
+	//commandList->OMSetRenderTargets(1, &rtvHandle_, false, &dsvHandle);
+
 }
 
 
@@ -50,49 +69,23 @@ void PostEffectManager::BeginDraw()
 /// -------------------------------------------------------------
 void PostEffectManager::EndDraw()
 {
-	
+
 }
 
 
 /// -------------------------------------------------------------
-///				　	レンダーターゲットの初期化処理
+///				　	ポストエフェクトの描画適用処理
 /// -------------------------------------------------------------
-void PostEffectManager::InitializeRenderTarget()
+void PostEffectManager::RenderPostEffect()
 {
-	CreateRenderTextureResource(sceneRenderTarget, WinApp::kClientWidth, WinApp::kClientHeight, DXGI_FORMAT_R8G8B8A8_UNORM, kRenderTextureClearColor_);
-	
-	// RTVとSRVの生成
-}
 
-
-/// -------------------------------------------------------------
-///				　			バリア処理
-/// -------------------------------------------------------------
-void PostEffectManager::TransitionResource(ID3D12Resource* resource, D3D12_RESOURCE_STATES state)
-{
-	// 現在の状態と遷移先の状態が異なる場合にのみ状態遷移を行う
-	if (sceneRenderTargetState_ != state)
-	{
-		D3D12_RESOURCE_BARRIER barrier = {};
-		barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-		barrier.Transition.pResource = resource;
-		barrier.Transition.StateBefore = sceneRenderTargetState_;
-		barrier.Transition.StateAfter = state;
-		barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
-
-		// コマンドリストにバリアを追加
-		dxCommon_->GetCommandList()->ResourceBarrier(1, &barrier);
-
-		// 現在の状態を更新
-		sceneRenderTargetState_ = state;
-	}
 }
 
 
 /// -------------------------------------------------------------
 ///				　レンダーテクスチャリソースを生成
 /// -------------------------------------------------------------
-void PostEffectManager::CreateRenderTextureResource(ComPtr<ID3D12Resource>& resource, uint32_t width, uint32_t height, DXGI_FORMAT format, const Vector4& clearColor)
+ComPtr<ID3D12Resource> PostEffectManager::CreateRenderTextureResource(uint32_t width, uint32_t height, DXGI_FORMAT format, const Vector4& clearColor)
 {
 	// テクスチャの設定
 	D3D12_RESOURCE_DESC resourceDesc{};
@@ -108,6 +101,10 @@ void PostEffectManager::CreateRenderTextureResource(ComPtr<ID3D12Resource>& reso
 	// ヒープの設定
 	D3D12_HEAP_PROPERTIES heapProperties{};
 	heapProperties.Type = D3D12_HEAP_TYPE_DEFAULT; // VRAM上に作る
+	heapProperties.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
+	heapProperties.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
+	heapProperties.CreationNodeMask = 1;
+	heapProperties.VisibleNodeMask = 1;
 
 	// クリア値
 	D3D12_CLEAR_VALUE clearValue{};
@@ -116,6 +113,8 @@ void PostEffectManager::CreateRenderTextureResource(ComPtr<ID3D12Resource>& reso
 	clearValue.Color[1] = clearColor.y;
 	clearValue.Color[2] = clearColor.z;
 	clearValue.Color[3] = clearColor.w;
+
+	ComPtr<ID3D12Resource> resource;
 
 	// リソースの生成
 	HRESULT hr = dxCommon_->GetDevice()->CreateCommittedResource(
@@ -131,6 +130,8 @@ void PostEffectManager::CreateRenderTextureResource(ComPtr<ID3D12Resource>& reso
 		OutputDebugStringA("Failed to create render texture resource.\n");
 		assert(false);
 	}
+
+	return resource;
 }
 
 

@@ -24,7 +24,7 @@ public: /// ---------- メンバ関数 ---------- ///
 	ComPtr <ID3D12Resource> CreateDepthStencilTextureResource(ID3D12Device* device, int32_t width, int32_t height);
 
 	// レンダーターゲットビューの生成
-	void GenerateRTV(ID3D12Device* device, ID3D12Resource* swapChainResoursec1, ID3D12Resource* swapChainResoursec2);
+	void GenerateRTV(ID3D12Device* device, std::vector<ID3D12Resource*> resources);
 
 	// デプスステンシルビューの生成
 	void GenerateDSV(ID3D12Device* device, uint32_t width, uint32_t height);
@@ -32,15 +32,21 @@ public: /// ---------- メンバ関数 ---------- ///
 	// レンダーターゲットビューの生成 (新規追加)
 	void CreateRTVForTexture2D(ID3D12Device* device, ID3D12Resource* resource, D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle);
 
+	// デプスステンシルビューの生成
+	void CreateDSVForDepthBuffer(ID3D12Device* device, ID3D12Resource* depthResource, D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle);
+
+	D3D12_CPU_DESCRIPTOR_HANDLE GetFreeRTVHandle();
+
 public: /// ---------- ゲッター ---------- ///
 
-	ID3D12DescriptorHeap* GetDSVDescriptorHeap() const;
+	ID3D12DescriptorHeap* GetDSVDescriptorHeap() const { return dsvDescriptorHeap.Get(); }
 	ID3D12DescriptorHeap* GetRTVDescriptorHeap() const { return rtvDescriptorHeap.Get(); }
 	D3D12_CPU_DESCRIPTOR_HANDLE GetDSVHeadHandleStart() { return dsvDescriptorHeap->GetCPUDescriptorHandleForHeapStart(); }
 
-	D3D12_CPU_DESCRIPTOR_HANDLE GetRTVHandles(uint32_t num);
-	D3D12_CPU_DESCRIPTOR_HANDLE GetDSVHandle();
+	D3D12_CPU_DESCRIPTOR_HANDLE GetRTVHandles(uint32_t num) { return rtvHandles[num]; }
+	D3D12_CPU_DESCRIPTOR_HANDLE GetDSVHandle() { return dsvHandle; }
 	ID3D12Resource* GetDepthStencilBuffer() const { return depthStencilResource.Get(); }
+	
 	// デスクリプタサイズ取得用のゲッタ
 	uint32_t GetDescriptorSizeRTV() const { return descriptorSizeRTV; }
 	uint32_t GetDescriptorSizeDSV() const { return descriptorSizeDSV; }

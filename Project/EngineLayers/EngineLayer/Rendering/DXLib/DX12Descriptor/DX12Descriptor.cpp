@@ -3,6 +3,7 @@
 #include "SRVManager.h"
 
 #include <cassert>
+#include <format>
 
 #pragma comment(lib, "d3d12.lib")
 #pragma comment(lib, "dxgi.lib")
@@ -26,13 +27,12 @@ void DX12Descriptor::Initialize(ID3D12Device* device, ID3D12Resource* swapChainR
 	dsvDescriptorHeap = CreateDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_DSV, 1, false);
 
 	// レンダーターゲットビューの生成
-	GenerateRTV(device_, swapChainResoursec1, swapChainResoursec2);
+	GenerateRTV(device_, { swapChainResoursec1, swapChainResoursec2 });
 
 	// デプスステンシルビューの生成
 	GenerateDSV(device_, width, height);
 
 }
-
 
 
 /// -------------------------------------------------------------
@@ -52,7 +52,6 @@ ComPtr<ID3D12DescriptorHeap> DX12Descriptor::CreateDescriptorHeap(D3D12_DESCRIPT
 
 	return descriptorHeap;
 }
-
 
 
 /// -------------------------------------------------------------
@@ -95,30 +94,38 @@ ComPtr<ID3D12Resource> DX12Descriptor::CreateDepthStencilTextureResource(ID3D12D
 }
 
 
-
 /// -------------------------------------------------------------
 ///				レンダーターゲットビューの生成
 /// -------------------------------------------------------------
-void DX12Descriptor::GenerateRTV(ID3D12Device* device, ID3D12Resource* swapChainResoursec1, ID3D12Resource* swapChainResoursec2)
+void DX12Descriptor::GenerateRTV(ID3D12Device* device, std::vector<ID3D12Resource*> resources)
 {
-	//RTVの設定
-	rtvDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;		//出力結果をSRGBに変換して書き込む
-	rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;	//2dテクスチャとして書き込む
+	// RTV のフォーマットと設定
+	D3D12_RENDER_TARGET_VIEW_DESC rtvDesc{};
+	rtvDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
+	rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
 
-	//ディスクリプタの先頭を取得する
-	rtvStartHandle = rtvDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
+	// rtvHandles[] をクリアしておく
+	for (auto& handle : rtvHandles) {
+		handle.ptr = 0;
+	}
 
-	//まず１つ目を作る。１つ目は最初のところに作る。作る場所をこちらで指定してあげる必要がある
-	rtvHandles[0] = rtvStartHandle;
-	device->CreateRenderTargetView(swapChainResoursec1, &rtvDesc, rtvHandles[0]);
+	// ディスクリプタの開始位置を取得
+	D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle = rtvDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
 
-	//2つ目のディスクリプタハンドルを得る（自力で）
-	rtvHandles[1].ptr = rtvHandles[0].ptr + device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+	// 各リソースに対して RTV を作成
+	for (size_t i = 0; i < resources.size(); ++i) {
+		assert(i < _countof(rtvHandles)); // 範囲チェック
 
-	//2つ目を作る
-	device->CreateRenderTargetView(swapChainResoursec2, &rtvDesc, rtvHandles[1]);
+		// 現在の RTV ハンドルを保存
+		rtvHandles[i] = rtvHandle;
+
+		// RTV を作成
+		device->CreateRenderTargetView(resources[i], &rtvDesc, rtvHandle);
+
+		// ディスクリプタのサイズ分ハンドルを進める
+		rtvHandle.ptr += device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+	}
 }
-
 
 
 /// -------------------------------------------------------------
@@ -138,6 +145,10 @@ void DX12Descriptor::GenerateDSV(ID3D12Device* device, uint32_t width, uint32_t 
 	device->CreateDepthStencilView(depthStencilResource.Get(), &dsvDesc, dsvDescriptorHeap->GetCPUDescriptorHandleForHeapStart());
 }
 
+
+/// -------------------------------------------------------------
+///					RTVの2Dテクスチャの処理
+/// -------------------------------------------------------------
 void DX12Descriptor::CreateRTVForTexture2D(ID3D12Device* device, ID3D12Resource* resource, D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle)
 {
 	D3D12_RENDER_TARGET_VIEW_DESC rtvDesc{};
@@ -148,23 +159,39 @@ void DX12Descriptor::CreateRTVForTexture2D(ID3D12Device* device, ID3D12Resource*
 }
 
 
-
 /// -------------------------------------------------------------
-///							ゲッター
+///					デプスステンシルビューの生成
 /// -------------------------------------------------------------
-ID3D12DescriptorHeap* DX12Descriptor::GetDSVDescriptorHeap() const
+void DX12Descriptor::CreateDSVForDepthBuffer(ID3D12Device* device, ID3D12Resource* depthResource, D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle)
 {
-	return dsvDescriptorHeap.Get();
+	D3D12_DEPTH_STENCIL_VIEW_DESC dsvDesc{};
+	dsvDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
+	dsvDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
+
+	device->CreateDepthStencilView(depthResource, &dsvDesc, dsvHandle);
 }
 
 
-D3D12_CPU_DESCRIPTOR_HANDLE DX12Descriptor::GetRTVHandles(uint32_t num)
+D3D12_CPU_DESCRIPTOR_HANDLE DX12Descriptor::GetFreeRTVHandle()
 {
-	return rtvHandles[num];
-}
+	assert(descriptorSizeRTV > 0);
 
-D3D12_CPU_DESCRIPTOR_HANDLE DX12Descriptor::GetDSVHandle()
-{
-	return dsvHandle;
-}
+	uint32_t usedCount = 0;
 
+	// 有効な RTV ハンドルをカウント
+	for (const auto& handle : rtvHandles)
+	{
+		if (handle.ptr != 0)
+		{
+			++usedCount;
+		}
+	}
+
+	// `usedCount` が配列サイズを超えていないか確認
+	assert(usedCount < _countof(rtvHandles));
+
+	// 次に使える空きハンドルを計算
+	D3D12_CPU_DESCRIPTOR_HANDLE handle = rtvDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
+	handle.ptr += descriptorSizeRTV * usedCount;
+	return handle;
+}

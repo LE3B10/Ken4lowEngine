@@ -32,16 +32,13 @@ public: /// ---------- メンバ関数 ---------- ///
 	// 描画終了処理
 	void EndDraw();
 
+	// ポストエフェクトの描画適用処理
+	void RenderPostEffect();
+
 private: /// ---------- メンバ関数 ---------- ///
 
-	// レンダーテクスチャの初期化処理
-	void InitializeRenderTarget();
-
-	// リソース遷移を行う処理
-	void TransitionResource(ID3D12Resource* resource, D3D12_RESOURCE_STATES state);
-
 	// レンダーテクスチャリソースの生成
-	void CreateRenderTextureResource(ComPtr<ID3D12Resource>& resource, uint32_t width, uint32_t height, DXGI_FORMAT format, const Vector4& clearColor);
+	ComPtr<ID3D12Resource> CreateRenderTextureResource(uint32_t width, uint32_t height, DXGI_FORMAT format, const Vector4& clearColor);
 
 	// ルートシグネチャの生成
 	void CreateRootSignature(const std::string& effectName);
@@ -56,15 +53,10 @@ private: /// ---------- メンバ変数 ---------- ///
 	// レンダーテクスチャのクリアカラー
 	const Vector4 kRenderTextureClearColor_ = { 0.0f, 0.0f, 1.0f, 1.0f }; // 分かりやすいように一旦赤色にする
 	
-	// リソースの状態を追跡する変数
-	D3D12_RESOURCE_STATES sceneRenderTargetState_ = D3D12_RESOURCE_STATE_COMMON; // 初期状態を適切に設定
-
-	D3D12_CPU_DESCRIPTOR_HANDLE renderTextureRTVHandle_;
-
-	ComPtr <ID3D12Resource> sceneRenderTarget;
-
 	ComPtr <ID3DBlob> signatureBlob_;
 	ComPtr <ID3DBlob> errorBlob_;
+
+	ComPtr<ID3D12Resource> renderResource_;
 
 	// ルートシグネチャ
 	std::unordered_map<std::string, ComPtr<ID3D12RootSignature>> rootSignatures_;
@@ -72,8 +64,8 @@ private: /// ---------- メンバ変数 ---------- ///
 	// パイプラインスレート
 	std::unordered_map<std::string, ComPtr<ID3D12PipelineState>> graphicsPipelineStates_;
 
-	uint32_t rtvSrvIndex = 0;
-	uint32_t dsvSrvIndex = 0;
+	D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle_;
+	uint32_t rtvSrvIndex_ = 0;
 
 private: /// ---------- コピー禁止 ---------- ///
 

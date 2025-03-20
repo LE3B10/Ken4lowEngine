@@ -47,7 +47,6 @@ void SRVManager::CreateSRVForTexture2D(uint32_t srvIndex, ID3D12Resource* pResou
 {
 	if (!pResource) {
 		throw std::runtime_error("pResource is null in CreateSRVForTexture2D");
-		return; // nullptr の場合は早期リターン
 	}
 
 	// srvDescの項目を埋める
