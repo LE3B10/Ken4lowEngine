@@ -32,7 +32,6 @@ void PostEffectManager::Initialieze(DirectXCommon* dxCommon)
 
 	// レンダーテクスチャの生成
 	renderResource_ = CreateRenderTextureResource(WinApp::kClientWidth, WinApp::kClientHeight, DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, kRenderTextureClearColor_);
-	renderResource_->SetName(L"Render Target Texture");
 
 	// RTVの確保
 	uint32_t rtvIndex = RTVManager::GetInstance()->Allocate();
@@ -52,14 +51,10 @@ void PostEffectManager::BeginDraw()
 {
 	auto commandList = dxCommon_->GetCommandList();
 
-	// 🔹 現在のリソース状態をチェックしてから遷移
-	D3D12_RESOURCE_STATES currentState = D3D12_RESOURCE_STATE_RENDER_TARGET; // 初期状態
+	// 🔹 リソースのバリア遷移 (確実にRENDER_TARGETに変更)
+	dxCommon_->TransitionResource(renderResource_.Get(), D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_RENDER_TARGET);
 
-	// `EndDraw()` で `PRESENT` に遷移している場合のみ `RENDER_TARGET` に戻す
-	if (currentState == D3D12_RESOURCE_STATE_PRESENT)
-	{
-		dxCommon_->TransitionResource(renderResource_.Get(), D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
-	}
+	//dxCommon_->TransitionResource(renderResource_.Get(), D3D12_RESOURCE_STATE_DEPTH_WRITE, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 
 	// DSVの取得
 	D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle = DSVManager::GetInstance()->GetCPUDescriptorHandle(0);
@@ -89,7 +84,14 @@ void PostEffectManager::BeginDraw()
 void PostEffectManager::EndDraw()
 {
 	auto commandList = dxCommon_->GetCommandList();
+
+	//dxCommon_->TransitionResource(renderResource_.Get(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_DEPTH_WRITE);
+
+	// 🔹 RENDER_TARGET から PRESENT へ遷移
 	dxCommon_->TransitionResource(renderResource_.Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
+
+	// 🔹 GPU が完了するのを待つ (デバッグ用)
+	dxCommon_->WaitCommand();
 }
 
 
@@ -100,6 +102,24 @@ void PostEffectManager::RenderPostEffect()
 {
 	auto commandList = dxCommon_->GetCommandList();
 
+	// 🔹 ポストエフェクトのパイプラインを設定
+	commandList->SetPipelineState(graphicsPipelineStates_["NormalEffect"].Get());
+
+	// 🔹 ルートシグネチャを設定
+	commandList->SetGraphicsRootSignature(rootSignatures_["NormalEffect"].Get());
+
+	// 🔹 SRV (シェーダーリソースビュー) をセット
+	commandList->SetGraphicsRootDescriptorTable(0, SRVManager::GetInstance()->GetGPUDescriptorHandle(rtvSrvIndex_));
+
+	// 🔹 スワップチェインのバックバッファを取得
+	uint32_t backBufferIndex = dxCommon_->GetSwapChain()->GetSwapChain()->GetCurrentBackBufferIndex();
+	ComPtr<ID3D12Resource> backBuffer = dxCommon_->GetBackBuffer(backBufferIndex);
+	D3D12_CPU_DESCRIPTOR_HANDLE backBufferRTV = dxCommon_->GetBackBufferRTV(backBufferIndex);
+
+	// 🔹 スワップチェインのバックバッファに描画
+	commandList->OMSetRenderTargets(1, &backBufferRTV, false, nullptr);
+	commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+	commandList->DrawInstanced(4, 1, 0, 0);
 }
 
 
@@ -143,7 +163,7 @@ ComPtr<ID3D12Resource> PostEffectManager::CreateRenderTextureResource(uint32_t w
 		&heapProperties,					// ヒープの設定
 		D3D12_HEAP_FLAG_NONE,				// ヒープの特殊な設定
 		&resourceDesc,						// リソースの設定
-		D3D12_RESOURCE_STATE_RENDER_TARGET, // リソースの初期状態、レンダーターゲットとして使う
+		D3D12_RESOURCE_STATE_COMMON,		// リソースの初期状態、レンダーターゲットとして使う
 		&clearValue,						// クリア値の設定
 		IID_PPV_ARGS(&resource));			// 生成したリソースのポインタへのポインタを取得
 

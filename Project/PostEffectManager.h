@@ -52,7 +52,7 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	// レンダーテクスチャのクリアカラー
 	const Vector4 kRenderTextureClearColor_ = { 0.0f, 0.0f, 1.0f, 1.0f }; // 分かりやすいように一旦赤色にする
-	
+
 	ComPtr <ID3DBlob> signatureBlob_;
 	ComPtr <ID3DBlob> errorBlob_;
 

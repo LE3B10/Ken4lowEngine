@@ -56,12 +56,6 @@ void Framework::Initialize()
 	dxCommon_ = DirectXCommon::GetInstance();
 	dxCommon_->Initialize(winApp_, WinApp::kClientWidth, WinApp::kClientHeight);
 
-	//// DSVマネージャの初期化
-	//DSVManager::GetInstance()->Initialize(dxCommon_);
-
-	//// RTVマネージャの初期化
-	//RTVManager::GetInstance()->Initialize(dxCommon_);
-
 	// SRVマネージャーの初期化
 	SRVManager::GetInstance()->Initialize(dxCommon_);
 
