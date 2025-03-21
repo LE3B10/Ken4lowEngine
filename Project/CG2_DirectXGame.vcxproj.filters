@@ -225,7 +225,7 @@
     <ClCompile Include="EngineLayers\ApplicationLayer\Object\SkyBox.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="PostEffectManager.cpp">
+    <ClCompile Include="EngineLayers\EngineLayer\Rendering\PostEffectManager\PostEffectManager.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
     <ClCompile Include="EngineLayers\EngineLayer\Rendering\RTVManager\RTVManager.cpp">
@@ -481,7 +481,7 @@
     <ClInclude Include="EngineLayers\ApplicationLayer\Object\SkyBox.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="PostEffectManager.h">
+    <ClInclude Include="EngineLayers\EngineLayer\Rendering\PostEffectManager\PostEffectManager.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
     <ClInclude Include="EngineLayers\EngineLayer\Rendering\RTVManager\RTVManager.h">
