@@ -89,8 +89,9 @@ void RTVManager::CreateRTVForTexture2D(uint32_t rtvIndex, ID3D12Resource* resour
 {
 	// RTVの設定
 	D3D12_RENDER_TARGET_VIEW_DESC rtvDesc{};
-	rtvDesc.Format = resource->GetDesc().Format;
+	rtvDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
 	rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
+	rtvDesc.Texture2D.MipSlice = 0;
 
 	// RTVを作成
 	dxCommon_->GetDevice()->CreateRenderTargetView(resource, &rtvDesc, GetCPUDescriptorHandle(rtvIndex));
