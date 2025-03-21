@@ -76,7 +76,7 @@ void DirectXCommon::BeginDraw()
 	backBufferIndex = swapChain_->GetSwapChain()->GetCurrentBackBufferIndex();
 
 	// バリアで書き込み可能に変更
-	ChangeBarrier ();
+	ChangeBarrier();
 
 	// 画面をクリア
 	ClearWindow();
@@ -117,7 +117,7 @@ void DirectXCommon::EndDraw()
 	commandQueue->ExecuteCommandLists(1, commandLists->GetAddressOf());
 
 	//GPUとOSに画面の交換を行うよう通知する
-	swapChain_->GetSwapChain()->Present(1, 0); // VSyncを無効にする 元(1, 0)
+	swapChain_->GetSwapChain()->Present(1, 0); // VSync 有効（FPSを同期）-（0, 0）で無効（最大FPSで動作）
 
 	// Fenceの値を更新
 	fenceValue++;
@@ -242,6 +242,8 @@ void DirectXCommon::CreateCommands()
 	assert(SUCCEEDED(hr));
 
 	//コマンドキューを生成する
+	commandQueueDesc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT; // 追加
+	commandQueueDesc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;
 	hr = device_->GetDevice()->CreateCommandQueue(&commandQueueDesc, IID_PPV_ARGS(&commandQueue));
 	//コマンドキューの生成がうまくいかなかったので起動できない
 	assert(SUCCEEDED(hr));
@@ -264,7 +266,7 @@ void DirectXCommon::CreateFenceEvent()
 	assert(SUCCEEDED(hr));
 
 	//FenceのSignalを待つためのイベントを作成する
-	HANDLE fenceEvent = CreateEvent(NULL, FALSE, FALSE, NULL);
+	fenceEvent = CreateEvent(NULL, FALSE, FALSE, NULL);
 	assert(fenceEvent != nullptr);
 }
 
@@ -298,7 +300,11 @@ void DirectXCommon::ChangeBarrier()
 	// Noneにしておく
 	barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
 	// バリアを春対象のリソース。現在のバックバッファに対して行う
-	barrier.Transition.pResource = swapChain_->GetSwapChainResources(backBufferIndex);
+	ID3D12Resource* backBuffer = swapChain_->GetSwapChainResources(backBufferIndex);
+	if (backBuffer)
+	{
+		barrier.Transition.pResource = backBuffer;
+	}
 	// 遷移前（現在）のResourceState
 	barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_PRESENT;
 	//遷移後のResourceState
@@ -313,17 +319,16 @@ void DirectXCommon::ChangeBarrier()
 /// -------------------------------------------------------------
 void DirectXCommon::TransitionResource(ID3D12Resource* resource, D3D12_RESOURCE_STATES stateBefore, D3D12_RESOURCE_STATES stateAfter)
 {
-	if (stateBefore != stateAfter)
-	{
-		D3D12_RESOURCE_BARRIER barrier = {};
-		barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-		barrier.Transition.pResource = resource;
-		barrier.Transition.StateBefore = stateBefore;
-		barrier.Transition.StateAfter = stateAfter;
-		barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+	if (stateBefore == stateAfter) return;
 
-		commandList_->ResourceBarrier(1, &barrier);
-	}
+	D3D12_RESOURCE_BARRIER barrier = {};
+	barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+	barrier.Transition.pResource = resource;
+	barrier.Transition.StateBefore = stateBefore;
+	barrier.Transition.StateAfter = stateAfter;
+	barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+
+	commandList_->ResourceBarrier(1, &barrier);
 }
 
 
@@ -332,10 +337,7 @@ void DirectXCommon::TransitionResource(ID3D12Resource* resource, D3D12_RESOURCE_
 /// -------------------------------------------------------------
 void DirectXCommon::ClearWindow()
 {
-	for (uint32_t i = 0; i < 2; i++)
-	{
-		rtvHandles[i] = descriptor->GetRTVHandles(i);
-	}
+	rtvHandles[backBufferIndex] = descriptor->GetRTVHandles(backBufferIndex);
 
 	//描画先のRTVとDSVを設定する
 	D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle = descriptor->GetDSVDescriptorHeap()->GetCPUDescriptorHandleForHeapStart();
