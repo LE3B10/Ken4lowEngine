@@ -2,8 +2,9 @@
 #include "DX12Include.h"
 #include "DX12Device.h"
 #include "DX12SwapChain.h"
-#include "DX12Descriptor.h"
 #include "FPSCounter.h"
+#include "RTVManager.h"
+#include "DSVManager.h"
 
 #include <dxcapi.h>
 #include <memory>
@@ -46,7 +47,6 @@ public: /// ---------- ゲッター ---------- ///
 
 	ID3D12Device* GetDevice() const { return device_->GetDevice(); }
 	ID3D12GraphicsCommandList* GetCommandList() const { return commandList_.Get(); }
-	DX12Descriptor* GetDescriptorHeap() const { return descriptor.get(); }
 	DX12SwapChain* GetSwapChain() { return swapChain_.get(); }
 	IDxcUtils* GetIDxcUtils() const { return dxcUtils.Get(); }
 	IDxcCompiler3* GetIDxcCompiler() const { return dxcCompiler.Get(); }
@@ -80,13 +80,15 @@ private: /// ---------- メンバ関数 ---------- ///
 	// 画面全体をクリア
 	void ClearWindow();
 
+	// 🔹 RTVとDSVの初期化関数を追加
+	void InitializeRTVAndDSV();  
+
 private: /// ---------- メンバ変数 ---------- ///
 
 	FPSCounter fpsCounter_;
 
 	std::unique_ptr<DX12Device> device_;
 	std::unique_ptr<DX12SwapChain> swapChain_;
-	std::unique_ptr<DX12Descriptor> descriptor;
 
 	ComPtr <ID3D12CommandQueue> commandQueue;
 	ComPtr<ID3D12CommandAllocator> commandAllocator;
@@ -97,8 +99,6 @@ private: /// ---------- メンバ変数 ---------- ///
 	ComPtr <IDxcIncludeHandler> includeHandler;
 
 	D3D12_COMMAND_QUEUE_DESC commandQueueDesc{};
-	D3D12_DESCRIPTOR_HEAP_DESC descriptorHeapDesc{};
-	D3D12_CPU_DESCRIPTOR_HANDLE rtvHandles[2]{};
 
 	ComPtr <ID3D12Fence> fence;
 	HANDLE fenceEvent;
@@ -112,12 +112,12 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	UINT backBufferIndex = 0;
 
-private: /// ---------- メンバ変数 ---------- ///
+	ComPtr<ID3D12Resource> depthStencilResource; // 🔹 深度バッファ
+
+private: /// ---------- コピー禁止 ---------- ///
 
 	DirectXCommon() = default;
 	~DirectXCommon() = default;
-
-	// コピー禁止
 	DirectXCommon(const DirectXCommon&) = delete;
 	const DirectXCommon& operator=(const DirectXCommon&) = delete;
 };

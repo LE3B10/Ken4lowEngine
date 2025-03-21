@@ -20,7 +20,6 @@ DirectXCommon* DirectXCommon::GetInstance()
 }
 
 
-
 /// -------------------------------------------------------------
 ///							初期化処理
 /// -------------------------------------------------------------
@@ -28,13 +27,9 @@ void DirectXCommon::Initialize(WinApp* winApp, uint32_t Width, uint32_t Height)
 {
 	device_ = std::make_unique<DX12Device>();
 	swapChain_ = std::make_unique<DX12SwapChain>();
-	descriptor = std::make_unique<DX12Descriptor>();
 
 	kClientWidth = Width;
 	kClientHeight = Height;
-
-	// FPSカウンターの初期化
-	fpsCounter_.SetTargetFPS(144); // 60FPS
 
 	// デバッグレイヤーをオンに
 	DebugLayer();
@@ -57,11 +52,9 @@ void DirectXCommon::Initialize(WinApp* winApp, uint32_t Width, uint32_t Height)
 	// DXCコンパイラの生成
 	CreateDXCCompiler();
 
-	// RTV, DSVの初期化
-	descriptor->Initialize(device_->GetDevice(), swapChain_->GetSwapChainResources(0), swapChain_->GetSwapChainResources(1), Width, Height);
-
+	// RTV & DSVの初期化処理
+	InitializeRTVAndDSV();
 }
-
 
 
 /// -------------------------------------------------------------
@@ -89,7 +82,6 @@ void DirectXCommon::BeginDraw()
 	scissorRect = D3D12_RECT(0, 0, kClientWidth, kClientHeight);
 	commandList_->RSSetScissorRects(1, &scissorRect);
 }
-
 
 
 /// -------------------------------------------------------------
@@ -146,7 +138,6 @@ void DirectXCommon::EndDraw()
 }
 
 
-
 /// -------------------------------------------------------------
 ///							終了処理
 /// -------------------------------------------------------------
@@ -156,7 +147,6 @@ void DirectXCommon::Finalize()
 
 	device_.reset();
 	swapChain_.reset();
-	descriptor.reset();
 }
 
 
@@ -272,7 +262,7 @@ void DirectXCommon::CreateFenceEvent()
 
 
 /// -------------------------------------------------------------
-///					DXCコンパイラーの生成
+///						DXCコンパイラーの生成
 /// -------------------------------------------------------------
 void DirectXCommon::CreateDXCCompiler()
 {
@@ -291,7 +281,7 @@ void DirectXCommon::CreateDXCCompiler()
 
 
 /// -------------------------------------------------------------
-///			バリアで書き込み可能に変更する処理
+///				バリアで書き込み可能に変更する処理
 /// -------------------------------------------------------------
 void DirectXCommon::ChangeBarrier()
 {
@@ -337,19 +327,71 @@ void DirectXCommon::TransitionResource(ID3D12Resource* resource, D3D12_RESOURCE_
 /// -------------------------------------------------------------
 void DirectXCommon::ClearWindow()
 {
-	rtvHandles[backBufferIndex] = descriptor->GetRTVHandles(backBufferIndex);
+	backBufferIndex = swapChain_->GetSwapChain()->GetCurrentBackBufferIndex();
 
-	//描画先のRTVとDSVを設定する
-	D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle = descriptor->GetDSVDescriptorHeap()->GetCPUDescriptorHandleForHeapStart();
+	// RTVとDSVの取得
+	D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle = RTVManager::GetInstance()->GetCPUDescriptorHandle(backBufferIndex);
+	D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle = DSVManager::GetInstance()->GetCPUDescriptorHandle(0);
 
-	commandList_->OMSetRenderTargets(1, &rtvHandles[backBufferIndex], false, &dsvHandle);
+	// 描画先のRTVとDSVを設定
+	commandList_->OMSetRenderTargets(1, &rtvHandle, false, &dsvHandle);
 
-	//指定した色で画面全体をクリアする
+	// 画面をクリア
 	float clearColor[] = { 0.0f, 0.0f, 0.0f, 1.0f };
-	commandList_->ClearRenderTargetView(rtvHandles[backBufferIndex], clearColor, 0, nullptr);
-
-	//指定した深度で画面全体をクリアする
+	commandList_->ClearRenderTargetView(rtvHandle, clearColor, 0, nullptr);
 	commandList_->ClearDepthStencilView(dsvHandle, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
+}
+
+
+/// -------------------------------------------------------------
+///					　RTVとDSVの初期化処理
+/// -------------------------------------------------------------
+void DirectXCommon::InitializeRTVAndDSV()
+{
+	// DSVの初期化
+	DSVManager::GetInstance()->Initialize(this);
+
+	// 深度バッファリソースの作成
+	D3D12_RESOURCE_DESC depthDesc{};
+	depthDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+	depthDesc.Width = kClientWidth;
+	depthDesc.Height = kClientHeight;
+	depthDesc.DepthOrArraySize = 1;
+	depthDesc.MipLevels = 1;
+	depthDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
+	depthDesc.SampleDesc.Count = 1;
+	depthDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
+	depthDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
+
+	D3D12_CLEAR_VALUE depthClearValue{};
+	depthClearValue.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
+	depthClearValue.DepthStencil.Depth = 1.0f;
+	depthClearValue.DepthStencil.Stencil = 0;
+
+	CD3DX12_HEAP_PROPERTIES heapProps(D3D12_HEAP_TYPE_DEFAULT); // 🔹 ローカル変数を作成
+	HRESULT result = device_->GetDevice()->CreateCommittedResource(
+		&heapProps,  // ✅ ローカル変数のアドレスを渡す
+		D3D12_HEAP_FLAG_NONE,
+		&depthDesc,
+		D3D12_RESOURCE_STATE_DEPTH_WRITE,
+		&depthClearValue,
+		IID_PPV_ARGS(&depthStencilResource)
+	);
+	assert(SUCCEEDED(result) && "Failed to create Depth Stencil Buffer!");
+
+	// DSVの作成
+	uint32_t dsvIndex = DSVManager::GetInstance()->Allocate();
+	DSVManager::GetInstance()->CreateDSVForDepthBuffer(dsvIndex, depthStencilResource.Get());
+
+	// RTVの初期化
+	RTVManager::GetInstance()->Initialize(this);
+
+	// スワップチェインのRTVを作成
+	for (uint32_t i = 0; i < 2; i++)
+	{
+		uint32_t rtvIndex = RTVManager::GetInstance()->Allocate();
+		RTVManager::GetInstance()->CreateRTVForTexture2D(rtvIndex, swapChain_->GetSwapChainResources(i));
+	}
 }
 
 

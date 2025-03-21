@@ -72,9 +72,6 @@
     <ClCompile Include="EngineLayers\EngineLayer\Rendering\DXLib\DirectXCommon\DirectXCommon.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="EngineLayers\EngineLayer\Rendering\DXLib\DX12Descriptor\DX12Descriptor.cpp">
-      <Filter>ソース ファイル</Filter>
-    </ClCompile>
     <ClCompile Include="EngineLayers\EngineLayer\Rendering\DXLib\DX12Device\DX12Device.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
@@ -231,6 +228,12 @@
     <ClCompile Include="PostEffectManager.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
+    <ClCompile Include="EngineLayers\EngineLayer\Rendering\RTVManager\RTVManager.cpp">
+      <Filter>ソース ファイル</Filter>
+    </ClCompile>
+    <ClCompile Include="EngineLayers\EngineLayer\Rendering\DSVManager\DSVManager.cpp">
+      <Filter>ソース ファイル</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Resources\Shaders\Object3d.PS.hlsl">
@@ -284,9 +287,6 @@
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
     <ClInclude Include="EngineLayers\EngineLayer\Rendering\DXLib\DirectXCommon\DirectXCommon.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayers\EngineLayer\Rendering\DXLib\DX12Descriptor\DX12Descriptor.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
     <ClInclude Include="EngineLayers\EngineLayer\Rendering\DXLib\DX12Device\DX12Device.h">
@@ -482,6 +482,12 @@
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
     <ClInclude Include="PostEffectManager.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="EngineLayers\EngineLayer\Rendering\RTVManager\RTVManager.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="EngineLayers\EngineLayer\Rendering\DSVManager\DSVManager.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
   </ItemGroup>

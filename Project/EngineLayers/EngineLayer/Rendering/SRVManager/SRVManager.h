@@ -5,12 +5,13 @@
 #include <stdexcept>
 #include <queue>
 
+
 /// ---------- 前方宣言 ---------- ///
 class DirectXCommon;
 
 
 /// -------------------------------------------------------------
-///			　Shader Resource Viewを管理するクラス
+///			シェーダーリソースビュー（SRV）を管理するクラス
 /// -------------------------------------------------------------
 class SRVManager
 {
@@ -86,7 +87,7 @@ private: /// ---------- メンバ変数 ---------- ///
 	// 空きインデックスのリスト
 	std::queue<uint32_t> freeIndices;
 
-private:
+private: /// ---------- コピー禁止 ---------- ///
 
 	SRVManager() = default;
 	~SRVManager() = default;
