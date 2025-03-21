@@ -108,6 +108,9 @@ void GameEngine::Draw()
 	// オフスクリーン描画終了
 	PostEffectManager::GetInstance()->EndDraw();
 
+	// 🔹 ポストエフェクトの適用前にSRVManagerの事前処理を再度呼ぶ
+	SRVManager::GetInstance()->PreDraw();
+
 	// ポストエフェクトの適用（ImGui描画前）
 	PostEffectManager::GetInstance()->RenderPostEffect();
 

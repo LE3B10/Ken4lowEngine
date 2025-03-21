@@ -150,6 +150,15 @@ void DirectXCommon::Finalize()
 }
 
 
+ComPtr<ID3D12Resource> DirectXCommon::GetBackBuffer(uint32_t index)
+{
+	ComPtr<ID3D12Resource> backBuffer = nullptr;
+	HRESULT hr = swapChain_->GetSwapChain()->GetBuffer(index, IID_PPV_ARGS(&backBuffer));
+	assert(SUCCEEDED(hr));
+	return backBuffer.Get();
+}
+
+
 #pragma region デバッグレイヤーと警告時に停止処理
 /// -------------------------------------------------------------
 ///					デバッグレイヤーの表示

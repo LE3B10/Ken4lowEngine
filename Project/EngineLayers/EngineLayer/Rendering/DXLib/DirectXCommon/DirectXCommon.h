@@ -57,6 +57,10 @@ public: /// ---------- ゲッター ---------- ///
 	// FPSの取得
 	FPSCounter& GetFPSCounter() { return fpsCounter_; }
 
+	ComPtr<ID3D12Resource> GetBackBuffer(uint32_t index);
+
+	D3D12_CPU_DESCRIPTOR_HANDLE GetBackBufferRTV(uint32_t index) { return RTVManager::GetInstance()->GetCPUDescriptorHandle(index); }
+
 private: /// ---------- メンバ関数 ---------- ///
 
 	// デバッグレイヤーの表示
@@ -81,7 +85,7 @@ private: /// ---------- メンバ関数 ---------- ///
 	void ClearWindow();
 
 	// 🔹 RTVとDSVの初期化関数を追加
-	void InitializeRTVAndDSV();  
+	void InitializeRTVAndDSV();
 
 private: /// ---------- メンバ変数 ---------- ///
 

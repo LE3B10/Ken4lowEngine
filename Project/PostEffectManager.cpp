@@ -8,7 +8,6 @@
 #include "Camera.h"
 
 #include <cassert>
-#include <d3dx12.h>
 
 
 /// -------------------------------------------------------------
@@ -32,20 +31,16 @@ void PostEffectManager::Initialieze(DirectXCommon* dxCommon)
 	CreatePipelineState("NormalEffect");
 
 	// レンダーテクスチャの生成
-	auto renderTextureResource = CreateRenderTextureResource(WinApp::kClientWidth, WinApp::kClientHeight, DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, kRenderTextureClearColor_);
+	renderResource_ = CreateRenderTextureResource(WinApp::kClientWidth, WinApp::kClientHeight, DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, kRenderTextureClearColor_);
 
-	// RTVの設定
-	D3D12_RENDER_TARGET_VIEW_DESC rtvDesc{};
-	rtvDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB; // 出力結果を SRGB に変換
-	rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
+	// RTVの確保
+	uint32_t rtvIndex = RTVManager::GetInstance()->Allocate();
+	RTVManager::GetInstance()->CreateRTVForTexture2D(rtvIndex, renderResource_.Get());
+	rtvHandle_ = RTVManager::GetInstance()->GetCPUDescriptorHandle(rtvIndex);
 
-	// RTVの生成
-	//rtvHandle_ = dxCommon_->GetDescriptorHeap()->GetFreeRTVHandle();
-	//dxCommon_->GetDevice()->CreateRenderTargetView(renderTextureResource.Get(), &rtvDesc, rtvHandle_);
-
-	// SRVの設定。FormatはResourceと同じにしておく
+	// SRVの確保
 	rtvSrvIndex_ = SRVManager::GetInstance()->Allocate();
-	SRVManager::GetInstance()->CreateSRVForTexture2D(rtvSrvIndex_, renderTextureResource.Get(), DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, 1);
+	SRVManager::GetInstance()->CreateSRVForTexture2D(rtvSrvIndex_, renderResource_.Get(), DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, 1);
 }
 
 
@@ -56,11 +51,30 @@ void PostEffectManager::BeginDraw()
 {
 	auto commandList = dxCommon_->GetCommandList();
 
-	//D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle = dxCommon_->GetDescriptorHeap()->GetDSVDescriptorHeap()->GetCPUDescriptorHandleForHeapStart();
+	// 🔹 リソースのバリア遷移 (確実にRENDER_TARGETに変更)
+	dxCommon_->TransitionResource(renderResource_.Get(), D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_RENDER_TARGET);
 
-	// 描画先のRTVを設定
-	//commandList->OMSetRenderTargets(1, &rtvHandle_, false, &dsvHandle);
+	//dxCommon_->TransitionResource(renderResource_.Get(), D3D12_RESOURCE_STATE_DEPTH_WRITE, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 
+	// DSVの取得
+	D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle = DSVManager::GetInstance()->GetCPUDescriptorHandle(0);
+
+	// レンダーターゲットを設定
+	commandList->OMSetRenderTargets(1, &rtvHandle_, false, &dsvHandle);
+
+	// クリアカラー
+	float clearColor[] = { kRenderTextureClearColor_.x, kRenderTextureClearColor_.y, kRenderTextureClearColor_.z, kRenderTextureClearColor_.w };
+
+	// 画面のクリア
+	commandList->ClearRenderTargetView(rtvHandle_, clearColor, 0, nullptr);
+	commandList->ClearDepthStencilView(dsvHandle, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
+
+	// ビューポートとシザー矩形を設定
+	D3D12_VIEWPORT viewport = { 0.0f, 0.0f, static_cast<float>(WinApp::kClientWidth), static_cast<float>(WinApp::kClientHeight), 0.0f, 1.0f };
+	D3D12_RECT scissorRect = { 0, 0, WinApp::kClientWidth, WinApp::kClientHeight };
+
+	commandList->RSSetViewports(1, &viewport);
+	commandList->RSSetScissorRects(1, &scissorRect);
 }
 
 
@@ -69,7 +83,15 @@ void PostEffectManager::BeginDraw()
 /// -------------------------------------------------------------
 void PostEffectManager::EndDraw()
 {
+	auto commandList = dxCommon_->GetCommandList();
 
+	//dxCommon_->TransitionResource(renderResource_.Get(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_DEPTH_WRITE);
+
+	// 🔹 RENDER_TARGET から PRESENT へ遷移
+	dxCommon_->TransitionResource(renderResource_.Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
+
+	// 🔹 GPU が完了するのを待つ (デバッグ用)
+	dxCommon_->WaitCommand();
 }
 
 
@@ -78,7 +100,26 @@ void PostEffectManager::EndDraw()
 /// -------------------------------------------------------------
 void PostEffectManager::RenderPostEffect()
 {
+	auto commandList = dxCommon_->GetCommandList();
 
+	// 🔹 ポストエフェクトのパイプラインを設定
+	commandList->SetPipelineState(graphicsPipelineStates_["NormalEffect"].Get());
+
+	// 🔹 ルートシグネチャを設定
+	commandList->SetGraphicsRootSignature(rootSignatures_["NormalEffect"].Get());
+
+	// 🔹 SRV (シェーダーリソースビュー) をセット
+	commandList->SetGraphicsRootDescriptorTable(0, SRVManager::GetInstance()->GetGPUDescriptorHandle(rtvSrvIndex_));
+
+	// 🔹 スワップチェインのバックバッファを取得
+	uint32_t backBufferIndex = dxCommon_->GetSwapChain()->GetSwapChain()->GetCurrentBackBufferIndex();
+	ComPtr<ID3D12Resource> backBuffer = dxCommon_->GetBackBuffer(backBufferIndex);
+	D3D12_CPU_DESCRIPTOR_HANDLE backBufferRTV = dxCommon_->GetBackBufferRTV(backBufferIndex);
+
+	// 🔹 スワップチェインのバックバッファに描画
+	commandList->OMSetRenderTargets(1, &backBufferRTV, false, nullptr);
+	commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+	commandList->DrawInstanced(4, 1, 0, 0);
 }
 
 
@@ -89,13 +130,14 @@ ComPtr<ID3D12Resource> PostEffectManager::CreateRenderTextureResource(uint32_t w
 {
 	// テクスチャの設定
 	D3D12_RESOURCE_DESC resourceDesc{};
+	resourceDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;  // 2Dテクスチャ
 	resourceDesc.Width = width;									  // テクスチャの幅
 	resourceDesc.Height = height;								  // テクスチャの高さ
 	resourceDesc.DepthOrArraySize = 1;							  // 配列サイズ
 	resourceDesc.MipLevels = 1;									  // ミップマップレベル
 	resourceDesc.Format = format;								  // フォーマット
 	resourceDesc.SampleDesc.Count = 1;							  // サンプル数
-	resourceDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;  // 2Dテクスチャ
+	resourceDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
 	resourceDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET; // レンダーターゲットとして使う
 
 	// ヒープの設定
@@ -121,7 +163,7 @@ ComPtr<ID3D12Resource> PostEffectManager::CreateRenderTextureResource(uint32_t w
 		&heapProperties,					// ヒープの設定
 		D3D12_HEAP_FLAG_NONE,				// ヒープの特殊な設定
 		&resourceDesc,						// リソースの設定
-		D3D12_RESOURCE_STATE_RENDER_TARGET, // リソースの初期状態、レンダーターゲットとして使う
+		D3D12_RESOURCE_STATE_COMMON,		// リソースの初期状態、レンダーターゲットとして使う
 		&clearValue,						// クリア値の設定
 		IID_PPV_ARGS(&resource));			// 生成したリソースのポインタへのポインタを取得
 
