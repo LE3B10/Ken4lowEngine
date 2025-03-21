@@ -11,10 +11,12 @@
 #include <numbers>
 #include <map>
 
+
 /// ---------- 前方宣言 ---------- ///
 class DirectXCommon;
 class Camera;
 class Wireframe;
+
 
 /// -------------------------------------------------------------
 ///				　アニメーションを管理するクラス
@@ -64,7 +66,7 @@ private: /// ---------- メンバ関数 ---------- ///
 	void ApplyAnimation(float animationTime);
 
 	// SkinClusterの生成
-	SkinCluster CreateSkinCluster( const Skeleton& skeleton, const ModelData& modelData, uint32_t descriptorSize);
+	SkinCluster CreateSkinCluster(const Skeleton& skeleton, const ModelData& modelData, uint32_t descriptorSize);
 
 	// SkinClusterの更新
 	void UpdateSkinCluster(SkinCluster& skinCluster, const Skeleton& skeleton);
@@ -119,7 +121,7 @@ private: /// ---------- メンバ変数 ---------- ///
 	Camera* camera_ = nullptr;
 
 	Wireframe* wireframe_ = nullptr;
-	
+
 	// モデルデータ
 	ModelData modelData;
 	Animation animation;

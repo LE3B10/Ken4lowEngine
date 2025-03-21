@@ -2,6 +2,8 @@
 #include <Windows.h>
 #include <WinApp.h>
 #include <DirectXCommon.h>
+#include <DSVManager.h>
+#include <RTVManager.h>
 #include <SRVManager.h>
 #include <TextureManager.h>
 #include <ParticleManager.h>
@@ -54,22 +56,28 @@ void Framework::Initialize()
 	dxCommon_ = DirectXCommon::GetInstance();
 	dxCommon_->Initialize(winApp_, WinApp::kClientWidth, WinApp::kClientHeight);
 
-	// SRVマネージャーの生成
+	//// DSVマネージャの初期化
+	//DSVManager::GetInstance()->Initialize(dxCommon_);
+
+	//// RTVマネージャの初期化
+	//RTVManager::GetInstance()->Initialize(dxCommon_);
+
+	// SRVマネージャーの初期化
 	SRVManager::GetInstance()->Initialize(dxCommon_);
 
-	// テクスチャマネージャーの生成
+	// テクスチャマネージャーの初期化
 	TextureManager::GetInstance()->Initialize(dxCommon_);
 
-	// スプライトマネージャの生成
+	// スプライトマネージャの初期化
 	SpriteManager::GetInstance()->Initialize(dxCommon_);
 
-	// Object3DCommonの生成
+	// Object3DCommonの初期化
 	Object3DCommon::GetInstance()->Initialize(dxCommon_);
 
-	// アニメーションマネージャーの生成
+	// アニメーションマネージャーの初期化
 	AnimationModelManager::GetInstance()->Initialize(dxCommon_);
 
-	// デバッグカメラの生成
+	// デバッグカメラの初期化
 	DebugCamera::GetInstance()->Initialize();
 
 	// デフォルトカメラの生成と初期化
@@ -80,22 +88,22 @@ void Framework::Initialize()
 	// デフォルトカメラの設定
 	Object3DCommon::GetInstance()->SetDefaultCamera(defaultCamera_.get());
 
-	// ImGuiManagerの生成
+	// ImGuiManagerの初期化
 	ImGuiManager::GetInstance()->Initialize(winApp_, dxCommon_);
 
 	// ワイヤーフレームのカメラ設定
 	Wireframe::GetInstance()->SetCamera(defaultCamera_.get());
 
-	// ワイヤーフレームの生成
+	// ワイヤーフレームの初期化
 	Wireframe::GetInstance()->Initialize(dxCommon_);
 
-	// ParticleManagerの生成
+	// ParticleManagerの初期化
 	ParticleManager::GetInstance()->Initialize(dxCommon_, defaultCamera_.get());
 
-	// スカイボックスの生成
+	// スカイボックスの初期化
 	SkyBoxManager::GetInstance()->Initialize(dxCommon_);
 
-	// ポストエフェクトの生成
+	// ポストエフェクトの初期化
 	PostEffectManager::GetInstance()->Initialieze(dxCommon_);
 
 #pragma endregion -------------------------------------------

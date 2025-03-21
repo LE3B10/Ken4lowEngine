@@ -112,12 +112,10 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	UINT backBufferIndex = 0;
 
-private: /// ---------- メンバ変数 ---------- ///
+private: /// ---------- コピー禁止 ---------- ///
 
 	DirectXCommon() = default;
 	~DirectXCommon() = default;
-
-	// コピー禁止
 	DirectXCommon(const DirectXCommon&) = delete;
 	const DirectXCommon& operator=(const DirectXCommon&) = delete;
 };
