@@ -11,7 +11,7 @@ class FPSCounter
 public: /// ---------- メンバ関数 ---------- ///
 
 	// コンストラクタ
-	FPSCounter(int targetFPS = 60);
+	FPSCounter(int targetFPS = 144);
 
 	// フレーム開始時に呼ぶ
 	void StartFrame();

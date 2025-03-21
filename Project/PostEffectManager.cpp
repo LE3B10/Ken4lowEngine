@@ -56,7 +56,7 @@ void PostEffectManager::BeginDraw()
 {
 	auto commandList = dxCommon_->GetCommandList();
 
-	D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle = dxCommon_->GetDescriptorHeap()->GetDSVDescriptorHeap()->GetCPUDescriptorHandleForHeapStart();
+	//D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle = dxCommon_->GetDescriptorHeap()->GetDSVDescriptorHeap()->GetCPUDescriptorHandleForHeapStart();
 
 	// 描画先のRTVを設定
 	//commandList->OMSetRenderTargets(1, &rtvHandle_, false, &dsvHandle);

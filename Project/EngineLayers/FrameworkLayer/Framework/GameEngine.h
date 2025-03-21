@@ -4,7 +4,7 @@
 #include "LogString.h"
 #include "PipelineStateManager.h"
 #include "ResourceManager.h"
-#include "ModelManager.h"
+#include <FPSCounter.h>
 
 #include <Framework.h>
 #include <SceneManager.h>
@@ -31,7 +31,7 @@ public: /// ---------- メンバ関数 ---------- ///
 
 private: /// ---------- メンバ変数 ---------- ///
 
-	ModelManager* modelManager = nullptr;
+	FPSCounter fpsCounter_;
 
 	std::vector<std::unique_ptr<Sprite>> sprites_;
 	std::vector<std::unique_ptr<Object3D>> objects3D_;

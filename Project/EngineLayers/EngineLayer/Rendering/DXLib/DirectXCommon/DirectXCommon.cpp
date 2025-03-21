@@ -33,9 +33,6 @@ void DirectXCommon::Initialize(WinApp* winApp, uint32_t Width, uint32_t Height)
 	kClientWidth = Width;
 	kClientHeight = Height;
 
-	// FPSカウンターの初期化
-	fpsCounter_.SetTargetFPS(144); // 60FPS
-
 	// デバッグレイヤーをオンに
 	DebugLayer();
 
