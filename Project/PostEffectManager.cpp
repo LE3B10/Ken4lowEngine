@@ -8,7 +8,6 @@
 #include "Camera.h"
 
 #include <cassert>
-#include <d3dx12.h>
 
 
 /// -------------------------------------------------------------
@@ -32,20 +31,17 @@ void PostEffectManager::Initialieze(DirectXCommon* dxCommon)
 	CreatePipelineState("NormalEffect");
 
 	// レンダーテクスチャの生成
-	auto renderTextureResource = CreateRenderTextureResource(WinApp::kClientWidth, WinApp::kClientHeight, DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, kRenderTextureClearColor_);
+	renderResource_ = CreateRenderTextureResource(WinApp::kClientWidth, WinApp::kClientHeight, DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, kRenderTextureClearColor_);
+	renderResource_->SetName(L"Render Target Texture");
 
-	// RTVの設定
-	D3D12_RENDER_TARGET_VIEW_DESC rtvDesc{};
-	rtvDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB; // 出力結果を SRGB に変換
-	rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
+	// RTVの確保
+	uint32_t rtvIndex = RTVManager::GetInstance()->Allocate();
+	RTVManager::GetInstance()->CreateRTVForTexture2D(rtvIndex, renderResource_.Get());
+	rtvHandle_ = RTVManager::GetInstance()->GetCPUDescriptorHandle(rtvIndex);
 
-	// RTVの生成
-	//rtvHandle_ = dxCommon_->GetDescriptorHeap()->GetFreeRTVHandle();
-	//dxCommon_->GetDevice()->CreateRenderTargetView(renderTextureResource.Get(), &rtvDesc, rtvHandle_);
-
-	// SRVの設定。FormatはResourceと同じにしておく
+	// SRVの確保
 	rtvSrvIndex_ = SRVManager::GetInstance()->Allocate();
-	SRVManager::GetInstance()->CreateSRVForTexture2D(rtvSrvIndex_, renderTextureResource.Get(), DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, 1);
+	SRVManager::GetInstance()->CreateSRVForTexture2D(rtvSrvIndex_, renderResource_.Get(), DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, 1);
 }
 
 
@@ -56,11 +52,34 @@ void PostEffectManager::BeginDraw()
 {
 	auto commandList = dxCommon_->GetCommandList();
 
-	//D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle = dxCommon_->GetDescriptorHeap()->GetDSVDescriptorHeap()->GetCPUDescriptorHandleForHeapStart();
+	// 🔹 現在のリソース状態をチェックしてから遷移
+	D3D12_RESOURCE_STATES currentState = D3D12_RESOURCE_STATE_RENDER_TARGET; // 初期状態
 
-	// 描画先のRTVを設定
-	//commandList->OMSetRenderTargets(1, &rtvHandle_, false, &dsvHandle);
+	// `EndDraw()` で `PRESENT` に遷移している場合のみ `RENDER_TARGET` に戻す
+	if (currentState == D3D12_RESOURCE_STATE_PRESENT)
+	{
+		dxCommon_->TransitionResource(renderResource_.Get(), D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
+	}
 
+	// DSVの取得
+	D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle = DSVManager::GetInstance()->GetCPUDescriptorHandle(0);
+
+	// レンダーターゲットを設定
+	commandList->OMSetRenderTargets(1, &rtvHandle_, false, &dsvHandle);
+
+	// クリアカラー
+	float clearColor[] = { kRenderTextureClearColor_.x, kRenderTextureClearColor_.y, kRenderTextureClearColor_.z, kRenderTextureClearColor_.w };
+
+	// 画面のクリア
+	commandList->ClearRenderTargetView(rtvHandle_, clearColor, 0, nullptr);
+	commandList->ClearDepthStencilView(dsvHandle, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
+
+	// ビューポートとシザー矩形を設定
+	D3D12_VIEWPORT viewport = { 0.0f, 0.0f, static_cast<float>(WinApp::kClientWidth), static_cast<float>(WinApp::kClientHeight), 0.0f, 1.0f };
+	D3D12_RECT scissorRect = { 0, 0, WinApp::kClientWidth, WinApp::kClientHeight };
+
+	commandList->RSSetViewports(1, &viewport);
+	commandList->RSSetScissorRects(1, &scissorRect);
 }
 
 
@@ -69,7 +88,8 @@ void PostEffectManager::BeginDraw()
 /// -------------------------------------------------------------
 void PostEffectManager::EndDraw()
 {
-
+	auto commandList = dxCommon_->GetCommandList();
+	dxCommon_->TransitionResource(renderResource_.Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
 }
 
 
@@ -78,6 +98,7 @@ void PostEffectManager::EndDraw()
 /// -------------------------------------------------------------
 void PostEffectManager::RenderPostEffect()
 {
+	auto commandList = dxCommon_->GetCommandList();
 
 }
 
@@ -89,13 +110,14 @@ ComPtr<ID3D12Resource> PostEffectManager::CreateRenderTextureResource(uint32_t w
 {
 	// テクスチャの設定
 	D3D12_RESOURCE_DESC resourceDesc{};
+	resourceDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;  // 2Dテクスチャ
 	resourceDesc.Width = width;									  // テクスチャの幅
 	resourceDesc.Height = height;								  // テクスチャの高さ
 	resourceDesc.DepthOrArraySize = 1;							  // 配列サイズ
 	resourceDesc.MipLevels = 1;									  // ミップマップレベル
 	resourceDesc.Format = format;								  // フォーマット
 	resourceDesc.SampleDesc.Count = 1;							  // サンプル数
-	resourceDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;  // 2Dテクスチャ
+	resourceDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
 	resourceDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET; // レンダーターゲットとして使う
 
 	// ヒープの設定
