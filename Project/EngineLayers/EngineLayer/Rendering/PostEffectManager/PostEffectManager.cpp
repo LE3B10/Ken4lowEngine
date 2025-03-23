@@ -51,10 +51,8 @@ void PostEffectManager::BeginDraw()
 {
 	auto commandList = dxCommon_->GetCommandList();
 
-	// 🔹 リソースのバリア遷移 (確実にRENDER_TARGETに変更)
-	dxCommon_->TransitionResource(renderResource_.Get(), D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_RENDER_TARGET);
-
-	//dxCommon_->TransitionResource(renderResource_.Get(), D3D12_RESOURCE_STATE_DEPTH_WRITE, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+	// 🔹 **バリア処理を適用**
+	SetBarrier(D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_RENDER_TARGET);
 
 	// DSVの取得
 	D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle = DSVManager::GetInstance()->GetCPUDescriptorHandle(0);
@@ -67,6 +65,8 @@ void PostEffectManager::BeginDraw()
 
 	// 画面のクリア
 	commandList->ClearRenderTargetView(rtvHandle_, clearColor, 0, nullptr);
+
+	// 深度バッファのクリア
 	commandList->ClearDepthStencilView(dsvHandle, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
 
 	// ビューポートとシザー矩形を設定
@@ -85,10 +85,8 @@ void PostEffectManager::EndDraw()
 {
 	auto commandList = dxCommon_->GetCommandList();
 
-	//dxCommon_->TransitionResource(renderResource_.Get(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_DEPTH_WRITE);
-
-	// 🔹 RENDER_TARGET から PRESENT へ遷移
-	dxCommon_->TransitionResource(renderResource_.Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
+	// 🔹 **バリアを適用**
+	SetBarrier(D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
 
 	// 🔹 GPU が完了するのを待つ (デバッグ用)
 	dxCommon_->WaitCommand();
@@ -102,6 +100,11 @@ void PostEffectManager::RenderPostEffect()
 {
 	auto commandList = dxCommon_->GetCommandList();
 
+	// 🔹 スワップチェインのバックバッファを取得
+	uint32_t backBufferIndex = dxCommon_->GetSwapChain()->GetSwapChain()->GetCurrentBackBufferIndex();
+	ComPtr<ID3D12Resource> backBuffer = dxCommon_->GetBackBuffer(backBufferIndex);
+	D3D12_CPU_DESCRIPTOR_HANDLE backBufferRTV = dxCommon_->GetBackBufferRTV(backBufferIndex);
+
 	// 🔹 ポストエフェクトのパイプラインを設定
 	commandList->SetPipelineState(graphicsPipelineStates_["NormalEffect"].Get());
 
@@ -111,15 +114,21 @@ void PostEffectManager::RenderPostEffect()
 	// 🔹 SRV (シェーダーリソースビュー) をセット
 	commandList->SetGraphicsRootDescriptorTable(0, SRVManager::GetInstance()->GetGPUDescriptorHandle(rtvSrvIndex_));
 
-	// 🔹 スワップチェインのバックバッファを取得
-	uint32_t backBufferIndex = dxCommon_->GetSwapChain()->GetSwapChain()->GetCurrentBackBufferIndex();
-	ComPtr<ID3D12Resource> backBuffer = dxCommon_->GetBackBuffer(backBufferIndex);
-	D3D12_CPU_DESCRIPTOR_HANDLE backBufferRTV = dxCommon_->GetBackBufferRTV(backBufferIndex);
-
-	// 🔹 スワップチェインのバックバッファに描画
+	// 🔹 スワップチェインのバッファを描画ターゲットにする
 	commandList->OMSetRenderTargets(1, &backBufferRTV, false, nullptr);
+
+	// 🔹 フルスクリーンクアッドを描画
 	commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 	commandList->DrawInstanced(4, 1, 0, 0);
+}
+
+
+/// -------------------------------------------------------------
+///				　			バリアの設定
+/// -------------------------------------------------------------
+void PostEffectManager::SetBarrier(D3D12_RESOURCE_STATES stateBefore, D3D12_RESOURCE_STATES stateAfter)
+{
+	dxCommon_->TransitionResource(renderResource_.Get(), stateBefore, stateAfter);
 }
 
 

@@ -3,6 +3,9 @@
 #include "PostEffectManager.h"
 
 #include <cassert>
+#include <Wireframe.h>
+#include <SceneManager.h>
+#include <ParticleManager.h>
 
 
 #pragma comment(lib,"dxcompiler.lib")
@@ -65,11 +68,16 @@ void DirectXCommon::BeginDraw()
 	// FPSカウンターの開始
 	fpsCounter_.StartFrame();
 
-	// これから書き込むバックバッファのインデックスを取得
+	// **バックバッファの取得**
 	backBufferIndex = swapChain_->GetSwapChain()->GetCurrentBackBufferIndex();
+	ComPtr<ID3D12Resource> backBuffer = GetBackBuffer(backBufferIndex);
+	ComPtr<ID3D12Resource> depthBuffer = GetDepthStencilResource();
 
-	// バリアで書き込み可能に変更
-	ChangeBarrier();
+	// **スワップチェインのバリア (`PRESENT` → `RENDER_TARGET`)**
+	TransitionResource(backBuffer.Get(), D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
+
+	// **深度バッファのバリア (`DEPTH_WRITE` → `PIXEL_SHADER_RESOURCE`)**
+	TransitionResource(depthBuffer.Get(), D3D12_RESOURCE_STATE_DEPTH_WRITE, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 
 	// 画面をクリア
 	ClearWindow();
@@ -92,11 +100,11 @@ void DirectXCommon::EndDraw()
 	HRESULT hr{};
 
 	backBufferIndex = swapChain_->GetSwapChain()->GetCurrentBackBufferIndex();
+	ComPtr<ID3D12Resource> backBuffer = GetBackBuffer(backBufferIndex);
 
-	// バリアで描画が完了したことを示す
-	barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
-	barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_PRESENT;
-	commandList_->ResourceBarrier(1, &barrier);
+	// **スワップチェインのバリア (`RENDER_TARGET` → `PRESENT`)**
+	TransitionResource(backBuffer.Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
+
 
 	// コマンドリストの内容を確定させる。すべてのコマンドを積んでからCloseすること
 	hr = commandList_->Close();
@@ -341,6 +349,10 @@ void DirectXCommon::ClearWindow()
 	// RTVとDSVの取得
 	D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle = RTVManager::GetInstance()->GetCPUDescriptorHandle(backBufferIndex);
 	D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle = DSVManager::GetInstance()->GetCPUDescriptorHandle(0);
+
+	// **深度バッファを DEPTH_WRITE に変更**
+	ComPtr<ID3D12Resource> depthBuffer = GetDepthStencilResource();
+	TransitionResource(depthBuffer.Get(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_DEPTH_WRITE);
 
 	// 描画先のRTVとDSVを設定
 	commandList_->OMSetRenderTargets(1, &rtvHandle, false, &dsvHandle);

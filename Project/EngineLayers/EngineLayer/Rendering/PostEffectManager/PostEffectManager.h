@@ -35,6 +35,9 @@ public: /// ---------- メンバ関数 ---------- ///
 	// ポストエフェクトの描画適用処理
 	void RenderPostEffect();
 
+	// バリアの設定
+	void SetBarrier(D3D12_RESOURCE_STATES stateBefore, D3D12_RESOURCE_STATES stateAfter);
+
 private: /// ---------- メンバ関数 ---------- ///
 
 	// レンダーテクスチャリソースの生成

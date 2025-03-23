@@ -61,6 +61,8 @@ public: /// ---------- ゲッター ---------- ///
 
 	D3D12_CPU_DESCRIPTOR_HANDLE GetBackBufferRTV(uint32_t index) { return RTVManager::GetInstance()->GetCPUDescriptorHandle(index); }
 
+	ComPtr<ID3D12Resource> GetDepthStencilResource() const { return depthStencilResource.Get(); }
+
 private: /// ---------- メンバ関数 ---------- ///
 
 	// デバッグレイヤーの表示
