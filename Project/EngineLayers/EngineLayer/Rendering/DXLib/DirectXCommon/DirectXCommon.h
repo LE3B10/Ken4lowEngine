@@ -57,9 +57,14 @@ public: /// ---------- ゲッター ---------- ///
 	// FPSの取得
 	FPSCounter& GetFPSCounter() { return fpsCounter_; }
 
+	// バックバッファを取得
 	ComPtr<ID3D12Resource> GetBackBuffer(uint32_t index);
 
+	// RTVのバックバッファを取得
 	D3D12_CPU_DESCRIPTOR_HANDLE GetBackBufferRTV(uint32_t index) { return RTVManager::GetInstance()->GetCPUDescriptorHandle(index); }
+
+	// 深度ステンシルリソースを取得
+	ComPtr<ID3D12Resource> GetDepthStencilResource() const { return depthStencilResource.Get(); }
 
 private: /// ---------- メンバ関数 ---------- ///
 

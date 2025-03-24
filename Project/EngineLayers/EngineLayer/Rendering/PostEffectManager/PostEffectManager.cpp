@@ -1,6 +1,6 @@
 #include "PostEffectManager.h"
 #include "WinApp.h"
-#include "DirectXCommon.h"
+//#include "DirectXCommon.h"
 #include "SRVManager.h"
 #include "ShaderManager.h"
 #include "LogString.h"
@@ -41,6 +41,12 @@ void PostEffectManager::Initialieze(DirectXCommon* dxCommon)
 	// SRVの確保
 	rtvSrvIndex_ = SRVManager::GetInstance()->Allocate();
 	SRVManager::GetInstance()->CreateSRVForTexture2D(rtvSrvIndex_, renderResource_.Get(), DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, 1);
+
+	// ビューポート矩形の設定
+	viewport = D3D12_VIEWPORT(0.0f, 0.0f, static_cast<float>(WinApp::kClientWidth), static_cast<float>(WinApp::kClientHeight), 0.0f, 1.0f);
+
+	// シザリング矩形の設定
+	scissorRect = { 0, 0, static_cast<LONG>(WinApp::kClientWidth), static_cast<LONG>(WinApp::kClientHeight) };
 }
 
 
@@ -51,10 +57,8 @@ void PostEffectManager::BeginDraw()
 {
 	auto commandList = dxCommon_->GetCommandList();
 
-	// 🔹 リソースのバリア遷移 (確実にRENDER_TARGETに変更)
-	dxCommon_->TransitionResource(renderResource_.Get(), D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_RENDER_TARGET);
-
-	//dxCommon_->TransitionResource(renderResource_.Get(), D3D12_RESOURCE_STATE_DEPTH_WRITE, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+	// 🔹 **バリア処理を適用**
+	SetBarrier(D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_RENDER_TARGET);
 
 	// DSVの取得
 	D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle = DSVManager::GetInstance()->GetCPUDescriptorHandle(0);
@@ -67,11 +71,9 @@ void PostEffectManager::BeginDraw()
 
 	// 画面のクリア
 	commandList->ClearRenderTargetView(rtvHandle_, clearColor, 0, nullptr);
-	commandList->ClearDepthStencilView(dsvHandle, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
 
-	// ビューポートとシザー矩形を設定
-	D3D12_VIEWPORT viewport = { 0.0f, 0.0f, static_cast<float>(WinApp::kClientWidth), static_cast<float>(WinApp::kClientHeight), 0.0f, 1.0f };
-	D3D12_RECT scissorRect = { 0, 0, WinApp::kClientWidth, WinApp::kClientHeight };
+	// 深度バッファのクリア
+	commandList->ClearDepthStencilView(dsvHandle, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
 
 	commandList->RSSetViewports(1, &viewport);
 	commandList->RSSetScissorRects(1, &scissorRect);
@@ -85,10 +87,8 @@ void PostEffectManager::EndDraw()
 {
 	auto commandList = dxCommon_->GetCommandList();
 
-	//dxCommon_->TransitionResource(renderResource_.Get(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_DEPTH_WRITE);
-
-	// 🔹 RENDER_TARGET から PRESENT へ遷移
-	dxCommon_->TransitionResource(renderResource_.Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
+	// 🔹 **バリアを適用**
+	SetBarrier(D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
 
 	// 🔹 GPU が完了するのを待つ (デバッグ用)
 	dxCommon_->WaitCommand();
@@ -102,6 +102,15 @@ void PostEffectManager::RenderPostEffect()
 {
 	auto commandList = dxCommon_->GetCommandList();
 
+	// 🔹 スワップチェインのバックバッファを取得
+	uint32_t backBufferIndex = dxCommon_->GetSwapChain()->GetSwapChain()->GetCurrentBackBufferIndex();
+	ComPtr<ID3D12Resource> backBuffer = dxCommon_->GetBackBuffer(backBufferIndex);
+	D3D12_CPU_DESCRIPTOR_HANDLE backBufferRTV = dxCommon_->GetBackBufferRTV(backBufferIndex);
+
+	// 🔹 ポストエフェクト専用のビューポートとシザー矩形を設定
+	commandList->RSSetViewports(1, &viewport);
+	commandList->RSSetScissorRects(1, &scissorRect);
+
 	// 🔹 ポストエフェクトのパイプラインを設定
 	commandList->SetPipelineState(graphicsPipelineStates_["NormalEffect"].Get());
 
@@ -111,15 +120,21 @@ void PostEffectManager::RenderPostEffect()
 	// 🔹 SRV (シェーダーリソースビュー) をセット
 	commandList->SetGraphicsRootDescriptorTable(0, SRVManager::GetInstance()->GetGPUDescriptorHandle(rtvSrvIndex_));
 
-	// 🔹 スワップチェインのバックバッファを取得
-	uint32_t backBufferIndex = dxCommon_->GetSwapChain()->GetSwapChain()->GetCurrentBackBufferIndex();
-	ComPtr<ID3D12Resource> backBuffer = dxCommon_->GetBackBuffer(backBufferIndex);
-	D3D12_CPU_DESCRIPTOR_HANDLE backBufferRTV = dxCommon_->GetBackBufferRTV(backBufferIndex);
-
-	// 🔹 スワップチェインのバックバッファに描画
+	// 🔹 スワップチェインのバッファを描画ターゲットにする
 	commandList->OMSetRenderTargets(1, &backBufferRTV, false, nullptr);
-	commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
-	commandList->DrawInstanced(4, 1, 0, 0);
+
+	// 🔹 フルスクリーンクアッドを描画
+	commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	commandList->DrawInstanced(3, 1, 0, 0);
+}
+
+
+/// -------------------------------------------------------------
+///				　			バリアの設定
+/// -------------------------------------------------------------
+void PostEffectManager::SetBarrier(D3D12_RESOURCE_STATES stateBefore, D3D12_RESOURCE_STATES stateAfter)
+{
+	dxCommon_->TransitionResource(renderResource_.Get(), stateBefore, stateAfter);
 }
 
 
