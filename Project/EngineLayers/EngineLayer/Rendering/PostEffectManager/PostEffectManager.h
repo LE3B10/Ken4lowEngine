@@ -49,6 +49,9 @@ private: /// ---------- メンバ関数 ---------- ///
 	// PSOを生成
 	void CreatePipelineState(const std::string& effectName);
 
+	// ポストエフェクトを設定
+	void SetPostEffect(const std::string& effectName);
+
 private: /// ---------- メンバ変数 ---------- ///
 
 	DirectXCommon* dxCommon_ = nullptr;

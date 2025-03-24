@@ -30,6 +30,9 @@ void PostEffectManager::Initialieze(DirectXCommon* dxCommon)
 	// パイプラインを生成
 	CreatePipelineState("NormalEffect");
 
+	// グレイスケールのパイプラインを生成
+	CreatePipelineState("GrayScaleEffect");
+
 	// レンダーテクスチャの生成
 	renderResource_ = CreateRenderTextureResource(WinApp::kClientWidth, WinApp::kClientHeight, DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, kRenderTextureClearColor_);
 
@@ -111,11 +114,9 @@ void PostEffectManager::RenderPostEffect()
 	commandList->RSSetViewports(1, &viewport);
 	commandList->RSSetScissorRects(1, &scissorRect);
 
-	// 🔹 ポストエフェクトのパイプラインを設定
-	commandList->SetPipelineState(graphicsPipelineStates_["NormalEffect"].Get());
-
-	// 🔹 ルートシグネチャを設定
-	commandList->SetGraphicsRootSignature(rootSignatures_["NormalEffect"].Get());
+	// 🔹 ポストエフェクトの設定
+	SetPostEffect("NormalEffect");
+	SetPostEffect("GrayScaleEffect");
 
 	// 🔹 SRV (シェーダーリソースビュー) をセット
 	commandList->SetGraphicsRootDescriptorTable(0, SRVManager::GetInstance()->GetGPUDescriptorHandle(rtvSrvIndex_));
@@ -331,4 +332,21 @@ void PostEffectManager::CreatePipelineState(const std::string& effectName)
 	// パイプラインステートオブジェクトの生成
 	hr = dxCommon_->GetDevice()->CreateGraphicsPipelineState(&graphicsPipelineStateDesc, IID_PPV_ARGS(&graphicsPipelineStates_[effectName]));
 	assert(SUCCEEDED(hr));
+}
+
+
+/// -------------------------------------------------------------
+///				　		ポストエフェクトを設定
+/// -------------------------------------------------------------
+void PostEffectManager::SetPostEffect(const std::string& effectName)
+{
+	// ノーマルエフェクトかグレースケールエフェクトかで処理を分岐
+	if (effectName == "NormalEffect" || effectName == "GrayScaleEffect")
+	{
+		// 🔹 ポストエフェクトのパイプラインを設定
+		dxCommon_->GetCommandList()->SetPipelineState(graphicsPipelineStates_[effectName].Get());
+
+		// 🔹 ルートシグネチャを設定
+		dxCommon_->GetCommandList()->SetGraphicsRootSignature(rootSignatures_[effectName].Get());
+	}
 }
