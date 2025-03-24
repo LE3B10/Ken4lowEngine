@@ -18,6 +18,22 @@ class DirectXCommon;
 /// -------------------------------------------------------------
 class PostEffectManager
 {
+private: /// ---------- 構造体 ---------- ///
+
+	// ポストエフェクトの設定
+	struct PostEffectSetting
+	{
+		std::string effectName; // エフェクト名
+		std::string shaderName; // シェーダ名
+	};
+
+	// ヴィグネットの設定
+	struct VignetteSetting
+	{
+		float power = 0.0f; // パワー
+		float range = 0.0f; // 範囲
+	};
+
 public: /// ---------- メンバ関数 ---------- ///
 
 	// シングルトンインスタンス
@@ -52,17 +68,29 @@ private: /// ---------- メンバ関数 ---------- ///
 	// ポストエフェクトを設定
 	void SetPostEffect(const std::string& effectName);
 
+private: /// ---------- メンバ関数 ---------- ///
+
+	// RTVとSRVの確保
+	void AllocateRTVAndSRV();
+
+	// ビューポート矩形とシザリング矩形の設定
+	void SetViewportAndScissorRect();
+
+	// ヴィグネットの初期化
+	void InitializeVignette();
+
 private: /// ---------- メンバ変数 ---------- ///
 
 	DirectXCommon* dxCommon_ = nullptr;
 
 	// レンダーテクスチャのクリアカラー
-	const Vector4 kRenderTextureClearColor_ = { 0.0f, 0.0f, 1.0f, 1.0f }; // 分かりやすいように一旦赤色にする
+	const Vector4 kRenderTextureClearColor_ = { 0.08f, 0.08f, 0.18f, 1.0f }; // 分かりやすいように一旦赤色にする
 
 	ComPtr <ID3DBlob> signatureBlob_;
 	ComPtr <ID3DBlob> errorBlob_;
 
 	ComPtr<ID3D12Resource> renderResource_;
+	ComPtr<ID3D12Resource> vignetteResource_;
 
 	// ルートシグネチャ
 	std::unordered_map<std::string, ComPtr<ID3D12RootSignature>> rootSignatures_;
@@ -75,6 +103,10 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	D3D12_VIEWPORT viewport{};
 	D3D12_RECT scissorRect{};
+
+private: /// ---------- メンバ変数 ---------- ///
+
+	VignetteSetting vignetteSetting_{};
 
 private: /// ---------- コピー禁止 ---------- ///
 

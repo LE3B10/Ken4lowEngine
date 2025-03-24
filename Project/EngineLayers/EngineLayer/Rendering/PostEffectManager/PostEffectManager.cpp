@@ -1,11 +1,12 @@
 #include "PostEffectManager.h"
 #include "WinApp.h"
-//#include "DirectXCommon.h"
+#include "DirectXCommon.h"
 #include "SRVManager.h"
 #include "ShaderManager.h"
 #include "LogString.h"
 #include "Object3DCommon.h"
 #include "Camera.h"
+#include "ResourceManager.h"
 
 #include <cassert>
 
@@ -32,24 +33,19 @@ void PostEffectManager::Initialieze(DirectXCommon* dxCommon)
 
 	// グレイスケールのパイプラインを生成
 	CreatePipelineState("GrayScaleEffect");
+	
+	// ヴィネットのパイプラインを生成
+	CreatePipelineState("VignetteEffect");
+	InitializeVignette();
 
 	// レンダーテクスチャの生成
 	renderResource_ = CreateRenderTextureResource(WinApp::kClientWidth, WinApp::kClientHeight, DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, kRenderTextureClearColor_);
 
-	// RTVの確保
-	uint32_t rtvIndex = RTVManager::GetInstance()->Allocate();
-	RTVManager::GetInstance()->CreateRTVForTexture2D(rtvIndex, renderResource_.Get());
-	rtvHandle_ = RTVManager::GetInstance()->GetCPUDescriptorHandle(rtvIndex);
+	// RTVとSRVの確保
+	AllocateRTVAndSRV();
 
-	// SRVの確保
-	rtvSrvIndex_ = SRVManager::GetInstance()->Allocate();
-	SRVManager::GetInstance()->CreateSRVForTexture2D(rtvSrvIndex_, renderResource_.Get(), DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, 1);
-
-	// ビューポート矩形の設定
-	viewport = D3D12_VIEWPORT(0.0f, 0.0f, static_cast<float>(WinApp::kClientWidth), static_cast<float>(WinApp::kClientHeight), 0.0f, 1.0f);
-
-	// シザリング矩形の設定
-	scissorRect = { 0, 0, static_cast<LONG>(WinApp::kClientWidth), static_cast<LONG>(WinApp::kClientHeight) };
+	// ビューポート矩形とシザリング矩形の設定
+	SetViewportAndScissorRect();
 }
 
 
@@ -115,8 +111,9 @@ void PostEffectManager::RenderPostEffect()
 	commandList->RSSetScissorRects(1, &scissorRect);
 
 	// 🔹 ポストエフェクトの設定
-	SetPostEffect("NormalEffect");
-	SetPostEffect("GrayScaleEffect");
+	/*SetPostEffect("NormalEffect");
+	SetPostEffect("GrayScaleEffect");*/
+	SetPostEffect("VignetteEffect");
 
 	// 🔹 SRV (シェーダーリソースビュー) をセット
 	commandList->SetGraphicsRootDescriptorTable(0, SRVManager::GetInstance()->GetGPUDescriptorHandle(rtvSrvIndex_));
@@ -340,13 +337,67 @@ void PostEffectManager::CreatePipelineState(const std::string& effectName)
 /// -------------------------------------------------------------
 void PostEffectManager::SetPostEffect(const std::string& effectName)
 {
+	ID3D12GraphicsCommandList* commandList = dxCommon_->GetCommandList();
+
+	// 🔹 ポストエフェクトのパイプラインを設定
+	commandList->SetPipelineState(graphicsPipelineStates_[effectName].Get());
+
+	// 🔹 ルートシグネチャを設定
+	commandList->SetGraphicsRootSignature(rootSignatures_[effectName].Get());
+
 	// ノーマルエフェクトかグレースケールエフェクトかで処理を分岐
 	if (effectName == "NormalEffect" || effectName == "GrayScaleEffect")
 	{
-		// 🔹 ポストエフェクトのパイプラインを設定
-		dxCommon_->GetCommandList()->SetPipelineState(graphicsPipelineStates_[effectName].Get());
-
-		// 🔹 ルートシグネチャを設定
-		dxCommon_->GetCommandList()->SetGraphicsRootSignature(rootSignatures_[effectName].Get());
+		return; // 何もしない
 	}
+	else if (effectName == "VignetteEffect")
+	{
+		commandList->SetGraphicsRootConstantBufferView(1, vignetteResource_->GetGPUVirtualAddress());
+	}
+}
+
+
+/// -------------------------------------------------------------
+///				　		RTVとSRVの確保
+/// -------------------------------------------------------------
+void PostEffectManager::AllocateRTVAndSRV()
+{
+	// RTVの確保
+	uint32_t rtvIndex = RTVManager::GetInstance()->Allocate();
+	RTVManager::GetInstance()->CreateRTVForTexture2D(rtvIndex, renderResource_.Get());
+	rtvHandle_ = RTVManager::GetInstance()->GetCPUDescriptorHandle(rtvIndex);
+
+	// SRVの確保
+	rtvSrvIndex_ = SRVManager::GetInstance()->Allocate();
+	SRVManager::GetInstance()->CreateSRVForTexture2D(rtvSrvIndex_, renderResource_.Get(), DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, 1);
+}
+
+
+/// -------------------------------------------------------------
+///				ビューポート矩形とシザリング矩形の設定
+/// -------------------------------------------------------------
+void PostEffectManager::SetViewportAndScissorRect()
+{
+	// ビューポート矩形の設定
+	viewport = D3D12_VIEWPORT(0.0f, 0.0f, static_cast<float>(WinApp::kClientWidth), static_cast<float>(WinApp::kClientHeight), 0.0f, 1.0f);
+
+	// シザリング矩形の設定
+	scissorRect = { 0, 0, static_cast<LONG>(WinApp::kClientWidth), static_cast<LONG>(WinApp::kClientHeight) };
+}
+
+
+/// -------------------------------------------------------------
+///				　		 ヴィネットの初期化
+/// -------------------------------------------------------------
+void PostEffectManager::InitializeVignette()
+{
+	// リソースの生成
+	vignetteResource_ = ResourceManager::CreateBufferResource(dxCommon_->GetDevice(), sizeof(VignetteSetting));
+
+	// データの設定
+	vignetteResource_->Map(0, nullptr, reinterpret_cast<void**>(&vignetteSetting_));
+
+	// ヴィグネットの設定
+	vignetteSetting_.power = 1.0f;
+	vignetteSetting_.range = 0.5f;
 }

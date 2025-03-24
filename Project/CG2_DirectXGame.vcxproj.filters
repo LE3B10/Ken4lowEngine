@@ -255,6 +255,7 @@
     <FxCompile Include="Resources\Shaders\NormalEffect.PS.hlsl" />
     <FxCompile Include="Resources\Shaders\FullScreen.VS.hlsl" />
     <FxCompile Include="Resources\Shaders\GrayScaleEffect.PS.hlsl" />
+    <FxCompile Include="Resources\Shaders\VignetteEffect.PS.hlsl" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Externals\imgui\imconfig.h">
