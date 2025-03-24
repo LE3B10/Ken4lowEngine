@@ -109,10 +109,10 @@ void GameEngine::Draw()
 	PostEffectManager::GetInstance()->EndDraw();
 
 	// 🔹 ポストエフェクトの適用前にSRVManagerの事前処理を再度呼ぶ
-	SRVManager::GetInstance()->PreDraw();
+	//SRVManager::GetInstance()->PreDraw();
 
 	// ポストエフェクトの適用（ImGui描画前）
-	PostEffectManager::GetInstance()->RenderPostEffect();
+//	PostEffectManager::GetInstance()->RenderPostEffect();
 
 	// ImGui描画開始 (ポストエフェクトの結果にオーバーレイ)
 	imguiManager_->Draw();

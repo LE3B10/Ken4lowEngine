@@ -7,6 +7,8 @@
 #include <SceneManager.h>
 #include <ParticleManager.h>
 
+#include "ImGuiManager.h"
+
 
 #pragma comment(lib,"dxcompiler.lib")
 
@@ -57,6 +59,12 @@ void DirectXCommon::Initialize(WinApp* winApp, uint32_t Width, uint32_t Height)
 
 	// RTV & DSVの初期化処理
 	InitializeRTVAndDSV();
+
+	// ビューポート矩形の設定
+	viewport = D3D12_VIEWPORT(0.0f, 0.0f, (float)kClientWidth, (float)kClientHeight, 0.0f, 1.0f);
+
+	// シザリング矩形の設定
+	scissorRect = D3D12_RECT(0, 0, kClientWidth, kClientHeight);
 }
 
 
@@ -67,6 +75,9 @@ void DirectXCommon::BeginDraw()
 {
 	// FPSカウンターの開始
 	fpsCounter_.StartFrame();
+
+	commandList_->RSSetViewports(1, &viewport);		  // ビューポート矩形
+	commandList_->RSSetScissorRects(1, &scissorRect); // シザー矩形
 
 	// **バックバッファの取得**
 	backBufferIndex = swapChain_->GetSwapChain()->GetCurrentBackBufferIndex();
@@ -81,14 +92,6 @@ void DirectXCommon::BeginDraw()
 
 	// 画面をクリア
 	ClearWindow();
-
-	// ビューポート矩形の設定
-	viewport = D3D12_VIEWPORT(0.0f, 0.0f, (float)kClientWidth, (float)kClientHeight, 0.0f, 1.0f);
-	commandList_->RSSetViewports(1, &viewport);
-
-	// シザリング矩形の設定
-	scissorRect = D3D12_RECT(0, 0, kClientWidth, kClientHeight);
-	commandList_->RSSetScissorRects(1, &scissorRect);
 }
 
 
@@ -99,47 +102,33 @@ void DirectXCommon::EndDraw()
 {
 	HRESULT hr{};
 
+	// ポストエフェクトを適用
+	PostEffectManager::GetInstance()->RenderPostEffect();
+
+	// **バックバッファの取得**
 	backBufferIndex = swapChain_->GetSwapChain()->GetCurrentBackBufferIndex();
 	ComPtr<ID3D12Resource> backBuffer = GetBackBuffer(backBufferIndex);
+	backBuffer->SetName(L"BackBuffer"); // 名前をつける
 
 	// **スワップチェインのバリア (`RENDER_TARGET` → `PRESENT`)**
 	TransitionResource(backBuffer.Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
 
 
-	// コマンドリストの内容を確定させる。すべてのコマンドを積んでからCloseすること
-	hr = commandList_->Close();
-	assert(SUCCEEDED(hr));
+	// 🔹 **バックバッファを再度 RENDER_TARGET に変更**
+	TransitionResource(backBuffer.Get(), D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
 
-	//GPUにコマンドリストの実行を行わせる
-	ComPtr<ID3D12CommandList> commandLists[] = { commandList_.Get() };
+	// 🔹 **ImGui の描画をここで行う**
+	ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), commandList_.Get());
 
-	// GPUに対して積まれたコマンドを実行
-	commandQueue->ExecuteCommandLists(1, commandLists->GetAddressOf());
+	// 🔹 **再度 `RENDER_TARGET → PRESENT` に変更**
+	TransitionResource(backBuffer.Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
+
+
+	// コマンド完了まで待つ
+	WaitCommand();
 
 	//GPUとOSに画面の交換を行うよう通知する
 	swapChain_->GetSwapChain()->Present(1, 0); // VSync 有効（FPSを同期）-（0, 0）で無効（最大FPSで動作）
-
-	// Fenceの値を更新
-	fenceValue++;
-
-	// GPUがここまでたどり着いたときに、Fenceの値を指定した値に代入するようにSignalを送る
-	commandQueue->Signal(fence.Get(), fenceValue);
-
-	// Fenceの値が指定したSignal値にたどり着いているか確認する
-	if (fence->GetCompletedValue() < fenceValue)
-	{
-		// 指定したSignalにたどりついていないので、たどり着くまで待つようにイベントを設定する
-		fence->SetEventOnCompletion(fenceValue, fenceEvent);
-		// イベントを待つ
-		WaitForSingleObject(fenceEvent, INFINITE);
-	}
-
-	// 次のフレーム用のコマンドリストを準備（コマンドリストのリセット）
-	hr = commandAllocator->Reset();
-	assert(SUCCEEDED(hr));
-
-	hr = commandList_->Reset(commandAllocator.Get(), nullptr);
-	assert(SUCCEEDED(hr));
 
 	// FPSカウント
 	fpsCounter_.EndFrame();
@@ -158,6 +147,9 @@ void DirectXCommon::Finalize()
 }
 
 
+/// -------------------------------------------------------------
+///						バッファを取得
+/// -------------------------------------------------------------
 ComPtr<ID3D12Resource> DirectXCommon::GetBackBuffer(uint32_t index)
 {
 	ComPtr<ID3D12Resource> backBuffer = nullptr;
@@ -298,30 +290,6 @@ void DirectXCommon::CreateDXCCompiler()
 
 
 /// -------------------------------------------------------------
-///				バリアで書き込み可能に変更する処理
-/// -------------------------------------------------------------
-void DirectXCommon::ChangeBarrier()
-{
-	// 今回のバリアはTransition
-	barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-	// Noneにしておく
-	barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
-	// バリアを春対象のリソース。現在のバックバッファに対して行う
-	ID3D12Resource* backBuffer = swapChain_->GetSwapChainResources(backBufferIndex);
-	if (backBuffer)
-	{
-		barrier.Transition.pResource = backBuffer;
-	}
-	// 遷移前（現在）のResourceState
-	barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_PRESENT;
-	//遷移後のResourceState
-	barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET;
-	// TransitionBarrierを張る
-	commandList_->ResourceBarrier(1, &barrier);
-}
-
-
-/// -------------------------------------------------------------
 ///				　リソース遷移の管理する処理
 /// -------------------------------------------------------------
 void DirectXCommon::TransitionResource(ID3D12Resource* resource, D3D12_RESOURCE_STATES stateBefore, D3D12_RESOURCE_STATES stateAfter)
@@ -360,7 +328,7 @@ void DirectXCommon::ClearWindow()
 	// 画面をクリア
 	float clearColor[] = { 0.0f, 0.0f, 0.0f, 1.0f };
 	commandList_->ClearRenderTargetView(rtvHandle, clearColor, 0, nullptr);
-	commandList_->ClearDepthStencilView(dsvHandle, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
+	commandList_->ClearDepthStencilView(dsvHandle, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
 }
 
 

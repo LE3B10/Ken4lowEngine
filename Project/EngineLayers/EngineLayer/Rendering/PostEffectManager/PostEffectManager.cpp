@@ -1,6 +1,6 @@
 #include "PostEffectManager.h"
 #include "WinApp.h"
-#include "DirectXCommon.h"
+//#include "DirectXCommon.h"
 #include "SRVManager.h"
 #include "ShaderManager.h"
 #include "LogString.h"
@@ -41,6 +41,12 @@ void PostEffectManager::Initialieze(DirectXCommon* dxCommon)
 	// SRVの確保
 	rtvSrvIndex_ = SRVManager::GetInstance()->Allocate();
 	SRVManager::GetInstance()->CreateSRVForTexture2D(rtvSrvIndex_, renderResource_.Get(), DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, 1);
+
+	// ビューポート矩形の設定
+	viewport = D3D12_VIEWPORT(0.0f, 0.0f, static_cast<float>(WinApp::kClientWidth), static_cast<float>(WinApp::kClientHeight), 0.0f, 1.0f);
+
+	// シザリング矩形の設定
+	scissorRect = { 0, 0, static_cast<LONG>(WinApp::kClientWidth), static_cast<LONG>(WinApp::kClientHeight) };
 }
 
 
@@ -68,10 +74,6 @@ void PostEffectManager::BeginDraw()
 
 	// 深度バッファのクリア
 	commandList->ClearDepthStencilView(dsvHandle, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
-
-	// ビューポートとシザー矩形を設定
-	D3D12_VIEWPORT viewport = { 0.0f, 0.0f, static_cast<float>(WinApp::kClientWidth), static_cast<float>(WinApp::kClientHeight), 0.0f, 1.0f };
-	D3D12_RECT scissorRect = { 0, 0, WinApp::kClientWidth, WinApp::kClientHeight };
 
 	commandList->RSSetViewports(1, &viewport);
 	commandList->RSSetScissorRects(1, &scissorRect);
@@ -105,6 +107,10 @@ void PostEffectManager::RenderPostEffect()
 	ComPtr<ID3D12Resource> backBuffer = dxCommon_->GetBackBuffer(backBufferIndex);
 	D3D12_CPU_DESCRIPTOR_HANDLE backBufferRTV = dxCommon_->GetBackBufferRTV(backBufferIndex);
 
+	// 🔹 ポストエフェクト専用のビューポートとシザー矩形を設定
+	commandList->RSSetViewports(1, &viewport);
+	commandList->RSSetScissorRects(1, &scissorRect);
+
 	// 🔹 ポストエフェクトのパイプラインを設定
 	commandList->SetPipelineState(graphicsPipelineStates_["NormalEffect"].Get());
 
@@ -118,8 +124,8 @@ void PostEffectManager::RenderPostEffect()
 	commandList->OMSetRenderTargets(1, &backBufferRTV, false, nullptr);
 
 	// 🔹 フルスクリーンクアッドを描画
-	commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
-	commandList->DrawInstanced(4, 1, 0, 0);
+	commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	commandList->DrawInstanced(3, 1, 0, 0);
 }
 
 

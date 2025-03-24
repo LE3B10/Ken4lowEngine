@@ -70,6 +70,9 @@ private: /// ---------- メンバ変数 ---------- ///
 	D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle_;
 	uint32_t rtvSrvIndex_ = 0;
 
+	D3D12_VIEWPORT viewport{};
+	D3D12_RECT scissorRect{};
+
 private: /// ---------- コピー禁止 ---------- ///
 
 	PostEffectManager() = default;
