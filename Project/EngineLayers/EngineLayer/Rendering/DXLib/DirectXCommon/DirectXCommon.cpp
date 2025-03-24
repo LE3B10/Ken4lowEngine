@@ -323,7 +323,7 @@ void DirectXCommon::ClearWindow()
 	TransitionResource(depthBuffer.Get(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_DEPTH_WRITE);
 
 	// 描画先のRTVとDSVを設定
-	commandList_->OMSetRenderTargets(1, &rtvHandle, false, &dsvHandle);
+	commandList_->OMSetRenderTargets(1, &rtvHandle, false, nullptr);
 
 	// 画面をクリア
 	float clearColor[] = { 0.0f, 0.0f, 0.0f, 1.0f };
