@@ -37,16 +37,9 @@ private: /// ---------- 構造体 ---------- ///
 	// 🔹 スムージングの設定
 	struct SmoothingSetting
 	{
-		int kernelSize;  // カーネルの大きさ
-	};
-
-	// カーネルサイズ
-	enum class KernelSize
-	{
-		KERNEL_3x3 = 3,
-		KERNEL_5x5 = 5,
-		KERNEL_7x7 = 7,
-		KERNEL_9x9 = 9
+		float intensity; // 強度
+		float threshold; // 閾値
+		float sigma; // ガウス分布の標準偏差
 	};
 
 public: /// ---------- メンバ関数 ---------- ///
