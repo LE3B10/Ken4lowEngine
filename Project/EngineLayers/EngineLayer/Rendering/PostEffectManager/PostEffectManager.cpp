@@ -7,6 +7,7 @@
 #include "Object3DCommon.h"
 #include "Camera.h"
 #include "ResourceManager.h"
+#include "ParameterManager.h"
 
 #include <cassert>
 
@@ -42,6 +43,10 @@ void PostEffectManager::Initialieze(DirectXCommon* dxCommon)
 	CreatePipelineState("SmoothingEffect");
 	InitializeSmoothing();
 
+	// ガウシアンフィルタのパイプラインを生成
+	CreatePipelineState("GaussianFilterEffect");
+	InitializeGaussianFilter();
+
 	// レンダーテクスチャの生成
 	renderResource_ = CreateRenderTextureResource(WinApp::kClientWidth, WinApp::kClientHeight, DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, kRenderTextureClearColor_);
 
@@ -50,6 +55,12 @@ void PostEffectManager::Initialieze(DirectXCommon* dxCommon)
 
 	// ビューポート矩形とシザリング矩形の設定
 	SetViewportAndScissorRect();
+
+	// パラメータ
+	ParameterManager::GetInstance()->CreateGroup("VignettePower");
+	ParameterManager::GetInstance()->AddItem("VignettePower", "intensity", gaussianFilterSetting_->intensity);
+	ParameterManager::GetInstance()->AddItem("VignettePower", "threshold", gaussianFilterSetting_->threshold);
+	ParameterManager::GetInstance()->AddItem("VignettePower", "sigma", gaussianFilterSetting_->sigma);
 }
 
 
@@ -80,6 +91,11 @@ void PostEffectManager::BeginDraw()
 
 	commandList->RSSetViewports(1, &viewport);
 	commandList->RSSetScissorRects(1, &scissorRect);
+
+
+	gaussianFilterSetting_->intensity = ParameterManager::GetInstance()->GetValue<float>("VignettePower", "intensity");
+	gaussianFilterSetting_->threshold = ParameterManager::GetInstance()->GetValue<float>("VignettePower", "threshold");
+	gaussianFilterSetting_->sigma = ParameterManager::GetInstance()->GetValue<float>("VignettePower", "sigma");
 }
 
 
@@ -115,10 +131,11 @@ void PostEffectManager::RenderPostEffect()
 	commandList->RSSetScissorRects(1, &scissorRect);
 
 	// 🔹 ポストエフェクトの設定
-	//SetPostEffect("NormalEffect");
+	SetPostEffect("NormalEffect");
 	//SetPostEffect("GrayScaleEffect");
 	//SetPostEffect("VignetteEffect");
-	SetPostEffect("SmoothingEffect");
+	//SetPostEffect("SmoothingEffect");
+	SetPostEffect("GaussianFilterEffect");
 
 	// 🔹 SRV (シェーダーリソースビュー) をセット
 	commandList->SetGraphicsRootDescriptorTable(0, SRVManager::GetInstance()->GetGPUDescriptorHandle(rtvSrvIndex_));
@@ -363,6 +380,14 @@ void PostEffectManager::SetPostEffect(const std::string& effectName)
 	{
 		commandList->SetGraphicsRootConstantBufferView(1, smoothingResource_->GetGPUVirtualAddress());
 	}
+	else if (effectName == "GaussianFilterEffect")
+	{
+		commandList->SetGraphicsRootConstantBufferView(1, gaussianResource_->GetGPUVirtualAddress());
+	}
+	else
+	{
+		assert(false);
+	}
 }
 
 
@@ -427,4 +452,22 @@ void PostEffectManager::InitializeSmoothing()
 	smoothingSetting_->intensity = 0.5f;
 	smoothingSetting_->threshold = 0.5f;
 	smoothingSetting_->sigma = 0.0f;
+}
+
+
+/// -------------------------------------------------------------
+///				　	 ガウシアンフィルタの初期化
+/// -------------------------------------------------------------
+void PostEffectManager::InitializeGaussianFilter()
+{
+	// リソースの生成
+	gaussianResource_ = ResourceManager::CreateBufferResource(dxCommon_->GetDevice(), sizeof(GaussianFilterSetting));
+	
+	// データの設定
+	gaussianResource_->Map(0, nullptr, reinterpret_cast<void**>(&gaussianFilterSetting_));
+	
+	// ガウシアンフィルタの設定
+	gaussianFilterSetting_->intensity = 1.0f;
+	gaussianFilterSetting_->threshold = 0.5f;
+	gaussianFilterSetting_->sigma = 1.0f;
 }
