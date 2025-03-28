@@ -38,6 +38,9 @@ void PostEffectManager::Initialieze(DirectXCommon* dxCommon)
 	CreatePipelineState("VignetteEffect");
 	InitializeVignette();
 
+	// スムージングのパイプラインを生成
+	CreatePipelineState("SmoothingEffect");
+
 	// レンダーテクスチャの生成
 	renderResource_ = CreateRenderTextureResource(WinApp::kClientWidth, WinApp::kClientHeight, DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, kRenderTextureClearColor_);
 
@@ -111,9 +114,10 @@ void PostEffectManager::RenderPostEffect()
 	commandList->RSSetScissorRects(1, &scissorRect);
 
 	// 🔹 ポストエフェクトの設定
-	/*SetPostEffect("NormalEffect");
-	SetPostEffect("GrayScaleEffect");*/
-	SetPostEffect("VignetteEffect");
+	//SetPostEffect("NormalEffect");
+	//SetPostEffect("GrayScaleEffect");
+	//SetPostEffect("VignetteEffect");
+	SetPostEffect("SmoothingEffect");
 
 	// 🔹 SRV (シェーダーリソースビュー) をセット
 	commandList->SetGraphicsRootDescriptorTable(0, SRVManager::GetInstance()->GetGPUDescriptorHandle(rtvSrvIndex_));
@@ -227,7 +231,7 @@ void PostEffectManager::CreateRootSignature(const std::string& effectName)
 	descriptorRangeDepth[0].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
 
 	// ルートシグネチャの生成
-	D3D12_ROOT_PARAMETER rootParameters[3] = {};
+	D3D12_ROOT_PARAMETER rootParameters[4] = {};
 
 	// テクスチャの設定
 	rootParameters[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;      // ディスクリプタテーブル
@@ -245,6 +249,11 @@ void PostEffectManager::CreateRootSignature(const std::string& effectName)
 	rootParameters[2].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL; 	           // ピクセルシェーダーで使用
 	rootParameters[2].DescriptorTable.pDescriptorRanges = descriptorRangeDepth;             // ディスクリプタテーブルの設定
 	rootParameters[2].DescriptorTable.NumDescriptorRanges = _countof(descriptorRangeDepth); // ディスクリプタテーブルの数
+
+	// スムージングの設定
+	rootParameters[3].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;     // 定数バッファビュー
+	rootParameters[3].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL; // バーテックスシェーダーで使用
+	rootParameters[3].Descriptor.ShaderRegister = 0;					 // レジスタ番号
 
 	// ルートシグネチャの設定
 	descriptionRootSignature.pParameters = rootParameters;
@@ -353,6 +362,10 @@ void PostEffectManager::SetPostEffect(const std::string& effectName)
 	else if (effectName == "VignetteEffect")
 	{
 		commandList->SetGraphicsRootConstantBufferView(1, vignetteResource_->GetGPUVirtualAddress());
+	}
+	else if (effectName == "SmoothingEffect")
+	{
+
 	}
 }
 

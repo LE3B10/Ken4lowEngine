@@ -10,6 +10,3 @@ struct TransformationMatrix final
 	Matrix4x4 World;
 	Matrix4x4 WorldInversedTranspose;
 };
-///==========================================================
-/// TransformationMatrixを拡張
-///==========================================================
