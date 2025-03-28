@@ -120,8 +120,8 @@ PixelShaderOutput main(VertexShaderOutput input)
         for (int j = 0; j < 5; ++j)
         {
             // 修正：正しいオフセットを適用
-            float2 texture = input.texcoord + kIndex5x5[i][j] * uvStepSize;
-            output.color.rgb += gTexture.Sample(gSampler, texture).rgb * kGaussianKernel5x5[i][j];
+            float2 offsetUV = input.texcoord + kIndex5x5[i][j] * uvStepSize;
+            output.color.rgb += gTexture.Sample(gSampler, offsetUV).rgb * kGaussianKernel5x5[i][j];
         }
     }
     

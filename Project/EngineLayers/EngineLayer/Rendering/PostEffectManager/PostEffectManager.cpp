@@ -40,6 +40,7 @@ void PostEffectManager::Initialieze(DirectXCommon* dxCommon)
 
 	// スムージングのパイプラインを生成
 	CreatePipelineState("SmoothingEffect");
+	InitializeSmoothing();
 
 	// レンダーテクスチャの生成
 	renderResource_ = CreateRenderTextureResource(WinApp::kClientWidth, WinApp::kClientHeight, DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, kRenderTextureClearColor_);
@@ -231,7 +232,7 @@ void PostEffectManager::CreateRootSignature(const std::string& effectName)
 	descriptorRangeDepth[0].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
 
 	// ルートシグネチャの生成
-	D3D12_ROOT_PARAMETER rootParameters[4] = {};
+	D3D12_ROOT_PARAMETER rootParameters[3] = {};
 
 	// テクスチャの設定
 	rootParameters[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;      // ディスクリプタテーブル
@@ -241,7 +242,7 @@ void PostEffectManager::CreateRootSignature(const std::string& effectName)
 
 	// 定数バッファ (CBV)
 	rootParameters[1].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;     // 定数バッファビュー
-	rootParameters[1].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX; // バーテックスシェーダーで使用
+	rootParameters[1].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL; // バーテックスシェーダーで使用
 	rootParameters[1].Descriptor.ShaderRegister = 0;					 // レジスタ番号
 
 	// 深度バッファテクスチャ
@@ -249,11 +250,6 @@ void PostEffectManager::CreateRootSignature(const std::string& effectName)
 	rootParameters[2].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL; 	           // ピクセルシェーダーで使用
 	rootParameters[2].DescriptorTable.pDescriptorRanges = descriptorRangeDepth;             // ディスクリプタテーブルの設定
 	rootParameters[2].DescriptorTable.NumDescriptorRanges = _countof(descriptorRangeDepth); // ディスクリプタテーブルの数
-
-	// スムージングの設定
-	rootParameters[3].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;     // 定数バッファビュー
-	rootParameters[3].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL; // バーテックスシェーダーで使用
-	rootParameters[3].Descriptor.ShaderRegister = 0;					 // レジスタ番号
 
 	// ルートシグネチャの設定
 	descriptionRootSignature.pParameters = rootParameters;
@@ -365,7 +361,7 @@ void PostEffectManager::SetPostEffect(const std::string& effectName)
 	}
 	else if (effectName == "SmoothingEffect")
 	{
-
+		commandList->SetGraphicsRootConstantBufferView(1, smoothingResource_->GetGPUVirtualAddress());
 	}
 }
 
@@ -413,4 +409,22 @@ void PostEffectManager::InitializeVignette()
 	// ヴィグネットの設定
 	vignetteSetting_.power = 1.0f;
 	vignetteSetting_.range = 0.5f;
+}
+
+
+/// -------------------------------------------------------------
+///				　		 スムージングの初期化
+/// -------------------------------------------------------------
+void PostEffectManager::InitializeSmoothing()
+{
+	// リソースの生成
+	smoothingResource_ = ResourceManager::CreateBufferResource(dxCommon_->GetDevice(), sizeof(SmoothingSetting));
+	
+	// データの設定
+	smoothingResource_->Map(0, nullptr, reinterpret_cast<void**>(&smoothingSetting_));
+	
+	// スムージングの設定
+	smoothingSetting_->intensity = 0.5f;
+	smoothingSetting_->threshold = 0.5f;
+	smoothingSetting_->sigma = 0.0f;
 }
