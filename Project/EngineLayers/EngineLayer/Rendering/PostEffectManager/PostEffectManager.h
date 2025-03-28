@@ -42,6 +42,14 @@ private: /// ---------- 構造体 ---------- ///
 		float sigma; // ガウス分布の標準偏差
 	};
 
+	// ガウシアンフィルタの設定
+	struct GaussianFilterSetting
+	{
+		float intensity; // 強度
+		float threshold; // 閾値
+		float sigma; // ガウス関数の標準偏差
+	};
+
 public: /// ---------- メンバ関数 ---------- ///
 
 	// シングルトンインスタンス
@@ -90,6 +98,9 @@ private: /// ---------- メンバ関数 ---------- ///
 	// スムージングの初期化
 	void InitializeSmoothing();
 
+	// ガウシアンフィルタの初期化
+	void InitializeGaussianFilter();
+
 private: /// ---------- メンバ変数 ---------- ///
 
 	DirectXCommon* dxCommon_ = nullptr;
@@ -106,6 +117,10 @@ private: /// ---------- メンバ変数 ---------- ///
 	// 🔹 スムージングの設定
 	SmoothingSetting* smoothingSetting_{};
 	ComPtr<ID3D12Resource> smoothingResource_;
+
+	// ガウシアンフィルタの設定
+	GaussianFilterSetting* gaussianFilterSetting_{};
+	ComPtr<ID3D12Resource> gaussianResource_;
 
 	// ルートシグネチャ
 	std::unordered_map<std::string, ComPtr<ID3D12RootSignature>> rootSignatures_;
