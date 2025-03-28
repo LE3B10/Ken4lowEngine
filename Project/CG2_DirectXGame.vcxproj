@@ -115,20 +115,18 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="EngineLayers\EngineLayer\Rendering\DSVManager\DSVManager.cpp" />
+    <ClCompile Include="EngineLayers\EngineLayer\ResourceManagement\AnimationManager\AnimationModel.cpp" />
     <ClCompile Include="EngineLayers\EngineLayer\ResourceManagement\AnimationManager\AnimationModelManager.cpp" />
     <ClCompile Include="EngineLayers\EngineLayer\Quaternion\Quaternion.cpp" />
-    <ClCompile Include="EngineLayers\EngineLayer\ResourceManagement\AnimationManager\AnimationModel.cpp" />
     <ClCompile Include="EngineLayers\ApplicationLayer\CameraManagement\DebugCamera\DebugCamera.cpp" />
     <ClCompile Include="EngineLayers\ApplicationLayer\Colliders\Collider.cpp" />
     <ClCompile Include="EngineLayers\ApplicationLayer\Colliders\CollisionManager.cpp" />
     <ClCompile Include="EngineLayers\ApplicationLayer\Colliders\ContactRecord.cpp" />
     <ClCompile Include="EngineLayers\ApplicationLayer\SceneManagement\AbstractSceneFactory\AbstractSceneFactory.cpp" />
     <ClCompile Include="EngineLayers\ApplicationLayer\SceneManagement\BaseScene\BaseScene.cpp" />
-    <ClCompile Include="EngineLayers\EngineLayer\Audio\AudioManager.cpp" />
     <ClCompile Include="EngineLayers\ApplicationLayer\CameraManagement\Camera\Camera.cpp" />
     <ClCompile Include="EngineLayers\EngineLayer\WorldTransform\WorldTransform.cpp" />
     <ClCompile Include="EngineLayers\EngineLayer\ResourceChecker\LeakCheck\D3DResourceLeakChecker.cpp" />
-    <ClCompile Include="EngineLayers\EngineLayer\Rendering\DXLib\DX12DepthStencil\DX12DepthStencil.cpp" />
     <ClCompile Include="EngineLayers\EngineLayer\Rendering\DXLib\DirectXCommon\DirectXCommon.cpp" />
     <ClCompile Include="EngineLayers\EngineLayer\Rendering\DXLib\DX12Device\DX12Device.cpp" />
     <ClCompile Include="EngineLayers\EngineLayer\Rendering\DXLib\DX12SwapChain\DX12SwapChain.cpp" />
@@ -151,7 +149,6 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClCompile Include="EngineLayers\ApplicationLayer\Object\3D\Model\Model.cpp" />
     <ClCompile Include="EngineLayers\EngineLayer\ResourceManagement\ModelManager\ModelManager.cpp" />
     <ClCompile Include="EngineLayers\ApplicationLayer\Object\3D\Object3D\Object3D.cpp" />
-    <ClCompile Include="EngineLayers\EngineLayer\Rendering\PSO\PipelineStateManager\PipelineStateManager.cpp" />
     <ClCompile Include="EngineLayers\EngineLayer\ResourceManagement\ResourceManager\ResourceManager.cpp" />
     <ClCompile Include="EngineLayers\EngineLayer\ResourceChecker\ReleseCheck\ResourceObject.cpp" />
     <ClCompile Include="EngineLayers\EngineLayer\Rendering\PSO\ShaderManager\ShaderManager.cpp" />
@@ -185,6 +182,11 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClCompile Include="EngineLayers\ApplicationLayer\Object\2D\Wireframe\Wireframe.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <FxCompile Include="Resources\Shaders\SmoothingEffect.PS.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+    </FxCompile>
     <FxCompile Include="Resources\Shaders\GrayScaleEffect.PS.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
@@ -270,9 +272,9 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="EngineLayers\EngineLayer\Rendering\DSVManager\DSVManager.h" />
+    <ClInclude Include="EngineLayers\EngineLayer\ResourceManagement\AnimationManager\AnimationModel.h" />
     <ClInclude Include="EngineLayers\EngineLayer\ResourceManagement\AnimationManager\AnimationModelManager.h" />
     <ClInclude Include="EngineLayers\EngineLayer\Quaternion\Quaternion.h" />
-    <ClInclude Include="EngineLayers\EngineLayer\ResourceManagement\AnimationManager\AnimationModel.h" />
     <ClInclude Include="EngineLayers\ApplicationLayer\CameraManagement\DebugCamera\DebugCamera.h" />
     <ClInclude Include="EngineLayers\ApplicationLayer\Colliders\Collider.h" />
     <ClInclude Include="EngineLayers\ApplicationLayer\Colliders\CollisionManager.h" />
@@ -281,14 +283,12 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="EngineLayers\ApplicationLayer\SceneManagement\AbstractSceneFactory\AbstractSceneFactory.h" />
     <ClInclude Include="EngineLayers\ApplicationLayer\SceneManagement\BaseScene\BaseScene.h" />
     <ClInclude Include="EngineLayers\EngineLayer\MultipleStructs\AABB.h" />
-    <ClInclude Include="EngineLayers\EngineLayer\Audio\AudioManager.h" />
     <ClInclude Include="EngineLayers\EngineLayer\MultipleStructs\AudioStructs.h" />
     <ClInclude Include="EngineLayers\EngineLayer\MultipleStructs\Emitter.h" />
     <ClInclude Include="EngineLayers\ApplicationLayer\CameraManagement\Camera\Camera.h" />
     <ClInclude Include="EngineLayers\EngineLayer\MultipleStructs\VertexData.h" />
     <ClInclude Include="EngineLayers\EngineLayer\WorldTransform\WorldTransform.h" />
     <ClInclude Include="EngineLayers\EngineLayer\ResourceChecker\LeakCheck\D3DResourceLeakChecker.h" />
-    <ClInclude Include="EngineLayers\EngineLayer\Rendering\DXLib\DX12DepthStencil\DX12DepthStencil.h" />
     <ClInclude Include="EngineLayers\EngineLayer\Rendering\DXLib\DirectXCommon\DirectXCommon.h" />
     <ClInclude Include="EngineLayers\EngineLayer\Rendering\DXLib\DX12Device\DX12Device.h" />
     <ClInclude Include="EngineLayers\EngineLayer\Rendering\DXLib\DX12Include.h" />
@@ -312,7 +312,6 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="EngineLayers\EngineLayer\MultipleStructs\ModelData.h" />
     <ClInclude Include="EngineLayers\EngineLayer\ResourceManagement\ModelManager\ModelManager.h" />
     <ClInclude Include="EngineLayers\ApplicationLayer\Object\3D\Object3D\Object3D.h" />
-    <ClInclude Include="EngineLayers\EngineLayer\Rendering\PSO\PipelineStateManager\PipelineStateManager.h" />
     <ClInclude Include="EngineLayers\EngineLayer\ResourceManagement\ResourceManager\ResourceManager.h" />
     <ClInclude Include="EngineLayers\EngineLayer\ResourceChecker\ReleseCheck\ResourceObject.h" />
     <ClInclude Include="EngineLayers\EngineLayer\Rendering\PSO\ShaderManager\ShaderManager.h" />
@@ -328,7 +327,6 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="EngineLayers\EngineLayer\Audio\WavLoader.h" />
     <ClInclude Include="EngineLayers\FrameworkLayer\Framework\GameEngine.h" />
     <ClInclude Include="EngineLayers\EngineLayer\Rendering\SRVManager\SRVManager.h" />
-    <ClInclude Include="EngineLayers\EngineLayer\Audio\PlaybackManager.h" />
     <ClInclude Include="EngineLayers\EngineLayer\Audio\WavLoaderException.h" />
     <ClInclude Include="EngineLayers\FrameworkLayer\Framework\Framework.h" />
     <ClInclude Include="EngineLayers\ApplicationLayer\SceneManagement\LogicLayer\GamePlayScene\GamePlayScene.h" />
@@ -347,6 +345,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="EngineLayers\EngineLayer\Managers\SpriteManager.h" />
     <ClInclude Include="EngineLayers\EngineLayer\Rendering\PostEffectManager\PostEffectManager.h" />
     <ClInclude Include="EngineLayers\EngineLayer\Rendering\RTVManager\RTVManager.h" />
+    <ClInclude Include="EngineLayers\EngineLayer\Matrix\TransformationMatrix.h" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="externals\DirectXTex\DirectXTex_Desktop_2022_Win10.vcxproj">

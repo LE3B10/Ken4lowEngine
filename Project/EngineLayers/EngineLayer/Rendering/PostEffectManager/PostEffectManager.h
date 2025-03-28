@@ -34,6 +34,21 @@ private: /// ---------- 構造体 ---------- ///
 		float range = 0.0f; // 範囲
 	};
 
+	// 🔹 スムージングの設定
+	struct SmoothingSetting
+	{
+		int kernelSize;  // カーネルの大きさ
+	};
+
+	// カーネルサイズ
+	enum class KernelSize
+	{
+		KERNEL_3x3 = 3,
+		KERNEL_5x5 = 5,
+		KERNEL_7x7 = 7,
+		KERNEL_9x9 = 9
+	};
+
 public: /// ---------- メンバ関数 ---------- ///
 
 	// シングルトンインスタンス
@@ -79,6 +94,9 @@ private: /// ---------- メンバ関数 ---------- ///
 	// ヴィグネットの初期化
 	void InitializeVignette();
 
+	// スムージングの初期化
+	void InitializeSmoothing();
+
 private: /// ---------- メンバ変数 ---------- ///
 
 	DirectXCommon* dxCommon_ = nullptr;
@@ -91,6 +109,10 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	ComPtr<ID3D12Resource> renderResource_;
 	ComPtr<ID3D12Resource> vignetteResource_;
+
+	// 🔹 スムージングの設定
+	SmoothingSetting* smoothingSetting_{};
+	ComPtr<ID3D12Resource> smoothingResource_;
 
 	// ルートシグネチャ
 	std::unordered_map<std::string, ComPtr<ID3D12RootSignature>> rootSignatures_;

@@ -2,7 +2,6 @@
 #include "Input.h"
 #include "D3DResourceLeakChecker.h"
 #include "LogString.h"
-#include "PipelineStateManager.h"
 #include "ResourceManager.h"
 #include <FPSCounter.h>
 
@@ -35,6 +34,5 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	std::vector<std::unique_ptr<Sprite>> sprites_;
 	std::vector<std::unique_ptr<Object3D>> objects3D_;
-	std::unique_ptr<PipelineStateManager> pipelineStateManager_;
 };
 
