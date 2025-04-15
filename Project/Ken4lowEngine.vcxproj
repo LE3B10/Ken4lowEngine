@@ -14,7 +14,7 @@
     <VCProjectVersion>17.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
     <ProjectGuid>{375b9b5c-45e7-425a-aef7-6fc54b0393f1}</ProjectGuid>
-    <RootNamespace>CG2DirectXGame</RootNamespace>
+    <RootNamespace>Ken4lowEngine</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
