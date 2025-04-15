@@ -83,9 +83,6 @@ private: /// ---------- メンバ関数 ---------- ///
 	// DXCコンパイラの生成
 	void CreateDXCCompiler();
 
-	// バリアで書き込み可能に変更
-	void ChangeBarrier();
-
 	// 画面全体をクリア
 	void ClearWindow();
 

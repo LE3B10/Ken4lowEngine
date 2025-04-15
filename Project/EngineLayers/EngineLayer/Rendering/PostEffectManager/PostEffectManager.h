@@ -50,6 +50,14 @@ private: /// ---------- 構造体 ---------- ///
 		float sigma; // ガウス関数の標準偏差
 	};
 
+	// アウトラインの設定
+	struct LuminanceOutlineSetting
+	{
+		Vector2 texelSize;
+		float edgeStrength;
+		float threshold;
+	};
+
 public: /// ---------- メンバ関数 ---------- ///
 
 	// シングルトンインスタンス
@@ -101,6 +109,9 @@ private: /// ---------- メンバ関数 ---------- ///
 	// ガウシアンフィルタの初期化
 	void InitializeGaussianFilter();
 
+	// アウトラインの初期化
+	void InitializeLuminanceOutline();
+
 private: /// ---------- メンバ変数 ---------- ///
 
 	DirectXCommon* dxCommon_ = nullptr;
@@ -112,6 +123,8 @@ private: /// ---------- メンバ変数 ---------- ///
 	ComPtr <ID3DBlob> errorBlob_;
 
 	ComPtr<ID3D12Resource> renderResource_;
+	ComPtr<ID3D12Resource> depthResource_;
+
 	ComPtr<ID3D12Resource> vignetteResource_;
 
 	// 🔹 スムージングの設定
@@ -122,6 +135,10 @@ private: /// ---------- メンバ変数 ---------- ///
 	GaussianFilterSetting* gaussianFilterSetting_{};
 	ComPtr<ID3D12Resource> gaussianResource_;
 
+	// アウトラインの設定
+	LuminanceOutlineSetting* luminanceOutlineSetting_{};
+	ComPtr<ID3D12Resource> luminanceOutlineResource_;
+
 	// ルートシグネチャ
 	std::unordered_map<std::string, ComPtr<ID3D12RootSignature>> rootSignatures_;
 
@@ -129,7 +146,10 @@ private: /// ---------- メンバ変数 ---------- ///
 	std::unordered_map<std::string, ComPtr<ID3D12PipelineState>> graphicsPipelineStates_;
 
 	D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle_;
+	D3D12_CPU_DESCRIPTOR_HANDLE depthSrvHandle_;
+
 	uint32_t rtvSrvIndex_ = 0;
+	uint32_t depthSrvIndex_ = 0;
 
 	D3D12_VIEWPORT viewport{};
 	D3D12_RECT scissorRect{};

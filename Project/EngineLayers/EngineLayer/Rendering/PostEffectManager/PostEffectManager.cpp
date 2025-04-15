@@ -34,7 +34,7 @@ void PostEffectManager::Initialieze(DirectXCommon* dxCommon)
 
 	// グレイスケールのパイプラインを生成
 	CreatePipelineState("GrayScaleEffect");
-	
+
 	// ヴィネットのパイプラインを生成
 	CreatePipelineState("VignetteEffect");
 	InitializeVignette();
@@ -47,8 +47,15 @@ void PostEffectManager::Initialieze(DirectXCommon* dxCommon)
 	CreatePipelineState("GaussianFilterEffect");
 	InitializeGaussianFilter();
 
+	// アウトラインのパイプラインを生成
+	CreatePipelineState("LuminanceOutline");
+	InitializeLuminanceOutline();
+
 	// レンダーテクスチャの生成
 	renderResource_ = CreateRenderTextureResource(WinApp::kClientWidth, WinApp::kClientHeight, DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, kRenderTextureClearColor_);
+
+	// 深度バッファの生成
+	depthResource_ = CreateRenderTextureResource(WinApp::kClientWidth, WinApp::kClientHeight, DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, kRenderTextureClearColor_);
 
 	// RTVとSRVの確保
 	AllocateRTVAndSRV();
@@ -56,11 +63,16 @@ void PostEffectManager::Initialieze(DirectXCommon* dxCommon)
 	// ビューポート矩形とシザリング矩形の設定
 	SetViewportAndScissorRect();
 
-	// パラメータ
-	ParameterManager::GetInstance()->CreateGroup("VignettePower");
-	ParameterManager::GetInstance()->AddItem("VignettePower", "intensity", gaussianFilterSetting_->intensity);
-	ParameterManager::GetInstance()->AddItem("VignettePower", "threshold", gaussianFilterSetting_->threshold);
-	ParameterManager::GetInstance()->AddItem("VignettePower", "sigma", gaussianFilterSetting_->sigma);
+	//// ガウシアンフィルターのパラメータ
+	//ParameterManager::GetInstance()->CreateGroup("VignettePower");
+	//ParameterManager::GetInstance()->AddItem("VignettePower", "intensity", gaussianFilterSetting_->intensity);
+	//ParameterManager::GetInstance()->AddItem("VignettePower", "threshold", gaussianFilterSetting_->threshold);
+	//ParameterManager::GetInstance()->AddItem("VignettePower", "sigma", gaussianFilterSetting_->sigma);
+
+	// アウトラインのパラメータ
+	ParameterManager::GetInstance()->CreateGroup("LuminanceOutline");
+	ParameterManager::GetInstance()->AddItem("LuminanceOutline", "edgeStrength", luminanceOutlineSetting_->edgeStrength);
+	ParameterManager::GetInstance()->AddItem("LuminanceOutline", "threshold", luminanceOutlineSetting_->threshold);
 }
 
 
@@ -92,10 +104,14 @@ void PostEffectManager::BeginDraw()
 	commandList->RSSetViewports(1, &viewport);
 	commandList->RSSetScissorRects(1, &scissorRect);
 
+	//// ガウシアンフィルタのパラメータ
+	//gaussianFilterSetting_->intensity = ParameterManager::GetInstance()->GetValue<float>("VignettePower", "intensity");
+	//gaussianFilterSetting_->threshold = ParameterManager::GetInstance()->GetValue<float>("VignettePower", "threshold");
+	//gaussianFilterSetting_->sigma = ParameterManager::GetInstance()->GetValue<float>("VignettePower", "sigma");
 
-	gaussianFilterSetting_->intensity = ParameterManager::GetInstance()->GetValue<float>("VignettePower", "intensity");
-	gaussianFilterSetting_->threshold = ParameterManager::GetInstance()->GetValue<float>("VignettePower", "threshold");
-	gaussianFilterSetting_->sigma = ParameterManager::GetInstance()->GetValue<float>("VignettePower", "sigma");
+	// アウトラインのパラメータ
+	luminanceOutlineSetting_->edgeStrength = ParameterManager::GetInstance()->GetValue<float>("LuminanceOutline", "edgeStrength");
+	luminanceOutlineSetting_->threshold = ParameterManager::GetInstance()->GetValue<float>("LuminanceOutline", "threshold");
 }
 
 
@@ -135,10 +151,12 @@ void PostEffectManager::RenderPostEffect()
 	//SetPostEffect("GrayScaleEffect");
 	//SetPostEffect("VignetteEffect");
 	//SetPostEffect("SmoothingEffect");
-	SetPostEffect("GaussianFilterEffect");
+	//SetPostEffect("GaussianFilterEffect");
+	SetPostEffect("LuminanceOutline");
 
 	// 🔹 SRV (シェーダーリソースビュー) をセット
 	commandList->SetGraphicsRootDescriptorTable(0, SRVManager::GetInstance()->GetGPUDescriptorHandle(rtvSrvIndex_));
+	// commandList->SetGraphicsRootDescriptorTable(0, SRVManager::GetInstance()->GetGPUDescriptorHandle(depthSrvIndex_));
 
 	// 🔹 スワップチェインのバッファを描画ターゲットにする
 	commandList->OMSetRenderTargets(1, &backBufferRTV, false, nullptr);
@@ -222,17 +240,22 @@ void PostEffectManager::CreateRootSignature(const std::string& effectName)
 	descriptionRootSignature.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
 
 	// Samplerの設定
-	D3D12_STATIC_SAMPLER_DESC staticSamplers[1] = {};
+	D3D12_STATIC_SAMPLER_DESC staticSamplers[2] = {};
 	staticSamplers[0].Filter = D3D12_FILTER_MIN_MAG_MIP_LINEAR;            // バイリニアフィルタ
 	staticSamplers[0].AddressU = D3D12_TEXTURE_ADDRESS_MODE_WRAP;		   // 0～1の範囲外をリピート
 	staticSamplers[0].AddressV = D3D12_TEXTURE_ADDRESS_MODE_WRAP;		   // 0～1の範囲外をリピート
 	staticSamplers[0].AddressW = D3D12_TEXTURE_ADDRESS_MODE_WRAP;		   // 0～1の範囲外をリピート
 	staticSamplers[0].ComparisonFunc = D3D12_COMPARISON_FUNC_NEVER;		   // 比較しない
 	staticSamplers[0].MaxLOD = D3D12_FLOAT32_MAX;						   // ありったけのMipmapを使う
-	staticSamplers[0].ShaderRegister = 0;								   // レジスタ番号0
+	staticSamplers[0].ShaderRegister = 0;								   // レジスタ番号0 s0
 	staticSamplers[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;	   // ピクセルシェーダーで使用
+
+	staticSamplers[1] = staticSamplers[0]; // 同じ設定を使う場合
+	staticSamplers[1].ShaderRegister = 1; // レジスタ番号1 s1
+	staticSamplers[1].Filter = D3D12_FILTER_MIN_MAG_MIP_POINT; // ポイントフィルタ
+
 	descriptionRootSignature.pStaticSamplers = staticSamplers;			   // サンプラの設定
-	descriptionRootSignature.NumStaticSamplers = _countof(staticSamplers); // サンプラの数
+	descriptionRootSignature.NumStaticSamplers = _countof(staticSamplers); // サンプラの数 = 2
 
 	// DescriptorRangeの設定
 	D3D12_DESCRIPTOR_RANGE descriptorRange[1] = {};
@@ -249,24 +272,29 @@ void PostEffectManager::CreateRootSignature(const std::string& effectName)
 	descriptorRangeDepth[0].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
 
 	// ルートシグネチャの生成
-	D3D12_ROOT_PARAMETER rootParameters[3] = {};
+	D3D12_ROOT_PARAMETER rootParameters[4] = {};
 
 	// テクスチャの設定
 	rootParameters[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;      // ディスクリプタテーブル
 	rootParameters[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL; 	           // ピクセルシェーダーで使用
-	rootParameters[0].DescriptorTable.pDescriptorRanges = descriptorRange;             // ディスクリプタテーブルの設定
+	rootParameters[0].DescriptorTable.pDescriptorRanges = descriptorRange;             // ディスクリプタテーブルの設定 t0
 	rootParameters[0].DescriptorTable.NumDescriptorRanges = _countof(descriptorRange); // ディスクリプタテーブルの数
 
 	// 定数バッファ (CBV)
 	rootParameters[1].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;     // 定数バッファビュー
 	rootParameters[1].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL; // バーテックスシェーダーで使用
-	rootParameters[1].Descriptor.ShaderRegister = 0;					 // レジスタ番号
+	rootParameters[1].Descriptor.ShaderRegister = 0;					 // レジスタ番号 b0
+
+	// 定数バッファ (CBV)
+	rootParameters[2].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;     // 定数バッファビュー
+	rootParameters[2].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL; // バーテックスシェーダーで使用
+	rootParameters[2].Descriptor.ShaderRegister = 1;					 // レジスタ番号 b1
 
 	// 深度バッファテクスチャ
-	rootParameters[2].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;      // ディスクリプタテーブル
-	rootParameters[2].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL; 	           // ピクセルシェーダーで使用
-	rootParameters[2].DescriptorTable.pDescriptorRanges = descriptorRangeDepth;             // ディスクリプタテーブルの設定
-	rootParameters[2].DescriptorTable.NumDescriptorRanges = _countof(descriptorRangeDepth); // ディスクリプタテーブルの数
+	rootParameters[3].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;      // ディスクリプタテーブル
+	rootParameters[3].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL; 	           // ピクセルシェーダーで使用
+	rootParameters[3].DescriptorTable.pDescriptorRanges = descriptorRangeDepth;             // ディスクリプタテーブルの設定 t1
+	rootParameters[3].DescriptorTable.NumDescriptorRanges = _countof(descriptorRangeDepth); // ディスクリプタテーブルの数
 
 	// ルートシグネチャの設定
 	descriptionRootSignature.pParameters = rootParameters;
@@ -384,6 +412,14 @@ void PostEffectManager::SetPostEffect(const std::string& effectName)
 	{
 		commandList->SetGraphicsRootConstantBufferView(1, gaussianResource_->GetGPUVirtualAddress());
 	}
+	else if (effectName == "LuminanceOutline")
+	{
+		commandList->SetGraphicsRootConstantBufferView(1, luminanceOutlineResource_->GetGPUVirtualAddress());
+
+		// SRVのバインド：t0 は render texture、t1 は depth texture
+		//commandList->SetGraphicsRootDescriptorTable(0, SRVManager::GetInstance()->GetGPUDescriptorHandle(rtvSrvIndex_));
+		//commandList->SetGraphicsRootDescriptorTable(2, SRVManager::GetInstance()->GetGPUDescriptorHandle(depthSrvIndex_));
+	}
 	else
 	{
 		assert(false);
@@ -404,6 +440,11 @@ void PostEffectManager::AllocateRTVAndSRV()
 	// SRVの確保
 	rtvSrvIndex_ = SRVManager::GetInstance()->Allocate();
 	SRVManager::GetInstance()->CreateSRVForTexture2D(rtvSrvIndex_, renderResource_.Get(), DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, 1);
+
+	// DSVの確保
+	/*uint32_t dsvSrvIndex_ = DSVManager::GetInstance()->Allocate();
+	DSVManager::GetInstance()->CreateDSVForDepthBuffer(depthSrvIndex_, renderResource_.Get());
+	depthSrvHandle_ = DSVManager::GetInstance()->GetCPUDescriptorHandle(dsvSrvIndex_);*/
 }
 
 
@@ -444,10 +485,10 @@ void PostEffectManager::InitializeSmoothing()
 {
 	// リソースの生成
 	smoothingResource_ = ResourceManager::CreateBufferResource(dxCommon_->GetDevice(), sizeof(SmoothingSetting));
-	
+
 	// データの設定
 	smoothingResource_->Map(0, nullptr, reinterpret_cast<void**>(&smoothingSetting_));
-	
+
 	// スムージングの設定
 	smoothingSetting_->intensity = 0.5f;
 	smoothingSetting_->threshold = 0.5f;
@@ -462,12 +503,30 @@ void PostEffectManager::InitializeGaussianFilter()
 {
 	// リソースの生成
 	gaussianResource_ = ResourceManager::CreateBufferResource(dxCommon_->GetDevice(), sizeof(GaussianFilterSetting));
-	
+
 	// データの設定
 	gaussianResource_->Map(0, nullptr, reinterpret_cast<void**>(&gaussianFilterSetting_));
-	
+
 	// ガウシアンフィルタの設定
 	gaussianFilterSetting_->intensity = 1.0f;
 	gaussianFilterSetting_->threshold = 0.5f;
 	gaussianFilterSetting_->sigma = 1.0f;
+}
+
+
+/// -------------------------------------------------------------
+///				　		アウトラインの初期化
+/// -------------------------------------------------------------
+void PostEffectManager::InitializeLuminanceOutline()
+{
+	luminanceOutlineResource_ = ResourceManager::CreateBufferResource(dxCommon_->GetDevice(), sizeof(LuminanceOutlineSetting));
+	luminanceOutlineResource_->Map(0, nullptr, reinterpret_cast<void**>(&luminanceOutlineSetting_));
+
+	// 解像度から texelSize を求める
+	luminanceOutlineSetting_->texelSize = {
+		1.0f / static_cast<float>(WinApp::kClientWidth),
+		1.0f / static_cast<float>(WinApp::kClientHeight)
+	};
+	luminanceOutlineSetting_->edgeStrength = 5.0f;  // 初期値
+	luminanceOutlineSetting_->threshold = 0.2f;     // 初期値
 }
