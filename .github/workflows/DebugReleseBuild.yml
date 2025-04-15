@@ -10,7 +10,7 @@ on:
 # ---------- 環境変数 ---------- #
 env:
   # リポジトリのルートディレクトリを基点としたソリューションファイルのパス
-  SOLUTION_FILE_PATH: Project/CG2_DirectXGame.sln
+  SOLUTION_FILE_PATH: Project/Ken4lowEngine.sln
 
 # ---------- ジョブ ---------- #
 jobs:
