@@ -306,7 +306,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="EngineLayer\ResourceChecker\LeakCheck\D3DResourceLeakChecker.h" />
     <ClInclude Include="EngineLayer\Base\DirectXCommon\DirectXCommon.h" />
     <ClInclude Include="EngineLayer\Base\DX12Device\DX12Device.h" />
-    <ClInclude Include="EngineLayer\Base\DX12Include.h" />
+    <ClInclude Include="EngineLayer\Base\MultipleStructs\DX12Include.h" />
     <ClInclude Include="EngineLayer\Base\DX12SwapChain\DX12SwapChain.h" />
     <ClInclude Include="EngineLayer\Base\MultipleStructs\BlendModeType.h" />
     <ClInclude Include="Externals\imgui\imconfig.h" />

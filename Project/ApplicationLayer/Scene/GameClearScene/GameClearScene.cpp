@@ -1,30 +1,49 @@
 #include "GameClearScene.h"
 #include <DirectXCommon.h>
-#include <ImGuiManager.h>
 #include <Input.h>
 #include <ParameterManager.h>
 #include <ParticleManager.h>
+#include <TextureManager.h>
 
+
+/// -------------------------------------------------------------
+///				　			初期化処理
+/// -------------------------------------------------------------
 void GameClearScene::Initialize()
 {
 	dxCommon_ = DirectXCommon::GetInstance();
-	textureManager = TextureManager::GetInstance();
 	input = Input::GetInstance();
 	wavLoader_ = std::make_unique<WavLoader>();
 }
 
+
+/// -------------------------------------------------------------
+///				　			更新処理
+/// -------------------------------------------------------------
 void GameClearScene::Update()
 {
 }
 
+
+/// -------------------------------------------------------------
+///				　			描画処理
+/// -------------------------------------------------------------
 void GameClearScene::Draw()
 {
 }
 
+
+/// -------------------------------------------------------------
+///				　			終了処理
+/// -------------------------------------------------------------
 void GameClearScene::Finalize()
 {
 }
 
+
+/// -------------------------------------------------------------
+///				　		　ImGui描画処理
+/// -------------------------------------------------------------
 void GameClearScene::DrawImGui()
 {
 }

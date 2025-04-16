@@ -38,16 +38,16 @@ void Wireframe::Initialize(DirectXCommon* dxCommon)
 	CreateTransformationMatrix();
 
 	// 三角形の頂点データを生成
-	triangleData_ = new TriangleData;
-	CreateTriangleVertexData(triangleData_);
+	triangleData_ = std::make_unique<TriangleData>();
+	CreateTriangleVertexData(triangleData_.get());
 
 	// 矩形の頂点座標を生成
-	boxData_ = new BoxData();
-	CreateBoxVertexData(boxData_);
+	boxData_ = std::make_unique<BoxData>();
+	CreateBoxVertexData(boxData_.get());
 
 	// 線の頂点を生成
-	lineData_ = new LineData();
-	CreateLineVertexData(lineData_);
+	lineData_ = std::make_unique<LineData>();
+	CreateLineVertexData(lineData_.get());
 
 	// 球の頂点座標を計算
 	CalcSphereVertexData();
@@ -109,6 +109,9 @@ void Wireframe::Draw()
 	commandList->DrawIndexedInstanced(kBoxIndexCount, boxVertexIndex_ / kBoxVertexCount, 0, 0, 0);               // インデックスを使用して描画
 
 #pragma endregion -----------------------------
+
+	// リセット処理
+	Reset();
 }
 
 
@@ -121,23 +124,6 @@ void Wireframe::Reset()
 	boxVertexIndex_ = 0;
 	boxIndex_ = 0;
 	lineIndex_ = 0;
-}
-
-
-/// -------------------------------------------------------------
-///				　	          解放処理
-/// -------------------------------------------------------------
-void Wireframe::Finalize()
-{
-	// 三角形の解放
-	delete triangleData_;
-	triangleData_ = nullptr;
-	// 矩形の解放
-	delete boxData_;
-	boxData_ = nullptr;
-	// 線の解放
-	delete lineData_;
-	lineData_ = nullptr;
 }
 
 

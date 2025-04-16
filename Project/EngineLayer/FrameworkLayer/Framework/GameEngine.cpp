@@ -103,7 +103,6 @@ void GameEngine::Draw()
 
 	// ワイヤフレームの描画処理＆リセット
 	Wireframe::GetInstance()->Draw();
-	Wireframe::GetInstance()->Reset();
 
 	// オフスクリーン描画終了
 	PostEffectManager::GetInstance()->EndDraw();
