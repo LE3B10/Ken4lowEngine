@@ -1,7 +1,6 @@
 #pragma once
 #include "DX12Include.h"
 #include "WorldTransform.h"
-
 #include "Vector2.h"
 #include "Vector4.h"
 

@@ -92,9 +92,6 @@ public: /// ---------- メンバ関数 ---------- ///
 	// リセット処理
 	void Reset();
 
-	// 解放処理
-	void Finalize();
-
 public: /// ---------- 2D用の線の描画 ---------- ///
 
 	// 線を描画
@@ -153,7 +150,7 @@ public: /// ---------- 2D用の線の描画 ---------- ///
 
 	// 魔法陣
 	void DrawMagicCircle(const Vector3& center, float radius, const Vector4& color);
-	
+
 	// 回転する魔法陣
 	void DrawRotatingMagicCircle(const Vector3& center, float radius, const Vector4& color, float time);
 
@@ -279,13 +276,13 @@ private: /// ---------- メンバ変数 ---------- ///
 	TransformationMatrix* transformationMatrixData_;
 
 	// 三角形データ
-	TriangleData* triangleData_;
+	std::unique_ptr<TriangleData> triangleData_;
 
 	// 矩形データ
-	BoxData* boxData_;
+	std::unique_ptr<BoxData> boxData_;
 
 	// 線データ
-	LineData* lineData_;
+	std::unique_ptr<LineData> lineData_;
 
 	// 球のデータ
 	std::vector<Vector3> spheres_;
@@ -313,12 +310,12 @@ private: /// ---------- メンバ変数 ---------- ///
 	const uint32_t kLineVertexCount = 2;
 
 	// マトリックス
-	Matrix4x4 projectionMatrix_;
-	Matrix4x4 viewProjectionMatrix_;
+	Matrix4x4 projectionMatrix_{};
+	Matrix4x4 viewProjectionMatrix_{};
 
 	// デバッグ用マトリックス
-	Matrix4x4 debugProjectionMatrix_;
-	Matrix4x4 debugViewProjectionMatrix_;
+	Matrix4x4 debugProjectionMatrix_{};
+	Matrix4x4 debugViewProjectionMatrix_{};
 
 private: /// ---------- コピー禁止 ---------- ///
 

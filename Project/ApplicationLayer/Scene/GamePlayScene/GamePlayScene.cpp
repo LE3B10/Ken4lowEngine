@@ -81,6 +81,9 @@ void GamePlayScene::Update()
 	animationModel_->Update();
 
 	skyBox_->Update();
+
+	// 衝突判定と応答
+	CheckAllCollisions();
 }
 
 
@@ -89,23 +92,25 @@ void GamePlayScene::Update()
 /// -------------------------------------------------------------
 void GamePlayScene::Draw()
 {
-	/// ------------------------------------------ ///
-	/// ---------- スカイボックスの描画 ---------- ///
-	/// ------------------------------------------ ///
+#pragma region スカイボックスの描画
+
+	// スカイボックスの共通描画設定
 	SkyBoxManager::GetInstance()->SetRenderSetting();
 	//skyBox_->Draw();
 
-
-	/// ---------------------------------------- ///
-	/// ----------  スプライトの描画  ---------- ///
-	/// ---------------------------------------- ///
-	// スプライトの共通描画設定
-	SpriteManager::GetInstance()->SetRenderSetting();
+#pragma endregion
 
 
-	/// ---------------------------------------- ///
-	/// ---------- オブジェクト3D描画 ---------- ///
-	/// ---------------------------------------- ///
+#pragma region スプライトの描画
+
+	// 背景用の共通描画設定（後面）
+	SpriteManager::GetInstance()->SetRenderSetting_Background();
+
+#pragma endregion
+
+
+#pragma region オブジェクト3Dの描画
+
 	// オブジェクト3D共通描画設定
 	Object3DCommon::GetInstance()->SetRenderSetting();
 
@@ -115,11 +120,18 @@ void GamePlayScene::Draw()
 
 	animationModel_->Draw();
 
+#pragma endregion
+
+
+#pragma region UIの描画
+
+	// UI用の共通描画設定
+	SpriteManager::GetInstance()->SetRenderSetting_UI();
+
+#pragma endregion
+
 	// ワイヤーフレームの描画
 	Wireframe::GetInstance()->DrawGrid(100.0f, 20.0f, { 0.25f, 0.25f, 0.25f,1.0f });
-
-	// 衝突判定と応答
-	CheckAllCollisions();
 }
 
 

@@ -3,12 +3,19 @@
 #include "ShaderManager.h"
 
 
+/// -------------------------------------------------------------
+///				　	シングルトンインスタンス
+/// -------------------------------------------------------------
 SpriteManager* SpriteManager::GetInstance()
 {
 	static SpriteManager instance;
 	return &instance;
 }
 
+
+/// -------------------------------------------------------------
+///				　			初期化処理
+/// -------------------------------------------------------------
 void SpriteManager::Initialize(DirectXCommon* dxCommon)
 {
 	dxCommon_ = dxCommon;
@@ -16,19 +23,43 @@ void SpriteManager::Initialize(DirectXCommon* dxCommon)
 	CreatePSO();
 }
 
+
+/// -------------------------------------------------------------
+///				　			 更新処理
+/// -------------------------------------------------------------
 void SpriteManager::Update()
 {
 
 }
 
-void SpriteManager::SetRenderSetting()
+
+/// -------------------------------------------------------------
+///				　		背景用の共通描画設定
+/// -------------------------------------------------------------
+void SpriteManager::SetRenderSetting_Background()
 {
 	auto commandList = dxCommon_->GetCommandList();
 	commandList->SetGraphicsRootSignature(rootSignature_.Get());
-	commandList->SetPipelineState(graphicsPipelineState_.Get());
+	commandList->SetPipelineState(graphicsPipelineState_Background_.Get());
 	commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 }
 
+
+/// -------------------------------------------------------------
+///				　		UI用の共通描画設定
+/// -------------------------------------------------------------
+void SpriteManager::SetRenderSetting_UI()
+{
+	auto commandList = dxCommon_->GetCommandList();
+	commandList->SetGraphicsRootSignature(rootSignature_.Get());
+	commandList->SetPipelineState(graphicsPipelineState_UI_.Get());
+	commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+}
+
+
+/// -------------------------------------------------------------
+///				　		ルートシグネチャの生成
+/// -------------------------------------------------------------
 void SpriteManager::CreateRootSignature()
 {
 	// RootSignatureの設定
@@ -91,6 +122,10 @@ void SpriteManager::CreateRootSignature()
 	assert(SUCCEEDED(hr));
 }
 
+
+/// -------------------------------------------------------------
+///				　		パイプラインの生成
+/// -------------------------------------------------------------
 void SpriteManager::CreatePSO()
 {
 	HRESULT hr{};
@@ -101,13 +136,12 @@ void SpriteManager::CreatePSO()
 	D3D12_INPUT_ELEMENT_DESC inputElementDescs[2] = {};
 	inputElementDescs[0] = { "POSITION", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 };
 	inputElementDescs[1] = { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT,		0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 };
-	
+
 	inputLayoutDesc_.pInputElementDescs = inputElementDescs;
 	inputLayoutDesc_.NumElements = _countof(inputElementDescs);
 
 	// BlendStateの設定
 	D3D12_RENDER_TARGET_BLEND_DESC blendDesc{};
-	// ノーマル
 	blendDesc.BlendEnable = true;
 	blendDesc.SrcBlend = D3D12_BLEND_SRC_ALPHA;
 	blendDesc.BlendOp = D3D12_BLEND_OP_ADD;
@@ -131,40 +165,55 @@ void SpriteManager::CreatePSO()
 	ComPtr <IDxcBlob> pixelShaderBlob = ShaderManager::CompileShader(L"Resources/Shaders/Sprite.PS.hlsl", L"ps_6_0", dxCommon_->GetIDxcUtils(), dxCommon_->GetIDxcCompiler(), dxCommon_->GetIncludeHandler());
 	assert(pixelShaderBlob != nullptr);
 
-	// 深度ステンシルステート
-	D3D12_DEPTH_STENCIL_DESC depthStencilDesc{};
-	//Depthの機能を有効化する
-	depthStencilDesc.DepthEnable = true;
-	//書き込みします
-	depthStencilDesc.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ALL;
-	//比較関数はLessEqual。つまり、近ければ描画される
-	depthStencilDesc.DepthFunc = D3D12_COMPARISON_FUNC_LESS_EQUAL;
+	// --- 背景用（Zバッファ書き込みあり） ---
+	{
+		D3D12_DEPTH_STENCIL_DESC depthStencilDesc{};
+		depthStencilDesc.DepthEnable = true;
+		depthStencilDesc.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ALL;  // 書き込みあり
+		depthStencilDesc.DepthFunc = D3D12_COMPARISON_FUNC_LESS_EQUAL;
 
-	// パイプラインステートディスクリプタの初期化
-	D3D12_GRAPHICS_PIPELINE_STATE_DESC graphicsPipelineStateDesc{};
-	graphicsPipelineStateDesc.pRootSignature = rootSignature_.Get();											// RootSgnature
-	graphicsPipelineStateDesc.InputLayout = inputLayoutDesc_;													// InputLayout
-	graphicsPipelineStateDesc.VS = { vertexShaderBlob->GetBufferPointer(), vertexShaderBlob->GetBufferSize() };	// VertexDhader
-	graphicsPipelineStateDesc.PS = { pixelShaderBlob->GetBufferPointer(), pixelShaderBlob->GetBufferSize() };	// PixelShader
-	graphicsPipelineStateDesc.BlendState.RenderTarget[0] = blendDesc;											// BlendState
-	graphicsPipelineStateDesc.RasterizerState = rasterizerDesc;													// RasterizeerState
+		D3D12_GRAPHICS_PIPELINE_STATE_DESC desc{};
+		desc.pRootSignature = rootSignature_.Get();
+		desc.InputLayout = inputLayoutDesc_;
+		desc.VS = { vertexShaderBlob->GetBufferPointer(), vertexShaderBlob->GetBufferSize() };
+		desc.PS = { pixelShaderBlob->GetBufferPointer(), pixelShaderBlob->GetBufferSize() };
+		desc.BlendState.RenderTarget[0] = blendDesc;
+		desc.RasterizerState = rasterizerDesc;
+		desc.NumRenderTargets = 1;
+		desc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
+		desc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+		desc.SampleDesc.Count = 1;
+		desc.SampleMask = D3D12_DEFAULT_SAMPLE_MASK;
+		desc.DepthStencilState = depthStencilDesc;
+		desc.DSVFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
 
-	//レンダーターゲットの設定
-	graphicsPipelineStateDesc.NumRenderTargets = 1;
-	graphicsPipelineStateDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
+		hr = dxCommon_->GetDevice()->CreateGraphicsPipelineState(&desc, IID_PPV_ARGS(&graphicsPipelineState_Background_));
+		assert(SUCCEEDED(hr));
+	}
 
-	//利用するトポロジー（形態）のタイプ。三角形
-	graphicsPipelineStateDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;					// プリミティブトポロジーの設定
+	// --- UI用（Zバッファ書き込みなし） ---
+	{
+		D3D12_DEPTH_STENCIL_DESC depthStencilDesc{};
+		depthStencilDesc.DepthEnable = true;
+		depthStencilDesc.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ZERO; // 書き込みなし
+		depthStencilDesc.DepthFunc = D3D12_COMPARISON_FUNC_LESS_EQUAL;
 
-	// サンプルマスクとサンプル記述子の設定
-	graphicsPipelineStateDesc.SampleDesc.Count = 1;
-	graphicsPipelineStateDesc.SampleMask = D3D12_DEFAULT_SAMPLE_MASK;
+		D3D12_GRAPHICS_PIPELINE_STATE_DESC desc{};
+		desc.pRootSignature = rootSignature_.Get();
+		desc.InputLayout = inputLayoutDesc_;
+		desc.VS = { vertexShaderBlob->GetBufferPointer(), vertexShaderBlob->GetBufferSize() };
+		desc.PS = { pixelShaderBlob->GetBufferPointer(), pixelShaderBlob->GetBufferSize() };
+		desc.BlendState.RenderTarget[0] = blendDesc;
+		desc.RasterizerState = rasterizerDesc;
+		desc.NumRenderTargets = 1;
+		desc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
+		desc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+		desc.SampleDesc.Count = 1;
+		desc.SampleMask = D3D12_DEFAULT_SAMPLE_MASK;
+		desc.DepthStencilState = depthStencilDesc;
+		desc.DSVFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
 
-	// DepthStencilステートの設定
-	graphicsPipelineStateDesc.DepthStencilState = depthStencilDesc;
-	graphicsPipelineStateDesc.DSVFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
-
-	// パイプラインステートオブジェクトの生成
-	hr = dxCommon_->GetDevice()->CreateGraphicsPipelineState(&graphicsPipelineStateDesc, IID_PPV_ARGS(&graphicsPipelineState_));
-	assert(SUCCEEDED(hr));
+		hr = dxCommon_->GetDevice()->CreateGraphicsPipelineState(&desc, IID_PPV_ARGS(&graphicsPipelineState_UI_));
+		assert(SUCCEEDED(hr));
+	}
 }

@@ -149,9 +149,6 @@ void Framework::Finalize()
 	ImGuiManager::GetInstance()->Finalize();
 #endif // _DEBUG
 
-	// ワイヤーフレームの終了処理
-	Wireframe::GetInstance()->Finalize();
-
 	// ParticleManagerの終了処理
 	ParticleManager::GetInstance()->Finalize();
 

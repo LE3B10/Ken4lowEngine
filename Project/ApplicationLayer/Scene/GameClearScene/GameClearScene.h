@@ -1,6 +1,5 @@
 #pragma once
 #include <Sprite.h>
-#include <TextureManager.h>
 #include <Object3D.h>
 #include <WavLoader.h>
 #include "ParticleManager.h"
@@ -9,7 +8,6 @@
 /// ---------- 前方宣言 ---------- ///
 class DirectXCommon;
 class Input;
-class ImGuiManager;
 
 
 /// -------------------------------------------------------------
@@ -36,7 +34,6 @@ public: /// ---------- メンバ関数 ---------- ///
 private: /// ---------- メンバ変数 ---------- ///
 
 	DirectXCommon* dxCommon_ = nullptr;
-	TextureManager* textureManager = nullptr;
 	Input* input = nullptr;
 
 	std::unique_ptr<WavLoader> wavLoader_;

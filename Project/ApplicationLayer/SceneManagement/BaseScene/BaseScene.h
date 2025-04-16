@@ -26,8 +26,10 @@ public: /// ---------- 純粋仮想関数 ---------- ///
 	// 仮想終了処理
 	virtual void Finalize() = 0;
 
+	// ImGui描画処理
 	virtual void DrawImGui() = 0;
 
+	// シーンマネージャーをセット
 	virtual void SetSceneManager(SceneManager* sceneManager) { sceneManager_ = sceneManager; }
 
 protected: /// ---------- メンバ変数 ---------- ///

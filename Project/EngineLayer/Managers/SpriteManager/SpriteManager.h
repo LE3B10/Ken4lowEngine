@@ -22,11 +22,14 @@ public: /// ---------- メンバ関数 ---------- ///
 	// 更新処理
 	void Update();
 
-	// 共通描画設定
-	void SetRenderSetting();
+	// 背景用の共通描画設定（Depth書き込み有）
+	void SetRenderSetting_Background();
+
+	// UI用の共通描画設定（Depth書き込み無）
+	void SetRenderSetting_UI();
 
 private: /// ---------- メンバ関数 ---------- ///
-	
+
 	// ルートシグネチャの生成
 	void CreateRootSignature();
 
@@ -39,7 +42,10 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	BlendMode blendMode_ = BlendMode::kBlendModeNone;
 
-	ComPtr <ID3D12PipelineState> graphicsPipelineState_;
+	// 2種類のPSO
+	ComPtr<ID3D12PipelineState> graphicsPipelineState_Background_;
+	ComPtr<ID3D12PipelineState> graphicsPipelineState_UI_;
+
 	ComPtr <ID3DBlob> signatureBlob_;
 	ComPtr <ID3DBlob> errorBlob_;
 	ComPtr <ID3D12RootSignature> rootSignature_;

@@ -14,9 +14,6 @@ public: /// ---------- メンバ関数 ---------- ///
 	// シングルトンインスタンス
 	static SceneManager* GetInstance();
 
-	// デストラクタ
-	~SceneManager();
-
 	// 更新処理
 	void Update();
 

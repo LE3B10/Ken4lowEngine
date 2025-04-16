@@ -80,11 +80,10 @@ void TitleScene::Update()
 /// -------------------------------------------------------------
 void TitleScene::Draw()
 {
-	/// ---------------------------------------- ///
-	/// ----------  スプライトの描画  ---------- ///
-	/// ---------------------------------------- ///
-	// スプライトの共通描画設定
-	SpriteManager::GetInstance()->SetRenderSetting();
+#pragma region 背景の描画（後面）
+
+	// 背景用の共通描画設定（後面）
+	SpriteManager::GetInstance()->SetRenderSetting_Background();
 
 	/// ----- スプライトの描画設定と描画 ----- ///
 	for (auto& sprite : sprites_)
@@ -92,11 +91,22 @@ void TitleScene::Draw()
 		sprite->Draw();
 	}
 
-	/// ---------------------------------------- ///
-	/// ---------- オブジェクト3D描画 ---------- ///
-	/// ---------------------------------------- ///
+#pragma endregion
+
+
+#pragma region オブジェクト3Dの描画
+
 	// オブジェクト3D共通描画設定
 	Object3DCommon::GetInstance()->SetRenderSetting();
+
+#pragma endregion
+
+
+#pragma region UIの描画（前面）
+	// UI用の共通描画設定
+	SpriteManager::GetInstance()->SetRenderSetting_UI();
+
+#pragma endregion
 }
 
 
