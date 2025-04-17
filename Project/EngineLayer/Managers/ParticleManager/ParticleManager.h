@@ -52,6 +52,10 @@ public: /// ---------- 構造体 ---------- ///
 		Vector4 color = {};		 // 色
 		float lifeTime = 0;		 // 生存可能な時間
 		float currentTime = 0;	 // 発生してからの経過時間
+
+		// スケールアニメーション用（追加）
+		Vector3 startScale = { 1.0f, 1.0f, 1.0f };
+		Vector3 endScale = { 0.0f, 0.0f, 0.0f };
 	};
 
 	struct Material final
@@ -108,7 +112,7 @@ public: /// ---------- メンバ関数 ---------- ///
 	void Emit(const std::string name, const Vector3 position, uint32_t count);
 
 	std::unordered_map<std::string, ParticleManager::ParticleGroup> GetParticleGroups() { return particleGroups; }
-	
+
 	// ImGuiの描画
 	void DrawImGui();
 
@@ -140,7 +144,7 @@ private: /// ---------- ヘルパー関数 ---------- ///
 	bool IsCollision(const AABB& aabb, const Vector3& point);
 
 private: /// ---------- メンバ変数 ---------- ///
-	
+
 	WorldTransform worldTransform;
 
 	BlendMode cuurenttype = BlendMode::kBlendModeAdd;
@@ -192,7 +196,7 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	// Fieldを作る
 	AccelerationField accelerationField;
-	
+
 private: /// ---------- コピー禁止 ---------- ///
 
 	ParticleManager() = default;

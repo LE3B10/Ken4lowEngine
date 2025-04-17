@@ -152,7 +152,7 @@ void PostEffectManager::RenderPostEffect()
 	//SetPostEffect("VignetteEffect");
 	//SetPostEffect("SmoothingEffect");
 	//SetPostEffect("GaussianFilterEffect");
-	SetPostEffect("LuminanceOutline");
+	//SetPostEffect("LuminanceOutline");
 
 	// 🔹 SRV (シェーダーリソースビュー) をセット
 	commandList->SetGraphicsRootDescriptorTable(0, SRVManager::GetInstance()->GetGPUDescriptorHandle(rtvSrvIndex_));
