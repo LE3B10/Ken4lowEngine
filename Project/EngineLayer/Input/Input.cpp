@@ -163,6 +163,17 @@ void Input::Update()
 
 	// **ここで前回の状態を更新**
 	memcpy(prevButtonStates_, buttonStates_, sizeof(prevButtonStates_));
+
+	prevMouseState_ = mouseState_; // マウスの状態を保存
+
+	/// ----- マウスカーソルを画面中央に固定する処理 ----- ///
+	if (lockCursor_) // カーソルロックが有効なときだけ中央に固定
+	{
+		POINT center{};
+		center.x = WinApp::kClientWidth / 2;
+		center.y = WinApp::kClientHeight / 2;
+		SetMousePosition(center.x, center.y); // これは ClientToScreen → SetCursorPos を含む関数
+	}
 }
 
 

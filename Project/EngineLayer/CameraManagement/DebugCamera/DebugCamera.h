@@ -1,5 +1,6 @@
 #pragma once
 #include "WorldTransform.h"
+#include "Quaternion.h"
 
 
 /// -------------------------------------------------------------
@@ -22,6 +23,9 @@ private: /// ---------- メンバ関数 ---------- ///
 
 	// 移動操作処理
 	void Move();
+
+	// 回転操作処理
+	void UpdateViewProjection();
 
 public: /// ---------- 設定 ---------- ///
 
@@ -92,6 +96,9 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	// 合成行列
 	Matrix4x4 viewProjectionMatrix_;
+
+	// クォータニオン
+	Quaternion rotation_{};
 
 private: /// ---------- コピー禁止 ---------- ///
 

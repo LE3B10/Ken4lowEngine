@@ -25,12 +25,8 @@ void DebugCamera::Initialize()
 	aspectRatio_ = float(WinApp::kClientWidth) / float(WinApp::kClientHeight);
 	nearClip_ = 0.1f;
 	farClip_ = 100.0f;
-	worldMatrix_ = Matrix4x4::MakeAffineMatrix(worldTransform_.scale_, worldTransform_.rotate_, worldTransform_.translate_);
-	viewMatrix_ = Matrix4x4::Inverse(worldMatrix_);
-	projectionMatrix_ = Matrix4x4::MakePerspectiveFovMatrix(fovY_, aspectRatio_, nearClip_, farClip_);
-	viewProjectionMatrix_ = Matrix4x4::Multiply(viewMatrix_, projectionMatrix_);
 
-	rotateMatrix_ = Matrix4x4::MakeRotateMatrix(worldTransform_.rotate_);
+	UpdateViewProjection();
 }
 
 
@@ -41,17 +37,7 @@ void DebugCamera::Update()
 {
 	Move();
 
-	// **回転行列を更新**
-	rotateMatrix_ = Matrix4x4::MakeRotateMatrix(worldTransform_.rotate_);
-
-	// ワールド行列を作る
-	worldMatrix_ = Matrix4x4::MakeAffineMatrix(worldTransform_.scale_, worldTransform_.rotate_, worldTransform_.translate_);
-
-	// ビュー行列を作る
-	viewMatrix_ = Matrix4x4::Inverse(worldMatrix_);
-
-	// ビュー射影行列を更新
-	viewProjectionMatrix_ = Matrix4x4::Multiply(viewMatrix_, projectionMatrix_);
+	UpdateViewProjection();
 }
 
 
@@ -62,25 +48,44 @@ void DebugCamera::Move()
 {
 	Vector3 move = { 0.0f, 0.0f, 0.0f };
 
-	// カメラの前後左右移動
+	/// ---------- キー入力による移動 ---------- ///
 	if (Input::GetInstance()->PushKey(DIK_W)) { move.z += 0.4f; }
 	if (Input::GetInstance()->PushKey(DIK_S)) { move.z -= 0.4f; }
 	if (Input::GetInstance()->PushKey(DIK_A)) { move.x -= 0.4f; }
 	if (Input::GetInstance()->PushKey(DIK_D)) { move.x += 0.4f; }
-
-	// カメラの高さ移動
 	if (Input::GetInstance()->PushKey(DIK_SPACE)) { move.y += 0.4f; }
 	if (Input::GetInstance()->PushKey(DIK_LSHIFT)) { move.y -= 0.4f; }
 
-	// **回転行列を適用して移動方向を修正**
-	move = Vector3::Transform(move, rotateMatrix_);
+	/// ---------- ホイールで前後移動 ---------- ///
+	move.z += Input::GetInstance()->GetMouseWheel() * 0.02f;
 
-	// 計算した移動量を適用
+	// 回転行列を適用して移動方向を修正
+	move = Vector3::Transform(move, rotateMatrix_);
 	worldTransform_.translate_ += move;
 
-	// **カメラの角度変更**
-	if (Input::GetInstance()->PushKey(DIK_UP)) { worldTransform_.rotate_.x -= 0.04f; }
-	if (Input::GetInstance()->PushKey(DIK_DOWN)) { worldTransform_.rotate_.x += 0.04f; }
-	if (Input::GetInstance()->PushKey(DIK_LEFT)) { worldTransform_.rotate_.y += 0.04f; }
-	if (Input::GetInstance()->PushKey(DIK_RIGHT)) { worldTransform_.rotate_.y -= 0.04f; }
+	/// ---------- マウスでカメラ回転 ---------- ///
+	const float rotateSpeed = 0.002f;
+	worldTransform_.rotate_.x += Input::GetInstance()->GetMouseMoveY() * rotateSpeed;
+	worldTransform_.rotate_.y += Input::GetInstance()->GetMouseMoveX() * -rotateSpeed;
+
+	// カメラのピッチ制限（±90度）
+	worldTransform_.rotate_.x = std::clamp(worldTransform_.rotate_.x, -1.57f, 1.57f);
+}
+
+void DebugCamera::UpdateViewProjection()
+{
+	// **回転行列を更新**
+	rotateMatrix_ = Matrix4x4::MakeRotateMatrix(worldTransform_.rotate_);
+
+	// ワールド行列を作る
+	worldMatrix_ = Matrix4x4::MakeAffineMatrix(worldTransform_.scale_, worldTransform_.rotate_, worldTransform_.translate_);
+
+	// ビュー行列を作る
+	viewMatrix_ = Matrix4x4::Inverse(worldMatrix_);
+
+	// 射影行列を更新
+	projectionMatrix_ = Matrix4x4::MakePerspectiveFovMatrix(fovY_, aspectRatio_, nearClip_, farClip_);
+
+	// ビュー射影行列を更新
+	viewProjectionMatrix_ = Matrix4x4::Multiply(viewMatrix_, projectionMatrix_);
 }
