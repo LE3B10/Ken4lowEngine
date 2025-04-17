@@ -69,6 +69,8 @@ void GamePlayScene::Update()
 		ParticleManager::GetInstance()->SetDebugCamera(!ParticleManager::GetInstance()->GetDebugCamera());
 		skyBox_->SetDebugCamera(!skyBox_->GetDebugCamera());
 		isDebugCamera_ = !isDebugCamera_;
+		Input::GetInstance()->SetLockCursor(isDebugCamera_);
+		ShowCursor(!isDebugCamera_);// 表示・非表示も連動（オプション）
 	}
 #endif // _DEBUG
 

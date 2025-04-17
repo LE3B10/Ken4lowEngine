@@ -132,6 +132,27 @@ public: /// ---------- マウスのメンバ関数 ---------- ///
 	/// <returns></returns>
 	Vector2 GetMousePosition();
 
+	// マウスのX座標を取得
+	int GetMouseMoveX() const { return mouseState_.lX; }
+
+	// マウスのY座標を取得
+	int GetMouseMoveY() const { return mouseState_.lY; }
+
+	// マウスのホイールの値を取得
+	int GetMouseWheel() const { return mouseState_.lZ; }
+
+	// ドラッグ状態を取得
+	bool IsDragging(int button) const { return PushMouse(button); }
+
+	// ドラッグの移動量を取得
+	Vector2 GetDragDelta() const { return Vector2(static_cast<float>(mouseState_.lX), static_cast<float>(mouseState_.lY)); }
+
+	// カーソルをロックするかどうかを設定
+	void SetLockCursor(bool lock) { lockCursor_ = lock; }
+
+	// カーソルをロックするかどうかを取得
+	bool IsCursorLocked() const { return lockCursor_; }
+
 public: /// ---------- ゲームパッドのメンバ関数 ---------- ///
 
 	/// <summary>
@@ -237,6 +258,7 @@ private: /// ---------- マウスのメンバ変数 ---------- ///
 	DIMOUSESTATE mouseState_;				  // マウスの状態
 	DIMOUSESTATE prevMouseState_;			  // 前フレームのマウスの状態
 	POINT mousePosition_ = {};				  // マウスの座標
+	bool lockCursor_ = false;				  // マウスカーソルをロックするかどうか
 
 private: /// ---------- ゲームパッドのメンバ変数 ---------- ///
 
