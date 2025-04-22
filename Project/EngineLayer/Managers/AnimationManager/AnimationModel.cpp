@@ -42,20 +42,9 @@ void AnimationModel::Initialize(const std::string& fileName, bool isAnimation, b
 	// 読み込んだテクスチャ番号を取得
 	modelData.material.gpuHandle = TextureManager::GetInstance()->GetSrvHandleGPU(modelData.material.textureFilePath);
 
+	// マテリアルデータの初期化処理
+	material_.Initialize();
 
-#pragma region マテリアル用のリソースを作成しそのリソースにデータを書き込む処理を行う
-	// マテリアル用のリソースを作る。今回はcolor1つ分のサイズを用意する
-	materialResource = ResourceManager::CreateBufferResource(dxCommon_->GetDevice(), sizeof(Material));
-	// マテリアルにデータを書き込む
-	Material* materialData = nullptr;
-	// 書き込むためのアドレスを取得
-	materialResource->Map(0, nullptr, reinterpret_cast<void**>(&materialData));
-	// 今回は赤を書き込んでみる
-	materialData->color = { 1.0f, 1.0f, 1.0f, 1.0f };
-	materialData->enableLighting = true; // 平行光源を有効にする
-	materialData->shininess = 1.0f;
-	materialData->uvTransform = Matrix4x4::MakeIdentity();
-#pragma endregion
 
 
 #pragma region 頂点バッファデータの開始位置サイズおよび各頂点のデータ構造を指定
@@ -129,6 +118,8 @@ void AnimationModel::Update()
 			}
 		}
 	}
+
+	material_.Update();
 }
 
 
@@ -148,7 +139,9 @@ void AnimationModel::Draw()
 	commandList->IASetVertexBuffers(0, 2, vbvs); // モデル用VBV
 	
 	commandList->IASetIndexBuffer(&indexBufferView);
-	commandList->SetGraphicsRootConstantBufferView(0, materialResource->GetGPUVirtualAddress());
+
+	material_.SetPipeline();
+
 	commandList->SetGraphicsRootDescriptorTable(2, modelData.material.gpuHandle);
 	commandList->SetGraphicsRootConstantBufferView(3, cameraResource->GetGPUVirtualAddress());
 

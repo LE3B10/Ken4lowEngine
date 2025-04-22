@@ -3,6 +3,7 @@
 #include "WorldTransform.h"
 #include "TextureManager.h"
 #include "Material.h"
+#include "Mesh.h"
 #include "VertexData.h"
 #include "ModelData.h"
 #include "Camera.h"
@@ -67,26 +68,8 @@ public: /// ---------- ゲッタ ---------- ///
 
 private: /// ---------- メンバ変数 ---------- ///
 
-	// 頂点データの初期化処理
-	void InitializeMaterial();
-
-	// 頂点バッファデータの初期化
-	void InitializeVertexBufferData();
-
 	// カメラ用のリソース生成
 	void InitializeCameraResource();
-
-private: /// ---------- メンバ変数 ---------- ///
-
-	// 分割数
-	uint32_t kSubdivision = 32;
-
-	// 緯度・経度の分割数に応じた角度の計算
-	float kLatEvery = std::numbers::pi_v<float> / float(kSubdivision);
-	float kLonEvery = 2.0f * std::numbers::pi_v<float> / float(kSubdivision);
-
-	// 球体の頂点数の計算
-	uint32_t TotalVertexCount = kSubdivision * kSubdivision * 6;
 
 private: /// ---------- メンバ変数 ---------- ///
 
@@ -96,23 +79,23 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	std::shared_ptr<Model> model_;
 
+	// マテリアルデータ
+	Material material_;
+
 	// ワールドトランスフォーム
 	WorldTransform worldTransform;
 
+	// メッシュ
+	Mesh mesh_;
+
 	// バッファリソースの作成
-	ComPtr <ID3D12Resource> vertexResource;
-	ComPtr <ID3D12Resource> materialResource;
 	ComPtr <ID3D12Resource> cameraResource;
 
 	// カメラにデータを書き込む
 	CameraForGPU* cameraData = nullptr;
-	
+
 	// OBJファイルのデータ
 	ModelData modelData;
 
-	// 頂点リソース内のデータを指すポインタ
-	VertexData* vertexData = nullptr;
-	
-	// バッファリソースの使い道を補足するバッファビュー
-	D3D12_VERTEX_BUFFER_VIEW vertexBufferView{};
+	float alpha = 1.0f; // α値
 };
