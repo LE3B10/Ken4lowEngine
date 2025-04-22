@@ -273,7 +273,7 @@ private: /// ---------- メンバ変数 ---------- ///
 	ComPtr<ID3D12Resource> transformationMatrixBuffer_;
 
 	// 座標変換行列データ
-	TransformationMatrix* transformationMatrixData_;
+	TransformationMatrix* transformationMatrixData_ = nullptr;
 
 	// 三角形データ
 	std::unique_ptr<TriangleData> triangleData_;

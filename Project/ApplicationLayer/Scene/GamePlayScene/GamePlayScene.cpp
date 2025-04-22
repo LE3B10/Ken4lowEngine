@@ -118,7 +118,6 @@ void GamePlayScene::Draw()
 
 	// Terrain.obj の描画
 	objectTerrain_->Draw();
-	//objectBall_->Draw();
 
 	animationModel_->Draw();
 

@@ -48,7 +48,7 @@ private: /// ---------- 静的メンバ関数 ---------- ///
 	static void ParseFace(std::istringstream& s, const std::vector<Vector4>& positions, const std::vector<Vector2>& texcoords, const std::vector<Vector3>& normals, std::vector<VertexData>& vertices);
 
 	// .mtlファイルの読み取り
-	static MaterialData LoadMaterialTemplateFile(const std::string& directoryPath, const std::string& filename);
+	static Material LoadMaterialTemplateFile(const std::string& directoryPath, const std::string& filename);
 
 public: /// ---------- メンバ関数（Assimp）---------- ///
 

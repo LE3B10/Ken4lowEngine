@@ -47,9 +47,9 @@ void WorldTransform::Update()
 	wvpData->WorldInversedTranspose = Matrix4x4::Transpose(Matrix4x4::Inverse(worldMatrix));
 }
 
-void WorldTransform::SetPipeline()
+void WorldTransform::SetPipeline(UINT rootParameterIndex)
 {
 	auto commandList = DirectXCommon::GetInstance()->GetCommandList();
 
-	commandList->SetGraphicsRootConstantBufferView(1, wvpResource->GetGPUVirtualAddress());
+	commandList->SetGraphicsRootConstantBufferView(rootParameterIndex, wvpResource->GetGPUVirtualAddress());
 }

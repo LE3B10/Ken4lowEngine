@@ -2,6 +2,9 @@
 #include <DX12Include.h>
 #include <ModelData.h>
 #include <Emitter.h>
+#include <ParticleMaterial.h>
+#include <Particle.h>
+#include <ParticleMesh.h>
 
 #include <unordered_map>
 #include <list>
@@ -45,26 +48,6 @@ public: /// ---------- 構造体 ---------- ///
 		Vector4 color;
 	};
 
-	struct Particle
-	{
-		WorldTransform worldTransform{};	 // 位置
-		Vector3 velocity = {};	 // 速度
-		Vector4 color = {};		 // 色
-		float lifeTime = 0;		 // 生存可能な時間
-		float currentTime = 0;	 // 発生してからの経過時間
-
-		// スケールアニメーション用（追加）
-		Vector3 startScale = { 1.0f, 1.0f, 1.0f };
-		Vector3 endScale = { 0.0f, 0.0f, 0.0f };
-	};
-
-	struct Material final
-	{
-		Vector4 color;
-		Matrix4x4 uvTransform;
-		float padding[3];
-	};
-
 	struct VertexData
 	{
 		Vector4 position;
@@ -75,7 +58,7 @@ public: /// ---------- 構造体 ---------- ///
 	struct ParticleGroup
 	{
 		// マテリアルデータ(テクスチャファイルとテクスチャ用SRVインデックス)
-		MaterialData materialData;
+		ParticleMaterial materialData;
 		// パーティクルのリスト(std::list<Particle>型)
 		uint32_t srvIndex;
 		// インスタンシングデータ用SRVインデックス
@@ -122,6 +105,12 @@ public: /// ---------- メンバ関数 ---------- ///
 	// デバッグカメラの有無を取得
 	bool GetDebugCamera() { return isDebugCamera_; }
 
+	// ビルボードを有効にするかを設定
+	void SetBillboard(bool isBillboard) { useBillboard = isBillboard; }
+
+	// ビルボードを有効にするかを取得
+	bool GetBillboard() { return useBillboard; }
+
 private: /// ---------- ヘルパー関数 ---------- ///
 
 	// ルートシグネチャの生成
@@ -129,12 +118,6 @@ private: /// ---------- ヘルパー関数 ---------- ///
 
 	// PSOを生成
 	void CreatePSO();
-
-	// 頂点データの初期化
-	void InitializeVertexData();
-
-	// マテリアルデータの初期化
-	void InitializeMaterialData();
 
 	// パーティクル生成器
 	Particle MakeNewParticle(std::mt19937& randomEngine, const Vector3& translate);
@@ -145,7 +128,9 @@ private: /// ---------- ヘルパー関数 ---------- ///
 
 private: /// ---------- メンバ変数 ---------- ///
 
-	WorldTransform worldTransform;
+	ParticleTransform transform;
+	ParticleMaterial material_;
+	ParticleMesh mesh_;
 
 	BlendMode cuurenttype = BlendMode::kBlendModeAdd;
 

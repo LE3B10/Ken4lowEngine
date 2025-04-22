@@ -4,7 +4,7 @@
 #include <map>
 #include <optional>
 #include "VertexData.h"
-#include "MaterialData.h"
+#include "Material.h"
 #include "Quaternion.h"
 #include "Matrix4x4.h"
 #include <span>
@@ -109,7 +109,7 @@ struct ModelData
 	std::map<std::string, JointWeightData> skinClusterData;
 	std::vector<VertexData> vertices;
 	std::vector<uint32_t> indices;
-	MaterialData material;
+	Material material;
 	Node rootNode;
 };
 

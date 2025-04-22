@@ -43,7 +43,7 @@ public: /// ---------- メンバ関数 ---------- ///
 	void Update();
 
 	// パイプラインを設定
-	void SetPipeline();
+	void SetPipeline(UINT rootParameterIndex = 1);
 
 private: /// ---------- メンバ変数 ---------- ///
 

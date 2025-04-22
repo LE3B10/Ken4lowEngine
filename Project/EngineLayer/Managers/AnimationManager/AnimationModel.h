@@ -5,6 +5,7 @@
 #include "ModelData.h"
 #include "TransformationMatrix.h"
 #include "WorldTransform.h"
+#include "Material.h"
 
 #include <string>
 #include <vector>
@@ -115,6 +116,7 @@ private: /// ---------- メンバ関数・テンプレート関数 ---------- //
 private: /// ---------- メンバ変数 ---------- ///
 
 	WorldTransform worldTransform;
+	Material material_;
 
 	DirectXCommon* dxCommon_ = nullptr;
 
@@ -137,7 +139,6 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	ComPtr <ID3D12Resource> wvpResource;
 	ComPtr <ID3D12Resource> vertexResource;
-	ComPtr <ID3D12Resource> materialResource;
 	ComPtr <ID3D12Resource> cameraResource;
 	ComPtr <ID3D12Resource> indexResource;
 

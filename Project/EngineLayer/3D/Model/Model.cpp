@@ -104,19 +104,19 @@ void Model::preInitialize(DirectXCommon* dxCommon)
 /// -------------------------------------------------------------
 void Model::InitializeMaterial(DirectXCommon* dxCommon)
 {
-#pragma region マテリアル用のリソースを作成しそのリソースにデータを書き込む処理を行う
-	// マテリアル用のリソースを作る。今回はcolor1つ分のサイズを用意する
-	materialResource = ResourceManager::CreateBufferResource(dxCommon->GetDevice(), sizeof(Material));
-	// マテリアルにデータを書き込む
-	Material* materialData = nullptr;
-	// 書き込むためのアドレスを取得
-	materialResource->Map(0, nullptr, reinterpret_cast<void**>(&materialData));
-	// 今回は赤を書き込んでみる
-	materialData->color = { 1.0f, 1.0f, 1.0f, 1.0f };
-	materialData->enableLighting = true; // 平行光源を有効にする
-	// UVTramsform行列を単位行列で初期化
-	materialData->uvTransform = Matrix4x4::MakeIdentity();
-#pragma endregion
+//#pragma region マテリアル用のリソースを作成しそのリソースにデータを書き込む処理を行う
+//	// マテリアル用のリソースを作る。今回はcolor1つ分のサイズを用意する
+//	materialResource = ResourceManager::CreateBufferResource(dxCommon->GetDevice(), sizeof(Material));
+//	// マテリアルにデータを書き込む
+//	Material* materialData = nullptr;
+//	// 書き込むためのアドレスを取得
+//	materialResource->Map(0, nullptr, reinterpret_cast<void**>(&materialData));
+//	// 今回は赤を書き込んでみる
+//	materialData->color = { 1.0f, 1.0f, 1.0f, 1.0f };
+//	materialData->enableLighting = true; // 平行光源を有効にする
+//	// UVTramsform行列を単位行列で初期化
+//	materialData->uvTransform = Matrix4x4::MakeIdentity();
+//#pragma endregion
 }
 
 

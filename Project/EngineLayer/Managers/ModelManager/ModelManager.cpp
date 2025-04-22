@@ -205,10 +205,10 @@ void ModelManager::ParseFace(std::istringstream& s,
 /// -------------------------------------------------------------
 ///					　.mtlファイルの読み取り
 /// -------------------------------------------------------------
-MaterialData ModelManager::LoadMaterialTemplateFile(const std::string& directoryPath, const std::string& filename)
+Material ModelManager::LoadMaterialTemplateFile(const std::string& directoryPath, const std::string& filename)
 {
 	// 1. 必要な変数の宣言
-	MaterialData materialData;
+	Material material;
 	std::string line;
 
 	// 2. ファイルを開く
@@ -240,7 +240,7 @@ MaterialData ModelManager::LoadMaterialTemplateFile(const std::string& directory
 			std::string textureFilename;
 			if (s >> textureFilename) {
 				// テクスチャファイルのパスを構築
-				materialData.textureFilePath = basePath + textureFilename;
+				material.textureFilePath = basePath + textureFilename;
 			}
 			else {
 				throw std::runtime_error("Invalid map_Kd format in material file: " + filename);
@@ -249,7 +249,7 @@ MaterialData ModelManager::LoadMaterialTemplateFile(const std::string& directory
 	}
 
 	// 5. MaterialDataを返す
-	return materialData;
+	return material;
 }
 
 

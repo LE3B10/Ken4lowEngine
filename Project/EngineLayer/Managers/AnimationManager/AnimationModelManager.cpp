@@ -266,8 +266,8 @@ void AnimationModelManager::CreatePSO()
 
 	// パイプラインステートディスクリプタの初期化
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC graphicsPipelineStateDesc{};
-	graphicsPipelineStateDesc.pRootSignature = rootSignature.Get();													// RootSgnature
-	graphicsPipelineStateDesc.InputLayout = inputLayoutDesc;														// InputLayout
+	graphicsPipelineStateDesc.pRootSignature = rootSignature.Get();												// RootSgnature
+	graphicsPipelineStateDesc.InputLayout = inputLayoutDesc;													// InputLayout
 	graphicsPipelineStateDesc.VS = { vertexShaderBlob->GetBufferPointer(), vertexShaderBlob->GetBufferSize() };	// VertexDhader
 	graphicsPipelineStateDesc.PS = { pixelShaderBlob->GetBufferPointer(), pixelShaderBlob->GetBufferSize() };	// PixelShader
 	graphicsPipelineStateDesc.BlendState.RenderTarget[0] = blendDesc;											// BlendState

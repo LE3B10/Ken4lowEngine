@@ -16,7 +16,6 @@
 /// ---------- 前方宣言 ---------- ///
 class DirectXCommon;
 class Camera;
-class Wireframe;
 
 
 /// -------------------------------------------------------------
@@ -40,9 +39,6 @@ public: /// ---------- メンバ関数 ---------- ///
 	// 初期化処理
 	void Initialize(DirectXCommon* dxCommon);
 
-	// 初期化処理
-	void Initialize(const std::string& fileName, bool isAnimation = false, bool hasSkeleton = false);
-
 	// 更新処理
 	void Update();
 
@@ -61,7 +57,6 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	DirectXCommon* dxCommon_ = nullptr;
 	Camera* camera_ = nullptr;
-	Wireframe* wireframe_ = nullptr;
 
 	// ブレンドモード
 	BlendMode cuurenttype = BlendMode::kBlendModeNone;
