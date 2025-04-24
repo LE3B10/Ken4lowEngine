@@ -10,6 +10,7 @@
 #include "ParameterManager.h"
 
 #include <cassert>
+#include <imgui.h>
 
 
 /// -------------------------------------------------------------
@@ -62,17 +63,6 @@ void PostEffectManager::Initialieze(DirectXCommon* dxCommon)
 
 	// ビューポート矩形とシザリング矩形の設定
 	SetViewportAndScissorRect();
-
-	//// ガウシアンフィルターのパラメータ
-	//ParameterManager::GetInstance()->CreateGroup("VignettePower");
-	//ParameterManager::GetInstance()->AddItem("VignettePower", "intensity", gaussianFilterSetting_->intensity);
-	//ParameterManager::GetInstance()->AddItem("VignettePower", "threshold", gaussianFilterSetting_->threshold);
-	//ParameterManager::GetInstance()->AddItem("VignettePower", "sigma", gaussianFilterSetting_->sigma);
-
-	// アウトラインのパラメータ
-	ParameterManager::GetInstance()->CreateGroup("LuminanceOutline");
-	ParameterManager::GetInstance()->AddItem("LuminanceOutline", "edgeStrength", luminanceOutlineSetting_->edgeStrength);
-	ParameterManager::GetInstance()->AddItem("LuminanceOutline", "threshold", luminanceOutlineSetting_->threshold);
 }
 
 
@@ -103,15 +93,6 @@ void PostEffectManager::BeginDraw()
 
 	commandList->RSSetViewports(1, &viewport);
 	commandList->RSSetScissorRects(1, &scissorRect);
-
-	//// ガウシアンフィルタのパラメータ
-	//gaussianFilterSetting_->intensity = ParameterManager::GetInstance()->GetValue<float>("VignettePower", "intensity");
-	//gaussianFilterSetting_->threshold = ParameterManager::GetInstance()->GetValue<float>("VignettePower", "threshold");
-	//gaussianFilterSetting_->sigma = ParameterManager::GetInstance()->GetValue<float>("VignettePower", "sigma");
-
-	// アウトラインのパラメータ
-	luminanceOutlineSetting_->edgeStrength = ParameterManager::GetInstance()->GetValue<float>("LuminanceOutline", "edgeStrength");
-	luminanceOutlineSetting_->threshold = ParameterManager::GetInstance()->GetValue<float>("LuminanceOutline", "threshold");
 }
 
 
@@ -147,12 +128,12 @@ void PostEffectManager::RenderPostEffect()
 	commandList->RSSetScissorRects(1, &scissorRect);
 
 	// 🔹 ポストエフェクトの設定
-	SetPostEffect("NormalEffect");
-	//SetPostEffect("GrayScaleEffect");
-	//SetPostEffect("VignetteEffect");
-	//SetPostEffect("SmoothingEffect");
-	//SetPostEffect("GaussianFilterEffect");
-	//SetPostEffect("LuminanceOutline");
+	SetPostEffect("NormalEffect");		  // 通常エフェクト
+	if (enableGrayScaleEffect)     SetPostEffect("GrayScaleEffect");	  // グレースケール
+	if (enableVignetteEffect)      SetPostEffect("VignetteEffect");		  // ヴィネット
+	if (enableSmoothingEffect)     SetPostEffect("SmoothingEffect");	  // スムージング
+	if (enableGaussianFilterEffect)SetPostEffect("GaussianFilterEffect"); // ガウシアンフィルタ
+	if (enableLuminanceOutline)    SetPostEffect("LuminanceOutline");	  // アウトライン
 
 	// 🔹 SRV (シェーダーリソースビュー) をセット
 	commandList->SetGraphicsRootDescriptorTable(0, SRVManager::GetInstance()->GetGPUDescriptorHandle(rtvSrvIndex_));
@@ -173,6 +154,22 @@ void PostEffectManager::RenderPostEffect()
 void PostEffectManager::SetBarrier(D3D12_RESOURCE_STATES stateBefore, D3D12_RESOURCE_STATES stateAfter)
 {
 	dxCommon_->TransitionResource(renderResource_.Get(), stateBefore, stateAfter);
+}
+
+
+/// -------------------------------------------------------------
+///				　	　		ImGui描画
+/// -------------------------------------------------------------
+void PostEffectManager::ImGuiRender()
+{
+	ImGui::Begin("Post Effect Settings");
+	//ImGui::Checkbox("NormalEffect", &PostEffectManager::GetInstance()->enableNormalEffect);
+	ImGui::Checkbox("GrayScaleEffect", &PostEffectManager::GetInstance()->enableGrayScaleEffect);
+	ImGui::Checkbox("VignetteEffect", &PostEffectManager::GetInstance()->enableVignetteEffect);
+	ImGui::Checkbox("SmoothingEffect", &PostEffectManager::GetInstance()->enableSmoothingEffect);
+	ImGui::Checkbox("GaussianFilterEffect", &PostEffectManager::GetInstance()->enableGaussianFilterEffect);
+	ImGui::Checkbox("LuminanceOutline", &PostEffectManager::GetInstance()->enableLuminanceOutline);
+	ImGui::End();
 }
 
 
