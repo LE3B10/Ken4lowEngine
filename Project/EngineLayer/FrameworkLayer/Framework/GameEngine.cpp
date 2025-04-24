@@ -7,6 +7,7 @@
 #include <DirectXCommon.h>
 #include "Object3DCommon.h"
 #include "PostEffectManager.h"
+#include "LightManager.h"
 
 
 /// -------------------------------------------------------------

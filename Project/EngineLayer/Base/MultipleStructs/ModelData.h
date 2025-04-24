@@ -30,12 +30,12 @@ struct QuaternionTransform
 template <typename T>
 struct Keyframe
 {
-	float time;
-	T value;
+	float time; // 時刻
+	T value;	// 値
 };
 
-using KeyframeVector3 = Keyframe<Vector3>;
-using KeyframeQuaternion = Keyframe<Quaternion>;
+using KeyframeVector3 = Keyframe<Vector3>;		 // Vector3のキーフレーム
+using KeyframeQuaternion = Keyframe<Quaternion>; // Quaternionのキーフレーム
 
 // NodeのAnimationの構造体
 struct NodeAnimation

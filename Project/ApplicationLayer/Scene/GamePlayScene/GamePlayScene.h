@@ -59,7 +59,10 @@ private: /// ---------- メンバ変数 ---------- ///
 	std::unique_ptr<Sprite> sprites_;
 	std::unique_ptr<CollisionManager> collisionManager_;
 	std::unique_ptr<ParticleEmitter> particleEmitter_;
-	std::unique_ptr<AnimationModel> animationModel_;
+	std::unique_ptr<AnimationModel> animationModelNoskeleton_;
+	std::unique_ptr<AnimationModel> animationModelSkeleton_;
+
+
 	std::unique_ptr<SkyBox> skyBox_;
 
 	const std::string& particleGroupName = "Particle";

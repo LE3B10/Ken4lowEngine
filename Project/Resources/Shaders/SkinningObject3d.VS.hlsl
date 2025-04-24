@@ -45,13 +45,13 @@ Skinned Skinning(VertexShaderInput input)
     skinned.position += mul(input.position, gMatrixPalette[input.index.y].skeletonSpaceMatrix) * input.weight.y;
     skinned.position += mul(input.position, gMatrixPalette[input.index.z].skeletonSpaceMatrix) * input.weight.z;
     skinned.position += mul(input.position, gMatrixPalette[input.index.w].skeletonSpaceMatrix) * input.weight.w;
-    skinned.position.w = 1.0f; // 確実に1を入れる
+    skinned.position /= skinned.position.w;
     
     // 法線の変換
     skinned.normal = mul(input.normal, (float3x3) gMatrixPalette[input.index.x].skeletonSpaceInveerseTransposeMatrix) * input.weight.x;
     skinned.normal += mul(input.normal, (float3x3) gMatrixPalette[input.index.y].skeletonSpaceInveerseTransposeMatrix) * input.weight.y;
-    skinned.normal += mul(input.normal, (float3x3) gMatrixPalette[input.index.z].skeletonSpaceInveerseTransposeMatrix) * input.weight.w;
-    skinned.normal += mul(input.normal, (float3x3) gMatrixPalette[input.index.w].skeletonSpaceInveerseTransposeMatrix) * input.weight.z;
+    skinned.normal += mul(input.normal, (float3x3) gMatrixPalette[input.index.z].skeletonSpaceInveerseTransposeMatrix) * input.weight.z;
+    skinned.normal += mul(input.normal, (float3x3) gMatrixPalette[input.index.w].skeletonSpaceInveerseTransposeMatrix) * input.weight.w;
     skinned.normal = normalize(skinned.normal); // 正規化して戻してあげる
     
     return skinned;
@@ -65,9 +65,9 @@ VertexShaderOutput main(VertexShaderInput input)
     Skinned skinned = Skinning(input); // まずSkinning計算を行って、Skinning後の頂点情報を手に入れる。ここでの頂点もSkeletonSpace
     
     // Skinning1結果を使って変換
-    output.position = mul(input.position, gTransformationMatrix.WVP);
+    output.position = mul(skinned.position, gTransformationMatrix.WVP); // 正しい変換順序
     output.worldPosition = mul(skinned.position, gTransformationMatrix.World).xyz;
     output.texcoord = input.texcoord;
-    output.normal = normalize(mul(input.normal, (float3x3) gTransformationMatrix.WorldInverseTranspose));
+    output.normal = normalize(mul(skinned.normal, (float3x3) gTransformationMatrix.WorldInverseTranspose));
     return output;
 }

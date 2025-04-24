@@ -20,6 +20,13 @@ class Camera;
 // Δt を定義。とりあえず60fps固定してあるが、実時間を計測して可変fpsで動かせるようにする
 const float kDeltaTime = 1.0f / 60.0f;
 
+// エフェクトの種類を列挙型で定義
+enum class ParticleEffectType
+{
+	Default, 	// デフォルト
+	Slash,		// スラッシュ
+};
+
 
 /// -------------------------------------------------------------
 ///				パーティクルマネージャークラス
@@ -69,6 +76,8 @@ public: /// ---------- 構造体 ---------- ///
 		uint32_t numParticles = 0;
 		// インスタンシングデータを書き込むためのポインタ
 		std::list<Particle> particles;
+		// パーティクルの種別
+		ParticleEffectType type = ParticleEffectType::Default;
 	};
 
 public: /// ---------- メンバ関数 ---------- ///
@@ -92,7 +101,7 @@ public: /// ---------- メンバ関数 ---------- ///
 	void Finalize();
 
 	// パーティクルの発生
-	void Emit(const std::string name, const Vector3 position, uint32_t count);
+	void Emit(const std::string name, const Vector3 position, uint32_t count, ParticleEffectType type);
 
 	std::unordered_map<std::string, ParticleManager::ParticleGroup> GetParticleGroups() { return particleGroups; }
 
@@ -120,9 +129,9 @@ private: /// ---------- ヘルパー関数 ---------- ///
 	void CreatePSO();
 
 	// パーティクル生成器
-	Particle MakeNewParticle(std::mt19937& randomEngine, const Vector3& translate);
+	Particle MakeNewParticle(std::mt19937& randomEngine, const Vector3& translate, ParticleEffectType type);
 
-	std::list<Particle> Emit(const Emitter& emitter, std::mt19937& randomEngine);
+	std::list<Particle> Emit(const Emitter& emitter, std::mt19937& randomEngine, ParticleEffectType type);
 
 	bool IsCollision(const AABB& aabb, const Vector3& point);
 

@@ -45,8 +45,12 @@ void GamePlayScene::Initialize()
 	particleEmitter_->SetPosition({ 0.0f,3.0f,10.0f });
 	particleEmitter_->SetEmissionRate(3.0f);
 
-	animationModel_ = std::make_unique<AnimationModel>();
-	animationModel_->Initialize("walk.gltf", true, true);
+	animationModelNoskeleton_ = std::make_unique<AnimationModel>();
+	animationModelNoskeleton_->Initialize("AnimatedCube.gltf", true, false);
+	animationModelNoskeleton_->SetTranslate({ 10.0f, 0.0f, 0.0f });
+
+	animationModelSkeleton_ = std::make_unique<AnimationModel>();
+	animationModelSkeleton_->Initialize("walk.gltf", true, true);
 
 	skyBox_ = std::make_unique<SkyBox>();
 	skyBox_->Initialize("rostock_laage_airport_4k.dds");
@@ -80,7 +84,9 @@ void GamePlayScene::Update()
 
 	particleEmitter_->Update(1.0f / 120.0f);
 
-	animationModel_->Update();
+	animationModelNoskeleton_->Update();
+
+	animationModelSkeleton_->Update();
 
 	skyBox_->Update();
 
@@ -119,7 +125,9 @@ void GamePlayScene::Draw()
 	// Terrain.obj の描画
 	objectTerrain_->Draw();
 
-	animationModel_->Draw();
+	animationModelNoskeleton_->Draw();
+
+	animationModelSkeleton_->Draw();
 
 #pragma endregion
 

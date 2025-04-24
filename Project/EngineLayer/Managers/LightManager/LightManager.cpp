@@ -4,6 +4,12 @@
 #include <numbers>
 #include "ImGuiManager.h"
 
+LightManager* LightManager::GetInstance()
+{
+	static LightManager instance;
+	return &instance;
+}
+
 /// -------------------------------------------------------------
 ///				　		初期化処理
 /// -------------------------------------------------------------

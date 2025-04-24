@@ -4,14 +4,17 @@
 #include "Quaternion.h"
 #include "ModelData.h"
 #include "TransformationMatrix.h"
-#include "WorldTransform.h"
+#include "ParticleTransform.h"
 #include "Material.h"
 
+#include <algorithm>
 #include <string>
 #include <vector>
 #include <numbers>
+#include <memory>
 #include <map>
 
+#include "IAnimationStrategy.h"
 
 /// ---------- 前方宣言 ---------- ///
 class DirectXCommon;
@@ -24,6 +27,9 @@ class Wireframe;
 /// -------------------------------------------------------------
 class AnimationModel
 {
+	friend class NoSkeletonAnimation;
+	friend class SkeletonAnimation;
+
 private: /// ---------- 構造体 ---------- ///
 
 	// シェーダー側のカメラ構造体
@@ -45,6 +51,27 @@ public: /// ---------- メンバ関数 ---------- ///
 
 	// モデルデータを取得
 	const ModelData& GetModelData() const { return modelData; }
+
+	// ImGui描画処理
+	void DrawImGui();
+
+public: /// ---------- ゲッタ ---------- ///
+
+	// 座標を取得
+	const Vector3& GetTranslate() const { return worldTransform.translate_; }
+	// スケールを取得
+	const Vector3& GetScale() const { return worldTransform.scale_; }
+	// 回転を取得
+	const Vector3& GetRotate() const { return worldTransform.rotate_; }
+
+public: /// ---------- セッタ ---------- ///
+
+	// 座標を設定
+	void SetTranslate(const Vector3& translate) { worldTransform.translate_ = translate; }
+	// スケールを設定
+	void SetScale(const Vector3& scale) { worldTransform.scale_ = scale; }
+	// 回転を設定
+	void SetRotate(const Vector3& rotate) { worldTransform.rotate_ = rotate; }
 
 private: /// ---------- メンバ関数 ---------- ///
 
@@ -71,6 +98,9 @@ private: /// ---------- メンバ関数 ---------- ///
 
 	// SkinClusterの更新
 	void UpdateSkinCluster(SkinCluster& skinCluster, const Skeleton& skeleton);
+
+	// SkinClusterのインフルエンスを設定
+	void FillInfluenceFromSkinData(SkinCluster& skinCluster, const Skeleton& skeleton, const ModelData& modelData);
 
 private: /// ---------- メンバ関数・テンプレート関数 ---------- ///
 
@@ -115,7 +145,7 @@ private: /// ---------- メンバ関数・テンプレート関数 ---------- //
 
 private: /// ---------- メンバ変数 ---------- ///
 
-	WorldTransform worldTransform;
+	ParticleTransform worldTransform;
 	Material material_;
 
 	DirectXCommon* dxCommon_ = nullptr;
@@ -123,6 +153,8 @@ private: /// ---------- メンバ変数 ---------- ///
 	Camera* camera_ = nullptr;
 
 	Wireframe* wireframe_ = nullptr;
+
+	std::unique_ptr<IAnimationStrategy> animationStrategy_ = nullptr;
 
 	// モデルデータ
 	ModelData modelData;

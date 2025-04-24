@@ -71,9 +71,6 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	D3D12_INPUT_LAYOUT_DESC inputLayoutDesc_{};
 
-	// ライトマネージャ
-	std::unique_ptr<LightManager> lightManager_;
-
 	// ビュー射影行列
 	Matrix4x4 viewProjectionMatrix_;
 	Matrix4x4 debugViewProjectionMatrix_;

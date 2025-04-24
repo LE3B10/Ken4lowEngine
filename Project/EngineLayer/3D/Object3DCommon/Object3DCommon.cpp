@@ -26,8 +26,7 @@ void Object3DCommon::Initialize(DirectXCommon* dxCommon)
 	CreatePSO();
 
 	// ライトマネージャの生成と初期化
-	lightManager_ = std::make_unique<LightManager>();
-	lightManager_->Initialize(dxCommon_);
+	LightManager::GetInstance()->Initialize(dxCommon_);
 }
 
 
@@ -52,7 +51,6 @@ void Object3DCommon::Update()
 
 void Object3DCommon::DrawImGui()
 {
-	lightManager_->DrawImGui();
 }
 
 
@@ -66,7 +64,7 @@ void Object3DCommon::SetRenderSetting()
 	commandList->SetPipelineState(graphicsPipelineState_.Get());
 	commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-	lightManager_->PreDraw();
+	LightManager::GetInstance()->PreDraw(); // ライトデータの設定
 }
 
 

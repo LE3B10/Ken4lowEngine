@@ -180,6 +180,9 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClCompile Include="EngineLayer\Mesh\Mesh.cpp" />
     <ClCompile Include="EngineLayer\WorldTransform\ParticleTransform.cpp" />
     <ClCompile Include="EngineLayer\Mesh\ParticleMesh.cpp" />
+    <ClCompile Include="EngineLayer\Managers\AnimationManager\IAnimationStrategy.cpp" />
+    <ClCompile Include="EngineLayer\Managers\AnimationManager\NoSkeletonAnimation.cpp" />
+    <ClCompile Include="EngineLayer\Managers\AnimationManager\SkeletonAnimation.cpp" />
     <ClCompile Include="WinMain.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
@@ -370,6 +373,9 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="EngineLayer\WorldTransform\ParticleTransform.h" />
     <ClInclude Include="ApplicationLayer\EffectLayer\Particle.h" />
     <ClInclude Include="EngineLayer\Mesh\ParticleMesh.h" />
+    <ClInclude Include="EngineLayer\Managers\AnimationManager\IAnimationStrategy.h" />
+    <ClInclude Include="EngineLayer\Managers\AnimationManager\NoSkeletonAnimation.h" />
+    <ClInclude Include="EngineLayer\Managers\AnimationManager\SkeletonAnimation.h" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="externals\DirectXTex\DirectXTex_Desktop_2022_Win10.vcxproj">
