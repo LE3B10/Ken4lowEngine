@@ -1,5 +1,6 @@
 #pragma once
 #include <cmath>
+#include "assimp/matrix4x4.h"
 
 class Vector3;
 class Quaternion;
@@ -7,7 +8,8 @@ class Quaternion;
 /// <summary>
 /// 4x4行列
 /// </summary>
-class Matrix4x4 final {
+class Matrix4x4 final
+{
 public:
 
 	// 平行移動成分を取得する関数を追加
@@ -102,4 +104,6 @@ public:
 
 	// ビューポート変換行列
 	static Matrix4x4 MakeViewportMatrix(float left, float top, float width, float height, float minDepth, float maxDepth);
+
+	static Matrix4x4 ConvertFromAssimp(const aiMatrix4x4& aiMat);
 };

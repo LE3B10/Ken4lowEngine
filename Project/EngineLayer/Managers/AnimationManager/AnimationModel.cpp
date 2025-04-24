@@ -6,7 +6,12 @@
 #include <SRVManager.h>
 #include <ResourceManager.h>
 #include <Wireframe.h>
-
+#include "NoSkeletonAnimation.h"
+#include "SkeletonAnimation.h"
+#include "AnimationModelManager.h"
+#include "LightManager.h"
+#include <imgui.h>
+#include <numeric>
 
 /// -------------------------------------------------------------
 ///				　		 初期化処理
@@ -23,17 +28,22 @@ void AnimationModel::Initialize(const std::string& fileName, bool isAnimation, b
 	// モデル読み込み
 	modelData = ModelManager::GetInstance()->LoadModelFile("Resources/AnimatedCube", fileName);
 
-	// アニメーションの読み込み
-	if (isAnimation_)
+	if (!isAnimation)
 	{
-		animation = LoadAnimationFile("Resources/AnimatedCube", fileName);
+		animationStrategy_ = nullptr;
+	}
+	else if (hasSkeleton)
+	{
+		animationStrategy_ = std::make_unique<SkeletonAnimation>();
+	}
+	else
+	{
+		animationStrategy_ = std::make_unique<NoSkeletonAnimation>();
 	}
 
-	// 骨の読み込み
-	if (hasSkeleton_)
+	if (animationStrategy_)
 	{
-		skeleton = CreateSkelton(modelData.rootNode);
-		skinCluster = CreateSkinCluster(skeleton, modelData, SRVManager::GetInstance()->GetDescriptorSize());
+		animationStrategy_->Initialize(this, fileName);
 	}
 
 	// .objファイルの参照しているテクスチャファイル読み込み
@@ -44,8 +54,6 @@ void AnimationModel::Initialize(const std::string& fileName, bool isAnimation, b
 
 	// マテリアルデータの初期化処理
 	material_.Initialize();
-
-
 
 #pragma region 頂点バッファデータの開始位置サイズおよび各頂点のデータ構造を指定
 	// 頂点バッファビューを作成する
@@ -64,7 +72,6 @@ void AnimationModel::Initialize(const std::string& fileName, bool isAnimation, b
 	vertexResource->Unmap(0, nullptr);
 #pragma endregion
 
-
 	// カメラ用のリソースを作る
 	cameraResource = ResourceManager::CreateBufferResource(dxCommon_->GetDevice(), sizeof(CameraForGPU));
 	// 書き込むためのアドレスを取得
@@ -80,6 +87,9 @@ void AnimationModel::Initialize(const std::string& fileName, bool isAnimation, b
 	uint32_t* indexData = nullptr;
 	indexResource->Map(0, nullptr, reinterpret_cast<void**>(&indexData));
 	std::memcpy(indexData, modelData.indices.data(), sizeof(uint32_t) * modelData.indices.size());
+
+	// ライティングの初期化
+	LightManager::GetInstance()->Initialize(dxCommon_);
 }
 
 
@@ -91,32 +101,9 @@ void AnimationModel::Update()
 	// FPSの取得 deltaTimeの計算
 	float deltaTime = 1.0f / dxCommon_->GetFPSCounter().GetFPS();
 
-	if (isAnimation_ && !hasSkeleton_)
+	if (animationStrategy_)
 	{
-		//UpdateAnimation(deltaTime);
-	}
-
-	if (isAnimation_ && hasSkeleton_)
-	{
-		animationTime_ += deltaTime;
-		animationTime_ = std::fmod(animationTime_, animation.duration);
-		ApplyAnimation(animationTime_);
-		UpdateSkeleton(skeleton);
-		UpdateSkinCluster(skinCluster, skeleton);
-	}
-
-	// 骨のワイヤーフレームを更新
-	if (hasSkeleton_ && wireframe_)
-	{
-		for (const Joint& joint : skeleton.joints)
-		{
-			if (joint.parent)
-			{
-				Vector3 parentPos = skeleton.joints[*joint.parent].skeletonSpaceMatrix.GetTranslation();
-				Vector3 jointPos = joint.skeletonSpaceMatrix.GetTranslation();
-				wireframe_->DrawLine(parentPos, jointPos, { 1.0f, 1.0f, 0.0f, 1.0f });
-			}
-		}
+		animationStrategy_->Update(this, deltaTime);
 	}
 
 	material_.Update();
@@ -130,23 +117,66 @@ void AnimationModel::Draw()
 {
 	auto commandList = dxCommon_->GetCommandList();
 
+	SRVManager::GetInstance()->PreDraw();
+
+	if (hasSkeleton_)
+	{
+		commandList->SetGraphicsRootSignature(AnimationModelManager::GetInstance()->GetRootSignature()); // ルートシグネチャの設定
+		commandList->SetPipelineState(AnimationModelManager::GetInstance()->GetPipelineState()); // パイプラインの設定
+	}
+
 	D3D12_VERTEX_BUFFER_VIEW vbvs[2] =
 	{
 		vertexBufferView,				// VertexDataのVBV
 		skinCluster.influenceBufferView // インフルエンスのVBV
 	};
+
 	// 配列を渡す（開始Slot番号、使用Slot数、VBVへのポインタ）
 	commandList->IASetVertexBuffers(0, 2, vbvs); // モデル用VBV
-	
 	commandList->IASetIndexBuffer(&indexBufferView);
 
 	material_.SetPipeline();
 
-	commandList->SetGraphicsRootDescriptorTable(2, modelData.material.gpuHandle);
-	commandList->SetGraphicsRootConstantBufferView(3, cameraResource->GetGPUVirtualAddress());
+	commandList->SetGraphicsRootConstantBufferView(1, wvpResource->GetGPUVirtualAddress()); // ワールド行列 
+	commandList->SetGraphicsRootDescriptorTable(2, modelData.material.gpuHandle);           // テクスチャ
+	commandList->SetGraphicsRootConstantBufferView(3, cameraResource->GetGPUVirtualAddress()); // カメラ
 
+	LightManager::GetInstance()->PreDraw();
+
+	if (hasSkeleton_)
+	{
+		commandList->SetGraphicsRootDescriptorTable(7, skinCluster.paletteSrvHandle.second);    // ★これを追加
+	}
 	// モデルの描画
 	commandList->DrawInstanced(UINT(modelData.vertices.size()), 1, 0, 0);
+}
+
+
+void AnimationModel::DrawImGui()
+{
+	if (ImGui::Begin("Animation Debug")) {
+		ImGui::Text("Animation Time: %.3f / %.3f", animationTime_, animation.duration);
+
+		if (skinCluster.mappedInfluence.size() > 0) {
+			for (int i = 0; i < std::min<size_t>(4, skinCluster.mappedInfluence.size()); ++i) {
+				const VertexInfluence& inf = skinCluster.mappedInfluence[i];
+				ImGui::Text("Vertex %d:", i);
+				for (int j = 0; j < kNumMaxInfluence; ++j) {
+					ImGui::Text("  Joint %d: index=%d, weight=%.2f", j, inf.jointIndices[j], inf.weights[j]);
+				}
+			}
+		}
+
+		if (!skinCluster.mappedPalette.empty()) {
+			const Matrix4x4& mat = skinCluster.mappedPalette[0].skeletonSpaceMatrix;
+			ImGui::Text("Joint 0 Skeleton Matrix:");
+			for (int row = 0; row < 4; ++row) {
+				ImGui::Text("  [%.2f %.2f %.2f %.2f]", mat.m[row][0], mat.m[row][1], mat.m[row][2], mat.m[row][3]);
+			}
+		}
+
+		ImGui::End();
+	}
 }
 
 
@@ -155,8 +185,6 @@ void AnimationModel::Draw()
 /// -------------------------------------------------------------
 void AnimationModel::UpdateAnimation(float deltaTime)
 {
-	animationTime_ += deltaTime;
-	animationTime_ = std::fmod(animationTime_, animation.duration);
 	NodeAnimation& rootNodeAnimation = animation.nodeAnimations[modelData.rootNode.name];
 	Vector3 translate = CalculateValue(rootNodeAnimation.translate, animationTime_);
 	Quaternion rotate = CalculateValue(rootNodeAnimation.rotate, animationTime_);
@@ -390,30 +418,9 @@ SkinCluster AnimationModel::CreateSkinCluster(const Skeleton& skeleton, const Mo
 
 	// InverseBindPoseMatrixの保存領域を作成
 	skinCluster.inverseBindPoseMatrices.resize(skeleton.joints.size());
-	//std::generate(skinCluster.inverseBindPoseMatrices.begin(), skinCluster.inverseBindPoseMatrices.end(), Matrix4x4::MakeIdentity());
+	std::generate(skinCluster.inverseBindPoseMatrices.begin(), skinCluster.inverseBindPoseMatrices.end(), Matrix4x4::MakeIdentity);
 
-	// ModelDataのSkinCluster情報を解析してInfluenceの中身を埋める
-	for (const auto& jointWeight : modelData.skinClusterData) // ModelのSkinClusterの情報を解析
-	{
-		auto it = skeleton.jointMap.find(jointWeight.first); // jointWeight.firstはjoint名なので、skeletonに対象となるjointが含まれているか判断
-		if (it == skeleton.jointMap.end()) continue; // そんな名前のJointは存在しない、なので次にまわす
-
-		// (*it).secondにはjointのindexが入っているので、該当のindexのinverseBindPoseMatrixを代入
-		skinCluster.inverseBindPoseMatrices[(*it).second] = jointWeight.second.inverseBindPoseMatrix;
-		for (const auto& vertexWeight : jointWeight.second.vertexWeights)
-		{
-			auto& currentInfluence = skinCluster.mappedInfluence[vertexWeight.vertexIndex]; // 外套のvertexIndexのinfluence情報を参照しておく
-			for (uint32_t index = 0; index < kNumMaxInfluence; ++index) // 空いているところに入れる
-			{
-				if (currentInfluence.weights[index] == 0.0f) // weight == 0が空いている状態なので、その場所にweightとjointのindexを代入
-				{
-					currentInfluence.weights[index] = vertexWeight.weight;
-					currentInfluence.jointIndices[index] = (*it).second;
-					break;
-				}
-			}
-		}
-	}
+	FillInfluenceFromSkinData(skinCluster, skeleton, modelData);
 
 	return skinCluster;
 }
@@ -423,9 +430,78 @@ void AnimationModel::UpdateSkinCluster(SkinCluster& skinCluster, const Skeleton&
 	for (size_t jointIndex = 0; jointIndex < skeleton.joints.size(); ++jointIndex)
 	{
 		assert(jointIndex < skinCluster.inverseBindPoseMatrices.size());
-		skinCluster.mappedPalette[jointIndex].skeletonSpaceMatrix =
-			skinCluster.inverseBindPoseMatrices[jointIndex] * skeleton.joints[jointIndex].skeletonSpaceMatrix;
-		skinCluster.mappedPalette[jointIndex].skeletonSpaceInverceTransposeMatrix =
-			Matrix4x4::Transpose(Matrix4x4::Inverse(skinCluster.mappedPalette[jointIndex].skeletonSpaceMatrix));
+
+		skinCluster.mappedPalette[jointIndex].skeletonSpaceMatrix = skeleton.joints[jointIndex].skeletonSpaceMatrix * skinCluster.inverseBindPoseMatrices[jointIndex];
+
+		skinCluster.mappedPalette[jointIndex].skeletonSpaceInverceTransposeMatrix = Matrix4x4::Transpose(Matrix4x4::Inverse(skinCluster.mappedPalette[jointIndex].skeletonSpaceMatrix));
+	}
+}
+
+void AnimationModel::FillInfluenceFromSkinData(SkinCluster& skinCluster, const Skeleton& skeleton, const ModelData& modelData)
+{
+	std::unordered_map<uint32_t, std::unordered_map<uint32_t, float>> vertexToJointWeights;
+
+	// 頂点ごとに jointIndex ごとの weight を集計（重複も合算）
+	for (const auto& [jointName, jointWeightData] : modelData.skinClusterData)
+	{
+		auto it = skeleton.jointMap.find(jointName);
+		if (it == skeleton.jointMap.end()) continue;
+
+		uint32_t jointIndex = it->second;
+
+		for (const auto& vertexWeight : jointWeightData.vertexWeights)
+		{
+			vertexToJointWeights[vertexWeight.vertexIndex][jointIndex] += vertexWeight.weight;
+		}
+	}
+
+	// 各頂点に対して最大影響数までソート・正規化して代入
+	for (const auto& [vertexIndex, weightMap] : vertexToJointWeights)
+	{
+		auto& influence = skinCluster.mappedInfluence[vertexIndex];
+
+		std::vector<std::pair<uint32_t, float>> sorted(weightMap.begin(), weightMap.end());
+		std::sort(sorted.begin(), sorted.end(),
+			[](const auto& a, const auto& b) { return a.second > b.second; });
+
+		float total = 0.0f;
+		for (size_t i = 0; i < std::min<size_t>(sorted.size(), kNumMaxInfluence); ++i)
+		{
+			total += sorted[i].second;
+		}
+
+		for (size_t i = 0; i < kNumMaxInfluence; ++i)
+		{
+			if (i < sorted.size())
+			{
+				influence.jointIndices[i] = sorted[i].first;
+				influence.weights[i] = (total > 0.0f) ? sorted[i].second / total : 0.0f;
+			}
+			else
+			{
+				// 未使用分はゼロ埋め
+				influence.jointIndices[i] = 0;
+				influence.weights[i] = 0.0f;
+			}
+		}
+	}
+
+	// ウェイト情報が存在しない頂点にはデフォルト値を代入
+	for (uint32_t i = 0; i < modelData.vertices.size(); ++i)
+	{
+		auto& influence = skinCluster.mappedInfluence[i];
+
+		float total = std::accumulate(std::begin(influence.weights), std::end(influence.weights), 0.0f);
+		if (total == 0.0f)
+		{
+			// 初期化されていない頂点：ジョイント0に完全影響
+			influence.jointIndices[0] = 0;
+			influence.weights[0] = 1.0f;
+			for (int j = 1; j < kNumMaxInfluence; ++j)
+			{
+				influence.jointIndices[j] = 0;
+				influence.weights[j] = 0.0f;
+			}
+		}
 	}
 }

@@ -5,6 +5,7 @@
 #include "Quaternion.h"
 #include <ModelData.h>
 #include <TransformationMatrix.h>
+#include "LightManager.h"
 
 #include <array>
 #include <string>
@@ -39,11 +40,11 @@ public: /// ---------- メンバ関数 ---------- ///
 	// 初期化処理
 	void Initialize(DirectXCommon* dxCommon);
 
-	// 更新処理
-	void Update();
+	// ルートシグネチャの取得
+	ID3D12RootSignature* GetRootSignature() const { return rootSignature.Get(); }
 
-	// 描画処理
-	void Draw();
+	// パイプラインの取得
+	ID3D12PipelineState* GetPipelineState() const { return graphicsPipelineState.Get(); }
 
 private: /// ---------- メンバ関数 ---------- ///
 

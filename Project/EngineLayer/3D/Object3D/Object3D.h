@@ -74,7 +74,6 @@ private: /// ---------- メンバ変数 ---------- ///
 private: /// ---------- メンバ変数 ---------- ///
 
 	DirectXCommon* dxCommon = nullptr;
-	LightManager lightManager_;
 	Camera* camera_ = nullptr;
 
 	std::shared_ptr<Model> model_;

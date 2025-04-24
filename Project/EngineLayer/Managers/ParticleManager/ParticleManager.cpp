@@ -240,7 +240,7 @@ void ParticleManager::Finalize()
 /// -------------------------------------------------------------
 ///					　パーティクル射出処理
 /// -------------------------------------------------------------
-void ParticleManager::Emit(const std::string name, const Vector3 position, uint32_t count)
+void ParticleManager::Emit(const std::string name, const Vector3 position, uint32_t count, ParticleEffectType type)
 {
 	// パーティクルグループが存在するかどうか
 	assert(particleGroups.find(name) != particleGroups.end() && "Particle Group is not found");
@@ -255,7 +255,7 @@ void ParticleManager::Emit(const std::string name, const Vector3 position, uint3
 	for (uint32_t index = 0; index < count; ++index)
 	{
 		// パーティクルの生成と追加
-		particleGroup.particles.push_back(MakeNewParticle(randomEngin, position));
+		particleGroup.particles.push_back(MakeNewParticle(randomEngin, position, type));
 	}
 }
 
@@ -507,56 +507,53 @@ void ParticleManager::CreatePSO()
 /// -------------------------------------------------------------
 ///						パーティクル生成処理
 /// -------------------------------------------------------------
-Particle ParticleManager::MakeNewParticle(std::mt19937& randomEngine, const Vector3& translate)
+Particle ParticleManager::MakeNewParticle(std::mt19937& randomEngine, const Vector3& translate, ParticleEffectType type)
 {
 	Particle particle;
 
-	// 一様分布生成期を使って乱数を生成
-	std::uniform_real_distribution<float> distribution(-1.0, 1.0f);
-	std::uniform_real_distribution<float> distColor(0.0, 1.0f);
-	std::uniform_real_distribution<float> distTime(1.0, 3.0f);
+	switch (type)
+	{
+	case ParticleEffectType::Default: {
+		std::uniform_real_distribution<float> distribution(-1.0f, 1.0f);
+		std::uniform_real_distribution<float> distColor(0.0f, 1.0f);
+		std::uniform_real_distribution<float> distTime(1.0f, 3.0f);
 
-	// 位置と速度を[-1, 1]でランダムに初期化
-	particle.transform.scale_ = { 1.0f, 1.0f, 1.0f };
-	particle.transform.rotate_ = { 0.0f, 0.0f, 0.0f };
-	particle.transform.translate_ = { distribution(randomEngine),distribution(randomEngine),distribution(randomEngine) };
+		Vector3 randomTranslate{ distribution(randomEngine), distribution(randomEngine), distribution(randomEngine) };
+		particle.transform.translate_ = translate + randomTranslate;
+		particle.transform.scale_ = { 1.0f, 1.0f, 1.0f };
+		particle.transform.rotate_ = { 0.0f, 0.0f, 0.0f };
+		particle.color = { distColor(randomEngine), distColor(randomEngine), distColor(randomEngine), 1.0f };
+		particle.lifeTime = distTime(randomEngine);
+		particle.velocity = { distribution(randomEngine), distribution(randomEngine), distribution(randomEngine) };
+		break;
+	}
 
-	// 発生場所を計算
-	Vector3 randomTranslate{ distribution(randomEngine),distribution(randomEngine),distribution(randomEngine) };
-	particle.transform.translate_ = translate + randomTranslate;
+	case ParticleEffectType::Slash: {
+		std::uniform_real_distribution<float> distScale(0.4f, 1.5f);
+		std::uniform_real_distribution<float> distRotate(-std::numbers::pi_v<float>, std::numbers::pi_v<float>);
 
-	// 色を[0, 1]でランダムに初期化
-	particle.color = { distColor(randomEngine), distColor(randomEngine), distColor(randomEngine), 1.0f };
+		particle.transform.scale_ = { 0.05f, distScale(randomEngine), 1.0f };
+		particle.startScale = particle.transform.scale_;
+		particle.endScale = { 0.0f, 0.0f, 0.0f };
+		particle.transform.rotate_ = { 0.0f, 0.0f, distRotate(randomEngine) };
+		particle.transform.translate_ = translate;
+		particle.color = { 1.0f, 1.0f, 1.0f, 1.0f };
+		particle.lifeTime = 1.0f;
+		particle.velocity = { 0.0f, 0.0f, 0.0f };
+		break;
+	}
+	}
 
-	// パーティクル生成時にランダムに1秒～3秒の間生存
-	particle.lifeTime = distTime(randomEngine);
-	particle.currentTime = 0;
-	particle.velocity = { distribution(randomEngine),distribution(randomEngine),distribution(randomEngine) };
-
+	particle.currentTime = 0.0f;
 	return particle;
-
-	//Particle particle;
-	//std::uniform_real_distribution<float> distScale(0.4f, 1.5f);
-	//std::uniform_real_distribution<float> distRotate(-std::numbers::pi_v<float>, std::numbers::pi_v<float>);
-
-	//particle.transform.scale_ = { 0.05f,distScale(randomEngine),1.0f }; // 縦長さを0.05fに設定
-	//particle.startScale = particle.transform.scale_; // スケールを保存
-	//particle.endScale = { 0.0f,0.0f,0.0f }; // 徐々に消えるように設定
-	//particle.transform.rotate_ = { 0.0f,0.0f,distRotate(randomEngine) }; // ランダムな回転を設定
-	//particle.transform.translate_ = translate; // 発生場所をtranslateに設定
-	//particle.color = { 1.0f, 1.0f, 1.0f, 1.0f }; // 白色
-	//particle.lifeTime = 1.0f; // 1秒
-	//particle.currentTime = 0.0f; // 現在の時間を0に初期化
-	//particle.velocity = { 0.0f, 0.0f, 0.0f }; // 初期速度を0に設定
-	//return particle;
 }
 
-std::list<Particle> ParticleManager::Emit(const Emitter& emitter, std::mt19937& randomEngine)
+std::list<Particle> ParticleManager::Emit(const Emitter& emitter, std::mt19937& randomEngine, ParticleEffectType type)
 {
 	std::list<Particle> particles;
 	for (uint32_t count = 0; count < emitter.count; ++count)
 	{
-		particles.push_back(MakeNewParticle(randomEngine, emitter.transform.translate_));
+		particles.push_back(MakeNewParticle(randomEngine, emitter.transform.translate_, type));
 	}
 
 	return particles;
