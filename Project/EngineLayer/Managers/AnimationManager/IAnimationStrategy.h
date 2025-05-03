@@ -18,5 +18,7 @@ public: /// ---------- メンバ関数 ---------- ///
 
 	// アニメーションの状態を更新
 	virtual void Update(AnimationModel* model, float deltaTime) = 0;
-};
 
+	// 描画処理
+	virtual void Draw(AnimationModel* model) = 0;
+};

@@ -22,7 +22,7 @@ struct TransformationMatrix
 struct Well
 {
     float4x4 skeletonSpaceMatrix;
-    float4x4 skeletonSpaceInveerseTransposeMatrix;
+    float4x4 skeletonSpaceInverseTransposeMatrix;
 };
 
 // Skinning計算の準備
@@ -48,15 +48,14 @@ Skinned Skinning(VertexShaderInput input)
     skinned.position /= skinned.position.w;
     
     // 法線の変換
-    skinned.normal = mul(input.normal, (float3x3) gMatrixPalette[input.index.x].skeletonSpaceInveerseTransposeMatrix) * input.weight.x;
-    skinned.normal += mul(input.normal, (float3x3) gMatrixPalette[input.index.y].skeletonSpaceInveerseTransposeMatrix) * input.weight.y;
-    skinned.normal += mul(input.normal, (float3x3) gMatrixPalette[input.index.z].skeletonSpaceInveerseTransposeMatrix) * input.weight.z;
-    skinned.normal += mul(input.normal, (float3x3) gMatrixPalette[input.index.w].skeletonSpaceInveerseTransposeMatrix) * input.weight.w;
+    skinned.normal = mul(input.normal, (float3x3) gMatrixPalette[input.index.x].skeletonSpaceInverseTransposeMatrix) * input.weight.x;
+    skinned.normal += mul(input.normal, (float3x3) gMatrixPalette[input.index.y].skeletonSpaceInverseTransposeMatrix) * input.weight.y;
+    skinned.normal += mul(input.normal, (float3x3) gMatrixPalette[input.index.z].skeletonSpaceInverseTransposeMatrix) * input.weight.z;
+    skinned.normal += mul(input.normal, (float3x3) gMatrixPalette[input.index.w].skeletonSpaceInverseTransposeMatrix) * input.weight.w;
     skinned.normal = normalize(skinned.normal); // 正規化して戻してあげる
     
     return skinned;
 }
-
 
 //頂点シェーダー
 VertexShaderOutput main(VertexShaderInput input)

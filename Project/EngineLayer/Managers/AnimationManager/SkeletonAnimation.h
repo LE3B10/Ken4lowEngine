@@ -13,5 +13,8 @@ public: /// ---------- メンバ関数 ---------- ///
 
 	// アニメーションの状態を更新
 	void Update(AnimationModel* model, float deltaTime) override;
+
+	//
+	void Draw(AnimationModel* model) override;
 };
 

@@ -2,6 +2,7 @@
 #include <LogString.h>
 #include <DirectXCommon.h>
 #include <ParticleManager.h>
+#include "DirectXCommon.h"
 
 ParticleEmitter::ParticleEmitter(ParticleManager* manager, const std::string& groupName)
 	: particleManager_(manager), groupName_(groupName), position_({ 0.0f,0.0f,0.0f }),
@@ -9,9 +10,9 @@ ParticleEmitter::ParticleEmitter(ParticleManager* manager, const std::string& gr
 {
 }
 
-void ParticleEmitter::Update(float deltaTime)
+void ParticleEmitter::Update()
 {
-    accumulatedTime_ += deltaTime;
+    accumulatedTime_ += DirectXCommon::GetInstance()->GetFPSCounter().GetFPS();
 
     // 発生させるパーティクルの数を計算
     int particleCount = static_cast<int>(emissionRate_);

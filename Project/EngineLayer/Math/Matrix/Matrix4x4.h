@@ -14,7 +14,7 @@ public:
 
 	// 平行移動成分を取得する関数を追加
 	Vector3 GetTranslation() const;
-	
+
 	float m[4][4];
 
 	// デフォルトコンストラクタ
@@ -48,6 +48,7 @@ public:
 	Matrix4x4& operator+=(const Matrix4x4& other);
 	Matrix4x4& operator-=(const Matrix4x4& other);
 	Matrix4x4& operator*=(const Matrix4x4& other);
+	Matrix4x4& operator=(const Matrix4x4& other);
 
 	friend Matrix4x4 operator+(const Matrix4x4& m1, const Matrix4x4& m2);
 	friend Matrix4x4 operator-(const Matrix4x4& m1, const Matrix4x4& m2);
