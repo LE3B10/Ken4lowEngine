@@ -4,8 +4,10 @@
 #include "Quaternion.h"
 #include "ModelData.h"
 #include "TransformationMatrix.h"
-#include "ParticleTransform.h"
+#include "WorldTransform.h"
 #include "Material.h"
+#include "Skeleton.h"
+#include "SkinCluster.h"
 
 #include <algorithm>
 #include <string>
@@ -19,7 +21,6 @@
 /// ---------- 前方宣言 ---------- ///
 class DirectXCommon;
 class Camera;
-class Wireframe;
 
 
 /// -------------------------------------------------------------
@@ -81,27 +82,6 @@ private: /// ---------- メンバ関数 ---------- ///
 	// Animationを解析する
 	Animation LoadAnimationFile(const std::string& directoryPath, const std::string& fileName);
 
-	// ノードの階層構造からSkeltonを作成
-	Skeleton CreateSkelton(const Node& rootNode);
-
-	// ノードからJointを作成
-	int32_t CreateJoint(const Node& node, const std::optional<int32_t>& parent, std::vector<Joint>& joints);
-
-	// Skeletonの更新処理
-	void UpdateSkeleton(Skeleton& skeleton);
-
-	// アニメーションを適用する処理
-	void ApplyAnimation(float animationTime);
-
-	// SkinClusterの生成
-	SkinCluster CreateSkinCluster(const Skeleton& skeleton, const ModelData& modelData, uint32_t descriptorSize);
-
-	// SkinClusterの更新
-	void UpdateSkinCluster(SkinCluster& skinCluster, const Skeleton& skeleton);
-
-	// SkinClusterのインフルエンスを設定
-	void FillInfluenceFromSkinData(SkinCluster& skinCluster, const Skeleton& skeleton, const ModelData& modelData);
-
 private: /// ---------- メンバ関数・テンプレート関数 ---------- ///
 
 	// 任意の時刻の値を取得する
@@ -145,28 +125,25 @@ private: /// ---------- メンバ関数・テンプレート関数 ---------- //
 
 private: /// ---------- メンバ変数 ---------- ///
 
-	ParticleTransform worldTransform;
+	WorldTransform worldTransform;
 	Material material_;
 
 	DirectXCommon* dxCommon_ = nullptr;
 
 	Camera* camera_ = nullptr;
 
-	Wireframe* wireframe_ = nullptr;
-
-	std::unique_ptr<IAnimationStrategy> animationStrategy_ = nullptr;
 
 	// モデルデータ
 	ModelData modelData;
 	Animation animation;
-	Skeleton skeleton;
-	SkinCluster skinCluster;
 
-	bool isAnimation_ = false;
-	bool hasSkeleton_ = false;
+	std::unique_ptr<IAnimationStrategy> animationStrategy_ = nullptr;
+	std::unique_ptr<Skeleton> skeleton_;
+	std::unique_ptr<SkinCluster> skinCluster_;
+
 
 	// バッファリソースの作成
-	TransformationMatrix* wvpData = nullptr;
+	TransformationMatrix* wvpData_ = nullptr;
 	CameraForGPU* cameraData = nullptr;
 
 	ComPtr <ID3D12Resource> wvpResource;

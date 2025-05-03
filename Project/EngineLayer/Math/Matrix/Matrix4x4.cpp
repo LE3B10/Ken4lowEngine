@@ -59,6 +59,14 @@ Matrix4x4& Matrix4x4::operator*=(const Matrix4x4& other)
 	return *this;
 }
 
+Matrix4x4& Matrix4x4::operator=(const Matrix4x4& other)
+{
+	if (this != &other) { // 自己代入チェック（重要！）
+		std::memcpy(m, other.m, sizeof(float) * 4 * 4); // 4x4の行列コピー
+	}
+	return *this;
+}
+
 Matrix4x4 operator+(const Matrix4x4& m1, const Matrix4x4& m2)
 {
 	Matrix4x4 result = m1;

@@ -7,7 +7,7 @@
 #include "Model.h"
 
 #include "Object3DCommon.h"
-
+#include "AssimpLoader.h"
 #include "ParameterManager.h"
 
 
@@ -20,7 +20,7 @@ void Object3D::Initialize(const std::string& fileName)
 	camera_ = Object3DCommon::GetInstance()->GetDefaultCamera();
 
 	// モデル読み込み
-	modelData = ModelManager::GetInstance()->LoadModelFile("Resources", fileName);
+	modelData = AssimpLoader::LoadModel("Resources", fileName);
 
 	// .objファイルの参照しているテクスチャファイル読み込み
 	TextureManager::GetInstance()->LoadTexture(modelData.material.textureFilePath);
@@ -101,7 +101,7 @@ void Object3D::SetModel(const std::string& filePath)
 
 	// モデルがセットされた後に初期化が必要な場合
 	if (model_) {
-		model_->Initialize("Resources", filePath);
+		model_->Initialize(filePath);
 	}
 }
 

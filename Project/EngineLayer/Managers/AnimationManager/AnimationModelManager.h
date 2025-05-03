@@ -80,7 +80,7 @@ private: /// ---------- メンバ変数 ---------- ///
 
 
 private: /// ---------- コピー禁止 ---------- ///
-	
+
 	AnimationModelManager() = default;
 	~AnimationModelManager() = default;
 	AnimationModelManager(const AnimationModelManager&) = delete;

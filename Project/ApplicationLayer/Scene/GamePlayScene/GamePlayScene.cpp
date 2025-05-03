@@ -36,6 +36,7 @@ void GamePlayScene::Initialize()
 	// terrainの生成と初期化
 	objectTerrain_ = std::make_unique<Object3D>();
 	objectTerrain_->Initialize("terrain.obj");
+	objectTerrain_->SetTranslate({ 0.0f, -1.0f, 0.0f });
 
 	objectBall_ = std::make_unique<Object3D>();
 	objectBall_->Initialize("sphere.gltf");
@@ -82,7 +83,7 @@ void GamePlayScene::Update()
 	objectTerrain_->Update();
 	objectBall_->Update();
 
-	particleEmitter_->Update(1.0f / 120.0f);
+	particleEmitter_->Update();
 
 	animationModelNoskeleton_->Update();
 
@@ -109,7 +110,7 @@ void GamePlayScene::Draw()
 #pragma endregion
 
 
-#pragma region スプライトの描画
+#pragma region スプライトの描画                    
 
 	// 背景用の共通描画設定（後面）
 	SpriteManager::GetInstance()->SetRenderSetting_Background();
@@ -123,7 +124,7 @@ void GamePlayScene::Draw()
 	Object3DCommon::GetInstance()->SetRenderSetting();
 
 	// Terrain.obj の描画
-	objectTerrain_->Draw();
+	//objectTerrain_->Draw();
 
 	animationModelNoskeleton_->Draw();
 
@@ -164,6 +165,8 @@ void GamePlayScene::DrawImGui()
 	objectTerrain_->DrawImGui();
 
 	ImGui::End();
+
+	animationModelSkeleton_->DrawImGui();
 }
 
 

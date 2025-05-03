@@ -17,7 +17,7 @@ public: /// ---------- メンバ関数 ---------- ///
 	ParticleEmitter(ParticleManager* manager, const std::string& groupName);
 
 	// 更新処理
-	void Update(float deltaTime);
+	void Update();
 
 	// 座標を設定する関数
 	void SetPosition(const Vector3& position) { position_ = position; }
