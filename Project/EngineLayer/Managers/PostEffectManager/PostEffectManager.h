@@ -78,6 +78,9 @@ public: /// ---------- メンバ関数 ---------- ///
 	// バリアの設定
 	void SetBarrier(D3D12_RESOURCE_STATES stateBefore, D3D12_RESOURCE_STATES stateAfter);
 
+	// ImGuiの描画
+	void ImGuiRender();
+
 private: /// ---------- メンバ関数 ---------- ///
 
 	// レンダーテクスチャリソースの生成
@@ -156,7 +159,15 @@ private: /// ---------- メンバ変数 ---------- ///
 
 private: /// ---------- メンバ変数 ---------- ///
 
+	// ヴィネッティングの設定
 	VignetteSetting vignetteSetting_{};
+
+	//bool enableNormalEffect = true; // 通常エフェクト
+	bool enableGrayScaleEffect = false; // グレースケールエフェクト
+	bool enableVignetteEffect = false; // ヴィグネットエフェクト
+	bool enableSmoothingEffect = false; // スムージングエフェクト
+	bool enableGaussianFilterEffect = false; // ガウシアンフィルタエフェクト
+	bool enableLuminanceOutline = false; // アウトラインエフェクト
 
 private: /// ---------- コピー禁止 ---------- ///
 

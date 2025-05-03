@@ -76,6 +76,9 @@ void GameEngine::Update()
 	// ParticleManagerのImGuiの描画処理
 	ParticleManager::GetInstance()->DrawImGui();
 
+	// PostEffectManagerのImGuiの描画処理
+	PostEffectManager::GetInstance()->ImGuiRender();
+
 #endif // _DEBUG
 	/// ---------- ImGuiフレーム終了 ---------- ///
 	imguiManager_->EndFrame();
