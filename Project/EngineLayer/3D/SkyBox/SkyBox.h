@@ -63,6 +63,9 @@ public: /// ---------- メンバ関数 ---------- ///
 	// デバッグカメラの有無を取得
 	bool GetDebugCamera() { return isDebugCamera_; }
 
+	D3D12_GPU_DESCRIPTOR_HANDLE GetEnvironmentMapHandle() const { return gpuHandle_; }
+
+
 private: /// ---------- メンバ関数 ---------- ///
 
 	// マテリアルデータの初期化処理

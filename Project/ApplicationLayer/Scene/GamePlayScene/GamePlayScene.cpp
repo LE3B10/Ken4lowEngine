@@ -37,9 +37,11 @@ void GamePlayScene::Initialize()
 	objectTerrain_ = std::make_unique<Object3D>();
 	objectTerrain_->Initialize("terrain.obj");
 	objectTerrain_->SetTranslate({ 0.0f, -1.0f, 0.0f });
+	objectTerrain_->SetReflectivity(0.0f);
 
 	objectBall_ = std::make_unique<Object3D>();
 	objectBall_->Initialize("sphere.gltf");
+	objectBall_->SetTranslate({ -2.0f, 0.0f, 0.0f });
 
 	particleManager->CreateParticleGroup("Fire", "gradationLine.png");
 	particleEmitter_ = std::make_unique<ParticleEmitter>(particleManager, "Fire");
@@ -49,6 +51,7 @@ void GamePlayScene::Initialize()
 	animationModelNoskeleton_ = std::make_unique<AnimationModel>();
 	animationModelNoskeleton_->Initialize("AnimatedCube.gltf", true, false);
 	animationModelNoskeleton_->SetTranslate({ 10.0f, 0.0f, 0.0f });
+	animationModelNoskeleton_->SetReflectivity(0.0f);
 
 	animationModelSkeleton_ = std::make_unique<AnimationModel>();
 	animationModelSkeleton_->Initialize("walk.gltf", true, true);
@@ -124,7 +127,10 @@ void GamePlayScene::Draw()
 	Object3DCommon::GetInstance()->SetRenderSetting();
 
 	// Terrain.obj の描画
-	//objectTerrain_->Draw();
+	objectTerrain_->Draw();
+
+	// 球体の描画
+	objectBall_->Draw();
 
 	animationModelNoskeleton_->Draw();
 
@@ -162,11 +168,16 @@ void GamePlayScene::DrawImGui()
 	ImGui::Begin("Test Window");
 
 	// TerrainのImGui
-	objectTerrain_->DrawImGui();
+	//objectTerrain_->DrawImGui();
+
+	objectBall_->DrawImGui();
 
 	ImGui::End();
 
 	animationModelSkeleton_->DrawImGui();
+
+	// ライト
+	LightManager::GetInstance()->DrawImGui();
 }
 
 

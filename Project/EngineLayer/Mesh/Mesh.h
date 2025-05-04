@@ -14,7 +14,7 @@ class Mesh
 public: /// ---------- メンバ関数 ---------- ///
 
 	// 初期化処理
-	void Initialize(const std::vector<VertexData>& modelVertices);
+	void Initialize(const std::vector<VertexData>& modelVertices, const std::vector<uint32_t>& modelIndices);
 
 	// 描画処理
 	void Draw();
@@ -31,5 +31,10 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	// 頂点リソース内のデータを指すポインタ
 	std::vector<VertexData> vertices;
+
+	// インデックスバッファ
+	ComPtr<ID3D12Resource> indexResource;
+	D3D12_INDEX_BUFFER_VIEW indexBufferView;
+	std::vector<uint32_t> indices;
 };
 

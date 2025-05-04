@@ -13,6 +13,7 @@ struct Material
     int enableLighting; // ライティングの有無
     float shininess; // 光沢度
     float4x4 uvTransform; // UVTransform
+    float reflectionRate; // 反射率
 };
 
 //平行光源
@@ -58,7 +59,9 @@ ConstantBuffer<DirectionalLight> gDirectionalLight : register(b2);
 ConstantBuffer<PointLight> gPointLight : register(b3);
 ConstantBuffer<SpotLight> gSpotLight : register(b4);
 
-Texture2D<float4> gTexture : register(t0);
+Texture2D<float4> gTexture : register(t0); // テクスチャ
+TextureCube<float4> gEnvironmentTexture : register(t1); // 環境マップ
+
 SamplerState gSampler : register(s0);
 
 // ピクセルシェーダー (PS) のメイン関数 (メインエントリーポイント)
@@ -158,10 +161,16 @@ PixelShaderOutput main(VertexShaderOutput input)
             spotSpecularColor = float3(1.0f, 1.0f, 1.0f) * pow(spotNdotH, shininess) * gSpotLight.intensity * spotAttenuation * spotAngleFactor;
         }
         
+        // 環境マップ用
+        float3 reflectionDir = reflect(-viewDir, normal); // 反射ベクトル
+        float3 environmentColor = gEnvironmentTexture.Sample(gSampler, reflectionDir).rgb; // 環境マップの色
+        
         // 環境光 + 拡散反射 + 鏡面反射 + 点光源の拡散反射 + 点光源の鏡面反射 + スポットライトの拡散反射 + スポットライトの鏡面反射
-        float3 finalColor = /*ambientColor + */diffuseColor + specularColor + pointDiffuseColor + pointSpecularColor + spotDiffuseColor + spotSpecularColor;
+        float3 finalColor = diffuseColor + specularColor + pointDiffuseColor + pointSpecularColor + spotDiffuseColor + spotSpecularColor;
         output.color.rgb = saturate(finalColor);
 
+        output.color.rgb = lerp(output.color.rgb, environmentColor, gMaterial.reflectionRate); // 環境マップの色を加算
+        
         // ガンマ補正を適用（必要なら）
         //output.color.rgb = pow(output.color.rgb, 1.0f / 2.2f);
         output.color.a = gMaterial.color.a * textureColor.a;
