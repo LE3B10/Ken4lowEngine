@@ -26,6 +26,7 @@ enum class ParticleEffectType
 	Default, 	// デフォルト
 	Slash,		// スラッシュ
 	Ring,		// リング
+	Cylinder,	// シリンダー
 };
 
 
