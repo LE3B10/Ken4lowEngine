@@ -22,10 +22,12 @@ StructuredBuffer<ParticleForGPU> gParticle : register(t0);
 VertexShaderOutput main(VertexShaderInput input, uint instanceId : SV_InstanceID)
 {
     VertexShaderOutput output;
+    float2 texcoord = input.texcoord;
+    texcoord.y = 1.0f - texcoord.y; //Y座標を反転する
     
     //入力された頂点座標を出職データに代入
     output.position = mul(input.position, gParticle[instanceId].WVP);
-    output.texcoord = input.texcoord;
+    output.texcoord = texcoord;
     output.color = gParticle[instanceId].color;
    
     return output;

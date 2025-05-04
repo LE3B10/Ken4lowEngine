@@ -13,6 +13,9 @@ public: /// ---------- メンバ関数 ---------- ///
 	// リングの頂点データを生成
 	void CreateVertexData();
 
+	// シリンダーの頂点データの初期化処理
+	void InitializeCylinder();
+
 	// 描画処理
 	void Draw(UINT num);
 

@@ -46,10 +46,13 @@ void ParticleManager::Initialize(DirectXCommon* dxCommon, Camera* camera)
 	CreatePSO();
 
 	// 頂点データの初期化
-	mesh_.Initialize();
+	//mesh_.Initialize();
 
-	// リングの頂点データを生成
-	mesh_.CreateVertexData();
+	//// リングの頂点データを生成
+	//mesh_.CreateVertexData();
+
+	// シリンダーの頂点データを生成
+	mesh_.InitializeCylinder();
 
 	// マテリアルデータの初期化
 	material_.Initialize();
@@ -148,7 +151,10 @@ void ParticleManager::Update()
 				particle.currentTime += kDeltaTime;
 
 				// リングを回転させるための処理
-				particle.transform.rotate_.z += 1.5f * kDeltaTime; // 秒間約86度の回転
+				//particle.transform.rotate_.z += 1.5f * kDeltaTime; // 秒間約86度の回転
+
+				// シリンダーを回転させるための処理
+				particle.transform.rotate_.y += 1.5f * kDeltaTime; // 秒間約86度の回転
 
 				// 行列更新（transformに任せる）
 				particle.transform.UpdateMatrix(viewProjectionMatrix, useBillboard, billboardMatrix);
@@ -459,7 +465,7 @@ void ParticleManager::CreatePSO()
 	//RasterizerStateの設定
 	D3D12_RASTERIZER_DESC rasterizerDesc{};
 	//裏面（時計回り）を表示しない
-	rasterizerDesc.CullMode = D3D12_CULL_MODE_FRONT;
+	rasterizerDesc.CullMode = D3D12_CULL_MODE_NONE;
 	//三角形の中を塗りつぶす
 	rasterizerDesc.FillMode = D3D12_FILL_MODE_SOLID;
 
@@ -557,6 +563,20 @@ Particle ParticleManager::MakeNewParticle(std::mt19937& randomEngine, const Vect
 		particle.color = { 1.0f, 1.0f, 1.0f, 1.0f }; // 色
 		particle.lifeTime = 999.0f; // 半永久的に表示
 		particle.velocity = { 0.0f, 0.0f, 0.0f }; // 動かさない
+
+		particle.startScale = particle.transform.scale_;
+		particle.endScale = particle.transform.scale_;
+		break;
+	}
+	case ParticleEffectType::Cylinder: {
+		std::uniform_real_distribution<float> distColor(0.0f, 1.0f);
+
+		particle.transform.translate_ = translate;
+		particle.transform.scale_ = { 1.0f, 1.0f, 1.0f }; // 高さ方向にスケール
+		particle.transform.rotate_ = { 0.0f, 0.0f, 0.0f };
+
+		particle.color = { distColor(randomEngine), distColor(randomEngine), distColor(randomEngine), 1.0f };
+		particle.lifeTime = 999.0f; // 一時的にずっと表示
 
 		particle.startScale = particle.transform.scale_;
 		particle.endScale = particle.transform.scale_;
