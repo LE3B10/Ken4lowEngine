@@ -9,6 +9,7 @@
 #include "Object3DCommon.h"
 #include "AssimpLoader.h"
 #include "ParameterManager.h"
+#include "SkyBox.h"
 
 
 /// -------------------------------------------------------------
@@ -22,11 +23,16 @@ void Object3D::Initialize(const std::string& fileName)
 	// モデル読み込み
 	modelData = AssimpLoader::LoadModel("Resources", fileName);
 
-	// .objファイルの参照しているテクスチャファイル読み込み
+	// 参照しているテクスチャファイル読み込み
 	TextureManager::GetInstance()->LoadTexture(modelData.material.textureFilePath);
 
 	// 読み込んだテクスチャ番号を取得
 	modelData.material.gpuHandle = TextureManager::GetInstance()->GetSrvHandleGPU(modelData.material.textureFilePath);
+
+	// 環境マップ
+	TextureManager::GetInstance()->LoadTexture("Resources/rostock_laage_airport_4k.dds");
+	// 環境マップのハンドルを取得
+	environmentMapHandle_ = TextureManager::GetInstance()->GetSrvHandleGPU("Resources/rostock_laage_airport_4k.dds");
 
 	// ワールドトランスフォームの初期化
 	worldTransform.Initialize();
@@ -35,7 +41,7 @@ void Object3D::Initialize(const std::string& fileName)
 	material_.Initialize();
 
 	// 頂点データの初期化
-	mesh_.Initialize(modelData.vertices);
+	mesh_.Initialize(modelData.vertices, modelData.indices);
 
 	// カメラデータの初期化処理
 	InitializeCameraResource();
@@ -82,12 +88,12 @@ void Object3D::Draw()
 {
 	material_.SetPipeline();
 	worldTransform.SetPipeline();
-
-	dxCommon->GetCommandList()->SetGraphicsRootDescriptorTable(2, modelData.material.gpuHandle);
+	
+	dxCommon->GetCommandList()->SetGraphicsRootDescriptorTable(2, modelData.material.gpuHandle); // テクスチャの設定
 	dxCommon->GetCommandList()->SetGraphicsRootConstantBufferView(3, cameraResource->GetGPUVirtualAddress());
 
+	dxCommon->GetCommandList()->SetGraphicsRootDescriptorTable(7, environmentMapHandle_); // 環境マップの設定
 	mesh_.Draw();
-
 }
 
 

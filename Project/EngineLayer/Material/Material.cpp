@@ -61,7 +61,7 @@ void Material::DrawImGui()
 	if (ImGui::CollapsingHeader("Material Settings"))
 	{
 		ImGui::ColorEdit4("Color", &materialData_->color.x); // 色変更
-		ImGui::DragFloat("Shininess", &materialData_->shininess, 0.1f, 0.0f, 100.0f); // シェーディングの強さ変更
+		ImGui::DragFloat("Reflectivity", &materialData_->shininess, 0.01f, 0.0f, 1.0f); // シェーディングの強さ変更
 		ImGui::Checkbox("Enable Lighting", &materialData_->enableLighting); // 平行光源の有無変更
 	}
 }

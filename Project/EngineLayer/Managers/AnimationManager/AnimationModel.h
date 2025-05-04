@@ -74,6 +74,9 @@ public: /// ---------- セッタ ---------- ///
 	// 回転を設定
 	void SetRotate(const Vector3& rotate) { worldTransform.rotate_ = rotate; }
 
+	// 反射率を設定
+	void SetReflectivity(float reflectivity) { material_.SetShininess(reflectivity); }
+
 private: /// ---------- メンバ関数 ---------- ///
 
 	// アニメーションを更新

@@ -11,7 +11,7 @@
 Object3DCommon* Object3DCommon::GetInstance()
 {
 	static Object3DCommon instance;
-    return &instance;
+	return &instance;
 }
 
 
@@ -21,7 +21,7 @@ Object3DCommon* Object3DCommon::GetInstance()
 void Object3DCommon::Initialize(DirectXCommon* dxCommon)
 {
 	dxCommon_ = dxCommon;
-	isDebugCamera_ = false;	
+	isDebugCamera_ = false;
 
 	CreatePSO();
 
@@ -87,15 +87,22 @@ void Object3DCommon::CreateRootSignature()
 	descriptionRootSignature.pStaticSamplers = staticSamplers;			   // サンプラの設定
 	descriptionRootSignature.NumStaticSamplers = _countof(staticSamplers); // サンプラの数
 
-	// DescriptorRangeの設定
 	D3D12_DESCRIPTOR_RANGE descriptorRange[1] = {};
+
+	// SRV0: テクスチャ用のディスクリプタテーブル
 	descriptorRange[0].BaseShaderRegister = 0;
 	descriptorRange[0].NumDescriptors = 1;
 	descriptorRange[0].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
 	descriptorRange[0].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
 
+	D3D12_DESCRIPTOR_RANGE cubeMapRange{};
+	cubeMapRange.BaseShaderRegister = 1; // t1
+	cubeMapRange.NumDescriptors = 1;
+	cubeMapRange.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
+	cubeMapRange.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+
 	// ルートシグネチャの生成
-	D3D12_ROOT_PARAMETER rootParameters[7] = {};
+	D3D12_ROOT_PARAMETER rootParameters[8] = {};
 
 	// マテリアル用のルートシグパラメータの設定
 	rootParameters[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;    // 定数バッファビュー
@@ -132,6 +139,12 @@ void Object3DCommon::CreateRootSignature()
 	rootParameters[6].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;	// 定数バッファビュー
 	rootParameters[6].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL; // バーテックスシェーダーで使用
 	rootParameters[6].Descriptor.ShaderRegister = 4; 					// レジスタ番号4
+
+	// キューブマップのルートシグネチャの設定
+	rootParameters[7].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+	rootParameters[7].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+	rootParameters[7].DescriptorTable.pDescriptorRanges = &cubeMapRange;
+	rootParameters[7].DescriptorTable.NumDescriptorRanges = 1;
 
 	// ルートシグネチャの設定
 	descriptionRootSignature.pParameters = rootParameters;

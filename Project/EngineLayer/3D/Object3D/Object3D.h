@@ -19,6 +19,8 @@
 class DirectXCommon;
 class Model;
 class Object3DCommon;
+class SkyBox;
+
 
 /// -------------------------------------------------------------
 ///						オブジェクト3Dクラス
@@ -64,6 +66,9 @@ public: /// ---------- 設定処理 ---------- ///
 	// カメラの設定
 	void SetCamera(Camera* camera) { camera_ = camera; }
 
+	// 反射率の設定
+	void SetReflectivity(float reflectivity) { material_.SetShininess(reflectivity); }
+
 public: /// ---------- ゲッタ ---------- ///
 
 private: /// ---------- メンバ変数 ---------- ///
@@ -75,6 +80,7 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	DirectXCommon* dxCommon = nullptr;
 	Camera* camera_ = nullptr;
+	SkyBox* skyBox_ = nullptr;
 
 	std::shared_ptr<Model> model_;
 
@@ -97,4 +103,7 @@ private: /// ---------- メンバ変数 ---------- ///
 	ModelData modelData;
 
 	float alpha = 1.0f; // α値
+
+	// 環境マップのテクスチャ
+	D3D12_GPU_DESCRIPTOR_HANDLE environmentMapHandle_{};
 };
