@@ -105,7 +105,7 @@ void GamePlayScene::Draw()
 
 	// スカイボックスの共通描画設定
 	SkyBoxManager::GetInstance()->SetRenderSetting();
-	//skyBox_->Draw();
+	skyBox_->Draw();
 
 #pragma endregion
 
