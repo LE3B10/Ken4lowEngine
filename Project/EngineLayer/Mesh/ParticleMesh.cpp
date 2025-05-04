@@ -1,6 +1,7 @@
 #include "ParticleMesh.h"
 #include <DirectXCommon.h>
 #include <ResourceManager.h>
+#include <numbers>
 
 void ParticleMesh::Initialize()
 {
@@ -27,6 +28,46 @@ void ParticleMesh::Initialize()
 
 	// モデルデータの頂点データをコピー
 	std::memcpy(vertexData_, modelData_.vertices.data(), sizeof(VertexData) * modelData_.vertices.size());
+}
+
+void ParticleMesh::CreateVertexData()
+{
+    ID3D12Device* device = DirectXCommon::GetInstance()->GetDevice();
+
+    const uint32_t kSubdivision = 32;
+    const float outerRadius = 1.0f;
+    const float innerRadius = 0.4f;
+
+    for (uint32_t i = 0; i < kSubdivision; ++i) {
+        float theta1 = 2.0f * std::numbers::pi_v<float> *i / kSubdivision;
+        float theta2 = 2.0f * std::numbers::pi_v<float> *(i + 1) / kSubdivision;
+
+        float u1 = static_cast<float>(i) / kSubdivision;
+        float u2 = static_cast<float>(i + 1) / kSubdivision;
+
+        Vector4 p0 = { std::cos(theta1) * innerRadius, std::sin(theta1) * innerRadius, 0.0f, 1.0f };
+        Vector4 p1 = { std::cos(theta2) * innerRadius, std::sin(theta2) * innerRadius, 0.0f, 1.0f };
+        Vector4 p2 = { std::cos(theta1) * outerRadius, std::sin(theta1) * outerRadius, 0.0f, 1.0f };
+        Vector4 p3 = { std::cos(theta2) * outerRadius, std::sin(theta2) * outerRadius, 0.0f, 1.0f };
+
+        // 三角形1（内→外→外）
+        modelData_.vertices.push_back({ p0, {u1, 1.0f}, {0.0f, 0.0f, 1.0f} }); // 内側→上
+        modelData_.vertices.push_back({ p2, {u1, 0.0f}, {0.0f, 0.0f, 1.0f} }); // 外側→下
+        modelData_.vertices.push_back({ p3, {u2, 0.0f}, {0.0f, 0.0f, 1.0f} });
+
+        // 三角形2（内→外→内）
+        modelData_.vertices.push_back({ p0, {u1, 1.0f}, {0.0f, 0.0f, 1.0f} });
+        modelData_.vertices.push_back({ p3, {u2, 0.0f}, {0.0f, 0.0f, 1.0f} });
+        modelData_.vertices.push_back({ p1, {u2, 1.0f}, {0.0f, 0.0f, 1.0f} });
+    }
+
+    // 以下は既存のコード（Resource作成、VBV設定）
+    vertexResource_ = ResourceManager::CreateBufferResource(device, sizeof(VertexData) * modelData_.vertices.size());
+    vertexBufferView_.BufferLocation = vertexResource_->GetGPUVirtualAddress();
+    vertexBufferView_.SizeInBytes = UINT(sizeof(VertexData) * modelData_.vertices.size());
+    vertexBufferView_.StrideInBytes = sizeof(VertexData);
+    vertexResource_->Map(0, nullptr, reinterpret_cast<void**>(&vertexData_));
+    std::memcpy(vertexData_, modelData_.vertices.data(), sizeof(VertexData) * modelData_.vertices.size());
 }
 
 void ParticleMesh::Draw(UINT num)

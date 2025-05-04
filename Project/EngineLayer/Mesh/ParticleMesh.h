@@ -6,9 +6,12 @@
 class ParticleMesh
 {
 public: /// ---------- メンバ関数 ---------- ///
+	
 	// 初期化処理
 	void Initialize();
 
+	// リングの頂点データを生成
+	void CreateVertexData();
 
 	// 描画処理
 	void Draw(UINT num);
