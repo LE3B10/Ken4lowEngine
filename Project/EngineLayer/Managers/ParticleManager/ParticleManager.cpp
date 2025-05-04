@@ -48,6 +48,9 @@ void ParticleManager::Initialize(DirectXCommon* dxCommon, Camera* camera)
 	// 頂点データの初期化
 	mesh_.Initialize();
 
+	// リングの頂点データを生成
+	mesh_.CreateVertexData();
+
 	// マテリアルデータの初期化
 	material_.Initialize();
 }
@@ -143,6 +146,9 @@ void ParticleManager::Update()
 				// 位置更新
 				particle.transform.translate_ += particle.velocity * kDeltaTime;
 				particle.currentTime += kDeltaTime;
+
+				// リングを回転させるための処理
+				particle.transform.rotate_.z += 1.5f * kDeltaTime; // 秒間約86度の回転
 
 				// 行列更新（transformに任せる）
 				particle.transform.UpdateMatrix(viewProjectionMatrix, useBillboard, billboardMatrix);
@@ -321,7 +327,7 @@ void ParticleManager::CreateRootSignature()
 	D3D12_STATIC_SAMPLER_DESC staticSamplers[1] = {};
 	staticSamplers[0].Filter = D3D12_FILTER_MIN_MAG_MIP_LINEAR;										//バイリニアフィルタ
 	staticSamplers[0].AddressU = D3D12_TEXTURE_ADDRESS_MODE_WRAP;									//0～1の範囲外をリピート
-	staticSamplers[0].AddressV = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+	staticSamplers[0].AddressV = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
 	staticSamplers[0].AddressW = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
 	staticSamplers[0].ComparisonFunc = D3D12_COMPARISON_FUNC_NEVER;									//比較しない
 	staticSamplers[0].MaxLOD = D3D12_FLOAT32_MAX;													//ありったけのMipmapを使う
@@ -453,7 +459,7 @@ void ParticleManager::CreatePSO()
 	//RasterizerStateの設定
 	D3D12_RASTERIZER_DESC rasterizerDesc{};
 	//裏面（時計回り）を表示しない
-	rasterizerDesc.CullMode = D3D12_CULL_MODE_BACK;
+	rasterizerDesc.CullMode = D3D12_CULL_MODE_FRONT;
 	//三角形の中を塗りつぶす
 	rasterizerDesc.FillMode = D3D12_FILL_MODE_SOLID;
 
@@ -540,6 +546,20 @@ Particle ParticleManager::MakeNewParticle(std::mt19937& randomEngine, const Vect
 		particle.color = { 1.0f, 1.0f, 1.0f, 1.0f };
 		particle.lifeTime = 1.0f;
 		particle.velocity = { 0.0f, 0.0f, 0.0f };
+		break;
+	}
+	case ParticleEffectType::Ring: {
+		// ランダム処理なしの固定値
+		particle.transform.translate_ = translate; // 位置
+		particle.transform.scale_ = { 1.0f, 1.0f, 1.0f }; // 大きさ
+		particle.transform.rotate_ = { 0.0f, 0.0f, 0.0f }; // Z軸回転（45度）
+
+		particle.color = { 1.0f, 1.0f, 1.0f, 1.0f }; // 色
+		particle.lifeTime = 999.0f; // 半永久的に表示
+		particle.velocity = { 0.0f, 0.0f, 0.0f }; // 動かさない
+
+		particle.startScale = particle.transform.scale_;
+		particle.endScale = particle.transform.scale_;
 		break;
 	}
 	}

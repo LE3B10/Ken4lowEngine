@@ -41,7 +41,7 @@ void GamePlayScene::Initialize()
 	objectBall_ = std::make_unique<Object3D>();
 	objectBall_->Initialize("sphere.gltf");
 
-	particleManager->CreateParticleGroup("Fire", "circle2.png");
+	particleManager->CreateParticleGroup("Fire", "gradationLine.png");
 	particleEmitter_ = std::make_unique<ParticleEmitter>(particleManager, "Fire");
 	particleEmitter_->SetPosition({ 0.0f,3.0f,10.0f });
 	particleEmitter_->SetEmissionRate(3.0f);
