@@ -58,6 +58,14 @@ private: /// ---------- 構造体 ---------- ///
 		float threshold;
 	};
 
+	// ラジアルブラーの設定
+	struct RadialBlurSetting
+	{
+		Vector2 center = { 0.5f, 0.5f };
+		float blurStrength = 1.0f;
+		float sampleCount = 16.0f;
+	};
+
 public: /// ---------- メンバ関数 ---------- ///
 
 	// シングルトンインスタンス
@@ -115,6 +123,9 @@ private: /// ---------- メンバ関数 ---------- ///
 	// アウトラインの初期化
 	void InitializeLuminanceOutline();
 
+	// ラジアルブラーの初期化
+	void InitializeRadialBlur();
+
 private: /// ---------- メンバ変数 ---------- ///
 
 	DirectXCommon* dxCommon_ = nullptr;
@@ -141,6 +152,11 @@ private: /// ---------- メンバ変数 ---------- ///
 	// アウトラインの設定
 	LuminanceOutlineSetting* luminanceOutlineSetting_{};
 	ComPtr<ID3D12Resource> luminanceOutlineResource_;
+
+	// ラジアルブラーの設定
+	RadialBlurSetting* radialBlurSetting_{};
+	ComPtr<ID3D12Resource> radialBlurResource_;
+	bool enableRadialBlur = false;
 
 	// ルートシグネチャ
 	std::unordered_map<std::string, ComPtr<ID3D12RootSignature>> rootSignatures_;

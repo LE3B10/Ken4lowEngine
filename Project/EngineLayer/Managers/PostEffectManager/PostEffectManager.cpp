@@ -52,6 +52,9 @@ void PostEffectManager::Initialieze(DirectXCommon* dxCommon)
 	CreatePipelineState("LuminanceOutline");
 	InitializeLuminanceOutline();
 
+	CreatePipelineState("RadialBlur");
+	InitializeRadialBlur();
+
 	// レンダーテクスチャの生成
 	renderResource_ = CreateRenderTextureResource(WinApp::kClientWidth, WinApp::kClientHeight, DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, kRenderTextureClearColor_);
 
@@ -134,6 +137,7 @@ void PostEffectManager::RenderPostEffect()
 	if (enableSmoothingEffect)     SetPostEffect("SmoothingEffect");	  // スムージング
 	if (enableGaussianFilterEffect)SetPostEffect("GaussianFilterEffect"); // ガウシアンフィルタ
 	if (enableLuminanceOutline)    SetPostEffect("LuminanceOutline");	  // アウトライン
+	if (enableRadialBlur) SetPostEffect("RadialBlur"); // ラジアルブラー
 
 	// 🔹 SRV (シェーダーリソースビュー) をセット
 	commandList->SetGraphicsRootDescriptorTable(0, SRVManager::GetInstance()->GetGPUDescriptorHandle(rtvSrvIndex_));
@@ -169,6 +173,15 @@ void PostEffectManager::ImGuiRender()
 	ImGui::Checkbox("SmoothingEffect", &PostEffectManager::GetInstance()->enableSmoothingEffect);
 	ImGui::Checkbox("GaussianFilterEffect", &PostEffectManager::GetInstance()->enableGaussianFilterEffect);
 	ImGui::Checkbox("LuminanceOutline", &PostEffectManager::GetInstance()->enableLuminanceOutline);
+	
+	ImGui::Checkbox("RadialBlur", &PostEffectManager::GetInstance()->enableRadialBlur);
+	if (PostEffectManager::GetInstance()->enableRadialBlur)
+	{
+		ImGui::SliderFloat2("Center", reinterpret_cast<float*>(&PostEffectManager::GetInstance()->radialBlurSetting_->center), 0.0f, 1.0f);
+		ImGui::SliderFloat("BlurStrength", &PostEffectManager::GetInstance()->radialBlurSetting_->blurStrength, 0.0f, 5.0f);
+		ImGui::SliderFloat("SampleCount", &PostEffectManager::GetInstance()->radialBlurSetting_->sampleCount, 1.0f, 64.0f);
+	}
+
 	ImGui::End();
 }
 
@@ -417,6 +430,10 @@ void PostEffectManager::SetPostEffect(const std::string& effectName)
 		//commandList->SetGraphicsRootDescriptorTable(0, SRVManager::GetInstance()->GetGPUDescriptorHandle(rtvSrvIndex_));
 		//commandList->SetGraphicsRootDescriptorTable(2, SRVManager::GetInstance()->GetGPUDescriptorHandle(depthSrvIndex_));
 	}
+	else if (effectName == "RadialBlur")
+	{
+		commandList->SetGraphicsRootConstantBufferView(1, radialBlurResource_->GetGPUVirtualAddress());
+	}
 	else
 	{
 		assert(false);
@@ -526,4 +543,13 @@ void PostEffectManager::InitializeLuminanceOutline()
 	};
 	luminanceOutlineSetting_->edgeStrength = 5.0f;  // 初期値
 	luminanceOutlineSetting_->threshold = 0.2f;     // 初期値
+}
+
+void PostEffectManager::InitializeRadialBlur()
+{
+	radialBlurResource_ = ResourceManager::CreateBufferResource(dxCommon_->GetDevice(), sizeof(RadialBlurSetting));
+	radialBlurResource_->Map(0, nullptr, reinterpret_cast<void**>(&radialBlurSetting_));
+	radialBlurSetting_->center = { 0.5f, 0.5f };
+	radialBlurSetting_->blurStrength = 1.0f;
+	radialBlurSetting_->sampleCount = 16.0f;
 }
