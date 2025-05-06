@@ -11,6 +11,7 @@
 
 #include <cassert>
 #include <imgui.h>
+#include <TextureManager.h>
 
 
 /// -------------------------------------------------------------
@@ -52,8 +53,13 @@ void PostEffectManager::Initialieze(DirectXCommon* dxCommon)
 	CreatePipelineState("LuminanceOutline");
 	InitializeLuminanceOutline();
 
+	// ラジアルブラーのパイプラインを生成
 	CreatePipelineState("RadialBlur");
 	InitializeRadialBlur();
+
+	// ディソルブのパイプラインを生成
+	CreatePipelineState("Dissolve");
+	InitializeDissolve();
 
 	// レンダーテクスチャの生成
 	renderResource_ = CreateRenderTextureResource(WinApp::kClientWidth, WinApp::kClientHeight, DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, kRenderTextureClearColor_);
@@ -137,7 +143,8 @@ void PostEffectManager::RenderPostEffect()
 	if (enableSmoothingEffect)     SetPostEffect("SmoothingEffect");	  // スムージング
 	if (enableGaussianFilterEffect)SetPostEffect("GaussianFilterEffect"); // ガウシアンフィルタ
 	if (enableLuminanceOutline)    SetPostEffect("LuminanceOutline");	  // アウトライン
-	if (enableRadialBlur) SetPostEffect("RadialBlur"); // ラジアルブラー
+	if (enableRadialBlur)		   SetPostEffect("RadialBlur");			  // ラジアルブラー
+	if (enableDissolveEffect)	   SetPostEffect("Dissolve");			  // ディソルブ
 
 	// 🔹 SRV (シェーダーリソースビュー) をセット
 	commandList->SetGraphicsRootDescriptorTable(0, SRVManager::GetInstance()->GetGPUDescriptorHandle(rtvSrvIndex_));
@@ -173,13 +180,22 @@ void PostEffectManager::ImGuiRender()
 	ImGui::Checkbox("SmoothingEffect", &PostEffectManager::GetInstance()->enableSmoothingEffect);
 	ImGui::Checkbox("GaussianFilterEffect", &PostEffectManager::GetInstance()->enableGaussianFilterEffect);
 	ImGui::Checkbox("LuminanceOutline", &PostEffectManager::GetInstance()->enableLuminanceOutline);
-	
+
 	ImGui::Checkbox("RadialBlur", &PostEffectManager::GetInstance()->enableRadialBlur);
 	if (PostEffectManager::GetInstance()->enableRadialBlur)
 	{
 		ImGui::SliderFloat2("Center", reinterpret_cast<float*>(&PostEffectManager::GetInstance()->radialBlurSetting_->center), 0.0f, 1.0f);
 		ImGui::SliderFloat("BlurStrength", &PostEffectManager::GetInstance()->radialBlurSetting_->blurStrength, 0.0f, 5.0f);
 		ImGui::SliderFloat("SampleCount", &PostEffectManager::GetInstance()->radialBlurSetting_->sampleCount, 1.0f, 64.0f);
+	}
+
+	ImGui::Checkbox("Dissolve", &PostEffectManager::GetInstance()->enableDissolveEffect);
+
+	if (PostEffectManager::GetInstance()->enableDissolveEffect)
+	{
+		ImGui::SliderFloat("Threshold", &PostEffectManager::GetInstance()->dissolveSetting_->threshold, 0.0f, 1.0f);
+		ImGui::SliderFloat("Edge Thickness", &PostEffectManager::GetInstance()->dissolveSetting_->edgeThickness, 0.0f, 0.2f);
+		ImGui::ColorEdit4("Edge Color", &PostEffectManager::GetInstance()->dissolveSetting_->edgeColor.x);
 	}
 
 	ImGui::End();
@@ -434,6 +450,17 @@ void PostEffectManager::SetPostEffect(const std::string& effectName)
 	{
 		commandList->SetGraphicsRootConstantBufferView(1, radialBlurResource_->GetGPUVirtualAddress());
 	}
+	else if (effectName == "Dissolve")
+	{
+		// gTexture（t0）→ RootParam[0]
+		commandList->SetGraphicsRootDescriptorTable(0, SRVManager::GetInstance()->GetGPUDescriptorHandle(rtvSrvIndex_));
+
+		// DissolveSetting（b0）→ RootParam[1]
+		commandList->SetGraphicsRootConstantBufferView(1, dissolveResource_->GetGPUVirtualAddress());
+
+		// gMask（t1）→ RootParam[3]
+		commandList->SetGraphicsRootDescriptorTable(3, SRVManager::GetInstance()->GetGPUDescriptorHandle(dissolveMaskSrvIndex_));
+	}
 	else
 	{
 		assert(false);
@@ -552,4 +579,23 @@ void PostEffectManager::InitializeRadialBlur()
 	radialBlurSetting_->center = { 0.5f, 0.5f };
 	radialBlurSetting_->blurStrength = 1.0f;
 	radialBlurSetting_->sampleCount = 16.0f;
+}
+
+void PostEffectManager::InitializeDissolve()
+{
+	// マスクテクスチャの読み込み
+	std::string filePath = "Resources/Noise.png";
+	TextureManager::GetInstance()->LoadTexture(filePath);
+
+	// SRVインデックスを取得（CopySRVせず、既存SRVをそのまま使う）
+	dissolveMaskSrvIndex_ = TextureManager::GetInstance()->GetSrvIndex(filePath);
+
+	// リソースの生成
+	dissolveResource_ = ResourceManager::CreateBufferResource(dxCommon_->GetDevice(), sizeof(DissolveSetting));
+	// データの設定
+	dissolveResource_->Map(0, nullptr, reinterpret_cast<void**>(&dissolveSetting_));
+	// ディゾルブの設定
+	dissolveSetting_->threshold = 0.5f;
+	dissolveSetting_->edgeThickness = 0.05f;
+	dissolveSetting_->edgeColor = { 1.0f, 1.0f, 1.0f, 1.0f };
 }

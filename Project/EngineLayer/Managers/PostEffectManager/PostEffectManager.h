@@ -66,6 +66,14 @@ private: /// ---------- 構造体 ---------- ///
 		float sampleCount = 16.0f;
 	};
 
+	struct DissolveSetting
+	{
+		float threshold = 0.5f; // 閾値
+		float edgeThickness = 0.05f; // エッジの太さ
+		Vector4 edgeColor = { 1.0f, 1.0f, 1.0f, 1.0f }; // エッジの色
+		float padding[3];
+	};
+
 public: /// ---------- メンバ関数 ---------- ///
 
 	// シングルトンインスタンス
@@ -126,6 +134,9 @@ private: /// ---------- メンバ関数 ---------- ///
 	// ラジアルブラーの初期化
 	void InitializeRadialBlur();
 
+	// ディソルブの初期化
+	void InitializeDissolve();
+
 private: /// ---------- メンバ変数 ---------- ///
 
 	DirectXCommon* dxCommon_ = nullptr;
@@ -139,24 +150,39 @@ private: /// ---------- メンバ変数 ---------- ///
 	ComPtr<ID3D12Resource> renderResource_;
 	ComPtr<ID3D12Resource> depthResource_;
 
+
+	bool enableGrayScaleEffect = false; // グレースケールエフェクト
+
+	// ヴィネッティングの設定
+	VignetteSetting vignetteSetting_{};
 	ComPtr<ID3D12Resource> vignetteResource_;
+	bool enableVignetteEffect = false; // ヴィグネットエフェクト
 
 	// 🔹 スムージングの設定
 	SmoothingSetting* smoothingSetting_{};
 	ComPtr<ID3D12Resource> smoothingResource_;
+	bool enableSmoothingEffect = false; // スムージングエフェクト
 
 	// ガウシアンフィルタの設定
 	GaussianFilterSetting* gaussianFilterSetting_{};
 	ComPtr<ID3D12Resource> gaussianResource_;
+	bool enableGaussianFilterEffect = false; // ガウシアンフィルタエフェクト
 
 	// アウトラインの設定
 	LuminanceOutlineSetting* luminanceOutlineSetting_{};
 	ComPtr<ID3D12Resource> luminanceOutlineResource_;
+	bool enableLuminanceOutline = false; // アウトラインエフェクト
 
 	// ラジアルブラーの設定
 	RadialBlurSetting* radialBlurSetting_{};
 	ComPtr<ID3D12Resource> radialBlurResource_;
 	bool enableRadialBlur = false;
+
+	// ディソルブの設定
+	DissolveSetting* dissolveSetting_ = nullptr;
+	ComPtr<ID3D12Resource> dissolveResource_;
+	uint32_t dissolveMaskSrvIndex_ = 0; // SRV index for mask
+	bool enableDissolveEffect = false;
 
 	// ルートシグネチャ
 	std::unordered_map<std::string, ComPtr<ID3D12RootSignature>> rootSignatures_;
@@ -172,18 +198,6 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	D3D12_VIEWPORT viewport{};
 	D3D12_RECT scissorRect{};
-
-private: /// ---------- メンバ変数 ---------- ///
-
-	// ヴィネッティングの設定
-	VignetteSetting vignetteSetting_{};
-
-	//bool enableNormalEffect = true; // 通常エフェクト
-	bool enableGrayScaleEffect = false; // グレースケールエフェクト
-	bool enableVignetteEffect = false; // ヴィグネットエフェクト
-	bool enableSmoothingEffect = false; // スムージングエフェクト
-	bool enableGaussianFilterEffect = false; // ガウシアンフィルタエフェクト
-	bool enableLuminanceOutline = false; // アウトラインエフェクト
 
 private: /// ---------- コピー禁止 ---------- ///
 
