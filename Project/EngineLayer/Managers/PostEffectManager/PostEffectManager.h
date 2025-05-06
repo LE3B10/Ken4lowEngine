@@ -74,6 +74,13 @@ private: /// ---------- 構造体 ---------- ///
 		float padding[3];
 	};
 
+	struct RandomSetting
+	{
+		float time = 0.0f;
+		bool useMultiply = false; // 乗算を使用するかどうか
+		float padding[3]; // 16バイトアライメントを守る
+	};
+
 public: /// ---------- メンバ関数 ---------- ///
 
 	// シングルトンインスタンス
@@ -81,6 +88,8 @@ public: /// ---------- メンバ関数 ---------- ///
 
 	// 初期化処理
 	void Initialieze(DirectXCommon* dxCommon);
+
+	void Update(float deltaTime);
 
 	// 描画開始処理
 	void BeginDraw();
@@ -137,6 +146,9 @@ private: /// ---------- メンバ関数 ---------- ///
 	// ディソルブの初期化
 	void InitializeDissolve();
 
+	// ランダムの初期化
+	void InitializeRandom();
+
 private: /// ---------- メンバ変数 ---------- ///
 
 	DirectXCommon* dxCommon_ = nullptr;
@@ -183,6 +195,11 @@ private: /// ---------- メンバ変数 ---------- ///
 	ComPtr<ID3D12Resource> dissolveResource_;
 	uint32_t dissolveMaskSrvIndex_ = 0; // SRV index for mask
 	bool enableDissolveEffect = false;
+
+	// ランダム
+	RandomSetting* randomSetting_ = nullptr;
+	ComPtr<ID3D12Resource> randomResource_;
+	bool enableRandomEffect = false;
 
 	// ルートシグネチャ
 	std::unordered_map<std::string, ComPtr<ID3D12RootSignature>> rootSignatures_;

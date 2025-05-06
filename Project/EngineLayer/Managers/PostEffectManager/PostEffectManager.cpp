@@ -61,6 +61,10 @@ void PostEffectManager::Initialieze(DirectXCommon* dxCommon)
 	CreatePipelineState("Dissolve");
 	InitializeDissolve();
 
+	// ランダムグレー
+	CreatePipelineState("Random");
+	InitializeRandom();
+
 	// レンダーテクスチャの生成
 	renderResource_ = CreateRenderTextureResource(WinApp::kClientWidth, WinApp::kClientHeight, DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, kRenderTextureClearColor_);
 
@@ -74,6 +78,13 @@ void PostEffectManager::Initialieze(DirectXCommon* dxCommon)
 	SetViewportAndScissorRect();
 }
 
+void PostEffectManager::Update(float deltaTime)
+{
+	if (enableRandomEffect && randomSetting_)
+	{
+		randomSetting_->time += deltaTime; // アニメーションさせる
+	}
+}
 
 /// -------------------------------------------------------------
 ///				　			描画開始処理
@@ -145,6 +156,7 @@ void PostEffectManager::RenderPostEffect()
 	if (enableLuminanceOutline)    SetPostEffect("LuminanceOutline");	  // アウトライン
 	if (enableRadialBlur)		   SetPostEffect("RadialBlur");			  // ラジアルブラー
 	if (enableDissolveEffect)	   SetPostEffect("Dissolve");			  // ディソルブ
+	if (enableRandomEffect)		   SetPostEffect("Random");				  // ランダムグレー
 
 	// 🔹 SRV (シェーダーリソースビュー) をセット
 	commandList->SetGraphicsRootDescriptorTable(0, SRVManager::GetInstance()->GetGPUDescriptorHandle(rtvSrvIndex_));
@@ -196,6 +208,12 @@ void PostEffectManager::ImGuiRender()
 		ImGui::SliderFloat("Threshold", &PostEffectManager::GetInstance()->dissolveSetting_->threshold, 0.0f, 1.0f);
 		ImGui::SliderFloat("Edge Thickness", &PostEffectManager::GetInstance()->dissolveSetting_->edgeThickness, 0.0f, 0.2f);
 		ImGui::ColorEdit4("Edge Color", &PostEffectManager::GetInstance()->dissolveSetting_->edgeColor.x);
+	}
+
+	ImGui::Checkbox("RandomEffect", &PostEffectManager::GetInstance()->enableRandomEffect);
+	if (PostEffectManager::GetInstance()->enableRandomEffect)
+	{
+		ImGui::Checkbox("Use Multiply", &randomSetting_->useMultiply);
 	}
 
 	ImGui::End();
@@ -461,6 +479,11 @@ void PostEffectManager::SetPostEffect(const std::string& effectName)
 		// gMask（t1）→ RootParam[3]
 		commandList->SetGraphicsRootDescriptorTable(3, SRVManager::GetInstance()->GetGPUDescriptorHandle(dissolveMaskSrvIndex_));
 	}
+	else if (effectName == "Random")
+	{
+		Update(1.0f / 120.0f);
+		commandList->SetGraphicsRootConstantBufferView(1, randomResource_->GetGPUVirtualAddress());
+	}
 	else
 	{
 		assert(false);
@@ -598,4 +621,14 @@ void PostEffectManager::InitializeDissolve()
 	dissolveSetting_->threshold = 0.5f;
 	dissolveSetting_->edgeThickness = 0.05f;
 	dissolveSetting_->edgeColor = { 1.0f, 1.0f, 1.0f, 1.0f };
+}
+
+void PostEffectManager::InitializeRandom()
+{
+	randomResource_ = ResourceManager::CreateBufferResource(dxCommon_->GetDevice(), sizeof(RandomSetting));
+	randomResource_->Map(0, nullptr, reinterpret_cast<void**>(&randomSetting_));
+
+	// ランダムの設定
+	randomSetting_->time = 0.0f;
+	randomSetting_->useMultiply = false;
 }
