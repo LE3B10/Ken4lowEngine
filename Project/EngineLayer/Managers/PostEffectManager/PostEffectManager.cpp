@@ -54,15 +54,15 @@ void PostEffectManager::Initialieze(DirectXCommon* dxCommon)
 	InitializeLuminanceOutline();
 
 	// ラジアルブラーのパイプラインを生成
-	CreatePipelineState("RadialBlur");
+	CreatePipelineState("RadialBlurEffect");
 	InitializeRadialBlur();
 
 	// ディソルブのパイプラインを生成
-	CreatePipelineState("Dissolve");
+	CreatePipelineState("DissolveEffect");
 	InitializeDissolve();
 
 	// ランダムグレー
-	CreatePipelineState("Random");
+	CreatePipelineState("RandomEffect");
 	InitializeRandom();
 
 	// レンダーテクスチャの生成
@@ -154,9 +154,9 @@ void PostEffectManager::RenderPostEffect()
 	if (enableSmoothingEffect)     SetPostEffect("SmoothingEffect");	  // スムージング
 	if (enableGaussianFilterEffect)SetPostEffect("GaussianFilterEffect"); // ガウシアンフィルタ
 	if (enableLuminanceOutline)    SetPostEffect("LuminanceOutline");	  // アウトライン
-	if (enableRadialBlur)		   SetPostEffect("RadialBlur");			  // ラジアルブラー
-	if (enableDissolveEffect)	   SetPostEffect("Dissolve");			  // ディソルブ
-	if (enableRandomEffect)		   SetPostEffect("Random");				  // ランダムグレー
+	if (enableRadialBlur)		   SetPostEffect("RadialBlurEffect");	  // ラジアルブラー
+	if (enableDissolveEffect)	   SetPostEffect("DissolveEffect");		  // ディソルブ
+	if (enableRandomEffect)		   SetPostEffect("RandomEffect");		  // ランダムグレー
 
 	// 🔹 SRV (シェーダーリソースビュー) をセット
 	commandList->SetGraphicsRootDescriptorTable(0, SRVManager::GetInstance()->GetGPUDescriptorHandle(rtvSrvIndex_));
@@ -193,7 +193,7 @@ void PostEffectManager::ImGuiRender()
 	ImGui::Checkbox("GaussianFilterEffect", &PostEffectManager::GetInstance()->enableGaussianFilterEffect);
 	ImGui::Checkbox("LuminanceOutline", &PostEffectManager::GetInstance()->enableLuminanceOutline);
 
-	ImGui::Checkbox("RadialBlur", &PostEffectManager::GetInstance()->enableRadialBlur);
+	ImGui::Checkbox("RadialBlurEffect", &PostEffectManager::GetInstance()->enableRadialBlur);
 	if (PostEffectManager::GetInstance()->enableRadialBlur)
 	{
 		ImGui::SliderFloat2("Center", reinterpret_cast<float*>(&PostEffectManager::GetInstance()->radialBlurSetting_->center), 0.0f, 1.0f);
@@ -201,7 +201,7 @@ void PostEffectManager::ImGuiRender()
 		ImGui::SliderFloat("SampleCount", &PostEffectManager::GetInstance()->radialBlurSetting_->sampleCount, 1.0f, 64.0f);
 	}
 
-	ImGui::Checkbox("Dissolve", &PostEffectManager::GetInstance()->enableDissolveEffect);
+	ImGui::Checkbox("DissolveEffect", &PostEffectManager::GetInstance()->enableDissolveEffect);
 
 	if (PostEffectManager::GetInstance()->enableDissolveEffect)
 	{
@@ -464,11 +464,11 @@ void PostEffectManager::SetPostEffect(const std::string& effectName)
 		//commandList->SetGraphicsRootDescriptorTable(0, SRVManager::GetInstance()->GetGPUDescriptorHandle(rtvSrvIndex_));
 		//commandList->SetGraphicsRootDescriptorTable(2, SRVManager::GetInstance()->GetGPUDescriptorHandle(depthSrvIndex_));
 	}
-	else if (effectName == "RadialBlur")
+	else if (effectName == "RadialBlurEffect")
 	{
 		commandList->SetGraphicsRootConstantBufferView(1, radialBlurResource_->GetGPUVirtualAddress());
 	}
-	else if (effectName == "Dissolve")
+	else if (effectName == "DissolveEffect")
 	{
 		// gTexture（t0）→ RootParam[0]
 		commandList->SetGraphicsRootDescriptorTable(0, SRVManager::GetInstance()->GetGPUDescriptorHandle(rtvSrvIndex_));
@@ -479,7 +479,7 @@ void PostEffectManager::SetPostEffect(const std::string& effectName)
 		// gMask（t1）→ RootParam[3]
 		commandList->SetGraphicsRootDescriptorTable(3, SRVManager::GetInstance()->GetGPUDescriptorHandle(dissolveMaskSrvIndex_));
 	}
-	else if (effectName == "Random")
+	else if (effectName == "RandomEffect")
 	{
 		Update(1.0f / 120.0f);
 		commandList->SetGraphicsRootConstantBufferView(1, randomResource_->GetGPUVirtualAddress());
@@ -607,7 +607,7 @@ void PostEffectManager::InitializeRadialBlur()
 void PostEffectManager::InitializeDissolve()
 {
 	// マスクテクスチャの読み込み
-	std::string filePath = "Resources/Noise.png";
+	std::string filePath = "Resources/Mask/Noise.png";
 	TextureManager::GetInstance()->LoadTexture(filePath);
 
 	// SRVインデックスを取得（CopySRVせず、既存SRVをそのまま使う）
