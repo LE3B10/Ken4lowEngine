@@ -81,6 +81,13 @@ private: /// ---------- 構造体 ---------- ///
 		float padding[3]; // 16バイトアライメントを守る
 	};
 
+	struct AbsorbSetting
+	{
+		float time;
+		float strength;
+		float padding[2]; // アライメント調整
+	};
+
 public: /// ---------- メンバ関数 ---------- ///
 
 	// シングルトンインスタンス
@@ -89,6 +96,7 @@ public: /// ---------- メンバ関数 ---------- ///
 	// 初期化処理
 	void Initialieze(DirectXCommon* dxCommon);
 
+	// 更新処理
 	void Update(float deltaTime);
 
 	// 描画開始処理
@@ -149,6 +157,9 @@ private: /// ---------- メンバ関数 ---------- ///
 	// ランダムの初期化
 	void InitializeRandom();
 
+	// アブソーブの初期化
+	void InitializeAbsorb();
+
 private: /// ---------- メンバ変数 ---------- ///
 
 	DirectXCommon* dxCommon_ = nullptr;
@@ -200,6 +211,11 @@ private: /// ---------- メンバ変数 ---------- ///
 	RandomSetting* randomSetting_ = nullptr;
 	ComPtr<ID3D12Resource> randomResource_;
 	bool enableRandomEffect = false;
+
+	// アブソーブ
+	AbsorbSetting* absorbSetting_ = nullptr;
+	ComPtr<ID3D12Resource> absorbResource_;
+	bool enableAbsorbEffect = false;
 
 	// ルートシグネチャ
 	std::unordered_map<std::string, ComPtr<ID3D12RootSignature>> rootSignatures_;
