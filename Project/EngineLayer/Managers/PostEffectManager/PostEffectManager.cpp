@@ -1,3 +1,4 @@
+#define NOMINMAX
 #include "PostEffectManager.h"
 #include "WinApp.h"
 #include "DirectXCommon.h"
@@ -65,6 +66,10 @@ void PostEffectManager::Initialieze(DirectXCommon* dxCommon)
 	CreatePipelineState("RandomEffect");
 	InitializeRandom();
 
+	// アブソーブ
+	CreatePipelineState("AbsorbEffect");
+	InitializeAbsorb();
+
 	// レンダーテクスチャの生成
 	renderResource_ = CreateRenderTextureResource(WinApp::kClientWidth, WinApp::kClientHeight, DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, kRenderTextureClearColor_);
 
@@ -83,6 +88,15 @@ void PostEffectManager::Update(float deltaTime)
 	if (enableRandomEffect && randomSetting_)
 	{
 		randomSetting_->time += deltaTime; // アニメーションさせる
+	}
+
+	// 時間経過で吸引エフェクトを進める
+	if (enableAbsorbEffect && absorbSetting_)
+	{
+		absorbSetting_->time += deltaTime;
+
+		// 必要なら吸引力も増加させる
+		absorbSetting_->strength = std::min(absorbSetting_->strength + deltaTime * 0.5f, 1.5f);
 	}
 }
 
@@ -157,6 +171,7 @@ void PostEffectManager::RenderPostEffect()
 	if (enableRadialBlur)		   SetPostEffect("RadialBlurEffect");	  // ラジアルブラー
 	if (enableDissolveEffect)	   SetPostEffect("DissolveEffect");		  // ディソルブ
 	if (enableRandomEffect)		   SetPostEffect("RandomEffect");		  // ランダムグレー
+	if (enableAbsorbEffect)		   SetPostEffect("AbsorbEffect");		  // アブソーブ
 
 	// 🔹 SRV (シェーダーリソースビュー) をセット
 	commandList->SetGraphicsRootDescriptorTable(0, SRVManager::GetInstance()->GetGPUDescriptorHandle(rtvSrvIndex_));
@@ -214,6 +229,13 @@ void PostEffectManager::ImGuiRender()
 	if (PostEffectManager::GetInstance()->enableRandomEffect)
 	{
 		ImGui::Checkbox("Use Multiply", &randomSetting_->useMultiply);
+	}
+
+	ImGui::Checkbox("AbsorbEffect", &PostEffectManager::GetInstance()->enableAbsorbEffect);
+	if (PostEffectManager::GetInstance()->enableAbsorbEffect)
+	{
+		ImGui::SliderFloat("Absorb Time", &PostEffectManager::GetInstance()->absorbSetting_->time, 0.0f, 1.0f);
+		ImGui::SliderFloat("Absorb Strength", &PostEffectManager::GetInstance()->absorbSetting_->strength, 0.0f, 2.0f);
 	}
 
 	ImGui::End();
@@ -484,6 +506,11 @@ void PostEffectManager::SetPostEffect(const std::string& effectName)
 		Update(1.0f / 120.0f);
 		commandList->SetGraphicsRootConstantBufferView(1, randomResource_->GetGPUVirtualAddress());
 	}
+	else if (effectName == "AbsorbEffect")
+	{
+		Update(1.0f / 120.0f);
+		commandList->SetGraphicsRootConstantBufferView(1, absorbResource_->GetGPUVirtualAddress());
+	}
 	else
 	{
 		assert(false);
@@ -631,4 +658,13 @@ void PostEffectManager::InitializeRandom()
 	// ランダムの設定
 	randomSetting_->time = 0.0f;
 	randomSetting_->useMultiply = false;
+}
+
+void PostEffectManager::InitializeAbsorb()
+{
+	absorbResource_ = ResourceManager::CreateBufferResource(dxCommon_->GetDevice(), sizeof(AbsorbSetting));
+	absorbResource_->Map(0, nullptr, reinterpret_cast<void**>(&absorbSetting_));
+	// アブソーブの設定
+	absorbSetting_->time = 1.0f;
+	absorbSetting_->strength = 0.5f;
 }
