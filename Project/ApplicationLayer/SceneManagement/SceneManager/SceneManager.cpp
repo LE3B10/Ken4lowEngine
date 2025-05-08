@@ -42,17 +42,17 @@ void SceneManager::Update()
 	}
 }
 
-
-
-/// -------------------------------------------------------------
-///					　		描画処理
-/// -------------------------------------------------------------
-void SceneManager::Draw()
+void SceneManager::Draw3DObjects()
 {
-	// 現在のシーンを描画
-	if (scene_)
-	{
-		scene_->Draw();
+	if (scene_) {
+		scene_->Draw3DObjects();
+	}
+}
+
+void SceneManager::Draw2DSprites()
+{
+	if (scene_) {
+		scene_->Draw2DSprites();
 	}
 }
 

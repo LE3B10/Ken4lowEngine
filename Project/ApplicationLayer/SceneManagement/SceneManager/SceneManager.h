@@ -17,8 +17,11 @@ public: /// ---------- メンバ関数 ---------- ///
 	// 更新処理
 	void Update();
 
-	// 描画処理
-	void Draw();
+	// 3Dオブジェクトの描画
+	void Draw3DObjects();
+
+	// 2Dオブジェクトの描画
+	void Draw2DSprites();
 
 	// ImGui描画処理
 	void DrawImGui();

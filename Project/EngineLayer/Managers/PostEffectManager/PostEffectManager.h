@@ -3,6 +3,7 @@
 #include "Vector2.h"
 #include "Vector3.h"
 #include "Vector4.h"
+#include "Matrix4x4.h"
 
 #include <string>
 #include <numbers>
@@ -11,6 +12,7 @@
 
 /// ---------- 前方宣言 ---------- ///
 class DirectXCommon;
+class Camera;
 
 
 /// -------------------------------------------------------------
@@ -88,6 +90,16 @@ private: /// ---------- 構造体 ---------- ///
 		float padding[2]; // アライメント調整
 	};
 
+	// 深度用アウトラインの設定
+	struct DepthOutlineSetting
+	{
+		Vector2 texelSize;
+		float edgeStrength;
+		float threshold;
+		float padding[10]; // アライメント調整
+		Matrix4x4 projectionInverse; // ← ViewZ計算に必要
+	};
+
 public: /// ---------- メンバ関数 ---------- ///
 
 	// シングルトンインスタンス
@@ -118,6 +130,8 @@ private: /// ---------- メンバ関数 ---------- ///
 
 	// レンダーテクスチャリソースの生成
 	ComPtr<ID3D12Resource> CreateRenderTextureResource(uint32_t width, uint32_t height, DXGI_FORMAT format, const Vector4& clearColor);
+
+	ComPtr<ID3D12Resource> CreateDepthBufferResource(uint32_t width, uint32_t height);
 
 	// ルートシグネチャの生成
 	void CreateRootSignature(const std::string& effectName);
@@ -160,9 +174,13 @@ private: /// ---------- メンバ関数 ---------- ///
 	// アブソーブの初期化
 	void InitializeAbsorb();
 
+	// 深度アウトラインの初期化
+	void InitializeDepthOutline();
+
 private: /// ---------- メンバ変数 ---------- ///
 
 	DirectXCommon* dxCommon_ = nullptr;
+	Camera* camera_ = nullptr;
 
 	// レンダーテクスチャのクリアカラー
 	const Vector4 kRenderTextureClearColor_ = { 0.08f, 0.08f, 0.18f, 1.0f }; // 分かりやすいように一旦赤色にする
@@ -172,6 +190,7 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	ComPtr<ID3D12Resource> renderResource_;
 	ComPtr<ID3D12Resource> depthResource_;
+	ComPtr<ID3D12Resource> depthCopyResource_;
 
 
 	bool enableGrayScaleEffect = false; // グレースケールエフェクト
@@ -217,6 +236,12 @@ private: /// ---------- メンバ変数 ---------- ///
 	ComPtr<ID3D12Resource> absorbResource_;
 	bool enableAbsorbEffect = false;
 
+	// 深度アウトラインの設定
+	DepthOutlineSetting* depthOutlineSetting_ = nullptr;
+	ComPtr<ID3D12Resource> depthOutlineResource_;
+	bool enableDepthOutline = false;
+
+
 	// ルートシグネチャ
 	std::unordered_map<std::string, ComPtr<ID3D12RootSignature>> rootSignatures_;
 
@@ -224,7 +249,10 @@ private: /// ---------- メンバ変数 ---------- ///
 	std::unordered_map<std::string, ComPtr<ID3D12PipelineState>> graphicsPipelineStates_;
 
 	D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle_;
-	D3D12_CPU_DESCRIPTOR_HANDLE depthSrvHandle_;
+	D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle;
+
+	// クラスに状態を追跡する変数を追加
+	D3D12_RESOURCE_STATES depthState_ = D3D12_RESOURCE_STATE_DEPTH_WRITE;
 
 	uint32_t rtvSrvIndex_ = 0;
 	uint32_t depthSrvIndex_ = 0;

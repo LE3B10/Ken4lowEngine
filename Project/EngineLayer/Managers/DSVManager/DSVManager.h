@@ -32,6 +32,9 @@ public: /// ---------- メンバ関数 ---------- ///
 	// 指定された深度バッファリソースのDSVを作成する
 	void CreateDSVForDepthBuffer(uint32_t dsvIndex, ID3D12Resource* depthResource);
 
+	// 指定されたテクスチャリソースのDSVを作成する
+	void CreateDSVForTexture2D(uint32_t dsvIndex, ID3D12Resource* resource);
+
 public: /// ---------- ゲッター ---------- ///
 
 	// デスクリプタヒープを取得

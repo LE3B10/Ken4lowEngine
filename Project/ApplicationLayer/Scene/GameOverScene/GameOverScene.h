@@ -24,8 +24,11 @@ public: /// ---------- メンバ関数 ---------- ///
 	// 更新処理
 	void Update() override;
 
-	// 描画処理
-	void Draw() override;
+	// 3Dオブジェクトの描画
+	void Draw3DObjects() override;
+
+	// 2Dオブジェクトの描画
+	void Draw2DSprites() override;
 
 	// 終了処理
 	void Finalize() override;

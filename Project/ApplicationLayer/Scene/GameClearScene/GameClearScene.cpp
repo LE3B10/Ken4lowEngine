@@ -24,11 +24,11 @@ void GameClearScene::Update()
 {
 }
 
+void GameClearScene::Draw3DObjects()
+{
+}
 
-/// -------------------------------------------------------------
-///				　			描画処理
-/// -------------------------------------------------------------
-void GameClearScene::Draw()
+void GameClearScene::Draw2DSprites()
 {
 }
 

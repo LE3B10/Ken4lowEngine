@@ -90,31 +90,50 @@ void GameEngine::Update()
 /// -------------------------------------------------------------
 void GameEngine::Draw()
 {
-	// 描画開始処理
+	// 描画開始（バックバッファのクリア）
 	dxCommon_->BeginDraw();
 
-	// オフスクリーンレンダリング開始
-	PostEffectManager::GetInstance()->BeginDraw();
+	//--------------------------------------------
+	// 1. オフスクリーンレンダリングの開始（3D用）
+	//--------------------------------------------
+	PostEffectManager::GetInstance()->BeginDraw(); // RTV/DSVの設定・Clear
 
-	// SRVの事前設定処理
+	// --- SRVヒープの設定（3D描画用） ---
 	SRVManager::GetInstance()->PreDraw();
 
-	// シーンマネージャーの描画処理
-	SceneManager::GetInstance()->Draw();
+	// --- 2. 3Dオブジェクトの描画 ---
+	SceneManager::GetInstance()->Draw3DObjects();
 
-	// ParticleMangerの描画処理
-	ParticleManager::GetInstance()->Draw();
-
-	// ワイヤフレームの描画処理＆リセット
+	// --- デバッグ描画（3D用） ---
 	Wireframe::GetInstance()->Draw();
 
-	// オフスクリーン描画終了
+	//--------------------------------------------
+	// 3. オフスクリーン描画終了（SRVへ切り替え）
+	//--------------------------------------------
 	PostEffectManager::GetInstance()->EndDraw();
 
-	// ImGui描画開始 (ポストエフェクトの結果にオーバーレイ)
+	//--------------------------------------------
+	// 4. ポストエフェクト適用（3Dの最終結果をフルスクリーンクアッドに描画）
+	//--------------------------------------------
+	PostEffectManager::GetInstance()->RenderPostEffect(); // swapChainのバックバッファに描画
+
+	//--------------------------------------------
+	// 5. 2Dスプライト（UIなど）をその上に直接描画
+	//--------------------------------------------
+	SRVManager::GetInstance()->PreDraw(); // 2Dスプライト用SRVの再設定
+	SceneManager::GetInstance()->Draw2DSprites();
+
+	// --- パーティクル（UIエフェクトなどあれば） ---
+	ParticleManager::GetInstance()->Draw();
+
+	//--------------------------------------------
+	// 6. ImGui描画
+	//--------------------------------------------
 	imguiManager_->Draw();
 
-	// 描画終了処理
+	//--------------------------------------------
+	// 7. 描画終了
+	//--------------------------------------------
 	dxCommon_->EndDraw();
 }
 

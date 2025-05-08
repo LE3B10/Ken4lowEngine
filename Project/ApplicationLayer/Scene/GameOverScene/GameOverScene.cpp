@@ -24,11 +24,11 @@ void GameOverScene::Update()
 {
 }
 
+void GameOverScene::Draw3DObjects()
+{
+}
 
-/// -------------------------------------------------------------
-///				　			描画処理
-/// -------------------------------------------------------------
-void GameOverScene::Draw()
+void GameOverScene::Draw2DSprites()
 {
 }
 

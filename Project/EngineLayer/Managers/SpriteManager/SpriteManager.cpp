@@ -168,7 +168,7 @@ void SpriteManager::CreatePSO()
 	// --- 背景用（Zバッファ書き込みあり） ---
 	{
 		D3D12_DEPTH_STENCIL_DESC depthStencilDesc{};
-		depthStencilDesc.DepthEnable = true;
+		depthStencilDesc.DepthEnable = false;
 		depthStencilDesc.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ALL;  // 書き込みあり
 		depthStencilDesc.DepthFunc = D3D12_COMPARISON_FUNC_LESS_EQUAL;
 
@@ -194,7 +194,7 @@ void SpriteManager::CreatePSO()
 	// --- UI用（Zバッファ書き込みなし） ---
 	{
 		D3D12_DEPTH_STENCIL_DESC depthStencilDesc{};
-		depthStencilDesc.DepthEnable = true;
+		depthStencilDesc.DepthEnable = false;
 		depthStencilDesc.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ZERO; // 書き込みなし
 		depthStencilDesc.DepthFunc = D3D12_COMPARISON_FUNC_LESS_EQUAL;
 

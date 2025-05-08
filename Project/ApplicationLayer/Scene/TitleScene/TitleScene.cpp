@@ -74,11 +74,18 @@ void TitleScene::Update()
 	}
 }
 
+void TitleScene::Draw3DObjects()
+{
+#pragma region オブジェクト3Dの描画
 
-/// -------------------------------------------------------------
-///				　			　 描画処理
-/// -------------------------------------------------------------
-void TitleScene::Draw()
+	// オブジェクト3D共通描画設定
+	Object3DCommon::GetInstance()->SetRenderSetting();
+
+#pragma endregion
+
+}
+
+void TitleScene::Draw2DSprites()
 {
 #pragma region 背景の描画（後面）
 
@@ -94,19 +101,12 @@ void TitleScene::Draw()
 #pragma endregion
 
 
-#pragma region オブジェクト3Dの描画
-
-	// オブジェクト3D共通描画設定
-	Object3DCommon::GetInstance()->SetRenderSetting();
-
-#pragma endregion
-
-
 #pragma region UIの描画（前面）
 	// UI用の共通描画設定
 	SpriteManager::GetInstance()->SetRenderSetting_UI();
 
 #pragma endregion
+
 }
 
 
