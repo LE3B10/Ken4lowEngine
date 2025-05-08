@@ -21,7 +21,13 @@ public: /// ---------- 純粋仮想関数 ---------- ///
 	virtual void Update() = 0;
 
 	// 仮想描画処理
-	virtual void Draw() = 0;
+	//virtual void Draw() = 0;
+
+	// 仮想3D描画処理
+	virtual void Draw3DObjects() = 0;
+
+	// 仮想2D描画処理
+	virtual void Draw2DSprites() = 0;
 
 	// 仮想終了処理
 	virtual void Finalize() = 0;

@@ -98,25 +98,16 @@ void GamePlayScene::Update()
 	CheckAllCollisions();
 }
 
-
 /// -------------------------------------------------------------
 ///				　			　 描画処理
 /// -------------------------------------------------------------
-void GamePlayScene::Draw()
+void GamePlayScene::Draw3DObjects()
 {
 #pragma region スカイボックスの描画
 
 	// スカイボックスの共通描画設定
 	SkyBoxManager::GetInstance()->SetRenderSetting();
-	skyBox_->Draw();
-
-#pragma endregion
-
-
-#pragma region スプライトの描画                    
-
-	// 背景用の共通描画設定（後面）
-	SpriteManager::GetInstance()->SetRenderSetting_Background();
+	//skyBox_->Draw();
 
 #pragma endregion
 
@@ -130,11 +121,22 @@ void GamePlayScene::Draw()
 	objectTerrain_->Draw();
 
 	// 球体の描画
-	objectBall_->Draw();
+	//objectBall_->Draw();
 
 	animationModelNoskeleton_->Draw();
 
 	animationModelSkeleton_->Draw();
+
+#pragma endregion
+}
+
+
+void GamePlayScene::Draw2DSprites()
+{
+#pragma region スプライトの描画                    
+
+	// 背景用の共通描画設定（後面）
+	SpriteManager::GetInstance()->SetRenderSetting_Background();
 
 #pragma endregion
 
@@ -147,7 +149,7 @@ void GamePlayScene::Draw()
 #pragma endregion
 
 	// ワイヤーフレームの描画
-	Wireframe::GetInstance()->DrawGrid(100.0f, 20.0f, { 0.25f, 0.25f, 0.25f,1.0f });
+	//Wireframe::GetInstance()->DrawGrid(100.0f, 20.0f, { 0.25f, 0.25f, 0.25f,1.0f });
 }
 
 

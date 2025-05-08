@@ -1,10 +1,11 @@
 #include "FullScreen.hlsli"
 
-struct LuminanceOutlineSetting
+struct DepthOutlineSetting
 {
     float2 texelSize; // テクセルサイズ（1/画面解像度）
     float edgeStrength; // エッジの強さ
     float threshold; // 閾値
+    float4x4 projectionInverse; // 逆投影行列（View空間Z復元に使用）
 };
 
 struct PixelShaderOutput
@@ -45,39 +46,49 @@ float Luminance(float3 v)
 Texture2D<float4> gTexture : register(t0);
 SamplerState gSampler : register(s0);
 
-ConstantBuffer<LuminanceOutlineSetting> gLuminanceOutlineSetting : register(b0);
+Texture2D<float> gDepthTexture : register(t1); // 深度テクスチャ
+SamplerState gDepthSampler : register(s1); // 深度サンプラー
+
+ConstantBuffer<DepthOutlineSetting> gDepthOutlineSetting : register(b0);
 
 // ピクセルシェーダー
 PixelShaderOutput main(VertexShaderOutput input)
 {
-    PixelShaderOutput output;
-
-    float2 difference = float2(0.0f, 0.0f);
-    
     float gx = 0.0f;
     float gy = 0.0f;
-    
-    // Prewittフィルタを適用して輝度を計算
+
+    // Prewittフィルタでview空間Zの勾配を検出
     for (int x = 0; x < 3; ++x)
     {
         for (int y = 0; y < 3; ++y)
         {
-            float2 offset = kIndex3x3[x][y] * gLuminanceOutlineSetting.texelSize;
+            float2 offset = kIndex3x3[x][y] * gDepthOutlineSetting.texelSize;
             float2 texcoord = input.texcoord + offset;
-            float luminance = Luminance(gTexture.Sample(gSampler, texcoord).rgb);
 
-            gx += luminance * kPrewittHorizontalKernel[x][y];
-            gy += luminance * kPrewittVerticalKernel[x][y];
+            float ndcDepth = gDepthTexture.Sample(gDepthSampler, texcoord);
+
+            float4 ndcPos = float4(0.0f, 0.0f, ndcDepth, 1.0f);
+            float4 viewPos = mul(ndcPos, gDepthOutlineSetting.projectionInverse);
+            viewPos /= viewPos.w;
+
+            float viewZ = viewPos.z;
+
+            gx += viewZ * kPrewittHorizontalKernel[x][y];
+            gy += viewZ * kPrewittVerticalKernel[x][y];
         }
     }
-    float weight = sqrt(gx * gx + gy * gy) * gLuminanceOutlineSetting.edgeStrength;
 
-   // 閾値処理＋サチュレーション
-    weight = (weight > gLuminanceOutlineSetting.threshold) ? weight : 0.0f;
-    weight = saturate(weight);
+    float edge = sqrt(gx * gx + gy * gy) * gDepthOutlineSetting.edgeStrength;
+
+    // 閾値処理
+    edge = (edge > gDepthOutlineSetting.threshold) ? edge : 0.0f;
+    edge = saturate(edge);
 
     float3 originalColor = gTexture.Sample(gSampler, input.texcoord).rgb;
-    output.color.rgb = (1.0f - weight) * originalColor;
+    float3 outlineColor = float3(0.0f, 0.0f, 0.0f); // 黒いアウトライン
+
+    PixelShaderOutput output;
+    output.color.rgb = lerp(originalColor, outlineColor, edge);
     output.color.a = 1.0f;
     return output;
 }
