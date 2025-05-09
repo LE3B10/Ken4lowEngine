@@ -55,9 +55,6 @@ public: /// ---------- メンバ関数 ---------- ///
 	// ポストエフェクトの描画適用処理
 	void RenderPostEffect();
 
-	// バリアの設定
-	void SetBarrier(D3D12_RESOURCE_STATES stateBefore, D3D12_RESOURCE_STATES stateAfter);
-
 	// ImGuiの描画
 	void ImGuiRender();
 
@@ -101,26 +98,25 @@ private: /// ---------- メンバ変数 ---------- ///
 	ComPtr <ID3DBlob> signatureBlob_;
 	ComPtr <ID3DBlob> errorBlob_;
 
-	ComPtr<ID3D12Resource> renderResource_;
-	ComPtr<ID3D12Resource> depthResource_;
-
-	// ルートシグネチャ
-	std::unordered_map<std::string, ComPtr<ID3D12RootSignature>> rootSignatures_;
-
-	// パイプラインスレート
-	std::unordered_map<std::string, ComPtr<ID3D12PipelineState>> graphicsPipelineStates_;
-
-	D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle_;
-	D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle;
-
-	// クラスに状態を追跡する変数を追加
-	D3D12_RESOURCE_STATES depthState_ = D3D12_RESOURCE_STATE_DEPTH_WRITE;
-
-	uint32_t rtvSrvIndex_ = 0;
-	uint32_t dsvSrvIndex_ = 0;
-
 	D3D12_VIEWPORT viewport{};
 	D3D12_RECT scissorRect{};
+
+	// DSVのハンドル
+	ComPtr<ID3D12Resource> depthResource_;
+	D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle;
+	D3D12_RESOURCE_STATES depthState_ = D3D12_RESOURCE_STATE_DEPTH_WRITE;
+	uint32_t dsvSrvIndex_ = 0;
+
+	// 複数のポストエフェクトを適用するためのリソース
+	ComPtr<ID3D12Resource> renderResourceA_;
+	ComPtr<ID3D12Resource> renderResourceB_;
+	uint32_t srvIndexA_;
+	uint32_t srvIndexB_;
+	D3D12_CPU_DESCRIPTOR_HANDLE rtvHandleA_;
+	D3D12_CPU_DESCRIPTOR_HANDLE rtvHandleB_;
+
+	D3D12_RESOURCE_STATES renderStateA_ = D3D12_RESOURCE_STATE_COMMON;
+	D3D12_RESOURCE_STATES renderStateB_ = D3D12_RESOURCE_STATE_COMMON;
 
 private: /// ---------- コピー禁止 ---------- ///
 

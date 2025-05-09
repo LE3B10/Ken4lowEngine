@@ -64,12 +64,6 @@ void PostEffectManager::Initialieze(DirectXCommon* dxCommon)
 		effectCategory_[name] = entry.category;
 	}
 
-	// レンダーテクスチャの生成
-	renderResource_ = CreateRenderTextureResource(WinApp::kClientWidth, WinApp::kClientHeight, DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, kRenderTextureClearColor_);
-
-	// 深度バッファの生成
-	depthResource_ = CreateDepthBufferResource(WinApp::kClientWidth, WinApp::kClientHeight);
-
 	// RTVとSRVの確保
 	AllocateRTVAndSRV();
 
@@ -107,16 +101,16 @@ void PostEffectManager::BeginDraw()
 	}
 
 	// レンダーターゲットを設定
-	commandList->OMSetRenderTargets(1, &rtvHandle_, false, &dsvHandle);
+	commandList->OMSetRenderTargets(1, &rtvHandleA_, false, &dsvHandle);
 
 	// クリアカラー
 	float clearColor[] = { kRenderTextureClearColor_.x, kRenderTextureClearColor_.y, kRenderTextureClearColor_.z, kRenderTextureClearColor_.w };
 
 	// 🔹 **バリア処理を適用**
-	SetBarrier(D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_RENDER_TARGET);
+	dxCommon_->TransitionResource(renderResourceA_.Get(), D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_RENDER_TARGET);
 
 	// 画面のクリア
-	commandList->ClearRenderTargetView(rtvHandle_, clearColor, 0, nullptr);
+	commandList->ClearRenderTargetView(rtvHandleA_, clearColor, 0, nullptr);
 
 	// 深度バッファのクリア
 	commandList->ClearDepthStencilView(dsvHandle, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
@@ -140,7 +134,7 @@ void PostEffectManager::EndDraw()
 	}
 
 	// 🔹 **バリアを適用**
-	SetBarrier(D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
+	dxCommon_->TransitionResource(renderResourceA_.Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
 
 	// 🔹 GPU が完了するのを待つ (デバッグ用)
 	dxCommon_->WaitCommand();
@@ -177,7 +171,7 @@ void PostEffectManager::RenderPostEffect()
 	{
 		if (effectEnabled_[name])
 		{
-			postEffects_[name]->Apply(commandList, rtvSrvIndex_, dsvSrvIndex_);
+			postEffects_[name]->Apply(commandList, srvIndexA_, dsvSrvIndex_);
 		}
 	}
 
@@ -187,15 +181,6 @@ void PostEffectManager::RenderPostEffect()
 	// 🔹 フルスクリーンクアッドを描画
 	commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	commandList->DrawInstanced(3, 1, 0, 0);
-}
-
-
-/// -------------------------------------------------------------
-///				　			バリアの設定
-/// -------------------------------------------------------------
-void PostEffectManager::SetBarrier(D3D12_RESOURCE_STATES stateBefore, D3D12_RESOURCE_STATES stateAfter)
-{
-	dxCommon_->TransitionResource(renderResource_.Get(), stateBefore, stateAfter);
 }
 
 
@@ -317,14 +302,27 @@ ComPtr<ID3D12Resource> PostEffectManager::CreateDepthBufferResource(uint32_t wid
 /// -------------------------------------------------------------
 void PostEffectManager::AllocateRTVAndSRV()
 {
-	// RTVの確保
-	uint32_t rtvIndex = RTVManager::GetInstance()->Allocate();
-	RTVManager::GetInstance()->CreateRTVForTexture2D(rtvIndex, renderResource_.Get());
-	rtvHandle_ = RTVManager::GetInstance()->GetCPUDescriptorHandle(rtvIndex);
+	// レンダーテクスチャの生成
+	renderResourceA_ = CreateRenderTextureResource(WinApp::kClientWidth, WinApp::kClientHeight, DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, kRenderTextureClearColor_);
+	renderResourceB_ = CreateRenderTextureResource(WinApp::kClientWidth, WinApp::kClientHeight, DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, kRenderTextureClearColor_);
 
-	// SRVの確保
-	rtvSrvIndex_ = SRVManager::GetInstance()->Allocate();
-	SRVManager::GetInstance()->CreateSRVForTexture2D(rtvSrvIndex_, renderResource_.Get(), DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, 1);
+	// A用
+	uint32_t rtvIndexA = RTVManager::GetInstance()->Allocate();
+	RTVManager::GetInstance()->CreateRTVForTexture2D(rtvIndexA, renderResourceA_.Get());
+	rtvHandleA_ = RTVManager::GetInstance()->GetCPUDescriptorHandle(rtvIndexA);
+	srvIndexA_ = SRVManager::GetInstance()->Allocate();
+	SRVManager::GetInstance()->CreateSRVForTexture2D(srvIndexA_, renderResourceA_.Get(), DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, 1);
+
+	// B用
+	uint32_t rtvIndexB = RTVManager::GetInstance()->Allocate();
+	RTVManager::GetInstance()->CreateRTVForTexture2D(rtvIndexB, renderResourceB_.Get());
+	rtvHandleB_ = RTVManager::GetInstance()->GetCPUDescriptorHandle(rtvIndexB);
+	srvIndexB_ = SRVManager::GetInstance()->Allocate();
+	SRVManager::GetInstance()->CreateSRVForTexture2D(srvIndexB_, renderResourceB_.Get(), DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, 1);
+
+
+	// 深度バッファの生成
+	depthResource_ = CreateDepthBufferResource(WinApp::kClientWidth, WinApp::kClientHeight);
 
 	// SRVの確保（深度用）
 	uint32_t dsvIndex = DSVManager::GetInstance()->Allocate();
