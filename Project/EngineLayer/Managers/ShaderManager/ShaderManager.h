@@ -20,5 +20,8 @@ public: /// ---------- メンバ関数 ---------- ///
 		IDxcUtils* dxcUtils,
 		IDxcCompiler3* dxcCompiler,
 		IDxcIncludeHandler* includeHandler);
+
+	// Shaderファイルへのパスを生成する
+	static std::wstring GetShaderPath(const std::wstring& shaderName, const std::wstring& extension = L"");
 };
 

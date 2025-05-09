@@ -2,17 +2,22 @@
 #include "PostEffectManager.h"
 #include "WinApp.h"
 #include "DirectXCommon.h"
+#include <Object3DCommon.h>
 #include "SRVManager.h"
-#include "ShaderManager.h"
-#include "LogString.h"
-#include "Object3DCommon.h"
-#include "Camera.h"
-#include "ResourceManager.h"
-#include "ParameterManager.h"
 
 #include <cassert>
 #include <imgui.h>
-#include <TextureManager.h>
+
+#include <NormalEffect.h>
+#include <GrayScaleEffect.h>
+#include <VignetteEffect.h>
+#include <SmoothingEffect.h>
+#include <GaussianFilterEffect.h>
+#include <LuminanceOutlineEffect.h>
+#include <RadialBlurEffect.h>
+#include <DissolveEffect.h>
+#include <RandomEffect.h>
+#include <AbsorbEffect.h>
 
 
 /// -------------------------------------------------------------
@@ -32,56 +37,38 @@ void PostEffectManager::Initialieze(DirectXCommon* dxCommon)
 {
 	dxCommon_ = dxCommon;
 
-	// パイプラインを生成
-	CreatePipelineState("NormalEffect");
+	pipelineBuilder_ = std::make_unique<PostEffectPipelineBuilder>(); // パイプラインビルダーの生成
+	pipelineBuilder_->Initialize(dxCommon); // パイプラインビルダーの初期化
 
-	// グレイスケールのパイプラインを生成
-	CreatePipelineState("GrayScaleEffect");
+	// エフェクトの初期化と生成
+	std::unordered_map<std::string, EffectEntry> effectTable = {
+		{ "NormalEffect",			{ [] { return std::make_unique<NormalEffect>(); },		     true,  0, "Visual" } },
+		{ "GrayScaleEffect",	    { [] { return std::make_unique<GrayScaleEffect>(); },        false, 1, "Color"  } },
+		{ "VignetteEffect",		    { [] { return std::make_unique<VignetteEffect>(); },         false, 2, "Color"  } },
+		{ "SmoothingEffect",	    { [] { return std::make_unique<SmoothingEffect>(); },        false, 3, "Blur"   } },
+		{ "GaussianFilterEffect",   { [] { return std::make_unique<GaussianFilterEffect>(); },   false, 4, "Blur"   } },
+		{ "LuminanceOutlineEffect", { [] { return std::make_unique<LuminanceOutlineEffect>(); }, false, 5, "Visual" } },
+		{ "RadialBlurEffect",		{ [] { return std::make_unique<RadialBlurEffect>(); },       false, 6, "Blur"   } },
+		{ "DissolveEffect",			{ [] { return std::make_unique<DissolveEffect>(); },         false, 7, "Visual" } },
+		{ "RandomEffect",			{ [] { return std::make_unique<RandomEffect>(); },			 false, 8, "Visual" } },
+		{ "AbsorbEffect",			{ [] { return std::make_unique<AbsorbEffect>(); },           false, 9, "Visual" } },
+	};
 
-	// ヴィネットのパイプラインを生成
-	CreatePipelineState("VignetteEffect");
-	InitializeVignette();
-
-	// スムージングのパイプラインを生成
-	CreatePipelineState("SmoothingEffect");
-	InitializeSmoothing();
-
-	// ガウシアンフィルタのパイプラインを生成
-	CreatePipelineState("GaussianFilterEffect");
-	InitializeGaussianFilter();
-
-	// アウトラインのパイプラインを生成
-	CreatePipelineState("LuminanceOutline");
-	InitializeLuminanceOutline();
-
-	// ラジアルブラーのパイプラインを生成
-	CreatePipelineState("RadialBlurEffect");
-	InitializeRadialBlur();
-
-	// ディソルブのパイプラインを生成
-	CreatePipelineState("DissolveEffect");
-	InitializeDissolve();
-
-	// ランダムグレー
-	CreatePipelineState("RandomEffect");
-	InitializeRandom();
-
-	// アブソーブ
-	CreatePipelineState("AbsorbEffect");
-	InitializeAbsorb();
-
-	// 深度用のアウトラインのパイプラインを生成
-	CreatePipelineState("DepthOutline");
-	InitializeDepthOutline();
+	// ファクトリー関数を使ってエフェクトを生成
+	for (const auto& [name, entry] : effectTable)
+	{
+		postEffects_[name] = entry.creator();
+		postEffects_[name]->Initialize(dxCommon_, pipelineBuilder_.get());
+		effectEnabled_[name] = entry.enabled;
+		effectOrder_.emplace_back(name, entry.order);
+		effectCategory_[name] = entry.category;
+	}
 
 	// レンダーテクスチャの生成
 	renderResource_ = CreateRenderTextureResource(WinApp::kClientWidth, WinApp::kClientHeight, DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, kRenderTextureClearColor_);
 
 	// 深度バッファの生成
 	depthResource_ = CreateDepthBufferResource(WinApp::kClientWidth, WinApp::kClientHeight);
-
-	// depthCopyResource_ の生成
-	depthCopyResource_ = CreateDepthBufferResource(WinApp::kClientWidth, WinApp::kClientHeight);
 
 	// RTVとSRVの確保
 	AllocateRTVAndSRV();
@@ -90,29 +77,21 @@ void PostEffectManager::Initialieze(DirectXCommon* dxCommon)
 	SetViewportAndScissorRect();
 }
 
-void PostEffectManager::Update(float deltaTime)
+
+/// -------------------------------------------------------------
+///				　	ポストエフェクトの更新処理
+/// -------------------------------------------------------------
+void PostEffectManager::Update()
 {
-	if (enableRandomEffect && randomSetting_)
+	for (auto& [name, effect] : postEffects_)
 	{
-		randomSetting_->time += deltaTime; // アニメーションさせる
-	}
-
-	// 時間経過で吸引エフェクトを進める
-	if (enableAbsorbEffect && absorbSetting_)
-	{
-		absorbSetting_->time += deltaTime;
-
-		// 必要なら吸引力も増加させる
-		absorbSetting_->strength = std::min(absorbSetting_->strength + deltaTime * 0.5f, 1.5f);
-	}
-
-	if (depthOutlineSetting_)
-	{
-		Matrix4x4 projection = Object3DCommon::GetInstance()->GetDefaultCamera()->GetProjectionMatrix();
-		Matrix4x4 invProj = Matrix4x4::Inverse(projection);
-		depthOutlineSetting_->projectionInverse = Matrix4x4::Transpose(invProj);
+		if (effectEnabled_[name])
+		{
+			effect->Update(); // 各エフェクトのパラメータ更新処理（仮想関数）
+		}
 	}
 }
+
 
 /// -------------------------------------------------------------
 ///				　			描画開始処理
@@ -173,6 +152,9 @@ void PostEffectManager::EndDraw()
 /// -------------------------------------------------------------
 void PostEffectManager::RenderPostEffect()
 {
+	// TODO: ポストエフェクトを適用するかどうかを後で処理を追加する
+	effectEnabled_["NormalEffect"] = true; // ノーマルエフェクトを有効
+
 	auto commandList = dxCommon_->GetCommandList();
 
 	// 🔹 スワップチェインのバックバッファを取得
@@ -186,21 +168,18 @@ void PostEffectManager::RenderPostEffect()
 
 	SRVManager::GetInstance()->PreDraw();
 
-	// 🔹 ポストエフェクトの設定
-	SetPostEffect("NormalEffect");		  // 通常エフェクト
-	if (enableGrayScaleEffect)		SetPostEffect("GrayScaleEffect");	   // グレースケール
-	if (enableVignetteEffect)		SetPostEffect("VignetteEffect");	   // ヴィネット
-	if (enableSmoothingEffect)		SetPostEffect("SmoothingEffect");	   // スムージング
-	if (enableGaussianFilterEffect) SetPostEffect("GaussianFilterEffect"); // ガウシアンフィルタ
-	if (enableLuminanceOutline)     SetPostEffect("LuminanceOutline");	   // アウトライン
-	if (enableRadialBlur)			SetPostEffect("RadialBlurEffect");	   // ラジアルブラー
-	if (enableDissolveEffect)		SetPostEffect("DissolveEffect");	   // ディソルブ
-	if (enableRandomEffect)			SetPostEffect("RandomEffect");		   // ランダムグレー
-	if (enableAbsorbEffect)			SetPostEffect("AbsorbEffect");		   // アブソーブ
-	if (enableDepthOutline)			SetPostEffect("DepthOutline");		   // 深度アウトライン
+	// 順序でソート
+	std::sort(effectOrder_.begin(), effectOrder_.end(),
+		[](const auto& a, const auto& b) { return a.second < b.second; });
 
-	// 🔹 SRV (シェーダーリソースビュー) をセット
-	commandList->SetGraphicsRootDescriptorTable(0, SRVManager::GetInstance()->GetGPUDescriptorHandle(rtvSrvIndex_));
+	// 🔹 ポストエフェクトの描画
+	for (const auto& [name, _] : effectOrder_)
+	{
+		if (effectEnabled_[name])
+		{
+			postEffects_[name]->Apply(commandList, rtvSrvIndex_, dsvSrvIndex_);
+		}
+	}
 
 	// 🔹 スワップチェインのバッファを描画ターゲットにする
 	commandList->OMSetRenderTargets(1, &backBufferRTV, false, nullptr);
@@ -226,48 +205,15 @@ void PostEffectManager::SetBarrier(D3D12_RESOURCE_STATES stateBefore, D3D12_RESO
 void PostEffectManager::ImGuiRender()
 {
 	ImGui::Begin("Post Effect Settings");
-	//ImGui::Checkbox("NormalEffect", &PostEffectManager::GetInstance()->enableNormalEffect);
-	ImGui::Checkbox("GrayScaleEffect", &PostEffectManager::GetInstance()->enableGrayScaleEffect);
-	ImGui::Checkbox("VignetteEffect", &PostEffectManager::GetInstance()->enableVignetteEffect);
-	ImGui::Checkbox("SmoothingEffect", &PostEffectManager::GetInstance()->enableSmoothingEffect);
-	ImGui::Checkbox("GaussianFilterEffect", &PostEffectManager::GetInstance()->enableGaussianFilterEffect);
-	ImGui::Checkbox("LuminanceOutline", &PostEffectManager::GetInstance()->enableLuminanceOutline);
 
-	ImGui::Checkbox("RadialBlurEffect", &PostEffectManager::GetInstance()->enableRadialBlur);
-	if (PostEffectManager::GetInstance()->enableRadialBlur)
+	// ImGui:
+	for (const auto& [name, category] : effectCategory_)
 	{
-		ImGui::SliderFloat2("Center", reinterpret_cast<float*>(&PostEffectManager::GetInstance()->radialBlurSetting_->center), 0.0f, 1.0f);
-		ImGui::SliderFloat("BlurStrength", &PostEffectManager::GetInstance()->radialBlurSetting_->blurStrength, 0.0f, 5.0f);
-		ImGui::SliderFloat("SampleCount", &PostEffectManager::GetInstance()->radialBlurSetting_->sampleCount, 1.0f, 64.0f);
-	}
-
-	ImGui::Checkbox("DissolveEffect", &PostEffectManager::GetInstance()->enableDissolveEffect);
-
-	if (PostEffectManager::GetInstance()->enableDissolveEffect)
-	{
-		ImGui::SliderFloat("Threshold", &PostEffectManager::GetInstance()->dissolveSetting_->threshold, 0.0f, 1.0f);
-		ImGui::SliderFloat("Edge Thickness", &PostEffectManager::GetInstance()->dissolveSetting_->edgeThickness, 0.0f, 0.2f);
-		ImGui::ColorEdit4("Edge Color", &PostEffectManager::GetInstance()->dissolveSetting_->edgeColor.x);
-	}
-
-	ImGui::Checkbox("RandomEffect", &PostEffectManager::GetInstance()->enableRandomEffect);
-	if (PostEffectManager::GetInstance()->enableRandomEffect)
-	{
-		ImGui::Checkbox("Use Multiply", &randomSetting_->useMultiply);
-	}
-
-	ImGui::Checkbox("AbsorbEffect", &PostEffectManager::GetInstance()->enableAbsorbEffect);
-	if (PostEffectManager::GetInstance()->enableAbsorbEffect)
-	{
-		ImGui::SliderFloat("Absorb Time", &PostEffectManager::GetInstance()->absorbSetting_->time, 0.0f, 1.0f);
-		ImGui::SliderFloat("Absorb Strength", &PostEffectManager::GetInstance()->absorbSetting_->strength, 0.0f, 2.0f);
-	}
-
-	ImGui::Checkbox("DepthOutline", &PostEffectManager::GetInstance()->enableDepthOutline);
-	if (PostEffectManager::GetInstance()->enableDepthOutline)
-	{
-		ImGui::DragFloat("Threshold", &depthOutlineSetting_->threshold, 0.001f, 0.0f, 0.05f);
-		ImGui::DragFloat("Edge Strength", &depthOutlineSetting_->edgeStrength, 0.1f, 0.0f, 5.0f);
+		ImGui::Checkbox(name.c_str(), &effectEnabled_[name]);
+		if (effectEnabled_[name])
+		{
+			postEffects_[name]->DrawImGui();
+		}
 	}
 
 	ImGui::End();
@@ -327,6 +273,10 @@ ComPtr<ID3D12Resource> PostEffectManager::CreateRenderTextureResource(uint32_t w
 	return resource;
 }
 
+
+/// -------------------------------------------------------------
+///				　深度バッファリソースを生成
+/// -------------------------------------------------------------
 ComPtr<ID3D12Resource> PostEffectManager::CreateDepthBufferResource(uint32_t width, uint32_t height)
 {
 	D3D12_RESOURCE_DESC desc{};
@@ -363,238 +313,6 @@ ComPtr<ID3D12Resource> PostEffectManager::CreateDepthBufferResource(uint32_t wid
 
 
 /// -------------------------------------------------------------
-///				　	　ルートシグネチャの生成
-/// -------------------------------------------------------------
-void PostEffectManager::CreateRootSignature(const std::string& effectName)
-{
-	// RootSignatureの設定
-	D3D12_ROOT_SIGNATURE_DESC descriptionRootSignature{};
-	descriptionRootSignature.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
-
-	// Samplerの設定
-	D3D12_STATIC_SAMPLER_DESC staticSamplers[2] = {};
-	staticSamplers[0].Filter = D3D12_FILTER_MIN_MAG_MIP_LINEAR;            // バイリニアフィルタ
-	staticSamplers[0].AddressU = D3D12_TEXTURE_ADDRESS_MODE_WRAP;		   // 0～1の範囲外をリピート
-	staticSamplers[0].AddressV = D3D12_TEXTURE_ADDRESS_MODE_WRAP;		   // 0～1の範囲外をリピート
-	staticSamplers[0].AddressW = D3D12_TEXTURE_ADDRESS_MODE_WRAP;		   // 0～1の範囲外をリピート
-	staticSamplers[0].ComparisonFunc = D3D12_COMPARISON_FUNC_NEVER;		   // 比較しない
-	staticSamplers[0].MaxLOD = D3D12_FLOAT32_MAX;						   // ありったけのMipmapを使う
-	staticSamplers[0].ShaderRegister = 0;								   // レジスタ番号0 s0
-	staticSamplers[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;	   // ピクセルシェーダーで使用
-
-	staticSamplers[1] = staticSamplers[0]; // 同じ設定を使う場合
-	staticSamplers[1].Filter = D3D12_FILTER_MIN_MAG_MIP_POINT; // ポイントフィルタ
-	staticSamplers[1].AddressU = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
-	staticSamplers[1].AddressV = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
-	staticSamplers[1].AddressW = D3D12_TEXTURE_ADDRESS_MODE_WRAP;		   // 0～1の範囲外をリピート
-	staticSamplers[1].ShaderRegister = 1; // レジスタ番号1 s1
-	staticSamplers[1].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
-
-	descriptionRootSignature.pStaticSamplers = staticSamplers;			   // サンプラの設定
-	descriptionRootSignature.NumStaticSamplers = _countof(staticSamplers); // サンプラの数 = 2
-
-	// DescriptorRangeの設定
-	D3D12_DESCRIPTOR_RANGE descriptorRange[1] = {};
-	descriptorRange[0].BaseShaderRegister = 0; // レジスタ番号
-	descriptorRange[0].NumDescriptors = 1;	   // ディスクリプタ数
-	descriptorRange[0].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV; // SRVを使う
-	descriptorRange[0].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
-
-	// 深度バッファの設定
-	D3D12_DESCRIPTOR_RANGE descriptorRangeDepth[1] = {};
-	descriptorRangeDepth[0].BaseShaderRegister = 1;
-	descriptorRangeDepth[0].NumDescriptors = 1;
-	descriptorRangeDepth[0].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
-	descriptorRangeDepth[0].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
-
-	// ルートシグネチャの生成
-	D3D12_ROOT_PARAMETER rootParameters[4] = {};
-
-	// テクスチャの設定
-	rootParameters[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;      // ディスクリプタテーブル
-	rootParameters[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL; 	           // ピクセルシェーダーで使用
-	rootParameters[0].DescriptorTable.pDescriptorRanges = descriptorRange;             // ディスクリプタテーブルの設定 t0
-	rootParameters[0].DescriptorTable.NumDescriptorRanges = _countof(descriptorRange); // ディスクリプタテーブルの数
-
-	// 定数バッファ (CBV)
-	rootParameters[1].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;     // 定数バッファビュー
-	rootParameters[1].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL; // バーテックスシェーダーで使用
-	rootParameters[1].Descriptor.ShaderRegister = 0;					 // レジスタ番号 b0
-
-	// 定数バッファ (CBV)
-	rootParameters[2].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;     // 定数バッファビュー
-	rootParameters[2].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL; // バーテックスシェーダーで使用
-	rootParameters[2].Descriptor.ShaderRegister = 1;					 // レジスタ番号 b1
-
-	// 深度バッファテクスチャ
-	rootParameters[3].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;      // ディスクリプタテーブル
-	rootParameters[3].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL; 	           // ピクセルシェーダーで使用
-	rootParameters[3].DescriptorTable.pDescriptorRanges = descriptorRangeDepth;             // ディスクリプタテーブルの設定 t1
-	rootParameters[3].DescriptorTable.NumDescriptorRanges = _countof(descriptorRangeDepth); // ディスクリプタテーブルの数
-
-	// ルートシグネチャの設定
-	descriptionRootSignature.pParameters = rootParameters;
-	descriptionRootSignature.NumParameters = _countof(rootParameters);
-
-	// シリアライズしてバイナリに変換
-	HRESULT hr = D3D12SerializeRootSignature(&descriptionRootSignature, D3D_ROOT_SIGNATURE_VERSION_1, &signatureBlob_, &errorBlob_);
-	if (FAILED(hr))
-	{
-		Log(reinterpret_cast<char*>(errorBlob_->GetBufferPointer()));
-		assert(false);
-	}
-
-	// バイナリをもとにルートシグネチャ生成
-	hr = dxCommon_->GetDevice()->CreateRootSignature(0, signatureBlob_->GetBufferPointer(), signatureBlob_->GetBufferSize(), IID_PPV_ARGS(&rootSignatures_[effectName]));
-	assert(SUCCEEDED(hr));
-}
-
-
-/// -------------------------------------------------------------
-///				　		パイプラインを生成
-/// -------------------------------------------------------------
-void PostEffectManager::CreatePipelineState(const std::string& effectName)
-{
-	HRESULT hr{};
-
-	// ルートシグネチャを生成
-	CreateRootSignature(effectName);
-
-	D3D12_INPUT_LAYOUT_DESC inputLayoutDesc_{};
-	inputLayoutDesc_.pInputElementDescs = nullptr;
-	inputLayoutDesc_.NumElements = 0;
-
-	// ブレンドステートの設定
-	D3D12_RENDER_TARGET_BLEND_DESC blendDesc{};
-	blendDesc.RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
-
-	// ラスタライザーの設定
-	D3D12_RASTERIZER_DESC rasterizerDesc{};
-	rasterizerDesc.FillMode = D3D12_FILL_MODE_SOLID;
-	rasterizerDesc.CullMode = D3D12_CULL_MODE_NONE;
-
-	// シェーダーのコンパイル先
-	std::wstring PixelShaderPath = L"Resources/Shaders/" + ConvertString(effectName) + L".PS.hlsl";
-
-	// Shaderをコンパイル
-	ComPtr <IDxcBlob> vertexShaderBlob = ShaderManager::CompileShader(L"Resources/Shaders/FullScreen.VS.hlsl", L"vs_6_0", dxCommon_->GetIDxcUtils(), dxCommon_->GetIDxcCompiler(), dxCommon_->GetIncludeHandler());
-	assert(vertexShaderBlob != nullptr);
-
-	// Pixelをコンパイル
-	ComPtr <IDxcBlob> pixelShaderBlob = ShaderManager::CompileShader(PixelShaderPath, L"ps_6_0", dxCommon_->GetIDxcUtils(), dxCommon_->GetIDxcCompiler(), dxCommon_->GetIncludeHandler());
-	assert(pixelShaderBlob != nullptr);
-
-	// 深度ステンシルステート
-	D3D12_DEPTH_STENCIL_DESC depthStencilDesc{};
-	depthStencilDesc.DepthEnable = false;
-
-	// パイプラインステートディスクリプタの初期化
-	D3D12_GRAPHICS_PIPELINE_STATE_DESC graphicsPipelineStateDesc{};
-	graphicsPipelineStateDesc.pRootSignature = rootSignatures_[effectName].Get();								// RootSgnature
-	graphicsPipelineStateDesc.InputLayout = inputLayoutDesc_;													// InputLayout
-	graphicsPipelineStateDesc.VS = { vertexShaderBlob->GetBufferPointer(), vertexShaderBlob->GetBufferSize() };	// VertexDhader
-	graphicsPipelineStateDesc.PS = { pixelShaderBlob->GetBufferPointer(), pixelShaderBlob->GetBufferSize() };	// PixelShader
-	graphicsPipelineStateDesc.BlendState.RenderTarget[0] = blendDesc;											// BlendState
-	graphicsPipelineStateDesc.RasterizerState = rasterizerDesc;													// RasterizeerState
-
-	//レンダーターゲットの設定
-	graphicsPipelineStateDesc.NumRenderTargets = 1;
-	graphicsPipelineStateDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
-
-	//利用するトポロジー（形態）のタイプ。三角形
-	graphicsPipelineStateDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;					// プリミティブトポロジーの設定
-
-	// サンプルマスクとサンプル記述子の設定
-	graphicsPipelineStateDesc.SampleDesc.Count = 1;
-	graphicsPipelineStateDesc.SampleMask = D3D12_DEFAULT_SAMPLE_MASK;
-
-	// DepthStencilステートの設定
-	graphicsPipelineStateDesc.DepthStencilState = depthStencilDesc;
-	graphicsPipelineStateDesc.DSVFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
-
-	// パイプラインステートオブジェクトの生成
-	hr = dxCommon_->GetDevice()->CreateGraphicsPipelineState(&graphicsPipelineStateDesc, IID_PPV_ARGS(&graphicsPipelineStates_[effectName]));
-	assert(SUCCEEDED(hr));
-}
-
-
-/// -------------------------------------------------------------
-///				　		ポストエフェクトを設定
-/// -------------------------------------------------------------
-void PostEffectManager::SetPostEffect(const std::string& effectName)
-{
-	ID3D12GraphicsCommandList* commandList = dxCommon_->GetCommandList();
-
-	// 🔹 ポストエフェクトのパイプラインを設定
-	commandList->SetPipelineState(graphicsPipelineStates_[effectName].Get());
-
-	// 🔹 ルートシグネチャを設定
-	commandList->SetGraphicsRootSignature(rootSignatures_[effectName].Get());
-
-	// ノーマルエフェクトかグレースケールエフェクトかで処理を分岐
-	if (effectName == "NormalEffect" || effectName == "GrayScaleEffect")
-	{
-		return; // 何もしない
-	}
-	else if (effectName == "VignetteEffect")
-	{
-		commandList->SetGraphicsRootConstantBufferView(1, vignetteResource_->GetGPUVirtualAddress());
-	}
-	else if (effectName == "SmoothingEffect")
-	{
-		commandList->SetGraphicsRootConstantBufferView(1, smoothingResource_->GetGPUVirtualAddress());
-	}
-	else if (effectName == "GaussianFilterEffect")
-	{
-		commandList->SetGraphicsRootConstantBufferView(1, gaussianResource_->GetGPUVirtualAddress());
-	}
-	else if (effectName == "LuminanceOutline")
-	{
-		// LuminanceOutline を使うときの SetPostEffect
-		commandList->SetGraphicsRootConstantBufferView(1, luminanceOutlineResource_->GetGPUVirtualAddress()); // 定数バッファ（b0）
-		commandList->SetGraphicsRootDescriptorTable(0, SRVManager::GetInstance()->GetGPUDescriptorHandle(rtvSrvIndex_)); // gTexture (t0)
-		commandList->SetGraphicsRootDescriptorTable(3, SRVManager::GetInstance()->GetGPUDescriptorHandle(depthSrvIndex_)); // gDepthTexture (t1)
-	}
-	else if (effectName == "RadialBlurEffect")
-	{
-		commandList->SetGraphicsRootConstantBufferView(1, radialBlurResource_->GetGPUVirtualAddress());
-	}
-	else if (effectName == "DissolveEffect")
-	{
-		// gTexture（t0）→ RootParam[0]
-		commandList->SetGraphicsRootDescriptorTable(0, SRVManager::GetInstance()->GetGPUDescriptorHandle(rtvSrvIndex_));
-
-		// DissolveSetting（b0）→ RootParam[1]
-		commandList->SetGraphicsRootConstantBufferView(1, dissolveResource_->GetGPUVirtualAddress());
-
-		// gMask（t1）→ RootParam[3]
-		commandList->SetGraphicsRootDescriptorTable(3, SRVManager::GetInstance()->GetGPUDescriptorHandle(dissolveMaskSrvIndex_));
-	}
-	else if (effectName == "RandomEffect")
-	{
-		Update(1.0f / 120.0f);
-		commandList->SetGraphicsRootConstantBufferView(1, randomResource_->GetGPUVirtualAddress());
-	}
-	else if (effectName == "AbsorbEffect")
-	{
-		Update(1.0f / 120.0f);
-		commandList->SetGraphicsRootConstantBufferView(1, absorbResource_->GetGPUVirtualAddress());
-	}
-	else if (effectName == "DepthOutline")
-	{
-		Update(1.0f / 120.0f);
-		commandList->SetGraphicsRootConstantBufferView(1, depthOutlineResource_->GetGPUVirtualAddress()); // b0
-		commandList->SetGraphicsRootDescriptorTable(0, SRVManager::GetInstance()->GetGPUDescriptorHandle(rtvSrvIndex_)); // gTexture (t0)
-		commandList->SetGraphicsRootDescriptorTable(3, SRVManager::GetInstance()->GetGPUDescriptorHandle(depthSrvIndex_)); // gDepthTexture (t1)
-	}
-	else
-	{
-		assert(false);
-	}
-}
-
-
-/// -------------------------------------------------------------
 ///				　		RTVとSRVの確保
 /// -------------------------------------------------------------
 void PostEffectManager::AllocateRTVAndSRV()
@@ -614,8 +332,8 @@ void PostEffectManager::AllocateRTVAndSRV()
 	dsvHandle = DSVManager::GetInstance()->GetCPUDescriptorHandle(dsvIndex);
 
 	// SRVの確保（深度用）
-	depthSrvIndex_ = SRVManager::GetInstance()->Allocate();
-	SRVManager::GetInstance()->CreateSRVForTexture2D(depthSrvIndex_, depthResource_.Get(), DXGI_FORMAT_R24_UNORM_X8_TYPELESS, 1);
+	dsvSrvIndex_ = SRVManager::GetInstance()->Allocate();
+	SRVManager::GetInstance()->CreateSRVForTexture2D(dsvSrvIndex_, depthResource_.Get(), DXGI_FORMAT_R24_UNORM_X8_TYPELESS, 1);
 }
 
 
@@ -629,140 +347,4 @@ void PostEffectManager::SetViewportAndScissorRect()
 
 	// シザリング矩形の設定
 	scissorRect = { 0, 0, static_cast<LONG>(WinApp::kClientWidth), static_cast<LONG>(WinApp::kClientHeight) };
-}
-
-
-/// -------------------------------------------------------------
-///				　		 ヴィネットの初期化
-/// -------------------------------------------------------------
-void PostEffectManager::InitializeVignette()
-{
-	// リソースの生成
-	vignetteResource_ = ResourceManager::CreateBufferResource(dxCommon_->GetDevice(), sizeof(VignetteSetting));
-
-	// データの設定
-	vignetteResource_->Map(0, nullptr, reinterpret_cast<void**>(&vignetteSetting_));
-
-	// ヴィグネットの設定
-	vignetteSetting_.power = 1.0f;
-	vignetteSetting_.range = 0.5f;
-}
-
-
-/// -------------------------------------------------------------
-///				　		 スムージングの初期化
-/// -------------------------------------------------------------
-void PostEffectManager::InitializeSmoothing()
-{
-	// リソースの生成
-	smoothingResource_ = ResourceManager::CreateBufferResource(dxCommon_->GetDevice(), sizeof(SmoothingSetting));
-
-	// データの設定
-	smoothingResource_->Map(0, nullptr, reinterpret_cast<void**>(&smoothingSetting_));
-
-	// スムージングの設定
-	smoothingSetting_->intensity = 0.5f;
-	smoothingSetting_->threshold = 0.5f;
-	smoothingSetting_->sigma = 0.0f;
-}
-
-
-/// -------------------------------------------------------------
-///				　	 ガウシアンフィルタの初期化
-/// -------------------------------------------------------------
-void PostEffectManager::InitializeGaussianFilter()
-{
-	// リソースの生成
-	gaussianResource_ = ResourceManager::CreateBufferResource(dxCommon_->GetDevice(), sizeof(GaussianFilterSetting));
-
-	// データの設定
-	gaussianResource_->Map(0, nullptr, reinterpret_cast<void**>(&gaussianFilterSetting_));
-
-	// ガウシアンフィルタの設定
-	gaussianFilterSetting_->intensity = 1.0f;
-	gaussianFilterSetting_->threshold = 0.5f;
-	gaussianFilterSetting_->sigma = 1.0f;
-}
-
-
-/// -------------------------------------------------------------
-///				　		アウトラインの初期化
-/// -------------------------------------------------------------
-void PostEffectManager::InitializeLuminanceOutline()
-{
-	luminanceOutlineResource_ = ResourceManager::CreateBufferResource(dxCommon_->GetDevice(), sizeof(LuminanceOutlineSetting));
-	luminanceOutlineResource_->Map(0, nullptr, reinterpret_cast<void**>(&luminanceOutlineSetting_));
-
-	// 解像度から texelSize を求める
-	luminanceOutlineSetting_->texelSize = {
-		1.0f / static_cast<float>(WinApp::kClientWidth),
-		1.0f / static_cast<float>(WinApp::kClientHeight)
-	};
-	luminanceOutlineSetting_->edgeStrength = 5.0f;  // 初期値
-	luminanceOutlineSetting_->threshold = 0.2f;     // 初期値
-}
-
-void PostEffectManager::InitializeRadialBlur()
-{
-	radialBlurResource_ = ResourceManager::CreateBufferResource(dxCommon_->GetDevice(), sizeof(RadialBlurSetting));
-	radialBlurResource_->Map(0, nullptr, reinterpret_cast<void**>(&radialBlurSetting_));
-	radialBlurSetting_->center = { 0.5f, 0.5f };
-	radialBlurSetting_->blurStrength = 1.0f;
-	radialBlurSetting_->sampleCount = 16.0f;
-}
-
-void PostEffectManager::InitializeDissolve()
-{
-	// マスクテクスチャの読み込み
-	std::string filePath = "Resources/Mask/Noise.png";
-	TextureManager::GetInstance()->LoadTexture(filePath);
-
-	// SRVインデックスを取得（CopySRVせず、既存SRVをそのまま使う）
-	dissolveMaskSrvIndex_ = TextureManager::GetInstance()->GetSrvIndex(filePath);
-
-	// リソースの生成
-	dissolveResource_ = ResourceManager::CreateBufferResource(dxCommon_->GetDevice(), sizeof(DissolveSetting));
-	// データの設定
-	dissolveResource_->Map(0, nullptr, reinterpret_cast<void**>(&dissolveSetting_));
-	// ディゾルブの設定
-	dissolveSetting_->threshold = 0.5f;
-	dissolveSetting_->edgeThickness = 0.05f;
-	dissolveSetting_->edgeColor = { 1.0f, 1.0f, 1.0f, 1.0f };
-}
-
-void PostEffectManager::InitializeRandom()
-{
-	randomResource_ = ResourceManager::CreateBufferResource(dxCommon_->GetDevice(), sizeof(RandomSetting));
-	randomResource_->Map(0, nullptr, reinterpret_cast<void**>(&randomSetting_));
-
-	// ランダムの設定
-	randomSetting_->time = 0.0f;
-	randomSetting_->useMultiply = false;
-}
-
-void PostEffectManager::InitializeAbsorb()
-{
-	absorbResource_ = ResourceManager::CreateBufferResource(dxCommon_->GetDevice(), sizeof(AbsorbSetting));
-	absorbResource_->Map(0, nullptr, reinterpret_cast<void**>(&absorbSetting_));
-	// アブソーブの設定
-	absorbSetting_->time = 1.0f;
-	absorbSetting_->strength = 0.5f;
-}
-
-void PostEffectManager::InitializeDepthOutline()
-{
-	depthOutlineResource_ = ResourceManager::CreateBufferResource(dxCommon_->GetDevice(), sizeof(DepthOutlineSetting));
-	depthOutlineResource_->Map(0, nullptr, reinterpret_cast<void**>(&depthOutlineSetting_));
-
-	depthOutlineSetting_->texelSize = {
-		1.0f / static_cast<float>(WinApp::kClientWidth),
-		1.0f / static_cast<float>(WinApp::kClientHeight)
-	};
-	depthOutlineSetting_->edgeStrength = 1.0f;
-	depthOutlineSetting_->threshold = 0.002f;
-
-	// Projection行列（Matrix4x4型）を使って逆行列 → 転置
-	Matrix4x4 projection = Object3DCommon::GetInstance()->GetDefaultCamera()->GetProjectionMatrix();
-	Matrix4x4 inverseProj = Matrix4x4::Inverse(projection);
-	depthOutlineSetting_->projectionInverse = Matrix4x4::Transpose(inverseProj);
 }

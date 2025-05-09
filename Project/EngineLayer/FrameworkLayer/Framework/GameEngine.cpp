@@ -55,10 +55,13 @@ void GameEngine::Update()
 	}
 
 	/// ---------- ImGuiフレーム開始 ---------- ///
-	imguiManager_->BeginFrame();
+	ImGuiManager::GetInstance()->BeginFrame();
 
 	// シーンマネージャーの更新
 	SceneManager::GetInstance()->Update();
+
+	// ポストエフェクトの更新
+	PostEffectManager::GetInstance()->Update();
 
 #ifdef _DEBUG // デバッグモードの場合
 
@@ -81,7 +84,7 @@ void GameEngine::Update()
 
 #endif // _DEBUG
 	/// ---------- ImGuiフレーム終了 ---------- ///
-	imguiManager_->EndFrame();
+	ImGuiManager::GetInstance()->EndFrame();
 }
 
 
@@ -129,7 +132,7 @@ void GameEngine::Draw()
 	//--------------------------------------------
 	// 6. ImGui描画
 	//--------------------------------------------
-	imguiManager_->Draw();
+	ImGuiManager::GetInstance()->Draw();
 
 	//--------------------------------------------
 	// 7. 描画終了

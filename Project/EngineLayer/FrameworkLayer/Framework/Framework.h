@@ -48,9 +48,6 @@ protected: /// ---------- メンバ変数 ---------- ///
 	// DirectX共通クラス
 	DirectXCommon* dxCommon_ = nullptr;
 
-	// ImGuiマネージャー
-	ImGuiManager* imguiManager_ = nullptr;
-
 	// カメラ
 	std::unique_ptr<Camera> defaultCamera_;
 
