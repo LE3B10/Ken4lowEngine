@@ -76,3 +76,13 @@ Microsoft::WRL::ComPtr <IDxcBlob> ShaderManager::CompileShader(const std::wstrin
 	// 実行用のバイナリを返却
 	return shaderBlob;
 }
+
+
+std::wstring ShaderManager::GetShaderPath(const std::wstring& shaderName, const std::wstring& extension)
+{
+	std::wstring path = L"Resources/Shaders/PostEffect/" + shaderName;
+	if (!extension.empty()) {
+		path += extension; // 例: ".PS.hlsl"
+	}
+	return path;
+}

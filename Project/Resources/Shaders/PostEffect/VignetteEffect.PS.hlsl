@@ -8,6 +8,14 @@ struct PixelShaderOutput
     float4 color : SV_TARGET0;
 };
 
+struct VignetteSetting
+{
+    float power; // vignetteの強さ（exponent）
+    float range; // vignetteの範囲（中心からどこまで影響を与えるか）
+};
+
+ConstantBuffer<VignetteSetting> gVignetteSetting : register(b0);
+
 PixelShaderOutput main(VertexShaderOutput input)
 {
     PixelShaderOutput output;
@@ -20,7 +28,7 @@ PixelShaderOutput main(VertexShaderOutput input)
     float vignette = correct.x * correct.y * 16.0f;
     
     // それっぽくするために、RGBの平均値を使う
-    vignette = saturate(pow(vignette, 0.8f));
+    vignette = saturate(pow(vignette / gVignetteSetting.range, gVignetteSetting.power));
     
     // 色に掛ける
     output.color.rgb *= vignette;
