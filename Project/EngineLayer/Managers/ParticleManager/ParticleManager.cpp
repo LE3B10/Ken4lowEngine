@@ -49,10 +49,10 @@ void ParticleManager::Initialize(DirectXCommon* dxCommon, Camera* camera)
 	//mesh_.Initialize();
 
 	//// リングの頂点データを生成
-	//mesh_.CreateVertexData();
+	mesh_.CreateVertexData();
 
 	// シリンダーの頂点データを生成
-	mesh_.InitializeCylinder();
+	//mesh_.InitializeCylinder();
 
 	// マテリアルデータの初期化
 	material_.Initialize();
@@ -541,10 +541,10 @@ Particle ParticleManager::MakeNewParticle(std::mt19937& randomEngine, const Vect
 	}
 
 	case ParticleEffectType::Slash: {
-		std::uniform_real_distribution<float> distScale(0.4f, 1.5f);
+		std::uniform_real_distribution<float> distScale(0.8f, 3.0f);
 		std::uniform_real_distribution<float> distRotate(-std::numbers::pi_v<float>, std::numbers::pi_v<float>);
 
-		particle.transform.scale_ = { 0.05f, distScale(randomEngine), 1.0f };
+		particle.transform.scale_ = { 0.1f, distScale(randomEngine) * 2.0f, 2.0f };
 		particle.startScale = particle.transform.scale_;
 		particle.endScale = { 0.0f, 0.0f, 0.0f };
 		particle.transform.rotate_ = { 0.0f, 0.0f, distRotate(randomEngine) };
