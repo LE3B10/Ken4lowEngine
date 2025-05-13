@@ -1,4 +1,5 @@
 #include "ShaderManager.h"
+#include "DXCCompilerManager.h"
 
 #pragma comment(lib, "dxcompiler.lib")   // DXC (DirectX Shader Compiler)用
 
@@ -6,10 +7,14 @@
 /// -------------------------------------------------------------
 ///				シェーダーをコンパイルする処理
 /// -------------------------------------------------------------
-Microsoft::WRL::ComPtr <IDxcBlob> ShaderManager::CompileShader(const std::wstring& filePath, const wchar_t* profile, IDxcUtils* dxcUtils, IDxcCompiler3* dxcCompiler, IDxcIncludeHandler* includeHandler)
+Microsoft::WRL::ComPtr <IDxcBlob> ShaderManager::CompileShader(const std::wstring& filePath, const wchar_t* profile, DXCCompilerManager* dxcManager)
 {
 	// これからシェーダーをコンパイルする旨をログに出す
 	Log(ConvertString(std::format(L"Begin CompileShader, path:{}, profile:{}\n", filePath, profile)));
+
+	IDxcUtils* dxcUtils = dxcManager->GetIDxcUtils();
+	IDxcCompiler3* dxcCompiler = dxcManager->GetIDxcCompiler();
+	IDxcIncludeHandler* includeHandler = dxcManager->GetIncludeHandler();
 
 	/// ---------- 1. hlslファイルを読み込む ---------- ///
 

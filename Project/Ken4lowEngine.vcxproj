@@ -114,6 +114,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     </FxCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="DXCCompilerManager.cpp" />
     <ClCompile Include="EngineLayer\PostEffectManagement\AbsorbEffect.cpp" />
     <ClCompile Include="EngineLayer\PostEffectManagement\DissolveEffect.cpp" />
     <ClCompile Include="EngineLayer\Managers\ModelManager\AssimpLoader.cpp" />
@@ -339,6 +340,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     </FxCompile>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="DXCCompilerManager.h" />
     <ClInclude Include="EngineLayer\PostEffectManagement\AbsorbEffect.h" />
     <ClInclude Include="EngineLayer\PostEffectManagement\DissolveEffect.h" />
     <ClInclude Include="EngineLayer\Managers\ModelManager\AssimpLoader.h" />

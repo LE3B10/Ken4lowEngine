@@ -5,6 +5,7 @@
 #include "FPSCounter.h"
 #include "RTVManager.h"
 #include "DSVManager.h"
+#include "DXCCompilerManager.h"
 
 #include <dxcapi.h>
 #include <memory>
@@ -48,9 +49,9 @@ public: /// ---------- ゲッター ---------- ///
 	ID3D12Device* GetDevice() const { return device_->GetDevice(); }
 	ID3D12GraphicsCommandList* GetCommandList() const { return commandList_.Get(); }
 	DX12SwapChain* GetSwapChain() { return swapChain_.get(); }
-	IDxcUtils* GetIDxcUtils() const { return dxcUtils.Get(); }
-	IDxcCompiler3* GetIDxcCompiler() const { return dxcCompiler.Get(); }
-	IDxcIncludeHandler* GetIncludeHandler() const { return includeHandler.Get(); }
+
+	DXCCompilerManager* GetDXCCompilerManager() { return dxcCompilerManager_.get(); }
+
 	DXGI_SWAP_CHAIN_DESC1& GetSwapChainDesc() const { return swapChain_->GetSwapChainDesc(); }
 	ID3D12CommandAllocator* GetCommandAllocator() const { return commandAllocator.Get(); }
 	ID3D12CommandQueue* GetCommandQueue() const { return commandQueue.Get(); }
@@ -80,9 +81,6 @@ private: /// ---------- メンバ関数 ---------- ///
 	// フェンスの生成
 	void CreateFenceEvent();
 
-	// DXCコンパイラの生成
-	void CreateDXCCompiler();
-
 	// 画面全体をクリア
 	void ClearWindow();
 
@@ -95,14 +93,11 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	std::unique_ptr<DX12Device> device_;
 	std::unique_ptr<DX12SwapChain> swapChain_;
+	std::unique_ptr<DXCCompilerManager> dxcCompilerManager_;
 
 	ComPtr <ID3D12CommandQueue> commandQueue;
 	ComPtr<ID3D12CommandAllocator> commandAllocator;
 	ComPtr<ID3D12GraphicsCommandList> commandList_;
-
-	ComPtr <IDxcUtils> dxcUtils;
-	ComPtr<IDxcCompiler3> dxcCompiler;
-	ComPtr <IDxcIncludeHandler> includeHandler;
 
 	D3D12_COMMAND_QUEUE_DESC commandQueueDesc{};
 
