@@ -38,7 +38,7 @@ void SpriteManager::Update()
 /// -------------------------------------------------------------
 void SpriteManager::SetRenderSetting_Background()
 {
-	auto commandList = dxCommon_->GetCommandList();
+	auto commandList = dxCommon_->GetCommandManager()->GetCommandList();
 	commandList->SetGraphicsRootSignature(rootSignature_.Get());
 	commandList->SetPipelineState(graphicsPipelineState_Background_.Get());
 	commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
@@ -50,7 +50,7 @@ void SpriteManager::SetRenderSetting_Background()
 /// -------------------------------------------------------------
 void SpriteManager::SetRenderSetting_UI()
 {
-	auto commandList = dxCommon_->GetCommandList();
+	auto commandList = dxCommon_->GetCommandManager()->GetCommandList();
 	commandList->SetGraphicsRootSignature(rootSignature_.Get());
 	commandList->SetPipelineState(graphicsPipelineState_UI_.Get());
 	commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);

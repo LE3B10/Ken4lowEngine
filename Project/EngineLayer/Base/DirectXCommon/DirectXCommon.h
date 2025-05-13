@@ -6,6 +6,8 @@
 #include "RTVManager.h"
 #include "DSVManager.h"
 #include "DXCCompilerManager.h"
+#include "DX12CommandManager.h"
+#include "DX12FenceManager.h"
 
 #include <dxcapi.h>
 #include <memory>
@@ -35,9 +37,6 @@ public: /// ---------- メンバ関数 ---------- ///
 	void BeginDraw();
 	void EndDraw();
 
-	// コマンドの実行待ち
-	void WaitCommand();
-
 	// 終了処理
 	void Finalize();
 
@@ -47,14 +46,12 @@ public: /// ---------- メンバ関数 ---------- ///
 public: /// ---------- ゲッター ---------- ///
 
 	ID3D12Device* GetDevice() const { return device_->GetDevice(); }
-	ID3D12GraphicsCommandList* GetCommandList() const { return commandList_.Get(); }
 	DX12SwapChain* GetSwapChain() { return swapChain_.get(); }
-
 	DXCCompilerManager* GetDXCCompilerManager() { return dxcCompilerManager_.get(); }
+	DX12CommandManager* GetCommandManager() { return commandManager_.get(); }
+	DX12FenceManager* GetFenceManager() { return fenceManager_.get(); }
 
 	DXGI_SWAP_CHAIN_DESC1& GetSwapChainDesc() const { return swapChain_->GetSwapChainDesc(); }
-	ID3D12CommandAllocator* GetCommandAllocator() const { return commandAllocator.Get(); }
-	ID3D12CommandQueue* GetCommandQueue() const { return commandQueue.Get(); }
 	// FPSの取得
 	FPSCounter& GetFPSCounter() { return fpsCounter_; }
 
@@ -75,9 +72,6 @@ private: /// ---------- メンバ関数 ---------- ///
 	// エラー警告
 	void ErrorWarning();
 
-	// コマンド関連の生成
-	void CreateCommands();
-
 	// フェンスの生成
 	void CreateFenceEvent();
 
@@ -94,16 +88,8 @@ private: /// ---------- メンバ変数 ---------- ///
 	std::unique_ptr<DX12Device> device_;
 	std::unique_ptr<DX12SwapChain> swapChain_;
 	std::unique_ptr<DXCCompilerManager> dxcCompilerManager_;
-
-	ComPtr <ID3D12CommandQueue> commandQueue;
-	ComPtr<ID3D12CommandAllocator> commandAllocator;
-	ComPtr<ID3D12GraphicsCommandList> commandList_;
-
-	D3D12_COMMAND_QUEUE_DESC commandQueueDesc{};
-
-	ComPtr <ID3D12Fence> fence;
-	HANDLE fenceEvent;
-	UINT64 fenceValue = 0;
+	std::unique_ptr<DX12CommandManager> commandManager_;
+	std::unique_ptr<DX12FenceManager> fenceManager_;
 
 	D3D12_RESOURCE_BARRIER barrier{};
 

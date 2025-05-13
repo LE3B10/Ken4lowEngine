@@ -86,7 +86,7 @@ void ImGuiManager::Draw()
 
 	DirectXCommon* dxCommon = DirectXCommon::GetInstance();
 
-	ComPtr<ID3D12GraphicsCommandList> commandList = dxCommon->GetCommandList();
+	ComPtr<ID3D12GraphicsCommandList> commandList = dxCommon->GetCommandManager()->GetCommandList();
 
 	/*-----ImGuiを描画する-----*/
 	SRVManager::GetInstance()->PreDraw();

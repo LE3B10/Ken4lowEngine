@@ -96,7 +96,7 @@ void SRVManager::PreDraw()
 {
 	// ディスクリプタヒープの設定
 	ID3D12DescriptorHeap* descriptorHeaps[] = { descriptorHeap.Get() };
-	dxCommon_->GetCommandList()->SetDescriptorHeaps(1, descriptorHeaps);
+	dxCommon_->GetCommandManager()->GetCommandList()->SetDescriptorHeaps(1, descriptorHeaps);
 }
 
 
@@ -105,7 +105,7 @@ void SRVManager::PreDraw()
 /// -------------------------------------------------------------
 void SRVManager::SetGraphicsRootDescriptorTable(UINT RootParameterIndex, uint32_t srvIndex)
 {
-	dxCommon_->GetCommandList()->SetGraphicsRootDescriptorTable(RootParameterIndex, GetGPUDescriptorHandle(srvIndex));
+	dxCommon_->GetCommandManager()->GetCommandList()->SetGraphicsRootDescriptorTable(RootParameterIndex, GetGPUDescriptorHandle(srvIndex));
 }
 
 

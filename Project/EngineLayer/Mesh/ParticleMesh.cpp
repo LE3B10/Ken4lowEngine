@@ -120,6 +120,6 @@ void ParticleMesh::InitializeCylinder()
 
 void ParticleMesh::Draw(UINT num)
 {
-	ID3D12GraphicsCommandList* commandList = DirectXCommon::GetInstance()->GetCommandList();
+	ID3D12GraphicsCommandList* commandList = DirectXCommon::GetInstance()->GetCommandManager()->GetCommandList();
 	commandList->DrawInstanced(UINT(modelData_.vertices.size()), num, 0, 0);
 }

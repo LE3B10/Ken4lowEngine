@@ -53,7 +53,7 @@ void Mesh::Initialize(const std::vector<VertexData>& modelVertices, const std::v
 /// -------------------------------------------------------------
 void Mesh::Draw()
 {
-	ID3D12GraphicsCommandList* commandList = DirectXCommon::GetInstance()->GetCommandList();
+	ID3D12GraphicsCommandList* commandList = DirectXCommon::GetInstance()->GetCommandManager()->GetCommandList();
 
 	commandList->IASetVertexBuffers(0, 1, &vertexBufferView);
 	commandList->IASetIndexBuffer(&indexBufferView);

@@ -92,7 +92,7 @@ void PostEffectManager::Update()
 /// -------------------------------------------------------------
 void PostEffectManager::BeginDraw()
 {
-	auto commandList = dxCommon_->GetCommandList();
+	auto commandList = dxCommon_->GetCommandManager()->GetCommandList();
 
 	// 🔷 必ず DEPTH_WRITE 状態に戻す → ClearDepthStencilView 用
 	if (depthResource_ && depthState_ != D3D12_RESOURCE_STATE_DEPTH_WRITE) {
@@ -125,7 +125,7 @@ void PostEffectManager::BeginDraw()
 /// -------------------------------------------------------------
 void PostEffectManager::EndDraw()
 {
-	auto commandList = dxCommon_->GetCommandList();
+	auto commandList = dxCommon_->GetCommandManager()->GetCommandList();
 
 	// 🔷 Outline等で使うために、depthResource を PIXEL_SHADER_RESOURCE に遷移
 	if (depthResource_ && depthState_ != D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE) {
@@ -137,7 +137,7 @@ void PostEffectManager::EndDraw()
 	dxCommon_->TransitionResource(renderResourceA_.Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
 
 	// 🔹 GPU が完了するのを待つ (デバッグ用)
-	dxCommon_->WaitCommand();
+	dxCommon_->GetCommandManager()->ExecuteAndWait();
 }
 
 
@@ -149,7 +149,7 @@ void PostEffectManager::RenderPostEffect()
 	// TODO: ポストエフェクトを適用するかどうかを後で処理を追加する
 	effectEnabled_["NormalEffect"] = true; // ノーマルエフェクトを有効
 
-	auto commandList = dxCommon_->GetCommandList();
+	auto commandList = dxCommon_->GetCommandManager()->GetCommandList();
 
 	// 🔹 スワップチェインのバックバッファを取得
 	uint32_t backBufferIndex = dxCommon_->GetSwapChain()->GetSwapChain()->GetCurrentBackBufferIndex();
