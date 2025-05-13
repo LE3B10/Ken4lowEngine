@@ -78,7 +78,7 @@ private: /// ---------- メンバ変数 ---------- ///
 
 private: /// ---------- メンバ変数 ---------- ///
 
-	DirectXCommon* dxCommon = nullptr;
+	DirectXCommon* dxCommon_ = nullptr;
 	Camera* camera_ = nullptr;
 	SkyBox* skyBox_ = nullptr;
 

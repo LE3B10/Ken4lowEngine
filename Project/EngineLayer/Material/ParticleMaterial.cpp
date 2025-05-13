@@ -27,7 +27,7 @@ void ParticleMaterial::Update()
 
 void ParticleMaterial::SetPipeline(UINT rootParameterIndex) const
 {
-	ID3D12GraphicsCommandList* commandList = DirectXCommon::GetInstance()->GetCommandList();
+	ID3D12GraphicsCommandList* commandList = DirectXCommon::GetInstance()->GetCommandManager()->GetCommandList();
 
 	if (materialResource_)
 	{

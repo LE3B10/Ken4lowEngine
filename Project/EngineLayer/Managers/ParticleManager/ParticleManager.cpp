@@ -197,7 +197,7 @@ void ParticleManager::Update()
 /// -------------------------------------------------------------
 void ParticleManager::Draw()
 {
-	ID3D12GraphicsCommandList* commandList = dxCommon_->GetCommandList();
+	ID3D12GraphicsCommandList* commandList = dxCommon_->GetCommandManager()->GetCommandList();
 
 	// ルートシグネチャを設定
 	commandList->SetGraphicsRootSignature(rootSignature.Get());

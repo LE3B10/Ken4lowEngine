@@ -76,7 +76,7 @@ void SkyBox::Update()
 /// -------------------------------------------------------------
 void SkyBox::Draw()
 {
-	ID3D12GraphicsCommandList* commandList = dxCommon_->GetCommandList();
+	ID3D12GraphicsCommandList* commandList = dxCommon_->GetCommandManager()->GetCommandList();
 
 	commandList->IASetVertexBuffers(0, 1, &vertexBufferView); // スプライト用VBV
 	commandList->IASetIndexBuffer(&indexBufferView); // IBVの設定

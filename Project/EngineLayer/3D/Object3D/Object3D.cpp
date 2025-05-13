@@ -17,7 +17,7 @@
 /// -------------------------------------------------------------
 void Object3D::Initialize(const std::string& fileName)
 {
-	dxCommon = DirectXCommon::GetInstance();
+	dxCommon_ = DirectXCommon::GetInstance();
 	camera_ = Object3DCommon::GetInstance()->GetDefaultCamera();
 
 	// モデル読み込み
@@ -86,13 +86,15 @@ void Object3D::DrawImGui()
 /// -------------------------------------------------------------
 void Object3D::Draw()
 {
+	ID3D12GraphicsCommandList* commandList = dxCommon_->GetCommandManager()->GetCommandList();
+
 	material_.SetPipeline();
 	worldTransform.SetPipeline();
 	
-	dxCommon->GetCommandList()->SetGraphicsRootDescriptorTable(2, modelData.material.gpuHandle); // テクスチャの設定
-	dxCommon->GetCommandList()->SetGraphicsRootConstantBufferView(3, cameraResource->GetGPUVirtualAddress());
+	commandList->SetGraphicsRootDescriptorTable(2, modelData.material.gpuHandle); // テクスチャの設定
+	commandList->SetGraphicsRootConstantBufferView(3, cameraResource->GetGPUVirtualAddress());
 
-	dxCommon->GetCommandList()->SetGraphicsRootDescriptorTable(7, environmentMapHandle_); // 環境マップの設定
+	commandList->SetGraphicsRootDescriptorTable(7, environmentMapHandle_); // 環境マップの設定
 	mesh_.Draw();
 }
 
@@ -118,7 +120,7 @@ void Object3D::SetModel(const std::string& filePath)
 void Object3D::InitializeCameraResource()
 {
 	// カメラ用のリソースを作る
-	cameraResource = ResourceManager::CreateBufferResource(dxCommon->GetDevice(), sizeof(CameraForGPU));
+	cameraResource = ResourceManager::CreateBufferResource(dxCommon_->GetDevice(), sizeof(CameraForGPU));
 	// 書き込むためのアドレスを取得
 	cameraResource->Map(0, nullptr, reinterpret_cast<void**>(&cameraData));
 	// カメラの初期位置

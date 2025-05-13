@@ -27,14 +27,16 @@ void LightManager::Initialize(DirectXCommon* dxCommon)
 /// -------------------------------------------------------------
 void LightManager::PreDraw()
 {
+	auto commandList = dxCommon_->GetCommandManager()->GetCommandList();
+
 	// 平行光源のCBufferの設定
-	dxCommon_->GetCommandList()->SetGraphicsRootConstantBufferView(4, directionalLightResource_->GetGPUVirtualAddress());
+	commandList->SetGraphicsRootConstantBufferView(4, directionalLightResource_->GetGPUVirtualAddress());
 
 	// 点光源のCBufferの設定
-	dxCommon_->GetCommandList()->SetGraphicsRootConstantBufferView(5, pointLightResource_->GetGPUVirtualAddress());
+	commandList->SetGraphicsRootConstantBufferView(5, pointLightResource_->GetGPUVirtualAddress());
 
 	// スポットライトのCBufferの設定
-	dxCommon_->GetCommandList()->SetGraphicsRootConstantBufferView(6, spotLightResource_->GetGPUVirtualAddress());
+	commandList->SetGraphicsRootConstantBufferView(6, spotLightResource_->GetGPUVirtualAddress());
 }
 
 /// -------------------------------------------------------------

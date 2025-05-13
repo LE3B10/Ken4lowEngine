@@ -25,7 +25,7 @@ void NoSkeletonAnimation::Update(AnimationModel* model, float deltaTime)
 
 void NoSkeletonAnimation::Draw(AnimationModel* model)
 {
-	auto commandList = model->dxCommon_->GetCommandList();
+	auto commandList = model->dxCommon_->GetCommandManager()->GetCommandList();
 
 	commandList->IASetVertexBuffers(0, 1, &model->vertexBufferView);
 	commandList->IASetIndexBuffer(&model->indexBufferView);

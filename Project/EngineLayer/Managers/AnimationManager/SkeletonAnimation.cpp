@@ -89,7 +89,7 @@ void SkeletonAnimation::Update(AnimationModel* model, float deltaTime)
 
 void SkeletonAnimation::Draw(AnimationModel* model)
 {
-	auto commandList = DirectXCommon::GetInstance()->GetCommandList();
+	auto commandList = DirectXCommon::GetInstance()->GetCommandManager()->GetCommandList();
 
 	// 骨ありモデルの描画
 	commandList->SetGraphicsRootSignature(AnimationModelManager::GetInstance()->GetRootSignature());

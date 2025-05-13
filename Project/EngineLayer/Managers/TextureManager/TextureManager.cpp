@@ -160,10 +160,10 @@ void TextureManager::LoadTexture(const std::string& filePath)
 	textureData.resource = CreateTextureResource(dxCommon_->GetDevice(), textureData.metaData);
 
 	// 中間リソースデータを転送する
-	ComPtr<ID3D12Resource> intermediateResouece = UploadTextureData(textureData.resource.Get(), mipImages, dxCommon_->GetDevice(), dxCommon_->GetCommandList());
+	ComPtr<ID3D12Resource> intermediateResouece = UploadTextureData(textureData.resource.Get(), mipImages, dxCommon_->GetDevice(), dxCommon_->GetCommandManager()->GetCommandList());
 
 	// コマンド実行が完了するまでまつ
-	dxCommon_->WaitCommand();
+	dxCommon_->GetCommandManager()->ExecuteAndWait();
 
 	// SRV確保
 	textureData.srvIndex = SRVManager::GetInstance()->Allocate();

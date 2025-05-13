@@ -159,7 +159,7 @@ private: /// ---------- メンバ変数 ---------- ///
 
 private: /// ---------- メンバ変数 ---------- ///
 
-	DirectXCommon* dxCommon = nullptr;
+	DirectXCommon* dxCommon_ = nullptr;
 
 	//スプライト用のマテリアルソースを作る
 	ComPtr <ID3D12Resource> materialResource;

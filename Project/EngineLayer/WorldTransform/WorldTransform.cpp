@@ -49,7 +49,7 @@ void WorldTransform::Update()
 
 void WorldTransform::SetPipeline(UINT rootParameterIndex)
 {
-	auto commandList = DirectXCommon::GetInstance()->GetCommandList();
+	auto commandList = DirectXCommon::GetInstance()->GetCommandManager()->GetCommandList();
 
 	commandList->SetGraphicsRootConstantBufferView(rootParameterIndex, wvpResource->GetGPUVirtualAddress());
 }

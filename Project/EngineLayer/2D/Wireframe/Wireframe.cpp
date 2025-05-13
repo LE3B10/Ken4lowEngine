@@ -75,7 +75,7 @@ void Wireframe::Update()
 /// -------------------------------------------------------------
 void Wireframe::Draw()
 {
-	auto commandList = dxCommon_->GetCommandList();
+	auto commandList = dxCommon_->GetCommandManager()->GetCommandList();
 
 #pragma region ---------- 線の描画 ----------
 

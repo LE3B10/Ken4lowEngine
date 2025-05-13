@@ -41,7 +41,7 @@ void SkyBoxManager::Update()
 /// -------------------------------------------------------------
 void SkyBoxManager::SetRenderSetting()
 {
-	auto commandList = dxCommon_->GetCommandList();
+	auto commandList = dxCommon_->GetCommandManager()->GetCommandList();
 	commandList->SetGraphicsRootSignature(rootSignature_.Get());
 	commandList->SetPipelineState(graphicsPipelineState_.Get());
 	commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
