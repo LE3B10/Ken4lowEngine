@@ -158,11 +158,11 @@ void SpriteManager::CreatePSO()
 	rasterizerDesc.FrontCounterClockwise = FALSE;	 // 時計回りの面を表面とする（カリング方向の設定）
 
 	// Shaderをコンパイル
-	ComPtr <IDxcBlob> vertexShaderBlob = ShaderManager::CompileShader(L"Resources/Shaders/Sprite.VS.hlsl", L"vs_6_0", dxCommon_->GetIDxcUtils(), dxCommon_->GetIDxcCompiler(), dxCommon_->GetIncludeHandler());
+	ComPtr <IDxcBlob> vertexShaderBlob = ShaderManager::CompileShader(L"Resources/Shaders/Sprite.VS.hlsl", L"vs_6_0", dxCommon_->GetDXCCompilerManager());
 	assert(vertexShaderBlob != nullptr);
 
 	// Pixelをコンパイル
-	ComPtr <IDxcBlob> pixelShaderBlob = ShaderManager::CompileShader(L"Resources/Shaders/Sprite.PS.hlsl", L"ps_6_0", dxCommon_->GetIDxcUtils(), dxCommon_->GetIDxcCompiler(), dxCommon_->GetIncludeHandler());
+	ComPtr <IDxcBlob> pixelShaderBlob = ShaderManager::CompileShader(L"Resources/Shaders/Sprite.PS.hlsl", L"ps_6_0", dxCommon_->GetDXCCompilerManager());
 	assert(pixelShaderBlob != nullptr);
 
 	// --- 背景用（Zバッファ書き込みあり） ---

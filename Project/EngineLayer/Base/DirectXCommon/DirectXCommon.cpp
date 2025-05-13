@@ -32,6 +32,7 @@ void DirectXCommon::Initialize(WinApp* winApp, uint32_t Width, uint32_t Height)
 {
 	device_ = std::make_unique<DX12Device>();
 	swapChain_ = std::make_unique<DX12SwapChain>();
+	dxcCompilerManager_ = std::make_unique<DXCCompilerManager>();
 
 	kClientWidth = Width;
 	kClientHeight = Height;
@@ -55,7 +56,7 @@ void DirectXCommon::Initialize(WinApp* winApp, uint32_t Width, uint32_t Height)
 	CreateFenceEvent();
 
 	// DXCコンパイラの生成
-	CreateDXCCompiler();
+	dxcCompilerManager_->Initialize();
 
 	// RTV & DSVの初期化処理
 	InitializeRTVAndDSV();
@@ -264,25 +265,6 @@ void DirectXCommon::CreateFenceEvent()
 	//FenceのSignalを待つためのイベントを作成する
 	fenceEvent = CreateEvent(NULL, FALSE, FALSE, NULL);
 	assert(fenceEvent != nullptr);
-}
-
-
-/// -------------------------------------------------------------
-///						DXCコンパイラーの生成
-/// -------------------------------------------------------------
-void DirectXCommon::CreateDXCCompiler()
-{
-	HRESULT hr{};
-
-	hr = DxcCreateInstance(CLSID_DxcUtils, IID_PPV_ARGS(&dxcUtils));
-	assert(SUCCEEDED(hr));
-
-	hr = DxcCreateInstance(CLSID_DxcCompiler, IID_PPV_ARGS(&dxcCompiler));
-	assert(SUCCEEDED(hr));
-
-	//現時点でincludeはしないが、includeに対応するための設定を行っておく
-	hr = dxcUtils->CreateDefaultIncludeHandler(&includeHandler);
-	assert(SUCCEEDED(hr));
 }
 
 

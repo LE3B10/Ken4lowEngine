@@ -150,11 +150,11 @@ void SkyBoxManager::CreatePSO()
 	rasterizerDesc.FrontCounterClockwise = FALSE;   // **時計回りを表面として扱う**
 
 	// Shaderをコンパイル
-	ComPtr <IDxcBlob> vertexShaderBlob = ShaderManager::CompileShader(L"Resources/Shaders/SkyBox.VS.hlsl", L"vs_6_0", dxCommon_->GetIDxcUtils(), dxCommon_->GetIDxcCompiler(), dxCommon_->GetIncludeHandler());
+	ComPtr <IDxcBlob> vertexShaderBlob = ShaderManager::CompileShader(L"Resources/Shaders/SkyBox.VS.hlsl", L"vs_6_0", dxCommon_->GetDXCCompilerManager());
 	assert(vertexShaderBlob != nullptr);
 
 	// Pixelをコンパイル
-	ComPtr <IDxcBlob> pixelShaderBlob = ShaderManager::CompileShader(L"Resources/Shaders/SkyBox.PS.hlsl", L"ps_6_0", dxCommon_->GetIDxcUtils(), dxCommon_->GetIDxcCompiler(), dxCommon_->GetIncludeHandler());
+	ComPtr <IDxcBlob> pixelShaderBlob = ShaderManager::CompileShader(L"Resources/Shaders/SkyBox.PS.hlsl", L"ps_6_0", dxCommon_->GetDXCCompilerManager());
 	assert(pixelShaderBlob != nullptr);
 
 	// 深度ステンシルステート
