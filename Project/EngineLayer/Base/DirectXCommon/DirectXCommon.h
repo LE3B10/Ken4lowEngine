@@ -72,9 +72,6 @@ private: /// ---------- メンバ関数 ---------- ///
 	// エラー警告
 	void ErrorWarning();
 
-	// フェンスの生成
-	void CreateFenceEvent();
-
 	// 画面全体をクリア
 	void ClearWindow();
 
