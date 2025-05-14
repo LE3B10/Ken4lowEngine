@@ -8,6 +8,7 @@
 #include <ParameterManager.h>
 #include <ParticleManager.h>
 #include "Wireframe.h"
+#include "AudioManager.h"
 
 #ifdef _DEBUG
 #include <DebugCamera.h>
@@ -29,9 +30,7 @@ void GamePlayScene::Initialize()
 	particleManager = ParticleManager::GetInstance();
 
 	/// ---------- サウンドの初期化 ---------- ///
-	const char* fileName = "Resources/Sounds/Get-Ready.wav";
-	wavLoader_ = std::make_unique<WavLoader>();
-	wavLoader_->StreamAudioAsync(fileName, 0.0f, 1.0f, false);
+	AudioManager::GetInstance()->PlayBGM("Peritune_Gentle_Brew.mp3", 0.5f, 1.0f, true);
 
 	// terrainの生成と初期化
 	objectTerrain_ = std::make_unique<Object3D>();
@@ -128,6 +127,9 @@ void GamePlayScene::Draw3DObjects()
 	animationModelSkeleton_->Draw();
 
 #pragma endregion
+
+	// ワイヤーフレームの描画
+	//Wireframe::GetInstance()->DrawGrid(100.0f, 20.0f, { 0.25f, 0.25f, 0.25f,1.0f });
 }
 
 
@@ -147,9 +149,6 @@ void GamePlayScene::Draw2DSprites()
 	SpriteManager::GetInstance()->SetRenderSetting_UI();
 
 #pragma endregion
-
-	// ワイヤーフレームの描画
-	//Wireframe::GetInstance()->DrawGrid(100.0f, 20.0f, { 0.25f, 0.25f, 0.25f,1.0f });
 }
 
 
@@ -158,7 +157,7 @@ void GamePlayScene::Draw2DSprites()
 /// -------------------------------------------------------------
 void GamePlayScene::Finalize()
 {
-
+	AudioManager::GetInstance()->StopBGM();
 }
 
 
