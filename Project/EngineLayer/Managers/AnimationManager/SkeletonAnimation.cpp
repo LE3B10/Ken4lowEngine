@@ -15,13 +15,6 @@ void SkeletonAnimation::Initialize(AnimationModel* model, const std::string& fil
 
 	model->animationTime_ = 0.0f;
 
-	model->wvpResource = ResourceManager::CreateBufferResource(device, sizeof(TransformationMatrix));
-	model->wvpResource->Map(0, nullptr, reinterpret_cast<void**>(&model->wvpData_)); // 書き込むためのアドレスを取得
-
-	model->wvpData_->World = Matrix4x4::MakeIdentity();
-	model->wvpData_->WVP = Matrix4x4::MakeIdentity();
-	model->wvpData_->WorldInversedTranspose = Matrix4x4::MakeIdentity();
-
 	// アニメーションファイルを読み込む
 	model->animation = model->LoadAnimationFile("Resources/AnimatedCube", fileName);
 
@@ -31,6 +24,13 @@ void SkeletonAnimation::Initialize(AnimationModel* model, const std::string& fil
 	// スキンクラスターの初期化
 	model->skinCluster_ = std::make_unique<SkinCluster>();
 	model->skinCluster_->Initialize(model->GetModelData(), *model->skeleton_, descriptorSize);
+
+	model->wvpResource = ResourceManager::CreateBufferResource(device, sizeof(TransformationMatrix));
+	model->wvpResource->Map(0, nullptr, reinterpret_cast<void**>(&model->wvpData_)); // 書き込むためのアドレスを取得
+
+	model->wvpData_->World = Matrix4x4::MakeIdentity();
+	model->wvpData_->WVP = Matrix4x4::MakeIdentity();
+	model->wvpData_->WorldInversedTranspose = Matrix4x4::MakeIdentity();
 }
 
 void SkeletonAnimation::Update(AnimationModel* model, float deltaTime)
@@ -45,26 +45,26 @@ void SkeletonAnimation::Update(AnimationModel* model, float deltaTime)
 	auto& joints = model->skeleton_->GetJoints();
 
 	// 2. ノードアニメーションの適用
-	for (auto& joint : joints)
-	{
-		auto it = nodeAnimations.find(joint.name);
+	//for (auto& joint : joints)
+	//{
+	//	auto it = nodeAnimations.find(joint.name);
 
-		// ノードアニメーションが見つからなかった場合は、親の行列を使用
-		if (it != nodeAnimations.end())
-		{
-			NodeAnimation& nodeAnim = (*it).second;
-			Vector3 translate = model->CalculateValue(nodeAnim.translate, model->animationTime_);
-			Quaternion rotate = model->CalculateValue(nodeAnim.rotate, model->animationTime_);
-			Vector3 scale = model->CalculateValue(nodeAnim.scale, model->animationTime_);
+	//	// ノードアニメーションが見つからなかった場合は、親の行列を使用
+	//	if (it != nodeAnimations.end())
+	//	{
+	//		NodeAnimation& nodeAnim = (*it).second;
+	//		Vector3 translate = model->CalculateValue(nodeAnim.translate, model->animationTime_);
+	//		Quaternion rotate = model->CalculateValue(nodeAnim.rotate, model->animationTime_);
+	//		Vector3 scale = model->CalculateValue(nodeAnim.scale, model->animationTime_);
 
-			// 座標系調整（Z軸反転で伸びを防ぐ）
-			joint.transform.translate = translate;
-			joint.transform.rotate = rotate;
-			joint.transform.scale = scale;
+	//		// 座標系調整（Z軸反転で伸びを防ぐ）
+	//		joint.transform.translate = translate;
+	//		joint.transform.rotate = rotate;
+	//		joint.transform.scale = scale;
 
-			joint.localMatrix = Matrix4x4::MakeAffineMatrix(joint.transform.scale, joint.transform.rotate, joint.transform.translate);
-		}
-	}
+	//		joint.localMatrix = Matrix4x4::MakeAffineMatrix(joint.transform.scale, joint.transform.rotate, joint.transform.translate);
+	//	}
+	//}
 
 	// 3. スケルトンの更新
 	model->skeleton_->UpdateSkeleton();
@@ -95,10 +95,10 @@ void SkeletonAnimation::Draw(AnimationModel* model)
 	commandList->SetGraphicsRootSignature(AnimationModelManager::GetInstance()->GetRootSignature());
 	commandList->SetPipelineState(AnimationModelManager::GetInstance()->GetPipelineState());
 
-	D3D12_VERTEX_BUFFER_VIEW vbvs[2] = { model->vertexBufferView, model->skinCluster_->GetInfluenceBufferView() };
+	D3D12_VERTEX_BUFFER_VIEW vbvs[2] = { model->animationMesh_->GetVertexBufferView(), model->skinCluster_->GetInfluenceBufferView() };
 	commandList->IASetVertexBuffers(0, 2, vbvs);
 
-	commandList->IASetIndexBuffer(&model->indexBufferView);
+	commandList->IASetIndexBuffer(&model->animationMesh_->GetIndexBufferView());
 
 	model->material_.SetPipeline();
 	commandList->SetGraphicsRootConstantBufferView(1, model->wvpResource->GetGPUVirtualAddress());

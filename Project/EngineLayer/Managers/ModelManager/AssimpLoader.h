@@ -15,6 +15,9 @@ public: /// ---------- メンバ関数 ---------- ///
 	// Assimpでモデルを読み込む
 	static ModelData LoadModel(const std::string& directoryPath, const std::string& filename);
 
+	// .gltfファイルを読み込む関数
+	static ModelData LoadGLTFFile(const std::string& directoryPath, const std::string& filename);
+
 private: /// ---------- メンバ関数 ---------- ///
 
 	// ノードを読み込む
@@ -23,10 +26,5 @@ private: /// ---------- メンバ関数 ---------- ///
 	// メッシュを解析する
 	static void ParseMeshes(const aiScene* scene, const std::string& directoryPath, ModelData& modelData);
 
-	// glTF特有の処理
-	static void HandleGltfSpecifics(const aiScene* scene);
-
-	// OBJ特有の処理
-	static void HandleObjSpecifics(const aiScene* scene);
 };
 

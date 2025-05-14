@@ -53,40 +53,9 @@ void AnimationModel::Initialize(const std::string& fileName, bool isAnimation, b
 	// マテリアルデータの初期化処理
 	material_.Initialize();
 
-#pragma region 頂点バッファデータの開始位置サイズおよび各頂点のデータ構造を指定
-	// 頂点バッファビューを作成する
-	vertexResource = ResourceManager::CreateBufferResource(dxCommon_->GetDevice(), sizeof(VertexData) * (modelData.vertices.size()));
-	vertexBufferView.BufferLocation = vertexResource->GetGPUVirtualAddress();									 // リソースの先頭のアドレスから使う
-	vertexBufferView.SizeInBytes = UINT(sizeof(VertexData) * (modelData.vertices.size()));						 // 使用するリソースのサイズ
-	vertexBufferView.StrideInBytes = sizeof(VertexData);														 // 1頂点あたりのサイズ
-	VertexData* vertexData = nullptr;																			 // 頂点リソースにデータを書き込む
-	vertexResource->Map(0, nullptr, reinterpret_cast<void**>(&vertexData));										 // 書き込むためのアドレスを取得
-
-	// GPU側の書き込み先をspanで安全に囲む
-	std::span<VertexData> vertexSpan{ vertexData, modelData.vertices.size() };
-
-	// モデルデータの頂点データをコピー
-	std::copy(modelData.vertices.begin(), modelData.vertices.end(), vertexSpan.begin());
-
-#pragma endregion
-
-
-#pragma region インデックスバッファデータの開始位置サイズおよび各インデックスのデータ構造を指定
-	// インデックスデータを作成
-	indexResource = ResourceManager::CreateBufferResource(dxCommon_->GetDevice(), sizeof(uint32_t) * modelData.indices.size());
-	indexBufferView.BufferLocation = indexResource->GetGPUVirtualAddress();
-	indexBufferView.SizeInBytes = UINT(sizeof(uint32_t) * modelData.indices.size());
-	indexBufferView.Format = DXGI_FORMAT_R32_UINT;
-	uint32_t* indexDataRaw = nullptr;
-	indexResource->Map(0, nullptr, reinterpret_cast<void**>(&indexDataRaw));
-
-	// GPU側の書き込み先をspanで安全に囲む
-	std::span<uint32_t> indexSpan{ indexDataRaw, modelData.indices.size() };
-
-	// modelDataの中身をGPUバッファへコピー
-	std::copy(modelData.indices.begin(), modelData.indices.end(), indexSpan.begin());
-#pragma endregion
-
+	// アニメーション用の頂点とインデックスバッファを作成
+	animationMesh_ = std::make_unique<AnimationMesh>();
+	animationMesh_->Initialize(dxCommon_->GetDevice(), modelData);
 
 #pragma region カメラ用のリソースを作成
 	// カメラ用のリソースを作る

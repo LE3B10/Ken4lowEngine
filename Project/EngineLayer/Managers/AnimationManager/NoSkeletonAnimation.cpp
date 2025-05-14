@@ -27,8 +27,8 @@ void NoSkeletonAnimation::Draw(AnimationModel* model)
 {
 	auto commandList = model->dxCommon_->GetCommandManager()->GetCommandList();
 
-	commandList->IASetVertexBuffers(0, 1, &model->vertexBufferView);
-	commandList->IASetIndexBuffer(&model->indexBufferView);
+	commandList->IASetVertexBuffers(0, 1, &model->GetAnimationMesh()->GetVertexBufferView());
+	commandList->IASetIndexBuffer(&model->GetAnimationMesh()->GetIndexBufferView());
 
 	model->material_.SetPipeline();
 	commandList->SetGraphicsRootConstantBufferView(1, model->wvpResource->GetGPUVirtualAddress());
@@ -37,5 +37,5 @@ void NoSkeletonAnimation::Draw(AnimationModel* model)
 
 	LightManager::GetInstance()->PreDraw();
 
-	commandList->DrawIndexedInstanced(UINT(model->modelData.indices.size()), 1, 0, 0, 0);
+	commandList->DrawIndexedInstanced(UINT(model->modelData.vertices.size()), 1, 0, 0, 0);
 }
