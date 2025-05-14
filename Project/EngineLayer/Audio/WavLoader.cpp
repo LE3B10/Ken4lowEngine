@@ -23,7 +23,7 @@ WavLoader::~WavLoader()
 /// -------------------------------------------------------------
 ///				　	　		初期化処理
 /// -------------------------------------------------------------
-void WavLoader::Initialize(const char* fileName)
+void WavLoader::Initialize(const std::string& fileName)
 {
 	HRESULT result{};
 
@@ -42,19 +42,19 @@ void WavLoader::Initialize(const char* fileName)
 	// WAV ファイルを開く
 	std::ifstream file(fileName, std::ios::binary);
 	if (!file.is_open()) {
-		throw WavLoaderException("Failed to open WAV file: " + std::string(fileName));
+		throw WavLoaderException("Failed to open WAV file: " + fileName);
 	}
 
 	// WAV ファイルからフォーマット情報を取得
 	RiffHeader riff{};
 	if (!ReadRiffHeader(file, riff)) {
-		throw WavLoaderException("Invalid RIFF header in file: " + std::string(fileName));
+		throw WavLoaderException("Invalid RIFF header in file: " + fileName);
 	}
 
 	// フォーマットチャンク読み込み
 	FormatChunk format{};
 	if (!ReadFormatChunk(file, format)) {
-		throw WavLoaderException("Invalid format chunk in file: " + std::string(fileName));
+		throw WavLoaderException("Invalid format chunk in file: " + fileName);
 	}
 
 	// SourceVoice を作成
@@ -70,7 +70,7 @@ void WavLoader::Initialize(const char* fileName)
 /// -------------------------------------------------------------
 ///				　			非同期処理
 /// -------------------------------------------------------------
-void WavLoader::StreamAudioAsync(const char* fileName, float volume, float pitch, bool Loop)
+void WavLoader::StreamAudioAsync(const std::string& fileName, float volume, float pitch, bool Loop)
 {
 	// 既存の再生を停止
 	StopBGM();
@@ -88,10 +88,10 @@ void WavLoader::StreamAudioAsync(const char* fileName, float volume, float pitch
 				std::lock_guard<std::mutex> lock(sourceVoiceMutex); // 排他制御
 				StreamAudio(fileName, volume, pitch, Loop);
 			}
-			catch (const WavLoaderException& e){
+			catch (const WavLoaderException& e) {
 				OutputDebugStringA(("Error in StreamAudio: " + std::string(e.what()) + "\n").c_str());
 			}
-			catch (const std::exception& e){
+			catch (const std::exception& e) {
 				OutputDebugStringA(("Unexpected error: " + std::string(e.what()) + "\n").c_str());
 			}
 		});
@@ -155,18 +155,20 @@ void WavLoader::ResumeBGM()
 /// -------------------------------------------------------------
 ///                 ストリーミング再生のメイン関数
 /// -------------------------------------------------------------
-void WavLoader::StreamAudio(const char* fileName, float volume, float pitch, bool Loop)
+void WavLoader::StreamAudio(const std::string& fileName, float volume, float pitch, bool Loop)
 {
+	std::string fileDirectory = "Resources/Sounds/" + fileName;
+
 	// 引数を代入
 	currentVolume = volume;
 	frequencyRatio = pitch;
 	loopPlayback = Loop;
 	// 初期化処理
-	Initialize(fileName);
+	Initialize(fileDirectory);
 
 	HRESULT result{};
 	// 音楽ファイルの読み込み
-	std::ifstream file(fileName, std::ios::binary);
+	std::ifstream file(fileDirectory, std::ios::binary);
 	if (!file.is_open()) {
 		OutputDebugStringA("Failed to open file\n");
 		return;

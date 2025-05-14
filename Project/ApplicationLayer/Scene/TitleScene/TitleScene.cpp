@@ -46,8 +46,7 @@ void TitleScene::Initialize()
 	}
 
 	/// ---------- サウンドの初期化 ---------- ///
-	const char* fileName = "Resources/Sounds/RPGBattle01.wav";
-	wavLoader_->StreamAudioAsync(fileName, 0.0f, 1.0f, false);
+	wavLoader_->StreamAudioAsync("RPGBattle01.wav", 0.0f, 1.0f, false);
 }
 
 

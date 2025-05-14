@@ -10,27 +10,29 @@
 // 省略
 using namespace Microsoft::WRL;
 
-/// ---------- 再生状態を表す列挙型 ---------- ///
-enum class PlaybackState
-{
-	Stopped, // 音声を止める
-	Playing, // 再生
-	Paused	 // 一時停止
-};
-
 
 /// -------------------------------------------------------------
 ///				　	　.wavを読み込むクラス
 /// -------------------------------------------------------------
 class WavLoader
 {
+private: /// ---------- メンバ関数 ---------- ///
+
+	/// ---------- 再生状態を表す列挙型 ---------- ///
+	enum class PlaybackState
+	{
+		Stopped, // 音声を止める
+		Playing, // 再生
+		Paused	 // 一時停止
+	};
+
 public: /// ---------- メンバ関数 ---------- ///
 
 	// デストラクタでリソース解放
 	~WavLoader();
 
 	// ストリーミング再生（非同期処理）
-	void StreamAudioAsync(const char* fileName, float volume = 1.0f, float pitch = 1.0f, bool Loop = false);
+	void StreamAudioAsync(const std::string& fileName, float volume = 1.0f, float pitch = 1.0f, bool Loop = false);
 
 	// 音楽を止める
 	void StopBGM();
@@ -60,10 +62,10 @@ public: /// ---------- ゲッタ ---------- ///
 private: /// ---------- メンバ関数 ---------- ///
 
 	// 初期化処理
-	void Initialize(const char* fileName);
+	void Initialize(const std::string& fileName);
 
 	// 実際の再生処理
-	void StreamAudio(const char* fileName, float volume, float pitch, bool Loop);
+	void StreamAudio(const std::string& fileName, float volume, float pitch, bool Loop);
 
 	// ピッチと音量調整
 	void UpdatePitchAndVolume(IXAudio2SourceVoice* voice, float volume, float pitch, float& previousPitch, float& previousVolume);
@@ -83,7 +85,6 @@ private: /// ---------- メンバ関数 ---------- ///
 	// データチャンク探査
 	bool FindDataChunk(std::ifstream& file, ChunkHeader& data);
 
-
 private: /// ---------- メンバ変数 ---------- ///
 
 	IXAudio2SourceVoice* pSourceVoice = nullptr;
@@ -91,7 +92,7 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	ComPtr<IXAudio2> xAudio2;
 	IXAudio2MasteringVoice* masterVoice = nullptr;
-	
+
 	std::future<void> bgmFuture; // BGM再生スレッド
 
 	std::atomic<PlaybackState> playbackState = PlaybackState::Stopped; // 再生状態

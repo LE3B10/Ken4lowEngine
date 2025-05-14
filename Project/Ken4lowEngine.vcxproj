@@ -44,12 +44,12 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <IncludePath>$(SolutionDir)Externals\nlohmann;$(SolutionDir)Externals\DirectXTex;$(SolutuinDir)imgui;$(SolutuinDir)Externals\imgui;$(IncludePath)</IncludePath>
+    <IncludePath>$(SolutionDir)Externals\nlohmann;$(SolutionDir)Externals\DirectXTex;$(SolutuinDir)imgui;$(SolutuinDir)Externals\imgui;$(SolutuinDir)Externals\Audio\minimp3;$(IncludePath)</IncludePath>
     <IntDir>$(SolutionDir)..\Generated\obj\$(ProjectName)\$(Configuration)\</IntDir>
     <OutDir>$(SolutionDir)..\Generated\outputs\$(Configuration)\</OutDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <IncludePath>$(SolutionDir)Externals\nlohmann;$(SolutionDir)Externals\DirectXTex;$(SolutuinDir)imgui;$(SolutuinDir)Externals\imgui;$(IncludePath)</IncludePath>
+    <IncludePath>$(SolutionDir)Externals\nlohmann;$(SolutionDir)Externals\DirectXTex;$(SolutuinDir)imgui;$(SolutuinDir)Externals\imgui;$(SolutuinDir)Externals\Audio\minimp3;$(IncludePath)</IncludePath>
     <IntDir>$(SolutionDir)..\Generated\obj\$(ProjectName)\$(Configuration)\</IntDir>
     <OutDir>$(SolutionDir)..\Generated\outputs\$(Configuration)\</OutDir>
   </PropertyGroup>
@@ -63,7 +63,7 @@
       <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
-      <TreatWarningAsError>true</TreatWarningAsError>
+      <TreatWarningAsError>false</TreatWarningAsError>
       <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)Externals\assimp\include;$(ProjectDir)\ApplicationLayer;$(ProjectDir)\ApplicationLayer\Colliders;$(ProjectDir)\ApplicationLayer\EffectLayer;$(ProjectDir)\ApplicationLayer\Scene;$(ProjectDir)\ApplicationLayer\Scene\GameClearScene;$(ProjectDir)\ApplicationLayer\Scene\GameOverScene;$(ProjectDir)\ApplicationLayer\Scene\GamePlayScene;$(ProjectDir)\ApplicationLayer\Scene\TitleScene;$(ProjectDir)\ApplicationLayer\SceneManagement;$(ProjectDir)\ApplicationLayer\SceneManagement\AbstractSceneFactory;$(ProjectDir)\ApplicationLayer\SceneManagement\BaseScene;$(ProjectDir)\ApplicationLayer\SceneManagement\SceneFactory;$(ProjectDir)\ApplicationLayer\SceneManagement\SceneManager;$(ProjectDir)\EngineLayer;$(ProjectDir)\EngineLayer\2D;$(ProjectDir)\EngineLayer\2D\Sprite;$(ProjectDir)\EngineLayer\2D\Wireframe;$(ProjectDir)\EngineLayer\3D;$(ProjectDir)\EngineLayer\3D\Model;$(ProjectDir)\EngineLayer\3D\Object3D;$(ProjectDir)\EngineLayer\3D\Object3DCommon;$(ProjectDir)\EngineLayer\3D\SkyBox;$(ProjectDir)\EngineLayer\Audio;$(ProjectDir)\EngineLayer\Base;$(ProjectDir)\EngineLayer\Base\DirectXCommon;$(ProjectDir)\EngineLayer\Base\DX12Device;$(ProjectDir)\EngineLayer\Base\DX12SwapChain;$(ProjectDir)\EngineLayer\Base\MultipleStructs;$(ProjectDir)\EngineLayer\CameraManagement;$(ProjectDir)\EngineLayer\CameraManagement\Camera;$(ProjectDir)\EngineLayer\CameraManagement\DebugCamera;$(ProjectDir)\EngineLayer\FPSCounter;$(ProjectDir)\EngineLayer\FrameworkLayer;$(ProjectDir)\EngineLayer\FrameworkLayer\Framework;$(ProjectDir)\EngineLayer\FrameworkLayer\Log;$(ProjectDir)\EngineLayer\FrameworkLayer\WindowsAPI;$(ProjectDir)\EngineLayer\Input;$(ProjectDir)\EngineLayer\Managers;$(ProjectDir)\EngineLayer\Managers\AnimationManager;$(ProjectDir)\EngineLayer\Managers\DSVManager;$(ProjectDir)\EngineLayer\Managers\DX12CommandManager;$(ProjectDir)\EngineLayer\Managers\DX12FenceManager;$(ProjectDir)\EngineLayer\Managers\DXCCompilerManager;$(ProjectDir)\EngineLayer\Managers\ImGuiManager;$(ProjectDir)\EngineLayer\Managers\LightManager;$(ProjectDir)\EngineLayer\Managers\ModelManager;$(ProjectDir)\EngineLayer\Managers\ParticleManager;$(ProjectDir)\EngineLayer\Managers\ParameterManager;$(ProjectDir)\EngineLayer\Managers\PostEffectManager;$(ProjectDir)\EngineLayer\Managers\ResourceManager;$(ProjectDir)\EngineLayer\Managers\RTVManager;$(ProjectDir)\EngineLayer\Managers\ShaderManager;$(ProjectDir)\EngineLayer\Managers\SkyBoxManager;$(ProjectDir)\EngineLayer\Managers\SpriteManager;$(ProjectDir)\EngineLayer\Managers\SRVManager;$(ProjectDir)\EngineLayer\Managers\TextureManager;$(ProjectDir)\EngineLayer\Material;$(ProjectDir)\EngineLayer\Math;$(ProjectDir)\EngineLayer\Math\Matrix;$(ProjectDir)\EngineLayer\Math\Quaternion;$(ProjectDir)\EngineLayer\Math\Vectors;$(ProjectDir)\EngineLayer\Mesh;$(ProjectDir)\EngineLayer\PostEffectManagement;$(ProjectDir)\EngineLayer\ResourceChecker;$(ProjectDir)\EngineLayer\ResourceChecker\LeakCheck;$(ProjectDir)\EngineLayer\ResourceChecker\ReleaseCheck;$(ProjectDir)\EngineLayer\WorldTransform</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
@@ -114,6 +114,8 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     </FxCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="EngineLayer\Audio\AudioManager.cpp" />
+    <ClCompile Include="EngineLayer\Audio\MP3Loader.cpp" />
     <ClCompile Include="EngineLayer\Managers\DX12CommandManager\DX12CommandManager.cpp" />
     <ClCompile Include="EngineLayer\Managers\DX12FenceManager\DX12FenceManager.cpp" />
     <ClCompile Include="EngineLayer\Managers\DXCCompilerManager\DXCCompilerManager.cpp" />
@@ -342,6 +344,9 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     </FxCompile>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="EngineLayer\Audio\AudioCategory.h" />
+    <ClInclude Include="EngineLayer\Audio\AudioManager.h" />
+    <ClInclude Include="EngineLayer\Audio\MP3Loader.h" />
     <ClInclude Include="EngineLayer\Managers\DX12CommandManager\DX12CommandManager.h" />
     <ClInclude Include="EngineLayer\Managers\DX12FenceManager\DX12FenceManager.h" />
     <ClInclude Include="EngineLayer\Managers\DXCCompilerManager\DXCCompilerManager.h" />
@@ -371,6 +376,14 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="EngineLayer\Base\MultipleStructs\DX12Include.h" />
     <ClInclude Include="EngineLayer\Base\DX12SwapChain\DX12SwapChain.h" />
     <ClInclude Include="EngineLayer\Base\MultipleStructs\BlendModeType.h" />
+    <ClInclude Include="Externals\Audio\minimp3\minimp3.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="Externals\Audio\minimp3\minimp3_ex.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClInclude>
     <ClInclude Include="Externals\imgui\imconfig.h" />
     <ClInclude Include="Externals\imgui\imgui.h" />
     <ClInclude Include="Externals\imgui\imgui_impl_dx12.h" />

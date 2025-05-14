@@ -2,6 +2,7 @@
 #include <Sprite.h>
 #include <Object3D.h>
 #include <WavLoader.h>
+#include <MP3Loader.h>
 #include "ParticleManager.h"
 #include "ParticleEmitter.h"
 #include <BaseScene.h>
@@ -56,7 +57,6 @@ private: /// ---------- メンバ変数 ---------- ///
 	Input* input_ = nullptr;
 	ParticleManager* particleManager = nullptr;
 
-	std::unique_ptr<WavLoader> wavLoader_;
 	std::unique_ptr<Object3D> objectTerrain_;
 	std::unique_ptr<Object3D> objectBall_;
 	std::unique_ptr<Sprite> sprites_;
