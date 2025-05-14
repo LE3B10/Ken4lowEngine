@@ -8,6 +8,7 @@
 #include "Material.h"
 #include "Skeleton.h"
 #include "SkinCluster.h"
+#include "AnimationMesh.h"
 
 #include <algorithm>
 #include <string>
@@ -77,6 +78,8 @@ public: /// ---------- セッタ ---------- ///
 	// 反射率を設定
 	void SetReflectivity(float reflectivity) { material_.SetShininess(reflectivity); }
 
+	AnimationMesh* GetAnimationMesh() { return animationMesh_.get(); }
+
 private: /// ---------- メンバ関数 ---------- ///
 
 	// アニメーションを更新
@@ -143,6 +146,7 @@ private: /// ---------- メンバ変数 ---------- ///
 	std::unique_ptr<IAnimationStrategy> animationStrategy_ = nullptr;
 	std::unique_ptr<Skeleton> skeleton_;
 	std::unique_ptr<SkinCluster> skinCluster_;
+	std::unique_ptr<AnimationMesh> animationMesh_;
 
 
 	// バッファリソースの作成
@@ -150,13 +154,7 @@ private: /// ---------- メンバ変数 ---------- ///
 	CameraForGPU* cameraData = nullptr;
 
 	ComPtr <ID3D12Resource> wvpResource;
-	ComPtr <ID3D12Resource> vertexResource;
 	ComPtr <ID3D12Resource> cameraResource;
-	ComPtr <ID3D12Resource> indexResource;
-
-	// バッファリソースの使い道を補足するバッファビュー
-	D3D12_VERTEX_BUFFER_VIEW vertexBufferView{};
-	D3D12_INDEX_BUFFER_VIEW indexBufferView{};
 
 	// アニメーションタイム
 	float animationTime_ = 0.0f;
