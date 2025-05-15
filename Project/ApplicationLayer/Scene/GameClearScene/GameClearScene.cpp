@@ -13,7 +13,6 @@ void GameClearScene::Initialize()
 {
 	dxCommon_ = DirectXCommon::GetInstance();
 	input = Input::GetInstance();
-	wavLoader_ = std::make_unique<WavLoader>();
 }
 
 
@@ -22,14 +21,25 @@ void GameClearScene::Initialize()
 /// -------------------------------------------------------------
 void GameClearScene::Update()
 {
+
 }
 
+
+/// -------------------------------------------------------------
+///				　			3Dオブジェクトの描画
+/// -------------------------------------------------------------
 void GameClearScene::Draw3DObjects()
 {
+
 }
 
+
+/// -------------------------------------------------------------
+///				　			2Dオブジェクトの描画
+/// -------------------------------------------------------------
 void GameClearScene::Draw2DSprites()
 {
+
 }
 
 

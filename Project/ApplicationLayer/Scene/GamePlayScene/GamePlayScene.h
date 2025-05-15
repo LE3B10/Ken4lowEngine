@@ -7,9 +7,6 @@
 #include "ParticleEmitter.h"
 #include <BaseScene.h>
 
-#include "AnimationModel.h"
-#include "SkyBox.h"
-
 #include "CollisionManager.h"
 
 #include "AABB.h"
@@ -45,7 +42,6 @@ public: /// ---------- メンバ関数 ---------- ///
 	// ImGui描画処理
 	void DrawImGui() override;
 
-
 private: /// ---------- メンバ関数 ---------- ///
 
 	// 衝突判定と応答
@@ -55,20 +51,8 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	DirectXCommon* dxCommon_ = nullptr;
 	Input* input_ = nullptr;
-	ParticleManager* particleManager = nullptr;
 
-	std::unique_ptr<Object3D> objectTerrain_;
-	std::unique_ptr<Object3D> objectBall_;
-	std::unique_ptr<Sprite> sprites_;
 	std::unique_ptr<CollisionManager> collisionManager_;
-	std::unique_ptr<ParticleEmitter> particleEmitter_;
-	std::unique_ptr<AnimationModel> animationModelNoskeleton_;
-	std::unique_ptr<AnimationModel> animationModelSkeleton_;
-
-
-	std::unique_ptr<SkyBox> skyBox_;
-
-	const std::string& particleGroupName = "Particle";
 
 	// デバッグカメラのON/OFF用
 	bool isDebugCamera_ = false;

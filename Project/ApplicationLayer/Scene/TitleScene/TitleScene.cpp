@@ -11,9 +11,7 @@
 void TitleScene::Initialize()
 {
 	dxCommon_ = DirectXCommon::GetInstance();
-	textureManager = TextureManager::GetInstance();
 	input = Input::GetInstance();
-	wavLoader_ = std::make_unique<WavLoader>();
 
 	// テクスチャのパスをリストで管理
 	texturePaths_ = {
@@ -24,7 +22,7 @@ void TitleScene::Initialize()
 	/// ---------- TextureManagerの初期化 ----------///
 	for (auto& texture : texturePaths_)
 	{
-		textureManager->LoadTexture(texture);
+		TextureManager::GetInstance()->LoadTexture(texture);
 	}
 
 	/// ---------- Spriteの初期化 ---------- ///
@@ -44,9 +42,6 @@ void TitleScene::Initialize()
 
 		sprites_[i]->SetPosition(Vector2(100.0f * i, 100.0f * i));
 	}
-
-	/// ---------- サウンドの初期化 ---------- ///
-	wavLoader_->StreamAudioAsync("RPGBattle01.wav", 0.0f, 1.0f, false);
 }
 
 
@@ -62,8 +57,6 @@ void TitleScene::Update()
 		{
 			sceneManager_->ChangeScene("GamePlayScene"); // シーン名を指定して変更
 		}
-
-		wavLoader_->StopBGM();
 	}
 
 	// スプライトの更新処理
@@ -73,6 +66,10 @@ void TitleScene::Update()
 	}
 }
 
+
+/// -------------------------------------------------------------
+///				　	3Dオブジェクトの描画
+/// -------------------------------------------------------------
 void TitleScene::Draw3DObjects()
 {
 #pragma region オブジェクト3Dの描画
@@ -84,6 +81,10 @@ void TitleScene::Draw3DObjects()
 
 }
 
+
+/// -------------------------------------------------------------
+///				　	2Dオブジェクトの描画
+/// -------------------------------------------------------------
 void TitleScene::Draw2DSprites()
 {
 #pragma region 背景の描画（後面）
@@ -117,11 +118,6 @@ void TitleScene::Finalize()
 	if (!sprites_.empty())
 	{
 		sprites_.clear();
-	}
-
-	if (wavLoader_)
-	{
-		wavLoader_.reset();
 	}
 }
 
