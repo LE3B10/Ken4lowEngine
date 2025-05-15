@@ -9,8 +9,8 @@
 
 #include "CollisionManager.h"
 
-#include "AABB.h"
-#include "OBB.h"
+#include "Player.h"
+
 
 /// ---------- 前方宣言 ---------- ///
 class DirectXCommon;
@@ -51,6 +51,8 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	DirectXCommon* dxCommon_ = nullptr;
 	Input* input_ = nullptr;
+
+	std::unique_ptr<Player> player_ = nullptr; // プレイヤーオブジェクト
 
 	std::unique_ptr<CollisionManager> collisionManager_;
 

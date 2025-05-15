@@ -28,6 +28,10 @@ void GamePlayScene::Initialize()
 	dxCommon_ = DirectXCommon::GetInstance();
 	input_ = Input::GetInstance();
 
+	// プレイヤーの生成と初期化
+	player_ = std::make_unique<Player>();
+	player_->Initialize();
+
 	// 衝突マネージャの生成
 	collisionManager_ = std::make_unique<CollisionManager>();
 }
@@ -51,6 +55,9 @@ void GamePlayScene::Update()
 	}
 #endif // _DEBUG
 
+	// プレイヤーの更新
+	player_->Update();
+
 	// 衝突判定と応答
 	CheckAllCollisions();
 }
@@ -72,6 +79,9 @@ void GamePlayScene::Draw3DObjects()
 
 	// オブジェクト3D共通描画設定
 	Object3DCommon::GetInstance()->SetRenderSetting();
+
+	// プレイヤーの描画
+	player_->Draw();
 
 #pragma endregion
 
@@ -115,6 +125,9 @@ void GamePlayScene::DrawImGui()
 {
 	// ライト
 	LightManager::GetInstance()->DrawImGui();
+
+	// プレイヤー
+	player_->DrawImGui();
 }
 
 

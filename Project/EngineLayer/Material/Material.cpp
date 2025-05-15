@@ -18,7 +18,7 @@ void Material::Initialize()
 	materialResource_->Map(0, nullptr, reinterpret_cast<void**>(&materialData_));
 
 	materialData_->color = { 1.0f, 1.0f, 1.0f, 1.0f }; // 色
-	materialData_->enableLighting = true;			   // 平行光源を有効にする
+	materialData_->enableLighting = false;			   // 平行光源を有効にする
 	materialData_->shininess = 1.0f; 				   // シェーディングの強さ
 	materialData_->uvTransform = Matrix4x4::MakeIdentity(); // UV変換行列
 }
