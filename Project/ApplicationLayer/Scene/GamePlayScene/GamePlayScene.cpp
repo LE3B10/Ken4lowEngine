@@ -27,36 +27,6 @@ void GamePlayScene::Initialize()
 
 	dxCommon_ = DirectXCommon::GetInstance();
 	input_ = Input::GetInstance();
-	particleManager = ParticleManager::GetInstance();
-
-	/// ---------- サウンドの初期化 ---------- ///
-	AudioManager::GetInstance()->PlayBGM("Peritune_Gentle_Brew.mp3", 0.5f, 1.0f, true);
-
-	// terrainの生成と初期化
-	objectTerrain_ = std::make_unique<Object3D>();
-	objectTerrain_->Initialize("terrain.obj");
-	objectTerrain_->SetTranslate({ 0.0f, -1.0f, 0.0f });
-	objectTerrain_->SetReflectivity(0.0f);
-
-	objectBall_ = std::make_unique<Object3D>();
-	objectBall_->Initialize("sphere.gltf");
-	objectBall_->SetTranslate({ -2.0f, 0.0f, 0.0f });
-
-	particleManager->CreateParticleGroup("Fire", "gradationLine.png");
-	particleEmitter_ = std::make_unique<ParticleEmitter>(particleManager, "Fire");
-	particleEmitter_->SetPosition({ 0.0f,3.0f,10.0f });
-	particleEmitter_->SetEmissionRate(3.0f);
-
-	animationModelNoskeleton_ = std::make_unique<AnimationModel>();
-	animationModelNoskeleton_->Initialize("AnimatedCube.gltf", true, false);
-	animationModelNoskeleton_->SetTranslate({ 10.0f, 0.0f, 0.0f });
-	animationModelNoskeleton_->SetReflectivity(0.0f);
-
-	animationModelSkeleton_ = std::make_unique<AnimationModel>();
-	animationModelSkeleton_->Initialize("walk.gltf", true, true);
-
-	skyBox_ = std::make_unique<SkyBox>();
-	skyBox_->Initialize("rostock_laage_airport_4k.dds");
 
 	// 衝突マネージャの生成
 	collisionManager_ = std::make_unique<CollisionManager>();
@@ -74,24 +44,12 @@ void GamePlayScene::Update()
 		Object3DCommon::GetInstance()->SetDebugCamera(!Object3DCommon::GetInstance()->GetDebugCamera());
 		Wireframe::GetInstance()->SetDebugCamera(!Wireframe::GetInstance()->GetDebugCamera());
 		ParticleManager::GetInstance()->SetDebugCamera(!ParticleManager::GetInstance()->GetDebugCamera());
-		skyBox_->SetDebugCamera(!skyBox_->GetDebugCamera());
+		//skyBox_->SetDebugCamera(!skyBox_->GetDebugCamera());
 		isDebugCamera_ = !isDebugCamera_;
 		Input::GetInstance()->SetLockCursor(isDebugCamera_);
 		ShowCursor(!isDebugCamera_);// 表示・非表示も連動（オプション）
 	}
 #endif // _DEBUG
-
-	// オブジェクトの更新処理
-	objectTerrain_->Update();
-	objectBall_->Update();
-
-	particleEmitter_->Update();
-
-	animationModelNoskeleton_->Update();
-
-	animationModelSkeleton_->Update();
-
-	skyBox_->Update();
 
 	// 衝突判定と応答
 	CheckAllCollisions();
@@ -106,7 +64,6 @@ void GamePlayScene::Draw3DObjects()
 
 	// スカイボックスの共通描画設定
 	SkyBoxManager::GetInstance()->SetRenderSetting();
-	//skyBox_->Draw();
 
 #pragma endregion
 
@@ -116,20 +73,10 @@ void GamePlayScene::Draw3DObjects()
 	// オブジェクト3D共通描画設定
 	Object3DCommon::GetInstance()->SetRenderSetting();
 
-	// Terrain.obj の描画
-	objectTerrain_->Draw();
-
-	// 球体の描画
-	//objectBall_->Draw();
-
-	animationModelNoskeleton_->Draw();
-
-	animationModelSkeleton_->Draw();
-
 #pragma endregion
 
 	// ワイヤーフレームの描画
-	//Wireframe::GetInstance()->DrawGrid(100.0f, 20.0f, { 0.25f, 0.25f, 0.25f,1.0f });
+	Wireframe::GetInstance()->DrawGrid(100.0f, 20.0f, { 0.25f, 0.25f, 0.25f,1.0f });
 }
 
 
@@ -157,7 +104,7 @@ void GamePlayScene::Draw2DSprites()
 /// -------------------------------------------------------------
 void GamePlayScene::Finalize()
 {
-	AudioManager::GetInstance()->StopBGM();
+
 }
 
 
@@ -166,17 +113,6 @@ void GamePlayScene::Finalize()
 /// -------------------------------------------------------------
 void GamePlayScene::DrawImGui()
 {
-	ImGui::Begin("Test Window");
-
-	// TerrainのImGui
-	//objectTerrain_->DrawImGui();
-
-	objectBall_->DrawImGui();
-
-	ImGui::End();
-
-	animationModelSkeleton_->DrawImGui();
-
 	// ライト
 	LightManager::GetInstance()->DrawImGui();
 }

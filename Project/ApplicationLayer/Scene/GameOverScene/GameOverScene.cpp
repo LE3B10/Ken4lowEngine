@@ -11,9 +11,7 @@
 void GameOverScene::Initialize()
 {
 	dxCommon_ = DirectXCommon::GetInstance();
-	textureManager = TextureManager::GetInstance();
 	input = Input::GetInstance();
-	wavLoader_ = std::make_unique<WavLoader>();
 }
 
 
@@ -24,12 +22,22 @@ void GameOverScene::Update()
 {
 }
 
+
+/// -------------------------------------------------------------
+///				　			3Dオブジェクトの描画
+/// -------------------------------------------------------------
 void GameOverScene::Draw3DObjects()
 {
+
 }
 
+
+/// -------------------------------------------------------------
+///				　			2Dオブジェクトの描画
+/// -------------------------------------------------------------
 void GameOverScene::Draw2DSprites()
 {
+
 }
 
 
@@ -38,6 +46,7 @@ void GameOverScene::Draw2DSprites()
 /// -------------------------------------------------------------
 void GameOverScene::Finalize()
 {
+
 }
 
 
@@ -46,4 +55,5 @@ void GameOverScene::Finalize()
 /// -------------------------------------------------------------
 void GameOverScene::DrawImGui()
 {
+
 }
