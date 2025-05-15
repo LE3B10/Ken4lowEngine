@@ -53,8 +53,14 @@ void Object3D::Initialize(const std::string& fileName)
 /// -------------------------------------------------------------
 void Object3D::Update()
 {
+	// 描画に使うカメラを明示的に毎フレームセット
+	camera_ = Object3DCommon::GetInstance()->GetDefaultCamera(); // ←ここが重要！
+
 	material_.Update();
 	worldTransform.Update();
+
+	// カメラ用バッファ更新（必要であれば）
+	cameraData->worldPosition = camera_->GetTranslate();
 }
 
 
