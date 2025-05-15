@@ -99,9 +99,27 @@ void Player::Move()
 	// プレイヤーの移動入力を取得
 	Vector3 moveInput = controller_->GetMoveInput();
 
+	// カメラの向きを考慮して移動方向を回転（YawだけでOK）
+	if (camera_)
+	{
+		float yaw = camera_->GetRotate().y;
+
+		float sinY = sinf(yaw);
+		float cosY = cosf(yaw);
+
+		// 入力をカメラの回転方向に変換
+		Vector3 rotatedInput = {
+			moveInput.x * cosY - moveInput.z * sinY,
+			0.0f,
+			moveInput.x * sinY + moveInput.z * cosY
+		};
+
+		moveInput = rotatedInput;
+	}
+
 	// プレイヤーの移動処理
 	const float speed = 0.2f;
-	body_.worldTransform_.translate_ += controller_->GetMoveInput() * speed;
+	body_.worldTransform_.translate_ += moveInput * speed;
 
 	// 入力方向に向ける処理
 	if (Vector3::Length(moveInput) > 0.0f)
