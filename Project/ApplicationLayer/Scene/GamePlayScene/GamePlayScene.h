@@ -10,6 +10,7 @@
 #include "CollisionManager.h"
 
 #include "Player.h"
+#include "FollowCamera.h"
 
 
 /// ---------- 前方宣言 ---------- ///
@@ -53,9 +54,11 @@ private: /// ---------- メンバ変数 ---------- ///
 	Input* input_ = nullptr;
 
 	std::unique_ptr<Player> player_ = nullptr; // プレイヤーオブジェクト
+	std::unique_ptr<FollowCamera> camera_ = nullptr; // カメラオブジェクト
 
 	std::unique_ptr<CollisionManager> collisionManager_;
 
 	// デバッグカメラのON/OFF用
 	bool isDebugCamera_ = false;
+	bool isLockedCursor_ = false;
 };

@@ -2,6 +2,10 @@
 #include <BaseCharacter.h>
 #include <PlayerController.h>
 
+/// ---------- 前方宣言 ---------- ///
+class FollowCamera;
+
+
 //// -------------------------------------------------------------
 ///					　プレイヤークラス
 /// -------------------------------------------------------------
@@ -31,6 +35,16 @@ private: /// ---------- メンバ関数 ---------- ///
 
 	// 腕のアニメーション
 	void UpdateArmAnimation(bool isMoving);
+
+public: /// ---------- ゲッタ ---------- ///
+
+	// プレイヤーの向きを取得
+	float GetYaw() const { return body_.worldTransform_.rotate_.y; }
+
+public: /// ---------- セッタ ---------- ///
+
+	// 追従カメラを設定
+	void SetCamera(Camera* camera) { camera_ = camera; }
 
 private: /// ---------- メンバ変数 ---------- ///
 

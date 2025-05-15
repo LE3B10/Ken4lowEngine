@@ -28,9 +28,23 @@ void GamePlayScene::Initialize()
 	dxCommon_ = DirectXCommon::GetInstance();
 	input_ = Input::GetInstance();
 
+	// カーソルをロック
+	//Input::GetInstance()->SetLockCursor(isLockedCursor_);
+
 	// プレイヤーの生成と初期化
 	player_ = std::make_unique<Player>();
 	player_->Initialize();
+
+	// 追従カメラの生成と初期化
+	camera_ = std::make_unique<FollowCamera>();
+	camera_->Initialize();
+
+	// プレイヤーのカメラを設定
+	camera_->SetTarget(player_->GetWorldTransform());
+	camera_->SetPlayer(player_.get());
+
+	// プレイヤーのカメラを設定
+	player_->SetCamera(camera_->GetCamera());
 
 	// 衝突マネージャの生成
 	collisionManager_ = std::make_unique<CollisionManager>();
@@ -57,6 +71,9 @@ void GamePlayScene::Update()
 
 	// プレイヤーの更新
 	player_->Update();
+
+	// カメラの更新	
+	camera_->Update();
 
 	// 衝突判定と応答
 	CheckAllCollisions();
