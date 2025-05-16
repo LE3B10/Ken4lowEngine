@@ -1,6 +1,7 @@
 #pragma once
 #include <BaseCharacter.h>
 #include <PlayerController.h>
+#include <Bullet.h>
 
 /// ---------- 前方宣言 ---------- ///
 class FpsCamera;
@@ -49,6 +50,7 @@ private: /// ---------- メンバ変数 ---------- ///
 	Camera* camera_ = nullptr; // カメラクラス
 
 	std::unique_ptr<PlayerController> controller_; // プレイヤーコントローラー
+	std::vector<std::unique_ptr<Bullet>> bullets_; // 弾丸クラス
 
 private: /// ---------- ジャンプ機能 ---------- ///
 
