@@ -1,6 +1,7 @@
 #include "Player.h"
 #include <Object3DCommon.h>
 #include <TextureManager.h>
+#include <Input.h>
 
 
 /// -------------------------------------------------------------
@@ -10,6 +11,7 @@ void Player::Initialize()
 {
 	// 基底クラスの初期化
 	BaseCharacter::Initialize();
+	input_ = Input::GetInstance();
 
 	// 体の部位の初期化
 	InitializeParts();
@@ -28,6 +30,42 @@ void Player::Update()
 	// プレイヤーの移動処理
 	Move();
 
+	// --- 発射入力（マウス左クリックまたはゲームパッドRT） ---
+	bool isFireTriggered = input_->TriggerMouse(0) || input_->TriggerButton(XButtons.R_Trigger) || input_->TriggerKey(DIK_F);
+
+	if (isFireTriggered)
+	{
+		// 弾の再生成と初期化
+		auto bullet = std::make_unique<Bullet>();
+		bullet->Initialize();
+
+		// 発射位置（プレイヤーの位置 + 頭部オフセット）
+		Vector3 startPos = body_.worldTransform_.translate_ + Vector3{ 0.0f, 20.0f, 0.0f };
+
+		// カメラから方向を取得（前方ベクトル）
+		Vector3 fireDir = camera_->GetForward(); // ※正規化されている前提
+		const float speed = 1.0f;
+
+		bullet->SetPosition(startPos);
+		bullet->SetVelocity(fireDir * speed);
+
+		bullets_.emplace_back(std::move(bullet)); // 新しい弾を追加
+	}
+
+	// 弾の更新 ＆ 寿命が切れたら削除
+	for (auto it = bullets_.begin(); it != bullets_.end();)
+	{
+		(*it)->Update();
+
+		// 寿命切れで削除
+		if ((*it)->IsDead()) {
+			it = bullets_.erase(it);
+		}
+		else {
+			++it;
+		}
+	}
+
 	// 移動が完了した後に親子更新・描画行列を更新する
 	BaseCharacter::Update();
 }
@@ -40,6 +78,11 @@ void Player::Draw()
 {
 	// 基底クラスの描画
 	//BaseCharacter::Draw();
+
+	// 弾丸の描画
+	for (auto& bullet : bullets_) {
+		bullet->Draw();
+	}
 }
 
 
@@ -60,27 +103,6 @@ void Player::InitializeParts()
 	// 親オブジェクトの生成と初期化
 	body_.object = std::make_unique<Object3D>();
 	body_.object->Initialize("body.gltf");
-
-	// 子オブジェクト（頭、腕）をリストに追加
-	std::vector<std::pair<std::string, Vector3>> partData =
-	{
-		{"Head.gltf", {0, 5.0f, 0}},     // 頭
-		{"L_arm.gltf", {0.0f, 4.5f, 0}}, // 左腕（赤）
-		{"R_arm.gltf", {0.0f, 4.5f, 0}}  // 右腕（青）
-	};
-
-	// 各部位の初期化
-	for (const auto& [modelPath, position] : partData)
-	{
-		BodyPart part;
-		part.object = std::make_unique<Object3D>();
-		part.object->Initialize(modelPath);
-		part.worldTransform_.Initialize();
-		part.worldTransform_.translate_ = position;
-		part.object->SetTranslate(part.worldTransform_.translate_);
-		part.worldTransform_.parent_ = &body_.worldTransform_;
-		parts_.push_back(std::move(part));
-	}
 }
 
 

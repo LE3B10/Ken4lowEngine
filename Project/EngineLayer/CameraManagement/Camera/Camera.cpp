@@ -3,6 +3,7 @@
 #include <WinApp.h>
 #include <ParameterManager.h>
 #include "Matrix4x4.h"
+#include "Quaternion.h"
 
 Camera::Camera() :
 	fovY_(0.45f),
@@ -37,4 +38,15 @@ void Camera::DrawImGui()
 	ImGui::DragFloat3("Position", &worldTransform_.translate_.x, 0.1f);
 	ImGui::DragFloat3("Rotation", &worldTransform_.rotate_.x, 0.01f);
 	ImGui::End();
+}
+
+
+Vector3 Camera::GetForward() const
+{
+	// 回転行列をオイラー角から生成（pitch: X, yaw: Y）
+	Matrix4x4 rotMat = Matrix4x4::MakeRotateMatrix(worldTransform_.rotate_);
+
+	// ローカルZ+方向を前方向として回転を適用
+	Vector3 forward = Vector3::Transform({ 0.0f, 0.0f, 1.0f }, rotMat);
+	return Vector3::Normalize(forward); // 念のため正規化
 }
