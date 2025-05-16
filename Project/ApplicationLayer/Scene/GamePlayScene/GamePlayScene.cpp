@@ -30,7 +30,7 @@ void GamePlayScene::Initialize()
 
 	// カーソルをロック
 	Input::GetInstance()->SetLockCursor(true);
-	ShowCursor(false);// 表示・非表示も連動（オプション）
+	ShowCursor(true);// 表示・非表示も連動（オプション）
 
 	// プレイヤーの生成と初期化
 	player_ = std::make_unique<Player>();
@@ -42,6 +42,10 @@ void GamePlayScene::Initialize()
 
 	// プレイヤーにカメラを設定
 	player_->SetCamera(fpsCamera_->GetCamera());
+
+	// クロスヘアの生成と初期化
+	crosshair_ = std::make_unique<Crosshair>();
+	crosshair_->Initialize();
 
 	// 衝突マネージャの生成
 	collisionManager_ = std::make_unique<CollisionManager>();
@@ -88,6 +92,7 @@ void GamePlayScene::Update()
 	case GameState::Playing:
 		player_->Update();
 		fpsCamera_->Update(false);
+		crosshair_->Update();
 		CheckAllCollisions();
 		break;
 
@@ -144,6 +149,9 @@ void GamePlayScene::Draw2DSprites()
 
 	// UI用の共通描画設定
 	SpriteManager::GetInstance()->SetRenderSetting_UI();
+
+	// クロスヘアの描画
+	crosshair_->Draw();
 
 #pragma endregion
 }
