@@ -26,7 +26,7 @@ public: /// ---------- メンバ関数 ---------- ///
 	virtual void Initialize();
 
 	// パーツ初期化（派生クラスでオーバーライド可）
-	virtual void InitializeParts() = 0; 
+	virtual void InitializeParts() = 0;
 
 	// 更新処理
 	virtual void Update();
@@ -36,6 +36,9 @@ public: /// ---------- メンバ関数 ---------- ///
 
 	// ワールド変換の取得
 	const WorldTransform* GetWorldTransform() { return &body_.worldTransform_; }
+
+	// ワールド変換の取得（const）
+	Vector3 GetWorldPosition() const { return body_.worldTransform_.worldTranslate_; }
 
 protected: /// ---------- メンバ変数 ---------- ///
 

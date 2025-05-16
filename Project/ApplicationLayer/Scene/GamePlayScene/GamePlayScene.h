@@ -10,13 +10,23 @@
 #include "CollisionManager.h"
 
 #include "Player.h"
-#include "FollowCamera.h"
+#include "FpsCamera.h"
 
 
 /// ---------- 前方宣言 ---------- ///
 class DirectXCommon;
 class Input;
 
+
+/// -------------------------------------------------------------
+///				　		ゲームの状態を管理する列挙型
+/// -------------------------------------------------------------
+enum class GameState
+{
+	Playing,
+	Paused,
+	// 追加例：Menu, GameOver, Cutscene など
+};
 
 /// -------------------------------------------------------------
 ///				　		ゲームプレイシーン
@@ -53,12 +63,16 @@ private: /// ---------- メンバ変数 ---------- ///
 	DirectXCommon* dxCommon_ = nullptr;
 	Input* input_ = nullptr;
 
+	GameState gameState_ = GameState::Playing; // ゲームの状態
+
 	std::unique_ptr<Player> player_ = nullptr; // プレイヤーオブジェクト
-	std::unique_ptr<FollowCamera> camera_ = nullptr; // カメラオブジェクト
+	std::unique_ptr<FpsCamera> fpsCamera_ = nullptr; // カメラオブジェクト
 
 	std::unique_ptr<CollisionManager> collisionManager_;
 
 	// デバッグカメラのON/OFF用
 	bool isDebugCamera_ = false;
 	bool isLockedCursor_ = false;
+
+	bool isPaused_ = false; // ポーズ中かどうか
 };

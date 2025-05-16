@@ -29,22 +29,19 @@ void GamePlayScene::Initialize()
 	input_ = Input::GetInstance();
 
 	// カーソルをロック
-	//Input::GetInstance()->SetLockCursor(isLockedCursor_);
+	Input::GetInstance()->SetLockCursor(true);
+	ShowCursor(false);// 表示・非表示も連動（オプション）
 
 	// プレイヤーの生成と初期化
 	player_ = std::make_unique<Player>();
 	player_->Initialize();
 
 	// 追従カメラの生成と初期化
-	camera_ = std::make_unique<FollowCamera>();
-	camera_->Initialize();
+	fpsCamera_ = std::make_unique<FpsCamera>();
+	fpsCamera_->Initialize(player_.get());
 
-	// プレイヤーのカメラを設定
-	camera_->SetTarget(player_->GetWorldTransform());
-	camera_->SetPlayer(player_.get());
-
-	// プレイヤーのカメラを設定
-	player_->SetCamera(camera_->GetCamera());
+	// プレイヤーにカメラを設定
+	player_->SetCamera(fpsCamera_->GetCamera());
 
 	// 衝突マネージャの生成
 	collisionManager_ = std::make_unique<CollisionManager>();
@@ -69,18 +66,41 @@ void GamePlayScene::Update()
 	}
 #endif // _DEBUG
 
-	// プレイヤーの更新
-	player_->Update();
+	// --- ポーズトグル（ESCキーでON/OFF） ---
+	if (input_->TriggerKey(DIK_ESCAPE))
+	{
+		if (gameState_ == GameState::Playing)
+		{
+			gameState_ = GameState::Paused;
+			Input::GetInstance()->SetLockCursor(false);
+			ShowCursor(true);
+		}
+		else if (gameState_ == GameState::Paused)
+		{
+			gameState_ = GameState::Playing;
+			Input::GetInstance()->SetLockCursor(true);
+			ShowCursor(false);
+		}
+	}
 
-	// カメラの更新	
-	camera_->Update();
+	switch (gameState_)
+	{
+	case GameState::Playing:
+		player_->Update();
+		fpsCamera_->Update(false);
+		CheckAllCollisions();
+		break;
 
-	// 衝突判定と応答
-	CheckAllCollisions();
+	case GameState::Paused:
+		fpsCamera_->Update(true); // 回転行列だけ更新するなら true を渡す
+		// 何も動かさない（またはポーズUIだけ更新）
+		break;
+	}
 }
 
+
 /// -------------------------------------------------------------
-///				　			　 描画処理
+///				　			　 3Dオブジェクトの描画
 /// -------------------------------------------------------------
 void GamePlayScene::Draw3DObjects()
 {
@@ -103,10 +123,13 @@ void GamePlayScene::Draw3DObjects()
 #pragma endregion
 
 	// ワイヤーフレームの描画
-	Wireframe::GetInstance()->DrawGrid(100.0f, 20.0f, { 0.25f, 0.25f, 0.25f,1.0f });
+	Wireframe::GetInstance()->DrawGrid(1000.0f, 100.0f, { 0.25f, 0.25f, 0.25f,1.0f });
 }
 
 
+/// -------------------------------------------------------------
+///				　			　 2Dスプライトの描画
+/// -------------------------------------------------------------
 void GamePlayScene::Draw2DSprites()
 {
 #pragma region スプライトの描画                    
