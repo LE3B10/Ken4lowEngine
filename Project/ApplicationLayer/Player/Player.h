@@ -1,6 +1,7 @@
 #pragma once
 #include <BaseCharacter.h>
 #include <PlayerController.h>
+#include "Weapon.h"
 
 /// ---------- 前方宣言 ---------- ///
 class FollowCamera;
@@ -52,6 +53,7 @@ private: /// ---------- メンバ変数 ---------- ///
 	Camera* camera_ = nullptr; // カメラクラス
 
 	std::unique_ptr<PlayerController> controller_; // プレイヤーコントローラー
+	std::unique_ptr<Weapon> weapon_; // 武器クラス
 
 private: /// ---------- ジャンプ機能 ---------- ///
 
