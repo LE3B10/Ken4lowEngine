@@ -3,7 +3,7 @@
 #include <PlayerController.h>
 
 /// ---------- 前方宣言 ---------- ///
-class FollowCamera;
+class FpsCamera;
 
 
 //// -------------------------------------------------------------
@@ -33,9 +33,6 @@ private: /// ---------- メンバ関数 ---------- ///
 	// 移動処理
 	void Move();
 
-	// 腕のアニメーション
-	void UpdateArmAnimation(bool isMoving);
-
 public: /// ---------- ゲッタ ---------- ///
 
 	// プレイヤーの向きを取得
@@ -58,12 +55,8 @@ private: /// ---------- ジャンプ機能 ---------- ///
 	Vector3 velocity_ = {};        // 移動速度（Y成分がジャンプに使われる）
 	bool isGrounded_ = true;       // 地面にいるかどうか
 	const float gravity_ = -0.98f; // 重力加速度
-	const float jumpPower_ = 0.3f; // ジャンプ力
+	const float jumpPower_ = 0.5f; // ジャンプ力
 
 	float deltaTime = 1.0f / 60.0f; // フレーム間時間（例: 1/60秒）
-
-private: /// ---------- プレイヤーの状態 ---------- ///
-
-	float armSwingParameter_ = 0.0f; // 腕のアニメーション用の媒介変数（フレームごとに変化）
 };
 

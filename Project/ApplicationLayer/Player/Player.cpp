@@ -28,10 +28,6 @@ void Player::Update()
 	// プレイヤーの移動処理
 	Move();
 
-	bool isMoving = Vector3::Length(controller_->GetMoveInput()) > 0.0f;
-	// プレイヤーの移動アニメーション
-	UpdateArmAnimation(isMoving);
-
 	// 移動が完了した後に親子更新・描画行列を更新する
 	BaseCharacter::Update();
 }
@@ -43,7 +39,7 @@ void Player::Update()
 void Player::Draw()
 {
 	// 基底クラスの描画
-	BaseCharacter::Draw();
+	//BaseCharacter::Draw();
 }
 
 
@@ -145,34 +141,5 @@ void Player::Move()
 		body_.worldTransform_.translate_.y = 0.0f;
 		velocity_.y = 0.0f;
 		isGrounded_ = true;
-	}
-}
-
-
-/// -------------------------------------------------------------
-///				　		腕のアニメーション
-/// -------------------------------------------------------------
-void Player::UpdateArmAnimation(bool isMoving)
-{
-	// スイング速度を設定
-	const float swingSpeed = isMoving ? 0.1f : 0.052f;
-
-	// 時間パラメータを更新（ループ用に2πで巻き戻し）
-	armSwingParameter_ += swingSpeed;
-	armSwingParameter_ = std::fmod(armSwingParameter_, 2.0f * std::numbers::pi_v<float>);
-
-	// 最大振り角度（定数で保持してもOK）
-	const float maxAngle = 0.5f; // ラジアン ≒ 28.6度
-	const float targetSwing = maxAngle * sinf(armSwingParameter_);
-
-	// 腕パーツが存在するか確認（インデックス: [1]=左腕, [2]=右腕）
-	if (parts_.size() >= 3) {
-		// 左腕は負の方向に振る
-		float leftTarget = isMoving ? -targetSwing : targetSwing * 0.5f;
-		float rightTarget = isMoving ? targetSwing : targetSwing * 0.5f;
-
-		// 現在角度から目標角度へ補間（Lerp）
-		parts_[1].worldTransform_.rotate_.x = std::lerp(parts_[1].worldTransform_.rotate_.x, leftTarget, 0.2f);
-		parts_[2].worldTransform_.rotate_.x = std::lerp(parts_[2].worldTransform_.rotate_.x, rightTarget, 0.2f);
 	}
 }
