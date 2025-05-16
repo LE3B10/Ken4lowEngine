@@ -17,6 +17,13 @@ void Player::Initialize()
 	// プレイヤーコントローラーの生成と初期化
 	controller_ = std::make_unique<PlayerController>();
 	controller_->Initialize();
+
+	// 武器の生成と初期化
+	weapon_ = std::make_unique<Weapon>();
+	weapon_->Initialize("weapon.gltf");
+	// 武器を右腕に装備
+	weapon_->SetParentTransform(&parts_[2].worldTransform_); // 右腕に装備
+	weapon_->SetScale({ 0.4f, 0.4f, 0.4f }); // スケールを設定
 }
 
 
@@ -32,6 +39,9 @@ void Player::Update()
 	// プレイヤーの移動アニメーション
 	UpdateArmAnimation(isMoving);
 
+	// 武器の更新
+	weapon_->Update();
+
 	// 移動が完了した後に親子更新・描画行列を更新する
 	BaseCharacter::Update();
 }
@@ -44,6 +54,9 @@ void Player::Draw()
 {
 	// 基底クラスの描画
 	BaseCharacter::Draw();
+
+	// 武器の描画
+	weapon_->Draw();
 }
 
 
