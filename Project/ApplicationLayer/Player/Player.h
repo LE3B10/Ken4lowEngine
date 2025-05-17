@@ -34,10 +34,16 @@ private: /// ---------- メンバ関数 ---------- ///
 	// 移動処理
 	void Move();
 
+	// 衝突判定と応答
+	void OnCollision(Collider* other) override;
+
 public: /// ---------- ゲッタ ---------- ///
 
 	// プレイヤーの向きを取得
 	float GetYaw() const { return body_.worldTransform_.rotate_.y; }
+
+	// 弾丸を取得
+	const std::vector<std::unique_ptr<Bullet>>& GetBullets() const { return bullets_; }
 
 public: /// ---------- セッタ ---------- ///
 

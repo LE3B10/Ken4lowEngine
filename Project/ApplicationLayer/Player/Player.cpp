@@ -1,6 +1,7 @@
 #include "Player.h"
 #include <Object3DCommon.h>
 #include <TextureManager.h>
+#include <CollisionTypeIdDef.h>
 #include <Input.h>
 
 
@@ -11,6 +12,11 @@ void Player::Initialize()
 {
 	// 基底クラスの初期化
 	BaseCharacter::Initialize();
+
+	// プレイヤーのコライダーを初期化
+	Collider::SetTypeID(static_cast<uint32_t>(CollisionTypeIdDef::kPlayer));
+	Collider::SetOBBHalfSize({ 2.5f, 6.0f, 2.5f }); // OBBの半径を設定
+
 	input_ = Input::GetInstance();
 
 	// 体の部位の初期化
@@ -44,7 +50,7 @@ void Player::Update()
 
 		// カメラから方向を取得（前方ベクトル）
 		Vector3 fireDir = camera_->GetForward(); // ※正規化されている前提
-		const float speed = 40.0f;
+		const float speed = 1.0f; // 弾速
 
 		bullet->SetPosition(startPos);
 		bullet->SetVelocity(fireDir * speed);
@@ -65,6 +71,9 @@ void Player::Update()
 			++it;
 		}
 	}
+
+	// コライダーの位置と回転をプレイヤーに追従させる
+	Collider::SetCenterPosition(body_.worldTransform_.translate_ + Vector3(0.0f, 8.2f, 0.0f));
 
 	// 移動が完了した後に親子更新・描画行列を更新する
 	BaseCharacter::Update();
@@ -164,4 +173,9 @@ void Player::Move()
 		velocity_.y = 0.0f;
 		isGrounded_ = true;
 	}
+}
+
+void Player::OnCollision(Collider* other)
+{
+
 }

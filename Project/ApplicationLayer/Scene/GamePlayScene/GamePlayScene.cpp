@@ -14,6 +14,21 @@
 #include <DebugCamera.h>
 #endif // _DEBUG
 
+namespace
+{
+	OBB testObb =
+	{
+		.center = {0.0f, 0.0f, 0.0f},
+		.orientations = {
+			{1.0f, 0.0f, 0.0f},
+			{0.0f, 1.0f, 0.0f},
+			{0.0f, 0.0f, 1.0f}
+		},
+		.size = {1.0f, 1.0f, 1.0f}
+	};
+	Vector4 testColor = { 1.0f, 1.0f, 0.0f, 1.0f };
+}
+
 
 /// -------------------------------------------------------------
 ///				　			　初期化処理
@@ -54,6 +69,7 @@ void GamePlayScene::Initialize()
 
 	// 衝突マネージャの生成
 	collisionManager_ = std::make_unique<CollisionManager>();
+	collisionManager_->Initialize();
 }
 
 
@@ -99,10 +115,17 @@ void GamePlayScene::Update()
 		fpsCamera_->Update(false);
 		crosshair_->Update();
 		enemy_->Update();
+		collisionManager_->Update();
 		CheckAllCollisions();
 		break;
 
 	case GameState::Paused:
+
+#ifdef _DEBUG
+		// 衝突判定
+		collisionManager_->Update();
+#endif // _DEBUG
+
 		fpsCamera_->Update(true); // 回転行列だけ更新するなら true を渡す
 		// 何も動かさない（またはポーズUIだけ更新）
 		break;
@@ -136,8 +159,14 @@ void GamePlayScene::Draw3DObjects()
 
 #pragma endregion
 
+
+#ifdef _DEBUG
+	// 衝突判定を行うオブジェクトの描画
+	collisionManager_->Draw();
+
 	// ワイヤーフレームの描画
 	Wireframe::GetInstance()->DrawGrid(1000.0f, 100.0f, { 0.25f, 0.25f, 0.25f,1.0f });
+#endif // _DEBUG
 }
 
 
@@ -185,6 +214,17 @@ void GamePlayScene::DrawImGui()
 
 	// プレイヤー
 	player_->DrawImGui();
+
+	// エネミー
+	enemy_->DrawImGui();
+
+	if (ImGui::Begin("Test OBB"))
+	{
+		ImGui::DragFloat3("Center", &testObb.center.x, 0.1f);
+		ImGui::DragFloat3("HalfSize", &testObb.size.x, 0.1f);
+		ImGui::ColorEdit4("Color", &testColor.x);
+		ImGui::End();
+	}
 }
 
 
@@ -197,9 +237,20 @@ void GamePlayScene::CheckAllCollisions()
 	collisionManager_->Reset();
 
 	// コライダーをリストに登録
-	// collisionManager_->AddCollider();
+	collisionManager_->AddCollider(player_.get());
 
-	// 複数について
+	// 敵のコライダーを登録
+	collisionManager_->AddCollider(enemy_.get());
+
+	// プレイヤーの弾の登録
+	for (const auto& bullet : player_->GetBullets())
+	{
+		if (!bullet->IsDead())
+		{
+			collisionManager_->AddCollider(bullet.get());
+		}
+	}
+
 
 	// 衝突判定と応答
 	collisionManager_->CheckAllCollisions();

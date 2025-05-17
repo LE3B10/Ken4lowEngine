@@ -2,14 +2,13 @@
 #include <Object3D.h>
 #include <WorldTransform.h>
 #include "Collider.h"
-#include "ParticleEmitter.h"
 
 #include <numbers>
 #include <vector>
 #include <memory>
 
 
-class BaseCharacter
+class BaseCharacter : public Collider
 {
 protected: /// ---------- 構造体 ---------- ///
 
@@ -38,7 +37,10 @@ public: /// ---------- メンバ関数 ---------- ///
 	const WorldTransform* GetWorldTransform() { return &body_.worldTransform_; }
 
 	// ワールド変換の取得（const）
-	Vector3 GetWorldPosition() const { return body_.worldTransform_.worldTranslate_; }
+	Vector3 GetWorldPosition() const { return body_.worldTransform_.translate_; }
+
+	// 中心座標を取得
+	Vector3 GetCenterPosition() const override { return body_.worldTransform_.translate_; }
 
 protected: /// ---------- メンバ変数 ---------- ///
 
