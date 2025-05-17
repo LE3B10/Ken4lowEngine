@@ -5,6 +5,7 @@
 #include <ParticleMaterial.h>
 #include <Particle.h>
 #include <ParticleMesh.h>
+#include "ParticleFactory.h" // 追加
 
 #include <unordered_map>
 #include <list>
@@ -19,15 +20,6 @@ class Camera;
 
 // Δt を定義。とりあえず60fps固定してあるが、実時間を計測して可変fpsで動かせるようにする
 const float kDeltaTime = 1.0f / 60.0f;
-
-// エフェクトの種類を列挙型で定義
-enum class ParticleEffectType
-{
-	Default, 	// デフォルト
-	Slash,		// スラッシュ
-	Ring,		// リング
-	Cylinder,	// シリンダー
-};
 
 
 /// -------------------------------------------------------------
@@ -129,9 +121,6 @@ private: /// ---------- ヘルパー関数 ---------- ///
 
 	// PSOを生成
 	void CreatePSO();
-
-	// パーティクル生成器
-	Particle MakeNewParticle(std::mt19937& randomEngine, const Vector3& translate, ParticleEffectType type);
 
 	std::list<Particle> Emit(const Emitter& emitter, std::mt19937& randomEngine, ParticleEffectType type);
 
