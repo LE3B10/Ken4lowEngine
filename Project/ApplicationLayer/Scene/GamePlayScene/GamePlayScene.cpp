@@ -70,6 +70,11 @@ void GamePlayScene::Initialize()
 	// 衝突マネージャの生成
 	collisionManager_ = std::make_unique<CollisionManager>();
 	collisionManager_->Initialize();
+
+	// 
+	ParticleManager::GetInstance()->CreateParticleGroup("TestParticle", "gradationLine.png");
+	particleEmitter_ = std::make_unique<ParticleEmitter>(ParticleManager::GetInstance(),"TestParticle");
+	particleEmitter_->SetPosition({ 0.0f, 20.0f, 20.0f });
 }
 
 
@@ -130,6 +135,8 @@ void GamePlayScene::Update()
 		// 何も動かさない（またはポーズUIだけ更新）
 		break;
 	}
+
+	particleEmitter_->Update();
 }
 
 

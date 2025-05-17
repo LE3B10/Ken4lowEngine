@@ -267,7 +267,7 @@ void ParticleManager::Emit(const std::string name, const Vector3 position, uint3
 	for (uint32_t index = 0; index < count; ++index)
 	{
 		// パーティクルの生成と追加
-		particleGroup.particles.push_back(MakeNewParticle(randomEngin, position, type));
+		particleGroup.particles.push_back(ParticleFactory::Create(randomEngin, position, type));
 	}
 }
 
@@ -515,85 +515,12 @@ void ParticleManager::CreatePSO()
 	assert(SUCCEEDED(hr));
 }
 
-
-/// -------------------------------------------------------------
-///						パーティクル生成処理
-/// -------------------------------------------------------------
-Particle ParticleManager::MakeNewParticle(std::mt19937& randomEngine, const Vector3& translate, ParticleEffectType type)
-{
-	Particle particle;
-
-	switch (type)
-	{
-	case ParticleEffectType::Default: {
-		std::uniform_real_distribution<float> distribution(-1.0f, 1.0f);
-		std::uniform_real_distribution<float> distColor(0.0f, 1.0f);
-		std::uniform_real_distribution<float> distTime(1.0f, 3.0f);
-
-		Vector3 randomTranslate{ distribution(randomEngine), distribution(randomEngine), distribution(randomEngine) };
-		particle.transform.translate_ = translate + randomTranslate;
-		particle.transform.scale_ = { 1.0f, 1.0f, 1.0f };
-		particle.transform.rotate_ = { 0.0f, 0.0f, 0.0f };
-		particle.color = { distColor(randomEngine), distColor(randomEngine), distColor(randomEngine), 1.0f };
-		particle.lifeTime = distTime(randomEngine);
-		particle.velocity = { distribution(randomEngine), distribution(randomEngine), distribution(randomEngine) };
-		break;
-	}
-
-	case ParticleEffectType::Slash: {
-		std::uniform_real_distribution<float> distScale(0.8f, 3.0f);
-		std::uniform_real_distribution<float> distRotate(-std::numbers::pi_v<float>, std::numbers::pi_v<float>);
-
-		particle.transform.scale_ = { 0.1f, distScale(randomEngine) * 2.0f, 2.0f };
-		particle.startScale = particle.transform.scale_;
-		particle.endScale = { 0.0f, 0.0f, 0.0f };
-		particle.transform.rotate_ = { 0.0f, 0.0f, distRotate(randomEngine) };
-		particle.transform.translate_ = translate;
-		particle.color = { 1.0f, 1.0f, 1.0f, 1.0f };
-		particle.lifeTime = 1.0f;
-		particle.velocity = { 0.0f, 0.0f, 0.0f };
-		break;
-	}
-	case ParticleEffectType::Ring: {
-		// ランダム処理なしの固定値
-		particle.transform.translate_ = translate; // 位置
-		particle.transform.scale_ = { 1.0f, 1.0f, 1.0f }; // 大きさ
-		particle.transform.rotate_ = { 0.0f, 0.0f, 0.0f }; // Z軸回転（45度）
-
-		particle.color = { 1.0f, 1.0f, 1.0f, 1.0f }; // 色
-		particle.lifeTime = 999.0f; // 半永久的に表示
-		particle.velocity = { 0.0f, 0.0f, 0.0f }; // 動かさない
-
-		particle.startScale = particle.transform.scale_;
-		particle.endScale = particle.transform.scale_;
-		break;
-	}
-	case ParticleEffectType::Cylinder: {
-		std::uniform_real_distribution<float> distColor(0.0f, 1.0f);
-
-		particle.transform.translate_ = translate;
-		particle.transform.scale_ = { 1.0f, 1.0f, 1.0f }; // 高さ方向にスケール
-		particle.transform.rotate_ = { 0.0f, 0.0f, 0.0f };
-
-		particle.color = { distColor(randomEngine), distColor(randomEngine), distColor(randomEngine), 1.0f };
-		particle.lifeTime = 999.0f; // 一時的にずっと表示
-
-		particle.startScale = particle.transform.scale_;
-		particle.endScale = particle.transform.scale_;
-		break;
-	}
-	}
-
-	particle.currentTime = 0.0f;
-	return particle;
-}
-
 std::list<Particle> ParticleManager::Emit(const Emitter& emitter, std::mt19937& randomEngine, ParticleEffectType type)
 {
 	std::list<Particle> particles;
 	for (uint32_t count = 0; count < emitter.count; ++count)
 	{
-		particles.push_back(MakeNewParticle(randomEngine, emitter.transform.translate_, type));
+		particles.push_back(ParticleFactory::Create(randomEngine, emitter.transform.translate_, type));
 	}
 
 	return particles;
