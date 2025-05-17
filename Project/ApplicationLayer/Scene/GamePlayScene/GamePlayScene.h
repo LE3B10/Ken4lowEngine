@@ -72,7 +72,10 @@ private: /// ---------- メンバ変数 ---------- ///
 	std::unique_ptr<Crosshair> crosshair_ = nullptr; // クロスヘアオブジェクト
 	std::unique_ptr<Enemy> enemy_ = nullptr; // 敵オブジェクト
 
-	std::unique_ptr<CollisionManager> collisionManager_;
+	std::unique_ptr<CollisionManager> collisionManager_; // 衝突マネージャー
+
+	// パーティクル
+	std::unique_ptr< ParticleEmitter> particleEmitter_ = nullptr;
 
 	// デバッグカメラのON/OFF用
 	bool isDebugCamera_ = false;

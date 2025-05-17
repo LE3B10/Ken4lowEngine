@@ -3,6 +3,7 @@
 #include <memory>
 
 #include "Vector3.h"
+#include "OBB.h"
 
 
 /// ---------- 前方宣言 ---------- ///
@@ -15,6 +16,15 @@ class Collider;
 class CollisionManager
 {
 public: /// ---------- メンバ関数 ---------- ///
+
+	// 初期化処理
+	void Initialize();
+
+	// 更新処理
+	void Update();
+
+	// 描画処理
+	void Draw();
 
 	// リセット処理
 	void Reset();
@@ -29,6 +39,9 @@ private: /// ---------- メンバ関数 ---------- ///
 
 	// コライダー2つの衝突判定と応答処理
 	void CheckCollisionPair(Collider* colliderA, Collider* colliderB);
+
+	// OBBの分離軸テスト
+	bool IsSeparatingAxis(const Vector3& axis, const OBB& obbA, const OBB& obbB);
 
 private: /// ---------- メンバ変数 ---------- ///
 

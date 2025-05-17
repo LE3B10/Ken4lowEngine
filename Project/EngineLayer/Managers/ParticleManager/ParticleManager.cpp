@@ -151,10 +151,10 @@ void ParticleManager::Update()
 				particle.currentTime += kDeltaTime;
 
 				// リングを回転させるための処理
-				//particle.transform.rotate_.z += 1.5f * kDeltaTime; // 秒間約86度の回転
+				particle.transform.rotate_.z += 1.5f * kDeltaTime; // 秒間約86度の回転
 
 				// シリンダーを回転させるための処理
-				particle.transform.rotate_.y += 1.5f * kDeltaTime; // 秒間約86度の回転
+				//particle.transform.rotate_.y += 1.5f * kDeltaTime; // 秒間約86度の回転
 
 				// 行列更新（transformに任せる）
 				particle.transform.UpdateMatrix(viewProjectionMatrix, useBillboard, billboardMatrix);

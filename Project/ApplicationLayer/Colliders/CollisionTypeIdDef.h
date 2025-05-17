@@ -8,4 +8,5 @@ enum class CollisionTypeIdDef : uint32_t
 	kPlayer,		 // プレイヤーID
 	kWeapon,		 // 武器ID
 	kEnemy,			 // エネミーID
+	kBullet,		 // 弾丸ID
 };
