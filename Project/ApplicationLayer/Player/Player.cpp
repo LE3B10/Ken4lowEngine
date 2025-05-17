@@ -44,7 +44,7 @@ void Player::Update()
 
 		// カメラから方向を取得（前方ベクトル）
 		Vector3 fireDir = camera_->GetForward(); // ※正規化されている前提
-		const float speed = 1.0f;
+		const float speed = 40.0f;
 
 		bullet->SetPosition(startPos);
 		bullet->SetVelocity(fireDir * speed);

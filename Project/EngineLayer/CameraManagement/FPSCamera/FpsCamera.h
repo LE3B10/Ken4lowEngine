@@ -16,12 +16,17 @@ public: // ---------- 関数 ---------- //
 	void Initialize(Player* player);
 	void Update(bool ignoreInput = false);
 
+public: // ---------- ゲッタ ---------- //
+
 	// カメラ取得
 	Camera* GetCamera() const { return camera_; }
-
+	
 	// Yaw / Pitch取得
 	float GetYaw() const { return yaw_; }
 	float GetPitch() const { return pitch_; }
+
+public: // ---------- セッタ ---------- //
+
 
 private: // ---------- メンバ ---------- //
 

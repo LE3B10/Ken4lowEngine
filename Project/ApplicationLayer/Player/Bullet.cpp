@@ -4,6 +4,7 @@ void Bullet::Initialize()
 {
 	model_ = std::make_unique<Object3D>();
 	model_->Initialize("cube.gltf");
+	model_->SetScale({ 0.5f,0.5f,0.5f });
 }
 
 void Bullet::Update()

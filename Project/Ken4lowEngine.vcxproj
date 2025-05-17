@@ -115,8 +115,9 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="ApplicationLayer\Player\BaseCharacter.cpp" />
-    <ClCompile Include="Bullet.cpp" />
+    <ClCompile Include="ApplicationLayer\Player\Bullet.cpp" />
     <ClCompile Include="ApplicationLayer\Crosshair\Crosshair.cpp" />
+    <ClCompile Include="Enemy.cpp" />
     <ClCompile Include="EngineLayer\Mesh\AnimationMesh.cpp" />
     <ClCompile Include="EngineLayer\Audio\AudioManager.cpp" />
     <ClCompile Include="EngineLayer\Audio\MP3Loader.cpp" />
@@ -352,8 +353,9 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ApplicationLayer\Player\BaseCharacter.h" />
-    <ClInclude Include="Bullet.h" />
+    <ClInclude Include="ApplicationLayer\Player\Bullet.h" />
     <ClInclude Include="ApplicationLayer\Crosshair\Crosshair.h" />
+    <ClInclude Include="Enemy.h" />
     <ClInclude Include="EngineLayer\Mesh\AnimationMesh.h" />
     <ClInclude Include="EngineLayer\Audio\AudioCategory.h" />
     <ClInclude Include="EngineLayer\Audio\AudioManager.h" />

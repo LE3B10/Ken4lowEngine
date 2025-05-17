@@ -26,7 +26,7 @@ public: /// ---------- メンバ関数 ---------- ///
 	virtual void Initialize();
 
 	// パーツ初期化（派生クラスでオーバーライド可）
-	virtual void InitializeParts() = 0;
+	virtual void InitializeParts() {};
 
 	// 更新処理
 	virtual void Update();
