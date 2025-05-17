@@ -36,6 +36,11 @@ void GamePlayScene::Initialize()
 	player_ = std::make_unique<Player>();
 	player_->Initialize();
 
+	// エネミーの生成と初期化
+	enemy_ = std::make_unique<Enemy>();
+	enemy_->Initialize();
+	enemy_->SetTarget(player_.get());
+
 	// 追従カメラの生成と初期化
 	fpsCamera_ = std::make_unique<FpsCamera>();
 	fpsCamera_->Initialize(player_.get());
@@ -93,6 +98,7 @@ void GamePlayScene::Update()
 		player_->Update();
 		fpsCamera_->Update(false);
 		crosshair_->Update();
+		enemy_->Update();
 		CheckAllCollisions();
 		break;
 
@@ -124,6 +130,9 @@ void GamePlayScene::Draw3DObjects()
 
 	// プレイヤーの描画
 	player_->Draw();
+
+	// エネミーの描画
+	enemy_->Draw();
 
 #pragma endregion
 

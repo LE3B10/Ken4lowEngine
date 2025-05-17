@@ -12,6 +12,7 @@
 #include "Player.h"
 #include "FpsCamera.h"
 #include "Crosshair.h"
+#include "Enemy.h"
 
 
 /// ---------- 前方宣言 ---------- ///
@@ -69,6 +70,7 @@ private: /// ---------- メンバ変数 ---------- ///
 	std::unique_ptr<Player> player_ = nullptr; // プレイヤーオブジェクト
 	std::unique_ptr<FpsCamera> fpsCamera_ = nullptr; // カメラオブジェクト
 	std::unique_ptr<Crosshair> crosshair_ = nullptr; // クロスヘアオブジェクト
+	std::unique_ptr<Enemy> enemy_ = nullptr; // 敵オブジェクト
 
 	std::unique_ptr<CollisionManager> collisionManager_;
 
