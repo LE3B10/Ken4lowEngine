@@ -35,6 +35,9 @@ public: /// ---------- メンバ関数 ---------- ///
 	// コライダーを追加
 	void AddCollider(Collider* other);
 
+	// コライダーを削除
+	void RemoveCollider(Collider* other);
+	
 private: /// ---------- メンバ関数 ---------- ///
 
 	// コライダー2つの衝突判定と応答処理

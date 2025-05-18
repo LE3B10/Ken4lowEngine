@@ -82,6 +82,15 @@ void CollisionManager::AddCollider(Collider* other)
 
 
 /// -------------------------------------------------------------
+///						コライダー削除処理
+/// -------------------------------------------------------------
+void CollisionManager::RemoveCollider(Collider* other)
+{
+	colliders_.remove(other);
+}
+
+
+/// -------------------------------------------------------------
 ///				コライダー２つの衝突判定と応答処理
 /// -------------------------------------------------------------
 void CollisionManager::CheckCollisionPair(Collider* colliderA, Collider* colliderB)
