@@ -74,7 +74,7 @@ void GamePlayScene::Initialize()
 	// 
 	ParticleManager::GetInstance()->CreateParticleGroup("TestParticle", "gradationLine.png");
 	particleEmitter_ = std::make_unique<ParticleEmitter>(ParticleManager::GetInstance(),"TestParticle");
-	particleEmitter_->SetPosition({ 0.0f, 20.0f, 20.0f });
+	particleEmitter_->SetPosition({ 0.0f, 15.0f, 20.0f });
 }
 
 

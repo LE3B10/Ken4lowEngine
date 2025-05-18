@@ -48,7 +48,7 @@ void ParticleManager::Initialize(DirectXCommon* dxCommon, Camera* camera)
 	// 頂点データの初期化
 	//mesh_.Initialize();
 
-	//// リングの頂点データを生成
+	// リングの頂点データを生成
 	mesh_.CreateVertexData();
 
 	// シリンダーの頂点データを生成
