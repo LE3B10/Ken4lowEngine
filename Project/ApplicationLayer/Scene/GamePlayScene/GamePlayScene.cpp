@@ -73,7 +73,7 @@ void GamePlayScene::Initialize()
 
 	// 
 	ParticleManager::GetInstance()->CreateParticleGroup("TestParticle", "gradationLine.png");
-	particleEmitter_ = std::make_unique<ParticleEmitter>(ParticleManager::GetInstance(),"TestParticle");
+	particleEmitter_ = std::make_unique<ParticleEmitter>(ParticleManager::GetInstance(), "TestParticle");
 	particleEmitter_->SetPosition({ 0.0f, 15.0f, 20.0f });
 }
 
@@ -258,6 +258,8 @@ void GamePlayScene::CheckAllCollisions()
 		}
 	}
 
+	// 死亡したらコライダーを削除
+	if (enemy_->IsDead()) collisionManager_->RemoveCollider(enemy_.get());
 
 	// 衝突判定と応答
 	collisionManager_->CheckAllCollisions();

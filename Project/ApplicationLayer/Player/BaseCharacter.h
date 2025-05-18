@@ -42,6 +42,16 @@ public: /// ---------- メンバ関数 ---------- ///
 	// 中心座標を取得
 	Vector3 GetCenterPosition() const override { return body_.worldTransform_.translate_; }
 
+	// ダメージ量
+	void TakeDamage(float amount)
+	{
+		hp_ -= amount;
+		if (hp_ <= 0.0f) isDead_ = true;
+	}
+
+	// 死亡フラグを取得
+	bool IsDead() const { return isDead_; }
+
 protected: /// ---------- メンバ変数 ---------- ///
 
 	// 体（親）
@@ -49,5 +59,8 @@ protected: /// ---------- メンバ変数 ---------- ///
 
 	// 他の部位（子）
 	std::vector<BodyPart> parts_;
+
+	float hp_ = 100.0f;
+	bool isDead_ = false;
 };
 

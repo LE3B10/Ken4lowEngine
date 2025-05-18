@@ -21,6 +21,8 @@ void Enemy::Initialize()
 
 void Enemy::Update()
 {
+	if (isDead_) return; // 死亡済みなら更新スキップ（描画も停止する）
+
 	if (player_)
 	{
 		Vector3 toPlayer = player_->GetWorldPosition() - body_.worldTransform_.translate_;
@@ -51,12 +53,15 @@ void Enemy::Update()
 void Enemy::Draw()
 {
 	//body_.object->Draw();
+	if (IsDead()) return; // 死亡済みなら描画スキップ
 	BaseCharacter::Draw();
 }
 
 void Enemy::DrawImGui()
 {
 	Collider::DrawImGui();
+	ImGui::Text("HP: %.1f", hp_);
+	ImGui::Checkbox("IsDead", &isDead_);
 }
 
 void Enemy::OnCollision(Collider* other)
@@ -64,6 +69,6 @@ void Enemy::OnCollision(Collider* other)
 	if (other->GetTypeID() == static_cast<uint32_t>(CollisionTypeIdDef::kBullet))
 	{
 		// パーティクルを表示（仮演出）
-
+		TakeDamage(50.0f);
 	}
 }
