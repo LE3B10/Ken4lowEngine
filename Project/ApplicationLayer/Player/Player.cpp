@@ -25,6 +25,9 @@ void Player::Initialize()
 	// プレイヤーコントローラーの生成と初期化
 	controller_ = std::make_unique<PlayerController>();
 	controller_->Initialize();
+
+	// 武器
+	weapon_.Initialize();
 }
 
 
@@ -37,40 +40,17 @@ void Player::Update()
 	Move();
 
 	// --- 発射入力（マウス左クリックまたはゲームパッドRT） ---
+	// 発射入力
 	bool isFireTriggered = input_->TriggerMouse(0) || input_->TriggerButton(XButtons.R_Trigger) || input_->TriggerKey(DIK_F);
-
+	
 	if (isFireTriggered)
 	{
-		// 弾の再生成と初期化
-		auto bullet = std::make_unique<Bullet>();
-		bullet->Initialize();
-
-		// 発射位置（プレイヤーの位置 + 頭部オフセット）
 		Vector3 startPos = body_.worldTransform_.translate_ + Vector3{ 0.0f, 20.0f, 0.0f };
-
-		// カメラから方向を取得（前方ベクトル）
-		Vector3 fireDir = camera_->GetForward(); // ※正規化されている前提
-		const float speed = 1.0f; // 弾速
-
-		bullet->SetPosition(startPos);
-		bullet->SetVelocity(fireDir * speed);
-
-		bullets_.emplace_back(std::move(bullet)); // 新しい弾を追加
+		Vector3 fireDir = camera_->GetForward();
+		weapon_.TryFire(startPos, fireDir); // ★ ここで撃つ
 	}
 
-	// 弾の更新 ＆ 寿命が切れたら削除
-	for (auto it = bullets_.begin(); it != bullets_.end();)
-	{
-		(*it)->Update();
-
-		// 寿命切れで削除
-		if ((*it)->IsDead()) {
-			it = bullets_.erase(it);
-		}
-		else {
-			++it;
-		}
-	}
+	weapon_.Update(); // ★ 弾の更新やリロード処理
 
 	// コライダーの位置と回転をプレイヤーに追従させる
 	Collider::SetCenterPosition(body_.worldTransform_.translate_ + Vector3(0.0f, 8.2f, 0.0f));
@@ -89,9 +69,7 @@ void Player::Draw()
 	//BaseCharacter::Draw();
 
 	// 弾丸の描画
-	for (auto& bullet : bullets_) {
-		bullet->Draw();
-	}
+	weapon_.Draw(); // ★ 弾丸を描画
 }
 
 
@@ -100,7 +78,7 @@ void Player::Draw()
 /// -------------------------------------------------------------
 void Player::DrawImGui()
 {
-
+	weapon_.DrawImGui(); // ★ 武器のImGui描画
 }
 
 
