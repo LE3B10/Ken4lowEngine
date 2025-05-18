@@ -2,6 +2,7 @@
 #include <BaseCharacter.h>
 #include <PlayerController.h>
 #include <Bullet.h>
+#include "Weapon.h" // 追加
 
 /// ---------- 前方宣言 ---------- ///
 class FpsCamera;
@@ -43,7 +44,7 @@ public: /// ---------- ゲッタ ---------- ///
 	float GetYaw() const { return body_.worldTransform_.rotate_.y; }
 
 	// 弾丸を取得
-	const std::vector<std::unique_ptr<Bullet>>& GetBullets() const { return bullets_; }
+	const std::vector<std::unique_ptr<Bullet>>& GetBullets() const { return weapon_.GetBullets(); }
 
 public: /// ---------- セッタ ---------- ///
 
@@ -54,6 +55,7 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	Input* input_ = nullptr; // 入力クラス
 	Camera* camera_ = nullptr; // カメラクラス
+	Weapon weapon_; // 武器クラス
 
 	std::unique_ptr<PlayerController> controller_; // プレイヤーコントローラー
 	std::vector<std::unique_ptr<Bullet>> bullets_; // 弾丸クラス
