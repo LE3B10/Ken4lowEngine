@@ -227,14 +227,6 @@ void GamePlayScene::DrawImGui()
 
 	// エネミー
 	enemy_->DrawImGui();
-
-	if (ImGui::Begin("Test OBB"))
-	{
-		ImGui::DragFloat3("Center", &testObb.center.x, 0.1f);
-		ImGui::DragFloat3("HalfSize", &testObb.size.x, 0.1f);
-		ImGui::ColorEdit4("Color", &testColor.x);
-		ImGui::End();
-	}
 }
 
 

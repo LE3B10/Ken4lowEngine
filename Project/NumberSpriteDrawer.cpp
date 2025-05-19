@@ -1,50 +1,81 @@
 #include "NumberSpriteDrawer.h"
-#include <string>
 #include <TextureManager.h>
+#include <string>
+#include <cassert>
 
+
+/// -------------------------------------------------------------
+///				　			初期化処理
+/// -------------------------------------------------------------
 void NumberSpriteDrawer::Initialize(const std::string& texturePath, float digitWidth, float digitHeight)
 {
-    digitWidth_ = digitWidth;
-    digitHeight_ = digitHeight;
+	// 引数をメンバ変数に設定
+	digitWidth_ = digitWidth;
+	digitHeight_ = digitHeight;
+	texturePath_ = texturePath;
+	currentIndex_ = 0;
 
-    TextureManager::GetInstance()->LoadTexture(texturePath);
+	// テクスチャの読み込み
+	TextureManager::GetInstance()->LoadTexture(texturePath);
 
-    for (int i = 0; i < 10; ++i)
-    {
-        digitSprites_[i] = std::make_unique<Sprite>();
-        digitSprites_[i]->Initialize(texturePath);
-
-        int row = i / 5; // 0 or 1
-        int col = i % 5;
-
-        Vector2 uvPos = {
-            static_cast<float>(col) * digitWidth_,
-            static_cast<float>(row) * digitHeight_
-        };
-        Vector2 size = { digitWidth_, digitHeight_ };
-
-        digitSprites_[i]->SetTextureLeftTop(uvPos);
-        digitSprites_[i]->SetTextureSize(size);
-        digitSprites_[i]->SetSize({ 48.0f, 48.0f }); // 表示サイズを小さく調整（50→32）
-    }
+	// スプライトの初期化
+	reusableSprites_.clear();
 }
 
+
+/// -------------------------------------------------------------
+///				　			数字の描画
+/// -------------------------------------------------------------
 void NumberSpriteDrawer::DrawNumber(int value, const Vector2& position)
 {
-    std::string numberStr = std::to_string(value);
-    float x = position.x;
+	// 桁数の制限
+	std::string numberStr = std::to_string(value);
+	float x = position.x;
 
-    for (char c : numberStr)
-    {
-        int digit = c - '0';
-        if (digit < 0 || digit > 9) continue;
+	// 文字列の長さを制限
+	for (char c : numberStr)
+	{
+		int digit = c - '0';
+		if (digit < 0 || digit > 9) continue;
 
-        // 各スプライトの複製を作成して個別に描画（同一スプライト再使用の不具合対策）
-        std::unique_ptr<Sprite> tempSprite = std::make_unique<Sprite>(*digitSprites_[digit]);
-        tempSprite->SetPosition({ x, position.y });
-        tempSprite->Update();
-        tempSprite->Draw();
+		// スプライトのインデックスをリセット
+		if (currentIndex_ >= reusableSprites_.size())
+		{
+			// スプライトの再利用が必要な場合、新しいスプライトを作成
+			auto sprite = std::make_unique<Sprite>();
+			sprite->Initialize(texturePath_);
+			sprite->SetSize({ 48.0f, 48.0f });
+			reusableSprites_.push_back(std::move(sprite));
+		}
 
-        x += digitSprites_[digit]->GetSize().x;
-    }
+		// スプライトのインデックスを取得
+		auto& sprite = reusableSprites_[currentIndex_++];
+
+		int row = digit / 5; // 5行に分けているので、行は5で割る
+		int col = digit % 5; // 5列に分けているので、列は5で割った余り
+
+		// UV座標の計算
+		Vector2 uvPos =
+		{
+			static_cast<float>(col) * digitWidth_,
+			static_cast<float>(row) * digitHeight_
+		};
+
+		// UV座標テクスチャサイズ
+		Vector2 size = { digitWidth_, digitHeight_ };
+
+		// スプライトの設定
+		sprite->SetTextureLeftTop(uvPos);
+		sprite->SetTextureSize(size);
+		sprite->SetPosition({ x, position.y });
+
+		// スプライトの更新
+		sprite->Update();
+
+		// スプライトの描画
+		sprite->Draw();
+
+		// 次の桁の位置を計算
+		x += sprite->GetSize().x;
+	}
 }

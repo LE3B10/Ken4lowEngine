@@ -75,13 +75,15 @@ void Player::Draw()
 	weapon_.Draw(); // ★ 弾丸を描画
 }
 
+
+/// -------------------------------------------------------------
+///				　			　 HUD描画処理
+/// -------------------------------------------------------------
 void Player::DrawHUD()
 {
-	numberSpriteDrawer_->DrawNumber(weapon_.GetAmmoInClip(), { 1000.0f, 620.0f }); // HUDに数字を描画
-	numberSpriteDrawer_->DrawNumber(weapon_.GetAmmoReserve(), { 1120.0f, 620.0f });
-
-	//numberSpriteDrawer_->DrawNumber(30, { 550.0f, 500.0f }); // 現在の弾数
-	//numberSpriteDrawer_->DrawNumber(90, { 600.0f, 450.0f }); // 残弾数
+	numberSpriteDrawer_->Reset(); // 数字スプライト描画クラスのリセット
+	numberSpriteDrawer_->DrawNumber(weapon_.GetAmmoInClip(), { 1000.0f, 620.0f });  // HUDに数字を描画（弾丸数）
+	numberSpriteDrawer_->DrawNumber(weapon_.GetAmmoReserve(), { 1120.0f, 620.0f }); // HUDに数字を描画（総弾丸数）
 }
 
 
@@ -167,5 +169,8 @@ void Player::Move()
 
 void Player::OnCollision(Collider* other)
 {
-
+	if (other->GetTypeID() == static_cast<uint32_t>(CollisionTypeIdDef::kDefault))
+	{
+		return;
+	}
 }
