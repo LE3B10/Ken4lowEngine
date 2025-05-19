@@ -198,6 +198,9 @@ void GamePlayScene::Draw2DSprites()
 	// クロスヘアの描画
 	crosshair_->Draw();
 
+	// プレイヤーのHUD描画
+	player_->DrawHUD();
+
 #pragma endregion
 }
 

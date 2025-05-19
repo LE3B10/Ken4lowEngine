@@ -28,6 +28,9 @@ void Player::Initialize()
 
 	// 武器
 	weapon_.Initialize();
+
+	numberSpriteDrawer_ = std::make_unique<NumberSpriteDrawer>();
+	numberSpriteDrawer_->Initialize("Resources/number.png", 50.0f, 50.0f);
 }
 
 
@@ -42,7 +45,7 @@ void Player::Update()
 	// --- 発射入力（マウス左クリックまたはゲームパッドRT） ---
 	// 発射入力
 	bool isFireTriggered = input_->TriggerMouse(0) || input_->TriggerButton(XButtons.R_Trigger) || input_->TriggerKey(DIK_F);
-	
+
 	if (isFireTriggered)
 	{
 		Vector3 startPos = body_.worldTransform_.translate_ + Vector3{ 0.0f, 20.0f, 0.0f };
@@ -70,6 +73,15 @@ void Player::Draw()
 
 	// 弾丸の描画
 	weapon_.Draw(); // ★ 弾丸を描画
+}
+
+void Player::DrawHUD()
+{
+	numberSpriteDrawer_->DrawNumber(weapon_.GetAmmoInClip(), { 1000.0f, 620.0f }); // HUDに数字を描画
+	numberSpriteDrawer_->DrawNumber(weapon_.GetAmmoReserve(), { 1120.0f, 620.0f });
+
+	//numberSpriteDrawer_->DrawNumber(30, { 550.0f, 500.0f }); // 現在の弾数
+	//numberSpriteDrawer_->DrawNumber(90, { 600.0f, 450.0f }); // 残弾数
 }
 
 
