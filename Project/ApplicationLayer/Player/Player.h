@@ -3,6 +3,7 @@
 #include <PlayerController.h>
 #include <Bullet.h>
 #include "Weapon.h" // 追加
+#include <NumberSpriteDrawer.h>
 
 /// ---------- 前方宣言 ---------- ///
 class FpsCamera;
@@ -23,6 +24,9 @@ public: /// ---------- メンバ関数 ---------- ///
 
 	// 描画処理
 	void Draw();
+
+	// HUD描画処理
+	void DrawHUD();
 
 	// ImGui描画処理
 	void DrawImGui();
@@ -59,6 +63,8 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	std::unique_ptr<PlayerController> controller_; // プレイヤーコントローラー
 	std::vector<std::unique_ptr<Bullet>> bullets_; // 弾丸クラス
+
+	std::unique_ptr<NumberSpriteDrawer> numberSpriteDrawer_; // 数字スプライト描画クラス
 
 private: /// ---------- ジャンプ機能 ---------- ///
 
