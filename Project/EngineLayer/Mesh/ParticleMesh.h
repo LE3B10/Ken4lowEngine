@@ -11,7 +11,7 @@ public: /// ---------- メンバ関数 ---------- ///
 	void Initialize();
 
 	// リングの頂点データを生成
-	void CreateVertexData();
+	void InitializeRing();
 
 	// シリンダーの頂点データの初期化処理
 	void InitializeCylinder();
@@ -20,6 +20,11 @@ public: /// ---------- メンバ関数 ---------- ///
 	void Draw(UINT num);
 
 	const D3D12_VERTEX_BUFFER_VIEW& GetVertexBufferView() const { return vertexBufferView_; }
+
+private: /// ---------- メンバ関数 ---------- ///
+
+	// 頂点データの生成
+	void CreateVertexBuffer();
 
 private: /// ---------- メンバ変数 ---------- ///
 

@@ -49,7 +49,7 @@ void ParticleManager::Initialize(DirectXCommon* dxCommon, Camera* camera)
 	//mesh_.Initialize();
 
 	// リングの頂点データを生成
-	mesh_.CreateVertexData();
+	mesh_.InitializeRing();
 
 	// シリンダーの頂点データを生成
 	//mesh_.InitializeCylinder();
