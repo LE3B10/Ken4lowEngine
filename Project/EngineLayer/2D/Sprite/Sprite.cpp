@@ -98,7 +98,7 @@ void Sprite::Update()
 	transformationMatrixData->World = worldMatrixSprite;
 
 	// 頂点データ更新
-	memcpy(vertexData, &vertexData[0], sizeof(VertexData) * kNumVertex);
+	//memcpy(vertexData, &vertexData[0], sizeof(VertexData) * kNumVertex);
 }
 
 
