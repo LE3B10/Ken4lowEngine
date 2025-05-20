@@ -20,8 +20,8 @@ void ParticleMesh::Initialize()
 void ParticleMesh::InitializeRing()
 {
 	const uint32_t kSubdivision = 32;
-	const float outerRadius = 1.0f;
-	const float innerRadius = 0.4f;
+	const float innerRadius = 1.0f;
+	const float outerRadius = 0.4f;
 
 	for (uint32_t i = 0; i < kSubdivision; ++i)
 	{
@@ -36,15 +36,17 @@ void ParticleMesh::InitializeRing()
 		Vector4 p2 = { std::cos(theta1) * outerRadius, std::sin(theta1) * outerRadius, 0.0f, 1.0f };
 		Vector4 p3 = { std::cos(theta2) * outerRadius, std::sin(theta2) * outerRadius, 0.0f, 1.0f };
 
-		// 三角形1（内→外→外）
-		modelData_.vertices.push_back({ p0, {u1, 1.0f}, {0.0f, 0.0f, 1.0f} }); // 内側→上
-		modelData_.vertices.push_back({ p2, {u1, 0.0f}, {0.0f, 0.0f, 1.0f} }); // 外側→下
-		modelData_.vertices.push_back({ p3, {u2, 0.0f}, {0.0f, 0.0f, 1.0f} });
+		Vector3 normal = { 0.0f, 0.0f, 1.0f };
 
-		// 三角形2（内→外→内）
-		modelData_.vertices.push_back({ p0, {u1, 1.0f}, {0.0f, 0.0f, 1.0f} });
-		modelData_.vertices.push_back({ p3, {u2, 0.0f}, {0.0f, 0.0f, 1.0f} });
-		modelData_.vertices.push_back({ p1, {u2, 1.0f}, {0.0f, 0.0f, 1.0f} });
+		// 三角形1（内→外→外）
+		modelData_.vertices.push_back({ p0, {u1, 1.0f}, normal }); // 内側→上
+		modelData_.vertices.push_back({ p2, {u1, 0.0f}, normal }); // 外側→下
+		modelData_.vertices.push_back({ p3, {u2, 0.0f}, normal });
+
+		// 三角形2（内→外→内）						 
+		modelData_.vertices.push_back({ p0, {u1, 1.0f}, normal });
+		modelData_.vertices.push_back({ p3, {u2, 0.0f}, normal });
+		modelData_.vertices.push_back({ p1, {u2, 1.0f}, normal });
 	}
 
 	// 頂点バッファを生成
@@ -99,7 +101,6 @@ void ParticleMesh::Draw(UINT num)
 
 void ParticleMesh::CreateVertexBuffer()
 {
-
 	ID3D12Device* device = DirectXCommon::GetInstance()->GetDevice();
 	vertexResource_ = ResourceManager::CreateBufferResource(device, sizeof(VertexData) * modelData_.vertices.size());
 	vertexBufferView_.BufferLocation = vertexResource_->GetGPUVirtualAddress();

@@ -83,7 +83,7 @@ public: /// ---------- メンバ関数 ---------- ///
 	void Initialize(DirectXCommon* dxCommon, Camera* camera);
 
 	// パーティクルグループの生成
-	void CreateParticleGroup(const std::string& name, const std::string& textureFilePath);
+	void CreateParticleGroup(const std::string& name, const std::string& textureFilePath, ParticleEffectType effectType);
 
 	// 更新処理
 	void Update();
@@ -114,6 +114,18 @@ public: /// ---------- メンバ関数 ---------- ///
 	// ビルボードを有効にするかを取得
 	bool GetBillboard() { return useBillboard; }
 
+	// パーティクルエフェクトの種類を取得
+	ParticleEffectType GetGroupType(const std::string& name)
+	{
+		auto it = particleGroups.find(name);
+		if (it != particleGroups.end())
+		{
+			return it->second.type;
+		}
+
+		return ParticleEffectType::Default;
+	}
+
 private: /// ---------- ヘルパー関数 ---------- ///
 
 	// ルートシグネチャの生成
@@ -130,7 +142,12 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	ParticleTransform transform;
 	ParticleMaterial material_;
+
 	ParticleMesh mesh_;
+	ParticleMesh ringMesh_;
+	ParticleMesh cylinderMesh_;
+
+	std::unordered_map<ParticleEffectType, ParticleMesh> meshMap_;
 
 	BlendMode cuurenttype = BlendMode::kBlendModeAdd;
 
