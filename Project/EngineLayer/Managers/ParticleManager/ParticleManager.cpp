@@ -45,24 +45,20 @@ void ParticleManager::Initialize(DirectXCommon* dxCommon, Camera* camera)
 	// パイプライン生成
 	CreatePSO();
 
-	// 頂点データの初期化
-	//mesh_.Initialize();
-
-	// リングの頂点データを生成
-	mesh_.CreateVertexData();
-
-	// シリンダーの頂点データを生成
-	//mesh_.InitializeCylinder();
-
 	// マテリアルデータの初期化
 	material_.Initialize();
+
+	// メッシュデータの初期化
+	meshMap_[ParticleEffectType::Default].Initialize();
+	meshMap_[ParticleEffectType::Ring].InitializeRing();
+	meshMap_[ParticleEffectType::Cylinder].InitializeCylinder();
 }
 
 
 /// -------------------------------------------------------------
 ///				    パーティクルグループの生成
 /// -------------------------------------------------------------
-void ParticleManager::CreateParticleGroup(const std::string& name, const std::string& textureFilePath)
+void ParticleManager::CreateParticleGroup(const std::string& name, const std::string& textureFilePath, ParticleEffectType effectType)
 {
 	const std::string FilePath = "Resources/" + textureFilePath;
 
@@ -79,6 +75,9 @@ void ParticleManager::CreateParticleGroup(const std::string& name, const std::st
 	// インスタンスバッファ作成
 	group.instancebuffer = ResourceManager::CreateBufferResource(dxCommon_->GetDevice(), sizeof(ParticleForGPU) * kNumMaxInstance);
 	group.instancebuffer->Map(0, nullptr, reinterpret_cast<void**>(&group.mappedData));
+
+	// パーティクルのエフェクトの種類を設定
+	group.type = effectType;
 
 	// 初期化
 	for (uint32_t i = 0; i < kNumMaxInstance; ++i)
@@ -150,11 +149,20 @@ void ParticleManager::Update()
 				particle.transform.translate_ += particle.velocity * kDeltaTime;
 				particle.currentTime += kDeltaTime;
 
-				// リングを回転させるための処理
-				particle.transform.rotate_.z += 1.5f * kDeltaTime; // 秒間約86度の回転
 
-				// シリンダーを回転させるための処理
-				//particle.transform.rotate_.y += 1.5f * kDeltaTime; // 秒間約86度の回転
+				switch (group.second.type)
+				{
+				case ParticleEffectType::Ring:
+					particle.transform.rotate_.z += 1.5f * kDeltaTime;
+					break;
+
+				case ParticleEffectType::Cylinder:
+					particle.transform.rotate_.y += 1.5f * kDeltaTime;
+					break;
+
+				default:
+					break;
+				}
 
 				// 行列更新（transformに任せる）
 				particle.transform.UpdateMatrix(viewProjectionMatrix, useBillboard, billboardMatrix);
@@ -225,8 +233,16 @@ void ParticleManager::Draw()
 		// インスタンシングデータのSRVのデスクリプタテーブルを設定
 		commandList->SetGraphicsRootDescriptorTable(2, group.second.materialData.gpuHandle);
 
-		// インスタンシング描画
-		mesh_.Draw(group.second.numParticles);
+		auto meshIt = meshMap_.find(group.second.type);
+		if (meshIt != meshMap_.end())
+		{
+			commandList->IASetVertexBuffers(0, 1, &meshIt->second.GetVertexBufferView());
+			meshIt->second.Draw(group.second.numParticles);
+		}
+		else
+		{
+			Log("Uninitialized ParticleMesh for type: " + std::to_string((int)group.second.type));
+		}
 
 		// インスタンス数をリセット
 		group.second.numParticles = 0;

@@ -11,12 +11,22 @@ ParticleEmitter::ParticleEmitter(ParticleManager* manager, const std::string& gr
 
 void ParticleEmitter::Update()
 {
-    accumulatedTime_ += DirectXCommon::GetInstance()->GetFPSCounter().GetFPS();
+    accumulatedTime_ += 1.0f / DirectXCommon::GetInstance()->GetFPSCounter().GetFPS();
 
-    // 発生させるパーティクルの数を計算
     int particleCount = static_cast<int>(emissionRate_);
-    if (particleCount > 0) {
-        particleManager_->Emit(groupName_, position_, particleCount, ParticleEffectType::Ring);
+    if (particleCount > 0)
+    {
+        // ← グループに設定された type を取得
+        ParticleEffectType type = particleManager_->GetGroupType(groupName_);
+
+        // ← 自動で対応した type を使って射出
+        particleManager_->Emit(groupName_, position_, particleCount, type);
+
         accumulatedTime_ -= static_cast<float>(particleCount) / emissionRate_;
     }
+}
+
+void ParticleEmitter::Burst(int count)
+{
+	particleManager_->Emit(groupName_, position_, count, ParticleEffectType::Ring);
 }

@@ -5,8 +5,6 @@
 
 void ParticleMesh::Initialize()
 {
-	ID3D12Device* device = DirectXCommon::GetInstance()->GetDevice();
-
 	// 6つの頂点を定義して四角形を表現
 	modelData_.vertices.push_back({ .position = {-1.0f, 1.0f, 0.0f, 1.0f}, .texcoord = {0.0f, 0.0f}, .normal = {0.0f, 0.0f, 1.0f} });  // 左上
 	modelData_.vertices.push_back({ .position = {1.0f, 1.0f, 0.0f, 1.0f}, .texcoord = {1.0f, 0.0f}, .normal = {0.0f, 0.0f, 1.0f} }); // 右上
@@ -16,67 +14,47 @@ void ParticleMesh::Initialize()
 	modelData_.vertices.push_back({ .position = {1.0f, 1.0f, 0.0f, 1.0f}, .texcoord = {1.0f, 0.0f}, .normal = {0.0f, 0.0f, 1.0f} }); // 右上
 	modelData_.vertices.push_back({ .position = {1.0f, -1.0f, 0.0f, 1.0f}, .texcoord = {1.0f, 1.0f}, .normal = {0.0f, 0.0f, 1.0f} }); // 右下
 
-	// バッファリソースの作成
-	vertexResource_ = ResourceManager::CreateBufferResource(device, sizeof(VertexData) * modelData_.vertices.size());
-
-	// 頂点バッファビュー（VBV）作成
-	vertexBufferView_.BufferLocation = vertexResource_->GetGPUVirtualAddress();									 // リソースの先頭のアドレスから使う
-	vertexBufferView_.SizeInBytes = UINT(sizeof(VertexData) * modelData_.vertices.size());	 // 使用するリソースのサイズ
-	vertexBufferView_.StrideInBytes = sizeof(VertexData);														 // 1頂点あたりのサイズ
-
-	vertexResource_->Map(0, nullptr, reinterpret_cast<void**>(&vertexData_));										 // 書き込むためのアドレスを取得
-
-	// モデルデータの頂点データをコピー
-	std::memcpy(vertexData_, modelData_.vertices.data(), sizeof(VertexData) * modelData_.vertices.size());
+	CreateVertexBuffer();
 }
 
-void ParticleMesh::CreateVertexData()
+void ParticleMesh::InitializeRing()
 {
-	ID3D12Device* device = DirectXCommon::GetInstance()->GetDevice();
-
 	const uint32_t kSubdivision = 32;
-	const float outerRadius = 1.0f;
-	const float innerRadius = 0.4f;
+	const float innerRadius = 1.0f;
+	const float outerRadius = 0.4f;
 
-	for (uint32_t i = 0; i < kSubdivision; ++i) {
+	for (uint32_t i = 0; i < kSubdivision; ++i)
+	{
 		float theta1 = 2.0f * std::numbers::pi_v<float> *i / kSubdivision;
 		float theta2 = 2.0f * std::numbers::pi_v<float> *(i + 1) / kSubdivision;
 
 		float u1 = static_cast<float>(i) / kSubdivision;
 		float u2 = static_cast<float>(i + 1) / kSubdivision;
 
-		// 修正後（巻き方向を反転させる：反時計回り → 時計回り）
-		Vector4 p0 = { cos(theta1) * innerRadius, sin(theta1) * innerRadius, 0.0f, 1.0f };
-		Vector4 p1 = { cos(theta2) * innerRadius, sin(theta2) * innerRadius, 0.0f, 1.0f };
-		Vector4 p2 = { cos(theta1) * outerRadius, sin(theta1) * outerRadius, 0.0f, 1.0f };
-		Vector4 p3 = { cos(theta2) * outerRadius, sin(theta2) * outerRadius, 0.0f, 1.0f };
+		Vector4 p0 = { std::cos(theta1) * innerRadius, std::sin(theta1) * innerRadius, 0.0f, 1.0f };
+		Vector4 p1 = { std::cos(theta2) * innerRadius, std::sin(theta2) * innerRadius, 0.0f, 1.0f };
+		Vector4 p2 = { std::cos(theta1) * outerRadius, std::sin(theta1) * outerRadius, 0.0f, 1.0f };
+		Vector4 p3 = { std::cos(theta2) * outerRadius, std::sin(theta2) * outerRadius, 0.0f, 1.0f };
 
-		// ここからの三角形構成を「逆順」にします（裏向きに）
+		Vector3 normal = { 0.0f, 0.0f, 1.0f };
 
-		// 三角形1（p3 → p2 → p0）
-		modelData_.vertices.push_back({ p3, {u2, 0.0f}, {0, 0, -1} });
-		modelData_.vertices.push_back({ p2, {u1, 0.0f}, {0, 0, -1} });
-		modelData_.vertices.push_back({ p0, {u1, 1.0f}, {0, 0, -1} });
+		// 三角形1（内→外→外）
+		modelData_.vertices.push_back({ p0, {u1, 1.0f}, normal }); // 内側→上
+		modelData_.vertices.push_back({ p2, {u1, 0.0f}, normal }); // 外側→下
+		modelData_.vertices.push_back({ p3, {u2, 0.0f}, normal });
 
-		// 三角形2（p1 → p3 → p0）
-		modelData_.vertices.push_back({ p1, {u2, 1.0f}, {0, 0, -1} });
-		modelData_.vertices.push_back({ p3, {u2, 0.0f}, {0, 0, -1} });
-		modelData_.vertices.push_back({ p0, {u1, 1.0f}, {0, 0, -1} });
+		// 三角形2（内→外→内）						 
+		modelData_.vertices.push_back({ p0, {u1, 1.0f}, normal });
+		modelData_.vertices.push_back({ p3, {u2, 0.0f}, normal });
+		modelData_.vertices.push_back({ p1, {u2, 1.0f}, normal });
 	}
 
-	// 以下は既存のコード（Resource作成、VBV設定）
-	vertexResource_ = ResourceManager::CreateBufferResource(device, sizeof(VertexData) * modelData_.vertices.size());
-	vertexBufferView_.BufferLocation = vertexResource_->GetGPUVirtualAddress();
-	vertexBufferView_.SizeInBytes = UINT(sizeof(VertexData) * modelData_.vertices.size());
-	vertexBufferView_.StrideInBytes = sizeof(VertexData);
-	vertexResource_->Map(0, nullptr, reinterpret_cast<void**>(&vertexData_));
-	std::memcpy(vertexData_, modelData_.vertices.data(), sizeof(VertexData) * modelData_.vertices.size());
+	// 頂点バッファを生成
+	CreateVertexBuffer();
 }
 
 void ParticleMesh::InitializeCylinder()
 {
-	ID3D12Device* device = DirectXCommon::GetInstance()->GetDevice();
-
 	const uint32_t kCylinderDivide = 32;
 	const float kTopRadius = 1.0f;
 	const float kBottomRadius = 1.0f;
@@ -112,17 +90,22 @@ void ParticleMesh::InitializeCylinder()
 		modelData_.vertices.push_back({ top1, {u1, 0.0f}, normal1 });
 	}
 
-	vertexResource_ = ResourceManager::CreateBufferResource(device, sizeof(VertexData) * modelData_.vertices.size());
-	vertexBufferView_.BufferLocation = vertexResource_->GetGPUVirtualAddress();
-	vertexBufferView_.SizeInBytes = UINT(sizeof(VertexData) * modelData_.vertices.size());
-	vertexBufferView_.StrideInBytes = sizeof(VertexData);
-	vertexResource_->Map(0, nullptr, reinterpret_cast<void**>(&vertexData_));
-	std::memcpy(vertexData_, modelData_.vertices.data(), sizeof(VertexData) * modelData_.vertices.size());
-
+	CreateVertexBuffer();
 }
 
 void ParticleMesh::Draw(UINT num)
 {
 	ID3D12GraphicsCommandList* commandList = DirectXCommon::GetInstance()->GetCommandManager()->GetCommandList();
 	commandList->DrawInstanced(UINT(modelData_.vertices.size()), num, 0, 0);
+}
+
+void ParticleMesh::CreateVertexBuffer()
+{
+	ID3D12Device* device = DirectXCommon::GetInstance()->GetDevice();
+	vertexResource_ = ResourceManager::CreateBufferResource(device, sizeof(VertexData) * modelData_.vertices.size());
+	vertexBufferView_.BufferLocation = vertexResource_->GetGPUVirtualAddress();
+	vertexBufferView_.SizeInBytes = UINT(sizeof(VertexData) * modelData_.vertices.size());
+	vertexBufferView_.StrideInBytes = sizeof(VertexData);
+	vertexResource_->Map(0, nullptr, reinterpret_cast<void**>(&vertexData_));
+	std::memcpy(vertexData_, modelData_.vertices.data(), sizeof(VertexData) * modelData_.vertices.size());
 }
