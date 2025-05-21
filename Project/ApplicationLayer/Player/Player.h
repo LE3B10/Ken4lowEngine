@@ -83,7 +83,7 @@ private: /// ---------- ジャンプ機能 ---------- ///
 	const float jumpPower_ = 0.5f; // ジャンプ力
 
 	float deltaTime = 1.0f / 60.0f; // フレーム間時間（例: 1/60秒）
-	float hp_ = 100.0f;
+	float hp_ = 100000.0f;
 	bool isDead_ = false;
 };
 

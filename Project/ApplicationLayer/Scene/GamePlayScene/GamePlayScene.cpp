@@ -52,10 +52,10 @@ void GamePlayScene::Initialize()
 	player_ = std::make_unique<Player>();
 	player_->Initialize();
 
-	// エネミーの生成と初期化
-	enemy_ = std::make_unique<Enemy>();
-	enemy_->Initialize();
-	enemy_->SetTarget(player_.get());
+	// エネミースポナーの生成と初期化
+	enemySpawner_ = std::make_unique<EnemySpawner>();
+	enemySpawner_->SetTargetPlayer(player_.get());
+	enemySpawner_->Initialize();
 
 	// 追従カメラの生成と初期化
 	fpsCamera_ = std::make_unique<FpsCamera>();
@@ -139,10 +139,17 @@ void GamePlayScene::Update()
 			return;
 		}
 
+
+		enemySpawner_->Update();
+
+		// Waveがすべて終わったら次Waveをスタート
+		if (enemySpawner_->IsWaveClear()) {
+			enemySpawner_->StartNextWave();
+		}
+
 		player_->Update();
 		fpsCamera_->Update(false);
 		crosshair_->Update();
-		enemy_->Update();
 		collisionManager_->Update();
 		CheckAllCollisions();
 		break;
@@ -187,8 +194,8 @@ void GamePlayScene::Draw3DObjects()
 	// プレイヤーの描画
 	player_->Draw();
 
-	// エネミーの描画
-	enemy_->Draw();
+	// エネミースポナーの描画
+	enemySpawner_->Draw();
 
 #pragma endregion
 
@@ -251,8 +258,8 @@ void GamePlayScene::DrawImGui()
 	// プレイヤー
 	player_->DrawImGui();
 
-	// エネミー
-	enemy_->DrawImGui();
+	// エネミースポナー
+	enemySpawner_->DrawImGui();
 }
 
 
@@ -267,9 +274,6 @@ void GamePlayScene::CheckAllCollisions()
 	// コライダーをリストに登録
 	collisionManager_->AddCollider(player_.get());
 
-	// 敵のコライダーを登録
-	collisionManager_->AddCollider(enemy_.get());
-
 	// プレイヤーの弾の登録
 	for (const auto& bullet : player_->GetBullets())
 	{
@@ -280,24 +284,22 @@ void GamePlayScene::CheckAllCollisions()
 	}
 
 	// エネミーの弾丸の登録
-	for (const auto& bullet : enemy_->GetBullets())
+	for (auto& enemy : enemySpawner_->GetEnemies())
 	{
-		if (!bullet->IsDead())
+		if (!enemy->IsDead())
 		{
-			collisionManager_->AddCollider(bullet.get());
+			collisionManager_->AddCollider(enemy.get());
+
+			for (const auto& bullet : enemy->GetBullets())
+			{
+				if (!bullet->IsDead())
+				{
+					collisionManager_->AddCollider(bullet.get());
+				}
+			}
 		}
 	}
 
-	// 死亡したらコライダーを削除
-	if (enemy_->IsDead())
-	{
-		collisionManager_->RemoveCollider(enemy_.get());
-
-		for (const auto& bullet : enemy_->GetBullets())
-		{
-			collisionManager_->RemoveCollider(bullet.get());
-		}
-	}
 	if (player_->IsDead()) collisionManager_->RemoveCollider(player_.get());
 
 	// 衝突判定と応答

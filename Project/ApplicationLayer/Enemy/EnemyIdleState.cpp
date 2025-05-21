@@ -13,18 +13,23 @@ void EnemyIdleState::Enter(Enemy* enemy)
 
 	// 初期移動方向（+X方向）
 	enemy->SetIdleMoveDirection({ 1.0f, 0.0f, 0.0f });
+
+	idleTimer_ = 0.0f;
 }
 
 void EnemyIdleState::Update(Enemy* enemy)
 {
-	Vector3 toPlayer = enemy->GetTargetPlayer()->GetWorldPosition() - enemy->GetWorldPosition();
-	float distanceToPlayer = Vector3::Length(toPlayer);
+	idleTimer_ += 1.0f / 60.0f;
 
-	// プレイヤーが接近したら攻撃に移行
-	if (distanceToPlayer < 100.0f)
-	{
-		enemy->ChangeState(std::make_unique<EnemyAttackState>());
-		return;
+	// 最低1秒間は移動のみ行う（攻撃遷移を抑制）
+	if (idleTimer_ >= 1.0f) {
+		Vector3 toPlayer = enemy->GetTargetPlayer()->GetWorldPosition() - enemy->GetWorldPosition();
+		float distanceToPlayer = Vector3::Length(toPlayer);
+
+		if (distanceToPlayer < 100.0f) {
+			enemy->ChangeState(std::make_unique<EnemyAttackState>());
+			return;
+		}
 	}
 
 	// ---- 左右往復移動処理 ----
@@ -41,8 +46,7 @@ void EnemyIdleState::Update(Enemy* enemy)
 
 	// 基準点からのXオフセットが最大距離を超えたら反転
 	float offset = nextPos.x - basePos.x;
-	if (std::abs(offset) >= maxOffset)
-	{
+	if (std::abs(offset) >= maxOffset) {
 		dir.x *= -1.0f;
 		enemy->SetIdleMoveDirection(dir);
 	}

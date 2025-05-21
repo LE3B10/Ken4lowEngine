@@ -119,6 +119,6 @@ void Enemy::OnCollision(Collider* other)
 	if (other->GetTypeID() == static_cast<uint32_t>(CollisionTypeIdDef::kBullet))
 	{
 		// パーティクルを表示（仮演出）
-		TakeDamage(10.0f);
+		TakeDamage(100.0f);
 	}
 }
