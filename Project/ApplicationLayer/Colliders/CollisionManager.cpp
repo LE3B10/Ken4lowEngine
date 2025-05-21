@@ -130,6 +130,14 @@ void CollisionManager::RegisterCollisionFuncsions()
 		return CollisionUtility::IsCollision(a->GetOBB(), b->GetOBB());
 		};
 
+	collisionTable_[{1, 5}] = [](Collider* a, Collider* b) {
+		return CollisionUtility::IsCollision(a->GetOBB(), b->GetOBB());
+		};
+
+	collisionTable_[{5, 1}] = [](Collider* a, Collider* b) {
+		return CollisionUtility::IsCollision(a->GetOBB(), b->GetOBB());
+		};
+
 	//// OBB vs OBB 判定　どっちか
 	//auto obb_vs_obb = [](Collider* a, Collider* b) {
 	//	return CollisionUtility::IsCollision(a->GetOBB(), b->GetOBB());

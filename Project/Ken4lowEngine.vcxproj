@@ -119,6 +119,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClCompile Include="ApplicationLayer\Crosshair\Crosshair.cpp" />
     <ClCompile Include="ApplicationLayer\Enemy\Enemy.cpp" />
     <ClCompile Include="ApplicationLayer\Colliders\CollisionUtility.cpp" />
+    <ClCompile Include="EnemyBullet.cpp" />
     <ClCompile Include="EngineLayer\Mesh\AnimationMesh.cpp" />
     <ClCompile Include="EngineLayer\Audio\AudioManager.cpp" />
     <ClCompile Include="EngineLayer\Audio\MP3Loader.cpp" />
@@ -361,6 +362,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="ApplicationLayer\Crosshair\Crosshair.h" />
     <ClInclude Include="ApplicationLayer\Enemy\Enemy.h" />
     <ClInclude Include="ApplicationLayer\Colliders\CollisionUtility.h" />
+    <ClInclude Include="EnemyBullet.h" />
     <ClInclude Include="EngineLayer\Math\Line.h" />
     <ClInclude Include="EngineLayer\Math\Plane.h" />
     <ClInclude Include="EngineLayer\Math\Ray.h" />

@@ -21,26 +21,52 @@ void Enemy::Initialize()
 
 void Enemy::Update()
 {
-	if (isDead_) return; // 死亡済みなら更新スキップ（描画も停止する）
+	if (isDead_) return;
 
 	if (player_)
 	{
 		Vector3 toPlayer = player_->GetWorldPosition() - body_.worldTransform_.translate_;
 		float distance = Vector3::Length(toPlayer);
 
-		// 距離5以上なら追いかける
 		if (distance > 5.0f)
 		{
 			Vector3 direction = Vector3::Normalize(toPlayer);
 			body_.worldTransform_.translate_ += direction * 0.1f;
 
-			// 回転も補正（Z+が前提）
 			float targetYaw = std::atan2(-direction.x, direction.z);
 			body_.worldTransform_.rotate_.y = Vector3::LerpAngle(body_.worldTransform_.rotate_.y, targetYaw, 0.1f);
 		}
+
+		// --- 発射処理 ---
+		shootTimer_ += 1.0f / 60.0f;
+		if (shootTimer_ >= shootCooldown_)
+		{
+			shootTimer_ = 0.0f;
+
+			auto bullet = std::make_unique<EnemyBullet>();
+			bullet->Initialize();
+			Vector3 muzzlePos = body_.worldTransform_.translate_ + Vector3(0.0f, 13.0f, 0.0f);
+			Vector3 direction = Vector3::Normalize(toPlayer);
+			bullet->SetPosition(muzzlePos);
+			bullet->SetVelocity(direction * 0.5f); // 適切な速度に調整
+
+			bullets_.push_back(std::move(bullet));
+		}
 	}
 
-	// コライダーに座標・回転を反映
+	// 弾の更新 & 削除
+	for (auto it = bullets_.begin(); it != bullets_.end(); )
+	{
+		(*it)->Update();
+		if ((*it)->IsDead()) {
+			it = bullets_.erase(it);
+		}
+		else {
+			++it;
+		}
+	}
+
+	// コライダーの更新
 	Collider::SetCenterPosition(body_.worldTransform_.translate_ + Vector3(0.0f, 8.2f, 0.0f));
 
 	body_.object->SetScale(body_.worldTransform_.scale_);
@@ -50,11 +76,17 @@ void Enemy::Update()
 	BaseCharacter::Update();
 }
 
+
 void Enemy::Draw()
 {
 	//body_.object->Draw();
 	if (IsDead()) return; // 死亡済みなら描画スキップ
 	BaseCharacter::Draw();
+
+	// 弾描画
+	for (auto& bullet : bullets_) {
+		bullet->Draw();
+	}
 }
 
 void Enemy::DrawImGui()
