@@ -13,7 +13,7 @@ void EnemyBullet::Initialize()
 
 void EnemyBullet::Update()
 {
-	position_ += velocity_;
+	position_ += velocity_ * 10.0f;
 	lifeTime_ -= 1.0f / 60.0f;
 
 	model_->SetTranslate(position_);
@@ -30,8 +30,10 @@ void EnemyBullet::Draw()
 
 void EnemyBullet::OnCollision(Collider* other)
 {
-	if (other->GetTypeID() == static_cast<uint32_t>(CollisionTypeIdDef::kPlayer)) {
+	if (other->GetTypeID() == static_cast<uint32_t>(CollisionTypeIdDef::kPlayer))
+	{
 		isDead_ = true;
+
 		// プレイヤーにダメージを与える処理などもここに追加
 
 	}

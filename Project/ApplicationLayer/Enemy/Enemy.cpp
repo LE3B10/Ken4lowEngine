@@ -3,6 +3,7 @@
 #include <imgui.h>
 #include <CollisionTypeIdDef.h>
 #include <ParticleManager.h>
+#include "EnemyIdleState.h"
 
 void Enemy::Initialize()
 {
@@ -17,42 +18,16 @@ void Enemy::Initialize()
 	body_.object->Initialize("body.gltf");
 	body_.worldTransform_.scale_ = { 3.0f, 3.0f, 3.0f };
 	body_.worldTransform_.translate_ = { 0.0f, 0.0f, 200.0f };
+
+	// 初期ステートを Idle に設定
+	ChangeState(std::make_unique<EnemyIdleState>());
 }
 
 void Enemy::Update()
 {
 	if (isDead_) return;
 
-	if (player_)
-	{
-		Vector3 toPlayer = player_->GetWorldPosition() - body_.worldTransform_.translate_;
-		float distance = Vector3::Length(toPlayer);
-
-		if (distance > 5.0f)
-		{
-			Vector3 direction = Vector3::Normalize(toPlayer);
-			body_.worldTransform_.translate_ += direction * 0.1f;
-
-			float targetYaw = std::atan2(-direction.x, direction.z);
-			body_.worldTransform_.rotate_.y = Vector3::LerpAngle(body_.worldTransform_.rotate_.y, targetYaw, 0.1f);
-		}
-
-		// --- 発射処理 ---
-		shootTimer_ += 1.0f / 60.0f;
-		if (shootTimer_ >= shootCooldown_)
-		{
-			shootTimer_ = 0.0f;
-
-			auto bullet = std::make_unique<EnemyBullet>();
-			bullet->Initialize();
-			Vector3 muzzlePos = body_.worldTransform_.translate_ + Vector3(0.0f, 13.0f, 0.0f);
-			Vector3 direction = Vector3::Normalize(toPlayer);
-			bullet->SetPosition(muzzlePos);
-			bullet->SetVelocity(direction * 0.5f); // 適切な速度に調整
-
-			bullets_.push_back(std::move(bullet));
-		}
-	}
+	shootTimer_ += 1.0f / 60.0f; // ✅ ここで毎フレーム加算すること！
 
 	// 弾の更新 & 削除
 	for (auto it = bullets_.begin(); it != bullets_.end(); )
@@ -64,6 +39,11 @@ void Enemy::Update()
 		else {
 			++it;
 		}
+	}
+
+	if (currentState_)
+	{
+		currentState_->Update(this);
 	}
 
 	// コライダーの更新
@@ -94,6 +74,44 @@ void Enemy::DrawImGui()
 	Collider::DrawImGui();
 	ImGui::Text("HP: %.1f", hp_);
 	ImGui::Checkbox("IsDead", &isDead_);
+
+	// Enemy::DrawImGui() に表示追加
+	ImGui::Text("State: %s", currentStateName_.c_str());
+}
+
+void Enemy::ChangeState(std::unique_ptr<IEnemyState> newState)
+{
+	if (currentState_) currentState_->Exit(this);
+	currentState_ = std::move(newState);
+	if (currentState_) currentState_->Enter(this);
+}
+
+void Enemy::RequestShoot()
+{
+	if (shootTimer_ < shootCooldown_) return;
+
+	shootTimer_ = 0.0f;
+
+	auto bullet = std::make_unique<EnemyBullet>();
+	bullet->Initialize();
+	Vector3 muzzlePos = body_.worldTransform_.translate_ + Vector3(0.0f, 13.0f, 0.0f);
+	Vector3 direction = Vector3::Normalize(player_->GetWorldPosition() - body_.worldTransform_.translate_);
+	bullet->SetPosition(muzzlePos);
+	bullet->SetVelocity(direction * 0.5f);
+
+	bullets_.push_back(std::move(bullet));
+
+	// 弾の更新 & 削除
+	for (auto it = bullets_.begin(); it != bullets_.end(); )
+	{
+		(*it)->Update();
+		if ((*it)->IsDead()) {
+			it = bullets_.erase(it);
+		}
+		else {
+			++it;
+		}
+	}
 }
 
 void Enemy::OnCollision(Collider* other)
@@ -101,6 +119,6 @@ void Enemy::OnCollision(Collider* other)
 	if (other->GetTypeID() == static_cast<uint32_t>(CollisionTypeIdDef::kBullet))
 	{
 		// パーティクルを表示（仮演出）
-		TakeDamage(50.0f);
+		TakeDamage(10.0f);
 	}
 }

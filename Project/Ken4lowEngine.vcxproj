@@ -119,7 +119,10 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClCompile Include="ApplicationLayer\Crosshair\Crosshair.cpp" />
     <ClCompile Include="ApplicationLayer\Enemy\Enemy.cpp" />
     <ClCompile Include="ApplicationLayer\Colliders\CollisionUtility.cpp" />
-    <ClCompile Include="EnemyBullet.cpp" />
+    <ClCompile Include="ApplicationLayer\Enemy\EnemyAttackState.cpp" />
+    <ClCompile Include="ApplicationLayer\Enemy\EnemyBullet.cpp" />
+    <ClCompile Include="ApplicationLayer\Enemy\EnemyChaseState.cpp" />
+    <ClCompile Include="ApplicationLayer\Enemy\EnemyIdleState.cpp" />
     <ClCompile Include="EngineLayer\Mesh\AnimationMesh.cpp" />
     <ClCompile Include="EngineLayer\Audio\AudioManager.cpp" />
     <ClCompile Include="EngineLayer\Audio\MP3Loader.cpp" />
@@ -216,6 +219,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClCompile Include="EngineLayer\ParticleManagement\ParticleFactory.cpp" />
     <ClCompile Include="ApplicationLayer\Weapon\Weapon.cpp" />
     <ClCompile Include="EngineLayer\2D\Sprite\NumberSpriteDrawer.cpp" />
+    <ClCompile Include="ApplicationLayer\Enemy\IEnemyState.cpp" />
     <ClCompile Include="WinMain.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
@@ -362,7 +366,10 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="ApplicationLayer\Crosshair\Crosshair.h" />
     <ClInclude Include="ApplicationLayer\Enemy\Enemy.h" />
     <ClInclude Include="ApplicationLayer\Colliders\CollisionUtility.h" />
-    <ClInclude Include="EnemyBullet.h" />
+    <ClInclude Include="ApplicationLayer\Enemy\EnemyAttackState.h" />
+    <ClInclude Include="ApplicationLayer\Enemy\EnemyBullet.h" />
+    <ClInclude Include="ApplicationLayer\Enemy\EnemyChaseState.h" />
+    <ClInclude Include="ApplicationLayer\Enemy\EnemyIdleState.h" />
     <ClInclude Include="EngineLayer\Math\Line.h" />
     <ClInclude Include="EngineLayer\Math\Plane.h" />
     <ClInclude Include="EngineLayer\Math\Ray.h" />
@@ -488,6 +495,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="ApplicationLayer\Weapon\Weapon.h" />
     <ClInclude Include="EngineLayer\2D\Sprite\NumberSpriteDrawer.h" />
     <ClInclude Include="EngineLayer\Math\Sphere.h" />
+    <ClInclude Include="ApplicationLayer\Enemy\IEnemyState.h" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="externals\DirectXTex\DirectXTex_Desktop_2022_Win10.vcxproj">
