@@ -31,9 +31,6 @@ void Player::Initialize()
 
 	numberSpriteDrawer_ = std::make_unique<NumberSpriteDrawer>();
 	numberSpriteDrawer_->Initialize("Resources/number.png", 50.0f, 50.0f);
-
-	hp_ = 100.0f;
-	isDead_ = false;
 }
 
 

@@ -14,7 +14,7 @@ void EnemyBullet::Initialize()
 
 void EnemyBullet::Update()
 {
-	position_ += velocity_ * 2.0f;
+	position_ += velocity_ * 8.0f;
 	lifeTime_ -= 1.0f / 60.0f;
 
 	model_->SetTranslate(position_);

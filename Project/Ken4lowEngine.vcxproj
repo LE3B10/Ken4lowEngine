@@ -123,6 +123,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClCompile Include="ApplicationLayer\Enemy\EnemyBullet.cpp" />
     <ClCompile Include="ApplicationLayer\Enemy\EnemyChaseState.cpp" />
     <ClCompile Include="ApplicationLayer\Enemy\EnemyIdleState.cpp" />
+    <ClCompile Include="ApplicationLayer\Enemy\EnemySpawner.cpp" />
     <ClCompile Include="EngineLayer\Mesh\AnimationMesh.cpp" />
     <ClCompile Include="EngineLayer\Audio\AudioManager.cpp" />
     <ClCompile Include="EngineLayer\Audio\MP3Loader.cpp" />
@@ -370,6 +371,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="ApplicationLayer\Enemy\EnemyBullet.h" />
     <ClInclude Include="ApplicationLayer\Enemy\EnemyChaseState.h" />
     <ClInclude Include="ApplicationLayer\Enemy\EnemyIdleState.h" />
+    <ClInclude Include="ApplicationLayer\Enemy\EnemySpawner.h" />
     <ClInclude Include="EngineLayer\Math\Line.h" />
     <ClInclude Include="EngineLayer\Math\Plane.h" />
     <ClInclude Include="EngineLayer\Math\Ray.h" />

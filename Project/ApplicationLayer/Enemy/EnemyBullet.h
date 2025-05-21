@@ -31,7 +31,7 @@ private:
 	std::unique_ptr<Object3D> model_;
 	Vector3 position_ = {};
 	Vector3 velocity_ = {};
-	float lifeTime_ = 3.0f;
+	float lifeTime_ = 0.5f;
 	bool isDead_ = false;
 };
 
