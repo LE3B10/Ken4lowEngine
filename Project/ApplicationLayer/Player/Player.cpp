@@ -31,6 +31,9 @@ void Player::Initialize()
 
 	numberSpriteDrawer_ = std::make_unique<NumberSpriteDrawer>();
 	numberSpriteDrawer_->Initialize("Resources/number.png", 50.0f, 50.0f);
+
+	hp_ = 100.0f;
+	isDead_ = false;
 }
 
 
@@ -39,6 +42,8 @@ void Player::Initialize()
 /// -------------------------------------------------------------
 void Player::Update()
 {
+	if (isDead_) return; // 死亡後は行動不可
+
 	// プレイヤーの移動処理
 	Move();
 
@@ -93,6 +98,18 @@ void Player::DrawHUD()
 void Player::DrawImGui()
 {
 	weapon_.DrawImGui(); // ★ 武器のImGui描画
+}
+
+void Player::TakeDamage(float damage)
+{
+	if (isDead_) return;
+	hp_ -= damage;
+	if (hp_ <= 0.0f)
+	{
+		hp_ = 0.0f;
+		isDead_ = true;
+		Log("Player is dead");
+	}
 }
 
 

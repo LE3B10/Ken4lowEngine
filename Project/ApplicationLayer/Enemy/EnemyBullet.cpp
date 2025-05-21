@@ -1,5 +1,6 @@
 #include "EnemyBullet.h"
 #include <CollisionTypeIdDef.h>
+#include <Player.h>
 
 void EnemyBullet::Initialize()
 {
@@ -13,7 +14,7 @@ void EnemyBullet::Initialize()
 
 void EnemyBullet::Update()
 {
-	position_ += velocity_ * 10.0f;
+	position_ += velocity_ * 2.0f;
 	lifeTime_ -= 1.0f / 60.0f;
 
 	model_->SetTranslate(position_);
@@ -35,6 +36,10 @@ void EnemyBullet::OnCollision(Collider* other)
 		isDead_ = true;
 
 		// プレイヤーにダメージを与える処理などもここに追加
-
+		Player* player = dynamic_cast<Player*>(other);
+		if (player)
+		{
+			player->TakeDamage(25.0f); // 例：25ダメージ
+		}
 	}
 }
