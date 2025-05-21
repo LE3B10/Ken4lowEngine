@@ -50,6 +50,9 @@ public: /// ---------- ゲッタ ---------- ///
 	// 弾丸を取得
 	const std::vector<std::unique_ptr<Bullet>>& GetBullets() const { return weapon_.GetBullets(); }
 
+	// ワールド変換の取得
+	const WorldTransform* GetWorldTransform() { return &body_.worldTransform_; }
+
 public: /// ---------- セッタ ---------- ///
 
 	// 追従カメラを設定
