@@ -270,8 +270,26 @@ void GamePlayScene::CheckAllCollisions()
 		}
 	}
 
+	// エネミーの弾丸の登録
+	for (const auto& bullet : enemy_->GetBullets())
+	{
+		if (!bullet->IsDead())
+		{
+			collisionManager_->AddCollider(bullet.get());
+		}
+	}
+
 	// 死亡したらコライダーを削除
-	if (enemy_->IsDead()) collisionManager_->RemoveCollider(enemy_.get());
+	if (enemy_->IsDead())
+	{
+		collisionManager_->RemoveCollider(enemy_.get());
+
+		for (const auto& bullet : enemy_->GetBullets())
+		{
+			collisionManager_->RemoveCollider(bullet.get());
+		}
+	}
+	if (player_->IsDead()) collisionManager_->RemoveCollider(player_.get());
 
 	// 衝突判定と応答
 	collisionManager_->CheckAllCollisions();
