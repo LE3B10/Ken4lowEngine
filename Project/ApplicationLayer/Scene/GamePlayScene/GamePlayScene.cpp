@@ -9,6 +9,7 @@
 #include <ParticleManager.h>
 #include "Wireframe.h"
 #include "AudioManager.h"
+#include <SceneManager.h>
 
 #ifdef _DEBUG
 #include <DebugCamera.h>
@@ -45,7 +46,7 @@ void GamePlayScene::Initialize()
 
 	// カーソルをロック
 	Input::GetInstance()->SetLockCursor(true);
-	ShowCursor(true);// 表示・非表示も連動（オプション）
+	ShowCursor(false);// 表示・非表示も連動（オプション）
 
 	// プレイヤーの生成と初期化
 	player_ = std::make_unique<Player>();
@@ -130,6 +131,14 @@ void GamePlayScene::Update()
 	switch (gameState_)
 	{
 	case GameState::Playing:
+
+		if (player_->IsDead())
+		{
+			// ゲームオーバー状態に遷移
+			sceneManager_->ChangeScene("GameOverScene");
+			return;
+		}
+
 		player_->Update();
 		fpsCamera_->Update(false);
 		crosshair_->Update();

@@ -65,8 +65,8 @@ void ParticleManager::CreateParticleGroup(const std::string& name, const std::st
 
 	TextureManager::GetInstance()->LoadTexture(FilePath);
 
-	// 登録済みの名前かチェックしてassert
-	assert(particleGroups.find(name) == particleGroups.end() && "Particle group alread exests!");
+	// すでに存在していれば何もせずに戻る
+	if (particleGroups.find(name) != particleGroups.end()) return;
 
 	// 新たな空のパーティクルグループを作成し、コンテナに登録
 	ParticleGroup group{};
