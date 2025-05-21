@@ -1,6 +1,7 @@
 #include "CollisionManager.h"
 #include "ParameterManager.h"
 #include "Collider.h"
+#include <CollisionUtility.h>
 
 
 void CollisionManager::Initialize()
@@ -9,6 +10,7 @@ void CollisionManager::Initialize()
 	ParameterManager::GetInstance()->CreateGroup("Collider");
 	ParameterManager::GetInstance()->AddItem("Collider", "isCollider", isCollider_);
 
+	RegisterCollisionFuncsions();
 }
 
 void CollisionManager::Update()
@@ -98,42 +100,42 @@ void CollisionManager::CheckCollisionPair(Collider* colliderA, Collider* collide
 	// 自分同士は無視
 	if (colliderA == colliderB) return;
 
-	// 異なるタイプの組み合わせのみ衝突判定する（任意）
-	if (colliderA->GetTypeID() == colliderB->GetTypeID()) return;
+	auto key = std::make_pair(colliderA->GetTypeID(), colliderB->GetTypeID());
+	auto it = collisionTable_.find(key);
 
-	// ← ここを修正！
-	const OBB obbA = colliderA->GetOBB();
-	const OBB obbB = colliderB->GetOBB();
-
-	// 全15軸で分離軸テスト
-	for (int i = 0; i < 3; ++i)
+	if (it != collisionTable_.end())
 	{
-		if (IsSeparatingAxis(obbA.orientations[i], obbA, obbB)) return;
-		if (IsSeparatingAxis(obbB.orientations[i], obbA, obbB)) return;
-	}
-	for (int i = 0; i < 3; ++i)
-	{
-		for (int j = 0; j < 3; ++j)
+		if (!it->second(colliderA, colliderB))
 		{
-			Vector3 axis = Vector3::Cross(obbA.orientations[i], obbB.orientations[j]);
-			if (Vector3::Length(axis) > 0.0001f && IsSeparatingAxis(Vector3::Normalize(axis), obbA, obbB)) return;
+			return; // 衝突していない
 		}
+	}
+	else
+	{
+		return; // 登録されていない型は無視
 	}
 
 	colliderA->OnCollision(colliderB);
 	colliderB->OnCollision(colliderA);
 }
 
-bool CollisionManager::IsSeparatingAxis(const Vector3& axis, const OBB& obbA, const OBB& obbB)
+void CollisionManager::RegisterCollisionFuncsions()
 {
-	float projectionA = 0.0f;
-	float projectionB = 0.0f;
-	float distance = std::abs(Vector3::Dot(axis, obbB.center - obbA.center));
+	// OBB vs OBB 判定
+	collisionTable_[{3, 4}] = [](Collider* a, Collider* b) {
+		return CollisionUtility::IsCollision(a->GetOBB(), b->GetOBB());
+		};
 
-	for (int i = 0; i < 3; ++i)
-	{
-		projectionA += std::abs(Vector3::Dot(axis, obbA.orientations[i]) * obbA.size[i]);
-		projectionB += std::abs(Vector3::Dot(axis, obbB.orientations[i]) * obbB.size[i]);
-	}
-	return distance > (projectionA + projectionB);
+	collisionTable_[{4, 3}] = [](Collider* a, Collider* b) {
+		return CollisionUtility::IsCollision(a->GetOBB(), b->GetOBB());
+		};
+
+	//// OBB vs OBB 判定　どっちか
+	//auto obb_vs_obb = [](Collider* a, Collider* b) {
+	//	return CollisionUtility::IsCollision(a->GetOBB(), b->GetOBB());
+	//	};
+
+	//// 共通（Default = 0）やプレイヤー = 1 を仮定してる場合
+	//collisionTable_[{3, 4}] = obb_vs_obb; // Enemy vs Bullet
+	//collisionTable_[{4, 3}] = obb_vs_obb; // Bullet vs Enemy
 }

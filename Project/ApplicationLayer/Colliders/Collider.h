@@ -1,11 +1,14 @@
 #pragma once
 #include <cstdint>
 #include "Vector3.h"
+#include "Vector4.h"
 #include "Matrix4x4.h"
-#include "Wireframe.h"
+
+#include "OBB.h"
+
 
 /// -------------------------------------------------------------
-///                         当たり判定クラス（OBB対応）
+///                     当たり判定クラス
 /// -------------------------------------------------------------
 class Collider
 {

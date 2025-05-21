@@ -50,6 +50,7 @@ void ParticleManager::Initialize(DirectXCommon* dxCommon, Camera* camera)
 
 	// メッシュデータの初期化
 	meshMap_[ParticleEffectType::Default].Initialize();
+	meshMap_[ParticleEffectType::Slash].InitializeRing();
 	meshMap_[ParticleEffectType::Ring].InitializeRing();
 	meshMap_[ParticleEffectType::Cylinder].InitializeCylinder();
 }
@@ -215,9 +216,6 @@ void ParticleManager::Draw()
 
 	//プリミティブトポロジを設定
 	commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-
-	// VBVを設定
-	commandList->IASetVertexBuffers(0, 1, &mesh_.GetVertexBufferView());
 
 	// すべてのパーティクルグループについて処理する
 	for (auto& group : particleGroups)

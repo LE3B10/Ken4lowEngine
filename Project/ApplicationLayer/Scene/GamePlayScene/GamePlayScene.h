@@ -78,6 +78,7 @@ private: /// ---------- メンバ変数 ---------- ///
 	std::unique_ptr< ParticleEmitter> defaultEmitter_ = nullptr;
 	std::unique_ptr< ParticleEmitter> particleEmitter_ = nullptr;
 	std::unique_ptr< ParticleEmitter> particleEmitter2_ = nullptr;
+	std::unique_ptr< ParticleEmitter> particleEmitter3_ = nullptr;
 
 
 	// デバッグカメラのON/OFF用
