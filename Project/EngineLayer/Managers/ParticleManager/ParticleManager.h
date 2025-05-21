@@ -143,10 +143,6 @@ private: /// ---------- メンバ変数 ---------- ///
 	ParticleTransform transform;
 	ParticleMaterial material_;
 
-	ParticleMesh mesh_;
-	ParticleMesh ringMesh_;
-	ParticleMesh cylinderMesh_;
-
 	std::unordered_map<ParticleEffectType, ParticleMesh> meshMap_;
 
 	BlendMode cuurenttype = BlendMode::kBlendModeAdd;
@@ -161,14 +157,9 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	ComPtr <ID3D12RootSignature> rootSignature = nullptr;
 	ComPtr <ID3D12PipelineState> graphicsPipelineState = nullptr;
-	ComPtr <ID3D12Resource> materialResource;
-	ComPtr <ID3D12Resource> vertexResource;
 
 	// モデルの読み込み
 	ModelData modelData;
-
-	VertexData* vertexData = nullptr;
-	D3D12_VERTEX_BUFFER_VIEW vertexBufferView{};
 
 	// パーティクルグループコンテナ
 	std::unordered_map<std::string, ParticleGroup> particleGroups;
@@ -185,16 +176,6 @@ private: /// ---------- メンバ変数 ---------- ///
 	bool isWind = false;
 
 	bool isDebugCamera_ = false;
-
-	// 分割数
-	uint32_t kSubdivision = 32;
-
-	// 緯度・経度の分割数に応じた角度の計算
-	float kLatEvery = std::numbers::pi_v<float> / float(kSubdivision);
-	float kLonEvery = 2.0f * std::numbers::pi_v<float> / float(kSubdivision);
-
-	// 球体の頂点数の計算
-	uint32_t TotalVertexCount = kSubdivision * kSubdivision * 6;
 
 	// Fieldを作る
 	AccelerationField accelerationField;
