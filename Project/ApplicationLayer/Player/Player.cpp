@@ -126,60 +126,57 @@ void Player::InitializeParts()
 /// -------------------------------------------------------------
 void Player::Move()
 {
-	// プレイヤーコントローラーの更新
 	controller_->Update();
-
-	// プレイヤーの移動入力を取得
 	Vector3 moveInput = controller_->GetMoveInput();
 
-	// カメラの向きを考慮して移動方向を回転（YawだけでOK）
-	if (camera_)
-	{
-		float yaw = camera_->GetRotate().y;
+	// --- ダッシュ入力確認 ---
+	bool isDashKey = input_->PushKey(DIK_LSHIFT);
+	bool isDashButton = input_->PushButton(XButtons.B);
+	isDashing_ = isDashKey || isDashButton;
 
+	// カメラの方向で回転
+	if (camera_) {
+		float yaw = camera_->GetRotate().y;
 		float sinY = sinf(yaw);
 		float cosY = cosf(yaw);
-
-		// 入力をカメラの回転方向に変換
-		Vector3 rotatedInput = {
+		moveInput = {
 			moveInput.x * cosY - moveInput.z * sinY,
 			0.0f,
 			moveInput.x * sinY + moveInput.z * cosY
 		};
-
-		moveInput = rotatedInput;
 	}
 
-	// プレイヤーの移動処理
-	const float speed = 0.2f;
-	body_.worldTransform_.translate_ += moveInput * speed;
+	// --- ダッシュ適用移動速度 ---
+	float currentSpeed = baseSpeed_;
+	if (isDashing_) {
+		currentSpeed *= dashMultiplier_;
+	}
 
-	// 入力方向に向ける処理
-	if (Vector3::Length(moveInput) > 0.0f)
-	{
+	// 位置更新
+	body_.worldTransform_.translate_ += moveInput * currentSpeed;
+
+	// 入力方向を向く
+	if (Vector3::Length(moveInput) > 0.0f) {
 		float targetAngle = std::atan2(-moveInput.x, moveInput.z);
 		body_.worldTransform_.rotate_.y = Vector3::LerpAngle(body_.worldTransform_.rotate_.y, targetAngle, 0.2f);
 	}
 
-	// --- ジャンプ処理 ---
-	if (isGrounded_ && controller_->IsJumpTriggered())
-	{
-		velocity_.y = jumpPower_;   // 上方向へ加速
+	// --- ジャンプ・重力・接地（現状維持） ---
+	if (isGrounded_ && controller_->IsJumpTriggered()) {
+		velocity_.y = jumpPower_;
 		isGrounded_ = false;
 	}
 
-	// --- 重力によるY軸移動 ---
-	velocity_.y += gravity_ * deltaTime; // ※ deltaTime はフレーム間時間（例: 1/60.0f）
+	velocity_.y += gravity_ * deltaTime;
 	body_.worldTransform_.translate_.y += velocity_.y;
 
-	// --- 簡易的な地面との接地判定（Y = 0 が地面） ---
-	if (body_.worldTransform_.translate_.y <= 0.0f)
-	{
+	if (body_.worldTransform_.translate_.y <= 0.0f) {
 		body_.worldTransform_.translate_.y = 0.0f;
 		velocity_.y = 0.0f;
 		isGrounded_ = true;
 	}
 }
+
 
 void Player::OnCollision(Collider* other)
 {
