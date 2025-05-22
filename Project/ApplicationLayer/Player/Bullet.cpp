@@ -1,5 +1,6 @@
 #include "Bullet.h"
 #include <CollisionTypeIdDef.h>
+#include <ScoreManager.h>
 
 void Bullet::Initialize()
 {
@@ -40,5 +41,8 @@ void Bullet::OnCollision(Collider* other)
 	if (other->GetTypeID() == static_cast<uint32_t>(CollisionTypeIdDef::kEnemy))
 	{
 		isDead_ = true; // または寿命をゼロにするなど
+
+		// スコアを加算
+		ScoreManager::GetInstance()->AddKill();
 	}
 }

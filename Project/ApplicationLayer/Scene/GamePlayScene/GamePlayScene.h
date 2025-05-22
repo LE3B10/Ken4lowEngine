@@ -72,6 +72,10 @@ private: /// ---------- メンバ変数 ---------- ///
 	std::unique_ptr<Crosshair> crosshair_ = nullptr; // クロスヘアオブジェクト
 	std::unique_ptr<EnemySpawner> enemySpawner_ = nullptr; // エネミースポナーオブジェクト
 
+	std::unique_ptr<NumberSpriteDrawer> scoreDrawer_;
+	std::unique_ptr<NumberSpriteDrawer> killDrawer_;
+
+
 	std::unique_ptr<CollisionManager> collisionManager_; // 衝突マネージャー
 
 	// パーティクル
@@ -86,4 +90,7 @@ private: /// ---------- メンバ変数 ---------- ///
 	bool isLockedCursor_ = false;
 
 	bool isPaused_ = false; // ポーズ中かどうか
+
+	Vector2 scorePos = { 600.0f, 20.0f };
+	Vector2 killPos = { 600.0f, 80.0f };
 };

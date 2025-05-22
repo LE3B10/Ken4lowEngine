@@ -10,6 +10,7 @@
 #include "Wireframe.h"
 #include "AudioManager.h"
 #include <SceneManager.h>
+#include <ScoreManager.h>
 
 #ifdef _DEBUG
 #include <DebugCamera.h>
@@ -48,6 +49,9 @@ void GamePlayScene::Initialize()
 	Input::GetInstance()->SetLockCursor(true);
 	ShowCursor(false);// 表示・非表示も連動（オプション）
 
+	// スコアの初期化
+	ScoreManager::GetInstance()->Initialize();
+
 	// プレイヤーの生成と初期化
 	player_ = std::make_unique<Player>();
 	player_->Initialize();
@@ -71,6 +75,15 @@ void GamePlayScene::Initialize()
 	// 衝突マネージャの生成
 	collisionManager_ = std::make_unique<CollisionManager>();
 	collisionManager_->Initialize();
+
+
+	scoreDrawer_ = std::make_unique<NumberSpriteDrawer>();
+	scoreDrawer_->Initialize("Resources/number.png"); // 数字テクスチャ名
+
+	killDrawer_ = std::make_unique<NumberSpriteDrawer>();
+	killDrawer_->Initialize("Resources/number.png");
+
+
 
 	ParticleManager::GetInstance()->CreateParticleGroup("DefaultParticle", "circle2.png", ParticleEffectType::Default);
 	defaultEmitter_ = std::make_unique<ParticleEmitter>(ParticleManager::GetInstance(), "DefaultParticle");
@@ -234,6 +247,10 @@ void GamePlayScene::Draw2DSprites()
 	// プレイヤーのHUD描画
 	player_->DrawHUD();
 
+
+	scoreDrawer_->DrawNumber(ScoreManager::GetInstance()->GetScore(), scorePos);
+	killDrawer_->DrawNumber(ScoreManager::GetInstance()->GetKills(), killPos);
+
 #pragma endregion
 }
 
@@ -260,6 +277,9 @@ void GamePlayScene::DrawImGui()
 
 	// エネミースポナー
 	enemySpawner_->DrawImGui();
+
+	// スコア
+	ScoreManager::GetInstance()->DrawImGui();
 }
 
 

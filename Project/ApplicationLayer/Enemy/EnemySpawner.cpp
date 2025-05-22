@@ -18,8 +18,8 @@ void EnemySpawner::Update()
 		enemy->Initialize();
 		enemy->SetTarget(player_); // プレイヤーをターゲットに設定
 		// ランダムな出現位置（例: Z固定、Xはランダム）
-		float x = static_cast<float>((rand() % 400) - 200);
-		enemy->SetTranslate({ x, 0.0f, 300.0f });
+		float x = static_cast<float>((rand() % 300) - 150);
+		enemy->SetTranslate({ x, 0.0f, 200.0f });
 		enemies_.push_back(std::move(enemy));
 		spawnTimer_ = 0.0f;
 		++spawnedEnemies_;
