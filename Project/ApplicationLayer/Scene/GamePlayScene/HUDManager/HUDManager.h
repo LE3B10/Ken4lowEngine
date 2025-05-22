@@ -29,17 +29,24 @@ public: /// ---------- セッター ---------- ///
 	// 弾薬数の設定
 	void SetAmmo(int current, int reserve) { ammoInClip_ = current; ammoReserve_ = reserve; }
 
+	// HPの設定
+	void SetHP(int hp) { hp_ = hp; }
+
 private: /// ---------- メンバ変数 ---------- ///
 
 	std::unique_ptr<NumberSpriteDrawer> scoreDrawer_; // スコア表示用
 	std::unique_ptr<NumberSpriteDrawer> killDrawer_;  // キル数表示用
 	std::unique_ptr<NumberSpriteDrawer> ammoDrawer_;  // 弾薬数表示用
+	std::unique_ptr<NumberSpriteDrawer> hpDrawer_;	  // HP表示用
 
 	// スコア
 	int score_ = 0;
 
 	// キル数
 	int kills_ = 0;
+
+	// HP
+	int hp_ = 100; // プレイヤーのHP
 
 	// 弾薬数
 	int ammoInClip_ = 0;  // 現在の弾薬数

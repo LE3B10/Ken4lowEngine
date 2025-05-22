@@ -68,6 +68,9 @@ public: /// ---------- ゲッタ ---------- ///
 	// 最大所持弾薬の取得
 	int GetMaxAmmoReserve() const { return weapon_.GetMaxAmmoReserve(); }
 
+	// HPの取得
+	float GetHP() const { return hp_; }
+
 public: /// ---------- セッタ ---------- ///
 
 	// 追従カメラを設定
