@@ -5,11 +5,18 @@
 #include <EnemyChaseState.h>
 
 
+/// -------------------------------------------------------------
+///				　		開始処理
+/// -------------------------------------------------------------
 void EnemyAttackState::Enter(Enemy* enemy)
 {
 	enemy->SetStateName("Attack");
 }
 
+
+/// -------------------------------------------------------------
+///				　			更新処理
+/// -------------------------------------------------------------
 void EnemyAttackState::Update(Enemy* enemy)
 {
 	Vector3 toPlayer = enemy->GetTargetPlayer()->GetWorldPosition() - enemy->GetWorldPosition();
@@ -38,6 +45,10 @@ void EnemyAttackState::Update(Enemy* enemy)
 	enemy->RequestShoot();
 }
 
+
+/// -------------------------------------------------------------
+///				　			終了処理
+/// -------------------------------------------------------------
 void EnemyAttackState::Exit(Enemy* enemy)
 {
 }

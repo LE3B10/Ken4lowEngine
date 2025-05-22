@@ -4,9 +4,14 @@
 #include <memory>
 #include <string>
 
+
+/// -------------------------------------------------------------
+///				　		十字カーソルクラス
+/// -------------------------------------------------------------
 class Crosshair
 {
-public:
+public: /// ---------- メンバ関数 ---------- ///
+
 	// 初期化（テクスチャロード）
 	void Initialize(const std::string& texturePath = "Resources/crosshair-white.png");
 
@@ -20,7 +25,7 @@ public:
 	void SetVisible(bool visible) { isVisible_ = visible; }
 	bool IsVisible() const { return isVisible_; }
 
-private:
+private: /// ---------- メンバ変数 ---------- ///
 
 	std::unique_ptr<Sprite> sprite_;
 

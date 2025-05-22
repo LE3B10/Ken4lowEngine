@@ -223,6 +223,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClCompile Include="ApplicationLayer\Enemy\IEnemyState.cpp" />
     <ClCompile Include="ApplicationLayer\Scene\GamePlayScene\HUDManager\HUDManager.cpp" />
     <ClCompile Include="ApplicationLayer\ScoreManager\ScoreManager.cpp" />
+    <ClCompile Include="ApplicationLayer\Colliders\IDGenerator.cpp" />
     <ClCompile Include="WinMain.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
@@ -502,6 +503,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="ApplicationLayer\Enemy\IEnemyState.h" />
     <ClInclude Include="ApplicationLayer\Scene\GamePlayScene\HUDManager\HUDManager.h" />
     <ClInclude Include="ApplicationLayer\ScoreManager\ScoreManager.h" />
+    <ClInclude Include="ApplicationLayer\Colliders\IDGenerator.h" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="externals\DirectXTex\DirectXTex_Desktop_2022_Win10.vcxproj">

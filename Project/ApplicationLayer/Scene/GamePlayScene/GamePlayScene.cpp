@@ -16,21 +16,6 @@
 #include <DebugCamera.h>
 #endif // _DEBUG
 
-namespace
-{
-	OBB testObb =
-	{
-		.center = {0.0f, 0.0f, 0.0f},
-		.orientations = {
-			{1.0f, 0.0f, 0.0f},
-			{0.0f, 1.0f, 0.0f},
-			{0.0f, 0.0f, 1.0f}
-		},
-		.size = {1.0f, 1.0f, 1.0f}
-	};
-	Vector4 testColor = { 1.0f, 1.0f, 0.0f, 1.0f };
-}
-
 
 /// -------------------------------------------------------------
 ///				　			　初期化処理

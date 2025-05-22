@@ -36,10 +36,10 @@ public: /// ---------- メンバ関数 ---------- ///
 	void CheckAllCollisions();
 
 	// コライダーを追加
-	void AddCollider(Collider* other);
+	void AddCollider(Collider* other) { colliders_.push_back(other); }
 
 	// コライダーを削除
-	void RemoveCollider(Collider* other);
+	void RemoveCollider(Collider* other) { colliders_.remove(other); }
 
 	// 衝突判定
 	using CollisionFunc = std::function<bool(Collider*, Collider*)>;

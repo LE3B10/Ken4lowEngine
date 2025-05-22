@@ -3,7 +3,9 @@
 
 #include <imgui.h>
 
-
+/// -------------------------------------------------------------
+///						　	OBBを取得
+/// -------------------------------------------------------------
 OBB Collider::GetOBB() const
 {
     Matrix4x4 rotMat = Matrix4x4::MakeRotateMatrix(orientation_);
@@ -19,6 +21,7 @@ OBB Collider::GetOBB() const
 
     return obb;
 }
+
 
 /// -------------------------------------------------------------
 ///						　	初期化処理
@@ -47,6 +50,10 @@ void Collider::Draw()
 	Wireframe::GetInstance()->DrawOBB(obb, debugColor_);
 }
 
+
+/// -------------------------------------------------------------
+///						　	 ImGui描画処理
+/// -------------------------------------------------------------
 void Collider::DrawImGui()
 {
     if (ImGui::TreeNode("Collider")) {

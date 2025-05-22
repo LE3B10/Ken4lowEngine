@@ -4,6 +4,10 @@
 #include "EnemyChaseState.h"
 #include "EnemyAttackState.h"
 
+
+/// -------------------------------------------------------------
+///				　		開始処理
+/// -------------------------------------------------------------
 void EnemyIdleState::Enter(Enemy* enemy)
 {
 	enemy->SetStateName("Idle");
@@ -17,6 +21,10 @@ void EnemyIdleState::Enter(Enemy* enemy)
 	idleTimer_ = 0.0f;
 }
 
+
+/// -------------------------------------------------------------
+///				　			更新処理
+/// -------------------------------------------------------------
 void EnemyIdleState::Update(Enemy* enemy)
 {
 	idleTimer_ += 1.0f / 60.0f;
@@ -56,6 +64,10 @@ void EnemyIdleState::Update(Enemy* enemy)
 	enemy->SetRotate({ 0.0f, yaw, 0.0f });
 }
 
+
+/// -------------------------------------------------------------
+///				　			終了処理
+/// -------------------------------------------------------------
 void EnemyIdleState::Exit(Enemy* enemy)
 {
 }

@@ -3,12 +3,20 @@
 #include <DirectXCommon.h>
 #include <ParticleManager.h>
 
+
+/// -------------------------------------------------------------
+///				　		コンストラクタ
+/// -------------------------------------------------------------
 ParticleEmitter::ParticleEmitter(ParticleManager* manager, const std::string& groupName)
 	: particleManager_(manager), groupName_(groupName), position_({ 0.0f,0.0f,0.0f }),
 	emissionRate_(10.0f), accumulatedTime_(0.0f)
 {
 }
 
+
+/// -------------------------------------------------------------
+///				　		更新処理
+/// -------------------------------------------------------------
 void ParticleEmitter::Update()
 {
     accumulatedTime_ += 1.0f / DirectXCommon::GetInstance()->GetFPSCounter().GetFPS();
@@ -26,6 +34,10 @@ void ParticleEmitter::Update()
     }
 }
 
+
+/// -------------------------------------------------------------
+///				　		バースト射出
+/// -------------------------------------------------------------
 void ParticleEmitter::Burst(int count)
 {
 	particleManager_->Emit(groupName_, position_, count, ParticleEffectType::Ring);
