@@ -17,6 +17,10 @@ void HUDManager::Initialize()
 	// 弾薬数表示用のスプライトドロワーを初期化
 	ammoDrawer_ = std::make_unique<NumberSpriteDrawer>();
 	ammoDrawer_->Initialize(texturePath_);
+
+	// HP表示用のスプライトドロワーを初期化
+	hpDrawer_ = std::make_unique<NumberSpriteDrawer>();
+	hpDrawer_->Initialize(texturePath_);
 }
 
 
@@ -51,4 +55,10 @@ void HUDManager::Draw()
 	// 弾薬数の描画
 	ammoDrawer_->DrawNumber(ammoInClip_, { 1000.0f, 620.0f });
 	ammoDrawer_->DrawNumber(ammoReserve_, { 1120.0f, 620.0f });
+
+	// リセット
+	hpDrawer_->Reset();
+
+	// HPの描画
+	hpDrawer_->DrawNumber(hp_, { 60.0f, 620.0f });
 }
