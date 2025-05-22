@@ -25,9 +25,6 @@ public: /// ---------- メンバ関数 ---------- ///
 	// 描画処理
 	void Draw();
 
-	// HUD描画処理
-	void DrawHUD();
-
 	// ImGui描画処理
 	void DrawImGui();
 
@@ -58,6 +55,18 @@ public: /// ---------- ゲッタ ---------- ///
 
 	// ワールド変換の取得
 	const WorldTransform* GetWorldTransform() { return &body_.worldTransform_; }
+
+	// 弾薬の取得
+	int GetAmmoInClip() const { return weapon_.GetAmmoInClip(); }
+
+	// 最大弾薬の取得
+	int GetMaxAmmo() const { return weapon_.GetMaxAmmo(); }
+
+	// 所持弾薬の取得
+	int GetAmmoReserve() const { return weapon_.GetAmmoReserve(); }
+
+	// 最大所持弾薬の取得
+	int GetMaxAmmoReserve() const { return weapon_.GetMaxAmmoReserve(); }
 
 public: /// ---------- セッタ ---------- ///
 
