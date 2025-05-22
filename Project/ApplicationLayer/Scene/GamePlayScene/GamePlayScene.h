@@ -13,6 +13,7 @@
 #include "FpsCamera.h"
 #include "Crosshair.h"
 #include "EnemySpawner.h"
+#include "HUDManager.h"
 
 
 /// ---------- 前方宣言 ---------- ///
@@ -72,9 +73,7 @@ private: /// ---------- メンバ変数 ---------- ///
 	std::unique_ptr<Crosshair> crosshair_ = nullptr; // クロスヘアオブジェクト
 	std::unique_ptr<EnemySpawner> enemySpawner_ = nullptr; // エネミースポナーオブジェクト
 
-	std::unique_ptr<NumberSpriteDrawer> scoreDrawer_;
-	std::unique_ptr<NumberSpriteDrawer> killDrawer_;
-
+	std::unique_ptr<HUDManager> hudManager_ = nullptr; // HUDマネージャー
 
 	std::unique_ptr<CollisionManager> collisionManager_; // 衝突マネージャー
 

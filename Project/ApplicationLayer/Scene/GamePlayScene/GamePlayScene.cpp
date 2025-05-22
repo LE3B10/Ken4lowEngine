@@ -76,13 +76,9 @@ void GamePlayScene::Initialize()
 	collisionManager_ = std::make_unique<CollisionManager>();
 	collisionManager_->Initialize();
 
-
-	scoreDrawer_ = std::make_unique<NumberSpriteDrawer>();
-	scoreDrawer_->Initialize("Resources/number.png"); // 数字テクスチャ名
-
-	killDrawer_ = std::make_unique<NumberSpriteDrawer>();
-	killDrawer_->Initialize("Resources/number.png");
-
+	// HUDマネージャーの生成と初期化
+	hudManager_ = std::make_unique<HUDManager>();
+	hudManager_->Initialize();
 
 
 	ParticleManager::GetInstance()->CreateParticleGroup("DefaultParticle", "circle2.png", ParticleEffectType::Default);
@@ -152,13 +148,16 @@ void GamePlayScene::Update()
 			return;
 		}
 
-
 		enemySpawner_->Update();
 
 		// Waveがすべて終わったら次Waveをスタート
 		if (enemySpawner_->IsWaveClear()) {
 			enemySpawner_->StartNextWave();
 		}
+
+		hudManager_->SetAmmo(player_->GetAmmoInClip(), player_->GetAmmoReserve());
+		hudManager_->SetScore(ScoreManager::GetInstance()->GetScore());
+		hudManager_->SetKills(ScoreManager::GetInstance()->GetKills());
 
 		player_->Update();
 		fpsCamera_->Update(false);
@@ -244,12 +243,8 @@ void GamePlayScene::Draw2DSprites()
 	// クロスヘアの描画
 	crosshair_->Draw();
 
-	// プレイヤーのHUD描画
-	player_->DrawHUD();
-
-
-	scoreDrawer_->DrawNumber(ScoreManager::GetInstance()->GetScore(), scorePos);
-	killDrawer_->DrawNumber(ScoreManager::GetInstance()->GetKills(), killPos);
+	// HUDマネージャーの描画
+	hudManager_->Draw();
 
 #pragma endregion
 }
