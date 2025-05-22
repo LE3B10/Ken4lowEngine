@@ -2,6 +2,7 @@
 #include <Object3D.h>
 #include <Vector3.h>
 #include <Collider.h>
+#include <ContactRecord.h>
 
 #include <memory>
 
@@ -37,6 +38,8 @@ public: /// ---------- メンバ関数 ---------- ///
 	void OnCollision(Collider* other) override;
 
 private: /// ---------- メンバ変数 ---------- ///
+
+	ContactRecord contactRecord_; // 衝突記録
 
 	std::unique_ptr<Object3D> model_; // モデル描画用
 	Vector3 position_ = {};           // 現在位置

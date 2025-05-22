@@ -4,6 +4,9 @@
 #include <CollisionUtility.h>
 
 
+/// -------------------------------------------------------------
+///				　			　初期化処理
+///	-------------------------------------------------------------
 void CollisionManager::Initialize()
 {
 	isCollider_ = true;
@@ -13,6 +16,10 @@ void CollisionManager::Initialize()
 	RegisterCollisionFuncsions();
 }
 
+
+/// -------------------------------------------------------------
+///				　			　更新処理
+/// -------------------------------------------------------------
 void CollisionManager::Update()
 {
 	isCollider_ = ParameterManager::GetInstance()->GetValue<bool>("Collider", "isCollider");
@@ -27,6 +34,10 @@ void CollisionManager::Update()
 	}
 }
 
+
+/// -------------------------------------------------------------
+///				　			　描画処理
+/// -------------------------------------------------------------
 void CollisionManager::Draw()
 {
 	// 非表示なら抜ける
@@ -38,6 +49,7 @@ void CollisionManager::Draw()
 		if (isCollider_) collider->Draw();
 	}
 }
+
 
 /// -------------------------------------------------------------
 ///							リセット処理
@@ -75,24 +87,6 @@ void CollisionManager::CheckAllCollisions()
 
 
 /// -------------------------------------------------------------
-///						コライダー追加処理
-/// -------------------------------------------------------------
-void CollisionManager::AddCollider(Collider* other)
-{
-	colliders_.push_back(other);
-}
-
-
-/// -------------------------------------------------------------
-///						コライダー削除処理
-/// -------------------------------------------------------------
-void CollisionManager::RemoveCollider(Collider* other)
-{
-	colliders_.remove(other);
-}
-
-
-/// -------------------------------------------------------------
 ///				コライダー２つの衝突判定と応答処理
 /// -------------------------------------------------------------
 void CollisionManager::CheckCollisionPair(Collider* colliderA, Collider* colliderB)
@@ -119,6 +113,10 @@ void CollisionManager::CheckCollisionPair(Collider* colliderA, Collider* collide
 	colliderB->OnCollision(colliderA);
 }
 
+
+/// -------------------------------------------------------------
+///				コライダーの衝突判定関数の登録
+/// -------------------------------------------------------------
 void CollisionManager::RegisterCollisionFuncsions()
 {
 	// OBB vs OBB 判定

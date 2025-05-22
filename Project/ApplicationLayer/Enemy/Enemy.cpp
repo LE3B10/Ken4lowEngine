@@ -5,6 +5,10 @@
 #include <ParticleManager.h>
 #include "EnemyIdleState.h"
 
+
+/// -------------------------------------------------------------
+///				　			　初期化処理
+/// -------------------------------------------------------------
 void Enemy::Initialize()
 {
 	// 基底クラスの初期化
@@ -23,6 +27,10 @@ void Enemy::Initialize()
 	ChangeState(std::make_unique<EnemyIdleState>());
 }
 
+
+/// -------------------------------------------------------------
+///				　			　更新処理
+/// -------------------------------------------------------------
 void Enemy::Update()
 {
 	if (isDead_) return;
@@ -57,6 +65,9 @@ void Enemy::Update()
 }
 
 
+/// -------------------------------------------------------------
+///				　			　描画処理
+/// -------------------------------------------------------------
 void Enemy::Draw()
 {
 	//body_.object->Draw();
@@ -69,6 +80,10 @@ void Enemy::Draw()
 	}
 }
 
+
+/// -------------------------------------------------------------
+///				　			　ImGui描画処理
+/// -------------------------------------------------------------
 void Enemy::DrawImGui()
 {
 	Collider::DrawImGui();
@@ -79,6 +94,10 @@ void Enemy::DrawImGui()
 	ImGui::Text("State: %s", currentStateName_.c_str());
 }
 
+
+/// -------------------------------------------------------------
+/// 			　		ステート変更処理
+/// -------------------------------------------------------------
 void Enemy::ChangeState(std::unique_ptr<IEnemyState> newState)
 {
 	if (currentState_) currentState_->Exit(this);
@@ -86,6 +105,10 @@ void Enemy::ChangeState(std::unique_ptr<IEnemyState> newState)
 	if (currentState_) currentState_->Enter(this);
 }
 
+
+/// -------------------------------------------------------------
+///				　			　リクエスト発射
+/// -------------------------------------------------------------
 void Enemy::RequestShoot()
 {
 	if (shootTimer_ < shootCooldown_) return;
@@ -114,11 +137,11 @@ void Enemy::RequestShoot()
 	}
 }
 
+
+/// -------------------------------------------------------------
+///				　			　衝突処理
+/// -------------------------------------------------------------
 void Enemy::OnCollision(Collider* other)
 {
-	if (other->GetTypeID() == static_cast<uint32_t>(CollisionTypeIdDef::kBullet))
-	{
-		// パーティクルを表示（仮演出）
-		TakeDamage(100.0f);
-	}
+
 }

@@ -176,8 +176,5 @@ void Player::Move()
 /// -------------------------------------------------------------
 void Player::OnCollision(Collider* other)
 {
-	if (other->GetTypeID() == static_cast<uint32_t>(CollisionTypeIdDef::kDefault))
-	{
-		return;
-	}
+	
 }

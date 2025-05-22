@@ -2,6 +2,7 @@
 #include "BaseCharacter.h"
 #include "EnemyBullet.h"
 #include "IEnemyState.h"
+#include "ContactRecord.h"
 
 #include <memory>
 
@@ -72,6 +73,8 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	Player* player_ = nullptr; // 対象プレイヤー
 
+	ContactRecord contactRecord_; // 接触記録
+
 	float shootCooldown_ = 0.1f; // クールダウン間隔（秒）
 	float shootTimer_ = 0.0f;
 
@@ -83,5 +86,6 @@ private: /// ---------- メンバ変数 ---------- ///
 	// Idle用データ
 	Vector3 idleBasePosition_ = {};
 	Vector3 idleMoveDirection_ = { 1.0f, 0.0f, 0.0f };
+
 };
 

@@ -4,6 +4,9 @@
 #include "WinApp.h"
 
 
+/// -------------------------------------------------------------
+///				　		初期化処理
+/// -------------------------------------------------------------
 void Crosshair::Initialize(const std::string& texturePath)
 {
 	TextureManager::GetInstance()->LoadTexture(texturePath);
@@ -18,11 +21,19 @@ void Crosshair::Initialize(const std::string& texturePath)
 	sprite_->SetSize({ 48.0f, 48.0f });
 }
 
+
+/// -------------------------------------------------------------
+///				　			　 更新処理
+/// -------------------------------------------------------------
 void Crosshair::Update()
 {
 	sprite_->Update();
 }
 
+
+/// -------------------------------------------------------------
+///				　			　 描画処理
+/// -------------------------------------------------------------
 void Crosshair::Draw()
 {
 	sprite_->Draw();

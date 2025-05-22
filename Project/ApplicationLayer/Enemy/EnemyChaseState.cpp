@@ -5,11 +5,18 @@
 #include <EnemyIdleState.h>
 
 
+/// -------------------------------------------------------------
+///				　		開始処理
+/// -------------------------------------------------------------
 void EnemyChaseState::Enter(Enemy* enemy)
 {
 	enemy->SetStateName("Chase");
 }
 
+
+/// -------------------------------------------------------------
+///				　			更新処理
+/// -------------------------------------------------------------
 void EnemyChaseState::Update(Enemy* enemy)
 {
 	Vector3 toPlayer = enemy->GetTargetPlayer()->GetWorldPosition() - enemy->GetWorldPosition();
@@ -35,6 +42,10 @@ void EnemyChaseState::Update(Enemy* enemy)
 	enemy->SetRotate({ 0.0f, Vector3::LerpAngle(enemy->GetRotate().y, yaw, 0.1f), 0.0f });
 }
 
+
+/// -------------------------------------------------------------
+///				　			終了処理
+/// -------------------------------------------------------------
 void EnemyChaseState::Exit(Enemy* enemy)
 {
 }
