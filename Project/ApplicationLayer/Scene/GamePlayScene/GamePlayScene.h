@@ -12,7 +12,7 @@
 #include "Player.h"
 #include "FpsCamera.h"
 #include "Crosshair.h"
-#include "EnemySpawner.h"
+#include "EnemyManager.h"
 #include "HUDManager.h"
 
 
@@ -71,7 +71,7 @@ private: /// ---------- メンバ変数 ---------- ///
 	std::unique_ptr<Player> player_ = nullptr; // プレイヤーオブジェクト
 	std::unique_ptr<FpsCamera> fpsCamera_ = nullptr; // カメラオブジェクト
 	std::unique_ptr<Crosshair> crosshair_ = nullptr; // クロスヘアオブジェクト
-	std::unique_ptr<EnemySpawner> enemySpawner_ = nullptr; // エネミースポナーオブジェクト
+	std::unique_ptr<EnemyManager> enemyManager_ = nullptr; // エネミースポナーオブジェクト
 
 	std::unique_ptr<HUDManager> hudManager_ = nullptr; // HUDマネージャー
 
