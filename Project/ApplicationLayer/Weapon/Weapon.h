@@ -42,6 +42,9 @@ public: /// ---------- ゲッタ ---------- ///
 	// リロード中かどうか
 	bool IsReloading() const { return isReloading_; }
 
+	// リロードの進捗を取得
+	float GetReloadProgress() const { return std::clamp(static_cast<float>(reloadTimer_ / reloadTime_), 0.0f, 1.0f); }
+
 	// 弾薬の取得
 	int GetAmmoInClip() const { return ammoInClip_; }
 

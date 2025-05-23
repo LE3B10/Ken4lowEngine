@@ -36,5 +36,5 @@ void Crosshair::Update()
 /// -------------------------------------------------------------
 void Crosshair::Draw()
 {
-	sprite_->Draw();
+	if (isVisible_) sprite_->Draw();
 }
