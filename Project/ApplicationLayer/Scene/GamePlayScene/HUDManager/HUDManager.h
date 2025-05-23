@@ -31,7 +31,7 @@ public: /// ---------- セッター ---------- ///
 	void SetAmmo(int current, int reserve) { ammoInClip_ = current; ammoReserve_ = reserve; }
 
 	// HPの設定
-	void SetHP(int current, int max) { hp_ = current; maxHP_ = max; }
+	void SetHP(float current, float max) { hp_ = current; maxHP_ = max; }
 
 private: /// ---------- メンバ関数 ---------- ///
 
@@ -54,8 +54,8 @@ private: /// ---------- メンバ変数 ---------- ///
 	int kills_ = 0;
 
 	// HP
-	int hp_ = 100; // プレイヤーのHP
-	int maxHP_ = 100;
+	float hp_ = 100.0f; // プレイヤーのHP
+	float maxHP_ = 100.0f;
 
 	// 弾薬数
 	int ammoInClip_ = 0;  // 現在の弾薬数
