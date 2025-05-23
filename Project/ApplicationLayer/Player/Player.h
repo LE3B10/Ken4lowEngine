@@ -71,6 +71,9 @@ public: /// ---------- ゲッタ ---------- ///
 	// HPの取得
 	float GetHP() const { return hp_; }
 
+	// 最大HPの取得
+	float GetMaxHP() const { return maxHP_; }
+
 public: /// ---------- セッタ ---------- ///
 
 	// 追従カメラを設定
@@ -95,7 +98,9 @@ private: /// ---------- ジャンプ機能 ---------- ///
 	const float jumpPower_ = 0.5f; // ジャンプ力
 
 	float deltaTime = 1.0f / 60.0f; // フレーム間時間（例: 1/60秒）
-	float hp_ = 1000.0f;
+	float hp_ = 1000.0f; // プレイヤーのHP
+	float maxHP_ = 1000.0f; // プレイヤーの最大HP
+
 	bool isDead_ = false;
 
 	bool isDashing_ = false;
