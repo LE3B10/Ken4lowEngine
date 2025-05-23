@@ -64,7 +64,6 @@ void GamePlayScene::Initialize()
 	hudManager_ = std::make_unique<HUDManager>();
 	hudManager_->Initialize();
 
-
 	ParticleManager::GetInstance()->CreateParticleGroup("DefaultParticle", "circle2.png", ParticleEffectType::Default);
 	defaultEmitter_ = std::make_unique<ParticleEmitter>(ParticleManager::GetInstance(), "DefaultParticle");
 	defaultEmitter_->SetPosition({ 0.0f, 18.0f, 20.0f });
@@ -140,11 +139,28 @@ void GamePlayScene::Update()
 			enemyManager_->StartNextWave();
 		}
 
+		{
+			Weapon* weapon = player_->GetCurrentWeapon();
+			if (weapon) {
+				if (weapon->IsReloading())
+				{
+					crosshair_->SetVisible(false);
+					hudManager_->SetReloading(true, weapon->GetReloadProgress());
+				}
+				else
+				{
+					crosshair_->SetVisible(true);
+					hudManager_->SetReloading(false, 0.0f);
+				}
+			}
+		}
+
 		hudManager_->Update();
 		hudManager_->SetAmmo(player_->GetAmmoInClip(), player_->GetAmmoReserve());
 		hudManager_->SetScore(ScoreManager::GetInstance()->GetScore());
 		hudManager_->SetKills(ScoreManager::GetInstance()->GetKills());
 		hudManager_->SetHP(player_->GetHP(), player_->GetMaxHP());
+		hudManager_->SetWeapon(player_->GetCurrentWeapon());
 
 		player_->Update();
 		fpsCamera_->Update(false);

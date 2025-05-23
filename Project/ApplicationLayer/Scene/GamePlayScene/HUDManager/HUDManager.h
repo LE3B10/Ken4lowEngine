@@ -1,5 +1,7 @@
 #pragma once
 #include <NumberSpriteDrawer.h>
+#include <ReloadCircle.h>
+#include "Weapon.h" // Weaponを使うために追加
 
 #include <algorithm>
 
@@ -21,6 +23,10 @@ public: /// ---------- メンバ関数 ---------- ///
 
 public: /// ---------- セッター ---------- ///
 
+	ReloadCircle* GetReloadCircle() { return reloadCircle_.get(); }
+
+public: /// ---------- セッター ---------- ///
+
 	// スコアの設定
 	void SetScore(int score) { score_ = score; }
 
@@ -32,6 +38,12 @@ public: /// ---------- セッター ---------- ///
 
 	// HPの設定
 	void SetHP(float current, float max) { hp_ = current; maxHP_ = max; }
+
+	// リロード中の設定
+	void SetReloading(bool isReloading, float progress);
+
+	// 武器を設定
+	void SetWeapon(Weapon* weapon) { if (reloadCircle_) reloadCircle_->SetWeapon(weapon); }
 
 private: /// ---------- メンバ関数 ---------- ///
 
@@ -46,6 +58,8 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	std::unique_ptr<Sprite> hpBarBase_; // グレー背景
 	std::unique_ptr<Sprite> hpBarFill_; // 緑バー
+
+	std::unique_ptr<ReloadCircle> reloadCircle_; // リロード円
 
 	// スコア
 	int score_ = 0;

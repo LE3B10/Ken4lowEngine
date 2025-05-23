@@ -29,6 +29,9 @@ void HUDManager::Initialize()
 	// 緑バーのスプライトを初期化
 	hpBarFill_ = std::make_unique<Sprite>();
 	hpBarFill_->Initialize("Resources/white.png");
+
+	reloadCircle_ = std::make_unique<ReloadCircle>();
+	reloadCircle_->Initialize("Resources/reload-circle.png");
 }
 
 
@@ -59,6 +62,8 @@ void HUDManager::Update()
 	hpBarFill_->SetSize({ filledWidth, barSize.y });
 	hpBarFill_->SetColor(fillColor);
 	hpBarFill_->Update();
+
+	reloadCircle_->Update();
 }
 
 
@@ -93,6 +98,9 @@ void HUDManager::Draw()
 	// 緑バーの描画
 	hpBarFill_->Draw();
 
+	// リロード円の描画
+	reloadCircle_->Draw();
+
 	// HPの描画
 	DrawDebugHUD();
 }
@@ -111,4 +119,17 @@ void HUDManager::DrawDebugHUD()
 	int percent = static_cast<int>((static_cast<float>(hp_) / maxHP_) * 100.0f);
 	hpDrawer_->DrawNumber(percent, { 85.0f, 620.0f });
 #endif // _DEBUG
+}
+
+
+/// -------------------------------------------------------------
+///				　			リロード中の円を表示
+/// -------------------------------------------------------------
+void HUDManager::SetReloading(bool isReloading, float progress)
+{
+	if (reloadCircle_)
+	{
+		reloadCircle_->SetVisible(isReloading);
+		reloadCircle_->SetProgress(progress);
+	}
 }
