@@ -3,6 +3,11 @@
 #include <vector>
 #include "Bullet.h"
 #include "Input.h"
+#include "WeaponType.h"
+
+#include <random>
+#include <numbers>
+
 
 class Weapon
 {
@@ -49,7 +54,36 @@ public: /// ---------- ゲッタ ---------- ///
 	// 最大所持弾薬の取得
 	int GetMaxAmmoReserve() const { return maxAmmoReserve_; }
 
+	WeaponType GetWeaponType() const { return type_; } // 武器の種類を取得
+
+public: /// ---------- セッター ---------- ///
+
+	// 武器の種類を設定
+	void SetWeaponType(WeaponType type) { type_ = type; }
+
 private: /// ---------- メンバ変数 ---------- ///
+
+	// ライフル
+	void FireSingleBullet(const Vector3& pos, const Vector3& dir, float damage);
+
+	// ショットガン
+	void FireShotgunSpread(const Vector3& pos, const Vector3& dir, int count, float damage);
+
+	// 散弾
+	Vector3 ApplyRandomSpread(const Vector3& baseDir, float angleRangeDeg);
+
+	constexpr float DegToRad(float degrees) { return degrees * (std::numbers::pi_v<float> / 180.0f); }
+
+	float GetRandomFloat(float min, float max)
+	{
+		static std::mt19937 rng{ std::random_device{}() };
+		std::uniform_real_distribution<float> dist(min, max);
+		return dist(rng);
+	}
+
+private: /// ---------- メンバ変数 ---------- ///
+
+	WeaponType type_ = WeaponType::Rifle; // 武器の種類
 
 	// 弾丸のプレハブ
 	std::vector<std::unique_ptr<Bullet>> bullets_;
@@ -64,4 +98,8 @@ private: /// ---------- メンバ変数 ---------- ///
 	bool isReloading_ = false;
 	float reloadTime_ = 1.5f;
 	float reloadTimer_ = 0.0f;
+
+	float fireTimer_ = 0.0f;
+	float fireInterval_ = 0.1f; // 0.1秒に1発（10発/秒）
+	float bulletSpeed_ = 5.0f; // 弾速
 };

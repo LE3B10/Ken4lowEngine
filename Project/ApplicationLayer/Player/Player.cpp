@@ -3,6 +3,8 @@
 #include <TextureManager.h>
 #include <CollisionTypeIdDef.h>
 #include <Input.h>
+#include "WeaponType.h"
+#include <imgui.h>
 
 
 /// -------------------------------------------------------------
@@ -26,8 +28,17 @@ void Player::Initialize()
 	controller_ = std::make_unique<PlayerController>();
 	controller_->Initialize();
 
-	// 武器
-	weapon_.Initialize();
+	// ライフルの初期化
+	auto rifle = std::make_unique<Weapon>();
+	rifle->Initialize();
+	rifle->SetWeaponType(WeaponType::Rifle);
+	weapons_.push_back(std::move(rifle));
+
+	auto shotgun = std::make_unique<Weapon>();
+	shotgun->Initialize();
+	shotgun->SetWeaponType(WeaponType::Shotgun);
+	// カスタム設定があればここで弾数や発射速度など変更
+	weapons_.push_back(std::move(shotgun));
 
 	numberSpriteDrawer_ = std::make_unique<NumberSpriteDrawer>();
 	numberSpriteDrawer_->Initialize("Resources/number.png", 50.0f, 50.0f);
@@ -45,17 +56,36 @@ void Player::Update()
 	Move();
 
 	// --- 発射入力（マウス左クリックまたはゲームパッドRT） ---
+
+	// 武器切り替え（1, 2キー）
+	if (input_->TriggerKey(DIK_1)) currentWeaponIndex_ = 0;
+	if (input_->TriggerKey(DIK_2)) currentWeaponIndex_ = 1;
+
+	// 武器更新（すべての武器）
+	for (auto& weapon : weapons_) {
+		weapon->Update();
+	}
+
 	// 発射入力
 	bool isFireTriggered = input_->TriggerMouse(0) || input_->TriggerButton(XButtons.R_Trigger) || input_->TriggerKey(DIK_F);
 
-	if (isFireTriggered)
-	{
-		Vector3 startPos = body_.worldTransform_.translate_ + Vector3{ 0.0f, 20.0f, 0.0f };
-		Vector3 fireDir = camera_->GetForward();
-		weapon_.TryFire(startPos, fireDir); // ★ ここで撃つ
-	}
+	Vector3 firePos = body_.worldTransform_.translate_ + Vector3{ 0.0f, 20.0f, 0.0f };;   // 弾発射の開始位置（関数名は仮）
+	Vector3 direction = camera_->GetForward();             // プレイヤーの向き
 
-	weapon_.Update(); // ★ 弾の更新やリロード処理
+	if (GetCurrentWeapon()->GetWeaponType() == WeaponType::Rifle)
+	{
+		if (input_->PushMouse(0))
+		{
+			GetCurrentWeapon()->TryFire(firePos, direction);
+		}
+	}
+	else if (GetCurrentWeapon()->GetWeaponType() == WeaponType::Shotgun)
+	{
+		if (input_->TriggerMouse(0))
+		{
+			GetCurrentWeapon()->TryFire(firePos, direction);
+		}
+	}
 
 	// コライダーの位置と回転をプレイヤーに追従させる
 	Collider::SetCenterPosition(body_.worldTransform_.translate_ + Vector3(0.0f, 8.2f, 0.0f));
@@ -74,7 +104,9 @@ void Player::Draw()
 	//BaseCharacter::Draw();
 
 	// 弾丸の描画
-	weapon_.Draw(); // ★ 弾丸を描画
+	for (auto& weapon : weapons_) {
+		weapon->Draw();
+	}
 }
 
 
@@ -83,7 +115,21 @@ void Player::Draw()
 /// -------------------------------------------------------------
 void Player::DrawImGui()
 {
-	weapon_.DrawImGui(); // ★ 武器のImGui描画
+	//weapon_.DrawImGui(); // ★ 武器のImGui描画
+
+	std::string weaponName = "Unknown";
+	switch (GetCurrentWeapon()->GetWeaponType())
+	{
+	case WeaponType::Rifle:
+		weaponName = "Rifle";
+		break;
+
+	case WeaponType::Shotgun:
+		weaponName = "Shotgun";
+		break;
+	}
+
+	ImGui::Text("Current Weapon: %s", weaponName.c_str());
 }
 
 
@@ -176,5 +222,19 @@ void Player::Move()
 /// -------------------------------------------------------------
 void Player::OnCollision(Collider* other)
 {
-	
+
+}
+
+
+std::vector<const Bullet*> Player::GetAllBullets() const
+{
+	std::vector<const Bullet*> allBullets;
+	for (const auto& weapon : weapons_)
+	{
+		for (const auto& bullet : weapon->GetBullets())
+		{
+			allBullets.push_back(bullet.get());
+		}
+	}
+	return allBullets;
 }

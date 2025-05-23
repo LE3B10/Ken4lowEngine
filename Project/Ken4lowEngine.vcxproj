@@ -504,6 +504,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="ApplicationLayer\Scene\GamePlayScene\HUDManager\HUDManager.h" />
     <ClInclude Include="ApplicationLayer\ScoreManager\ScoreManager.h" />
     <ClInclude Include="ApplicationLayer\Colliders\IDGenerator.h" />
+    <ClInclude Include="ApplicationLayer\Weapon\WeaponType.h" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="externals\DirectXTex\DirectXTex_Desktop_2022_Win10.vcxproj">

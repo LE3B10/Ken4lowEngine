@@ -69,14 +69,24 @@ void Bullet::OnCollision(Collider* other)
 	contactRecord_.Add(targetID); // 初めて当たった相手として記録
 
 	// 衝突処理（ダメージなど）
-	if (auto enemy = dynamic_cast<Enemy*>(other)) {
-		enemy->TakeDamage(50.0f);
+	if (auto enemy = dynamic_cast<Enemy*>(other))
+	{
+		enemy->TakeDamage(GetDamage());
+
+		if (enemy->IsDead())
+		{
+			// スコアを加算
+			ScoreManager::GetInstance()->AddKill();
+		}
+		else
+		{
+			// スコアを加算
+			ScoreManager::GetInstance()->AddScore(50);
+		}
 	}
 
 	// パーティクルを表示（仮演出）
 
-	// スコアを加算
-	ScoreManager::GetInstance()->AddKill();
 
 	isDead_ = true; // 単発弾の場合
 }

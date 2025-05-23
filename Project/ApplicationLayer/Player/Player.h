@@ -47,26 +47,32 @@ private: /// ---------- メンバ関数 ---------- ///
 
 public: /// ---------- ゲッタ ---------- ///
 
+	// 全ての弾丸を取得
+	std::vector<const Bullet*> GetAllBullets() const;
+
 	// プレイヤーの向きを取得
 	float GetYaw() const { return body_.worldTransform_.rotate_.y; }
 
 	// 弾丸を取得
-	const std::vector<std::unique_ptr<Bullet>>& GetBullets() const { return weapon_.GetBullets(); }
+	const std::vector<std::unique_ptr<Bullet>>& GetBullets() const { return weapons_[currentWeaponIndex_]->GetBullets(); }
 
 	// ワールド変換の取得
 	const WorldTransform* GetWorldTransform() { return &body_.worldTransform_; }
 
 	// 弾薬の取得
-	int GetAmmoInClip() const { return weapon_.GetAmmoInClip(); }
+	int GetAmmoInClip() const { return weapons_[currentWeaponIndex_]->GetAmmoInClip(); }
 
 	// 最大弾薬の取得
-	int GetMaxAmmo() const { return weapon_.GetMaxAmmo(); }
+	int GetMaxAmmo() const { return weapons_[currentWeaponIndex_]->GetMaxAmmo(); }
 
 	// 所持弾薬の取得
-	int GetAmmoReserve() const { return weapon_.GetAmmoReserve(); }
+	int GetAmmoReserve() const { return weapons_[currentWeaponIndex_]->GetAmmoReserve(); }
 
 	// 最大所持弾薬の取得
-	int GetMaxAmmoReserve() const { return weapon_.GetMaxAmmoReserve(); }
+	int GetMaxAmmoReserve() const { return weapons_[currentWeaponIndex_]->GetMaxAmmoReserve(); }
+
+	// 武器の取得
+	Weapon* GetCurrentWeapon() const { return weapons_[currentWeaponIndex_].get(); }
 
 	// HPの取得
 	float GetHP() const { return hp_; }
@@ -83,7 +89,9 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	Input* input_ = nullptr; // 入力クラス
 	Camera* camera_ = nullptr; // カメラクラス
-	Weapon weapon_; // 武器クラス
+
+	std::vector<std::unique_ptr<Weapon>> weapons_; // 武器クラス
+	int currentWeaponIndex_ = 0; // 現在の武器インデックス
 
 	std::unique_ptr<PlayerController> controller_; // プレイヤーコントローラー
 	std::vector<std::unique_ptr<Bullet>> bullets_; // 弾丸クラス
