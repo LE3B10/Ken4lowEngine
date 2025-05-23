@@ -140,10 +140,11 @@ void GamePlayScene::Update()
 			enemyManager_->StartNextWave();
 		}
 
+		hudManager_->Update();
 		hudManager_->SetAmmo(player_->GetAmmoInClip(), player_->GetAmmoReserve());
 		hudManager_->SetScore(ScoreManager::GetInstance()->GetScore());
 		hudManager_->SetKills(ScoreManager::GetInstance()->GetKills());
-		hudManager_->SetHP(player_->GetHP());
+		hudManager_->SetHP(player_->GetHP(), player_->GetMaxHP());
 
 		player_->Update();
 		fpsCamera_->Update(false);

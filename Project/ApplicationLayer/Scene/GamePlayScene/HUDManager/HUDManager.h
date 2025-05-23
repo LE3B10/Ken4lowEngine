@@ -1,6 +1,7 @@
 #pragma once
 #include <NumberSpriteDrawer.h>
 
+#include <algorithm>
 
 /// -------------------------------------------------------------
 /// 				　		HUDマネージャー
@@ -30,7 +31,11 @@ public: /// ---------- セッター ---------- ///
 	void SetAmmo(int current, int reserve) { ammoInClip_ = current; ammoReserve_ = reserve; }
 
 	// HPの設定
-	void SetHP(int hp) { hp_ = hp; }
+	void SetHP(int current, int max) { hp_ = current; maxHP_ = max; }
+
+private: /// ---------- メンバ関数 ---------- ///
+
+	void DrawDebugHUD(); // デバッグ用HUDの描画
 
 private: /// ---------- メンバ変数 ---------- ///
 
@@ -38,6 +43,9 @@ private: /// ---------- メンバ変数 ---------- ///
 	std::unique_ptr<NumberSpriteDrawer> killDrawer_;  // キル数表示用
 	std::unique_ptr<NumberSpriteDrawer> ammoDrawer_;  // 弾薬数表示用
 	std::unique_ptr<NumberSpriteDrawer> hpDrawer_;	  // HP表示用
+
+	std::unique_ptr<Sprite> hpBarBase_; // グレー背景
+	std::unique_ptr<Sprite> hpBarFill_; // 緑バー
 
 	// スコア
 	int score_ = 0;
@@ -47,6 +55,7 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	// HP
 	int hp_ = 100; // プレイヤーのHP
+	int maxHP_ = 100;
 
 	// 弾薬数
 	int ammoInClip_ = 0;  // 現在の弾薬数

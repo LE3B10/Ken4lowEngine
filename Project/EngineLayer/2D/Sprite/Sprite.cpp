@@ -14,6 +14,8 @@ void Sprite::Initialize(const std::string& filePath)
 
 	filePath_ = filePath;
 
+	TextureManager::GetInstance()->LoadTexture(filePath_);
+
 	gpuHandle_ = TextureManager::GetInstance()->GetSrvHandleGPU(filePath_);
 
 	// スプライトのインデックスバッファを作成および設定する

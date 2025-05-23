@@ -19,12 +19,6 @@ void TitleScene::Initialize()
 		"Resources/monsterBall.png",
 	};
 
-	/// ---------- TextureManagerの初期化 ----------///
-	for (auto& texture : texturePaths_)
-	{
-		TextureManager::GetInstance()->LoadTexture(texture);
-	}
-
 	/// ---------- Spriteの初期化 ---------- ///
 	for (uint32_t i = 0; i < texturePaths_.size(); i++)
 	{

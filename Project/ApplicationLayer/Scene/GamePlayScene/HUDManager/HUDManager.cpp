@@ -21,6 +21,14 @@ void HUDManager::Initialize()
 	// HP表示用のスプライトドロワーを初期化
 	hpDrawer_ = std::make_unique<NumberSpriteDrawer>();
 	hpDrawer_->Initialize(texturePath_);
+
+	// グレー背景のスプライトを初期化
+	hpBarBase_ = std::make_unique<Sprite>();
+	hpBarBase_->Initialize("Resources/white.png");
+
+	// 緑バーのスプライトを初期化
+	hpBarFill_ = std::make_unique<Sprite>();
+	hpBarFill_->Initialize("Resources/white.png");
 }
 
 
@@ -29,6 +37,28 @@ void HUDManager::Initialize()
 /// -------------------------------------------------------------
 void HUDManager::Update()
 {
+	// --- 位置・サイズの定義 ---
+	const Vector2 barPosition = { 60.0f, 630.0f };
+	const Vector2 barSize = { 200.0f, 30.0f };
+
+	// --- 背景バー（グレー） ---
+	hpBarBase_->SetPosition(barPosition);
+	hpBarBase_->SetSize(barSize);
+	hpBarBase_->SetColor({ 0.1f, 0.1f, 0.1f, 1.0f });
+	hpBarBase_->Update();
+
+	// --- 現在のHP割合から幅を計算 ---
+	float ratio = static_cast<float>(hp_) / maxHP_;
+	float filledWidth = barSize.x * std::clamp(ratio, 0.0f, 1.0f);
+
+	// --- 色（緑〜赤に変化） ---
+	Vector4 fillColor = { 1.0f - ratio, ratio, 0.0f, 1.0f };
+
+	// --- HPバー（可変） ---
+	hpBarFill_->SetPosition(barPosition); // 左端を起点に縮む
+	hpBarFill_->SetSize({ filledWidth, barSize.y });
+	hpBarFill_->SetColor(fillColor);
+	hpBarFill_->Update();
 }
 
 
@@ -56,9 +86,29 @@ void HUDManager::Draw()
 	ammoDrawer_->DrawNumber(ammoInClip_, { 1000.0f, 620.0f });
 	ammoDrawer_->DrawNumber(ammoReserve_, { 1120.0f, 620.0f });
 
+
+	// グレー背景の描画
+	hpBarBase_->Draw();
+
+	// 緑バーの描画
+	hpBarFill_->Draw();
+
+	// HPの描画
+	DrawDebugHUD();
+}
+
+
+/// -------------------------------------------------------------
+///				　			デバッグ用HUDの描画
+/// -------------------------------------------------------------
+void HUDManager::DrawDebugHUD()
+{
+#ifdef _DEBUG
 	// リセット
 	hpDrawer_->Reset();
 
 	// HPの描画
-	hpDrawer_->DrawNumber(hp_, { 60.0f, 620.0f });
+	int percent = static_cast<int>((static_cast<float>(hp_) / maxHP_) * 100.0f);
+	hpDrawer_->DrawNumber(percent, { 85.0f, 620.0f });
+#endif // _DEBUG
 }

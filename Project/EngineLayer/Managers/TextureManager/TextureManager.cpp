@@ -1,3 +1,4 @@
+#define NOMINMAX
 #include "TextureManager.h"
 
 #include "DirectXCommon.h"
@@ -120,75 +121,90 @@ void TextureManager::LoadTexture(const std::string& filePath)
 	HRESULT hr{};
 
 	// 読み込み済みテクスチャを検索
-	if (textureDatas.contains(filePath))
-	{
-		return;
-	}
+	if (textureDatas.contains(filePath)) return;
 
-	// テクスチャファイルを呼んでプログラムで扱えるようにする
+	// テクスチャファイルを読み込んでプログラムで扱えるようにする
 	DirectX::ScratchImage image{};
 	std::wstring filePathW = ConvertString(filePath);
 
 	// DDSの読み込み
-	if (filePathW.ends_with(L".dds")) // .ddsで終わっていたらddsとみなす。
+	if (filePathW.ends_with(L".dds"))
 	{
+		// .ddsで終わっていたらDDSとして読み込む
 		hr = DirectX::LoadFromDDSFile(filePathW.c_str(), DirectX::DDS_FLAGS_NONE, nullptr, image);
 	}
 	else
 	{
+		// WIC形式（pngやjpgなど）として読み込む
 		hr = DirectX::LoadFromWICFile(filePathW.c_str(), DirectX::WIC_FLAGS_FORCE_SRGB, nullptr, image);
 		assert(SUCCEEDED(hr));
 	}
 
-	//ミップマップの作成
+	// ミップマップの作成（ScratchImageに保持する）
 	DirectX::ScratchImage mipImages{};
-	if (DirectX::IsCompressed(image.GetMetadata().format)) // 圧縮フォーマットかどうかを調べる
+	const auto& meta = image.GetMetadata();
+
+	// ミップレベル数を画像サイズから自動算出
+	size_t maxMips = static_cast<size_t>(std::log2(std::max(meta.width, meta.height))) + 1;
+	size_t mipLevels = std::min(maxMips, size_t(4)); // 最大4ミップまで生成
+
+	if (DirectX::IsCompressed(meta.format))
 	{
-		mipImages = std::move(image); // 圧縮フォーマットならそのまま使うのでmoveする
+		// 圧縮フォーマットならミップ生成せずそのまま使う
+		mipImages = std::move(image);
+	}
+	else if (meta.width > 1 && meta.height > 1)
+	{
+		// 非圧縮かつ2x2以上ならミップマップを生成
+		hr = DirectX::GenerateMipMaps(image.GetImages(), image.GetImageCount(), meta, DirectX::TEX_FILTER_SRGB, mipLevels, mipImages);
+		assert(SUCCEEDED(hr));
 	}
 	else
 	{
-		hr = DirectX::GenerateMipMaps(image.GetImages(), image.GetImageCount(), image.GetMetadata(), DirectX::TEX_FILTER_SRGB, 4, mipImages);
+		// 1x1などミップマップを生成できないサイズのときは、そのまま1レベルの画像として初期化
+		hr = mipImages.InitializeFromImage(*image.GetImages()); // ← ここで参照渡し
 		assert(SUCCEEDED(hr));
 	}
 
-	// 追加したテクスタデータの参照を取得する
+	// 追加したテクスチャデータの参照を取得
 	TextureData& textureData = textureDatas[filePath];
 
-	// テクスチャデータ書き込み
+	// テクスチャリソースの生成
 	textureData.metaData = mipImages.GetMetadata();
 	textureData.resource = CreateTextureResource(dxCommon_->GetDevice(), textureData.metaData);
 
-	// 中間リソースデータを転送する
-	ComPtr<ID3D12Resource> intermediateResouece = UploadTextureData(textureData.resource.Get(), mipImages, dxCommon_->GetDevice(), dxCommon_->GetCommandManager()->GetCommandList());
+	// 中間リソースにデータを転送
+	ComPtr<ID3D12Resource> intermediateResource = UploadTextureData(textureData.resource.Get(), mipImages, dxCommon_->GetDevice(), dxCommon_->GetCommandManager()->GetCommandList());
 
-	// コマンド実行が完了するまでまつ
+	// コマンドを実行し完了まで待機
 	dxCommon_->GetCommandManager()->ExecuteAndWait();
 
-	// SRV確保
+	// SRV（Shader Resource View）の確保
 	textureData.srvIndex = SRVManager::GetInstance()->Allocate();
 	textureData.srvHandleCPU = SRVManager::GetInstance()->GetCPUDescriptorHandle(textureData.srvIndex);
 	textureData.srvHandleGPU = SRVManager::GetInstance()->GetGPUDescriptorHandle(textureData.srvIndex);
 
-	// SRVの生成
+	// SRVの設定
 	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc{};
 	srvDesc.Format = textureData.metaData.format;
 	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 
-	// cubemapかどうかを取得
 	if (textureData.metaData.IsCubemap())
 	{
+		// キューブマップとして扱う場合
 		srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURECUBE;
-		srvDesc.TextureCube.MostDetailedMip = 0; // unionがTextureCubeになったが、内部パラメータの意味はTexture2dと変わらない
+		srvDesc.TextureCube.MostDetailedMip = 0;
 		srvDesc.TextureCube.MipLevels = UINT_MAX;
 		srvDesc.TextureCube.ResourceMinLODClamp = 0.0f;
 	}
 	else
 	{
-		srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;				//2Dテクスチャ
+		// 通常の2Dテクスチャ
+		srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
 		srvDesc.Texture2D.MipLevels = UINT(textureData.metaData.mipLevels);
 	}
-	
+
+	// SRVの生成
 	dxCommon_->GetDevice()->CreateShaderResourceView(textureData.resource.Get(), &srvDesc, textureData.srvHandleCPU);
 }
 
