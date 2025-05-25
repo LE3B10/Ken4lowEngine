@@ -64,6 +64,10 @@ void GamePlayScene::Initialize()
 	hudManager_ = std::make_unique<HUDManager>();
 	hudManager_->Initialize();
 
+	// 結果マネージャーの生成と初期化
+	resultManager_ = std::make_unique<ResultManager>();
+	resultManager_->Initialize();
+
 	ParticleManager::GetInstance()->CreateParticleGroup("DefaultParticle", "circle2.png", ParticleEffectType::Default);
 	defaultEmitter_ = std::make_unique<ParticleEmitter>(ParticleManager::GetInstance(), "DefaultParticle");
 	defaultEmitter_->SetPosition({ 0.0f, 18.0f, 20.0f });
@@ -126,9 +130,16 @@ void GamePlayScene::Update()
 
 		if (player_->IsDead())
 		{
-			// ゲームオーバー状態に遷移
-			sceneManager_->ChangeScene("GameOverScene");
-			return;
+			gameState_ = GameState::Result;
+			Input::GetInstance()->SetLockCursor(false);
+			ShowCursor(true);
+
+			// ★ 結果情報を設定
+			resultManager_->SetFinalScore(ScoreManager::GetInstance()->GetScore());
+			resultManager_->SetKillCount(ScoreManager::GetInstance()->GetKills());
+			resultManager_->SetWaveCount(enemyManager_->GetCurrentWave()); // EnemyManager に GetCurrentWave() が必要
+
+			break;
 		}
 
 		// エネミーマネージャーの更新
@@ -178,6 +189,20 @@ void GamePlayScene::Update()
 
 		fpsCamera_->Update(true); // 回転行列だけ更新するなら true を渡す
 		// 何も動かさない（またはポーズUIだけ更新）
+		break;
+
+	case GameState::Result:
+
+		resultManager_->Update();
+		if (resultManager_->IsRestartRequested())
+		{
+			sceneManager_->ChangeScene("GamePlayScene");
+		}
+		if (resultManager_->IsReturnToTitleRequested())
+		{
+			sceneManager_->ChangeScene("TitleScene");
+		}
+
 		break;
 	}
 
@@ -248,6 +273,10 @@ void GamePlayScene::Draw2DSprites()
 
 	// HUDマネージャーの描画
 	hudManager_->Draw();
+
+	if (gameState_ == GameState::Result) {
+		resultManager_->Draw();
+	}
 
 #pragma endregion
 }

@@ -14,6 +14,7 @@
 #include "Crosshair.h"
 #include "EnemyManager.h"
 #include "HUDManager.h"
+#include "ResultManager.h"
 
 
 /// ---------- 前方宣言 ---------- ///
@@ -26,8 +27,9 @@ class Input;
 /// -------------------------------------------------------------
 enum class GameState
 {
-	Playing,
-	Paused,
+	Playing, // プレイ中
+	Paused, // ポーズ中
+	Result, // 結果画面
 	// 追加例：Menu, GameOver, Cutscene など
 };
 
@@ -74,6 +76,7 @@ private: /// ---------- メンバ変数 ---------- ///
 	std::unique_ptr<EnemyManager> enemyManager_ = nullptr; // エネミースポナーオブジェクト
 
 	std::unique_ptr<HUDManager> hudManager_ = nullptr; // HUDマネージャー
+	std::unique_ptr<ResultManager> resultManager_ = nullptr; // 結果マネージャー
 
 	std::unique_ptr<CollisionManager> collisionManager_; // 衝突マネージャー
 

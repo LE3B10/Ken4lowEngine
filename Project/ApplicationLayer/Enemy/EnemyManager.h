@@ -36,7 +36,7 @@ public: /// ---------- メンバ関数 ---------- ///
 	bool IsWaveClear() const { return spawnedEnemies_ >= totalEnemiesThisWave_ && enemies_.empty(); }
 
 	// 現在のウェーブ数を取得
-	int GetCurrentWave() const { return currentWave_; }
+	int GetCurrentWave() const { return currentWave_ - 1; }
 
 	// スポーンしたエネミーの数を取得
 	const std::vector<std::unique_ptr<Enemy>>& GetEnemies() const { return enemies_; }
