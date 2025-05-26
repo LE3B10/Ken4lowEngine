@@ -68,6 +68,13 @@ void GamePlayScene::Initialize()
 	resultManager_ = std::make_unique<ResultManager>();
 	resultManager_->Initialize();
 
+	// 初期化内に追加（プレイヤー近くに1個スポーン）
+	itemManager_ = std::make_unique<ItemManager>();
+	itemManager_->Initialize();
+	//itemManager_->Spawn(ItemType::HealSmall, player_->GetWorldTransform()->translate_ + Vector3{ 0.0f, 0.0f, 30.0f });
+
+	enemyManager_->SetItemManager(itemManager_.get());
+
 	ParticleManager::GetInstance()->CreateParticleGroup("DefaultParticle", "circle2.png", ParticleEffectType::Default);
 	defaultEmitter_ = std::make_unique<ParticleEmitter>(ParticleManager::GetInstance(), "DefaultParticle");
 	defaultEmitter_->SetPosition({ 0.0f, 18.0f, 20.0f });
@@ -166,6 +173,9 @@ void GamePlayScene::Update()
 			}
 		}
 
+		// アイテムの更新と衝突判定
+		itemManager_->Update(player_.get());
+
 		hudManager_->Update();
 		hudManager_->SetAmmo(player_->GetAmmoInClip(), player_->GetAmmoReserve());
 		hudManager_->SetScore(ScoreManager::GetInstance()->GetScore());
@@ -236,6 +246,9 @@ void GamePlayScene::Draw3DObjects()
 
 	// エネミースポナーの描画
 	enemyManager_->Draw();
+
+	// アイテムの描画
+	itemManager_->Draw();
 
 #pragma endregion
 
@@ -335,6 +348,9 @@ void GamePlayScene::CheckAllCollisions()
 
 	// プレイヤーが死亡している場合、コライダーを削除
 	if (player_->IsDead()) collisionManager_->RemoveCollider(player_.get());
+
+	// アイテムのコライダーを登録
+	itemManager_->RegisterColliders(collisionManager_.get());
 
 	// 衝突判定と応答
 	collisionManager_->CheckAllCollisions();

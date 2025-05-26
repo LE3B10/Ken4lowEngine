@@ -41,7 +41,7 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	int finalScore_ = 0;
 	int killCount_ = 0;
-	int waveCount_;
+	int waveCount_ = 1;
 
 	bool restartRequested_ = false;
 	bool returnToTitleRequested_ = false;

@@ -85,6 +85,13 @@ public: /// ---------- セッタ ---------- ///
 	// 追従カメラを設定
 	void SetCamera(Camera* camera) { camera_ = camera; }
 
+	// HPを追加
+	void AddHP(int amount);
+
+	// 弾薬を追加
+	void AddAmmo(int amount) { GetCurrentWeapon()->AddReserveAmmo(amount); }
+
+
 private: /// ---------- メンバ変数 ---------- ///
 
 	Input* input_ = nullptr; // 入力クラス
@@ -105,14 +112,17 @@ private: /// ---------- ジャンプ機能 ---------- ///
 	const float gravity_ = -0.98f; // 重力加速度
 	const float jumpPower_ = 0.5f; // ジャンプ力
 
+private: /// ---------- ダッシュ機能 ---------- ///
+
+	bool isDashing_ = false;
+	float baseSpeed_ = 0.3f;
+	float dashMultiplier_ = 2.0f;
+
+private: /// ---------- プレイヤーの状態 ---------- ///
+
 	float deltaTime = 1.0f / 60.0f; // フレーム間時間（例: 1/60秒）
 	float hp_ = 1000.0f; // プレイヤーのHP
 	float maxHP_ = 1000.0f; // プレイヤーの最大HP
-
-	bool isDead_ = false;
-
-	bool isDashing_ = false;
-	float baseSpeed_ = 0.1f;
-	float dashMultiplier_ = 4.0f;
+	bool isDead_ = false; // 死亡フラグ
 };
 

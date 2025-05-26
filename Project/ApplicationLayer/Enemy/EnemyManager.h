@@ -1,12 +1,14 @@
 #pragma once
 #include "Enemy.h"
+#include "ItemDropTable.h"
+
 #include <memory>
 #include <vector>
 
 
 /// ---------- 前方宣言 ---------- ///
 class Player;
-
+class ItemManager;
 
 /// -------------------------------------------------------------
 ///				　		エネミーマネージャー
@@ -41,7 +43,13 @@ public: /// ---------- メンバ関数 ---------- ///
 	// スポーンしたエネミーの数を取得
 	const std::vector<std::unique_ptr<Enemy>>& GetEnemies() const { return enemies_; }
 
+	void SetItemManager(ItemManager* itemManager) { itemManager_ = itemManager; }
+
 private: /// ---------- メンバ変数 ---------- ///
+
+	ItemDropTable itemDropTable_;
+
+	ItemManager* itemManager_ = nullptr; // 所有はしない
 
 	std::vector<std::unique_ptr<Enemy>> enemies_; // エネミーのリスト
 	Player* player_ = nullptr; // プレイヤーへのポインタ

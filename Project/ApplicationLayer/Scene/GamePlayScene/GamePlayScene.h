@@ -15,6 +15,7 @@
 #include "EnemyManager.h"
 #include "HUDManager.h"
 #include "ResultManager.h"
+#include "ItemManager.h"
 
 
 /// ---------- 前方宣言 ---------- ///
@@ -77,6 +78,9 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	std::unique_ptr<HUDManager> hudManager_ = nullptr; // HUDマネージャー
 	std::unique_ptr<ResultManager> resultManager_ = nullptr; // 結果マネージャー
+
+	// 仮のアイテムリスト
+	std::unique_ptr<ItemManager> itemManager_ = nullptr;
 
 	std::unique_ptr<CollisionManager> collisionManager_; // 衝突マネージャー
 

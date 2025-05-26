@@ -1,3 +1,4 @@
+#define NOMINMAX
 #include "Player.h"
 #include <Object3DCommon.h>
 #include <TextureManager.h>
@@ -237,4 +238,11 @@ std::vector<const Bullet*> Player::GetAllBullets() const
 		}
 	}
 	return allBullets;
+}
+
+
+void Player::AddHP(int amount)
+{
+	if (isDead_) return;
+	hp_ = std::min(hp_ + static_cast<float>(amount), maxHP_);
 }
