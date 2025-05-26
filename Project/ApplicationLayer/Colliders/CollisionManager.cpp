@@ -2,6 +2,7 @@
 #include "ParameterManager.h"
 #include "Collider.h"
 #include <CollisionUtility.h>
+#include <CollisionTypeIdDef.h>
 
 
 /// -------------------------------------------------------------
@@ -119,29 +120,39 @@ void CollisionManager::CheckCollisionPair(Collider* colliderA, Collider* collide
 /// -------------------------------------------------------------
 void CollisionManager::RegisterCollisionFuncsions()
 {
-	// OBB vs OBB 判定
-	collisionTable_[{3, 4}] = [](Collider* a, Collider* b) {
+	/// ---------- エネミーとプレイヤーの弾丸の衝突判定 ---------- ///
+
+	collisionTable_[{static_cast<uint32_t>(CollisionTypeIdDef::kEnemy), static_cast<uint32_t>(CollisionTypeIdDef::kBullet)}] =
+		[](Collider* a, Collider* b) {
 		return CollisionUtility::IsCollision(a->GetOBB(), b->GetOBB());
 		};
 
-	collisionTable_[{4, 3}] = [](Collider* a, Collider* b) {
+	collisionTable_[{static_cast<uint32_t>(CollisionTypeIdDef::kBullet), static_cast<uint32_t>(CollisionTypeIdDef::kEnemy)}] =
+		[](Collider* a, Collider* b) {
 		return CollisionUtility::IsCollision(a->GetOBB(), b->GetOBB());
 		};
 
-	collisionTable_[{1, 5}] = [](Collider* a, Collider* b) {
+	/// ---------- プレイヤーとエネミーの弾丸の衝突判定 ---------- ///
+
+	collisionTable_[{static_cast<uint32_t>(CollisionTypeIdDef::kPlayer), static_cast<uint32_t>(CollisionTypeIdDef::kEnemyBullet)}] =
+		[](Collider* a, Collider* b) {
 		return CollisionUtility::IsCollision(a->GetOBB(), b->GetOBB());
 		};
 
-	collisionTable_[{5, 1}] = [](Collider* a, Collider* b) {
+	collisionTable_[{static_cast<uint32_t>(CollisionTypeIdDef::kEnemyBullet), static_cast<uint32_t>(CollisionTypeIdDef::kPlayer)}] =
+		[](Collider* a, Collider* b) {
 		return CollisionUtility::IsCollision(a->GetOBB(), b->GetOBB());
 		};
 
-	//// OBB vs OBB 判定　どっちか
-	//auto obb_vs_obb = [](Collider* a, Collider* b) {
-	//	return CollisionUtility::IsCollision(a->GetOBB(), b->GetOBB());
-	//	};
+	/// ---------- プレイヤーとアイテムの衝突判定 ---------- ///
 
-	//// 共通（Default = 0）やプレイヤー = 1 を仮定してる場合
-	//collisionTable_[{3, 4}] = obb_vs_obb; // Enemy vs Bullet
-	//collisionTable_[{4, 3}] = obb_vs_obb; // Bullet vs Enemy
+	collisionTable_[{static_cast<uint32_t>(CollisionTypeIdDef::kPlayer), static_cast<uint32_t>(CollisionTypeIdDef::kItem)}] =
+		[](Collider* a, Collider* b) {
+		return CollisionUtility::IsCollision(a->GetOBB(), b->GetOBB());
+		};
+
+	collisionTable_[{static_cast<uint32_t>(CollisionTypeIdDef::kItem), static_cast<uint32_t>(CollisionTypeIdDef::kPlayer)}] =
+		[](Collider* a, Collider* b) {
+		return CollisionUtility::IsCollision(a->GetOBB(), b->GetOBB());
+		};
 }

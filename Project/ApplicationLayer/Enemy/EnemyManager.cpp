@@ -1,5 +1,7 @@
 #include "EnemyManager.h"
 #include "CollisionManager.h"
+#include "ItemManager.h"
+
 #include <cstdlib>
 #include <imgui.h>
 
@@ -11,6 +13,12 @@ void EnemyManager::Initialize(Player* player)
 {
 	player_ = player; // プレイヤーへのポインタを設定
 	StartNextWave();
+
+	itemDropTable_.SetDropChance(60); // 全体ドロップ率60%
+	itemDropTable_.AddEntry(ItemType::HealSmall, 30); // 小回復アイテムのドロップ率
+	itemDropTable_.AddEntry(ItemType::AmmoSmall, 40); // 小弾薬アイテムのドロップ率
+	itemDropTable_.AddEntry(ItemType::ScoreBonus, 20); // スコアボーナスアイテムのドロップ率
+	itemDropTable_.AddEntry(ItemType::PowerUp, 10); // パワーアップアイテムのドロップ率
 }
 
 
@@ -39,6 +47,16 @@ void EnemyManager::Update()
 	for (auto& enemy : enemies_)
 	{
 		enemy->Update();
+
+		if (enemy->IsDead() && itemManager_)
+		{
+			ItemType dropType;
+			if (itemDropTable_.RollForDrop(dropType))
+			{
+				Vector3 dropPos = enemy->GetWorldTransform()->translate_;
+				itemManager_->Spawn(dropType, dropPos);
+			}
+		}
 	}
 
 	// 死亡した敵は削除（または別のロジックで管理）
