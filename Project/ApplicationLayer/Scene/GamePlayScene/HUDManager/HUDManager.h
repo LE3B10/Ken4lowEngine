@@ -75,6 +75,6 @@ private: /// ---------- メンバ変数 ---------- ///
 	int ammoInClip_ = 0;  // 現在の弾薬数
 	int ammoReserve_ = 0; // 予備の弾薬数
 
-	const std::string texturePath_ = "Resources/number.png"; // 数字のテクスチャパス
+	const std::string texturePath_ = "Resources/Number.png"; // 数字のテクスチャパス
 };
 

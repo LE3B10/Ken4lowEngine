@@ -76,20 +76,20 @@ void HUDManager::Draw()
 	scoreDrawer_->Reset();
 
 	// スコアの描画
-	scoreDrawer_->DrawNumber(score_, { 600.0f, 20.0f });
+	scoreDrawer_->DrawNumberCentered(score_, { 628.0f, 20.0f }, 24.0f);
 
 	// リセット
 	killDrawer_->Reset();
 
 	// キル数の描画
-	killDrawer_->DrawNumber(kills_, { 600.0f, 80.0f });
+	killDrawer_->DrawNumberCentered(kills_, { 628.0f, 80.0f });
 
 	// リセット
 	ammoDrawer_->Reset();
 
 	// 弾薬数の描画
-	ammoDrawer_->DrawNumber(ammoInClip_, { 1000.0f, 620.0f });
-	ammoDrawer_->DrawNumber(ammoReserve_, { 1120.0f, 620.0f });
+	ammoDrawer_->DrawNumberRightAligned(ammoInClip_, { 1060.0f, 620.0f });
+	ammoDrawer_->DrawNumberRightAligned(ammoReserve_, { 1140.0f, 620.0f });
 
 
 	// グレー背景の描画
@@ -117,7 +117,7 @@ void HUDManager::DrawDebugHUD()
 
 	// HPの描画
 	int percent = static_cast<int>((static_cast<float>(hp_) / maxHP_) * 100.0f);
-	hpDrawer_->DrawNumber(percent, { 85.0f, 620.0f });
+	hpDrawer_->DrawNumberLeftAligned(percent, { 85.0f, 620.0f });
 #endif // _DEBUG
 }
 

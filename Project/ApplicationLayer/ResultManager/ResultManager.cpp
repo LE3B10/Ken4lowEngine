@@ -69,11 +69,11 @@ void ResultManager::Draw()
 	titleText_->Draw();
 
 	scoreDrawer_->Reset();
-	scoreDrawer_->DrawNumber(finalScore_, { 600.0f, 200.0f });
+	scoreDrawer_->DrawNumberCentered(finalScore_, { 628.0f, 200.0f }, 24.0f);
 
 	killDrawer_->Reset();
-	killDrawer_->DrawNumber(killCount_, { 600.0f, 300.0f });
+	killDrawer_->DrawNumberCentered(killCount_, { 628.0f, 280.0f }, 24.0f);
 
 	waveDrawer_->Reset();
-	waveDrawer_->DrawNumber(waveCount_, { 600.0f, 400.0f });
+	waveDrawer_->DrawNumberCentered(waveCount_, { 628.0f, 360.0f }, 24.0f);
 }
