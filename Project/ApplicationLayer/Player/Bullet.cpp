@@ -2,6 +2,7 @@
 #include <CollisionTypeIdDef.h>
 #include <ScoreManager.h>
 #include <Enemy.h>
+#include <Wireframe.h>
 
 
 /// -------------------------------------------------------------
@@ -11,12 +12,13 @@ void Bullet::Initialize()
 {
 	// コライダーを初期化
 	Collider::SetTypeID(static_cast<uint32_t>(CollisionTypeIdDef::kBullet));
-	Collider::SetOBBHalfSize({ 0.5f, 0.5f, 0.5f }); // OBBの半径を設定
-
 
 	model_ = std::make_unique<Object3D>();
 	model_->Initialize("cube.gltf");
 	model_->SetScale({ 0.5f,0.5f,0.5f });
+
+	// 初期位置を前回位置として記録（重要）
+	previousPosition_ = position_;
 }
 
 
@@ -25,18 +27,25 @@ void Bullet::Initialize()
 /// -------------------------------------------------------------
 void Bullet::Update()
 {
-	// 位置更新
+	// 位置更新前に記録
+	previousPosition_ = position_;
 	position_ += velocity_;
 
-	// 寿命を減らす
-	lifeTime_ -= 1.0f / 60.0f;
+	// セグメント更新（マージンを追加して通過を防ぐ）
+	Vector3 direction = position_ - previousPosition_;
+	Vector3 normalized = Vector3::Normalize(direction);
+	float margin = 0.2f;
+	segment_.origin = previousPosition_;
+	segment_.diff = direction + normalized * margin;
 
+	// 描画・当たり判定更新
 	model_->SetTranslate(position_);
 	model_->SetRotate({ 0.0f, 0.0f, 0.0f });
 	model_->Update();
 
-	// Collider の位置・回転を更新
-	Collider::SetCenterPosition(position_);
+	SetCenterPosition(position_);
+	SetSegment(segment_);
+	lifeTime_ -= 1.0f / 60.0f;
 }
 
 

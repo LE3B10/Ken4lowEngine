@@ -43,6 +43,9 @@ public: /// ---------- ゲッター ---------- ///
 	// シリアルナンバーを取得
 	uint32_t GetSerialNumber() const { return serialNumber_; }
 
+	// Segmentを返す（Colliderの仮想関数をオーバーライド）
+	Segment GetSegment() const override { return segment_; }
+
 private: /// ---------- メンバ変数 ---------- ///
 
 	ContactRecord contactRecord_; // 衝突記録
@@ -52,5 +55,8 @@ private: /// ---------- メンバ変数 ---------- ///
 	Vector3 velocity_ = {}; 		  // 速度（移動方向）
 	float lifeTime_ = 0.5f; 		  // 寿命（秒）
 	bool isDead_ = false; 			  // 死亡フラグ
+
+	Segment segment_; // 弾が保持する線分
+	Vector3 previousPosition_; // 前回の位置（弾の移動を追跡するため）
 };
 

@@ -40,6 +40,9 @@ public: /// ---------- メンバ関数 ---------- ///
 	void SetDamage(float dmg) { damage_ = dmg; }
 	float GetDamage() const { return damage_; }
 
+	// Segmentを返す（Colliderの仮想関数をオーバーライド）
+	Segment GetSegment() const override { return segment_; }
+
 private: /// ---------- メンバ変数 ---------- ///
 
 	ContactRecord contactRecord_; // 衝突記録
@@ -47,6 +50,8 @@ private: /// ---------- メンバ変数 ---------- ///
 	std::unique_ptr<Object3D> model_; // モデル描画用
 	Vector3 position_ = {};           // 現在位置
 	Vector3 velocity_ = {};           // 速度（移動方向）
+	Vector3 previousPosition_;
+	Segment segment_;              // ← 弾が保持する線分
 	float lifeTime_ = 3.0f;           // 寿命（秒）
 	bool isDead_ = false;            // 死亡フラグ
 	float damage_ = 10.0f;  // デフォルト値

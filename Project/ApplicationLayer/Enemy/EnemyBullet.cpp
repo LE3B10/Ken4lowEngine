@@ -9,11 +9,13 @@
 void EnemyBullet::Initialize()
 {
 	Collider::SetTypeID(static_cast<uint32_t>(CollisionTypeIdDef::kEnemyBullet)); // 新たなIDを定義
-	Collider::SetOBBHalfSize({ 0.5f, 0.5f, 0.5f });
 
 	model_ = std::make_unique<Object3D>();
 	model_->Initialize("cube.gltf"); // 敵弾用の異なるモデルにするなら
 	model_->SetScale({ 0.5f, 0.5f, 0.5f });
+
+	// 初期位置を前回位置として記録（重要）
+	previousPosition_ = position_;
 }
 
 
@@ -22,14 +24,26 @@ void EnemyBullet::Initialize()
 /// -------------------------------------------------------------
 void EnemyBullet::Update()
 {
+	previousPosition_ = position_;
 	position_ += velocity_ * 8.0f;
-	lifeTime_ -= 1.0f / 60.0f;
 
+	// Segment計算（マージン追加）
+	Vector3 direction = position_ - previousPosition_;
+	Vector3 normalized = Vector3::Normalize(direction);
+	float margin = 0.2f;
+	segment_.origin = previousPosition_;
+	segment_.diff = direction + normalized * margin;
+
+	// モデル更新
 	model_->SetTranslate(position_);
 	model_->SetRotate({ 0.0f, 0.0f, 0.0f });
 	model_->Update();
 
-	Collider::SetCenterPosition(position_);
+	// コライダー情報を更新
+	SetCenterPosition(position_);
+	SetSegment(segment_);
+
+	lifeTime_ -= 1.0f / 60.0f;
 }
 
 
