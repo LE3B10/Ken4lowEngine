@@ -28,8 +28,11 @@ public: /// ---------- メンバ関数 ---------- ///
 	// 速度を設定
 	void SetVelocity(const Vector3& velocity) { velocity_ = velocity; }
 
-	// 寿命を取得
-	bool IsDead() const { return lifeTime_ <= 0.0f || isDead_; }
+	// 射程距離設定
+	void SetRange(float range) { maxDistance_ = range; }
+
+	// 死亡状態
+	bool IsDead() const { return isDead_ || distanceTraveled_ >= maxDistance_; }
 
 	// 中心座標を取得
 	Vector3 GetCenterPosition() const override { return position_; }
@@ -45,14 +48,14 @@ public: /// ---------- メンバ関数 ---------- ///
 
 private: /// ---------- メンバ変数 ---------- ///
 
-	ContactRecord contactRecord_; // 衝突記録
-
-	std::unique_ptr<Object3D> model_; // モデル描画用
-	Vector3 position_ = {};           // 現在位置
-	Vector3 velocity_ = {};           // 速度（移動方向）
-	Vector3 previousPosition_;
-	Segment segment_;              // ← 弾が保持する線分
-	float lifeTime_ = 3.0f;           // 寿命（秒）
-	bool isDead_ = false;            // 死亡フラグ
-	float damage_ = 10.0f;  // デフォルト値
+	std::unique_ptr<Object3D> model_;     // モデル
+	Vector3 position_ = {};               // 現在位置
+	Vector3 velocity_ = {};               // 速度ベクトル
+	Vector3 previousPosition_ = {};       // 1フレーム前の位置
+	Segment segment_;                     // 線分（セグメント）
+	float damage_ = 10.0f;                // 与ダメージ
+	float maxDistance_ = 1000.0f;         // 最大飛距離
+	float distanceTraveled_ = 0.0f;       // 現在の飛距離
+	bool isDead_ = false;                 // 死亡フラグ
+	ContactRecord contactRecord_;         // 衝突記録
 };

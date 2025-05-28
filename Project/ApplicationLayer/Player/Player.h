@@ -82,6 +82,11 @@ public: /// ---------- セッタ ---------- ///
 	// 弾薬を追加
 	void AddAmmo(int amount) { GetCurrentWeapon()->AddReserveAmmo(amount); }
 
+private: /// ---------- メンバ関数 ---------- ///
+
+	// 弾丸発射処理位置
+	void FireWeapon();
+
 private: /// ---------- メンバ変数 ---------- ///
 
 	Input* input_ = nullptr; // 入力クラス
@@ -114,5 +119,7 @@ private: /// ---------- プレイヤーの状態 ---------- ///
 	float hp_ = 1000.0f; // プレイヤーのHP
 	float maxHP_ = 1000.0f; // プレイヤーの最大HP
 	bool isDead_ = false; // 死亡フラグ
+
+	bool isAiming_ = false; // エイミング状態
 };
 

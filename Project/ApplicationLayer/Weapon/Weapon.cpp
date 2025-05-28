@@ -18,13 +18,13 @@ void Weapon::Initialize()
 	switch (type_)
 	{
 	case WeaponType::Rifle:
-		ammoInfo_ = { 30, 90, 30, 90, 1, 25.0f }; // 30回撃てて、1回で1発出す
+		ammoInfo_ = { 300000, 90, 30, 90, 1, 25.0f, 1000.0f }; // 30回撃てて、1回で1発出す
 		reloadTime_ = 1.5f; // ライフルはリロード時間が短い
 		bulletSpeed_ = 20.0f; // ライフルの弾速はショットガンより速い
 		break;
 
 	case WeaponType::Shotgun:
-		ammoInfo_ = { 6, 30, 6, 30, 8, 10.0f }; // 6回撃てて、1回で8粒出す
+		ammoInfo_ = { 6, 30, 6, 30, 8, 10.0f, 100.0f }; // 6回撃てて、1回で8粒出す
 		reloadTime_ = 2.5f; // ショットガンはリロード時間が長い
 		bulletSpeed_ = 12.0f; // ショットガンの弾速はライフルより遅い
 		break;

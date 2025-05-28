@@ -19,7 +19,8 @@ struct AmmoInfo
 	int clipSize = 0;       // マガジン容量
 	int maxReserve = 0;     // 最大所持弾数
 	int firePerShot = 1;    // 1回で消費する弾数（ショットガン=8）
-	float bulletDamage = 25.0f;  // ★追加（必要なら）
+	float bulletDamage = 0;	// ★追加（必要なら）
+	float range = 100;		// 弾丸の射程（メートル単位）
 };
 
 
