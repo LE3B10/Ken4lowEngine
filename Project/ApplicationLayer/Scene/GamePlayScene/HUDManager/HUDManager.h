@@ -45,6 +45,9 @@ public: /// ---------- セッター ---------- ///
 	// 武器を設定
 	void SetWeapon(Weapon* weapon) { if (reloadCircle_) reloadCircle_->SetWeapon(weapon); }
 
+	// 弾薬情報を武器から設定する
+	void SetAmmoFromWeapon(const Weapon* weapon);
+
 private: /// ---------- メンバ関数 ---------- ///
 
 	void DrawDebugHUD(); // デバッグ用HUDの描画
