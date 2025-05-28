@@ -6,6 +6,7 @@
 #include "IDGenerator.h"
 
 #include "OBB.h"
+#include "Segment.h"
 
 
 /// -------------------------------------------------------------
@@ -37,6 +38,11 @@ public: /// ---------- 純粋仮想関数 ---------- ///
 	virtual void SetOrientation(const Vector3& rot) { orientation_ = rot; }
 
 	OBB GetOBB() const;
+
+	// セグメントを設定（衝突判定用）
+	void SetSegment(const Segment& segment) { segment_ = segment; }
+	// セグメントを取得
+	virtual Segment GetSegment() const { return segment_; }
 
 	// シリアルナンバーを取得
 	uint32_t GetUniqueID() const { return serialNumber_; }
@@ -73,6 +79,15 @@ private: /// ---------- メンバ変数 ---------- ///
 	Vector3 colliderHalfSize_ = { 1.0f, 1.0f, 1.0f };
 	Vector3 orientation_ = { 0.0f, 0.0f, 0.0f };
 	Vector4 debugColor_ = { 1.0f, 0.0f, 0.0f, 1.0f };
+
+	// セグメント（衝突判定用）
+	Segment segment_{};
+
+	// セグメントを使用するかどうか
+	bool useSegment_ = true;
+
+	// OBBを使用するかどうか
+	bool useOBB_ = true;
 
 protected: /// ---------- シリアルナンバー ---------- ///
 

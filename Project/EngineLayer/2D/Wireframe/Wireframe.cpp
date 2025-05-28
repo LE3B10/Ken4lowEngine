@@ -143,6 +143,13 @@ void Wireframe::DrawLine(const Vector3& start, const Vector3& end, const Vector4
 	lineIndex_ += kLineVertexCount;
 }
 
+void Wireframe::DrawSegment(const Segment& segment, const Vector4& color)
+{
+	DrawLine(segment.origin, segment.origin + segment.diff, color);
+	// セグメントの始点と終点を線で結ぶ
+	// DrawLine(segment.origin, segment.origin + segment.diff, color);
+}
+
 
 /// -------------------------------------------------------------
 ///				　	      円を描画する処理

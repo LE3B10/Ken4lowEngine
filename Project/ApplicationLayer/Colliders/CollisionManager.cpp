@@ -120,33 +120,40 @@ void CollisionManager::CheckCollisionPair(Collider* colliderA, Collider* collide
 /// -------------------------------------------------------------
 void CollisionManager::RegisterCollisionFuncsions()
 {
+	using CollisionType = uint32_t;
+	constexpr CollisionType kPlayer = static_cast<CollisionType>(CollisionTypeIdDef::kPlayer);
+	constexpr CollisionType kEnemy = static_cast<CollisionType>(CollisionTypeIdDef::kEnemy);
+	constexpr CollisionType kBullet = static_cast<CollisionType>(CollisionTypeIdDef::kBullet);
+	constexpr CollisionType kEnemyBullet = static_cast<CollisionType>(CollisionTypeIdDef::kEnemyBullet);
+	constexpr CollisionType kItem = static_cast<CollisionType>(CollisionTypeIdDef::kItem);
+
 	/// ---------- エネミーとプレイヤーの弾丸の衝突判定 ---------- ///
 
-	collisionTable_[{static_cast<uint32_t>(CollisionTypeIdDef::kEnemy), static_cast<uint32_t>(CollisionTypeIdDef::kBullet)}] =
+	collisionTable_[{kEnemy, kBullet}] =
 		[](Collider* a, Collider* b) {
-		return CollisionUtility::IsCollision(a->GetOBB(), b->GetOBB());
+		return CollisionUtility::IsCollision(a->GetOBB(), b->GetSegment());
 		};
 
-	collisionTable_[{static_cast<uint32_t>(CollisionTypeIdDef::kBullet), static_cast<uint32_t>(CollisionTypeIdDef::kEnemy)}] =
+	collisionTable_[{kBullet, kEnemy}] =
 		[](Collider* a, Collider* b) {
-		return CollisionUtility::IsCollision(a->GetOBB(), b->GetOBB());
+		return CollisionUtility::IsCollision(a->GetSegment(), b->GetOBB());
 		};
 
 	/// ---------- プレイヤーとエネミーの弾丸の衝突判定 ---------- ///
 
-	collisionTable_[{static_cast<uint32_t>(CollisionTypeIdDef::kPlayer), static_cast<uint32_t>(CollisionTypeIdDef::kEnemyBullet)}] =
+	collisionTable_[{kPlayer, kEnemyBullet}] =
 		[](Collider* a, Collider* b) {
-		return CollisionUtility::IsCollision(a->GetOBB(), b->GetOBB());
+		return CollisionUtility::IsCollision(a->GetOBB(), b->GetSegment());
 		};
 
-	collisionTable_[{static_cast<uint32_t>(CollisionTypeIdDef::kEnemyBullet), static_cast<uint32_t>(CollisionTypeIdDef::kPlayer)}] =
+	collisionTable_[{kEnemyBullet, kPlayer}] =
 		[](Collider* a, Collider* b) {
-		return CollisionUtility::IsCollision(a->GetOBB(), b->GetOBB());
+		return CollisionUtility::IsCollision(a->GetSegment(), b->GetOBB());
 		};
 
 	/// ---------- プレイヤーとアイテムの衝突判定 ---------- ///
 
-	collisionTable_[{static_cast<uint32_t>(CollisionTypeIdDef::kPlayer), static_cast<uint32_t>(CollisionTypeIdDef::kItem)}] =
+	collisionTable_[{kPlayer, kItem}] =
 		[](Collider* a, Collider* b) {
 		return CollisionUtility::IsCollision(a->GetOBB(), b->GetOBB());
 		};

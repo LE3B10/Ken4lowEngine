@@ -42,6 +42,9 @@ public: /// ---------- メンバ関数 ---------- ///
 	// OBBと線分の衝突判定
 	static bool IsCollision(const OBB& obb, const Segment& segment);
 
+	// 線分とOBBの衝突判定
+	static bool IsCollision(const Segment& segment, const OBB& obb);
+
 	// OBBとOBBの衝突判定
 	static bool IsCollision(const OBB& obb1, const OBB& obb2);
 

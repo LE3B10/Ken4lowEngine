@@ -198,6 +198,11 @@ bool CollisionUtility::IsCollision(const OBB& obb, const Segment& segment)
 	return IsCollision(aabbOBBLocal, localSegment);
 }
 
+bool CollisionUtility::IsCollision(const Segment& segment, const OBB& obb)
+{
+	return IsCollision(obb, segment);
+}
+
 bool CollisionUtility::IsCollision(const OBB& obb1, const OBB& obb2)
 {
 	const float epsilon = 1e-5f;

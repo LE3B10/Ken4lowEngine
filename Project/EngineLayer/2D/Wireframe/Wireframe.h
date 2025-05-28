@@ -11,6 +11,7 @@
 #include <vector>
 #include <list>
 #include <map>
+#include <Segment.h>
 
 
 /// ---------- 前方宣言 ---------- ///
@@ -96,6 +97,9 @@ public: /// ---------- 2D用の線の描画 ---------- ///
 
 	// 線を描画
 	void DrawLine(const Vector3& start, const Vector3& end, const Vector4& color);
+
+	// セグメントを描画
+	void DrawSegment(const Segment& segment, const Vector4& color);
 
 	// 円を描画
 	void DrawCircle(const Vector3& center, float radius, uint32_t segmentCount, const Vector4& color);
