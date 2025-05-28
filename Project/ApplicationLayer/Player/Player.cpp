@@ -31,16 +31,18 @@ void Player::Initialize()
 
 	// ライフルの初期化
 	auto rifle = std::make_unique<Weapon>();
-	rifle->Initialize();
 	rifle->SetWeaponType(WeaponType::Rifle);
+	rifle->Initialize();
 	weapons_.push_back(std::move(rifle));
 
+	// ショットガンの初期化
 	auto shotgun = std::make_unique<Weapon>();
-	shotgun->Initialize();
 	shotgun->SetWeaponType(WeaponType::Shotgun);
-	// カスタム設定があればここで弾数や発射速度など変更
+	shotgun->Initialize();
 	weapons_.push_back(std::move(shotgun));
 
+
+	// HUDの初期化
 	numberSpriteDrawer_ = std::make_unique<NumberSpriteDrawer>();
 	numberSpriteDrawer_->Initialize("Resources/number.png", 50.0f, 50.0f);
 }
@@ -62,8 +64,15 @@ void Player::Update()
 	if (input_->TriggerKey(DIK_1)) currentWeaponIndex_ = 0;
 	if (input_->TriggerKey(DIK_2)) currentWeaponIndex_ = 1;
 
+	// 全武器に対して弾だけ更新（選択中の武器は除外）
+	for (size_t i = 0; i < weapons_.size(); ++i)
+	{
+		if (i == currentWeaponIndex_) continue;
+		weapons_[i]->UpdateBulletsOnly();
+	}
+
 	// 武器更新（すべての武器）
-	for (auto& weapon : weapons_) {
+	if (Weapon* weapon = GetCurrentWeapon()) {
 		weapon->Update();
 	}
 
@@ -104,9 +113,9 @@ void Player::Draw()
 	// 基底クラスの描画
 	//BaseCharacter::Draw();
 
-	// 弾丸の描画
-	for (auto& weapon : weapons_) {
-		weapon->Draw();
+	 // 現在の武器を描画
+	for (const auto& weapon : weapons_) {
+		weapon->Draw();  // 全ての武器の弾丸を描画する
 	}
 }
 

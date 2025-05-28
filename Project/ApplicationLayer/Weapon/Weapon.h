@@ -9,6 +9,23 @@
 #include <numbers>
 
 
+/// -------------------------------------------------------------
+///				　		弾薬情報構造体
+/// -------------------------------------------------------------
+struct AmmoInfo
+{
+	int ammoInClip = 0;     // マガジン内の弾数
+	int reserveAmmo = 0;    // 予備弾薬数
+	int clipSize = 0;       // マガジン容量
+	int maxReserve = 0;     // 最大所持弾数
+	int firePerShot = 1;    // 1回で消費する弾数（ショットガン=8）
+	float bulletDamage = 25.0f;  // ★追加（必要なら）
+};
+
+
+/// -------------------------------------------------------------
+///				　		武器クラス
+/// -------------------------------------------------------------
 class Weapon
 {
 public: /// ---------- メンバ関数 ---------- ///
@@ -34,6 +51,8 @@ public: /// ---------- メンバ関数 ---------- ///
 	// ImGui描画処理
 	void DrawImGui();
 
+	void UpdateBulletsOnly();
+
 public: /// ---------- ゲッタ ---------- ///
 
 	// 弾丸の取得
@@ -46,18 +65,13 @@ public: /// ---------- ゲッタ ---------- ///
 	float GetReloadProgress() const { return std::clamp(static_cast<float>(reloadTimer_ / reloadTime_), 0.0f, 1.0f); }
 
 	// 弾薬の取得
-	int GetAmmoInClip() const { return ammoInClip_; }
-
-	// 最大弾薬の取得
-	int GetMaxAmmo() const { return maxAmmo_; }
-
-	// 所持弾薬の取得
-	int GetAmmoReserve() const { return ammoReserve_; }
-
-	// 最大所持弾薬の取得
-	int GetMaxAmmoReserve() const { return maxAmmoReserve_; }
+	int GetAmmoInClip() const { return ammoInfo_.ammoInClip; }
 
 	WeaponType GetWeaponType() const { return type_; } // 武器の種類を取得
+
+	const AmmoInfo& GetAmmoInfo() const { return ammoInfo_; }
+
+	int GetAmmoReserve() const { return ammoInfo_.reserveAmmo; }
 
 public: /// ---------- セッター ---------- ///
 
@@ -67,10 +81,10 @@ public: /// ---------- セッター ---------- ///
 private: /// ---------- メンバ変数 ---------- ///
 
 	// ライフル
-	void FireSingleBullet(const Vector3& pos, const Vector3& dir, float damage);
+	void FireSingleBullet(const Vector3& pos, const Vector3& dir);
 
 	// ショットガン
-	void FireShotgunSpread(const Vector3& pos, const Vector3& dir, int count, float damage);
+	void FireShotgunSpread(const Vector3& pos, const Vector3& dir);
 
 	// 散弾
 	Vector3 ApplyRandomSpread(const Vector3& baseDir, float angleRangeDeg);
@@ -88,21 +102,15 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	WeaponType type_ = WeaponType::Rifle; // 武器の種類
 
+	AmmoInfo ammoInfo_; // 弾薬情報
+
 	// 弾丸のプレハブ
 	std::vector<std::unique_ptr<Bullet>> bullets_;
 
-	// 弾丸の発射位置
-	int ammoInClip_ = 30;
-	const int maxAmmo_ = 30;
-
-	int ammoReserve_ = 90;           // 🔽 所持弾薬（新規）
-	const int maxAmmoReserve_ = 90; // 🔽 最大所持弾薬
-
-	bool isReloading_ = false;
-	float reloadTime_ = 1.5f;
-	float reloadTimer_ = 0.0f;
-
-	float fireTimer_ = 0.0f;
+	bool isReloading_ = false;	// リロード中かどうか
+	float reloadTime_ = 0.0f;	// リロード時間（秒）
+	float reloadTimer_ = 0.0f;	// リロードタイマー
+	float bulletSpeed_ = 0.0f;	// 弾速
+	float fireTimer_ = 0.0f;	// 発射タイマー
 	float fireInterval_ = 0.1f; // 0.1秒に1発（10発/秒）
-	float bulletSpeed_ = 14.0f; // 弾速
 };

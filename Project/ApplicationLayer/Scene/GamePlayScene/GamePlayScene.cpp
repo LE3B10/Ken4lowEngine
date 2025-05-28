@@ -177,7 +177,7 @@ void GamePlayScene::Update()
 		itemManager_->Update(player_.get());
 
 		hudManager_->Update();
-		hudManager_->SetAmmo(player_->GetAmmoInClip(), player_->GetAmmoReserve());
+		hudManager_->SetAmmoFromWeapon(player_->GetCurrentWeapon());// 新しいコード（武器の情報を直接渡す）
 		hudManager_->SetScore(ScoreManager::GetInstance()->GetScore());
 		hudManager_->SetKills(ScoreManager::GetInstance()->GetKills());
 		hudManager_->SetHP(player_->GetHP(), player_->GetMaxHP());

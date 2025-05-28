@@ -106,6 +106,15 @@ void HUDManager::Draw()
 }
 
 
+void HUDManager::SetAmmoFromWeapon(const Weapon* weapon)
+{
+	if (weapon) {
+		ammoInClip_ = weapon->GetAmmoInClip();
+		ammoReserve_ = weapon->GetAmmoReserve();
+	}
+}
+
+
 /// -------------------------------------------------------------
 ///				　			デバッグ用HUDの描画
 /// -------------------------------------------------------------

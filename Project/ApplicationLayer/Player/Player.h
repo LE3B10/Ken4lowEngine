@@ -62,15 +62,6 @@ public: /// ---------- ゲッタ ---------- ///
 	// 弾薬の取得
 	int GetAmmoInClip() const { return weapons_[currentWeaponIndex_]->GetAmmoInClip(); }
 
-	// 最大弾薬の取得
-	int GetMaxAmmo() const { return weapons_[currentWeaponIndex_]->GetMaxAmmo(); }
-
-	// 所持弾薬の取得
-	int GetAmmoReserve() const { return weapons_[currentWeaponIndex_]->GetAmmoReserve(); }
-
-	// 最大所持弾薬の取得
-	int GetMaxAmmoReserve() const { return weapons_[currentWeaponIndex_]->GetMaxAmmoReserve(); }
-
 	// 武器の取得
 	Weapon* GetCurrentWeapon() const { return weapons_[currentWeaponIndex_].get(); }
 
@@ -90,7 +81,6 @@ public: /// ---------- セッタ ---------- ///
 
 	// 弾薬を追加
 	void AddAmmo(int amount) { GetCurrentWeapon()->AddReserveAmmo(amount); }
-
 
 private: /// ---------- メンバ変数 ---------- ///
 
