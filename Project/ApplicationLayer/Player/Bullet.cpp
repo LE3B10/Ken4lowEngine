@@ -17,6 +17,11 @@ void Bullet::Initialize()
 	model_->Initialize("cube.gltf");
 	model_->SetScale({ 0.5f,0.5f,0.5f });
 
+	// ★ 初期位置に設定
+	model_->SetTranslate(position_);
+	model_->SetRotate({ 0.0f, 0.0f, 0.0f });
+	model_->Update();  // ★ モデル行列の初期化
+
 	// 初期位置を前回位置として記録（重要）
 	previousPosition_ = position_;
 }
@@ -30,6 +35,9 @@ void Bullet::Update()
 	// 位置更新前に記録
 	previousPosition_ = position_;
 	position_ += velocity_;
+
+	// 飛距離計算
+	distanceTraveled_ += Vector3::Length(velocity_);
 
 	// セグメント更新（マージンを追加して通過を防ぐ）
 	Vector3 direction = position_ - previousPosition_;
@@ -45,7 +53,6 @@ void Bullet::Update()
 
 	SetCenterPosition(position_);
 	SetSegment(segment_);
-	lifeTime_ -= 1.0f / 60.0f;
 }
 
 
@@ -55,7 +62,9 @@ void Bullet::Update()
 void Bullet::Draw()
 {
 	// 衝突したら描画しない
-	if (!isDead_) model_->Draw();
+	if (!isDead_ && distanceTraveled_ < maxDistance_) {
+		model_->Draw();
+	}
 }
 
 

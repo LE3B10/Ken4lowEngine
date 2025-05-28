@@ -5,6 +5,8 @@
 #include <CollisionTypeIdDef.h>
 #include <Input.h>
 #include "WeaponType.h"
+#include "Matrix4x4.h"
+
 #include <imgui.h>
 
 
@@ -79,21 +81,24 @@ void Player::Update()
 	// 発射入力
 	bool isFireTriggered = input_->TriggerMouse(0) || input_->TriggerButton(XButtons.R_Trigger) || input_->TriggerKey(DIK_F);
 
-	Vector3 firePos = body_.worldTransform_.translate_ + Vector3{ 0.0f, 20.0f, 0.0f };;   // 弾発射の開始位置（関数名は仮）
-	Vector3 direction = camera_->GetForward();             // プレイヤーの向き
+	// 照準モードかどうかを確認
+	isAiming_ = input_->PushMouse(1); // 右クリックでADS（Aim Down Sights）モード	
+	camera_->SetFovY(isAiming_ ? 0.6f : 0.9f); // 照準時: 狭く、非照準時: 広く
 
+
+	// 武器に応じて発射（Rifleなら押しっぱなし、Shotgunなら単発）
 	if (GetCurrentWeapon()->GetWeaponType() == WeaponType::Rifle)
 	{
 		if (input_->PushMouse(0))
 		{
-			GetCurrentWeapon()->TryFire(firePos, direction);
+			FireWeapon();
 		}
 	}
 	else if (GetCurrentWeapon()->GetWeaponType() == WeaponType::Shotgun)
 	{
-		if (input_->TriggerMouse(0))
+		if (isFireTriggered)
 		{
-			GetCurrentWeapon()->TryFire(firePos, direction);
+			FireWeapon();
 		}
 	}
 
@@ -204,10 +209,8 @@ void Player::Move()
 	// 位置更新
 	body_.worldTransform_.translate_ += moveInput * currentSpeed;
 
-	// 入力方向を向く
-	if (Vector3::Length(moveInput) > 0.0f) {
-		float targetAngle = std::atan2(-moveInput.x, moveInput.z);
-		body_.worldTransform_.rotate_.y = Vector3::LerpAngle(body_.worldTransform_.rotate_.y, targetAngle, 0.2f);
+	if (camera_) {
+		body_.worldTransform_.rotate_.y = camera_->GetRotate().y;
 	}
 
 	// --- ジャンプ・重力・接地（現状維持） ---
@@ -236,6 +239,9 @@ void Player::OnCollision(Collider* other)
 }
 
 
+/// -------------------------------------------------------------
+///				　			　 全弾取得
+/// -------------------------------------------------------------
 std::vector<const Bullet*> Player::GetAllBullets() const
 {
 	std::vector<const Bullet*> allBullets;
@@ -250,8 +256,45 @@ std::vector<const Bullet*> Player::GetAllBullets() const
 }
 
 
+/// -------------------------------------------------------------
+///				　			　 HP追加
+/// -------------------------------------------------------------
 void Player::AddHP(int amount)
 {
 	if (isDead_) return;
 	hp_ = std::min(hp_ + static_cast<float>(amount), maxHP_);
+}
+
+
+/// -------------------------------------------------------------
+///				　		弾丸発射処理位置
+/// -------------------------------------------------------------
+void Player::FireWeapon()
+{
+	Vector3 worldMuzzlePos;
+	Vector3 forward;
+	float range = weapons_[currentWeaponIndex_]->GetAmmoInfo().range;
+
+	if (isAiming_) {
+		// カメラ中心から照準に向けて発射（ADSモード）
+		Vector3 cameraOrigin = camera_->GetTranslate();
+		worldMuzzlePos = cameraOrigin;
+		Vector3 targetPos = cameraOrigin + camera_->GetForward() * range;
+		forward = Vector3::Normalize(targetPos - worldMuzzlePos);
+	}
+	else
+	{
+		// 通常時は右手（モデル上の銃口）から発射
+		Vector3 localMuzzleOffset = { 5.0f, 20.0f, 5.0f };
+		Vector3 scale = { 1.0f, 1.0f, 1.0f };
+		Vector3 rotation = { 0.0f, body_.worldTransform_.rotate_.y, 0.0f };
+		Vector3 translation = body_.worldTransform_.translate_;
+		Matrix4x4 modelMatrix = Matrix4x4::MakeAffineMatrix(scale, rotation, translation);
+		worldMuzzlePos = Vector3::Transform(localMuzzleOffset, modelMatrix);
+		Vector3 cameraOrigin = camera_->GetTranslate();
+		Vector3 targetPos = cameraOrigin + camera_->GetForward() * range;
+		forward = Vector3::Normalize(targetPos - worldMuzzlePos);
+	}
+
+	weapons_[currentWeaponIndex_]->TryFire(worldMuzzlePos, forward);
 }
