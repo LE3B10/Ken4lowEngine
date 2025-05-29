@@ -35,9 +35,13 @@ void EnemyManager::Update()
 		auto enemy = std::make_unique<Enemy>();
 		enemy->Initialize();
 		enemy->SetTarget(player_); // プレイヤーをターゲットに設定
-		// ランダムな出現位置（例: Z固定、Xはランダム）
-		float x = static_cast<float>((rand() % 300) - 150);
-		enemy->SetTranslate({ x, 0.0f, 200.0f });
+
+		// 方向をランダムに選択
+		EnemySpawnDirection direction = static_cast<EnemySpawnDirection>(rand() % 4);
+		Vector3 spawnPos;
+		GetSpawnPosition(spawnPos, direction);
+		enemy->SetTranslate(spawnPos);
+
 		enemies_.push_back(std::move(enemy));
 		spawnTimer_ = 0.0f;
 		++spawnedEnemies_;
@@ -119,4 +123,23 @@ void EnemyManager::StartNextWave()
 	totalEnemiesThisWave_ = 3 + currentWave_ * 2; // Waveごとに増える
 	spawnInterval_ = 0.5f;
 	++currentWave_;
+}
+
+void EnemyManager::GetSpawnPosition(Vector3& outPosition, EnemySpawnDirection direction)
+{
+	switch (direction)
+	{
+	case EnemySpawnDirection::Left:
+		outPosition = { -200.0f, 0.0f, 0.0f }; // 左からスポーン
+		break;
+	case EnemySpawnDirection::Right:
+		outPosition = { 200.0f, 0.0f, 0.0f }; // 右からスポーン
+		break;
+	case EnemySpawnDirection::Front:
+		outPosition = { 0.0f, 0.0f, 200.0f }; // 前からスポーン
+		break;
+	case EnemySpawnDirection::Back:
+		outPosition = { 0.0f, 0.0f, -200.0f }; // 後ろからスポーン
+		break;
+	}
 }
