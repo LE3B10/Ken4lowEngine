@@ -27,44 +27,14 @@ void GamePlayScene::Initialize()
 
 	dxCommon_ = DirectXCommon::GetInstance();
 	input_ = Input::GetInstance();
-	particleManager = ParticleManager::GetInstance();
 
-	/// ---------- サウンドの初期化 ---------- ///
-	AudioManager::GetInstance()->PlayBGM("Peritune_Gentle_Brew.mp3", 0.1f, 1.0f, true);
-
-	// terrainの生成と初期化
-	objectTerrain_ = std::make_unique<Object3D>();
-	objectTerrain_->Initialize("terrain.obj");
-	objectTerrain_->SetTranslate({ 0.0f, -1.0f, 0.0f });
-	objectTerrain_->SetReflectivity(0.0f);
-
-	objectBall_ = std::make_unique<Object3D>();
-	objectBall_->Initialize("sphere.gltf");
-	objectBall_->SetTranslate({ -2.0f, 0.0f, 0.0f });
-
-	animationModelNoskeleton_ = std::make_unique<AnimationModel>();
-	animationModelNoskeleton_->Initialize("AnimatedCube.gltf", true, false);
-	animationModelNoskeleton_->SetTranslate({ 10.0f, 0.0f, 0.0f });
-	animationModelNoskeleton_->SetReflectivity(0.0f);
-
-	animationModelSkeleton_ = std::make_unique<AnimationModel>();
-	animationModelSkeleton_->Initialize("walk.gltf", true, true);
-
-	skyBox_ = std::make_unique<SkyBox>();
-	skyBox_->Initialize("rostock_laage_airport_4k.dds");
-
-	// パーティクルエミッターの初期化
-	ParticleManager::GetInstance()->CreateParticleGroup("TestParticle2", "gradationLine.png", ParticleEffectType::Cylinder);
-	cylinderEmitter_ = std::make_unique<ParticleEmitter>(ParticleManager::GetInstance(), "TestParticle2");
-	cylinderEmitter_->SetPosition({ 0.0f, -3.0f, 0.0f });
-
-	ParticleManager::GetInstance()->CreateParticleGroup("MuzzleFlash", "gradationLine.png", ParticleEffectType::Star);
-	muzzleFlashEffect_ = std::make_unique<ParticleEmitter>(ParticleManager::GetInstance(), "MuzzleFlash");
-	muzzleFlashEffect_->SetEmissionRate(1.0f);
-
-	ParticleManager::GetInstance()->CreateParticleGroup("muzzleSmoke", "smoke.png", ParticleEffectType::Smoke);
-	smokeEffect_ = std::make_unique<ParticleEmitter>(ParticleManager::GetInstance(), "muzzleSmoke");
-	smokeEffect_->SetEmissionRate(1.0f);
+	ParticleManager::GetInstance()->CreateParticleGroup("Flash", "flash.png", ParticleEffectType::Flash);
+	ParticleManager::GetInstance()->CreateParticleGroup("Ring", "gradationLine.png", ParticleEffectType::Ring);
+	ParticleManager::GetInstance()->CreateParticleGroup("Spark", "spark.png", ParticleEffectType::Spark);
+	ParticleManager::GetInstance()->CreateParticleGroup("Smoke", "smoke.png", ParticleEffectType::Smoke);
+	ParticleManager::GetInstance()->CreateParticleGroup("EnergyGather", "circle2.png", ParticleEffectType::EnergyGather);
+	ParticleManager::GetInstance()->CreateParticleGroup("Charge", "circle2.png", ParticleEffectType::Charge);
+	ParticleManager::GetInstance()->CreateParticleGroup("Explosion", "spark.png", ParticleEffectType::Explosion);
 
 	// 衝突マネージャの生成
 	collisionManager_ = std::make_unique<CollisionManager>();
@@ -82,33 +52,68 @@ void GamePlayScene::Update()
 		Object3DCommon::GetInstance()->SetDebugCamera(!Object3DCommon::GetInstance()->GetDebugCamera());
 		Wireframe::GetInstance()->SetDebugCamera(!Wireframe::GetInstance()->GetDebugCamera());
 		ParticleManager::GetInstance()->SetDebugCamera(!ParticleManager::GetInstance()->GetDebugCamera());
-		skyBox_->SetDebugCamera(!skyBox_->GetDebugCamera());
+		//skyBox_->SetDebugCamera(!skyBox_->GetDebugCamera());
 		isDebugCamera_ = !isDebugCamera_;
 		Input::GetInstance()->SetLockCursor(isDebugCamera_);
 		ShowCursor(!isDebugCamera_);// 表示・非表示も連動（オプション）
 	}
 #endif // _DEBUG
 
-	// オブジェクトの更新処理
-	objectTerrain_->Update();
-	objectBall_->Update();
-
-	//animationModelNoskeleton_->Update();
-
-	//animationModelSkeleton_->Update();
-
-	skyBox_->Update();
-
 	// 衝突判定と応答
 	CheckAllCollisions();
 
-	cylinderEmitter_->Update();
+	// 毎フレーム更新
+	if (isCharging)	chargeTimer += kDeltaTime; // 時間加算
 
-	muzzleFlashEffect_->Update();
-	muzzleFlashEffect_->Burst(1);
 
-	smokeEffect_->Update();
-	smokeEffect_->Burst(1);
+	// マウス左クリックを押した瞬間に収束開始
+	if (input_->PushMouse(0) && !isCharging) {
+		isCharging = true;
+		chargeTimer = 0.0f;
+
+		// 初回のみ Emit（粒子再利用のため、1回だけ生成）
+		ParticleManager::GetInstance()->Emit("Charge", {}, 500, ParticleEffectType::Charge);
+	}
+
+	if (input_->ReleaseMouse(0) && isCharging) {
+		isCharging = false;
+
+		auto& group = ParticleManager::GetInstance()->GetGroup("Charge");
+		for (auto& particle : group.particles) {
+			if (particle.mode == ParticleMode::Orbit) {
+				particle.mode = ParticleMode::Explode;
+				Vector3 tVec = particle.transform.translate_ - particle.orbitCenter;
+				tVec = Vector3::Normalize(tVec);
+				particle.velocity = tVec * 10.0f;
+			}
+		}
+
+		// 🔥 爆発エフェクトの生成
+		Vector3 explosionCenter = { 0.0f,0.0f,0.0f };
+		ParticleManager::GetInstance()->Emit("Ring", explosionCenter, 10, ParticleEffectType::Ring);
+		ParticleManager::GetInstance()->Emit("Spark", explosionCenter, 50, ParticleEffectType::Spark);
+		ParticleManager::GetInstance()->Emit("Smoke", explosionCenter, 5, ParticleEffectType::Smoke);
+		ParticleManager::GetInstance()->Emit("Explosion", explosionCenter, 50, ParticleEffectType::Explosion);
+		ParticleManager::GetInstance()->Emit("Flash", explosionCenter, 30, ParticleEffectType::Flash);
+	}
+
+	if (isCharging) {
+		auto& group = ParticleManager::GetInstance()->GetGroup("Charge");
+		for (auto& particle : group.particles)
+		{
+			if (particle.mode == ParticleMode::Explode)
+			{
+				// 再チャージで回転軌道に戻す
+				particle.mode = ParticleMode::Orbit;
+
+				// 回転開始位置を更新（位置を軌道上に強制補正）
+				particle.currentTime = 0.0f;
+
+				// スケール・速度リセット
+				particle.velocity = { 0, 0, 0 };
+			}
+		}
+	}
 }
 
 /// -------------------------------------------------------------
@@ -130,20 +135,10 @@ void GamePlayScene::Draw3DObjects()
 	// オブジェクト3D共通描画設定
 	Object3DCommon::GetInstance()->SetRenderSetting();
 
-	// Terrain.obj の描画
-	//objectTerrain_->Draw();
-
-	// 球体の描画
-	//objectBall_->Draw();
-
-	//animationModelNoskeleton_->Draw();
-
-	//animationModelSkeleton_->Draw();
-
-#pragma endregion
 
 	// ワイヤーフレームの描画
-	//Wireframe::GetInstance()->DrawGrid(100.0f, 20.0f, { 0.25f, 0.25f, 0.25f,1.0f });
+	Wireframe::GetInstance()->DrawGrid(1000.0f, 100.0f, { 0.25f, 0.25f, 0.25f,1.0f });
+#pragma endregion
 }
 
 

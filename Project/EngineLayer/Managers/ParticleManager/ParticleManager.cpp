@@ -55,6 +55,13 @@ void ParticleManager::Initialize(DirectXCommon* dxCommon, Camera* camera)
 	meshMap_[ParticleEffectType::Cylinder].InitializeCylinder();
 	meshMap_[ParticleEffectType::Star].InitializeStar();
 	meshMap_[ParticleEffectType::Smoke].InitializeSmoke();
+
+	meshMap_[ParticleEffectType::Flash].Initialize();       // 四角メッシュで十分
+	meshMap_[ParticleEffectType::Spark].Initialize();       // 同上
+
+	meshMap_[ParticleEffectType::EnergyGather].Initialize();
+	meshMap_[ParticleEffectType::Charge].Initialize();     // 同上
+	meshMap_[ParticleEffectType::Explosion].Initialize(); // 同上
 }
 
 
@@ -155,13 +162,63 @@ void ParticleManager::Update()
 
 				switch (group.second.type)
 				{
-				case ParticleEffectType::Ring:
+				/*case ParticleEffectType::Ring:
 					particle.transform.rotate_.z += 1.5f * kDeltaTime;
-					break;
+					break;*/
 
 				case ParticleEffectType::Cylinder:
 					particle.transform.rotate_.y += 1.5f * kDeltaTime;
 					break;
+				case ParticleEffectType::Charge: {
+					if (particle.mode == ParticleMode::Orbit) {
+						float t = (particle.currentTime * particle.orbitSpeed) + particle.orbitPhase;
+						float r = particle.orbitRadius;
+
+						Vector3 localPos = {
+							std::sin(t) * r,
+							std::sin(t * 1.5f) * 0.5f,
+							std::sin(2.0f * t) * r * 0.5f
+						};
+
+						Matrix4x4 rotMat = Matrix4x4::MakeRotateAxisAngleMatrix(particle.orbitAxis, particle.orbitPhase);
+						Vector3 rotatedPos = Vector3::Transform(localPos, rotMat);
+						particle.transform.translate_ = particle.orbitCenter + rotatedPos;
+					}
+					else if (particle.mode == ParticleMode::Explode) {
+						// 通常のvelocityによる移動処理
+						particle.transform.translate_ += particle.velocity * kDeltaTime;
+					}
+					break;
+				}
+				case ParticleEffectType::Flash: {
+					// 拡大して白く光って消える
+					particle.transform.scale_ = Vector3::Lerp(particle.startScale, particle.endScale, particle.currentTime / particle.lifeTime);
+					break;
+				}
+				case ParticleEffectType::Ring: {
+					float t = particle.currentTime / particle.lifeTime;
+
+					particle.transform.scale_ = Vector3::Lerp(particle.startScale, particle.endScale, t);
+					particle.color.w = 1.0f - t;
+
+					break;
+				}
+				case ParticleEffectType::Spark: {
+					// 飛び散る破片
+					particle.transform.translate_ += particle.velocity * kDeltaTime;
+					break;
+				}
+
+				case ParticleEffectType::Explosion: {
+					// 単純に速度で飛び散ってスケール縮小
+					particle.transform.translate_ += particle.velocity * kDeltaTime;
+
+					float timeRate = particle.currentTime / particle.lifeTime;
+					particle.transform.scale_ = Vector3::Lerp(particle.startScale, particle.endScale, timeRate);
+					particle.color.w = 1.0f - timeRate;
+					break;
+				}
+
 				default:
 					break;
 				}

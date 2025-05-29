@@ -8,4 +8,10 @@ enum class ParticleEffectType
 	Cylinder,	// シリンダー
 	Star,		// 星型
 	Smoke,		// 煙
+	Flash,		// フラッシュ
+	Spark,		// 火花
+	Debris,		// 破片
+	EnergyGather, //収束
+	Charge,       // 新しく追加：収束中にぐるぐる回る
+	Explosion     // 爆発用
 };
