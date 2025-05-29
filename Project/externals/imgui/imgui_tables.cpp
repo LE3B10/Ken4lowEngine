@@ -359,7 +359,7 @@ bool    ImGui::BeginTableEx(const char* name, ImGuiID id, int columns_count, ImG
     table->IsDefaultSizingPolicy = (flags & ImGuiTableFlags_SizingMask_) == 0;
     flags = TableFixFlags(flags, outer_window);
 
-    // Initialize
+    // InitializeOnce
     const int previous_frame_active = table->LastFrameActive;
     const int instance_no = (previous_frame_active != g.FrameCount) ? 0 : table->InstanceCurrent + 1;
     const ImGuiTableFlags previous_flags = table->Flags;
@@ -564,7 +564,7 @@ bool    ImGui::BeginTableEx(const char* name, ImGuiID id, int columns_count, ImG
         TableResetSettings(table);
     if (table->IsInitializing)
     {
-        // Initialize
+        // InitializeOnce
         table->SettingsOffset = -1;
         table->IsSortSpecsDirty = true;
         table->InstanceInteracted = -1;
@@ -940,7 +940,7 @@ void ImGui::TableUpdateLayout(ImGuiTable* table)
         }
         else
         {
-            // Initialize stretch weight
+            // InitializeOnce stretch weight
             if (column->AutoFitQueue != 0x00 || column->StretchWeight < 0.0f || !column_is_resizable)
             {
                 if (column->InitStretchWeightOrWidth > 0.0f)
@@ -1587,7 +1587,7 @@ void ImGui::TableSetupColumn(const char* label, ImGuiTableColumnFlags flags, flo
     column->UserID = user_id;
     flags = column->Flags;
 
-    // Initialize defaults
+    // InitializeOnce defaults
     column->InitStretchWeightOrWidth = init_width_or_weight;
     if (table->IsInitializing)
     {
@@ -4271,7 +4271,7 @@ void ImGui::BeginColumns(const char* str_id, int columns_count, ImGuiOldColumnFl
     if (columns->Columns.Size != 0 && columns->Columns.Size != columns_count + 1)
         columns->Columns.resize(0);
 
-    // Initialize default widths
+    // InitializeOnce default widths
     columns->IsFirstFrame = (columns->Columns.Size == 0);
     if (columns->Columns.Size == 0)
     {

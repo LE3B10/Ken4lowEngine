@@ -87,23 +87,28 @@ void SpriteManager::CreateRootSignature()
 	descriptorRange[0].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
 
 	// ルートシグネチャの生成
-	D3D12_ROOT_PARAMETER rootParameters[3] = {};
+	D3D12_ROOT_PARAMETER rootParameters[4] = {};
 
 	// マテリアル用のルートシグパラメータの設定
 	rootParameters[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;    // 定数バッファビュー
 	rootParameters[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL; // ピクセルシェーダーで使用
 	rootParameters[0].Descriptor.ShaderRegister = 0;                    // レジスタ番号0
 
+	// b1 : ReloadProgress
+	rootParameters[1].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
+	rootParameters[1].Descriptor.ShaderRegister = 1;
+	rootParameters[1].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+
 	// TransformationMatrix用のルートシグネチャの設定
-	rootParameters[1].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;     // 定数バッファビュー
-	rootParameters[1].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX; // バーテックスシェーダーで使用
-	rootParameters[1].Descriptor.ShaderRegister = 0;					 // レジスタ番号0
+	rootParameters[2].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;     // 定数バッファビュー
+	rootParameters[2].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX; // バーテックスシェーダーで使用
+	rootParameters[2].Descriptor.ShaderRegister = 0;					 // レジスタ番号0
 
 	// テクスチャのディスクリプタテーブル
-	rootParameters[2].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;      // ディスクリプタテーブル
-	rootParameters[2].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL; 	           // ピクセルシェーダーで使用
-	rootParameters[2].DescriptorTable.pDescriptorRanges = descriptorRange;             // ディスクリプタテーブルの設定
-	rootParameters[2].DescriptorTable.NumDescriptorRanges = _countof(descriptorRange); // ディスクリプタテーブルの数
+	rootParameters[3].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;      // ディスクリプタテーブル
+	rootParameters[3].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL; 	           // ピクセルシェーダーで使用
+	rootParameters[3].DescriptorTable.pDescriptorRanges = descriptorRange;             // ディスクリプタテーブルの設定
+	rootParameters[3].DescriptorTable.NumDescriptorRanges = _countof(descriptorRange); // ディスクリプタテーブルの数
 
 	// ルートシグネチャの設定
 	descriptionRootSignature.pParameters = rootParameters;

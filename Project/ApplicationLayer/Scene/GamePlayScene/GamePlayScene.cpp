@@ -30,7 +30,7 @@ void GamePlayScene::Initialize()
 	particleManager = ParticleManager::GetInstance();
 
 	/// ---------- サウンドの初期化 ---------- ///
-	AudioManager::GetInstance()->PlayBGM("Peritune_Gentle_Brew.mp3", 0.5f, 1.0f, true);
+	AudioManager::GetInstance()->PlayBGM("Peritune_Gentle_Brew.mp3", 0.1f, 1.0f, true);
 
 	// terrainの生成と初期化
 	objectTerrain_ = std::make_unique<Object3D>();
@@ -42,11 +42,6 @@ void GamePlayScene::Initialize()
 	objectBall_->Initialize("sphere.gltf");
 	objectBall_->SetTranslate({ -2.0f, 0.0f, 0.0f });
 
-	particleManager->CreateParticleGroup("Fire", "gradationLine.png");
-	particleEmitter_ = std::make_unique<ParticleEmitter>(particleManager, "Fire");
-	particleEmitter_->SetPosition({ 0.0f,3.0f,10.0f });
-	particleEmitter_->SetEmissionRate(3.0f);
-
 	animationModelNoskeleton_ = std::make_unique<AnimationModel>();
 	animationModelNoskeleton_->Initialize("AnimatedCube.gltf", true, false);
 	animationModelNoskeleton_->SetTranslate({ 10.0f, 0.0f, 0.0f });
@@ -57,6 +52,19 @@ void GamePlayScene::Initialize()
 
 	skyBox_ = std::make_unique<SkyBox>();
 	skyBox_->Initialize("rostock_laage_airport_4k.dds");
+
+	// パーティクルエミッターの初期化
+	ParticleManager::GetInstance()->CreateParticleGroup("TestParticle2", "gradationLine.png", ParticleEffectType::Cylinder);
+	cylinderEmitter_ = std::make_unique<ParticleEmitter>(ParticleManager::GetInstance(), "TestParticle2");
+	cylinderEmitter_->SetPosition({ 0.0f, -3.0f, 0.0f });
+
+	ParticleManager::GetInstance()->CreateParticleGroup("MuzzleFlash", "gradationLine.png", ParticleEffectType::Star);
+	muzzleFlashEffect_ = std::make_unique<ParticleEmitter>(ParticleManager::GetInstance(), "MuzzleFlash");
+	muzzleFlashEffect_->SetEmissionRate(1.0f);
+
+	ParticleManager::GetInstance()->CreateParticleGroup("muzzleSmoke", "smoke.png", ParticleEffectType::Smoke);
+	smokeEffect_ = std::make_unique<ParticleEmitter>(ParticleManager::GetInstance(), "muzzleSmoke");
+	smokeEffect_->SetEmissionRate(1.0f);
 
 	// 衝突マネージャの生成
 	collisionManager_ = std::make_unique<CollisionManager>();
@@ -85,16 +93,22 @@ void GamePlayScene::Update()
 	objectTerrain_->Update();
 	objectBall_->Update();
 
-	particleEmitter_->Update();
+	//animationModelNoskeleton_->Update();
 
-	animationModelNoskeleton_->Update();
-
-	animationModelSkeleton_->Update();
+	//animationModelSkeleton_->Update();
 
 	skyBox_->Update();
 
 	// 衝突判定と応答
 	CheckAllCollisions();
+
+	cylinderEmitter_->Update();
+
+	muzzleFlashEffect_->Update();
+	muzzleFlashEffect_->Burst(1);
+
+	smokeEffect_->Update();
+	smokeEffect_->Burst(1);
 }
 
 /// -------------------------------------------------------------
@@ -117,14 +131,14 @@ void GamePlayScene::Draw3DObjects()
 	Object3DCommon::GetInstance()->SetRenderSetting();
 
 	// Terrain.obj の描画
-	objectTerrain_->Draw();
+	//objectTerrain_->Draw();
 
 	// 球体の描画
 	//objectBall_->Draw();
 
-	animationModelNoskeleton_->Draw();
+	//animationModelNoskeleton_->Draw();
 
-	animationModelSkeleton_->Draw();
+	//animationModelSkeleton_->Draw();
 
 #pragma endregion
 

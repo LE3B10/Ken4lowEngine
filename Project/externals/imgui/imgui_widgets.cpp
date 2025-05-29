@@ -6146,7 +6146,7 @@ bool ImGui::ColorButton(const char* desc_id, const ImVec4& col, ImGuiColorEditFl
     return pressed;
 }
 
-// Initialize/override default color options
+// InitializeOnce/override default color options
 void ImGui::SetColorEditOptions(ImGuiColorEditFlags flags)
 {
     ImGuiContext& g = *GImGui;

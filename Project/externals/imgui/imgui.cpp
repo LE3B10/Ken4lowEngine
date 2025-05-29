@@ -280,7 +280,7 @@ CODE
      // TODO: Fill optional fields of the io structure later.
      // TODO: Load TTF/OTF fonts if you don't want to use the default font.
 
-     // Initialize helper Platform and Renderer backends (here we are using imgui_impl_win32.cpp and imgui_impl_dx11.cpp)
+     // InitializeOnce helper Platform and Renderer backends (here we are using imgui_impl_win32.cpp and imgui_impl_dx11.cpp)
      ImGui_ImplWin32_Init(hwnd);
      ImGui_ImplDX11_Init(g_pd3dDevice, g_pd3dDeviceContext);
 
@@ -1453,7 +1453,7 @@ ImGuiIO::ImGuiIO()
     KeyRepeatRate = 0.050f;
 
     // Platform Functions
-    // Note: Initialize() will setup default clipboard/ime handlers.
+    // Note: InitializeOnce() will setup default clipboard/ime handlers.
     BackendPlatformName = BackendRendererName = NULL;
     BackendPlatformUserData = BackendRendererUserData = BackendLanguageUserData = NULL;
 
@@ -7113,7 +7113,7 @@ bool ImGui::Begin(const char* name, bool* p_open, ImGuiWindowFlags flags)
     // When reusing window again multiple times a frame, just append content (don't need to setup again)
     if (first_begin_of_the_frame && !window->SkipRefresh)
     {
-        // Initialize
+        // InitializeOnce
         const bool window_is_child_tooltip = (flags & ImGuiWindowFlags_ChildWindow) && (flags & ImGuiWindowFlags_Tooltip); // FIXME-WIP: Undocumented behavior of Child+Tooltip for pinned tooltip (#1345)
         const bool window_just_appearing_after_hidden_for_resize = (window->HiddenFramesCannotSkipItems > 0);
         window->Active = true;
@@ -12963,7 +12963,7 @@ static void NavBiasScoringRect(ImRect& r, ImVec2& preferred_pos_rel, ImGuiDir mo
     ImGuiContext& g = *GImGui;
     const ImVec2 rel_to_abs_offset = g.NavWindow->DC.CursorStartPos;
 
-    // Initialize bias on departure if we don't have any. So mouse-click + arrow will record bias.
+    // InitializeOnce bias on departure if we don't have any. So mouse-click + arrow will record bias.
     // - We default to L/U bias, so moving down from a large source item into several columns will land on left-most column.
     // - But each successful move sets new bias on one axis, only cleared when using mouse.
     if ((move_flags & ImGuiNavMoveFlags_Forwarded) == 0)
