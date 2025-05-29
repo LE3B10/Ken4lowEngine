@@ -10,6 +10,15 @@
 class Player;
 class ItemManager;
 
+/// ---------- 列挙型 ---------- ///
+enum class EnemySpawnDirection
+{
+	Left,   // 左からスポーン
+	Right,  // 右からスポーン
+	Front,  // 前からスポーン
+	Back    // 後ろからスポーン
+};
+
 /// -------------------------------------------------------------
 ///				　		エネミーマネージャー
 /// -------------------------------------------------------------
@@ -40,6 +49,9 @@ public: /// ---------- メンバ関数 ---------- ///
 	// 現在のウェーブ数を取得
 	int GetCurrentWave() const { return currentWave_ - 1; }
 
+	// 出現位置を切り替える処理
+	void GetSpawnPosition(Vector3& outPosition, EnemySpawnDirection direction);
+	
 	// スポーンしたエネミーの数を取得
 	const std::vector<std::unique_ptr<Enemy>>& GetEnemies() const { return enemies_; }
 
