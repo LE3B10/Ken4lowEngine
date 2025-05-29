@@ -71,4 +71,7 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	// デバッグカメラのON/OFF用
 	bool isDebugCamera_ = false;
+
+	bool isCharging = false;
+	float chargeTimer = 0.0f;
 };

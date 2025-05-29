@@ -107,6 +107,9 @@ void GameEngine::Draw()
 	// --- 2. 3Dオブジェクトの描画 ---
 	SceneManager::GetInstance()->Draw3DObjects();
 
+	// --- パーティクル（UIエフェクトなどあれば） ---
+	ParticleManager::GetInstance()->Draw();
+
 	// --- デバッグ描画（3D用） ---
 	Wireframe::GetInstance()->Draw();
 
@@ -125,9 +128,6 @@ void GameEngine::Draw()
 	//--------------------------------------------
 	SRVManager::GetInstance()->PreDraw(); // 2Dスプライト用SRVの再設定
 	SceneManager::GetInstance()->Draw2DSprites();
-
-	// --- パーティクル（UIエフェクトなどあれば） ---
-	ParticleManager::GetInstance()->Draw();
 
 	//--------------------------------------------
 	// 6. ImGui描画
