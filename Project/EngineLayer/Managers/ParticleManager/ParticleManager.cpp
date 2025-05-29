@@ -45,31 +45,30 @@ void ParticleManager::Initialize(DirectXCommon* dxCommon, Camera* camera)
 	// パイプライン生成
 	CreatePSO();
 
-	// 頂点データの初期化
-	//mesh_.Initialize();
-
-	//// リングの頂点データを生成
-	mesh_.CreateVertexData();
-
-	// シリンダーの頂点データを生成
-	//mesh_.InitializeCylinder();
-
 	// マテリアルデータの初期化
 	material_.Initialize();
+
+	// メッシュデータの初期化
+	meshMap_[ParticleEffectType::Default].Initialize();
+	meshMap_[ParticleEffectType::Slash].InitializeRing();
+	meshMap_[ParticleEffectType::Ring].InitializeRing();
+	meshMap_[ParticleEffectType::Cylinder].InitializeCylinder();
+	meshMap_[ParticleEffectType::Star].InitializeStar();
+	meshMap_[ParticleEffectType::Smoke].InitializeSmoke();
 }
 
 
 /// -------------------------------------------------------------
 ///				    パーティクルグループの生成
 /// -------------------------------------------------------------
-void ParticleManager::CreateParticleGroup(const std::string& name, const std::string& textureFilePath)
+void ParticleManager::CreateParticleGroup(const std::string& name, const std::string& textureFilePath, ParticleEffectType effectType)
 {
 	const std::string FilePath = "Resources/" + textureFilePath;
 
 	TextureManager::GetInstance()->LoadTexture(FilePath);
 
-	// 登録済みの名前かチェックしてassert
-	assert(particleGroups.find(name) == particleGroups.end() && "Particle group alread exests!");
+	// すでに存在していれば何もせずに戻る
+	if (particleGroups.find(name) != particleGroups.end()) return;
 
 	// 新たな空のパーティクルグループを作成し、コンテナに登録
 	ParticleGroup group{};
@@ -79,6 +78,9 @@ void ParticleManager::CreateParticleGroup(const std::string& name, const std::st
 	// インスタンスバッファ作成
 	group.instancebuffer = ResourceManager::CreateBufferResource(dxCommon_->GetDevice(), sizeof(ParticleForGPU) * kNumMaxInstance);
 	group.instancebuffer->Map(0, nullptr, reinterpret_cast<void**>(&group.mappedData));
+
+	// パーティクルのエフェクトの種類を設定
+	group.type = effectType;
 
 	// 初期化
 	for (uint32_t i = 0; i < kNumMaxInstance; ++i)
@@ -150,11 +152,19 @@ void ParticleManager::Update()
 				particle.transform.translate_ += particle.velocity * kDeltaTime;
 				particle.currentTime += kDeltaTime;
 
-				// リングを回転させるための処理
-				//particle.transform.rotate_.z += 1.5f * kDeltaTime; // 秒間約86度の回転
 
-				// シリンダーを回転させるための処理
-				particle.transform.rotate_.y += 1.5f * kDeltaTime; // 秒間約86度の回転
+				switch (group.second.type)
+				{
+				case ParticleEffectType::Ring:
+					particle.transform.rotate_.z += 1.5f * kDeltaTime;
+					break;
+
+				case ParticleEffectType::Cylinder:
+					particle.transform.rotate_.y += 1.5f * kDeltaTime;
+					break;
+				default:
+					break;
+				}
 
 				// 行列更新（transformに任せる）
 				particle.transform.UpdateMatrix(viewProjectionMatrix, useBillboard, billboardMatrix);
@@ -208,9 +218,6 @@ void ParticleManager::Draw()
 	//プリミティブトポロジを設定
 	commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-	// VBVを設定
-	commandList->IASetVertexBuffers(0, 1, &mesh_.GetVertexBufferView());
-
 	// すべてのパーティクルグループについて処理する
 	for (auto& group : particleGroups)
 	{
@@ -225,8 +232,16 @@ void ParticleManager::Draw()
 		// インスタンシングデータのSRVのデスクリプタテーブルを設定
 		commandList->SetGraphicsRootDescriptorTable(2, group.second.materialData.gpuHandle);
 
-		// インスタンシング描画
-		mesh_.Draw(group.second.numParticles);
+		auto meshIt = meshMap_.find(group.second.type);
+		if (meshIt != meshMap_.end())
+		{
+			commandList->IASetVertexBuffers(0, 1, &meshIt->second.GetVertexBufferView());
+			meshIt->second.Draw(group.second.numParticles);
+		}
+		else
+		{
+			Log("Uninitialized ParticleMesh for type: " + std::to_string((int)group.second.type));
+		}
 
 		// インスタンス数をリセット
 		group.second.numParticles = 0;
@@ -267,7 +282,7 @@ void ParticleManager::Emit(const std::string name, const Vector3 position, uint3
 	for (uint32_t index = 0; index < count; ++index)
 	{
 		// パーティクルの生成と追加
-		particleGroup.particles.push_back(MakeNewParticle(randomEngin, position, type));
+		particleGroup.particles.push_back(ParticleFactory::Create(randomEngin, position, type));
 	}
 }
 
@@ -515,85 +530,12 @@ void ParticleManager::CreatePSO()
 	assert(SUCCEEDED(hr));
 }
 
-
-/// -------------------------------------------------------------
-///						パーティクル生成処理
-/// -------------------------------------------------------------
-Particle ParticleManager::MakeNewParticle(std::mt19937& randomEngine, const Vector3& translate, ParticleEffectType type)
-{
-	Particle particle;
-
-	switch (type)
-	{
-	case ParticleEffectType::Default: {
-		std::uniform_real_distribution<float> distribution(-1.0f, 1.0f);
-		std::uniform_real_distribution<float> distColor(0.0f, 1.0f);
-		std::uniform_real_distribution<float> distTime(1.0f, 3.0f);
-
-		Vector3 randomTranslate{ distribution(randomEngine), distribution(randomEngine), distribution(randomEngine) };
-		particle.transform.translate_ = translate + randomTranslate;
-		particle.transform.scale_ = { 1.0f, 1.0f, 1.0f };
-		particle.transform.rotate_ = { 0.0f, 0.0f, 0.0f };
-		particle.color = { distColor(randomEngine), distColor(randomEngine), distColor(randomEngine), 1.0f };
-		particle.lifeTime = distTime(randomEngine);
-		particle.velocity = { distribution(randomEngine), distribution(randomEngine), distribution(randomEngine) };
-		break;
-	}
-
-	case ParticleEffectType::Slash: {
-		std::uniform_real_distribution<float> distScale(0.8f, 3.0f);
-		std::uniform_real_distribution<float> distRotate(-std::numbers::pi_v<float>, std::numbers::pi_v<float>);
-
-		particle.transform.scale_ = { 0.1f, distScale(randomEngine) * 2.0f, 2.0f };
-		particle.startScale = particle.transform.scale_;
-		particle.endScale = { 0.0f, 0.0f, 0.0f };
-		particle.transform.rotate_ = { 0.0f, 0.0f, distRotate(randomEngine) };
-		particle.transform.translate_ = translate;
-		particle.color = { 1.0f, 1.0f, 1.0f, 1.0f };
-		particle.lifeTime = 1.0f;
-		particle.velocity = { 0.0f, 0.0f, 0.0f };
-		break;
-	}
-	case ParticleEffectType::Ring: {
-		// ランダム処理なしの固定値
-		particle.transform.translate_ = translate; // 位置
-		particle.transform.scale_ = { 1.0f, 1.0f, 1.0f }; // 大きさ
-		particle.transform.rotate_ = { 0.0f, 0.0f, 0.0f }; // Z軸回転（45度）
-
-		particle.color = { 1.0f, 1.0f, 1.0f, 1.0f }; // 色
-		particle.lifeTime = 999.0f; // 半永久的に表示
-		particle.velocity = { 0.0f, 0.0f, 0.0f }; // 動かさない
-
-		particle.startScale = particle.transform.scale_;
-		particle.endScale = particle.transform.scale_;
-		break;
-	}
-	case ParticleEffectType::Cylinder: {
-		std::uniform_real_distribution<float> distColor(0.0f, 1.0f);
-
-		particle.transform.translate_ = translate;
-		particle.transform.scale_ = { 1.0f, 1.0f, 1.0f }; // 高さ方向にスケール
-		particle.transform.rotate_ = { 0.0f, 0.0f, 0.0f };
-
-		particle.color = { distColor(randomEngine), distColor(randomEngine), distColor(randomEngine), 1.0f };
-		particle.lifeTime = 999.0f; // 一時的にずっと表示
-
-		particle.startScale = particle.transform.scale_;
-		particle.endScale = particle.transform.scale_;
-		break;
-	}
-	}
-
-	particle.currentTime = 0.0f;
-	return particle;
-}
-
 std::list<Particle> ParticleManager::Emit(const Emitter& emitter, std::mt19937& randomEngine, ParticleEffectType type)
 {
 	std::list<Particle> particles;
 	for (uint32_t count = 0; count < emitter.count; ++count)
 	{
-		particles.push_back(MakeNewParticle(randomEngine, emitter.transform.translate_, type));
+		particles.push_back(ParticleFactory::Create(randomEngine, emitter.transform.translate_, type));
 	}
 
 	return particles;

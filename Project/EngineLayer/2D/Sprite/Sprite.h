@@ -44,6 +44,14 @@ class Sprite
 		Matrix4x4 World;
 	};
 
+	// リロード進捗の構造体
+	struct ReloadProgress
+	{
+		bool isReloading = false;
+		float progress = 0.0f;
+		float padding[2];
+	};
+
 public: /// ---------- メンバ関数 ---------- ///
 
 	// 初期化処理
@@ -59,62 +67,72 @@ public: /// ---------- ゲッター ---------- ///
 
 	// 左右フリップを取得
 	bool GetFlipX() { return isFlipX_; }
-	
+
 	// 上下フリップを取得
 	bool GetFlipY() { return isFlipY_; }
-	
+
 	// 座標を取得
 	const Vector2& GetPosition() const { return position_; }
-	
+
 	// 回転を取得
 	float GetRotation() const { return rotation_; }
-	
+
 	// サイズを取得
 	const Vector2& GetSize() const { return size_; }
-	
+
 	// 色を取得
 	const Vector4& GetColor() const { return materialData->color; }
-	
+
 	// アンカーを取得
 	const Vector2& GetAnchorPoint() const { return anchorPoint_; }
-	
+
 	// テクスチャ左上座標を取得
 	const Vector2& GetTextureLeftTop() const { return textureLeftTop_; }
-	
+
 	// テクスチャ切り出しサイズを取得
 	const Vector2& GetTextureSize() { return textureSize_; }
-	
+
 public: /// ---------- セッター ---------- ///
 
 	// 左右フリップの設定
 	void SetFlipX(bool isFlipX) { isFlipX_ = isFlipX; }
-	
+
 	// 上下フリップの設定
 	void SetFlipY(bool isFlipY) { isFlipY_ = isFlipY; }
-	
+
 	// 座標の設定
 	void SetPosition(const Vector2& position) { position_ = position; }
-	
+
 	// 回転の設定
 	void SetRotation(float rotation) { rotation_ = rotation; }
-	
+
 	// サイズの設定
 	void SetSize(const Vector2& size) { size_ = size; }
-	
+
 	// 色の設定
 	void SetColor(const Vector4& color) { materialData->color = color; }
-	
+
 	// アンカーの設定
 	void SetAnchorPoint(const Vector2& anchorPoint) { anchorPoint_ = anchorPoint; }
-	
+
 	// テクスチャ左上座標の設定
 	void SetTextureLeftTop(const Vector2& textureLeftTop) { textureLeftTop_ = textureLeftTop; }
-	
+
 	// テクスチャ切り出しサイズの設定
 	void SetTextureSize(const Vector2& textureSize) { textureSize_ = textureSize; }
 
 	// テクスチャの変更
 	void SetTexture(const std::string& filePath);
+
+	// UV座標の設定
+	void SetUVRect(const Vector2& leftTop, const Vector2& size) { textureLeftTop_ = leftTop; textureSize_ = size; }
+
+	// リロード進捗の設定
+	void SetReloadProgress(bool isReloading, float progress)
+	{
+		reloadProgressData->isReloading = isReloading;
+		reloadProgressData->progress = progress;
+	}
 
 private: /// ---------- メンバ関数 ---------- ///
 
@@ -129,6 +147,9 @@ private: /// ---------- メンバ関数 ---------- ///
 
 	// テクスチャ債ぞをイメージに合わせる
 	void AdjustTextureSize();
+
+	// リロード新緑の初期化処理
+	void InitializeReloadProgress();
 
 private: /// ---------- メンバ変数 ---------- ///
 
@@ -181,5 +202,9 @@ private: /// ---------- メンバ変数 ---------- ///
 	ComPtr <ID3D12Resource> indexResource;
 	D3D12_INDEX_BUFFER_VIEW indexBufferView{};
 	uint32_t* indexData = nullptr;
+
+	// リロード進捗のリソース
+	ComPtr <ID3D12Resource> reloadProgressResource;
+	ReloadProgress* reloadProgressData = nullptr;
 };
 

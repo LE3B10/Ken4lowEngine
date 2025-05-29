@@ -61,14 +61,13 @@ private: /// ---------- メンバ変数 ---------- ///
 	std::unique_ptr<Object3D> objectBall_;
 	std::unique_ptr<Sprite> sprites_;
 	std::unique_ptr<CollisionManager> collisionManager_;
-	std::unique_ptr<ParticleEmitter> particleEmitter_;
 	std::unique_ptr<AnimationModel> animationModelNoskeleton_;
 	std::unique_ptr<AnimationModel> animationModelSkeleton_;
-
-
 	std::unique_ptr<SkyBox> skyBox_;
 
-	const std::string& particleGroupName = "Particle";
+	// パーティクル
+	std::unique_ptr< ParticleEmitter> cylinderEmitter_, magicRingEmitter_;
+	std::unique_ptr< ParticleEmitter> muzzleFlashEffect_, smokeEffect_;
 
 	// デバッグカメラのON/OFF用
 	bool isDebugCamera_ = false;

@@ -1918,7 +1918,7 @@ static void ShowDemoWindowWidgets(ImGuiDemoWindowData* demo_data)
         {
             static ImVector<int> active_tabs;
             static int next_tab_id = 0;
-            if (next_tab_id == 0) // Initialize with some default tabs
+            if (next_tab_id == 0) // InitializeOnce with some default tabs
                 for (int i = 0; i < 3; i++)
                     active_tabs.push_back(next_tab_id++);
 
@@ -3314,7 +3314,7 @@ static void ShowDemoWindowMultiSelect(ImGuiDemoWindowData* demo_data)
             ImGui::BulletText("Dynamic list with Delete key support.");
             ImGui::Text("Selection size: %d/%d", selection.Size, items.Size);
 
-            // Initialize default list with 50 items + button to add/remove items.
+            // InitializeOnce default list with 50 items + button to add/remove items.
             static ImGuiID items_next_id = 0;
             if (items_next_id == 0)
                 for (ImGuiID n = 0; n < 50; n++)
@@ -3722,7 +3722,7 @@ static void ShowDemoWindowMultiSelect(ImGuiDemoWindowData* demo_data)
                 ImGui::TreePop();
             }
 
-            // Initialize default list with 1000 items.
+            // InitializeOnce default list with 1000 items.
             // Use default selection.Adapter: Pass index to SetNextItemSelectionUserData(), store index in Selection
             static ImVector<int> items;
             static int items_next_id = 0;

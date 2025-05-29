@@ -14,6 +14,8 @@ void Sprite::Initialize(const std::string& filePath)
 
 	filePath_ = filePath;
 
+	TextureManager::GetInstance()->LoadTexture(filePath_);
+
 	gpuHandle_ = TextureManager::GetInstance()->GetSrvHandleGPU(filePath_);
 
 	// スプライトのインデックスバッファを作成および設定する
@@ -27,6 +29,9 @@ void Sprite::Initialize(const std::string& filePath)
 
 	// テクスチャサイズに合わせる
 	AdjustTextureSize();
+
+	// リロード進捗の初期化処理
+	InitializeReloadProgress();
 }
 
 
@@ -98,7 +103,7 @@ void Sprite::Update()
 	transformationMatrixData->World = worldMatrixSprite;
 
 	// 頂点データ更新
-	memcpy(vertexData, &vertexData[0], sizeof(VertexData) * kNumVertex);
+	//memcpy(vertexData, &vertexData[0], sizeof(VertexData) * kNumVertex);
 }
 
 
@@ -112,10 +117,11 @@ void Sprite::Draw()
 	commandList->IASetVertexBuffers(0, 1, &vertexBufferView); // スプライト用VBV
 	commandList->IASetIndexBuffer(&indexBufferView); // IBVの設定
 	commandList->SetGraphicsRootConstantBufferView(0, materialResource.Get()->GetGPUVirtualAddress());
-	commandList->SetGraphicsRootConstantBufferView(1, transformationMatrixResource.Get()->GetGPUVirtualAddress());
+	commandList->SetGraphicsRootConstantBufferView(1, reloadProgressResource.Get()->GetGPUVirtualAddress());
+	commandList->SetGraphicsRootConstantBufferView(2, transformationMatrixResource.Get()->GetGPUVirtualAddress());
 
 	// ディスクリプタテーブルの設定
-	commandList->SetGraphicsRootDescriptorTable(2, gpuHandle_);
+	commandList->SetGraphicsRootDescriptorTable(3, gpuHandle_);
 
 	commandList->DrawIndexedInstanced(kNumVertex, 1, 0, 0, 0);
 }
@@ -211,4 +217,16 @@ void Sprite::AdjustTextureSize()
 
 	// 画像サイズをテクスチャサイズに合わせる
 	size_ = textureSize_;
+}
+
+void Sprite::InitializeReloadProgress()
+{
+	// リロード進捗のリソースを作成
+	reloadProgressResource = ResourceManager::CreateBufferResource(dxCommon_->GetDevice(), sizeof(ReloadProgress));
+	// リロード進捗のリソースにデータを書き込むためのアドレスを取得
+	reloadProgressResource->Map(0, nullptr, reinterpret_cast<void**>(&reloadProgressData));
+
+	// リロード進捗の初期化
+	reloadProgressData->isReloading = this->reloadProgressData->isReloading;
+	reloadProgressData->progress = this->reloadProgressData->progress;
 }

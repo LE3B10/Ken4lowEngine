@@ -19,6 +19,8 @@ public: /// ---------- メンバ関数 ---------- ///
 	// 更新処理
 	void Update();
 
+	void Burst(int count);
+
 	// 座標を設定する関数
 	void SetPosition(const Vector3& position) { position_ = position; }
 
@@ -27,7 +29,7 @@ public: /// ---------- メンバ関数 ---------- ///
 
 	// 色や寿命などの設定
 	void SetParticleAttributes() {}
-	
+
 	// 座標を取得
 	Vector3 GetPosition() const { return position_; }
 
@@ -35,7 +37,7 @@ public: /// ---------- メンバ関数 ---------- ///
 	float GetEmissionRate() const { return emissionRate_; }
 
 private: /// ---------- メンバ変数 ---------- ///
-	
+
 	ParticleManager* particleManager_; // パーティクルマネージャへの参照
 	std::string groupName_;            // 射出先のパーティクルグループ名
 	Vector3 position_;                 // 射出位置
