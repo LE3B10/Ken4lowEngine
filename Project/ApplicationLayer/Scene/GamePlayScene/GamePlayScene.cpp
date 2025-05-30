@@ -175,17 +175,6 @@ void GamePlayScene::Finalize()
 /// -------------------------------------------------------------
 void GamePlayScene::DrawImGui()
 {
-	ImGui::Begin("Test Window");
-
-	// TerrainのImGui
-	//objectTerrain_->DrawImGui();
-
-	objectBall_->DrawImGui();
-
-	ImGui::End();
-
-	animationModelSkeleton_->DrawImGui();
-
 	// ライト
 	LightManager::GetInstance()->DrawImGui();
 }
