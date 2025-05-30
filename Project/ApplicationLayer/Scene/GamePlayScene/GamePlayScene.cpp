@@ -137,7 +137,7 @@ void GamePlayScene::Draw3DObjects()
 
 
 	// ワイヤーフレームの描画
-	Wireframe::GetInstance()->DrawGrid(1000.0f, 100.0f, { 0.25f, 0.25f, 0.25f,1.0f });
+	//Wireframe::GetInstance()->DrawGrid(1000.0f, 100.0f, { 0.25f, 0.25f, 0.25f,1.0f });
 #pragma endregion
 }
 
