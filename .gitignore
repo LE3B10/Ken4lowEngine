@@ -360,3 +360,53 @@ DirectXGame/imgui.ini
 
 # DirectXTex Compiled Shaders
 **/DirectXTex/Shaders/Compiled/
+
+# ============================
+# Visual Studio build outputs
+# ============================
+*.obj
+*.lib
+*.exp
+*.exe
+*.pdb
+*.ilk
+*.log
+*.tlog
+*.ipch
+*.pch
+*.sdf
+*.opensdf
+*.cache
+*.db
+*.iobj
+*.ipdb
+*.idb
+*.res
+
+Debug/
+Release/
+x64/
+x86/
+ARM/
+ARM64/
+
+# ============================
+# ImGui
+# ============================
+imgui.ini
+
+# ============================
+# CMake build files
+# ============================
+CMakeFiles/
+CMakeCache.txt
+Makefile
+cmake_install.cmake
+compile_commands.json
+
+# ============================
+# Editor and workspace
+# ============================
+.vscode/
+build/
+out/
