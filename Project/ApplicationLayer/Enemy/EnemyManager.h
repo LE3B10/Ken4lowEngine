@@ -57,6 +57,8 @@ public: /// ---------- メンバ関数 ---------- ///
 
 	void SetItemManager(ItemManager* itemManager) { itemManager_ = itemManager; }
 
+	Enemy* SpawnEnemy(EnemyType type, const Vector3& position);
+
 private: /// ---------- メンバ変数 ---------- ///
 
 	ItemDropTable itemDropTable_;

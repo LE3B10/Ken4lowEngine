@@ -42,6 +42,9 @@ public: /// ---------- メンバ関数 ---------- ///
 	// 中心座標を取得
 	Vector3 GetCenterPosition() const override { return body_.worldTransform_.translate_; }
 
+	// HPを設定
+	void SetHP(float hp) { hp_ = hp; }
+
 	// ダメージ量
 	void TakeDamage(float amount)
 	{
