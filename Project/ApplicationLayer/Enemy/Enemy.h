@@ -6,12 +6,29 @@
 
 #include <memory>
 
+/// ---------- 前方宣言 ---------- ///
 class Player;
 
+/// ---------- 列挙型 ---------- ///
+enum class EnemyType
+{
+	Basic,	// 基本的な敵
+	Sniper, // 遠距離攻撃型
+	Tank,	// タンク型（高耐久） 
+	Boss,	// ボスキャラ
+	// 今後追加しやすい構造
+};
 
+
+/// -------------------------------------------------------------
+///				　			敵キャラクタークラス
+/// -------------------------------------------------------------
 class Enemy : public BaseCharacter
 {
 public: /// ---------- メンバ関数 ---------- ///
+
+	// エネミーのタイプ
+	EnemyType type_ = EnemyType::Tank;
 
 	// 初期化処理
 	void Initialize();
@@ -40,6 +57,9 @@ public: /// ---------- メンバ関数 ---------- ///
 	// 向き
 	void SetRotate(const Vector3& rotate) { body_.worldTransform_.rotate_ = rotate; }
 
+	// サイズ
+	void SetScale(const Vector3& scale) { body_.worldTransform_.scale_ = scale; }
+
 	// Getter/Setter
 	const Vector3& GetIdleBasePosition() const { return idleBasePosition_; }
 	void SetIdleBasePosition(const Vector3& pos) { idleBasePosition_ = pos; }
@@ -57,9 +77,14 @@ public: /// ---------- メンバ関数 ---------- ///
 
 	// 向きを取得
 	float GetYaw() const { return body_.worldTransform_.rotate_.y; }
+	void SetYaw(float yaw) { body_.worldTransform_.rotate_.y = yaw; }
 
 	// 回転を取得
 	Vector3 GetRotate() const { return body_.worldTransform_.rotate_; }
+
+	void SetType(EnemyType type) { type_ = type; }
+	EnemyType GetType() const { return type_; }
+
 
 private: /// ---------- メンバ関数 ---------- ///
 

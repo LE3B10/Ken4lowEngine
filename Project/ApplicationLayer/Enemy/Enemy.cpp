@@ -4,7 +4,10 @@
 #include <CollisionTypeIdDef.h>
 #include <ParticleManager.h>
 #include "EnemyIdleState.h"
-
+#include "EnemyChaseState.h"
+#include "TankIdleState.h"
+#include "BossIdleState.h"
+#include "SniperIdleState.h"
 
 /// -------------------------------------------------------------
 ///				　			　初期化処理
@@ -22,9 +25,25 @@ void Enemy::Initialize()
 	body_.object->Initialize("body.gltf");
 	body_.worldTransform_.scale_ = { 3.0f, 3.0f, 3.0f };
 	body_.worldTransform_.translate_ = { 0.0f, 0.0f, 200.0f };
-
-	// 初期ステートを Idle に設定
-	ChangeState(std::make_unique<EnemyIdleState>());
+	
+	switch (type_) {
+	case EnemyType::Basic: // 基本的な敵
+		ChangeState(std::make_unique<EnemyIdleState>());
+		break;
+	case EnemyType::Sniper:
+		ChangeState(std::make_unique<SniperIdleState>());
+		currentState_->Enter(this); // 初期化時にEnterを呼ぶ
+		break;
+	case EnemyType::Tank:
+		// タンク専用ステートを作る想定
+		ChangeState(std::make_unique<TankIdleState>());
+		currentState_->Enter(this); // 初期化時にEnterを呼ぶ
+		break;
+	case EnemyType::Boss:
+		ChangeState(std::make_unique<BossIdleState>());
+		currentState_->Enter(this); // 初期化時にEnterを呼ぶ
+		break;
+	}
 }
 
 
@@ -34,6 +53,19 @@ void Enemy::Initialize()
 void Enemy::Update()
 {
 	if (isDead_) return;
+
+	// タイプ別で固有の処理を追加できる
+	switch (type_)
+	{
+	case EnemyType::Basic:
+		break;
+	case EnemyType::Sniper:
+		break;
+	case EnemyType::Tank:
+		break;
+	case EnemyType::Boss:
+		break;
+	}
 
 	shootTimer_ += 1.0f / 60.0f; // ✅ ここで毎フレーム加算すること！
 

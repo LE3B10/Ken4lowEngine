@@ -143,3 +143,30 @@ void EnemyManager::GetSpawnPosition(Vector3& outPosition, EnemySpawnDirection di
 		break;
 	}
 }
+
+Enemy* EnemyManager::SpawnEnemy(EnemyType type, const Vector3& position)
+{
+	auto enemy = std::make_unique<Enemy>();
+	enemy->type_ = type; // エネミーのタイプを設定
+
+	switch (type) {
+	case EnemyType::Tank:
+		enemy->SetScale({ 6.0f, 6.0f, 6.0f });
+		// タンク特有のパラメータもここで設定
+		break;
+	case EnemyType::Sniper:
+		// スナイパー専用のステータスなど
+		break;
+	case EnemyType::Boss:
+		// ボス用設定
+		break;
+		// 追加しやすくなります
+	}
+
+	enemy->Initialize();
+	enemy->SetTarget(player_); // プレイヤーをターゲットに設定
+	enemy->SetTranslate(position);
+	auto rawPtr = enemy.get();
+	enemies_.push_back(std::move(enemy));
+	return rawPtr;
+}
