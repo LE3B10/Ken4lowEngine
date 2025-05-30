@@ -20,13 +20,18 @@ public: // ---------- ゲッタ ---------- //
 
 	// カメラ取得
 	Camera* GetCamera() const { return camera_; }
-	
+
 	// Yaw / Pitch取得
 	float GetYaw() const { return yaw_; }
 	float GetPitch() const { return pitch_; }
 
 public: // ---------- セッタ ---------- //
 
+	// Aiming状態を設定
+	void SetAiming(bool isAiming) { isAiming_ = isAiming; }
+
+
+	void SetAdsSensitivityFactor(float factor) { adsSensitivityFactor_ = factor; }
 
 private: // ---------- メンバ ---------- //
 
@@ -48,4 +53,9 @@ private: // ---------- メンバ ---------- //
 
 	// カメラ高さオフセット（頭位置）
 	const float eyeHeight_ = 20.0f;
+
+	// Aiming状態フラグ
+	bool isAiming_ = false;
+	// ADS状態の感度補正係数（例: 0.5で半分の感度）
+	float adsSensitivityFactor_ = 0.5f;
 };

@@ -82,6 +82,12 @@ public: /// ---------- セッタ ---------- ///
 	// 弾薬を追加
 	void AddAmmo(int amount) { GetCurrentWeapon()->AddReserveAmmo(amount); }
 
+	// Aiming状態を設定
+	void SetAiming(bool isAiming) { isAiming_ = isAiming; }
+
+	// Aimng状態を取得
+	bool IsAiming() const { return isAiming_; }
+
 private: /// ---------- メンバ関数 ---------- ///
 
 	// 弾丸発射処理位置
@@ -121,5 +127,6 @@ private: /// ---------- プレイヤーの状態 ---------- ///
 	bool isDead_ = false; // 死亡フラグ
 
 	bool isAiming_ = false; // エイミング状態
+	float adsSpeedFactor_ = 0.5f;  // ADS時の移動速度倍率（例：50%）
 };
 

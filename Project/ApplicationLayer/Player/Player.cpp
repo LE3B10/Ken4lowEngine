@@ -184,12 +184,20 @@ void Player::Move()
 	Vector3 moveInput = controller_->GetMoveInput();
 
 	// --- ダッシュ入力確認 ---
-	bool isDashKey = input_->PushKey(DIK_LSHIFT);
-	bool isDashButton = input_->PushButton(XButtons.B);
-	isDashing_ = isDashKey || isDashButton;
+	if (isAiming_)
+	{
+		isDashing_ = false;
+	}
+	else
+	{
+		bool isDashKey = input_->PushKey(DIK_LSHIFT);
+		bool isDashButton = input_->PushButton(XButtons.B);
+		isDashing_ = isDashKey || isDashButton;
+	}
 
 	// カメラの方向で回転
-	if (camera_) {
+	if (camera_)
+	{
 		float yaw = camera_->GetRotate().y;
 		float sinY = sinf(yaw);
 		float cosY = cosf(yaw);
@@ -204,6 +212,10 @@ void Player::Move()
 	float currentSpeed = baseSpeed_;
 	if (isDashing_) {
 		currentSpeed *= dashMultiplier_;
+	}
+	if (isAiming_)
+	{  // ← ここでADS中かチェック
+		currentSpeed *= adsSpeedFactor_;  // 例: 0.5f などで移動速度を半減
 	}
 
 	// 位置更新
