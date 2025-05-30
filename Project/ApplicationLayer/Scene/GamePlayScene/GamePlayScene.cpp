@@ -137,7 +137,7 @@ void GamePlayScene::Draw3DObjects()
 
 
 	// ワイヤーフレームの描画
-	Wireframe::GetInstance()->DrawGrid(1000.0f, 100.0f, { 0.25f, 0.25f, 0.25f,1.0f });
+	//Wireframe::GetInstance()->DrawGrid(1000.0f, 100.0f, { 0.25f, 0.25f, 0.25f,1.0f });
 #pragma endregion
 }
 
@@ -175,17 +175,6 @@ void GamePlayScene::Finalize()
 /// -------------------------------------------------------------
 void GamePlayScene::DrawImGui()
 {
-	ImGui::Begin("Test Window");
-
-	// TerrainのImGui
-	//objectTerrain_->DrawImGui();
-
-	objectBall_->DrawImGui();
-
-	ImGui::End();
-
-	animationModelSkeleton_->DrawImGui();
-
 	// ライト
 	LightManager::GetInstance()->DrawImGui();
 }
