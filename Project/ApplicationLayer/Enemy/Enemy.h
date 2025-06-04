@@ -28,7 +28,7 @@ class Enemy : public BaseCharacter
 public: /// ---------- メンバ関数 ---------- ///
 
 	// エネミーのタイプ
-	EnemyType type_ = EnemyType::Tank;
+	EnemyType type_ = EnemyType::Basic;
 
 	// 初期化処理
 	void Initialize();
