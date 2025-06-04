@@ -12,10 +12,11 @@ void Bullet::Initialize()
 {
 	// コライダーを初期化
 	Collider::SetTypeID(static_cast<uint32_t>(CollisionTypeIdDef::kBullet));
+	Collider::SetOBBHalfSize({ 0.1f, 0.1f, 0.1f }); // OBBの半径を設定 // OBBの半径は後で設定する
 
 	model_ = std::make_unique<Object3D>();
 	model_->Initialize("cube.gltf");
-	model_->SetScale({ 0.5f,0.5f,0.5f });
+	model_->SetScale({ 0.001f,0.001f,0.001f });
 
 	// ★ 初期位置に設定
 	model_->SetTranslate(position_);
@@ -80,9 +81,7 @@ void Bullet::OnCollision(Collider* other)
 	uint32_t targetID = other->GetUniqueID();
 
 	// すでに当たった相手かどうかを確認
-	if (contactRecord_.Check(targetID)) {
-		return; // すでに当たった相手なので無視
-	}
+	if (contactRecord_.Check(targetID)) return; // すでに当たった相手なので無視
 
 	contactRecord_.Add(targetID); // 初めて当たった相手として記録
 

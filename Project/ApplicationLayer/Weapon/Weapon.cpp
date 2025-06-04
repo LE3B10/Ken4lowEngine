@@ -210,14 +210,28 @@ void Weapon::FireShotgunSpread(const Vector3& pos, const Vector3& dir)
 /// -------------------------------------------------------------
 Vector3 Weapon::ApplyRandomSpread(const Vector3& baseDir, float angleRangeDeg)
 {
-	float yawOffset = GetRandomFloat(-angleRangeDeg, angleRangeDeg);
-	float pitchOffset = GetRandomFloat(-angleRangeDeg, angleRangeDeg);
+	// 基準方向を正規化
+	Vector3 forward = Vector3::Normalize(baseDir);
 
-	float yawRad = DegToRad(yawOffset);
-	float pitchRad = DegToRad(pitchOffset);
+	// baseDir に垂直なベクトルを定義（右方向）
+	Vector3 worldUp = { 0.0f, 1.0f, 0.0f };
 
-	Matrix4x4 rotY = Matrix4x4::MakeRotateYMatrix(yawRad);
-	Matrix4x4 rotX = Matrix4x4::MakeRotateXMatrix(pitchRad);
+	// forward と worldUp が平行すぎると右が定義できないので調整
+	if (fabsf(Vector3::Dot(forward, worldUp)) > 0.99f) {
+		worldUp = { 0.0f, 0.0f, 1.0f };
+	}
 
-	return Vector3::Transform(baseDir, rotX * rotY);
+	Vector3 right = Vector3::Normalize(Vector3::Cross(worldUp, forward));
+	Vector3 up = Vector3::Normalize(Vector3::Cross(forward, right));
+
+	// ランダム角度（度→ラジアン）
+	float yawOffset = DegToRad(GetRandomFloat(-angleRangeDeg, angleRangeDeg));
+	float pitchOffset = DegToRad(GetRandomFloat(-angleRangeDeg, angleRangeDeg));
+
+	// ベース方向に対してスプレッドを適用
+	Vector3 spreadDir = forward;
+	spreadDir += right * tanf(yawOffset);   // 水平方向に拡がる
+	spreadDir += up * tanf(pitchOffset);    // 垂直方向に拡がる
+
+	return Vector3::Normalize(spreadDir);
 }
