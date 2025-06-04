@@ -114,4 +114,7 @@ private: /// ---------- メンバ変数 ---------- ///
 	float bulletSpeed_ = 0.0f;	// 弾速
 	float fireTimer_ = 0.0f;	// 発射タイマー
 	float fireInterval_ = 0.1f; // 0.1秒に1発（10発/秒）
+
+	// SEのパス
+	std::string fireSEPath_;
 };
