@@ -93,6 +93,8 @@ private: /// ---------- メンバ関数 ---------- ///
 	// 弾丸発射処理位置
 	void FireWeapon();
 
+	void PlaySE(const std::string& filePath, float volume, float pitch, bool loop);
+
 private: /// ---------- メンバ変数 ---------- ///
 
 	Input* input_ = nullptr; // 入力クラス

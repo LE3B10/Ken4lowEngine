@@ -1,12 +1,14 @@
 #define NOMINMAX
 #include "Weapon.h"
 #include <Bullet.h>
+#include <AudioManager.h>
+
 #include <imgui.h>
 
 
 /// -------------------------------------------------------------
 ///				　			　 初期化処理
-/// /// -------------------------------------------------------------
+/// -------------------------------------------------------------
 void Weapon::Initialize()
 {
 	bullets_.clear();
@@ -18,15 +20,17 @@ void Weapon::Initialize()
 	switch (type_)
 	{
 	case WeaponType::Rifle:
-		ammoInfo_ = { 300000, 90, 30, 90, 1, 25.0f, 1000.0f }; // 30回撃てて、1回で1発出す
+		ammoInfo_ = { 30, 90, 30, 90, 1, 25.0f, 1000.0f }; // 30回撃てて、1回で1発出す
 		reloadTime_ = 1.5f; // ライフルはリロード時間が短い
 		bulletSpeed_ = 40.0f; // ライフルの弾速はショットガンより速い
+		fireSEPath_ = "gun.mp3";
 		break;
 
 	case WeaponType::Shotgun:
-		ammoInfo_ = { 60000, 30, 6, 30, 8, 10.0f, 100.0f }; // 6回撃てて、1回で8粒出す
+		ammoInfo_ = { 6, 30, 6, 30, 8, 10.0f, 100.0f }; // 6回撃てて、1回で8粒出す
 		reloadTime_ = 2.5f; // ショットガンはリロード時間が長い
 		bulletSpeed_ = 24.0f; // ショットガンの弾速はライフルより遅い
+		fireSEPath_ = "shotgunFire.mp3";
 		break;
 	}
 }
@@ -102,10 +106,18 @@ void Weapon::TryFire(const Vector3& position, const Vector3& direction)
 	{
 	case WeaponType::Rifle: // ライフルの場合は単発弾を発射
 		FireSingleBullet(position, direction);
+
+		// サウンド再生
+		AudioManager::GetInstance()->PlaySE(fireSEPath_, 0.5f, 2.0f);
+
 		break;
 
 	case WeaponType::Shotgun: // ショットガンの場合は散弾を発射
 		FireShotgunSpread(position, direction);
+
+		// サウンド再生
+		AudioManager::GetInstance()->PlaySE(fireSEPath_);
+
 		break;
 	}
 }
