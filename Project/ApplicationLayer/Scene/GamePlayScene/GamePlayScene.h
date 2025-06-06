@@ -63,6 +63,7 @@ private: /// ---------- メンバ変数 ---------- ///
 	std::unique_ptr<CollisionManager> collisionManager_;
 	std::unique_ptr<SkyBox> skyBox_;
 	std::unique_ptr<AnimationModel> animationModel_;
+	std::unique_ptr<AnimationModel> animationModel2_;
 
 	// パーティクル
 	std::unique_ptr< ParticleEmitter> cylinderEmitter_, magicRingEmitter_;

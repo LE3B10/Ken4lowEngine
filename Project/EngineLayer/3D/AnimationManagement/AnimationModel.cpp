@@ -32,6 +32,13 @@ void AnimationModel::Initialize(const std::string& fileName)
 	// 読み込んだテクスチャ番号を取得
 	modelData.material.gpuHandle = TextureManager::GetInstance()->GetSrvHandleGPU(modelData.material.textureFilePath);
 
+	skeleton_ = std::make_unique<Skeleton>();
+	skeleton_ = Skeleton::CreateFromRootNode(modelData.rootNode);
+
+	// スキンクラスターの初期化
+	skinCluster_ = std::make_unique<SkinCluster>();
+	skinCluster_->Initialize(modelData, *skeleton_, dxCommon_->GetDevice()->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV));
+
 	// マテリアルデータの初期化処理
 	material_.Initialize();
 
@@ -68,30 +75,39 @@ void AnimationModel::Update()
 	// FPSの取得 deltaTimeの計算
 	float deltaTime = 1.0f / dxCommon_->GetFPSCounter().GetFPS();
 
-	// アニメーション無し（通常モデル用のWVP更新）
-	NodeAnimation& rootNodeAnimation = animation.nodeAnimations[modelData.rootNode.name];
-	Vector3 translate = CalculateValue(rootNodeAnimation.translate, animationTime_);
-	Quaternion rotate = CalculateValue(rootNodeAnimation.rotate, animationTime_);
-	Vector3 scale = CalculateValue(rootNodeAnimation.scale, animationTime_);
-
-	Matrix4x4 localMatrix = Matrix4x4::MakeAffineMatrix(scale, rotate, translate);
-
-	Matrix4x4 worldMatrix = Matrix4x4::MakeAffineMatrix(worldTransform.scale_, worldTransform.rotate_, worldTransform.translate_);
-	Matrix4x4 worldViewProjectionMatrix;
-
-	if (camera_)
+	if (skinningSetting_->isSkinning)
 	{
-		const Matrix4x4& viewProjectionMatrix = camera_->GetViewProjectionMatrix();
-		worldViewProjectionMatrix = Matrix4x4::Multiply(worldMatrix, viewProjectionMatrix);
-	}
-	else
-	{
-		worldViewProjectionMatrix = worldMatrix;
-	}
+		auto& nodeAnimations = animation.nodeAnimations;
+		auto& joints = skeleton_->GetJoints();
 
-	wvpData_->WVP = localMatrix * worldViewProjectionMatrix;
-	wvpData_->World = localMatrix * worldMatrix;
-	wvpData_->WorldInversedTranspose = Matrix4x4::Transpose(Matrix4x4::Inverse(localMatrix * worldMatrix));
+		// 2. ノードアニメーションの適用
+		for (auto& joint : joints)
+		{
+			auto it = nodeAnimations.find(joint.name);
+
+			// ノードアニメーションが見つからなかった場合は、親の行列を使用
+			if (it != nodeAnimations.end())
+			{
+				NodeAnimation& nodeAnim = (*it).second;
+				Vector3 translate = CalculateValue(nodeAnim.translate, deltaTime);
+				Quaternion rotate = CalculateValue(nodeAnim.rotate, deltaTime);
+				Vector3 scale = CalculateValue(nodeAnim.scale, deltaTime);
+
+				// 座標系調整（Z軸反転で伸びを防ぐ）
+				joint.transform.translate = translate;
+				joint.transform.rotate = rotate;
+				joint.transform.scale = scale;
+
+				joint.localMatrix = Matrix4x4::MakeAffineMatrix(joint.transform.scale, joint.transform.rotate, joint.transform.translate);
+			}
+		}
+
+		// 3. スケルトンの更新
+		skeleton_->UpdateSkeleton();
+
+		// 4. スキンクラスターの更新
+		///skinCluster_->UpdatePaletteMatrix(*skeleton_);
+	}
 
 	UpdateAnimation(deltaTime);
 
@@ -109,15 +125,25 @@ void AnimationModel::Draw()
 
 	auto commandList = dxCommon_->GetCommandManager()->GetCommandList();
 
-	commandList->IASetVertexBuffers(0, 1, &GetAnimationMesh()->GetVertexBufferView());
-	commandList->IASetIndexBuffer(&GetAnimationMesh()->GetIndexBufferView());
+	if (skinningSetting_->isSkinning)
+	{
+		D3D12_VERTEX_BUFFER_VIEW vbvs[2] = { animationMesh_->GetVertexBufferView(), skinCluster_->GetInfluenceBufferView() };
+		commandList->IASetVertexBuffers(0, 2, vbvs);
+		commandList->IASetIndexBuffer(&animationMesh_->GetIndexBufferView());
+		commandList->SetGraphicsRootDescriptorTable(7, skinCluster_->GetPaletteSrvHandle().second); // スキニングのパレットをセット
+	}
+	else
+	{
+		commandList->IASetVertexBuffers(0, 1, &GetAnimationMesh()->GetVertexBufferView());
+		commandList->IASetIndexBuffer(&GetAnimationMesh()->GetIndexBufferView());
+	}
 
 	material_.SetPipeline();
 
 	commandList->SetGraphicsRootConstantBufferView(1, wvpResource->GetGPUVirtualAddress());
 	commandList->SetGraphicsRootDescriptorTable(2, modelData.material.gpuHandle);
 	commandList->SetGraphicsRootConstantBufferView(3, cameraResource->GetGPUVirtualAddress());
-	
+
 	commandList->SetGraphicsRootConstantBufferView(8, skinningSettingResource_->GetGPUVirtualAddress());
 
 	commandList->DrawIndexedInstanced(UINT(modelData.indices.size()), 1, 0, 0, 0);
@@ -136,6 +162,53 @@ void AnimationModel::UpdateAnimation(float deltaTime)
 {
 	animationTime_ += deltaTime;
 	animationTime_ = std::fmod(animationTime_, animation.duration);
+
+	if (skeleton_ && !skeleton_->GetJoints().empty())
+	{
+		Matrix4x4 worldMatrix = Matrix4x4::MakeAffineMatrix(worldTransform.scale_, worldTransform.rotate_, worldTransform.translate_);
+		Matrix4x4 worldViewProjectionMatrix;
+
+		if (camera_)
+		{
+			const Matrix4x4& viewProjectionMatrix = camera_->GetViewProjectionMatrix();
+			worldViewProjectionMatrix = Matrix4x4::Multiply(worldMatrix, viewProjectionMatrix);
+		}
+		else
+		{
+			worldViewProjectionMatrix = worldMatrix;
+		}
+
+		wvpData_->World = worldMatrix;
+		wvpData_->WVP = worldViewProjectionMatrix;
+		wvpData_->WorldInversedTranspose = Matrix4x4::Transpose(Matrix4x4::Inverse(worldMatrix));
+	}
+	else
+	{
+		// アニメーション無し（通常モデル用のWVP更新）
+		NodeAnimation& rootNodeAnimation = animation.nodeAnimations[modelData.rootNode.name];
+		Vector3 translate = CalculateValue(rootNodeAnimation.translate, animationTime_);
+		Quaternion rotate = CalculateValue(rootNodeAnimation.rotate, animationTime_);
+		Vector3 scale = CalculateValue(rootNodeAnimation.scale, animationTime_);
+
+		Matrix4x4 localMatrix = Matrix4x4::MakeAffineMatrix(scale, rotate, translate);
+
+		Matrix4x4 worldMatrix = Matrix4x4::MakeAffineMatrix(worldTransform.scale_, worldTransform.rotate_, worldTransform.translate_);
+		Matrix4x4 worldViewProjectionMatrix;
+
+		if (camera_)
+		{
+			const Matrix4x4& viewProjectionMatrix = camera_->GetViewProjectionMatrix();
+			worldViewProjectionMatrix = Matrix4x4::Multiply(worldMatrix, viewProjectionMatrix);
+		}
+		else
+		{
+			worldViewProjectionMatrix = worldMatrix;
+		}
+
+		wvpData_->WVP = localMatrix * worldViewProjectionMatrix;
+		wvpData_->World = localMatrix * worldMatrix;
+		wvpData_->WorldInversedTranspose = Matrix4x4::Transpose(Matrix4x4::Inverse(localMatrix * worldMatrix));
+	}
 }
 
 

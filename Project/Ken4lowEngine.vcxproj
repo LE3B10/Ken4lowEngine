@@ -116,6 +116,8 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
   <ItemGroup>
     <ClCompile Include="EngineLayer\3D\AnimationManagement\AnimationModel.cpp" />
     <ClCompile Include="EngineLayer\3D\AnimationManagement\AnimationPipelineBuilder.cpp" />
+    <ClCompile Include="EngineLayer\3D\AnimationManagement\Skeleton.cpp" />
+    <ClCompile Include="EngineLayer\3D\AnimationManagement\SkinCluster.cpp" />
     <ClCompile Include="EngineLayer\Mesh\AnimationMesh.cpp" />
     <ClCompile Include="EngineLayer\Audio\AudioManager.cpp" />
     <ClCompile Include="EngineLayer\Audio\MP3Loader.cpp" />
@@ -343,6 +345,8 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
   <ItemGroup>
     <ClInclude Include="EngineLayer\3D\AnimationManagement\AnimationModel.h" />
     <ClInclude Include="EngineLayer\3D\AnimationManagement\AnimationPipelineBuilder.h" />
+    <ClInclude Include="EngineLayer\3D\AnimationManagement\Skeleton.h" />
+    <ClInclude Include="EngineLayer\3D\AnimationManagement\SkinCluster.h" />
     <ClInclude Include="EngineLayer\Mesh\AnimationMesh.h" />
     <ClInclude Include="EngineLayer\Audio\AudioCategory.h" />
     <ClInclude Include="EngineLayer\Audio\AudioManager.h" />
