@@ -6,8 +6,8 @@
 #include "ParticleManager.h"
 #include "ParticleEmitter.h"
 #include <BaseScene.h>
-
 #include "AnimationModel.h"
+
 #include "SkyBox.h"
 
 #include "CollisionManager.h"
@@ -61,9 +61,8 @@ private: /// ---------- メンバ変数 ---------- ///
 	std::unique_ptr<Object3D> objectBall_;
 	std::unique_ptr<Sprite> sprites_;
 	std::unique_ptr<CollisionManager> collisionManager_;
-	std::unique_ptr<AnimationModel> animationModelNoskeleton_;
-	std::unique_ptr<AnimationModel> animationModelSkeleton_;
 	std::unique_ptr<SkyBox> skyBox_;
+	std::unique_ptr<AnimationModel> animationModel_;
 
 	// パーティクル
 	std::unique_ptr< ParticleEmitter> cylinderEmitter_, magicRingEmitter_;

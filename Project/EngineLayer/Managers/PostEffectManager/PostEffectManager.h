@@ -93,7 +93,7 @@ private: /// ---------- メンバ変数 ---------- ///
 	std::unordered_map<std::string, std::string> effectCategory_;
 
 	// レンダーテクスチャのクリアカラー
-	const Vector4 kRenderTextureClearColor_ = { 0.0f, 0.0f, 0.0f, 1.0f }; // 分かりやすいように一旦赤色にする
+	const Vector4 kRenderTextureClearColor_ = { 0.08f, 0.08f, 0.16f, 1.0f }; // 分かりやすいように一旦赤色にする
 
 	ComPtr <ID3DBlob> signatureBlob_;
 	ComPtr <ID3DBlob> errorBlob_;

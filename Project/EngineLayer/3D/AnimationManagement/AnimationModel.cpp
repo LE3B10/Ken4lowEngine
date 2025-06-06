@@ -6,9 +6,6 @@
 #include <SRVManager.h>
 #include <ResourceManager.h>
 #include <Wireframe.h>
-#include "NoSkeletonAnimation.h"
-#include "SkeletonAnimation.h"
-#include "AnimationModelManager.h"
 #include "AssimpLoader.h"
 #include "LightManager.h"
 #include <imgui.h>
@@ -18,7 +15,7 @@
 /// -------------------------------------------------------------
 ///				　		 初期化処理
 /// -------------------------------------------------------------
-void AnimationModel::Initialize(const std::string& fileName, bool isAnimation, bool hasSkeleton)
+void AnimationModel::Initialize(const std::string& fileName)
 {
 	dxCommon_ = DirectXCommon::GetInstance();
 	camera_ = Object3DCommon::GetInstance()->GetDefaultCamera();
@@ -26,29 +23,14 @@ void AnimationModel::Initialize(const std::string& fileName, bool isAnimation, b
 	// モデル読み込み
 	modelData = AssimpLoader::LoadModel("Resources/AnimatedCube", fileName);
 
+	// アニメーションモデルを読み込む
+	animation = LoadAnimationFile("Resources/AnimatedCube", fileName);
+
 	// ファイルの参照しているテクスチャファイル読み込み
 	TextureManager::GetInstance()->LoadTexture(modelData.material.textureFilePath);
 
 	// 読み込んだテクスチャ番号を取得
 	modelData.material.gpuHandle = TextureManager::GetInstance()->GetSrvHandleGPU(modelData.material.textureFilePath);
-
-	if (!isAnimation)
-	{
-		animationStrategy_ = nullptr;
-	}
-	else if (hasSkeleton)
-	{
-		animationStrategy_ = std::make_unique<SkeletonAnimation>();
-	}
-	else
-	{
-		animationStrategy_ = std::make_unique<NoSkeletonAnimation>();
-	}
-
-	if (animationStrategy_)
-	{
-		animationStrategy_->Initialize(this, fileName);
-	}
 
 	// マテリアルデータの初期化処理
 	material_.Initialize();
@@ -56,6 +38,13 @@ void AnimationModel::Initialize(const std::string& fileName, bool isAnimation, b
 	// アニメーション用の頂点とインデックスバッファを作成
 	animationMesh_ = std::make_unique<AnimationMesh>();
 	animationMesh_->Initialize(dxCommon_->GetDevice(), modelData);
+
+	// 行列データの初期化
+	wvpResource = ResourceManager::CreateBufferResource(dxCommon_->GetDevice(), sizeof(TransformationAnimationMatrix));
+	wvpResource->Map(0, nullptr, reinterpret_cast<void**>(&wvpData_)); // 書き込むためのアドレスを取得
+	wvpData_->World = Matrix4x4::MakeIdentity();
+	wvpData_->WVP = Matrix4x4::MakeIdentity();
+	wvpData_->WorldInversedTranspose = Matrix4x4::MakeIdentity();
 
 #pragma region カメラ用のリソースを作成
 	// カメラ用のリソースを作る
@@ -66,8 +55,8 @@ void AnimationModel::Initialize(const std::string& fileName, bool isAnimation, b
 	cameraData->worldPosition = camera_->GetTranslate();
 #pragma endregion
 
-	// ライティングの初期化
-	LightManager::GetInstance()->Initialize(dxCommon_);
+	// スキニング設定リソースの作成
+	CreateSkinningSettingResource();
 }
 
 
@@ -79,10 +68,32 @@ void AnimationModel::Update()
 	// FPSの取得 deltaTimeの計算
 	float deltaTime = 1.0f / dxCommon_->GetFPSCounter().GetFPS();
 
-	if (animationStrategy_)
+	// アニメーション無し（通常モデル用のWVP更新）
+	NodeAnimation& rootNodeAnimation = animation.nodeAnimations[modelData.rootNode.name];
+	Vector3 translate = CalculateValue(rootNodeAnimation.translate, animationTime_);
+	Quaternion rotate = CalculateValue(rootNodeAnimation.rotate, animationTime_);
+	Vector3 scale = CalculateValue(rootNodeAnimation.scale, animationTime_);
+
+	Matrix4x4 localMatrix = Matrix4x4::MakeAffineMatrix(scale, rotate, translate);
+
+	Matrix4x4 worldMatrix = Matrix4x4::MakeAffineMatrix(worldTransform.scale_, worldTransform.rotate_, worldTransform.translate_);
+	Matrix4x4 worldViewProjectionMatrix;
+
+	if (camera_)
 	{
-		animationStrategy_->Update(this, deltaTime);
+		const Matrix4x4& viewProjectionMatrix = camera_->GetViewProjectionMatrix();
+		worldViewProjectionMatrix = Matrix4x4::Multiply(worldMatrix, viewProjectionMatrix);
 	}
+	else
+	{
+		worldViewProjectionMatrix = worldMatrix;
+	}
+
+	wvpData_->WVP = localMatrix * worldViewProjectionMatrix;
+	wvpData_->World = localMatrix * worldMatrix;
+	wvpData_->WorldInversedTranspose = Matrix4x4::Transpose(Matrix4x4::Inverse(localMatrix * worldMatrix));
+
+	UpdateAnimation(deltaTime);
 
 	// マテリアルの更新処理
 	material_.Update();
@@ -96,10 +107,20 @@ void AnimationModel::Draw()
 {
 	SRVManager::GetInstance()->PreDraw();
 
-	if (animationStrategy_)
-	{
-		animationStrategy_->Draw(this);
-	}
+	auto commandList = dxCommon_->GetCommandManager()->GetCommandList();
+
+	commandList->IASetVertexBuffers(0, 1, &GetAnimationMesh()->GetVertexBufferView());
+	commandList->IASetIndexBuffer(&GetAnimationMesh()->GetIndexBufferView());
+
+	material_.SetPipeline();
+
+	commandList->SetGraphicsRootConstantBufferView(1, wvpResource->GetGPUVirtualAddress());
+	commandList->SetGraphicsRootDescriptorTable(2, modelData.material.gpuHandle);
+	commandList->SetGraphicsRootConstantBufferView(3, cameraResource->GetGPUVirtualAddress());
+	
+	commandList->SetGraphicsRootConstantBufferView(8, skinningSettingResource_->GetGPUVirtualAddress());
+
+	commandList->DrawIndexedInstanced(UINT(modelData.indices.size()), 1, 0, 0, 0);
 }
 
 void AnimationModel::DrawImGui()
@@ -113,52 +134,8 @@ void AnimationModel::DrawImGui()
 /// -------------------------------------------------------------
 void AnimationModel::UpdateAnimation(float deltaTime)
 {
-	if (skeleton_ && !skeleton_->GetJoints().empty())
-	{
-		Matrix4x4 worldMatrix = Matrix4x4::MakeAffineMatrix(worldTransform.scale_, worldTransform.rotate_, worldTransform.translate_);
-		Matrix4x4 worldViewProjectionMatrix;
-
-		if (camera_)
-		{
-			const Matrix4x4& viewProjectionMatrix = camera_->GetViewProjectionMatrix();
-			worldViewProjectionMatrix = Matrix4x4::Multiply(worldMatrix, viewProjectionMatrix);
-		}
-		else
-		{
-			worldViewProjectionMatrix = worldMatrix;
-		}
-
-		wvpData_->World = worldMatrix;
-		wvpData_->WVP = worldViewProjectionMatrix;
-		wvpData_->WorldInversedTranspose = Matrix4x4::Transpose(Matrix4x4::Inverse(worldMatrix));
-	}
-	else
-	{
-		// アニメーション無し（通常モデル用のWVP更新）
-		NodeAnimation& rootNodeAnimation = animation.nodeAnimations[modelData.rootNode.name];
-		Vector3 translate = CalculateValue(rootNodeAnimation.translate, animationTime_);
-		Quaternion rotate = CalculateValue(rootNodeAnimation.rotate, animationTime_);
-		Vector3 scale = CalculateValue(rootNodeAnimation.scale, animationTime_);
-
-		Matrix4x4 localMatrix = Matrix4x4::MakeAffineMatrix(scale, rotate, translate);
-
-		Matrix4x4 worldMatrix = Matrix4x4::MakeAffineMatrix(worldTransform.scale_, worldTransform.rotate_, worldTransform.translate_);
-		Matrix4x4 worldViewProjectionMatrix;
-
-		if (camera_)
-		{
-			const Matrix4x4& viewProjectionMatrix = camera_->GetViewProjectionMatrix();
-			worldViewProjectionMatrix = Matrix4x4::Multiply(worldMatrix, viewProjectionMatrix);
-		}
-		else
-		{
-			worldViewProjectionMatrix = worldMatrix;
-		}
-
-		wvpData_->WVP = localMatrix * worldViewProjectionMatrix;
-		wvpData_->World = localMatrix * worldMatrix;
-		wvpData_->WorldInversedTranspose = Matrix4x4::Transpose(Matrix4x4::Inverse(localMatrix * worldMatrix));
-	}
+	animationTime_ += deltaTime;
+	animationTime_ = std::fmod(animationTime_, animation.duration);
 }
 
 
@@ -216,4 +193,13 @@ Animation AnimationModel::LoadAnimationFile(const std::string& directoryPath, co
 	}
 	// 解析終了
 	return animation;
+}
+
+void AnimationModel::CreateSkinningSettingResource()
+{
+	// スキニング用のリソースを作成
+	skinningSettingResource_ = ResourceManager::CreateBufferResource(dxCommon_->GetDevice(), sizeof(SkinningSetting));
+	skinningSettingResource_->Map(0, nullptr, reinterpret_cast<void**>(&skinningSetting_));
+
+	skinningSetting_->isSkinning = false;
 }

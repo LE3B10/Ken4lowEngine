@@ -10,3 +10,10 @@ struct TransformationMatrix final
 	Matrix4x4 World;
 	Matrix4x4 WorldInversedTranspose;
 };
+
+struct TransformationAnimationMatrix
+{
+	Matrix4x4 WVP;
+	Matrix4x4 World;
+	Matrix4x4 WorldInversedTranspose;
+};

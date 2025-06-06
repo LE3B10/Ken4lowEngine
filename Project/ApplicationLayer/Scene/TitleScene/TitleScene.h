@@ -1,7 +1,6 @@
 #pragma once
 #include <Sprite.h>
 #include <TextureManager.h>
-#include <WavLoader.h>
 #include <SRVManager.h>
 #include "Input.h"
 #include <BaseScene.h>
@@ -41,8 +40,6 @@ private: /// ---------- メンバ変数 ---------- ///
 	DirectXCommon* dxCommon_ = nullptr;
 	TextureManager* textureManager = nullptr;
 	Input* input = nullptr;
-
-	std::unique_ptr<WavLoader> wavLoader_;
 
 	std::vector<std::unique_ptr<Sprite>> sprites_;
 
