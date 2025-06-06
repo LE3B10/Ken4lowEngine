@@ -11,7 +11,7 @@
 #include <Object3DCommon.h>
 #include <DebugCamera.h>
 #include <Wireframe.h>
-#include <AnimationModelManager.h>
+#include <AnimationPipelineBuilder.h>
 #include <SkyBoxManager.h>
 #include <PostEffectManager.h>
 
@@ -68,8 +68,8 @@ void Framework::Initialize()
 	// Object3DCommonの初期化
 	Object3DCommon::GetInstance()->Initialize(dxCommon_);
 
-	// アニメーションマネージャーの初期化
-	AnimationModelManager::GetInstance()->Initialize(dxCommon_);
+	// アニメーションモデルビルダーの初期化
+	AnimationPipelineBuilder::GetInstance()->Initialize(dxCommon_);
 
 	// デバッグカメラの初期化
 	DebugCamera::GetInstance()->Initialize();

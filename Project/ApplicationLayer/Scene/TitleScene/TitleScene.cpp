@@ -13,7 +13,6 @@ void TitleScene::Initialize()
 	dxCommon_ = DirectXCommon::GetInstance();
 	textureManager = TextureManager::GetInstance();
 	input = Input::GetInstance();
-	wavLoader_ = std::make_unique<WavLoader>();
 
 	// テクスチャのパスをリストで管理
 	texturePaths_ = {
@@ -44,9 +43,6 @@ void TitleScene::Initialize()
 
 		sprites_[i]->SetPosition(Vector2(100.0f * i, 100.0f * i));
 	}
-
-	/// ---------- サウンドの初期化 ---------- ///
-	wavLoader_->StreamAudioAsync("RPGBattle01.wav", 0.0f, 1.0f, false);
 }
 
 
@@ -62,8 +58,6 @@ void TitleScene::Update()
 		{
 			sceneManager_->ChangeScene("GamePlayScene"); // シーン名を指定して変更
 		}
-
-		wavLoader_->StopBGM();
 	}
 
 	// スプライトの更新処理
@@ -117,11 +111,6 @@ void TitleScene::Finalize()
 	if (!sprites_.empty())
 	{
 		sprites_.clear();
-	}
-
-	if (wavLoader_)
-	{
-		wavLoader_.reset();
 	}
 }
 
