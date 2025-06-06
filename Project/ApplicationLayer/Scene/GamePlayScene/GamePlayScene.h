@@ -6,11 +6,12 @@
 #include "ParticleManager.h"
 #include "ParticleEmitter.h"
 #include <BaseScene.h>
+#include "SkyBox.h"
+#include "CollisionManager.h"
 #include "AnimationModel.h"
 
-#include "SkyBox.h"
-
-#include "CollisionManager.h"
+#include "LevelObjectManager.h"
+#include "LevelLoader.h"
 
 #include "AABB.h"
 #include "OBB.h"
@@ -45,7 +46,6 @@ public: /// ---------- メンバ関数 ---------- ///
 	// ImGui描画処理
 	void DrawImGui() override;
 
-
 private: /// ---------- メンバ関数 ---------- ///
 
 	// 衝突判定と応答
@@ -65,9 +65,7 @@ private: /// ---------- メンバ変数 ---------- ///
 	std::unique_ptr<AnimationModel> animationModel_;
 	std::unique_ptr<AnimationModel> animationModel2_;
 
-	// パーティクル
-	std::unique_ptr< ParticleEmitter> cylinderEmitter_, magicRingEmitter_;
-	std::unique_ptr< ParticleEmitter> muzzleFlashEffect_, smokeEffect_;
+	std::unique_ptr<LevelObjectManager> levelManager_;
 
 	// デバッグカメラのON/OFF用
 	bool isDebugCamera_ = false;

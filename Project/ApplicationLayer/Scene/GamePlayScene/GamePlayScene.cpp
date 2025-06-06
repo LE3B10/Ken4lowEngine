@@ -15,6 +15,9 @@
 #include <DebugCamera.h>
 #endif // _DEBUG
 
+#include <json.hpp>
+#include <iostream>
+
 
 /// -------------------------------------------------------------
 ///				　			　初期化処理
@@ -28,6 +31,10 @@ void GamePlayScene::Initialize()
 
 	dxCommon_ = DirectXCommon::GetInstance();
 	input_ = Input::GetInstance();
+
+	auto levelData = LevelLoader::Load("Resources/enemy1.json");
+	levelManager_ = std::make_unique<LevelObjectManager>();
+	levelManager_->Initialize(*levelData);
 
 	// terrainの生成と初期化
 	objectTerrain_ = std::make_unique<Object3D>();
@@ -84,6 +91,9 @@ void GamePlayScene::Update()
 
 	animationModel2_->Update();
 
+	// レベルマネージャの更新
+	levelManager_->Update();
+
 	// 衝突判定と応答
 	CheckAllCollisions();
 }
@@ -97,7 +107,7 @@ void GamePlayScene::Draw3DObjects()
 
 	// スカイボックスの共通描画設定
 	SkyBoxManager::GetInstance()->SetRenderSetting();
-	skyBox_->Draw();
+	//skyBox_->Draw();
 
 #pragma endregion
 
@@ -111,6 +121,9 @@ void GamePlayScene::Draw3DObjects()
 
 	// 球体の描画
 	//objectBall_->Draw();
+
+	// レベルマネージャの描画
+	levelManager_->Draw();
 
 #pragma endregion
 
