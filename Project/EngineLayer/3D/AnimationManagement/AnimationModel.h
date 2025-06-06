@@ -7,6 +7,8 @@
 #include "WorldTransform.h"
 #include "Material.h"
 #include "AnimationMesh.h"
+#include "Skeleton.h"
+#include <SkinCluster.h>
 
 #include <algorithm>
 #include <string>
@@ -67,6 +69,9 @@ public: /// ---------- ゲッタ ---------- ///
 	// 回転を取得
 	const Vector3& GetRotate() const { return worldTransform.rotate_; }
 
+	// メッシュを取得
+	AnimationMesh* GetAnimationMesh() { return animationMesh_.get(); }
+
 public: /// ---------- セッタ ---------- ///
 
 	// 座標を設定
@@ -81,7 +86,8 @@ public: /// ---------- セッタ ---------- ///
 	// 反射率を設定
 	void SetReflectivity(float reflectivity) { material_.SetShininess(reflectivity); }
 
-	AnimationMesh* GetAnimationMesh() { return animationMesh_.get(); }
+	// スキニングを有効にするか設定
+	void SetSkinningEnabled(bool isSkinning) { skinningSetting_->isSkinning = isSkinning; }
 
 private: /// ---------- メンバ関数 ---------- ///
 
@@ -148,6 +154,8 @@ private: /// ---------- メンバ変数 ---------- ///
 	Animation animation;
 
 	std::unique_ptr<AnimationMesh> animationMesh_;
+	std::unique_ptr<Skeleton> skeleton_; // スケルトン
+	std::unique_ptr<SkinCluster> skinCluster_; // スキンクラスター
 
 	// バッファリソースの作成
 	TransformationAnimationMatrix* wvpData_ = nullptr;

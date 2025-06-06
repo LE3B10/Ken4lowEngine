@@ -44,6 +44,11 @@ void GamePlayScene::Initialize()
 
 	animationModel_ = std::make_unique<AnimationModel>();
 	animationModel_->Initialize("AnimatedCube.gltf");
+	animationModel_->SetTranslate({ 10.0f, 0.0f, 0.0f });
+
+	animationModel2_ = std::make_unique<AnimationModel>();
+	animationModel2_->Initialize("walk.gltf");
+	animationModel2_->SetSkinningEnabled(true);
 
 	// 衝突マネージャの生成
 	collisionManager_ = std::make_unique<CollisionManager>();
@@ -76,6 +81,8 @@ void GamePlayScene::Update()
 
 	// アニメーションモデルの更新
 	animationModel_->Update();
+
+	animationModel2_->Update();
 
 	// 衝突判定と応答
 	CheckAllCollisions();
@@ -115,6 +122,8 @@ void GamePlayScene::Draw3DObjects()
 
 	// アニメーションモデルの描画
 	animationModel_->Draw();
+
+	animationModel2_->Draw();
 
 #pragma endregion
 
