@@ -63,6 +63,9 @@ Quaternion Quaternion::MakeRotateAxisAngleQuaternion(const Vector3& axis, float 
 
 Vector3 Quaternion::RotateVector(const Vector3& vector, const Quaternion& quaternion)
 {
+	// クォータニオンを正規化することで、回転の精度を向上させる
+	Quaternion qNorm = Normalize(quaternion);  // ★ 正規化を追加
+
 	// ベクトルをクォータニオン形式に変換
 	Quaternion qVector = { vector.x, vector.y, vector.z, 0.0f };
 

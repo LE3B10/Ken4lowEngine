@@ -64,6 +64,8 @@ void AnimationModel::Initialize(const std::string& fileName)
 
 	// スキニング設定リソースの作成
 	CreateSkinningSettingResource();
+
+	animationTime_ = 0.0f; // アニメーションを止める
 }
 
 
@@ -74,6 +76,8 @@ void AnimationModel::Update()
 {
 	// FPSの取得 deltaTimeの計算
 	float deltaTime = 1.0f / dxCommon_->GetFPSCounter().GetFPS();
+	animationTime_ += deltaTime;
+	animationTime_ = std::fmod(animationTime_, animation.duration);
 
 	if (skinningSetting_->isSkinning)
 	{
@@ -89,9 +93,9 @@ void AnimationModel::Update()
 			if (it != nodeAnimations.end())
 			{
 				NodeAnimation& nodeAnim = (*it).second;
-				Vector3 translate = CalculateValue(nodeAnim.translate, deltaTime);
-				Quaternion rotate = CalculateValue(nodeAnim.rotate, deltaTime);
-				Vector3 scale = CalculateValue(nodeAnim.scale, deltaTime);
+				Vector3 translate = CalculateValue(nodeAnim.translate, animationTime_);
+				Quaternion rotate = CalculateValue(nodeAnim.rotate, animationTime_);
+				Vector3 scale = CalculateValue(nodeAnim.scale, animationTime_);
 
 				// 座標系調整（Z軸反転で伸びを防ぐ）
 				joint.transform.translate = translate;
@@ -106,10 +110,13 @@ void AnimationModel::Update()
 		skeleton_->UpdateSkeleton();
 
 		// 4. スキンクラスターの更新
-		///skinCluster_->UpdatePaletteMatrix(*skeleton_);
+		skinCluster_->UpdatePaletteMatrix(*skeleton_);
 	}
 
-	UpdateAnimation(deltaTime);
+	// スキンニング設定の更新
+	skinningSetting_->isSkinning = this->skinningSetting_->isSkinning;
+
+	UpdateAnimation();
 
 	// マテリアルの更新処理
 	material_.Update();
@@ -144,7 +151,7 @@ void AnimationModel::Draw()
 	commandList->SetGraphicsRootDescriptorTable(2, modelData.material.gpuHandle);
 	commandList->SetGraphicsRootConstantBufferView(3, cameraResource->GetGPUVirtualAddress());
 
-	commandList->SetGraphicsRootConstantBufferView(8, skinningSettingResource_->GetGPUVirtualAddress());
+	commandList->SetGraphicsRootConstantBufferView(8, skinningSettingResource_->GetGPUVirtualAddress()); // スキニング設定をセット
 
 	commandList->DrawIndexedInstanced(UINT(modelData.indices.size()), 1, 0, 0, 0);
 }
@@ -158,12 +165,9 @@ void AnimationModel::DrawImGui()
 /// -------------------------------------------------------------
 ///				　	アニメーションの更新処理
 /// -------------------------------------------------------------
-void AnimationModel::UpdateAnimation(float deltaTime)
+void AnimationModel::UpdateAnimation()
 {
-	animationTime_ += deltaTime;
-	animationTime_ = std::fmod(animationTime_, animation.duration);
-
-	if (skeleton_ && !skeleton_->GetJoints().empty())
+	if (skeleton_ && !skeleton_->GetJoints().empty() && skinningSetting_->isSkinning)
 	{
 		Matrix4x4 worldMatrix = Matrix4x4::MakeAffineMatrix(worldTransform.scale_, worldTransform.rotate_, worldTransform.translate_);
 		Matrix4x4 worldViewProjectionMatrix;

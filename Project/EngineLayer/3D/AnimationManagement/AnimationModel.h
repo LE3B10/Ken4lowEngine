@@ -92,7 +92,7 @@ public: /// ---------- セッタ ---------- ///
 private: /// ---------- メンバ関数 ---------- ///
 
 	// アニメーションを更新
-	void UpdateAnimation(float deltaTime);
+	void UpdateAnimation();
 
 	// Animationを解析する
 	Animation LoadAnimationFile(const std::string& directoryPath, const std::string& fileName);

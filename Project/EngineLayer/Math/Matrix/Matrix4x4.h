@@ -106,7 +106,6 @@ public:
 	// ビューポート変換行列
 	static Matrix4x4 MakeViewportMatrix(float left, float top, float width, float height, float minDepth, float maxDepth);
 
-
+	// 
 	static Matrix4x4 MakeRotateAxisAngleMatrix(const Vector3& axis, float angle);
-
 };
