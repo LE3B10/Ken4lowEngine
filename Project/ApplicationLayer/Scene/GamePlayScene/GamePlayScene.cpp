@@ -52,6 +52,7 @@ void GamePlayScene::Initialize()
 	animationModel_ = std::make_unique<AnimationModel>();
 	animationModel_->Initialize("AnimatedCube.gltf");
 	animationModel_->SetTranslate({ 10.0f, 0.0f, 0.0f });
+	animationModel_->SetSkinningEnabled(false);
 
 	animationModel2_ = std::make_unique<AnimationModel>();
 	animationModel2_->Initialize("walk.gltf");
@@ -123,7 +124,7 @@ void GamePlayScene::Draw3DObjects()
 	//objectBall_->Draw();
 
 	// レベルマネージャの描画
-	levelManager_->Draw();
+	//levelManager_->Draw();
 
 #pragma endregion
 
