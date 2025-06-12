@@ -1,39 +1,56 @@
-#include "AnimationModelManager.h"
+#include "AnimationPipelineBuilder.h"
+#include "DirectXCommon.h"
+#include "LightManager.h"
 #include <LogString.h>
-#include <DirectXCommon.h>
-#include <ResourceManager.h>
-#include "Camera.h"
-#include "Wireframe.h"
-#include "ShaderManager.h"
-#include "Material.h"
+#include <ShaderManager.h>
 
 
-/// -------------------------------------------------------------
-///				　シングルトンインスタンス
-/// -------------------------------------------------------------
-AnimationModelManager* AnimationModelManager::GetInstance()
+/// ---------------------------------------------------------------
+///				　	シングルトンインスタンス
+/// ---------------------------------------------------------------
+AnimationPipelineBuilder* AnimationPipelineBuilder::GetInstance()
 {
-	static AnimationModelManager instance;
+	static AnimationPipelineBuilder instance;
 	return &instance;
 }
 
 
-/// -------------------------------------------------------------
+/// ---------------------------------------------------------------
 ///					　		初期化処理
-/// -------------------------------------------------------------
-void AnimationModelManager::Initialize(DirectXCommon* dxCommon)
+/// //---------------------------------------------------------------
+void AnimationPipelineBuilder::Initialize(DirectXCommon* dxCommon)
 {
 	dxCommon_ = dxCommon;
 
+	// ルートシグネチャの生成
+	CreateRootSignature();
+
 	// パイプラインを生成
 	CreatePSO();
+
+	LightManager::GetInstance()->Initialize(dxCommon_); // ライトマネージャの初期化
 }
 
 
-/// -------------------------------------------------------------
-///				　	ルートシグネチャの生成
-/// -------------------------------------------------------------
-void AnimationModelManager::CreateRootSignature()
+/// ---------------------------------------------------------------
+///				　		共通描画処理設定
+/// //---------------------------------------------------------------
+void AnimationPipelineBuilder::SetRenderSetting()
+{
+	auto commandList = dxCommon_->GetCommandManager()->GetCommandList();
+	commandList->SetGraphicsRootSignature(rootSignature.Get());
+	commandList->SetPipelineState(graphicsPipelineState.Get());
+	commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+	// ライトマネージャの前処理
+	LightManager::GetInstance()->PreDraw(); // ライトデータの設定
+}
+
+
+/// ---------------------------------------------------------------
+///				　		ルートシグネチャの生成
+/// //---------------------------------------------------------------
+void AnimationPipelineBuilder::CreateRootSignature()
 {
 	// RootSignatureの設定
 	D3D12_ROOT_SIGNATURE_DESC descriptionRootSignature{};
@@ -67,7 +84,7 @@ void AnimationModelManager::CreateRootSignature()
 	srvDescriptorRange.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
 
 	// ルートシグネチャの生成
-	D3D12_ROOT_PARAMETER rootParameters[8] = {};
+	D3D12_ROOT_PARAMETER rootParameters[9] = {};
 
 	// マテリアル用のルートシグパラメータの設定
 	rootParameters[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;    // 定数バッファビュー
@@ -92,17 +109,17 @@ void AnimationModelManager::CreateRootSignature()
 
 	// 平行光源用のルートシグネチャの設定
 	rootParameters[4].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;	// 定数バッファビュー
-	rootParameters[4].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL; // バーテックスシェーダーで使用
+	rootParameters[4].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL; // ピクセルシェーダーで使用
 	rootParameters[4].Descriptor.ShaderRegister = 2; 					// レジスタ番号2
 
 	// ポイントライト用のルートシグネチャの設定
 	rootParameters[5].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;	// 定数バッファビュー
-	rootParameters[5].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL; // バーテックスシェーダーで使用
+	rootParameters[5].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL; // ピクセルシェーダーで使用
 	rootParameters[5].Descriptor.ShaderRegister = 3; 					// レジスタ番号3
 
 	// スポットライトのルートシグネチャの設定
 	rootParameters[6].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;	// 定数バッファビュー
-	rootParameters[6].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL; // バーテックスシェーダーで使用
+	rootParameters[6].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL; // ピクセルシェーダーで使用
 	rootParameters[6].Descriptor.ShaderRegister = 4; 					// レジスタ番号4
 
 	// SRV の設定（バーテックスシェーダーで使用）
@@ -110,6 +127,11 @@ void AnimationModelManager::CreateRootSignature()
 	rootParameters[7].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX; // VS で使う
 	rootParameters[7].DescriptorTable.pDescriptorRanges = &srvDescriptorRange;
 	rootParameters[7].DescriptorTable.NumDescriptorRanges = 1;
+
+	// isSkinningフラグ用（バーテックスシェーダーで使用）
+	rootParameters[8].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
+	rootParameters[8].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
+	rootParameters[8].Descriptor.ShaderRegister = 1; // b1 に対応
 
 	// ルートシグネチャの設定
 	descriptionRootSignature.pParameters = rootParameters;
@@ -132,15 +154,12 @@ void AnimationModelManager::CreateRootSignature()
 }
 
 
-/// -------------------------------------------------------------
-///				　パイプラインを生成する
-/// -------------------------------------------------------------
-void AnimationModelManager::CreatePSO()
+/// ---------------------------------------------------------------
+///				　		パイプラインの生成
+/// //---------------------------------------------------------------
+void AnimationPipelineBuilder::CreatePSO()
 {
 	HRESULT hr{};
-
-	// ルートシグネチャを生成する
-	CreateRootSignature();
 
 	// グラフィックスパイプラインステートの設定
 	std::array<D3D12_INPUT_ELEMENT_DESC, 5> inputElementDescs{};

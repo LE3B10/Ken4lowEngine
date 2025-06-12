@@ -4,6 +4,7 @@
 #include <Input.h>
 #include <SpriteManager.h>
 #include "Object3DCommon.h"
+#include <AnimationPipelineBuilder.h>
 #include "SkyBoxManager.h"
 #include <ParameterManager.h>
 #include <ParticleManager.h>
@@ -93,6 +94,10 @@ void GamePlayScene::Initialize()
 	particleEmitter3_ = std::make_unique<ParticleEmitter>(ParticleManager::GetInstance(), "TestParticle3");
 	particleEmitter3_->SetPosition({ 5.0f, 18.0f, 20.0f });
 	particleEmitter3_->SetEmissionRate(3.0f);
+
+	animationModel_ = std::make_unique<AnimationModel>();
+	animationModel_->Initialize("human.gltf");
+	animationModel_->SetSkinningEnabled(true);
 }
 
 
@@ -216,6 +221,8 @@ void GamePlayScene::Update()
 		break;
 	}
 
+	animationModel_->Update();
+
 	defaultEmitter_->Update();
 	particleEmitter_->Update();
 	particleEmitter2_->Update();
@@ -252,6 +259,15 @@ void GamePlayScene::Draw3DObjects()
 
 #pragma endregion
 
+
+#pragma region アニメーションモデルの描画
+
+	// アニメーションモデルの共通描画設定
+	AnimationPipelineBuilder::GetInstance()->SetRenderSetting();
+
+	animationModel_->Draw();
+
+#pragma endregion
 
 #ifdef _DEBUG
 	// 衝突判定を行うオブジェクトの描画

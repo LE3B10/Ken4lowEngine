@@ -44,28 +44,31 @@ void SkinCluster::Initialize(const ModelData& modelData, Skeleton& skeleton, uin
 	influenceBufferView_.SizeInBytes = UINT(sizeof(VertexInfluence) * modelData.vertices.size());
 	influenceBufferView_.StrideInBytes = sizeof(VertexInfluence);
 
-	// inverse bind pose
-	inverseBindPoseMatrices_.resize(joints.size());
-	std::generate(inverseBindPoseMatrices_.begin(), inverseBindPoseMatrices_.end(), Matrix4x4::MakeIdentity);
+	// --- inverseBindPose 配列をスケルトン数に合わせて用意 -----------
+	inverseBindPoseMatrices_.resize(joints.size(), Matrix4x4::MakeIdentity());
 
+	// --- Influence 書き込み & 範囲チェック --------------------------
 	const auto& jointMap = skeleton.GetJointMap();
-	for (const auto& [jointName, jointWeightData] : modelData.skinClusterData)
+
+	for (const auto& [jName, jWeightData] : modelData.skinClusterData)
 	{
-		auto it = jointMap.find(jointName);
-		if (it == jointMap.end()) continue;
+		auto it = jointMap.find(jName);
+		if (it == jointMap.end()) continue;             // ★ スケルトンに無いボーンは無視
 
-		uint32_t jointIndex = it->second;
-		inverseBindPoseMatrices_[jointIndex] = jointWeightData.inverseBindPoseMatrix;
+		uint32_t jIdx = it->second;
+		inverseBindPoseMatrices_[jIdx] = jWeightData.inverseBindPoseMatrix;
 
-		for (const auto& vw : jointWeightData.vertexWeights)
+		for (const auto& vw : jWeightData.vertexWeights)
 		{
-			auto& influence = mappedInfluenceData_[vw.vertexIndex];
+			if (vw.vertexIndex >= mappedInfluenceData_.size()) continue; // ★ 範囲外防御
+
+			auto& inf = mappedInfluenceData_[vw.vertexIndex];
 			for (uint32_t i = 0; i < kNumMaxInfluence; ++i)
 			{
-				if (influence.weights[i] == 0.0f)
+				if (inf.weights[i] == 0.0f)
 				{
-					influence.weights[i] = vw.weight;
-					influence.jointIndices[i] = jointIndex;
+					inf.weights[i] = vw.weight;
+					inf.jointIndices[i] = jIdx;
 					break;
 				}
 			}

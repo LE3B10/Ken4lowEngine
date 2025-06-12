@@ -47,6 +47,7 @@ void Skeleton::UpdateSkeleton()
 				joint.skeletonSpaceMatrix = joint.localMatrix;
 
 			}
+
 			// 子どもの行列を更新
 			for (int32_t childIndex : joint.children)
 			{
@@ -55,33 +56,6 @@ void Skeleton::UpdateSkeleton()
 		};
 
 	updateJoint(rootIndex_);
-}
-
-void Skeleton::Draw()
-{
-	for (const auto& joint : joints_) {
-		// 位置取得
-		Vector3 pos = {
-			-joint.skeletonSpaceMatrix.m[3][0],
-			joint.skeletonSpaceMatrix.m[3][1],
-			joint.skeletonSpaceMatrix.m[3][2],
-		};
-
-		// 球を描画
-		//Wireframe::GetInstance()->DrawSphere(pos, 0.05f, { 1.0f, 0.0f, 0.0f, 1.0f });
-
-		// 親がいるなら線を描画
-		if (joint.parent.has_value()) {
-			const auto& parentJoint = joints_[joint.parent.value()];
-			Vector3 parentPos = {
-				-parentJoint.skeletonSpaceMatrix.m[3][0],
-				parentJoint.skeletonSpaceMatrix.m[3][1],
-				parentJoint.skeletonSpaceMatrix.m[3][2],
-			};
-
-			Wireframe::GetInstance()->DrawLine(pos, parentPos, { 0.0f, 1.0f, 0.0f, 1.0f });
-		}
-	}
 }
 
 uint32_t Skeleton::CreateJointRecursive(const Node& node, const std::optional<int32_t>& parent)
