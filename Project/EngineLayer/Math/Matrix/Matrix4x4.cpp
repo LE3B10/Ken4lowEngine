@@ -277,7 +277,7 @@ Matrix4x4 Matrix4x4::MakeAffineMatrix(const Vector3& scale, const Vector3& rotat
 
 Matrix4x4 Matrix4x4::MakeAffineMatrix(const Vector3& scale, const Quaternion& rotate, const Vector3& translate)
 {
-	return Multiply(Multiply(MakeTranslateMatrix(translate), Quaternion::MakeRotateMatrix(rotate)), MakeScaleMatrix(scale));
+	return Multiply(Multiply(MakeScaleMatrix(scale), Quaternion::MakeRotateMatrix(rotate)), MakeTranslateMatrix(translate));
 }
 
 Matrix4x4 Matrix4x4::MakePerspectiveFovMatrix(float fovY, float aspectRatio, float nearClip, float farClip)

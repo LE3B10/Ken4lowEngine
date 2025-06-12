@@ -125,6 +125,10 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClCompile Include="ApplicationLayer\Enemy\Grunt\EnemyIdleState.cpp" />
     <ClCompile Include="ApplicationLayer\Enemy\EnemyManager.cpp" />
     <ClCompile Include="ApplicationLayer\Enemy\Boss\BossIdleState.cpp" />
+    <ClCompile Include="EngineLayer\Managers\AnimationManager\AnimationModel.cpp" />
+    <ClCompile Include="EngineLayer\Managers\AnimationManager\AnimationPipelineBuilder.cpp" />
+    <ClCompile Include="EngineLayer\Managers\AnimationManager\Skeleton.cpp" />
+    <ClCompile Include="EngineLayer\Managers\AnimationManager\SkinCluster.cpp" />
     <ClCompile Include="EngineLayer\Mesh\AnimationMesh.cpp" />
     <ClCompile Include="EngineLayer\Audio\AudioManager.cpp" />
     <ClCompile Include="EngineLayer\Audio\MP3Loader.cpp" />
@@ -136,8 +140,6 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClCompile Include="EngineLayer\Managers\ModelManager\AssimpLoader.cpp" />
     <ClCompile Include="EngineLayer\Material\Material.cpp" />
     <ClCompile Include="EngineLayer\Managers\DSVManager\DSVManager.cpp" />
-    <ClCompile Include="EngineLayer\Managers\AnimationManager\AnimationModel.cpp" />
-    <ClCompile Include="EngineLayer\Managers\AnimationManager\AnimationModelManager.cpp" />
     <ClCompile Include="EngineLayer\Math\Quaternion\Quaternion.cpp" />
     <ClCompile Include="EngineLayer\CameraManagement\DebugCamera\DebugCamera.cpp" />
     <ClCompile Include="ApplicationLayer\Colliders\Collider.cpp" />
@@ -200,11 +202,6 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClCompile Include="EngineLayer\Mesh\Mesh.cpp" />
     <ClCompile Include="EngineLayer\WorldTransform\ParticleTransform.cpp" />
     <ClCompile Include="EngineLayer\Mesh\ParticleMesh.cpp" />
-    <ClCompile Include="EngineLayer\Managers\AnimationManager\IAnimationStrategy.cpp" />
-    <ClCompile Include="EngineLayer\Managers\AnimationManager\NoSkeletonAnimation.cpp" />
-    <ClCompile Include="EngineLayer\Managers\AnimationManager\SkeletonAnimation.cpp" />
-    <ClCompile Include="EngineLayer\Managers\AnimationManager\Skeleton.cpp" />
-    <ClCompile Include="EngineLayer\Managers\AnimationManager\SkinCluster.cpp" />
     <ClCompile Include="EngineLayer\PostEffectManagement\GaussianFilterEffect.cpp" />
     <ClCompile Include="EngineLayer\PostEffectManagement\GrayScaleEffect.cpp" />
     <ClCompile Include="EngineLayer\PostEffectManagement\IPostEffect.cpp" />
@@ -384,6 +381,10 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="ApplicationLayer\Enemy\Grunt\EnemyIdleState.h" />
     <ClInclude Include="ApplicationLayer\Enemy\EnemyManager.h" />
     <ClInclude Include="ApplicationLayer\Enemy\Boss\BossIdleState.h" />
+    <ClInclude Include="EngineLayer\Managers\AnimationManager\AnimationModel.h" />
+    <ClInclude Include="EngineLayer\Managers\AnimationManager\AnimationPipelineBuilder.h" />
+    <ClInclude Include="EngineLayer\Managers\AnimationManager\Skeleton.h" />
+    <ClInclude Include="EngineLayer\Managers\AnimationManager\SkinCluster.h" />
     <ClInclude Include="EngineLayer\Math\Line.h" />
     <ClInclude Include="EngineLayer\Math\Plane.h" />
     <ClInclude Include="EngineLayer\Math\Ray.h" />
@@ -401,8 +402,6 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="EngineLayer\PostEffectManagement\DissolveEffect.h" />
     <ClInclude Include="EngineLayer\Managers\ModelManager\AssimpLoader.h" />
     <ClInclude Include="EngineLayer\Managers\DSVManager\DSVManager.h" />
-    <ClInclude Include="EngineLayer\Managers\AnimationManager\AnimationModel.h" />
-    <ClInclude Include="EngineLayer\Managers\AnimationManager\AnimationModelManager.h" />
     <ClInclude Include="EngineLayer\Math\Quaternion\Quaternion.h" />
     <ClInclude Include="EngineLayer\CameraManagement\DebugCamera\DebugCamera.h" />
     <ClInclude Include="ApplicationLayer\Colliders\Collider.h" />
@@ -487,11 +486,6 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="EngineLayer\WorldTransform\ParticleTransform.h" />
     <ClInclude Include="ApplicationLayer\EffectLayer\Particle.h" />
     <ClInclude Include="EngineLayer\Mesh\ParticleMesh.h" />
-    <ClInclude Include="EngineLayer\Managers\AnimationManager\IAnimationStrategy.h" />
-    <ClInclude Include="EngineLayer\Managers\AnimationManager\NoSkeletonAnimation.h" />
-    <ClInclude Include="EngineLayer\Managers\AnimationManager\SkeletonAnimation.h" />
-    <ClInclude Include="EngineLayer\Managers\AnimationManager\Skeleton.h" />
-    <ClInclude Include="EngineLayer\Managers\AnimationManager\SkinCluster.h" />
     <ClInclude Include="EngineLayer\PostEffectManagement\GaussianFilterEffect.h" />
     <ClInclude Include="EngineLayer\PostEffectManagement\GrayScaleEffect.h" />
     <ClInclude Include="EngineLayer\PostEffectManagement\IPostEffect.h" />

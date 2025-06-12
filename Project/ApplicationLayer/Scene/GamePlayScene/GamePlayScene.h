@@ -17,6 +17,8 @@
 #include "ResultManager.h"
 #include "ItemManager.h"
 
+#include "AnimationModel.h"
+
 
 /// ---------- 前方宣言 ---------- ///
 class DirectXCommon;
@@ -83,6 +85,9 @@ private: /// ---------- メンバ変数 ---------- ///
 	std::unique_ptr<ItemManager> itemManager_ = nullptr;
 
 	std::unique_ptr<CollisionManager> collisionManager_; // 衝突マネージャー
+
+	// アニメーションモデル
+	std::unique_ptr<AnimationModel> animationModel_ = nullptr;
 
 	// パーティクル
 	std::unique_ptr< ParticleEmitter> defaultEmitter_ = nullptr;
