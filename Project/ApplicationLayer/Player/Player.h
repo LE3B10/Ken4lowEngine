@@ -1,9 +1,10 @@
 #pragma once
-#include <BaseCharacter.h>
 #include <PlayerController.h>
 #include <Bullet.h>
 #include "Weapon.h" // 追加
 #include <NumberSpriteDrawer.h>
+#include <Collider.h>
+#include <AnimationModel.h>
 
 /// ---------- 前方宣言 ---------- ///
 class FpsCamera;
@@ -12,7 +13,7 @@ class FpsCamera;
 //// -------------------------------------------------------------
 ///					　プレイヤークラス
 /// -------------------------------------------------------------
-class Player : public BaseCharacter
+class Player : public Collider
 {
 public: /// ---------- メンバ関数 ---------- ///
 
@@ -37,7 +38,7 @@ public: /// ---------- メンバ関数 ---------- ///
 private: /// ---------- メンバ関数 ---------- ///
 
 	// プレイヤー専用パーツの初期化
-	void InitializeParts() override;
+	void InitializeParts();
 
 	// 移動処理
 	void Move();
@@ -51,13 +52,13 @@ public: /// ---------- ゲッタ ---------- ///
 	std::vector<const Bullet*> GetAllBullets() const;
 
 	// プレイヤーの向きを取得
-	float GetYaw() const { return body_.worldTransform_.rotate_.y; }
+	float GetYaw() const { return animationModel_->GetRotate().y; }
 
 	// 弾丸を取得
 	const std::vector<std::unique_ptr<Bullet>>& GetBullets() const { return weapons_[currentWeaponIndex_]->GetBullets(); }
 
 	// ワールド変換の取得
-	const WorldTransform* GetWorldTransform() { return &body_.worldTransform_; }
+	const WorldTransform* GetWorldTransform() { return &animationModel_->GetWorldTransform(); }
 
 	// 弾薬の取得
 	int GetAmmoInClip() const { return weapons_[currentWeaponIndex_]->GetAmmoInClip(); }
@@ -93,8 +94,6 @@ private: /// ---------- メンバ関数 ---------- ///
 	// 弾丸発射処理位置
 	void FireWeapon();
 
-	void PlaySE(const std::string& filePath, float volume, float pitch, bool loop);
-
 private: /// ---------- メンバ変数 ---------- ///
 
 	Input* input_ = nullptr; // 入力クラス
@@ -107,6 +106,7 @@ private: /// ---------- メンバ変数 ---------- ///
 	std::vector<std::unique_ptr<Bullet>> bullets_; // 弾丸クラス
 
 	std::unique_ptr<NumberSpriteDrawer> numberSpriteDrawer_; // 数字スプライト描画クラス
+	std::unique_ptr<AnimationModel> animationModel_;
 
 private: /// ---------- ジャンプ機能 ---------- ///
 

@@ -19,7 +19,7 @@ void EnemyChaseState::Enter(Enemy* enemy)
 /// -------------------------------------------------------------
 void EnemyChaseState::Update(Enemy* enemy)
 {
-	Vector3 toPlayer = enemy->GetTargetPlayer()->GetWorldPosition() - enemy->GetWorldPosition();
+	Vector3 toPlayer = enemy->GetTargetPlayer()->GetWorldTransform()->translate_ - enemy->GetWorldPosition();
 	float distance = Vector3::Length(toPlayer);
 
 	if (distance < 100.0f)

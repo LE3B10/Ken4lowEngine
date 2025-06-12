@@ -7,6 +7,7 @@
 #include "WeaponType.h"
 #include "Matrix4x4.h"
 #include <AudioManager.h>
+#include <AnimationPipelineBuilder.h>
 
 #include <imgui.h>
 
@@ -16,14 +17,15 @@
 /// -------------------------------------------------------------
 void Player::Initialize()
 {
-	// 基底クラスの初期化
-	BaseCharacter::Initialize();
-
 	// プレイヤーのコライダーを初期化
 	Collider::SetTypeID(static_cast<uint32_t>(CollisionTypeIdDef::kPlayer));
 	Collider::SetOBBHalfSize({ 2.5f, 6.0f, 2.5f }); // OBBの半径を設定
 
 	input_ = Input::GetInstance();
+
+	animationModel_ = std::make_unique<AnimationModel>();
+	animationModel_->Initialize("human.gltf");
+	animationModel_->SetSkinningEnabled(true);
 
 	// 体の部位の初期化
 	InitializeParts();
@@ -43,7 +45,6 @@ void Player::Initialize()
 	shotgun->SetWeaponType(WeaponType::Shotgun);
 	shotgun->Initialize();
 	weapons_.push_back(std::move(shotgun));
-
 
 	// HUDの初期化
 	numberSpriteDrawer_ = std::make_unique<NumberSpriteDrawer>();
@@ -103,11 +104,13 @@ void Player::Update()
 		}
 	}
 
-	// コライダーの位置と回転をプレイヤーに追従させる
-	Collider::SetCenterPosition(body_.worldTransform_.translate_ + Vector3(0.0f, 8.2f, 0.0f));
+	if (animationModel_)
+	{
+		animationModel_->Update();
+	}
 
-	// 移動が完了した後に親子更新・描画行列を更新する
-	BaseCharacter::Update();
+	// コライダーの位置と回転をプレイヤーに追従させる
+	Collider::SetCenterPosition(animationModel_->GetTranslate() + Vector3(0.0f, 8.2f, 0.0f));
 }
 
 
@@ -116,12 +119,15 @@ void Player::Update()
 /// -------------------------------------------------------------
 void Player::Draw()
 {
-	// 基底クラスの描画
-	//BaseCharacter::Draw();
-
 	 // 現在の武器を描画
 	for (const auto& weapon : weapons_) {
 		weapon->Draw();  // 全ての武器の弾丸を描画する
+	}
+
+	if (animationModel_)
+	{
+		AnimationPipelineBuilder::GetInstance()->SetRenderSetting();
+		animationModel_->Draw();
 	}
 }
 
@@ -170,9 +176,7 @@ void Player::TakeDamage(float damage)
 /// -------------------------------------------------------------
 void Player::InitializeParts()
 {
-	// 親オブジェクトの生成と初期化
-	body_.object = std::make_unique<Object3D>();
-	body_.object->Initialize("body.gltf");
+
 }
 
 
@@ -220,26 +224,38 @@ void Player::Move()
 	}
 
 	// 位置更新
-	body_.worldTransform_.translate_ += moveInput * currentSpeed;
+	Vector3 modelPosition = animationModel_->GetTranslate();
+	modelPosition += moveInput * currentSpeed;
+	animationModel_->SetTranslate(modelPosition);
 
-	if (camera_) {
-		body_.worldTransform_.rotate_.y = camera_->GetRotate().y;
+	if (camera_)
+	{
+		float yaw = animationModel_->GetRotate().y;
+		yaw = camera_->GetRotate().y;
+		animationModel_->SetRotate({ 0.0f,yaw,0.0f });
 	}
 
-	// --- ジャンプ・重力・接地（現状維持） ---
+	// --- ジャンプ・重力・接地（修正版） ---
+	Vector3 position = animationModel_->GetTranslate();
+
+	// ジャンプ開始
 	if (isGrounded_ && controller_->IsJumpTriggered()) {
 		velocity_.y = jumpPower_;
 		isGrounded_ = false;
 	}
 
+	// 重力を加える
 	velocity_.y += gravity_ * deltaTime;
-	body_.worldTransform_.translate_.y += velocity_.y;
+	position.y += velocity_.y; // Y座標に反映
 
-	if (body_.worldTransform_.translate_.y <= 0.0f) {
-		body_.worldTransform_.translate_.y = 0.0f;
+	// 地面との接地処理（仮にY=0が地面）
+	if (position.y <= 0.0f) {
+		position.y = 0.0f;
 		velocity_.y = 0.0f;
 		isGrounded_ = true;
 	}
+
+	animationModel_->SetTranslate(position); // 最終位置反映
 }
 
 
@@ -300,8 +316,8 @@ void Player::FireWeapon()
 		// 通常時は右手（モデル上の銃口）から発射
 		Vector3 localMuzzleOffset = { 5.0f, 20.0f, 5.0f };
 		Vector3 scale = { 1.0f, 1.0f, 1.0f };
-		Vector3 rotation = { 0.0f, body_.worldTransform_.rotate_.y, 0.0f };
-		Vector3 translation = body_.worldTransform_.translate_;
+		Vector3 rotation = { 0.0f,animationModel_->GetRotate().y, 0.0f };
+		Vector3 translation = animationModel_->GetTranslate();
 		Matrix4x4 modelMatrix = Matrix4x4::MakeAffineMatrix(scale, rotation, translation);
 		worldMuzzlePos = Vector3::Transform(localMuzzleOffset, modelMatrix);
 		Vector3 cameraOrigin = camera_->GetTranslate();

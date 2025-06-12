@@ -19,7 +19,7 @@ void EnemyAttackState::Enter(Enemy* enemy)
 /// -------------------------------------------------------------
 void EnemyAttackState::Update(Enemy* enemy)
 {
-	Vector3 toPlayer = enemy->GetTargetPlayer()->GetWorldPosition() - enemy->GetWorldPosition();
+	Vector3 toPlayer = enemy->GetTargetPlayer()->GetWorldTransform()->translate_ - enemy->GetWorldPosition();
 	float distance = Vector3::Length(toPlayer);
 
 	// 攻撃距離外に出たらIdleに戻る

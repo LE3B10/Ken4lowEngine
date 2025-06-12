@@ -150,7 +150,7 @@ void Enemy::RequestShoot()
 	auto bullet = std::make_unique<EnemyBullet>();
 	bullet->Initialize();
 	Vector3 muzzlePos = body_.worldTransform_.translate_ + Vector3(0.0f, 13.0f, 0.0f);
-	Vector3 direction = Vector3::Normalize(player_->GetWorldPosition() - body_.worldTransform_.translate_);
+	Vector3 direction = Vector3::Normalize(player_->GetWorldTransform()->translate_ - body_.worldTransform_.translate_);
 	bullet->SetPosition(muzzlePos);
 	bullet->SetVelocity(direction * 0.5f);
 
