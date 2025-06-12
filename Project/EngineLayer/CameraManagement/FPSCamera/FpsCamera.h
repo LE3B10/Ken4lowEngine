@@ -16,6 +16,9 @@ public: // ---------- 関数 ---------- //
 	void Initialize(Player* player);
 	void Update(bool ignoreInput = false);
 
+	// デバッグ用カメラの位置をワイヤーフレームで描画
+	void DrawDebugCamera();
+
 public: // ---------- ゲッタ ---------- //
 
 	// カメラ取得
@@ -30,8 +33,11 @@ public: // ---------- セッタ ---------- //
 	// Aiming状態を設定
 	void SetAiming(bool isAiming) { isAiming_ = isAiming; }
 
-
+	// ADS状態の感度補正係数を設定
 	void SetAdsSensitivityFactor(float factor) { adsSensitivityFactor_ = factor; }
+
+	// 外部から時間を貰う
+	void SetDeltaTime(float deltaTime) { deltaTime_ = deltaTime; }
 
 private: // ---------- メンバ ---------- //
 
@@ -52,10 +58,19 @@ private: // ---------- メンバ ---------- //
 	const float maxPitch_ = +1.5f; // 上限
 
 	// カメラ高さオフセット（頭位置）
-	const float eyeHeight_ = 20.0f;
+	const float eyeHeight_ = 1.74f;
 
 	// Aiming状態フラグ
 	bool isAiming_ = false;
 	// ADS状態の感度補正係数（例: 0.5で半分の感度）
 	float adsSensitivityFactor_ = 0.5f;
+
+	// ボビング処理用
+	float currentBobbingSpeed_;
+	float currentBobbingAmplitude_;
+	float bobbingTimer_ = 0.0f;
+	float bobbingAmplitude_ = 0.25f;   // 振れ幅
+	float bobbingSpeed_ = 10.0f;       // サイクル速度
+	float deltaTime_ = 1.0f / 60.0f;    // 仮：外部から渡すべき
+
 };

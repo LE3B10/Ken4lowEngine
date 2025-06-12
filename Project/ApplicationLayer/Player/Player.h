@@ -32,13 +32,10 @@ public: /// ---------- メンバ関数 ---------- ///
 	// ダメージを受ける
 	void TakeDamage(float damage);
 
-	// 死亡フラグを取得
-	bool IsDead() const { return isDead_; }
-
 private: /// ---------- メンバ関数 ---------- ///
 
-	// プレイヤー専用パーツの初期化
-	void InitializeParts();
+	// 武器の初期化処理
+	void InitializeWeapons();
 
 	// 移動処理
 	void Move();
@@ -46,7 +43,19 @@ private: /// ---------- メンバ関数 ---------- ///
 	// 衝突判定と応答
 	void OnCollision(Collider* other) override;
 
+	// 弾丸発射処理位置
+	void FireWeapon();
+
 public: /// ---------- ゲッタ ---------- ///
+
+	// 死亡フラグを取得
+	bool IsDead() const { return isDead_; }
+
+	// 時間を取得
+	float GetDeltaTime() const { return deltaTime; }
+
+	// ダッシュ状態を取得
+	bool IsDashing() const { return isDashing_; }
 
 	// 全ての弾丸を取得
 	std::vector<const Bullet*> GetAllBullets() const;
@@ -72,6 +81,15 @@ public: /// ---------- ゲッタ ---------- ///
 	// 最大HPの取得
 	float GetMaxHP() const { return maxHP_; }
 
+	// 地面にいるかどうかを取得
+	bool IsGrounded() const { return isGrounded_; }
+
+	// 移動ベクトル取得
+	Vector3 GetMoveInput() const { return controller_->GetMoveInput(); }
+
+	// デバッグ用のフラグを取得
+	bool IsDebugCamera() const { return controller_->IsDebugCamera(); }
+
 public: /// ---------- セッタ ---------- ///
 
 	// 追従カメラを設定
@@ -89,10 +107,8 @@ public: /// ---------- セッタ ---------- ///
 	// Aimng状態を取得
 	bool IsAiming() const { return isAiming_; }
 
-private: /// ---------- メンバ関数 ---------- ///
-
-	// 弾丸発射処理位置
-	void FireWeapon();
+	// デバッグカメラフラグを設定
+	void SetDebugCamera(bool isDebugCamera) { controller_->SetDebugCamera(isDebugCamera); }
 
 private: /// ---------- メンバ変数 ---------- ///
 
@@ -130,5 +146,7 @@ private: /// ---------- プレイヤーの状態 ---------- ///
 
 	bool isAiming_ = false; // エイミング状態
 	float adsSpeedFactor_ = 0.5f;  // ADS時の移動速度倍率（例：50%）
+
+	bool isDebugCamera_ = false; // デバッグカメラフラグ
 };
 

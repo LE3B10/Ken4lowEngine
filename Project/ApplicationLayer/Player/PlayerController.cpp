@@ -16,6 +16,8 @@ void PlayerController::Initialize()
 /// -------------------------------------------------------------
 void PlayerController::Update()
 {
+	if (isDebugCamera_) return; // デバッグカメラ中は入力を無視
+
 	move_ = { 0.0f, 0.0f, 0.0f };
 	jump_ = false;
 

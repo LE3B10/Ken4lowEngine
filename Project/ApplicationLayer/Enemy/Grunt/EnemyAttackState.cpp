@@ -3,6 +3,7 @@
 #include "Player.h"
 #include "EnemyIdleState.h"
 #include <EnemyChaseState.h>
+#include "LinearInterpolation.h"
 
 
 /// -------------------------------------------------------------
@@ -37,7 +38,7 @@ void EnemyAttackState::Update(Enemy* enemy)
 	// プレイヤーの方向へ回転だけ追従する
 	float targetYaw = std::atan2(-toPlayer.x, toPlayer.z);
 	float currentYaw = enemy->GetRotate().y;
-	float newYaw = Vector3::LerpAngle(currentYaw, targetYaw, 0.2f); // ← 追従の滑らかさ
+	float newYaw = LerpAngle(currentYaw, targetYaw, 0.2f); // ← 追従の滑らかさ
 
 	enemy->SetRotate({ 0.0f, newYaw, 0.0f });
 

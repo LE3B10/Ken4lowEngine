@@ -75,7 +75,7 @@ void AnimationModel::Initialize(const std::string& fileName)
 void AnimationModel::Update()
 {
 	// FPSの取得 deltaTimeの計算
-	float deltaTime = 1.0f / dxCommon_->GetFPSCounter().GetFPS();
+	deltaTime = 1.0f / dxCommon_->GetFPSCounter().GetFPS();
 	animationTime_ += deltaTime;
 	animationTime_ = std::fmod(animationTime_, animation.duration);
 

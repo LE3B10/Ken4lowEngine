@@ -14,34 +14,6 @@ class Vector3
 public:
 	float x, y, z;
 
-	// 任意の共通ヘッダ（例：MathUtil.h）に置くと便利
-	static inline float Lerp(float a, float b, float t) { return a + (b - a) * t; }
-
-	static inline float LerpAngle(float a, float b, float t)
-	{
-		a = NormalizeAngle(a);
-		b = NormalizeAngle(b);
-
-		float diff = b - a;
-
-		// 最短方向へ補間（例: -179° → +179°）
-		if (diff > std::numbers::pi_v<float>)
-			diff -= 2.0f * std::numbers::pi_v<float>;
-		else if (diff < -std::numbers::pi_v<float>)
-			diff += 2.0f * std::numbers::pi_v<float>;
-
-		return a + diff * t;
-	}
-
-	static inline float NormalizeAngle(float angle)
-	{
-		// -π 〜 +π に収める
-		angle = std::fmod(angle + std::numbers::pi_v<float>, 2.0f * std::numbers::pi_v<float>);
-		if (angle < 0) angle += 2.0f * std::numbers::pi_v<float>;
-		return angle - std::numbers::pi_v<float>;
-	}
-
-
 	Vector3() : x(0), y(0), z(0) {};
 	Vector3(float x, float y, float z) : x(x), y(y), z(z) {};
 

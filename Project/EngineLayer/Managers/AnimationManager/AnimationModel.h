@@ -74,6 +74,8 @@ public: /// ---------- ゲッタ ---------- ///
 	// メッシュを取得
 	AnimationMesh* GetAnimationMesh() { return animationMesh_.get(); }
 
+	float GetDeltaTime() const { return deltaTime; }
+
 public: /// ---------- セッタ ---------- ///
 
 	// 座標を設定
@@ -173,5 +175,7 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	// アニメーションタイム
 	float animationTime_ = 0.0f;
+
+	float deltaTime = 0.0f;
 };
 

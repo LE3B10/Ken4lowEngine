@@ -3,6 +3,7 @@
 #include "Player.h"
 #include "EnemyAttackState.h"
 #include <EnemyIdleState.h>
+#include "LinearInterpolation.h"
 
 
 /// -------------------------------------------------------------
@@ -39,7 +40,7 @@ void EnemyChaseState::Update(Enemy* enemy)
 	enemy->SetTranslate(enemy->GetWorldPosition() + direction * 0.25f);
 
 	float yaw = std::atan2(-direction.x, direction.z);
-	enemy->SetRotate({ 0.0f, Vector3::LerpAngle(enemy->GetRotate().y, yaw, 0.1f), 0.0f });
+	enemy->SetRotate({ 0.0f, LerpAngle(enemy->GetRotate().y, yaw, 0.1f), 0.0f });
 }
 
 
