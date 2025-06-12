@@ -49,6 +49,7 @@ void GamePlayScene::Initialize()
 	// 追従カメラの生成と初期化
 	fpsCamera_ = std::make_unique<FpsCamera>();
 	fpsCamera_->Initialize(player_.get());
+	fpsCamera_->SetDeltaTime(player_->GetDeltaTime());
 
 	// プレイヤーにカメラを設定
 	player_->SetCamera(fpsCamera_->GetCamera());
@@ -72,7 +73,6 @@ void GamePlayScene::Initialize()
 	// 初期化内に追加（プレイヤー近くに1個スポーン）
 	itemManager_ = std::make_unique<ItemManager>();
 	itemManager_->Initialize();
-	//itemManager_->Spawn(ItemType::HealSmall, player_->GetWorldTransform()->translate_ + Vector3{ 0.0f, 0.0f, 30.0f });
 
 	enemyManager_->SetItemManager(itemManager_.get());
 
@@ -105,10 +105,13 @@ void GamePlayScene::Update()
 #ifdef _DEBUG
 	if (input_->TriggerKey(DIK_F12))
 	{
+		if (isPaused_) return; // ポーズ中はデバッグカメラ切り替えを無効化
+
 		Object3DCommon::GetInstance()->SetDebugCamera(!Object3DCommon::GetInstance()->GetDebugCamera());
 		Wireframe::GetInstance()->SetDebugCamera(!Wireframe::GetInstance()->GetDebugCamera());
 		ParticleManager::GetInstance()->SetDebugCamera(!ParticleManager::GetInstance()->GetDebugCamera());
 		//skyBox_->SetDebugCamera(!skyBox_->GetDebugCamera());
+		player_->SetDebugCamera(!player_->IsDebugCamera());
 		isDebugCamera_ = !isDebugCamera_;
 		Input::GetInstance()->SetLockCursor(isDebugCamera_);
 		ShowCursor(!isDebugCamera_);// 表示・非表示も連動（オプション）
@@ -118,14 +121,18 @@ void GamePlayScene::Update()
 	// --- ポーズトグル（ESCキーでON/OFF） ---
 	if (input_->TriggerKey(DIK_ESCAPE))
 	{
+		if (isDebugCamera_) return; // デバッグカメラ中はポーズ無効
+
 		if (gameState_ == GameState::Playing)
 		{
+			isPaused_ = true; // ポーズ状態にする
 			gameState_ = GameState::Paused;
 			Input::GetInstance()->SetLockCursor(false);
 			ShowCursor(true);
 		}
 		else if (gameState_ == GameState::Paused)
 		{
+			isPaused_ = false; // ポーズ解除
 			gameState_ = GameState::Playing;
 			Input::GetInstance()->SetLockCursor(true);
 			ShowCursor(false);
@@ -260,9 +267,13 @@ void GamePlayScene::Draw3DObjects()
 
 #pragma endregion
 
+
 #ifdef _DEBUG
 	// 衝突判定を行うオブジェクトの描画
 	collisionManager_->Draw();
+
+	// FPSカメラの描画
+	fpsCamera_->DrawDebugCamera();
 
 	// ワイヤーフレームの描画
 	Wireframe::GetInstance()->DrawGrid(1000.0f, 100.0f, { 0.25f, 0.25f, 0.25f,1.0f });
@@ -294,9 +305,7 @@ void GamePlayScene::Draw2DSprites()
 	// HUDマネージャーの描画
 	hudManager_->Draw();
 
-	if (gameState_ == GameState::Result) {
-		resultManager_->Draw();
-	}
+	if (gameState_ == GameState::Result) resultManager_->Draw();
 
 #pragma endregion
 }
@@ -344,10 +353,7 @@ void GamePlayScene::CheckAllCollisions()
 	// プレイヤーの弾の登録
 	for (const auto& bullet : player_->GetBullets())
 	{
-		if (!bullet->IsDead())
-		{
-			collisionManager_->AddCollider(bullet.get());
-		}
+		if (!bullet->IsDead()) collisionManager_->AddCollider(bullet.get());
 	}
 
 	// エネミーのコライダーを登録

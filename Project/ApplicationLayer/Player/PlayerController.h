@@ -25,10 +25,17 @@ public: /// ---------- メンバ関数 ---------- ///
 	// ジャンプ入力を取得
 	bool IsJumpTriggered() const { return jump_; }
 
+	// デバッグカメラフラグを取得
+	bool IsDebugCamera() const { return isDebugCamera_; }
+
+	// デバッグカメラフラグを設定
+	void SetDebugCamera(bool isDebugCamera) { isDebugCamera_ = isDebugCamera; }
+
 private: /// ---------- メンバ変数 ---------- ///
 
 	Input* input_ = nullptr;
 	Vector3 move_{};
 	bool jump_ = false;
+	bool isDebugCamera_ = false; // デバッグカメラフラグ
 };
 

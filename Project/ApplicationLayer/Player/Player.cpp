@@ -23,28 +23,17 @@ void Player::Initialize()
 
 	input_ = Input::GetInstance();
 
+	// アニメーションモデルの初期化
 	animationModel_ = std::make_unique<AnimationModel>();
 	animationModel_->Initialize("human.gltf");
 	animationModel_->SetSkinningEnabled(true);
 
-	// 体の部位の初期化
-	InitializeParts();
+	// 武器の初期化
+	InitializeWeapons();
 
 	// プレイヤーコントローラーの生成と初期化
 	controller_ = std::make_unique<PlayerController>();
 	controller_->Initialize();
-
-	// ライフルの初期化
-	auto rifle = std::make_unique<Weapon>();
-	rifle->SetWeaponType(WeaponType::Rifle);
-	rifle->Initialize();
-	weapons_.push_back(std::move(rifle));
-
-	// ショットガンの初期化
-	auto shotgun = std::make_unique<Weapon>();
-	shotgun->SetWeaponType(WeaponType::Shotgun);
-	shotgun->Initialize();
-	weapons_.push_back(std::move(shotgun));
 
 	// HUDの初期化
 	numberSpriteDrawer_ = std::make_unique<NumberSpriteDrawer>();
@@ -57,6 +46,7 @@ void Player::Initialize()
 /// -------------------------------------------------------------
 void Player::Update()
 {
+
 	if (isDead_) return; // 死亡後は行動不可
 
 	// プレイヤーの移動処理
@@ -84,9 +74,16 @@ void Player::Update()
 	bool isFireTriggered = input_->TriggerMouse(0) || input_->TriggerButton(XButtons.R_Trigger) || input_->TriggerKey(DIK_F);
 
 	// 照準モードかどうかを確認
-	isAiming_ = input_->PushMouse(1); // 右クリックでADS（Aim Down Sights）モード	
-	camera_->SetFovY(isAiming_ ? 0.6f : 0.9f); // 照準時: 狭く、非照準時: 広く
+	if (!weapons_[currentWeaponIndex_]->IsReloading()) // リロード中は発射不可
+	{
+		isAiming_ = input_->PushMouse(1); // 右クリックでADS（Aim Down Sights）モード
+	}
+	else
+	{
+		isAiming_ = false; // リロード中はADS不可
+	}
 
+	camera_->SetFovY(isAiming_ ? 0.6f : 0.9f); // 照準時: 狭く、非照準時: 広く
 
 	// 武器に応じて発射（Rifleなら押しっぱなし、Shotgunなら単発）
 	if (GetCurrentWeapon()->GetWeaponType() == WeaponType::Rifle)
@@ -119,7 +116,7 @@ void Player::Update()
 /// -------------------------------------------------------------
 void Player::Draw()
 {
-	 // 現在の武器を描画
+	// 現在の武器を描画
 	for (const auto& weapon : weapons_) {
 		weapon->Draw();  // 全ての武器の弾丸を描画する
 	}
@@ -172,11 +169,21 @@ void Player::TakeDamage(float damage)
 
 
 /// -------------------------------------------------------------
-///				　 プレイヤー専用パーツの初期化
+///				　			　 武器の初期化
 /// -------------------------------------------------------------
-void Player::InitializeParts()
+void Player::InitializeWeapons()
 {
+	// ライフルの初期化
+	auto rifle = std::make_unique<Weapon>();
+	rifle->SetWeaponType(WeaponType::Rifle);
+	rifle->Initialize();
+	weapons_.push_back(std::move(rifle));
 
+	// ショットガンの初期化
+	auto shotgun = std::make_unique<Weapon>();
+	shotgun->SetWeaponType(WeaponType::Shotgun);
+	shotgun->Initialize();
+	weapons_.push_back(std::move(shotgun));
 }
 
 
@@ -192,6 +199,11 @@ void Player::Move()
 	if (isAiming_)
 	{
 		isDashing_ = false;
+	}
+	else if (weapons_[currentWeaponIndex_]->IsReloading())
+	{
+		isDashing_ = false; // リロード中はダッシュ不可
+		moveInput *= 0.5f; // 例: リロード中は移動速度を半減
 	}
 	else
 	{
@@ -215,7 +227,8 @@ void Player::Move()
 
 	// --- ダッシュ適用移動速度 ---
 	float currentSpeed = baseSpeed_;
-	if (isDashing_) {
+	if (isDashing_) 
+	{
 		currentSpeed *= dashMultiplier_;
 	}
 	if (isAiming_)
@@ -304,7 +317,8 @@ void Player::FireWeapon()
 	Vector3 forward;
 	float range = weapons_[currentWeaponIndex_]->GetAmmoInfo().range;
 
-	if (isAiming_) {
+	if (isAiming_)
+	{
 		// カメラ中心から照準に向けて発射（ADSモード）
 		Vector3 cameraOrigin = camera_->GetTranslate();
 		worldMuzzlePos = cameraOrigin;
