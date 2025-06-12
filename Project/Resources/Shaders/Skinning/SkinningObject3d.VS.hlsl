@@ -40,7 +40,7 @@ struct Skinned
 ConstantBuffer<TransformationAnimationMatrix> gTransformationAnimationMatrix : register(b0);
 ConstantBuffer<SkinningSettings> gSkinningSettings : register(b1);
 
-StructuredBuffer<Well> gMatrixPalette : register(t1);
+StructuredBuffer<Well> gMatrixPalette : register(t0);
 
 // Skinningを行う関数
 Skinned Skinning(VertexShaderInput input)
