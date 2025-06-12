@@ -125,20 +125,13 @@ void Object3DCommon::CreateRootSignature()
 	rootParameters[3].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL; // ピクセルシェーダーで使用
 	rootParameters[3].Descriptor.ShaderRegister = 1; 					// レジスタ番号1
 
-	// 平行光源用のルートシグネチャの設定
-	rootParameters[4].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;	// 定数バッファビュー
-	rootParameters[4].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL; // バーテックスシェーダーで使用
-	rootParameters[4].Descriptor.ShaderRegister = 2; 					// レジスタ番号2
-
-	// ポイントライト用のルートシグネチャの設定
-	rootParameters[5].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;	// 定数バッファビュー
-	rootParameters[5].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL; // バーテックスシェーダーで使用
-	rootParameters[5].Descriptor.ShaderRegister = 3; 					// レジスタ番号3
-
-	// スポットライトのルートシグネチャの設定
-	rootParameters[6].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;	// 定数バッファビュー
-	rootParameters[6].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL; // バーテックスシェーダーで使用
-	rootParameters[6].Descriptor.ShaderRegister = 4; 					// レジスタ番号4
+	// ライト系 b2 平行光源, b3 ポイントライト, b4 スポットライト
+	for (int i = 4; i <= 6; ++i)
+	{
+		rootParameters[i].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV; // 定数バッファビュー
+		rootParameters[i].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL; // ピクセルシェーダーで使用
+		rootParameters[i].Descriptor.ShaderRegister = i - 2; // レジスタ番号 b2, b3, b4
+	}
 
 	// キューブマップのルートシグネチャの設定
 	rootParameters[7].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
@@ -274,11 +267,11 @@ void Object3DCommon::CreatePSO()
 	rasterizerDesc.FrontCounterClockwise = FALSE;	 // 時計回りの面を表面とする（カリング方向の設定）
 
 	// Shaderをコンパイル
-	ComPtr <IDxcBlob> vertexShaderBlob = ShaderManager::CompileShader(L"Resources/Shaders/Object3D.VS.hlsl", L"vs_6_0", dxCommon_->GetDXCCompilerManager());
+	ComPtr <IDxcBlob> vertexShaderBlob = ShaderManager::CompileShader(L"Resources/Shaders/Object3D/Object3D.VS.hlsl", L"vs_6_0", dxCommon_->GetDXCCompilerManager());
 	assert(vertexShaderBlob != nullptr);
 
 	// Pixelをコンパイル
-	ComPtr <IDxcBlob> pixelShaderBlob = ShaderManager::CompileShader(L"Resources/Shaders/Object3D.PS.hlsl", L"ps_6_0", dxCommon_->GetDXCCompilerManager());
+	ComPtr <IDxcBlob> pixelShaderBlob = ShaderManager::CompileShader(L"Resources/Shaders/Object3D/Object3D.PS.hlsl", L"ps_6_0", dxCommon_->GetDXCCompilerManager());
 	assert(pixelShaderBlob != nullptr);
 
 	D3D12_DEPTH_STENCIL_DESC depthStencilDesc{};

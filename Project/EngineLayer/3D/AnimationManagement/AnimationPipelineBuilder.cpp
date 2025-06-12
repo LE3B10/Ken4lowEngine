@@ -64,21 +64,21 @@ void AnimationPipelineBuilder::CreateRootSignature()
 	staticSamplers[0].AddressW = D3D12_TEXTURE_ADDRESS_MODE_WRAP;		   // 0～1の範囲外をリピート
 	staticSamplers[0].ComparisonFunc = D3D12_COMPARISON_FUNC_NEVER;		   // 比較しない
 	staticSamplers[0].MaxLOD = D3D12_FLOAT32_MAX;						   // ありったけのMipmapを使う
-	staticSamplers[0].ShaderRegister = 0;								   // レジスタ番号0
+	staticSamplers[0].ShaderRegister = 0;								   // レジスタ番号 s0
 	staticSamplers[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;	   // ピクセルシェーダーで使用
 	descriptionRootSignature.pStaticSamplers = staticSamplers;			   // サンプラの設定
 	descriptionRootSignature.NumStaticSamplers = _countof(staticSamplers); // サンプラの数
 
-	// DescriptorRangeの設定
+	// DescriptorRangeの設定 PS用のテクスチャ
 	D3D12_DESCRIPTOR_RANGE descriptorRange[1] = {};
-	descriptorRange[0].BaseShaderRegister = 0;
+	descriptorRange[0].BaseShaderRegister = 0;  // register(t0) に対応
 	descriptorRange[0].NumDescriptors = 1;
 	descriptorRange[0].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
 	descriptorRange[0].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
 
-	// 追加する SRV の DescriptorRange 設定
+	// 追加する SRV の DescriptorRange 設定 VS用のパレット行列
 	D3D12_DESCRIPTOR_RANGE srvDescriptorRange{};
-	srvDescriptorRange.BaseShaderRegister = 1; // register(t0) に対応
+	srvDescriptorRange.BaseShaderRegister = 0; // register(t0) に対応
 	srvDescriptorRange.NumDescriptors = 1;
 	srvDescriptorRange.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
 	srvDescriptorRange.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
@@ -89,12 +89,12 @@ void AnimationPipelineBuilder::CreateRootSignature()
 	// マテリアル用のルートシグパラメータの設定
 	rootParameters[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;    // 定数バッファビュー
 	rootParameters[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL; // ピクセルシェーダーで使用
-	rootParameters[0].Descriptor.ShaderRegister = 0;                    // レジスタ番号0
+	rootParameters[0].Descriptor.ShaderRegister = 0;                    // レジスタ番号 b0
 
 	// TransformationMatrix用のルートシグネチャの設定
 	rootParameters[1].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;     // 定数バッファビュー
 	rootParameters[1].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX; // バーテックスシェーダーで使用
-	rootParameters[1].Descriptor.ShaderRegister = 0;					 // レジスタ番号0
+	rootParameters[1].Descriptor.ShaderRegister = 0;					 // レジスタ番号 b0
 
 	// テクスチャのディスクリプタテーブル
 	rootParameters[2].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;      // ディスクリプタテーブル
@@ -107,20 +107,13 @@ void AnimationPipelineBuilder::CreateRootSignature()
 	rootParameters[3].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL; // ピクセルシェーダーで使用
 	rootParameters[3].Descriptor.ShaderRegister = 1; 					// レジスタ番号1
 
-	// 平行光源用のルートシグネチャの設定
-	rootParameters[4].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;	// 定数バッファビュー
-	rootParameters[4].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL; // ピクセルシェーダーで使用
-	rootParameters[4].Descriptor.ShaderRegister = 2; 					// レジスタ番号2
-
-	// ポイントライト用のルートシグネチャの設定
-	rootParameters[5].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;	// 定数バッファビュー
-	rootParameters[5].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL; // ピクセルシェーダーで使用
-	rootParameters[5].Descriptor.ShaderRegister = 3; 					// レジスタ番号3
-
-	// スポットライトのルートシグネチャの設定
-	rootParameters[6].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;	// 定数バッファビュー
-	rootParameters[6].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL; // ピクセルシェーダーで使用
-	rootParameters[6].Descriptor.ShaderRegister = 4; 					// レジスタ番号4
+	// ライト系 b2 平行光源, b3 ポイントライト, b4 スポットライト
+	for (int i = 4; i <= 6; ++i)
+	{
+		rootParameters[i].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV; // 定数バッファビュー
+		rootParameters[i].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL; // ピクセルシェーダーで使用
+		rootParameters[i].Descriptor.ShaderRegister = i - 2; // レジスタ番号 b2, b3, b4
+	}
 
 	// SRV の設定（バーテックスシェーダーで使用）
 	rootParameters[7].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
@@ -268,11 +261,11 @@ void AnimationPipelineBuilder::CreatePSO()
 	rasterizerDesc.FrontCounterClockwise = FALSE;	 // 時計回りの面を表面とする（カリング方向の設定）
 
 	//Shaderをコンパイルする
-	Microsoft::WRL::ComPtr <IDxcBlob> vertexShaderBlob = ShaderManager::CompileShader(L"Resources/Shaders/SkinningObject3d.VS.hlsl", L"vs_6_0", dxCommon_->GetDXCCompilerManager());
+	Microsoft::WRL::ComPtr <IDxcBlob> vertexShaderBlob = ShaderManager::CompileShader(L"Resources/Shaders/Skinning/SkinningObject3d.VS.hlsl", L"vs_6_0", dxCommon_->GetDXCCompilerManager());
 	assert(vertexShaderBlob != nullptr);
 
 	//Pixelをコンパイルする
-	Microsoft::WRL::ComPtr <IDxcBlob> pixelShaderBlob = ShaderManager::CompileShader(L"Resources/Shaders/SkinningObject3d.PS.hlsl", L"ps_6_0", dxCommon_->GetDXCCompilerManager());
+	Microsoft::WRL::ComPtr <IDxcBlob> pixelShaderBlob = ShaderManager::CompileShader(L"Resources/Shaders/Skinning/SkinningObject3d.PS.hlsl", L"ps_6_0", dxCommon_->GetDXCCompilerManager());
 	assert(pixelShaderBlob != nullptr);
 
 	D3D12_DEPTH_STENCIL_DESC depthStencilDesc{};
