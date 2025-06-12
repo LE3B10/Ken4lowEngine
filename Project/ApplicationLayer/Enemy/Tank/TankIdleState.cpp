@@ -17,7 +17,7 @@ void TankIdleState::Update(Enemy* enemy)
 
 	// 最低1秒間は移動のみ行う（攻撃遷移を抑制）
 	if (idleTimer_ >= 1.0f) {
-		Vector3 toPlayer = enemy->GetTargetPlayer()->GetWorldPosition() - enemy->GetWorldPosition();
+		Vector3 toPlayer = enemy->GetTargetPlayer()->GetWorldTransform()->translate_ - enemy->GetWorldPosition();
 		float distanceToPlayer = Vector3::Length(toPlayer);
 	}
 

@@ -60,6 +60,8 @@ public: /// ---------- メンバ関数 ---------- ///
 
 public: /// ---------- ゲッタ ---------- ///
 
+	const WorldTransform& GetWorldTransform() const { return worldTransform; }
+
 	// 座標を取得
 	const Vector3& GetTranslate() const { return worldTransform.translate_; }
 

@@ -94,10 +94,6 @@ void GamePlayScene::Initialize()
 	particleEmitter3_ = std::make_unique<ParticleEmitter>(ParticleManager::GetInstance(), "TestParticle3");
 	particleEmitter3_->SetPosition({ 5.0f, 18.0f, 20.0f });
 	particleEmitter3_->SetEmissionRate(3.0f);
-
-	animationModel_ = std::make_unique<AnimationModel>();
-	animationModel_->Initialize("human.gltf");
-	animationModel_->SetSkinningEnabled(true);
 }
 
 
@@ -220,9 +216,6 @@ void GamePlayScene::Update()
 
 		break;
 	}
-
-	animationModel_->Update();
-
 	defaultEmitter_->Update();
 	particleEmitter_->Update();
 	particleEmitter2_->Update();
@@ -248,14 +241,14 @@ void GamePlayScene::Draw3DObjects()
 	// オブジェクト3D共通描画設定
 	Object3DCommon::GetInstance()->SetRenderSetting();
 
-	// プレイヤーの描画
-	player_->Draw();
-
 	// エネミースポナーの描画
 	enemyManager_->Draw();
 
 	// アイテムの描画
 	itemManager_->Draw();
+
+	// プレイヤーの描画
+	player_->Draw();
 
 #pragma endregion
 
@@ -264,8 +257,6 @@ void GamePlayScene::Draw3DObjects()
 
 	// アニメーションモデルの共通描画設定
 	AnimationPipelineBuilder::GetInstance()->SetRenderSetting();
-
-	animationModel_->Draw();
 
 #pragma endregion
 

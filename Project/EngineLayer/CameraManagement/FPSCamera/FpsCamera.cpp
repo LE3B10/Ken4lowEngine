@@ -42,7 +42,7 @@ void FpsCamera::Update(bool ignoreInput)
 	}
 
 	// --- カメラ位置設定（プレイヤーの頭位置） ---
-	Vector3 playerPos = player_->GetWorldPosition();
+	Vector3 playerPos = player_->GetWorldTransform()->translate_;
 	Vector3 camPos = playerPos + Vector3{ 0, eyeHeight_, 0 };
 
 	// --- オイラー角ベースのビュー行列作成 ---
