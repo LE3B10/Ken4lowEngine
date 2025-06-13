@@ -90,6 +90,9 @@ public: /// ---------- ゲッタ ---------- ///
 	// デバッグ用のフラグを取得
 	bool IsDebugCamera() const { return controller_->IsDebugCamera(); }
 
+	// しゃがみを取得
+	bool IsCrouching() const { return isCrouching_; }
+
 public: /// ---------- セッタ ---------- ///
 
 	// 追従カメラを設定
@@ -110,6 +113,9 @@ public: /// ---------- セッタ ---------- ///
 	// デバッグカメラフラグを設定
 	void SetDebugCamera(bool isDebugCamera) { controller_->SetDebugCamera(isDebugCamera); }
 
+	// しゃがみを設定
+	void SetCrouching(bool isCrouching) { isCrouching_ = isCrouching; }
+
 private: /// ---------- メンバ変数 ---------- ///
 
 	Input* input_ = nullptr; // 入力クラス
@@ -129,12 +135,12 @@ private: /// ---------- ジャンプ機能 ---------- ///
 	Vector3 velocity_ = {};        // 移動速度（Y成分がジャンプに使われる）
 	bool isGrounded_ = true;       // 地面にいるかどうか
 	const float gravity_ = -0.98f; // 重力加速度
-	const float jumpPower_ = 0.5f; // ジャンプ力
+	const float jumpPower_ = 0.28f; // ジャンプ力
 
 private: /// ---------- ダッシュ機能 ---------- ///
 
 	bool isDashing_ = false;
-	float baseSpeed_ = 0.3f;
+	float baseSpeed_ = 0.1f;
 	float dashMultiplier_ = 2.0f;
 
 private: /// ---------- プレイヤーの状態 ---------- ///
@@ -145,7 +151,11 @@ private: /// ---------- プレイヤーの状態 ---------- ///
 	bool isDead_ = false; // 死亡フラグ
 
 	bool isAiming_ = false; // エイミング状態
-	float adsSpeedFactor_ = 0.5f;  // ADS時の移動速度倍率（例：50%）
+	float adsSpeedFactor_ = 0.25f;  // ADS時の移動速度倍率（例：50%）
+
+	// しゃがむ機能
+	bool isCrouching_ = false; // しゃがみ状態
+	float crouchingSpeed_ = 0.25f; // しゃがみ時の移動速度
 
 	bool isDebugCamera_ = false; // デバッグカメラフラグ
 };

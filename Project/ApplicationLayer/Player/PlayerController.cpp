@@ -20,13 +20,20 @@ void PlayerController::Update()
 
 	move_ = { 0.0f, 0.0f, 0.0f };
 	jump_ = false;
+	crouch_ = false;
 
 	// --- キーボード入力 ---
-	if (input_->PushKey(DIK_W)) move_.z += 2.0f;
-	if (input_->PushKey(DIK_S)) move_.z -= 2.0f;
-	if (input_->PushKey(DIK_A)) move_.x -= 2.0f;
-	if (input_->PushKey(DIK_D)) move_.x += 2.0f;
+	if (input_->PushKey(DIK_W)) move_.z += 1.0f;
+	if (input_->PushKey(DIK_S)) move_.z -= 1.0f;
+	if (input_->PushKey(DIK_A)) move_.x -= 1.0f;
+	if (input_->PushKey(DIK_D)) move_.x += 1.0f;
 	if (input_->TriggerKey(DIK_SPACE)) jump_ = true;
+
+	// キーボードのCtrlキーでしゃがみ
+	if (input_->PushKey(DIK_LCONTROL)) crouch_ = true;
+
+	// ゲームパッドのBボタンでしゃがみ
+	if (input_->PushButton(XButtons.B)) crouch_ = true;
 
 	// --- ゲームパッド入力（左スティック） ---
 	if (!input_->LStickInDeadZone())

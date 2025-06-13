@@ -44,6 +44,10 @@ void FpsCamera::Update(bool ignoreInput)
 		pitch_ = std::clamp(pitch_ + deltaPitch, minPitch_, maxPitch_);
 	}
 
+	// --- カメラ高さをしゃがみに応じて補間 ---
+	const float targetEyeHeight = player_->IsCrouching() ? crouchEyeHeight_ : standEyeHeight_; // しゃがみ時は1.2、立ち上がり時は1.74
+	eyeHeight_ = Lerp(eyeHeight_, targetEyeHeight, 0.1f); // 0.1fは補間のスピード
+
 	// --- カメラ位置設定（プレイヤーの頭位置） ---
 	Vector3 playerPos = player_->GetWorldTransform()->translate_;
 	Vector3 camPos = playerPos + Vector3{ 0, eyeHeight_, 0 };
@@ -76,6 +80,20 @@ void FpsCamera::Update(bool ignoreInput)
 	}
 
 	camPos.y += bobbingOffsetY;
+
+	// ---------------------- 着地バウンド演出 ----------------------
+	if (!wasGrounded_ && isGrounded) {
+		// 着地した瞬間
+		landingBounceTimer_ = 0.0f;
+	}
+	wasGrounded_ = isGrounded;
+
+	if (landingBounceTimer_ < landingBounceDuration_) {
+		landingBounceTimer_ += deltaTime_;
+		float t = landingBounceTimer_ / landingBounceDuration_;
+		float easing = std::sin(t * std::numbers::pi_v<float>); // sin波で上下揺れ
+		camPos.y -= easing * landingBounceAmplitude_; // 縦に沈ませる
+	}
 
 	// --- オイラー角ベースのビュー行列作成 ---
 	Vector3 camEuler = { pitch_, yaw_, 0.0f }; // X, Y 回転

@@ -25,6 +25,9 @@ public: /// ---------- メンバ関数 ---------- ///
 	// ジャンプ入力を取得
 	bool IsJumpTriggered() const { return jump_; }
 
+	// しゃがみ入力を取得
+	bool IsCrouchPressed() const { return crouch_; }
+
 	// デバッグカメラフラグを取得
 	bool IsDebugCamera() const { return isDebugCamera_; }
 
@@ -35,7 +38,8 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	Input* input_ = nullptr;
 	Vector3 move_{};
-	bool jump_ = false;
+	bool jump_ = false; // ジャンプ入力フラグ
+	bool crouch_ = false; // しゃがみ入力フラグ
 	bool isDebugCamera_ = false; // デバッグカメラフラグ
 };
 
