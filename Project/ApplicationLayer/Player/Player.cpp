@@ -19,7 +19,7 @@ void Player::Initialize()
 {
 	// プレイヤーのコライダーを初期化
 	Collider::SetTypeID(static_cast<uint32_t>(CollisionTypeIdDef::kPlayer));
-	Collider::SetOBBHalfSize({ 2.5f, 6.0f, 2.5f }); // OBBの半径を設定
+	Collider::SetOBBHalfSize({ 1.0f, 1.0f, 1.0f }); // OBBの半径を設定
 
 	input_ = Input::GetInstance();
 
@@ -107,7 +107,7 @@ void Player::Update()
 	}
 
 	// コライダーの位置と回転をプレイヤーに追従させる
-	Collider::SetCenterPosition(animationModel_->GetTranslate() + Vector3(0.0f, 8.2f, 0.0f));
+	Collider::SetCenterPosition(animationModel_->GetTranslate());
 }
 
 
@@ -124,7 +124,7 @@ void Player::Draw()
 	if (animationModel_)
 	{
 		AnimationPipelineBuilder::GetInstance()->SetRenderSetting();
-		animationModel_->Draw();
+		//animationModel_->Draw();
 	}
 }
 
@@ -194,6 +194,7 @@ void Player::Move()
 {
 	controller_->Update();
 	Vector3 moveInput = controller_->GetMoveInput();
+	isCrouching_ = controller_->IsCrouchPressed(); // しゃがみ状態を取得
 
 	// --- ダッシュ入力確認 ---
 	if (isAiming_)
@@ -234,6 +235,10 @@ void Player::Move()
 	if (isAiming_)
 	{  // ← ここでADS中かチェック
 		currentSpeed *= adsSpeedFactor_;  // 例: 0.5f などで移動速度を半減
+	}
+	if (isCrouching_)
+	{
+		currentSpeed *= crouchingSpeed_; // しゃがみ時は移動速度を半減
 	}
 
 	// 位置更新

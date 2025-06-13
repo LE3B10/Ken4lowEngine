@@ -13,7 +13,10 @@ class FpsCamera
 {
 public: // ---------- 関数 ---------- //
 
+	// 初期化処理
 	void Initialize(Player* player);
+
+	// 更新処理
 	void Update(bool ignoreInput = false);
 
 	// デバッグ用カメラの位置をワイヤーフレームで描画
@@ -50,20 +53,20 @@ private: // ---------- メンバ ---------- //
 	float pitch_ = 0.0f;
 
 	// 感度
-	const float mouseSensitivity_ = 0.002f;
-	const float controllerSensitivity_ = 0.05f;
+	const float mouseSensitivity_ = 0.002f; // マウス感度（例: 0.002f）
+	const float controllerSensitivity_ = 0.05f; // コントローラー感度（例: 0.05f）
 
 	// ピッチ制限
 	const float minPitch_ = -1.5f; // 下限
 	const float maxPitch_ = +1.5f; // 上限
 
 	// カメラ高さオフセット（頭位置）
-	const float eyeHeight_ = 1.74f;
+	float eyeHeight_ = 1.74f;
 
 	// Aiming状態フラグ
 	bool isAiming_ = false;
 	// ADS状態の感度補正係数（例: 0.5で半分の感度）
-	float adsSensitivityFactor_ = 0.5f;
+	float adsSensitivityFactor_ = 0.25f;
 
 	// ボビング処理用
 	float currentBobbingSpeed_;
@@ -73,4 +76,16 @@ private: // ---------- メンバ ---------- //
 	float bobbingSpeed_ = 10.0f;       // サイクル速度
 	float deltaTime_ = 1.0f / 60.0f;    // 仮：外部から渡すべき
 
+	// しゃがむ状態のフラグ
+	bool isCrouching_ = false; // しゃがむ状態のフラグ
+	const float standEyeHeight_ = 1.74f; // 立ち上がり時の目の高さ
+	const float crouchEyeHeight_ = 1.2f; // しゃがみ時の目の高さ
+
+	// 着地検出用（前フレームとの比較）
+	bool wasGrounded_ = true;
+
+	// 着地バウンド処理用
+	float landingBounceTimer_ = 0.0f;
+	const float landingBounceDuration_ = 0.25f; // バウンドの持続時間
+	const float landingBounceAmplitude_ = 0.25f; // バウンドの深さ
 };
