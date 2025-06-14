@@ -1,5 +1,6 @@
 #pragma once
 #include <Quaternion.h>
+#include <random>
 
 /// ---------- 前方宣言 ---------- ///
 class Player;
@@ -21,6 +22,8 @@ public: // ---------- 関数 ---------- //
 
 	// デバッグ用カメラの位置をワイヤーフレームで描画
 	void DrawDebugCamera();
+
+	void AddRecoil(float verticalAmount = 0.0f, float horizontalAmount = 0.0f);
 
 public: // ---------- ゲッタ ---------- //
 
@@ -88,4 +91,8 @@ private: // ---------- メンバ ---------- //
 	float landingBounceTimer_ = 0.0f;
 	const float landingBounceDuration_ = 0.25f; // バウンドの持続時間
 	const float landingBounceAmplitude_ = 0.25f; // バウンドの深さ
+
+	float recoilOffsetPitch_ = 0.0f;
+	float recoilOffsetYaw_ = 0.0f;
+	std::default_random_engine randomEngine_;
 };

@@ -93,10 +93,19 @@ public: /// ---------- ゲッタ ---------- ///
 	// しゃがみを取得
 	bool IsCrouching() const { return isCrouching_; }
 
+	// コントローラーを取得
+	PlayerController* GetController() const { return controller_.get(); }
+
+	// FPSカメラを取得
+	FpsCamera* GetFpsCamera() const { return fpsCamera_; }
+
 public: /// ---------- セッタ ---------- ///
 
 	// 追従カメラを設定
 	void SetCamera(Camera* camera) { camera_ = camera; }
+
+	// FPSカメラをセット
+	void SetFpsCamera(FpsCamera* fpsCamera) { fpsCamera_ = fpsCamera; }
 
 	// HPを追加
 	void AddHP(int amount);
@@ -120,6 +129,7 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	Input* input_ = nullptr; // 入力クラス
 	Camera* camera_ = nullptr; // カメラクラス
+	FpsCamera* fpsCamera_ = nullptr;
 
 	std::vector<std::unique_ptr<Weapon>> weapons_; // 武器クラス
 	int currentWeaponIndex_ = 0; // 現在の武器インデックス

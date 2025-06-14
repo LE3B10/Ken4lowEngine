@@ -53,6 +53,7 @@ void GamePlayScene::Initialize()
 
 	// プレイヤーにカメラを設定
 	player_->SetCamera(fpsCamera_->GetCamera());
+	player_->SetFpsCamera(fpsCamera_.get());
 
 	// クロスヘアの生成と初期化
 	crosshair_ = std::make_unique<Crosshair>();

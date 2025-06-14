@@ -31,6 +31,10 @@ public: /// ---------- メンバ関数 ---------- ///
 	// デバッグカメラフラグを取得
 	bool IsDebugCamera() const { return isDebugCamera_; }
 
+	void SetShooting(bool shooting) { isTriggerShooting_ = shooting; }
+	bool IsTriggerShooting() const { return isTriggerShooting_; }
+	bool IsPushShooting() const { return isPushShooting_; }
+
 	// デバッグカメラフラグを設定
 	void SetDebugCamera(bool isDebugCamera) { isDebugCamera_ = isDebugCamera; }
 
@@ -41,5 +45,7 @@ private: /// ---------- メンバ変数 ---------- ///
 	bool jump_ = false; // ジャンプ入力フラグ
 	bool crouch_ = false; // しゃがみ入力フラグ
 	bool isDebugCamera_ = false; // デバッグカメラフラグ
+	bool isTriggerShooting_ = false; // ← 射撃中フラグ
+	bool isPushShooting_ = false; // ← 射撃中フラグ
 };
 

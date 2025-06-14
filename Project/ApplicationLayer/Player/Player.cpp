@@ -49,6 +49,8 @@ void Player::Update()
 
 	if (isDead_) return; // 死亡後は行動不可
 
+	weapons_[currentWeaponIndex_]->SetFpsCamera(fpsCamera_);
+
 	// プレイヤーの移動処理
 	Move();
 
@@ -70,9 +72,6 @@ void Player::Update()
 		weapon->Update();
 	}
 
-	// 発射入力
-	bool isFireTriggered = input_->TriggerMouse(0) || input_->TriggerButton(XButtons.R_Trigger) || input_->TriggerKey(DIK_F);
-
 	// 照準モードかどうかを確認
 	if (!weapons_[currentWeaponIndex_]->IsReloading()) // リロード中は発射不可
 	{
@@ -88,14 +87,14 @@ void Player::Update()
 	// 武器に応じて発射（Rifleなら押しっぱなし、Shotgunなら単発）
 	if (GetCurrentWeapon()->GetWeaponType() == WeaponType::Rifle)
 	{
-		if (input_->PushMouse(0))
+		if (controller_->IsPushShooting())
 		{
 			FireWeapon();
 		}
 	}
 	else if (GetCurrentWeapon()->GetWeaponType() == WeaponType::Shotgun)
 	{
-		if (isFireTriggered)
+		if (controller_->IsTriggerShooting())
 		{
 			FireWeapon();
 		}
@@ -333,7 +332,7 @@ void Player::FireWeapon()
 	else
 	{
 		// 通常時は右手（モデル上の銃口）から発射
-		Vector3 localMuzzleOffset = { 5.0f, 20.0f, 5.0f };
+		Vector3 localMuzzleOffset = { 2.0f, 1.65f, 5.0f };
 		Vector3 scale = { 1.0f, 1.0f, 1.0f };
 		Vector3 rotation = { 0.0f,animationModel_->GetRotate().y, 0.0f };
 		Vector3 translation = animationModel_->GetTranslate();
