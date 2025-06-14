@@ -42,6 +42,13 @@ void FpsCamera::Update(bool ignoreInput)
 
 		yaw_ += deltaYaw;
 		pitch_ = std::clamp(pitch_ + deltaPitch, minPitch_, maxPitch_);
+
+		pitch_ += recoilOffsetPitch_;
+		yaw_ += recoilOffsetYaw_;
+
+		// 減衰させる
+		recoilOffsetPitch_ *= 0.75f;
+		recoilOffsetYaw_ *= 0.75f;
 	}
 
 	// --- カメラ高さをしゃがみに応じて補間 ---
@@ -62,7 +69,7 @@ void FpsCamera::Update(bool ignoreInput)
 
 	// 状態に応じて揺れを変更
 	float speed = isDashing ? 14.0f : 10.0f;        // 揺れる速さ
-	float amplitude = isDashing ? 0.14f : 0.1f;    // 揺れの高さ
+	float amplitude = isDashing ? 0.014f : 0.01f;    // 揺れの高さ
 
 	// 徐々に追従（Lerp）
 	currentBobbingSpeed_ = Lerp(currentBobbingSpeed_, speed, 0.1f);
@@ -95,6 +102,9 @@ void FpsCamera::Update(bool ignoreInput)
 		camPos.y -= easing * landingBounceAmplitude_; // 縦に沈ませる
 	}
 
+	// 反動処理
+	AddRecoil();
+
 	// --- オイラー角ベースのビュー行列作成 ---
 	Vector3 camEuler = { pitch_, yaw_, 0.0f }; // X, Y 回転
 	Matrix4x4 rotMat = Matrix4x4::MakeRotateMatrix(camEuler);
@@ -113,4 +123,11 @@ void FpsCamera::DrawDebugCamera()
 	aabb.max = { 0.125f, eyeHeight_,  0.125f };
 
 	Wireframe::GetInstance()->DrawAABB(aabb, { 0.0f, 0.0f, 1.0f, 1.0f });
+}
+
+void FpsCamera::AddRecoil(float verticalAmount, float horizontalAmount)
+{
+	std::uniform_real_distribution<float> horizontalDist(-horizontalAmount, horizontalAmount);
+	recoilOffsetPitch_ += -verticalAmount;
+	recoilOffsetYaw_ += horizontalDist(randomEngine_);  // ランダムな横ブレ
 }

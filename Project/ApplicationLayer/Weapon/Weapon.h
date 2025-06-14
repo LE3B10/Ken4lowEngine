@@ -23,6 +23,10 @@ struct AmmoInfo
 	float range = 100;		// 弾丸の射程（メートル単位）
 };
 
+/// ---------- 前方宣言 ---------- ///
+class Player;
+class FpsCamera;
+
 
 /// -------------------------------------------------------------
 ///				　		武器クラス
@@ -74,10 +78,17 @@ public: /// ---------- ゲッタ ---------- ///
 
 	int GetAmmoReserve() const { return ammoInfo_.reserveAmmo; }
 
+	Player* GetPlayer() const { return player_; }
+	FpsCamera* GetFpsCamera() const { return fpsCamera_; }
+
 public: /// ---------- セッター ---------- ///
 
 	// 武器の種類を設定
 	void SetWeaponType(WeaponType type) { type_ = type; }
+
+	void SetPlayer(Player* player) { player_ = player; }
+
+	void SetFpsCamera(FpsCamera* fpsCamera) { fpsCamera_ = fpsCamera; }
 
 private: /// ---------- メンバ変数 ---------- ///
 
@@ -104,6 +115,9 @@ private: /// ---------- メンバ変数 ---------- ///
 	WeaponType type_ = WeaponType::Rifle; // 武器の種類
 
 	AmmoInfo ammoInfo_; // 弾薬情報
+
+	Player* player_ = nullptr;
+	FpsCamera* fpsCamera_ = nullptr;
 
 	// 弾丸のプレハブ
 	std::vector<std::unique_ptr<Bullet>> bullets_;

@@ -35,6 +35,10 @@ void PlayerController::Update()
 	// ゲームパッドのBボタンでしゃがみ
 	if (input_->PushButton(XButtons.B)) crouch_ = true;
 
+	// 左クリック or RT（ゲームパッド）で射撃
+	isTriggerShooting_ = input_->TriggerMouse(0);// || input_->PushButton(XButtons.RT);
+	isPushShooting_ = input_->PushMouse(0);
+
 	// --- ゲームパッド入力（左スティック） ---
 	if (!input_->LStickInDeadZone())
 	{
