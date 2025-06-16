@@ -105,6 +105,9 @@ void Player::Update()
 		animationModel_->Update();
 	}
 
+	// スタミナシステムの更新
+	UpdateStamina();
+
 	// コライダーの位置と回転をプレイヤーに追従させる
 	Collider::SetCenterPosition(animationModel_->GetTranslate());
 }
@@ -148,6 +151,13 @@ void Player::DrawImGui()
 	}
 
 	ImGui::Text("Current Weapon: %s", weaponName.c_str());
+
+	ImGui::Separator();
+	ImGui::Text("== Stamina Info ==");
+	ImGui::Text("Stamina: %.1f / %.1f", stamina_, maxStamina_);
+	ImGui::ProgressBar(stamina_ / maxStamina_, ImVec2(200, 20));
+	ImGui::Text("Recover Delay: %.2f / %.2f", staminaRecoverTimer_, staminaRecoverDelay_);
+	ImGui::Text("Recover Blocked: %s", isStaminaRecoverBlocked_ ? "Yes" : "No");
 }
 
 
@@ -196,20 +206,25 @@ void Player::Move()
 	isCrouching_ = controller_->IsCrouchPressed(); // しゃがみ状態を取得
 
 	// --- ダッシュ入力確認 ---
-	if (isAiming_)
-	{
-		isDashing_ = false;
-	}
-	else if (weapons_[currentWeaponIndex_]->IsReloading())
+	bool isDashKey = input_->PushKey(DIK_LSHIFT);
+	bool isDashButton = input_->PushButton(XButtons.B);
+
+	// --- ダッシュ入力確認 ---
+	if (isAiming_ || weapons_[currentWeaponIndex_]->IsReloading())
 	{
 		isDashing_ = false; // リロード中はダッシュ不可
 		moveInput *= 0.5f; // 例: リロード中は移動速度を半減
 	}
+	else if ((isDashKey || isDashButton) && (moveInput.x != 0.0f || moveInput.z != 0.0f) && stamina_ >= staminaDashCost_ * deltaTime)
+	{
+		isDashing_ = true;
+		stamina_ -= staminaDashCost_ * deltaTime;
+		isStaminaRecoverBlocked_ = true;
+		staminaRecoverTimer_ = 0.0f;
+	}
 	else
 	{
-		bool isDashKey = input_->PushKey(DIK_LSHIFT);
-		bool isDashButton = input_->PushButton(XButtons.B);
-		isDashing_ = isDashKey || isDashButton;
+		isDashing_ = false;
 	}
 
 	// カメラの方向で回転
@@ -227,18 +242,9 @@ void Player::Move()
 
 	// --- ダッシュ適用移動速度 ---
 	float currentSpeed = baseSpeed_;
-	if (isDashing_) 
-	{
-		currentSpeed *= dashMultiplier_;
-	}
-	if (isAiming_)
-	{  // ← ここでADS中かチェック
-		currentSpeed *= adsSpeedFactor_;  // 例: 0.5f などで移動速度を半減
-	}
-	if (isCrouching_)
-	{
-		currentSpeed *= crouchingSpeed_; // しゃがみ時は移動速度を半減
-	}
+	if (isDashing_) currentSpeed *= dashMultiplier_;
+	if (isAiming_)	currentSpeed *= adsSpeedFactor_;  // 例: 0.5f などで移動速度を半減
+	if (isCrouching_) currentSpeed *= crouchingSpeed_; // しゃがみ時は移動速度を半減
 
 	// 位置更新
 	Vector3 modelPosition = animationModel_->GetTranslate();
@@ -248,7 +254,6 @@ void Player::Move()
 	if (camera_)
 	{
 		float yaw = animationModel_->GetRotate().y;
-		yaw = camera_->GetRotate().y;
 		animationModel_->SetRotate({ 0.0f,yaw,0.0f });
 	}
 
@@ -256,9 +261,16 @@ void Player::Move()
 	Vector3 position = animationModel_->GetTranslate();
 
 	// ジャンプ開始
-	if (isGrounded_ && controller_->IsJumpTriggered()) {
-		velocity_.y = jumpPower_;
-		isGrounded_ = false;
+	if (isGrounded_ && controller_->IsJumpTriggered())
+	{
+		if (stamina_ >= staminaJumpCost_)
+		{
+			velocity_.y = jumpPower_;
+			isGrounded_ = false;
+			stamina_ -= staminaJumpCost_;
+			isStaminaRecoverBlocked_ = true;
+			staminaRecoverTimer_ = 0.0f;
+		}
 	}
 
 	// 重力を加える
@@ -266,7 +278,8 @@ void Player::Move()
 	position.y += velocity_.y; // Y座標に反映
 
 	// 地面との接地処理（仮にY=0が地面）
-	if (position.y <= 0.0f) {
+	if (position.y <= 0.0f)
+	{
 		position.y = 0.0f;
 		velocity_.y = 0.0f;
 		isGrounded_ = true;
@@ -344,4 +357,30 @@ void Player::FireWeapon()
 	}
 
 	weapons_[currentWeaponIndex_]->TryFire(worldMuzzlePos, forward);
+}
+
+void Player::UpdateStamina()
+{
+	// スタミナ回復ブロック中の経過時間を計測
+	if (isStaminaRecoverBlocked_)
+	{
+		staminaRecoverTimer_ += deltaTime;
+
+		// 一定時間経過で回復可能に
+		if (staminaRecoverTimer_ >= staminaRecoverDelay_)
+		{
+			isStaminaRecoverBlocked_ = false;
+			staminaRecoverTimer_ = 0.0f;
+		}
+	}
+
+	// 回復が許可されていればスタミナを回復
+	if (!isStaminaRecoverBlocked_)
+	{
+		stamina_ += staminaRegenRate_ * deltaTime;
+		if (stamina_ > maxStamina_)
+		{
+			stamina_ = maxStamina_;
+		}
+	}
 }

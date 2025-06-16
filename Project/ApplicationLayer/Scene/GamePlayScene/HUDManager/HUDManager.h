@@ -48,6 +48,9 @@ public: /// ---------- セッター ---------- ///
 	// 弾薬情報を武器から設定する
 	void SetAmmoFromWeapon(const Weapon* weapon);
 
+	// スタミナの設定
+	void SetStamina(float current, float max) { stamina_ = current;	maxStamina_ = max; }
+
 private: /// ---------- メンバ関数 ---------- ///
 
 	void DrawDebugHUD(); // デバッグ用HUDの描画
@@ -64,6 +67,9 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	std::unique_ptr<ReloadCircle> reloadCircle_; // リロード円
 
+	std::unique_ptr<Sprite> staminaBarBase_; // スタミナバー背景
+	std::unique_ptr<Sprite> staminaBarFill_; // スタミナバー本体
+
 	// スコア
 	int score_ = 0;
 
@@ -77,6 +83,9 @@ private: /// ---------- メンバ変数 ---------- ///
 	// 弾薬数
 	int ammoInClip_ = 0;  // 現在の弾薬数
 	int ammoReserve_ = 0; // 予備の弾薬数
+
+	float stamina_ = 100.0f;
+	float maxStamina_ = 100.0f;
 
 	const std::string texturePath_ = "Resources/Number.png"; // 数字のテクスチャパス
 };
