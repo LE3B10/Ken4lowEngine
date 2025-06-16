@@ -46,6 +46,9 @@ private: /// ---------- メンバ関数 ---------- ///
 	// 弾丸発射処理位置
 	void FireWeapon();
 
+	// スタミナシステムの更新
+	void UpdateStamina();
+
 public: /// ---------- ゲッタ ---------- ///
 
 	// 死亡フラグを取得
@@ -98,6 +101,12 @@ public: /// ---------- ゲッタ ---------- ///
 
 	// FPSカメラを取得
 	FpsCamera* GetFpsCamera() const { return fpsCamera_; }
+
+	// スタミナを取得
+	float GetStamina() const { return stamina_; }
+
+	// 最大スタミナを取得
+	float GetMaxStamina() const { return maxStamina_; }
 
 public: /// ---------- セッタ ---------- ///
 
@@ -152,6 +161,15 @@ private: /// ---------- ダッシュ機能 ---------- ///
 	bool isDashing_ = false;
 	float baseSpeed_ = 0.1f;
 	float dashMultiplier_ = 2.0f;
+
+	float stamina_ = 100.0f;        // 現在のスタミナ
+	float maxStamina_ = 100.0f;     // 最大スタミナ
+	float staminaRegenRate_ = 15.0f; // 1秒あたりの回復量
+	float staminaDashCost_ = 20.0f;  // ダッシュ1回分の消費量
+	float staminaJumpCost_ = 15.0f;  // ジャンプ1回分の消費量
+	bool isStaminaRecoverBlocked_ = false; // 一時的に回復を止める（行動中など）
+	float staminaRecoverDelay_ = 1.0f; // 行動後、回復開始までの猶予秒数
+	float staminaRecoverTimer_ = 0.0f; // スタミナ回復タイマー
 
 private: /// ---------- プレイヤーの状態 ---------- ///
 

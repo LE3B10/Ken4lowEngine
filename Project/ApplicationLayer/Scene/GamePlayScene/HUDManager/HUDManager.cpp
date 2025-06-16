@@ -32,6 +32,14 @@ void HUDManager::Initialize()
 
 	reloadCircle_ = std::make_unique<ReloadCircle>();
 	reloadCircle_->Initialize("Resources/reload-circle.png");
+
+	// スタミナバーの初期化
+	staminaBarBase_ = std::make_unique<Sprite>();
+	staminaBarBase_->Initialize("Resources/white.png");
+
+	// スタミナバーの本体スプライトを初期化
+	staminaBarFill_ = std::make_unique<Sprite>();
+	staminaBarFill_->Initialize("Resources/white.png");
 }
 
 
@@ -64,6 +72,24 @@ void HUDManager::Update()
 	hpBarFill_->Update();
 
 	reloadCircle_->Update();
+
+	// === スタミナバーの描画設定 ===
+	const Vector2 staminaBarPosition = { 60.0f, 670.0f };
+	const Vector2 staminaBarSize = { 200.0f, 20.0f };
+
+	staminaBarBase_->SetPosition(staminaBarPosition);
+	staminaBarBase_->SetSize(staminaBarSize);
+	staminaBarBase_->SetColor({ 0.1f, 0.1f, 0.1f, 1.0f });
+	staminaBarBase_->Update();
+
+	float staminaRatio = stamina_ / maxStamina_;
+	float staminaFilledWidth = staminaBarSize.x * std::clamp(staminaRatio, 0.0f, 1.0f);
+
+	Vector4 staminaColor = { 0.2f, 0.6f, 1.0f, 1.0f }; // 水色系
+	staminaBarFill_->SetPosition(staminaBarPosition);
+	staminaBarFill_->SetSize({ staminaFilledWidth, staminaBarSize.y });
+	staminaBarFill_->SetColor(staminaColor);
+	staminaBarFill_->Update();
 }
 
 
@@ -103,6 +129,9 @@ void HUDManager::Draw()
 
 	// HPの描画
 	DrawDebugHUD();
+
+	staminaBarBase_->Draw();
+	staminaBarFill_->Draw();
 }
 
 

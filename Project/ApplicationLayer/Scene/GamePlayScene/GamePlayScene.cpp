@@ -191,6 +191,7 @@ void GamePlayScene::Update()
 		hudManager_->SetKills(ScoreManager::GetInstance()->GetKills());
 		hudManager_->SetHP(player_->GetHP(), player_->GetMaxHP());
 		hudManager_->SetWeapon(player_->GetCurrentWeapon());
+		hudManager_->SetStamina(player_->GetStamina(), player_->GetMaxStamina());
 
 		player_->Update();
 		fpsCamera_->Update(false);
