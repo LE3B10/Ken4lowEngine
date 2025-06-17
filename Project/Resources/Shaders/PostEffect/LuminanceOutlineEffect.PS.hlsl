@@ -74,7 +74,7 @@ PixelShaderOutput main(VertexShaderOutput input)
 
    // 閾値処理＋サチュレーション
     weight = (weight > gLuminanceOutlineSetting.threshold) ? weight : 0.0f;
-    weight = saturate(weight);
+    weight = saturate(weight * 6.0f);
 
     float3 originalColor = gTexture.Sample(gSampler, input.texcoord).rgb;
     output.color.rgb = (1.0f - weight) * originalColor;

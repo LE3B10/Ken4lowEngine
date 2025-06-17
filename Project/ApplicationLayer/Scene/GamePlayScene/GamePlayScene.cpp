@@ -59,6 +59,8 @@ void GamePlayScene::Initialize()
 	crosshair_ = std::make_unique<Crosshair>();
 	crosshair_->Initialize();
 
+	player_->SetCrosshair(crosshair_.get()); // プレイヤーにクロスヘアを設定
+
 	// 衝突マネージャの生成
 	collisionManager_ = std::make_unique<CollisionManager>();
 	collisionManager_->Initialize();
@@ -76,6 +78,10 @@ void GamePlayScene::Initialize()
 	itemManager_->Initialize();
 
 	enemyManager_->SetItemManager(itemManager_.get());
+
+	terrein_ = std::make_unique<Object3D>();
+	// 地形オブジェクトの初期化
+	terrein_->Initialize("Terrain.gltf");
 
 	ParticleManager::GetInstance()->CreateParticleGroup("DefaultParticle", "circle2.png", ParticleEffectType::Default);
 	defaultEmitter_ = std::make_unique<ParticleEmitter>(ParticleManager::GetInstance(), "DefaultParticle");
@@ -229,6 +235,8 @@ void GamePlayScene::Update()
 	particleEmitter_->Update();
 	particleEmitter2_->Update();
 	particleEmitter3_->Update();
+
+	terrein_->Update();
 }
 
 
@@ -249,6 +257,8 @@ void GamePlayScene::Draw3DObjects()
 
 	// オブジェクト3D共通描画設定
 	Object3DCommon::GetInstance()->SetRenderSetting();
+
+	terrein_->Draw();
 
 	// エネミースポナーの描画
 	enemyManager_->Draw();

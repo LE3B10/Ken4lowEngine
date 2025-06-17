@@ -31,9 +31,21 @@ public: /// ---------- メンバ関数 ---------- ///
 	/// <returns></returns>
 	ComPtr<ID3D12PipelineState> CreateGraphicsPipeline(const std::wstring& pixelShaderPath, ID3D12RootSignature* rootSignature, bool enableDepth = false);
 
+	void BuildCopyPipeline();
+
+	// ルートシグネチャの取得
+	ComPtr<ID3D12RootSignature> GetCopyRootSignature() const { return copyRootSignature_; }
+
+	// パイプラインステートの取得
+	ComPtr<ID3D12PipelineState> GetCopyPipelineState() const { return copyPipelineState_; }
+
 private: /// ---------- メンバ変数 ---------- ///
 
 	// DirectX共通クラス
 	DirectXCommon* dxCommon_ = nullptr;
+
+	// ★ 追加: 保管先
+	ComPtr<ID3D12RootSignature> copyRootSignature_;
+	ComPtr<ID3D12PipelineState> copyPipelineState_;
 };
 

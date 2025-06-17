@@ -125,6 +125,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClCompile Include="ApplicationLayer\Enemy\Grunt\EnemyIdleState.cpp" />
     <ClCompile Include="ApplicationLayer\Enemy\EnemyManager.cpp" />
     <ClCompile Include="ApplicationLayer\Enemy\Boss\BossIdleState.cpp" />
+    <ClCompile Include="EngineLayer\PostEffectManagement\DepthOutlineEffect.cpp" />
     <ClCompile Include="EngineLayer\Managers\AnimationManager\AnimationModel.cpp" />
     <ClCompile Include="EngineLayer\Managers\AnimationManager\AnimationPipelineBuilder.cpp" />
     <ClCompile Include="EngineLayer\Managers\AnimationManager\Skeleton.cpp" />
@@ -381,6 +382,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="ApplicationLayer\Enemy\Grunt\EnemyIdleState.h" />
     <ClInclude Include="ApplicationLayer\Enemy\EnemyManager.h" />
     <ClInclude Include="ApplicationLayer\Enemy\Boss\BossIdleState.h" />
+    <ClInclude Include="EngineLayer\PostEffectManagement\DepthOutlineEffect.h" />
     <ClInclude Include="EngineLayer\Managers\AnimationManager\AnimationModel.h" />
     <ClInclude Include="EngineLayer\Managers\AnimationManager\AnimationPipelineBuilder.h" />
     <ClInclude Include="EngineLayer\Managers\AnimationManager\Skeleton.h" />

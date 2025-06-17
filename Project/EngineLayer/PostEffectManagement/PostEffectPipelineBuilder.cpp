@@ -159,3 +159,14 @@ ComPtr<ID3D12PipelineState> PostEffectPipelineBuilder::CreateGraphicsPipeline(co
 	assert(SUCCEEDED(hr));
 	return pso;
 }
+
+// PostEffectPipelineBuilder.cpp
+void PostEffectPipelineBuilder::BuildCopyPipeline()
+{
+	// ① RootSig を生成（深度不要）
+	copyRootSignature_ = CreateRootSignature();
+
+	// ② FSQ 用ピクセルシェーダ（色をそのまま出力）
+	const std::wstring kCopyPS = L"Resources/Shaders/PostEffect/NormalEffect.PS.hlsl";
+	copyPipelineState_ = CreateGraphicsPipeline(kCopyPS, copyRootSignature_.Get(), false);
+}

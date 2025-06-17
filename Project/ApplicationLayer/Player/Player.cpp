@@ -10,6 +10,7 @@
 #include <AnimationPipelineBuilder.h>
 
 #include <imgui.h>
+#include <PostEffectManager.h>
 
 
 /// -------------------------------------------------------------
@@ -38,6 +39,8 @@ void Player::Initialize()
 	// HUDの初期化
 	numberSpriteDrawer_ = std::make_unique<NumberSpriteDrawer>();
 	numberSpriteDrawer_->Initialize("Resources/number.png", 50.0f, 50.0f);
+
+	weapons_[currentWeaponIndex_]->SetPlayer(this);
 }
 
 
@@ -46,6 +49,10 @@ void Player::Initialize()
 /// -------------------------------------------------------------
 void Player::Update()
 {
+
+	if (input_->TriggerKey(DIK_H)) {
+		TakeDamage(10);
+	}
 
 	if (isDead_) return; // 死亡後は行動不可
 
@@ -108,6 +115,16 @@ void Player::Update()
 	// スタミナシステムの更新
 	UpdateStamina();
 
+	if (isHitEffectActive_)
+	{
+		hitEffectTimer_ -= deltaTime;
+		if (hitEffectTimer_ <= 0.0f)
+		{
+			isHitEffectActive_ = false;
+			PostEffectManager::GetInstance()->DisableEffect("RadialBlurEffect");
+		}
+	}
+
 	// コライダーの位置と回転をプレイヤーに追従させる
 	Collider::SetCenterPosition(animationModel_->GetTranslate());
 }
@@ -166,14 +183,23 @@ void Player::DrawImGui()
 /// -------------------------------------------------------------
 void Player::TakeDamage(float damage)
 {
-	if (isDead_) return;
+	if (isDead_) return; // 既に死亡している場合は何もしない
+
 	hp_ -= damage;
+
 	if (hp_ <= 0.0f)
 	{
 		hp_ = 0.0f;
 		isDead_ = true;
 		Log("Player is dead");
 	}
+
+	// 被弾ポストエフェクトを起動
+	hitEffectTimer_ = 0.3f; // 表示する秒数
+	isHitEffectActive_ = true;
+
+	// エフェクトON
+	PostEffectManager::GetInstance()->EnableEffect("RadialBlurEffect");
 }
 
 

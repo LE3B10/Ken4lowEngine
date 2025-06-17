@@ -35,6 +35,17 @@ private: /// ---------- 構造体 ---------- ///
 		std::string category; // 任意（例："Visual", "Debug", "Color"など）
 	};
 
+public:
+
+	struct RenderTarget
+	{
+		ComPtr<ID3D12Resource> resource; // レンダーテクスチャリソース
+		D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle; // RTVハンドル
+		D3D12_RESOURCE_STATES state = D3D12_RESOURCE_STATE_COMMON; // リソース状態
+		uint32_t srvIndex = 0; // SRVインデックス
+		Vector4 clearColor = { 0.08f, 0.08f, 0.18f, 1.0f }; // クリアカラー
+	};
+
 public: /// ---------- メンバ関数 ---------- ///
 
 	// シングルトンインスタンス
@@ -57,6 +68,9 @@ public: /// ---------- メンバ関数 ---------- ///
 
 	// ImGuiの描画
 	void ImGuiRender();
+
+	void EnableEffect(const std::string& effectName) { effectEnableFlags_[effectName] = true; } // エフェクトを有効化
+	void DisableEffect(const std::string& effectName) { effectEnableFlags_[effectName] = false; }  // エフェクトを無効化
 
 private: /// ---------- メンバ関数 ---------- ///
 
@@ -85,6 +99,7 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	// エフェクトを有効にするかどうかのフラグ
 	std::unordered_map<std::string, bool> effectEnabled_;
+	std::unordered_map<std::string, bool> effectEnableFlags_; // エフェクトのON/OFFフラグ
 
 	// ポストエフェクトの適用順（名前と順序番号）
 	std::vector<std::pair<std::string, int>> effectOrder_;
@@ -107,16 +122,8 @@ private: /// ---------- メンバ変数 ---------- ///
 	D3D12_RESOURCE_STATES depthState_ = D3D12_RESOURCE_STATE_DEPTH_WRITE;
 	uint32_t dsvSrvIndex_ = 0;
 
-	// 複数のポストエフェクトを適用するためのリソース
-	ComPtr<ID3D12Resource> renderResourceA_;
-	ComPtr<ID3D12Resource> renderResourceB_;
-	uint32_t srvIndexA_;
-	uint32_t srvIndexB_;
-	D3D12_CPU_DESCRIPTOR_HANDLE rtvHandleA_;
-	D3D12_CPU_DESCRIPTOR_HANDLE rtvHandleB_;
-
-	D3D12_RESOURCE_STATES renderStateA_ = D3D12_RESOURCE_STATE_COMMON;
-	D3D12_RESOURCE_STATES renderStateB_ = D3D12_RESOURCE_STATE_COMMON;
+	static constexpr int kPostRTCount = 1; // ポストエフェクト用のレンダーテクスチャ数
+	std::vector<RenderTarget> renderTargets_; // レンダーテクスチャのリスト
 
 private: /// ---------- コピー禁止 ---------- ///
 
