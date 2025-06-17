@@ -1,0 +1,370 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <FxCompile Include="Resources\Shaders\PostEffect\AbsorbEffect.PS.hlsl">
+      <Filter>Shader</Filter>
+    </FxCompile>
+    <FxCompile Include="Resources\Shaders\PostEffect\DepthOutlineEffect.PS.hlsl">
+      <Filter>Shader</Filter>
+    </FxCompile>
+    <FxCompile Include="Resources\Shaders\PostEffect\DissolveEffect.PS.hlsl">
+      <Filter>Shader</Filter>
+    </FxCompile>
+    <FxCompile Include="Resources\Shaders\PostEffect\FullScreen.VS.hlsl">
+      <Filter>Shader</Filter>
+    </FxCompile>
+    <FxCompile Include="Resources\Shaders\PostEffect\GaussianFilterEffect.PS.hlsl">
+      <Filter>Shader</Filter>
+    </FxCompile>
+    <FxCompile Include="Resources\Shaders\PostEffect\GrayScaleEffect.PS.hlsl">
+      <Filter>Shader</Filter>
+    </FxCompile>
+    <FxCompile Include="Resources\Shaders\PostEffect\LuminanceOutlineEffect.PS.hlsl">
+      <Filter>Shader</Filter>
+    </FxCompile>
+    <FxCompile Include="Resources\Shaders\PostEffect\NormalEffect.PS.hlsl">
+      <Filter>Shader</Filter>
+    </FxCompile>
+    <FxCompile Include="Resources\Shaders\Object3d.PS.hlsl">
+      <Filter>Shader</Filter>
+    </FxCompile>
+    <FxCompile Include="Resources\Shaders\Object3d.VS.hlsl">
+      <Filter>Shader</Filter>
+    </FxCompile>
+    <FxCompile Include="Resources\Shaders\Particle.PS.hlsl">
+      <Filter>Shader</Filter>
+    </FxCompile>
+    <FxCompile Include="Resources\Shaders\Particle.VS.hlsl">
+      <Filter>Shader</Filter>
+    </FxCompile>
+    <FxCompile Include="Resources\Shaders\PostEffect\RadialBlurEffect.PS.hlsl">
+      <Filter>Shader</Filter>
+    </FxCompile>
+    <FxCompile Include="Resources\Shaders\PostEffect\RandomEffect.PS.hlsl">
+      <Filter>Shader</Filter>
+    </FxCompile>
+    <FxCompile Include="Resources\Shaders\SkinningObject3d.PS.hlsl">
+      <Filter>Shader</Filter>
+    </FxCompile>
+    <FxCompile Include="Resources\Shaders\SkinningObject3d.VS.hlsl">
+      <Filter>Shader</Filter>
+    </FxCompile>
+    <FxCompile Include="Resources\Shaders\SkyBox.PS.hlsl">
+      <Filter>Shader</Filter>
+    </FxCompile>
+    <FxCompile Include="Resources\Shaders\SkyBox.VS.hlsl">
+      <Filter>Shader</Filter>
+    </FxCompile>
+    <FxCompile Include="Resources\Shaders\PostEffect\SmoothingEffect.PS.hlsl">
+      <Filter>Shader</Filter>
+    </FxCompile>
+    <FxCompile Include="Resources\Shaders\Sprite.PS.hlsl">
+      <Filter>Shader</Filter>
+    </FxCompile>
+    <FxCompile Include="Resources\Shaders\Sprite.VS.hlsl">
+      <Filter>Shader</Filter>
+    </FxCompile>
+    <FxCompile Include="Resources\Shaders\PostEffect\VignetteEffect.PS.hlsl">
+      <Filter>Shader</Filter>
+    </FxCompile>
+    <FxCompile Include="Resources\Shaders\Wireframe.PS.hlsl">
+      <Filter>Shader</Filter>
+    </FxCompile>
+    <FxCompile Include="Resources\Shaders\Wireframe.VS.hlsl">
+      <Filter>Shader</Filter>
+    </FxCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="ApplicationLayer\Player\BaseCharacter.cpp" />
+    <ClCompile Include="ApplicationLayer\Player\Bullet.cpp" />
+    <ClCompile Include="ApplicationLayer\Crosshair\Crosshair.cpp" />
+    <ClCompile Include="ApplicationLayer\Enemy\Enemy.cpp" />
+    <ClCompile Include="ApplicationLayer\Colliders\CollisionUtility.cpp" />
+    <ClCompile Include="ApplicationLayer\Enemy\Grunt\EnemyAttackState.cpp" />
+    <ClCompile Include="ApplicationLayer\Enemy\EnemyBullet.cpp" />
+    <ClCompile Include="ApplicationLayer\Enemy\Grunt\EnemyChaseState.cpp" />
+    <ClCompile Include="ApplicationLayer\Enemy\Grunt\EnemyIdleState.cpp" />
+    <ClCompile Include="ApplicationLayer\Enemy\EnemyManager.cpp" />
+    <ClCompile Include="ApplicationLayer\Enemy\Boss\BossIdleState.cpp" />
+    <ClCompile Include="EngineLayer\PostEffectManagement\DepthOutlineEffect.cpp" />
+    <ClCompile Include="EngineLayer\Managers\AnimationManager\AnimationModel.cpp" />
+    <ClCompile Include="EngineLayer\Managers\AnimationManager\AnimationPipelineBuilder.cpp" />
+    <ClCompile Include="EngineLayer\Managers\AnimationManager\Skeleton.cpp" />
+    <ClCompile Include="EngineLayer\Managers\AnimationManager\SkinCluster.cpp" />
+    <ClCompile Include="EngineLayer\Mesh\AnimationMesh.cpp" />
+    <ClCompile Include="EngineLayer\Audio\AudioManager.cpp" />
+    <ClCompile Include="EngineLayer\Audio\MP3Loader.cpp" />
+    <ClCompile Include="EngineLayer\Managers\DX12CommandManager\DX12CommandManager.cpp" />
+    <ClCompile Include="EngineLayer\Managers\DX12FenceManager\DX12FenceManager.cpp" />
+    <ClCompile Include="EngineLayer\Managers\DXCCompilerManager\DXCCompilerManager.cpp" />
+    <ClCompile Include="EngineLayer\PostEffectManagement\AbsorbEffect.cpp" />
+    <ClCompile Include="EngineLayer\PostEffectManagement\DissolveEffect.cpp" />
+    <ClCompile Include="EngineLayer\Managers\ModelManager\AssimpLoader.cpp" />
+    <ClCompile Include="EngineLayer\Material\Material.cpp" />
+    <ClCompile Include="EngineLayer\Managers\DSVManager\DSVManager.cpp" />
+    <ClCompile Include="EngineLayer\Math\Quaternion\Quaternion.cpp" />
+    <ClCompile Include="EngineLayer\CameraManagement\DebugCamera\DebugCamera.cpp" />
+    <ClCompile Include="ApplicationLayer\Colliders\Collider.cpp" />
+    <ClCompile Include="ApplicationLayer\Colliders\CollisionManager.cpp" />
+    <ClCompile Include="ApplicationLayer\Colliders\ContactRecord.cpp" />
+    <ClCompile Include="ApplicationLayer\SceneManagement\AbstractSceneFactory\AbstractSceneFactory.cpp" />
+    <ClCompile Include="ApplicationLayer\SceneManagement\BaseScene\BaseScene.cpp" />
+    <ClCompile Include="EngineLayer\CameraManagement\Camera\Camera.cpp" />
+    <ClCompile Include="EngineLayer\WorldTransform\WorldTransform.cpp" />
+    <ClCompile Include="EngineLayer\ResourceChecker\LeakCheck\D3DResourceLeakChecker.cpp" />
+    <ClCompile Include="EngineLayer\Base\DirectXCommon\DirectXCommon.cpp" />
+    <ClCompile Include="EngineLayer\Base\DX12Device\DX12Device.cpp" />
+    <ClCompile Include="EngineLayer\Base\DX12SwapChain\DX12SwapChain.cpp" />
+    <ClCompile Include="Externals\imgui\imgui.cpp" />
+    <ClCompile Include="Externals\imgui\imgui_demo.cpp" />
+    <ClCompile Include="Externals\imgui\imgui_draw.cpp" />
+    <ClCompile Include="Externals\imgui\imgui_impl_dx12.cpp" />
+    <ClCompile Include="Externals\imgui\imgui_impl_win32.cpp" />
+    <ClCompile Include="Externals\imgui\imgui_tables.cpp" />
+    <ClCompile Include="Externals\imgui\imgui_widgets.cpp" />
+    <ClCompile Include="EngineLayer\Managers\ImGuiManager\ImGuiManager.cpp" />
+    <ClCompile Include="EngineLayer\Input\Input.cpp" />
+    <ClCompile Include="EngineLayer\FrameworkLayer\Log\LogString.cpp" />
+    <ClCompile Include="EngineLayer\FrameworkLayer\Framework\GameEngine.cpp" />
+    <ClCompile Include="EngineLayer\FrameworkLayer\Framework\Framework.cpp" />
+    <ClCompile Include="ApplicationLayer\Scene\GamePlayScene\GamePlayScene.cpp" />
+    <ClCompile Include="EngineLayer\Math\Matrix\Matrix4x4.cpp" />
+    <ClCompile Include="EngineLayer\3D\Model\Model.cpp" />
+    <ClCompile Include="EngineLayer\Managers\ModelManager\ModelManager.cpp" />
+    <ClCompile Include="EngineLayer\3D\Object3D\Object3D.cpp" />
+    <ClCompile Include="EngineLayer\Managers\ResourceManager\ResourceManager.cpp" />
+    <ClCompile Include="EngineLayer\ResourceChecker\ReleaseCheck\ResourceObject.cpp" />
+    <ClCompile Include="EngineLayer\Managers\ShaderManager\ShaderManager.cpp" />
+    <ClCompile Include="EngineLayer\2D\Sprite\Sprite.cpp" />
+    <ClCompile Include="EngineLayer\Managers\TextureManager\TextureManager.cpp" />
+    <ClCompile Include="EngineLayer\Math\Vectors\Vector2.cpp" />
+    <ClCompile Include="EngineLayer\Math\Vectors\Vector3.cpp" />
+    <ClCompile Include="EngineLayer\FrameworkLayer\WindowsAPI\WinApp.cpp" />
+    <ClCompile Include="EngineLayer\3D\Object3DCommon\Object3DCommon.cpp" />
+    <ClCompile Include="ApplicationLayer\EffectLayer\ParticleEmitter.cpp" />
+    <ClCompile Include="EngineLayer\Managers\ParticleManager\ParticleManager.cpp" />
+    <ClCompile Include="EngineLayer\Audio\WavLoader.cpp" />
+    <ClCompile Include="EngineLayer\Managers\SRVManager\SRVManager.cpp" />
+    <ClCompile Include="ApplicationLayer\SceneManagement\SceneFactory\SceneFactory.cpp" />
+    <ClCompile Include="ApplicationLayer\SceneManagement\SceneManager\SceneManager.cpp" />
+    <ClCompile Include="ApplicationLayer\Scene\TitleScene\TitleScene.cpp" />
+    <ClCompile Include="EngineLayer\Managers\ParameterManager\ParameterManager.cpp" />
+    <ClCompile Include="EngineLayer\Managers\LightManager\LightManager.cpp" />
+    <ClCompile Include="ApplicationLayer\Scene\GameClearScene\GameClearScene.cpp" />
+    <ClCompile Include="ApplicationLayer\Scene\GameOverScene\GameOverScene.cpp" />
+    <ClCompile Include="EngineLayer\FPSCounter\FPSCounter.cpp" />
+    <ClCompile Include="EngineLayer\3D\SkyBox\SkyBox.cpp" />
+    <ClCompile Include="EngineLayer\Managers\SkyBoxManager\SkyBoxManager.cpp" />
+    <ClCompile Include="EngineLayer\Managers\SpriteManager\SpriteManager.cpp" />
+    <ClCompile Include="EngineLayer\Managers\PostEffectManager\PostEffectManager.cpp" />
+    <ClCompile Include="EngineLayer\Managers\RTVManager\RTVManager.cpp" />
+    <ClCompile Include="EngineLayer\Material\ParticleMaterial.cpp" />
+    <ClCompile Include="EngineLayer\Mesh\Mesh.cpp" />
+    <ClCompile Include="EngineLayer\WorldTransform\ParticleTransform.cpp" />
+    <ClCompile Include="EngineLayer\Mesh\ParticleMesh.cpp" />
+    <ClCompile Include="EngineLayer\PostEffectManagement\GaussianFilterEffect.cpp" />
+    <ClCompile Include="EngineLayer\PostEffectManagement\GrayScaleEffect.cpp" />
+    <ClCompile Include="EngineLayer\PostEffectManagement\IPostEffect.cpp" />
+    <ClCompile Include="EngineLayer\PostEffectManagement\LuminanceOutlineEffect.cpp" />
+    <ClCompile Include="EngineLayer\PostEffectManagement\NormalEffect.cpp" />
+    <ClCompile Include="EngineLayer\PostEffectManagement\PostEffectPipelineBuilder.cpp" />
+    <ClCompile Include="EngineLayer\PostEffectManagement\RadialBlurEffect.cpp" />
+    <ClCompile Include="EngineLayer\PostEffectManagement\RandomEffect.cpp" />
+    <ClCompile Include="EngineLayer\PostEffectManagement\SmoothingEffect.cpp" />
+    <ClCompile Include="EngineLayer\PostEffectManagement\VignetteEffect.cpp" />
+    <ClCompile Include="ApplicationLayer\Player\Player.cpp" />
+    <ClCompile Include="ApplicationLayer\Player\PlayerController.cpp" />
+    <ClCompile Include="EngineLayer\CameraManagement\FPSCamera\FpsCamera.cpp" />
+    <ClCompile Include="EngineLayer\ParticleManagement\ParticleFactory.cpp" />
+    <ClCompile Include="ApplicationLayer\Weapon\Weapon.cpp" />
+    <ClCompile Include="EngineLayer\2D\Sprite\NumberSpriteDrawer.cpp" />
+    <ClCompile Include="ApplicationLayer\Enemy\Grunt\IEnemyState.cpp" />
+    <ClCompile Include="ApplicationLayer\Scene\GamePlayScene\HUDManager\HUDManager.cpp" />
+    <ClCompile Include="ApplicationLayer\ScoreManager\ScoreManager.cpp" />
+    <ClCompile Include="ApplicationLayer\Colliders\IDGenerator.cpp" />
+    <ClCompile Include="ApplicationLayer\ReloadCircle\ReloadCircle.cpp" />
+    <ClCompile Include="ApplicationLayer\ResultManager\ResultManager.cpp" />
+    <ClCompile Include="ApplicationLayer\Item\Item.cpp" />
+    <ClCompile Include="ApplicationLayer\Item\ItemDropTable.cpp" />
+    <ClCompile Include="ApplicationLayer\Item\ItemManager.cpp" />
+    <ClCompile Include="ApplicationLayer\Enemy\Sniper\SniperIdleState.cpp" />
+    <ClCompile Include="ApplicationLayer\Enemy\Tank\TankIdleState.cpp" />
+    <ClCompile Include="WinMain.cpp" />
+    <ClCompile Include="EngineLayer\2D\Wireframe\Wireframe.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="ApplicationLayer\Player\BaseCharacter.h" />
+    <ClInclude Include="ApplicationLayer\Player\Bullet.h" />
+    <ClInclude Include="ApplicationLayer\Crosshair\Crosshair.h" />
+    <ClInclude Include="ApplicationLayer\Enemy\Enemy.h" />
+    <ClInclude Include="ApplicationLayer\Colliders\CollisionUtility.h" />
+    <ClInclude Include="ApplicationLayer\Enemy\Grunt\EnemyAttackState.h" />
+    <ClInclude Include="ApplicationLayer\Enemy\EnemyBullet.h" />
+    <ClInclude Include="ApplicationLayer\Enemy\Grunt\EnemyChaseState.h" />
+    <ClInclude Include="ApplicationLayer\Enemy\Grunt\EnemyIdleState.h" />
+    <ClInclude Include="ApplicationLayer\Enemy\EnemyManager.h" />
+    <ClInclude Include="ApplicationLayer\Enemy\Boss\BossIdleState.h" />
+    <ClInclude Include="EngineLayer\PostEffectManagement\DepthOutlineEffect.h" />
+    <ClInclude Include="EngineLayer\Managers\AnimationManager\AnimationModel.h" />
+    <ClInclude Include="EngineLayer\Managers\AnimationManager\AnimationPipelineBuilder.h" />
+    <ClInclude Include="EngineLayer\Managers\AnimationManager\Skeleton.h" />
+    <ClInclude Include="EngineLayer\Managers\AnimationManager\SkinCluster.h" />
+    <ClInclude Include="EngineLayer\Math\Line.h" />
+    <ClInclude Include="EngineLayer\Math\Plane.h" />
+    <ClInclude Include="EngineLayer\Math\Ray.h" />
+    <ClInclude Include="EngineLayer\Math\Segment.h" />
+    <ClInclude Include="EngineLayer\Math\Triangle.h" />
+    <ClInclude Include="EngineLayer\Mesh\AnimationMesh.h" />
+    <ClInclude Include="EngineLayer\Audio\AudioCategory.h" />
+    <ClInclude Include="EngineLayer\Audio\AudioManager.h" />
+    <ClInclude Include="EngineLayer\Audio\MP3Loader.h" />
+    <ClInclude Include="EngineLayer\Managers\DX12CommandManager\DX12CommandManager.h" />
+    <ClInclude Include="EngineLayer\Managers\DX12FenceManager\DX12FenceManager.h" />
+    <ClInclude Include="EngineLayer\Managers\DXCCompilerManager\DXCCompilerManager.h" />
+    <ClInclude Include="EngineLayer\ParticleManagement\ParticleEffectType.h" />
+    <ClInclude Include="EngineLayer\PostEffectManagement\AbsorbEffect.h" />
+    <ClInclude Include="EngineLayer\PostEffectManagement\DissolveEffect.h" />
+    <ClInclude Include="EngineLayer\Managers\ModelManager\AssimpLoader.h" />
+    <ClInclude Include="EngineLayer\Managers\DSVManager\DSVManager.h" />
+    <ClInclude Include="EngineLayer\Math\Quaternion\Quaternion.h" />
+    <ClInclude Include="EngineLayer\CameraManagement\DebugCamera\DebugCamera.h" />
+    <ClInclude Include="ApplicationLayer\Colliders\Collider.h" />
+    <ClInclude Include="ApplicationLayer\Colliders\CollisionManager.h" />
+    <ClInclude Include="ApplicationLayer\Colliders\CollisionTypeIdDef.h" />
+    <ClInclude Include="ApplicationLayer\Colliders\ContactRecord.h" />
+    <ClInclude Include="ApplicationLayer\SceneManagement\AbstractSceneFactory\AbstractSceneFactory.h" />
+    <ClInclude Include="ApplicationLayer\SceneManagement\BaseScene\BaseScene.h" />
+    <ClInclude Include="EngineLayer\Math\AABB.h" />
+    <ClInclude Include="EngineLayer\Audio\AudioStructs.h" />
+    <ClInclude Include="ApplicationLayer\EffectLayer\Emitter.h" />
+    <ClInclude Include="EngineLayer\CameraManagement\Camera\Camera.h" />
+    <ClInclude Include="EngineLayer\Base\MultipleStructs\VertexData.h" />
+    <ClInclude Include="EngineLayer\WorldTransform\WorldTransform.h" />
+    <ClInclude Include="EngineLayer\ResourceChecker\LeakCheck\D3DResourceLeakChecker.h" />
+    <ClInclude Include="EngineLayer\Base\DirectXCommon\DirectXCommon.h" />
+    <ClInclude Include="EngineLayer\Base\DX12Device\DX12Device.h" />
+    <ClInclude Include="EngineLayer\Base\MultipleStructs\DX12Include.h" />
+    <ClInclude Include="EngineLayer\Base\DX12SwapChain\DX12SwapChain.h" />
+    <ClInclude Include="EngineLayer\Base\MultipleStructs\BlendModeType.h" />
+    <ClInclude Include="Externals\Audio\minimp3\minimp3.h" />
+    <ClInclude Include="Externals\Audio\minimp3\minimp3_ex.h" />
+    <ClInclude Include="Externals\imgui\imconfig.h" />
+    <ClInclude Include="Externals\imgui\imgui.h" />
+    <ClInclude Include="Externals\imgui\imgui_impl_dx12.h" />
+    <ClInclude Include="Externals\imgui\imgui_impl_win32.h" />
+    <ClInclude Include="Externals\imgui\imgui_internal.h" />
+    <ClInclude Include="Externals\imgui\imstb_rectpack.h" />
+    <ClInclude Include="Externals\imgui\imstb_textedit.h" />
+    <ClInclude Include="Externals\imgui\imstb_truetype.h" />
+    <ClInclude Include="EngineLayer\Managers\ImGuiManager\ImGuiManager.h" />
+    <ClInclude Include="EngineLayer\Input\Input.h" />
+    <ClInclude Include="EngineLayer\FrameworkLayer\Log\LogString.h" />
+    <ClInclude Include="EngineLayer\Material\Material.h" />
+    <ClInclude Include="EngineLayer\Math\Matrix\Matrix4x4.h" />
+    <ClInclude Include="EngineLayer\3D\Model\Model.h" />
+    <ClInclude Include="EngineLayer\Base\MultipleStructs\ModelData.h" />
+    <ClInclude Include="EngineLayer\Managers\ModelManager\ModelManager.h" />
+    <ClInclude Include="EngineLayer\3D\Object3D\Object3D.h" />
+    <ClInclude Include="EngineLayer\Managers\ResourceManager\ResourceManager.h" />
+    <ClInclude Include="EngineLayer\ResourceChecker\ReleaseCheck\ResourceObject.h" />
+    <ClInclude Include="EngineLayer\Managers\ShaderManager\ShaderManager.h" />
+    <ClInclude Include="EngineLayer\2D\Sprite\Sprite.h" />
+    <ClInclude Include="EngineLayer\Managers\TextureManager\TextureManager.h" />
+    <ClInclude Include="EngineLayer\Math\Vectors\Vector2.h" />
+    <ClInclude Include="EngineLayer\Math\Vectors\Vector3.h" />
+    <ClInclude Include="EngineLayer\Math\Vectors\Vector4.h" />
+    <ClInclude Include="EngineLayer\FrameworkLayer\WindowsAPI\WinApp.h" />
+    <ClInclude Include="EngineLayer\3D\Object3DCommon\Object3DCommon.h" />
+    <ClInclude Include="ApplicationLayer\EffectLayer\ParticleEmitter.h" />
+    <ClInclude Include="EngineLayer\Managers\ParticleManager\ParticleManager.h" />
+    <ClInclude Include="EngineLayer\Audio\WavLoader.h" />
+    <ClInclude Include="EngineLayer\FrameworkLayer\Framework\GameEngine.h" />
+    <ClInclude Include="EngineLayer\Managers\SRVManager\SRVManager.h" />
+    <ClInclude Include="EngineLayer\Audio\WavLoaderException.h" />
+    <ClInclude Include="EngineLayer\FrameworkLayer\Framework\Framework.h" />
+    <ClInclude Include="ApplicationLayer\Scene\GamePlayScene\GamePlayScene.h" />
+    <ClInclude Include="ApplicationLayer\SceneManagement\SceneFactory\SceneFactory.h" />
+    <ClInclude Include="ApplicationLayer\SceneManagement\SceneManager\SceneManager.h" />
+    <ClInclude Include="ApplicationLayer\Scene\TitleScene\TitleScene.h" />
+    <ClInclude Include="EngineLayer\Managers\ParameterManager\ParameterManager.h" />
+    <ClInclude Include="EngineLayer\Managers\LightManager\LightManager.h" />
+    <ClInclude Include="ApplicationLayer\Scene\GameClearScene\GameClearScene.h" />
+    <ClInclude Include="ApplicationLayer\Scene\GameOverScene\GameOverScene.h" />
+    <ClInclude Include="EngineLayer\Math\OBB.h" />
+    <ClInclude Include="EngineLayer\2D\Wireframe\Wireframe.h" />
+    <ClInclude Include="EngineLayer\FPSCounter\FPSCounter.h" />
+    <ClInclude Include="EngineLayer\3D\SkyBox\SkyBox.h" />
+    <ClInclude Include="EngineLayer\Managers\SkyBoxManager\SkyBoxManager.h" />
+    <ClInclude Include="EngineLayer\Managers\SpriteManager\SpriteManager.h" />
+    <ClInclude Include="EngineLayer\Managers\PostEffectManager\PostEffectManager.h" />
+    <ClInclude Include="EngineLayer\Managers\RTVManager\RTVManager.h" />
+    <ClInclude Include="EngineLayer\Math\Matrix\TransformationMatrix.h" />
+    <ClInclude Include="EngineLayer\Material\ParticleMaterial.h" />
+    <ClInclude Include="EngineLayer\Mesh\Mesh.h" />
+    <ClInclude Include="EngineLayer\WorldTransform\ParticleTransform.h" />
+    <ClInclude Include="ApplicationLayer\EffectLayer\Particle.h" />
+    <ClInclude Include="EngineLayer\Mesh\ParticleMesh.h" />
+    <ClInclude Include="EngineLayer\PostEffectManagement\GaussianFilterEffect.h" />
+    <ClInclude Include="EngineLayer\PostEffectManagement\GrayScaleEffect.h" />
+    <ClInclude Include="EngineLayer\PostEffectManagement\IPostEffect.h" />
+    <ClInclude Include="EngineLayer\PostEffectManagement\LuminanceOutlineEffect.h" />
+    <ClInclude Include="EngineLayer\PostEffectManagement\NormalEffect.h" />
+    <ClInclude Include="EngineLayer\PostEffectManagement\PostEffectPipelineBuilder.h" />
+    <ClInclude Include="EngineLayer\PostEffectManagement\RadialBlurEffect.h" />
+    <ClInclude Include="EngineLayer\PostEffectManagement\RandomEffect.h" />
+    <ClInclude Include="EngineLayer\PostEffectManagement\SmoothingEffect.h" />
+    <ClInclude Include="EngineLayer\PostEffectManagement\VignetteEffect.h" />
+    <ClInclude Include="ApplicationLayer\Player\Player.h" />
+    <ClInclude Include="ApplicationLayer\Player\PlayerController.h" />
+    <ClInclude Include="EngineLayer\CameraManagement\FPSCamera\FpsCamera.h" />
+    <ClInclude Include="EngineLayer\ParticleManagement\ParticleFactory.h" />
+    <ClInclude Include="ApplicationLayer\Weapon\Weapon.h" />
+    <ClInclude Include="EngineLayer\2D\Sprite\NumberSpriteDrawer.h" />
+    <ClInclude Include="EngineLayer\Math\Sphere.h" />
+    <ClInclude Include="ApplicationLayer\Enemy\Grunt\IEnemyState.h" />
+    <ClInclude Include="ApplicationLayer\Scene\GamePlayScene\HUDManager\HUDManager.h" />
+    <ClInclude Include="ApplicationLayer\ScoreManager\ScoreManager.h" />
+    <ClInclude Include="ApplicationLayer\Colliders\IDGenerator.h" />
+    <ClInclude Include="ApplicationLayer\Weapon\WeaponType.h" />
+    <ClInclude Include="ApplicationLayer\ReloadCircle\ReloadCircle.h" />
+    <ClInclude Include="ApplicationLayer\ResultManager\ResultManager.h" />
+    <ClInclude Include="ApplicationLayer\Item\Item.h" />
+    <ClInclude Include="ApplicationLayer\Item\ItemDropTable.h" />
+    <ClInclude Include="ApplicationLayer\Item\ItemManager.h" />
+    <ClInclude Include="ApplicationLayer\Item\ItemType.h" />
+    <ClInclude Include="ApplicationLayer\Enemy\Sniper\SniperIdleState.h" />
+    <ClInclude Include="ApplicationLayer\Enemy\Tank\TankIdleState.h" />
+    <ClInclude Include="EngineLayer\Math\LinearInterpolation.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\Shaders\PostEffect\FullScreen.hlsli">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="Resources\Shaders\Object3d.hlsli">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="Resources\Shaders\Particle.hlsli">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="Resources\Shaders\SkinningObject3d.hlsli">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="Resources\Shaders\SkyBox.hlsli">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="Resources\Shaders\Sprite.hlsli">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="Resources\Shaders\Wireframe.hlsli">
+      <Filter>Shader</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="Externals\imgui\LICENSE.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Shader">
+      <UniqueIdentifier>{4446ba08-252a-48a6-a2ee-2b5d83326bb8}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

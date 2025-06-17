@@ -8,6 +8,7 @@
 
 /// ---------- 前方宣言 ---------- ///
 class FpsCamera;
+class Crosshair;
 
 
 //// -------------------------------------------------------------
@@ -108,6 +109,9 @@ public: /// ---------- ゲッタ ---------- ///
 	// 最大スタミナを取得
 	float GetMaxStamina() const { return maxStamina_; }
 
+	// クロスヘアを取得
+	Crosshair* GetCrosshair() const { return crosshair_; }
+
 public: /// ---------- セッタ ---------- ///
 
 	// 追従カメラを設定
@@ -134,11 +138,15 @@ public: /// ---------- セッタ ---------- ///
 	// しゃがみを設定
 	void SetCrouching(bool isCrouching) { isCrouching_ = isCrouching; }
 
+	// クロスヘアを設定
+	void SetCrosshair(Crosshair* crosshair) { crosshair_ = crosshair; }
+
 private: /// ---------- メンバ変数 ---------- ///
 
 	Input* input_ = nullptr; // 入力クラス
 	Camera* camera_ = nullptr; // カメラクラス
 	FpsCamera* fpsCamera_ = nullptr;
+	Crosshair* crosshair_ = nullptr; // クロスヘアクラス
 
 	std::vector<std::unique_ptr<Weapon>> weapons_; // 武器クラス
 	int currentWeaponIndex_ = 0; // 現在の武器インデックス
@@ -162,6 +170,8 @@ private: /// ---------- ダッシュ機能 ---------- ///
 	float baseSpeed_ = 0.1f;
 	float dashMultiplier_ = 2.0f;
 
+private: /// ---------- スタミナシステム ---------- ///
+
 	float stamina_ = 100.0f;        // 現在のスタミナ
 	float maxStamina_ = 100.0f;     // 最大スタミナ
 	float staminaRegenRate_ = 15.0f; // 1秒あたりの回復量
@@ -178,12 +188,23 @@ private: /// ---------- プレイヤーの状態 ---------- ///
 	float maxHP_ = 1000.0f; // プレイヤーの最大HP
 	bool isDead_ = false; // 死亡フラグ
 
+private: /// ---------- エイミング機能 ---------- ///
+
 	bool isAiming_ = false; // エイミング状態
 	float adsSpeedFactor_ = 0.25f;  // ADS時の移動速度倍率（例：50%）
+
+private: /// ---------- しゃがみ機能 ---------- ///
 
 	// しゃがむ機能
 	bool isCrouching_ = false; // しゃがみ状態
 	float crouchingSpeed_ = 0.25f; // しゃがみ時の移動速度
+
+private: /// ---------- ヒットエフェクト ---------- ///
+
+	float hitEffectTimer_ = 0.0f; // ヒットエフェクトのタイマー
+	bool isHitEffectActive_ = false; // ヒットエフェクトがアクティブかどうか
+
+private: /// ---------- デバッグカメラフラグ ---------- ///
 
 	bool isDebugCamera_ = false; // デバッグカメラフラグ
 };

@@ -73,6 +73,9 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	GameState gameState_ = GameState::Playing; // ゲームの状態
 
+	// 3Dオブジェクト
+	std::unique_ptr<Object3D> terrein_ = nullptr; // 地形オブジェクト
+
 	std::unique_ptr<Player> player_ = nullptr; // プレイヤーオブジェクト
 	std::unique_ptr<FpsCamera> fpsCamera_ = nullptr; // カメラオブジェクト
 	std::unique_ptr<Crosshair> crosshair_ = nullptr; // クロスヘアオブジェクト

@@ -6,6 +6,10 @@
 
 #include <memory>
 
+/// ---------- 前方宣言 ---------- ///
+class Player;
+
+
 /// -------------------------------------------------------------
 ///				　		弾丸クラス
 /// -------------------------------------------------------------
@@ -46,7 +50,11 @@ public: /// ---------- メンバ関数 ---------- ///
 	// Segmentを返す（Colliderの仮想関数をオーバーライド）
 	Segment GetSegment() const override { return segment_; }
 
+	void SetPlayer(Player* player) { player_ = player; } // プレイヤーへの参照を設定
+
 private: /// ---------- メンバ変数 ---------- ///
+
+	Player* player_ = nullptr; // プレイヤーへの参照（必要なら）
 
 	std::unique_ptr<Object3D> model_;     // モデル
 	Vector3 position_ = {};               // 現在位置

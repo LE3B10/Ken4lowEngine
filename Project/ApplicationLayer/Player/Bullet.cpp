@@ -3,6 +3,8 @@
 #include <ScoreManager.h>
 #include <Enemy.h>
 #include <Wireframe.h>
+#include <Player.h>
+#include <Crosshair.h>
 
 
 /// -------------------------------------------------------------
@@ -89,6 +91,15 @@ void Bullet::OnCollision(Collider* other)
 	if (auto enemy = dynamic_cast<Enemy*>(other))
 	{
 		enemy->TakeDamage(GetDamage());
+
+		// 🔽 ヒットマーカー通知
+		if (player_) 
+		{
+			if (auto crosshair = player_->GetCrosshair())
+			{
+				crosshair->ShowHitMarker();
+			}
+		}
 
 		if (enemy->IsDead())
 		{

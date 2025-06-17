@@ -187,6 +187,10 @@ void Weapon::FireSingleBullet(const Vector3& pos, const Vector3& dir)
 	bullet->SetPosition(pos);
 	bullet->SetVelocity(dir * bulletSpeed_);
 	bullet->SetDamage(ammoInfo_.bulletDamage);  // ← 新しく追加
+
+	// 🔽 命中通知用に Player を渡す
+	bullet->SetPlayer(player_);
+
 	bullets_.push_back(std::move(bullet));
 
 	// ショットガン発射時は FireShotgunSpread 側で消費するのでここでは減らさない
