@@ -126,6 +126,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClCompile Include="EngineLayer\Managers\DXCCompilerManager\DXCCompilerManager.cpp" />
     <ClCompile Include="EngineLayer\ParticleManagement\ParticleFactory.cpp" />
     <ClCompile Include="EngineLayer\PostEffectManagement\AbsorbEffect.cpp" />
+    <ClCompile Include="EngineLayer\PostEffectManagement\DepthOutlineEffect.cpp" />
     <ClCompile Include="EngineLayer\PostEffectManagement\DissolveEffect.cpp" />
     <ClCompile Include="EngineLayer\Managers\ModelManager\AssimpLoader.cpp" />
     <ClCompile Include="EngineLayer\Material\Material.cpp" />
@@ -367,6 +368,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="EngineLayer\ParticleManagement\ParticleEffectType.h" />
     <ClInclude Include="EngineLayer\ParticleManagement\ParticleFactory.h" />
     <ClInclude Include="EngineLayer\PostEffectManagement\AbsorbEffect.h" />
+    <ClInclude Include="EngineLayer\PostEffectManagement\DepthOutlineEffect.h" />
     <ClInclude Include="EngineLayer\PostEffectManagement\DissolveEffect.h" />
     <ClInclude Include="EngineLayer\Managers\ModelManager\AssimpLoader.h" />
     <ClInclude Include="EngineLayer\Managers\DSVManager\DSVManager.h" />

@@ -39,7 +39,6 @@ void GamePlayScene::Initialize()
 	// terrainの生成と初期化
 	objectTerrain_ = std::make_unique<Object3D>();
 	objectTerrain_->Initialize("terrain.obj");
-	objectTerrain_->SetTranslate({ 0.0f, -1.0f, 0.0f });
 	objectTerrain_->SetReflectivity(0.0f);
 
 	objectBall_ = std::make_unique<Object3D>();
