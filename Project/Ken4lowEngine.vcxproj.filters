@@ -79,21 +79,6 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="WinMain.cpp" />
-    <ClCompile Include="EngineLayer\PostEffectManagement\AbsorbEffect.cpp">
-      <Filter>EngineLayer</Filter>
-    </ClCompile>
-    <ClCompile Include="ApplicationLayer\SceneManagement\AbstractSceneFactory\AbstractSceneFactory.cpp">
-      <Filter>EngineLayer</Filter>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\Mesh\AnimationMesh.cpp">
-      <Filter>EngineLayer</Filter>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\3D\AnimationManagement\AnimationModel.cpp">
-      <Filter>EngineLayer</Filter>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\3D\AnimationManagement\AnimationPipelineBuilder.cpp">
-      <Filter>EngineLayer</Filter>
-    </ClCompile>
     <ClCompile Include="EngineLayer\Managers\ModelManager\AssimpLoader.cpp">
       <Filter>EngineLayer</Filter>
     </ClCompile>
@@ -101,9 +86,6 @@
       <Filter>EngineLayer</Filter>
     </ClCompile>
     <ClCompile Include="ApplicationLayer\SceneManagement\BaseScene\BaseScene.cpp">
-      <Filter>EngineLayer</Filter>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\CameraManagement\Camera\Camera.cpp">
       <Filter>EngineLayer</Filter>
     </ClCompile>
     <ClCompile Include="ApplicationLayer\Colliders\Collider.cpp">
@@ -118,13 +100,7 @@
     <ClCompile Include="EngineLayer\ResourceChecker\LeakCheck\D3DResourceLeakChecker.cpp">
       <Filter>EngineLayer</Filter>
     </ClCompile>
-    <ClCompile Include="EngineLayer\CameraManagement\DebugCamera\DebugCamera.cpp">
-      <Filter>EngineLayer</Filter>
-    </ClCompile>
     <ClCompile Include="EngineLayer\Base\DirectXCommon\DirectXCommon.cpp">
-      <Filter>EngineLayer</Filter>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\PostEffectManagement\DissolveEffect.cpp">
       <Filter>EngineLayer</Filter>
     </ClCompile>
     <ClCompile Include="EngineLayer\Managers\DSVManager\DSVManager.cpp">
@@ -163,16 +139,7 @@
     <ClCompile Include="ApplicationLayer\Scene\GamePlayScene\GamePlayScene.cpp">
       <Filter>ApplicationLayer</Filter>
     </ClCompile>
-    <ClCompile Include="EngineLayer\PostEffectManagement\GaussianFilterEffect.cpp">
-      <Filter>EngineLayer</Filter>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\PostEffectManagement\GrayScaleEffect.cpp">
-      <Filter>EngineLayer</Filter>
-    </ClCompile>
     <ClCompile Include="EngineLayer\Input\Input.cpp">
-      <Filter>EngineLayer</Filter>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\PostEffectManagement\IPostEffect.cpp">
       <Filter>EngineLayer</Filter>
     </ClCompile>
     <ClCompile Include="EngineLayer\3D\LevelData\LevelLoader.cpp">
@@ -187,13 +154,7 @@
     <ClCompile Include="EngineLayer\FrameworkLayer\Log\LogString.cpp">
       <Filter>EngineLayer</Filter>
     </ClCompile>
-    <ClCompile Include="EngineLayer\PostEffectManagement\LuminanceOutlineEffect.cpp">
-      <Filter>EngineLayer</Filter>
-    </ClCompile>
     <ClCompile Include="EngineLayer\Material\Material.cpp">
-      <Filter>EngineLayer</Filter>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\Math\Matrix\Matrix4x4.cpp">
       <Filter>EngineLayer</Filter>
     </ClCompile>
     <ClCompile Include="EngineLayer\Mesh\Mesh.cpp">
@@ -209,9 +170,6 @@
       <Filter>EngineLayer</Filter>
     </ClCompile>
     <ClCompile Include="EngineLayer\Audio\MP3Loader.cpp">
-      <Filter>EngineLayer</Filter>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\PostEffectManagement\NormalEffect.cpp">
       <Filter>EngineLayer</Filter>
     </ClCompile>
     <ClCompile Include="EngineLayer\3D\Object3D\Object3D.cpp">
@@ -238,21 +196,6 @@
     <ClCompile Include="EngineLayer\WorldTransform\ParticleTransform.cpp">
       <Filter>EngineLayer</Filter>
     </ClCompile>
-    <ClCompile Include="EngineLayer\Managers\PostEffectManager\PostEffectManager.cpp">
-      <Filter>EngineLayer</Filter>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\PostEffectManagement\PostEffectPipelineBuilder.cpp">
-      <Filter>EngineLayer</Filter>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\Math\Quaternion\Quaternion.cpp">
-      <Filter>EngineLayer</Filter>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\PostEffectManagement\RadialBlurEffect.cpp">
-      <Filter>EngineLayer</Filter>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\PostEffectManagement\RandomEffect.cpp">
-      <Filter>EngineLayer</Filter>
-    </ClCompile>
     <ClCompile Include="EngineLayer\Managers\ResourceManager\ResourceManager.cpp">
       <Filter>EngineLayer</Filter>
     </ClCompile>
@@ -265,19 +208,10 @@
     <ClCompile Include="EngineLayer\Managers\ShaderManager\ShaderManager.cpp">
       <Filter>EngineLayer</Filter>
     </ClCompile>
-    <ClCompile Include="EngineLayer\3D\AnimationManagement\Skeleton.cpp">
-      <Filter>EngineLayer</Filter>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\3D\AnimationManagement\SkinCluster.cpp">
-      <Filter>EngineLayer</Filter>
-    </ClCompile>
     <ClCompile Include="EngineLayer\3D\SkyBox\SkyBox.cpp">
       <Filter>EngineLayer</Filter>
     </ClCompile>
     <ClCompile Include="EngineLayer\Managers\SkyBoxManager\SkyBoxManager.cpp">
-      <Filter>EngineLayer</Filter>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\PostEffectManagement\SmoothingEffect.cpp">
       <Filter>EngineLayer</Filter>
     </ClCompile>
     <ClCompile Include="EngineLayer\2D\Sprite\Sprite.cpp">
@@ -325,16 +259,7 @@
     <ClCompile Include="Externals\imgui\imgui_widgets.cpp">
       <Filter>Externals\imgui</Filter>
     </ClCompile>
-    <ClCompile Include="EngineLayer\PostEffectManagement\VignetteEffect.cpp">
-      <Filter>EngineLayer</Filter>
-    </ClCompile>
     <ClCompile Include="EngineLayer\Audio\WavLoader.cpp">
-      <Filter>EngineLayer</Filter>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\Math\Vectors\Vector2.cpp">
-      <Filter>EngineLayer</Filter>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\Math\Vectors\Vector3.cpp">
       <Filter>EngineLayer</Filter>
     </ClCompile>
     <ClCompile Include="EngineLayer\FrameworkLayer\WindowsAPI\WinApp.cpp">
@@ -346,26 +271,86 @@
     <ClCompile Include="EngineLayer\WorldTransform\WorldTransform.cpp">
       <Filter>EngineLayer</Filter>
     </ClCompile>
+    <ClCompile Include="EngineLayer\Math\Matrix\Matrix4x4.cpp">
+      <Filter>EngineLayer\Math</Filter>
+    </ClCompile>
+    <ClCompile Include="EngineLayer\Math\Vectors\Vector2.cpp">
+      <Filter>EngineLayer\Math</Filter>
+    </ClCompile>
+    <ClCompile Include="EngineLayer\Math\Vectors\Vector3.cpp">
+      <Filter>EngineLayer\Math</Filter>
+    </ClCompile>
+    <ClCompile Include="EngineLayer\CameraManagement\Camera\Camera.cpp">
+      <Filter>EngineLayer\Camera</Filter>
+    </ClCompile>
+    <ClCompile Include="EngineLayer\CameraManagement\DebugCamera\DebugCamera.cpp">
+      <Filter>EngineLayer\Camera</Filter>
+    </ClCompile>
+    <ClCompile Include="EngineLayer\Math\Quaternion\Quaternion.cpp">
+      <Filter>EngineLayer\Math</Filter>
+    </ClCompile>
+    <ClCompile Include="EngineLayer\PostEffectManagement\AbsorbEffect.cpp">
+      <Filter>EngineLayer\PostEffect</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\SceneManagement\AbstractSceneFactory\AbstractSceneFactory.cpp">
+      <Filter>EngineLayer\PostEffect</Filter>
+    </ClCompile>
+    <ClCompile Include="EngineLayer\PostEffectManagement\DissolveEffect.cpp">
+      <Filter>EngineLayer\PostEffect</Filter>
+    </ClCompile>
+    <ClCompile Include="EngineLayer\PostEffectManagement\GaussianFilterEffect.cpp">
+      <Filter>EngineLayer\PostEffect</Filter>
+    </ClCompile>
+    <ClCompile Include="EngineLayer\PostEffectManagement\GrayScaleEffect.cpp">
+      <Filter>EngineLayer\PostEffect</Filter>
+    </ClCompile>
+    <ClCompile Include="EngineLayer\PostEffectManagement\IPostEffect.cpp">
+      <Filter>EngineLayer\PostEffect</Filter>
+    </ClCompile>
+    <ClCompile Include="EngineLayer\PostEffectManagement\LuminanceOutlineEffect.cpp">
+      <Filter>EngineLayer\PostEffect</Filter>
+    </ClCompile>
+    <ClCompile Include="EngineLayer\PostEffectManagement\NormalEffect.cpp">
+      <Filter>EngineLayer\PostEffect</Filter>
+    </ClCompile>
+    <ClCompile Include="EngineLayer\Managers\PostEffectManager\PostEffectManager.cpp">
+      <Filter>EngineLayer\PostEffect</Filter>
+    </ClCompile>
+    <ClCompile Include="EngineLayer\PostEffectManagement\PostEffectPipelineBuilder.cpp">
+      <Filter>EngineLayer\PostEffect</Filter>
+    </ClCompile>
+    <ClCompile Include="EngineLayer\PostEffectManagement\RadialBlurEffect.cpp">
+      <Filter>EngineLayer\PostEffect</Filter>
+    </ClCompile>
+    <ClCompile Include="EngineLayer\PostEffectManagement\RandomEffect.cpp">
+      <Filter>EngineLayer\PostEffect</Filter>
+    </ClCompile>
+    <ClCompile Include="EngineLayer\PostEffectManagement\SmoothingEffect.cpp">
+      <Filter>EngineLayer\PostEffect</Filter>
+    </ClCompile>
+    <ClCompile Include="EngineLayer\PostEffectManagement\VignetteEffect.cpp">
+      <Filter>EngineLayer\PostEffect</Filter>
+    </ClCompile>
+    <ClCompile Include="EngineLayer\Mesh\AnimationMesh.cpp">
+      <Filter>EngineLayer\Animation</Filter>
+    </ClCompile>
+    <ClCompile Include="EngineLayer\3D\AnimationManagement\AnimationModel.cpp">
+      <Filter>EngineLayer\Animation</Filter>
+    </ClCompile>
+    <ClCompile Include="EngineLayer\3D\AnimationManagement\AnimationPipelineBuilder.cpp">
+      <Filter>EngineLayer\Animation</Filter>
+    </ClCompile>
+    <ClCompile Include="EngineLayer\3D\AnimationManagement\Skeleton.cpp">
+      <Filter>EngineLayer\Animation</Filter>
+    </ClCompile>
+    <ClCompile Include="EngineLayer\3D\AnimationManagement\SkinCluster.cpp">
+      <Filter>EngineLayer\Animation</Filter>
+    </ClCompile>
+    <ClCompile Include="EngineLayer\PostEffectManagement\DepthOutlineEffect.cpp">
+      <Filter>EngineLayer\PostEffect</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="EngineLayer\Math\AABB.h">
-      <Filter>EngineLayer</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\PostEffectManagement\AbsorbEffect.h">
-      <Filter>EngineLayer</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\SceneManagement\AbstractSceneFactory\AbstractSceneFactory.h">
-      <Filter>EngineLayer</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\Mesh\AnimationMesh.h">
-      <Filter>EngineLayer</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\3D\AnimationManagement\AnimationModel.h">
-      <Filter>EngineLayer</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\3D\AnimationManagement\AnimationPipelineBuilder.h">
-      <Filter>EngineLayer</Filter>
-    </ClInclude>
     <ClInclude Include="EngineLayer\Managers\ModelManager\AssimpLoader.h">
       <Filter>EngineLayer</Filter>
     </ClInclude>
@@ -384,9 +369,6 @@
     <ClInclude Include="EngineLayer\Base\MultipleStructs\BlendModeType.h">
       <Filter>EngineLayer</Filter>
     </ClInclude>
-    <ClInclude Include="EngineLayer\CameraManagement\Camera\Camera.h">
-      <Filter>EngineLayer</Filter>
-    </ClInclude>
     <ClInclude Include="ApplicationLayer\Colliders\Collider.h">
       <Filter>EngineLayer</Filter>
     </ClInclude>
@@ -402,13 +384,7 @@
     <ClInclude Include="EngineLayer\ResourceChecker\LeakCheck\D3DResourceLeakChecker.h">
       <Filter>EngineLayer</Filter>
     </ClInclude>
-    <ClInclude Include="EngineLayer\CameraManagement\DebugCamera\DebugCamera.h">
-      <Filter>EngineLayer</Filter>
-    </ClInclude>
     <ClInclude Include="EngineLayer\Base\DirectXCommon\DirectXCommon.h">
-      <Filter>EngineLayer</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\PostEffectManagement\DissolveEffect.h">
       <Filter>EngineLayer</Filter>
     </ClInclude>
     <ClInclude Include="EngineLayer\Managers\DSVManager\DSVManager.h">
@@ -453,16 +429,7 @@
     <ClInclude Include="ApplicationLayer\Scene\GamePlayScene\GamePlayScene.h">
       <Filter>ApplicationLayer</Filter>
     </ClInclude>
-    <ClInclude Include="EngineLayer\PostEffectManagement\GrayScaleEffect.h">
-      <Filter>EngineLayer</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\PostEffectManagement\GaussianFilterEffect.h">
-      <Filter>EngineLayer</Filter>
-    </ClInclude>
     <ClInclude Include="EngineLayer\Input\Input.h">
-      <Filter>EngineLayer</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\PostEffectManagement\IPostEffect.h">
       <Filter>EngineLayer</Filter>
     </ClInclude>
     <ClInclude Include="EngineLayer\3D\LevelData\LevelData.h">
@@ -480,13 +447,7 @@
     <ClInclude Include="EngineLayer\FrameworkLayer\Log\LogString.h">
       <Filter>EngineLayer</Filter>
     </ClInclude>
-    <ClInclude Include="EngineLayer\PostEffectManagement\LuminanceOutlineEffect.h">
-      <Filter>EngineLayer</Filter>
-    </ClInclude>
     <ClInclude Include="EngineLayer\Material\Material.h">
-      <Filter>EngineLayer</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\Math\Matrix\Matrix4x4.h">
       <Filter>EngineLayer</Filter>
     </ClInclude>
     <ClInclude Include="EngineLayer\Mesh\Mesh.h">
@@ -505,12 +466,6 @@
       <Filter>EngineLayer</Filter>
     </ClInclude>
     <ClInclude Include="EngineLayer\Audio\MP3Loader.h">
-      <Filter>EngineLayer</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\PostEffectManagement\NormalEffect.h">
-      <Filter>EngineLayer</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\Math\OBB.h">
       <Filter>EngineLayer</Filter>
     </ClInclude>
     <ClInclude Include="EngineLayer\3D\Object3D\Object3D.h">
@@ -540,21 +495,6 @@
     <ClInclude Include="EngineLayer\WorldTransform\ParticleTransform.h">
       <Filter>EngineLayer</Filter>
     </ClInclude>
-    <ClInclude Include="EngineLayer\Managers\PostEffectManager\PostEffectManager.h">
-      <Filter>EngineLayer</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\PostEffectManagement\PostEffectPipelineBuilder.h">
-      <Filter>EngineLayer</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\Math\Quaternion\Quaternion.h">
-      <Filter>EngineLayer</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\PostEffectManagement\RadialBlurEffect.h">
-      <Filter>EngineLayer</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\PostEffectManagement\RandomEffect.h">
-      <Filter>EngineLayer</Filter>
-    </ClInclude>
     <ClInclude Include="EngineLayer\Managers\ResourceManager\ResourceManager.h">
       <Filter>EngineLayer</Filter>
     </ClInclude>
@@ -567,19 +507,10 @@
     <ClInclude Include="EngineLayer\Managers\ShaderManager\ShaderManager.h">
       <Filter>EngineLayer</Filter>
     </ClInclude>
-    <ClInclude Include="EngineLayer\3D\AnimationManagement\Skeleton.h">
-      <Filter>EngineLayer</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\3D\AnimationManagement\SkinCluster.h">
-      <Filter>EngineLayer</Filter>
-    </ClInclude>
     <ClInclude Include="EngineLayer\3D\SkyBox\SkyBox.h">
       <Filter>EngineLayer</Filter>
     </ClInclude>
     <ClInclude Include="EngineLayer\Managers\SkyBoxManager\SkyBoxManager.h">
-      <Filter>EngineLayer</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\PostEffectManagement\SmoothingEffect.h">
       <Filter>EngineLayer</Filter>
     </ClInclude>
     <ClInclude Include="EngineLayer\2D\Sprite\Sprite.h">
@@ -639,22 +570,10 @@
     <ClInclude Include="Externals\Audio\minimp3\minimp3_ex.h">
       <Filter>Externals\mipmp3</Filter>
     </ClInclude>
-    <ClInclude Include="EngineLayer\PostEffectManagement\VignetteEffect.h">
-      <Filter>EngineLayer</Filter>
-    </ClInclude>
     <ClInclude Include="EngineLayer\Audio\WavLoader.h">
       <Filter>EngineLayer</Filter>
     </ClInclude>
     <ClInclude Include="EngineLayer\Audio\WavLoaderException.h">
-      <Filter>EngineLayer</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\Math\Vectors\Vector2.h">
-      <Filter>EngineLayer</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\Math\Vectors\Vector3.h">
-      <Filter>EngineLayer</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\Math\Vectors\Vector4.h">
       <Filter>EngineLayer</Filter>
     </ClInclude>
     <ClInclude Include="EngineLayer\Base\MultipleStructs\VertexData.h">
@@ -671,6 +590,93 @@
     </ClInclude>
     <ClInclude Include="EngineLayer\Base\MultipleStructs\TransformationMatrix.h">
       <Filter>EngineLayer</Filter>
+    </ClInclude>
+    <ClInclude Include="EngineLayer\Math\AABB.h">
+      <Filter>EngineLayer\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="EngineLayer\Math\Matrix\Matrix4x4.h">
+      <Filter>EngineLayer\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="EngineLayer\Math\Vectors\Vector2.h">
+      <Filter>EngineLayer\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="EngineLayer\Math\Vectors\Vector3.h">
+      <Filter>EngineLayer\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="EngineLayer\Math\Vectors\Vector4.h">
+      <Filter>EngineLayer\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="EngineLayer\Math\OBB.h">
+      <Filter>EngineLayer\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="EngineLayer\CameraManagement\Camera\Camera.h">
+      <Filter>EngineLayer\Camera</Filter>
+    </ClInclude>
+    <ClInclude Include="EngineLayer\CameraManagement\DebugCamera\DebugCamera.h">
+      <Filter>EngineLayer\Camera</Filter>
+    </ClInclude>
+    <ClInclude Include="EngineLayer\Math\Quaternion\Quaternion.h">
+      <Filter>EngineLayer\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="EngineLayer\PostEffectManagement\AbsorbEffect.h">
+      <Filter>EngineLayer\PostEffect</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\SceneManagement\AbstractSceneFactory\AbstractSceneFactory.h">
+      <Filter>EngineLayer\PostEffect</Filter>
+    </ClInclude>
+    <ClInclude Include="EngineLayer\PostEffectManagement\DissolveEffect.h">
+      <Filter>EngineLayer\PostEffect</Filter>
+    </ClInclude>
+    <ClInclude Include="EngineLayer\PostEffectManagement\GaussianFilterEffect.h">
+      <Filter>EngineLayer\PostEffect</Filter>
+    </ClInclude>
+    <ClInclude Include="EngineLayer\PostEffectManagement\GrayScaleEffect.h">
+      <Filter>EngineLayer\PostEffect</Filter>
+    </ClInclude>
+    <ClInclude Include="EngineLayer\PostEffectManagement\IPostEffect.h">
+      <Filter>EngineLayer\PostEffect</Filter>
+    </ClInclude>
+    <ClInclude Include="EngineLayer\PostEffectManagement\LuminanceOutlineEffect.h">
+      <Filter>EngineLayer\PostEffect</Filter>
+    </ClInclude>
+    <ClInclude Include="EngineLayer\PostEffectManagement\NormalEffect.h">
+      <Filter>EngineLayer\PostEffect</Filter>
+    </ClInclude>
+    <ClInclude Include="EngineLayer\Managers\PostEffectManager\PostEffectManager.h">
+      <Filter>EngineLayer\PostEffect</Filter>
+    </ClInclude>
+    <ClInclude Include="EngineLayer\PostEffectManagement\PostEffectPipelineBuilder.h">
+      <Filter>EngineLayer\PostEffect</Filter>
+    </ClInclude>
+    <ClInclude Include="EngineLayer\PostEffectManagement\RadialBlurEffect.h">
+      <Filter>EngineLayer\PostEffect</Filter>
+    </ClInclude>
+    <ClInclude Include="EngineLayer\PostEffectManagement\RandomEffect.h">
+      <Filter>EngineLayer\PostEffect</Filter>
+    </ClInclude>
+    <ClInclude Include="EngineLayer\PostEffectManagement\SmoothingEffect.h">
+      <Filter>EngineLayer\PostEffect</Filter>
+    </ClInclude>
+    <ClInclude Include="EngineLayer\PostEffectManagement\VignetteEffect.h">
+      <Filter>EngineLayer\PostEffect</Filter>
+    </ClInclude>
+    <ClInclude Include="EngineLayer\Mesh\AnimationMesh.h">
+      <Filter>EngineLayer\Animation</Filter>
+    </ClInclude>
+    <ClInclude Include="EngineLayer\3D\AnimationManagement\AnimationModel.h">
+      <Filter>EngineLayer\Animation</Filter>
+    </ClInclude>
+    <ClInclude Include="EngineLayer\3D\AnimationManagement\AnimationPipelineBuilder.h">
+      <Filter>EngineLayer\Animation</Filter>
+    </ClInclude>
+    <ClInclude Include="EngineLayer\3D\AnimationManagement\Skeleton.h">
+      <Filter>EngineLayer\Animation</Filter>
+    </ClInclude>
+    <ClInclude Include="EngineLayer\3D\AnimationManagement\SkinCluster.h">
+      <Filter>EngineLayer\Animation</Filter>
+    </ClInclude>
+    <ClInclude Include="EngineLayer\PostEffectManagement\DepthOutlineEffect.h">
+      <Filter>EngineLayer\PostEffect</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -735,6 +741,18 @@
     </Filter>
     <Filter Include="Shader\Object3D">
       <UniqueIdentifier>{5ea0d569-7b0c-43a8-8a37-8e2ff42fa8d9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="EngineLayer\Camera">
+      <UniqueIdentifier>{b2f356a2-8777-4d51-af02-198b083c1dc3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="EngineLayer\Math">
+      <UniqueIdentifier>{5d72c54e-91ef-4e38-a493-72d8d0df2bb3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="EngineLayer\PostEffect">
+      <UniqueIdentifier>{84a93521-f509-4a9b-8944-1a3e39629d3a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="EngineLayer\Animation">
+      <UniqueIdentifier>{5a52fd2a-29cc-40b1-b4a1-b99aa53abbc7}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>

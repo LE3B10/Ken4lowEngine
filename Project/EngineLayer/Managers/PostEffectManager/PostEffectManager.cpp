@@ -18,7 +18,16 @@
 #include <DissolveEffect.h>
 #include <RandomEffect.h>
 #include <AbsorbEffect.h>
+#include <DepthOutlineEffect.h>
 
+
+auto Transition = [&](PostEffectManager::RenderTarget& rt, D3D12_RESOURCE_STATES newState)
+	{
+		auto dxCommon_ = DirectXCommon::GetInstance();
+		if (rt.state == newState) return;                    // 二重バリア防止
+		dxCommon_->TransitionResource(rt.resource.Get(), rt.state, newState);
+		rt.state = newState;                                 // ★状態を必ず同期
+	};
 
 /// -------------------------------------------------------------
 ///				　	　シングルトンインスタンス
@@ -39,6 +48,15 @@ void PostEffectManager::Initialieze(DirectXCommon* dxCommon)
 
 	pipelineBuilder_ = std::make_unique<PostEffectPipelineBuilder>(); // パイプラインビルダーの生成
 	pipelineBuilder_->Initialize(dxCommon); // パイプラインビルダーの初期化
+	pipelineBuilder_->BuildCopyPipeline(); // コピー用パイプラインのビルド
+
+	renderTargets_.resize(2); // レンダーターゲットの数を1に設定
+
+	// RTVとSRVの確保
+	AllocateRTVAndSRV();
+
+	// ビューポート矩形とシザリング矩形の設定
+	SetViewportAndScissorRect();
 
 	// エフェクトの初期化と生成
 	std::unordered_map<std::string, EffectEntry> effectTable = {
@@ -52,6 +70,7 @@ void PostEffectManager::Initialieze(DirectXCommon* dxCommon)
 		{ "DissolveEffect",			{ [] { return std::make_unique<DissolveEffect>(); },         false, 7, "Visual" } },
 		{ "RandomEffect",			{ [] { return std::make_unique<RandomEffect>(); },			 false, 8, "Visual" } },
 		{ "AbsorbEffect",			{ [] { return std::make_unique<AbsorbEffect>(); },           false, 9, "Visual" } },
+		{"DepthOutLineEffect"     , { [] { return std::make_unique<DepthOutlineEffect>(Object3DCommon::GetInstance()->GetDefaultCamera()); }, false, 10, "Visual"} },
 	};
 
 	// ファクトリー関数を使ってエフェクトを生成
@@ -63,12 +82,6 @@ void PostEffectManager::Initialieze(DirectXCommon* dxCommon)
 		effectOrder_.emplace_back(name, entry.order);
 		effectCategory_[name] = entry.category;
 	}
-
-	// RTVとSRVの確保
-	AllocateRTVAndSRV();
-
-	// ビューポート矩形とシザリング矩形の設定
-	SetViewportAndScissorRect();
 }
 
 
@@ -95,22 +108,24 @@ void PostEffectManager::BeginDraw()
 	auto commandList = dxCommon_->GetCommandManager()->GetCommandList();
 
 	// 🔷 必ず DEPTH_WRITE 状態に戻す → ClearDepthStencilView 用
-	if (depthResource_ && depthState_ != D3D12_RESOURCE_STATE_DEPTH_WRITE) {
+	if (depthResource_ && depthState_ != D3D12_RESOURCE_STATE_DEPTH_WRITE)
+	{
 		dxCommon_->TransitionResource(depthResource_.Get(), depthState_, D3D12_RESOURCE_STATE_DEPTH_WRITE);
 		depthState_ = D3D12_RESOURCE_STATE_DEPTH_WRITE;
 	}
 
+	// "A" を構造体経由に置換
+	auto& rt = renderTargets_[0];
+	Transition(rt, D3D12_RESOURCE_STATE_RENDER_TARGET);
+
 	// レンダーターゲットを設定
-	commandList->OMSetRenderTargets(1, &rtvHandleA_, false, &dsvHandle);
+	commandList->OMSetRenderTargets(1, &rt.rtvHandle, false, &dsvHandle);
 
 	// クリアカラー
-	float clearColor[] = { kRenderTextureClearColor_.x, kRenderTextureClearColor_.y, kRenderTextureClearColor_.z, kRenderTextureClearColor_.w };
-
-	// 🔹 **バリア処理を適用**
-	dxCommon_->TransitionResource(renderResourceA_.Get(), D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_RENDER_TARGET);
+	float clearColor[] = { rt.clearColor.x, rt.clearColor.y, rt.clearColor.z, rt.clearColor.w };
 
 	// 画面のクリア
-	commandList->ClearRenderTargetView(rtvHandleA_, clearColor, 0, nullptr);
+	commandList->ClearRenderTargetView(rt.rtvHandle, clearColor, 0, nullptr);
 
 	// 深度バッファのクリア
 	commandList->ClearDepthStencilView(dsvHandle, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
@@ -128,15 +143,16 @@ void PostEffectManager::EndDraw()
 	auto commandList = dxCommon_->GetCommandManager()->GetCommandList();
 
 	// 🔷 Outline等で使うために、depthResource を PIXEL_SHADER_RESOURCE に遷移
-	if (depthResource_ && depthState_ != D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE) {
+	if (depthResource_ && depthState_ != D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE)
+	{
 		dxCommon_->TransitionResource(depthResource_.Get(), depthState_, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 		depthState_ = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
 	}
 
-	// 🔹 **バリアを適用**
-	dxCommon_->TransitionResource(renderResourceA_.Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
+	auto& rt = renderTargets_[0];
+	Transition(rt, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 
-	// 🔹 GPU が完了するのを待つ (デバッグ用)
+	// GPU が完了するのを待つ (デバッグ用)
 	dxCommon_->GetCommandManager()->ExecuteAndWait();
 }
 
@@ -146,39 +162,84 @@ void PostEffectManager::EndDraw()
 /// -------------------------------------------------------------
 void PostEffectManager::RenderPostEffect()
 {
-	// TODO: ポストエフェクトを適用するかどうかを後で処理を追加する
-	effectEnabled_["NormalEffect"] = true; // ノーマルエフェクトを有効
-
+	// SRV ヒープ / VP / Scissor をセット
 	auto commandList = dxCommon_->GetCommandManager()->GetCommandList();
-
-	// 🔹 スワップチェインのバックバッファを取得
-	uint32_t backBufferIndex = dxCommon_->GetSwapChain()->GetSwapChain()->GetCurrentBackBufferIndex();
-	ComPtr<ID3D12Resource> backBuffer = dxCommon_->GetBackBuffer(backBufferIndex);
-	D3D12_CPU_DESCRIPTOR_HANDLE backBufferRTV = dxCommon_->GetBackBufferRTV(backBufferIndex);
-
-	// 🔹 ポストエフェクト専用のビューポートとシザー矩形を設定
+	SRVManager::GetInstance()->PreDraw();
 	commandList->RSSetViewports(1, &viewport);
 	commandList->RSSetScissorRects(1, &scissorRect);
 
-	SRVManager::GetInstance()->PreDraw();
+	// RenderTarget が１枚しか無い → 旧来どおりバックバッファへ
+	if (renderTargets_.size() < 2)
+	{
+		auto& rt = renderTargets_[0]; // A
+
+		// バックバッファRTV
+		uint32_t backBufferIndex = dxCommon_->GetSwapChain()->GetSwapChain()->GetCurrentBackBufferIndex();
+		ComPtr<ID3D12Resource> backBuffer = dxCommon_->GetBackBuffer(backBufferIndex);
+		D3D12_CPU_DESCRIPTOR_HANDLE backBufferRTV = dxCommon_->GetBackBufferRTV(backBufferIndex);
+
+		// ★ ①-1 PRESENT → RENDER_TARGET へ遷移
+		dxCommon_->TransitionResource(backBuffer.Get(), D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
+
+		commandList->OMSetRenderTargets(1, &backBufferRTV, false, &dsvHandle);
+
+		// ① PSO / ルートシグネチャ
+		commandList->SetPipelineState(pipelineBuilder_->GetCopyPipelineState().Get());
+		commandList->SetGraphicsRootSignature(pipelineBuilder_->GetCopyRootSignature().Get());
+		SRVManager::GetInstance()->SetGraphicsRootDescriptorTable(0, rt.srvIndex);
+		commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+		commandList->DrawInstanced(3, 1, 0, 0); // フルスクリーンクアッドを描画
+
+		dxCommon_->TransitionResource(backBuffer.Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT); // ★ ②-1 RENDER_TARGET → PRESENT へ遷移
+
+		return; // これで終了
+	}
+
+	// 複数枚がある場合
 
 	// 順序でソート
 	std::sort(effectOrder_.begin(), effectOrder_.end(),
 		[](const auto& a, const auto& b) { return a.second < b.second; });
 
+	uint32_t src = 0; // ソースのインデックス
+	uint32_t dst = 1; // デスティネーションのインデックス
+
 	// 🔹 ポストエフェクトの描画
 	for (const auto& [name, _] : effectOrder_)
 	{
-		if (effectEnabled_[name])
-		{
-			postEffects_[name]->Apply(commandList, srvIndexA_, dsvSrvIndex_);
-		}
+		if (!(effectEnabled_[name] || effectEnableFlags_[name])) continue;  // エフェクトが無効ならスキップ
+
+		auto& inRT = renderTargets_[src]; // 入力レンダーテクスチャ
+		auto& outRT = renderTargets_[dst]; // 出力レンダーテクスチャ
+
+		// 書き込み
+		Transition(inRT, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+		Transition(outRT, D3D12_RESOURCE_STATE_RENDER_TARGET);
+		commandList->OMSetRenderTargets(1, &outRT.rtvHandle, false, &dsvHandle);
+
+		// エフェクト適用
+		postEffects_[name]->Apply(commandList, inRT.srvIndex, dsvSrvIndex_);
+
+		commandList->OMSetRenderTargets(0, nullptr, false, nullptr); // 出力レンダーテクスチャを解除
+		Transition(outRT, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+
+		// ping-pong するためにインデックスを入れ替え
+		std::swap(src, dst);
 	}
 
-	// 🔹 スワップチェインのバッファを描画ターゲットにする
-	commandList->OMSetRenderTargets(1, &backBufferRTV, false, nullptr);
+	// 最後の出力レンダーテクスチャをバックバッファに描画する
+	auto& finalRT = renderTargets_[src]; // 最後の出力レンダーテクスチャ
 
-	// 🔹 フルスクリーンクアッドを描画
+	// バックバッファの取得
+	uint32_t backBufferIndex = dxCommon_->GetSwapChain()->GetSwapChain()->GetCurrentBackBufferIndex();
+	D3D12_CPU_DESCRIPTOR_HANDLE backBufferRTV = dxCommon_->GetBackBufferRTV(backBufferIndex);
+
+	commandList->OMSetRenderTargets(1, &backBufferRTV, false, &dsvHandle);
+
+	// コピー用 PSO / ルートシグネチャ
+	commandList->SetPipelineState(pipelineBuilder_->GetCopyPipelineState().Get());
+	commandList->SetGraphicsRootSignature(pipelineBuilder_->GetCopyRootSignature().Get());
+	SRVManager::GetInstance()->SetGraphicsRootDescriptorTable(0, finalRT.srvIndex);
 	commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	commandList->DrawInstanced(3, 1, 0, 0);
 }
@@ -302,24 +363,24 @@ ComPtr<ID3D12Resource> PostEffectManager::CreateDepthBufferResource(uint32_t wid
 /// -------------------------------------------------------------
 void PostEffectManager::AllocateRTVAndSRV()
 {
-	// レンダーテクスチャの生成
-	renderResourceA_ = CreateRenderTextureResource(WinApp::kClientWidth, WinApp::kClientHeight, DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, kRenderTextureClearColor_);
-	renderResourceB_ = CreateRenderTextureResource(WinApp::kClientWidth, WinApp::kClientHeight, DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, kRenderTextureClearColor_);
+	const uint32_t rtCount = static_cast<uint32_t>(renderTargets_.size()); // レンダーテクスチャの数を取得
 
-	// A用
-	uint32_t rtvIndexA = RTVManager::GetInstance()->Allocate();
-	RTVManager::GetInstance()->CreateRTVForTexture2D(rtvIndexA, renderResourceA_.Get());
-	rtvHandleA_ = RTVManager::GetInstance()->GetCPUDescriptorHandle(rtvIndexA);
-	srvIndexA_ = SRVManager::GetInstance()->Allocate();
-	SRVManager::GetInstance()->CreateSRVForTexture2D(srvIndexA_, renderResourceA_.Get(), DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, 1);
+	for (uint32_t i = 0; i < rtCount; ++i)
+	{
+		auto& rt = renderTargets_[i];
 
-	// B用
-	uint32_t rtvIndexB = RTVManager::GetInstance()->Allocate();
-	RTVManager::GetInstance()->CreateRTVForTexture2D(rtvIndexB, renderResourceB_.Get());
-	rtvHandleB_ = RTVManager::GetInstance()->GetCPUDescriptorHandle(rtvIndexB);
-	srvIndexB_ = SRVManager::GetInstance()->Allocate();
-	SRVManager::GetInstance()->CreateSRVForTexture2D(srvIndexB_, renderResourceB_.Get(), DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, 1);
+		// レンダーテクスチャリソースの生成
+		rt.resource = CreateRenderTextureResource(WinApp::kClientWidth, WinApp::kClientHeight, DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, kRenderTextureClearColor_);
 
+		// RTVの生成
+		uint32_t rtvIndex = RTVManager::GetInstance()->Allocate();
+		RTVManager::GetInstance()->CreateRTVForTexture2D(rtvIndex, rt.resource.Get());
+		rt.rtvHandle = RTVManager::GetInstance()->GetCPUDescriptorHandle(rtvIndex);
+
+		// SRVの生成
+		rt.srvIndex = SRVManager::GetInstance()->Allocate();
+		SRVManager::GetInstance()->CreateSRVForTexture2D(rt.srvIndex, rt.resource.Get(), DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, 1);
+	}
 
 	// 深度バッファの生成
 	depthResource_ = CreateDepthBufferResource(WinApp::kClientWidth, WinApp::kClientHeight);
