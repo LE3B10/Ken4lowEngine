@@ -1240,10 +1240,10 @@ void Wireframe::CreatePSO(D3D12_PRIMITIVE_TOPOLOGY_TYPE primitiveTopologyType, C
 	rasterizerDesc.FillMode = D3D12_FILL_MODE_SOLID; // 三角形の中を塗りつぶす
 
 	// Shaderをコンパイルする
-	Microsoft::WRL::ComPtr<IDxcBlob> vertexShaderBlob = ShaderManager::CompileShader(L"Resources/Shaders/Wireframe.VS.hlsl", L"vs_6_0", dxCommon_->GetDXCCompilerManager());
+	Microsoft::WRL::ComPtr<IDxcBlob> vertexShaderBlob = ShaderManager::CompileShader(L"Resources/Shaders/Wireframe/Wireframe.VS.hlsl", L"vs_6_0", dxCommon_->GetDXCCompilerManager());
 	assert(vertexShaderBlob != nullptr);
 
-	Microsoft::WRL::ComPtr<IDxcBlob> pixelShaderBlob = ShaderManager::CompileShader(L"Resources/Shaders/Wireframe.PS.hlsl", L"ps_6_0", dxCommon_->GetDXCCompilerManager());
+	Microsoft::WRL::ComPtr<IDxcBlob> pixelShaderBlob = ShaderManager::CompileShader(L"Resources/Shaders/Wireframe/Wireframe.PS.hlsl", L"ps_6_0", dxCommon_->GetDXCCompilerManager());
 	assert(pixelShaderBlob != nullptr);
 
 	// DepthStencilStateの設定
