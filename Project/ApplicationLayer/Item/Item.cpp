@@ -71,7 +71,7 @@ void Item::Update()
 	// 浮遊アニメーション：サイン波でY位置を変更
 	floatTimer_ += floatSpeed_ * (1.0f / 60.0f);  // フレーム前提。可変FPSなら deltaTime を使う
 	float floatOffset = std::sinf(floatTimer_) * floatAmplitude_;
-	position_.y = basePosition_.y + floatOffset + 5.0f;
+	position_.y = basePosition_.y + floatOffset + 1.0f;
 
 	// Y軸を中心に回転
 	rotation_.y += rotationSpeed_;

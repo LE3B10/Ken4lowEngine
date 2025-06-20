@@ -93,6 +93,64 @@ void ParticleMesh::InitializeCylinder()
 	CreateVertexBuffer();
 }
 
+void ParticleMesh::InitializeStar()
+{
+	modelData_.vertices.clear();
+	modelData_.indices.clear();
+
+	const int numRays = 8;
+	const float radius = 1.0f;
+
+	for (int i = 0; i < numRays; ++i)
+	{
+		float angle = (float)i / numRays * 2.0f * std::numbers::pi_v<float>;
+
+		Vector4 center = { 0.0f, 0.0f, 0.0f, 1.0f };
+		Vector4 outer = { std::cos(angle) * radius, std::sin(angle) * radius, 0.0f, 1.0f };
+		Vector4 right = { std::cos(angle + 0.1f) * radius * 0.5f, std::sin(angle + 0.1f) * radius * 0.5f, 0.0f, 1.0f };
+		Vector3 normal = { 0.0f, 0.0f, 1.0f };
+
+		uint32_t startIndex = static_cast<uint32_t>(modelData_.vertices.size());
+
+		modelData_.vertices.push_back({ center, { 0.5f, 0.5f }, normal });
+		modelData_.vertices.push_back({ outer,  { 1.0f, 0.5f }, normal });
+		modelData_.vertices.push_back({ right,  { 0.75f, 1.0f }, normal });
+
+		modelData_.indices.push_back(startIndex);
+		modelData_.indices.push_back(startIndex + 1);
+		modelData_.indices.push_back(startIndex + 2);
+	}
+
+	CreateVertexBuffer();
+}
+
+void ParticleMesh::InitializeSmoke()
+{
+	modelData_.vertices.clear();
+	modelData_.indices.clear();
+
+	const float size = 1.0f;
+	Vector3 normal = { 0.0f, 0.0f, 1.0f };
+
+	// 左下三角形
+	modelData_.vertices.push_back({ { -size, -size, 0.0f, 1.0f }, { 0.0f, 1.0f }, normal }); // 0 左下
+	modelData_.vertices.push_back({ { -size,  size, 0.0f, 1.0f }, { 0.0f, 0.0f }, normal }); // 1 左上
+	modelData_.vertices.push_back({ {  size, -size, 0.0f, 1.0f }, { 1.0f, 1.0f }, normal }); // 2 右下
+
+	// 右上三角形
+	modelData_.vertices.push_back({ {  size, -size, 0.0f, 1.0f }, { 1.0f, 1.0f }, normal }); // 3 右下
+	modelData_.vertices.push_back({ { -size,  size, 0.0f, 1.0f }, { 0.0f, 0.0f }, normal }); // 4 左上
+	modelData_.vertices.push_back({ {  size,  size, 0.0f, 1.0f }, { 1.0f, 0.0f }, normal }); // 5 右上
+
+	// インデックス（頂点順そのまま）
+	modelData_.indices = {
+		0, 1, 2,
+		3, 4, 5
+	};
+
+	CreateVertexBuffer();
+}
+
 void ParticleMesh::Draw(UINT num)
 {
 	ID3D12GraphicsCommandList* commandList = DirectXCommon::GetInstance()->GetCommandManager()->GetCommandList();

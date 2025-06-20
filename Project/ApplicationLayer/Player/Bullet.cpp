@@ -5,6 +5,7 @@
 #include <Wireframe.h>
 #include <Player.h>
 #include <Crosshair.h>
+#include <ParticleManager.h>
 
 
 /// -------------------------------------------------------------
@@ -27,6 +28,13 @@ void Bullet::Initialize()
 
 	// 初期位置を前回位置として記録（重要）
 	previousPosition_ = position_;
+
+	ParticleManager::GetInstance()->CreateParticleGroup("BloodEffect", "circle2.png", ParticleEffectType::Blood);
+	ParticleManager::GetInstance()->CreateParticleGroup("FlashEffect", "flash.png", ParticleEffectType::Flash);
+	ParticleManager::GetInstance()->CreateParticleGroup("SparkEffect", "spark.png", ParticleEffectType::Spark);
+	ParticleManager::GetInstance()->CreateParticleGroup("SmokeEffect", "smoke.png", ParticleEffectType::Smoke);
+	ParticleManager::GetInstance()->CreateParticleGroup("RingEffect", "gradationLine.png", ParticleEffectType::Ring);
+	ParticleManager::GetInstance()->CreateParticleGroup("ExplosionEffect", "spark.png", ParticleEffectType::Explosion);
 }
 
 
@@ -93,7 +101,7 @@ void Bullet::OnCollision(Collider* other)
 		enemy->TakeDamage(GetDamage());
 
 		// 🔽 ヒットマーカー通知
-		if (player_) 
+		if (player_)
 		{
 			if (auto crosshair = player_->GetCrosshair())
 			{
@@ -114,7 +122,26 @@ void Bullet::OnCollision(Collider* other)
 	}
 
 	// パーティクルを表示（仮演出）
+	// ヒット位置
+	Vector3 hitPos = position_;
 
+	// 血飛沫
+	ParticleManager::GetInstance()->Emit("BloodEffect", hitPos, 15, ParticleEffectType::Blood);
+
+	// フラッシュ
+	ParticleManager::GetInstance()->Emit("FlashEffect", hitPos, 1, ParticleEffectType::Flash);
+
+	// 火花
+	ParticleManager::GetInstance()->Emit("SparkEffect", hitPos, 8, ParticleEffectType::Spark);
+
+	// 煙
+	ParticleManager::GetInstance()->Emit("SmokeEffect", hitPos, 3, ParticleEffectType::Smoke);
+
+	// 円形波紋
+	ParticleManager::GetInstance()->Emit("RingEffect", hitPos, 1, ParticleEffectType::Ring);
+
+	// 破片（軽め）
+	ParticleManager::GetInstance()->Emit("ExplosionEffect", hitPos, 5, ParticleEffectType::Explosion);
 
 	isDead_ = true; // 単発弾の場合
 }

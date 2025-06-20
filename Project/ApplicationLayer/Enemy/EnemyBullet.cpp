@@ -9,7 +9,7 @@
 void EnemyBullet::Initialize()
 {
 	Collider::SetTypeID(static_cast<uint32_t>(CollisionTypeIdDef::kEnemyBullet)); // 新たなIDを定義
-
+	Collider::SetOBBHalfSize({});
 	model_ = std::make_unique<Object3D>();
 	model_->Initialize("cube.gltf"); // 敵弾用の異なるモデルにするなら
 	model_->SetScale({ 0.5f, 0.5f, 0.5f });
@@ -80,7 +80,7 @@ void EnemyBullet::OnCollision(Collider* other)
 
 	// プレイヤーが存在する場合、ダメージを与える
 	if (player) {
-		player->TakeDamage(25.0f); // 任意のダメージ
+		player->TakeDamage(0.0f); // 任意のダメージ
 	}
 
 	// パーティクルを表示（仮演出）

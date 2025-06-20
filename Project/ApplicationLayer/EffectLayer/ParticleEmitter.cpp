@@ -40,5 +40,6 @@ void ParticleEmitter::Update()
 /// -------------------------------------------------------------
 void ParticleEmitter::Burst(int count)
 {
-	particleManager_->Emit(groupName_, position_, count, ParticleEffectType::Ring);
+    ParticleEffectType type = particleManager_->GetGroupType(groupName_);
+    particleManager_->Emit(groupName_, position_, count, type);
 }

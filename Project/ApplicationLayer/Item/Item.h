@@ -65,7 +65,7 @@ private: /// ---------- メンバ変数 ---------- ///
 	bool collected_ = false;
 
 	// アイテムの大きさ（スケール）
-	Vector3 scale_ = { 5.0f, 5.0f, 5.0f }; // スケール（大きさ）設定
+	Vector3 scale_ = { 1.0f, 1.0f, 1.0f }; // スケール（大きさ）設定
 
 	float floatTimer_ = 0.0f;          // サイン波用タイマー
 	float floatAmplitude_ = 0.6f;      // 上下振幅（移動幅）

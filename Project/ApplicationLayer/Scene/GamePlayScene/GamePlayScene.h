@@ -98,7 +98,6 @@ private: /// ---------- メンバ変数 ---------- ///
 	std::unique_ptr< ParticleEmitter> particleEmitter2_ = nullptr;
 	std::unique_ptr< ParticleEmitter> particleEmitter3_ = nullptr;
 
-
 	// デバッグカメラのON/OFF用
 	bool isDebugCamera_ = false;
 	bool isLockedCursor_ = false;
@@ -107,4 +106,7 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	Vector2 scorePos = { 600.0f, 20.0f };
 	Vector2 killPos = { 600.0f, 80.0f };
+
+	bool isCharging = false;
+	float chargeTimer = 0.0f;
 };

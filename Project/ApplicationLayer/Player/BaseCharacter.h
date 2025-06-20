@@ -63,7 +63,7 @@ protected: /// ---------- メンバ変数 ---------- ///
 	// 他の部位（子）
 	std::vector<BodyPart> parts_;
 
-	float hp_ = 100.0f;
+	float hp_ = 1000.0f;
 	bool isDead_ = false;
 };
 
