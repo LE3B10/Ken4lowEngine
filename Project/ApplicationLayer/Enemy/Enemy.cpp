@@ -19,11 +19,11 @@ void Enemy::Initialize()
 
 	// エネミーのコライダーを初期化
 	Collider::SetTypeID(static_cast<uint32_t>(CollisionTypeIdDef::kEnemy));
-	Collider::SetOBBHalfSize({ 2.5f, 6.0f, 2.5f }); // OBBの半径を設定
+	Collider::SetOBBHalfSize({ 1.0f, 2.0f, 1.0f }); // OBBの半径を設定
 
 	body_.object = std::make_unique<Object3D>();
 	body_.object->Initialize("body.gltf");
-	body_.worldTransform_.scale_ = { 3.0f, 3.0f, 3.0f };
+	body_.worldTransform_.scale_ = { 1.0f, 1.0f, 1.0f };
 	body_.worldTransform_.translate_ = { 0.0f, 0.0f, 200.0f };
 	
 	switch (type_) {
@@ -87,7 +87,7 @@ void Enemy::Update()
 	}
 
 	// コライダーの更新
-	Collider::SetCenterPosition(body_.worldTransform_.translate_ + Vector3(0.0f, 8.2f, 0.0f));
+	Collider::SetCenterPosition(body_.worldTransform_.translate_ + Vector3(0.0f, 2.0f, 0.0f));
 
 	body_.object->SetScale(body_.worldTransform_.scale_);
 	body_.object->SetTranslate(body_.worldTransform_.translate_);
@@ -108,7 +108,7 @@ void Enemy::Draw()
 
 	// 弾描画
 	for (auto& bullet : bullets_) {
-		bullet->Draw();
+		//bullet->Draw();
 	}
 }
 
@@ -149,7 +149,7 @@ void Enemy::RequestShoot()
 
 	auto bullet = std::make_unique<EnemyBullet>();
 	bullet->Initialize();
-	Vector3 muzzlePos = body_.worldTransform_.translate_ + Vector3(0.0f, 13.0f, 0.0f);
+	Vector3 muzzlePos = body_.worldTransform_.translate_ + Vector3(0.0f, 2.0f, 0.0f);
 	Vector3 direction = Vector3::Normalize(player_->GetWorldTransform()->translate_ - body_.worldTransform_.translate_);
 	bullet->SetPosition(muzzlePos);
 	bullet->SetVelocity(direction * 0.5f);

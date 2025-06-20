@@ -53,6 +53,7 @@ void ParticleManager::Initialize(DirectXCommon* dxCommon, Camera* camera)
 	meshMap_[ParticleEffectType::Slash].InitializeRing();
 	meshMap_[ParticleEffectType::Ring].InitializeRing();
 	meshMap_[ParticleEffectType::Cylinder].InitializeCylinder();
+	meshMap_[ParticleEffectType::Blood].Initialize();
 }
 
 

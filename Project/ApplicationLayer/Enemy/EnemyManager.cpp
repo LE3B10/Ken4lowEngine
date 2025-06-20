@@ -130,16 +130,16 @@ void EnemyManager::GetSpawnPosition(Vector3& outPosition, EnemySpawnDirection di
 	switch (direction)
 	{
 	case EnemySpawnDirection::Left:
-		outPosition = { -200.0f, 0.0f, 0.0f }; // 左からスポーン
+		outPosition = { -50.0f, 0.0f, 0.0f }; // 左からスポーン
 		break;
 	case EnemySpawnDirection::Right:
-		outPosition = { 200.0f, 0.0f, 0.0f }; // 右からスポーン
+		outPosition = { 50.0f, 0.0f, 0.0f }; // 右からスポーン
 		break;
 	case EnemySpawnDirection::Front:
-		outPosition = { 0.0f, 0.0f, 200.0f }; // 前からスポーン
+		outPosition = { 0.0f, 0.0f, 50.0f }; // 前からスポーン
 		break;
 	case EnemySpawnDirection::Back:
-		outPosition = { 0.0f, 0.0f, -200.0f }; // 後ろからスポーン
+		outPosition = { 0.0f, 0.0f, -50.0f }; // 後ろからスポーン
 		break;
 	}
 }

@@ -5,6 +5,7 @@
 #include <Wireframe.h>
 #include <Player.h>
 #include <Crosshair.h>
+#include <ParticleManager.h>
 
 
 /// -------------------------------------------------------------
@@ -27,6 +28,8 @@ void Bullet::Initialize()
 
 	// 初期位置を前回位置として記録（重要）
 	previousPosition_ = position_;
+
+	ParticleManager::GetInstance()->CreateParticleGroup("BloodEffect", "circle2.png", ParticleEffectType::Blood);
 }
 
 
@@ -93,7 +96,7 @@ void Bullet::OnCollision(Collider* other)
 		enemy->TakeDamage(GetDamage());
 
 		// 🔽 ヒットマーカー通知
-		if (player_) 
+		if (player_)
 		{
 			if (auto crosshair = player_->GetCrosshair())
 			{
@@ -114,6 +117,7 @@ void Bullet::OnCollision(Collider* other)
 	}
 
 	// パーティクルを表示（仮演出）
+	ParticleManager::GetInstance()->Emit("BloodEffect", position_, 10, ParticleEffectType::Blood);
 
 
 	isDead_ = true; // 単発弾の場合

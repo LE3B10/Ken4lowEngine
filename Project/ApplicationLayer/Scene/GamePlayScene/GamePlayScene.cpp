@@ -85,21 +85,21 @@ void GamePlayScene::Initialize()
 
 	ParticleManager::GetInstance()->CreateParticleGroup("DefaultParticle", "circle2.png", ParticleEffectType::Default);
 	defaultEmitter_ = std::make_unique<ParticleEmitter>(ParticleManager::GetInstance(), "DefaultParticle");
-	defaultEmitter_->SetPosition({ 0.0f, 18.0f, 20.0f });
+	defaultEmitter_->SetPosition({ 0.0f, 1.0f, 20.0f });
 
 	// 
 	ParticleManager::GetInstance()->CreateParticleGroup("TestParticle", "gradationLine.png", ParticleEffectType::Ring);
 	particleEmitter_ = std::make_unique<ParticleEmitter>(ParticleManager::GetInstance(), "TestParticle");
-	particleEmitter_->SetPosition({ 5.0f, 18.0f, 20.0f });
+	particleEmitter_->SetPosition({ 5.0f, 1.0f, 20.0f });
 
 	// パーティクルエミッターの初期化
 	ParticleManager::GetInstance()->CreateParticleGroup("TestParticle2", "gradationLine.png", ParticleEffectType::Cylinder);
 	particleEmitter2_ = std::make_unique<ParticleEmitter>(ParticleManager::GetInstance(), "TestParticle2");
-	particleEmitter2_->SetPosition({ -5.0f, 18.0f, 20.0f });
+	particleEmitter2_->SetPosition({ -5.0f, 1.0f, 20.0f });
 
 	ParticleManager::GetInstance()->CreateParticleGroup("TestParticle3", "gradationLine.png", ParticleEffectType::Slash);
 	particleEmitter3_ = std::make_unique<ParticleEmitter>(ParticleManager::GetInstance(), "TestParticle3");
-	particleEmitter3_->SetPosition({ 5.0f, 18.0f, 20.0f });
+	particleEmitter3_->SetPosition({ 5.0f, 1.0f, 20.0f });
 	particleEmitter3_->SetEmissionRate(3.0f);
 }
 

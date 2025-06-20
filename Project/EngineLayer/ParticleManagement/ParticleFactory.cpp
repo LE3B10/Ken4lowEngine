@@ -63,6 +63,40 @@ Particle ParticleFactory::Create(std::mt19937& randomEngine, const Vector3& posi
 		particle.endScale = particle.transform.scale_;
 		break;
 	}
+	case ParticleEffectType::Blood: {
+		std::uniform_real_distribution<float> distDir(-1.0f, 1.0f);
+		std::uniform_real_distribution<float> distSpeed(3.0f, 7.0f);
+		std::uniform_real_distribution<float> distLife(0.5f, 1.5f);
+
+		Vector3 direction = {
+			distDir(randomEngine),
+			std::abs(distDir(randomEngine)),  // Yは上方向だけにする
+			distDir(randomEngine)
+		};
+
+		// 正規化
+		float len = std::sqrt(direction.x * direction.x + direction.y * direction.y + direction.z * direction.z);
+		if (len > 0.0f) {
+			direction.x /= len;
+			direction.y /= len;
+			direction.z /= len;
+		}
+
+		particle.transform.translate_ = position;
+		particle.transform.scale_ = { 1.0f, 1.0f, 1.0f };
+		particle.startScale = particle.transform.scale_;
+		particle.endScale = { 0.0f, 0.0f, 0.0f };
+		particle.transform.rotate_ = { 0.0f, 0.0f, 0.0f };
+
+		particle.color = { 1.0f, 0.0f, 0.0f, 1.0f };  // 赤
+		particle.lifeTime = distLife(randomEngine);
+		particle.velocity = {
+			direction.x * distSpeed(randomEngine),
+			direction.y * distSpeed(randomEngine),
+			direction.z * distSpeed(randomEngine)
+		};
+		break;
+	}
 	}
 
 	particle.currentTime = 0.0f;

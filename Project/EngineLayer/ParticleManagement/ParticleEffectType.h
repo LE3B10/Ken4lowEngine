@@ -6,4 +6,5 @@ enum class ParticleEffectType
 	Slash,		// スラッシュ
 	Ring,		// リング
 	Cylinder,	// シリンダー
+	Blood,		// 血飛沫
 };
