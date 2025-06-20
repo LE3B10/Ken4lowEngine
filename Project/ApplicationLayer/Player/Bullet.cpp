@@ -30,6 +30,11 @@ void Bullet::Initialize()
 	previousPosition_ = position_;
 
 	ParticleManager::GetInstance()->CreateParticleGroup("BloodEffect", "circle2.png", ParticleEffectType::Blood);
+	ParticleManager::GetInstance()->CreateParticleGroup("FlashEffect", "flash.png", ParticleEffectType::Flash);
+	ParticleManager::GetInstance()->CreateParticleGroup("SparkEffect", "spark.png", ParticleEffectType::Spark);
+	ParticleManager::GetInstance()->CreateParticleGroup("SmokeEffect", "smoke.png", ParticleEffectType::Smoke);
+	ParticleManager::GetInstance()->CreateParticleGroup("RingEffect", "gradationLine.png", ParticleEffectType::Ring);
+	ParticleManager::GetInstance()->CreateParticleGroup("ExplosionEffect", "spark.png", ParticleEffectType::Explosion);
 }
 
 
@@ -117,8 +122,26 @@ void Bullet::OnCollision(Collider* other)
 	}
 
 	// パーティクルを表示（仮演出）
-	ParticleManager::GetInstance()->Emit("BloodEffect", position_, 10, ParticleEffectType::Blood);
+	// ヒット位置
+	Vector3 hitPos = position_;
 
+	// 血飛沫
+	ParticleManager::GetInstance()->Emit("BloodEffect", hitPos, 15, ParticleEffectType::Blood);
+
+	// フラッシュ
+	ParticleManager::GetInstance()->Emit("FlashEffect", hitPos, 1, ParticleEffectType::Flash);
+
+	// 火花
+	ParticleManager::GetInstance()->Emit("SparkEffect", hitPos, 8, ParticleEffectType::Spark);
+
+	// 煙
+	ParticleManager::GetInstance()->Emit("SmokeEffect", hitPos, 3, ParticleEffectType::Smoke);
+
+	// 円形波紋
+	ParticleManager::GetInstance()->Emit("RingEffect", hitPos, 1, ParticleEffectType::Ring);
+
+	// 破片（軽め）
+	ParticleManager::GetInstance()->Emit("ExplosionEffect", hitPos, 5, ParticleEffectType::Explosion);
 
 	isDead_ = true; // 単発弾の場合
 }

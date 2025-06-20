@@ -126,6 +126,17 @@ public: /// ---------- メンバ関数 ---------- ///
 		return ParticleEffectType::Default;
 	}
 
+	// パーティクルグループを取得
+	ParticleGroup& GetGroup(const std::string& name)
+	{
+		auto it = particleGroups.find(name);
+		if (it != particleGroups.end())
+		{
+			return it->second;
+		}
+		throw std::runtime_error("Particle group not found: " + name);
+	}
+
 private: /// ---------- ヘルパー関数 ---------- ///
 
 	// ルートシグネチャの生成
@@ -169,9 +180,9 @@ private: /// ---------- メンバ変数 ---------- ///
 	std::mt19937 randomEngin;
 
 	// 描画数
-	const uint32_t kNumMaxInstance = 128;
+	const uint32_t kNumMaxInstance = 1024;
 
-	bool useBillboard = false;
+	bool useBillboard = true;
 
 	bool isWind = false;
 

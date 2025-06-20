@@ -16,6 +16,12 @@ public: /// ---------- メンバ関数 ---------- ///
 	// シリンダーの頂点データの初期化処理
 	void InitializeCylinder();
 
+	// 星型の頂点データの初期化処理
+	void InitializeStar();
+
+	// スモークの頂点データの初期化処理
+	void InitializeSmoke();
+
 	// 描画処理
 	void Draw(UINT num);
 
