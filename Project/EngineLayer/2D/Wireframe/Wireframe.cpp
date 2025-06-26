@@ -320,7 +320,6 @@ void Wireframe::DrawSphere(const Vector3& center, const float radius, const Vect
 	}
 }
 
-
 void Wireframe::DrawCapsule(const Vector3& center, float radius, float height, const Vector3& axis, int segments, const Vector4& color)
 {
 	constexpr float PI = 3.14159265358979323846f;
@@ -454,6 +453,14 @@ void Wireframe::DrawCapsule(const Vector3& center, float radius, float height, c
 			DrawLine(ringVertices[j], ringVertices[j + 1], color);
 		}
 	}
+}
+
+void Wireframe::DrawCapsule(const Capsule& capsule, int segments, const Vector4& color)
+{
+	const Vector3  center = capsule.GetCenter();
+	const float    cylH = capsule.GetHeight();           // シリンダ部
+	const float    fullH = cylH + 2.0f * capsule.radius;  // ☆ 引数に渡すのは「全長」
+	DrawCapsule(center, capsule.radius, fullH, capsule.GetAxis(), segments, color);
 }
 
 

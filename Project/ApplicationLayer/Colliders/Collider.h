@@ -7,6 +7,7 @@
 
 #include "OBB.h"
 #include "Segment.h"
+#include "Capsule.h"
 
 
 /// -------------------------------------------------------------
@@ -25,6 +26,8 @@ public: /// ---------- 純粋仮想関数 ---------- ///
 	// 衝突時に呼ばれる仮想関数
 	virtual void OnCollision([[maybe_unused]] Collider* other) {}
 
+public: /// ---------- OBBのメンバ関数 ---------- ///
+
 	// 中心座標取得・設定
 	virtual Vector3 GetCenterPosition() const { return colliderPosition_; }
 	virtual void SetCenterPosition(const Vector3& pos) { colliderPosition_ = pos; }
@@ -39,13 +42,26 @@ public: /// ---------- 純粋仮想関数 ---------- ///
 
 	OBB GetOBB() const;
 
+public: /// ---------- セグメントのメンバ関数 ---------- ///
+
 	// セグメントを設定（衝突判定用）
 	void SetSegment(const Segment& segment) { segment_ = segment; }
 	// セグメントを取得
 	virtual Segment GetSegment() const { return segment_; }
 
-	// シリアルナンバーを取得
-	uint32_t GetUniqueID() const { return serialNumber_; }
+public: /// ---------- Capsule のメンバ関数 ---------- ///
+
+	// Capsule を設定
+	virtual void SetCapsule(const Capsule& capsule) { capsule_ = capsule; useCapsule_ = true; }
+
+	// Capsule を取得
+	virtual Capsule GetCapsule() const { return capsule_; }
+
+	// 使用フラグ（テーブル判定用）
+	bool HasCapsule() const { return useCapsule_; }
+
+	void SetCapsuleVisible(bool v) { drawCapsule_ = v; }
+	bool IsCapsuleVisible() const { return drawCapsule_; }
 
 public: /// ---------- デバッグ用メンバ関数 ---------- ///
 
@@ -68,17 +84,26 @@ public: /// ---------- 設定 ---------- ///
 
 	// 識別IDを設定
 	void SetTypeID(uint32_t typeID) { typeID_ = typeID; }
+	// シリアルナンバーを取得
+	uint32_t GetUniqueID() const { return serialNumber_; }
 
 private: /// ---------- メンバ変数 ---------- ///
 
 	// 識別ID
 	uint32_t typeID_ = 0u;
 
+private: /// ---------- OBBのメンバ変数 ---------- ///
+
 	// OBBの半サイズ
 	Vector3 colliderPosition_ = { 0.0f, 0.0f, 0.0f };
-	Vector3 colliderHalfSize_ = { 1.0f, 1.0f, 1.0f };
+	Vector3 colliderHalfSize_ = { 0.0f, 0.0f, 0.0f };
 	Vector3 orientation_ = { 0.0f, 0.0f, 0.0f };
 	Vector4 debugColor_ = { 1.0f, 0.0f, 0.0f, 1.0f };
+
+	// OBBを使用するかどうか
+	bool useOBB_ = true;
+
+private: /// ---------- セグメントのメンバ変数 ---------- ///
 
 	// セグメント（衝突判定用）
 	Segment segment_{};
@@ -86,8 +111,11 @@ private: /// ---------- メンバ変数 ---------- ///
 	// セグメントを使用するかどうか
 	bool useSegment_ = true;
 
-	// OBBを使用するかどうか
-	bool useOBB_ = true;
+private: /// ---------- Capsule のメンバ変数 ---------- ///
+
+	Capsule capsule_{};
+	bool useCapsule_ = false; // Capsule を使用するかどうか
+	bool drawCapsule_ = true;    // デバッグ可視化するか（★追加）
 
 protected: /// ---------- シリアルナンバー ---------- ///
 

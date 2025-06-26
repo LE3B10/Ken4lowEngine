@@ -264,3 +264,100 @@ bool CollisionUtility::IsCollision(const OBB& obb1, const OBB& obb2)
 	// すべての軸で分離がなければ衝突している
 	return true;
 }
+
+/// 線分 PQ, RS 間の最近接距離²
+static float SegmentSegmentDist2(const Vector3& P0, const Vector3& P1,
+	const Vector3& Q0, const Vector3& Q1)
+{
+	const Vector3  u = P1 - P0;
+	const Vector3  v = Q1 - Q0;
+	const Vector3  w = P0 - Q0;
+	const float    a = Vector3::Dot(u, u);
+	const float    b = Vector3::Dot(u, v);
+	const float    c = Vector3::Dot(v, v);
+	const float    d = Vector3::Dot(u, w);
+	const float    e = Vector3::Dot(v, w);
+	const float    D = a * c - b * b;
+	const float    EPS = 1e-6f;
+
+	float sN, sD = D, tN, tD = D;
+
+	// 線分がほぼ平行
+	if (D < EPS) { sN = 0; sD = 1; tN = e; tD = c; }
+	else {
+		sN = (b * e - c * d);
+		tN = (a * e - b * d);
+		if (sN < 0) { sN = 0;  tN = e;        tD = c; }
+		else if (sN > sD) { sN = sD; tN = e + b; tD = c; }
+	}
+
+	// t を [0,1] にクランプ
+	if (tN < 0) {
+		tN = 0;
+		if (-d < 0)   sN = 0;
+		else if (-d > a)   sN = sD;
+		else { sN = -d; sD = a; }
+	}
+	else if (tN > tD) {
+		tN = tD;
+		if ((-d + b) < 0)      sN = 0;
+		else if ((-d + b) > a) sN = sD;
+		else { sN = -d + b; sD = a; }
+	}
+
+	const float sc = (fabsf(sN) < EPS ? 0.0f : sN / sD);
+	const float tc = (fabsf(tN) < EPS ? 0.0f : tN / tD);
+	const Vector3  dP = w + u * sc - v * tc;
+
+	return Vector3::Dot(dP, dP);   // 距離²
+}
+
+/// Capsule–Capsule
+inline bool IsCapsuleCapsuleHit(const Capsule& c1, const Capsule& c2)
+{
+	const float dist2 = SegmentSegmentDist2(c1.pointA, c1.pointB,
+		c2.pointA, c2.pointB);
+	const float rSum = c1.radius + c2.radius;
+	return dist2 <= rSum * rSum + 1e-6f;   // EPS で数値誤差吸収
+}
+
+// -------------------------------------------------------------
+//  Capsule–Capsule 衝突判定
+// -------------------------------------------------------------
+bool CollisionUtility::IsCollision(const Capsule& cap1,
+	const Capsule& cap2)
+{
+	// 1. 中心線同士の最近接距離²を取得
+	float dist2 = SegmentSegmentDist2(
+		cap1.pointA, cap1.pointB,
+		cap2.pointA, cap2.pointB);
+
+	// 2. しきい値 = 半径の和 の²
+	float rSum = cap1.radius + cap2.radius;
+	return dist2 <= rSum * rSum + 1e-6f;    // EPS で誤差吸収
+}
+
+// ============================================================================
+//  Capsule–Segment
+// ============================================================================
+bool CollisionUtility::IsCollision(const Capsule& capsule, const Segment& seg)
+{
+	// seg の 2 端点を生成
+	const Vector3 p0 = seg.origin;
+	const Vector3 p1 = seg.origin + seg.diff;    // ★ diff を足して終点を導出
+
+	// 軸線 [A,B] と 線分 [p0,p1] の最近接距離²
+	const float dist2 = SegmentSegmentDist2(
+		capsule.pointA, capsule.pointB,
+		p0, p1);
+
+	// 半径² と比較
+	const float r2 = capsule.radius * capsule.radius;
+	const float EPS = 1e-6f;                     // 浮動小数誤差吸収
+	return dist2 <= r2 + EPS;
+}
+
+bool CollisionUtility::IsCollision(const Segment& segment, const Capsule& capsule)
+{
+	return IsCollision(capsule, segment);
+}

@@ -15,7 +15,6 @@ void Bullet::Initialize()
 {
 	// コライダーを初期化
 	Collider::SetTypeID(static_cast<uint32_t>(CollisionTypeIdDef::kBullet));
-	Collider::SetOBBHalfSize({ 0.1f, 0.1f, 0.1f }); // OBBの半径を設定 // OBBの半径は後で設定する
 
 	model_ = std::make_unique<Object3D>();
 	model_->Initialize("cube.gltf");

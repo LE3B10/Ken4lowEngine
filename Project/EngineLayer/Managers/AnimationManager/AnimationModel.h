@@ -10,6 +10,8 @@
 #include "Skeleton.h"
 #include <SkinCluster.h>
 
+#include "Capsule.h"
+
 #include <algorithm>
 #include <string>
 #include <vector>
@@ -108,6 +110,9 @@ public: /// ---------- セッタ ---------- ///
 
 	// スキニングを有効にするか設定
 	void SetSkinningEnabled(bool isSkinning) { skinningSetting_->isSkinning = isSkinning; }
+
+	// ワールド空間からボディパーツのカプセルを取得
+	std::vector<std::pair<std::string, Capsule>> GetBodyPartCapsulesWorld() const;
 
 private: /// ---------- メンバ関数 ---------- ///
 

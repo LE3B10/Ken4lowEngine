@@ -1,11 +1,12 @@
 #pragma once
+#include "Matrix4x4.h"
 #include "Sphere.h"
 #include "Plane.h"
 #include "Segment.h"
 #include "Triangle.h"
 #include "AABB.h"
 #include "OBB.h"
-#include "Matrix4x4.h"
+#include "Capsule.h"
 
 
 //// -------------------------------------------------------------
@@ -47,6 +48,22 @@ public: /// ---------- メンバ関数 ---------- ///
 
 	// OBBとOBBの衝突判定
 	static bool IsCollision(const OBB& obb1, const OBB& obb2);
+
+	// CapsuleとCapsuleの衝突判定
+	static bool IsCollision(const Capsule& capsule1, const Capsule& capsule2);
+
+	// CapsuleとOBBの衝突判定
+	static bool IsCollision(const Capsule& capsule, const OBB& obb);
+
+	// CapsuleとAABBの衝突判定
+	static bool IsCollision(const Capsule& capsule, const AABB& aabb);
+
+	// CapsuleとSphereの衝突判定
+	static bool IsCollision(const Capsule& capsule, const Sphere& sphere);
+
+	// CapsuleとSegmentの衝突判定
+	static bool IsCollision(const Capsule& capsule, const Segment& segment);
+	static bool IsCollision(const Segment& segment, const Capsule& capsule);
 
 	//// OBBとAABBの衝突判定
 	//static bool IsCollision(const OBB& obb, const AABB& aabb);

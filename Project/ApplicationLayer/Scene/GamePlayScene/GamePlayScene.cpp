@@ -285,7 +285,6 @@ void GamePlayScene::Draw3DObjects()
 	// ワイヤーフレームの描画
 	Wireframe::GetInstance()->DrawGrid(1000.0f, 100.0f, { 0.25f, 0.25f, 0.25f,1.0f });
 
-	//Wireframe::GetInstance()->DrawCapsule({ 0.0f,2.0f,0.0f }, 0.5f, 2.0f, { 0.0f,1.0f,0.0f }, 12, { 1.0f, 0.0f, 1.0f, 1.0f });
 #endif // _DEBUG
 }
 
@@ -344,9 +343,6 @@ void GamePlayScene::DrawImGui()
 	enemyManager_->DrawImGui();
 
 	dModel_->DrawImGui();
-
-	// スコア
-	ScoreManager::GetInstance()->DrawImGui();
 }
 
 
@@ -375,6 +371,8 @@ void GamePlayScene::CheckAllCollisions()
 
 	// アイテムのコライダーを登録
 	itemManager_->RegisterColliders(collisionManager_.get());
+
+	dModel_->RegisterColliders(collisionManager_.get()); // ダミーモデルのコライダーを登録
 
 	// 衝突判定と応答
 	collisionManager_->CheckAllCollisions();

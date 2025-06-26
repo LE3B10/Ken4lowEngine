@@ -131,24 +131,28 @@ void CollisionManager::RegisterCollisionFuncsions()
 
 	collisionTable_[{kEnemy, kBullet}] =
 		[](Collider* a, Collider* b) {
-		return CollisionUtility::IsCollision(a->GetOBB(), b->GetSegment());
+		if (a->HasCapsule())       return CollisionUtility::IsCollision(a->GetCapsule(), b->GetSegment());
+		else                       return CollisionUtility::IsCollision(a->GetOBB(), b->GetSegment());
 		};
 
 	collisionTable_[{kBullet, kEnemy}] =
 		[](Collider* a, Collider* b) {
-		return CollisionUtility::IsCollision(a->GetSegment(), b->GetOBB());
+		if (b->HasCapsule())       return CollisionUtility::IsCollision(a->GetSegment(), b->GetCapsule());
+		else                       return CollisionUtility::IsCollision(a->GetSegment(), b->GetOBB());
 		};
 
 	/// ---------- プレイヤーとエネミーの弾丸の衝突判定 ---------- ///
 
 	collisionTable_[{kPlayer, kEnemyBullet}] =
 		[](Collider* a, Collider* b) {
-		return CollisionUtility::IsCollision(a->GetOBB(), b->GetSegment());
+		if (b->HasCapsule())       return CollisionUtility::IsCollision(a->GetSegment(), b->GetCapsule());
+		else                       return CollisionUtility::IsCollision(a->GetSegment(), b->GetOBB());
 		};
 
 	collisionTable_[{kEnemyBullet, kPlayer}] =
 		[](Collider* a, Collider* b) {
-		return CollisionUtility::IsCollision(a->GetSegment(), b->GetOBB());
+		if (a->HasCapsule())       return CollisionUtility::IsCollision(a->GetCapsule(), b->GetSegment());
+		else                       return CollisionUtility::IsCollision(a->GetOBB(), b->GetSegment());
 		};
 
 	/// ---------- プレイヤーとアイテムの衝突判定 ---------- ///
@@ -158,7 +162,7 @@ void CollisionManager::RegisterCollisionFuncsions()
 		return CollisionUtility::IsCollision(a->GetOBB(), b->GetOBB());
 		};
 
-	collisionTable_[{static_cast<uint32_t>(CollisionTypeIdDef::kItem), static_cast<uint32_t>(CollisionTypeIdDef::kPlayer)}] =
+	collisionTable_[{kItem, kPlayer}] =
 		[](Collider* a, Collider* b) {
 		return CollisionUtility::IsCollision(a->GetOBB(), b->GetOBB());
 		};
