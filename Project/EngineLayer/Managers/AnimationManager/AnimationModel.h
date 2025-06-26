@@ -41,6 +41,17 @@ private: /// ---------- 構造体 ---------- ///
 		Vector3 padding; // 16バイトアライメントを保つためのパディング
 	};
 
+	struct BodyPartCollider
+	{
+		std::string name;         // 名前（"LeftArm", "RightLeg", ...）
+		int startJointIndex = -1; // 始点となるジョイント
+		int endJointIndex = -1;   // 終点となるジョイント（カプセル用）
+		Vector3 offset;           // 単一ジョイント用のオフセット（sphere 描画等に使える）
+		float radius = 0.1f;      // カプセルまたはスフィアの半径
+		float height = 0.0f;      // offset を使う Capsule 用（レガシー用途 or fallback）
+	};
+	std::vector<BodyPartCollider> bodyPartColliders_;
+
 public: /// ---------- メンバ関数 ---------- ///
 
 	// 初期化処理
@@ -57,6 +68,11 @@ public: /// ---------- メンバ関数 ---------- ///
 
 	// ImGui描画処理
 	void DrawImGui();
+
+	// ワイヤーフレーム描画
+	void DrawSkeletonWireframe();
+
+	void DrawBodyPartColliders();
 
 public: /// ---------- ゲッタ ---------- ///
 
@@ -103,6 +119,9 @@ private: /// ---------- メンバ関数 ---------- ///
 
 	// スキニングリソースの作成
 	void CreateSkinningSettingResource();
+
+	// ボーン情報の初期化
+	void InitializeBones();
 
 private: /// ---------- メンバ関数・テンプレート関数 ---------- ///
 

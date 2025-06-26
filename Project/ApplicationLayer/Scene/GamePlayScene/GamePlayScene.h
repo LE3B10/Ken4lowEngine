@@ -18,6 +18,7 @@
 #include "ItemManager.h"
 
 #include "AnimationModel.h"
+#include "DummyModel.h"
 
 
 /// ---------- 前方宣言 ---------- ///
@@ -66,6 +67,14 @@ private: /// ---------- メンバ関数 ---------- ///
 	// 衝突判定と応答
 	void CheckAllCollisions();
 
+	void UpdatePlaying();
+	void UpdatePaused();
+	void UpdateResult();
+
+	void DrawPlaying();
+	void DrawPaused();
+	void DrawResult();
+
 private: /// ---------- メンバ変数 ---------- ///
 
 	DirectXCommon* dxCommon_ = nullptr;
@@ -92,11 +101,7 @@ private: /// ---------- メンバ変数 ---------- ///
 	// アニメーションモデル
 	std::unique_ptr<AnimationModel> animationModel_ = nullptr;
 
-	// パーティクル
-	std::unique_ptr< ParticleEmitter> defaultEmitter_ = nullptr;
-	std::unique_ptr< ParticleEmitter> particleEmitter_ = nullptr;
-	std::unique_ptr< ParticleEmitter> particleEmitter2_ = nullptr;
-	std::unique_ptr< ParticleEmitter> particleEmitter3_ = nullptr;
+	std::unique_ptr<DummyModel> dModel_;
 
 	// デバッグカメラのON/OFF用
 	bool isDebugCamera_ = false;

@@ -421,6 +421,8 @@
     <ClCompile Include="EngineLayer\ResourceChecker\ReleaseCheck\ResourceObject.cpp">
       <Filter>EngineLayer\Base</Filter>
     </ClCompile>
+    <ClCompile Include="DummyModel.cpp" />
+    <ClCompile Include="ApplicationLayer\Player\PlayerMovementController.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="EngineLayer\PostEffectManagement\AbsorbEffect.h">
@@ -849,6 +851,8 @@
     <ClInclude Include="EngineLayer\ResourceChecker\ReleaseCheck\ResourceObject.h">
       <Filter>EngineLayer\Base</Filter>
     </ClInclude>
+    <ClInclude Include="DummyModel.h" />
+    <ClInclude Include="ApplicationLayer\Player\PlayerMovementController.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Resources\Shaders\PostEffect\FullScreen.hlsli">

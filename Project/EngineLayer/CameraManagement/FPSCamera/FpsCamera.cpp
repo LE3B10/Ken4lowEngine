@@ -75,6 +75,26 @@ void FpsCamera::Update(bool ignoreInput)
 	currentBobbingSpeed_ = Lerp(currentBobbingSpeed_, speed, 0.1f);
 	currentBobbingAmplitude_ = Lerp(currentBobbingAmplitude_, amplitude, 0.1f);
 
+#ifdef _DEBUG
+	if (input_->TriggerKey(DIK_F2)) {        // 1Frame だけ true になる関数
+		debugThirdPerson_ = !debugThirdPerson_;
+	}
+
+	// ──────────────────────────────────────
+	// ③ TPS モードなら背後＆肩越しにオフセット
+	// ──────────────────────────────────────
+	if (debugThirdPerson_) {
+		// プレイヤー正面方向（yaw_ で十分）
+		Vector3 forward = { -std::sinf(yaw_), 0.0f, std::cosf(yaw_) };
+		Vector3 right = { forward.z, 0.0f, -forward.x };       // 右方向
+
+		camPos = playerPos                                      // 胴体基点
+			+ Vector3{ 0, debugShoulderHeight_, 0 }            // 肩の高さ
+			- forward * debugCamDistance_                    // 背後へ退く
+			+ right * debugSideOffset_;                    // 右肩越し
+	}
+#endif // _DEBUG
+
 	// ボビング時間加算
 	if (isMoving && isGrounded && !isAiming_)
 	{

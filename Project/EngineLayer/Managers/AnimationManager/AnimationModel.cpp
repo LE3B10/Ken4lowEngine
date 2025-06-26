@@ -66,6 +66,8 @@ void AnimationModel::Initialize(const std::string& fileName)
 	CreateSkinningSettingResource();
 
 	animationTime_ = 0.0f; // アニメーションを止める
+
+	InitializeBones();
 }
 
 
@@ -159,6 +161,56 @@ void AnimationModel::Draw()
 void AnimationModel::DrawImGui()
 {
 
+}
+
+void AnimationModel::DrawSkeletonWireframe()
+{
+	if (!skeleton_) { return; }
+
+	const auto& joints = skeleton_->GetJoints();
+	for (const auto& joint : joints) {
+		if (joint.parent.has_value()) {
+			const auto& parentJoint = joints[*joint.parent];
+
+			Vector3 parentPos = parentJoint.skeletonSpaceMatrix.GetTranslation();
+			Vector3 jointPos = joint.skeletonSpaceMatrix.GetTranslation();
+
+			Wireframe::GetInstance()->DrawLine(parentPos, jointPos, { 1.0f, 0.0f, 0.0f, 1.0f });
+		}
+	}
+}
+
+void AnimationModel::DrawBodyPartColliders()
+{
+	if (!skeleton_) { return; }
+
+	const auto& joints = skeleton_->GetJoints();
+
+	for (const auto& part : bodyPartColliders_) {
+		if (part.endJointIndex < 0) {
+			// スフィア用
+			const auto& joint = joints[part.startJointIndex];
+			Matrix4x4 jointMatrix = joint.skeletonSpaceMatrix;
+
+			Vector3 center = jointMatrix.GetTranslation() + part.offset;
+
+			Wireframe::GetInstance()->DrawSphere(center, part.radius, { 0.0f, 1.0f, 0.0f, 1.0f });
+		}
+		else {
+			// カプセル用
+			const auto& jointA = joints[part.startJointIndex];
+			const auto& jointB = joints[part.endJointIndex];
+
+			Vector3 a = jointA.skeletonSpaceMatrix.GetTranslation();
+			Vector3 b = jointB.skeletonSpaceMatrix.GetTranslation();
+
+			Vector3 center = (a + b) * 0.5f;
+			Vector3 axis = Vector3::Normalize(b - a);
+			float height = Vector3::Length(b - a);
+
+			Wireframe::GetInstance()->DrawCapsule(center, part.radius, height, axis, 8, { 0.0f, 1.0f, 0.0f, 1.0f });
+		}
+	}
 }
 
 
@@ -279,4 +331,68 @@ void AnimationModel::CreateSkinningSettingResource()
 	skinningSettingResource_->Map(0, nullptr, reinterpret_cast<void**>(&skinningSetting_));
 
 	skinningSetting_->isSkinning = false;
+}
+
+void AnimationModel::InitializeBones()
+{
+	auto& jointMap = skeleton_->GetJointMap();
+
+	// ----- Head, Neck (スフィア)
+	if (auto it = jointMap.find("mixamorig:Head"); it != jointMap.end()) {
+		bodyPartColliders_.push_back({ "Head", it->second, -1, {0, 0.12f, 0}, 0.12f, 0.0f });
+	}
+	if (auto it = jointMap.find("mixamorig:Neck"); it != jointMap.end()) {
+		bodyPartColliders_.push_back({ "Neck", it->second, -1, {0, 0.05f, 0}, 0.1f, 0.0f });
+	}
+
+	// ----- Spine（Spine → Spine1）
+	if (jointMap.contains("mixamorig:Spine") && jointMap.contains("mixamorig:Spine1")) {
+		bodyPartColliders_.push_back({ "SpineLower", jointMap.at("mixamorig:Spine"), jointMap.at("mixamorig:Spine1"), {}, 0.15f, 0.0f });
+	}
+	if (jointMap.contains("mixamorig:Spine1") && jointMap.contains("mixamorig:Spine2")) {
+		bodyPartColliders_.push_back({ "SpineUpper", jointMap.at("mixamorig:Spine1"), jointMap.at("mixamorig:Spine2"), {}, 0.15f, 0.0f });
+	}
+
+	// ----- Left Arm（Arm → Elbow → Wrist）
+	if (jointMap.contains("mixamorig:LeftArm") && jointMap.contains("mixamorig:LeftForeArm")) {
+		bodyPartColliders_.push_back({ "LeftUpperArm", jointMap.at("mixamorig:LeftArm"), jointMap.at("mixamorig:LeftForeArm"), {}, 0.1f, 0.0f });
+	}
+	if (jointMap.contains("mixamorig:LeftForeArm") && jointMap.contains("mixamorig:LeftHand")) {
+		bodyPartColliders_.push_back({ "LeftLowerArm", jointMap.at("mixamorig:LeftForeArm"), jointMap.at("mixamorig:LeftHand"), {}, 0.09f, 0.0f });
+	}
+
+	// ----- Right Arm
+	if (jointMap.contains("mixamorig:RightArm") && jointMap.contains("mixamorig:RightForeArm")) {
+		bodyPartColliders_.push_back({ "RightUpperArm", jointMap.at("mixamorig:RightArm"), jointMap.at("mixamorig:RightForeArm"), {}, 0.1f, 0.0f });
+	}
+	if (jointMap.contains("mixamorig:RightForeArm") && jointMap.contains("mixamorig:RightHand")) {
+		bodyPartColliders_.push_back({ "RightLowerArm", jointMap.at("mixamorig:RightForeArm"), jointMap.at("mixamorig:RightHand"), {}, 0.09f, 0.0f });
+	}
+
+	// ----- Left Leg
+	if (jointMap.contains("mixamorig:LeftUpLeg") && jointMap.contains("mixamorig:LeftLeg")) {
+		bodyPartColliders_.push_back({ "LeftUpperLeg", jointMap.at("mixamorig:LeftUpLeg"), jointMap.at("mixamorig:LeftLeg"), {}, 0.12f, 0.0f });
+	}
+	if (jointMap.contains("mixamorig:LeftLeg") && jointMap.contains("mixamorig:LeftFoot")) {
+		bodyPartColliders_.push_back({ "LeftLowerLeg", jointMap.at("mixamorig:LeftLeg"), jointMap.at("mixamorig:LeftFoot"), {}, 0.1f, 0.0f });
+	}
+
+	// ----- Right Leg
+	if (jointMap.contains("mixamorig:RightUpLeg") && jointMap.contains("mixamorig:RightLeg")) {
+		bodyPartColliders_.push_back({ "RightUpperLeg", jointMap.at("mixamorig:RightUpLeg"), jointMap.at("mixamorig:RightLeg"), {}, 0.12f, 0.0f });
+	}
+	if (jointMap.contains("mixamorig:RightLeg") && jointMap.contains("mixamorig:RightFoot")) {
+		bodyPartColliders_.push_back({ "RightLowerLeg", jointMap.at("mixamorig:RightLeg"), jointMap.at("mixamorig:RightFoot"), {}, 0.1f, 0.0f });
+	}
+
+
+	// ----- Left Toe（Foot → ToeBase）
+	if (jointMap.contains("mixamorig:LeftFoot") && jointMap.contains("mixamorig:LeftToeBase")) {
+		bodyPartColliders_.push_back({ "LeftToe", jointMap.at("mixamorig:LeftFoot"), jointMap.at("mixamorig:LeftToeBase"), {}, 0.07f, 0.0f });
+	}
+
+	// ----- Right Toe（Foot → ToeBase）
+	if (jointMap.contains("mixamorig:RightFoot") && jointMap.contains("mixamorig:RightToeBase")) {
+		bodyPartColliders_.push_back({ "RightToe", jointMap.at("mixamorig:RightFoot"), jointMap.at("mixamorig:RightToeBase"), {}, 0.07f, 0.0f });
+	}
 }

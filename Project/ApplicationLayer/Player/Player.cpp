@@ -20,13 +20,13 @@ void Player::Initialize()
 {
 	// プレイヤーのコライダーを初期化
 	Collider::SetTypeID(static_cast<uint32_t>(CollisionTypeIdDef::kPlayer));
-	Collider::SetOBBHalfSize({ 1.0f, 1.0f, 1.0f }); // OBBの半径を設定
+	Collider::SetOBBHalfSize({ 0.25f, 0.9f, 0.25 }); // OBBの半径を設定
 
 	input_ = Input::GetInstance();
 
 	// アニメーションモデルの初期化
 	animationModel_ = std::make_unique<AnimationModel>();
-	animationModel_->Initialize("human.gltf");
+	animationModel_->Initialize("humanWalking.gltf");
 	animationModel_->SetSkinningEnabled(true);
 
 	// 武器の初期化
@@ -35,6 +35,10 @@ void Player::Initialize()
 	// プレイヤーコントローラーの生成と初期化
 	controller_ = std::make_unique<PlayerController>();
 	controller_->Initialize();
+
+	// Player::Initialize()
+	movement_ = std::make_unique<PlayerMovementController>();
+	movement_->Initialize(animationModel_.get());
 
 	// HUDの初期化
 	numberSpriteDrawer_ = std::make_unique<NumberSpriteDrawer>();
@@ -49,17 +53,25 @@ void Player::Initialize()
 /// -------------------------------------------------------------
 void Player::Update()
 {
-
-	if (input_->TriggerKey(DIK_H)) {
-		TakeDamage(10);
-	}
-
 	if (isDead_) return; // 死亡後は行動不可
+
+	if (animationModel_) animationModel_->Update();
+
+	// --- ダッシュ入力確認 ---
+	bool isDashKey = input_->PushKey(DIK_LSHIFT);
+	bool isDashButton = input_->PushButton(XButtons.B);
 
 	weapons_[currentWeaponIndex_]->SetFpsCamera(fpsCamera_);
 
-	// プレイヤーの移動処理
-	Move();
+	// プレイヤーコントローラーの更新
+	controller_->Update();
+
+	movement_->SetDashInput(isDashKey || isDashButton);
+	movement_->SetStamina(&stamina_);
+	movement_->SetAimingInput(input_->PushMouse(1));
+	movement_->SetCrouchInput(controller_->IsCrouchPressed());
+
+	movement_->Update(controller_.get(), camera_, deltaTime, weapons_[currentWeaponIndex_]->IsReloading());
 
 	// --- 発射入力（マウス左クリックまたはゲームパッドRT） ---
 
@@ -75,21 +87,7 @@ void Player::Update()
 	}
 
 	// 武器更新（すべての武器）
-	if (Weapon* weapon = GetCurrentWeapon()) {
-		weapon->Update();
-	}
-
-	// 照準モードかどうかを確認
-	if (!weapons_[currentWeaponIndex_]->IsReloading()) // リロード中は発射不可
-	{
-		isAiming_ = input_->PushMouse(1); // 右クリックでADS（Aim Down Sights）モード
-	}
-	else
-	{
-		isAiming_ = false; // リロード中はADS不可
-	}
-
-	camera_->SetFovY(isAiming_ ? 0.6f : 0.9f); // 照準時: 狭く、非照準時: 広く
+	if (Weapon* weapon = GetCurrentWeapon()) weapon->Update();
 
 	// 武器に応じて発射（Rifleなら押しっぱなし、Shotgunなら単発）
 	if (GetCurrentWeapon()->GetWeaponType() == WeaponType::Rifle)
@@ -107,26 +105,8 @@ void Player::Update()
 		}
 	}
 
-	if (animationModel_)
-	{
-		animationModel_->Update();
-	}
-
-	// スタミナシステムの更新
-	UpdateStamina();
-
-	if (isHitEffectActive_)
-	{
-		hitEffectTimer_ -= deltaTime;
-		if (hitEffectTimer_ <= 0.0f)
-		{
-			isHitEffectActive_ = false;
-			PostEffectManager::GetInstance()->DisableEffect("RadialBlurEffect");
-		}
-	}
-
 	// コライダーの位置と回転をプレイヤーに追従させる
-	Collider::SetCenterPosition(animationModel_->GetTranslate());
+	Collider::SetCenterPosition(animationModel_->GetTranslate() + Vector3(0.0f, 0.9f, 0.0f));
 }
 
 
@@ -168,13 +148,7 @@ void Player::DrawImGui()
 	}
 
 	ImGui::Text("Current Weapon: %s", weaponName.c_str());
-
-	ImGui::Separator();
-	ImGui::Text("== Stamina Info ==");
-	ImGui::Text("Stamina: %.1f / %.1f", stamina_, maxStamina_);
-	ImGui::ProgressBar(stamina_ / maxStamina_, ImVec2(200, 20));
-	ImGui::Text("Recover Delay: %.2f / %.2f", staminaRecoverTimer_, staminaRecoverDelay_);
-	ImGui::Text("Recover Blocked: %s", isStaminaRecoverBlocked_ ? "Yes" : "No");
+	movement_->DrawImGui();
 }
 
 
@@ -193,13 +167,6 @@ void Player::TakeDamage(float damage)
 		isDead_ = true;
 		Log("Player is dead");
 	}
-
-	// 被弾ポストエフェクトを起動
-	hitEffectTimer_ = 0.3f; // 表示する秒数
-	isHitEffectActive_ = true;
-
-	// エフェクトON
-	PostEffectManager::GetInstance()->EnableEffect("RadialBlurEffect");
 }
 
 
@@ -219,99 +186,6 @@ void Player::InitializeWeapons()
 	shotgun->SetWeaponType(WeaponType::Shotgun);
 	shotgun->Initialize();
 	weapons_.push_back(std::move(shotgun));
-}
-
-
-/// -------------------------------------------------------------
-///				　			　 移動処理
-/// -------------------------------------------------------------
-void Player::Move()
-{
-	controller_->Update();
-	Vector3 moveInput = controller_->GetMoveInput();
-	isCrouching_ = controller_->IsCrouchPressed(); // しゃがみ状態を取得
-
-	// --- ダッシュ入力確認 ---
-	bool isDashKey = input_->PushKey(DIK_LSHIFT);
-	bool isDashButton = input_->PushButton(XButtons.B);
-
-	// --- ダッシュ入力確認 ---
-	if (isAiming_ || weapons_[currentWeaponIndex_]->IsReloading())
-	{
-		isDashing_ = false; // リロード中はダッシュ不可
-		moveInput *= 0.5f; // 例: リロード中は移動速度を半減
-	}
-	else if ((isDashKey || isDashButton) && (moveInput.x != 0.0f || moveInput.z != 0.0f) && stamina_ >= staminaDashCost_ * deltaTime)
-	{
-		isDashing_ = true;
-		stamina_ -= staminaDashCost_ * deltaTime;
-		isStaminaRecoverBlocked_ = true;
-		staminaRecoverTimer_ = 0.0f;
-	}
-	else
-	{
-		isDashing_ = false;
-	}
-
-	// カメラの方向で回転
-	if (camera_)
-	{
-		float yaw = camera_->GetRotate().y;
-		float sinY = sinf(yaw);
-		float cosY = cosf(yaw);
-		moveInput = {
-			moveInput.x * cosY - moveInput.z * sinY,
-			0.0f,
-			moveInput.x * sinY + moveInput.z * cosY
-		};
-	}
-
-	// --- ダッシュ適用移動速度 ---
-	float currentSpeed = baseSpeed_;
-	if (isDashing_) currentSpeed *= dashMultiplier_;
-	if (isAiming_)	currentSpeed *= adsSpeedFactor_;  // 例: 0.5f などで移動速度を半減
-	if (isCrouching_) currentSpeed *= crouchingSpeed_; // しゃがみ時は移動速度を半減
-
-	// 位置更新
-	Vector3 modelPosition = animationModel_->GetTranslate();
-	modelPosition += moveInput * currentSpeed;
-	animationModel_->SetTranslate(modelPosition);
-
-	if (camera_)
-	{
-		float yaw = animationModel_->GetRotate().y;
-		animationModel_->SetRotate({ 0.0f,yaw,0.0f });
-	}
-
-	// --- ジャンプ・重力・接地（修正版） ---
-	Vector3 position = animationModel_->GetTranslate();
-
-	// ジャンプ開始
-	if (isGrounded_ && controller_->IsJumpTriggered())
-	{
-		if (stamina_ >= staminaJumpCost_)
-		{
-			velocity_.y = jumpPower_;
-			isGrounded_ = false;
-			stamina_ -= staminaJumpCost_;
-			isStaminaRecoverBlocked_ = true;
-			staminaRecoverTimer_ = 0.0f;
-		}
-	}
-
-	// 重力を加える
-	velocity_.y += gravity_ * deltaTime;
-	position.y += velocity_.y; // Y座標に反映
-
-	// 地面との接地処理（仮にY=0が地面）
-	if (position.y <= 0.0f)
-	{
-		position.y = 0.0f;
-		velocity_.y = 0.0f;
-		isGrounded_ = true;
-	}
-
-	animationModel_->SetTranslate(position); // 最終位置反映
 }
 
 
@@ -360,7 +234,7 @@ void Player::FireWeapon()
 	Vector3 forward;
 	float range = weapons_[currentWeaponIndex_]->GetAmmoInfo().range;
 
-	if (isAiming_)
+	if (movement_->IsAimingInput())
 	{
 		// カメラ中心から照準に向けて発射（ADSモード）
 		Vector3 cameraOrigin = camera_->GetTranslate();
@@ -383,30 +257,4 @@ void Player::FireWeapon()
 	}
 
 	weapons_[currentWeaponIndex_]->TryFire(worldMuzzlePos, forward);
-}
-
-void Player::UpdateStamina()
-{
-	// スタミナ回復ブロック中の経過時間を計測
-	if (isStaminaRecoverBlocked_)
-	{
-		staminaRecoverTimer_ += deltaTime;
-
-		// 一定時間経過で回復可能に
-		if (staminaRecoverTimer_ >= staminaRecoverDelay_)
-		{
-			isStaminaRecoverBlocked_ = false;
-			staminaRecoverTimer_ = 0.0f;
-		}
-	}
-
-	// 回復が許可されていればスタミナを回復
-	if (!isStaminaRecoverBlocked_)
-	{
-		stamina_ += staminaRegenRate_ * deltaTime;
-		if (stamina_ > maxStamina_)
-		{
-			stamina_ = maxStamina_;
-		}
-	}
 }

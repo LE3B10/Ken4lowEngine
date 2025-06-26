@@ -125,6 +125,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClCompile Include="ApplicationLayer\Enemy\Grunt\EnemyIdleState.cpp" />
     <ClCompile Include="ApplicationLayer\Enemy\EnemyManager.cpp" />
     <ClCompile Include="ApplicationLayer\Enemy\Boss\BossIdleState.cpp" />
+    <ClCompile Include="DummyModel.cpp" />
     <ClCompile Include="EngineLayer\PostEffectManagement\DepthOutlineEffect.cpp" />
     <ClCompile Include="EngineLayer\Managers\AnimationManager\AnimationModel.cpp" />
     <ClCompile Include="EngineLayer\Managers\AnimationManager\AnimationPipelineBuilder.cpp" />
@@ -230,6 +231,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClCompile Include="ApplicationLayer\Item\ItemManager.cpp" />
     <ClCompile Include="ApplicationLayer\Enemy\Sniper\SniperIdleState.cpp" />
     <ClCompile Include="ApplicationLayer\Enemy\Tank\TankIdleState.cpp" />
+    <ClCompile Include="ApplicationLayer\Player\PlayerMovementController.cpp" />
     <ClCompile Include="WinMain.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
@@ -382,6 +384,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="ApplicationLayer\Enemy\Grunt\EnemyIdleState.h" />
     <ClInclude Include="ApplicationLayer\Enemy\EnemyManager.h" />
     <ClInclude Include="ApplicationLayer\Enemy\Boss\BossIdleState.h" />
+    <ClInclude Include="DummyModel.h" />
     <ClInclude Include="EngineLayer\PostEffectManagement\DepthOutlineEffect.h" />
     <ClInclude Include="EngineLayer\Managers\AnimationManager\AnimationModel.h" />
     <ClInclude Include="EngineLayer\Managers\AnimationManager\AnimationPipelineBuilder.h" />
@@ -519,6 +522,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="ApplicationLayer\Enemy\Sniper\SniperIdleState.h" />
     <ClInclude Include="ApplicationLayer\Enemy\Tank\TankIdleState.h" />
     <ClInclude Include="EngineLayer\Math\LinearInterpolation.h" />
+    <ClInclude Include="ApplicationLayer\Player\PlayerMovementController.h" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="externals\DirectXTex\DirectXTex_Desktop_2022_Win10.vcxproj">

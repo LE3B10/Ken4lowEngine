@@ -178,6 +178,9 @@ public: /// ---------- 3D用の線の描画 ---------- ///
 	// 球体を描画
 	void DrawSphere(const Vector3& center, const float radius, const Vector4& color);
 
+	// カプセル（Capsule）を描画
+	void DrawCapsule(const Vector3& center, float radius, float height, const Vector3& axis, int segments, const Vector4& color);
+
 	// 円柱（シリンダー）を描画
 	void DrawCylinder(const Vector3& baseCenter, float radius, float height, const Vector3& axis, uint32_t segmentCount, const Vector4& color);
 
