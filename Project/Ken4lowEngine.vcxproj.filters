@@ -421,7 +421,7 @@
     <ClCompile Include="EngineLayer\ResourceChecker\ReleaseCheck\ResourceObject.cpp">
       <Filter>EngineLayer\Base</Filter>
     </ClCompile>
-    <ClCompile Include="DummyModel.cpp" />
+    <ClCompile Include="ApplicationLayer\Player\DummyModel.cpp" />
     <ClCompile Include="ApplicationLayer\Player\PlayerMovementController.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -851,8 +851,9 @@
     <ClInclude Include="EngineLayer\ResourceChecker\ReleaseCheck\ResourceObject.h">
       <Filter>EngineLayer\Base</Filter>
     </ClInclude>
-    <ClInclude Include="DummyModel.h" />
+    <ClInclude Include="ApplicationLayer\Player\DummyModel.h" />
     <ClInclude Include="ApplicationLayer\Player\PlayerMovementController.h" />
+    <ClInclude Include="EngineLayer\Math\Capsule.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Resources\Shaders\PostEffect\FullScreen.hlsli">

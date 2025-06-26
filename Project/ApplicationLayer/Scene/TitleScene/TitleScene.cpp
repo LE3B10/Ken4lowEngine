@@ -4,6 +4,8 @@
 #include <Object3DCommon.h>
 #include <ImGuiManager.h>
 #include "SceneManager.h"
+#include <CollisionUtility.h>
+#include <Wireframe.h>
 
 /// -------------------------------------------------------------
 ///				　			　初期化処理

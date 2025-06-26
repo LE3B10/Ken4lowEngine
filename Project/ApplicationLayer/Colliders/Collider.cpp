@@ -1,3 +1,4 @@
+#define NOMINMAX
 #include "Collider.h"
 #include <Wireframe.h>
 
@@ -58,6 +59,17 @@ void Collider::Draw()
 	{
 		Wireframe::GetInstance()->DrawSegment(segment_, debugColor_);
 	}
+
+	// -------- Capsule 描画 -------- //
+	Vector3 axis = capsule_.GetAxis();
+	if (useCapsule_ && drawCapsule_ && capsule_.radius > 0.001f)
+	{
+		Vector3 axis = capsule_.GetAxis();
+		if (Vector3::Length(axis) < 1e-6f)
+			Wireframe::GetInstance()->DrawSphere(capsule_.pointA, capsule_.radius, debugColor_);
+		else
+			Wireframe::GetInstance()->DrawCapsule(capsule_.GetCenter(), capsule_.radius, capsule_.GetHeight(), axis, 8, debugColor_);
+	}
 }
 
 
@@ -83,6 +95,19 @@ void Collider::DrawImGui()
 		}
 
 		ImGui::ColorEdit4("Color", &debugColor_.x);
+
+		// -------- Capsule -------- //
+		if (ImGui::Checkbox("Use Capsule", &useCapsule_)) {}
+		if (useCapsule_)
+		{
+			Vector3 pA = capsule_.pointA;
+			Vector3 pB = capsule_.pointB;
+			float   r = capsule_.radius;
+
+			if (ImGui::DragFloat3("Point A", &pA.x, 0.05f)) capsule_.pointA = pA;
+			if (ImGui::DragFloat3("Point B", &pB.x, 0.05f)) capsule_.pointB = pB;
+			if (ImGui::DragFloat("Radius", &r, 0.01f))  capsule_.radius = std::max(0.0f, r);
+		}
 
 		ImGui::TreePop();
 	}
