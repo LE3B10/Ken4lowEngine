@@ -95,4 +95,10 @@ private: // ---------- メンバ ---------- //
 	float recoilOffsetPitch_ = 0.0f;
 	float recoilOffsetYaw_ = 0.0f;
 	std::default_random_engine randomEngine_;
+
+	bool debugThirdPerson_ = false;   // true のとき TPS 表示
+	// TPS オフセット（好みに応じて調整）
+	float debugCamDistance_ = 3.0f; // 背後距離
+	float debugShoulderHeight_ = 1.6f; // 肩の高さ
+	float debugSideOffset_ = 0.0f;// 右肩越し (+左なら負に)
 };

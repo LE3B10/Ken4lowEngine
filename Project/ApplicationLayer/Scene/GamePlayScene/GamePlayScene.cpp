@@ -82,6 +82,9 @@ void GamePlayScene::Initialize()
 	terrein_ = std::make_unique<Object3D>();
 	// 地形オブジェクトの初期化
 	terrein_->Initialize("Terrain.gltf");
+
+	dModel_ = std::make_unique<DummyModel>();
+	dModel_->Initialize();
 }
 
 
@@ -181,7 +184,8 @@ void GamePlayScene::Update()
 		hudManager_->SetStamina(player_->GetStamina(), player_->GetMaxStamina());
 
 		player_->Update();
-		fpsCamera_->Update(false);
+		fpsCamera_->Update();
+
 		crosshair_->Update();
 		collisionManager_->Update();
 		CheckAllCollisions();
@@ -214,6 +218,7 @@ void GamePlayScene::Update()
 	}
 
 	terrein_->Update();
+	dModel_->Update();
 }
 
 
@@ -222,6 +227,18 @@ void GamePlayScene::Update()
 /// -------------------------------------------------------------
 void GamePlayScene::Draw3DObjects()
 {
+	switch (gameState_) {
+	case GameState::Playing:
+		DrawPlaying();
+		break;
+	case GameState::Paused:
+		DrawPaused();
+		break;
+	case GameState::Result:
+		DrawResult();
+		break;
+	}
+
 #pragma region スカイボックスの描画
 
 	// スカイボックスの共通描画設定
@@ -254,6 +271,7 @@ void GamePlayScene::Draw3DObjects()
 	// アニメーションモデルの共通描画設定
 	AnimationPipelineBuilder::GetInstance()->SetRenderSetting();
 
+	dModel_->Draw();
 #pragma endregion
 
 
@@ -266,6 +284,8 @@ void GamePlayScene::Draw3DObjects()
 
 	// ワイヤーフレームの描画
 	Wireframe::GetInstance()->DrawGrid(1000.0f, 100.0f, { 0.25f, 0.25f, 0.25f,1.0f });
+
+	//Wireframe::GetInstance()->DrawCapsule({ 0.0f,2.0f,0.0f }, 0.5f, 2.0f, { 0.0f,1.0f,0.0f }, 12, { 1.0f, 0.0f, 1.0f, 1.0f });
 #endif // _DEBUG
 }
 
@@ -323,6 +343,8 @@ void GamePlayScene::DrawImGui()
 	// エネミースポナー
 	enemyManager_->DrawImGui();
 
+	dModel_->DrawImGui();
+
 	// スコア
 	ScoreManager::GetInstance()->DrawImGui();
 }
@@ -356,4 +378,28 @@ void GamePlayScene::CheckAllCollisions()
 
 	// 衝突判定と応答
 	collisionManager_->CheckAllCollisions();
+}
+
+void GamePlayScene::UpdatePlaying()
+{
+}
+
+void GamePlayScene::UpdatePaused()
+{
+}
+
+void GamePlayScene::UpdateResult()
+{
+}
+
+void GamePlayScene::DrawPlaying()
+{
+}
+
+void GamePlayScene::DrawPaused()
+{
+}
+
+void GamePlayScene::DrawResult()
+{
 }

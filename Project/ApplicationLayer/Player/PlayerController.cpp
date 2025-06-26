@@ -30,10 +30,7 @@ void PlayerController::Update()
 	if (input_->TriggerKey(DIK_SPACE)) jump_ = true;
 
 	// キーボードのCtrlキーでしゃがみ
-	if (input_->PushKey(DIK_LCONTROL)) crouch_ = true;
-
-	// ゲームパッドのBボタンでしゃがみ
-	if (input_->PushButton(XButtons.B)) crouch_ = true;
+	if (input_->PushKey(DIK_LCONTROL) || input_->PushButton(XButtons.B)) crouch_ = true;
 
 	// 左クリック or RT（ゲームパッド）で射撃
 	isTriggerShooting_ = input_->TriggerMouse(0);// || input_->PushButton(XButtons.RT);
