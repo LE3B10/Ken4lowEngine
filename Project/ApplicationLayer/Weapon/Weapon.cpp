@@ -18,6 +18,9 @@ void Weapon::Initialize()
 	isReloading_ = false;
 	reloadTimer_ = 0.0f;
 
+	bullets_.push_back(std::make_unique<Bullet>());
+	bullets_.back()->Initialize();
+
 	// 武器ごとのパラメータ設定
 	switch (type_)
 	{

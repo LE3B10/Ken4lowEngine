@@ -88,7 +88,7 @@ private: /// ---------- メンバ変数 ---------- ///
 	std::unique_ptr<Player> player_ = nullptr; // プレイヤーオブジェクト
 	std::unique_ptr<FpsCamera> fpsCamera_ = nullptr; // カメラオブジェクト
 	std::unique_ptr<Crosshair> crosshair_ = nullptr; // クロスヘアオブジェクト
-	std::unique_ptr<EnemyManager> enemyManager_ = nullptr; // エネミースポナーオブジェクト
+	//std::unique_ptr<EnemyManager> enemyManager_ = nullptr; // エネミースポナーオブジェクト
 
 	std::unique_ptr<HUDManager> hudManager_ = nullptr; // HUDマネージャー
 	std::unique_ptr<ResultManager> resultManager_ = nullptr; // 結果マネージャー
@@ -100,8 +100,6 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	// アニメーションモデル
 	std::unique_ptr<AnimationModel> animationModel_ = nullptr;
-
-	std::unique_ptr<DummyModel> dModel_;
 
 	// デバッグカメラのON/OFF用
 	bool isDebugCamera_ = false;

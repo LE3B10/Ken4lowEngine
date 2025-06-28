@@ -57,7 +57,7 @@ private: /// ---------- 構造体 ---------- ///
 public: /// ---------- メンバ関数 ---------- ///
 
 	// 初期化処理
-	void Initialize(const std::string& fileName);
+	void Initialize(const std::string& fileName, bool isSkinning = true);
 
 	// 更新処理
 	void Update();
@@ -70,6 +70,9 @@ public: /// ---------- メンバ関数 ---------- ///
 
 	// ImGui描画処理
 	void DrawImGui();
+
+	// 削除処理
+	void Clear();
 
 	// ワイヤーフレーム描画
 	void DrawSkeletonWireframe();
@@ -127,6 +130,9 @@ private: /// ---------- メンバ関数 ---------- ///
 
 	// ボーン情報の初期化
 	void InitializeBones();
+
+	// アニメーション時間を取得
+	float GetAnimationTime() const { return animationTime_; }
 
 private: /// ---------- メンバ関数・テンプレート関数 ---------- ///
 

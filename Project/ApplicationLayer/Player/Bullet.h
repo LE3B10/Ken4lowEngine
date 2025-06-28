@@ -54,7 +54,20 @@ public: /// ---------- メンバ関数 ---------- ///
 
 private: /// ---------- メンバ変数 ---------- ///
 
+	void PrewarmBulletAssets()
+	{
+		if (!Bullet::sModel_) {
+			Bullet::sModel_ = std::make_shared<Object3D>();
+			Bullet::sModel_->Initialize("cube.gltf");
+			Bullet::sModel_->SetScale({ 0.001f,0.001f,0.001f });
+		}
+	}
+
+private: /// ---------- メンバ変数 ---------- ///
+
 	Player* player_ = nullptr; // プレイヤーへの参照（必要なら）
+
+	static std::shared_ptr<Object3D> sModel_; // 静的モデル（全弾で共有）
 
 	std::unique_ptr<Object3D> model_;     // モデル
 	Vector3 position_ = {};               // 現在位置

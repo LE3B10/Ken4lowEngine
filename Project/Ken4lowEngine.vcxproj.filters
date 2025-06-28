@@ -422,7 +422,9 @@
       <Filter>EngineLayer\Base</Filter>
     </ClCompile>
     <ClCompile Include="ApplicationLayer\Player\DummyModel.cpp" />
-    <ClCompile Include="ApplicationLayer\Player\PlayerMovementController.cpp" />
+    <ClCompile Include="ApplicationLayer\Player\State\IPlayerState\IPlayerState.cpp" />
+    <ClCompile Include="ApplicationLayer\Player\State\PlayerIdleState\PlayerIdleState.cpp" />
+    <ClCompile Include="ApplicationLayer\Player\State\PlayerWalkState\PlayerWalkState.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="EngineLayer\PostEffectManagement\AbsorbEffect.h">
@@ -852,8 +854,11 @@
       <Filter>EngineLayer\Base</Filter>
     </ClInclude>
     <ClInclude Include="ApplicationLayer\Player\DummyModel.h" />
-    <ClInclude Include="ApplicationLayer\Player\PlayerMovementController.h" />
     <ClInclude Include="EngineLayer\Math\Capsule.h" />
+    <ClInclude Include="ApplicationLayer\Player\State\IPlayerState\IPlayerState.h" />
+    <ClInclude Include="ApplicationLayer\Player\State\PlayerIdleState\PlayerIdleState.h" />
+    <ClInclude Include="ApplicationLayer\Player\State\PlayerWalkState\PlayerWalkState.h" />
+    <ClInclude Include="ApplicationLayer\Player\PlayerStateType.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Resources\Shaders\PostEffect\FullScreen.hlsli">

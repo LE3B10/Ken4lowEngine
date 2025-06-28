@@ -121,7 +121,7 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	// 弾丸のプレハブ
 	std::vector<std::unique_ptr<Bullet>> bullets_;
-
+	
 	bool isReloading_ = false;	// リロード中かどうか
 	float reloadTime_ = 0.0f;	// リロード時間（秒）
 	float reloadTimer_ = 0.0f;	// リロードタイマー

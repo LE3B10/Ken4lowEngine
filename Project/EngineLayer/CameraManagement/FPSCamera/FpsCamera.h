@@ -81,7 +81,7 @@ private: // ---------- メンバ ---------- //
 
 	// しゃがむ状態のフラグ
 	bool isCrouching_ = false; // しゃがむ状態のフラグ
-	const float standEyeHeight_ = 1.74f; // 立ち上がり時の目の高さ
+	const float standEyeHeight_ = 1.685f; // 立ち上がり時の目の高さ
 	const float crouchEyeHeight_ = 1.2f; // しゃがみ時の目の高さ
 
 	// 着地検出用（前フレームとの比較）
