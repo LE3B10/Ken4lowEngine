@@ -25,7 +25,9 @@ void Player::Initialize()
 
 	// アニメーションモデルの初期化
 	animationModel_ = std::make_unique<AnimationModel>();
-	animationModel_->Initialize("PlayerStateModel/PlayerIdleAnimation.gltf"); // スキニング有効
+	//animationModel_->Initialize("PlayerStateModel/PlayerIdleAnimation.gltf"); // スキニング有効
+
+	ChangeState(std::make_unique<PlayerIdleState>());  // Idle で開始
 
 	// 武器の初期化
 	InitializeWeapons();
@@ -75,6 +77,8 @@ void Player::Update()
 	// プレイヤーコントローラーの更新
 	controller_->UpdateMovement(camera_, animationModel_->GetDeltaTime(), weapons_[currentWeaponIndex_]->IsReloading());
 
+	// プレイヤーの状態更新（例: 歩行、待機など）
+	if (state_) state_->Update(this);
 
 	// --- 発射入力（マウス左クリックまたはゲームパッドRT） ---
 
@@ -121,8 +125,7 @@ void Player::Draw()
 	}
 
 	AnimationPipelineBuilder::GetInstance()->SetRenderSetting(); // アニメーションパイプラインの描画設定
-	animationModel_->Draw(); // アニメーションモデルの描画
-	
+	if (IsDebugCamera()) animationModel_->Draw(); // アニメーションモデルの描画
 }
 
 
@@ -285,4 +288,11 @@ void Player::FireWeapon()
 	}
 
 	weapons_[currentWeaponIndex_]->TryFire(worldMuzzlePos, forward);
+}
+
+void Player::ChangeState(std::unique_ptr<IPlayerState> next)
+{
+	if (state_) state_->Finalize(this);
+	state_ = std::move(next);
+	if (state_) state_->Initialize(this);
 }

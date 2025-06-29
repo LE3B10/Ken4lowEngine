@@ -42,6 +42,9 @@ void GamePlayScene::Initialize()
 	player_ = std::make_unique<Player>();
 	player_->Initialize();
 
+	dummyModel_ = std::make_unique<DummyModel>();
+	dummyModel_->Initialize();
+
 	//// エネミースポナーの生成と初期化
 	//enemyManager_ = std::make_unique<EnemyManager>();
 	//enemyManager_->Initialize(player_.get());
@@ -181,6 +184,8 @@ void GamePlayScene::Update()
 		hudManager_->SetStamina(player_->GetStamina(), player_->GetMaxStamina());
 
 		player_->Update();
+		dummyModel_->Update();
+		
 		fpsCamera_->Update();
 
 		crosshair_->Update();
@@ -267,7 +272,8 @@ void GamePlayScene::Draw3DObjects()
 	// アニメーションモデルの共通描画設定
 	AnimationPipelineBuilder::GetInstance()->SetRenderSetting();
 
-	//dModel_->Draw();
+	dummyModel_->Draw();
+
 #pragma endregion
 
 
@@ -279,7 +285,7 @@ void GamePlayScene::Draw3DObjects()
 	fpsCamera_->DrawDebugCamera();
 
 	// ワイヤーフレームの描画
-	Wireframe::GetInstance()->DrawGrid(1000.0f, 100.0f, { 0.25f, 0.25f, 0.25f,1.0f });
+	Wireframe::GetInstance()->DrawGrid(100.0f, 100.0f, { 0.25f, 0.25f, 0.25f,1.0f });
 
 #endif // _DEBUG
 }
@@ -335,6 +341,8 @@ void GamePlayScene::DrawImGui()
 	// プレイヤー
 	player_->DrawImGui();
 
+	dummyModel_->DrawImGui();
+
 	// エネミースポナー
 	//enemyManager_->DrawImGui();
 }
@@ -350,6 +358,8 @@ void GamePlayScene::CheckAllCollisions()
 
 	// コライダーをリストに登録
 	player_->RegisterColliders(collisionManager_.get()); // プレイヤーのコライダーを登録
+
+	dummyModel_->RegisterColliders(collisionManager_.get());
 
 	// プレイヤーの弾の登録
 	for (const auto& bullet : player_->GetBullets())

@@ -425,6 +425,7 @@
     <ClCompile Include="ApplicationLayer\Player\State\IPlayerState\IPlayerState.cpp" />
     <ClCompile Include="ApplicationLayer\Player\State\PlayerIdleState\PlayerIdleState.cpp" />
     <ClCompile Include="ApplicationLayer\Player\State\PlayerWalkState\PlayerWalkState.cpp" />
+    <ClCompile Include="ApplicationLayer\Player\State\PlayerRunState\PlayerRunState.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="EngineLayer\PostEffectManagement\AbsorbEffect.h">
@@ -859,6 +860,7 @@
     <ClInclude Include="ApplicationLayer\Player\State\PlayerIdleState\PlayerIdleState.h" />
     <ClInclude Include="ApplicationLayer\Player\State\PlayerWalkState\PlayerWalkState.h" />
     <ClInclude Include="ApplicationLayer\Player\PlayerStateType.h" />
+    <ClInclude Include="ApplicationLayer\Player\State\PlayerRunState\PlayerRunState.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Resources\Shaders\PostEffect\FullScreen.hlsli">

@@ -7,7 +7,14 @@
 #include <cassert>
 #include <cstring>
 
-void SkinCluster::Initialize(const ModelData& modelData, Skeleton& skeleton, uint32_t descriptorSize)
+SkinCluster::~SkinCluster()
+{
+	if (paletteSrvIndex_ != UINT32_MAX) {
+		SRVManager::GetInstance()->Free(paletteSrvIndex_);                 // ← 追加
+	}
+}
+
+void SkinCluster::Initialize(const ModelData& modelData, Skeleton& skeleton)
 {
 	auto* device = DirectXCommon::GetInstance()->GetDevice();
 	auto& joints = skeleton.GetJoints();
@@ -18,8 +25,9 @@ void SkinCluster::Initialize(const ModelData& modelData, Skeleton& skeleton, uin
 	paletteResource_->Map(0, nullptr, reinterpret_cast<void**>(&mappedPalette));
 	mappedPalette_ = { mappedPalette, joints.size() }; // spanを使ってアクセスするようにする
 
-	paletteSrvHandle_.first = SRVManager::GetInstance()->GetCPUDescriptorHandle(descriptorSize);
-	paletteSrvHandle_.second = SRVManager::GetInstance()->GetGPUDescriptorHandle(descriptorSize);
+	paletteSrvIndex_ = SRVManager::GetInstance()->Allocate();
+	paletteSrvHandle_.first = SRVManager::GetInstance()->GetCPUDescriptorHandle(paletteSrvIndex_);
+	paletteSrvHandle_.second = SRVManager::GetInstance()->GetGPUDescriptorHandle(paletteSrvIndex_);
 
 	// SRVの作成
 	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc{};

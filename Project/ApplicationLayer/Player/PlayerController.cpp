@@ -24,6 +24,8 @@ void PlayerController::Initialize(AnimationModel* model)
 /// -------------------------------------------------------------
 void PlayerController::UpdateMovement(Camera* camera, float deltaTime, bool weaponReloading)
 {
+	if (IsDebugCamera()) return; // デバッグアクティブ中は更新しない
+
 	Vector3 moveInput = { 0.0f, 0.0f, 0.0f }; // ← ★リセットされた移動入力
 	move_ = moveInput;                        // ← ★現在の入力で move_ を更新
 
@@ -31,8 +33,10 @@ void PlayerController::UpdateMovement(Camera* camera, float deltaTime, bool weap
 	if (input_->PushKey(DIK_S)) move_.z -= 1.0f;
 	if (input_->PushKey(DIK_D)) move_.x += 1.0f;
 	if (input_->PushKey(DIK_A)) move_.x -= 1.0f;
-	if (input_->PushKey(DIK_LSHIFT)) inputFlags_.dash = true; // ダッシュ入力
 	if (input_->TriggerKey(DIK_SPACE)) inputFlags_.jump = true; // ジャンプ入力
+
+	if (input_->PushKey(DIK_LSHIFT)) inputFlags_.dash = true; // ダッシュ入力
+	else inputFlags_.dash = false;
 
 	if (input_->PushKey(DIK_LCONTROL)) inputFlags_.crouch = true; // しゃがみ入力
 	else inputFlags_.crouch = false; // しゃがみ入力をリセット

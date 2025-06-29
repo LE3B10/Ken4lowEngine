@@ -99,15 +99,6 @@ void Bullet::OnCollision(Collider* other)
 	{
 		enemy->TakeDamage(GetDamage());
 
-		// 🔽 ヒットマーカー通知
-		if (player_)
-		{
-			if (auto crosshair = player_->GetCrosshair())
-			{
-				crosshair->ShowHitMarker();
-			}
-		}
-
 		if (enemy->IsDead())
 		{
 			// スコアを加算
@@ -119,6 +110,16 @@ void Bullet::OnCollision(Collider* other)
 			ScoreManager::GetInstance()->AddScore(50);
 		}
 	}
+
+	// 🔽 ヒットマーカー通知
+	if (player_)
+	{
+		if (auto crosshair = player_->GetCrosshair())
+		{
+			crosshair->ShowHitMarker();
+		}
+	}
+
 
 	// パーティクルを表示（仮演出）
 	// ヒット位置

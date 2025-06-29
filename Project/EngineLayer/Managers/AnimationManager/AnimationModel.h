@@ -23,6 +23,23 @@
 class DirectXCommon;
 class Camera;
 
+struct SubMesh {
+	std::vector<uint32_t> indices;
+	std::vector<int> jointIndices; // このSubMeshが参照するジョイントの一覧
+	D3D12_VERTEX_BUFFER_VIEW vbv;
+	D3D12_INDEX_BUFFER_VIEW ibv;
+
+	void Draw(ID3D12GraphicsCommandList* commandList) const {
+		commandList->IASetVertexBuffers(0, 1, &vbv);
+		commandList->IASetIndexBuffer(&ibv);
+		commandList->DrawIndexedInstanced(UINT(indices.size()), 1, 0, 0, 0);
+	}
+
+	bool UsesJoint(int jointIndex) const {
+		return std::find(jointIndices.begin(), jointIndices.end(), jointIndex) != jointIndices.end();
+	}
+};
+
 
 /// -------------------------------------------------------------
 ///				　アニメーションを描画するクラス
@@ -117,6 +134,9 @@ public: /// ---------- セッタ ---------- ///
 	// ワールド空間からボディパーツのカプセルを取得
 	std::vector<std::pair<std::string, Capsule>> GetBodyPartCapsulesWorld() const;
 
+	// 頭を消すかどうか
+	void SetHideHead(bool hide) { hideHead_ = hide; }
+
 private: /// ---------- メンバ関数 ---------- ///
 
 	// アニメーションを更新
@@ -207,5 +227,7 @@ private: /// ---------- メンバ変数 ---------- ///
 	float animationTime_ = 0.0f;
 
 	float deltaTime = 0.0f;
+
+	bool hideHead_ = false; // デフォルトは表示
 };
 

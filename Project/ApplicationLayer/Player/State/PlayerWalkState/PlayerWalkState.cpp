@@ -1,29 +1,36 @@
 #include "PlayerWalkState.h"
 #include "Player.h"
-#include "PlayerIdleState.h"
 
-void PlayerWalkState::Initialize()
+#include "PlayerIdleState.h"
+#include "PlayerRunState.h"
+
+void PlayerWalkState::Initialize(Player* player)
 {
-	// アニメーションモデルの初期化
-	animationModel_ = std::make_unique<AnimationModel>();
-	animationModel_->Initialize(modelFilePath_); // スキニング有効
+	player->GetAnimationModel()->Initialize(modelFilePath_); // 歩行アニメ
 }
 
-void PlayerWalkState::Update()
+void PlayerWalkState::Update(Player* player)
 {
-	// アニメーションの更新
-	if (animationModel_) animationModel_->Update();
+    // 入力が無くなったら待機へ
+    if (Vector3::Length(player->GetMoveInput()) <= 0.0f)
+    {
+        player->ChangeState(std::make_unique<PlayerIdleState>());
+        return;
+    }
 
-	// 入力処理
-	auto input = Input::GetInstance();
-	if (input->PushKey(DIK_W) || input->PushKey(DIK_S) || input->PushKey(DIK_A) || input->PushKey(DIK_D)) {
-		// 移動入力があれば、歩行状態に遷移
-		// ここではプレイヤーの状態遷移を行う必要があります
+	// ダッシュ入力があれば走行へ
+	if (player->GetController()->IsDashing())
+	{
+		player->ChangeState(std::make_unique<PlayerRunState>());
+		return;
 	}
 }
 
-void PlayerWalkState::Draw()
+void PlayerWalkState::Finalize(Player* player)
 {
-	// アニメーションモデルの描画
-	if (animationModel_) animationModel_->Draw();
+}
+
+void PlayerWalkState::Draw(Player* player)
+{
+	
 }

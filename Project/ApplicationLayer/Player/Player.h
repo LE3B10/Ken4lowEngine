@@ -6,6 +6,7 @@
 #include <Collider.h>
 #include <AnimationModel.h>
 #include "PlayerStateType.h"
+#include <IPlayerState.h>
 
 /// ---------- 前方宣言 ---------- ///
 class FpsCamera;
@@ -45,6 +46,8 @@ public: /// ---------- メンバ関数 ---------- ///
 
 	// 衝突判定を行う
 	void RegisterColliders(CollisionManager* collisionManager) const;
+
+	void ChangeState(std::unique_ptr<IPlayerState> next); // ↓実装
 
 private: /// ---------- メンバ関数 ---------- ///
 
@@ -158,6 +161,8 @@ private: /// ---------- メンバ変数 ---------- ///
 	FpsCamera* fpsCamera_ = nullptr;
 	Crosshair* crosshair_ = nullptr; // クロスヘアクラス
 
+	std::unique_ptr<IPlayerState> state_;          // ← 追加
+	
 	std::vector<std::unique_ptr<Weapon>> weapons_; // 武器クラス
 	int currentWeaponIndex_ = 0; // 現在の武器インデックス
 

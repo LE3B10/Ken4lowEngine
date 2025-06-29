@@ -13,8 +13,11 @@ class SkinCluster
 {
 public: /// ---------- メンバ関数 ---------- ///
 
+	// デストラクタ
+	~SkinCluster();
+
 	// 初期化処理
-	void Initialize(const ModelData& modelData, Skeleton& skeleton, uint32_t descriptorSize);
+	void Initialize(const ModelData& modelData, Skeleton& skeleton);
 
 	// スケルトンからパレット行列を更新
 	void UpdatePaletteMatrix(Skeleton& skeleton);
@@ -35,6 +38,7 @@ private: /// ---------- メンバ変数 ---------- ///
 	// palette（ジョイント行列の配列）
 	ComPtr<ID3D12Resource> paletteResource_;
 	std::span<WellForGPU> mappedPalette_;
+	uint32_t paletteSrvIndex_ = UINT32_MAX;
 	std::pair<D3D12_CPU_DESCRIPTOR_HANDLE, D3D12_GPU_DESCRIPTOR_HANDLE> paletteSrvHandle_;
 };
 

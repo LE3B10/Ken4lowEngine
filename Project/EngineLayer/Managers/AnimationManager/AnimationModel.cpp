@@ -40,7 +40,7 @@ void AnimationModel::Initialize(const std::string& fileName, bool isSkinning)
 
 	// スキンクラスターの初期化
 	skinCluster_ = std::make_unique<SkinCluster>();
-	skinCluster_->Initialize(modelData, *skeleton_, dxCommon_->GetDevice()->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV));
+	skinCluster_->Initialize(modelData, *skeleton_);
 
 	// マテリアルデータの初期化処理
 	material_.Initialize();
