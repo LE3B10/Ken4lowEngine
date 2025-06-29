@@ -8,7 +8,7 @@
 void DummyModel::Initialize()
 {
 	model_ = std::make_unique<AnimationModel>();
-	model_->Initialize("humanWalking.gltf");
+	model_->Initialize("AnimatedCube/human.gltf");
 	model_->SetSkinningEnabled(true);
 }
 

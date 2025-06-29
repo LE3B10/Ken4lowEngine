@@ -15,16 +15,19 @@
 /// -------------------------------------------------------------
 ///				　		 初期化処理
 /// -------------------------------------------------------------
-void AnimationModel::Initialize(const std::string& fileName)
+void AnimationModel::Initialize(const std::string& fileName, bool isSkinning)
 {
+	// リソースを破棄
+	Clear();
+
 	dxCommon_ = DirectXCommon::GetInstance();
 	camera_ = Object3DCommon::GetInstance()->GetDefaultCamera();
 
 	// モデル読み込み
-	modelData = AssimpLoader::LoadModel("Resources/AnimatedCube", fileName);
+	modelData = AssimpLoader::LoadModel("Resources/", fileName);
 
 	// アニメーションモデルを読み込む
-	animation = LoadAnimationFile("Resources/AnimatedCube", fileName);
+	animation = LoadAnimationFile("Resources/", fileName);
 
 	// ファイルの参照しているテクスチャファイル読み込み
 	TextureManager::GetInstance()->LoadTexture(modelData.material.textureFilePath);
@@ -37,7 +40,7 @@ void AnimationModel::Initialize(const std::string& fileName)
 
 	// スキンクラスターの初期化
 	skinCluster_ = std::make_unique<SkinCluster>();
-	skinCluster_->Initialize(modelData, *skeleton_, dxCommon_->GetDevice()->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV));
+	skinCluster_->Initialize(modelData, *skeleton_);
 
 	// マテリアルデータの初期化処理
 	material_.Initialize();
@@ -64,6 +67,7 @@ void AnimationModel::Initialize(const std::string& fileName)
 
 	// スキニング設定リソースの作成
 	CreateSkinningSettingResource();
+	skinningSetting_->isSkinning = isSkinning; // スキニング設定を反映
 
 	animationTime_ = 0.0f; // アニメーションを止める
 
@@ -163,19 +167,42 @@ void AnimationModel::DrawImGui()
 
 }
 
+void AnimationModel::Clear()
+{
+	animationMesh_.reset();
+	skeleton_.reset();
+	skinCluster_.reset();
+
+	wvpResource.Reset();
+	cameraResource.Reset();
+	skinningSettingResource_.Reset();
+
+	wvpData_ = nullptr;
+	cameraData = nullptr;
+	skinningSetting_ = nullptr;
+
+	modelData = {};       // モデルデータ初期化
+	animation = {};       // アニメーション初期化
+	animationTime_ = 0.0f;
+	bodyPartColliders_.clear();
+}
+
 void AnimationModel::DrawSkeletonWireframe()
 {
 	if (!skeleton_) { return; }
 
 	const auto& joints = skeleton_->GetJoints();
-	const Vector3 root = worldTransform.translate_;
+	Matrix4x4 worldMatrix = Matrix4x4::MakeAffineMatrix(worldTransform.scale_, worldTransform.rotate_, worldTransform.translate_);
 
 	for (const auto& joint : joints) {
 		if (joint.parent.has_value()) {
 			const auto& parentJoint = joints[*joint.parent];
 
-			Vector3 parentPos = parentJoint.skeletonSpaceMatrix.GetTranslation() + root;
-			Vector3 jointPos = joint.skeletonSpaceMatrix.GetTranslation() + root;
+			Vector3 parentLocal = parentJoint.skeletonSpaceMatrix.GetTranslation();
+			Vector3 jointLocal = joint.skeletonSpaceMatrix.GetTranslation();
+
+			Vector3 parentPos = Vector3::Transform(parentLocal, worldMatrix);
+			Vector3 jointPos = Vector3::Transform(jointLocal, worldMatrix);
 
 			Wireframe::GetInstance()->DrawLine(parentPos, jointPos, { 1.0f, 0.0f, 0.0f, 1.0f });
 		}
@@ -187,24 +214,24 @@ void AnimationModel::DrawBodyPartColliders()
 	if (!skeleton_) { return; }
 
 	const auto& joints = skeleton_->GetJoints();
+	Matrix4x4 worldMatrix = Matrix4x4::MakeAffineMatrix(worldTransform.scale_, worldTransform.rotate_, worldTransform.translate_);
 
 	for (const auto& part : bodyPartColliders_) {
 		if (part.endJointIndex < 0) {
 			// スフィア用
 			const auto& joint = joints[part.startJointIndex];
-			Matrix4x4 jointMatrix = joint.skeletonSpaceMatrix;
+			Vector3 localPos = joint.skeletonSpaceMatrix.GetTranslation() + part.offset;
+			Vector3 worldPos = Vector3::Transform(localPos, worldMatrix);
 
-			Vector3 center = jointMatrix.GetTranslation() + part.offset;
-
-			Wireframe::GetInstance()->DrawSphere(center, part.radius, { 0.0f, 1.0f, 0.0f, 1.0f });
+			Wireframe::GetInstance()->DrawSphere(worldPos, part.radius, { 0.0f, 1.0f, 0.0f, 1.0f });
 		}
 		else {
 			// カプセル用
 			const auto& jointA = joints[part.startJointIndex];
 			const auto& jointB = joints[part.endJointIndex];
 
-			Vector3 a = jointA.skeletonSpaceMatrix.GetTranslation();
-			Vector3 b = jointB.skeletonSpaceMatrix.GetTranslation();
+			Vector3 a = Vector3::Transform(jointA.skeletonSpaceMatrix.GetTranslation(), worldMatrix);
+			Vector3 b = Vector3::Transform(jointB.skeletonSpaceMatrix.GetTranslation(), worldMatrix);
 
 			Vector3 center = (a + b) * 0.5f;
 			Vector3 axis = Vector3::Normalize(b - a);
@@ -222,26 +249,27 @@ std::vector<std::pair<std::string, Capsule>> AnimationModel::GetBodyPartCapsules
 	if (!skeleton_) { return out; }
 
 	const auto& joints = skeleton_->GetJoints();
-	const Vector3 root = worldTransform.translate_;
+	Matrix4x4 worldMatrix = Matrix4x4::MakeAffineMatrix(worldTransform.scale_, worldTransform.rotate_, worldTransform.translate_);
 
 	for (const auto& part : bodyPartColliders_)
 	{
-		Capsule cap{};
-		cap.radius = part.radius;
+		Capsule capsule{};
+		capsule.radius = part.radius;
 
 		if (part.endJointIndex < 0) {
 			// Sphere → pointA = pointB
-			const Vector3  c = joints[part.startJointIndex].skeletonSpaceMatrix.GetTranslation() + part.offset + root;
-			cap.pointA = cap.pointB = c;
+			const Vector3  local = joints[part.startJointIndex].skeletonSpaceMatrix.GetTranslation() + part.offset;
+			Vector3 world = Vector3::Transform(local, worldMatrix);
+			capsule.pointA = capsule.pointB = world;
 		}
 		else {
-			// Capsule
-			const Vector3 a = joints[part.startJointIndex].skeletonSpaceMatrix.GetTranslation() + root;
-			const Vector3 b = joints[part.endJointIndex].skeletonSpaceMatrix.GetTranslation() + root;
-			cap.pointA = a;
-			cap.pointB = b;
+			// カプセル → 始点と終点両方に回転適用
+			Vector3 a = Vector3::Transform(joints[part.startJointIndex].skeletonSpaceMatrix.GetTranslation(), worldMatrix);
+			Vector3 b = Vector3::Transform(joints[part.endJointIndex].skeletonSpaceMatrix.GetTranslation(), worldMatrix);
+			capsule.pointA = a;
+			capsule.pointB = b;
 		}
-		out.emplace_back(part.name, cap);
+		out.emplace_back(part.name, capsule);
 	}
 	return out;
 }
@@ -362,7 +390,7 @@ void AnimationModel::CreateSkinningSettingResource()
 	skinningSettingResource_ = ResourceManager::CreateBufferResource(dxCommon_->GetDevice(), sizeof(SkinningSetting));
 	skinningSettingResource_->Map(0, nullptr, reinterpret_cast<void**>(&skinningSetting_));
 
-	skinningSetting_->isSkinning = false;
+	skinningSetting_->isSkinning = true;
 }
 
 void AnimationModel::InitializeBones()

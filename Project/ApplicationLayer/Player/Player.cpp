@@ -8,9 +8,12 @@
 #include "Matrix4x4.h"
 #include <AudioManager.h>
 #include <AnimationPipelineBuilder.h>
+#include <CollisionManager.h>
 
 #include <imgui.h>
 #include <PostEffectManager.h>
+
+#include "PlayerIdleState.h"
 
 
 /// -------------------------------------------------------------
@@ -18,27 +21,21 @@
 /// -------------------------------------------------------------
 void Player::Initialize()
 {
-	// プレイヤーのコライダーを初期化
-	Collider::SetTypeID(static_cast<uint32_t>(CollisionTypeIdDef::kPlayer));
-	Collider::SetOBBHalfSize({ 0.25f, 0.9f, 0.25 }); // OBBの半径を設定
-
 	input_ = Input::GetInstance();
 
 	// アニメーションモデルの初期化
 	animationModel_ = std::make_unique<AnimationModel>();
-	animationModel_->Initialize("humanWalking.gltf");
-	animationModel_->SetSkinningEnabled(true);
+	//animationModel_->Initialize("PlayerStateModel/PlayerIdleAnimation.gltf"); // スキニング有効
+
+	ChangeState(std::make_unique<PlayerIdleState>());  // Idle で開始
 
 	// 武器の初期化
 	InitializeWeapons();
 
 	// プレイヤーコントローラーの生成と初期化
 	controller_ = std::make_unique<PlayerController>();
-	controller_->Initialize();
-
-	// Player::Initialize()
-	movement_ = std::make_unique<PlayerMovementController>();
-	movement_->Initialize(animationModel_.get());
+	controller_->Initialize(animationModel_.get());
+	controller_->SetStaminaPointer(&stamina_); // ←★ここを追加
 
 	// HUDの初期化
 	numberSpriteDrawer_ = std::make_unique<NumberSpriteDrawer>();
@@ -55,23 +52,33 @@ void Player::Update()
 {
 	if (isDead_) return; // 死亡後は行動不可
 
-	if (animationModel_) animationModel_->Update();
+	// 毎フレームカプセルを骨に追従
+	auto partCaps = animationModel_->GetBodyPartCapsulesWorld();
 
-	// --- ダッシュ入力確認 ---
-	bool isDashKey = input_->PushKey(DIK_LSHIFT);
-	bool isDashButton = input_->PushButton(XButtons.B);
+	if (bodyCols_.size() != partCaps.size()) {
+		// Bone 本数が変わったら作り直し（開発中のモデル差し替え対策）
+		bodyCols_.clear();
+		for (auto& [name, cap] : partCaps) {
+			auto c = std::make_unique<Collider>();
+			c->SetTypeID(static_cast<uint32_t>(CollisionTypeIdDef::kPlayer));
+			c->SetCapsule(cap);
+			bodyCols_.push_back({ name, std::move(c) });
+		}
+	}
+
+	for (size_t i = 0; i < partCaps.size(); ++i) {
+		bodyCols_[i].col->SetCapsule(partCaps[i].second);
+	}
 
 	weapons_[currentWeaponIndex_]->SetFpsCamera(fpsCamera_);
 
+	// アニメーションモデルの更新
+	if (animationModel_) animationModel_->Update();
 	// プレイヤーコントローラーの更新
-	controller_->Update();
+	controller_->UpdateMovement(camera_, animationModel_->GetDeltaTime(), weapons_[currentWeaponIndex_]->IsReloading());
 
-	movement_->SetDashInput(isDashKey || isDashButton);
-	movement_->SetStamina(&stamina_);
-	movement_->SetAimingInput(input_->PushMouse(1));
-	movement_->SetCrouchInput(controller_->IsCrouchPressed());
-
-	movement_->Update(controller_.get(), camera_, deltaTime, weapons_[currentWeaponIndex_]->IsReloading());
+	// プレイヤーの状態更新（例: 歩行、待機など）
+	if (state_) state_->Update(this);
 
 	// --- 発射入力（マウス左クリックまたはゲームパッドRT） ---
 
@@ -104,9 +111,6 @@ void Player::Update()
 			FireWeapon();
 		}
 	}
-
-	// コライダーの位置と回転をプレイヤーに追従させる
-	Collider::SetCenterPosition(animationModel_->GetTranslate() + Vector3(0.0f, 0.9f, 0.0f));
 }
 
 
@@ -120,11 +124,8 @@ void Player::Draw()
 		weapon->Draw();  // 全ての武器の弾丸を描画する
 	}
 
-	if (animationModel_)
-	{
-		AnimationPipelineBuilder::GetInstance()->SetRenderSetting();
-		//animationModel_->Draw();
-	}
+	AnimationPipelineBuilder::GetInstance()->SetRenderSetting(); // アニメーションパイプラインの描画設定
+	if (IsDebugCamera()) animationModel_->Draw(); // アニメーションモデルの描画
 }
 
 
@@ -147,8 +148,24 @@ void Player::DrawImGui()
 		break;
 	}
 
+	controller_->DrawMovementImGui(); // コントローラーのImGui描画
+
 	ImGui::Text("Current Weapon: %s", weaponName.c_str());
-	movement_->DrawImGui();
+
+	ImGui::Begin("Player Colliders");
+	static bool visible = false;
+	if (ImGui::Checkbox("Show All Capsules", &visible)) {
+		for (auto& pc : bodyCols_) {
+			pc.col->SetCapsuleVisible(visible);
+		}
+	}
+	for (size_t i = 0; i < bodyCols_.size(); ++i) {
+		if (ImGui::TreeNode(bodyCols_[i].name.c_str())) {
+			bodyCols_[i].col->DrawImGui();
+			ImGui::TreePop();
+		}
+	}
+	ImGui::End();
 }
 
 
@@ -167,6 +184,20 @@ void Player::TakeDamage(float damage)
 		isDead_ = true;
 		Log("Player is dead");
 	}
+}
+
+void Player::RegisterColliders(CollisionManager* collisionManager) const
+{
+	// プレイヤーのコライダーを登録
+	collisionManager->AddCollider(const_cast<Player*>(this));
+
+	// 部位カプセルをすべて登録
+	for (const auto& pc : bodyCols_) {
+		collisionManager->AddCollider(pc.col.get());
+	}
+
+	// プレイヤーが死亡している場合、コライダーを削除
+	if (IsDead()) collisionManager->RemoveCollider(const_cast<Player*>(this));
 }
 
 
@@ -234,7 +265,7 @@ void Player::FireWeapon()
 	Vector3 forward;
 	float range = weapons_[currentWeaponIndex_]->GetAmmoInfo().range;
 
-	if (movement_->IsAimingInput())
+	if (controller_->IsAimingInput())
 	{
 		// カメラ中心から照準に向けて発射（ADSモード）
 		Vector3 cameraOrigin = camera_->GetTranslate();
@@ -257,4 +288,11 @@ void Player::FireWeapon()
 	}
 
 	weapons_[currentWeaponIndex_]->TryFire(worldMuzzlePos, forward);
+}
+
+void Player::ChangeState(std::unique_ptr<IPlayerState> next)
+{
+	if (state_) state_->Finalize(this);
+	state_ = std::move(next);
+	if (state_) state_->Initialize(this);
 }

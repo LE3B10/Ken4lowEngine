@@ -115,7 +115,7 @@ private: /// ---------- Capsule のメンバ変数 ---------- ///
 
 	Capsule capsule_{};
 	bool useCapsule_ = false; // Capsule を使用するかどうか
-	bool drawCapsule_ = true;    // デバッグ可視化するか（★追加）
+	bool drawCapsule_ = false;    // デバッグ可視化するか（★追加）
 
 protected: /// ---------- シリアルナンバー ---------- ///
 

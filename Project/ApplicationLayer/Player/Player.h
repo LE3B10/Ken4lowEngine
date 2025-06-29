@@ -5,18 +5,28 @@
 #include <NumberSpriteDrawer.h>
 #include <Collider.h>
 #include <AnimationModel.h>
-#include <PlayerMovementController.h>
+#include "PlayerStateType.h"
+#include <IPlayerState.h>
 
 /// ---------- 前方宣言 ---------- ///
 class FpsCamera;
 class Crosshair;
+class CollisionManager;
 
 
-//// -------------------------------------------------------------
+/// -------------------------------------------------------------
 ///					　プレイヤークラス
 /// -------------------------------------------------------------
 class Player : public Collider
 {
+	// ★各部位ごとの Collider を保持
+	struct PartCol
+	{
+		std::string name;
+		std::unique_ptr<Collider> col;
+	};
+	std::vector<PartCol> bodyCols_;
+
 public: /// ---------- メンバ関数 ---------- ///
 
 	// 初期化処理
@@ -33,6 +43,11 @@ public: /// ---------- メンバ関数 ---------- ///
 
 	// ダメージを受ける
 	void TakeDamage(float damage);
+
+	// 衝突判定を行う
+	void RegisterColliders(CollisionManager* collisionManager) const;
+
+	void ChangeState(std::unique_ptr<IPlayerState> next); // ↓実装
 
 private: /// ---------- メンバ関数 ---------- ///
 
@@ -54,7 +69,7 @@ public: /// ---------- ゲッタ ---------- ///
 	float GetDeltaTime() const { return deltaTime; }
 
 	// ダッシュ状態を取得
-	bool IsDashing() const { return movement_->IsDashing(); }
+	bool IsDashing() const { return controller_->IsDashing(); }
 
 	// 全ての弾丸を取得
 	std::vector<const Bullet*> GetAllBullets() const;
@@ -81,7 +96,7 @@ public: /// ---------- ゲッタ ---------- ///
 	float GetMaxHP() const { return maxHP_; }
 
 	// 地面にいるかどうかを取得
-	bool IsGrounded() const { return movement_->IsGrounded(); }
+	bool IsGrounded() const { return controller_->IsGrounded(); }
 
 	// 移動ベクトル取得
 	Vector3 GetMoveInput() const { return controller_->GetMoveInput(); }
@@ -90,7 +105,7 @@ public: /// ---------- ゲッタ ---------- ///
 	bool IsDebugCamera() const { return controller_->IsDebugCamera(); }
 
 	// しゃがみを取得
-	bool IsCrouching() const { return movement_->IsCrouchInput(); }
+	bool IsCrouching() const { return controller_->IsCrouching(); }
 
 	// コントローラーを取得
 	PlayerController* GetController() const { return controller_.get(); }
@@ -107,6 +122,9 @@ public: /// ---------- ゲッタ ---------- ///
 	// クロスヘアを取得
 	Crosshair* GetCrosshair() const { return crosshair_; }
 
+	// アニメーションモデルを取得
+	std::unique_ptr<AnimationModel>& GetAnimationModel() { return animationModel_; }
+
 public: /// ---------- セッタ ---------- ///
 
 	// 追従カメラを設定
@@ -122,16 +140,16 @@ public: /// ---------- セッタ ---------- ///
 	void AddAmmo(int amount) { GetCurrentWeapon()->AddReserveAmmo(amount); }
 
 	// Aiming状態を設定
-	void SetAiming(bool isAiming) { movement_->SetAimingInput(isAiming); }
+	void SetAiming(bool isAiming) { controller_->SetAimingInput(isAiming); }
 
 	// Aimng状態を取得
-	bool IsAiming() const { return movement_->IsAimingInput(); }
+	bool IsAiming() const { return controller_->IsAimingInput(); }
 
 	// デバッグカメラフラグを設定
 	void SetDebugCamera(bool isDebugCamera) { controller_->SetDebugCamera(isDebugCamera); }
 
 	// しゃがみを設定
-	void SetCrouching(bool isCrouching) { movement_->SetCrouchInput(isCrouching); }
+	void SetCrouching(bool isCrouching) { controller_->SetCrouchInput(isCrouching); }
 
 	// クロスヘアを設定
 	void SetCrosshair(Crosshair* crosshair) { crosshair_ = crosshair; }
@@ -143,11 +161,12 @@ private: /// ---------- メンバ変数 ---------- ///
 	FpsCamera* fpsCamera_ = nullptr;
 	Crosshair* crosshair_ = nullptr; // クロスヘアクラス
 
+	std::unique_ptr<IPlayerState> state_;          // ← 追加
+	
 	std::vector<std::unique_ptr<Weapon>> weapons_; // 武器クラス
 	int currentWeaponIndex_ = 0; // 現在の武器インデックス
 
 	std::unique_ptr<PlayerController> controller_; // プレイヤーコントローラー
-	std::unique_ptr<PlayerMovementController> movement_; // プレイヤー移動コントローラー
 
 	std::vector<std::unique_ptr<Bullet>> bullets_; // 弾丸クラス
 

@@ -42,9 +42,12 @@ void GamePlayScene::Initialize()
 	player_ = std::make_unique<Player>();
 	player_->Initialize();
 
-	// エネミースポナーの生成と初期化
-	enemyManager_ = std::make_unique<EnemyManager>();
-	enemyManager_->Initialize(player_.get());
+	dummyModel_ = std::make_unique<DummyModel>();
+	dummyModel_->Initialize();
+
+	//// エネミースポナーの生成と初期化
+	//enemyManager_ = std::make_unique<EnemyManager>();
+	//enemyManager_->Initialize(player_.get());
 
 	// 追従カメラの生成と初期化
 	fpsCamera_ = std::make_unique<FpsCamera>();
@@ -77,14 +80,11 @@ void GamePlayScene::Initialize()
 	itemManager_ = std::make_unique<ItemManager>();
 	itemManager_->Initialize();
 
-	enemyManager_->SetItemManager(itemManager_.get());
+	//enemyManager_->SetItemManager(itemManager_.get());
 
 	terrein_ = std::make_unique<Object3D>();
 	// 地形オブジェクトの初期化
 	terrein_->Initialize("Terrain.gltf");
-
-	dModel_ = std::make_unique<DummyModel>();
-	dModel_->Initialize();
 }
 
 
@@ -143,18 +143,18 @@ void GamePlayScene::Update()
 			// ★ 結果情報を設定
 			resultManager_->SetFinalScore(ScoreManager::GetInstance()->GetScore());
 			resultManager_->SetKillCount(ScoreManager::GetInstance()->GetKills());
-			resultManager_->SetWaveCount(enemyManager_->GetCurrentWave()); // EnemyManager に GetCurrentWave() が必要
+			//resultManager_->SetWaveCount(enemyManager_->GetCurrentWave()); // EnemyManager に GetCurrentWave() が必要
 
 			break;
 		}
 
 		// エネミーマネージャーの更新
-		enemyManager_->Update();
+		//enemyManager_->Update();
 
 		// Waveがすべて終わったら次Waveをスタート
-		if (enemyManager_->IsWaveClear()) {
+		/*if (enemyManager_->IsWaveClear()) {
 			enemyManager_->StartNextWave();
-		}
+		}*/
 
 		{
 			Weapon* weapon = player_->GetCurrentWeapon();
@@ -184,6 +184,8 @@ void GamePlayScene::Update()
 		hudManager_->SetStamina(player_->GetStamina(), player_->GetMaxStamina());
 
 		player_->Update();
+		dummyModel_->Update();
+		
 		fpsCamera_->Update();
 
 		crosshair_->Update();
@@ -218,7 +220,6 @@ void GamePlayScene::Update()
 	}
 
 	terrein_->Update();
-	dModel_->Update();
 }
 
 
@@ -255,7 +256,7 @@ void GamePlayScene::Draw3DObjects()
 	terrein_->Draw();
 
 	// エネミースポナーの描画
-	enemyManager_->Draw();
+	//enemyManager_->Draw();
 
 	// アイテムの描画
 	itemManager_->Draw();
@@ -271,7 +272,8 @@ void GamePlayScene::Draw3DObjects()
 	// アニメーションモデルの共通描画設定
 	AnimationPipelineBuilder::GetInstance()->SetRenderSetting();
 
-	dModel_->Draw();
+	dummyModel_->Draw();
+
 #pragma endregion
 
 
@@ -283,7 +285,7 @@ void GamePlayScene::Draw3DObjects()
 	fpsCamera_->DrawDebugCamera();
 
 	// ワイヤーフレームの描画
-	Wireframe::GetInstance()->DrawGrid(1000.0f, 100.0f, { 0.25f, 0.25f, 0.25f,1.0f });
+	Wireframe::GetInstance()->DrawGrid(100.0f, 100.0f, { 0.25f, 0.25f, 0.25f,1.0f });
 
 #endif // _DEBUG
 }
@@ -339,10 +341,10 @@ void GamePlayScene::DrawImGui()
 	// プレイヤー
 	player_->DrawImGui();
 
-	// エネミースポナー
-	enemyManager_->DrawImGui();
+	dummyModel_->DrawImGui();
 
-	dModel_->DrawImGui();
+	// エネミースポナー
+	//enemyManager_->DrawImGui();
 }
 
 
@@ -355,7 +357,9 @@ void GamePlayScene::CheckAllCollisions()
 	collisionManager_->Reset();
 
 	// コライダーをリストに登録
-	collisionManager_->AddCollider(player_.get());
+	player_->RegisterColliders(collisionManager_.get()); // プレイヤーのコライダーを登録
+
+	dummyModel_->RegisterColliders(collisionManager_.get());
 
 	// プレイヤーの弾の登録
 	for (const auto& bullet : player_->GetBullets())
@@ -364,15 +368,13 @@ void GamePlayScene::CheckAllCollisions()
 	}
 
 	// エネミーのコライダーを登録
-	enemyManager_->RegisterColliders(collisionManager_.get());
+	//enemyManager_->RegisterColliders(collisionManager_.get());
 
 	// プレイヤーが死亡している場合、コライダーを削除
 	if (player_->IsDead()) collisionManager_->RemoveCollider(player_.get());
 
 	// アイテムのコライダーを登録
 	itemManager_->RegisterColliders(collisionManager_.get());
-
-	dModel_->RegisterColliders(collisionManager_.get()); // ダミーモデルのコライダーを登録
 
 	// 衝突判定と応答
 	collisionManager_->CheckAllCollisions();
