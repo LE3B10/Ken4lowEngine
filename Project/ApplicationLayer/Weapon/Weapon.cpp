@@ -25,14 +25,14 @@ void Weapon::Initialize()
 	switch (type_)
 	{
 	case WeaponType::Rifle:
-		ammoInfo_ = { 3000000, 90, 30, 90, 1, 25.0f, 1000.0f }; // 30回撃てて、1回で1発出す
+		ammoInfo_ = { 30, 90, 30, 90, 1, 25.0f, 1000.0f }; // 30回撃てて、1回で1発出す
 		reloadTime_ = 1.5f; // ライフルはリロード時間が短い
 		bulletSpeed_ = 40.0f; // ライフルの弾速はショットガンより速い
 		fireSEPath_ = "gun.mp3";
 		break;
 
 	case WeaponType::Shotgun:
-		ammoInfo_ = { 600000, 30, 6, 30, 8, 10.0f, 100.0f }; // 6回撃てて、1回で8粒出す
+		ammoInfo_ = { 6, 30, 6, 30, 8, 10.0f, 100.0f }; // 6回撃てて、1回で8粒出す
 		reloadTime_ = 2.5f; // ショットガンはリロード時間が長い
 		bulletSpeed_ = 24.0f; // ショットガンの弾速はライフルより遅い
 		fireSEPath_ = "shotgunFire.mp3";
@@ -115,7 +115,7 @@ void Weapon::TryFire(const Vector3& position, const Vector3& direction)
 		if (fpsCamera_) fpsCamera_->AddRecoil(0.004, 0.0045);
 
 		// サウンド再生
-		AudioManager::GetInstance()->PlaySE(fireSEPath_, 0.5f, 2.0f);
+		AudioManager::GetInstance()->PlaySE(fireSEPath_, 0.2f, 2.0f);
 
 		break;
 
@@ -125,7 +125,7 @@ void Weapon::TryFire(const Vector3& position, const Vector3& direction)
 		if (fpsCamera_) fpsCamera_->AddRecoil(0.008, 0.007);
 
 		// サウンド再生
-		AudioManager::GetInstance()->PlaySE(fireSEPath_);
+		AudioManager::GetInstance()->PlaySE(fireSEPath_, 0.2);
 
 		break;
 	}
