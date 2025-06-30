@@ -1,11 +1,11 @@
 #include "Bullet.h"
 #include <CollisionTypeIdDef.h>
 #include <ScoreManager.h>
-#include <Enemy.h>
 #include <Wireframe.h>
 #include <Player.h>
 #include <Crosshair.h>
 #include <ParticleManager.h>
+#include <Enemy.h>
 
 
 /// -------------------------------------------------------------

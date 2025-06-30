@@ -52,24 +52,6 @@ void Player::Update()
 {
 	if (isDead_) return; // 死亡後は行動不可
 
-	// 毎フレームカプセルを骨に追従
-	auto partCaps = animationModel_->GetBodyPartCapsulesWorld();
-
-	if (bodyCols_.size() != partCaps.size()) {
-		// Bone 本数が変わったら作り直し（開発中のモデル差し替え対策）
-		bodyCols_.clear();
-		for (auto& [name, cap] : partCaps) {
-			auto c = std::make_unique<Collider>();
-			c->SetTypeID(static_cast<uint32_t>(CollisionTypeIdDef::kPlayer));
-			c->SetCapsule(cap);
-			bodyCols_.push_back({ name, std::move(c) });
-		}
-	}
-
-	for (size_t i = 0; i < partCaps.size(); ++i) {
-		bodyCols_[i].col->SetCapsule(partCaps[i].second);
-	}
-
 	weapons_[currentWeaponIndex_]->SetFpsCamera(fpsCamera_);
 
 	// アニメーションモデルの更新
@@ -110,6 +92,24 @@ void Player::Update()
 		{
 			FireWeapon();
 		}
+	}
+
+	// 毎フレームカプセルを骨に追従
+	auto partCaps = animationModel_->GetBodyPartCapsulesWorld();
+
+	if (bodyCols_.size() != partCaps.size()) {
+		// Bone 本数が変わったら作り直し（開発中のモデル差し替え対策）
+		bodyCols_.clear();
+		for (auto& [name, cap] : partCaps) {
+			auto c = std::make_unique<Collider>();
+			c->SetTypeID(static_cast<uint32_t>(CollisionTypeIdDef::kPlayer));
+			c->SetCapsule(cap);
+			bodyCols_.push_back({ name, std::move(c) });
+		}
+	}
+
+	for (size_t i = 0; i < partCaps.size(); ++i) {
+		bodyCols_[i].col->SetCapsule(partCaps[i].second);
 	}
 }
 

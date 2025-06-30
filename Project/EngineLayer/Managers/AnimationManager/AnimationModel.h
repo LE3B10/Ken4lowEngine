@@ -137,6 +137,8 @@ public: /// ---------- セッタ ---------- ///
 	// 頭を消すかどうか
 	void SetHideHead(bool hide) { hideHead_ = hide; }
 
+	void SetScaleFactor(float factor) { scaleFactor = factor; }
+
 private: /// ---------- メンバ関数 ---------- ///
 
 	// アニメーションを更新
@@ -229,5 +231,6 @@ private: /// ---------- メンバ変数 ---------- ///
 	float deltaTime = 0.0f;
 
 	bool hideHead_ = false; // デフォルトは表示
+	float scaleFactor = 1.0f;
 };
 
