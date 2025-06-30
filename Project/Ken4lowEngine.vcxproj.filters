@@ -393,7 +393,7 @@
     <ClCompile Include="ApplicationLayer\Player\State\PlayerIdleState\PlayerIdleState.cpp" />
     <ClCompile Include="ApplicationLayer\Player\State\PlayerWalkState\PlayerWalkState.cpp" />
     <ClCompile Include="ApplicationLayer\Player\State\PlayerRunState\PlayerRunState.cpp" />
-    <ClCompile Include="Boss.cpp" />
+    <ClCompile Include="ApplicationLayer\Enemy\Boss.cpp" />
     <ClCompile Include="ApplicationLayer\Enemy\Enemy.cpp" />
     <ClCompile Include="ApplicationLayer\Enemy\EnemyBullet.cpp" />
     <ClCompile Include="ApplicationLayer\Enemy\EnemyManager.cpp" />
@@ -807,7 +807,7 @@
     <ClInclude Include="ApplicationLayer\Player\State\PlayerWalkState\PlayerWalkState.h" />
     <ClInclude Include="ApplicationLayer\Player\PlayerStateType.h" />
     <ClInclude Include="ApplicationLayer\Player\State\PlayerRunState\PlayerRunState.h" />
-    <ClInclude Include="Boss.h" />
+    <ClInclude Include="ApplicationLayer\Enemy\Boss.h" />
     <ClInclude Include="ApplicationLayer\Enemy\Enemy.h" />
     <ClInclude Include="ApplicationLayer\Enemy\EnemyBullet.h" />
     <ClInclude Include="ApplicationLayer\Enemy\EnemyManager.h" />

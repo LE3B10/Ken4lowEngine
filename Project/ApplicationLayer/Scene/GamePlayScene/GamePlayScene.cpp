@@ -189,7 +189,7 @@ void GamePlayScene::Update()
 		player_->Update();
 		//boss_->Update();
 
-		dummyModel_->Update();
+		//dummyModel_->Update();
 
 		fpsCamera_->Update();
 
@@ -278,7 +278,7 @@ void GamePlayScene::Draw3DObjects()
 
 	//boss_->Draw();
 
-	dummyModel_->Draw();
+	//dummyModel_->Draw();
 
 #pragma endregion
 
@@ -365,7 +365,7 @@ void GamePlayScene::CheckAllCollisions()
 	// コライダーをリストに登録
 	enemyManager_->RegisterColliders(collisionManager_.get());
 	player_->RegisterColliders(collisionManager_.get()); // プレイヤーのコライダーを登録
-	dummyModel_->RegisterColliders(collisionManager_.get());
+	//dummyModel_->RegisterColliders(collisionManager_.get());
 	
 	// プレイヤーの弾の登録
 	for (const auto& bullet : player_->GetBullets())

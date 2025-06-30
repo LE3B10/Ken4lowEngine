@@ -129,7 +129,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClCompile Include="ApplicationLayer\Crosshair\Crosshair.cpp" />
     <ClCompile Include="ApplicationLayer\Colliders\CollisionUtility.cpp" />
     <ClCompile Include="ApplicationLayer\Player\DummyModel.cpp" />
-    <ClCompile Include="Boss.cpp" />
+    <ClCompile Include="ApplicationLayer\Enemy\Boss.cpp" />
     <ClCompile Include="EngineLayer\PostEffectManagement\DepthOutlineEffect.cpp" />
     <ClCompile Include="EngineLayer\Managers\AnimationManager\AnimationModel.cpp" />
     <ClCompile Include="EngineLayer\Managers\AnimationManager\AnimationPipelineBuilder.cpp" />
@@ -392,7 +392,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="ApplicationLayer\Crosshair\Crosshair.h" />
     <ClInclude Include="ApplicationLayer\Colliders\CollisionUtility.h" />
     <ClInclude Include="ApplicationLayer\Player\PlayerStateType.h" />
-    <ClInclude Include="Boss.h" />
+    <ClInclude Include="ApplicationLayer\Enemy\Boss.h" />
     <ClInclude Include="EngineLayer\Math\Capsule.h" />
     <ClInclude Include="ApplicationLayer\Player\DummyModel.h" />
     <ClInclude Include="EngineLayer\PostEffectManagement\DepthOutlineEffect.h" />
