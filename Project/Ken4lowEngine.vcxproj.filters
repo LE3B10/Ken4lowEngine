@@ -187,9 +187,6 @@
     <ClCompile Include="EngineLayer\Managers\DXCCompilerManager\DXCCompilerManager.cpp">
       <Filter>EngineLayer\Managers</Filter>
     </ClCompile>
-    <ClCompile Include="ApplicationLayer\Enemy\EnemyManager.cpp">
-      <Filter>EngineLayer\Managers</Filter>
-    </ClCompile>
     <ClCompile Include="ApplicationLayer\Scene\GamePlayScene\HUDManager\HUDManager.cpp">
       <Filter>EngineLayer\Managers</Filter>
     </ClCompile>
@@ -304,30 +301,6 @@
     <ClCompile Include="ApplicationLayer\Colliders\IDGenerator.cpp">
       <Filter>ApplicationLayer\Colliders</Filter>
     </ClCompile>
-    <ClCompile Include="ApplicationLayer\Enemy\Enemy.cpp">
-      <Filter>ApplicationLayer\Enemy</Filter>
-    </ClCompile>
-    <ClCompile Include="ApplicationLayer\Enemy\Grunt\EnemyAttackState.cpp">
-      <Filter>ApplicationLayer\Enemy</Filter>
-    </ClCompile>
-    <ClCompile Include="ApplicationLayer\Enemy\EnemyBullet.cpp">
-      <Filter>ApplicationLayer\Enemy</Filter>
-    </ClCompile>
-    <ClCompile Include="ApplicationLayer\Enemy\Grunt\EnemyChaseState.cpp">
-      <Filter>ApplicationLayer\Enemy</Filter>
-    </ClCompile>
-    <ClCompile Include="ApplicationLayer\Enemy\Grunt\EnemyIdleState.cpp">
-      <Filter>ApplicationLayer\Enemy</Filter>
-    </ClCompile>
-    <ClCompile Include="ApplicationLayer\Enemy\Grunt\IEnemyState.cpp">
-      <Filter>ApplicationLayer\Enemy</Filter>
-    </ClCompile>
-    <ClCompile Include="ApplicationLayer\Enemy\Tank\TankIdleState.cpp">
-      <Filter>ApplicationLayer\Enemy</Filter>
-    </ClCompile>
-    <ClCompile Include="ApplicationLayer\Enemy\Sniper\SniperIdleState.cpp">
-      <Filter>ApplicationLayer\Enemy</Filter>
-    </ClCompile>
     <ClCompile Include="ApplicationLayer\Item\Item.cpp">
       <Filter>ApplicationLayer\Item</Filter>
     </ClCompile>
@@ -343,14 +316,8 @@
     <ClCompile Include="ApplicationLayer\Player\Bullet.cpp">
       <Filter>ApplicationLayer\Player</Filter>
     </ClCompile>
-    <ClCompile Include="ApplicationLayer\Enemy\Boss\BossIdleState.cpp">
-      <Filter>ApplicationLayer\Enemy</Filter>
-    </ClCompile>
     <ClCompile Include="ApplicationLayer\ReloadCircle\ReloadCircle.cpp">
       <Filter>ApplicationLayer\ReloadCircle</Filter>
-    </ClCompile>
-    <ClCompile Include="ApplicationLayer\Player\BaseCharacter.cpp">
-      <Filter>ApplicationLayer\Player</Filter>
     </ClCompile>
     <ClCompile Include="ApplicationLayer\Scene\GameClearScene\GameClearScene.cpp">
       <Filter>ApplicationLayer\Scene</Filter>
@@ -426,6 +393,18 @@
     <ClCompile Include="ApplicationLayer\Player\State\PlayerIdleState\PlayerIdleState.cpp" />
     <ClCompile Include="ApplicationLayer\Player\State\PlayerWalkState\PlayerWalkState.cpp" />
     <ClCompile Include="ApplicationLayer\Player\State\PlayerRunState\PlayerRunState.cpp" />
+    <ClCompile Include="Boss.cpp" />
+    <ClCompile Include="ApplicationLayer\Enemy\Enemy.cpp" />
+    <ClCompile Include="ApplicationLayer\Enemy\EnemyBullet.cpp" />
+    <ClCompile Include="ApplicationLayer\Enemy\EnemyManager.cpp" />
+    <ClCompile Include="ApplicationLayer\Enemy\Boss\BossIdleState.cpp" />
+    <ClCompile Include="ApplicationLayer\Enemy\Grunt\EnemyAttackState.cpp" />
+    <ClCompile Include="ApplicationLayer\Enemy\Grunt\EnemyChaseState.cpp" />
+    <ClCompile Include="ApplicationLayer\Enemy\Grunt\EnemyIdleState.cpp" />
+    <ClCompile Include="ApplicationLayer\Enemy\Grunt\IEnemyState.cpp" />
+    <ClCompile Include="ApplicationLayer\Enemy\Sniper\SniperIdleState.cpp" />
+    <ClCompile Include="ApplicationLayer\Enemy\Tank\TankIdleState.cpp" />
+    <ClCompile Include="ApplicationLayer\Player\BaseCharacter.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="EngineLayer\PostEffectManagement\AbsorbEffect.h">
@@ -564,9 +543,6 @@
       <Filter>EngineLayer\Managers</Filter>
     </ClInclude>
     <ClInclude Include="EngineLayer\Managers\DXCCompilerManager\DXCCompilerManager.h">
-      <Filter>EngineLayer\Managers</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Enemy\EnemyManager.h">
       <Filter>EngineLayer\Managers</Filter>
     </ClInclude>
     <ClInclude Include="ApplicationLayer\Scene\GamePlayScene\HUDManager\HUDManager.h">
@@ -716,30 +692,6 @@
     <ClInclude Include="ApplicationLayer\Colliders\IDGenerator.h">
       <Filter>ApplicationLayer\Colliders</Filter>
     </ClInclude>
-    <ClInclude Include="ApplicationLayer\Enemy\Enemy.h">
-      <Filter>ApplicationLayer\Enemy</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Enemy\Grunt\EnemyAttackState.h">
-      <Filter>ApplicationLayer\Enemy</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Enemy\EnemyBullet.h">
-      <Filter>ApplicationLayer\Enemy</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Enemy\Grunt\EnemyChaseState.h">
-      <Filter>ApplicationLayer\Enemy</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Enemy\Grunt\EnemyIdleState.h">
-      <Filter>ApplicationLayer\Enemy</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Enemy\Grunt\IEnemyState.h">
-      <Filter>ApplicationLayer\Enemy</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Enemy\Tank\TankIdleState.h">
-      <Filter>ApplicationLayer\Enemy</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Enemy\Sniper\SniperIdleState.h">
-      <Filter>ApplicationLayer\Enemy</Filter>
-    </ClInclude>
     <ClInclude Include="ApplicationLayer\Item\Item.h">
       <Filter>ApplicationLayer\Item</Filter>
     </ClInclude>
@@ -758,14 +710,8 @@
     <ClInclude Include="ApplicationLayer\Player\Bullet.h">
       <Filter>ApplicationLayer\Player</Filter>
     </ClInclude>
-    <ClInclude Include="ApplicationLayer\Enemy\Boss\BossIdleState.h">
-      <Filter>ApplicationLayer\Enemy</Filter>
-    </ClInclude>
     <ClInclude Include="ApplicationLayer\ReloadCircle\ReloadCircle.h">
       <Filter>ApplicationLayer\ReloadCircle</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Player\BaseCharacter.h">
-      <Filter>ApplicationLayer\Player</Filter>
     </ClInclude>
     <ClInclude Include="ApplicationLayer\EffectLayer\Emitter.h">
       <Filter>ApplicationLayer\EffectLayer</Filter>
@@ -861,6 +807,18 @@
     <ClInclude Include="ApplicationLayer\Player\State\PlayerWalkState\PlayerWalkState.h" />
     <ClInclude Include="ApplicationLayer\Player\PlayerStateType.h" />
     <ClInclude Include="ApplicationLayer\Player\State\PlayerRunState\PlayerRunState.h" />
+    <ClInclude Include="Boss.h" />
+    <ClInclude Include="ApplicationLayer\Enemy\Enemy.h" />
+    <ClInclude Include="ApplicationLayer\Enemy\EnemyBullet.h" />
+    <ClInclude Include="ApplicationLayer\Enemy\EnemyManager.h" />
+    <ClInclude Include="ApplicationLayer\Enemy\Boss\BossIdleState.h" />
+    <ClInclude Include="ApplicationLayer\Enemy\Grunt\EnemyAttackState.h" />
+    <ClInclude Include="ApplicationLayer\Enemy\Grunt\EnemyChaseState.h" />
+    <ClInclude Include="ApplicationLayer\Enemy\Grunt\EnemyIdleState.h" />
+    <ClInclude Include="ApplicationLayer\Enemy\Grunt\IEnemyState.h" />
+    <ClInclude Include="ApplicationLayer\Enemy\Sniper\SniperIdleState.h" />
+    <ClInclude Include="ApplicationLayer\Enemy\Tank\TankIdleState.h" />
+    <ClInclude Include="ApplicationLayer\Player\BaseCharacter.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Resources\Shaders\PostEffect\FullScreen.hlsli">

@@ -45,9 +45,12 @@ void GamePlayScene::Initialize()
 	dummyModel_ = std::make_unique<DummyModel>();
 	dummyModel_->Initialize();
 
-	//// エネミースポナーの生成と初期化
-	//enemyManager_ = std::make_unique<EnemyManager>();
-	//enemyManager_->Initialize(player_.get());
+	boss_ = std::make_unique<Boss>();
+	boss_->Initialize();
+	boss_->SetPlayer(player_.get());
+
+	enemyManager_ = std::make_unique<EnemyManager>();
+	enemyManager_->Initialize(player_.get());
 
 	// 追従カメラの生成と初期化
 	fpsCamera_ = std::make_unique<FpsCamera>();
@@ -80,7 +83,7 @@ void GamePlayScene::Initialize()
 	itemManager_ = std::make_unique<ItemManager>();
 	itemManager_->Initialize();
 
-	//enemyManager_->SetItemManager(itemManager_.get());
+	enemyManager_->SetItemManager(itemManager_.get());
 
 	terrein_ = std::make_unique<Object3D>();
 	// 地形オブジェクトの初期化
@@ -143,18 +146,18 @@ void GamePlayScene::Update()
 			// ★ 結果情報を設定
 			resultManager_->SetFinalScore(ScoreManager::GetInstance()->GetScore());
 			resultManager_->SetKillCount(ScoreManager::GetInstance()->GetKills());
-			//resultManager_->SetWaveCount(enemyManager_->GetCurrentWave()); // EnemyManager に GetCurrentWave() が必要
+			resultManager_->SetWaveCount(enemyManager_->GetCurrentWave()); // EnemyManager に GetCurrentWave() が必要
 
 			break;
 		}
 
 		// エネミーマネージャーの更新
-		//enemyManager_->Update();
+		enemyManager_->Update();
 
 		// Waveがすべて終わったら次Waveをスタート
-		/*if (enemyManager_->IsWaveClear()) {
+		if (enemyManager_->IsWaveClear()) {
 			enemyManager_->StartNextWave();
-		}*/
+		}
 
 		{
 			Weapon* weapon = player_->GetCurrentWeapon();
@@ -184,13 +187,15 @@ void GamePlayScene::Update()
 		hudManager_->SetStamina(player_->GetStamina(), player_->GetMaxStamina());
 
 		player_->Update();
+		//boss_->Update();
+
 		dummyModel_->Update();
-		
+
 		fpsCamera_->Update();
 
 		crosshair_->Update();
-		collisionManager_->Update();
 		CheckAllCollisions();
+		collisionManager_->Update();
 		break;
 
 	case GameState::Paused:
@@ -255,11 +260,10 @@ void GamePlayScene::Draw3DObjects()
 
 	terrein_->Draw();
 
-	// エネミースポナーの描画
-	//enemyManager_->Draw();
-
 	// アイテムの描画
 	itemManager_->Draw();
+
+	enemyManager_->Draw();
 
 	// プレイヤーの描画
 	player_->Draw();
@@ -271,6 +275,8 @@ void GamePlayScene::Draw3DObjects()
 
 	// アニメーションモデルの共通描画設定
 	AnimationPipelineBuilder::GetInstance()->SetRenderSetting();
+
+	//boss_->Draw();
 
 	dummyModel_->Draw();
 
@@ -341,7 +347,7 @@ void GamePlayScene::DrawImGui()
 	// プレイヤー
 	player_->DrawImGui();
 
-	dummyModel_->DrawImGui();
+	boss_->DrawImGui();
 
 	// エネミースポナー
 	//enemyManager_->DrawImGui();
@@ -357,18 +363,16 @@ void GamePlayScene::CheckAllCollisions()
 	collisionManager_->Reset();
 
 	// コライダーをリストに登録
+	enemyManager_->RegisterColliders(collisionManager_.get());
 	player_->RegisterColliders(collisionManager_.get()); // プレイヤーのコライダーを登録
-
 	dummyModel_->RegisterColliders(collisionManager_.get());
-
+	
 	// プレイヤーの弾の登録
 	for (const auto& bullet : player_->GetBullets())
 	{
 		if (!bullet->IsDead()) collisionManager_->AddCollider(bullet.get());
 	}
 
-	// エネミーのコライダーを登録
-	//enemyManager_->RegisterColliders(collisionManager_.get());
 
 	// プレイヤーが死亡している場合、コライダーを削除
 	if (player_->IsDead()) collisionManager_->RemoveCollider(player_.get());

@@ -399,96 +399,96 @@ void AnimationModel::InitializeBones()
 
 	/// ---------- 頭・首 ---------- ///
 	if (auto it = jointMap.find("mixamorig:Head"); it != jointMap.end()) {
-		bodyPartColliders_.push_back({ "Head", it->second, -1, {0, 0.12f, 0}, 0.12f, 0.0f });
+		bodyPartColliders_.push_back({ "Head", it->second, -1, {0, 0.12f, 0}, 0.12f * scaleFactor, 0.0f });
 	}
 	if (auto it = jointMap.find("mixamorig:Neck"); it != jointMap.end()) {
-		bodyPartColliders_.push_back({ "Neck", it->second, -1, {0, 0.05f, 0}, 0.1f, 0.0f });
+		bodyPartColliders_.push_back({ "Neck", it->second, -1, {0, 0.05f, 0}, 0.1f * scaleFactor, 0.0f });
 	}
 
 	/// ---------- 腹・胸 ---------- ///
 	if (jointMap.contains("mixamorig:Spine") && jointMap.contains("mixamorig:Spine1")) {
-		bodyPartColliders_.push_back({ "SpineLower", jointMap.at("mixamorig:Spine"), jointMap.at("mixamorig:Spine1"), {}, 0.15f, 0.0f });
+		bodyPartColliders_.push_back({ "SpineLower", jointMap.at("mixamorig:Spine"), jointMap.at("mixamorig:Spine1"), {}, 0.15f * scaleFactor, 0.0f });
 	}
 	if (jointMap.contains("mixamorig:Spine1") && jointMap.contains("mixamorig:Spine2")) {
-		bodyPartColliders_.push_back({ "SpineUpper", jointMap.at("mixamorig:Spine1"), jointMap.at("mixamorig:Spine2"), {0.0f,0.06f,0.0f}, 0.18f, 0.0f });
+		bodyPartColliders_.push_back({ "SpineUpper", jointMap.at("mixamorig:Spine1"), jointMap.at("mixamorig:Spine2"), {0.0f,0.06f,0.0f}, 0.18f * scaleFactor, 0.0f });
 	}
 
 	/// ---------- 腰 ---------- ///
 	if (auto it = jointMap.find("mixamorig:Hips"); it != jointMap.end()) {
-		bodyPartColliders_.push_back({ "Pelvis", it->second, -1, {}, 0.16f, 0.0f });
+		bodyPartColliders_.push_back({ "Pelvis", it->second, -1, {}, 0.16f * scaleFactor, 0.0f });
 	}
 
 	/// ---------- 左上腕・左前腕 ---------- ///
 	if (jointMap.contains("mixamorig:LeftArm") && jointMap.contains("mixamorig:LeftForeArm")) {
-		bodyPartColliders_.push_back({ "LeftUpperArm", jointMap.at("mixamorig:LeftArm"), jointMap.at("mixamorig:LeftForeArm"), {}, 0.1f, 0.0f });
+		bodyPartColliders_.push_back({ "LeftUpperArm", jointMap.at("mixamorig:LeftArm"), jointMap.at("mixamorig:LeftForeArm"), {}, 0.1f * scaleFactor, 0.0f });
 	}
 	if (jointMap.contains("mixamorig:LeftForeArm") && jointMap.contains("mixamorig:LeftHand")) {
-		bodyPartColliders_.push_back({ "LeftLowerArm", jointMap.at("mixamorig:LeftForeArm"), jointMap.at("mixamorig:LeftHand"), {}, 0.09f, 0.0f });
+		bodyPartColliders_.push_back({ "LeftLowerArm", jointMap.at("mixamorig:LeftForeArm"), jointMap.at("mixamorig:LeftHand"), {}, 0.09f * scaleFactor, 0.0f });
 	}
 
 	/// ---------- 右上腕・右前腕 ---------- ///
 	if (jointMap.contains("mixamorig:RightArm") && jointMap.contains("mixamorig:RightForeArm")) {
-		bodyPartColliders_.push_back({ "RightUpperArm", jointMap.at("mixamorig:RightArm"), jointMap.at("mixamorig:RightForeArm"), {}, 0.1f, 0.0f });
+		bodyPartColliders_.push_back({ "RightUpperArm", jointMap.at("mixamorig:RightArm"), jointMap.at("mixamorig:RightForeArm"), {}, 0.1f * scaleFactor, 0.0f });
 	}
 	if (jointMap.contains("mixamorig:RightForeArm") && jointMap.contains("mixamorig:RightHand")) {
-		bodyPartColliders_.push_back({ "RightLowerArm", jointMap.at("mixamorig:RightForeArm"), jointMap.at("mixamorig:RightHand"), {}, 0.09f, 0.0f });
+		bodyPartColliders_.push_back({ "RightLowerArm", jointMap.at("mixamorig:RightForeArm"), jointMap.at("mixamorig:RightHand"), {}, 0.09f * scaleFactor, 0.0f });
 	}
 
 	/// ---------- 左大腿・左下腿 ---------- ///
 	if (jointMap.contains("mixamorig:LeftUpLeg") && jointMap.contains("mixamorig:LeftLeg")) {
-		bodyPartColliders_.push_back({ "LeftUpperLeg", jointMap.at("mixamorig:LeftUpLeg"), jointMap.at("mixamorig:LeftLeg"), {}, 0.12f, 0.0f });
+		bodyPartColliders_.push_back({ "LeftUpperLeg", jointMap.at("mixamorig:LeftUpLeg"), jointMap.at("mixamorig:LeftLeg"), {}, 0.12f * scaleFactor, 0.0f });
 	}
 	if (jointMap.contains("mixamorig:LeftLeg") && jointMap.contains("mixamorig:LeftFoot")) {
-		bodyPartColliders_.push_back({ "LeftLowerLeg", jointMap.at("mixamorig:LeftLeg"), jointMap.at("mixamorig:LeftFoot"), {}, 0.1f, 0.0f });
+		bodyPartColliders_.push_back({ "LeftLowerLeg", jointMap.at("mixamorig:LeftLeg"), jointMap.at("mixamorig:LeftFoot"), {}, 0.1f * scaleFactor, 0.0f });
 	}
 
 	/// ---------- 右大腿・右下腿 ---------- ///
 	if (jointMap.contains("mixamorig:RightUpLeg") && jointMap.contains("mixamorig:RightLeg")) {
-		bodyPartColliders_.push_back({ "RightUpperLeg", jointMap.at("mixamorig:RightUpLeg"), jointMap.at("mixamorig:RightLeg"), {}, 0.12f, 0.0f });
+		bodyPartColliders_.push_back({ "RightUpperLeg", jointMap.at("mixamorig:RightUpLeg"), jointMap.at("mixamorig:RightLeg"), {}, 0.12f * scaleFactor, 0.0f });
 	}
 	if (jointMap.contains("mixamorig:RightLeg") && jointMap.contains("mixamorig:RightFoot")) {
-		bodyPartColliders_.push_back({ "RightLowerLeg", jointMap.at("mixamorig:RightLeg"), jointMap.at("mixamorig:RightFoot"), {}, 0.1f, 0.0f });
+		bodyPartColliders_.push_back({ "RightLowerLeg", jointMap.at("mixamorig:RightLeg"), jointMap.at("mixamorig:RightFoot"), {}, 0.1f * scaleFactor, 0.0f });
 	}
 
 	/// ---------- 左足 ---------- ///
 	if (jointMap.contains("mixamorig:LeftFoot") && jointMap.contains("mixamorig:LeftToeBase")) {
-		bodyPartColliders_.push_back({ "LeftToe", jointMap.at("mixamorig:LeftFoot"), jointMap.at("mixamorig:LeftToeBase"), {}, 0.07f, 0.0f });
+		bodyPartColliders_.push_back({ "LeftToe", jointMap.at("mixamorig:LeftFoot"), jointMap.at("mixamorig:LeftToeBase"), {}, 0.07f * scaleFactor, 0.0f });
 	}
 
 	/// ---------- 右足 ---------- ///
 	if (jointMap.contains("mixamorig:RightFoot") && jointMap.contains("mixamorig:RightToeBase")) {
-		bodyPartColliders_.push_back({ "RightToe", jointMap.at("mixamorig:RightFoot"), jointMap.at("mixamorig:RightToeBase"), {}, 0.07f, 0.0f });
+		bodyPartColliders_.push_back({ "RightToe", jointMap.at("mixamorig:RightFoot"), jointMap.at("mixamorig:RightToeBase"), {}, 0.07f * scaleFactor, 0.0f });
 	}
 
 	/// ---------- 左肩と右肩 ---------- ///
 	if (auto it = jointMap.find("mixamorig:LeftShoulder"); it != jointMap.end()) {
-		bodyPartColliders_.push_back({ "LeftShoulder",it->second, -1, {-0.08f, 0.0f, 0.0f}, 0.11f, 0.0f });
+		bodyPartColliders_.push_back({ "LeftShoulder",it->second, -1, {-0.08f, 0.0f, 0.0f}, 0.11f * scaleFactor, 0.0f });
 	}
 	if (auto it = jointMap.find("mixamorig:RightShoulder"); it != jointMap.end()) {
-		bodyPartColliders_.push_back({ "RightShoulder",	it->second, -1, {0.08f, 0.0f, 0.0f}, 0.11f, 0.0f });
+		bodyPartColliders_.push_back({ "RightShoulder",	it->second, -1, {0.08f, 0.0f, 0.0f}, 0.11f * scaleFactor, 0.0f });
 	}
 
 	/// ---------- 左腕・右腕 ---------- ///
 	if (auto it = jointMap.find("mixamorig:LeftForeArm"); it != jointMap.end()) {
-		bodyPartColliders_.push_back({ "LeftElbow", it->second, -1, {}, 0.09f, 0.0f });
+		bodyPartColliders_.push_back({ "LeftElbow", it->second, -1, {}, 0.09f * scaleFactor, 0.0f });
 	}
 	if (auto it = jointMap.find("mixamorig:RightForeArm"); it != jointMap.end()) {
-		bodyPartColliders_.push_back({ "RightElbow", it->second, -1, {}, 0.09f, 0.0f });
+		bodyPartColliders_.push_back({ "RightElbow", it->second, -1, {}, 0.09f * scaleFactor, 0.0f });
 	}
 
 	/// ---------- 左膝・右膝 ---------- ///
 	if (auto it = jointMap.find("mixamorig:LeftLeg"); it != jointMap.end()) {
-		bodyPartColliders_.push_back({ "LeftKnee", it->second, -1, {}, 0.10f, 0.0f });
+		bodyPartColliders_.push_back({ "LeftKnee", it->second, -1, {}, 0.10f * scaleFactor, 0.0f });
 	}
 	if (auto it = jointMap.find("mixamorig:RightLeg"); it != jointMap.end()) {
-		bodyPartColliders_.push_back({ "RightKnee",	it->second, -1, {}, 0.10f, 0.0f });
+		bodyPartColliders_.push_back({ "RightKnee",	it->second, -1, {}, 0.10f * scaleFactor, 0.0f });
 	}
 
 	/// ---------- 左手首・右手首 ---------- ///
 	if (auto it = jointMap.find("mixamorig:LeftHand"); it != jointMap.end()) {
-		bodyPartColliders_.push_back({ "LeftWrist",	it->second, -1, {}, 0.08f, 0.0f });
+		bodyPartColliders_.push_back({ "LeftWrist",	it->second, -1, {}, 0.08f * scaleFactor, 0.0f });
 	}
 	if (auto it = jointMap.find("mixamorig:RightHand"); it != jointMap.end()) {
-		bodyPartColliders_.push_back({ "RightWrist", it->second, -1, {}, 0.08f, 0.0f });
+		bodyPartColliders_.push_back({ "RightWrist", it->second, -1, {}, 0.08f * scaleFactor, 0.0f });
 	}
 }

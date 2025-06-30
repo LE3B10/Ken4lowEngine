@@ -114,18 +114,22 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     </FxCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="ApplicationLayer\Enemy\Boss\BossIdleState.cpp" />
+    <ClCompile Include="ApplicationLayer\Enemy\Enemy.cpp" />
+    <ClCompile Include="ApplicationLayer\Enemy\EnemyBullet.cpp" />
+    <ClCompile Include="ApplicationLayer\Enemy\EnemyManager.cpp" />
+    <ClCompile Include="ApplicationLayer\Enemy\Grunt\EnemyAttackState.cpp" />
+    <ClCompile Include="ApplicationLayer\Enemy\Grunt\EnemyChaseState.cpp" />
+    <ClCompile Include="ApplicationLayer\Enemy\Grunt\EnemyIdleState.cpp" />
+    <ClCompile Include="ApplicationLayer\Enemy\Grunt\IEnemyState.cpp" />
+    <ClCompile Include="ApplicationLayer\Enemy\Sniper\SniperIdleState.cpp" />
+    <ClCompile Include="ApplicationLayer\Enemy\Tank\TankIdleState.cpp" />
     <ClCompile Include="ApplicationLayer\Player\BaseCharacter.cpp" />
     <ClCompile Include="ApplicationLayer\Player\Bullet.cpp" />
     <ClCompile Include="ApplicationLayer\Crosshair\Crosshair.cpp" />
-    <ClCompile Include="ApplicationLayer\Enemy\Enemy.cpp" />
     <ClCompile Include="ApplicationLayer\Colliders\CollisionUtility.cpp" />
-    <ClCompile Include="ApplicationLayer\Enemy\Grunt\EnemyAttackState.cpp" />
-    <ClCompile Include="ApplicationLayer\Enemy\EnemyBullet.cpp" />
-    <ClCompile Include="ApplicationLayer\Enemy\Grunt\EnemyChaseState.cpp" />
-    <ClCompile Include="ApplicationLayer\Enemy\Grunt\EnemyIdleState.cpp" />
-    <ClCompile Include="ApplicationLayer\Enemy\EnemyManager.cpp" />
-    <ClCompile Include="ApplicationLayer\Enemy\Boss\BossIdleState.cpp" />
     <ClCompile Include="ApplicationLayer\Player\DummyModel.cpp" />
+    <ClCompile Include="Boss.cpp" />
     <ClCompile Include="EngineLayer\PostEffectManagement\DepthOutlineEffect.cpp" />
     <ClCompile Include="EngineLayer\Managers\AnimationManager\AnimationModel.cpp" />
     <ClCompile Include="EngineLayer\Managers\AnimationManager\AnimationPipelineBuilder.cpp" />
@@ -220,7 +224,6 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClCompile Include="EngineLayer\ParticleManagement\ParticleFactory.cpp" />
     <ClCompile Include="ApplicationLayer\Weapon\Weapon.cpp" />
     <ClCompile Include="EngineLayer\2D\Sprite\NumberSpriteDrawer.cpp" />
-    <ClCompile Include="ApplicationLayer\Enemy\Grunt\IEnemyState.cpp" />
     <ClCompile Include="ApplicationLayer\Scene\GamePlayScene\HUDManager\HUDManager.cpp" />
     <ClCompile Include="ApplicationLayer\ScoreManager\ScoreManager.cpp" />
     <ClCompile Include="ApplicationLayer\Colliders\IDGenerator.cpp" />
@@ -229,8 +232,6 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClCompile Include="ApplicationLayer\Item\Item.cpp" />
     <ClCompile Include="ApplicationLayer\Item\ItemDropTable.cpp" />
     <ClCompile Include="ApplicationLayer\Item\ItemManager.cpp" />
-    <ClCompile Include="ApplicationLayer\Enemy\Sniper\SniperIdleState.cpp" />
-    <ClCompile Include="ApplicationLayer\Enemy\Tank\TankIdleState.cpp" />
     <ClCompile Include="ApplicationLayer\Player\State\IPlayerState\IPlayerState.cpp" />
     <ClCompile Include="ApplicationLayer\Player\State\PlayerIdleState\PlayerIdleState.cpp" />
     <ClCompile Include="ApplicationLayer\Player\State\PlayerWalkState\PlayerWalkState.cpp" />
@@ -376,18 +377,22 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     </FxCompile>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="ApplicationLayer\Enemy\Boss\BossIdleState.h" />
+    <ClInclude Include="ApplicationLayer\Enemy\Enemy.h" />
+    <ClInclude Include="ApplicationLayer\Enemy\EnemyBullet.h" />
+    <ClInclude Include="ApplicationLayer\Enemy\EnemyManager.h" />
+    <ClInclude Include="ApplicationLayer\Enemy\Grunt\EnemyAttackState.h" />
+    <ClInclude Include="ApplicationLayer\Enemy\Grunt\EnemyChaseState.h" />
+    <ClInclude Include="ApplicationLayer\Enemy\Grunt\EnemyIdleState.h" />
+    <ClInclude Include="ApplicationLayer\Enemy\Grunt\IEnemyState.h" />
+    <ClInclude Include="ApplicationLayer\Enemy\Sniper\SniperIdleState.h" />
+    <ClInclude Include="ApplicationLayer\Enemy\Tank\TankIdleState.h" />
     <ClInclude Include="ApplicationLayer\Player\BaseCharacter.h" />
     <ClInclude Include="ApplicationLayer\Player\Bullet.h" />
     <ClInclude Include="ApplicationLayer\Crosshair\Crosshair.h" />
-    <ClInclude Include="ApplicationLayer\Enemy\Enemy.h" />
     <ClInclude Include="ApplicationLayer\Colliders\CollisionUtility.h" />
-    <ClInclude Include="ApplicationLayer\Enemy\Grunt\EnemyAttackState.h" />
-    <ClInclude Include="ApplicationLayer\Enemy\EnemyBullet.h" />
-    <ClInclude Include="ApplicationLayer\Enemy\Grunt\EnemyChaseState.h" />
-    <ClInclude Include="ApplicationLayer\Enemy\Grunt\EnemyIdleState.h" />
-    <ClInclude Include="ApplicationLayer\Enemy\EnemyManager.h" />
-    <ClInclude Include="ApplicationLayer\Enemy\Boss\BossIdleState.h" />
     <ClInclude Include="ApplicationLayer\Player\PlayerStateType.h" />
+    <ClInclude Include="Boss.h" />
     <ClInclude Include="EngineLayer\Math\Capsule.h" />
     <ClInclude Include="ApplicationLayer\Player\DummyModel.h" />
     <ClInclude Include="EngineLayer\PostEffectManagement\DepthOutlineEffect.h" />
@@ -513,7 +518,6 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="ApplicationLayer\Weapon\Weapon.h" />
     <ClInclude Include="EngineLayer\2D\Sprite\NumberSpriteDrawer.h" />
     <ClInclude Include="EngineLayer\Math\Sphere.h" />
-    <ClInclude Include="ApplicationLayer\Enemy\Grunt\IEnemyState.h" />
     <ClInclude Include="ApplicationLayer\Scene\GamePlayScene\HUDManager\HUDManager.h" />
     <ClInclude Include="ApplicationLayer\ScoreManager\ScoreManager.h" />
     <ClInclude Include="ApplicationLayer\Colliders\IDGenerator.h" />
@@ -524,8 +528,6 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="ApplicationLayer\Item\ItemDropTable.h" />
     <ClInclude Include="ApplicationLayer\Item\ItemManager.h" />
     <ClInclude Include="ApplicationLayer\Item\ItemType.h" />
-    <ClInclude Include="ApplicationLayer\Enemy\Sniper\SniperIdleState.h" />
-    <ClInclude Include="ApplicationLayer\Enemy\Tank\TankIdleState.h" />
     <ClInclude Include="EngineLayer\Math\LinearInterpolation.h" />
     <ClInclude Include="ApplicationLayer\Player\State\IPlayerState\IPlayerState.h" />
     <ClInclude Include="ApplicationLayer\Player\State\PlayerIdleState\PlayerIdleState.h" />
