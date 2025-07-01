@@ -76,6 +76,9 @@ public: /// ---------- ゲッター ---------- ///
 	// 合成行列データを取得
 	const Matrix4x4& GetViewProjectionMatrix() const { return viewProjectionMatrix_; }
 
+	// カメラからの前方ベクトルを取得
+	Vector3 GetForward() const;
+
 private: /// ---------- メンバ変数 ----- ///
 
 	float kWidth, kHeight;

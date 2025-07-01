@@ -2,8 +2,12 @@
 #include "AudioCategory.h"
 #include "WavLoader.h"
 #include "Mp3Loader.h"
+
 #include <string>
+#include <list>
 #include <memory>
+
+class AudioLoader; // 前方宣言
 
 
 class AudioManager
@@ -43,6 +47,9 @@ public: /// ---------- メンバ関数 ---------- ///
 	// 音楽を再開する
 	void ResumeBGM();
 
+	// 更新処理
+	void Update();
+
 public: /// ---------- セッター ---------- ///
 
 	/// <summary>
@@ -52,7 +59,7 @@ public: /// ---------- セッター ---------- ///
 	/// <param name="volume">音量</param>
 	void SetCategoryVolume(AudioCategory category, float volume) { categoryVolumes[static_cast<int>(category)] = std::clamp(volume, 0.0f, 1.0f); }
 
-private: /// ---------- ゲッタ ---------- ///
+public: /// ---------- ゲッタ ---------- ///
 
 	// カテゴリーを取得する
 	float GetCategoryVolume(AudioCategory category) const { return categoryVolumes[static_cast<int>(category)]; }
@@ -63,6 +70,10 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	std::unique_ptr<WavLoader> wavLoader_;
 	std::unique_ptr<Mp3Loader> mp3Loader_;
+	std::list<std::unique_ptr<WavLoader>> seWavLoaders_;
+	std::list<std::unique_ptr<Mp3Loader>> seMp3Loaders_;
+	std::list<std::unique_ptr<WavLoader>> voiceWavLoaders_;
+	std::list<std::unique_ptr<Mp3Loader>> voiceMp3Loaders_;
 
 private: /// ---------- コピー禁止 ---------- ///
 

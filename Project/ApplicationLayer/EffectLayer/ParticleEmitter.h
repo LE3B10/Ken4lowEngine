@@ -19,6 +19,8 @@ public: /// ---------- メンバ関数 ---------- ///
 	// 更新処理
 	void Update();
 
+	void Burst(int count);
+
 	// 座標を設定する関数
 	void SetPosition(const Vector3& position) { position_ = position; }
 

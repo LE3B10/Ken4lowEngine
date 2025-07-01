@@ -1,13 +1,16 @@
 #pragma once
 #include <stdexcept>
 #include <cassert>
+#include <cmath>
+#include <numbers>
 
 class Matrix4x4;
 
 /// <summary>
 /// 3次元ベクトル
 /// </summary>
-class Vector3 {
+class Vector3
+{
 public:
 	float x, y, z;
 
@@ -19,13 +22,17 @@ public:
 
 	//減算
 	static Vector3 Subtract(const Vector3& v1, const Vector3& v2);
-	
+
 	//スカラー倍
 	static Vector3 Multiply(float scalar, const Vector3& v);
 
+	static Vector3 Multiply(const Vector3& v1, const Vector3& v2) {
+		return Vector3(v1.x * v2.x, v1.y * v2.y, v1.z * v2.z);
+	}
+
 	//内積
 	static float Dot(const Vector3& v1, const Vector3& v2);
-	
+
 	//長さ（ノルム）
 	static float Length(const Vector3& v);
 

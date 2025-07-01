@@ -5,7 +5,8 @@ struct DepthOutlineSetting
     float2 texelSize; // テクセルサイズ（1/画面解像度）
     float edgeStrength; // エッジの強さ
     float threshold; // 閾値
-    float4x4 projectionInverse; // 逆投影行列（View空間Z復元に使用）
+    float4 edgeColor; // アウトラインの色
+    float4x4 projectionInverse; // ← new 追加（NDC→View）
 };
 
 struct PixelShaderOutput
@@ -54,41 +55,41 @@ ConstantBuffer<DepthOutlineSetting> gDepthOutlineSetting : register(b0);
 // ピクセルシェーダー
 PixelShaderOutput main(VertexShaderOutput input)
 {
-    float gx = 0.0f;
-    float gy = 0.0f;
+    PixelShaderOutput output;
+    float2 uv = input.texcoord;
 
-    // Prewittフィルタでview空間Zの勾配を検出
-    for (int x = 0; x < 3; ++x)
+    // Prewitt 用の深度値行列
+    float gx = 0.0f, gy = 0.0f;
+
+    [unroll]
+    for (int y = 0; y < 3; ++y)
     {
-        for (int y = 0; y < 3; ++y)
+        [unroll]
+        for (int x = 0; x < 3; ++x)
         {
-            float2 offset = kIndex3x3[x][y] * gDepthOutlineSetting.texelSize;
-            float2 texcoord = input.texcoord + offset;
+            float2 off = kIndex3x3[y][x] * gDepthOutlineSetting.texelSize;
+            float ndcDepth = gDepthTexture.Sample(gDepthSampler, uv + off);
 
-            float ndcDepth = gDepthTexture.Sample(gDepthSampler, texcoord);
-
+            // NDC(0-1) → View‐Space Z（線形）へ変換
             float4 ndcPos = float4(0.0f, 0.0f, ndcDepth, 1.0f);
-            float4 viewPos = mul(ndcPos, gDepthOutlineSetting.projectionInverse);
-            viewPos /= viewPos.w;
+            float4 view = mul(ndcPos, gDepthOutlineSetting.projectionInverse);
+            float viewZ = view.z / view.w; // 近 : −値, 遠 : −大値
 
-            float viewZ = viewPos.z;
-
-            gx += viewZ * kPrewittHorizontalKernel[x][y];
-            gy += viewZ * kPrewittVerticalKernel[x][y];
+            gx += viewZ * kPrewittHorizontalKernel[y][x];
+            gy += viewZ * kPrewittVerticalKernel[y][x];
         }
     }
 
-    float edge = sqrt(gx * gx + gy * gy) * gDepthOutlineSetting.edgeStrength;
+    float weight = sqrt(gx * gx + gy * gy) * gDepthOutlineSetting.edgeStrength;
 
-    // 閾値処理
-    edge = (edge > gDepthOutlineSetting.threshold) ? edge : 0.0f;
-    edge = saturate(edge);
+    // しきい値とサチュレーション
+    weight = (weight > gDepthOutlineSetting.threshold) ? weight : 0.0f;
+    weight = saturate(weight);
 
-    float3 originalColor = gTexture.Sample(gSampler, input.texcoord).rgb;
-    float3 outlineColor = float3(0.0f, 0.0f, 0.0f); // 黒いアウトライン
+    // 線色で合成
+    float3 src = gTexture.Sample(gSampler, uv).rgb;
+    float3 dst = lerp(src, gDepthOutlineSetting.edgeColor.rgb, weight);
 
-    PixelShaderOutput output;
-    output.color.rgb = lerp(originalColor, outlineColor, edge);
-    output.color.a = 1.0f;
+    output.color = float4(dst, 1.0f);
     return output;
 }

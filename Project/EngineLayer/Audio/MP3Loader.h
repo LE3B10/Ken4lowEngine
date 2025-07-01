@@ -38,6 +38,14 @@ public: /// ---------- メンバ関数 ---------- ///
 	/// <param name="Loop : ">ループ再生</param>
 	void StreamAudioAsync(const std::string& fileName, float volume = 1.0f, float pitch = 1.0f, bool Loop = false);
 
+	/// <summary>
+	/// サウンドエフェクトを非同期で再生
+	/// </summary>
+	/// <param name="fileName">ファイル名</param>
+	/// <param name="volume">音量</param>
+	/// <param name="pitch">音の高さ</param>
+	void PlaySEAsync(const std::string& fileName, float volume, float pitch);
+
 	// BGMを停止
 	void StopBGM();
 

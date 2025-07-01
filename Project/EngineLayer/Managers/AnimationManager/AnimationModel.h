@@ -6,9 +6,11 @@
 #include "TransformationMatrix.h"
 #include "WorldTransform.h"
 #include "Material.h"
-#include "Skeleton.h"
-#include "SkinCluster.h"
 #include "AnimationMesh.h"
+#include "Skeleton.h"
+#include <SkinCluster.h>
+
+#include "Capsule.h"
 
 #include <algorithm>
 #include <string>
@@ -17,21 +19,33 @@
 #include <memory>
 #include <map>
 
-#include "IAnimationStrategy.h"
-
 /// ---------- 前方宣言 ---------- ///
 class DirectXCommon;
 class Camera;
 
+struct SubMesh {
+	std::vector<uint32_t> indices;
+	std::vector<int> jointIndices; // このSubMeshが参照するジョイントの一覧
+	D3D12_VERTEX_BUFFER_VIEW vbv;
+	D3D12_INDEX_BUFFER_VIEW ibv;
+
+	void Draw(ID3D12GraphicsCommandList* commandList) const {
+		commandList->IASetVertexBuffers(0, 1, &vbv);
+		commandList->IASetIndexBuffer(&ibv);
+		commandList->DrawIndexedInstanced(UINT(indices.size()), 1, 0, 0, 0);
+	}
+
+	bool UsesJoint(int jointIndex) const {
+		return std::find(jointIndices.begin(), jointIndices.end(), jointIndex) != jointIndices.end();
+	}
+};
+
 
 /// -------------------------------------------------------------
-///				　アニメーションを管理するクラス
+///				　アニメーションを描画するクラス
 /// -------------------------------------------------------------
 class AnimationModel
 {
-	friend class NoSkeletonAnimation;
-	friend class SkeletonAnimation;
-
 private: /// ---------- 構造体 ---------- ///
 
 	// シェーダー側のカメラ構造体
@@ -40,10 +54,27 @@ private: /// ---------- 構造体 ---------- ///
 		Vector3 worldPosition;
 	};
 
+	struct SkinningSetting
+	{
+		bool isSkinning; // スキニングを行うかどうか
+		Vector3 padding; // 16バイトアライメントを保つためのパディング
+	};
+
+	struct BodyPartCollider
+	{
+		std::string name;         // 名前（"LeftArm", "RightLeg", ...）
+		int startJointIndex = -1; // 始点となるジョイント
+		int endJointIndex = -1;   // 終点となるジョイント（カプセル用）
+		Vector3 offset;           // 単一ジョイント用のオフセット（sphere 描画等に使える）
+		float radius = 0.1f;      // カプセルまたはスフィアの半径
+		float height = 0.0f;      // offset を使う Capsule 用（レガシー用途 or fallback）
+	};
+	std::vector<BodyPartCollider> bodyPartColliders_;
+
 public: /// ---------- メンバ関数 ---------- ///
 
 	// 初期化処理
-	void Initialize(const std::string& fileName, bool isAnimation = false, bool hasSkeleton = false);
+	void Initialize(const std::string& fileName, bool isSkinning = true);
 
 	// 更新処理
 	void Update();
@@ -57,36 +88,73 @@ public: /// ---------- メンバ関数 ---------- ///
 	// ImGui描画処理
 	void DrawImGui();
 
+	// 削除処理
+	void Clear();
+
+	// ワイヤーフレーム描画
+	void DrawSkeletonWireframe();
+
+	void DrawBodyPartColliders();
+
 public: /// ---------- ゲッタ ---------- ///
+
+	const WorldTransform& GetWorldTransform() const { return worldTransform; }
 
 	// 座標を取得
 	const Vector3& GetTranslate() const { return worldTransform.translate_; }
+
 	// スケールを取得
 	const Vector3& GetScale() const { return worldTransform.scale_; }
+
 	// 回転を取得
 	const Vector3& GetRotate() const { return worldTransform.rotate_; }
+
+	// メッシュを取得
+	AnimationMesh* GetAnimationMesh() { return animationMesh_.get(); }
+
+	float GetDeltaTime() const { return deltaTime; }
 
 public: /// ---------- セッタ ---------- ///
 
 	// 座標を設定
 	void SetTranslate(const Vector3& translate) { worldTransform.translate_ = translate; }
+
 	// スケールを設定
 	void SetScale(const Vector3& scale) { worldTransform.scale_ = scale; }
+
 	// 回転を設定
 	void SetRotate(const Vector3& rotate) { worldTransform.rotate_ = rotate; }
 
 	// 反射率を設定
 	void SetReflectivity(float reflectivity) { material_.SetShininess(reflectivity); }
 
-	AnimationMesh* GetAnimationMesh() { return animationMesh_.get(); }
+	// スキニングを有効にするか設定
+	void SetSkinningEnabled(bool isSkinning) { skinningSetting_->isSkinning = isSkinning; }
+
+	// ワールド空間からボディパーツのカプセルを取得
+	std::vector<std::pair<std::string, Capsule>> GetBodyPartCapsulesWorld() const;
+
+	// 頭を消すかどうか
+	void SetHideHead(bool hide) { hideHead_ = hide; }
+
+	void SetScaleFactor(float factor) { scaleFactor = factor; }
 
 private: /// ---------- メンバ関数 ---------- ///
 
 	// アニメーションを更新
-	void UpdateAnimation(float deltaTime);
+	void UpdateAnimation();
 
 	// Animationを解析する
 	Animation LoadAnimationFile(const std::string& directoryPath, const std::string& fileName);
+
+	// スキニングリソースの作成
+	void CreateSkinningSettingResource();
+
+	// ボーン情報の初期化
+	void InitializeBones();
+
+	// アニメーション時間を取得
+	float GetAnimationTime() const { return animationTime_; }
 
 private: /// ---------- メンバ関数・テンプレート関数 ---------- ///
 
@@ -135,27 +203,34 @@ private: /// ---------- メンバ変数 ---------- ///
 	Material material_;
 
 	DirectXCommon* dxCommon_ = nullptr;
-
 	Camera* camera_ = nullptr;
-
 
 	// モデルデータ
 	ModelData modelData;
 	Animation animation;
 
-	std::unique_ptr<IAnimationStrategy> animationStrategy_ = nullptr;
-	std::unique_ptr<Skeleton> skeleton_;
-	std::unique_ptr<SkinCluster> skinCluster_;
 	std::unique_ptr<AnimationMesh> animationMesh_;
-
+	std::unique_ptr<Skeleton> skeleton_; // スケルトン
+	std::unique_ptr<SkinCluster> skinCluster_; // スキンクラスター
 
 	// バッファリソースの作成
-	TransformationMatrix* wvpData_ = nullptr;
+	TransformationAnimationMatrix* wvpData_ = nullptr;
 	CameraForGPU* cameraData = nullptr;
+
+
+	ComPtr<ID3D12Resource> skinningSettingResource_; // スキニング設定用のリソース
+	SkinningSetting* skinningSetting_; // スキニング設定
+
 
 	ComPtr <ID3D12Resource> wvpResource;
 	ComPtr <ID3D12Resource> cameraResource;
 
 	// アニメーションタイム
 	float animationTime_ = 0.0f;
+
+	float deltaTime = 0.0f;
+
+	bool hideHead_ = false; // デフォルトは表示
+	float scaleFactor = 1.0f;
 };
+

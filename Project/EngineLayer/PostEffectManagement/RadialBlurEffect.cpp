@@ -30,7 +30,7 @@ void RadialBlurEffect::Initialize(DirectXCommon* dxCommon, PostEffectPipelineBui
 
 	// ラジアルブラーの設定
 	radialBlurSetting_->center = Vector2(0.5f, 0.5f); // 中心座標
-	radialBlurSetting_->blurStrength = 1.0f; // ブラー強度
+	radialBlurSetting_->blurStrength = 0.3f; // ブラー強度
 	radialBlurSetting_->sampleCount = 16.0f; // サンプル数
 }
 

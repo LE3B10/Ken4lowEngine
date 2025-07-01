@@ -1,8 +1,6 @@
 #pragma once
 #include <Sprite.h>
-#include <TextureManager.h>
 #include <Object3D.h>
-#include <WavLoader.h>
 #include "ParticleManager.h"
 #include <BaseScene.h>
 
@@ -38,14 +36,7 @@ public: /// ---------- メンバ関数 ---------- ///
 private: /// ---------- メンバ変数 ---------- ///
 
 	DirectXCommon* dxCommon_ = nullptr;
-	TextureManager* textureManager = nullptr;
 	Input* input = nullptr;
 
-	std::unique_ptr<WavLoader> wavLoader_;
-
-	std::vector<std::unique_ptr<Sprite>> sprites_;
-
-	// テクスチャのパスをリストで管理
-	std::vector<std::string> texturePaths_;
 };
 

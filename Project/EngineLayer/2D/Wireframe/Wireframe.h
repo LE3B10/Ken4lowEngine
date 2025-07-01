@@ -7,10 +7,12 @@
 #include "Camera.h"
 #include "AABB.h"
 #include "OBB.h"
+#include "Capsule.h"
 
 #include <vector>
 #include <list>
 #include <map>
+#include <Segment.h>
 
 
 /// ---------- 前方宣言 ---------- ///
@@ -97,6 +99,9 @@ public: /// ---------- 2D用の線の描画 ---------- ///
 	// 線を描画
 	void DrawLine(const Vector3& start, const Vector3& end, const Vector4& color);
 
+	// セグメントを描画
+	void DrawSegment(const Segment& segment, const Vector4& color);
+
 	// 円を描画
 	void DrawCircle(const Vector3& center, float radius, uint32_t segmentCount, const Vector4& color);
 
@@ -173,6 +178,11 @@ public: /// ---------- 3D用の線の描画 ---------- ///
 
 	// 球体を描画
 	void DrawSphere(const Vector3& center, const float radius, const Vector4& color);
+
+	// カプセル（Capsule）を描画
+	void DrawCapsule(const Vector3& center, float radius, float height, const Vector3& axis, int segments, const Vector4& color);
+	
+	void DrawCapsule(const Capsule& capsule, int segments, const Vector4& color);
 
 	// 円柱（シリンダー）を描画
 	void DrawCylinder(const Vector3& baseCenter, float radius, float height, const Vector3& axis, uint32_t segmentCount, const Vector4& color);

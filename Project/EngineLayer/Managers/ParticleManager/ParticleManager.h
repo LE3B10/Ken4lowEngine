@@ -5,6 +5,7 @@
 #include <ParticleMaterial.h>
 #include <Particle.h>
 #include <ParticleMesh.h>
+#include "ParticleFactory.h" // 追加
 
 #include <unordered_map>
 #include <list>
@@ -19,15 +20,6 @@ class Camera;
 
 // Δt を定義。とりあえず60fps固定してあるが、実時間を計測して可変fpsで動かせるようにする
 const float kDeltaTime = 1.0f / 60.0f;
-
-// エフェクトの種類を列挙型で定義
-enum class ParticleEffectType
-{
-	Default, 	// デフォルト
-	Slash,		// スラッシュ
-	Ring,		// リング
-	Cylinder,	// シリンダー
-};
 
 
 /// -------------------------------------------------------------
@@ -91,7 +83,7 @@ public: /// ---------- メンバ関数 ---------- ///
 	void Initialize(DirectXCommon* dxCommon, Camera* camera);
 
 	// パーティクルグループの生成
-	void CreateParticleGroup(const std::string& name, const std::string& textureFilePath);
+	void CreateParticleGroup(const std::string& name, const std::string& textureFilePath, ParticleEffectType effectType);
 
 	// 更新処理
 	void Update();
@@ -122,6 +114,29 @@ public: /// ---------- メンバ関数 ---------- ///
 	// ビルボードを有効にするかを取得
 	bool GetBillboard() { return useBillboard; }
 
+	// パーティクルエフェクトの種類を取得
+	ParticleEffectType GetGroupType(const std::string& name)
+	{
+		auto it = particleGroups.find(name);
+		if (it != particleGroups.end())
+		{
+			return it->second.type;
+		}
+
+		return ParticleEffectType::Default;
+	}
+
+	// パーティクルグループを取得
+	ParticleGroup& GetGroup(const std::string& name)
+	{
+		auto it = particleGroups.find(name);
+		if (it != particleGroups.end())
+		{
+			return it->second;
+		}
+		throw std::runtime_error("Particle group not found: " + name);
+	}
+
 private: /// ---------- ヘルパー関数 ---------- ///
 
 	// ルートシグネチャの生成
@@ -129,9 +144,6 @@ private: /// ---------- ヘルパー関数 ---------- ///
 
 	// PSOを生成
 	void CreatePSO();
-
-	// パーティクル生成器
-	Particle MakeNewParticle(std::mt19937& randomEngine, const Vector3& translate, ParticleEffectType type);
 
 	std::list<Particle> Emit(const Emitter& emitter, std::mt19937& randomEngine, ParticleEffectType type);
 
@@ -141,7 +153,8 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	ParticleTransform transform;
 	ParticleMaterial material_;
-	ParticleMesh mesh_;
+
+	std::unordered_map<ParticleEffectType, ParticleMesh> meshMap_;
 
 	BlendMode cuurenttype = BlendMode::kBlendModeAdd;
 
@@ -155,14 +168,9 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	ComPtr <ID3D12RootSignature> rootSignature = nullptr;
 	ComPtr <ID3D12PipelineState> graphicsPipelineState = nullptr;
-	ComPtr <ID3D12Resource> materialResource;
-	ComPtr <ID3D12Resource> vertexResource;
 
 	// モデルの読み込み
 	ModelData modelData;
-
-	VertexData* vertexData = nullptr;
-	D3D12_VERTEX_BUFFER_VIEW vertexBufferView{};
 
 	// パーティクルグループコンテナ
 	std::unordered_map<std::string, ParticleGroup> particleGroups;
@@ -172,23 +180,13 @@ private: /// ---------- メンバ変数 ---------- ///
 	std::mt19937 randomEngin;
 
 	// 描画数
-	const uint32_t kNumMaxInstance = 128;
+	const uint32_t kNumMaxInstance = 1024;
 
-	bool useBillboard = false;
+	bool useBillboard = true;
 
 	bool isWind = false;
 
 	bool isDebugCamera_ = false;
-
-	// 分割数
-	uint32_t kSubdivision = 32;
-
-	// 緯度・経度の分割数に応じた角度の計算
-	float kLatEvery = std::numbers::pi_v<float> / float(kSubdivision);
-	float kLonEvery = 2.0f * std::numbers::pi_v<float> / float(kSubdivision);
-
-	// 球体の頂点数の計算
-	uint32_t TotalVertexCount = kSubdivision * kSubdivision * 6;
 
 	// Fieldを作る
 	AccelerationField accelerationField;
