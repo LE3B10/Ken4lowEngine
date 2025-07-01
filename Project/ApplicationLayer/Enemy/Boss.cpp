@@ -24,7 +24,7 @@ void Boss::Initialize()
 
 	// 最初のモデルをセット
 	model_ = models_[BossState::Idle].get();
-	model_->SetTranslate({ 0.0f, 0.0f, 10.0f });
+	model_->SetTranslate({ 0.0f, 0.0f, 1.0f });
 }
 
 void Boss::Update()
@@ -33,87 +33,6 @@ void Boss::Update()
 
 	// 共通更新
 	model_->Update();
-
-	// プレイヤーとの距離計算
-	Vector3 toPlayer = player_->GetCenterPosition() - model_->GetTranslate();
-	float distance = Vector3::Length(toPlayer);
-
-	// 射撃クールダウン更新
-	if (shootCooldown_ > 0.0f) {
-		shootCooldown_ -= deltaTime_;
-	}
-
-	switch (state_)
-	{
-	case BossState::Idle:
-		if (distance < 50.0f) { // ←広めに変更
-			ChangeState(BossState::Chase);
-		}
-		break;
-
-	case BossState::Chase:
-	{
-		// 移動／攻撃の距離判断
-		if (distance > 10.0f && shootCooldown_ <= 0.0f) {
-			ChangeState(BossState::Shoot);
-		}
-		else if (distance < 2.5f && meleeCooldown_ <= 0.0f) {
-			ChangeState(BossState::Melee);
-		}
-		else {
-			// 回転は自分の位置を中心とした方向ベクトル
-			Vector3 toPlayer = player_->GetCenterPosition() - model_->GetTranslate();
-			Vector3 dir = Vector3::Normalize(toPlayer);
-
-			float targetYaw = atan2f(dir.x, dir.z); // Z+前提
-			float currentYaw = model_->GetRotate().y;
-
-			float deltaYaw = targetYaw - currentYaw;
-
-			// -π～π に補正
-			if (deltaYaw > std::numbers::pi_v<float>) deltaYaw -= std::numbers::pi_v<float> *2.0f;
-			if (deltaYaw < -std::numbers::pi_v<float>) deltaYaw += std::numbers::pi_v<float> *2.0f;
-
-			float rotateSpeed = 4.0f * deltaTime_;
-			float newYaw = currentYaw + deltaYaw * rotateSpeed;
-
-			model_->SetRotate({ 0, newYaw, 0 });
-
-			Vector3 forward = { sinf(newYaw), 0, cosf(newYaw) };
-			Vector3 newPos = model_->GetTranslate() + forward * 0.1f;
-
-			model_->SetTranslate(newPos);
-		}
-	}
-	break;
-
-
-	case BossState::Shoot:
-		shootDuration_ += deltaTime_;
-		if (!didShoot_) {
-			Log("Boss performs Shoot attack!");
-			didShoot_ = true;
-		}
-
-		if (shootDuration_ >= shootMaxDuration_) {
-			shootCooldown_ = shootCooldownMax_; // ←追加
-			ChangeState(BossState::Chase);
-		}
-		break;
-
-	case BossState::Melee:
-		meleeDuration_ += deltaTime_;
-		if (!didMelee_) {
-			Log("Boss performs Melee attack!");
-			didMelee_ = true;
-		}
-
-		if (meleeDuration_ >= meleeMaxDuration_) {
-			meleeCooldown_ = 1.0f;
-			ChangeState(BossState::Idle);
-		}
-		break;
-	}
 
 	// 毎フレームカプセルを骨に追従
 	auto partCaps = model_->GetBodyPartCapsulesWorld();

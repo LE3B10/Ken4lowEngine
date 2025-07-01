@@ -187,9 +187,9 @@ void GamePlayScene::Update()
 		hudManager_->SetStamina(player_->GetStamina(), player_->GetMaxStamina());
 
 		player_->Update();
-		//boss_->Update();
+		boss_->Update();
 
-		//dummyModel_->Update();
+		dummyModel_->Update();
 
 		fpsCamera_->Update();
 
@@ -276,9 +276,9 @@ void GamePlayScene::Draw3DObjects()
 	// アニメーションモデルの共通描画設定
 	AnimationPipelineBuilder::GetInstance()->SetRenderSetting();
 
-	//boss_->Draw();
+	boss_->Draw();
 
-	//dummyModel_->Draw();
+	dummyModel_->Draw();
 
 #pragma endregion
 
@@ -349,6 +349,8 @@ void GamePlayScene::DrawImGui()
 
 	boss_->DrawImGui();
 
+	dummyModel_->DrawImGui();
+
 	// エネミースポナー
 	//enemyManager_->DrawImGui();
 }
@@ -365,8 +367,9 @@ void GamePlayScene::CheckAllCollisions()
 	// コライダーをリストに登録
 	enemyManager_->RegisterColliders(collisionManager_.get());
 	player_->RegisterColliders(collisionManager_.get()); // プレイヤーのコライダーを登録
-	//dummyModel_->RegisterColliders(collisionManager_.get());
-	
+	dummyModel_->RegisterColliders(collisionManager_.get());
+	boss_->RegisterColliders(collisionManager_.get());
+
 	// プレイヤーの弾の登録
 	for (const auto& bullet : player_->GetBullets())
 	{
