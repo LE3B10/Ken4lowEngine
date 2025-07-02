@@ -73,6 +73,7 @@
     <FxCompile Include="Resources\Shaders\Wireframe\Wireframe.VS.hlsl">
       <Filter>Shader\VertexShader</Filter>
     </FxCompile>
+    <FxCompile Include="Resources\Shaders\Wireframe\Wireframe.GS.hlsl" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="WinMain.cpp" />
