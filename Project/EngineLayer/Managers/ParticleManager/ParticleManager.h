@@ -147,8 +147,6 @@ private: /// ---------- ヘルパー関数 ---------- ///
 
 	std::list<Particle> Emit(const Emitter& emitter, std::mt19937& randomEngine, ParticleEffectType type);
 
-	bool IsCollision(const AABB& aabb, const Vector3& point);
-
 private: /// ---------- メンバ変数 ---------- ///
 
 	ParticleTransform transform;
@@ -156,7 +154,7 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	std::unordered_map<ParticleEffectType, ParticleMesh> meshMap_;
 
-	BlendMode cuurenttype = BlendMode::kBlendModeAdd;
+	BlendMode blendMode_ = BlendMode::kBlendModeAdd;
 
 	DirectXCommon* dxCommon_ = nullptr;
 	SRVManager* srvManager_ = nullptr;

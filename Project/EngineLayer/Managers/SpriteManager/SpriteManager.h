@@ -40,7 +40,7 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	DirectXCommon* dxCommon_ = nullptr;
 
-	BlendMode blendMode_ = BlendMode::kBlendModeNone;
+	BlendMode blendMode_ = BlendMode::kBlendModeNormal;
 
 	// 2種類のPSO
 	ComPtr<ID3D12PipelineState> graphicsPipelineState_Background_;

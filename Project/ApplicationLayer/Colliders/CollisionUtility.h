@@ -28,6 +28,9 @@ public: /// ---------- メンバ関数 ---------- ///
 	// 線分と三角形の衝突判定
 	static bool IsCollision(const Triangle& triangle, const Segment& segment);
 
+	// AABBと点の衝突判定
+	static bool IsCollision(const AABB& aabb, const Vector3& point);
+
 	// 球と三角形の衝突判定
 	static bool IsCollision(const AABB& aabb1, const AABB& aabb2);
 

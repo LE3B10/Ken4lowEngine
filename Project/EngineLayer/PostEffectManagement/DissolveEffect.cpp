@@ -4,7 +4,7 @@
 #include <PostEffectPipelineBuilder.h>
 #include <ResourceManager.h>
 #include <SRVManager.h>
-#include <ShaderManager.h>
+#include <ShaderCompiler.h>
 #include <WinApp.h>
 
 #include <cassert>
@@ -24,7 +24,7 @@ void DissolveEffect::Initialize(DirectXCommon* dxCommon, PostEffectPipelineBuild
 
 	// パイプラインの生成
 	graphicsPipelineState_ = builder->CreateGraphicsPipeline(
-		ShaderManager::GetShaderPath(L"DissolveEffect", L".PS.hlsl"),
+		ShaderCompiler::GetShaderPath(L"DissolveEffect", L".PS.hlsl"),
 		rootSignature_.Get(),
 		false);
 

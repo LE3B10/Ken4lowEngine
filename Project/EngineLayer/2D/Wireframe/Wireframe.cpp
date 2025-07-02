@@ -2,7 +2,8 @@
 #include "WinApp.h"
 #include "LogString.h"
 #include "DirectXCommon.h"
-#include "ShaderManager.h"
+#include "BlendStateFactory.h"
+#include "ShaderCompiler.h"
 #include "DebugCamera.h"
 #include "ResourceManager.h"
 
@@ -1362,15 +1363,7 @@ void Wireframe::CreatePSO(D3D12_PRIMITIVE_TOPOLOGY_TYPE primitiveTopologyType, C
 	inputLayoutDesc.NumElements = _countof(inputElementDescs);
 
 	// BlendStateの設定
-	D3D12_RENDER_TARGET_BLEND_DESC blendDesc{};
-	blendDesc.RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
-	blendDesc.BlendEnable = true;
-	blendDesc.SrcBlend = D3D12_BLEND_SRC_ALPHA;
-	blendDesc.BlendOp = D3D12_BLEND_OP_ADD;
-	blendDesc.DestBlend = D3D12_BLEND_INV_SRC_ALPHA;
-	blendDesc.SrcBlendAlpha = D3D12_BLEND_ONE;
-	blendDesc.BlendOpAlpha = D3D12_BLEND_OP_ADD;
-	blendDesc.DestBlendAlpha = D3D12_BLEND_ZERO;
+	const D3D12_RENDER_TARGET_BLEND_DESC blendDesc = BlendStateFactory::GetInstance()->GetBlendDesc(blendMode_);
 
 	// RasterizerStateの設定
 	D3D12_RASTERIZER_DESC rasterizerDesc{};
@@ -1380,15 +1373,15 @@ void Wireframe::CreatePSO(D3D12_PRIMITIVE_TOPOLOGY_TYPE primitiveTopologyType, C
 	// Shaderをコンパイルする
 
 	// 頂点シェーダーをコンパイル
-	Microsoft::WRL::ComPtr<IDxcBlob> vertexShaderBlob = ShaderManager::CompileShader(L"Resources/Shaders/Wireframe/Wireframe.VS.hlsl", L"vs_6_0", dxCommon_->GetDXCCompilerManager());
+	Microsoft::WRL::ComPtr<IDxcBlob> vertexShaderBlob = ShaderCompiler::CompileShader(L"Resources/Shaders/Wireframe/Wireframe.VS.hlsl", L"vs_6_0", dxCommon_->GetDXCCompilerManager());
 	assert(vertexShaderBlob != nullptr);
 
 	// ピクセルシェーダをコンパイル
-	Microsoft::WRL::ComPtr<IDxcBlob> pixelShaderBlob = ShaderManager::CompileShader(L"Resources/Shaders/Wireframe/Wireframe.PS.hlsl", L"ps_6_0", dxCommon_->GetDXCCompilerManager());
+	Microsoft::WRL::ComPtr<IDxcBlob> pixelShaderBlob = ShaderCompiler::CompileShader(L"Resources/Shaders/Wireframe/Wireframe.PS.hlsl", L"ps_6_0", dxCommon_->GetDXCCompilerManager());
 	assert(pixelShaderBlob != nullptr);
 
 	// ジオメトリシェーダをコンパイル
-	Microsoft::WRL::ComPtr<IDxcBlob> geometryShaderBlob = ShaderManager::CompileShader(L"Resources/Shaders/Wireframe/Wireframe.GS.hlsl", L"gs_6_0", dxCommon_->GetDXCCompilerManager());
+	Microsoft::WRL::ComPtr<IDxcBlob> geometryShaderBlob = ShaderCompiler::CompileShader(L"Resources/Shaders/Wireframe/Wireframe.GS.hlsl", L"gs_6_0", dxCommon_->GetDXCCompilerManager());
 	assert(geometryShaderBlob != nullptr);
 
 	// DepthStencilStateの設定

@@ -1,6 +1,7 @@
 #include "SpriteManager.h"
 #include "LogString.h"
-#include "ShaderManager.h"
+#include "ShaderCompiler.h"
+#include <BlendStateFactory.h>
 
 
 /// -------------------------------------------------------------
@@ -146,16 +147,8 @@ void SpriteManager::CreatePSO()
 	inputLayoutDesc_.NumElements = _countof(inputElementDescs);
 
 	// BlendStateの設定
-	D3D12_RENDER_TARGET_BLEND_DESC blendDesc{};
-	blendDesc.BlendEnable = true;
-	blendDesc.SrcBlend = D3D12_BLEND_SRC_ALPHA;
-	blendDesc.BlendOp = D3D12_BLEND_OP_ADD;
-	blendDesc.DestBlend = D3D12_BLEND_INV_SRC_ALPHA;
-	blendDesc.SrcBlendAlpha = D3D12_BLEND_ONE;
-	blendDesc.BlendOpAlpha = D3D12_BLEND_OP_ADD;
-	blendDesc.DestBlendAlpha = D3D12_BLEND_ZERO;
-	blendDesc.RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
-
+	const D3D12_RENDER_TARGET_BLEND_DESC& blendDesc = BlendStateFactory::GetInstance()->GetBlendDesc(blendMode_);
+	
 	// RasterizerStateの設定
 	D3D12_RASTERIZER_DESC rasterizerDesc{};
 	rasterizerDesc.FillMode = D3D12_FILL_MODE_SOLID; // ポリゴンを塗りつぶす
@@ -163,11 +156,11 @@ void SpriteManager::CreatePSO()
 	rasterizerDesc.FrontCounterClockwise = FALSE;	 // 時計回りの面を表面とする（カリング方向の設定）
 
 	// Shaderをコンパイル
-	ComPtr <IDxcBlob> vertexShaderBlob = ShaderManager::CompileShader(L"Resources/Shaders/Sprite/Sprite.VS.hlsl", L"vs_6_0", dxCommon_->GetDXCCompilerManager());
+	ComPtr <IDxcBlob> vertexShaderBlob = ShaderCompiler::CompileShader(L"Resources/Shaders/Sprite/Sprite.VS.hlsl", L"vs_6_0", dxCommon_->GetDXCCompilerManager());
 	assert(vertexShaderBlob != nullptr);
 
 	// Pixelをコンパイル
-	ComPtr <IDxcBlob> pixelShaderBlob = ShaderManager::CompileShader(L"Resources/Shaders/Sprite/Sprite.PS.hlsl", L"ps_6_0", dxCommon_->GetDXCCompilerManager());
+	ComPtr <IDxcBlob> pixelShaderBlob = ShaderCompiler::CompileShader(L"Resources/Shaders/Sprite/Sprite.PS.hlsl", L"ps_6_0", dxCommon_->GetDXCCompilerManager());
 	assert(pixelShaderBlob != nullptr);
 
 	// --- 背景用（Zバッファ書き込みあり） ---
