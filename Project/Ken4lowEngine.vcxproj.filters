@@ -215,7 +215,7 @@
     <ClCompile Include="EngineLayer\Managers\RTVManager\RTVManager.cpp">
       <Filter>EngineLayer\Managers</Filter>
     </ClCompile>
-    <ClCompile Include="EngineLayer\Managers\ShaderManager\ShaderManager.cpp">
+    <ClCompile Include="EngineLayer\Managers\ShaderCompiler\ShaderCompiler.cpp">
       <Filter>EngineLayer\Managers</Filter>
     </ClCompile>
     <ClCompile Include="EngineLayer\Managers\SkyBoxManager\SkyBoxManager.cpp">
@@ -406,6 +406,7 @@
     <ClCompile Include="ApplicationLayer\Enemy\Sniper\SniperIdleState.cpp" />
     <ClCompile Include="ApplicationLayer\Enemy\Tank\TankIdleState.cpp" />
     <ClCompile Include="ApplicationLayer\Player\BaseCharacter.cpp" />
+    <ClCompile Include="EngineLayer\Base\BlendStateFactory.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="EngineLayer\PostEffectManagement\AbsorbEffect.h">
@@ -573,7 +574,7 @@
     <ClInclude Include="EngineLayer\Managers\RTVManager\RTVManager.h">
       <Filter>EngineLayer\Managers</Filter>
     </ClInclude>
-    <ClInclude Include="EngineLayer\Managers\ShaderManager\ShaderManager.h">
+    <ClInclude Include="EngineLayer\Managers\ShaderCompiler\ShaderCompiler.h">
       <Filter>EngineLayer\Managers</Filter>
     </ClInclude>
     <ClInclude Include="EngineLayer\Managers\SkyBoxManager\SkyBoxManager.h">
@@ -820,6 +821,7 @@
     <ClInclude Include="ApplicationLayer\Enemy\Sniper\SniperIdleState.h" />
     <ClInclude Include="ApplicationLayer\Enemy\Tank\TankIdleState.h" />
     <ClInclude Include="ApplicationLayer\Player\BaseCharacter.h" />
+    <ClInclude Include="EngineLayer\Base\BlendStateFactory.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Resources\Shaders\PostEffect\FullScreen.hlsli">

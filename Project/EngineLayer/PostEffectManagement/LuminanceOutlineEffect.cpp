@@ -4,7 +4,7 @@
 #include <PostEffectPipelineBuilder.h>
 #include <ResourceManager.h>
 #include <SRVManager.h>
-#include <ShaderManager.h>
+#include <ShaderCompiler.h>
 #include <WinApp.h>
 
 #include <cassert>
@@ -23,7 +23,7 @@ void LuminanceOutlineEffect::Initialize(DirectXCommon* dxCommon, PostEffectPipel
 
 	// パイプラインの生成
 	graphicsPipelineState_ = builder->CreateGraphicsPipeline(
-		ShaderManager::GetShaderPath(L"LuminanceOutlineEffect", L".PS.hlsl"),
+		ShaderCompiler::GetShaderPath(L"LuminanceOutlineEffect", L".PS.hlsl"),
 		rootSignature_.Get(),
 		false);
 

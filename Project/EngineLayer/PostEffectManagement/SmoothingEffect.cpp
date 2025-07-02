@@ -4,7 +4,7 @@
 #include <PostEffectPipelineBuilder.h>
 #include <ResourceManager.h>
 #include <SRVManager.h>
-#include <ShaderManager.h>
+#include <ShaderCompiler.h>
 
 #include <cassert>
 #include <imgui.h>
@@ -22,7 +22,7 @@ void SmoothingEffect::Initialize(DirectXCommon* dxCommon, PostEffectPipelineBuil
 
 	// パイプラインの生成
 	graphicsPipelineState_ = builder->CreateGraphicsPipeline(
-		ShaderManager::GetShaderPath(L"SmoothingEffect", L".PS.hlsl"),
+		ShaderCompiler::GetShaderPath(L"SmoothingEffect", L".PS.hlsl"),
 		rootSignature_.Get(),
 		false);
 

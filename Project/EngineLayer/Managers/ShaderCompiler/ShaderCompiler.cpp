@@ -1,4 +1,4 @@
-#include "ShaderManager.h"
+#include "ShaderCompiler.h"
 #include "DXCCompilerManager.h"
 
 #pragma comment(lib, "dxcompiler.lib")   // DXC (DirectX Shader Compiler)用
@@ -7,7 +7,7 @@
 /// -------------------------------------------------------------
 ///				シェーダーをコンパイルする処理
 /// -------------------------------------------------------------
-Microsoft::WRL::ComPtr <IDxcBlob> ShaderManager::CompileShader(const std::wstring& filePath, const wchar_t* profile, DXCCompilerManager* dxcManager)
+Microsoft::WRL::ComPtr <IDxcBlob> ShaderCompiler::CompileShader(const std::wstring& filePath, const wchar_t* profile, DXCCompilerManager* dxcManager)
 {
 	// これからシェーダーをコンパイルする旨をログに出す
 	Log(ConvertString(std::format(L"Begin CompileShader, path:{}, profile:{}\n", filePath, profile)));
@@ -83,7 +83,7 @@ Microsoft::WRL::ComPtr <IDxcBlob> ShaderManager::CompileShader(const std::wstrin
 }
 
 
-std::wstring ShaderManager::GetShaderPath(const std::wstring& shaderName, const std::wstring& extension)
+std::wstring ShaderCompiler::GetShaderPath(const std::wstring& shaderName, const std::wstring& extension)
 {
 	std::wstring path = L"Resources/Shaders/PostEffect/" + shaderName;
 	if (!extension.empty()) {

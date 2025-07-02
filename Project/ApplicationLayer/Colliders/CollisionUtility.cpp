@@ -85,6 +85,14 @@ bool CollisionUtility::IsCollision(const Triangle& triangle, const Segment& segm
 	return false; // 衝突なし
 }
 
+bool CollisionUtility::IsCollision(const AABB& aabb, const Vector3& point)
+{
+	// 点がAABBの範囲内にあるかチェック
+	return (point.x >= aabb.min.x && point.x <= aabb.max.x &&
+		point.y >= aabb.min.y && point.y <= aabb.max.y &&
+		point.z >= aabb.min.z && point.z <= aabb.max.z);
+}
+
 bool CollisionUtility::IsCollision(const AABB& aabb1, const AABB& aabb2)
 {
 	return

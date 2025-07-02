@@ -4,7 +4,7 @@
 #include <PostEffectPipelineBuilder.h>
 #include <ResourceManager.h>
 #include <SRVManager.h>
-#include <ShaderManager.h>
+#include <ShaderCompiler.h>
 
 #include <cassert>
 #include <imgui.h>
@@ -20,7 +20,7 @@ void RadialBlurEffect::Initialize(DirectXCommon* dxCommon, PostEffectPipelineBui
 	rootSignature_ = builder->CreateRootSignature();
 	// パイプラインの生成
 	graphicsPipelineState_ = builder->CreateGraphicsPipeline(
-		ShaderManager::GetShaderPath(L"RadialBlurEffect", L".PS.hlsl"),
+		ShaderCompiler::GetShaderPath(L"RadialBlurEffect", L".PS.hlsl"),
 		rootSignature_.Get(),
 		false);
 	// リソースの生成

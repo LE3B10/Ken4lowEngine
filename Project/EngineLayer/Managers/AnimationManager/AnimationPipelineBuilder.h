@@ -58,6 +58,6 @@ private: /// ---------- メンバ変数 ---------- ///
 	D3D12_INPUT_LAYOUT_DESC inputLayoutDesc{};
 
 	// ブレンドモード
-	BlendMode cuurenttype = BlendMode::kBlendModeNone;
+	BlendMode blendMode_ = BlendMode::kBlendModeNone;
 };
 
