@@ -1319,9 +1319,9 @@ void Wireframe::CreateRootSignature(ComPtr<ID3D12RootSignature>& rootSignature)
 
 	// RootParameterの設定
 	D3D12_ROOT_PARAMETER rootParameters[1] = {};
-	rootParameters[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;	 // CBVを使う
-	rootParameters[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX; // VertexShaderを使う
-	rootParameters[0].Descriptor.ShaderRegister = 0;					 // レジスタ番号０とバインド
+	rootParameters[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;  // CBVを使う
+	rootParameters[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL; // VSでも PSでもGSでも使う
+	rootParameters[0].Descriptor.ShaderRegister = 0;				  // レジスタ番号０とバインド
 
 	descriptionRootSignature.pParameters = rootParameters;			   // ルートパラメータ配列へのポインタ
 	descriptionRootSignature.NumParameters = _countof(rootParameters); // 配列の長さ
@@ -1351,16 +1351,11 @@ void Wireframe::CreatePSO(D3D12_PRIMITIVE_TOPOLOGY_TYPE primitiveTopologyType, C
 	CreateRootSignature(rootSignature);
 
 	// InputLayout
-	D3D12_INPUT_ELEMENT_DESC inputElementDescs[2] = {};
-	inputElementDescs[0].SemanticName = "POSITION";
-	inputElementDescs[0].SemanticIndex = 0;
-	inputElementDescs[0].Format = DXGI_FORMAT_R32G32B32_FLOAT;
-	inputElementDescs[0].AlignedByteOffset = D3D12_APPEND_ALIGNED_ELEMENT;
-
-	inputElementDescs[1].SemanticName = "COLOR";
-	inputElementDescs[1].SemanticIndex = 0;
-	inputElementDescs[1].Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
-	inputElementDescs[1].AlignedByteOffset = D3D12_APPEND_ALIGNED_ELEMENT;
+	D3D12_INPUT_ELEMENT_DESC inputElementDescs[] =
+	{
+		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT,     0, 0,  D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+		{ "COLOR",    0, DXGI_FORMAT_R32G32B32A32_FLOAT,  0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+	};
 
 	D3D12_INPUT_LAYOUT_DESC inputLayoutDesc{};
 	inputLayoutDesc.pInputElementDescs = inputElementDescs;
@@ -1383,11 +1378,18 @@ void Wireframe::CreatePSO(D3D12_PRIMITIVE_TOPOLOGY_TYPE primitiveTopologyType, C
 	rasterizerDesc.FillMode = D3D12_FILL_MODE_SOLID; // 三角形の中を塗りつぶす
 
 	// Shaderをコンパイルする
+
+	// 頂点シェーダーをコンパイル
 	Microsoft::WRL::ComPtr<IDxcBlob> vertexShaderBlob = ShaderManager::CompileShader(L"Resources/Shaders/Wireframe/Wireframe.VS.hlsl", L"vs_6_0", dxCommon_->GetDXCCompilerManager());
 	assert(vertexShaderBlob != nullptr);
 
+	// ピクセルシェーダをコンパイル
 	Microsoft::WRL::ComPtr<IDxcBlob> pixelShaderBlob = ShaderManager::CompileShader(L"Resources/Shaders/Wireframe/Wireframe.PS.hlsl", L"ps_6_0", dxCommon_->GetDXCCompilerManager());
 	assert(pixelShaderBlob != nullptr);
+
+	// ジオメトリシェーダをコンパイル
+	Microsoft::WRL::ComPtr<IDxcBlob> geometryShaderBlob = ShaderManager::CompileShader(L"Resources/Shaders/Wireframe/Wireframe.GS.hlsl", L"gs_6_0", dxCommon_->GetDXCCompilerManager());
+	assert(geometryShaderBlob != nullptr);
 
 	// DepthStencilStateの設定
 	D3D12_DEPTH_STENCIL_DESC depthStencilDesc{};
@@ -1399,8 +1401,9 @@ void Wireframe::CreatePSO(D3D12_PRIMITIVE_TOPOLOGY_TYPE primitiveTopologyType, C
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC graphicsPipelineStateDesc{};
 	graphicsPipelineStateDesc.pRootSignature = rootSignature.Get();
 	graphicsPipelineStateDesc.InputLayout = inputLayoutDesc;
-	graphicsPipelineStateDesc.VS = { vertexShaderBlob->GetBufferPointer(), vertexShaderBlob->GetBufferSize() };
-	graphicsPipelineStateDesc.PS = { pixelShaderBlob->GetBufferPointer(), pixelShaderBlob->GetBufferSize() };
+	graphicsPipelineStateDesc.VS = { vertexShaderBlob->GetBufferPointer(), vertexShaderBlob->GetBufferSize() };		// 頂点シェーダーを設定
+	//graphicsPipelineStateDesc.GS = { geometryShaderBlob->GetBufferPointer(), geometryShaderBlob->GetBufferSize() }; // ジオメトリシェーダーを設定
+	graphicsPipelineStateDesc.PS = { pixelShaderBlob->GetBufferPointer(), pixelShaderBlob->GetBufferSize() };		// ピクセルシェーダーを設定
 	graphicsPipelineStateDesc.BlendState.RenderTarget[0] = blendDesc;
 	graphicsPipelineStateDesc.RasterizerState = rasterizerDesc;
 
