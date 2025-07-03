@@ -10,6 +10,8 @@
 #include "Skeleton.h"
 #include <SkinCluster.h>
 
+#include "Capsule.h"
+
 #include <algorithm>
 #include <string>
 #include <vector>
@@ -41,10 +43,21 @@ private: /// ---------- 構造体 ---------- ///
 		Vector3 padding; // 16バイトアライメントを保つためのパディング
 	};
 
+	struct BodyPartCollider
+	{
+		std::string name;         // 名前（"LeftArm", "RightLeg", ...）
+		int startJointIndex = -1; // 始点となるジョイント
+		int endJointIndex = -1;   // 終点となるジョイント（カプセル用）
+		Vector3 offset;           // 単一ジョイント用のオフセット（sphere 描画等に使える）
+		float radius = 0.1f;      // カプセルまたはスフィアの半径
+		float height = 0.0f;      // offset を使う Capsule 用（レガシー用途 or fallback）
+	};
+	std::vector<BodyPartCollider> bodyPartColliders_;
+
 public: /// ---------- メンバ関数 ---------- ///
 
 	// 初期化処理
-	void Initialize(const std::string& fileName);
+	void Initialize(const std::string& fileName, bool isSkinning = true);
 
 	// 更新処理
 	void Update();
@@ -58,7 +71,17 @@ public: /// ---------- メンバ関数 ---------- ///
 	// ImGui描画処理
 	void DrawImGui();
 
+	// 削除処理
+	void Clear();
+
+	// ワイヤーフレーム描画
+	void DrawSkeletonWireframe();
+
+	void DrawBodyPartColliders();
+
 public: /// ---------- ゲッタ ---------- ///
+
+	const WorldTransform& GetWorldTransform() const { return worldTransform; }
 
 	// 座標を取得
 	const Vector3& GetTranslate() const { return worldTransform.translate_; }
@@ -71,6 +94,8 @@ public: /// ---------- ゲッタ ---------- ///
 
 	// メッシュを取得
 	AnimationMesh* GetAnimationMesh() { return animationMesh_.get(); }
+
+	float GetDeltaTime() const { return deltaTime; }
 
 public: /// ---------- セッタ ---------- ///
 
@@ -89,6 +114,14 @@ public: /// ---------- セッタ ---------- ///
 	// スキニングを有効にするか設定
 	void SetSkinningEnabled(bool isSkinning) { skinningSetting_->isSkinning = isSkinning; }
 
+	// ワールド空間からボディパーツのカプセルを取得
+	std::vector<std::pair<std::string, Capsule>> GetBodyPartCapsulesWorld() const;
+
+	// 頭を消すかどうか
+	void SetHideHead(bool hide) { hideHead_ = hide; }
+
+	void SetScaleFactor(float factor) { scaleFactor = factor; }
+
 private: /// ---------- メンバ関数 ---------- ///
 
 	// アニメーションを更新
@@ -99,6 +132,12 @@ private: /// ---------- メンバ関数 ---------- ///
 
 	// スキニングリソースの作成
 	void CreateSkinningSettingResource();
+
+	// ボーン情報の初期化
+	void InitializeBones();
+
+	// アニメーション時間を取得
+	float GetAnimationTime() const { return animationTime_; }
 
 private: /// ---------- メンバ関数・テンプレート関数 ---------- ///
 
@@ -171,5 +210,10 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	// アニメーションタイム
 	float animationTime_ = 0.0f;
+
+	float deltaTime = 0.0f;
+
+	bool hideHead_ = false; // デフォルトは表示
+	float scaleFactor = 1.0f;
 };
 

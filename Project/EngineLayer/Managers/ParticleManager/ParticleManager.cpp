@@ -4,7 +4,7 @@
 #include <LogString.h>
 #include <SRVManager.h>
 #include <TextureManager.h>
-#include "ShaderManager.h"
+#include "ShaderCompiler.h"
 #include "Camera.h"
 #include <ImGuiManager.h>
 #include <DebugCamera.h>
@@ -542,11 +542,11 @@ void ParticleManager::CreatePSO()
 	rasterizerDesc.FillMode = D3D12_FILL_MODE_SOLID;
 
 	//Shaderをコンパイルする
-	Microsoft::WRL::ComPtr <IDxcBlob> vertexShaderBlob = ShaderManager::CompileShader(L"Resources/Shaders/Particle/Particle.VS.hlsl", L"vs_6_0", dxCommon_->GetDXCCompilerManager());
+	Microsoft::WRL::ComPtr <IDxcBlob> vertexShaderBlob = ShaderCompiler::CompileShader(L"Resources/Shaders/Particle/Particle.VS.hlsl", L"vs_6_0", dxCommon_->GetDXCCompilerManager());
 	assert(vertexShaderBlob != nullptr);
 
 	//Pixelをコンパイルする
-	Microsoft::WRL::ComPtr <IDxcBlob> pixelShaderBlob = ShaderManager::CompileShader(L"Resources/Shaders/Particle/Particle.PS.hlsl", L"ps_6_0", dxCommon_->GetDXCCompilerManager());
+	Microsoft::WRL::ComPtr <IDxcBlob> pixelShaderBlob = ShaderCompiler::CompileShader(L"Resources/Shaders/Particle/Particle.PS.hlsl", L"ps_6_0", dxCommon_->GetDXCCompilerManager());
 	assert(pixelShaderBlob != nullptr);
 
 	D3D12_DEPTH_STENCIL_DESC depthStencilDesc{};

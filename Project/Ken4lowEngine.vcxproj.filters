@@ -205,7 +205,7 @@
     <ClCompile Include="EngineLayer\Managers\RTVManager\RTVManager.cpp">
       <Filter>EngineLayer</Filter>
     </ClCompile>
-    <ClCompile Include="EngineLayer\Managers\ShaderManager\ShaderManager.cpp">
+    <ClCompile Include="EngineLayer\Managers\ShaderManager\ShaderCompiler.cpp">
       <Filter>EngineLayer</Filter>
     </ClCompile>
     <ClCompile Include="EngineLayer\3D\SkyBox\SkyBox.cpp">
@@ -349,6 +349,7 @@
     <ClCompile Include="EngineLayer\PostEffectManagement\DepthOutlineEffect.cpp">
       <Filter>EngineLayer\PostEffect</Filter>
     </ClCompile>
+    <ClCompile Include="EngineLayer\Base\BlendStateFactory.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="EngineLayer\Managers\ModelManager\AssimpLoader.h">
@@ -504,7 +505,7 @@
     <ClInclude Include="EngineLayer\Managers\RTVManager\RTVManager.h">
       <Filter>EngineLayer</Filter>
     </ClInclude>
-    <ClInclude Include="EngineLayer\Managers\ShaderManager\ShaderManager.h">
+    <ClInclude Include="EngineLayer\Managers\ShaderManager\ShaderCompiler.h">
       <Filter>EngineLayer</Filter>
     </ClInclude>
     <ClInclude Include="EngineLayer\3D\SkyBox\SkyBox.h">
@@ -678,6 +679,15 @@
     <ClInclude Include="EngineLayer\PostEffectManagement\DepthOutlineEffect.h">
       <Filter>EngineLayer\PostEffect</Filter>
     </ClInclude>
+    <ClInclude Include="EngineLayer\Math\Capsule.h" />
+    <ClInclude Include="EngineLayer\Math\Line.h" />
+    <ClInclude Include="EngineLayer\Math\LinearInterpolation.h" />
+    <ClInclude Include="EngineLayer\Math\Plane.h" />
+    <ClInclude Include="EngineLayer\Math\Ray.h" />
+    <ClInclude Include="EngineLayer\Math\Segment.h" />
+    <ClInclude Include="EngineLayer\Math\Sphere.h" />
+    <ClInclude Include="EngineLayer\Math\Triangle.h" />
+    <ClInclude Include="EngineLayer\Base\BlendStateFactory.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Resources\Shaders\PostEffect\FullScreen.hlsli">

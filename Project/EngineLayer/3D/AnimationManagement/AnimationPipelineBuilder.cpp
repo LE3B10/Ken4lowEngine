@@ -2,7 +2,8 @@
 #include "DirectXCommon.h"
 #include "LightManager.h"
 #include <LogString.h>
-#include <ShaderManager.h>
+#include <ShaderCompiler.h>
+#include <BlendStateFactory.h>
 
 
 /// ---------------------------------------------------------------
@@ -64,21 +65,21 @@ void AnimationPipelineBuilder::CreateRootSignature()
 	staticSamplers[0].AddressW = D3D12_TEXTURE_ADDRESS_MODE_WRAP;		   // 0～1の範囲外をリピート
 	staticSamplers[0].ComparisonFunc = D3D12_COMPARISON_FUNC_NEVER;		   // 比較しない
 	staticSamplers[0].MaxLOD = D3D12_FLOAT32_MAX;						   // ありったけのMipmapを使う
-	staticSamplers[0].ShaderRegister = 0;								   // レジスタ番号 s0
+	staticSamplers[0].ShaderRegister = 0;								   // レジスタ番号0
 	staticSamplers[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;	   // ピクセルシェーダーで使用
 	descriptionRootSignature.pStaticSamplers = staticSamplers;			   // サンプラの設定
 	descriptionRootSignature.NumStaticSamplers = _countof(staticSamplers); // サンプラの数
 
-	// DescriptorRangeの設定 PS用のテクスチャ
+	// DescriptorRangeの設定
 	D3D12_DESCRIPTOR_RANGE descriptorRange[1] = {};
-	descriptorRange[0].BaseShaderRegister = 0;  // register(t0) に対応
+	descriptorRange[0].BaseShaderRegister = 0;
 	descriptorRange[0].NumDescriptors = 1;
 	descriptorRange[0].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
 	descriptorRange[0].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
 
-	// 追加する SRV の DescriptorRange 設定 VS用のパレット行列
+	// 追加する SRV の DescriptorRange 設定
 	D3D12_DESCRIPTOR_RANGE srvDescriptorRange{};
-	srvDescriptorRange.BaseShaderRegister = 0; // register(t0) に対応
+	srvDescriptorRange.BaseShaderRegister = 1; // register(t0) に対応
 	srvDescriptorRange.NumDescriptors = 1;
 	srvDescriptorRange.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
 	srvDescriptorRange.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
@@ -89,12 +90,12 @@ void AnimationPipelineBuilder::CreateRootSignature()
 	// マテリアル用のルートシグパラメータの設定
 	rootParameters[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;    // 定数バッファビュー
 	rootParameters[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL; // ピクセルシェーダーで使用
-	rootParameters[0].Descriptor.ShaderRegister = 0;                    // レジスタ番号 b0
+	rootParameters[0].Descriptor.ShaderRegister = 0;                    // レジスタ番号0
 
 	// TransformationMatrix用のルートシグネチャの設定
 	rootParameters[1].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;     // 定数バッファビュー
 	rootParameters[1].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX; // バーテックスシェーダーで使用
-	rootParameters[1].Descriptor.ShaderRegister = 0;					 // レジスタ番号 b0
+	rootParameters[1].Descriptor.ShaderRegister = 0;					 // レジスタ番号0
 
 	// テクスチャのディスクリプタテーブル
 	rootParameters[2].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;      // ディスクリプタテーブル
@@ -107,13 +108,20 @@ void AnimationPipelineBuilder::CreateRootSignature()
 	rootParameters[3].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL; // ピクセルシェーダーで使用
 	rootParameters[3].Descriptor.ShaderRegister = 1; 					// レジスタ番号1
 
-	// ライト系 b2 平行光源, b3 ポイントライト, b4 スポットライト
-	for (int i = 4; i <= 6; ++i)
-	{
-		rootParameters[i].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV; // 定数バッファビュー
-		rootParameters[i].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL; // ピクセルシェーダーで使用
-		rootParameters[i].Descriptor.ShaderRegister = i - 2; // レジスタ番号 b2, b3, b4
-	}
+	// 平行光源用のルートシグネチャの設定
+	rootParameters[4].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;	// 定数バッファビュー
+	rootParameters[4].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL; // ピクセルシェーダーで使用
+	rootParameters[4].Descriptor.ShaderRegister = 2; 					// レジスタ番号2
+
+	// ポイントライト用のルートシグネチャの設定
+	rootParameters[5].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;	// 定数バッファビュー
+	rootParameters[5].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL; // ピクセルシェーダーで使用
+	rootParameters[5].Descriptor.ShaderRegister = 3; 					// レジスタ番号3
+
+	// スポットライトのルートシグネチャの設定
+	rootParameters[6].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;	// 定数バッファビュー
+	rootParameters[6].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL; // ピクセルシェーダーで使用
+	rootParameters[6].Descriptor.ShaderRegister = 4; 					// レジスタ番号4
 
 	// SRV の設定（バーテックスシェーダーで使用）
 	rootParameters[7].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
@@ -167,91 +175,7 @@ void AnimationPipelineBuilder::CreatePSO()
 	inputLayoutDesc.NumElements = static_cast<UINT>(inputElementDescs.size());
 
 	// BlendStateの設定
-	D3D12_RENDER_TARGET_BLEND_DESC blendDesc{};
-	blendDesc.BlendEnable = false;
-	// すべての色要素を書き込む
-	blendDesc.RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
-
-	// 各ブレンドモードの設定を行う
-	switch (cuurenttype)
-	{
-		// ブレンドモードなし
-	case BlendMode::kBlendModeNone:
-
-		blendDesc.BlendEnable = false;
-		break;
-
-		// 通常αブレンドモード
-	case BlendMode::kBlendModeNormal:
-
-		// ノーマル
-		blendDesc.BlendEnable = true;
-		blendDesc.SrcBlend = D3D12_BLEND_SRC_ALPHA;
-		blendDesc.BlendOp = D3D12_BLEND_OP_ADD;
-		blendDesc.DestBlend = D3D12_BLEND_INV_SRC_ALPHA;
-		blendDesc.SrcBlendAlpha = D3D12_BLEND_ONE;
-		blendDesc.BlendOpAlpha = D3D12_BLEND_OP_ADD;
-		blendDesc.DestBlendAlpha = D3D12_BLEND_ZERO;
-		break;
-
-		// 加算ブレンドモード
-	case BlendMode::kBlendModeAdd:
-
-		// 加算
-		blendDesc.BlendEnable = true;
-		blendDesc.SrcBlend = D3D12_BLEND_SRC_ALPHA;
-		blendDesc.BlendOp = D3D12_BLEND_OP_ADD;
-		blendDesc.DestBlend = D3D12_BLEND_ONE;
-		blendDesc.SrcBlendAlpha = D3D12_BLEND_ONE;		  // アルファのソースはそのまま
-		blendDesc.BlendOpAlpha = D3D12_BLEND_OP_ADD;	  // アルファの加算操作
-		blendDesc.DestBlendAlpha = D3D12_BLEND_ZERO;	  // アルファのデスティネーションは無視
-		break;
-
-		// 減算ブレンドモード
-	case BlendMode::kBlendModeSubtract:
-
-		// 減算
-		blendDesc.BlendEnable = true;
-		blendDesc.SrcBlend = D3D12_BLEND_SRC_ALPHA;
-		blendDesc.BlendOp = D3D12_BLEND_OP_REV_SUBTRACT;
-		blendDesc.DestBlend = D3D12_BLEND_ONE;
-		blendDesc.SrcBlendAlpha = D3D12_BLEND_ONE;		 // アルファのソースはそのまま
-		blendDesc.BlendOpAlpha = D3D12_BLEND_OP_ADD;	 // アルファの加算操作
-		blendDesc.DestBlendAlpha = D3D12_BLEND_ZERO;	 // アルファのデスティネーションは無
-		break;
-
-		// 乗算ブレンドモード
-	case BlendMode::kBlendModeMultiply:
-
-		// 乗算
-		blendDesc.BlendEnable = true;
-		blendDesc.SrcBlend = D3D12_BLEND_ZERO;
-		blendDesc.BlendOp = D3D12_BLEND_OP_ADD;
-		blendDesc.DestBlend = D3D12_BLEND_SRC_COLOR;
-		blendDesc.SrcBlendAlpha = D3D12_BLEND_ONE;		 // アルファのソースはそのまま
-		blendDesc.BlendOpAlpha = D3D12_BLEND_OP_ADD;	 // アルファの加算操作
-		blendDesc.DestBlendAlpha = D3D12_BLEND_ZERO;	 // アルファのデスティネーションは無視
-		break;
-
-		// スクリーンブレンドモード
-	case BlendMode::kBlendModeScreen:
-
-		// スクリーン
-		blendDesc.BlendEnable = true;
-		blendDesc.SrcBlend = D3D12_BLEND_INV_DEST_COLOR;
-		blendDesc.BlendOp = D3D12_BLEND_OP_ADD;
-		blendDesc.DestBlend = D3D12_BLEND_ONE;
-		blendDesc.SrcBlendAlpha = D3D12_BLEND_ONE;		 // アルファのソースはそのまま
-		blendDesc.BlendOpAlpha = D3D12_BLEND_OP_ADD;	 // アルファの加算操作
-		blendDesc.DestBlendAlpha = D3D12_BLEND_ZERO;	 // アルファのデスティネーションは無視
-		break;
-
-		// 無効なブレンドモード
-	default:
-		// 無効なモードの処理
-		assert(false && "Invalid Blend Mode");
-		break;
-	}
+	const D3D12_RENDER_TARGET_BLEND_DESC blendDesc = BlendStateFactory::GetInstance()->GetBlendDesc(blendMode_);
 
 	// RasterizerStateの設定
 	D3D12_RASTERIZER_DESC rasterizerDesc{};
@@ -261,11 +185,11 @@ void AnimationPipelineBuilder::CreatePSO()
 	rasterizerDesc.FrontCounterClockwise = FALSE;	 // 時計回りの面を表面とする（カリング方向の設定）
 
 	//Shaderをコンパイルする
-	Microsoft::WRL::ComPtr <IDxcBlob> vertexShaderBlob = ShaderManager::CompileShader(L"Resources/Shaders/Skinning/SkinningObject3d.VS.hlsl", L"vs_6_0", dxCommon_->GetDXCCompilerManager());
+	Microsoft::WRL::ComPtr <IDxcBlob> vertexShaderBlob = ShaderCompiler::CompileShader(L"Resources/Shaders/Skinning/SkinningObject3d.VS.hlsl", L"vs_6_0", dxCommon_->GetDXCCompilerManager());
 	assert(vertexShaderBlob != nullptr);
 
 	//Pixelをコンパイルする
-	Microsoft::WRL::ComPtr <IDxcBlob> pixelShaderBlob = ShaderManager::CompileShader(L"Resources/Shaders/Skinning/SkinningObject3d.PS.hlsl", L"ps_6_0", dxCommon_->GetDXCCompilerManager());
+	Microsoft::WRL::ComPtr <IDxcBlob> pixelShaderBlob = ShaderCompiler::CompileShader(L"Resources/Shaders/Skinning/SkinningObject3d.PS.hlsl", L"ps_6_0", dxCommon_->GetDXCCompilerManager());
 	assert(pixelShaderBlob != nullptr);
 
 	D3D12_DEPTH_STENCIL_DESC depthStencilDesc{};

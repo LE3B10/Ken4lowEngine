@@ -4,7 +4,7 @@
 #include <PostEffectPipelineBuilder.h>
 #include <ResourceManager.h>
 #include <SRVManager.h>
-#include <ShaderManager.h>
+#include <ShaderCompiler.h>
 #include <WinApp.h>
 #include "Camera.h"
 
@@ -24,7 +24,7 @@ void DepthOutlineEffect::Initialize(DirectXCommon* dxCommon, PostEffectPipelineB
 
 	// パイプラインの生成
 	graphicsPipelineState_ = builder->CreateGraphicsPipeline(
-		ShaderManager::GetShaderPath(L"DepthOutlineEffect", L".PS.hlsl"),
+		ShaderCompiler::GetShaderPath(L"DepthOutlineEffect", L".PS.hlsl"),
 		rootSignature_.Get(),
 		false);
 

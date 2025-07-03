@@ -3,7 +3,7 @@
 #include <LogString.h>
 #include <PostEffectPipelineBuilder.h>
 #include <SRVManager.h>
-#include <ShaderManager.h>
+#include <ShaderCompiler.h>
 
 #include <cassert>
 
@@ -20,7 +20,7 @@ void NormalEffect::Initialize(DirectXCommon* dxCommon, PostEffectPipelineBuilder
 
 	// パイプラインの生成
 	graphicsPipelineState_ = builder->CreateGraphicsPipeline(
-		ShaderManager::GetShaderPath(L"NormalEffect", L".PS.hlsl"),
+		ShaderCompiler::GetShaderPath(L"NormalEffect", L".PS.hlsl"),
 		rootSignature_.Get(),
 		false);
 }

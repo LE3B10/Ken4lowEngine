@@ -4,7 +4,7 @@
 #include <PostEffectPipelineBuilder.h>
 #include <ResourceManager.h>
 #include <SRVManager.h>
-#include <ShaderManager.h>
+#include <ShaderCompiler.h>
 #include <WinApp.h>
 
 #include <cassert>
@@ -23,7 +23,7 @@ void AbsorbEffect::Initialize(DirectXCommon* dxCommon, PostEffectPipelineBuilder
 	
 	// パイプラインの生成
 	graphicsPipelineState_ = builder->CreateGraphicsPipeline(
-		ShaderManager::GetShaderPath(L"AbsorbEffect", L".PS.hlsl"),
+		ShaderCompiler::GetShaderPath(L"AbsorbEffect", L".PS.hlsl"),
 		rootSignature_.Get(),
 		false);
 	
