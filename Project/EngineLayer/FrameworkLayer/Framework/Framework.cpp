@@ -14,6 +14,7 @@
 #include <AnimationPipelineBuilder.h>
 #include <SkyBoxManager.h>
 #include <PostEffectManager.h>
+#include <BlendStateFactory.h>
 
 
 /// -------------------------------------------------------------
@@ -62,13 +63,16 @@ void Framework::Initialize()
 	// テクスチャマネージャーの初期化
 	TextureManager::GetInstance()->Initialize(dxCommon_);
 
+	// ブレンドステートファクトリの初期化
+	BlendStateFactory::GetInstance()->Initialize();
+
 	// スプライトマネージャの初期化
 	SpriteManager::GetInstance()->Initialize(dxCommon_);
 
 	// Object3DCommonの初期化
 	Object3DCommon::GetInstance()->Initialize(dxCommon_);
 
-	// アニメーションモデルビルダーの初期化
+	// アニメーションパイプラインビルダーの初期化
 	AnimationPipelineBuilder::GetInstance()->Initialize(dxCommon_);
 
 	// デバッグカメラの初期化

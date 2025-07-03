@@ -11,5 +11,5 @@ PixelShaderOutput main(VertexShaderOutput input)
     
     output.color = input.color;
     
-	return output;
+    return output;
 }

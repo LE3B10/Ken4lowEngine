@@ -1,6 +1,6 @@
 #include "PostEffectPipelineBuilder.h"
 #include "DirectXCommon.h"
-#include <ShaderManager.h>
+#include <ShaderCompiler.h>
 
 #include <cassert>
 
@@ -114,8 +114,8 @@ ComPtr<ID3D12RootSignature> PostEffectPipelineBuilder::CreateRootSignature()
 ComPtr<ID3D12PipelineState> PostEffectPipelineBuilder::CreateGraphicsPipeline(const std::wstring& pixelShaderPath, ID3D12RootSignature* rootSignature, bool enableDepth)
 {
 	// シェーダー
-	auto vs = ShaderManager::CompileShader(L"Resources/Shaders/PostEffect/FullScreen.VS.hlsl", L"vs_6_0", dxCommon_->GetDXCCompilerManager());
-	auto ps = ShaderManager::CompileShader(pixelShaderPath, L"ps_6_0", dxCommon_->GetDXCCompilerManager());
+	auto vs = ShaderCompiler::CompileShader(L"Resources/Shaders/PostEffect/FullScreen.VS.hlsl", L"vs_6_0", dxCommon_->GetDXCCompilerManager());
+	auto ps = ShaderCompiler::CompileShader(pixelShaderPath, L"ps_6_0", dxCommon_->GetDXCCompilerManager());
 
 	// 各種設定
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC desc{};

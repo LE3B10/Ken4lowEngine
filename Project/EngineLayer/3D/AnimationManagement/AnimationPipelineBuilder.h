@@ -48,12 +48,6 @@ private: /// ---------- メンバ関数 ---------- ///
 	// パイプラインの生成
 	void CreatePSO();
 
-	// ピクセルシェーダーのルートパラメータを生成
-	void CreatePixelShaderRootParameters(D3D12_ROOT_PARAMETER* rootParameters);
-
-	// バーテックスシェーダーのルートパラメータを生成
-	void CreateVertexShaderRootParameters(D3D12_ROOT_PARAMETER* rootParameters);
-
 private: /// ---------- メンバ変数 ---------- ///
 
 	DirectXCommon* dxCommon_ = nullptr;
@@ -64,6 +58,6 @@ private: /// ---------- メンバ変数 ---------- ///
 	D3D12_INPUT_LAYOUT_DESC inputLayoutDesc{};
 
 	// ブレンドモード
-	BlendMode cuurenttype = BlendMode::kBlendModeNone;
+	BlendMode blendMode_ = BlendMode::kBlendModeNone;
 };
 

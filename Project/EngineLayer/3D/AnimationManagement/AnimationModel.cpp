@@ -15,29 +15,35 @@
 /// -------------------------------------------------------------
 ///				　		 初期化処理
 /// -------------------------------------------------------------
-void AnimationModel::Initialize(const std::string& fileName)
+void AnimationModel::Initialize(const std::string& fileName, bool isSkinning)
 {
+	// リソースを破棄
+	Clear();
+
 	dxCommon_ = DirectXCommon::GetInstance();
 	camera_ = Object3DCommon::GetInstance()->GetDefaultCamera();
 
 	// モデル読み込み
-	modelData = AssimpLoader::LoadModel("Resources/AnimatedCube", fileName);
+	modelData = AssimpLoader::LoadModel("Resources/", fileName);
 
 	// アニメーションモデルを読み込む
-	animation = LoadAnimationFile("Resources/AnimatedCube", fileName);
+	animation = LoadAnimationFile("Resources/", fileName);
+
+	std::string modelDir = "Resources/" + fileName.substr(0, fileName.find_last_of('/'));
+	std::string texturePath = modelDir + "/" + modelData.material.textureFilePath;
 
 	// ファイルの参照しているテクスチャファイル読み込み
-	TextureManager::GetInstance()->LoadTexture(modelData.material.textureFilePath);
+	TextureManager::GetInstance()->LoadTexture(texturePath);
 
 	// 読み込んだテクスチャ番号を取得
-	modelData.material.gpuHandle = TextureManager::GetInstance()->GetSrvHandleGPU(modelData.material.textureFilePath);
+	modelData.material.gpuHandle = TextureManager::GetInstance()->GetSrvHandleGPU(texturePath );
 
 	skeleton_ = std::make_unique<Skeleton>();
 	skeleton_ = Skeleton::CreateFromRootNode(modelData.rootNode);
 
 	// スキンクラスターの初期化
 	skinCluster_ = std::make_unique<SkinCluster>();
-	skinCluster_->Initialize(modelData, *skeleton_, dxCommon_->GetDevice()->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV));
+	skinCluster_->Initialize(modelData, *skeleton_);
 
 	// マテリアルデータの初期化処理
 	material_.Initialize();
@@ -64,8 +70,11 @@ void AnimationModel::Initialize(const std::string& fileName)
 
 	// スキニング設定リソースの作成
 	CreateSkinningSettingResource();
+	skinningSetting_->isSkinning = isSkinning; // スキニング設定を反映
 
 	animationTime_ = 0.0f; // アニメーションを止める
+
+	InitializeBones();
 }
 
 
@@ -75,7 +84,7 @@ void AnimationModel::Initialize(const std::string& fileName)
 void AnimationModel::Update()
 {
 	// FPSの取得 deltaTimeの計算
-	float deltaTime = 1.0f / dxCommon_->GetFPSCounter().GetFPS();
+	deltaTime = 1.0f / dxCommon_->GetFPSCounter().GetFPS();
 	animationTime_ += deltaTime;
 	animationTime_ = std::fmod(animationTime_, animation.duration);
 
@@ -161,6 +170,112 @@ void AnimationModel::DrawImGui()
 
 }
 
+void AnimationModel::Clear()
+{
+	animationMesh_.reset();
+	skeleton_.reset();
+	skinCluster_.reset();
+
+	wvpResource.Reset();
+	cameraResource.Reset();
+	skinningSettingResource_.Reset();
+
+	wvpData_ = nullptr;
+	cameraData = nullptr;
+	skinningSetting_ = nullptr;
+
+	modelData = {};       // モデルデータ初期化
+	animation = {};       // アニメーション初期化
+	animationTime_ = 0.0f;
+	bodyPartColliders_.clear();
+}
+
+void AnimationModel::DrawSkeletonWireframe()
+{
+	if (!skeleton_) { return; }
+
+	const auto& joints = skeleton_->GetJoints();
+	Matrix4x4 worldMatrix = Matrix4x4::MakeAffineMatrix(worldTransform.scale_, worldTransform.rotate_, worldTransform.translate_);
+
+	for (const auto& joint : joints) {
+		if (joint.parent.has_value()) {
+			const auto& parentJoint = joints[*joint.parent];
+
+			Vector3 parentLocal = parentJoint.skeletonSpaceMatrix.GetTranslation();
+			Vector3 jointLocal = joint.skeletonSpaceMatrix.GetTranslation();
+
+			Vector3 parentPos = Vector3::Transform(parentLocal, worldMatrix);
+			Vector3 jointPos = Vector3::Transform(jointLocal, worldMatrix);
+
+			Wireframe::GetInstance()->DrawLine(parentPos, jointPos, { 1.0f, 0.0f, 0.0f, 1.0f });
+		}
+	}
+}
+
+void AnimationModel::DrawBodyPartColliders()
+{
+	if (!skeleton_) { return; }
+
+	const auto& joints = skeleton_->GetJoints();
+	Matrix4x4 worldMatrix = Matrix4x4::MakeAffineMatrix(worldTransform.scale_, worldTransform.rotate_, worldTransform.translate_);
+
+	for (const auto& part : bodyPartColliders_) {
+		if (part.endJointIndex < 0) {
+			// スフィア用
+			const auto& joint = joints[part.startJointIndex];
+			Vector3 localPos = joint.skeletonSpaceMatrix.GetTranslation() + part.offset;
+			Vector3 worldPos = Vector3::Transform(localPos, worldMatrix);
+
+			Wireframe::GetInstance()->DrawSphere(worldPos, part.radius, { 0.0f, 1.0f, 0.0f, 1.0f });
+		}
+		else {
+			// カプセル用
+			const auto& jointA = joints[part.startJointIndex];
+			const auto& jointB = joints[part.endJointIndex];
+
+			Vector3 a = Vector3::Transform(jointA.skeletonSpaceMatrix.GetTranslation(), worldMatrix);
+			Vector3 b = Vector3::Transform(jointB.skeletonSpaceMatrix.GetTranslation(), worldMatrix);
+
+			Vector3 center = (a + b) * 0.5f;
+			Vector3 axis = Vector3::Normalize(b - a);
+			float height = Vector3::Length(b - a);
+
+			Wireframe::GetInstance()->DrawCapsule(center, part.radius, height, axis, 8, { 0.0f, 1.0f, 0.0f, 1.0f });
+		}
+	}
+}
+
+
+std::vector<std::pair<std::string, Capsule>> AnimationModel::GetBodyPartCapsulesWorld() const
+{
+	std::vector<std::pair<std::string, Capsule>> out;
+	if (!skeleton_) { return out; }
+
+	const auto& joints = skeleton_->GetJoints();
+	Matrix4x4 worldMatrix = Matrix4x4::MakeAffineMatrix(worldTransform.scale_, worldTransform.rotate_, worldTransform.translate_);
+
+	for (const auto& part : bodyPartColliders_)
+	{
+		Capsule capsule{};
+		capsule.radius = part.radius;
+
+		if (part.endJointIndex < 0) {
+			// Sphere → pointA = pointB
+			const Vector3  local = joints[part.startJointIndex].skeletonSpaceMatrix.GetTranslation() + part.offset;
+			Vector3 world = Vector3::Transform(local, worldMatrix);
+			capsule.pointA = capsule.pointB = world;
+		}
+		else {
+			// カプセル → 始点と終点両方に回転適用
+			Vector3 a = Vector3::Transform(joints[part.startJointIndex].skeletonSpaceMatrix.GetTranslation(), worldMatrix);
+			Vector3 b = Vector3::Transform(joints[part.endJointIndex].skeletonSpaceMatrix.GetTranslation(), worldMatrix);
+			capsule.pointA = a;
+			capsule.pointB = b;
+		}
+		out.emplace_back(part.name, capsule);
+	}
+	return out;
+}
 
 /// -------------------------------------------------------------
 ///				　	アニメーションの更新処理
@@ -278,5 +393,105 @@ void AnimationModel::CreateSkinningSettingResource()
 	skinningSettingResource_ = ResourceManager::CreateBufferResource(dxCommon_->GetDevice(), sizeof(SkinningSetting));
 	skinningSettingResource_->Map(0, nullptr, reinterpret_cast<void**>(&skinningSetting_));
 
-	skinningSetting_->isSkinning = false;
+	skinningSetting_->isSkinning = true;
+}
+
+void AnimationModel::InitializeBones()
+{
+	auto& jointMap = skeleton_->GetJointMap();
+
+	/// ---------- 頭・首 ---------- ///
+	if (auto it = jointMap.find("mixamorig:Head"); it != jointMap.end()) {
+		bodyPartColliders_.push_back({ "Head", it->second, -1, {0, 0.12f, 0}, 0.12f * scaleFactor, 0.0f });
+	}
+	if (auto it = jointMap.find("mixamorig:Neck"); it != jointMap.end()) {
+		bodyPartColliders_.push_back({ "Neck", it->second, -1, {0, 0.05f, 0}, 0.1f * scaleFactor, 0.0f });
+	}
+
+	/// ---------- 腹・胸 ---------- ///
+	if (jointMap.contains("mixamorig:Spine") && jointMap.contains("mixamorig:Spine1")) {
+		bodyPartColliders_.push_back({ "SpineLower", jointMap.at("mixamorig:Spine"), jointMap.at("mixamorig:Spine1"), {}, 0.15f * scaleFactor, 0.0f });
+	}
+	if (jointMap.contains("mixamorig:Spine1") && jointMap.contains("mixamorig:Spine2")) {
+		bodyPartColliders_.push_back({ "SpineUpper", jointMap.at("mixamorig:Spine1"), jointMap.at("mixamorig:Spine2"), {0.0f,0.06f,0.0f}, 0.18f * scaleFactor, 0.0f });
+	}
+
+	/// ---------- 腰 ---------- ///
+	if (auto it = jointMap.find("mixamorig:Hips"); it != jointMap.end()) {
+		bodyPartColliders_.push_back({ "Pelvis", it->second, -1, {}, 0.16f * scaleFactor, 0.0f });
+	}
+
+	/// ---------- 左上腕・左前腕 ---------- ///
+	if (jointMap.contains("mixamorig:LeftArm") && jointMap.contains("mixamorig:LeftForeArm")) {
+		bodyPartColliders_.push_back({ "LeftUpperArm", jointMap.at("mixamorig:LeftArm"), jointMap.at("mixamorig:LeftForeArm"), {}, 0.1f * scaleFactor, 0.0f });
+	}
+	if (jointMap.contains("mixamorig:LeftForeArm") && jointMap.contains("mixamorig:LeftHand")) {
+		bodyPartColliders_.push_back({ "LeftLowerArm", jointMap.at("mixamorig:LeftForeArm"), jointMap.at("mixamorig:LeftHand"), {}, 0.09f * scaleFactor, 0.0f });
+	}
+
+	/// ---------- 右上腕・右前腕 ---------- ///
+	if (jointMap.contains("mixamorig:RightArm") && jointMap.contains("mixamorig:RightForeArm")) {
+		bodyPartColliders_.push_back({ "RightUpperArm", jointMap.at("mixamorig:RightArm"), jointMap.at("mixamorig:RightForeArm"), {}, 0.1f * scaleFactor, 0.0f });
+	}
+	if (jointMap.contains("mixamorig:RightForeArm") && jointMap.contains("mixamorig:RightHand")) {
+		bodyPartColliders_.push_back({ "RightLowerArm", jointMap.at("mixamorig:RightForeArm"), jointMap.at("mixamorig:RightHand"), {}, 0.09f * scaleFactor, 0.0f });
+	}
+
+	/// ---------- 左大腿・左下腿 ---------- ///
+	if (jointMap.contains("mixamorig:LeftUpLeg") && jointMap.contains("mixamorig:LeftLeg")) {
+		bodyPartColliders_.push_back({ "LeftUpperLeg", jointMap.at("mixamorig:LeftUpLeg"), jointMap.at("mixamorig:LeftLeg"), {}, 0.12f * scaleFactor, 0.0f });
+	}
+	if (jointMap.contains("mixamorig:LeftLeg") && jointMap.contains("mixamorig:LeftFoot")) {
+		bodyPartColliders_.push_back({ "LeftLowerLeg", jointMap.at("mixamorig:LeftLeg"), jointMap.at("mixamorig:LeftFoot"), {}, 0.1f * scaleFactor, 0.0f });
+	}
+
+	/// ---------- 右大腿・右下腿 ---------- ///
+	if (jointMap.contains("mixamorig:RightUpLeg") && jointMap.contains("mixamorig:RightLeg")) {
+		bodyPartColliders_.push_back({ "RightUpperLeg", jointMap.at("mixamorig:RightUpLeg"), jointMap.at("mixamorig:RightLeg"), {}, 0.12f * scaleFactor, 0.0f });
+	}
+	if (jointMap.contains("mixamorig:RightLeg") && jointMap.contains("mixamorig:RightFoot")) {
+		bodyPartColliders_.push_back({ "RightLowerLeg", jointMap.at("mixamorig:RightLeg"), jointMap.at("mixamorig:RightFoot"), {}, 0.1f * scaleFactor, 0.0f });
+	}
+
+	/// ---------- 左足 ---------- ///
+	if (jointMap.contains("mixamorig:LeftFoot") && jointMap.contains("mixamorig:LeftToeBase")) {
+		bodyPartColliders_.push_back({ "LeftToe", jointMap.at("mixamorig:LeftFoot"), jointMap.at("mixamorig:LeftToeBase"), {}, 0.07f * scaleFactor, 0.0f });
+	}
+
+	/// ---------- 右足 ---------- ///
+	if (jointMap.contains("mixamorig:RightFoot") && jointMap.contains("mixamorig:RightToeBase")) {
+		bodyPartColliders_.push_back({ "RightToe", jointMap.at("mixamorig:RightFoot"), jointMap.at("mixamorig:RightToeBase"), {}, 0.07f * scaleFactor, 0.0f });
+	}
+
+	/// ---------- 左肩と右肩 ---------- ///
+	if (auto it = jointMap.find("mixamorig:LeftShoulder"); it != jointMap.end()) {
+		bodyPartColliders_.push_back({ "LeftShoulder",it->second, -1, {-0.08f, 0.0f, 0.0f}, 0.11f * scaleFactor, 0.0f });
+	}
+	if (auto it = jointMap.find("mixamorig:RightShoulder"); it != jointMap.end()) {
+		bodyPartColliders_.push_back({ "RightShoulder",	it->second, -1, {0.08f, 0.0f, 0.0f}, 0.11f * scaleFactor, 0.0f });
+	}
+
+	/// ---------- 左腕・右腕 ---------- ///
+	if (auto it = jointMap.find("mixamorig:LeftForeArm"); it != jointMap.end()) {
+		bodyPartColliders_.push_back({ "LeftElbow", it->second, -1, {}, 0.09f * scaleFactor, 0.0f });
+	}
+	if (auto it = jointMap.find("mixamorig:RightForeArm"); it != jointMap.end()) {
+		bodyPartColliders_.push_back({ "RightElbow", it->second, -1, {}, 0.09f * scaleFactor, 0.0f });
+	}
+
+	/// ---------- 左膝・右膝 ---------- ///
+	if (auto it = jointMap.find("mixamorig:LeftLeg"); it != jointMap.end()) {
+		bodyPartColliders_.push_back({ "LeftKnee", it->second, -1, {}, 0.10f * scaleFactor, 0.0f });
+	}
+	if (auto it = jointMap.find("mixamorig:RightLeg"); it != jointMap.end()) {
+		bodyPartColliders_.push_back({ "RightKnee",	it->second, -1, {}, 0.10f * scaleFactor, 0.0f });
+	}
+
+	/// ---------- 左手首・右手首 ---------- ///
+	if (auto it = jointMap.find("mixamorig:LeftHand"); it != jointMap.end()) {
+		bodyPartColliders_.push_back({ "LeftWrist",	it->second, -1, {}, 0.08f * scaleFactor, 0.0f });
+	}
+	if (auto it = jointMap.find("mixamorig:RightHand"); it != jointMap.end()) {
+		bodyPartColliders_.push_back({ "RightWrist", it->second, -1, {}, 0.08f * scaleFactor, 0.0f });
+	}
 }

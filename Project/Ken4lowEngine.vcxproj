@@ -114,6 +114,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     </FxCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="EngineLayer\Base\BlendStateFactory.cpp" />
     <ClCompile Include="EngineLayer\3D\AnimationManagement\AnimationModel.cpp" />
     <ClCompile Include="EngineLayer\3D\AnimationManagement\AnimationPipelineBuilder.cpp" />
     <ClCompile Include="EngineLayer\3D\AnimationManagement\Skeleton.cpp" />
@@ -165,7 +166,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClCompile Include="EngineLayer\3D\Object3D\Object3D.cpp" />
     <ClCompile Include="EngineLayer\Managers\ResourceManager\ResourceManager.cpp" />
     <ClCompile Include="EngineLayer\ResourceChecker\ReleaseCheck\ResourceObject.cpp" />
-    <ClCompile Include="EngineLayer\Managers\ShaderManager\ShaderManager.cpp" />
+    <ClCompile Include="EngineLayer\Managers\ShaderManager\ShaderCompiler.cpp" />
     <ClCompile Include="EngineLayer\2D\Sprite\Sprite.cpp" />
     <ClCompile Include="EngineLayer\Managers\TextureManager\TextureManager.cpp" />
     <ClCompile Include="EngineLayer\Math\Vectors\Vector2.cpp" />
@@ -354,10 +355,19 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     </FxCompile>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="EngineLayer\Base\BlendStateFactory.h" />
     <ClInclude Include="EngineLayer\3D\AnimationManagement\AnimationModel.h" />
     <ClInclude Include="EngineLayer\3D\AnimationManagement\AnimationPipelineBuilder.h" />
     <ClInclude Include="EngineLayer\3D\AnimationManagement\Skeleton.h" />
     <ClInclude Include="EngineLayer\3D\AnimationManagement\SkinCluster.h" />
+    <ClInclude Include="EngineLayer\Math\Capsule.h" />
+    <ClInclude Include="EngineLayer\Math\Line.h" />
+    <ClInclude Include="EngineLayer\Math\LinearInterpolation.h" />
+    <ClInclude Include="EngineLayer\Math\Plane.h" />
+    <ClInclude Include="EngineLayer\Math\Ray.h" />
+    <ClInclude Include="EngineLayer\Math\Segment.h" />
+    <ClInclude Include="EngineLayer\Math\Sphere.h" />
+    <ClInclude Include="EngineLayer\Math\Triangle.h" />
     <ClInclude Include="EngineLayer\Mesh\AnimationMesh.h" />
     <ClInclude Include="EngineLayer\Audio\AudioCategory.h" />
     <ClInclude Include="EngineLayer\Audio\AudioManager.h" />
@@ -419,7 +429,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="EngineLayer\3D\Object3D\Object3D.h" />
     <ClInclude Include="EngineLayer\Managers\ResourceManager\ResourceManager.h" />
     <ClInclude Include="EngineLayer\ResourceChecker\ReleaseCheck\ResourceObject.h" />
-    <ClInclude Include="EngineLayer\Managers\ShaderManager\ShaderManager.h" />
+    <ClInclude Include="EngineLayer\Managers\ShaderManager\ShaderCompiler.h" />
     <ClInclude Include="EngineLayer\2D\Sprite\Sprite.h" />
     <ClInclude Include="EngineLayer\Managers\TextureManager\TextureManager.h" />
     <ClInclude Include="EngineLayer\Math\Vectors\Vector2.h" />

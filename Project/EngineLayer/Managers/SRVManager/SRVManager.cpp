@@ -159,7 +159,7 @@ uint32_t SRVManager::Allocate()
 void SRVManager::Free(uint32_t srvIndex)
 {
 	// 排他制御のためのロックを取得（スレッドセーフにするため）
-	std::lock_guard<std::mutex> lock(allocationMutex); 
+	std::lock_guard<std::mutex> lock(allocationMutex);
 
 	// 解放しようとしているインデックスが有効範囲外（0以上かつ kMaxSRVCount 未満でない）場合はエラーをスロー
 	if (srvIndex >= kMaxSRVCount) {

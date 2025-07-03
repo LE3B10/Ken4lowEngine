@@ -22,5 +22,6 @@ private: /// ---------- メンバ関数 ---------- ///
 
 	// メッシュを解析する
 	static void ParseMeshes(const aiScene* scene, const std::string& directoryPath, ModelData& modelData);
+
 };
 
