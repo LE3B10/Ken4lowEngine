@@ -90,6 +90,31 @@ void SRVManager::CreateSRVForStructureBuffer(uint32_t srvIndex, ID3D12Resource* 
 
 
 /// -------------------------------------------------------------
+///					構造化バッファ用のUAV生成
+///	-------------------------------------------------------------
+void SRVManager::CreateUAVForStructureBuffer(uint32_t srvIndex, ID3D12Resource* pResource, UINT numElements, UINT structureByteStride)
+{
+	if (!pResource) {
+		throw std::runtime_error("pResource is null in CreateUAVForStructureBuffer");
+	}
+	if (srvIndex >= kMaxSRVCount) {
+		throw std::runtime_error("srvIndex out of bounds in CreateUAVForStructureBuffer");
+	}
+	// UAV 設定
+	D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc{};
+	uavDesc.Format = DXGI_FORMAT_UNKNOWN; // 構造化バッファではフォーマットは UNKNOWN
+	uavDesc.ViewDimension = D3D12_UAV_DIMENSION_BUFFER; // バッファとして扱う
+	uavDesc.Buffer.FirstElement = 0;                   // バッファの先���要素から開始
+	uavDesc.Buffer.NumElements = numElements;          // バッファの要素数
+	uavDesc.Buffer.CounterOffsetInBytes = 0; // カウンターオフセットは0
+	uavDesc.Buffer.Flags = D3D12_BUFFER_UAV_FLAG_NONE; // 特殊なフラグなし
+	uavDesc.Buffer.StructureByteStride = structureByteStride; // 各要素のサイズ（バイト単位）
+	// Unordered Access View を作成
+	dxCommon_->GetDevice()->CreateUnorderedAccessView(pResource, nullptr, &uavDesc, GetCPUDescriptorHandle(srvIndex));
+}
+
+
+/// -------------------------------------------------------------
 ///						ヒープセットコマンド
 /// -------------------------------------------------------------
 void SRVManager::PreDraw()
@@ -159,7 +184,7 @@ uint32_t SRVManager::Allocate()
 void SRVManager::Free(uint32_t srvIndex)
 {
 	// 排他制御のためのロックを取得（スレッドセーフにするため）
-	std::lock_guard<std::mutex> lock(allocationMutex); 
+	std::lock_guard<std::mutex> lock(allocationMutex);
 
 	// 解放しようとしているインデックスが有効範囲外（0以上かつ kMaxSRVCount 未満でない）場合はエラーをスロー
 	if (srvIndex >= kMaxSRVCount) {

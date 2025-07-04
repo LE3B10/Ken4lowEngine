@@ -10,7 +10,7 @@
 SkinCluster::~SkinCluster()
 {
 	if (paletteSrvIndex_ != UINT32_MAX) {
-		SRVManager::GetInstance()->Free(paletteSrvIndex_);                 // ← 追加
+		SRVManager::GetInstance()->Free(paletteSrvIndex_);
 	}
 }
 

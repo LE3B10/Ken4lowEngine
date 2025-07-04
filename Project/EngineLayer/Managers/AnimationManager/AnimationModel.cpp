@@ -24,16 +24,19 @@ void AnimationModel::Initialize(const std::string& fileName, bool isSkinning)
 	camera_ = Object3DCommon::GetInstance()->GetDefaultCamera();
 
 	// モデル読み込み
-	modelData = AssimpLoader::LoadModel("Resources/", fileName);
+	modelData = AssimpLoader::LoadModel("Resources", fileName);
 
 	// アニメーションモデルを読み込む
-	animation = LoadAnimationFile("Resources/", fileName);
+	animation = LoadAnimationFile("Resources", fileName);
+
+	std::string modelDir = "Resources/" + fileName.substr(0, fileName.find_last_of('/'));
+	std::string texturePath = modelDir + "/" + modelData.material.textureFilePath;
 
 	// ファイルの参照しているテクスチャファイル読み込み
-	TextureManager::GetInstance()->LoadTexture(modelData.material.textureFilePath);
+	TextureManager::GetInstance()->LoadTexture(texturePath);
 
 	// 読み込んだテクスチャ番号を取得
-	modelData.material.gpuHandle = TextureManager::GetInstance()->GetSrvHandleGPU(modelData.material.textureFilePath);
+	modelData.material.gpuHandle = TextureManager::GetInstance()->GetSrvHandleGPU(texturePath);
 
 	skeleton_ = std::make_unique<Skeleton>();
 	skeleton_ = Skeleton::CreateFromRootNode(modelData.rootNode);
