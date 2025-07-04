@@ -127,7 +127,7 @@ void AssimpLoader::ParseMeshes(const aiScene* scene, const std::string& director
 		{
 			aiString textureFilePath;
 			material->GetTexture(aiTextureType_DIFFUSE, 0, &textureFilePath);
-			modelData.material.textureFilePath = directoryPath + "/" + textureFilePath.C_Str();
+			modelData.material.textureFilePath = textureFilePath.C_Str();
 		}
 		else
 		{

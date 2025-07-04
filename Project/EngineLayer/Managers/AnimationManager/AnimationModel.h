@@ -23,24 +23,6 @@
 class DirectXCommon;
 class Camera;
 
-struct SubMesh {
-	std::vector<uint32_t> indices;
-	std::vector<int> jointIndices; // このSubMeshが参照するジョイントの一覧
-	D3D12_VERTEX_BUFFER_VIEW vbv;
-	D3D12_INDEX_BUFFER_VIEW ibv;
-
-	void Draw(ID3D12GraphicsCommandList* commandList) const {
-		commandList->IASetVertexBuffers(0, 1, &vbv);
-		commandList->IASetIndexBuffer(&ibv);
-		commandList->DrawIndexedInstanced(UINT(indices.size()), 1, 0, 0, 0);
-	}
-
-	bool UsesJoint(int jointIndex) const {
-		return std::find(jointIndices.begin(), jointIndices.end(), jointIndex) != jointIndices.end();
-	}
-};
-
-
 /// -------------------------------------------------------------
 ///				　アニメーションを描画するクラス
 /// -------------------------------------------------------------

@@ -74,6 +74,7 @@
       <Filter>Shader\VertexShader</Filter>
     </FxCompile>
     <FxCompile Include="Resources\Shaders\Wireframe\Wireframe.GS.hlsl" />
+    <FxCompile Include="Resources\Shaders\Skinning\SkinningObject3d.CS.hlsl" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="WinMain.cpp" />

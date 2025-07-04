@@ -23,11 +23,13 @@ void Object3D::Initialize(const std::string& fileName)
 	// モデル読み込み
 	modelData = AssimpLoader::LoadModel("Resources", fileName);
 
+	std::string texturePath = "Resources/" + modelData.material.textureFilePath;
+
 	// 参照しているテクスチャファイル読み込み
-	TextureManager::GetInstance()->LoadTexture(modelData.material.textureFilePath);
+	TextureManager::GetInstance()->LoadTexture(texturePath);
 
 	// 読み込んだテクスチャ番号を取得
-	modelData.material.gpuHandle = TextureManager::GetInstance()->GetSrvHandleGPU(modelData.material.textureFilePath);
+	modelData.material.gpuHandle = TextureManager::GetInstance()->GetSrvHandleGPU(texturePath);
 
 	// 環境マップ
 	TextureManager::GetInstance()->LoadTexture("Resources/rostock_laage_airport_4k.dds");

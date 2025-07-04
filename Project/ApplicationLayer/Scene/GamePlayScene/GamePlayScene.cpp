@@ -152,12 +152,12 @@ void GamePlayScene::Update()
 		}
 
 		// エネミーマネージャーの更新
-		enemyManager_->Update();
+		//enemyManager_->Update();
 
 		// Waveがすべて終わったら次Waveをスタート
-		if (enemyManager_->IsWaveClear()) {
+		/*if (enemyManager_->IsWaveClear()) {
 			enemyManager_->StartNextWave();
-		}
+		}*/
 
 		{
 			Weapon* weapon = player_->GetCurrentWeapon();
@@ -263,7 +263,7 @@ void GamePlayScene::Draw3DObjects()
 	// アイテムの描画
 	itemManager_->Draw();
 
-	enemyManager_->Draw();
+	//enemyManager_->Draw();
 
 	// プレイヤーの描画
 	player_->Draw();
@@ -365,7 +365,7 @@ void GamePlayScene::CheckAllCollisions()
 	collisionManager_->Reset();
 
 	// コライダーをリストに登録
-	enemyManager_->RegisterColliders(collisionManager_.get());
+	//enemyManager_->RegisterColliders(collisionManager_.get());
 	player_->RegisterColliders(collisionManager_.get()); // プレイヤーのコライダーを登録
 	dummyModel_->RegisterColliders(collisionManager_.get());
 	boss_->RegisterColliders(collisionManager_.get());
