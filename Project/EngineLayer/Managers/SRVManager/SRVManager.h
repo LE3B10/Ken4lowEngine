@@ -32,6 +32,9 @@ public: /// ---------- メンバ関数 ---------- ///
 	// UAV生成（構造化バッファ用）
 	void CreateUAVForStructureBuffer(uint32_t srvIndex, ID3D12Resource* pResource, UINT numElements, UINT structureByteStride);
 
+	// UAV生成（テクスチャ2D用）
+	void CreateUAVForTexture2D(uint32_t uavIndex, ID3D12Resource* pResource, DXGI_FORMAT Format, UINT MipLevels);
+
 	// ヒープセットコマンド
 	void PreDraw();
 

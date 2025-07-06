@@ -31,6 +31,20 @@ public: /// ---------- メンバ関数 ---------- ///
 	/// <returns></returns>
 	ComPtr<ID3D12PipelineState> CreateGraphicsPipeline(const std::wstring& pixelShaderPath, ID3D12RootSignature* rootSignature, bool enableDepth = false);
 
+	/// <summary>
+	/// コンピュートルートシグネチャの生成
+	/// </summary>
+	/// <returns></returns>
+	ComPtr<ID3D12RootSignature> CreateComputeRootSignature();
+
+	/// <summary>
+	/// コンピュートパイプラインステートの生成
+	/// </summary>
+	/// <param name="csPath">コンピュートシェーダーのパス</param>
+	/// <param name="rootSignature">コンピュートルートシグネチャ</param>
+	/// <returns></returns>
+	ComPtr<ID3D12PipelineState> CreateComputePipeline(const std::wstring& csPath, ID3D12RootSignature* rootSignature);
+
 	void BuildCopyPipeline();
 
 	// ルートシグネチャの取得

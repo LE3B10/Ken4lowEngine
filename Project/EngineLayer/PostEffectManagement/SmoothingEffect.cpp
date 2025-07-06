@@ -5,6 +5,7 @@
 #include <ResourceManager.h>
 #include <SRVManager.h>
 #include <ShaderCompiler.h>
+#include <WinApp.h>
 
 #include <cassert>
 #include <imgui.h>
@@ -17,14 +18,11 @@ void SmoothingEffect::Initialize(DirectXCommon* dxCommon, PostEffectPipelineBuil
 {
 	dxCommon_ = dxCommon;
 
-	// ルートシグネチャの生成
-	rootSignature_ = builder->CreateRootSignature();
+	// ルートシグネチャの生成（コンピュート用）
+	computeRootSignature_ = builder->CreateComputeRootSignature();
 
-	// パイプラインの生成
-	graphicsPipelineState_ = builder->CreateGraphicsPipeline(
-		ShaderCompiler::GetShaderPath(L"SmoothingEffect", L".PS.hlsl"),
-		rootSignature_.Get(),
-		false);
+	// パイプラインの生成（コンピュート用）
+	computePipelineState_ = builder->CreateComputePipeline(ShaderCompiler::GetShaderPath(L"SmoothingEffect", L".CS.hlsl"), computeRootSignature_.Get());
 
 	// リソースの生成
 	constantBuffer_ = ResourceManager::CreateBufferResource(dxCommon_->GetDevice(), sizeof(SmoothingSetting));
@@ -40,16 +38,31 @@ void SmoothingEffect::Initialize(DirectXCommon* dxCommon, PostEffectPipelineBuil
 /// -------------------------------------------------------------
 ///						　適用処理
 /// -------------------------------------------------------------
-void SmoothingEffect::Apply(ID3D12GraphicsCommandList* commandList, uint32_t rtvSrvIndex, uint32_t dsvSrvIndex)
+void SmoothingEffect::Apply(ID3D12GraphicsCommandList* commandList, uint32_t srvIndex, uint32_t uavIndex, uint32_t dsvIndex)
 {
-	commandList->SetGraphicsRootSignature(rootSignature_.Get());
-	commandList->SetPipelineState(graphicsPipelineState_.Get());
+	// ① コンピュート用のルートシグネチャとPSOを設定
+	commandList->SetComputeRootSignature(computeRootSignature_.Get());
+	commandList->SetPipelineState(computePipelineState_.Get());
 
-	// SRVヒープの設定はPostEffectManager側で済ませておく前提
-	commandList->SetGraphicsRootDescriptorTable(0, SRVManager::GetInstance()->GetGPUDescriptorHandle(rtvSrvIndex));
-	commandList->SetGraphicsRootConstantBufferView(1, constantBuffer_->GetGPUVirtualAddress());
-	commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-	commandList->DrawInstanced(3, 1, 0, 0);
+	// ② SRVとUAVを設定（ディスクリプタテーブル）
+	commandList->SetComputeRootDescriptorTable(0, SRVManager::GetInstance()->GetGPUDescriptorHandle(srvIndex));  // t0
+	commandList->SetComputeRootDescriptorTable(1, SRVManager::GetInstance()->GetGPUDescriptorHandle(uavIndex)); // u0
+
+	// ③ CBVを設定（b0）
+	commandList->SetComputeRootConstantBufferView(2, constantBuffer_->GetGPUVirtualAddress()); // b0
+
+	// ④ スレッドグループの数を計算して Dispatch
+	const uint32_t threadGroupSizeX = 8;
+	const uint32_t threadGroupSizeY = 8;
+
+	// レンダーターゲットの解像度（仮に 1280x720）
+	uint32_t width = WinApp::kClientWidth; // ウィンドウの幅
+	uint32_t height = WinApp::kClientHeight; // ウィンドウの高さ
+
+	uint32_t groupCountX = (width + threadGroupSizeX - 1) / threadGroupSizeX;
+	uint32_t groupCountY = (height + threadGroupSizeY - 1) / threadGroupSizeY;
+
+	commandList->Dispatch(groupCountX, groupCountY, 1);
 }
 
 
