@@ -351,6 +351,8 @@ void GamePlayScene::DrawImGui()
 
 	dummyModel_->DrawImGui();
 
+	terrein_->DrawImGui();
+
 	// エネミースポナー
 	//enemyManager_->DrawImGui();
 }

@@ -7,28 +7,10 @@
     <FxCompile Include="Resources\Shaders\PostEffect\DepthOutlineEffect.PS.hlsl">
       <Filter>Shader\PixelShader</Filter>
     </FxCompile>
-    <FxCompile Include="Resources\Shaders\PostEffect\DissolveEffect.PS.hlsl">
-      <Filter>Shader\PixelShader</Filter>
-    </FxCompile>
-    <FxCompile Include="Resources\Shaders\PostEffect\GaussianFilterEffect.PS.hlsl">
-      <Filter>Shader\PixelShader</Filter>
-    </FxCompile>
-    <FxCompile Include="Resources\Shaders\PostEffect\LuminanceOutlineEffect.PS.hlsl">
-      <Filter>Shader\PixelShader</Filter>
-    </FxCompile>
-    <FxCompile Include="Resources\Shaders\PostEffect\NormalEffect.PS.hlsl">
-      <Filter>Shader\PixelShader</Filter>
-    </FxCompile>
     <FxCompile Include="Resources\Shaders\Object3D\Object3d.PS.hlsl">
       <Filter>Shader\PixelShader</Filter>
     </FxCompile>
     <FxCompile Include="Resources\Shaders\Particle\Particle.PS.hlsl">
-      <Filter>Shader\PixelShader</Filter>
-    </FxCompile>
-    <FxCompile Include="Resources\Shaders\PostEffect\RadialBlurEffect.PS.hlsl">
-      <Filter>Shader\PixelShader</Filter>
-    </FxCompile>
-    <FxCompile Include="Resources\Shaders\PostEffect\RandomEffect.PS.hlsl">
       <Filter>Shader\PixelShader</Filter>
     </FxCompile>
     <FxCompile Include="Resources\Shaders\Skinning\SkinningObject3d.PS.hlsl">
@@ -37,19 +19,10 @@
     <FxCompile Include="Resources\Shaders\SkyBox\SkyBox.PS.hlsl">
       <Filter>Shader\PixelShader</Filter>
     </FxCompile>
-    <FxCompile Include="Resources\Shaders\PostEffect\SmoothingEffect.PS.hlsl">
-      <Filter>Shader\PixelShader</Filter>
-    </FxCompile>
     <FxCompile Include="Resources\Shaders\Sprite\Sprite.PS.hlsl">
       <Filter>Shader\PixelShader</Filter>
     </FxCompile>
-    <FxCompile Include="Resources\Shaders\PostEffect\VignetteEffect.PS.hlsl">
-      <Filter>Shader\PixelShader</Filter>
-    </FxCompile>
     <FxCompile Include="Resources\Shaders\Wireframe\Wireframe.PS.hlsl">
-      <Filter>Shader\PixelShader</Filter>
-    </FxCompile>
-    <FxCompile Include="Resources\Shaders\PostEffect\GrayScaleEffect.PS.hlsl">
       <Filter>Shader\PixelShader</Filter>
     </FxCompile>
     <FxCompile Include="Resources\Shaders\PostEffect\FullScreen.VS.hlsl">
@@ -75,6 +48,15 @@
     </FxCompile>
     <FxCompile Include="Resources\Shaders\Wireframe\Wireframe.GS.hlsl" />
     <FxCompile Include="Resources\Shaders\Skinning\SkinningObject3d.CS.hlsl" />
+    <FxCompile Include="Resources\Shaders\PostEffect\GrayScaleEffect.CS.hlsl" />
+    <FxCompile Include="Resources\Shaders\PostEffect\RandomEffect.CS.hlsl" />
+    <FxCompile Include="Resources\Shaders\PostEffect\DissolveEffect.CS.hlsl" />
+    <FxCompile Include="Resources\Shaders\PostEffect\VignetteEffect.CS.hlsl" />
+    <FxCompile Include="Resources\Shaders\PostEffect\GaussianFilterEffect.CS.hlsl" />
+    <FxCompile Include="Resources\Shaders\PostEffect\RadialBlurEffect.CS.hlsl" />
+    <FxCompile Include="Resources\Shaders\PostEffect\LuminanceOutlineEffect.CS.hlsl" />
+    <FxCompile Include="Resources\Shaders\PostEffect\NormalEffect.PS.hlsl" />
+    <FxCompile Include="Resources\Shaders\PostEffect\SmoothingEffect.CS.hlsl" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="WinMain.cpp" />

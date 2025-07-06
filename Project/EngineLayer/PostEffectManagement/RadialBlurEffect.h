@@ -24,21 +24,12 @@ public: /// ---------- メンバ関数 ---------- ///
 	void Initialize(DirectXCommon* dxCommon, PostEffectPipelineBuilder* builder) override;
 
 	// 適用処理
-	void Apply(ID3D12GraphicsCommandList* commandList, uint32_t rtvSrvIndex, uint32_t dsvSrvIndex) override;
+	void Apply(ID3D12GraphicsCommandList* commandList, uint32_t srvIndex, uint32_t uavIndex, uint32_t dsvIndex) override;
 
 	// ImGui描画処理
 	void DrawImGui() override;
 
-	// 名前の取得
-	const std::string& GetName() const override { return name_; }
-
 private: /// ---------- メンバ変数 ---------- ///
-
-	// 名前
-	const std::string name_ = "RadialBlurEffect";
-
-	// シェーダーコードのパス
-	std::string shaderPath_ = "Resources/Shaders/PostEffect/RadialBlurEffect.hlsl";
 
 	// DirectX共通クラス
 	DirectXCommon* dxCommon_ = nullptr;
@@ -46,11 +37,11 @@ private: /// ---------- メンバ変数 ---------- ///
 	// パイプラインビルダー
 	PostEffectPipelineBuilder* pipelineBuilder_;
 
-	// グラフィックスパイプラインステートオブジェクト
-	Microsoft::WRL::ComPtr<ID3D12PipelineState> graphicsPipelineState_;
+	// コンピュートパイプラインステートオブジェクト
+	Microsoft::WRL::ComPtr<ID3D12PipelineState> computePipelineState_;
 
-	// ルートシグネチャ
-	Microsoft::WRL::ComPtr<ID3D12RootSignature> rootSignature_;
+	// コンピュートルートシグネチャ
+	Microsoft::WRL::ComPtr<ID3D12RootSignature> computeRootSignature_;
 
 	// ラジアルブラーの設定
 	Microsoft::WRL::ComPtr<ID3D12Resource> constantBuffer_;

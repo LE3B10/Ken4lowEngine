@@ -29,13 +29,13 @@ void NormalEffect::Initialize(DirectXCommon* dxCommon, PostEffectPipelineBuilder
 /// -------------------------------------------------------------
 ///						　適用処理
 /// -------------------------------------------------------------
-void NormalEffect::Apply(ID3D12GraphicsCommandList* commandList, uint32_t rtvSrvIndex, uint32_t dsvSrvIndex)
+void NormalEffect::Apply(ID3D12GraphicsCommandList* commandList, uint32_t srvIndex, uint32_t uavIndex, uint32_t dsvIndex)
 {
 	commandList->SetPipelineState(graphicsPipelineState_.Get());
 	commandList->SetGraphicsRootSignature(rootSignature_.Get());
 
 	// SRVヒープの設定はPostEffectManager側で済ませておく前提
-	commandList->SetGraphicsRootDescriptorTable(0, SRVManager::GetInstance()->GetGPUDescriptorHandle(rtvSrvIndex));
+	commandList->SetGraphicsRootDescriptorTable(0, SRVManager::GetInstance()->GetGPUDescriptorHandle(srvIndex));
 
 	commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	commandList->DrawInstanced(3, 1, 0, 0);

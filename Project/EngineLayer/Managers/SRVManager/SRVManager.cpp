@@ -92,13 +92,13 @@ void SRVManager::CreateSRVForStructureBuffer(uint32_t srvIndex, ID3D12Resource* 
 /// -------------------------------------------------------------
 ///					構造化バッファ用のUAV生成
 ///	-------------------------------------------------------------
-void SRVManager::CreateUAVForStructureBuffer(uint32_t srvIndex, ID3D12Resource* pResource, UINT numElements, UINT structureByteStride)
+void SRVManager::CreateUAVForStructureBuffer(uint32_t uavIndex, ID3D12Resource* pResource, UINT numElements, UINT structureByteStride)
 {
 	if (!pResource) {
 		throw std::runtime_error("pResource is null in CreateUAVForStructureBuffer");
 	}
-	if (srvIndex >= kMaxSRVCount) {
-		throw std::runtime_error("srvIndex out of bounds in CreateUAVForStructureBuffer");
+	if (uavIndex >= kMaxSRVCount) {
+		throw std::runtime_error("uavIndex out of bounds in CreateUAVForStructureBuffer");
 	}
 	// UAV 設定
 	D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc{};
@@ -110,7 +110,30 @@ void SRVManager::CreateUAVForStructureBuffer(uint32_t srvIndex, ID3D12Resource* 
 	uavDesc.Buffer.Flags = D3D12_BUFFER_UAV_FLAG_NONE; // 特殊なフラグなし
 	uavDesc.Buffer.StructureByteStride = structureByteStride; // 各要素のサイズ（バイト単位）
 	// Unordered Access View を作成
-	dxCommon_->GetDevice()->CreateUnorderedAccessView(pResource, nullptr, &uavDesc, GetCPUDescriptorHandle(srvIndex));
+	dxCommon_->GetDevice()->CreateUnorderedAccessView(pResource, nullptr, &uavDesc, GetCPUDescriptorHandle(uavIndex));
+}
+
+
+/// -------------------------------------------------------------
+///					テクスチャ2D用のUAV生成
+/// -------------------------------------------------------------
+void SRVManager::CreateUAVForTexture2D(uint32_t uavIndex, ID3D12Resource* pResource, DXGI_FORMAT Format, UINT MipLevels)
+{
+	if (!pResource) {
+		throw std::runtime_error("pResource is null in CreateUAVForTexture2D");
+	}
+	if (uavIndex >= kMaxSRVCount) {
+		throw std::runtime_error("uavIndex out of bounds in CreateUAVForTexture2D");
+	}
+
+	// UAV 設定（Texture2D 用）
+	D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc{};
+	uavDesc.Format = Format;
+	uavDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
+	uavDesc.Texture2D.MipSlice = MipLevels;
+
+	// UAV 作成
+	dxCommon_->GetDevice()->CreateUnorderedAccessView(pResource, nullptr, &uavDesc, GetCPUDescriptorHandle(uavIndex));
 }
 
 

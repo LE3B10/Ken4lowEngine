@@ -13,19 +13,10 @@ public: /// ---------- メンバ関数 ---------- ///
 	void Initialize(DirectXCommon* dxCommon, PostEffectPipelineBuilder* builder) override;
 	
 	// 適用処理
-	void Apply(ID3D12GraphicsCommandList* commandList, uint32_t rtvSrvIndex, uint32_t dsvSrvIndex) override;
+	void Apply(ID3D12GraphicsCommandList* commandList, uint32_t srvIndex, uint32_t uavIndex, uint32_t dsvIndex) override;
 	
-	// 名前の取得
-	const std::string& GetName() const override { return name_; }
-
 private: /// ---------- メンバ変数 ---------- ///
 	
-	// 名前
-	const std::string name_ = "NormalEffect";
-
-	// シェーダーコードのパス
-	std::string shaderPath_ = "Resources/Shaders/PostEffect/NormalEffect.hlsl";
-
 	// DirectX共通クラス
 	DirectXCommon* dxCommon_ = nullptr;
 

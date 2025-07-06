@@ -22,15 +22,12 @@ public: /// ---------- メンバ関数 ---------- ///
 	void Initialize(DirectXCommon* dxCommon, PostEffectPipelineBuilder* builder) override;
 
 	// 適用処理
-	void Apply(ID3D12GraphicsCommandList* commandList, uint32_t rtvSrvIndex, uint32_t dsvSrvIndex) override;
+	void Apply(ID3D12GraphicsCommandList* commandList, uint32_t srvIndex, uint32_t uavIndex, uint32_t dsvIndex) override;
 
 	// ImGui描画処理
 	void DrawImGui() override;
 
 public: /// ---------- ゲッター ---------- ///
-
-	// 名前の取得
-	const std::string& GetName() const override { return name_; }
 
 	// 色の取得
 	const Vector4& GetColor() const { return grayScaleSetting_->color; }
@@ -42,23 +39,17 @@ public: /// ---------- セッター ---------- ///
 
 private: /// ---------- メンバ変数 ---------- ///
 
-	// 名前
-	const std::string name_ = "GrayScaleEffect";
-
-	// シェーダーコードのパス
-	std::string shaderPath_ = "Resources/Shaders/PostEffect/GrayScaleEffect.hlsl";
-
 	// DirectX共通クラス
 	DirectXCommon* dxCommon_ = nullptr;
 
 	// パイプラインビルダー
 	PostEffectPipelineBuilder* pipelineBuilder_;
 
-	// グラフィックスパイプラインステートオブジェクト
-	Microsoft::WRL::ComPtr<ID3D12PipelineState> graphicsPipelineState_;
+	// コンピュートパイプラインステートオブジェクト
+	Microsoft::WRL::ComPtr<ID3D12PipelineState> computePipelineState_;
 
-	// ルートシグネチャ
-	Microsoft::WRL::ComPtr<ID3D12RootSignature> rootSignature_;
+	// コンピュートルートシグネチャ
+	Microsoft::WRL::ComPtr<ID3D12RootSignature> computeRootSignature_;
 
 	// グレイスケールエフェクトの設定
 	Microsoft::WRL::ComPtr<ID3D12Resource> constantBuffer_;
