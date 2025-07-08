@@ -29,43 +29,77 @@ void Boss::Initialize()
 
 void Boss::Update()
 {
-	if (!player_) return;
+	if (!isDying_ && !isDead_)
+	{
+		// 共通更新
+		model_->Update();
 
-	// 共通更新
-	model_->Update();
+		// 毎フレームカプセルを骨に追従
+		auto partCaps = model_->GetBodyPartCapsulesWorld();
 
-	// 毎フレームカプセルを骨に追従
-	auto partCaps = model_->GetBodyPartCapsulesWorld();
+		if (bodyCols_.size() != partCaps.size()) {
+			// Bone 本数が変わったら作り直し（開発中のモデル差し替え対策）
+			bodyCols_.clear();
+			for (auto& [name, cap] : partCaps) {
+				auto c = std::make_unique<Collider>();
+				c->SetTypeID(static_cast<uint32_t>(CollisionTypeIdDef::kEnemy));
+				c->SetCapsule(cap);
+				c->SetOwner(this);
+				bodyCols_.push_back({ name, std::move(c) });
+			}
+		}
 
-	if (bodyCols_.size() != partCaps.size()) {
-		// Bone 本数が変わったら作り直し（開発中のモデル差し替え対策）
-		bodyCols_.clear();
-		for (auto& [name, cap] : partCaps) {
-			auto c = std::make_unique<Collider>();
-			c->SetTypeID(static_cast<uint32_t>(CollisionTypeIdDef::kEnemy));
-			c->SetCapsule(cap);
-			bodyCols_.push_back({ name, std::move(c) });
+		for (size_t i = 0; i < partCaps.size(); ++i) {
+			bodyCols_[i].col->SetCapsule(partCaps[i].second);
 		}
 	}
 
-	for (size_t i = 0; i < partCaps.size(); ++i) {
-		bodyCols_[i].col->SetCapsule(partCaps[i].second);
+	if (isDying_)
+	{
+		model_->Update();
+		deathTime_ += deltaTime_;
+
+		// アニメが終わる
+		if (deathTime_ >= kDeathDuration_)
+		{
+			isDying_ = false;
+			isDissolving_ = true;
+			dissolveTime_ = 0.0f;
+			
+			// 現在のポーズで固定（再生停止）
+			model_->SetIsPlaying(false);
+
+			model_->SetDissolveThreshold(0.0f); // 初期化
+		}
+		return;
+	}
+
+	if (isDissolving_)
+	{
+		dissolveTime_ += deltaTime_;
+		float t = std::clamp(dissolveTime_ / dissolveDuration_, 0.0f, 1.0f);
+		model_->SetDissolveThreshold(t);
+
+		if (t >= 1.0f) {
+			isDead_ = true; // 完全に消えた後にフラグを立てる
+		}
 	}
 }
 
 void Boss::Draw()
 {
-	if (isDead_) return;
-
+	if (isDead_) return;  // 死亡している場合は描画しない
 	model_->Draw();
-	model_->DrawSkeletonWireframe();
-	for (auto& pc : bodyCols_) { pc.col->Draw(); }
+
+	if (!isDying_) {
+		// デバッグ表示は演出中は不要ならスキップ
+		model_->DrawSkeletonWireframe();
+		for (auto& pc : bodyCols_) pc.col->Draw();
+	}
 }
 
 void Boss::DrawImGui()
 {
-	model_->DrawImGui();
-
 	ImGui::Begin("Boss Colliders");
 	static bool visible = false;
 	if (ImGui::Checkbox("Show All Capsules", &visible)) {
@@ -92,6 +126,11 @@ void Boss::DrawImGui()
 		ChangeState(static_cast<BossState>(currentState));
 	}
 
+	// HP
+	ImGui::Text("Boss HP : %f", hp_);
+
+	model_->DrawImGui();
+
 	ImGui::End();
 }
 
@@ -104,6 +143,13 @@ void Boss::RegisterColliders(CollisionManager* collisionManager) const
 	for (const auto& pc : bodyCols_) {
 		collisionManager->AddCollider(pc.col.get());
 	}
+
+	if (isDead_)
+	{
+		for (const auto& pc : bodyCols_) {
+			collisionManager->RemoveCollider(pc.col.get());
+		}
+	}
 }
 
 void Boss::OnCollision(Collider* other)
@@ -113,14 +159,26 @@ void Boss::OnCollision(Collider* other)
 
 void Boss::TakeDamage(float damage)
 {
-	if (isDead_) return;
+	if (isDead_ || isDying_) return;          // 既に死亡演出中なら無視
 
 	hp_ -= damage;
 	if (hp_ <= 0.0f)
 	{
-		isDead_ = true;
 		hp_ = 0.0f;
 		Log("Boss is dead");
+	}
+
+	if (hp_ <= 0.0f)
+	{
+		hp_ = 0.0f;
+
+		// 死亡演出
+		isDying_ = true;
+		deathTime_ = 0.0f;
+		ChangeState(BossState::Dead);
+		Log("Boss is dying...");
+
+		// 弾とぶつからないようコライダーを無効化
 	}
 }
 

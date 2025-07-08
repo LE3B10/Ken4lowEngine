@@ -77,11 +77,16 @@ void AnimationPipelineBuilder::CreateRootSignature()
 	descriptionRootSignature.NumStaticSamplers = _countof(staticSamplers); // サンプラの数
 
 	// DescriptorRangeの設定
-	D3D12_DESCRIPTOR_RANGE descriptorRange[1] = {};
-	descriptorRange[0].BaseShaderRegister = 0;
+	D3D12_DESCRIPTOR_RANGE descriptorRange[2] = {};
+	descriptorRange[0].BaseShaderRegister = 0; // register(t0) に対応
 	descriptorRange[0].NumDescriptors = 1;
 	descriptorRange[0].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
 	descriptorRange[0].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+
+	descriptorRange[1].BaseShaderRegister = 1; // register(t1) に対応
+	descriptorRange[1].NumDescriptors = 1;
+	descriptorRange[1].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
+	descriptorRange[1].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
 
 	// 追加する SRV の DescriptorRange 設定
 	D3D12_DESCRIPTOR_RANGE srvDescriptorRange{};
@@ -91,7 +96,7 @@ void AnimationPipelineBuilder::CreateRootSignature()
 	srvDescriptorRange.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
 
 	// ルートシグネチャの生成
-	D3D12_ROOT_PARAMETER rootParameters[9] = {};
+	D3D12_ROOT_PARAMETER rootParameters[10] = {};
 
 	// マテリアル用のルートシグパラメータの設定
 	rootParameters[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;    // 定数バッファビュー
@@ -103,7 +108,7 @@ void AnimationPipelineBuilder::CreateRootSignature()
 	rootParameters[1].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX; // バーテックスシェーダーで使用
 	rootParameters[1].Descriptor.ShaderRegister = 0;					 // レジスタ番号0
 
-	// テクスチャのディスクリプタテーブル
+	// ピクセルシェーダー用のテクスチャ2つ (t0, t1)
 	rootParameters[2].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;      // ディスクリプタテーブル
 	rootParameters[2].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL; 	           // ピクセルシェーダーで使用
 	rootParameters[2].DescriptorTable.pDescriptorRanges = descriptorRange;             // ディスクリプタテーブルの設定
@@ -139,6 +144,11 @@ void AnimationPipelineBuilder::CreateRootSignature()
 	rootParameters[8].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
 	rootParameters[8].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
 	rootParameters[8].Descriptor.ShaderRegister = 1; // b1 に対応
+
+	// Dissolve設定用の定数バッファ（ピクセルシェーダー用）
+	rootParameters[9].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
+	rootParameters[9].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+	rootParameters[9].Descriptor.ShaderRegister = 5; // register(b5)
 
 	// ルートシグネチャの設定
 	descriptionRootSignature.pParameters = rootParameters;

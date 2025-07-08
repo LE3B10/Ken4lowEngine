@@ -87,10 +87,15 @@ public: /// ---------- 設定 ---------- ///
 	// シリアルナンバーを取得
 	uint32_t GetUniqueID() const { return serialNumber_; }
 
+	template<class T> void SetOwner(T* ptr) { owner_ = ptr; }
+	template<class T> T* GetOwner() const { return static_cast<T*>(owner_); }
+
 private: /// ---------- メンバ変数 ---------- ///
 
 	// 識別ID
 	uint32_t typeID_ = 0u;
+
+	void* owner_ = nullptr;
 
 private: /// ---------- OBBのメンバ変数 ---------- ///
 

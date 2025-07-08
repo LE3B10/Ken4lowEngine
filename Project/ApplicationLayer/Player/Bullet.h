@@ -54,17 +54,6 @@ public: /// ---------- メンバ関数 ---------- ///
 
 private: /// ---------- メンバ変数 ---------- ///
 
-	void PrewarmBulletAssets()
-	{
-		if (!Bullet::sModel_) {
-			Bullet::sModel_ = std::make_shared<Object3D>();
-			Bullet::sModel_->Initialize("cube.gltf");
-			Bullet::sModel_->SetScale({ 0.001f,0.001f,0.001f });
-		}
-	}
-
-private: /// ---------- メンバ変数 ---------- ///
-
 	Player* player_ = nullptr; // プレイヤーへの参照（必要なら）
 
 	static std::shared_ptr<Object3D> sModel_; // 静的モデル（全弾で共有）
@@ -74,7 +63,7 @@ private: /// ---------- メンバ変数 ---------- ///
 	Vector3 velocity_ = {};               // 速度ベクトル
 	Vector3 previousPosition_ = {};       // 1フレーム前の位置
 	Segment segment_;                     // 線分（セグメント）
-	float damage_ = 10.0f;                // 与ダメージ
+	float damage_ = 100.0f;                // 与ダメージ
 	float maxDistance_ = 1000.0f;         // 最大飛距離
 	float distanceTraveled_ = 0.0f;       // 現在の飛距離
 	bool isDead_ = false;                 // 死亡フラグ
