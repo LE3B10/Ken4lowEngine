@@ -177,7 +177,7 @@ ComPtr<ID3D12RootSignature> PostEffectPipelineBuilder::CreateComputeRootSignatur
 	D3D12_DESCRIPTOR_RANGE srvRange1{};
 	srvRange1.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
 	srvRange1.NumDescriptors = 1; // 1つのSRV
-	srvRange1.BaseShaderRegister = 1; // t2
+	srvRange1.BaseShaderRegister = 1; // t1
 	srvRange1.RegisterSpace = 0; // スペース0
 	srvRange1.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
 
