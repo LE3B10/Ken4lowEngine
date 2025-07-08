@@ -72,6 +72,14 @@ void AnimationModel::Initialize(const std::string& fileName, bool isSkinning)
 	CreateSkinningSettingResource();
 	skinningSetting_->isSkinning = isSkinning; // スキニング設定を反映
 
+	const std::string filePath = "Resources/Mask/Noise.png";
+	// Dissolve設定リソースの作成
+	TextureManager::GetInstance()->LoadTexture(filePath);
+	// SRVインデックスを取得（CopySRVせず、既存SRVをそのまま使う）
+	dissolveMaskSrvIndex_ = TextureManager::GetInstance()->GetSrvIndex(filePath);
+	// Dissolve設定リソースの作成
+	CreateDissolveSettingResource();
+
 	animationTime_ = 0.0f; // アニメーションを止める
 
 	InitializeBones();
@@ -83,10 +91,13 @@ void AnimationModel::Initialize(const std::string& fileName, bool isSkinning)
 /// -------------------------------------------------------------
 void AnimationModel::Update()
 {
-	// FPSの取得 deltaTimeの計算
-	deltaTime = 1.0f / dxCommon_->GetFPSCounter().GetFPS();
-	animationTime_ += deltaTime;
-	animationTime_ = std::fmod(animationTime_, animation.duration);
+	if (isAnimationPlaying_)
+	{
+		// FPSの取得 deltaTimeの計算
+		deltaTime = 1.0f / dxCommon_->GetFPSCounter().GetFPS();
+		animationTime_ += deltaTime;
+		animationTime_ = std::fmod(animationTime_, animation.duration);
+	}
 
 	if (skinningSetting_->isSkinning)
 	{
@@ -157,17 +168,24 @@ void AnimationModel::Draw()
 	material_.SetPipeline();
 
 	commandList->SetGraphicsRootConstantBufferView(1, wvpResource->GetGPUVirtualAddress());
-	commandList->SetGraphicsRootDescriptorTable(2, modelData.material.gpuHandle);
+	//commandList->SetGraphicsRootDescriptorTable(2, modelData.material.gpuHandle);
+	commandList->SetGraphicsRootDescriptorTable(2, SRVManager::GetInstance()->GetGPUDescriptorHandle(dissolveMaskSrvIndex_)); // t1
 	commandList->SetGraphicsRootConstantBufferView(3, cameraResource->GetGPUVirtualAddress());
 
 	commandList->SetGraphicsRootConstantBufferView(8, skinningSettingResource_->GetGPUVirtualAddress()); // スキニング設定をセット
+	if (dissolveSettingResource_)
+	{
+		commandList->SetGraphicsRootConstantBufferView(9, dissolveSettingResource_->GetGPUVirtualAddress()); // Dissolve設定をセット
+	}
 
 	commandList->DrawIndexedInstanced(UINT(modelData.indices.size()), 1, 0, 0, 0);
 }
 
 void AnimationModel::DrawImGui()
 {
-
+	ImGui::SliderFloat("Dissolve Threshold", &dissolveSetting_->threshold, 0.0f, 1.05f);
+	ImGui::SliderFloat("Edge Thickness", &dissolveSetting_->edgeThickness, 0.0f, 2.0f);
+	ImGui::ColorEdit4("Edge Color", &dissolveSetting_->edgeColor.x);
 }
 
 void AnimationModel::Clear()
@@ -394,6 +412,17 @@ void AnimationModel::CreateSkinningSettingResource()
 	skinningSettingResource_->Map(0, nullptr, reinterpret_cast<void**>(&skinningSetting_));
 
 	skinningSetting_->isSkinning = true;
+}
+
+void AnimationModel::CreateDissolveSettingResource()
+{
+	// Dissolve設定用のリソースを作成
+	dissolveSettingResource_ = ResourceManager::CreateBufferResource(dxCommon_->GetDevice(), sizeof(DissolveSetting));
+	dissolveSettingResource_->Map(0, nullptr, reinterpret_cast<void**>(&dissolveSetting_));
+	// デフォルトのDissolve設定
+	dissolveSetting_->threshold = 0.0f; // 閾値
+	dissolveSetting_->edgeThickness = 2.0f; // エッジの太さ
+	dissolveSetting_->edgeColor = { 1.0f, 1.0f, 1.0f, 1.0f }; // エッジの色
 }
 
 void AnimationModel::InitializeBones()

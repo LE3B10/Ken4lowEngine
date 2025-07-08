@@ -52,14 +52,23 @@ struct SpotLight
     float cosAngle; // スポットライトの余弦
 };
 
+struct DissolveSetting
+{
+    float threshold; // 閾値
+    float edgeThickness; // エッジの範囲（0.05など）
+    float4 edgeColor; // エッジ部分の色
+};
+
 ConstantBuffer<Material> gMaterial : register(b0);
 ConstantBuffer<Camera> gCamera : register(b1);
 ConstantBuffer<DirectionalLight> gDirectionalLight : register(b2);
 ConstantBuffer<PointLight> gPointLight : register(b3);
 ConstantBuffer<SpotLight> gSpotLight : register(b4);
+ConstantBuffer<DissolveSetting> gDissolveSetting : register(b5); // Dissolveの設定
 
-Texture2D<float4> gTexture : register(t0);
-SamplerState gSampler : register(s0);
+Texture2D<float4> gTexture : register(t0); // 元の画像
+Texture2D<float> gMask : register(t1); // マスク画像
+SamplerState gSampler : register(s0); // サンプラー
 
 // ピクセルシェーダー (PS) のメイン関数 (メインエントリーポイント)
 PixelShaderOutput main(VertexShaderOutput input)
@@ -71,7 +80,7 @@ PixelShaderOutput main(VertexShaderOutput input)
     float4 textureColor = gTexture.Sample(gSampler, transformedUV.xy); // テクスチャの色
     textureColor.rgb = pow(textureColor.rgb, 2.2f); // ガンマ補正済みのテクスチャの場合、リニア空間に変換
     
-     // 照明効果の統合
+    // 照明効果の統合
     if (gMaterial.enableLighting != 0)
     {
         // ライト方向と法線、カメラ方向の計算
@@ -159,7 +168,7 @@ PixelShaderOutput main(VertexShaderOutput input)
         }
         
         // 環境光 + 拡散反射 + 鏡面反射 + 点光源の拡散反射 + 点光源の鏡面反射 + スポットライトの拡散反射 + スポットライトの鏡面反射
-        float3 finalColor = /*ambientColor + */diffuseColor + specularColor + pointDiffuseColor + pointSpecularColor + spotDiffuseColor + spotSpecularColor;
+        float3 finalColor = diffuseColor + specularColor + pointDiffuseColor + pointSpecularColor + spotDiffuseColor + spotSpecularColor;
         output.color.rgb = saturate(finalColor);
 
         // ガンマ補正を適用（必要なら）
@@ -174,11 +183,32 @@ PixelShaderOutput main(VertexShaderOutput input)
         output.color.rgb = pow(output.color.rgb, 1.0f / 2.2f);
     }
 
-    // α値がほぼ0の場合にピクセルを破棄
+    float maskValue = gMask.Sample(gSampler, input.texcoord).r;
+
+    // --- ① 完全に消す ---
+    if (maskValue < gDissolveSetting.threshold)
+    {
+        discard; // 完全に非表示にする（透明にしたいなら alpha = 0）
+    }
+    
+    // --- ② エッジ表示（エッジ色適用） ---
+    else if (abs(maskValue - gDissolveSetting.threshold) < gDissolveSetting.edgeThickness)
+    {
+        output.color.rgb = gDissolveSetting.edgeColor.rgb;
+        output.color.a = 1.0f;
+    }
+
+    //// --- ③ 通常ピクセルはエッジ色と滑らかにブレンドする（補助演出） ---
+    //float edgeBlend = 1.0f - smoothstep(gDissolveSetting.threshold, gDissolveSetting.threshold + gDissolveSetting.edgeThickness, maskValue);
+
+    //// 色ブレンド適用（透明化後やエッジ領域では行わないため最後に）
+    //output.color.rgb = lerp(output.color.rgb, gDissolveSetting.edgeColor.rgb, edgeBlend);
+
+    // αが低いピクセルを破棄
     if (output.color.a < 0.001f)
     {
         discard;
     }
-
+    
     return output;
 }

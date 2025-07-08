@@ -6,6 +6,7 @@
 #include "ParticleManager.h"
 #include "ParticleEmitter.h"
 #include <BaseScene.h>
+#include <SkyBox.h>
 
 #include "CollisionManager.h"
 
@@ -92,7 +93,7 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	std::unique_ptr<EnemyManager> enemyManager_ = nullptr;
 
-	std::unique_ptr<DummyModel> dummyModel_ = nullptr;
+	//std::unique_ptr<DummyModel> dummyModel_ = nullptr;
 
 	std::unique_ptr<AnimationModel> dModel_;
 
@@ -109,6 +110,8 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	// アニメーションモデル
 	std::unique_ptr<AnimationModel> animationModel_ = nullptr;
+
+	std::unique_ptr<SkyBox> skyBox_ = nullptr; // スカイボックス
 
 	// デバッグカメラのON/OFF用
 	bool isDebugCamera_ = false;
