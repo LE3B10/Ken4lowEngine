@@ -130,7 +130,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClCompile Include="ApplicationLayer\Colliders\CollisionUtility.cpp" />
     <ClCompile Include="ApplicationLayer\Player\DummyModel.cpp" />
     <ClCompile Include="ApplicationLayer\Enemy\Boss.cpp" />
-    <ClCompile Include="BossBullet.cpp" />
+    <ClCompile Include="ApplicationLayer\Enemy\BossBullet.cpp" />
     <ClCompile Include="EngineLayer\Base\BlendStateFactory.cpp" />
     <ClCompile Include="EngineLayer\PostEffectManagement\DepthOutlineEffect.cpp" />
     <ClCompile Include="EngineLayer\Managers\AnimationManager\AnimationModel.cpp" />
@@ -429,7 +429,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="ApplicationLayer\Colliders\CollisionUtility.h" />
     <ClInclude Include="ApplicationLayer\Player\PlayerStateType.h" />
     <ClInclude Include="ApplicationLayer\Enemy\Boss.h" />
-    <ClInclude Include="BossBullet.h" />
+    <ClInclude Include="ApplicationLayer\Enemy\BossBullet.h" />
     <ClInclude Include="EngineLayer\Base\BlendStateFactory.h" />
     <ClInclude Include="EngineLayer\Math\Capsule.h" />
     <ClInclude Include="ApplicationLayer\Player\DummyModel.h" />
