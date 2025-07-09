@@ -128,8 +128,19 @@ void CollisionManager::RegisterCollisionFuncsions()
 	constexpr CollisionType kItem = static_cast<CollisionType>(CollisionTypeIdDef::kItem);
 	constexpr CollisionType kBoss = static_cast<CollisionType>(CollisionTypeIdDef::kBoss);
 
-	/// ---------- ボスとプレイヤーの弾丸の衝突判定 ---------- ///
+	/// ---------- プレイヤーとボスの衝突判定 ---------- ///
+	collisionTable_[{kBoss, kPlayer}] =
+		[](Collider* a, Collider* b) {
+		return CollisionUtility::IsCollision(a->GetCapsule(), b->GetSphere());
+		};
 
+	collisionTable_[{kPlayer, kBoss}] =
+		[](Collider* a, Collider* b) {
+		return CollisionUtility::IsCollision(b->GetCapsule(), a->GetSphere());
+		};
+
+
+	/// ---------- ボスとプレイヤーの弾丸の衝突判定 ---------- ///
 	collisionTable_[{kBoss, kBullet}] =
 		[](Collider* a, Collider* b) {
 		if (a->HasCapsule())       return CollisionUtility::IsCollision(a->GetCapsule(), b->GetSegment());

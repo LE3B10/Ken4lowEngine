@@ -448,6 +448,7 @@
     <ClCompile Include="ApplicationLayer\Enemy\Tank\TankIdleState.cpp">
       <Filter>ApplicationLayer\Enemy</Filter>
     </ClCompile>
+    <ClCompile Include="BossBullet.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="EngineLayer\Math\AABB.h">
@@ -903,6 +904,7 @@
     <ClInclude Include="ApplicationLayer\Enemy\Tank\TankIdleState.h">
       <Filter>ApplicationLayer\Enemy</Filter>
     </ClInclude>
+    <ClInclude Include="BossBullet.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Resources\Shaders\PostEffect\FullScreen.hlsli">

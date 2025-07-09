@@ -56,13 +56,14 @@ public: /// ---------- メンバ関数 ---------- ///
 	static bool IsCollision(const Capsule& capsule1, const Capsule& capsule2);
 
 	// CapsuleとOBBの衝突判定
-	static bool IsCollision(const Capsule& capsule, const OBB& obb);
+	//static bool IsCollision(const Capsule& capsule, const OBB& obb);
 
 	// CapsuleとAABBの衝突判定
-	static bool IsCollision(const Capsule& capsule, const AABB& aabb);
+	//static bool IsCollision(const Capsule& capsule, const AABB& aabb);
 
 	// CapsuleとSphereの衝突判定
 	static bool IsCollision(const Capsule& capsule, const Sphere& sphere);
+	static bool IsCollision(const Sphere& sphere, const Capsule& capsule);
 
 	// CapsuleとSegmentの衝突判定
 	static bool IsCollision(const Capsule& capsule, const Segment& segment);

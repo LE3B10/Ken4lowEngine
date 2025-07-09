@@ -106,6 +106,7 @@ void Player::Update()
 			auto c = std::make_unique<Collider>();
 			c->SetTypeID(static_cast<uint32_t>(CollisionTypeIdDef::kPlayer));
 			c->SetCapsule(cap);
+			c->SetOwner(this); // プレイヤーをオーナーに設定
 			bodyCols_.push_back({ name, std::move(c) });
 		}
 	}

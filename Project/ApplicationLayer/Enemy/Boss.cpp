@@ -1,5 +1,6 @@
 #include "Boss.h"
 #include <LogString.h>
+#include "Object3DCommon.h"
 #include "CollisionTypeIdDef.h"
 #include "CollisionManager.h"
 #include "Player.h"
@@ -24,11 +25,30 @@ void Boss::Initialize()
 
 	// 最初のモデルをセット
 	model_ = models_[BossState::Idle].get();
-	model_->SetTranslate({ 0.0f, 0.0f, 1.0f });
+	model_->SetTranslate({ 0.0f, 0.0f, 10.0f });
 }
 
 void Boss::Update()
 {
+	switch (state_)
+	{
+	case BossState::Idle:
+		UpdateIdle();
+		break;
+	case BossState::Chase:
+		UpdateChase();
+		break;
+	case BossState::Melee:
+		UpdateMelee();
+		break;
+	case BossState::Shoot:
+		UpdateShoot();
+		break;
+	case BossState::SpecialAttack:
+		UpdateSpecialAttack();
+		break;
+	}
+
 	if (!isDying_ && !isDead_)
 	{
 		// 共通更新
@@ -96,6 +116,9 @@ void Boss::Draw()
 		model_->DrawSkeletonWireframe();
 		for (auto& pc : bodyCols_) pc.col->Draw();
 	}
+
+	Object3DCommon::GetInstance()->SetRenderSetting(); // アニメーションパイプラインの描画設定
+
 }
 
 void Boss::DrawImGui()
@@ -213,4 +236,105 @@ void Boss::ChangeState(BossState newState)
 		model_->SetDissolveThreshold(0.0f);
 		model_->Update(); // ←ボーンとマテリアル情報を即時更新
 	}
+}
+
+void Boss::UpdateIdle()
+{
+	if (isDying_) return; // 死亡演出中は何もしない
+	// 待機アニメーションの更新
+	model_->Update();
+	// プレイヤーが近づいてきたら追跡状態に移行
+	Vector3 toPlayer = player_->GetWorldTransform()->translate_ - model_->GetTranslate();
+	float distance = Vector3::Length(toPlayer);
+	if (distance < 20.0f)
+	{
+		ChangeState(BossState::Chase);
+	}
+}
+
+void Boss::UpdateChase()
+{
+	// プレイヤーとの方向ベクトルを取得
+	Vector3 bossPos = model_->GetTranslate();
+	Vector3 playerPos = player_->GetWorldTransform()->translate_; // プレイヤーの中心位置
+	Vector3 toPlayer = playerPos - bossPos;
+
+	// 距離を求める（攻撃への移行判定に使うなら）
+	float distance = Vector3::Length(toPlayer);
+
+	// 追いかける方向に正規化
+	Vector3 dir = Vector3::Normalize(toPlayer);
+
+	// 速度を決めて移動（例：0.05f のスピード）
+	float speed = 0.05f;
+	Vector3 newPos = bossPos + dir * speed;
+	model_->SetTranslate(newPos);
+
+	// プレイヤー方向を向く（Y軸の角度のみ変更）
+	float angleY = std::atan2(-dir.x, dir.z); // ラジアン角（Y軸回転）
+	model_->SetRotate({ 0.0f, angleY, 0.0f });
+
+	// プレイヤーとの距離が近づいたら攻撃状態に移行
+	//if (distance < 3.0f)
+	//{
+	//	// 攻撃状態に移行
+	//	ChangeState(BossState::Melee);
+	//}
+	if (distance < 10.0f && shootCooldown_ <= 0.0f)
+	{
+		// 射撃状態に移行
+		ChangeState(BossState::Shoot);
+	}
+	else if (distance >= 20.0f)
+	{
+		// 再び待機状態に戻る
+		ChangeState(BossState::Idle);
+	}
+}
+
+void Boss::UpdateMelee()
+{
+	meleeDuration_ += deltaTime_;
+
+	// プレイヤーとの方向ベクトルを取得
+	Vector3 bossPos = model_->GetTranslate();
+	Vector3 playerPos = player_->GetWorldTransform()->translate_; // プレイヤーの中心位置
+	Vector3 toPlayer = playerPos - bossPos;
+
+	// 距離を求める（攻撃への移行判定に使うなら）
+	float distance = Vector3::Length(toPlayer);
+
+	if (!didMelee_ && meleeDuration_ > 0.5f)
+	{
+		Log("Boss performs melee attack");
+
+		// プレイヤーとの距離チェック
+		Vector3 toPlayer = player_->GetWorldTransform()->translate_ - model_->GetTranslate();
+
+		didMelee_ = true;
+	}
+
+	if (meleeDuration_ >= meleeMaxDuration_) {
+		meleeDuration_ = 0.0f;
+		didMelee_ = false;
+	}
+
+	if (distance >= 3.0f)
+	{
+		ChangeState(BossState::Chase);
+	}
+}
+
+void Boss::UpdateShoot()
+{
+
+}
+
+void Boss::UpdateSpecialAttack()
+{
+
+}
+
+void Boss::UpdateDead()
+{
 }
