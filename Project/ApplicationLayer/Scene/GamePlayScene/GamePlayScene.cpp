@@ -102,7 +102,7 @@ void GamePlayScene::Update()
 		Object3DCommon::GetInstance()->SetDebugCamera(!Object3DCommon::GetInstance()->GetDebugCamera());
 		Wireframe::GetInstance()->SetDebugCamera(!Wireframe::GetInstance()->GetDebugCamera());
 		ParticleManager::GetInstance()->SetDebugCamera(!ParticleManager::GetInstance()->GetDebugCamera());
-		skyBox_->SetDebugCamera(!skyBox_->GetDebugCamera());
+		//skyBox_->SetDebugCamera(!skyBox_->GetDebugCamera());
 		player_->SetDebugCamera(!player_->IsDebugCamera());
 		isDebugCamera_ = !isDebugCamera_;
 		Input::GetInstance()->SetLockCursor(isDebugCamera_);

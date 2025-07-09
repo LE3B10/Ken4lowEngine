@@ -108,6 +108,9 @@ public: /// ---------- ゲッタ ---------- ///
 
 	float GetDeltaTime() const { return deltaTime; }
 
+	// アニメーション時間を取得
+	float GetAnimationTime() const { return animationTime_; }
+
 public: /// ---------- セッタ ---------- ///
 
 	// 座標を設定
@@ -135,6 +138,8 @@ public: /// ---------- セッタ ---------- ///
 
 	void SetIsPlaying(bool isPlaying) { isAnimationPlaying_ = isPlaying; }
 
+	void SetAnimationTime(float time) { animationTime_ = time; }
+
 private: /// ---------- メンバ関数 ---------- ///
 
 	// アニメーションを更新
@@ -151,9 +156,6 @@ private: /// ---------- メンバ関数 ---------- ///
 
 	// ボーン情報の初期化
 	void InitializeBones();
-
-	// アニメーション時間を取得
-	float GetAnimationTime() const { return animationTime_; }
 
 private: /// ---------- メンバ関数・テンプレート関数 ---------- ///
 

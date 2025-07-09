@@ -80,8 +80,6 @@ void AnimationModel::Initialize(const std::string& fileName, bool isSkinning)
 	// Dissolve設定リソースの作成
 	CreateDissolveSettingResource();
 
-	animationTime_ = 0.0f; // アニメーションを止める
-
 	InitializeBones();
 }
 

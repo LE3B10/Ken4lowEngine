@@ -8,6 +8,8 @@ void PlayerRunState::Initialize(Player* player)
 {
 	// 走行アニメーションモデルの初期化
 	player->GetAnimationModel()->Initialize(modelFilePath_);
+	player->GetAnimationModel()->SetDissolveThreshold(0.0f); // ダメージを受けていないので閾値は0.0f
+	player->GetAnimationModel()->Update();
 }
 
 void PlayerRunState::Update(Player* player)

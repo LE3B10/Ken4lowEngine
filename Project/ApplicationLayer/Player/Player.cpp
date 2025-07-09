@@ -25,12 +25,16 @@ void Player::Initialize()
 
 	// アニメーションモデルの初期化
 	animationModel_ = std::make_unique<AnimationModel>();
-	//animationModel_->Initialize("PlayerStateModel/PlayerIdleAnimation.gltf"); // スキニング有効
 
 	ChangeState(std::make_unique<PlayerIdleState>());  // Idle で開始
 
 	// 武器の初期化
 	InitializeWeapons();
+
+	for (auto& weapon : weapons_)
+	{
+		weapon->SetPlayer(this); // プレイヤーを武器に設定
+	}
 
 	// プレイヤーコントローラーの生成と初期化
 	controller_ = std::make_unique<PlayerController>();
@@ -40,8 +44,6 @@ void Player::Initialize()
 	// HUDの初期化
 	numberSpriteDrawer_ = std::make_unique<NumberSpriteDrawer>();
 	numberSpriteDrawer_->Initialize("Resources/number.png", 50.0f, 50.0f);
-
-	weapons_[currentWeaponIndex_]->SetPlayer(this);
 }
 
 
