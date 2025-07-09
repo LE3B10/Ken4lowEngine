@@ -42,9 +42,6 @@ void GamePlayScene::Initialize()
 	player_ = std::make_unique<Player>();
 	player_->Initialize();
 
-	dummyModel_ = std::make_unique<DummyModel>();
-	dummyModel_->Initialize();
-
 	boss_ = std::make_unique<Boss>();
 	boss_->Initialize();
 	boss_->SetPlayer(player_.get());
@@ -88,6 +85,7 @@ void GamePlayScene::Initialize()
 	terrein_ = std::make_unique<Object3D>();
 	// 地形オブジェクトの初期化
 	terrein_->Initialize("Terrain.gltf");
+	terrein_->SetScale({ 100.0f, 100.0f, 100.0f });
 }
 
 
@@ -152,12 +150,12 @@ void GamePlayScene::Update()
 		}
 
 		// エネミーマネージャーの更新
-		enemyManager_->Update();
+		//enemyManager_->Update();
 
 		// Waveがすべて終わったら次Waveをスタート
-		if (enemyManager_->IsWaveClear()) {
+		/*if (enemyManager_->IsWaveClear()) {
 			enemyManager_->StartNextWave();
-		}
+		}*/
 
 		{
 			Weapon* weapon = player_->GetCurrentWeapon();
@@ -188,8 +186,6 @@ void GamePlayScene::Update()
 
 		player_->Update();
 		boss_->Update();
-
-		dummyModel_->Update();
 
 		fpsCamera_->Update();
 
@@ -263,7 +259,7 @@ void GamePlayScene::Draw3DObjects()
 	// アイテムの描画
 	itemManager_->Draw();
 
-	enemyManager_->Draw();
+	//enemyManager_->Draw();
 
 	// プレイヤーの描画
 	player_->Draw();
@@ -278,8 +274,6 @@ void GamePlayScene::Draw3DObjects()
 
 	boss_->Draw();
 
-	dummyModel_->Draw();
-
 #pragma endregion
 
 
@@ -291,7 +285,7 @@ void GamePlayScene::Draw3DObjects()
 	fpsCamera_->DrawDebugCamera();
 
 	// ワイヤーフレームの描画
-	Wireframe::GetInstance()->DrawGrid(100.0f, 100.0f, { 0.25f, 0.25f, 0.25f,1.0f });
+	//Wireframe::GetInstance()->DrawGrid(100.0f, 100.0f, { 0.25f, 0.25f, 0.25f,1.0f });
 
 #endif // _DEBUG
 }
@@ -349,7 +343,7 @@ void GamePlayScene::DrawImGui()
 
 	boss_->DrawImGui();
 
-	dummyModel_->DrawImGui();
+	terrein_->DrawImGui();
 
 	// エネミースポナー
 	//enemyManager_->DrawImGui();
@@ -365,9 +359,8 @@ void GamePlayScene::CheckAllCollisions()
 	collisionManager_->Reset();
 
 	// コライダーをリストに登録
-	enemyManager_->RegisterColliders(collisionManager_.get());
+	//enemyManager_->RegisterColliders(collisionManager_.get());
 	player_->RegisterColliders(collisionManager_.get()); // プレイヤーのコライダーを登録
-	dummyModel_->RegisterColliders(collisionManager_.get());
 	boss_->RegisterColliders(collisionManager_.get());
 
 	// プレイヤーの弾の登録
@@ -375,7 +368,6 @@ void GamePlayScene::CheckAllCollisions()
 	{
 		if (!bullet->IsDead()) collisionManager_->AddCollider(bullet.get());
 	}
-
 
 	// プレイヤーが死亡している場合、コライダーを削除
 	if (player_->IsDead()) collisionManager_->RemoveCollider(player_.get());

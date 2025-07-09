@@ -7,6 +7,8 @@
 void PlayerWalkState::Initialize(Player* player)
 {
 	player->GetAnimationModel()->Initialize(modelFilePath_); // 歩行アニメ
+	player->GetAnimationModel()->SetDissolveThreshold(0.0f); // ダメージを受けていないので閾値は0.0f
+	player->GetAnimationModel()->Update();
 }
 
 void PlayerWalkState::Update(Player* player)

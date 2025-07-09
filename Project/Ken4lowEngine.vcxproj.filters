@@ -7,28 +7,10 @@
     <FxCompile Include="Resources\Shaders\PostEffect\DepthOutlineEffect.PS.hlsl">
       <Filter>Shader\PixelShader</Filter>
     </FxCompile>
-    <FxCompile Include="Resources\Shaders\PostEffect\DissolveEffect.PS.hlsl">
-      <Filter>Shader\PixelShader</Filter>
-    </FxCompile>
-    <FxCompile Include="Resources\Shaders\PostEffect\GaussianFilterEffect.PS.hlsl">
-      <Filter>Shader\PixelShader</Filter>
-    </FxCompile>
-    <FxCompile Include="Resources\Shaders\PostEffect\LuminanceOutlineEffect.PS.hlsl">
-      <Filter>Shader\PixelShader</Filter>
-    </FxCompile>
-    <FxCompile Include="Resources\Shaders\PostEffect\NormalEffect.PS.hlsl">
-      <Filter>Shader\PixelShader</Filter>
-    </FxCompile>
     <FxCompile Include="Resources\Shaders\Object3D\Object3d.PS.hlsl">
       <Filter>Shader\PixelShader</Filter>
     </FxCompile>
     <FxCompile Include="Resources\Shaders\Particle\Particle.PS.hlsl">
-      <Filter>Shader\PixelShader</Filter>
-    </FxCompile>
-    <FxCompile Include="Resources\Shaders\PostEffect\RadialBlurEffect.PS.hlsl">
-      <Filter>Shader\PixelShader</Filter>
-    </FxCompile>
-    <FxCompile Include="Resources\Shaders\PostEffect\RandomEffect.PS.hlsl">
       <Filter>Shader\PixelShader</Filter>
     </FxCompile>
     <FxCompile Include="Resources\Shaders\Skinning\SkinningObject3d.PS.hlsl">
@@ -37,19 +19,10 @@
     <FxCompile Include="Resources\Shaders\SkyBox\SkyBox.PS.hlsl">
       <Filter>Shader\PixelShader</Filter>
     </FxCompile>
-    <FxCompile Include="Resources\Shaders\PostEffect\SmoothingEffect.PS.hlsl">
-      <Filter>Shader\PixelShader</Filter>
-    </FxCompile>
     <FxCompile Include="Resources\Shaders\Sprite\Sprite.PS.hlsl">
       <Filter>Shader\PixelShader</Filter>
     </FxCompile>
-    <FxCompile Include="Resources\Shaders\PostEffect\VignetteEffect.PS.hlsl">
-      <Filter>Shader\PixelShader</Filter>
-    </FxCompile>
     <FxCompile Include="Resources\Shaders\Wireframe\Wireframe.PS.hlsl">
-      <Filter>Shader\PixelShader</Filter>
-    </FxCompile>
-    <FxCompile Include="Resources\Shaders\PostEffect\GrayScaleEffect.PS.hlsl">
       <Filter>Shader\PixelShader</Filter>
     </FxCompile>
     <FxCompile Include="Resources\Shaders\PostEffect\FullScreen.VS.hlsl">
@@ -73,60 +46,42 @@
     <FxCompile Include="Resources\Shaders\Wireframe\Wireframe.VS.hlsl">
       <Filter>Shader\VertexShader</Filter>
     </FxCompile>
+    <FxCompile Include="Resources\Shaders\Wireframe\Wireframe.GS.hlsl">
+      <Filter>Shader</Filter>
+    </FxCompile>
+    <FxCompile Include="Resources\Shaders\PostEffect\DissolveEffect.CS.hlsl">
+      <Filter>Shader\ComputeShader</Filter>
+    </FxCompile>
+    <FxCompile Include="Resources\Shaders\PostEffect\GaussianFilterEffect.CS.hlsl">
+      <Filter>Shader\ComputeShader</Filter>
+    </FxCompile>
+    <FxCompile Include="Resources\Shaders\PostEffect\GrayScaleEffect.CS.hlsl">
+      <Filter>Shader\ComputeShader</Filter>
+    </FxCompile>
+    <FxCompile Include="Resources\Shaders\PostEffect\LuminanceOutlineEffect.CS.hlsl">
+      <Filter>Shader\ComputeShader</Filter>
+    </FxCompile>
+    <FxCompile Include="Resources\Shaders\PostEffect\RadialBlurEffect.CS.hlsl">
+      <Filter>Shader\ComputeShader</Filter>
+    </FxCompile>
+    <FxCompile Include="Resources\Shaders\PostEffect\RandomEffect.CS.hlsl">
+      <Filter>Shader\ComputeShader</Filter>
+    </FxCompile>
+    <FxCompile Include="Resources\Shaders\Skinning\SkinningObject3d.CS.hlsl">
+      <Filter>Shader\ComputeShader</Filter>
+    </FxCompile>
+    <FxCompile Include="Resources\Shaders\PostEffect\SmoothingEffect.CS.hlsl">
+      <Filter>Shader\ComputeShader</Filter>
+    </FxCompile>
+    <FxCompile Include="Resources\Shaders\PostEffect\VignetteEffect.CS.hlsl">
+      <Filter>Shader\ComputeShader</Filter>
+    </FxCompile>
+    <FxCompile Include="Resources\Shaders\PostEffect\NormalEffect.PS.hlsl">
+      <Filter>Shader\PixelShader</Filter>
+    </FxCompile>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="WinMain.cpp" />
-    <ClCompile Include="EngineLayer\PostEffectManagement\AbsorbEffect.cpp">
-      <Filter>EngineLayer\PostEffectManagement</Filter>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\PostEffectManagement\DepthOutlineEffect.cpp">
-      <Filter>EngineLayer\PostEffectManagement</Filter>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\PostEffectManagement\DissolveEffect.cpp">
-      <Filter>EngineLayer\PostEffectManagement</Filter>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\PostEffectManagement\GaussianFilterEffect.cpp">
-      <Filter>EngineLayer\PostEffectManagement</Filter>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\PostEffectManagement\GrayScaleEffect.cpp">
-      <Filter>EngineLayer\PostEffectManagement</Filter>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\PostEffectManagement\IPostEffect.cpp">
-      <Filter>EngineLayer\PostEffectManagement</Filter>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\PostEffectManagement\LuminanceOutlineEffect.cpp">
-      <Filter>EngineLayer\PostEffectManagement</Filter>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\Managers\PostEffectManager\PostEffectManager.cpp">
-      <Filter>EngineLayer\PostEffectManagement</Filter>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\PostEffectManagement\PostEffectPipelineBuilder.cpp">
-      <Filter>EngineLayer\PostEffectManagement</Filter>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\PostEffectManagement\RadialBlurEffect.cpp">
-      <Filter>EngineLayer\PostEffectManagement</Filter>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\PostEffectManagement\RandomEffect.cpp">
-      <Filter>EngineLayer\PostEffectManagement</Filter>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\PostEffectManagement\SmoothingEffect.cpp">
-      <Filter>EngineLayer\PostEffectManagement</Filter>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\PostEffectManagement\VignetteEffect.cpp">
-      <Filter>EngineLayer\PostEffectManagement</Filter>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\Math\Matrix\Matrix4x4.cpp">
-      <Filter>EngineLayer\Math</Filter>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\Math\Quaternion\Quaternion.cpp">
-      <Filter>EngineLayer\Math</Filter>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\Math\Vectors\Vector2.cpp">
-      <Filter>EngineLayer\Math</Filter>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\Math\Vectors\Vector3.cpp">
-      <Filter>EngineLayer\Math</Filter>
-    </ClCompile>
     <ClCompile Include="EngineLayer\CameraManagement\Camera\Camera.cpp">
       <Filter>EngineLayer\Camera</Filter>
     </ClCompile>
@@ -147,9 +102,6 @@
     </ClCompile>
     <ClCompile Include="EngineLayer\Managers\AnimationManager\SkinCluster.cpp">
       <Filter>EngineLayer\AnimationManagement</Filter>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\PostEffectManagement\NormalEffect.cpp">
-      <Filter>EngineLayer\PostEffectManagement</Filter>
     </ClCompile>
     <ClCompile Include="Externals\imgui\imgui.cpp">
       <Filter>Externals\ImGui</Filter>
@@ -214,7 +166,7 @@
     <ClCompile Include="EngineLayer\Managers\RTVManager\RTVManager.cpp">
       <Filter>EngineLayer\Managers</Filter>
     </ClCompile>
-    <ClCompile Include="EngineLayer\Managers\ShaderManager\ShaderManager.cpp">
+    <ClCompile Include="EngineLayer\Managers\ShaderCompiler\ShaderCompiler.cpp">
       <Filter>EngineLayer\Managers</Filter>
     </ClCompile>
     <ClCompile Include="EngineLayer\Managers\SkyBoxManager\SkyBoxManager.cpp">
@@ -388,89 +340,127 @@
     <ClCompile Include="EngineLayer\ResourceChecker\ReleaseCheck\ResourceObject.cpp">
       <Filter>EngineLayer\Base</Filter>
     </ClCompile>
-    <ClCompile Include="ApplicationLayer\Player\DummyModel.cpp" />
-    <ClCompile Include="ApplicationLayer\Player\State\IPlayerState\IPlayerState.cpp" />
-    <ClCompile Include="ApplicationLayer\Player\State\PlayerIdleState\PlayerIdleState.cpp" />
-    <ClCompile Include="ApplicationLayer\Player\State\PlayerWalkState\PlayerWalkState.cpp" />
-    <ClCompile Include="ApplicationLayer\Player\State\PlayerRunState\PlayerRunState.cpp" />
-    <ClCompile Include="ApplicationLayer\Enemy\Boss.cpp" />
-    <ClCompile Include="ApplicationLayer\Enemy\Enemy.cpp" />
-    <ClCompile Include="ApplicationLayer\Enemy\EnemyBullet.cpp" />
-    <ClCompile Include="ApplicationLayer\Enemy\EnemyManager.cpp" />
-    <ClCompile Include="ApplicationLayer\Enemy\Boss\BossIdleState.cpp" />
-    <ClCompile Include="ApplicationLayer\Enemy\Grunt\EnemyAttackState.cpp" />
-    <ClCompile Include="ApplicationLayer\Enemy\Grunt\EnemyChaseState.cpp" />
-    <ClCompile Include="ApplicationLayer\Enemy\Grunt\EnemyIdleState.cpp" />
-    <ClCompile Include="ApplicationLayer\Enemy\Grunt\IEnemyState.cpp" />
-    <ClCompile Include="ApplicationLayer\Enemy\Sniper\SniperIdleState.cpp" />
-    <ClCompile Include="ApplicationLayer\Enemy\Tank\TankIdleState.cpp" />
-    <ClCompile Include="ApplicationLayer\Player\BaseCharacter.cpp" />
+    <ClCompile Include="EngineLayer\Math\Vectors\Vector2.cpp">
+      <Filter>EngineLayer\Math\Vectors</Filter>
+    </ClCompile>
+    <ClCompile Include="EngineLayer\Math\Vectors\Vector3.cpp">
+      <Filter>EngineLayer\Math\Vectors</Filter>
+    </ClCompile>
+    <ClCompile Include="EngineLayer\Math\Matrix\Matrix4x4.cpp">
+      <Filter>EngineLayer\Math\Matrix</Filter>
+    </ClCompile>
+    <ClCompile Include="EngineLayer\Math\Quaternion\Quaternion.cpp">
+      <Filter>EngineLayer\Math\Quaternion</Filter>
+    </ClCompile>
+    <ClCompile Include="EngineLayer\PostEffectManagement\AbsorbEffect.cpp">
+      <Filter>EngineLayer\PostEffectManagement\AbsorbEffect</Filter>
+    </ClCompile>
+    <ClCompile Include="EngineLayer\PostEffectManagement\DepthOutlineEffect.cpp">
+      <Filter>EngineLayer\PostEffectManagement\DepthOutlineEffect</Filter>
+    </ClCompile>
+    <ClCompile Include="EngineLayer\PostEffectManagement\DissolveEffect.cpp">
+      <Filter>EngineLayer\PostEffectManagement\DissolveEffect</Filter>
+    </ClCompile>
+    <ClCompile Include="EngineLayer\PostEffectManagement\GaussianFilterEffect.cpp">
+      <Filter>EngineLayer\PostEffectManagement\GaussianFilterEffect</Filter>
+    </ClCompile>
+    <ClCompile Include="EngineLayer\PostEffectManagement\GrayScaleEffect.cpp">
+      <Filter>EngineLayer\PostEffectManagement\GrayScaleEffect</Filter>
+    </ClCompile>
+    <ClCompile Include="EngineLayer\PostEffectManagement\IPostEffect.cpp">
+      <Filter>EngineLayer\PostEffectManagement\IPostEffect</Filter>
+    </ClCompile>
+    <ClCompile Include="EngineLayer\PostEffectManagement\LuminanceOutlineEffect.cpp">
+      <Filter>EngineLayer\PostEffectManagement\LuminanceOutlineEffect</Filter>
+    </ClCompile>
+    <ClCompile Include="EngineLayer\PostEffectManagement\NormalEffect.cpp">
+      <Filter>EngineLayer\PostEffectManagement\NormalEffect</Filter>
+    </ClCompile>
+    <ClCompile Include="EngineLayer\Managers\PostEffectManager\PostEffectManager.cpp">
+      <Filter>EngineLayer\PostEffectManagement\PostEffectManager</Filter>
+    </ClCompile>
+    <ClCompile Include="EngineLayer\PostEffectManagement\PostEffectPipelineBuilder.cpp">
+      <Filter>EngineLayer\PostEffectManagement\PostEffectManager</Filter>
+    </ClCompile>
+    <ClCompile Include="EngineLayer\PostEffectManagement\RadialBlurEffect.cpp">
+      <Filter>EngineLayer\PostEffectManagement\RadialBlurEffect</Filter>
+    </ClCompile>
+    <ClCompile Include="EngineLayer\PostEffectManagement\RandomEffect.cpp">
+      <Filter>EngineLayer\PostEffectManagement\RandomEffect</Filter>
+    </ClCompile>
+    <ClCompile Include="EngineLayer\PostEffectManagement\SmoothingEffect.cpp">
+      <Filter>EngineLayer\PostEffectManagement\SmoothingEffect</Filter>
+    </ClCompile>
+    <ClCompile Include="EngineLayer\PostEffectManagement\VignetteEffect.cpp">
+      <Filter>EngineLayer\PostEffectManagement\VignetteEffect</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\Player\BaseCharacter.cpp">
+      <Filter>ApplicationLayer</Filter>
+    </ClCompile>
+    <ClCompile Include="EngineLayer\Base\BlendStateFactory.cpp">
+      <Filter>EngineLayer</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\Enemy\Boss.cpp">
+      <Filter>ApplicationLayer\Enemy</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\Enemy\Boss\BossIdleState.cpp">
+      <Filter>ApplicationLayer\Enemy</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\Player\DummyModel.cpp">
+      <Filter>ApplicationLayer\Enemy</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\Enemy\Enemy.cpp">
+      <Filter>ApplicationLayer\Enemy</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\Enemy\Grunt\EnemyAttackState.cpp">
+      <Filter>ApplicationLayer\Enemy</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\Enemy\EnemyBullet.cpp">
+      <Filter>ApplicationLayer\Enemy</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\Enemy\Grunt\EnemyChaseState.cpp">
+      <Filter>ApplicationLayer\Enemy</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\Enemy\Grunt\EnemyIdleState.cpp">
+      <Filter>ApplicationLayer\Enemy</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\Enemy\EnemyManager.cpp">
+      <Filter>ApplicationLayer\Enemy</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\Enemy\Grunt\IEnemyState.cpp">
+      <Filter>ApplicationLayer\Enemy</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\Player\State\IPlayerState\IPlayerState.cpp">
+      <Filter>ApplicationLayer\Player</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\Player\State\PlayerIdleState\PlayerIdleState.cpp">
+      <Filter>ApplicationLayer\Player</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\Player\State\PlayerRunState\PlayerRunState.cpp">
+      <Filter>ApplicationLayer\Player</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\Player\State\PlayerWalkState\PlayerWalkState.cpp">
+      <Filter>ApplicationLayer\Player</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\Enemy\Sniper\SniperIdleState.cpp">
+      <Filter>ApplicationLayer\Enemy</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\Enemy\Tank\TankIdleState.cpp">
+      <Filter>ApplicationLayer\Enemy</Filter>
+    </ClCompile>
+    <ClCompile Include="BossBullet.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="EngineLayer\PostEffectManagement\AbsorbEffect.h">
-      <Filter>EngineLayer\PostEffectManagement</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\PostEffectManagement\DepthOutlineEffect.h">
-      <Filter>EngineLayer\PostEffectManagement</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\PostEffectManagement\DissolveEffect.h">
-      <Filter>EngineLayer\PostEffectManagement</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\PostEffectManagement\GaussianFilterEffect.h">
-      <Filter>EngineLayer\PostEffectManagement</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\PostEffectManagement\GrayScaleEffect.h">
-      <Filter>EngineLayer\PostEffectManagement</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\PostEffectManagement\IPostEffect.h">
-      <Filter>EngineLayer\PostEffectManagement</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\PostEffectManagement\LuminanceOutlineEffect.h">
-      <Filter>EngineLayer\PostEffectManagement</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\Managers\PostEffectManager\PostEffectManager.h">
-      <Filter>EngineLayer\PostEffectManagement</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\PostEffectManagement\PostEffectPipelineBuilder.h">
-      <Filter>EngineLayer\PostEffectManagement</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\PostEffectManagement\RadialBlurEffect.h">
-      <Filter>EngineLayer\PostEffectManagement</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\PostEffectManagement\RandomEffect.h">
-      <Filter>EngineLayer\PostEffectManagement</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\PostEffectManagement\SmoothingEffect.h">
-      <Filter>EngineLayer\PostEffectManagement</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\PostEffectManagement\VignetteEffect.h">
-      <Filter>EngineLayer\PostEffectManagement</Filter>
-    </ClInclude>
     <ClInclude Include="EngineLayer\Math\AABB.h">
       <Filter>EngineLayer\Math</Filter>
     </ClInclude>
-    <ClInclude Include="EngineLayer\Math\Matrix\Matrix4x4.h">
-      <Filter>EngineLayer\Math</Filter>
-    </ClInclude>
     <ClInclude Include="EngineLayer\Math\OBB.h">
-      <Filter>EngineLayer\Math</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\Math\Quaternion\Quaternion.h">
       <Filter>EngineLayer\Math</Filter>
     </ClInclude>
     <ClInclude Include="EngineLayer\Math\Ray.h">
       <Filter>EngineLayer\Math</Filter>
     </ClInclude>
     <ClInclude Include="EngineLayer\Math\Segment.h">
-      <Filter>EngineLayer\Math</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\Math\Vectors\Vector2.h">
-      <Filter>EngineLayer\Math</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\Math\Vectors\Vector3.h">
-      <Filter>EngineLayer\Math</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\Math\Vectors\Vector4.h">
       <Filter>EngineLayer\Math</Filter>
     </ClInclude>
     <ClInclude Include="EngineLayer\Math\LinearInterpolation.h">
@@ -496,9 +486,6 @@
     </ClInclude>
     <ClInclude Include="EngineLayer\Managers\AnimationManager\SkinCluster.h">
       <Filter>EngineLayer\AnimationManagement</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\PostEffectManagement\NormalEffect.h">
-      <Filter>EngineLayer\PostEffectManagement</Filter>
     </ClInclude>
     <ClInclude Include="Externals\Audio\minimp3\minimp3.h">
       <Filter>Externals\minimp3</Filter>
@@ -572,7 +559,7 @@
     <ClInclude Include="EngineLayer\Managers\RTVManager\RTVManager.h">
       <Filter>EngineLayer\Managers</Filter>
     </ClInclude>
-    <ClInclude Include="EngineLayer\Managers\ShaderManager\ShaderManager.h">
+    <ClInclude Include="EngineLayer\Managers\ShaderCompiler\ShaderCompiler.h">
       <Filter>EngineLayer\Managers</Filter>
     </ClInclude>
     <ClInclude Include="EngineLayer\Managers\SkyBoxManager\SkyBoxManager.h">
@@ -800,25 +787,124 @@
     <ClInclude Include="EngineLayer\ResourceChecker\ReleaseCheck\ResourceObject.h">
       <Filter>EngineLayer\Base</Filter>
     </ClInclude>
-    <ClInclude Include="ApplicationLayer\Player\DummyModel.h" />
-    <ClInclude Include="EngineLayer\Math\Capsule.h" />
-    <ClInclude Include="ApplicationLayer\Player\State\IPlayerState\IPlayerState.h" />
-    <ClInclude Include="ApplicationLayer\Player\State\PlayerIdleState\PlayerIdleState.h" />
-    <ClInclude Include="ApplicationLayer\Player\State\PlayerWalkState\PlayerWalkState.h" />
-    <ClInclude Include="ApplicationLayer\Player\PlayerStateType.h" />
-    <ClInclude Include="ApplicationLayer\Player\State\PlayerRunState\PlayerRunState.h" />
-    <ClInclude Include="ApplicationLayer\Enemy\Boss.h" />
-    <ClInclude Include="ApplicationLayer\Enemy\Enemy.h" />
-    <ClInclude Include="ApplicationLayer\Enemy\EnemyBullet.h" />
-    <ClInclude Include="ApplicationLayer\Enemy\EnemyManager.h" />
-    <ClInclude Include="ApplicationLayer\Enemy\Boss\BossIdleState.h" />
-    <ClInclude Include="ApplicationLayer\Enemy\Grunt\EnemyAttackState.h" />
-    <ClInclude Include="ApplicationLayer\Enemy\Grunt\EnemyChaseState.h" />
-    <ClInclude Include="ApplicationLayer\Enemy\Grunt\EnemyIdleState.h" />
-    <ClInclude Include="ApplicationLayer\Enemy\Grunt\IEnemyState.h" />
-    <ClInclude Include="ApplicationLayer\Enemy\Sniper\SniperIdleState.h" />
-    <ClInclude Include="ApplicationLayer\Enemy\Tank\TankIdleState.h" />
-    <ClInclude Include="ApplicationLayer\Player\BaseCharacter.h" />
+    <ClInclude Include="EngineLayer\Math\Capsule.h">
+      <Filter>EngineLayer\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="EngineLayer\Math\Vectors\Vector2.h">
+      <Filter>EngineLayer\Math\Vectors</Filter>
+    </ClInclude>
+    <ClInclude Include="EngineLayer\Math\Vectors\Vector3.h">
+      <Filter>EngineLayer\Math\Vectors</Filter>
+    </ClInclude>
+    <ClInclude Include="EngineLayer\Math\Vectors\Vector4.h">
+      <Filter>EngineLayer\Math\Vectors</Filter>
+    </ClInclude>
+    <ClInclude Include="EngineLayer\Math\Matrix\Matrix4x4.h">
+      <Filter>EngineLayer\Math\Matrix</Filter>
+    </ClInclude>
+    <ClInclude Include="EngineLayer\Math\Quaternion\Quaternion.h">
+      <Filter>EngineLayer\Math\Quaternion</Filter>
+    </ClInclude>
+    <ClInclude Include="EngineLayer\PostEffectManagement\AbsorbEffect.h">
+      <Filter>EngineLayer\PostEffectManagement\AbsorbEffect</Filter>
+    </ClInclude>
+    <ClInclude Include="EngineLayer\PostEffectManagement\DepthOutlineEffect.h">
+      <Filter>EngineLayer\PostEffectManagement\DepthOutlineEffect</Filter>
+    </ClInclude>
+    <ClInclude Include="EngineLayer\PostEffectManagement\DissolveEffect.h">
+      <Filter>EngineLayer\PostEffectManagement\DissolveEffect</Filter>
+    </ClInclude>
+    <ClInclude Include="EngineLayer\PostEffectManagement\GaussianFilterEffect.h">
+      <Filter>EngineLayer\PostEffectManagement\GaussianFilterEffect</Filter>
+    </ClInclude>
+    <ClInclude Include="EngineLayer\PostEffectManagement\GrayScaleEffect.h">
+      <Filter>EngineLayer\PostEffectManagement\GrayScaleEffect</Filter>
+    </ClInclude>
+    <ClInclude Include="EngineLayer\PostEffectManagement\IPostEffect.h">
+      <Filter>EngineLayer\PostEffectManagement\IPostEffect</Filter>
+    </ClInclude>
+    <ClInclude Include="EngineLayer\PostEffectManagement\LuminanceOutlineEffect.h">
+      <Filter>EngineLayer\PostEffectManagement\LuminanceOutlineEffect</Filter>
+    </ClInclude>
+    <ClInclude Include="EngineLayer\PostEffectManagement\NormalEffect.h">
+      <Filter>EngineLayer\PostEffectManagement\NormalEffect</Filter>
+    </ClInclude>
+    <ClInclude Include="EngineLayer\Managers\PostEffectManager\PostEffectManager.h">
+      <Filter>EngineLayer\PostEffectManagement\PostEffectManager</Filter>
+    </ClInclude>
+    <ClInclude Include="EngineLayer\PostEffectManagement\PostEffectPipelineBuilder.h">
+      <Filter>EngineLayer\PostEffectManagement\PostEffectManager</Filter>
+    </ClInclude>
+    <ClInclude Include="EngineLayer\PostEffectManagement\RadialBlurEffect.h">
+      <Filter>EngineLayer\PostEffectManagement\RadialBlurEffect</Filter>
+    </ClInclude>
+    <ClInclude Include="EngineLayer\PostEffectManagement\RandomEffect.h">
+      <Filter>EngineLayer\PostEffectManagement\RandomEffect</Filter>
+    </ClInclude>
+    <ClInclude Include="EngineLayer\PostEffectManagement\SmoothingEffect.h">
+      <Filter>EngineLayer\PostEffectManagement\SmoothingEffect</Filter>
+    </ClInclude>
+    <ClInclude Include="EngineLayer\PostEffectManagement\VignetteEffect.h">
+      <Filter>EngineLayer\PostEffectManagement\VignetteEffect</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Player\BaseCharacter.h">
+      <Filter>ApplicationLayer</Filter>
+    </ClInclude>
+    <ClInclude Include="EngineLayer\Base\BlendStateFactory.h">
+      <Filter>EngineLayer</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Enemy\Boss.h">
+      <Filter>ApplicationLayer\Enemy</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Enemy\Boss\BossIdleState.h">
+      <Filter>ApplicationLayer\Enemy</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Player\DummyModel.h">
+      <Filter>ApplicationLayer\Enemy</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Enemy\Enemy.h">
+      <Filter>ApplicationLayer\Enemy</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Enemy\Grunt\EnemyAttackState.h">
+      <Filter>ApplicationLayer\Enemy</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Enemy\EnemyBullet.h">
+      <Filter>ApplicationLayer\Enemy</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Enemy\Grunt\EnemyChaseState.h">
+      <Filter>ApplicationLayer\Enemy</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Enemy\Grunt\EnemyIdleState.h">
+      <Filter>ApplicationLayer\Enemy</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Enemy\EnemyManager.h">
+      <Filter>ApplicationLayer\Enemy</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Enemy\Grunt\IEnemyState.h">
+      <Filter>ApplicationLayer\Enemy</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Player\State\IPlayerState\IPlayerState.h">
+      <Filter>ApplicationLayer\Player</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Player\State\PlayerIdleState\PlayerIdleState.h">
+      <Filter>ApplicationLayer\Player</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Player\State\PlayerRunState\PlayerRunState.h">
+      <Filter>ApplicationLayer\Player</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Player\PlayerStateType.h">
+      <Filter>ApplicationLayer\Player</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Player\State\PlayerWalkState\PlayerWalkState.h">
+      <Filter>ApplicationLayer\Player</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Enemy\Sniper\SniperIdleState.h">
+      <Filter>ApplicationLayer\Enemy</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Enemy\Tank\TankIdleState.h">
+      <Filter>ApplicationLayer\Enemy</Filter>
+    </ClInclude>
+    <ClInclude Include="BossBullet.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Resources\Shaders\PostEffect\FullScreen.hlsli">
@@ -954,6 +1040,57 @@
     </Filter>
     <Filter Include="EngineLayer\FlameworkLayer">
       <UniqueIdentifier>{de4a0bff-83a7-4791-b6ff-f5813968870c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shader\ComputeShader">
+      <UniqueIdentifier>{fb1e0abe-9c76-4100-adce-67e4769c07b9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="EngineLayer\Math\Vectors">
+      <UniqueIdentifier>{b6898a6b-b1d7-4eff-aac2-eaf2125b7972}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="EngineLayer\Math\Matrix">
+      <UniqueIdentifier>{e7fc4062-54b7-4abe-a5dc-52c769416831}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="EngineLayer\Math\Quaternion">
+      <UniqueIdentifier>{02fc266a-d32b-45a3-b932-f015140a08b1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="EngineLayer\PostEffectManagement\AbsorbEffect">
+      <UniqueIdentifier>{ded8346d-264e-43cf-be5f-b13f8680d561}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="EngineLayer\PostEffectManagement\DepthOutlineEffect">
+      <UniqueIdentifier>{e37f6c25-0d53-4ba5-a7aa-7599e81b2cb8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="EngineLayer\PostEffectManagement\DissolveEffect">
+      <UniqueIdentifier>{0fb737ba-7184-4eac-becf-7f69246ad6e2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="EngineLayer\PostEffectManagement\GaussianFilterEffect">
+      <UniqueIdentifier>{0769675f-18cb-41b5-8cf0-f7dedc9bc440}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="EngineLayer\PostEffectManagement\GrayScaleEffect">
+      <UniqueIdentifier>{3def1f49-6f1b-4164-8ff6-d4caae546ac8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="EngineLayer\PostEffectManagement\IPostEffect">
+      <UniqueIdentifier>{ebaeda25-3a83-4a0f-91d9-ea82f722e35c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="EngineLayer\PostEffectManagement\LuminanceOutlineEffect">
+      <UniqueIdentifier>{60baa61e-8556-46d2-91c3-6e61f169202a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="EngineLayer\PostEffectManagement\NormalEffect">
+      <UniqueIdentifier>{117ea9f6-d37e-496e-9162-e25a0e49e1e5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="EngineLayer\PostEffectManagement\PostEffectManager">
+      <UniqueIdentifier>{549db25b-5a48-4909-8720-02dad4b5bd4d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="EngineLayer\PostEffectManagement\RadialBlurEffect">
+      <UniqueIdentifier>{541fa703-09dc-4b68-baa4-486f1029c8ae}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="EngineLayer\PostEffectManagement\RandomEffect">
+      <UniqueIdentifier>{26ad2221-a237-4b50-886e-9a77f6e8159a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="EngineLayer\PostEffectManagement\SmoothingEffect">
+      <UniqueIdentifier>{cfdaba14-81ab-4503-a0ad-53aa83b89474}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="EngineLayer\PostEffectManagement\VignetteEffect">
+      <UniqueIdentifier>{400e0cd1-69f2-4758-9c69-2449eb54ba50}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>

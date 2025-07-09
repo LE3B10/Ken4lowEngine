@@ -10,7 +10,7 @@
 SkinCluster::~SkinCluster()
 {
 	if (paletteSrvIndex_ != UINT32_MAX) {
-		SRVManager::GetInstance()->Free(paletteSrvIndex_);                 // ← 追加
+		SRVManager::GetInstance()->Free(paletteSrvIndex_);
 	}
 }
 
@@ -25,6 +25,7 @@ void SkinCluster::Initialize(const ModelData& modelData, Skeleton& skeleton)
 	paletteResource_->Map(0, nullptr, reinterpret_cast<void**>(&mappedPalette));
 	mappedPalette_ = { mappedPalette, joints.size() }; // spanを使ってアクセスするようにする
 
+	// SRVのインデックスを確保
 	paletteSrvIndex_ = SRVManager::GetInstance()->Allocate();
 	paletteSrvHandle_.first = SRVManager::GetInstance()->GetCPUDescriptorHandle(paletteSrvIndex_);
 	paletteSrvHandle_.second = SRVManager::GetInstance()->GetGPUDescriptorHandle(paletteSrvIndex_);

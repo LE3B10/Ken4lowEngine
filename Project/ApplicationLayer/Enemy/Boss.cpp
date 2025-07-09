@@ -1,5 +1,6 @@
 #include "Boss.h"
 #include <LogString.h>
+#include "Object3DCommon.h"
 #include "CollisionTypeIdDef.h"
 #include "CollisionManager.h"
 #include "Player.h"
@@ -24,48 +25,104 @@ void Boss::Initialize()
 
 	// 最初のモデルをセット
 	model_ = models_[BossState::Idle].get();
-	model_->SetTranslate({ 0.0f, 0.0f, 1.0f });
+	model_->SetTranslate({ 0.0f, 0.0f, 10.0f });
 }
 
 void Boss::Update()
 {
-	if (!player_) return;
+	switch (state_)
+	{
+	case BossState::Idle:
+		UpdateIdle();
+		break;
+	case BossState::Chase:
+		UpdateChase();
+		break;
+	case BossState::Melee:
+		UpdateMelee();
+		break;
+	case BossState::Shoot:
+		UpdateShoot();
+		break;
+	case BossState::SpecialAttack:
+		UpdateSpecialAttack();
+		break;
+	}
 
-	// 共通更新
-	model_->Update();
+	if (!isDying_ && !isDead_)
+	{
+		// 共通更新
+		model_->Update();
 
-	// 毎フレームカプセルを骨に追従
-	auto partCaps = model_->GetBodyPartCapsulesWorld();
+		// 毎フレームカプセルを骨に追従
+		auto partCaps = model_->GetBodyPartCapsulesWorld();
 
-	if (bodyCols_.size() != partCaps.size()) {
-		// Bone 本数が変わったら作り直し（開発中のモデル差し替え対策）
-		bodyCols_.clear();
-		for (auto& [name, cap] : partCaps) {
-			auto c = std::make_unique<Collider>();
-			c->SetTypeID(static_cast<uint32_t>(CollisionTypeIdDef::kEnemy));
-			c->SetCapsule(cap);
-			bodyCols_.push_back({ name, std::move(c) });
+		if (bodyCols_.size() != partCaps.size()) {
+			// Bone 本数が変わったら作り直し（開発中のモデル差し替え対策）
+			bodyCols_.clear();
+			for (auto& [name, cap] : partCaps) {
+				auto c = std::make_unique<Collider>();
+				c->SetTypeID(static_cast<uint32_t>(CollisionTypeIdDef::kBoss));
+				c->SetCapsule(cap);
+				c->SetOwner(this);
+				bodyCols_.push_back({ name, std::move(c) });
+			}
+		}
+
+		for (size_t i = 0; i < partCaps.size(); ++i) {
+			bodyCols_[i].col->SetCapsule(partCaps[i].second);
 		}
 	}
 
-	for (size_t i = 0; i < partCaps.size(); ++i) {
-		bodyCols_[i].col->SetCapsule(partCaps[i].second);
+	if (isDying_)
+	{
+		model_->Update();
+		deathTime_ += deltaTime_;
+
+		// アニメが終わる
+		if (deathTime_ >= kDeathDuration_)
+		{
+			isDying_ = false;
+			isDissolving_ = true;
+			dissolveTime_ = 0.0f;
+
+			// 現在のポーズで固定（再生停止）
+			model_->SetIsPlaying(false);
+
+			model_->SetDissolveThreshold(0.0f); // 初期化
+		}
+		return;
+	}
+
+	if (isDissolving_)
+	{
+		dissolveTime_ += deltaTime_;
+		float t = std::clamp(dissolveTime_ / dissolveDuration_, 0.0f, 1.0f);
+		model_->SetDissolveThreshold(t);
+
+		if (t >= 1.0f) {
+			isDead_ = true; // 完全に消えた後にフラグを立てる
+		}
 	}
 }
 
 void Boss::Draw()
 {
-	if (isDead_) return;
-
+	if (isDead_) return;  // 死亡している場合は描画しない
 	model_->Draw();
-	model_->DrawSkeletonWireframe();
-	for (auto& pc : bodyCols_) { pc.col->Draw(); }
+
+	if (!isDying_) {
+		// デバッグ表示は演出中は不要ならスキップ
+		model_->DrawSkeletonWireframe();
+		for (auto& pc : bodyCols_) pc.col->Draw();
+	}
+
+	Object3DCommon::GetInstance()->SetRenderSetting(); // アニメーションパイプラインの描画設定
+
 }
 
 void Boss::DrawImGui()
 {
-	model_->DrawImGui();
-
 	ImGui::Begin("Boss Colliders");
 	static bool visible = false;
 	if (ImGui::Checkbox("Show All Capsules", &visible)) {
@@ -92,6 +149,11 @@ void Boss::DrawImGui()
 		ChangeState(static_cast<BossState>(currentState));
 	}
 
+	// HP
+	ImGui::Text("Boss HP : %f", hp_);
+
+	model_->DrawImGui();
+
 	ImGui::End();
 }
 
@@ -104,6 +166,13 @@ void Boss::RegisterColliders(CollisionManager* collisionManager) const
 	for (const auto& pc : bodyCols_) {
 		collisionManager->AddCollider(pc.col.get());
 	}
+
+	if (isDead_)
+	{
+		for (const auto& pc : bodyCols_) {
+			collisionManager->RemoveCollider(pc.col.get());
+		}
+	}
 }
 
 void Boss::OnCollision(Collider* other)
@@ -113,28 +182,38 @@ void Boss::OnCollision(Collider* other)
 
 void Boss::TakeDamage(float damage)
 {
-	if (isDead_) return;
+	if (isDead_ || isDying_) return;          // 既に死亡演出中なら無視
 
 	hp_ -= damage;
 	if (hp_ <= 0.0f)
 	{
-		isDead_ = true;
 		hp_ = 0.0f;
 		Log("Boss is dead");
+	}
+
+	if (hp_ <= 0.0f)
+	{
+		hp_ = 0.0f;
+
+		// 死亡演出
+		isDying_ = true;
+		deathTime_ = 0.0f;
+		ChangeState(BossState::Dead);
+		Log("Boss is dying...");
+
+		// 弾とぶつからないようコライダーを無効化
 	}
 }
 
 void Boss::ChangeState(BossState newState)
 {
-	if (state_ == newState) return;
+	// 状態に応じてアニメーション時間をリセットするかどうか
+	bool resetAnimTime = (newState == BossState::Dead || newState == BossState::Melee || newState == BossState::Shoot);
 
-	// 攻撃状態に入るたびにフラグをリセット
-	didShoot_ = false;
-	didMelee_ = false;
-	shootDuration_ = 0.0f;
-	meleeDuration_ = 0.0f;
+	// アニメーションの時間を保存または0に初期化
+	float newAnimTime = (!resetAnimTime && model_) ? model_->GetAnimationTime() : 0.0f;
 
-	// 旧モデルが null でない場合だけ位置を保存
+	// 現在の位置・回転を保存
 	Vector3 currentPos = model_ ? model_->GetTranslate() : Vector3(0, 0, 0);
 	Vector3 currentRot = model_ ? model_->GetRotate() : Vector3(0, 0, 0);
 
@@ -144,7 +223,118 @@ void Boss::ChangeState(BossState newState)
 	{
 		model_ = models_[state_].get();
 		model_->SetScaleFactor(scaleFactor_);
-		model_->SetTranslate(currentPos);  // 座標を確実に復元
+		model_->SetTranslate(currentPos);
 		model_->SetRotate(currentRot);
+
+		// 状態に応じて時間を初期化 or 継続
+		model_->SetAnimationTime(newAnimTime);
+
+		// 安全のためアニメ・ディゾルブ初期化
+		model_->SetDissolveThreshold(0.0f);
+		model_->SetIsPlaying(true);
+
+		model_->SetDissolveThreshold(0.0f);
+		model_->Update(); // ←ボーンとマテリアル情報を即時更新
 	}
+}
+
+void Boss::UpdateIdle()
+{
+	if (isDying_) return; // 死亡演出中は何もしない
+	// 待機アニメーションの更新
+	model_->Update();
+	// プレイヤーが近づいてきたら追跡状態に移行
+	Vector3 toPlayer = player_->GetWorldTransform()->translate_ - model_->GetTranslate();
+	float distance = Vector3::Length(toPlayer);
+	if (distance < 20.0f)
+	{
+		ChangeState(BossState::Chase);
+	}
+}
+
+void Boss::UpdateChase()
+{
+	// プレイヤーとの方向ベクトルを取得
+	Vector3 bossPos = model_->GetTranslate();
+	Vector3 playerPos = player_->GetWorldTransform()->translate_; // プレイヤーの中心位置
+	Vector3 toPlayer = playerPos - bossPos;
+
+	// 距離を求める（攻撃への移行判定に使うなら）
+	float distance = Vector3::Length(toPlayer);
+
+	// 追いかける方向に正規化
+	Vector3 dir = Vector3::Normalize(toPlayer);
+
+	// 速度を決めて移動（例：0.05f のスピード）
+	float speed = 0.05f;
+	Vector3 newPos = bossPos + dir * speed;
+	model_->SetTranslate(newPos);
+
+	// プレイヤー方向を向く（Y軸の角度のみ変更）
+	float angleY = std::atan2(-dir.x, dir.z); // ラジアン角（Y軸回転）
+	model_->SetRotate({ 0.0f, angleY, 0.0f });
+
+	// プレイヤーとの距離が近づいたら攻撃状態に移行
+	//if (distance < 3.0f)
+	//{
+	//	// 攻撃状態に移行
+	//	ChangeState(BossState::Melee);
+	//}
+	if (distance < 10.0f && shootCooldown_ <= 0.0f)
+	{
+		// 射撃状態に移行
+		ChangeState(BossState::Shoot);
+	}
+	else if (distance >= 20.0f)
+	{
+		// 再び待機状態に戻る
+		ChangeState(BossState::Idle);
+	}
+}
+
+void Boss::UpdateMelee()
+{
+	meleeDuration_ += deltaTime_;
+
+	// プレイヤーとの方向ベクトルを取得
+	Vector3 bossPos = model_->GetTranslate();
+	Vector3 playerPos = player_->GetWorldTransform()->translate_; // プレイヤーの中心位置
+	Vector3 toPlayer = playerPos - bossPos;
+
+	// 距離を求める（攻撃への移行判定に使うなら）
+	float distance = Vector3::Length(toPlayer);
+
+	if (!didMelee_ && meleeDuration_ > 0.5f)
+	{
+		Log("Boss performs melee attack");
+
+		// プレイヤーとの距離チェック
+		Vector3 toPlayer = player_->GetWorldTransform()->translate_ - model_->GetTranslate();
+
+		didMelee_ = true;
+	}
+
+	if (meleeDuration_ >= meleeMaxDuration_) {
+		meleeDuration_ = 0.0f;
+		didMelee_ = false;
+	}
+
+	if (distance >= 3.0f)
+	{
+		ChangeState(BossState::Chase);
+	}
+}
+
+void Boss::UpdateShoot()
+{
+
+}
+
+void Boss::UpdateSpecialAttack()
+{
+
+}
+
+void Boss::UpdateDead()
+{
 }

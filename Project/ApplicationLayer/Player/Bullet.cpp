@@ -6,6 +6,7 @@
 #include <Crosshair.h>
 #include <ParticleManager.h>
 #include <Enemy.h>
+#include <Boss.h>
 
 
 /// -------------------------------------------------------------
@@ -83,8 +84,11 @@ void Bullet::Draw()
 /// -------------------------------------------------------------
 void Bullet::OnCollision(Collider* other)
 {
-	// 衝突相手がエネミーかどうかを確認
-	if (other->GetTypeID() != static_cast<uint32_t>(CollisionTypeIdDef::kEnemy)) return;
+	// 衝突相手が nullptrの場合は処理をスキップ
+	if (other == nullptr) return;
+
+	// 衝突相手が「敵系」以外なら無視 
+	if (other->GetTypeID() != static_cast<uint32_t>(CollisionTypeIdDef::kBoss)) return;
 
 	// 衝突相手のユニークIDを取得
 	uint32_t targetID = other->GetUniqueID();
@@ -109,6 +113,19 @@ void Bullet::OnCollision(Collider* other)
 			// スコアを加算
 			ScoreManager::GetInstance()->AddScore(50);
 		}
+	}
+	else if (auto boss = other->GetOwner<Boss>())        // ★ 追加
+	{
+		boss->TakeDamage(GetDamage());
+
+		// スコアやヒットマーカーなど Enemy と同じ扱いで OK
+		ScoreManager::GetInstance()->AddScore(100);
+		if (player_)
+			if (auto ch = player_->GetCrosshair()) ch->ShowHitMarker();
+
+		// ボスが死んだらキル加算
+		if (boss->IsDead())
+			ScoreManager::GetInstance()->AddKill();
 	}
 
 	// 🔽 ヒットマーカー通知

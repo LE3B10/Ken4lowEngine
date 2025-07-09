@@ -49,7 +49,7 @@ void Weapon::Update()
 	// リロード中の処理
 	if (isReloading_)
 	{
-		reloadTimer_ += 1.0f / 60.0f;
+		reloadTimer_ += player_->GetAnimationModel()->GetDeltaTime();
 
 		// リロード完了チェック
 		if (reloadTimer_ >= reloadTime_)
@@ -62,7 +62,7 @@ void Weapon::Update()
 		}
 	}
 
-	fireTimer_ += 1.0f / 60.0f;  // 60FPS前提。可変FPSなら deltaTime を使う
+	fireTimer_ += player_->GetAnimationModel()->GetDeltaTime();  // 60FPS前提。可変FPSなら deltaTime を使う
 
 	// 弾の更新
 	for (auto& bullet : bullets_) bullet->Update();
@@ -191,7 +191,7 @@ void Weapon::FireSingleBullet(const Vector3& pos, const Vector3& dir)
 	bullet->SetVelocity(dir * bulletSpeed_);
 	bullet->SetDamage(ammoInfo_.bulletDamage);  // ← 新しく追加
 
-	// 🔽 命中通知用に Player を渡す
+	// 命中通知用に Player を渡す
 	bullet->SetPlayer(player_);
 
 	bullets_.push_back(std::move(bullet));

@@ -30,23 +30,14 @@ public: /// ---------- メンバ関数 ---------- ///
 	void Initialize(DirectXCommon* dxCommon, PostEffectPipelineBuilder* builder) override;
 
 	// 適用処理
-	void Apply(ID3D12GraphicsCommandList* commandList, uint32_t rtvSrvIndex, uint32_t dsvSrvIndex) override;
+	void Apply(ID3D12GraphicsCommandList* commandList, uint32_t srvIndex, uint32_t uavIndex, uint32_t dsvIndex) override;
 
 	// ImGui描画処理
 	void DrawImGui() override;
 
-	// 名前の取得
-	const std::string& GetName() const override { return name_; }
-
 private: /// ---------- 構造体 ---------- ///
 
 	Camera* camera_ = nullptr; // カメラへのポインタ
-
-	// 名前
-	const std::string name_ = "DepthOutlineEffect";
-
-	// シェーダーコードのパス
-	std::string shaderPath_ = "Resources/Shaders/PostEffect/DepthOutlineEffect.PS.hlsl";
 
 	// DirectX共通クラス
 	DirectXCommon* dxCommon_ = nullptr;

@@ -8,6 +8,7 @@
 #include "OBB.h"
 #include "Segment.h"
 #include "Capsule.h"
+#include "Sphere.h"
 
 
 /// -------------------------------------------------------------
@@ -51,6 +52,13 @@ public: /// ---------- セグメントのメンバ関数 ---------- ///
 
 public: /// ---------- Capsule のメンバ関数 ---------- ///
 
+	// Sphereを設定（衝突判定用）
+	void SetSphere(Sphere& spere) { sphere_ = spere; useSphere_ = true; }
+	// Sphereを取得
+	virtual Sphere GetSphere() const { return sphere_; }
+
+public: /// ---------- Capsule のメンバ関数 ---------- ///
+
 	// Capsule を設定
 	virtual void SetCapsule(const Capsule& capsule) { capsule_ = capsule; useCapsule_ = true; }
 
@@ -87,10 +95,15 @@ public: /// ---------- 設定 ---------- ///
 	// シリアルナンバーを取得
 	uint32_t GetUniqueID() const { return serialNumber_; }
 
+	template<class T> void SetOwner(T* ptr) { owner_ = ptr; }
+	template<class T> T* GetOwner() const { return static_cast<T*>(owner_); }
+
 private: /// ---------- メンバ変数 ---------- ///
 
 	// 識別ID
 	uint32_t typeID_ = 0u;
+
+	void* owner_ = nullptr;
 
 private: /// ---------- OBBのメンバ変数 ---------- ///
 
@@ -110,6 +123,11 @@ private: /// ---------- セグメントのメンバ変数 ---------- ///
 
 	// セグメントを使用するかどうか
 	bool useSegment_ = true;
+
+private: /// ---------- Sphere のメンバ変数 ---------- ///
+
+	Sphere sphere_{}; // Sphere（衝突判定用）
+	bool useSphere_ = false; // Sphere を使用するかどうか
 
 private: /// ---------- Capsule のメンバ変数 ---------- ///
 

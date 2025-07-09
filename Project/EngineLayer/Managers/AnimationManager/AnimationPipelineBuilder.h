@@ -48,16 +48,27 @@ private: /// ---------- メンバ関数 ---------- ///
 	// パイプラインの生成
 	void CreatePSO();
 
+	// ルートシグネチャの生成（コンピュート用）
+	void CreateComputeRootSignature();
+
+	// パイプラインの生成（コンピュート用）
+	void CreateComputePSO();
+
 private: /// ---------- メンバ変数 ---------- ///
 
 	DirectXCommon* dxCommon_ = nullptr;
 
 	// ルートシグネチャとパイプラインステート
-	ComPtr <ID3D12RootSignature> rootSignature;
-	ComPtr <ID3D12PipelineState> graphicsPipelineState;
+	ComPtr<ID3D12RootSignature> rootSignature;
+	ComPtr<ID3D12PipelineState> graphicsPipelineState;
+
+	// コンピュート用ルートシグネチャとパイプライン
+	ComPtr <ID3D12RootSignature> computeRootSignature_;
+	ComPtr<ID3D12PipelineState> computePipelineState_;
+
 	D3D12_INPUT_LAYOUT_DESC inputLayoutDesc{};
 
 	// ブレンドモード
-	BlendMode cuurenttype = BlendMode::kBlendModeNone;
+	BlendMode blendMode_ = BlendMode::kBlendModeNone;
 };
 

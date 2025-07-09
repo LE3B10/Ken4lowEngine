@@ -1,6 +1,6 @@
 #include "PostEffectPipelineBuilder.h"
 #include "DirectXCommon.h"
-#include <ShaderManager.h>
+#include <ShaderCompiler.h>
 
 #include <cassert>
 
@@ -114,8 +114,8 @@ ComPtr<ID3D12RootSignature> PostEffectPipelineBuilder::CreateRootSignature()
 ComPtr<ID3D12PipelineState> PostEffectPipelineBuilder::CreateGraphicsPipeline(const std::wstring& pixelShaderPath, ID3D12RootSignature* rootSignature, bool enableDepth)
 {
 	// シェーダー
-	auto vs = ShaderManager::CompileShader(L"Resources/Shaders/PostEffect/FullScreen.VS.hlsl", L"vs_6_0", dxCommon_->GetDXCCompilerManager());
-	auto ps = ShaderManager::CompileShader(pixelShaderPath, L"ps_6_0", dxCommon_->GetDXCCompilerManager());
+	auto vs = ShaderCompiler::CompileShader(L"Resources/Shaders/PostEffect/FullScreen.VS.hlsl", L"vs_6_0", dxCommon_->GetDXCCompilerManager());
+	auto ps = ShaderCompiler::CompileShader(pixelShaderPath, L"ps_6_0", dxCommon_->GetDXCCompilerManager());
 
 	// 各種設定
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC desc{};
@@ -160,7 +160,127 @@ ComPtr<ID3D12PipelineState> PostEffectPipelineBuilder::CreateGraphicsPipeline(co
 	return pso;
 }
 
-// PostEffectPipelineBuilder.cpp
+
+/// -------------------------------------------------------------
+///				コンピュートパイプラインの生成
+/// -------------------------------------------------------------
+ComPtr<ID3D12RootSignature> PostEffectPipelineBuilder::CreateComputeRootSignature()
+{
+	// デスクリプタレンジ設定
+	D3D12_DESCRIPTOR_RANGE srvRange0{};
+	srvRange0.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
+	srvRange0.NumDescriptors = 1; // 1つのSRV
+	srvRange0.BaseShaderRegister = 0; // t0
+	srvRange0.RegisterSpace = 0; // スペース0
+	srvRange0.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+
+	D3D12_DESCRIPTOR_RANGE srvRange1{};
+	srvRange1.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
+	srvRange1.NumDescriptors = 1; // 1つのSRV
+	srvRange1.BaseShaderRegister = 1; // t1
+	srvRange1.RegisterSpace = 0; // スペース0
+	srvRange1.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+
+	D3D12_DESCRIPTOR_RANGE uavRange{};
+	uavRange.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_UAV;
+	uavRange.NumDescriptors = 1; // 1つのUAV
+	uavRange.BaseShaderRegister = 0; // u0
+	uavRange.RegisterSpace = 0; // スペース0
+	uavRange.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+
+	// ルートパラメータ設定
+	std::vector<D3D12_ROOT_PARAMETER> rootParams(4);
+
+	// SRV (t0) 入力テクスチャ
+	rootParams[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+	rootParams[0].DescriptorTable.NumDescriptorRanges = 1;
+	rootParams[0].DescriptorTable.pDescriptorRanges = &srvRange0;
+	rootParams[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
+
+	// UAV (u0) 出力テクスチャ
+	rootParams[1].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+	rootParams[1].DescriptorTable.NumDescriptorRanges = 1;
+	rootParams[1].DescriptorTable.pDescriptorRanges = &uavRange;
+	rootParams[1].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
+
+	// 定数バッファ (b0)
+	rootParams[2].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
+	rootParams[2].Descriptor.ShaderRegister = 0; // b0
+	rootParams[2].Descriptor.RegisterSpace = 0; // スペース0
+	rootParams[2].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
+
+	// SRV (t1) 追加のテクスチャ（例: マスクや深度）
+	rootParams[3].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+	rootParams[3].DescriptorTable.NumDescriptorRanges = 1;
+	rootParams[3].DescriptorTable.pDescriptorRanges = &srvRange1;
+	rootParams[3].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
+
+	// サンプラー（s0）
+	D3D12_STATIC_SAMPLER_DESC samplerDesc[2]{};
+	samplerDesc[0].Filter = D3D12_FILTER_MIN_MAG_MIP_LINEAR;
+	samplerDesc[0].AddressU = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+	samplerDesc[0].AddressV = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+	samplerDesc[0].AddressW = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+	samplerDesc[0].ComparisonFunc = D3D12_COMPARISON_FUNC_NEVER;
+	samplerDesc[0].MaxLOD = D3D12_FLOAT32_MAX;
+	samplerDesc[0].ShaderRegister = 0; // s0
+	samplerDesc[0].RegisterSpace = 0;
+	samplerDesc[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
+
+	// s1: ポイント
+	samplerDesc[1] = samplerDesc[0];
+	samplerDesc[1].Filter = D3D12_FILTER_MIN_MAG_MIP_POINT;
+	samplerDesc[1].ShaderRegister = 1;
+
+	// ルートシグネチャの設定
+	D3D12_ROOT_SIGNATURE_DESC rootSigDesc{};
+	rootSigDesc.NumParameters = static_cast<UINT>(rootParams.size());
+	rootSigDesc.pParameters = rootParams.data();
+	rootSigDesc.NumStaticSamplers = 2; // サンプラーは1つ
+	rootSigDesc.pStaticSamplers = samplerDesc;
+	rootSigDesc.Flags = D3D12_ROOT_SIGNATURE_FLAG_NONE; // コンピュートシェーダーでは特にフラグは不要
+
+	ComPtr<ID3DBlob> sigBlob, errorBlog;
+	HRESULT hr = D3D12SerializeRootSignature(&rootSigDesc, D3D_ROOT_SIGNATURE_VERSION_1, &sigBlob, &errorBlog);
+	assert(SUCCEEDED(hr) && "RootSignature Serialize Failed");
+
+	// ルートシグネチャの生成
+	ComPtr<ID3D12RootSignature> computeRootSignature;
+	hr = dxCommon_->GetDevice()->CreateRootSignature(0, sigBlob->GetBufferPointer(), sigBlob->GetBufferSize(), IID_PPV_ARGS(&computeRootSignature));
+
+	return computeRootSignature;
+}
+
+
+/// -------------------------------------------------------------
+///				コンピュートパイプラインの生成
+/// -------------------------------------------------------------
+ComPtr<ID3D12PipelineState> PostEffectPipelineBuilder::CreateComputePipeline(const std::wstring& csPath, ID3D12RootSignature* rootSignature)
+{
+	// シェーダー
+	auto cs = ShaderCompiler::CompileShader(csPath, L"cs_6_6", dxCommon_->GetDXCCompilerManager());
+	assert(cs != nullptr);
+
+	// 各種設定
+	D3D12_COMPUTE_PIPELINE_STATE_DESC desc{};
+	desc.pRootSignature = rootSignature;
+	desc.CS = { cs->GetBufferPointer(), cs->GetBufferSize() };
+	ComPtr<ID3D12PipelineState> pso;
+	HRESULT hr = dxCommon_->GetDevice()->CreateComputePipelineState(&desc, IID_PPV_ARGS(&pso));
+	assert(SUCCEEDED(hr) && "CreateComputePipelineState Failed");
+	// 成功したらパイプラインステートを返す
+	if (SUCCEEDED(hr))
+	{
+		return pso;
+	}
+	// 失敗した場合は空のポインタを返す
+	return ComPtr<ID3D12PipelineState>();
+}
+
+
+/// -------------------------------------------------------------
+///					コピー用パイプラインの構築
+/// -------------------------------------------------------------
 void PostEffectPipelineBuilder::BuildCopyPipeline()
 {
 	// ① RootSig を生成（深度不要）

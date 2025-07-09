@@ -271,6 +271,8 @@ private: /// ---------- メンバ変数 ---------- ///
 	// カメラ
 	Camera* camera_ = nullptr;
 
+	BlendMode blendMode_ = BlendMode::kBlendModeNormal;
+
 	// ルートシグネチャ
 	ComPtr<ID3D12RootSignature> triangleRootSignature_;
 	ComPtr<ID3D12RootSignature> lineRootSignature_;

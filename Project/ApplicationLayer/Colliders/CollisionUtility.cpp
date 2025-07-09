@@ -85,6 +85,14 @@ bool CollisionUtility::IsCollision(const Triangle& triangle, const Segment& segm
 	return false; // 衝突なし
 }
 
+bool CollisionUtility::IsCollision(const AABB& aabb, const Vector3& point)
+{
+	// 点がAABBの範囲内にあるかチェック
+	return (point.x >= aabb.min.x && point.x <= aabb.max.x &&
+		point.y >= aabb.min.y && point.y <= aabb.max.y &&
+		point.z >= aabb.min.z && point.z <= aabb.max.z);
+}
+
 bool CollisionUtility::IsCollision(const AABB& aabb1, const AABB& aabb2)
 {
 	return
@@ -324,8 +332,7 @@ inline bool IsCapsuleCapsuleHit(const Capsule& c1, const Capsule& c2)
 // -------------------------------------------------------------
 //  Capsule–Capsule 衝突判定
 // -------------------------------------------------------------
-bool CollisionUtility::IsCollision(const Capsule& cap1,
-	const Capsule& cap2)
+bool CollisionUtility::IsCollision(const Capsule& cap1, const Capsule& cap2)
 {
 	// 1. 中心線同士の最近接距離²を取得
 	float dist2 = SegmentSegmentDist2(
@@ -335,6 +342,33 @@ bool CollisionUtility::IsCollision(const Capsule& cap1,
 	// 2. しきい値 = 半径の和 の²
 	float rSum = cap1.radius + cap2.radius;
 	return dist2 <= rSum * rSum + 1e-6f;    // EPS で誤差吸収
+}
+
+bool CollisionUtility::IsCollision(const Capsule& capsule, const Sphere& sphere)
+{
+	// カプセルの軸線を A-B とする
+	const Vector3& A = capsule.pointA;
+	const Vector3& B = capsule.pointB;
+	const Vector3& C = sphere.center;  // 球の中心
+
+	// A-B 上に C に最も近い点 P を求める（線分と点の最近接点）
+	Vector3 AB = B - A;
+	Vector3 AC = C - A;
+	float t = Vector3::Dot(AC, AB) / Vector3::Dot(AB, AB);
+	t = std::clamp(t, 0.0f, 1.0f);
+	Vector3 P = A + AB * t;
+
+	// P-C 間の距離²
+	float dist2 = Vector3::Dot(P - C, P - C);
+
+	// 半径の和²と比較
+	float rSum = capsule.radius + sphere.radius;
+	return dist2 <= rSum * rSum + 1e-6f;
+}
+
+bool CollisionUtility::IsCollision(const Sphere& sphere, const Capsule& capsule)
+{
+	return IsCollision(capsule, sphere);
 }
 
 // ============================================================================
