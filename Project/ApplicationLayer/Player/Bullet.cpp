@@ -88,7 +88,7 @@ void Bullet::OnCollision(Collider* other)
 	if (other == nullptr) return;
 
 	// 衝突相手が「敵系」以外なら無視 
-	if (other->GetTypeID() != static_cast<uint32_t>(CollisionTypeIdDef::kEnemy)) return;
+	if (other->GetTypeID() != static_cast<uint32_t>(CollisionTypeIdDef::kBoss)) return;
 
 	// 衝突相手のユニークIDを取得
 	uint32_t targetID = other->GetUniqueID();

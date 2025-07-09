@@ -42,7 +42,7 @@ void Boss::Update()
 			bodyCols_.clear();
 			for (auto& [name, cap] : partCaps) {
 				auto c = std::make_unique<Collider>();
-				c->SetTypeID(static_cast<uint32_t>(CollisionTypeIdDef::kEnemy));
+				c->SetTypeID(static_cast<uint32_t>(CollisionTypeIdDef::kBoss));
 				c->SetCapsule(cap);
 				c->SetOwner(this);
 				bodyCols_.push_back({ name, std::move(c) });
@@ -65,7 +65,7 @@ void Boss::Update()
 			isDying_ = false;
 			isDissolving_ = true;
 			dissolveTime_ = 0.0f;
-			
+
 			// 現在のポーズで固定（再生停止）
 			model_->SetIsPlaying(false);
 
@@ -184,15 +184,13 @@ void Boss::TakeDamage(float damage)
 
 void Boss::ChangeState(BossState newState)
 {
-	if (state_ == newState) return;
+	// 状態に応じてアニメーション時間をリセットするかどうか
+	bool resetAnimTime = (newState == BossState::Dead || newState == BossState::Melee || newState == BossState::Shoot);
 
-	// 攻撃状態に入るたびにフラグをリセット
-	didShoot_ = false;
-	didMelee_ = false;
-	shootDuration_ = 0.0f;
-	meleeDuration_ = 0.0f;
+	// アニメーションの時間を保存または0に初期化
+	float newAnimTime = (!resetAnimTime && model_) ? model_->GetAnimationTime() : 0.0f;
 
-	// 旧モデルが null でない場合だけ位置を保存
+	// 現在の位置・回転を保存
 	Vector3 currentPos = model_ ? model_->GetTranslate() : Vector3(0, 0, 0);
 	Vector3 currentRot = model_ ? model_->GetRotate() : Vector3(0, 0, 0);
 
@@ -202,7 +200,17 @@ void Boss::ChangeState(BossState newState)
 	{
 		model_ = models_[state_].get();
 		model_->SetScaleFactor(scaleFactor_);
-		model_->SetTranslate(currentPos);  // 座標を確実に復元
+		model_->SetTranslate(currentPos);
 		model_->SetRotate(currentRot);
+
+		// 状態に応じて時間を初期化 or 継続
+		model_->SetAnimationTime(newAnimTime);
+
+		// 安全のためアニメ・ディゾルブ初期化
+		model_->SetDissolveThreshold(0.0f);
+		model_->SetIsPlaying(true);
+
+		model_->SetDissolveThreshold(0.0f);
+		model_->Update(); // ←ボーンとマテリアル情報を即時更新
 	}
 }

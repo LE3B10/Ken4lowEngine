@@ -9,6 +9,8 @@ void PlayerIdleState::Initialize(Player* player)
 {
 	// 待機アニメに切替え
 	player->GetAnimationModel()->Initialize(modelFilePath_);
+	player->GetAnimationModel()->SetDissolveThreshold(0.0f); // ダメージを受けていないので閾値は0.0f
+	player->GetAnimationModel()->Update();
 }
 
 void PlayerIdleState::Update(Player* player)
