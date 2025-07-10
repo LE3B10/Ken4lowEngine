@@ -2,7 +2,7 @@
 #include "AnimationModel.h"
 #include "Collider.h"
 #include "ContactRecord.h"
-#include "BossBullet.h"
+#include "BossWeapon.h"
 
 #include <unordered_map> // 忘れずに！
 
@@ -103,6 +103,8 @@ private: /// ---------- メンバ変数 ---------- ///
 	std::unordered_map<BossState, std::string> stateModelFiles_;
 	std::unordered_map<BossState, std::unique_ptr<AnimationModel>> models_;
 
+	std::unique_ptr<BossWeapon> weapon_; // ボスの武器
+
 private: /// ---------- 定数 ---------- ///
 
 	float hp_ = 2000.0f;
@@ -121,6 +123,7 @@ private: /// ---------- 定数 ---------- ///
 
 	float shootCooldown_ = 0.0f;
 	const float shootCooldownMax_ = 2.0f; // 2秒間は再発射禁止
+	const float shootRange_ = 10.0f; // Boss.h に追加
 
 	float meleeDuration_ = 0.0f;
 	const float meleeMaxDuration_ = 2.0f;

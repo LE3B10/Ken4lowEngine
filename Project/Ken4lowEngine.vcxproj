@@ -129,8 +129,9 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClCompile Include="ApplicationLayer\Crosshair\Crosshair.cpp" />
     <ClCompile Include="ApplicationLayer\Colliders\CollisionUtility.cpp" />
     <ClCompile Include="ApplicationLayer\Player\DummyModel.cpp" />
-    <ClCompile Include="ApplicationLayer\Enemy\Boss.cpp" />
-    <ClCompile Include="ApplicationLayer\Enemy\BossBullet.cpp" />
+    <ClCompile Include="ApplicationLayer\Enemy\Boss\Boss.cpp" />
+    <ClCompile Include="ApplicationLayer\Enemy\Boss\BossBullet.cpp" />
+    <ClCompile Include="ApplicationLayer\Enemy\Boss\BossWeapon.cpp" />
     <ClCompile Include="EngineLayer\Base\BlendStateFactory.cpp" />
     <ClCompile Include="EngineLayer\PostEffectManagement\DepthOutlineEffect.cpp" />
     <ClCompile Include="EngineLayer\Managers\AnimationManager\AnimationModel.cpp" />
@@ -428,8 +429,9 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="ApplicationLayer\Crosshair\Crosshair.h" />
     <ClInclude Include="ApplicationLayer\Colliders\CollisionUtility.h" />
     <ClInclude Include="ApplicationLayer\Player\PlayerStateType.h" />
-    <ClInclude Include="ApplicationLayer\Enemy\Boss.h" />
-    <ClInclude Include="ApplicationLayer\Enemy\BossBullet.h" />
+    <ClInclude Include="ApplicationLayer\Enemy\Boss\Boss.h" />
+    <ClInclude Include="ApplicationLayer\Enemy\Boss\BossBullet.h" />
+    <ClInclude Include="ApplicationLayer\Enemy\Boss\BossWeapon.h" />
     <ClInclude Include="EngineLayer\Base\BlendStateFactory.h" />
     <ClInclude Include="EngineLayer\Math\Capsule.h" />
     <ClInclude Include="ApplicationLayer\Player\DummyModel.h" />
