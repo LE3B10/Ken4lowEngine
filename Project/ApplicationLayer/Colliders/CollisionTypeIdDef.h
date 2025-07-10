@@ -13,4 +13,5 @@ enum class CollisionTypeIdDef : uint32_t
 	kItem,			 // アイテムID 6
 	kDummy,			 // ダミー
 	kBoss,			 // ボスID 8
+	kBossBullet,	 // ボス弾ID 9
 };

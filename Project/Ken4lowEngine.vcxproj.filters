@@ -400,7 +400,7 @@
     <ClCompile Include="EngineLayer\Base\BlendStateFactory.cpp">
       <Filter>EngineLayer</Filter>
     </ClCompile>
-    <ClCompile Include="ApplicationLayer\Enemy\Boss.cpp">
+    <ClCompile Include="ApplicationLayer\Enemy\Boss\Boss.cpp">
       <Filter>ApplicationLayer\Enemy</Filter>
     </ClCompile>
     <ClCompile Include="ApplicationLayer\Enemy\Boss\BossIdleState.cpp">
@@ -448,7 +448,12 @@
     <ClCompile Include="ApplicationLayer\Enemy\Tank\TankIdleState.cpp">
       <Filter>ApplicationLayer\Enemy</Filter>
     </ClCompile>
-    <ClCompile Include="BossBullet.cpp" />
+    <ClCompile Include="ApplicationLayer\Enemy\Boss\BossBullet.cpp">
+      <Filter>ApplicationLayer\Enemy</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\Enemy\Boss\BossWeapon.cpp">
+      <Filter>ApplicationLayer\Enemy</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="EngineLayer\Math\AABB.h">
@@ -853,7 +858,7 @@
     <ClInclude Include="EngineLayer\Base\BlendStateFactory.h">
       <Filter>EngineLayer</Filter>
     </ClInclude>
-    <ClInclude Include="ApplicationLayer\Enemy\Boss.h">
+    <ClInclude Include="ApplicationLayer\Enemy\Boss\Boss.h">
       <Filter>ApplicationLayer\Enemy</Filter>
     </ClInclude>
     <ClInclude Include="ApplicationLayer\Enemy\Boss\BossIdleState.h">
@@ -904,7 +909,12 @@
     <ClInclude Include="ApplicationLayer\Enemy\Tank\TankIdleState.h">
       <Filter>ApplicationLayer\Enemy</Filter>
     </ClInclude>
-    <ClInclude Include="BossBullet.h" />
+    <ClInclude Include="ApplicationLayer\Enemy\Boss\BossBullet.h">
+      <Filter>ApplicationLayer\Enemy</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Enemy\Boss\BossWeapon.h">
+      <Filter>ApplicationLayer\Enemy</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="Resources\Shaders\PostEffect\FullScreen.hlsli">
