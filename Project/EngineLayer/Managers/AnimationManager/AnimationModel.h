@@ -18,6 +18,7 @@
 #include <numbers>
 #include <memory>
 #include <map>
+#include <Sphere.h>
 
 /// ---------- 前方宣言 ---------- ///
 class DirectXCommon;
@@ -130,6 +131,8 @@ public: /// ---------- セッタ ---------- ///
 
 	// ワールド空間からボディパーツのカプセルを取得
 	std::vector<std::pair<std::string, Capsule>> GetBodyPartCapsulesWorld() const;
+
+	std::vector<std::pair<std::string, Sphere>> GetBodyPartSpheresWorld() const;
 
 	// 頭を消すかどうか
 	void SetHideHead(bool hide) { hideHead_ = hide; }

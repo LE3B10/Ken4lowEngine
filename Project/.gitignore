@@ -410,3 +410,7 @@ compile_commands.json
 .vscode/
 build/
 out/
+
+# Assimp の lib ファイルだけは Git に含める
+!External/Assimp/lib/
+!External/Assimp/lib/*.lib

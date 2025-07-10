@@ -75,8 +75,8 @@
       <AdditionalDependencies>assimp-vc143-mtd.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
-      <Command>REM copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxcompiler.dll" "$(TargetDir)dxcompiler.dll"
-REM copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dxil.dll"</Command>
+      <Command>copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxcompiler.dll" "$(TargetDir)dxcompiler.dll"
+copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dxil.dll"</Command>
     </PostBuildEvent>
     <FxCompile>
       <ShaderModel>4.0_level_9_3</ShaderModel>
@@ -106,8 +106,8 @@ REM copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDi
       <AdditionalDependencies>assimp-vc143-mt.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
-      <Command>REM copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxcompiler.dll" "$(TargetDir)dxcompiler.dll"
-REM copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dxil.dll"</Command>
+      <Command>copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxcompiler.dll" "$(TargetDir)dxcompiler.dll"
+copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dxil.dll"</Command>
     </PostBuildEvent>
     <FxCompile>
       <ShaderModel>4.0_level_9_3</ShaderModel>
@@ -129,7 +129,9 @@ REM copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDi
     <ClCompile Include="ApplicationLayer\Crosshair\Crosshair.cpp" />
     <ClCompile Include="ApplicationLayer\Colliders\CollisionUtility.cpp" />
     <ClCompile Include="ApplicationLayer\Player\DummyModel.cpp" />
-    <ClCompile Include="ApplicationLayer\Enemy\Boss.cpp" />
+    <ClCompile Include="ApplicationLayer\Enemy\Boss\Boss.cpp" />
+    <ClCompile Include="ApplicationLayer\Enemy\Boss\BossBullet.cpp" />
+    <ClCompile Include="ApplicationLayer\Enemy\Boss\BossWeapon.cpp" />
     <ClCompile Include="EngineLayer\Base\BlendStateFactory.cpp" />
     <ClCompile Include="EngineLayer\PostEffectManagement\DepthOutlineEffect.cpp" />
     <ClCompile Include="EngineLayer\Managers\AnimationManager\AnimationModel.cpp" />
@@ -427,7 +429,9 @@ REM copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDi
     <ClInclude Include="ApplicationLayer\Crosshair\Crosshair.h" />
     <ClInclude Include="ApplicationLayer\Colliders\CollisionUtility.h" />
     <ClInclude Include="ApplicationLayer\Player\PlayerStateType.h" />
-    <ClInclude Include="ApplicationLayer\Enemy\Boss.h" />
+    <ClInclude Include="ApplicationLayer\Enemy\Boss\Boss.h" />
+    <ClInclude Include="ApplicationLayer\Enemy\Boss\BossBullet.h" />
+    <ClInclude Include="ApplicationLayer\Enemy\Boss\BossWeapon.h" />
     <ClInclude Include="EngineLayer\Base\BlendStateFactory.h" />
     <ClInclude Include="EngineLayer\Math\Capsule.h" />
     <ClInclude Include="ApplicationLayer\Player\DummyModel.h" />

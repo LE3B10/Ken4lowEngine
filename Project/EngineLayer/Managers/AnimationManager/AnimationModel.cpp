@@ -293,6 +293,28 @@ std::vector<std::pair<std::string, Capsule>> AnimationModel::GetBodyPartCapsules
 	return out;
 }
 
+std::vector<std::pair<std::string, Sphere>> AnimationModel::GetBodyPartSpheresWorld() const
+{
+	std::vector<std::pair<std::string, Sphere>> out;
+	if (!skeleton_) { return out; }
+
+	const auto& joints = skeleton_->GetJoints();
+	Matrix4x4 worldMatrix = Matrix4x4::MakeAffineMatrix(
+		worldTransform.scale_, worldTransform.rotate_, worldTransform.translate_);
+
+	for (const auto& part : bodyPartColliders_) {
+		if (part.endJointIndex < 0) {
+			Sphere s{};
+			Vector3 local = joints[part.startJointIndex].skeletonSpaceMatrix.GetTranslation() + part.offset;
+			s.center = Vector3::Transform(local, worldMatrix);
+			s.radius = part.radius;
+			out.emplace_back(part.name, s);
+		}
+	}
+	return out;
+}
+
+
 /// -------------------------------------------------------------
 ///				　	アニメーションの更新処理
 /// -------------------------------------------------------------

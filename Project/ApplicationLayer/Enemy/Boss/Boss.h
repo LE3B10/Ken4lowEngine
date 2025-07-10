@@ -1,6 +1,8 @@
 #pragma once
 #include "AnimationModel.h"
 #include "Collider.h"
+#include "ContactRecord.h"
+#include "BossWeapon.h"
 
 #include <unordered_map> // 忘れずに！
 
@@ -68,15 +70,42 @@ public:	/// ---------- アクセッサ ---------- ///
 	// プレイヤーをセット
 	void SetPlayer(Player* player) { player_ = player; }
 
+private: /// ---------- メンバ関数 ---------- ///
+
+	// 待機モーションの更新処理
+	void UpdateIdle();
+
+	// チェイスモーションの更新処理
+	void UpdateChase();
+
+	// 近接攻撃モーションの更新処理
+	void UpdateMelee();
+
+	// 射撃モーションの更新処理
+	void UpdateShoot();
+
+	// スペシャル攻撃モーションの更新処理
+	void UpdateSpecialAttack();
+
+	// 死亡モーションの更新処理
+	void UpdateDead();
+
 private: /// ---------- メンバ変数 ---------- ///
 
 	Player* player_ = nullptr;
 	BossState state_ = BossState::Idle;
 	AnimationModel* model_ = nullptr;
+
+	ContactRecord contactRecord_; // 衝突履歴を管理するクラス
+
 	//std::unique_ptr<AnimationModel> model_;
 	// ステートに対応するモデル（もしくはアニメーション）
 	std::unordered_map<BossState, std::string> stateModelFiles_;
 	std::unordered_map<BossState, std::unique_ptr<AnimationModel>> models_;
+
+	std::unique_ptr<BossWeapon> weapon_; // ボスの武器
+
+private: /// ---------- 定数 ---------- ///
 
 	float hp_ = 2000.0f;
 	float maxHP_ = 2000.0f;
@@ -94,9 +123,10 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	float shootCooldown_ = 0.0f;
 	const float shootCooldownMax_ = 2.0f; // 2秒間は再発射禁止
+	const float shootRange_ = 10.0f; // Boss.h に追加
 
 	float meleeDuration_ = 0.0f;
-	const float meleeMaxDuration_ = 1.0f;
+	const float meleeMaxDuration_ = 2.0f;
 
 	bool isDying_ = false;   // 死亡演出中フラグ
 	float deathTime_ = 0.0f;   // 経過時間

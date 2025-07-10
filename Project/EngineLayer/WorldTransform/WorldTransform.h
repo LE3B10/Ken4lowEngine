@@ -49,6 +49,9 @@ public: /// ---------- メンバ関数 ---------- ///
 	// パイプラインを設定
 	void SetPipeline(UINT rootParameterIndex = 1);
 
+	// ワールド変換行列を取得
+	const Matrix4x4& GetWorldMatrix() const { return matWorld_; }
+
 private: /// ---------- メンバ変数 ---------- ///
 
 	Camera* camera_ = nullptr;

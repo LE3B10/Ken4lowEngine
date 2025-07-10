@@ -8,6 +8,7 @@
 #include "OBB.h"
 #include "Segment.h"
 #include "Capsule.h"
+#include "Sphere.h"
 
 
 /// -------------------------------------------------------------
@@ -48,6 +49,13 @@ public: /// ---------- セグメントのメンバ関数 ---------- ///
 	void SetSegment(const Segment& segment) { segment_ = segment; }
 	// セグメントを取得
 	virtual Segment GetSegment() const { return segment_; }
+
+public: /// ---------- Capsule のメンバ関数 ---------- ///
+
+	// Sphereを設定（衝突判定用）
+	void SetSphere(Sphere& spere) { sphere_ = spere; useSphere_ = true; }
+	// Sphereを取得
+	virtual Sphere GetSphere() const { return sphere_; }
 
 public: /// ---------- Capsule のメンバ関数 ---------- ///
 
@@ -115,6 +123,11 @@ private: /// ---------- セグメントのメンバ変数 ---------- ///
 
 	// セグメントを使用するかどうか
 	bool useSegment_ = true;
+
+private: /// ---------- Sphere のメンバ変数 ---------- ///
+
+	Sphere sphere_{}; // Sphere（衝突判定用）
+	bool useSphere_ = false; // Sphere を使用するかどうか
 
 private: /// ---------- Capsule のメンバ変数 ---------- ///
 
