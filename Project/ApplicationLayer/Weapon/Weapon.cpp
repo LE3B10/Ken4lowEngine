@@ -6,6 +6,7 @@
 #include <FpsCamera.h>
 
 #include <imgui.h>
+#include <ParticleManager.h>
 
 
 /// -------------------------------------------------------------
@@ -25,7 +26,7 @@ void Weapon::Initialize()
 	switch (type_)
 	{
 	case WeaponType::Rifle:
-		ammoInfo_ = { 30, 90, 30, 90, 1, 25.0f, 1000.0f }; // 30回撃てて、1回で1発出す
+		ammoInfo_ = { 300000000, 90, 30, 90, 1, 0.1f, 1000.0f }; // 30回撃てて、1回で1発出す
 		reloadTime_ = 1.5f; // ライフルはリロード時間が短い
 		bulletSpeed_ = 40.0f; // ライフルの弾速はショットガンより速い
 		fireSEPath_ = "gun.mp3";
@@ -38,6 +39,8 @@ void Weapon::Initialize()
 		fireSEPath_ = "shotgunFire.mp3";
 		break;
 	}
+
+	ParticleManager::GetInstance()->CreateParticleGroup("Laser", "particle.png", ParticleEffectType::LaserBeam);
 }
 
 
@@ -185,16 +188,18 @@ void Weapon::UpdateBulletsOnly()
 /// -------------------------------------------------------------
 void Weapon::FireSingleBullet(const Vector3& pos, const Vector3& dir)
 {
-	auto bullet = std::make_unique<Bullet>();
-	bullet->Initialize();
-	bullet->SetPosition(pos);
-	bullet->SetVelocity(dir * bulletSpeed_);
-	bullet->SetDamage(ammoInfo_.bulletDamage);  // ← 新しく追加
+	//auto bullet = std::make_unique<Bullet>();
+	//bullet->Initialize();
+	//bullet->SetPosition(pos);
+	//bullet->SetVelocity(dir * bulletSpeed_);
+	//bullet->SetDamage(ammoInfo_.bulletDamage);  // ← 新しく追加
 
-	// 命中通知用に Player を渡す
-	bullet->SetPlayer(player_);
+	//// 命中通知用に Player を渡す
+	//bullet->SetPlayer(player_);
 
-	bullets_.push_back(std::move(bullet));
+	//bullets_.push_back(std::move(bullet));
+
+	CreateBullet(pos, dir); // 弾丸を作成
 
 	// ショットガン発射時は FireShotgunSpread 側で消費するのでここでは減らさない
 	if (type_ == WeaponType::Rifle) {
@@ -247,4 +252,32 @@ Vector3 Weapon::ApplyRandomSpread(const Vector3& baseDir, float angleRangeDeg)
 	spreadDir += up * tanf(pitchOffset);    // 垂直方向に拡がる
 
 	return Vector3::Normalize(spreadDir);
+}
+
+
+void Weapon::CreateBullet(const Vector3& position, const Vector3& direction)
+{
+	// 弾を作成する処理（既存コード）
+	std::unique_ptr<Bullet> bullet = std::make_unique<Bullet>();
+	Vector3 bulletVelocity = direction * bulletSpeed_;
+	bullet->Initialize();
+	bullet->SetPosition(position);
+	bullet->SetVelocity(bulletVelocity);
+	bullet->SetDamage(ammoInfo_.bulletDamage);  // ダメージ
+	bullets_.push_back(std::move(bullet));
+
+	// ✅ レーザービーム演出
+	float beamLength = 60.0f;
+	int segmentCount = 30;
+	Vector4 beamColor = { 0.0f, 1.0f, 1.0f, 0.8f };
+
+	ParticleManager::GetInstance()->EmitLaserBeamFakeStretch(
+		"Laser",
+		position + direction, // 銃口から少し前に
+		direction,
+		bulletVelocity,
+		beamLength,
+		segmentCount,
+		beamColor
+	);
 }

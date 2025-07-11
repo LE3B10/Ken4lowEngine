@@ -58,6 +58,8 @@ public: /// ---------- メンバ関数 ---------- ///
 
 	void UpdateBulletsOnly();
 
+	void CreateBullet(const Vector3& position, const Vector3& direction);
+
 public: /// ---------- ゲッタ ---------- ///
 
 	// 弾丸の取得

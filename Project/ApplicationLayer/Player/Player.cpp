@@ -279,7 +279,7 @@ void Player::FireWeapon()
 	else
 	{
 		// 通常時は右手（モデル上の銃口）から発射
-		Vector3 localMuzzleOffset = { 2.0f, 1.65f, 5.0f };
+		Vector3 localMuzzleOffset = { 0.0f, 1.65f, 0.0f };
 		Vector3 scale = { 1.0f, 1.0f, 1.0f };
 		Vector3 rotation = { 0.0f,animationModel_->GetRotate().y, 0.0f };
 		Vector3 translation = animationModel_->GetTranslate();
