@@ -10,6 +10,8 @@
 #include "CollisionManager.h"
 #include "AnimationModel.h"
 
+#include "Player.h"
+
 #include "LevelObjectManager.h"
 #include "LevelLoader.h"
 
@@ -62,8 +64,8 @@ private: /// ---------- メンバ変数 ---------- ///
 	std::unique_ptr<Sprite> sprites_;
 	std::unique_ptr<CollisionManager> collisionManager_;
 	std::unique_ptr<SkyBox> skyBox_;
-	std::unique_ptr<AnimationModel> animationModel_;
-	std::unique_ptr<AnimationModel> animationModel2_;
+
+	std::unique_ptr<Player> player_;
 
 	std::unique_ptr<LevelObjectManager> levelManager_;
 

@@ -18,11 +18,11 @@
 #include <numbers>
 #include <memory>
 #include <map>
+#include <Sphere.h>
 
 /// ---------- 前方宣言 ---------- ///
 class DirectXCommon;
 class Camera;
-
 
 /// -------------------------------------------------------------
 ///				　アニメーションを描画するクラス
@@ -41,6 +41,14 @@ private: /// ---------- 構造体 ---------- ///
 	{
 		bool isSkinning; // スキニングを行うかどうか
 		Vector3 padding; // 16バイトアライメントを保つためのパディング
+	};
+
+	struct DissolveSetting
+	{
+		float threshold; // 閾値
+		float edgeThickness; // エッジの範囲（0.05など）
+		float padding[2];
+		Vector4 edgeColor; // エッジ部分の色
 	};
 
 	struct BodyPartCollider
@@ -79,6 +87,10 @@ public: /// ---------- メンバ関数 ---------- ///
 
 	void DrawBodyPartColliders();
 
+	// AnimationModel.h に追加
+	void SetDissolveThreshold(float threshold) { dissolveSetting_->threshold = threshold; }
+	float GetDissolveThreshold() const { return dissolveSetting_->threshold; }
+
 public: /// ---------- ゲッタ ---------- ///
 
 	const WorldTransform& GetWorldTransform() const { return worldTransform; }
@@ -96,6 +108,9 @@ public: /// ---------- ゲッタ ---------- ///
 	AnimationMesh* GetAnimationMesh() { return animationMesh_.get(); }
 
 	float GetDeltaTime() const { return deltaTime; }
+
+	// アニメーション時間を取得
+	float GetAnimationTime() const { return animationTime_; }
 
 public: /// ---------- セッタ ---------- ///
 
@@ -117,10 +132,16 @@ public: /// ---------- セッタ ---------- ///
 	// ワールド空間からボディパーツのカプセルを取得
 	std::vector<std::pair<std::string, Capsule>> GetBodyPartCapsulesWorld() const;
 
+	std::vector<std::pair<std::string, Sphere>> GetBodyPartSpheresWorld() const;
+
 	// 頭を消すかどうか
 	void SetHideHead(bool hide) { hideHead_ = hide; }
 
 	void SetScaleFactor(float factor) { scaleFactor = factor; }
+
+	void SetIsPlaying(bool isPlaying) { isAnimationPlaying_ = isPlaying; }
+
+	void SetAnimationTime(float time) { animationTime_ = time; }
 
 private: /// ---------- メンバ関数 ---------- ///
 
@@ -133,11 +154,11 @@ private: /// ---------- メンバ関数 ---------- ///
 	// スキニングリソースの作成
 	void CreateSkinningSettingResource();
 
+	// Dissolve設定リソースの作成
+	void CreateDissolveSettingResource();
+
 	// ボーン情報の初期化
 	void InitializeBones();
-
-	// アニメーション時間を取得
-	float GetAnimationTime() const { return animationTime_; }
 
 private: /// ---------- メンバ関数・テンプレート関数 ---------- ///
 
@@ -204,6 +225,9 @@ private: /// ---------- メンバ変数 ---------- ///
 	ComPtr<ID3D12Resource> skinningSettingResource_; // スキニング設定用のリソース
 	SkinningSetting* skinningSetting_; // スキニング設定
 
+	ComPtr<ID3D12Resource> dissolveSettingResource_; // Dissolve設定用のリソース
+	DissolveSetting* dissolveSetting_ = nullptr; // Dissolve設定
+	uint32_t dissolveMaskSrvIndex_ = 0; // SRV index for mask
 
 	ComPtr <ID3D12Resource> wvpResource;
 	ComPtr <ID3D12Resource> cameraResource;
@@ -215,5 +239,7 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	bool hideHead_ = false; // デフォルトは表示
 	float scaleFactor = 1.0f;
+
+	bool isAnimationPlaying_ = true; // アニメーションが再生中かどうか
 };
 

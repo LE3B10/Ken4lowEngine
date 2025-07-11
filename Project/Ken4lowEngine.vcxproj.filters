@@ -52,9 +52,6 @@
     <FxCompile Include="Resources\Shaders\Skinning\SkinningObject3d.VS.hlsl">
       <Filter>Shader\Skinning</Filter>
     </FxCompile>
-    <FxCompile Include="Resources\Shaders\Skinning\Skinning.CS.hlsl">
-      <Filter>Shader\Skinning</Filter>
-    </FxCompile>
     <FxCompile Include="Resources\Shaders\Skinning\SkinningObject3d.PS.hlsl">
       <Filter>Shader\Skinning</Filter>
     </FxCompile>
@@ -76,6 +73,7 @@
     <FxCompile Include="Resources\Shaders\Wireframe\Wireframe.VS.hlsl">
       <Filter>Shader\Wireframe</Filter>
     </FxCompile>
+    <FxCompile Include="Resources\Shaders\Skinning\SkinningObject3d.CS.hlsl" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="WinMain.cpp" />
@@ -350,6 +348,12 @@
       <Filter>EngineLayer\PostEffect</Filter>
     </ClCompile>
     <ClCompile Include="EngineLayer\Base\BlendStateFactory.cpp" />
+    <ClCompile Include="ApplicationLayer\Player\Player.cpp" />
+    <ClCompile Include="ApplicationLayer\Player\IdleBehavior.cpp" />
+    <ClCompile Include="ApplicationLayer\Player\WalkingBehavior.cpp" />
+    <ClCompile Include="ApplicationLayer\Player\PlayerBehavior.cpp" />
+    <ClCompile Include="ApplicationLayer\Player\RunningBehavior.cpp" />
+    <ClCompile Include="ApplicationLayer\Player\JumpingBehavior.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="EngineLayer\Managers\ModelManager\AssimpLoader.h">
@@ -688,6 +692,12 @@
     <ClInclude Include="EngineLayer\Math\Sphere.h" />
     <ClInclude Include="EngineLayer\Math\Triangle.h" />
     <ClInclude Include="EngineLayer\Base\BlendStateFactory.h" />
+    <ClInclude Include="ApplicationLayer\Player\Player.h" />
+    <ClInclude Include="ApplicationLayer\Player\IdleBehavior.h" />
+    <ClInclude Include="ApplicationLayer\Player\WalkingBehavior.h" />
+    <ClInclude Include="ApplicationLayer\Player\PlayerBehavior.h" />
+    <ClInclude Include="ApplicationLayer\Player\RunningBehavior.h" />
+    <ClInclude Include="ApplicationLayer\Player\JumpingBehavior.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Resources\Shaders\PostEffect\FullScreen.hlsli">

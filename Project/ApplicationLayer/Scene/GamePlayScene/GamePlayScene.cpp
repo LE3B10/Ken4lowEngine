@@ -45,11 +45,11 @@ void GamePlayScene::Initialize()
 	objectBall_->Initialize("sphere.gltf");
 	objectBall_->SetTranslate({ -2.0f, 0.0f, 0.0f });
 
-	animationModel_ = std::make_unique<AnimationModel>();
-	animationModel_->Initialize("PlayerStateModel/human.gltf");
-
 	skyBox_ = std::make_unique<SkyBox>();
 	skyBox_->Initialize("rostock_laage_airport_4k.dds");
+
+	player_ = std::make_unique<Player>();
+	player_->Initialize();
 
 	// 衝突マネージャの生成
 	collisionManager_ = std::make_unique<CollisionManager>();
@@ -83,7 +83,7 @@ void GamePlayScene::Update()
 	// レベルマネージャの更新
 	levelManager_->Update();
 
-	animationModel_->Update();
+	player_->Update();
 
 	// 衝突判定と応答
 	CheckAllCollisions();
@@ -124,7 +124,7 @@ void GamePlayScene::Draw3DObjects()
 	// アニメーションモデルの共通描画設定
 	AnimationPipelineBuilder::GetInstance()->SetRenderSetting();
 
-	animationModel_->Draw();
+	player_->Draw();
 
 #pragma endregion
 
@@ -168,6 +168,8 @@ void GamePlayScene::DrawImGui()
 {
 	// ライト
 	LightManager::GetInstance()->DrawImGui();
+
+	player_->DrawImGui();
 }
 
 

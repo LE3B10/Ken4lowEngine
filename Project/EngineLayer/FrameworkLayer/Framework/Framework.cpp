@@ -81,7 +81,7 @@ void Framework::Initialize()
 	// デフォルトカメラの生成と初期化
 	defaultCamera_ = std::make_unique<Camera>();
 	defaultCamera_->SetRotate({ 0.3f,0.0f,0.0f });
-	defaultCamera_->SetTranslate({ 0.0f,15.0f,-50.0f });
+	defaultCamera_->SetTranslate({ 0.0f,7.0f,-20.0f });
 
 	// デフォルトカメラの設定
 	Object3DCommon::GetInstance()->SetDefaultCamera(defaultCamera_.get());
