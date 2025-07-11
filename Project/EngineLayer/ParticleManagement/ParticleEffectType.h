@@ -16,4 +16,5 @@ enum class ParticleEffectType
 	Charge,       // 新しく追加：収束中にぐるぐる回る
 	Explosion,    // 爆発用
 	Blood,		  // 血飛沫
+	LaserBeam,	  // レーザービーム
 };
