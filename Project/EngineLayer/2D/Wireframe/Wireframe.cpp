@@ -456,12 +456,52 @@ void Wireframe::DrawCapsule(const Vector3& center, float radius, float height, c
 	}
 }
 
-void Wireframe::DrawCapsule(const Capsule& capsule, int segments, const Vector4& color)
+void Wireframe::DrawCapsule(const Capsule& capsule, const Vector4& color)
 {
-	const Vector3  center = capsule.GetCenter();
-	const float    cylH = capsule.GetHeight();           // シリンダ部
-	const float    fullH = cylH + 2.0f * capsule.radius;  // ☆ 引数に渡すのは「全長」
-	DrawCapsule(center, capsule.radius, fullH, capsule.GetAxis(), segments, color);
+	const Vector3& start = capsule.segment.origin;
+	const Vector3& end = capsule.segment.origin + capsule.segment.diff;
+	float radius = capsule.radius;
+
+	Vector3 center = (start + end) * 0.5f;
+
+	// 高さは radius × 2 加算した「全体の高さ」
+	float height = Vector3::Length(end - start) + radius * 2.0f;
+
+	Vector3 axis = Vector3::Normalize(end - start);
+
+	DrawCapsule(center, radius, height, axis, 8, color);
+}
+
+void Wireframe::DrawPlane(const Plane& plane, float size, const Vector4& color)
+{
+	// Plane の法線と距離から原点位置を算出
+	Vector3 center = plane.normal * plane.distance;
+
+	// Planeの法線に垂直な2軸を求める
+	Vector3 right = Vector3::Cross({ 0, 1, 0 }, plane.normal);
+	if (Vector3::Length(right) < 0.001f) {
+		right = Vector3::Cross({ 1, 0, 0 }, plane.normal);
+	}
+	right = Vector3::Normalize(right);
+	Vector3 forward = Vector3::Normalize(Vector3::Cross(plane.normal, right));
+
+	// 平面上の4頂点を作成（正方形として描画）
+	Vector3 halfRight = right * (size * 0.5f);
+	Vector3 halfForward = forward * (size * 0.5f);
+
+	Vector3 p0 = center - halfRight - halfForward;
+	Vector3 p1 = center + halfRight - halfForward;
+	Vector3 p2 = center + halfRight + halfForward;
+	Vector3 p3 = center - halfRight + halfForward;
+
+	// 線で囲む
+	DrawLine(p0, p1, color);
+	DrawLine(p1, p2, color);
+	DrawLine(p2, p3, color);
+	DrawLine(p3, p0, color);
+
+	// 法線の可視化（上向きの線）
+	DrawLine(center, center + plane.normal * (size * 0.25f), { 1, 0, 0, 1 }); // 赤で表示
 }
 
 

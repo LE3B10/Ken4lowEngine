@@ -454,15 +454,13 @@
     <ClCompile Include="ApplicationLayer\Enemy\Boss\BossWeapon.cpp">
       <Filter>ApplicationLayer\Enemy</Filter>
     </ClCompile>
+    <ClCompile Include="ApplicationLayer\Scene\PhysicalScene\PhysicalScene.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="EngineLayer\Math\AABB.h">
       <Filter>EngineLayer\Math</Filter>
     </ClInclude>
     <ClInclude Include="EngineLayer\Math\OBB.h">
-      <Filter>EngineLayer\Math</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\Math\Ray.h">
       <Filter>EngineLayer\Math</Filter>
     </ClInclude>
     <ClInclude Include="EngineLayer\Math\Segment.h">
@@ -593,9 +591,6 @@
     </ClInclude>
     <ClInclude Include="EngineLayer\Audio\WavLoaderException.h">
       <Filter>EngineLayer\Audio</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\Math\Line.h">
-      <Filter>EngineLayer\Math</Filter>
     </ClInclude>
     <ClInclude Include="EngineLayer\Math\Plane.h">
       <Filter>EngineLayer\Math</Filter>
@@ -915,6 +910,7 @@
     <ClInclude Include="ApplicationLayer\Enemy\Boss\BossWeapon.h">
       <Filter>ApplicationLayer\Enemy</Filter>
     </ClInclude>
+    <ClInclude Include="ApplicationLayer\Scene\PhysicalScene\PhysicalScene.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Resources\Shaders\PostEffect\FullScreen.hlsli">

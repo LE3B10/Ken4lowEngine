@@ -55,6 +55,14 @@ void TitleScene::Update()
 		}
 	}
 
+	if (input->TriggerKey(DIK_BACK))
+	{
+		if (sceneManager_)
+		{
+			sceneManager_->ChangeScene("PhysicalScene"); // 戻るキーでゲームプレイシーンに戻る
+		}
+	}
+
 	// スプライトの更新処理
 	for (auto& sprite : sprites_)
 	{

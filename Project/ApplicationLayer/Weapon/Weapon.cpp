@@ -115,7 +115,7 @@ void Weapon::TryFire(const Vector3& position, const Vector3& direction)
 	case WeaponType::Rifle: // ライフルの場合は単発弾を発射
 		FireSingleBullet(position, direction);
 
-		if (fpsCamera_) fpsCamera_->AddRecoil(0.004, 0.0045);
+		if (fpsCamera_) fpsCamera_->AddRecoil(0.004f, 0.0045f);
 
 		// サウンド再生
 		AudioManager::GetInstance()->PlaySE(fireSEPath_, 0.2f, 2.0f);
@@ -125,7 +125,7 @@ void Weapon::TryFire(const Vector3& position, const Vector3& direction)
 	case WeaponType::Shotgun: // ショットガンの場合は散弾を発射
 		FireShotgunSpread(position, direction);
 
-		if (fpsCamera_) fpsCamera_->AddRecoil(0.008, 0.007);
+		if (fpsCamera_) fpsCamera_->AddRecoil(0.008f, 0.007f);
 
 		// サウンド再生
 		AudioManager::GetInstance()->PlaySE(fireSEPath_, 0.2);

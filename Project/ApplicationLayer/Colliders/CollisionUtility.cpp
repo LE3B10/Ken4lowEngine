@@ -101,6 +101,32 @@ bool CollisionUtility::IsCollision(const AABB& aabb1, const AABB& aabb2)
 		(aabb1.min.z <= aabb2.max.z && aabb1.max.z >= aabb2.min.z);
 }
 
+bool CollisionUtility::IsCollision(const AABB& aabb, const Plane& plane)
+{
+	// AABBの8点を調べる
+	const Vector3 corners[8] = {
+		{ aabb.min.x, aabb.min.y, aabb.min.z },
+		{ aabb.max.x, aabb.min.y, aabb.min.z },
+		{ aabb.min.x, aabb.max.y, aabb.min.z },
+		{ aabb.max.x, aabb.max.y, aabb.min.z },
+		{ aabb.min.x, aabb.min.y, aabb.max.z },
+		{ aabb.max.x, aabb.min.y, aabb.max.z },
+		{ aabb.min.x, aabb.max.y, aabb.max.z },
+		{ aabb.max.x, aabb.max.y, aabb.max.z }
+	};
+
+	// 少なくとも1点がPlaneの負側にあるか
+	for (const auto& corner : corners)
+	{
+		float distance = Vector3::Dot(plane.normal, corner) - plane.distance;
+		if (distance < 0.0f)
+		{
+			return true; // 交差している
+		}
+	}
+	return false;
+}
+
 bool CollisionUtility::IsCollision(const AABB& aabb, const Sphere& sphere)
 {
 	//最近接点を求める
@@ -323,8 +349,8 @@ static float SegmentSegmentDist2(const Vector3& P0, const Vector3& P1,
 /// Capsule–Capsule
 inline bool IsCapsuleCapsuleHit(const Capsule& c1, const Capsule& c2)
 {
-	const float dist2 = SegmentSegmentDist2(c1.pointA, c1.pointB,
-		c2.pointA, c2.pointB);
+	const float dist2 = SegmentSegmentDist2(c1.segment.origin, c1.segment.diff,
+		c2.segment.origin, c2.segment.diff);
 	const float rSum = c1.radius + c2.radius;
 	return dist2 <= rSum * rSum + 1e-6f;   // EPS で数値誤差吸収
 }
@@ -336,19 +362,57 @@ bool CollisionUtility::IsCollision(const Capsule& cap1, const Capsule& cap2)
 {
 	// 1. 中心線同士の最近接距離²を取得
 	float dist2 = SegmentSegmentDist2(
-		cap1.pointA, cap1.pointB,
-		cap2.pointA, cap2.pointB);
+		cap1.segment.origin, cap1.segment.diff,
+		cap2.segment.origin, cap2.segment.diff);
 
 	// 2. しきい値 = 半径の和 の²
 	float rSum = cap1.radius + cap2.radius;
 	return dist2 <= rSum * rSum + 1e-6f;    // EPS で誤差吸収
 }
 
+bool CollisionUtility::IsCollision(const AABB& aabb, const Capsule& capsule)
+{
+	const Vector3& p0 = capsule.segment.origin;
+	const Vector3  p1 = capsule.segment.origin + capsule.segment.diff;
+
+	// 線分とAABBの最近接点を求める（AABB内にクランプ）
+	Vector3 segDir = p1 - p0;
+	float segLenSq = Vector3::Dot(segDir, segDir);
+	float t = 0.0f;
+	if (segLenSq > 1e-6f) {
+		// AABBに最も近い位置にtをクランプ
+		Vector3 boxCenter = (aabb.min + aabb.max) * 0.5f;
+		t = Vector3::Dot(boxCenter - p0, segDir) / segLenSq;
+		t = std::clamp(t, 0.0f, 1.0f);
+	}
+
+	Vector3 closestOnSegment = p0 + segDir * t;
+
+	// AABB内の最近接点を求める
+	Vector3 closestInAABB = {
+		std::clamp(closestOnSegment.x, aabb.min.x, aabb.max.x),
+		std::clamp(closestOnSegment.y, aabb.min.y, aabb.max.y),
+		std::clamp(closestOnSegment.z, aabb.min.z, aabb.max.z),
+	};
+
+	// 2点間の距離の2乗
+	Vector3 diff = closestOnSegment - closestInAABB;
+	float distSq = Vector3::Dot(diff, diff);
+
+	// 半径を考慮して判定
+	return distSq <= (capsule.radius * capsule.radius) + 1e-6f;
+}
+
+bool CollisionUtility::IsCollision(const Capsule& capsule, const AABB& aabb)
+{
+	return IsCollision(aabb, capsule);
+}
+
 bool CollisionUtility::IsCollision(const Capsule& capsule, const Sphere& sphere)
 {
 	// カプセルの軸線を A-B とする
-	const Vector3& A = capsule.pointA;
-	const Vector3& B = capsule.pointB;
+	const Vector3& A = capsule.segment.origin;
+	const Vector3& B = capsule.segment.diff;
 	const Vector3& C = sphere.center;  // 球の中心
 
 	// A-B 上に C に最も近い点 P を求める（線分と点の最近接点）
@@ -382,7 +446,7 @@ bool CollisionUtility::IsCollision(const Capsule& capsule, const Segment& seg)
 
 	// 軸線 [A,B] と 線分 [p0,p1] の最近接距離²
 	const float dist2 = SegmentSegmentDist2(
-		capsule.pointA, capsule.pointB,
+		capsule.segment.origin, capsule.segment.diff,
 		p0, p1);
 
 	// 半径² と比較
@@ -394,4 +458,30 @@ bool CollisionUtility::IsCollision(const Capsule& capsule, const Segment& seg)
 bool CollisionUtility::IsCollision(const Segment& segment, const Capsule& capsule)
 {
 	return IsCollision(capsule, segment);
+}
+
+bool CollisionUtility::IsCollision(const Capsule& capsule, const Plane& plane)
+{
+	const Vector3& p0 = capsule.segment.origin;
+	const Vector3& p1 = capsule.segment.origin + capsule.segment.diff;
+
+	// 線分上の点の数（離散化）
+	const int kSteps = 10;
+	for (int i = 0; i <= kSteps; ++i) {
+		float t = static_cast<float>(i) / static_cast<float>(kSteps);
+		Vector3 point = p0 + (p1 - p0) * t;
+
+		// 点とPlaneとの距離
+		float distance = Vector3::Dot(plane.normal, point) - plane.distance;
+
+		if (fabs(distance) <= capsule.radius) {
+			return true;
+		}
+	}
+	return false;
+}
+
+bool CollisionUtility::IsCollision(const Plane& plane, const Capsule& capsule)
+{
+	return IsCollision(capsule, plane);
 }

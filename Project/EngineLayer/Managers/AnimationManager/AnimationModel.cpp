@@ -279,14 +279,14 @@ std::vector<std::pair<std::string, Capsule>> AnimationModel::GetBodyPartCapsules
 			// Sphere → pointA = pointB
 			const Vector3  local = joints[part.startJointIndex].skeletonSpaceMatrix.GetTranslation() + part.offset;
 			Vector3 world = Vector3::Transform(local, worldMatrix);
-			capsule.pointA = capsule.pointB = world;
+			capsule.segment.origin = capsule.segment.diff = world;
 		}
 		else {
 			// カプセル → 始点と終点両方に回転適用
 			Vector3 a = Vector3::Transform(joints[part.startJointIndex].skeletonSpaceMatrix.GetTranslation(), worldMatrix);
 			Vector3 b = Vector3::Transform(joints[part.endJointIndex].skeletonSpaceMatrix.GetTranslation(), worldMatrix);
-			capsule.pointA = a;
-			capsule.pointB = b;
+			capsule.segment.origin = a;
+			capsule.segment.diff = b;
 		}
 		out.emplace_back(part.name, capsule);
 	}

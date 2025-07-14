@@ -28,7 +28,6 @@ void GamePlayScene::Initialize()
 	DebugCamera::GetInstance()->Initialize();
 #endif // _DEBUG
 
-	dxCommon_ = DirectXCommon::GetInstance();
 	input_ = Input::GetInstance();
 
 	// カーソルをロック

@@ -50,7 +50,7 @@ public: /// ---------- セグメントのメンバ関数 ---------- ///
 	// セグメントを取得
 	virtual Segment GetSegment() const { return segment_; }
 
-public: /// ---------- Capsule のメンバ関数 ---------- ///
+public: /// ---------- Sphere のメンバ関数 ---------- ///
 
 	// Sphereを設定（衝突判定用）
 	void SetSphere(Sphere& spere) { sphere_ = spere; useSphere_ = true; }

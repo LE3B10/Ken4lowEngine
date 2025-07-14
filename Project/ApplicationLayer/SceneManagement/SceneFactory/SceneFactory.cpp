@@ -3,6 +3,7 @@
 #include "GamePlayScene.h"
 #include "GameClearScene.h"
 #include "GameOverScene.h"
+#include <PhysicalScene.h>
 
 
 /// -------------------------------------------------------------
@@ -28,6 +29,10 @@ std::unique_ptr<BaseScene> SceneFactory::CreateScene(const std::string& sceneNam
 	else if (sceneName == "GameOverScene")
 	{
 		return std::make_unique<GameOverScene>();
+	}
+	else if (sceneName == "PhysicalScene")
+	{
+		return std::make_unique<PhysicalScene>();
 	}
 
 	throw std::runtime_error("Unknown scene name: " + sceneName);
