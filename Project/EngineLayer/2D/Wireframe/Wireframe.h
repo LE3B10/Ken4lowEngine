@@ -13,6 +13,7 @@
 #include <list>
 #include <map>
 #include <Segment.h>
+#include <Plane.h>
 
 
 /// ---------- 前方宣言 ---------- ///
@@ -182,7 +183,11 @@ public: /// ---------- 3D用の線の描画 ---------- ///
 	// カプセル（Capsule）を描画
 	void DrawCapsule(const Vector3& center, float radius, float height, const Vector3& axis, int segments, const Vector4& color);
 	
-	void DrawCapsule(const Capsule& capsule, int segments, const Vector4& color);
+	// カプセル（Capsule）を描画（Capsule構造体を使用）
+	void DrawCapsule(const Capsule& capsule, const Vector4& color);
+
+	// Plane（平面）を描画
+	void DrawPlane(const Plane& plane, float size, const Vector4& color);
 
 	// 円柱（シリンダー）を描画
 	void DrawCylinder(const Vector3& baseCenter, float radius, float height, const Vector3& axis, uint32_t segmentCount, const Vector4& color);

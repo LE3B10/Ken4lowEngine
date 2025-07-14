@@ -79,7 +79,6 @@ private: /// ---------- メンバ関数 ---------- ///
 
 private: /// ---------- メンバ変数 ---------- ///
 
-	DirectXCommon* dxCommon_ = nullptr;
 	Input* input_ = nullptr;
 
 	GameState gameState_ = GameState::Playing; // ゲームの状態
