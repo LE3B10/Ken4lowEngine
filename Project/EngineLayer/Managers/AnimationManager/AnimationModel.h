@@ -223,7 +223,7 @@ private: /// ---------- メンバ変数 ---------- ///
 
 
 	ComPtr<ID3D12Resource> skinningSettingResource_; // スキニング設定用のリソース
-	SkinningSetting* skinningSetting_; // スキニング設定
+	SkinningSetting* skinningSetting_ = nullptr; // スキニング設定
 
 	ComPtr<ID3D12Resource> dissolveSettingResource_; // Dissolve設定用のリソース
 	DissolveSetting* dissolveSetting_ = nullptr; // Dissolve設定

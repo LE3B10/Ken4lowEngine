@@ -14,13 +14,11 @@
 #include "Boss.h"
 #include "FpsCamera.h"
 #include "Crosshair.h"
-#include "EnemyManager.h"
 #include "HUDManager.h"
 #include "ResultManager.h"
 #include "ItemManager.h"
 
 #include "AnimationModel.h"
-#include "DummyModel.h"
 
 
 /// ---------- 前方宣言 ---------- ///
@@ -89,10 +87,6 @@ private: /// ---------- メンバ変数 ---------- ///
 	std::unique_ptr<Player> player_ = nullptr; // プレイヤーオブジェクト
 
 	std::unique_ptr<Boss> boss_ = nullptr;
-
-	std::unique_ptr<EnemyManager> enemyManager_ = nullptr;
-
-	//std::unique_ptr<DummyModel> dummyModel_ = nullptr;
 
 	std::unique_ptr<AnimationModel> dModel_;
 

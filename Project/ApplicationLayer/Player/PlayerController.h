@@ -19,7 +19,7 @@ private: /// ---------- 構造体 ---------- ///
 	struct MovementConfig
 	{
 		float baseSpeed = 2.0f;			// 基本移動速度
-		float dashMultiplier = 3.0f;	// ダッシュ時の速度倍率
+		float dashMultiplier = 4.5f;	// ダッシュ時の速度倍率
 		float adsSpeedFactor = 0.5f;	// エイムダウンサイト時の移動速度倍率
 		float crouchSpeedFactor = 0.5f;	// しゃがみ時の移動速度倍率
 	};
@@ -36,8 +36,8 @@ private: /// ---------- 構造体 ---------- ///
 	struct StaminaState
 	{
 		float* current = nullptr;  // スタミナへのポインタ
-		float max = 100.0f;		   // 最大スタミナ
-		float regenRate = 15.0f;   // スタミナ回復速度
+		float max = 1000.0f;	   // 最大スタミナ
+		float regenRate = 50.0f;   // スタミナ回復速度
 		float dashCost = 20.0f;	   // ダッシュ時のスタミナ消費量
 		bool isBlocked = false;	   // スタミナ回復ブロックフラグ
 		float recoverDelay = 1.0f; // スタミナ回復遅延時間

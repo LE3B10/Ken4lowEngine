@@ -72,8 +72,8 @@ private: // ---------- メンバ ---------- //
 	float adsSensitivityFactor_ = 0.25f;
 
 	// ボビング処理用
-	float currentBobbingSpeed_;
-	float currentBobbingAmplitude_;
+	float currentBobbingSpeed_ = 0.0f;
+	float currentBobbingAmplitude_ = 0.0f;
 	float bobbingTimer_ = 0.0f;
 	float bobbingAmplitude_ = 0.25f;   // 振れ幅
 	float bobbingSpeed_ = 10.0f;       // サイクル速度
