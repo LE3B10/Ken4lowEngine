@@ -5,7 +5,6 @@
 #include <Player.h>
 #include <Crosshair.h>
 #include <ParticleManager.h>
-#include <Enemy.h>
 #include <Boss.h>
 
 
@@ -98,23 +97,7 @@ void Bullet::OnCollision(Collider* other)
 
 	contactRecord_.Add(targetID); // 初めて当たった相手として記録
 
-	// 衝突処理（ダメージなど）
-	if (auto enemy = dynamic_cast<Enemy*>(other))
-	{
-		enemy->TakeDamage(GetDamage());
-
-		if (enemy->IsDead())
-		{
-			// スコアを加算
-			ScoreManager::GetInstance()->AddKill();
-		}
-		else
-		{
-			// スコアを加算
-			ScoreManager::GetInstance()->AddScore(50);
-		}
-	}
-	else if (auto boss = other->GetOwner<Boss>())        // ★ 追加
+	if (auto boss = other->GetOwner<Boss>())        // ★ 追加
 	{
 		boss->TakeDamage(GetDamage());
 

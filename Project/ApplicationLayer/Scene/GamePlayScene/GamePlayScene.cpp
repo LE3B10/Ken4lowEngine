@@ -45,9 +45,6 @@ void GamePlayScene::Initialize()
 	boss_->Initialize();
 	boss_->SetPlayer(player_.get());
 
-	enemyManager_ = std::make_unique<EnemyManager>();
-	enemyManager_->Initialize(player_.get());
-
 	// 追従カメラの生成と初期化
 	fpsCamera_ = std::make_unique<FpsCamera>();
 	fpsCamera_->Initialize(player_.get());
@@ -78,8 +75,6 @@ void GamePlayScene::Initialize()
 	// 初期化内に追加（プレイヤー近くに1個スポーン）
 	itemManager_ = std::make_unique<ItemManager>();
 	itemManager_->Initialize();
-
-	enemyManager_->SetItemManager(itemManager_.get());
 
 	terrein_ = std::make_unique<Object3D>();
 	// 地形オブジェクトの初期化
@@ -143,18 +138,9 @@ void GamePlayScene::Update()
 			// ★ 結果情報を設定
 			resultManager_->SetFinalScore(ScoreManager::GetInstance()->GetScore());
 			resultManager_->SetKillCount(ScoreManager::GetInstance()->GetKills());
-			resultManager_->SetWaveCount(enemyManager_->GetCurrentWave()); // EnemyManager に GetCurrentWave() が必要
 
 			break;
 		}
-
-		// エネミーマネージャーの更新
-		//enemyManager_->Update();
-
-		// Waveがすべて終わったら次Waveをスタート
-		/*if (enemyManager_->IsWaveClear()) {
-			enemyManager_->StartNextWave();
-		}*/
 
 		{
 			Weapon* weapon = player_->GetCurrentWeapon();
@@ -258,8 +244,6 @@ void GamePlayScene::Draw3DObjects()
 	// アイテムの描画
 	itemManager_->Draw();
 
-	//enemyManager_->Draw();
-
 	// プレイヤーの描画
 	player_->Draw();
 
@@ -343,9 +327,6 @@ void GamePlayScene::DrawImGui()
 	boss_->DrawImGui();
 
 	terrein_->DrawImGui();
-
-	// エネミースポナー
-	//enemyManager_->DrawImGui();
 }
 
 
@@ -358,7 +339,6 @@ void GamePlayScene::CheckAllCollisions()
 	collisionManager_->Reset();
 
 	// コライダーをリストに登録
-	//enemyManager_->RegisterColliders(collisionManager_.get());
 	player_->RegisterColliders(collisionManager_.get()); // プレイヤーのコライダーを登録
 	boss_->RegisterColliders(collisionManager_.get());
 
