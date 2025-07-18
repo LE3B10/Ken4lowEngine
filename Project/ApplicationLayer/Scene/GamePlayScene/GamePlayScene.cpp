@@ -98,7 +98,7 @@ void GamePlayScene::Draw3DObjects()
 
 	// スカイボックスの共通描画設定
 	SkyBoxManager::GetInstance()->SetRenderSetting();
-	//skyBox_->Draw();
+	skyBox_->Draw();
 
 #pragma endregion
 
@@ -111,7 +111,7 @@ void GamePlayScene::Draw3DObjects()
 	objectTerrain_->Draw();
 
 	// 球体の描画
-	//objectBall_->Draw();
+	objectBall_->Draw();
 
 	// レベルマネージャの描画
 	//levelManager_->Draw();
@@ -168,6 +168,8 @@ void GamePlayScene::DrawImGui()
 {
 	// ライト
 	LightManager::GetInstance()->DrawImGui();
+
+	objectBall_->DrawImGui();
 }
 
 
