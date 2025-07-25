@@ -135,5 +135,9 @@ private: /// ---------- 定数 ---------- ///
 	bool isDissolving_ = false;
 	float dissolveTime_ = 0.0f;
 	float dissolveDuration_ = 2.0f; // ディゾルブ完了までの時間
+
+	float attackRange_ = 25.0f;   // 近距離＝射撃
+	float chaseRange_ = 18.0f;   // 中距離＝追跡開始
+	float lostRange_ = 60.0f;   // これ以上離れたら待機
 };
 

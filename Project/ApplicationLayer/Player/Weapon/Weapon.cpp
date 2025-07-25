@@ -26,7 +26,7 @@ void Weapon::Initialize()
 	switch (type_)
 	{
 	case WeaponType::Rifle:
-		ammoInfo_ = { 300000000, 90, 30, 90, 1, 0.1f, 1000.0f }; // 30回撃てて、1回で1発出す
+		ammoInfo_ = { 60, 300, 30, 300, 1, 10.0f, 1000.0f }; // 30回撃てて、1回で1発出す
 		reloadTime_ = 1.5f; // ライフルはリロード時間が短い
 		bulletSpeed_ = 40.0f; // ライフルの弾速はショットガンより速い
 		fireSEPath_ = "gun.mp3";
