@@ -25,7 +25,7 @@ public: /// ---------- メンバ関数 ---------- ///
 	void AddScore(int value) { score_ += value; }
 
 	// Waveのセット
-	void SetWave(int wave) { currentWave_ = wave; }
+	//void SetWave(int wave) { currentWave_ = wave; }
 
 	// スコアの取得
 	int GetScore() const { return score_; }

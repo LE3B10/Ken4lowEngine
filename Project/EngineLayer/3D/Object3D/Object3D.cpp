@@ -98,11 +98,13 @@ void Object3D::Draw()
 
 	material_.SetPipeline();
 	worldTransform.SetPipeline();
-	
-	commandList->SetGraphicsRootDescriptorTable(2, modelData.material.gpuHandle); // テクスチャの設定
+
+	TextureManager::GetInstance()->SetGraphicsRootDescriptorTable(commandList, 2, modelData.material.gpuHandle);
+
 	commandList->SetGraphicsRootConstantBufferView(3, cameraResource->GetGPUVirtualAddress());
 
-	commandList->SetGraphicsRootDescriptorTable(7, environmentMapHandle_); // 環境マップの設定
+	TextureManager::GetInstance()->SetGraphicsRootDescriptorTable(commandList, 7, environmentMapHandle_);
+
 	mesh_.Draw();
 }
 

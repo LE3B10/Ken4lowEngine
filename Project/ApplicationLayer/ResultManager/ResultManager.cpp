@@ -27,8 +27,8 @@ void ResultManager::Initialize()
 	killDrawer_ = std::make_unique<NumberSpriteDrawer>();
 	killDrawer_->Initialize("Resources/number.png");
 
-	waveDrawer_ = std::make_unique<NumberSpriteDrawer>();
-	waveDrawer_->Initialize("Resources/number.png");
+	/*waveDrawer_ = std::make_unique<NumberSpriteDrawer>();
+	waveDrawer_->Initialize("Resources/number.png");*/
 }
 
 void ResultManager::Update()
@@ -74,6 +74,6 @@ void ResultManager::Draw()
 	killDrawer_->Reset();
 	killDrawer_->DrawNumberCentered(killCount_, { 628.0f, 280.0f }, 24.0f);
 
-	waveDrawer_->Reset();
-	waveDrawer_->DrawNumberCentered(waveCount_, { 628.0f, 360.0f }, 24.0f);
+	/*waveDrawer_->Reset();
+	waveDrawer_->DrawNumberCentered(waveCount_, { 628.0f, 360.0f }, 24.0f);*/
 }
