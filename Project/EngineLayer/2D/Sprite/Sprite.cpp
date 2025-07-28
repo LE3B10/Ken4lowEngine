@@ -121,7 +121,7 @@ void Sprite::Draw()
 	commandList->SetGraphicsRootConstantBufferView(2, transformationMatrixResource.Get()->GetGPUVirtualAddress());
 
 	// ディスクリプタテーブルの設定
-	commandList->SetGraphicsRootDescriptorTable(3, gpuHandle_);
+	TextureManager::GetInstance()->SetGraphicsRootDescriptorTable(commandList, 3, gpuHandle_);
 
 	commandList->DrawIndexedInstanced(kNumVertex, 1, 0, 0, 0);
 }

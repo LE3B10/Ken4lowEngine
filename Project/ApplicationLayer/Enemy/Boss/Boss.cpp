@@ -267,10 +267,9 @@ void Boss::UpdateIdle()
 	// プレイヤーが近づいてきたら追跡状態に移行
 	Vector3 toPlayer = player_->GetWorldTransform()->translate_ - model_->GetTranslate();
 	float distance = Vector3::Length(toPlayer);
-	if (distance < 20.0f)
-	{
-		ChangeState(BossState::Chase);
-	}
+
+	// プレイヤーとの距離が追跡範囲内なら Chase 状態に移行
+	if (distance < attackRange_) ChangeState(BossState::Shoot); // 射撃範囲内なら Shoot 状態に移行
 }
 
 void Boss::UpdateChase()
@@ -295,23 +294,10 @@ void Boss::UpdateChase()
 	float angleY = std::atan2(-dir.x, dir.z); // ラジアン角（Y軸回転）
 	model_->SetRotate({ 0.0f, angleY, 0.0f });
 
-	// Idle → Chase に移行: 20未満
-	if (state_ == BossState::Idle && distance < 20.0f) {
-		ChangeState(BossState::Chase);
-	}
-
-	// Chase → Idle に戻る: 30以上
-	else if (state_ == BossState::Chase && distance > 30.0f) {
-		ChangeState(BossState::Idle);
-	}
-
-	// Chase -> Shoot に移行: 10未満
-	if (state_ == BossState::Chase && distance < 10.0f)
-	{
-		// 射撃状態に移行
-		Log("Boss changes state to Shoot");
+	if (distance < attackRange_)          // 近い → 射撃
 		ChangeState(BossState::Shoot);
-	}
+	else if (distance > lostRange_)       // 遠い → 待機
+		ChangeState(BossState::Idle);
 }
 
 void Boss::UpdateMelee()
@@ -367,11 +353,8 @@ void Boss::UpdateShoot()
 	// 距離を求める（攻撃への移行判定に使うなら）
 	float distance = Vector3::Length(toPlayer);
 
-	if (distance >= 10.0f)
-	{
-		shootDuration_ = 0.0f;
+	if (distance > attackRange_)          // 離れたら再び追跡
 		ChangeState(BossState::Chase);
-	}
 }
 
 void Boss::UpdateSpecialAttack()

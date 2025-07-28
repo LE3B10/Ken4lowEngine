@@ -16,7 +16,6 @@ void ScoreManager::Reset()
 {
 	score_ = 0;
 	kills_ = 0;
-	currentWave_ = 1;
 }
 
 void ScoreManager::DrawImGui()
@@ -24,6 +23,5 @@ void ScoreManager::DrawImGui()
 	ImGui::Begin("Score");
 	ImGui::Text("Score: %d", score_);
 	ImGui::Text("Kills: %d", kills_);
-	ImGui::Text("Wave: %d", currentWave_);
 	ImGui::End();
 }

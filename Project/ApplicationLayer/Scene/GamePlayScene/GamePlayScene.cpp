@@ -158,6 +158,18 @@ void GamePlayScene::Update()
 			}
 		}
 
+		// ボスが死んだらリザルト画面へ移行
+		if (boss_->IsDead())
+		{
+			gameState_ = GameState::Result;
+			Input::GetInstance()->SetLockCursor(false);
+			ShowCursor(true);
+			// ★ 結果情報を設定
+			resultManager_->SetFinalScore(ScoreManager::GetInstance()->GetScore());
+			resultManager_->SetKillCount(ScoreManager::GetInstance()->GetKills());
+			break;
+		}
+
 		// アイテムの更新と衝突判定
 		itemManager_->Update(player_.get());
 

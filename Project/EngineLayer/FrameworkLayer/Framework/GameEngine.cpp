@@ -101,9 +101,6 @@ void GameEngine::Draw()
 	//--------------------------------------------
 	PostEffectManager::GetInstance()->BeginDraw(); // RTV/DSVの設定・Clear
 
-	// --- SRVヒープの設定（3D描画用） ---
-	SRVManager::GetInstance()->PreDraw();
-
 	// --- 2. 3Dオブジェクトの描画 ---
 	SceneManager::GetInstance()->Draw3DObjects();
 
@@ -126,7 +123,6 @@ void GameEngine::Draw()
 	//--------------------------------------------
 	// 5. 2Dスプライト（UIなど）をその上に直接描画
 	//--------------------------------------------
-	SRVManager::GetInstance()->PreDraw(); // 2Dスプライト用SRVの再設定
 	SceneManager::GetInstance()->Draw2DSprites();
 
 	//--------------------------------------------
