@@ -79,10 +79,19 @@ void GameEngine::Update()
 	// ParticleManagerのImGuiの描画処理
 	ParticleManager::GetInstance()->DrawImGui();
 
-	// PostEffectManagerのImGuiの描画処理
-	PostEffectManager::GetInstance()->ImGuiRender();
 
 #endif // _DEBUG
+
+	// PostEffectManagerのImGuiの描画処理
+	PostEffectManager::GetInstance()->ImGuiRender();
+	
+	// ImGuiでクリックしたら次のシーンに移る
+	if (ImGui::Button("NextScene"))
+	{
+		SceneManager::GetInstance()->ChangeScene("GamePlayScene");
+	}
+	
+
 	/// ---------- ImGuiフレーム終了 ---------- ///
 	ImGuiManager::GetInstance()->EndFrame();
 }
