@@ -23,6 +23,20 @@ void DX12CommandManager::Initialize(ID3D12Device* device)
 	assert(SUCCEEDED(hr));
 }
 
+void DX12CommandManager::ResourceTransition(ID3D12Resource* resource, D3D12_RESOURCE_STATES stateBefore, D3D12_RESOURCE_STATES stateAfter)
+{
+	if (stateBefore == stateAfter) return;
+
+	D3D12_RESOURCE_BARRIER barrier = {};
+	barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+	barrier.Transition.pResource = resource;
+	barrier.Transition.StateBefore = stateBefore;
+	barrier.Transition.StateAfter = stateAfter;
+	barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+
+	commandList_->ResourceBarrier(1, &barrier);
+}
+
 void DX12CommandManager::SetFenceManager(DX12FenceManager* fenceManager)
 {
 	fenceManager_ = fenceManager;

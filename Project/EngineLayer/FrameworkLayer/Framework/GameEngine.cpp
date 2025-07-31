@@ -54,14 +54,24 @@ void GameEngine::Update()
 		defaultCamera_->Update();
 	}
 
-	/// ---------- ImGuiフレーム開始 ---------- ///
-	ImGuiManager::GetInstance()->BeginFrame();
-
 	// シーンマネージャーの更新
 	SceneManager::GetInstance()->Update();
 
 	// ポストエフェクトの更新
 	PostEffectManager::GetInstance()->Update();
+}
+
+
+/// -------------------------------------------------------------
+///				　			描画処理
+/// -------------------------------------------------------------
+void GameEngine::Draw()
+{
+	// 描画開始（バックバッファのクリア）
+	dxCommon_->BeginDraw();
+
+	/// ---------- ImGuiフレーム開始 ---------- ///
+	ImGuiManager::GetInstance()->BeginFrame();
 
 #ifdef _DEBUG // デバッグモードの場合
 
@@ -85,16 +95,6 @@ void GameEngine::Update()
 #endif // _DEBUG
 	/// ---------- ImGuiフレーム終了 ---------- ///
 	ImGuiManager::GetInstance()->EndFrame();
-}
-
-
-/// -------------------------------------------------------------
-///				　			描画処理
-/// -------------------------------------------------------------
-void GameEngine::Draw()
-{
-	// 描画開始（バックバッファのクリア）
-	dxCommon_->BeginDraw();
 
 	//--------------------------------------------
 	// 1. オフスクリーンレンダリングの開始（3D用）

@@ -26,7 +26,7 @@ void DissolveEffect::Initialize(DirectXCommon* dxCommon, PostEffectPipelineBuild
 	computePipelineState_ = builder->CreateComputePipeline(ShaderCompiler::GetShaderPath(L"DissolveEffect", L".CS.hlsl"), computeRootSignature_.Get());
 
 	// ディゾルブの設定
-	std::string filePath = "Resources/Mask/Noise.png";
+	std::string filePath = "Mask/Noise.png";
 	TextureManager::GetInstance()->LoadTexture(filePath);
 
 	// SRVインデックスを取得（CopySRVせず、既存SRVをそのまま使う）

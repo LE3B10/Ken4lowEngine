@@ -87,6 +87,6 @@ private: /// ---------- メンバ変数 ---------- ///
 	float stamina_ = 100.0f;
 	float maxStamina_ = 100.0f;
 
-	const std::string texturePath_ = "Resources/Number.png"; // 数字のテクスチャパス
+	const std::string texturePath_ = "Number.png"; // 数字のテクスチャパス
 };
 

@@ -11,16 +11,15 @@
 /// -------------------------------------------------------------
 void SkyBox::Initialize(const std::string& filePath)
 {
-	const std::string FilePath = "Resources/" + filePath;
-	TextureManager::GetInstance()->LoadTexture(FilePath);
+	TextureManager::GetInstance()->LoadTexture(filePath);
 
 	camera_ = Object3DCommon::GetInstance()->GetDefaultCamera();
 
 	dxCommon_ = DirectXCommon::GetInstance();
 
-	gpuHandle_ = TextureManager::GetInstance()->GetSrvHandleGPU(FilePath);
+	gpuHandle_ = TextureManager::GetInstance()->GetSrvHandleGPU(filePath);
 
-	worldTransform_.scale_ = { 50.0f, 50.0f, 50.0f };
+	worldTransform_.scale_ = { 500.0f, 500.0f, 500.0f };
 	worldTransform_.rotate_ = { 0.0f, 0.0f, 0.0f };
 	worldTransform_.translate_ = { 0.0f, 0.0f, 0.0f };
 
@@ -84,7 +83,7 @@ void SkyBox::Draw()
 	commandList->SetGraphicsRootConstantBufferView(1, wvpResource->GetGPUVirtualAddress());
 
 	// ディスクリプタテーブルの設定
-	commandList->SetGraphicsRootDescriptorTable(2, gpuHandle_);
+	TextureManager::GetInstance()->SetGraphicsRootDescriptorTable(commandList, 2, gpuHandle_);
 
 	commandList->DrawIndexedInstanced(kNumVertex, 1, 0, 0, 0);
 }

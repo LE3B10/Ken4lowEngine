@@ -149,7 +149,7 @@ private: /// ---------- メンバ関数 ---------- ///
 	void UpdateAnimation();
 
 	// Animationを解析する
-	Animation LoadAnimationFile(const std::string& directoryPath, const std::string& fileName);
+	Animation LoadAnimationFile(const std::string& fileName);
 
 	// スキニングリソースの作成
 	void CreateSkinningSettingResource();
