@@ -13,7 +13,7 @@ class Crosshair
 public: /// ---------- メンバ関数 ---------- ///
 
 	// 初期化（テクスチャロード）
-	void Initialize(const std::string& texturePath = "Resources/crosshair-white.png");
+	void Initialize(const std::string& texturePath = "crosshair-white.png");
 
 	// 更新（将来のアニメーション用：今は空でOK）
 	void Update();

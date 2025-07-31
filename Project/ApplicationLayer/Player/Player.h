@@ -1,12 +1,12 @@
 #pragma once
 #include <PlayerController.h>
 #include <Bullet.h>
-#include "Weapon.h" // 追加
+#include "Weapon.h"
 #include <NumberSpriteDrawer.h>
 #include <Collider.h>
 #include <AnimationModel.h>
-#include "PlayerStateType.h"
-#include <IPlayerState.h>
+
+#include "PlayerBehavior.h"
 
 /// ---------- 前方宣言 ---------- ///
 class FpsCamera;
@@ -14,12 +14,26 @@ class Crosshair;
 class CollisionManager;
 
 
+/// ---------- モデルの状態を表す列挙型 ---------- ///
+enum class ModelState
+{
+	Idle,       // アイドル状態
+	Walking,    // 歩行状態
+	Running,    // 走行状態
+	Jumping,    // ジャンプ状態
+	Crouching,  // しゃがみ状態
+	Shooting,   // 射撃状態
+	Aiming,     // エイムダウンサイト状態
+	Reloading,  // リロード状態
+	Dead        // 死亡状態
+};
+
 /// -------------------------------------------------------------
 ///					　プレイヤークラス
 /// -------------------------------------------------------------
 class Player : public Collider
 {
-	// ★各部位ごとの Collider を保持
+	// 各部位ごとの Collider を保持
 	struct PartCol
 	{
 		std::string name;
@@ -46,8 +60,6 @@ public: /// ---------- メンバ関数 ---------- ///
 
 	// 衝突判定を行う
 	void RegisterColliders(CollisionManager* collisionManager) const;
-
-	void ChangeState(std::unique_ptr<IPlayerState> next); // ↓実装
 
 private: /// ---------- メンバ関数 ---------- ///
 
@@ -123,7 +135,7 @@ public: /// ---------- ゲッタ ---------- ///
 	Crosshair* GetCrosshair() const { return crosshair_; }
 
 	// アニメーションモデルを取得
-	std::unique_ptr<AnimationModel>& GetAnimationModel() { return animationModel_; }
+	AnimationModel* GetAnimationModel() { return animationModel_.get(); }
 
 public: /// ---------- セッタ ---------- ///
 
@@ -154,6 +166,9 @@ public: /// ---------- セッタ ---------- ///
 	// クロスヘアを設定
 	void SetCrosshair(Crosshair* crosshair) { crosshair_ = crosshair; }
 
+	// モデルの状態を設定
+	void SetState(ModelState state, bool force = false);
+
 private: /// ---------- メンバ変数 ---------- ///
 
 	Input* input_ = nullptr; // 入力クラス
@@ -161,8 +176,9 @@ private: /// ---------- メンバ変数 ---------- ///
 	FpsCamera* fpsCamera_ = nullptr;
 	Crosshair* crosshair_ = nullptr; // クロスヘアクラス
 
-	std::unique_ptr<IPlayerState> state_;          // ← 追加
-	
+	ModelState currentState_ = ModelState::Idle; // 現在のプレイヤー状態
+	std::unordered_map<ModelState, std::unique_ptr<PlayerBehavior>> behaviors_;
+
 	std::vector<std::unique_ptr<Weapon>> weapons_; // 武器クラス
 	int currentWeaponIndex_ = 0; // 現在の武器インデックス
 
@@ -173,8 +189,8 @@ private: /// ---------- メンバ変数 ---------- ///
 	std::unique_ptr<NumberSpriteDrawer> numberSpriteDrawer_; // 数字スプライト描画クラス
 	std::unique_ptr<AnimationModel> animationModel_;
 
-	float stamina_ = 100.0f;        // 現在のスタミナ
-	float maxStamina_ = 100.0f;     // 最大スタミナ
+	float stamina_ = 1000.0f;        // 現在のスタミナ
+	float maxStamina_ = 1000.0f;     // 最大スタミナ
 
 private: /// ---------- プレイヤーの状態 ---------- ///
 

@@ -4,31 +4,31 @@
 void ResultManager::Initialize()
 {
 	resultBackground_ = std::make_unique<Sprite>();
-	resultBackground_->Initialize("Resources/white.png");
+	resultBackground_->Initialize("white.png");
 	resultBackground_->SetPosition({ 0.0f, 0.0f });
 	resultBackground_->SetSize({ 1280.0f, 720.0f });
 	resultBackground_->SetColor({ 0.0f, 0.0f, 0.0f, 0.7f }); // 半透明の黒背景
 
 	restartText_ = std::make_unique<Sprite>();
-	restartText_->Initialize("Resources/white.png");
+	restartText_->Initialize("white.png");
 	restartText_->SetPosition({ 500.0f, 600.0f });
 	restartText_->SetSize({ 280.0f, 80.0f });
 	restartText_->SetColor({ 1.0f, 0.7f, 0.7f, 1.0f }); // 赤色
 
 	titleText_ = std::make_unique<Sprite>();
-	titleText_->Initialize("Resources/white.png");
+	titleText_->Initialize("white.png");
 	titleText_->SetPosition({ 500.0f, 500.0f });
 	titleText_->SetSize({ 280.0f, 80.0f });
 	titleText_->SetColor({ 0.7f, 0.7f, 1.0f, 1.0f }); // 青色
 
 	scoreDrawer_ = std::make_unique<NumberSpriteDrawer>();
-	scoreDrawer_->Initialize("Resources/number.png");
+	scoreDrawer_->Initialize("number.png");
 
 	killDrawer_ = std::make_unique<NumberSpriteDrawer>();
-	killDrawer_->Initialize("Resources/number.png");
+	killDrawer_->Initialize("number.png");
 
-	waveDrawer_ = std::make_unique<NumberSpriteDrawer>();
-	waveDrawer_->Initialize("Resources/number.png");
+	/*waveDrawer_ = std::make_unique<NumberSpriteDrawer>();
+	waveDrawer_->Initialize("Resources/number.png");*/
 }
 
 void ResultManager::Update()
@@ -74,6 +74,6 @@ void ResultManager::Draw()
 	killDrawer_->Reset();
 	killDrawer_->DrawNumberCentered(killCount_, { 628.0f, 280.0f }, 24.0f);
 
-	waveDrawer_->Reset();
-	waveDrawer_->DrawNumberCentered(waveCount_, { 628.0f, 360.0f }, 24.0f);
+	/*waveDrawer_->Reset();
+	waveDrawer_->DrawNumberCentered(waveCount_, { 628.0f, 360.0f }, 24.0f);*/
 }

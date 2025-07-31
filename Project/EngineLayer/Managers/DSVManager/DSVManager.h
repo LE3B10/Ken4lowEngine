@@ -23,6 +23,9 @@ public: /// ---------- メンバ関数 ---------- ///
 	// 初期化処理（DSV用のデスクリプタヒープを作成）
 	void Initialize(DirectXCommon* dxCommon, uint32_t maxDSVCount = kDefaultMaxDSVCount_);
 
+	// 深度バッファのリソースを生成する
+	ComPtr<ID3D12Resource> CreateDepthStencilBuffer(uint32_t width, uint32_t height, DXGI_FORMAT format, D3D12_CLEAR_VALUE& outClearValue);
+
 	// 空いているDSVのインデックスを確保する
 	uint32_t Allocate();
 

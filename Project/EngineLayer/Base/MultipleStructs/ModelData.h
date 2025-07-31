@@ -55,9 +55,9 @@ struct AnimationCurve
 // アニメーションを表現する構造体
 struct Animation
 {
-	float duration; // アニメーション全体の尺（単位は秒）
+	float duration = 0.0f; // アニメーション全体の尺（単位は秒）
 	// NodeAnimationの集合、Node名でひけるようにしておく
-	std::map<std::string, NodeAnimation> nodeAnimations;
+	std::map<std::string, NodeAnimation> nodeAnimations = {}; // Node名をキーにしてNodeAnimationを格納
 };
 
 // jointの構造体

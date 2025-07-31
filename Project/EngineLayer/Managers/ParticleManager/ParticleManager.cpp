@@ -67,6 +67,8 @@ void ParticleManager::Initialize(DirectXCommon* dxCommon, Camera* camera)
 	meshMap_[ParticleEffectType::Explosion].Initialize(); // 同上
 
 	meshMap_[ParticleEffectType::Blood].Initialize();     // 血飛沫用のメッシュ
+
+	meshMap_[ParticleEffectType::LaserBeam].Initialize(); // レーザービーム用のメッシュ
 }
 
 
@@ -75,17 +77,15 @@ void ParticleManager::Initialize(DirectXCommon* dxCommon, Camera* camera)
 /// -------------------------------------------------------------
 void ParticleManager::CreateParticleGroup(const std::string& name, const std::string& textureFilePath, ParticleEffectType effectType)
 {
-	const std::string FilePath = "Resources/" + textureFilePath;
-
-	TextureManager::GetInstance()->LoadTexture(FilePath);
+	TextureManager::GetInstance()->LoadTexture(textureFilePath);
 
 	// すでに存在していれば何もせずに戻る
 	if (particleGroups.find(name) != particleGroups.end()) return;
 
 	// 新たな空のパーティクルグループを作成し、コンテナに登録
 	ParticleGroup group{};
-	group.materialData.textureFilePath = FilePath;
-	group.materialData.gpuHandle = TextureManager::GetInstance()->GetSrvHandleGPU(FilePath);
+	group.materialData.textureFilePath = textureFilePath;
+	group.materialData.gpuHandle = TextureManager::GetInstance()->GetSrvHandleGPU(textureFilePath);
 
 	// インスタンスバッファ作成
 	group.instancebuffer = ResourceManager::CreateBufferResource(dxCommon_->GetDevice(), sizeof(ParticleForGPU) * kNumMaxInstance);
@@ -261,6 +261,13 @@ void ParticleManager::Update()
 
 	// マテリアル更新
 	material_.Update();
+
+	// --- emitQueue の実行 ---
+	for (const auto& emitFunc : emitQueue)
+	{
+		emitFunc();
+	}
+	emitQueue.clear();
 }
 
 
@@ -346,6 +353,45 @@ void ParticleManager::Emit(const std::string name, const Vector3 position, uint3
 		// パーティクルの生成と追加
 		particleGroup.particles.push_back(ParticleFactory::Create(randomEngin, position, type));
 	}
+}
+
+void ParticleManager::EmitLaser(const std::string& name, const Vector3& position, float length, const Vector3& color)
+{
+	assert(particleGroups.find(name) != particleGroups.end());
+
+	ParticleGroup& group = particleGroups[name];
+	if (group.particles.size() >= kNumMaxInstance) return;
+
+	group.particles.push_back(ParticleFactory::CreateLaserBeam(position, length, color));
+}
+
+void ParticleManager::EmitLaserBeamFakeStretch(const std::string& name, const Vector3& startPos, const Vector3& direction, const Vector3& velocity, float totalLength, int count, const Vector4& color)
+{
+	Vector3 dirNorm = direction;
+	Vector3::Normalize(dirNorm);
+	float step = totalLength / (count * 2.0f); // 実質2倍に密集
+
+	emitQueue.push_back([=, this]() {
+		auto& group = GetGroup(name);
+
+		for (int i = 0; i < count; ++i)
+		{
+			Vector3 pos = startPos + dirNorm * (i * step);
+
+			Particle p;
+			p.transform.translate_ = pos;
+			p.transform.scale_ = { 0.1f, 0.1f, 0.1f };
+			p.startScale = p.transform.scale_;
+			p.endScale = { 0.0f, 0.0f, 0.0f };
+			p.transform.rotate_ = { 0.0f, 0.0f, 0.0f };
+			p.color = color;
+			p.lifeTime = 0.2f;
+			p.velocity = velocity; // 弾と同じ方向に一定速度で移動させる（数値は速度）
+			p.currentTime = 0.0f;
+
+			group.particles.push_back(p);
+		}
+		});
 }
 
 

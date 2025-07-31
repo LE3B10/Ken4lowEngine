@@ -25,7 +25,7 @@ auto Transition = [&](PostEffectManager::RenderTarget& rt, D3D12_RESOURCE_STATES
 	{
 		auto dxCommon_ = DirectXCommon::GetInstance();
 		if (rt.state == newState) return;                    // 二重バリア防止
-		dxCommon_->TransitionResource(rt.resource.Get(), rt.state, newState);
+		dxCommon_->ResourceTransition(rt.resource.Get(), rt.state, newState);
 		rt.state = newState;                                 // ★状態を必ず同期
 	};
 
@@ -110,7 +110,7 @@ void PostEffectManager::BeginDraw()
 	// 🔷 必ず DEPTH_WRITE 状態に戻す → ClearDepthStencilView 用
 	if (depthResource_ && depthState_ != D3D12_RESOURCE_STATE_DEPTH_WRITE)
 	{
-		dxCommon_->TransitionResource(depthResource_.Get(), depthState_, D3D12_RESOURCE_STATE_DEPTH_WRITE);
+		dxCommon_->ResourceTransition(depthResource_.Get(), depthState_, D3D12_RESOURCE_STATE_DEPTH_WRITE);
 		depthState_ = D3D12_RESOURCE_STATE_DEPTH_WRITE;
 	}
 
@@ -145,7 +145,7 @@ void PostEffectManager::EndDraw()
 	// 🔷 Outline等で使うために、depthResource を PIXEL_SHADER_RESOURCE に遷移
 	if (depthResource_ && depthState_ != D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE)
 	{
-		dxCommon_->TransitionResource(depthResource_.Get(), depthState_, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+		dxCommon_->ResourceTransition(depthResource_.Get(), depthState_, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 		depthState_ = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
 	}
 
@@ -179,7 +179,7 @@ void PostEffectManager::RenderPostEffect()
 		D3D12_CPU_DESCRIPTOR_HANDLE backBufferRTV = dxCommon_->GetBackBufferRTV(backBufferIndex);
 
 		// ★ ①-1 PRESENT → RENDER_TARGET へ遷移
-		dxCommon_->TransitionResource(backBuffer.Get(), D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
+		dxCommon_->ResourceTransition(backBuffer.Get(), D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
 
 		commandList->OMSetRenderTargets(1, &backBufferRTV, false, &dsvHandle);
 
@@ -190,7 +190,7 @@ void PostEffectManager::RenderPostEffect()
 		commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 		commandList->DrawInstanced(3, 1, 0, 0); // フルスクリーンクアッドを描画
 
-		dxCommon_->TransitionResource(backBuffer.Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT); // ★ ②-1 RENDER_TARGET → PRESENT へ遷移
+		dxCommon_->ResourceTransition(backBuffer.Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT); // ★ ②-1 RENDER_TARGET → PRESENT へ遷移
 
 		return; // これで終了
 	}

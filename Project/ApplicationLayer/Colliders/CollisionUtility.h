@@ -34,6 +34,9 @@ public: /// ---------- メンバ関数 ---------- ///
 	// 球と三角形の衝突判定
 	static bool IsCollision(const AABB& aabb1, const AABB& aabb2);
 
+	// AABBとPlaneの衝突判定
+	static bool IsCollision(const AABB& aabb, const Plane& plane);
+
 	// AABBと球の衝突判定
 	static bool IsCollision(const AABB& aabb, const Sphere& sphere);
 
@@ -59,7 +62,8 @@ public: /// ---------- メンバ関数 ---------- ///
 	//static bool IsCollision(const Capsule& capsule, const OBB& obb);
 
 	// CapsuleとAABBの衝突判定
-	//static bool IsCollision(const Capsule& capsule, const AABB& aabb);
+	static bool IsCollision(const AABB& aabb, const Capsule& capsule);
+	static bool IsCollision(const Capsule& capsule, const AABB& aabb);
 
 	// CapsuleとSphereの衝突判定
 	static bool IsCollision(const Capsule& capsule, const Sphere& sphere);
@@ -69,12 +73,7 @@ public: /// ---------- メンバ関数 ---------- ///
 	static bool IsCollision(const Capsule& capsule, const Segment& segment);
 	static bool IsCollision(const Segment& segment, const Capsule& capsule);
 
-	//// OBBとAABBの衝突判定
-	//static bool IsCollision(const OBB& obb, const AABB& aabb);
-
-	//// OBBと三角形の衝突判定
-	//static bool IsCollision(const OBB& obb, const Triangle& triangle);
-
-	//// OBBと球の衝突判定
-	//static bool IsCollision(const OBB& obb, const Sphere& sphere);
+	// CapsuleとPlaneの衝突判定
+	static bool IsCollision(const Capsule& capsule, const Plane& plane);
+	static bool IsCollision(const Plane& plane, const Capsule& capsule);
 };

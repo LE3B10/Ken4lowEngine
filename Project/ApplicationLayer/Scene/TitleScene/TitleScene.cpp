@@ -17,8 +17,8 @@ void TitleScene::Initialize()
 
 	// テクスチャのパスをリストで管理
 	texturePaths_ = {
-		"Resources/uvChecker.png",
-		"Resources/monsterBall.png",
+		"uvChecker.png",
+		"monsterBall.png",
 	};
 
 	/// ---------- Spriteの初期化 ---------- ///
@@ -52,6 +52,14 @@ void TitleScene::Update()
 		if (sceneManager_)
 		{
 			sceneManager_->ChangeScene("GamePlayScene"); // シーン名を指定して変更
+		}
+	}
+
+	if (input->TriggerKey(DIK_BACK))
+	{
+		if (sceneManager_)
+		{
+			sceneManager_->ChangeScene("PhysicalScene"); // 戻るキーでゲームプレイシーンに戻る
 		}
 	}
 

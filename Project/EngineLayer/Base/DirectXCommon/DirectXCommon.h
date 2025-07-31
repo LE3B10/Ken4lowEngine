@@ -41,7 +41,10 @@ public: /// ---------- メンバ関数 ---------- ///
 	void Finalize();
 
 	// リソース遷移の管理
-	void TransitionResource(ID3D12Resource* resource, D3D12_RESOURCE_STATES stateBefore, D3D12_RESOURCE_STATES stateAfter);
+	void ResourceTransition(ID3D12Resource* resource, D3D12_RESOURCE_STATES stateBefore, D3D12_RESOURCE_STATES stateAfter)
+	{
+		commandManager_->ResourceTransition(resource, stateBefore, stateAfter);
+	}
 
 public: /// ---------- ゲッター ---------- ///
 
@@ -95,6 +98,7 @@ private: /// ---------- メンバ変数 ---------- ///
 	D3D12_RECT scissorRect{};
 
 	UINT backBufferIndex = 0;
+	uint32_t dsvIndex_ = 0; // 🔹 DSVのインデックス
 
 	ComPtr<ID3D12Resource> depthStencilResource; // 🔹 深度バッファ
 

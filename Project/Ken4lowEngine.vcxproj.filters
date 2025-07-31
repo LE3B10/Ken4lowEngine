@@ -46,9 +46,6 @@
     <FxCompile Include="Resources\Shaders\Wireframe\Wireframe.VS.hlsl">
       <Filter>Shader\VertexShader</Filter>
     </FxCompile>
-    <FxCompile Include="Resources\Shaders\Wireframe\Wireframe.GS.hlsl">
-      <Filter>Shader</Filter>
-    </FxCompile>
     <FxCompile Include="Resources\Shaders\PostEffect\DissolveEffect.CS.hlsl">
       <Filter>Shader\ComputeShader</Filter>
     </FxCompile>
@@ -78,6 +75,9 @@
     </FxCompile>
     <FxCompile Include="Resources\Shaders\PostEffect\NormalEffect.PS.hlsl">
       <Filter>Shader\PixelShader</Filter>
+    </FxCompile>
+    <FxCompile Include="Resources\Shaders\Wireframe\Wireframe.GS.hlsl">
+      <Filter>Shader\GeometryShader</Filter>
     </FxCompile>
   </ItemGroup>
   <ItemGroup>
@@ -232,8 +232,8 @@
     <ClCompile Include="EngineLayer\ParticleManagement\ParticleFactory.cpp">
       <Filter>EngineLayer\Particle</Filter>
     </ClCompile>
-    <ClCompile Include="ApplicationLayer\Weapon\Weapon.cpp">
-      <Filter>ApplicationLayer\Weapon</Filter>
+    <ClCompile Include="ApplicationLayer\Player\Weapon\Weapon.cpp">
+      <Filter>ApplicationLayer\Player\Weapon</Filter>
     </ClCompile>
     <ClCompile Include="ApplicationLayer\Crosshair\Crosshair.cpp">
       <Filter>ApplicationLayer\Crosshair</Filter>
@@ -394,58 +394,10 @@
     <ClCompile Include="EngineLayer\PostEffectManagement\VignetteEffect.cpp">
       <Filter>EngineLayer\PostEffectManagement\VignetteEffect</Filter>
     </ClCompile>
-    <ClCompile Include="ApplicationLayer\Player\BaseCharacter.cpp">
-      <Filter>ApplicationLayer</Filter>
-    </ClCompile>
     <ClCompile Include="EngineLayer\Base\BlendStateFactory.cpp">
       <Filter>EngineLayer</Filter>
     </ClCompile>
     <ClCompile Include="ApplicationLayer\Enemy\Boss\Boss.cpp">
-      <Filter>ApplicationLayer\Enemy</Filter>
-    </ClCompile>
-    <ClCompile Include="ApplicationLayer\Enemy\Boss\BossIdleState.cpp">
-      <Filter>ApplicationLayer\Enemy</Filter>
-    </ClCompile>
-    <ClCompile Include="ApplicationLayer\Player\DummyModel.cpp">
-      <Filter>ApplicationLayer\Enemy</Filter>
-    </ClCompile>
-    <ClCompile Include="ApplicationLayer\Enemy\Enemy.cpp">
-      <Filter>ApplicationLayer\Enemy</Filter>
-    </ClCompile>
-    <ClCompile Include="ApplicationLayer\Enemy\Grunt\EnemyAttackState.cpp">
-      <Filter>ApplicationLayer\Enemy</Filter>
-    </ClCompile>
-    <ClCompile Include="ApplicationLayer\Enemy\EnemyBullet.cpp">
-      <Filter>ApplicationLayer\Enemy</Filter>
-    </ClCompile>
-    <ClCompile Include="ApplicationLayer\Enemy\Grunt\EnemyChaseState.cpp">
-      <Filter>ApplicationLayer\Enemy</Filter>
-    </ClCompile>
-    <ClCompile Include="ApplicationLayer\Enemy\Grunt\EnemyIdleState.cpp">
-      <Filter>ApplicationLayer\Enemy</Filter>
-    </ClCompile>
-    <ClCompile Include="ApplicationLayer\Enemy\EnemyManager.cpp">
-      <Filter>ApplicationLayer\Enemy</Filter>
-    </ClCompile>
-    <ClCompile Include="ApplicationLayer\Enemy\Grunt\IEnemyState.cpp">
-      <Filter>ApplicationLayer\Enemy</Filter>
-    </ClCompile>
-    <ClCompile Include="ApplicationLayer\Player\State\IPlayerState\IPlayerState.cpp">
-      <Filter>ApplicationLayer\Player</Filter>
-    </ClCompile>
-    <ClCompile Include="ApplicationLayer\Player\State\PlayerIdleState\PlayerIdleState.cpp">
-      <Filter>ApplicationLayer\Player</Filter>
-    </ClCompile>
-    <ClCompile Include="ApplicationLayer\Player\State\PlayerRunState\PlayerRunState.cpp">
-      <Filter>ApplicationLayer\Player</Filter>
-    </ClCompile>
-    <ClCompile Include="ApplicationLayer\Player\State\PlayerWalkState\PlayerWalkState.cpp">
-      <Filter>ApplicationLayer\Player</Filter>
-    </ClCompile>
-    <ClCompile Include="ApplicationLayer\Enemy\Sniper\SniperIdleState.cpp">
-      <Filter>ApplicationLayer\Enemy</Filter>
-    </ClCompile>
-    <ClCompile Include="ApplicationLayer\Enemy\Tank\TankIdleState.cpp">
       <Filter>ApplicationLayer\Enemy</Filter>
     </ClCompile>
     <ClCompile Include="ApplicationLayer\Enemy\Boss\BossBullet.cpp">
@@ -454,15 +406,44 @@
     <ClCompile Include="ApplicationLayer\Enemy\Boss\BossWeapon.cpp">
       <Filter>ApplicationLayer\Enemy</Filter>
     </ClCompile>
+    <ClCompile Include="ApplicationLayer\Player\Behavior\IdleBehavior\IdleBehavior.cpp">
+      <Filter>ApplicationLayer\Player\Behavior</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\Player\Behavior\JumpingBehavior\JumpingBehavior.cpp">
+      <Filter>ApplicationLayer\Player\Behavior</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\Player\Behavior\PlayerBehavior\PlayerBehavior.cpp">
+      <Filter>ApplicationLayer\Player\Behavior</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\Player\Behavior\RunningBehavior\RunningBehavior.cpp">
+      <Filter>ApplicationLayer\Player\Behavior</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\Player\Behavior\WalkingBehavior\WalkingBehavior.cpp">
+      <Filter>ApplicationLayer\Player\Behavior</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\Scene\PhysicalScene\PhysicalScene.cpp">
+      <Filter>ApplicationLayer\Scene</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\Player\Behavior\AimingBehavior\AimingBehavior.cpp">
+      <Filter>ApplicationLayer\Player\Behavior</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\Player\Behavior\DeadBehavior\DeadBehavior.cpp">
+      <Filter>ApplicationLayer\Player\Behavior</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\Player\Behavior\ReloadingBehavior\ReloadingBehavior.cpp">
+      <Filter>ApplicationLayer\Player\Behavior</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\Player\Behavior\ShootingBehavior\ShootingBehavior.cpp">
+      <Filter>ApplicationLayer\Player\Behavior</Filter>
+    </ClCompile>
+    <ClCompile Include="EngineLayer\3D\LevelData\LevelLoader.cpp" />
+    <ClCompile Include="EngineLayer\3D\LevelData\LevelObjectManager.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="EngineLayer\Math\AABB.h">
       <Filter>EngineLayer\Math</Filter>
     </ClInclude>
     <ClInclude Include="EngineLayer\Math\OBB.h">
-      <Filter>EngineLayer\Math</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\Math\Ray.h">
       <Filter>EngineLayer\Math</Filter>
     </ClInclude>
     <ClInclude Include="EngineLayer\Math\Segment.h">
@@ -594,9 +575,6 @@
     <ClInclude Include="EngineLayer\Audio\WavLoaderException.h">
       <Filter>EngineLayer\Audio</Filter>
     </ClInclude>
-    <ClInclude Include="EngineLayer\Math\Line.h">
-      <Filter>EngineLayer\Math</Filter>
-    </ClInclude>
     <ClInclude Include="EngineLayer\Math\Plane.h">
       <Filter>EngineLayer\Math</Filter>
     </ClInclude>
@@ -657,11 +635,11 @@
     <ClInclude Include="EngineLayer\ParticleManagement\ParticleFactory.h">
       <Filter>EngineLayer\Particle</Filter>
     </ClInclude>
-    <ClInclude Include="ApplicationLayer\Weapon\Weapon.h">
-      <Filter>ApplicationLayer\Weapon</Filter>
+    <ClInclude Include="ApplicationLayer\Player\Weapon\Weapon.h">
+      <Filter>ApplicationLayer\Player\Weapon</Filter>
     </ClInclude>
-    <ClInclude Include="ApplicationLayer\Weapon\WeaponType.h">
-      <Filter>ApplicationLayer\Weapon</Filter>
+    <ClInclude Include="ApplicationLayer\Player\Weapon\WeaponType.h">
+      <Filter>ApplicationLayer\Player\Weapon</Filter>
     </ClInclude>
     <ClInclude Include="ApplicationLayer\Crosshair\Crosshair.h">
       <Filter>ApplicationLayer\Crosshair</Filter>
@@ -852,61 +830,10 @@
     <ClInclude Include="EngineLayer\PostEffectManagement\VignetteEffect.h">
       <Filter>EngineLayer\PostEffectManagement\VignetteEffect</Filter>
     </ClInclude>
-    <ClInclude Include="ApplicationLayer\Player\BaseCharacter.h">
-      <Filter>ApplicationLayer</Filter>
-    </ClInclude>
     <ClInclude Include="EngineLayer\Base\BlendStateFactory.h">
       <Filter>EngineLayer</Filter>
     </ClInclude>
     <ClInclude Include="ApplicationLayer\Enemy\Boss\Boss.h">
-      <Filter>ApplicationLayer\Enemy</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Enemy\Boss\BossIdleState.h">
-      <Filter>ApplicationLayer\Enemy</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Player\DummyModel.h">
-      <Filter>ApplicationLayer\Enemy</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Enemy\Enemy.h">
-      <Filter>ApplicationLayer\Enemy</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Enemy\Grunt\EnemyAttackState.h">
-      <Filter>ApplicationLayer\Enemy</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Enemy\EnemyBullet.h">
-      <Filter>ApplicationLayer\Enemy</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Enemy\Grunt\EnemyChaseState.h">
-      <Filter>ApplicationLayer\Enemy</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Enemy\Grunt\EnemyIdleState.h">
-      <Filter>ApplicationLayer\Enemy</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Enemy\EnemyManager.h">
-      <Filter>ApplicationLayer\Enemy</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Enemy\Grunt\IEnemyState.h">
-      <Filter>ApplicationLayer\Enemy</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Player\State\IPlayerState\IPlayerState.h">
-      <Filter>ApplicationLayer\Player</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Player\State\PlayerIdleState\PlayerIdleState.h">
-      <Filter>ApplicationLayer\Player</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Player\State\PlayerRunState\PlayerRunState.h">
-      <Filter>ApplicationLayer\Player</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Player\PlayerStateType.h">
-      <Filter>ApplicationLayer\Player</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Player\State\PlayerWalkState\PlayerWalkState.h">
-      <Filter>ApplicationLayer\Player</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Enemy\Sniper\SniperIdleState.h">
-      <Filter>ApplicationLayer\Enemy</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Enemy\Tank\TankIdleState.h">
       <Filter>ApplicationLayer\Enemy</Filter>
     </ClInclude>
     <ClInclude Include="ApplicationLayer\Enemy\Boss\BossBullet.h">
@@ -915,6 +842,39 @@
     <ClInclude Include="ApplicationLayer\Enemy\Boss\BossWeapon.h">
       <Filter>ApplicationLayer\Enemy</Filter>
     </ClInclude>
+    <ClInclude Include="ApplicationLayer\Player\Behavior\IdleBehavior\IdleBehavior.h">
+      <Filter>ApplicationLayer\Player\Behavior</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Player\Behavior\JumpingBehavior\JumpingBehavior.h">
+      <Filter>ApplicationLayer\Player\Behavior</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Player\Behavior\PlayerBehavior\PlayerBehavior.h">
+      <Filter>ApplicationLayer\Player\Behavior</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Player\Behavior\RunningBehavior\RunningBehavior.h">
+      <Filter>ApplicationLayer\Player\Behavior</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Player\Behavior\WalkingBehavior\WalkingBehavior.h">
+      <Filter>ApplicationLayer\Player\Behavior</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Scene\PhysicalScene\PhysicalScene.h">
+      <Filter>ApplicationLayer\Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Player\Behavior\AimingBehavior\AimingBehavior.h">
+      <Filter>ApplicationLayer\Player\Behavior</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Player\Behavior\DeadBehavior\DeadBehavior.h">
+      <Filter>ApplicationLayer\Player\Behavior</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Player\Behavior\ReloadingBehavior\ReloadingBehavior.h">
+      <Filter>ApplicationLayer\Player\Behavior</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Player\Behavior\ShootingBehavior\ShootingBehavior.h">
+      <Filter>ApplicationLayer\Player\Behavior</Filter>
+    </ClInclude>
+    <ClInclude Include="EngineLayer\3D\LevelData\LevelData.h" />
+    <ClInclude Include="EngineLayer\3D\LevelData\LevelLoader.h" />
+    <ClInclude Include="EngineLayer\3D\LevelData\LevelObjectManager.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Resources\Shaders\PostEffect\FullScreen.hlsli">
@@ -938,6 +898,8 @@
     <None Include="Resources\Shaders\Wireframe\Wireframe.hlsli">
       <Filter>Shader\Hlsli</Filter>
     </None>
+    <None Include="Resources\JSON\cubes4.json" />
+    <None Include="Resources\JSON\cubes4_2disable.json" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Shader">
@@ -1030,9 +992,6 @@
     <Filter Include="ApplicationLayer\SceneManager">
       <UniqueIdentifier>{2c5f873b-2150-4c54-891e-76240279990c}</UniqueIdentifier>
     </Filter>
-    <Filter Include="ApplicationLayer\Weapon">
-      <UniqueIdentifier>{8f30bd8f-faaa-4fde-a565-96d12d50afe0}</UniqueIdentifier>
-    </Filter>
     <Filter Include="ApplicationLayer\Enemy">
       <UniqueIdentifier>{4a4d70c3-1938-4f6b-9e89-8b20f7f37862}</UniqueIdentifier>
     </Filter>
@@ -1102,10 +1061,22 @@
     <Filter Include="EngineLayer\PostEffectManagement\VignetteEffect">
       <UniqueIdentifier>{400e0cd1-69f2-4758-9c69-2449eb54ba50}</UniqueIdentifier>
     </Filter>
+    <Filter Include="ApplicationLayer\Player\Weapon">
+      <UniqueIdentifier>{8f30bd8f-faaa-4fde-a565-96d12d50afe0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ApplicationLayer\Player\Behavior">
+      <UniqueIdentifier>{acf8b8ba-c6ce-4a8c-8b76-c098053abc83}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shader\GeometryShader">
+      <UniqueIdentifier>{c40888df-84fa-4096-ae6a-3404250fc298}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <Text Include="Externals\imgui\LICENSE.txt">
       <Filter>Externals\ImGui</Filter>
     </Text>
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="Resources\Textures\SkyBox\rostock_laage_airport_4k.dds" />
   </ItemGroup>
 </Project>

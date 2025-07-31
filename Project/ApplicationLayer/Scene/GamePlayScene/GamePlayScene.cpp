@@ -12,6 +12,7 @@
 #include "AudioManager.h"
 #include <SceneManager.h>
 #include <ScoreManager.h>
+#include "LevelLoader.h"
 
 #ifdef _DEBUG
 #include <DebugCamera.h>
@@ -28,7 +29,6 @@ void GamePlayScene::Initialize()
 	DebugCamera::GetInstance()->Initialize();
 #endif // _DEBUG
 
-	dxCommon_ = DirectXCommon::GetInstance();
 	input_ = Input::GetInstance();
 
 	// カーソルをロック
@@ -45,9 +45,6 @@ void GamePlayScene::Initialize()
 	boss_ = std::make_unique<Boss>();
 	boss_->Initialize();
 	boss_->SetPlayer(player_.get());
-
-	enemyManager_ = std::make_unique<EnemyManager>();
-	enemyManager_->Initialize(player_.get());
 
 	// 追従カメラの生成と初期化
 	fpsCamera_ = std::make_unique<FpsCamera>();
@@ -80,12 +77,13 @@ void GamePlayScene::Initialize()
 	itemManager_ = std::make_unique<ItemManager>();
 	itemManager_->Initialize();
 
-	enemyManager_->SetItemManager(itemManager_.get());
-
 	terrein_ = std::make_unique<Object3D>();
 	// 地形オブジェクトの初期化
 	terrein_->Initialize("Terrain.gltf");
-	terrein_->SetScale({ 100.0f, 100.0f, 100.0f });
+	terrein_->SetScale({ 50.0f, 50.0f, 50.0f });
+
+	skyBox_ = std::make_unique<SkyBox>();
+	skyBox_->Initialize("SkyBox/skybox.dds");
 }
 
 
@@ -102,7 +100,7 @@ void GamePlayScene::Update()
 		Object3DCommon::GetInstance()->SetDebugCamera(!Object3DCommon::GetInstance()->GetDebugCamera());
 		Wireframe::GetInstance()->SetDebugCamera(!Wireframe::GetInstance()->GetDebugCamera());
 		ParticleManager::GetInstance()->SetDebugCamera(!ParticleManager::GetInstance()->GetDebugCamera());
-		//skyBox_->SetDebugCamera(!skyBox_->GetDebugCamera());
+		skyBox_->SetDebugCamera(!skyBox_->GetDebugCamera());
 		player_->SetDebugCamera(!player_->IsDebugCamera());
 		isDebugCamera_ = !isDebugCamera_;
 		Input::GetInstance()->SetLockCursor(isDebugCamera_);
@@ -144,18 +142,9 @@ void GamePlayScene::Update()
 			// ★ 結果情報を設定
 			resultManager_->SetFinalScore(ScoreManager::GetInstance()->GetScore());
 			resultManager_->SetKillCount(ScoreManager::GetInstance()->GetKills());
-			resultManager_->SetWaveCount(enemyManager_->GetCurrentWave()); // EnemyManager に GetCurrentWave() が必要
 
 			break;
 		}
-
-		// エネミーマネージャーの更新
-		//enemyManager_->Update();
-
-		// Waveがすべて終わったら次Waveをスタート
-		/*if (enemyManager_->IsWaveClear()) {
-			enemyManager_->StartNextWave();
-		}*/
 
 		{
 			Weapon* weapon = player_->GetCurrentWeapon();
@@ -171,6 +160,18 @@ void GamePlayScene::Update()
 					hudManager_->SetReloading(false, 0.0f);
 				}
 			}
+		}
+
+		// ボスが死んだらリザルト画面へ移行
+		if (boss_->IsDead())
+		{
+			gameState_ = GameState::Result;
+			Input::GetInstance()->SetLockCursor(false);
+			ShowCursor(true);
+			// ★ 結果情報を設定
+			resultManager_->SetFinalScore(ScoreManager::GetInstance()->GetScore());
+			resultManager_->SetKillCount(ScoreManager::GetInstance()->GetKills());
+			break;
 		}
 
 		// アイテムの更新と衝突判定
@@ -221,6 +222,8 @@ void GamePlayScene::Update()
 	}
 
 	terrein_->Update();
+
+	skyBox_->Update();
 }
 
 
@@ -246,6 +249,8 @@ void GamePlayScene::Draw3DObjects()
 	// スカイボックスの共通描画設定
 	SkyBoxManager::GetInstance()->SetRenderSetting();
 
+	skyBox_->Draw();
+
 #pragma endregion
 
 
@@ -258,8 +263,6 @@ void GamePlayScene::Draw3DObjects()
 
 	// アイテムの描画
 	itemManager_->Draw();
-
-	//enemyManager_->Draw();
 
 	// プレイヤーの描画
 	player_->Draw();
@@ -344,9 +347,6 @@ void GamePlayScene::DrawImGui()
 	boss_->DrawImGui();
 
 	terrein_->DrawImGui();
-
-	// エネミースポナー
-	//enemyManager_->DrawImGui();
 }
 
 
@@ -359,7 +359,6 @@ void GamePlayScene::CheckAllCollisions()
 	collisionManager_->Reset();
 
 	// コライダーをリストに登録
-	//enemyManager_->RegisterColliders(collisionManager_.get());
 	player_->RegisterColliders(collisionManager_.get()); // プレイヤーのコライダーを登録
 	boss_->RegisterColliders(collisionManager_.get());
 

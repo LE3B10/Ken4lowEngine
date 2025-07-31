@@ -117,7 +117,7 @@ std::shared_ptr<Model> ModelManager::FindModel(const std::string& filePath)
 	}
 
 	// AssimpLoaderに読み込みを委譲
-	ModelData data = AssimpLoader::LoadModel(directoryPath, filePath);
+	ModelData data = AssimpLoader::LoadModel(filePath);
 	std::shared_ptr<Model> model = std::make_shared<Model>();
 	models_[filePath] = model;
 

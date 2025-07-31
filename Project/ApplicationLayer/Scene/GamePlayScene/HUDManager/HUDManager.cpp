@@ -24,22 +24,22 @@ void HUDManager::Initialize()
 
 	// グレー背景のスプライトを初期化
 	hpBarBase_ = std::make_unique<Sprite>();
-	hpBarBase_->Initialize("Resources/white.png");
+	hpBarBase_->Initialize("white.png");
 
 	// 緑バーのスプライトを初期化
 	hpBarFill_ = std::make_unique<Sprite>();
-	hpBarFill_->Initialize("Resources/white.png");
+	hpBarFill_->Initialize("white.png");
 
 	reloadCircle_ = std::make_unique<ReloadCircle>();
-	reloadCircle_->Initialize("Resources/reload-circle.png");
+	reloadCircle_->Initialize("reload-circle.png");
 
 	// スタミナバーの初期化
 	staminaBarBase_ = std::make_unique<Sprite>();
-	staminaBarBase_->Initialize("Resources/white.png");
+	staminaBarBase_->Initialize("white.png");
 
 	// スタミナバーの本体スプライトを初期化
 	staminaBarFill_ = std::make_unique<Sprite>();
-	staminaBarFill_->Initialize("Resources/white.png");
+	staminaBarFill_->Initialize("white.png");
 }
 
 

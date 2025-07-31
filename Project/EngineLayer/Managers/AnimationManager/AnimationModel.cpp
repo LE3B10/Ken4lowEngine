@@ -24,19 +24,19 @@ void AnimationModel::Initialize(const std::string& fileName, bool isSkinning)
 	camera_ = Object3DCommon::GetInstance()->GetDefaultCamera();
 
 	// モデル読み込み
-	modelData = AssimpLoader::LoadModel("Resources", fileName);
+	modelData = AssimpLoader::LoadModel(fileName);
 
 	// アニメーションモデルを読み込む
-	animation = LoadAnimationFile("Resources", fileName);
+	animation = LoadAnimationFile(fileName);
 
-	std::string modelDir = "Resources/" + fileName.substr(0, fileName.find_last_of('/'));
-	std::string texturePath = modelDir + "/" + modelData.material.textureFilePath;
+	// AnimationModel.cpp
+	// 1) モデル読み込み直後に得られるファイル名（拡張子付き or なし）だけを使う
+	std::string texFile = modelData.material.textureFilePath;   // 例: "human_BaseColor.png"
 
-	// ファイルの参照しているテクスチャファイル読み込み
-	TextureManager::GetInstance()->LoadTexture(texturePath);
-
-	// 読み込んだテクスチャ番号を取得
-	modelData.material.gpuHandle = TextureManager::GetInstance()->GetSrvHandleGPU(texturePath);
+	// 2) TextureManager に丸投げ (NormalizeTexturePath が内部で付けてくれる)
+	auto* texMan = TextureManager::GetInstance();
+	texMan->LoadTexture(texFile);
+	modelData.material.gpuHandle = texMan->GetSrvHandleGPU(texFile);
 
 	skeleton_ = std::make_unique<Skeleton>();
 	skeleton_ = Skeleton::CreateFromRootNode(modelData.rootNode);
@@ -72,7 +72,7 @@ void AnimationModel::Initialize(const std::string& fileName, bool isSkinning)
 	CreateSkinningSettingResource();
 	skinningSetting_->isSkinning = isSkinning; // スキニング設定を反映
 
-	const std::string filePath = "Resources/Mask/Noise.png";
+	const std::string filePath = "Mask/Noise.png";
 	// Dissolve設定リソースの作成
 	TextureManager::GetInstance()->LoadTexture(filePath);
 	// SRVインデックスを取得（CopySRVせず、既存SRVをそのまま使う）
@@ -279,14 +279,14 @@ std::vector<std::pair<std::string, Capsule>> AnimationModel::GetBodyPartCapsules
 			// Sphere → pointA = pointB
 			const Vector3  local = joints[part.startJointIndex].skeletonSpaceMatrix.GetTranslation() + part.offset;
 			Vector3 world = Vector3::Transform(local, worldMatrix);
-			capsule.pointA = capsule.pointB = world;
+			capsule.segment.origin = capsule.segment.diff = world;
 		}
 		else {
 			// カプセル → 始点と終点両方に回転適用
 			Vector3 a = Vector3::Transform(joints[part.startJointIndex].skeletonSpaceMatrix.GetTranslation(), worldMatrix);
 			Vector3 b = Vector3::Transform(joints[part.endJointIndex].skeletonSpaceMatrix.GetTranslation(), worldMatrix);
-			capsule.pointA = a;
-			capsule.pointB = b;
+			capsule.segment.origin = a;
+			capsule.segment.diff = b;
 		}
 		out.emplace_back(part.name, capsule);
 	}
@@ -372,12 +372,12 @@ void AnimationModel::UpdateAnimation()
 /// -------------------------------------------------------------
 ///				　アニメーションファイルを読み込む
 /// -------------------------------------------------------------
-Animation AnimationModel::LoadAnimationFile(const std::string& directoryPath, const std::string& fileName)
+Animation AnimationModel::LoadAnimationFile(const std::string& fileName)
 {
 	// アニメーションを解析
 	Animation animation{};
 	Assimp::Importer importer;
-	std::string filePath = directoryPath + "/" + fileName;
+	std::string filePath = "Resources/Models/" + fileName;
 	const aiScene* scene = importer.ReadFile(filePath.c_str(), 0);
 	assert(scene->mNumAnimations != 0); // アニメーションがない
 	aiAnimation* animationAssimp = scene->mAnimations[0]; // 最初のアニメーションだけ採用。もちろん複数対応するに越したことない

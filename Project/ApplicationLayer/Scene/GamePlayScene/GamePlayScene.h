@@ -14,13 +14,12 @@
 #include "Boss.h"
 #include "FpsCamera.h"
 #include "Crosshair.h"
-#include "EnemyManager.h"
 #include "HUDManager.h"
 #include "ResultManager.h"
 #include "ItemManager.h"
+#include "LevelObjectManager.h"
 
 #include "AnimationModel.h"
-#include "DummyModel.h"
 
 
 /// ---------- 前方宣言 ---------- ///
@@ -79,7 +78,6 @@ private: /// ---------- メンバ関数 ---------- ///
 
 private: /// ---------- メンバ変数 ---------- ///
 
-	DirectXCommon* dxCommon_ = nullptr;
 	Input* input_ = nullptr;
 
 	GameState gameState_ = GameState::Playing; // ゲームの状態
@@ -90,10 +88,6 @@ private: /// ---------- メンバ変数 ---------- ///
 	std::unique_ptr<Player> player_ = nullptr; // プレイヤーオブジェクト
 
 	std::unique_ptr<Boss> boss_ = nullptr;
-
-	std::unique_ptr<EnemyManager> enemyManager_ = nullptr;
-
-	//std::unique_ptr<DummyModel> dummyModel_ = nullptr;
 
 	std::unique_ptr<AnimationModel> dModel_;
 
@@ -112,6 +106,8 @@ private: /// ---------- メンバ変数 ---------- ///
 	std::unique_ptr<AnimationModel> animationModel_ = nullptr;
 
 	std::unique_ptr<SkyBox> skyBox_ = nullptr; // スカイボックス
+
+	std::unique_ptr<LevelObjectManager> levelObjectManager_ = nullptr; // レベルオブジェクトマネージャー
 
 	// デバッグカメラのON/OFF用
 	bool isDebugCamera_ = false;

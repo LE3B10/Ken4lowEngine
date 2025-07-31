@@ -26,7 +26,7 @@ void Framework::Run()
 	Initialize();
 
 	// ゲームループ
-	while (!IsEndRequest())// 終了リクエストが来たら抜ける
+	while (!winApp_->ProcessMessage())// 終了リクエストが来たら抜ける
 	{
 		// 毎フレーム更新
 		Update();
@@ -116,13 +116,6 @@ void Framework::Initialize()
 /// -------------------------------------------------------------
 void Framework::Update()
 {
-	// ウィンドウアプリケーションのメッセージ処理
-	if (winApp_->ProcessMessage())
-	{
-		endRequest_ = true; // 終了リクエストを出す
-		return;				// 終了リクエストが来たら抜ける
-	}
-
 	// ワイヤーフレームの更新処理
 	Wireframe::GetInstance()->Update();
 

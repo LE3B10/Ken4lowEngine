@@ -21,9 +21,9 @@ void Object3D::Initialize(const std::string& fileName)
 	camera_ = Object3DCommon::GetInstance()->GetDefaultCamera();
 
 	// モデル読み込み
-	modelData = AssimpLoader::LoadModel("Resources", fileName);
+	modelData = AssimpLoader::LoadModel(fileName);
 
-	std::string texturePath = "Resources/" + modelData.material.textureFilePath;
+	std::string texturePath = modelData.material.textureFilePath;
 
 	// 参照しているテクスチャファイル読み込み
 	TextureManager::GetInstance()->LoadTexture(texturePath);
@@ -32,9 +32,9 @@ void Object3D::Initialize(const std::string& fileName)
 	modelData.material.gpuHandle = TextureManager::GetInstance()->GetSrvHandleGPU(texturePath);
 
 	// 環境マップ
-	TextureManager::GetInstance()->LoadTexture("Resources/rostock_laage_airport_4k.dds");
+	TextureManager::GetInstance()->LoadTexture("SkyBox/rostock_laage_airport_4k.dds");
 	// 環境マップのハンドルを取得
-	environmentMapHandle_ = TextureManager::GetInstance()->GetSrvHandleGPU("Resources/rostock_laage_airport_4k.dds");
+	environmentMapHandle_ = TextureManager::GetInstance()->GetSrvHandleGPU("SkyBox/rostock_laage_airport_4k.dds");
 
 	// ワールドトランスフォームの初期化
 	worldTransform.Initialize();
@@ -98,11 +98,13 @@ void Object3D::Draw()
 
 	material_.SetPipeline();
 	worldTransform.SetPipeline();
-	
-	commandList->SetGraphicsRootDescriptorTable(2, modelData.material.gpuHandle); // テクスチャの設定
+
+	TextureManager::GetInstance()->SetGraphicsRootDescriptorTable(commandList, 2, modelData.material.gpuHandle);
+
 	commandList->SetGraphicsRootConstantBufferView(3, cameraResource->GetGPUVirtualAddress());
 
-	commandList->SetGraphicsRootDescriptorTable(7, environmentMapHandle_); // 環境マップの設定
+	TextureManager::GetInstance()->SetGraphicsRootDescriptorTable(commandList, 7, environmentMapHandle_);
+
 	mesh_.Draw();
 }
 

@@ -7,6 +7,9 @@ class DX12CommandManager
 {
 public:
 	void Initialize(ID3D12Device* device);
+
+	void ResourceTransition(ID3D12Resource* resource, D3D12_RESOURCE_STATES stateBefore, D3D12_RESOURCE_STATES stateAfter);
+
 	void SetFenceManager(DX12FenceManager* fenceManager);
 	void ExecuteAndWait(); // コマンド実行と待機
 

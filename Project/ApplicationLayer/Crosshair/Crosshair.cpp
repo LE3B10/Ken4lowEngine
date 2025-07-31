@@ -21,7 +21,7 @@ void Crosshair::Initialize(const std::string& texturePath)
 	sprite_->SetSize({ 48.0f, 48.0f });
 
 	// ヒットマーカー読み込み
-	std::string hitTexture = "Resources/hitmarker.png"; // 生成した×画像のパス
+	std::string hitTexture = "hitmarker.png"; // 生成した×画像のパス
 	TextureManager::GetInstance()->LoadTexture(hitTexture);
 	hitMarkerSprite_ = std::make_unique<Sprite>();
 	hitMarkerSprite_->Initialize(hitTexture);

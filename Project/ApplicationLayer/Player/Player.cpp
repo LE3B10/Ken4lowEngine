@@ -9,11 +9,13 @@
 #include <AudioManager.h>
 #include <AnimationPipelineBuilder.h>
 #include <CollisionManager.h>
-
-#include <imgui.h>
 #include <PostEffectManager.h>
 
-#include "PlayerIdleState.h"
+#include "IdleBehavior.h"
+#include "WalkingBehavior.h"
+#include "RunningBehavior.h"
+
+#include <imgui.h>
 
 
 /// -------------------------------------------------------------
@@ -25,8 +27,14 @@ void Player::Initialize()
 
 	// アニメーションモデルの初期化
 	animationModel_ = std::make_unique<AnimationModel>();
+	animationModel_->Initialize("PlayerStateModel/human.gltf");
+	currentState_ = ModelState::Idle; // 初期状態をIdleに設定
 
-	ChangeState(std::make_unique<PlayerIdleState>());  // Idle で開始
+	// 各ビヘイビア登録
+	behaviors_[ModelState::Idle] = std::make_unique<IdleBehavior>();
+	behaviors_[ModelState::Walking] = std::make_unique<WalkingBehavior>();
+	behaviors_[ModelState::Running] = std::make_unique<RunningBehavior>();
+	//behaviors_[ModelState::Jumping] = std::make_unique<JumpingBehavior>();
 
 	// 武器の初期化
 	InitializeWeapons();
@@ -43,7 +51,7 @@ void Player::Initialize()
 
 	// HUDの初期化
 	numberSpriteDrawer_ = std::make_unique<NumberSpriteDrawer>();
-	numberSpriteDrawer_->Initialize("Resources/number.png", 50.0f, 50.0f);
+	numberSpriteDrawer_->Initialize("number.png", 50.0f, 50.0f);
 }
 
 
@@ -56,13 +64,13 @@ void Player::Update()
 
 	weapons_[currentWeaponIndex_]->SetFpsCamera(fpsCamera_);
 
-	// アニメーションモデルの更新
-	if (animationModel_) animationModel_->Update();
 	// プレイヤーコントローラーの更新
 	controller_->UpdateMovement(camera_, animationModel_->GetDeltaTime(), weapons_[currentWeaponIndex_]->IsReloading());
 
-	// プレイヤーの状態更新（例: 歩行、待機など）
-	if (state_) state_->Update(this);
+	// アニメーションモデルの更新
+	if (behaviors_.count(currentState_)) {
+		behaviors_[currentState_]->Update(this);
+	}
 
 	// --- 発射入力（マウス左クリックまたはゲームパッドRT） ---
 
@@ -128,7 +136,9 @@ void Player::Draw()
 	}
 
 	AnimationPipelineBuilder::GetInstance()->SetRenderSetting(); // アニメーションパイプラインの描画設定
-	if (IsDebugCamera()) animationModel_->Draw(); // アニメーションモデルの描画
+	if (behaviors_.count(currentState_)) {
+		if (IsDebugCamera()) behaviors_[currentState_]->Draw(this);
+	}
 }
 
 
@@ -228,7 +238,10 @@ void Player::InitializeWeapons()
 /// -------------------------------------------------------------
 void Player::OnCollision(Collider* other)
 {
-	
+	// 衝突相手が nullptr の場合は処理をスキップ
+
+	// 衝突相手がプレイヤー自身の場合は処理をスキップ
+	UNREFERENCED_PARAMETER(other);
 }
 
 
@@ -254,8 +267,21 @@ std::vector<const Bullet*> Player::GetAllBullets() const
 /// -------------------------------------------------------------
 void Player::AddHP(int amount)
 {
-	if (isDead_) return;
+	if (isDead_ || amount <= 0) return;
 	hp_ = std::min(hp_ + static_cast<float>(amount), maxHP_);
+}
+
+void Player::SetState(ModelState state, bool force)
+{
+	if (currentState_ != state || force)
+	{
+		auto it = behaviors_.find(state);
+		if (it != behaviors_.end())
+		{
+			currentState_ = state;
+			it->second->Initialize(this);
+		}
+	}
 }
 
 
@@ -279,7 +305,7 @@ void Player::FireWeapon()
 	else
 	{
 		// 通常時は右手（モデル上の銃口）から発射
-		Vector3 localMuzzleOffset = { 2.0f, 1.65f, 5.0f };
+		Vector3 localMuzzleOffset = { 0.0f, 1.65f, 0.0f };
 		Vector3 scale = { 1.0f, 1.0f, 1.0f };
 		Vector3 rotation = { 0.0f,animationModel_->GetRotate().y, 0.0f };
 		Vector3 translation = animationModel_->GetTranslate();
@@ -291,11 +317,4 @@ void Player::FireWeapon()
 	}
 
 	weapons_[currentWeaponIndex_]->TryFire(worldMuzzlePos, forward);
-}
-
-void Player::ChangeState(std::unique_ptr<IPlayerState> next)
-{
-	if (state_) state_->Finalize(this);
-	state_ = std::move(next);
-	if (state_) state_->Initialize(this);
 }
