@@ -80,7 +80,10 @@ void GamePlayScene::Initialize()
 	terrein_ = std::make_unique<Object3D>();
 	// 地形オブジェクトの初期化
 	terrein_->Initialize("Terrain.gltf");
-	terrein_->SetScale({ 100.0f, 100.0f, 100.0f });
+	terrein_->SetScale({ 50.0f, 50.0f, 50.0f });
+
+	skyBox_ = std::make_unique<SkyBox>();
+	skyBox_->Initialize("SkyBox/skybox.dds");
 }
 
 
@@ -97,7 +100,7 @@ void GamePlayScene::Update()
 		Object3DCommon::GetInstance()->SetDebugCamera(!Object3DCommon::GetInstance()->GetDebugCamera());
 		Wireframe::GetInstance()->SetDebugCamera(!Wireframe::GetInstance()->GetDebugCamera());
 		ParticleManager::GetInstance()->SetDebugCamera(!ParticleManager::GetInstance()->GetDebugCamera());
-		//skyBox_->SetDebugCamera(!skyBox_->GetDebugCamera());
+		skyBox_->SetDebugCamera(!skyBox_->GetDebugCamera());
 		player_->SetDebugCamera(!player_->IsDebugCamera());
 		isDebugCamera_ = !isDebugCamera_;
 		Input::GetInstance()->SetLockCursor(isDebugCamera_);
@@ -219,6 +222,8 @@ void GamePlayScene::Update()
 	}
 
 	terrein_->Update();
+
+	skyBox_->Update();
 }
 
 
@@ -243,6 +248,8 @@ void GamePlayScene::Draw3DObjects()
 
 	// スカイボックスの共通描画設定
 	SkyBoxManager::GetInstance()->SetRenderSetting();
+
+	skyBox_->Draw();
 
 #pragma endregion
 

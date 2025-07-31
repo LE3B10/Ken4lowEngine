@@ -134,6 +134,7 @@ void TextureManager::LoadTexture(const std::string& filePath)
 	{
 		// .ddsで終わっていたらDDSとして読み込む
 		hr = DirectX::LoadFromDDSFile(filePathW.c_str(), DirectX::DDS_FLAGS_NONE, nullptr, image);
+		assert(SUCCEEDED(hr));
 	}
 	else
 	{

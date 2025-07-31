@@ -1076,4 +1076,7 @@
       <Filter>Externals\ImGui</Filter>
     </Text>
   </ItemGroup>
+  <ItemGroup>
+    <Image Include="Resources\Textures\SkyBox\rostock_laage_airport_4k.dds" />
+  </ItemGroup>
 </Project>
