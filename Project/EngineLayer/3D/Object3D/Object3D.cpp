@@ -32,9 +32,9 @@ void Object3D::Initialize(const std::string& fileName)
 	modelData.material.gpuHandle = TextureManager::GetInstance()->GetSrvHandleGPU(texturePath);
 
 	// 環境マップ
-	TextureManager::GetInstance()->LoadTexture("rostock_laage_airport_4k.dds");
+	TextureManager::GetInstance()->LoadTexture("SkyBox/rostock_laage_airport_4k.dds");
 	// 環境マップのハンドルを取得
-	environmentMapHandle_ = TextureManager::GetInstance()->GetSrvHandleGPU("rostock_laage_airport_4k.dds");
+	environmentMapHandle_ = TextureManager::GetInstance()->GetSrvHandleGPU("SkyBox/rostock_laage_airport_4k.dds");
 
 	// ワールドトランスフォームの初期化
 	worldTransform.Initialize();

@@ -1,0 +1,54 @@
+# Blender 4.5.0 MTL File: 'terrain.blend'
+# www.blender.org
+
+newmtl flower_empodium
+Ns 360.000000
+Ka 1.000000 1.000000 1.000000
+Kd 0.800000 0.800000 0.800000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.000000
+d 1.000000
+illum 2
+
+newmtl grass_medium_01
+Ns 360.000000
+Ka 1.000000 1.000000 1.000000
+Kd 0.800000 0.800000 0.800000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.000000
+d 1.000000
+illum 2
+
+newmtl rock_moss_set_02
+Ka 1.000000 1.000000 1.000000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+d 1.000000
+illum 2
+map_Kd C:/Users/k023g/Downloads/terrain/rock_moss_set_02_4k.blend/textures/rock_moss_set_02_diff_4k.jpg
+map_Ns C:/Users/k023g/Downloads/terrain/rock_moss_set_02_4k.blend/textures/rock_moss_set_02_rough_4k.jpg
+map_Bump -bm 1.000000 C:/Users/k023g/Downloads/terrain/rock_moss_set_02_4k.blend/textures/rock_moss_set_02_nor_gl_4k.exr
+
+newmtl 地面
+Ka 1.000000 1.000000 1.000000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 2
+map_Kd C:/Users/k023g/Downloads/terrain/Textures/rocky_terrain_02_diff_4k.png
+map_Ks C:/Users/k023g/Downloads/terrain/Textures/rocky_terrain_02_spec_4k.png
+map_Ns C:/Users/k023g/Downloads/terrain/Textures/rocky_terrain_02_rough_4k.png
+map_Bump -bm 1.000000 C:/Users/k023g/Downloads/terrain/Textures/rocky_terrain_02_nor_gl_4k.png
+
+newmtl 水面
+Ns 250.000000
+Ka 1.000000 1.000000 1.000000
+Kd 0.800000 0.800000 0.800000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.333000
+d 1.000000
+illum 2
