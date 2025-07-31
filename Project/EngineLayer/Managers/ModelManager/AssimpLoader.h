@@ -2,6 +2,7 @@
 #include "ModelData.h"
 
 #include <string>
+#include <filesystem>
 
 // Assimp
 #include <assimp/Importer.hpp>
@@ -13,7 +14,7 @@ class AssimpLoader
 public: /// ---------- メンバ関数 ---------- ///
 
 	// Assimpでモデルを読み込む
-	static ModelData LoadModel(const std::string& directoryPath, const std::string& filename);
+	static ModelData LoadModel(const std::string& modelFilePath);
 
 private: /// ---------- メンバ関数 ---------- ///
 
@@ -21,7 +22,7 @@ private: /// ---------- メンバ関数 ---------- ///
 	static Node ReadNode(aiNode* node);
 
 	// メッシュを解析する
-	static void ParseMeshes(const aiScene* scene, const std::string& directoryPath, ModelData& modelData);
+	static void ParseMeshes(const aiScene* scene, ModelData& modelData);
 
 };
 

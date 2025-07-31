@@ -39,6 +39,39 @@ void DSVManager::Initialize(DirectXCommon* dxCommon, uint32_t maxDSVCount)
 	descriptorSize_ = dxCommon_->GetDevice()->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
 }
 
+ComPtr<ID3D12Resource> DSVManager::CreateDepthStencilBuffer(uint32_t width, uint32_t height, DXGI_FORMAT format, D3D12_CLEAR_VALUE& outClearValue)
+{
+	D3D12_RESOURCE_DESC depthDesc{};
+	depthDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+	depthDesc.Width = width;
+	depthDesc.Height = height;
+	depthDesc.DepthOrArraySize = 1;
+	depthDesc.MipLevels = 1;
+	depthDesc.Format = format;
+	depthDesc.SampleDesc.Count = 1;
+	depthDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
+	depthDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
+
+	outClearValue.Format = format;
+	outClearValue.DepthStencil.Depth = 1.0f;
+	outClearValue.DepthStencil.Stencil = 0;
+
+	CD3DX12_HEAP_PROPERTIES heapProps(D3D12_HEAP_TYPE_DEFAULT);
+
+	ComPtr<ID3D12Resource> depthBuffer;
+	HRESULT result = dxCommon_->GetDevice()->CreateCommittedResource(
+		&heapProps,
+		D3D12_HEAP_FLAG_NONE,
+		&depthDesc,
+		D3D12_RESOURCE_STATE_DEPTH_WRITE,
+		&outClearValue,
+		IID_PPV_ARGS(&depthBuffer)
+	);
+	assert(SUCCEEDED(result) && "Failed to create Depth Stencil Buffer!");
+
+	return depthBuffer;
+}
+
 
 /// -------------------------------------------------------------
 ///				DSVを確保（未使用のインデックスを取得）

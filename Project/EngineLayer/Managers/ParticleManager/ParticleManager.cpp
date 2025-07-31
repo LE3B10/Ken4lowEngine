@@ -77,17 +77,15 @@ void ParticleManager::Initialize(DirectXCommon* dxCommon, Camera* camera)
 /// -------------------------------------------------------------
 void ParticleManager::CreateParticleGroup(const std::string& name, const std::string& textureFilePath, ParticleEffectType effectType)
 {
-	const std::string FilePath = "Resources/" + textureFilePath;
-
-	TextureManager::GetInstance()->LoadTexture(FilePath);
+	TextureManager::GetInstance()->LoadTexture(textureFilePath);
 
 	// すでに存在していれば何もせずに戻る
 	if (particleGroups.find(name) != particleGroups.end()) return;
 
 	// 新たな空のパーティクルグループを作成し、コンテナに登録
 	ParticleGroup group{};
-	group.materialData.textureFilePath = FilePath;
-	group.materialData.gpuHandle = TextureManager::GetInstance()->GetSrvHandleGPU(FilePath);
+	group.materialData.textureFilePath = textureFilePath;
+	group.materialData.gpuHandle = TextureManager::GetInstance()->GetSrvHandleGPU(textureFilePath);
 
 	// インスタンスバッファ作成
 	group.instancebuffer = ResourceManager::CreateBufferResource(dxCommon_->GetDevice(), sizeof(ParticleForGPU) * kNumMaxInstance);

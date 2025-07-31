@@ -1,13 +1,13 @@
 #include "AssimpLoader.h"
 
-ModelData AssimpLoader::LoadModel(const std::string& directoryPath, const std::string& filename)
+ModelData AssimpLoader::LoadModel(const std::string& modelFilePath)
 {
 	// 1. ファイルの拡張子を取得して判定
-	std::string extension = filename.substr(filename.find_last_of('.') + 1);
+	std::string extension = modelFilePath.substr(modelFilePath.find_last_of('.') + 1);
 
 	// 2. Assimp でモデルを読み込む
 	Assimp::Importer importer;
-	std::string filePath = directoryPath + "/" + filename;
+	std::string filePath = "Resources/Models/" + modelFilePath;
 	const aiScene* scene = nullptr;
 
 	if (extension == "obj")
@@ -34,7 +34,7 @@ ModelData AssimpLoader::LoadModel(const std::string& directoryPath, const std::s
 	ModelData modelData;
 
 	// 4. メッシュを解析 (共通処理)
-	ParseMeshes(scene, directoryPath, modelData);
+	ParseMeshes(scene, modelData);
 
 	// 5. ノード階層を構築 (共通処理)
 	modelData.rootNode = ReadNode(scene->mRootNode);
@@ -65,7 +65,7 @@ Node AssimpLoader::ReadNode(aiNode* node)
 	return result;
 }
 
-void AssimpLoader::ParseMeshes(const aiScene* scene, const std::string& directoryPath, ModelData& modelData)
+void AssimpLoader::ParseMeshes(const aiScene* scene, ModelData& modelData)
 {
 	for (uint32_t meshIndex = 0; meshIndex < scene->mNumMeshes; ++meshIndex)
 	{
@@ -125,9 +125,12 @@ void AssimpLoader::ParseMeshes(const aiScene* scene, const std::string& director
 		aiMaterial* material = scene->mMaterials[mesh->mMaterialIndex];
 		if (material->GetTextureCount(aiTextureType_DIFFUSE) > 0)
 		{
-			aiString textureFilePath;
-			material->GetTexture(aiTextureType_DIFFUSE, 0, &textureFilePath);
-			modelData.material.textureFilePath = textureFilePath.C_Str();
+			aiString aiTexPath;
+			material->GetTexture(aiTextureType_DIFFUSE, 0, &aiTexPath);
+
+			// フォルダー情報は捨ててファイル名だけ保持
+			std::filesystem::path texPath(aiTexPath.C_Str());
+			modelData.material.textureFilePath = texPath.filename().string();
 		}
 		else
 		{

@@ -51,7 +51,7 @@ void Player::Initialize()
 
 	// HUDの初期化
 	numberSpriteDrawer_ = std::make_unique<NumberSpriteDrawer>();
-	numberSpriteDrawer_->Initialize("Resources/number.png", 50.0f, 50.0f);
+	numberSpriteDrawer_->Initialize("number.png", 50.0f, 50.0f);
 }
 
 

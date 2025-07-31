@@ -17,6 +17,7 @@
 #include "HUDManager.h"
 #include "ResultManager.h"
 #include "ItemManager.h"
+#include "LevelObjectManager.h"
 
 #include "AnimationModel.h"
 
@@ -105,6 +106,8 @@ private: /// ---------- メンバ変数 ---------- ///
 	std::unique_ptr<AnimationModel> animationModel_ = nullptr;
 
 	std::unique_ptr<SkyBox> skyBox_ = nullptr; // スカイボックス
+
+	std::unique_ptr<LevelObjectManager> levelObjectManager_ = nullptr; // レベルオブジェクトマネージャー
 
 	// デバッグカメラのON/OFF用
 	bool isDebugCamera_ = false;

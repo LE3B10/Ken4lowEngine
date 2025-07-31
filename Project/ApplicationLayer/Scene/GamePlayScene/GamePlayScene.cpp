@@ -12,6 +12,7 @@
 #include "AudioManager.h"
 #include <SceneManager.h>
 #include <ScoreManager.h>
+#include "LevelLoader.h"
 
 #ifdef _DEBUG
 #include <DebugCamera.h>

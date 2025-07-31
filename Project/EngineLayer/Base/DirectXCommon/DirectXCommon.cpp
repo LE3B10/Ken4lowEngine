@@ -91,10 +91,10 @@ void DirectXCommon::BeginDraw()
 	ComPtr<ID3D12Resource> depthBuffer = GetDepthStencilResource();
 
 	// **スワップチェインのバリア (`PRESENT` → `RENDER_TARGET`)**
-	TransitionResource(backBuffer.Get(), D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
+	ResourceTransition(backBuffer.Get(), D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
 
 	// **深度バッファのバリア (`DEPTH_WRITE` → `PIXEL_SHADER_RESOURCE`)**
-	TransitionResource(depthBuffer.Get(), D3D12_RESOURCE_STATE_DEPTH_WRITE, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+	ResourceTransition(depthBuffer.Get(), D3D12_RESOURCE_STATE_DEPTH_WRITE, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 
 	// 画面をクリア
 	ClearWindow();
@@ -114,17 +114,7 @@ void DirectXCommon::EndDraw()
 	backBuffer->SetName(L"BackBuffer"); // 名前をつける
 
 	// **スワップチェインのバリア (`RENDER_TARGET` → `PRESENT`)**
-	TransitionResource(backBuffer.Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
-
-
-	// 🔹 **バックバッファを再度 RENDER_TARGET に変更**
-	TransitionResource(backBuffer.Get(), D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
-
-	// 🔹 **ImGui の描画をここで行う**
-	ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), commandManager_->GetCommandList());
-
-	// 🔹 **再度 `RENDER_TARGET → PRESENT` に変更**
-	TransitionResource(backBuffer.Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
+	ResourceTransition(backBuffer.Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
 
 	// コマンド完了まで待つ
 	commandManager_->ExecuteAndWait();
@@ -144,6 +134,9 @@ void DirectXCommon::EndDraw()
 /// -------------------------------------------------------------
 void DirectXCommon::Finalize()
 {
+	fenceManager_->Signal(commandManager_->GetCommandQueue());
+	fenceManager_->Wait();
+
 	// フェンスとイベントの解放
 	fenceManager_->Finalize();
 	device_.reset();
@@ -228,24 +221,6 @@ void DirectXCommon::ErrorWarning()
 
 
 /// -------------------------------------------------------------
-///				　リソース遷移の管理する処理
-/// -------------------------------------------------------------
-void DirectXCommon::TransitionResource(ID3D12Resource* resource, D3D12_RESOURCE_STATES stateBefore, D3D12_RESOURCE_STATES stateAfter)
-{
-	if (stateBefore == stateAfter) return;
-
-	D3D12_RESOURCE_BARRIER barrier = {};
-	barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-	barrier.Transition.pResource = resource;
-	barrier.Transition.StateBefore = stateBefore;
-	barrier.Transition.StateAfter = stateAfter;
-	barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
-
-	commandManager_->GetCommandList()->ResourceBarrier(1, &barrier);
-}
-
-
-/// -------------------------------------------------------------
 ///					画面全体のクリア処理
 /// -------------------------------------------------------------
 void DirectXCommon::ClearWindow()
@@ -256,14 +231,14 @@ void DirectXCommon::ClearWindow()
 
 	// RTVとDSVの取得
 	D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle = RTVManager::GetInstance()->GetCPUDescriptorHandle(backBufferIndex);
-	D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle = DSVManager::GetInstance()->GetCPUDescriptorHandle(0);
+	D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle = DSVManager::GetInstance()->GetCPUDescriptorHandle(dsvIndex_);
 
 	// **深度バッファを DEPTH_WRITE に変更**
 	ComPtr<ID3D12Resource> depthBuffer = GetDepthStencilResource();
-	TransitionResource(depthBuffer.Get(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_DEPTH_WRITE);
+	ResourceTransition(depthBuffer.Get(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_DEPTH_WRITE);
 
 	// 描画先のRTVとDSVを設定
-	commandList->OMSetRenderTargets(1, &rtvHandle, false, nullptr);
+	commandList->OMSetRenderTargets(1, &rtvHandle, false, &dsvHandle);
 
 	// 画面をクリア
 	float clearColor[] = { 0.0f, 0.0f, 0.0f, 1.0f };
@@ -281,36 +256,12 @@ void DirectXCommon::InitializeRTVAndDSV()
 	DSVManager::GetInstance()->Initialize(this);
 
 	// 深度バッファリソースの作成
-	D3D12_RESOURCE_DESC depthDesc{};
-	depthDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
-	depthDesc.Width = kClientWidth;
-	depthDesc.Height = kClientHeight;
-	depthDesc.DepthOrArraySize = 1;
-	depthDesc.MipLevels = 1;
-	depthDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
-	depthDesc.SampleDesc.Count = 1;
-	depthDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
-	depthDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
-
-	D3D12_CLEAR_VALUE depthClearValue{};
-	depthClearValue.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
-	depthClearValue.DepthStencil.Depth = 1.0f;
-	depthClearValue.DepthStencil.Stencil = 0;
-
-	CD3DX12_HEAP_PROPERTIES heapProps(D3D12_HEAP_TYPE_DEFAULT); // 🔹 ローカル変数を作成
-	HRESULT result = device_->GetDevice()->CreateCommittedResource(
-		&heapProps,  // ✅ ローカル変数のアドレスを渡す
-		D3D12_HEAP_FLAG_NONE,
-		&depthDesc,
-		D3D12_RESOURCE_STATE_DEPTH_WRITE,
-		&depthClearValue,
-		IID_PPV_ARGS(&depthStencilResource)
-	);
-	assert(SUCCEEDED(result) && "Failed to create Depth Stencil Buffer!");
+	D3D12_CLEAR_VALUE clearValue{};
+	depthStencilResource = DSVManager::GetInstance()->CreateDepthStencilBuffer(kClientWidth, kClientHeight, DXGI_FORMAT_D24_UNORM_S8_UINT, clearValue);
 
 	// DSVの作成
-	uint32_t dsvIndex = DSVManager::GetInstance()->Allocate();
-	DSVManager::GetInstance()->CreateDSVForDepthBuffer(dsvIndex, depthStencilResource.Get());
+	dsvIndex_ = DSVManager::GetInstance()->Allocate();
+	DSVManager::GetInstance()->CreateDSVForDepthBuffer(dsvIndex_, depthStencilResource.Get());
 
 	// RTVの初期化
 	RTVManager::GetInstance()->Initialize(this);
