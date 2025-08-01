@@ -71,7 +71,7 @@ void AssimpLoader::ParseMeshes(const aiScene* scene, ModelData& modelData)
 	{
 		aiMesh* mesh = scene->mMeshes[meshIndex];
 		assert(mesh->HasNormals() && mesh->HasTextureCoords(0));
-		modelData.vertices.resize(mesh->mNumVertices);
+		uint32_t vertexOffset = static_cast<uint32_t>(modelData.vertices.size());
 
 		// 頂点データの解析
 		for (uint32_t vertexIndex = 0; vertexIndex < mesh->mNumVertices; ++vertexIndex)
@@ -80,9 +80,12 @@ void AssimpLoader::ParseMeshes(const aiScene* scene, ModelData& modelData)
 			aiVector3D& normal = mesh->mNormals[vertexIndex];
 			aiVector3D& texcoord = mesh->mTextureCoords[0][vertexIndex];
 
-			modelData.vertices[vertexIndex].position = { -position.x, position.y, position.z, 1.0f };
-			modelData.vertices[vertexIndex].normal = { -normal.x, normal.y, normal.z };
-			modelData.vertices[vertexIndex].texcoord = { texcoord.x, texcoord.y };
+			VertexData vertexData;
+			vertexData.position = { -position.x, position.y, position.z, 1.0f };
+			vertexData.normal = { -normal.x, normal.y, normal.z };
+			vertexData.texcoord = { texcoord.x, texcoord.y };
+
+			modelData.vertices.push_back(vertexData);
 		}
 
 		// インデックスデータの解析
@@ -94,7 +97,7 @@ void AssimpLoader::ParseMeshes(const aiScene* scene, ModelData& modelData)
 			for (uint32_t element = 0; element < face.mNumIndices; ++element)
 			{
 				uint32_t vertexIndex = face.mIndices[element];
-				modelData.indices.push_back(vertexIndex);
+				modelData.indices.push_back(vertexOffset + vertexIndex);
 			}
 		}
 

@@ -79,7 +79,7 @@ void GamePlayScene::Initialize()
 
 	terrein_ = std::make_unique<Object3D>();
 	// 地形オブジェクトの初期化
-	terrein_->Initialize("Terrain.gltf");
+	terrein_->Initialize("terrain00.gltf");
 	terrein_->SetScale({ 50.0f, 50.0f, 50.0f });
 
 	skyBox_ = std::make_unique<SkyBox>();
