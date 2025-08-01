@@ -120,6 +120,7 @@ void TitleScene::Finalize()
 /// -------------------------------------------------------------
 void TitleScene::DrawImGui()
 {
+#ifdef _DEBUG
 	ImGui::Begin("Test Window");
 
 	for (uint32_t i = 0; i < sprites_.size(); i++)
@@ -145,4 +146,5 @@ void TitleScene::DrawImGui()
 	}
 
 	ImGui::End();
+#endif // _DEBUG
 }

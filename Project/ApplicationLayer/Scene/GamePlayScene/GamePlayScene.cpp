@@ -43,7 +43,6 @@ void GamePlayScene::Initialize()
 
 	objectBall_ = std::make_unique<Object3D>();
 	objectBall_->Initialize("sphere.gltf");
-	objectBall_->SetTranslate({ -2.0f, 0.0f, 0.0f });
 
 	animationModel_ = std::make_unique<AnimationModel>();
 	animationModel_->Initialize("PlayerStateModel/human.gltf");
@@ -108,7 +107,7 @@ void GamePlayScene::Draw3DObjects()
 	// オブジェクト3D共通描画設定
 	Object3DCommon::GetInstance()->SetRenderSetting();
 
-	objectTerrain_->Draw();
+	//objectTerrain_->Draw();
 
 	// 球体の描画
 	objectBall_->Draw();
@@ -124,12 +123,12 @@ void GamePlayScene::Draw3DObjects()
 	// アニメーションモデルの共通描画設定
 	AnimationPipelineBuilder::GetInstance()->SetRenderSetting();
 
-	animationModel_->Draw();
+	//animationModel_->Draw();
 
 #pragma endregion
 
 	// ワイヤーフレームの描画
-	Wireframe::GetInstance()->DrawGrid(100.0f, 100.0f, { 0.25f, 0.25f, 0.25f,1.0f });
+	//Wireframe::GetInstance()->DrawGrid(100.0f, 100.0f, { 0.25f, 0.25f, 0.25f,1.0f });
 }
 
 
