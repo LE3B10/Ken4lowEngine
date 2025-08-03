@@ -183,6 +183,9 @@ void GamePlayScene::Update()
 		// アイテムの更新と衝突判定
 		itemManager_->Update(player_.get());
 
+		player_->Update();
+		boss_->Update();
+
 		hudManager_->Update();
 		hudManager_->SetAmmoFromWeapon(player_->GetCurrentWeapon());// 新しいコード（武器の情報を直接渡す）
 		hudManager_->SetScore(ScoreManager::GetInstance()->GetScore());
@@ -190,9 +193,6 @@ void GamePlayScene::Update()
 		hudManager_->SetHP(player_->GetHP(), player_->GetMaxHP());
 		hudManager_->SetWeapon(player_->GetCurrentWeapon());
 		hudManager_->SetStamina(player_->GetStamina(), player_->GetMaxStamina());
-
-		player_->Update();
-		boss_->Update();
 
 		fpsCamera_->Update();
 
