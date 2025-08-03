@@ -67,11 +67,13 @@ std::unique_ptr<LevelData> LevelLoader::LoadLevel(const std::string& filePath)
 		}
 
 		// オブジェクトのタイプに応じて処理を分岐
-		if (type.compare("MESH") == 0)
+		if (type.compare("MESH") == 0 || type.compare("PlayerSpawnPoint") == 0)
 		{
 			// MESHタイプのオブジェクトを処理
 			levelData->objects.emplace_back(ObjectData{});
 			ObjectData& objectData = levelData->objects.back();
+
+			objectData.type = type; // オブジェクトのタイプを設定
 
 			// オブジェクトの名前の取得
 			if (object.contains("name"))

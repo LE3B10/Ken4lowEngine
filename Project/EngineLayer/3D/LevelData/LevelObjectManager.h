@@ -1,6 +1,7 @@
 #pragma once
 #include "LevelData.h"
 #include <Object3D.h>
+#include <AnimationModel.h>
 #include <memory>
 #include <vector>
 
@@ -25,4 +26,5 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	// レベルデータから生成されたオブジェクトのリスト
 	std::vector<std::unique_ptr<Object3D>> objects_;
+	std::vector<std::unique_ptr<AnimationModel>> animationModels_; // アニメーションモデル用のリスト
 };

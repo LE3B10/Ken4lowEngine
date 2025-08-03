@@ -6,6 +6,7 @@
 #include "Player.h"
 
 #include <imgui.h>
+#include <AnimationModelFactory.h>
 
 void Boss::Initialize()
 {
@@ -17,10 +18,14 @@ void Boss::Initialize()
 
 	// 各モデルをロードしてマップに保存
 	for (const auto& [state, path] : stateModelFiles_) {
-		auto m = std::make_unique<AnimationModel>();
-		m->SetScaleFactor(scaleFactor_);
-		m->Initialize(path);
-		models_[state] = std::move(m);
+		AnimationModelFactory::PreLoadModel(path);
+	}
+
+	for (const auto& [state, path] : stateModelFiles_) {
+		auto model = AnimationModelFactory::CreateInstance(path);
+		model->SetScaleFactor(scaleFactor_);
+		model->InitializeBones();
+		models_[state] = model;
 	}
 
 	// 最初のモデルをセット
