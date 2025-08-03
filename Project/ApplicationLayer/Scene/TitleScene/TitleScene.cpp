@@ -17,7 +17,8 @@ void TitleScene::Initialize()
 
 	// テクスチャのパスをリストで管理
 	texturePaths_ = {
-		"Push_Enter.png",
+		"uvChecker.png",
+		"monsterBall.png",
 	};
 
 	/// ---------- Spriteの初期化 ---------- ///
