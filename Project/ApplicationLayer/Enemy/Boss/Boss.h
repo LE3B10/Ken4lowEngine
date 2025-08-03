@@ -130,7 +130,7 @@ private: /// ---------- 定数 ---------- ///
 
 	bool isDying_ = false;   // 死亡演出中フラグ
 	float deathTime_ = 0.0f;   // 経過時間
-	const float kDeathDuration_ = 3.6f;   // 演出時間（秒）
+	const float kDeathDuration_ = 3.8f;   // 演出時間（秒）
 
 	bool isDissolving_ = false;
 	float dissolveTime_ = 0.0f;
