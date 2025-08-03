@@ -84,6 +84,12 @@ void GamePlayScene::Initialize()
 
 	skyBox_ = std::make_unique<SkyBox>();
 	skyBox_->Initialize("SkyBox/skybox.dds");
+
+	auto levelLoader = std::make_unique<LevelLoader>();
+
+	// レベルオブジェクトマネージャーの初期化
+	levelObjectManager_ = std::make_unique<LevelObjectManager>();
+	levelObjectManager_->Initialize(*levelLoader->LoadLevel("Resources/JSON/playerspawn.json"), "PlayerStateModel/human.gltf");
 }
 
 
@@ -224,6 +230,8 @@ void GamePlayScene::Update()
 	terrein_->Update();
 
 	skyBox_->Update();
+
+	levelObjectManager_->Update();
 }
 
 
@@ -275,7 +283,11 @@ void GamePlayScene::Draw3DObjects()
 	// アニメーションモデルの共通描画設定
 	AnimationPipelineBuilder::GetInstance()->SetRenderSetting();
 
+	//levelObjectManager_->Draw();
+
+
 	boss_->Draw();
+
 
 #pragma endregion
 

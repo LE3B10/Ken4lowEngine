@@ -9,6 +9,7 @@
 struct ObjectData
 {
 	std::string name; // オブジェクトの名前
+	std::string type; // オブジェクトのタイプ（例: "Player", "Enemy", "Item"など）
 	Vector3 position; // 位置
 	Vector3 rotation; // 回転
 	Vector3 scale; // スケール

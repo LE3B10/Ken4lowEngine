@@ -16,7 +16,25 @@
 #include "RunningBehavior.h"
 
 #include <imgui.h>
+#include <AnimationModelFactory.h>
 
+
+Player::~Player()
+{
+	AnimationModelFactory::ClearAll();
+
+	// プレイヤーのデストラクタ
+	// ここで必要なクリーンアップ処理を行う
+	weapons_.clear(); // 武器のクリア
+	controller_.reset(); // プレイヤーコントローラーのリセット
+	animationModel_.reset(); // アニメーションモデルのリセット
+	numberSpriteDrawer_.reset(); // 数字スプライト描画クラスのリセット
+	// 各ビヘイビアのクリア
+	for (auto& behavior : behaviors_) {
+		behavior.second.reset();
+	}
+	behaviors_.clear();
+}
 
 /// -------------------------------------------------------------
 ///				　			　 初期化処理
@@ -25,9 +43,16 @@ void Player::Initialize()
 {
 	input_ = Input::GetInstance();
 
+	// 必要なアニメーションモデルを事前ロード
+	AnimationModelFactory::PreLoadModel("PlayerStateModel/human.gltf");
+	AnimationModelFactory::PreLoadModel("PlayerStateModel/humanWalking.gltf");
+	AnimationModelFactory::PreLoadModel("PlayerStateModel/PlayerRunState.gltf");
+
 	// アニメーションモデルの初期化
-	animationModel_ = std::make_unique<AnimationModel>();
-	animationModel_->Initialize("PlayerStateModel/human.gltf");
+	animationModel_ = AnimationModelFactory::CreateInstance("PlayerStateModel/human.gltf");
+	animationModel_->SetScaleFactor(1.0f); // スケールファクターを設定
+	animationModel_->InitializeBones(); // ボーン情報の初期化
+
 	currentState_ = ModelState::Idle; // 初期状態をIdleに設定
 
 	// 各ビヘイビア登録
@@ -281,6 +306,24 @@ void Player::SetState(ModelState state, bool force)
 			currentState_ = state;
 			it->second->Initialize(this);
 		}
+	}
+}
+
+void Player::SetAnimationModel(std::shared_ptr<AnimationModel> model)
+{
+	// 位置・回転・スケールを保持しておく
+	if (animationModel_)
+	{
+		model->SetTranslate(animationModel_->GetTranslate());
+		model->SetRotate(animationModel_->GetRotate());
+		model->SetScale(animationModel_->GetScale());
+	}
+
+	// 新しいモデルに差し替え
+	animationModel_ = model;
+
+	if (controller_) {
+		controller_->SetAnimationModel(model.get());
 	}
 }
 

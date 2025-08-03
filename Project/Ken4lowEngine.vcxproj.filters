@@ -438,6 +438,7 @@
     </ClCompile>
     <ClCompile Include="EngineLayer\3D\LevelData\LevelLoader.cpp" />
     <ClCompile Include="EngineLayer\3D\LevelData\LevelObjectManager.cpp" />
+    <ClCompile Include="EngineLayer\Managers\AnimationManager\AnimationModelFactory.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="EngineLayer\Math\AABB.h">
@@ -875,6 +876,7 @@
     <ClInclude Include="EngineLayer\3D\LevelData\LevelData.h" />
     <ClInclude Include="EngineLayer\3D\LevelData\LevelLoader.h" />
     <ClInclude Include="EngineLayer\3D\LevelData\LevelObjectManager.h" />
+    <ClInclude Include="EngineLayer\Managers\AnimationManager\AnimationModelFactory.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Resources\Shaders\PostEffect\FullScreen.hlsli">

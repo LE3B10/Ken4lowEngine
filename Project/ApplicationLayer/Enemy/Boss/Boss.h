@@ -101,7 +101,7 @@ private: /// ---------- メンバ変数 ---------- ///
 	//std::unique_ptr<AnimationModel> model_;
 	// ステートに対応するモデル（もしくはアニメーション）
 	std::unordered_map<BossState, std::string> stateModelFiles_;
-	std::unordered_map<BossState, std::unique_ptr<AnimationModel>> models_;
+	std::unordered_map<BossState, std::shared_ptr<AnimationModel>> models_;
 
 	std::unique_ptr<BossWeapon> weapon_; // ボスの武器
 
@@ -130,7 +130,7 @@ private: /// ---------- 定数 ---------- ///
 
 	bool isDying_ = false;   // 死亡演出中フラグ
 	float deathTime_ = 0.0f;   // 経過時間
-	const float kDeathDuration_ = 3.8f;   // 演出時間（秒）
+	const float kDeathDuration_ = 3.6f;   // 演出時間（秒）
 
 	bool isDissolving_ = false;
 	float dissolveTime_ = 0.0f;

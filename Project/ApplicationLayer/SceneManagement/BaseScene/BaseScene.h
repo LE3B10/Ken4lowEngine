@@ -20,9 +20,6 @@ public: /// ---------- 純粋仮想関数 ---------- ///
 	// 仮想更新処理
 	virtual void Update() = 0;
 
-	// 仮想描画処理
-	//virtual void Draw() = 0;
-
 	// 仮想3D描画処理
 	virtual void Draw3DObjects() = 0;
 
