@@ -19,6 +19,7 @@ void TitleScene::Initialize()
 	texturePaths_ = {
 		"uvChecker.png",
 		"monsterBall.png",
+		"Push_Enter.png",
 	};
 
 	/// ---------- Spriteの初期化 ---------- ///
@@ -35,8 +36,6 @@ void TitleScene::Initialize()
 		{
 			throw std::runtime_error("Texture paths list is empty!");
 		}
-
-		sprites_[i]->SetPosition(Vector2(100.0f * i, 100.0f * i));
 	}
 }
 
