@@ -17,6 +17,8 @@
 /// -------------------------------------------------------------
 void AnimationModel::Initialize(const std::string& fileName, bool isSkinning)
 {
+	fileName_ = fileName;  // ファイル名保存
+
 	// リソースを破棄
 	Clear();
 
@@ -259,6 +261,25 @@ void AnimationModel::DrawBodyPartColliders()
 			Wireframe::GetInstance()->DrawCapsule(center, part.radius, height, axis, 8, { 0.0f, 1.0f, 0.0f, 1.0f });
 		}
 	}
+}
+
+std::shared_ptr<AnimationModel> AnimationModel::Clone() const
+{
+	auto clone = std::make_shared<AnimationModel>();
+
+	// 再初期化が必要なものは再初期化する
+	clone->Initialize(fileName_); // またはファイル名を記録しておいて再ロード
+
+	// コピー可能な状態を反映
+	clone->SetTranslate(this->GetTranslate());
+	clone->SetScale(this->GetScale());
+	clone->SetRotate(this->GetRotate());
+	clone->SetAnimationTime(0.0f);
+	clone->SetSkinningEnabled(true);
+	clone->SetIsPlaying(true);
+	clone->SetHideHead(this->hideHead_);
+
+	return clone;
 }
 
 

@@ -43,6 +43,8 @@ class Player : public Collider
 
 public: /// ---------- メンバ関数 ---------- ///
 
+	~Player();
+
 	// 初期化処理
 	void Initialize();
 
@@ -169,6 +171,8 @@ public: /// ---------- セッタ ---------- ///
 	// モデルの状態を設定
 	void SetState(ModelState state, bool force = false);
 
+	void SetAnimationModel(std::shared_ptr<AnimationModel> model);
+
 private: /// ---------- メンバ変数 ---------- ///
 
 	Input* input_ = nullptr; // 入力クラス
@@ -187,7 +191,7 @@ private: /// ---------- メンバ変数 ---------- ///
 	std::vector<std::unique_ptr<Bullet>> bullets_; // 弾丸クラス
 
 	std::unique_ptr<NumberSpriteDrawer> numberSpriteDrawer_; // 数字スプライト描画クラス
-	std::unique_ptr<AnimationModel> animationModel_;
+	std::shared_ptr<AnimationModel> animationModel_;
 
 	float stamina_ = 1000.0f;        // 現在のスタミナ
 	float maxStamina_ = 1000.0f;     // 最大スタミナ

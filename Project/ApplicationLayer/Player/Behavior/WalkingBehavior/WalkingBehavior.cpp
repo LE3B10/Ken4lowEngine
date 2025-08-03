@@ -2,11 +2,12 @@
 #include "Player.h"
 #include "Input.h"
 #include "Vector3.h"
+#include <AnimationModelFactory.h>
 
 void WalkingBehavior::Initialize(Player* player)
 {
-	AnimationModel* model = player->GetAnimationModel();
-	model->Initialize("PlayerStateModel/humanWalking.gltf");
+	auto model = AnimationModelFactory::CreateInstance("PlayerStateModel/humanWalking.gltf");
+	player->SetAnimationModel(model);
 	model->Update();
 	player->SetState(ModelState::Walking);
 }

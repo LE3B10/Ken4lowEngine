@@ -114,6 +114,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     </FxCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="EngineLayer\Managers\AnimationManager\AnimationModelFactory.cpp" />
     <ClCompile Include="ApplicationLayer\Player\Behavior\AimingBehavior\AimingBehavior.cpp" />
     <ClCompile Include="ApplicationLayer\Player\Bullet.cpp" />
     <ClCompile Include="ApplicationLayer\Crosshair\Crosshair.cpp" />
@@ -410,6 +411,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     </FxCompile>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="EngineLayer\Managers\AnimationManager\AnimationModelFactory.h" />
     <ClInclude Include="ApplicationLayer\Player\Behavior\AimingBehavior\AimingBehavior.h" />
     <ClInclude Include="ApplicationLayer\Player\Bullet.h" />
     <ClInclude Include="ApplicationLayer\Crosshair\Crosshair.h" />

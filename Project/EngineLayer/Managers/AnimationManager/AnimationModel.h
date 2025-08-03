@@ -87,6 +87,9 @@ public: /// ---------- メンバ関数 ---------- ///
 
 	void DrawBodyPartColliders();
 
+	// クローンを作成
+	std::shared_ptr<AnimationModel> Clone() const;
+
 	// AnimationModel.h に追加
 	void SetDissolveThreshold(float threshold) { dissolveSetting_->threshold = threshold; }
 	float GetDissolveThreshold() const { return dissolveSetting_->threshold; }
@@ -138,6 +141,7 @@ public: /// ---------- セッタ ---------- ///
 	void SetHideHead(bool hide) { hideHead_ = hide; }
 
 	void SetScaleFactor(float factor) { scaleFactor = factor; }
+	float GetScaleFactor() const { return scaleFactor; }
 
 	void SetIsPlaying(bool isPlaying) { isAnimationPlaying_ = isPlaying; }
 
@@ -156,6 +160,8 @@ private: /// ---------- メンバ関数 ---------- ///
 
 	// Dissolve設定リソースの作成
 	void CreateDissolveSettingResource();
+
+public: /// ---------- ボーン情報の初期化 ---------- ///
 
 	// ボーン情報の初期化
 	void InitializeBones();
@@ -211,6 +217,8 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	// モデルデータ
 	ModelData modelData;
+	std::string fileName_;  // 読み込んだファイル名を保持
+
 	Animation animation;
 
 	std::unique_ptr<AnimationMesh> animationMesh_;

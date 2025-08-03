@@ -121,6 +121,8 @@ public: /// ---------- アクセサー関数 ---------- ///
 	bool IsDebugCamera() const { return statusFlags_.isDebugCamera; }
 	void SetDebugCamera(bool isDebugCamera) { statusFlags_.isDebugCamera = isDebugCamera; }
 
+	void SetAnimationModel(AnimationModel* model) { animationModel_ = model; }
+
 private: /// ---------- メンバ変数 ---------- ///
 
 	// スタミナの更新処理
