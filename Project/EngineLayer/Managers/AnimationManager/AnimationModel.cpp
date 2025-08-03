@@ -210,6 +210,7 @@ void AnimationModel::Clear()
 
 void AnimationModel::DrawSkeletonWireframe()
 {
+#ifdef _DEBUG
 	if (!skeleton_) { return; }
 
 	const auto& joints = skeleton_->GetJoints();
@@ -228,6 +229,7 @@ void AnimationModel::DrawSkeletonWireframe()
 			Wireframe::GetInstance()->DrawLine(parentPos, jointPos, { 1.0f, 0.0f, 0.0f, 1.0f });
 		}
 	}
+#endif // _DEBUG
 }
 
 void AnimationModel::DrawBodyPartColliders()
