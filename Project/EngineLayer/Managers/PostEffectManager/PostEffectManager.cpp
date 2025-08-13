@@ -19,6 +19,7 @@
 #include <RandomEffect.h>
 #include <AbsorbEffect.h>
 #include <DepthOutlineEffect.h>
+#include <UAVManager.h>
 
 
 auto Transition = [&](PostEffectManager::RenderTarget& rt, D3D12_RESOURCE_STATES newState)
@@ -217,12 +218,18 @@ void PostEffectManager::RenderPostEffect()
 			Transition(inRT, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
 			Transition(outRT, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
 
+			// UAV ヒープをセット
+			UAVManager::GetInstance()->PreDispatch();
+
 			postEffects_[name]->Apply(commandList, inRT.srvIndex, outRT.uavIndex, dsvSrvIndex_);
 
 			Transition(outRT, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 		}
 		else
 		{
+			// ★ SRVヒープをバインド（PSで使うため）
+			SRVManager::GetInstance()->PreDraw();
+
 			// 書き込み
 			Transition(inRT, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 			Transition(outRT, D3D12_RESOURCE_STATE_RENDER_TARGET);
@@ -241,6 +248,9 @@ void PostEffectManager::RenderPostEffect()
 
 	// 最後の出力レンダーテクスチャをバックバッファに描画する
 	auto& finalRT = renderTargets_[src]; // 最後の出力レンダーテクスチャ
+
+	// ★ SRVヒープに戻す（コピーパスはGraphics）
+	SRVManager::GetInstance()->PreDraw();
 
 	// バックバッファの取得
 	uint32_t backBufferIndex = dxCommon_->GetSwapChain()->GetSwapChain()->GetCurrentBackBufferIndex();
@@ -394,8 +404,12 @@ void PostEffectManager::AllocateRTV_DSV_SRV_UAV()
 		SRVManager::GetInstance()->CreateSRVForTexture2D(rt.srvIndex, rt.resource.Get(), DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, 1);
 
 		// UAVの生成
-		rt.uavIndex = SRVManager::GetInstance()->Allocate();
-		SRVManager::GetInstance()->CreateUAVForTexture2D(rt.uavIndex, rt.resource.Get(), DXGI_FORMAT_R8G8B8A8_UNORM, 0); // UAVはTexture2Dとして生成
+		rt.uavIndex = UAVManager::GetInstance()->Allocate();
+		UAVManager::GetInstance()->CreateUAVForTexture2D(rt.uavIndex, rt.resource.Get(), DXGI_FORMAT_R8G8B8A8_UNORM, 0); // UAVはTexture2Dとして生成
+
+		// ★ 追加：UAVヒープ側にも“入力用SRV”を複製
+		rt.srvIndexOnUavHeap = UAVManager::GetInstance()->Allocate();
+		UAVManager::GetInstance()->CreateSRVForTexture2DOnThisHeap(rt.srvIndexOnUavHeap, rt.resource.Get(), DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, 1);
 	}
 
 	// 深度バッファの生成

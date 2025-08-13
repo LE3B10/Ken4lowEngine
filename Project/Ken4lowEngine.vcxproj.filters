@@ -91,16 +91,16 @@
     <ClCompile Include="EngineLayer\CameraManagement\FPSCamera\FpsCamera.cpp">
       <Filter>EngineLayer\Camera</Filter>
     </ClCompile>
-    <ClCompile Include="EngineLayer\Managers\AnimationManager\AnimationModel.cpp">
+    <ClCompile Include="EngineLayer\3D\AnimationManager\AnimationModel.cpp">
       <Filter>EngineLayer\AnimationManagement</Filter>
     </ClCompile>
-    <ClCompile Include="EngineLayer\Managers\AnimationManager\AnimationPipelineBuilder.cpp">
+    <ClCompile Include="EngineLayer\3D\AnimationManager\AnimationPipelineBuilder.cpp">
       <Filter>EngineLayer\AnimationManagement</Filter>
     </ClCompile>
-    <ClCompile Include="EngineLayer\Managers\AnimationManager\Skeleton.cpp">
+    <ClCompile Include="EngineLayer\3D\AnimationManager\Skeleton.cpp">
       <Filter>EngineLayer\AnimationManagement</Filter>
     </ClCompile>
-    <ClCompile Include="EngineLayer\Managers\AnimationManager\SkinCluster.cpp">
+    <ClCompile Include="EngineLayer\3D\AnimationManager\SkinCluster.cpp">
       <Filter>EngineLayer\AnimationManagement</Filter>
     </ClCompile>
     <ClCompile Include="Externals\imgui\imgui.cpp">
@@ -130,13 +130,13 @@
     <ClCompile Include="EngineLayer\Managers\DSVManager\DSVManager.cpp">
       <Filter>EngineLayer\Managers</Filter>
     </ClCompile>
-    <ClCompile Include="EngineLayer\Managers\DX12CommandManager\DX12CommandManager.cpp">
+    <ClCompile Include="EngineLayer\Base\DX12CommandManager\DX12CommandManager.cpp">
       <Filter>EngineLayer\Managers</Filter>
     </ClCompile>
-    <ClCompile Include="EngineLayer\Managers\DX12FenceManager\DX12FenceManager.cpp">
+    <ClCompile Include="EngineLayer\Base\DX12FenceManager\DX12FenceManager.cpp">
       <Filter>EngineLayer\Managers</Filter>
     </ClCompile>
-    <ClCompile Include="EngineLayer\Managers\DXCCompilerManager\DXCCompilerManager.cpp">
+    <ClCompile Include="EngineLayer\Base\DXCCompilerManager\DXCCompilerManager.cpp">
       <Filter>EngineLayer\Managers</Filter>
     </ClCompile>
     <ClCompile Include="ApplicationLayer\Scene\GamePlayScene\HUDManager\HUDManager.cpp">
@@ -166,13 +166,13 @@
     <ClCompile Include="EngineLayer\Managers\RTVManager\RTVManager.cpp">
       <Filter>EngineLayer\Managers</Filter>
     </ClCompile>
-    <ClCompile Include="EngineLayer\Managers\ShaderCompiler\ShaderCompiler.cpp">
+    <ClCompile Include="EngineLayer\Base\ShaderCompiler\ShaderCompiler.cpp">
       <Filter>EngineLayer\Managers</Filter>
     </ClCompile>
-    <ClCompile Include="EngineLayer\Managers\SkyBoxManager\SkyBoxManager.cpp">
+    <ClCompile Include="EngineLayer\3D\SkyBox\SkyBoxManager.cpp">
       <Filter>EngineLayer\Managers</Filter>
     </ClCompile>
-    <ClCompile Include="EngineLayer\Managers\SpriteManager\SpriteManager.cpp">
+    <ClCompile Include="EngineLayer\2D\Sprite\SpriteManager.cpp">
       <Filter>EngineLayer\Managers</Filter>
     </ClCompile>
     <ClCompile Include="EngineLayer\Managers\SRVManager\SRVManager.cpp">
@@ -199,13 +199,13 @@
     <ClCompile Include="EngineLayer\Mesh\ParticleMesh.cpp">
       <Filter>EngineLayer\Mesh</Filter>
     </ClCompile>
-    <ClCompile Include="EngineLayer\Mesh\AnimationMesh.cpp">
+    <ClCompile Include="EngineLayer\3D\AnimationManager\AnimationMesh.cpp">
       <Filter>EngineLayer\Mesh</Filter>
     </ClCompile>
     <ClCompile Include="EngineLayer\2D\Sprite\Sprite.cpp">
       <Filter>EngineLayer\2D</Filter>
     </ClCompile>
-    <ClCompile Include="EngineLayer\2D\Wireframe\Wireframe.cpp">
+    <ClCompile Include="EngineLayer\3D\Wireframe\Wireframe.cpp">
       <Filter>EngineLayer\2D</Filter>
     </ClCompile>
     <ClCompile Include="EngineLayer\2D\Sprite\NumberSpriteDrawer.cpp">
@@ -214,7 +214,7 @@
     <ClCompile Include="EngineLayer\3D\SkyBox\SkyBox.cpp">
       <Filter>EngineLayer\3D</Filter>
     </ClCompile>
-    <ClCompile Include="EngineLayer\3D\Object3DCommon\Object3DCommon.cpp">
+    <ClCompile Include="EngineLayer\3D\Object3D\Object3DCommon.cpp">
       <Filter>EngineLayer\3D</Filter>
     </ClCompile>
     <ClCompile Include="EngineLayer\3D\Object3D\Object3D.cpp">
@@ -394,7 +394,7 @@
     <ClCompile Include="EngineLayer\PostEffectManagement\VignetteEffect.cpp">
       <Filter>EngineLayer\PostEffectManagement\VignetteEffect</Filter>
     </ClCompile>
-    <ClCompile Include="EngineLayer\Base\BlendStateFactory.cpp">
+    <ClCompile Include="EngineLayer\Base\BlendStateFactory\BlendStateFactory.cpp">
       <Filter>EngineLayer</Filter>
     </ClCompile>
     <ClCompile Include="ApplicationLayer\Enemy\Boss\Boss.cpp">
@@ -438,7 +438,8 @@
     </ClCompile>
     <ClCompile Include="EngineLayer\3D\LevelData\LevelLoader.cpp" />
     <ClCompile Include="EngineLayer\3D\LevelData\LevelObjectManager.cpp" />
-    <ClCompile Include="EngineLayer\Managers\AnimationManager\AnimationModelFactory.cpp" />
+    <ClCompile Include="EngineLayer\3D\AnimationManager\AnimationModelFactory.cpp" />
+    <ClCompile Include="EngineLayer\Managers\UAVManager\UAVManager.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="EngineLayer\Math\AABB.h">
@@ -462,16 +463,16 @@
     <ClInclude Include="EngineLayer\CameraManagement\FPSCamera\FpsCamera.h">
       <Filter>EngineLayer\Camera</Filter>
     </ClInclude>
-    <ClInclude Include="EngineLayer\Managers\AnimationManager\AnimationModel.h">
+    <ClInclude Include="EngineLayer\3D\AnimationManager\AnimationModel.h">
       <Filter>EngineLayer\AnimationManagement</Filter>
     </ClInclude>
-    <ClInclude Include="EngineLayer\Managers\AnimationManager\AnimationPipelineBuilder.h">
+    <ClInclude Include="EngineLayer\3D\AnimationManager\AnimationPipelineBuilder.h">
       <Filter>EngineLayer\AnimationManagement</Filter>
     </ClInclude>
-    <ClInclude Include="EngineLayer\Managers\AnimationManager\Skeleton.h">
+    <ClInclude Include="EngineLayer\3D\AnimationManager\Skeleton.h">
       <Filter>EngineLayer\AnimationManagement</Filter>
     </ClInclude>
-    <ClInclude Include="EngineLayer\Managers\AnimationManager\SkinCluster.h">
+    <ClInclude Include="EngineLayer\3D\AnimationManager\SkinCluster.h">
       <Filter>EngineLayer\AnimationManagement</Filter>
     </ClInclude>
     <ClInclude Include="Externals\Audio\minimp3\minimp3.h">
@@ -510,13 +511,13 @@
     <ClInclude Include="EngineLayer\Managers\DSVManager\DSVManager.h">
       <Filter>EngineLayer\Managers</Filter>
     </ClInclude>
-    <ClInclude Include="EngineLayer\Managers\DX12CommandManager\DX12CommandManager.h">
+    <ClInclude Include="EngineLayer\Base\DX12CommandManager\DX12CommandManager.h">
       <Filter>EngineLayer\Managers</Filter>
     </ClInclude>
-    <ClInclude Include="EngineLayer\Managers\DX12FenceManager\DX12FenceManager.h">
+    <ClInclude Include="EngineLayer\Base\DX12FenceManager\DX12FenceManager.h">
       <Filter>EngineLayer\Managers</Filter>
     </ClInclude>
-    <ClInclude Include="EngineLayer\Managers\DXCCompilerManager\DXCCompilerManager.h">
+    <ClInclude Include="EngineLayer\Base\DXCCompilerManager\DXCCompilerManager.h">
       <Filter>EngineLayer\Managers</Filter>
     </ClInclude>
     <ClInclude Include="ApplicationLayer\Scene\GamePlayScene\HUDManager\HUDManager.h">
@@ -546,13 +547,13 @@
     <ClInclude Include="EngineLayer\Managers\RTVManager\RTVManager.h">
       <Filter>EngineLayer\Managers</Filter>
     </ClInclude>
-    <ClInclude Include="EngineLayer\Managers\ShaderCompiler\ShaderCompiler.h">
+    <ClInclude Include="EngineLayer\Base\ShaderCompiler\ShaderCompiler.h">
       <Filter>EngineLayer\Managers</Filter>
     </ClInclude>
-    <ClInclude Include="EngineLayer\Managers\SkyBoxManager\SkyBoxManager.h">
+    <ClInclude Include="EngineLayer\3D\SkyBox\SkyBoxManager.h">
       <Filter>EngineLayer\Managers</Filter>
     </ClInclude>
-    <ClInclude Include="EngineLayer\Managers\SpriteManager\SpriteManager.h">
+    <ClInclude Include="EngineLayer\2D\Sprite\SpriteManager.h">
       <Filter>EngineLayer\Managers</Filter>
     </ClInclude>
     <ClInclude Include="EngineLayer\Managers\SRVManager\SRVManager.h">
@@ -600,13 +601,13 @@
     <ClInclude Include="EngineLayer\Mesh\ParticleMesh.h">
       <Filter>EngineLayer\Mesh</Filter>
     </ClInclude>
-    <ClInclude Include="EngineLayer\Mesh\AnimationMesh.h">
+    <ClInclude Include="EngineLayer\3D\AnimationManager\AnimationMesh.h">
       <Filter>EngineLayer\Mesh</Filter>
     </ClInclude>
     <ClInclude Include="EngineLayer\2D\Sprite\Sprite.h">
       <Filter>EngineLayer\2D</Filter>
     </ClInclude>
-    <ClInclude Include="EngineLayer\2D\Wireframe\Wireframe.h">
+    <ClInclude Include="EngineLayer\3D\Wireframe\Wireframe.h">
       <Filter>EngineLayer\2D</Filter>
     </ClInclude>
     <ClInclude Include="EngineLayer\2D\Sprite\NumberSpriteDrawer.h">
@@ -615,7 +616,7 @@
     <ClInclude Include="EngineLayer\3D\SkyBox\SkyBox.h">
       <Filter>EngineLayer\3D</Filter>
     </ClInclude>
-    <ClInclude Include="EngineLayer\3D\Object3DCommon\Object3DCommon.h">
+    <ClInclude Include="EngineLayer\3D\Object3D\Object3DCommon.h">
       <Filter>EngineLayer\3D</Filter>
     </ClInclude>
     <ClInclude Include="EngineLayer\3D\Object3D\Object3D.h">
@@ -831,7 +832,7 @@
     <ClInclude Include="EngineLayer\PostEffectManagement\VignetteEffect.h">
       <Filter>EngineLayer\PostEffectManagement\VignetteEffect</Filter>
     </ClInclude>
-    <ClInclude Include="EngineLayer\Base\BlendStateFactory.h">
+    <ClInclude Include="EngineLayer\Base\BlendStateFactory\BlendStateFactory.h">
       <Filter>EngineLayer</Filter>
     </ClInclude>
     <ClInclude Include="ApplicationLayer\Enemy\Boss\Boss.h">
@@ -876,7 +877,8 @@
     <ClInclude Include="EngineLayer\3D\LevelData\LevelData.h" />
     <ClInclude Include="EngineLayer\3D\LevelData\LevelLoader.h" />
     <ClInclude Include="EngineLayer\3D\LevelData\LevelObjectManager.h" />
-    <ClInclude Include="EngineLayer\Managers\AnimationManager\AnimationModelFactory.h" />
+    <ClInclude Include="EngineLayer\3D\AnimationManager\AnimationModelFactory.h" />
+    <ClInclude Include="EngineLayer\Managers\UAVManager\UAVManager.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Resources\Shaders\PostEffect\FullScreen.hlsli">

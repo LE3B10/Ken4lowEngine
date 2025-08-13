@@ -4,6 +4,7 @@
 #include <PostEffectPipelineBuilder.h>
 #include <ResourceManager.h>
 #include <SRVManager.h>
+#include <UAVManager.h>
 #include <ShaderCompiler.h>
 #include <WinApp.h>
 
@@ -45,8 +46,8 @@ void GrayScaleEffect::Apply(ID3D12GraphicsCommandList* commandList, uint32_t srv
 	commandList->SetPipelineState(computePipelineState_.Get());
 
 	// ② SRVとUAVを設定（ディスクリプタテーブル）
-	commandList->SetComputeRootDescriptorTable(0, SRVManager::GetInstance()->GetGPUDescriptorHandle(srvIndex));  // t0
-	commandList->SetComputeRootDescriptorTable(1, SRVManager::GetInstance()->GetGPUDescriptorHandle(uavIndex)); // u0
+	commandList->SetComputeRootDescriptorTable(0, UAVManager::GetInstance()->GetGPUDescriptorHandle(srvIndex));  // t0
+	commandList->SetComputeRootDescriptorTable(1, UAVManager::GetInstance()->GetGPUDescriptorHandle(uavIndex)); // u0
 
 	// ③ CBVを設定（b0）
 	commandList->SetComputeRootConstantBufferView(2, constantBuffer_->GetGPUVirtualAddress()); // b0
