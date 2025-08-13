@@ -306,3 +306,11 @@ const DirectX::TexMetadata& TextureManager::GetMetaData(const std::string& fileP
 	return textureData.metaData;
 }
 
+ID3D12Resource* TextureManager::GetResource(const std::string& filePath)
+{
+	std::string filePathStr = NormalizeTexturePath(filePath);
+	auto it = textureDatas.find(filePathStr);
+	assert(it != textureDatas.end());                 // 事前に LoadTexture 済みであること
+	return it->second.resource.Get();                 // ID3D12Resource* を返す
+}
+

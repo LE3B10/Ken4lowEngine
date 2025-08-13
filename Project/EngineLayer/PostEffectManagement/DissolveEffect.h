@@ -49,5 +49,6 @@ private: /// ---------- メンバ変数 ---------- ///
 	DissolveSetting* dissolveSetting_ = nullptr;
 
 	uint32_t dissolveMaskSrvIndex_ = 0; // SRV index for mask
+	uint32_t dissolveMaskSrvIndexOnUAV_ = 0;   // ★UAVヒープ側に複製したSRV
 };
 
