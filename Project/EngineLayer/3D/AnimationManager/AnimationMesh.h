@@ -10,8 +10,6 @@ class AnimationMesh
 public:
 	void Initialize(ID3D12Device* device, const ModelData& modelData);
 
-	void DrawSkippingJoint(int skipJointIndex);
-
 	const D3D12_VERTEX_BUFFER_VIEW& GetVertexBufferView() const { return vertexBufferView_; }
 	const D3D12_INDEX_BUFFER_VIEW& GetIndexBufferView() const { return indexBufferView_; }
 

@@ -4,6 +4,7 @@
 #include "CollisionTypeIdDef.h"
 #include "CollisionManager.h"
 #include "Player.h"
+#include <ScoreManager.h>
 
 #include <imgui.h>
 #include <AnimationModelFactory.h>
@@ -208,26 +209,22 @@ void Boss::OnCollision(Collider* other)
 
 void Boss::TakeDamage(float damage)
 {
+	// 既に死亡演出 / 死亡中なら何もしない
 	if (isDead_ || isDying_ || isDissolving_) return;
 
 	hp_ -= damage;
-	if (hp_ <= 0.0f)
-	{
-		hp_ = 0.0f;
-		Log("Boss is dead");
-	}
-
-	if (hp_ <= 0.0f)
-	{
+	if (hp_ <= 0.0f) {
 		hp_ = 0.0f;
 
-		// 死亡演出
+		// ★ここでキル加算を一度だけ実行
+		ScoreManager::GetInstance()->AddKill();
+
+		// 死亡演出開始
 		isDying_ = true;
 		deathTime_ = 0.0f;
 		ChangeState(BossState::Dead);
-		Log("Boss is dying...");
-
-		// 弾とぶつからないようコライダーを無効化
+		Log("Boss is dying.");
+		return;
 	}
 }
 

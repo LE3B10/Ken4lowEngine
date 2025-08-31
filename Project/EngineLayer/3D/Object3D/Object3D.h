@@ -56,12 +56,15 @@ public: /// ---------- 設定処理 ---------- ///
 
 	// スケールを設定
 	void SetScale(const Vector3& scale) { worldTransform.scale_ = scale; }
+	Vector3 GetScale() const { return worldTransform.scale_; }
 
 	// 回転を設定
 	void SetRotate(const Vector3& rotate) { worldTransform.rotate_ = rotate; }
+	Vector3 GetRotate() const { return worldTransform.rotate_; }
 
 	// 位置を設定
 	void SetTranslate(const Vector3& translate) { worldTransform.translate_ = translate; }
+	Vector3 GetTranslate() const { return worldTransform.translate_; }
 
 	// 色を設定
 	void SetColor(const Vector4& color) { material_.SetColor(color); }

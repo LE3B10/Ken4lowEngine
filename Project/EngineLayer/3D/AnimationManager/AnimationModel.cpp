@@ -29,7 +29,7 @@ void AnimationModel::Initialize(const std::string& fileName, bool isSkinning)
 	modelData = AssimpLoader::LoadModel(fileName);
 
 	// アニメーションモデルを読み込む
-	animation = LoadAnimationFile(fileName);
+	if (isSkinning)	animation = LoadAnimationFile(fileName);
 
 	// AnimationModel.cpp
 	// 1) モデル読み込み直後に得られるファイル名（拡張子付き or なし）だけを使う

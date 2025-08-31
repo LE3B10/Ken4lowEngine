@@ -5,6 +5,7 @@
 #include <DSVManager.h>
 #include <RTVManager.h>
 #include <SRVManager.h>
+#include <UAVManager.h>
 #include <TextureManager.h>
 #include <ParticleManager.h>
 #include <SpriteManager.h>
@@ -59,6 +60,9 @@ void Framework::Initialize()
 
 	// SRVマネージャーの初期化
 	SRVManager::GetInstance()->Initialize(dxCommon_);
+
+	// UAVマネージャーの初期化
+	UAVManager::GetInstance()->Initialize(dxCommon_);
 
 	// テクスチャマネージャーの初期化
 	TextureManager::GetInstance()->Initialize(dxCommon_);

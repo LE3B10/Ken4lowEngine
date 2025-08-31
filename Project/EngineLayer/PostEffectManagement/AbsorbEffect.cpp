@@ -4,6 +4,7 @@
 #include <PostEffectPipelineBuilder.h>
 #include <ResourceManager.h>
 #include <SRVManager.h>
+#include <UAVManager.h>
 #include <ShaderCompiler.h>
 #include <WinApp.h>
 

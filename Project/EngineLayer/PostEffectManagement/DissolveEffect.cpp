@@ -4,6 +4,7 @@
 #include <PostEffectPipelineBuilder.h>
 #include <ResourceManager.h>
 #include <SRVManager.h>
+#include <UAVManager.h>
 #include <ShaderCompiler.h>
 #include <WinApp.h>
 
@@ -29,8 +30,15 @@ void DissolveEffect::Initialize(DirectXCommon* dxCommon, PostEffectPipelineBuild
 	std::string filePath = "Mask/Noise.png";
 	TextureManager::GetInstance()->LoadTexture(filePath);
 
-	// SRVインデックスを取得（CopySRVせず、既存SRVをそのまま使う）
-	dissolveMaskSrvIndex_ = TextureManager::GetInstance()->GetSrvIndex(filePath);
+	// UAVヒープ側のインデックスを確保
+	dissolveMaskSrvIndexOnUAV_ = UAVManager::GetInstance()->Allocate();
+
+	// リソース＆メタデータを取得
+	ID3D12Resource* texture = TextureManager::GetInstance()->GetResource(filePath);
+	const auto& metaData = TextureManager::GetInstance()->GetMetaData(filePath);
+
+	// UAVを作成（ディゾルブマスク用）
+	UAVManager::GetInstance()->CreateSRVForTexture2DOnThisHeap(dissolveMaskSrvIndexOnUAV_, texture, metaData.format, metaData.mipLevels);
 
 	// リソースの生成
 	constantBuffer_ = ResourceManager::CreateBufferResource(dxCommon_->GetDevice(), sizeof(DissolveSetting));
@@ -55,12 +63,12 @@ void DissolveEffect::Apply(ID3D12GraphicsCommandList* commandList, uint32_t srvI
 	commandList->SetPipelineState(computePipelineState_.Get());
 
 	// ② SRVとUAVを設定（ディスクリプタテーブル）
-	commandList->SetComputeRootDescriptorTable(0, SRVManager::GetInstance()->GetGPUDescriptorHandle(srvIndex));  // t0
-	commandList->SetComputeRootDescriptorTable(1, SRVManager::GetInstance()->GetGPUDescriptorHandle(uavIndex)); // u0
+	commandList->SetComputeRootDescriptorTable(0, UAVManager::GetInstance()->GetGPUDescriptorHandle(srvIndex));  // t0
+	commandList->SetComputeRootDescriptorTable(1, UAVManager::GetInstance()->GetGPUDescriptorHandle(uavIndex)); // u0
 
 	// ③ CBVを設定（b0）
 	commandList->SetComputeRootConstantBufferView(2, constantBuffer_->GetGPUVirtualAddress()); // b0
-	commandList->SetComputeRootDescriptorTable(3, SRVManager::GetInstance()->GetGPUDescriptorHandle(dissolveMaskSrvIndex_)); // t1
+	commandList->SetComputeRootDescriptorTable(3, UAVManager::GetInstance()->GetGPUDescriptorHandle(dissolveMaskSrvIndexOnUAV_)); // t1
 
 	// ④ スレッドグループの数を計算して Dispatch
 	const uint32_t threadGroupSizeX = 8;

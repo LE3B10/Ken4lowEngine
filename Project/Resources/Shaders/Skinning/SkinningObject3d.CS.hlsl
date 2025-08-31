@@ -49,5 +49,6 @@ ConstantBuffer<SkinningSettings> gSetting : register(b1); // スキニングの�
 [numthreads(1024, 1, 1)]
 void main(uint3 DTid : SV_DispatchThreadID)
 {
+    uint vertexIndex = DTid.x;
     
 }

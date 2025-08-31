@@ -68,6 +68,9 @@ public: /// ---------- ゲッター ---------- ///
 	// メタデータを取得
 	const DirectX::TexMetadata& GetMetaData(const std::string& filePath);
 
+	// テクスチャのID3D12Resource* を取得（マスク等でSRVを再作成したい時に使う）
+	ID3D12Resource* GetResource(const std::string& filePath);
+
 private: /// ---------- メンバ関数 ---------- ///
 
 	std::string NormalizeTexturePath(const std::string& filePath)

@@ -79,6 +79,9 @@ public: /// ---------- ゲッター ---------- ///
 	// カメラからの前方ベクトルを取得
 	Vector3 GetForward() const;
 
+	// 水平方向視野角の取得
+	float GetFovY() const { return fovY_; }
+
 private: /// ---------- メンバ変数 ----- ///
 
 	float kWidth, kHeight;
