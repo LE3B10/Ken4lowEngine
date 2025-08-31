@@ -15,6 +15,7 @@
 void Weapon::Initialize()
 {
 	bullets_.clear();
+	bullets_.reserve(1024);
 	ammoInfo_.ammoInClip = ammoInfo_.clipSize;
 	isReloading_ = false;
 	reloadTimer_ = 0.0f;
@@ -25,22 +26,20 @@ void Weapon::Initialize()
 	// 武器ごとのパラメータ設定
 	switch (type_)
 	{
-	case WeaponType::Rifle:
+	case WeaponType::Primary:
 		ammoInfo_ = { 60, 300, 60, 300, 1, 10.0f, 1000.0f }; // 30回撃てて、1回で1発出す
 		reloadTime_ = 1.5f; // ライフルはリロード時間が短い
 		bulletSpeed_ = 40.0f; // ライフルの弾速はショットガンより速い
 		fireSEPath_ = "gun.mp3";
 		break;
 
-	case WeaponType::Shotgun:
+	case WeaponType::Backup:
 		ammoInfo_ = { 6, 30, 6, 30, 8, 10.0f, 100.0f }; // 6回撃てて、1回で8粒出す
 		reloadTime_ = 2.5f; // ショットガンはリロード時間が長い
 		bulletSpeed_ = 24.0f; // ショットガンの弾速はライフルより遅い
 		fireSEPath_ = "shotgunFire.mp3";
 		break;
 	}
-
-	ParticleManager::GetInstance()->CreateParticleGroup("Laser", "particle.png", ParticleEffectType::LaserBeam);
 }
 
 
@@ -49,14 +48,10 @@ void Weapon::Initialize()
 /// -------------------------------------------------------------
 void Weapon::Update()
 {
-	// リロード中の処理
-	if (isReloading_)
-	{
+	// --- リロード進行 ---
+	if (isReloading_) {
 		reloadTimer_ += player_->GetAnimationModel()->GetDeltaTime();
-
-		// リロード完了チェック
-		if (reloadTimer_ >= reloadTime_)
-		{
+		if (reloadTimer_ >= reloadTime_) {
 			int needed = ammoInfo_.clipSize - ammoInfo_.ammoInClip;
 			int toLoad = std::min(needed, ammoInfo_.reserveAmmo);
 			ammoInfo_.ammoInClip += toLoad;
@@ -65,20 +60,62 @@ void Weapon::Update()
 		}
 	}
 
-	fireTimer_ += player_->GetAnimationModel()->GetDeltaTime();  // 60FPS前提。可変FPSなら deltaTime を使う
+	// 発射インターバル計時
+	fireTimer_ += player_->GetAnimationModel()->GetDeltaTime();
 
-	// 弾の更新
-	for (auto& bullet : bullets_) bullet->Update();
+	// --- 弾がなければリロードキーだけ処理して終了 ---
+	const size_t N = bullets_.size();
+	if (N == 0) {
+		if (Input::GetInstance()->TriggerKey(DIK_R) &&
+			ammoInfo_.ammoInClip < ammoInfo_.clipSize &&
+			ammoInfo_.reserveAmmo > 0 && !isReloading_) {
+			Reload();
+		}
+		return;
+	}
 
-	// 死亡した弾を削除
-	bullets_.erase(
-		std::remove_if(bullets_.begin(), bullets_.end(),
-			[](const std::unique_ptr<Bullet>& b) { return b->IsDead(); }),
-		bullets_.end()
-	);
+	// --- 物理だけ並列 Simulate ---
+	// Nが小さいときはスレッド起動コストのほうが高いので閾値を設ける
+	if (N < 256) {
+		for (size_t i = 0; i < N; ++i) {
+			auto& b = bullets_[i];
+			if (!b->IsDead()) b->Simulate();
+		}
+	}
+	else {
+		const unsigned hw = std::max(1u, std::thread::hardware_concurrency());
+		// 過剰スレッドを避けるため、弾256個/スレッドを目安に上限をかける
+		const unsigned T = std::max(1u, std::min<unsigned>(hw, static_cast<unsigned>((N + 255) / 256)));
+		const size_t stride = (N + T - 1) / T;
+
+		std::vector<std::thread> ths;
+		ths.reserve(T);
+		auto worker = [&](size_t b, size_t e) {
+			for (size_t i = b; i < e; ++i) {
+				auto& bullet = bullets_[i];
+				if (!bullet->IsDead()) bullet->Simulate();
+			}
+			};
+		for (unsigned t = 0; t < T; ++t) {
+			const size_t b = t * stride;
+			const size_t e = std::min(N, b + stride);
+			if (b < e) ths.emplace_back(worker, b, e);
+		}
+		for (auto& th : ths) th.join();
+	}
+
+	// --- メインスレッドで描画/衝突登録 ---
+	for (auto& b : bullets_) b->Commit();
+
+	// --- Dead を削除 ---
+	bullets_.erase(std::remove_if(bullets_.begin(), bullets_.end(),
+		[](const std::unique_ptr<Bullet>& p) { return p->IsDead(); }),
+		bullets_.end());
+
+	// --- Rキーでリロード開始 ---
 	if (Input::GetInstance()->TriggerKey(DIK_R) &&
-		ammoInfo_.ammoInClip < ammoInfo_.clipSize && ammoInfo_.reserveAmmo > 0 && !isReloading_)
-	{
+		ammoInfo_.ammoInClip < ammoInfo_.clipSize &&
+		ammoInfo_.reserveAmmo > 0 && !isReloading_) {
 		Reload();
 	}
 }
@@ -112,7 +149,7 @@ void Weapon::TryFire(const Vector3& position, const Vector3& direction)
 
 	switch (type_)
 	{
-	case WeaponType::Rifle: // ライフルの場合は単発弾を発射
+	case WeaponType::Primary: // ライフルの場合は単発弾を発射
 		FireSingleBullet(position, direction);
 
 		if (fpsCamera_) fpsCamera_->AddRecoil(0.004f, 0.0045f);
@@ -122,7 +159,7 @@ void Weapon::TryFire(const Vector3& position, const Vector3& direction)
 
 		break;
 
-	case WeaponType::Shotgun: // ショットガンの場合は散弾を発射
+	case WeaponType::Backup: // ショットガンの場合は散弾を発射
 		FireShotgunSpread(position, direction);
 
 		if (fpsCamera_) fpsCamera_->AddRecoil(0.008f, 0.007f);
@@ -188,21 +225,10 @@ void Weapon::UpdateBulletsOnly()
 /// -------------------------------------------------------------
 void Weapon::FireSingleBullet(const Vector3& pos, const Vector3& dir)
 {
-	//auto bullet = std::make_unique<Bullet>();
-	//bullet->Initialize();
-	//bullet->SetPosition(pos);
-	//bullet->SetVelocity(dir * bulletSpeed_);
-	//bullet->SetDamage(ammoInfo_.bulletDamage);  // ← 新しく追加
-
-	//// 命中通知用に Player を渡す
-	//bullet->SetPlayer(player_);
-
-	//bullets_.push_back(std::move(bullet));
-
 	CreateBullet(pos, dir); // 弾丸を作成
 
 	// ショットガン発射時は FireShotgunSpread 側で消費するのでここでは減らさない
-	if (type_ == WeaponType::Rifle) {
+	if (type_ == WeaponType::Primary) {
 		--ammoInfo_.ammoInClip;
 	}
 }
@@ -264,20 +290,11 @@ void Weapon::CreateBullet(const Vector3& position, const Vector3& direction)
 	bullet->SetPosition(position);
 	bullet->SetVelocity(bulletVelocity);
 	bullet->SetDamage(ammoInfo_.bulletDamage);  // ダメージ
+	bullet->SetPlayer(player_);                 // 命中通知用に Player を渡す
 	bullets_.push_back(std::move(bullet));
 
 	// ✅ レーザービーム演出
 	float beamLength = 60.0f;
 	int segmentCount = 30;
 	Vector4 beamColor = { 0.0f, 1.0f, 1.0f, 0.8f };
-
-	ParticleManager::GetInstance()->EmitLaserBeamFakeStretch(
-		"Laser",
-		position + direction, // 銃口から少し前に
-		direction,
-		bulletVelocity,
-		beamLength,
-		segmentCount,
-		beamColor
-	);
 }

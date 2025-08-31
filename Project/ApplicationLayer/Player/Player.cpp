@@ -114,14 +114,14 @@ void Player::Update()
 	if (Weapon* weapon = GetCurrentWeapon()) weapon->Update();
 
 	// 武器に応じて発射（Rifleなら押しっぱなし、Shotgunなら単発）
-	if (GetCurrentWeapon()->GetWeaponType() == WeaponType::Rifle)
+	if (GetCurrentWeapon()->GetWeaponType() == WeaponType::Primary)
 	{
 		if (controller_->IsPushShooting())
 		{
 			FireWeapon();
 		}
 	}
-	else if (GetCurrentWeapon()->GetWeaponType() == WeaponType::Shotgun)
+	else if (GetCurrentWeapon()->GetWeaponType() == WeaponType::Backup)
 	{
 		if (controller_->IsTriggerShooting())
 		{
@@ -177,11 +177,11 @@ void Player::DrawImGui()
 	std::string weaponName = "Unknown";
 	switch (GetCurrentWeapon()->GetWeaponType())
 	{
-	case WeaponType::Rifle:
+	case WeaponType::Primary:
 		weaponName = "Rifle";
 		break;
 
-	case WeaponType::Shotgun:
+	case WeaponType::Backup:
 		weaponName = "Shotgun";
 		break;
 	}
@@ -246,13 +246,13 @@ void Player::InitializeWeapons()
 {
 	// ライフルの初期化
 	auto rifle = std::make_unique<Weapon>();
-	rifle->SetWeaponType(WeaponType::Rifle);
+	rifle->SetWeaponType(WeaponType::Primary);
 	rifle->Initialize();
 	weapons_.push_back(std::move(rifle));
 
 	// ショットガンの初期化
 	auto shotgun = std::make_unique<Weapon>();
-	shotgun->SetWeaponType(WeaponType::Shotgun);
+	shotgun->SetWeaponType(WeaponType::Backup);
 	shotgun->Initialize();
 	weapons_.push_back(std::move(shotgun));
 }
@@ -339,25 +339,41 @@ void Player::FireWeapon()
 
 	if (controller_->IsAimingInput())
 	{
-		// カメラ中心から照準に向けて発射（ADSモード）
-		Vector3 cameraOrigin = camera_->GetTranslate();
-		worldMuzzlePos = cameraOrigin;
-		Vector3 targetPos = cameraOrigin + camera_->GetForward() * range;
+		// カメラ基準の座標軸
+		const Vector3 camPos = camera_->GetTranslate();
+		const Vector3 f = Vector3::Normalize(camera_->GetForward());
+		const Vector3 up = { 0.0f, 1.0f, 0.0f };
+		const Vector3 right = Vector3::Normalize(Vector3::Cross(up, f));
+
+		// --- ここを好みで微調整 ---
+		const float side = 0.10f;  // +で画面右側（右手持ち想定）
+		const float height = -0.05f; // 少し下げる（画面下方向）
+		const float forwardOff = 0.20f;  // 画面奥にオフセット（近距離の自己衝突回避）
+		// -------------------------
+
+		// ADSでもカメラ中心から少し右下前に寄せた位置＝銃口的な扱い
+		worldMuzzlePos = camPos + right * side + up * height + f * forwardOff;
+
+		// 狙点はカメラ正面の遠点。弾道は「銃口→狙点」のベクトルに
+		const Vector3 targetPos = camPos + f * range;
 		forward = Vector3::Normalize(targetPos - worldMuzzlePos);
 	}
 	else
 	{
-		// 通常時は右手（モデル上の銃口）から発射
-		Vector3 localMuzzleOffset = { 0.0f, 1.65f, 0.0f };
+		// 通常時（既存）：モデルの銃口付近 → 狙点
+		// ※今の実装でOK。必要なら localMuzzleOffset を微調整
+		Vector3 localMuzzleOffset = { 0.0f, 1.65f, 0.0f }; // 好みで調整
 		Vector3 scale = { 1.0f, 1.0f, 1.0f };
-		Vector3 rotation = { 0.0f,animationModel_->GetRotate().y, 0.0f };
+		Vector3 rotation = { 0.0f, animationModel_->GetRotate().y, 0.0f };
 		Vector3 translation = animationModel_->GetTranslate();
 		Matrix4x4 modelMatrix = Matrix4x4::MakeAffineMatrix(scale, rotation, translation);
 		worldMuzzlePos = Vector3::Transform(localMuzzleOffset, modelMatrix);
-		Vector3 cameraOrigin = camera_->GetTranslate();
-		Vector3 targetPos = cameraOrigin + camera_->GetForward() * range;
+
+		const Vector3 camPos = camera_->GetTranslate();
+		const Vector3 targetPos = camPos + camera_->GetForward() * range;
 		forward = Vector3::Normalize(targetPos - worldMuzzlePos);
 	}
 
+	// 最後に発射
 	weapons_[currentWeaponIndex_]->TryFire(worldMuzzlePos, forward);
 }

@@ -42,21 +42,6 @@ void BossWeapon::TryFire(const Vector3& pos, const Vector3& dir)
 	bullet->SetBoss(boss_);
 
 	bullets_.push_back(std::move(bullet));
-
-	// ✅ レーザービーム演出
-	float beamLength = 60.0f;
-	int segmentCount = 30;
-	Vector4 beamColor = { 0.0f, 1.0f, 1.0f, 0.8f };
-
-	ParticleManager::GetInstance()->EmitLaserBeamFakeStretch(
-		"Laser",
-		pos + dir, // 銃口から少し前に
-		dir,
-		Vector3::Normalize(dir) * bulletSpeed_,
-		beamLength,
-		segmentCount,
-		beamColor
-	);
 }
 
 void BossWeapon::Draw()

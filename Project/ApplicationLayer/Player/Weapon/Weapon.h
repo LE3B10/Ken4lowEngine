@@ -114,7 +114,7 @@ private: /// ---------- メンバ変数 ---------- ///
 
 private: /// ---------- メンバ変数 ---------- ///
 
-	WeaponType type_ = WeaponType::Rifle; // 武器の種類
+	WeaponType type_ = WeaponType::Primary; // 武器の種類
 
 	AmmoInfo ammoInfo_; // 弾薬情報
 

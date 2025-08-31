@@ -150,5 +150,16 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	// ステータス状態
 	StatusFlags statusFlags_{};
+
+	float fovYCurrent_ = 1.0f;  // 現在のFOV（自己管理）
+	float fovYBase_ = 1.0f;  // 通常時
+	float fovYADS_ = 0.5f;  // ADS時
+	float fovYSprintMul_ = 1.06f; // スプリント時の倍率（使わなければ無視でOK）
+	float fovLerpSpeed_ = 10.0f; // 補間速度
+
+	bool  isSliding_ = false;  // スライド状態
+	float coyoteTimer_ = 0.0f;   // コヨーテタイム用
+	float jumpBuffer_ = 0.0f;   // ジャンプ先行入力用
+	bool  fovInit_ = false;  // 起動直後のFOVポップ回避（任意演出）
 };
 

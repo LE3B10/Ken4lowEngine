@@ -26,6 +26,12 @@ public: /// ---------- メンバ関数 ---------- ///
 	// 描画
 	void Draw();
 
+	void Simulate();
+
+	void Commit();
+
+public: /// ---------- アクセッサ ---------- ///
+
 	// 位置を設定
 	void SetPosition(const Vector3& position) { position_ = position; }
 
