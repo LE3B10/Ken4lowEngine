@@ -5,7 +5,11 @@
 /// -------------------------------------------------------------
 enum class WeaponType
 {
-	Rifle,	 // ライフル
-	Shotgun, // ショットガン
-	// 今後増えるならここに追加
+    Primary,
+    Backup,
+    Melee,
+    Special,
+    Sniper,
+    Heavy,
+    Unknown
 };

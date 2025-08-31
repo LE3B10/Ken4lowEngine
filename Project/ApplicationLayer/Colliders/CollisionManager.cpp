@@ -29,10 +29,7 @@ void CollisionManager::Update()
 	if (!isCollider_) return;
 
 	// 更新処理
-	for (Collider* collider : colliders_)
-	{
-		collider->Update();
-	}
+	for (Collider* collider : all_) collider->Update();
 }
 
 
@@ -45,10 +42,8 @@ void CollisionManager::Draw()
 	if (!isCollider_) return;
 
 	// 描画処理
-	for (Collider* collider : colliders_)
-	{
+	for (Collider* collider : all_)
 		if (isCollider_) collider->Draw();
-	}
 }
 
 
@@ -57,7 +52,8 @@ void CollisionManager::Draw()
 /// -------------------------------------------------------------
 void CollisionManager::Reset()
 {
-	colliders_.clear();
+	all_.clear();
+	for (auto& v : buckets_) v.clear(); // ★ 追加：型ごとのバケットも空にする
 }
 
 
@@ -66,23 +62,50 @@ void CollisionManager::Reset()
 /// -------------------------------------------------------------
 void CollisionManager::CheckAllCollisions()
 {
-	// リスト内のペアを総当たり
-	std::list<Collider*>::iterator itrA = colliders_.begin();
-	for (; itrA != colliders_.end(); ++itrA)
-	{
-		Collider* colliderA = *itrA;
+	using CId = uint32_t;
+	const CId kPlayer = static_cast<CId>(CollisionTypeIdDef::kPlayer);
+	const CId kEnemy = static_cast<CId>(CollisionTypeIdDef::kEnemy);
+	const CId kBoss = static_cast<CId>(CollisionTypeIdDef::kBoss);
+	const CId kBullet = static_cast<CId>(CollisionTypeIdDef::kBullet);
+	const CId kBossBullet = static_cast<CId>(CollisionTypeIdDef::kBossBullet);
+	const CId kItem = static_cast<CId>(CollisionTypeIdDef::kItem);
 
-		// イテレーターBは入れてータAの次の要素からまわす（重複判定を回避）
-		std::list<Collider*>::iterator itrB = itrA;
-		itrB++;
-
-		for (; itrB != colliders_.end(); ++itrB)
-		{
-			Collider* colliderB = *itrB;
-
-			// ペアの当たり判定
-			CheckCollisionPair(colliderA, colliderB);
+	auto pairLoop = [&](CId aId, CId bId) {
+		auto& A = buckets_[aId];
+		auto& B = buckets_[bId];
+		if (A.empty() || B.empty()) return;
+		for (Collider* a : A) for (Collider* b : B) {
+			CheckCollisionPair(a, b);
 		}
+		};
+
+	// ★ 片方向だけにする（OnCollisionはCheckCollisionPair内で両者に通知済み）
+	pairLoop(kBoss, kPlayer);
+	pairLoop(kEnemy, kPlayer);
+	pairLoop(kBullet, kEnemy);
+	pairLoop(kBoss, kBullet);
+	pairLoop(kPlayer, kBossBullet);
+	pairLoop(kPlayer, kItem);
+}
+
+void CollisionManager::AddCollider(Collider* other)
+{
+	all_.push_back(other);
+	const uint32_t id = other->GetTypeID();
+	if (id < kMaxTypes) buckets_[id].push_back(other);
+}
+
+void CollisionManager::RemoveCollider(Collider* other)
+{
+	// all から削除
+	all_.erase(std::remove(all_.begin(), all_.end(), other), all_.end());
+
+	// バケットから削除
+	const uint32_t id = other->GetTypeID();
+	if (id < kMaxTypes)
+	{
+		auto& v = buckets_[id];
+		v.erase(std::remove(v.begin(), v.end(), other), v.end());
 	}
 }
 
@@ -138,6 +161,18 @@ void CollisionManager::RegisterCollisionFuncsions()
 	collisionTable_[{kPlayer, kBoss}] =
 		[](Collider* a, Collider* b) {
 		return CollisionUtility::IsCollision(b->GetCapsule(), a->GetSphere());
+		};
+
+	/// ---------- プレイヤーと敵の衝突判定 ---------- ///
+	collisionTable_[{kEnemy, kPlayer}] =
+		[](Collider* a, Collider* b) {
+		return CollisionUtility::IsCollision(a->GetCapsule(), b->GetSphere());
+		};
+
+	collisionTable_[{kBullet, kEnemy}] =
+		[](Collider* a, Collider* b) {
+		if (b->HasCapsule())       return CollisionUtility::IsCollision(a->GetSegment(), b->GetCapsule());
+		else                       return CollisionUtility::IsCollision(a->GetSegment(), b->GetOBB());
 		};
 
 

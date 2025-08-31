@@ -114,6 +114,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     </FxCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="ApplicationLayer\Enemy\Enemy.cpp" />
     <ClCompile Include="EngineLayer\3D\AnimationManager\AnimationModelFactory.cpp" />
     <ClCompile Include="ApplicationLayer\Player\Behavior\AimingBehavior\AimingBehavior.cpp" />
     <ClCompile Include="ApplicationLayer\Player\Bullet.cpp" />
@@ -412,6 +413,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     </FxCompile>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="ApplicationLayer\Enemy\Enemy.h" />
     <ClInclude Include="EngineLayer\3D\AnimationManager\AnimationModelFactory.h" />
     <ClInclude Include="ApplicationLayer\Player\Behavior\AimingBehavior\AimingBehavior.h" />
     <ClInclude Include="ApplicationLayer\Player\Bullet.h" />
