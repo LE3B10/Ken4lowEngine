@@ -441,6 +441,7 @@
     <ClCompile Include="EngineLayer\3D\AnimationManager\AnimationModelFactory.cpp" />
     <ClCompile Include="EngineLayer\Managers\UAVManager\UAVManager.cpp" />
     <ClCompile Include="ApplicationLayer\Enemy\Enemy.cpp" />
+    <ClCompile Include="ApplicationLayer\Enemy\EnemyBullet.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="EngineLayer\Math\AABB.h">
@@ -881,6 +882,7 @@
     <ClInclude Include="EngineLayer\3D\AnimationManager\AnimationModelFactory.h" />
     <ClInclude Include="EngineLayer\Managers\UAVManager\UAVManager.h" />
     <ClInclude Include="ApplicationLayer\Enemy\Enemy.h" />
+    <ClInclude Include="ApplicationLayer\Enemy\EnemyBullet.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Resources\Shaders\PostEffect\FullScreen.hlsli">
