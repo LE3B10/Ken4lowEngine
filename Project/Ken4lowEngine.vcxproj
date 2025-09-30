@@ -115,6 +115,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="ApplicationLayer\Enemy\Enemy.cpp" />
+    <ClCompile Include="ApplicationLayer\Enemy\EnemyBullet.cpp" />
     <ClCompile Include="EngineLayer\3D\AnimationManager\AnimationModelFactory.cpp" />
     <ClCompile Include="ApplicationLayer\Player\Behavior\AimingBehavior\AimingBehavior.cpp" />
     <ClCompile Include="ApplicationLayer\Player\Bullet.cpp" />
@@ -414,6 +415,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ApplicationLayer\Enemy\Enemy.h" />
+    <ClInclude Include="ApplicationLayer\Enemy\EnemyBullet.h" />
     <ClInclude Include="EngineLayer\3D\AnimationManager\AnimationModelFactory.h" />
     <ClInclude Include="ApplicationLayer\Player\Behavior\AimingBehavior\AimingBehavior.h" />
     <ClInclude Include="ApplicationLayer\Player\Bullet.h" />
