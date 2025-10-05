@@ -1,3 +1,4 @@
+#define NOMINMAX
 #include "GamePlayScene.h"
 #include <DirectXCommon.h>
 #include <ImGuiManager.h>
@@ -13,6 +14,7 @@
 #include <SceneManager.h>
 #include <ScoreManager.h>
 #include "LevelLoader.h"
+#include "EnemyBullet.h"
 
 #ifdef _DEBUG
 #include <DebugCamera.h>
@@ -35,6 +37,8 @@ void GamePlayScene::Initialize()
 	Input::GetInstance()->SetLockCursor(true);
 	ShowCursor(false);// 表示・非表示も連動（オプション）
 
+	EnemyBullet::ClearAll();
+
 	// スコアの初期化
 	ScoreManager::GetInstance()->Initialize();
 
@@ -45,6 +49,11 @@ void GamePlayScene::Initialize()
 	enemies_.clear();
 	enemies_.reserve(32); // 敵の数を予約
 	spawnRequests_.clear();
+
+	// ★これまでの3点push_backを削除して↓に置き換え
+	enemySpawnPoints_.clear();
+	RebuildSpawnPointsAroundPlayer(/*count=*/8, spawnRadiusMin_, spawnRadiusMax_);
+
 	enemySpawnPoints_.clear(); // 重複防止
 	{
 		const Vector3 base = player_->GetAnimationModel()->GetTranslate() + Vector3(0.0f, 1.0f, 0.0f);
@@ -158,6 +167,9 @@ void GamePlayScene::Update()
 	terrein_->Update();
 
 	skyBox_->Update();
+
+	EnemyBullet::UpdateAll(player_.get(), player_->GetDeltaTime());
+
 }
 
 
@@ -184,9 +196,11 @@ void GamePlayScene::Draw3DObjects()
 	terrein_->Draw();
 
 	// アイテムの描画
-	//itemManager_->Draw();
+	itemManager_->Draw();
 
 	for (const auto& enemy : enemies_) enemy->Draw();
+
+	EnemyBullet::DrawAll();
 
 	// プレイヤーの描画
 	player_->Draw();
@@ -408,6 +422,8 @@ void GamePlayScene::UpdatePlaying()
 	crosshair_->Update();
 
 	CheckAllCollisions();
+
+	itemManager_->Update(player_.get());
 }
 
 void GamePlayScene::UpdatePaused()
@@ -436,10 +452,10 @@ void GamePlayScene::UpdateResult()
 void GamePlayScene::InitWaves()
 {
 	waves_.clear();
-	// total, batchSize, spawnInterval, batchDelay
-	waves_.push_back({ 6,  2, 0.50f, 1.2f }); // Wave 1：2体ずつ×3回
-	waves_.push_back({ 8,  2, 0.45f, 1.0f }); // Wave 2：2体ずつ×4回
-	waves_.push_back({ 10, 3, 0.40f, 1.2f }); // Wave 3：3体ずつ×3回 + 1体
+	// total, batchSize(=4固定), spawnInterval(未使用化), batchDelay(未使用化)
+	waves_.push_back({ 4, 2, 0.0f, 0.0f }); // 4体×4バッチ
+	waves_.push_back({ 16, 4, 0.0f, 0.0f });
+	//waves_.push_back({ 20, 4, 0.0f, 0.0f }); // 4体×5バッチ
 }
 
 void GamePlayScene::BeginWave(size_t idx)
@@ -462,77 +478,46 @@ void GamePlayScene::BeginWave(size_t idx)
 
 void GamePlayScene::UpdateWaveSpawner(float dt)
 {
-	if (waveIndex_ >= waves_.size()) return; // もう全部済み
+	if (waveIndex_ >= waves_.size()) return;
 
 	const auto& w = waves_[waveIndex_];
 
-	// バッチ待機中
-	if (batchCooldown_ > 0.0f) {
-		batchCooldown_ -= dt;
-		return;
-	}
+	// ★ いま生きてる敵が0なら、次のバッチを一斉スポーン
+	if (CountAliveEnemies() == 0) {
+		// まだこのウェーブで出す敵が残っている？
+		if (enemiesToSpawn_ > 0) {
+			// プレイヤーの現在位置を中心にスポーン点を組み直すと“周囲から湧く”になる
+			RebuildSpawnPointsAroundPlayer(8, spawnRadiusMin_, spawnRadiusMax_);
 
-	// 同バッチ内の1体ずつスポーン（spawnIntervalで刻む）
-	if (batchLeftInThisWave_ > 0) {
-		spawnTimer_ -= dt;
-		if (spawnTimer_ <= 0.0f) {
-			// 1体スポーン
-			const Vector3& p = enemySpawnPoints_[rand() % enemySpawnPoints_.size()];
-			SpawnOneEnemy(p);
-
-			--enemiesToSpawn_;
-			spawnTimer_ = w.spawnInterval;
-
-			// このバッチで規定数出していたら次のバッチへ
-			++spawnedInThisBatch_;
-
-			if (spawnedInThisBatch_ >= w.batchSize) {
-				--batchLeftInThisWave_;
-				spawnedInThisBatch_ = 0;
-				batchCooldown_ = w.batchInterval; // 次バッチまで待つ
+			int n = std::min(w.batchSize, enemiesToSpawn_);
+			for (int i = 0; i < n; ++i) {
+				const Vector3& p = enemySpawnPoints_[rand() % enemySpawnPoints_.size()];
+				SpawnOneEnemy(p);
 			}
-		}
-	}
-	else {
-		// 端数を一気に出す（0か1〜batchSize-1）
-		while (batchRemainder_ > 0 && enemiesToSpawn_ > 0)
-		{
-			const Vector3& p = enemySpawnPoints_[rand() % enemySpawnPoints_.size()];
-			SpawnOneEnemy(p);
-			--enemiesToSpawn_;
-			--batchRemainder_;
+			enemiesToSpawn_ -= n;
+			UpdateHudWaveInfo();
+			return;
 		}
 
-		// すべてスポーン済み & 全滅したら次のウェーブへ
-		if (enemiesToSpawn_ <= 0)
-		{
-			const bool allDead = (CountAliveEnemies() == 0);
-			if (allDead) {
-				++waveIndex_;
-				if (waveIndex_ < waves_.size())
-				{
-					BeginWave(waveIndex_);
-				}
-				else
-				{
-					// すべてのウェーブ終了：ボス出現
-					if (!bossSpawned_)
-					{
-						boss_ = std::make_unique<Boss>();
-						boss_->Initialize();
-						boss_->SetPlayer(player_.get());
-						bossSpawned_ = true;
-
-						// 任意演出（SE/バナーなど）
-						// AudioManager::GetInstance()->Play("boss_appear.mp3");
-						// hudManager_->ShowBanner("BOSS!");
-					}
+		// もうこのウェーブ分を全部出し切り、かつ全滅＝ウェーブ完了
+		if (enemiesToSpawn_ <= 0) {
+			++waveIndex_;
+			if (waveIndex_ < waves_.size()) {
+				BeginWave(waveIndex_);
+			}
+			else {
+				// 全ウェーブ終了→ボス出現（既存ロジック）
+				if (!bossSpawned_) {
+					boss_ = std::make_unique<Boss>();
+					boss_->Initialize();
+					boss_->SetPlayer(player_.get());
+					bossSpawned_ = true;
 				}
 			}
 		}
 	}
 
-	// HUD更新（残数）
+	// HUD更新
 	UpdateHudWaveInfo();
 }
 
@@ -540,6 +525,7 @@ void GamePlayScene::SpawnOneEnemy(const Vector3& pos)
 {
 	auto enemy = std::make_unique<Enemy>();
 	enemy->Initialize(player_.get(), pos);
+	enemy->SetItemManager(itemManager_.get());
 	enemies_.push_back(std::move(enemy));
 }
 
@@ -557,5 +543,27 @@ void GamePlayScene::UpdateHudWaveInfo()
 		hudManager_->SetWaveInfo((int)waveIndex_ + 1, (int)waves_.size());
 		const int remaining = enemiesToSpawn_ + CountAliveEnemies();
 		hudManager_->SetEnemiesRemaining(remaining);
+	}
+}
+
+Vector3 GamePlayScene::RandomSpawnPointAroundPlayer(float minR, float maxR)
+{
+	float ang = (float)rand() / RAND_MAX * std::numbers::pi_v<float> *2.0f; // 0..2π
+	float t = (float)rand() / RAND_MAX;
+	float r = minR + (maxR - minR) * t;
+	Vector3 base = player_->GetAnimationModel()->GetTranslate();
+	return base + Vector3{ std::cos(ang) * r, 0.0f, std::sin(ang) * r };
+}
+
+void GamePlayScene::RebuildSpawnPointsAroundPlayer(int count, float minR, float maxR)
+{
+	enemySpawnPoints_.clear();
+	Vector3 base = player_->GetAnimationModel()->GetTranslate();
+	for (int i = 0; i < count; ++i) {
+		float ang = (std::numbers::pi_v<float>*2 * i) / count;
+		float r = (minR + maxR) * 0.5f;
+		// ほんの少しランダムを足す
+		r += ((float)rand() / RAND_MAX - 0.5f) * (maxR - minR) * 0.25f;
+		enemySpawnPoints_.push_back(base + Vector3{ std::cos(ang) * r, 0.0f, std::sin(ang) * r });
 	}
 }

@@ -326,12 +326,12 @@ void HUDManager::Draw()
 	DrawAmmoNumbers();
 	waveBanner_->Draw();
 	DrawWaveRemainOnly();
-	objectiveArrow_->Draw();
+	//objectiveArrow_->Draw();
 	DrawHPAndReload();
 	DrawActionHints();
 	DrawQuickSlots();
 	DrawCategoryBadge();
-	DrawGadgets();
+	//DrawGadgets();
 	DrawDebugHUD();
 
 	remainIcon_->Draw();           // ← 先にアイコン

@@ -19,6 +19,7 @@
 #include "ResultManager.h"
 #include "ItemManager.h"
 #include "LevelObjectManager.h"
+#include "ItemDropTable.h"
 
 #include "AnimationModel.h"
 
@@ -119,6 +120,11 @@ private: /// ---------- メンバ関数 ---------- ///
 	// HUD反映
 	void UpdateHudWaveInfo();
 
+	// ---- スポーン点を円周上に作る ----
+	Vector3 RandomSpawnPointAroundPlayer(float minR, float maxR);
+
+	void    RebuildSpawnPointsAroundPlayer(int count, float minR, float maxR);
+
 private: /// ---------- メンバ変数 ---------- ///
 
 	Input* input_ = nullptr;
@@ -142,6 +148,7 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	// 仮のアイテムリスト
 	std::unique_ptr<ItemManager> itemManager_ = nullptr;
+	ItemDropTable dropTable_;
 
 	std::unique_ptr<CollisionManager> collisionManager_; // 衝突マネージャー
 
@@ -163,4 +170,9 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	bool isCharging = false;
 	float chargeTimer = 0.0f;
+
+	// ---- 半径の既定値 ----
+	float spawnRadiusMin_ = 18.0f;
+
+	float spawnRadiusMax_ = 25.0f;
 };

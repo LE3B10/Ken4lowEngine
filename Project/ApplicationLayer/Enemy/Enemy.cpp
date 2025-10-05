@@ -1,9 +1,14 @@
 #define NOMINMAX
 #include "Enemy.h"
+#include "EnemyBullet.h"
 #include "Player.h"
-#include <cmath> // atan2f
 #include <ScoreManager.h>
+#include "LinearInterpolation.h"
+
+#include "ItemManager.h"
+
 #include <algorithm>
+#include <cmath> // atan2f
 
 std::vector<Enemy*> Enemy::sActives;
 
@@ -18,21 +23,41 @@ void Enemy::Initialize(Player* player, const Vector3& position)
 	player_ = player;
 	hp_ = maxHp_;
 	isDead_ = false;
-	// speed_ はヘッダ既定の 5.5f を使う（Initialize で 0.1f にしない）
 
 	attackRange_ = 2.0f;
 	attackCooldown_ = 1.0f;
 	attackTimer_ = 0.0f;
 	SetTypeID(static_cast<uint32_t>(CollisionTypeIdDef::kEnemy));
 
+	itemDropTable_.SetDropChance(60); // 全体ドロップ率60%
+	itemDropTable_.AddEntry(ItemType::HealSmall, 30); // 小回復アイテムのドロップ率
+	itemDropTable_.AddEntry(ItemType::AmmoSmall, 40); // 小弾薬アイテムのドロップ率
+	itemDropTable_.AddEntry(ItemType::ScoreBonus, 20); // スコアボーナスアイテムのドロップ率
+	itemDropTable_.AddEntry(ItemType::PowerUp, 10); // パワーアップアイテムのドロップ率
+
 	model_ = std::make_unique<Object3D>();
 	model_->Initialize("cube.gltf");
-	model_->SetTranslate(position);
 
-	// コライダーの初期化（OBB）
+	// コライダー設定（半分沈み防止の基準に使う）
 	SetOBBHalfSize({ 1.0f, 1.0f, 1.0f });
+	halfHeight_ = 1.0f;                 // 上のSetOBBHalfSizeに合わせる
+	targetGroundY_ = std::max(position.y, halfHeight_);
+
+	// 下から出現する始点/終点を決定
+	spawnStartY_ = targetGroundY_ - spawnRiseDepth_;
+	spawnEndY_ = targetGroundY_;
+
+	// ★ 地面“下”から出現 → 上昇 → 一瞬静止
+	Vector3 spawnPos = position;
+	spawnPos.y = spawnStartY_;
+	model_->SetTranslate(spawnPos);
+
+	spawning_ = true;
+	spawnTimer_ = 0.0f;
+	spawnHoldTimer_ = spawnHoldTime_;
+
 	SetOwner(this);
-	SetCenterPosition(position);
+	SetCenterPosition(spawnPos);
 	sActives.push_back(this);
 }
 
@@ -43,26 +68,59 @@ void Enemy::Update()
 	const float dt = player_->GetDeltaTime();
 	Vector3 pos = model_->GetTranslate();
 
-	// ノックバック速度の適用（既存）
+	// --- スポーン演出（下からせり上がる→少し停止）---
+	if (spawning_)
+	{
+		spawnTimer_ += dt;
+		float t = Saturate(spawnTimer_ / spawnDuration_);
+		if (spawnEase_) { t = t * t * (3.0f - 2.0f * t); } // smoothstep(0,1,t)
+
+		Vector3 pos = model_->GetTranslate();
+		pos.y = Lerp(spawnStartY_, spawnEndY_, t);
+		model_->SetTranslate(pos);
+		model_->Update();
+		SetCenterPosition(pos);
+
+		if (t >= 1.0f) {
+			// 上がり切った後、少し留まる
+			spawnHoldTimer_ -= dt;
+			if (spawnHoldTimer_ <= 0.0f) { spawning_ = false; }
+		}
+		return; // 召喚中は移動・射撃しない
+	}
+
+	// ノックバック
 	pos += knockVel_ * dt;
 	knockVel_ *= 0.82f;
 
-	// Y=0 でクランプ（地形APIがあれば置き換え）
-	if (pos.y < 0.0f) pos.y = 0.0f;
+	// ★ 接地維持（半分沈まない）：常に最低でも targetGroundY_
+	if (pos.y < targetGroundY_) pos.y = targetGroundY_;
 
-	// 追跡（既存）
+	// --- プレイヤーとの距離で“間合い維持”（近接しない）---
 	Vector3 toP = PlayerWorldPosition() - pos;
 	Vector3 flat = { toP.x, 0.0f, toP.z };
 	float dist = Vector3::Length(flat);
 	if (dist > 1e-4f) {
 		flat = flat / dist;
-		if (dist > attackRange_) pos += flat * (speed_ * dt);
-		float yaw = std::atan2f(flat.x, flat.z);
+
+		if (dist < keepMinDist_) {
+			// 近すぎ → 後退して距離を取る
+			pos -= flat * (speed_ * dt);
+		}
+		else if (dist > keepMaxDist_) {
+			// 遠すぎ → 射程に入れるため前進
+			pos += flat * (speed_ * dt);
+		} // ちょうどいい距離なら停止
+
+		float yaw = std::atan2f(-flat.x, flat.z);
 		model_->SetRotate({ 0.0f, yaw, 0.0f });
 	}
 
-	// ★ 近すぎる仲間から“水平に”押し広げる
+	// 近い仲間とは水平に分離
 	SeparateFromNeighbors(pos, dt);
+
+	fireTimer_ -= dt;
+	TryRangedAttack(dist, dt);
 
 	model_->SetTranslate(pos);
 	model_->Update();
@@ -77,19 +135,18 @@ void Enemy::Draw()
 
 void Enemy::OnCollision(Collider* other)
 {
-	if (isDead_) return;
-	if (!other) return;
+	if (isDead_ || !other) return;
 	if (other->GetTypeID() == static_cast<uint32_t>(CollisionTypeIdDef::kPlayer))
 	{
-		// 近接DPSダメージ
-		ApplyMeleeDamage();
-
-		// 軽いノックバック
-		ApplyKnockback(PlayerWorldPosition() - model_->GetTranslate(), knockback_);
+		// ★ 近接ダメージはオプション化
+		if (enableMelee_) {
+			ApplyMeleeDamage();
+			ApplyKnockback(PlayerWorldPosition() - model_->GetTranslate(), knockback_);
+		}
 	}
 }
 
-void Enemy::TakeDamage(int damage)
+void Enemy::TakeDamage(float damage)
 {
 	if (isDead_) return;
 	hp_ -= damage;
@@ -100,7 +157,23 @@ void Enemy::TakeDamage(int damage)
 
 		// ★死亡が確定した瞬間に一度だけキル加算
 		ScoreManager::GetInstance()->AddKill();
+
+		// ★★ 死亡が確定した“この瞬間”にだけドロップ判定 ★★
+		if (!dropProcessed_ && itemManager_) {
+			ItemType dropType;
+			if (itemDropTable_.RollForDrop(dropType)) {
+				Vector3 p = model_->GetTranslate();
+				p.y += 0.5f; // 少し浮かせて埋まり防止＆見やすく
+				itemManager_->Spawn(dropType, p);
+			}
+			dropProcessed_ = true; // 二重発火防止
+		}
 	}
+}
+
+Vector3 Enemy::GetWorldPosition() const
+{
+	return model_->GetTranslate(); // 使っている座標の取得に合わせてOK
 }
 
 Vector3 Enemy::PlayerWorldPosition()
@@ -146,6 +219,29 @@ void Enemy::SeparateFromNeighbors(Vector3& currentPos, float dt)
 		currentPos += corr;
 		// 地面クランプ維持
 		if (currentPos.y < 0.0f) currentPos.y = 0.0f;
+	}
+}
+
+void Enemy::TryRangedAttack(float dist, float dt)
+{
+	if (!player_ || isDead_) return;
+
+	// 視界判定などは後で足す。まずは距離＆クールダウンのみ
+	if (dist <= fireRange_ && fireTimer_ <= 0.0f) {
+		// マズル位置を少し高めに
+		Vector3 from = model_->GetTranslate();
+		from.y = targetGroundY_ + halfHeight_ * 0.8f;
+
+		Vector3 to = PlayerWorldPosition();
+		Vector3 dir = to - from;
+		float len = Vector3::Length(dir);
+		if (len > 1e-5f) dir = dir / len; else dir = { 0,0,1 };
+
+		const float bulletSpeed = 24.0f;
+		EnemyBullet::Create(from, dir * bulletSpeed, fireDamage_);
+
+		fireTimer_ = fireCooldown_;
+		// SEやトレーサーを足したければここで
 	}
 }
 

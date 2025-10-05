@@ -9,6 +9,12 @@
 /// ---------- 線形補間を行う関数 ---------- ///
 inline float Lerp(float a, float b, float t) { return a + (b - a) * t; }
 
+/// ---------- 値を0〜1にクランプする関数 ---------- ///
+inline float Saturate(float x) { return std::clamp(x, 0.0f, 1.0f); }
+
+/// ---------- スムースステップ関数 ---------- ///
+inline float Smoothstep01(float x) { x = Saturate(x);	return x * x * (3.0f - 2.0f * x); }
+
 /// ---------- 角度を正規化する関数 ---------- ///
 inline float NormalizeAngle(float angle)
 {
