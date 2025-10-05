@@ -9,6 +9,7 @@
 #include "Input.h"
 #include <Wireframe.h>
 #include <LinearInterpolation.h>
+#include <SkyBoxManager.h>
 
 static inline void YawPitchLookAt(const Vector3& from, const Vector3& to, float& outYaw, float& outPitch)
 {
@@ -28,6 +29,9 @@ void TitleScene::Initialize()
 {
 	dxCommon_ = DirectXCommon::GetInstance();
 	input_ = Input::GetInstance();
+
+	skyBox_ = std::make_unique<SkyBox>();
+	skyBox_->Initialize("SkyBox/skybox.dds");
 
 	state_ = State::TitleAttract; // 最初はタイトルアトラクトモード
 	stateTimer_ = idleTimer_ = 0.0f;
@@ -135,6 +139,8 @@ void TitleScene::Update()
 		break;
 	}
 
+	skyBox_->Update();
+
 #ifdef _DEBUG
 	if (input_->TriggerKey(DIK_ESCAPE) && state_ != State::ToTitle)
 	{
@@ -164,6 +170,10 @@ void TitleScene::Update()
 void TitleScene::Draw3DObjects()
 {
 #pragma region オブジェクト3Dの描画
+
+	SkyBoxManager::GetInstance()->SetRenderSetting();
+
+	skyBox_->Draw();
 
 	// オブジェクト3D共通描画設定
 	Object3DCommon::GetInstance()->SetRenderSetting();
