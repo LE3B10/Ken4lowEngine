@@ -2,6 +2,7 @@
 #include <Sprite.h>
 #include <Object3D.h>
 #include <BaseScene.h>
+#include "SkyBox.h"
 
 #include <memory>
 #include <numbers>
@@ -77,6 +78,8 @@ private: /// ---------- メンバ変数 ---------- ///
 	Input* input_ = nullptr;
 
 	bool isDebugCamera_ = false; // デバッグモード
+
+	std::unique_ptr<SkyBox> skyBox_ = nullptr;
 
 	std::unique_ptr<Object3D> object3D_ = nullptr;
 	std::unique_ptr<Object3D> terrain_ = nullptr;
