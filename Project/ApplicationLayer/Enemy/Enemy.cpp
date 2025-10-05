@@ -146,7 +146,7 @@ void Enemy::OnCollision(Collider* other)
 	}
 }
 
-void Enemy::TakeDamage(int damage)
+void Enemy::TakeDamage(float damage)
 {
 	if (isDead_) return;
 	hp_ -= damage;

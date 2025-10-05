@@ -23,6 +23,6 @@ public: /// ---------- 算術演算子 ---------- ///
 	Vector2 operator+=(const Vector2& v);
 	// -=
 	Vector2 operator-=(const Vector2& v);
-
-
+	// *= (スカラー倍)
+	Vector2 operator*=(float scalar);
 };

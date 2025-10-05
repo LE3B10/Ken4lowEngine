@@ -28,7 +28,7 @@ public: /// ---------- メンバ関数 ---------- ///
 
 	void OnCollision(Collider* other) override;
 
-	void TakeDamage(int damage);
+	void TakeDamage(float damage);
 
 	bool IsDead() const { return isDead_; }
 

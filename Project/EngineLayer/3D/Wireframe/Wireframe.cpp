@@ -85,7 +85,7 @@ void Wireframe::Draw()
 	commandList->IASetPrimitiveTopology(D3D10_PRIMITIVE_TOPOLOGY_LINELIST);									// プリミティブトポロジーの設定
 	commandList->IASetVertexBuffers(0, 1, &lineData_->vertexBufferView);									// 頂点バッファビューの設定
 	commandList->SetGraphicsRootConstantBufferView(0, transformationMatrixBuffer_->GetGPUVirtualAddress()); // 座標変換行列の設定
-	commandList->DrawInstanced(lineIndex_, lineIndex_ / kLineVertexCount, 0, 0);							// 描画
+	if (lineIndex_ >= 2) commandList->DrawInstanced(lineIndex_, 1, 0, 0);							// 描画
 
 #pragma endregion ---------------------------
 
@@ -97,7 +97,7 @@ void Wireframe::Draw()
 	commandList->IASetPrimitiveTopology(D3D10_PRIMITIVE_TOPOLOGY_TRIANGLELIST);								// プリミティブトポロジーの設定
 	commandList->IASetVertexBuffers(0, 1, &triangleData_->vertexBufferView);								// 頂点バッファビューの設定
 	commandList->SetGraphicsRootConstantBufferView(0, transformationMatrixBuffer_->GetGPUVirtualAddress()); // 座標変換行列の設定
-	commandList->DrawInstanced(triangleIndex_, triangleIndex_ / kTriangleVertexCount, 0, 0);				// 描画
+	if (triangleIndex_ >= 3) commandList->DrawInstanced(triangleIndex_, 1, 0, 0);				// 描画
 
 #pragma endregion -------------------------------
 
@@ -107,7 +107,7 @@ void Wireframe::Draw()
 	commandList->IASetVertexBuffers(0, 1, &boxData_->vertexBufferView);     // 頂点バッファビューの設定
 	commandList->IASetIndexBuffer(&boxData_->indexBufferView);              // インデックスバッファビューの設定
 	commandList->SetGraphicsRootConstantBufferView(0, transformationMatrixBuffer_->GetGPUVirtualAddress()); // 座標変換行列の設定
-	commandList->DrawIndexedInstanced(kBoxIndexCount, boxVertexIndex_ / kBoxVertexCount, 0, 0, 0);               // インデックスを使用して描画
+	if (boxIndex_ >= 6) commandList->DrawIndexedInstanced(boxIndex_ * kBoxIndexCount, 1, 0, 0, 0);               // インデックスを使用して描画
 
 #pragma endregion -----------------------------
 
