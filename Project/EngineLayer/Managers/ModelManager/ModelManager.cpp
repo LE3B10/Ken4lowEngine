@@ -1,6 +1,7 @@
 #include "ModelManager.h"
 #include <AssimpLoader.h>
 #include "Model.h"
+#include <numeric>
 
 /// ---------- 初期容量の設定 ----- ///
 constexpr size_t INITIAL_POSITION_CAPACITY = 1000; // 頂点位置（v）の初期容量
@@ -24,8 +25,9 @@ ModelManager* ModelManager::GetInstance()
 /// -------------------------------------------------------------
 ModelData ModelManager::LoadObjFile(const std::string& directoryPath, const std::string& filename)
 {
-	// モデルデータの格納先
+	// 単一OBJ → SubMeshひとつにまとめて返す
 	ModelData modelData;
+	SubMesh sub;
 	std::vector<Vector4> positions; // 頂点位置リスト
 	std::vector<Vector3> normals;   // 法線リスト
 	std::vector<Vector2> texcoords; // テクスチャリスト
@@ -42,7 +44,7 @@ ModelData ModelManager::LoadObjFile(const std::string& directoryPath, const std:
 	positions.reserve(INITIAL_POSITION_CAPACITY);
 	normals.reserve(INITIAL_NORMAL_CAPACITY);
 	texcoords.reserve(INITIAL_TEXCOORD_CAPACITY);
-	modelData.vertices.reserve(INITIAL_VERTEX_CAPACITY);
+	sub.vertices.reserve(INITIAL_VERTEX_CAPACITY);
 
 	std::string line;
 	while (std::getline(file, line))
@@ -69,18 +71,23 @@ ModelData ModelManager::LoadObjFile(const std::string& directoryPath, const std:
 		else if (identifier == "f")
 		{
 			// 面情報を解析し、頂点リストに展開して追加
-			ParseFace(s, positions, texcoords, normals, modelData.vertices);
+			ParseFace(s, positions, texcoords, normals, sub.vertices);
 		}
 		else if (identifier == "mtllib")
 		{
 			// マテリアルテンプレートライブラリファイル名を取得しロード
 			std::string materialFilename;
 			s >> materialFilename;
-			modelData.material = LoadMaterialTemplateFile(directoryPath, materialFilename);
+			sub.material = LoadMaterialTemplateFile(directoryPath, materialFilename);
 		}
 	}
 
+	// 非インデックスで頂点を積んだのでインデックスを生成
+	sub.indices.resize(sub.vertices.size());
+	std::iota(sub.indices.begin(), sub.indices.end(), 0);
+
 	// 解析済みのモデルデータを返す
+	modelData.subMeshes.emplace_back(std::move(sub));
 	return modelData;
 }
 

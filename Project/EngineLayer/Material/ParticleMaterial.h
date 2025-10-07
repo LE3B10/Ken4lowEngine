@@ -23,16 +23,16 @@ public: /// ---------- メンバ関数 ---------- ///
 
 	// コンストラクタ
 	ParticleMaterial() = default;
-	
+
 	// 初期化処理
 	void Initialize();
-	
+
 	// 更新処理
 	void Update();
-	
+
 	// パイプラインの設定
 	void SetPipeline(UINT rootParameterIndex = 0) const;
-	
+
 	// ImGuiの描画
 	void DrawImGui();
 

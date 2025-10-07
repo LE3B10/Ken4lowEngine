@@ -7,27 +7,27 @@
 #include <ScoreManager.h>
 
 #include <imgui.h>
-#include <AnimationModelFactory.h>
+//#include <AnimationModelFactory.h>
 
 void Boss::Initialize()
 {
-	stateModelFiles_[BossState::Idle] = "BossModel/BossIdleModel.gltf";
-	stateModelFiles_[BossState::Chase] = "BossModel/BossWalkModel.gltf";
-	stateModelFiles_[BossState::Melee] = "BossModel/BossMeleeModel.gltf";
-	stateModelFiles_[BossState::Shoot] = "BossModel/BossShootModel.gltf";
-	stateModelFiles_[BossState::Dead] = "BossModel/BossDyingModel.gltf";
+	//stateModelFiles_[BossState::Idle] = "BossModel/BossIdleModel.gltf";
+	//stateModelFiles_[BossState::Chase] = "BossModel/BossWalkModel.gltf";
+	//stateModelFiles_[BossState::Melee] = "BossModel/BossMeleeModel.gltf";
+	//stateModelFiles_[BossState::Shoot] = "BossModel/BossShootModel.gltf";
+	//stateModelFiles_[BossState::Dead] = "BossModel/BossDyingModel.gltf";
 
-	// 各モデルをロードしてマップに保存
-	for (const auto& [state, path] : stateModelFiles_) {
-		AnimationModelFactory::PreLoadModel(path);
-	}
+	//// 各モデルをロードしてマップに保存
+	//for (const auto& [state, path] : stateModelFiles_) {
+	//	AnimationModelFactory::PreLoadModel(path);
+	//}
 
-	for (const auto& [state, path] : stateModelFiles_) {
-		auto model = AnimationModelFactory::CreateInstance(path);
-		model->SetScaleFactor(scaleFactor_);
-		model->InitializeBones();
-		models_[state] = model;
-	}
+	//for (const auto& [state, path] : stateModelFiles_) {
+	//	auto model = AnimationModelFactory::CreateInstance(path);
+	//	model->SetScaleFactor(scaleFactor_);
+	//	model->InitializeBones();
+	//	models_[state] = model;
+	//}
 
 	// 最初のモデルをセット
 	model_ = models_[BossState::Idle].get();
@@ -102,7 +102,7 @@ void Boss::Update()
 			// 現在のポーズで固定（再生停止）
 			model_->SetIsPlaying(false);
 
-			model_->SetDissolveThreshold(0.0f); // 初期化
+			//model_->SetDissolveThreshold(0.0f); // 初期化
 		}
 		return;
 	}
@@ -111,7 +111,7 @@ void Boss::Update()
 	{
 		dissolveTime_ += deltaTime_;
 		float t = std::clamp(dissolveTime_ / dissolveDuration_, 0.0f, 1.0f);
-		model_->SetDissolveThreshold(t);
+		//model_->SetDissolveThreshold(t);
 
 		if (t >= 1.0f) {
 			isDead_ = true; // 完全に消えた後にフラグを立てる
@@ -253,11 +253,11 @@ void Boss::ChangeState(BossState newState)
 		model_->SetAnimationTime(newAnimTime);
 
 		// 安全のためアニメ・ディゾルブ初期化
-		model_->SetDissolveThreshold(0.0f);
-		model_->SetIsPlaying(true);
+		//model_->SetDissolveThreshold(0.0f);
+		//model_->SetIsPlaying(true);
 
-		model_->SetDissolveThreshold(0.0f);
-		model_->Update(); // ←ボーンとマテリアル情報を即時更新
+		//model_->SetDissolveThreshold(0.0f);
+		//model_->Update(); // ←ボーンとマテリアル情報を即時更新
 	}
 }
 

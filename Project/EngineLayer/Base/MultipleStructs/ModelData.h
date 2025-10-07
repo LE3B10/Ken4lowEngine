@@ -95,13 +95,19 @@ struct JointWeightData
 	std::vector<VertexWeightData> vertexWeights;
 };
 
+// サブメッシュの構造体
+struct SubMesh
+{
+	std::vector<VertexData> vertices; // 頂点リスト
+	std::vector<uint32_t> indices; // インデックスリスト
+	Material material;			 // マテリアル
+};
+
 // ModelData構造体
 struct ModelData
 {
 	std::map<std::string, JointWeightData> skinClusterData;
-	std::vector<VertexData> vertices;
-	std::vector<uint32_t> indices;
-	Material material;
+	std::vector<SubMesh> subMeshes;
 	Node rootNode;
 };
 
@@ -120,4 +126,10 @@ struct WellForGPU
 {
 	Matrix4x4 skeletonSpaceMatrix; // 位置用
 	Matrix4x4 skeletonSpaceInverceTransposeMatrix; // 法線用
+};
+
+struct SkinningInformationForGPU
+{
+	uint32_t numVertices; // 頂点数
+	bool isSkinning;    // スキニングするか
 };

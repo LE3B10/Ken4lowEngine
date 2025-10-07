@@ -61,13 +61,25 @@ PixelShaderOutput main(VertexShaderOutput input)
     // Prewitt 用の深度値行列
     float gx = 0.0f, gy = 0.0f;
 
+    // ★ 追記：距離に応じて太さをスケーリング（近いほど太く／遠いほど細く）
+    float centerNdcDepth = gDepthTexture.Sample(gDepthSampler, uv);
+    float4 centerNdcPos = float4(0.0f, 0.0f, centerNdcDepth, 1.0f);
+    float4 centerView = mul(centerNdcPos, gDepthOutlineSetting.projectionInverse);
+    float centerViewZ = abs(centerView.z / centerView.w); // ビュー空間の距離（正値）
+
+    static const float kRef = 10.0f; // 10m で“基準太さ”
+    float thicknessScale = clamp(kRef / max(centerViewZ, 1e-3f), 0.5f, 2.0f);
+    
     [unroll]
     for (int y = 0; y < 3; ++y)
     {
         [unroll]
         for (int x = 0; x < 3; ++x)
         {
-            float2 off = kIndex3x3[y][x] * gDepthOutlineSetting.texelSize;
+            //float2 off = kIndex3x3[y][x] * gDepthOutlineSetting.texelSize;
+            // 太さを距離で可変に
+            float2 off = kIndex3x3[y][x] * (gDepthOutlineSetting.texelSize * thicknessScale);
+            
             float ndcDepth = gDepthTexture.Sample(gDepthSampler, uv + off);
 
             // NDC(0-1) → View‐Space Z（線形）へ変換

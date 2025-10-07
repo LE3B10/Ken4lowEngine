@@ -34,11 +34,20 @@ public: /// ---------- メンバ関数 ---------- ///
 	// 共通描画処理設定
 	void SetRenderSetting();
 
+	// コンピュートシェーダー用の設定
+	void SetComputeSetting();
+
 	// ルートシグネチャの取得
 	ID3D12RootSignature* GetRootSignature() const { return rootSignature.Get(); }
 
 	// パイプラインの取得
 	ID3D12PipelineState* GetPipelineState() const { return graphicsPipelineState.Get(); }
+
+	// コンピュート用ルートシグネチャの取得
+	ID3D12RootSignature* GetComputeRootSignature() const { return computeRootSignature_.Get(); }
+
+	// コンピュート用パイプラインの取得
+	ID3D12PipelineState* GetComputePipelineState() const { return computePipelineState_.Get(); }
 
 private: /// ---------- メンバ関数 ---------- ///
 

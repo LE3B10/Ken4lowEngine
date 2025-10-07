@@ -101,6 +101,12 @@ void ParameterManager::SaveFile(const std::string& groupName)
 			root[groupName][itemName] = std::get<int32_t>(item.value);
 		}
 
+		/// ---------- uint32_t型を保持している場合 ---------- ///
+		else if (std::holds_alternative<uint32_t>(item.value))
+		{
+			root[groupName][itemName] = std::get<uint32_t>(item.value);
+		}
+
 		/// ---------- float型を保持している場合 ---------- ///
 		else if (std::holds_alternative<float>(item.value))
 		{
@@ -112,6 +118,13 @@ void ParameterManager::SaveFile(const std::string& groupName)
 		{
 			const Vector3& vec = std::get<Vector3>(item.value);
 			root[groupName][itemName] = json::array({ vec.x, vec.y, vec.z });
+		}
+
+		/// ---------- Vector4を保持している場合 ---------- ///
+		else if (std::holds_alternative<Vector4>(item.value))
+		{
+			const Vector4& vec = std::get<Vector4>(item.value);
+			root[groupName][itemName] = json::array({ vec.x, vec.y, vec.z, vec.w });
 		}
 
 		/// ---------- bool型を保持している場合 ---------- ///
@@ -226,6 +239,13 @@ void ParameterManager::LoadFile(const std::string& groupName)
 			SetValue(groupName, itemName, value);
 		}
 
+		/// ---------- uint32_t型を保持している場合 ---------- ///
+		else if (itItem->is_number_unsigned())
+		{
+			uint32_t value = itItem->get<uint32_t>();
+			SetValue(groupName, itemName, value);
+		}
+
 		/// ---------- float型を保持している場合 ---------- ///
 		else if (itItem->is_number_float())
 		{
@@ -237,6 +257,13 @@ void ParameterManager::LoadFile(const std::string& groupName)
 		else if (itItem->is_array() && itItem->size() == 3)
 		{
 			Vector3 value = { itItem->at(0), itItem->at(1), itItem->at(2) };
+			SetValue(groupName, itemName, value);
+		}
+
+		/// ---------- 要素数4の配列である場合 ---------- ///
+		else if (itItem->is_array() && itItem->size() == 4)
+		{
+			Vector4 value = { itItem->at(0), itItem->at(1), itItem->at(2), itItem->at(3) };
 			SetValue(groupName, itemName, value);
 		}
 
@@ -268,6 +295,12 @@ void ParameterManager::DrawItem(const std::string& itemName, ParameterManager::I
 		int32_t& value = std::get<int32_t>(item.value);
 		ImGui::SliderInt(itemName.c_str(), &value, 0, 100);
 	}
+	/// ---------- uint32_t型を保持している場合 ---------- ///
+	else if (std::holds_alternative<uint32_t>(item.value))
+	{
+		uint32_t& value = std::get<uint32_t>(item.value);
+		ImGui::Combo(itemName.c_str(), reinterpret_cast<int*>(&value), "NoLight\0DirectionalLight\0PointLight\0SpotLight\0");
+	}
 	/// ---------- float型を保持している場合 ---------- ///
 	else if (std::holds_alternative<float>(item.value))
 	{
@@ -279,6 +312,12 @@ void ParameterManager::DrawItem(const std::string& itemName, ParameterManager::I
 	{
 		Vector3& value = std::get<Vector3>(item.value);
 		ImGui::DragFloat3(itemName.c_str(), reinterpret_cast<float*>(&value));
+	}
+	/// ------- Vector4を保持している場合 ---------- ///
+	else if (std::holds_alternative<Vector4>(item.value))
+	{
+		Vector4& value = std::get<Vector4>(item.value);
+		ImGui::ColorEdit4(itemName.c_str(), reinterpret_cast<float*>(&value));
 	}
 	/// ---------- bool型を保持している場合 ---------- ///
 	else if (std::holds_alternative<bool>(item.value))
