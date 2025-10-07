@@ -4,6 +4,7 @@
 #include <PostEffectPipelineBuilder.h>
 #include <ResourceManager.h>
 #include <SRVManager.h>
+#include <UAVManager.h>
 #include <ShaderCompiler.h>
 #include <WinApp.h>
 
@@ -19,21 +20,25 @@ void DissolveEffect::Initialize(DirectXCommon* dxCommon, PostEffectPipelineBuild
 {
 	dxCommon_ = dxCommon;
 
-	// ルートシグネチャの生成
-	rootSignature_ = builder->CreateRootSignature();
+	// ルートシグネイチャ（コンピュート用）
+	computeRootSignature_ = builder->CreateComputeRootSignature();
 
-	// パイプラインの生成
-	graphicsPipelineState_ = builder->CreateGraphicsPipeline(
-		ShaderCompiler::GetShaderPath(L"DissolveEffect", L".PS.hlsl"),
-		rootSignature_.Get(),
-		false);
+	// パイプライン生成（コンピュート用）
+	computePipelineState_ = builder->CreateComputePipeline(ShaderCompiler::GetShaderPath(L"DissolveEffect", L".CS.hlsl"), computeRootSignature_.Get());
 
 	// ディゾルブの設定
-	std::string filePath = "Resources/Mask/Noise.png";
+	std::string filePath = "Mask/Noise.png";
 	TextureManager::GetInstance()->LoadTexture(filePath);
 
-	// SRVインデックスを取得（CopySRVせず、既存SRVをそのまま使う）
-	dissolveMaskSrvIndex_ = TextureManager::GetInstance()->GetSrvIndex(filePath);
+	// UAVヒープ側のインデックスを確保
+	dissolveMaskSrvIndexOnUAV_ = UAVManager::GetInstance()->Allocate();
+
+	// リソース＆メタデータを取得
+	ID3D12Resource* texture = TextureManager::GetInstance()->GetResource(filePath);
+	const auto& metaData = TextureManager::GetInstance()->GetMetaData(filePath);
+
+	// UAVを作成（ディゾルブマスク用）
+	UAVManager::GetInstance()->CreateSRVForTexture2DOnThisHeap(dissolveMaskSrvIndexOnUAV_, texture, metaData.format, metaData.mipLevels);
 
 	// リソースの生成
 	constantBuffer_ = ResourceManager::CreateBufferResource(dxCommon_->GetDevice(), sizeof(DissolveSetting));
@@ -51,17 +56,32 @@ void DissolveEffect::Initialize(DirectXCommon* dxCommon, PostEffectPipelineBuild
 /// -------------------------------------------------------------
 ///						　適用処理
 /// -------------------------------------------------------------
-void DissolveEffect::Apply(ID3D12GraphicsCommandList* commandList, uint32_t rtvSrvIndex, uint32_t dsvSrvIndex)
+void DissolveEffect::Apply(ID3D12GraphicsCommandList* commandList, uint32_t srvIndex, uint32_t uavIndex, uint32_t dsvIndex)
 {
-	commandList->SetGraphicsRootSignature(rootSignature_.Get());
-	commandList->SetPipelineState(graphicsPipelineState_.Get());
+	// ① コンピュート用のルートシグネチャとPSOを設定
+	commandList->SetComputeRootSignature(computeRootSignature_.Get());
+	commandList->SetPipelineState(computePipelineState_.Get());
 
-	// SRVヒープの設定はPostEffectManager側で済ませておく前提
-	commandList->SetGraphicsRootDescriptorTable(0, SRVManager::GetInstance()->GetGPUDescriptorHandle(rtvSrvIndex));
-	commandList->SetGraphicsRootConstantBufferView(1, constantBuffer_->GetGPUVirtualAddress());
-	commandList->SetGraphicsRootDescriptorTable(3, SRVManager::GetInstance()->GetGPUDescriptorHandle(dissolveMaskSrvIndex_));
-	commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-	commandList->DrawInstanced(3, 1, 0, 0);
+	// ② SRVとUAVを設定（ディスクリプタテーブル）
+	commandList->SetComputeRootDescriptorTable(0, UAVManager::GetInstance()->GetGPUDescriptorHandle(srvIndex));  // t0
+	commandList->SetComputeRootDescriptorTable(1, UAVManager::GetInstance()->GetGPUDescriptorHandle(uavIndex)); // u0
+
+	// ③ CBVを設定（b0）
+	commandList->SetComputeRootConstantBufferView(2, constantBuffer_->GetGPUVirtualAddress()); // b0
+	commandList->SetComputeRootDescriptorTable(3, UAVManager::GetInstance()->GetGPUDescriptorHandle(dissolveMaskSrvIndexOnUAV_)); // t1
+
+	// ④ スレッドグループの数を計算して Dispatch
+	const uint32_t threadGroupSizeX = 8;
+	const uint32_t threadGroupSizeY = 8;
+
+	// レンダーターゲットの解像度（仮に 1280x720）
+	uint32_t width = WinApp::kClientWidth; // ウィンドウの幅
+	uint32_t height = WinApp::kClientHeight; // ウィンドウの高さ
+
+	uint32_t groupCountX = (width + threadGroupSizeX - 1) / threadGroupSizeX;
+	uint32_t groupCountY = (height + threadGroupSizeY - 1) / threadGroupSizeY;
+
+	commandList->Dispatch(groupCountX, groupCountY, 1);
 }
 
 

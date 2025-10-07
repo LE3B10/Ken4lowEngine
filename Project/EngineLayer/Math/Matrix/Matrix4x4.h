@@ -1,6 +1,5 @@
 #pragma once
 #include <cmath>
-#include "assimp/matrix4x4.h"
 
 class Vector3;
 class Quaternion;
@@ -106,6 +105,6 @@ public:
 	// ビューポート変換行列
 	static Matrix4x4 MakeViewportMatrix(float left, float top, float width, float height, float minDepth, float maxDepth);
 
-	// 
+	// 軸と角度から回転行列を生成
 	static Matrix4x4 MakeRotateAxisAngleMatrix(const Vector3& axis, float angle);
 };

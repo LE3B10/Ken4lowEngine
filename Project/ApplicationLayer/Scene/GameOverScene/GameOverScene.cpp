@@ -3,6 +3,7 @@
 #include <Input.h>
 #include <ParameterManager.h>
 #include <ParticleManager.h>
+#include <SceneManager.h>
 
 
 /// -------------------------------------------------------------
@@ -10,10 +11,12 @@
 /// -------------------------------------------------------------
 void GameOverScene::Initialize()
 {
+	// カーソルのロックを解除
+	Input::GetInstance()->SetLockCursor(false);
+	ShowCursor(true); // 表示・非表示も連動（オプション）
+
 	dxCommon_ = DirectXCommon::GetInstance();
-	textureManager = TextureManager::GetInstance();
 	input = Input::GetInstance();
-	wavLoader_ = std::make_unique<WavLoader>();
 }
 
 
@@ -22,14 +25,31 @@ void GameOverScene::Initialize()
 /// -------------------------------------------------------------
 void GameOverScene::Update()
 {
+	// ゲームオーバー画面の更新処理
+	// 例: ボタン入力、アニメーション、エフェクトなど
+	if (input->TriggerKey(DIK_RETURN) || input->TriggerMouse(0))
+	{
+		// ゲームオーバー画面からメインメニューに戻る処理
+		sceneManager_->ChangeScene("TitleScene");
+	}
 }
 
+
+/// -------------------------------------------------------------
+///				　			3Dオブジェクトの描画
+/// -------------------------------------------------------------
 void GameOverScene::Draw3DObjects()
 {
+
 }
 
+
+/// -------------------------------------------------------------
+///				　			2Dオブジェクトの描画
+/// -------------------------------------------------------------
 void GameOverScene::Draw2DSprites()
 {
+
 }
 
 
@@ -38,6 +58,7 @@ void GameOverScene::Draw2DSprites()
 /// -------------------------------------------------------------
 void GameOverScene::Finalize()
 {
+
 }
 
 
@@ -46,4 +67,5 @@ void GameOverScene::Finalize()
 /// -------------------------------------------------------------
 void GameOverScene::DrawImGui()
 {
+
 }

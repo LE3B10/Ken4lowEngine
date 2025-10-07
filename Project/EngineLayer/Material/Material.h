@@ -15,11 +15,12 @@ public: /// ---------- 構造体 ---------- ///
 	// マテリアルデータ 定数バッファで送るデータ
 	struct MaterialCBData
 	{
-		Vector4 color;			// 色
-		bool enableLighting;	// 平行光源の有無
-		float padding[3];		// パディング
-		Matrix4x4 uvTransform;  // UV変換行列
-		float shininess;		// シェーディングの強さ
+		Vector4 color;			// 色 : bytes 16
+		float shininess;		// シェーディングの強さ : bytes 4
+		float padding[3];		// パディング : bytes 12
+		Matrix4x4 uvTransform;  // UV変換行列 : bytes 64
+		float reflection;		// 反射率 : bytes 4
+		// 合計 : bytes 100
 	};
 
 public: /// ---------- メンバ変数 ---------- ///
@@ -58,11 +59,14 @@ public: /// ---------- セッタ ---------- ///
 	// 色を設定
 	void SetColor(const Vector4& color) { materialData_->color = color; }
 
-	// 平行光源の有無を設定
-	void SetEnableLighting(bool enable) { materialData_->enableLighting = enable; }
-
 	// シェーディングの強さを設定
-	void SetShininess(float shininess) { materialData_->shininess = shininess; }
+	void SetShininess(float shininess) { materialData_->reflection = shininess; }
+
+	// 輝度
+	void SetIntensity(float shininess) { materialData_->shininess = shininess; }
+
+	// 反射率を設定
+	void SetReflection(float reflection) { materialData_->reflection = reflection; }
 
 	// UV変換行列を設定
 	void SetUVTransform(const Matrix4x4& uvTransform) { materialData_->uvTransform = uvTransform; }

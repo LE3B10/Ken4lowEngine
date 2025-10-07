@@ -2,6 +2,9 @@
 #include <cstdint>
 #include <ParticleTransform.h>
 
+/// -------------------------------------------------------------
+///				　		エミッタ構造体
+/// -------------------------------------------------------------
 struct Emitter final
 {
 	ParticleTransform transform; // エミッタのTransform

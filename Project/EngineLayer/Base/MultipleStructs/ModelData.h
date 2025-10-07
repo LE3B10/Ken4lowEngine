@@ -55,9 +55,9 @@ struct AnimationCurve
 // アニメーションを表現する構造体
 struct Animation
 {
-	float duration; // アニメーション全体の尺（単位は秒）
+	float duration = 0.0f; // アニメーション全体の尺（単位は秒）
 	// NodeAnimationの集合、Node名でひけるようにしておく
-	std::map<std::string, NodeAnimation> nodeAnimations;
+	std::map<std::string, NodeAnimation> nodeAnimations = {}; // Node名をキーにしてNodeAnimationを格納
 };
 
 // jointの構造体
@@ -95,13 +95,19 @@ struct JointWeightData
 	std::vector<VertexWeightData> vertexWeights;
 };
 
+// サブメッシュの構造体
+struct SubMesh
+{
+	std::vector<VertexData> vertices; // 頂点リスト
+	std::vector<uint32_t> indices; // インデックスリスト
+	Material material;			 // マテリアル
+};
+
 // ModelData構造体
 struct ModelData
 {
 	std::map<std::string, JointWeightData> skinClusterData;
-	std::vector<VertexData> vertices;
-	std::vector<uint32_t> indices;
-	Material material;
+	std::vector<SubMesh> subMeshes;
 	Node rootNode;
 };
 
@@ -120,4 +126,10 @@ struct WellForGPU
 {
 	Matrix4x4 skeletonSpaceMatrix; // 位置用
 	Matrix4x4 skeletonSpaceInverceTransposeMatrix; // 法線用
+};
+
+struct SkinningInformationForGPU
+{
+	uint32_t numVertices; // 頂点数
+	bool isSkinning;    // スキニングするか
 };

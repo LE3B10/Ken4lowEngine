@@ -1,8 +1,12 @@
 #pragma once
 #include <DX12Include.h>
-#include <ModelData.h>
+#include "VertexData.h"
 
+#include <vector>
 
+/// -------------------------------------------------------------
+///				　	　パーティクルメッシュクラス
+///	-------------------------------------------------------------
 class ParticleMesh
 {
 public: /// ---------- メンバ関数 ---------- ///
@@ -23,9 +27,12 @@ public: /// ---------- メンバ関数 ---------- ///
 	void InitializeSmoke();
 
 	// 描画処理
-	void Draw(UINT num);
+	void Draw(UINT instanceCount);
 
 	const D3D12_VERTEX_BUFFER_VIEW& GetVertexBufferView() const { return vertexBufferView_; }
+
+	bool HasIndex() const { return hasIndex_; }
+	const D3D12_INDEX_BUFFER_VIEW& GetIndexBufferView() const { return indexBufferView_; }
 
 private: /// ---------- メンバ関数 ---------- ///
 
@@ -34,9 +41,17 @@ private: /// ---------- メンバ関数 ---------- ///
 
 private: /// ---------- メンバ変数 ---------- ///
 
-	ModelData modelData_; // 頂点データなど
+	// 自前のジオメトリ（Particleはファイルロードしない）
+	std::vector<VertexData> vertices;
+	std::vector<uint32_t>   indices;   // ない場合もある
+
 	ComPtr<ID3D12Resource> vertexResource_;
 	D3D12_VERTEX_BUFFER_VIEW vertexBufferView_{};
-	VertexData* vertexData_ = nullptr; // 頂点データ
+	VertexData* vertexData_ = nullptr;
+
+	// インデックス対応
+	ComPtr<ID3D12Resource> indexResource_;
+	D3D12_INDEX_BUFFER_VIEW indexBufferView_{};
+	bool hasIndex_ = false;
 };
 

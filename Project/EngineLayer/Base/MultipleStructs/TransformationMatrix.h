@@ -11,7 +11,7 @@ struct TransformationMatrix final
 	Matrix4x4 WorldInversedTranspose;
 };
 
-struct TransformationAnimationMatrix
+struct TransformationAnimationMatrix final
 {
 	Matrix4x4 WVP;
 	Matrix4x4 World;

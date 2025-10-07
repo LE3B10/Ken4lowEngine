@@ -5,8 +5,6 @@
 #include "SRVManager.h"
 #include "ResourceManager.h"
 
-#include <LogString.h>
-
 #include <d3dx12.h>
 
 #pragma comment(lib, "d3d12.lib")        // Direct3D 12用
@@ -122,24 +120,26 @@ void TextureManager::LoadTexture(const std::string& filePath)
 {
 	HRESULT hr{};
 
+	std::string filePathStr = NormalizeTexturePath(filePath);
+
 	// 読み込み済みテクスチャを検索
-	if (textureDatas.contains(filePath)) return;
+	if (textureDatas.contains(filePathStr)) return;
 
 	// テクスチャファイルを読み込んでプログラムで扱えるようにする
 	DirectX::ScratchImage image{};
-	std::wstring filePathW = ConvertString(filePath);
+	std::wstring filePathW = ConvertString(filePathStr);
 
 	// DDSの読み込み
 	if (filePathW.ends_with(L".dds"))
 	{
 		// .ddsで終わっていたらDDSとして読み込む
 		hr = DirectX::LoadFromDDSFile(filePathW.c_str(), DirectX::DDS_FLAGS_NONE, nullptr, image);
+		assert(SUCCEEDED(hr));
 	}
 	else
 	{
 		// WIC形式（pngやjpgなど）として読み込む
 		hr = DirectX::LoadFromWICFile(filePathW.c_str(), DirectX::WIC_FLAGS_FORCE_SRGB, nullptr, image);
-		// 読み込みに失敗した場合はエラーを出力
 		assert(SUCCEEDED(hr));
 	}
 
@@ -170,7 +170,7 @@ void TextureManager::LoadTexture(const std::string& filePath)
 	}
 
 	// 追加したテクスチャデータの参照を取得
-	TextureData& textureData = textureDatas[filePath];
+	TextureData& textureData = textureDatas[filePathStr];
 
 	// テクスチャリソースの生成
 	textureData.metaData = mipImages.GetMetadata();
@@ -262,11 +262,13 @@ uint32_t TextureManager::GetTextureIndexByFilePath(const std::string& filePath)
 /// -------------------------------------------------------------
 D3D12_GPU_DESCRIPTOR_HANDLE TextureManager::GetSrvHandleGPU(const std::string& filePath)
 {
+	std::string filePathStr = NormalizeTexturePath(filePath);
+
 	// 範囲外指定違反チェック
-	assert(textureDatas.find(filePath) != textureDatas.end()); // テクスチャ番号が正常範囲内である
+	assert(textureDatas.find(filePathStr) != textureDatas.end()); // テクスチャ番号が正常範囲内である
 
 	// テクスチャデータの参照を取得
-	TextureData& textureData = textureDatas[filePath];
+	TextureData& textureData = textureDatas[filePathStr];
 
 	// GPUハンドルを返す
 	return textureData.srvHandleGPU;
@@ -274,11 +276,13 @@ D3D12_GPU_DESCRIPTOR_HANDLE TextureManager::GetSrvHandleGPU(const std::string& f
 
 uint32_t TextureManager::GetSrvIndex(const std::string& filePath)
 {
+	std::string filePathStr = NormalizeTexturePath(filePath);
+
 	// 範囲外指定違反チェック
-	assert(textureDatas.find(filePath) != textureDatas.end()); // テクスチャ番号が正常範囲内である
+	assert(textureDatas.find(filePathStr) != textureDatas.end()); // テクスチャ番号が正常範囲内である
 
 	// テクスチャデータの参照を取得
-	TextureData& textureData = textureDatas[filePath];
+	TextureData& textureData = textureDatas[filePathStr];
 
 	// GPUハンドルを返す
 	return textureData.srvIndex;
@@ -290,13 +294,23 @@ uint32_t TextureManager::GetSrvIndex(const std::string& filePath)
 /// -------------------------------------------------------------
 const DirectX::TexMetadata& TextureManager::GetMetaData(const std::string& filePath)
 {
+	std::string filePathStr = NormalizeTexturePath(filePath);
+
 	// 範囲外指定違反チェック
-	assert(textureDatas.find(filePath) != textureDatas.end()); // テクスチャ番号が正常範囲内である
+	assert(textureDatas.find(filePathStr) != textureDatas.end()); // テクスチャ番号が正常範囲内である
 
 	// テクスチャデータの参照を取得
-	TextureData& textureData = textureDatas[filePath];
+	TextureData& textureData = textureDatas[filePathStr];
 
 	// GPUハンドルを返す
 	return textureData.metaData;
+}
+
+ID3D12Resource* TextureManager::GetResource(const std::string& filePath)
+{
+	std::string filePathStr = NormalizeTexturePath(filePath);
+	auto it = textureDatas.find(filePathStr);
+	assert(it != textureDatas.end());                 // 事前に LoadTexture 済みであること
+	return it->second.resource.Get();                 // ID3D12Resource* を返す
 }
 

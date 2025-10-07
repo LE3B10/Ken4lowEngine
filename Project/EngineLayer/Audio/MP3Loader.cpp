@@ -48,6 +48,76 @@ void Mp3Loader::StreamAudioAsync(const std::string& fileName, float volume, floa
 
 
 /// -------------------------------------------------------------
+///				　	サウンドエフェクトを非同期で再生
+/// -------------------------------------------------------------
+void Mp3Loader::PlaySEAsync(const std::string& fileName, float volume, float pitch)
+{
+	std::thread([fileName, volume, pitch]() {
+		Mp3Loader* loader = new Mp3Loader();
+
+		try {
+			loader->Initialize();
+
+			std::string fileDirectory = "Resources/Sounds/" + fileName;
+
+			mp3dec_ex_t mp3;
+			if (mp3dec_ex_open(&mp3, fileDirectory.c_str(), MP3D_SEEK_TO_SAMPLE)) {
+				OutputDebugStringA("Failed to decode MP3 SE\n");
+				delete loader;
+				return;
+			}
+
+			WAVEFORMATEX format = {};
+			format.wFormatTag = WAVE_FORMAT_PCM;
+			format.nChannels = mp3.info.channels;
+			format.nSamplesPerSec = mp3.info.hz;
+			format.wBitsPerSample = 16;
+			format.nBlockAlign = format.nChannels * format.wBitsPerSample / 8;
+			format.nAvgBytesPerSec = format.nSamplesPerSec * format.nBlockAlign;
+
+			IXAudio2SourceVoice* voice = nullptr;
+			HRESULT result = loader->xAudio2->CreateSourceVoice(&voice, &format);
+			if (FAILED(result)) {
+				OutputDebugStringA("Failed to create SE Voice\n");
+				mp3dec_ex_close(&mp3);
+				delete loader;
+				return;
+			}
+
+			const size_t bufferSamples = mp3.info.channels * 1152 * static_cast<size_t>(1) << 8; // 1MB相当のバッファサイズ
+			std::vector<short> pcm(bufferSamples);
+			size_t samplesRead = mp3dec_ex_read(&mp3, pcm.data(), bufferSamples);
+
+			XAUDIO2_BUFFER buffer = {};
+			buffer.AudioBytes = static_cast<UINT32>(samplesRead * sizeof(short));
+			buffer.pAudioData = reinterpret_cast<BYTE*>(pcm.data());
+			buffer.Flags = XAUDIO2_END_OF_STREAM;
+
+			voice->SetVolume(volume);
+			voice->SetFrequencyRatio(pitch);
+			voice->SubmitSourceBuffer(&buffer);
+			voice->Start();
+
+			// 再生が終わるまで待つ
+			XAUDIO2_VOICE_STATE state{};
+			do {
+				voice->GetState(&state);
+				Sleep(10);
+			} while (state.BuffersQueued > 0);
+
+			voice->DestroyVoice();
+			mp3dec_ex_close(&mp3);
+		}
+		catch (...) {
+			OutputDebugStringA("SE playback failed\n");
+		}
+
+		delete loader;
+		}).detach();
+}
+
+
+/// -------------------------------------------------------------
 ///				　	　	　	　停止
 /// -------------------------------------------------------------
 void Mp3Loader::StopBGM()

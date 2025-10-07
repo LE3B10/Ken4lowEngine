@@ -4,10 +4,13 @@
 #include <LogString.h>
 #include <SRVManager.h>
 #include <TextureManager.h>
+#include "BlendStateFactory.h"
 #include "ShaderCompiler.h"
 #include "Camera.h"
 #include <ImGuiManager.h>
 #include <DebugCamera.h>
+#include "CollisionUtility.h"
+
 
 std::vector<ParticleManager::WindZone> windZones = {
 	{ { {-5.0f, -5.0f, -5.0f}, {5.0f, 5.0f, 5.0f} }, {0.1f, 0.0f, 0.0f} },
@@ -62,6 +65,10 @@ void ParticleManager::Initialize(DirectXCommon* dxCommon, Camera* camera)
 	meshMap_[ParticleEffectType::EnergyGather].Initialize();
 	meshMap_[ParticleEffectType::Charge].Initialize();     // 同上
 	meshMap_[ParticleEffectType::Explosion].Initialize(); // 同上
+
+	meshMap_[ParticleEffectType::Blood].Initialize();     // 血飛沫用のメッシュ
+
+	meshMap_[ParticleEffectType::LaserBeam].Initialize(); // レーザービーム用のメッシュ
 }
 
 
@@ -70,17 +77,15 @@ void ParticleManager::Initialize(DirectXCommon* dxCommon, Camera* camera)
 /// -------------------------------------------------------------
 void ParticleManager::CreateParticleGroup(const std::string& name, const std::string& textureFilePath, ParticleEffectType effectType)
 {
-	const std::string FilePath = "Resources/" + textureFilePath;
-
-	TextureManager::GetInstance()->LoadTexture(FilePath);
+	TextureManager::GetInstance()->LoadTexture(textureFilePath);
 
 	// すでに存在していれば何もせずに戻る
 	if (particleGroups.find(name) != particleGroups.end()) return;
 
 	// 新たな空のパーティクルグループを作成し、コンテナに登録
 	ParticleGroup group{};
-	group.materialData.textureFilePath = FilePath;
-	group.materialData.gpuHandle = TextureManager::GetInstance()->GetSrvHandleGPU(FilePath);
+	group.materialData.textureFilePath = textureFilePath;
+	group.materialData.gpuHandle = TextureManager::GetInstance()->GetSrvHandleGPU(textureFilePath);
 
 	// インスタンスバッファ作成
 	group.instancebuffer = ResourceManager::CreateBufferResource(dxCommon_->GetDevice(), sizeof(ParticleForGPU) * kNumMaxInstance);
@@ -159,13 +164,15 @@ void ParticleManager::Update()
 				particle.transform.translate_ += particle.velocity * kDeltaTime;
 				particle.currentTime += kDeltaTime;
 
-
 				switch (group.second.type)
 				{
 					/*case ParticleEffectType::Ring:
 						particle.transform.rotate_.z += 1.5f * kDeltaTime;
 						break;*/
 
+				case ParticleEffectType::Cylinder:
+					particle.transform.rotate_.y += 1.5f * kDeltaTime;
+					break;
 				case ParticleEffectType::Cylinder:
 					particle.transform.rotate_.y += 1.5f * kDeltaTime;
 					break;
@@ -240,7 +247,7 @@ void ParticleManager::Update()
 				{
 					for (const auto& zone : windZones)
 					{
-						if (IsCollision(accelerationField.area, particle.transform.translate_))
+						if (CollisionUtility::IsCollision(accelerationField.area, particle.transform.translate_))
 						{
 							particle.velocity += zone.strength;
 						}
@@ -256,6 +263,13 @@ void ParticleManager::Update()
 
 	// マテリアル更新
 	material_.Update();
+
+	// --- emitQueue の実行 ---
+	for (const auto& emitFunc : emitQueue)
+	{
+		emitFunc();
+	}
+	emitQueue.clear();
 }
 
 
@@ -341,6 +355,45 @@ void ParticleManager::Emit(const std::string name, const Vector3 position, uint3
 		// パーティクルの生成と追加
 		particleGroup.particles.push_back(ParticleFactory::Create(randomEngin, position, type));
 	}
+}
+
+void ParticleManager::EmitLaser(const std::string& name, const Vector3& position, float length, const Vector3& color)
+{
+	assert(particleGroups.find(name) != particleGroups.end());
+
+	ParticleGroup& group = particleGroups[name];
+	if (group.particles.size() >= kNumMaxInstance) return;
+
+	group.particles.push_back(ParticleFactory::CreateLaserBeam(position, length, color));
+}
+
+void ParticleManager::EmitLaserBeamFakeStretch(const std::string& name, const Vector3& startPos, const Vector3& direction, const Vector3& velocity, float totalLength, int count, const Vector4& color)
+{
+	Vector3 dirNorm = direction;
+	Vector3::Normalize(dirNorm);
+	float step = totalLength / (count * 2.0f); // 実質2倍に密集
+
+	emitQueue.push_back([=, this]() {
+		auto& group = GetGroup(name);
+
+		for (int i = 0; i < count; ++i)
+		{
+			Vector3 pos = startPos + dirNorm * (i * step);
+
+			Particle p;
+			p.transform.translate_ = pos;
+			p.transform.scale_ = { 0.1f, 0.1f, 0.1f };
+			p.startScale = p.transform.scale_;
+			p.endScale = { 0.0f, 0.0f, 0.0f };
+			p.transform.rotate_ = { 0.0f, 0.0f, 0.0f };
+			p.color = color;
+			p.lifeTime = 0.2f;
+			p.velocity = velocity; // 弾と同じ方向に一定速度で移動させる（数値は速度）
+			p.currentTime = 0.0f;
+
+			group.particles.push_back(p);
+		}
+		});
 }
 
 
@@ -449,90 +502,7 @@ void ParticleManager::CreatePSO()
 	inputLayoutDesc.NumElements = _countof(inputElementDescs);
 
 	//BlendStateの設定
-	D3D12_RENDER_TARGET_BLEND_DESC blendDesc{};
-	// すべての色要素を書き込む
-	blendDesc.RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
-
-	// 各ブレンドモードの設定を行う
-	switch (cuurenttype)
-	{
-		// ブレンドモードなし
-	case BlendMode::kBlendModeNone:
-
-		blendDesc.BlendEnable = false;
-		break;
-
-		// 通常αブレンドモード
-	case BlendMode::kBlendModeNormal:
-
-		// ノーマル
-		blendDesc.BlendEnable = true;
-		blendDesc.SrcBlend = D3D12_BLEND_SRC_ALPHA;
-		blendDesc.BlendOp = D3D12_BLEND_OP_ADD;
-		blendDesc.DestBlend = D3D12_BLEND_INV_SRC_ALPHA;
-		blendDesc.SrcBlendAlpha = D3D12_BLEND_ONE;
-		blendDesc.BlendOpAlpha = D3D12_BLEND_OP_ADD;
-		blendDesc.DestBlendAlpha = D3D12_BLEND_ZERO;
-		break;
-
-		// 加算ブレンドモード
-	case BlendMode::kBlendModeAdd:
-
-		// 加算
-		blendDesc.BlendEnable = true;
-		blendDesc.SrcBlend = D3D12_BLEND_SRC_ALPHA;
-		blendDesc.BlendOp = D3D12_BLEND_OP_ADD;
-		blendDesc.DestBlend = D3D12_BLEND_ONE;
-		blendDesc.SrcBlendAlpha = D3D12_BLEND_ONE;		  // アルファのソースはそのまま
-		blendDesc.BlendOpAlpha = D3D12_BLEND_OP_ADD;	  // アルファの加算操作
-		blendDesc.DestBlendAlpha = D3D12_BLEND_ZERO;	  // アルファのデスティネーションは無視
-		break;
-
-		// 減算ブレンドモード
-	case BlendMode::kBlendModeSubtract:
-
-		// 減算
-		blendDesc.BlendEnable = true;
-		blendDesc.SrcBlend = D3D12_BLEND_SRC_ALPHA;
-		blendDesc.BlendOp = D3D12_BLEND_OP_REV_SUBTRACT;
-		blendDesc.DestBlend = D3D12_BLEND_ONE;
-		blendDesc.SrcBlendAlpha = D3D12_BLEND_ONE;		 // アルファのソースはそのまま
-		blendDesc.BlendOpAlpha = D3D12_BLEND_OP_ADD;	 // アルファの加算操作
-		blendDesc.DestBlendAlpha = D3D12_BLEND_ZERO;	 // アルファのデスティネーションは無
-		break;
-
-		// 乗算ブレンドモード
-	case BlendMode::kBlendModeMultiply:
-
-		// 乗算
-		blendDesc.BlendEnable = true;
-		blendDesc.SrcBlend = D3D12_BLEND_ZERO;
-		blendDesc.BlendOp = D3D12_BLEND_OP_ADD;
-		blendDesc.DestBlend = D3D12_BLEND_SRC_COLOR;
-		blendDesc.SrcBlendAlpha = D3D12_BLEND_ONE;		 // アルファのソースはそのまま
-		blendDesc.BlendOpAlpha = D3D12_BLEND_OP_ADD;	 // アルファの加算操作
-		blendDesc.DestBlendAlpha = D3D12_BLEND_ZERO;	 // アルファのデスティネーションは無視
-		break;
-
-		// スクリーンブレンドモード
-	case BlendMode::kBlendModeScreen:
-
-		// スクリーン
-		blendDesc.BlendEnable = true;
-		blendDesc.SrcBlend = D3D12_BLEND_INV_DEST_COLOR;
-		blendDesc.BlendOp = D3D12_BLEND_OP_ADD;
-		blendDesc.DestBlend = D3D12_BLEND_ONE;
-		blendDesc.SrcBlendAlpha = D3D12_BLEND_ONE;		 // アルファのソースはそのまま
-		blendDesc.BlendOpAlpha = D3D12_BLEND_OP_ADD;	 // アルファの加算操作
-		blendDesc.DestBlendAlpha = D3D12_BLEND_ZERO;	 // アルファのデスティネーションは無視
-		break;
-
-		// 無効なブレンドモード
-	default:
-		// 無効なモードの処理
-		assert(false && "Invalid Blend Mode");
-		break;
-	}
+	const D3D12_RENDER_TARGET_BLEND_DESC blendDesc = BlendStateFactory::GetInstance()->GetBlendDesc(blendMode_); // アルファブレンドを使用
 
 	//RasterizerStateの設定
 	D3D12_RASTERIZER_DESC rasterizerDesc{};
@@ -596,12 +566,4 @@ std::list<Particle> ParticleManager::Emit(const Emitter& emitter, std::mt19937& 
 	}
 
 	return particles;
-}
-
-bool ParticleManager::IsCollision(const AABB& aabb, const Vector3& point)
-{
-	// 点がAABBの範囲内にあるかチェック
-	return (point.x >= aabb.min.x && point.x <= aabb.max.x &&
-		point.y >= aabb.min.y && point.y <= aabb.max.y &&
-		point.z >= aabb.min.z && point.z <= aabb.max.z);
 }

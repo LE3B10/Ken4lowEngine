@@ -6,7 +6,8 @@ Particle ParticleFactory::Create(std::mt19937& randomEngine, const Vector3& posi
 
 	switch (effectType)
 	{
-	case ParticleEffectType::Default: {
+	case ParticleEffectType::Default:
+	{
 		std::uniform_real_distribution<float> distribution(-1.0f, 1.0f);
 		std::uniform_real_distribution<float> distColor(0.0f, 1.0f);
 		std::uniform_real_distribution<float> distTime(1.0f, 3.0f);
@@ -21,7 +22,8 @@ Particle ParticleFactory::Create(std::mt19937& randomEngine, const Vector3& posi
 		break;
 	}
 
-	case ParticleEffectType::Slash: {
+	case ParticleEffectType::Slash:
+	{
 		std::uniform_real_distribution<float> distScale(0.8f, 3.0f);
 		std::uniform_real_distribution<float> distRotate(-std::numbers::pi_v<float>, std::numbers::pi_v<float>);
 
@@ -35,26 +37,27 @@ Particle ParticleFactory::Create(std::mt19937& randomEngine, const Vector3& posi
 		particle.velocity = { 0.0f, 0.0f, 0.0f };
 		break;
 	}
-								  //case ParticleEffectType::Ring: {
-								  //	std::uniform_real_distribution<float> distScale(0.5f, 1.0f);
-								  //	std::uniform_real_distribution<float> distTime(0.3f, 0.5f);
+	case ParticleEffectType::Ring:
+	{
+		std::uniform_real_distribution<float> distScale(0.5f, 1.0f);
+		std::uniform_real_distribution<float> distTime(0.3f, 0.5f);
 
-								  //	particle.transform.translate_ = position;
-								  //	float start = distScale(randomEngine);
-								  //	float end = start * 2.5f;
+		particle.transform.translate_ = position;
+		float start = distScale(randomEngine);
+		float end = start * 2.5f;
 
-								  //	particle.startScale = { start, start, start };
-								  //	particle.endScale = { end, end, end };
+		particle.startScale = { start, start, start };
+		particle.endScale = { end, end, end };
 
-								  //	particle.transform.scale_ = particle.startScale;
-								  //	particle.transform.rotate_ = { 0.0f, 0.0f, 0.0f };
-								  //	particle.color = { 1.0f, 1.0f, 1.0f, 1.0f };
-								  //	particle.lifeTime = distTime(randomEngine);
-								  //	particle.velocity = { 0.0f, 0.0f, 0.0f }; // 拡大で動きを表現する
-								  //	break;
-								  //}
-
-	case ParticleEffectType::Ring: {
+		particle.transform.scale_ = particle.startScale;
+		particle.transform.rotate_ = { 0.0f, 0.0f, 0.0f };
+		particle.color = { 1.0f, 1.0f, 1.0f, 1.0f };
+		particle.lifeTime = distTime(randomEngine);
+		particle.velocity = { 0.0f, 0.0f, 0.0f }; // 拡大で動きを表現する
+		break;
+	}
+	case ParticleEffectType::Blast:
+	{
 		std::uniform_real_distribution<float> distAngle(-std::numbers::pi_v<float>, std::numbers::pi_v<float>);
 		std::uniform_real_distribution<float> distScale(10.0f, 24.0f);
 		std::uniform_real_distribution<float> distLifetime(0.5f, 1.0f);
@@ -78,7 +81,8 @@ Particle ParticleFactory::Create(std::mt19937& randomEngine, const Vector3& posi
 
 		break;
 	}
-	case ParticleEffectType::Cylinder: {
+	case ParticleEffectType::Cylinder:
+	{
 		std::uniform_real_distribution<float> distColor(0.0f, 1.0f);
 
 		particle.transform.translate_ = position;
@@ -92,7 +96,8 @@ Particle ParticleFactory::Create(std::mt19937& randomEngine, const Vector3& posi
 		particle.endScale = particle.transform.scale_;
 		break;
 	}
-	case ParticleEffectType::Star: {
+	case ParticleEffectType::Star:
+	{
 		std::uniform_real_distribution<float> distColor(0.8f, 1.0f);
 		particle.transform.translate_ = position;
 		particle.transform.scale_ = { 0.5f, 0.5f, 0.5f };
@@ -104,7 +109,8 @@ Particle ParticleFactory::Create(std::mt19937& randomEngine, const Vector3& posi
 		particle.endScale = { 0.0f, 0.0f, 0.0f };
 		break;
 	}
-	case ParticleEffectType::Smoke: {
+	case ParticleEffectType::Smoke:
+	{
 		std::uniform_real_distribution<float> distOffset(-0.3f, 0.3f);
 		std::uniform_real_distribution<float> distScale(3.0f, 6.0f);
 		std::uniform_real_distribution<float> distTime(0.6f, 1.2f);
@@ -132,7 +138,8 @@ Particle ParticleFactory::Create(std::mt19937& randomEngine, const Vector3& posi
 		break;
 	}
 
-	case ParticleEffectType::Flash: {
+	case ParticleEffectType::Flash:
+	{
 		std::uniform_real_distribution<float> distColor(0.6f, 1.0f);
 		// 一瞬だけ光るフラッシュ
 		particle.transform.translate_ = position;
@@ -151,7 +158,8 @@ Particle ParticleFactory::Create(std::mt19937& randomEngine, const Vector3& posi
 		break;
 	}
 
-	case ParticleEffectType::Spark: {
+	case ParticleEffectType::Spark:
+	{
 		std::uniform_real_distribution<float> distDir(-1.0f, 1.0f);
 		std::uniform_real_distribution<float> distSpeed(3.0f, 5.0f);
 
@@ -173,7 +181,8 @@ Particle ParticleFactory::Create(std::mt19937& randomEngine, const Vector3& posi
 		break;
 	}
 
-	case ParticleEffectType::EnergyGather: {
+	case ParticleEffectType::EnergyGather:
+	{
 		std::uniform_real_distribution<float> distPos(-3.0f, 3.0f);
 		std::uniform_real_distribution<float> distTime(0.4f, 0.8f);
 		std::uniform_real_distribution<float> distAlpha(0.5f, 1.0f);
@@ -252,7 +261,8 @@ Particle ParticleFactory::Create(std::mt19937& randomEngine, const Vector3& posi
 	}
 	break;
 
-	case ParticleEffectType::Explosion: {
+	case ParticleEffectType::Explosion:
+	{
 		std::uniform_real_distribution<float> distDir(-1.0f, 1.0f);
 		std::uniform_real_distribution<float> distSpeed(5.0f, 12.0f);
 		std::uniform_real_distribution<float> distScale(1.2f, 2.4f);
@@ -283,10 +293,71 @@ Particle ParticleFactory::Create(std::mt19937& randomEngine, const Vector3& posi
 
 		break;
 	}
+	case ParticleEffectType::Blood:
+	{
+		std::uniform_real_distribution<float> distDir(-1.0f, 1.0f);
+		std::uniform_real_distribution<float> distSpeed(3.0f, 7.0f);
+		std::uniform_real_distribution<float> distLife(0.5f, 1.5f);
 
+		Vector3 direction = {
+			distDir(randomEngine),
+			std::abs(distDir(randomEngine)),  // Yは上方向だけにする
+			distDir(randomEngine)
+		};
 
+		// 正規化
+		float len = std::sqrt(direction.x * direction.x + direction.y * direction.y + direction.z * direction.z);
+		if (len > 0.0f) {
+			direction.x /= len;
+			direction.y /= len;
+			direction.z /= len;
+		}
+
+		particle.transform.translate_ = position;
+		particle.transform.scale_ = { 1.0f, 1.0f, 1.0f };
+		particle.startScale = particle.transform.scale_;
+		particle.endScale = { 0.0f, 0.0f, 0.0f };
+		particle.transform.rotate_ = { 0.0f, 0.0f, 0.0f };
+
+		particle.color = { 1.0f, 0.0f, 0.0f, 1.0f };  // 赤
+		particle.lifeTime = distLife(randomEngine);
+		particle.velocity = {
+			direction.x * distSpeed(randomEngine),
+			direction.y * distSpeed(randomEngine),
+			direction.z * distSpeed(randomEngine)
+		};
+		break;
+	}
+	case ParticleEffectType::LaserBeam:
+	{
+		particle.transform.translate_ = position;
+		particle.transform.scale_ = { 0.1f, 0.1f, 10.0f }; // Z方向に長い
+		particle.startScale = particle.transform.scale_;
+		particle.endScale = { 0.0f, 0.0f, 0.0f }; // 徐々に消える
+		particle.transform.rotate_ = { 0.0f, 0.0f, 0.0f }; // 向きは外から設定するならあとで
+		particle.color = { 1.0f, 0.0f, 0.0f, 1.0f }; // 赤いレーザー風
+		particle.lifeTime = 0.1f; // 一瞬だけ表示
+		particle.velocity = { 0.0f, 0.0f, 0.0f };
+		break;
+	}
 	}
 
+	particle.currentTime = 0.0f;
+	return particle;
+}
+
+
+Particle ParticleFactory::CreateLaserBeam(const Vector3& position, float length, const Vector3& color)
+{
+	Particle particle;
+	particle.transform.translate_ = position;
+	particle.transform.scale_ = { 0.1f, 0.1f, length }; // 長さZだけ動的に指定
+	particle.startScale = particle.transform.scale_;
+	particle.endScale = { 0.0f, 0.0f, 0.0f }; // 消える
+	particle.transform.rotate_ = { 0.0f, 0.0f, 0.0f }; // 任意で向きも指定可能
+	particle.color = { color.x, color.y, color.z, 1.0f };
+	particle.lifeTime = 0.1f;
+	particle.velocity = { 0.0f, 0.0f, 0.0f };
 	particle.currentTime = 0.0f;
 	return particle;
 }

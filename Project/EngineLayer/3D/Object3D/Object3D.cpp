@@ -21,29 +21,46 @@ void Object3D::Initialize(const std::string& fileName)
 	camera_ = Object3DCommon::GetInstance()->GetDefaultCamera();
 
 	// モデル読み込み
-	modelData = AssimpLoader::LoadModel("Resources", fileName);
+	modelData = AssimpLoader::LoadModel(fileName);
 
-	std::string texturePath = "Resources/" + modelData.material.textureFilePath;
+	// サブメッシュ配列に対応してメッシュ・テクスチャを用意
 
-	// 参照しているテクスチャファイル読み込み
-	TextureManager::GetInstance()->LoadTexture(texturePath);
+	// 既存データをクリア
+	meshes_.clear();
+	materialSRVs_.clear();
 
-	// 読み込んだテクスチャ番号を取得
-	modelData.material.gpuHandle = TextureManager::GetInstance()->GetSrvHandleGPU(texturePath);
+	// メッシュとテクスチャの数を予約
+	meshes_.reserve(modelData.subMeshes.size());
+	materialSRVs_.reserve(modelData.subMeshes.size());
+
+	// テクスチャ未指定時のフォールバック
+	static const std::string kDefaultTexturePath = "white.png";
+
+	for (const auto& sub : modelData.subMeshes)
+	{
+		// テクスチャSRV
+		std::string texturePath = sub.material.textureFilePath; // テクスチャパス
+		if (texturePath.empty()) texturePath = kDefaultTexturePath; // フォールバック
+		TextureManager::GetInstance()->LoadTexture(texturePath); // テクスチャ読み込み
+		materialSRVs_.push_back(TextureManager::GetInstance()->GetSrvHandleGPU(texturePath));
+
+		// メッシュ（頂点インデックス）
+		Mesh m = {};
+		m.Initialize(sub.vertices, sub.indices);
+		meshes_.push_back(std::move(m));
+	}
 
 	// 環境マップ
-	TextureManager::GetInstance()->LoadTexture("Resources/rostock_laage_airport_4k.dds");
+	TextureManager::GetInstance()->LoadTexture("SkyBox/skybox.dds");
+
 	// 環境マップのハンドルを取得
-	environmentMapHandle_ = TextureManager::GetInstance()->GetSrvHandleGPU("Resources/rostock_laage_airport_4k.dds");
+	environmentMapHandle_ = TextureManager::GetInstance()->GetSrvHandleGPU("SkyBox/skybox.dds");
 
 	// ワールドトランスフォームの初期化
 	worldTransform.Initialize();
 
 	// マテリアルデータの初期化処理
 	material_.Initialize();
-
-	// 頂点データの初期化
-	mesh_.Initialize(modelData.vertices, modelData.indices);
 
 	// カメラデータの初期化処理
 	InitializeCameraResource();
@@ -55,8 +72,14 @@ void Object3D::Initialize(const std::string& fileName)
 /// -------------------------------------------------------------
 void Object3D::Update()
 {
+	// 描画に使うカメラを明示的に毎フレームセット
+	camera_ = Object3DCommon::GetInstance()->GetDefaultCamera(); // ←ここが重要！
+
 	material_.Update();
 	worldTransform.Update();
+
+	// カメラ用バッファ更新（必要であれば）
+	cameraData->worldPosition = Object3DCommon::GetInstance()->GetActiveCameraPosition();
 }
 
 
@@ -65,21 +88,30 @@ void Object3D::Update()
 /// -------------------------------------------------------------
 void Object3D::DrawImGui()
 {
-	ImGui::DragFloat3("Position", &worldTransform.translate_.x, 0.01f); // 座標変更
-	ImGui::DragFloat3("Rotation", &worldTransform.rotate_.x, 0.01f);   // 回転変更
-	ImGui::DragFloat3("Scale", &worldTransform.scale_.x, 0.01f);       // スケール変更
+	// ① IDスコープで衝突を防ぐ（this を使うのが簡単）
+	ImGui::PushID(this);
 
-	// カメラの設定
-	if (ImGui::CollapsingHeader("Camera Settings"))
+	// ② 見やすいようにヘッダーでグループ化（任意）
+	if (ImGui::CollapsingHeader("Object", ImGuiTreeNodeFlags_DefaultOpen))
 	{
-		static float cameraPosition[3] = { cameraData->worldPosition.x, cameraData->worldPosition.y, cameraData->worldPosition.z };
-		if (ImGui::SliderFloat3("Camera Position", cameraPosition, -20.0f, 20.0f))
+		ImGui::DragFloat3("Position##pos", &worldTransform.translate_.x, 0.01f);
+		ImGui::DragFloat3("Rotation##rot", &worldTransform.rotate_.x, 0.01f);
+		ImGui::DragFloat3("Scale##scl", &worldTransform.scale_.x, 0.01f);
+
+		// カメラ（必要ならスコープを分ける）
+		if (ImGui::CollapsingHeader("Camera Settings"))
 		{
-			cameraData->worldPosition = { cameraPosition[0], cameraPosition[1], cameraPosition[2] };
+			Vector3 tmp = camera_->GetTranslate();
+			if (ImGui::SliderFloat3("Camera Position##cam", &tmp.x, -20.0f, 20.0f))
+			{
+				camera_->SetTranslate(tmp);              // ★ CBではなくカメラを更新
+			}
 		}
+
+		material_.DrawImGui(); // マテリアル側も PushID していなければ内部で同様に対応
 	}
 
-	material_.DrawImGui();
+	ImGui::PopID();
 }
 
 
@@ -90,14 +122,21 @@ void Object3D::Draw()
 {
 	ID3D12GraphicsCommandList* commandList = dxCommon_->GetCommandManager()->GetCommandList();
 
+	Object3DCommon::GetInstance()->SetRenderSetting();
+
 	material_.SetPipeline();
 	worldTransform.SetPipeline();
-	
-	commandList->SetGraphicsRootDescriptorTable(2, modelData.material.gpuHandle); // テクスチャの設定
+
 	commandList->SetGraphicsRootConstantBufferView(3, cameraResource->GetGPUVirtualAddress());
 
-	commandList->SetGraphicsRootDescriptorTable(7, environmentMapHandle_); // 環境マップの設定
-	mesh_.Draw();
+	TextureManager::GetInstance()->SetGraphicsRootDescriptorTable(commandList, 4, environmentMapHandle_);
+
+	// サブメッシュ事にテクスチャを差し替えて描画
+	for (size_t i = 0; i < meshes_.size(); i++)
+	{
+		TextureManager::GetInstance()->SetGraphicsRootDescriptorTable(commandList, 2, materialSRVs_[i]);
+		meshes_[i].Draw();
+	}
 }
 
 

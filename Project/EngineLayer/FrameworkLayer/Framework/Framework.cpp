@@ -5,6 +5,7 @@
 #include <DSVManager.h>
 #include <RTVManager.h>
 #include <SRVManager.h>
+#include <UAVManager.h>
 #include <TextureManager.h>
 #include <ParticleManager.h>
 #include <SpriteManager.h>
@@ -26,7 +27,7 @@ void Framework::Run()
 	Initialize();
 
 	// ゲームループ
-	while (!IsEndRequest())// 終了リクエストが来たら抜ける
+	while (!winApp_->ProcessMessage())// 終了リクエストが来たら抜ける
 	{
 		// 毎フレーム更新
 		Update();
@@ -59,6 +60,9 @@ void Framework::Initialize()
 
 	// SRVマネージャーの初期化
 	SRVManager::GetInstance()->Initialize(dxCommon_);
+
+	// UAVマネージャーの初期化
+	UAVManager::GetInstance()->Initialize(dxCommon_);
 
 	// テクスチャマネージャーの初期化
 	TextureManager::GetInstance()->Initialize(dxCommon_);
@@ -116,13 +120,6 @@ void Framework::Initialize()
 /// -------------------------------------------------------------
 void Framework::Update()
 {
-	// ウィンドウアプリケーションのメッセージ処理
-	if (winApp_->ProcessMessage())
-	{
-		endRequest_ = true; // 終了リクエストを出す
-		return;				// 終了リクエストが来たら抜ける
-	}
-
 	// ワイヤーフレームの更新処理
 	Wireframe::GetInstance()->Update();
 

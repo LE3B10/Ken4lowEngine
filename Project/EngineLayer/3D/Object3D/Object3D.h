@@ -56,18 +56,24 @@ public: /// ---------- 設定処理 ---------- ///
 
 	// スケールを設定
 	void SetScale(const Vector3& scale) { worldTransform.scale_ = scale; }
+	Vector3 GetScale() const { return worldTransform.scale_; }
 
 	// 回転を設定
 	void SetRotate(const Vector3& rotate) { worldTransform.rotate_ = rotate; }
+	Vector3 GetRotate() const { return worldTransform.rotate_; }
 
 	// 位置を設定
 	void SetTranslate(const Vector3& translate) { worldTransform.translate_ = translate; }
+	Vector3 GetTranslate() const { return worldTransform.translate_; }
+
+	// 色を設定
+	void SetColor(const Vector4& color) { material_.SetColor(color); }
 
 	// カメラの設定
 	void SetCamera(Camera* camera) { camera_ = camera; }
 
 	// 反射率の設定
-	void SetReflectivity(float reflectivity) { material_.SetShininess(reflectivity); }
+	void SetReflectivity(float reflectivity) { material_.SetReflection(reflectivity); }
 
 public: /// ---------- ゲッタ ---------- ///
 
@@ -91,7 +97,8 @@ private: /// ---------- メンバ変数 ---------- ///
 	WorldTransform worldTransform;
 
 	// メッシュ
-	Mesh mesh_;
+	std::vector<Mesh> meshes_;
+	std::vector<D3D12_GPU_DESCRIPTOR_HANDLE> materialSRVs_;
 
 	// バッファリソースの作成
 	ComPtr <ID3D12Resource> cameraResource;
@@ -99,7 +106,7 @@ private: /// ---------- メンバ変数 ---------- ///
 	// カメラにデータを書き込む
 	CameraForGPU* cameraData = nullptr;
 
-	// OBJファイルのデータ
+	// モデルデータ（subMeshes を想定）
 	ModelData modelData;
 
 	float alpha = 1.0f; // α値

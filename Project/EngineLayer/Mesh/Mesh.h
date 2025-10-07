@@ -27,14 +27,14 @@ private: /// ---------- メンバ変数 ---------- ///
 	ComPtr<ID3D12Resource> vertexResource;
 
 	// 頂点リソースにデータを書き込む
-	D3D12_VERTEX_BUFFER_VIEW vertexBufferView;
+	D3D12_VERTEX_BUFFER_VIEW vertexBufferView = {};
 
 	// 頂点リソース内のデータを指すポインタ
-	std::vector<VertexData> vertices;
+	std::vector<VertexData> vertices = {};
 
 	// インデックスバッファ
-	ComPtr<ID3D12Resource> indexResource;
-	D3D12_INDEX_BUFFER_VIEW indexBufferView;
-	std::vector<uint32_t> indices;
+	ComPtr<ID3D12Resource> indexResource = nullptr;
+	D3D12_INDEX_BUFFER_VIEW indexBufferView = {};
+	std::vector<uint32_t> indices = {};
 };
 

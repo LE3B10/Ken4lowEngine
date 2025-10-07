@@ -1,26 +1,33 @@
 #include "AssimpLoader.h"
 
-ModelData AssimpLoader::LoadModel(const std::string& directoryPath, const std::string& filename)
+ModelData AssimpLoader::LoadModel(const std::string& modelFilePath)
 {
 	// 1. ファイルの拡張子を取得して判定
-	std::string extension = filename.substr(filename.find_last_of('.') + 1);
+	std::string extension = modelFilePath.substr(modelFilePath.find_last_of('.') + 1);
 
 	// 2. Assimp でモデルを読み込む
 	Assimp::Importer importer;
-	std::string filePath = directoryPath + "/" + filename;
+	std::string filePath = "Resources/Models/" + modelFilePath;
 	const aiScene* scene = nullptr;
+
+	// 共通ポストプロセス（堅牢化）
+	const unsigned int kFlags =
+		aiProcess_Triangulate |			  // 三角形化
+		aiProcess_JoinIdenticalVertices | // 重複頂点の除去
+		aiProcess_GenSmoothNormals |      // 法線を自動生成
+		aiProcess_FlipWindingOrder |	  // 頂点の順番を反転
+		aiProcess_FlipUVs;				  // UVの上下反転
+	// （必要に応じて）| aiProcess_CalcTangentSpace
 
 	if (extension == "obj")
 	{
 		// OBJ ファイル読み込み
-		scene = importer.ReadFile(filePath.c_str(),
-			aiProcess_FlipWindingOrder | aiProcess_FlipUVs);
+		scene = importer.ReadFile(filePath.c_str(), kFlags);
 	}
 	else if (extension == "gltf" || extension == "glb")
 	{
 		// glTF ファイル読み込み (追加フラグあり)
-		scene = importer.ReadFile(filePath.c_str(),
-			aiProcess_FlipWindingOrder | aiProcess_FlipUVs);
+		scene = importer.ReadFile(filePath.c_str(), kFlags);
 	}
 	else
 	{
@@ -34,7 +41,7 @@ ModelData AssimpLoader::LoadModel(const std::string& directoryPath, const std::s
 	ModelData modelData;
 
 	// 4. メッシュを解析 (共通処理)
-	ParseMeshes(scene, directoryPath, modelData);
+	ParseMeshes(scene, modelData);
 
 	// 5. ノード階層を構築 (共通処理)
 	modelData.rootNode = ReadNode(scene->mRootNode);
@@ -65,24 +72,32 @@ Node AssimpLoader::ReadNode(aiNode* node)
 	return result;
 }
 
-void AssimpLoader::ParseMeshes(const aiScene* scene, const std::string& directoryPath, ModelData& modelData)
+void AssimpLoader::ParseMeshes(const aiScene* scene, ModelData& modelData)
 {
+	uint32_t baseVertex = 0;
+
 	for (uint32_t meshIndex = 0; meshIndex < scene->mNumMeshes; ++meshIndex)
 	{
 		aiMesh* mesh = scene->mMeshes[meshIndex];
-		assert(mesh->HasNormals() && mesh->HasTextureCoords(0));
-		modelData.vertices.resize(mesh->mNumVertices);
+
+		// ---- SubMesh を構築 ----
+		SubMesh sub;
+		sub.vertices.resize(mesh->mNumVertices);
 
 		// 頂点データの解析
 		for (uint32_t vertexIndex = 0; vertexIndex < mesh->mNumVertices; ++vertexIndex)
 		{
-			aiVector3D& position = mesh->mVertices[vertexIndex];
-			aiVector3D& normal = mesh->mNormals[vertexIndex];
-			aiVector3D& texcoord = mesh->mTextureCoords[0][vertexIndex];
+			// 頂点座標
+			aiVector3D& position = mesh->mVertices[vertexIndex]; // 頂点座標
+			sub.vertices[vertexIndex].position = { -position.x, position.y, position.z, 1.0f };
 
-			modelData.vertices[vertexIndex].position = { -position.x, position.y, position.z, 1.0f };
-			modelData.vertices[vertexIndex].normal = { -normal.x, normal.y, normal.z };
-			modelData.vertices[vertexIndex].texcoord = { texcoord.x, texcoord.y };
+			// 法線
+			aiVector3D& normal = mesh->mNormals[vertexIndex]; // 法線
+			sub.vertices[vertexIndex].normal = { -normal.x, normal.y, normal.z };
+
+			// UV座標
+			aiVector3D& texcoord = mesh->mTextureCoords[0][vertexIndex];
+			sub.vertices[vertexIndex].texcoord = { texcoord.x, texcoord.y };
 		}
 
 		// インデックスデータの解析
@@ -94,7 +109,7 @@ void AssimpLoader::ParseMeshes(const aiScene* scene, const std::string& director
 			for (uint32_t element = 0; element < face.mNumIndices; ++element)
 			{
 				uint32_t vertexIndex = face.mIndices[element];
-				modelData.indices.push_back(vertexIndex);
+				sub.indices.push_back(vertexIndex);
 			}
 		}
 
@@ -117,7 +132,7 @@ void AssimpLoader::ParseMeshes(const aiScene* scene, const std::string& director
 			// Weight情報を取り出す
 			for (uint32_t weightIndex = 0; weightIndex < bone->mNumWeights; ++weightIndex)
 			{
-				jointWeightData.vertexWeights.push_back({ bone->mWeights[weightIndex].mWeight, bone->mWeights[weightIndex].mVertexId });
+				jointWeightData.vertexWeights.push_back({ bone->mWeights[weightIndex].mWeight, baseVertex + bone->mWeights[weightIndex].mVertexId });
 			}
 		}
 
@@ -125,13 +140,20 @@ void AssimpLoader::ParseMeshes(const aiScene* scene, const std::string& director
 		aiMaterial* material = scene->mMaterials[mesh->mMaterialIndex];
 		if (material->GetTextureCount(aiTextureType_DIFFUSE) > 0)
 		{
-			aiString textureFilePath;
-			material->GetTexture(aiTextureType_DIFFUSE, 0, &textureFilePath);
-			modelData.material.textureFilePath = textureFilePath.C_Str(); // テクスチャファイルパスを取得
+			aiString aiTexPath;
+			material->GetTexture(aiTextureType_DIFFUSE, 0, &aiTexPath);
+
+			// フォルダー情報は捨ててファイル名だけ保持
+			std::filesystem::path texPath(aiTexPath.C_Str());
+			sub.material.textureFilePath = texPath.filename().string();
 		}
 		else
 		{
-			modelData.material.textureFilePath = ""; // デフォルト値
+			sub.material.textureFilePath = ""; // デフォルト値
 		}
+
+		// SubMeshを追加
+		modelData.subMeshes.push_back(std::move(sub));
+		baseVertex += mesh->mNumVertices; // 次のメッシュ用に進める
 	}
 }

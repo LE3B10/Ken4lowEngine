@@ -13,50 +13,42 @@ private: /// ---------- 構造体 ---------- ///
 	// ディゾルブの設定
 	struct DissolveSetting
 	{
-		float threshold = 0.5f; // 閾値
-		float edgeThickness = 0.05f; // エッジの太さ
-		Vector4 edgeColor = { 1.0f, 1.0f, 1.0f, 1.0f }; // エッジの色
-		float padding[3];
+		float threshold;        // 閾値
+		float edgeThickness;    // エッジの太さ
+		float padding0[2];      // パディング
+		Vector4 edgeColor;      // 色
 	};
 
 public: /// ---------- メンバ関数 ---------- ///
-	
+
 	// 初期化処理
 	void Initialize(DirectXCommon* dxCommon, PostEffectPipelineBuilder* builder) override;
-	
+
 	// 適用処理
-	void Apply(ID3D12GraphicsCommandList* commandList, uint32_t rtvSrvIndex, uint32_t dsvSrvIndex) override;
-	
+	void Apply(ID3D12GraphicsCommandList* commandList, uint32_t srvIndex, uint32_t uavIndex, uint32_t dsvIndex) override;
+
 	// ImGui描画処理
 	void DrawImGui() override;
-	
-	// 名前の取得
-	const std::string& GetName() const override { return name_; }
 
 private: /// ---------- メンバ変数 ---------- ///
-
-	// 名前
-	const std::string name_ = "DissolveEffect";
-
-	// シェーダーコードのパス
-	std::string shaderPath_ = "Resources/Shaders/PostEffect/DissolveEffect.hlsl";
 
 	// DirectX共通クラス
 	DirectXCommon* dxCommon_ = nullptr;
 
 	// パイプラインビルダー
-	PostEffectPipelineBuilder* pipelineBuilder_;
+	PostEffectPipelineBuilder* pipelineBuilder_ = nullptr;
 
-	// グラフィックスパイプラインステートオブジェクト
-	Microsoft::WRL::ComPtr<ID3D12PipelineState> graphicsPipelineState_;
+	// コンピュートパイプラインステートオブジェクト
+	Microsoft::WRL::ComPtr<ID3D12PipelineState> computePipelineState_;
 
-	// ルートシグネチャ
-	Microsoft::WRL::ComPtr<ID3D12RootSignature> rootSignature_;
+	// コンピュートルートシグネチャ
+	Microsoft::WRL::ComPtr<ID3D12RootSignature> computeRootSignature_;
 
 	// ディゾルブの設定
 	Microsoft::WRL::ComPtr<ID3D12Resource> constantBuffer_;
 	DissolveSetting* dissolveSetting_ = nullptr;
 
 	uint32_t dissolveMaskSrvIndex_ = 0; // SRV index for mask
+	uint32_t dissolveMaskSrvIndexOnUAV_ = 0;   // ★UAVヒープ側に複製したSRV
 };
 

@@ -39,10 +39,12 @@ public:
 
 	struct RenderTarget
 	{
-		ComPtr<ID3D12Resource> resource; // レンダーテクスチャリソース
-		D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle; // RTVハンドル
+		ComPtr<ID3D12Resource> resource = nullptr; // レンダーテクスチャリソース
+		D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle = {}; // RTVハンドル
 		D3D12_RESOURCE_STATES state = D3D12_RESOURCE_STATE_COMMON; // リソース状態
 		uint32_t srvIndex = 0; // SRVインデックス
+		uint32_t uavIndex = 0; // UAVインデックス
+		uint32_t srvIndexOnUavHeap = 0; // CS用に、UAVヒープ上へ複製したSRV
 		Vector4 clearColor = { 0.08f, 0.08f, 0.18f, 1.0f }; // クリアカラー
 	};
 
@@ -83,7 +85,7 @@ private: /// ---------- メンバ関数 ---------- ///
 private: /// ---------- メンバ関数 ---------- ///
 
 	// RTVとSRVの確保
-	void AllocateRTVAndSRV();
+	void AllocateRTV_DSV_SRV_UAV();
 
 	// ビューポート矩形とシザリング矩形の設定
 	void SetViewportAndScissorRect();
@@ -124,6 +126,7 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	static constexpr int kPostRTCount = 1; // ポストエフェクト用のレンダーテクスチャ数
 	std::vector<RenderTarget> renderTargets_; // レンダーテクスチャのリスト
+
 
 private: /// ---------- コピー禁止 ---------- ///
 

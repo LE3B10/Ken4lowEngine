@@ -29,5 +29,5 @@ struct Particle
 	float orbitSpeed = 1.0f;       // 速度（時間の倍率）
 	float orbitPhase = 0.0f;       // 初期角度
 
-	ParticleMode mode = ParticleMode::Orbit;
+	ParticleMode mode = ParticleMode::Orbit; // パーティクルのモード（回転 or 爆発）
 };

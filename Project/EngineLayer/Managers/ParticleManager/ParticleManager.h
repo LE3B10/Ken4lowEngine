@@ -5,12 +5,14 @@
 #include <ParticleMaterial.h>
 #include <Particle.h>
 #include <ParticleMesh.h>
-#include "ParticleFactory.h" // 追加
+#include "ParticleFactory.h"
 
 #include <unordered_map>
 #include <list>
 #include <random>
 #include <numbers>
+#include <functional>
+
 #include <AABB.h>
 
 /// ---------- 前方宣言 ----------///
@@ -97,6 +99,10 @@ public: /// ---------- メンバ関数 ---------- ///
 	// パーティクルの発生
 	void Emit(const std::string name, const Vector3 position, uint32_t count, ParticleEffectType type);
 
+	void EmitLaser(const std::string& name, const Vector3& position, float length, const Vector3& color);
+
+	void EmitLaserBeamFakeStretch(const std::string& name, const Vector3& startPos, const Vector3& direction, const Vector3& velocity, float totalLength, int count, const Vector4& color);
+
 	std::unordered_map<std::string, ParticleManager::ParticleGroup> GetParticleGroups() { return particleGroups; }
 
 	// ImGuiの描画
@@ -147,8 +153,6 @@ private: /// ---------- ヘルパー関数 ---------- ///
 
 	std::list<Particle> Emit(const Emitter& emitter, std::mt19937& randomEngine, ParticleEffectType type);
 
-	bool IsCollision(const AABB& aabb, const Vector3& point);
-
 private: /// ---------- メンバ変数 ---------- ///
 
 	ParticleTransform transform;
@@ -156,7 +160,7 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	std::unordered_map<ParticleEffectType, ParticleMesh> meshMap_;
 
-	BlendMode cuurenttype = BlendMode::kBlendModeAdd;
+	BlendMode blendMode_ = BlendMode::kBlendModeAdd;
 
 	DirectXCommon* dxCommon_ = nullptr;
 	SRVManager* srvManager_ = nullptr;
@@ -179,10 +183,12 @@ private: /// ---------- メンバ変数 ---------- ///
 	std::random_device seedGeneral;
 	std::mt19937 randomEngin;
 
+	std::vector<std::function<void()>> emitQueue;
+
 	// 描画数
 	const uint32_t kNumMaxInstance = 1024;
 
-	bool useBillboard = false;
+	bool useBillboard = true;
 
 	bool isWind = false;
 

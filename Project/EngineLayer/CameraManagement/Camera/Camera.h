@@ -76,6 +76,12 @@ public: /// ---------- ゲッター ---------- ///
 	// 合成行列データを取得
 	const Matrix4x4& GetViewProjectionMatrix() const { return viewProjectionMatrix_; }
 
+	// カメラからの前方ベクトルを取得
+	Vector3 GetForward() const;
+
+	// 水平方向視野角の取得
+	float GetFovY() const { return fovY_; }
+
 private: /// ---------- メンバ変数 ----- ///
 
 	float kWidth, kHeight;

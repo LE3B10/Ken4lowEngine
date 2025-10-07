@@ -19,13 +19,14 @@
 #include <RandomEffect.h>
 #include <AbsorbEffect.h>
 #include <DepthOutlineEffect.h>
+#include <UAVManager.h>
 
 
 auto Transition = [&](PostEffectManager::RenderTarget& rt, D3D12_RESOURCE_STATES newState)
 	{
 		auto dxCommon_ = DirectXCommon::GetInstance();
 		if (rt.state == newState) return;                    // 二重バリア防止
-		dxCommon_->TransitionResource(rt.resource.Get(), rt.state, newState);
+		dxCommon_->ResourceTransition(rt.resource.Get(), rt.state, newState);
 		rt.state = newState;                                 // ★状態を必ず同期
 	};
 
@@ -53,7 +54,7 @@ void PostEffectManager::Initialieze(DirectXCommon* dxCommon)
 	renderTargets_.resize(2); // レンダーターゲットの数を1に設定
 
 	// RTVとSRVの確保
-	AllocateRTVAndSRV();
+	AllocateRTV_DSV_SRV_UAV();
 
 	// ビューポート矩形とシザリング矩形の設定
 	SetViewportAndScissorRect();
@@ -110,7 +111,7 @@ void PostEffectManager::BeginDraw()
 	// 🔷 必ず DEPTH_WRITE 状態に戻す → ClearDepthStencilView 用
 	if (depthResource_ && depthState_ != D3D12_RESOURCE_STATE_DEPTH_WRITE)
 	{
-		dxCommon_->TransitionResource(depthResource_.Get(), depthState_, D3D12_RESOURCE_STATE_DEPTH_WRITE);
+		dxCommon_->ResourceTransition(depthResource_.Get(), depthState_, D3D12_RESOURCE_STATE_DEPTH_WRITE);
 		depthState_ = D3D12_RESOURCE_STATE_DEPTH_WRITE;
 	}
 
@@ -145,7 +146,7 @@ void PostEffectManager::EndDraw()
 	// 🔷 Outline等で使うために、depthResource を PIXEL_SHADER_RESOURCE に遷移
 	if (depthResource_ && depthState_ != D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE)
 	{
-		dxCommon_->TransitionResource(depthResource_.Get(), depthState_, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+		dxCommon_->ResourceTransition(depthResource_.Get(), depthState_, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 		depthState_ = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
 	}
 
@@ -179,7 +180,7 @@ void PostEffectManager::RenderPostEffect()
 		D3D12_CPU_DESCRIPTOR_HANDLE backBufferRTV = dxCommon_->GetBackBufferRTV(backBufferIndex);
 
 		// ★ ①-1 PRESENT → RENDER_TARGET へ遷移
-		dxCommon_->TransitionResource(backBuffer.Get(), D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
+		dxCommon_->ResourceTransition(backBuffer.Get(), D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
 
 		commandList->OMSetRenderTargets(1, &backBufferRTV, false, &dsvHandle);
 
@@ -190,7 +191,7 @@ void PostEffectManager::RenderPostEffect()
 		commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 		commandList->DrawInstanced(3, 1, 0, 0); // フルスクリーンクアッドを描画
 
-		dxCommon_->TransitionResource(backBuffer.Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT); // ★ ②-1 RENDER_TARGET → PRESENT へ遷移
+		dxCommon_->ResourceTransition(backBuffer.Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT); // ★ ②-1 RENDER_TARGET → PRESENT へ遷移
 
 		return; // これで終了
 	}
@@ -212,16 +213,34 @@ void PostEffectManager::RenderPostEffect()
 		auto& inRT = renderTargets_[src]; // 入力レンダーテクスチャ
 		auto& outRT = renderTargets_[dst]; // 出力レンダーテクスチャ
 
-		// 書き込み
-		Transition(inRT, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-		Transition(outRT, D3D12_RESOURCE_STATE_RENDER_TARGET);
-		commandList->OMSetRenderTargets(1, &outRT.rtvHandle, false, &dsvHandle);
+		if (name == "GrayScaleEffect" || name == "RandomEffect" || name == "DissolveEffect" || name == "VignetteEffect" || name == "GaussianFilterEffect" || name == "RadialBlurEffect" || name == "LuminanceOutlineEffect" || name == "SmoothingEffect")
+		{
+			Transition(inRT, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+			Transition(outRT, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
 
-		// エフェクト適用
-		postEffects_[name]->Apply(commandList, inRT.srvIndex, dsvSrvIndex_);
+			// UAV ヒープをセット
+			UAVManager::GetInstance()->PreDispatch();
 
-		commandList->OMSetRenderTargets(0, nullptr, false, nullptr); // 出力レンダーテクスチャを解除
-		Transition(outRT, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+			postEffects_[name]->Apply(commandList, inRT.srvIndexOnUavHeap, outRT.uavIndex, dsvSrvIndex_);
+
+			Transition(outRT, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+		}
+		else
+		{
+			// ★ SRVヒープをバインド（PSで使うため）
+			SRVManager::GetInstance()->PreDraw();
+
+			// 書き込み
+			Transition(inRT, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+			Transition(outRT, D3D12_RESOURCE_STATE_RENDER_TARGET);
+			commandList->OMSetRenderTargets(1, &outRT.rtvHandle, false, &dsvHandle);
+
+			// エフェクト適用
+			postEffects_[name]->Apply(commandList, inRT.srvIndex, outRT.uavIndex, dsvSrvIndex_);
+
+			commandList->OMSetRenderTargets(0, nullptr, false, nullptr); // 出力レンダーテクスチャを解除
+			Transition(outRT, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+		}
 
 		// ping-pong するためにインデックスを入れ替え
 		std::swap(src, dst);
@@ -229,6 +248,9 @@ void PostEffectManager::RenderPostEffect()
 
 	// 最後の出力レンダーテクスチャをバックバッファに描画する
 	auto& finalRT = renderTargets_[src]; // 最後の出力レンダーテクスチャ
+
+	// ★ SRVヒープに戻す（コピーパスはGraphics）
+	SRVManager::GetInstance()->PreDraw();
 
 	// バックバッファの取得
 	uint32_t backBufferIndex = dxCommon_->GetSwapChain()->GetSwapChain()->GetCurrentBackBufferIndex();
@@ -281,7 +303,7 @@ ComPtr<ID3D12Resource> PostEffectManager::CreateRenderTextureResource(uint32_t w
 	resourceDesc.Format = format;								  // フォーマット
 	resourceDesc.SampleDesc.Count = 1;							  // サンプル数
 	resourceDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
-	resourceDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET; // レンダーターゲットとして使う
+	resourceDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET | D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS; // レンダーターゲットとして使う
 
 	// ヒープの設定
 	D3D12_HEAP_PROPERTIES heapProperties{};
@@ -361,7 +383,7 @@ ComPtr<ID3D12Resource> PostEffectManager::CreateDepthBufferResource(uint32_t wid
 /// -------------------------------------------------------------
 ///				　		RTVとSRVの確保
 /// -------------------------------------------------------------
-void PostEffectManager::AllocateRTVAndSRV()
+void PostEffectManager::AllocateRTV_DSV_SRV_UAV()
 {
 	const uint32_t rtCount = static_cast<uint32_t>(renderTargets_.size()); // レンダーテクスチャの数を取得
 
@@ -380,6 +402,14 @@ void PostEffectManager::AllocateRTVAndSRV()
 		// SRVの生成
 		rt.srvIndex = SRVManager::GetInstance()->Allocate();
 		SRVManager::GetInstance()->CreateSRVForTexture2D(rt.srvIndex, rt.resource.Get(), DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, 1);
+
+		// UAVの生成
+		rt.uavIndex = UAVManager::GetInstance()->Allocate();
+		UAVManager::GetInstance()->CreateUAVForTexture2D(rt.uavIndex, rt.resource.Get(), DXGI_FORMAT_R8G8B8A8_UNORM, 0); // UAVはTexture2Dとして生成
+
+		// ★ 追加：UAVヒープ側にも“入力用SRV”を複製
+		rt.srvIndexOnUavHeap = UAVManager::GetInstance()->Allocate();
+		UAVManager::GetInstance()->CreateSRVForTexture2DOnThisHeap(rt.srvIndexOnUavHeap, rt.resource.Get(), DXGI_FORMAT_R8G8B8A8_UNORM, 1);
 	}
 
 	// 深度バッファの生成
