@@ -173,9 +173,6 @@ void ParticleManager::Update()
 				case ParticleEffectType::Cylinder:
 					particle.transform.rotate_.y += 1.5f * kDeltaTime;
 					break;
-				case ParticleEffectType::Cylinder:
-					particle.transform.rotate_.y += 1.5f * kDeltaTime;
-					break;
 				case ParticleEffectType::Charge: {
 					if (particle.mode == ParticleMode::Orbit) {
 						float t = (particle.currentTime * particle.orbitSpeed) + particle.orbitPhase;

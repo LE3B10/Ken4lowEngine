@@ -40,12 +40,6 @@ private: /// ---------- メンバ変数 ---------- ///
 	std::span<VertexInfluence> mappedInfluenceData_; // マッピングしたデータ
 
 	// palette（ジョイント行列の配列）
-<<<<<<<< HEAD:Project/EngineLayer/3D/AnimationManagement/SkinCluster.h
-	ComPtr<ID3D12Resource> paletteResource_;
-	std::span<WellForGPU> mappedPalette_;
-	uint32_t paletteSrvIndex_ = UINT32_MAX;
-	std::pair<D3D12_CPU_DESCRIPTOR_HANDLE, D3D12_GPU_DESCRIPTOR_HANDLE> paletteSrvHandle_;
-========
 	ComPtr<ID3D12Resource> paletteResource_; // パレットリソース
 	std::span<WellForGPU> mappedPalette_; // マッピングしたデータ
 	uint32_t paletteSrvIndex_ = UINT32_MAX; // SRVのインデックス
@@ -57,6 +51,5 @@ private: /// ---------- メンバ変数 ---------- ///
 	uint32_t influenceSrvIndexOnUavHeap_ = UINT32_MAX;
 	D3D12_GPU_DESCRIPTOR_HANDLE paletteSrvGpuOnUavHeap_{};
 	D3D12_GPU_DESCRIPTOR_HANDLE influenceSrvGpuOnUavHeap_{};
->>>>>>>> GameProject_master:Project/EngineLayer/3D/AnimationManager/SkinCluster.h
 };
 

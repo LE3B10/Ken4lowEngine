@@ -187,14 +187,3 @@ void ParticleMesh::CreateVertexBuffer()
 		std::memcpy(dst, indices.data(), sizeof(uint32_t) * indices.size());
 	}
 }
-
-void ParticleMesh::CreateVertexBuffer()
-{
-	ID3D12Device* device = DirectXCommon::GetInstance()->GetDevice();
-	vertexResource_ = ResourceManager::CreateBufferResource(device, sizeof(VertexData) * modelData_.vertices.size());
-	vertexBufferView_.BufferLocation = vertexResource_->GetGPUVirtualAddress();
-	vertexBufferView_.SizeInBytes = UINT(sizeof(VertexData) * modelData_.vertices.size());
-	vertexBufferView_.StrideInBytes = sizeof(VertexData);
-	vertexResource_->Map(0, nullptr, reinterpret_cast<void**>(&vertexData_));
-	std::memcpy(vertexData_, modelData_.vertices.data(), sizeof(VertexData) * modelData_.vertices.size());
-}
