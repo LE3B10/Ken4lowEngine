@@ -16,12 +16,11 @@
 #include "RunningBehavior.h"
 
 #include <imgui.h>
-#include <AnimationModelFactory.h>
 
 
 Player::~Player()
 {
-	AnimationModelFactory::ClearAll();
+	//AnimationModelFactory::ClearAll();
 
 	// プレイヤーのデストラクタ
 	// ここで必要なクリーンアップ処理を行う
@@ -44,12 +43,12 @@ void Player::Initialize()
 	input_ = Input::GetInstance();
 
 	// 必要なアニメーションモデルを事前ロード
-	AnimationModelFactory::PreLoadModel("PlayerStateModel/human.gltf");
-	AnimationModelFactory::PreLoadModel("PlayerStateModel/humanWalking.gltf");
-	AnimationModelFactory::PreLoadModel("PlayerStateModel/PlayerRunState.gltf");
+	//AnimationModelFactory::PreLoadModel("PlayerStateModel/human.gltf");
+	//AnimationModelFactory::PreLoadModel("PlayerStateModel/humanWalking.gltf");
+	//AnimationModelFactory::PreLoadModel("PlayerStateModel/PlayerRunState.gltf");
 
-	// アニメーションモデルの初期化
-	animationModel_ = AnimationModelFactory::CreateInstance("PlayerStateModel/human.gltf");
+	//// アニメーションモデルの初期化
+	//animationModel_ = AnimationModelFactory::CreateInstance("PlayerStateModel/human.gltf");
 	animationModel_->SetScaleFactor(1.0f); // スケールファクターを設定
 	animationModel_->InitializeBones(); // ボーン情報の初期化
 
@@ -72,7 +71,7 @@ void Player::Initialize()
 	// プレイヤーコントローラーの生成と初期化
 	controller_ = std::make_unique<PlayerController>();
 	controller_->Initialize(animationModel_.get());
-	controller_->SetStaminaPointer(&stamina_); // ←★ここを追加
+	controller_->SetStaminaPointer(&stamina_);
 
 	// HUDの初期化
 	numberSpriteDrawer_ = std::make_unique<NumberSpriteDrawer>();

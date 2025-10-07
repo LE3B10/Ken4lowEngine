@@ -13,23 +13,23 @@ private: /// ---------- 構造体 ---------- ///
 	// ディゾルブの設定
 	struct DissolveSetting
 	{
-		float threshold = 0.5f; // 閾値
-		float edgeThickness = 0.05f; // エッジの太さ
-		Vector4 edgeColor = { 1.0f, 1.0f, 1.0f, 1.0f }; // エッジの色
-		float padding[3];
+		float threshold;        // 閾値
+		float edgeThickness;    // エッジの太さ
+		float padding0[2];      // パディング
+		Vector4 edgeColor;      // 色
 	};
 
 public: /// ---------- メンバ関数 ---------- ///
-	
+
 	// 初期化処理
 	void Initialize(DirectXCommon* dxCommon, PostEffectPipelineBuilder* builder) override;
-	
+
 	// 適用処理
 	void Apply(ID3D12GraphicsCommandList* commandList, uint32_t srvIndex, uint32_t uavIndex, uint32_t dsvIndex) override;
-	
+
 	// ImGui描画処理
 	void DrawImGui() override;
-	
+
 private: /// ---------- メンバ変数 ---------- ///
 
 	// DirectX共通クラス

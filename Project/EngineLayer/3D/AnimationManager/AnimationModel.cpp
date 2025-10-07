@@ -1,3 +1,4 @@
+#define NOMINMAX
 #include "AnimationModel.h"
 #include "ModelManager.h"
 #include <TextureManager.h>
@@ -10,7 +11,62 @@
 #include "LightManager.h"
 #include <imgui.h>
 #include <numeric>
+#include <AnimationPipelineBuilder.h>
+#include <UAVManager.h>
 
+namespace
+{
+	struct FlattenResult
+	{
+		std::vector<VertexData> vertices;
+		std::vector<uint32_t>   indices;
+		std::vector<AnimationModel::LODEntry::SubMeshRange> ranges;
+	};
+
+	// subMeshes を 1 本の VB/IB に結合（インデックスは baseVertex を加算）
+	static FlattenResult FlattenSubMeshes(const ModelData& md)
+	{
+		FlattenResult out;
+		out.vertices.reserve(4096);
+		out.indices.reserve(8192);
+
+		uint32_t baseVertex = 0;
+		uint32_t startIndex = 0;
+
+		for (const auto& sm : md.subMeshes)
+		{
+			// 頂点コピー
+			out.vertices.insert(out.vertices.end(), sm.vertices.begin(), sm.vertices.end());
+
+			// インデックスコピー（baseVertex を足す）
+			AnimationModel::LODEntry::SubMeshRange R{};
+			R.startIndex = startIndex;
+			R.indexCount = static_cast<uint32_t>(sm.indices.size());
+
+			for (uint32_t idx : sm.indices)
+			{
+				out.indices.push_back(idx + baseVertex);
+			}
+			startIndex += R.indexCount;
+
+			// マテリアルSRVはここでは未設定（Initialize側で設定）
+			out.ranges.push_back(R);
+
+			baseVertex += static_cast<uint32_t>(sm.vertices.size());
+		}
+		return out;
+	}
+
+	// テクスチャロード＆SRV取得（空ならフォールバック）
+	static D3D12_GPU_DESCRIPTOR_HANDLE LoadSrvOrFallback(const std::string& path)
+	{
+		static const std::string kFallback = "white.png";
+		auto* tm = TextureManager::GetInstance();
+		const std::string& p = path.empty() ? kFallback : path;
+		tm->LoadTexture(p);
+		return tm->GetSrvHandleGPU(p);
+	}
+}
 
 /// -------------------------------------------------------------
 ///				　		 初期化処理
@@ -26,26 +82,17 @@ void AnimationModel::Initialize(const std::string& fileName, bool isSkinning)
 	camera_ = Object3DCommon::GetInstance()->GetDefaultCamera();
 
 	// モデル読み込み
-	modelData = AssimpLoader::LoadModel(fileName);
+	modelData = AssimpLoader::LoadModel(fileName_);
 
 	// アニメーションモデルを読み込む
-	if (isSkinning)	animation = LoadAnimationFile(fileName);
+	animation = LoadAnimationFile(fileName_);
 
-	// AnimationModel.cpp
-	// 1) モデル読み込み直後に得られるファイル名（拡張子付き or なし）だけを使う
-	std::string texFile = modelData.material.textureFilePath;   // 例: "human_BaseColor.png"
-
-	// 2) TextureManager に丸投げ (NormalizeTexturePath が内部で付けてくれる)
-	auto* texMan = TextureManager::GetInstance();
-	texMan->LoadTexture(texFile);
-	modelData.material.gpuHandle = texMan->GetSrvHandleGPU(texFile);
+	// subMeshes をフラット化して、CS/スタンドアロン用 DEFAULTミラーとUAVを用意
+	auto flat = FlattenSubMeshes(modelData);
+	const UINT vbSize = UINT(sizeof(VertexData) * flat.vertices.size());
 
 	skeleton_ = std::make_unique<Skeleton>();
 	skeleton_ = Skeleton::CreateFromRootNode(modelData.rootNode);
-
-	// スキンクラスターの初期化
-	skinCluster_ = std::make_unique<SkinCluster>();
-	skinCluster_->Initialize(modelData, *skeleton_);
 
 	// マテリアルデータの初期化処理
 	material_.Initialize();
@@ -53,6 +100,44 @@ void AnimationModel::Initialize(const std::string& fileName, bool isSkinning)
 	// アニメーション用の頂点とインデックスバッファを作成
 	animationMesh_ = std::make_unique<AnimationMesh>();
 	animationMesh_->Initialize(dxCommon_->GetDevice(), modelData);
+
+	// 環境マップ
+	TextureManager::GetInstance()->LoadTexture("SkyBox/skybox.dds");
+
+	// 環境マップのハンドルを取得
+	environmentMapHandle_ = TextureManager::GetInstance()->GetSrvHandleGPU("SkyBox/skybox.dds");
+
+	// DEFAULTヒープに頂点バッファ（CS入力用ミラー）を作成
+	{
+		D3D12_HEAP_PROPERTIES defaultHeap = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
+		D3D12_RESOURCE_DESC   bufDesc = CD3DX12_RESOURCE_DESC::Buffer(vbSize);
+
+		// ★ 初期は COMMON（警告回避）
+		HRESULT hr = dxCommon_->GetDevice()->CreateCommittedResource(
+			&defaultHeap, D3D12_HEAP_FLAG_NONE, &bufDesc,
+			D3D12_RESOURCE_STATE_COMMON, nullptr, IID_PPV_ARGS(&staticVBDefault_));
+		assert(SUCCEEDED(hr));
+
+		// 一時UploadにCPUから詰める
+		ComPtr<ID3D12Resource> upload = ResourceManager::CreateBufferResource(dxCommon_->GetDevice(), vbSize);
+		void* p = nullptr;
+		upload->Map(0, nullptr, &p);
+		std::memcpy(p, flat.vertices.data(), vbSize);
+		upload->Unmap(0, nullptr);
+
+		auto* cl = dxCommon_->GetCommandManager()->GetCommandList();
+
+		// ★ COMMON → COPY_DEST に明示遷移
+		dxCommon_->ResourceTransition(staticVBDefault_.Get(), D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_COPY_DEST);
+
+		// コピー
+		cl->CopyBufferRegion(staticVBDefault_.Get(), 0, upload.Get(), 0, vbSize);
+
+		// ★ COPY_DEST → GENERIC_READ に明示遷移（CSのSRV読み取り用）
+		dxCommon_->ResourceTransition(staticVBDefault_.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_GENERIC_READ);
+
+		dxCommon_->GetCommandManager()->ExecuteAndWait();
+	}
 
 	// 行列データの初期化
 	wvpResource = ResourceManager::CreateBufferResource(dxCommon_->GetDevice(), sizeof(TransformationAnimationMatrix));
@@ -70,19 +155,43 @@ void AnimationModel::Initialize(const std::string& fileName, bool isSkinning)
 	cameraData->worldPosition = camera_->GetTranslate();
 #pragma endregion
 
-	// スキニング設定リソースの作成
-	CreateSkinningSettingResource();
-	skinningSetting_->isSkinning = isSkinning; // スキニング設定を反映
-
-	const std::string filePath = "Mask/Noise.png";
-	// Dissolve設定リソースの作成
-	TextureManager::GetInstance()->LoadTexture(filePath);
-	// SRVインデックスを取得（CopySRVせず、既存SRVをそのまま使う）
-	dissolveMaskSrvIndex_ = TextureManager::GetInstance()->GetSrvIndex(filePath);
-	// Dissolve設定リソースの作成
-	CreateDissolveSettingResource();
-
 	InitializeBones();
+
+	// t1: 入力頂点 SRV（SRVヒープ）
+	srvInputVerticesOnUavHeap_ = UAVManager::GetInstance()->Allocate();
+	UAVManager::GetInstance()->CreateSRVForStructureBuffer(srvInputVerticesOnUavHeap_, staticVBDefault_.Get(), static_cast<UINT>(flat.vertices.size()), sizeof(VertexData));
+
+	D3D12_HEAP_PROPERTIES heapProps = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
+	D3D12_RESOURCE_DESC   desc = CD3DX12_RESOURCE_DESC::Buffer(sizeof(VertexData) * flat.vertices.size(), D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
+
+	HRESULT hr = dxCommon_->GetDevice()->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &desc, D3D12_RESOURCE_STATE_COMMON, nullptr, IID_PPV_ARGS(&skinnedVB_));
+	assert(SUCCEEDED(hr));
+
+	// UAV（u0）作成（UAVヒープ）
+	uavOutIndex_ = UAVManager::GetInstance()->Allocate();
+	UAVManager::GetInstance()->CreateUAVForStructuredBuffer(uavOutIndex_, skinnedVB_.Get(), static_cast<UINT>(flat.vertices.size()), sizeof(VertexData));
+
+	// VBV 設定
+	skinnedVBV_.BufferLocation = skinnedVB_->GetGPUVirtualAddress();
+	skinnedVBV_.SizeInBytes = UINT(sizeof(VertexData) * flat.vertices.size());
+	skinnedVBV_.StrideInBytes = sizeof(VertexData);
+
+	// IBV 設定
+	InitializeLODs();
+
+	// b0: コンスタントバッファ（スキニング用）
+	csCB_ = ResourceManager::CreateBufferResource(dxCommon_->GetDevice(), sizeof(SkinningInformationForGPU));
+	csCB_->Map(0, nullptr, reinterpret_cast<void**>(&csCBMapped_));
+	csCBMapped_->numVertices = !lods_.empty() ? lods_[0].vertexCount
+		: static_cast<uint32_t>(flat.vertices.size());
+	csCBMapped_->isSkinning = isSkinning;
+}
+
+void AnimationModel::Initialize(const std::string& fileName, const std::vector<std::string>& lodFiles, bool isSkinning)
+{
+	// 先に LOD リストを設定してから既存 Initialize を呼ぶ
+	SetLodFiles(lodFiles);
+	Initialize(fileName, isSkinning);
 }
 
 
@@ -91,7 +200,14 @@ void AnimationModel::Initialize(const std::string& fileName, bool isSkinning)
 /// -------------------------------------------------------------
 void AnimationModel::Update()
 {
-	if (isAnimationPlaying_)
+	++frame_;
+
+	if (culledByDistance_) {                // ★遠距離は何もしない
+		material_.Update();                 // ただしマテリアルの軽い更新は保持
+		return;
+	}
+
+	if (isAnimationPlaying_ && animation.duration > 0.0f)
 	{
 		// FPSの取得 deltaTimeの計算
 		deltaTime = 1.0f / dxCommon_->GetFPSCounter().GetFPS();
@@ -99,7 +215,12 @@ void AnimationModel::Update()
 		animationTime_ = std::fmod(animationTime_, animation.duration);
 	}
 
-	if (skinningSetting_->isSkinning)
+	// ★ LODごとの更新間引き（重い処理はスキップ可）
+	int li = std::min(lodIndex_, (int)lodUpdateEvery_.size() - 1);
+	uint32_t every = std::max(1u, lodUpdateEvery_[li]);
+	bool doHeavy = (frame_ % every) == 0;
+
+	if (doHeavy && csCBMapped_ && csCBMapped_->isSkinning)
 	{
 		auto& nodeAnimations = animation.nodeAnimations;
 		auto& joints = skeleton_->GetJoints();
@@ -129,12 +250,11 @@ void AnimationModel::Update()
 		// 3. スケルトンの更新
 		skeleton_->UpdateSkeleton();
 
-		// 4. スキンクラスターの更新
-		skinCluster_->UpdatePaletteMatrix(*skeleton_);
+		// 4. パレット更新（LODごと）
+		if (!skinClusterLOD_.empty()) {
+			skinClusterLOD_[lodIndex_]->UpdatePaletteMatrix(*skeleton_);
+		}
 	}
-
-	// スキンニング設定の更新
-	skinningSetting_->isSkinning = this->skinningSetting_->isSkinning;
 
 	UpdateAnimation();
 
@@ -148,59 +268,111 @@ void AnimationModel::Update()
 /// -------------------------------------------------------------
 void AnimationModel::Draw()
 {
-	SRVManager::GetInstance()->PreDraw();
-
 	auto commandList = dxCommon_->GetCommandManager()->GetCommandList();
 
-	if (skinningSetting_->isSkinning)
-	{
-		D3D12_VERTEX_BUFFER_VIEW vbvs[2] = { animationMesh_->GetVertexBufferView(), skinCluster_->GetInfluenceBufferView() };
-		commandList->IASetVertexBuffers(0, 2, vbvs);
-		commandList->IASetIndexBuffer(&animationMesh_->GetIndexBufferView());
-		commandList->SetGraphicsRootDescriptorTable(7, skinCluster_->GetPaletteSrvHandle().second); // スキニングのパレットをセット
-	}
-	else
-	{
-		commandList->IASetVertexBuffers(0, 1, &GetAnimationMesh()->GetVertexBufferView());
-		commandList->IASetIndexBuffer(&GetAnimationMesh()->GetIndexBufferView());
+	// --- Standalone only（大量描画では Scene 側で一括する）---
+	// Compute 一括セット（スタンドアロン用）
+	UAVManager::GetInstance()->PreDispatch();
+	AnimationPipelineBuilder::GetInstance()->SetComputeSetting();
+
+	// コンピュートでスキニング（個体差だけを束ねて実行）
+	if (csCBMapped_->isSkinning) {
+		DispatchSkinningCS();
 	}
 
-	material_.SetPipeline();
+	// Graphics 一括セット（スタンドアロン用）
+	SRVManager::GetInstance()->PreDraw();
+	AnimationPipelineBuilder::GetInstance()->SetRenderSetting();
 
-	commandList->SetGraphicsRootConstantBufferView(1, wvpResource->GetGPUVirtualAddress());
-	//commandList->SetGraphicsRootDescriptorTable(2, modelData.material.gpuHandle);
-	commandList->SetGraphicsRootDescriptorTable(2, SRVManager::GetInstance()->GetGPUDescriptorHandle(dissolveMaskSrvIndex_)); // t1
-	commandList->SetGraphicsRootConstantBufferView(3, cameraResource->GetGPUVirtualAddress());
+	// スキン済みメッシュを描画（個体差だけを束ねて実行）
+	DrawSkinned();
+}
 
-	commandList->SetGraphicsRootConstantBufferView(8, skinningSettingResource_->GetGPUVirtualAddress()); // スキニング設定をセット
-	if (dissolveSettingResource_)
-	{
-		commandList->SetGraphicsRootConstantBufferView(9, dissolveSettingResource_->GetGPUVirtualAddress()); // Dissolve設定をセット
+void AnimationModel::DrawBatched(const std::unique_ptr<AnimationModel>& models)
+{
+	if (models) {
+		if (models->IsVisible()) models->Draw();
+	}
+}
+
+void AnimationModel::DrawBatched(const std::vector<std::unique_ptr<AnimationModel>>& models)
+{
+	// Compute パス（全体で一回）
+	UAVManager::GetInstance()->PreDispatch();
+	AnimationPipelineBuilder::GetInstance()->SetComputeSetting();
+	for (auto& m : models) {
+		if (!m) continue;
+		if (m->IsVisible()) m->DispatchSkinningCS();
 	}
 
-	commandList->DrawIndexedInstanced(UINT(modelData.indices.size()), 1, 0, 0, 0);
+	// Graphics パス（全体で一回）
+	SRVManager::GetInstance()->PreDraw();
+	AnimationPipelineBuilder::GetInstance()->SetRenderSetting();
+	for (auto& m : models) {
+		if (!m) continue;
+		if (m->IsVisible()) m->DrawSkinned();
+	}
+}
+
+void AnimationModel::DrawBatched(const std::vector<AnimationModel*>& models)
+{
+	UAVManager::GetInstance()->PreDispatch();
+	AnimationPipelineBuilder::GetInstance()->SetComputeSetting();
+	for (auto* m : models) {
+		if (!m) continue;
+		if (m->IsVisible()) m->DispatchSkinningCS();
+	}
+	SRVManager::GetInstance()->PreDraw();
+	AnimationPipelineBuilder::GetInstance()->SetRenderSetting();
+	for (auto* m : models) {
+		if (!m) continue;
+		if (m->IsVisible()) m->DrawSkinned();
+	}
 }
 
 void AnimationModel::DrawImGui()
 {
-	ImGui::SliderFloat("Dissolve Threshold", &dissolveSetting_->threshold, 0.0f, 1.05f);
-	ImGui::SliderFloat("Edge Thickness", &dissolveSetting_->edgeThickness, 0.0f, 2.0f);
-	ImGui::ColorEdit4("Edge Color", &dissolveSetting_->edgeColor.x);
+	if (ImGui::Begin("AnimationModel Debug"))
+	{
+		auto& L = lods_[lodIndex_];
+
+		ImGui::SeparatorText(fileName_.c_str());
+		ImGui::Text("IsSkinning: %s", csCBMapped_ && csCBMapped_->isSkinning ? "true" : "false");
+		ImGui::Text("Current LOD: %d / %d", lodIndex_, (int)lods_.size() - 1);
+		ImGui::Text("LOD File    : %s", lodFileName_.empty() ? fileName_.c_str() : lodFileName_[lodIndex_].c_str());
+		ImGui::Text("Vertices    : %u", L.vertexCount);
+		ImGui::Text("Indices     : %u", L.indexCount);
+		if (csCBMapped_) {
+			ImGui::Text("CS numVertices (b0): %u", csCBMapped_->numVertices);
+		}
+		//ImGui::Text("Texture: %s", modelData.material.textureFilePath.c_str());
+
+		ImGui::Checkbox("Force LOD", &forceLOD_);
+		if (forceLOD_ && !lods_.empty()) {
+			int prev = forcedLODIndex_;
+			int maxLod = std::max(0, (int)lods_.size() - 1);
+			ImGui::SliderInt("Forced LOD", &forcedLODIndex_, 0, maxLod);
+			if (forcedLODIndex_ != prev) {
+				lodIndex_ = std::clamp(forcedLODIndex_, 0, maxLod);
+				if (csCBMapped_) { csCBMapped_->numVertices = lods_[lodIndex_].vertexCount; }
+			}
+		}
+		ImGui::Checkbox("Use Compute Skinning", &useComputeSkinning_);
+	}
+	ImGui::End();
 }
 
 void AnimationModel::Clear()
 {
 	animationMesh_.reset();
 	skeleton_.reset();
-	skinCluster_.reset();
+	for (auto& sc : skinClusterLOD_) { sc.reset(); }
 
 	wvpResource.Reset();
 	cameraResource.Reset();
-	skinningSettingResource_.Reset();
 
 	wvpData_ = nullptr;
 	cameraData = nullptr;
-	skinningSetting_ = nullptr;
 
 	modelData = {};       // モデルデータ初期化
 	animation = {};       // アニメーション初期化
@@ -265,26 +437,6 @@ void AnimationModel::DrawBodyPartColliders()
 	}
 }
 
-std::shared_ptr<AnimationModel> AnimationModel::Clone() const
-{
-	auto clone = std::make_shared<AnimationModel>();
-
-	// 再初期化が必要なものは再初期化する
-	clone->Initialize(fileName_); // またはファイル名を記録しておいて再ロード
-
-	// コピー可能な状態を反映
-	clone->SetTranslate(this->GetTranslate());
-	clone->SetScale(this->GetScale());
-	clone->SetRotate(this->GetRotate());
-	clone->SetAnimationTime(0.0f);
-	clone->SetSkinningEnabled(true);
-	clone->SetIsPlaying(true);
-	clone->SetHideHead(this->hideHead_);
-
-	return clone;
-}
-
-
 std::vector<std::pair<std::string, Capsule>> AnimationModel::GetBodyPartCapsulesWorld() const
 {
 	std::vector<std::pair<std::string, Capsule>> out;
@@ -338,12 +490,160 @@ std::vector<std::pair<std::string, Sphere>> AnimationModel::GetBodyPartSpheresWo
 }
 
 
+void AnimationModel::InitializeLODs()
+{
+	auto* device = dxCommon_->GetDevice();
+	auto* cl = dxCommon_->GetCommandManager()->GetCommandList();
+
+	// LOD 入力を決定：指定が無ければ「単一」、あればその数だけ
+	std::vector<std::string> files = lodSourceFiles_.empty()
+		? std::vector<std::string>{ fileName_ }    // 単一 LOD
+	: lodSourceFiles_;                          // 指定された LOD 群
+
+	// 書き込み前に必ずサイズ確保
+	lods_.clear();
+	lods_.resize(files.size());
+	skinClusterLOD_.resize(files.size());
+	lodFileName_.resize(files.size());
+
+	for (int i = 0; i < files.size(); ++i)
+	{
+		const std::string& fname = files[i];
+		lodFileName_[i] = fname; // デバッグ表示用
+
+		// --- モデル読込（同一スケルトン前提） ---
+		ModelData md = AssimpLoader::LoadModel(fname);
+
+		// サブメッシュをフラット化
+		auto flat = FlattenSubMeshes(md);
+		const UINT vbSize = UINT(sizeof(VertexData) * flat.vertices.size()); // 頂点バッファサイズ
+
+		ComPtr<ID3D12Resource> defaultVB;
+		{
+			D3D12_HEAP_PROPERTIES heapDefault = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
+			D3D12_RESOURCE_DESC   bufDesc = CD3DX12_RESOURCE_DESC::Buffer(vbSize);
+
+			HRESULT hr = device->CreateCommittedResource(
+				&heapDefault, D3D12_HEAP_FLAG_NONE, &bufDesc,
+				D3D12_RESOURCE_STATE_COMMON, nullptr,
+				IID_PPV_ARGS(&defaultVB));
+			assert(SUCCEEDED(hr));
+
+			// Upload 経由でコピー
+			ComPtr<ID3D12Resource> upload = ResourceManager::CreateBufferResource(device, vbSize);
+			void* p = nullptr; upload->Map(0, nullptr, &p);
+			std::memcpy(p, flat.vertices.data(), vbSize);
+			upload->Unmap(0, nullptr);
+
+			dxCommon_->ResourceTransition(defaultVB.Get(),
+				D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_COPY_DEST);
+			cl->CopyBufferRegion(defaultVB.Get(), 0, upload.Get(), 0, vbSize);
+			dxCommon_->ResourceTransition(defaultVB.Get(),
+				D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_GENERIC_READ);
+
+			dxCommon_->GetCommandManager()->ExecuteAndWait();
+		}
+
+		// UAVヒープに t1 SRV を作成
+		uint32_t t1Index = UAVManager::GetInstance()->Allocate();
+		UAVManager::GetInstance()->CreateSRVForStructureBuffer(
+			t1Index, defaultVB.Get(),
+			static_cast<UINT>(flat.vertices.size()),
+			sizeof(VertexData));
+
+		// --- t2: SkinCluster（LOD ごとに作成） ---
+		skinClusterLOD_[i] = std::make_unique<SkinCluster>();
+		skinClusterLOD_[i]->Initialize(md, *skeleton_);
+
+		// --- IB: DEFAULT で作成 ---
+		const UINT ibSize = UINT(sizeof(uint32_t) * flat.indices.size());
+		ComPtr<ID3D12Resource> defaultIB;
+		{
+			D3D12_HEAP_PROPERTIES heapDefault = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
+			D3D12_RESOURCE_DESC   bufDesc = CD3DX12_RESOURCE_DESC::Buffer(ibSize);
+
+			HRESULT hr = device->CreateCommittedResource(
+				&heapDefault, D3D12_HEAP_FLAG_NONE, &bufDesc,
+				D3D12_RESOURCE_STATE_COMMON, nullptr,
+				IID_PPV_ARGS(&defaultIB));
+			assert(SUCCEEDED(hr));
+
+			ComPtr<ID3D12Resource> upload = ResourceManager::CreateBufferResource(device, ibSize);
+			void* p = nullptr; upload->Map(0, nullptr, &p);
+			std::memcpy(p, flat.indices.data(), ibSize);
+			upload->Unmap(0, nullptr);
+
+			dxCommon_->ResourceTransition(defaultIB.Get(),
+				D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_COPY_DEST);
+			cl->CopyBufferRegion(defaultIB.Get(), 0, upload.Get(), 0, ibSize);
+			dxCommon_->ResourceTransition(defaultIB.Get(),
+				D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_GENERIC_READ);
+
+			dxCommon_->GetCommandManager()->ExecuteAndWait();
+		}
+		D3D12_INDEX_BUFFER_VIEW ibv{};
+		ibv.BufferLocation = defaultIB->GetGPUVirtualAddress();
+		ibv.Format = DXGI_FORMAT_R32_UINT;
+		ibv.SizeInBytes = static_cast<UINT>(defaultIB->GetDesc().Width);
+
+		// --- u0: 出力頂点（UAV） & VBV ---
+		ComPtr<ID3D12Resource> skinnedVB;
+		{
+			D3D12_HEAP_PROPERTIES heapDefault = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
+			D3D12_RESOURCE_DESC   desc = CD3DX12_RESOURCE_DESC::Buffer(
+				sizeof(VertexData) * flat.vertices.size(),
+				D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
+
+			HRESULT hr = device->CreateCommittedResource(
+				&heapDefault, D3D12_HEAP_FLAG_NONE, &desc,
+				D3D12_RESOURCE_STATE_COMMON, nullptr,
+				IID_PPV_ARGS(&skinnedVB));
+			assert(SUCCEEDED(hr));
+		}
+		uint32_t u0Index = UAVManager::GetInstance()->Allocate();
+		UAVManager::GetInstance()->CreateUAVForStructuredBuffer(
+			u0Index, skinnedVB.Get(),
+			static_cast<UINT>(flat.vertices.size()),
+			sizeof(VertexData));
+
+		D3D12_VERTEX_BUFFER_VIEW skinnedVBV{};
+		skinnedVBV.BufferLocation = skinnedVB->GetGPUVirtualAddress();
+		skinnedVBV.SizeInBytes = UINT(sizeof(VertexData) * flat.vertices.size());
+		skinnedVBV.StrideInBytes = sizeof(VertexData);
+
+		// --- LODEntry へ格納 ---
+		auto& L = lods_[i];
+		L.staticVBDefault = defaultVB;
+		L.srvInputVerticesOnUavHeap = t1Index;
+		L.influenceSrvGpuOnUavHeap = skinClusterLOD_[i]->GetInfluenceSrvOnUAVHeap();
+		L.indexBuffer = defaultIB;
+		L.ibv = ibv;
+		L.skinnedVB = skinnedVB;
+		L.skinnedVBV = skinnedVBV;
+		L.uavIndex = u0Index;
+		L.vertexCount = static_cast<uint32_t>(flat.vertices.size());
+		L.indexCount = static_cast<uint32_t>(flat.indices.size());
+		L.skinnedState = D3D12_RESOURCE_STATE_COMMON;
+
+		// サブメッシュ範囲とマテリアルSRVを設定
+		L.subMeshRanges = flat.ranges;
+		for (int si = 0; si < L.subMeshRanges.size(); ++si)
+		{
+			const auto& sm = md.subMeshes[si];
+			L.subMeshRanges[si].baseColorSrvGpuHandle = LoadSrvOrFallback(sm.material.textureFilePath);
+		}
+	}
+
+	// 初期 LOD は 0
+	lodIndex_ = 0;
+}
+
 /// -------------------------------------------------------------
 ///				　	アニメーションの更新処理
 /// -------------------------------------------------------------
 void AnimationModel::UpdateAnimation()
 {
-	if (skeleton_ && !skeleton_->GetJoints().empty() && skinningSetting_->isSkinning)
+	if (skeleton_ && csCBMapped_ && !skeleton_->GetJoints().empty() && csCBMapped_->isSkinning)
 	{
 		Matrix4x4 worldMatrix = Matrix4x4::MakeAffineMatrix(worldTransform.scale_, worldTransform.rotate_, worldTransform.translate_);
 		Matrix4x4 worldViewProjectionMatrix;
@@ -402,7 +702,14 @@ Animation AnimationModel::LoadAnimationFile(const std::string& fileName)
 	Assimp::Importer importer;
 	std::string filePath = "Resources/Models/" + fileName;
 	const aiScene* scene = importer.ReadFile(filePath.c_str(), 0);
-	assert(scene->mNumAnimations != 0); // アニメーションがない
+
+	if (!scene || scene->mNumAnimations == 0)
+	{
+		// アニメなし → 空のまま返す
+		animation.duration = 0.0f;
+		return animation;
+	}
+
 	aiAnimation* animationAssimp = scene->mAnimations[0]; // 最初のアニメーションだけ採用。もちろん複数対応するに越したことない
 	animation.duration = float(animationAssimp->mDuration / animationAssimp->mTicksPerSecond); // 時間の単位を秒に変換
 
@@ -446,26 +753,6 @@ Animation AnimationModel::LoadAnimationFile(const std::string& fileName)
 	}
 	// 解析終了
 	return animation;
-}
-
-void AnimationModel::CreateSkinningSettingResource()
-{
-	// スキニング用のリソースを作成
-	skinningSettingResource_ = ResourceManager::CreateBufferResource(dxCommon_->GetDevice(), sizeof(SkinningSetting));
-	skinningSettingResource_->Map(0, nullptr, reinterpret_cast<void**>(&skinningSetting_));
-
-	skinningSetting_->isSkinning = true;
-}
-
-void AnimationModel::CreateDissolveSettingResource()
-{
-	// Dissolve設定用のリソースを作成
-	dissolveSettingResource_ = ResourceManager::CreateBufferResource(dxCommon_->GetDevice(), sizeof(DissolveSetting));
-	dissolveSettingResource_->Map(0, nullptr, reinterpret_cast<void**>(&dissolveSetting_));
-	// デフォルトのDissolve設定
-	dissolveSetting_->threshold = 0.0f; // 閾値
-	dissolveSetting_->edgeThickness = 2.0f; // エッジの太さ
-	dissolveSetting_->edgeColor = { 1.0f, 1.0f, 1.0f, 1.0f }; // エッジの色
 }
 
 void AnimationModel::InitializeBones()
@@ -565,5 +852,133 @@ void AnimationModel::InitializeBones()
 	}
 	if (auto it = jointMap.find("mixamorig:RightHand"); it != jointMap.end()) {
 		bodyPartColliders_.push_back({ "RightWrist", it->second, -1, {}, 0.08f * scaleFactor, 0.0f });
+	}
+}
+
+void AnimationModel::SetLODByDistance(float dist)
+{
+	if (lods_.size() <= 1) { return; } // 単一 LOD のときは何もしない
+
+	const float baseIn = 10.f;
+	const float step = 15.f;
+	const float gap = 2.f;
+
+	auto inThresh = [&](int i) { return baseIn + step * i; };
+	auto outThresh = [&](int i) { return inThresh(i) + gap; };
+
+	int newLOD = lodIndex_;
+	const int last = (int)lods_.size() - 1;
+
+	// 既存のヒステリシス LOD 遷移
+	switch (lodIndex_) {
+	case 0:                if (dist > outThresh(0)) newLOD = 1; break;
+	default:
+		if (lodIndex_ > 0) {
+			if (dist < inThresh(lodIndex_ - 1)) newLOD = lodIndex_ - 1;
+			else if (lodIndex_ < last && dist > outThresh(lodIndex_)) newLOD = lodIndex_ + 1;
+		}
+		break;
+	}
+
+	if (newLOD != lodIndex_) {
+		lodIndex_ = newLOD;
+		if (csCBMapped_) { csCBMapped_->numVertices = lods_[lodIndex_].vertexCount; }
+	}
+
+	// ▼ ここが追加：最終 LOD の“出しきい値 + 余白”を越えたらカリング
+	const float lastOut = outThresh(last);        // 例）LOD3の出しきい値 = 10 + 15*3 + 2 = 57
+	culledByDistance_ = (dist > lastOut + farCullExtra_); // 例）57 + 20 = 77 より遠いとカリング
+}
+
+void AnimationModel::DispatchSkinningCS()
+{
+	if (culledByDistance_) { return; } // ★ 追加：遠距離はスキニング自体しない
+
+	auto* cl = dxCommon_->GetCommandManager()->GetCommandList();
+	auto& L = lods_[lodIndex_];
+
+	// ★毎回、現在LODの頂点数に更新（ここが無いと“半分だけ更新”が起きる）
+	csCBMapped_->numVertices = L.vertexCount;
+
+	// 実状態 → UAV
+	if (L.skinnedState != D3D12_RESOURCE_STATE_UNORDERED_ACCESS) {
+		dxCommon_->ResourceTransition(
+			L.skinnedVB.Get(),
+			L.skinnedState,
+			D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+		L.skinnedState = D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
+	}
+
+	// ルート：t0/t1/t2/u0/b0
+	cl->SetComputeRootDescriptorTable(0, skinClusterLOD_[lodIndex_]->GetPaletteSrvOnUAVHeap());
+	cl->SetComputeRootDescriptorTable(1, UAVManager::GetInstance()->GetGPUDescriptorHandle(L.srvInputVerticesOnUavHeap));
+	cl->SetComputeRootDescriptorTable(2, L.influenceSrvGpuOnUavHeap);
+	cl->SetComputeRootDescriptorTable(3, UAVManager::GetInstance()->GetGPUDescriptorHandle(L.uavIndex));
+	cl->SetComputeRootConstantBufferView(4, csCB_->GetGPUVirtualAddress());
+
+	// Dispatch（HLSLの[numthreads]と合わせる）
+	constexpr uint32_t GROUP = 256;
+	cl->Dispatch((L.vertexCount + GROUP - 1) / GROUP, 1, 1);
+
+	// UAV → VB
+	if (L.skinnedState != D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER) {
+		dxCommon_->ResourceTransition(
+			L.skinnedVB.Get(),
+			D3D12_RESOURCE_STATE_UNORDERED_ACCESS,
+			D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER);
+		L.skinnedState = D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER;
+	}
+}
+
+void AnimationModel::DrawSkinned()
+{
+	if (culledByDistance_) { return; } // ★ 追加：描画もしない
+
+	auto* commandList = dxCommon_->GetCommandManager()->GetCommandList();
+	auto& L = lods_[lodIndex_];
+
+	TextureManager::GetInstance()->SetGraphicsRootDescriptorTable(commandList, 4, environmentMapHandle_); // t4: 環境マップ
+
+	// VB/IB
+	if (csCBMapped_->isSkinning)
+	{
+		commandList->IASetVertexBuffers(0, 1, &L.skinnedVBV);  // ← 1本だけ
+		commandList->IASetIndexBuffer(&L.ibv);
+
+		material_.SetPipeline();
+
+		// RootParam #1 : WVP（b?）
+		commandList->SetGraphicsRootConstantBufferView(1, wvpResource->GetGPUVirtualAddress());     // WVP (b#1)
+		commandList->SetGraphicsRootConstantBufferView(3, cameraResource->GetGPUVirtualAddress());  // カメラ (b#3)
+
+		for (const auto& range : L.subMeshRanges)
+		{
+			TextureManager::GetInstance()->SetGraphicsRootDescriptorTable(commandList, 2, range.baseColorSrvGpuHandle);
+			commandList->DrawIndexedInstanced(range.indexCount, 1, range.startIndex, 0, 0);
+		}
+
+	}
+	else
+	{
+		// ★ 非CS: AnimationMesh が複数VB/IB対応済み前提でループ
+		material_.SetPipeline();
+		commandList->SetGraphicsRootConstantBufferView(1, wvpResource->GetGPUVirtualAddress());
+		commandList->SetGraphicsRootConstantBufferView(3, cameraResource->GetGPUVirtualAddress());
+
+		const size_t subCount = animationMesh_->GetSubmeshCount();
+		for (size_t i = 0; i < subCount; ++i)
+		{
+			const auto& vbv = animationMesh_->GetVertexBufferView(i);
+			const auto& ibv = animationMesh_->GetIndexBufferView(i);
+
+			commandList->IASetVertexBuffers(0, 1, &vbv);
+			commandList->IASetIndexBuffer(&ibv);
+
+			// マテリアルSRV（InitializeLODs と同様、subMeshes[i] のテクスチャを使用）
+			const auto& sm = modelData.subMeshes[i];
+			TextureManager::GetInstance()->SetGraphicsRootDescriptorTable(commandList, 2, LoadSrvOrFallback(sm.material.textureFilePath));
+			commandList->DrawIndexedInstanced(UINT(sm.indices.size()), 1, 0, 0, 0);
+
+		}
 	}
 }

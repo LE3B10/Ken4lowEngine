@@ -9,6 +9,7 @@
 #include "Input.h"
 #include <Wireframe.h>
 #include <LinearInterpolation.h>
+#include <SkyBoxManager.h>
 
 static inline void YawPitchLookAt(const Vector3& from, const Vector3& to, float& outYaw, float& outPitch)
 {
@@ -28,6 +29,9 @@ void TitleScene::Initialize()
 {
 	dxCommon_ = DirectXCommon::GetInstance();
 	input_ = Input::GetInstance();
+
+	skyBox_ = std::make_unique<SkyBox>();
+	skyBox_->Initialize("SkyBox/skybox.dds");
 
 	state_ = State::TitleAttract; // 最初はタイトルアトラクトモード
 	stateTimer_ = idleTimer_ = 0.0f;
@@ -97,7 +101,7 @@ void TitleScene::Initialize()
 	object3D_->Initialize("sphere.gltf"); // 適当な3Dモデルを指定
 
 	terrain_ = std::make_unique<Object3D>();
-	terrain_->Initialize("lobby01.gltf");
+	terrain_->Initialize("lobby03.gltf");
 }
 
 
@@ -135,6 +139,8 @@ void TitleScene::Update()
 		break;
 	}
 
+	skyBox_->Update();
+
 #ifdef _DEBUG
 	if (input_->TriggerKey(DIK_ESCAPE) && state_ != State::ToTitle)
 	{
@@ -164,6 +170,10 @@ void TitleScene::Update()
 void TitleScene::Draw3DObjects()
 {
 #pragma region オブジェクト3Dの描画
+
+	SkyBoxManager::GetInstance()->SetRenderSetting();
+
+	skyBox_->Draw();
 
 	// オブジェクト3D共通描画設定
 	Object3DCommon::GetInstance()->SetRenderSetting();
@@ -241,7 +251,35 @@ void TitleScene::Finalize()
 /// -------------------------------------------------------------
 void TitleScene::DrawImGui()
 {
+	ImGui::Begin("Title Debug");
+	const char* stateNames =
+		state_ == State::TitleAttract ? "TitleAttract" :
+		state_ == State::TransitionToLobby ? "TransitionToLobby" :
+		state_ == State::LobbyIdle ? "LobbyIdle" : "ToTitle";
+	ImGui::Text("State: %s", stateNames);
+	ImGui::Text("Idle: %.1fs / Return: %.0fs", idleTimer_, returnSeconds_);
+	ImGui::End();
 
+	if (state_ == State::TransitionToLobby || state_ == State::LobbyIdle) {
+		// 半透明・装飾無しのミニHUD
+		ImGui::SetNextWindowBgAlpha(0.0f);
+		ImGui::Begin("HUD", nullptr,
+			ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoInputs |
+			ImGuiWindowFlags_NoMove | ImGuiWindowFlags_AlwaysAutoResize);
+
+		// 左上：レベル/XP
+		ImGui::SetWindowPos(ImVec2(40, 30));
+		ImGui::Text("Lv.%d  %d/%d XP", debugLevel_, debugXP_, debugXPNext_);
+
+		// 右上：コイン
+		ImGui::SetWindowPos(ImVec2(1100, 30));
+		ImGui::Text("%d", debugCoins_);
+
+		ImGui::End();
+	}
+
+	LightManager::GetInstance()->DrawImGui();
+	object3D_->DrawImGui();
 }
 
 void TitleScene::UpdateTitleAttract(float dt)
@@ -264,7 +302,7 @@ void TitleScene::UpdateTitleAttract(float dt)
 
 	// ディレイ消化
 	if (logoShowDelayLeft_ > 0.0f) {
-		logoShowDelayLeft_ = std:: max(0.0f, logoShowDelayLeft_ - dt);
+		logoShowDelayLeft_ = std::max(0.0f, logoShowDelayLeft_ - dt);
 	}
 
 	// --- ロゴのフェード＆スケール（0.8秒でふわっと出す） ---

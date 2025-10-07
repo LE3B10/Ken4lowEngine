@@ -10,7 +10,6 @@
 #include "OBB.h"
 
 
-
 /// ---------- 前方宣言 ---------- ///
 class Collider;
 
@@ -56,7 +55,7 @@ private: /// ---------- メンバ関数 ---------- ///
 
 private: /// ---------- メンバ変数 ---------- ///
 
-	static const uint32_t kMaxTypes = 32;
+	static const uint32_t kMaxTypes = 32; // コライダーの最大タイプ数
 	std::array<std::vector<Collider*>, kMaxTypes> buckets_; // 型ごとのバケット
 	std::vector<Collider*> all_; // デバッグ用
 	// 衝突判定関数の登録

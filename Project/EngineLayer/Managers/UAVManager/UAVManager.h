@@ -30,13 +30,15 @@ public: /// ---------- メンバ関数 ---------- ///
 
 	// UAVヒープ（=CBV_SRV_UAV型）上にSRVを作成する
 	void CreateSRVForTexture2DOnThisHeap(uint32_t srvIndex, ID3D12Resource* pResource, DXGI_FORMAT Format, UINT MipLevels);
-	
+
 	// UAVを作成（Buffer用）
 	void CreateUAVForBuffer(uint32_t uavIndex, ID3D12Resource* pResource, UINT64 bufferSize);
 
 	// UAVを作成（Structure Buffer用）
 	void CreateUAVForStructuredBuffer(uint32_t uavIndex, ID3D12Resource* pResource, UINT numElements, UINT structureByteStride);
 
+	// SRVを作成（Structure Buffer用）
+	void CreateSRVForStructureBuffer(uint32_t srvIndex, ID3D12Resource* pResource, UINT numElements, UINT structureByteStride);
 
 public: /// ---------- 容量の確保 ---------- ///
 

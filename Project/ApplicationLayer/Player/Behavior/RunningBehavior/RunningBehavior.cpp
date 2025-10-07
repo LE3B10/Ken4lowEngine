@@ -2,14 +2,14 @@
 #include "Player.h"
 #include "Input.h"
 #include "AnimationModel.h"
-#include <AnimationModelFactory.h>
+//#include <AnimationModelFactory.h>
 
 void RunningBehavior::Initialize(Player* player)
 {
-	auto model = AnimationModelFactory::CreateInstance("PlayerStateModel/PlayerRunState.gltf");
-	player->SetAnimationModel(model);
-	model->Update();
-	player->SetState(ModelState::Running);
+	//auto model = AnimationModelFactory::CreateInstance("PlayerStateModel/PlayerRunState.gltf");
+	//player->SetAnimationModel(model);
+	//model->Update();
+	//player->SetState(ModelState::Running);
 }
 
 void RunningBehavior::Update(Player* player)

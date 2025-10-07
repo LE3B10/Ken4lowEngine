@@ -1,8 +1,14 @@
 #include "LightManager.h"
 #include "DirectXCommon.h"
 #include <ResourceManager.h>
-#include <numbers>
 #include "ImGuiManager.h"
+#include "ParameterManager.h"
+#include <SRVManager.h>
+#include "Wireframe.h"
+
+#include <numbers>    // 円周率（C++20）
+#include <algorithm>  // std::clamp
+#include <cmath>      // sin/cos/atan2/asin/acos
 
 LightManager* LightManager::GetInstance()
 {
@@ -16,126 +22,134 @@ LightManager* LightManager::GetInstance()
 void LightManager::Initialize(DirectXCommon* dxCommon)
 {
 	dxCommon_ = dxCommon;
-	CreateDirectionalLight();
-	CreatePointLight();
-	CreateSpotLight();
+
+	CreatePunctualLight();
 }
 
 
 /// -------------------------------------------------------------
-///				　		　描画処理設定
+///				　		パンクチュアルライトの生成
 /// -------------------------------------------------------------
-void LightManager::PreDraw()
+void LightManager::CreatePunctualLight()
 {
-	auto commandList = dxCommon_->GetCommandManager()->GetCommandList();
+	/// ---------- ライト数CBの生成 ---------- ///
+	if (!lightInfoResource_)
+	{
+		// ライト数CB用のリソースを作る
+		lightInfoResource_ = ResourceManager::CreateBufferResource(dxCommon_->GetDevice(), sizeof(LightInfo));
+		lightInfoResource_->Map(0, nullptr, reinterpret_cast<void**>(&lightInfoData_));
+		lightInfoData_->lightCount = 0; // ライトの数
+	}
 
-	// 平行光源のCBufferの設定
-	commandList->SetGraphicsRootConstantBufferView(4, directionalLightResource_->GetGPUVirtualAddress());
+	/// ---------- SRVスロットの確保 ---------- ///
+	if (!punctualSRVAllocated_)
+	{
+		punctualSRVIndex_ = SRVManager::GetInstance()->Allocate();
+		punctualSRVAllocated_ = true;
+	}
 
-	// 点光源のCBufferの設定
-	commandList->SetGraphicsRootConstantBufferView(5, pointLightResource_->GetGPUVirtualAddress());
+	/// ---------- GPUバッファは初期化時点では最小確保 ---------- ///
+	if (!punctualSRVAllocated_)
+	{
+		const uint32_t stride = sizeof(PunctualLightGPU);
+		const uint32_t minElems = 1;
+		const uint32_t minBytes = stride * minElems;
 
-	// スポットライトのCBufferの設定
-	commandList->SetGraphicsRootConstantBufferView(6, spotLightResource_->GetGPUVirtualAddress());
-}
+		punctualBuffer_ = ResourceManager::CreateBufferResource(dxCommon_->GetDevice(), minBytes);
+		punctualBufferBytes_ = minBytes;
 
-/// -------------------------------------------------------------
-///				　		　平行光源の生成
-/// -------------------------------------------------------------
-void LightManager::CreateDirectionalLight()
-{
-	//平行光源用のリソースを作る
-	directionalLightResource_ = ResourceManager::CreateBufferResource(dxCommon_->GetDevice(), sizeof(DirectionalLight));
-
-	//書き込むためのアドレスを取得
-	directionalLightResource_->Map(0, nullptr, reinterpret_cast<void**>(&directionalLightData_));
-
-	directionalLightData_->color = { 1.0f,1.0f,1.0f ,1.0f };					 // 平行光源の色
-	directionalLightData_->direction = Vector3::Normalize({ 0.0f, 1.0f, 0.0f }); // 平行光源の向き
-	directionalLightData_->intensity = 1.0f;									 // 平行光源の輝度
-	directionalLightResource_->Unmap(0, nullptr);
-}
-
-
-/// -------------------------------------------------------------
-///				　		　点光源の生成
-/// -------------------------------------------------------------
-void LightManager::CreatePointLight()
-{
-	// ポイントライト用のリソースを作る
-	pointLightResource_ = ResourceManager::CreateBufferResource(dxCommon_->GetDevice(), sizeof(PointLight));
-
-	// 書き込むためのアドレスを取得
-	pointLightResource_->Map(0, nullptr, reinterpret_cast<void**>(&pointLightData_));
-
-	pointLightData_->position = { 0.0f, 10.0f, 0.0f };	 // ポイントライトの初期位置
-	pointLightData_->color = { 1.0f, 1.0f, 1.0f, 1.0f }; // ポイントライトの色
-	pointLightData_->intensity = 1.0f;					 // ポイントライトの輝度
-	pointLightData_->radius = 10.0f;					 // ポイントライトの有効範囲
-	pointLightData_->decay = 1.0f;						 // ポイントライトの減衰率
-	pointLightResource_->Unmap(0, nullptr);
+		// NumElements は最低 1
+		SRVManager::GetInstance()->CreateSRVForStructureBuffer(punctualSRVIndex_, punctualBuffer_.Get(), minElems, stride);
+	}
 }
 
 
 /// -------------------------------------------------------------
-///				　	　スポットライトの生成
+///				　		パンクチュアルライトの更新
 /// -------------------------------------------------------------
-void LightManager::CreateSpotLight()
+void LightManager::UpdatePunctualLight()
 {
-	// スポットライト用のリソースを作る
-	spotLightResource_ = ResourceManager::CreateBufferResource(dxCommon_->GetDevice(), sizeof(SpotLight));
+	// ===== 有効ライトだけをGPU転送対象に ====
+	std::vector<PunctualLightGPU> gpuLights;
+	gpuLights.reserve(punctualLights_.size());
+	for (const auto& L : punctualLights_) {
+		if (L.lightType == 0) continue;           // 無効はスキップ
+		PunctualLightGPU C = L;
+		if (C.lightType == 1 || C.lightType == 3) // Dir/Spot は方向を正規化して安全に
+			C.direction = Vector3::Normalize(C.direction);
+		gpuLights.push_back(C);
+	}
 
-	// 書き込むためのアドレスを取得
-	spotLightResource_->Map(0, nullptr, reinterpret_cast<void**>(&spotLightData_));
+	// ===== バッファ確保（0本でも最小1要素分を確保） =====
+	const uint32_t stride = sizeof(PunctualLightGPU);
+	const uint32_t elemCount = static_cast<uint32_t>(gpuLights.size());
+	const uint32_t safeCount = (elemCount == 0) ? 1u : elemCount;     // ★ 最低1
+	const uint32_t bytes = stride * safeCount;
 
-	spotLightData_->color = { 1.0f,1.0f,1.0f,1.0f };							  // スポットライトの色
-	spotLightData_->position = { 2.0f,2.0f,0.0f };								  // スポットライトの位置
-	spotLightData_->distance = 7.0f;											  // スポットライトの距離
-	spotLightData_->direction = Vector3::Normalize({ -1.0f, -1.0f,0.0f });		  // スポットライトの方向
-	spotLightData_->intensity = 4.0f;											  // スポットライトの輝度
-	spotLightData_->decay = 2.0f;												  // スポットライトの減衰率
-	spotLightData_->cosFalloffStart = std::cos(std::numbers::pi_v<float> / 6.0f); // スポットライトの開始角度の余弦値
-	spotLightData_->cosAngle = std::cos(std::numbers::pi_v<float> / 3.0f);		  // スポットライトの余弦
-	spotLightResource_->Unmap(0, nullptr);
+	if (!punctualBuffer_ || punctualBufferBytes_ < bytes) {
+		punctualBuffer_ = ResourceManager::CreateBufferResource(dxCommon_->GetDevice(), bytes);
+		punctualBufferBytes_ = bytes;
+	}
+
+	// データ書き込み（実データがあるときだけ）
+	if (elemCount > 0) {
+		void* mapped = nullptr;
+		punctualBuffer_->Map(0, nullptr, &mapped);
+		std::memcpy(mapped, gpuLights.data(), elemCount * stride);
+		punctualBuffer_->Unmap(0, nullptr);
+	}
+
+	// SRV再構築（NumElements は最低1）
+	SRVManager::GetInstance()->CreateSRVForStructureBuffer(punctualSRVIndex_, punctualBuffer_.Get(), safeCount, stride);
+
+	// ライト数CB（有効ライト数）
+	if (lightInfoResource_) {
+		lightInfoData_->lightCount = elemCount;   // 0..N
+	}
+
+	DebugDrawLightGizmos();
 }
 
-
-/// -------------------------------------------------------------
-///				　		　平行光源の設定
-/// -------------------------------------------------------------
-void LightManager::SetDirectionalLight(const Vector3& direction, const Vector4& color, float intensity)
+void LightManager::DebugDrawLightGizmos()
 {
-	directionalLightData_->color = color;							  // 平行光源の色
-	directionalLightData_->direction = Vector3::Normalize(direction); // 平行光源の向き
-	directionalLightData_->intensity = intensity;					  // 平行光源の輝度
-}
+	auto* wf = Wireframe::GetInstance();
 
+	// 可視化パラメータ（お好みで）
+	const Vector4 colDir = { 0.0f, 1.0f, 1.0f, 1.0f };  // 平行光: シアン
+	const Vector4 colPt = { 1.0f, 1.0f, 0.0f, 1.0f };  // 点光源: 黄
+	const Vector4 colSpot = { 1.0f, 0.5f, 0.0f, 1.0f };  // スポット: オレンジ
+	const float   rGizmo = 0.25f;                     // 球の半径(表示用)
+	const float   dirLen = 1.5f;                      // 方向線の長さ
 
-/// -------------------------------------------------------------
-///				　		　点光源の設定
-/// -------------------------------------------------------------
-void LightManager::SetPointLight(const Vector3& position, const Vector4& color, float intensity, float radius, float decay)
-{
-	pointLightData_->position = position;	// ポイントライトの初期位置
-	pointLightData_->color = color;			// ポイントライトの色
-	pointLightData_->intensity = intensity;	// ポイントライトの輝度
-	pointLightData_->radius = radius;		// ポイントライトの有効範囲
-	pointLightData_->decay = decay;			// ポイントライトの減衰率
-}
-
-/// -------------------------------------------------------------
-///				　		スポットライトの設定
-/// -------------------------------------------------------------
-void LightManager::SetSpotLight(const Vector3& position, const Vector3& direction, const Vector4& color, float intensity, float distance, float decay, float cosFalloffStart, float cosAngle)
-{
-	spotLightData_->color = color;							   // スポットライトの色
-	spotLightData_->position = position;					   // スポットライトの位置
-	spotLightData_->distance = distance;					   // スポットライトの距離
-	spotLightData_->direction = Vector3::Normalize(direction); // スポットライトの方向
-	spotLightData_->intensity = intensity;					   // スポットライトの輝度
-	spotLightData_->decay = decay;							   // スポットライトの減衰率
-	spotLightData_->cosFalloffStart = cosFalloffStart;		   // スポットライトの開始角度の余弦値
-	spotLightData_->cosAngle = cosAngle;					   // スポットライトの余弦
+	for (const auto& L : punctualLights_) {
+		switch (L.lightType) {
+		case 1: { // Directional
+			// 原点付近に「光の向き」を示す矢印線
+			Vector3 base = { 0.0f, 3.0f, 0.0f };
+			Vector3 d = Vector3::Normalize(L.direction);
+			wf->DrawLine(base, base - d * dirLen, colDir);
+			break;
+		}
+		case 2: { // Point
+			// 位置に小さな球。到達半径も併せて出したいなら2本目で可視化
+			wf->DrawSphere(L.position, rGizmo, colPt);
+			if (L.radius > 0.0f) {
+				wf->DrawSphere(L.position, L.radius, { colPt.x, colPt.y, colPt.z, 0.5f });
+			}
+			break;
+		}
+		case 3: { // Spot
+			// 位置に球＋方向線
+			wf->DrawSphere(L.position, rGizmo, colSpot);
+			Vector3 d = Vector3::Normalize(L.direction);
+			wf->DrawLine(L.position, L.position + d * dirLen, colSpot);
+			// 必要なら開き角をリングで表現する処理も追加可能
+			break;
+		}
+		default:
+			break;
+		}
+	}
 }
 
 
@@ -144,112 +158,103 @@ void LightManager::SetSpotLight(const Vector3& position, const Vector3& directio
 /// -------------------------------------------------------------
 void LightManager::DrawImGui()
 {
-	// 平行光源の設定
-	if (ImGui::CollapsingHeader("Directional Light Settings"))
+	if (ImGui::CollapsingHeader("Punctual Lights"))
 	{
-		if (ImGui::SliderFloat3("Directional Light Direction", &directionalLightData_->direction.x, -1.0f, 1.0f))
+
+		// 追加ボタン
+		if (ImGui::Button("+ Add Light"))
 		{
-			directionalLightData_->direction = Vector3::Normalize(directionalLightData_->direction);
+			PunctualLightGPU L{};
+			L.lightType = 1;                 // 既定: Directional
+			L.color = { 1,1,1,1 };
+			L.intensity = 1.0f;
+			L.direction = { 0,-1,0 };          // 下向き
+			punctualLights_.push_back(L);
 		}
-		ImGui::SliderFloat("Directional Light Intensity", &directionalLightData_->intensity, 0.0f, 10.0f);
+		ImGui::SameLine();
+		if (ImGui::Button("Clear All"))
+		{
+			punctualLights_.clear();
+		}
+
+		// 一覧
+		for (size_t i = 0; i < punctualLights_.size(); ++i)
+		{
+			ImGui::PushID(static_cast<int>(i));
+			auto& L = punctualLights_[i];
+
+			ImGui::Separator();
+			ImGui::Text("Light #%zu", i);
+
+			// 種類
+			int type = static_cast<int>(L.lightType);
+			const char* types[] = { "None","Directional","Point","Spot" };
+			if (ImGui::Combo("Type", &type, types, IM_ARRAYSIZE(types)))
+				L.lightType = static_cast<uint32_t>(type);
+
+			// 共通
+			ImGui::ColorEdit4("Color", &L.color.x);
+			ImGui::SliderFloat("Intensity", &L.intensity, 0.0f, 20.0f);
+
+			// 種類別
+			if (L.lightType == 1)
+			{
+				// Directional
+				if (ImGui::SliderFloat3("Direction", &L.direction.x, -1.0f, 1.0f))
+				{
+					L.direction = Vector3::Normalize(L.direction);
+				}
+			}
+			else if (L.lightType == 2)
+			{
+				// Point
+				ImGui::SliderFloat3("Position", &L.position.x, -50.0f, 50.0f);
+				ImGui::SliderFloat("Radius", &L.radius, 0.0f, 200.0f);
+				ImGui::SliderFloat("Decay", &L.decay, 0.0f, 10.0f);
+			}
+			else if (L.lightType == 3)
+			{
+				// Spot
+				ImGui::SliderFloat3("Position", &L.position.x, -50.0f, 50.0f);
+				if (ImGui::SliderFloat3("Direction", &L.direction.x, -1.0f, 1.0f))
+				{
+					L.direction = Vector3::Normalize(L.direction);
+				}
+				ImGui::SliderFloat("Distance", &L.distance, 0.0f, 200.0f);
+				ImGui::SliderFloat("Decay", &L.decay, 0.0f, 10.0f);
+				ImGui::SliderFloat("cosInner", &L.cosFalloffStart, 0.0f, 1.0f);
+				ImGui::SliderFloat("cosOuter", &L.cosAngle, 0.0f, 1.0f);
+				if (L.cosFalloffStart < L.cosAngle) L.cosFalloffStart = L.cosAngle; // 内>=外
+			}
+
+			if (ImGui::Button("Remove"))
+			{
+				punctualLights_.erase(punctualLights_.begin() + i);
+				ImGui::PopID();
+				--i; // 次の要素が詰まるのでインデックス調整
+				continue;
+			}
+			ImGui::PopID();
+		}
+
+		// 参考表示（GPUへは UpdatePunctualLight で同期）
+		ImGui::Text("Active Lights (type!=0): will be uploaded");
 	}
-
-	// 点光源の設定
-	if (ImGui::CollapsingHeader("Point Light Settings"))
-	{
-		static float pointPosition[3] = { pointLightData_->position.x, pointLightData_->position.y, pointLightData_->position.z };
-		static float pointIntensity = pointLightData_->intensity;
-		static float pointRadius = pointLightData_->radius;
-		static float pointDecay = pointLightData_->decay;
-
-		// 点光源の位置
-		if (ImGui::SliderFloat3("Point Light Position", pointPosition, -10.0f, 10.0f))
-		{
-			pointLightData_->position = { pointPosition[0], pointPosition[1], pointPosition[2] };
-		}
-
-		// 点光源の輝度
-		if (ImGui::SliderFloat("Point Light Intensity", &pointIntensity, 0.0f, 5.0f))
-		{
-			pointLightData_->intensity = pointIntensity;
-		}
-
-		// 点光源の半径
-		if (ImGui::SliderFloat("Point Light Radius", &pointRadius, 0.0f, 20.0f))
-		{
-			pointLightData_->radius = pointRadius;
-		}
-
-		// 点光源の減衰率
-		if (ImGui::SliderFloat("Point Light Decay", &pointDecay, 0.1f, 5.0f))
-		{
-			pointLightData_->decay = pointDecay;
-		}
-	}
-
-	// スポットライトの設定
-	if (ImGui::CollapsingHeader("Spot Light Settings"))
-	{
-		static float spotPosition[3] = { spotLightData_->position.x, spotLightData_->position.y, spotLightData_->position.z };
-		static float spotDirection[3] = { spotLightData_->direction.x, spotLightData_->direction.y, spotLightData_->direction.z };
-		static float spotIntensity = spotLightData_->intensity;
-		static float spotDistance = spotLightData_->distance;
-		static float spotDecay = spotLightData_->decay;
-
-		// スポットライトの開始角度と終了角度（度単位で操作）
-		static float spotFalloffStartAngle = std::acos(spotLightData_->cosFalloffStart) * 180.0f / std::numbers::pi_v<float>;
-		static float spotConeAngle = std::acos(spotLightData_->cosAngle) * 180.0f / std::numbers::pi_v<float>;
+}
 
 
-		// スポットライトの位置
-		if (ImGui::SliderFloat3("Spot Light Position", spotPosition, -10.0f, 10.0f))
-		{
-			spotLightData_->position = { spotPosition[0], spotPosition[1], spotPosition[2] };
-		}
+void LightManager::BindPunctualLights(uint32_t rootIndexCB_b2, uint32_t rootIndexSRV_t2)
+{
+	auto commandList = dxCommon_->GetCommandManager()->GetCommandList();
 
-		// スポットライトの方向
-		if (ImGui::SliderFloat3("Spot Light Direction", spotDirection, -1.0f, 1.0f))
-		{
-			spotLightData_->direction = Vector3::Normalize({ spotDirection[0], spotDirection[1], spotDirection[2] });
-		}
+	UpdatePunctualLight();
 
-		// スポットライトの輝度
-		if (ImGui::SliderFloat("Spot Light Intensity", &spotIntensity, 0.0f, 10.0f))
-		{
-			spotLightData_->intensity = spotIntensity;
-		}
+	// SRVヒープセット（SRVManagerに任せる）
+	SRVManager::GetInstance()->PreDraw();
 
-		// スポットライトの距離
-		if (ImGui::SliderFloat("Spot Light Distance", &spotDistance, 0.0f, 50.0f))
-		{
-			spotLightData_->distance = spotDistance;
-		}
+	// ライト数CBの設定（b2）
+	commandList->SetGraphicsRootConstantBufferView(rootIndexCB_b2, lightInfoResource_->GetGPUVirtualAddress());
 
-		// スポットライトの減衰率
-		if (ImGui::SliderFloat("Spot Light Decay", &spotDecay, 0.0f, 5.0f))
-		{
-			spotLightData_->decay = spotDecay;
-		}
-
-		// スポットライトの開始角度（Falloff Start Angle）
-		if (ImGui::SliderFloat("Spot Light Falloff Start Angle (Degrees)", &spotFalloffStartAngle, 0.0f, 90.0f))
-		{
-			// 度をラジアンに変換し、余弦値を計算
-			spotLightData_->cosFalloffStart = std::cos(spotFalloffStartAngle * std::numbers::pi_v<float> / 180.0f);
-		}
-
-		// スポットライトの終了角度（Cone Angle）
-		if (ImGui::SliderFloat("Spot Light Cone Angle (Degrees)", &spotConeAngle, 0.0f, 90.0f))
-		{
-			// 度をラジアンに変換し、余弦値を計算
-			spotLightData_->cosAngle = std::cos(spotConeAngle * std::numbers::pi_v<float> / 180.0f);
-		}
-
-		// 開始角度が終了角度より大きくならないように調整
-		if (spotLightData_->cosFalloffStart < spotLightData_->cosAngle)
-		{
-			spotLightData_->cosFalloffStart = spotLightData_->cosAngle;
-			spotFalloffStartAngle = std::acos(spotLightData_->cosFalloffStart) * 180.0f / std::numbers::pi_v<float>;
-		}
-	}
+	// パンクチュアルライトSRVの設定（t2）
+	SRVManager::GetInstance()->SetGraphicsRootDescriptorTable(rootIndexSRV_t2, punctualSRVIndex_);
 }

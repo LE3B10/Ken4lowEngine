@@ -190,9 +190,6 @@ void GamePlayScene::Draw3DObjects()
 
 #pragma region オブジェクト3Dの描画
 
-	// オブジェクト3D共通描画設定
-	Object3DCommon::GetInstance()->SetRenderSetting();
-
 	terrein_->Draw();
 
 	// アイテムの描画
@@ -210,11 +207,7 @@ void GamePlayScene::Draw3DObjects()
 
 #pragma region アニメーションモデルの描画
 
-	// アニメーションモデルの共通描画設定
-	AnimationPipelineBuilder::GetInstance()->SetRenderSetting();
-
 	if (boss_) boss_->Draw();
-
 
 #pragma endregion
 
