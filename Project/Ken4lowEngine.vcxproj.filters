@@ -436,12 +436,21 @@
     <ClCompile Include="ApplicationLayer\Player\Behavior\ShootingBehavior\ShootingBehavior.cpp">
       <Filter>ApplicationLayer\Player\Behavior</Filter>
     </ClCompile>
-    <ClCompile Include="EngineLayer\3D\LevelData\LevelLoader.cpp" />
-    <ClCompile Include="EngineLayer\3D\LevelData\LevelObjectManager.cpp" />
-    <ClCompile Include="EngineLayer\3D\AnimationManager\AnimationModelFactory.cpp" />
-    <ClCompile Include="EngineLayer\Managers\UAVManager\UAVManager.cpp" />
-    <ClCompile Include="ApplicationLayer\Enemy\Enemy.cpp" />
-    <ClCompile Include="ApplicationLayer\Enemy\EnemyBullet.cpp" />
+    <ClCompile Include="ApplicationLayer\Enemy\Enemy.cpp">
+      <Filter>ApplicationLayer\Enemy</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\Enemy\EnemyBullet.cpp">
+      <Filter>ApplicationLayer\Enemy</Filter>
+    </ClCompile>
+    <ClCompile Include="EngineLayer\Managers\UAVManager\UAVManager.cpp">
+      <Filter>EngineLayer\Managers</Filter>
+    </ClCompile>
+    <ClCompile Include="EngineLayer\3D\LevelData\LevelLoader.cpp">
+      <Filter>EngineLayer\3D</Filter>
+    </ClCompile>
+    <ClCompile Include="EngineLayer\3D\LevelData\LevelObjectManager.cpp">
+      <Filter>EngineLayer\3D</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="EngineLayer\Math\AABB.h">
@@ -591,7 +600,7 @@
     <ClInclude Include="EngineLayer\WorldTransform\ParticleTransform.h">
       <Filter>EngineLayer\Transform</Filter>
     </ClInclude>
-    <ClInclude Include="EngineLayer\Math\Matrix\TransformationMatrix.h">
+    <ClInclude Include="EngineLayer\Base\MultipleStructs\TransformationMatrix.h">
       <Filter>EngineLayer\Transform</Filter>
     </ClInclude>
     <ClInclude Include="EngineLayer\WorldTransform\WorldTransform.h">
@@ -876,13 +885,24 @@
     <ClInclude Include="ApplicationLayer\Player\Behavior\ShootingBehavior\ShootingBehavior.h">
       <Filter>ApplicationLayer\Player\Behavior</Filter>
     </ClInclude>
-    <ClInclude Include="EngineLayer\3D\LevelData\LevelData.h" />
-    <ClInclude Include="EngineLayer\3D\LevelData\LevelLoader.h" />
-    <ClInclude Include="EngineLayer\3D\LevelData\LevelObjectManager.h" />
-    <ClInclude Include="EngineLayer\3D\AnimationManager\AnimationModelFactory.h" />
-    <ClInclude Include="EngineLayer\Managers\UAVManager\UAVManager.h" />
-    <ClInclude Include="ApplicationLayer\Enemy\Enemy.h" />
-    <ClInclude Include="ApplicationLayer\Enemy\EnemyBullet.h" />
+    <ClInclude Include="ApplicationLayer\Enemy\Enemy.h">
+      <Filter>ApplicationLayer\Enemy</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Enemy\EnemyBullet.h">
+      <Filter>ApplicationLayer\Enemy</Filter>
+    </ClInclude>
+    <ClInclude Include="EngineLayer\Managers\UAVManager\UAVManager.h">
+      <Filter>EngineLayer\Managers</Filter>
+    </ClInclude>
+    <ClInclude Include="EngineLayer\3D\LevelData\LevelData.h">
+      <Filter>EngineLayer\3D</Filter>
+    </ClInclude>
+    <ClInclude Include="EngineLayer\3D\LevelData\LevelLoader.h">
+      <Filter>EngineLayer\3D</Filter>
+    </ClInclude>
+    <ClInclude Include="EngineLayer\3D\LevelData\LevelObjectManager.h">
+      <Filter>EngineLayer\3D</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="Resources\Shaders\PostEffect\FullScreen.hlsli">
@@ -906,8 +926,6 @@
     <None Include="Resources\Shaders\Wireframe\Wireframe.hlsli">
       <Filter>Shader\Hlsli</Filter>
     </None>
-    <None Include="Resources\JSON\cubes4.json" />
-    <None Include="Resources\JSON\cubes4_2disable.json" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Shader">
@@ -1083,8 +1101,5 @@
     <Text Include="Externals\imgui\LICENSE.txt">
       <Filter>Externals\ImGui</Filter>
     </Text>
-  </ItemGroup>
-  <ItemGroup>
-    <Image Include="Resources\Textures\SkyBox\rostock_laage_airport_4k.dds" />
   </ItemGroup>
 </Project>

@@ -136,3 +136,18 @@ D3D12_GPU_DESCRIPTOR_HANDLE UAVManager::GetGPUDescriptorHandle(uint32_t index)
 	handle.ptr += static_cast<unsigned long long>(index) * descriptorSize_;
 	return handle;
 }
+
+void UAVManager::CreateSRVForStructureBuffer(uint32_t srvIndex, ID3D12Resource* pResource, UINT numElements, UINT structureByteStride)
+{
+	if (!pResource) { throw std::runtime_error("pResource is null in CreateSRVForStructureBuffer"); }
+
+	D3D12_SHADER_RESOURCE_VIEW_DESC srv{};
+	srv.Format = DXGI_FORMAT_UNKNOWN; // 構造化バッファの場合、フォーマットは特に指定しない
+	srv.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+	srv.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
+	srv.Buffer.FirstElement = 0;
+	srv.Buffer.NumElements = numElements;
+	srv.Buffer.StructureByteStride = structureByteStride;
+	srv.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_NONE; // 特にフラグは指定しない
+	dxCommon_->GetDevice()->CreateShaderResourceView(pResource, &srv, GetCPUDescriptorHandle(srvIndex));
+}

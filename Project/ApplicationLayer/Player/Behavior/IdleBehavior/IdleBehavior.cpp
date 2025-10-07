@@ -1,13 +1,13 @@
 #include "IdleBehavior.h"
 #include "Player.h"
-#include <AnimationModelFactory.h>
+//#include <AnimationModelFactory.h>
 
 void IdleBehavior::Initialize(Player* player)
 {
-	auto model = AnimationModelFactory::CreateInstance("PlayerStateModel/human.gltf");
-	player->SetAnimationModel(model);
-	model->Update();
-	player->SetState(ModelState::Idle);
+	//auto model = AnimationModelFactory::CreateInstance("PlayerStateModel/human.gltf");
+	//->SetAnimationModel(model);
+	//model->Update();
+	//player->SetState(ModelState::Idle);
 }
 
 void IdleBehavior::Update(Player* player)

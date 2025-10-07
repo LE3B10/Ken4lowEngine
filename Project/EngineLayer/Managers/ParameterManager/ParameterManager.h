@@ -3,8 +3,10 @@
 #include <string>
 #include <variant>
 #include <json.hpp>
+#include <limits>
 
 #include "Vector3.h"
+#include "Vector4.h"
 
 // コードの冗長を防ぐため省略
 using json = nlohmann::json;
@@ -21,7 +23,7 @@ private: /// ---------- 構造体 ---------- ///
 	struct Item
 	{
 		// 項目の値
-		std::variant<int32_t, float, Vector3, bool> value;
+		std::variant<int32_t, uint32_t, float, Vector3, Vector4, bool> value;
 	};
 
 	// グループ構造体
@@ -75,8 +77,8 @@ public: /// ---------- 項目の設定 ---------- ///
 	template<typename T>
 	void SetValue(const std::string& groupName, const std::string& key, const T& value)
 	{
-		static_assert(std::is_same_v<T, int32_t> || std::is_same_v<T, float> ||
-			std::is_same_v<T, Vector3> || std::is_same_v<T, bool>,
+		static_assert(std::is_same_v<T, int32_t> || std::is_same_v<T, uint32_t> || std::is_same_v<T, float> ||
+			std::is_same_v<T, Vector3> || std::is_same_v<T, Vector4> || std::is_same_v<T, bool>,
 			"Unsupported type for SetValue"); // サポートされていない型の場合はコンパイルエラー
 
 		// グループを取得し、新しい項目を作成して設定する
@@ -119,8 +121,8 @@ public: /// ---------- 項目の取得 ---------- ///
 	template<typename T>
 	T GetValue(const std::string& groupName, const std::string& key) const
 	{
-		static_assert(std::is_same_v<T, int32_t> || std::is_same_v<T, float> ||
-			std::is_same_v<T, Vector3> || std::is_same_v<T, bool>,
+		static_assert(std::is_same_v<T, int32_t> || std::is_same_v<T, uint32_t> || std::is_same_v<T, float> ||
+			std::is_same_v<T, Vector3> || std::is_same_v<T, Vector4> || std::is_same_v<T, bool>,
 			"Unsupported type for GetValue"); // サポートされていない型の場合はコンパイルエラー
 
 		// グループが存在しない場合のエラーハンドリング

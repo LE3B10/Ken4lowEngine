@@ -41,12 +41,14 @@ void Object3DCommon::Update()
 #ifdef _DEBUG
 		debugViewProjectionMatrix_ = DebugCamera::GetInstance()->GetViewProjectionMatrix();
 		defaultCamera_->SetViewProjectionMatrix(debugViewProjectionMatrix_);
+		activeCameraPosition_ = DebugCamera::GetInstance()->GetTranslate();
 #endif // _DEBUG
 	}
 	else
 	{
 		viewProjectionMatrix_ = Matrix4x4::Multiply(defaultCamera_->GetViewMatrix(), defaultCamera_->GetProjectionMatrix());
 		defaultCamera_->SetViewProjectionMatrix(viewProjectionMatrix_);
+		activeCameraPosition_ = defaultCamera_->GetTranslate(); // 通常カメラの位置
 	}
 }
 
@@ -65,7 +67,8 @@ void Object3DCommon::SetRenderSetting()
 	commandList->SetPipelineState(graphicsPipelineState_.Get());
 	commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-	LightManager::GetInstance()->PreDraw(); // ライトデータの設定
+	// ライトの設定
+	LightManager::GetInstance()->BindPunctualLights(5, 6);
 }
 
 
@@ -96,56 +99,60 @@ void Object3DCommon::CreateRootSignature()
 	descriptorRange[0].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
 	descriptorRange[0].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
 
+	// キューブマップ用SRV範囲（t1）
 	D3D12_DESCRIPTOR_RANGE cubeMapRange{};
 	cubeMapRange.BaseShaderRegister = 1; // t1
 	cubeMapRange.NumDescriptors = 1;
 	cubeMapRange.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
 	cubeMapRange.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
 
-	// ルートシグネチャの生成
-	D3D12_ROOT_PARAMETER rootParameters[8] = {};
+	// ライト配列用SRV範囲（t2）
+	D3D12_DESCRIPTOR_RANGE lightArrayRange{};
+	lightArrayRange.BaseShaderRegister = 2; // t2
+	lightArrayRange.NumDescriptors = 1;     // 配列1個分
+	lightArrayRange.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV; // SRV
+	lightArrayRange.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND; // 自動設定
 
-	// マテリアル用のルートシグパラメータの設定
+	// ルートシグネチャの生成
+	D3D12_ROOT_PARAMETER rootParameters[7] = {};
+
+	// マテリアル用のルートシグパラメータの設定 （b0）
 	rootParameters[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;    // 定数バッファビュー
 	rootParameters[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL; // ピクセルシェーダーで使用
 	rootParameters[0].Descriptor.ShaderRegister = 0;                    // レジスタ番号0
 
-	// TransformationMatrix用のルートシグネチャの設定
+	// TransformationMatrix用のルートシグネチャの設定 （b0）
 	rootParameters[1].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;     // 定数バッファビュー
 	rootParameters[1].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX; // バーテックスシェーダーで使用
 	rootParameters[1].Descriptor.ShaderRegister = 0;					 // レジスタ番号0
 
-	// テクスチャのディスクリプタテーブル
+	// テクスチャのディスクリプタテーブル （t0）
 	rootParameters[2].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;      // ディスクリプタテーブル
 	rootParameters[2].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL; 	           // ピクセルシェーダーで使用
 	rootParameters[2].DescriptorTable.pDescriptorRanges = descriptorRange;             // ディスクリプタテーブルの設定
 	rootParameters[2].DescriptorTable.NumDescriptorRanges = _countof(descriptorRange); // ディスクリプタテーブルの数
 
-	// カメラ用のルートシグネチャの設定
+	// カメラ用のルートシグネチャの設定 （b1）
 	rootParameters[3].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;	// 定数バッファビュー
 	rootParameters[3].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL; // ピクセルシェーダーで使用
 	rootParameters[3].Descriptor.ShaderRegister = 1; 					// レジスタ番号1
 
-	// 平行光源用のルートシグネチャの設定
-	rootParameters[4].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;	// 定数バッファビュー
-	rootParameters[4].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL; // バーテックスシェーダーで使用
-	rootParameters[4].Descriptor.ShaderRegister = 2; 					// レジスタ番号2
+	// キューブマップのルートシグネチャの設定 （t1）
+	rootParameters[4].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+	rootParameters[4].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+	rootParameters[4].DescriptorTable.pDescriptorRanges = &cubeMapRange;
+	rootParameters[4].DescriptorTable.NumDescriptorRanges = 1;
 
-	// ポイントライト用のルートシグネチャの設定
-	rootParameters[5].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;	// 定数バッファビュー
-	rootParameters[5].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL; // バーテックスシェーダーで使用
-	rootParameters[5].Descriptor.ShaderRegister = 3; 					// レジスタ番号3
+	// ライト数 CBV（b2）
+	rootParameters[5].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;    // 定数バッファビュー
+	rootParameters[5].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL; // ピクセルシェーダーで使用
+	rootParameters[5].Descriptor.ShaderRegister = 2;                    // レジスタ番号2
 
-	// スポットライトのルートシグネチャの設定
-	rootParameters[6].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;	// 定数バッファビュー
-	rootParameters[6].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL; // バーテックスシェーダーで使用
-	rootParameters[6].Descriptor.ShaderRegister = 4; 					// レジスタ番号4
-
-	// キューブマップのルートシグネチャの設定
-	rootParameters[7].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
-	rootParameters[7].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
-	rootParameters[7].DescriptorTable.pDescriptorRanges = &cubeMapRange;
-	rootParameters[7].DescriptorTable.NumDescriptorRanges = 1;
+	// ライト配列 SRV（t2）
+	rootParameters[6].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE; 	// ディスクリプタテーブル
+	rootParameters[6].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL; 	        // ピクセルシェーダーで使用
+	rootParameters[6].DescriptorTable.pDescriptorRanges = &lightArrayRange;         //　ディスクリプタテーブルの設定
+	rootParameters[6].DescriptorTable.NumDescriptorRanges = 1;                      //　ディスクリプタテーブルの数
 
 	// ルートシグネチャの設定
 	descriptionRootSignature.pParameters = rootParameters;

@@ -9,7 +9,7 @@
 #include "AnimationMesh.h"
 #include "Skeleton.h"
 #include <SkinCluster.h>
-
+#include <Sphere.h>
 #include "Capsule.h"
 
 #include <algorithm>
@@ -18,7 +18,8 @@
 #include <numbers>
 #include <memory>
 #include <map>
-#include <Sphere.h>
+#include <filesystem>   // もし自動探索を使わないなら不要
+#include <regex>
 
 /// ---------- 前方宣言 ---------- ///
 class DirectXCommon;
@@ -37,20 +38,6 @@ private: /// ---------- 構造体 ---------- ///
 		Vector3 worldPosition;
 	};
 
-	struct SkinningSetting
-	{
-		bool isSkinning; // スキニングを行うかどうか
-		Vector3 padding; // 16バイトアライメントを保つためのパディング
-	};
-
-	struct DissolveSetting
-	{
-		float threshold; // 閾値
-		float edgeThickness; // エッジの範囲（0.05など）
-		float padding[2];
-		Vector4 edgeColor; // エッジ部分の色
-	};
-
 	struct BodyPartCollider
 	{
 		std::string name;         // 名前（"LeftArm", "RightLeg", ...）
@@ -62,10 +49,51 @@ private: /// ---------- 構造体 ---------- ///
 	};
 	std::vector<BodyPartCollider> bodyPartColliders_;
 
+public: /// ---------- メンバ変数 ---------- ///
+
+	// LODごとの情報
+	struct LODEntry
+	{
+		// 入力（共有候補）：DEFAULTの頂点SRV、Influence SRV、IB
+		ComPtr<ID3D12Resource> staticVBDefault; // t1
+		D3D12_VERTEX_BUFFER_VIEW influenceVBV;  // VSで使わないならなくても可
+
+		// インデックスバッファの実体を保持（解放されないように）
+		ComPtr<ID3D12Resource> indexBuffer;     // ← これを追加
+
+		D3D12_INDEX_BUFFER_VIEW  ibv;
+		uint32_t                 vertexCount = 0;
+		uint32_t                 indexCount = 0;
+
+		// 出力（インスタンス固有）：スキン結果u0とVBV、UAVディスクリプタ
+		ComPtr<ID3D12Resource>  skinnedVB;     // u0
+		D3D12_VERTEX_BUFFER_VIEW skinnedVBV;
+		uint32_t                 uavIndex = UINT32_MAX; // UAVヒープのu0
+		uint32_t                 srvInputVerticesOnUavHeap = UINT32_MAX; // t1 SRV on UAV heap
+
+		D3D12_GPU_DESCRIPTOR_HANDLE influenceSrvGpuOnUavHeap{}; // t2
+		// 出力VBのリソース状態
+		D3D12_RESOURCE_STATES skinnedState = D3D12_RESOURCE_STATE_COMMON;
+
+		// サブメッシュごとの描画範囲とマテリアルSRV
+		struct SubMeshRange
+		{
+			uint32_t startIndex = 0;
+			uint32_t indexCount = 0;
+			D3D12_GPU_DESCRIPTOR_HANDLE baseColorSrvGpuHandle{}; // t2用
+		};
+		std::vector<SubMeshRange> subMeshRanges; // subMeshごとに分割
+	};
+	std::vector<LODEntry> lods_; // LOD0～3まで
+	int lodIndex_ = 0;
+
 public: /// ---------- メンバ関数 ---------- ///
 
 	// 初期化処理
 	void Initialize(const std::string& fileName, bool isSkinning = true);
+
+	// ▼ 複数 LOD を直接渡すオーバーロード
+	void Initialize(const std::string& fileName, const std::vector<std::string>& lodFiles, bool isSkinning = true);
 
 	// 更新処理
 	void Update();
@@ -73,11 +101,21 @@ public: /// ---------- メンバ関数 ---------- ///
 	// 描画処理
 	void Draw();
 
+	// 単一のモデルをまとめて描画
+	static void DrawBatched(const std::unique_ptr<AnimationModel>& models);
+
+	// これ1行でOK：可視チェックも含めてまとめて描画
+	static void DrawBatched(const std::vector<std::unique_ptr<AnimationModel>>& models);
+
+	// ポインタ配列版も欲しければオーバーロード
+	static void DrawBatched(const std::vector<AnimationModel*>& models);
+
 	// モデルデータを取得
 	const ModelData& GetModelData() const { return modelData; }
 
 	// ImGui描画処理
 	void DrawImGui();
+	int  GetLOD() const { return lodIndex_; }
 
 	// 削除処理
 	void Clear();
@@ -86,13 +124,6 @@ public: /// ---------- メンバ関数 ---------- ///
 	void DrawSkeletonWireframe();
 
 	void DrawBodyPartColliders();
-
-	// クローンを作成
-	std::shared_ptr<AnimationModel> Clone() const;
-
-	// AnimationModel.h に追加
-	void SetDissolveThreshold(float threshold) { dissolveSetting_->threshold = threshold; }
-	float GetDissolveThreshold() const { return dissolveSetting_->threshold; }
 
 public: /// ---------- ゲッタ ---------- ///
 
@@ -115,6 +146,11 @@ public: /// ---------- ゲッタ ---------- ///
 	// アニメーション時間を取得
 	float GetAnimationTime() const { return animationTime_; }
 
+	// ▼ アクセサ（Initialize 前推奨）
+	void SetLodFiles(const std::vector<std::string>& files) { lodSourceFiles_ = files; }
+	void ClearLodFiles() { lodSourceFiles_.clear(); }
+	const std::vector<std::string>& GetLodFiles() const { return lodSourceFiles_; }
+
 public: /// ---------- セッタ ---------- ///
 
 	// 座標を設定
@@ -128,9 +164,6 @@ public: /// ---------- セッタ ---------- ///
 
 	// 反射率を設定
 	void SetReflectivity(float reflectivity) { material_.SetShininess(reflectivity); }
-
-	// スキニングを有効にするか設定
-	void SetSkinningEnabled(bool isSkinning) { skinningSetting_->isSkinning = isSkinning; }
 
 	// ワールド空間からボディパーツのカプセルを取得
 	std::vector<std::pair<std::string, Capsule>> GetBodyPartCapsulesWorld() const;
@@ -147,7 +180,17 @@ public: /// ---------- セッタ ---------- ///
 
 	void SetAnimationTime(float time) { animationTime_ = time; }
 
+	// ▼ 調整用アクセサ（任意）
+	void  SetFarCullExtra(float v) { farCullExtra_ = v; }
+	bool  IsVisible() const { return !culledByDistance_; }
+
+	// LODごとの更新間引き（例: {1,1,2,4} = LOD2は隔フレ、LOD3は4フレに1回）
+	void SetLodUpdateEvery(const std::vector<uint32_t>& v) { lodUpdateEvery_ = v; }
+
 private: /// ---------- メンバ関数 ---------- ///
+
+	// LODの初期化
+	void InitializeLODs();
 
 	// アニメーションを更新
 	void UpdateAnimation();
@@ -155,16 +198,19 @@ private: /// ---------- メンバ関数 ---------- ///
 	// Animationを解析する
 	Animation LoadAnimationFile(const std::string& fileName);
 
-	// スキニングリソースの作成
-	void CreateSkinningSettingResource();
-
-	// Dissolve設定リソースの作成
-	void CreateDissolveSettingResource();
-
 public: /// ---------- ボーン情報の初期化 ---------- ///
 
 	// ボーン情報の初期化
 	void InitializeBones();
+
+	// LOD選択
+	void SetLODByDistance(float dist);     // LOD選択（ヒステリシス含む）
+
+	// CS側：t0 t1 t2 u0 b0
+	void DispatchSkinningCS();
+
+	// Graphics
+	void DrawSkinned();
 
 private: /// ---------- メンバ関数・テンプレート関数 ---------- ///
 
@@ -215,6 +261,9 @@ private: /// ---------- メンバ変数 ---------- ///
 	DirectXCommon* dxCommon_ = nullptr;
 	Camera* camera_ = nullptr;
 
+	// 環境マップのテクスチャ
+	D3D12_GPU_DESCRIPTOR_HANDLE environmentMapHandle_{};
+
 	// モデルデータ
 	ModelData modelData;
 	std::string fileName_;  // 読み込んだファイル名を保持
@@ -223,19 +272,17 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	std::unique_ptr<AnimationMesh> animationMesh_;
 	std::unique_ptr<Skeleton> skeleton_; // スケルトン
-	std::unique_ptr<SkinCluster> skinCluster_; // スキンクラスター
+	std::vector<std::unique_ptr<SkinCluster>> skinClusterLOD_; // LOD別
+
+	// 表示/デバッグ用に LOD ファイル名を保持
+	std::vector<std::string> lodFileName_;
+
+	// 外部から注入された LOD リスト（空なら単一扱い）
+	std::vector<std::string> lodSourceFiles_;
 
 	// バッファリソースの作成
 	TransformationAnimationMatrix* wvpData_ = nullptr;
 	CameraForGPU* cameraData = nullptr;
-
-
-	ComPtr<ID3D12Resource> skinningSettingResource_; // スキニング設定用のリソース
-	SkinningSetting* skinningSetting_ = nullptr; // スキニング設定
-
-	ComPtr<ID3D12Resource> dissolveSettingResource_; // Dissolve設定用のリソース
-	DissolveSetting* dissolveSetting_ = nullptr; // Dissolve設定
-	uint32_t dissolveMaskSrvIndex_ = 0; // SRV index for mask
 
 	ComPtr <ID3D12Resource> wvpResource;
 	ComPtr <ID3D12Resource> cameraResource;
@@ -249,5 +296,28 @@ private: /// ---------- メンバ変数 ---------- ///
 	float scaleFactor = 1.0f;
 
 	bool isAnimationPlaying_ = true; // アニメーションが再生中かどうか
+
+private: /// ---------- コンピュートシェーダーによるスキニング用 ---------- ///
+
+	ComPtr<ID3D12Resource> staticVBDefault_; // CS入力用の頂点（Deviceローカル）
+	ComPtr<ID3D12Resource> skinnedVB_;
+	D3D12_VERTEX_BUFFER_VIEW skinnedVBV_{};
+	uint32_t srvInputVerticesOnUavHeap_ = UINT32_MAX; // t1
+	uint32_t uavOutIndex_ = UINT32_MAX;               // u0
+	ComPtr<ID3D12Resource> csCB_;                     // b0
+	SkinningInformationForGPU* csCBMapped_ = nullptr;
+	bool useComputeSkinning_ = true; // 切替
+
+	D3D12_RESOURCE_STATES skinnedVBState_ = D3D12_RESOURCE_STATE_COMMON;
+
+private:
+	bool  culledByDistance_ = false;   // 遠距離で非表示にするフラグ
+	float farCullExtra_ = 20.0f;   // 最終LODの“出しきい値”から更に何m離れたらカリングするか
+	bool forceLOD_ = false;                    // ← 手動LOD固定トグル（デバッグ用）
+	int  forcedLODIndex_ = 0;                  // ← 固定するLOD
+
+	// フレームカウンタ（LODごとの更新間引きに使用）
+	uint32_t frame_ = 0;
+	std::vector<uint32_t> lodUpdateEvery_{ 1, 1, 2, 4 }; // 既定: LOD0/1=毎フレ, LOD2=隔フレ, LOD3=4フレ
 };
 

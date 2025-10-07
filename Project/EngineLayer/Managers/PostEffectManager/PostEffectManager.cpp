@@ -221,7 +221,7 @@ void PostEffectManager::RenderPostEffect()
 			// UAV ヒープをセット
 			UAVManager::GetInstance()->PreDispatch();
 
-			postEffects_[name]->Apply(commandList, inRT.srvIndex, outRT.uavIndex, dsvSrvIndex_);
+			postEffects_[name]->Apply(commandList, inRT.srvIndexOnUavHeap, outRT.uavIndex, dsvSrvIndex_);
 
 			Transition(outRT, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 		}
@@ -409,7 +409,7 @@ void PostEffectManager::AllocateRTV_DSV_SRV_UAV()
 
 		// ★ 追加：UAVヒープ側にも“入力用SRV”を複製
 		rt.srvIndexOnUavHeap = UAVManager::GetInstance()->Allocate();
-		UAVManager::GetInstance()->CreateSRVForTexture2DOnThisHeap(rt.srvIndexOnUavHeap, rt.resource.Get(), DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, 1);
+		UAVManager::GetInstance()->CreateSRVForTexture2DOnThisHeap(rt.srvIndexOnUavHeap, rt.resource.Get(), DXGI_FORMAT_R8G8B8A8_UNORM, 1);
 	}
 
 	// 深度バッファの生成

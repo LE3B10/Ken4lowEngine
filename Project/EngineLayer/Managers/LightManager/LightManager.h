@@ -20,37 +20,26 @@ private:
 	~LightManager() = default;
 public: /// ---------- 構造体 ---------- ///
 
-	// 平行光源の構造体
-	struct DirectionalLight final
+	// パンクチュアルライトの構造体
+	struct PunctualLightGPU
 	{
-		Vector4 color;	   // ライトの色
-		Vector3 direction; // ライトの向き
-		float intensity;   // 輝度
+		uint32_t lightType;		// ライトの種類（0：ライトなし、1：平行光源、2：点光源、3：スポットライト）
+		Vector4 color;			// ライトの色 （全ライト共通）
+		float intensity;		// 輝度 （全ライト共通）
+		Vector3 position;		// ライトの位置 （点光源、スポットライト用）
+		float radius;			// ライトの届く最大距離 （点光源用）
+		float decay;			// 減衰率 （点光源、スポットライト用）
+		Vector3 direction;		// スポットライトの方向 （平行光源、スポットライト用）
+		float distance;			// ライトの届く最大距離 （スポットライト用）
+		float cosFalloffStart;	// 開始角度 （スポットライト用）
+		float cosAngle;			// スポットライトの余弦 （スポットライト用）
 	};
 
-	// 点光源の構造体
-	struct PointLight
+	// ライト数CB
+	struct LightInfo
 	{
-		Vector4 color;	  // ライトの色
-		Vector3 position; // ライトの位置
-		float intensity;  // 輝度
-		float radius;	  // 有効範囲
-		float decay;	  // 減衰率
-		float padding[2]; // パディング
-	};
-
-	// スポットライトの構造体
-	struct SpotLight
-	{
-		Vector4 color;		   // ライトの色
-		Vector3 position;	   // ライトの位置
-		float intensity;	   // スポットライトの輝度
-		Vector3 direction;	   // スポットライトの方向
-		float distance;		   // ライトの届く最大距離
-		float decay;		   // 減衰率
-		float cosFalloffStart; // 開始角度の余弦値
-		float cosAngle;		   // スポットライトの余弦
-		float padding[2];	   // パディング
+		uint32_t lightCount; // ライトの数
+		float pad[3]; 		 // パディング
 	};
 
 public: /// ---------- メンバ関数 ---------- ///
@@ -60,120 +49,38 @@ public: /// ---------- メンバ関数 ---------- ///
 	// 初期化処理
 	void Initialize(DirectXCommon* dxCommon);
 
-	// 描画処理設定
-	void PreDraw();
-
 	// ImGuiを描画
 	void DrawImGui();
 
+	// ライト情報をシェーダーにバインド
+	void BindPunctualLights(uint32_t rootIndexCB_b2, uint32_t rootIndexSRV_t2);
+
 private: /// ---------- メンバ関数 ---------- ///
 
-	// 平行光源の生成
-	void CreateDirectionalLight();
+	// パンクチュアルライトの生成
+	void CreatePunctualLight();
 
-	// 点光源の生成
-	void CreatePointLight();
+	// パンクチュアルライトの更新
+	void UpdatePunctualLight();
 
-	// スポットライトの生成
-	void CreateSpotLight();
-
-public: /// ---------- 平行光源の設定 ---------- ///
-
-	/// <summary>
-	/// 平行光源の設定
-	/// </summary>
-	/// <param name="direction">平行光源の方向</param>
-	/// <param name="color">平行光源の色</param>
-	/// <param name="intensity">平行光源の輝度</param>
-	void SetDirectionalLight(const Vector3& direction, const Vector4& color, float intensity);
-
-	// 平行光源の色を設定
-	void SetDirectionalLightColor(const Vector4& color) { directionalLightData_->color = color; }
-
-	// 平行光源の方向を設定
-	void SetDirectionalLightDirection(const Vector3& direction) { directionalLightData_->direction = direction; }
-
-	// 平行光源の輝度を設定
-	void SetDirctionalLightIntensity(float intensity) { directionalLightData_->intensity = intensity; }
-
-public: /// ---------- 点光源の設定 ---------- ///
-
-	/// <summary>
-	/// 点光源の設定
-	/// </summary>
-	/// <param name="position">点光源の座標</param>
-	/// <param name="color">点光源の色</param>
-	/// <param name="intensity">点光源の輝度</param>
-	/// <param name="radius">点光源の有効範囲</param>
-	/// <param name="decay">点光源の減衰率</param>
-	void SetPointLight(const Vector3& position, const Vector4& color, float intensity, float radius, float decay);
-
-	// 点光源の色を設定
-	void SetPointLightColor(const Vector4& color) { pointLightData_->color = color; }
-
-	// 点光源の座標を設定
-	void SetPointLightPosition(const Vector3& position) { pointLightData_->position = position; }
-
-	// 点光源の輝度を設定
-	void SetPointLightIntensity(float intensity) { pointLightData_->intensity = intensity; }
-
-	// 点光源の有効範囲を設定
-	void SetPointLightRadius(float radius) { pointLightData_->radius = radius; }
-
-	// 点光源の減衰率を設定
-	void SetPointLightDecay(float decay) { pointLightData_->decay = decay; }
-
-public: /// ---------- スポットライトの設定 ---------- ///
-
-	/// <summary>
-	/// スポットライトの設定
-	/// </summary>
-	/// <param name="position">スポットライトの座標</param>
-	/// <param name="direction">スポットライトの方向</param>
-	/// <param name="color">スポットライトの色</param>
-	/// <param name="intensity">スポットライトの輝度</param>
-	/// <param name="distance">スポットライトの届く最大距離</param>
-	/// <param name="decay">スポットライトの減衰率</param>
-	/// <param name="cosFalloffStart">スポットライトの開始角度の余弦値</param>
-	/// <param name="cosAngle">スポットライトの余弦</param>
-	void SetSpotLight(const Vector3& position, const Vector3& direction, const Vector4& color, float intensity, float distance, float decay, float cosFalloffStart, float cosAngle);
-
-	// スポットライトの色を設定
-	void SetSpotLightColor(const Vector4& color) { spotLightData_->color = color; }
-
-	// スポットライトの座標を設定
-	void SetSpotLightPosition(const Vector3& position) { spotLightData_->position = position; }
-
-	// スポットライトの輝度を設定
-	void SetSpotLightIntensity(float intensity) { spotLightData_->intensity = intensity; }
-
-	// スポットライトの方向の設定
-	void SetSpotLightDirection(const Vector3& direction) { spotLightData_->direction = direction; }
-
-	// スポットライトの減衰率の設定
-	void SetSpotLightDecay(float decay) { spotLightData_->decay = decay; }
-
-	// スポットライトの開始角度の余弦値を設定
-	void SetSpotLightCosFalloffStart(float cosFalloffStart) { spotLightData_->cosFalloffStart = cosFalloffStart; }
-
-	// スポットライトの余弦を設定
-	void SetSpotLightCosAngle(float cosAngle) { spotLightData_->cosAngle = cosAngle; }
+	// デバッグ用ライトギズモ描画
+	void DebugDrawLightGizmos();
 
 private: /// ---------- メンバ変数 ---------- ///
 
 	DirectXCommon* dxCommon_ = nullptr;
 
-	// 平行光源
-	DirectionalLight* directionalLightData_;
-	ComPtr<ID3D12Resource> directionalLightResource_;
+	std::vector<PunctualLightGPU> punctualLights_; // GPUに送るライト情報
 
-	// 点光源
-	PointLight* pointLightData_;
-	ComPtr<ID3D12Resource> pointLightResource_;
+	// GPU送信用バッファとSRV
+	Microsoft::WRL::ComPtr<ID3D12Resource> punctualBuffer_;
+	uint32_t punctualBufferBytes_ = 0;
+	uint32_t punctualSRVIndex_ = UINT32_MAX;
+	bool     punctualSRVAllocated_ = false;
+	uint32_t punctualType_ = 1; // 0=None, 1=Directional, 2=Point, 3=Spot
 
-	// スポットライト
-	SpotLight* spotLightData_;
-	ComPtr<ID3D12Resource> spotLightResource_;
+	Microsoft::WRL::ComPtr<ID3D12Resource> lightInfoResource_;
+	LightInfo* lightInfoData_ = nullptr;
 
 private: /// ---------- コピー禁止 ---------- ///
 

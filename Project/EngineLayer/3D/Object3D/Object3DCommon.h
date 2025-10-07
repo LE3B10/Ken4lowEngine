@@ -41,6 +41,9 @@ public: /// ---------- 設定 ---------- ///
 
 public:	/// ---------- 取得 ---------- ///
 
+	// 
+	Vector3 GetActiveCameraPosition() const { return activeCameraPosition_; }
+
 	// デフォルトカメラを取得
 	Camera* GetDefaultCamera() const { return defaultCamera_; }
 
@@ -58,7 +61,7 @@ private: /// ---------- メンバ変数 ---------- ///
 private: /// ---------- メンバ変数 ---------- ///
 
 	DirectXCommon* dxCommon_ = nullptr;
-	
+
 	// デフォルトカメラ
 	Camera* defaultCamera_ = nullptr;
 
@@ -74,6 +77,8 @@ private: /// ---------- メンバ変数 ---------- ///
 	// ビュー射影行列
 	Matrix4x4 viewProjectionMatrix_;
 	Matrix4x4 debugViewProjectionMatrix_;
+
+	Vector3 activeCameraPosition_{ 0,0,0 }; // 追加
 
 	// デバッグカメラのON/OFF用
 	bool isDebugCamera_ = false;
