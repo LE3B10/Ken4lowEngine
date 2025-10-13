@@ -3,6 +3,7 @@
 #include <Object3D.h>
 #include <BaseScene.h>
 #include "SkyBox.h"
+#include <FadeController.h>
 
 #include <memory>
 #include <numbers>
@@ -57,6 +58,7 @@ public: /// ---------- メンバ関数 ---------- ///
 	// 終了処理
 	void Finalize() override;
 
+	// ImGui描画処理
 	void DrawImGui() override;
 
 private: /// ---------- メンバ関数 ---------- ///
@@ -195,5 +197,13 @@ private: /// ---------- 定数 ---------- ///
 
 	float blinkPhase_ = 0.0f;     // [クリックで開始] の点滅位相
 	float blinkSpeed_ = 2.5f;     // 点滅速度（rad/sec）
+
+private: /// ---------- メンバ変数 ----------///
+
+	// フェード制御
+	std::unique_ptr<FadeController> fadeController_ = nullptr;
+	bool requestChange_ = false; // シーン切り替え要求
+
+	float timer_ = 0.0f;   // シーン開始からの経過時間
 };
 

@@ -24,6 +24,8 @@ public: /// ---------- ゲッター ---------- ///
 	// FPSの取得
 	float GetFPS() const { return currentFPS_; } // 現在のFPSを取得
 
+	float GetDeltaTime() const { return deltaSecond_; }
+
 public: /// ---------- セッター ---------- ///
 
 	// FPSの設定
@@ -34,6 +36,9 @@ private: /// ---------- メンバ変数 ---------- ///
 	// FPSの計算用
 	std::chrono::steady_clock::time_point reference_;
 	std::chrono::steady_clock::time_point fpsReference_;
+
+	std::chrono::steady_clock::time_point lastBegin_{};
+	float deltaSecond_ = 0.0f;
 
 	int targetFPS_;
 	int frameCount_;

@@ -1,6 +1,8 @@
 #pragma once
 #include <cmath>
 #include <numbers>
+#include <algorithm>
+#include "Vector4.h"
 
 /// -------------------------------------------------------------
 ///						線形補間を行う関数
@@ -8,6 +10,15 @@
 
 /// ---------- 線形補間を行う関数 ---------- ///
 inline float Lerp(float a, float b, float t) { return a + (b - a) * t; }
+inline Vector4 Lerp(const Vector4& a, const Vector4& b, float t)
+{
+	return {
+		Lerp(a.x, b.x, t),
+		Lerp(a.y, b.y, t),
+		Lerp(a.z, b.z, t),
+		Lerp(a.w, b.w, t)
+	};
+}
 
 /// ---------- 値を0〜1にクランプする関数 ---------- ///
 inline float Saturate(float x) { return std::clamp(x, 0.0f, 1.0f); }
