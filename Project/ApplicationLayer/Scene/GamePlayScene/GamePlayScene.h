@@ -7,6 +7,7 @@
 #include "ParticleEmitter.h"
 #include <BaseScene.h>
 #include <SkyBox.h>
+#include <FadeController.h>
 
 #include "CollisionManager.h"
 
@@ -127,6 +128,7 @@ private: /// ---------- メンバ関数 ---------- ///
 
 private: /// ---------- メンバ変数 ---------- ///
 
+	DirectXCommon* dxCommon_ = nullptr;
 	Input* input_ = nullptr;
 
 	GameState gameState_ = GameState::Playing; // ゲームの状態
@@ -175,4 +177,9 @@ private: /// ---------- メンバ変数 ---------- ///
 	float spawnRadiusMin_ = 18.0f;
 
 	float spawnRadiusMax_ = 25.0f;
+
+private: /// ---------- メンバ変数 ---------- ///
+
+	std::unique_ptr<FadeController> fadeController_ = nullptr; // フェードコントローラー
+
 };

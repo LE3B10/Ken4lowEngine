@@ -30,6 +30,14 @@ void TitleScene::Initialize()
 	dxCommon_ = DirectXCommon::GetInstance();
 	input_ = Input::GetInstance();
 
+	// フェードコントローラーの初期化
+	fadeController_ = std::make_unique<FadeController>();
+	fadeController_->Initialize(static_cast<float>(dxCommon_->GetSwapChainDesc().Width), static_cast<float>(dxCommon_->GetSwapChainDesc().Height), "white.png");
+	fadeController_->SetFadeMode(FadeController::FadeMode::Checkerboard);
+	fadeController_->SetGrid(14, 8);
+	fadeController_->SetCheckerDelay(0.012f);
+	fadeController_->StartFadeIn(0.32f); // 暗転明け
+
 	skyBox_ = std::make_unique<SkyBox>();
 	skyBox_->Initialize("SkyBox/skybox.dds");
 
@@ -141,6 +149,8 @@ void TitleScene::Update()
 
 	skyBox_->Update();
 
+	fadeController_->Update(dxCommon_->GetFPSCounter().GetDeltaTime());
+
 #ifdef _DEBUG
 	if (input_->TriggerKey(DIK_ESCAPE) && state_ != State::ToTitle)
 	{
@@ -231,6 +241,9 @@ void TitleScene::Draw2DSprites()
 		if (btnShop_)  btnShop_->Draw();
 		if (iconGear_) iconGear_->Draw();
 	}
+
+	// フェードコントローラー
+	fadeController_->Draw();
 
 #pragma endregion
 
@@ -468,7 +481,8 @@ void TitleScene::UpdateLobbyIdle(float dt)
 
 	// ----- クリック確定ルール -----
 	// 1) ボタン内で押し始めたら「押下中」フラグを立てる
-	if (input_->TriggerMouse(0) && inBtn) {
+	if (input_->TriggerMouse(0) && inBtn)
+	{
 		battleBtnPressing_ = true;
 	}
 	// 2) ボタンを押している間は「押下演出」を出す
@@ -476,9 +490,13 @@ void TitleScene::UpdateLobbyIdle(float dt)
 	const bool mouseUp = input_->ReleaseMouse(0);   // ※ 離しの立ち上がり
 
 	// 3) 離した瞬間、押下開始していて かつ いまもボタン内なら確定
-	if (mouseUp) {
-		if (battleBtnPressing_ && inBtn) {
-			if (sceneManager_) { sceneManager_->ChangeScene("GamePlayScene"); }
+	if (mouseUp)
+	{
+		if (battleBtnPressing_ && inBtn && !fadeController_->IsFading())
+		{
+			fadeController_->SetFadeMode(FadeController::FadeMode::Checkerboard);
+			fadeController_->SetOnComplete([this] {if (sceneManager_) { sceneManager_->ChangeScene("StageSelectScene"); }});
+			fadeController_->StartFadeOut(0.32f); // 暗転
 			battleBtnPressing_ = false;
 			return;
 		}
@@ -528,8 +546,11 @@ void TitleScene::UpdateLobbyIdle(float dt)
 	}
 
 	// --- キーボード/パッド開始 ---
-	if (input_->TriggerKey(DIK_RETURN) || input_->TriggerButton(XButtons.A)) {
-		if (sceneManager_) { sceneManager_->ChangeScene("GamePlayScene"); }
+	if ((input_->TriggerKey(DIK_RETURN) || input_->TriggerButton(XButtons.A)) && !fadeController_->IsFading())
+	{
+		fadeController_->SetFadeMode(FadeController::FadeMode::Checkerboard);
+		fadeController_->SetOnComplete([this] {if (sceneManager_) { sceneManager_->ChangeScene("StageSelectScene"); }});
+		fadeController_->StartFadeOut(0.32f); // 暗転
 		return;
 	}
 

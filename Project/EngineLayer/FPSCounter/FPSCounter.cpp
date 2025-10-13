@@ -1,3 +1,4 @@
+#define NOMINMAX
 #include "FPSCounter.h"
 #include <sstream>
 #include <windows.h>
@@ -11,19 +12,29 @@ FPSCounter::FPSCounter(int targetFPS)
 
 void FPSCounter::StartFrame()
 {
-	reference_ = std::chrono::steady_clock::now();
+	auto now = std::chrono::steady_clock::now();
+	if (lastBegin_.time_since_epoch().count() != 0)
+	{
+		deltaSecond_ = std::chrono::duration<float>(now - lastBegin_).count();
+	}
+	else
+	{
+		deltaSecond_ = 1.0f / std::max(1, targetFPS_); // 初回は目標fpsから仮置き
+	}
+	lastBegin_ = now;
+	reference_ = now; // 既存のフレーム基準も更新
 }
 
 void FPSCounter::EndFrame()
 {
 	frameCount_++;
 
-	// FPS計測（1秒ごとに更新）
+	// ---- FPS計測（1秒ごとに更新）
 	auto now = std::chrono::steady_clock::now();
-	auto elapsed = std::chrono::duration_cast<std::chrono::seconds>(now - fpsReference_);
-	if (elapsed.count() >= 1)
+	auto secElapsed = std::chrono::duration_cast<std::chrono::seconds>(now - fpsReference_);
+	if (secElapsed.count() >= 1)
 	{
-		currentFPS_ = static_cast<float>(frameCount_) / elapsed.count();
+		currentFPS_ = static_cast<float>(frameCount_) / static_cast<float>(secElapsed.count());
 		frameCount_ = 0;
 		fpsReference_ = now;
 
@@ -32,27 +43,24 @@ void FPSCounter::EndFrame()
 		OutputDebugStringA(oss.str().c_str());
 	}
 
-	// FPS固定処理
-	auto frameTime = std::chrono::microseconds(static_cast<int>(1000000.0f / targetFPS_));
-	auto elapsedFrame = std::chrono::steady_clock::now() - reference_;
+	// ---- FPS固定（steady_clock に統一して sleep_until）
+	const int clampedTarget = std::max(1, targetFPS_);
+	const auto frameDurFloat = std::chrono::duration<float>(1.0f / static_cast<float>(clampedTarget));
+	const auto frameDur = std::chrono::duration_cast<std::chrono::steady_clock::duration>(frameDurFloat);
 
-	if (elapsedFrame < frameTime)
+	// このフレーム開始時刻 reference_ から、次フレームの締切（デッドライン）を決める
+	auto deadline = reference_ + frameDur;
+	now = std::chrono::steady_clock::now();
+
+	if (now < deadline)
 	{
-		auto sleepTime = frameTime - elapsedFrame;
-		auto startSleep = std::chrono::high_resolution_clock::now();
-		do {
-			auto now = std::chrono::high_resolution_clock::now();
-			auto elapsedSleep = now - startSleep;
-			if (elapsedSleep >= sleepTime) break;
-		} while (true);
-		auto endSleep = std::chrono::steady_clock::now();
-
-		// スリープの誤差を補正
-		auto actualSleep = endSleep - startSleep;
-		reference_ += (sleepTime - actualSleep);
+		// 締切までスリープ（高精度に合わせてくれる）
+		std::this_thread::sleep_until(deadline);
+		reference_ = deadline;                 // 次フレームの基準はデッドライン
 	}
 	else
 	{
-		reference_ = std::chrono::steady_clock::now();
+		// ドリフト抑制のため、今を基準にする
+		reference_ = now;
 	}
 }
