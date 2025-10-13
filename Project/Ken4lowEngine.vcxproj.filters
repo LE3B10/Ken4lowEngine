@@ -451,6 +451,27 @@
     <ClCompile Include="EngineLayer\Managers\PostEffectManager\PostEffectManager.cpp">
       <Filter>EngineLayer\Managers\PostEffectManager</Filter>
     </ClCompile>
+    <ClCompile Include="ApplicationLayer\EffectLayer\FadeController.cpp">
+      <Filter>ApplicationLayer\EffectLayer</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\Scene\StageSelectScene\GridStageSelector.cpp">
+      <Filter>ApplicationLayer\Scene\StageSelectScene</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\Scene\StageSelectScene\IStageSelector.cpp">
+      <Filter>ApplicationLayer\Scene\StageSelectScene</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\Scene\StageSelectScene\StageRepository.cpp">
+      <Filter>ApplicationLayer\Scene\StageSelectScene</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\Scene\StageSelectScene\StageSelectScene.cpp">
+      <Filter>ApplicationLayer\Scene\StageSelectScene</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\Scene\StageSelectScene\WorldMapScene.cpp">
+      <Filter>ApplicationLayer\Scene\StageSelectScene</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\Scene\StageSelectScene\WorldMapStageSelector.cpp">
+      <Filter>ApplicationLayer\Scene\StageSelectScene</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="EngineLayer\Math\AABB.h">
@@ -903,6 +924,27 @@
     <ClInclude Include="EngineLayer\Managers\PostEffectManager\PostEffectManager.h">
       <Filter>EngineLayer\Managers\PostEffectManager</Filter>
     </ClInclude>
+    <ClInclude Include="ApplicationLayer\EffectLayer\FadeController.h">
+      <Filter>ApplicationLayer\EffectLayer</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Scene\StageSelectScene\GridStageSelector.h">
+      <Filter>ApplicationLayer\Scene\StageSelectScene</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Scene\StageSelectScene\IStageSelector.h">
+      <Filter>ApplicationLayer\Scene\StageSelectScene</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Scene\StageSelectScene\StageRepository.h">
+      <Filter>ApplicationLayer\Scene\StageSelectScene</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Scene\StageSelectScene\StageSelectScene.h">
+      <Filter>ApplicationLayer\Scene\StageSelectScene</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Scene\StageSelectScene\WorldMapScene.h">
+      <Filter>ApplicationLayer\Scene\StageSelectScene</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Scene\StageSelectScene\WorldMapStageSelector.h">
+      <Filter>ApplicationLayer\Scene\StageSelectScene</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="Resources\Shaders\PostEffect\FullScreen.hlsli">
@@ -1230,6 +1272,9 @@
     </Filter>
     <Filter Include="EngineLayer\PostEffectManagement\PostEffectManagement">
       <UniqueIdentifier>{549db25b-5a48-4909-8720-02dad4b5bd4d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ApplicationLayer\Scene\StageSelectScene">
+      <UniqueIdentifier>{a8ef6c3f-b857-47b2-ab59-763fefc17071}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>

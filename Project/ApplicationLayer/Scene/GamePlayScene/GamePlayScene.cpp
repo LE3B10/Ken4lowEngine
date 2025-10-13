@@ -31,86 +31,94 @@ void GamePlayScene::Initialize()
 	DebugCamera::GetInstance()->Initialize();
 #endif // _DEBUG
 
+	dxCommon_ = DirectXCommon::GetInstance();
 	input_ = Input::GetInstance();
 
-	// カーソルをロック
-	Input::GetInstance()->SetLockCursor(true);
-	ShowCursor(false);// 表示・非表示も連動（オプション）
+	fadeController_ = std::make_unique<FadeController>();
+	fadeController_->Initialize(static_cast<float>(dxCommon_->GetSwapChainDesc().Width), static_cast<float>(dxCommon_->GetSwapChainDesc().Height), "white.png");
+	fadeController_->SetFadeMode(FadeController::FadeMode::Checkerboard);
+	fadeController_->SetGrid(14, 8);
+	fadeController_->SetCheckerDelay(0.012f);
+	fadeController_->StartFadeIn(0.32f); // 暗転明け
 
-	EnemyBullet::ClearAll();
+	//// カーソルをロック
+	//Input::GetInstance()->SetLockCursor(true);
+	//ShowCursor(false);// 表示・非表示も連動（オプション）
 
-	// スコアの初期化
-	ScoreManager::GetInstance()->Initialize();
+	//EnemyBullet::ClearAll();
 
-	// プレイヤーの生成と初期化
-	player_ = std::make_unique<Player>();
-	player_->Initialize();
+	//// スコアの初期化
+	//ScoreManager::GetInstance()->Initialize();
 
-	enemies_.clear();
-	enemies_.reserve(32); // 敵の数を予約
-	spawnRequests_.clear();
+	//// プレイヤーの生成と初期化
+	//player_ = std::make_unique<Player>();
+	//player_->Initialize();
 
-	// ★これまでの3点push_backを削除して↓に置き換え
-	enemySpawnPoints_.clear();
-	RebuildSpawnPointsAroundPlayer(/*count=*/8, spawnRadiusMin_, spawnRadiusMax_);
+	//enemies_.clear();
+	//enemies_.reserve(32); // 敵の数を予約
+	//spawnRequests_.clear();
 
-	enemySpawnPoints_.clear(); // 重複防止
-	{
-		const Vector3 base = player_->GetAnimationModel()->GetTranslate() + Vector3(0.0f, 1.0f, 0.0f);
-		enemySpawnPoints_.push_back(base + Vector3{ -20.0f,0.0f,20.0f });
-		enemySpawnPoints_.push_back(base + Vector3{ 20.0f,0.0f,20.0f });
-		enemySpawnPoints_.push_back(base + Vector3{ 0.0f,0.0f,18.0f });
-	}
+	//// ★これまでの3点push_backを削除して↓に置き換え
+	//enemySpawnPoints_.clear();
+	//RebuildSpawnPointsAroundPlayer(/*count=*/8, spawnRadiusMin_, spawnRadiusMax_);
 
-	// ★ ウェーブ構成 → 開始
-	InitWaves();        // Wave の total/batch/interval を定義（あなたの下部関数を使用）
-	waveIndex_ = 0;
-	BeginWave(waveIndex_);  // HUD更新もここで入ります
+	//enemySpawnPoints_.clear(); // 重複防止
+	//{
+	//	const Vector3 base = player_->GetAnimationModel()->GetTranslate() + Vector3(0.0f, 1.0f, 0.0f);
+	//	enemySpawnPoints_.push_back(base + Vector3{ -20.0f,0.0f,20.0f });
+	//	enemySpawnPoints_.push_back(base + Vector3{ 20.0f,0.0f,20.0f });
+	//	enemySpawnPoints_.push_back(base + Vector3{ 0.0f,0.0f,18.0f });
+	//}
 
-	// ボス
-	boss_.reset(); // 念のためリセット
-	bossSpawned_ = false; // リセット
+	//// ★ ウェーブ構成 → 開始
+	//InitWaves();        // Wave の total/batch/interval を定義（あなたの下部関数を使用）
+	//waveIndex_ = 0;
+	//BeginWave(waveIndex_);  // HUD更新もここで入ります
 
-	// 追従カメラの生成と初期化
-	fpsCamera_ = std::make_unique<FpsCamera>();
-	fpsCamera_->Initialize(player_.get());
-	fpsCamera_->SetDeltaTime(player_->GetDeltaTime());
+	//// ボス
+	//boss_.reset(); // 念のためリセット
+	//bossSpawned_ = false; // リセット
 
-	// プレイヤーにカメラを設定
-	player_->SetCamera(fpsCamera_->GetCamera());
-	player_->SetFpsCamera(fpsCamera_.get());
+	//// 追従カメラの生成と初期化
+	//fpsCamera_ = std::make_unique<FpsCamera>();
+	//fpsCamera_->Initialize(player_.get());
+	//fpsCamera_->SetDeltaTime(player_->GetDeltaTime());
 
-	// クロスヘアの生成と初期化
-	crosshair_ = std::make_unique<Crosshair>();
-	crosshair_->Initialize();
+	//// プレイヤーにカメラを設定
+	//player_->SetCamera(fpsCamera_->GetCamera());
+	//player_->SetFpsCamera(fpsCamera_.get());
 
-	player_->SetCrosshair(crosshair_.get()); // プレイヤーにクロスヘアを設定
+	//// クロスヘアの生成と初期化
+	//crosshair_ = std::make_unique<Crosshair>();
+	//crosshair_->Initialize();
 
-	// 衝突マネージャの生成
-	collisionManager_ = std::make_unique<CollisionManager>();
-	collisionManager_->Initialize();
+	//player_->SetCrosshair(crosshair_.get()); // プレイヤーにクロスヘアを設定
 
-	// HUDマネージャーの生成と初期化
-	hudManager_ = std::make_unique<HUDManager>();
-	hudManager_->Initialize();
-	hudManager_->SyncWeaponSlots(2);     // ★ 今は2本
-	hudManager_->SetActiveWeaponIndex(0); // ★ 初期は1番目
+	//// 衝突マネージャの生成
+	//collisionManager_ = std::make_unique<CollisionManager>();
+	//collisionManager_->Initialize();
 
-	// 結果マネージャーの生成と初期化
-	resultManager_ = std::make_unique<ResultManager>();
-	resultManager_->Initialize();
+	//// HUDマネージャーの生成と初期化
+	//hudManager_ = std::make_unique<HUDManager>();
+	//hudManager_->Initialize();
+	//hudManager_->SyncWeaponSlots(2);     // ★ 今は2本
+	//hudManager_->SetActiveWeaponIndex(0); // ★ 初期は1番目
 
-	// 初期化内に追加（プレイヤー近くに1個スポーン）
-	itemManager_ = std::make_unique<ItemManager>();
-	itemManager_->Initialize();
+	//// 結果マネージャーの生成と初期化
+	//resultManager_ = std::make_unique<ResultManager>();
+	//resultManager_->Initialize();
 
-	terrein_ = std::make_unique<Object3D>();
-	// 地形オブジェクトの初期化
-	terrein_->Initialize("terrain.gltf");
-	terrein_->SetScale({ 50.0f, 50.0f, 50.0f });
+	//// 初期化内に追加（プレイヤー近くに1個スポーン）
+	//itemManager_ = std::make_unique<ItemManager>();
+	//itemManager_->Initialize();
 
-	skyBox_ = std::make_unique<SkyBox>();
-	skyBox_->Initialize("SkyBox/skybox.dds");
+	//terrein_ = std::make_unique<Object3D>();
+	//// 地形オブジェクトの初期化
+	//terrein_->Initialize("terrain.gltf");
+	//terrein_->SetScale({ 50.0f, 50.0f, 50.0f });
+
+	//skyBox_ = std::make_unique<SkyBox>();
+	//skyBox_->Initialize("SkyBox/skybox.dds");
 }
 
 
@@ -143,33 +151,34 @@ void GamePlayScene::Update()
 		}
 	}
 
-	switch (gameState_)
-	{
-	case GameState::Playing:
+	//switch (gameState_)
+	//{
+	//case GameState::Playing:
 
-		UpdatePlaying();
+	//	UpdatePlaying();
 
-		break;
+	//	break;
 
-	case GameState::Paused:
+	//case GameState::Paused:
 
-		UpdatePaused();
-		// 何も動かさない（またはポーズUIだけ更新）
-		break;
+	//	UpdatePaused();
+	//	// 何も動かさない（またはポーズUIだけ更新）
+	//	break;
 
-	case GameState::Result:
+	//case GameState::Result:
 
-		UpdateResult();
+	//	UpdateResult();
 
-		break;
-	}
+	//	break;
+	//}
 
-	terrein_->Update();
+	//terrein_->Update();
 
-	skyBox_->Update();
+	//skyBox_->Update();
 
-	EnemyBullet::UpdateAll(player_.get(), player_->GetDeltaTime());
+	//EnemyBullet::UpdateAll(player_.get(), player_->GetDeltaTime());
 
+	fadeController_->Update(dxCommon_->GetFPSCounter().GetDeltaTime());
 }
 
 
@@ -183,44 +192,44 @@ void GamePlayScene::Draw3DObjects()
 	// スカイボックスの共通描画設定
 	SkyBoxManager::GetInstance()->SetRenderSetting();
 
-	skyBox_->Draw();
+	//skyBox_->Draw();
 
 #pragma endregion
 
 
 #pragma region オブジェクト3Dの描画
 
-	terrein_->Draw();
+	//terrein_->Draw();
 
-	// アイテムの描画
-	itemManager_->Draw();
+	//// アイテムの描画
+	//itemManager_->Draw();
 
-	for (const auto& enemy : enemies_) enemy->Draw();
+	//for (const auto& enemy : enemies_) enemy->Draw();
 
-	EnemyBullet::DrawAll();
+	//EnemyBullet::DrawAll();
 
-	// プレイヤーの描画
-	player_->Draw();
+	//// プレイヤーの描画
+	//player_->Draw();
 
 #pragma endregion
 
 
 #pragma region アニメーションモデルの描画
 
-	if (boss_) boss_->Draw();
+	//if (boss_) boss_->Draw();
 
 #pragma endregion
 
 
 #ifdef _DEBUG
 	// 衝突判定を行うオブジェクトの描画
-	collisionManager_->Draw();
+	//collisionManager_->Draw();
 
 	// FPSカメラの描画
-	fpsCamera_->DrawDebugCamera();
+	//fpsCamera_->DrawDebugCamera();
 
 	// ワイヤーフレームの描画
-	//Wireframe::GetInstance()->DrawGrid(100.0f, 100.0f, { 0.25f, 0.25f, 0.25f,1.0f });
+	Wireframe::GetInstance()->DrawGrid(100.0f, 100.0f, { 0.25f, 0.25f, 0.25f,1.0f });
 
 #endif // _DEBUG
 }
@@ -245,12 +254,14 @@ void GamePlayScene::Draw2DSprites()
 	SpriteManager::GetInstance()->SetRenderSetting_UI();
 
 	// クロスヘアの描画
-	crosshair_->Draw();
+	//crosshair_->Draw();
 
 	// HUDマネージャーの描画
-	hudManager_->Draw();
+	//hudManager_->Draw();
 
-	if (gameState_ == GameState::Result) resultManager_->Draw();
+	//if (gameState_ == GameState::Result) resultManager_->Draw();
+
+	fadeController_->Draw();
 
 #pragma endregion
 }
@@ -274,11 +285,11 @@ void GamePlayScene::DrawImGui()
 	LightManager::GetInstance()->DrawImGui();
 
 	// プレイヤー
-	player_->DrawImGui();
+	//player_->DrawImGui();
 
-	if (boss_) boss_->DrawImGui();
+	//if (boss_) boss_->DrawImGui();
 
-	terrein_->DrawImGui();
+	//terrein_->DrawImGui();
 }
 
 
