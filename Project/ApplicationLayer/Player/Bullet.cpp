@@ -5,9 +5,6 @@
 #include <Player.h>
 #include <Crosshair.h>
 #include <ParticleManager.h>
-#include <Boss.h>
-#include <Enemy.h>
-
 
 /// -------------------------------------------------------------
 ///				　			初期化処理
@@ -135,55 +132,9 @@ void Bullet::OnCollision(Collider* other)
 
 	contactRecord_.Add(targetID); // 初めて当たった相手として記録
 
-	if (other->GetTypeID() == static_cast<uint32_t>(CollisionTypeIdDef::kBoss))        // ★ 追加
-	{
-		if (auto boss = other->GetOwner<Boss>()) {
-			boss->TakeDamage(GetDamage());
-			ScoreManager::GetInstance()->AddScore(100);
-		}
-	}
-
-	// 敵にダメージを与える
-	if (other->GetTypeID() == static_cast<uint32_t>(CollisionTypeIdDef::kEnemy))
-	{
-		if (auto enemy = other->GetOwner<Enemy>())
-		{
-			enemy->TakeDamage(GetDamage());
-
-			// ノックバックを与える
-			const Vector3 knockbackDir = Vector3::Normalize(velocity_);
-			const float knockbackPower = std::clamp(GetDamage() * 0.01f, 0.4f, 1.5f);
-			enemy->ApplyKnockback(knockbackDir, knockbackPower);
-
-			ScoreManager::GetInstance()->AddScore(100);
-		}
-	}
-
-	// 🔽 ヒットマーカー通知
-	if (player_) if (auto ch = player_->GetCrosshair()) ch->ShowHitMarker();
-
-
 	// パーティクルを表示（仮演出）
 	// ヒット位置
 	Vector3 hitPos = position_;
-
-	// 血飛沫
-	//ParticleManager::GetInstance()->Emit("BloodEffect", hitPos, 15, ParticleEffectType::Blood);
-
-	//// フラッシュ
-	//ParticleManager::GetInstance()->Emit("FlashEffect", hitPos, 1, ParticleEffectType::Flash);
-
-	//// 火花
-	//ParticleManager::GetInstance()->Emit("SparkEffect", hitPos, 8, ParticleEffectType::Spark);
-
-	//// 煙
-	//ParticleManager::GetInstance()->Emit("SmokeEffect", hitPos, 3, ParticleEffectType::Smoke);
-
-	// 円形波紋
-	ParticleManager::GetInstance()->Emit("RingEffect", hitPos, 1, ParticleEffectType::Ring);
-
-	//// 破片（軽め）
-	//ParticleManager::GetInstance()->Emit("ExplosionEffect", hitPos, 5, ParticleEffectType::Explosion);
 
 	isDead_ = true; // 単発弾の場合
 	velocity_ = { 0,0,0 };

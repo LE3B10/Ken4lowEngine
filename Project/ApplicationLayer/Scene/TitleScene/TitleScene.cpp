@@ -509,6 +509,7 @@ void TitleScene::UpdateLobbyIdle(float dt)
 		{
 			fadeController_->SetFadeMode(FadeController::FadeMode::Checkerboard);
 			fadeController_->SetOnComplete([this] {if (sceneManager_) { sceneManager_->ChangeScene("StageSelectScene"); }});
+			fadeController_->SetCheckerDelay(0.012f);
 			fadeController_->StartFadeOut(0.32f); // 暗転
 			battleBtnPressing_ = false;
 			return;
@@ -563,6 +564,7 @@ void TitleScene::UpdateLobbyIdle(float dt)
 	{
 		fadeController_->SetFadeMode(FadeController::FadeMode::Checkerboard);
 		fadeController_->SetOnComplete([this] {if (sceneManager_) { sceneManager_->ChangeScene("StageSelectScene"); }});
+		fadeController_->SetCheckerDelay(0.012f);
 		fadeController_->StartFadeOut(0.32f); // 暗転
 		return;
 	}
@@ -696,7 +698,7 @@ void TitleScene::UpdateDebug()
 
 		Object3DCommon::GetInstance()->SetDebugCamera(!Object3DCommon::GetInstance()->GetDebugCamera());
 		Wireframe::GetInstance()->SetDebugCamera(!Wireframe::GetInstance()->GetDebugCamera());
-		ParticleManager::GetInstance()->SetDebugCamera(!ParticleManager::GetInstance()->GetDebugCamera());
+		//ParticleManager::GetInstance()->SetDebugCamera(!ParticleManager::GetInstance()->GetDebugCamera());
 		/*skyBox_->SetDebugCamera(!skyBox_->GetDebugCamera());
 		player_->SetDebugCamera(!player_->IsDebugCamera());*/
 		isDebugCamera_ = !isDebugCamera_;

@@ -229,48 +229,6 @@
     <ClCompile Include="EngineLayer\PostEffectManagement\VignetteEffect\VignetteEffect.cpp">
       <Filter>EngineLayer\PostEffectManagement\VignetteEffect</Filter>
     </ClCompile>
-    <ClCompile Include="ApplicationLayer\Player\Behavior\IdleBehavior\IdleBehavior.cpp">
-      <Filter>ApplicationLayer\Player\Behavior</Filter>
-    </ClCompile>
-    <ClCompile Include="ApplicationLayer\Player\Behavior\JumpingBehavior\JumpingBehavior.cpp">
-      <Filter>ApplicationLayer\Player\Behavior</Filter>
-    </ClCompile>
-    <ClCompile Include="ApplicationLayer\Player\Behavior\PlayerBehavior\PlayerBehavior.cpp">
-      <Filter>ApplicationLayer\Player\Behavior</Filter>
-    </ClCompile>
-    <ClCompile Include="ApplicationLayer\Player\Behavior\RunningBehavior\RunningBehavior.cpp">
-      <Filter>ApplicationLayer\Player\Behavior</Filter>
-    </ClCompile>
-    <ClCompile Include="ApplicationLayer\Player\Behavior\WalkingBehavior\WalkingBehavior.cpp">
-      <Filter>ApplicationLayer\Player\Behavior</Filter>
-    </ClCompile>
-    <ClCompile Include="ApplicationLayer\Player\Behavior\AimingBehavior\AimingBehavior.cpp">
-      <Filter>ApplicationLayer\Player\Behavior</Filter>
-    </ClCompile>
-    <ClCompile Include="ApplicationLayer\Player\Behavior\DeadBehavior\DeadBehavior.cpp">
-      <Filter>ApplicationLayer\Player\Behavior</Filter>
-    </ClCompile>
-    <ClCompile Include="ApplicationLayer\Player\Behavior\ReloadingBehavior\ReloadingBehavior.cpp">
-      <Filter>ApplicationLayer\Player\Behavior</Filter>
-    </ClCompile>
-    <ClCompile Include="ApplicationLayer\Player\Behavior\ShootingBehavior\ShootingBehavior.cpp">
-      <Filter>ApplicationLayer\Player\Behavior</Filter>
-    </ClCompile>
-    <ClCompile Include="ApplicationLayer\Enemy\Enemy.cpp">
-      <Filter>ApplicationLayer\Enemy</Filter>
-    </ClCompile>
-    <ClCompile Include="ApplicationLayer\Enemy\EnemyBullet.cpp">
-      <Filter>ApplicationLayer\Enemy</Filter>
-    </ClCompile>
-    <ClCompile Include="ApplicationLayer\Enemy\Boss\Boss.cpp">
-      <Filter>ApplicationLayer\Enemy\Boss</Filter>
-    </ClCompile>
-    <ClCompile Include="ApplicationLayer\Enemy\Boss\BossBullet.cpp">
-      <Filter>ApplicationLayer\Enemy\Boss</Filter>
-    </ClCompile>
-    <ClCompile Include="ApplicationLayer\Enemy\Boss\BossWeapon.cpp">
-      <Filter>ApplicationLayer\Enemy\Boss</Filter>
-    </ClCompile>
     <ClCompile Include="ApplicationLayer\Scene\GameClearScene\GameClearScene.cpp">
       <Filter>ApplicationLayer\Scene\GameClearScene</Filter>
     </ClCompile>
@@ -451,6 +409,7 @@
     <ClCompile Include="ApplicationLayer\Scene\StageSelectScene\WorldMapStageSelector.cpp">
       <Filter>ApplicationLayer\Scene\StageSelectScene</Filter>
     </ClCompile>
+    <ClCompile Include="BaseCharacter.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="EngineLayer\Math\MultipleStructs\AABB.h">
@@ -672,48 +631,6 @@
     <ClInclude Include="EngineLayer\PostEffectManagement\VignetteEffect\VignetteEffect.h">
       <Filter>EngineLayer\PostEffectManagement\VignetteEffect</Filter>
     </ClInclude>
-    <ClInclude Include="ApplicationLayer\Player\Behavior\IdleBehavior\IdleBehavior.h">
-      <Filter>ApplicationLayer\Player\Behavior</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Player\Behavior\JumpingBehavior\JumpingBehavior.h">
-      <Filter>ApplicationLayer\Player\Behavior</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Player\Behavior\PlayerBehavior\PlayerBehavior.h">
-      <Filter>ApplicationLayer\Player\Behavior</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Player\Behavior\RunningBehavior\RunningBehavior.h">
-      <Filter>ApplicationLayer\Player\Behavior</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Player\Behavior\WalkingBehavior\WalkingBehavior.h">
-      <Filter>ApplicationLayer\Player\Behavior</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Player\Behavior\AimingBehavior\AimingBehavior.h">
-      <Filter>ApplicationLayer\Player\Behavior</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Player\Behavior\DeadBehavior\DeadBehavior.h">
-      <Filter>ApplicationLayer\Player\Behavior</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Player\Behavior\ReloadingBehavior\ReloadingBehavior.h">
-      <Filter>ApplicationLayer\Player\Behavior</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Player\Behavior\ShootingBehavior\ShootingBehavior.h">
-      <Filter>ApplicationLayer\Player\Behavior</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Enemy\Enemy.h">
-      <Filter>ApplicationLayer\Enemy</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Enemy\EnemyBullet.h">
-      <Filter>ApplicationLayer\Enemy</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Enemy\Boss\BossWeapon.h">
-      <Filter>ApplicationLayer\Enemy\Boss</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Enemy\Boss\Boss.h">
-      <Filter>ApplicationLayer\Enemy\Boss</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Enemy\Boss\BossBullet.h">
-      <Filter>ApplicationLayer\Enemy\Boss</Filter>
-    </ClInclude>
     <ClInclude Include="ApplicationLayer\Scene\GameClearScene\GameClearScene.h">
       <Filter>ApplicationLayer\Scene\GameClearScene</Filter>
     </ClInclude>
@@ -921,6 +838,7 @@
     <ClInclude Include="ApplicationLayer\Scene\StageSelectScene\WorldMapStageSelector.h">
       <Filter>ApplicationLayer\Scene\StageSelectScene</Filter>
     </ClInclude>
+    <ClInclude Include="BaseCharacter.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Resources\Shaders\PostEffect\FullScreen.hlsli">
@@ -1030,9 +948,6 @@
     <Filter Include="ApplicationLayer\SceneManager">
       <UniqueIdentifier>{2c5f873b-2150-4c54-891e-76240279990c}</UniqueIdentifier>
     </Filter>
-    <Filter Include="ApplicationLayer\Enemy">
-      <UniqueIdentifier>{4a4d70c3-1938-4f6b-9e89-8b20f7f37862}</UniqueIdentifier>
-    </Filter>
     <Filter Include="ApplicationLayer\ScoreManager">
       <UniqueIdentifier>{96740e9e-b4e9-45c4-9895-87d816c0dfd6}</UniqueIdentifier>
     </Filter>
@@ -1101,9 +1016,6 @@
     </Filter>
     <Filter Include="Shader\GeometryShader">
       <UniqueIdentifier>{c40888df-84fa-4096-ae6a-3404250fc298}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="ApplicationLayer\Enemy\Boss">
-      <UniqueIdentifier>{b1f0c792-af43-4057-bf18-b78accea8f19}</UniqueIdentifier>
     </Filter>
     <Filter Include="ApplicationLayer\Scene\GameClearScene">
       <UniqueIdentifier>{939cf676-e2d9-4a96-a018-97a10893cace}</UniqueIdentifier>
