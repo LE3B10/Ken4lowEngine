@@ -47,6 +47,7 @@ public: /// ---------- メンバ関数 ---------- ///
 
 private: /// ---------- メンバ変数 ---------- ///
 
+	// 依存注入
 	DirectXCommon* dxCommon_ = nullptr;
 	Input* input_ = nullptr;
 
@@ -63,7 +64,7 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	// 背景色
 	std::unique_ptr<Sprite> bg_;
-	Vector4 bgNow_ = { 0.10f, 0.10f, 0.10f, 1.0f };
-	Vector4 bgTarget_ = bgNow_;
+	Vector4 bgNow_ = { 0.18f, 0.49f, 0.20f, 1.0f }; // 現在の色
+	Vector4 bgTarget_ = bgNow_; // 目標の色
 };
 
