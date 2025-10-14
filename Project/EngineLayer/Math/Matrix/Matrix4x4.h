@@ -49,10 +49,9 @@ public:
 	Matrix4x4& operator*=(const Matrix4x4& other);
 	Matrix4x4& operator=(const Matrix4x4& other);
 
-	friend Matrix4x4 operator+(const Matrix4x4& m1, const Matrix4x4& m2);
-	friend Matrix4x4 operator-(const Matrix4x4& m1, const Matrix4x4& m2);
-	friend Matrix4x4 operator*(const Matrix4x4& m1, const Matrix4x4& m2);
-
+	Matrix4x4 operator+(const Matrix4x4& other) const { Matrix4x4 r = *this; r += other; return r; }
+	Matrix4x4 operator-(const Matrix4x4& other) const { Matrix4x4 r = *this; r -= other; return r; }
+	Matrix4x4 operator*(const Matrix4x4& other) const { Matrix4x4 r = *this; r *= other; return r; }
 
 	// 行列の加法
 	static Matrix4x4 Add(const Matrix4x4& m1, const Matrix4x4& m2);

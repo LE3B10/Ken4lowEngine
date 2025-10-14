@@ -16,6 +16,8 @@ public: /// ---------- メンバ関数 ---------- ///
 	// 仮想デストラクタ
 	virtual ~GridStageSelector() = default;
 
+	GridStageSelector();
+
 	// 初期化処理 : 依存注入：コンテキストを受け取る
 	void Initialize(const SelectorContext& context) override;
 

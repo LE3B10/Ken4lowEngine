@@ -3,12 +3,11 @@
 
 #pragma comment(lib, "xaudio2.lib")
 
+/// ---------- minimp3の実装 ---------- ///
 #define MINIMP3_IMPLEMENTATION
 #pragma warning(push)
-#pragma warning(disable: 4244) // size_t → int 警告を無効化
-
+#pragma warning(disable: 4267 4244) // size_t → int 警告を無効化
 #include "minimp3_ex.h"
-
 #pragma warning(pop)
 
 /// -------------------------------------------------------------
@@ -231,7 +230,14 @@ void Mp3Loader::StreamAudio(const std::string& fileName, float volume, float pit
 	}
 
 	// 一時的にPCMデータを保存するバッファ（1MB相当）
-	const size_t bufferSamples = static_cast<size_t>(1152) * mp3.info.channels * static_cast<size_t>(1) << 20;
+	/*const size_t bufferSamples = static_cast<size_t>(1152) * mp3.info.channels * static_cast<size_t>(1) << 20;
+	std::vector<short> pcmBuffer(bufferSamples);*/
+
+	// 目標チャンク
+	const size_t targetBytes = 1ull << 20; // 1MB
+	const size_t bytesPerSample = sizeof(short) * mp3.info.channels; // 1サンプルあたりのバイト数
+	const size_t bufferSamples = targetBytes / bytesPerSample; // チャンクあたりのサンプル数
+
 	std::vector<short> pcmBuffer(bufferSamples);
 
 	// ピッチ・音量の初期値（変更検出用）

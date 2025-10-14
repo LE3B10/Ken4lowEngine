@@ -38,12 +38,14 @@ public: /// ---------- 構造体 ---------- ///
 		Vector3 strength; // 風の強さ
 	};
 
+	// 加速度エフェクト
 	struct AccelerationField
 	{
 		Vector3 acceleration; // !< 加速度
 		AABB area;			  // !< 範囲
 	};
 
+	// GPUに送るためのパーティクル変換行列
 	struct ParticleForGPU
 	{
 		Matrix4x4 WVP;
@@ -51,6 +53,7 @@ public: /// ---------- 構造体 ---------- ///
 		Vector4 color;
 	};
 
+	// 頂点データ
 	struct VertexData
 	{
 		Vector4 position;

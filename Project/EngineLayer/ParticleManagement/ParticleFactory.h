@@ -13,7 +13,8 @@ public: /// ---------- メンバ関数 ---------- ///
 
 	// パーティクルを生成する関数
 	static Particle Create(std::mt19937& randomEngine, const Vector3& position, ParticleEffectType effectType);
-	
+
+	// レーザービームパーティクルを生成する関数
 	static Particle CreateLaserBeam(const Vector3& position, float length, const Vector3& color);
 };
 

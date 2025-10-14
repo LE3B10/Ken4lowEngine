@@ -64,18 +64,3 @@ void DX12Device::Initialize()
 	assert(device != nullptr);
 	Log("Complete create D3D12Device!!!\n");	//初期化完了のログを出す
 }
-
-
-
-/// -------------------------------------------------------------
-///							ゲッター
-/// -------------------------------------------------------------
-ID3D12Device* DX12Device::GetDevice() const
-{
-	return device.Get();
-}
-
-IDXGIFactory7* DX12Device::GetDXGIFactory() const
-{
-	return dxgiFactory.Get();
-}

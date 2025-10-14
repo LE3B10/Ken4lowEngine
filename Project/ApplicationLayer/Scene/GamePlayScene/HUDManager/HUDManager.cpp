@@ -64,6 +64,9 @@ void HUDManager::Initialize()
 	InitActionHints();
 }
 
+/// -------------------------------------------------------------
+///				　		各種HUD要素初期化
+/// -------------------------------------------------------------
 void HUDManager::InitNumberDrawers()
 {
 	scoreDrawer_ = std::make_unique<NumberSpriteDrawer>(); scoreDrawer_->Initialize(texturePath_);		   // スコア表示用
@@ -75,6 +78,9 @@ void HUDManager::InitNumberDrawers()
 	remainDrawer_ = std::make_unique<NumberSpriteDrawer>(); remainDrawer_->Initialize(texturePath_);	   // 残り体数
 }
 
+/// -------------------------------------------------------------
+///				　		バー、リロード円初期化
+/// -------------------------------------------------------------
 void HUDManager::InitBars()
 {
 	hpBarBase_ = std::make_unique<Sprite>(); hpBarBase_->Initialize("white.png"); // グレー背景
@@ -82,6 +88,9 @@ void HUDManager::InitBars()
 	reloadCircle_ = std::make_unique<ReloadCircle>(); reloadCircle_->Initialize("reload-circle.png"); // リロード円
 }
 
+/// -------------------------------------------------------------
+///				　		クイックスロット初期化
+/// -------------------------------------------------------------
 void HUDManager::InitQuickSlots()
 {
 	// クイックバー6スロ
@@ -93,6 +102,9 @@ void HUDManager::InitQuickSlots()
 	}
 }
 
+/// -------------------------------------------------------------
+///				　		ウェーブバナー、矢印初期化
+/// -------------------------------------------------------------
 void HUDManager::InitWaveAndArrow()
 {
 	waveBanner_ = std::make_unique<Sprite>(); waveBanner_->Initialize("white.png"); // ウェーブ黒バナー
@@ -103,6 +115,9 @@ void HUDManager::InitWaveAndArrow()
 	remainIcon_->SetAnchorPoint({ 0.5f, 0.5f });
 }
 
+/// -------------------------------------------------------------
+///				　		ガジェット初期化
+/// -------------------------------------------------------------
 void HUDManager::InitGadgets()
 {
 	// ガジェット3スロ
@@ -113,6 +128,9 @@ void HUDManager::InitGadgets()
 	}
 }
 
+/// -------------------------------------------------------------
+///				　		カテゴリアイコン初期化
+/// -------------------------------------------------------------
 void HUDManager::InitCategoryIcons()
 {
 	// カテゴリアイコン
@@ -130,6 +148,9 @@ void HUDManager::InitCategoryIcons()
 	activeCategory_ = WeaponCategory::Primary; // 主要武器をデフォルト
 }
 
+/// -------------------------------------------------------------
+///				　		アクションヒント初期化
+/// -------------------------------------------------------------
 void HUDManager::InitActionHints()
 {
 	actionPanel_ = std::make_unique<Sprite>(); actionPanel_->Initialize("white.png");
@@ -145,7 +166,6 @@ void HUDManager::InitActionHints()
 	make(hintAds_, "icon/ui_mouse_right.png", "icon/label_ADS.png");
 	make(hintReload_, "icon/ui_key_R.png", "icon/label_RELOAD.png");
 }
-
 
 /// -------------------------------------------------------------
 ///				　			更新処理
@@ -195,6 +215,9 @@ void HUDManager::Update()
 	remainIcon_->Update();
 }
 
+/// -------------------------------------------------------------
+///				　			HPバー更新
+/// -------------------------------------------------------------
 void HUDManager::UpdateHPBar()
 {
 	hpBarBase_->SetPosition(L.hpPosLT);
@@ -209,6 +232,9 @@ void HUDManager::UpdateHPBar()
 	hpBarFill_->Update();
 }
 
+/// -------------------------------------------------------------
+///				　クイックスロットのレイアウト更新
+/// -------------------------------------------------------------
 void HUDManager::UpdateQuickSlotsLayout()
 {
 	for (int i = 0; i < 6; ++i)
@@ -235,6 +261,9 @@ void HUDManager::UpdateQuickSlotsLayout()
 	}
 }
 
+/// -------------------------------------------------------------
+///				　		カテゴリアイコン更新
+/// -------------------------------------------------------------
 void HUDManager::UpdateCategoryBadge()
 {
 	float ax = L.slotsStartX + activeSlot_ * (L.slotSize.x + L.slotGap);
@@ -248,6 +277,9 @@ void HUDManager::UpdateCategoryBadge()
 	}
 }
 
+/// -------------------------------------------------------------
+///				　		アクションヒント更新
+/// -------------------------------------------------------------
 void HUDManager::UpdateActionHints()
 {
 	actionPanel_->SetPosition(L.actionPanelPos);
@@ -284,6 +316,9 @@ void HUDManager::UpdateActionHints()
 	hintReload_.label->SetColor({ 1,1,1,0.85f });
 }
 
+/// -------------------------------------------------------------
+///				　		ウェーブバナー、矢印更新
+/// -------------------------------------------------------------
 void HUDManager::UpdateWaveBanner()
 {
 	waveBanner_->SetPosition(L.bannerPos);
@@ -292,6 +327,9 @@ void HUDManager::UpdateWaveBanner()
 	waveBanner_->Update();
 }
 
+/// -------------------------------------------------------------
+///				　		目標矢印更新
+/// -------------------------------------------------------------
 void HUDManager::UpdateObjectiveArrow()
 {
 	arrowTimer_ += 1.0f / 60.0f;
@@ -302,6 +340,9 @@ void HUDManager::UpdateObjectiveArrow()
 	objectiveArrow_->Update();
 }
 
+/// -------------------------------------------------------------
+///				　		ガジェット更新
+/// -------------------------------------------------------------
 void HUDManager::UpdateGadgets()
 {
 	for (int i = 0; i < 3; ++i)
@@ -316,7 +357,6 @@ void HUDManager::UpdateGadgets()
 		gadgetIcon_[i]->SetColor({ 0.8f,0.1f,0.1f,0.55f }); gadgetIcon_[i]->Update();
 	}
 }
-
 
 /// -------------------------------------------------------------
 ///				　			描画処理
@@ -339,6 +379,9 @@ void HUDManager::Draw()
 	remainDrawer_->DrawNumberCentered(enemiesRemain_, L.remainPos);
 }
 
+/// -------------------------------------------------------------
+///				　			弾薬数の描画
+/// -------------------------------------------------------------
 void HUDManager::DrawAmmoNumbers()
 {
 	ammoDrawer_->Reset();
@@ -346,12 +389,18 @@ void HUDManager::DrawAmmoNumbers()
 	ammoDrawer_->DrawNumberRightAligned(ammoReserve_, { 1140.0f, 620.0f });
 }
 
+/// -------------------------------------------------------------
+///				　		ウェーブ残体数の描画
+/// -------------------------------------------------------------
 void HUDManager::DrawWaveRemainOnly()
 {
 	remainDrawer_->Reset();
 	remainDrawer_->DrawNumberCentered(enemiesRemain_, L.remainPos);
 }
 
+/// -------------------------------------------------------------
+///				　		HPバー、リロード円の描画
+/// -------------------------------------------------------------
 void HUDManager::DrawHPAndReload()
 {
 	hpBarBase_->Draw();
@@ -359,6 +408,9 @@ void HUDManager::DrawHPAndReload()
 	if (reloadCircle_) reloadCircle_->Draw();
 }
 
+/// -------------------------------------------------------------
+///				　	アクションヒントの描画
+/// -------------------------------------------------------------
 void HUDManager::DrawActionHints()
 {
 	actionPanel_->Draw();
@@ -367,6 +419,9 @@ void HUDManager::DrawActionHints()
 	hintReload_.icon->Draw(); hintReload_.label->Draw();
 }
 
+/// -------------------------------------------------------------
+///				　	クイックスロットの描画
+/// -------------------------------------------------------------
 void HUDManager::DrawQuickSlots()
 {
 	for (int i = 0; i < 6; ++i)
@@ -377,17 +432,22 @@ void HUDManager::DrawQuickSlots()
 	}
 }
 
+/// -------------------------------------------------------------
+///				　	カテゴリアイコンの描画
+/// -------------------------------------------------------------
 void HUDManager::DrawCategoryBadge()
 {
 	auto it = categoryIcons_.find(activeCategory_);
 	if (it != categoryIcons_.end()) it->second->Draw();
 }
 
+/// -------------------------------------------------------------
+///				　	ガジェットの描画
+/// -------------------------------------------------------------
 void HUDManager::DrawGadgets()
 {
 	for (int i = 0; i < 3; ++i) { gadgetBg_[i]->Draw(); gadgetIcon_[i]->Draw(); }
 }
-
 
 /// -------------------------------------------------------------
 ///				　			デバッグ用HUDの描画
@@ -404,7 +464,6 @@ void HUDManager::DrawDebugHUD()
 #endif // _DEBUG
 }
 
-
 /// -------------------------------------------------------------
 ///				　			リロード中の円を表示
 /// -------------------------------------------------------------
@@ -417,12 +476,18 @@ void HUDManager::SetReloading(bool isReloading, float progress)
 	}
 }
 
+/// -------------------------------------------------------------
+///				　			ウェーブ情報の設定
+/// -------------------------------------------------------------
 void HUDManager::SetWaveInfo(int currentWave, int totalWaves)
 {
 	waveCur_ = std::max(1, currentWave);
 	waveTotal_ = std::max(1, totalWaves);
 }
 
+/// -------------------------------------------------------------
+///				　		残り体数の設定
+/// -------------------------------------------------------------
 void HUDManager::SetEnemiesRemaining(int remaining)
 {
 	if (prevEnemiesRemain_ < 0) prevEnemiesRemain_ = remaining;
@@ -433,12 +498,18 @@ void HUDManager::SetEnemiesRemaining(int remaining)
 	enemiesRemain_ = std::max(0, remaining);
 }
 
+/// -------------------------------------------------------------
+///				　		アクティブ武器スロットの設定
+/// -------------------------------------------------------------
 void HUDManager::SetActiveWeaponIndex(int idx)
 {
 	int maxOwned = std::max(0, numWeapons_ - 1);
 	activeSlot_ = std::clamp(idx, 0, std::min(5, maxOwned));
 }
 
+/// -------------------------------------------------------------
+///				　		武器スロット数の同期
+/// -------------------------------------------------------------
 void HUDManager::SyncWeaponSlots(int numWeapons)
 {
 	numWeapons_ = std::clamp(numWeapons, 1, 6);

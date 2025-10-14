@@ -84,8 +84,6 @@ public: /// ---------- ゲッター ---------- ///
 
 private: /// ---------- メンバ変数 ----- ///
 
-	float kWidth, kHeight;
-
 	// Transform情報
 	WorldTransform worldTransform_;
 

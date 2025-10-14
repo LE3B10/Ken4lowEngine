@@ -29,10 +29,16 @@ public: /// ---------- メンバ関数 ---------- ///
 	// 描画処理
 	void Draw(UINT instanceCount);
 
+public: /// ---------- ゲッター ---------- ///
+
+	// 頂点バッファビューの取得
 	const D3D12_VERTEX_BUFFER_VIEW& GetVertexBufferView() const { return vertexBufferView_; }
 
-	bool HasIndex() const { return hasIndex_; }
+	// インデックスバッファビューの取得
 	const D3D12_INDEX_BUFFER_VIEW& GetIndexBufferView() const { return indexBufferView_; }
+
+	// インデックスの有無
+	bool HasIndex() const { return hasIndex_; }
 
 private: /// ---------- メンバ関数 ---------- ///
 

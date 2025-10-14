@@ -67,10 +67,10 @@ private: /// ---------- メンバ変数 ---------- ///
 	// アイテムの大きさ（スケール）
 	Vector3 scale_ = { 1.0f, 1.0f, 1.0f }; // スケール（大きさ）設定
 
-	float floatTimer_ = 0.0f;          // サイン波用タイマー
-	float floatAmplitude_ = 0.6f;      // 上下振幅（移動幅）
-	float floatSpeed_ = 4.0f;          // 周期スピード
-	Vector3 basePosition_;            // 元の位置（初期位置）
+	float floatTimer_ = 0.0f;     // サイン波用タイマー
+	float floatAmplitude_ = 0.6f; // 上下振幅（移動幅）
+	float floatSpeed_ = 4.0f;     // 周期スピード
+	Vector3 basePosition_;        // 元の位置（初期位置）
 
 	// 回転用の変数
 	Vector3 rotation_ = { 0.0f, 0.0f, 0.0f }; // 回転用の変数

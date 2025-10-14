@@ -1,29 +1,37 @@
 #include "ResultManager.h"
 #include <Input.h>
 
+/// -------------------------------------------------------------
+///						初期化処理
+/// -------------------------------------------------------------
 void ResultManager::Initialize()
 {
+	// 背景
 	resultBackground_ = std::make_unique<Sprite>();
 	resultBackground_->Initialize("white.png");
 	resultBackground_->SetPosition({ 0.0f, 0.0f });
 	resultBackground_->SetSize({ 1280.0f, 720.0f });
 	resultBackground_->SetColor({ 0.0f, 0.0f, 0.0f, 0.7f }); // 半透明の黒背景
 
+	// リスタートテキスト
 	restartText_ = std::make_unique<Sprite>();
 	restartText_->Initialize("white.png");
 	restartText_->SetPosition({ 500.0f, 600.0f });
 	restartText_->SetSize({ 280.0f, 80.0f });
 	restartText_->SetColor({ 1.0f, 0.7f, 0.7f, 1.0f }); // 赤色
 
+	// タイトルへ戻るテキスト
 	titleText_ = std::make_unique<Sprite>();
 	titleText_->Initialize("white.png");
 	titleText_->SetPosition({ 500.0f, 500.0f });
 	titleText_->SetSize({ 280.0f, 80.0f });
 	titleText_->SetColor({ 0.7f, 0.7f, 1.0f, 1.0f }); // 青色
 
+	// 数字描画用
 	scoreDrawer_ = std::make_unique<NumberSpriteDrawer>();
 	scoreDrawer_->Initialize("number.png");
 
+	// キル数描画用
 	killDrawer_ = std::make_unique<NumberSpriteDrawer>();
 	killDrawer_->Initialize("number.png");
 
@@ -31,8 +39,12 @@ void ResultManager::Initialize()
 	waveDrawer_->Initialize("Resources/number.png");*/
 }
 
+/// -------------------------------------------------------------
+///						更新処理
+/// -------------------------------------------------------------
 void ResultManager::Update()
 {
+	// マウス座標取得
 	Vector2 mousePos = Input::GetInstance()->GetMousePosition();
 
 	// リスタートボタンの範囲判定
@@ -41,7 +53,8 @@ void ResultManager::Update()
 	if (Input::GetInstance()->TriggerMouse(0))
 	{
 		if (mousePos.x >= restartPos.x && mousePos.x <= restartPos.x + restartSize.x &&
-			mousePos.y >= restartPos.y && mousePos.y <= restartPos.y + restartSize.y) {
+			mousePos.y >= restartPos.y && mousePos.y <= restartPos.y + restartSize.y)
+		{
 			restartRequested_ = true;
 		}
 	}
@@ -52,7 +65,8 @@ void ResultManager::Update()
 	if (Input::GetInstance()->TriggerMouse(0))
 	{
 		if (mousePos.x >= titlePos.x && mousePos.x <= titlePos.x + titleSize.x &&
-			mousePos.y >= titlePos.y && mousePos.y <= titlePos.y + titleSize.y) {
+			mousePos.y >= titlePos.y && mousePos.y <= titlePos.y + titleSize.y)
+		{
 			returnToTitleRequested_ = true;
 		}
 	}
@@ -62,6 +76,9 @@ void ResultManager::Update()
 	titleText_->Update();
 }
 
+/// -------------------------------------------------------------
+///						描画処理
+/// -------------------------------------------------------------
 void ResultManager::Draw()
 {
 	resultBackground_->Draw();

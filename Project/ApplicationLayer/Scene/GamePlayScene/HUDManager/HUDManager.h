@@ -47,6 +47,7 @@ private: /// ---------- 構造体 ---------- ///
 	std::array<std::unique_ptr<Sprite>, 3> gadgetBg_{};
 	std::array<std::unique_ptr<Sprite>, 3> gadgetIcon_{};
 
+	// 残り体数アイコン
 	struct ActionHint
 	{
 		std::unique_ptr<Sprite> icon; // LMB / RMB / Rのアイコン

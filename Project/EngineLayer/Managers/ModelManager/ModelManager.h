@@ -12,7 +12,7 @@
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
 
-class Model;
+class Object3D;
 
 /// -------------------------------------------------------------
 ///					モデルマネージャークラス
@@ -31,7 +31,7 @@ public: /// ---------- メンバ関数 ---------- ///
 	void LoadModel(const std::string& filePath);
 
 	// モデルの検索
-	std::shared_ptr<Model> FindModel(const std::string& filePath);
+	std::shared_ptr<Object3D> FindModel(const std::string& filePath);
 
 private: /// ---------- 静的メンバ関数 ---------- ///
 
@@ -52,7 +52,7 @@ private: /// ---------- 静的メンバ関数 ---------- ///
 
 private: /// ---------- メンバ変数 ---------- ///
 
-	std::unordered_map<std::string, std::shared_ptr<Model>> models_;
+	std::unordered_map<std::string, std::shared_ptr<Object3D>> models_;
 
 	const std::string directoryPath = "Resources";
 

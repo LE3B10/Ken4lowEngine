@@ -4,7 +4,6 @@
 #include "ResourceManager.h"
 
 #include "ModelManager.h"
-#include "Model.h"
 
 #include "Object3DCommon.h"
 #include "AssimpLoader.h"
@@ -149,7 +148,8 @@ void Object3D::SetModel(const std::string& filePath)
 	model_ = std::move(ModelManager::GetInstance()->FindModel(filePath));
 
 	// モデルがセットされた後に初期化が必要な場合
-	if (model_) {
+	if (model_)
+	{
 		model_->Initialize(filePath);
 	}
 }

@@ -3,6 +3,7 @@
 #include <Input.h>
 #include <AnimationModel.h>
 #include <Camera.h>
+#include <Object3D.h>
 
 #include <algorithm> // std::clamp, std::max
 #include <cmath>     // std::sinf, std::cosf, std::sqrt

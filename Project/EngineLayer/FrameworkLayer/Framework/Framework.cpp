@@ -109,9 +109,6 @@ void Framework::Initialize()
 	PostEffectManager::GetInstance()->Initialieze(dxCommon_);
 
 #pragma endregion -------------------------------------------
-
-	// シーンマネージャーの生成
-	//sceneManager_ = std::make_unique<SceneManager>();
 }
 
 
@@ -152,11 +149,5 @@ void Framework::Finalize()
 
 	// ParticleManagerの終了処理
 	ParticleManager::GetInstance()->Finalize();
-
-	// シーンマネージャーの解放
-	//sceneManager_.reset();
-
-	// その他の終了処理
-
 }
 

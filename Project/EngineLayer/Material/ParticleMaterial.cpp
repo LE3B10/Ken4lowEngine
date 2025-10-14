@@ -2,6 +2,9 @@
 #include "ResourceManager.h"
 #include "DirectXCommon.h"
 
+/// -------------------------------------------------------------
+///				           初期化処理
+/// -------------------------------------------------------------
 void ParticleMaterial::Initialize()
 {
 	ID3D12Device* device = DirectXCommon::GetInstance()->GetDevice();
@@ -16,6 +19,9 @@ void ParticleMaterial::Initialize()
 	materialData_->uvTransform = Matrix4x4::MakeIdentity();
 }
 
+/// -------------------------------------------------------------
+///				           　更新処理
+/// -------------------------------------------------------------
 void ParticleMaterial::Update()
 {
 	if (materialData_)
@@ -25,6 +31,9 @@ void ParticleMaterial::Update()
 	}
 }
 
+/// -------------------------------------------------------------
+///				         パイプラインの設定
+/// -------------------------------------------------------------
 void ParticleMaterial::SetPipeline(UINT rootParameterIndex) const
 {
 	ID3D12GraphicsCommandList* commandList = DirectXCommon::GetInstance()->GetCommandManager()->GetCommandList();
