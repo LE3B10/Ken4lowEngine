@@ -4,6 +4,13 @@
 
 #include <algorithm>
 #include <numbers>
+#include <AudioManager.h>
+#include <LinearInterpolation.h>
+
+GridStageSelector::GridStageSelector()
+{
+	AudioManager::GetInstance()->PlaySE("negative.mp3", 0.0f, 0.0f, false); // プリロード
+}
 
 /// -------------------------------------------------------------
 ///				　			　初期化処理
@@ -427,6 +434,7 @@ void GridStageSelector::UpdateRelease(Input* input, Vector2& mp)
 				if ((*stages_)[centerIdx].locked)
 				{
 					// TODO: 効果音/点滅など
+					AudioManager::GetInstance()->PlaySE("negative02.mp3", 0.5f, 0.7f);
 					TriggerLockedShake();
 				}
 				else
@@ -463,7 +471,7 @@ void GridStageSelector::UpdateTween(float deltaTime)
 		float t = std::clamp(tweenTimer_ / tweenDuration_, 0.f, 1.f);
 		// EaseInOutCubic
 		float u = t < 0.5f ? 4.0f * t * t * t : 1.0f - std::pow(-2.0f * t + 2.0f, 3.0f) / 2.0f;
-		scrollX_ = std::lerp(tweenStartX_, tweenTargetX_, u);
+		scrollX_ = Lerp(tweenStartX_, tweenTargetX_, u);
 		if (t >= 1.f) CancelTween();
 	}
 }
@@ -490,7 +498,7 @@ void GridStageSelector::UpdateInertia(float deltaTime)
 				if (d < -total * 0.5f) d += total;
 				target = scrollX_ + d;
 			}
-			scrollX_ = std::lerp(scrollX_, target, std::clamp(deltaTime * snapK_, 0.f, 1.f));
+			scrollX_ = Lerp(scrollX_, target, std::clamp(deltaTime * snapK_, 0.f, 1.f));
 		}
 	}
 

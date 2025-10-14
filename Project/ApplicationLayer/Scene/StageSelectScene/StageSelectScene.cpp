@@ -29,8 +29,8 @@ void StageSelectScene::Initialize()
 	fadeController_->Initialize(screenWidth, screenHeight, "white.png");
 	fadeController_->SetFadeMode(FadeController::FadeMode::Checkerboard);
 	fadeController_->SetGrid(14, 8);
-	fadeController_->SetCheckerDelay(0.012f);
-	fadeController_->StartFadeIn(0.32f); // 暗転明け
+	fadeController_->SetCheckerDelay(0.036f);
+	fadeController_->StartFadeIn(0.8f); // 暗転明け
 
 	// セレクタの初期化
 	context_.screenWidth = screenWidth;
@@ -44,6 +44,7 @@ void StageSelectScene::Initialize()
 	// 戻る要求
 	context_.onRequestBack = [this]() {
 		fadeController_->SetOnComplete([this]() { if (sceneManager_) { sceneManager_->ChangeScene("TitleScene"); }});
+		fadeController_->SetCheckerDelay(0.012f);
 		fadeController_->StartFadeOut(0.32f);
 		};
 
@@ -54,6 +55,7 @@ void StageSelectScene::Initialize()
 
 		// フェード後に GamePlayScene へ
 		fadeController_->SetOnComplete([this] {	if (sceneManager_) sceneManager_->ChangeScene("GamePlayScene");	});
+		fadeController_->SetCheckerDelay(0.012f);
 		fadeController_->StartFadeOut(0.32f);
 		};
 
