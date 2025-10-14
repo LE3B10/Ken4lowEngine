@@ -2,6 +2,8 @@
 #include <cmath>
 #include <numbers>
 #include <algorithm>
+
+#include "Vector3.h"
 #include "Vector4.h"
 
 /// -------------------------------------------------------------
@@ -10,6 +12,16 @@
 
 /// ---------- 線形補間を行う関数 ---------- ///
 inline float Lerp(float a, float b, float t) { return a + (b - a) * t; }
+
+inline Vector3 Lerp(const Vector3& a, const Vector3& b, float t)
+{
+	return {
+		Lerp(a.x, b.x, t),
+		Lerp(a.y, b.y, t),
+		Lerp(a.z, b.z, t)
+	};
+}
+
 inline Vector4 Lerp(const Vector4& a, const Vector4& b, float t)
 {
 	return {

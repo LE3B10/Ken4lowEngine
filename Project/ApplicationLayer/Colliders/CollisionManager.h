@@ -55,9 +55,15 @@ private: /// ---------- メンバ関数 ---------- ///
 
 private: /// ---------- メンバ変数 ---------- ///
 
-	static const uint32_t kMaxTypes = 32; // コライダーの最大タイプ数
-	std::array<std::vector<Collider*>, kMaxTypes> buckets_; // 型ごとのバケット
-	std::vector<Collider*> all_; // デバッグ用
+	// コライダーの最大タイプ数
+	static const uint32_t kMaxTypes = 32;
+
+	// 型ごとのバケット
+	std::array<std::vector<Collider*>, kMaxTypes> buckets_;
+
+	// デバッグ用
+	std::vector<Collider*> all_;
+
 	// 衝突判定関数の登録
 	std::map<std::pair<uint32_t, uint32_t>, CollisionFunc> collisionTable_;
 
@@ -66,6 +72,5 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	// コライダーの可視化フラグ
 	bool isCollider_ = true;
-
 };
 

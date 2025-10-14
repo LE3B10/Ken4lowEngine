@@ -63,8 +63,8 @@
       <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
-      <TreatWarningAsError>false</TreatWarningAsError>
-      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)Externals\assimp\include;$(ProjectDir)\ApplicationLayer;$(ProjectDir)\ApplicationLayer\Colliders;$(ProjectDir)\ApplicationLayer\Crosshair;$(ProjectDir)\ApplicationLayer\EffectLayer;$(ProjectDir)\ApplicationLayer\Enemy;$(ProjectDir)\ApplicationLayer\Enemy\Boss;$(ProjectDir)\ApplicationLayer\Enemy\Grunt;$(ProjectDir)\ApplicationLayer\Enemy\Sniper;$(ProjectDir)\ApplicationLayer\Enemy\Tank;$(ProjectDir)\ApplicationLayer\Item;$(ProjectDir)\ApplicationLayer\Player;$(ProjectDir)\ApplicationLayer\Player\Behavior;$(ProjectDir)\ApplicationLayer\Player\Behavior\AimingBehavior;$(ProjectDir)\ApplicationLayer\Player\Behavior\DeadBehavior;$(ProjectDir)\ApplicationLayer\Player\Behavior\IdleBehavior;$(ProjectDir)\ApplicationLayer\Player\Behavior\JumpingBehavior;$(ProjectDir)\ApplicationLayer\Player\Behavior\PlayerBehavior;$(ProjectDir)\ApplicationLayer\Player\Behavior\ReloadingBehavior;$(ProjectDir)\ApplicationLayer\Player\Behavior\RunningBehavior;$(ProjectDir)\ApplicationLayer\Player\Behavior\ShootingBehavior;$(ProjectDir)\ApplicationLayer\Player\Behavior\WalkingBehavior;$(ProjectDir)\ApplicationLayer\Player\Weapon;$(ProjectDir)\ApplicationLayer\ReloadCircle;$(ProjectDir)\ApplicationLayer\ResultManager;$(ProjectDir)\ApplicationLayer\Scene;$(ProjectDir)\ApplicationLayer\Scene\GameClearScene;$(ProjectDir)\ApplicationLayer\Scene\GameOverScene;$(ProjectDir)\ApplicationLayer\Scene\GamePlayScene;$(ProjectDir)\ApplicationLayer\Scene\GamePlayScene\HUDManager;$(ProjectDir)\ApplicationLayer\Scene\PhysicalScene;$(ProjectDir)\ApplicationLayer\Scene\StageSelectScene;$(ProjectDir)\ApplicationLayer\Scene\TitleScene;$(ProjectDir)\ApplicationLayer\SceneManagement;$(ProjectDir)\ApplicationLayer\SceneManagement\AbstractSceneFactory;$(ProjectDir)\ApplicationLayer\SceneManagement\BaseScene;$(ProjectDir)\ApplicationLayer\SceneManagement\SceneFactory;$(ProjectDir)\ApplicationLayer\SceneManagement\SceneManager;$(ProjectDir)\ApplicationLayer\ScoreManager;$(ProjectDir)\EngineLayer;$(ProjectDir)\EngineLayer\2D;$(ProjectDir)\EngineLayer\2D\Sprite;$(ProjectDir)\EngineLayer\3D;$(ProjectDir)\EngineLayer\3D\AnimationManager;$(ProjectDir)\EngineLayer\3D\LevelData;$(ProjectDir)\EngineLayer\3D\Model;$(ProjectDir)\EngineLayer\3D\Object3D;$(ProjectDir)\EngineLayer\3D\Object3DCommon;$(ProjectDir)\EngineLayer\3D\SkyBox;$(ProjectDir)\EngineLayer\3D\Wireframe;$(ProjectDir)\EngineLayer\Audio;$(ProjectDir)\EngineLayer\Base;$(ProjectDir)\EngineLayer\Base\BlendStateFactory;$(ProjectDir)\EngineLayer\Base\DirectXCommon;$(ProjectDir)\EngineLayer\Base\DX12CommandManager;$(ProjectDir)\EngineLayer\Base\DX12Device;$(ProjectDir)\EngineLayer\Base\DX12FenceManager;$(ProjectDir)\EngineLayer\Base\DX12SwapChain;$(ProjectDir)\EngineLayer\Base\DXCCompilerManager;$(ProjectDir)\EngineLayer\Base\MultipleStructs;$(ProjectDir)\EngineLayer\Base\ShaderCompiler;$(ProjectDir)\EngineLayer\CameraManagement;$(ProjectDir)\EngineLayer\CameraManagement\Camera;$(ProjectDir)\EngineLayer\CameraManagement\DebugCamera;$(ProjectDir)\EngineLayer\CameraManagement\FPSCamera;$(ProjectDir)\EngineLayer\FPSCounter;$(ProjectDir)\EngineLayer\FrameworkLayer;$(ProjectDir)\EngineLayer\FrameworkLayer\Framework;$(ProjectDir)\EngineLayer\FrameworkLayer\Log;$(ProjectDir)\EngineLayer\FrameworkLayer\WindowsAPI;$(ProjectDir)\EngineLayer\Input;$(ProjectDir)\EngineLayer\Managers;$(ProjectDir)\EngineLayer\Managers\DSVManager;$(ProjectDir)\EngineLayer\Managers\ImGuiManager;$(ProjectDir)\EngineLayer\Managers\LightManager;$(ProjectDir)\EngineLayer\Managers\ModelManager;$(ProjectDir)\EngineLayer\Managers\ParticleManager;$(ProjectDir)\EngineLayer\Managers\ParameterManager;$(ProjectDir)\EngineLayer\Managers\PostEffectManager;$(ProjectDir)\EngineLayer\Managers\ResourceManager;$(ProjectDir)\EngineLayer\Managers\RTVManager;$(ProjectDir)\EngineLayer\Managers\ShaderCompiler;$(ProjectDir)\EngineLayer\Managers\SkyBoxManager;$(ProjectDir)\EngineLayer\Managers\SpriteManager;$(ProjectDir)\EngineLayer\Managers\SRVManager;$(ProjectDir)\EngineLayer\Managers\TextureManager;$(ProjectDir)\EngineLayer\Managers\UAVManager;$(ProjectDir)\EngineLayer\Material;$(ProjectDir)\EngineLayer\Math;$(ProjectDir)\EngineLayer\Math\Matrix;$(ProjectDir)\EngineLayer\Math\Quaternion;$(ProjectDir)\EngineLayer\Math\Vectors;$(ProjectDir)\EngineLayer\Mesh;$(ProjectDir)\EngineLayer\ParticleManagement;$(ProjectDir)\EngineLayer\PostEffectManagement;$(ProjectDir)\EngineLayer\ResourceChecker;$(ProjectDir)\EngineLayer\ResourceChecker\LeakCheck;$(ProjectDir)\EngineLayer\ResourceChecker\ReleaseCheck;$(ProjectDir)\EngineLayer\WorldTransform</AdditionalIncludeDirectories>
+      <TreatWarningAsError>true</TreatWarningAsError>
+      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)Externals\assimp\include;$(ProjectDir)\ApplicationLayer;$(ProjectDir)\ApplicationLayer\Colliders;$(ProjectDir)\ApplicationLayer\Crosshair;$(ProjectDir)\ApplicationLayer\EffectLayer;$(ProjectDir)\ApplicationLayer\Enemy;$(ProjectDir)\ApplicationLayer\Enemy\Boss;$(ProjectDir)\ApplicationLayer\Enemy\Grunt;$(ProjectDir)\ApplicationLayer\Enemy\Sniper;$(ProjectDir)\ApplicationLayer\Enemy\Tank;$(ProjectDir)\ApplicationLayer\Item;$(ProjectDir)\ApplicationLayer\Player;$(ProjectDir)\ApplicationLayer\Player\Behavior;$(ProjectDir)\ApplicationLayer\Player\Behavior\AimingBehavior;$(ProjectDir)\ApplicationLayer\Player\Behavior\DeadBehavior;$(ProjectDir)\ApplicationLayer\Player\Behavior\IdleBehavior;$(ProjectDir)\ApplicationLayer\Player\Behavior\JumpingBehavior;$(ProjectDir)\ApplicationLayer\Player\Behavior\PlayerBehavior;$(ProjectDir)\ApplicationLayer\Player\Behavior\ReloadingBehavior;$(ProjectDir)\ApplicationLayer\Player\Behavior\RunningBehavior;$(ProjectDir)\ApplicationLayer\Player\Behavior\ShootingBehavior;$(ProjectDir)\ApplicationLayer\Player\Behavior\WalkingBehavior;$(ProjectDir)\ApplicationLayer\Player\Weapon;$(ProjectDir)\ApplicationLayer\ReloadCircle;$(ProjectDir)\ApplicationLayer\ResultManager;$(ProjectDir)\ApplicationLayer\Scene;$(ProjectDir)\ApplicationLayer\Scene\GameClearScene;$(ProjectDir)\ApplicationLayer\Scene\GameOverScene;$(ProjectDir)\ApplicationLayer\Scene\GamePlayScene;$(ProjectDir)\ApplicationLayer\Scene\GamePlayScene\HUDManager;$(ProjectDir)\ApplicationLayer\Scene\PhysicalScene;$(ProjectDir)\ApplicationLayer\Scene\StageSelectScene;$(ProjectDir)\ApplicationLayer\Scene\TitleScene;$(ProjectDir)\ApplicationLayer\SceneManagement;$(ProjectDir)\ApplicationLayer\SceneManagement\AbstractSceneFactory;$(ProjectDir)\ApplicationLayer\SceneManagement\BaseScene;$(ProjectDir)\ApplicationLayer\SceneManagement\SceneFactory;$(ProjectDir)\ApplicationLayer\SceneManagement\SceneManager;$(ProjectDir)\ApplicationLayer\ScoreManager;$(ProjectDir)\EngineLayer;$(ProjectDir)\EngineLayer\2D;$(ProjectDir)\EngineLayer\2D\Sprite;$(ProjectDir)\EngineLayer\3D;$(ProjectDir)\EngineLayer\3D\AnimationManagement;$(ProjectDir)\EngineLayer\3D\LevelData;$(ProjectDir)\EngineLayer\3D\Model;$(ProjectDir)\EngineLayer\3D\Object3D;$(ProjectDir)\EngineLayer\3D\Object3DCommon;$(ProjectDir)\EngineLayer\3D\SkyBox;$(ProjectDir)\EngineLayer\3D\Wireframe;$(ProjectDir)\EngineLayer\Audio;$(ProjectDir)\EngineLayer\Base;$(ProjectDir)\EngineLayer\Base\BlendStateFactory;$(ProjectDir)\EngineLayer\Base\DirectXCommon;$(ProjectDir)\EngineLayer\Base\DX12CommandManager;$(ProjectDir)\EngineLayer\Base\DX12Device;$(ProjectDir)\EngineLayer\Base\DX12FenceManager;$(ProjectDir)\EngineLayer\Base\DX12SwapChain;$(ProjectDir)\EngineLayer\Base\DXCCompilerManager;$(ProjectDir)\EngineLayer\Base\MultipleStructs;$(ProjectDir)\EngineLayer\Base\ShaderCompiler;$(ProjectDir)\EngineLayer\CameraManagement;$(ProjectDir)\EngineLayer\CameraManagement\Camera;$(ProjectDir)\EngineLayer\CameraManagement\DebugCamera;$(ProjectDir)\EngineLayer\CameraManagement\FPSCamera;$(ProjectDir)\EngineLayer\FPSCounter;$(ProjectDir)\EngineLayer\FrameworkLayer;$(ProjectDir)\EngineLayer\FrameworkLayer\Framework;$(ProjectDir)\EngineLayer\FrameworkLayer\Log;$(ProjectDir)\EngineLayer\FrameworkLayer\WindowsAPI;$(ProjectDir)\EngineLayer\Input;$(ProjectDir)\EngineLayer\Managers;$(ProjectDir)\EngineLayer\Managers\DSVManager;$(ProjectDir)\EngineLayer\Managers\ImGuiManager;$(ProjectDir)\EngineLayer\Managers\LightManager;$(ProjectDir)\EngineLayer\Managers\ModelManager;$(ProjectDir)\EngineLayer\Managers\ParticleManager;$(ProjectDir)\EngineLayer\Managers\ParameterManager;$(ProjectDir)\EngineLayer\Managers\ResourceManager;$(ProjectDir)\EngineLayer\Managers\RTVManager;$(ProjectDir)\EngineLayer\Managers\ShaderCompiler;$(ProjectDir)\EngineLayer\Managers\SkyBoxManager;$(ProjectDir)\EngineLayer\Managers\SpriteManager;$(ProjectDir)\EngineLayer\Managers\SRVManager;$(ProjectDir)\EngineLayer\Managers\TextureManager;$(ProjectDir)\EngineLayer\Managers\UAVManager;$(ProjectDir)\EngineLayer\Material;$(ProjectDir)\EngineLayer\Math;$(ProjectDir)\EngineLayer\Math\Matrix;$(ProjectDir)\EngineLayer\Math\MultipleStructs;$(ProjectDir)\EngineLayer\Math\Quaternion;$(ProjectDir)\EngineLayer\Math\Vectors;$(ProjectDir)\EngineLayer\Mesh;$(ProjectDir)\EngineLayer\ParticleManagement;$(ProjectDir)\EngineLayer\PostEffectManagement;$(ProjectDir)\EngineLayer\PostEffectManagement\AbsorbEffect;$(ProjectDir)\EngineLayer\PostEffectManagement\DepthOutlineEffect;$(ProjectDir)\EngineLayer\PostEffectManagement\DissolveEffect;$(ProjectDir)\EngineLayer\PostEffectManagement\GaussianFilterEffect;$(ProjectDir)\EngineLayer\PostEffectManagement\GrayScaleEffect;$(ProjectDir)\EngineLayer\PostEffectManagement\IPostEffect;$(ProjectDir)\EngineLayer\PostEffectManagement\LuminanceOutlineEffect;$(ProjectDir)\EngineLayer\PostEffectManagement\NormalEffect;$(ProjectDir)\EngineLayer\PostEffectManagement\PostEffectManager;$(ProjectDir)\EngineLayer\PostEffectManagement\PostEffectPipelineBuilder;$(ProjectDir)\EngineLayer\PostEffectManagement\RadialBlurEffect;$(ProjectDir)\EngineLayer\PostEffectManagement\RandomEffect;$(ProjectDir)\EngineLayer\PostEffectManagement\SmoothingEffect;$(ProjectDir)\EngineLayer\PostEffectManagement\VignetteEffect;$(ProjectDir)\EngineLayer\ResourceChecker;$(ProjectDir)\EngineLayer\ResourceChecker\LeakCheck;$(ProjectDir)\EngineLayer\ResourceChecker\ReleaseCheck;$(ProjectDir)\EngineLayer\WorldTransform</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -94,7 +94,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
       <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
-      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)Externals\assimp\include;$(ProjectDir)\ApplicationLayer;$(ProjectDir)\ApplicationLayer\Colliders;$(ProjectDir)\ApplicationLayer\Crosshair;$(ProjectDir)\ApplicationLayer\EffectLayer;$(ProjectDir)\ApplicationLayer\Enemy;$(ProjectDir)\ApplicationLayer\Enemy\Boss;$(ProjectDir)\ApplicationLayer\Enemy\Grunt;$(ProjectDir)\ApplicationLayer\Enemy\Sniper;$(ProjectDir)\ApplicationLayer\Enemy\Tank;$(ProjectDir)\ApplicationLayer\Item;$(ProjectDir)\ApplicationLayer\Player;$(ProjectDir)\ApplicationLayer\Player\Behavior;$(ProjectDir)\ApplicationLayer\Player\Behavior\AimingBehavior;$(ProjectDir)\ApplicationLayer\Player\Behavior\DeadBehavior;$(ProjectDir)\ApplicationLayer\Player\Behavior\IdleBehavior;$(ProjectDir)\ApplicationLayer\Player\Behavior\JumpingBehavior;$(ProjectDir)\ApplicationLayer\Player\Behavior\PlayerBehavior;$(ProjectDir)\ApplicationLayer\Player\Behavior\ReloadingBehavior;$(ProjectDir)\ApplicationLayer\Player\Behavior\RunningBehavior;$(ProjectDir)\ApplicationLayer\Player\Behavior\ShootingBehavior;$(ProjectDir)\ApplicationLayer\Player\Behavior\WalkingBehavior;$(ProjectDir)\ApplicationLayer\Player\Weapon;$(ProjectDir)\ApplicationLayer\ReloadCircle;$(ProjectDir)\ApplicationLayer\ResultManager;$(ProjectDir)\ApplicationLayer\Scene;$(ProjectDir)\ApplicationLayer\Scene\GameClearScene;$(ProjectDir)\ApplicationLayer\Scene\GameOverScene;$(ProjectDir)\ApplicationLayer\Scene\GamePlayScene;$(ProjectDir)\ApplicationLayer\Scene\GamePlayScene\HUDManager;$(ProjectDir)\ApplicationLayer\Scene\PhysicalScene;$(ProjectDir)\ApplicationLayer\Scene\StageSelectScene;$(ProjectDir)\ApplicationLayer\Scene\TitleScene;$(ProjectDir)\ApplicationLayer\SceneManagement;$(ProjectDir)\ApplicationLayer\SceneManagement\AbstractSceneFactory;$(ProjectDir)\ApplicationLayer\SceneManagement\BaseScene;$(ProjectDir)\ApplicationLayer\SceneManagement\SceneFactory;$(ProjectDir)\ApplicationLayer\SceneManagement\SceneManager;$(ProjectDir)\ApplicationLayer\ScoreManager;$(ProjectDir)\EngineLayer;$(ProjectDir)\EngineLayer\2D;$(ProjectDir)\EngineLayer\2D\Sprite;$(ProjectDir)\EngineLayer\3D;$(ProjectDir)\EngineLayer\3D\AnimationManager;$(ProjectDir)\EngineLayer\3D\LevelData;$(ProjectDir)\EngineLayer\3D\Model;$(ProjectDir)\EngineLayer\3D\Object3D;$(ProjectDir)\EngineLayer\3D\Object3DCommon;$(ProjectDir)\EngineLayer\3D\SkyBox;$(ProjectDir)\EngineLayer\3D\Wireframe;$(ProjectDir)\EngineLayer\Audio;$(ProjectDir)\EngineLayer\Base;$(ProjectDir)\EngineLayer\Base\BlendStateFactory;$(ProjectDir)\EngineLayer\Base\DirectXCommon;$(ProjectDir)\EngineLayer\Base\DX12CommandManager;$(ProjectDir)\EngineLayer\Base\DX12Device;$(ProjectDir)\EngineLayer\Base\DX12FenceManager;$(ProjectDir)\EngineLayer\Base\DX12SwapChain;$(ProjectDir)\EngineLayer\Base\DXCCompilerManager;$(ProjectDir)\EngineLayer\Base\MultipleStructs;$(ProjectDir)\EngineLayer\Base\ShaderCompiler;$(ProjectDir)\EngineLayer\CameraManagement;$(ProjectDir)\EngineLayer\CameraManagement\Camera;$(ProjectDir)\EngineLayer\CameraManagement\DebugCamera;$(ProjectDir)\EngineLayer\CameraManagement\FPSCamera;$(ProjectDir)\EngineLayer\FPSCounter;$(ProjectDir)\EngineLayer\FrameworkLayer;$(ProjectDir)\EngineLayer\FrameworkLayer\Framework;$(ProjectDir)\EngineLayer\FrameworkLayer\Log;$(ProjectDir)\EngineLayer\FrameworkLayer\WindowsAPI;$(ProjectDir)\EngineLayer\Input;$(ProjectDir)\EngineLayer\Managers;$(ProjectDir)\EngineLayer\Managers\DSVManager;$(ProjectDir)\EngineLayer\Managers\ImGuiManager;$(ProjectDir)\EngineLayer\Managers\LightManager;$(ProjectDir)\EngineLayer\Managers\ModelManager;$(ProjectDir)\EngineLayer\Managers\ParticleManager;$(ProjectDir)\EngineLayer\Managers\ParameterManager;$(ProjectDir)\EngineLayer\Managers\PostEffectManager;$(ProjectDir)\EngineLayer\Managers\ResourceManager;$(ProjectDir)\EngineLayer\Managers\RTVManager;$(ProjectDir)\EngineLayer\Managers\ShaderCompiler;$(ProjectDir)\EngineLayer\Managers\SkyBoxManager;$(ProjectDir)\EngineLayer\Managers\SpriteManager;$(ProjectDir)\EngineLayer\Managers\SRVManager;$(ProjectDir)\EngineLayer\Managers\TextureManager;$(ProjectDir)\EngineLayer\Managers\UAVManager;$(ProjectDir)\EngineLayer\Material;$(ProjectDir)\EngineLayer\Math;$(ProjectDir)\EngineLayer\Math\Matrix;$(ProjectDir)\EngineLayer\Math\Quaternion;$(ProjectDir)\EngineLayer\Math\Vectors;$(ProjectDir)\EngineLayer\Mesh;$(ProjectDir)\EngineLayer\ParticleManagement;$(ProjectDir)\EngineLayer\PostEffectManagement;$(ProjectDir)\EngineLayer\ResourceChecker;$(ProjectDir)\EngineLayer\ResourceChecker\LeakCheck;$(ProjectDir)\EngineLayer\ResourceChecker\ReleaseCheck;$(ProjectDir)\EngineLayer\WorldTransform</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)Externals\assimp\include;$(ProjectDir)\ApplicationLayer;$(ProjectDir)\ApplicationLayer\Colliders;$(ProjectDir)\ApplicationLayer\Crosshair;$(ProjectDir)\ApplicationLayer\EffectLayer;$(ProjectDir)\ApplicationLayer\Enemy;$(ProjectDir)\ApplicationLayer\Enemy\Boss;$(ProjectDir)\ApplicationLayer\Enemy\Grunt;$(ProjectDir)\ApplicationLayer\Enemy\Sniper;$(ProjectDir)\ApplicationLayer\Enemy\Tank;$(ProjectDir)\ApplicationLayer\Item;$(ProjectDir)\ApplicationLayer\Player;$(ProjectDir)\ApplicationLayer\Player\Behavior;$(ProjectDir)\ApplicationLayer\Player\Behavior\AimingBehavior;$(ProjectDir)\ApplicationLayer\Player\Behavior\DeadBehavior;$(ProjectDir)\ApplicationLayer\Player\Behavior\IdleBehavior;$(ProjectDir)\ApplicationLayer\Player\Behavior\JumpingBehavior;$(ProjectDir)\ApplicationLayer\Player\Behavior\PlayerBehavior;$(ProjectDir)\ApplicationLayer\Player\Behavior\ReloadingBehavior;$(ProjectDir)\ApplicationLayer\Player\Behavior\RunningBehavior;$(ProjectDir)\ApplicationLayer\Player\Behavior\ShootingBehavior;$(ProjectDir)\ApplicationLayer\Player\Behavior\WalkingBehavior;$(ProjectDir)\ApplicationLayer\Player\Weapon;$(ProjectDir)\ApplicationLayer\ReloadCircle;$(ProjectDir)\ApplicationLayer\ResultManager;$(ProjectDir)\ApplicationLayer\Scene;$(ProjectDir)\ApplicationLayer\Scene\GameClearScene;$(ProjectDir)\ApplicationLayer\Scene\GameOverScene;$(ProjectDir)\ApplicationLayer\Scene\GamePlayScene;$(ProjectDir)\ApplicationLayer\Scene\GamePlayScene\HUDManager;$(ProjectDir)\ApplicationLayer\Scene\PhysicalScene;$(ProjectDir)\ApplicationLayer\Scene\StageSelectScene;$(ProjectDir)\ApplicationLayer\Scene\TitleScene;$(ProjectDir)\ApplicationLayer\SceneManagement;$(ProjectDir)\ApplicationLayer\SceneManagement\AbstractSceneFactory;$(ProjectDir)\ApplicationLayer\SceneManagement\BaseScene;$(ProjectDir)\ApplicationLayer\SceneManagement\SceneFactory;$(ProjectDir)\ApplicationLayer\SceneManagement\SceneManager;$(ProjectDir)\ApplicationLayer\ScoreManager;$(ProjectDir)\EngineLayer;$(ProjectDir)\EngineLayer\2D;$(ProjectDir)\EngineLayer\2D\Sprite;$(ProjectDir)\EngineLayer\3D;$(ProjectDir)\EngineLayer\3D\AnimationManagement;$(ProjectDir)\EngineLayer\3D\LevelData;$(ProjectDir)\EngineLayer\3D\Model;$(ProjectDir)\EngineLayer\3D\Object3D;$(ProjectDir)\EngineLayer\3D\Object3DCommon;$(ProjectDir)\EngineLayer\3D\SkyBox;$(ProjectDir)\EngineLayer\3D\Wireframe;$(ProjectDir)\EngineLayer\Audio;$(ProjectDir)\EngineLayer\Base;$(ProjectDir)\EngineLayer\Base\BlendStateFactory;$(ProjectDir)\EngineLayer\Base\DirectXCommon;$(ProjectDir)\EngineLayer\Base\DX12CommandManager;$(ProjectDir)\EngineLayer\Base\DX12Device;$(ProjectDir)\EngineLayer\Base\DX12FenceManager;$(ProjectDir)\EngineLayer\Base\DX12SwapChain;$(ProjectDir)\EngineLayer\Base\DXCCompilerManager;$(ProjectDir)\EngineLayer\Base\MultipleStructs;$(ProjectDir)\EngineLayer\Base\ShaderCompiler;$(ProjectDir)\EngineLayer\CameraManagement;$(ProjectDir)\EngineLayer\CameraManagement\Camera;$(ProjectDir)\EngineLayer\CameraManagement\DebugCamera;$(ProjectDir)\EngineLayer\CameraManagement\FPSCamera;$(ProjectDir)\EngineLayer\FPSCounter;$(ProjectDir)\EngineLayer\FrameworkLayer;$(ProjectDir)\EngineLayer\FrameworkLayer\Framework;$(ProjectDir)\EngineLayer\FrameworkLayer\Log;$(ProjectDir)\EngineLayer\FrameworkLayer\WindowsAPI;$(ProjectDir)\EngineLayer\Input;$(ProjectDir)\EngineLayer\Managers;$(ProjectDir)\EngineLayer\Managers\DSVManager;$(ProjectDir)\EngineLayer\Managers\ImGuiManager;$(ProjectDir)\EngineLayer\Managers\LightManager;$(ProjectDir)\EngineLayer\Managers\ModelManager;$(ProjectDir)\EngineLayer\Managers\ParticleManager;$(ProjectDir)\EngineLayer\Managers\ParameterManager;$(ProjectDir)\EngineLayer\Managers\ResourceManager;$(ProjectDir)\EngineLayer\Managers\RTVManager;$(ProjectDir)\EngineLayer\Managers\ShaderCompiler;$(ProjectDir)\EngineLayer\Managers\SkyBoxManager;$(ProjectDir)\EngineLayer\Managers\SpriteManager;$(ProjectDir)\EngineLayer\Managers\SRVManager;$(ProjectDir)\EngineLayer\Managers\TextureManager;$(ProjectDir)\EngineLayer\Managers\UAVManager;$(ProjectDir)\EngineLayer\Material;$(ProjectDir)\EngineLayer\Math;$(ProjectDir)\EngineLayer\Math\Matrix;$(ProjectDir)\EngineLayer\Math\MultipleStructs;$(ProjectDir)\EngineLayer\Math\Quaternion;$(ProjectDir)\EngineLayer\Math\Vectors;$(ProjectDir)\EngineLayer\Mesh;$(ProjectDir)\EngineLayer\ParticleManagement;$(ProjectDir)\EngineLayer\PostEffectManagement;$(ProjectDir)\EngineLayer\PostEffectManagement\AbsorbEffect;$(ProjectDir)\EngineLayer\PostEffectManagement\DepthOutlineEffect;$(ProjectDir)\EngineLayer\PostEffectManagement\DissolveEffect;$(ProjectDir)\EngineLayer\PostEffectManagement\GaussianFilterEffect;$(ProjectDir)\EngineLayer\PostEffectManagement\GrayScaleEffect;$(ProjectDir)\EngineLayer\PostEffectManagement\IPostEffect;$(ProjectDir)\EngineLayer\PostEffectManagement\LuminanceOutlineEffect;$(ProjectDir)\EngineLayer\PostEffectManagement\NormalEffect;$(ProjectDir)\EngineLayer\PostEffectManagement\PostEffectManager;$(ProjectDir)\EngineLayer\PostEffectManagement\PostEffectPipelineBuilder;$(ProjectDir)\EngineLayer\PostEffectManagement\RadialBlurEffect;$(ProjectDir)\EngineLayer\PostEffectManagement\RandomEffect;$(ProjectDir)\EngineLayer\PostEffectManagement\SmoothingEffect;$(ProjectDir)\EngineLayer\PostEffectManagement\VignetteEffect;$(ProjectDir)\EngineLayer\ResourceChecker;$(ProjectDir)\EngineLayer\ResourceChecker\LeakCheck;$(ProjectDir)\EngineLayer\ResourceChecker\ReleaseCheck;$(ProjectDir)\EngineLayer\WorldTransform</AdditionalIncludeDirectories>
       <Optimization>MinSpace</Optimization>
     </ClCompile>
     <Link>
@@ -127,19 +127,19 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClCompile Include="EngineLayer\3D\LevelData\LevelLoader.cpp" />
     <ClCompile Include="EngineLayer\3D\LevelData\LevelObjectManager.cpp" />
     <ClCompile Include="EngineLayer\Base\BlendStateFactory\BlendStateFactory.cpp" />
-    <ClCompile Include="EngineLayer\PostEffectManagement\DepthOutlineEffect.cpp" />
-    <ClCompile Include="EngineLayer\3D\AnimationManager\AnimationModel.cpp" />
-    <ClCompile Include="EngineLayer\3D\AnimationManager\AnimationPipelineBuilder.cpp" />
-    <ClCompile Include="EngineLayer\3D\AnimationManager\Skeleton.cpp" />
-    <ClCompile Include="EngineLayer\3D\AnimationManager\SkinCluster.cpp" />
-    <ClCompile Include="EngineLayer\3D\AnimationManager\AnimationMesh.cpp" />
+    <ClCompile Include="EngineLayer\PostEffectManagement\DepthOutlineEffect\DepthOutlineEffect.cpp" />
+    <ClCompile Include="EngineLayer\3D\AnimationManagement\AnimationModel.cpp" />
+    <ClCompile Include="EngineLayer\3D\AnimationManagement\AnimationPipelineBuilder.cpp" />
+    <ClCompile Include="EngineLayer\3D\AnimationManagement\Skeleton.cpp" />
+    <ClCompile Include="EngineLayer\3D\AnimationManagement\SkinCluster.cpp" />
+    <ClCompile Include="EngineLayer\Mesh\AnimationMesh.cpp" />
     <ClCompile Include="EngineLayer\Audio\AudioManager.cpp" />
     <ClCompile Include="EngineLayer\Audio\MP3Loader.cpp" />
     <ClCompile Include="EngineLayer\Base\DX12CommandManager\DX12CommandManager.cpp" />
     <ClCompile Include="EngineLayer\Base\DX12FenceManager\DX12FenceManager.cpp" />
     <ClCompile Include="EngineLayer\Base\DXCCompilerManager\DXCCompilerManager.cpp" />
-    <ClCompile Include="EngineLayer\PostEffectManagement\AbsorbEffect.cpp" />
-    <ClCompile Include="EngineLayer\PostEffectManagement\DissolveEffect.cpp" />
+    <ClCompile Include="EngineLayer\PostEffectManagement\AbsorbEffect\AbsorbEffect.cpp" />
+    <ClCompile Include="EngineLayer\PostEffectManagement\DissolveEffect\DissolveEffect.cpp" />
     <ClCompile Include="EngineLayer\Managers\ModelManager\AssimpLoader.cpp" />
     <ClCompile Include="EngineLayer\Material\Material.cpp" />
     <ClCompile Include="EngineLayer\Managers\DSVManager\DSVManager.cpp" />
@@ -148,8 +148,6 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClCompile Include="ApplicationLayer\Colliders\Collider.cpp" />
     <ClCompile Include="ApplicationLayer\Colliders\CollisionManager.cpp" />
     <ClCompile Include="ApplicationLayer\Colliders\ContactRecord.cpp" />
-    <ClCompile Include="ApplicationLayer\SceneManagement\AbstractSceneFactory\AbstractSceneFactory.cpp" />
-    <ClCompile Include="ApplicationLayer\SceneManagement\BaseScene\BaseScene.cpp" />
     <ClCompile Include="EngineLayer\CameraManagement\Camera\Camera.cpp" />
     <ClCompile Include="EngineLayer\WorldTransform\WorldTransform.cpp" />
     <ClCompile Include="EngineLayer\ResourceChecker\LeakCheck\D3DResourceLeakChecker.cpp" />
@@ -172,15 +170,12 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClCompile Include="EngineLayer\FrameworkLayer\Framework\Framework.cpp" />
     <ClCompile Include="ApplicationLayer\Scene\GamePlayScene\GamePlayScene.cpp" />
     <ClCompile Include="EngineLayer\Math\Matrix\Matrix4x4.cpp" />
-    <ClCompile Include="EngineLayer\3D\Model\Model.cpp" />
     <ClCompile Include="EngineLayer\Managers\ModelManager\ModelManager.cpp" />
     <ClCompile Include="EngineLayer\3D\Object3D\Object3D.cpp" />
     <ClCompile Include="EngineLayer\Managers\ResourceManager\ResourceManager.cpp" />
-    <ClCompile Include="EngineLayer\ResourceChecker\ReleaseCheck\ResourceObject.cpp" />
     <ClCompile Include="EngineLayer\Base\ShaderCompiler\ShaderCompiler.cpp" />
     <ClCompile Include="EngineLayer\2D\Sprite\Sprite.cpp" />
     <ClCompile Include="EngineLayer\Managers\TextureManager\TextureManager.cpp" />
-    <ClCompile Include="EngineLayer\Math\Vectors\Vector2.cpp" />
     <ClCompile Include="EngineLayer\Math\Vectors\Vector3.cpp" />
     <ClCompile Include="EngineLayer\FrameworkLayer\WindowsAPI\WinApp.cpp" />
     <ClCompile Include="EngineLayer\3D\Object3D\Object3DCommon.cpp" />
@@ -199,22 +194,21 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClCompile Include="EngineLayer\3D\SkyBox\SkyBox.cpp" />
     <ClCompile Include="EngineLayer\3D\SkyBox\SkyBoxManager.cpp" />
     <ClCompile Include="EngineLayer\2D\Sprite\SpriteManager.cpp" />
-    <ClCompile Include="EngineLayer\Managers\PostEffectManager\PostEffectManager.cpp" />
+    <ClCompile Include="EngineLayer\PostEffectManagement\PostEffectManager\PostEffectManager.cpp" />
     <ClCompile Include="EngineLayer\Managers\RTVManager\RTVManager.cpp" />
     <ClCompile Include="EngineLayer\Material\ParticleMaterial.cpp" />
     <ClCompile Include="EngineLayer\Mesh\Mesh.cpp" />
     <ClCompile Include="EngineLayer\WorldTransform\ParticleTransform.cpp" />
     <ClCompile Include="EngineLayer\Mesh\ParticleMesh.cpp" />
-    <ClCompile Include="EngineLayer\PostEffectManagement\GaussianFilterEffect.cpp" />
-    <ClCompile Include="EngineLayer\PostEffectManagement\GrayScaleEffect.cpp" />
-    <ClCompile Include="EngineLayer\PostEffectManagement\IPostEffect.cpp" />
-    <ClCompile Include="EngineLayer\PostEffectManagement\LuminanceOutlineEffect.cpp" />
-    <ClCompile Include="EngineLayer\PostEffectManagement\NormalEffect.cpp" />
-    <ClCompile Include="EngineLayer\PostEffectManagement\PostEffectPipelineBuilder.cpp" />
-    <ClCompile Include="EngineLayer\PostEffectManagement\RadialBlurEffect.cpp" />
-    <ClCompile Include="EngineLayer\PostEffectManagement\RandomEffect.cpp" />
-    <ClCompile Include="EngineLayer\PostEffectManagement\SmoothingEffect.cpp" />
-    <ClCompile Include="EngineLayer\PostEffectManagement\VignetteEffect.cpp" />
+    <ClCompile Include="EngineLayer\PostEffectManagement\GaussianFilterEffect\GaussianFilterEffect.cpp" />
+    <ClCompile Include="EngineLayer\PostEffectManagement\GrayScaleEffect\GrayScaleEffect.cpp" />
+    <ClCompile Include="EngineLayer\PostEffectManagement\LuminanceOutlineEffect\LuminanceOutlineEffect.cpp" />
+    <ClCompile Include="EngineLayer\PostEffectManagement\NormalEffect\NormalEffect.cpp" />
+    <ClCompile Include="EngineLayer\PostEffectManagement\PostEffectPipelineBuilder\PostEffectPipelineBuilder.cpp" />
+    <ClCompile Include="EngineLayer\PostEffectManagement\RadialBlurEffect\RadialBlurEffect.cpp" />
+    <ClCompile Include="EngineLayer\PostEffectManagement\RandomEffect\RandomEffect.cpp" />
+    <ClCompile Include="EngineLayer\PostEffectManagement\SmoothingEffect\SmoothingEffect.cpp" />
+    <ClCompile Include="EngineLayer\PostEffectManagement\VignetteEffect\VignetteEffect.cpp" />
     <ClCompile Include="ApplicationLayer\Player\Player.cpp" />
     <ClCompile Include="ApplicationLayer\Player\PlayerController.cpp" />
     <ClCompile Include="EngineLayer\CameraManagement\FPSCamera\FpsCamera.cpp" />
@@ -223,7 +217,6 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClCompile Include="EngineLayer\2D\Sprite\NumberSpriteDrawer.cpp" />
     <ClCompile Include="ApplicationLayer\Scene\GamePlayScene\HUDManager\HUDManager.cpp" />
     <ClCompile Include="ApplicationLayer\ScoreManager\ScoreManager.cpp" />
-    <ClCompile Include="ApplicationLayer\Colliders\IDGenerator.cpp" />
     <ClCompile Include="ApplicationLayer\ReloadCircle\ReloadCircle.cpp" />
     <ClCompile Include="ApplicationLayer\ResultManager\ResultManager.cpp" />
     <ClCompile Include="ApplicationLayer\Item\Item.cpp" />
@@ -434,16 +427,16 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="EngineLayer\3D\LevelData\LevelLoader.h" />
     <ClInclude Include="EngineLayer\3D\LevelData\LevelObjectManager.h" />
     <ClInclude Include="EngineLayer\Base\BlendStateFactory\BlendStateFactory.h" />
-    <ClInclude Include="EngineLayer\Math\Capsule.h" />
-    <ClInclude Include="EngineLayer\PostEffectManagement\DepthOutlineEffect.h" />
-    <ClInclude Include="EngineLayer\3D\AnimationManager\AnimationModel.h" />
-    <ClInclude Include="EngineLayer\3D\AnimationManager\AnimationPipelineBuilder.h" />
-    <ClInclude Include="EngineLayer\3D\AnimationManager\Skeleton.h" />
-    <ClInclude Include="EngineLayer\3D\AnimationManager\SkinCluster.h" />
-    <ClInclude Include="EngineLayer\Math\Plane.h" />
-    <ClInclude Include="EngineLayer\Math\Segment.h" />
-    <ClInclude Include="EngineLayer\Math\Triangle.h" />
-    <ClInclude Include="EngineLayer\3D\AnimationManager\AnimationMesh.h" />
+    <ClInclude Include="EngineLayer\Math\MultipleStructs\Capsule.h" />
+    <ClInclude Include="EngineLayer\PostEffectManagement\DepthOutlineEffect\DepthOutlineEffect.h" />
+    <ClInclude Include="EngineLayer\3D\AnimationManagement\AnimationModel.h" />
+    <ClInclude Include="EngineLayer\3D\AnimationManagement\AnimationPipelineBuilder.h" />
+    <ClInclude Include="EngineLayer\3D\AnimationManagement\Skeleton.h" />
+    <ClInclude Include="EngineLayer\3D\AnimationManagement\SkinCluster.h" />
+    <ClInclude Include="EngineLayer\Math\MultipleStructs\Plane.h" />
+    <ClInclude Include="EngineLayer\Math\MultipleStructs\Segment.h" />
+    <ClInclude Include="EngineLayer\Math\MultipleStructs\Triangle.h" />
+    <ClInclude Include="EngineLayer\Mesh\AnimationMesh.h" />
     <ClInclude Include="EngineLayer\Audio\AudioCategory.h" />
     <ClInclude Include="EngineLayer\Audio\AudioManager.h" />
     <ClInclude Include="EngineLayer\Audio\MP3Loader.h" />
@@ -451,8 +444,8 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="EngineLayer\Base\DX12FenceManager\DX12FenceManager.h" />
     <ClInclude Include="EngineLayer\Base\DXCCompilerManager\DXCCompilerManager.h" />
     <ClInclude Include="EngineLayer\ParticleManagement\ParticleEffectType.h" />
-    <ClInclude Include="EngineLayer\PostEffectManagement\AbsorbEffect.h" />
-    <ClInclude Include="EngineLayer\PostEffectManagement\DissolveEffect.h" />
+    <ClInclude Include="EngineLayer\PostEffectManagement\AbsorbEffect\AbsorbEffect.h" />
+    <ClInclude Include="EngineLayer\PostEffectManagement\DissolveEffect\DissolveEffect.h" />
     <ClInclude Include="EngineLayer\Managers\ModelManager\AssimpLoader.h" />
     <ClInclude Include="EngineLayer\Managers\DSVManager\DSVManager.h" />
     <ClInclude Include="EngineLayer\Math\Quaternion\Quaternion.h" />
@@ -463,7 +456,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="ApplicationLayer\Colliders\ContactRecord.h" />
     <ClInclude Include="ApplicationLayer\SceneManagement\AbstractSceneFactory\AbstractSceneFactory.h" />
     <ClInclude Include="ApplicationLayer\SceneManagement\BaseScene\BaseScene.h" />
-    <ClInclude Include="EngineLayer\Math\AABB.h" />
+    <ClInclude Include="EngineLayer\Math\MultipleStructs\AABB.h" />
     <ClInclude Include="EngineLayer\Audio\AudioStructs.h" />
     <ClInclude Include="ApplicationLayer\EffectLayer\Emitter.h" />
     <ClInclude Include="EngineLayer\CameraManagement\Camera\Camera.h" />
@@ -496,7 +489,6 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="EngineLayer\FrameworkLayer\Log\LogString.h" />
     <ClInclude Include="EngineLayer\Material\Material.h" />
     <ClInclude Include="EngineLayer\Math\Matrix\Matrix4x4.h" />
-    <ClInclude Include="EngineLayer\3D\Model\Model.h" />
     <ClInclude Include="EngineLayer\Base\MultipleStructs\ModelData.h" />
     <ClInclude Include="EngineLayer\Managers\ModelManager\ModelManager.h" />
     <ClInclude Include="EngineLayer\3D\Object3D\Object3D.h" />
@@ -525,13 +517,13 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="EngineLayer\Managers\LightManager\LightManager.h" />
     <ClInclude Include="ApplicationLayer\Scene\GameClearScene\GameClearScene.h" />
     <ClInclude Include="ApplicationLayer\Scene\GameOverScene\GameOverScene.h" />
-    <ClInclude Include="EngineLayer\Math\OBB.h" />
+    <ClInclude Include="EngineLayer\Math\MultipleStructs\OBB.h" />
     <ClInclude Include="EngineLayer\3D\Wireframe\Wireframe.h" />
     <ClInclude Include="EngineLayer\FPSCounter\FPSCounter.h" />
     <ClInclude Include="EngineLayer\3D\SkyBox\SkyBox.h" />
     <ClInclude Include="EngineLayer\3D\SkyBox\SkyBoxManager.h" />
     <ClInclude Include="EngineLayer\2D\Sprite\SpriteManager.h" />
-    <ClInclude Include="EngineLayer\Managers\PostEffectManager\PostEffectManager.h" />
+    <ClInclude Include="EngineLayer\PostEffectManagement\PostEffectManager\PostEffectManager.h" />
     <ClInclude Include="EngineLayer\Managers\RTVManager\RTVManager.h" />
     <ClInclude Include="EngineLayer\Base\MultipleStructs\TransformationMatrix.h" />
     <ClInclude Include="EngineLayer\Material\ParticleMaterial.h" />
@@ -539,23 +531,23 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="EngineLayer\WorldTransform\ParticleTransform.h" />
     <ClInclude Include="ApplicationLayer\EffectLayer\Particle.h" />
     <ClInclude Include="EngineLayer\Mesh\ParticleMesh.h" />
-    <ClInclude Include="EngineLayer\PostEffectManagement\GaussianFilterEffect.h" />
-    <ClInclude Include="EngineLayer\PostEffectManagement\GrayScaleEffect.h" />
-    <ClInclude Include="EngineLayer\PostEffectManagement\IPostEffect.h" />
-    <ClInclude Include="EngineLayer\PostEffectManagement\LuminanceOutlineEffect.h" />
-    <ClInclude Include="EngineLayer\PostEffectManagement\NormalEffect.h" />
-    <ClInclude Include="EngineLayer\PostEffectManagement\PostEffectPipelineBuilder.h" />
-    <ClInclude Include="EngineLayer\PostEffectManagement\RadialBlurEffect.h" />
-    <ClInclude Include="EngineLayer\PostEffectManagement\RandomEffect.h" />
-    <ClInclude Include="EngineLayer\PostEffectManagement\SmoothingEffect.h" />
-    <ClInclude Include="EngineLayer\PostEffectManagement\VignetteEffect.h" />
+    <ClInclude Include="EngineLayer\PostEffectManagement\GaussianFilterEffect\GaussianFilterEffect.h" />
+    <ClInclude Include="EngineLayer\PostEffectManagement\GrayScaleEffect\GrayScaleEffect.h" />
+    <ClInclude Include="EngineLayer\PostEffectManagement\IPostEffect\IPostEffect.h" />
+    <ClInclude Include="EngineLayer\PostEffectManagement\LuminanceOutlineEffect\LuminanceOutlineEffect.h" />
+    <ClInclude Include="EngineLayer\PostEffectManagement\NormalEffect\NormalEffect.h" />
+    <ClInclude Include="EngineLayer\PostEffectManagement\PostEffectPipelineBuilder\PostEffectPipelineBuilder.h" />
+    <ClInclude Include="EngineLayer\PostEffectManagement\RadialBlurEffect\RadialBlurEffect.h" />
+    <ClInclude Include="EngineLayer\PostEffectManagement\RandomEffect\RandomEffect.h" />
+    <ClInclude Include="EngineLayer\PostEffectManagement\SmoothingEffect\SmoothingEffect.h" />
+    <ClInclude Include="EngineLayer\PostEffectManagement\VignetteEffect\VignetteEffect.h" />
     <ClInclude Include="ApplicationLayer\Player\Player.h" />
     <ClInclude Include="ApplicationLayer\Player\PlayerController.h" />
     <ClInclude Include="EngineLayer\CameraManagement\FPSCamera\FpsCamera.h" />
     <ClInclude Include="EngineLayer\ParticleManagement\ParticleFactory.h" />
     <ClInclude Include="ApplicationLayer\Player\Weapon\Weapon.h" />
     <ClInclude Include="EngineLayer\2D\Sprite\NumberSpriteDrawer.h" />
-    <ClInclude Include="EngineLayer\Math\Sphere.h" />
+    <ClInclude Include="EngineLayer\Math\MultipleStructs\Sphere.h" />
     <ClInclude Include="ApplicationLayer\Scene\GamePlayScene\HUDManager\HUDManager.h" />
     <ClInclude Include="ApplicationLayer\ScoreManager\ScoreManager.h" />
     <ClInclude Include="ApplicationLayer\Colliders\IDGenerator.h" />
@@ -566,7 +558,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="ApplicationLayer\Item\ItemDropTable.h" />
     <ClInclude Include="ApplicationLayer\Item\ItemManager.h" />
     <ClInclude Include="ApplicationLayer\Item\ItemType.h" />
-    <ClInclude Include="EngineLayer\Math\LinearInterpolation.h" />
+    <ClInclude Include="EngineLayer\Math\MultipleStructs\LinearInterpolation.h" />
     <ClInclude Include="ApplicationLayer\Scene\PhysicalScene\PhysicalScene.h" />
     <ClInclude Include="ApplicationLayer\Player\Behavior\IdleBehavior\IdleBehavior.h" />
     <ClInclude Include="ApplicationLayer\Player\Behavior\JumpingBehavior\JumpingBehavior.h" />

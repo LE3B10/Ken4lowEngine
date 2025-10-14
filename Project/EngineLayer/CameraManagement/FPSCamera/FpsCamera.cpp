@@ -7,6 +7,9 @@
 #include "LinearInterpolation.h"
 #include <Wireframe.h>
 
+/// ----------------------------------------------
+///					初期化処理
+/// ----------------------------------------------
 void FpsCamera::Initialize(Player* player)
 {
 	input_ = Input::GetInstance();
@@ -14,6 +17,9 @@ void FpsCamera::Initialize(Player* player)
 	camera_ = Object3DCommon::GetInstance()->GetDefaultCamera();
 }
 
+/// ----------------------------------------------
+///					更新処理
+/// ----------------------------------------------
 void FpsCamera::Update(bool ignoreInput)
 {
 	if (!player_ || !camera_) return;
@@ -136,6 +142,9 @@ void FpsCamera::Update(bool ignoreInput)
 	camera_->SetRotate(camEuler);
 }
 
+/// ----------------------------------------------
+///	デバッグ用カメラの位置をワイヤーフレームで描画
+/// ----------------------------------------------
 void FpsCamera::DrawDebugCamera()
 {
 	AABB aabb;
@@ -145,6 +154,9 @@ void FpsCamera::DrawDebugCamera()
 	Wireframe::GetInstance()->DrawAABB(aabb, { 0.0f, 0.0f, 1.0f, 1.0f });
 }
 
+/// ----------------------------------------------
+///					反動を追加
+/// ----------------------------------------------
 void FpsCamera::AddRecoil(float verticalAmount, float horizontalAmount)
 {
 	std::uniform_real_distribution<float> horizontalDist(-horizontalAmount, horizontalAmount);

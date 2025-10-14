@@ -25,6 +25,8 @@ public: /// ---------- メンバ関数 ---------- ///
 	// 初期化処理
 	void Initialize(ID3D12Device* device, const ModelData& modelData);
 
+public: /// ---------- ゲッター ---------- ///
+
 	// --- 新規: 複数サブメッシュ対応のAPI ---
 	size_t GetSubmeshCount() const { return subMeshes_.size(); }
 	const D3D12_VERTEX_BUFFER_VIEW& GetVertexBufferView(size_t i) const { return subMeshes_[i].vertexBufferView_; }

@@ -47,16 +47,16 @@ public: /// ---------- 構造体 ---------- ///
 	// 三角形の構造体
 	struct TriangleData
 	{
-		VertexData* vertexData;					   // 頂点データ
-		ComPtr<ID3D12Resource> vertexBuffer;	   // 頂点バッファ
-		D3D12_VERTEX_BUFFER_VIEW vertexBufferView; // 頂点バッファビュー
+		VertexData* vertexData = nullptr;			 // 頂点データ
+		ComPtr<ID3D12Resource> vertexBuffer;		 // 頂点バッファ
+		D3D12_VERTEX_BUFFER_VIEW vertexBufferView{}; // 頂点バッファビュー
 	};
 
 	// 矩形の構造体
 	struct BoxData
 	{
-		VertexData* vertexData;					   // 頂点データ
-		uint32_t* indexData;					   // インデックスデータ
+		VertexData* vertexData = nullptr;		   // 頂点データ
+		uint32_t* indexData = nullptr;			   // インデックスデータ
 		ComPtr<ID3D12Resource> vertexBuffer;	   // 頂点バッファ
 		ComPtr<ID3D12Resource> indexBuffer;		   // インデックスバッファ
 		D3D12_VERTEX_BUFFER_VIEW vertexBufferView; // 頂点バッファビュー
@@ -66,9 +66,9 @@ public: /// ---------- 構造体 ---------- ///
 	// 線分の構造体
 	struct LineData
 	{
-		VertexData* vertexData;					   // 頂点データ
-		ComPtr<ID3D12Resource> vertexBuffer;	   // 頂点バッファ
-		D3D12_VERTEX_BUFFER_VIEW vertexBufferView; // 頂点バッファビュー
+		VertexData* vertexData = nullptr;		     // 頂点データ
+		ComPtr<ID3D12Resource> vertexBuffer;	     // 頂点バッファ
+		D3D12_VERTEX_BUFFER_VIEW vertexBufferView{}; // 頂点バッファビュー
 	};
 
 	// 球体
@@ -181,8 +181,8 @@ public: /// ---------- 3D用の線の描画 ---------- ///
 	void DrawSphere(const Vector3& center, const float radius, const Vector4& color);
 
 	// カプセル（Capsule）を描画
-	void DrawCapsule(const Vector3& center, float radius, float height, const Vector3& axis, int segments, const Vector4& color);
-	
+	void DrawCapsule(const Vector3& center, float radius, float height, const Vector3& axis, uint32_t segments, const Vector4& color);
+
 	// カプセル（Capsule）を描画（Capsule構造体を使用）
 	void DrawCapsule(const Capsule& capsule, const Vector4& color);
 
@@ -244,7 +244,7 @@ public: /// ---------- 取得 ---------- ///
 	const Matrix4x4& GetProjectionMatrix() { return projectionMatrix_; }
 
 	// デバッグカメラの有無を取得
-	bool GetDebugCamera() { return isDebugCamera_; }
+	bool GetDebugCamera() const { return isDebugCamera_; }
 
 private: /// ---------- メンバ関数 ---------- ///
 

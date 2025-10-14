@@ -3,18 +3,23 @@
 #include "ScoreManager.h"
 #include <CollisionTypeIdDef.h>
 
+/// -------------------------------------------------------------
+///							初期化処理
+/// -------------------------------------------------------------
 void Item::Initialize(ItemType type, const Vector3& pos)
 {
 	Collider::SetTypeID(static_cast<uint32_t>(CollisionTypeIdDef::kItem));
 	Collider::SetOBBHalfSize(scale_);
 
+	// アイテムの種類と位置を設定
 	type_ = type;
 	position_ = pos;
 	basePosition_ = pos;
 
-	std::string modelPath;
-
+	std::string modelPath; // モデルパス
 	object3d_ = std::make_unique<Object3D>();
+
+	// アイテムの種類に応じてモデルと色を設定
 	switch (type_)
 	{
 	case ItemType::HealSmall:
@@ -61,6 +66,9 @@ void Item::Initialize(ItemType type, const Vector3& pos)
 	}
 }
 
+/// -------------------------------------------------------------
+///							更新処理
+/// -------------------------------------------------------------
 void Item::Update()
 {
 	if (collected_) return;
@@ -83,6 +91,9 @@ void Item::Update()
 	Collider::SetCenterPosition(position_);
 }
 
+/// -------------------------------------------------------------
+///							描画処理
+/// -------------------------------------------------------------
 void Item::Draw()
 {
 	if (!collected_ && object3d_) {
@@ -90,6 +101,9 @@ void Item::Draw()
 	}
 }
 
+/// -------------------------------------------------------------
+///						プレイヤーとの当たり判定
+/// -------------------------------------------------------------
 bool Item::CheckCollisionWithPlayer(const Vector3& playerPos)
 {
 	float pickupRadius = 2.0f;
@@ -97,6 +111,9 @@ bool Item::CheckCollisionWithPlayer(const Vector3& playerPos)
 	return Vector3::Length(diff) <= pickupRadius * pickupRadius;
 }
 
+/// -------------------------------------------------------------
+///						効果適用
+/// -------------------------------------------------------------
 void Item::ApplyTo(Player* player)
 {
 	if (collected_) return;
@@ -120,10 +137,13 @@ void Item::ApplyTo(Player* player)
 	collected_ = true;
 }
 
+/// -------------------------------------------------------------
+///						衝突時の処理
+/// -------------------------------------------------------------
 void Item::OnCollision(Collider* other)
 {
 	if (other->GetTypeID() == static_cast<uint32_t>(CollisionTypeIdDef::kPlayer))
 	{
-		ApplyTo(static_cast<Player*>(other));
+		ApplyTo(static_cast<Player*>(other)); // 効果適用
 	}
 }

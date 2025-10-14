@@ -5,8 +5,11 @@
 // 自動Relese解放マン
 class ResourceObject
 {
-public:
+public: /// ---------- メンバ関数 ---------- ///
+
+	// コンストラクタはリソースを受け取る
 	ResourceObject(ID3D12Resource* resource) : resource_(resource) {};
+
 	// デストラクタはオブジェクトの寿命が尽きた時に呼ばれる
 	~ResourceObject()
 	{
@@ -16,8 +19,11 @@ public:
 			resource_->Release();
 		}
 	};
+	
 	ID3D12Resource* Get() { return resource_; }
-private:
+
+private: /// ---------- メンバ変数 ---------- ///
+	
 	ID3D12Resource* resource_;
 };
 

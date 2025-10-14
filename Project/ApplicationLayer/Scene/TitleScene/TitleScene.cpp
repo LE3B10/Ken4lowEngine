@@ -10,7 +10,11 @@
 #include <Wireframe.h>
 #include <LinearInterpolation.h>
 #include <SkyBoxManager.h>
+#include <AudioManager.h>
 
+/// -------------------------------------------------------------
+///				　			　補助関数
+/// -------------------------------------------------------------
 static inline void YawPitchLookAt(const Vector3& from, const Vector3& to, float& outYaw, float& outPitch)
 {
 	const float dx = to.x - from.x;
@@ -81,7 +85,7 @@ void TitleScene::Initialize()
 	btnBattleShadow_->SetSize({ battleBtnSize_.x * 1.02f, battleBtnSize_.y * 1.02f }); // わずかに大きく
 	btnBattleShadow_->SetColor({ 0, 0, 0, 0.35f }); // 半透明の黒
 
-	// --- 追加：HUDアイコン/バー（仮アセット名でOK。手持ちの白テクでも可） ---
+	// --- HUDアイコン/バー（仮アセット名でOK。手持ちの白テクでも可） ---
 	auto make = [&](std::unique_ptr<Sprite>& s, const std::string& path, Vector2 pos, Vector2 anchor) {
 		s = std::make_unique<Sprite>();
 		s->Initialize("icon/" + path);
@@ -234,7 +238,7 @@ void TitleScene::Draw2DSprites()
 		if (btnBattleShadow_) { btnBattleShadow_->Draw(); } // ← 影を先に
 		if (btnBattle_) { btnBattle_->Draw(); } // ← ボタン本体
 
-		// 追加：HUD
+		// HUD
 		if (xpBack_)  xpBack_->Draw();
 		if (xpFill_)  xpFill_->Draw();
 		if (iconCoin_) iconCoin_->Draw();
@@ -255,7 +259,7 @@ void TitleScene::Draw2DSprites()
 /// -------------------------------------------------------------
 void TitleScene::Finalize()
 {
-
+	AudioManager::GetInstance()->StopBGM();
 }
 
 
@@ -295,6 +299,9 @@ void TitleScene::DrawImGui()
 	object3D_->DrawImGui();
 }
 
+/// -------------------------------------------------------------
+///				　タイトルアトラクトモードの更新
+/// -------------------------------------------------------------
 void TitleScene::UpdateTitleAttract(float dt)
 {
 	// ゆっくりカメラを周回させる
@@ -327,7 +334,7 @@ void TitleScene::UpdateTitleAttract(float dt)
 		logoScale_ = 0.9f + 0.1f * te;
 	}
 
-	// 補助：整数ピクセルにスナップ（ドット絵の滲み防止）
+	// 整数ピクセルにスナップ（ドット絵の滲み防止）
 	auto snap = [](float v) { return std::floor(v + 0.5f); };
 
 	bool canAcceptInput =
@@ -342,17 +349,17 @@ void TitleScene::UpdateTitleAttract(float dt)
 
 		clickHintPhase_ += dt;
 
-		// ① ロゴのすぐ下（アンカー：ヒント=中央上）
+		// ロゴのすぐ下（アンカー：ヒント=中央上）
 		const Vector2 logoPos = logoSprite_->GetPosition();
 		const Vector2 logoSz = { logoBaseSize_.x * logoScale_, logoBaseSize_.y * logoScale_ };
 		Vector2 basePos = { logoPos.x, logoPos.y + (logoSz.y * 0.5f) + clickHintMarginY_ };
 
-		// ② アニメ成分（点滅・上下ゆれ・脈動）
+		// アニメ成分（点滅・上下ゆれ・脈動）
 		const float blink = clickHintBlinkMin_ + (1.0f - clickHintBlinkMin_) * (0.5f * (sinf(clickHintPhase_ * 2.2f) + 1.0f));
 		const float wobble = sinf(clickHintPhase_ * 4.0f) * clickHintWobblePx_;
 		const float pulse = 1.0f + clickHintPulseMag_ * sinf(clickHintPhase_ * 2.0f);
 
-		// ③ いまの“見た目”でヒットテスト（前フレームの押し/ホバー値を反映）
+		// いまの“見た目”でヒットテスト（前フレームの押し/ホバー値を反映）
 		const float scaleNow =
 			(pulse + clickHintScaleHover_ * clickHintHoverAnim_) -
 			(clickHintScalePress_ * clickHintPressAnim_);
@@ -369,7 +376,7 @@ void TitleScene::UpdateTitleAttract(float dt)
 		const Vector2 mp = input_->GetMousePosition();
 		const bool inHint = (mp.x >= minX && mp.x <= maxX && mp.y >= minY && mp.y <= maxY);
 
-		// ④ 入力：押し始めは内側、離したのも内側なら確定
+		// 入力：押し始めは内側、離したのも内側なら確定
 		if (input_->TriggerMouse(0) && inHint) clickHintPressing_ = true;
 		const bool mouseHeld = input_->PushMouse(0);
 		const bool mouseUp = input_->ReleaseMouse(0);
@@ -378,14 +385,14 @@ void TitleScene::UpdateTitleAttract(float dt)
 			clickHintPressing_ = false;
 		}
 
-		// ⑤ 目標値→アニメ補間
+		// 目標値→アニメ補間
 		const float pressTarget = (clickHintPressing_ && mouseHeld) ? 1.0f : 0.0f;
 		const float hoverTarget = (!pressTarget && inHint) ? 1.0f : 0.0f;
 		const float s = std::clamp(dt * 12.0f, 0.0f, 1.0f);
 		clickHintPressAnim_ = Lerp(clickHintPressAnim_, pressTarget, s);
 		clickHintHoverAnim_ = Lerp(clickHintHoverAnim_, hoverTarget, s);
 
-		// ⑥ “更新後”の見た目で描画セット（次フレームの ③ で使われる）
+		//“更新後”の見た目で描画セット（次フレームの ③ で使われる）
 		const float scaleDraw =
 			(pulse + clickHintScaleHover_ * clickHintHoverAnim_) -
 			(clickHintScalePress_ * clickHintPressAnim_);
@@ -426,6 +433,9 @@ void TitleScene::UpdateTitleAttract(float dt)
 	logoSprite_->Update();
 }
 
+/// -------------------------------------------------------------
+///				　		ロビーへの遷移の更新
+/// -------------------------------------------------------------
 void TitleScene::UpdateTransitionToLobby(float dt)
 {
 	transTime_ += dt;
@@ -468,6 +478,9 @@ void TitleScene::UpdateTransitionToLobby(float dt)
 	}
 }
 
+/// -------------------------------------------------------------
+///				　		ロビーでの待機の更新
+/// -------------------------------------------------------------
 void TitleScene::UpdateLobbyIdle(float dt)
 {
 	Vector2 mp = input_->GetMousePosition();
@@ -619,6 +632,9 @@ void TitleScene::UpdateLobbyIdle(float dt)
 	if (btnBattle_) btnBattle_->Update();
 }
 
+/// -------------------------------------------------------------
+///				　	タイトルへ戻る補間の更新
+/// -------------------------------------------------------------
 void TitleScene::UpdateToTitle(float dt)
 {
 	transTime_ += dt;
@@ -649,6 +665,9 @@ void TitleScene::UpdateToTitle(float dt)
 	}
 }
 
+/// -------------------------------------------------------------
+///				カメラの確保（なければデフォルトを取得）
+/// -------------------------------------------------------------
 Camera* TitleScene::EnsureCamera()
 {
 	if (!camera_) {
@@ -657,6 +676,9 @@ Camera* TitleScene::EnsureCamera()
 	return camera_;
 }
 
+/// -------------------------------------------------------------
+///				　	デバッグ用更新（キー入力など）
+/// -------------------------------------------------------------
 void TitleScene::UpdateDebug()
 {
 #ifdef _DEBUG

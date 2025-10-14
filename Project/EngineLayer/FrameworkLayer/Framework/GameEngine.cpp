@@ -46,7 +46,7 @@ void GameEngine::Update()
 
 	if (Object3DCommon::GetInstance()->GetDebugCamera())
 	{
-		DebugCamera::GetInstance()->Update(); // 追加
+		DebugCamera::GetInstance()->Update(); // デバッグカメラの更新処理
 	}
 	else
 	{

@@ -31,8 +31,5 @@ public: /// ---------- メンバ関数 ---------- ///
 private: /// ---------- メンバ変数 ---------- ///
 
 	FPSCounter fpsCounter_;
-
-	std::vector<std::unique_ptr<Sprite>> sprites_;
-	std::vector<std::unique_ptr<Object3D>> objects3D_;
 };
 

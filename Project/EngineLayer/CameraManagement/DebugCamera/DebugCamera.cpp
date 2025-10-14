@@ -12,7 +12,6 @@ DebugCamera* DebugCamera::GetInstance()
 	return &instance;
 }
 
-
 /// -------------------------------------------------------------
 ///							初期化処理
 /// -------------------------------------------------------------
@@ -29,14 +28,15 @@ void DebugCamera::Initialize()
 	UpdateViewProjection();
 }
 
-
 /// -------------------------------------------------------------
 ///							　更新処理
 /// -------------------------------------------------------------
 void DebugCamera::Update()
 {
+	// 移動処理
 	Move();
 
+	// 行列の更新
 	UpdateViewProjection();
 }
 
@@ -72,6 +72,9 @@ void DebugCamera::Move()
 	worldTransform_.rotate_.x = std::clamp(worldTransform_.rotate_.x, -1.57f, 1.57f);
 }
 
+/// -------------------------------------------------------------
+///						行列の更新処理
+/// -------------------------------------------------------------
 void DebugCamera::UpdateViewProjection()
 {
 	// **回転行列を更新**

@@ -104,10 +104,13 @@ void Crosshair::Draw()
 	}
 }
 
+/// -------------------------------------------------------------
+///				　		ヒットマーカー表示開始
+/// -------------------------------------------------------------
 void Crosshair::ShowHitMarker()
 {
-	showHitMarker_ = true;
-	hitMarkerTimer_ = hitMarkerDuration_;
+	showHitMarker_ = true; // 表示フラグON
+	hitMarkerTimer_ = hitMarkerDuration_; // タイマーリセット
 
 	hitMarkerScale_ = 1.8f;          // もう少し大きく
 	hitMarkerScaleVelocity_ = -4.0f; // キュッと収束

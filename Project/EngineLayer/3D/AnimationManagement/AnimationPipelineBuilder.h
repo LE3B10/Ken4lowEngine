@@ -34,12 +34,9 @@ public: /// ---------- メンバ関数 ---------- ///
 	// 共通描画処理設定
 	void SetRenderSetting();
 
-<<<<<<<< HEAD:Project/EngineLayer/3D/AnimationManagement/AnimationPipelineBuilder.h
-========
 	// コンピュートシェーダー用の設定
 	void SetComputeSetting();
 
->>>>>>>> GameProject_master:Project/EngineLayer/3D/AnimationManager/AnimationPipelineBuilder.h
 	// ルートシグネチャの取得
 	ID3D12RootSignature* GetRootSignature() const { return rootSignature.Get(); }
 
@@ -69,12 +66,6 @@ private: /// ---------- メンバ関数 ---------- ///
 private: /// ---------- メンバ変数 ---------- ///
 
 	DirectXCommon* dxCommon_ = nullptr;
-<<<<<<<< HEAD:Project/EngineLayer/3D/AnimationManagement/AnimationPipelineBuilder.h
-
-	// ルートシグネチャとパイプラインステート
-	ComPtr <ID3D12RootSignature> rootSignature;
-	ComPtr <ID3D12PipelineState> graphicsPipelineState;
-========
 
 	// ルートシグネチャとパイプラインステート
 	ComPtr<ID3D12RootSignature> rootSignature;
@@ -84,7 +75,6 @@ private: /// ---------- メンバ変数 ---------- ///
 	ComPtr <ID3D12RootSignature> computeRootSignature_;
 	ComPtr<ID3D12PipelineState> computePipelineState_;
 
->>>>>>>> GameProject_master:Project/EngineLayer/3D/AnimationManager/AnimationPipelineBuilder.h
 	D3D12_INPUT_LAYOUT_DESC inputLayoutDesc{};
 
 	// ブレンドモード

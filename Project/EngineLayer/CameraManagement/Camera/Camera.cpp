@@ -5,6 +5,9 @@
 #include "Matrix4x4.h"
 #include "Quaternion.h"
 
+/// -------------------------------------------------------------
+///						コンストラクタ
+/// -------------------------------------------------------------
 Camera::Camera() :
 	fovY_(0.9f),
 	aspectRatio_(float(WinApp::kClientWidth) / float(WinApp::kClientHeight)),
@@ -32,6 +35,9 @@ void Camera::Update()
 	viewProjectionMatrix_ = Matrix4x4::Multiply(viewMatrix_, projectionMatrix_);
 }
 
+/// -------------------------------------------------------------
+///						ImGuiの描画
+/// -------------------------------------------------------------
 void Camera::DrawImGui()
 {
 	ImGui::Begin("Camera");
@@ -40,7 +46,9 @@ void Camera::DrawImGui()
 	ImGui::End();
 }
 
-
+/// -------------------------------------------------------------
+///						前方ベクトルの取得
+/// -------------------------------------------------------------
 Vector3 Camera::GetForward() const
 {
 	// 回転行列をオイラー角から生成（pitch: X, yaw: Y）

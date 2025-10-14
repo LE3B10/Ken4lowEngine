@@ -4,6 +4,9 @@
 #include "DirectXCommon.h"
 #include <numeric>
 
+/// -------------------------------------------------------------
+///				　		ノードからスケルトンを生成
+/// -------------------------------------------------------------
 void Skeleton::CreateFromNode(const Node& rootNode)
 {
 	joints_.clear();
@@ -17,6 +20,9 @@ void Skeleton::CreateFromNode(const Node& rootNode)
 	}
 }
 
+/// -------------------------------------------------------------
+///				　	ルートノードからスケルトンを生成
+/// -------------------------------------------------------------
 std::unique_ptr<Skeleton> Skeleton::CreateFromRootNode(const Node& rootNode)
 {
 	auto skeleton = std::make_unique<Skeleton>();
@@ -25,10 +31,15 @@ std::unique_ptr<Skeleton> Skeleton::CreateFromRootNode(const Node& rootNode)
 	return skeleton;
 }
 
+/// -------------------------------------------------------------
+///				　　 　スケルトンの更新処理
+/// -------------------------------------------------------------
 void Skeleton::UpdateSkeleton()
 {
+	// ジョイントが空なら何もしない
 	if (joints_.empty()) return;
 
+	// 再帰的にジョイントを更新するラムダ関数
 	std::function<void(uint32_t)> updateJoint = [&](uint32_t index)
 		{
 			Joint& joint = joints_[index];
@@ -55,13 +66,19 @@ void Skeleton::UpdateSkeleton()
 			}
 		};
 
+	// ルートジョイントから更新を開始
 	updateJoint(rootIndex_);
 }
 
+/// -------------------------------------------------------------
+///				　　再帰的にジョイントを作成
+/// -------------------------------------------------------------
 uint32_t Skeleton::CreateJointRecursive(const Node& node, const std::optional<int32_t>& parent)
 {
+	// 現在のジョイントのインデックスを取得
 	int32_t currentIndex = static_cast<int32_t>(joints_.size());
 
+	// ジョイントを作成して追加
 	Joint joint;
 	joint.name = node.name;
 	joint.localMatrix = node.localMatrix;
@@ -72,10 +89,13 @@ uint32_t Skeleton::CreateJointRecursive(const Node& node, const std::optional<in
 	joints_.push_back(joint);
 	jointMap_[joint.name] = currentIndex;
 
-	for (const auto& childNode : node.children) {
+	// 子ノードに対して再帰的にジョイントを作成
+	for (const auto& childNode : node.children)
+	{
 		int32_t childIndex = CreateJointRecursive(childNode, currentIndex);
 		joints_[currentIndex].children.push_back(childIndex);
 	}
 
+	// 現在のジョイントのインデックスを返す
 	return currentIndex;
 }

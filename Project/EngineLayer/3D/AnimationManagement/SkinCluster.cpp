@@ -1,74 +1,123 @@
 #include "SkinCluster.h"
+#include "DirectXCommon.h"
 #include "Skeleton.h"
 #include "ResourceManager.h"
 #include "SRVManager.h"
-#include "DirectXCommon.h"
+#include "UAVManager.h"
 
 #include <cassert>
 #include <cstring>
 
+/// -------------------------------------------------------------
+///				　　　 総頂点数を数える
+/// -------------------------------------------------------------
+static uint32_t CountTotalVertices(const ModelData& modelData)
+{
+	uint32_t count = 0;
+	for (const auto& sm : modelData.subMeshes) {
+		count += static_cast<uint32_t>(sm.vertices.size());
+	}
+	return count;
+}
+
+/// -------------------------------------------------------------
+///				　　　		デストラクタ
+/// -------------------------------------------------------------
 SkinCluster::~SkinCluster()
 {
 	if (paletteSrvIndex_ != UINT32_MAX) {
-		SRVManager::GetInstance()->Free(paletteSrvIndex_);                 // ← 追加
+		SRVManager::GetInstance()->Free(paletteSrvIndex_);
+	}
+	if (paletteSrvIndexOnUavHeap_ != UINT32_MAX) {
+		UAVManager::GetInstance()->Free(paletteSrvIndexOnUavHeap_);
+	}
+	if (influenceSrvIndexOnUavHeap_ != UINT32_MAX) {
+		UAVManager::GetInstance()->Free(influenceSrvIndexOnUavHeap_);
 	}
 }
 
+/// -------------------------------------------------------------
+///				　　　		初期化処理
+/// -------------------------------------------------------------
 void SkinCluster::Initialize(const ModelData& modelData, Skeleton& skeleton)
 {
-	auto* device = DirectXCommon::GetInstance()->GetDevice();
+	auto* dxCommon = DirectXCommon::GetInstance();
+	auto* device = dxCommon->GetDevice();
+	auto* commandList = dxCommon->GetCommandManager()->GetCommandList();
 	auto& joints = skeleton.GetJoints();
 
-	// palette Resource
+	// 総頂点数を出す
+	auto coutTotalVertices = [&]() {
+		uint32_t count = 0;
+		for (const auto& sm : modelData.subMeshes) {
+			count += static_cast<uint32_t>(sm.vertices.size());
+		}
+		return count;
+		};
+
+	const uint32_t totalVerts = coutTotalVertices();   // subMeshes 合計
+
+	// =========================
+	// t0: パレット（UPLOAD & Map）
+	// =========================
 	paletteResource_ = ResourceManager::CreateBufferResource(device, sizeof(WellForGPU) * joints.size());
+
 	WellForGPU* mappedPalette = nullptr;
 	paletteResource_->Map(0, nullptr, reinterpret_cast<void**>(&mappedPalette));
-	mappedPalette_ = { mappedPalette, joints.size() }; // spanを使ってアクセスするようにする
+	mappedPalette_ = { mappedPalette, joints.size() }; // span
 
+	// ===== DEFAULT を作って初期コピー（★初期 COMMON → 明示遷移）=====
+	{
+		D3D12_HEAP_PROPERTIES heapDefault = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
+		D3D12_RESOURCE_DESC    bufDesc = CD3DX12_RESOURCE_DESC::Buffer(sizeof(WellForGPU) * joints.size());
+
+		// 初期ステートは COMMON にする（警告回避）
+		HRESULT hr = device->CreateCommittedResource(&heapDefault, D3D12_HEAP_FLAG_NONE, &bufDesc, D3D12_RESOURCE_STATE_COMMON, nullptr, IID_PPV_ARGS(&paletteResourceDefault_));
+		assert(SUCCEEDED(hr));
+
+		// COMMON → COPY_DEST に明示遷移してからコピー
+		dxCommon->ResourceTransition(paletteResourceDefault_.Get(), D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_COPY_DEST);
+
+		// UPLOAD → DEFAULT へ初期コピー
+		commandList->CopyBufferRegion(paletteResourceDefault_.Get(), 0, paletteResource_.Get(), 0, sizeof(WellForGPU) * joints.size());
+
+		// 読み取り用（CS/VS）に遷移
+		dxCommon->ResourceTransition(paletteResourceDefault_.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_GENERIC_READ);
+
+		dxCommon->GetCommandManager()->ExecuteAndWait();
+	}
+
+	// SRV（SRVManager 側）— DEFAULT を指す
 	paletteSrvIndex_ = SRVManager::GetInstance()->Allocate();
 	paletteSrvHandle_.first = SRVManager::GetInstance()->GetCPUDescriptorHandle(paletteSrvIndex_);
 	paletteSrvHandle_.second = SRVManager::GetInstance()->GetGPUDescriptorHandle(paletteSrvIndex_);
+	SRVManager::GetInstance()->CreateSRVForStructureBuffer(paletteSrvIndex_, paletteResourceDefault_.Get(), static_cast<uint32_t>(joints.size()), sizeof(WellForGPU));
 
-	// SRVの作成
-	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc{};
-	srvDesc.Format = DXGI_FORMAT_UNKNOWN;
-	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-	srvDesc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
-	srvDesc.Buffer.FirstElement = 0;
-	srvDesc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_NONE;
-	srvDesc.Buffer.NumElements = UINT(joints.size());
-	srvDesc.Buffer.StructureByteStride = sizeof(WellForGPU);
-	device->CreateShaderResourceView(paletteResource_.Get(), &srvDesc, paletteSrvHandle_.first);
-
-	// influence Resourceの作成
-	influenceResource_ = ResourceManager::CreateBufferResource(device, sizeof(VertexInfluence) * modelData.vertices.size());
+	// =========================
+	// t2: インフルエンス（UPLOAD を作成して Map）
+	// =========================
 	VertexInfluence* mappedInfluence = nullptr;
+	influenceResource_ = ResourceManager::CreateBufferResource(device, sizeof(VertexInfluence) * totalVerts);
 	influenceResource_->Map(0, nullptr, reinterpret_cast<void**>(&mappedInfluence));
-	std::memset(mappedInfluence, 0, sizeof(VertexInfluence) * modelData.vertices.size()); // 0埋め、weightを0にする
-	mappedInfluenceData_ = { mappedInfluence, modelData.vertices.size() };
+	std::memset(mappedInfluence, 0, sizeof(VertexInfluence) * totalVerts);
+	mappedInfluenceData_ = { mappedInfluence, totalVerts }; // span
 
-	// VBV
-	influenceBufferView_.BufferLocation = influenceResource_->GetGPUVirtualAddress();
-	influenceBufferView_.SizeInBytes = UINT(sizeof(VertexInfluence) * modelData.vertices.size());
-	influenceBufferView_.StrideInBytes = sizeof(VertexInfluence);
-
-	// --- inverseBindPose 配列をスケルトン数に合わせて用意 -----------
+	// inverseBindPose 配列
 	inverseBindPoseMatrices_.resize(joints.size(), Matrix4x4::MakeIdentity());
 
-	// --- Influence 書き込み & 範囲チェック --------------------------
+	// --- Influence 書き込み & 範囲チェック ---
 	const auto& jointMap = skeleton.GetJointMap();
-
 	for (const auto& [jName, jWeightData] : modelData.skinClusterData)
 	{
 		auto it = jointMap.find(jName);
-		if (it == jointMap.end()) continue;             // ★ スケルトンに無いボーンは無視
+		if (it == jointMap.end()) continue;
 
 		uint32_t jIdx = it->second;
 		inverseBindPoseMatrices_[jIdx] = jWeightData.inverseBindPoseMatrix;
 
 		for (const auto& vw : jWeightData.vertexWeights)
 		{
-			if (vw.vertexIndex >= mappedInfluenceData_.size()) continue; // ★ 範囲外防御
+			if (vw.vertexIndex >= mappedInfluenceData_.size()) continue;
 
 			auto& inf = mappedInfluenceData_[vw.vertexIndex];
 			for (uint32_t i = 0; i < kNumMaxInfluence; ++i)
@@ -82,8 +131,48 @@ void SkinCluster::Initialize(const ModelData& modelData, Skeleton& skeleton)
 			}
 		}
 	}
+
+	// ===== DEFAULT（読取用）を作成 → UPLOAD からコピー（初期 COMMON → 明示遷移）=====
+	{
+		const UINT64 infSize = UINT64(sizeof(VertexInfluence)) * UINT64(totalVerts);
+		D3D12_HEAP_PROPERTIES heapDefault = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
+		D3D12_RESOURCE_DESC    bufDesc = CD3DX12_RESOURCE_DESC::Buffer(infSize);
+
+		// 初期ステートは COMMON
+		HRESULT hr = device->CreateCommittedResource(&heapDefault, D3D12_HEAP_FLAG_NONE, &bufDesc, D3D12_RESOURCE_STATE_COMMON, nullptr, IID_PPV_ARGS(&influenceResourceDefault_));
+		assert(SUCCEEDED(hr));
+
+		// COMMON → COPY_DEST に明示遷移
+		dxCommon->ResourceTransition(influenceResourceDefault_.Get(), D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_COPY_DEST);
+
+		// UPLOAD → DEFAULT へコピー
+		commandList->CopyBufferRegion(influenceResourceDefault_.Get(), 0, influenceResource_.Get(), 0, infSize);
+
+		// 読み取り用に遷移
+		dxCommon->ResourceTransition(influenceResourceDefault_.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_GENERIC_READ);
+
+		dxCommon->GetCommandManager()->ExecuteAndWait();
+	}
+
+	// VS 用 VBV（slot1）は DEFAULT を指す
+	influenceBufferView_.BufferLocation = influenceResourceDefault_->GetGPUVirtualAddress();
+	influenceBufferView_.SizeInBytes = UINT(sizeof(VertexInfluence) * totalVerts);
+	influenceBufferView_.StrideInBytes = sizeof(VertexInfluence);
+
+	// t0 : パレット — DEFAULT を指す
+	paletteSrvIndexOnUavHeap_ = UAVManager::GetInstance()->Allocate();
+	UAVManager::GetInstance()->CreateSRVForStructureBuffer(paletteSrvIndexOnUavHeap_, paletteResourceDefault_.Get(), static_cast<UINT>(mappedPalette_.size()), sizeof(WellForGPU));
+	paletteSrvGpuOnUavHeap_ = UAVManager::GetInstance()->GetGPUDescriptorHandle(paletteSrvIndexOnUavHeap_);
+
+	// t2 : インフルエンス — DEFAULT を指す
+	influenceSrvIndexOnUavHeap_ = UAVManager::GetInstance()->Allocate();
+	UAVManager::GetInstance()->CreateSRVForStructureBuffer(influenceSrvIndexOnUavHeap_, influenceResourceDefault_.Get(), static_cast<UINT>(mappedInfluenceData_.size()), sizeof(VertexInfluence));
+	influenceSrvGpuOnUavHeap_ = UAVManager::GetInstance()->GetGPUDescriptorHandle(influenceSrvIndexOnUavHeap_);
 }
 
+/// -------------------------------------------------------------
+///				スケルトンからパレット行列を更新
+/// -------------------------------------------------------------
 void SkinCluster::UpdatePaletteMatrix(Skeleton& skeleton)
 {
 	auto& joints = skeleton.GetJoints();
@@ -93,4 +182,15 @@ void SkinCluster::UpdatePaletteMatrix(Skeleton& skeleton)
 		mappedPalette_[jointIndex].skeletonSpaceMatrix = inverseBindPoseMatrices_[jointIndex] * joints[jointIndex].skeletonSpaceMatrix;
 		mappedPalette_[jointIndex].skeletonSpaceInverceTransposeMatrix = Matrix4x4::Transpose(Matrix4x4::Inverse(mappedPalette_[jointIndex].skeletonSpaceMatrix));
 	}
+
+	// 毎フレ：UPLOAD → DEFAULT へ Copy（既存どおりでOK）
+	auto* dxCommon = DirectXCommon::GetInstance();
+	auto* commandLisht = dxCommon->GetCommandManager()->GetCommandList();
+
+	dxCommon->ResourceTransition(paletteResourceDefault_.Get(), D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_STATE_COPY_DEST);
+
+	const UINT64 bytes = UINT64(sizeof(WellForGPU)) * UINT64(joints.size());
+	commandLisht->CopyBufferRegion(paletteResourceDefault_.Get(), 0, paletteResource_.Get(), 0, bytes);
+
+	dxCommon->ResourceTransition(paletteResourceDefault_.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_GENERIC_READ);
 }

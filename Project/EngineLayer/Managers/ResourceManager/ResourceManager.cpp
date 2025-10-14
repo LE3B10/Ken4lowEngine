@@ -5,6 +5,9 @@
 #pragma comment(lib, "d3d12.lib")
 #pragma comment(lib, "dxgi.lib")
 
+/// -------------------------------------------------------------
+///					バッファリソースの生成
+/// -------------------------------------------------------------
 ComPtr<ID3D12Resource> ResourceManager::CreateBufferResource(ID3D12Device* device, size_t sizeInBytes)
 {
 	//頂点リソース用のヒープ設定

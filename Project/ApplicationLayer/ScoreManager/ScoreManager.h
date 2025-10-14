@@ -1,13 +1,14 @@
 #pragma once
+
+/// -------------------------------------------------------------
+///						スコア管理クラス
+/// -------------------------------------------------------------
 class ScoreManager
 {
 public: /// ---------- メンバ関数 ---------- ///
 
-	static ScoreManager* GetInstance()
-	{
-		static ScoreManager instance;
-		return &instance;
-	}
+	// シングルトンインスタンス取得
+	static ScoreManager* GetInstance();
 
 	// 初期化処理
 	void Initialize();
@@ -19,7 +20,7 @@ public: /// ---------- メンバ関数 ---------- ///
 	void Reset();
 
 	// ImGui描画処理
-	void DrawImGui();
+	void DrawImGui() const;
 
 	// スコアの追加
 	void AddScore(int value) { score_ += value; }

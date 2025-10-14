@@ -47,6 +47,7 @@ public: /// ---------- セグメントのメンバ関数 ---------- ///
 
 	// セグメントを設定（衝突判定用）
 	void SetSegment(const Segment& segment) { segment_ = segment; }
+
 	// セグメントを取得
 	virtual Segment GetSegment() const { return segment_; }
 
@@ -54,6 +55,7 @@ public: /// ---------- Sphere のメンバ関数 ---------- ///
 
 	// Sphereを設定（衝突判定用）
 	void SetSphere(Sphere& spere) { sphere_ = spere; useSphere_ = true; }
+
 	// Sphereを取得
 	virtual Sphere GetSphere() const { return sphere_; }
 
@@ -68,7 +70,10 @@ public: /// ---------- Capsule のメンバ関数 ---------- ///
 	// 使用フラグ（テーブル判定用）
 	bool HasCapsule() const { return useCapsule_; }
 
+	// デバッグ可視化フラグの設定
 	void SetCapsuleVisible(bool v) { drawCapsule_ = v; }
+
+	// デバッグ可視化フラグの取得
 	bool IsCapsuleVisible() const { return drawCapsule_; }
 
 public: /// ---------- デバッグ用メンバ関数 ---------- ///
@@ -95,6 +100,7 @@ public: /// ---------- 設定 ---------- ///
 	// シリアルナンバーを取得
 	uint32_t GetUniqueID() const { return serialNumber_; }
 
+	// オーナーを設定・取得
 	template<class T> void SetOwner(T* ptr) { owner_ = ptr; }
 	template<class T> T* GetOwner() const { return static_cast<T*>(owner_); }
 
@@ -103,6 +109,7 @@ private: /// ---------- メンバ変数 ---------- ///
 	// 識別ID
 	uint32_t typeID_ = 0u;
 
+	// オーナー（任意のオブジェクトを指せるようにvoidポインタで持つ）
 	void* owner_ = nullptr;
 
 private: /// ---------- OBBのメンバ変数 ---------- ///

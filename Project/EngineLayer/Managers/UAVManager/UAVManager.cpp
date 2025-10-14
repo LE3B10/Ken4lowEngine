@@ -7,6 +7,9 @@ UAVManager* UAVManager::GetInstance()
 	return &instance;
 }
 
+/// -------------------------------------------------------------
+///						初期化処理
+/// -------------------------------------------------------------
 void UAVManager::Initialize(DirectXCommon* dxCommon)
 {
 	dxCommon_ = dxCommon;
@@ -25,12 +28,18 @@ void UAVManager::Initialize(DirectXCommon* dxCommon)
 	descriptorSize_ = dxCommon_->GetDevice()->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 }
 
+/// -------------------------------------------------------------
+///						ディスパッチ前処理
+/// -------------------------------------------------------------
 void UAVManager::PreDispatch()
 {
 	ID3D12DescriptorHeap* heaps[] = { descriptorHeap_.Get() };
 	dxCommon_->GetCommandManager()->GetCommandList()->SetDescriptorHeaps(_countof(heaps), heaps);
 }
 
+/// -------------------------------------------------------------
+///						UAV作成(Texture2D用)
+/// -------------------------------------------------------------
 void UAVManager::CreateUAVForTexture2D(uint32_t uavIndex, ID3D12Resource* pResource, DXGI_FORMAT Format, UINT MipLevels)
 {
 	if (!pResource) {
@@ -50,6 +59,9 @@ void UAVManager::CreateUAVForTexture2D(uint32_t uavIndex, ID3D12Resource* pResou
 	dxCommon_->GetDevice()->CreateUnorderedAccessView(pResource, nullptr, &uavDesc, GetCPUDescriptorHandle(uavIndex));
 }
 
+/// -------------------------------------------------------------
+///			UAVヒープ上にSRVを作成(Texture2D用)
+/// -------------------------------------------------------------
 void UAVManager::CreateSRVForTexture2DOnThisHeap(uint32_t srvIndex, ID3D12Resource* pResource, DXGI_FORMAT Format, UINT MipLevels)
 {
 	if (!pResource) { throw std::runtime_error("pResource is null in CreateSRVForTexture2DOnThisHeap"); }
@@ -61,6 +73,9 @@ void UAVManager::CreateSRVForTexture2DOnThisHeap(uint32_t srvIndex, ID3D12Resour
 	dxCommon_->GetDevice()->CreateShaderResourceView(pResource, &srv, GetCPUDescriptorHandle(srvIndex));
 }
 
+/// -------------------------------------------------------------
+///						UAV作成(Buffer用)
+/// -------------------------------------------------------------
 void UAVManager::CreateUAVForBuffer(uint32_t uavIndex, ID3D12Resource* pResource, UINT64 bufferSize)
 {
 	D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc{};
@@ -74,6 +89,9 @@ void UAVManager::CreateUAVForBuffer(uint32_t uavIndex, ID3D12Resource* pResource
 	dxCommon_->GetDevice()->CreateUnorderedAccessView(pResource, nullptr, &uavDesc, GetCPUDescriptorHandle(uavIndex));
 }
 
+/// -------------------------------------------------------------
+///				UAV作成(Structure Buffer用)
+/// -------------------------------------------------------------
 void UAVManager::CreateUAVForStructuredBuffer(uint32_t uavIndex, ID3D12Resource* pResource, UINT numElements, UINT structureByteStride)
 {
 	D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc{};
@@ -87,6 +105,9 @@ void UAVManager::CreateUAVForStructuredBuffer(uint32_t uavIndex, ID3D12Resource*
 	dxCommon_->GetDevice()->CreateUnorderedAccessView(pResource, nullptr, &uavDesc, GetCPUDescriptorHandle(uavIndex));
 }
 
+/// -------------------------------------------------------------
+///							容量の確保
+/// -------------------------------------------------------------
 uint32_t UAVManager::Allocate()
 {
 	// 排他制御のためのロックを取得（スレッドセーフにするため）
@@ -109,6 +130,9 @@ uint32_t UAVManager::Allocate()
 	return useIndex_++; // 次の未使用インデックスを返す（useIndexをインクリメントして更新）
 }
 
+/// -------------------------------------------------------------
+///							解放処理
+/// -------------------------------------------------------------
 void UAVManager::Free(uint32_t uavIndex)
 {
 	// 排他制御のためのロックを取得（スレッドセーフにするため）
@@ -123,6 +147,9 @@ void UAVManager::Free(uint32_t uavIndex)
 	freeIndices_.push(uavIndex); // 再利用可能なインデックスとしてリストに登録
 }
 
+/// -------------------------------------------------------------
+///					デスクリプタヒープの取得
+/// -------------------------------------------------------------
 D3D12_CPU_DESCRIPTOR_HANDLE UAVManager::GetCPUDescriptorHandle(uint32_t index)
 {
 	D3D12_CPU_DESCRIPTOR_HANDLE handle = descriptorHeap_->GetCPUDescriptorHandleForHeapStart();
@@ -130,6 +157,9 @@ D3D12_CPU_DESCRIPTOR_HANDLE UAVManager::GetCPUDescriptorHandle(uint32_t index)
 	return handle;
 }
 
+/// -------------------------------------------------------------
+///					デスクリプタヒープの取得
+/// -------------------------------------------------------------
 D3D12_GPU_DESCRIPTOR_HANDLE UAVManager::GetGPUDescriptorHandle(uint32_t index)
 {
 	D3D12_GPU_DESCRIPTOR_HANDLE handle = descriptorHeap_->GetGPUDescriptorHandleForHeapStart();
@@ -137,6 +167,9 @@ D3D12_GPU_DESCRIPTOR_HANDLE UAVManager::GetGPUDescriptorHandle(uint32_t index)
 	return handle;
 }
 
+/// -------------------------------------------------------------
+///				SRV作成(Structure Buffer用)
+/// -------------------------------------------------------------
 void UAVManager::CreateSRVForStructureBuffer(uint32_t srvIndex, ID3D12Resource* pResource, UINT numElements, UINT structureByteStride)
 {
 	if (!pResource) { throw std::runtime_error("pResource is null in CreateSRVForStructureBuffer"); }

@@ -68,7 +68,7 @@ struct Joint
 	Matrix4x4 skeletonSpaceMatrix; // skeletonSpaceでの変換行列
 	std::string name;			   // 名前
 	std::vector<int32_t> children; // 子JointのIndexのリスト。居なければ空
-	int32_t index;				   // 自身のindex
+	int32_t index = 0;			   // 自身のindex
 	std::optional<int32_t> parent; // 親JointのIndex。いなければnull
 };
 

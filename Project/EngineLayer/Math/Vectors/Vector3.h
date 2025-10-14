@@ -4,11 +4,12 @@
 #include <cmath>
 #include <numbers>
 
+/// ---------- 前方宣言 ---------- ///
 class Matrix4x4;
 
-/// <summary>
-/// 3次元ベクトル
-/// </summary>
+/// -------------------------------------------------------------
+///							3次元ベクトル
+/// -------------------------------------------------------------
 class Vector3
 {
 public:
@@ -46,8 +47,6 @@ public:
 	static Vector3 Cross(const Vector3& v1, const Vector3& v2);
 
 	static Vector3 CatmullRomSpline(const Vector3& P0, const Vector3& P1, const Vector3& P2, const Vector3& P3, float t);
-
-	static Vector3 Lerp(const Vector3& start, const Vector3& end, float t);
 
 	Vector3 operator+() const;
 	Vector3 operator-() const;

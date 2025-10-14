@@ -3,14 +3,16 @@
 #include <vector>
 #include <random>
 
-// 構造体
+/// ---------- ドロップエントリの構造体 ---------- ///
 struct DropEntry
 {
 	ItemType itemType; // アイテムの種類
-	int weight; // ドロップ確率の重み（合計100を想定）
+	int weight;		   // ドロップ確率の重み（合計100を想定）
 };
 
-
+/// -------------------------------------------------------------
+///					アイテムドロップテーブルクラス
+/// -------------------------------------------------------------
 class ItemDropTable
 {
 public: /// ---------- メンバ関数 ---------- ///
@@ -35,11 +37,10 @@ public: /// ---------- メンバ関数 ---------- ///
 private: /// ---------- メンバ変数 ---------- ///
 
 	std::vector<DropEntry> entries_; // ドロップエントリのリスト
-	int totalWeight_ = 0; // 重みの合計
-	int dropChancePercent_ = 100; // ドロップ確率（0-100）
+	int totalWeight_ = 0;			 // 重みの合計
+	int dropChancePercent_ = 100;	 // ドロップ確率（0-100）
 
 	std::mt19937 rng_; // 乱数生成器
 	std::uniform_int_distribution<int> chanceDist_; // 0-99
-
 };
 
