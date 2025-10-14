@@ -1,7 +1,7 @@
 #include "ModelManager.h"
 #include <AssimpLoader.h>
-#include "Model.h"
 #include <numeric>
+#include <Object3D.h>
 
 /// ---------- 初期容量の設定 ----- ///
 constexpr size_t INITIAL_POSITION_CAPACITY = 1000; // 頂点位置（v）の初期容量
@@ -104,7 +104,7 @@ void ModelManager::LoadModel(const std::string& filePath)
 	}
 
 	// モデルの生成とファイル読み込み - 初期化
-	auto model = std::make_shared<Model>();
+	auto model = std::make_shared<Object3D>();
 	model->Initialize(filePath);
 
 	// モデルをmapコンテナに格納する
@@ -116,7 +116,7 @@ void ModelManager::LoadModel(const std::string& filePath)
 /// -------------------------------------------------------------
 ///					　モデルデータの取得関数
 /// -------------------------------------------------------------
-std::shared_ptr<Model> ModelManager::FindModel(const std::string& filePath)
+std::shared_ptr<Object3D> ModelManager::FindModel(const std::string& filePath)
 {
 	auto it = models_.find(filePath);
 	if (it != models_.end()) {
@@ -125,7 +125,7 @@ std::shared_ptr<Model> ModelManager::FindModel(const std::string& filePath)
 
 	// AssimpLoaderに読み込みを委譲
 	ModelData data = AssimpLoader::LoadModel(filePath);
-	std::shared_ptr<Model> model = std::make_shared<Model>();
+	std::shared_ptr<Object3D> model = std::make_shared<Object3D>();
 	models_[filePath] = model;
 
 	return model;

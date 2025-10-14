@@ -38,7 +38,7 @@ void DissolveEffect::Initialize(DirectXCommon* dxCommon, PostEffectPipelineBuild
 	const auto& metaData = TextureManager::GetInstance()->GetMetaData(filePath);
 
 	// UAVを作成（ディゾルブマスク用）
-	UAVManager::GetInstance()->CreateSRVForTexture2DOnThisHeap(dissolveMaskSrvIndexOnUAV_, texture, metaData.format, metaData.mipLevels);
+	UAVManager::GetInstance()->CreateSRVForTexture2DOnThisHeap(dissolveMaskSrvIndexOnUAV_, texture, metaData.format, static_cast<UINT>(metaData.mipLevels));
 
 	// リソースの生成
 	constantBuffer_ = ResourceManager::CreateBufferResource(dxCommon_->GetDevice(), sizeof(DissolveSetting));

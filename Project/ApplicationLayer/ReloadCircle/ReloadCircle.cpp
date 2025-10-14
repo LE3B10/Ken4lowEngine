@@ -26,6 +26,7 @@ void ReloadCircle::Initialize(const std::string& texturePath)
 /// -------------------------------------------------------------
 void ReloadCircle::Update()
 {
+	// 武器とスプライトがセットされていない場合は処理しない
 	if (!sprite_ || !weapon_) return;
 
 	// 武器の状態を直接参照
@@ -34,7 +35,6 @@ void ReloadCircle::Update()
 
 	// スプライトに情報を渡す
 	sprite_->SetReloadProgress(isReloading, progress);
-
 	sprite_->Update();
 }
 
@@ -54,9 +54,5 @@ void ReloadCircle::Draw()
 void ReloadCircle::SetProgress(float progress)
 {
 	progress_ = std::clamp(progress, 0.0f, 1.0f);
-
-	// 拡大は不要、サイズは固定（初期化で設定されたまま）
-	// sprite_->SetSize(...) は呼ばない
-
 	if (sprite_) sprite_->SetReloadProgress(true, progress); // HLSLへ進行度を反映
 }

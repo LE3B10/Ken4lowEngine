@@ -3,7 +3,6 @@
 #include <string>
 #include <cassert>
 
-
 /// -------------------------------------------------------------
 ///				　			初期化処理
 /// -------------------------------------------------------------
@@ -21,7 +20,6 @@ void NumberSpriteDrawer::Initialize(const std::string& texturePath, float digitW
 	// スプライトの初期化
 	reusableSprites_.clear();
 }
-
 
 /// -------------------------------------------------------------
 ///				　	 左詰めで数字を描画
@@ -80,7 +78,6 @@ void NumberSpriteDrawer::DrawNumberLeftAligned(int value, const Vector2& positio
 	}
 }
 
-
 /// -------------------------------------------------------------
 ///				　	 中央揃えで数字を描画
 /// -------------------------------------------------------------
@@ -92,7 +89,6 @@ void NumberSpriteDrawer::DrawNumberCentered(int value, const Vector2& centerPosi
 
 	DrawNumberLeftAligned(value, { x, centerPosition.y }, spacing);
 }
-
 
 /// -------------------------------------------------------------
 ///				　	 右詰めで数字を描画

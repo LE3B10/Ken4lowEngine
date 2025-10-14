@@ -14,6 +14,7 @@ void CollisionManager::Initialize()
 	ParameterManager::GetInstance()->CreateGroup("Collider");
 	ParameterManager::GetInstance()->AddItem("Collider", "isCollider", isCollider_);
 
+	// 衝突判定関数の登録
 	RegisterCollisionFuncsions();
 }
 
@@ -53,7 +54,7 @@ void CollisionManager::Draw()
 void CollisionManager::Reset()
 {
 	all_.clear();
-	for (auto& v : buckets_) v.clear(); // ★ 追加：型ごとのバケットも空にする
+	for (auto& v : buckets_) v.clear(); // 型ごとのバケットも空にする
 }
 
 
@@ -79,7 +80,7 @@ void CollisionManager::CheckAllCollisions()
 		}
 		};
 
-	// ★ 片方向だけにする（OnCollisionはCheckCollisionPair内で両者に通知済み）
+	// 片方向だけにする（OnCollisionはCheckCollisionPair内で両者に通知済み）
 	pairLoop(kBoss, kPlayer);
 	pairLoop(kEnemy, kPlayer);
 	pairLoop(kBullet, kEnemy);
@@ -88,6 +89,9 @@ void CollisionManager::CheckAllCollisions()
 	pairLoop(kPlayer, kItem);
 }
 
+/// -------------------------------------------------------------
+///						コライダーを追加
+/// -------------------------------------------------------------
 void CollisionManager::AddCollider(Collider* other)
 {
 	all_.push_back(other);
@@ -95,6 +99,9 @@ void CollisionManager::AddCollider(Collider* other)
 	if (id < kMaxTypes) buckets_[id].push_back(other);
 }
 
+/// -------------------------------------------------------------
+///						コライダーを削除
+/// -------------------------------------------------------------
 void CollisionManager::RemoveCollider(Collider* other)
 {
 	// all から削除
@@ -108,7 +115,6 @@ void CollisionManager::RemoveCollider(Collider* other)
 		v.erase(std::remove(v.begin(), v.end(), other), v.end());
 	}
 }
-
 
 /// -------------------------------------------------------------
 ///				コライダー２つの衝突判定と応答処理
@@ -136,7 +142,6 @@ void CollisionManager::CheckCollisionPair(Collider* colliderA, Collider* collide
 	colliderA->OnCollision(colliderB);
 	colliderB->OnCollision(colliderA);
 }
-
 
 /// -------------------------------------------------------------
 ///				コライダーの衝突判定関数の登録

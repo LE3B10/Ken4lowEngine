@@ -4,6 +4,9 @@
 
 #include <algorithm>
 
+/// -------------------------------------------------------------
+///						初期化処理
+/// -------------------------------------------------------------
 void FadeController::Initialize(float screenWidth, float screenHeight, const std::string& texturePath)
 {
 	// 画面サイズの保存
@@ -34,6 +37,9 @@ void FadeController::Initialize(float screenWidth, float screenHeight, const std
 	isFadeIn_ = true;  // フェードイン状態
 }
 
+/// -------------------------------------------------------------
+///						更新処理
+/// -------------------------------------------------------------
 void FadeController::Update(float deltaTime)
 {
 	// フェード中でなければ処理しない
@@ -140,6 +146,7 @@ void FadeController::Update(float deltaTime)
 		const float maxDelay = checkerDelayStep_ * maxIndex;
 		const float anim = std::max(0.001f, duration_ - maxDelay); // ★共通アニメ時間
 
+		// 各タイルごとに delay をずらして anim 秒かけて 0→1（FadeOut）/ 1→0（FadeIn）
 		for (int r = 0; r < rows_; ++r)
 		{
 			for (int c = 0; c < columns_; ++c)
@@ -187,13 +194,16 @@ void FadeController::Update(float deltaTime)
 	}
 }
 
+/// -------------------------------------------------------------
+///						描画処理
+/// -------------------------------------------------------------
 void FadeController::Draw()
 {
 	switch (mode_)
 	{
-	case FadeMode::BlackFade:
-	case FadeMode::WhiteFlash:
-	case FadeMode::WipeHorizontal:
+	case FadeMode::BlackFade:	// 黒フェード
+	case FadeMode::WhiteFlash:	// 白フェード
+	case FadeMode::WipeHorizontal: // 横ワイプ
 	{
 		if (fadeSprite_) fadeSprite_->Draw();
 		break;
@@ -218,6 +228,9 @@ void FadeController::Draw()
 	}
 }
 
+/// -------------------------------------------------------------
+///					フェード開始関数
+/// -------------------------------------------------------------
 void FadeController::StartFadeIn(float duration)
 {
 	if (isFading_) return; // すでにフェード中なら無視
@@ -228,6 +241,9 @@ void FadeController::StartFadeIn(float duration)
 	alpha_ = 1.0f; // フェードイン開始時は不透明
 }
 
+/// -------------------------------------------------------------
+///					フェード開始関数
+/// -------------------------------------------------------------
 void FadeController::StartFadeOut(float duration)
 {
 	if (isFading_) return; // すでにフェード中なら無視
@@ -238,50 +254,69 @@ void FadeController::StartFadeOut(float duration)
 	alpha_ = 0.0f; // フェードアウト開始時は透明
 }
 
+/// -------------------------------------------------------------
+///						　グリッド設定
+/// -------------------------------------------------------------
 void FadeController::SetGrid(int columns, int rows)
 {
-	columns_ = std::max(1, columns);
-	rows_ = std::max(1, rows);
-	needRebuildGrid_ = true;
+	columns_ = std::max(1, columns); // 1未満は不可
+	rows_ = std::max(1, rows); // 1未満は不可
+	needRebuildGrid_ = true; // 次回更新時にグリッド再構築
 }
 
+/// -------------------------------------------------------------
+///						ワイプ方向設定
+/// -------------------------------------------------------------
 void FadeController::SetDirection(int direction)
 {
-	direction_ = (direction >= 0) ? 1 : -1;
+	direction_ = (direction >= 0) ? 1 : -1; // 0以上なら正方向、負なら逆方向
 }
 
+/// -------------------------------------------------------------
+///					チェッカーボードの遅延設定
+/// -------------------------------------------------------------
 void FadeController::SetCheckerDelay(float delay)
 {
-	checkerDelayStep_ = std::max(0.0f, delay);
+	checkerDelayStep_ = std::max(0.0f, delay); // 負の値は不可
 }
 
+/// -------------------------------------------------------------
+///						テクスチャセット
+/// -------------------------------------------------------------
 void FadeController::SetTexture(const std::string& texturePath)
 {
-	if (!fadeSprite_) return;
-	fadeSprite_->Initialize(texturePath);
-	fadeSprite_->SetSize({ screenWidth_, screenHeight_ });
+	if (!fadeSprite_) return; // フェード用スプライトがなければ処理しない
+	fadeSprite_->Initialize(texturePath); // テクスチャ設定
+	fadeSprite_->SetSize({ screenWidth_, screenHeight_ }); // 画面サイズに合わせる
 }
 
+/// -------------------------------------------------------------
+///						　色セット
+/// -------------------------------------------------------------
 void FadeController::SetTintColor(const Vector4& color)
 {
-	if (!fadeSprite_) return;
-	fadeSprite_->SetColor(color);
+	if (!fadeSprite_) return; // フェード用スプライトがなければ処理しない
+	fadeSprite_->SetColor(color); // 色設定
 }
 
+/// -------------------------------------------------------------
+///						グリッドの再構築
+/// -------------------------------------------------------------
 void FadeController::RebuildGrid()
 {
 	tiles_.clear();
 	tiles_.reserve(columns_ * rows_);
 
-	const float tw = screenWidth_ / columns_;
-	const float th = screenHeight_ / rows_;
+	const float tw = screenWidth_ / columns_; // タイル幅
+	const float th = screenHeight_ / rows_;	  // タイル高さ
 
+	// タイルを生成
 	for (int r = 0; r < rows_; ++r)
 	{
 		for (int c = 0; c < columns_; ++c)
 		{
 			Tile t;
-			t.x = c * tw; t.y = r * th; t.width = tw; t.height = th;
+			t.x = c * tw; t.y = r * th; t.width = tw; t.height = th; // 位置とサイズ設定
 			t.sprite = std::make_unique<Sprite>();
 			t.sprite->Initialize("white.png");
 			t.sprite->SetAnchorPoint({ 0,0 });

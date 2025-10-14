@@ -2,6 +2,7 @@
 
 #include <imgui_impl_win32.h>
 
+/// ---------- ImGuiのウィンドウプロシージャ ---------- ///
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
 
@@ -13,8 +14,6 @@ WinApp* WinApp::GetInstance()
 	static WinApp instance;
 	return &instance;
 }
-
-
 
 /// -------------------------------------------------------------
 ///					メインウィンドウの作成
@@ -58,8 +57,6 @@ void WinApp::CreateMainWindow(uint32_t Width, uint32_t Height)
 	ShowWindow(hwnd, SW_SHOW);
 }
 
-
-
 /// -------------------------------------------------------------
 ///							終了処理
 /// -------------------------------------------------------------
@@ -69,8 +66,6 @@ void WinApp::Finalize()
 	// COMの終了処理
 	CoUninitialize();
 }
-
-
 
 /// -------------------------------------------------------------
 ///						メッセージ処理
@@ -91,8 +86,6 @@ bool WinApp::ProcessMessage()
 	}
 	return false;  // 実行継続
 }
-
-
 
 /// -------------------------------------------------------------
 ///					ウィンドウプロシージャ

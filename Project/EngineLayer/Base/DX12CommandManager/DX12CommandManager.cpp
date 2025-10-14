@@ -1,6 +1,9 @@
 #include "DX12CommandManager.h"
 #include "DX12FenceManager.h"
 
+/// -------------------------------------------------------------
+///						　初期化処理
+/// -------------------------------------------------------------
 void DX12CommandManager::Initialize(ID3D12Device* device)
 {
 	HRESULT hr{};
@@ -23,6 +26,9 @@ void DX12CommandManager::Initialize(ID3D12Device* device)
 	assert(SUCCEEDED(hr));
 }
 
+/// -------------------------------------------------------------
+///				　リソースの状態遷移を行う
+/// -------------------------------------------------------------
 void DX12CommandManager::ResourceTransition(ID3D12Resource* resource, D3D12_RESOURCE_STATES stateBefore, D3D12_RESOURCE_STATES stateAfter)
 {
 	if (stateBefore == stateAfter) return;
@@ -37,11 +43,9 @@ void DX12CommandManager::ResourceTransition(ID3D12Resource* resource, D3D12_RESO
 	commandList_->ResourceBarrier(1, &barrier);
 }
 
-void DX12CommandManager::SetFenceManager(DX12FenceManager* fenceManager)
-{
-	fenceManager_ = fenceManager;
-}
-
+/// -------------------------------------------------------------
+///				　コマンド実行と待機
+/// -------------------------------------------------------------
 void DX12CommandManager::ExecuteAndWait()
 {
 	HRESULT hr{};

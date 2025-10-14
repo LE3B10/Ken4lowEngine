@@ -109,7 +109,8 @@ private: /// ---------- メンバ変数 ---------- ///
 	float  clickHintWobblePx_ = 3.0f;         // 上下ゆれ振幅(px)
 	float  clickHintPulseMag_ = 0.06f;        // スケール脈動(=±6%)
 	float  clickHintBlinkMin_ = 0.55f;        // 最小アルファ
-	// 既存の clickHint_ まわりの直後に追加
+
+	// clickHint_ まわりの直後に追加
 	bool  clickHintPressing_ = false; // ヒント内で押し始めたか
 	float clickHintPressAnim_ = 0.0f;  // 0..1 押し込みアニメ
 	float clickHintHoverAnim_ = 0.0f;  // 0..1 ホバーアニメ

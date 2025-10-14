@@ -26,26 +26,28 @@ public: /// ---------- メンバ関数 ---------- ///
 
 	// 表示ON/OFF切替
 	void SetVisible(bool visible) { isVisible_ = visible; }
+
+	// 表示状態取得
 	bool IsVisible() const { return isVisible_; }
 
 private: /// ---------- メンバ変数 ---------- ///
 
-	std::unique_ptr<Sprite> sprite_;
-	std::unique_ptr<Sprite> shadow_;
+	std::unique_ptr<Sprite> sprite_; // 十字カーソル本体
+	std::unique_ptr<Sprite> shadow_; // 影
 
-	std::string textureName_;
+	std::string textureName_;	// テクスチャ名
 	Vector2 size_ = { 16, 16 }; // サイズ（ピクセル）
-	bool isVisible_ = true;
+	bool isVisible_ = true;		// 表示フラグ
 
-	bool showHitMarker_ = false;
-	float hitMarkerTimer_ = 0.0f;
-	const float hitMarkerDuration_ = 0.25f;
+	bool showHitMarker_ = false;			// ヒットマーカー表示フラグ
+	float hitMarkerTimer_ = 0.0f;			// ヒットマーカー表示タイマー
+	const float hitMarkerDuration_ = 0.25f; // ヒットマーカー表示時間
 
 	// アニメーション用の拡大率
-	float hitMarkerScale_ = 1.0f;
-	float hitMarkerScaleVelocity_ = 0.0f;
+	float hitMarkerScale_ = 1.0f;			// 拡大率
+	float hitMarkerScaleVelocity_ = 0.0f;	// 拡大率の変化速度
 
-	std::unique_ptr<Sprite> hitMarkerSprite_;
+	std::unique_ptr<Sprite> hitMarkerSprite_;	// ヒットマーカー本体
 
 	std::unique_ptr<Sprite> hitMarkerShadow_;   // ヒットマーカー影
 	float hitAlpha_ = 0.0f;                     // フェード用

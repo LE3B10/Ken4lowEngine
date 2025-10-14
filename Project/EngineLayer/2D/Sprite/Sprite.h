@@ -66,10 +66,10 @@ public: /// ---------- メンバ関数 ---------- ///
 public: /// ---------- ゲッター ---------- ///
 
 	// 左右フリップを取得
-	bool GetFlipX() { return isFlipX_; }
+	bool GetFlipX() const { return isFlipX_; }
 
 	// 上下フリップを取得
-	bool GetFlipY() { return isFlipY_; }
+	bool GetFlipY() const { return isFlipY_; }
 
 	// 座標を取得
 	const Vector2& GetPosition() const { return position_; }
@@ -174,7 +174,7 @@ private: /// ---------- メンバ変数 ---------- ///
 	Vector4 color_ = {};
 
 	// テクスチャ番号
-	D3D12_GPU_DESCRIPTOR_HANDLE gpuHandle_;
+	D3D12_GPU_DESCRIPTOR_HANDLE gpuHandle_{};
 
 	std::string filePath_;
 

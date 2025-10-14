@@ -1,12 +1,18 @@
 #include "AudioManager.h"
 #include <filesystem>
 
+/// -------------------------------------------------------------
+///				　シングルトンインスタンス取得
+/// -------------------------------------------------------------
 AudioManager* AudioManager::GetInstance()
 {
 	static AudioManager instance;
 	return &instance;
 }
 
+/// -------------------------------------------------------------
+///								音楽再生
+/// -------------------------------------------------------------
 void AudioManager::PlayBGM(const std::string& filePath, float volume, float pitch, bool loop)
 {
 	std::filesystem::path path(filePath);
@@ -28,6 +34,9 @@ void AudioManager::PlayBGM(const std::string& filePath, float volume, float pitc
 	}
 }
 
+/// -------------------------------------------------------------
+///								効果音再生
+/// -------------------------------------------------------------
 void AudioManager::PlaySE(const std::string& filePath, float volume, float pitch, bool loop)
 {
 	std::filesystem::path path(filePath);
@@ -54,6 +63,9 @@ void AudioManager::PlaySE(const std::string& filePath, float volume, float pitch
 	}
 }
 
+/// -------------------------------------------------------------
+///								ボイス再生
+/// -------------------------------------------------------------
 void AudioManager::PlayVoice(const std::string& filePath, float volume, float pitch, bool loop)
 {
 	std::filesystem::path path(filePath);
@@ -78,18 +90,27 @@ void AudioManager::PlayVoice(const std::string& filePath, float volume, float pi
 	}
 }
 
+/// -------------------------------------------------------------]
+///							BGMの停止
+/// -------------------------------------------------------------
 void AudioManager::StopBGM()
 {
 	if (wavLoader_) wavLoader_->StopBGM();
 	if (mp3Loader_) mp3Loader_->StopBGM();
 }
 
+/// -------------------------------------------------------------
+///						BGMの一時停止
+/// -------------------------------------------------------------
 void AudioManager::PauseBGM()
 {
 	if (wavLoader_) wavLoader_->PauseBGM();
 	if (mp3Loader_) mp3Loader_->PauseBGM();
 }
 
+/// -------------------------------------------------------------
+///						BGMの再開
+/// -------------------------------------------------------------
 void AudioManager::ResumeBGM()
 {
 	if (wavLoader_) wavLoader_->ResumeBGM();

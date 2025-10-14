@@ -7,18 +7,20 @@
 /// -------------------------------------------------------------
 class DX12Device
 {
-public:
-	/// ---------- メンバ関数 ---------- ///
+public: /// ---------- メンバ関数 ---------- ///
 
 	// デバイスの初期化
 	void Initialize();
 
-	// ゲッター
-	ID3D12Device* GetDevice() const;
-	IDXGIFactory7* GetDXGIFactory() const;
+public: /// ---------- ゲッター ---------- ///
 
-private:
-	/// ---------- メンバ変数 ---------- ///
+	// デバイスの取得
+	ID3D12Device* GetDevice() const { return device.Get(); }
+
+	// DXGIファクトリの取得
+	IDXGIFactory7* GetDXGIFactory() const { return dxgiFactory.Get(); }
+
+private: /// ---------- メンバ変数 ---------- ///
 
 	ComPtr <ID3D12Device> device;
 	ComPtr <IDXGIFactory7> dxgiFactory;

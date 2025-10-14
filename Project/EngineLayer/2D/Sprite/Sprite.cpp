@@ -4,7 +4,6 @@
 #include "ResourceManager.h"
 #include "ImGuiManager.h"
 
-
 /// -------------------------------------------------------------
 ///							初期化処理
 /// -------------------------------------------------------------
@@ -33,7 +32,6 @@ void Sprite::Initialize(const std::string& filePath)
 	// リロード進捗の初期化処理
 	InitializeReloadProgress();
 }
-
 
 /// -------------------------------------------------------------
 ///							　更新処理
@@ -101,11 +99,7 @@ void Sprite::Update()
 
 	transformationMatrixData->WVP = worldViewProjectionMatrixSprite;
 	transformationMatrixData->World = worldMatrixSprite;
-
-	// 頂点データ更新
-	//memcpy(vertexData, &vertexData[0], sizeof(VertexData) * kNumVertex);
 }
-
 
 /// -------------------------------------------------------------
 ///						　スプライト描画
@@ -126,7 +120,6 @@ void Sprite::Draw()
 	commandList->DrawIndexedInstanced(kNumVertex, 1, 0, 0, 0);
 }
 
-
 /// -------------------------------------------------------------
 ///						テクスチャの変更
 /// -------------------------------------------------------------
@@ -136,7 +129,6 @@ void Sprite::SetTexture(const std::string& filePath)
 
 	gpuHandle_ = TextureManager::GetInstance()->GetSrvHandleGPU(filePath_);
 }
-
 
 /// -------------------------------------------------------------
 ///	 スプライト用のマテリアルリソースを作成し設定する処理を行う
@@ -152,7 +144,6 @@ void Sprite::CreateMaterialResource()
 	//UVTramsform行列を単位行列で初期化(スプライト用)
 	materialData->uvTransform = Matrix4x4::MakeIdentity();
 }
-
 
 /// -------------------------------------------------------------
 ///	  スプライトの頂点バッファリソースと変換行列リソースを生成
@@ -178,7 +169,6 @@ void Sprite::CreateVertexBufferResource()
 	transformationMatrixData->WVP = Matrix4x4::MakeIdentity();
 }
 
-
 /// -------------------------------------------------------------
 ///	   スプライトのインデックスバッファを作成および設定する
 /// -------------------------------------------------------------
@@ -203,7 +193,6 @@ void Sprite::CreateIndexBuffer()
 	indexData[5] = 2;
 }
 
-
 /// -------------------------------------------------------------
 ///			　テクスチャサイズをイメージに合わせる
 /// -------------------------------------------------------------
@@ -219,6 +208,9 @@ void Sprite::AdjustTextureSize()
 	size_ = textureSize_;
 }
 
+/// -------------------------------------------------------------
+///		　			リロード進捗の初期化処理
+/// -------------------------------------------------------------
 void Sprite::InitializeReloadProgress()
 {
 	// リロード進捗のリソースを作成

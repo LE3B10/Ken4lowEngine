@@ -1,6 +1,9 @@
 #include "AnimationMesh.h"
 #include <ResourceManager.h>
 
+/// -------------------------------------------------------------
+///				　　　 初期化処理
+/// -------------------------------------------------------------
 void AnimationMesh::Initialize(ID3D12Device* device, const ModelData& modelData)
 {
 	subMeshes_.clear(); // 既存データをクリア

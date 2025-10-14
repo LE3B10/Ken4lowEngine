@@ -110,6 +110,9 @@ void LightManager::UpdatePunctualLight()
 	DebugDrawLightGizmos();
 }
 
+/// -------------------------------------------------------------
+///				　	ライト情報をシェーダーにバインド
+/// -------------------------------------------------------------
 void LightManager::DebugDrawLightGizmos()
 {
 	auto* wf = Wireframe::GetInstance();
@@ -242,7 +245,9 @@ void LightManager::DrawImGui()
 	}
 }
 
-
+/// -------------------------------------------------------------
+///				　	ライト情報をシェーダーにバインド
+/// -------------------------------------------------------------
 void LightManager::BindPunctualLights(uint32_t rootIndexCB_b2, uint32_t rootIndexSRV_t2)
 {
 	auto commandList = dxCommon_->GetCommandManager()->GetCommandList();

@@ -1,8 +1,7 @@
 #include "DX12SwapChain.h"
+#include "WinApp.h"
 
 #include <cassert>
-
-#include "WinApp.h"
 
 
 /// -------------------------------------------------------------
@@ -32,27 +31,7 @@ void DX12SwapChain::Initialize(WinApp* winApp, IDXGIFactory7* dxgiFactory, ID3D1
 	//うまく取得できなければ起動できない
 	assert(SUCCEEDED(hr));
 
+	// 2つ目のバッファも同様に取得
 	hr = swapChain->GetBuffer(1, IID_PPV_ARGS(&swapChainResources[1]));
 	assert(SUCCEEDED(hr));
-}
-
-
-
-/// -------------------------------------------------------------
-///							ゲッター
-/// -------------------------------------------------------------
-IDXGISwapChain4* DX12SwapChain::GetSwapChain() const
-{
-	return swapChain.Get();
-}
-
-ID3D12Resource* DX12SwapChain::GetSwapChainResources(uint32_t num) const
-{
-	return swapChainResources[num].Get();
-}
-
-DXGI_SWAP_CHAIN_DESC1& DX12SwapChain::GetSwapChainDesc()
-{
-	// TODO: return ステートメントをここに挿入します
-	return swapChainDesc;
 }

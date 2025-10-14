@@ -3,6 +3,9 @@
 #include <ResourceManager.h>
 #include <numbers>
 
+/// -------------------------------------------------------------
+///				　　　		初期化処理
+/// -------------------------------------------------------------
 void ParticleMesh::Initialize()
 {
 	// 6つの頂点を定義して四角形を表現
@@ -14,9 +17,13 @@ void ParticleMesh::Initialize()
 	vertices.push_back({ .position = {1.0f, 1.0f, 0.0f, 1.0f}, .texcoord = {1.0f, 0.0f}, .normal = {0.0f, 0.0f, 1.0f} }); // 右上
 	vertices.push_back({ .position = {1.0f, -1.0f, 0.0f, 1.0f}, .texcoord = {1.0f, 1.0f}, .normal = {0.0f, 0.0f, 1.0f} }); // 右下
 
+	// 頂点バッファを生成
 	CreateVertexBuffer();
 }
 
+/// -------------------------------------------------------------
+///				　リングの頂点データを生成
+/// -------------------------------------------------------------
 void ParticleMesh::InitializeRing()
 {
 	const uint32_t kSubdivision = 32;
@@ -53,6 +60,9 @@ void ParticleMesh::InitializeRing()
 	CreateVertexBuffer();
 }
 
+/// -------------------------------------------------------------
+///				　シリンダーの頂点データの初期化処理
+/// -------------------------------------------------------------
 void ParticleMesh::InitializeCylinder()
 {
 	const uint32_t kCylinderDivide = 32;
@@ -93,6 +103,9 @@ void ParticleMesh::InitializeCylinder()
 	CreateVertexBuffer();
 }
 
+/// -------------------------------------------------------------
+///				　星型の頂点データの初期化処理
+/// -------------------------------------------------------------
 void ParticleMesh::InitializeStar()
 {
 	vertices.clear();
@@ -121,9 +134,13 @@ void ParticleMesh::InitializeStar()
 		indices.push_back(startIndex + 2);
 	}
 
+	// 頂点バッファを生成
 	CreateVertexBuffer();
 }
 
+/// -------------------------------------------------------------
+///				　スモークの頂点データの初期化処理
+/// -------------------------------------------------------------
 void ParticleMesh::InitializeSmoke()
 {
 	vertices.clear();
@@ -148,9 +165,13 @@ void ParticleMesh::InitializeSmoke()
 		3, 4, 5
 	};
 
+	// 頂点バッファを生成
 	CreateVertexBuffer();
 }
 
+/// -------------------------------------------------------------
+///				　　　		描画処理
+/// -------------------------------------------------------------
 void ParticleMesh::Draw(UINT instanceCount)
 {
 	ID3D12GraphicsCommandList* commandList = DirectXCommon::GetInstance()->GetCommandManager()->GetCommandList();
@@ -164,6 +185,9 @@ void ParticleMesh::Draw(UINT instanceCount)
 	}
 }
 
+/// -------------------------------------------------------------
+///				　　　頂点データの生成
+/// -------------------------------------------------------------
 void ParticleMesh::CreateVertexBuffer()
 {
 	ID3D12Device* device = DirectXCommon::GetInstance()->GetDevice();

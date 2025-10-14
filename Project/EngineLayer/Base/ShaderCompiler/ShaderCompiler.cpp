@@ -82,7 +82,9 @@ Microsoft::WRL::ComPtr <IDxcBlob> ShaderCompiler::CompileShader(const std::wstri
 	return shaderBlob;
 }
 
-
+/// -------------------------------------------------------------
+///			シェーダーファイルへのパスを生成する処理
+/// -------------------------------------------------------------
 std::wstring ShaderCompiler::GetShaderPath(const std::wstring& shaderName, const std::wstring& extension)
 {
 	std::wstring path = L"Resources/Shaders/PostEffect/" + shaderName;

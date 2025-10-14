@@ -13,11 +13,13 @@ class DirectXCommon;
 /// -------------------------------------------------------------
 class LightManager
 {
-private:
+private: /// ---------- コンストラクタ・デストラクタ ---------- ///
+
 	// デフォルトコンストラクタ  
 	LightManager() = default;
 	// デフォルトデストラクタ  
 	~LightManager() = default;
+
 public: /// ---------- 構造体 ---------- ///
 
 	// パンクチュアルライトの構造体

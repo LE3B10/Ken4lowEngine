@@ -4,8 +4,12 @@
 #include "Item.h"
 #include "CollisionManager.h"
 
+/// ---------- 前方宣言 ---------- ///
 class Player;
 
+/// -------------------------------------------------------------
+///						アイテムマネージャークラス
+/// -------------------------------------------------------------
 class ItemManager
 {
 public: /// ---------- メンバ関数 ---------- ///
@@ -25,6 +29,8 @@ public: /// ---------- メンバ関数 ---------- ///
 	// スポーン処理
 	void Spawn(ItemType type, const Vector3& position);
 
-private:
+private: /// ---------- メンバ変数 ---------- ///
+
+	// アイテムリスト
 	std::vector<std::unique_ptr<Item>> items_;
 };

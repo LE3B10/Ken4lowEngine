@@ -9,6 +9,9 @@
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
 
+/// -------------------------------------------------------------
+/// 				Assimpでモデルを読み込むクラス
+/// -------------------------------------------------------------
 class AssimpLoader
 {
 public: /// ---------- メンバ関数 ---------- ///
@@ -23,6 +26,5 @@ private: /// ---------- メンバ関数 ---------- ///
 
 	// メッシュを解析する
 	static void ParseMeshes(const aiScene* scene, ModelData& modelData);
-
 };
 

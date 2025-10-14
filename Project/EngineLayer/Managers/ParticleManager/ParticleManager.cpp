@@ -10,8 +10,12 @@
 #include <ImGuiManager.h>
 #include <DebugCamera.h>
 #include "CollisionUtility.h"
+#include "LinearInterpolation.h"
 
 
+/// -------------------------------------------------------------
+///				　　　 風が吹くエリアと風の強さ
+/// -------------------------------------------------------------
 std::vector<ParticleManager::WindZone> windZones = {
 	{ { {-5.0f, -5.0f, -5.0f}, {5.0f, 5.0f, 5.0f} }, {0.1f, 0.0f, 0.0f} },
 	{ { {10.0f, -5.0f, -5.0f}, {15.0f, 5.0f, 5.0f} }, {0.0f, 0.0f, 0.1f} }
@@ -158,7 +162,7 @@ void ParticleManager::Update()
 				float t = particle.currentTime / particle.lifeTime;
 
 				// スケール補間
-				particle.transform.scale_ = Vector3::Lerp(particle.startScale, particle.endScale, t);
+				particle.transform.scale_ = Lerp(particle.startScale, particle.endScale, t);
 
 				// 位置更新
 				particle.transform.translate_ += particle.velocity * kDeltaTime;
@@ -196,13 +200,13 @@ void ParticleManager::Update()
 				}
 				case ParticleEffectType::Flash: {
 					// 拡大して白く光って消える
-					particle.transform.scale_ = Vector3::Lerp(particle.startScale, particle.endScale, particle.currentTime / particle.lifeTime);
+					particle.transform.scale_ = Lerp(particle.startScale, particle.endScale, particle.currentTime / particle.lifeTime);
 					break;
 				}
 				case ParticleEffectType::Ring: {
 					float t = particle.currentTime / particle.lifeTime;
 
-					particle.transform.scale_ = Vector3::Lerp(particle.startScale, particle.endScale, t);
+					particle.transform.scale_ = Lerp(particle.startScale, particle.endScale, t);
 					particle.color.w = 1.0f - t;
 
 					break;
@@ -218,7 +222,7 @@ void ParticleManager::Update()
 					particle.transform.translate_ += particle.velocity * kDeltaTime;
 
 					float timeRate = particle.currentTime / particle.lifeTime;
-					particle.transform.scale_ = Vector3::Lerp(particle.startScale, particle.endScale, timeRate);
+					particle.transform.scale_ = Lerp(particle.startScale, particle.endScale, timeRate);
 					particle.color.w = 1.0f - timeRate;
 					break;
 				}
@@ -399,20 +403,20 @@ void ParticleManager::EmitLaserBeamFakeStretch(const std::string& name, const Ve
 /// -------------------------------------------------------------
 void ParticleManager::DrawImGui()
 {
-	// ImGuiでuseBillboardの切り替えボタンを追加
-	ImGui::Begin("Particle Manager"); // ウィンドウの開始
-	if (ImGui::Button(useBillboard ? "Disable Billboard" : "Enable Billboard"))
-	{
-		// ボタンが押されたらuseBillboardの値を切り替える
-		useBillboard = !useBillboard;
-	}
+	//// ImGuiでuseBillboardの切り替えボタンを追加
+	//ImGui::Begin("Particle Manager"); // ウィンドウの開始
+	//if (ImGui::Button(useBillboard ? "Disable Billboard" : "Enable Billboard"))
+	//{
+	//	// ボタンが押されたらuseBillboardの値を切り替える
+	//	useBillboard = !useBillboard;
+	//}
 
-	if (ImGui::Button(isWind ? "Disable Wind" : "Enable Wind"))
-	{
-		isWind = !isWind;
-	}
+	//if (ImGui::Button(isWind ? "Disable Wind" : "Enable Wind"))
+	//{
+	//	isWind = !isWind;
+	//}
 
-	ImGui::End(); // ウィンドウの終了
+	//ImGui::End(); // ウィンドウの終了
 }
 
 

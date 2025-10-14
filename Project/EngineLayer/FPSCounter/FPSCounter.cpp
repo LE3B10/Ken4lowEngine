@@ -3,6 +3,9 @@
 #include <sstream>
 #include <windows.h>
 
+/// -------------------------------------------------------------
+///					コンストラクタ
+/// -------------------------------------------------------------
 FPSCounter::FPSCounter(int targetFPS)
 	: targetFPS_(targetFPS), frameCount_(0), currentFPS_(0.0f)
 {
@@ -10,6 +13,9 @@ FPSCounter::FPSCounter(int targetFPS)
 	fpsReference_ = reference_;
 }
 
+/// -------------------------------------------------------------
+///					フレーム開始時に呼ぶ
+/// -------------------------------------------------------------
 void FPSCounter::StartFrame()
 {
 	auto now = std::chrono::steady_clock::now();
@@ -25,6 +31,9 @@ void FPSCounter::StartFrame()
 	reference_ = now; // 既存のフレーム基準も更新
 }
 
+/// -------------------------------------------------------------
+///					フレーム終了時に呼ぶ（FPS固定＆計測）
+/// -------------------------------------------------------------
 void FPSCounter::EndFrame()
 {
 	frameCount_++;

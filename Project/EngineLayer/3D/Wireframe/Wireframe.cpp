@@ -157,7 +157,7 @@ void Wireframe::DrawSegment(const Segment& segment, const Vector4& color)
 /// -------------------------------------------------------------
 void Wireframe::DrawCircle(const Vector3& center, float radius, uint32_t segmentCount, const Vector4& color)
 {
-	const float PI = 3.14159265358979323846f;
+	const float PI = std::numbers::pi_v<float>;
 	float angleStep = (2.0f * PI) / float(segmentCount);
 
 	std::vector<Vector3> points(segmentCount);
@@ -321,9 +321,9 @@ void Wireframe::DrawSphere(const Vector3& center, const float radius, const Vect
 	}
 }
 
-void Wireframe::DrawCapsule(const Vector3& center, float radius, float height, const Vector3& axis, int segments, const Vector4& color)
+void Wireframe::DrawCapsule(const Vector3& center, float radius, float height, const Vector3& axis, uint32_t segments, const Vector4& color)
 {
-	constexpr float PI = 3.14159265358979323846f;
+	constexpr float PI = std::numbers::pi_v<float>;
 	float angleStep = (2.0f * PI) / float(segments);
 
 	// 軸ベクトル
@@ -510,7 +510,7 @@ void Wireframe::DrawPlane(const Plane& plane, float size, const Vector4& color)
 /// -------------------------------------------------------------
 void Wireframe::DrawCylinder(const Vector3& baseCenter, float radius, float height, const Vector3& axis, uint32_t segmentCount, const Vector4& color)
 {
-	constexpr float PI = 3.14159265358979323846f;
+	constexpr float PI = std::numbers::pi_v<float>;
 	float angleStep = (2.0f * PI) / float(segmentCount);
 
 	std::vector<Vector3> topVertices(segmentCount);
@@ -569,10 +569,10 @@ void Wireframe::DrawTetrahedron(const Vector3& baseCenter, float baseSize, float
 	// 底面の3頂点を計算（正三角形）
 	Vector3 bottomVertices[3] = {
 		Vector3::Add(baseCenter, Vector3::Add(Vector3::Multiply(radius * cosf(0.0f), right), Vector3::Multiply(radius * sinf(0.0f), forward))), // 頂点1
-		Vector3::Add(baseCenter, Vector3::Add(Vector3::Multiply(radius * cosf(2.0f * 3.14159265358979323846f / 3.0f), right),
-											  Vector3::Multiply(radius * sinf(2.0f * 3.14159265358979323846f / 3.0f), forward))), // 頂点2
-		Vector3::Add(baseCenter, Vector3::Add(Vector3::Multiply(radius * cosf(4.0f * 3.14159265358979323846f / 3.0f), right),
-											  Vector3::Multiply(radius * sinf(4.0f * 3.14159265358979323846f / 3.0f), forward)))  // 頂点3
+		Vector3::Add(baseCenter, Vector3::Add(Vector3::Multiply(radius * cosf(2.0f * std::numbers::pi_v<float> / 3.0f), right),
+											  Vector3::Multiply(radius * sinf(2.0f * std::numbers::pi_v<float> / 3.0f), forward))), // 頂点2
+		Vector3::Add(baseCenter, Vector3::Add(Vector3::Multiply(radius * cosf(4.0f * std::numbers::pi_v<float> / 3.0f), right),
+											  Vector3::Multiply(radius * sinf(4.0f * std::numbers::pi_v<float> / 3.0f), forward)))  // 頂点3
 	};
 
 	// 頂点（ピラミッドの先端）を計算
@@ -699,8 +699,10 @@ void Wireframe::DrawDodecahedron(const Vector3& center, float size, const Vector
 	};
 
 	// ワイヤーフレームで描画
-	for (int i = 0; i < 12; i++) {
-		for (int j = 0; j < 5; j++) {
+	for (int i = 0; i < 12; i++)
+	{
+		for (int j = 0; j < 5; j++)
+		{
 			DrawLine(vertices[pentagons[i][j]], vertices[pentagons[i][(j + 1) % 5]], color);
 		}
 	}
@@ -745,7 +747,7 @@ void Wireframe::DrawIcosahedron(const Vector3& center, float size, const Vector4
 
 void Wireframe::DrawTorus(const Vector3& center, float R, float r, uint32_t ringSegments, uint32_t tubeSegments, const Vector4& color)
 {
-	const float PI = 3.14159265358979323846f;
+	const float PI = std::numbers::pi_v<float>;
 
 	std::vector<Vector3> points;
 
@@ -782,7 +784,7 @@ void Wireframe::DrawTorus(const Vector3& center, float R, float r, uint32_t ring
 
 void Wireframe::DrawRotatingTorus(const Vector3& center, float R, float r, uint32_t ringSegments, uint32_t tubeSegments, const Vector4& color, float time)
 {
-	const float PI = 3.14159265358979323846f;
+	const float PI = std::numbers::pi_v<float>;
 	Matrix4x4 rotationMatrix = Matrix4x4::MakeRotateYMatrix(time * 0.5f); // Y軸回転
 
 	std::vector<Vector3> points;
@@ -821,7 +823,7 @@ void Wireframe::DrawRotatingTorus(const Vector3& center, float R, float r, uint3
 
 void Wireframe::DrawMobiusStrip(const Vector3& center, float R, float w, uint32_t ringSegments, uint32_t tubeSegments, const Vector4& color)
 {
-	const float PI = 3.14159265358979323846f;
+	const float PI = std::numbers::pi_v<float>;
 	std::vector<Vector3> points;
 
 	// 頂点を計算
@@ -857,7 +859,7 @@ void Wireframe::DrawMobiusStrip(const Vector3& center, float R, float w, uint32_
 
 void Wireframe::DrawLemniscate3D(const Vector3& center, float a, float b, float c, uint32_t segments, const Vector4& color)
 {
-	const float PI = 3.14159265358979323846f;
+	const float PI = std::numbers::pi_v<float>;
 	std::vector<Vector3> points;
 
 	// 頂点を計算
@@ -874,13 +876,13 @@ void Wireframe::DrawLemniscate3D(const Vector3& center, float a, float b, float 
 
 	// 線を結ぶ
 	for (uint32_t i = 0; i < segments; i++) {
-		DrawLine(points[i], points[i + 1], color);
+		DrawLine(points[i], points[static_cast<std::vector<Vector3, std::allocator<Vector3>>::size_type>(i) + 1], color);
 	}
 }
 
 void Wireframe::DrawPentagonalPrism(const Vector3& center, float radius, float height, const Vector4& color)
 {
-	constexpr float PI = 3.14159265358979323846f;
+	constexpr float PI = std::numbers::pi_v<float>;
 	float angleStep = 2.0f * PI / 5.0f; // 五角形の角度間隔
 	float halfHeight = height * 0.5f;
 
@@ -915,7 +917,7 @@ void Wireframe::DrawPentagonalPrism(const Vector3& center, float radius, float h
 
 void Wireframe::DrawPentagonalPyramid(const Vector3& center, float radius, float height, const Vector4& color)
 {
-	constexpr float PI = 3.14159265358979323846f;
+	constexpr float PI = std::numbers::pi_v<float>;
 	float angleStep = 2.0f * PI / 5.0f; // 五角形の角度間隔
 
 	Vector3 bottomVertices[5];
@@ -948,7 +950,7 @@ void Wireframe::DrawPentagonalPyramid(const Vector3& center, float radius, float
 /// -------------------------------------------------------------
 void Wireframe::DrawPentagram(const Vector3& center, float radius, const Vector4& color)
 {
-	const float PI = 3.14159265358979323846f;
+	const float PI = std::numbers::pi_v<float>;
 	Vector3 points[5];
 
 	// 五芒星の5頂点を計算
@@ -969,7 +971,7 @@ void Wireframe::DrawPentagram(const Vector3& center, float radius, const Vector4
 /// -------------------------------------------------------------
 void Wireframe::DrawHexagram(const Vector3& center, float radius, const Vector4& color)
 {
-	const float PI = 3.14159265358979323846f;
+	const float PI = std::numbers::pi_v<float>;
 	Vector3 points[6];
 
 	// 六芒星の6頂点を計算
@@ -1010,7 +1012,7 @@ void Wireframe::DrawPolygon(const Vector3& center, float radius, uint32_t sides,
 {
 	if (sides < 3) return; // 三角形以上でないと描画できない
 
-	const float PI = 3.14159265358979323846f;
+	const float PI = std::numbers::pi_v<float>;
 	float angleStep = (2.0f * PI) / float(sides);
 
 	std::vector<Vector3> points(sides);
@@ -1022,7 +1024,7 @@ void Wireframe::DrawPolygon(const Vector3& center, float radius, uint32_t sides,
 
 	// 頂点を線で結ぶ
 	for (uint32_t i = 0; i < sides; i++) {
-		DrawLine(points[i], points[(i + 1) % sides], color);
+		DrawLine(points[i], points[(static_cast<std::vector<Vector3, std::allocator<Vector3>>::size_type>(i) + 1) % sides], color);
 	}
 }
 
@@ -1062,7 +1064,7 @@ void Wireframe::DrawAdvancedMagicCircle(const Vector3& center, float radius, con
 /// -------------------------------------------------------------
 void Wireframe::DrawRotatingPentagram(const Vector3& center, float radius, const Vector4& color, float time)
 {
-	const float PI = 3.14159265358979323846f;
+	const float PI = std::numbers::pi_v<float>;
 	Vector3 points[5];
 
 	// 回転角度（時間に応じて回転）
@@ -1121,7 +1123,7 @@ void Wireframe::DrawAnimatedMagicCircle(const Vector3& center, float radius, flo
 	DrawCircle(center, radius * scale, 50, color);
 
 	// 五芒星の回転
-	const float PI = 3.14159265358979323846f;
+	const float PI = std::numbers::pi_v<float>;
 	Vector3 points[5];
 	for (int i = 0; i < 5; i++) {
 		float angle = PI / 2.0f + (2.0f * PI / 5.0f) * i * 2 + rotation;
@@ -1134,7 +1136,7 @@ void Wireframe::DrawAnimatedMagicCircle(const Vector3& center, float radius, flo
 
 void Wireframe::DrawAnimatedHeart(const Vector3& center, float size, float time)
 {
-	const float PI = 3.14159265358979323846f;
+	const float PI = std::numbers::pi_v<float>;
 	const uint32_t segments = 100;
 
 	float progress = fmin(time / 2.0f, 1.0f);  // 0.0 ～ 1.0 で線を増やす
@@ -1203,7 +1205,7 @@ void Wireframe::DrawMagicCircle(const Vector3& center, float radius, const Vecto
 	DrawConcentricCircles(center, radius * 0.5f, 3, radius * 0.15f, color);
 
 	// 12本の放射状の線
-	const float PI = 3.14159265358979323846f;
+	const float PI = std::numbers::pi_v<float>;
 	for (int i = 0; i < 12; i++) {
 		float angle = (2.0f * PI / 12) * i;
 		Vector3 start = center + Vector3(cos(angle) * radius * 0.3f, 0.0f, sin(angle) * radius * 0.3f);
@@ -1224,7 +1226,7 @@ void Wireframe::DrawRotatingMagicCircle(const Vector3& center, float radius, con
 
 void Wireframe::DrawProgressiveMagicCircle(const Vector3& center, float radius, const Vector4& baseColor, float time)
 {
-	const float PI = 3.14159265358979323846f;
+	const float PI = std::numbers::pi_v<float>;
 
 	// フェードイン効果
 	float alpha = (sin(time) + 1.0f) * 0.5f;
@@ -1280,7 +1282,7 @@ void Wireframe::DrawProgressiveMagicCircle(const Vector3& center, float radius, 
 
 void Wireframe::DrawPentagramProgressive(const Vector3& center, float radius, const Vector4& color, float progress)
 {
-	const float PI = 3.14159265358979323846f;
+	const float PI = std::numbers::pi_v<float>;
 	Vector3 points[5];
 
 	for (int i = 0; i < 5; i++) {
@@ -1298,7 +1300,7 @@ void Wireframe::DrawPentagramProgressive(const Vector3& center, float radius, co
 
 void Wireframe::DrawHexagramProgressive(const Vector3& center, float radius, const Vector4& color, float progress)
 {
-	const float PI = 3.14159265358979323846f;
+	const float PI = std::numbers::pi_v<float>;
 	Vector3 points[6];
 
 	for (int i = 0; i < 6; i++) {
@@ -1553,7 +1555,7 @@ void Wireframe::CreateTransformationMatrix()
 /// -------------------------------------------------------------
 void Wireframe::CalcSphereVertexData()
 {
-	const float pi = 3.1415926535897932f;
+	const float pi = std::numbers::pi_v<float>;
 	const uint32_t kSubdivision = 8; // 分割数
 	const float kLonEvery = 2.0f * pi / float(kSubdivision); // 経度の1分割の角度
 	const float kLatEvery = pi / float(kSubdivision); // 緯度の1分割の角度

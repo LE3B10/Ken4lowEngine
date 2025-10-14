@@ -1,5 +1,8 @@
 #include "AssimpLoader.h"
 
+/// -------------------------------------------------------------
+/// 			Assimpを使ったモデル読み込みクラス
+/// -------------------------------------------------------------
 ModelData AssimpLoader::LoadModel(const std::string& modelFilePath)
 {
 	// 1. ファイルの拡張子を取得して判定
@@ -49,6 +52,9 @@ ModelData AssimpLoader::LoadModel(const std::string& modelFilePath)
 	return modelData;
 }
 
+/// -------------------------------------------------------------
+///						ノードを読み込む
+/// -------------------------------------------------------------
 Node AssimpLoader::ReadNode(aiNode* node)
 {
 	Node result;
@@ -72,6 +78,9 @@ Node AssimpLoader::ReadNode(aiNode* node)
 	return result;
 }
 
+/// -------------------------------------------------------------
+///					メッシュを解析する
+/// -------------------------------------------------------------
 void AssimpLoader::ParseMeshes(const aiScene* scene, ModelData& modelData)
 {
 	uint32_t baseVertex = 0;

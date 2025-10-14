@@ -88,7 +88,7 @@ private: /// ---------- メンバ変数 ---------- ///
 	Camera* camera_ = nullptr;
 	SkyBox* skyBox_ = nullptr;
 
-	std::shared_ptr<Model> model_;
+	std::shared_ptr<Object3D> model_;
 
 	// マテリアルデータ
 	Material material_;

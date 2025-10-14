@@ -1,5 +1,8 @@
 #include "ParticleFactory.h"
 
+/// -------------------------------------------------------------
+///				　		パーティクル生成
+/// -------------------------------------------------------------
 Particle ParticleFactory::Create(std::mt19937& randomEngine, const Vector3& position, ParticleEffectType effectType)
 {
 	Particle particle;
@@ -347,6 +350,9 @@ Particle ParticleFactory::Create(std::mt19937& randomEngine, const Vector3& posi
 }
 
 
+/// -------------------------------------------------------------
+///				　		レーザービーム生成
+/// -------------------------------------------------------------
 Particle ParticleFactory::CreateLaserBeam(const Vector3& position, float length, const Vector3& color)
 {
 	Particle particle;
