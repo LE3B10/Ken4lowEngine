@@ -26,6 +26,9 @@ void GamePlayScene::Initialize()
 	DebugCamera::GetInstance()->Initialize();
 #endif // _DEBUG
 
+	Input::GetInstance()->SetLockCursor(true);
+	ShowCursor(false);
+
 	dxCommon_ = DirectXCommon::GetInstance();
 	input_ = Input::GetInstance();
 
@@ -108,7 +111,7 @@ void GamePlayScene::Draw3DObjects()
 
 	//terrein_->Draw();
 
-	//player_->Draw();
+	player_->Draw();
 
 #pragma endregion
 
@@ -186,10 +189,10 @@ void GamePlayScene::UpdateDebug()
 		Wireframe::GetInstance()->SetDebugCamera(!Wireframe::GetInstance()->GetDebugCamera());
 		//ParticleManager::GetInstance()->SetDebugCamera(!ParticleManager::GetInstance()->GetDebugCamera());
 		skyBox_->SetDebugCamera(!skyBox_->GetDebugCamera());
-		//player_->SetDebugCamera(!player_->IsDebugCamera());
+		player_->SetDebugCamera(!player_->IsDebugCamera());
 		isDebugCamera_ = !isDebugCamera_;
-		//Input::GetInstance()->SetLockCursor(isDebugCamera_);
-		//ShowCursor(!isDebugCamera_);// 表示・非表示も連動（オプション）
+		Input::GetInstance()->SetLockCursor(isDebugCamera_);
+		ShowCursor(!isDebugCamera_);// 表示・非表示も連動（オプション）
 	}
 #endif // _DEBUG
 }

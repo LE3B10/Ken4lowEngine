@@ -12,10 +12,10 @@
 /// -------------------------------------------------------------
 ///                         初期化処理
 /// -------------------------------------------------------------
-void PlayerController::Initialize(AnimationModel* model)
+void PlayerController::Initialize(Object3D* model)
 {
 	input_ = Input::GetInstance();
-	animationModel_ = model;
+	model_ = model;
 	velocity_ = { 0.0f, 0.0f, 0.0f };
 	move_ = { 0.0f, 0.0f, 0.0f };
 	statusFlags_.isGrounded = true;   // 初期は接地
@@ -65,7 +65,7 @@ void PlayerController::UpdateMovement(Camera* camera, float deltaTime, bool weap
 		float s = std::sinf(yaw), c = std::cosf(yaw);
 		move_ = { move_.x * c - move_.z * s, 0.0f, move_.x * s + move_.z * c };
 	}
-	animationModel_->SetRotate({ 0.0f, yaw, 0.0f });
+	//model_->SetRotate({ 0.0f, yaw, 0.0f });
 
 	// === スプリント（ADS中は無効・全方向対応：移動入力があるとき） ===
 	const bool isADS = (!weaponReloading && inputFlags_.aim);
@@ -111,7 +111,7 @@ void PlayerController::UpdateMovement(Camera* camera, float deltaTime, bool weap
 	const float slideFriction = 0.6f;
 
 	// === 位置・重力 ===
-	Vector3 pos = animationModel_->GetTranslate();
+	Vector3 pos = model_->GetTranslate();
 
 	if (statusFlags_.isGrounded) {
 		// スライド開始
@@ -172,7 +172,7 @@ void PlayerController::UpdateMovement(Camera* camera, float deltaTime, bool weap
 	}
 
 	// 反映
-	animationModel_->SetTranslate(pos);
+	model_->SetTranslate(pos);
 
 	// === FOV補間（ADSで狭く・ダッシュ中は少し広く） ===
 	if (camera) {
@@ -221,10 +221,10 @@ void PlayerController::UpdateStamina(float deltaTime)
 /// -------------------------------------------------------------
 void PlayerController::DrawMovementImGui()
 {
-	if (!animationModel_) return;
+	if (!model_) return;
 
 	ImGui::Text("== Movement Debug ==");
-	Vector3 pos = animationModel_->GetTranslate();
+	Vector3 pos = model_->GetTranslate();
 	ImGui::Text("Position: (%.2f, %.2f, %.2f)", pos.x, pos.y, pos.z);
 	ImGui::Text("Velocity: (%.2f, %.2f, %.2f)", velocity_.x, velocity_.y, velocity_.z);
 	ImGui::Text("Grounded: %s", statusFlags_.isGrounded ? "Yes" : "No");

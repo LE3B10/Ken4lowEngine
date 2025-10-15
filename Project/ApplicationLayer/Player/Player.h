@@ -1,8 +1,8 @@
 #pragma once
 #include <BaseCharacter.h>
 #include <PlayerController.h>
-
 #include <Object3D.h>
+#include <FpsCamera.h>
 
 #include <memory>
 
@@ -23,6 +23,15 @@ enum class ModelState
 	Dead        // 死亡状態
 };
 
+enum Id
+{
+	kBody,
+	kHead,
+	kLeftArm,
+	kRightArm,
+	kLeftLeg,
+	kRightLeg
+};
 
 /// -------------------------------------------------------------
 ///					　プレイヤークラス
@@ -49,13 +58,37 @@ public: /// ---------- メンバ関数 ---------- ///
 	// 衝突時に呼ばれる仮想関数
 	void OnCollision(Collider* other) override {};
 
+public: /// ---------- アクセサー関数 ---------- ///
+
+	// デバッグカメラフラグ取得
+	bool IsDebugCamera() const { return isDebugCamera_; }
+	void SetDebugCamera(bool isDebug) { isDebugCamera_ = isDebug; }
+
+	// FPSカメラ取得
+	FpsCamera* GetFpsCamera() const { return fpsCamera_.get(); }
+
+	// プレイヤーコントローラー取得
+	PlayerController* GetPlayerController() const { return playerController_.get(); }
+
+	// ワールド座標設定
+	void SetWorldPosition(const Vector3& pos) { worldPosition_ = pos; }
+	Vector3 GetWorldPosition() const { return worldPosition_; }
+
+private: /// ---------- メンバ関数 ---------- ///
+
+	// 各部位の初期化
+	void InitializeBodyParts();
+
 private: /// ---------- デバッグカメラフラグ ---------- ///
 
 	Input* input_ = nullptr; // 入力クラス
 
 	std::unique_ptr<Object3D> playerModel_; // プレイヤーモデル
 	std::unique_ptr<PlayerController> playerController_; // プレイヤーコントローラー
+	std::unique_ptr<FpsCamera> fpsCamera_; // FPSカメラ
 
 	bool isDebugCamera_ = false; // デバッグカメラフラグ
+
+	Vector3 worldPosition_ = { 0.0f, 0.0f, 0.0f }; // ワールド座標
 };
 

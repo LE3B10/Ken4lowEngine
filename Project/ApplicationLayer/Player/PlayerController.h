@@ -5,7 +5,7 @@
 /// ---------- 前方宣言 ---------- ///
 class Input;
 class Camera;
-class AnimationModel;
+class Object3D;
 
 
 /// -------------------------------------------------------------
@@ -66,7 +66,7 @@ private: /// ---------- 構造体 ---------- ///
 public: /// ---------- メンバ関数 ---------- ///
 
 	// 初期化処理
-	void Initialize(AnimationModel* model);
+	void Initialize(Object3D* model);
 
 	// 更新処理
 	void UpdateMovement(Camera* camera, float deltaTime, bool weaponReloading);
@@ -121,7 +121,7 @@ public: /// ---------- アクセサー関数 ---------- ///
 	bool IsDebugCamera() const { return statusFlags_.isDebugCamera; }
 	void SetDebugCamera(bool isDebugCamera) { statusFlags_.isDebugCamera = isDebugCamera; }
 
-	void SetAnimationModel(AnimationModel* model) { animationModel_ = model; }
+	void SetAnimationModel(Object3D* model) { model_ = model; }
 
 private: /// ---------- メンバ変数 ---------- ///
 
@@ -130,7 +130,7 @@ private: /// ---------- メンバ変数 ---------- ///
 
 private: /// ---------- メンバ変数 ---------- ///
 
-	AnimationModel* animationModel_ = nullptr;
+	Object3D* model_ = nullptr;
 	Input* input_ = nullptr;
 
 	Vector3 velocity_{};
