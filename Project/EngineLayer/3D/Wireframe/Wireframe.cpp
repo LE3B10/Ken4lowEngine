@@ -785,7 +785,7 @@ void Wireframe::DrawTorus(const Vector3& center, float R, float r, uint32_t ring
 void Wireframe::DrawRotatingTorus(const Vector3& center, float R, float r, uint32_t ringSegments, uint32_t tubeSegments, const Vector4& color, float time)
 {
 	const float PI = std::numbers::pi_v<float>;
-	Matrix4x4 rotationMatrix = Matrix4x4::MakeRotateYMatrix(time * 0.5f); // Y軸回転
+	Matrix4x4 rotationMatrix = Matrix4x4::MakeRotateY(time * 0.5f); // Y軸回転
 
 	std::vector<Vector3> points;
 

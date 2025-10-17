@@ -1,0 +1,89 @@
+#pragma once
+#include <BaseCharacter.h>
+#include <Object3D.h>
+#include <FpsCamera.h>
+
+#include <memory>
+#include <numbers>
+
+/// ---------- 前方宣言 ---------- ///
+class Input;
+
+
+/// -------------------------------------------------------------
+///					　プレイヤークラス
+/// -------------------------------------------------------------
+class Player : public BaseCharacter
+{
+public: /// ---------- メンバ関数 ---------- ///
+
+	// デストラクタ
+	~Player();
+
+	// 初期化処理
+	void Initialize() override;
+
+	// 更新処理
+	void Update() override;
+
+	// 描画処理
+	void Draw() override;
+
+	// ImGui描画処理
+	void DrawImGui() override;
+
+	// ワールド変換の取得
+	const WorldTransformEx* GetWorldTransform() { return &body_.transform; }
+
+	// 衝突時に呼ばれる仮想関数
+	void OnCollision(Collider* other) override {};
+
+	// 中心座標を取得する純粋仮想関数
+	Vector3 GetCenterPosition() const override;
+
+public: /// ---------- アクセサー関数 ---------- ///
+
+	// デバッグカメラフラグ取得
+	bool IsDebugCamera() const { return isDebugCamera_; }
+	void SetDebugCamera(bool isDebug) { isDebugCamera_ = isDebug; }
+
+	// FPSカメラ取得
+	FpsCamera* GetFpsCamera() const { return fpsCamera_.get(); }
+
+	// プレイヤーモデル取得
+	Object3D* GetPlayerModel() const { return body_.object.get(); }
+
+private: /// ---------- メンバ関数 ---------- ///
+
+	// 移動処理
+	void Move();
+
+private: /// ---------- デバッグカメラフラグ ---------- ///
+
+	Input* input_ = nullptr; // 入力クラス
+
+	std::unique_ptr<FpsCamera> fpsCamera_; // FPSカメラ
+
+	float bodyYaw_ = 0.0f;        // 体の現在Yaw（ラジアン）
+	float headYawLocal_ = 0.0f;   // 頭のローカルYaw（親=体に対する差）
+
+	Vector3 rightArmPosition_ = { 1.5f, 1.5f, 0 };
+
+	// 調整用パラメータ
+	float headYawLimit_ = 85.0f * (std::numbers::pi_v<float> / 180.0f); // 顔の左右限界
+	float headPitchLimit_ = 90.0f * (std::numbers::pi_v<float> / 180.0f); // 顔の上下限界
+	float bodyFollowThresh_ = 90.0f * (std::numbers::pi_v<float> / 180.0f); // 追従を始める閾値
+	float bodyTurnSpeedDeg_ = 300.0f; // 体の回頭速度(度/秒) …好みで 240〜360
+
+	bool isDebugCamera_ = false; // デバッグカメラフラグ
+
+	uint32_t rightArmIndex_ = 2; // 右腕部位のインデックス
+
+	bool  isGrounded_ = true;     // 接地フラグ
+	float groundY_ = 0.0f;     // 立っている床のY（暫定: 水平床）
+	float vY_ = 0.0f;     // 縦速度 (m/s想定)
+	float gravity_ = -30.75f;   // 重力加速度
+	float jumpSpeed_ = 12.0f;     // 初速
+	float maxFallSpeed_ = -50.0f;   // 最大落下速度（クランプ）
+};
+

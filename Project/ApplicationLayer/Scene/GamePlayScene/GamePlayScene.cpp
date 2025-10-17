@@ -41,8 +41,8 @@ void GamePlayScene::Initialize()
 
 	terrein_ = std::make_unique<Object3D>();
 	// 地形オブジェクトの初期化
-	terrein_->Initialize("terrain.gltf");
-	terrein_->SetScale({ 50.0f, 50.0f, 50.0f });
+	terrein_->Initialize("cube.gltf");
+	terrein_->SetTranslate({ 0.0f,1.0f,0.0f });
 
 	skyBox_ = std::make_unique<SkyBox>();
 	skyBox_->Initialize("SkyBox/skybox.dds");
@@ -81,11 +81,22 @@ void GamePlayScene::Update()
 		}
 	}
 
+	switch (gameState_)
+	{
+	case GameState::Playing:
+		player_->Update();
+		break;
+	case GameState::Paused:
+		break;
+	case GameState::Result:
+		break;
+	default:
+		break;
+	}
+
 	terrein_->Update();
 
 	skyBox_->Update();
-
-	player_->Update();
 
 	// フェードの更新
 	fadeController_->Update(dxCommon_->GetFPSCounter().GetDeltaTime());
@@ -109,7 +120,7 @@ void GamePlayScene::Draw3DObjects()
 
 #pragma region オブジェクト3Dの描画
 
-	//terrein_->Draw();
+	terrein_->Draw();
 
 	player_->Draw();
 
@@ -175,6 +186,8 @@ void GamePlayScene::DrawImGui()
 	// ライト
 	LightManager::GetInstance()->DrawImGui();
 
+	player_->DrawImGui();
+
 }
 
 
@@ -191,8 +204,8 @@ void GamePlayScene::UpdateDebug()
 		skyBox_->SetDebugCamera(!skyBox_->GetDebugCamera());
 		player_->SetDebugCamera(!player_->IsDebugCamera());
 		isDebugCamera_ = !isDebugCamera_;
-		Input::GetInstance()->SetLockCursor(isDebugCamera_);
-		ShowCursor(!isDebugCamera_);// 表示・非表示も連動（オプション）
+		Input::GetInstance()->SetLockCursor(!isDebugCamera_);
+		ShowCursor(isDebugCamera_);// 表示・非表示も連動（オプション）
 	}
 #endif // _DEBUG
 }

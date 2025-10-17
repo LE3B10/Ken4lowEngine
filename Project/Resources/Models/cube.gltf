@@ -1,6 +1,6 @@
 {
 	"asset":{
-		"generator":"Khronos glTF Blender I/O v4.1.62",
+		"generator":"Khronos glTF Blender I/O v4.5.47",
 		"version":"2.0"
 	},
 	"scene":0,
@@ -15,7 +15,7 @@
 	"nodes":[
 		{
 			"mesh":0,
-			"name":"Cube"
+			"name":"\u7acb\u65b9\u4f53"
 		}
 	],
 	"materials":[
@@ -56,8 +56,8 @@
 	"images":[
 		{
 			"mimeType":"image/png",
-			"name":"uvChecker",
-			"uri":"uvChecker.png"
+			"name":"white",
+			"uri":"white.png"
 		}
 	],
 	"accessors":[

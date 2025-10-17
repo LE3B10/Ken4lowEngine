@@ -26,7 +26,7 @@ void FpsCamera::Update(bool ignoreInput)
 	if (!player_ || !camera_) return;
 	if (player_->IsDebugCamera()) return; // デバッグカメラ中は無効
 
-	// ------------- (a) 入力から yaw/pitch 更新 -------------
+	// ------------- 入力から yaw/pitch 更新 -------------
 	if (!ignoreInput)
 	{
 		const int dx = input_->GetMouseMoveX();
@@ -40,23 +40,48 @@ void FpsCamera::Update(bool ignoreInput)
 		pitch_ = std::clamp(pitch_, minPitch_, maxPitch_);  // ピッチ制限
 	}
 
-	// ------------- (b) プレイヤーの頭位置へ置く -------------
-	// 基準位置：プレイヤーのルート位置（腰）＋ 目の高さ
-	// ※ Player 側に「現在位置」を返すメソッドが無ければ Body の Object3D::GetTranslate() を使ってください。
-	Vector3 playerPos = player_->GetWorldPosition();         // 推奨：小さなゲッタを用意
-	// Vector3 playerPos = player_->GetBodyObject()->GetTranslate(); // 代替案
+	// ------------- プレイヤーの頭位置へ置く -------------
+	Vector3 playerPos = player_->GetWorldTransform()->translate_;
+	const Vector3 eyeBase = playerPos + Vector3{ 0.0f, eyeHeight_, 0.0f };
 
-	Vector3 camPos = playerPos + Vector3{ 0.0f, eyeHeight_, 0.0f };
-
-	// カメラ前方に少し押し出す（5～10cm）
-	Vector3 forward = camera_->GetForward();     // カメラクラスに前方取得あり
-	camPos = camPos + forward * 0.08f;
-
-	// ------------- (c) カメラへ反映（回転は yaw/pitch をそのまま） -------------
+	// このフレームのカメラ回転を先に適用して forward を最新化
 	Vector3 camEuler = { pitch_, yaw_, 0.0f };
-	camera_->SetTranslate(camPos);
+	if (viewMode_ == ViewMode::ThirdFront)
+	{
+		// 自撮りモードはプレイヤー側を向くため180度回す
+		camEuler.y -= std::numbers::pi_v<float>;
+		camEuler.x = -camEuler.x; // 上下も反転
+	}
 	camera_->SetRotate(camEuler);
-	camera_->Update();   // 既存のCameraで行列更新
+	camera_->Update(); // ここで forward が最新になる
+
+	// 最新の forward を取得
+	Vector3 fwd = camera_->GetForward();
+
+	Vector3 camPos = eyeBase;
+
+	switch (viewMode_)
+	{
+	case ViewMode::FirstPerson:
+		// ほんの少しだけ前へ押し出して首振り時に埋まらないように
+		camPos = eyeBase + fwd * 0.08f;
+		break;
+
+	case ViewMode::ThirdBack:
+		// 後ろから肩越し。少し上げると見やすい
+		camPos = eyeBase - fwd * tpsDistance_;
+		camPos.y += tpsUpOffset_;
+		break;
+
+	case ViewMode::ThirdFront:
+		// 前方から自分を見る。上の camEuler で180°回してあるので向きはプレイヤー側
+		camPos = eyeBase - fwd * tpsForward_;
+		camPos.y += tpsUpOffset_;
+		break;
+	}
+
+	camera_->SetTranslate(camPos);
+	camera_->Update();
 }
 
 /// ----------------------------------------------
@@ -79,4 +104,14 @@ void FpsCamera::AddRecoil(float verticalAmount, float horizontalAmount)
 	std::uniform_real_distribution<float> horizontalDist(-horizontalAmount, horizontalAmount);
 	recoilOffsetPitch_ += -verticalAmount;
 	recoilOffsetYaw_ += horizontalDist(randomEngine_);  // ランダムな横ブレ
+}
+
+void FpsCamera::CycleViewMode()
+{
+	switch (viewMode_)
+	{
+	case ViewMode::FirstPerson: viewMode_ = ViewMode::ThirdBack;  break;
+	case ViewMode::ThirdBack:   viewMode_ = ViewMode::ThirdFront; break;
+	case ViewMode::ThirdFront:  viewMode_ = ViewMode::FirstPerson; break;
+	}
 }

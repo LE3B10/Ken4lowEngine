@@ -12,6 +12,16 @@ class Camera;
 /// -------------------------------------------------------------
 class FpsCamera
 {
+public: /// ---------- 列挙型 ---------- ///
+
+	// 表示モード
+	enum class ViewMode
+	{
+		FirstPerson, // 一人称視点
+		ThirdBack,	 // 三人称視点（背後）
+		ThirdFront	 // 三人称視点（正面）
+	};
+
 public: // ---------- 関数 ---------- //
 
 	// 初期化処理
@@ -26,6 +36,9 @@ public: // ---------- 関数 ---------- //
 	// リコイルを加える
 	void AddRecoil(float verticalAmount = 0.0f, float horizontalAmount = 0.0f);
 
+	// 1回呼ぶごとにモードを切替（F5で呼ぶ）
+	void CycleViewMode();
+
 public: // ---------- ゲッタ ---------- //
 
 	// カメラ取得
@@ -34,6 +47,9 @@ public: // ---------- ゲッタ ---------- //
 	// Yaw / Pitch取得
 	float GetYaw() const { return yaw_; }
 	float GetPitch() const { return pitch_; }
+
+	// 現在のモード取得
+	ViewMode GetViewMode() const { return viewMode_; }
 
 public: // ---------- セッタ ---------- //
 
@@ -45,6 +61,9 @@ public: // ---------- セッタ ---------- //
 
 	// 外部から時間を貰う
 	void SetDeltaTime(float deltaTime) { deltaTime_ = deltaTime; }
+
+	// 任意に設定したい場合
+	void SetViewMode(ViewMode m) { viewMode_ = m; }
 
 private: // ---------- メンバ ---------- //
 
@@ -65,7 +84,7 @@ private: // ---------- メンバ ---------- //
 	const float maxPitch_ = +1.5f; // 上限
 
 	// カメラ高さオフセット（頭位置）
-	float eyeHeight_ = 1.74f;
+	float eyeHeight_ = 1.8f;
 
 	// Aiming状態フラグ
 	bool isAiming_ = false;
@@ -102,4 +121,11 @@ private: // ---------- メンバ ---------- //
 	float debugCamDistance_ = 3.0f; // 背後距離
 	float debugShoulderHeight_ = 1.6f; // 肩の高さ
 	float debugSideOffset_ = 0.0f;// 右肩越し (+左なら負に)
+
+	ViewMode viewMode_ = ViewMode::FirstPerson;
+
+	// TPS用オフセット
+	float tpsDistance_ = 20.0f;     // 後方へ下げる距離
+	float tpsForward_ = 20.0f;     // 前方へ出す距離（ThirdFront 用）
+	float tpsUpOffset_ = 0.15f;    // 少し上げる微調整
 };
