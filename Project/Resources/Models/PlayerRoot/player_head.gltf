@@ -15,7 +15,7 @@
 	"nodes":[
 		{
 			"mesh":0,
-			"name":"\u7acb\u65b9\u4f53"
+			"name":"head"
 		}
 	],
 	"materials":[
@@ -56,8 +56,8 @@
 	"images":[
 		{
 			"mimeType":"image/png",
-			"name":"white",
-			"uri":"white.png"
+			"name":"steve",
+			"uri":"steve.png"
 		}
 	],
 	"accessors":[
@@ -66,14 +66,14 @@
 			"componentType":5126,
 			"count":24,
 			"max":[
+				0.5,
 				1,
-				1,
-				1
+				0.5
 			],
 			"min":[
-				-1,
-				-1,
-				-1
+				-0.5,
+				0,
+				-0.5
 			],
 			"type":"VEC3"
 		},
@@ -124,14 +124,14 @@
 	],
 	"samplers":[
 		{
-			"magFilter":9729,
-			"minFilter":9987
+			"magFilter":9728,
+			"minFilter":9984
 		}
 	],
 	"buffers":[
 		{
 			"byteLength":840,
-			"uri":"cube.bin"
+			"uri":"player_head.bin"
 		}
 	]
 }

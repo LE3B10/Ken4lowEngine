@@ -73,9 +73,6 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	std::unique_ptr<CollisionManager> collisionManager_; // 衝突マネージャー
 
-	// アニメーションモデル
-	std::unique_ptr<AnimationModel> animationModel_ = nullptr;
-
 	std::unique_ptr<SkyBox> skyBox_ = nullptr; // スカイボックス
 
 	// デバッグカメラのON/OFF用

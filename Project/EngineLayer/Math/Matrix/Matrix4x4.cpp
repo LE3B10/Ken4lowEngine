@@ -206,7 +206,7 @@ Matrix4x4 Matrix4x4::MakeScaleMatrix(const Vector3& scale)
 	return result;
 }
 
-Matrix4x4 Matrix4x4::MakeRotateXMatrix(float radian)
+Matrix4x4 Matrix4x4::MakeRotateX(float radian)
 {
 	Matrix4x4 result{};
 	result.m[0][0] = 1.0f;
@@ -218,7 +218,7 @@ Matrix4x4 Matrix4x4::MakeRotateXMatrix(float radian)
 	return result;
 }
 
-Matrix4x4 Matrix4x4::MakeRotateYMatrix(float radian)
+Matrix4x4 Matrix4x4::MakeRotateY(float radian)
 {
 	Matrix4x4 result{};
 	result.m[0][0] = std::cos(radian);
@@ -244,7 +244,7 @@ Matrix4x4 Matrix4x4::MakeRotateZMatrix(float radian)
 
 Matrix4x4 Matrix4x4::MakeRotateMatrix(const Vector3& radian)
 {
-	return Multiply(Multiply(MakeRotateXMatrix(radian.x), MakeRotateYMatrix(radian.y)), MakeRotateZMatrix(radian.z));
+	return Multiply(Multiply(MakeRotateX(radian.x), MakeRotateY(radian.y)), MakeRotateZMatrix(radian.z));
 }
 
 Matrix4x4 Matrix4x4::MakeTranslateMatrix(const Vector3& translate)
@@ -350,5 +350,44 @@ Matrix4x4 Matrix4x4::MakeRotateAxisAngleMatrix(const Vector3& axis, float angle)
 	result.m[3][2] = 0.0f;
 	result.m[3][3] = 1.0f;
 
+	return result;
+}
+
+void Matrix4x4::Decompose(const Matrix4x4& matrix, Vector3& outScale, Vector3& outRotate, Vector3& outTranslate)
+{
+	// 平行移動成分
+	outTranslate = { matrix.m[3][0], matrix.m[3][1], matrix.m[3][2] };
+
+	// スケール成分
+	outScale.x = std::sqrt(matrix.m[0][0] * matrix.m[0][0] + matrix.m[0][1] * matrix.m[0][1] + matrix.m[0][2] * matrix.m[0][2]);
+	outScale.y = std::sqrt(matrix.m[1][0] * matrix.m[1][0] + matrix.m[1][1] * matrix.m[1][1] + matrix.m[1][2] * matrix.m[1][2]);
+	outScale.z = std::sqrt(matrix.m[2][0] * matrix.m[2][0] + matrix.m[2][1] * matrix.m[2][1] + matrix.m[2][2] * matrix.m[2][2]);
+
+	// 回転成分（行列をスケール除去してからオイラー角に変換）
+	Matrix4x4 rotMat = matrix;
+
+	if (outScale.x != 0) { rotMat.m[0][0] /= outScale.x; rotMat.m[0][1] /= outScale.x; rotMat.m[0][2] /= outScale.x; }
+	if (outScale.y != 0) { rotMat.m[1][0] /= outScale.y; rotMat.m[1][1] /= outScale.y; rotMat.m[1][2] /= outScale.y; }
+	if (outScale.z != 0) { rotMat.m[2][0] /= outScale.z; rotMat.m[2][1] /= outScale.z; rotMat.m[2][2] /= outScale.z; }
+
+	// オイラー角を求める (XYZ回転順)
+	outRotate.y = std::asin(-rotMat.m[2][0]); // yaw
+	if (std::cos(outRotate.y) != 0) 
+	{
+		outRotate.x = std::atan2(rotMat.m[2][1], rotMat.m[2][2]); // pitch
+		outRotate.z = std::atan2(rotMat.m[1][0], rotMat.m[0][0]); // roll
+	}
+	else {
+		outRotate.x = std::atan2(-rotMat.m[1][2], rotMat.m[1][1]);
+		outRotate.z = 0;
+	}
+}
+
+Vector3 Matrix4x4::TransformCoord(const Vector3& v, const Matrix4x4& m)
+{
+	Vector3 result;
+	result.x = v.x * m.m[0][0] + v.y * m.m[1][0] + v.z * m.m[2][0] + m.m[3][0];
+	result.y = v.x * m.m[0][1] + v.y * m.m[1][1] + v.z * m.m[2][1] + m.m[3][1];
+	result.z = v.x * m.m[0][2] + v.y * m.m[1][2] + v.z * m.m[2][2] + m.m[3][2];
 	return result;
 }

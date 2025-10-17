@@ -15,13 +15,13 @@
 	"nodes":[
 		{
 			"mesh":0,
-			"name":"\u7acb\u65b9\u4f53"
+			"name":"body"
 		}
 	],
 	"materials":[
 		{
 			"doubleSided":true,
-			"name":"\u30de\u30c6\u30ea\u30a2\u30eb",
+			"name":"\u30de\u30c6\u30ea\u30a2\u30eb.001",
 			"pbrMetallicRoughness":{
 				"baseColorTexture":{
 					"index":0
@@ -33,7 +33,7 @@
 	],
 	"meshes":[
 		{
-			"name":"\u7acb\u65b9\u4f53",
+			"name":"\u7acb\u65b9\u4f53.001",
 			"primitives":[
 				{
 					"attributes":{
@@ -56,8 +56,8 @@
 	"images":[
 		{
 			"mimeType":"image/png",
-			"name":"white",
-			"uri":"white.png"
+			"name":"steve",
+			"uri":"steve.png"
 		}
 	],
 	"accessors":[
@@ -66,14 +66,14 @@
 			"componentType":5126,
 			"count":24,
 			"max":[
-				1,
-				1,
-				1
+				0.5,
+				0.75,
+				0.25
 			],
 			"min":[
-				-1,
-				-1,
-				-1
+				-0.5,
+				-0.75,
+				-0.25
 			],
 			"type":"VEC3"
 		},
@@ -124,14 +124,14 @@
 	],
 	"samplers":[
 		{
-			"magFilter":9729,
-			"minFilter":9987
+			"magFilter":9728,
+			"minFilter":9984
 		}
 	],
 	"buffers":[
 		{
 			"byteLength":840,
-			"uri":"cube.bin"
+			"uri":"player_body.bin"
 		}
 	]
 }

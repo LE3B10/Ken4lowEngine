@@ -136,9 +136,6 @@
     <ClCompile Include="EngineLayer\ParticleManagement\ParticleFactory.cpp">
       <Filter>EngineLayer\Particle</Filter>
     </ClCompile>
-    <ClCompile Include="ApplicationLayer\Player\Weapon\Weapon.cpp">
-      <Filter>ApplicationLayer\Player\Weapon</Filter>
-    </ClCompile>
     <ClCompile Include="ApplicationLayer\Crosshair\Crosshair.cpp">
       <Filter>ApplicationLayer\Crosshair</Filter>
     </ClCompile>
@@ -160,14 +157,8 @@
     <ClCompile Include="ApplicationLayer\Item\ItemDropTable.cpp">
       <Filter>ApplicationLayer\Item</Filter>
     </ClCompile>
-    <ClCompile Include="ApplicationLayer\Player\Player.cpp">
-      <Filter>ApplicationLayer\Player</Filter>
-    </ClCompile>
-    <ClCompile Include="ApplicationLayer\Player\PlayerController.cpp">
-      <Filter>ApplicationLayer\Player</Filter>
-    </ClCompile>
-    <ClCompile Include="ApplicationLayer\Player\Bullet.cpp">
-      <Filter>ApplicationLayer\Player</Filter>
+    <ClCompile Include="ApplicationLayer\Character\Player\Player.cpp">
+      <Filter>ApplicationLayer\Character\Player</Filter>
     </ClCompile>
     <ClCompile Include="ApplicationLayer\ReloadCircle\ReloadCircle.cpp">
       <Filter>ApplicationLayer\ReloadCircle</Filter>
@@ -409,7 +400,15 @@
     <ClCompile Include="ApplicationLayer\Scene\StageSelectScene\WorldMapStageSelector.cpp">
       <Filter>ApplicationLayer\Scene\StageSelectScene</Filter>
     </ClCompile>
-    <ClCompile Include="BaseCharacter.cpp" />
+    <ClCompile Include="ApplicationLayer\Character\Player\Weapon\Weapon.cpp">
+      <Filter>ApplicationLayer\Character\Player\Weapon</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\Character\BaseCharacter\BaseCharacter.cpp">
+      <Filter>ApplicationLayer\Character\BaseCharacter</Filter>
+    </ClCompile>
+    <ClCompile Include="EngineLayer\WorldTransform\WorldTransformEx.cpp">
+      <Filter>EngineLayer\Transform</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="EngineLayer\Math\MultipleStructs\AABB.h">
@@ -508,11 +507,8 @@
     <ClInclude Include="EngineLayer\ParticleManagement\ParticleFactory.h">
       <Filter>EngineLayer\Particle</Filter>
     </ClInclude>
-    <ClInclude Include="ApplicationLayer\Player\Weapon\Weapon.h">
-      <Filter>ApplicationLayer\Player\Weapon</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Player\Weapon\WeaponType.h">
-      <Filter>ApplicationLayer\Player\Weapon</Filter>
+    <ClInclude Include="ApplicationLayer\Character\Player\Weapon\WeaponType.h">
+      <Filter>ApplicationLayer\Character\Player\Weapon</Filter>
     </ClInclude>
     <ClInclude Include="ApplicationLayer\Crosshair\Crosshair.h">
       <Filter>ApplicationLayer\Crosshair</Filter>
@@ -544,14 +540,8 @@
     <ClInclude Include="ApplicationLayer\Item\ItemType.h">
       <Filter>ApplicationLayer\Item</Filter>
     </ClInclude>
-    <ClInclude Include="ApplicationLayer\Player\Player.h">
-      <Filter>ApplicationLayer\Player</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Player\PlayerController.h">
-      <Filter>ApplicationLayer\Player</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Player\Bullet.h">
-      <Filter>ApplicationLayer\Player</Filter>
+    <ClInclude Include="ApplicationLayer\Character\Player\Player.h">
+      <Filter>ApplicationLayer\Character\Player</Filter>
     </ClInclude>
     <ClInclude Include="ApplicationLayer\ReloadCircle\ReloadCircle.h">
       <Filter>ApplicationLayer\ReloadCircle</Filter>
@@ -838,7 +828,15 @@
     <ClInclude Include="ApplicationLayer\Scene\StageSelectScene\WorldMapStageSelector.h">
       <Filter>ApplicationLayer\Scene\StageSelectScene</Filter>
     </ClInclude>
-    <ClInclude Include="BaseCharacter.h" />
+    <ClInclude Include="ApplicationLayer\Character\Player\Weapon\Weapon.h">
+      <Filter>ApplicationLayer\Character\Player\Weapon</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Character\BaseCharacter\BaseCharacter.h">
+      <Filter>ApplicationLayer\Character\BaseCharacter</Filter>
+    </ClInclude>
+    <ClInclude Include="EngineLayer\WorldTransform\WorldTransformEx.h">
+      <Filter>EngineLayer\Transform</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="Resources\Shaders\PostEffect\FullScreen.hlsli">
@@ -933,9 +931,6 @@
     <Filter Include="ApplicationLayer\Item">
       <UniqueIdentifier>{025c2654-d662-4906-b53f-75721901c9b5}</UniqueIdentifier>
     </Filter>
-    <Filter Include="ApplicationLayer\Player">
-      <UniqueIdentifier>{c109cc45-a229-47d4-948e-cab986d311a3}</UniqueIdentifier>
-    </Filter>
     <Filter Include="ApplicationLayer\ReloadCircle">
       <UniqueIdentifier>{28c95605-c9f2-44e5-94d0-86aca3440279}</UniqueIdentifier>
     </Filter>
@@ -1007,12 +1002,6 @@
     </Filter>
     <Filter Include="EngineLayer\PostEffectManagement\VignetteEffect">
       <UniqueIdentifier>{400e0cd1-69f2-4758-9c69-2449eb54ba50}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="ApplicationLayer\Player\Weapon">
-      <UniqueIdentifier>{8f30bd8f-faaa-4fde-a565-96d12d50afe0}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="ApplicationLayer\Player\Behavior">
-      <UniqueIdentifier>{acf8b8ba-c6ce-4a8c-8b76-c098053abc83}</UniqueIdentifier>
     </Filter>
     <Filter Include="Shader\GeometryShader">
       <UniqueIdentifier>{c40888df-84fa-4096-ae6a-3404250fc298}</UniqueIdentifier>
@@ -1163,6 +1152,18 @@
     </Filter>
     <Filter Include="EngineLayer\3D\AnimationManagement">
       <UniqueIdentifier>{2737cf13-57b6-4008-89c3-6ee0302c6040}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ApplicationLayer\Character">
+      <UniqueIdentifier>{a2348789-5065-4267-9a0b-5b362471c830}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ApplicationLayer\Character\BaseCharacter">
+      <UniqueIdentifier>{5c36780a-9bfd-4cb9-8311-ce41c2229990}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ApplicationLayer\Character\Player">
+      <UniqueIdentifier>{c109cc45-a229-47d4-948e-cab986d311a3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ApplicationLayer\Character\Player\Weapon">
+      <UniqueIdentifier>{8f30bd8f-faaa-4fde-a565-96d12d50afe0}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>

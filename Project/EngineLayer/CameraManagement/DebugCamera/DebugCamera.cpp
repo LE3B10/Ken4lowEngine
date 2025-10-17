@@ -56,20 +56,26 @@ void DebugCamera::Move()
 	if (Input::GetInstance()->PushKey(DIK_SPACE)) { move.y += 0.4f; }
 	if (Input::GetInstance()->PushKey(DIK_LSHIFT)) { move.y -= 0.4f; }
 
-	/// ---------- ホイールで前後移動 ---------- ///
-	move.z += Input::GetInstance()->GetMouseWheel() * 0.02f;
+	// 十字キーで回転
+	if (Input::GetInstance()->PushKey(DIK_UP)) { worldTransform_.rotate_.x -= 0.04f; }
+	if (Input::GetInstance()->PushKey(DIK_DOWN)) { worldTransform_.rotate_.x += 0.04f; }
+	if (Input::GetInstance()->PushKey(DIK_LEFT)) { worldTransform_.rotate_.y += 0.04f; }
+	if (Input::GetInstance()->PushKey(DIK_RIGHT)) { worldTransform_.rotate_.y -= 0.04f; }
+
+	///// ---------- ホイールで前後移動 ---------- ///
+	//move.z += Input::GetInstance()->GetMouseWheel() * 0.02f;
 
 	// 回転行列を適用して移動方向を修正
 	move = Vector3::Transform(move, rotateMatrix_);
 	worldTransform_.translate_ += move;
 
-	/// ---------- マウスでカメラ回転 ---------- ///
-	const float rotateSpeed = 0.002f;
-	worldTransform_.rotate_.x += Input::GetInstance()->GetMouseMoveY() * rotateSpeed;
-	worldTransform_.rotate_.y += Input::GetInstance()->GetMouseMoveX() * -rotateSpeed;
+	///// ---------- マウスでカメラ回転 ---------- ///
+	//const float rotateSpeed = 0.002f;
+	//worldTransform_.rotate_.x += Input::GetInstance()->GetMouseMoveY() * rotateSpeed;
+	//worldTransform_.rotate_.y += Input::GetInstance()->GetMouseMoveX() * -rotateSpeed;
 
-	// カメラのピッチ制限（±90度）
-	worldTransform_.rotate_.x = std::clamp(worldTransform_.rotate_.x, -1.57f, 1.57f);
+	//// カメラのピッチ制限（±90度）
+	//worldTransform_.rotate_.x = std::clamp(worldTransform_.rotate_.x, -1.57f, 1.57f);
 }
 
 /// -------------------------------------------------------------
