@@ -7,7 +7,7 @@
 #include "LinearInterpolation.h"
 
 #include <algorithm>
-#include <imgui.h>
+#include <imgui_internal.h>
 
 
 // --- WeaponData -> WeaponConfig 変換（最小） ---
