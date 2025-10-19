@@ -8,7 +8,9 @@
 #include "CollisionManager.h"
 
 #include "Player.h"
-#include <AnimationModel.h>
+#include "ModelParticle.h"
+#include "BallisticEffect.h"
+#include "Crosshair.h"
 
 /// ---------- 前方宣言 ---------- ///
 class DirectXCommon;
@@ -84,5 +86,7 @@ private: /// ---------- メンバ変数 ---------- ///
 private: /// ---------- メンバ変数 ---------- ///
 
 	std::unique_ptr<Player> player_ = nullptr; // プレイヤー
-
+	std::unique_ptr<Crosshair> crosshair_ = nullptr; // クロスヘア
+	std::unique_ptr<ModelParticle> modelParticle_ = nullptr; // モデルパーティクル
+	std::unique_ptr<BallisticEffect> ballisticEffect_ = nullptr; // 弾道エフェクト
 };

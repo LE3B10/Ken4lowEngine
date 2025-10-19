@@ -3,6 +3,10 @@
 #include <Object3D.h>
 #include <FpsCamera.h>
 
+#include "PistolWeapon.h"
+#include "BallisticEffect.h"
+#include "Weapon.h"
+
 #include <memory>
 #include <numbers>
 
@@ -58,11 +62,29 @@ private: /// ---------- メンバ関数 ---------- ///
 	// 移動処理
 	void Move();
 
+	// リコイル
+	void ApplyRecoil(float kickBack, float riseDeg, float horizDeg);
+
+	// 武器データの追加
+	void AddWeaponFrom(const std::string& newName, const WeaponData* base);
+
+	// 武器選択
+	void SelectWeapon(const std::string& name);
+
+	// 武器の削除
+	void DeleteWeapon(const std::string& name);
+
 private: /// ---------- デバッグカメラフラグ ---------- ///
 
 	Input* input_ = nullptr; // 入力クラス
 
 	std::unique_ptr<FpsCamera> fpsCamera_; // FPSカメラ
+
+	std::unique_ptr<PistolWeapon> pistolWeapon_; // ピストル武器
+	std::unique_ptr<BallisticEffect> ballisticEffect_; // 弾道エフェクト
+
+	std::unordered_map<std::string, WeaponData> weaponTable_; // JSONテーブル
+	std::unique_ptr<Weapon> weapon_; // 武器基底ポインタ
 
 	float bodyYaw_ = 0.0f;        // 体の現在Yaw（ラジアン）
 	float headYawLocal_ = 0.0f;   // 頭のローカルYaw（親=体に対する差）
@@ -85,5 +107,26 @@ private: /// ---------- デバッグカメラフラグ ---------- ///
 	float gravity_ = -30.75f;   // 重力加速度
 	float jumpSpeed_ = 12.0f;     // 初速
 	float maxFallSpeed_ = -50.0f;   // 最大落下速度（クランプ）
+
+	WeaponConfig pistol_{};
+	WeaponConfig rifle_{};
+	WeaponConfig mg_{};
+	WeaponConfig currentWeapon_ = pistol_; // とりあえずピストルを既定に
+
+	bool shotScheduled_ = false;   // クールダウン終了時に撃つ予約
+
+	float fireCooldown_ = 0.0f;   // 次の射撃までの時間
+	float fireInterval_ = 0.1f;   // 連射間隔（秒）→ 例: 600rpm ≒ 0.1s
+
+	float recoilZ_ = 0.0f;          // 後退量（m相当のスケールでOK）
+	float recoilPitch_ = 0.0f;      // 上向き回転（rad）
+	float recoilYaw_ = 0.0f;        // 横ブレ（rad）
+
+	float recoilVz_ = 0.0f;         // 速度
+	float recoilVp_ = 0.0f;
+	float recoilVy_ = 0.0f;
+
+	float recoilReturn_ = 18.0f;    // ばね定数（戻りの強さ）
+	float recoilDamping_ = 12.0f;   // 減衰
 };
 

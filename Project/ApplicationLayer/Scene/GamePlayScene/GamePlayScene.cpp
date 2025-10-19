@@ -49,6 +49,14 @@ void GamePlayScene::Initialize()
 
 	player_ = std::make_unique<Player>();
 	player_->Initialize();
+
+	crosshair_ = std::make_unique<Crosshair>();
+	crosshair_->Initialize();
+
+	collisionManager_ = std::make_unique<CollisionManager>();
+
+	modelParticle_ = std::make_unique<ModelParticle>();
+	modelParticle_->Initialize();
 }
 
 
@@ -85,6 +93,7 @@ void GamePlayScene::Update()
 	{
 	case GameState::Playing:
 		player_->Update();
+		modelParticle_->Update();
 		break;
 	case GameState::Paused:
 		break;
@@ -97,6 +106,8 @@ void GamePlayScene::Update()
 	terrein_->Update();
 
 	skyBox_->Update();
+
+	crosshair_->Update();
 
 	// フェードの更新
 	fadeController_->Update(dxCommon_->GetFPSCounter().GetDeltaTime());
@@ -120,9 +131,11 @@ void GamePlayScene::Draw3DObjects()
 
 #pragma region オブジェクト3Dの描画
 
-	terrein_->Draw();
+	//terrein_->Draw();
 
 	player_->Draw();
+
+	modelParticle_->Draw();
 
 #pragma endregion
 
@@ -164,6 +177,9 @@ void GamePlayScene::Draw2DSprites()
 	// UI用の共通描画設定
 	SpriteManager::GetInstance()->SetRenderSetting_UI();
 
+	// クロスヘアの描画
+	crosshair_->Draw();
+
 	fadeController_->Draw();
 
 #pragma endregion
@@ -187,7 +203,6 @@ void GamePlayScene::DrawImGui()
 	LightManager::GetInstance()->DrawImGui();
 
 	player_->DrawImGui();
-
 }
 
 
