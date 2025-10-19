@@ -61,6 +61,9 @@ void Framework::Initialize()
 	// SRVマネージャーの初期化
 	SRVManager::GetInstance()->Initialize(dxCommon_);
 
+	// ImGuiManagerの初期化
+	ImGuiManager::GetInstance()->Initialize(winApp_, dxCommon_);
+
 	// UAVマネージャーの初期化
 	UAVManager::GetInstance()->Initialize(dxCommon_);
 
@@ -89,9 +92,6 @@ void Framework::Initialize()
 
 	// デフォルトカメラの設定
 	Object3DCommon::GetInstance()->SetDefaultCamera(defaultCamera_.get());
-
-	// ImGuiManagerの初期化
-	ImGuiManager::GetInstance()->Initialize(winApp_, dxCommon_);
 
 	// ワイヤーフレームのカメラ設定
 	Wireframe::GetInstance()->SetCamera(defaultCamera_.get());
