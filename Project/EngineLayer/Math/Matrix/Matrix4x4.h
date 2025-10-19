@@ -111,6 +111,5 @@ public:
 	static void Decompose(const Matrix4x4& matrix, Vector3& outScale, Vector3& outRotate, Vector3& outTranslate);
 
 	// ベクトルの座標変換
-	static Vector3 TransformCoord(const Vector3& v, const Matrix4x4& m);
-
+	static Vector3 Transform(const Vector3& vector, const Matrix4x4& matrix);
 };

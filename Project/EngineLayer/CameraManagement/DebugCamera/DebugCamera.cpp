@@ -49,18 +49,18 @@ void DebugCamera::Move()
 	Vector3 move = { 0.0f, 0.0f, 0.0f };
 
 	/// ---------- キー入力による移動 ---------- ///
-	if (Input::GetInstance()->PushKey(DIK_W)) { move.z += 0.4f; }
-	if (Input::GetInstance()->PushKey(DIK_S)) { move.z -= 0.4f; }
-	if (Input::GetInstance()->PushKey(DIK_A)) { move.x -= 0.4f; }
-	if (Input::GetInstance()->PushKey(DIK_D)) { move.x += 0.4f; }
-	if (Input::GetInstance()->PushKey(DIK_SPACE)) { move.y += 0.4f; }
-	if (Input::GetInstance()->PushKey(DIK_LSHIFT)) { move.y -= 0.4f; }
+	if (Input::GetInstance()->PushKey(DIK_W)) { move.z += 0.2f; }
+	if (Input::GetInstance()->PushKey(DIK_S)) { move.z -= 0.2f; }
+	if (Input::GetInstance()->PushKey(DIK_A)) { move.x -= 0.2f; }
+	if (Input::GetInstance()->PushKey(DIK_D)) { move.x += 0.2f; }
+	if (Input::GetInstance()->PushKey(DIK_SPACE)) { move.y += 0.2f; }
+	if (Input::GetInstance()->PushKey(DIK_LSHIFT)) { move.y -= 0.2f; }
 
 	// 十字キーで回転
-	if (Input::GetInstance()->PushKey(DIK_UP)) { worldTransform_.rotate_.x -= 0.04f; }
-	if (Input::GetInstance()->PushKey(DIK_DOWN)) { worldTransform_.rotate_.x += 0.04f; }
-	if (Input::GetInstance()->PushKey(DIK_LEFT)) { worldTransform_.rotate_.y += 0.04f; }
-	if (Input::GetInstance()->PushKey(DIK_RIGHT)) { worldTransform_.rotate_.y -= 0.04f; }
+	if (Input::GetInstance()->PushKey(DIK_UP)) { worldTransform_.rotate_.x -= 0.02f; }
+	if (Input::GetInstance()->PushKey(DIK_DOWN)) { worldTransform_.rotate_.x += 0.02f; }
+	if (Input::GetInstance()->PushKey(DIK_LEFT)) { worldTransform_.rotate_.y += 0.02f; }
+	if (Input::GetInstance()->PushKey(DIK_RIGHT)) { worldTransform_.rotate_.y -= 0.02f; }
 
 	///// ---------- ホイールで前後移動 ---------- ///
 	//move.z += Input::GetInstance()->GetMouseWheel() * 0.02f;

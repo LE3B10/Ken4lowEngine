@@ -372,7 +372,7 @@ void Matrix4x4::Decompose(const Matrix4x4& matrix, Vector3& outScale, Vector3& o
 
 	// オイラー角を求める (XYZ回転順)
 	outRotate.y = std::asin(-rotMat.m[2][0]); // yaw
-	if (std::cos(outRotate.y) != 0) 
+	if (std::cos(outRotate.y) != 0)
 	{
 		outRotate.x = std::atan2(rotMat.m[2][1], rotMat.m[2][2]); // pitch
 		outRotate.z = std::atan2(rotMat.m[1][0], rotMat.m[0][0]); // roll
@@ -383,7 +383,7 @@ void Matrix4x4::Decompose(const Matrix4x4& matrix, Vector3& outScale, Vector3& o
 	}
 }
 
-Vector3 Matrix4x4::TransformCoord(const Vector3& v, const Matrix4x4& m)
+Vector3 Matrix4x4::Transform(const Vector3& v, const Matrix4x4& m)
 {
 	Vector3 result;
 	result.x = v.x * m.m[0][0] + v.y * m.m[1][0] + v.z * m.m[2][0] + m.m[3][0];

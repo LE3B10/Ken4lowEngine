@@ -400,14 +400,26 @@
     <ClCompile Include="ApplicationLayer\Scene\StageSelectScene\WorldMapStageSelector.cpp">
       <Filter>ApplicationLayer\Scene\StageSelectScene</Filter>
     </ClCompile>
-    <ClCompile Include="ApplicationLayer\Character\Player\Weapon\Weapon.cpp">
-      <Filter>ApplicationLayer\Character\Player\Weapon</Filter>
-    </ClCompile>
     <ClCompile Include="ApplicationLayer\Character\BaseCharacter\BaseCharacter.cpp">
       <Filter>ApplicationLayer\Character\BaseCharacter</Filter>
     </ClCompile>
     <ClCompile Include="EngineLayer\WorldTransform\WorldTransformEx.cpp">
       <Filter>EngineLayer\Transform</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\EffectLayer\ModelParticle.cpp">
+      <Filter>ApplicationLayer\EffectLayer</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\WeaponSystem\BallisticEffect\BallisticEffect.cpp">
+      <Filter>ApplicationLayer\WeaponSystem\BallisticEffect</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\WeaponSystem\PistolWeapon\PistolWeapon.cpp">
+      <Filter>ApplicationLayer\WeaponSystem\PistolWeapon</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\WeaponSystem\Weapon\Weapon.cpp">
+      <Filter>ApplicationLayer\WeaponSystem\Weapon</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\WeaponSystem\BaseWeapon\BaseWeapon.cpp">
+      <Filter>ApplicationLayer\WeaponSystem\BaseWeapon</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -506,9 +518,6 @@
     </ClInclude>
     <ClInclude Include="EngineLayer\ParticleManagement\ParticleFactory.h">
       <Filter>EngineLayer\Particle</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Character\Player\Weapon\WeaponType.h">
-      <Filter>ApplicationLayer\Character\Player\Weapon</Filter>
     </ClInclude>
     <ClInclude Include="ApplicationLayer\Crosshair\Crosshair.h">
       <Filter>ApplicationLayer\Crosshair</Filter>
@@ -828,15 +837,43 @@
     <ClInclude Include="ApplicationLayer\Scene\StageSelectScene\WorldMapStageSelector.h">
       <Filter>ApplicationLayer\Scene\StageSelectScene</Filter>
     </ClInclude>
-    <ClInclude Include="ApplicationLayer\Character\Player\Weapon\Weapon.h">
-      <Filter>ApplicationLayer\Character\Player\Weapon</Filter>
-    </ClInclude>
     <ClInclude Include="ApplicationLayer\Character\BaseCharacter\BaseCharacter.h">
       <Filter>ApplicationLayer\Character\BaseCharacter</Filter>
     </ClInclude>
     <ClInclude Include="EngineLayer\WorldTransform\WorldTransformEx.h">
       <Filter>EngineLayer\Transform</Filter>
     </ClInclude>
+    <ClInclude Include="ApplicationLayer\EffectLayer\ModelParticle.h">
+      <Filter>ApplicationLayer\EffectLayer</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\WeaponSystem\BallisticEffect\BallisticEffect.h">
+      <Filter>ApplicationLayer\WeaponSystem\BallisticEffect</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\WeaponSystem\PistolWeapon\PistolWeapon.h">
+      <Filter>ApplicationLayer\WeaponSystem\PistolWeapon</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\WeaponSystem\Weapon\Weapon.h">
+      <Filter>ApplicationLayer\WeaponSystem\Weapon</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\WeaponSystem\BaseWeapon\BaseWeapon.h">
+      <Filter>ApplicationLayer\WeaponSystem\BaseWeapon</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\WeaponSystem\Weapon\WeaponDatas\CasingData.h">
+      <Filter>ApplicationLayer\WeaponSystem\Weapon\WeaponDatas</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\WeaponSystem\Weapon\WeaponDatas\MuzzleData.h">
+      <Filter>ApplicationLayer\WeaponSystem\Weapon\WeaponDatas</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\WeaponSystem\Weapon\WeaponDatas\TracerData.h">
+      <Filter>ApplicationLayer\WeaponSystem\Weapon\WeaponDatas</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\WeaponSystem\Weapon\WeaponDatas\WeaponData.h">
+      <Filter>ApplicationLayer\WeaponSystem\Weapon\WeaponDatas</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\WeaponSystem\WeaponConfig\TracerSettings.h" />
+    <ClInclude Include="ApplicationLayer\WeaponSystem\WeaponConfig\MuzzleFlashSettings.h" />
+    <ClInclude Include="ApplicationLayer\WeaponSystem\WeaponConfig\CasingSettings.h" />
+    <ClInclude Include="ApplicationLayer\WeaponSystem\WeaponConfig\WeaponConfig.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Resources\Shaders\PostEffect\FullScreen.hlsli">
@@ -1164,6 +1201,27 @@
     </Filter>
     <Filter Include="ApplicationLayer\Character\Player\Weapon">
       <UniqueIdentifier>{8f30bd8f-faaa-4fde-a565-96d12d50afe0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ApplicationLayer\WeaponSystem">
+      <UniqueIdentifier>{11e77611-2a8a-40a3-83a8-40fad2043d80}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ApplicationLayer\WeaponSystem\BallisticEffect">
+      <UniqueIdentifier>{bfdd85b2-0e1a-4720-8d9d-ed26b089361f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ApplicationLayer\WeaponSystem\WeaponConfig">
+      <UniqueIdentifier>{d71d457d-ef5c-4670-a548-7c192455529a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ApplicationLayer\WeaponSystem\Weapon">
+      <UniqueIdentifier>{0a663a83-969a-4f7b-bbe4-8a9618bacd74}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ApplicationLayer\WeaponSystem\PistolWeapon">
+      <UniqueIdentifier>{0be49b7d-7e39-44ca-b345-2c29f727d257}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ApplicationLayer\WeaponSystem\BaseWeapon">
+      <UniqueIdentifier>{78695a9e-0db2-4908-b941-be6d78e6bcce}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ApplicationLayer\WeaponSystem\Weapon\WeaponDatas">
+      <UniqueIdentifier>{858d03ce-d5e4-47a8-813f-ca1f43a4136d}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
