@@ -64,37 +64,31 @@ void Player::Initialize()
 	ballisticEffect_->Initialize();
 	ballisticEffect_->SetParentTransform(&parts_[2].transform);
 
-	// 武器設定プリセット
-	std::error_code ec;
-	std::filesystem::create_directories(kWeaponDir, ec); // ← これを先に
-	weaponTable_ = Weapon::LoadFromPath(kWeaponDir);
-	if (weaponTable_.empty()) {
-		weaponTable_ = Weapon::LoadWeapon(kWeaponMonolith);
-	}
+	// 武器カタログ初期化
+	weaponCatalog_ = std::make_unique<WeaponCatalog>();
+	weaponCatalog_->Initialize(kWeaponDir, kWeaponMonolith);
 
-	if (!weaponTable_.empty())
+	// 在庫から初期装備を決める
+	const auto& table = weaponCatalog_->All();
+	if (!table.empty())
 	{
-		auto it = weaponTable_.find("Pistol");
-		if (it == weaponTable_.end()) it = weaponTable_.begin();
+		auto it = table.find("Pistol");
+		if (it == table.end()) it = table.begin();
 		weapon_ = std::make_unique<Weapon>(it->second);
 		currentWeapon_ = ToWeaponConfig(it->second);
 	}
 
-	auto autoEquip = [&]() {
-		equippedByClass_.clear();
-		for (auto& [name, w] : weaponTable_) {
-			if (!equippedByClass_.count(w.clazz)) {
-				equippedByClass_[w.clazz] = name;    // そのクラスの1本目を登録
-			}
-		}
-		// 既定：プライマリがあればそれを装備、無ければ最初の1本
-		std::string use = !equippedByClass_.empty()
-			? (equippedByClass_.count(WeaponClass::Primary) ? equippedByClass_[WeaponClass::Primary]
-				: weaponTable_.begin()->first)
-			: "Pistol";
-		SelectWeapon(use);
-		};
-	autoEquip();
+	loadout_ = std::make_unique<Loadout>();
+	loadout_->Rebuild(weaponCatalog_->All());
+
+	// 初期装備
+	std::string useWeaponName = loadout_->SelectNameByClass(WeaponClass::Primary, weaponCatalog_->All());
+
+	// 装備がなければ在庫の最初の武器を使う
+	if (useWeaponName.empty() && !weaponCatalog_->All().empty()) useWeaponName = weaponCatalog_->All().begin()->first;
+
+	// 武器選択
+	if (!useWeaponName.empty()) SelectWeapon(useWeaponName);
 }
 
 
@@ -122,12 +116,13 @@ void Player::Update()
 		break;
 	}
 
-	if (input_->TriggerKey(DIK_1)) SelectByClass(WeaponClass::Primary);
-	if (input_->TriggerKey(DIK_2)) SelectByClass(WeaponClass::Backup);
-	if (input_->TriggerKey(DIK_3)) SelectByClass(WeaponClass::Melee);
-	if (input_->TriggerKey(DIK_4)) SelectByClass(WeaponClass::Special);
-	if (input_->TriggerKey(DIK_5)) SelectByClass(WeaponClass::Sniper);
-	if (input_->TriggerKey(DIK_6)) SelectByClass(WeaponClass::Heavy);
+	if (input_->TriggerKey(DIK_1)) { auto n = loadout_->SelectNameByClass(WeaponClass::Primary, weaponCatalog_->All()); if (!n.empty()) SelectWeapon(n); }
+	if (input_->TriggerKey(DIK_2)) { auto n = loadout_->SelectNameByClass(WeaponClass::Backup, weaponCatalog_->All()); if (!n.empty()) SelectWeapon(n); }
+	if (input_->TriggerKey(DIK_3)) { auto n = loadout_->SelectNameByClass(WeaponClass::Melee, weaponCatalog_->All()); if (!n.empty()) SelectWeapon(n); }
+	if (input_->TriggerKey(DIK_4)) { auto n = loadout_->SelectNameByClass(WeaponClass::Special, weaponCatalog_->All()); if (!n.empty()) SelectWeapon(n); }
+	if (input_->TriggerKey(DIK_5)) { auto n = loadout_->SelectNameByClass(WeaponClass::Sniper, weaponCatalog_->All()); if (!n.empty()) SelectWeapon(n); }
+	if (input_->TriggerKey(DIK_6)) { auto n = loadout_->SelectNameByClass(WeaponClass::Heavy, weaponCatalog_->All()); if (!n.empty()) SelectWeapon(n); }
+
 
 	Move();
 
@@ -226,20 +221,6 @@ Vector3 Player::GetCenterPosition() const
 	const Vector3 offset = { 0.0f,3.0f,0.0f };
 	Vector3 worldPosition = body_.transform.translate_ + offset;
 	return worldPosition;
-}
-
-void Player::SelectByClass(WeaponClass c)
-{
-	auto it = equippedByClass_.find(c);
-	if (it != equippedByClass_.end())
-	{
-		SelectWeapon(it->second);  // 既存の名前ベース切替を利用
-		return;
-	}
-	// そのクラスが未装備なら、テーブルから最初の該当を探す
-	for (auto& [name, w] : weaponTable_) {
-		if (w.clazz == c) { SelectWeapon(name); return; }
-	}
 }
 
 /// -------------------------------------------------------------
@@ -377,88 +358,14 @@ void Player::ApplyRecoil(float kickBack, float riseDeg, float horizDeg)
 }
 
 /// -------------------------------------------------------------
-///				　		 武器データの追加
-/// -------------------------------------------------------------
-void Player::AddWeaponFrom(const std::string& newName, const WeaponData* base)
-{
-	// 1) ベースを決める（null なら今の武器の“雛形”を使う or デフォルトを用意）
-	WeaponData w = base ? *base : WeaponData{};
-	w.name = MakeUniqueName(weaponTable_, newName);
-
-	// 2) テーブルへ追加
-	weaponTable_[w.name] = w;
-
-	// 3) 現在の運用系へ即反映（状態は新規）
-	weapon_ = std::make_unique<Weapon>(w);
-	currentWeapon_ = ToWeaponConfig(w);   // BallisticEffect 側が即この値で撃つため
-	// ↑ Player の既存経路は currentWeapon_ を参照して発砲します。 :contentReference[oaicite:2]{index=2}
-
-	// 4) JSON保存（ファイル一括書き戻し）
-	// SaveWeapons(パス, テーブル) は Weapon.h に宣言があります（実装が無ければ後述の実装例を追加）。
-	Weapon::SaveToPath(kWeaponDir, weaponTable_);
-
-	if (autoOpenEditorOnAdd_)
-	{
-		weaponEditorOpen_[w.name] = true;
-	}
-}
-
-/// -------------------------------------------------------------
 ///				　			　 武器選択
 /// -------------------------------------------------------------
 void Player::SelectWeapon(const std::string& name)
 {
-	// 1) JSONテーブルから探す（なければプリセットにフォールバック）
-	auto it = weaponTable_.find(name);
-	if (it != weaponTable_.end()) {
-		currentWeapon_ = ToWeaponConfig(it->second);  // 発射系が即この値を使う
-		// もし Weapon クラス側の状態も使っているなら新しく作り直す
-		weapon_ = std::make_unique<Weapon>(it->second);
-	}
-	else {
-		// 旧プリセットを使う場合（必要なら）
-		if (name == "Pistol") currentWeapon_ = pistol_;
-		else if (name == "Rifle") currentWeapon_ = rifle_;
-		else if (name == "MachineGun") currentWeapon_ = mg_;
-	}
-
-	// 2) 連射タイマ等をリセット（切替直後の暴発防止）
-	fireCooldown_ = 0.0f;
-}
-
-/// -------------------------------------------------------------
-///				　			武器の削除
-/// -------------------------------------------------------------
-void Player::DeleteWeapon(const std::string& name)
-{
-	// 1) 存在チェック
-	auto it = weaponTable_.find(name);
-	if (it == weaponTable_.end()) return;
-
-	// 2) 最後の1本は削除させない（安全策）
-	if (weaponTable_.size() <= 1) {
-		// 必要なら ImGui::OpenPopup("Can't delete last weapon"); などで通知
-		return;
-	}
-
-	// 3) 実際に削除
-	weaponTable_.erase(it);
-
-	// 4) 次に選ぶ武器（テーブルの先頭でOK。特定の既定名があればそれを優先しても良い）
-	std::string nextName = weaponTable_.begin()->first;
-
-	// 選択中が消えた/消えてないに関わらず、安全に差し替え
-	SelectWeapon(nextName);  // currentWeapon_ と weapon_ を更新。タイマもリセット。 :contentReference[oaicite:2]{index=2}
-
-	// 5) JSONへ保存
-	Weapon::SaveToPath(kWeaponDir, weaponTable_); // 既存の保存APIを利用 :contentReference[oaicite:3]{index=3}
-}
-
-void Player::RebuildEquipMap()
-{
-	equippedByClass_.clear();
-	for (auto& [name, w] : weaponTable_) {
-		if (!equippedByClass_.count(w.clazz)) equippedByClass_[w.clazz] = name;
+	if (const WeaponData* w = weaponCatalog_->Find(name))
+	{
+		weapon_ = std::make_unique<Weapon>(*w);
+		currentWeapon_ = ToWeaponConfig(*w);
 	}
 }
 
@@ -467,30 +374,25 @@ void Player::RebuildEquipMap()
 /// -------------------------------------------------------------
 void Player::DrawImGui()
 {
-	static std::string selectedName = "Pistol";  // とりあえずPistolから
-	if (weapon_) selectedName = weapon_->Data().name;
-
-	// セレクタ（必要なら Combo にしてもOK）
-	ImGui::Text("Editing: %s", selectedName.c_str());
+	// 現在装備の名前（空可）
+	const std::string currentName = weapon_ ? weapon_->Data().name : std::string{};
 
 	static const char* kClassLabels[] = { "Primary","Backup","Melee","Special","Sniper","Heavy" };
 
 	ImGui::Separator();
 	ImGui::Text("Loadout by Class");
 
+	const auto& map = loadout_->GetEquipMap();
 	for (int c = 0; c < 6; ++c) {
 		WeaponClass wc = static_cast<WeaponClass>(c);
 		const char* label = kClassLabels[c];
-
 		std::string equipped = "-";
-		auto it = equippedByClass_.find(wc);
-		if (it != equippedByClass_.end()) equipped = it->second;
-
+		if (auto it = map.find(wc); it != map.end()) equipped = it->second;
 		ImGui::Text("%-8s : %s", label, equipped.c_str());
 	}
 
-
-	if (weapon_) {
+	if (weapon_)
+	{
 		const auto& D = weapon_->Data(); // 現在装備中の武器データ（const）
 		int idx = static_cast<int>(D.clazz);
 		if (0 <= idx && idx < IM_ARRAYSIZE(kClassLabels)) {
@@ -501,400 +403,50 @@ void Player::DrawImGui()
 		}
 	}
 
-	auto it = weaponTable_.find(selectedName);
-	if (it != weaponTable_.end()) {
-		WeaponData& E = it->second;              // 編集対象（非const）
-		int clazz = static_cast<int>(E.clazz);
-
-		// 編集用コンボ
-		if (ImGui::Combo("Category", &clazz, kClassLabels, IM_ARRAYSIZE(kClassLabels))) {
-			E.clazz = static_cast<WeaponClass>(clazz);
-
-			// この武器が今装備中なら、ランタイム反映
-			if (weapon_ && weapon_->Data().name == E.name) {
-				currentWeapon_ = ToWeaponConfig(E);
-			}
-
-			// クラスが変わったので、クラス→武器名の割当表を作り直す
-			RebuildEquipMap();  // ←前回入れたヘルパ（未実装なら上の会話の通り追加）
+	// --- WeaponEditorUI に渡すフック群 ---
+	WeaponEditorHooks hooks{};
+	hooks.SaveAll = [&] {
+		weaponCatalog_->SaveAll();                                  // 保存
+		};
+	hooks.RequestReloadFocus = [&](const std::string& focus) {
+		weaponCatalog_->RequestReload(focus);                       // 再読込予約
+		};
+	hooks.RebuildLoadout = [&] {
+		loadout_->Rebuild(weaponCatalog_->All());                   // クラス変更時に装備再構築
+		};
+	hooks.ApplyToRuntimeIfCurrent = [&](const WeaponData& wd) {
+		if (weapon_ && weapon_->Data().name == wd.name) {
+			currentWeapon_ = ToWeaponConfig(wd);                    // ランタイム反映
 		}
+		};
+	hooks.RequestAdd = [&](const std::string& newName, const std::string& baseName) {
+		pendingAdds_.emplace_back(newName, baseName);               // 追加はフレーム末で実行
+		};
+	hooks.RequestDelete = [&](const std::string& name) {
+		pendingDeletes_.push_back(name);                            // 削除もフレーム末で
+		};
+
+	// --- メインの “武器編集UI” 呼び出し ---
+	if (!weaponEditorUI_) weaponEditorUI_ = std::make_unique<WeaponEditorUI>();
+	weaponEditorUI_->DrawImGui(*weaponCatalog_, *loadout_, currentName, hooks);
+
+	// --- フレーム末の遅延実行（Add/Delete） ---
+	for (auto& [newName, baseName] : pendingAdds_) {
+		const WeaponData* basePtr = baseName.empty() ? nullptr : weaponCatalog_->Find(baseName);
+		weaponCatalog_->AddWeapon(newName, basePtr);
 	}
+	pendingAdds_.clear();
 
-	// 編集対象をテーブルから“参照”で取得（ここをいじる → Save で書き出す）
-	auto itEdit = weaponTable_.find(selectedName);
-	if (itEdit != weaponTable_.end()) {
-		WeaponData& E = itEdit->second; // ← ここを ImGui で編集する
-
-		/*if (ImGui::TreeNode("Basic"))
-		{
-			ImGui::DragFloat("muzzleSpeed", &E.muzzleSpeed, 1.0f, 10.0f, 2000.0f);
-			ImGui::DragFloat("maxDistance", &E.maxDistance, 1.0f, 10.0f, 5000.0f);
-			ImGui::DragFloat("rpm", &E.rpm, 1.0f, 1.0f, 2000.0f);
-			ImGui::DragInt("magCapacity", &E.magCapacity, 1, 1, 200);
-			ImGui::DragInt("startingReserve", &E.startingReserve, 1, 0, 1000);
-			ImGui::DragFloat("reloadTime", &E.reloadTime, 0.01f, 0.1f, 10.0f);
-			ImGui::DragInt("bulletsPerShot", &E.bulletsPerShot, 1, 1, 20);
-
-			ImGui::Checkbox("autoReload", &E.autoReload);
-			ImGui::DragInt("requestedMaxSegments", &E.requestedMaxSegments, 1, 10, 1000);
-			ImGui::DragFloat("spreadDeg", &E.spreadDeg, 0.1f, 0.0f, 45.0f);
-			int mode = E.pelletTracerMode;
-			const char* modes[] = { "None", "One of pellets", "All pellets" };
-			if (ImGui::Combo("pelletTracerMode", &mode, modes, IM_ARRAYSIZE(modes))) {
-				E.pelletTracerMode = mode;
-			}
-			ImGui::DragInt("pelletTracerCount", &E.pelletTracerCount, 1, 1, 64);
-
-			ImGui::TreePop();
-		}
-		if (ImGui::TreeNode("Tracer"))
-		{
-			ImGui::Checkbox("enabled", &E.tracer.enabled);
-			ImGui::DragFloat("tracerLength", &E.tracer.tracerLength, 0.01f, 0.01f, 50.0f);
-			ImGui::DragFloat("tracerWidth", &E.tracer.tracerWidth, 0.001f, 0.001f, 1.0f);
-			ImGui::DragFloat("minSegLength", &E.tracer.minSegLength, 0.001f, 0.001f, 1.0f);
-			ImGui::DragFloat("startOffsetForward", &E.tracer.startOffsetForward, 0.01f, -10.0f, 10.0f);
-			ImGui::ColorEdit4("color", &E.tracer.color.x);
-			ImGui::TreePop();
-		}
-		if (ImGui::TreeNode("Muzzle"))
-		{
-			ImGui::Checkbox("enabled##mz", &E.muzzle.enabled);
-			ImGui::DragFloat("life", &E.muzzle.life, 0.005f, 0.01f, 0.5f);
-			ImGui::DragFloat("startLength", &E.muzzle.startLength, 0.01f, 0.01f, 1.0f);
-			ImGui::DragFloat("endLength", &E.muzzle.endLength, 0.01f, 0.01f, 1.0f);
-			ImGui::DragFloat("startWidth", &E.muzzle.startWidth, 0.005f, 0.01f, 0.5f);
-			ImGui::DragFloat("endWidth", &E.muzzle.endWidth, 0.005f, 0.01f, 0.5f);
-			ImGui::DragFloat("randomYawDeg", &E.muzzle.randomYawDeg, 0.1f, 0.0f, 45.0f);
-			ImGui::ColorEdit4("color##mz", &E.muzzle.color.x);
-			ImGui::DragFloat("offsetForward", &E.muzzle.offsetForward, 0.01f, -1.0f, 1.0f);
-			ImGui::Checkbox("sparksEnabled", &E.muzzle.sparksEnabled);
-			ImGui::DragInt("sparkCount", &E.muzzle.sparkCount, 1, 0, 200);
-			ImGui::DragFloat("sparkLifeMin", &E.muzzle.sparkLifeMin, 0.005f, 0.01f, 1.0f);
-			ImGui::DragFloat("sparkLifeMax", &E.muzzle.sparkLifeMax, 0.005f, 0.01f, 1.0f);
-			ImGui::DragFloat("sparkSpeedMin", &E.muzzle.sparkSpeedMin, 0.1f, 0.1f, 100.0f);
-			ImGui::DragFloat("sparkSpeedMax", &E.muzzle.sparkSpeedMax, 0.1f, 0.1f, 100.0f);
-			ImGui::DragFloat("sparkConeDeg", &E.muzzle.sparkConeDeg, 0.1f, 0.0f, 90.0f);
-			ImGui::DragFloat("sparkGravityY", &E.muzzle.sparkGravityY, 0.1f, -100.0f, 0.0f);
-			ImGui::DragFloat("sparkWidth", &E.muzzle.sparkWidth, 0.001f, 0.001f, 0.1f);
-			ImGui::DragFloat("sparkOffsetForward", &E.muzzle.sparkOffsetForward, 0.01f, -1.0f, 1.0f);
-			ImGui::ColorEdit4("sparkColorStart", &E.muzzle.sparkColorStart.x);
-			ImGui::ColorEdit4("sparkColorEnd", &E.muzzle.sparkColorEnd.x);
-			ImGui::TreePop();
-		}
-		if (ImGui::TreeNode("Casing"))
-		{
-			ImGui::Checkbox("enabled##cs", &E.casing.enabled);
-			ImGui::DragFloat3("offset R/U/B", &E.casing.offsetRight, 0.005f);
-			ImGui::DragFloat("speedMin", &E.casing.speedMin, 0.1f, 0.0f, 20.0f);
-			ImGui::DragFloat("speedMax", &E.casing.speedMax, 0.1f, 0.0f, 20.0f);
-			ImGui::DragFloat("coneDeg", &E.casing.coneDeg, 0.1f, 0.0f, 90.0f);
-			ImGui::DragFloat("gravityY", &E.casing.gravityY, 0.1f, -100.0f, 0.0f);
-			ImGui::DragFloat("life", &E.casing.life, 0.05f, 0.1f, 10.0f);
-			ImGui::DragFloat("drag", &E.casing.drag, 0.01f, 0.0f, 1.0f);
-			ImGui::DragFloat("upKick", &E.casing.upKick, 0.01f, 0.0f, 10.0f);
-			ImGui::DragFloat("upBias", &E.casing.upBias, 0.01f, 0.0f, 1.0f);
-			ImGui::DragFloat("spinMin", &E.casing.spinMin, 0.1f, 0.0f, 100.0f);
-			ImGui::DragFloat("spinMax", &E.casing.spinMax, 0.1f, 0.0f, 100.0f);
-			ImGui::ColorEdit4("color##cs", &E.casing.color.x);
-			ImGui::DragFloat3("scale", &E.casing.scale.x, 0.001f);
-			ImGui::TreePop();
-		}*/
-
-		ImGui::Separator();
-		ImGui::Text("Editors");
-		if (ImGui::Button("Open all")) {
-			for (auto& kv : weaponTable_) weaponEditorOpen_[kv.first] = true;
-		}
-		ImGui::SameLine();
-		if (ImGui::Button("Close all")) {
-			for (auto& kv : weaponTable_) weaponEditorOpen_[kv.first] = false;
-		}
-
-		// 一覧（チェックで開閉をトグル）
-		for (auto& [name, data] : weaponTable_) {
-			bool open = weaponEditorOpen_[name];
-			if (ImGui::Checkbox(name.c_str(), &open)) {
-				weaponEditorOpen_[name] = open;
-			}
-		}
-
-		// ★ 開いている武器ウィンドウを描画
-		for (auto& [name, data] : weaponTable_) {
-			if (!weaponEditorOpen_[name]) continue;
-
-			// 同名でユニークIDにするため "###" を付与
-			std::string title = "Weapon Editor: " + name + "###weapon_editor_" + name;
-			if (ImGui::Begin(title.c_str(), &weaponEditorOpen_[name],
-				ImGuiWindowFlags_AlwaysAutoResize))
-			{
-				// 編集UI本体（再利用）
-				DrawWeaponParamsUI(data, name);
-			}
-			ImGui::End();
-		}
-
-		if (ImGui::Button("Save folder")) {
-			Weapon::SaveToPath(kWeaponDir, weaponTable_);
-		}
-		ImGui::SameLine();
-		if (ImGui::Button("Reload folder")) {
-			weaponTable_ = Weapon::LoadFromPath(kWeaponDir);
-
-			// 選択中の名前で差し替え
-			auto it = weaponTable_.find(selectedName);
-			if (it != weaponTable_.end()) {
-				weapon_ = std::make_unique<Weapon>(it->second); // 状態を更新
-				currentWeapon_ = ToWeaponConfig(it->second);
-			}
-			RebuildEquipMap();
-		}
-		ImGui::SameLine();
-		if (ImGui::Button("Apply to runtime"))
-		{
-			// 実行中の発射系（currentWeapon_）へ反映：今の経路を維持したまま
-			currentWeapon_.name = E.name;
-			currentWeapon_.clazz = E.clazz;
-			currentWeapon_.muzzleSpeed = E.muzzleSpeed;
-			currentWeapon_.maxDistance = E.maxDistance;
-			currentWeapon_.rpm = E.rpm;
-			currentWeapon_.autoReload = E.autoReload;
-			currentWeapon_.requestedMaxSegments = E.requestedMaxSegments;
-			currentWeapon_.spreadDeg = E.spreadDeg;
-			currentWeapon_.pelletTracerMode = E.pelletTracerMode;
-			currentWeapon_.pelletTracerCount = E.pelletTracerCount;
-
-			// tracer
-			currentWeapon_.tracer.enabled = E.tracer.enabled;
-			currentWeapon_.tracer.tracerLength = E.tracer.tracerLength;
-			currentWeapon_.tracer.tracerWidth = E.tracer.tracerWidth;
-			currentWeapon_.tracer.minSegLength = E.tracer.minSegLength;
-			currentWeapon_.tracer.startOffsetForward = E.tracer.startOffsetForward;
-			currentWeapon_.tracer.tracerColor = E.tracer.color;
-
-			// muzzle
-			currentWeapon_.muzzle.enabled = E.muzzle.enabled;
-			currentWeapon_.muzzle.life = E.muzzle.life;
-			currentWeapon_.muzzle.startLength = E.muzzle.startLength;
-			currentWeapon_.muzzle.endLength = E.muzzle.endLength;
-			currentWeapon_.muzzle.startWidth = E.muzzle.startWidth;
-			currentWeapon_.muzzle.endWidth = E.muzzle.endWidth;
-			currentWeapon_.muzzle.randomYawDeg = E.muzzle.randomYawDeg;
-			currentWeapon_.muzzle.color = E.muzzle.color;
-			currentWeapon_.muzzle.offsetForward = E.muzzle.offsetForward;
-			currentWeapon_.muzzle.sparksEnabled = E.muzzle.sparksEnabled;
-			currentWeapon_.muzzle.sparkCount = E.muzzle.sparkCount;
-			currentWeapon_.muzzle.sparkLifeMin = E.muzzle.sparkLifeMin;
-			currentWeapon_.muzzle.sparkLifeMax = E.muzzle.sparkLifeMax;
-			currentWeapon_.muzzle.sparkSpeedMin = E.muzzle.sparkSpeedMin;
-			currentWeapon_.muzzle.sparkSpeedMax = E.muzzle.sparkSpeedMax;
-			currentWeapon_.muzzle.sparkConeDeg = E.muzzle.sparkConeDeg;
-			currentWeapon_.muzzle.sparkGravityY = E.muzzle.sparkGravityY;
-			currentWeapon_.muzzle.sparkWidth = E.muzzle.sparkWidth;
-			currentWeapon_.muzzle.sparkOffsetForward = E.muzzle.sparkOffsetForward;
-			currentWeapon_.muzzle.sparkColorStart = E.muzzle.sparkColorStart;
-			currentWeapon_.muzzle.sparkColorEnd = E.muzzle.sparkColorEnd;
-
-			// casing
-			currentWeapon_.casing.enabled = E.casing.enabled;
-			currentWeapon_.casing.offsetRight = E.casing.offsetRight;
-			currentWeapon_.casing.offsetUp = E.casing.offsetUp;
-			currentWeapon_.casing.offsetBack = E.casing.offsetBack;
-			currentWeapon_.casing.speedMin = E.casing.speedMin;
-			currentWeapon_.casing.speedMax = E.casing.speedMax;
-			currentWeapon_.casing.coneDeg = E.casing.coneDeg;
-			currentWeapon_.casing.gravityY = E.casing.gravityY;
-			currentWeapon_.casing.drag = E.casing.drag;
-			currentWeapon_.casing.life = E.casing.life;
-			currentWeapon_.casing.upKick = E.casing.upKick;
-			currentWeapon_.casing.upBias = E.casing.upBias;
-			currentWeapon_.casing.spinMin = E.casing.spinMin;
-			currentWeapon_.casing.spinMax = E.casing.spinMax;
-			currentWeapon_.casing.color = E.casing.color;
-			currentWeapon_.casing.scale = E.casing.scale;
-		}
+	for (auto& delName : pendingDeletes_) {
+		loadout_->RemoveName(delName);
+		weaponCatalog_->RemoveWeapon(delName);
 	}
+	pendingDeletes_.clear();
 
-	if (ImGui::Button("Add Weapon"))
-	{
-		ImGui::OpenPopup("AddWeaponPopup");
-		RebuildEquipMap();
-	}
-	if (ImGui::BeginPopupModal("AddWeaponPopup", nullptr, ImGuiWindowFlags_AlwaysAutoResize))
-	{
-		static char nameBuf[64] = "NewWeapon";
-		static int sourceMode = 0; // 0=Duplicate Current, 1=Empty(Default), 2=Duplicate Selected
-		static int selectedIndex = 0;
-
-		ImGui::InputText("Name", nameBuf, IM_ARRAYSIZE(nameBuf));
-		ImGui::RadioButton("Duplicate Current", &sourceMode, 0); ImGui::SameLine();
-		ImGui::RadioButton("Empty(Default)", &sourceMode, 1); ImGui::SameLine();
-		ImGui::RadioButton("Duplicate Selected", &sourceMode, 2);
-
-		// 既存一覧
-		std::vector<std::string> names;
-		names.reserve(weaponTable_.size());
-		for (auto& kv : weaponTable_) names.push_back(kv.first);
-		if (names.empty()) { names.push_back("Pistol"); }
-		if (sourceMode == 2) {
-			if (ImGui::BeginCombo("From", names[selectedIndex].c_str())) {
-				for (int i = 0; i < (int)names.size(); ++i) {
-					bool sel = (i == selectedIndex);
-					if (ImGui::Selectable(names[i].c_str(), sel)) selectedIndex = i;
-					if (sel) ImGui::SetItemDefaultFocus();
-				}
-				ImGui::EndCombo();
-			}
-		}
-
-		if (ImGui::Button("Create")) {
-			WeaponData* base = nullptr;
-			if (sourceMode == 0) {
-				// 現在編集中の weapon_->Data() を基に
-				base = const_cast<WeaponData*>(&weapon_->Data());
-			}
-			else if (sourceMode == 2) {
-				base = &weaponTable_[names[selectedIndex]];
-			} // sourceMode==1 は base=nullptr → デフォルト
-
-			AddWeaponFrom(nameBuf, base);
-			ImGui::CloseCurrentPopup();
-		}
-		ImGui::SameLine();
-		if (ImGui::Button("Cancel")) {
-			ImGui::CloseCurrentPopup();
-		}
-		ImGui::EndPopup();
-	}
-	ImGui::SameLine();
-	if (ImGui::Button("Delete Weapon")) {
-		ImGui::OpenPopup("DeleteWeaponConfirm");
-		RebuildEquipMap();
-	}
-	if (ImGui::BeginPopupModal("DeleteWeaponConfirm", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
-		ImGui::Text("Delete '%s' ?\nThis cannot be undone.", selectedName.c_str());
-		ImGui::Separator();
-		if (ImGui::Button("Yes, delete", ImVec2(120, 0))) {
-			DeleteWeapon(selectedName);
-			ImGui::CloseCurrentPopup();
-		}
-		ImGui::SameLine();
-		if (ImGui::Button("Cancel", ImVec2(120, 0))) {
-			ImGui::CloseCurrentPopup();
-		}
-		ImGui::EndPopup();
-	}
-}
-
-void Player::DrawWeaponParamsUI(WeaponData& E, const std::string& selectedName)
-{
-	// --- 例：クラス編集（既存コードを流用） ---
-	static const char* kClassLabels[] = { "Primary","Backup","Melee","Special","Sniper","Heavy" };
-	int clazz = static_cast<int>(E.clazz);
-	if (ImGui::Combo("Category", &clazz, kClassLabels, IM_ARRAYSIZE(kClassLabels))) {
-		E.clazz = static_cast<WeaponClass>(clazz);
-		if (weapon_ && weapon_->Data().name == E.name) {
-			currentWeapon_ = ToWeaponConfig(E);
-		}
-		RebuildEquipMap();
-	}
-
-	// --- 例：Basic/Tracer/Muzzle/Casing（あなたの既存ブロックを丸ごと移植） ---
-	if (ImGui::TreeNode("Basic"))
-	{
-		ImGui::DragFloat("muzzleSpeed", &E.muzzleSpeed, 1.0f, 10.0f, 2000.0f);
-		ImGui::DragFloat("maxDistance", &E.maxDistance, 1.0f, 10.0f, 5000.0f);
-		ImGui::DragFloat("rpm", &E.rpm, 1.0f, 1.0f, 2000.0f);
-		ImGui::DragInt("magCapacity", &E.magCapacity, 1, 1, 200);
-		ImGui::DragInt("startingReserve", &E.startingReserve, 1, 0, 1000);
-		ImGui::DragFloat("reloadTime", &E.reloadTime, 0.01f, 0.1f, 10.0f);
-		ImGui::DragInt("bulletsPerShot", &E.bulletsPerShot, 1, 1, 20);
-
-		ImGui::Checkbox("autoReload", &E.autoReload);
-		ImGui::DragInt("requestedMaxSegments", &E.requestedMaxSegments, 1, 10, 1000);
-		ImGui::DragFloat("spreadDeg", &E.spreadDeg, 0.1f, 0.0f, 45.0f);
-		int mode = E.pelletTracerMode;
-		const char* modes[] = { "None", "One of pellets", "All pellets" };
-		if (ImGui::Combo("pelletTracerMode", &mode, modes, IM_ARRAYSIZE(modes))) {
-			E.pelletTracerMode = mode;
-		}
-		ImGui::DragInt("pelletTracerCount", &E.pelletTracerCount, 1, 1, 64);
-
-		ImGui::TreePop();
-	}
-	if (ImGui::TreeNode("Tracer"))
-	{
-		ImGui::Checkbox("enabled", &E.tracer.enabled);
-		ImGui::DragFloat("tracerLength", &E.tracer.tracerLength, 0.01f, 0.01f, 50.0f);
-		ImGui::DragFloat("tracerWidth", &E.tracer.tracerWidth, 0.001f, 0.001f, 1.0f);
-		ImGui::DragFloat("minSegLength", &E.tracer.minSegLength, 0.001f, 0.001f, 1.0f);
-		ImGui::DragFloat("startOffsetForward", &E.tracer.startOffsetForward, 0.01f, -10.0f, 10.0f);
-		ImGui::ColorEdit4("color", &E.tracer.color.x);
-		ImGui::TreePop();
-	}
-	if (ImGui::TreeNode("Muzzle"))
-	{
-		ImGui::Checkbox("enabled##mz", &E.muzzle.enabled);
-		ImGui::DragFloat("life", &E.muzzle.life, 0.005f, 0.01f, 0.5f);
-		ImGui::DragFloat("startLength", &E.muzzle.startLength, 0.01f, 0.01f, 1.0f);
-		ImGui::DragFloat("endLength", &E.muzzle.endLength, 0.01f, 0.01f, 1.0f);
-		ImGui::DragFloat("startWidth", &E.muzzle.startWidth, 0.005f, 0.01f, 0.5f);
-		ImGui::DragFloat("endWidth", &E.muzzle.endWidth, 0.005f, 0.01f, 0.5f);
-		ImGui::DragFloat("randomYawDeg", &E.muzzle.randomYawDeg, 0.1f, 0.0f, 45.0f);
-		ImGui::ColorEdit4("color##mz", &E.muzzle.color.x);
-		ImGui::DragFloat("offsetForward", &E.muzzle.offsetForward, 0.01f, -1.0f, 1.0f);
-		ImGui::Checkbox("sparksEnabled", &E.muzzle.sparksEnabled);
-		ImGui::DragInt("sparkCount", &E.muzzle.sparkCount, 1, 0, 200);
-		ImGui::DragFloat("sparkLifeMin", &E.muzzle.sparkLifeMin, 0.005f, 0.01f, 1.0f);
-		ImGui::DragFloat("sparkLifeMax", &E.muzzle.sparkLifeMax, 0.005f, 0.01f, 1.0f);
-		ImGui::DragFloat("sparkSpeedMin", &E.muzzle.sparkSpeedMin, 0.1f, 0.1f, 100.0f);
-		ImGui::DragFloat("sparkSpeedMax", &E.muzzle.sparkSpeedMax, 0.1f, 0.1f, 100.0f);
-		ImGui::DragFloat("sparkConeDeg", &E.muzzle.sparkConeDeg, 0.1f, 0.0f, 90.0f);
-		ImGui::DragFloat("sparkGravityY", &E.muzzle.sparkGravityY, 0.1f, -100.0f, 0.0f);
-		ImGui::DragFloat("sparkWidth", &E.muzzle.sparkWidth, 0.001f, 0.001f, 0.1f);
-		ImGui::DragFloat("sparkOffsetForward", &E.muzzle.sparkOffsetForward, 0.01f, -1.0f, 1.0f);
-		ImGui::ColorEdit4("sparkColorStart", &E.muzzle.sparkColorStart.x);
-		ImGui::ColorEdit4("sparkColorEnd", &E.muzzle.sparkColorEnd.x);
-		ImGui::TreePop();
-	}
-	if (ImGui::TreeNode("Casing"))
-	{
-		ImGui::Checkbox("enabled##cs", &E.casing.enabled);
-		ImGui::DragFloat3("offset R/U/B", &E.casing.offsetRight, 0.005f);
-		ImGui::DragFloat("speedMin", &E.casing.speedMin, 0.1f, 0.0f, 20.0f);
-		ImGui::DragFloat("speedMax", &E.casing.speedMax, 0.1f, 0.0f, 20.0f);
-		ImGui::DragFloat("coneDeg", &E.casing.coneDeg, 0.1f, 0.0f, 90.0f);
-		ImGui::DragFloat("gravityY", &E.casing.gravityY, 0.1f, -100.0f, 0.0f);
-		ImGui::DragFloat("life", &E.casing.life, 0.05f, 0.1f, 10.0f);
-		ImGui::DragFloat("drag", &E.casing.drag, 0.01f, 0.0f, 1.0f);
-		ImGui::DragFloat("upKick", &E.casing.upKick, 0.01f, 0.0f, 10.0f);
-		ImGui::DragFloat("upBias", &E.casing.upBias, 0.01f, 0.0f, 1.0f);
-		ImGui::DragFloat("spinMin", &E.casing.spinMin, 0.1f, 0.0f, 100.0f);
-		ImGui::DragFloat("spinMax", &E.casing.spinMax, 0.1f, 0.0f, 100.0f);
-		ImGui::ColorEdit4("color##cs", &E.casing.color.x);
-		ImGui::DragFloat3("scale", &E.casing.scale.x, 0.001f);
-		ImGui::TreePop();
-	}
-
-	// --- 便利ボタン：保存/リロード/ランタイム反映 ---
-	if (ImGui::Button("Save folder")) {
-		Weapon::SaveToPath(kWeaponDir, weaponTable_);
-	}
-	ImGui::SameLine();
-	if (ImGui::Button("Reload folder")) {
-		weaponTable_ = Weapon::LoadFromPath(kWeaponDir);
-		// 同名をランタイムへ反映
-		auto it = weaponTable_.find(E.name);
-		if (it != weaponTable_.end()) {
-			weapon_ = std::make_unique<Weapon>(it->second);
-			currentWeapon_ = ToWeaponConfig(it->second);
-		}
-		RebuildEquipMap();
-	}
-	ImGui::SameLine();
-	if (ImGui::Button("Apply to runtime")) {
-		if (weapon_ && weapon_->Data().name == E.name) {
-			currentWeapon_ = ToWeaponConfig(E);
-		}
-	}
+	// --- “再読込予約”の適用（フォーカス再選択＆装備更新） ---
+	weaponCatalog_->ApplyReloadIfNeeded([&](const WeaponData& focused) {
+		weapon_ = std::make_unique<Weapon>(focused);
+		currentWeapon_ = ToWeaponConfig(focused);
+		loadout_->Rebuild(weaponCatalog_->All());
+		});
 }

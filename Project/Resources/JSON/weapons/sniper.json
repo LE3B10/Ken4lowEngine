@@ -1,94 +1,94 @@
 {
-  "autoReload": true,
-  "bulletsPerShot": 1,
-  "casing": {
-    "color": [
-      0.8999999761581421,
-      0.800000011920929,
-      0.30000001192092896,
-      1.0
-    ],
-    "coneDeg": 18.0,
-    "drag": 0.15000000596046448,
-    "enabled": true,
-    "gravityY": -9.800000190734863,
-    "life": 2.0,
-    "offsetBack": 0.05000000074505806,
-    "offsetRight": 0.11999999731779099,
-    "offsetUp": 0.07999999821186066,
-    "scale": [
-      0.017999999225139618,
-      0.017999999225139618,
-      0.05700000002980232
-    ],
-    "speedMax": 3.5,
-    "speedMin": 2.0,
-    "spinMax": 30.0,
-    "spinMin": 15.0,
-    "upBias": 0.30000001192092896,
-    "upKick": 1.600000023841858
-  },
+  "name": "Sniper",
   "class": "Sniper",
-  "magCapacity": 5,
+  "muzzleSpeed": 900.0,
   "maxDistance": 3000.0,
-  "muzzle": {
+  "rpm": 50.0,
+  "magCapacity": 5,
+  "startingReserve": 25,
+  "reloadTime": 3.2,
+  "bulletsPerShot": 1,
+  "autoReload": true,
+  "requestedMaxSegments": 512,
+  "spreadDeg": 0.02,
+  "pelletTracerMode": 0,
+  "pelletTracerCount": 1,
+  "tracer": {
+    "enabled": true,
+    "tracerLength": 15.0,
+    "tracerWidth": 0.01,
+    "minSegLength": 0.02,
+    "startOffsetForward": 0.1,
     "color": [
+      0.949,
+      0.949,
       1.0,
+      1.0
+    ]
+  },
+  "muzzle": {
+    "enabled": true,
+    "life": 0.06,
+    "startLength": 0.2,
+    "endLength": 0.05,
+    "startWidth": 0.1,
+    "endWidth": 0.03,
+    "randomYawDeg": 0.0,
+    "color": [
+      1.2,
       1.0,
-      0.9019607901573181,
+      0.6,
       1.0
     ],
-    "enabled": true,
-    "endLength": 0.10000000149011612,
-    "endWidth": 0.03999999910593033,
-    "life": 0.05000000074505806,
     "offsetForward": 0.0,
-    "randomYawDeg": 0.0,
-    "sparkColorEnd": [
-      0.800000011920929,
-      0.2980392277240753,
-      0.0,
-      0.0
-    ],
+    "sparksEnabled": true,
+    "sparkCount": 14,
+    "sparkLifeMin": 0.08,
+    "sparkLifeMax": 0.14,
+    "sparkSpeedMin": 8.0,
+    "sparkSpeedMax": 16.0,
+    "sparkConeDeg": 28.0,
+    "sparkGravityY": -25.0,
+    "sparkWidth": 0.018,
+    "sparkOffsetForward": 0.02,
     "sparkColorStart": [
       1.0,
-      0.9490196108818054,
-      0.7490196228027344,
-      1.0
-    ],
-    "sparkConeDeg": 22.0,
-    "sparkCount": 20,
-    "sparkGravityY": -20.0,
-    "sparkLifeMax": 0.11999999731779099,
-    "sparkLifeMin": 0.07999999821186066,
-    "sparkOffsetForward": 0.5,
-    "sparkSpeedMax": 12.0,
-    "sparkSpeedMin": 8.0,
-    "sparkWidth": 0.019999999552965164,
-    "sparksEnabled": true,
-    "startLength": 0.5,
-    "startWidth": 0.11999999731779099
-  },
-  "muzzleSpeed": 900.0,
-  "name": "Sniper",
-  "pelletTracerCount": 1,
-  "pelletTracerMode": 0,
-  "reloadTime": 3.200000047683716,
-  "requestedMaxSegments": 512,
-  "rpm": 50.0,
-  "spreadDeg": 0.019999999552965164,
-  "startingReserve": 25,
-  "tracer": {
-    "color": [
-      0.9490196108818054,
-      0.9490196108818054,
       1.0,
+      0.6,
       1.0
     ],
+    "sparkColorEnd": [
+      0.8,
+      0.2,
+      0.0,
+      0.0
+    ]
+  },
+  "casing": {
     "enabled": true,
-    "minSegLength": 0.019999999552965164,
-    "startOffsetForward": 0.10000000149011612,
-    "tracerLength": 15.0,
-    "tracerWidth": 0.009999999776482582
+    "offsetRight": 0.1,
+    "offsetUp": 0.06,
+    "offsetBack": 0.75,
+    "speedMin": 1.8,
+    "speedMax": 3.2,
+    "coneDeg": 20.0,
+    "gravityY": -9.8,
+    "life": 1.5,
+    "drag": 0.2,
+    "upKick": 1.2,
+    "upBias": 0.25,
+    "spinMin": 12.0,
+    "spinMax": 28.0,
+    "color": [
+      0.85,
+      0.88,
+      0.92,
+      1.0
+    ],
+    "scale": [
+      0.016,
+      0.016,
+      0.048
+    ]
   }
 }

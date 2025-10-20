@@ -6,6 +6,9 @@
 #include "PistolWeapon.h"
 #include "BallisticEffect.h"
 #include "Weapon.h"
+#include "WeaponCatalog.h"
+#include "Loadout.h"
+#include "WeaponEditorUI.h"
 
 #include <memory>
 #include <numbers>
@@ -45,8 +48,6 @@ public: /// ---------- メンバ関数 ---------- ///
 	// 中心座標を取得する純粋仮想関数
 	Vector3 GetCenterPosition() const override;
 
-	void SelectByClass(WeaponClass c);
-
 public: /// ---------- アクセサー関数 ---------- ///
 
 	// デバッグカメラフラグ取得
@@ -67,19 +68,8 @@ private: /// ---------- メンバ関数 ---------- ///
 	// リコイル
 	void ApplyRecoil(float kickBack, float riseDeg, float horizDeg);
 
-	// 武器データの追加
-	void AddWeaponFrom(const std::string& newName, const WeaponData* base);
-
 	// 武器選択
 	void SelectWeapon(const std::string& name);
-
-	// 武器の削除
-	void DeleteWeapon(const std::string& name);
-
-	// 
-	void RebuildEquipMap();
-
-	void DrawWeaponParamsUI(WeaponData& E, const std::string& selectedName);
 
 private: /// ---------- デバッグカメラフラグ ---------- ///
 
@@ -93,14 +83,20 @@ private: /// ---------- デバッグカメラフラグ ---------- ///
 	std::unique_ptr<PistolWeapon> pistolWeapon_; // ピストル武器
 	std::unique_ptr<BallisticEffect> ballisticEffect_; // 弾道エフェクト
 
-	std::unordered_map<std::string, WeaponData> weaponTable_; // JSONテーブル
 	std::unique_ptr<Weapon> weapon_; // 武器基底ポインタ
-	std::unordered_map<WeaponClass, std::string> equippedByClass_; // 
 
-	// ★追加：武器ごとの「編集ウィンドウが開いているか」状態
+	std::unique_ptr<WeaponCatalog> weaponCatalog_; // 武器カタログ
+	std::unique_ptr<Loadout> loadout_; // ロードアウト
+
+	std::unique_ptr<WeaponEditorUI> weaponEditorUI_; // 武器エディタUI
+	// 遅延コマンド用のキュー（Add/Delete をフレーム末で実行する）
+	std::vector<std::pair<std::string, std::string>> pendingAdds_; // (newName, baseNameOrEmpty)
+	std::vector<std::string> pendingDeletes_;
+
+	// 武器ごとの「編集ウィンドウが開いているか」状態
 	std::unordered_map<std::string, bool> weaponEditorOpen_;
 
-	// ★（任意）追加：新規追加した武器のウィンドウを自動で開くか
+	// 新規追加した武器のウィンドウを自動で開くか
 	bool autoOpenEditorOnAdd_ = true;
 
 	float bodyYaw_ = 0.0f;        // 体の現在Yaw（ラジアン）
@@ -125,10 +121,7 @@ private: /// ---------- デバッグカメラフラグ ---------- ///
 	float jumpSpeed_ = 12.0f;     // 初速
 	float maxFallSpeed_ = -50.0f;   // 最大落下速度（クランプ）
 
-	WeaponConfig pistol_{};
-	WeaponConfig rifle_{};
-	WeaponConfig mg_{};
-	WeaponConfig currentWeapon_ = pistol_; // とりあえずピストルを既定に
+	WeaponConfig currentWeapon_; // とりあえずピストルを既定に
 
 	bool shotScheduled_ = false;   // クールダウン終了時に撃つ予約
 
