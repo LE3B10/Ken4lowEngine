@@ -2,6 +2,8 @@
 #include "TracerSettings.h"
 #include "MuzzleFlashSettings.h"
 #include "CasingSettings.h"
+#include "WeaponClass.h"
+
 #include <string>
 #include <cstdint>
 
@@ -26,4 +28,6 @@ struct WeaponConfig
 	TracerSettings tracer; 		// トレーサ設定
 	MuzzleFlashSettings muzzle; // マズルフラッシュ設定
 	CasingSettings casing;  // 薬莢設定
+
+	WeaponClass clazz = WeaponClass::Primary; // 
 };

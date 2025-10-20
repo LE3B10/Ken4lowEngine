@@ -2,6 +2,7 @@
 #include "CasingData.h"
 #include "MuzzleData.h"
 #include "TracerData.h"
+#include "WeaponClass.h"
 
 #include <string>
 
@@ -30,4 +31,6 @@ struct WeaponData
 	TracerData tracer; // トレーサ設定
 	MuzzleData muzzle; // マズルフラッシュ設定
 	CasingData casing; // 薬莢設定
+
+	WeaponClass clazz = WeaponClass::Primary; // 
 };

@@ -45,6 +45,8 @@ public: /// ---------- メンバ関数 ---------- ///
 	// 中心座標を取得する純粋仮想関数
 	Vector3 GetCenterPosition() const override;
 
+	void SelectByClass(WeaponClass c);
+
 public: /// ---------- アクセサー関数 ---------- ///
 
 	// デバッグカメラフラグ取得
@@ -74,7 +76,15 @@ private: /// ---------- メンバ関数 ---------- ///
 	// 武器の削除
 	void DeleteWeapon(const std::string& name);
 
+	// 
+	void RebuildEquipMap();
+
+	void DrawWeaponParamsUI(WeaponData& E, const std::string& selectedName);
+
 private: /// ---------- デバッグカメラフラグ ---------- ///
+
+	const std::string kWeaponDir = "Resources/JSON/weapons";		   // 武器データディレクトリ
+	const std::string kWeaponMonolith = "Resources/JSON/weapons.json"; // 武器データモノリス
 
 	Input* input_ = nullptr; // 入力クラス
 
@@ -85,6 +95,13 @@ private: /// ---------- デバッグカメラフラグ ---------- ///
 
 	std::unordered_map<std::string, WeaponData> weaponTable_; // JSONテーブル
 	std::unique_ptr<Weapon> weapon_; // 武器基底ポインタ
+	std::unordered_map<WeaponClass, std::string> equippedByClass_; // 
+
+	// ★追加：武器ごとの「編集ウィンドウが開いているか」状態
+	std::unordered_map<std::string, bool> weaponEditorOpen_;
+
+	// ★（任意）追加：新規追加した武器のウィンドウを自動で開くか
+	bool autoOpenEditorOnAdd_ = true;
 
 	float bodyYaw_ = 0.0f;        // 体の現在Yaw（ラジアン）
 	float headYawLocal_ = 0.0f;   // 頭のローカルYaw（親=体に対する差）
