@@ -5,6 +5,39 @@
 
 using nlohmann::json;
 namespace fs = std::filesystem;
+using ojson = nlohmann::ordered_json;
+
+template<class T>
+static void read_if(const nlohmann::json& j, const char* key, T& dst) {
+	if (j.contains(key)) dst = j.at(key).get<T>(); // at() は例外、[]のconst版はアサート
+}
+static void read_vec4(const nlohmann::json& j, const char* key, Vector4& dst) {
+	if (j.contains(key) && j.at(key).is_array() && j.at(key).size() >= 4) {
+		const auto& a = j.at(key);
+		a[0].get_to(dst.x); a[1].get_to(dst.y); a[2].get_to(dst.z); a[3].get_to(dst.w);
+	}
+}
+static void read_vec3(const nlohmann::json& j, const char* key, Vector3& dst) {
+	if (j.contains(key) && j.at(key).is_array() && j.at(key).size() >= 3) {
+		const auto& a = j.at(key);
+		a[0].get_to(dst.x); a[1].get_to(dst.y); a[2].get_to(dst.z);
+	}
+}
+
+// JSON内の「浮動小数」をすべて指定小数で丸める（再帰）
+static void RoundFloatsInJson(ojson& j, int decimals) {
+	if (j.is_object()) {
+		for (auto& kv : j.items()) RoundFloatsInJson(kv.value(), decimals);
+	}
+	else if (j.is_array()) {
+		for (auto& v : j) RoundFloatsInJson(v, decimals);
+	}
+	else if (j.is_number_float()) {
+		double x = j.get<double>();
+		const double p = std::pow(10.0, decimals);
+		j = std::round(x * p) / p;
+	}
+}
 
 /// json配列からfloat[4]へコピー
 inline static void Copy4(const json& a, Vector4& out) { a[0].get_to(out.x);	a[1].get_to(out.y);	a[2].get_to(out.z);	a[3].get_to(out.w); }
@@ -33,6 +66,7 @@ static std::string Slugify(const std::string& s) {
 	return o;
 }
 
+// WeaponClass → 文字列変換
 static const char* ClassToString(WeaponClass c)
 {
 	switch (c) {
@@ -45,6 +79,8 @@ static const char* ClassToString(WeaponClass c)
 	}
 	return "Primary";
 }
+
+// jsonオブジェクトから WeaponClass へ変換
 static WeaponClass ParseClass(const nlohmann::json& j)
 {
 	if (!j.contains("class")) return WeaponClass::Primary;
@@ -147,77 +183,169 @@ static json ToJson(const WeaponData& w)
 // 単一武器オブジェクト → WeaponData へ (巨大JSONのループ処理を関数化)
 static bool FromJsonWeaponObject(const json& wj, WeaponData& w) {
 	try {
-		w.name = wj["name"].get<std::string>();
+		// 基本
+		if (!wj.contains("name")) return false;
+		w.name = wj.at("name").get<std::string>();
 		w.clazz = ParseClass(wj);
-		w.muzzleSpeed = wj["muzzleSpeed"];
-		w.maxDistance = wj["maxDistance"];
-		w.rpm = wj["rpm"];
 
-		w.magCapacity = wj["magCapacity"];
-		w.startingReserve = wj["startingReserve"];
-		w.reloadTime = wj["reloadTime"];
-		w.bulletsPerShot = wj["bulletsPerShot"];
-		w.autoReload = wj["autoReload"];
+		read_if(wj, "muzzleSpeed", w.muzzleSpeed);
+		read_if(wj, "maxDistance", w.maxDistance);
+		read_if(wj, "rpm", w.rpm);
+		read_if(wj, "magCapacity", w.magCapacity);
+		read_if(wj, "startingReserve", w.startingReserve);
+		read_if(wj, "reloadTime", w.reloadTime);
+		read_if(wj, "bulletsPerShot", w.bulletsPerShot);
+		read_if(wj, "autoReload", w.autoReload);
+		read_if(wj, "requestedMaxSegments", w.requestedMaxSegments);
+		read_if(wj, "spreadDeg", w.spreadDeg);
+		read_if(wj, "pelletTracerMode", w.pelletTracerMode);
+		read_if(wj, "pelletTracerCount", w.pelletTracerCount);
 
-		w.requestedMaxSegments = wj["requestedMaxSegments"];
-		w.spreadDeg = wj["spreadDeg"];
-		w.pelletTracerMode = wj["pelletTracerMode"];
-		w.pelletTracerCount = wj["pelletTracerCount"];
+		// tracer
+		if (wj.contains("tracer") && wj.at("tracer").is_object()) {
+			const auto& tj = wj.at("tracer");
+			read_if(tj, "enabled", w.tracer.enabled);
+			read_if(tj, "tracerLength", w.tracer.tracerLength);
+			read_if(tj, "tracerWidth", w.tracer.tracerWidth);
+			read_if(tj, "minSegLength", w.tracer.minSegLength);
+			read_if(tj, "startOffsetForward", w.tracer.startOffsetForward);
+			read_vec4(tj, "color", w.tracer.color);
+		}
 
-		auto& tj = wj["tracer"];
-		w.tracer.enabled = tj["enabled"];
-		w.tracer.tracerLength = tj["tracerLength"];
-		w.tracer.tracerWidth = tj["tracerWidth"];
-		w.tracer.minSegLength = tj["minSegLength"];
-		w.tracer.startOffsetForward = tj["startOffsetForward"];
-		Copy4(tj["color"], w.tracer.color);
+		// muzzle
+		if (wj.contains("muzzle") && wj.at("muzzle").is_object()) {
+			const auto& mj = wj.at("muzzle");
+			read_if(mj, "enabled", w.muzzle.enabled);
+			read_if(mj, "life", w.muzzle.life);
+			read_if(mj, "startLength", w.muzzle.startLength);
+			read_if(mj, "endLength", w.muzzle.endLength);
+			read_if(mj, "startWidth", w.muzzle.startWidth);
+			read_if(mj, "endWidth", w.muzzle.endWidth);
+			read_if(mj, "randomYawDeg", w.muzzle.randomYawDeg);
+			read_vec4(mj, "color", w.muzzle.color);
 
-		auto& mj = wj["muzzle"];
-		w.muzzle.enabled = mj["enabled"];
-		w.muzzle.life = mj["life"];
-		w.muzzle.startLength = mj["startLength"];
-		w.muzzle.endLength = mj["endLength"];
-		w.muzzle.startWidth = mj["startWidth"];
-		w.muzzle.endWidth = mj["endWidth"];
-		w.muzzle.randomYawDeg = mj["randomYawDeg"];
-		Copy4(mj["color"], w.muzzle.color);
+			read_if(mj, "offsetForward", w.muzzle.offsetForward);
+			read_if(mj, "sparksEnabled", w.muzzle.sparksEnabled);
+			read_if(mj, "sparkCount", w.muzzle.sparkCount);
+			read_if(mj, "sparkLifeMin", w.muzzle.sparkLifeMin);
+			read_if(mj, "sparkLifeMax", w.muzzle.sparkLifeMax);
+			read_if(mj, "sparkSpeedMin", w.muzzle.sparkSpeedMin);
+			read_if(mj, "sparkSpeedMax", w.muzzle.sparkSpeedMax);
+			read_if(mj, "sparkConeDeg", w.muzzle.sparkConeDeg);
+			read_if(mj, "sparkGravityY", w.muzzle.sparkGravityY);
+			read_if(mj, "sparkWidth", w.muzzle.sparkWidth);
+			read_if(mj, "sparkOffsetForward", w.muzzle.sparkOffsetForward);
+			read_vec4(mj, "sparkColorStart", w.muzzle.sparkColorStart);
+			read_vec4(mj, "sparkColorEnd", w.muzzle.sparkColorEnd);
+		}
 
-		w.muzzle.offsetForward = mj["offsetForward"];
-		w.muzzle.sparksEnabled = mj["sparksEnabled"];
-		w.muzzle.sparkCount = mj["sparkCount"];
-		w.muzzle.sparkLifeMin = mj["sparkLifeMin"];
-		w.muzzle.sparkLifeMax = mj["sparkLifeMax"];
-		w.muzzle.sparkSpeedMin = mj["sparkSpeedMin"];
-		w.muzzle.sparkSpeedMax = mj["sparkSpeedMax"];
-		w.muzzle.sparkConeDeg = mj["sparkConeDeg"];
-		w.muzzle.sparkGravityY = mj["sparkGravityY"];
-		w.muzzle.sparkWidth = mj["sparkWidth"];
-		w.muzzle.sparkOffsetForward = mj["sparkOffsetForward"];
-		Copy4(mj["sparkColorStart"], w.muzzle.sparkColorStart);
-		Copy4(mj["sparkColorEnd"], w.muzzle.sparkColorEnd);
+		// casing
+		if (wj.contains("casing") && wj.at("casing").is_object()) {
+			const auto& cj = wj.at("casing");
+			read_if(cj, "enabled", w.casing.enabled);
+			read_if(cj, "offsetRight", w.casing.offsetRight);
+			read_if(cj, "offsetUp", w.casing.offsetUp);
+			read_if(cj, "offsetBack", w.casing.offsetBack);
+			read_if(cj, "speedMin", w.casing.speedMin);
+			read_if(cj, "speedMax", w.casing.speedMax);
+			read_if(cj, "coneDeg", w.casing.coneDeg);
+			read_if(cj, "gravityY", w.casing.gravityY);
+			read_if(cj, "life", w.casing.life);
+			read_if(cj, "drag", w.casing.drag);
+			read_if(cj, "upKick", w.casing.upKick);
+			read_if(cj, "upBias", w.casing.upBias);
+			read_if(cj, "spinMin", w.casing.spinMin);
+			read_if(cj, "spinMax", w.casing.spinMax);
+			read_vec4(cj, "color", w.casing.color);
+			read_vec3(cj, "scale", w.casing.scale);
+		}
 
-		auto& cj = wj["casing"];
-		w.casing.enabled = cj["enabled"];
-		w.casing.offsetRight = cj["offsetRight"];
-		w.casing.offsetUp = cj["offsetUp"];
-		w.casing.offsetBack = cj["offsetBack"];
-		w.casing.speedMin = cj["speedMin"];
-		w.casing.speedMax = cj["speedMax"];
-		w.casing.coneDeg = cj["coneDeg"];
-		w.casing.gravityY = cj["gravityY"];
-		w.casing.life = cj["life"];
-		w.casing.drag = cj["drag"];
-		w.casing.upKick = cj["upKick"];
-		w.casing.upBias = cj["upBias"];
-		w.casing.spinMin = cj["spinMin"];
-		w.casing.spinMax = cj["spinMax"];
-		Copy4(cj["color"], w.casing.color);
-		Copy3(cj["scale"], w.casing.scale);
 		return true;
 	}
 	catch (...) {
 		return false;
 	}
+}
+
+static ojson ToPrettyOrderedJson(const WeaponData& w) {
+	ojson j;
+	// 「基本 → トレーサ → マズル → 薬莢」など、出したい順で手動で詰める
+	j["name"] = w.name;
+	j["class"] = ClassToString(w.clazz);
+	j["muzzleSpeed"] = w.muzzleSpeed;
+	j["maxDistance"] = w.maxDistance;
+	j["rpm"] = w.rpm;
+	j["magCapacity"] = w.magCapacity;
+	j["startingReserve"] = w.startingReserve;
+	j["reloadTime"] = w.reloadTime;
+	j["bulletsPerShot"] = w.bulletsPerShot;
+	j["autoReload"] = w.autoReload;
+	j["requestedMaxSegments"] = w.requestedMaxSegments;
+	j["spreadDeg"] = w.spreadDeg;
+	j["pelletTracerMode"] = w.pelletTracerMode;
+	j["pelletTracerCount"] = w.pelletTracerCount;
+
+	// tracer
+	{
+		ojson tj;
+		tj["enabled"] = w.tracer.enabled;
+		tj["tracerLength"] = w.tracer.tracerLength;
+		tj["tracerWidth"] = w.tracer.tracerWidth;
+		tj["minSegLength"] = w.tracer.minSegLength;
+		tj["startOffsetForward"] = w.tracer.startOffsetForward;
+		tj["color"] = { w.tracer.color.x, w.tracer.color.y, w.tracer.color.z, w.tracer.color.w };
+		j["tracer"] = std::move(tj);
+	}
+	// muzzle
+	{
+		ojson mj;
+		mj["enabled"] = w.muzzle.enabled;
+		mj["life"] = w.muzzle.life;
+		mj["startLength"] = w.muzzle.startLength;
+		mj["endLength"] = w.muzzle.endLength;
+		mj["startWidth"] = w.muzzle.startWidth;
+		mj["endWidth"] = w.muzzle.endWidth;
+		mj["randomYawDeg"] = w.muzzle.randomYawDeg;
+		mj["color"] = ToJsonColor(w.muzzle.color);
+
+		mj["offsetForward"] = w.muzzle.offsetForward;
+		mj["sparksEnabled"] = w.muzzle.sparksEnabled;
+		mj["sparkCount"] = w.muzzle.sparkCount;
+		mj["sparkLifeMin"] = w.muzzle.sparkLifeMin;
+		mj["sparkLifeMax"] = w.muzzle.sparkLifeMax;
+		mj["sparkSpeedMin"] = w.muzzle.sparkSpeedMin;
+		mj["sparkSpeedMax"] = w.muzzle.sparkSpeedMax;
+		mj["sparkConeDeg"] = w.muzzle.sparkConeDeg;
+		mj["sparkGravityY"] = w.muzzle.sparkGravityY;
+		mj["sparkWidth"] = w.muzzle.sparkWidth;
+		mj["sparkOffsetForward"] = w.muzzle.sparkOffsetForward;
+		mj["sparkColorStart"] = ToJsonColor(w.muzzle.sparkColorStart);
+		mj["sparkColorEnd"] = ToJsonColor(w.muzzle.sparkColorEnd);
+		j["muzzle"] = std::move(mj);
+	}
+	// casing
+	{
+		ojson cj;
+		cj["enabled"] = w.casing.enabled;
+		cj["offsetRight"] = w.casing.offsetRight;
+		cj["offsetUp"] = w.casing.offsetUp;
+		cj["offsetBack"] = w.casing.offsetBack;
+		cj["speedMin"] = w.casing.speedMin;
+		cj["speedMax"] = w.casing.speedMax;
+		cj["coneDeg"] = w.casing.coneDeg;
+		cj["gravityY"] = w.casing.gravityY;
+		cj["life"] = w.casing.life;
+		cj["drag"] = w.casing.drag;
+		cj["upKick"] = w.casing.upKick;
+		cj["upBias"] = w.casing.upBias;
+		cj["spinMin"] = w.casing.spinMin;
+		cj["spinMax"] = w.casing.spinMax;
+		cj["color"] = ToJsonColor(w.casing.color);
+		cj["scale"] = ToJsonVec3(w.casing.scale);
+		// …同様に希望順で詰める…
+		j["casing"] = std::move(cj);
+	}
+	return j;
 }
 
 /// -------------------------------------------------------------
@@ -506,10 +634,11 @@ bool Weapon::SaveToPath(const std::string& filePath, const std::unordered_map<st
 /// -------------------------------------------------------------
 bool Weapon::SaveOne(const std::string& filePath, const WeaponData& weaponData)
 {
-	json j = ToJson(weaponData); // WeaponData→json変換
+	ojson j = ToPrettyOrderedJson(weaponData); // ★順序固定版
+	RoundFloatsInJson(j, 3); // 浮動小数点を4桁に丸める
 	std::ofstream ofs(filePath); // ファイルを開く
 	if (!ofs) return false;
-	ofs << std::setw(2) << j << std::endl; // 整形して書き込み
+	ofs << j.dump(2) << '\n'; // 整形して書き込み
 	return true;
 }
 
