@@ -829,6 +829,7 @@
     <ClInclude Include="ApplicationLayer\WeaponSystem\WeaponConfig\MuzzleFlashSettings.h" />
     <ClInclude Include="ApplicationLayer\WeaponSystem\WeaponConfig\CasingSettings.h" />
     <ClInclude Include="ApplicationLayer\WeaponSystem\WeaponConfig\WeaponConfig.h" />
+    <ClInclude Include="ApplicationLayer\WeaponSystem\WeaponConfig\ToWeaponConfig.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Resources\Shaders\PostEffect\FullScreen.hlsli">
