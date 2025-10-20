@@ -22,7 +22,7 @@ class Player : public BaseCharacter
 public: /// ---------- メンバ関数 ---------- ///
 
 	// デストラクタ
-	~Player();
+	~Player() = default;
 
 	// 初期化処理
 	void Initialize() override;
