@@ -549,6 +549,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="ApplicationLayer\WeaponSystem\WeaponConfig\TracerSettings.h" />
     <ClInclude Include="ApplicationLayer\WeaponSystem\WeaponConfig\WeaponConfig.h" />
     <ClInclude Include="ApplicationLayer\WeaponSystem\WeaponConfig\ToWeaponConfig.h" />
+    <ClInclude Include="ApplicationLayer\WeaponSystem\Weapon\WeaponClass.h" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="externals\DirectXTex\DirectXTex_Desktop_2022_Win10.vcxproj">

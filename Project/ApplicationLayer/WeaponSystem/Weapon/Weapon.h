@@ -33,6 +33,20 @@ public: /// ---------- メンバ関数 ---------- ///
 	// 武器データの保存
 	static bool SaveWeapons(const std::string& filePath, const std::unordered_map<std::string, WeaponData>& weaponTable);
 
+	// 武器データの読み込み（短縮版）
+	static std::unordered_map<std::string, WeaponData> LoadFromPath(const std::string& filePath);
+
+	// 武器データの保存（短縮版）
+	static bool SaveToPath(const std::string& filePath, const std::unordered_map<std::string, WeaponData>& weaponTable);
+
+	// 単一武器データの保存
+	static bool SaveOne(const std::string& filePath, const WeaponData& weaponData);
+
+	// 移行ヘルパ（巨大->分離）
+	static bool MigrateMonolithToDir(const std::string& monolithJson, const std::string& outDir);
+
+public: /// ---------- アクセサ ---------- ///
+
 	// データを取得
 	const WeaponData& Data() const { return weaponData_; }
 

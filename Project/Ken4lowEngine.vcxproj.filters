@@ -830,6 +830,7 @@
     <ClInclude Include="ApplicationLayer\WeaponSystem\WeaponConfig\CasingSettings.h" />
     <ClInclude Include="ApplicationLayer\WeaponSystem\WeaponConfig\WeaponConfig.h" />
     <ClInclude Include="ApplicationLayer\WeaponSystem\WeaponConfig\ToWeaponConfig.h" />
+    <ClInclude Include="ApplicationLayer\WeaponSystem\Weapon\WeaponClass.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Resources\Shaders\PostEffect\FullScreen.hlsli">

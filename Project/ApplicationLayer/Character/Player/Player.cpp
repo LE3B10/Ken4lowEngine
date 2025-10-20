@@ -8,6 +8,7 @@
 #include "ToWeaponConfig.h"
 
 #include <algorithm>
+#include <filesystem>
 #include <imgui.h>
 
 /// -------------------------------------------------------------
@@ -64,16 +65,36 @@ void Player::Initialize()
 	ballisticEffect_->SetParentTransform(&parts_[2].transform);
 
 	// 武器設定プリセット
-	weaponTable_ = Weapon::LoadWeapon("Resources/JSON/weapons.json");
-	auto it = weaponTable_.find("Pistol"); // 例: ピストル
-	if (it != weaponTable_.end()) {
+	std::error_code ec;
+	std::filesystem::create_directories(kWeaponDir, ec); // ← これを先に
+	weaponTable_ = Weapon::LoadFromPath(kWeaponDir);
+	if (weaponTable_.empty()) {
+		weaponTable_ = Weapon::LoadWeapon(kWeaponMonolith);
+	}
+
+	if (!weaponTable_.empty())
+	{
+		auto it = weaponTable_.find("Pistol");
+		if (it == weaponTable_.end()) it = weaponTable_.begin();
 		weapon_ = std::make_unique<Weapon>(it->second);
-		currentWeapon_ = ToWeaponConfig(it->second);   // 現在武器設定に反映
+		currentWeapon_ = ToWeaponConfig(it->second);
 	}
-	else {
-		// フォールバック（JSONが無い/壊れている時だけプリセット）
-		currentWeapon_ = pistol_;
-	}
+
+	auto autoEquip = [&]() {
+		equippedByClass_.clear();
+		for (auto& [name, w] : weaponTable_) {
+			if (!equippedByClass_.count(w.clazz)) {
+				equippedByClass_[w.clazz] = name;    // そのクラスの1本目を登録
+			}
+		}
+		// 既定：プライマリがあればそれを装備、無ければ最初の1本
+		std::string use = !equippedByClass_.empty()
+			? (equippedByClass_.count(WeaponClass::Primary) ? equippedByClass_[WeaponClass::Primary]
+				: weaponTable_.begin()->first)
+			: "Pistol";
+		SelectWeapon(use);
+		};
+	autoEquip();
 }
 
 
@@ -101,10 +122,12 @@ void Player::Update()
 		break;
 	}
 
-	if (input_->TriggerKey(DIK_1)) { SelectWeapon("Pistol"); } // JSONにPistolがあれば1
-	if (input_->TriggerKey(DIK_2)) { SelectWeapon("Rifle"); } // JSONにRifleがあれば2
-	if (input_->TriggerKey(DIK_3)) { SelectWeapon("MachineGun"); } // JSONにMachineGunがあれば3
-	if (input_->TriggerKey(DIK_4)) { SelectWeapon("ShotGun"); } // JSONにShotGunがあれば4
+	if (input_->TriggerKey(DIK_1)) SelectByClass(WeaponClass::Primary);
+	if (input_->TriggerKey(DIK_2)) SelectByClass(WeaponClass::Backup);
+	if (input_->TriggerKey(DIK_3)) SelectByClass(WeaponClass::Melee);
+	if (input_->TriggerKey(DIK_4)) SelectByClass(WeaponClass::Special);
+	if (input_->TriggerKey(DIK_5)) SelectByClass(WeaponClass::Sniper);
+	if (input_->TriggerKey(DIK_6)) SelectByClass(WeaponClass::Heavy);
 
 	Move();
 
@@ -203,6 +226,20 @@ Vector3 Player::GetCenterPosition() const
 	const Vector3 offset = { 0.0f,3.0f,0.0f };
 	Vector3 worldPosition = body_.transform.translate_ + offset;
 	return worldPosition;
+}
+
+void Player::SelectByClass(WeaponClass c)
+{
+	auto it = equippedByClass_.find(c);
+	if (it != equippedByClass_.end())
+	{
+		SelectWeapon(it->second);  // 既存の名前ベース切替を利用
+		return;
+	}
+	// そのクラスが未装備なら、テーブルから最初の該当を探す
+	for (auto& [name, w] : weaponTable_) {
+		if (w.clazz == c) { SelectWeapon(name); return; }
+	}
 }
 
 /// -------------------------------------------------------------
@@ -358,7 +395,12 @@ void Player::AddWeaponFrom(const std::string& newName, const WeaponData* base)
 
 	// 4) JSON保存（ファイル一括書き戻し）
 	// SaveWeapons(パス, テーブル) は Weapon.h に宣言があります（実装が無ければ後述の実装例を追加）。
-	Weapon::SaveWeapons("Resources/JSON/weapons.json", weaponTable_);
+	Weapon::SaveToPath(kWeaponDir, weaponTable_);
+
+	if (autoOpenEditorOnAdd_)
+	{
+		weaponEditorOpen_[w.name] = true;
+	}
 }
 
 /// -------------------------------------------------------------
@@ -409,7 +451,15 @@ void Player::DeleteWeapon(const std::string& name)
 	SelectWeapon(nextName);  // currentWeapon_ と weapon_ を更新。タイマもリセット。 :contentReference[oaicite:2]{index=2}
 
 	// 5) JSONへ保存
-	Weapon::SaveWeapons("Resources/JSON/weapons.json", weaponTable_); // 既存の保存APIを利用 :contentReference[oaicite:3]{index=3}
+	Weapon::SaveToPath(kWeaponDir, weaponTable_); // 既存の保存APIを利用 :contentReference[oaicite:3]{index=3}
+}
+
+void Player::RebuildEquipMap()
+{
+	equippedByClass_.clear();
+	for (auto& [name, w] : weaponTable_) {
+		if (!equippedByClass_.count(w.clazz)) equippedByClass_[w.clazz] = name;
+	}
 }
 
 /// -------------------------------------------------------------
@@ -417,35 +467,65 @@ void Player::DeleteWeapon(const std::string& name)
 /// -------------------------------------------------------------
 void Player::DrawImGui()
 {
-	ImGui::Separator();
-	ImGui::Text("JSON / WeaponData check");
-	if (weapon_) {
-		const auto& D = weapon_->Data();
-		ImGui::Text("name: %s", D.name.c_str());
-		ImGui::Text("rpm: %.1f  muzzleSpeed: %.1f  maxDist: %.1f",
-			D.rpm, D.muzzleSpeed, D.maxDistance);
-		ImGui::Text("mag: %d  reserve: %d  reload: %.2f",
-			D.magCapacity, D.startingReserve, D.reloadTime);
-		ImGui::Text("tracerWidth: %.3f  startOffset: %.2f",
-			D.tracer.tracerWidth, D.tracer.startOffsetForward);
-		ImGui::Text("muzzle.life: %.3f  sparkCount: %d",
-			D.muzzle.life, D.muzzle.sparkCount);
-		ImGui::Text("casing.offsetR/U/B: %.2f / %.2f / %.2f",
-			D.casing.offsetRight, D.casing.offsetUp, D.casing.offsetBack);
-	}
-
 	static std::string selectedName = "Pistol";  // とりあえずPistolから
 	if (weapon_) selectedName = weapon_->Data().name;
 
 	// セレクタ（必要なら Combo にしてもOK）
 	ImGui::Text("Editing: %s", selectedName.c_str());
 
+	static const char* kClassLabels[] = { "Primary","Backup","Melee","Special","Sniper","Heavy" };
+
+	ImGui::Separator();
+	ImGui::Text("Loadout by Class");
+
+	for (int c = 0; c < 6; ++c) {
+		WeaponClass wc = static_cast<WeaponClass>(c);
+		const char* label = kClassLabels[c];
+
+		std::string equipped = "-";
+		auto it = equippedByClass_.find(wc);
+		if (it != equippedByClass_.end()) equipped = it->second;
+
+		ImGui::Text("%-8s : %s", label, equipped.c_str());
+	}
+
+
+	if (weapon_) {
+		const auto& D = weapon_->Data(); // 現在装備中の武器データ（const）
+		int idx = static_cast<int>(D.clazz);
+		if (0 <= idx && idx < IM_ARRAYSIZE(kClassLabels)) {
+			ImGui::Text("Current Category: %s", kClassLabels[idx]);
+		}
+		else {
+			ImGui::Text("Current Category: (Unknown)");
+		}
+	}
+
+	auto it = weaponTable_.find(selectedName);
+	if (it != weaponTable_.end()) {
+		WeaponData& E = it->second;              // 編集対象（非const）
+		int clazz = static_cast<int>(E.clazz);
+
+		// 編集用コンボ
+		if (ImGui::Combo("Category", &clazz, kClassLabels, IM_ARRAYSIZE(kClassLabels))) {
+			E.clazz = static_cast<WeaponClass>(clazz);
+
+			// この武器が今装備中なら、ランタイム反映
+			if (weapon_ && weapon_->Data().name == E.name) {
+				currentWeapon_ = ToWeaponConfig(E);
+			}
+
+			// クラスが変わったので、クラス→武器名の割当表を作り直す
+			RebuildEquipMap();  // ←前回入れたヘルパ（未実装なら上の会話の通り追加）
+		}
+	}
+
 	// 編集対象をテーブルから“参照”で取得（ここをいじる → Save で書き出す）
 	auto itEdit = weaponTable_.find(selectedName);
 	if (itEdit != weaponTable_.end()) {
 		WeaponData& E = itEdit->second; // ← ここを ImGui で編集する
 
-		if (ImGui::TreeNode("Basic"))
+		/*if (ImGui::TreeNode("Basic"))
 		{
 			ImGui::DragFloat("muzzleSpeed", &E.muzzleSpeed, 1.0f, 10.0f, 2000.0f);
 			ImGui::DragFloat("maxDistance", &E.maxDistance, 1.0f, 10.0f, 5000.0f);
@@ -519,24 +599,62 @@ void Player::DrawImGui()
 			ImGui::ColorEdit4("color##cs", &E.casing.color.x);
 			ImGui::DragFloat3("scale", &E.casing.scale.x, 0.001f);
 			ImGui::TreePop();
-		}
+		}*/
 
-		if (ImGui::Button("Save weapons.json")) {
-			Weapon::SaveWeapons("Resources/JSON/weapons.json", weaponTable_);
+		ImGui::Separator();
+		ImGui::Text("Editors");
+		if (ImGui::Button("Open all")) {
+			for (auto& kv : weaponTable_) weaponEditorOpen_[kv.first] = true;
 		}
 		ImGui::SameLine();
-		if (ImGui::Button("Reload weapons.json")) {
-			weaponTable_ = Weapon::LoadWeapon("Resources/JSON/weapons.json");
+		if (ImGui::Button("Close all")) {
+			for (auto& kv : weaponTable_) weaponEditorOpen_[kv.first] = false;
+		}
+
+		// 一覧（チェックで開閉をトグル）
+		for (auto& [name, data] : weaponTable_) {
+			bool open = weaponEditorOpen_[name];
+			if (ImGui::Checkbox(name.c_str(), &open)) {
+				weaponEditorOpen_[name] = open;
+			}
+		}
+
+		// ★ 開いている武器ウィンドウを描画
+		for (auto& [name, data] : weaponTable_) {
+			if (!weaponEditorOpen_[name]) continue;
+
+			// 同名でユニークIDにするため "###" を付与
+			std::string title = "Weapon Editor: " + name + "###weapon_editor_" + name;
+			if (ImGui::Begin(title.c_str(), &weaponEditorOpen_[name],
+				ImGuiWindowFlags_AlwaysAutoResize))
+			{
+				// 編集UI本体（再利用）
+				DrawWeaponParamsUI(data, name);
+			}
+			ImGui::End();
+		}
+
+		if (ImGui::Button("Save folder")) {
+			Weapon::SaveToPath(kWeaponDir, weaponTable_);
+		}
+		ImGui::SameLine();
+		if (ImGui::Button("Reload folder")) {
+			weaponTable_ = Weapon::LoadFromPath(kWeaponDir);
+
+			// 選択中の名前で差し替え
 			auto it = weaponTable_.find(selectedName);
 			if (it != weaponTable_.end()) {
 				weapon_ = std::make_unique<Weapon>(it->second); // 状態を更新
+				currentWeapon_ = ToWeaponConfig(it->second);
 			}
+			RebuildEquipMap();
 		}
 		ImGui::SameLine();
 		if (ImGui::Button("Apply to runtime"))
 		{
 			// 実行中の発射系（currentWeapon_）へ反映：今の経路を維持したまま
 			currentWeapon_.name = E.name;
+			currentWeapon_.clazz = E.clazz;
 			currentWeapon_.muzzleSpeed = E.muzzleSpeed;
 			currentWeapon_.maxDistance = E.maxDistance;
 			currentWeapon_.rpm = E.rpm;
@@ -595,28 +713,12 @@ void Player::DrawImGui()
 			currentWeapon_.casing.color = E.casing.color;
 			currentWeapon_.casing.scale = E.casing.scale;
 		}
-		ImGui::SameLine();
-		if (ImGui::Button("Delete Weapon")) {
-			ImGui::OpenPopup("DeleteWeaponConfirm");
-		}
-		if (ImGui::BeginPopupModal("DeleteWeaponConfirm", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
-			ImGui::Text("Delete '%s' ?\nThis cannot be undone.", selectedName.c_str());
-			ImGui::Separator();
-			if (ImGui::Button("Yes, delete", ImVec2(120, 0))) {
-				DeleteWeapon(selectedName);
-				ImGui::CloseCurrentPopup();
-			}
-			ImGui::SameLine();
-			if (ImGui::Button("Cancel", ImVec2(120, 0))) {
-				ImGui::CloseCurrentPopup();
-			}
-			ImGui::EndPopup();
-		}
 	}
 
 	if (ImGui::Button("Add Weapon"))
 	{
 		ImGui::OpenPopup("AddWeaponPopup");
+		RebuildEquipMap();
 	}
 	if (ImGui::BeginPopupModal("AddWeaponPopup", nullptr, ImGuiWindowFlags_AlwaysAutoResize))
 	{
@@ -663,5 +765,136 @@ void Player::DrawImGui()
 			ImGui::CloseCurrentPopup();
 		}
 		ImGui::EndPopup();
+	}
+	ImGui::SameLine();
+	if (ImGui::Button("Delete Weapon")) {
+		ImGui::OpenPopup("DeleteWeaponConfirm");
+		RebuildEquipMap();
+	}
+	if (ImGui::BeginPopupModal("DeleteWeaponConfirm", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
+		ImGui::Text("Delete '%s' ?\nThis cannot be undone.", selectedName.c_str());
+		ImGui::Separator();
+		if (ImGui::Button("Yes, delete", ImVec2(120, 0))) {
+			DeleteWeapon(selectedName);
+			ImGui::CloseCurrentPopup();
+		}
+		ImGui::SameLine();
+		if (ImGui::Button("Cancel", ImVec2(120, 0))) {
+			ImGui::CloseCurrentPopup();
+		}
+		ImGui::EndPopup();
+	}
+}
+
+void Player::DrawWeaponParamsUI(WeaponData& E, const std::string& selectedName)
+{
+	// --- 例：クラス編集（既存コードを流用） ---
+	static const char* kClassLabels[] = { "Primary","Backup","Melee","Special","Sniper","Heavy" };
+	int clazz = static_cast<int>(E.clazz);
+	if (ImGui::Combo("Category", &clazz, kClassLabels, IM_ARRAYSIZE(kClassLabels))) {
+		E.clazz = static_cast<WeaponClass>(clazz);
+		if (weapon_ && weapon_->Data().name == E.name) {
+			currentWeapon_ = ToWeaponConfig(E);
+		}
+		RebuildEquipMap();
+	}
+
+	// --- 例：Basic/Tracer/Muzzle/Casing（あなたの既存ブロックを丸ごと移植） ---
+	if (ImGui::TreeNode("Basic"))
+	{
+		ImGui::DragFloat("muzzleSpeed", &E.muzzleSpeed, 1.0f, 10.0f, 2000.0f);
+		ImGui::DragFloat("maxDistance", &E.maxDistance, 1.0f, 10.0f, 5000.0f);
+		ImGui::DragFloat("rpm", &E.rpm, 1.0f, 1.0f, 2000.0f);
+		ImGui::DragInt("magCapacity", &E.magCapacity, 1, 1, 200);
+		ImGui::DragInt("startingReserve", &E.startingReserve, 1, 0, 1000);
+		ImGui::DragFloat("reloadTime", &E.reloadTime, 0.01f, 0.1f, 10.0f);
+		ImGui::DragInt("bulletsPerShot", &E.bulletsPerShot, 1, 1, 20);
+
+		ImGui::Checkbox("autoReload", &E.autoReload);
+		ImGui::DragInt("requestedMaxSegments", &E.requestedMaxSegments, 1, 10, 1000);
+		ImGui::DragFloat("spreadDeg", &E.spreadDeg, 0.1f, 0.0f, 45.0f);
+		int mode = E.pelletTracerMode;
+		const char* modes[] = { "None", "One of pellets", "All pellets" };
+		if (ImGui::Combo("pelletTracerMode", &mode, modes, IM_ARRAYSIZE(modes))) {
+			E.pelletTracerMode = mode;
+		}
+		ImGui::DragInt("pelletTracerCount", &E.pelletTracerCount, 1, 1, 64);
+
+		ImGui::TreePop();
+	}
+	if (ImGui::TreeNode("Tracer"))
+	{
+		ImGui::Checkbox("enabled", &E.tracer.enabled);
+		ImGui::DragFloat("tracerLength", &E.tracer.tracerLength, 0.01f, 0.01f, 50.0f);
+		ImGui::DragFloat("tracerWidth", &E.tracer.tracerWidth, 0.001f, 0.001f, 1.0f);
+		ImGui::DragFloat("minSegLength", &E.tracer.minSegLength, 0.001f, 0.001f, 1.0f);
+		ImGui::DragFloat("startOffsetForward", &E.tracer.startOffsetForward, 0.01f, -10.0f, 10.0f);
+		ImGui::ColorEdit4("color", &E.tracer.color.x);
+		ImGui::TreePop();
+	}
+	if (ImGui::TreeNode("Muzzle"))
+	{
+		ImGui::Checkbox("enabled##mz", &E.muzzle.enabled);
+		ImGui::DragFloat("life", &E.muzzle.life, 0.005f, 0.01f, 0.5f);
+		ImGui::DragFloat("startLength", &E.muzzle.startLength, 0.01f, 0.01f, 1.0f);
+		ImGui::DragFloat("endLength", &E.muzzle.endLength, 0.01f, 0.01f, 1.0f);
+		ImGui::DragFloat("startWidth", &E.muzzle.startWidth, 0.005f, 0.01f, 0.5f);
+		ImGui::DragFloat("endWidth", &E.muzzle.endWidth, 0.005f, 0.01f, 0.5f);
+		ImGui::DragFloat("randomYawDeg", &E.muzzle.randomYawDeg, 0.1f, 0.0f, 45.0f);
+		ImGui::ColorEdit4("color##mz", &E.muzzle.color.x);
+		ImGui::DragFloat("offsetForward", &E.muzzle.offsetForward, 0.01f, -1.0f, 1.0f);
+		ImGui::Checkbox("sparksEnabled", &E.muzzle.sparksEnabled);
+		ImGui::DragInt("sparkCount", &E.muzzle.sparkCount, 1, 0, 200);
+		ImGui::DragFloat("sparkLifeMin", &E.muzzle.sparkLifeMin, 0.005f, 0.01f, 1.0f);
+		ImGui::DragFloat("sparkLifeMax", &E.muzzle.sparkLifeMax, 0.005f, 0.01f, 1.0f);
+		ImGui::DragFloat("sparkSpeedMin", &E.muzzle.sparkSpeedMin, 0.1f, 0.1f, 100.0f);
+		ImGui::DragFloat("sparkSpeedMax", &E.muzzle.sparkSpeedMax, 0.1f, 0.1f, 100.0f);
+		ImGui::DragFloat("sparkConeDeg", &E.muzzle.sparkConeDeg, 0.1f, 0.0f, 90.0f);
+		ImGui::DragFloat("sparkGravityY", &E.muzzle.sparkGravityY, 0.1f, -100.0f, 0.0f);
+		ImGui::DragFloat("sparkWidth", &E.muzzle.sparkWidth, 0.001f, 0.001f, 0.1f);
+		ImGui::DragFloat("sparkOffsetForward", &E.muzzle.sparkOffsetForward, 0.01f, -1.0f, 1.0f);
+		ImGui::ColorEdit4("sparkColorStart", &E.muzzle.sparkColorStart.x);
+		ImGui::ColorEdit4("sparkColorEnd", &E.muzzle.sparkColorEnd.x);
+		ImGui::TreePop();
+	}
+	if (ImGui::TreeNode("Casing"))
+	{
+		ImGui::Checkbox("enabled##cs", &E.casing.enabled);
+		ImGui::DragFloat3("offset R/U/B", &E.casing.offsetRight, 0.005f);
+		ImGui::DragFloat("speedMin", &E.casing.speedMin, 0.1f, 0.0f, 20.0f);
+		ImGui::DragFloat("speedMax", &E.casing.speedMax, 0.1f, 0.0f, 20.0f);
+		ImGui::DragFloat("coneDeg", &E.casing.coneDeg, 0.1f, 0.0f, 90.0f);
+		ImGui::DragFloat("gravityY", &E.casing.gravityY, 0.1f, -100.0f, 0.0f);
+		ImGui::DragFloat("life", &E.casing.life, 0.05f, 0.1f, 10.0f);
+		ImGui::DragFloat("drag", &E.casing.drag, 0.01f, 0.0f, 1.0f);
+		ImGui::DragFloat("upKick", &E.casing.upKick, 0.01f, 0.0f, 10.0f);
+		ImGui::DragFloat("upBias", &E.casing.upBias, 0.01f, 0.0f, 1.0f);
+		ImGui::DragFloat("spinMin", &E.casing.spinMin, 0.1f, 0.0f, 100.0f);
+		ImGui::DragFloat("spinMax", &E.casing.spinMax, 0.1f, 0.0f, 100.0f);
+		ImGui::ColorEdit4("color##cs", &E.casing.color.x);
+		ImGui::DragFloat3("scale", &E.casing.scale.x, 0.001f);
+		ImGui::TreePop();
+	}
+
+	// --- 便利ボタン：保存/リロード/ランタイム反映 ---
+	if (ImGui::Button("Save folder")) {
+		Weapon::SaveToPath(kWeaponDir, weaponTable_);
+	}
+	ImGui::SameLine();
+	if (ImGui::Button("Reload folder")) {
+		weaponTable_ = Weapon::LoadFromPath(kWeaponDir);
+		// 同名をランタイムへ反映
+		auto it = weaponTable_.find(E.name);
+		if (it != weaponTable_.end()) {
+			weapon_ = std::make_unique<Weapon>(it->second);
+			currentWeapon_ = ToWeaponConfig(it->second);
+		}
+		RebuildEquipMap();
+	}
+	ImGui::SameLine();
+	if (ImGui::Button("Apply to runtime")) {
+		if (weapon_ && weapon_->Data().name == E.name) {
+			currentWeapon_ = ToWeaponConfig(E);
+		}
 	}
 }

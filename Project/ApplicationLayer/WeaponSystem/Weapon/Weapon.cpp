@@ -1,7 +1,10 @@
 #include "Weapon.h"
 #include <iomanip>
+#include <filesystem>
+#include <cctype>
 
 using nlohmann::json;
+namespace fs = std::filesystem;
 
 /// json配列からfloat[4]へコピー
 inline static void Copy4(const json& a, Vector4& out) { a[0].get_to(out.x);	a[1].get_to(out.y);	a[2].get_to(out.z);	a[3].get_to(out.w); }
@@ -15,11 +18,60 @@ static json ToJsonColor(const Vector4& v) { return json::array({ v.x,v.y,v.z,v.w
 // / Vector3→json配列変換
 static json ToJsonVec3(const Vector3& v) { return json::array({ v.x,v.y,v.z }); }
 
+// ファイル名用スラッグ（name→"machine_gun.json" など）
+static std::string Slugify(const std::string& s) {
+	std::string o; o.reserve(s.size());
+	auto push_underscore = [&]() {
+		if (o.empty() || o.back() != '_') o.push_back('_');
+		};
+	for (unsigned char ch : s) {
+		if (std::isalnum(ch)) o.push_back((char)std::tolower(ch));
+		else if (ch == ' ' || ch == '-' || ch == '_') push_underscore();
+		else push_underscore();
+	}
+	if (o.empty()) o = "weapon";
+	return o;
+}
+
+static const char* ClassToString(WeaponClass c)
+{
+	switch (c) {
+	case WeaponClass::Primary: return "Primary";
+	case WeaponClass::Backup:  return "Backup";
+	case WeaponClass::Melee:   return "Melee";
+	case WeaponClass::Special: return "Special";
+	case WeaponClass::Sniper:  return "Sniper";
+	case WeaponClass::Heavy:   return "Heavy";
+	}
+	return "Primary";
+}
+static WeaponClass ParseClass(const nlohmann::json& j)
+{
+	if (!j.contains("class")) return WeaponClass::Primary;
+	if (j["class"].is_string()) {
+		std::string s = j["class"].get<std::string>();
+		std::transform(s.begin(), s.end(), s.begin(), ::tolower);
+		if (s == "primary") return WeaponClass::Primary;
+		if (s == "backup")  return WeaponClass::Backup;
+		if (s == "melee")   return WeaponClass::Melee;
+		if (s == "special") return WeaponClass::Special;
+		if (s == "sniper")  return WeaponClass::Sniper;
+		if (s == "heavy")   return WeaponClass::Heavy;
+		return WeaponClass::Primary;
+	}
+	// 数値(0..5)でも受け付け
+	int v = j["class"].get<int>();
+	v = std::clamp(v, 0, 5);
+	return static_cast<WeaponClass>(v);
+}
+
+
 // WeaponData→json変換
 static json ToJson(const WeaponData& w)
 {
 	json j;
 	j["name"] = w.name;
+	j["class"] = ClassToString(w.clazz);
 	j["muzzleSpeed"] = w.muzzleSpeed;
 	j["maxDistance"] = w.maxDistance;
 	j["rpm"] = w.rpm;
@@ -92,6 +144,82 @@ static json ToJson(const WeaponData& w)
 	return j;
 }
 
+// 単一武器オブジェクト → WeaponData へ (巨大JSONのループ処理を関数化)
+static bool FromJsonWeaponObject(const json& wj, WeaponData& w) {
+	try {
+		w.name = wj["name"].get<std::string>();
+		w.clazz = ParseClass(wj);
+		w.muzzleSpeed = wj["muzzleSpeed"];
+		w.maxDistance = wj["maxDistance"];
+		w.rpm = wj["rpm"];
+
+		w.magCapacity = wj["magCapacity"];
+		w.startingReserve = wj["startingReserve"];
+		w.reloadTime = wj["reloadTime"];
+		w.bulletsPerShot = wj["bulletsPerShot"];
+		w.autoReload = wj["autoReload"];
+
+		w.requestedMaxSegments = wj["requestedMaxSegments"];
+		w.spreadDeg = wj["spreadDeg"];
+		w.pelletTracerMode = wj["pelletTracerMode"];
+		w.pelletTracerCount = wj["pelletTracerCount"];
+
+		auto& tj = wj["tracer"];
+		w.tracer.enabled = tj["enabled"];
+		w.tracer.tracerLength = tj["tracerLength"];
+		w.tracer.tracerWidth = tj["tracerWidth"];
+		w.tracer.minSegLength = tj["minSegLength"];
+		w.tracer.startOffsetForward = tj["startOffsetForward"];
+		Copy4(tj["color"], w.tracer.color);
+
+		auto& mj = wj["muzzle"];
+		w.muzzle.enabled = mj["enabled"];
+		w.muzzle.life = mj["life"];
+		w.muzzle.startLength = mj["startLength"];
+		w.muzzle.endLength = mj["endLength"];
+		w.muzzle.startWidth = mj["startWidth"];
+		w.muzzle.endWidth = mj["endWidth"];
+		w.muzzle.randomYawDeg = mj["randomYawDeg"];
+		Copy4(mj["color"], w.muzzle.color);
+
+		w.muzzle.offsetForward = mj["offsetForward"];
+		w.muzzle.sparksEnabled = mj["sparksEnabled"];
+		w.muzzle.sparkCount = mj["sparkCount"];
+		w.muzzle.sparkLifeMin = mj["sparkLifeMin"];
+		w.muzzle.sparkLifeMax = mj["sparkLifeMax"];
+		w.muzzle.sparkSpeedMin = mj["sparkSpeedMin"];
+		w.muzzle.sparkSpeedMax = mj["sparkSpeedMax"];
+		w.muzzle.sparkConeDeg = mj["sparkConeDeg"];
+		w.muzzle.sparkGravityY = mj["sparkGravityY"];
+		w.muzzle.sparkWidth = mj["sparkWidth"];
+		w.muzzle.sparkOffsetForward = mj["sparkOffsetForward"];
+		Copy4(mj["sparkColorStart"], w.muzzle.sparkColorStart);
+		Copy4(mj["sparkColorEnd"], w.muzzle.sparkColorEnd);
+
+		auto& cj = wj["casing"];
+		w.casing.enabled = cj["enabled"];
+		w.casing.offsetRight = cj["offsetRight"];
+		w.casing.offsetUp = cj["offsetUp"];
+		w.casing.offsetBack = cj["offsetBack"];
+		w.casing.speedMin = cj["speedMin"];
+		w.casing.speedMax = cj["speedMax"];
+		w.casing.coneDeg = cj["coneDeg"];
+		w.casing.gravityY = cj["gravityY"];
+		w.casing.life = cj["life"];
+		w.casing.drag = cj["drag"];
+		w.casing.upKick = cj["upKick"];
+		w.casing.upBias = cj["upBias"];
+		w.casing.spinMin = cj["spinMin"];
+		w.casing.spinMax = cj["spinMax"];
+		Copy4(cj["color"], w.casing.color);
+		Copy3(cj["scale"], w.casing.scale);
+		return true;
+	}
+	catch (...) {
+		return false;
+	}
+}
+
 /// -------------------------------------------------------------
 ///				　		コンストラクタ
 /// -------------------------------------------------------------
@@ -124,6 +252,7 @@ std::unordered_map<std::string, WeaponData> Weapon::LoadWeapon(const std::string
 
 		/// ---------- 基本情報読み込み ---------- ///
 		w.name = wj["name"].get<std::string>(); // 武器名
+		w.clazz = ParseClass(wj);				// カテゴリー
 		w.muzzleSpeed = wj["muzzleSpeed"];		// m/s (銃口初速)
 		w.maxDistance = wj["maxDistance"];		// m (弾の飛距離)
 		w.rpm = wj["rpm"];						// 発射レート (rounds per minute)
@@ -297,4 +426,98 @@ bool Weapon::SaveWeapons(const std::string& filePath, const std::unordered_map<s
 	if (!ofs) return false;
 	ofs << std::setw(2) << root << std::endl;
 	return true;
+}
+
+/// -------------------------------------------------------------
+///				　武器データ読み込み処理（短縮版）
+/// -------------------------------------------------------------
+std::unordered_map<std::string, WeaponData> Weapon::LoadFromPath(const std::string& filePath)
+{
+	// 入力ディレクトリ確認
+	std::unordered_map<std::string, WeaponData> out;
+	std::error_code ec; // エラーコード受け取り用
+
+	if (fs::exists(filePath, ec) && fs::is_directory(filePath, ec))
+	{
+		for (auto& entry : fs::directory_iterator(filePath))
+		{
+			if (!entry.is_regular_file()) continue;
+			if (entry.path().extension() != ".json") continue;
+
+			std::ifstream ifs(entry.path());
+			if (!ifs) continue;
+			json root;
+			try { ifs >> root; }
+			catch (...) { continue; }
+
+			// 1武器オブジェクト or 従来の "weapons" 配列の両対応
+			if (root.contains("weapons") && root["weapons"].is_array())
+			{
+				for (auto& wj : root["weapons"])
+				{
+					WeaponData w{};
+					if (FromJsonWeaponObject(wj, w)) out[w.name] = w;
+				}
+			}
+			else
+			{
+				WeaponData w{};
+				if (FromJsonWeaponObject(root, w)) out[w.name] = w;
+			}
+		}
+		return out;
+	}
+	// ファイルなら従来ローダに委譲
+	return LoadWeapon(filePath);
+}
+
+/// -------------------------------------------------------------
+///				　武器データ保存処理（短縮版）
+/// -------------------------------------------------------------
+bool Weapon::SaveToPath(const std::string& filePath, const std::unordered_map<std::string, WeaponData>& weaponTable)
+{
+	// 出力ディレクトリ作成
+	std::error_code ec;
+	fs::path p(filePath);
+
+	// ディレクトリが存在しない場合は作成
+	if ((fs::exists(p, ec) && fs::is_directory(p, ec)) || !p.has_extension())
+	{
+		// 存在していてディレクトリならOK
+		fs::create_directories(filePath, ec);
+		bool allSucceeded = true;
+		for (auto& [name, weapon] : weaponTable)
+		{
+			std::string fileName = Slugify(name) + ".json"; // ファイル名生成
+			fs::path out = fs::path(filePath) / fileName; // フルパス生成
+			allSucceeded &= SaveOne(out.string(), weapon); // 保存
+		}
+		return allSucceeded;
+	}
+	else
+	{
+		// 従来の巨大ファイル保存方式で保存
+		return SaveWeapons(filePath, weaponTable);
+	}
+}
+
+/// -------------------------------------------------------------
+///				　単一武器データ保存処理
+/// -------------------------------------------------------------
+bool Weapon::SaveOne(const std::string& filePath, const WeaponData& weaponData)
+{
+	json j = ToJson(weaponData); // WeaponData→json変換
+	std::ofstream ofs(filePath); // ファイルを開く
+	if (!ofs) return false;
+	ofs << std::setw(2) << j << std::endl; // 整形して書き込み
+	return true;
+}
+
+/// -------------------------------------------------------------
+///				　移行ヘルパ（巨大->分離）
+/// -------------------------------------------------------------
+bool Weapon::MigrateMonolithToDir(const std::string& monolithJson, const std::string& outDir)
+{
+	auto weaponTable = LoadWeapon(monolithJson);
+	return SaveToPath(outDir, weaponTable);
 }
