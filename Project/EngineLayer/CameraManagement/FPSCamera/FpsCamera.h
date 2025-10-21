@@ -84,7 +84,7 @@ private: // ---------- メンバ ---------- //
 	const float maxPitch_ = +1.5f; // 上限
 
 	// カメラ高さオフセット（頭位置）
-	float eyeHeight_ = 1.8f;
+	float eyeHeight_ = 1.5f;
 
 	// Aiming状態フラグ
 	bool isAiming_ = false;

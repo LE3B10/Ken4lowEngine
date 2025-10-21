@@ -222,6 +222,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClCompile Include="ApplicationLayer\WeaponSystem\Weapon\Loadout\Loadout.cpp" />
     <ClCompile Include="ApplicationLayer\WeaponSystem\Weapon\WeaponCatalog\WeaponCatalog.cpp" />
     <ClCompile Include="ApplicationLayer\WeaponSystem\Weapon\WeaponEditorUI\WeaponEditorUI.cpp" />
+    <ClCompile Include="ApplicationLayer\Character\Scarecrow.cpp" />
     <ClCompile Include="WinMain.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
@@ -556,6 +557,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="ApplicationLayer\WeaponSystem\Weapon\Loadout\Loadout.h" />
     <ClInclude Include="ApplicationLayer\WeaponSystem\Weapon\WeaponCatalog\WeaponCatalog.h" />
     <ClInclude Include="ApplicationLayer\WeaponSystem\Weapon\WeaponEditorUI\WeaponEditorUI.h" />
+    <ClInclude Include="ApplicationLayer\Character\Scarecrow.h" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="externals\DirectXTex\DirectXTex_Desktop_2022_Win10.vcxproj">

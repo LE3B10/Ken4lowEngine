@@ -409,6 +409,9 @@
     <ClCompile Include="ApplicationLayer\WeaponSystem\Weapon\WeaponCatalog\WeaponCatalog.cpp">
       <Filter>ApplicationLayer\WeaponSystem\Weapon\WeaponCatalog</Filter>
     </ClCompile>
+    <ClCompile Include="ApplicationLayer\Character\Scarecrow.cpp">
+      <Filter>ApplicationLayer\Character</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="EngineLayer\Math\MultipleStructs\AABB.h">
@@ -860,6 +863,9 @@
     </ClInclude>
     <ClInclude Include="ApplicationLayer\WeaponSystem\Weapon\WeaponConfig\WeaponClass.h">
       <Filter>ApplicationLayer\WeaponSystem\Weapon\WeaponConfig</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Character\Scarecrow.h">
+      <Filter>ApplicationLayer\Character</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

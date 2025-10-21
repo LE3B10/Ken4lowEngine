@@ -134,9 +134,10 @@ void ModelParticle::SpawnBurst(const Vector3& pos, const Vector3& normal, uint32
 		p->vel = { dir.x * baseSpeed_, dir.y * baseSpeed_, dir.z * baseSpeed_ };
 		p->angVel = { (urand_(rng_) - 0.5f) * 8.0f, (urand_(rng_) - 0.5f) * 8.0f, (urand_(rng_) - 0.5f) * 8.0f };
 
-		// 寿命・サイズ
+		// 寿命・サイズ・色
 		p->ttl = lifeMin_ + (lifeMax_ - lifeMin_) * urand_(rng_);
 		p->scale = startScale_;
+		p->obj->SetColor({ 1.0f, 0.5f, 0.0f, 1.0f });
 
 		// 位置・姿勢
 		p->pos = pos;

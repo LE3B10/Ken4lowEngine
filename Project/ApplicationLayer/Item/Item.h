@@ -78,5 +78,5 @@ private: /// ---------- メンバ変数 ---------- ///
 	float rotationSpeed_ = 0.01f; // 回転速度（ラジアン単位）
 
 	float lifetime_ = 0.0f;
-	const float maxLifetime_ = 10.0f; // 秒単位で存在限界時間
+	const float maxLifetime_ = 999.0f; // 秒単位で存在限界時間
 };

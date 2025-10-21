@@ -29,7 +29,7 @@ void GameEngine::Initialize()
 	SceneManager::GetInstance()->SetAbstractSceneFactory(std::move(sceneFactory));
 
 	// 最初のシーンを設定
-	SceneManager::GetInstance()->SetNextScene(std::make_unique<GamePlayScene>());
+	SceneManager::GetInstance()->SetNextScene(std::make_unique<TitleScene>());
 }
 
 
@@ -76,21 +76,21 @@ void GameEngine::Draw()
 #ifdef _DEBUG // デバッグモードの場合
 
 	// グローバル変数の更新
-	//ParameterManager::GetInstance()->Update();
+	ParameterManager::GetInstance()->Update();
 
 	//defaultCamera_->DrawImGui();
 
 	// ImGuiを描画
-	//Object3DCommon::GetInstance()->DrawImGui();
+	Object3DCommon::GetInstance()->DrawImGui();
 
 	// シーンのImGuiの描画処理
 	SceneManager::GetInstance()->DrawImGui();
 
 	// ParticleManagerのImGuiの描画処理
-	//ParticleManager::GetInstance()->DrawImGui();
+	ParticleManager::GetInstance()->DrawImGui();
 
 	// PostEffectManagerのImGuiの描画処理
-	//PostEffectManager::GetInstance()->ImGuiRender();
+	PostEffectManager::GetInstance()->ImGuiRender();
 
 #endif // _DEBUG
 	/// ---------- ImGuiフレーム終了 ---------- ///

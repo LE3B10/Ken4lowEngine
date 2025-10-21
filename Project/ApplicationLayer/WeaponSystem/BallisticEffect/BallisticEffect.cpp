@@ -1,10 +1,12 @@
 #define NOMINMAX
 #include "BallisticEffect.h"
+#include "CollisionManager.h"
 
 #include <algorithm>
 #include <cmath>
 
 #include <imgui.h>
+#include <CollisionUtility.h>
 
 // 省略 <numbers>
 using namespace std::numbers;
@@ -166,12 +168,15 @@ void BallisticEffect::Update()
 
 		// 最大距離や速度で弾を終了
 		float speedNow = Vector3::Length(b.velocity);
-		if (b.traveled > currentWeapon_.maxDistance || speedNow < 1.0f) {
+		if (b.traveled > currentWeapon_.maxDistance || speedNow < 1.0f)
+		{
 			b.alive = false;
 
 			// 自分のセグメントも終了させる
-			for (auto& s : trails_) {
-				if (s.attached && s.ownerId == b.userShotCount) {
+			for (auto& s : trails_)
+			{
+				if (s.attached && s.ownerId == b.userShotCount)
+				{
 					s.alive = false; // 回収対象に
 					break;
 				}
@@ -386,47 +391,6 @@ void BallisticEffect::Draw()
 /// -------------------------------------------------------------
 void BallisticEffect::Start(const Vector3& position, const Vector3& velocity, const WeaponConfig& weapon)
 {
-	//currentWeapon_ = weapon;
-
-	//// 親があれば「親＋offset_」から撃つ
-	//Vector3 basePos = position;
-	//if (parentTransform_)
-	//{
-	//	basePos = ComputeMuzzleWorld(parentTransform_, transform_, offset_);
-	//}
-
-	//// 進行方向
-	//Vector3 fwd = Vector3::Length(velocity) > 0.0f ? Vector3::Normalize(velocity) : Vector3{ 0,0,1 };
-
-	//// オフセット適用（武器ごとの微調整）
-	//Vector3 muzzlePos = basePos + fwd * weapon.muzzle.offsetForward;
-	//Vector3 sparkPos = basePos + fwd * weapon.muzzle.sparkOffsetForward;
-	//Vector3 bulletPos = basePos + fwd * weapon.tracer.startOffsetForward;
-
-	//// マズルフラッシュ
-	//if (weapon.muzzle.enabled)
-	//{
-	//	SpawnMuzzleFlash(muzzlePos, fwd, weapon);
-	//	if (weapon.muzzle.sparksEnabled)
-	//	{
-	//		SpawnMuzzleSparks(sparkPos, fwd, weapon);
-	//	}
-	//}
-
-	//// 薬莢
-	//if (weapon.casing.enabled) {
-	//	// 薬莢の基準点は basePos（銃口根元）。ここから右・上・後ろにオフセット
-	//	SpawnCasing(basePos, fwd, weapon);
-	//}
-
-	//// 弾丸（再利用or新規）
-	//for (auto& b : bullets_) if (!b.alive) {
-	//	b.position = bulletPos; b.velocity = velocity; b.alive = true;
-	//	b.traveled = 0.0f; b.userShotCount = ++shotCounter_; return;
-	//}
-	//Bullet nb{ bulletPos, velocity, true, 0.0f, ++shotCounter_ };
-	//bullets_.push_back(nb);
-
 	currentWeapon_ = weapon;
 	Vector3 basePos = position;
 	if (parentTransform_) basePos = ComputeMuzzleWorld(parentTransform_, transform_, offset_);
@@ -445,7 +409,7 @@ void BallisticEffect::Start(const Vector3& position, const Vector3& velocity, co
 
 	// --- 散弾処理開始 ---
 	int pellets = std::max(1u, weapon.bulletsPerShot);
-	float coneRad = (weapon.spreadDeg * (3.14159265358979323846f / 180.0f)) * 0.5f; // 半角（左右上下に広がるので半分）
+	float coneRad = (weapon.spreadDeg * (std::numbers::pi_v<float> / 180.0f)) * 0.5f; // 半角（左右上下に広がるので半分）
 	auto rand01 = []() { return (float)rand() / (float)RAND_MAX; };
 
 	// Decide tracer behavior
@@ -469,7 +433,7 @@ void BallisticEffect::Start(const Vector3& position, const Vector3& velocity, co
 		float u = rand01();
 		float v = rand01();
 		float theta = coneRad * std::sqrt(u); // sqrt to avoid edge clustering
-		float phi = 2.0f * std::numbers::pi_v<float> * v;
+		float phi = 2.0f * std::numbers::pi_v<float> *v;
 
 		// build orthonormal basis around fwd
 		Vector3 z = Vector3::Normalize(fwd);
@@ -482,13 +446,15 @@ void BallisticEffect::Start(const Vector3& position, const Vector3& velocity, co
 			z * (std::cos(theta))
 		);
 
-		// speed may be same muzzle speed; if you want per pellet variance, add small jitter
+		// 弾速ベクトル
 		Vector3 pelletVel = dir * weapon.muzzleSpeed;
 
-		// create or reuse Bullet slot
+		// 弾丸を追加
 		bool placed = false;
-		for (auto& b : bullets_) {
-			if (!b.alive) {
+		for (auto& b : bullets_)
+		{
+			if (!b.alive)
+			{
 				b.position = bulletBasePos;
 				b.velocity = pelletVel;
 				b.alive = true;
@@ -498,7 +464,10 @@ void BallisticEffect::Start(const Vector3& position, const Vector3& velocity, co
 				break;
 			}
 		}
-		if (!placed) {
+
+		// 空きがなければ新規追加
+		if (!placed)
+		{
 			Bullet nb{ bulletBasePos, pelletVel, true, 0.0f, ++shotCounter_ };
 			bullets_.push_back(nb);
 		}
@@ -510,8 +479,6 @@ void BallisticEffect::Start(const Vector3& position, const Vector3& velocity, co
 			// if this pellet's index was chosen for tracer
 			for (int ti : tracerIndices) if (ti == i) { spawnTracer = true; break; }
 		}
-		// If spawnTracer, we already created a Bullet with userShotCount == shotCounter_
-		// The per-frame Update() will create trail segment for bullets based on userShotCount.
 	}
 }
 
