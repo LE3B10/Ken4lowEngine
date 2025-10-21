@@ -20,6 +20,8 @@ void Player::Initialize()
 
 	// ID登録
 	Collider::SetTypeID(static_cast<uint32_t>(CollisionTypeIdDef::kPlayer));
+	Collider::SetOwner<Player>(this);
+	Collider::SetOBBHalfSize({ 0.8f, 2.0f, 0.8f });
 
 	body_.object = std::make_unique<Object3D>();
 	body_.object->Initialize("PlayerRoot/player_body.gltf");
@@ -123,7 +125,7 @@ void Player::Update()
 	if (input_->TriggerKey(DIK_5)) { auto n = loadout_->SelectNameByClass(WeaponClass::Sniper, weaponCatalog_->All()); if (!n.empty()) SelectWeapon(n); }
 	if (input_->TriggerKey(DIK_6)) { auto n = loadout_->SelectNameByClass(WeaponClass::Heavy, weaponCatalog_->All()); if (!n.empty()) SelectWeapon(n); }
 
-
+	// 移動処理
 	Move();
 
 	pistolWeapon_->Update(1.0f / 60.0f);
@@ -218,7 +220,7 @@ void Player::Draw()
 /// -------------------------------------------------------------
 Vector3 Player::GetCenterPosition() const
 {
-	const Vector3 offset = { 0.0f,3.0f,0.0f };
+	const Vector3 offset = { 0.0f,1.0f,0.0f };
 	Vector3 worldPosition = body_.transform.translate_ + offset;
 	return worldPosition;
 }
@@ -228,6 +230,8 @@ Vector3 Player::GetCenterPosition() const
 /// -------------------------------------------------------------
 void Player::Move()
 {
+	Collider::SetCenterPosition(body_.transform.translate_ - Vector3{ 0.0f,0.3f,0.0f });
+
 	// 仮実装
 	const float moveSpeed = 0.1f;
 	Vector3 move{ 0,0,0 };

@@ -53,10 +53,15 @@ void GamePlayScene::Initialize()
 	crosshair_ = std::make_unique<Crosshair>();
 	crosshair_->Initialize();
 
-	collisionManager_ = std::make_unique<CollisionManager>();
+	scarecrow_ = std::make_unique<Scarecrow>();
+	scarecrow_->Initialize();
 
-	modelParticle_ = std::make_unique<ModelParticle>();
-	modelParticle_->Initialize();
+	itemManager_ = std::make_unique<ItemManager>();
+	itemManager_->Initialize();
+	itemManager_->Spawn(ItemType::HealSmall, player_->GetWorldTransform()->translate_ + Vector3{ 30.0f, 0.0f, 30.0f });
+
+	collisionManager_ = std::make_unique<CollisionManager>();
+	collisionManager_->Initialize();
 }
 
 
@@ -93,7 +98,7 @@ void GamePlayScene::Update()
 	{
 	case GameState::Playing:
 		player_->Update();
-		modelParticle_->Update();
+
 		break;
 	case GameState::Paused:
 		break;
@@ -109,8 +114,17 @@ void GamePlayScene::Update()
 
 	crosshair_->Update();
 
+	scarecrow_->Update();
+
 	// フェードの更新
 	fadeController_->Update(dxCommon_->GetFPSCounter().GetDeltaTime());
+
+	// アイテムの更新と衝突判定
+	itemManager_->Update(player_.get());
+
+	// 衝突マネージャの更新
+	collisionManager_->Update();
+	CheckAllCollisions();
 }
 
 
@@ -135,7 +149,10 @@ void GamePlayScene::Draw3DObjects()
 
 	player_->Draw();
 
-	modelParticle_->Draw();
+	scarecrow_->Draw();
+
+	// アイテムの描画
+	itemManager_->Draw();
 
 #pragma endregion
 
@@ -147,13 +164,13 @@ void GamePlayScene::Draw3DObjects()
 
 #ifdef _DEBUG
 	// 衝突判定を行うオブジェクトの描画
-	//collisionManager_->Draw();
+	collisionManager_->Draw();
 
 	// FPSカメラの描画
 	//fpsCamera_->DrawDebugCamera();
 
 	// ワイヤーフレームの描画
-	Wireframe::GetInstance()->DrawGrid(100.0f, 100.0f, { 0.25f, 0.25f, 0.25f,1.0f });
+	Wireframe::GetInstance()->DrawGrid(100.0f, 50.0f, { 0.25f, 0.25f, 0.25f,1.0f });
 
 #endif // _DEBUG
 }
@@ -235,6 +252,11 @@ void GamePlayScene::CheckAllCollisions()
 
 	// コライダーをリストに登録
 	collisionManager_->AddCollider(player_.get()); // プレイヤー
+
+	collisionManager_->AddCollider(scarecrow_.get()); // 案山子
+
+	// アイテムのコライダーを登録
+	itemManager_->RegisterColliders(collisionManager_.get());
 
 	// 衝突判定と応答
 	collisionManager_->CheckAllCollisions();

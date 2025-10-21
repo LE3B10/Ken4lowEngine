@@ -98,6 +98,8 @@ public: /// ---------- メンバ関数 ---------- ///
 	// 弾道開始
 	void Start(const Vector3& position, const Vector3& velocity, const WeaponConfig& weapon);
 
+public: /// ---------- セッター・ゲッター ---------- ///
+
 	// 親Transformを設定
 	void SetParentTransform(const WorldTransformEx* parent) {
 		parentTransform_ = parent;

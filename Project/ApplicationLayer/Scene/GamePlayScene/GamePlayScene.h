@@ -11,6 +11,8 @@
 #include "ModelParticle.h"
 #include "BallisticEffect.h"
 #include "Crosshair.h"
+#include "Scarecrow.h" // 案山子クラス
+#include "ItemManager.h"
 
 /// ---------- 前方宣言 ---------- ///
 class DirectXCommon;
@@ -87,6 +89,9 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	std::unique_ptr<Player> player_ = nullptr; // プレイヤー
 	std::unique_ptr<Crosshair> crosshair_ = nullptr; // クロスヘア
-	std::unique_ptr<ModelParticle> modelParticle_ = nullptr; // モデルパーティクル
 	std::unique_ptr<BallisticEffect> ballisticEffect_ = nullptr; // 弾道エフェクト
+
+	std::unique_ptr<Scarecrow> scarecrow_ = nullptr; // 案山子
+
+	std::unique_ptr<ItemManager> itemManager_ = nullptr; // アイテムマネージャー
 };

@@ -40,7 +40,7 @@ public: /// ---------- メンバ関数 ---------- ///
 	void DrawImGui() override;
 
 	// ワールド変換の取得
-	const WorldTransformEx* GetWorldTransform() { return &body_.transform; }
+	WorldTransformEx* GetWorldTransform() { return &body_.transform; }
 
 	// 衝突時に呼ばれる仮想関数
 	void OnCollision(Collider* other) override {};

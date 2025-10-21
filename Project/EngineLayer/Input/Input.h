@@ -149,6 +149,7 @@ public: /// ---------- マウスのメンバ関数 ---------- ///
 
 	// カーソルをロックするかどうかを設定
 	void SetLockCursor(bool lock) { lockCursor_ = lock; }
+	bool GetLockCursor() const { return lockCursor_; }
 
 	// カーソルをロックするかどうかを取得
 	bool IsCursorLocked() const { return lockCursor_; }
