@@ -193,8 +193,8 @@ void BallisticEffect::Update()
 		if (s.age >= s.life) s.alive = false;
 	}
 
-	auto it = trails_.begin();
-	while (it != trails_.end())
+	// 死んだセグメントを回収
+	for (auto it = trails_.begin(); it != trails_.end();)
 	{
 		if (!it->alive)
 		{
@@ -227,14 +227,14 @@ void BallisticEffect::Update()
 		if (f.age >= f.life) f.alive = false;
 	}
 	// 死んだものを返却
-	for (auto it = flashes_.begin(); it != flashes_.end(); )
+	for (auto fl = flashes_.begin(); fl != flashes_.end(); )
 	{
-		if (!it->alive)
+		if (!fl->alive)
 		{
-			if (it->object) flashFree_.push_back(it->object);
-			it = flashes_.erase(it);
+			if (fl->object) flashFree_.push_back(fl->object);
+			fl = flashes_.erase(fl);
 		}
-		else ++it;
+		else ++fl;
 	}
 
 	// スパーク更新
@@ -250,12 +250,12 @@ void BallisticEffect::Update()
 	}
 
 	// 消滅したスパークを返却
-	for (auto it = sparks_.begin(); it != sparks_.end(); ) {
-		if (!it->alive) {
-			if (it->object) sparkFree_.push_back(it->object);
-			it = sparks_.erase(it);
+	for (auto sp = sparks_.begin(); sp != sparks_.end(); ) {
+		if (!sp->alive) {
+			if (sp->object) sparkFree_.push_back(sp->object);
+			sp = sparks_.erase(sp);
 		}
-		else ++it;
+		else ++sp;
 	}
 
 	// ----- 薬莢更新 -----
@@ -274,12 +274,12 @@ void BallisticEffect::Update()
 		c.ang += c.angVel * dt;
 	}
 	// 返却
-	for (auto it = casings_.begin(); it != casings_.end(); ) {
-		if (!it->alive) {
-			if (it->object) casingFree_.push_back(it->object);
-			it = casings_.erase(it);
+	for (auto ca = casings_.begin(); ca != casings_.end(); ) {
+		if (!ca->alive) {
+			if (ca->object) casingFree_.push_back(ca->object);
+			ca = casings_.erase(ca);
 		}
-		else ++it;
+		else ++ca;
 	}
 }
 
@@ -427,13 +427,12 @@ void BallisticEffect::Start(const Vector3& position, const Vector3& velocity, co
 		}
 	}
 
-	for (int i = 0; i < pellets; ++i) {
-		// sample direction inside cone around fwd
-		// using spherical coordinates (theta from 0..cone, phi 0..2pi)
+	for (int i = 0; i < pellets; ++i)
+	{
 		float u = rand01();
 		float v = rand01();
 		float theta = coneRad * std::sqrt(u); // sqrt to avoid edge clustering
-		float phi = 2.0f * std::numbers::pi_v<float> *v;
+		float phi_ = 2.0f * std::numbers::pi_v<float> *v;
 
 		// build orthonormal basis around fwd
 		Vector3 z = Vector3::Normalize(fwd);
@@ -441,8 +440,8 @@ void BallisticEffect::Start(const Vector3& position, const Vector3& velocity, co
 		Vector3 y = Vector3::Normalize(Vector3::Cross(z, x));
 
 		Vector3 dir = Vector3::Normalize(
-			x * (std::sin(theta) * std::cos(phi)) +
-			y * (std::sin(theta) * std::sin(phi)) +
+			x * (std::sin(theta) * std::cos(phi_)) +
+			y * (std::sin(theta) * std::sin(phi_)) +
 			z * (std::cos(theta))
 		);
 
@@ -581,14 +580,14 @@ void BallisticEffect::SpawnMuzzleSparks(const Vector3& pos, const Vector3& forwa
 		// 前方を中心にしたランダム方向（円錐分布）
 		float u = rand01(), v = rand01();
 		float theta = cone * std::sqrt(u);      // 端に寄り過ぎないように sqrt
-		float phi = 2.0f * pi_v<float> *v;
+		float phi_ = 2.0f * pi_v<float> *v;
 
 		// 直交基底を作って forward を中心に回す
 		Vector3 z = Vector3::Normalize(forward);
 		Vector3 x = Vector3::Normalize((fabs(z.y) < 0.999f) ? Vector3{ -z.z,0,z.x } : Vector3{ 1,0,0 });
 		Vector3 y = Vector3::Normalize(Vector3::Cross(z, x));
-		Vector3 dir = Vector3::Normalize(x * (std::sin(theta) * std::cos(phi)) +
-			y * (std::sin(theta) * std::sin(phi)) +
+		Vector3 dir = Vector3::Normalize(x * (std::sin(theta) * std::cos(phi_)) +
+			y * (std::sin(theta) * std::sin(phi_)) +
 			z * (std::cos(theta)));
 
 		float speed = weapon.muzzle.sparkSpeedMin +
@@ -637,11 +636,11 @@ void BallisticEffect::SpawnCasing(const Vector3& basePos, const Vector3& forward
 	// 右方向を中心に円錐でばらす
 	auto rand01 = []() { return (float)rand() / (float)RAND_MAX; };
 	float theta = (weapon.casing.coneDeg * std::numbers::pi_v<float> / 180.0f) * std::sqrt(rand01());
-	float phi = 2.0f * std::numbers::pi_v<float> *rand01();
+	float phi_ = 2.0f * std::numbers::pi_v<float> *rand01();
 	// 右(x)を中心軸にする
 	Vector3 dir = Vector3::Normalize(
 		x * std::cos(theta) +
-		(y * std::cos(phi) + z * std::sin(phi)) * std::sin(theta)
+		(y * std::cos(phi_) + z * std::sin(phi_)) * std::sin(theta)
 	);
 
 	dir = Vector3::Normalize(dir + y * weapon.casing.upBias);

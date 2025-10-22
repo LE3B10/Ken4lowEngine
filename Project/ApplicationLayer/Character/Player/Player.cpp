@@ -479,7 +479,7 @@ void Player::DrawImGui()
 
 	// --- メインの “武器編集UI” 呼び出し ---
 	if (!weaponEditorUI_) weaponEditorUI_ = std::make_unique<WeaponEditorUI>();
-	weaponEditorUI_->DrawImGui(*weaponCatalog_, *loadout_, currentName, hooks);
+	weaponEditorUI_->DrawImGui(*weaponCatalog_, currentName, hooks);
 
 	// --- フレーム末の遅延実行（Add/Delete） ---
 	for (auto& [newName, baseName] : pendingAdds_) {

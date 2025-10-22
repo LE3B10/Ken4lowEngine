@@ -27,7 +27,7 @@ class WeaponEditorUI
 public: /// ---------- メンバ関数 ---------- ///
 
 	// ImGui描画処理
-	void DrawImGui(WeaponCatalog& catalog, Loadout& loadout, const std::string& currentWeaponName, const WeaponEditorHooks& hooks);
+	void DrawImGui(WeaponCatalog& catalog, const std::string& currentWeaponName, const WeaponEditorHooks& hooks);
 
 private: /// ---------- メンバ関数 ---------- ///
 

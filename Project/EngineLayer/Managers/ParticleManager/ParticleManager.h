@@ -66,7 +66,7 @@ public: /// ---------- 構造体 ---------- ///
 		// マテリアルデータ(テクスチャファイルとテクスチャ用SRVインデックス)
 		ParticleMaterial materialData;
 		// パーティクルのリスト(std::list<Particle>型)
-		uint32_t srvIndex;
+		uint32_t srvIndex = 0;
 		// インスタンシングデータ用SRVインデックス
 		ComPtr<ID3D12Resource> instancebuffer;
 		// インスタンシングリソース

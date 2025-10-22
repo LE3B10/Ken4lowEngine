@@ -71,7 +71,7 @@ void GridStageSelector::Update(float deltaTime)
 	UpdatePress(input, mp);
 
 	// ホイール
-	UpdateWheel(mp);
+	UpdateWheel();
 
 	// ドラッグ
 	UpdateDrassing(input, mp, deltaTime);
@@ -360,7 +360,7 @@ void GridStageSelector::UpdatePress(Input* input, Vector2& mp)
 /// -------------------------------------------------------------
 ///				　		　ホイール
 /// -------------------------------------------------------------
-void GridStageSelector::UpdateWheel(Vector2& mouse)
+void GridStageSelector::UpdateWheel()
 {
 	int wheel = context_.input->GetMouseWheel(); // 環境により GetMouseWheel()
 
@@ -368,7 +368,7 @@ void GridStageSelector::UpdateWheel(Vector2& mouse)
 	if (wheel != 0 && !dragging_ && !tweenActive_)
 	{
 		// Windows標準の1ノッチ=120を想定（必要に応じて係数調整）
-		int steps = std::clamp(wheel / 120, -3, 3); // ★ 追加
+		int steps = std::clamp(wheel / 120, -3, 3);
 		if (steps != 0)
 		{
 			int curIdx = GetCenterIndex();

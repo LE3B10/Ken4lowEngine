@@ -268,8 +268,6 @@ void AnimationModel::Update()
 /// -------------------------------------------------------------
 void AnimationModel::Draw()
 {
-	auto commandList = dxCommon_->GetCommandManager()->GetCommandList();
-
 	// --- Standalone only（大量描画では Scene 側で一括する）---
 	// Compute 一括セット（スタンドアロン用）
 	UAVManager::GetInstance()->PreDispatch();
@@ -698,7 +696,6 @@ void AnimationModel::UpdateAnimation()
 Animation AnimationModel::LoadAnimationFile(const std::string& fileName)
 {
 	// アニメーションを解析
-	Animation animation{};
 	Assimp::Importer importer;
 	std::string filePath = "Resources/Models/" + fileName;
 	const aiScene* scene = importer.ReadFile(filePath.c_str(), 0);

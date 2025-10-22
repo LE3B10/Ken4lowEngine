@@ -68,7 +68,7 @@ void Mp3Loader::PlaySEAsync(const std::string& fileName, float volume, float pit
 
 			WAVEFORMATEX format = {};
 			format.wFormatTag = WAVE_FORMAT_PCM;
-			format.nChannels = mp3.info.channels;
+			format.nChannels = static_cast<WORD>(mp3.info.channels);
 			format.nSamplesPerSec = mp3.info.hz;
 			format.wBitsPerSample = 16;
 			format.nBlockAlign = format.nChannels * format.wBitsPerSample / 8;
@@ -204,7 +204,7 @@ void Mp3Loader::StreamAudio(const std::string& fileName, float volume, float pit
 	// デコーダから取得した情報をもとに音声フォーマットを構築
 	WAVEFORMATEX format = {};
 	format.wFormatTag = WAVE_FORMAT_PCM;
-	format.nChannels = mp3.info.channels;
+	format.nChannels = static_cast<WORD>(mp3.info.channels);
 	format.nSamplesPerSec = mp3.info.hz;
 	format.wBitsPerSample = 16;
 	format.nBlockAlign = format.nChannels * format.wBitsPerSample / 8;

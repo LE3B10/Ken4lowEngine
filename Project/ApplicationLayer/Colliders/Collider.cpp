@@ -64,7 +64,6 @@ void Collider::Draw()
 	Vector3 axis = capsule_.GetAxis();
 	if (useCapsule_ && drawCapsule_ && capsule_.radius > 0.001f)
 	{
-		Vector3 axis = capsule_.GetAxis();
 		if (Vector3::Length(axis) < 1e-6f)
 			Wireframe::GetInstance()->DrawSphere(capsule_.segment.origin, capsule_.radius, debugColor_);
 		else
