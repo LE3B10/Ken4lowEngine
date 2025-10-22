@@ -1,9 +1,9 @@
 #pragma once
 #include <NumberSpriteDrawer.h>
 #include <ReloadCircle.h>
-#include "Weapon.h" // Weaponを使うために追加
 
 #include <algorithm>
+#include <unordered_map>
 
 /// ---------- 武器のカテゴリ ---------- ///
 enum class WeaponCategory
@@ -98,7 +98,7 @@ public: /// ---------- セッター ---------- ///
 	void SetWeapon(Weapon* weapon) { if (reloadCircle_) reloadCircle_->SetWeapon(weapon); }
 
 	// 弾薬情報を武器から設定する
-	void SetAmmoFromWeapon(const Weapon* weapon) { if (weapon) { ammoInClip_ = weapon->GetAmmoInClip(); ammoReserve_ = weapon->GetAmmoReserve(); } }
+	//void SetAmmoFromWeapon(const Weapon* weapon) { if (weapon) { ammoInClip_ = weapon->GetAmmoInClip(); ammoReserve_ = weapon->GetAmmoReserve(); } }
 
 	void SetWaveInfo(int currentWave, int totalWaves);
 

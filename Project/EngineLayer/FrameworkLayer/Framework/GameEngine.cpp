@@ -78,7 +78,7 @@ void GameEngine::Draw()
 	// グローバル変数の更新
 	ParameterManager::GetInstance()->Update();
 
-	defaultCamera_->DrawImGui();
+	//defaultCamera_->DrawImGui();
 
 	// ImGuiを描画
 	Object3DCommon::GetInstance()->DrawImGui();

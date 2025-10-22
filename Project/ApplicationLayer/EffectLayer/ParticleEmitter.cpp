@@ -24,12 +24,13 @@ void ParticleEmitter::Update()
     int particleCount = static_cast<int>(emissionRate_);
     if (particleCount > 0)
     {
-        // ← グループに設定された type を取得
+        // グループに設定された type を取得
         ParticleEffectType type = particleManager_->GetGroupType(groupName_);
 
-        // ← 自動で対応した type を使って射出
+        // 自動で対応した type を使って射出
         particleManager_->Emit(groupName_, position_, particleCount, type);
 
+		// 発生済み分を減算
         accumulatedTime_ -= static_cast<float>(particleCount) / emissionRate_;
     }
 }

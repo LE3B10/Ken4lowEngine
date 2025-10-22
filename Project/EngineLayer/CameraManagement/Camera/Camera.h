@@ -53,6 +53,9 @@ public: /// ---------- セッター ---------- ///
 	// ビュー射影行列の設定
 	void SetViewProjectionMatrix(const Matrix4x4& viewProjectionMatrix) { viewProjectionMatrix_ = viewProjectionMatrix; }
 
+	// 中視点の設定
+	void SetTraget(const Vector3& target) { target_ = target; }
+
 public: /// ---------- ゲッター ---------- ///
 
 	// スケールの取得
@@ -92,6 +95,8 @@ private: /// ---------- メンバ変数 ----- ///
 
 	// ビュー行列データ
 	Matrix4x4 viewMatrix_;
+
+	Vector3 target_{ 0, 0, 1 };  // デフォルトでZ前方を注視
 
 	// プロジェクション行列データ
 	Matrix4x4 projectionMatrix_;

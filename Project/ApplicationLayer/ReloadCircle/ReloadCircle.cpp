@@ -1,5 +1,4 @@
 #include "ReloadCircle.h"
-#include "Weapon.h"
 #include "winApp.h"
 
 #include <numbers>
@@ -30,12 +29,12 @@ void ReloadCircle::Update()
 	if (!sprite_ || !weapon_) return;
 
 	// 武器の状態を直接参照
-	bool isReloading = weapon_->IsReloading();
-	float progress = weapon_->GetReloadProgress();
+	/*bool isReloading = weapon_->IsReloading();
+	float progress = weapon_->GetReloadProgress();*/
 
 	// スプライトに情報を渡す
-	sprite_->SetReloadProgress(isReloading, progress);
-	sprite_->Update();
+	/*sprite_->SetReloadProgress(isReloading, progress);
+	sprite_->Update();*/
 }
 
 

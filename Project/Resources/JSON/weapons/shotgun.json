@@ -1,0 +1,94 @@
+{
+  "name": "ShotGun",
+  "class": "Heavy",
+  "muzzleSpeed": 180.0,
+  "maxDistance": 80.0,
+  "rpm": 85.0,
+  "magCapacity": 8,
+  "startingReserve": 32,
+  "reloadTime": 2.0,
+  "bulletsPerShot": 8,
+  "autoReload": true,
+  "requestedMaxSegments": 256,
+  "spreadDeg": 12.0,
+  "pelletTracerMode": 1,
+  "pelletTracerCount": 8,
+  "tracer": {
+    "enabled": true,
+    "tracerLength": 3.0,
+    "tracerWidth": 0.025,
+    "minSegLength": 0.05,
+    "startOffsetForward": 0.1,
+    "color": [
+      1.0,
+      0.902,
+      0.6,
+      1.0
+    ]
+  },
+  "muzzle": {
+    "enabled": true,
+    "life": 0.08,
+    "startLength": 0.35,
+    "endLength": 0.05,
+    "startWidth": 0.25,
+    "endWidth": 0.05,
+    "randomYawDeg": 25.0,
+    "color": [
+      1.0,
+      1.0,
+      0.6,
+      1.0
+    ],
+    "offsetForward": 0.0,
+    "sparksEnabled": true,
+    "sparkCount": 20,
+    "sparkLifeMin": 0.05,
+    "sparkLifeMax": 0.155,
+    "sparkSpeedMin": 10.0,
+    "sparkSpeedMax": 18.0,
+    "sparkConeDeg": 35.0,
+    "sparkGravityY": -25.0,
+    "sparkWidth": 0.02,
+    "sparkOffsetForward": 0.04,
+    "sparkColorStart": [
+      1.0,
+      1.0,
+      0.6,
+      1.0
+    ],
+    "sparkColorEnd": [
+      0.8,
+      0.2,
+      0.0,
+      0.0
+    ]
+  },
+  "casing": {
+    "enabled": true,
+    "offsetRight": 0.12,
+    "offsetUp": 0.08,
+    "offsetBack": 0.8,
+    "speedMin": 1.5,
+    "speedMax": 2.5,
+    "coneDeg": 20.0,
+    "gravityY": -9.8,
+    "life": 2.5,
+    "drag": 0.2,
+    "upKick": 1.2,
+    "upBias": 0.25,
+    "spinMin": 10.0,
+    "spinMax": 20.0,
+    "color": [
+      0.4,
+      0.0,
+      0.0,
+      1.0
+    ],
+    "scale": [
+      0.018,
+      0.019,
+      0.065
+    ]
+  }
+}

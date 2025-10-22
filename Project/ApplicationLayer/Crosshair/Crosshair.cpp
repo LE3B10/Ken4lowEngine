@@ -18,14 +18,14 @@ void Crosshair::Initialize(const std::string& texturePath)
 	sprite_->SetPosition({
 		static_cast<float>(WinApp::kClientWidth / 2.0f),
 		static_cast<float>(WinApp::kClientHeight / 2.0f) });
-	sprite_->SetSize({ 48.0f, 48.0f });
+	sprite_->SetSize({ 64.0f, 64.0f });
 
 	// 影（黒半透明を少し大きく描く）
 	shadow_ = std::make_unique<Sprite>();
 	shadow_->Initialize(texturePath);
 	shadow_->SetAnchorPoint({ 0.5f,0.5f });
 	shadow_->SetPosition(sprite_->GetPosition());
-	shadow_->SetSize({ 52.0f,52.0f });
+	shadow_->SetSize({ 68.0f,68.0f });
 	shadow_->SetColor({ 0,0,0,0.6f });
 
 	// ヒットマーカー読み込み
@@ -45,7 +45,6 @@ void Crosshair::Initialize(const std::string& texturePath)
 	hitMarkerShadow_->SetSize({ 132.0f,132.0f });
 	hitMarkerShadow_->SetColor({ 0,0,0,0.6f });
 }
-
 
 /// -------------------------------------------------------------
 ///				　			　 更新処理
@@ -87,7 +86,6 @@ void Crosshair::Update()
 	hitMarkerShadow_->Update();
 	hitMarkerSprite_->Update();
 }
-
 
 /// -------------------------------------------------------------
 ///				　			　 描画処理

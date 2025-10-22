@@ -75,10 +75,10 @@ public:
 	static Matrix4x4 MakeScaleMatrix(const Vector3& scale);
 
 	// X軸の回転行列
-	static Matrix4x4 MakeRotateXMatrix(float radian);
+	static Matrix4x4 MakeRotateX(float radian);
 
 	// Y軸の回転行列
-	static Matrix4x4 MakeRotateYMatrix(float radian);
+	static Matrix4x4 MakeRotateY(float radian);
 
 	// Z軸の回転行列
 	static Matrix4x4 MakeRotateZMatrix(float radian);
@@ -106,4 +106,13 @@ public:
 
 	// 軸と角度から回転行列を生成
 	static Matrix4x4 MakeRotateAxisAngleMatrix(const Vector3& axis, float angle);
+
+	// 行列を分解
+	static void Decompose(const Matrix4x4& matrix, Vector3& outScale, Vector3& outRotate, Vector3& outTranslate);
+
+	// ベクトルの座標変換
+	static Vector3 Transform(const Vector3& vector, const Matrix4x4& matrix);
+
+	// LookAt行列の生成
+	static Matrix4x4 LookAt(const Vector3& eye, const Vector3& target, const Vector3& up);
 };

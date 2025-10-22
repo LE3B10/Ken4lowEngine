@@ -82,27 +82,6 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="WinMain.cpp" />
-    <ClCompile Include="Externals\imgui\imgui.cpp">
-      <Filter>Externals\ImGui</Filter>
-    </ClCompile>
-    <ClCompile Include="Externals\imgui\imgui_demo.cpp">
-      <Filter>Externals\ImGui</Filter>
-    </ClCompile>
-    <ClCompile Include="Externals\imgui\imgui_draw.cpp">
-      <Filter>Externals\ImGui</Filter>
-    </ClCompile>
-    <ClCompile Include="Externals\imgui\imgui_impl_dx12.cpp">
-      <Filter>Externals\ImGui</Filter>
-    </ClCompile>
-    <ClCompile Include="Externals\imgui\imgui_impl_win32.cpp">
-      <Filter>Externals\ImGui</Filter>
-    </ClCompile>
-    <ClCompile Include="Externals\imgui\imgui_tables.cpp">
-      <Filter>Externals\ImGui</Filter>
-    </ClCompile>
-    <ClCompile Include="Externals\imgui\imgui_widgets.cpp">
-      <Filter>Externals\ImGui</Filter>
-    </ClCompile>
     <ClCompile Include="EngineLayer\Audio\MP3Loader.cpp">
       <Filter>EngineLayer\Audio</Filter>
     </ClCompile>
@@ -136,9 +115,6 @@
     <ClCompile Include="EngineLayer\ParticleManagement\ParticleFactory.cpp">
       <Filter>EngineLayer\Particle</Filter>
     </ClCompile>
-    <ClCompile Include="ApplicationLayer\Player\Weapon\Weapon.cpp">
-      <Filter>ApplicationLayer\Player\Weapon</Filter>
-    </ClCompile>
     <ClCompile Include="ApplicationLayer\Crosshair\Crosshair.cpp">
       <Filter>ApplicationLayer\Crosshair</Filter>
     </ClCompile>
@@ -160,14 +136,8 @@
     <ClCompile Include="ApplicationLayer\Item\ItemDropTable.cpp">
       <Filter>ApplicationLayer\Item</Filter>
     </ClCompile>
-    <ClCompile Include="ApplicationLayer\Player\Player.cpp">
-      <Filter>ApplicationLayer\Player</Filter>
-    </ClCompile>
-    <ClCompile Include="ApplicationLayer\Player\PlayerController.cpp">
-      <Filter>ApplicationLayer\Player</Filter>
-    </ClCompile>
-    <ClCompile Include="ApplicationLayer\Player\Bullet.cpp">
-      <Filter>ApplicationLayer\Player</Filter>
+    <ClCompile Include="ApplicationLayer\Character\Player\Player.cpp">
+      <Filter>ApplicationLayer\Character\Player</Filter>
     </ClCompile>
     <ClCompile Include="ApplicationLayer\ReloadCircle\ReloadCircle.cpp">
       <Filter>ApplicationLayer\ReloadCircle</Filter>
@@ -409,7 +379,42 @@
     <ClCompile Include="ApplicationLayer\Scene\StageSelectScene\WorldMapStageSelector.cpp">
       <Filter>ApplicationLayer\Scene\StageSelectScene</Filter>
     </ClCompile>
-    <ClCompile Include="BaseCharacter.cpp" />
+    <ClCompile Include="ApplicationLayer\Character\BaseCharacter\BaseCharacter.cpp">
+      <Filter>ApplicationLayer\Character\BaseCharacter</Filter>
+    </ClCompile>
+    <ClCompile Include="EngineLayer\WorldTransform\WorldTransformEx.cpp">
+      <Filter>EngineLayer\Transform</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\EffectLayer\ModelParticle.cpp">
+      <Filter>ApplicationLayer\EffectLayer</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\WeaponSystem\BallisticEffect\BallisticEffect.cpp">
+      <Filter>ApplicationLayer\WeaponSystem\BallisticEffect</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\WeaponSystem\PistolWeapon\PistolWeapon.cpp">
+      <Filter>ApplicationLayer\WeaponSystem\PistolWeapon</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\WeaponSystem\Weapon\Weapon.cpp">
+      <Filter>ApplicationLayer\WeaponSystem\Weapon</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\WeaponSystem\BaseWeapon\BaseWeapon.cpp">
+      <Filter>ApplicationLayer\WeaponSystem\BaseWeapon</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\WeaponSystem\Weapon\Loadout\Loadout.cpp">
+      <Filter>ApplicationLayer\WeaponSystem\Weapon\Loadout</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\WeaponSystem\Weapon\WeaponEditorUI\WeaponEditorUI.cpp">
+      <Filter>ApplicationLayer\WeaponSystem\Weapon\WeaponEditorUI</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\WeaponSystem\Weapon\WeaponCatalog\WeaponCatalog.cpp">
+      <Filter>ApplicationLayer\WeaponSystem\Weapon\WeaponCatalog</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\Character\Scarecrow.cpp">
+      <Filter>ApplicationLayer\Character</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\Stage\Stage.cpp">
+      <Filter>ApplicationLayer\Stage</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="EngineLayer\Math\MultipleStructs\AABB.h">
@@ -429,30 +434,6 @@
     </ClInclude>
     <ClInclude Include="Externals\Audio\minimp3\minimp3_ex.h">
       <Filter>Externals\minimp3</Filter>
-    </ClInclude>
-    <ClInclude Include="Externals\imgui\imconfig.h">
-      <Filter>Externals\ImGui</Filter>
-    </ClInclude>
-    <ClInclude Include="Externals\imgui\imgui.h">
-      <Filter>Externals\ImGui</Filter>
-    </ClInclude>
-    <ClInclude Include="Externals\imgui\imgui_impl_dx12.h">
-      <Filter>Externals\ImGui</Filter>
-    </ClInclude>
-    <ClInclude Include="Externals\imgui\imgui_impl_win32.h">
-      <Filter>Externals\ImGui</Filter>
-    </ClInclude>
-    <ClInclude Include="Externals\imgui\imgui_internal.h">
-      <Filter>Externals\ImGui</Filter>
-    </ClInclude>
-    <ClInclude Include="Externals\imgui\imstb_rectpack.h">
-      <Filter>Externals\ImGui</Filter>
-    </ClInclude>
-    <ClInclude Include="Externals\imgui\imstb_textedit.h">
-      <Filter>Externals\ImGui</Filter>
-    </ClInclude>
-    <ClInclude Include="Externals\imgui\imstb_truetype.h">
-      <Filter>Externals\ImGui</Filter>
     </ClInclude>
     <ClInclude Include="EngineLayer\Audio\AudioCategory.h">
       <Filter>EngineLayer\Audio</Filter>
@@ -508,12 +489,6 @@
     <ClInclude Include="EngineLayer\ParticleManagement\ParticleFactory.h">
       <Filter>EngineLayer\Particle</Filter>
     </ClInclude>
-    <ClInclude Include="ApplicationLayer\Player\Weapon\Weapon.h">
-      <Filter>ApplicationLayer\Player\Weapon</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Player\Weapon\WeaponType.h">
-      <Filter>ApplicationLayer\Player\Weapon</Filter>
-    </ClInclude>
     <ClInclude Include="ApplicationLayer\Crosshair\Crosshair.h">
       <Filter>ApplicationLayer\Crosshair</Filter>
     </ClInclude>
@@ -544,14 +519,8 @@
     <ClInclude Include="ApplicationLayer\Item\ItemType.h">
       <Filter>ApplicationLayer\Item</Filter>
     </ClInclude>
-    <ClInclude Include="ApplicationLayer\Player\Player.h">
-      <Filter>ApplicationLayer\Player</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Player\PlayerController.h">
-      <Filter>ApplicationLayer\Player</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Player\Bullet.h">
-      <Filter>ApplicationLayer\Player</Filter>
+    <ClInclude Include="ApplicationLayer\Character\Player\Player.h">
+      <Filter>ApplicationLayer\Character\Player</Filter>
     </ClInclude>
     <ClInclude Include="ApplicationLayer\ReloadCircle\ReloadCircle.h">
       <Filter>ApplicationLayer\ReloadCircle</Filter>
@@ -838,7 +807,72 @@
     <ClInclude Include="ApplicationLayer\Scene\StageSelectScene\WorldMapStageSelector.h">
       <Filter>ApplicationLayer\Scene\StageSelectScene</Filter>
     </ClInclude>
-    <ClInclude Include="BaseCharacter.h" />
+    <ClInclude Include="ApplicationLayer\Character\BaseCharacter\BaseCharacter.h">
+      <Filter>ApplicationLayer\Character\BaseCharacter</Filter>
+    </ClInclude>
+    <ClInclude Include="EngineLayer\WorldTransform\WorldTransformEx.h">
+      <Filter>EngineLayer\Transform</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\EffectLayer\ModelParticle.h">
+      <Filter>ApplicationLayer\EffectLayer</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\WeaponSystem\BallisticEffect\BallisticEffect.h">
+      <Filter>ApplicationLayer\WeaponSystem\BallisticEffect</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\WeaponSystem\PistolWeapon\PistolWeapon.h">
+      <Filter>ApplicationLayer\WeaponSystem\PistolWeapon</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\WeaponSystem\Weapon\Weapon.h">
+      <Filter>ApplicationLayer\WeaponSystem\Weapon</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\WeaponSystem\BaseWeapon\BaseWeapon.h">
+      <Filter>ApplicationLayer\WeaponSystem\BaseWeapon</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\WeaponSystem\Weapon\WeaponDatas\CasingData.h">
+      <Filter>ApplicationLayer\WeaponSystem\Weapon\WeaponDatas</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\WeaponSystem\Weapon\WeaponDatas\MuzzleData.h">
+      <Filter>ApplicationLayer\WeaponSystem\Weapon\WeaponDatas</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\WeaponSystem\Weapon\WeaponDatas\TracerData.h">
+      <Filter>ApplicationLayer\WeaponSystem\Weapon\WeaponDatas</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\WeaponSystem\Weapon\WeaponDatas\WeaponData.h">
+      <Filter>ApplicationLayer\WeaponSystem\Weapon\WeaponDatas</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\WeaponSystem\Weapon\Loadout\Loadout.h">
+      <Filter>ApplicationLayer\WeaponSystem\Weapon\Loadout</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\WeaponSystem\Weapon\WeaponEditorUI\WeaponEditorUI.h">
+      <Filter>ApplicationLayer\WeaponSystem\Weapon\WeaponEditorUI</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\WeaponSystem\Weapon\WeaponCatalog\WeaponCatalog.h">
+      <Filter>ApplicationLayer\WeaponSystem\Weapon\WeaponCatalog</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\WeaponSystem\Weapon\WeaponConfig\CasingSettings.h">
+      <Filter>ApplicationLayer\WeaponSystem\Weapon\WeaponConfig</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\WeaponSystem\Weapon\WeaponConfig\MuzzleFlashSettings.h">
+      <Filter>ApplicationLayer\WeaponSystem\Weapon\WeaponConfig</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\WeaponSystem\Weapon\WeaponConfig\TracerSettings.h">
+      <Filter>ApplicationLayer\WeaponSystem\Weapon\WeaponConfig</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\WeaponSystem\Weapon\WeaponConfig\WeaponConfig.h">
+      <Filter>ApplicationLayer\WeaponSystem\Weapon\WeaponConfig</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\WeaponSystem\Weapon\WeaponConfig\ToWeaponConfig.h">
+      <Filter>ApplicationLayer\WeaponSystem\Weapon\WeaponConfig</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\WeaponSystem\Weapon\WeaponConfig\WeaponClass.h">
+      <Filter>ApplicationLayer\WeaponSystem\Weapon\WeaponConfig</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Character\Scarecrow.h">
+      <Filter>ApplicationLayer\Character</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Stage\Stage.h">
+      <Filter>ApplicationLayer\Stage</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="Resources\Shaders\PostEffect\FullScreen.hlsli">
@@ -881,9 +915,6 @@
     </Filter>
     <Filter Include="Externals\minimp3">
       <UniqueIdentifier>{495fae69-f787-4db3-af32-fe913ffeb2b4}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Externals\ImGui">
-      <UniqueIdentifier>{d2c8f674-f449-43ea-9c15-d93f4621e211}</UniqueIdentifier>
     </Filter>
     <Filter Include="EngineLayer">
       <UniqueIdentifier>{da5cdd68-e8e8-499a-94c9-54d7d14244c2}</UniqueIdentifier>
@@ -932,9 +963,6 @@
     </Filter>
     <Filter Include="ApplicationLayer\Item">
       <UniqueIdentifier>{025c2654-d662-4906-b53f-75721901c9b5}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="ApplicationLayer\Player">
-      <UniqueIdentifier>{c109cc45-a229-47d4-948e-cab986d311a3}</UniqueIdentifier>
     </Filter>
     <Filter Include="ApplicationLayer\ReloadCircle">
       <UniqueIdentifier>{28c95605-c9f2-44e5-94d0-86aca3440279}</UniqueIdentifier>
@@ -1007,12 +1035,6 @@
     </Filter>
     <Filter Include="EngineLayer\PostEffectManagement\VignetteEffect">
       <UniqueIdentifier>{400e0cd1-69f2-4758-9c69-2449eb54ba50}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="ApplicationLayer\Player\Weapon">
-      <UniqueIdentifier>{8f30bd8f-faaa-4fde-a565-96d12d50afe0}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="ApplicationLayer\Player\Behavior">
-      <UniqueIdentifier>{acf8b8ba-c6ce-4a8c-8b76-c098053abc83}</UniqueIdentifier>
     </Filter>
     <Filter Include="Shader\GeometryShader">
       <UniqueIdentifier>{c40888df-84fa-4096-ae6a-3404250fc298}</UniqueIdentifier>
@@ -1164,10 +1186,50 @@
     <Filter Include="EngineLayer\3D\AnimationManagement">
       <UniqueIdentifier>{2737cf13-57b6-4008-89c3-6ee0302c6040}</UniqueIdentifier>
     </Filter>
-  </ItemGroup>
-  <ItemGroup>
-    <Text Include="Externals\imgui\LICENSE.txt">
-      <Filter>Externals\ImGui</Filter>
-    </Text>
+    <Filter Include="ApplicationLayer\Character">
+      <UniqueIdentifier>{a2348789-5065-4267-9a0b-5b362471c830}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ApplicationLayer\Character\BaseCharacter">
+      <UniqueIdentifier>{5c36780a-9bfd-4cb9-8311-ce41c2229990}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ApplicationLayer\Character\Player">
+      <UniqueIdentifier>{c109cc45-a229-47d4-948e-cab986d311a3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ApplicationLayer\Character\Player\Weapon">
+      <UniqueIdentifier>{8f30bd8f-faaa-4fde-a565-96d12d50afe0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ApplicationLayer\WeaponSystem">
+      <UniqueIdentifier>{11e77611-2a8a-40a3-83a8-40fad2043d80}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ApplicationLayer\WeaponSystem\BallisticEffect">
+      <UniqueIdentifier>{bfdd85b2-0e1a-4720-8d9d-ed26b089361f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ApplicationLayer\WeaponSystem\Weapon">
+      <UniqueIdentifier>{0a663a83-969a-4f7b-bbe4-8a9618bacd74}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ApplicationLayer\WeaponSystem\PistolWeapon">
+      <UniqueIdentifier>{0be49b7d-7e39-44ca-b345-2c29f727d257}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ApplicationLayer\WeaponSystem\BaseWeapon">
+      <UniqueIdentifier>{78695a9e-0db2-4908-b941-be6d78e6bcce}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ApplicationLayer\WeaponSystem\Weapon\WeaponDatas">
+      <UniqueIdentifier>{858d03ce-d5e4-47a8-813f-ca1f43a4136d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ApplicationLayer\WeaponSystem\Weapon\WeaponConfig">
+      <UniqueIdentifier>{d71d457d-ef5c-4670-a548-7c192455529a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ApplicationLayer\WeaponSystem\Weapon\Loadout">
+      <UniqueIdentifier>{8f8cbba7-a17c-42aa-bba9-67e43f5dd839}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ApplicationLayer\WeaponSystem\Weapon\WeaponCatalog">
+      <UniqueIdentifier>{877abc53-e0dc-41d0-b33e-b910b69b5fc6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ApplicationLayer\WeaponSystem\Weapon\WeaponEditorUI">
+      <UniqueIdentifier>{dde46e9d-1210-4c0e-8a73-6e30efac8c57}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ApplicationLayer\Stage">
+      <UniqueIdentifier>{31caff86-1e45-42d6-a811-339b4742900f}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
 </Project>

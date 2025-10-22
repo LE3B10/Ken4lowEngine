@@ -9,6 +9,7 @@ bool CollisionUtility::IsCollision(const Sphere& s1, const Sphere& s2)
 {
 	//2つの球の中心点間の距離を求める
 	float distance = Vector3::Length(Vector3::Subtract(s2.center, s1.center));
+
 	// 半径の合計よりも短ければ衝突
 	return distance <= (s1.radius + s2.radius);
 }
@@ -20,6 +21,7 @@ bool CollisionUtility::IsCollision(const Sphere& sphere, const Plane& plane)
 {
 	// 平面の法線ベクトルと球の中心点との距離
 	float distance = Vector3::Dot(plane.normal, sphere.center) - plane.distance;
+
 	// その距離が球の半径以下なら衝突している
 	return fabs(distance) <= sphere.radius;
 }
@@ -35,10 +37,9 @@ bool CollisionUtility::IsCollision(const Segment& segment, const Plane& plane)
 	// 垂直 = 平行であるので、衝突しているはずがない
 	// 浮動小数点数の比較は通常、直接の等号判定は避ける
 	const float epsilon = 1e-6f;
-	if (fabs(dot) < epsilon)
-	{
-		return false;
-	}
+
+	// 平行判定
+	if (fabs(dot) < epsilon) return false; // 平行なら衝突しない
 
 	// tを求める
 	float t = (plane.distance - Vector3::Dot(segment.origin, plane.normal)) / dot;
@@ -102,9 +103,9 @@ bool CollisionUtility::IsCollision(const AABB& aabb, const Vector3& point)
 {
 	// 点がAABBの範囲内にあるかチェック
 	return(
-		point.x >= aabb.min.x && point.x <= aabb.max.x &&
-		point.y >= aabb.min.y && point.y <= aabb.max.y &&
-		point.z >= aabb.min.z && point.z <= aabb.max.z);
+		point.x >= aabb.min.x && point.x <= aabb.max.x && // x軸
+		point.y >= aabb.min.y && point.y <= aabb.max.y && // y軸
+		point.z >= aabb.min.z && point.z <= aabb.max.z);  // z軸
 }
 
 /// -------------------------------------------------------------
@@ -113,9 +114,9 @@ bool CollisionUtility::IsCollision(const AABB& aabb, const Vector3& point)
 bool CollisionUtility::IsCollision(const AABB& aabb1, const AABB& aabb2)
 {
 	return
-		(aabb1.min.x <= aabb2.max.x && aabb1.max.x >= aabb2.min.x) && //x軸
-		(aabb1.min.y <= aabb2.max.y && aabb1.max.y >= aabb2.min.y) &&
-		(aabb1.min.z <= aabb2.max.z && aabb1.max.z >= aabb2.min.z);
+		(aabb1.min.x <= aabb2.max.x && aabb1.max.x >= aabb2.min.x) && // x軸
+		(aabb1.min.y <= aabb2.max.y && aabb1.max.y >= aabb2.min.y) && // y軸
+		(aabb1.min.z <= aabb2.max.z && aabb1.max.z >= aabb2.min.z);	  // z軸
 }
 
 /// -------------------------------------------------------------
@@ -125,24 +126,24 @@ bool CollisionUtility::IsCollision(const AABB& aabb, const Plane& plane)
 {
 	// AABBの8点を調べる
 	const Vector3 corners[8] = {
-		{ aabb.min.x, aabb.min.y, aabb.min.z }, // 0
-		{ aabb.max.x, aabb.min.y, aabb.min.z }, // 1
-		{ aabb.min.x, aabb.max.y, aabb.min.z }, // 2
-		{ aabb.max.x, aabb.max.y, aabb.min.z }, // 3
-		{ aabb.min.x, aabb.min.y, aabb.max.z },	// 4
-		{ aabb.max.x, aabb.min.y, aabb.max.z }, // 5
-		{ aabb.min.x, aabb.max.y, aabb.max.z }, // 6
-		{ aabb.max.x, aabb.max.y, aabb.max.z }  // 7
+		{ aabb.min.x, aabb.min.y, aabb.min.z }, // 0 : 左下奥
+		{ aabb.max.x, aabb.min.y, aabb.min.z }, // 1 : 右下奥
+		{ aabb.min.x, aabb.max.y, aabb.min.z }, // 2 ; 左上奥
+		{ aabb.max.x, aabb.max.y, aabb.min.z }, // 3 : 右上奥
+		{ aabb.min.x, aabb.min.y, aabb.max.z },	// 4 : 左下手前
+		{ aabb.max.x, aabb.min.y, aabb.max.z }, // 5 : 右下手前
+		{ aabb.min.x, aabb.max.y, aabb.max.z }, // 6 : 左上手前
+		{ aabb.max.x, aabb.max.y, aabb.max.z }  // 7 : 右上手前
 	};
 
 	// 少なくとも1点がPlaneの負側にあるか
 	for (const auto& corner : corners)
 	{
+		// その点とPlaneの距離を計算
 		float distance = Vector3::Dot(plane.normal, corner) - plane.distance;
-		if (distance < 0.0f)
-		{
-			return true; // 交差している
-		}
+
+		// 負側にあるかチェック
+		if (distance < 0.0f) return true; // 交差している
 	}
 	return false;
 }
@@ -155,12 +156,13 @@ bool CollisionUtility::IsCollision(const AABB& aabb, const Sphere& sphere)
 	//最近接点を求める
 	Vector3 clossestPoint
 	{
-		std::clamp(sphere.center.x,aabb.min.x,aabb.max.x),
-		std::clamp(sphere.center.y,aabb.min.y,aabb.max.y),
-		std::clamp(sphere.center.z,aabb.min.z,aabb.max.z)
+		std::clamp(sphere.center.x,aabb.min.x,aabb.max.x), // x座標
+		std::clamp(sphere.center.y,aabb.min.y,aabb.max.y), // y座標
+		std::clamp(sphere.center.z,aabb.min.z,aabb.max.z)  // z座標
 	};
 	//最近接点と球の中途の距離を求める
 	float distance = Vector3::Length(Vector3::Subtract(clossestPoint, sphere.center));
+
 	//距離が半径よりも小さければ衝突
 	return distance <= sphere.radius;
 }
@@ -398,10 +400,10 @@ inline bool IsCapsuleCapsuleHit(const Capsule& c1, const Capsule& c2)
 /// -------------------------------------------------------------
 bool CollisionUtility::IsCollision(const Capsule& cap1, const Capsule& cap2)
 {
-	// 1. 中心線同士の最近接距離²を取得
+	// 中心線同士の最近接距離²を取得
 	float dist2 = SegmentSegmentDist2(cap1.segment.origin, cap1.segment.diff, cap2.segment.origin, cap2.segment.diff);
 
-	// 2. しきい値 = 半径の和 の²
+	// しきい値 = 半径の和 の²
 	float rSum = cap1.radius + cap2.radius;
 	return dist2 <= rSum * rSum + 1e-6f;    // EPS で誤差吸収
 }
@@ -474,7 +476,7 @@ bool CollisionUtility::IsCollision(const Capsule& capsule, const Segment& seg)
 {
 	// seg の 2 端点を生成
 	const Vector3 p0 = seg.origin;
-	const Vector3 p1 = seg.origin + seg.diff;    // ★ diff を足して終点を導出
+	const Vector3 p1 = seg.origin + seg.diff;    // diff を足して終点を導出
 
 	// 軸線 [A,B] と 線分 [p0,p1] の最近接距離²
 	const float dist2 = SegmentSegmentDist2(capsule.segment.origin, capsule.segment.diff, p0, p1);

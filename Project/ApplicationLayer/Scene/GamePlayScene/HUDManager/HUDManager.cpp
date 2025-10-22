@@ -134,18 +134,18 @@ void HUDManager::InitGadgets()
 void HUDManager::InitCategoryIcons()
 {
 	// カテゴリアイコン
-	auto makeIcon = [&](WeaponCategory cat, const char* path) {
-		TextureManager::GetInstance()->LoadTexture(path);
-		auto sp = std::make_unique<Sprite>(); sp->Initialize(path); sp->SetAnchorPoint({ 0.5f,0.5f });
-		categoryIcons_[cat] = std::move(sp);
-		};
-	makeIcon(WeaponCategory::Primary, "icon/icon_primary.png"); // プライマリ
-	makeIcon(WeaponCategory::Backup, "icon/icon_backup.png");	// バックアップ
-	makeIcon(WeaponCategory::Melee, "icon/icon_melee.png");		// 近接
-	makeIcon(WeaponCategory::Special, "icon/icon_special.png"); // スペシャル
-	makeIcon(WeaponCategory::Sniper, "icon/icon_sniper.png");	// スナイパー
-	makeIcon(WeaponCategory::Heavy, "icon/icon_heavy.png");		// ヘビー
-	activeCategory_ = WeaponCategory::Primary; // 主要武器をデフォルト
+	//auto makeIcon = [&](WeaponCategory cat, const char* path) {
+	//	TextureManager::GetInstance()->LoadTexture(path);
+	//	auto sp = std::make_unique<Sprite>(); sp->Initialize(path); sp->SetAnchorPoint({ 0.5f,0.5f });
+	//	categoryIcons_[cat] = std::move(sp);
+	//	};
+	//makeIcon(WeaponCategory::Primary, "icon/icon_primary.png"); // プライマリ
+	//makeIcon(WeaponCategory::Backup, "icon/icon_backup.png");	// バックアップ
+	//makeIcon(WeaponCategory::Melee, "icon/icon_melee.png");		// 近接
+	//makeIcon(WeaponCategory::Special, "icon/icon_special.png"); // スペシャル
+	//makeIcon(WeaponCategory::Sniper, "icon/icon_sniper.png");	// スナイパー
+	//makeIcon(WeaponCategory::Heavy, "icon/icon_heavy.png");		// ヘビー
+	//activeCategory_ = WeaponCategory::Primary; // 主要武器をデフォルト
 }
 
 /// -------------------------------------------------------------
@@ -156,7 +156,7 @@ void HUDManager::InitActionHints()
 	actionPanel_ = std::make_unique<Sprite>(); actionPanel_->Initialize("white.png");
 	actionPanel_->SetColor({ 0,0,0,0.35f });
 
-	auto make = [&](ActionHint& h, const char* icon, const char* label) {
+	/*auto make = [&](ActionHint& h, const char* icon, const char* label) {
 		TextureManager::GetInstance()->LoadTexture(icon);
 		TextureManager::GetInstance()->LoadTexture(label);
 		h.icon = std::make_unique<Sprite>(); h.icon->Initialize(icon);   h.icon->SetAnchorPoint({ 0.5f,0.5f });
@@ -164,7 +164,7 @@ void HUDManager::InitActionHints()
 		};
 	make(hintFire_, "icon/ui_mouse_left.png", "icon/label_FIRE.png");
 	make(hintAds_, "icon/ui_mouse_right.png", "icon/label_ADS.png");
-	make(hintReload_, "icon/ui_key_R.png", "icon/label_RELOAD.png");
+	make(hintReload_, "icon/ui_key_R.png", "icon/label_RELOAD.png");*/
 }
 
 /// -------------------------------------------------------------

@@ -26,9 +26,6 @@ void CollisionManager::Update()
 {
 	isCollider_ = ParameterManager::GetInstance()->GetValue<bool>("Collider", "isCollider");
 
-	// 非表示なら抜ける
-	if (!isCollider_) return;
-
 	// 更新処理
 	for (Collider* collider : all_) collider->Update();
 }
@@ -84,6 +81,7 @@ void CollisionManager::CheckAllCollisions()
 	pairLoop(kBoss, kPlayer);
 	pairLoop(kEnemy, kPlayer);
 	pairLoop(kBullet, kEnemy);
+	pairLoop(kEnemy, kBullet);
 	pairLoop(kBoss, kBullet);
 	pairLoop(kPlayer, kBossBullet);
 	pairLoop(kPlayer, kItem);
@@ -124,9 +122,13 @@ void CollisionManager::CheckCollisionPair(Collider* colliderA, Collider* collide
 	// 自分同士は無視
 	if (colliderA == colliderB) return;
 
+	// 衝突判定関数を取得
 	auto key = std::make_pair(colliderA->GetTypeID(), colliderB->GetTypeID());
+
+	// 衝突判定関数を検索
 	auto it = collisionTable_.find(key);
 
+	// 衝突判定関数が登録されているか確認
 	if (it != collisionTable_.end())
 	{
 		if (!it->second(colliderA, colliderB))
@@ -139,8 +141,8 @@ void CollisionManager::CheckCollisionPair(Collider* colliderA, Collider* collide
 		return; // 登録されていない型は無視
 	}
 
-	colliderA->OnCollision(colliderB);
-	colliderB->OnCollision(colliderA);
+	colliderA->OnCollision(colliderB); // Bの衝突応答処理
+	colliderB->OnCollision(colliderA); // Aの衝突応答処理
 }
 
 /// -------------------------------------------------------------
@@ -157,64 +159,30 @@ void CollisionManager::RegisterCollisionFuncsions()
 	constexpr CollisionType kBoss = static_cast<CollisionType>(CollisionTypeIdDef::kBoss);
 	constexpr CollisionType kBossBullet = static_cast<CollisionType>(CollisionTypeIdDef::kBossBullet);
 
-	/// ---------- プレイヤーとボスの衝突判定 ---------- ///
-	collisionTable_[{kBoss, kPlayer}] =
-		[](Collider* a, Collider* b) {
-		return CollisionUtility::IsCollision(a->GetCapsule(), b->GetSphere());
-		};
-
-	collisionTable_[{kPlayer, kBoss}] =
-		[](Collider* a, Collider* b) {
-		return CollisionUtility::IsCollision(b->GetCapsule(), a->GetSphere());
-		};
-
 	/// ---------- プレイヤーと敵の衝突判定 ---------- ///
-	collisionTable_[{kEnemy, kPlayer}] =
-		[](Collider* a, Collider* b) {
-		return CollisionUtility::IsCollision(a->GetCapsule(), b->GetSphere());
-		};
-
-	collisionTable_[{kBullet, kEnemy}] =
-		[](Collider* a, Collider* b) {
-		if (b->HasCapsule())       return CollisionUtility::IsCollision(a->GetSegment(), b->GetCapsule());
-		else                       return CollisionUtility::IsCollision(a->GetSegment(), b->GetOBB());
-		};
-
-
-	/// ---------- ボスとプレイヤーの弾丸の衝突判定 ---------- ///
-	collisionTable_[{kBoss, kBullet}] =
-		[](Collider* a, Collider* b) {
-		if (a->HasCapsule())       return CollisionUtility::IsCollision(a->GetCapsule(), b->GetSegment());
-		else                       return CollisionUtility::IsCollision(a->GetOBB(), b->GetSegment());
-		};
-
-	collisionTable_[{kBullet, kBoss}] =
-		[](Collider* a, Collider* b) {
-		if (b->HasCapsule())       return CollisionUtility::IsCollision(a->GetSegment(), b->GetCapsule());
-		else                       return CollisionUtility::IsCollision(a->GetSegment(), b->GetOBB());
-		};
-
-	/// ---------- プレイヤーとボスの弾丸の衝突判定 ---------- ///
-
-	collisionTable_[{kPlayer, kBossBullet}] =
-		[](Collider* a, Collider* b) {
-		return CollisionUtility::IsCollision(a->GetCapsule(), b->GetSegment());
-		};
-
-	collisionTable_[{kBossBullet, kPlayer}] =
-		[](Collider* a, Collider* b) {
-		return CollisionUtility::IsCollision(b->GetCapsule(), a->GetSegment());
-		};
-
-	/// ---------- プレイヤーとアイテムの衝突判定 ---------- ///
-
-	collisionTable_[{kPlayer, kItem}] =
-		[](Collider* a, Collider* b) {
+	collisionTable_[{kEnemy, kPlayer}] = [](Collider* a, Collider* b) {
 		return CollisionUtility::IsCollision(a->GetOBB(), b->GetOBB());
 		};
 
-	collisionTable_[{kItem, kPlayer}] =
-		[](Collider* a, Collider* b) {
+	collisionTable_[{kPlayer, kEnemy}] = [](Collider* a, Collider* b) {
+		return CollisionUtility::IsCollision(a->GetOBB(), b->GetOBB());
+		};
+
+	/// ---------- 弾と敵の衝突判定 ---------- ///
+	collisionTable_[{kBullet, kEnemy}] = [](Collider* a, Collider* b) {
+		return CollisionUtility::IsCollision(b->GetOBB(), a->GetSegment());
+		};
+
+	collisionTable_[{kEnemy, kBullet}] = [](Collider* a, Collider* b) {
+		return CollisionUtility::IsCollision(a->GetOBB(), b->GetSegment());
+		};
+
+	/// ---------- プレイヤーとアイテムの衝突判定 ---------- ///
+	collisionTable_[{kPlayer, kItem}] = [](Collider* a, Collider* b) {
+		return CollisionUtility::IsCollision(a->GetOBB(), b->GetOBB());
+		};
+
+	collisionTable_[{kItem, kPlayer}] = [](Collider* a, Collider* b) {
 		return CollisionUtility::IsCollision(a->GetOBB(), b->GetOBB());
 		};
 }
