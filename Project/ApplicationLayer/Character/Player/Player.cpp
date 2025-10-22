@@ -104,10 +104,12 @@ void Player::Initialize()
 /// -------------------------------------------------------------
 void Player::Update(float deltaTime)
 {
-#ifdef _DEBUG 三人称視点切替 デバッグ時のみ有効
-#endif // _DEBUG
+#ifdef _DEBUG
+
 	// カメラモード切替
 	if (input_->TriggerKey(DIK_F5)) { fpsCamera_->CycleViewMode(); }
+
+#endif // _DEBUG
 
 	// ここで表示切替
 	switch (fpsCamera_->GetViewMode()) // ← カメラの現在モード
