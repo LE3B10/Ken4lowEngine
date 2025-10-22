@@ -412,6 +412,9 @@
     <ClCompile Include="ApplicationLayer\Character\Scarecrow.cpp">
       <Filter>ApplicationLayer\Character</Filter>
     </ClCompile>
+    <ClCompile Include="ApplicationLayer\Stage\Stage.cpp">
+      <Filter>ApplicationLayer\Stage</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="EngineLayer\Math\MultipleStructs\AABB.h">
@@ -867,6 +870,9 @@
     <ClInclude Include="ApplicationLayer\Character\Scarecrow.h">
       <Filter>ApplicationLayer\Character</Filter>
     </ClInclude>
+    <ClInclude Include="ApplicationLayer\Stage\Stage.h">
+      <Filter>ApplicationLayer\Stage</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="Resources\Shaders\PostEffect\FullScreen.hlsli">
@@ -1221,6 +1227,9 @@
     </Filter>
     <Filter Include="ApplicationLayer\WeaponSystem\Weapon\WeaponEditorUI">
       <UniqueIdentifier>{dde46e9d-1210-4c0e-8a73-6e30efac8c57}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ApplicationLayer\Stage">
+      <UniqueIdentifier>{31caff86-1e45-42d6-a811-339b4742900f}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

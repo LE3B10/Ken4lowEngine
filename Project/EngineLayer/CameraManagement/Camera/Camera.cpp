@@ -26,6 +26,20 @@ Camera::Camera() :
 /// -------------------------------------------------------------
 void Camera::Update()
 {
+	if (target_ != worldTransform_.translate_)
+	{
+		viewMatrix_ = Matrix4x4::LookAt(
+			worldTransform_.translate_,  // カメラの位置
+			target_,                     // 注視点
+			{ 0.0f, 1.0f, 0.0f });          // 上方向
+	}
+	else
+	{
+		// 通常の回転・平行移動
+		worldMatrix_ = Matrix4x4::MakeAffineMatrix(worldTransform_.scale_, worldTransform_.rotate_, worldTransform_.translate_);
+		viewMatrix_ = Matrix4x4::Inverse(worldMatrix_);
+	}
+
 	// ビュー行列の計算処理
 	worldMatrix_ = Matrix4x4::MakeAffineMatrix(worldTransform_.scale_, worldTransform_.rotate_, worldTransform_.translate_);
 	viewMatrix_ = Matrix4x4::Inverse(worldMatrix_);

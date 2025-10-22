@@ -4,8 +4,11 @@
 /// -------------------------------------------------------------
 ///				　			　 更新処理
 /// -------------------------------------------------------------
-void BaseCharacter::Update()
+void BaseCharacter::Update(float deltaTime)
 {
+	// デルタタイム未使用
+	(void)deltaTime;
+
 	// 階層更新
 	UpdateHierarchy();
 }
@@ -17,9 +20,9 @@ void BaseCharacter::UpdateHierarchy()
 {
 	// 体のワールド変換を更新
 	body_.transform.Update();
-	body_.object->SetTranslate(body_.transform.translate_);
-	body_.object->SetRotate(body_.transform.rotate_);
-	body_.object->Update();
+	body_.object->SetTranslate(body_.transform.translate_); // 位置を適用
+	body_.object->SetRotate(body_.transform.rotate_);		// 回転を適用
+	body_.object->Update();									// オブジェクト更新
 
 	// 各部位のワールド変換を更新
 	for (auto& part : parts_)
@@ -27,7 +30,7 @@ void BaseCharacter::UpdateHierarchy()
 		part.transform.worldRotate_ = body_.transform.worldRotate_; // 親の回転を適用
 		part.transform.Update(); // 親の影響を受ける
 
-		part.object->SetTranslate(part.transform.worldTranslate_);
+		part.object->SetTranslate(part.transform.worldTranslate_); // ワールド座標を適用
 		part.object->SetRotate(part.transform.worldRotate_); // ワールド回転を適用
 		part.object->Update();
 	}

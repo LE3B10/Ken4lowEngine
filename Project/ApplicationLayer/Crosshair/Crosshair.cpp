@@ -46,7 +46,6 @@ void Crosshair::Initialize(const std::string& texturePath)
 	hitMarkerShadow_->SetColor({ 0,0,0,0.6f });
 }
 
-
 /// -------------------------------------------------------------
 ///				　			　 更新処理
 /// -------------------------------------------------------------
@@ -87,7 +86,6 @@ void Crosshair::Update()
 	hitMarkerShadow_->Update();
 	hitMarkerSprite_->Update();
 }
-
 
 /// -------------------------------------------------------------
 ///				　			　 描画処理

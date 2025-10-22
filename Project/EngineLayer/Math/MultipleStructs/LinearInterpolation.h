@@ -32,6 +32,49 @@ inline Vector4 Lerp(const Vector4& a, const Vector4& b, float t)
 	};
 }
 
+// / ---------- 線形補間を行う関数（Vector3版、Vector4版） ---------- ///
+inline Vector3 LerpVector3(const Vector3& a, const Vector3& b, float t)
+{
+	return Vector3(
+		Lerp(a.x, b.x, t),
+		Lerp(a.y, b.y, t),
+		Lerp(a.z, b.z, t)
+	);
+}
+
+inline Vector4 LerpVector4(const Vector4& a, const Vector4& b, float t)
+{
+	return Vector4(
+		Lerp(a.x, b.x, t),
+		Lerp(a.y, b.y, t),
+		Lerp(a.z, b.z, t),
+		Lerp(a.w, b.w, t)
+	);
+}
+
+static float clamp01(float x) { return x < 0 ? 0 : (x > 1 ? 1 : x); }
+
+/// ---------- Catmull-Romスプライン補間を行う関数 ---------- ///
+inline Vector3 CatmullRom(const Vector3& p0, const Vector3& p1, const Vector3& p2, const Vector3& p3, float t)
+{
+	float t2 = t * t;
+	float t3 = t2 * t;
+	return Vector3(
+		0.5f * ((2.0f * p1.x) +
+			(-p0.x + p2.x) * t +
+			(2.0f * p0.x - 5.0f * p1.x + 4.0f * p2.x - p3.x) * t2 +
+			(-p0.x + 3.0f * p1.x - 3.0f * p2.x + p3.x) * t3),
+		0.5f * ((2.0f * p1.y) +
+			(-p0.y + p2.y) * t +
+			(2.0f * p0.y - 5.0f * p1.y + 4.0f * p2.y - p3.y) * t2 +
+			(-p0.y + 3.0f * p1.y - 3.0f * p2.y + p3.y) * t3),
+		0.5f * ((2.0f * p1.z) +
+			(-p0.z + p2.z) * t +
+			(2.0f * p0.z - 5.0f * p1.z + 4.0f * p2.z - p3.z) * t2 +
+			(-p0.z + 3.0f * p1.z - 3.0f * p2.z + p3.z) * t3)
+	);
+}
+
 /// ---------- 値を0〜1にクランプする関数 ---------- ///
 inline float Saturate(float x) { return std::clamp(x, 0.0f, 1.0f); }
 

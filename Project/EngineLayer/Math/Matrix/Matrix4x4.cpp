@@ -391,3 +391,40 @@ Vector3 Matrix4x4::Transform(const Vector3& v, const Matrix4x4& m)
 	result.z = v.x * m.m[0][2] + v.y * m.m[1][2] + v.z * m.m[2][2] + m.m[3][2];
 	return result;
 }
+
+Matrix4x4 Matrix4x4::LookAt(const Vector3& eye, const Vector3& target, const Vector3& up)
+{
+	// カメラの正面方向 (Z軸)
+	Vector3 zAxis = Vector3::Normalize(target - eye);
+
+	// カメラの右方向 (X軸)
+	Vector3 xAxis = Vector3::Normalize(Vector3::Cross(up, zAxis));
+
+	// カメラの上方向 (Y軸)
+	Vector3 yAxis = Vector3::Cross(zAxis, xAxis);
+
+	// 結果のビュー行列
+	Matrix4x4 view = Matrix4x4::MakeIdentity();
+
+	view.m[0][0] = xAxis.x;
+	view.m[1][0] = xAxis.y;
+	view.m[2][0] = xAxis.z;
+	view.m[3][0] = -Vector3::Dot(xAxis, eye);
+
+	view.m[0][1] = yAxis.x;
+	view.m[1][1] = yAxis.y;
+	view.m[2][1] = yAxis.z;
+	view.m[3][1] = -Vector3::Dot(yAxis, eye);
+
+	view.m[0][2] = zAxis.x;
+	view.m[1][2] = zAxis.y;
+	view.m[2][2] = zAxis.z;
+	view.m[3][2] = -Vector3::Dot(zAxis, eye);
+
+	view.m[0][3] = 0.0f;
+	view.m[1][3] = 0.0f;
+	view.m[2][3] = 0.0f;
+	view.m[3][3] = 1.0f;
+
+	return view;
+}

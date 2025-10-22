@@ -112,4 +112,7 @@ public:
 
 	// ベクトルの座標変換
 	static Vector3 Transform(const Vector3& vector, const Matrix4x4& matrix);
+
+	// LookAt行列の生成
+	static Matrix4x4 LookAt(const Vector3& eye, const Vector3& target, const Vector3& up);
 };
