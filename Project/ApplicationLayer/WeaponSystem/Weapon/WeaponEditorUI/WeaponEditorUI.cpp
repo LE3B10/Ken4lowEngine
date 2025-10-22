@@ -7,7 +7,7 @@ static const char* kClassLabels[] = { "Primary","Backup","Melee","Special","Snip
 /// -------------------------------------------------------------
 /// 			　　追加・削除コントロールの描画
 /// -------------------------------------------------------------
-void WeaponEditorUI::DrawImGui(WeaponCatalog& catalog, Loadout& loadout, const std::string& currentWeaponName, const WeaponEditorHooks& hooks)
+void WeaponEditorUI::DrawImGui(WeaponCatalog& catalog, const std::string& currentWeaponName, const WeaponEditorHooks& hooks)
 {
 	auto& table = catalog.All();   // 参照を一度だけ取る
 

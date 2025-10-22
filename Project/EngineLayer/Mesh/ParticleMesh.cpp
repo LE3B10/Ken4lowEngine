@@ -201,7 +201,6 @@ void ParticleMesh::CreateVertexBuffer()
 	hasIndex_ = !indices.empty();
 	if (hasIndex_)
 	{
-		ID3D12Device* device = DirectXCommon::GetInstance()->GetDevice();
 		indexResource_ = ResourceManager::CreateBufferResource(device, sizeof(uint32_t) * indices.size());
 		indexBufferView_.BufferLocation = indexResource_->GetGPUVirtualAddress();
 		indexBufferView_.SizeInBytes = UINT(sizeof(uint32_t) * indices.size());

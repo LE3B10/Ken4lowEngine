@@ -181,7 +181,8 @@ void AnimationPipelineBuilder::CreatePSO()
 	inputElementDescs[3] = { "WEIGHT",   0, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 };
 	inputElementDescs[4] = { "INDEX",    0, DXGI_FORMAT_R32G32B32A32_SINT,	1, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 };
 
-	D3D12_INPUT_LAYOUT_DESC inputLayoutDesc{};
+	// InputLayoutの設定
+	D3D12_INPUT_LAYOUT_DESC inputLayoutDesc = {};
 	inputLayoutDesc.pInputElementDescs = inputElementDescs.data();
 	inputLayoutDesc.NumElements = static_cast<UINT>(inputElementDescs.size());
 

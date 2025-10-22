@@ -241,6 +241,9 @@ void WavLoader::SubmitAudioBuffer(IXAudio2SourceVoice* voice, const char* buffer
 	xBuffer.pAudioData = reinterpret_cast<const BYTE*>(buffer);
 
 	HRESULT result = voice->SubmitSourceBuffer(&xBuffer);
+	if (FAILED(result)) {
+		throw WavLoaderException("Failed to submit audio buffer");
+	}
 }
 
 

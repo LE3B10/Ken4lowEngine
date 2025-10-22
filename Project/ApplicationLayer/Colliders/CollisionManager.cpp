@@ -154,10 +154,10 @@ void CollisionManager::RegisterCollisionFuncsions()
 	constexpr CollisionType kPlayer = static_cast<CollisionType>(CollisionTypeIdDef::kPlayer);
 	constexpr CollisionType kEnemy = static_cast<CollisionType>(CollisionTypeIdDef::kEnemy);
 	constexpr CollisionType kBullet = static_cast<CollisionType>(CollisionTypeIdDef::kBullet);
-	constexpr CollisionType kEnemyBullet = static_cast<CollisionType>(CollisionTypeIdDef::kEnemyBullet);
+	//constexpr CollisionType kEnemyBullet = static_cast<CollisionType>(CollisionTypeIdDef::kEnemyBullet);
 	constexpr CollisionType kItem = static_cast<CollisionType>(CollisionTypeIdDef::kItem);
-	constexpr CollisionType kBoss = static_cast<CollisionType>(CollisionTypeIdDef::kBoss);
-	constexpr CollisionType kBossBullet = static_cast<CollisionType>(CollisionTypeIdDef::kBossBullet);
+	//constexpr CollisionType kBoss = static_cast<CollisionType>(CollisionTypeIdDef::kBoss);
+	//constexpr CollisionType kBossBullet = static_cast<CollisionType>(CollisionTypeIdDef::kBossBullet);
 
 	/// ---------- プレイヤーと敵の衝突判定 ---------- ///
 	collisionTable_[{kEnemy, kPlayer}] = [](Collider* a, Collider* b) {

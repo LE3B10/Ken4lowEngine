@@ -75,8 +75,6 @@ private: /// ---------- メンバ変数 ---------- ///
 	ComPtr <ID3D12RootSignature> computeRootSignature_;
 	ComPtr<ID3D12PipelineState> computePipelineState_;
 
-	D3D12_INPUT_LAYOUT_DESC inputLayoutDesc{};
-
 	// ブレンドモード
 	BlendMode blendMode_ = BlendMode::kBlendModeNone;
 };

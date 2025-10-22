@@ -158,7 +158,7 @@ public: /// ---------- 2D用の線の描画 ---------- ///
 	void DrawMagicCircle(const Vector3& center, float radius, const Vector4& color);
 
 	// 回転する魔法陣
-	void DrawRotatingMagicCircle(const Vector3& center, float radius, const Vector4& color, float time);
+	void DrawRotatingMagicCircle(const Vector3& center, float radius, const Vector4& color);
 
 	void DrawProgressiveMagicCircle(const Vector3& center, float radius, const Vector4& baseColor, float time);
 
@@ -307,7 +307,7 @@ private: /// ---------- メンバ変数 ---------- ///
 private: /// ---------- メンバ変数 ---------- ///
 
 	// デバッグカメラの有無
-	bool isDebugCamera_;
+	bool isDebugCamera_ = false;
 
 	// 三角形
 	uint32_t triangleIndex_ = 0; // 三角形のインデックス

@@ -32,7 +32,7 @@ void SRVManager::Initialize(DirectXCommon* dxCommon)
 	heapDesc.NodeMask = 0;
 
 	// デスクリプタヒープの作成
-	HRESULT result = dxCommon_->GetDevice()->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(&descriptorHeap));
+	HRESULT result = dxCommon_->GetDevice()->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(&descriptorHeap_));
 	if (FAILED(result))
 	{
 		throw std::runtime_error("Failed to create SRV descriptor heap");
@@ -53,6 +53,7 @@ void SRVManager::CreateSRVForTexture2D(uint32_t srvIndex, ID3D12Resource* pResou
 	}
 
 	// srvDescの項目を埋める
+	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc{};
 	srvDesc.Format = Format; // テクスチャのフォーマット
 	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING; // デフォルトのマッピング
 	srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;				//2Dテクスチャ
@@ -76,6 +77,7 @@ void SRVManager::CreateSRVForStructureBuffer(uint32_t srvIndex, ID3D12Resource* 
 	}
 
 	// SRV 設定
+	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc{};
 	srvDesc.Format = DXGI_FORMAT_UNKNOWN; // 構造化バッファではフォーマットは UNKNOWN
 	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 	srvDesc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER; // バッファとして扱う
@@ -95,7 +97,7 @@ void SRVManager::CreateSRVForStructureBuffer(uint32_t srvIndex, ID3D12Resource* 
 void SRVManager::PreDraw()
 {
 	// ディスクリプタヒープの設定
-	ID3D12DescriptorHeap* descriptorHeaps[] = { descriptorHeap.Get() };
+	ID3D12DescriptorHeap* descriptorHeaps[] = { descriptorHeap_.Get() };
 	dxCommon_->GetCommandManager()->GetCommandList()->SetDescriptorHeaps(1, descriptorHeaps);
 }
 
@@ -177,7 +179,7 @@ void SRVManager::Free(uint32_t srvIndex)
 ComPtr<ID3D12DescriptorHeap> SRVManager::CreateDescriptorHeap(ID3D12Device* device, D3D12_DESCRIPTOR_HEAP_TYPE heapType, UINT numDescriptors, bool shadervisible)
 {
 	//ディスクリプタヒープの生成
-	Microsoft::WRL::ComPtr <ID3D12DescriptorHeap> descriptorHeap = nullptr;
+	Microsoft::WRL::ComPtr <ID3D12DescriptorHeap> descriptorHeap;
 	D3D12_DESCRIPTOR_HEAP_DESC descriptorHeapDesc{};
 	descriptorHeapDesc.Type = heapType;	//レンダーターゲットビュー用
 	descriptorHeapDesc.NumDescriptors = numDescriptors;						//ダブルバッファ用に2つ。多くても別に構わない
@@ -195,7 +197,7 @@ ComPtr<ID3D12DescriptorHeap> SRVManager::CreateDescriptorHeap(ID3D12Device* devi
 /// -------------------------------------------------------------
 D3D12_CPU_DESCRIPTOR_HANDLE SRVManager::GetCPUDescriptorHandle(uint32_t index)
 {
-	D3D12_CPU_DESCRIPTOR_HANDLE handle = descriptorHeap->GetCPUDescriptorHandleForHeapStart();
+	D3D12_CPU_DESCRIPTOR_HANDLE handle = descriptorHeap_->GetCPUDescriptorHandleForHeapStart();
 	handle.ptr += descriptorSize * index;
 	return handle;
 }
@@ -206,7 +208,7 @@ D3D12_CPU_DESCRIPTOR_HANDLE SRVManager::GetCPUDescriptorHandle(uint32_t index)
 /// -------------------------------------------------------------
 D3D12_GPU_DESCRIPTOR_HANDLE SRVManager::GetGPUDescriptorHandle(uint32_t index)
 {
-	D3D12_GPU_DESCRIPTOR_HANDLE handle = descriptorHeap->GetGPUDescriptorHandleForHeapStart();
+	D3D12_GPU_DESCRIPTOR_HANDLE handle = descriptorHeap_->GetGPUDescriptorHandleForHeapStart();
 	handle.ptr += descriptorSize * index;
 	return handle;
 }

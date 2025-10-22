@@ -179,13 +179,13 @@ void ParticleManager::Update()
 					break;
 				case ParticleEffectType::Charge: {
 					if (particle.mode == ParticleMode::Orbit) {
-						float t = (particle.currentTime * particle.orbitSpeed) + particle.orbitPhase;
+						float t2 = (particle.currentTime * particle.orbitSpeed) + particle.orbitPhase;
 						float r = particle.orbitRadius;
 
 						Vector3 localPos = {
-							std::sin(t) * r,
-							std::sin(t * 1.5f) * 0.5f,
-							std::sin(2.0f * t) * r * 0.5f
+							std::sin(t2) * r,
+							std::sin(t2 * 1.5f) * 0.5f,
+							std::sin(2.0f * t2) * r * 0.5f
 						};
 
 						Matrix4x4 rotMat = Matrix4x4::MakeRotateAxisAngleMatrix(particle.orbitAxis, particle.orbitPhase);
@@ -204,10 +204,10 @@ void ParticleManager::Update()
 					break;
 				}
 				case ParticleEffectType::Ring: {
-					float t = particle.currentTime / particle.lifeTime;
+					float t3 = particle.currentTime / particle.lifeTime;
 
-					particle.transform.scale_ = Lerp(particle.startScale, particle.endScale, t);
-					particle.color.w = 1.0f - t;
+					particle.transform.scale_ = Lerp(particle.startScale, particle.endScale, t3);
+					particle.color.w = 1.0f - t3;
 
 					break;
 				}

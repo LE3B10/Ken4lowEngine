@@ -52,8 +52,8 @@ void GamePlayScene::Initialize()
 	DebugCamera::GetInstance()->Initialize();
 #endif // _DEBUG
 
-	//StartIntroCutscene();
-	//gameState_ = GameState::CutScene;   // 最初は必ずCutSceneへ
+	StartIntroCutscene();
+	gameState_ = GameState::CutScene;   // 最初は必ずCutSceneへ
 	Input::GetInstance()->SetLockCursor(true);
 	ShowCursor(false);
 
@@ -128,28 +128,28 @@ void GamePlayScene::Update()
 		}
 	}
 
-	//// カットシーン中の処理
-	//if (gameState_ == GameState::CutScene)
-	//{
-	//	// カットシーン更新のみ
-	//	bool finished = UpdateIntroCutscene(dt);
+	// カットシーン中の処理
+	if (gameState_ == GameState::CutScene)
+	{
+		// カットシーン更新のみ
+		bool finished = UpdateIntroCutscene(dt);
 
-	//	// 画的に必要な更新だけ許可
-	//	skyBox_->Update();
-	//	stage_->Update();
-	//	fadeController_->Update(dt);
-	//	scarecrow_->Update();
-	//	itemManager_->Update(player_.get());
+		// 画的に必要な更新だけ許可
+		skyBox_->Update();
+		stage_->Update();
+		fadeController_->Update(dt);
+		scarecrow_->Update();
+		itemManager_->Update(player_.get());
 
-	//	if (finished)
-	//	{
-	//		gameState_ = GameState::Playing;
-	//		introDone_ = true;
-	//		/*Input::GetInstance()->SetLockCursor(true);
-	//		ShowCursor(false);*/
-	//	}
-	//	return; // ここで早期リターン → 以降のプレイ処理を止める
-	//}
+		if (finished)
+		{
+			gameState_ = GameState::Playing;
+			introDone_ = true;
+			/*Input::GetInstance()->SetLockCursor(true);
+			ShowCursor(false);*/
+		}
+		return; // ここで早期リターン → 以降のプレイ処理を止める
+	}
 
 	switch (gameState_)
 	{
@@ -350,7 +350,7 @@ void GamePlayScene::DrawImGui()
 
 		ImGui::Separator();
 
-		// ★ その場でプレビュー反映（編集しながら絵を確認できる）
+		// その場でプレビュー反映（編集しながら絵を確認できる）
 		if (ImGui::Button("Preview Here (no restart)")) {
 			// その場の introTime_ で UpdateIntroCutscene(0) を1回呼ぶ
 			// dt=0 でも補間結果は出せるよう、Update側は dt=0 を許容している前提

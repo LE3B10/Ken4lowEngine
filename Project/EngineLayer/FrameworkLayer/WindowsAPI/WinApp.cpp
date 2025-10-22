@@ -1,6 +1,7 @@
 #include "WinApp.h"
 
 #include <imgui_impl_win32.h>
+#include <stdexcept>
 
 /// ---------- ImGuiのウィンドウプロシージャ ---------- ///
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
@@ -22,6 +23,10 @@ void WinApp::CreateMainWindow(uint32_t Width, uint32_t Height)
 {
 	// COMの初期化
 	HRESULT hr = CoInitializeEx(0, COINIT_MULTITHREADED);
+	if (FAILED(hr))
+	{
+		throw std::runtime_error("Failed to initialize COM library");
+	}
 
 	// ウィンドウクラスを登録する
 	wc.lpfnWndProc = WindowProc;				 // ウィンドウプロシージャ

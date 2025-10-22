@@ -771,7 +771,7 @@ void Wireframe::DrawTorus(const Vector3& center, float R, float r, uint32_t ring
 			uint32_t index0 = i * (tubeSegments + 1) + j;
 			uint32_t index1 = index0 + 1;
 			uint32_t index2 = (i + 1) * (tubeSegments + 1) + j;
-			uint32_t index3 = index2 + 1;
+			//uint32_t index3 = index2 + 1;
 
 			// 小円方向の線
 			DrawLine(points[index0], points[index1], color);
@@ -810,7 +810,7 @@ void Wireframe::DrawRotatingTorus(const Vector3& center, float R, float r, uint3
 			uint32_t index0 = i * (tubeSegments + 1) + j;
 			uint32_t index1 = index0 + 1;
 			uint32_t index2 = (i + 1) * (tubeSegments + 1) + j;
-			uint32_t index3 = index2 + 1;
+			//uint32_t index3 = index2 + 1;
 
 			// 小円方向の線
 			DrawLine(points[index0], points[index1], color);
@@ -846,7 +846,7 @@ void Wireframe::DrawMobiusStrip(const Vector3& center, float R, float w, uint32_
 			uint32_t index0 = i * (tubeSegments + 1) + j;
 			uint32_t index1 = index0 + 1;
 			uint32_t index2 = (i + 1) * (tubeSegments + 1) + j;
-			uint32_t index3 = index2 + 1;
+			//uint32_t index3 = index2 + 1;
 
 			// 幅方向の線
 			DrawLine(points[index0], points[index1], color);
@@ -1217,9 +1217,8 @@ void Wireframe::DrawMagicCircle(const Vector3& center, float radius, const Vecto
 	DrawPolygon(center, radius * 0.9f, 8, color);
 }
 
-void Wireframe::DrawRotatingMagicCircle(const Vector3& center, float radius, const Vector4& color, float time)
+void Wireframe::DrawRotatingMagicCircle(const Vector3& center, float radius, const Vector4& color)
 {
-	float rotation = time * 1.5f;
 	DrawMagicCircle(center, radius, color);
 	DrawPentagram(center, radius * 0.8f, color);
 }

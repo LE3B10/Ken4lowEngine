@@ -49,8 +49,6 @@ void FadeController::Update(float deltaTime)
 	timer_ += deltaTime;
 	float t = std::clamp(timer_ / std::max(0.001f, duration_), 0.0f, 1.0f); // 0.0f ~ 1.0fに正規化してクランプ
 
-	const float u = isFadeIn_ ? t : t;
-
 	if (needRebuildGrid_ && (mode_ == FadeMode::GridColumns || mode_ == FadeMode::Checkerboard))
 	{
 		RebuildGrid();

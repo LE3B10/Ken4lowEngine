@@ -48,7 +48,7 @@ private: /// ---------- メンバ関数 ---------- ///
 	void UpdatePress(Input* input, Vector2& mp);
 
 	// ホイール更新
-	void UpdateWheel(Vector2& mouse);
+	void UpdateWheel();
 
 	// ドラッグ更新
 	void UpdateDrassing(Input* input, Vector2& mp, float deltaTime);

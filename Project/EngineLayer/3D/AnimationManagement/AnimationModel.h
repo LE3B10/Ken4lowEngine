@@ -57,7 +57,7 @@ public: /// ---------- メンバ変数 ---------- ///
 	{
 		// 入力（共有候補）：DEFAULTの頂点SRV、Influence SRV、IB
 		ComPtr<ID3D12Resource> staticVBDefault; // t1
-		D3D12_VERTEX_BUFFER_VIEW influenceVBV;  // VSで使わないならなくても可
+		D3D12_VERTEX_BUFFER_VIEW influenceVBV = {};  // VSで使わないならなくても可
 
 		// インデックスバッファの実体を保持（解放されないように）
 		ComPtr<ID3D12Resource> indexBuffer;     // ← これを追加
@@ -68,11 +68,11 @@ public: /// ---------- メンバ変数 ---------- ///
 
 		// 出力（インスタンス固有）：スキン結果u0とVBV、UAVディスクリプタ
 		ComPtr<ID3D12Resource>  skinnedVB;     // u0
-		D3D12_VERTEX_BUFFER_VIEW skinnedVBV;
+		D3D12_VERTEX_BUFFER_VIEW skinnedVBV = {};
 		uint32_t                 uavIndex = UINT32_MAX; // UAVヒープのu0
 		uint32_t                 srvInputVerticesOnUavHeap = UINT32_MAX; // t1 SRV on UAV heap
 
-		D3D12_GPU_DESCRIPTOR_HANDLE influenceSrvGpuOnUavHeap{}; // t2
+		D3D12_GPU_DESCRIPTOR_HANDLE influenceSrvGpuOnUavHeap = {}; // t2
 		// 出力VBのリソース状態
 		D3D12_RESOURCE_STATES skinnedState = D3D12_RESOURCE_STATE_COMMON;
 

@@ -43,29 +43,27 @@ void ParameterManager::Update()
 	}
 
 	// 全グループをループ
-	for (auto& [groupName, group] : datas_)
+	for (auto& [groupNames, group] : datas_)
 	{
 		// グループ名を表示し、展開可能なメニューを作成
-		if (!ImGui::BeginMenu(groupName.c_str()))
+		if (!ImGui::BeginMenu(groupNames.c_str()))
 			continue;
 
-		for (auto& [groupName, group] : datas_)
+		if (ImGui::CollapsingHeader(groupNames.c_str()))
 		{
-			if (ImGui::CollapsingHeader(groupName.c_str()))
+			for (auto& [itemName, item] : group.items)
 			{
-				for (auto& [itemName, item] : group.items)
-				{
-					// 各アイテムの型に応じたUI描画
-					DrawItem(itemName, item);
-				}
+				// 各アイテムの型に応じたUI描画
+				DrawItem(itemName, item);
 			}
 		}
+
 
 		// 保存ボタンを作成
 		if (ImGui::Button("Save"))
 		{
-			SaveFile(groupName); // グループを保存
-			std::string message = std::format("{}.json saved.", groupName);
+			SaveFile(groupNames); // グループを保存
+			std::string message = std::format("{}.json saved.", groupNames);
 			MessageBoxA(nullptr, message.c_str(), "GlobalVariables", 0);
 		}
 

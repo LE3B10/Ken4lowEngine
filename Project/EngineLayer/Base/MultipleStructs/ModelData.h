@@ -30,7 +30,7 @@ struct QuaternionTransform
 template <typename T>
 struct Keyframe
 {
-	float time; // 時刻
+	float time = 0.0f; // 時刻
 	T value;	// 値
 };
 

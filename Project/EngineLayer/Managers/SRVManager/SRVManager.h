@@ -46,7 +46,7 @@ public: /// ---------- メンバ関数 ---------- ///
 
 public: /// ---------- ゲッター ---------- ///
 
-	ID3D12DescriptorHeap* GetDescriptorHeap() const { return descriptorHeap.Get(); }
+	ID3D12DescriptorHeap* GetDescriptorHeap() const { return descriptorHeap_.Get(); }
 
 	ComPtr <ID3D12DescriptorHeap> CreateDescriptorHeap(ID3D12Device* device, D3D12_DESCRIPTOR_HEAP_TYPE heapType, UINT numDescriptors, bool shadervisible);
 
@@ -56,7 +56,7 @@ public: /// ---------- ゲッター ---------- ///
 	// GPUデスクリプタヒープを取得する
 	D3D12_GPU_DESCRIPTOR_HANDLE GetGPUDescriptorHandle(uint32_t index);
 
-	D3D12_SHADER_RESOURCE_VIEW_DESC GetSRVDesc() const { return srvDesc; }
+	//D3D12_SHADER_RESOURCE_VIEW_DESC GetSRVDesc() const { return srvDesc; }
 
 	uint32_t GetDescriptorSize() const { return descriptorSize; }
 
@@ -74,9 +74,7 @@ private: /// ---------- メンバ変数 ---------- ///
 	uint32_t descriptorSize = 0;
 
 	// SRV用デスクリプタヒープ
-	ComPtr<ID3D12DescriptorHeap> descriptorHeap;
-
-	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc{};
+	ComPtr<ID3D12DescriptorHeap> descriptorHeap_;
 
 	// 次に使用するSRVインデックス
 	uint32_t useIndex = 0;
