@@ -21,8 +21,8 @@
 #include <DepthOutlineEffect.h>
 #include <UAVManager.h>
 
-
-auto Transition = [&](PostEffectManager::RenderTarget& rt, D3D12_RESOURCE_STATES newState)
+/// リソース状態遷移のラムダ関数
+auto Transition = [](PostEffectManager::RenderTarget& rt, D3D12_RESOURCE_STATES newState)
 	{
 		auto dxCommon_ = DirectXCommon::GetInstance();
 		if (rt.state == newState) return;                    // 二重バリア防止
@@ -141,8 +141,6 @@ void PostEffectManager::BeginDraw()
 /// -------------------------------------------------------------
 void PostEffectManager::EndDraw()
 {
-	auto commandList = dxCommon_->GetCommandManager()->GetCommandList();
-
 	// 🔷 Outline等で使うために、depthResource を PIXEL_SHADER_RESOURCE に遷移
 	if (depthResource_ && depthState_ != D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE)
 	{
@@ -179,12 +177,12 @@ void PostEffectManager::RenderPostEffect()
 		ComPtr<ID3D12Resource> backBuffer = dxCommon_->GetBackBuffer(backBufferIndex);
 		D3D12_CPU_DESCRIPTOR_HANDLE backBufferRTV = dxCommon_->GetBackBufferRTV(backBufferIndex);
 
-		// ★ ①-1 PRESENT → RENDER_TARGET へ遷移
+		// PRESENT → RENDER_TARGET へ遷移
 		dxCommon_->ResourceTransition(backBuffer.Get(), D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
 
 		commandList->OMSetRenderTargets(1, &backBufferRTV, false, &dsvHandle);
 
-		// ① PSO / ルートシグネチャ
+		// PSO / ルートシグネチャ
 		commandList->SetPipelineState(pipelineBuilder_->GetCopyPipelineState().Get());
 		commandList->SetGraphicsRootSignature(pipelineBuilder_->GetCopyRootSignature().Get());
 		SRVManager::GetInstance()->SetGraphicsRootDescriptorTable(0, rt.srvIndex);
@@ -227,7 +225,7 @@ void PostEffectManager::RenderPostEffect()
 		}
 		else
 		{
-			// ★ SRVヒープをバインド（PSで使うため）
+			// SRVヒープをバインド（PSで使うため）
 			SRVManager::GetInstance()->PreDraw();
 
 			// 書き込み

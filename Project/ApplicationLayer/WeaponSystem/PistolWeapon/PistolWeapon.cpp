@@ -71,31 +71,18 @@ void PistolWeapon::DrawImGui()
 }
 
 /// -------------------------------------------------------------
-///				　			　 単射
-/// -------------------------------------------------------------
-void PistolWeapon::Fire(const Vector3& muzzlePosition, const Vector3&)
-{
-	// 見た目補正(+90°)を発射ロジックからは引く
-	constexpr float kHalfPi = std::numbers::pi_v<float> *0.5f;
-	float yaw = transform_.rotate_.y;
-	float pitch = transform_.rotate_.x - kHalfPi;
-
-	Vector3 forward{
-		std::sin(yaw) * std::cos(pitch),
-		-std::sin(pitch),
-		std::cos(yaw) * std::cos(pitch)
-	};
-	forward = Vector3::Normalize(forward);
-
-	const Vector3 muzzlePos = transform_.translate_;              // 銃口の基準（必要なら微調整）
-	const Vector3 velocity = forward * weaponConfig_.muzzleSpeed; // 武器設定の初速
-}
-
-/// -------------------------------------------------------------
 ///				　			　 リロード
 /// -------------------------------------------------------------
 void PistolWeapon::Reload()
 {
+}
+
+/// -------------------------------------------------------------
+///				　			　 衝突時処理
+/// -------------------------------------------------------------
+void BaseWeapon::OnCollision(Collider* other)
+{
+	(void)other; // 他のオブジェクトと衝突したときの処理をここに実装
 }
 
 /// -------------------------------------------------------------

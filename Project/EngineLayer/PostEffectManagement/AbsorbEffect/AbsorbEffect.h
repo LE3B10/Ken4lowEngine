@@ -37,7 +37,7 @@ private: /// ---------- メンバ変数 ---------- ///
 	DirectXCommon* dxCommon_ = nullptr;
 
 	// パイプラインビルダー
-	PostEffectPipelineBuilder* pipelineBuilder_;
+	PostEffectPipelineBuilder* pipelineBuilder_ = nullptr;
 
 	// グラフィックスパイプラインステートオブジェクト
 	Microsoft::WRL::ComPtr<ID3D12PipelineState> graphicsPipelineState_;

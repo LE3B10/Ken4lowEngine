@@ -23,24 +23,31 @@ void Item::Initialize(ItemType type, const Vector3& pos)
 	switch (type_)
 	{
 	case ItemType::HealSmall:
-		modelPath = "cube.gltf"; break;
+		modelPath = "cube.gltf";
+		object3d_->Initialize(modelPath);
 		object3d_->SetColor({ 1.0f,0.0f,0.0f,1.0f }); // 赤色
+		break;
 
 	case ItemType::AmmoSmall:
-		modelPath = "cube.gltf"; break;
+		modelPath = "cube.gltf";
+		object3d_->Initialize(modelPath);
 		object3d_->SetColor({ 0.0f, 0.0f, 1.0f, 1.0f }); // 青色
+		break;
 
 	case ItemType::ScoreBonus:
-		modelPath = "cube.gltf"; break;
+		modelPath = "cube.gltf";
+		object3d_->Initialize(modelPath);
 		object3d_->SetColor({ 1.0f, 1.0f, 0.0f, 1.0f }); // 黄色
+		break;
 
 	case ItemType::PowerUp:
-		modelPath = "cube.gltf"; break;
+		modelPath = "cube.gltf";
+		object3d_->Initialize(modelPath);
 		object3d_->SetColor({ 1.0f, 0.5f, 0.0f, 1.0f }); // オレンジ色
+		break;
 
 	}
 
-	object3d_->Initialize(modelPath);
 	object3d_->SetTranslate(position_);
 	object3d_->SetScale(scale_); // サイズを設定
 
@@ -119,6 +126,8 @@ bool Item::CheckCollisionWithPlayer(const Vector3& playerPos)
 void Item::ApplyTo(Player* player)
 {
 	if (collected_) return;
+
+	(void)player;
 
 	//switch (type_)
 	//{

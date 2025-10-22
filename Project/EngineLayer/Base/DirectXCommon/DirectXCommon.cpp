@@ -106,8 +106,6 @@ void DirectXCommon::BeginDraw()
 /// -------------------------------------------------------------
 void DirectXCommon::EndDraw()
 {
-	HRESULT hr{};
-
 	// **バックバッファの取得**
 	backBufferIndex = swapChain_->GetSwapChain()->GetCurrentBackBufferIndex();
 	ComPtr<ID3D12Resource> backBuffer = GetBackBuffer(backBufferIndex);
