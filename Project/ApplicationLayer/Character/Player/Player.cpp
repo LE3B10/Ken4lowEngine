@@ -23,22 +23,22 @@ void Player::Initialize()
 	Collider::SetOwner<Player>(this);
 	Collider::SetOBBHalfSize({ 0.8f, 2.0f, 0.8f });
 
+	// 体幹部位の初期化
 	body_.object = std::make_unique<Object3D>();
 	body_.object->Initialize("PlayerRoot/player_body.gltf");
+	body_.transform.translate_ = { 0.0f, 2.25f, 0.0f };	// 初期位置
 
-	// 初期位置
-	body_.transform.translate_ = { 0.0f, 2.25f, 0.0f };
-
-	// 子オブジェクト（頭、腕）をリストに追加
+	// 子オブジェクト（頭、腕、脚）をリストに追加
 	std::vector<std::pair<std::string, Vector3>> partData =
 	{
-		{"PlayerRoot/player_head.gltf", {0.0f, 0.75f, 0.0f}},     // 頭
+		{"PlayerRoot/player_head.gltf", {0.0f, 0.75f, 0.0f}},      // 頭
 		{"PlayerRoot/player_LeftArm.gltf", {-0.75f, 0.75f, 0.0f}}, // 左腕
-		{"PlayerRoot/player_RightArm.gltf",{ 0.75f, -0.75f, 0}},  // 右腕
+		{"PlayerRoot/player_RightArm.gltf",{ 0.75f, -0.75f, 0}},   // 右腕
 		{"PlayerRoot/player_LeftLeg.gltf", {-0.25f, -0.75f, 0} },  // 左脚
-		{"PlayerRoot/player_RightLeg.gltf", {0.25f, -0.75f, 0} }  // 右脚
+		{"PlayerRoot/player_RightLeg.gltf", {0.25f, -0.75f, 0} }   // 右脚
 	};
 
+	// 部位データをもとに部位オブジェクトを生成
 	for (const auto& [modelPath, position] : partData)
 	{
 		BodyPart part;
@@ -55,35 +55,40 @@ void Player::Initialize()
 	fpsCamera_->Initialize(this);
 
 	groundY_ = body_.transform.translate_.y;  // 今立っている高さを床として扱う
-	isGrounded_ = true;
-	vY_ = 0.0f;
+	isGrounded_ = true;						  // 接地中
+	vY_ = 0.0f;								  // 縦速度初期化
 
+	// ピストル武器初期化
 	pistolWeapon_ = std::make_unique<PistolWeapon>();
 	pistolWeapon_->Initialize(MakePistolConfig());
-	pistolWeapon_->SetParentTransform(&parts_[2].transform);
+	pistolWeapon_->SetParentTransform(&parts_[2].transform); // 右腕に追従
 
+	// 弾道エフェクト初期化
 	ballisticEffect_ = std::make_unique<BallisticEffect>();
 	ballisticEffect_->Initialize();
-	ballisticEffect_->SetParentTransform(&parts_[2].transform);
+	ballisticEffect_->SetParentTransform(&parts_[2].transform); // 右腕に追従
 
 	// 武器カタログ初期化
 	weaponCatalog_ = std::make_unique<WeaponCatalog>();
-	weaponCatalog_->Initialize(kWeaponDir, kWeaponMonolith);
+	weaponCatalog_->Initialize(kWeaponDir, kWeaponMonolith); // ディレクトリとモノリス両方から読み込み
 
 	// 在庫から初期装備を決める
 	const auto& table = weaponCatalog_->All();
+
+	// 初期武器設定
 	if (!table.empty())
 	{
-		auto it = table.find("Pistol");
-		if (it == table.end()) it = table.begin();
-		weapon_ = std::make_unique<Weapon>(it->second);
-		currentWeapon_ = ToWeaponConfig(it->second);
+		auto it = table.find("Pistol");					// まずピストルを探す
+		if (it == table.end()) it = table.begin();		// 在庫の最初の武器を使う
+		weapon_ = std::make_unique<Weapon>(it->second); // 武器基底ポインタにセット
+		currentWeapon_ = ToWeaponConfig(it->second);	// ランタイム用コピー
 	}
 
+	// ロードアウト初期化
 	loadout_ = std::make_unique<Loadout>();
-	loadout_->Rebuild(weaponCatalog_->All());
+	loadout_->Rebuild(weaponCatalog_->All()); // 在庫に基づき再構築
 
-	// 初期装備
+	// 初期装備 : プライマリ武器を優先
 	std::string useWeaponName = loadout_->SelectNameByClass(WeaponClass::Primary, weaponCatalog_->All());
 
 	// 装備がなければ在庫の最初の武器を使う
@@ -97,9 +102,11 @@ void Player::Initialize()
 /// -------------------------------------------------------------
 ///				　			　 更新処理
 /// -------------------------------------------------------------
-void Player::Update()
+void Player::Update(float deltaTime)
 {
-
+#ifdef _DEBUG 三人称視点切替 デバッグ時のみ有効
+#endif // _DEBUG
+	// カメラモード切替
 	if (input_->TriggerKey(DIK_F5)) { fpsCamera_->CycleViewMode(); }
 
 	// ここで表示切替
@@ -118,6 +125,7 @@ void Player::Update()
 		break;
 	}
 
+	// 武器選択 : 数字キー1〜6 : クラス別選択
 	if (input_->TriggerKey(DIK_1)) { auto n = loadout_->SelectNameByClass(WeaponClass::Primary, weaponCatalog_->All()); if (!n.empty()) SelectWeapon(n); }
 	if (input_->TriggerKey(DIK_2)) { auto n = loadout_->SelectNameByClass(WeaponClass::Backup, weaponCatalog_->All()); if (!n.empty()) SelectWeapon(n); }
 	if (input_->TriggerKey(DIK_3)) { auto n = loadout_->SelectNameByClass(WeaponClass::Melee, weaponCatalog_->All()); if (!n.empty()) SelectWeapon(n); }
@@ -126,19 +134,19 @@ void Player::Update()
 	if (input_->TriggerKey(DIK_6)) { auto n = loadout_->SelectNameByClass(WeaponClass::Heavy, weaponCatalog_->All()); if (!n.empty()) SelectWeapon(n); }
 
 	// 移動処理
-	Move();
+	Move(deltaTime);
 
-	pistolWeapon_->Update(1.0f / 60.0f);
+	// 武器更新
+	pistolWeapon_->Update(deltaTime);
 
+	// 弾道エフェクト更新
 	ballisticEffect_->Update();
-
-	const float dt = 1.0f / 60.0f;
 
 	// ばね: accel = -k*x - c*v
 	auto spring = [&](float& x, float& v) {
-		float a = -recoilReturn_ * x - recoilDamping_ * v;
-		v += a * dt;
-		x += v * dt;
+		float a = -recoilReturn_ * x - recoilDamping_ * v; // 加速度
+		v += a * deltaTime;								   // 速度更新
+		x += v * deltaTime;								   // 位置更新
 		};
 
 	// 後退＆回転の戻り
@@ -147,29 +155,31 @@ void Player::Update()
 	spring(recoilYaw_, recoilVy_);
 
 	// クールダウン更新
-	if (fireCooldown_ > 0.0f)
-	{
-		fireCooldown_ -= dt;
-	}
+	if (fireCooldown_ > 0.0f) fireCooldown_ -= deltaTime;
 
+	// 射撃処理
 	auto& armT = parts_[rightArmIndex_].transform;
 
+	// マウス左ボタンで射撃
 	if (input_->PushMouse(0))
 	{
+		// クールダウン終了で発射可能
 		if (fireCooldown_ <= 0.0f)
 		{
 			// forward の計算（あなたの式でOK）
 			float yaw = fpsCamera_->GetYaw();
 			float pitch = fpsCamera_->GetPitch();
-			Vector3 forward{
-				-std::sinf(yaw) * std::cosf(pitch),
-				-std::sinf(pitch),
-				 std::cosf(yaw) * std::cosf(pitch)
+			Vector3 forward = {
+				-std::sinf(yaw) * std::cosf(pitch), // x
+				 std::sinf(pitch),                  // y
+				 std::cosf(yaw) * std::cosf(pitch)  // z
 			};
+
+			// 正規化
 			forward = Vector3::Normalize(forward);
-			Vector3 worldUp{ 0,1,0 };
-			Vector3 right = Vector3::Normalize(Vector3::Cross(worldUp, forward));
-			Vector3 up = Vector3::Normalize(Vector3::Cross(forward, right));
+			Vector3 worldUp = { 0.0f, 1.0f, 0.0f }; // ワールドの上方向
+			Vector3 right = Vector3::Normalize(Vector3::Cross(worldUp, forward)); // 右方向
+			Vector3 up = Vector3::Normalize(Vector3::Cross(forward, right));	  // 上方向
 
 			// キックバック：前方の反対方向に少し引く、ついでに僅かに上へ
 			armT.translate_ += (-forward * recoilZ_) + (up * (recoilZ_ * 0.15f));
@@ -192,11 +202,13 @@ void Player::Update()
 			if (currentWeapon_.name == "Rifle") { kick = 0.075f; rise = 2.6f; horiz = 0.45f; }
 			if (currentWeapon_.name == "MachineGun") { kick = 0.045f; rise = 0.9f; horiz = 0.25f; }
 
+			// 反動適用
 			ApplyRecoil(kick, rise, horiz);
 		}
 	}
 
-	BaseCharacter::Update();
+	// ベースキャラクターの更新
+	BaseCharacter::Update(deltaTime);
 }
 
 
@@ -205,18 +217,21 @@ void Player::Update()
 /// -------------------------------------------------------------
 void Player::Draw()
 {
+	// 体幹部位の描画
 	if (body_.active) { body_.object->Draw(); }
 
-	for (auto& part : parts_) {
-		if (part.active) { part.object->Draw(); }
-	}
+	// 部位データ配列の描画
+	for (auto& part : parts_) if (part.active) { part.object->Draw(); }
 
+	// 武器描画
 	pistolWeapon_->Draw();
+
+	// 弾道エフェクト描画
 	ballisticEffect_->Draw();
 }
 
 /// -------------------------------------------------------------
-///				　		  中心座標を取得する純粋仮想関数
+///				　中心座標を取得する純粋仮想関数
 /// -------------------------------------------------------------
 Vector3 Player::GetCenterPosition() const
 {
@@ -228,8 +243,9 @@ Vector3 Player::GetCenterPosition() const
 /// -------------------------------------------------------------
 ///				　			　 移動処理
 /// -------------------------------------------------------------
-void Player::Move()
+void Player::Move(float deltaTime)
 {
+	// コライダー位置更新
 	Collider::SetCenterPosition(body_.transform.translate_ - Vector3{ 0.0f,0.3f,0.0f });
 
 	// 仮実装
@@ -247,11 +263,10 @@ void Player::Move()
 	// 斜め移動補正
 	if (Vector3::Length(move) > 0.0f) move = Vector3::Normalize(move) * moveSpeed;
 
-	if (fpsCamera_->GetViewMode() == FpsCamera::ViewMode::ThirdFront)
-	{
-		move.z *= -1.0f;
-	}
+	// 三人称前面視点では前後反転
+	if (fpsCamera_->GetViewMode() == FpsCamera::ViewMode::ThirdFront) move.z *= -1.0f;
 
+	// カメラの向きに合わせて移動ベクトルを回転
 	const float yaw = fpsCamera_->GetCamera()->GetRotate().y;
 	const float s = std::sinf(yaw), c = std::cosf(yaw);
 	move = { move.x * c - move.z * s, 0.0f, move.x * s + move.z * c };
@@ -259,10 +274,12 @@ void Player::Move()
 	// 体の移動
 	body_.transform.translate_ += move;
 
+	/// ---------- 体と頭の回転処理 ---------- ///
 	const bool  isFP = (fpsCamera_->GetViewMode() == FpsCamera::ViewMode::FirstPerson);
 	const float camYaw = fpsCamera_->GetYaw();
 	const float camPitch = fpsCamera_->GetPitch();
 
+	// 頭と体の回転更新
 	if (isFP)
 	{
 		// 一人称：回転は即時
@@ -287,21 +304,19 @@ void Player::Move()
 		isGrounded_ = false;
 	}
 
-	const float dt = 1.0f / 60.0f;          // 必要なら実Δtに置換
-
 	// 空中は重力適用
 	if (!isGrounded_)
 	{
-		vY_ += gravity_ * dt;
-		if (vY_ < maxFallSpeed_) vY_ = maxFallSpeed_;
-		body_.transform.translate_.y += vY_ * dt;
+		vY_ += gravity_ * deltaTime;					 // 重力加算
+		if (vY_ < maxFallSpeed_) vY_ = maxFallSpeed_;	 // 落下速度クランプ
+		body_.transform.translate_.y += vY_ * deltaTime; // 位置更新
 
 		// 着地（水平床の想定）
 		if (body_.transform.translate_.y <= groundY_)
 		{
-			body_.transform.translate_.y = groundY_;
-			vY_ = 0.0f;
-			isGrounded_ = true;
+			body_.transform.translate_.y = groundY_; // 床に合わせる
+			vY_ = 0.0f;								 // 縦速度リセット
+			isGrounded_ = true;						 // 接地状態へ
 		}
 	}
 	else
@@ -310,17 +325,18 @@ void Player::Move()
 		body_.transform.translate_.y = groundY_;
 	}
 
+	// 体と頭の回転反映
 	body_.transform.rotate_.y = bodyYaw_;
 	parts_[0].transform.rotate_.y = headYawLocal_;
 
-	// ===== 右手：FPはカメラ基準で“固定” =====
+	/// ---------- 右手：FPはカメラ基準で固定 ---------- ///
 	auto& armT = parts_[rightArmIndex_].transform;
 	if (isFP)
 	{
 		fpsCamera_->Update();
 		armT.parent_ = nullptr;  // 親を外してワールド直置きにする
 
-		// 右下・前に出すカメラローカルオフセット（好みで微調整）
+		// 右下・前に出すカメラローカルオフセット
 		Vector3 offset = { 0.75f, -0.75f, 0.75 };
 
 		// カメラ姿勢でオフセットを回す（Yaw→Pitch）
@@ -329,7 +345,7 @@ void Player::Move()
 		Matrix4x4 R = Matrix4x4::Multiply(Rx, Ry);
 		offset = Matrix4x4::Transform(offset, R);
 
-		// カメラ位置＋回したオフセット（＝画面に“固定”される）
+		// カメラ位置＋回したオフセット（画面に固定される）
 		const Vector3 camPos = fpsCamera_->GetCamera()->GetTranslate();
 		armT.translate_ = camPos + offset;
 		armT.rotate_.y = camYaw;
@@ -366,9 +382,13 @@ void Player::ApplyRecoil(float kickBack, float riseDeg, float horizDeg)
 /// -------------------------------------------------------------
 void Player::SelectWeapon(const std::string& name)
 {
+	// 武器データをカタログから探す
 	if (const WeaponData* w = weaponCatalog_->Find(name))
 	{
+		// 武器基底ポインタにセット
 		weapon_ = std::make_unique<Weapon>(*w);
+
+		// ランタイム用コピー
 		currentWeapon_ = ToWeaponConfig(*w);
 	}
 }
@@ -381,6 +401,7 @@ void Player::DrawImGui()
 	// 現在装備の名前（空可）
 	const std::string currentName = weapon_ ? weapon_->Data().name : std::string{};
 
+	// ---------- ロードアウト表示 ---------- ///
 	static const char* kClassLabels[] = { "Primary","Backup","Melee","Special","Sniper","Heavy" };
 
 	ImGui::Separator();

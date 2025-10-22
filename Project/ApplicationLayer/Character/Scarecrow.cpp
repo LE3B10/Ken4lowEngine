@@ -11,8 +11,8 @@ void Scarecrow::Initialize()
 	// モデルの初期化
 	model_ = std::make_unique<Object3D>();
 	model_->Initialize("cube.gltf");
-	model_->SetScale({ 1.0f, 2.0f, 1.0f });
-	model_->SetTranslate({ 0.0f, 2.0f, 15.0f });
+	model_->SetScale(scale_);		 // かかしの大きさに調整
+	model_->SetTranslate(position_); // 地面から少し上に配置
 }
 
 /// -------------------------------------------------------------
@@ -23,6 +23,7 @@ void Scarecrow::Update()
 	// モデルの更新
 	model_->Update();
 
+	// コライダーの更新
 	Collider::SetOBBHalfSize(model_->GetScale());
 	Collider::SetCenterPosition(model_->GetTranslate());
 }
@@ -41,8 +42,10 @@ void Scarecrow::Draw()
 /// -------------------------------------------------------------
 void Scarecrow::OnCollision(Collider* other)
 {
+	// 相手がプレイヤーの場合
 	if (other->GetTypeID() == static_cast<uint32_t>(CollisionTypeIdDef::kPlayer))
 	{
+		// 衝突判定時の処理
 		OutputDebugStringA("Scarecrow collided with Player!\n");
 	}
 }

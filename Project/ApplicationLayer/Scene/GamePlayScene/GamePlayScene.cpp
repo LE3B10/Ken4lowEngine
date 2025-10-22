@@ -10,11 +10,37 @@
 #include "AudioManager.h"
 #include <SceneManager.h>
 #include "LevelLoader.h"
+#include "LinearInterpolation.h"
 
 #ifdef _DEBUG
 #include <DebugCamera.h>
 #endif // _DEBUG
 
+static inline float DeltaAngle(float a, float b)
+{
+	// -π..+π の差に正規化
+	float d = std::fmod(b - a + std::numbers::pi_v<float>, 2.0f * std::numbers::pi_v<float>);
+	if (d < 0.0f) d += 2.0f * std::numbers::pi_v<float>;
+	return d - std::numbers::pi_v<float>;
+}
+
+float GamePlayScene::SmoothDampAngle(float current, float target, float& currentVelocity, float smoothTime, float deltaTime)
+{
+	const float eps = 1e-5f;
+	smoothTime = (smoothTime < eps) ? eps : smoothTime;
+	float omega = 2.0f / smoothTime;
+
+	float delta = DeltaAngle(current, target);
+	float temp = (currentVelocity + omega * delta) * deltaTime;
+
+	// 近似的な指数減衰（臨界減衰）
+	float x = omega * deltaTime;
+	float expDecay = 1.0f / (1.0f + x + 0.48f * x * x + 0.235f * x * x * x);
+
+	float result = current + (delta + temp) * expDecay;
+	currentVelocity = (currentVelocity - omega * temp) * expDecay;
+	return result;
+}
 
 /// -------------------------------------------------------------
 ///				　			　初期化処理
@@ -26,6 +52,8 @@ void GamePlayScene::Initialize()
 	DebugCamera::GetInstance()->Initialize();
 #endif // _DEBUG
 
+	StartIntroCutscene();
+	gameState_ = GameState::CutScene;   // 最初は必ずCutSceneへ
 	Input::GetInstance()->SetLockCursor(true);
 	ShowCursor(false);
 
@@ -62,6 +90,9 @@ void GamePlayScene::Initialize()
 
 	collisionManager_ = std::make_unique<CollisionManager>();
 	collisionManager_->Initialize();
+
+	stage_ = std::make_unique<Stage>();
+	stage_->Initialize();
 }
 
 
@@ -70,6 +101,9 @@ void GamePlayScene::Initialize()
 /// -------------------------------------------------------------
 void GamePlayScene::Update()
 {
+	// デルタタイムの取得
+	const float dt = dxCommon_->GetFPSCounter().GetDeltaTime();
+
 	// デバッグカメラの更新
 	UpdateDebug();
 
@@ -94,11 +128,37 @@ void GamePlayScene::Update()
 		}
 	}
 
+	// カットシーン中の処理
+	if (gameState_ == GameState::CutScene)
+	{
+		// カットシーン更新のみ
+		bool finished = UpdateIntroCutscene(dt);
+
+		// 画的に必要な更新だけ許可
+		skyBox_->Update();
+		stage_->Update();
+		fadeController_->Update(dt);
+		scarecrow_->Update();
+		itemManager_->Update(player_.get());
+
+		if (finished)
+		{
+			gameState_ = GameState::Playing;
+			introDone_ = true;
+			/*Input::GetInstance()->SetLockCursor(true);
+			ShowCursor(false);*/
+		}
+		return; // ここで早期リターン → 以降のプレイ処理を止める
+	}
+
 	switch (gameState_)
 	{
 	case GameState::Playing:
-		player_->Update();
-
+		player_->Update(dt);
+		skyBox_->Update();
+		stage_->Update();
+		scarecrow_->Update();
+		itemManager_->Update(player_.get());
 		break;
 	case GameState::Paused:
 		break;
@@ -107,20 +167,6 @@ void GamePlayScene::Update()
 	default:
 		break;
 	}
-
-	terrein_->Update();
-
-	skyBox_->Update();
-
-	crosshair_->Update();
-
-	scarecrow_->Update();
-
-	// フェードの更新
-	fadeController_->Update(dxCommon_->GetFPSCounter().GetDeltaTime());
-
-	// アイテムの更新と衝突判定
-	itemManager_->Update(player_.get());
 
 	// 衝突マネージャの更新
 	collisionManager_->Update();
@@ -147,12 +193,13 @@ void GamePlayScene::Draw3DObjects()
 
 	//terrein_->Draw();
 
-	player_->Draw();
-
-	scarecrow_->Draw();
-
-	// アイテムの描画
-	itemManager_->Draw();
+	if (gameState_ != GameState::CutScene)
+	{
+		player_->Draw();
+		scarecrow_->Draw();
+		itemManager_->Draw();
+	}
+	stage_->Draw();
 
 #pragma endregion
 
@@ -194,9 +241,10 @@ void GamePlayScene::Draw2DSprites()
 	// UI用の共通描画設定
 	SpriteManager::GetInstance()->SetRenderSetting_UI();
 
-	// クロスヘアの描画
-	crosshair_->Draw();
-
+	// カットシーン中はクロスヘア非表示
+	if (gameState_ != GameState::CutScene) {
+		crosshair_->Draw();
+	}
 	fadeController_->Draw();
 
 #pragma endregion
@@ -220,6 +268,96 @@ void GamePlayScene::DrawImGui()
 	LightManager::GetInstance()->DrawImGui();
 
 	player_->DrawImGui();
+
+	if (ImGui::Begin("Intro Cutscene")) {
+
+		// --- 再生制御 ---
+		if (ImGui::Button("Play / Restart Intro")) {
+			RestartIntroCutscene();
+		}
+		ImGui::SameLine();
+		ImGui::Checkbox("Loop while Editing", &introLoop_);
+		ImGui::SameLine();
+		ImGui::Checkbox("Snap Start Yaw", &forceSnapFirstYaw_);
+
+		ImGui::SliderFloat("Smooth Time (yaw)", &introSmoothTime_, 0.2f, 1.2f, "%.2f");
+
+		// 再生の現在時刻を編集（プレビュー用）
+		ImGui::SliderFloat("Time", &introTime_, 0.0f, std::max(0.001f, introLength_), "%.2f");
+		// 長さの確認
+		ImGui::Text("Length: %.2f sec", introLength_);
+
+		ImGui::Separator();
+
+		// --- カメラキー編集 ---
+		if (ImGui::TreeNode("Camera Keys")) {
+			for (int i = 0; i < (int)introKeys_.size(); ++i) {
+				ImGui::PushID(i);
+				ImGui::DragFloat("time", &introKeys_[i].time, 0.01f, 0.0f, 999.0f, "%.2f");
+				ImGui::DragFloat3("pos", &introKeys_[i].position.x, 0.1f);
+				ImGui::DragFloat3("look", &introKeys_[i].lookAt.x, 0.1f);
+				if (ImGui::Button("Remove") && introKeys_.size() > 2) {
+					introKeys_.erase(introKeys_.begin() + i);
+					// 再生長さを再計算
+					introLength_ = introKeys_.back().time;
+					ImGui::PopID();
+					break;
+				}
+				ImGui::Separator();
+				ImGui::PopID();
+			}
+			if (ImGui::Button("Add Key (duplicate last)")) {
+				auto last = introKeys_.back();
+				last.time += 1.0f;
+				introKeys_.push_back(last);
+				introLength_ = introKeys_.back().time;
+			}
+			if (ImGui::Button("Sort Keys by time")) {
+				std::sort(introKeys_.begin(), introKeys_.end(),
+					[](auto& a, auto& b) { return a.time < b.time; });
+				introLength_ = introKeys_.back().time;
+			}
+			ImGui::TreePop();
+		}
+
+		ImGui::Separator();
+
+		// --- Yawキー編集 ---
+		if (ImGui::TreeNode("Yaw Keys (deg)")) {
+			for (int i = 0; i < (int)introYawKeys_.size(); ++i) {
+				ImGui::PushID(1000 + i);
+				ImGui::DragFloat("time", &introYawKeys_[i].time, 0.01f, 0.0f, 999.0f, "%.2f");
+				ImGui::DragFloat("deg", &introYawKeys_[i].deg, 0.1f, -180.0f, 180.0f, "%.1f");
+				if (ImGui::Button("Remove##yaw") && introYawKeys_.size() > 1) {
+					introYawKeys_.erase(introYawKeys_.begin() + i);
+					ImGui::PopID();
+					break;
+				}
+				ImGui::Separator();
+				ImGui::PopID();
+			}
+			if (ImGui::Button("Add Yaw Key (duplicate last)")) {
+				auto last = introYawKeys_.back();
+				last.time += 1.0f;
+				introYawKeys_.push_back(last);
+			}
+			if (ImGui::Button("Sort Yaw Keys by time")) {
+				std::sort(introYawKeys_.begin(), introYawKeys_.end(),
+					[](auto& a, auto& b) { return a.time < b.time; });
+			}
+			ImGui::TreePop();
+		}
+
+		ImGui::Separator();
+
+		// ★ その場でプレビュー反映（編集しながら絵を確認できる）
+		if (ImGui::Button("Preview Here (no restart)")) {
+			// その場の introTime_ で UpdateIntroCutscene(0) を1回呼ぶ
+			// dt=0 でも補間結果は出せるよう、Update側は dt=0 を許容している前提
+			UpdateIntroCutscene(0.0f);
+		}
+	}
+	ImGui::End();
 }
 
 
@@ -240,6 +378,119 @@ void GamePlayScene::UpdateDebug()
 		ShowCursor(isDebugCamera_);// 表示・非表示も連動（オプション）
 	}
 #endif // _DEBUG
+}
+
+/// -------------------------------------------------------------
+///				　			イントロカットシーン
+/// -------------------------------------------------------------
+void GamePlayScene::StartIntroCutscene()
+{
+	// --- Yaw キー ---
+	introYawKeys_.clear();
+	introYawKeys_.push_back({ 0.0f,  10.0f });
+	introYawKeys_.push_back({ 2.5f,  -50.0f });
+	introYawKeys_.push_back({ 5.0f, -100.0f });
+	introYawKeys_.push_back({ 7.0f,  -140.0f });
+	introYawKeys_.push_back({ 9.0f,   -20.0f });
+
+	// --- Camera キー（★これが抜けていた）---
+	introKeys_.clear();
+	introKeys_.push_back({ 0.0f, { -55, 18,  45 }, {  0, -0.5f,  0 } });  // 左奥上空
+	introKeys_.push_back({ 3.0f, { 35, 16,  35 }, {  0, -0.5f,  0 } });  // 右手前方向へ
+	introKeys_.push_back({ 6.0f, { 20, 10,   0 }, {  0, 0.5f,  0 } }); // スタート地点上空
+	introKeys_.push_back({ 10.0f, {  -10,  3,  10 }, {  0, 1.8f,  0 } }); // 徐々に地上へ
+
+	introLength_ = introKeys_.back().time;  // 長さセット
+	introTime_ = 0.0f;
+}
+
+/// -------------------------------------------------------------
+///				　		イントロカットシーン更新
+/// -------------------------------------------------------------
+bool GamePlayScene::UpdateIntroCutscene(float dt)
+{
+	introTime_ += dt;
+	float t = (introTime_ < introLength_) ? introTime_ : introLength_;
+
+	// 区間を探す
+	int i = 0;
+	while (i + 1 < (int)introKeys_.size() && introKeys_[i + 1].time < t) ++i;
+	int i1 = std::max(0, i - 1);
+	int i2 = i;
+	int i3 = std::min((int)introKeys_.size() - 1, i + 1);
+	int i4 = std::min((int)introKeys_.size() - 1, i + 2);
+
+	float segT0 = introKeys_[i2].time;
+	float segT1 = introKeys_[i3].time;
+	float u = (segT1 > segT0) ? (t - segT0) / (segT1 - segT0) : 0.0f;
+	u = clamp01(u);
+
+	Vector3 pos = CatmullRom(introKeys_[i1].position, introKeys_[i2].position,
+		introKeys_[i3].position, introKeys_[i4].position, u);
+
+	// 接線（少し先の位置）
+	float uAhead = std::min(1.0f, u + 0.02f);
+	Vector3 posAhead = CatmullRom(introKeys_[i1].position, introKeys_[i2].position,
+		introKeys_[i3].position, introKeys_[i4].position, uAhead);
+	Vector3 dir = Vector3::Normalize(posAhead - pos);
+	float pathYaw = std::atan2(dir.x, dir.z); // +Z前提
+
+	float yawOffsetRad = SampleYawDeg(t) * (std::numbers::pi_v<float> / 180.0f);
+	float targetYaw = pathYaw + yawOffsetRad;
+
+	// 初回だけ進行方向にスナップ（“変な向きから開始”対策）
+	if (forceSnapFirstYaw_ && introTime_ == dt) {
+		introYawRad_ = pathYaw + (SampleYawDeg(0.0f) * (std::numbers::pi_v<float> / 180.0f));
+		introYawVel_ = 0.0f;
+	}
+
+	// スムーズ時間をImGuiから可変
+	introYawRad_ = SmoothDampAngle(introYawRad_, targetYaw, introYawVel_, introSmoothTime_, dt);
+
+	auto* cam = Object3DCommon::GetInstance()->GetDefaultCamera();
+	cam->SetTranslate(pos);
+	cam->SetRotate({ 0.0f, introYawRad_, 0.0f });
+	cam->Update();
+
+	// ループ再生対応：終端に達したら巻き戻す or 終了
+	if (introTime_ >= introLength_) {
+		if (introLoop_) {
+			introTime_ = 0.0f;
+			// ループ頭でも向きが暴れないよう速度リセット
+			introYawVel_ = 0.0f;
+			return false; // 継続
+		}
+		return true; // 終了（Playingへ）
+	}
+	return false;
+}
+
+float GamePlayScene::SampleYawDeg(float t) const
+{
+	if (introYawKeys_.empty()) return 0.0f;
+	if (t <= introYawKeys_.front().time) return introYawKeys_.front().deg;
+	if (t >= introYawKeys_.back().time)  return introYawKeys_.back().deg;
+	for (size_t i = 0; i + 1 < introYawKeys_.size(); ++i) {
+		const auto& a = introYawKeys_[i];
+		const auto& b = introYawKeys_[i + 1];
+		if (t >= a.time && t <= b.time) {
+			float u = (t - a.time) / (b.time - a.time);
+			return a.deg + (b.deg - a.deg) * u;
+		}
+	}
+	return 0.0f;
+}
+
+void GamePlayScene::RestartIntroCutscene()
+{
+	introTime_ = 0.0f;
+	introDone_ = false;
+	introYawRad_ = 0.0f;
+	introYawVel_ = 0.0f;
+
+	gameState_ = GameState::CutScene;
+	Input::GetInstance()->SetLockCursor(true);
+	ShowCursor(false);
 }
 
 /// -------------------------------------------------------------

@@ -19,9 +19,9 @@ protected: /// ---------- 構造体 ---------- ///
 	/// ---------- 部位データ ---------- ///
 	struct BodyPart
 	{
-		std::unique_ptr<Object3D> object;
-		WorldTransformEx transform;
-		bool active = true;     // 描画/非描画
+		std::unique_ptr<Object3D> object; // 部位の3Dオブジェクト
+		WorldTransformEx transform;		  // 部位のワールド変換情報
+		bool active = true;				  // 描画/非描画
 	};
 
 public: /// ---------- メンバ関数 ---------- ///
@@ -33,7 +33,7 @@ public: /// ---------- メンバ関数 ---------- ///
 	virtual void Initialize() = 0;
 
 	// 更新処理
-	virtual void Update();
+	virtual void Update(float deltaTime);
 
 	// 描画処理
 	virtual void Draw() = 0;
@@ -68,8 +68,10 @@ private: /// ---------- メンバ関数 ---------- ///
 
 protected: /// ---------- メンバ変数 ---------- ///
 
-	BodyPart body_; // 体幹部位
-	std::vector<BodyPart> parts_; // 部位データ配列
+	// 体幹部位
+	BodyPart body_;
 
+	// 部位データ配列
+	std::vector<BodyPart> parts_;
 };
 

@@ -122,9 +122,13 @@ void CollisionManager::CheckCollisionPair(Collider* colliderA, Collider* collide
 	// 自分同士は無視
 	if (colliderA == colliderB) return;
 
+	// 衝突判定関数を取得
 	auto key = std::make_pair(colliderA->GetTypeID(), colliderB->GetTypeID());
+
+	// 衝突判定関数を検索
 	auto it = collisionTable_.find(key);
 
+	// 衝突判定関数が登録されているか確認
 	if (it != collisionTable_.end())
 	{
 		if (!it->second(colliderA, colliderB))
@@ -137,8 +141,8 @@ void CollisionManager::CheckCollisionPair(Collider* colliderA, Collider* collide
 		return; // 登録されていない型は無視
 	}
 
-	colliderA->OnCollision(colliderB);
-	colliderB->OnCollision(colliderA);
+	colliderA->OnCollision(colliderB); // Bの衝突応答処理
+	colliderB->OnCollision(colliderA); // Aの衝突応答処理
 }
 
 /// -------------------------------------------------------------
