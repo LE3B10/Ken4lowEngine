@@ -43,7 +43,7 @@ public: /// ---------- メンバ関数 ---------- ///
 	WorldTransformEx* GetWorldTransform() { return &body_.transform; }
 
 	// 衝突時に呼ばれる仮想関数
-	void OnCollision(Collider* other) override {};
+	void OnCollision(Collider* other) override;
 
 	// 中心座標を取得する純粋仮想関数
 	Vector3 GetCenterPosition() const override;

@@ -87,7 +87,7 @@ private: /// ---------- メンバ変数 ---------- ///
 	WorldTransform worldTransform_;
 
 	// テクスチャ番号
-	D3D12_GPU_DESCRIPTOR_HANDLE gpuHandle_;
+	D3D12_GPU_DESCRIPTOR_HANDLE gpuHandle_ = {};
 
 	//スプライト用のマテリアルソースを作る
 	ComPtr <ID3D12Resource> materialResource;

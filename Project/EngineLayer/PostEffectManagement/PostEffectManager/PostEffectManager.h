@@ -120,13 +120,12 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	// DSVのハンドル
 	ComPtr<ID3D12Resource> depthResource_;
-	D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle;
+	D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle = {};
 	D3D12_RESOURCE_STATES depthState_ = D3D12_RESOURCE_STATE_DEPTH_WRITE;
 	uint32_t dsvSrvIndex_ = 0;
 
 	static constexpr int kPostRTCount = 1; // ポストエフェクト用のレンダーテクスチャ数
 	std::vector<RenderTarget> renderTargets_; // レンダーテクスチャのリスト
-
 
 private: /// ---------- コピー禁止 ---------- ///
 

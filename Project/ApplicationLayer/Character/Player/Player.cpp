@@ -104,10 +104,12 @@ void Player::Initialize()
 /// -------------------------------------------------------------
 void Player::Update(float deltaTime)
 {
-#ifdef _DEBUG 三人称視点切替 デバッグ時のみ有効
-#endif // _DEBUG
+#ifdef _DEBUG
+
 	// カメラモード切替
 	if (input_->TriggerKey(DIK_F5)) { fpsCamera_->CycleViewMode(); }
+
+#endif // _DEBUG
 
 	// ここで表示切替
 	switch (fpsCamera_->GetViewMode()) // ← カメラの現在モード
@@ -171,7 +173,7 @@ void Player::Update(float deltaTime)
 			float pitch = fpsCamera_->GetPitch();
 			Vector3 forward = {
 				-std::sinf(yaw) * std::cosf(pitch), // x
-				 std::sinf(pitch),                  // y
+				-std::sinf(pitch),                  // y
 				 std::cosf(yaw) * std::cosf(pitch)  // z
 			};
 
@@ -228,6 +230,30 @@ void Player::Draw()
 
 	// 弾道エフェクト描画
 	ballisticEffect_->Draw();
+}
+
+/// -------------------------------------------------------------
+///				　	衝突時に呼ばれる仮想関数
+/// -------------------------------------------------------------
+void Player::OnCollision(Collider* other)
+{
+	//// 他のコライダーのタイプIDを取得
+	//uint32_t otherTypeID = other->GetTypeID();
+	//// 地面との衝突判定（仮実装）
+	//if (otherTypeID == static_cast<uint32_t>(CollisionTypeIdDef::kGround))
+	//{
+	//	// 着地処理
+	//	if (!isGrounded_)
+	//	{
+	//		groundY_ = body_.transform.translate_.y; // 今の高さを床として扱う
+	//		vY_ = 0.0f;							     // 縦速度リセット
+	//		isGrounded_ = true;					     // 接地状態へ
+	//		// 着地音再生（仮実装）
+	//		AudioManager::GetInstance()->PlayWave("Assets/Audio/footstep.wav", 0.5f);
+	//	}
+	//}
+
+	(void)other; // 未使用警告回避
 }
 
 /// -------------------------------------------------------------

@@ -53,7 +53,7 @@ public: /// ---------- オーバーライド ---------- ///
 private: /// ---------- メンバ変数 ---------- ///
 
 	// アイテムの種類
-	ItemType type_;
+	ItemType type_ = {};
 
 	// スプライト
 	std::unique_ptr<Object3D> object3d_;

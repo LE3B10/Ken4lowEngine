@@ -16,6 +16,8 @@ void ItemManager::Initialize()
 /// -------------------------------------------------------------
 void ItemManager::Update(Player* player)
 {
+	(void)player;
+
 	// アイテムの更新とプレイヤーとの衝突判定
 	for (auto& item : items_) item->Update();
 
