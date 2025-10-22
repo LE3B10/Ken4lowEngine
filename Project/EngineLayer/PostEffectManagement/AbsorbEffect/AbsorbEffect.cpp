@@ -58,6 +58,9 @@ void AbsorbEffect::Update()
 /// -------------------------------------------------------------
 void AbsorbEffect::Apply(ID3D12GraphicsCommandList* commandList, uint32_t srvIndex, uint32_t uavIndex, uint32_t dsvIndex)
 {
+	(void)uavIndex; // 未使用
+	(void)dsvIndex; // 未使用
+
 	commandList->SetGraphicsRootSignature(rootSignature_.Get());
 	commandList->SetPipelineState(graphicsPipelineState_.Get());
 

@@ -25,9 +25,6 @@ public: /// ---------- メンバ関数 ---------- ///
 	// ImGui描画処理
 	void DrawImGui();
 
-	// 単射
-	void Fire(const Vector3& muzzlePosition, const Vector3& forward) override;
-
 	// リロード
 	void Reload() override;
 

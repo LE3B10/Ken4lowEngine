@@ -11,10 +11,16 @@
 #include <cassert>
 #include <imgui.h>
 
+/// -------------------------------------------------------------
+///				　		　コンストラクタ
+/// -------------------------------------------------------------
 DepthOutlineEffect::DepthOutlineEffect(Camera* camera) : camera_(camera)
 {
 }
 
+/// -------------------------------------------------------------
+///							初期化処理
+/// -------------------------------------------------------------
 void DepthOutlineEffect::Initialize(DirectXCommon* dxCommon, PostEffectPipelineBuilder* builder)
 {
 	dxCommon_ = dxCommon;
@@ -45,8 +51,13 @@ void DepthOutlineEffect::Initialize(DirectXCommon* dxCommon, PostEffectPipelineB
 	depthOutlineSetting_->projectionInverse = Matrix4x4::Inverse(proj);
 }
 
+/// -------------------------------------------------------------
+///							適用処理
+/// -------------------------------------------------------------
 void DepthOutlineEffect::Apply(ID3D12GraphicsCommandList* commandList, uint32_t srvIndex, uint32_t uavIndex, uint32_t dsvIndex)
 {
+	(void)uavIndex; // 未使用
+
 	depthOutlineSetting_->projectionInverse = Matrix4x4::Inverse(camera_->GetProjectionMatrix());
 
 	commandList->SetGraphicsRootSignature(rootSignature_.Get());
@@ -60,6 +71,9 @@ void DepthOutlineEffect::Apply(ID3D12GraphicsCommandList* commandList, uint32_t 
 	commandList->DrawInstanced(3, 1, 0, 0);
 }
 
+/// -------------------------------------------------------------
+///						ImGui描画処理
+/// -------------------------------------------------------------
 void DepthOutlineEffect::DrawImGui()
 {
 	ImGui::SliderFloat("Depth Scale", &depthOutlineSetting_->depthScale, 0.0f, 100.0f);

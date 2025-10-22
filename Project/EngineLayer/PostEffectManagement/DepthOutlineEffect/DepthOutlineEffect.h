@@ -7,18 +7,21 @@
 /// ---------- 前方宣言 ---------- ///
 class Camera;
 
-
+/// -------------------------------------------------------------
+///				　  DepthOutlineEffectクラス
+/// -------------------------------------------------------------
 class DepthOutlineEffect : public IPostEffect
 {
-private:
+private: /// ---------- 構造体 ---------- ///
 
+	// 深度アウトライン設定構造体
 	struct DepthOutlineSetting
 	{
-		Vector2 texelSize; // 1 / 解像度
-		float depthScale; // 深度差
-		float edgeThickness; // ピクセル単位の太さ
-		Vector4 edgeColor; // アウトラインの色
-		Matrix4x4 projectionInverse; // +64 = 96
+		Vector2 texelSize;			 // 1 / 解像度
+		float depthScale;			 // 深度差
+		float edgeThickness;		 // ピクセル単位の太さ
+		Vector4 edgeColor;			 // アウトラインの色
+		Matrix4x4 projectionInverse; // 逆射影行列
 	};
 
 public: /// ---------- メンバ関数 ---------- ///
@@ -43,7 +46,7 @@ private: /// ---------- 構造体 ---------- ///
 	DirectXCommon* dxCommon_ = nullptr;
 
 	// パイプラインビルダー
-	PostEffectPipelineBuilder* pipelineBuilder_;
+	PostEffectPipelineBuilder* pipelineBuilder_ = nullptr;
 
 	// グラフィックスパイプラインステートオブジェクト
 	Microsoft::WRL::ComPtr<ID3D12PipelineState> graphicsPipelineState_;

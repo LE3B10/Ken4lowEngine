@@ -12,12 +12,12 @@ private: /// ---------- 構造体 ---------- ///
 	// ガウシアンフィルタの設定
 	struct GaussianFilterSetting
 	{
-		int kernelType; // カーネルサイズ
-		float intensity; // 強度
-		float threshold; // 閾値
-		float sigma; // ガウス関数の標準偏差
+		int kernelType;    // カーネルサイズ
+		float intensity;   // 強度
+		float threshold;   // 閾値
+		float sigma;	   // ガウス関数の標準偏差
 		bool isHorizontal; // 水平方向か垂直方向か
-		float padding[3]; // アライメント調整
+		float padding[3];  // アライメント調整
 	};
 
 public: /// ---------- メンバ関数 ---------- ///
@@ -37,7 +37,7 @@ private: /// ---------- 構造体 ---------- ///
 	DirectXCommon* dxCommon_ = nullptr;
 
 	// パイプラインビルダー
-	PostEffectPipelineBuilder* pipelineBuilder_;
+	PostEffectPipelineBuilder* pipelineBuilder_ = nullptr;
 
 	// コンピュートパイプラインステートオブジェクト
 	Microsoft::WRL::ComPtr<ID3D12PipelineState> computePipelineState_;

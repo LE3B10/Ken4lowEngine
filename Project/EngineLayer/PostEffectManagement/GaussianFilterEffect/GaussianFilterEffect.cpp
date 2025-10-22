@@ -45,6 +45,8 @@ void GaussianFilterEffect::Initialize(DirectXCommon* dxCommon, PostEffectPipelin
 /// -------------------------------------------------------------
 void GaussianFilterEffect::Apply(ID3D12GraphicsCommandList* commandList, uint32_t srvIndex, uint32_t uavIndex, uint32_t dsvIndex)
 {
+	(void)dsvIndex; // 未使用
+
 	// ① コンピュート用のルートシグネチャとPSOを設定
 	commandList->SetComputeRootSignature(computeRootSignature_.Get());
 	commandList->SetPipelineState(computePipelineState_.Get());
