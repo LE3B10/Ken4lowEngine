@@ -195,7 +195,7 @@ void WeaponEditorUI::DrawAddDeleteControls(WeaponCatalog& catalog, const std::st
 			std::string baseName;
 			if (sourceMode == 0) baseName = currentWeaponName;        // 現在装備を複製
 			else if (sourceMode == 2) baseName = names[selectedIndex]; // 選択複製
-			if (hooks.RequestAdd) hooks.RequestAdd(nameBuf, baseName); // ★ 依頼だけ（実処理はフレーム末）
+			if (hooks.RequestAdd) hooks.RequestAdd(nameBuf, baseName); // 依頼だけ（実処理はフレーム末）
 			ImGui::CloseCurrentPopup();
 		}
 		ImGui::SameLine();
@@ -211,7 +211,7 @@ void WeaponEditorUI::DrawAddDeleteControls(WeaponCatalog& catalog, const std::st
 		ImGui::Text("Delete '%s' ?\nThis cannot be undone.", currentWeaponName.c_str());
 		ImGui::Separator();
 		if (ImGui::Button("Yes, delete", ImVec2(120, 0))) {
-			if (hooks.RequestDelete) hooks.RequestDelete(currentWeaponName); // ★ 依頼だけ
+			if (hooks.RequestDelete) hooks.RequestDelete(currentWeaponName); // 依頼だけ
 			ImGui::CloseCurrentPopup();
 		}
 		ImGui::SameLine();

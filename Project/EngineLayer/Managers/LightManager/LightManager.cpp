@@ -83,7 +83,7 @@ void LightManager::UpdatePunctualLight()
 	// ===== バッファ確保（0本でも最小1要素分を確保） =====
 	const uint32_t stride = sizeof(PunctualLightGPU);
 	const uint32_t elemCount = static_cast<uint32_t>(gpuLights.size());
-	const uint32_t safeCount = (elemCount == 0) ? 1u : elemCount;     // ★ 最低1
+	const uint32_t safeCount = (elemCount == 0) ? 1u : elemCount;     // 最低1
 	const uint32_t bytes = stride * safeCount;
 
 	if (!punctualBuffer_ || punctualBufferBytes_ < bytes) {

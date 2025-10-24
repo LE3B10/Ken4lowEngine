@@ -557,7 +557,7 @@ bool Weapon::SaveToPath(const std::string& filePath, const std::unordered_map<st
 /// -------------------------------------------------------------
 bool Weapon::SaveOne(const std::string& filePath, const WeaponData& weaponData)
 {
-	ojson j = ToPrettyOrderedJson(weaponData); // ★順序固定版
+	ojson j = ToPrettyOrderedJson(weaponData); // 順序固定版
 	RoundFloatsInJson(j, 3); // 浮動小数点を4桁に丸める
 	std::ofstream ofs(filePath); // ファイルを開く
 	if (!ofs) return false;

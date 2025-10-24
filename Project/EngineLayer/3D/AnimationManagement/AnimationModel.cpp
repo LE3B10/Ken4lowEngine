@@ -1,18 +1,19 @@
 #define NOMINMAX
 #include "AnimationModel.h"
+#include <AnimationPipelineBuilder.h>
 #include "ModelManager.h"
 #include <TextureManager.h>
 #include <DirectXCommon.h>
 #include <Object3DCommon.h>
-#include <SRVManager.h>
 #include <ResourceManager.h>
 #include <Wireframe.h>
 #include "AssimpLoader.h"
 #include "LightManager.h"
+#include <SRVManager.h>
+#include <UAVManager.h>
+
 #include <imgui.h>
 #include <numeric>
-#include <AnimationPipelineBuilder.h>
-#include <UAVManager.h>
 
 // -------------------------------------------------------------
 ///				　			補助関数群
@@ -30,6 +31,7 @@ namespace
 	// subMesh をフラット化
 	static FlattenResult FlattenSubMeshes(const ModelData& md)
 	{
+		// 結果格納用
 		FlattenResult out;
 		out.vertices.reserve(4096); // 仮予約 : 頂点
 		out.indices.reserve(8192);	// 仮予約 : インデックス
@@ -45,14 +47,11 @@ namespace
 
 			// インデックスコピー（baseVertex を足す）
 			AnimationModel::LODEntry::SubMeshRange R{};
-			R.startIndex = startIndex;
-			R.indexCount = static_cast<uint32_t>(sm.indices.size());
+			R.startIndex = startIndex;								 // 開始インデックス
+			R.indexCount = static_cast<uint32_t>(sm.indices.size()); // インデックス数
 
 			// インデックスコピー
-			for (uint32_t idx : sm.indices)
-			{
-				out.indices.push_back(idx + baseVertex);
-			}
+			for (uint32_t idx : sm.indices)	out.indices.push_back(idx + baseVertex);
 
 			// オフセット更新
 			startIndex += R.indexCount;
@@ -71,11 +70,11 @@ namespace
 	// テクスチャロード＆SRV取得（空ならフォールバック）
 	static D3D12_GPU_DESCRIPTOR_HANDLE LoadSrvOrFallback(const std::string& path)
 	{
-		static const std::string kFallback = "white.png";
-		auto* tm = TextureManager::GetInstance();
-		const std::string& p = path.empty() ? kFallback : path;
-		tm->LoadTexture(p);
-		return tm->GetSrvHandleGPU(p);
+		static const std::string kFallback = "white.png";		// フォールバックテクスチャ
+		auto* tm = TextureManager::GetInstance();				// テクスチャマネージャ取得
+		const std::string& p = path.empty() ? kFallback : path; // パス決定
+		tm->LoadTexture(p);										// テクスチャロード
+		return tm->GetSrvHandleGPU(p);							// SRVハンドル取得
 	}
 }
 
@@ -89,6 +88,7 @@ void AnimationModel::Initialize(const std::string& fileName, bool isSkinning)
 	// リソースを破棄
 	Clear();
 
+	// 共通部分の初期化
 	dxCommon_ = DirectXCommon::GetInstance();
 	camera_ = Object3DCommon::GetInstance()->GetDefaultCamera();
 
@@ -102,6 +102,7 @@ void AnimationModel::Initialize(const std::string& fileName, bool isSkinning)
 	auto flat = FlattenSubMeshes(modelData);
 	const UINT vbSize = UINT(sizeof(VertexData) * flat.vertices.size());
 
+	// スケルトンの初期化
 	skeleton_ = std::make_unique<Skeleton>();
 	skeleton_ = Skeleton::CreateFromRootNode(modelData.rootNode);
 
@@ -165,6 +166,7 @@ void AnimationModel::Initialize(const std::string& fileName, bool isSkinning)
 	cameraData->worldPosition = camera_->GetTranslate();
 #pragma endregion
 
+	// ジョイント初期化
 	InitializeBones();
 
 	// t1: 入力頂点 SRV（SRVヒープ）
@@ -234,9 +236,9 @@ void AnimationModel::Update()
 	}
 
 	// LODごとの更新間引き（重い処理はスキップ可）
-	int li = std::min(lodIndex_, (int)lodUpdateEvery_.size() - 1);
-	uint32_t every = std::max(1u, lodUpdateEvery_[li]);
-	bool doHeavy = (frame_ % every) == 0;
+	int li = std::min(lodIndex_, (int)lodUpdateEvery_.size() - 1); // LODインデックス
+	uint32_t every = std::max(1u, lodUpdateEvery_[li]);			   // 最低1フレームに1回は更新
+	bool doHeavy = (frame_ % every) == 0;						   // 重い処理を行うか
 
 	// スキニング処理
 	if (doHeavy && csCBMapped_ && csCBMapped_->isSkinning)
@@ -290,15 +292,12 @@ void AnimationModel::Update()
 /// -------------------------------------------------------------
 void AnimationModel::Draw()
 {
-	// --- Standalone only（大量描画では Scene 側で一括する）---
 	// Compute 一括セット（スタンドアロン用）
 	UAVManager::GetInstance()->PreDispatch();
 	AnimationPipelineBuilder::GetInstance()->SetComputeSetting();
 
 	// コンピュートでスキニング（個体差だけを束ねて実行）
-	if (csCBMapped_->isSkinning) {
-		DispatchSkinningCS();
-	}
+	if (csCBMapped_->isSkinning) DispatchSkinningCS();
 
 	// Graphics 一括セット（スタンドアロン用）
 	SRVManager::GetInstance()->PreDraw();
@@ -326,7 +325,8 @@ void AnimationModel::DrawBatched(const std::vector<std::unique_ptr<AnimationMode
 	// Compute パス（全体で一回）
 	UAVManager::GetInstance()->PreDispatch();
 	AnimationPipelineBuilder::GetInstance()->SetComputeSetting();
-	for (auto& m : models) {
+	for (auto& m : models)
+	{
 		if (!m) continue;
 		if (m->IsVisible()) m->DispatchSkinningCS();
 	}
@@ -334,7 +334,8 @@ void AnimationModel::DrawBatched(const std::vector<std::unique_ptr<AnimationMode
 	// Graphics パス（全体で一回）
 	SRVManager::GetInstance()->PreDraw();
 	AnimationPipelineBuilder::GetInstance()->SetRenderSetting();
-	for (auto& m : models) {
+	for (auto& m : models)
+	{
 		if (!m) continue;
 		if (m->IsVisible()) m->DrawSkinned();
 	}
@@ -345,15 +346,24 @@ void AnimationModel::DrawBatched(const std::vector<std::unique_ptr<AnimationMode
 /// -------------------------------------------------------------
 void AnimationModel::DrawBatched(const std::vector<AnimationModel*>& models)
 {
+	// Compute パス（全体で一回）
 	UAVManager::GetInstance()->PreDispatch();
 	AnimationPipelineBuilder::GetInstance()->SetComputeSetting();
-	for (auto* m : models) {
+
+	// Compute パス（全体で一回）
+	for (auto* m : models)
+	{
 		if (!m) continue;
 		if (m->IsVisible()) m->DispatchSkinningCS();
 	}
+
+	// Graphics パス（全体で一回）
 	SRVManager::GetInstance()->PreDraw();
 	AnimationPipelineBuilder::GetInstance()->SetRenderSetting();
-	for (auto* m : models) {
+
+	// Graphics パス（全体で一回）
+	for (auto* m : models) 
+	{
 		if (!m) continue;
 		if (m->IsVisible()) m->DrawSkinned();
 	}
@@ -399,20 +409,22 @@ void AnimationModel::DrawImGui()
 /// -------------------------------------------------------------
 void AnimationModel::Clear()
 {
-	animationMesh_.reset();
-	skeleton_.reset();
+	animationMesh_.reset(); // アニメーションメッシュ解放
+	skeleton_.reset();		// スケルトン解放
+
+	// LODごとのスキンクラスタ解放
 	for (auto& sc : skinClusterLOD_) { sc.reset(); }
 
-	wvpResource.Reset();
-	cameraResource.Reset();
+	wvpResource.Reset();		// 行列リソース解放
+	cameraResource.Reset();		// カメラリソース解放
 
-	wvpData_ = nullptr;
-	cameraData = nullptr;
+	wvpData_ = nullptr;			// 行列データ初期化
+	cameraData = nullptr;		// カメラデータ初期化
 
-	modelData = {};       // モデルデータ初期化
-	animation = {};       // アニメーション初期化
-	animationTime_ = 0.0f;
-	bodyPartColliders_.clear();
+	modelData = {};				// モデルデータ初期化
+	animation = {};				// アニメーション初期化
+	animationTime_ = 0.0f;		// アニメーション時間初期化
+	bodyPartColliders_.clear(); // ボディパートコライダー情報初期化
 }
 
 /// -------------------------------------------------------------
@@ -421,21 +433,37 @@ void AnimationModel::Clear()
 void AnimationModel::DrawSkeletonWireframe()
 {
 #ifdef _DEBUG
+	// スケルトンがなければ描画しない
 	if (!skeleton_) { return; }
 
+	// ジョイント群を取得
 	const auto& joints = skeleton_->GetJoints();
+
+	// ワールド行列を取得
 	Matrix4x4 worldMatrix = Matrix4x4::MakeAffineMatrix(worldTransform.scale_, worldTransform.rotate_, worldTransform.translate_);
 
-	for (const auto& joint : joints) {
-		if (joint.parent.has_value()) {
+	// ジョイントを親子で結ぶ線を描画
+	for (const auto& joint : joints)
+	{
+		// 親ジョイントがある場合のみ描画
+		if (joint.parent.has_value())
+		{
+			// 親ジョイントを取得
 			const auto& parentJoint = joints[*joint.parent];
 
+			// ワールド座標系に変換して線を描画
 			Vector3 parentLocal = parentJoint.skeletonSpaceMatrix.GetTranslation();
+
+			// joint のローカル座標も取得
 			Vector3 jointLocal = joint.skeletonSpaceMatrix.GetTranslation();
 
+			// 親の位置をワールド変換
 			Vector3 parentPos = Vector3::Transform(parentLocal, worldMatrix);
+
+			// ジョイントの位置をワールド変換
 			Vector3 jointPos = Vector3::Transform(jointLocal, worldMatrix);
 
+			// 線を描画
 			Wireframe::GetInstance()->DrawLine(parentPos, jointPos, { 1.0f, 0.0f, 0.0f, 1.0f });
 		}
 	}
@@ -447,32 +475,48 @@ void AnimationModel::DrawSkeletonWireframe()
 /// -------------------------------------------------------------
 void AnimationModel::DrawBodyPartColliders()
 {
+	// スケルトンがなければ描画しない
 	if (!skeleton_) { return; }
 
+	// ジョイント群を取得
 	const auto& joints = skeleton_->GetJoints();
+
+	// ワールド行列を取得
 	Matrix4x4 worldMatrix = Matrix4x4::MakeAffineMatrix(worldTransform.scale_, worldTransform.rotate_, worldTransform.translate_);
 
-	for (const auto& part : bodyPartColliders_) {
-		if (part.endJointIndex < 0) {
-			// スフィア用
+	// 各ボディパートコライダーを描画
+	for (const auto& part : bodyPartColliders_)
+	{
+		// スフィアかカプセルかで分岐
+		if (part.endJointIndex < 0)
+		{
+			// ジョイント位置＋オフセットをワールド変換
 			const auto& joint = joints[part.startJointIndex];
+
+			// ローカル位置計算
 			Vector3 localPos = joint.skeletonSpaceMatrix.GetTranslation() + part.offset;
+
+			// ワールド変換
 			Vector3 worldPos = Vector3::Transform(localPos, worldMatrix);
 
+			// スフィア描画
 			Wireframe::GetInstance()->DrawSphere(worldPos, part.radius, { 0.0f, 1.0f, 0.0f, 1.0f });
 		}
-		else {
+		else
+		{
 			// カプセル用
-			const auto& jointA = joints[part.startJointIndex];
-			const auto& jointB = joints[part.endJointIndex];
+			const auto& jointA = joints[part.startJointIndex]; // 始点ジョイント
+			const auto& jointB = joints[part.endJointIndex];   // 終点ジョイント
 
-			Vector3 a = Vector3::Transform(jointA.skeletonSpaceMatrix.GetTranslation(), worldMatrix);
-			Vector3 b = Vector3::Transform(jointB.skeletonSpaceMatrix.GetTranslation(), worldMatrix);
+			Vector3 a = Vector3::Transform(jointA.skeletonSpaceMatrix.GetTranslation(), worldMatrix); // 始点ワールド変換
+			Vector3 b = Vector3::Transform(jointB.skeletonSpaceMatrix.GetTranslation(), worldMatrix); // 終点ワールド変換
 
+			// カプセル中心・軸・高さ計算
 			Vector3 center = (a + b) * 0.5f;
 			Vector3 axis = Vector3::Normalize(b - a);
 			float height = Vector3::Length(b - a);
 
+			// カプセル描画
 			Wireframe::GetInstance()->DrawCapsule(center, part.radius, height, axis, 8, { 0.0f, 1.0f, 0.0f, 1.0f });
 		}
 	}
@@ -483,32 +527,45 @@ void AnimationModel::DrawBodyPartColliders()
 /// -------------------------------------------------------------
 std::vector<std::pair<std::string, Capsule>> AnimationModel::GetBodyPartCapsulesWorld() const
 {
+	// 結果格納用
 	std::vector<std::pair<std::string, Capsule>> out;
+
+	// スケルトンがなければ描画しない
 	if (!skeleton_) { return out; }
 
+	// ジョイント群を取得
 	const auto& joints = skeleton_->GetJoints();
+
+	// ワールド行列を取得
 	Matrix4x4 worldMatrix = Matrix4x4::MakeAffineMatrix(worldTransform.scale_, worldTransform.rotate_, worldTransform.translate_);
 
+	// 各ボディパートコライダーを描画
 	for (const auto& part : bodyPartColliders_)
 	{
 		Capsule capsule{};
-		capsule.radius = part.radius;
+		capsule.radius = part.radius; // 半径設定
 
-		if (part.endJointIndex < 0) {
-			// Sphere → pointA = pointB
+		// スフィアかカプセルかで分岐
+		if (part.endJointIndex < 0)
+		{
+			// スフィア → 始点のみ回転適用
 			const Vector3  local = joints[part.startJointIndex].skeletonSpaceMatrix.GetTranslation() + part.offset;
-			Vector3 world = Vector3::Transform(local, worldMatrix);
-			capsule.segment.origin = capsule.segment.diff = world;
+			Vector3 world = Vector3::Transform(local, worldMatrix); // ワールド変換
+			capsule.segment.origin = capsule.segment.diff = world;  // 始点と終点を同じに
 		}
-		else {
+		else
+		{
 			// カプセル → 始点と終点両方に回転適用
 			Vector3 a = Vector3::Transform(joints[part.startJointIndex].skeletonSpaceMatrix.GetTranslation(), worldMatrix);
 			Vector3 b = Vector3::Transform(joints[part.endJointIndex].skeletonSpaceMatrix.GetTranslation(), worldMatrix);
-			capsule.segment.origin = a;
-			capsule.segment.diff = b;
+			capsule.segment.origin = a; // 始点
+			capsule.segment.diff = b;   // 終点
 		}
+		// 結果格納
 		out.emplace_back(part.name, capsule);
 	}
+
+	// 戻す
 	return out;
 }
 
@@ -517,20 +574,29 @@ std::vector<std::pair<std::string, Capsule>> AnimationModel::GetBodyPartCapsules
 /// -------------------------------------------------------------
 std::vector<std::pair<std::string, Sphere>> AnimationModel::GetBodyPartSpheresWorld() const
 {
+	// 結果格納用
 	std::vector<std::pair<std::string, Sphere>> out;
+
+	// スケルトンがなければ描画しない
 	if (!skeleton_) { return out; }
 
-	const auto& joints = skeleton_->GetJoints();
-	Matrix4x4 worldMatrix = Matrix4x4::MakeAffineMatrix(
-		worldTransform.scale_, worldTransform.rotate_, worldTransform.translate_);
+	const auto& joints = skeleton_->GetJoints(); // ジョイント群を取得
 
-	for (const auto& part : bodyPartColliders_) {
-		if (part.endJointIndex < 0) {
+	// ワールド行列を取得
+	Matrix4x4 worldMatrix = Matrix4x4::MakeAffineMatrix(worldTransform.scale_, worldTransform.rotate_, worldTransform.translate_);
+
+	// 各ボディパートコライダーを描画
+	for (const auto& part : bodyPartColliders_)
+	{
+		if (part.endJointIndex < 0)
+		{
 			Sphere s{};
+
+			// ローカル位置計算
 			Vector3 local = joints[part.startJointIndex].skeletonSpaceMatrix.GetTranslation() + part.offset;
-			s.center = Vector3::Transform(local, worldMatrix);
-			s.radius = part.radius;
-			out.emplace_back(part.name, s);
+			s.center = Vector3::Transform(local, worldMatrix); // ワールド変換
+			s.radius = part.radius;  						   // 半径設定
+			out.emplace_back(part.name, s);					   // 結果格納
 		}
 	}
 	return out;
@@ -550,11 +616,12 @@ void AnimationModel::InitializeLODs()
 	: lodSourceFiles_;                          // 指定された LOD 群
 
 	// 書き込み前に必ずサイズ確保
-	lods_.clear();
-	lods_.resize(files.size());
-	skinClusterLOD_.resize(files.size());
-	lodFileName_.resize(files.size());
+	lods_.clear();						  // LOD情報クリア
+	lods_.resize(files.size());			  // LOD情報も LOD ごとに確保
+	skinClusterLOD_.resize(files.size()); // スキンクラスタも LOD ごとに確保
+	lodFileName_.resize(files.size());	  // LODファイル名も LOD ごとに確保
 
+	// LODごとに処理
 	for (int i = 0; i < files.size(); ++i)
 	{
 		const std::string& fname = files[i];
@@ -569,9 +636,11 @@ void AnimationModel::InitializeLODs()
 
 		ComPtr<ID3D12Resource> defaultVB;
 		{
+			// --- VB: DEFAULT で作成 ---
 			D3D12_HEAP_PROPERTIES heapDefault = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
 			D3D12_RESOURCE_DESC   bufDesc = CD3DX12_RESOURCE_DESC::Buffer(vbSize);
 
+			// DEFAULTヒープに頂点バッファを作成
 			HRESULT hr = device->CreateCommittedResource(&heapDefault, D3D12_HEAP_FLAG_NONE, &bufDesc, D3D12_RESOURCE_STATE_COMMON, nullptr, IID_PPV_ARGS(&defaultVB));
 			assert(SUCCEEDED(hr));
 
@@ -581,10 +650,12 @@ void AnimationModel::InitializeLODs()
 			std::memcpy(p, flat.vertices.data(), vbSize);
 			upload->Unmap(0, nullptr);
 
+			// トランジション＆コピー
 			dxCommon_->ResourceTransition(defaultVB.Get(), D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_COPY_DEST);
 			cl->CopyBufferRegion(defaultVB.Get(), 0, upload.Get(), 0, vbSize);
 			dxCommon_->ResourceTransition(defaultVB.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_GENERIC_READ);
 
+			// コマンド実行
 			dxCommon_->GetCommandManager()->ExecuteAndWait();
 		}
 
@@ -600,64 +671,83 @@ void AnimationModel::InitializeLODs()
 		const UINT ibSize = UINT(sizeof(uint32_t) * flat.indices.size());
 		ComPtr<ID3D12Resource> defaultIB;
 		{
+			// DEFAULTヒープに頂点バッファを作成
 			D3D12_HEAP_PROPERTIES heapDefault = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
 			D3D12_RESOURCE_DESC   bufDesc = CD3DX12_RESOURCE_DESC::Buffer(ibSize);
 
+			// DEFAULTヒープに頂点バッファを作成
 			HRESULT hr = device->CreateCommittedResource(&heapDefault, D3D12_HEAP_FLAG_NONE, &bufDesc, D3D12_RESOURCE_STATE_COMMON, nullptr, IID_PPV_ARGS(&defaultIB));
 			assert(SUCCEEDED(hr));
 
-			ComPtr<ID3D12Resource> upload = ResourceManager::CreateBufferResource(device, ibSize);
-			void* p = nullptr; upload->Map(0, nullptr, &p);
-			std::memcpy(p, flat.indices.data(), ibSize);
-			upload->Unmap(0, nullptr);
+			// Upload 経由でコピー
+			ComPtr<ID3D12Resource> upload = ResourceManager::CreateBufferResource(device, ibSize); // 一時アップロードバッファ
+			void* p = nullptr; upload->Map(0, nullptr, &p);										   // マップ
+			std::memcpy(p, flat.indices.data(), ibSize);										   // コピー
+			upload->Unmap(0, nullptr);															   // アンマップ
 
+			// トランジション＆コピー
 			dxCommon_->ResourceTransition(defaultIB.Get(), D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_COPY_DEST);
 			cl->CopyBufferRegion(defaultIB.Get(), 0, upload.Get(), 0, ibSize);
 			dxCommon_->ResourceTransition(defaultIB.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_GENERIC_READ);
 
+			// コマンド実行
 			dxCommon_->GetCommandManager()->ExecuteAndWait();
 		}
+
+		// IBV 設定
 		D3D12_INDEX_BUFFER_VIEW ibv{};
-		ibv.BufferLocation = defaultIB->GetGPUVirtualAddress();
-		ibv.Format = DXGI_FORMAT_R32_UINT;
-		ibv.SizeInBytes = static_cast<UINT>(defaultIB->GetDesc().Width);
+		ibv.BufferLocation = defaultIB->GetGPUVirtualAddress();			 // インデックスバッファ
+		ibv.Format = DXGI_FORMAT_R32_UINT;								 // インデックスフォーマット
+		ibv.SizeInBytes = static_cast<UINT>(defaultIB->GetDesc().Width); // インデックスバッファサイズ
 
 		// --- u0: 出力頂点（UAV） & VBV ---
 		ComPtr<ID3D12Resource> skinnedVB;
 		{
+			// スキニング用スキン頂点バッファ作成
 			D3D12_HEAP_PROPERTIES heapDefault = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
 			D3D12_RESOURCE_DESC   desc = CD3DX12_RESOURCE_DESC::Buffer(sizeof(VertexData) * flat.vertices.size(), D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
 
+			// スキン済み頂点バッファ作成
 			HRESULT hr = device->CreateCommittedResource(&heapDefault, D3D12_HEAP_FLAG_NONE, &desc, D3D12_RESOURCE_STATE_COMMON, nullptr, IID_PPV_ARGS(&skinnedVB));
 			assert(SUCCEEDED(hr));
 		}
+
+		// UAV ヒープに u0 UAV を作成
 		uint32_t u0Index = UAVManager::GetInstance()->Allocate();
+
+		// UAV 作成
 		UAVManager::GetInstance()->CreateUAVForStructuredBuffer(u0Index, skinnedVB.Get(), static_cast<UINT>(flat.vertices.size()), sizeof(VertexData));
 
+		// スキン済み頂点バッファビュー設定
 		D3D12_VERTEX_BUFFER_VIEW skinnedVBV{};
-		skinnedVBV.BufferLocation = skinnedVB->GetGPUVirtualAddress();
-		skinnedVBV.SizeInBytes = UINT(sizeof(VertexData) * flat.vertices.size());
-		skinnedVBV.StrideInBytes = sizeof(VertexData);
+		skinnedVBV.BufferLocation = skinnedVB->GetGPUVirtualAddress();				 // スキン済み頂点バッファ
+		skinnedVBV.SizeInBytes = UINT(sizeof(VertexData) * flat.vertices.size());	 // スキン済み頂点バッファサイズ
+		skinnedVBV.StrideInBytes = sizeof(VertexData);								 // スキン済み頂点バッファビュー
 
 		// --- LODEntry へ格納 ---
-		auto& L = lods_[i];
-		L.staticVBDefault = defaultVB;
-		L.srvInputVerticesOnUavHeap = t1Index;
-		L.influenceSrvGpuOnUavHeap = skinClusterLOD_[i]->GetInfluenceSrvOnUAVHeap();
-		L.indexBuffer = defaultIB;
-		L.ibv = ibv;
-		L.skinnedVB = skinnedVB;
-		L.skinnedVBV = skinnedVBV;
-		L.uavIndex = u0Index;
-		L.vertexCount = static_cast<uint32_t>(flat.vertices.size());
-		L.indexCount = static_cast<uint32_t>(flat.indices.size());
-		L.skinnedState = D3D12_RESOURCE_STATE_COMMON;
+		auto& L = lods_[i];															 // LODエントリ参照
+		L.staticVBDefault = defaultVB;												 // 静的頂点バッファ
+		L.srvInputVerticesOnUavHeap = t1Index;										 // 入力頂点SRV
+		L.influenceSrvGpuOnUavHeap = skinClusterLOD_[i]->GetInfluenceSrvOnUAVHeap(); // スキンクラスタの影響情報SRV
+		L.indexBuffer = defaultIB;													 // インデックスバッファ
+		L.ibv = ibv;																 // インデックスバッファビュー
+		L.skinnedVB = skinnedVB;													 // スキン済み頂点バッファ
+		L.skinnedVBV = skinnedVBV;													 // スキン済み頂点バッファビュー
+		L.uavIndex = u0Index;														 // 出力頂点UAV
+		L.vertexCount = static_cast<uint32_t>(flat.vertices.size());				 // 頂点数
+		L.indexCount = static_cast<uint32_t>(flat.indices.size());					 // インデックス数
+		L.skinnedState = D3D12_RESOURCE_STATE_COMMON;								 // スキン済み頂点バッファの初期状態
 
 		// サブメッシュ範囲とマテリアルSRVを設定
 		L.subMeshRanges = flat.ranges;
+
+		// 各サブメッシュのマテリアルテクスチャSRVを設定
 		for (int si = 0; si < L.subMeshRanges.size(); ++si)
 		{
+			// サブメッシュ情報参照
 			const auto& sm = md.subMeshes[si];
+
+			// テクスチャSRVを読み込み、設定
 			L.subMeshRanges[si].baseColorSrvGpuHandle = LoadSrvOrFallback(sm.material.textureFilePath);
 		}
 	}
@@ -671,21 +761,29 @@ void AnimationModel::InitializeLODs()
 /// -------------------------------------------------------------
 void AnimationModel::UpdateAnimation()
 {
+	// スキニングモデルか通常モデルかで分岐
 	if (skeleton_ && csCBMapped_ && !skeleton_->GetJoints().empty() && csCBMapped_->isSkinning)
 	{
+		// スキニングあり（スキニングモデル用のWVP更新）
 		Matrix4x4 worldMatrix = Matrix4x4::MakeAffineMatrix(worldTransform.scale_, worldTransform.rotate_, worldTransform.translate_);
 		Matrix4x4 worldViewProjectionMatrix;
 
+		// カメラがあればビュー射影行列を掛ける
 		if (camera_)
 		{
+			// カメラ行列取得
 			const Matrix4x4& viewProjectionMatrix = camera_->GetViewProjectionMatrix();
+
+			// ワールドビュー射影行列計算
 			worldViewProjectionMatrix = Matrix4x4::Multiply(worldMatrix, viewProjectionMatrix);
 		}
 		else
 		{
+			// カメラ無し → ワールド行列のみ
 			worldViewProjectionMatrix = worldMatrix;
 		}
 
+		// スキニングあり（スキニングモデル用のWVP更新）
 		wvpData_->World = worldMatrix;
 		wvpData_->WVP = worldViewProjectionMatrix;
 		wvpData_->WorldInversedTranspose = Matrix4x4::Transpose(Matrix4x4::Inverse(worldMatrix));
@@ -693,26 +791,34 @@ void AnimationModel::UpdateAnimation()
 	else
 	{
 		// アニメーション無し（通常モデル用のWVP更新）
-		NodeAnimation& rootNodeAnimation = animation.nodeAnimations[modelData.rootNode.name];
-		Vector3 translate = CalculateValue(rootNodeAnimation.translate, animationTime_);
-		Quaternion rotate = CalculateValue(rootNodeAnimation.rotate, animationTime_);
-		Vector3 scale = CalculateValue(rootNodeAnimation.scale, animationTime_);
+		NodeAnimation& rootNodeAnimation = animation.nodeAnimations[modelData.rootNode.name]; // ルートノードのアニメーション取得
+		Vector3 translate = CalculateValue(rootNodeAnimation.translate, animationTime_);	  // 座標系調整（Z軸反転で伸びを防ぐ）
+		Quaternion rotate = CalculateValue(rootNodeAnimation.rotate, animationTime_);		  // 回転
+		Vector3 scale = CalculateValue(rootNodeAnimation.scale, animationTime_);			  // 拡縮
 
+		// ローカル行列計算
 		Matrix4x4 localMatrix = Matrix4x4::MakeAffineMatrix(scale, rotate, translate);
 
+		// ワールド行列計算
 		Matrix4x4 worldMatrix = Matrix4x4::MakeAffineMatrix(worldTransform.scale_, worldTransform.rotate_, worldTransform.translate_);
 		Matrix4x4 worldViewProjectionMatrix;
 
+		// カメラ行列取得
 		if (camera_)
 		{
+			// カメラ行列取得
 			const Matrix4x4& viewProjectionMatrix = camera_->GetViewProjectionMatrix();
+
+			// ワールドビュー射影行列計算
 			worldViewProjectionMatrix = Matrix4x4::Multiply(worldMatrix, viewProjectionMatrix);
 		}
 		else
 		{
+			// カメラ無し → ワールド行列のみ
 			worldViewProjectionMatrix = worldMatrix;
 		}
 
+		// 行列更新
 		wvpData_->WVP = localMatrix * worldViewProjectionMatrix;
 		wvpData_->World = localMatrix * worldMatrix;
 		wvpData_->WorldInversedTranspose = Matrix4x4::Transpose(Matrix4x4::Inverse(localMatrix * worldMatrix));
@@ -730,6 +836,7 @@ Animation AnimationModel::LoadAnimationFile(const std::string& fileName)
 	std::string filePath = "Resources/Models/" + fileName;
 	const aiScene* scene = importer.ReadFile(filePath.c_str(), 0);
 
+	// シーンが無い、またはアニメーションが無い場合は空のアニメーションを返す
 	if (!scene || scene->mNumAnimations == 0)
 	{
 		// アニメなし → 空のまま返す
@@ -773,8 +880,8 @@ Animation AnimationModel::LoadAnimationFile(const std::string& fileName)
 		{
 			aiVectorKey& keyAssimp = nodeAnimationAssimp->mScalingKeys[keyIndex];
 			KeyframeVector3 keyframe;
-			keyframe.time = float(keyAssimp.mTime / animationAssimp->mTicksPerSecond);
-			keyframe.value = { keyAssimp.mValue.x, keyAssimp.mValue.y, keyAssimp.mValue.z };
+			keyframe.time = float(keyAssimp.mTime / animationAssimp->mTicksPerSecond);		 // ここも秒に変換
+			keyframe.value = { keyAssimp.mValue.x, keyAssimp.mValue.y, keyAssimp.mValue.z }; // スケールはそのまま
 			nodeAnimation.scale.push_back(keyframe);
 		}
 	}
@@ -903,11 +1010,22 @@ void AnimationModel::SetLODByDistance(float dist)
 	const int last = (int)lods_.size() - 1;
 
 	// 既存のヒステリシス LOD 遷移
-	switch (lodIndex_) {
-	case 0:                if (dist > outThresh(0)) newLOD = 1; break;
-	default:
-		if (lodIndex_ > 0) {
+	switch (lodIndex_)
+	{
+	case 0: // 最初 LOD 群
+
+		// 内しきい値未満なら変化無し、外しきい値超過で LOD1 へ
+		if (dist > outThresh(0)) newLOD = 1; break;
+
+	default: // 中間 LOD 群
+
+		// 内しきい値未満で LOD-1、外しきい値超過で LOD+1
+		if (lodIndex_ > 0)
+		{
+			// 内しきい値未満で LOD-1、外しきい値超過で LOD+1
 			if (dist < inThresh(lodIndex_ - 1)) newLOD = lodIndex_ - 1;
+
+			// 外しきい値超過で LOD+1
 			else if (lodIndex_ < last && dist > outThresh(lodIndex_)) newLOD = lodIndex_ + 1;
 		}
 		break;
@@ -927,6 +1045,9 @@ void AnimationModel::SetLODByDistance(float dist)
 	culledByDistance_ = (dist > lastOut + farCullExtra_); // 例）57 + 20 = 77 より遠いとカリング
 }
 
+/// -------------------------------------------------------------
+///				　		スキニング計算処理
+/// -------------------------------------------------------------
 void AnimationModel::DispatchSkinningCS()
 {
 	if (culledByDistance_) { return; } // 遠距離はスキニング自体しない
@@ -963,6 +1084,9 @@ void AnimationModel::DispatchSkinningCS()
 	}
 }
 
+/// -------------------------------------------------------------
+///				　		スキニング描画処理
+/// -------------------------------------------------------------
 void AnimationModel::DrawSkinned()
 {
 	if (culledByDistance_) { return; } // 描画もしない

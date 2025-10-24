@@ -364,19 +364,7 @@
     <ClCompile Include="ApplicationLayer\Scene\StageSelectScene\GridStageSelector.cpp">
       <Filter>ApplicationLayer\Scene\StageSelectScene</Filter>
     </ClCompile>
-    <ClCompile Include="ApplicationLayer\Scene\StageSelectScene\IStageSelector.cpp">
-      <Filter>ApplicationLayer\Scene\StageSelectScene</Filter>
-    </ClCompile>
-    <ClCompile Include="ApplicationLayer\Scene\StageSelectScene\StageRepository.cpp">
-      <Filter>ApplicationLayer\Scene\StageSelectScene</Filter>
-    </ClCompile>
     <ClCompile Include="ApplicationLayer\Scene\StageSelectScene\StageSelectScene.cpp">
-      <Filter>ApplicationLayer\Scene\StageSelectScene</Filter>
-    </ClCompile>
-    <ClCompile Include="ApplicationLayer\Scene\StageSelectScene\WorldMapScene.cpp">
-      <Filter>ApplicationLayer\Scene\StageSelectScene</Filter>
-    </ClCompile>
-    <ClCompile Include="ApplicationLayer\Scene\StageSelectScene\WorldMapStageSelector.cpp">
       <Filter>ApplicationLayer\Scene\StageSelectScene</Filter>
     </ClCompile>
     <ClCompile Include="ApplicationLayer\Character\BaseCharacter\BaseCharacter.cpp">
@@ -799,12 +787,6 @@
       <Filter>ApplicationLayer\Scene\StageSelectScene</Filter>
     </ClInclude>
     <ClInclude Include="ApplicationLayer\Scene\StageSelectScene\StageSelectScene.h">
-      <Filter>ApplicationLayer\Scene\StageSelectScene</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Scene\StageSelectScene\WorldMapScene.h">
-      <Filter>ApplicationLayer\Scene\StageSelectScene</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Scene\StageSelectScene\WorldMapStageSelector.h">
       <Filter>ApplicationLayer\Scene\StageSelectScene</Filter>
     </ClInclude>
     <ClInclude Include="ApplicationLayer\Character\BaseCharacter\BaseCharacter.h">

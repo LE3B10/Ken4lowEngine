@@ -106,6 +106,9 @@ void FpsCamera::AddRecoil(float verticalAmount, float horizontalAmount)
 	recoilOffsetYaw_ += horizontalDist(randomEngine_);  // ランダムな横ブレ
 }
 
+/// ----------------------------------------------
+///				表示モードを切替
+/// ----------------------------------------------
 void FpsCamera::CycleViewMode()
 {
 	switch (viewMode_)

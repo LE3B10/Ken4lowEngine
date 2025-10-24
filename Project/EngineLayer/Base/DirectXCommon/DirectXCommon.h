@@ -78,7 +78,7 @@ private: /// ---------- メンバ関数 ---------- ///
 	// 画面全体をクリア
 	void ClearWindow();
 
-	// 🔹 RTVとDSVの初期化関数を追加
+	// RTVとDSVの初期化関数を追加
 	void InitializeRTVAndDSV();
 
 private: /// ---------- メンバ変数 ---------- ///

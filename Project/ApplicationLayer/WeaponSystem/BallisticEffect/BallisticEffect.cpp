@@ -111,10 +111,11 @@ void BallisticEffect::Update()
 		Vector3 prev = b.position;
 
 		// 物理
-		b.velocity.y += gravityY_ * dt;
-		if (drag_ > 0.0f) b.velocity -= b.velocity * drag_ * dt;
-		b.position += b.velocity * dt;
+		b.velocity.y += gravityY_ * dt;							 // 重力
+		if (drag_ > 0.0f) b.velocity -= b.velocity * drag_ * dt; // 空気抵抗
+		b.position += b.velocity * dt;							 // 位置更新
 
+		// 衝突判定
 		b.traveled += Vector3::Length(b.position - prev);
 
 		// ===== 単一セグメント（1発＝1本）を更新 =====
@@ -148,7 +149,7 @@ void BallisticEffect::Update()
 					t.age = 0.0f;
 					t.life = 1e9f;     // ほぼ無限（外側ではフェードさせない）
 					t.alive = true;
-					t.attached = true;     // ★ 弾に付随
+					t.attached = true;     // 弾に付随
 					t.ownerId = b.userShotCount;
 					trails_.push_back(t);
 				}
