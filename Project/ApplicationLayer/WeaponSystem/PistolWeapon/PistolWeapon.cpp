@@ -7,11 +7,9 @@
 /// -------------------------------------------------------------
 ///				　			　 初期化処理
 /// -------------------------------------------------------------
-void PistolWeapon::Initialize(const WeaponConfig& config)
+void PistolWeapon::Initialize()
 {
 	Collider::SetTypeID(static_cast<uint32_t>(CollisionTypeIdDef::kWeapon));
-
-	weaponConfig_ = config; // 武器設定を保存
 
 	// モデル読み込み：（武器のモデルに後で変える）
 	model_ = std::make_unique<Object3D>();
@@ -25,29 +23,19 @@ void PistolWeapon::Initialize(const WeaponConfig& config)
 /// -------------------------------------------------------------
 void PistolWeapon::Update(float deltaTime)
 {
-	(void)deltaTime;
+	(void)deltaTime; // 未使用
 
-	// 親Transformが設定されていれば追従
+	// 親のTransformが設定されていれば追従
 	if (parentTransform_)
 	{
-		// 親の回転を引き継ぐ
-		Matrix4x4 Rx = Matrix4x4::MakeRotateX(parentTransform_->rotate_.x);
-		Matrix4x4 Ry = Matrix4x4::MakeRotateY(parentTransform_->rotate_.y);
-		Matrix4x4 R = Matrix4x4::Multiply(Rx, Ry);
-
-		// 右腕で -90°入れている分を +90°で打ち消してから親回転へ
-		Matrix4x4 RxFix = Matrix4x4::MakeRotateX(+90.0f * std::numbers::pi_v<float> / 180.0f);
-		Vector3   ofsLocalFixed = Matrix4x4::Transform(offset_, RxFix);
-
-		Vector3 ofsW = Matrix4x4::Transform(ofsLocalFixed, R);
-		transform_.translate_ = parentTransform_->translate_ + ofsW;
-
-		// 親の回転をそのまま継承（必要なら+ローカル微調整）
-		transform_.rotate_ = parentTransform_->rotate_;
+		// 90度（π/2ラジアン）
 		const float kHalfPi = std::numbers::pi_v<float> / 2.0f;
-		transform_.rotate_.x += kHalfPi; // 右腕補正分を追加
+
+		// 親のワールド変換と指定されたオフセットや回転を基に、オブジェクトのワールド変換を更新する。
+		transform_.Update(parentTransform_, offset_, kHalfPi, { kHalfPi,0.0f,0.0f });
 	}
 
+	// モデルのワールド変換を更新
 	model_->SetTranslate(transform_.translate_);
 	model_->SetRotate(transform_.rotate_);
 	model_->Update();
@@ -61,6 +49,9 @@ void PistolWeapon::Draw()
 	model_->Draw();
 }
 
+/// -------------------------------------------------------------
+///				　			ImGui描画処理
+/// -------------------------------------------------------------
 void PistolWeapon::DrawImGui()
 {
 	// 武器の座標表示
@@ -102,9 +93,12 @@ Vector3 PistolWeapon::GetCenterPosition() const
 	// 行列を最新に更新
 	const_cast<WorldTransformEx&>(transform_).Update();
 
+	// オフセット（ローカル座標系）
 	const Vector3 offet = { 0.0f,0.0f,0.0f };
 
+	// ワールド行列を使って座標変換
 	position_ = Matrix4x4::Transform(offet, transform_.worldMatrix_);
 
+	// 座標を返す
 	return position_;
 }

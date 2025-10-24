@@ -52,8 +52,8 @@ void GamePlayScene::Initialize()
 	DebugCamera::GetInstance()->Initialize();
 #endif // _DEBUG
 
-	StartIntroCutscene();
-	gameState_ = GameState::CutScene;   // 最初は必ずCutSceneへ
+	//StartIntroCutscene();
+	//gameState_ = GameState::CutScene;   // 最初は必ずCutSceneへ
 	Input::GetInstance()->SetLockCursor(true);
 	ShowCursor(false);
 
@@ -86,7 +86,7 @@ void GamePlayScene::Initialize()
 
 	itemManager_ = std::make_unique<ItemManager>();
 	itemManager_->Initialize();
-	itemManager_->Spawn(ItemType::HealSmall, player_->GetWorldTransform()->translate_ + Vector3{ 30.0f, 0.0f, 30.0f });
+	itemManager_->Spawn(ItemType::HealSmall, player_->GetWorldTransform()->translate_ + Vector3{ 0.0f, 0.0f, -30.0f });
 
 	collisionManager_ = std::make_unique<CollisionManager>();
 	collisionManager_->Initialize();
@@ -102,7 +102,7 @@ void GamePlayScene::Initialize()
 void GamePlayScene::Update()
 {
 	// デルタタイムの取得
-	const float dt = dxCommon_->GetFPSCounter().GetDeltaTime();
+	const float deltaTime = dxCommon_->GetFPSCounter().GetDeltaTime();
 
 	// デバッグカメラの更新
 	UpdateDebug();
@@ -132,14 +132,14 @@ void GamePlayScene::Update()
 	if (gameState_ == GameState::CutScene)
 	{
 		// カットシーン更新のみ
-		bool finished = UpdateIntroCutscene(dt);
+		bool finished = UpdateIntroCutscene(deltaTime);
 
 		// 画的に必要な更新だけ許可
 		skyBox_->Update();
 		stage_->Update();
-		fadeController_->Update(dt);
+		fadeController_->Update(deltaTime);
 		scarecrow_->Update();
-		itemManager_->Update(player_.get());
+		itemManager_->Update(player_.get(), deltaTime);
 
 		if (finished)
 		{
@@ -154,11 +154,12 @@ void GamePlayScene::Update()
 	switch (gameState_)
 	{
 	case GameState::Playing:
-		player_->Update(dt);
+		player_->Update(deltaTime);
 		skyBox_->Update();
 		stage_->Update();
 		scarecrow_->Update();
-		itemManager_->Update(player_.get());
+		crosshair_->Update();
+		itemManager_->Update(player_.get(), deltaTime);
 		break;
 	case GameState::Paused:
 		break;
@@ -353,14 +354,16 @@ void GamePlayScene::DrawImGui()
 		// その場でプレビュー反映（編集しながら絵を確認できる）
 		if (ImGui::Button("Preview Here (no restart)")) {
 			// その場の introTime_ で UpdateIntroCutscene(0) を1回呼ぶ
-			// dt=0 でも補間結果は出せるよう、Update側は dt=0 を許容している前提
+			// deltaTime=0 でも補間結果は出せるよう、Update側は dt=0 を許容している前提
 			UpdateIntroCutscene(0.0f);
 		}
 	}
 	ImGui::End();
 }
 
-
+/// -------------------------------------------------------------
+///				　			Debug用更新処理
+/// -------------------------------------------------------------
 void GamePlayScene::UpdateDebug()
 {
 #ifdef _DEBUG

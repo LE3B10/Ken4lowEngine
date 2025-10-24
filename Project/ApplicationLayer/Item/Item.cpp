@@ -23,31 +23,20 @@ void Item::Initialize(ItemType type, const Vector3& pos)
 	switch (type_)
 	{
 	case ItemType::HealSmall:
-		modelPath = "cube.gltf";
-		object3d_->Initialize(modelPath);
-		object3d_->SetColor({ 1.0f,0.0f,0.0f,1.0f }); // 赤色
-		break;
+		modelPath = "cube.gltf"; break;
 
 	case ItemType::AmmoSmall:
-		modelPath = "cube.gltf";
-		object3d_->Initialize(modelPath);
-		object3d_->SetColor({ 0.0f, 0.0f, 1.0f, 1.0f }); // 青色
-		break;
+		modelPath = "cube.gltf"; break;
 
 	case ItemType::ScoreBonus:
-		modelPath = "cube.gltf";
-		object3d_->Initialize(modelPath);
-		object3d_->SetColor({ 1.0f, 1.0f, 0.0f, 1.0f }); // 黄色
-		break;
+		modelPath = "cube.gltf"; break;
 
 	case ItemType::PowerUp:
-		modelPath = "cube.gltf";
-		object3d_->Initialize(modelPath);
-		object3d_->SetColor({ 1.0f, 0.5f, 0.0f, 1.0f }); // オレンジ色
-		break;
+		modelPath = "cube.gltf"; break;
 
 	}
 
+	object3d_->Initialize(modelPath);
 	object3d_->SetTranslate(position_);
 	object3d_->SetScale(scale_); // サイズを設定
 
@@ -76,16 +65,16 @@ void Item::Initialize(ItemType type, const Vector3& pos)
 /// -------------------------------------------------------------
 ///							更新処理
 /// -------------------------------------------------------------
-void Item::Update()
+void Item::Update(float deltaTime)
 {
 	// 収集済みなら更新しない
 	if (collected_) return;
 
 	// ライフタイム更新
-	lifetime_ += 1.0f / 60.0f;
+	lifetime_ += deltaTime;
 
 	// 浮遊アニメーション：サイン波でY位置を変更
-	floatTimer_ += floatSpeed_ * (1.0f / 60.0f);  // フレーム前提。可変FPSなら deltaTime を使う
+	floatTimer_ += floatSpeed_ * deltaTime;  // フレーム前提。可変FPSなら deltaTime を使う
 	float floatOffset = std::sinf(floatTimer_) * floatAmplitude_;
 	position_.y = basePosition_.y + floatOffset + 1.0f;
 

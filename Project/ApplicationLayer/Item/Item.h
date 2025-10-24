@@ -17,7 +17,7 @@ public: /// ---------- メンバ関数 --------- ///
 	void Initialize(ItemType type, const Vector3& pos);
 
 	// 更新処理
-	void Update();
+	void Update(float deltaTime);
 
 	// 描画処理
 	void Draw();

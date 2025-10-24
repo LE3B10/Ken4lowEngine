@@ -9,7 +9,7 @@
 ///						コンストラクタ
 /// -------------------------------------------------------------
 Camera::Camera() :
-	fovY_(0.9f),
+	fovY_(1.0f),
 	aspectRatio_(float(WinApp::kClientWidth) / float(WinApp::kClientHeight)),
 	nearClip_(0.1f), farClip_(1000.0f),
 	worldMatrix_(Matrix4x4::MakeAffineMatrix(worldTransform_.scale_, worldTransform_.rotate_, worldTransform_.translate_)),

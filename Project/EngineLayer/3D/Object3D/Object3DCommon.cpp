@@ -94,7 +94,7 @@ void Object3DCommon::CreateRootSignature()
 	staticSamplers[0].AddressW = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
 	staticSamplers[0].MaxLOD = 0.0f; // ←ベースレベル固定でミップを実質OFF
 
-	staticSamplers[0].ShaderRegister = 0;								   // レジスタ番号0
+	staticSamplers[0].ShaderRegister = 0;								   // レジスタ番号0 (s0)
 	staticSamplers[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;	   // ピクセルシェーダーで使用
 	descriptionRootSignature.pStaticSamplers = staticSamplers;			   // サンプラの設定
 	descriptionRootSignature.NumStaticSamplers = _countof(staticSamplers); // サンプラの数
@@ -102,7 +102,7 @@ void Object3DCommon::CreateRootSignature()
 	D3D12_DESCRIPTOR_RANGE descriptorRange[1] = {};
 
 	// SRV0: テクスチャ用のディスクリプタテーブル
-	descriptorRange[0].BaseShaderRegister = 0;
+	descriptorRange[0].BaseShaderRegister = 0; // t0
 	descriptorRange[0].NumDescriptors = 1;
 	descriptorRange[0].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
 	descriptorRange[0].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
@@ -121,8 +121,15 @@ void Object3DCommon::CreateRootSignature()
 	lightArrayRange.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV; // SRV
 	lightArrayRange.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND; // 自動設定
 
+	// Dissolce用CBV範囲（t3)
+	D3D12_DESCRIPTOR_RANGE dissolveMaskRange{};
+	dissolveMaskRange.BaseShaderRegister = 3; // t3
+	dissolveMaskRange.NumDescriptors = 1;
+	dissolveMaskRange.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
+	dissolveMaskRange.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+
 	// ルートシグネチャの生成
-	D3D12_ROOT_PARAMETER rootParameters[7] = {};
+	D3D12_ROOT_PARAMETER rootParameters[9] = {};
 
 	// マテリアル用のルートシグパラメータの設定 （b0）
 	rootParameters[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;    // 定数バッファビュー
@@ -161,6 +168,18 @@ void Object3DCommon::CreateRootSignature()
 	rootParameters[6].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL; 	        // ピクセルシェーダーで使用
 	rootParameters[6].DescriptorTable.pDescriptorRanges = &lightArrayRange;         //　ディスクリプタテーブルの設定
 	rootParameters[6].DescriptorTable.NumDescriptorRanges = 1;                      //　ディスクリプタテーブルの数
+
+	// Dissolve用CBV（b3)
+	rootParameters[7].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;    // 定数バッファビュー
+	rootParameters[7].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL; // ピクセルシェーダーで使用
+	rootParameters[7].Descriptor.ShaderRegister = 3;                    // レジスタ番号3
+
+	// Dissolve用SRV（t3)
+	rootParameters[8].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE; 	// ディスクリプタテーブル
+	rootParameters[8].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL; 	        // ピクセルシェーダーで使用
+	rootParameters[8].DescriptorTable.pDescriptorRanges = &dissolveMaskRange;         //　ディスクリプタテーブルの設定
+	rootParameters[8].DescriptorTable.NumDescriptorRanges = 1;                      //　ディスクリプタテーブルの数
+
 
 	// ルートシグネチャの設定
 	descriptionRootSignature.pParameters = rootParameters;

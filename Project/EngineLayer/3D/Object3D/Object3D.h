@@ -35,6 +35,15 @@ public: /// ---------- 構造体 ---------- ///
 		Vector3 worldPosition;
 	};
 
+	// ディゾルブの設定
+	struct DissolveSetting
+	{
+		float threshold;        // 閾値
+		float edgeThickness;    // エッジの太さ
+		float padding0[2];      // パディング
+		Vector4 edgeColor;      // 色
+	};
+
 public: /// ---------- メンバ関数 ---------- ///
 
 	// 初期化処理
@@ -75,12 +84,22 @@ public: /// ---------- 設定処理 ---------- ///
 	// 反射率の設定
 	void SetReflectivity(float reflectivity) { material_.SetReflection(reflectivity); }
 
-public: /// ---------- ゲッタ ---------- ///
+public: /// ---------- ディゾルブの設定 ---------- ///
+
+	// ディゾルブの閾値を設定
+	void SetDissolveThreshold(float threshold) { dissolveSetting_->threshold = threshold; }
+	// エッジの太さを設定
+	void SetDissolveEdgeThickness(float thickness) { dissolveSetting_->edgeThickness = thickness; }
+	// エッジの色を設定
+	void SetDissolveEdgeColor(const Vector4& color) { dissolveSetting_->edgeColor = color; }
 
 private: /// ---------- メンバ変数 ---------- ///
 
 	// カメラ用のリソース生成
 	void InitializeCameraResource();
+
+	// ディゾルブ用のリソース生成
+	void InitializeDissolveResource();
 
 private: /// ---------- メンバ変数 ---------- ///
 
@@ -113,4 +132,10 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	// 環境マップのテクスチャ
 	D3D12_GPU_DESCRIPTOR_HANDLE environmentMapHandle_{};
+
+	// ディゾルブマスクのテクスチャ
+	D3D12_GPU_DESCRIPTOR_HANDLE dissolveMaskHandle_{};
+	// ディゾルブの設定
+	Microsoft::WRL::ComPtr<ID3D12Resource> constantBuffer_;
+	DissolveSetting* dissolveSetting_ = nullptr;
 };

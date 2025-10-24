@@ -12,6 +12,15 @@ public: /// ---------- メンバ関数 ---------- ///
 	// 更新処理
 	void Update();
 
+	/// <summary>
+	/// 親のワールド変換と指定されたオフセットや回転を基に、オブジェクトのワールド変換を更新する。
+	/// </summary>
+	/// <param name="parent">親の WorldTransformEx を指すポインタ。親が存在しない場合は nullptr を渡すことができる。</param>
+	/// <param name="offset">親に対する位置のオフセットを表す Vector3 の参照。</param>
+	/// <param name="preRotate">更新前に適用する回転角X（float）。単位は実装依存。</param>
+	/// <param name="selfAdd">自身の変換に加算する Vector3 の参照（位置やその他の調整用）。</param>
+	void Update(const WorldTransformEx* parent, const Vector3& offset, float preRotateX, const Vector3& selfAdd);
+
 public: /// ---------- メンバ変数 ---------- ///
 
 	// ローカルスケール

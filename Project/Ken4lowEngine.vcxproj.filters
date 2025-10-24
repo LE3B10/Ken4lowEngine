@@ -415,6 +415,9 @@
     <ClCompile Include="ApplicationLayer\Stage\Stage.cpp">
       <Filter>ApplicationLayer\Stage</Filter>
     </ClCompile>
+    <ClCompile Include="ApplicationLayer\WeaponSystem\WeaponMangaer\WeaponManager.cpp">
+      <Filter>ApplicationLayer\WeaponSystem\WeaponManager</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="EngineLayer\Math\MultipleStructs\AABB.h">
@@ -873,6 +876,15 @@
     <ClInclude Include="ApplicationLayer\Stage\Stage.h">
       <Filter>ApplicationLayer\Stage</Filter>
     </ClInclude>
+    <ClInclude Include="ApplicationLayer\WeaponSystem\WeaponMangaer\WeaponManager.h">
+      <Filter>ApplicationLayer\WeaponSystem\WeaponManager</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Character\Player\DeathState.h">
+      <Filter>ApplicationLayer\Character\Player</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Character\Player\FireState.h">
+      <Filter>ApplicationLayer\Character\Player</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="Resources\Shaders\PostEffect\FullScreen.hlsli">
@@ -1230,6 +1242,9 @@
     </Filter>
     <Filter Include="ApplicationLayer\Stage">
       <UniqueIdentifier>{31caff86-1e45-42d6-a811-339b4742900f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ApplicationLayer\WeaponSystem\WeaponManager">
+      <UniqueIdentifier>{80dd651f-f280-4c45-89e1-e945e60331a1}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>
