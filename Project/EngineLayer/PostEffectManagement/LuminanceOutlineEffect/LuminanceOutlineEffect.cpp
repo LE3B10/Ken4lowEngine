@@ -46,18 +46,18 @@ void LuminanceOutlineEffect::Apply(ID3D12GraphicsCommandList* commandList, uint3
 {
 	(void)dsvIndex; // 未使用
 
-	// ① コンピュート用のルートシグネチャとPSOを設定
+	// コンピュート用のルートシグネチャとPSOを設定
 	commandList->SetComputeRootSignature(computeRootSignature_.Get());
 	commandList->SetPipelineState(computePipelineState_.Get());
 
-	// ② SRVとUAVを設定（ディスクリプタテーブル）
+	// SRVとUAVを設定（ディスクリプタテーブル）
 	commandList->SetComputeRootDescriptorTable(0, UAVManager::GetInstance()->GetGPUDescriptorHandle(srvIndex));  // t0
 	commandList->SetComputeRootDescriptorTable(1, UAVManager::GetInstance()->GetGPUDescriptorHandle(uavIndex)); // u0
 
-	// ③ CBVを設定（b0）
+	// CBVを設定（b0）
 	commandList->SetComputeRootConstantBufferView(2, constantBuffer_->GetGPUVirtualAddress()); // b0
 
-	// ④ スレッドグループの数を計算して Dispatch
+	// スレッドグループの数を計算して Dispatch
 	const uint32_t threadGroupSizeX = 8;
 	const uint32_t threadGroupSizeY = 8;
 

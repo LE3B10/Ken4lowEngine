@@ -415,7 +415,7 @@
     <ClCompile Include="ApplicationLayer\Stage\Stage.cpp">
       <Filter>ApplicationLayer\Stage</Filter>
     </ClCompile>
-    <ClCompile Include="ApplicationLayer\WeaponSystem\WeaponMangaer\WeaponManager.cpp">
+    <ClCompile Include="ApplicationLayer\WeaponSystem\WeaponManager\WeaponManager.cpp">
       <Filter>ApplicationLayer\WeaponSystem\WeaponManager</Filter>
     </ClCompile>
   </ItemGroup>
@@ -735,9 +735,6 @@
     <ClInclude Include="EngineLayer\ResourceChecker\LeakCheck\D3DResourceLeakChecker.h">
       <Filter>EngineLayer\ResourceChecker</Filter>
     </ClInclude>
-    <ClInclude Include="EngineLayer\ResourceChecker\ReleaseCheck\ResourceObject.h">
-      <Filter>EngineLayer\ResourceChecker</Filter>
-    </ClInclude>
     <ClInclude Include="EngineLayer\Audio\AudioManager.h">
       <Filter>EngineLayer\Audio</Filter>
     </ClInclude>
@@ -876,7 +873,7 @@
     <ClInclude Include="ApplicationLayer\Stage\Stage.h">
       <Filter>ApplicationLayer\Stage</Filter>
     </ClInclude>
-    <ClInclude Include="ApplicationLayer\WeaponSystem\WeaponMangaer\WeaponManager.h">
+    <ClInclude Include="ApplicationLayer\WeaponSystem\WeaponManager\WeaponManager.h">
       <Filter>ApplicationLayer\WeaponSystem\WeaponManager</Filter>
     </ClInclude>
     <ClInclude Include="ApplicationLayer\Character\Player\DeathState.h">

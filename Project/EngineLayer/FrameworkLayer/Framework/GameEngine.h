@@ -27,9 +27,5 @@ public: /// ---------- メンバ関数 ---------- ///
 
 	// 終了処理
 	void Finalize() override;
-
-private: /// ---------- メンバ変数 ---------- ///
-
-	FPSCounter fpsCounter_;
 };
 
