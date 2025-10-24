@@ -7,7 +7,8 @@
 void DX12FenceManager::Initialize(ID3D12Device* device)
 {
 	// フェンスの生成
-	HRESULT hr = device->CreateFence(fenceValue_, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&fence_));
+	HRESULT hr = S_OK;
+	hr = device->CreateFence(fenceValue_, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&fence_));
 	assert(SUCCEEDED(hr));
 
 	// イベントの生成
@@ -37,7 +38,8 @@ void DX12FenceManager::Signal(ID3D12CommandQueue* commandQueue)
 {
 	// 次の値に更新してシグナルを送る
 	fenceValue_++;
-	HRESULT hr = commandQueue->Signal(fence_.Get(), fenceValue_);
+	HRESULT hr = S_OK;
+	hr = commandQueue->Signal(fence_.Get(), fenceValue_);
 	assert(SUCCEEDED(hr));
 }
 
@@ -49,7 +51,8 @@ void DX12FenceManager::Wait()
 	// GPUの処理が完了していなければ待機する
 	if (fence_->GetCompletedValue() < fenceValue_)
 	{
-		HRESULT hr = fence_->SetEventOnCompletion(fenceValue_, fenceEvent_);
+		HRESULT hr = S_OK;
+		hr = fence_->SetEventOnCompletion(fenceValue_, fenceEvent_);
 		assert(SUCCEEDED(hr));
 		WaitForSingleObject(fenceEvent_, INFINITE);
 	}
