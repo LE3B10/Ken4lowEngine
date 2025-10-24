@@ -18,7 +18,7 @@ public: /// ---------- メンバ関数 ---------- ///
 	void Initialize();
 
 	// 更新処理
-	void Update(Player* player);
+	void Update(Player* player, float deltaTime);
 
 	// 描画処理
 	void Draw();

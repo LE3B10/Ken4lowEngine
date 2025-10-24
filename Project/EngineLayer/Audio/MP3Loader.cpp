@@ -6,7 +6,10 @@
 /// ---------- minimp3の実装 ---------- ///
 #define MINIMP3_IMPLEMENTATION
 #pragma warning(push)
-#pragma warning(disable: 4267 4244) // size_t → int 警告を無効化
+#pragma warning(disable: 4244)  // narrowing (int→char)
+#pragma warning(disable: 4267)  // size_t→int など
+#pragma warning(disable: 4456)  // ローカル変数隠蔽
+#pragma warning(disable: 4459)  // 外部スコープ変数隠蔽
 #include "minimp3_ex.h"
 #pragma warning(pop)
 

@@ -14,7 +14,7 @@ class PistolWeapon : public BaseWeapon
 public: /// ---------- メンバ関数 ---------- ///
 
 	// 初期化処理
-	void Initialize(const WeaponConfig& config) override;
+	void Initialize() override;
 
 	// 更新処理
 	void Update(float deltaTime) override;
@@ -44,8 +44,14 @@ public: /// ---------- アクセサー関数 ---------- ///
 		transform_.parent_ = const_cast<WorldTransformEx*>(parent);
 	}
 
+	// ワールド変換を設定
 	void SetWorldTransform(const WorldTransformEx& transform) { transform_ = transform; }
+
+	// ワールド変換を取得
 	WorldTransformEx& GetWorldTransform() { return transform_; }
+
+	// 座標を設定
+	void SetPosition(const Vector3& pos) { position_ = pos; }
 
 private: /// ---------- メンバ変数 ---------- ///
 
@@ -58,24 +64,3 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	static inline Vector3 position_;
 };
-
-/// -------------------------------------------------------------
-///				　		  ピストル武器設定作成
-/// -------------------------------------------------------------
-static inline WeaponConfig MakePistolConfig()
-{
-	WeaponConfig pistol{};
-	pistol.muzzle.sparksEnabled = true;
-	pistol.muzzle.sparkCount = 14;
-	pistol.muzzle.sparkLifeMin = 0.08f;
-	pistol.muzzle.sparkLifeMax = 0.14f;
-	pistol.muzzle.sparkSpeedMin = 8.0f;
-	pistol.muzzle.sparkSpeedMax = 16.0f;
-	pistol.muzzle.sparkConeDeg = 28.0f;
-	pistol.muzzle.sparkGravityY = -25.0f;
-	pistol.tracer.startOffsetForward = 2.10f;  // 弾/トレーサの開始点を少し前へ
-	pistol.muzzle.offsetForward = 0.00f;  // フラッシュの根元 = 銃口
-	pistol.muzzle.sparkOffsetForward = 0.02f;  // 火花は少し前から
-
-	return pistol;
-}

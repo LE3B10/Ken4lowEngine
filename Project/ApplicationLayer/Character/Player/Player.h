@@ -2,13 +2,10 @@
 #include <BaseCharacter.h>
 #include <Object3D.h>
 #include <FpsCamera.h>
+#include "FireState.h"
+#include "DeathState.h"
 
-#include "PistolWeapon.h"
-#include "BallisticEffect.h"
-#include "Weapon.h"
-#include "WeaponCatalog.h"
-#include "Loadout.h"
-#include "WeaponEditorUI.h"
+#include "WeaponManager.h"
 
 #include <memory>
 #include <numbers>
@@ -22,6 +19,75 @@ class Input;
 /// -------------------------------------------------------------
 class Player : public BaseCharacter
 {
+private: /// ---------- 構造体 ---------- ///
+
+	// ビュー状態構造体
+	struct ViewState
+	{
+		// 体のYaw（ラジアン）
+		float bodyYaw = 0.0f;
+
+		// 頭のローカルYaw（親=体に対する差）
+		float headYawLocal = 0.0f;
+
+		// 頭のYaw制限（ラジアン）: 85度
+		float headYawLimit = 85.0f * (std::numbers::pi_v<float> / 180.0f);
+
+		// 頭のピッチ制限（ラジアン） : 90度
+		float headPitchLimit = 90.0f * (std::numbers::pi_v<float> / 180.0f);;
+
+		// 体が頭を追従し始める閾値（ラジアン） : 90度
+		float bodyFollowThresh = 90.0f * (std::numbers::pi_v<float> / 180.0f);;
+
+		// 体の回頭速度(度/秒)
+		float bodyTurnSpeedDeg = 300.0f;
+
+		// デバッグカメラフラグ
+		bool isDebugCamera = false;
+	};
+
+	// 移動状態構造体
+	struct MovementState
+	{
+		bool isGrounded = true;		 // 接地フラグ
+		float groundY = 0.0f;		 // 立っている床のY（暫定: 水平床）
+		float vY = 0.0f;			 // 縦速度
+		float gravity = -30.75f;	 // 重力加速度
+		float jumpSpeed = 12.0f;	 // ジャンプ初速
+		float maxFallSpeed = -50.0f; // 最大落下速度（クランプ）
+	};
+
+	// リコイル構造体
+	struct RecoilState
+	{
+		float z = 0.0f;          // 後退量（m相当のスケールでOK）
+		float pitch = 0.0f;      // 上向き回転（rad）
+		float yaw = 0.0f;        // 横ブレ（rad）
+		float vz = 0.0f;         // 速度
+		float vp = 0.0f;		 // 速度
+		float vy = 0.0f;	     // 速度
+		float kReturn = 18.0f;   // ばね定数（戻りの強さ）
+		float dumping = 12.0f;   // 減衰
+	};
+
+	// ディゾルブエフェクト構造体
+	struct DissolveEffect
+	{
+		float threshold = 1.0f;   // 閾値
+		float edgeThickness = 0.16f; // 縁の太さ
+		Vector4 edgeColor = { 0.2f,0.8f,1.0f,1.0f }; // 縁色
+	};
+
+	// 各部位のインデックス
+	struct PartIndices
+	{
+		const uint32_t head = 0;	 // 頭
+		const uint32_t leftArm = 1;  // 左腕
+		const uint32_t rightArm = 2; // 右腕
+		const uint32_t leftLeg = 3;	 // 左脚
+		const uint32_t rightLeg = 4; // 右脚
+	};
+
 public: /// ---------- メンバ関数 ---------- ///
 
 	// デストラクタ
@@ -51,8 +117,8 @@ public: /// ---------- メンバ関数 ---------- ///
 public: /// ---------- アクセサー関数 ---------- ///
 
 	// デバッグカメラフラグ取得
-	bool IsDebugCamera() const { return isDebugCamera_; }
-	void SetDebugCamera(bool isDebug) { isDebugCamera_ = isDebug; }
+	bool IsDebugCamera() const { return viewState_.isDebugCamera; }
+	void SetDebugCamera(bool isDebug) { viewState_.isDebugCamera = isDebug; }
 
 	// FPSカメラ取得
 	FpsCamera* GetFpsCamera() const { return fpsCamera_.get(); }
@@ -65,79 +131,47 @@ private: /// ---------- メンバ関数 ---------- ///
 	// 移動処理
 	void Move(float deltaTime);
 
-	// リコイル
-	void ApplyRecoil(float kickBack, float riseDeg, float horizDeg);
-
 	// 武器選択
 	void SelectWeapon(const std::string& name);
 
-private: /// ---------- デバッグカメラフラグ ---------- ///
+	// 死亡処理開始
+	void StartDeath(DeathMode mode);
 
-	const std::string kWeaponDir = "Resources/JSON/weapons";		   // 武器データディレクトリ
-	const std::string kWeaponMonolith = "Resources/JSON/weapons.json"; // 武器データモノリス
+	// 死亡処理更新
+	void UpdateDeath(float deltaTime);
+
+private: /// ----------メンバ変数 ---------- ///
 
 	Input* input_ = nullptr; // 入力クラス
 
 	std::unique_ptr<FpsCamera> fpsCamera_; // FPSカメラ
 
-	std::unique_ptr<PistolWeapon> pistolWeapon_; // ピストル武器
-	std::unique_ptr<BallisticEffect> ballisticEffect_; // 弾道エフェクト
+	std::unique_ptr<WeaponManager> weaponManager_; // 武器マネージャー
 
-	std::unique_ptr<Weapon> weapon_; // 武器基底ポインタ
+	// ビュー状態構造体
+	ViewState viewState_ = {};
 
-	std::unique_ptr<WeaponCatalog> weaponCatalog_; // 武器カタログ
-	std::unique_ptr<Loadout> loadout_; // ロードアウト
+	// 移動状態構造体
+	MovementState movementState_ = {};
 
-	std::unique_ptr<WeaponEditorUI> weaponEditorUI_; // 武器エディタUI
+	// 射撃状態構造体
+	FireState fireState_ = {};
 
-	// 遅延コマンド用のキュー（Add/Delete をフレーム末で実行する）
-	std::vector<std::pair<std::string, std::string>> pendingAdds_; // (newName, baseNameOrEmpty)
-	std::vector<std::string> pendingDeletes_;
+	// リコイル状態構造体
+	RecoilState recoilState_ = {};
 
-	// 武器ごとの「編集ウィンドウが開いているか」状態
-	std::unordered_map<std::string, bool> weaponEditorOpen_;
+	// 死亡状態構造体
+	DeathState deathState_ = {};
 
-	// 新規追加した武器のウィンドウを自動で開くか
-	bool autoOpenEditorOnAdd_ = true;
+	// ディゾルブエフェクト構造体
+	DissolveEffect dissolveEffect_ = {};
 
-	float bodyYaw_ = 0.0f;        // 体の現在Yaw（ラジアン）
-	float headYawLocal_ = 0.0f;   // 頭のローカルYaw（親=体に対する差）
+	// 各部位のインデックス
+	PartIndices partIndices_ = {};
 
-	Vector3 rightArmPosition_ = { 1.5f, 1.5f, 0 }; // 右腕の位置（体基準）
+private: /// ---------- 設定値 ---------- ///
 
-	// 調整用パラメータ
-	float headYawLimit_ = 85.0f * (std::numbers::pi_v<float> / 180.0f); // 顔の左右限界
-	float headPitchLimit_ = 90.0f * (std::numbers::pi_v<float> / 180.0f); // 顔の上下限界
-	float bodyFollowThresh_ = 90.0f * (std::numbers::pi_v<float> / 180.0f); // 追従を始める閾値
-	float bodyTurnSpeedDeg_ = 300.0f; // 体の回頭速度(度/秒) …好みで 240〜360
-
-	bool isDebugCamera_ = false;	// デバッグカメラフラグ
-
-	uint32_t rightArmIndex_ = 2;	// 右腕部位のインデックス
-
-	bool  isGrounded_ = true;		// 接地フラグ
-	float groundY_ = 0.0f;			// 立っている床のY（暫定: 水平床）
-	float vY_ = 0.0f;				// 縦速度 (m/s想定)
-	float gravity_ = -30.75f;		// 重力加速度
-	float jumpSpeed_ = 12.0f;		// 初速
-	float maxFallSpeed_ = -50.0f;   // 最大落下速度（クランプ）
-
-	WeaponConfig currentWeapon_;	// 現在装備中の武器設定（ランタイム用コピー）
-
-	bool shotScheduled_ = false;    // クールダウン終了時に撃つ予約
-
-	float fireCooldown_ = 0.0f;		// 次の射撃までの時間
-	float fireInterval_ = 0.1f;		// 連射間隔（秒）→ 例: 600rpm ≒ 0.1s
-
-	float recoilZ_ = 0.0f;          // 後退量（m相当のスケールでOK）
-	float recoilPitch_ = 0.0f;      // 上向き回転（rad）
-	float recoilYaw_ = 0.0f;        // 横ブレ（rad）
-
-	float recoilVz_ = 0.0f;         // 速度
-	float recoilVp_ = 0.0f;
-	float recoilVy_ = 0.0f;
-
-	float recoilReturn_ = 18.0f;    // ばね定数（戻りの強さ）
-	float recoilDamping_ = 12.0f;   // 減衰
+	const std::string kWeaponDir = "Resources/JSON/weapons";		   // 武器データディレクトリ
+	const std::string kWeaponMonolith = "Resources/JSON/weapons.json"; // 武器データモノリス
 };
 

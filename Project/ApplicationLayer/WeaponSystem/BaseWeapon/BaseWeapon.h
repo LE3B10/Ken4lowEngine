@@ -16,7 +16,7 @@ public: /// ---------- メンバ関数 ---------- ///
 	virtual ~BaseWeapon() = default;
 
 	// 初期化処理
-	virtual void Initialize(const WeaponConfig& config) = 0;
+	virtual void Initialize() = 0;
 
 	// 更新処理
 	virtual void Update(float deltaTime) = 0;
