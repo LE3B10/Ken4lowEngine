@@ -73,7 +73,8 @@ void SkinCluster::Initialize(const ModelData& modelData, Skeleton& skeleton)
 		D3D12_RESOURCE_DESC    bufDesc = CD3DX12_RESOURCE_DESC::Buffer(sizeof(WellForGPU) * joints.size());
 
 		// 初期ステートは COMMON にする（警告回避）
-		HRESULT hr = device->CreateCommittedResource(&heapDefault, D3D12_HEAP_FLAG_NONE, &bufDesc, D3D12_RESOURCE_STATE_COMMON, nullptr, IID_PPV_ARGS(&paletteResourceDefault_));
+		HRESULT hr = S_FALSE;
+		hr = device->CreateCommittedResource(&heapDefault, D3D12_HEAP_FLAG_NONE, &bufDesc, D3D12_RESOURCE_STATE_COMMON, nullptr, IID_PPV_ARGS(&paletteResourceDefault_));
 		assert(SUCCEEDED(hr));
 
 		// COMMON → COPY_DEST に明示遷移してからコピー
@@ -138,7 +139,8 @@ void SkinCluster::Initialize(const ModelData& modelData, Skeleton& skeleton)
 		D3D12_RESOURCE_DESC    bufDesc = CD3DX12_RESOURCE_DESC::Buffer(infSize);
 
 		// 初期ステートは COMMON
-		HRESULT hr = device->CreateCommittedResource(&heapDefault, D3D12_HEAP_FLAG_NONE, &bufDesc, D3D12_RESOURCE_STATE_COMMON, nullptr, IID_PPV_ARGS(&influenceResourceDefault_));
+		HRESULT hr = S_FALSE;
+		hr = device->CreateCommittedResource(&heapDefault, D3D12_HEAP_FLAG_NONE, &bufDesc, D3D12_RESOURCE_STATE_COMMON, nullptr, IID_PPV_ARGS(&influenceResourceDefault_));
 		assert(SUCCEEDED(hr));
 
 		// COMMON → COPY_DEST に明示遷移

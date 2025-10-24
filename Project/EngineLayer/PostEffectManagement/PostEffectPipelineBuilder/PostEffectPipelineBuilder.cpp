@@ -155,7 +155,8 @@ ComPtr<ID3D12PipelineState> PostEffectPipelineBuilder::CreateGraphicsPipeline(co
 	}
 
 	ComPtr<ID3D12PipelineState> pso;
-	HRESULT hr = dxCommon_->GetDevice()->CreateGraphicsPipelineState(&desc, IID_PPV_ARGS(&pso));
+	HRESULT hr = S_FALSE;
+	hr = dxCommon_->GetDevice()->CreateGraphicsPipelineState(&desc, IID_PPV_ARGS(&pso));
 	assert(SUCCEEDED(hr));
 	return pso;
 }
