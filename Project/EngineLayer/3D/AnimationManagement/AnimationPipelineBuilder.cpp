@@ -370,6 +370,7 @@ void AnimationPipelineBuilder::CreateComputePSO()
 	desc.pRootSignature = computeRootSignature_.Get();
 	desc.CS = { computeShader->GetBufferPointer(), computeShader->GetBufferSize() };
 
-	HRESULT hr = dxCommon_->GetDevice()->CreateComputePipelineState(&desc, IID_PPV_ARGS(&computePipelineState_));
+	HRESULT hr = S_FALSE;
+	hr = dxCommon_->GetDevice()->CreateComputePipelineState(&desc, IID_PPV_ARGS(&computePipelineState_));
 	assert(SUCCEEDED(hr) && "CreateComputePipelineState Failed");
 }

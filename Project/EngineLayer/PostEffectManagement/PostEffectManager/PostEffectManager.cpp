@@ -365,7 +365,8 @@ ComPtr<ID3D12Resource> PostEffectManager::CreateDepthBufferResource(uint32_t wid
 		D3D12_MEMORY_POOL_UNKNOWN, 1, 1 };
 
 	ComPtr<ID3D12Resource> depth;
-	HRESULT hr = dxCommon_->GetDevice()->CreateCommittedResource(
+	HRESULT hr = S_FALSE;
+	hr = dxCommon_->GetDevice()->CreateCommittedResource(
 		&heapProp,
 		D3D12_HEAP_FLAG_NONE,
 		&desc,

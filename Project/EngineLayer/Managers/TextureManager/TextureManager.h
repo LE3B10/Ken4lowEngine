@@ -21,7 +21,7 @@ private: /// ---------- テクスチャデータの構造体 ---------- ///
 	// テクスチャ１枚分のデータ
 	struct TextureData
 	{
-		DirectX::TexMetadata metaData;			    // 画像の幅や高さなどの情報
+		DirectX::TexMetadata metaData = {};			// 画像の幅や高さなどの情報
 		ComPtr<ID3D12Resource> resource;		    // テクスチャリソース
 		uint32_t srvIndex = 0;
 		D3D12_CPU_DESCRIPTOR_HANDLE srvHandleCPU{}; // SRV作成時に必要なCPUハンドル
@@ -33,6 +33,7 @@ public: /// ---------- メンバ関数 ---------- ///
 	// シングルトンインスタンス
 	static TextureManager* GetInstance();
 
+	// 初期化処理
 	void Initialize(DirectXCommon* dxCommon);
 
 	// DirectX12のTextureResourceを作る

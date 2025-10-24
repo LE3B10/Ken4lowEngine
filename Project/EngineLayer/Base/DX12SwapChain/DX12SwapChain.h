@@ -44,6 +44,6 @@ private: /// ---------- メンバ変数 ---------- ///
 	Microsoft::WRL::ComPtr <IDXGISwapChain4> swapChain;
 	Microsoft::WRL::ComPtr <ID3D12Resource> swapChainResources[2];
 	DXGI_SWAP_CHAIN_DESC1 swapChainDesc{};
-	D3D12_RESOURCE_STATES backBufferStates[2];  // 2つのバックバッファの状態を記録
+	D3D12_RESOURCE_STATES backBufferStates[2] = {};  // 2つのバックバッファの状態を記録
 };
 

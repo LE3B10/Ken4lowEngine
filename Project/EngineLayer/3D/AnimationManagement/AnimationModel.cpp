@@ -125,7 +125,8 @@ void AnimationModel::Initialize(const std::string& fileName, bool isSkinning)
 		D3D12_RESOURCE_DESC   bufDesc = CD3DX12_RESOURCE_DESC::Buffer(vbSize);
 
 		// 頂点バッファ本体
-		HRESULT hr = dxCommon_->GetDevice()->CreateCommittedResource(&defaultHeap, D3D12_HEAP_FLAG_NONE, &bufDesc, D3D12_RESOURCE_STATE_COMMON, nullptr, IID_PPV_ARGS(&staticVBDefault_));
+		HRESULT hr = S_FALSE;
+		hr = dxCommon_->GetDevice()->CreateCommittedResource(&defaultHeap, D3D12_HEAP_FLAG_NONE, &bufDesc, D3D12_RESOURCE_STATE_COMMON, nullptr, IID_PPV_ARGS(&staticVBDefault_));
 		assert(SUCCEEDED(hr));
 
 		// 一時UploadにCPUから詰める
@@ -178,7 +179,8 @@ void AnimationModel::Initialize(const std::string& fileName, bool isSkinning)
 	D3D12_RESOURCE_DESC   desc = CD3DX12_RESOURCE_DESC::Buffer(sizeof(VertexData) * flat.vertices.size(), D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
 
 	// スキン済み頂点バッファ作成
-	HRESULT hr = dxCommon_->GetDevice()->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &desc, D3D12_RESOURCE_STATE_COMMON, nullptr, IID_PPV_ARGS(&skinnedVB_));
+	HRESULT hr = S_FALSE;
+	hr = dxCommon_->GetDevice()->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &desc, D3D12_RESOURCE_STATE_COMMON, nullptr, IID_PPV_ARGS(&skinnedVB_));
 	assert(SUCCEEDED(hr));
 
 	// UAV（u0）作成（UAVヒープ）
@@ -641,7 +643,8 @@ void AnimationModel::InitializeLODs()
 			D3D12_RESOURCE_DESC   bufDesc = CD3DX12_RESOURCE_DESC::Buffer(vbSize);
 
 			// DEFAULTヒープに頂点バッファを作成
-			HRESULT hr = device->CreateCommittedResource(&heapDefault, D3D12_HEAP_FLAG_NONE, &bufDesc, D3D12_RESOURCE_STATE_COMMON, nullptr, IID_PPV_ARGS(&defaultVB));
+			HRESULT hr = S_FALSE;
+			hr = device->CreateCommittedResource(&heapDefault, D3D12_HEAP_FLAG_NONE, &bufDesc, D3D12_RESOURCE_STATE_COMMON, nullptr, IID_PPV_ARGS(&defaultVB));
 			assert(SUCCEEDED(hr));
 
 			// Upload 経由でコピー
@@ -676,7 +679,8 @@ void AnimationModel::InitializeLODs()
 			D3D12_RESOURCE_DESC   bufDesc = CD3DX12_RESOURCE_DESC::Buffer(ibSize);
 
 			// DEFAULTヒープに頂点バッファを作成
-			HRESULT hr = device->CreateCommittedResource(&heapDefault, D3D12_HEAP_FLAG_NONE, &bufDesc, D3D12_RESOURCE_STATE_COMMON, nullptr, IID_PPV_ARGS(&defaultIB));
+			HRESULT hr = S_FALSE;
+			hr = device->CreateCommittedResource(&heapDefault, D3D12_HEAP_FLAG_NONE, &bufDesc, D3D12_RESOURCE_STATE_COMMON, nullptr, IID_PPV_ARGS(&defaultIB));
 			assert(SUCCEEDED(hr));
 
 			// Upload 経由でコピー
@@ -708,7 +712,8 @@ void AnimationModel::InitializeLODs()
 			D3D12_RESOURCE_DESC   desc = CD3DX12_RESOURCE_DESC::Buffer(sizeof(VertexData) * flat.vertices.size(), D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
 
 			// スキン済み頂点バッファ作成
-			HRESULT hr = device->CreateCommittedResource(&heapDefault, D3D12_HEAP_FLAG_NONE, &desc, D3D12_RESOURCE_STATE_COMMON, nullptr, IID_PPV_ARGS(&skinnedVB));
+			HRESULT hr = S_FALSE;
+			hr = device->CreateCommittedResource(&heapDefault, D3D12_HEAP_FLAG_NONE, &desc, D3D12_RESOURCE_STATE_COMMON, nullptr, IID_PPV_ARGS(&skinnedVB));
 			assert(SUCCEEDED(hr));
 		}
 

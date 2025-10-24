@@ -22,8 +22,8 @@ class WinApp;
 /// -------------------------------------------------------------
 class DirectXCommon
 {
-	uint32_t kClientWidth;
-	uint32_t kClientHeight;
+	uint32_t kClientWidth = 0;
+	uint32_t kClientHeight = 0;
 
 public: /// ---------- メンバ関数 ---------- ///
 
@@ -98,9 +98,9 @@ private: /// ---------- メンバ変数 ---------- ///
 	D3D12_RECT scissorRect{};
 
 	UINT backBufferIndex = 0;
-	uint32_t dsvIndex_ = 0; // 🔹 DSVのインデックス
+	uint32_t dsvIndex_ = 0; // DSVのインデックス
 
-	ComPtr<ID3D12Resource> depthStencilResource; // 🔹 深度バッファ
+	ComPtr<ID3D12Resource> depthStencilResource; // 深度バッファ
 
 private: /// ---------- コピー禁止 ---------- ///
 

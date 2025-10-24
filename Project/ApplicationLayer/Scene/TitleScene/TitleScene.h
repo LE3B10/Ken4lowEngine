@@ -112,7 +112,7 @@ private: /// ---------- 構造体 ---------- ///
 	struct Timers
 	{
 		float time = 0.0f;				   // シーン開始からの経過時間
-		float duration = 0.0f;			   // シーン全体の継続時間
+		float duration = 1.0f;			   // シーン全体の継続時間
 		float state = 0.0f;				   // 状態遷移用
 		float idle = 0.0f;				   // 無操作でタイトルに
 		float returnSeconds = 75.0f;	   // 無操作でタイトルに戻るまでの時間

@@ -31,7 +31,7 @@ template <typename T>
 struct Keyframe
 {
 	float time = 0.0f; // 時刻
-	T value;	// 値
+	T value{};	// 値
 };
 
 using KeyframeVector3 = Keyframe<Vector3>;		 // Vector3のキーフレーム

@@ -148,7 +148,8 @@ void DirectXCommon::Finalize()
 ComPtr<ID3D12Resource> DirectXCommon::GetBackBuffer(uint32_t index)
 {
 	ComPtr<ID3D12Resource> backBuffer = nullptr;
-	HRESULT hr = swapChain_->GetSwapChain()->GetBuffer(index, IID_PPV_ARGS(&backBuffer));
+	HRESULT hr = S_FALSE;
+	hr = swapChain_->GetSwapChain()->GetBuffer(index, IID_PPV_ARGS(&backBuffer));
 	assert(SUCCEEDED(hr));
 	return backBuffer.Get();
 }
