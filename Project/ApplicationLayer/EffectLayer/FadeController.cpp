@@ -142,7 +142,7 @@ void FadeController::Update(float deltaTime)
 		// rows_, cols_, checkerDelayStep_, tiles_[] を使用している前提
 		const int maxIndex = (rows_ - 1) + (columns_ - 1);
 		const float maxDelay = checkerDelayStep_ * maxIndex;
-		const float anim = std::max(0.001f, duration_ - maxDelay); // ★共通アニメ時間
+		const float anim = std::max(0.001f, duration_ - maxDelay); // 共通アニメ時間
 
 		// 各タイルごとに delay をずらして anim 秒かけて 0→1（FadeOut）/ 1→0（FadeIn）
 		for (int r = 0; r < rows_; ++r)

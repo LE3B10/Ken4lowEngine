@@ -4,7 +4,6 @@
 #include "GameClearScene.h"
 #include "GameOverScene.h"
 #include "StageSelectScene.h"
-#include "WorldMapScene.h"
 #include <PhysicalScene.h>
 
 
@@ -22,9 +21,6 @@ std::unique_ptr<BaseScene> SceneFactory::CreateScene(const std::string& sceneNam
 	// ステージセレクトシーン
 	else if (sceneName == "StageSelectScene")	return std::make_unique<StageSelectScene>();
 
-	// ワールドマップシーン
-	else if (sceneName == "WorldMapScene")		return std::make_unique<WorldMapScene>();
-
 	// ゲームプレイシーン
 	else if (sceneName == "GamePlayScene")		return std::make_unique<GamePlayScene>();
 
@@ -39,5 +35,6 @@ std::unique_ptr<BaseScene> SceneFactory::CreateScene(const std::string& sceneNam
 	else if (sceneName == "PhysicalScene")		return std::make_unique<PhysicalScene>();
 #endif // _DEBUG
 
+	// 不明なシーン名の場合は例外を投げる
 	throw std::runtime_error("Unknown scene name: " + sceneName);
 }

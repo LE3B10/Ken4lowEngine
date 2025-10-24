@@ -214,8 +214,6 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClCompile Include="EngineLayer\Managers\UAVManager\UAVManager.cpp" />
     <ClCompile Include="ApplicationLayer\EffectLayer\FadeController.cpp" />
     <ClCompile Include="ApplicationLayer\Scene\StageSelectScene\GridStageSelector.cpp" />
-    <ClCompile Include="ApplicationLayer\Scene\StageSelectScene\IStageSelector.cpp" />
-    <ClCompile Include="ApplicationLayer\Scene\StageSelectScene\StageRepository.cpp" />
     <ClCompile Include="ApplicationLayer\Scene\StageSelectScene\StageSelectScene.cpp" />
     <ClCompile Include="ApplicationLayer\EffectLayer\ModelParticle.cpp" />
     <ClCompile Include="ApplicationLayer\WeaponSystem\BaseWeapon\BaseWeapon.cpp" />
@@ -232,8 +230,6 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="EngineLayer\3D\Wireframe\Wireframe.cpp" />
-    <ClCompile Include="ApplicationLayer\Scene\StageSelectScene\WorldMapScene.cpp" />
-    <ClCompile Include="ApplicationLayer\Scene\StageSelectScene\WorldMapStageSelector.cpp" />
     <ClCompile Include="EngineLayer\WorldTransform\WorldTransformEx.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -543,8 +539,6 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="ApplicationLayer\Scene\StageSelectScene\IStageSelector.h" />
     <ClInclude Include="ApplicationLayer\Scene\StageSelectScene\StageRepository.h" />
     <ClInclude Include="ApplicationLayer\Scene\StageSelectScene\StageSelectScene.h" />
-    <ClInclude Include="ApplicationLayer\Scene\StageSelectScene\WorldMapScene.h" />
-    <ClInclude Include="ApplicationLayer\Scene\StageSelectScene\WorldMapStageSelector.h" />
     <ClInclude Include="EngineLayer\WorldTransform\WorldTransformEx.h" />
     <ClInclude Include="ApplicationLayer\EffectLayer\ModelParticle.h" />
     <ClInclude Include="ApplicationLayer\WeaponSystem\BaseWeapon\BaseWeapon.h" />

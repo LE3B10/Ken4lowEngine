@@ -396,7 +396,7 @@ void GamePlayScene::StartIntroCutscene()
 	introYawKeys_.push_back({ 7.0f,  -140.0f });
 	introYawKeys_.push_back({ 9.0f,   -20.0f });
 
-	// --- Camera キー（★これが抜けていた）---
+	// --- Camera キー　---
 	introKeys_.clear();
 	introKeys_.push_back({ 0.0f, { -55, 18,  45 }, {  0, -0.5f,  0 } });  // 左奥上空
 	introKeys_.push_back({ 3.0f, { 35, 16,  35 }, {  0, -0.5f,  0 } });  // 右手前方向へ

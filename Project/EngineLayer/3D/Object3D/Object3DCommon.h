@@ -78,7 +78,8 @@ private: /// ---------- メンバ変数 ---------- ///
 	Matrix4x4 viewProjectionMatrix_;
 	Matrix4x4 debugViewProjectionMatrix_;
 
-	Vector3 activeCameraPosition_{ 0,0,0 }; // 追加
+	// アクティブなカメラの位置
+	Vector3 activeCameraPosition_{ 0,0,0 };
 
 	// デバッグカメラのON/OFF用
 	bool isDebugCamera_ = false;

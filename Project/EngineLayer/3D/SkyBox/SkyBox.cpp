@@ -4,6 +4,7 @@
 #include "TextureManager.h"
 #include "Object3DCommon.h"
 #include "DebugCamera.h"
+#include <SkyBoxManager.h>
 
 
 /// -------------------------------------------------------------
@@ -81,6 +82,8 @@ void SkyBox::Update()
 void SkyBox::Draw()
 {
 	ID3D12GraphicsCommandList* commandList = dxCommon_->GetCommandManager()->GetCommandList();
+
+	SkyBoxManager::GetInstance()->SetRenderSetting();
 
 	// 頂点バッファの設定
 	commandList->IASetVertexBuffers(0, 1, &vertexBufferView); // スプライト用VBV

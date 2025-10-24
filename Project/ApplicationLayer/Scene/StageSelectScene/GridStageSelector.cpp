@@ -575,7 +575,7 @@ void GridStageSelector::UpdateLayout()
 			bool locked = (*stages_)[i].locked;
 
 			thumbs_[i]->SetPosition({ cx, cy });
-			thumbs_[i]->SetSize({ baseW_ * scale, baseH_ * scale }); // ★ 大きさはここをいじればOK
+			thumbs_[i]->SetSize({ baseW_ * scale, baseH_ * scale }); // 大きさはここをいじればOK
 			float tint = locked ? 0.35f : 1.0f;
 			thumbs_[i]->SetColor({ tint,tint,tint,1 });
 			thumbs_[i]->Update();

@@ -3,7 +3,6 @@
 #include "Vector3.h"
 #include "Quaternion.h"
 #include "ModelData.h"
-#include "TransformationMatrix.h"
 #include "WorldTransform.h"
 #include "Material.h"
 #include "AnimationMesh.h"
@@ -11,6 +10,7 @@
 #include <SkinCluster.h>
 #include <Sphere.h>
 #include "Capsule.h"
+#include "TransformationMatrix.h"
 #include "LinearInterpolation.h"
 
 #include <algorithm>
@@ -18,7 +18,6 @@
 #include <vector>
 #include <numbers>
 #include <memory>
-#include <map>
 #include <filesystem>
 #include <regex>
 
@@ -53,7 +52,7 @@ private: /// ---------- 構造体 ---------- ///
 	// LODごとのスキンクラスタ情報
 	std::vector<BodyPartCollider> bodyPartColliders_;
 
-public: /// ---------- メンバ変数 ---------- ///
+public: /// ---------- LOD構造体 ---------- ///
 
 	// LODごとの情報
 	struct LODEntry
@@ -63,7 +62,7 @@ public: /// ---------- メンバ変数 ---------- ///
 		D3D12_VERTEX_BUFFER_VIEW influenceVBV = {};  // VSで使わないならなくても可
 
 		// インデックスバッファの実体を保持（解放されないように）
-		ComPtr<ID3D12Resource> indexBuffer;     // ← これを追加
+		ComPtr<ID3D12Resource> indexBuffer;     //インデックスバッファ
 
 		D3D12_INDEX_BUFFER_VIEW  ibv{};
 		uint32_t vertexCount = 0;
@@ -96,7 +95,7 @@ public: /// ---------- メンバ関数 ---------- ///
 	// 初期化処理
 	void Initialize(const std::string& fileName, bool isSkinning = true);
 
-	// ▼ 複数 LOD を直接渡すオーバーロード
+	// 複数 LOD を直接渡すオーバーロード
 	void Initialize(const std::string& fileName, const std::vector<std::string>& lodFiles, bool isSkinning = true);
 
 	// 更新処理
@@ -150,9 +149,13 @@ public: /// ---------- ゲッタ ---------- ///
 	// アニメーション時間を取得
 	float GetAnimationTime() const { return animationTime_; }
 
-	// ▼ アクセサ（Initialize 前推奨）
+	// 反射率を取得
 	void SetLodFiles(const std::vector<std::string>& files) { lodSourceFiles_ = files; }
+
+	// LODファイルリストをクリア
 	void ClearLodFiles() { lodSourceFiles_.clear(); }
+
+	// LODファイルリストを取得
 	const std::vector<std::string>& GetLodFiles() const { return lodSourceFiles_; }
 
 public: /// ---------- セッタ ---------- ///
@@ -319,7 +322,7 @@ private: /// ---------- コンピュートシェーダーによるスキニン�
 	uint32_t uavOutIndex_ = UINT32_MAX;               // u0
 	ComPtr<ID3D12Resource> csCB_;                     // b0
 	SkinningInformationForGPU* csCBMapped_ = nullptr; // b0マッピングデータ
-	bool useComputeSkinning_ = true; // 切替
+	bool useComputeSkinning_ = true;				  // 切替 : コンピュートシェーダースキニングを使うかどうか
 
 	// スキン頂点バッファのリソース状態
 	D3D12_RESOURCE_STATES skinnedVBState_ = D3D12_RESOURCE_STATE_COMMON;

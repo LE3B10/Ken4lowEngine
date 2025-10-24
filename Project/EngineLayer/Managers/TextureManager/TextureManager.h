@@ -21,11 +21,11 @@ private: /// ---------- テクスチャデータの構造体 ---------- ///
 	// テクスチャ１枚分のデータ
 	struct TextureData
 	{
-		DirectX::TexMetadata metaData;			  // 画像の幅や高さなどの情報
-		ComPtr<ID3D12Resource> resource;		  // テクスチャリソース
-		uint32_t srvIndex;
-		D3D12_CPU_DESCRIPTOR_HANDLE srvHandleCPU; // SRV作成時に必要なCPUハンドル
-		D3D12_GPU_DESCRIPTOR_HANDLE srvHandleGPU; // 描画コマンドに必要なGPUハンドル
+		DirectX::TexMetadata metaData;			    // 画像の幅や高さなどの情報
+		ComPtr<ID3D12Resource> resource;		    // テクスチャリソース
+		uint32_t srvIndex = 0;
+		D3D12_CPU_DESCRIPTOR_HANDLE srvHandleCPU{}; // SRV作成時に必要なCPUハンドル
+		D3D12_GPU_DESCRIPTOR_HANDLE srvHandleGPU{}; // 描画コマンドに必要なGPUハンドル
 	};
 
 public: /// ---------- メンバ関数 ---------- ///

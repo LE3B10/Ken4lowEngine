@@ -66,14 +66,15 @@ public: /// ---------- ゲッタ ---------- ///
 
 private: /// ---------- メンバ変数 ---------- ///
 
+	// カテゴリーごとの音量
 	float categoryVolumes[static_cast<int>(AudioCategory::Count)] = { 1.0f, 1.0f, 1.0f };
 
-	std::unique_ptr<WavLoader> wavLoader_;
-	std::unique_ptr<Mp3Loader> mp3Loader_;
-	std::list<std::unique_ptr<WavLoader>> seWavLoaders_;
-	std::list<std::unique_ptr<Mp3Loader>> seMp3Loaders_;
-	std::list<std::unique_ptr<WavLoader>> voiceWavLoaders_;
-	std::list<std::unique_ptr<Mp3Loader>> voiceMp3Loaders_;
+	std::unique_ptr<WavLoader> wavLoader_;					// BGM用WAVローダー
+	std::unique_ptr<Mp3Loader> mp3Loader_;					// BGM用WAV/MP3ローダー
+	std::list<std::unique_ptr<WavLoader>> seWavLoaders_;	// SE用WAVローダーリスト
+	std::list<std::unique_ptr<Mp3Loader>> seMp3Loaders_;	// SE用MP3ローダーリスト
+	std::list<std::unique_ptr<WavLoader>> voiceWavLoaders_; // ボイス用WAVローダーリスト
+	std::list<std::unique_ptr<Mp3Loader>> voiceMp3Loaders_; // ボイス用MP3ローダーリスト
 
 private: /// ---------- コピー禁止 ---------- ///
 

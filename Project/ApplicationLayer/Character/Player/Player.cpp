@@ -194,22 +194,6 @@ void Player::Draw()
 /// -------------------------------------------------------------
 void Player::OnCollision(Collider* other)
 {
-	//// 他のコライダーのタイプIDを取得
-	//uint32_t otherTypeID = other->GetTypeID();
-	//// 地面との衝突判定（仮実装）
-	//if (otherTypeID == static_cast<uint32_t>(CollisionTypeIdDef::kGround))
-	//{
-	//	// 着地処理
-	//	if (!isGrounded_)
-	//	{
-	//		groundY_ = body_.transform.translate_.y; // 今の高さを床として扱う
-	//		vY_ = 0.0f;							     // 縦速度リセット
-	//		isGrounded_ = true;					     // 接地状態へ
-	//		// 着地音再生（仮実装）
-	//		AudioManager::GetInstance()->PlayWave("Assets/Audio/footstep.wav", 0.5f);
-	//	}
-	//}
-
 	(void)other; // 未使用警告回避
 }
 

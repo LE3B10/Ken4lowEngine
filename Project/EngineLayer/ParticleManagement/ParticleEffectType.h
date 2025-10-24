@@ -13,7 +13,7 @@ enum class ParticleEffectType
 	Spark,		  // 火花
 	Debris,		  // 破片
 	EnergyGather, // 収束
-	Charge,       // 新しく追加：収束中にぐるぐる回る
+	Charge,       // 収束中にぐるぐる回る
 	Explosion,    // 爆発用
 	Blood,		  // 血飛沫
 	LaserBeam,	  // レーザービーム
