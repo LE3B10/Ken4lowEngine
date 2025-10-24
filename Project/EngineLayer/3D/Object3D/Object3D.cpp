@@ -55,6 +55,10 @@ void Object3D::Initialize(const std::string& fileName)
 	// 環境マップのハンドルを取得
 	environmentMapHandle_ = TextureManager::GetInstance()->GetSrvHandleGPU("SkyBox/skybox.dds");
 
+	// ディゾルブマスクテクスチャの読み込み
+	TextureManager::GetInstance()->LoadTexture("Mask/noise.png");
+	dissolveMaskHandle_ = TextureManager::GetInstance()->GetSrvHandleGPU("Mask/noise.png");
+
 	// ワールドトランスフォームの初期化
 	worldTransform.Initialize();
 
@@ -63,6 +67,9 @@ void Object3D::Initialize(const std::string& fileName)
 
 	// カメラデータの初期化処理
 	InitializeCameraResource();
+
+	// ディゾルブ用リソースの初期化
+	InitializeDissolveResource();
 }
 
 
@@ -103,7 +110,7 @@ void Object3D::DrawImGui()
 			Vector3 tmp = camera_->GetTranslate();
 			if (ImGui::SliderFloat3("Camera Position##cam", &tmp.x, -20.0f, 20.0f))
 			{
-				camera_->SetTranslate(tmp);              // ★ CBではなくカメラを更新
+				camera_->SetTranslate(tmp);              // CBではなくカメラを更新
 			}
 		}
 
@@ -129,6 +136,9 @@ void Object3D::Draw()
 	commandList->SetGraphicsRootConstantBufferView(3, cameraResource->GetGPUVirtualAddress());
 
 	TextureManager::GetInstance()->SetGraphicsRootDescriptorTable(commandList, 4, environmentMapHandle_);
+
+	commandList->SetGraphicsRootConstantBufferView(7, constantBuffer_->GetGPUVirtualAddress());
+	TextureManager::GetInstance()->SetGraphicsRootDescriptorTable(commandList, 8, dissolveMaskHandle_); // t3
 
 	// サブメッシュ事にテクスチャを差し替えて描画
 	for (size_t i = 0; i < meshes_.size(); i++)
@@ -166,4 +176,21 @@ void Object3D::InitializeCameraResource()
 	cameraResource->Map(0, nullptr, reinterpret_cast<void**>(&cameraData));
 	// カメラの初期位置
 	cameraData->worldPosition = camera_->GetTranslate();
+}
+
+/// -------------------------------------------------------------
+///					ディゾルブ用のリソース生成
+/// -------------------------------------------------------------
+void Object3D::InitializeDissolveResource()
+{
+	// リソースの生成
+	constantBuffer_ = ResourceManager::CreateBufferResource(dxCommon_->GetDevice(), sizeof(DissolveSetting));
+
+	// データの設定
+	constantBuffer_->Map(0, nullptr, reinterpret_cast<void**>(&dissolveSetting_));
+
+	// ディゾルブの設定
+	dissolveSetting_->threshold = 1.0f;
+	dissolveSetting_->edgeThickness = 0.0f;
+	dissolveSetting_->edgeColor = { 1.0f, 1.0f, 1.0f, 1.0f };
 }

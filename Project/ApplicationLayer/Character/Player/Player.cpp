@@ -31,71 +31,38 @@ void Player::Initialize()
 	// 子オブジェクト（頭、腕、脚）をリストに追加
 	std::vector<std::pair<std::string, Vector3>> partData =
 	{
-		{"PlayerRoot/player_head.gltf", {0.0f, 0.75f, 0.0f}},      // 頭
-		{"PlayerRoot/player_LeftArm.gltf", {-0.75f, 0.75f, 0.0f}}, // 左腕
-		{"PlayerRoot/player_RightArm.gltf",{ 0.75f, -0.75f, 0}},   // 右腕
-		{"PlayerRoot/player_LeftLeg.gltf", {-0.25f, -0.75f, 0} },  // 左脚
-		{"PlayerRoot/player_RightLeg.gltf", {0.25f, -0.75f, 0} }   // 右脚
+		{"PlayerRoot/player_head.gltf", {0.0f, 0.75f, 0.0f}},      // 頭   : 0
+		{"PlayerRoot/player_LeftArm.gltf", {-0.75f, 0.75f, 0.0f}}, // 左腕 : 1
+		{"PlayerRoot/player_RightArm.gltf",{ 0.75f, -0.75f, 0}},   // 右腕 : 2
+		{"PlayerRoot/player_LeftLeg.gltf", {-0.25f, -0.75f, 0} },  // 左脚 : 3
+		{"PlayerRoot/player_RightLeg.gltf", {0.25f, -0.75f, 0} }   // 右脚 : 4
 	};
 
 	// 部位データをもとに部位オブジェクトを生成
 	for (const auto& [modelPath, position] : partData)
 	{
-		BodyPart part;
-		part.object = std::make_unique<Object3D>();
-		part.object->Initialize(modelPath);
-		part.transform.translate_ = position;
-		part.object->SetTranslate(part.transform.translate_);
-		part.transform.parent_ = &body_.transform; // 親を設定
-		parts_.push_back(std::move(part));
+		// ローカル変数で部位データを作成
+		BodyPart part = {};
+		part.object = std::make_unique<Object3D>();			  // オブジェクト生成
+		part.object->Initialize(modelPath); 				  // モデル読み込み
+		part.transform.translate_ = position;				  // 位置設定
+		part.object->SetTranslate(part.transform.translate_); // オブジェクトにも位置設定
+		part.transform.parent_ = &body_.transform;			  // 親を設定
+		parts_.push_back(std::move(part));					  // リストに追加
 	}
 
 	// FPSカメラ
 	fpsCamera_ = std::make_unique<FpsCamera>();
 	fpsCamera_->Initialize(this);
 
-	groundY_ = body_.transform.translate_.y;  // 今立っている高さを床として扱う
-	isGrounded_ = true;						  // 接地中
-	vY_ = 0.0f;								  // 縦速度初期化
+	movementState_.groundY = body_.transform.translate_.y;  // 今立っている高さを床として扱う
+	movementState_.isGrounded = true;						  // 接地中
+	movementState_.vY = 0.0f;								  // 縦速度初期化
 
-	// ピストル武器初期化
-	pistolWeapon_ = std::make_unique<PistolWeapon>();
-	pistolWeapon_->Initialize(MakePistolConfig());
-	pistolWeapon_->SetParentTransform(&parts_[2].transform); // 右腕に追従
-
-	// 弾道エフェクト初期化
-	ballisticEffect_ = std::make_unique<BallisticEffect>();
-	ballisticEffect_->Initialize();
-	ballisticEffect_->SetParentTransform(&parts_[2].transform); // 右腕に追従
-
-	// 武器カタログ初期化
-	weaponCatalog_ = std::make_unique<WeaponCatalog>();
-	weaponCatalog_->Initialize(kWeaponDir, kWeaponMonolith); // ディレクトリとモノリス両方から読み込み
-
-	// 在庫から初期装備を決める
-	const auto& table = weaponCatalog_->All();
-
-	// 初期武器設定
-	if (!table.empty())
-	{
-		auto it = table.find("Pistol");					// まずピストルを探す
-		if (it == table.end()) it = table.begin();		// 在庫の最初の武器を使う
-		weapon_ = std::make_unique<Weapon>(it->second); // 武器基底ポインタにセット
-		currentWeapon_ = ToWeaponConfig(it->second);	// ランタイム用コピー
-	}
-
-	// ロードアウト初期化
-	loadout_ = std::make_unique<Loadout>();
-	loadout_->Rebuild(weaponCatalog_->All()); // 在庫に基づき再構築
-
-	// 初期装備 : プライマリ武器を優先
-	std::string useWeaponName = loadout_->SelectNameByClass(WeaponClass::Primary, weaponCatalog_->All());
-
-	// 装備がなければ在庫の最初の武器を使う
-	if (useWeaponName.empty() && !weaponCatalog_->All().empty()) useWeaponName = weaponCatalog_->All().begin()->first;
-
-	// 武器選択
-	if (!useWeaponName.empty()) SelectWeapon(useWeaponName);
+	// 武器マネージャー初期化
+	weaponManager_ = std::make_unique<WeaponManager>();
+	weaponManager_->SetParentTransforms(&parts_[partIndices_.rightArm].transform); // 右腕を親に設定
+	weaponManager_->InitializeWeapons(fireState_, deathState_);					   // 武器初期化
 }
 
 
@@ -109,6 +76,8 @@ void Player::Update(float deltaTime)
 	// カメラモード切替
 	if (input_->TriggerKey(DIK_F5)) { fpsCamera_->CycleViewMode(); }
 
+	if (input_->TriggerKey(DIK_J)) { StartDeath(DeathMode::BlowAway); }
+
 #endif // _DEBUG
 
 	// ここで表示切替
@@ -117,7 +86,7 @@ void Player::Update(float deltaTime)
 	case FpsCamera::ViewMode::FirstPerson:
 		SetBodyActive(false);          // 体幹は映さない
 		SetAllPartsActive(false);      // 一旦全部オフ
-		SetPartActive(rightArmIndex_, true); // 右手だけオン
+		SetPartActive(partIndices_.rightArm, true); // 右手だけオン
 		break;
 
 	case FpsCamera::ViewMode::ThirdBack:
@@ -127,46 +96,52 @@ void Player::Update(float deltaTime)
 		break;
 	}
 
-	// 武器選択 : 数字キー1〜6 : クラス別選択
-	if (input_->TriggerKey(DIK_1)) { auto n = loadout_->SelectNameByClass(WeaponClass::Primary, weaponCatalog_->All()); if (!n.empty()) SelectWeapon(n); }
-	if (input_->TriggerKey(DIK_2)) { auto n = loadout_->SelectNameByClass(WeaponClass::Backup, weaponCatalog_->All()); if (!n.empty()) SelectWeapon(n); }
-	if (input_->TriggerKey(DIK_3)) { auto n = loadout_->SelectNameByClass(WeaponClass::Melee, weaponCatalog_->All()); if (!n.empty()) SelectWeapon(n); }
-	if (input_->TriggerKey(DIK_4)) { auto n = loadout_->SelectNameByClass(WeaponClass::Special, weaponCatalog_->All()); if (!n.empty()) SelectWeapon(n); }
-	if (input_->TriggerKey(DIK_5)) { auto n = loadout_->SelectNameByClass(WeaponClass::Sniper, weaponCatalog_->All()); if (!n.empty()) SelectWeapon(n); }
-	if (input_->TriggerKey(DIK_6)) { auto n = loadout_->SelectNameByClass(WeaponClass::Heavy, weaponCatalog_->All()); if (!n.empty()) SelectWeapon(n); }
+	if (deathState_.inDeathSeq || deathState_.isDead)
+	{
+		SetBodyActive(true);       // 死亡中は体幹を表示
+		SetAllPartsActive(true);   // 死亡中は全部表示
+		parts_[partIndices_.rightArm].active = &body_.transform; // 右腕も体幹に追従
+	}
+
+	// 死亡処理更新
+	if (deathState_.inDeathSeq)
+	{
+		UpdateDeath(deltaTime);
+		BaseCharacter::Update(deltaTime); // ベースキャラクターの更新は行う
+		return; // 死亡中は以降の処理を行わない
+	}
+
+	// 死亡完了
+	if (deathState_.isDead)
+	{
+#ifdef _DEBUG
+		if (input_->TriggerKey(DIK_R))
+		{
+			deathState_.isDead = false; // 死亡フラグ解除
+			body_.transform.translate_ = { 0.0f, movementState_.groundY + 2.25f, 0.0f }; // 初期位置にリセット
+			body_.transform.rotate_ = { 0.0f, 0.0f, 0.0f }; // 回転リセット
+			body_.transform.translate_.y = movementState_.groundY; // 地面に戻す
+			fpsCamera_->SetViewMode(FpsCamera::ViewMode::FirstPerson); // 一人称視点へ
+
+			body_.object->SetDissolveThreshold(1.0f);
+			for (auto& p : parts_) p.object->SetDissolveThreshold(1.0f);
+		}
+#endif // _DEBUG
+		BaseCharacter::Update(deltaTime); // ベースキャラクターの更新は行う
+		return;
+	}
 
 	// 移動処理
 	Move(deltaTime);
 
-	// 武器更新
-	pistolWeapon_->Update(deltaTime);
-
-	// 弾道エフェクト更新
-	ballisticEffect_->Update();
-
-	// ばね: accel = -k*x - c*v
-	auto spring = [&](float& x, float& v) {
-		float a = -recoilReturn_ * x - recoilDamping_ * v; // 加速度
-		v += a * deltaTime;								   // 速度更新
-		x += v * deltaTime;								   // 位置更新
-		};
-
-	// 後退＆回転の戻り
-	spring(recoilZ_, recoilVz_);
-	spring(recoilPitch_, recoilVp_);
-	spring(recoilYaw_, recoilVy_);
-
 	// クールダウン更新
-	if (fireCooldown_ > 0.0f) fireCooldown_ -= deltaTime;
-
-	// 射撃処理
-	auto& armT = parts_[rightArmIndex_].transform;
+	if (fireState_.cooldown > 0.0f) fireState_.cooldown -= deltaTime;
 
 	// マウス左ボタンで射撃
 	if (input_->PushMouse(0))
 	{
 		// クールダウン終了で発射可能
-		if (fireCooldown_ <= 0.0f)
+		if (fireState_.cooldown <= 0.0f)
 		{
 			// forward の計算（あなたの式でOK）
 			float yaw = fpsCamera_->GetYaw();
@@ -181,33 +156,18 @@ void Player::Update(float deltaTime)
 			forward = Vector3::Normalize(forward);
 			Vector3 worldUp = { 0.0f, 1.0f, 0.0f }; // ワールドの上方向
 			Vector3 right = Vector3::Normalize(Vector3::Cross(worldUp, forward)); // 右方向
-			Vector3 up = Vector3::Normalize(Vector3::Cross(forward, right));	  // 上方向
 
-			// キックバック：前方の反対方向に少し引く、ついでに僅かに上へ
-			armT.translate_ += (-forward * recoilZ_) + (up * (recoilZ_ * 0.15f));
-
-			// 回転：上向き＆左右ブレ
-			armT.rotate_.x += recoilPitch_;
-			armT.rotate_.y += recoilYaw_;
-
-			// クロスヘア収束を使っているなら、ここで aimPoint から shotDir を作る版に差し替え
-			Vector3 velocity = forward * currentWeapon_.muzzleSpeed;
-			ballisticEffect_->Start({ 0,0,0 }, velocity, currentWeapon_);
-			fireInterval_ = 60.0f / currentWeapon_.rpm;
-			fireCooldown_ = fireInterval_;
-
-			// 反動インパルス
-			// プリセット（武器ごと）
-			float kick = 0.055f;      // 後退量
-			float rise = 5.0f;        // 上向き（度）
-			float horiz = 0.3f;       // 左右（度）
-			if (currentWeapon_.name == "Rifle") { kick = 0.075f; rise = 2.6f; horiz = 0.45f; }
-			if (currentWeapon_.name == "MachineGun") { kick = 0.045f; rise = 0.9f; horiz = 0.25f; }
-
-			// 反動適用
-			ApplyRecoil(kick, rise, horiz);
+			// 弾道エフェクト開始
+			const WeaponConfig& config = weaponManager_->GetCurrentConfig(); // 現在の武器設定取得
+			Vector3 velocity = forward * config.muzzleSpeed;				 // 銃口初速を掛ける
+			weaponManager_->StartFireBallisticEffect(GetCenterPosition(), velocity); // プレイヤー中心位置から発射
+			fireState_.interval = 60.0f / config.rpm; 					 // 連射間隔計算（秒）
+			fireState_.cooldown = fireState_.interval; 					 // クールダウンリセット
 		}
 	}
+
+	// 武器更新
+	weaponManager_->UpdateWeapons(deltaTime);
 
 	// ベースキャラクターの更新
 	BaseCharacter::Update(deltaTime);
@@ -226,10 +186,7 @@ void Player::Draw()
 	for (auto& part : parts_) if (part.active) { part.object->Draw(); }
 
 	// 武器描画
-	pistolWeapon_->Draw();
-
-	// 弾道エフェクト描画
-	ballisticEffect_->Draw();
+	weaponManager_->DrawWeapons();
 }
 
 /// -------------------------------------------------------------
@@ -278,7 +235,7 @@ void Player::Move(float deltaTime)
 	const float moveSpeed = 0.1f;
 	Vector3 move{ 0,0,0 };
 
-	if (!isDebugCamera_) // デバッグカメラ中は無効
+	if (!viewState_.isDebugCamera) // デバッグカメラ中は無効
 	{
 		if (input_->PushKey(DIK_W)) move.z += moveSpeed;
 		if (input_->PushKey(DIK_S)) move.z -= moveSpeed;
@@ -309,54 +266,54 @@ void Player::Move(float deltaTime)
 	if (isFP)
 	{
 		// 一人称：回転は即時
-		bodyYaw_ = camYaw;
-		headYawLocal_ = 0.0f;
-		parts_[0].transform.rotate_.x = std::clamp(camPitch, -headPitchLimit_, headPitchLimit_);
+		viewState_.bodyYaw = camYaw;
+		viewState_.headYawLocal = 0.0f;
+		parts_[partIndices_.head].transform.rotate_.x = std::clamp(camPitch, -viewState_.headPitchLimit, viewState_.headPitchLimit);
 	}
 	else
 	{
 		// 三人称：補間（現状のまま）
-		float targetHeadYawLocal = NormalizeAngle(camYaw - bodyYaw_);
-		targetHeadYawLocal = std::clamp(targetHeadYawLocal, -headYawLimit_, headYawLimit_);
-		headYawLocal_ = Lerp(headYawLocal_, targetHeadYawLocal, 0.25f);
-		bodyYaw_ = LerpAngle(bodyYaw_, camYaw, 0.10f);
-		parts_[0].transform.rotate_.x = std::clamp(camPitch, -headPitchLimit_, headPitchLimit_);
+		float targetHeadYawLocal = NormalizeAngle(camYaw - viewState_.bodyYaw);
+		targetHeadYawLocal = std::clamp(targetHeadYawLocal, -viewState_.headYawLimit, viewState_.headYawLimit);
+		viewState_.headYawLocal = Lerp(viewState_.headYawLocal, targetHeadYawLocal, 0.25f);
+		viewState_.bodyYaw = LerpAngle(viewState_.bodyYaw, camYaw, 0.10f);
+		parts_[partIndices_.head].transform.rotate_.x = std::clamp(camPitch, -viewState_.headPitchLimit, viewState_.headPitchLimit);
 	}
 
 	// ジャンプ
-	if (!isDebugCamera_ && isGrounded_ && input_->PushKey(DIK_SPACE))
+	if (!viewState_.isDebugCamera && movementState_.isGrounded && input_->PushKey(DIK_SPACE))
 	{
-		vY_ = jumpSpeed_;
-		isGrounded_ = false;
+		movementState_.vY = movementState_.jumpSpeed;
+		movementState_.isGrounded = false;
 	}
 
 	// 空中は重力適用
-	if (!isGrounded_)
+	if (!movementState_.isGrounded)
 	{
-		vY_ += gravity_ * deltaTime;					 // 重力加算
-		if (vY_ < maxFallSpeed_) vY_ = maxFallSpeed_;	 // 落下速度クランプ
-		body_.transform.translate_.y += vY_ * deltaTime; // 位置更新
+		movementState_.vY += movementState_.gravity * deltaTime;					 // 重力加算
+		if (movementState_.vY < movementState_.maxFallSpeed) movementState_.vY = movementState_.maxFallSpeed;	 // 落下速度クランプ
+		body_.transform.translate_.y += movementState_.vY * deltaTime; // 位置更新
 
 		// 着地（水平床の想定）
-		if (body_.transform.translate_.y <= groundY_)
+		if (body_.transform.translate_.y <= movementState_.groundY)
 		{
-			body_.transform.translate_.y = groundY_; // 床に合わせる
-			vY_ = 0.0f;								 // 縦速度リセット
-			isGrounded_ = true;						 // 接地状態へ
+			body_.transform.translate_.y = movementState_.groundY; // 床に合わせる
+			movementState_.vY = 0.0f;								 // 縦速度リセット
+			movementState_.isGrounded = true;						 // 接地状態へ
 		}
 	}
 	else
 	{
 		// 接地中は高さを維持（段差に対応するなら groundY_ を更新する）
-		body_.transform.translate_.y = groundY_;
+		body_.transform.translate_.y = movementState_.groundY;
 	}
 
 	// 体と頭の回転反映
-	body_.transform.rotate_.y = bodyYaw_;
-	parts_[0].transform.rotate_.y = headYawLocal_;
+	body_.transform.rotate_.y = viewState_.bodyYaw;
+	parts_[partIndices_.head].transform.rotate_.y = viewState_.headYawLocal;
 
 	/// ---------- 右手：FPはカメラ基準で固定 ---------- ///
-	auto& armT = parts_[rightArmIndex_].transform;
+	auto& armT = parts_[partIndices_.rightArm].transform;
 	if (isFP)
 	{
 		fpsCamera_->Update();
@@ -388,35 +345,181 @@ void Player::Move(float deltaTime)
 }
 
 /// -------------------------------------------------------------
-///				　			　 リコイル
+///				　			死亡処理開始
 /// -------------------------------------------------------------
-void Player::ApplyRecoil(float kickBack, float riseDeg, float horizDeg)
+void Player::StartDeath(DeathMode mode)
 {
-	// 後退はそのまま加算（mスケール想定）
-	recoilVz_ += kickBack;
+	deathState_.inDeathSeq = true;
+	deathState_.isDead = false;
+	deathState_.mode = mode;
+	deathState_.timer = 0.0f;
+	deathState_.length = 2.5f;  // 吹っ飛びは少し長めに
+	deathState_.side = (rand() & 1) ? +1 : -1;
 
-	// 角度は度→rad
-	const float r = std::numbers::pi_v<float> / 180.0f;
-	recoilVp_ += riseDeg * r;
-	// 左右ブレは±で
-	float sign = (rand() & 1) ? 1.0f : -1.0f;
-	recoilVy_ += sign * horizDeg * r;
+	SetBodyActive(true);       // 体幹は映す
+	SetAllPartsActive(true);   // 全パーツオン
+	parts_[partIndices_.rightArm].transform.parent_ = &body_.transform; // 右腕を体に戻す
+	parts_[partIndices_.rightArm].transform.translate_ = { 0.75f, 0.75f, 0 };
+	parts_[partIndices_.rightArm].transform.rotate_ = { 0.0f, 0.0f, 0.0f }; // 回転リセット
+
+	// カメラを三人称視点に切替
+	fpsCamera_->SetViewMode(FpsCamera::ViewMode::ThirdBack);
+
+	Camera* cam = fpsCamera_->GetCamera();
+	deathState_.camLockPos = cam->GetTranslate();
+	deathState_.camLockRot = cam->GetRotate();
+	deathState_.camLock = true;    // 固定ON
+
+	// カメラ奪取開始位置（今の一人称/三人称どちらでもOK）
+	deathState_.cameraStartPos = fpsCamera_->GetCamera()->GetTranslate();
+
+	// プレイヤーの視線の逆方向に後方へ + 少し上へ
+	const float yaw = fpsCamera_->GetYaw();
+	const float pitch = fpsCamera_->GetPitch();
+	Vector3 fwd = { -sinf(yaw) * cosf(pitch), -sinf(pitch), cosf(yaw) * cosf(pitch) };
+
+	// チューンしやすい初速（m/s想定）
+	float speedBack = 64.0f;   // 後ろ方向
+	float speedUp = 16.0f;    // 上方向ブースト
+	// ランダムな左右ブレ
+	float side = ((rand() & 1) ? 1.0f : -1.0f) * 2.5f;
+
+	// 右方向ベクトルを作って横ブレを足す
+	Vector3 worldUp{ 0,1,0 };
+	Vector3 right = Vector3::Normalize(Vector3::Cross(worldUp, fwd));
+	deathState_.velocity = (-fwd * speedBack) + (worldUp * speedUp) + (right * side);
+
+	// ランダムな角速度（rad/s）
+	auto rr = [&](float lo, float hi) { return lo + (hi - lo) * (rand() / (float)RAND_MAX); };
+	deathState_.angularVelocity = { rr(-4.0f,4.0f), rr(-6.0f,6.0f), rr(-8.0f,8.0f) }; // かなり回す
+
+	// 姿勢をフラットにしてから開始（見栄え安定）
+	body_.transform.rotate_.x = 0.0f;
+	body_.transform.rotate_.z = 0.0f;
+
+	body_.object->SetDissolveThreshold(dissolveEffect_.threshold);
+	body_.object->SetDissolveEdgeThickness(dissolveEffect_.edgeThickness);
+	body_.object->SetDissolveEdgeColor(dissolveEffect_.edgeColor);
+	for (auto& p : parts_) {
+		p.object->SetDissolveThreshold(dissolveEffect_.threshold);
+		p.object->SetDissolveEdgeThickness(dissolveEffect_.edgeThickness);
+		p.object->SetDissolveEdgeColor(dissolveEffect_.edgeColor);
+	}
 }
 
 /// -------------------------------------------------------------
-///				　			　 武器選択
+///				　			死亡処理更新
 /// -------------------------------------------------------------
-void Player::SelectWeapon(const std::string& name)
+void Player::UpdateDeath(float deltaTime)
 {
-	// 武器データをカタログから探す
-	if (const WeaponData* w = weaponCatalog_->Find(name))
-	{
-		// 武器基底ポインタにセット
-		weapon_ = std::make_unique<Weapon>(*w);
+	deathState_.timer += deltaTime;
+	float u = clamp01(deathState_.timer / deathState_.length);
+	float e = EaseOutCubic(u);
 
-		// ランタイム用コピー
-		currentWeapon_ = ToWeaponConfig(*w);
+	static float sCamYawFixed = 0.0f;
+	static bool sLatched = false;
+	if (!sLatched || deathState_.timer <= deltaTime)
+	{
+		sCamYawFixed = fpsCamera_->GetYaw(); // 最初のフレームでYawを固定
+		sLatched = true;
 	}
+
+	// ---- 接地＆バウンド ----
+	if (body_.transform.translate_.y <= movementState_.groundY)
+	{
+		body_.transform.translate_.y = movementState_.groundY;
+		if (deathState_.velocity.y < 0.0f) deathState_.velocity.y = -deathState_.velocity.y * deathState_.bounce;
+		// 水平速度に摩擦
+		deathState_.velocity.x *= deathState_.friction;
+		deathState_.velocity.z *= deathState_.friction;
+	}
+
+	// ---- 並進：線形 + 二乗空気抵抗（速いほど強く減速）----
+	{
+		float speed = Vector3::Length(deathState_.velocity);
+		if (speed > 0.0f) {
+			Vector3 v = deathState_.velocity;
+			// 方向は v と同じ、強さは (k1 * v + k2 * |v| * v)
+			Vector3 dragAcc = -(deathState_.linDragK * v + deathState_.quadDragK * speed * v); // [m/s^2]
+			deathState_.velocity += dragAcc * deltaTime;
+		}
+		body_.transform.translate_ += deathState_.velocity * deltaTime;
+	}
+
+	// ---- 回転：角速度にも線形 + 二乗抵抗 ----
+	{
+		auto dampOmega = [&](float w)
+			{
+				float mag = std::fabs(w);
+				float dw = -(deathState_.angLink * w + deathState_.angQuadK * mag * w); // [rad/s^2]
+				return w + dw * deltaTime;
+			};
+		deathState_.angularVelocity.x = dampOmega(deathState_.angularVelocity.x);
+		deathState_.angularVelocity.y = dampOmega(deathState_.angularVelocity.y);
+		deathState_.angularVelocity.z = dampOmega(deathState_.angularVelocity.z);
+
+		body_.transform.rotate_.x += deathState_.angularVelocity.x * deltaTime;
+		body_.transform.rotate_.y += deathState_.angularVelocity.y * deltaTime;
+		body_.transform.rotate_.z += deathState_.angularVelocity.z * deltaTime;
+	}
+
+	// ---- カメラ演出 ----
+	Camera* cam = fpsCamera_->GetCamera();
+
+	if (deathState_.camLock)
+	{
+		// 位置は固定：保存したラッチ位置を使う
+		const Vector3 camPos = deathState_.camLockPos;
+		cam->SetTranslate(camPos);
+
+		// 向きは毎フレームプレイヤー中心を向く（追従）
+		Vector3 to = GetCenterPosition();                  // プレイヤー中心
+		Vector3 look = Vector3::Normalize(to - camPos);    // カメラ→プレイヤー方向
+
+		float yaw = std::atan2f(-look.x, look.z);
+		float pitch = -std::asinf(look.y);
+
+		// 少し余韻を置いてから消え始める
+		const float startDelay = 0.50f;   // 開始まで待つ時間
+		const float duration = 4.50f;   // 消え切るまでの時間
+
+		// progress: 0→1（deltaTimeは掛けない）
+		float progress = (deathState_.timer - startDelay) / duration;
+		if (progress < 0.0f) progress = 0.0f;
+		if (progress > 1.0f) progress = 1.0f;
+
+		// あなたの仕様に合わせて閾値は 1→0 へ
+		float threshold = 1.0f - progress;
+
+		body_.object->SetDissolveThreshold(threshold);
+		for (auto& p : parts_) {
+			p.object->SetDissolveThreshold(threshold);
+		}
+
+		cam->SetRotate({ pitch, yaw, 0.0f });
+		cam->Update();
+	}
+	else
+	{
+		// 背後に引いて注視カメラ
+		Matrix4x4 Ry = Matrix4x4::MakeRotateY(sCamYawFixed);
+		Vector3 offset = Matrix4x4::Transform(deathState_.cameraEndOffset, Ry);
+		Vector3 camTargetPos = body_.transform.translate_ + offset;
+		Vector3 camPos = Lerp(deathState_.cameraStartPos, camTargetPos, e);
+
+		Vector3 look = Vector3::Normalize(GetCenterPosition() - camPos);
+		float yaw = std::atan2f(-look.x, look.z);
+		float pitch = -std::asinf(look.y);
+
+		cam->SetTranslate(camPos);
+		cam->SetRotate({ pitch, yaw, 0.0f });
+		cam->Update();
+	}
+
+	// フェードアウト時間ではなく、速度と角速度が十分に小さくなったら終了でもOK
+	bool stopped = (Vector3::Length(deathState_.velocity) < 0.15f) &&
+		(std::fabs(deathState_.angularVelocity.x) + std::fabs(deathState_.angularVelocity.y) + std::fabs(deathState_.angularVelocity.z) < 0.30f);
+	if (stopped || deathState_.timer > 5.0f) { deathState_.inDeathSeq = false; deathState_.isDead = true; }
 }
 
 /// -------------------------------------------------------------
@@ -424,80 +527,23 @@ void Player::SelectWeapon(const std::string& name)
 /// -------------------------------------------------------------
 void Player::DrawImGui()
 {
-	// 現在装備の名前（空可）
-	const std::string currentName = weapon_ ? weapon_->Data().name : std::string{};
+	ImGui::Begin("Player Dissolve");
 
-	// ---------- ロードアウト表示 ---------- ///
-	static const char* kClassLabels[] = { "Primary","Backup","Melee","Special","Sniper","Heavy" };
-
-	ImGui::Separator();
-	ImGui::Text("Loadout by Class");
-
-	const auto& map = loadout_->GetEquipMap();
-	for (int c = 0; c < 6; ++c) {
-		WeaponClass wc = static_cast<WeaponClass>(c);
-		const char* label = kClassLabels[c];
-		std::string equipped = "-";
-		if (auto it = map.find(wc); it != map.end()) equipped = it->second;
-		ImGui::Text("%-8s : %s", label, equipped.c_str());
+	// --- ディゾルブ設定 ---
+	if (ImGui::SliderFloat("Start Threshold", &dissolveEffect_.threshold, 0.0f, 1.0f)) {
+		body_.object->SetDissolveThreshold(dissolveEffect_.threshold);
+		for (auto& p : parts_) { p.object->SetDissolveThreshold(dissolveEffect_.threshold); }
 	}
-
-	if (weapon_)
-	{
-		const auto& D = weapon_->Data(); // 現在装備中の武器データ（const）
-		int idx = static_cast<int>(D.clazz);
-		if (0 <= idx && idx < IM_ARRAYSIZE(kClassLabels)) {
-			ImGui::Text("Current Category: %s", kClassLabels[idx]);
-		}
-		else {
-			ImGui::Text("Current Category: (Unknown)");
-		}
+	if (ImGui::SliderFloat("Edge Thickness", &dissolveEffect_.edgeThickness, 0.0f, 0.5f)) {
+		body_.object->SetDissolveEdgeThickness(dissolveEffect_.edgeThickness);
+		for (auto& p : parts_) { p.object->SetDissolveEdgeThickness(dissolveEffect_.edgeThickness); }
 	}
-
-	// --- WeaponEditorUI に渡すフック群 ---
-	WeaponEditorHooks hooks{};
-	hooks.SaveAll = [&] {
-		weaponCatalog_->SaveAll();                                  // 保存
-		};
-	hooks.RequestReloadFocus = [&](const std::string& focus) {
-		weaponCatalog_->RequestReload(focus);                       // 再読込予約
-		};
-	hooks.RebuildLoadout = [&] {
-		loadout_->Rebuild(weaponCatalog_->All());                   // クラス変更時に装備再構築
-		};
-	hooks.ApplyToRuntimeIfCurrent = [&](const WeaponData& wd) {
-		if (weapon_ && weapon_->Data().name == wd.name) {
-			currentWeapon_ = ToWeaponConfig(wd);                    // ランタイム反映
-		}
-		};
-	hooks.RequestAdd = [&](const std::string& newName, const std::string& baseName) {
-		pendingAdds_.emplace_back(newName, baseName);               // 追加はフレーム末で実行
-		};
-	hooks.RequestDelete = [&](const std::string& name) {
-		pendingDeletes_.push_back(name);                            // 削除もフレーム末で
-		};
-
-	// --- メインの “武器編集UI” 呼び出し ---
-	if (!weaponEditorUI_) weaponEditorUI_ = std::make_unique<WeaponEditorUI>();
-	weaponEditorUI_->DrawImGui(*weaponCatalog_, currentName, hooks);
-
-	// --- フレーム末の遅延実行（Add/Delete） ---
-	for (auto& [newName, baseName] : pendingAdds_) {
-		const WeaponData* basePtr = baseName.empty() ? nullptr : weaponCatalog_->Find(baseName);
-		weaponCatalog_->AddWeapon(newName, basePtr);
+	if (ImGui::ColorEdit4("Edge Color", reinterpret_cast<float*>(&dissolveEffect_.edgeColor))) {
+		body_.object->SetDissolveEdgeColor(dissolveEffect_.edgeColor);
+		for (auto& p : parts_) { p.object->SetDissolveEdgeColor(dissolveEffect_.edgeColor); }
 	}
-	pendingAdds_.clear();
+	ImGui::End();
 
-	for (auto& delName : pendingDeletes_) {
-		loadout_->RemoveName(delName);
-		weaponCatalog_->RemoveWeapon(delName);
-	}
-	pendingDeletes_.clear();
-
-	// --- “再読込予約”の適用（フォーカス再選択＆装備更新） ---
-	weaponCatalog_->ApplyReloadIfNeeded([&](const WeaponData& focused) {
-		weapon_ = std::make_unique<Weapon>(focused);
-		currentWeapon_ = ToWeaponConfig(focused);
-		loadout_->Rebuild(weaponCatalog_->All());
-		});
+	// --- 武器管理 ---
+	weaponManager_->DrawWeaponImGui();
 }

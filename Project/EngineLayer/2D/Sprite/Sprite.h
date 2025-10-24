@@ -17,50 +17,59 @@ class DirectXCommon;
 /// -------------------------------------------------------------
 class Sprite
 {
-	/// ---------- 頂点数 ( Vertex, Index ) ----------- ///
-	static inline const UINT kNumVertex = 6;
-	static inline const UINT kNumIndex = 4;
+private: /// ---------- 定数 ---------- ///
 
+	static inline const UINT kNumVertex = 6; // 四角形を描画するための頂点数
+	static inline const UINT kNumIndex = 4;  // 四角形を描画するためのインデックス数
+
+private: /// ---------- 構造体　----------- ///
 
 	// マテリアルデータの構造体
 	struct Material final
 	{
-		Vector4 color;
-		Matrix4x4 uvTransform;
-		float padding[3];
+		Vector4 color;		   // 色(RGBA)
+		Matrix4x4 uvTransform; // UV変換行列
+		float padding[3];	   // パディング
 	};
 
 	// 頂点データの構造体
 	struct VertexData
 	{
-		Vector4 position;
-		Vector2 texcoord;
+		Vector4 position; // 座標
+		Vector2 texcoord; // テクスチャ座標
 	};
 
 	// 座標変換行列データの構造体
 	struct TransformationMatrix final
 	{
-		Matrix4x4 WVP;
-		Matrix4x4 World;
+		Matrix4x4 WVP;	 // ワールドビュー射影変換行列
+		Matrix4x4 World; // ワールド変換行列
 	};
 
 	// リロード進捗の構造体
 	struct ReloadProgress
 	{
-		bool isReloading = false;
-		float progress = 0.0f;
-		float padding[2];
+		bool isReloading = false; // リロード中かどうか
+		float progress = 0.0f;	  // 進捗度合い(0.0f〜1.0f)
+		float padding[2];		  // パディング
 	};
 
 public: /// ---------- メンバ関数 ---------- ///
 
-	// 初期化処理
+	/// <summary>
+	/// スプライトを初期化する
+	/// </summary>
+	/// <param name="filePath">テクスチャファイルパス</param>
 	void Initialize(const std::string& filePath);
 
-	// 更新処理
+	/// <summary>
+	/// スプライトの更新処理
+	/// </summary>
 	void Update();
 
-	// ドローコール
+	/// <summary>
+	/// スプライトの描画処理
+	/// </summary>
 	void Draw();
 
 public: /// ---------- ゲッター ---------- ///
@@ -130,8 +139,8 @@ public: /// ---------- セッター ---------- ///
 	// リロード進捗の設定
 	void SetReloadProgress(bool isReloading, float progress)
 	{
-		reloadProgressData->isReloading = isReloading;
-		reloadProgressData->progress = progress;
+		reloadProgressData->isReloading = isReloading; // リロード中かどうか
+		reloadProgressData->progress = progress;	   // 進捗度合い(0.0f〜1.0f)
 	}
 
 private: /// ---------- メンバ関数 ---------- ///
@@ -155,6 +164,7 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	// 左右フリップ
 	bool isFlipX_ = false;
+
 	// 上下フリップ
 	bool isFlipY_ = false;
 

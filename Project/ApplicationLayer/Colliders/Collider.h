@@ -118,7 +118,7 @@ private: /// ---------- OBBのメンバ変数 ---------- ///
 	Vector3 colliderPosition_ = { 0.0f, 0.0f, 0.0f }; // 中心座標
 	Vector3 colliderHalfSize_ = { 0.0f, 0.0f, 0.0f }; // 半サイズ
 	Vector3 orientation_ = { 0.0f, 0.0f, 0.0f };	  // オイラー角（ラジアン）
-	Vector4 debugColor_ = { 1.0f, 0.0f, 0.0f, 1.0f }; // デバッグ表示色
+	Vector4 debugColor_ = { 0.0f, 1.0f, 1.0f, 1.0f }; // デバッグ表示色
 
 	// OBBを使用するかどうか
 	bool useOBB_ = true;

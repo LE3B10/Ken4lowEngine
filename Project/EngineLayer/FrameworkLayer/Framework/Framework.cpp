@@ -125,9 +125,6 @@ void Framework::Update()
 
 	// ParticleManagerの更新処理
 	ParticleManager::GetInstance()->Update();
-
-	// シーンマネージャーの更新処理
-	//sceneManager_->Update();
 }
 
 

@@ -48,11 +48,14 @@ void SkyBox::Initialize(const std::string& filePath)
 /// -------------------------------------------------------------
 void SkyBox::Update()
 {
-
+	// ワールド行列の計算
 	Matrix4x4 worldMatrix = Matrix4x4::MakeAffineMatrix(worldTransform_.scale_, worldTransform_.rotate_, worldTransform_.translate_);
+
+	// ビュー射影行列の計算
 	if (isDebugCamera_)
 	{
 #ifdef _DEBUG
+		// デバッグカメラのビュー行列とプロジェクション行列を掛け合わせて、ビュー射影行列を計算
 		debugViewProjectionMatrix_ = DebugCamera::GetInstance()->GetViewProjectionMatrix();
 		camera_->SetViewProjectionMatrix(debugViewProjectionMatrix_);
 		worldViewProjectionMatrix = Matrix4x4::Multiply(worldMatrix, debugViewProjectionMatrix_);
@@ -60,11 +63,13 @@ void SkyBox::Update()
 	}
 	else
 	{
+		// カメラのビュー行列とプロジェクション行列を掛け合わせて、ビュー射影行列を計算
 		viewProjectionMatrix_ = Matrix4x4::Multiply(camera_->GetViewMatrix(), camera_->GetProjectionMatrix());
 		camera_->SetViewProjectionMatrix(viewProjectionMatrix_);
 		worldViewProjectionMatrix = Matrix4x4::Multiply(worldMatrix, viewProjectionMatrix_);
 	}
 
+	// 座標変換行列データの更新
 	wvpData->WVP = worldViewProjectionMatrix;
 	wvpData->World = worldMatrix;
 }
@@ -77,6 +82,7 @@ void SkyBox::Draw()
 {
 	ID3D12GraphicsCommandList* commandList = dxCommon_->GetCommandManager()->GetCommandList();
 
+	// 頂点バッファの設定
 	commandList->IASetVertexBuffers(0, 1, &vertexBufferView); // スプライト用VBV
 	commandList->IASetIndexBuffer(&indexBufferView); // IBVの設定
 	commandList->SetGraphicsRootConstantBufferView(0, materialResource.Get()->GetGPUVirtualAddress());
@@ -85,6 +91,7 @@ void SkyBox::Draw()
 	// ディスクリプタテーブルの設定
 	TextureManager::GetInstance()->SetGraphicsRootDescriptorTable(commandList, 2, gpuHandle_);
 
+	// プリミティブ形状の設定（三角形リスト）
 	commandList->DrawIndexedInstanced(kNumVertex, 1, 0, 0, 0);
 }
 

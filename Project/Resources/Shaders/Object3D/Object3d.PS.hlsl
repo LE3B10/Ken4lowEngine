@@ -37,18 +37,30 @@ struct PunctualLight
     float cosAngle; // スポットライトの余弦 （スポットライト用）
 };
 
+// ライト情報
 struct LightInfo
 {
     uint gLightCount;
 };
 
-ConstantBuffer<Material> gMaterial : register(b0);
-ConstantBuffer<Camera> gCamera : register(b1);
-ConstantBuffer<LightInfo> gLightInfo : register(b2);
+// Dissolveの設定
+struct DissolveSetting
+{
+    float threshold; // 閾値
+    float edgeThickness; // エッジの厚み
+    float4 edgeColor; // エッジの色
+    float3 padding; // アラインメント
+};
+
+ConstantBuffer<Material> gMaterial : register(b0); // マテリアル情報
+ConstantBuffer<Camera> gCamera : register(b1); // カメラ情報
+ConstantBuffer<LightInfo> gLightInfo : register(b2); // ライト情報
+ConstantBuffer<DissolveSetting> gDissolveSetting : register(b3); // Dissolve設定
 
 Texture2D<float4> gTexture : register(t0); // テクスチャ
 TextureCube<float4> gEnvironmentTexture : register(t1); // 環境マップ
 StructuredBuffer<PunctualLight> gPunctualLights : register(t2); // パンクチュアルライト
+Texture2D<float4> gDissolveMaskTexture : register(t3); // Dissolveマスクテクスチャ
 
 SamplerState gSampler : register(s0);
 
@@ -181,15 +193,22 @@ PixelShaderOutput main(VertexShaderOutput input)
             continue;
         }
     }
-
-    // お好みでほんの少し環境光（なければ 0.0 でOK）
+    
+    // Dissolve処理
+    float maskValue = gDissolveMaskTexture.Sample(gSampler, input.texcoord).r; // マスクテクスチャのサンプリング
+    
+    // エッジカラーを計算
+    float edge = smoothstep(gDissolveSetting.threshold, gDissolveSetting.threshold + gDissolveSetting.edgeThickness, maskValue);
+    float4 edgeCol = gDissolveSetting.edgeColor * (1.0 - edge); // エッジカラー
+    
+    // ライトが0の場合の補正
     lightSum = (gLightInfo.gLightCount == 0) ? 1.0.xxx : (lightSum + 0.02.xxx);
 
-    // === 既存の出力処理（変数名そのまま） ===
-    output.color = gMaterial.color * textureColor; // αもここで確保
+    // 出力処理
+    output.color = gMaterial.color * lerp(textureColor, edgeCol, 1.0 - step(maskValue, gDissolveSetting.threshold));; // αもここで確保
     output.color.rgb *= lightSum; // ライティング適用（RGBのみ）
 
-    // 既存の環境マップ合成（そのまま）
+    // 環境マップ合成
     output.color.rgb += environmentColor.rgb * gMaterial.reflectionRate;
     output.color.rgb = lerp(output.color.rgb, environmentColor.rgb, gMaterial.reflectionRate);
     

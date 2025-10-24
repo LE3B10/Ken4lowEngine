@@ -14,12 +14,12 @@ void ItemManager::Initialize()
 /// -------------------------------------------------------------
 ///							更新処理
 /// -------------------------------------------------------------
-void ItemManager::Update(Player* player)
+void ItemManager::Update(Player* player, float deltaTime)
 {
 	(void)player;
 
 	// アイテムの更新とプレイヤーとの衝突判定
-	for (auto& item : items_) item->Update();
+	for (auto& item : items_) item->Update(deltaTime);
 
 	// 寿命切れまたは取得済みのアイテムを削除
 	items_.erase(std::remove_if(items_.begin(), items_.end(), [](const std::unique_ptr<Item>& item) {

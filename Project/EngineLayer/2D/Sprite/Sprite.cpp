@@ -39,33 +39,33 @@ void Sprite::Initialize(const std::string& filePath)
 void Sprite::Update()
 {
 	// アンカーポイント
-	float left = 0.0f - anchorPoint_.x;
-	float right = 1.0f - anchorPoint_.x;
-	float top = 0.0f - anchorPoint_.y;
-	float bottom = 1.0f - anchorPoint_.y;
+	float left = 0.0f - anchorPoint_.x;   // 左端
+	float right = 1.0f - anchorPoint_.x;  // 右端
+	float top = 0.0f - anchorPoint_.y;	  // 上端
+	float bottom = 1.0f - anchorPoint_.y; // 下端
 
 	// 左右反転
 	if (isFlipX_)
 	{
-		left = -left;
-		right = -right;
+		left = -left;   // 左端
+		right = -right; // 右端
 	}
 
 	// 上下反転
 	if (isFlipY_)
 	{
-		top = -top;
-		bottom = -bottom;
+		top = -top;		  // 上端
+		bottom = -bottom; // 下端
 	}
 
 	// メタデータ取得
 	const DirectX::TexMetadata& metaData = TextureManager::GetInstance()->GetMetaData(filePath_);
 
 	// テクスチャ範囲指定
-	float tex_left = textureLeftTop_.x / metaData.width;
-	float tex_right = (textureLeftTop_.x + textureSize_.x) / metaData.width;
-	float tex_top = textureLeftTop_.y / metaData.height;
-	float tex_bottom = (textureLeftTop_.y + textureSize_.y) / metaData.height;
+	float tex_left = textureLeftTop_.x / metaData.width;					   // テクスチャ左端
+	float tex_right = (textureLeftTop_.x + textureSize_.x) / metaData.width;   // テクスチャ右端
+	float tex_top = textureLeftTop_.y / metaData.height;					   // テクスチャ上端
+	float tex_bottom = (textureLeftTop_.y + textureSize_.y) / metaData.height; // テクスチャ下端
 
 	/// ---------- 頂点データ設定 ---------- ///
 
@@ -91,12 +91,15 @@ void Sprite::Update()
 	worldTransform.rotate_ = { 0.0f, 0.0f, rotation_ };
 	worldTransform.translate_ = { position_.x, position_.y, 0.0f };
 
+	// ワールド行列の計算
 	Matrix4x4 worldMatrixSprite = Matrix4x4::MakeAffineMatrix(worldTransform.scale_, worldTransform.rotate_, worldTransform.translate_);
 
+	// ビュー行列とプロジェクション行列の計算(スプライト用)
 	Matrix4x4 viewMatrixSprite = Matrix4x4::MakeIdentity();
 	Matrix4x4 projectionMatrixSprite = Matrix4x4::MakeOrthographicMatrix(0.0f, 0.0f, 1280.0f, 720.0f, 0.0f, 100.0f);
 	Matrix4x4 worldViewProjectionMatrixSprite = Matrix4x4::Multiply(worldMatrixSprite, Matrix4x4::Multiply(viewMatrixSprite, projectionMatrixSprite));
 
+	// 座標変換行列を更新
 	transformationMatrixData->WVP = worldViewProjectionMatrixSprite;
 	transformationMatrixData->World = worldMatrixSprite;
 }
@@ -110,13 +113,14 @@ void Sprite::Draw()
 
 	commandList->IASetVertexBuffers(0, 1, &vertexBufferView); // スプライト用VBV
 	commandList->IASetIndexBuffer(&indexBufferView); // IBVの設定
-	commandList->SetGraphicsRootConstantBufferView(0, materialResource.Get()->GetGPUVirtualAddress());
-	commandList->SetGraphicsRootConstantBufferView(1, reloadProgressResource.Get()->GetGPUVirtualAddress());
-	commandList->SetGraphicsRootConstantBufferView(2, transformationMatrixResource.Get()->GetGPUVirtualAddress());
+	commandList->SetGraphicsRootConstantBufferView(0, materialResource.Get()->GetGPUVirtualAddress()); // マテリアルリソースの設定
+	commandList->SetGraphicsRootConstantBufferView(1, reloadProgressResource.Get()->GetGPUVirtualAddress()); // リロード進捗リソースの設定
+	commandList->SetGraphicsRootConstantBufferView(2, transformationMatrixResource.Get()->GetGPUVirtualAddress()); // 座標変換行列リソースの設定
 
 	// ディスクリプタテーブルの設定
 	TextureManager::GetInstance()->SetGraphicsRootDescriptorTable(commandList, 3, gpuHandle_);
 
+	// 描画コマンド
 	commandList->DrawIndexedInstanced(kNumVertex, 1, 0, 0, 0);
 }
 
@@ -125,8 +129,10 @@ void Sprite::Draw()
 /// -------------------------------------------------------------
 void Sprite::SetTexture(const std::string& filePath)
 {
+	// テクスチャを読み込む
 	filePath_ = filePath;
 
+	// テクスチャを読み込む
 	gpuHandle_ = TextureManager::GetInstance()->GetSrvHandleGPU(filePath_);
 }
 
@@ -185,12 +191,12 @@ void Sprite::CreateIndexBuffer()
 	indexResource->Map(0, nullptr, reinterpret_cast<void**>(&indexData));
 
 	// インデックスデータにデータを書き
-	indexData[0] = 0;
-	indexData[1] = 1;
-	indexData[2] = 2;
-	indexData[3] = 1;
-	indexData[4] = 3;
-	indexData[5] = 2;
+	indexData[0] = 0; // 三角形1つ目
+	indexData[1] = 1; // 三角形1つ目
+	indexData[2] = 2; // 三角形1つ目
+	indexData[3] = 1; // 三角形2つ目
+	indexData[4] = 3; // 三角形2つ目
+	indexData[5] = 2; // 三角形2つ目
 }
 
 /// -------------------------------------------------------------
@@ -201,8 +207,8 @@ void Sprite::AdjustTextureSize()
 	// テクスチャメタデータを取得
 	const DirectX::TexMetadata& metaData = TextureManager::GetInstance()->GetMetaData(filePath_);
 
-	textureSize_.x = static_cast<float>(metaData.width);
-	textureSize_.y = static_cast<float>(metaData.height);
+	textureSize_.x = static_cast<float>(metaData.width);  // テクスチャ幅
+	textureSize_.y = static_cast<float>(metaData.height); // テクスチャ高さ
 
 	// 画像サイズをテクスチャサイズに合わせる
 	size_ = textureSize_;

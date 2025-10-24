@@ -27,7 +27,7 @@ auto Transition = [](PostEffectManager::RenderTarget& rt, D3D12_RESOURCE_STATES 
 		auto dxCommon_ = DirectXCommon::GetInstance();
 		if (rt.state == newState) return;                    // 二重バリア防止
 		dxCommon_->ResourceTransition(rt.resource.Get(), rt.state, newState);
-		rt.state = newState;                                 // ★状態を必ず同期
+		rt.state = newState;                                 // 状態を必ず同期
 	};
 
 /// -------------------------------------------------------------
@@ -108,7 +108,7 @@ void PostEffectManager::BeginDraw()
 {
 	auto commandList = dxCommon_->GetCommandManager()->GetCommandList();
 
-	// 🔷 必ず DEPTH_WRITE 状態に戻す → ClearDepthStencilView 用
+	// DEPTH_WRITE 状態に戻す → ClearDepthStencilView 用
 	if (depthResource_ && depthState_ != D3D12_RESOURCE_STATE_DEPTH_WRITE)
 	{
 		dxCommon_->ResourceTransition(depthResource_.Get(), depthState_, D3D12_RESOURCE_STATE_DEPTH_WRITE);
@@ -141,7 +141,7 @@ void PostEffectManager::BeginDraw()
 /// -------------------------------------------------------------
 void PostEffectManager::EndDraw()
 {
-	// 🔷 Outline等で使うために、depthResource を PIXEL_SHADER_RESOURCE に遷移
+	// Outline等で使うために、depthResource を PIXEL_SHADER_RESOURCE に遷移
 	if (depthResource_ && depthState_ != D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE)
 	{
 		dxCommon_->ResourceTransition(depthResource_.Get(), depthState_, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
@@ -167,7 +167,7 @@ void PostEffectManager::RenderPostEffect()
 	commandList->RSSetViewports(1, &viewport);
 	commandList->RSSetScissorRects(1, &scissorRect);
 
-	// RenderTarget が１枚しか無い → 旧来どおりバックバッファへ
+	// レンダーテクスチャが1枚しかない場合
 	if (renderTargets_.size() < 2)
 	{
 		auto& rt = renderTargets_[0]; // A
@@ -189,7 +189,8 @@ void PostEffectManager::RenderPostEffect()
 		commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 		commandList->DrawInstanced(3, 1, 0, 0); // フルスクリーンクアッドを描画
 
-		dxCommon_->ResourceTransition(backBuffer.Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT); // ★ ②-1 RENDER_TARGET → PRESENT へ遷移
+		// RENDER_TARGET → PRESENT へ遷移
+		dxCommon_->ResourceTransition(backBuffer.Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
 
 		return; // これで終了
 	}
@@ -203,7 +204,7 @@ void PostEffectManager::RenderPostEffect()
 	uint32_t src = 0; // ソースのインデックス
 	uint32_t dst = 1; // デスティネーションのインデックス
 
-	// 🔹 ポストエフェクトの描画
+	// ポストエフェクトの描画
 	for (const auto& [name, _] : effectOrder_)
 	{
 		if (!(effectEnabled_[name] || effectEnableFlags_[name])) continue;  // エフェクトが無効ならスキップ
@@ -247,7 +248,7 @@ void PostEffectManager::RenderPostEffect()
 	// 最後の出力レンダーテクスチャをバックバッファに描画する
 	auto& finalRT = renderTargets_[src]; // 最後の出力レンダーテクスチャ
 
-	// ★ SRVヒープに戻す（コピーパスはGraphics）
+	// SRVヒープに戻す（コピーパスはGraphics）
 	SRVManager::GetInstance()->PreDraw();
 
 	// バックバッファの取得
@@ -272,7 +273,6 @@ void PostEffectManager::ImGuiRender()
 {
 	ImGui::Begin("Post Effect Settings");
 
-	// ImGui:
 	for (const auto& [name, category] : effectCategory_)
 	{
 		ImGui::Checkbox(name.c_str(), &effectEnabled_[name]);
@@ -405,7 +405,7 @@ void PostEffectManager::AllocateRTV_DSV_SRV_UAV()
 		rt.uavIndex = UAVManager::GetInstance()->Allocate();
 		UAVManager::GetInstance()->CreateUAVForTexture2D(rt.uavIndex, rt.resource.Get(), DXGI_FORMAT_R8G8B8A8_UNORM, 0); // UAVはTexture2Dとして生成
 
-		// ★ 追加：UAVヒープ側にも“入力用SRV”を複製
+		// UAVヒープ側にも“入力用SRV”を複製
 		rt.srvIndexOnUavHeap = UAVManager::GetInstance()->Allocate();
 		UAVManager::GetInstance()->CreateSRVForTexture2DOnThisHeap(rt.srvIndexOnUavHeap, rt.resource.Get(), DXGI_FORMAT_R8G8B8A8_UNORM, 1);
 	}

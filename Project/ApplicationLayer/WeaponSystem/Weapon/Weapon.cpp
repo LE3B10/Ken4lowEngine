@@ -86,7 +86,9 @@ static WeaponClass ParseClass(const nlohmann::json& j)
 	if (!j.contains("class")) return WeaponClass::Primary;
 	if (j["class"].is_string()) {
 		std::string s = j["class"].get<std::string>();
-		std::transform(s.begin(), s.end(), s.begin(), ::tolower);
+		for (char& ch : s) {
+			ch = static_cast<char>(std::tolower(static_cast<unsigned char>(ch)));
+		}
 		if (s == "primary") return WeaponClass::Primary;
 		if (s == "backup")  return WeaponClass::Backup;
 		if (s == "melee")   return WeaponClass::Melee;
