@@ -321,6 +321,9 @@ void Wireframe::DrawSphere(const Vector3& center, const float radius, const Vect
 	}
 }
 
+/// -------------------------------------------------------------
+///				　	      カプセルを描画する処理
+/// -------------------------------------------------------------
 void Wireframe::DrawCapsule(const Vector3& center, float radius, float height, const Vector3& axis, uint32_t segments, const Vector4& color)
 {
 	constexpr float PI = std::numbers::pi_v<float>;
@@ -456,6 +459,9 @@ void Wireframe::DrawCapsule(const Vector3& center, float radius, float height, c
 	}
 }
 
+/// -------------------------------------------------------------
+///				　	   カプセルを描画する処理
+/// -------------------------------------------------------------
 void Wireframe::DrawCapsule(const Capsule& capsule, const Vector4& color)
 {
 	const Vector3& start = capsule.segment.origin;
@@ -472,6 +478,9 @@ void Wireframe::DrawCapsule(const Capsule& capsule, const Vector4& color)
 	DrawCapsule(center, radius, height, axis, 8, color);
 }
 
+/// -------------------------------------------------------------
+///				　	      平面を描画する処理
+/// -------------------------------------------------------------
 void Wireframe::DrawPlane(const Plane& plane, float size, const Vector4& color)
 {
 	// Plane の法線と距離から原点位置を算出
@@ -550,6 +559,9 @@ void Wireframe::DrawCylinder(const Vector3& baseCenter, float radius, float heig
 	}
 }
 
+/// -------------------------------------------------------------
+///				　	    四面体を描画する処理
+/// -------------------------------------------------------------
 void Wireframe::DrawTetrahedron(const Vector3& baseCenter, float baseSize, float height, const Vector3& axis, const Vector4& color)
 {
 	// 底面の外接円の半径
@@ -631,6 +643,9 @@ void Wireframe::DrawPyramid(const Vector3& baseCenter, float baseSize, float hei
 	}
 }
 
+/// -------------------------------------------------------------
+///				　　正八面体を描画する処理
+/// -------------------------------------------------------------
 void Wireframe::DrawOctahedron(const Vector3& center, float size, const Vector4& color)
 {
 	float halfSize = size * 0.5f;
@@ -659,6 +674,9 @@ void Wireframe::DrawOctahedron(const Vector3& center, float size, const Vector4&
 	}
 }
 
+/// -------------------------------------------------------------
+///				　　正十二面体を描画する処理
+/// -------------------------------------------------------------
 void Wireframe::DrawDodecahedron(const Vector3& center, float size, const Vector4& color)
 {
 	constexpr float GOLDEN_RATIO = 1.61803398875f;
@@ -708,6 +726,9 @@ void Wireframe::DrawDodecahedron(const Vector3& center, float size, const Vector
 	}
 }
 
+/// -------------------------------------------------------------
+///				　　正二十面体を描画する処理
+/// -------------------------------------------------------------
 void Wireframe::DrawIcosahedron(const Vector3& center, float size, const Vector4& color)
 {
 	constexpr float GOLDEN_RATIO = 1.61803398875f;
@@ -745,6 +766,9 @@ void Wireframe::DrawIcosahedron(const Vector3& center, float size, const Vector4
 	}
 }
 
+/// -------------------------------------------------------------
+///				　　トーラスを描画する処理
+/// -------------------------------------------------------------
 void Wireframe::DrawTorus(const Vector3& center, float R, float r, uint32_t ringSegments, uint32_t tubeSegments, const Vector4& color)
 {
 	const float PI = std::numbers::pi_v<float>;
@@ -782,6 +806,9 @@ void Wireframe::DrawTorus(const Vector3& center, float R, float r, uint32_t ring
 	}
 }
 
+/// -------------------------------------------------------------
+///				　　回転するトーラスを描画する処理
+/// -------------------------------------------------------------
 void Wireframe::DrawRotatingTorus(const Vector3& center, float R, float r, uint32_t ringSegments, uint32_t tubeSegments, const Vector4& color, float time)
 {
 	const float PI = std::numbers::pi_v<float>;
@@ -821,6 +848,9 @@ void Wireframe::DrawRotatingTorus(const Vector3& center, float R, float r, uint3
 	}
 }
 
+/// -------------------------------------------------------------
+///				　　メビウスの帯を描画する処理
+/// -------------------------------------------------------------
 void Wireframe::DrawMobiusStrip(const Vector3& center, float R, float w, uint32_t ringSegments, uint32_t tubeSegments, const Vector4& color)
 {
 	const float PI = std::numbers::pi_v<float>;
@@ -857,6 +887,9 @@ void Wireframe::DrawMobiusStrip(const Vector3& center, float R, float w, uint32_
 	}
 }
 
+/// -------------------------------------------------------------
+///				　3Dレムニスケートを描画する処理
+/// -------------------------------------------------------------
 void Wireframe::DrawLemniscate3D(const Vector3& center, float a, float b, float c, uint32_t segments, const Vector4& color)
 {
 	const float PI = std::numbers::pi_v<float>;
@@ -880,6 +913,9 @@ void Wireframe::DrawLemniscate3D(const Vector3& center, float a, float b, float 
 	}
 }
 
+/// -------------------------------------------------------------
+///				　	    五角柱を描画する処理
+/// -------------------------------------------------------------
 void Wireframe::DrawPentagonalPrism(const Vector3& center, float radius, float height, const Vector4& color)
 {
 	constexpr float PI = std::numbers::pi_v<float>;
@@ -915,6 +951,9 @@ void Wireframe::DrawPentagonalPrism(const Vector3& center, float radius, float h
 	}
 }
 
+/// -------------------------------------------------------------
+///				　	    五角錐を描画する処理
+/// -------------------------------------------------------------
 void Wireframe::DrawPentagonalPyramid(const Vector3& center, float radius, float height, const Vector4& color)
 {
 	constexpr float PI = std::numbers::pi_v<float>;
@@ -1134,6 +1173,9 @@ void Wireframe::DrawAnimatedMagicCircle(const Vector3& center, float radius, flo
 	}
 }
 
+/// -------------------------------------------------------------
+///			　　アニメーションするハートを描画する処理
+/// -------------------------------------------------------------
 void Wireframe::DrawAnimatedHeart(const Vector3& center, float size, float time)
 {
 	const float PI = std::numbers::pi_v<float>;
@@ -1165,6 +1207,9 @@ void Wireframe::DrawAnimatedHeart(const Vector3& center, float size, float time)
 	}
 }
 
+/// -------------------------------------------------------------
+///			　　光るハートを描画する処理
+/// -------------------------------------------------------------
 void Wireframe::DrawGlowingHeart(const Vector3& center, float size, float time)
 {
 	DrawAnimatedHeart(center, size, time);
@@ -1176,6 +1221,9 @@ void Wireframe::DrawGlowingHeart(const Vector3& center, float size, float time)
 	DrawCircle(center, size * 0.7f, 50, glowColor);
 }
 
+/// -------------------------------------------------------------
+///			　　ポップするハートを描画する処理
+/// -------------------------------------------------------------
 void Wireframe::DrawPoppingHeart(const Vector3& center, float size, float time)
 {
 	float popScale = size * (1.0f + 0.1f * sin(time * 5.0f)); // 拡縮
@@ -1183,6 +1231,9 @@ void Wireframe::DrawPoppingHeart(const Vector3& center, float size, float time)
 	DrawAnimatedHeart(center, popScale, time);
 }
 
+/// -------------------------------------------------------------
+///			　　浮遊するハートを描画する処理
+/// -------------------------------------------------------------
 void Wireframe::DrawFloatingHeart(const Vector3& basePosition, float size, float time)
 {
 	Vector3 floatingCenter = basePosition + Vector3(0.0f, sin(time * 2.0f) * 0.5f, 0.0f);
@@ -1190,6 +1241,9 @@ void Wireframe::DrawFloatingHeart(const Vector3& basePosition, float size, float
 	DrawAnimatedHeart(floatingCenter, size, time);
 }
 
+/// -------------------------------------------------------------
+///						魔法陣を描画する処理
+/// -------------------------------------------------------------
 void Wireframe::DrawMagicCircle(const Vector3& center, float radius, const Vector4& color)
 {
 	// 外円
@@ -1217,12 +1271,18 @@ void Wireframe::DrawMagicCircle(const Vector3& center, float radius, const Vecto
 	DrawPolygon(center, radius * 0.9f, 8, color);
 }
 
+/// -------------------------------------------------------------
+///			　　	回転する魔法陣の処理
+/// -------------------------------------------------------------
 void Wireframe::DrawRotatingMagicCircle(const Vector3& center, float radius, const Vector4& color)
 {
 	DrawMagicCircle(center, radius, color);
 	DrawPentagram(center, radius * 0.8f, color);
 }
 
+/// -------------------------------------------------------------
+///			　　進行形で描く魔法陣の処理
+/// -------------------------------------------------------------
 void Wireframe::DrawProgressiveMagicCircle(const Vector3& center, float radius, const Vector4& baseColor, float time)
 {
 	const float PI = std::numbers::pi_v<float>;
@@ -1278,7 +1338,9 @@ void Wireframe::DrawProgressiveMagicCircle(const Vector3& center, float radius, 
 	}
 }
 
-
+/// -------------------------------------------------------------
+///				　	    五芒星を描画する処理
+/// -------------------------------------------------------------
 void Wireframe::DrawPentagramProgressive(const Vector3& center, float radius, const Vector4& color, float progress)
 {
 	const float PI = std::numbers::pi_v<float>;
@@ -1296,7 +1358,9 @@ void Wireframe::DrawPentagramProgressive(const Vector3& center, float radius, co
 	}
 }
 
-
+/// -------------------------------------------------------------
+///				　	    六芒星を描画する処理
+/// -------------------------------------------------------------
 void Wireframe::DrawHexagramProgressive(const Vector3& center, float radius, const Vector4& color, float progress)
 {
 	const float PI = std::numbers::pi_v<float>;

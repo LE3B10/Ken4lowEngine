@@ -25,12 +25,15 @@ static uint32_t CountTotalVertices(const ModelData& modelData)
 /// -------------------------------------------------------------
 SkinCluster::~SkinCluster()
 {
+	// リソース解放
 	if (paletteSrvIndex_ != UINT32_MAX) {
 		SRVManager::GetInstance()->Free(paletteSrvIndex_);
 	}
+	// UAVヒープ上の SRV 解放
 	if (paletteSrvIndexOnUavHeap_ != UINT32_MAX) {
 		UAVManager::GetInstance()->Free(paletteSrvIndexOnUavHeap_);
 	}
+	// UAVヒープ上の SRV 解放
 	if (influenceSrvIndexOnUavHeap_ != UINT32_MAX) {
 		UAVManager::GetInstance()->Free(influenceSrvIndexOnUavHeap_);
 	}
@@ -57,16 +60,14 @@ void SkinCluster::Initialize(const ModelData& modelData, Skeleton& skeleton)
 
 	const uint32_t totalVerts = coutTotalVertices();   // subMeshes 合計
 
-	// =========================
 	// t0: パレット（UPLOAD & Map）
-	// =========================
 	paletteResource_ = ResourceManager::CreateBufferResource(device, sizeof(WellForGPU) * joints.size());
 
 	WellForGPU* mappedPalette = nullptr;
 	paletteResource_->Map(0, nullptr, reinterpret_cast<void**>(&mappedPalette));
 	mappedPalette_ = { mappedPalette, joints.size() }; // span
 
-	// ===== DEFAULT を作って初期コピー（★初期 COMMON → 明示遷移）=====
+	// ===== DEFAULT（読取用）を作成 → UPLOAD からコピー（初期 COMMON → 明示遷移）=====
 	{
 		D3D12_HEAP_PROPERTIES heapDefault = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
 		D3D12_RESOURCE_DESC    bufDesc = CD3DX12_RESOURCE_DESC::Buffer(sizeof(WellForGPU) * joints.size());
@@ -93,9 +94,7 @@ void SkinCluster::Initialize(const ModelData& modelData, Skeleton& skeleton)
 	paletteSrvHandle_.second = SRVManager::GetInstance()->GetGPUDescriptorHandle(paletteSrvIndex_);
 	SRVManager::GetInstance()->CreateSRVForStructureBuffer(paletteSrvIndex_, paletteResourceDefault_.Get(), static_cast<uint32_t>(joints.size()), sizeof(WellForGPU));
 
-	// =========================
 	// t2: インフルエンス（UPLOAD を作成して Map）
-	// =========================
 	VertexInfluence* mappedInfluence = nullptr;
 	influenceResource_ = ResourceManager::CreateBufferResource(device, sizeof(VertexInfluence) * totalVerts);
 	influenceResource_->Map(0, nullptr, reinterpret_cast<void**>(&mappedInfluence));
@@ -176,6 +175,8 @@ void SkinCluster::Initialize(const ModelData& modelData, Skeleton& skeleton)
 void SkinCluster::UpdatePaletteMatrix(Skeleton& skeleton)
 {
 	auto& joints = skeleton.GetJoints();
+
+	// パレット行列計算
 	for (size_t jointIndex = 0; jointIndex < joints.size(); ++jointIndex)
 	{
 		assert(jointIndex < inverseBindPoseMatrices_.size());
@@ -187,10 +188,13 @@ void SkinCluster::UpdatePaletteMatrix(Skeleton& skeleton)
 	auto* dxCommon = DirectXCommon::GetInstance();
 	auto* commandLisht = dxCommon->GetCommandManager()->GetCommandList();
 
+	// 書き込み用に遷移
 	dxCommon->ResourceTransition(paletteResourceDefault_.Get(), D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_STATE_COPY_DEST);
 
+	// コピー
 	const UINT64 bytes = UINT64(sizeof(WellForGPU)) * UINT64(joints.size());
 	commandLisht->CopyBufferRegion(paletteResourceDefault_.Get(), 0, paletteResource_.Get(), 0, bytes);
 
+	// 読み取り用に遷移
 	dxCommon->ResourceTransition(paletteResourceDefault_.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_GENERIC_READ);
 }

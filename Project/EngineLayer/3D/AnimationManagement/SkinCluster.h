@@ -7,8 +7,12 @@
 #include <vector>
 #include <utility>
 
+/// ---------- 前方宣言 ---------- ///
 class Skeleton;
 
+/// -------------------------------------------------------------
+///				　		スキンクラスタクラス
+/// -------------------------------------------------------------
 class SkinCluster
 {
 public: /// ---------- メンバ関数 ---------- ///
@@ -47,9 +51,9 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	ComPtr<ID3D12Resource> influenceResourceDefault_; // CS/VS が読む DEFAULT 常駐
 	ComPtr<ID3D12Resource> paletteResourceDefault_;  // CS/VS が読む用（毎フレ Copy で更新）
-	uint32_t paletteSrvIndexOnUavHeap_ = UINT32_MAX;
-	uint32_t influenceSrvIndexOnUavHeap_ = UINT32_MAX;
-	D3D12_GPU_DESCRIPTOR_HANDLE paletteSrvGpuOnUavHeap_{};
-	D3D12_GPU_DESCRIPTOR_HANDLE influenceSrvGpuOnUavHeap_{};
+	uint32_t paletteSrvIndexOnUavHeap_ = UINT32_MAX; // t0
+	uint32_t influenceSrvIndexOnUavHeap_ = UINT32_MAX; // t2
+	D3D12_GPU_DESCRIPTOR_HANDLE paletteSrvGpuOnUavHeap_{}; // t0 
+	D3D12_GPU_DESCRIPTOR_HANDLE influenceSrvGpuOnUavHeap_{}; // t2
 };
 

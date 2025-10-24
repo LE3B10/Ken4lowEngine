@@ -19,9 +19,6 @@ public: /// ---------- メンバ関数 ---------- ///
 	// 初期化処理
 	void Initialize(DirectXCommon* dxCommon);
 
-	// 更新処理
-	void Update();
-
 	// 共通描画設定
 	void SetRenderSetting();
 

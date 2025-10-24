@@ -58,7 +58,7 @@ private: /// ---------- メンバ変数 ---------- ///
 	// DirectX共通クラス
 	DirectXCommon* dxCommon_ = nullptr;
 
-	// ★ 追加: 保管先
+	// 保管先
 	ComPtr<ID3D12RootSignature> copyRootSignature_;
 	ComPtr<ID3D12PipelineState> copyPipelineState_;
 };

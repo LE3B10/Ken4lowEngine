@@ -226,7 +226,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClCompile Include="ApplicationLayer\WeaponSystem\Weapon\WeaponEditorUI\WeaponEditorUI.cpp" />
     <ClCompile Include="ApplicationLayer\Character\Scarecrow.cpp" />
     <ClCompile Include="ApplicationLayer\Stage\Stage.cpp" />
-    <ClCompile Include="ApplicationLayer\WeaponSystem\WeaponMangaer\WeaponManager.cpp" />
+    <ClCompile Include="ApplicationLayer\WeaponSystem\WeaponManager\WeaponManager.cpp" />
     <ClCompile Include="WinMain.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
@@ -474,7 +474,6 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="EngineLayer\Managers\ModelManager\ModelManager.h" />
     <ClInclude Include="EngineLayer\3D\Object3D\Object3D.h" />
     <ClInclude Include="EngineLayer\Managers\ResourceManager\ResourceManager.h" />
-    <ClInclude Include="EngineLayer\ResourceChecker\ReleaseCheck\ResourceObject.h" />
     <ClInclude Include="EngineLayer\Base\ShaderCompiler\ShaderCompiler.h" />
     <ClInclude Include="EngineLayer\2D\Sprite\Sprite.h" />
     <ClInclude Include="EngineLayer\Managers\TextureManager\TextureManager.h" />
@@ -565,7 +564,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="ApplicationLayer\Character\Scarecrow.h" />
     <ClInclude Include="ApplicationLayer\Stage\Stage.h" />
     <ClInclude Include="ApplicationLayer\Character\Player\FireState.h" />
-    <ClInclude Include="ApplicationLayer\WeaponSystem\WeaponMangaer\WeaponManager.h" />
+    <ClInclude Include="ApplicationLayer\WeaponSystem\WeaponManager\WeaponManager.h" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="externals\DirectXTex\DirectXTex_Desktop_2022_Win10.vcxproj">

@@ -19,9 +19,6 @@ public: /// ---------- メンバ関数 ---------- ///
 	// 初期化処理
 	void Initialize(DirectXCommon* dxCommon);
 
-	// 更新処理
-	void Update();
-
 	// 背景用の共通描画設定（Depth書き込み有）
 	void SetRenderSetting_Background();
 
@@ -46,11 +43,12 @@ private: /// ---------- メンバ変数 ---------- ///
 	ComPtr<ID3D12PipelineState> graphicsPipelineState_Background_;
 	ComPtr<ID3D12PipelineState> graphicsPipelineState_UI_;
 
-	ComPtr <ID3DBlob> signatureBlob_;
-	ComPtr <ID3DBlob> errorBlob_;
-	ComPtr <ID3D12RootSignature> rootSignature_;
+	// シェーダ関連
+	ComPtr <ID3DBlob> signatureBlob_; // シグネチャ用Blob
+	ComPtr <ID3DBlob> errorBlob_;	  // エラーメッセージ用Blob
 
-	D3D12_INPUT_LAYOUT_DESC inputLayoutDesc_{};
+	// ルートシグネチャ
+	ComPtr <ID3D12RootSignature> rootSignature_;
 
 private: /// ---------- コピー禁止 ---------- ///
 

@@ -44,18 +44,29 @@ void AnimationPipelineBuilder::Initialize(DirectXCommon* dxCommon)
 /// //---------------------------------------------------------------
 void AnimationPipelineBuilder::SetRenderSetting()
 {
+	// コマンドリストの取得
 	auto commandList = dxCommon_->GetCommandManager()->GetCommandList();
+
+	// ルートシグネチャとパイプラインステートの設定
 	commandList->SetGraphicsRootSignature(rootSignature.Get());
 	commandList->SetPipelineState(graphicsPipelineState.Get());
+
+	// プリミティブトポロジーの設定
 	commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
 	// ライトマネージャの前処理
 	LightManager::GetInstance()->BindPunctualLights(5, 6); // ライトデータの設定
 }
 
+/// ---------------------------------------------------------------
+///				　		コンピュートシェーダー用の設定
+/// //---------------------------------------------------------------
 void AnimationPipelineBuilder::SetComputeSetting()
 {
+	// コマンドリストの取得
 	auto commandList = dxCommon_->GetCommandManager()->GetCommandList();
+
+	// ルートシグネチャとパイプラインステートの設定
 	commandList->SetComputeRootSignature(computeRootSignature_.Get());
 	commandList->SetPipelineState(computePipelineState_.Get());
 }
@@ -241,6 +252,9 @@ void AnimationPipelineBuilder::CreatePSO()
 	assert(SUCCEEDED(hr));
 }
 
+/// ---------------------------------------------------------------
+///				　ルートシグネチャの生成（コンピュート用）
+/// //---------------------------------------------------------------
 void AnimationPipelineBuilder::CreateComputeRootSignature()
 {
 	// デスクリプタレンジ設定
@@ -344,6 +358,9 @@ void AnimationPipelineBuilder::CreateComputeRootSignature()
 	assert(SUCCEEDED(hr) && "CreateRootSignature Failed");
 }
 
+/// ---------------------------------------------------------------
+///				パイプラインの生成（コンピュート用）
+/// //---------------------------------------------------------------
 void AnimationPipelineBuilder::CreateComputePSO()
 {
 	ComPtr<IDxcBlob> computeShader = ShaderCompiler::CompileShader(L"Resources/Shaders/Skinning/SkinningObject3d.CS.hlsl", L"cs_6_0", dxCommon_->GetDXCCompilerManager());

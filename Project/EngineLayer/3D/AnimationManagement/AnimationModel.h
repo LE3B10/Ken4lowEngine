@@ -19,7 +19,7 @@
 #include <numbers>
 #include <memory>
 #include <map>
-#include <filesystem>   // もし自動探索を使わないなら不要
+#include <filesystem>
 #include <regex>
 
 /// ---------- 前方宣言 ---------- ///
@@ -36,9 +36,10 @@ private: /// ---------- 構造体 ---------- ///
 	// シェーダー側のカメラ構造体
 	struct CameraForGPU
 	{
-		Vector3 worldPosition;
+		Vector3 worldPosition; // ワールド座標系でのカメラ位置
 	};
 
+	// シェーダー側のライト構造体
 	struct BodyPartCollider
 	{
 		std::string name;         // 名前（"LeftArm", "RightLeg", ...）
@@ -48,6 +49,8 @@ private: /// ---------- 構造体 ---------- ///
 		float radius = 0.1f;      // カプセルまたはスフィアの半径
 		float height = 0.0f;      // offset を使う Capsule 用（レガシー用途 or fallback）
 	};
+
+	// LODごとのスキンクラスタ情報
 	std::vector<BodyPartCollider> bodyPartColliders_;
 
 public: /// ---------- メンバ変数 ---------- ///
@@ -63,14 +66,14 @@ public: /// ---------- メンバ変数 ---------- ///
 		ComPtr<ID3D12Resource> indexBuffer;     // ← これを追加
 
 		D3D12_INDEX_BUFFER_VIEW  ibv{};
-		uint32_t                 vertexCount = 0;
-		uint32_t                 indexCount = 0;
+		uint32_t vertexCount = 0;
+		uint32_t indexCount = 0;
 
 		// 出力（インスタンス固有）：スキン結果u0とVBV、UAVディスクリプタ
 		ComPtr<ID3D12Resource>  skinnedVB;     // u0
 		D3D12_VERTEX_BUFFER_VIEW skinnedVBV = {};
-		uint32_t                 uavIndex = UINT32_MAX; // UAVヒープのu0
-		uint32_t                 srvInputVerticesOnUavHeap = UINT32_MAX; // t1 SRV on UAV heap
+		uint32_t uavIndex = UINT32_MAX; // UAVヒープのu0
+		uint32_t srvInputVerticesOnUavHeap = UINT32_MAX; // t1 SRV on UAV heap
 
 		D3D12_GPU_DESCRIPTOR_HANDLE influenceSrvGpuOnUavHeap = {}; // t2
 		// 出力VBのリソース状態
@@ -169,20 +172,28 @@ public: /// ---------- セッタ ---------- ///
 	// ワールド空間からボディパーツのカプセルを取得
 	std::vector<std::pair<std::string, Capsule>> GetBodyPartCapsulesWorld() const;
 
+	// ワールド空間からボディパーツのスフィアを取得
 	std::vector<std::pair<std::string, Sphere>> GetBodyPartSpheresWorld() const;
 
 	// 頭を消すかどうか
 	void SetHideHead(bool hide) { hideHead_ = hide; }
 
+	// スケールファクターを設定
 	void SetScaleFactor(float factor) { scaleFactor = factor; }
+
+	// スケールファクターを取得
 	float GetScaleFactor() const { return scaleFactor; }
 
+	// アニメーションの再生/停止
 	void SetIsPlaying(bool isPlaying) { isAnimationPlaying_ = isPlaying; }
 
+	// アニメーション時間を設定
 	void SetAnimationTime(float time) { animationTime_ = time; }
 
-	// ▼ 調整用アクセサ（任意）
+	// 遠距離カリングの余裕距離を設定
 	void  SetFarCullExtra(float v) { farCullExtra_ = v; }
+
+	// 遠距離カリングされているか
 	bool  IsVisible() const { return !culledByDistance_; }
 
 	// LODごとの更新間引き（例: {1,1,2,4} = LOD2は隔フレ、LOD3は4フレに1回）
@@ -222,10 +233,10 @@ private: /// ---------- メンバ関数・テンプレート関数 ---------- //
 		assert(!keyframes.empty()); // キーがないものは返す値が分からないのでダメ
 		if (keyframes.size() == 1 || time <= keyframes[0].time) // キーが１つか、時刻がキーフレーム前なら最初の値とする
 		{
-			return keyframes[0].value;
+			return keyframes[0].value; // 最初の値を返す
 		}
 
-		// 
+		// それ以外は線形補間で求める
 		for (size_t index = 0; index < keyframes.size() - 1; ++index)
 		{
 			size_t nextIndex = index + 1;
@@ -246,6 +257,7 @@ private: /// ---------- メンバ関数・テンプレート関数 ---------- //
 				}
 				else
 				{
+					// それ以外の型はサポートされていない
 					static_assert(false, "Unsupported type for interpolation");
 				}
 			}
@@ -256,22 +268,21 @@ private: /// ---------- メンバ関数・テンプレート関数 ---------- //
 
 private: /// ---------- メンバ変数 ---------- ///
 
-	WorldTransform worldTransform;
-	Material material_;
+	WorldTransform worldTransform; // ワールド変換情報
+	Material material_;			   // マテリアル情報
 
-	DirectXCommon* dxCommon_ = nullptr;
-	Camera* camera_ = nullptr;
+	DirectXCommon* dxCommon_ = nullptr;  // DirectX共通クラス
+	Camera* camera_ = nullptr;			 // カメラ
 
 	// 環境マップのテクスチャ
 	D3D12_GPU_DESCRIPTOR_HANDLE environmentMapHandle_{};
 
-	// モデルデータ
-	ModelData modelData;
+	ModelData modelData;	// モデルデータ
 	std::string fileName_;  // 読み込んだファイル名を保持
 
-	Animation animation;
+	Animation animation; // アニメーションデータ
 
-	std::unique_ptr<AnimationMesh> animationMesh_;
+	std::unique_ptr<AnimationMesh> animationMesh_; // アニメーションメッシュ
 	std::unique_ptr<Skeleton> skeleton_; // スケルトン
 	std::vector<std::unique_ptr<SkinCluster>> skinClusterLOD_; // LOD別
 
@@ -285,33 +296,36 @@ private: /// ---------- メンバ変数 ---------- ///
 	TransformationAnimationMatrix* wvpData_ = nullptr;
 	CameraForGPU* cameraData = nullptr;
 
-	ComPtr <ID3D12Resource> wvpResource;
-	ComPtr <ID3D12Resource> cameraResource;
+	ComPtr <ID3D12Resource> wvpResource;	// 定数バッファ : ワールド変換行列
+	ComPtr <ID3D12Resource> cameraResource; // 定数バッファ : カメラ情報
 
 	// アニメーションタイム
 	float animationTime_ = 0.0f;
 
+	// フレーム間の経過時間
 	float deltaTime = 0.0f;
 
 	bool hideHead_ = false; // デフォルトは表示
-	float scaleFactor = 1.0f;
+	float scaleFactor = 1.0f; // スケールファクター
 
 	bool isAnimationPlaying_ = true; // アニメーションが再生中かどうか
 
 private: /// ---------- コンピュートシェーダーによるスキニング用 ---------- ///
 
-	ComPtr<ID3D12Resource> staticVBDefault_; // CS入力用の頂点（Deviceローカル）
-	ComPtr<ID3D12Resource> skinnedVB_;
-	D3D12_VERTEX_BUFFER_VIEW skinnedVBV_{};
+	ComPtr<ID3D12Resource> staticVBDefault_;		  // CS入力用の頂点（Deviceローカル）
+	ComPtr<ID3D12Resource> skinnedVB_;				  // 描画用スキン頂点バッファ
+	D3D12_VERTEX_BUFFER_VIEW skinnedVBV_{};			  // 描画用VBV
 	uint32_t srvInputVerticesOnUavHeap_ = UINT32_MAX; // t1
 	uint32_t uavOutIndex_ = UINT32_MAX;               // u0
 	ComPtr<ID3D12Resource> csCB_;                     // b0
-	SkinningInformationForGPU* csCBMapped_ = nullptr;
+	SkinningInformationForGPU* csCBMapped_ = nullptr; // b0マッピングデータ
 	bool useComputeSkinning_ = true; // 切替
 
+	// スキン頂点バッファのリソース状態
 	D3D12_RESOURCE_STATES skinnedVBState_ = D3D12_RESOURCE_STATE_COMMON;
 
-private:
+private: /// ---------- LOD・カリング関連 ---------- ///
+
 	bool  culledByDistance_ = false;   // 遠距離で非表示にするフラグ
 	float farCullExtra_ = 20.0f;   // 最終LODの“出しきい値”から更に何m離れたらカリングするか
 	bool forceLOD_ = false;                    // ← 手動LOD固定トグル（デバッグ用）

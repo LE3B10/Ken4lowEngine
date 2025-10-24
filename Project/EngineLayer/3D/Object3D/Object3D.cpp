@@ -110,7 +110,7 @@ void Object3D::DrawImGui()
 			Vector3 tmp = camera_->GetTranslate();
 			if (ImGui::SliderFloat3("Camera Position##cam", &tmp.x, -20.0f, 20.0f))
 			{
-				camera_->SetTranslate(tmp);              // ★ CBではなくカメラを更新
+				camera_->SetTranslate(tmp);              // CBではなくカメラを更新
 			}
 		}
 

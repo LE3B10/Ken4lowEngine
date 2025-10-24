@@ -32,6 +32,7 @@ int WeaponManager::FindIndexByName(const std::string& name) const
 /// -------------------------------------------------------------
 std::unique_ptr<BaseWeapon> WeaponManager::CreateWeaponFromConfig(const WeaponConfig& config) const
 {
+	// ピストル
 	if (config.name == "Pistol")
 	{
 		std::unique_ptr<PistolWeapon> weapon = std::make_unique<PistolWeapon>();
@@ -65,18 +66,6 @@ void WeaponManager::InitializeWeapons(const FireState& fireState, const DeathSta
 	// 武器カタログ初期化
 	weaponCatalog_ = std::make_unique<WeaponCatalog>();
 	weaponCatalog_->Initialize(kWeaponDir, kWeaponMonolith); // ディレクトリとモノリス両方から読み込み
-
-	// 在庫から初期装備を決める
-	std::unordered_map<std::string, WeaponData>& table = weaponCatalog_->All();
-
-	// 初期武器設定
-	if (!table.empty())
-	{
-		auto it = table.find("Pistol");					// まずピストルを探す
-		if (it == table.end()) it = table.begin();		// 在庫の最初の武器を使う
-		weapon_ = std::make_unique<Weapon>(it->second); // 武器基底ポインタにセット
-		fireState_.weaponConfig = ToWeaponConfig(it->second);	// ランタイム用コピー
-	}
 
 	// ロードアウト初期化
 	loadout_ = std::make_unique<Loadout>();
@@ -138,7 +127,6 @@ void WeaponManager::DrawWeapons()
 		weapons_[currentIndex_]->Draw();
 	}
 
-
 	// 弾道エフェクト描画
 	if (!deathState_.isDead) ballisticEffect_->Draw();
 }
@@ -179,6 +167,7 @@ void WeaponManager::SetParentTransforms(const WorldTransformEx* rightArmTransfor
 	rightArmTransform_ = rightArmTransform;
 	if (ballisticEffect_) ballisticEffect_->SetParentTransform(rightArmTransform_);
 
+	// 全武器に親Transformを設定
 	for (auto& weapon : weapons_)
 	{
 		if (auto* pw = dynamic_cast<PistolWeapon*>(weapon.get()))
