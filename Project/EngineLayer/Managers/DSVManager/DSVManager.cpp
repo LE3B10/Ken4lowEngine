@@ -59,14 +59,8 @@ ComPtr<ID3D12Resource> DSVManager::CreateDepthStencilBuffer(uint32_t width, uint
 	CD3DX12_HEAP_PROPERTIES heapProps(D3D12_HEAP_TYPE_DEFAULT);
 
 	ComPtr<ID3D12Resource> depthBuffer;
-	HRESULT result = dxCommon_->GetDevice()->CreateCommittedResource(
-		&heapProps,
-		D3D12_HEAP_FLAG_NONE,
-		&depthDesc,
-		D3D12_RESOURCE_STATE_DEPTH_WRITE,
-		&outClearValue,
-		IID_PPV_ARGS(&depthBuffer)
-	);
+	HRESULT result = S_OK;
+	result = dxCommon_->GetDevice()->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &depthDesc, D3D12_RESOURCE_STATE_DEPTH_WRITE, &outClearValue, IID_PPV_ARGS(&depthBuffer));
 	assert(SUCCEEDED(result) && "Failed to create Depth Stencil Buffer!");
 
 	return depthBuffer;
