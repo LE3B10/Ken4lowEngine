@@ -29,7 +29,7 @@ void GameEngine::Initialize()
 	SceneManager::GetInstance()->SetAbstractSceneFactory(std::move(sceneFactory));
 
 	// 最初のシーンを設定
-	SceneManager::GetInstance()->SetNextScene(std::make_unique<TitleScene>());
+	SceneManager::GetInstance()->SetNextScene(std::make_unique<GamePlayScene>());
 }
 
 

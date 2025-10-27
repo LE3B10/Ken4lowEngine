@@ -7,7 +7,7 @@ void Stage::Initialize()
 {
 	object_ = std::make_unique<Object3D>();
 	// 地形オブジェクトの初期化
-	object_->Initialize("stage_with_textures.gltf");
+	object_->Initialize("Stage1.gltf");
 	object_->SetTranslate({ 0.0f,0.0f,0.0f });
 }
 

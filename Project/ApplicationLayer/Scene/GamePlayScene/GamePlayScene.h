@@ -15,6 +15,8 @@
 #include "ItemManager.h"
 #include "Stage.h"
 
+#include "LevelObjectManager.h"
+
 #include <memory>
 
 /// ---------- 前方宣言 ---------- ///
@@ -142,4 +144,6 @@ private: /// ---------- メンバ変数 ---------- ///
 	std::unique_ptr<ItemManager> itemManager_ = nullptr; // アイテムマネージャー
 
 	std::unique_ptr<Stage> stage_ = nullptr; // ステージ
+
+	std::unique_ptr<LevelObjectManager> levelObjectManager_ = nullptr; // レベルオブジェクトマネージャー
 };

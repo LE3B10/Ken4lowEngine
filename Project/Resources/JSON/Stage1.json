@@ -1,0 +1,1167 @@
+{
+    "name": "scene",
+    "objects": [
+        {
+            "type": "MESH",
+            "name": "Ground",
+            "transform": {
+                "translation": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "rotation": [
+                    0.0,
+                    -0.0,
+                    0.0
+                ],
+                "scaling": [
+                    1.0,
+                    1.0,
+                    1.0
+                ]
+            },
+            "collider": {
+                "type": "BOX",
+                "center": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "size": [
+                    100.0,
+                    100.0,
+                    0.5
+                ]
+            }
+        },
+        {
+            "type": "MESH",
+            "name": "PondWater",
+            "transform": {
+                "translation": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "rotation": [
+                    0.0,
+                    -0.0,
+                    0.0
+                ],
+                "scaling": [
+                    1.0,
+                    1.0,
+                    1.0
+                ]
+            }
+        },
+        {
+            "type": "MESH",
+            "name": "BridgePlank_-4",
+            "transform": {
+                "translation": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "rotation": [
+                    0.0,
+                    -0.0,
+                    0.0
+                ],
+                "scaling": [
+                    1.0,
+                    1.0,
+                    1.0
+                ]
+            }
+        },
+        {
+            "type": "MESH",
+            "name": "BridgePlank_-3",
+            "transform": {
+                "translation": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "rotation": [
+                    0.0,
+                    -0.0,
+                    0.0
+                ],
+                "scaling": [
+                    1.0,
+                    1.0,
+                    1.0
+                ]
+            }
+        },
+        {
+            "type": "MESH",
+            "name": "BridgePlank_-2",
+            "transform": {
+                "translation": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "rotation": [
+                    0.0,
+                    -0.0,
+                    0.0
+                ],
+                "scaling": [
+                    1.0,
+                    1.0,
+                    1.0
+                ]
+            }
+        },
+        {
+            "type": "MESH",
+            "name": "BridgePlank_-1",
+            "transform": {
+                "translation": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "rotation": [
+                    0.0,
+                    -0.0,
+                    0.0
+                ],
+                "scaling": [
+                    1.0,
+                    1.0,
+                    1.0
+                ]
+            }
+        },
+        {
+            "type": "MESH",
+            "name": "BridgePlank_0",
+            "transform": {
+                "translation": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "rotation": [
+                    0.0,
+                    -0.0,
+                    0.0
+                ],
+                "scaling": [
+                    1.0,
+                    1.0,
+                    1.0
+                ]
+            }
+        },
+        {
+            "type": "MESH",
+            "name": "BridgePlank_1",
+            "transform": {
+                "translation": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "rotation": [
+                    0.0,
+                    -0.0,
+                    0.0
+                ],
+                "scaling": [
+                    1.0,
+                    1.0,
+                    1.0
+                ]
+            }
+        },
+        {
+            "type": "MESH",
+            "name": "BridgePlank_2",
+            "transform": {
+                "translation": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "rotation": [
+                    0.0,
+                    -0.0,
+                    0.0
+                ],
+                "scaling": [
+                    1.0,
+                    1.0,
+                    1.0
+                ]
+            }
+        },
+        {
+            "type": "MESH",
+            "name": "BridgePlank_3",
+            "transform": {
+                "translation": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "rotation": [
+                    0.0,
+                    -0.0,
+                    0.0
+                ],
+                "scaling": [
+                    1.0,
+                    1.0,
+                    1.0
+                ]
+            }
+        },
+        {
+            "type": "MESH",
+            "name": "BridgePlank_4",
+            "transform": {
+                "translation": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "rotation": [
+                    0.0,
+                    -0.0,
+                    0.0
+                ],
+                "scaling": [
+                    1.0,
+                    1.0,
+                    1.0
+                ]
+            }
+        },
+        {
+            "type": "MESH",
+            "name": "Tree0_Trunk",
+            "transform": {
+                "translation": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "rotation": [
+                    0.0,
+                    -0.0,
+                    0.0
+                ],
+                "scaling": [
+                    1.0,
+                    1.0,
+                    1.0
+                ]
+            },
+            "collider": {
+                "type": "BOX",
+                "center": [
+                    -15.0,
+                    12.0,
+                    1.0
+                ],
+                "size": [
+                    0.7000007629394531,
+                    0.7000007629394531,
+                    2.0
+                ]
+            }
+        },
+        {
+            "type": "MESH",
+            "name": "Tree0_Leaves",
+            "transform": {
+                "translation": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "rotation": [
+                    0.0,
+                    -0.0,
+                    0.0
+                ],
+                "scaling": [
+                    1.0,
+                    1.0,
+                    1.0
+                ]
+            },
+            "collider": {
+                "type": "BOX",
+                "center": [
+                    -15.0,
+                    12.0,
+                    2.3480000495910645
+                ],
+                "size": [
+                    2.59999942779541,
+                    2.6000003814697266,
+                    1.7000000476837158
+                ]
+            }
+        },
+        {
+            "type": "MESH",
+            "name": "Tree1_Trunk",
+            "transform": {
+                "translation": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "rotation": [
+                    0.0,
+                    -0.0,
+                    0.0
+                ],
+                "scaling": [
+                    1.0,
+                    1.0,
+                    1.0
+                ]
+            },
+            "collider": {
+                "type": "BOX",
+                "center": [
+                    18.0,
+                    14.0,
+                    1.0
+                ],
+                "size": [
+                    0.7000007629394531,
+                    0.7000007629394531,
+                    2.0
+                ]
+            }
+        },
+        {
+            "type": "MESH",
+            "name": "Tree1_Leaves",
+            "transform": {
+                "translation": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "rotation": [
+                    0.0,
+                    -0.0,
+                    0.0
+                ],
+                "scaling": [
+                    1.0,
+                    1.0,
+                    1.0
+                ]
+            },
+            "collider": {
+                "type": "BOX",
+                "center": [
+                    18.0,
+                    14.0,
+                    2.296999931335449
+                ],
+                "size": [
+                    2.5999984741210938,
+                    2.6000003814697266,
+                    1.7000000476837158
+                ]
+            }
+        },
+        {
+            "type": "MESH",
+            "name": "Tree2_Trunk",
+            "transform": {
+                "translation": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "rotation": [
+                    0.0,
+                    -0.0,
+                    0.0
+                ],
+                "scaling": [
+                    1.0,
+                    1.0,
+                    1.0
+                ]
+            },
+            "collider": {
+                "type": "BOX",
+                "center": [
+                    -22.0,
+                    -9.0,
+                    1.0
+                ],
+                "size": [
+                    0.7000007629394531,
+                    0.7000007629394531,
+                    2.0
+                ]
+            }
+        },
+        {
+            "type": "MESH",
+            "name": "Tree2_Leaves",
+            "transform": {
+                "translation": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "rotation": [
+                    0.0,
+                    -0.0,
+                    0.0
+                ],
+                "scaling": [
+                    1.0,
+                    1.0,
+                    1.0
+                ]
+            },
+            "collider": {
+                "type": "BOX",
+                "center": [
+                    -22.0,
+                    -9.0,
+                    2.296999931335449
+                ],
+                "size": [
+                    2.5999984741210938,
+                    2.6000003814697266,
+                    1.7000000476837158
+                ]
+            }
+        },
+        {
+            "type": "MESH",
+            "name": "Tree3_Trunk",
+            "transform": {
+                "translation": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "rotation": [
+                    0.0,
+                    -0.0,
+                    0.0
+                ],
+                "scaling": [
+                    1.0,
+                    1.0,
+                    1.0
+                ]
+            },
+            "collider": {
+                "type": "BOX",
+                "center": [
+                    14.0,
+                    -22.0,
+                    1.0
+                ],
+                "size": [
+                    0.7000007629394531,
+                    0.7000007629394531,
+                    2.0
+                ]
+            }
+        },
+        {
+            "type": "MESH",
+            "name": "Tree3_Leaves",
+            "transform": {
+                "translation": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "rotation": [
+                    0.0,
+                    -0.0,
+                    0.0
+                ],
+                "scaling": [
+                    1.0,
+                    1.0,
+                    1.0
+                ]
+            },
+            "collider": {
+                "type": "BOX",
+                "center": [
+                    14.0,
+                    -22.0,
+                    2.299999952316284
+                ],
+                "size": [
+                    2.6000003814697266,
+                    2.5999984741210938,
+                    1.7000000476837158
+                ]
+            }
+        },
+        {
+            "type": "MESH",
+            "name": "Tree4_Trunk",
+            "transform": {
+                "translation": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "rotation": [
+                    0.0,
+                    -0.0,
+                    0.0
+                ],
+                "scaling": [
+                    1.0,
+                    1.0,
+                    1.0
+                ]
+            },
+            "collider": {
+                "type": "BOX",
+                "center": [
+                    -8.0,
+                    -18.0,
+                    1.0
+                ],
+                "size": [
+                    0.7000002861022949,
+                    0.7000007629394531,
+                    2.0
+                ]
+            }
+        },
+        {
+            "type": "MESH",
+            "name": "Tree4_Leaves",
+            "transform": {
+                "translation": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "rotation": [
+                    0.0,
+                    -0.0,
+                    0.0
+                ],
+                "scaling": [
+                    1.0,
+                    1.0,
+                    1.0
+                ]
+            },
+            "collider": {
+                "type": "BOX",
+                "center": [
+                    -8.0,
+                    -18.0,
+                    2.299999952316284
+                ],
+                "size": [
+                    2.6000003814697266,
+                    2.5999984741210938,
+                    1.7000000476837158
+                ]
+            }
+        },
+        {
+            "type": "MESH",
+            "name": "Tree5_Trunk",
+            "transform": {
+                "translation": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "rotation": [
+                    0.0,
+                    -0.0,
+                    0.0
+                ],
+                "scaling": [
+                    1.0,
+                    1.0,
+                    1.0
+                ]
+            },
+            "collider": {
+                "type": "BOX",
+                "center": [
+                    22.0,
+                    -12.0,
+                    1.0
+                ],
+                "size": [
+                    0.7000007629394531,
+                    0.7000007629394531,
+                    2.0
+                ]
+            }
+        },
+        {
+            "type": "MESH",
+            "name": "Tree5_Leaves",
+            "transform": {
+                "translation": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "rotation": [
+                    0.0,
+                    -0.0,
+                    0.0
+                ],
+                "scaling": [
+                    1.0,
+                    1.0,
+                    1.0
+                ]
+            },
+            "collider": {
+                "type": "BOX",
+                "center": [
+                    22.0,
+                    -12.0,
+                    2.252000093460083
+                ],
+                "size": [
+                    2.5999984741210938,
+                    2.6000003814697266,
+                    1.7000000476837158
+                ]
+            }
+        },
+        {
+            "type": "MESH",
+            "name": "Rock_0",
+            "transform": {
+                "translation": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "rotation": [
+                    0.0,
+                    -0.0,
+                    0.0
+                ],
+                "scaling": [
+                    1.0,
+                    1.0,
+                    1.0
+                ]
+            },
+            "collider": {
+                "type": "BOX",
+                "center": [
+                    -6.0,
+                    -6.0,
+                    0.453000009059906
+                ],
+                "size": [
+                    0.8999996185302734,
+                    0.8999996185302734,
+                    0.8999999761581421
+                ]
+            }
+        },
+        {
+            "type": "MESH",
+            "name": "Rock_1",
+            "transform": {
+                "translation": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "rotation": [
+                    0.0,
+                    -0.0,
+                    0.0
+                ],
+                "scaling": [
+                    1.0,
+                    1.0,
+                    1.0
+                ]
+            },
+            "collider": {
+                "type": "BOX",
+                "center": [
+                    7.0,
+                    -4.0,
+                    0.6489999890327454
+                ],
+                "size": [
+                    1.3000001907348633,
+                    1.3000001907348633,
+                    1.2999999523162842
+                ]
+            }
+        },
+        {
+            "type": "MESH",
+            "name": "Rock_2",
+            "transform": {
+                "translation": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "rotation": [
+                    0.0,
+                    -0.0,
+                    0.0
+                ],
+                "scaling": [
+                    1.0,
+                    1.0,
+                    1.0
+                ]
+            },
+            "collider": {
+                "type": "BOX",
+                "center": [
+                    10.0,
+                    8.0,
+                    0.8460000157356262
+                ],
+                "size": [
+                    1.7000007629394531,
+                    1.700000286102295,
+                    1.7000000476837158
+                ]
+            }
+        },
+        {
+            "type": "MESH",
+            "name": "Rock_3",
+            "transform": {
+                "translation": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "rotation": [
+                    0.0,
+                    -0.0,
+                    0.0
+                ],
+                "scaling": [
+                    1.0,
+                    1.0,
+                    1.0
+                ]
+            },
+            "collider": {
+                "type": "BOX",
+                "center": [
+                    -12.0,
+                    -3.0,
+                    0.44699999690055847
+                ],
+                "size": [
+                    0.8999996185302734,
+                    0.9000000953674316,
+                    0.8999999761581421
+                ]
+            }
+        },
+        {
+            "type": "MESH",
+            "name": "Rock_4",
+            "transform": {
+                "translation": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "rotation": [
+                    0.0,
+                    -0.0,
+                    0.0
+                ],
+                "scaling": [
+                    1.0,
+                    1.0,
+                    1.0
+                ]
+            },
+            "collider": {
+                "type": "BOX",
+                "center": [
+                    6.0,
+                    18.0,
+                    0.6460000276565552
+                ],
+                "size": [
+                    1.3000001907348633,
+                    1.2999992370605469,
+                    1.2999999523162842
+                ]
+            }
+        },
+        {
+            "type": "MESH",
+            "name": "Rock_5",
+            "transform": {
+                "translation": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "rotation": [
+                    0.0,
+                    -0.0,
+                    0.0
+                ],
+                "scaling": [
+                    1.0,
+                    1.0,
+                    1.0
+                ]
+            },
+            "collider": {
+                "type": "BOX",
+                "center": [
+                    -16.0,
+                    10.0,
+                    0.8970000147819519
+                ],
+                "size": [
+                    1.7000007629394531,
+                    1.7000007629394531,
+                    1.7000000476837158
+                ]
+            }
+        },
+        {
+            "type": "MESH",
+            "name": "Rock_6",
+            "transform": {
+                "translation": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "rotation": [
+                    0.0,
+                    -0.0,
+                    0.0
+                ],
+                "scaling": [
+                    1.0,
+                    1.0,
+                    1.0
+                ]
+            },
+            "collider": {
+                "type": "BOX",
+                "center": [
+                    20.0,
+                    6.0,
+                    0.44999998807907104
+                ],
+                "size": [
+                    0.9000015258789062,
+                    0.8999996185302734,
+                    0.8999999761581421
+                ]
+            }
+        },
+        {
+            "type": "MESH",
+            "name": "Wall_N_top",
+            "transform": {
+                "translation": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "rotation": [
+                    0.0,
+                    -0.0,
+                    0.0
+                ],
+                "scaling": [
+                    1.0,
+                    1.0,
+                    1.0
+                ]
+            },
+            "collider": {
+                "type": "BOX",
+                "center": [
+                    0.0,
+                    47.0,
+                    6.0
+                ],
+                "size": [
+                    100.0,
+                    6.0,
+                    12.0
+                ]
+            }
+        },
+        {
+            "type": "MESH",
+            "name": "Wall_S_top",
+            "transform": {
+                "translation": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "rotation": [
+                    0.0,
+                    -0.0,
+                    0.0
+                ],
+                "scaling": [
+                    1.0,
+                    1.0,
+                    1.0
+                ]
+            },
+            "collider": {
+                "type": "BOX",
+                "center": [
+                    0.0,
+                    -47.0,
+                    6.0
+                ],
+                "size": [
+                    100.0,
+                    6.0,
+                    12.0
+                ]
+            }
+        },
+        {
+            "type": "MESH",
+            "name": "Wall_W_top",
+            "transform": {
+                "translation": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "rotation": [
+                    0.0,
+                    -0.0,
+                    0.0
+                ],
+                "scaling": [
+                    1.0,
+                    1.0,
+                    1.0
+                ]
+            },
+            "collider": {
+                "type": "BOX",
+                "center": [
+                    -47.0,
+                    0.0,
+                    6.0
+                ],
+                "size": [
+                    6.0,
+                    100.0,
+                    12.0
+                ]
+            }
+        },
+        {
+            "type": "MESH",
+            "name": "Wall_E_top",
+            "transform": {
+                "translation": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "rotation": [
+                    0.0,
+                    -0.0,
+                    0.0
+                ],
+                "scaling": [
+                    1.0,
+                    1.0,
+                    1.0
+                ]
+            },
+            "collider": {
+                "type": "BOX",
+                "center": [
+                    47.0,
+                    0.0,
+                    6.0
+                ],
+                "size": [
+                    6.0,
+                    100.0,
+                    12.0
+                ]
+            }
+        },
+        {
+            "type": "MESH",
+            "name": "Wall_N_low",
+            "transform": {
+                "translation": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "rotation": [
+                    0.0,
+                    -0.0,
+                    0.0
+                ],
+                "scaling": [
+                    1.0,
+                    1.0,
+                    1.0
+                ]
+            },
+            "collider": {
+                "type": "BOX",
+                "center": [
+                    0.0,
+                    41.0,
+                    3.0
+                ],
+                "size": [
+                    90.0,
+                    6.0,
+                    6.0
+                ]
+            }
+        },
+        {
+            "type": "MESH",
+            "name": "Wall_S_low",
+            "transform": {
+                "translation": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "rotation": [
+                    0.0,
+                    -0.0,
+                    0.0
+                ],
+                "scaling": [
+                    1.0,
+                    1.0,
+                    1.0
+                ]
+            },
+            "collider": {
+                "type": "BOX",
+                "center": [
+                    0.0,
+                    -41.0,
+                    3.0
+                ],
+                "size": [
+                    90.0,
+                    6.0,
+                    6.0
+                ]
+            }
+        },
+        {
+            "type": "MESH",
+            "name": "Wall_W_low",
+            "transform": {
+                "translation": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "rotation": [
+                    0.0,
+                    -0.0,
+                    0.0
+                ],
+                "scaling": [
+                    1.0,
+                    1.0,
+                    1.0
+                ]
+            },
+            "collider": {
+                "type": "BOX",
+                "center": [
+                    -41.0,
+                    0.0,
+                    3.0
+                ],
+                "size": [
+                    6.0,
+                    90.0,
+                    6.0
+                ]
+            }
+        },
+        {
+            "type": "MESH",
+            "name": "Wall_E_low",
+            "transform": {
+                "translation": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "rotation": [
+                    0.0,
+                    -0.0,
+                    0.0
+                ],
+                "scaling": [
+                    1.0,
+                    1.0,
+                    1.0
+                ]
+            },
+            "collider": {
+                "type": "BOX",
+                "center": [
+                    41.0,
+                    0.0,
+                    3.0
+                ],
+                "size": [
+                    6.0,
+                    90.0,
+                    6.0
+                ]
+            }
+        }
+    ]
+}
