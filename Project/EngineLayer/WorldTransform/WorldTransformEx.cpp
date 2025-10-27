@@ -27,24 +27,24 @@ void WorldTransformEx::Update()
 /// -------------------------------------------------------------
 void WorldTransformEx::Update(const WorldTransformEx* parent, const Vector3& offset, float preRotateX, const Vector3& selfAdd)
 {
-    if (!parent) return;
+	if (!parent) return; // 親がいない場合は何もしない
 
-    // 親のYaw/Pitchのみ継承（順序は既存コードに合わせて Rx→Ry）
-    Matrix4x4 Rx = Matrix4x4::MakeRotateX(parent->rotate_.x);
-    Matrix4x4 Ry = Matrix4x4::MakeRotateY(parent->rotate_.y);
-    Matrix4x4 R = Matrix4x4::Multiply(Rx, Ry);
+	// 親のYaw/Pitchのみ継承（順序は既存コードに合わせて Rx→Ry）
+	Matrix4x4 Rx = Matrix4x4::MakeRotateX(parent->rotate_.x);
+	Matrix4x4 Ry = Matrix4x4::MakeRotateY(parent->rotate_.y);
+	Matrix4x4 R = Matrix4x4::Multiply(Rx, Ry);
 
-    // ローカルオフセットを 事前X回転 → 親のYaw/Pitch でワールド化
-    Matrix4x4 RxFix = Matrix4x4::MakeRotateX(preRotateX);
-    Vector3 ofsLocalFixed = Matrix4x4::Transform(offset, RxFix);
-    Vector3 ofsWorld = Matrix4x4::Transform(ofsLocalFixed, R);
+	// ローカルオフセットを 事前X回転 → 親のYaw/Pitch でワールド化
+	Matrix4x4 RxFix = Matrix4x4::MakeRotateX(preRotateX);
+	Vector3 ofsLocalFixed = Matrix4x4::Transform(offset, RxFix);
+	Vector3 ofsWorld = Matrix4x4::Transform(ofsLocalFixed, R);
 
-    // 位置
-    translate_ = parent->translate_ + ofsWorld;
+	// 位置
+	translate_ = parent->translate_ + ofsWorld;
 
-    // 回転は親の回転を継承してから任意の微調整を加算
-    rotate_ = parent->rotate_;
-    rotate_.x += selfAdd.x;
-    rotate_.y += selfAdd.y;
-    rotate_.z += selfAdd.z;
+	// 回転は親の回転を継承してから任意の微調整を加算
+	rotate_ = parent->rotate_;
+	rotate_.x += selfAdd.x;
+	rotate_.y += selfAdd.y;
+	rotate_.z += selfAdd.z;
 }

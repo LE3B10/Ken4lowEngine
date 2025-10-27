@@ -12,6 +12,7 @@
 
 /// ---------- 前方宣言 ---------- ///
 class Input;
+class LevelObjectManager;
 
 
 /// -------------------------------------------------------------
@@ -46,15 +47,13 @@ private: /// ---------- 構造体 ---------- ///
 		bool isDebugCamera = false;
 	};
 
-	// 移動状態構造体
-	struct MovementState
+	// ジャンプ状態構造体
+	struct JumpState
 	{
-		bool isGrounded = true;		 // 接地フラグ
-		float groundY = 0.0f;		 // 立っている床のY（暫定: 水平床）
-		float vY = 0.0f;			 // 縦速度
-		float gravity = -30.75f;	 // 重力加速度
-		float jumpSpeed = 12.0f;	 // ジャンプ初速
-		float maxFallSpeed = -50.0f; // 最大落下速度（クランプ）
+		bool isGrounded = false;		// 接地判定
+		float gravity = 0.01f;			// 重力の値
+		float jumpVelocity = 0.0f;		// ジャンプの上向き速度
+		const float jumpPower = 0.25f;  // ジャンプ初速度
 	};
 
 	// リコイル構造体
@@ -126,6 +125,9 @@ public: /// ---------- アクセサー関数 ---------- ///
 	// プレイヤーモデル取得
 	Object3D* GetPlayerModel() const { return body_.object.get(); }
 
+	// レベルオブジェクトマネージャー設定
+	void SetLevelObjectManager(LevelObjectManager* mgr) { levelObjectManager_ = mgr; }
+
 private: /// ---------- メンバ関数 ---------- ///
 
 	// 移動処理
@@ -143,6 +145,7 @@ private: /// ---------- メンバ関数 ---------- ///
 private: /// ----------メンバ変数 ---------- ///
 
 	Input* input_ = nullptr; // 入力クラス
+	LevelObjectManager* levelObjectManager_ = nullptr; // レベルオブジェクトマネージャー
 
 	std::unique_ptr<FpsCamera> fpsCamera_; // FPSカメラ
 
@@ -151,8 +154,8 @@ private: /// ----------メンバ変数 ---------- ///
 	// ビュー状態構造体
 	ViewState viewState_ = {};
 
-	// 移動状態構造体
-	MovementState movementState_ = {};
+	// ジャンプ状態構造体
+	JumpState jumpState_ = {};
 
 	// 射撃状態構造体
 	FireState fireState_ = {};
@@ -169,9 +172,6 @@ private: /// ----------メンバ変数 ---------- ///
 	// 各部位のインデックス
 	PartIndices partIndices_ = {};
 
-private: /// ---------- 設定値 ---------- ///
-
-	const std::string kWeaponDir = "Resources/JSON/weapons";		   // 武器データディレクトリ
-	const std::string kWeaponMonolith = "Resources/JSON/weapons.json"; // 武器データモノリス
+	float centerOffsetY_ = 2.0f;  // 足裏ピボットなら -half.y を入れる
 };
 

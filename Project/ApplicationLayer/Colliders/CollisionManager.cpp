@@ -67,6 +67,7 @@ void CollisionManager::CheckAllCollisions()
 	const CId kBullet = static_cast<CId>(CollisionTypeIdDef::kBullet);
 	const CId kBossBullet = static_cast<CId>(CollisionTypeIdDef::kBossBullet);
 	const CId kItem = static_cast<CId>(CollisionTypeIdDef::kItem);
+	const CId kWorld = static_cast<CId>(CollisionTypeIdDef::kWorld);
 
 	auto pairLoop = [&](CId aId, CId bId) {
 		auto& A = buckets_[aId];
@@ -85,6 +86,9 @@ void CollisionManager::CheckAllCollisions()
 	pairLoop(kBoss, kBullet);
 	pairLoop(kPlayer, kBossBullet);
 	pairLoop(kPlayer, kItem);
+	pairLoop(kItem, kPlayer);
+	pairLoop(kPlayer, kWorld);
+	pairLoop(kWorld, kPlayer);
 }
 
 /// -------------------------------------------------------------
@@ -158,6 +162,7 @@ void CollisionManager::RegisterCollisionFuncsions()
 	constexpr CollisionType kItem = static_cast<CollisionType>(CollisionTypeIdDef::kItem);
 	//constexpr CollisionType kBoss = static_cast<CollisionType>(CollisionTypeIdDef::kBoss);
 	//constexpr CollisionType kBossBullet = static_cast<CollisionType>(CollisionTypeIdDef::kBossBullet);
+	constexpr CollisionType kWorld = static_cast<CollisionType>(CollisionTypeIdDef::kWorld);
 
 	/// ---------- プレイヤーと敵の衝突判定 ---------- ///
 	collisionTable_[{kEnemy, kPlayer}] = [](Collider* a, Collider* b) {
@@ -183,6 +188,14 @@ void CollisionManager::RegisterCollisionFuncsions()
 		};
 
 	collisionTable_[{kItem, kPlayer}] = [](Collider* a, Collider* b) {
+		return CollisionUtility::IsCollision(a->GetOBB(), b->GetOBB());
+		};
+
+	/// ---------- プレイヤーとワールドの衝突判定 ---------- ///
+	collisionTable_[{kPlayer, kWorld}] = [](Collider* a, Collider* b) {
+		return CollisionUtility::IsCollision(a->GetOBB(), b->GetOBB());
+		};
+	collisionTable_[{kWorld, kPlayer}] = [](Collider* a, Collider* b) {
 		return CollisionUtility::IsCollision(a->GetOBB(), b->GetOBB());
 		};
 }

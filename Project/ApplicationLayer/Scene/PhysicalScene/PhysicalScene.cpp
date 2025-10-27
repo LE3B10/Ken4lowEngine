@@ -1,3 +1,4 @@
+#define NOMINMAX
 #include "PhysicalScene.h"
 #include <Input.h>
 #include <SpriteManager.h>
@@ -7,28 +8,76 @@
 #include <Wireframe.h>
 #include <SceneManager.h>
 #include <CollisionUtility.h>
+#include "LevelLoader.h"
 
 #include <imgui.h>
+#include <CollisionTypeIdDef.h>
+
+namespace {
+
+	// OBB → その外接AABB（8頂点を出してmin/max）
+	AABB ToAABB(const OBB& obb) {
+		// 8頂点（±size）
+		Vector3 s = obb.size;
+		Vector3 local[8] = {
+			{-s.x,-s.y,-s.z}, { s.x,-s.y,-s.z}, { s.x, s.y,-s.z}, {-s.x, s.y,-s.z},
+			{-s.x,-s.y, s.z}, { s.x,-s.y, s.z}, { s.x, s.y, s.z}, {-s.x, s.y, s.z},
+		};
+		AABB aabb;
+		aabb.min = { FLT_MAX,  FLT_MAX,  FLT_MAX };
+		aabb.max = { -FLT_MAX, -FLT_MAX, -FLT_MAX };
+
+		for (int i = 0; i < 8; ++i) {
+			Vector3 w =
+				obb.center +
+				obb.orientations[0] * local[i].x +
+				obb.orientations[1] * local[i].y +
+				obb.orientations[2] * local[i].z;
+			aabb.min.x = std::min(aabb.min.x, w.x);
+			aabb.min.y = std::min(aabb.min.y, w.y);
+			aabb.min.z = std::min(aabb.min.z, w.z);
+			aabb.max.x = std::max(aabb.max.x, w.x);
+			aabb.max.y = std::max(aabb.max.y, w.y);
+			aabb.max.z = std::max(aabb.max.z, w.z);
+		}
+		return aabb;
+	}
+
+	// プレイヤー（いまは軸揃えOBB）→ AABB
+	AABB MakePlayerAABB(const OBB& obb) {
+		// orientationsが単位基底なら center ± size でOK
+		return { obb.center - obb.size, obb.center + obb.size };
+	}
+
+} // namespace
 
 void PhysicalScene::Initialize()
 {
 	input_ = Input::GetInstance();
 
-	// カプセルの初期化
-	capsule_.segment = { { 0.0f, 0.5f, 0.0f }, { 0.0f, 1.5f, 0.0f } };
-	capsule_.radius = 0.3f;
+	camera = Object3DCommon::GetInstance()->GetDefaultCamera();
+	camera->SetTranslate({ 0.0f, 2.0f, -20.0f });
+	camera->SetRotate({ 0.0f, 0.0f, 0.0f });
 
-	// AABBの初期化（地面）
-	AABB ground;
-	ground.min = { -2.0f, -0.5f, -4.0f };
-	ground.max = { +4.0f, +0.0f, +4.0f };
-	aabbs_.emplace_back(ColliderType::Ground, ground);
+	obb_.center = { 0.0f, 4.0f, 0.0f };
+	obb_.orientations[0] = { 1.0f, 0.0f, 0.0f };
+	obb_.orientations[1] = { 0.0f, 1.0f, 0.0f };
+	obb_.orientations[2] = { 0.0f, 0.0f, 1.0f };
+	obb_.size = { 1.0f, 2.0f, 1.0f };
 
-	// AABBの初期化（壁）
-	AABB wall;
-	wall.min = { +2.0f, -0.5f, -4.0f };
-	wall.max = { +2.2f, +1.5f, +4.0f };
-	aabbs_.emplace_back(ColliderType::Wall, wall);
+	playerCollider_ = std::make_unique<Collider>();
+	playerCollider_->SetTypeID(static_cast<uint32_t>(CollisionTypeIdDef::kPlayer));
+	// 初期 OBB を PhysicalScene::obb_ からコピー（half サイズの取り扱いに注意）
+	playerCollider_->SetCenterPosition(obb_.center);
+	playerCollider_->SetOBBHalfSize(obb_.size);        // ← Collider は「半サイズ」を持ちます。:contentReference[oaicite:7]{index=7}
+	playerCollider_->SetOrientation({ 0,0,0 });          // 必要なら回転を設定
+
+	auto levelLoader = std::make_unique<LevelLoader>();
+	levelObjectManager_ = std::make_unique<LevelObjectManager>();
+	levelObjectManager_->Initialize(*levelLoader->LoadLevel("Stage1.json"), "Stage1.gltf");
+
+	collisionManager_ = std::make_unique<CollisionManager>();
+	collisionManager_->Initialize();
 }
 
 void PhysicalScene::Update()
@@ -55,108 +104,150 @@ void PhysicalScene::Update()
 	jumpVelocity_ -= gravity_;
 	move.y += jumpVelocity_;
 
-	// --- カプセルの移動適用 ---
-	capsule_.segment.origin += move;
-	capsule_.segment.diff = Vector3{ 0.0f, 1.0f, 0.0f }; // 高さ1固定
+	// レベル側の衝突形状をAABB化（OBB→AABB）
+	const auto worldAABBs = levelObjectManager_->GetWorldAABBs(); // 安全なAABB群:contentReference[oaicite:1]{index=1}
 
-	const int kMaxCorrection = 4; // 多段補正回数の最大
-	for (int step = 0; step < kMaxCorrection; ++step) {
-		Vector3 bestPushVec{};
-		float bestDistSq = FLT_MAX;
-		ColliderType bestType = ColliderType::None;
+	const float kEps = 0.002f; // すき間
 
-		for (const auto& [type, aabb] : aabbs_) {
-			if (!CollisionUtility::IsCollision(capsule_, aabb)) { continue; }
+	auto resolveAxis = [&](int axis, float delta)
+		{
+			if (delta == 0.0f) return;
 
-			const int kSteps = 10;
-			for (int i = 0; i <= kSteps; ++i) {
-				float t = static_cast<float>(i) / kSteps;
-				Vector3 pt = capsule_.segment.origin + capsule_.segment.diff * t;
+			// 移動前の中心（どちら側から来たか判定に使う）
+			const Vector3 old = obb_.center;
 
-				Vector3 closest = {
-					std::clamp(pt.x, aabb.min.x, aabb.max.x),
-					std::clamp(pt.y, aabb.min.y, aabb.max.y),
-					std::clamp(pt.z, aabb.min.z, aabb.max.z),
-				};
+			// 予定位置へその軸だけ動かす
+			if (axis == 0) obb_.center.x += delta;
+			if (axis == 1) obb_.center.y += delta;
+			if (axis == 2) obb_.center.z += delta;
 
-				Vector3 diff = pt - closest;
-				float distSq = Vector3::Dot(diff, diff);
+			// 予定位置のプレイヤーAABB（軸揃えOBB想定）
+			AABB p{ obb_.center - obb_.size, obb_.center + obb_.size };
 
-				if (distSq < bestDistSq && distSq < capsule_.radius * capsule_.radius && distSq > 0.00001f) {
-					bestDistSq = distSq;
-					bestPushVec = diff;
-					bestType = type;
+			bool hit = false;
+			float bestFix = 0.0f;
+			float bestDist = FLT_MAX;
+
+			// 最も近い“正しい側”の面へクランプ候補を取る
+			for (const auto& w : worldAABBs) {
+				// AABB×AABB重なり判定（簡易）
+				if (!(p.min.x <= w.max.x && p.max.x >= w.min.x &&
+					p.min.y <= w.max.y && p.max.y >= w.min.y &&
+					p.min.z <= w.max.z && p.max.z >= w.min.z)) {
+					continue;
+				}
+
+				float cand = 0.0f; // この軸の新しい center 座標
+				bool  valid = false;
+
+				if (axis == 0) {
+					// old（移動前）がどちら側にいたかで面を固定
+					if (old.x + obb_.size.x <= w.min.x) { // 左（min側）から来た
+						cand = (w.min.x - obb_.size.x) - kEps;
+						valid = true;
+					}
+					else if (old.x - obb_.size.x >= w.max.x) { // 右（max側）から来た
+						cand = (w.max.x + obb_.size.x) + kEps;
+						valid = true;
+					}
+					else {
+						// すでに内部にスポーンしていた：近い方の面へ
+						float dMin = std::abs((w.min.x - obb_.size.x) - old.x);
+						float dMax = std::abs((w.max.x + obb_.size.x) - old.x);
+						cand = (dMin <= dMax) ? (w.min.x - obb_.size.x - kEps)
+							: (w.max.x + obb_.size.x + kEps);
+						valid = true;
+					}
+					if (valid) {
+						float dist = std::abs(cand - obb_.center.x); // 今の予定位置からの修正量の小さい方
+						if (dist < bestDist) { bestDist = dist; bestFix = cand; hit = true; }
+					}
+				}
+				else if (axis == 2) {
+					if (old.z + obb_.size.z <= w.min.z) { // 手前→min側面
+						cand = (w.min.z - obb_.size.z) - kEps; valid = true;
+					}
+					else if (old.z - obb_.size.z >= w.max.z) { // 奥→max側面
+						cand = (w.max.z + obb_.size.z) + kEps; valid = true;
+					}
+					else {
+						float dMin = std::abs((w.min.z - obb_.size.z) - old.z);
+						float dMax = std::abs((w.max.z + obb_.size.z) - old.z);
+						cand = (dMin <= dMax) ? (w.min.z - obb_.size.z - kEps)
+							: (w.max.z + obb_.size.z + kEps);
+						valid = true;
+					}
+					if (valid) {
+						float dist = std::abs(cand - obb_.center.z);
+						if (dist < bestDist) { bestDist = dist; bestFix = cand; hit = true; }
+					}
+				}
+				else { // Y（床/天井）
+					if (old.y - obb_.size.y >= w.max.y) { // 上から落ちて床（max面）へ
+						cand = (w.max.y + obb_.size.y) + kEps; valid = true;
+					}
+					else if (old.y + obb_.size.y <= w.min.y) { // 下から上昇して天井（min面）へ
+						cand = (w.min.y - obb_.size.y) - kEps; valid = true;
+					}
+					else {
+						// 既に内部：近い方の面へ
+						float dToFloor = std::abs((w.max.y + obb_.size.y) - old.y);
+						float dToCeil = std::abs((w.min.y - obb_.size.y) - old.y);
+						cand = (dToFloor <= dToCeil) ? (w.max.y + obb_.size.y + kEps)
+							: (w.min.y - obb_.size.y - kEps);
+						valid = true;
+					}
+					if (valid) {
+						float dist = std::abs(cand - obb_.center.y);
+						if (dist < bestDist) { bestDist = dist; bestFix = cand; hit = true; }
+					}
 				}
 			}
-		}
 
-		if (bestType == ColliderType::None) break;
-
-		float dist = std::sqrt(bestDistSq);
-		Vector3 pushDir = bestPushVec / dist;
-		float pushLen = capsule_.radius - dist;
-
-		Vector3 correction{};
-
-		if (bestType == ColliderType::Ground || bestType == ColliderType::Wall) {
-			if (pushDir.y > 0.0f) {
-				correction.y = pushDir.y * pushLen;
-
-				// 上から接触していれば接地扱い（Ground or Wall問わず）
-				if (pushDir.y > 0.5f) {
-					isGrounded_ = true;
-					jumpVelocity_ = 0.0f;
+			if (hit) {
+				if (axis == 0) obb_.center.x = bestFix;         // X壁にくっつく（横スライドOK）
+				if (axis == 2) obb_.center.z = bestFix;         // Z壁にくっつく
+				if (axis == 1) {                                // 床/天井
+					obb_.center.y = bestFix;
+					if (delta < 0.0f) { isGrounded_ = true; jumpVelocity_ = 0.0f; } // 床
+					else { if (jumpVelocity_ > 0.0f) jumpVelocity_ = 0.0f; } // 天井
 				}
 			}
+		};
 
-			// 横方向補正（壁の場合のみ必要）
-			if (bestType == ColliderType::Wall) {
-				if (fabs(pushDir.x) > fabs(pushDir.z)) {
-					correction.x = pushDir.x * pushLen;
-				}
-				else {
-					correction.z = pushDir.z * pushLen;
-				}
-			}
-		}
+	// フレーム先頭で接地フラグは一旦false（Yで床に触れたら立て直す）
+	isGrounded_ = false;
 
-		capsule_.segment.origin += correction;
+	// X → Z → Y（Yは最後：床処理）
+	resolveAxis(0, move.x);
+	resolveAxis(2, move.z);
+	resolveAxis(1, move.y);
+
+	// プレイヤーColliderへ反映
+	playerCollider_->SetCenterPosition(obb_.center);
+	playerCollider_->SetOBBHalfSize(obb_.size); // HalfExtentで統一
+
+	// ===== ここから既存処理 =====
+	camera->Update();
+	levelObjectManager_->Update();
+
+	collisionManager_->Update();
+	collisionManager_->Reset();
+
+	collisionManager_->AddCollider(playerCollider_.get());
+	for (auto& collider : levelObjectManager_->GetWorldColliders()) {
+		collisionManager_->AddCollider(collider.get());
 	}
-
-	for (const auto& [type, aabb] : aabbs_) {
-		Vector4 color;
-		switch (type) {
-		case ColliderType::Ground:
-			color = { 0.2f, 1.0f, 0.2f, 1.0f }; // 緑
-			break;
-		case ColliderType::Wall:
-			color = { 0.2f, 0.5f, 1.0f, 1.0f }; // 青
-			break;
-		default:
-			color = { 1.0f, 1.0f, 1.0f, 1.0f }; // 白
-			break;
-		}
-		Wireframe::GetInstance()->DrawAABB(aabb, color);
-	}
-
-	// カプセル描画（常に赤で表示）
-	Wireframe::GetInstance()->DrawCapsule(capsule_, { 1.0f, 0.0f, 0.0f, 1.0f });
+	collisionManager_->CheckAllCollisions();
 }
 
 void PhysicalScene::Draw3DObjects()
 {
-	SkyBoxManager::GetInstance()->SetRenderSetting();
+	levelObjectManager_->Draw();
 
+	Wireframe::GetInstance()->DrawOBB(obb_, { 1.0f, 1.0f, 0.0f, 1.0f });
 
-
-	Object3DCommon::GetInstance()->SetRenderSetting();
-
-
-
-	AnimationPipelineBuilder::GetInstance()->SetRenderSetting();
-
-
-
+	collisionManager_->Draw();
 }
 
 void PhysicalScene::Draw2DSprites()
@@ -177,22 +268,12 @@ void PhysicalScene::Finalize()
 
 void PhysicalScene::DrawImGui()
 {
-	ImGui::Begin("Physical Scene Debug");
-	ImGui::Text("AABB Min: (%.2f, %.2f, %.2f)", aabb_.min.x, aabb_.min.y, aabb_.min.z);
-	ImGui::Text("AABB Max: (%.2f, %.2f, %.2f)", aabb_.max.x, aabb_.max.y, aabb_.max.z);
-	ImGui::Text("Capsule Start: (%.2f, %.2f, %.2f)", capsule_.segment.origin.x, capsule_.segment.origin.y, capsule_.segment.origin.z);
-	ImGui::Text("Capsule End: (%.2f, %.2f, %.2f)",
-		capsule_.segment.origin.x + capsule_.segment.diff.x,
-		capsule_.segment.origin.y + capsule_.segment.diff.y,
-		capsule_.segment.origin.z + capsule_.segment.diff.z);
-	ImGui::Text("Capsule Radius: %.2f", capsule_.radius);
+	camera->DrawImGui();
+
+	// プレイヤーOBB情報
+	ImGui::Begin("Player OBB");
+	ImGui::Text("Center: (%.2f, %.2f, %.2f)", obb_.center.x, obb_.center.y, obb_.center.z);
+	ImGui::Text("Size: (%.2f, %.2f, %.2f)", obb_.size.x, obb_.size.y, obb_.size.z);
 	ImGui::End();
 
-	ImGui::Begin("Physical Scene Controls");
-	ImGui::DragFloat3("AABB Min", &aabb_.min.x, 0.1f);
-	ImGui::DragFloat3("AABB Max", &aabb_.max.x, 0.1f);
-	ImGui::DragFloat3("Capsule Start", &capsule_.segment.origin.x, 0.1f);
-	ImGui::DragFloat3("Capsule End", &capsule_.segment.diff.x, 0.1f);
-	ImGui::DragFloat("Capsule Radius", &capsule_.radius, 0.1f, 0.0f, FLT_MAX);
-	ImGui::End();
 }

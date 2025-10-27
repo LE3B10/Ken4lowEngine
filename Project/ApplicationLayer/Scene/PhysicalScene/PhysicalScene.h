@@ -9,10 +9,14 @@
 #include <Sphere.h>
 #include <Triangle.h>
 
+#include "LevelObjectManager.h"
+#include "CollisionManager.h"
+
 #include <vector>
 
 /// ---------- 前方宣言 ---------- ///
 class Input;
+class Camera;
 
 /// -------------------------------------------------------------
 //				　		物理シーン
@@ -51,12 +55,13 @@ public: /// ---------- メンバ関数 ---------- ///
 private: /// ---------- メンバ変数 ---------- ///
 
 	Input* input_ = nullptr; // 入力管理クラス
+	Camera* camera = nullptr; // カメラ
 
 	AABB aabb_ = {};
 	AABB wallAABB_ = {}; // 壁用のAABBを追加
 
 
-	Capsule capsule_ = {};
+	//Capsule capsule_ = {};
 	OBB obb_ = {};
 	Plane plane_ = {};
 	Segment segment_ = {};
@@ -72,5 +77,13 @@ private: /// ---------- メンバ変数 ---------- ///
 	bool isWallCollision_ = false;
 
 	std::vector<std::pair<ColliderType, AABB>> aabbs_;
+
+	// 衝突マネージャー
+	std::unique_ptr<CollisionManager> collisionManager_ = nullptr;
+
+	std::unique_ptr<Collider> playerCollider_;
+
+	// レベルオブジェクトマネージャー
+	std::unique_ptr<LevelObjectManager> levelObjectManager_ = nullptr;
 };
 

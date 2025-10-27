@@ -330,6 +330,53 @@ bool CollisionUtility::IsCollision(const OBB& obb1, const OBB& obb2)
 	return true;
 }
 
+bool CollisionUtility::IsCollision(const OBB& obb, const AABB& aabb)
+{
+	// 1) OBBのワールド行列を作成（回転 R と 平行移動 C）
+	Matrix4x4 rot = {
+		obb.orientations[0].x, obb.orientations[0].y, obb.orientations[0].z, 0.0f,
+		obb.orientations[1].x, obb.orientations[1].y, obb.orientations[1].z, 0.0f,
+		obb.orientations[2].x, obb.orientations[2].y, obb.orientations[2].z, 0.0f,
+		0.0f,                   0.0f,                   0.0f,                   1.0f
+	};
+	Matrix4x4 world = rot;
+	world.m[3][0] = obb.center.x;
+	world.m[3][1] = obb.center.y;
+	world.m[3][2] = obb.center.z;
+
+	// 2) 逆行列で AABB の 8点を OBB ローカルへ
+	Matrix4x4 inv = Matrix4x4::Inverse(world);
+
+	const Vector3 corners[8] = {
+		{ aabb.min.x, aabb.min.y, aabb.min.z },
+		{ aabb.max.x, aabb.min.y, aabb.min.z },
+		{ aabb.min.x, aabb.max.y, aabb.min.z },
+		{ aabb.max.x, aabb.max.y, aabb.min.z },
+		{ aabb.min.x, aabb.min.y, aabb.max.z },
+		{ aabb.max.x, aabb.min.y, aabb.max.z },
+		{ aabb.min.x, aabb.max.y, aabb.max.z },
+		{ aabb.max.x, aabb.max.y, aabb.max.z },
+	};
+
+	Vector3 mn = { FLT_MAX,  FLT_MAX,  FLT_MAX };
+	Vector3 mx = { -FLT_MAX, -FLT_MAX, -FLT_MAX };
+	for (int i = 0; i < 8; ++i) {
+		Vector3 p = Vector3::Transform(corners[i], inv);  // ← OBBローカルへ変換
+		mn.x = std::min(mn.x, p.x);  mn.y = std::min(mn.y, p.y);  mn.z = std::min(mn.z, p.z);
+		mx.x = std::max(mx.x, p.x);  mx.y = std::max(mx.y, p.y);  mx.z = std::max(mx.z, p.z);
+	}
+
+	// 3) OBBローカルでの OBB は中心0・半径 half
+	const Vector3 half = obb.size * 0.5f; // ← half extents として統一
+
+	// 4) AABB×AABB の重なり（各軸）
+	const float EPS = 1e-6f; // 数値誤差吸収
+	const bool overlapX = (mn.x <= half.x + EPS) && (mx.x >= -half.x - EPS);
+	const bool overlapY = (mn.y <= half.y + EPS) && (mx.y >= -half.y - EPS);
+	const bool overlapZ = (mn.z <= half.z + EPS) && (mx.z >= -half.z - EPS);
+	return overlapX && overlapY && overlapZ;
+}
+
 /// -------------------------------------------------------------
 ///						Capsule–Capsule 衝突判定補助
 /// -------------------------------------------------------------

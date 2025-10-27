@@ -15,6 +15,7 @@
 #ifdef _DEBUG
 #include <DebugCamera.h>
 #endif // _DEBUG
+#include <CollisionUtility.h>
 
 static inline float DeltaAngle(float a, float b)
 {
@@ -91,8 +92,10 @@ void GamePlayScene::Initialize()
 	collisionManager_ = std::make_unique<CollisionManager>();
 	collisionManager_->Initialize();
 
-	stage_ = std::make_unique<Stage>();
-	stage_->Initialize();
+	auto levelLoader = std::make_unique<LevelLoader>();
+	levelObjectManager_ = std::make_unique<LevelObjectManager>();
+	levelObjectManager_->Initialize(*levelLoader->LoadLevel("Stage1.json"), "Stage1.gltf");
+	player_->SetLevelObjectManager(levelObjectManager_.get());
 }
 
 
@@ -136,7 +139,6 @@ void GamePlayScene::Update()
 
 		// 画的に必要な更新だけ許可
 		skyBox_->Update();
-		stage_->Update();
 		fadeController_->Update(deltaTime);
 		scarecrow_->Update();
 		itemManager_->Update(player_.get(), deltaTime);
@@ -156,7 +158,6 @@ void GamePlayScene::Update()
 	case GameState::Playing:
 		player_->Update(deltaTime);
 		skyBox_->Update();
-		stage_->Update();
 		scarecrow_->Update();
 		crosshair_->Update();
 		itemManager_->Update(player_.get(), deltaTime);
@@ -168,6 +169,8 @@ void GamePlayScene::Update()
 	default:
 		break;
 	}
+
+	levelObjectManager_->Update();
 
 	// 衝突マネージャの更新
 	collisionManager_->Update();
@@ -200,7 +203,8 @@ void GamePlayScene::Draw3DObjects()
 		scarecrow_->Draw();
 		itemManager_->Draw();
 	}
-	stage_->Draw();
+
+	levelObjectManager_->Draw();
 
 #pragma endregion
 
@@ -503,6 +507,12 @@ void GamePlayScene::CheckAllCollisions()
 {
 	// 衝突マネージャのリセット
 	collisionManager_->Reset();
+
+	// レベルオブジェクトのコライダーを登録
+	for (auto& uptr : levelObjectManager_->GetWorldColliders())
+	{
+		collisionManager_->AddCollider(uptr.get());
+	}
 
 	// コライダーをリストに登録
 	collisionManager_->AddCollider(player_.get()); // プレイヤー

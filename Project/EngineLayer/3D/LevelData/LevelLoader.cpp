@@ -13,12 +13,16 @@ using json = nlohmann::json;
 /// --------------------------------------------------------------
 std::unique_ptr<LevelData> LevelLoader::LoadLevel(const std::string& filePath)
 {
-	std::ifstream file(filePath);
+	// フルパスの作成
+	std::string fullPath = fileDirectory_ + filePath;
+
+	// ファイルストリームの作成
+	std::ifstream file(fullPath);
 
 	// ファイルが開けない場合のエラーチェック
 	if (file.fail())
 	{
-		std::cerr << "ファイルを開くことができません: " << filePath << std::endl;
+		std::cerr << "ファイルを開くことができません: " << fullPath << std::endl;
 		assert(false && "ファイルを開くことができません");
 	}
 
@@ -34,7 +38,7 @@ std::unique_ptr<LevelData> LevelLoader::LoadLevel(const std::string& filePath)
 	catch (const std::exception&)
 	{
 		// JSONのパースに失敗した場合の処理
-		std::cerr << "JSONの読み込みに失敗しました: " << filePath << std::endl;
+		std::cerr << "JSONの読み込みに失敗しました: " << fullPath << std::endl;
 		assert(false && "JSONの読み込みに失敗しました");
 	}
 
@@ -67,7 +71,7 @@ std::unique_ptr<LevelData> LevelLoader::LoadLevel(const std::string& filePath)
 		}
 
 		// オブジェクトのタイプに応じて処理を分岐
-		if (type.compare("MESH") == 0 || type.compare("PlayerSpawnPoint") == 0)
+		if (type.compare("MESH") == 0)
 		{
 			// MESHタイプのオブジェクトを処理
 			levelData->objects.emplace_back(ObjectData{});
@@ -96,6 +100,27 @@ std::unique_ptr<LevelData> LevelLoader::LoadLevel(const std::string& filePath)
 			objectData.scale.x = static_cast<float>(transform["scaling"][0]);
 			objectData.scale.y = static_cast<float>(transform["scaling"][2]);
 			objectData.scale.z = static_cast<float>(transform["scaling"][1]);
+		}
+
+		// コライダー情報の有無を確認
+		if (object.contains("collider"))
+		{
+			auto& jc = object["collider"];
+			ObjectData& objectData = levelData->objects.back();
+			objectData.collider.enabled = true;
+			objectData.collider.type = jc["type"].get<std::string>();
+
+			// center (X, Z→Y, Y→Z)
+			objectData.collider.center.x = -(float)jc["center"][0];
+			objectData.collider.center.y = (float)jc["center"][2];
+			objectData.collider.center.z = -(float)jc["center"][1];
+
+			if (jc.contains("size"))
+			{
+				objectData.collider.size.x = (float)jc["size"][0];
+				objectData.collider.size.y = (float)jc["size"][2];
+				objectData.collider.size.z = (float)jc["size"][1];
+			}
 		}
 	}
 
