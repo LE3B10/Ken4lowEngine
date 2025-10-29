@@ -1,6 +1,7 @@
 #define NOMINMAX
 #include "BallisticEffect.h"
 #include "CollisionManager.h"
+#include <CollisionTypeIdDef.h>
 
 #include <algorithm>
 #include <cmath>
@@ -118,6 +119,19 @@ void BallisticEffect::Update()
 		// 衝突判定
 		b.traveled += Vector3::Length(b.position - prev);
 
+		// === コライダーを最新化 ===
+		if (b.collider)
+		{
+			// 弾を中心としておく（デバッグ用）
+			b.collider->SetCenterPosition(b.position);
+
+			// 1フレームぶんの軌跡を線分として登録
+			Segment seg{};
+			seg.origin = prev;
+			seg.diff = (b.position - prev); // 終点 = prev + diff
+			b.collider->SetSegment(seg);
+		}
+
 		// ===== 単一セグメント（1発＝1本）を更新 =====
 		if (currentWeapon_.tracer.enabled)
 		{
@@ -173,16 +187,28 @@ void BallisticEffect::Update()
 		{
 			b.alive = false;
 
-			// 自分のセグメントも終了させる
+			// この弾に紐づくトレーサーを終了
 			for (auto& s : trails_)
 			{
 				if (s.attached && s.ownerId == b.userShotCount)
 				{
-					s.alive = false; // 回収対象に
+					s.alive = false;
 					break;
 				}
 			}
 		}
+
+		// 死んだ弾はコライダーをCollisionManagerから外して破棄
+		if (!b.alive && b.collider)
+		{
+			if (collisionMgr_)
+			{
+				collisionMgr_->RemoveCollider(b.collider);
+			}
+			delete b.collider;
+			b.collider = nullptr;
+		}
+
 	}
 
 	// ----- 軌跡セグメントの寿命管理 -----
@@ -461,6 +487,34 @@ void BallisticEffect::Start(const Vector3& position, const Vector3& velocity, co
 				b.traveled = 0.0f;
 				b.userShotCount = ++shotCounter_;
 				placed = true;
+
+				// コライダーの用意
+				if (b.collider == nullptr)
+				{
+					b.collider = new Collider();
+					b.collider->Initialize();
+
+					// このコライダーは「弾」なので Bullet のタイプIDを入れる
+					b.collider->SetTypeID(static_cast<uint32_t>(CollisionTypeIdDef::kBullet));
+
+					// デバッグ用にOBBを無効っぽくする(半サイズ0なら描画されない仕様)
+					b.collider->SetOBBHalfSize({ 0.0f,0.0f,0.0f });
+
+					// CollisionManagerに登録
+					if (collisionMgr_) {
+						collisionMgr_->AddCollider(b.collider);
+					}
+				}
+
+				// 初期位置の更新(中心座標として持たせておくとImGuiで見やすい)
+				b.collider->SetCenterPosition(b.position);
+
+				// Segment初期化（まだ動いてないので長さ0でOK）
+				Segment seg{};
+				seg.origin = b.position;
+				seg.diff = { 0.0f,0.0f,0.0f };
+				b.collider->SetSegment(seg);
+
 				break;
 			}
 		}
@@ -468,7 +522,30 @@ void BallisticEffect::Start(const Vector3& position, const Vector3& velocity, co
 		// 空きがなければ新規追加
 		if (!placed)
 		{
-			Bullet nb{ bulletBasePos, pelletVel, true, 0.0f, ++shotCounter_ };
+			Bullet nb{};
+			nb.position = bulletBasePos;
+			nb.velocity = pelletVel;
+			nb.alive = true;
+			nb.traveled = 0.0f;
+			nb.userShotCount = ++shotCounter_;
+
+			// ★ Collider生成
+			nb.collider = new Collider();
+			nb.collider->Initialize();
+			nb.collider->SetTypeID(static_cast<uint32_t>(CollisionTypeIdDef::kBullet));
+			nb.collider->SetOBBHalfSize({ 0.0f,0.0f,0.0f });
+			nb.collider->SetCenterPosition(nb.position);
+
+			{
+				Segment seg{};
+				seg.origin = nb.position;
+				seg.diff = { 0.0f,0.0f,0.0f };
+				nb.collider->SetSegment(seg);
+			}
+
+			// Manager登録
+			if (collisionMgr_) collisionMgr_->AddCollider(nb.collider);
+
 			bullets_.push_back(nb);
 		}
 
@@ -488,6 +565,17 @@ void BallisticEffect::Start(const Vector3& position, const Vector3& velocity, co
 Vector3 BallisticEffect::GetMuzzleWorld() const
 {
 	return ComputeMuzzleWorld(parentTransform_, transform_, offset_);
+}
+
+void BallisticEffect::RegisterColliders(CollisionManager* mgr)
+{
+	if (!mgr) return;
+	for (auto& b : bullets_)
+	{
+		if (b.alive && b.collider) {
+			mgr->AddCollider(b.collider);
+		}
+	}
 }
 
 /// -------------------------------------------------------------

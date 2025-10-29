@@ -100,7 +100,7 @@ PixelShaderOutput main(VertexShaderOutput input)
     [loop]
     for (uint i = 0; i < gLightInfo.gLightCount; ++i)
     {
-        PunctualLight L = gPunctualLights[i]; // ★ gLights → gPunctualLights
+        PunctualLight L = gPunctualLights[i]; // gLights → gPunctualLights
 
         float atten = 1.0;
         float3 Ldir = normalize(L.direction);

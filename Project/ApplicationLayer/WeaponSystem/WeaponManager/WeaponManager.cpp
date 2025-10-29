@@ -177,6 +177,11 @@ void WeaponManager::SetParentTransforms(const WorldTransformEx* rightArmTransfor
 	}
 }
 
+void WeaponManager::RegisterColliders(CollisionManager* mgr)
+{
+	if (ballisticEffect_) ballisticEffect_->RegisterColliders(mgr);
+}
+
 /// -------------------------------------------------------------
 ///				　		ImGui武器の描画処理
 /// -------------------------------------------------------------

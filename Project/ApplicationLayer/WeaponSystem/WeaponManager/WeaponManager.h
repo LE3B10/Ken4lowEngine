@@ -16,6 +16,7 @@
 
 /// ---------- 前方宣言 ---------- ///
 class Input;
+class CollisionManager;
 
 /// -------------------------------------------------------------
 ///				　		  武器管理クラス
@@ -51,6 +52,11 @@ public: /// ---------- メンバ関数 ---------- ///
 	// 現在の武器設定を取得
 	const WeaponConfig& GetCurrentConfig() const { return fireState_.weaponConfig; }
 
+	// 衝突管理者を設定
+	void SetCollisionManager(CollisionManager* collisionManager) { ballisticEffect_->SetCollisionManager(collisionManager); }
+
+	void RegisterColliders(CollisionManager* mgr);
+
 private: /// ---------- メンバ関数 ---------- ///
 
 	// 武器選択
@@ -59,6 +65,7 @@ private: /// ---------- メンバ関数 ---------- ///
 private: /// ---------- メンバ変数 ---------- ///
 
 	Input* input_ = nullptr; // 入力クラス
+	CollisionManager* collisionManager_ = nullptr; // 衝突管理者
 
 	// 親ワールド変換ポインタ
 	const WorldTransformEx* rightArmTransform_ = nullptr;

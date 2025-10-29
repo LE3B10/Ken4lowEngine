@@ -84,6 +84,15 @@ public: /// ---------- 設定処理 ---------- ///
 	// 反射率の設定
 	void SetReflectivity(float reflectivity) { material_.SetReflection(reflectivity); }
 
+	// 全サブメッシュを同じテクスチャに差し替える
+	void SetTextureForAll(const std::string& texturePath);
+
+	// 指定サブメッシュだけ差し替える（必要なら）
+	void SetTextureForSubmesh(size_t index, const std::string& texturePath);
+
+	// サブメッシュ数の取得（UI で使うなら）
+	size_t GetSubmeshCount() const { return meshes_.size(); }
+
 public: /// ---------- ディゾルブの設定 ---------- ///
 
 	// ディゾルブの閾値を設定

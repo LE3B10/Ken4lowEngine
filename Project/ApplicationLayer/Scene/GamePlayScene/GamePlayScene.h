@@ -8,10 +8,10 @@
 #include "CollisionManager.h"
 
 #include "Player.h"
+#include "Enemy.h"
 #include "ModelParticle.h"
 #include "BallisticEffect.h"
 #include "Crosshair.h"
-#include "Scarecrow.h" // 案山子クラス
 #include "ItemManager.h"
 #include "Stage.h"
 
@@ -136,14 +136,23 @@ private: /// ---------- メンバ変数 ---------- ///
 private: /// ---------- メンバ変数 ---------- ///
 
 	std::unique_ptr<Player> player_ = nullptr; // プレイヤー
+	std::unique_ptr<Enemy> enemy_ = nullptr; // 敵キャラクター
 	std::unique_ptr<Crosshair> crosshair_ = nullptr; // クロスヘア
 	std::unique_ptr<BallisticEffect> ballisticEffect_ = nullptr; // 弾道エフェクト
-
-	std::unique_ptr<Scarecrow> scarecrow_ = nullptr; // 案山子
 
 	std::unique_ptr<ItemManager> itemManager_ = nullptr; // アイテムマネージャー
 
 	std::unique_ptr<Stage> stage_ = nullptr; // ステージ
 
 	std::unique_ptr<LevelObjectManager> levelObjectManager_ = nullptr; // レベルオブジェクトマネージャー
+
+	std::unique_ptr<Sprite> retryButtonSprite_;   // 右下: リトライ
+	std::unique_ptr<Sprite> retireButtonSprite_;  // 左下: リタイア(タイトルへ)
+
+	struct ButtonRect {
+		float x, y;      // 左上
+		float w, h;      // サイズ
+	};
+	ButtonRect retryRect_;   // クリック判定用
+	ButtonRect retireRect_;  // クリック判定用
 };

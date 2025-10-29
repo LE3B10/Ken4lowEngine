@@ -3,8 +3,13 @@
 #include <WorldTransformEx.h>
 #include "WeaponConfig.h"
 
+#include "Collider.h"
+
 #include <memory>
 #include <vector>
+
+/// ---------- 前方宣言 ---------- ///
+class CollisionManager;
 
 /// -------------------------------------------------------------
 ///				　		　弾道エフェクト
@@ -36,6 +41,8 @@ private: /// ---------- 構造体 ---------- ///
 		bool alive;       // 生存フラグ
 		float traveled;    // 移動距離
 		uint32_t userShotCount; // 発射からのフレーム数（トレーサ間引き用）
+
+		Collider* collider = nullptr; // 衝突判定用コライダー 
 	};
 
 	// マズルフラッシュ
@@ -112,6 +119,12 @@ public: /// ---------- セッター・ゲッター ---------- ///
 	// 銃口のワールド座標（親＋offset_）を返す
 	Vector3 GetMuzzleWorld() const;
 
+	// 当たり判定管理を渡す
+	void SetCollisionManager(CollisionManager* mgr) { collisionMgr_ = mgr; }
+
+	// 当たり判定を登録
+	void RegisterColliders(CollisionManager* mgr);
+
 private: /// ---------- メンバ関数 ---------- ///
 
 	// セグメントを1本追加（前pos→今pos）
@@ -127,6 +140,9 @@ private: /// ---------- メンバ関数 ---------- ///
 	void SpawnCasing(const Vector3& basePos, const Vector3& forward, const WeaponConfig& weapon);
 
 private: /// ---------- メンバ変数 ---------- ///
+
+	// 当たり判定管理
+	CollisionManager* collisionMgr_ = nullptr;
 
 	// ワールド変換
 	WorldTransformEx transform_;

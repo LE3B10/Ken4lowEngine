@@ -30,7 +30,7 @@ public: /// ---------- メンバ関数 ---------- ///
 public: /// ---------- 仮想関数 ---------- ///
 
 	// 衝突時に呼ばれる仮想関数
-	virtual void OnCollision(Collider* other) override;
+	virtual void OnCollision(Collider* other) override = 0;
 
 	// 中心座標を取得する純粋仮想関数
 	virtual Vector3 GetCenterPosition() const override = 0;
