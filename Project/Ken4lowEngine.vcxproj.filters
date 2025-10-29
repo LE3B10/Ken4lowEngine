@@ -397,14 +397,14 @@
     <ClCompile Include="ApplicationLayer\WeaponSystem\Weapon\WeaponCatalog\WeaponCatalog.cpp">
       <Filter>ApplicationLayer\WeaponSystem\Weapon\WeaponCatalog</Filter>
     </ClCompile>
-    <ClCompile Include="ApplicationLayer\Character\Scarecrow.cpp">
-      <Filter>ApplicationLayer\Character</Filter>
-    </ClCompile>
     <ClCompile Include="ApplicationLayer\Stage\Stage.cpp">
       <Filter>ApplicationLayer\Stage</Filter>
     </ClCompile>
     <ClCompile Include="ApplicationLayer\WeaponSystem\WeaponManager\WeaponManager.cpp">
       <Filter>ApplicationLayer\WeaponSystem\WeaponManager</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\Character\Enemy\Enemy.cpp">
+      <Filter>ApplicationLayer\Character\Enemy</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -849,9 +849,6 @@
     <ClInclude Include="ApplicationLayer\WeaponSystem\Weapon\WeaponConfig\WeaponClass.h">
       <Filter>ApplicationLayer\WeaponSystem\Weapon\WeaponConfig</Filter>
     </ClInclude>
-    <ClInclude Include="ApplicationLayer\Character\Scarecrow.h">
-      <Filter>ApplicationLayer\Character</Filter>
-    </ClInclude>
     <ClInclude Include="ApplicationLayer\Stage\Stage.h">
       <Filter>ApplicationLayer\Stage</Filter>
     </ClInclude>
@@ -863,6 +860,9 @@
     </ClInclude>
     <ClInclude Include="ApplicationLayer\Character\Player\FireState.h">
       <Filter>ApplicationLayer\Character\Player</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Character\Enemy\Enemy.h">
+      <Filter>ApplicationLayer\Character\Enemy</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -1224,6 +1224,9 @@
     </Filter>
     <Filter Include="ApplicationLayer\WeaponSystem\WeaponManager">
       <UniqueIdentifier>{80dd651f-f280-4c45-89e1-e945e60331a1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ApplicationLayer\Character\Enemy">
+      <UniqueIdentifier>{be2d6a9f-8c22-4da6-85c8-ff7585c0a873}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

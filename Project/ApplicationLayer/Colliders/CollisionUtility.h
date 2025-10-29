@@ -54,6 +54,7 @@ public: /// ---------- メンバ関数 ---------- ///
 
 	// OBBとOBBの衝突判定
 	static bool IsCollision(const OBB& obb1, const OBB& obb2);
+	static bool IsCollision(const OBB& obb, const AABB& aabb);
 
 	// CapsuleとCapsuleの衝突判定
 	static bool IsCollision(const Capsule& capsule1, const Capsule& capsule2);

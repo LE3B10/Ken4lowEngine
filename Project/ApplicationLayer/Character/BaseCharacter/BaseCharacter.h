@@ -30,13 +30,13 @@ public: /// ---------- メンバ関数 ---------- ///
 	virtual ~BaseCharacter() = default;
 
 	// 初期化処理
-	virtual void Initialize() = 0;
+	virtual void Initialize();
 
 	// 更新処理
 	virtual void Update(float deltaTime);
 
 	// 描画処理
-	virtual void Draw() = 0;
+	virtual void Draw();
 
 	// ImGui描画処理
 	virtual void DrawImGui() = 0;
@@ -49,6 +49,15 @@ public: /// ---------- メンバ関数 ---------- ///
 
 	// 中心座標を取得
 	virtual Vector3 GetCenterPosition() const override;
+
+	// 全部位にスキンを適用する静的関数
+	static void ApplySkinTo(Object3D* obj, const std::string& texPath)
+	{
+		if (!obj) return; // nullチェック
+
+		// 全サブメッシュを同じテクスチャに差し替える
+		obj->SetTextureForAll(texPath);
+	}
 
 protected: /// ---------- メンバ関数 ---------- ///
 

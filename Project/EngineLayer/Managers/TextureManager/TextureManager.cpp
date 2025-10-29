@@ -146,27 +146,58 @@ void TextureManager::LoadTexture(const std::string& filePath)
 
 	// ミップマップの作成（ScratchImageに保持する）
 	DirectX::ScratchImage mipImages{};
-	const auto& meta = image.GetMetadata();
+	//const auto& meta = image.GetMetadata(); // 読み込んだ画像のメタデータを取得
+	const auto& meta0 = image.GetMetadata(); // 最初の画像のメタデータを取得
+
+	// 旧スキン系：幅が高さの2倍 (64x32, 128x64, 256x128 ...)
+	const bool isLegacyTall = (meta0.width == meta0.height * 2);
+
+	// 正方ではないテクスチャなら、縦を倍にした空キャンパスへコピーして正方化
+	DirectX::ScratchImage normalized; // 正方化した画像を保持するScratchImage
+	if (isLegacyTall)
+	{
+		DirectX::TexMetadata metaData0 = meta0; // 最初の画像のメタデータを取得
+		metaData0.height = meta0.width; // 高さを幅に合わせて正方化
+		metaData0.mipLevels = 1; // ミップレベルは1に設定
+		metaData0.arraySize = 1; // 配列サイズは元のまま
+
+		// 64x64 128x128 ... の正方キャンパスを作成
+		hr = normalized.Initialize2D(metaData0.format, metaData0.width, metaData0.height, metaData0.arraySize, metaData0.mipLevels);
+		assert(SUCCEEDED(hr)); // 正方キャンパスの初期化に成功
+
+		// 元画像を正方キャンパスの上半分にコピー
+		const DirectX::Image* srcImage = image.GetImage(0, 0, 0); // 元画像の最初のイメージを取得
+		const DirectX::Image* destImage = normalized.GetImage(0, 0, 0); // 正方キャンパスの最初のイメージを取得
+
+		DirectX::Rect srcRect = { 0, 0, static_cast<size_t>(srcImage->width), static_cast<size_t>(srcImage->height) }; // 元画像のコピー元矩形
+
+		// コピー先のYオフセットを計算（正方キャンパスの上半分に配置）
+		hr = DirectX::CopyRectangle(*srcImage, srcRect, *destImage, DirectX::TEX_FILTER_DEFAULT, 0, UINT(srcImage->height)); // 元画像を正方キャンパスにコピー
+		assert(SUCCEEDED(hr)); // コピーに成功
+	}
+
+	DirectX::ScratchImage& baseImage = isLegacyTall ? normalized : image; // 正方化した画像か元画像かを選択
+	const auto& baseMeta = baseImage.GetMetadata(); // ベース画像のメタデータを取得
 
 	// ミップレベル数を画像サイズから自動算出
-	size_t maxMips = static_cast<size_t>(std::log2(std::max(meta.width, meta.height))) + 1;
+	size_t maxMips = static_cast<size_t>(std::log2(std::max(baseMeta.width, baseMeta.height))) + 1;
 	size_t mipLevels = std::min(maxMips, size_t(4)); // 最大4ミップまで生成
 
-	if (DirectX::IsCompressed(meta.format))
+	if (DirectX::IsCompressed(baseMeta.format))
 	{
 		// 圧縮フォーマットならミップ生成せずそのまま使う
-		mipImages = std::move(image);
+		mipImages = std::move(baseImage);
 	}
-	else if (meta.width > 1 && meta.height > 1)
+	else if (baseMeta.width > 1 && baseMeta.height > 1)
 	{
 		// 非圧縮かつ2x2以上ならミップマップを生成
-		hr = DirectX::GenerateMipMaps(image.GetImages(), image.GetImageCount(), meta, DirectX::TEX_FILTER_SRGB, mipLevels, mipImages);
+		hr = DirectX::GenerateMipMaps(baseImage.GetImages(), baseImage.GetImageCount(), baseMeta, DirectX::TEX_FILTER_SRGB, mipLevels, mipImages);
 		assert(SUCCEEDED(hr));
 	}
 	else
 	{
 		// 1x1などミップマップを生成できないサイズのときは、そのまま1レベルの画像として初期化
-		hr = mipImages.InitializeFromImage(*image.GetImages()); // ← ここで参照渡し
+		hr = mipImages.InitializeFromImage(*baseImage.GetImages()); // ← ここで参照渡し
 		assert(SUCCEEDED(hr));
 	}
 

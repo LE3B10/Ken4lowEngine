@@ -323,7 +323,7 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	// 線分
 	uint32_t lineIndex_ = 0;
-	const uint32_t kLineMaxCount_ = 100000;
+	const uint32_t kLineMaxCount_ = 1000000;
 	const uint32_t kLineVertexCount = 2;
 
 	// マトリックス

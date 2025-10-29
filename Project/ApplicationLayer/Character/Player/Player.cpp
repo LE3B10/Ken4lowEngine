@@ -6,63 +6,47 @@
 #include <AudioManager.h>
 #include "LinearInterpolation.h"
 #include "ToWeaponConfig.h"
+#include "LevelObjectManager.h"
+#include "Enemy.h"
 
 #include <algorithm>
 #include <filesystem>
 #include <imgui.h>
+#include <AABB.h>
 
 /// -------------------------------------------------------------
 ///				　			　 初期化処理
 /// -------------------------------------------------------------
 void Player::Initialize()
 {
+	// ベースキャラクター初期化
+	BaseCharacter::Initialize();
+
+	// 入力取得
 	input_ = Input::GetInstance();
+
+	// テクスチャの設定
+	if (body_.object) BaseCharacter::ApplySkinTo(body_.object.get(), skinTexturePath_);
+	for (auto& part : parts_) { if (part.object) BaseCharacter::ApplySkinTo(part.object.get(), skinTexturePath_); }
 
 	// ID登録
 	Collider::SetTypeID(static_cast<uint32_t>(CollisionTypeIdDef::kPlayer));
 	Collider::SetOwner<Player>(this);
 	Collider::SetOBBHalfSize({ 0.8f, 2.0f, 0.8f });
 
-	// 体幹部位の初期化
-	body_.object = std::make_unique<Object3D>();
-	body_.object->Initialize("PlayerRoot/player_body.gltf");
-	body_.transform.translate_ = { 0.0f, 2.25f, 0.0f };	// 初期位置
-
-	// 子オブジェクト（頭、腕、脚）をリストに追加
-	std::vector<std::pair<std::string, Vector3>> partData =
-	{
-		{"PlayerRoot/player_head.gltf", {0.0f, 0.75f, 0.0f}},      // 頭   : 0
-		{"PlayerRoot/player_LeftArm.gltf", {-0.75f, 0.75f, 0.0f}}, // 左腕 : 1
-		{"PlayerRoot/player_RightArm.gltf",{ 0.75f, -0.75f, 0}},   // 右腕 : 2
-		{"PlayerRoot/player_LeftLeg.gltf", {-0.25f, -0.75f, 0} },  // 左脚 : 3
-		{"PlayerRoot/player_RightLeg.gltf", {0.25f, -0.75f, 0} }   // 右脚 : 4
-	};
-
-	// 部位データをもとに部位オブジェクトを生成
-	for (const auto& [modelPath, position] : partData)
-	{
-		// ローカル変数で部位データを作成
-		BodyPart part = {};
-		part.object = std::make_unique<Object3D>();			  // オブジェクト生成
-		part.object->Initialize(modelPath); 				  // モデル読み込み
-		part.transform.translate_ = position;				  // 位置設定
-		part.object->SetTranslate(part.transform.translate_); // オブジェクトにも位置設定
-		part.transform.parent_ = &body_.transform;			  // 親を設定
-		parts_.push_back(std::move(part));					  // リストに追加
-	}
-
 	// FPSカメラ
 	fpsCamera_ = std::make_unique<FpsCamera>();
 	fpsCamera_->Initialize(this);
-
-	movementState_.groundY = body_.transform.translate_.y;  // 今立っている高さを床として扱う
-	movementState_.isGrounded = true;						  // 接地中
-	movementState_.vY = 0.0f;								  // 縦速度初期化
 
 	// 武器マネージャー初期化
 	weaponManager_ = std::make_unique<WeaponManager>();
 	weaponManager_->SetParentTransforms(&parts_[partIndices_.rightArm].transform); // 右腕を親に設定
 	weaponManager_->InitializeWeapons(fireState_, deathState_);					   // 武器初期化
+	weaponManager_->SetCollisionManager(collisionManager_); // 衝突管理者設定
+
+	// 体力初期化
+	hp_ = maxHp_;
+	hurtTimer_ = 0.0f;
 }
 
 
@@ -114,21 +98,14 @@ void Player::Update(float deltaTime)
 	// 死亡完了
 	if (deathState_.isDead)
 	{
-#ifdef _DEBUG
-		if (input_->TriggerKey(DIK_R))
-		{
-			deathState_.isDead = false; // 死亡フラグ解除
-			body_.transform.translate_ = { 0.0f, movementState_.groundY + 2.25f, 0.0f }; // 初期位置にリセット
-			body_.transform.rotate_ = { 0.0f, 0.0f, 0.0f }; // 回転リセット
-			body_.transform.translate_.y = movementState_.groundY; // 地面に戻す
-			fpsCamera_->SetViewMode(FpsCamera::ViewMode::FirstPerson); // 一人称視点へ
-
-			body_.object->SetDissolveThreshold(1.0f);
-			for (auto& p : parts_) p.object->SetDissolveThreshold(1.0f);
-		}
-#endif // _DEBUG
 		BaseCharacter::Update(deltaTime); // ベースキャラクターの更新は行う
 		return;
+	}
+
+	// ダメージタイマー更新
+	if (hurtTimer_ > 0.0f) {
+		hurtTimer_ -= deltaTime;
+		if (hurtTimer_ < 0.0f) hurtTimer_ = 0.0f;
 	}
 
 	// 移動処理
@@ -179,11 +156,8 @@ void Player::Update(float deltaTime)
 /// -------------------------------------------------------------
 void Player::Draw()
 {
-	// 体幹部位の描画
-	if (body_.active) { body_.object->Draw(); }
-
-	// 部位データ配列の描画
-	for (auto& part : parts_) if (part.active) { part.object->Draw(); }
+	// ベースキャラクター描画
+	BaseCharacter::Draw();
 
 	// 武器描画
 	weaponManager_->DrawWeapons();
@@ -194,7 +168,28 @@ void Player::Draw()
 /// -------------------------------------------------------------
 void Player::OnCollision(Collider* other)
 {
-	(void)other; // 未使用警告回避
+	uint32_t serialNumber = other->GetUniqueID(); // 相手のシリアルナンバー取得
+
+	if (other->GetTypeID() == static_cast<uint32_t>(CollisionTypeIdDef::kWorld))
+	{
+
+	}
+
+	// 衝突相手がエネミーの場合
+	if (other->GetTypeID() == static_cast<uint32_t>(CollisionTypeIdDef::kEnemy))
+	{
+		Enemy* enemy = other->GetOwner<Enemy>();
+		if (!enemy) return; // オーナー取得失敗なら抜ける
+
+		// 接触記録があれば何もせず抜ける
+		if (contactRecord_.Check(serialNumber)) return;
+
+		// 接触記録に登録
+		contactRecord_.Add(serialNumber);
+
+		// 弾丸と衝突したときの処理
+		OutputDebugStringA("Enemy hit by bullet!\n");
+	}
 }
 
 /// -------------------------------------------------------------
@@ -202,9 +197,79 @@ void Player::OnCollision(Collider* other)
 /// -------------------------------------------------------------
 Vector3 Player::GetCenterPosition() const
 {
-	const Vector3 offset = { 0.0f,1.0f,0.0f };
+	const Vector3 offset = { 0.0f,0.0f,0.0f };
 	Vector3 worldPosition = body_.transform.translate_ + offset;
 	return worldPosition;
+}
+
+/// -------------------------------------------------------------
+///				　	コライダー登録処理
+/// -------------------------------------------------------------
+void Player::RegisterColliders(CollisionManager* mgr)
+{
+	if (weaponManager_) weaponManager_->RegisterColliders(mgr);
+}
+
+/// -------------------------------------------------------------
+///				　　敵から殴られた瞬間のリアクション用
+/// -------------------------------------------------------------
+void Player::ApplyDamageImpulse(const Vector3& dir, float horizontalPow, float upPow)
+{
+	// 水平向きだけ取り出して正規化
+	Vector3 flatDir = dir;
+	flatDir.y = 0.0f;
+	if (Vector3::Length(flatDir) > 0.0001f) {
+		flatDir = Vector3::Normalize(flatDir);
+	}
+	else {
+		flatDir = { 0.0f, 0.0f, -1.0f };
+	}
+
+	// 「こう押し飛ばされたい」理想の速度
+	Vector3 desired = flatDir * horizontalPow;
+
+	// 今の knockbackVel_ を desired に近づける（いきなりドンじゃなく、スッと押される感じ）
+	// lerp: v = v + (desired - v) * gain
+	knockbackVel_ += (desired - knockbackVel_) * hurtKnockbackGain_;
+
+	// 空中に飛ばす
+	jumpState_.isGrounded = false;
+
+	// 上向きは殴られた瞬間にちゃんと吹き上げたいので、こっちは即セット寄りでOK
+	if (jumpState_.jumpVelocity < upPow) {
+		jumpState_.jumpVelocity = upPow;
+	}
+}
+
+/// -------------------------------------------------------------
+///				　		　 ダメージ処理
+/// -------------------------------------------------------------
+void Player::TakeDamage(float amount)
+{
+	// すでに死亡中 or 死亡後なら何もしない
+	if (deathState_.inDeathSeq || deathState_.isDead) {
+		return;
+	}
+
+	// 無敵中なら食らわない
+	if (hurtTimer_ > 0.0f) {
+		return;
+	}
+
+	// HPを減らす
+	hp_ -= amount;
+	if (hp_ < 0.0f) { hp_ = 0.0f; }
+
+	// 無敵時間スタート
+	hurtTimer_ = hurtInvincibleTime_;
+
+	// HPが0以下なら死亡演出開始
+	if (hp_ <= 0.0f)
+	{
+		StartDeath(DeathMode::BlowAway);
+		// StartDeath() は deathState_.inDeathSeq = true にして
+		// Update() 側が以降の操作を死亡演出モードに切り替える。:contentReference[oaicite:10]{index=10}
+	}
 }
 
 /// -------------------------------------------------------------
@@ -212,14 +277,28 @@ Vector3 Player::GetCenterPosition() const
 /// -------------------------------------------------------------
 void Player::Move(float deltaTime)
 {
-	// コライダー位置更新
-	Collider::SetCenterPosition(body_.transform.translate_ - Vector3{ 0.0f,0.3f,0.0f });
+	(void)deltaTime; // 未使用
 
-	// 仮実装
+	// 物理中心 ←→ 描画ピボットの固定オフセット（いままで -0.25 を使っていた値）
+	const Vector3 kCenterOffset = { 0.0f, 0.25f, 0.0f };
+
+	// 物理は「中心」で扱うので、まず現在の物理中心を求める
+	Vector3 physCenter = body_.transform.translate_ - kCenterOffset;
+
+	// コライダー中心も同期（物理中心を渡す）
+	Collider::SetCenterPosition(physCenter);  // ← ここを body_ から計算した physCenter に統一
+
+	// --- 前準備 ---
 	const float moveSpeed = 0.1f;
-	Vector3 move{ 0,0,0 };
+	const Vector3 half = { 0.8f, 2.0f, 0.8f }; // Collider::SetOBBHalfSize と同じ半サイズ
+	const float kEps = 0.002f;
 
-	if (!viewState_.isDebugCamera) // デバッグカメラ中は無効
+	// AABBユーティリティ
+	auto makeAABB = [&](const Vector3& c) { return AABB{ c - half, c + half }; };
+
+	// --- 入力から水平移動ベクトル ---
+	Vector3 move{ 0,0,0 };
+	if (!viewState_.isDebugCamera)
 	{
 		if (input_->PushKey(DIK_W)) move.z += moveSpeed;
 		if (input_->PushKey(DIK_S)) move.z -= moveSpeed;
@@ -227,19 +306,121 @@ void Player::Move(float deltaTime)
 		if (input_->PushKey(DIK_D)) move.x += moveSpeed;
 	}
 
-	// 斜め移動補正
+	// 正規化して移動速度に調整
 	if (Vector3::Length(move) > 0.0f) move = Vector3::Normalize(move) * moveSpeed;
 
-	// 三人称前面視点では前後反転
+	// 三人称前方視点なら前後反転
 	if (fpsCamera_->GetViewMode() == FpsCamera::ViewMode::ThirdFront) move.z *= -1.0f;
 
-	// カメラの向きに合わせて移動ベクトルを回転
+	// カメラYawで回す（水平）
 	const float yaw = fpsCamera_->GetCamera()->GetRotate().y;
 	const float s = std::sinf(yaw), c = std::cosf(yaw);
 	move = { move.x * c - move.z * s, 0.0f, move.x * s + move.z * c };
 
-	// 体の移動
-	body_.transform.translate_ += move;
+	// --- ジャンプ ---
+	if (jumpState_.isGrounded && input_->PushKey(DIK_SPACE))
+	{
+		jumpState_.jumpVelocity = jumpState_.jumpPower;
+		jumpState_.isGrounded = false;
+	}
+
+	// --- 重力 ---
+	jumpState_.jumpVelocity -= jumpState_.gravity;
+	move.y = jumpState_.jumpVelocity; // ← Yは毎フレームの速度ぶんだけ
+
+	move += knockbackVel_; // ノックバック速度を加算
+
+	// レベルオブジェクトのAABBリスト取得
+	const auto worldAABBs = levelObjectManager_->GetWorldAABBs();
+
+	// 物理中心
+	Vector3 oldCenter = physCenter;
+	Vector3 newCenter = oldCenter;
+
+	// 衝突解決ラムダ
+	auto resolveAxis = [&](int axis, float delta)
+		{
+			if (delta == 0.0f) return;
+			if (axis == 0) newCenter.x += delta;
+			if (axis == 1) newCenter.y += delta;
+			if (axis == 2) newCenter.z += delta;
+
+			AABB p = makeAABB(newCenter);
+
+			bool hit = false; float bestFix = 0.0f; float bestDist = FLT_MAX;
+
+			// 全ワールドAABBと当たり判定チェック
+			for (const auto& w : worldAABBs)
+			{
+				if (!(p.min.x <= w.max.x && p.max.x >= w.min.x &&
+					p.min.y <= w.max.y && p.max.y >= w.min.y &&
+					p.min.z <= w.max.z && p.max.z >= w.min.z)) continue;
+
+				float cand = 0.0f; bool valid = false;
+
+				if (axis == 0)
+				{
+					if (oldCenter.x + half.x <= w.min.x) { cand = (w.min.x - half.x) - kEps; valid = true; }
+					else if (oldCenter.x - half.x >= w.max.x) { cand = (w.max.x + half.x) + kEps; valid = true; }
+					else
+					{
+						float dMin = fabsf((w.min.x - half.x) - oldCenter.x);
+						float dMax = fabsf((w.max.x + half.x) - oldCenter.x);
+						cand = (dMin <= dMax) ? (w.min.x - half.x - kEps) : (w.max.x + half.x + kEps);
+						valid = true;
+					}
+					if (valid) { float dist = fabsf(cand - newCenter.x); if (dist < bestDist) { bestDist = dist; bestFix = cand; hit = true; } }
+				}
+				else if (axis == 2)
+				{
+					if (oldCenter.z + half.z <= w.min.z) { cand = (w.min.z - half.z) - kEps; valid = true; }
+					else if (oldCenter.z - half.z >= w.max.z) { cand = (w.max.z + half.z) + kEps; valid = true; }
+					else
+					{
+						float dMin = fabsf((w.min.z - half.z) - oldCenter.z);
+						float dMax = fabsf((w.max.z + half.z) - oldCenter.z);
+						cand = (dMin <= dMax) ? (w.min.z - half.z - kEps) : (w.max.z + half.z + kEps);
+						valid = true;
+					}
+					if (valid) { float dist = fabsf(cand - newCenter.z); if (dist < bestDist) { bestDist = dist; bestFix = cand; hit = true; } }
+				}
+				else
+				{
+					// Y（床/天井）
+					if (oldCenter.y - half.y >= w.max.y) { cand = (w.max.y + half.y) + kEps; valid = true; } // 床
+					else if (oldCenter.y + half.y <= w.min.y) { cand = (w.min.y - half.y) - kEps; valid = true; } // 天井
+					else
+					{
+						float dFloor = fabsf((w.max.y + half.y) - oldCenter.y);
+						float dCeil = fabsf((w.min.y - half.y) - oldCenter.y);
+						cand = (dFloor <= dCeil) ? (w.max.y + half.y + kEps) : (w.min.y - half.y - kEps);
+						valid = true;
+					}
+					if (valid) { float dist = fabsf(cand - newCenter.y); if (dist < bestDist) { bestDist = dist; bestFix = cand; hit = true; } }
+				}
+			}
+
+			if (hit)
+			{
+				if (axis == 0) newCenter.x = bestFix;
+				if (axis == 2) newCenter.z = bestFix;
+				if (axis == 1)
+				{
+					newCenter.y = bestFix;
+					if (delta < 0.0f) { jumpState_.isGrounded = true; jumpState_.jumpVelocity = 0.0f; }
+					else if (jumpState_.jumpVelocity > 0.0f) { jumpState_.jumpVelocity = 0.0f; }
+				}
+			}
+		};
+
+	jumpState_.isGrounded = false;
+	resolveAxis(0, move.x);
+	resolveAxis(2, move.z);
+	resolveAxis(1, move.y);
+
+	// 描画は「物理中心 + オフセット」
+	physCenter = newCenter;
+	body_.transform.translate_ = physCenter + kCenterOffset;
 
 	/// ---------- 体と頭の回転処理 ---------- ///
 	const bool  isFP = (fpsCamera_->GetViewMode() == FpsCamera::ViewMode::FirstPerson);
@@ -264,40 +445,13 @@ void Player::Move(float deltaTime)
 		parts_[partIndices_.head].transform.rotate_.x = std::clamp(camPitch, -viewState_.headPitchLimit, viewState_.headPitchLimit);
 	}
 
-	// ジャンプ
-	if (!viewState_.isDebugCamera && movementState_.isGrounded && input_->PushKey(DIK_SPACE))
-	{
-		movementState_.vY = movementState_.jumpSpeed;
-		movementState_.isGrounded = false;
-	}
-
-	// 空中は重力適用
-	if (!movementState_.isGrounded)
-	{
-		movementState_.vY += movementState_.gravity * deltaTime;					 // 重力加算
-		if (movementState_.vY < movementState_.maxFallSpeed) movementState_.vY = movementState_.maxFallSpeed;	 // 落下速度クランプ
-		body_.transform.translate_.y += movementState_.vY * deltaTime; // 位置更新
-
-		// 着地（水平床の想定）
-		if (body_.transform.translate_.y <= movementState_.groundY)
-		{
-			body_.transform.translate_.y = movementState_.groundY; // 床に合わせる
-			movementState_.vY = 0.0f;								 // 縦速度リセット
-			movementState_.isGrounded = true;						 // 接地状態へ
-		}
-	}
-	else
-	{
-		// 接地中は高さを維持（段差に対応するなら groundY_ を更新する）
-		body_.transform.translate_.y = movementState_.groundY;
-	}
-
 	// 体と頭の回転反映
 	body_.transform.rotate_.y = viewState_.bodyYaw;
 	parts_[partIndices_.head].transform.rotate_.y = viewState_.headYawLocal;
 
 	/// ---------- 右手：FPはカメラ基準で固定 ---------- ///
-	auto& armT = parts_[partIndices_.rightArm].transform;
+	WorldTransformEx& armT = parts_[partIndices_.rightArm].transform;
+
 	if (isFP)
 	{
 		fpsCamera_->Update();
@@ -325,6 +479,14 @@ void Player::Move(float deltaTime)
 		armT.translate_ = { 0.75f, 0.75f, 0 };
 		armT.rotate_ = { 0.0f, 0.0f, 0.0f };     // ← yaw も roll もゼロに
 		fpsCamera_->Update();
+	}
+
+	// 最後にノックバックを減衰させる
+	float damp = jumpState_.isGrounded ? groundKnockbackDamping_ : airKnockbackDamping_;
+	knockbackVel_ *= damp;
+
+	if (Vector3::Length(knockbackVel_) < 0.001f) {
+		knockbackVel_ = { 0.0f, 0.0f, 0.0f };
 	}
 }
 
@@ -408,16 +570,6 @@ void Player::UpdateDeath(float deltaTime)
 		sLatched = true;
 	}
 
-	// ---- 接地＆バウンド ----
-	if (body_.transform.translate_.y <= movementState_.groundY)
-	{
-		body_.transform.translate_.y = movementState_.groundY;
-		if (deathState_.velocity.y < 0.0f) deathState_.velocity.y = -deathState_.velocity.y * deathState_.bounce;
-		// 水平速度に摩擦
-		deathState_.velocity.x *= deathState_.friction;
-		deathState_.velocity.z *= deathState_.friction;
-	}
-
 	// ---- 並進：線形 + 二乗空気抵抗（速いほど強く減速）----
 	{
 		float speed = Vector3::Length(deathState_.velocity);
@@ -465,7 +617,7 @@ void Player::UpdateDeath(float deltaTime)
 
 		// 少し余韻を置いてから消え始める
 		const float startDelay = 0.50f;   // 開始まで待つ時間
-		const float duration = 4.50f;   // 消え切るまでの時間
+		const float duration = 3.50f;   // 消え切るまでの時間
 
 		// progress: 0→1（deltaTimeは掛けない）
 		float progress = (deathState_.timer - startDelay) / duration;

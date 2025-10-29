@@ -18,6 +18,9 @@ public: /// ---------- メンバ関数 ---------- ///
 	// 履歴を削除する関数
 	void Clear();
 
+	// 履歴の数を取得する関数
+	size_t GetRecordCount() const { return record_.size(); }
+
 private: /// ---------- メンバ変数 ---------- ///
 
 	// 履歴を記録する変数
