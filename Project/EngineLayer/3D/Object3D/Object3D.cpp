@@ -164,6 +164,27 @@ void Object3D::SetModel(const std::string& filePath)
 	}
 }
 
+/// -------------------------------------------------------------
+///					テクスチャの設定
+/// -------------------------------------------------------------
+void Object3D::SetTextureForAll(const std::string& texturePath)
+{
+	TextureManager::GetInstance()->LoadTexture(texturePath);
+	auto h = TextureManager::GetInstance()->GetSrvHandleGPU(texturePath);
+	for (auto& srv : materialSRVs_) {
+		srv = h;
+	}
+}
+
+/// -------------------------------------------------------------
+///				指定サブメッシュのテクスチャ設定
+/// -------------------------------------------------------------
+void Object3D::SetTextureForSubmesh(size_t index, const std::string& texturePath)
+{
+	if (index >= materialSRVs_.size()) { return; }
+	TextureManager::GetInstance()->LoadTexture(texturePath);
+	materialSRVs_[index] = TextureManager::GetInstance()->GetSrvHandleGPU(texturePath);
+}
 
 /// -------------------------------------------------------------
 ///					　		カメラ用のリソース生成

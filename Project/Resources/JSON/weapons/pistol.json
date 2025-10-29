@@ -15,10 +15,10 @@
   "pelletTracerCount": 0,
   "tracer": {
     "enabled": true,
-    "tracerLength": 10.0,
+    "tracerLength": 9.5,
     "tracerWidth": 0.02,
     "minSegLength": 0.05,
-    "startOffsetForward": 2.1,
+    "startOffsetForward": 1.44,
     "color": [
       0.8,
       1.0,

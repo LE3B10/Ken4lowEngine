@@ -4,6 +4,7 @@
 #include <FpsCamera.h>
 #include "FireState.h"
 #include "DeathState.h"
+#include "ContactRecord.h"
 
 #include "WeaponManager.h"
 
@@ -13,7 +14,8 @@
 /// ---------- 前方宣言 ---------- ///
 class Input;
 class LevelObjectManager;
-
+class CollisionManager;
+class Enemy;
 
 /// -------------------------------------------------------------
 ///					　プレイヤークラス
@@ -128,6 +130,36 @@ public: /// ---------- アクセサー関数 ---------- ///
 	// レベルオブジェクトマネージャー設定
 	void SetLevelObjectManager(LevelObjectManager* mgr) { levelObjectManager_ = mgr; }
 
+	// 衝突マネージャー設定
+	void SetCollisionManager(CollisionManager* mgr) { collisionManager_ = mgr; }
+
+	// 敵キャラクター設定
+	void SetEnemyPointer(Enemy* enemy) { enemy_ = enemy; }
+
+	// コライダー登録
+	void RegisterColliders(CollisionManager* mgr);
+
+	// 敵の攻撃などで吹っ飛ばす用
+	void AddKnockback(const Vector3& impulse) { knockbackVel_ += impulse; }
+
+	// 敵から殴られた瞬間のリアクション用
+	// dir           : プレイヤーから見て押し返す方向（Enemy側でプレイヤー→敵の向きから計算してるやつ）
+	// horizontalPow : 水平ノックバックの強さ
+	// upPow         : 真上に跳ねる初速
+	void ApplyDamageImpulse(const Vector3& dir, float horizontalPow, float upPow);
+
+	// ダメージを受けたときの処理
+	void TakeDamage(float amount);
+
+	// 体力取得
+	float GetHp() const { return hp_; }
+
+	// 最大体力取得
+	float GetMaxHp() const { return maxHp_; }
+
+	// 死亡中かどうか取得
+	bool IsDeadNow() const { return deathState_.isDead || deathState_.inDeathSeq; }
+
 private: /// ---------- メンバ関数 ---------- ///
 
 	// 移動処理
@@ -146,6 +178,10 @@ private: /// ----------メンバ変数 ---------- ///
 
 	Input* input_ = nullptr; // 入力クラス
 	LevelObjectManager* levelObjectManager_ = nullptr; // レベルオブジェクトマネージャー
+	CollisionManager* collisionManager_ = nullptr; // 衝突マネージャー
+	Enemy* enemy_ = nullptr; // 敵キャラクター
+
+	ContactRecord contactRecord_; // 接触記録
 
 	std::unique_ptr<FpsCamera> fpsCamera_; // FPSカメラ
 
@@ -172,6 +208,27 @@ private: /// ----------メンバ変数 ---------- ///
 	// 各部位のインデックス
 	PartIndices partIndices_ = {};
 
+	// ノックバック速度（毎フレームMove()で加算＆減衰させる）
+	Vector3 knockbackVel_ = { 0.0f, 0.0f, 0.0f };
+
+	// 減衰係数。1フレームごとにこれを掛けるイメージ
+	float knockbackDamping_ = 1.0f;
+
+	// ノックバック関連のチューニング
+	float hurtKnockbackGain_ = 0.4f;     // どれくらい素早く目標の押し戻し速度に近づくか(0〜1)
+	float groundKnockbackDamping_ = 0.8f; // 地上のときの減衰（今までの0.8fそのまま）
+	float airKnockbackDamping_ = 0.93f; // 空中のときの減衰（ゆっくり失速 = 後ろにスーッと流れる）
+
 	float centerOffsetY_ = 2.0f;  // 足裏ピボットなら -half.y を入れる
+
+	std::string skinTexturePath_ = "steve.png"; // スキンテクスチャパス
+
+	// 体力
+	float maxHp_ = 100.0f;
+	float hp_ = 100.0f;
+
+	// ヒット後の無敵（連続でゴリゴリ削られないように）
+	float hurtInvincibleTime_ = 0.5f; // 0.5秒くらいヒット無敵
+	float hurtTimer_ = 0.0f;
 };
 

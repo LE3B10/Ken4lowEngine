@@ -76,26 +76,75 @@ void GamePlayScene::Initialize()
 	skyBox_ = std::make_unique<SkyBox>();
 	skyBox_->Initialize("SkyBox/skybox.dds");
 
+	// 衝突マネージャーの初期化
+	collisionManager_ = std::make_unique<CollisionManager>();
+	collisionManager_->Initialize();
+
+	// プレイヤーの初期化
 	player_ = std::make_unique<Player>();
+	player_->SetCollisionManager(collisionManager_.get());
 	player_->Initialize();
 
+	// 敵キャラクターの初期化
+	enemy_ = std::make_unique<Enemy>();
+	enemy_->Initialize();
+	enemy_->SetPlayerPointer(player_.get());
+	enemy_->SetSpawnPosition({ 0.0f, 2.5f, 30.0f });
+
+	// クロスヘアの初期化
 	crosshair_ = std::make_unique<Crosshair>();
 	crosshair_->Initialize();
 
-	scarecrow_ = std::make_unique<Scarecrow>();
-	scarecrow_->Initialize();
-
+	// アイテムマネージャーの初期化
 	itemManager_ = std::make_unique<ItemManager>();
 	itemManager_->Initialize();
 	itemManager_->Spawn(ItemType::HealSmall, player_->GetWorldTransform()->translate_ + Vector3{ 0.0f, 0.0f, -30.0f });
-
-	collisionManager_ = std::make_unique<CollisionManager>();
-	collisionManager_->Initialize();
 
 	auto levelLoader = std::make_unique<LevelLoader>();
 	levelObjectManager_ = std::make_unique<LevelObjectManager>();
 	levelObjectManager_->Initialize(*levelLoader->LoadLevel("Stage1.json"), "Stage1.gltf");
 	player_->SetLevelObjectManager(levelObjectManager_.get());
+	enemy_->SetLevelObjectManager(levelObjectManager_.get());
+
+	// ----------------- Result画面用ボタンの初期化 -----------------
+
+// 画面サイズ
+	float screenW = static_cast<float>(dxCommon_->GetSwapChainDesc().Width);
+	float screenH = static_cast<float>(dxCommon_->GetSwapChainDesc().Height);
+
+	// ボタンの見た目サイズ（仮）
+	float btnW = 220.0f;
+	float btnH = 80.0f;
+	float margin = 24.0f;
+
+	// 左下：リタイア（タイトルへ戻る）
+	retireButtonSprite_ = std::make_unique<Sprite>();
+	retireButtonSprite_->Initialize("white.png");
+	retireButtonSprite_->SetAnchorPoint({ 0.0f, 1.0f }); // 左下基準
+	retireButtonSprite_->SetPosition({ margin, screenH - margin });
+	retireButtonSprite_->SetSize({ btnW, btnH });
+	// ちょい赤っぽく透かす
+	retireButtonSprite_->SetColor({ 1.0f, 0.2f, 0.2f, 0.6f });
+
+	// 右下：リトライ（リスタート）
+	retryButtonSprite_ = std::make_unique<Sprite>();
+	retryButtonSprite_->Initialize("white.png");
+	retryButtonSprite_->SetAnchorPoint({ 1.0f, 1.0f }); // 右下基準
+	retryButtonSprite_->SetPosition({ screenW - margin, screenH - margin });
+	retryButtonSprite_->SetSize({ btnW, btnH });
+	// ちょい緑っぽく透かす
+	retryButtonSprite_->SetColor({ 0.2f, 1.0f, 0.2f, 0.6f });
+
+	// マウス当たり矩形も保持（左上原点の箱に直しておく）
+	retireRect_.w = btnW;
+	retireRect_.h = btnH;
+	retireRect_.x = margin;
+	retireRect_.y = screenH - margin - btnH;
+
+	retryRect_.w = btnW;
+	retryRect_.h = btnH;
+	retryRect_.x = screenW - margin - btnW;
+	retryRect_.y = screenH - margin - btnH;
 }
 
 
@@ -111,23 +160,26 @@ void GamePlayScene::Update()
 	UpdateDebug();
 
 	// --- ポーズトグル（ESCキーでON/OFF） ---
-	if (input_->TriggerKey(DIK_ESCAPE))
+	if (gameState_ == GameState::Playing || gameState_ == GameState::Paused)
 	{
-		if (isDebugCamera_) return; // デバッグカメラ中はポーズ無効
+		if (input_->TriggerKey(DIK_ESCAPE))
+		{
+			if (isDebugCamera_) return; // デバッグカメラ中はポーズ無効
 
-		if (gameState_ == GameState::Playing)
-		{
-			isPaused_ = true; // ポーズ状態にする
-			gameState_ = GameState::Paused;
-			Input::GetInstance()->SetLockCursor(false);
-			ShowCursor(true);
-		}
-		else if (gameState_ == GameState::Paused)
-		{
-			isPaused_ = false; // ポーズ解除
-			gameState_ = GameState::Playing;
-			Input::GetInstance()->SetLockCursor(true);
-			ShowCursor(false);
+			if (gameState_ == GameState::Playing)
+			{
+				isPaused_ = true;
+				gameState_ = GameState::Paused;
+				Input::GetInstance()->SetLockCursor(false);
+				ShowCursor(true);
+			}
+			else if (gameState_ == GameState::Paused)
+			{
+				isPaused_ = false;
+				gameState_ = GameState::Playing;
+				Input::GetInstance()->SetLockCursor(true);
+				ShowCursor(false);
+			}
 		}
 	}
 
@@ -140,7 +192,6 @@ void GamePlayScene::Update()
 		// 画的に必要な更新だけ許可
 		skyBox_->Update();
 		fadeController_->Update(deltaTime);
-		scarecrow_->Update();
 		itemManager_->Update(player_.get(), deltaTime);
 
 		if (finished)
@@ -157,24 +208,85 @@ void GamePlayScene::Update()
 	{
 	case GameState::Playing:
 		player_->Update(deltaTime);
+		enemy_->Update(deltaTime);
 		skyBox_->Update();
-		scarecrow_->Update();
 		crosshair_->Update();
 		itemManager_->Update(player_.get(), deltaTime);
+
+		// プレイヤー死亡チェック
+		if (player_->IsDeadNow())
+		{
+			gameState_ = GameState::Result;
+
+			// ゲームオーバー中はマウスを解放してUI操作できるようにする
+			Input::GetInstance()->SetLockCursor(false);
+			ShowCursor(true);
+		}
 		break;
 	case GameState::Paused:
 		break;
 	case GameState::Result:
-		break;
-	default:
+		// 死亡演出を最後まで回すためにプレイヤーだけは更新
+		player_->Update(deltaTime);
+
+		// 背景などの更新（お好みで止めてもいい）
+		enemy_->Update(deltaTime);
+		skyBox_->Update();
+		crosshair_->Update();
+		itemManager_->Update(player_.get(), deltaTime);
+		retryButtonSprite_->Update();
+		retireButtonSprite_->Update();
+
+		// キー操作でもまだ残しておく（デバッグ用）
+		if (input_->TriggerKey(DIK_R))
+		{
+			SceneManager::GetInstance()->ChangeScene("GamePlayScene");
+			return;
+		}
+		if (input_->TriggerKey(DIK_Q) || input_->TriggerKey(DIK_ESCAPE))
+		{
+			SceneManager::GetInstance()->ChangeScene("TitleScene");
+			return;
+		}
+
+		// --------- マウスクリック判定 ---------
+		// マウス座標を取得（例：スクリーン座標のfloat2を返す想定）
+		Vector2 mousePos = input_->GetMousePosition(); // 想定API
+
+		auto IsInside = [](const Vector2& p, const ButtonRect& r) {
+			return (p.x >= r.x && p.x <= r.x + r.w &&
+				p.y >= r.y && p.y <= r.y + r.h);
+			};
+
+		bool leftClick = input_->TriggerMouse(0); // 左クリックが「今フレーム押した」
+
+		if (leftClick)
+		{
+			// 右下(リトライ)
+			if (IsInside(mousePos, retryRect_))
+			{
+				SceneManager::GetInstance()->ChangeScene("GamePlayScene");
+				return;
+			}
+
+			// 左下(リタイア/タイトルへ)
+			if (IsInside(mousePos, retireRect_))
+			{
+				SceneManager::GetInstance()->ChangeScene("TitleScene");
+				return;
+			}
+		}
 		break;
 	}
 
 	levelObjectManager_->Update();
 
-	// 衝突マネージャの更新
-	collisionManager_->Update();
-	CheckAllCollisions();
+	// 衝突マネージャの更新はゲーム中のみ
+	if (gameState_ == GameState::Playing)
+	{
+		collisionManager_->Update();
+		CheckAllCollisions();
+	}
 }
 
 
@@ -200,7 +312,7 @@ void GamePlayScene::Draw3DObjects()
 	if (gameState_ != GameState::CutScene)
 	{
 		player_->Draw();
-		scarecrow_->Draw();
+		enemy_->Draw();
 		itemManager_->Draw();
 	}
 
@@ -250,7 +362,28 @@ void GamePlayScene::Draw2DSprites()
 	if (gameState_ != GameState::CutScene) {
 		crosshair_->Draw();
 	}
+
+	// フェード
 	fadeController_->Draw();
+
+	// ---------- Result(ゲームオーバー)時のUI ----------
+	if (gameState_ == GameState::Result)
+	{
+		// 左下(リタイア)
+		if (retireButtonSprite_)
+		{
+			retireButtonSprite_->Draw();
+		}
+
+		// 右下(リトライ)
+		if (retryButtonSprite_)
+		{
+			retryButtonSprite_->Draw();
+		}
+
+		// ※ あとで文字スプライト "RETRY" "QUIT" を重ねたいときは、
+		//   ここにテキスト描画 or 別スプライトを足すだけでOK。
+	}
 
 #pragma endregion
 }
@@ -273,6 +406,8 @@ void GamePlayScene::DrawImGui()
 	LightManager::GetInstance()->DrawImGui();
 
 	player_->DrawImGui();
+
+	enemy_->DrawImGui();
 
 	if (ImGui::Begin("Intro Cutscene")) {
 
@@ -516,8 +651,12 @@ void GamePlayScene::CheckAllCollisions()
 
 	// コライダーをリストに登録
 	collisionManager_->AddCollider(player_.get()); // プレイヤー
+	player_->RegisterColliders(collisionManager_.get());
 
-	collisionManager_->AddCollider(scarecrow_.get()); // 案山子
+	// 敵キャラクターのコライダーを登録
+	if (enemy_->IsActive()) {
+		collisionManager_->AddCollider(enemy_.get());
+	}
 
 	// アイテムのコライダーを登録
 	itemManager_->RegisterColliders(collisionManager_.get());

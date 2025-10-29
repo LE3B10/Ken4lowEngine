@@ -7,6 +7,7 @@
 #include "LinearInterpolation.h"
 #include "ToWeaponConfig.h"
 #include "LevelObjectManager.h"
+#include "Enemy.h"
 
 #include <algorithm>
 #include <filesystem>
@@ -18,40 +19,20 @@
 /// -------------------------------------------------------------
 void Player::Initialize()
 {
+	// ベースキャラクター初期化
+	BaseCharacter::Initialize();
+
+	// 入力取得
 	input_ = Input::GetInstance();
+
+	// テクスチャの設定
+	if (body_.object) BaseCharacter::ApplySkinTo(body_.object.get(), skinTexturePath_);
+	for (auto& part : parts_) { if (part.object) BaseCharacter::ApplySkinTo(part.object.get(), skinTexturePath_); }
 
 	// ID登録
 	Collider::SetTypeID(static_cast<uint32_t>(CollisionTypeIdDef::kPlayer));
 	Collider::SetOwner<Player>(this);
 	Collider::SetOBBHalfSize({ 0.8f, 2.0f, 0.8f });
-
-	// 体幹部位の初期化
-	body_.object = std::make_unique<Object3D>();
-	body_.object->Initialize("PlayerRoot/player_body.gltf");
-	body_.transform.translate_ = { 0.0f, 2.5f, 0.0f };	// 初期位置
-
-	// 子オブジェクト（頭、腕、脚）をリストに追加
-	std::vector<std::pair<std::string, Vector3>> partData =
-	{
-		{"PlayerRoot/player_head.gltf", {0.0f, 0.75f, 0.0f}},      // 頭   : 0
-		{"PlayerRoot/player_LeftArm.gltf", {-0.75f, 0.75f, 0.0f}}, // 左腕 : 1
-		{"PlayerRoot/player_RightArm.gltf",{ 0.75f, -0.75f, 0}},   // 右腕 : 2
-		{"PlayerRoot/player_LeftLeg.gltf", {-0.25f, -0.75f, 0} },  // 左脚 : 3
-		{"PlayerRoot/player_RightLeg.gltf", {0.25f, -0.75f, 0} }   // 右脚 : 4
-	};
-
-	// 部位データをもとに部位オブジェクトを生成
-	for (const auto& [modelPath, position] : partData)
-	{
-		// ローカル変数で部位データを作成
-		BodyPart part = {};
-		part.object = std::make_unique<Object3D>();			  // オブジェクト生成
-		part.object->Initialize(modelPath); 				  // モデル読み込み
-		part.transform.translate_ = position;				  // 位置設定
-		part.object->SetTranslate(part.transform.translate_); // オブジェクトにも位置設定
-		part.transform.parent_ = &body_.transform;			  // 親を設定
-		parts_.push_back(std::move(part));					  // リストに追加
-	}
 
 	// FPSカメラ
 	fpsCamera_ = std::make_unique<FpsCamera>();
@@ -61,6 +42,11 @@ void Player::Initialize()
 	weaponManager_ = std::make_unique<WeaponManager>();
 	weaponManager_->SetParentTransforms(&parts_[partIndices_.rightArm].transform); // 右腕を親に設定
 	weaponManager_->InitializeWeapons(fireState_, deathState_);					   // 武器初期化
+	weaponManager_->SetCollisionManager(collisionManager_); // 衝突管理者設定
+
+	// 体力初期化
+	hp_ = maxHp_;
+	hurtTimer_ = 0.0f;
 }
 
 
@@ -112,19 +98,14 @@ void Player::Update(float deltaTime)
 	// 死亡完了
 	if (deathState_.isDead)
 	{
-#ifdef _DEBUG
-		if (input_->TriggerKey(DIK_R))
-		{
-			deathState_.isDead = false; // 死亡フラグ解除
-			body_.transform.rotate_ = { 0.0f, 0.0f, 0.0f }; // 回転リセット
-			fpsCamera_->SetViewMode(FpsCamera::ViewMode::FirstPerson); // 一人称視点へ
-
-			body_.object->SetDissolveThreshold(1.0f);
-			for (auto& p : parts_) p.object->SetDissolveThreshold(1.0f);
-		}
-#endif // _DEBUG
 		BaseCharacter::Update(deltaTime); // ベースキャラクターの更新は行う
 		return;
+	}
+
+	// ダメージタイマー更新
+	if (hurtTimer_ > 0.0f) {
+		hurtTimer_ -= deltaTime;
+		if (hurtTimer_ < 0.0f) hurtTimer_ = 0.0f;
 	}
 
 	// 移動処理
@@ -175,11 +156,8 @@ void Player::Update(float deltaTime)
 /// -------------------------------------------------------------
 void Player::Draw()
 {
-	// 体幹部位の描画
-	if (body_.active) { body_.object->Draw(); }
-
-	// 部位データ配列の描画
-	for (auto& part : parts_) if (part.active) { part.object->Draw(); }
+	// ベースキャラクター描画
+	BaseCharacter::Draw();
 
 	// 武器描画
 	weaponManager_->DrawWeapons();
@@ -190,9 +168,27 @@ void Player::Draw()
 /// -------------------------------------------------------------
 void Player::OnCollision(Collider* other)
 {
+	uint32_t serialNumber = other->GetUniqueID(); // 相手のシリアルナンバー取得
+
 	if (other->GetTypeID() == static_cast<uint32_t>(CollisionTypeIdDef::kWorld))
 	{
 
+	}
+
+	// 衝突相手がエネミーの場合
+	if (other->GetTypeID() == static_cast<uint32_t>(CollisionTypeIdDef::kEnemy))
+	{
+		Enemy* enemy = other->GetOwner<Enemy>();
+		if (!enemy) return; // オーナー取得失敗なら抜ける
+
+		// 接触記録があれば何もせず抜ける
+		if (contactRecord_.Check(serialNumber)) return;
+
+		// 接触記録に登録
+		contactRecord_.Add(serialNumber);
+
+		// 弾丸と衝突したときの処理
+		OutputDebugStringA("Enemy hit by bullet!\n");
 	}
 }
 
@@ -201,9 +197,79 @@ void Player::OnCollision(Collider* other)
 /// -------------------------------------------------------------
 Vector3 Player::GetCenterPosition() const
 {
-	const Vector3 offset = { 0.0f,1.0f,0.0f };
+	const Vector3 offset = { 0.0f,0.0f,0.0f };
 	Vector3 worldPosition = body_.transform.translate_ + offset;
 	return worldPosition;
+}
+
+/// -------------------------------------------------------------
+///				　	コライダー登録処理
+/// -------------------------------------------------------------
+void Player::RegisterColliders(CollisionManager* mgr)
+{
+	if (weaponManager_) weaponManager_->RegisterColliders(mgr);
+}
+
+/// -------------------------------------------------------------
+///				　　敵から殴られた瞬間のリアクション用
+/// -------------------------------------------------------------
+void Player::ApplyDamageImpulse(const Vector3& dir, float horizontalPow, float upPow)
+{
+	// 水平向きだけ取り出して正規化
+	Vector3 flatDir = dir;
+	flatDir.y = 0.0f;
+	if (Vector3::Length(flatDir) > 0.0001f) {
+		flatDir = Vector3::Normalize(flatDir);
+	}
+	else {
+		flatDir = { 0.0f, 0.0f, -1.0f };
+	}
+
+	// 「こう押し飛ばされたい」理想の速度
+	Vector3 desired = flatDir * horizontalPow;
+
+	// 今の knockbackVel_ を desired に近づける（いきなりドンじゃなく、スッと押される感じ）
+	// lerp: v = v + (desired - v) * gain
+	knockbackVel_ += (desired - knockbackVel_) * hurtKnockbackGain_;
+
+	// 空中に飛ばす
+	jumpState_.isGrounded = false;
+
+	// 上向きは殴られた瞬間にちゃんと吹き上げたいので、こっちは即セット寄りでOK
+	if (jumpState_.jumpVelocity < upPow) {
+		jumpState_.jumpVelocity = upPow;
+	}
+}
+
+/// -------------------------------------------------------------
+///				　		　 ダメージ処理
+/// -------------------------------------------------------------
+void Player::TakeDamage(float amount)
+{
+	// すでに死亡中 or 死亡後なら何もしない
+	if (deathState_.inDeathSeq || deathState_.isDead) {
+		return;
+	}
+
+	// 無敵中なら食らわない
+	if (hurtTimer_ > 0.0f) {
+		return;
+	}
+
+	// HPを減らす
+	hp_ -= amount;
+	if (hp_ < 0.0f) { hp_ = 0.0f; }
+
+	// 無敵時間スタート
+	hurtTimer_ = hurtInvincibleTime_;
+
+	// HPが0以下なら死亡演出開始
+	if (hp_ <= 0.0f)
+	{
+		StartDeath(DeathMode::BlowAway);
+		// StartDeath() は deathState_.inDeathSeq = true にして
+		// Update() 側が以降の操作を死亡演出モードに切り替える。:contentReference[oaicite:10]{index=10}
+	}
 }
 
 /// -------------------------------------------------------------
@@ -211,6 +277,8 @@ Vector3 Player::GetCenterPosition() const
 /// -------------------------------------------------------------
 void Player::Move(float deltaTime)
 {
+	(void)deltaTime; // 未使用
+
 	// 物理中心 ←→ 描画ピボットの固定オフセット（いままで -0.25 を使っていた値）
 	const Vector3 kCenterOffset = { 0.0f, 0.25f, 0.0f };
 
@@ -259,6 +327,8 @@ void Player::Move(float deltaTime)
 	// --- 重力 ---
 	jumpState_.jumpVelocity -= jumpState_.gravity;
 	move.y = jumpState_.jumpVelocity; // ← Yは毎フレームの速度ぶんだけ
+
+	move += knockbackVel_; // ノックバック速度を加算
 
 	// レベルオブジェクトのAABBリスト取得
 	const auto worldAABBs = levelObjectManager_->GetWorldAABBs();
@@ -410,6 +480,14 @@ void Player::Move(float deltaTime)
 		armT.rotate_ = { 0.0f, 0.0f, 0.0f };     // ← yaw も roll もゼロに
 		fpsCamera_->Update();
 	}
+
+	// 最後にノックバックを減衰させる
+	float damp = jumpState_.isGrounded ? groundKnockbackDamping_ : airKnockbackDamping_;
+	knockbackVel_ *= damp;
+
+	if (Vector3::Length(knockbackVel_) < 0.001f) {
+		knockbackVel_ = { 0.0f, 0.0f, 0.0f };
+	}
 }
 
 /// -------------------------------------------------------------
@@ -539,7 +617,7 @@ void Player::UpdateDeath(float deltaTime)
 
 		// 少し余韻を置いてから消え始める
 		const float startDelay = 0.50f;   // 開始まで待つ時間
-		const float duration = 4.50f;   // 消え切るまでの時間
+		const float duration = 3.50f;   // 消え切るまでの時間
 
 		// progress: 0→1（deltaTimeは掛けない）
 		float progress = (deathState_.timer - startDelay) / duration;
