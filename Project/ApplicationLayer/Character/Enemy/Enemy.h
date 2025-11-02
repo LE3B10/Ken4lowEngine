@@ -96,7 +96,7 @@ private: /// ---------- メンバ関数 ---------- ///
 	ContactRecord contactRecord_; // 接触記録
 
 	// テクスチャスキンパス
-	std::string skinTexturePath_ = "zombie.png";
+	std::string skinTexturePath_ = "yellow.png";
 
 private: /// ---------- メンバ変数 ---------- ///
 
