@@ -1,9 +1,11 @@
+#define NOMINMAX
 #include "Camera.h"
 #include "ImGuiManager.h"
 #include <WinApp.h>
 #include <ParameterManager.h>
 #include "Matrix4x4.h"
 #include "Quaternion.h"
+#include <numbers>
 
 /// -------------------------------------------------------------
 ///						コンストラクタ
@@ -55,8 +57,26 @@ void Camera::Update()
 void Camera::DrawImGui()
 {
 	ImGui::Begin("Camera");
-	ImGui::DragFloat3("Position", &worldTransform_.translate_.x, 0.1f);
-	ImGui::DragFloat3("Rotation", &worldTransform_.rotate_.x, 0.01f);
+
+	ImGui::DragFloat3("Position", &worldTransform_.translate_.x, 0.01f);
+	ImGui::DragFloat3("Rotation", &worldTransform_.rotate_.x, 0.005f);
+
+	// 追加: 投影の基本パラメータ
+	float fovDeg = fovY_ * 180.0f / std::numbers::pi_v<float>;
+	if (ImGui::SliderFloat("FOV (deg)", &fovDeg, 40.0f, 100.0f, "%.1f")) {
+		fovY_ = fovDeg * std::numbers::pi_v<float> / 180.0f;
+	}
+	if (ImGui::DragFloat("Near", &nearClip_, 0.001f, 0.01f, 0.2f, "%.3f")) {
+		nearClip_ = std::max(0.001f, std::min(nearClip_, farClip_ - 0.01f));
+	}
+	if (ImGui::DragFloat("Far", &farClip_, 1.0f, 50.0f, 10000.0f)) {
+		farClip_ = std::max(nearClip_ + 0.01f, farClip_);
+	}
+	if (ImGui::Button("Reset FOV/Clips")) {
+		fovY_ = 60.0f * std::numbers::pi_v<float> / 180.0f;
+		nearClip_ = 0.05f;
+		farClip_ = 1000.0f;
+	}
 	ImGui::End();
 }
 

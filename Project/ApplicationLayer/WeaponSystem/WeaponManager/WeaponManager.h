@@ -46,6 +46,9 @@ public: /// ---------- メンバ関数 ---------- ///
 	// 弾道エフェクト開始
 	void StartFireBallisticEffect(const Vector3& position, const Vector3& velocity);
 
+	// プレイヤーのボディを設定
+	void SetPlayerBody(const WorldTransformEx* bodyTransform);
+
 	// 親を設定
 	void SetParentTransforms(const WorldTransformEx* rightArmTransform);
 
@@ -55,7 +58,11 @@ public: /// ---------- メンバ関数 ---------- ///
 	// 衝突管理者を設定
 	void SetCollisionManager(CollisionManager* collisionManager) { ballisticEffect_->SetCollisionManager(collisionManager); }
 
+	// 衝突コライダー登録
 	void RegisterColliders(CollisionManager* mgr);
+
+	// 銃口のワールド座標を取得
+	Vector3 GetMuzzleWorld() const { return ballisticEffect_ ? ballisticEffect_->GetMuzzleWorld() : Vector3{}; }
 
 private: /// ---------- メンバ関数 ---------- ///
 

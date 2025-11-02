@@ -11,6 +11,7 @@ static WeaponConfig ToWeaponConfig(const WeaponData& E)
 	w.muzzleSpeed = E.muzzleSpeed;
 	w.maxDistance = E.maxDistance;
 	w.rpm = E.rpm;
+	w.damage = E.damage;
 	w.magCapacity = static_cast<uint32_t>(E.magCapacity);
 	w.startingReserve = static_cast<uint32_t>(E.startingReserve);
 	w.reloadTime = E.reloadTime;

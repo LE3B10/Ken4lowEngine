@@ -42,6 +42,9 @@ void Enemy::Initialize()
 	aiState_ = AIState::SpawnDelay; // 初期状態を出現待機に設定
 	stateTimer_ = 0.0f;           // 状態タイマーリセット
 	isActive_ = false;            // スポーン済みフラグリセット
+
+	hitFlashTimer_ = 0.0f;
+	ApplyColorToAll(baseColor_);
 }
 
 /// -------------------------------------------------------------
@@ -79,6 +82,32 @@ void Enemy::Update(float deltaTime)
 	}
 
 	SolveWorldCollision(oldPos);
+
+	// === 被弾フラッシュ ===
+	if (hitFlashTimer_ > 0.0f)
+	{
+		hitFlashTimer_ -= deltaTime;
+		float t = 1.0f - std::clamp(hitFlashTimer_ / hitFlashDuration_, 0.0f, 1.0f); // 0→1
+		Vector4 c = {
+			std::lerp(hitColor_.x,  baseColor_.x,  t),
+			std::lerp(hitColor_.y,  baseColor_.y,  t),
+			std::lerp(hitColor_.z,  baseColor_.z,  t),
+			std::lerp(hitColor_.w,  baseColor_.w,  t),
+		};
+		ApplyColorToAll(c);
+	}
+	else
+	{
+		// 念のため戻し（別の要因で色が残らないように）
+		if (colorModulate_.x != baseColor_.x ||
+			colorModulate_.y != baseColor_.y ||
+			colorModulate_.z != baseColor_.z ||
+			colorModulate_.w != baseColor_.w)
+		{
+			ApplyColorToAll(baseColor_);
+		}
+	}
+
 
 	// ベースキャラクターの更新
 	BaseCharacter::Update(deltaTime);
@@ -145,6 +174,13 @@ void Enemy::OnCollision(Collider* other)
 
 		// 接触記録に登録
 		contactRecord_.Add(serialNumber);
+
+		hitFlashTimer_ = hitFlashDuration_;  // フラッシュ開始/延長
+		ApplyColorToAll(hitColor_);          // 即赤く（次フレームから徐々に戻る）
+
+		if (auto* fx = other->GetOwner<BallisticEffect>()) {
+			fx->NotifyColliderHit(other);  // 弾を即時終了
+		}
 
 		// 弾丸と衝突したときの処理
 		OutputDebugStringA("Enemy hit by bullet!\n");
@@ -591,6 +627,9 @@ void Enemy::SolveWorldCollision(const Vector3& oldTranslate)
 	Collider::SetCenterPosition(fixedCenter);
 }
 
+/// -------------------------------------------------------------
+///				　　　新しい徘徊方向をランダムに決定する
+/// -------------------------------------------------------------
 void Enemy::PickNewWanderDirection()
 {
 	// 静的な乱数エンジンを1個だけ確保してずっと使い回す
@@ -608,4 +647,21 @@ void Enemy::PickNewWanderDirection()
 	// ランダムな徘徊持続時間（wanderChangeIntervalMin_〜Max_）
 	std::uniform_real_distribution<float> distTime(wanderChangeIntervalMin_, wanderChangeIntervalMax_);
 	wanderTimer_ = distTime(rng);
+}
+
+/// -------------------------------------------------------------
+///				　　　色調補正一括適用処理
+/// -------------------------------------------------------------
+void Enemy::ApplyColorToAll(const Vector4& color)
+{
+	// 全パーツに色を適用
+	colorModulate_ = color;
+
+	// 本体
+	if (body_.object) { body_.object->SetColor(colorModulate_); }
+
+	// 部位群
+	for (auto& part : parts_) {
+		if (part.object) { part.object->SetColor(colorModulate_); }
+	}
 }

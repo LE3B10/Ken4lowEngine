@@ -14,6 +14,8 @@ struct WeaponConfig
 	float       muzzleSpeed = 252.0f; // m/s (銃口初速)
 	float       maxDistance = 200.0f; // m (弾の飛距離)
 	float       rpm = 600.0f;         // 発射レート (rounds per minute)
+	float 		damage = 25.0f;      // 1発あたりのダメージ量
+
 	uint32_t   magCapacity = 15;    // 1マガジンの装弾数
 	uint32_t   startingReserve = 60;   // 初期予備弾数（総予備）
 	float reloadTime = 1.6f;  // リロード時間[秒]

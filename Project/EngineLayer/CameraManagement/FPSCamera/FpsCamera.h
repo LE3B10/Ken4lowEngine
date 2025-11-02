@@ -33,6 +33,9 @@ public: // ---------- 関数 ---------- //
 	// デバッグ用カメラの位置をワイヤーフレームで描画
 	void DrawDebugCamera();
 
+	// ImGuiを描画
+	void DrawImGui();
+
 	// リコイルを加える
 	void AddRecoil(float verticalAmount = 0.0f, float horizontalAmount = 0.0f);
 

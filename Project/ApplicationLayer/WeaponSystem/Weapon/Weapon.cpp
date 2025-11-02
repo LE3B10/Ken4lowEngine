@@ -114,6 +114,7 @@ static bool FromJsonWeaponObject(const json& wj, WeaponData& w) {
 		read_if(wj, "muzzleSpeed", w.muzzleSpeed);
 		read_if(wj, "maxDistance", w.maxDistance);
 		read_if(wj, "rpm", w.rpm);
+		read_if(wj, "damage", w.damage);
 		read_if(wj, "magCapacity", w.magCapacity);
 		read_if(wj, "startingReserve", w.startingReserve);
 		read_if(wj, "reloadTime", w.reloadTime);
@@ -198,6 +199,7 @@ static ojson ToPrettyOrderedJson(const WeaponData& w) {
 	j["muzzleSpeed"] = w.muzzleSpeed;
 	j["maxDistance"] = w.maxDistance;
 	j["rpm"] = w.rpm;
+	j["damage"] = w.damage;
 	j["magCapacity"] = w.magCapacity;
 	j["startingReserve"] = w.startingReserve;
 	j["reloadTime"] = w.reloadTime;
@@ -307,6 +309,7 @@ std::unordered_map<std::string, WeaponData> Weapon::LoadWeapon(const std::string
 		w.muzzleSpeed = wj["muzzleSpeed"];		// m/s (銃口初速)
 		w.maxDistance = wj["maxDistance"];		// m (弾の飛距離)
 		w.rpm = wj["rpm"];						// 発射レート (rounds per minute)
+		w.damage = wj["damage"];				// 1発あたりのダメージ
 
 		w.magCapacity = wj["magCapacity"];		   // 1マガジンの装弾数
 		w.startingReserve = wj["startingReserve"]; // 初期予備弾数（総予備）
@@ -399,6 +402,7 @@ bool Weapon::SaveWeapons(const std::string& filePath, const std::unordered_map<s
 		wj["muzzleSpeed"] = w.muzzleSpeed;
 		wj["maxDistance"] = w.maxDistance;
 		wj["rpm"] = w.rpm;
+		wj["damage"] = w.damage;
 
 		wj["magCapacity"] = w.magCapacity;
 		wj["startingReserve"] = w.startingReserve;

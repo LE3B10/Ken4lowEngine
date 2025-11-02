@@ -4,6 +4,7 @@
   "muzzleSpeed": 900.0,
   "maxDistance": 3000.0,
   "rpm": 50.0,
+  "damage": 90.0,
   "magCapacity": 5,
   "startingReserve": 25,
   "reloadTime": 3.2,

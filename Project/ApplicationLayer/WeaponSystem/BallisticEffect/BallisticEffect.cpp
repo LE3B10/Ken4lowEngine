@@ -119,19 +119,6 @@ void BallisticEffect::Update()
 		// 衝突判定
 		b.traveled += Vector3::Length(b.position - prev);
 
-		// === コライダーを最新化 ===
-		if (b.collider)
-		{
-			// 弾を中心としておく（デバッグ用）
-			b.collider->SetCenterPosition(b.position);
-
-			// 1フレームぶんの軌跡を線分として登録
-			Segment seg{};
-			seg.origin = prev;
-			seg.diff = (b.position - prev); // 終点 = prev + diff
-			b.collider->SetSegment(seg);
-		}
-
 		// ===== 単一セグメント（1発＝1本）を更新 =====
 		if (currentWeapon_.tracer.enabled)
 		{
@@ -170,7 +157,7 @@ void BallisticEffect::Update()
 			}
 			else
 			{
-				// 既存を更新（フェードさせないので age を毎フレ0に）
+				// 更新（フェードさせないので age を毎フレ0に）
 				seg->p0 = tail;
 				seg->p1 = b.position;
 				seg->width = currentWeapon_.tracer.tracerWidth;
@@ -197,19 +184,11 @@ void BallisticEffect::Update()
 				}
 			}
 		}
-
-		// 死んだ弾はコライダーをCollisionManagerから外して破棄
-		if (!b.alive && b.collider)
-		{
-			if (collisionMgr_)
-			{
-				collisionMgr_->RemoveCollider(b.collider);
-			}
-			delete b.collider;
-			b.collider = nullptr;
-		}
-
 	}
+
+	// 死んだ弾を消す
+	bullets_.erase(std::remove_if(bullets_.begin(), bullets_.end(),
+		[](const Bullet& b) { return !b.alive; }), bullets_.end());
 
 	// ----- 軌跡セグメントの寿命管理 -----
 	for (auto& s : trails_)
@@ -235,9 +214,50 @@ void BallisticEffect::Update()
 		}
 	}
 
-	// 死んだ弾を消す
-	bullets_.erase(std::remove_if(bullets_.begin(), bullets_.end(),
-		[](const Bullet& b) { return !b.alive; }), bullets_.end());
+	// ----- コライダー弾丸の更新 -----
+	for (auto& c : colliderBullets_)
+	{
+		if (!c.alive) continue;
+
+		c.prev = c.position;
+
+		// 物理
+		c.velocity.y += gravityY_ * dt;
+		if (drag_ > 0.0f) c.velocity -= c.velocity * drag_ * dt;
+		c.position += c.velocity * dt;
+
+		c.traveled += Vector3::Length(c.position - c.prev);
+
+		// === コライダー更新 ===
+		if (c.collider)
+		{
+			c.collider->SetCenterPosition(c.position); // デバッグ可視化用
+			Segment seg{};
+			seg.origin = c.prev;
+			seg.diff = (c.position - c.prev);
+			c.collider->SetSegment(seg);
+		}
+
+		// 寿命/速度/距離で終了
+		float speedNow = Vector3::Length(c.velocity);
+		if (c.traveled > currentWeapon_.maxDistance || speedNow < 1.0f) {
+			c.alive = false;
+		}
+
+		// 死亡後の後片付け
+		if (!c.alive && c.collider) {
+			if (collisionMgr_) collisionMgr_->RemoveCollider(c.collider);
+			delete c.collider;
+			c.collider = nullptr;
+		}
+	}
+
+	// 死んだ弾の回収
+	colliderBullets_.erase(
+		std::remove_if(colliderBullets_.begin(), colliderBullets_.end(),
+			[](const ColliderBullet& x) { return !x.alive; }),
+		colliderBullets_.end()
+	);
 
 	// ----- マズルフラッシュ更新 -----
 	for (auto& f : flashes_)
@@ -419,143 +439,115 @@ void BallisticEffect::Draw()
 void BallisticEffect::Start(const Vector3& position, const Vector3& velocity, const WeaponConfig& weapon)
 {
 	currentWeapon_ = weapon;
-	Vector3 basePos = position;
-	if (parentTransform_) basePos = ComputeMuzzleWorld(parentTransform_, transform_, offset_);
 
-	Vector3 fwd = Vector3::Length(velocity) > 0.0f ? Vector3::Normalize(velocity) : Vector3{ 0,0,1 };
-	Vector3 muzzlePos = basePos + fwd * weapon.muzzle.offsetForward;
-	Vector3 sparkPos = basePos + fwd * weapon.muzzle.sparkOffsetForward;
-	Vector3 bulletBasePos = basePos + fwd * weapon.tracer.startOffsetForward;
+	// --- 起点を分離 ---
+	// 右腕（親Transform＋offset）…見た目・マズル用
+	Vector3 basePosMuzzle = parentTransform_
+		? ComputeMuzzleWorld(parentTransform_, transform_, offset_)
+		: position;
+	// プレイヤーのボディ（呼び出し側が渡す position）…衝突（セグメント）用
+	Vector3 basePosBody = position;
 
-	// マズルフラッシュ & スパーク & 薬莢（既存）
+	// 前方ベクトル
+	Vector3 fwd = (Vector3::Length(velocity) > 1e-6f) ? Vector3::Normalize(velocity) : Vector3{ 0,0,1 };
+
+	// マズル／スパークの出現位置（右腕基準）
+	Vector3 muzzlePos = basePosMuzzle + fwd * weapon.muzzle.offsetForward;
+	Vector3 sparkPos = basePosMuzzle + fwd * weapon.muzzle.sparkOffsetForward;
+
+	// 見た目用の弾の初期位置（右腕＝銃口側から少し押し出す）
+	Vector3 bulletBasePosVFX = basePosMuzzle + fwd * weapon.tracer.startOffsetForward;
+	// 衝突用の弾の初期位置（ボディ側。自爆が気になるなら +fwd*小オフセット を好みで）
+	Vector3 bulletBasePosCOL = basePosBody /* + fwd * 0.0f */;
+
+	// --- 演出 ---
 	if (weapon.muzzle.enabled) {
 		SpawnMuzzleFlash(muzzlePos, fwd, weapon);
 		if (weapon.muzzle.sparksEnabled) SpawnMuzzleSparks(sparkPos, fwd, weapon);
 	}
-	if (weapon.casing.enabled) SpawnCasing(basePos, fwd, weapon);
+	if (weapon.casing.enabled) SpawnCasing(basePosMuzzle, fwd, weapon);
 
-	// --- 散弾処理開始 ---
+	// --- 散弾設定（既存ロジック） ---
 	int pellets = std::max(1u, weapon.bulletsPerShot);
-	float coneRad = (weapon.spreadDeg * (std::numbers::pi_v<float> / 180.0f)) * 0.5f; // 半角（左右上下に広がるので半分）
+	float coneRad = (weapon.spreadDeg * (std::numbers::pi_v<float> / 180.0f)) * 0.5f;
 	auto rand01 = []() { return (float)rand() / (float)RAND_MAX; };
 
-	// Decide tracer behavior
-	int tracerMode = weapon.pelletTracerMode; // 0=none,1=one,2=all
+	int tracerMode = weapon.pelletTracerMode;
 	int tracerCount = std::max(1, weapon.pelletTracerCount);
-
-	// If tracerMode==1 and tracerCount>1, pick tracerCount distinct pellet indices
 	std::vector<int> tracerIndices;
 	if (tracerMode == 1) {
-		// choose tracerCount unique indices
 		tracerIndices.reserve(tracerCount);
-		for (int i = 0; i < tracerCount; i++) {
+		for (int i = 0; i < tracerCount; ++i) {
 			int idx = (int)(rand01() * pellets);
 			tracerIndices.push_back(idx % pellets);
 		}
 	}
 
+	// --- 各ペレット発射 ---
 	for (int i = 0; i < pellets; ++i)
 	{
-		float u = rand01();
-		float v = rand01();
-		float theta = coneRad * std::sqrt(u); // sqrt to avoid edge clustering
+		// 円錐分布で散らす（既存）
+		float u = rand01(), v = rand01();
+		float theta = coneRad * std::sqrt(u);
 		float phi_ = 2.0f * std::numbers::pi_v<float> *v;
 
-		// build orthonormal basis around fwd
 		Vector3 z = Vector3::Normalize(fwd);
 		Vector3 x = Vector3::Normalize((fabs(z.y) < 0.999f) ? Vector3{ -z.z,0,z.x } : Vector3{ 1,0,0 });
 		Vector3 y = Vector3::Normalize(Vector3::Cross(z, x));
-
 		Vector3 dir = Vector3::Normalize(
 			x * (std::sin(theta) * std::cos(phi_)) +
 			y * (std::sin(theta) * std::sin(phi_)) +
 			z * (std::cos(theta))
 		);
-
-		// 弾速ベクトル
 		Vector3 pelletVel = dir * weapon.muzzleSpeed;
 
-		// 弾丸を追加
+		// ===== 見た目用（bullets_）：右腕＝マズル起点 =====
 		bool placed = false;
-		for (auto& b : bullets_)
-		{
-			if (!b.alive)
-			{
-				b.position = bulletBasePos;
+		for (auto& b : bullets_) {
+			if (!b.alive) {
+				b.position = bulletBasePosVFX;
 				b.velocity = pelletVel;
 				b.alive = true;
 				b.traveled = 0.0f;
 				b.userShotCount = ++shotCounter_;
 				placed = true;
-
-				// コライダーの用意
-				if (b.collider == nullptr)
-				{
-					b.collider = new Collider();
-					b.collider->Initialize();
-
-					// このコライダーは「弾」なので Bullet のタイプIDを入れる
-					b.collider->SetTypeID(static_cast<uint32_t>(CollisionTypeIdDef::kBullet));
-
-					// デバッグ用にOBBを無効っぽくする(半サイズ0なら描画されない仕様)
-					b.collider->SetOBBHalfSize({ 0.0f,0.0f,0.0f });
-
-					// CollisionManagerに登録
-					if (collisionMgr_) {
-						collisionMgr_->AddCollider(b.collider);
-					}
-				}
-
-				// 初期位置の更新(中心座標として持たせておくとImGuiで見やすい)
-				b.collider->SetCenterPosition(b.position);
-
-				// Segment初期化（まだ動いてないので長さ0でOK）
-				Segment seg{};
-				seg.origin = b.position;
-				seg.diff = { 0.0f,0.0f,0.0f };
-				b.collider->SetSegment(seg);
-
 				break;
 			}
 		}
-
-		// 空きがなければ新規追加
-		if (!placed)
-		{
+		if (!placed) {
 			Bullet nb{};
-			nb.position = bulletBasePos;
+			nb.position = bulletBasePosVFX;
 			nb.velocity = pelletVel;
 			nb.alive = true;
 			nb.traveled = 0.0f;
 			nb.userShotCount = ++shotCounter_;
-
-			// ★ Collider生成
-			nb.collider = new Collider();
-			nb.collider->Initialize();
-			nb.collider->SetTypeID(static_cast<uint32_t>(CollisionTypeIdDef::kBullet));
-			nb.collider->SetOBBHalfSize({ 0.0f,0.0f,0.0f });
-			nb.collider->SetCenterPosition(nb.position);
-
-			{
-				Segment seg{};
-				seg.origin = nb.position;
-				seg.diff = { 0.0f,0.0f,0.0f };
-				nb.collider->SetSegment(seg);
-			}
-
-			// Manager登録
-			if (collisionMgr_) collisionMgr_->AddCollider(nb.collider);
-
 			bullets_.push_back(nb);
 		}
 
-		// トレーサを出す条件
-		bool spawnTracer = false;
-		if (tracerMode == 2) spawnTracer = true; // all
-		else if (tracerMode == 1) {
-			// if this pellet's index was chosen for tracer
-			for (int ti : tracerIndices) if (ti == i) { spawnTracer = true; break; }
-		}
+		// ===== 衝突用（colliderBullets_）：ボディ起点 =====
+		ColliderBullet cb{};
+		cb.position = bulletBasePosCOL;
+		cb.prev = cb.position;
+		cb.velocity = pelletVel;
+		cb.traveled = 0.0f;
+		cb.alive = true;
+		cb.userShotCount = shotCounter_; // 同じ発射IDを共有しておく
+
+		// 衝突用コライダーの生成・登録（セグメント初期化）
+		cb.collider = new Collider();
+		cb.collider->Initialize();
+		cb.collider->SetTypeID(static_cast<uint32_t>(CollisionTypeIdDef::kBullet));
+		cb.collider->SetOBBHalfSize({ 0,0,0 });           // セグメント専用
+		cb.collider->SetCenterPosition(cb.position);
+		Segment s{}; s.origin = cb.position; s.diff = { 0,0,0 };
+		cb.collider->SetSegment(s);
+		if (collisionMgr_) collisionMgr_->AddCollider(cb.collider);
+
+		colliderBullets_.push_back(cb);
+
+		// （トレーサ出すかの判定は従来通り Update() 側で ownerId を見て処理）
+		// あるいはここで spawnTracer を見てフラグを記録してもよい
+		(void)tracerMode; (void)tracerCount; (void)tracerIndices; // 使い方は既存ロジックに合わせて
 	}
 }
 
@@ -570,7 +562,7 @@ Vector3 BallisticEffect::GetMuzzleWorld() const
 void BallisticEffect::RegisterColliders(CollisionManager* mgr)
 {
 	if (!mgr) return;
-	for (auto& b : bullets_)
+	for (auto& b : colliderBullets_)
 	{
 		if (b.alive && b.collider) {
 			mgr->AddCollider(b.collider);
