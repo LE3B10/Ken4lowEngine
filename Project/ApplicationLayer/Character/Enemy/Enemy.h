@@ -78,9 +78,13 @@ private: /// ---------- メンバ関数 ---------- ///
 	void UpdateDamaged(float deltaTime);	// ダメージ
 	void UpdateDead(float deltaTime);		// 死亡
 
+	// ワールド衝突解決処理
 	void SolveWorldCollision(const Vector3& oldTranslate);
 
+	// 新しい徘徊方向をランダムに決定する
 	void PickNewWanderDirection();
+
+	void ApplyColorToAll(const Vector4& color); // body_ と parts_ に一括適用
 
 private: /// ---------- メンバ関数 ---------- ///
 
@@ -145,5 +149,14 @@ private: /// ---------- 攻撃判定用定数 ---------- ///
 
 	Vector3 prevPos_;                      // 1フレーム前の位置(スタック検出用)
 	float stuckThreshold_ = 0.01f;         // これ未満しか動けてなかったら詰まってるとみなす
+
+private: /// ---------- 定数 ---------- ///
+
+	// --- ヒット時フラッシュ ---
+	float hitFlashDuration_ = 0.08f;   // フラッシュ継続秒
+	float hitFlashTimer_ = 0.0f;    // 残りタイム
+	Vector4 baseColor_ = { 1.0f,1.0f,1.0f,1.0f }; // 元の色
+	Vector4 hitColor_ = { 1.0f,0.0f,0.0f,1.0f };  // ヒット時の色
+	Vector4 colorModulate_ = { 1.0f,1.0f,1.0f,1.0f }; // 現在の色補正
 };
 

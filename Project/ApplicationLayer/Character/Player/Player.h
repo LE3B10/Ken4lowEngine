@@ -49,6 +49,14 @@ private: /// ---------- 構造体 ---------- ///
 		bool isDebugCamera = false;
 	};
 
+	struct ViewModelTurning
+	{
+		float baseFovDeg = 60.0f;        // 基本FOV角度
+		Vector3 baseOffset = { 0.75f, -0.75f, 0.75f }; // 基本オフセット
+		bool lockSizeByFov = true;    // FOVでサイズ固定フラグ
+		Vector3 baseScale = { 1.0f,1.0f,1.0f };         // 基本スケール
+	}vm_;
+
 	// ジャンプ状態構造体
 	struct JumpState
 	{

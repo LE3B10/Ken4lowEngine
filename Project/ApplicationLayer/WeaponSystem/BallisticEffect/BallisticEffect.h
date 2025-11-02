@@ -41,8 +41,18 @@ private: /// ---------- 構造体 ---------- ///
 		bool alive;       // 生存フラグ
 		float traveled;    // 移動距離
 		uint32_t userShotCount; // 発射からのフレーム数（トレーサ間引き用）
+	};
 
-		Collider* collider = nullptr; // 衝突判定用コライダー 
+	// 衝突判定用の弾情報
+	struct ColliderBullet
+	{
+		Vector3 position{};
+		Vector3 prev{};
+		Vector3 velocity{};
+		float   traveled = 0.0f;
+		bool    alive = false;
+		uint32_t userShotCount = 0;
+		Collider* collider = nullptr; // 衝突専用
 	};
 
 	// マズルフラッシュ
@@ -107,6 +117,13 @@ public: /// ---------- メンバ関数 ---------- ///
 
 public: /// ---------- セッター・ゲッター ---------- ///
 
+	// プレイヤーのボディを基準にするオフセットを設定
+	void SetPlayerBodyTransform(const WorldTransformEx& bodyTransform, const Vector3& offset) {
+		parentTransform_ = &bodyTransform;
+		offset_ = offset;
+		transform_.parent_ = const_cast<WorldTransformEx*>(&bodyTransform);
+	}
+
 	// 親Transformを設定
 	void SetParentTransform(const WorldTransformEx* parent) {
 		parentTransform_ = parent;
@@ -145,9 +162,11 @@ private: /// ---------- メンバ変数 ---------- ///
 	CollisionManager* collisionMgr_ = nullptr;
 
 	// ワールド変換
-	WorldTransformEx transform_;
+	WorldTransformEx transform_; // 自身のTransform
 	const WorldTransformEx* parentTransform_ = nullptr;
 	Vector3 offset_ = { 0.0f, 0.325f, 2.5f };
+
+	WorldTransformEx playerBodyTransform_; // プレイヤーボディTransform（オフセット基準用）
 
 	WeaponConfig currentWeapon_; // 現在の武器設定
 	uint32_t shotCounter_ = 0;    // 発射カウンタ（トレーサ間引き用）
@@ -157,6 +176,7 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	std::vector<TrailSegment> trails_; // 軌跡セグメントの配列
 	std::vector<Bullet> bullets_; // 弾の配列（将来拡張用）
+	std::vector<ColliderBullet> colliderBullets_;
 
 	// 物理&見た目パラメータ
 	float gravityY_ = -9.8f;   // m/s^2

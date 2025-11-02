@@ -41,6 +41,7 @@ void Player::Initialize()
 	// 武器マネージャー初期化
 	weaponManager_ = std::make_unique<WeaponManager>();
 	weaponManager_->SetParentTransforms(&parts_[partIndices_.rightArm].transform); // 右腕を親に設定
+	weaponManager_->SetPlayerBody(&body_.transform);				   // 体幹をプレイヤーボディに設定
 	weaponManager_->InitializeWeapons(fireState_, deathState_);					   // 武器初期化
 	weaponManager_->SetCollisionManager(collisionManager_); // 衝突管理者設定
 
@@ -160,7 +161,7 @@ void Player::Draw()
 	BaseCharacter::Draw();
 
 	// 武器描画
-	weaponManager_->DrawWeapons();
+	if (!IsDeadNow()) weaponManager_->DrawWeapons();
 }
 
 /// -------------------------------------------------------------
@@ -197,7 +198,7 @@ void Player::OnCollision(Collider* other)
 /// -------------------------------------------------------------
 Vector3 Player::GetCenterPosition() const
 {
-	const Vector3 offset = { 0.0f,0.0f,0.0f };
+	const Vector3 offset = { 0.0f,1.5f,0.0f };
 	Vector3 worldPosition = body_.transform.translate_ + offset;
 	return worldPosition;
 }
@@ -455,22 +456,37 @@ void Player::Move(float deltaTime)
 	if (isFP)
 	{
 		fpsCamera_->Update();
-		armT.parent_ = nullptr;  // 親を外してワールド直置きにする
+		armT.parent_ = nullptr;
 
-		// 右下・前に出すカメラローカルオフセット
-		Vector3 offset = { 0.75f, -0.75f, 0.75 };
+		Camera* cam = fpsCamera_->GetCamera();
+		const float fovNow = cam->GetFovY();                         // 現在FOV
+		const float fovBase = vm_.baseFovDeg * std::numbers::pi_v<float> / 180.0f;
+		const float k = std::tanf(fovNow * 0.5f) / std::tanf(fovBase * 0.5f); // ←FOV係数
 
-		// カメラ姿勢でオフセットを回す（Yaw→Pitch）
+		// 右(X)/上(Y)はFOVに応じて補正、前(Z)はそのまま（好みに応じて）
+		Vector3 local = { vm_.baseOffset.x * k, vm_.baseOffset.y * k, vm_.baseOffset.z };
+
+		// カメラ姿勢（Yaw→Pitch）でローカル→ワールドへ
 		Matrix4x4 Ry = Matrix4x4::MakeRotateY(camYaw);
 		Matrix4x4 Rx = Matrix4x4::MakeRotateX(camPitch);
 		Matrix4x4 R = Matrix4x4::Multiply(Rx, Ry);
-		offset = Matrix4x4::Transform(offset, R);
+		Vector3 offset = Matrix4x4::Transform(local, R);
 
-		// カメラ位置＋回したオフセット（画面に固定される）
-		const Vector3 camPos = fpsCamera_->GetCamera()->GetTranslate();
+		const Vector3 camPos = cam->GetTranslate();
 		armT.translate_ = camPos + offset;
 		armT.rotate_.y = camYaw;
 		armT.rotate_.x = camPitch - (90.0f * std::numbers::pi_v<float> / 180.0f);
+
+		// 見た目サイズをFOVに依存させない
+		if (vm_.lockSizeByFov)
+		{
+			Vector3 sc = vm_.baseScale * (std::tanf(fovBase * 0.5f) / std::tanf(fovNow * 0.5f));
+			parts_[partIndices_.rightArm].object->SetScale(sc);
+		}
+		else
+		{
+			armT.scale_ = { vm_.baseScale.x, vm_.baseScale.x, vm_.baseScale.x };
+		}
 	}
 	else
 	{
@@ -663,6 +679,8 @@ void Player::UpdateDeath(float deltaTime)
 /// -------------------------------------------------------------
 void Player::DrawImGui()
 {
+	fpsCamera_->DrawImGui();
+
 	ImGui::Begin("Player Dissolve");
 
 	// --- ディゾルブ設定 ---
@@ -678,6 +696,15 @@ void Player::DrawImGui()
 		body_.object->SetDissolveEdgeColor(dissolveEffect_.edgeColor);
 		for (auto& p : parts_) { p.object->SetDissolveEdgeColor(dissolveEffect_.edgeColor); }
 	}
+	ImGui::End();
+
+	// --- ビューモデル設定 ---
+
+	ImGui::Begin("Viewmodel (Arm) Tuning");
+	ImGui::SliderFloat("Base FOV (deg)", &vm_.baseFovDeg, 40.0f, 100.0f, "%.1f");
+	ImGui::DragFloat3("Base Offset (R,U,F)", &vm_.baseOffset.x, 0.01f);
+	ImGui::Checkbox("Lock Size By FOV", &vm_.lockSizeByFov);
+	ImGui::DragFloat3("Base Scale", &vm_.baseScale.x, 0.01f, 0.1f, 4.0f);
 	ImGui::End();
 
 	// --- 武器管理 ---

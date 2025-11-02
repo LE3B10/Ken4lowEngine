@@ -13,7 +13,7 @@
 #include "BallisticEffect.h"
 #include "Crosshair.h"
 #include "ItemManager.h"
-#include "Stage.h"
+
 
 #include "LevelObjectManager.h"
 
@@ -141,8 +141,6 @@ private: /// ---------- メンバ変数 ---------- ///
 	std::unique_ptr<BallisticEffect> ballisticEffect_ = nullptr; // 弾道エフェクト
 
 	std::unique_ptr<ItemManager> itemManager_ = nullptr; // アイテムマネージャー
-
-	std::unique_ptr<Stage> stage_ = nullptr; // ステージ
 
 	std::unique_ptr<LevelObjectManager> levelObjectManager_ = nullptr; // レベルオブジェクトマネージャー
 

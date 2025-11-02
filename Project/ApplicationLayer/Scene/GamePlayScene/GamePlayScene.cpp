@@ -82,7 +82,6 @@ void GamePlayScene::Initialize()
 
 	// プレイヤーの初期化
 	player_ = std::make_unique<Player>();
-	player_->SetCollisionManager(collisionManager_.get());
 	player_->Initialize();
 
 	// 敵キャラクターの初期化
@@ -90,6 +89,9 @@ void GamePlayScene::Initialize()
 	enemy_->Initialize();
 	enemy_->SetPlayerPointer(player_.get());
 	enemy_->SetSpawnPosition({ 0.0f, 2.5f, 30.0f });
+
+	//targetModel_ = std::make_unique<TargetModel>();
+	//targetModel_->Initialize();
 
 	// クロスヘアの初期化
 	crosshair_ = std::make_unique<Crosshair>();
@@ -193,6 +195,7 @@ void GamePlayScene::Update()
 		skyBox_->Update();
 		fadeController_->Update(deltaTime);
 		itemManager_->Update(player_.get(), deltaTime);
+		levelObjectManager_->Update();
 
 		if (finished)
 		{
@@ -212,6 +215,7 @@ void GamePlayScene::Update()
 		skyBox_->Update();
 		crosshair_->Update();
 		itemManager_->Update(player_.get(), deltaTime);
+		//targetModel_->Update();
 
 		// プレイヤー死亡チェック
 		if (player_->IsDeadNow())
@@ -316,6 +320,7 @@ void GamePlayScene::Draw3DObjects()
 		itemManager_->Draw();
 	}
 
+	//targetModel_->Draw();
 	levelObjectManager_->Draw();
 
 #pragma endregion
