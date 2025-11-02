@@ -178,10 +178,6 @@ void Enemy::OnCollision(Collider* other)
 		hitFlashTimer_ = hitFlashDuration_;  // フラッシュ開始/延長
 		ApplyColorToAll(hitColor_);          // 即赤く（次フレームから徐々に戻る）
 
-		if (auto* fx = other->GetOwner<BallisticEffect>()) {
-			fx->NotifyColliderHit(other);  // 弾を即時終了
-		}
-
 		// 弾丸と衝突したときの処理
 		OutputDebugStringA("Enemy hit by bullet!\n");
 	}

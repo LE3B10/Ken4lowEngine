@@ -53,8 +53,8 @@ void GamePlayScene::Initialize()
 	DebugCamera::GetInstance()->Initialize();
 #endif // _DEBUG
 
-	//StartIntroCutscene();
-	//gameState_ = GameState::CutScene;   // 最初は必ずCutSceneへ
+	StartIntroCutscene();
+	gameState_ = GameState::CutScene;   // 最初は必ずCutSceneへ
 	Input::GetInstance()->SetLockCursor(true);
 	ShowCursor(false);
 
@@ -90,9 +90,6 @@ void GamePlayScene::Initialize()
 	enemy_->SetPlayerPointer(player_.get());
 	enemy_->SetSpawnPosition({ 0.0f, 2.5f, 30.0f });
 
-	//targetModel_ = std::make_unique<TargetModel>();
-	//targetModel_->Initialize();
-
 	// クロスヘアの初期化
 	crosshair_ = std::make_unique<Crosshair>();
 	crosshair_->Initialize();
@@ -110,7 +107,7 @@ void GamePlayScene::Initialize()
 
 	// ----------------- Result画面用ボタンの初期化 -----------------
 
-// 画面サイズ
+	// 画面サイズ
 	float screenW = static_cast<float>(dxCommon_->GetSwapChainDesc().Width);
 	float screenH = static_cast<float>(dxCommon_->GetSwapChainDesc().Height);
 
@@ -215,7 +212,6 @@ void GamePlayScene::Update()
 		skyBox_->Update();
 		crosshair_->Update();
 		itemManager_->Update(player_.get(), deltaTime);
-		//targetModel_->Update();
 
 		// プレイヤー死亡チェック
 		if (player_->IsDeadNow())
@@ -385,9 +381,6 @@ void GamePlayScene::Draw2DSprites()
 		{
 			retryButtonSprite_->Draw();
 		}
-
-		// ※ あとで文字スプライト "RETRY" "QUIT" を重ねたいときは、
-		//   ここにテキスト描画 or 別スプライトを足すだけでOK。
 	}
 
 #pragma endregion

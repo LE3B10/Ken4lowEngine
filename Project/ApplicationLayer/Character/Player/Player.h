@@ -229,7 +229,7 @@ private: /// ----------メンバ変数 ---------- ///
 
 	float centerOffsetY_ = 2.0f;  // 足裏ピボットなら -half.y を入れる
 
-	std::string skinTexturePath_ = "steve.png"; // スキンテクスチャパス
+	std::string skinTexturePath_ = "green.png"; // スキンテクスチャパス
 
 	// 体力
 	float maxHp_ = 100.0f;
