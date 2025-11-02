@@ -80,6 +80,7 @@ void WeaponEditorUI::DrawOne(WeaponData& E, const std::string& currentWeaponName
 		ImGui::DragFloat("muzzleSpeed", &E.muzzleSpeed, 1.0f, 10.0f, 2000.0f);
 		ImGui::DragFloat("maxDistance", &E.maxDistance, 1.0f, 10.0f, 5000.0f);
 		ImGui::DragFloat("rpm", &E.rpm, 1.0f, 1.0f, 2000.0f);
+		ImGui::DragFloat("damage", &E.damage, 0.1f, 0.1f, 1000.0f);
 		ImGui::DragInt("magCapacity", &E.magCapacity, 1, 1, 200);
 		ImGui::DragInt("startingReserve", &E.startingReserve, 1, 0, 1000);
 		ImGui::DragFloat("reloadTime", &E.reloadTime, 0.01f, 0.1f, 10.0f);

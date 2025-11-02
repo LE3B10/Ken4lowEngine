@@ -6,6 +6,7 @@
 #include <Input.h>
 #include "LinearInterpolation.h"
 #include <Wireframe.h>
+#include <imgui.h>
 
 /// ----------------------------------------------
 ///					初期化処理
@@ -94,6 +95,55 @@ void FpsCamera::DrawDebugCamera()
 	aabb.max = { 0.125f, eyeHeight_,  0.125f };
 
 	Wireframe::GetInstance()->DrawAABB(aabb, { 0.0f, 0.0f, 1.0f, 1.0f });
+}
+
+void FpsCamera::DrawImGui()
+{
+	if (!camera_) return;
+
+	ImGui::Begin("FPS Camera");
+
+	// モード
+	static const char* kModes[] = { "FirstPerson", "ThirdBack", "ThirdFront" };
+	int mode = static_cast<int>(viewMode_);
+	if (ImGui::Combo("View Mode", &mode, kModes, IM_ARRAYSIZE(kModes))) {
+		viewMode_ = static_cast<ViewMode>(mode);
+	}
+
+	// 視点角度/目線高
+	ImGui::DragFloat("Yaw", &yaw_, 0.002f);
+	ImGui::DragFloat("Pitch", &pitch_, 0.002f);
+	pitch_ = std::clamp(pitch_, -1.5f, +1.5f); // 安全範囲
+	ImGui::DragFloat("Eye Height", &eyeHeight_, 0.005f, 0.8f, 2.0f);
+
+	// TPS微調整
+	ImGui::DragFloat("TPS Distance", &tpsDistance_, 0.05f, 1.0f, 30.0f);
+	ImGui::DragFloat("TPS Forward", &tpsForward_, 0.05f, 1.0f, 30.0f);
+	ImGui::DragFloat("TPS Up Offset", &tpsUpOffset_, 0.005f, 0.0f, 1.0f);
+
+	// 紐付いている Camera の near/FOV を直編集
+	float fovDeg = camera_->GetFovY() * 180.0f / 3.14159265f;
+	if (ImGui::SliderFloat("FOV (deg)", &fovDeg, 40.0f, 100.0f, "%.1f")) {
+		camera_->SetFovY(fovDeg * 3.14159265f / 180.0f);
+	}
+	float nearZ = camera_->GetProjectionMatrix().m[3][2]; // 直接参照は好ましくないので…
+	(void)nearZ; // ここは UI からの設定を優先
+	static float nearTmp = 0.05f;
+	static float farTmp = 1000.0f;
+	if (ImGui::DragFloat("Near (for FPS)", &nearTmp, 0.001f, 0.01f, 0.2f, "%.3f")) {
+		camera_->SetNearClip(nearTmp);
+	}
+	if (ImGui::DragFloat("Far (for FPS)", &farTmp, 1.0f, 50.0f, 10000.0f)) {
+		camera_->SetFarClip(farTmp);
+	}
+
+	if (ImGui::Button("Reset View")) {
+		yaw_ = 0.0f; pitch_ = 0.0f; eyeHeight_ = 1.5f;
+		camera_->SetFovY(60.0f * 3.14159265f / 180.0f);
+		camera_->SetNearClip(0.05f);
+		camera_->SetFarClip(1000.0f);
+	}
+	ImGui::End();
 }
 
 /// ----------------------------------------------

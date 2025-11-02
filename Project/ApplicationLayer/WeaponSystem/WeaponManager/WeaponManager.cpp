@@ -159,6 +159,15 @@ void WeaponManager::StartFireBallisticEffect(const Vector3& position, const Vect
 }
 
 /// -------------------------------------------------------------
+///				　	　 プレイヤーボディ設定処理
+/// -------------------------------------------------------------
+void WeaponManager::SetPlayerBody(const WorldTransformEx* bodyTransform)
+{
+	// プレイヤーボディTransformを保存
+	if (ballisticEffect_) ballisticEffect_->SetPlayerBodyTransform(*bodyTransform, {});
+}
+
+/// -------------------------------------------------------------
 ///				　	 親ワールド変換設定処理
 /// -------------------------------------------------------------
 void WeaponManager::SetParentTransforms(const WorldTransformEx* rightArmTransform)
