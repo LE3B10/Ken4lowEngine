@@ -79,6 +79,21 @@
     <FxCompile Include="Resources\Shaders\Wireframe\Wireframe.GS.hlsl">
       <Filter>Shader\GeometryShader</Filter>
     </FxCompile>
+    <FxCompile Include="Resources\Shaders\GpuParticle\GpuParticle.CS.hlsl">
+      <Filter>Shader\ComputeShader</Filter>
+    </FxCompile>
+    <FxCompile Include="Resources\Shaders\GpuParticle\GpuParticle.PS.hlsl">
+      <Filter>Shader\PixelShader</Filter>
+    </FxCompile>
+    <FxCompile Include="Resources\Shaders\GpuParticle\GpuParticle.VS.hlsl">
+      <Filter>Shader\VertexShader</Filter>
+    </FxCompile>
+    <FxCompile Include="Resources\Shaders\GpuParticle\GpuParticleEmit.CS.hlsl">
+      <Filter>Shader\ComputeShader</Filter>
+    </FxCompile>
+    <FxCompile Include="Resources\Shaders\GpuParticle\GpuParticleUpdate.CS.hlsl">
+      <Filter>Shader\ComputeShader</Filter>
+    </FxCompile>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="WinMain.cpp" />
@@ -405,6 +420,21 @@
     </ClCompile>
     <ClCompile Include="ApplicationLayer\Character\Enemy\Enemy.cpp">
       <Filter>ApplicationLayer\Character\Enemy</Filter>
+    </ClCompile>
+    <ClCompile Include="EngineLayer\GPUParticleSystem\GpuParticleBuffers.cpp">
+      <Filter>EngineLayer\GpuParticleSystem</Filter>
+    </ClCompile>
+    <ClCompile Include="EngineLayer\GPUParticleSystem\GpuParticleEmitter.cpp">
+      <Filter>EngineLayer\GpuParticleSystem</Filter>
+    </ClCompile>
+    <ClCompile Include="EngineLayer\GPUParticleSystem\GpuParticleManager.cpp">
+      <Filter>EngineLayer\GpuParticleSystem</Filter>
+    </ClCompile>
+    <ClCompile Include="EngineLayer\GPUParticleSystem\GpuParticlePipeline.cpp">
+      <Filter>EngineLayer\GpuParticleSystem</Filter>
+    </ClCompile>
+    <ClCompile Include="EngineLayer\GPUParticleSystem\GpuParticleRenderer.cpp">
+      <Filter>EngineLayer\GpuParticleSystem</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -864,6 +894,24 @@
     <ClInclude Include="ApplicationLayer\Character\Enemy\Enemy.h">
       <Filter>ApplicationLayer\Character\Enemy</Filter>
     </ClInclude>
+    <ClInclude Include="EngineLayer\GPUParticleSystem\BillboardMode.h">
+      <Filter>EngineLayer\GpuParticleSystem</Filter>
+    </ClInclude>
+    <ClInclude Include="EngineLayer\GPUParticleSystem\GpuParticleBuffers.h">
+      <Filter>EngineLayer\GpuParticleSystem</Filter>
+    </ClInclude>
+    <ClInclude Include="EngineLayer\GPUParticleSystem\GpuParticleEmitter.h">
+      <Filter>EngineLayer\GpuParticleSystem</Filter>
+    </ClInclude>
+    <ClInclude Include="EngineLayer\GPUParticleSystem\GpuParticleManager.h">
+      <Filter>EngineLayer\GpuParticleSystem</Filter>
+    </ClInclude>
+    <ClInclude Include="EngineLayer\GPUParticleSystem\GpuParticlePipeline.h">
+      <Filter>EngineLayer\GpuParticleSystem</Filter>
+    </ClInclude>
+    <ClInclude Include="EngineLayer\GPUParticleSystem\GpuParticleRenderer.h">
+      <Filter>EngineLayer\GpuParticleSystem</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="Resources\Shaders\PostEffect\FullScreen.hlsli">
@@ -885,6 +933,12 @@
       <Filter>Shader\Hlsli</Filter>
     </None>
     <None Include="Resources\Shaders\Wireframe\Wireframe.hlsli">
+      <Filter>Shader\Hlsli</Filter>
+    </None>
+    <None Include="Resources\Shaders\GpuParticle\GpuParticle.hlsli">
+      <Filter>Shader\Hlsli</Filter>
+    </None>
+    <None Include="Resources\Shaders\GpuParticle\GpuParticleData.hlsli">
       <Filter>Shader\Hlsli</Filter>
     </None>
   </ItemGroup>
@@ -1227,6 +1281,9 @@
     </Filter>
     <Filter Include="ApplicationLayer\Character\Enemy">
       <UniqueIdentifier>{be2d6a9f-8c22-4da6-85c8-ff7585c0a873}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="EngineLayer\GpuParticleSystem">
+      <UniqueIdentifier>{a9aa778c-2136-4e32-bb02-fcd9fc495938}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>
