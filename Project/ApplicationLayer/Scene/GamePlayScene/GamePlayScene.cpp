@@ -53,8 +53,8 @@ void GamePlayScene::Initialize()
 	DebugCamera::GetInstance()->Initialize();
 #endif // _DEBUG
 
-	StartIntroCutscene();
-	gameState_ = GameState::CutScene;   // 最初は必ずCutSceneへ
+	//StartIntroCutscene();
+	//gameState_ = GameState::CutScene;   // 最初は必ずCutSceneへ
 	Input::GetInstance()->SetLockCursor(true);
 	ShowCursor(false);
 

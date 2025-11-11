@@ -16,6 +16,7 @@
 #include <SkyBoxManager.h>
 #include <PostEffectManager.h>
 #include <BlendStateFactory.h>
+#include "GpuParticleManager.h"
 
 
 /// -------------------------------------------------------------
@@ -108,6 +109,9 @@ void Framework::Initialize()
 	// ポストエフェクトの初期化
 	PostEffectManager::GetInstance()->Initialieze(dxCommon_);
 
+	// GPUパーティクルマネージャーの初期化
+	GpuParticleManager::GetInstance()->Initialize(defaultCamera_.get());
+
 #pragma endregion -------------------------------------------
 }
 
@@ -125,6 +129,9 @@ void Framework::Update()
 
 	// ParticleManagerの更新処理
 	ParticleManager::GetInstance()->Update();
+
+	// Gpuパーティクルマネージャーの更新処理
+	GpuParticleManager::GetInstance()->Update();
 }
 
 

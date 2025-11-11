@@ -8,6 +8,7 @@
 #include "Object3DCommon.h"
 #include "PostEffectManager.h"
 #include "LightManager.h"
+#include <GpuParticleManager.h>
 
 
 /// -------------------------------------------------------------
@@ -29,7 +30,7 @@ void GameEngine::Initialize()
 	SceneManager::GetInstance()->SetAbstractSceneFactory(std::move(sceneFactory));
 
 	// 最初のシーンを設定
-	SceneManager::GetInstance()->SetNextScene(std::make_unique<TitleScene>());
+	SceneManager::GetInstance()->SetNextScene(std::make_unique<GamePlayScene>());
 }
 
 
@@ -106,6 +107,9 @@ void GameEngine::Draw()
 
 	// --- パーティクル（UIエフェクトなどあれば） ---
 	ParticleManager::GetInstance()->Draw();
+
+	// --- Gpuパーティクル ---
+	GpuParticleManager::GetInstance()->Draw();
 
 	// --- デバッグ描画（3D用） ---
 	Wireframe::GetInstance()->Draw();
