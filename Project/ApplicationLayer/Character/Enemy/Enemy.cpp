@@ -39,12 +39,20 @@ void Enemy::Initialize()
 	parts_[leftArmIndex_].transform.rotate_.x = idleRad;
 	parts_[rightArmIndex_].transform.rotate_.x = idleRad;
 
+	hp_ = maxHp_;                  // 体力満タンに
 	aiState_ = AIState::SpawnDelay; // 初期状態を出現待機に設定
 	stateTimer_ = 0.0f;           // 状態タイマーリセット
 	isActive_ = false;            // スポーン済みフラグリセット
 
 	hitFlashTimer_ = 0.0f;
 	ApplyColorToAll(baseColor_);
+
+	death_ = DeathEnemyState{};
+
+	// パーツの親も復元しておく（分解で parent_ を外している場合）
+	for (auto& part : parts_) {
+		part.transform.parent_ = &body_.transform;
+	}
 }
 
 /// -------------------------------------------------------------
@@ -52,6 +60,29 @@ void Enemy::Initialize()
 /// -------------------------------------------------------------
 void Enemy::Update(float deltaTime)
 {
+	// 死亡演出中ならそちらを優先
+	if (death_.active)
+	{
+		UpdateDeath(deltaTime);
+		BaseCharacter::Update(deltaTime);
+		return;
+	}
+
+	// まずスポーン待機中（SpawnDelay）は isActive_ が false でも進める
+	if (!isActive_)
+	{
+		if (aiState_ == AIState::SpawnDelay)
+		{
+			UpdateSpawnDelay(deltaTime);
+		}
+
+		// ここでまだアクティブ化してなければ何もしないで終了
+		if (!isActive_) {
+			return;
+		}
+		// isActive_ が true になったら、この下の通常処理に入る
+	}
+
 	// 攻撃クールダウンタイマーを進める
 	if (attackCooldownTimer_ > 0.0f)
 	{
@@ -119,7 +150,7 @@ void Enemy::Update(float deltaTime)
 void Enemy::Draw()
 {
 	// スポーン前（SpawnDelay状態）は描画しない
-	if (!isActive_) return;
+	if (!isActive_ && !death_.active) return;
 
 	// ベースキャラクター描画
 	BaseCharacter::Draw();
@@ -177,6 +208,9 @@ void Enemy::OnCollision(Collider* other)
 
 		hitFlashTimer_ = hitFlashDuration_;  // フラッシュ開始/延長
 		ApplyColorToAll(hitColor_);          // 即赤く（次フレームから徐々に戻る）
+
+		// ダメージ処理
+		TakeDamage(player_->GetWeaponManager()->GetCurrentConfig().damage); // ダメージ量取得
 
 		// 弾丸と衝突したときの処理
 		OutputDebugStringA("Enemy hit by bullet!\n");
@@ -338,10 +372,6 @@ void Enemy::UpdateChase(float deltaTime)
 		didHitThisAttack_ = false;
 		return;
 	}
-
-	if (distAfter > detectRadius_ * 1.5f) {
-		aiState_ = AIState::Wander; stateTimer_ = 0.0f; return;
-	}
 }
 
 /// -------------------------------------------------------------
@@ -480,9 +510,37 @@ void Enemy::UpdateDamaged(float deltaTime)
 /// -------------------------------------------------------------
 ///				　　　死亡状態の更新処理
 /// -------------------------------------------------------------
-void Enemy::UpdateDead(float deltaTime)
+void Enemy::UpdateDeath(float deltaTime)
 {
-	(void)deltaTime;
+	death_.timer += deltaTime;
+	float t = std::clamp(death_.timer / death_.duration, 0.0f, 1.0f);
+	const Vector3 gravity = { 0.0f, -9.8f * 3.0f, 0.0f };
+
+	// body も飛ばす
+	death_.bodyGib.velocity += gravity * deltaTime;
+	body_.transform.translate_ += death_.bodyGib.velocity * deltaTime;
+	body_.transform.rotate_ += death_.bodyGib.angularVelocity * deltaTime;
+
+	for (size_t i = 0; i < parts_.size() && i < death_.gibs.size(); ++i)
+	{
+		auto& part = parts_[i];
+		auto& gm = death_.gibs[i];
+
+		gm.velocity += gravity * deltaTime;
+		part.transform.translate_ += gm.velocity * deltaTime;
+		part.transform.rotate_ += gm.angularVelocity * deltaTime;
+
+		// だんだん消えていく（ディゾルブがあるならそこに繋ぐ）
+		float alpha = 1.0f - t;
+		part.object->SetColor({ colorModulate_.x,colorModulate_.y,colorModulate_.z,alpha });
+	}
+
+	if (death_.timer >= death_.duration)
+	{
+		death_.active = false;
+		death_.finished = true;
+		isActive_ = false; // ここで完全に消す
+	}
 }
 
 /// -------------------------------------------------------------
@@ -660,4 +718,77 @@ void Enemy::ApplyColorToAll(const Vector4& color)
 	for (auto& part : parts_) {
 		if (part.object) { part.object->SetColor(colorModulate_); }
 	}
+}
+
+/// -------------------------------------------------------------
+///				　　　ダメージ処理
+/// -------------------------------------------------------------
+void Enemy::TakeDamage(float amount)
+{
+	if (aiState_ == AIState::Dead) return;
+
+	hp_ -= amount;
+	if (hp_ <= 0.0f)
+	{
+		hp_ = 0.0f;
+		StartDeath();
+	}
+	else
+	{
+		// 簡単に「食らった」状態にしても良いし、
+		// 今回は演出最低限でスルーでもOK
+		aiState_ = AIState::Chase;
+		stateTimer_ = 0.0f;
+	}
+}
+
+/// -------------------------------------------------------------
+///				　　　死亡開始処理
+/// -------------------------------------------------------------
+void Enemy::StartDeath()
+{
+	if (death_.active) return;
+
+	death_.active = true;
+	death_.finished = false;
+	death_.timer = 0.0f;
+	death_.duration = 0.8f;
+
+	aiState_ = AIState::Dead;
+	isActive_ = true;
+
+	death_.gibs.clear();
+	death_.gibs.resize(parts_.size());
+
+	static thread_local std::mt19937 rng{ std::random_device{}() };
+	std::uniform_real_distribution<float> dirDist(-1.0f, 1.0f);
+	std::uniform_real_distribution<float> upDist(2.0f, 6.0f);
+	std::uniform_real_distribution<float> angDist(-6.0f, 6.0f);
+
+	for (size_t i = 0; i < parts_.size(); ++i)
+	{
+		auto& part = parts_[i];
+		GibMotion gm{};
+
+		// ランダム速度
+		Vector3 dir{ dirDist(rng), 0.0f, dirDist(rng) };
+		if (Vector3::Length(dir) < 0.001f) dir = { 0.0f, 0.0f, 1.0f };
+		dir = Vector3::Normalize(dir);
+		gm.velocity = dir * 3.0f;
+		gm.velocity.y += upDist(rng);
+		gm.angularVelocity = { angDist(rng), angDist(rng), angDist(rng) };
+		death_.gibs[i] = gm;
+
+		// 今までの translate_ は body_ からのローカル位置なので、
+		// 親を外す前に「ワールド位置」に焼き直す
+		Vector3 worldPos = part.transform.translate_;
+		if (part.transform.parent_ == &body_.transform) {
+			worldPos += body_.transform.translate_;
+		}
+
+		part.transform.parent_ = nullptr;
+		part.transform.translate_ = worldPos;
+	}
+
+	ApplyColorToAll({ 0.6f, 0.6f, 0.6f, 1.0f });
 }

@@ -12,7 +12,7 @@
 #include "LevelLoader.h"
 #include "LinearInterpolation.h"
 
-#include "GpuParticleManager.h"
+#include "StageRepository.h"
 
 #ifdef _DEBUG
 #include <DebugCamera.h>
@@ -156,6 +156,11 @@ void GamePlayScene::Update()
 	// デルタタイムの取得
 	const float deltaTime = dxCommon_->GetFPSCounter().GetDeltaTime();
 
+	// ここで毎フレームフェード更新
+	if (fadeController_) {
+		fadeController_->Update(deltaTime);
+	}
+
 	// デバッグカメラの更新
 	UpdateDebug();
 
@@ -191,7 +196,6 @@ void GamePlayScene::Update()
 
 		// 画的に必要な更新だけ許可
 		skyBox_->Update();
-		fadeController_->Update(deltaTime);
 		itemManager_->Update(player_.get(), deltaTime);
 		levelObjectManager_->Update();
 
@@ -217,16 +221,27 @@ void GamePlayScene::Update()
 		// プレイヤー死亡チェック
 		if (player_->IsDeadNow())
 		{
-			gameState_ = GameState::Result;
+			gameState_ = GameState::GameOver;
 
 			// ゲームオーバー中はマウスを解放してUI操作できるようにする
 			Input::GetInstance()->SetLockCursor(false);
 			ShowCursor(true);
 		}
+
+		// エネミー死亡チェック
+		if (enemy_ && enemy_->IsDeadNow())
+		{
+			Input::GetInstance()->SetLockCursor(false);
+			ShowCursor(true);
+
+			// ステージクリア処理
+			OnStageClear();
+		}
+
 		break;
 	case GameState::Paused:
 		break;
-	case GameState::Result:
+	case GameState::GameOver:
 		// 死亡演出を最後まで回すためにプレイヤーだけは更新
 		player_->Update(deltaTime);
 
@@ -237,6 +252,10 @@ void GamePlayScene::Update()
 		itemManager_->Update(player_.get(), deltaTime);
 		retryButtonSprite_->Update();
 		retireButtonSprite_->Update();
+
+		if (fadeController_) {
+			fadeController_->Update(deltaTime);
+		}
 
 		// キー操作でもまだ残しておく（デバッグ用）
 		if (input_->TriggerKey(DIK_R))
@@ -369,7 +388,7 @@ void GamePlayScene::Draw2DSprites()
 	fadeController_->Draw();
 
 	// ---------- Result(ゲームオーバー)時のUI ----------
-	if (gameState_ == GameState::Result)
+	if (gameState_ == GameState::GameOver)
 	{
 		// 左下(リタイア)
 		if (retireButtonSprite_)
@@ -662,5 +681,40 @@ void GamePlayScene::CheckAllCollisions()
 
 	// 衝突判定と応答
 	collisionManager_->CheckAllCollisions();
+}
+
+/// -------------------------------------------------------------
+///				　			ステージクリア時の処理
+/// -------------------------------------------------------------
+void GamePlayScene::OnStageClear()
+{
+	gameState_ = GameState::GameClear;
+
+	auto& repo = StageRepository::GetInstance();
+	auto stages = repo.GetStages();
+	auto startIndexOpt = repo.GetStartIndex();
+
+	if (startIndexOpt && !stages.empty())
+	{
+		int idx = *startIndexOpt;
+		if (idx + 1 < (int)stages.size())
+		{
+			stages[idx + 1].locked = false; // 次ステージ解放
+			repo.SetStages(stages);
+		}
+	}
+
+	// クリア後はステージセレクトへ戻る想定
+	if (fadeController_)
+	{
+		fadeController_->SetOnComplete([this]() {
+			if (sceneManager_) sceneManager_->ChangeScene("StageSelectScene");
+			});
+		fadeController_->StartFadeOut(0.8f);
+	}
+	else
+	{
+		if (sceneManager_) sceneManager_->ChangeScene("StageSelectScene");
+	}
 }
 

@@ -8,6 +8,23 @@
 class Player;
 class LevelObjectManager;
 
+struct GibMotion
+{
+	Vector3 velocity; // 初速度
+	Vector3 angularVelocity; // 角速度（ラジアン）
+};
+
+struct DeathEnemyState
+{
+	bool  active = false;     // 死亡演出中
+	bool  finished = false;   // 完了（クリア判定用）
+	float timer = 0.0f;
+	float duration = 1.2f;    // 分解が終わるまでの時間
+	std::vector<GibMotion> gibs; // 各部位の分解運動データ
+	GibMotion bodyGib; // 体幹部位の分解運動データ
+};
+
+
 /// -------------------------------------------------------------
 ///					　敵キャラクタークラス
 /// -------------------------------------------------------------
@@ -64,6 +81,11 @@ public: /// ---------- メンバ関数 ---------- ///
 	// スポーン済みかどうか取得
 	bool IsActive() const { return isActive_; }
 
+	// 死亡状態かどうか取得
+	bool IsDead() const { return aiState_ == AIState::Dead; }
+
+	bool IsDeadNow() const { return death_.finished; }
+
 private: /// ---------- メンバ関数 ---------- ///
 
 	// 状態遷移処理
@@ -76,7 +98,7 @@ private: /// ---------- メンバ関数 ---------- ///
 	void UpdateChase(float deltaTime);		// 追跡
 	void UpdateAttack(float deltaTime);		// 攻撃
 	void UpdateDamaged(float deltaTime);	// ダメージ
-	void UpdateDead(float deltaTime);		// 死亡
+	void UpdateDeath(float deltaTime);		// 死亡
 
 	// ワールド衝突解決処理
 	void SolveWorldCollision(const Vector3& oldTranslate);
@@ -85,6 +107,12 @@ private: /// ---------- メンバ関数 ---------- ///
 	void PickNewWanderDirection();
 
 	void ApplyColorToAll(const Vector4& color); // body_ と parts_ に一括適用
+
+	// ダメージを受ける
+	void TakeDamage(float amount);
+
+	// 死亡処理開始
+	void StartDeath();
 
 private: /// ---------- メンバ関数 ---------- ///
 
@@ -158,5 +186,12 @@ private: /// ---------- 定数 ---------- ///
 	Vector4 baseColor_ = { 1.0f,1.0f,1.0f,1.0f }; // 元の色
 	Vector4 hitColor_ = { 1.0f,0.0f,0.0f,1.0f };  // ヒット時の色
 	Vector4 colorModulate_ = { 1.0f,1.0f,1.0f,1.0f }; // 現在の色補正
+
+private: /// ---------- 定数 ---------- ///
+
+	float maxHp_ = 100.0f; // 最大体力
+	float hp_ = maxHp_;    // 現在体力
+
+	DeathEnemyState death_;
 };
 

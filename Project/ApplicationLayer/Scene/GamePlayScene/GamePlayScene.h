@@ -31,8 +31,9 @@ enum class GameState
 {
 	Playing, // プレイ中
 	Paused, // ポーズ中
-	Result, // 結果画面
-	CutScene // カットシーン中
+	GameClear, // ゲームクリア
+	GameOver, // ゲームオーバー
+	CutScene, // カットシーン中
 };
 
 /// -------------------------------------------------------------
@@ -97,6 +98,9 @@ private: /// ---------- メンバ関数 ---------- ///
 
 	// 衝突判定と応答
 	void CheckAllCollisions();
+
+	// ステージクリア時の処理
+	void OnStageClear();
 
 private: /// ---------- メンバ変数 ---------- ///
 
