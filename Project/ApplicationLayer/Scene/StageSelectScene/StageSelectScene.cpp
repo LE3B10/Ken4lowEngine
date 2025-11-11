@@ -22,6 +22,13 @@ void StageSelectScene::Initialize()
 	stages_.push_back({ 3u, "朽ちた果てた街", "white.png", true,  0u, { 0.37f, 0.35f, 0.49f, 1.0f } });
 	stages_.push_back({ 4u, "港湾ターミナル", "white.png", true,  0u, { 0.08f, 0.40f, 0.75f, 1.0f } });
 
+	// リポジトリから保存済みステージ情報を取得
+	const auto& saved = StageRepository::GetInstance().GetStages();
+	if (!saved.empty() && saved.size() == stages_.size())
+	{
+		stages_ = saved;
+	}
+
 	// フェードコントローラーの初期化
 	fadeController_ = std::make_unique<FadeController>();
 	float screenWidth = static_cast<float>(dxCommon_->GetSwapChainDesc().Width);
