@@ -1,6 +1,12 @@
 #include "GpuParticle.hlsli" //頂点シェーダーへの入力頂点構造
 #include "GpuParticleData.hlsli" //パーティクルデータ構造体"
 
+// ビルボードモードフラグ
+static const uint BILLBOARD_NONE = 0; // ビルボードなし
+static const uint BILLBOARD_CAMERA = 1 << 0; // カメラ方向ビルボード
+static const uint BILLBOARD_YAXIS = 1 << 1; // Y軸回転ビルボード
+
+// 頂点シェーダーの出力頂点構造
 struct VertexShaderInput
 {
     //POSITIONのことをセマンティクスという
@@ -18,6 +24,12 @@ struct PerView
     float3 padding; // パディング
 };
 
+// ビルボードモードチェック関数
+bool IsBillboardMode(uint mode, uint flag)
+{
+    return (mode & flag) != 0;
+}
+
 StructuredBuffer<Particle> gParticlea : register(t0); // 読み取り可能なパーティクルバッファ
 ConstantBuffer<PerView> gPerView : register(b0); // ビュー情報
 
@@ -26,7 +38,30 @@ VertexShaderOutput main(VertexShaderInput input, uint instanceId : SV_InstanceID
 {
     VertexShaderOutput output;
     Particle particle = gParticlea[instanceId]; // インスタンスIDに基づいてパーティクルデータを取得
-    float4x4 worldMatrix = gPerView.billboardMatrix; // ビルボード行列を使用
+    float4x4 worldMatrix;
+    
+    // ベース行列を分岐で決める（ここだけ追加）
+    if (IsBillboardMode(particle.billboardMode, BILLBOARD_CAMERA))
+    {
+        // カメラビルボード
+        worldMatrix = gPerView.billboardMatrix;
+    }
+    else if (IsBillboardMode(particle.billboardMode, BILLBOARD_YAXIS))
+    {
+        // Y軸ビルボード用
+        worldMatrix = gPerView.billboardMatrix;
+    }
+    else
+    {
+        // ビルボードなし：ふつうのローカル→ワールド
+        worldMatrix =
+        float4x4(
+            1.0f, 0.0f, 0.0f, 0.0f,
+            0.0f, 1.0f, 0.0f, 0.0f,
+            0.0f, 0.0f, 1.0f, 0.0f,
+            0.0f, 0.0f, 0.0f, 1.0f
+        );
+    }
     
     // スケールと座標移動をワールド行列に適用
     worldMatrix[0] *= particle.scale.x; // スケール適用

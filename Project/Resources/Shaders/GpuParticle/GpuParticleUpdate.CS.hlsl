@@ -7,7 +7,7 @@ struct PerFrame
     float deltaTime; // フレーム間の時間差
 };
 
-static const uint kMaxParticleCount = 1024; // 最大パーティクル数
+static const uint kMaxParticleCount = 131072; // 最大パーティクル数 2^17
 
 RWStructuredBuffer<Particle> gParticles : register(u0); // 書き込み可能なパーティクルバッファ
 RWStructuredBuffer<int> gFreeListIndex : register(u1); // フリーリストインデックスバッファ

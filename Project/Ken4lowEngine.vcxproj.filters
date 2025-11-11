@@ -912,6 +912,8 @@
     <ClInclude Include="EngineLayer\GPUParticleSystem\GpuParticleRenderer.h">
       <Filter>EngineLayer\GpuParticleSystem</Filter>
     </ClInclude>
+    <ClInclude Include="EngineLayer\GPUParticleSystem\GpuParticleType.h" />
+    <ClInclude Include="EngineLayer\GPUParticleSystem\GpuParticleEmitterData.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Resources\Shaders\PostEffect\FullScreen.hlsli">

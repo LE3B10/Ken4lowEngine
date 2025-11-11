@@ -5,7 +5,7 @@
 #include <Matrix4x4.h>
 
 #include "BillboardMode.h"
-
+#include "GpuParticleEmitterData.h"
 
 /// ---------- 前方宣言 ---------- ///
 class Camera;
@@ -23,6 +23,8 @@ class GpuParticleBuffers
 		float lifeTime;	   // 寿命
 		Vector3 velocity;  // 速度
 		float currentTime; // 経過時間
+		uint32_t type;	   // パーティクルの種類
+		uint32_t billboardMode; // ビルボードモード
 		Vector4 color;	   // 色
 	};
 
@@ -33,17 +35,6 @@ class GpuParticleBuffers
 		Matrix4x4 billboardMatrix{}; // ビルボード用行列
 		uint32_t billboardMode{}; // ビルボードモード
 		float padding[3]; // パディング
-	};
-
-	// エミッターの球体情報
-	struct EmitterSphere
-	{
-		Vector3 translate;	  // 位置
-		float radius;		  // 半径
-		uint32_t count;		  // 発生数
-		float frequency;	  // 発生頻度
-		float frequencyTime;  // 発生頻度タイマー
-		uint32_t emit; 		  // 発生フラグ
 	};
 
 	// 時間計測用
@@ -59,27 +50,15 @@ public: /// ---------- メンバ関数 ---------- ///
 	void Initialize(Camera* camera);
 
 	// 更新処理
-	void Update();
+	void Update(float deltaTime);
 
 public: /// ---------- ゲッター ---------- ///
 
 	// パーティクルバッファの取得
 	ID3D12Resource* GetParticleBuffer() const { return particleBuffer_.Get(); }
 
-	// パーティクルバッファのSRVインデックスの取得
-	uint32_t GetParticleSrvIndex() const { return particleSrvIndex_; }
-
-	// パーティクルバッファのUAVインデックスの取得
-	uint32_t GetParticleUavIndex() const { return particleUavIndex_; }
-
-	// パーティクルバッファのマッピング用ポインタの取得
-	ParticleCS* GetParticleData() const { return particleData_; }
-
 	// ビュー行列と射影行列バッファの取得
 	ID3D12Resource* GetPerViewBuffer() const { return perViewBuffer_.Get(); }
-
-	// ビュー行列と射影行列バッファのマッピング用ポインタの取得
-	PerView* GetPerViewData() const { return perViewData_; }
 
 	// エミッターバッファの取得
 	ID3D12Resource* GetEmitterBuffer() const { return emitterBuffer_.Get(); }
@@ -87,14 +66,29 @@ public: /// ---------- ゲッター ---------- ///
 	// 時間計測用バッファの取得
 	ID3D12Resource* GetPerFrameBuffer() const { return perFrameBuffer_.Get(); }
 
-	// 最大パーティクル数の取得
-	static uint32_t GetMaxParticles() { return kMaxParticles; }
-
 	// フリーカウンターバッファの取得
 	ID3D12Resource* GetFreeCounterBuffer() const { return freeListIndexBuffer_.Get(); }
 
+	// 最大パーティクル数の取得
+	static uint32_t GetMaxParticles() { return kMaxParticles; }
+
+	// パーティクルバッファのSRVインデックスの取得
+	uint32_t GetParticleSrvIndex() const { return particleSrvIndex_; }
+
+	// パーティクルバッファのUAVインデックスの取得
+	uint32_t GetParticleUavIndex() const { return particleUavIndex_; }
+
 	// フリーカウンターバッファのUAVインデックスの取得
 	uint32_t GetFreeCounterUavIndex() const { return freeListIndexUavIndex_; }
+
+	// パーティクルバッファのマッピング用ポインタの取得
+	ParticleCS* GetParticleData() const { return particleData_; }
+
+	// ビュー行列と射影行列バッファのマッピング用ポインタの取得
+	PerView* GetPerViewData() const { return perViewData_; }
+
+	// フリーリストバッファの取得
+	GpuEmitterCBData* GetEmitterCBData() const { return emitterCBData_; }
 
 private: /// ---------- メンバ関数 ---------- ///
 
@@ -119,7 +113,7 @@ private: /// ---------- メンバ関数 ---------- ///
 private: /// ---------- メンバ変数 ---------- ///
 
 	// 最大パーティクル数
-	static const uint32_t kMaxParticles = 1024;
+	static const uint32_t kMaxParticles = 131072;
 
 	Camera* camera_ = nullptr; // カメラのポインタ
 	bool isDebugCamera_ = false; // デバッグカメラ使用フラグ
@@ -144,7 +138,7 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	// エミッターバッファ
 	ComPtr<ID3D12Resource> emitterBuffer_;
-	EmitterSphere* emitterData_ = nullptr; // マッピング用ポインタ
+	GpuEmitterCBData* emitterCBData_ = nullptr; // マッピング用ポインタ
 
 	// 時間計測用バッファ
 	ComPtr<ID3D12Resource> perFrameBuffer_;
