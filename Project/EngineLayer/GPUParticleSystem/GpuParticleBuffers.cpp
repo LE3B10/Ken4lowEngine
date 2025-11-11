@@ -37,8 +37,10 @@ void GpuParticleBuffers::Initialize(Camera* camera)
 /// -------------------------------------------------------------
 ///			　　　			更新処理
 /// -------------------------------------------------------------
-void GpuParticleBuffers::Update()
+void GpuParticleBuffers::Update(float deltaTime)
 {
+	perFrameData_->deltaTime = deltaTime; // 
+
 	// ビュー行列とプロジェクション行列をカメラから取得
 	Matrix4x4 cameraMatrix = Matrix4x4::MakeAffineMatrix({ 1.0f, 1.0f, 1.0f }, camera_->GetRotate(), camera_->GetTranslate());
 	Matrix4x4 viewMatrix = Matrix4x4::Inverse(cameraMatrix);
@@ -62,20 +64,8 @@ void GpuParticleBuffers::Update()
 	perViewData_->billboardMatrix = Matrix4x4::Transpose(Matrix4x4::Inverse(billboardMatrix));
 	perViewData_->billboardMode = static_cast<uint32_t>(BillboardMode::Camera); // とりあえず常にカメラ
 
-	// エミッターの更新
+	// 時間計測用データの更新
 	perFrameData_->time += perFrameData_->deltaTime;
-
-	emitterData_->frequencyTime += perFrameData_->deltaTime; // 仮に60FPS固定で更新
-
-	if (emitterData_->frequency <= emitterData_->frequencyTime)
-	{
-		emitterData_->frequencyTime -= emitterData_->frequency;
-		emitterData_->emit = 1; // 発生フラグON
-	}
-	else
-	{
-		emitterData_->emit = 0; // 発生フラグOFF
-	}
 }
 
 /// -------------------------------------------------------------
@@ -113,7 +103,7 @@ void GpuParticleBuffers::CreatePerViewBuffer()
 	perViewBuffer_->Map(0, nullptr, reinterpret_cast<void**>(&perViewData_));
 	perViewData_->viewProjectionMatrix = Matrix4x4::MakeIdentity();
 	perViewData_->billboardMatrix = Matrix4x4::MakeIdentity();
-	perViewData_->billboardMode = static_cast<uint32_t>(BillboardMode::Camera);
+	perViewData_->billboardMode = static_cast<uint32_t>(BillboardMode::Camera); // とりあえず常にカメラ
 }
 
 /// -------------------------------------------------------------
@@ -122,18 +112,20 @@ void GpuParticleBuffers::CreatePerViewBuffer()
 void GpuParticleBuffers::CreateEmitterBuffer()
 {
 	// 今回は球体エミッターのみ対応
-	emitterBuffer_ = ResourceManager::CreateBufferResource(DirectXCommon::GetInstance()->GetDevice(), sizeof(EmitterSphere));
+	emitterBuffer_ = ResourceManager::CreateBufferResource(DirectXCommon::GetInstance()->GetDevice(), sizeof(GpuEmitterCBData));
 
 	// マッピング
-	emitterBuffer_->Map(0, nullptr, reinterpret_cast<void**>(&emitterData_));
+	emitterBuffer_->Map(0, nullptr, reinterpret_cast<void**>(&emitterCBData_));
 
 	// 初期化
-	emitterData_->count = 10;
-	emitterData_->frequency = 0.5f;
-	emitterData_->frequencyTime = 0.0f;
-	emitterData_->translate = { 0.0f, 2.0f, 0.0f };
-	emitterData_->radius = 1.0f;
-	emitterData_->emit = 1; // 発生フラグON
+	emitterCBData_->count = 10;												// 一度に発生させるパーティクル数
+	emitterCBData_->frequency = 0.5f;										// 発生間隔(秒)
+	emitterCBData_->frequencyTime = 0.0f;									// 発生間隔タイマー
+	emitterCBData_->translate = { 0.0f, 2.0f, 0.0f };						// エミッター位置
+	emitterCBData_->radius = 1.0f;											// エミッター半径
+	emitterCBData_->emit = 1;												// 発生フラグON
+	emitterCBData_->type = static_cast<uint32_t>(GpuParticleType::Default); // デフォルトタイプ
+	emitterCBData_->billboardMode = static_cast<uint32_t>(BillboardMode::Camera); // ビルボードモード
 }
 
 /// -------------------------------------------------------------

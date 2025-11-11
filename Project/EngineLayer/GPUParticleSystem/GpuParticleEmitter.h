@@ -3,41 +3,59 @@
 #include <Vector3.h>
 #include <Vector4.h>
 
-/// ---------- 前方宣言 ---------- ///
-class GpuParticleBuffers;
-
-/// ---------- Gpuエミッター構造体 ---------- ///
-struct GpuEmitterDesc
-{
-	uint32_t count = 10;         // 発生数
-	float radius = 1.0f;        // 半径
-	float lifetime = 5.0f;      // 寿命
-	float speed = 1.0f;         // 速度
-	float frequency = 0.5f;    // 発生頻度
-	Vector4 color = { 1.0f, 1.0f, 1.0f, 1.0f }; // 色
-	uint32_t type = 0;          // エミッタータイプ（0:球体）
-};
+#include "GpuParticleType.h"		// GPUパーティクルの種類
+#include "GpuParticleEmitterData.h" // エミッターのCBデータ
+#include "BillboardMode.h" // ビルボードモード
 
 /// -------------------------------------------------------------
 ///			　	GPUパーティクルエミッタークラス
 /// -------------------------------------------------------------
 class GpuParticleEmitter
 {
+public: /// ---------- 構造体 ---------- ///
+
+	// エミッター情報構造体
+	struct EmitterInfo
+	{
+		GpuParticleType type = GpuParticleType::Default; // パーティクルの種類
+		float radius = 0.0f;          // 発生範囲
+		uint32_t loopCount = 0;       // ループ発生時に1回で出す数
+		float loopFrequency = 0.0f;   // ループ発生周期(秒)。0ならループしない
+
+		BillboardMode billboardMode = BillboardMode::Camera;
+	};
+
 public: /// ---------- メンバ関数 ---------- ///
 
-	GpuParticleEmitter(const std::string& name, const GpuEmitterDesc& desc)
-		: name_(name), desc_(desc) {
-	}
+	// コンストラクタ
+	GpuParticleEmitter(const std::string& name, const EmitterInfo& info);
 
-	// 指定位置でパーティクルを出したいときに呼ぶ
-	void Emit(GpuParticleBuffers* buffers, const Vector3& position) const;
+	// 射出要求
+	void RequestEmit(uint32_t count);
 
-	// エミッター名の取得
+	// 定期発射の更新
+	bool BuildCB(GpuEmitterCBData& out, float deltaTime);
+
+public: /// ---------- セッター ---------- ///
+
+	// 座標を設定
+	void SetPosition(const Vector3& position) { position_ = position; }
+
+public: /// ---------- ゲッター ---------- ///
+
 	const std::string& GetName() const { return name_; }
 
 private: /// ---------- メンバ変数 ---------- ///
 
-	std::string name_;
-	GpuEmitterDesc desc_;
+	std::string name_; // エミッター名
+	EmitterInfo info_; // エミッター情報
+
+	Vector3 position_{ 0.0f, 0.0f, 0.0f };
+
+	// ループ用タイマー
+	float loopTimer_ = 0.0f;
+
+	// このフレームに放出予定の累積数
+	uint32_t pendingBurstCount_ = 0;
 };
 

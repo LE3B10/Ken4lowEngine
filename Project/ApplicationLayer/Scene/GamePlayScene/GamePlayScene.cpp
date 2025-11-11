@@ -12,6 +12,8 @@
 #include "LevelLoader.h"
 #include "LinearInterpolation.h"
 
+#include "GpuParticleManager.h"
+
 #ifdef _DEBUG
 #include <DebugCamera.h>
 #endif // _DEBUG
@@ -145,7 +147,6 @@ void GamePlayScene::Initialize()
 	retryRect_.x = screenW - margin - btnW;
 	retryRect_.y = screenH - margin - btnH;
 }
-
 
 /// -------------------------------------------------------------
 ///				　			　 更新処理

@@ -455,6 +455,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="EngineLayer\3D\LevelData\LevelLoader.h" />
     <ClInclude Include="EngineLayer\3D\LevelData\LevelObjectManager.h" />
     <ClInclude Include="EngineLayer\Base\BlendStateFactory\BlendStateFactory.h" />
+    <ClInclude Include="EngineLayer\GPUParticleSystem\GpuParticleEmitterData.h" />
     <ClInclude Include="EngineLayer\Math\MultipleStructs\Capsule.h" />
     <ClInclude Include="EngineLayer\PostEffectManagement\DepthOutlineEffect\DepthOutlineEffect.h" />
     <ClInclude Include="EngineLayer\3D\AnimationManagement\AnimationModel.h" />
@@ -606,6 +607,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="EngineLayer\GPUParticleSystem\GpuParticleBuffers.h" />
     <ClInclude Include="EngineLayer\GPUParticleSystem\GpuParticlePipeline.h" />
     <ClInclude Include="EngineLayer\GPUParticleSystem\GpuParticleRenderer.h" />
+    <ClInclude Include="EngineLayer\GPUParticleSystem\GpuParticleType.h" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="externals\DirectXTex\DirectXTex_Desktop_2022_Win10.vcxproj">

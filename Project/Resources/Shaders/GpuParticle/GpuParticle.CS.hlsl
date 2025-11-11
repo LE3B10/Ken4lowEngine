@@ -2,11 +2,13 @@
 
 #include "GpuParticleData.hlsli" // パーティクルデータ構造体
 
-static const uint kMaxParticleCount = 1024; // 最大パーティクル数65536
+static const uint kMaxParticleCount = 131072; // 最大パーティクル数 2^17
 
 RWStructuredBuffer<Particle> gParticleBuffer : register(u0); // 書き込み可能なパーティクルバッファ
 RWStructuredBuffer<int> gFreeListIndex : register(u1); // フリーリストインデックスバッファ
 RWStructuredBuffer<uint> gFreeList : register(u2); // フリーリストバッファ
+
+ConstantBuffer<EmitterCBData> gEmitter : register(b1); // エミッタースフィア定数バッファ
 
 [numthreads(1024, 1, 1)]
 void main(uint3 DTid : SV_DispatchThreadID)
@@ -32,6 +34,8 @@ void main(uint3 DTid : SV_DispatchThreadID)
     particle.color = float4(0.0, 0.0, 0.0, 0.0); // 色をリセット
     particle.lifeTime = 0.0f; // 生存時間をリセット
     particle.currentTime = 0.0f; // 現在の時間をリセット
+    particle.type = gEmitter.type;
+    particle.billboardMode = gEmitter.billboardMode;
     
     // パーティクルデータをバッファに書き戻す
     gParticleBuffer[particleIndex] = particle;

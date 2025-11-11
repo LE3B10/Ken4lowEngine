@@ -131,7 +131,7 @@ void Framework::Update()
 	ParticleManager::GetInstance()->Update();
 
 	// Gpuパーティクルマネージャーの更新処理
-	GpuParticleManager::GetInstance()->Update();
+	GpuParticleManager::GetInstance()->Update(dxCommon_->GetFPSCounter().GetDeltaTime());
 }
 
 

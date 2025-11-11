@@ -5,6 +5,9 @@
 #include <SRVManager.h>
 #include <UAVManager.h>
 
+#include "GpuParticleEmitter.h"
+#include "GpuParticleEmitterData.h"
+
 /// -------------------------------------------------------------
 ///				　	シングルトンインスタンス
 /// -------------------------------------------------------------
@@ -41,16 +44,25 @@ void GpuParticleManager::Initialize(Camera* camera)
 /// -------------------------------------------------------------
 ///				　　　			更新処理
 /// -------------------------------------------------------------
-void GpuParticleManager::Update()
+void GpuParticleManager::Update(float deltaTime)
 {
 	// GPUパーティクルバッファの更新処理
-	gpuParticleBuffers_->Update();
+	gpuParticleBuffers_->Update(deltaTime);
 
 	// 更新用ディスパッチ処理
 	DispatchUpdate();
 
-	// エミット用ディスパッチ処理
-	DispatchEmit();
+	GpuEmitterCBData* emitterCBData = gpuParticleBuffers_->GetEmitterCBData();
+
+	for (auto& [name, emitter] : emitters_)
+	{
+		// エミッターのCBデータを構築
+		if (emitter->BuildCB(*emitterCBData, deltaTime))
+		{
+			// エミット用ディスパッチ処理
+			DispatchEmit();
+		}
+	}
 }
 
 /// -------------------------------------------------------------
@@ -63,29 +75,54 @@ void GpuParticleManager::Draw()
 }
 
 /// -------------------------------------------------------------
-///				　　　		エミッター作成処理
+///				　　　		エミッター作成
 /// -------------------------------------------------------------
-GpuParticleEmitter& GpuParticleManager::CreateEmitter(const std::string& name, const GpuEmitterDesc& desc)
+GpuParticleEmitter* GpuParticleManager::CreateEmitter(const std::string& name, const GpuParticleEmitter::EmitterInfo& info)
 {
-	auto emitter = std::make_unique<GpuParticleEmitter>(name, desc);
-	auto& ref = *emitter;
+	auto it = emitters_.find(name); // すでに同じ名前のエミッターが存在するか確認
+	if (it != emitters_.end())
+	{
+		// すでに存在する場合はnullptrを返す
+		return nullptr;
+	}
+
+	// 新規作成
+	auto emitter = std::make_unique<GpuParticleEmitter>(name, info);
+	auto* emitterPtr = emitter.get();
 	emitters_[name] = std::move(emitter);
-	return ref;
+
+	// 作成したエミッターのポインタを返す
+	return emitterPtr;
 }
 
 /// -------------------------------------------------------------
-///				　　	指定位置でパーティクルを出す
+///				　　　		エミッター取得
 /// -------------------------------------------------------------
-void GpuParticleManager::Emit(const std::string& name, const Vector3& position)
+GpuParticleEmitter* GpuParticleManager::GetEmitter(const std::string& name)
 {
-	auto it = emitters_.find(name);
-	if (it == emitters_.end()) return;
+	auto it = emitters_.find(name); // 指定された名前のエミッターを検索
 
-	// 1) EmitterCB をこのエミッタ用に更新
-	it->second->Emit(gpuParticleBuffers_.get(), position);
+	// 見つかった場合はポインタを返す
+	if (it != emitters_.end())
+	{
+		return it->second.get(); // エミッターのポインタを返す
+	}
 
-	// 2) その設定で Emit CS を一回 Dispatch
-	DispatchEmit();
+	// 見つからなかった場合はnullptrを返す
+	return nullptr;
+}
+
+/// -------------------------------------------------------------
+///				　　　		名前指定でバースト
+/// -------------------------------------------------------------
+void GpuParticleManager::BurstEmitter(const std::string& name, uint32_t count)
+{
+	// 指定された名前のエミッターを取得
+	if (auto* it = GetEmitter(name))
+	{
+		// エミット要求を出す
+		it->RequestEmit(count);
+	}
 }
 
 /// -------------------------------------------------------------
@@ -108,6 +145,8 @@ void GpuParticleManager::Dispatch()
 
 	// パーティクルバッファUAVをセット
 	commandList->SetComputeRootDescriptorTable(1, UAVManager::GetInstance()->GetGPUDescriptorHandle(gpuParticleBuffers_->GetParticleUavIndex())); // u0 : UAV
+	commandList->SetComputeRootConstantBufferView(2, gpuParticleBuffers_->GetEmitterBuffer()->GetGPUVirtualAddress());
+	commandList->SetComputeRootConstantBufferView(3, gpuParticleBuffers_->GetPerFrameBuffer()->GetGPUVirtualAddress());
 
 	const UINT maxParticles = GpuParticleBuffers::GetMaxParticles();
 	const UINT threadCount = 1024; // [numthreads(1024,1,1)] を想定

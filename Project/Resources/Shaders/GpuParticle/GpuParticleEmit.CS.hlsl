@@ -1,16 +1,5 @@
 #include "GpuParticleData.hlsli" // パーティクルデータ構造体
 
-// エミッタースフィア構造体
-struct EmitterCBData
-{
-    float3 translate; // 位置
-    float radius; // 半径
-    uint count; // 発生数
-    float frequency; // 発生頻度
-    float frequencyTime; // 発生頻度タイマー
-    uint emit; // 発生フラグ
-};
-
 // 乱数生成関数
 float3 rand3dTo3d(float3 seed)
 {
@@ -60,7 +49,7 @@ struct PerFrame
     float deltaTime; // フレーム間の時間差
 };
 
-static const uint kMaxParticleCount = 1024; // 最大パーティクル数
+static const uint kMaxParticleCount = 131072; // 最大パーティクル数 2^17
 
 RWStructuredBuffer<Particle> gParticles : register(u0); // 書き込み可能なパーティクルバッファ
 RWStructuredBuffer<int> gFreeListIndex : register(u1); // フリーリストインデックスバッファ
@@ -88,27 +77,36 @@ void main(uint3 DTid : SV_DispatchThreadID)
         // 有効範囲チェック：0..kMaxParticleCount-1
         if (0 <= freeListIndex && freeListIndex < (int) kMaxParticleCount)
         {
-            uint particleIndex = gFreeList[freeListIndex];
+            uint particleIndex = gFreeList[freeListIndex]; // フリーリストからインデックスを取得
 
-            Particle p = (Particle) 0;
+            // パーティクルデータを初期化して設定
+            Particle particle = (Particle) 0;
 
+            // ランダム方向ベクトルを生成
             float3 rand = rand3dTo3d(float3(gPerFrame.time, i, 0));
+
+            // 単位球面上のランダムな方向ベクトル
             float3 dir = normalize(rand * 2.0f - 1.0f);
 
+            // 色相を時間とインデックスで変化させる
             float t = frac((float) i / max(gEmitter.count, 1u) + gPerFrame.time * 0.2f);
             
-            float r = saturate(abs(t * 6.0f - 3.0f) - 1.0f);
-            float g = saturate(2.0f - abs(t * 6.0f - 2.0f));
-            float b = saturate(2.0f - abs(t * 6.0f - 4.0f));
+            // HSV to RGB変換（彩度=1、明度=1固定）
+            float r = saturate(abs(t * 6.0f - 3.0f) - 1.0f); // 赤成分
+            float g = saturate(2.0f - abs(t * 6.0f - 2.0f)); // 緑成分
+            float b = saturate(2.0f - abs(t * 6.0f - 4.0f)); // 青成分
             
-            p.translate = gEmitter.translate + dir * gEmitter.radius;
-            p.scale = float3(0.5f, 0.5f, 0.5f);
-            p.velocity = dir * 2.0f;
-            p.color = float4(r, g, b, 1.0f);
-            p.lifeTime = 1.0f;
-            p.currentTime = 0.0f;
+            // パーティクルプロパティ設定
+            particle.translate = gEmitter.translate + dir * gEmitter.radius;
+            particle.scale = float3(0.5f, 0.5f, 0.5f);
+            particle.velocity = dir * 2.0f;
+            particle.lifeTime = 1.0f;
+            particle.currentTime = 0.0f;
+            particle.type = gEmitter.type;
+            particle.billboardMode = gEmitter.billboardMode;
+            particle.color = float4(r, g, b, 1.0f);
 
-            gParticles[particleIndex] = p;
+            gParticles[particleIndex] = particle;
         }
         else
         {

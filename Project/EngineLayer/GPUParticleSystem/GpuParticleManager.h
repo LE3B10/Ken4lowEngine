@@ -4,6 +4,8 @@
 #include "GpuParticleRenderer.h"
 #include "GpuParticleEmitter.h"
 
+#include "GpuParticleEmitterData.h"
+
 #include <unordered_map>
 #include <memory>
 
@@ -26,17 +28,21 @@ public: /// ---------- メンバ関数 ---------- ///
 	void Initialize(Camera* camera);
 
 	// 更新処理
-	void Update();
+	void Update(float deltaTime);
 
 	// 描画処理
 	void Draw();
 
 public: /// ---------- グループ処理 ---------- ///
 
-	GpuParticleEmitter& CreateEmitter(const std::string& name, const GpuEmitterDesc& desc);
+	// エミッター作成
+	GpuParticleEmitter* CreateEmitter(const std::string& name, const GpuParticleEmitter::EmitterInfo& info);
 
-	// 指定位置でパーティクルを出す
-	void Emit(const std::string& name, const Vector3& position);
+	// エミッター取得
+	GpuParticleEmitter* GetEmitter(const std::string& name);
+
+	// 名前指定でバースト
+	void BurstEmitter(const std::string& name, uint32_t count);
 
 private: /// ---------- メンバ関数 ---------- ///
 
