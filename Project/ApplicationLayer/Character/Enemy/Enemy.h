@@ -86,6 +86,20 @@ public: /// ---------- メンバ関数 ---------- ///
 
 	bool IsDeadNow() const { return death_.finished; }
 
+	void SetBoss(bool isBoss, float bossHp = 2500.0f);
+
+	void ApplyStageParams(
+		float hp,
+		float walkSpeed,
+		float chaseSpeed,
+		float attackDamage,
+		float attackCooldown,
+		float detectRadius
+	);
+	
+	// 死亡時のドロップ位置を取得
+	const Vector3& GetDropPosAtDeath() const { return dropPosAtDeath_; }
+
 private: /// ---------- メンバ関数 ---------- ///
 
 	// 状態遷移処理
@@ -189,9 +203,14 @@ private: /// ---------- 定数 ---------- ///
 
 private: /// ---------- 定数 ---------- ///
 
-	float maxHp_ = 100.0f; // 最大体力
+	float maxHp_ = 250.0f; // 最大体力
 	float hp_ = maxHp_;    // 現在体力
 
 	DeathEnemyState death_;
+
+	// ボスフラグ
+	bool isBoss_ = false;
+
+	Vector3 dropPosAtDeath_{};
 };
 

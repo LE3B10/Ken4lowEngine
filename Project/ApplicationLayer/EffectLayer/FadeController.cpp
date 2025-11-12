@@ -54,6 +54,31 @@ void FadeController::Update(float deltaTime)
 		RebuildGrid();
 	}
 
+	// フェードが今フレームで終わったタイミングでコールバック呼び出し
+	if (t >= 1.0f)
+	{
+		isFading_ = false; // フェード完了
+
+		// Checkerboard のフェードイン / アウト時だけコールバックを呼ぶ
+		if (mode_ == FadeMode::Checkerboard)
+		{
+			if (isFadeIn_) {
+				if (onFadeInComplete_) {
+					auto cb = onFadeInComplete_;
+					onFadeInComplete_ = nullptr; // 一度きり
+					cb();
+				}
+			}
+			else {
+				if (onFadeOutComplete_) {
+					auto cb = onFadeOutComplete_;
+					onFadeOutComplete_ = nullptr; // 一度きり
+					cb();
+				}
+			}
+		}
+	}
+
 	switch (mode_)
 	{
 	case FadeController::FadeMode::BlackFade:
@@ -184,12 +209,6 @@ void FadeController::Update(float deltaTime)
 	if (fadeSprite_) fadeSprite_->Update();
 	if (topBar_)     topBar_->Update();
 	if (bottomBar_)  bottomBar_->Update();
-
-	if (t >= 1.0f)
-	{
-		isFading_ = false; // フェード完了
-		if (onComplete_) onComplete_(); // コールバックが設定されていれば呼び出す
-	}
 }
 
 /// -------------------------------------------------------------

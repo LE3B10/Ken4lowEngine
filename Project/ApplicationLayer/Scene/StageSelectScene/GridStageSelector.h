@@ -42,6 +42,9 @@ public: /// ---------- メンバ関数 ---------- ///
 	// 中央カード変更時コールバック登録
 	void SetOnCenterChanged(std::function<void(uint32_t)> callback) { onCenterChanged_ = callback; }
 
+	// アンロックアニメーション再生
+	void PlayUnlockAnim(int index);
+
 private: /// ---------- メンバ関数 ---------- ///
 
 	// 押下
@@ -138,5 +141,8 @@ private: /// ---------- メンバ変数 ---------- ///
 	float shakeDuration_ = 0.28f;   // ブレ時間
 	float shakeAmpPx_ = 18.0f;   // 振幅(px)
 	float shakeFreqHz_ = 28.0f;   // 周波数(Hz)
+
+	std::vector<float> unlockTimers_; // 各ステージの残り演出時間
+	float unlockDuration_ = 0.6f;     // 演出の長さ
 };
 

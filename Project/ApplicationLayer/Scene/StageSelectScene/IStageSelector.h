@@ -13,6 +13,7 @@ struct StageInfo
 	bool locked = false;		  // ロックされているかどうか
 	uint32_t startsCompleted = 0; // クリア済みスター数
 	Vector4 color = { 1,1,1,1 };  // ステージカラー（背景用）
+	bool justUnlocked = false;  // 今回アンロックされたかどうか
 };
 
 /// ---------- コンテキスト ---------- ///

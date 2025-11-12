@@ -55,6 +55,9 @@ void GridStageSelector::Initialize(const SelectorContext& context)
 	// 起動時の中央も通知
 	prevCenterIndex_ = GetCenterIndex();
 	if (onCenterChanged_) onCenterChanged_(static_cast<uint32_t>(prevCenterIndex_));
+
+	// アンロックアニメーション用タイマー初期化
+	unlockTimers_.assign(stages_->size(), 0.0f);
 }
 
 /// -------------------------------------------------------------
@@ -90,6 +93,18 @@ void GridStageSelector::Update(float deltaTime)
 
 	// レイアウト更新
 	UpdateLayout();
+
+	if (!unlockTimers_.empty())
+	{
+		for (auto& t : unlockTimers_)
+		{
+			if (t > 0.0f)
+			{
+				t -= deltaTime;
+				if (t < 0.0f) t = 0.0f;
+			}
+		}
+	}
 }
 
 
@@ -337,6 +352,17 @@ void GridStageSelector::FocusToIndex(int index, bool tween)
 	else       scrollX_ = gapX_ * (float)index;
 }
 
+/// -------------------------------------------------------------
+///				アンロックアニメーション再生
+/// -------------------------------------------------------------
+void GridStageSelector::PlayUnlockAnim(int index)
+{
+	if (index < 0 || index >= (int)thumbs_.size()) return;
+	if (unlockTimers_.size() != thumbs_.size()) {
+		unlockTimers_.assign(thumbs_.size(), 0.0f);
+	}
+	unlockTimers_[index] = unlockDuration_;
+}
 
 /// -------------------------------------------------------------
 ///				　		　押下
@@ -598,6 +624,15 @@ void GridStageSelector::UpdateLayout()
 					icon->SetColor({ 1,1,1,0.0f });
 				}
 				icon->Update();
+			}
+
+			// 解除演出中ならポンっと大きく
+			if (!unlockTimers_.empty() && unlockTimers_[i] > 0.0f)
+			{
+				float u = unlockTimers_[i] / unlockDuration_; // 0..1
+				// 最初大きく→徐々に1.0に戻る
+				float extra = 0.35f * u;
+				scale *= (1.0f + extra);
 			}
 		}
 
