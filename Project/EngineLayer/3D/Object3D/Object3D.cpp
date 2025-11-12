@@ -94,6 +94,7 @@ void Object3D::Update()
 /// -------------------------------------------------------------
 void Object3D::DrawImGui()
 {
+#ifdef USE_IMGUI
 	// ① IDスコープで衝突を防ぐ（this を使うのが簡単）
 	ImGui::PushID(this);
 
@@ -118,6 +119,7 @@ void Object3D::DrawImGui()
 	}
 
 	ImGui::PopID();
+#endif // USE_IMGUI
 }
 
 

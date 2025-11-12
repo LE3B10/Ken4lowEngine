@@ -122,7 +122,7 @@ void TitleScene::Update()
 
 	if (isDebugCamera_) return; // デバッグカメラ中はポーズ無効
 
-	const float dt = ImGui::GetIO().DeltaTime;
+	const float dt = dxCommon_->GetFPSCounter().GetDeltaTime();
 	timers_.state += dt;
 	if (timers_.inputCooldownLeft > 0.0f) { timers_.inputCooldownLeft = std::max(0.0f, timers_.inputCooldownLeft - dt); }
 
@@ -256,6 +256,7 @@ void TitleScene::Finalize()
 /// -------------------------------------------------------------
 void TitleScene::DrawImGui()
 {
+#ifdef USE_IMGUI
 	ImGui::Begin("Title Debug");
 	const char* stateNames =
 		state_ == State::TitleAttract ? "TitleAttract" :
@@ -282,6 +283,7 @@ void TitleScene::DrawImGui()
 
 		ImGui::End();
 	}
+#endif // USE_IMGUI
 
 	LightManager::GetInstance()->DrawImGui();
 }

@@ -11,8 +11,11 @@
 
 #include <algorithm>
 #include <filesystem>
-#include <imgui.h>
 #include <AABB.h>
+
+#ifdef USE_IMGUI
+#include <imgui.h>
+#endif // USE_IMGUI
 
 /// -------------------------------------------------------------
 ///				　			　 初期化処理
@@ -681,6 +684,7 @@ void Player::DrawImGui()
 {
 	fpsCamera_->DrawImGui();
 
+#ifdef USE_IMGUI
 	ImGui::Begin("Player Dissolve");
 
 	// --- ディゾルブ設定 ---
@@ -706,7 +710,7 @@ void Player::DrawImGui()
 	ImGui::Checkbox("Lock Size By FOV", &vm_.lockSizeByFov);
 	ImGui::DragFloat3("Base Scale", &vm_.baseScale.x, 0.01f, 0.1f, 4.0f);
 	ImGui::End();
-
+#endif // USE_IMGUI
 	// --- 武器管理 ---
 	weaponManager_->DrawWeaponImGui();
 }

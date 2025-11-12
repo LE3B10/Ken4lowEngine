@@ -1,11 +1,14 @@
 #define NOMINMAX
 #include "Camera.h"
-#include "ImGuiManager.h"
 #include <WinApp.h>
 #include <ParameterManager.h>
 #include "Matrix4x4.h"
 #include "Quaternion.h"
 #include <numbers>
+
+#ifdef USE_IMGUI
+#include "ImGuiManager.h"
+#endif // USE_IMGUI
 
 /// -------------------------------------------------------------
 ///						コンストラクタ
@@ -56,6 +59,7 @@ void Camera::Update()
 /// -------------------------------------------------------------
 void Camera::DrawImGui()
 {
+#ifdef USE_IMGUI
 	ImGui::Begin("Camera");
 
 	ImGui::DragFloat3("Position", &worldTransform_.translate_.x, 0.01f);
@@ -78,6 +82,7 @@ void Camera::DrawImGui()
 		farClip_ = 1000.0f;
 	}
 	ImGui::End();
+#endif // USE_IMGUI
 }
 
 /// -------------------------------------------------------------

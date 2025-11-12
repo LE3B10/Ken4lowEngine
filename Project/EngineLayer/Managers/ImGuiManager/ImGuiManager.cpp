@@ -25,6 +25,7 @@ ImGuiManager* ImGuiManager::GetInstance()
 /// -------------------------------------------------------------
 void ImGuiManager::Initialize(WinApp* winApp, DirectXCommon* dxCommon)
 {
+#ifdef USE_IMGUI
 	// SRVの番号を取得
 	srvIndex_ = SRVManager::GetInstance()->Allocate();
 
@@ -45,7 +46,8 @@ void ImGuiManager::Initialize(WinApp* winApp, DirectXCommon* dxCommon)
 		SRVManager::GetInstance()->GetCPUDescriptorHandle(srvIndex_),
 		SRVManager::GetInstance()->GetGPUDescriptorHandle(srvIndex_));
 #pragma endregion
-} 
+#endif // USE_IMGUI
+}
 
 
 
@@ -54,12 +56,12 @@ void ImGuiManager::Initialize(WinApp* winApp, DirectXCommon* dxCommon)
 /// -------------------------------------------------------------
 void ImGuiManager::BeginFrame()
 {
-//#ifdef _DEBUG
+#ifdef USE_IMGUI
 	//ImGuiを使う
 	ImGui_ImplDX12_NewFrame();
 	ImGui_ImplWin32_NewFrame();
 	ImGui::NewFrame();
-//#endif // _DEBUG
+#endif // USE_IMGUI
 }
 
 
@@ -69,10 +71,10 @@ void ImGuiManager::BeginFrame()
 /// -------------------------------------------------------------
 void ImGuiManager::EndFrame()
 {
-//#ifdef _DEBUG
+#ifdef USE_IMGUI
 	//ImGuiの内部コマンドを生成する
 	ImGui::Render();
-//#endif // _DEBUG
+#endif // USE_IMGUI
 }
 
 
@@ -82,8 +84,7 @@ void ImGuiManager::EndFrame()
 /// -------------------------------------------------------------
 void ImGuiManager::Draw()
 {
-//#ifdef _DEBUG
-
+#ifdef USE_IMGUI
 	DirectXCommon* dxCommon = DirectXCommon::GetInstance();
 
 	ComPtr<ID3D12GraphicsCommandList> commandList = dxCommon->GetCommandManager()->GetCommandList();
@@ -94,7 +95,7 @@ void ImGuiManager::Draw()
 	/*-----ImGuiを描画する-----*/
 	//実際のcommandListのImGuiの描画コマンドを積む
 	ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), commandList.Get());
-//#endif // _DEBUG
+#endif // USE_IMGUI
 }
 
 
@@ -104,6 +105,7 @@ void ImGuiManager::Draw()
 /// -------------------------------------------------------------
 void ImGuiManager::Finalize()
 {
+#ifdef USE_IMGUI
 	// SRVが有効であるかを確認
 	if (srvIndex_ != UINT32_MAX)
 	{
@@ -111,10 +113,8 @@ void ImGuiManager::Finalize()
 		srvIndex_ = UINT32_MAX; // 無効な状態にリセット
 	}
 
-//#ifdef _DEBUG
 	ImGui_ImplDX12_Shutdown();
 	ImGui_ImplWin32_Shutdown();
 	ImGui::DestroyContext();
-//#endif // _DEBUG
-
+#endif // USE_IMGUI
 }

@@ -9,7 +9,10 @@
 #include "Camera.h"
 
 #include <cassert>
+
+#ifdef USE_IMGUI
 #include <imgui.h>
+#endif // USE_IMGUI
 
 /// -------------------------------------------------------------
 ///				　		　コンストラクタ
@@ -76,7 +79,9 @@ void DepthOutlineEffect::Apply(ID3D12GraphicsCommandList* commandList, uint32_t 
 /// -------------------------------------------------------------
 void DepthOutlineEffect::DrawImGui()
 {
+#ifdef USE_IMGUI
 	ImGui::SliderFloat("Depth Scale", &depthOutlineSetting_->depthScale, 0.0f, 100.0f);
 	ImGui::SliderFloat("Thickness", &depthOutlineSetting_->edgeThickness, 1.0f, 10.0f);
 	ImGui::ColorEdit4("Edge Color", &depthOutlineSetting_->edgeColor.x);
+#endif // USE_IMGUI
 }

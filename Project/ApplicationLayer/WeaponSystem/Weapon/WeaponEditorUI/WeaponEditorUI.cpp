@@ -1,5 +1,8 @@
 #include "WeaponEditorUI.h"
+
+#ifdef USE_IMGUI
 #include "imgui.h"
+#endif // USE_IMGUI
 
 // 武器クラスラベル
 static const char* kClassLabels[] = { "Primary","Backup","Melee","Special","Sniper","Heavy" };
@@ -9,6 +12,7 @@ static const char* kClassLabels[] = { "Primary","Backup","Melee","Special","Snip
 /// -------------------------------------------------------------
 void WeaponEditorUI::DrawImGui(WeaponCatalog& catalog, const std::string& currentWeaponName, const WeaponEditorHooks& hooks)
 {
+#ifdef USE_IMGUI
 	auto& table = catalog.All();   // 参照を一度だけ取る
 
 	// 管理パネル（Editors 見出しと開閉トグル）
@@ -58,7 +62,7 @@ void WeaponEditorUI::DrawImGui(WeaponCatalog& catalog, const std::string& curren
 			if (it != table.end() && hooks.ApplyToRuntimeIfCurrent) hooks.ApplyToRuntimeIfCurrent(it->second);
 		}
 	}
-
+#endif // USE_IMGUI
 	DrawAddDeleteControls(catalog, currentWeaponName, hooks);
 }
 
@@ -67,6 +71,7 @@ void WeaponEditorUI::DrawImGui(WeaponCatalog& catalog, const std::string& curren
 /// -------------------------------------------------------------
 void WeaponEditorUI::DrawOne(WeaponData& E, const std::string& currentWeaponName, const WeaponEditorHooks& hooks)
 {
+#ifdef USE_IMGUI
 	// ---- 既存の “1本分” 編集UIを移植（カテゴリ変更→ランタイム反映→Loadout再構築） ----
 	int clazz = static_cast<int>(E.clazz);
 	if (ImGui::Combo("Category", &clazz, kClassLabels, IM_ARRAYSIZE(kClassLabels))) {
@@ -156,6 +161,7 @@ void WeaponEditorUI::DrawOne(WeaponData& E, const std::string& currentWeaponName
 	if (ImGui::Button("Apply to runtime")) {
 		if (hooks.ApplyToRuntimeIfCurrent && E.name == currentWeaponName) hooks.ApplyToRuntimeIfCurrent(E);
 	}
+#endif // USE_IMGUI
 }
 
 /// -------------------------------------------------------------
@@ -163,6 +169,7 @@ void WeaponEditorUI::DrawOne(WeaponData& E, const std::string& currentWeaponName
 /// -------------------------------------------------------------
 void WeaponEditorUI::DrawAddDeleteControls(WeaponCatalog& catalog, const std::string& currentWeaponName, const WeaponEditorHooks& hooks)
 {
+#ifdef USE_IMGUI
 	// Add
 	if (ImGui::Button("Add Weapon")) {
 		ImGui::OpenPopup("AddWeaponPopup");
@@ -219,4 +226,5 @@ void WeaponEditorUI::DrawAddDeleteControls(WeaponCatalog& catalog, const std::st
 		if (ImGui::Button("Cancel", ImVec2(120, 0))) ImGui::CloseCurrentPopup();
 		ImGui::EndPopup();
 	}
+#endif // USE_IMGUI
 }

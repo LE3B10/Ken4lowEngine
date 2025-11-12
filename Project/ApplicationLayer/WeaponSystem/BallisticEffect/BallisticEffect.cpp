@@ -2,12 +2,10 @@
 #include "BallisticEffect.h"
 #include "CollisionManager.h"
 #include <CollisionTypeIdDef.h>
+#include <CollisionUtility.h>
 
 #include <algorithm>
 #include <cmath>
-
-#include <imgui.h>
-#include <CollisionUtility.h>
 
 // 省略 <numbers>
 using namespace std::numbers;

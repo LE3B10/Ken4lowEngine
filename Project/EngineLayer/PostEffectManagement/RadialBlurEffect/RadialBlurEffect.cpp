@@ -9,8 +9,10 @@
 #include <WinApp.h>
 
 #include <cassert>
-#include <imgui.h>
 
+#ifdef USE_IMGUI
+#include <imgui.h>
+#endif // USE_IMGUI
 
 /// -------------------------------------------------------------
 ///						　初期化処理
@@ -76,7 +78,9 @@ void RadialBlurEffect::Apply(ID3D12GraphicsCommandList* commandList, uint32_t sr
 /// -------------------------------------------------------------
 void RadialBlurEffect::DrawImGui()
 {
+#ifdef USE_IMGUI
 	ImGui::SliderFloat("Blur Strength", &radialBlurSetting_->blurStrength, 0.0f, 5.0f);
 	ImGui::SliderFloat("Sample Count", &radialBlurSetting_->sampleCount, 1.0f, 64.0f);
 	ImGui::SliderFloat2("Center", &radialBlurSetting_->center.x, 0.0f, 1.0f);
+#endif // USE_IMGUI
 }

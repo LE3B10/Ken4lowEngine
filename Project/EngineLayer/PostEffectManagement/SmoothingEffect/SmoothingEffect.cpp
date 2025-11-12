@@ -9,7 +9,10 @@
 #include <WinApp.h>
 
 #include <cassert>
+
+#ifdef USE_IMGUI
 #include <imgui.h>
+#endif // USE_IMGUI
 
 
 /// -------------------------------------------------------------
@@ -74,6 +77,7 @@ void SmoothingEffect::Apply(ID3D12GraphicsCommandList* commandList, uint32_t srv
 /// -------------------------------------------------------------
 void SmoothingEffect::DrawImGui()
 {
+#ifdef USE_IMGUI
 	const char* kernelOptions[] =
 	{
 		"None",          // 0
@@ -87,5 +91,5 @@ void SmoothingEffect::DrawImGui()
 	};
 
 	ImGui::Combo("Kernel Type", &smoothingSetting_->kernelType, kernelOptions, IM_ARRAYSIZE(kernelOptions));
-
+#endif // USE_IMGUI
 }

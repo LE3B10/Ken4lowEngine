@@ -2,7 +2,9 @@
 #include "ResourceManager.h"
 #include "DirectXCommon.h"
 
+#ifdef USE_IMGUI
 #include <imgui.h>
+#endif // USE_IMGUI
 
 
 /// -------------------------------------------------------------
@@ -58,10 +60,12 @@ void Material::SetPipeline(UINT rootParameterIndex) const
 /// -------------------------------------------------------------
 void Material::DrawImGui()
 {
+#ifdef USE_IMGUI
 	if (ImGui::CollapsingHeader("Material Settings"))
 	{
 		ImGui::ColorEdit4("Color", &materialData_->color.x); // 色変更
 		ImGui::DragFloat("Shininess", &materialData_->shininess, 1.0f, 1.0f, 256.0f); // シェーディングの強さ変更
 		ImGui::DragFloat("Reflectivity", &materialData_->reflection, 0.01f, 0.0f, 1.0f); // シェーディングの強さ変更
 	}
+#endif // USE_IMGUI
 }

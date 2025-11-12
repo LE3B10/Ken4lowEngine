@@ -2,7 +2,9 @@
 #include "Collider.h"
 #include <Wireframe.h>
 
+#ifdef USE_IMGUI
 #include <imgui.h>
+#endif // USE_IMGUI
 
 /// -------------------------------------------------------------
 ///						　	OBBを取得
@@ -77,6 +79,7 @@ void Collider::Draw()
 /// -------------------------------------------------------------
 void Collider::DrawImGui()
 {
+#ifdef USE_IMGUI
 	if (ImGui::TreeNode("Collider")) {
 		Vector3 pos = colliderPosition_;
 		if (ImGui::DragFloat3("Center", &pos.x, 0.1f)) {
@@ -110,4 +113,5 @@ void Collider::DrawImGui()
 
 		ImGui::TreePop();
 	}
+#endif // USE_IMGUI
 }

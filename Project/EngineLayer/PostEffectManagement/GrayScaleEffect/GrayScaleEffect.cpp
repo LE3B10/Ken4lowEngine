@@ -9,7 +9,10 @@
 #include <WinApp.h>
 
 #include <cassert>
+
+#ifdef USE_IMGUI
 #include <imgui.h>
+#endif // USE_IMGUI
 
 
 /// -------------------------------------------------------------
@@ -74,9 +77,11 @@ void GrayScaleEffect::Apply(ID3D12GraphicsCommandList* commandList, uint32_t srv
 /// -------------------------------------------------------------
 void GrayScaleEffect::DrawImGui()
 {
+#ifdef USE_IMGUI
 	ImGui::ColorEdit4("GrayScale Color", &grayScaleSetting_->color.x);
 	ImGui::Text("GrayScale Effect");
 	ImGui::Separator();
 	ImGui::Text("Intensity: %f", grayScaleSetting_->color.x);
 	ImGui::Separator();
+#endif // USE_IMGUI
 }

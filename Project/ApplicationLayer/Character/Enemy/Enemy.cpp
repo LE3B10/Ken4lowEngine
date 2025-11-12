@@ -7,8 +7,11 @@
 #include <AABB.h>                
 #include <cfloat>                // FLT_MAX
 #include <cmath>
-#include <imgui_widgets.cpp>
 #include <random>
+
+#ifdef USE_IMGUI
+#include <imgui.h>
+#endif // USE_IMGUI
 
 /// -------------------------------------------------------------
 ///					　デストラクタ
@@ -161,6 +164,7 @@ void Enemy::Draw()
 /// -------------------------------------------------------------
 void Enemy::DrawImGui()
 {
+#ifdef USE_IMGUI
 	ImGui::Begin("Enemy Info");
 	// 敵固有の情報表示
 	ImGui::Text("AI State: ");
@@ -188,6 +192,7 @@ void Enemy::DrawImGui()
 	ImGui::SliderFloat("Return Angle Deg", &returnAngleDeg, -90.0f, 90.0f);
 
 	ImGui::End();
+#endif // USE_IMGUI
 }
 
 /// -------------------------------------------------------------

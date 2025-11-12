@@ -609,6 +609,8 @@ void GamePlayScene::DrawImGui()
 		boss_->DrawImGui();
 	}
 
+#ifdef USE_IMGUI
+
 	if (ImGui::Begin("Intro Cutscene")) {
 
 		// --- 再生制御 ---
@@ -698,6 +700,8 @@ void GamePlayScene::DrawImGui()
 		}
 	}
 	ImGui::End();
+
+#endif // USE_IMGUI
 }
 
 /// -------------------------------------------------------------

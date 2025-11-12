@@ -9,7 +9,10 @@
 #include <WinApp.h>
 
 #include <cassert>
+
+#ifdef USE_IMGUI
 #include <imgui.h>
+#endif // USE_IMGUI
 
 
 /// -------------------------------------------------------------
@@ -75,6 +78,8 @@ void VignetteEffect::Apply(ID3D12GraphicsCommandList* commandList, uint32_t srvI
 /// -------------------------------------------------------------
 void VignetteEffect::DrawImGui()
 {
+#ifdef USE_IMGUI
 	ImGui::SliderFloat("Vignette Power", &vignetteSetting_->power, 0.0f, 3.0f);
 	ImGui::SliderFloat("Vignette Range", &vignetteSetting_->range, 0.0f, 1.0f);
+#endif // USE_IMGUI
 }

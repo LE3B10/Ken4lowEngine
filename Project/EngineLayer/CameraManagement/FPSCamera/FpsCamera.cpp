@@ -6,7 +6,10 @@
 #include <Input.h>
 #include "LinearInterpolation.h"
 #include <Wireframe.h>
+
+#ifdef USE_IMGUI
 #include <imgui.h>
+#endif // USE_IMGUI
 
 /// ----------------------------------------------
 ///					初期化処理
@@ -101,6 +104,7 @@ void FpsCamera::DrawImGui()
 {
 	if (!camera_) return;
 
+#ifdef USE_IMGUI
 	ImGui::Begin("FPS Camera");
 
 	// モード
@@ -144,6 +148,7 @@ void FpsCamera::DrawImGui()
 		camera_->SetFarClip(1000.0f);
 	}
 	ImGui::End();
+#endif // USE_IMGUI
 }
 
 /// ----------------------------------------------

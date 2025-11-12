@@ -74,8 +74,6 @@ void GameEngine::Draw()
 	/// ---------- ImGuiフレーム開始 ---------- ///
 	ImGuiManager::GetInstance()->BeginFrame();
 
-#ifdef _DEBUG // デバッグモードの場合
-
 	// グローバル変数の更新
 	ParameterManager::GetInstance()->Update();
 
@@ -93,7 +91,6 @@ void GameEngine::Draw()
 	// PostEffectManagerのImGuiの描画処理
 	PostEffectManager::GetInstance()->ImGuiRender();
 
-#endif // _DEBUG
 	/// ---------- ImGuiフレーム終了 ---------- ///
 	ImGuiManager::GetInstance()->EndFrame();
 

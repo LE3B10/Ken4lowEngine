@@ -161,6 +161,7 @@ void LightManager::DebugDrawLightGizmos()
 /// -------------------------------------------------------------
 void LightManager::DrawImGui()
 {
+#ifdef USE_IMGUI
 	if (ImGui::CollapsingHeader("Punctual Lights"))
 	{
 
@@ -243,6 +244,7 @@ void LightManager::DrawImGui()
 		// 参考表示（GPUへは UpdatePunctualLight で同期）
 		ImGui::Text("Active Lights (type!=0): will be uploaded");
 	}
+#endif // USE_IMGUI
 }
 
 /// -------------------------------------------------------------

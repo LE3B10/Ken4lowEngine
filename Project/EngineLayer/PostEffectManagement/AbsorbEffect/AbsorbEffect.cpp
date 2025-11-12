@@ -9,7 +9,10 @@
 #include <WinApp.h>
 
 #include <cassert>
+
+#ifdef USE_IMGUI
 #include <imgui.h>
+#endif // USE_IMGUI
 
 
 /// -------------------------------------------------------------
@@ -80,6 +83,8 @@ void AbsorbEffect::Apply(ID3D12GraphicsCommandList* commandList, uint32_t srvInd
 /// -------------------------------------------------------------
 void AbsorbEffect::DrawImGui()
 {
+#ifdef USE_IMGUI
 	// 吸収の強さ
 	ImGui::SliderFloat("Absorb Strength", &absorbSetting_->strength, 0.0f, 5.0f);
+#endif // USE_IMGUI
 }

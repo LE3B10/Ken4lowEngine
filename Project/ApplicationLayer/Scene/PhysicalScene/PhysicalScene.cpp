@@ -9,9 +9,11 @@
 #include <SceneManager.h>
 #include <CollisionUtility.h>
 #include "LevelLoader.h"
-
-#include <imgui.h>
 #include <CollisionTypeIdDef.h>
+
+#ifdef USE_IMGUI
+#include <imgui.h>
+#endif // USE_IMGUI
 
 namespace {
 
@@ -270,10 +272,11 @@ void PhysicalScene::DrawImGui()
 {
 	camera->DrawImGui();
 
+#ifdef USE_IMGUI
 	// プレイヤーOBB情報
 	ImGui::Begin("Player OBB");
 	ImGui::Text("Center: (%.2f, %.2f, %.2f)", obb_.center.x, obb_.center.y, obb_.center.z);
 	ImGui::Text("Size: (%.2f, %.2f, %.2f)", obb_.size.x, obb_.size.y, obb_.size.z);
 	ImGui::End();
-
+#endif // USE_IMGUI
 }

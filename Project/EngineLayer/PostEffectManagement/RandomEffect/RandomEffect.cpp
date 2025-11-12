@@ -9,7 +9,10 @@
 #include <WinApp.h>
 
 #include <cassert>
+
+#ifdef USE_IMGUI
 #include <imgui.h>
+#endif // USE_IMGUI
 
 
 /// -------------------------------------------------------------
@@ -86,7 +89,9 @@ void RandomEffect::Apply(ID3D12GraphicsCommandList* commandList, uint32_t srvInd
 /// -------------------------------------------------------------
 void RandomEffect::DrawImGui()
 {
+#ifdef USE_IMGUI
 	if (ImGui::Button(randomSetting_->useMultiply ? "No Multiply" : "Apply Multiply")) {
 		randomSetting_->useMultiply = !randomSetting_->useMultiply;
 	}
+#endif // USE_IMGUI
 }

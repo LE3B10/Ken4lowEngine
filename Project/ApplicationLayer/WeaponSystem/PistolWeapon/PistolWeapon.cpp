@@ -2,7 +2,9 @@
 #include "CollisionTypeIdDef.h"
 #include <Input.h>
 
+#ifdef USE_IMGUI
 #include <imgui.h>
+#endif // USE_IMGUI
 
 /// -------------------------------------------------------------
 ///				　			　 初期化処理
@@ -54,11 +56,13 @@ void PistolWeapon::Draw()
 /// -------------------------------------------------------------
 void PistolWeapon::DrawImGui()
 {
+#ifdef USE_IMGUI
 	// 武器の座標表示
 	ImGui::Text("Weapon Position: (%.2f, %.2f, %.2f)", transform_.translate_.x, transform_.translate_.y, transform_.translate_.z);
 
 	// オフセット調整
 	ImGui::DragFloat3("Offset", &offset_.x, 0.01f);
+#endif // USE_IMGUI
 }
 
 /// -------------------------------------------------------------

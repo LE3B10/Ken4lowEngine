@@ -28,6 +28,7 @@ void ParameterManager::CreateGroup(const std::string& groupName)
 /// -------------------------------------------------------------
 void ParameterManager::Update()
 {
+#ifdef USE_IMGUI
 	// ImGuiウィンドウを開始
 	if (!ImGui::Begin("Global Variables", nullptr, ImGuiWindowFlags_MenuBar))
 	{
@@ -72,6 +73,7 @@ void ParameterManager::Update()
 
 	ImGui::EndMenuBar();
 	ImGui::End();
+#endif // USE_IMGUI
 }
 
 
@@ -287,6 +289,7 @@ void ParameterManager::LoadFile(const std::string& groupName)
 /// -------------------------------------------------------------
 void ParameterManager::DrawItem(const std::string& itemName, ParameterManager::Item& item)
 {
+#ifdef USE_IMGUI
 	/// ---------- int32_t型を保持している場合 ---------- ///
 	if (std::holds_alternative<int32_t>(item.value))
 	{
@@ -327,4 +330,5 @@ void ParameterManager::DrawItem(const std::string& itemName, ParameterManager::I
 	{
 		ImGui::Text("Unsupported type for item: %s", itemName.c_str());
 	}
+#endif // USE_IMGUI
 }

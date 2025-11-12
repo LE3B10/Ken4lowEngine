@@ -9,8 +9,10 @@
 #include <WinApp.h>
 
 #include <cassert>
-#include <imgui.h>
 
+#ifdef USE_IMGUI
+#include <imgui.h>
+#endif // USE_IMGUI
 
 /// -------------------------------------------------------------
 ///						　初期化処理
@@ -77,8 +79,10 @@ void LuminanceOutlineEffect::Apply(ID3D12GraphicsCommandList* commandList, uint3
 /// -------------------------------------------------------------
 void LuminanceOutlineEffect::DrawImGui()
 {
+#ifdef USE_IMGUI
 	ImGui::Text("Luminance Outline Effect Settings");
 	ImGui::ColorEdit4("Outline Color", &luminanceOutlineSetting_->color.x);
 	ImGui::SliderFloat("Edge Strength", &luminanceOutlineSetting_->edgeStrength, 0.0f, 5.0f);
 	ImGui::SliderFloat("Threshold", &luminanceOutlineSetting_->threshold, 0.0f, 1.0f);
+#endif // USE_IMGUI
 }

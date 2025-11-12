@@ -6,7 +6,10 @@
 #include "SRVManager.h"
 
 #include <cassert>
+
+#ifdef USE_IMGUI
 #include <imgui.h>
+#endif // USE_IMGUI
 
 #include <NormalEffect.h>
 #include <GrayScaleEffect.h>
@@ -271,6 +274,7 @@ void PostEffectManager::RenderPostEffect()
 /// -------------------------------------------------------------
 void PostEffectManager::ImGuiRender()
 {
+#ifdef USE_IMGUI
 	ImGui::Begin("Post Effect Settings");
 
 	for (const auto& [name, category] : effectCategory_)
@@ -283,6 +287,7 @@ void PostEffectManager::ImGuiRender()
 	}
 
 	ImGui::End();
+#endif // USE_IMGUI
 }
 
 

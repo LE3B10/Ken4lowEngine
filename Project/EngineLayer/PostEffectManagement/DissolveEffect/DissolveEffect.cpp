@@ -7,10 +7,13 @@
 #include <UAVManager.h>
 #include <ShaderCompiler.h>
 #include <WinApp.h>
+#include <TextureManager.h>
 
 #include <cassert>
+
+#ifdef USE_IMGUI
 #include <imgui.h>
-#include <TextureManager.h>
+#endif // USE_IMGUI
 
 
 /// -------------------------------------------------------------
@@ -92,7 +95,9 @@ void DissolveEffect::Apply(ID3D12GraphicsCommandList* commandList, uint32_t srvI
 /// -------------------------------------------------------------
 void DissolveEffect::DrawImGui()
 {
+#ifdef USE_IMGUI
 	ImGui::SliderFloat("Dissolve Threshold", &dissolveSetting_->threshold, 0.0f, 1.0f);
 	ImGui::SliderFloat("Edge Thickness", &dissolveSetting_->edgeThickness, 0.0f, 1.0f);
 	ImGui::ColorEdit4("Edge Color", &dissolveSetting_->edgeColor.x);
+#endif // USE_IMGUI
 }

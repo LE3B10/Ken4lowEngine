@@ -1,5 +1,8 @@
 #include "ScoreManager.h"
+
+#ifdef USE_IMGUI
 #include <imgui.h>
+#endif // USE_IMGUI
 
 /// -------------------------------------------------------------
 ///					シングルトンインスタンス取得
@@ -42,8 +45,10 @@ void ScoreManager::Reset()
 /// -------------------------------------------------------------
 void ScoreManager::DrawImGui() const
 {
+#ifdef USE_IMGUI
 	ImGui::Begin("Score");
 	ImGui::Text("Score: %d", score_);
 	ImGui::Text("Kills: %d", kills_);
 	ImGui::End();
+#endif // USE_IMGUI
 }

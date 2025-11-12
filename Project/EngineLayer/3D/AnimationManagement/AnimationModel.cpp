@@ -12,8 +12,11 @@
 #include <SRVManager.h>
 #include <UAVManager.h>
 
-#include <imgui.h>
 #include <numeric>
+
+#ifdef USE_IMGUI
+#include <imgui.h>
+#endif // USE_IMGUI
 
 // -------------------------------------------------------------
 ///				　			補助関数群
@@ -376,6 +379,7 @@ void AnimationModel::DrawBatched(const std::vector<AnimationModel*>& models)
 /// -------------------------------------------------------------
 void AnimationModel::DrawImGui()
 {
+#ifdef USE_IMGUI
 	if (ImGui::Begin("AnimationModel Debug"))
 	{
 		auto& L = lods_[lodIndex_];
@@ -404,6 +408,7 @@ void AnimationModel::DrawImGui()
 		ImGui::Checkbox("Use Compute Skinning", &useComputeSkinning_);
 	}
 	ImGui::End();
+#endif // USE_IMGUI
 }
 
 /// -------------------------------------------------------------

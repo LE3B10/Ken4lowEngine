@@ -2,7 +2,10 @@
 #include <Input.h>
 #include <ToWeaponConfig.h>
 
+#ifdef USE_IMGUI
 #include <ImGuiManager.h>
+#endif // USE_IMGUI
+
 
 /// -------------------------------------------------------------
 ///				　	武器名からインデックスを取得
@@ -196,6 +199,7 @@ void WeaponManager::RegisterColliders(CollisionManager* mgr)
 /// -------------------------------------------------------------
 void WeaponManager::DrawWeaponImGui()
 {
+#ifdef USE_IMGUI
 	// 現在装備の名前（空可）
 	const std::string currentName = weapon_ ? weapon_->Data().name : std::string{};
 
@@ -286,4 +290,5 @@ void WeaponManager::DrawWeaponImGui()
 		fireState_.weaponConfig = ToWeaponConfig(focused);
 		loadout_->Rebuild(weaponCatalog_->All());
 		});
+#endif // USE_IMGUI
 }
