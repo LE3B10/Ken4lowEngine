@@ -8,6 +8,7 @@
 #include "Object3DCommon.h"
 #include "PostEffectManager.h"
 #include "LightManager.h"
+#include <GpuParticleManager.h>
 
 
 /// -------------------------------------------------------------
@@ -106,6 +107,9 @@ void GameEngine::Draw()
 
 	// --- パーティクル（UIエフェクトなどあれば） ---
 	ParticleManager::GetInstance()->Draw();
+
+	// --- Gpuパーティクル ---
+	GpuParticleManager::GetInstance()->Draw();
 
 	// --- デバッグ描画（3D用） ---
 	Wireframe::GetInstance()->Draw();

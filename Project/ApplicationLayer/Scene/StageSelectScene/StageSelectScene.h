@@ -66,5 +66,7 @@ private: /// ---------- メンバ変数 ---------- ///
 	std::unique_ptr<Sprite> bg_;
 	Vector4 bgNow_ = { 0.18f, 0.49f, 0.20f, 1.0f }; // 現在の色
 	Vector4 bgTarget_ = bgNow_; // 目標の色
+
+	int pendingUnlockIndex_ = -1;
 };
 

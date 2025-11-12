@@ -168,6 +168,9 @@ public: /// ---------- アクセサー関数 ---------- ///
 	// 死亡中かどうか取得
 	bool IsDeadNow() const { return deathState_.isDead || deathState_.inDeathSeq; }
 
+	// 武器マネージャー取得
+	WeaponManager* GetWeaponManager() const { return weaponManager_.get(); }
+
 private: /// ---------- メンバ関数 ---------- ///
 
 	// 移動処理

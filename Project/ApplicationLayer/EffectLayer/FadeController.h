@@ -65,7 +65,17 @@ public: /// ---------- セッター ---------- ///
 	// 色セット
 	void SetTintColor(const Vector4& color);
 
-	void SetOnComplete(std::function<void()> onComplete) { onComplete_ = std::move(onComplete); }
+	// フェードイン完了(Checkerboard専用)コールバック登録
+	void SetOnFadeInComplete(const std::function<void()>& callback) { onFadeInComplete_ = callback; }
+
+	// フェードアウト完了(Checkerboard専用)コールバック登録
+	void SetOnFadeOutComplete(const std::function<void()>& callback) { onFadeOutComplete_ = callback; }
+
+	// 互換用: 両方同じコールバックを登録したい場合
+	void SetOnComplete(const std::function<void()>& callback) {
+		onFadeInComplete_ = callback;
+		onFadeOutComplete_ = callback;
+	}
 
 public: /// ---------- ゲッター ---------- ///
 
@@ -94,7 +104,9 @@ private: /// ---------- メンバ変数 ---------- ///
 	bool isFading_ = false;   // フェード中かどうか
 	bool isFadeIn_ = true;	  // フェードインかどうか
 
-	std::function<void()> onComplete_ = nullptr; // フェード完了時のコールバック
+	// フェード完了時のコールバック（Checkerboard用）
+	std::function<void()> onFadeInComplete_ = nullptr;
+	std::function<void()> onFadeOutComplete_ = nullptr;
 
 private: /// ---------- レターボックス用メンバ変数 ---------- ///
 

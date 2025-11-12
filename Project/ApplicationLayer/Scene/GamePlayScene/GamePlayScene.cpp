@@ -12,10 +12,107 @@
 #include "LevelLoader.h"
 #include "LinearInterpolation.h"
 
+#include "StageRepository.h"
+
 #ifdef _DEBUG
 #include <DebugCamera.h>
 #endif // _DEBUG
 #include <CollisionUtility.h>
+
+// ステージごとの設定テーブル
+namespace
+{
+	using std::vector;
+
+	// ここを好きなように調整すればOK
+	const std::array<StageConfig, 5> kStageConfigs = {
+		StageConfig{
+			"Stage1.json", "Stage1.gltf",
+			// waves
+			{
+				WaveConfig{ 3, 25.0f },
+				WaveConfig{ 5, 30.0f },
+			},
+			// bossHp
+			1000.0f,
+			// bossSpawnPos
+			Vector3{ 0.0f, 2.5f, 0.0f },
+			// Stage1: 基本パラメータ
+			200.0f,  // maxHp
+			0.03f,   // walk
+			0.08f,   // chase
+			25.0f,   // damage
+			0.80f,   // cooldown
+			10.0f    // detect
+		},
+		StageConfig{
+			"Stage1.json", "Stage1.gltf",
+			{
+				WaveConfig{ 5, 20.0f },
+				WaveConfig{ 7, 25.0f },
+				WaveConfig{10, 30.0f },
+			},
+			2500.0f,
+			Vector3{ 0.0f, 2.5f, 0.0f },
+			// Stage2: ちょい強化
+			400.0f,
+			0.032f,
+			0.09f,
+			30.0f,
+			0.75f,
+			11.0f
+		},
+		StageConfig{
+			"Stage1.json", "Stage1.gltf",
+			{
+				WaveConfig{ 8, 20.0f },
+				WaveConfig{12, 25.0f },
+			},
+			4000.0f,
+			Vector3{ 0.0f, 2.5f, 0.0f },
+			// Stage3: さらに強化
+			800.0f,
+			0.034f,
+			0.10f,
+			35.0f,
+			0.70f,
+			12.0f
+		},
+		StageConfig{
+			"Stage1.json", "Stage1.gltf",
+			{
+				WaveConfig{10, 20.0f },
+				WaveConfig{14, 25.0f },
+			},
+			6000.0f,
+			Vector3{ 0.0f, 2.5f, 0.0f },
+			// Stage4
+			1000.0f,
+			0.036f,
+			0.11f,
+			40.0f,
+			0.65f,
+			13.0f
+		},
+		StageConfig{
+			"Stage1.json", "Stage1.gltf",
+			{
+				WaveConfig{12, 20.0f },
+				WaveConfig{16, 25.0f },
+				WaveConfig{20, 30.0f },
+			},
+			8000.0f,
+			Vector3{ 0.0f, 2.5f, 0.0f },
+			// Stage5: 地獄
+			2000.0f,
+			0.038f,
+			0.12f,
+			50.0f,
+			0.60f,
+			14.0f
+		},
+	};
+}
 
 static inline float DeltaAngle(float a, float b)
 {
@@ -53,8 +150,8 @@ void GamePlayScene::Initialize()
 	DebugCamera::GetInstance()->Initialize();
 #endif // _DEBUG
 
-	StartIntroCutscene();
-	gameState_ = GameState::CutScene;   // 最初は必ずCutSceneへ
+	//StartIntroCutscene();
+	//gameState_ = GameState::CutScene;   // 最初は必ずCutSceneへ
 	Input::GetInstance()->SetLockCursor(true);
 	ShowCursor(false);
 
@@ -84,12 +181,6 @@ void GamePlayScene::Initialize()
 	player_ = std::make_unique<Player>();
 	player_->Initialize();
 
-	// 敵キャラクターの初期化
-	enemy_ = std::make_unique<Enemy>();
-	enemy_->Initialize();
-	enemy_->SetPlayerPointer(player_.get());
-	enemy_->SetSpawnPosition({ 0.0f, 2.5f, 30.0f });
-
 	// クロスヘアの初期化
 	crosshair_ = std::make_unique<Crosshair>();
 	crosshair_->Initialize();
@@ -100,10 +191,23 @@ void GamePlayScene::Initialize()
 	itemManager_->Spawn(ItemType::HealSmall, player_->GetWorldTransform()->translate_ + Vector3{ 0.0f, 0.0f, -30.0f });
 
 	auto levelLoader = std::make_unique<LevelLoader>();
+
+	// StageSelectScene から渡されたインデックスを読む
+	int stageIndex = 0;
+	if (auto idxOpt = StageRepository::GetInstance().GetStartIndex()) {
+		stageIndex = std::clamp(*idxOpt, 0, (int)kStageConfigs.size() - 1);
+	}
+
+	currentStageIndex_ = stageIndex;
+	currentStageConfig_ = kStageConfigs[stageIndex];
+
+	// ステージ読み込みを差し替え
 	levelObjectManager_ = std::make_unique<LevelObjectManager>();
-	levelObjectManager_->Initialize(*levelLoader->LoadLevel("Stage1.json"), "Stage1.gltf");
+	levelObjectManager_->Initialize(
+		*levelLoader->LoadLevel(currentStageConfig_.levelJson),
+		currentStageConfig_.levelModel
+	);
 	player_->SetLevelObjectManager(levelObjectManager_.get());
-	enemy_->SetLevelObjectManager(levelObjectManager_.get());
 
 	// ----------------- Result画面用ボタンの初期化 -----------------
 
@@ -144,8 +248,17 @@ void GamePlayScene::Initialize()
 	retryRect_.h = btnH;
 	retryRect_.x = screenW - margin - btnW;
 	retryRect_.y = screenH - margin - btnH;
-}
 
+	// 敵ウェーブの初期化
+	InitializeWaves();
+
+	// --- 雑魚のドロップテーブル設定 ---
+	normalDropTable_.Clear();
+	normalDropTable_.SetDropChance(60);              // 60% の確率で何か落とす
+	normalDropTable_.AddEntry(ItemType::HealSmall, 35);
+	normalDropTable_.AddEntry(ItemType::AmmoSmall, 45);
+	normalDropTable_.AddEntry(ItemType::ScoreBonus, 20);
+}
 
 /// -------------------------------------------------------------
 ///				　			　 更新処理
@@ -154,6 +267,11 @@ void GamePlayScene::Update()
 {
 	// デルタタイムの取得
 	const float deltaTime = dxCommon_->GetFPSCounter().GetDeltaTime();
+
+	// ここで毎フレームフェード更新
+	if (fadeController_) {
+		fadeController_->Update(deltaTime);
+	}
 
 	// デバッグカメラの更新
 	UpdateDebug();
@@ -190,7 +308,6 @@ void GamePlayScene::Update()
 
 		// 画的に必要な更新だけ許可
 		skyBox_->Update();
-		fadeController_->Update(deltaTime);
 		itemManager_->Update(player_.get(), deltaTime);
 		levelObjectManager_->Update();
 
@@ -207,35 +324,106 @@ void GamePlayScene::Update()
 	switch (gameState_)
 	{
 	case GameState::Playing:
+	{
 		player_->Update(deltaTime);
-		enemy_->Update(deltaTime);
+
+		for (auto& e : enemies_) {
+			e->Update(deltaTime);
+		}
+
+		if (boss_) {
+			boss_->Update(deltaTime);
+		}
+
 		skyBox_->Update();
 		crosshair_->Update();
-		itemManager_->Update(player_.get(), deltaTime);
 
-		// プレイヤー死亡チェック
 		if (player_->IsDeadNow())
 		{
-			gameState_ = GameState::Result;
-
-			// ゲームオーバー中はマウスを解放してUI操作できるようにする
+			gameState_ = GameState::GameOver;
 			Input::GetInstance()->SetLockCursor(false);
 			ShowCursor(true);
 		}
+
+		for (auto& e : enemies_) {
+			if (e->IsDeadNow()) {
+				ItemType drop;
+				if (normalDropTable_.RollForDrop(drop)) {
+					const Vector3 pos = e->GetDropPosAtDeath(); // ←変更
+					itemManager_->Spawn(drop, pos);
+				}
+			}
+		}
+
+		itemManager_->Update(player_.get(), deltaTime);
+
+		// 通常敵の死亡したやつを消す
+		enemies_.erase(
+			std::remove_if(
+				enemies_.begin(), enemies_.end(),
+				[](const std::unique_ptr<Enemy>& e) {
+					return e->IsDeadNow();
+				}),
+			enemies_.end()
+		);
+
+		bool hasAliveEnemies = !enemies_.empty();  // ← これでOK（このブロック内限定）
+
+		if (!bossSpawned_)
+		{
+			if (!hasAliveEnemies)
+			{
+				if (currentWaveIndex_ + 1 < static_cast<int>(waveConfigs_.size()))
+				{
+					currentWaveIndex_++;
+					SpawnWave(currentWaveIndex_);
+				}
+				else
+				{
+					allWavesCleared_ = true;
+					SpawnBoss();
+				}
+			}
+		}
+		else
+		{
+			if (boss_ && boss_->IsDeadNow())
+			{
+				Input::GetInstance()->SetLockCursor(false);
+				ShowCursor(true);
+				OnStageClear();
+			}
+		}
+
 		break;
+	}
 	case GameState::Paused:
 		break;
-	case GameState::Result:
+	case GameState::GameOver:
 		// 死亡演出を最後まで回すためにプレイヤーだけは更新
 		player_->Update(deltaTime);
 
-		// 背景などの更新（お好みで止めてもいい）
-		enemy_->Update(deltaTime);
+		// 背景など（敵が居れば更新）
+		for (auto& e : enemies_)
+		{
+			e->Update(deltaTime);
+		}
+
+		// ボス更新
+		if (boss_)
+		{
+			boss_->Update(deltaTime);
+		}
+
 		skyBox_->Update();
 		crosshair_->Update();
 		itemManager_->Update(player_.get(), deltaTime);
 		retryButtonSprite_->Update();
 		retireButtonSprite_->Update();
+
+		if (fadeController_) {
+			fadeController_->Update(deltaTime);
+		}
 
 		// キー操作でもまだ残しておく（デバッグ用）
 		if (input_->TriggerKey(DIK_R))
@@ -312,7 +500,15 @@ void GamePlayScene::Draw3DObjects()
 	if (gameState_ != GameState::CutScene)
 	{
 		player_->Draw();
-		enemy_->Draw();
+
+		for (auto& e : enemies_) {
+			e->Draw();
+		}
+
+		if (boss_) {
+			boss_->Draw();
+		}
+
 		itemManager_->Draw();
 	}
 
@@ -368,7 +564,7 @@ void GamePlayScene::Draw2DSprites()
 	fadeController_->Draw();
 
 	// ---------- Result(ゲームオーバー)時のUI ----------
-	if (gameState_ == GameState::Result)
+	if (gameState_ == GameState::GameOver)
 	{
 		// 左下(リタイア)
 		if (retireButtonSprite_)
@@ -405,7 +601,13 @@ void GamePlayScene::DrawImGui()
 
 	player_->DrawImGui();
 
-	enemy_->DrawImGui();
+	for (auto& e : enemies_) {
+		e->DrawImGui();
+	}
+
+	if (boss_) {
+		boss_->DrawImGui();
+	}
 
 	if (ImGui::Begin("Intro Cutscene")) {
 
@@ -652,8 +854,14 @@ void GamePlayScene::CheckAllCollisions()
 	player_->RegisterColliders(collisionManager_.get());
 
 	// 敵キャラクターのコライダーを登録
-	if (enemy_->IsActive()) {
-		collisionManager_->AddCollider(enemy_.get());
+	for (auto& e : enemies_)
+	{
+		if (e->IsActive()) {
+			collisionManager_->AddCollider(e.get());
+		}
+	}
+	if (boss_ && boss_->IsActive()) {
+		collisionManager_->AddCollider(boss_.get());
 	}
 
 	// アイテムのコライダーを登録
@@ -661,5 +869,146 @@ void GamePlayScene::CheckAllCollisions()
 
 	// 衝突判定と応答
 	collisionManager_->CheckAllCollisions();
+}
+
+/// -------------------------------------------------------------
+///				　			ステージクリア時の処理
+/// -------------------------------------------------------------
+void GamePlayScene::OnStageClear()
+{
+	gameState_ = GameState::GameClear;
+
+	auto& repo = StageRepository::GetInstance();
+	auto stages = repo.GetStages();
+	auto startIndexOpt = repo.GetStartIndex();
+
+	if (startIndexOpt && !stages.empty())
+	{
+		int idx = *startIndexOpt;         // 今回プレイしていたステージ
+		int next = idx + 1;
+
+		if (next < (int)stages.size())
+		{
+			// 次ステージを解放
+			if (stages[next].locked) {
+				stages[next].locked = false;
+				stages[next].justUnlocked = true;
+			}
+
+			// 次回セレクト画面を開いたときの初期選択を「次ステージ」にする
+			repo.SetStartIndex(next);
+		}
+
+		repo.SetStages(stages);
+	}
+
+	// ステージセレクトへ戻る
+	if (fadeController_)
+	{
+		fadeController_->SetOnComplete([this]() {
+			if (sceneManager_) sceneManager_->ChangeScene("StageSelectScene");
+			});
+		fadeController_->StartFadeOut(0.8f);
+	}
+	else
+	{
+		if (sceneManager_) sceneManager_->ChangeScene("StageSelectScene");
+	}
+}
+
+void GamePlayScene::InitializeWaves()
+{
+	waveConfigs_ = currentStageConfig_.waves;
+
+	currentWaveIndex_ = 0;
+	allWavesCleared_ = false;
+
+	enemies_.clear();
+	boss_.reset();
+	bossSpawned_ = false;
+
+	if (!waveConfigs_.empty())
+	{
+		SpawnWave(currentWaveIndex_);
+	}
+}
+
+void GamePlayScene::SpawnWave(int waveIndex)
+{
+	if (waveIndex < 0 || waveIndex >= static_cast<int>(waveConfigs_.size())) return;
+
+	const auto& cfg = waveConfigs_[waveIndex];
+
+	enemies_.clear();
+
+	// ステージ側で決める基準位置
+	const Vector3 center = currentStageConfig_.bossSpawnPos;
+
+	for (int i = 0; i < cfg.enemyCount; ++i)
+	{
+		auto enemy = std::make_unique<Enemy>();
+		enemy->Initialize();
+		enemy->SetPlayerPointer(player_.get());
+		enemy->SetLevelObjectManager(levelObjectManager_.get());
+
+		// ステージ依存パラメータを適用
+		enemy->ApplyStageParams(
+			currentStageConfig_.enemymaxHp,
+			currentStageConfig_.enemyWalkSpeed,
+			currentStageConfig_.enemyChaseSpeed,
+			currentStageConfig_.enemyAttackDamage,
+			currentStageConfig_.enemyAttackCooldown,
+			currentStageConfig_.enemyDetectRadius
+		);
+
+		Vector3 pos;
+
+		// 1) 個別指定があればそれを使う（最優先）
+		if (!cfg.spawnPositions.empty() && i < (int)cfg.spawnPositions.size())
+		{
+			pos = cfg.spawnPositions[i];
+		}
+		else
+		{
+			// 2) なければ「ステージ基準位置」を中心に円形スポーン
+			const float angle =
+				(2.0f * std::numbers::pi_v<float> / std::max(cfg.enemyCount, 1))
+				* i;
+
+			pos = center + Vector3{
+				std::cos(angle) * cfg.spawnRadius,
+				0.0f,                               // 敵の足元Y（お好みで調整）
+				std::sin(angle) * cfg.spawnRadius
+			};
+		}
+
+		enemy->SetSpawnPosition(pos);
+
+		enemies_.push_back(std::move(enemy));
+	}
+}
+
+void GamePlayScene::SpawnBoss()
+{
+	if (bossSpawned_) return;
+	bossSpawned_ = true;
+
+	boss_ = std::make_unique<Enemy>();
+	boss_->Initialize();
+	boss_->SetPlayerPointer(player_.get());
+	boss_->SetLevelObjectManager(levelObjectManager_.get());
+
+	boss_->SetSpawnPosition(currentStageConfig_.bossSpawnPos);
+	boss_->SetBoss(true, currentStageConfig_.bossHp);
+
+	// ボスは敵より少し強めにする
+	boss_->ApplyStageParams(
+		currentStageConfig_.bossHp,
+		currentStageConfig_.enemyChaseSpeed * 0.8f,   // 徘徊はあまり速くなくてもOK
+		currentStageConfig_.enemyChaseSpeed * 1.2f,   // 追跡はちょい速く
+		currentStageConfig_.enemyAttackDamage * 1.5f, // ダメージアップ
+		currentStageConfig_.enemyAttackCooldown * 0.8f,
+		currentStageConfig_.enemyDetectRadius + 3.0f
+	);
 }
 
