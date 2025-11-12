@@ -22,11 +22,17 @@ void StageSelectScene::Initialize()
 	stages_.push_back({ 3u, "朽ちた果てた街", "white.png", true,  0u, { 0.37f, 0.35f, 0.49f, 1.0f } });
 	stages_.push_back({ 4u, "港湾ターミナル", "white.png", true,  0u, { 0.08f, 0.40f, 0.75f, 1.0f } });
 
-	// リポジトリから保存済みステージ情報を取得
-	const auto& saved = StageRepository::GetInstance().GetStages();
-	if (!saved.empty() && saved.size() == stages_.size())
-	{
+	// 保存済みステージ情報を反映
+	auto& repo = StageRepository::GetInstance();
+	const auto& saved = repo.GetStages();
+	if (!saved.empty() && saved.size() == stages_.size()) {
 		stages_ = saved;
+	}
+
+	// --- ここで StartIndex を読む ---
+	int startIndex = 0;
+	if (auto idxOpt = repo.GetStartIndex()) {
+		startIndex = std::clamp(*idxOpt, 0, (int)stages_.size() - 1);
 	}
 
 	// フェードコントローラーの初期化
@@ -86,6 +92,21 @@ void StageSelectScene::Initialize()
 		});
 
 	activeSelector_ = gridSelector_.get();
+
+	if (startIndex >= 0 && startIndex < (int)stages_.size()) {
+		activeSelector_->FocusToIndex(startIndex, false);
+
+		if (stages_[startIndex].justUnlocked) {
+			pendingUnlockIndex_ = startIndex; // ← フェード完了後に再生する
+		}
+
+		bgNow_ = bgTarget_ = stages_[startIndex].color;
+		if (bg_) {
+			bg_->SetColor(bgNow_);
+			bg_->Update();
+		}
+	}
+
 	activeSelector_->OnEnter();
 }
 
@@ -104,6 +125,20 @@ void StageSelectScene::Update()
 	if (input_->TriggerKey(DIK_ESCAPE)) if (context_.onRequestBack) context_.onRequestBack();
 
 	if (fadeController_) fadeController_->Update(deltaTime); // フェード更新
+
+	if (pendingUnlockIndex_ >= 0 && !fadeController_->IsFading()) {
+		if (auto* grid = dynamic_cast<GridStageSelector*>(activeSelector_)) {
+			grid->PlayUnlockAnim(pendingUnlockIndex_);
+		}
+		else {
+			// 万一Grid以外でも、フォーカスだけは合わせておく
+			activeSelector_->FocusToIndex(pendingUnlockIndex_, false);
+		}
+		// アニメ再生したら justUnlocked を片付けて永続化
+		stages_[pendingUnlockIndex_].justUnlocked = false;
+		StageRepository::GetInstance().SetStages(stages_);
+		pendingUnlockIndex_ = -1; // 一度きり
+	}
 }
 
 void StageSelectScene::Draw3DObjects()

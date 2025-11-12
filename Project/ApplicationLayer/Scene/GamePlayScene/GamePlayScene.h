@@ -18,10 +18,40 @@
 #include "LevelObjectManager.h"
 
 #include <memory>
+#include <ItemDropTable.h>
 
 /// ---------- 前方宣言 ---------- ///
 class DirectXCommon;
 class Input;
+
+// 敵ウェーブ設定構造体
+struct WaveConfig
+{
+	int enemyCount;
+	float spawnRadius;
+
+	// 個別スポーン位置
+	// 空でなければこの配列を優先して使う
+	std::vector<Vector3> spawnPositions;
+};
+
+// ステージごとの設定
+struct StageConfig
+{
+	const char* levelJson;          // ステージ配置データ
+	const char* levelModel;         // ステージモデル
+	std::vector<WaveConfig> waves;  // ウェーブ構成
+	float bossHp = 2500.0f;         // ボスHP
+	Vector3 bossSpawnPos{ 0.0f, 2.5f, 0.0f }; // ボス出現位置
+
+	// ステージごとの敵パラメータ
+	float enemymaxHp = 100.0f;    // 敵最大HP
+	float enemyWalkSpeed = 0.03f;  // 徘徊速度
+	float enemyChaseSpeed = 0.08f;  // 追跡速度
+	float enemyAttackDamage = 25.0f;  // 与ダメージ
+	float enemyAttackCooldown = 0.8f;   // 攻撃間隔
+	float enemyDetectRadius = 10.0f;  // 索敵範囲
+};
 
 
 /// -------------------------------------------------------------
@@ -102,6 +132,15 @@ private: /// ---------- メンバ関数 ---------- ///
 	// ステージクリア時の処理
 	void OnStageClear();
 
+	// 敵ウェーブ初期化処理
+	void InitializeWaves();
+
+	// 敵ウェーブ出現処理
+	void SpawnWave(int waveIndex);
+
+	// ボス出現処理
+	void SpawnBoss();
+
 private: /// ---------- メンバ変数 ---------- ///
 
 	DirectXCommon* dxCommon_ = nullptr;
@@ -151,10 +190,27 @@ private: /// ---------- メンバ変数 ---------- ///
 	std::unique_ptr<Sprite> retryButtonSprite_;   // 右下: リトライ
 	std::unique_ptr<Sprite> retireButtonSprite_;  // 左下: リタイア(タイトルへ)
 
+	ItemDropTable normalDropTable_;
+
 	struct ButtonRect {
 		float x, y;      // 左上
 		float w, h;      // サイズ
 	};
 	ButtonRect retryRect_;   // クリック判定用
 	ButtonRect retireRect_;  // クリック判定用
+
+	std::vector<std::unique_ptr<Enemy>> enemies_;  // 通常敵
+
+	// ボス
+	std::unique_ptr<Enemy> boss_ = nullptr;
+
+	// Wave関連
+	std::vector<WaveConfig> waveConfigs_;
+	int  currentWaveIndex_ = 0;
+	bool allWavesCleared_ = false;
+	bool bossSpawned_ = false;
+
+	// ステージ設定
+	StageConfig currentStageConfig_{};
+	int currentStageIndex_ = 0;
 };

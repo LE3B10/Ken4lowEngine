@@ -227,6 +227,47 @@ Vector3 Enemy::GetCenterPosition() const
 }
 
 /// -------------------------------------------------------------
+///				　　　ボス設定
+/// -------------------------------------------------------------
+void Enemy::SetBoss(bool isBoss, float bossHp)
+{
+	isBoss_ = isBoss;
+
+	if (isBoss_)
+	{
+		maxHp_ = bossHp;
+		hp_ = maxHp_;
+
+		// 見た目(色)をボス用に
+		ApplyColorToAll({ 1.0f, 0.2f, 0.2f, 1.0f });
+	}
+
+	// テクスチャ変更（ボス専用見た目）
+	if (body_.object)
+	{
+		body_.object->SetTextureForAll("zombie.png");
+	}
+
+	for (auto& part : parts_)
+	{
+		if (part.object)
+		{
+			part.object->SetTextureForAll("zombie.png");
+		}
+	}
+}
+
+void Enemy::ApplyStageParams(float hp, float walkSpeed, float chaseSpeed, float attackDamage, float attackCooldown, float detectRadius)
+{
+	maxHp_ = hp;
+	walkSpeed_ = walkSpeed;
+	chaseSpeed_ = chaseSpeed;
+	attackDamage_ = attackDamage;
+	attackCooldown_ = attackCooldown;
+	detectRadius_ = detectRadius;
+}
+
+/// -------------------------------------------------------------
 ///				　　　状態遷移処理
 /// -------------------------------------------------------------
 void Enemy::TransitionState(AIState newState)
@@ -748,6 +789,8 @@ void Enemy::TakeDamage(float amount)
 void Enemy::StartDeath()
 {
 	if (death_.active) return;
+
+	dropPosAtDeath_ = GetCenterPosition(); // 死亡時の位置を保存
 
 	death_.active = true;
 	death_.finished = false;
