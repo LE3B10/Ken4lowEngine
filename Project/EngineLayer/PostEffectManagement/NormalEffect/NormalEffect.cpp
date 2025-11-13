@@ -19,10 +19,7 @@ void NormalEffect::Initialize(DirectXCommon* dxCommon, PostEffectPipelineBuilder
 	rootSignature_ = builder->CreateRootSignature();
 
 	// パイプラインの生成
-	graphicsPipelineState_ = builder->CreateGraphicsPipeline(
-		ShaderCompiler::GetShaderPath(L"NormalEffect", L".PS.hlsl"),
-		rootSignature_.Get(),
-		false);
+	graphicsPipelineState_ = builder->CreateGraphicsPipeline(ShaderCompiler::GetShaderPath(L"NormalEffect", L".PS.hlsl"), rootSignature_.Get(), false);
 }
 
 
@@ -34,12 +31,14 @@ void NormalEffect::Apply(ID3D12GraphicsCommandList* commandList, uint32_t srvInd
 	(void)uavIndex; // 未使用
 	(void)dsvIndex; // 未使用
 
+	// グラフィックス用のルートシグネチャとPSOを設定
 	commandList->SetPipelineState(graphicsPipelineState_.Get());
 	commandList->SetGraphicsRootSignature(rootSignature_.Get());
 
 	// SRVヒープの設定はPostEffectManager側で済ませておく前提
 	commandList->SetGraphicsRootDescriptorTable(0, SRVManager::GetInstance()->GetGPUDescriptorHandle(srvIndex));
 
+	// 全画面三角形を描画
 	commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	commandList->DrawInstanced(3, 1, 0, 0);
 }

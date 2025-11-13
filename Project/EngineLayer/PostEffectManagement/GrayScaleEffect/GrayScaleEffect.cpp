@@ -68,6 +68,7 @@ void GrayScaleEffect::Apply(ID3D12GraphicsCommandList* commandList, uint32_t srv
 	uint32_t groupCountX = (width + threadGroupSizeX - 1) / threadGroupSizeX;
 	uint32_t groupCountY = (height + threadGroupSizeY - 1) / threadGroupSizeY;
 
+	// コンピュートシェーダーの実行
 	commandList->Dispatch(groupCountX, groupCountY, 1);
 }
 

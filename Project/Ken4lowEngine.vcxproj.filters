@@ -97,16 +97,16 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="WinMain.cpp" />
-    <ClCompile Include="EngineLayer\Audio\MP3Loader.cpp">
+    <ClCompile Include="EngineLayer\Audio\MP3Loader\MP3Loader.cpp">
       <Filter>EngineLayer\Audio</Filter>
     </ClCompile>
-    <ClCompile Include="EngineLayer\Audio\WavLoader.cpp">
+    <ClCompile Include="EngineLayer\Audio\WaveLoader\WavLoader.cpp">
       <Filter>EngineLayer\Audio</Filter>
     </ClCompile>
-    <ClCompile Include="EngineLayer\WorldTransform\ParticleTransform.cpp">
+    <ClCompile Include="EngineLayer\Transform\ParticleTransform.cpp">
       <Filter>EngineLayer\Transform</Filter>
     </ClCompile>
-    <ClCompile Include="EngineLayer\WorldTransform\WorldTransform.cpp">
+    <ClCompile Include="EngineLayer\Transform\WorldTransform.cpp">
       <Filter>EngineLayer\Transform</Filter>
     </ClCompile>
     <ClCompile Include="EngineLayer\Mesh\Mesh.cpp">
@@ -322,7 +322,7 @@
     <ClCompile Include="EngineLayer\ResourceChecker\LeakCheck\D3DResourceLeakChecker.cpp">
       <Filter>EngineLayer\ResourceChecker</Filter>
     </ClCompile>
-    <ClCompile Include="EngineLayer\Audio\AudioManager.cpp">
+    <ClCompile Include="EngineLayer\Audio\AudioManager\AudioManager.cpp">
       <Filter>EngineLayer\Audio</Filter>
     </ClCompile>
     <ClCompile Include="ApplicationLayer\Scene\GamePlayScene\HUDManager\HUDManager.cpp">
@@ -385,7 +385,7 @@
     <ClCompile Include="ApplicationLayer\Character\BaseCharacter\BaseCharacter.cpp">
       <Filter>ApplicationLayer\Character\BaseCharacter</Filter>
     </ClCompile>
-    <ClCompile Include="EngineLayer\WorldTransform\WorldTransformEx.cpp">
+    <ClCompile Include="EngineLayer\Transform\WorldTransformEx.cpp">
       <Filter>EngineLayer\Transform</Filter>
     </ClCompile>
     <ClCompile Include="ApplicationLayer\EffectLayer\ModelParticle.cpp">
@@ -421,20 +421,20 @@
     <ClCompile Include="ApplicationLayer\Character\Enemy\Enemy.cpp">
       <Filter>ApplicationLayer\Character\Enemy</Filter>
     </ClCompile>
-    <ClCompile Include="EngineLayer\GPUParticleSystem\GpuParticleBuffers.cpp">
-      <Filter>EngineLayer\GpuParticleSystem</Filter>
+    <ClCompile Include="EngineLayer\GPUParticleSystem\GpuParticleBuffers\GpuParticleBuffers.cpp">
+      <Filter>EngineLayer\GpuParticleSystem\GpuParticleBuffers</Filter>
     </ClCompile>
-    <ClCompile Include="EngineLayer\GPUParticleSystem\GpuParticleEmitter.cpp">
-      <Filter>EngineLayer\GpuParticleSystem</Filter>
+    <ClCompile Include="EngineLayer\GPUParticleSystem\GpuParticleEmitter\GpuParticleEmitter.cpp">
+      <Filter>EngineLayer\GpuParticleSystem\GpuParticleEmitter</Filter>
     </ClCompile>
-    <ClCompile Include="EngineLayer\GPUParticleSystem\GpuParticleManager.cpp">
-      <Filter>EngineLayer\GpuParticleSystem</Filter>
+    <ClCompile Include="EngineLayer\GPUParticleSystem\GpuParticleManager\GpuParticleManager.cpp">
+      <Filter>EngineLayer\GpuParticleSystem\GpuParticleManager</Filter>
     </ClCompile>
-    <ClCompile Include="EngineLayer\GPUParticleSystem\GpuParticlePipeline.cpp">
-      <Filter>EngineLayer\GpuParticleSystem</Filter>
+    <ClCompile Include="EngineLayer\GPUParticleSystem\GpuParticlePipeline\GpuParticlePipeline.cpp">
+      <Filter>EngineLayer\GpuParticleSystem\GpuParticlePipeline</Filter>
     </ClCompile>
-    <ClCompile Include="EngineLayer\GPUParticleSystem\GpuParticleRenderer.cpp">
-      <Filter>EngineLayer\GpuParticleSystem</Filter>
+    <ClCompile Include="EngineLayer\GPUParticleSystem\GpuParticleRenderer\GpuParticleRenderer.cpp">
+      <Filter>EngineLayer\GpuParticleSystem\GpuParticleRenderer</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -456,19 +456,19 @@
     <ClInclude Include="Externals\Audio\minimp3\minimp3_ex.h">
       <Filter>Externals\minimp3</Filter>
     </ClInclude>
-    <ClInclude Include="EngineLayer\Audio\AudioCategory.h">
+    <ClInclude Include="EngineLayer\Audio\AudioDatas\AudioCategory.h">
       <Filter>EngineLayer\Audio</Filter>
     </ClInclude>
-    <ClInclude Include="EngineLayer\Audio\AudioStructs.h">
+    <ClInclude Include="EngineLayer\Audio\AudioDatas\AudioStructs.h">
       <Filter>EngineLayer\Audio</Filter>
     </ClInclude>
-    <ClInclude Include="EngineLayer\Audio\MP3Loader.h">
+    <ClInclude Include="EngineLayer\Audio\MP3Loader\MP3Loader.h">
       <Filter>EngineLayer\Audio</Filter>
     </ClInclude>
-    <ClInclude Include="EngineLayer\Audio\WavLoader.h">
+    <ClInclude Include="EngineLayer\Audio\WaveLoader\WavLoader.h">
       <Filter>EngineLayer\Audio</Filter>
     </ClInclude>
-    <ClInclude Include="EngineLayer\Audio\WavLoaderException.h">
+    <ClInclude Include="EngineLayer\Audio\WaveLoader\WavLoaderException.h">
       <Filter>EngineLayer\Audio</Filter>
     </ClInclude>
     <ClInclude Include="EngineLayer\Math\MultipleStructs\Plane.h">
@@ -480,10 +480,10 @@
     <ClInclude Include="EngineLayer\Math\MultipleStructs\Triangle.h">
       <Filter>EngineLayer\Math</Filter>
     </ClInclude>
-    <ClInclude Include="EngineLayer\WorldTransform\ParticleTransform.h">
+    <ClInclude Include="EngineLayer\Transform\ParticleTransform.h">
       <Filter>EngineLayer\Transform</Filter>
     </ClInclude>
-    <ClInclude Include="EngineLayer\WorldTransform\WorldTransform.h">
+    <ClInclude Include="EngineLayer\Transform\WorldTransform.h">
       <Filter>EngineLayer\Transform</Filter>
     </ClInclude>
     <ClInclude Include="EngineLayer\Mesh\Mesh.h">
@@ -753,7 +753,7 @@
     <ClInclude Include="EngineLayer\ResourceChecker\LeakCheck\D3DResourceLeakChecker.h">
       <Filter>EngineLayer\ResourceChecker</Filter>
     </ClInclude>
-    <ClInclude Include="EngineLayer\Audio\AudioManager.h">
+    <ClInclude Include="EngineLayer\Audio\AudioManager\AudioManager.h">
       <Filter>EngineLayer\Audio</Filter>
     </ClInclude>
     <ClInclude Include="ApplicationLayer\Scene\GamePlayScene\HUDManager\HUDManager.h">
@@ -822,7 +822,7 @@
     <ClInclude Include="ApplicationLayer\Character\BaseCharacter\BaseCharacter.h">
       <Filter>ApplicationLayer\Character\BaseCharacter</Filter>
     </ClInclude>
-    <ClInclude Include="EngineLayer\WorldTransform\WorldTransformEx.h">
+    <ClInclude Include="EngineLayer\Transform\WorldTransformEx.h">
       <Filter>EngineLayer\Transform</Filter>
     </ClInclude>
     <ClInclude Include="ApplicationLayer\EffectLayer\ModelParticle.h">
@@ -894,26 +894,30 @@
     <ClInclude Include="ApplicationLayer\Character\Enemy\Enemy.h">
       <Filter>ApplicationLayer\Character\Enemy</Filter>
     </ClInclude>
-    <ClInclude Include="EngineLayer\GPUParticleSystem\BillboardMode.h">
-      <Filter>EngineLayer\GpuParticleSystem</Filter>
+    <ClInclude Include="EngineLayer\GPUParticleSystem\GpuParticleBuffers\GpuParticleBuffers.h">
+      <Filter>EngineLayer\GpuParticleSystem\GpuParticleBuffers</Filter>
     </ClInclude>
-    <ClInclude Include="EngineLayer\GPUParticleSystem\GpuParticleBuffers.h">
-      <Filter>EngineLayer\GpuParticleSystem</Filter>
+    <ClInclude Include="EngineLayer\GPUParticleSystem\GpuParticleDatas\BillboardMode.h">
+      <Filter>EngineLayer\GpuParticleSystem\GpuParticleDatas</Filter>
     </ClInclude>
-    <ClInclude Include="EngineLayer\GPUParticleSystem\GpuParticleEmitter.h">
-      <Filter>EngineLayer\GpuParticleSystem</Filter>
+    <ClInclude Include="EngineLayer\GPUParticleSystem\GpuParticleDatas\GpuParticleType.h">
+      <Filter>EngineLayer\GpuParticleSystem\GpuParticleDatas</Filter>
     </ClInclude>
-    <ClInclude Include="EngineLayer\GPUParticleSystem\GpuParticleManager.h">
-      <Filter>EngineLayer\GpuParticleSystem</Filter>
+    <ClInclude Include="EngineLayer\GPUParticleSystem\GpuParticleDatas\GpuParticleEmitterData.h">
+      <Filter>EngineLayer\GpuParticleSystem\GpuParticleDatas</Filter>
     </ClInclude>
-    <ClInclude Include="EngineLayer\GPUParticleSystem\GpuParticlePipeline.h">
-      <Filter>EngineLayer\GpuParticleSystem</Filter>
+    <ClInclude Include="EngineLayer\GPUParticleSystem\GpuParticleEmitter\GpuParticleEmitter.h">
+      <Filter>EngineLayer\GpuParticleSystem\GpuParticleEmitter</Filter>
     </ClInclude>
-    <ClInclude Include="EngineLayer\GPUParticleSystem\GpuParticleRenderer.h">
-      <Filter>EngineLayer\GpuParticleSystem</Filter>
+    <ClInclude Include="EngineLayer\GPUParticleSystem\GpuParticleManager\GpuParticleManager.h">
+      <Filter>EngineLayer\GpuParticleSystem\GpuParticleManager</Filter>
     </ClInclude>
-    <ClInclude Include="EngineLayer\GPUParticleSystem\GpuParticleType.h" />
-    <ClInclude Include="EngineLayer\GPUParticleSystem\GpuParticleEmitterData.h" />
+    <ClInclude Include="EngineLayer\GPUParticleSystem\GpuParticlePipeline\GpuParticlePipeline.h">
+      <Filter>EngineLayer\GpuParticleSystem\GpuParticlePipeline</Filter>
+    </ClInclude>
+    <ClInclude Include="EngineLayer\GPUParticleSystem\GpuParticleRenderer\GpuParticleRenderer.h">
+      <Filter>EngineLayer\GpuParticleSystem\GpuParticleRenderer</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="Resources\Shaders\PostEffect\FullScreen.hlsli">
@@ -1286,6 +1290,24 @@
     </Filter>
     <Filter Include="EngineLayer\GpuParticleSystem">
       <UniqueIdentifier>{a9aa778c-2136-4e32-bb02-fcd9fc495938}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="EngineLayer\GpuParticleSystem\GpuParticleBuffers">
+      <UniqueIdentifier>{fd6dba81-c9fd-428d-b4cc-fe94823b47dd}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="EngineLayer\GpuParticleSystem\GpuParticleDatas">
+      <UniqueIdentifier>{8cb401ab-75e0-4749-b346-22742a902f4e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="EngineLayer\GpuParticleSystem\GpuParticleEmitter">
+      <UniqueIdentifier>{08f140a1-4cb2-46ca-b866-c0379a506e49}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="EngineLayer\GpuParticleSystem\GpuParticleManager">
+      <UniqueIdentifier>{38e62b81-4c52-4668-9c3d-def5aa7c1f8b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="EngineLayer\GpuParticleSystem\GpuParticlePipeline">
+      <UniqueIdentifier>{ca50520c-6a35-4f2d-a626-be44e959395b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="EngineLayer\GpuParticleSystem\GpuParticleRenderer">
+      <UniqueIdentifier>{8de7978e-bff9-4fb1-b028-02c0d699b8c7}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

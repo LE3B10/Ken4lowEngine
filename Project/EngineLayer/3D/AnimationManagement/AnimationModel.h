@@ -92,144 +92,282 @@ public: /// ---------- LOD構造体 ---------- ///
 
 public: /// ---------- メンバ関数 ---------- ///
 
-	// 初期化処理
+	/// <summary>
+	/// 指定したモデルファイルを読み込み、アニメーションメッシュやスケルトン、
+	/// スキンクラスタなどのリソースを初期化します。
+	/// </summary>
+	/// <param name="fileName">読み込むモデルファイル名（相対パス）。</param>
+	/// <param name="isSkinning">true の場合はスキニング用リソースも初期化します。</param>
 	void Initialize(const std::string& fileName, bool isSkinning = true);
 
-	// 複数 LOD を直接渡すオーバーロード
+	/// <summary>
+	/// 複数の LOD 用モデルファイルを指定して初期化します。
+	/// </summary>
+	/// <param name="fileName">基準となるモデルファイル名（LOD0 など）。</param>
+	/// <param name="lodFiles">LOD1 以降のモデルファイルパスの配列。</param>
+	/// <param name="isSkinning">true の場合はスキニング用リソースも初期化します。</param>
 	void Initialize(const std::string& fileName, const std::vector<std::string>& lodFiles, bool isSkinning = true);
 
-	// 更新処理
+	/// <summary>
+	/// アニメーション時間やスケルトン、スキンクラスタ、マテリアルなどを更新します。
+	/// 距離によるカリングや LOD の更新間引きにも対応しています。
+	/// </summary>
 	void Update();
 
-	// 描画処理
+	/// <summary>
+	/// 単体のアニメーションモデルを描画します。
+	/// Compute スキニング → Graphics の順にパイプラインを設定して描画します。
+	/// </summary>
 	void Draw();
 
-	// 単一のモデルをまとめて描画
+	/// <summary>
+	/// 単一の AnimationModel をまとめて描画するユーティリティ関数です。
+	/// 可視チェックも行います。
+	/// </summary>
+	/// <param name="models">描画対象の AnimationModel（unique_ptr）。</param>
 	static void DrawBatched(const std::unique_ptr<AnimationModel>& models);
 
-	// これ1行でOK：可視チェックも含めてまとめて描画
+	/// <summary>
+	/// AnimationModel の配列（unique_ptr）を一括で描画します。
+	/// Compute パスと Graphics パスをそれぞれ 1 回ずつだけセットし、
+	/// 各モデルの可視チェックを行いながら描画します。
+	/// </summary>
+	/// <param name="models">描画対象の AnimationModel の配列。</param>
 	static void DrawBatched(const std::vector<std::unique_ptr<AnimationModel>>& models);
 
-	// ポインタ配列版も欲しければオーバーロード
+	/// <summary>
+	/// AnimationModel の生ポインタ配列版を一括で描画します。
+	/// </summary>
+	/// <param name="models">描画対象の AnimationModel のポインタ配列。</param>
 	static void DrawBatched(const std::vector<AnimationModel*>& models);
 
-	// モデルデータを取得
+	/// <summary>
+	/// 読み込まれたモデルデータ（メッシュ階層情報など）を取得します。
+	/// </summary>
 	const ModelData& GetModelData() const { return modelData; }
 
-	// ImGui描画処理
+	/// <summary>
+	/// AnimationModel 用のデバッグ ImGui ウィンドウを描画します。
+	/// LOD やスキニング状態などを確認・切り替えできます。
+	/// </summary>
 	void DrawImGui();
-	int  GetLOD() const { return lodIndex_; }
 
-	// 削除処理
+	/// <summary>
+	/// 現在選択されている LOD インデックスを取得します。
+	/// </summary>
+	int GetLOD() const { return lodIndex_; }
+
+	/// <summary>
+	/// モデルやアニメーション、関連する GPU リソースを解放し、状態を初期化します。
+	/// </summary>
 	void Clear();
 
-	// ワイヤーフレーム描画
+	/// <summary>
+	/// スケルトン情報をワイヤーフレームで可視化します。
+	/// デバッグ用途でジョイント位置や階層を確認するときに使用します。
+	/// </summary>
 	void DrawSkeletonWireframe();
 
+	/// <summary>
+	/// ボディパートごとのコライダーをワイヤーフレームで描画します。
+	/// デバッグ用途で当たり判定の位置・サイズを確認します。
+	/// </summary>
 	void DrawBodyPartColliders();
 
 public: /// ---------- ゲッタ ---------- ///
 
+	/// <summary>
+	/// このモデルのワールド変換情報を取得します。
+	/// </summary>
+	/// <returns>スケール・回転・平行移動を含む WorldTransform への const 参照。</returns>
 	const WorldTransform& GetWorldTransform() const { return worldTransform; }
 
-	// 座標を取得
+	/// <summary>
+	/// ワールド座標系での位置（平行移動成分）を取得します。
+	/// </summary>
+	/// <returns>XYZ 各軸の座標。</returns>
 	const Vector3& GetTranslate() const { return worldTransform.translate_; }
 
-	// スケールを取得
+	/// <summary>
+	/// ワールド座標系でのスケールを取得します。
+	/// </summary>
+	/// <returns>XYZ 各軸の拡大率。</returns>
 	const Vector3& GetScale() const { return worldTransform.scale_; }
 
-	// 回転を取得
+	/// <summary>
+	/// ワールド座標系での回転量を取得します。（ラジアン指定想定）
+	/// </summary>
+	/// <returns>XYZ 各軸の回転量。</returns>
 	const Vector3& GetRotate() const { return worldTransform.rotate_; }
 
-	// メッシュを取得
+	/// <summary>
+	/// このモデルが保持している AnimationMesh へのポインタを取得します。
+	/// </summary>
+	/// <returns>AnimationMesh へのポインタ。未初期化時は nullptr。</returns>
 	AnimationMesh* GetAnimationMesh() { return animationMesh_.get(); }
 
+	/// <summary>
+	/// 前フレームからの経過時間（秒）を取得します。
+	/// </summary>
+	/// <returns>deltaTime（秒単位）。</returns>
 	float GetDeltaTime() const { return deltaTime; }
 
-	// アニメーション時間を取得
+	/// <summary>
+	/// 現在のアニメーション再生時刻（秒）を取得します。
+	/// </summary>
+	/// <returns>アニメーションの再生位置（秒）。</returns>
 	float GetAnimationTime() const { return animationTime_; }
 
-	// 反射率を取得
+	/// <summary>
+	/// 使用する LOD モデルファイルのリストを設定します。<br/>
+	/// Initialize 前に呼び出しておくことで、LOD0/1/2…に対応するファイルを差し替えることができます。
+	/// </summary>
+	/// <param name="files">LOD 用モデルファイルパスの配列。</param>
 	void SetLodFiles(const std::vector<std::string>& files) { lodSourceFiles_ = files; }
 
-	// LODファイルリストをクリア
+	/// <summary>
+	/// 設定されている LOD モデルファイルリストをクリアします。
+	/// </summary>
 	void ClearLodFiles() { lodSourceFiles_.clear(); }
 
-	// LODファイルリストを取得
+	/// <summary>
+	/// 設定済みの LOD モデルファイルリストを取得します。
+	/// </summary>
+	/// <returns>LOD 用モデルファイルパスの配列。</returns>
 	const std::vector<std::string>& GetLodFiles() const { return lodSourceFiles_; }
 
 public: /// ---------- セッタ ---------- ///
 
-	// 座標を設定
+	/// <summary>
+	/// ワールド座標系での位置（平行移動成分）を設定します。
+	/// </summary>
+	/// <param name="translate">XYZ 各軸の座標。</param>
 	void SetTranslate(const Vector3& translate) { worldTransform.translate_ = translate; }
 
-	// スケールを設定
+	/// <summary>
+	/// ワールド座標系でのスケールを設定します。
+	/// </summary>
+	/// <param name="scale">XYZ 各軸の拡大率。</param>
 	void SetScale(const Vector3& scale) { worldTransform.scale_ = scale; }
 
-	// 回転を設定
+	/// <summary>
+	/// ワールド座標系での回転量を設定します。（ラジアン指定想定）
+	/// </summary>
+	/// <param name="rotate">XYZ 各軸の回転量。</param>
 	void SetRotate(const Vector3& rotate) { worldTransform.rotate_ = rotate; }
 
-	// 反射率を設定
+	/// <summary>
+	/// マテリアルの反射率（スペキュラ強度）を設定します。
+	/// </summary>
 	void SetReflectivity(float reflectivity) { material_.SetShininess(reflectivity); }
 
-	// ワールド空間からボディパーツのカプセルを取得
+	/// <summary>
+	/// 現在のワールド行列を用いて、ボディパートごとのカプセルコライダーを
+	/// ワールド空間に変換した結果を取得します。
+	/// </summary>
 	std::vector<std::pair<std::string, Capsule>> GetBodyPartCapsulesWorld() const;
 
-	// ワールド空間からボディパーツのスフィアを取得
+	/// <summary>
+	/// 現在のワールド行列を用いて、ボディパートごとのスフィアコライダーを
+	/// ワールド空間に変換した結果を取得します。
+	/// </summary>
 	std::vector<std::pair<std::string, Sphere>> GetBodyPartSpheresWorld() const;
 
-	// 頭を消すかどうか
+	/// <summary>
+	/// 頭部の描画を非表示にするかどうかを設定します（FPS視点などで使用）。
+	/// </summary>
 	void SetHideHead(bool hide) { hideHead_ = hide; }
 
-	// スケールファクターを設定
+	/// <summary>
+	/// モデル全体に掛けるスケールファクターを設定します。
+	/// </summary>
 	void SetScaleFactor(float factor) { scaleFactor = factor; }
 
-	// スケールファクターを取得
+	/// <summary>
+	/// モデル全体に掛かっているスケールファクターを取得します。
+	/// </summary>
 	float GetScaleFactor() const { return scaleFactor; }
 
-	// アニメーションの再生/停止
+	/// <summary>
+	/// アニメーションを再生中にするか停止するかを設定します。
+	/// </summary>
 	void SetIsPlaying(bool isPlaying) { isAnimationPlaying_ = isPlaying; }
 
-	// アニメーション時間を設定
+	/// <summary>
+	/// アニメーション再生時刻を直接指定します（シーク用）。
+	/// </summary>
 	void SetAnimationTime(float time) { animationTime_ = time; }
 
-	// 遠距離カリングの余裕距離を設定
-	void  SetFarCullExtra(float v) { farCullExtra_ = v; }
+	/// <summary>
+	/// 遠距離カリングを行う際の、最終 LOD からの余裕距離を設定します。
+	/// </summary>
+	void SetFarCullExtra(float v) { farCullExtra_ = v; }
 
-	// 遠距離カリングされているか
-	bool  IsVisible() const { return !culledByDistance_; }
+	/// <summary>
+	/// 遠距離カリングされているかどうかを取得します。
+	/// true の場合は描画対象外です。
+	/// </summary>
+	bool IsVisible() const { return !culledByDistance_; }
 
-	// LODごとの更新間引き（例: {1,1,2,4} = LOD2は隔フレ、LOD3は4フレに1回）
+	/// <summary>
+	/// LOD ごとの更新頻度（フレーム間引き）を設定します。
+	/// 例: {1,1,2,4} → LOD2 は隔フレ、LOD3 は 4 フレに 1 回更新。
+	/// </summary>
 	void SetLodUpdateEvery(const std::vector<uint32_t>& v) { lodUpdateEvery_ = v; }
 
 private: /// ---------- メンバ関数 ---------- ///
 
-	// LODの初期化
+	/// <summary>
+	/// モデルデータから LOD エントリ（VB/IB/UAV など）を初期化します。
+	/// </summary>
 	void InitializeLODs();
 
-	// アニメーションを更新
+	/// <summary>
+	/// 現在のアニメーション時刻に基づいて、ジョイント変換などを更新します。
+	/// </summary>
 	void UpdateAnimation();
 
-	// Animationを解析する
+	/// <summary>
+	/// アニメーションファイルを読み込み、Animation 構造体に変換します。
+	/// </summary>
+	/// <param name="fileName">読み込むアニメーションファイル名。</param>
 	Animation LoadAnimationFile(const std::string& fileName);
 
 public: /// ---------- ボーン情報の初期化 ---------- ///
 
-	// ボーン情報の初期化
+	/// <summary>
+	/// アニメーションメッシュ／スケルトンからボーン情報を初期化し、
+	/// スキニング用データ（スキンクラスタなど）を構築します。
+	/// </summary>
 	void InitializeBones();
 
-	// LOD選択
+	/// <summary>
+	/// カメラとの距離をもとに LOD を選択し、ヒステリシス込みで切り替えます。
+	/// </summary>
+	/// <param name="dist">カメラとオブジェクトの距離。</param>
 	void SetLODByDistance(float dist);     // LOD選択（ヒステリシス含む）
 
-	// CS側：t0 t1 t2 u0 b0
+	/// <summary>
+	/// Compute Shader を使用してスキニングを実行します。
+	/// t0, t1, t2, u0, b0 などのバインドを行い、頂点データを書き換えます。
+	/// </summary>
 	void DispatchSkinningCS();
 
-	// Graphics
+	/// <summary>
+	/// スキン済み頂点バッファを用いてモデルを描画します。
+	/// </summary>
 	void DrawSkinned();
 
 private: /// ---------- メンバ関数・テンプレート関数 ---------- ///
 
-	// 任意の時刻の値を取得する
+	/// <summary>
+	/// キーフレーム列から任意の時刻の値を補間して取得します。
+	/// Vector3 の場合は線形補間、Quaternion の場合は球面線形補間を行います。
+	/// </summary>
+	/// <typeparam name="T">Vector3 または Quaternion を想定。</typeparam>
+	/// <param name="keyframes">補間対象のキーフレーム配列。</param>
+	/// <param name="time">取得したい時刻（秒）。</param>
+	/// <returns>補間された値。</returns>
 	template <typename T>
 	inline T CalculateValue(const std::vector<Keyframe<T>>& keyframes, float time)
 	{

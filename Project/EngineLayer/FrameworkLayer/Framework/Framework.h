@@ -15,30 +15,61 @@ class DirectXCommon;
 /// -------------------------------------------------------------
 class Framework
 {
-public: /// ---------- メンバ変数 ---------- ///
+public: /// ---------- 実行処理 ---------- ///
 
-	// 実行処理
+	/// <summary>
+	/// アプリケーションのメインループを実行します。<br/>
+	/// ・Initialize() で基盤システムを初期化したあと、<br/>
+	/// ・WinApp::ProcessMessage() を使ったゲームループを回し、<br/>
+	/// 毎フレーム Update() → Draw() を呼び出し、<br/>
+	/// ・ループ終了後に Finalize() を呼び出して終了処理を行います。<br/>
+	/// 通常、エントリポイント（WinMain）から一度だけ呼び出されます。
+	/// </summary>
 	void Run();
 
-public: /// ---------- 仮想メンバ関数 ---------- ///
+public: /// ---------- ライフサイクル（派生クラスで拡張） ---------- ///
 
-	// 仮想デストラクタ
+	/// <summary>
+	/// 仮想デストラクタ。<br/>
+	/// Framework を継承したクラスをポリモーフィックに delete できるようにします。
+	/// </summary>
 	virtual ~Framework() = default;
 
-	// 初期化処理
+	/// <summary>
+	/// ゲーム全体の初期化処理。<br/>
+	/// ・WinApp の生成とウィンドウ作成<br/>
+	/// ・DirectXCommon / 各種マネージャの初期化<br/>
+	/// ・デフォルトカメラの生成・設定<br/>
+	/// などを行います。<br/>
+	/// 派生クラスで追加の初期化を行いたい場合は、オーバーライドして
+	/// 冒頭か末尾で Framework::Initialize() を呼び出す想定です。
+	/// </summary>
 	virtual void Initialize();
 
-	// 更新処理
+	/// <summary>
+	/// 毎フレームの更新処理。<br/>
+	/// ・Wireframe / Object3DCommon / ParticleManager / GpuParticleManager などの更新<br/>
+	/// を行います。<br/>
+	/// 派生クラス側でゲーム固有の更新処理を追加したい場合はオーバーライドします。
+	/// </summary>
 	virtual void Update();
 
-	// 描画処理
+	/// <summary>
+	/// 毎フレームの描画処理。<br/>
+	/// Framework 側では純粋仮想関数として宣言しており、<br/>
+	/// 実際の描画手順（レンダーターゲットのクリア、シーン描画、ポストエフェクト、ImGui など）は
+	/// 派生クラスで実装します。
+	/// </summary>
 	virtual void Draw() = 0;
 
-	// 終了処理
+	/// <summary>
+	/// アプリケーション終了時の後始末処理。<br/>
+	/// ・WinApp / DirectXCommon の Finalize<br/>
+	/// ・各種マネージャの終了処理（ParticleManager など）<br/>
+	/// を行います。<br/>
+	/// 派生クラスで追加の解放処理が必要な場合はオーバーライドします。
+	/// </summary>
 	virtual void Finalize();
-
-	// 終了チェック
-	virtual bool IsEndRequest() { return endRequest_; }
 
 protected: /// ---------- メンバ変数 ---------- ///
 
@@ -56,8 +87,5 @@ protected: /// ---------- メンバ変数 ---------- ///
 
 	// シーンファクトリー
 	std::unique_ptr<AbstractSceneFactory> sceneFactory_;
-
-	// 終了リクエスト
-	bool endRequest_ = false;
 };
 

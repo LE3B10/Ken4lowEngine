@@ -24,7 +24,9 @@
 #include <DepthOutlineEffect.h>
 #include <UAVManager.h>
 
-/// リソース状態遷移のラムダ関数
+/// <summary>
+/// レンダーターゲットのリソース状態を指定した状態に遷移させるラムダ関数。二重バリアを防ぎ、内部状態を同期する。
+/// </summary>
 auto Transition = [](PostEffectManager::RenderTarget& rt, D3D12_RESOURCE_STATES newState)
 	{
 		auto dxCommon_ = DirectXCommon::GetInstance();
@@ -94,6 +96,7 @@ void PostEffectManager::Initialieze(DirectXCommon* dxCommon)
 /// -------------------------------------------------------------
 void PostEffectManager::Update()
 {
+	// 各エフェクトの更新処理
 	for (auto& [name, effect] : postEffects_)
 	{
 		if (effectEnabled_[name])
@@ -285,7 +288,6 @@ void PostEffectManager::ImGuiRender()
 			postEffects_[name]->DrawImGui();
 		}
 	}
-
 	ImGui::End();
 #endif // USE_IMGUI
 }

@@ -11,38 +11,62 @@ class ParticleMesh
 {
 public: /// ---------- メンバ関数 ---------- ///
 
-	// 初期化処理
+	/// <summary>
+	/// 初期化処理
+	/// </summary>
 	void Initialize();
 
-	// リングの頂点データを生成
+	/// <summary>
+	/// リングの頂点データを生成
+	/// </summary>
 	void InitializeRing();
 
-	// シリンダーの頂点データの初期化処理
+	/// <summary>
+	/// シリンダーの頂点データの初期化処理
+	/// </summary>
 	void InitializeCylinder();
 
-	// 星型の頂点データの初期化処理
+	/// <summary>
+	/// 星型の頂点データの初期化処理
+	/// </summary>
 	void InitializeStar();
 
-	// スモークの頂点データの初期化処理
+	/// <summary>
+	/// スモークの頂点データの初期化処理
+	/// </summary>
 	void InitializeSmoke();
 
-	// 描画処理
+	/// <summary>
+	/// 描画処理
+	/// <summary>
+	/// <param name="instanceCount">インスタンス数</param>
 	void Draw(UINT instanceCount);
 
 public: /// ---------- ゲッター ---------- ///
 
-	// 頂点バッファビューの取得
+	/// <summary>
+	/// 内部メンバー vertexBufferView_ への読み取り専用 (const) 参照として頂点バッファビューを返します。
+	/// </summary>
+	/// <returns>D3D12_VERTEX_BUFFER_VIEW 型のオブジェクトへの const 参照（内部の vertexBufferView_）。</returns>
 	const D3D12_VERTEX_BUFFER_VIEW& GetVertexBufferView() const { return vertexBufferView_; }
 
-	// インデックスバッファビューの取得
+	/// <summary>
+	/// インデックス バッファ ビューへの const 参照を返します。
+	/// </summary>
+	/// <returns>内部メンバ indexBufferView_ の const D3D12_INDEX_BUFFER_VIEW&。インデックス バッファ ビューの情報を読み取り用に参照します。</returns>
 	const D3D12_INDEX_BUFFER_VIEW& GetIndexBufferView() const { return indexBufferView_; }
 
-	// インデックスの有無
+	/// <summary>
+	/// インデックスが存在するかどうかを示すブール値を返します。
+	/// </summary>
+	/// <returns>インデックスが存在する場合は true、存在しない場合は false を返します。</returns>
 	bool HasIndex() const { return hasIndex_; }
 
 private: /// ---------- メンバ関数 ---------- ///
 
-	// 頂点データの生成
+	/// <summary>
+	/// 頂点バッファを作成します。
+	/// </summary>
 	void CreateVertexBuffer();
 
 private: /// ---------- メンバ変数 ---------- ///

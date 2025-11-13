@@ -35,10 +35,10 @@ void GaussianFilterEffect::Initialize(DirectXCommon* dxCommon, PostEffectPipelin
 	constantBuffer_->Map(0, nullptr, reinterpret_cast<void**>(&gaussianFilterSetting_));
 
 	// ガウシアンフィルタの設定
-	gaussianFilterSetting_->kernelType = 1; // カーネルサイズ
-	gaussianFilterSetting_->intensity = 1.0f; // 強度
-	gaussianFilterSetting_->threshold = 0.0f; // 閾値
-	gaussianFilterSetting_->sigma = 1.0f; // ガウス関数の標準偏差
+	gaussianFilterSetting_->kernelType = 1;		 // カーネルサイズ
+	gaussianFilterSetting_->intensity = 1.0f;	 // 強度
+	gaussianFilterSetting_->threshold = 0.0f;	 // 閾値
+	gaussianFilterSetting_->sigma = 1.0f;		 // ガウス関数の標準偏差
 	gaussianFilterSetting_->isHorizontal = true; // 水平方向か垂直方向か
 }
 
@@ -55,7 +55,7 @@ void GaussianFilterEffect::Apply(ID3D12GraphicsCommandList* commandList, uint32_
 	commandList->SetPipelineState(computePipelineState_.Get());
 
 	// SRVとUAVを設定（ディスクリプタテーブル）
-	commandList->SetComputeRootDescriptorTable(0, UAVManager::GetInstance()->GetGPUDescriptorHandle(srvIndex));  // t0
+	commandList->SetComputeRootDescriptorTable(0, UAVManager::GetInstance()->GetGPUDescriptorHandle(srvIndex)); // t0
 	commandList->SetComputeRootDescriptorTable(1, UAVManager::GetInstance()->GetGPUDescriptorHandle(uavIndex)); // u0
 
 	// CBVを設定（b0）
@@ -72,6 +72,7 @@ void GaussianFilterEffect::Apply(ID3D12GraphicsCommandList* commandList, uint32_
 	uint32_t groupCountX = (width + threadGroupSizeX - 1) / threadGroupSizeX;
 	uint32_t groupCountY = (height + threadGroupSizeY - 1) / threadGroupSizeY;
 
+	// Dispatch の実行
 	commandList->Dispatch(groupCountX, groupCountY, 1);
 }
 

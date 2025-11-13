@@ -2,11 +2,17 @@
 #include "Vector3.h"
 #include "Quaternion.h"
 
+/// -------------------------------------------------------------
+///					　		平行移動成分の取得
+/// -------------------------------------------------------------
 Vector3 Matrix4x4::GetTranslation() const
 {
 	return { m[3][0], m[3][1], m[3][2] };
 }
 
+/// -------------------------------------------------------------
+///					　　	コンストラクタ
+/// -------------------------------------------------------------
 Matrix4x4::Matrix4x4()
 {
 	for (int i = 0; i < 4; ++i) {
@@ -16,6 +22,9 @@ Matrix4x4::Matrix4x4()
 	}
 }
 
+/// -------------------------------------------------------------
+///					　　	コンストラクタ（配列版）
+/// -------------------------------------------------------------
 Matrix4x4::Matrix4x4(float elements[4][4])
 {
 	for (int i = 0; i < 4; ++i) {
@@ -25,6 +34,9 @@ Matrix4x4::Matrix4x4(float elements[4][4])
 	}
 }
 
+/// -------------------------------------------------------------
+///					演算子オーバーロード
+/// -------------------------------------------------------------
 Matrix4x4& Matrix4x4::operator+=(const Matrix4x4& other)
 {
 	// 加算の実装
@@ -88,6 +100,13 @@ Matrix4x4 operator*(const Matrix4x4& m1, const Matrix4x4& m2)
 	return result;
 }
 
+/// -------------------------------------------------------------
+///				　　　基本演算（静的関数）
+/// -------------------------------------------------------------
+
+/// -------------------------------------------------------------
+///				　　　		行列の加算
+/// -------------------------------------------------------------
 Matrix4x4 Matrix4x4::Add(const Matrix4x4& m1, const Matrix4x4& m2)
 {
 	Matrix4x4 result{};
@@ -101,6 +120,9 @@ Matrix4x4 Matrix4x4::Add(const Matrix4x4& m1, const Matrix4x4& m2)
 	return result;
 }
 
+/// -------------------------------------------------------------
+///				　　　		行列の減算
+/// -------------------------------------------------------------
 Matrix4x4 Matrix4x4::Subtract(const Matrix4x4& m1, const Matrix4x4& m2)
 {
 	Matrix4x4 result{};
@@ -114,6 +136,9 @@ Matrix4x4 Matrix4x4::Subtract(const Matrix4x4& m1, const Matrix4x4& m2)
 	return result;
 }
 
+/// -------------------------------------------------------------
+///				　　　		行列の乗算
+/// -------------------------------------------------------------
 Matrix4x4 Matrix4x4::Multiply(const Matrix4x4& m1, const Matrix4x4& m2)
 {
 	Matrix4x4 result{};
@@ -130,6 +155,9 @@ Matrix4x4 Matrix4x4::Multiply(const Matrix4x4& m1, const Matrix4x4& m2)
 	return result;
 }
 
+/// -------------------------------------------------------------
+///				　　		行列の逆行列
+/// -------------------------------------------------------------
 Matrix4x4 Matrix4x4::Inverse(const Matrix4x4& matrix)
 {
 	Matrix4x4 result{};
@@ -163,6 +191,9 @@ Matrix4x4 Matrix4x4::Inverse(const Matrix4x4& matrix)
 	return result;
 }
 
+/// -------------------------------------------------------------
+///				　　		行列の転置
+/// -------------------------------------------------------------
 Matrix4x4 Matrix4x4::Transpose(const Matrix4x4& m)
 {
 	Matrix4x4 result{};
@@ -176,6 +207,9 @@ Matrix4x4 Matrix4x4::Transpose(const Matrix4x4& m)
 	return result;
 }
 
+/// -------------------------------------------------------------
+///				　　	各種変換行列の生成
+/// -------------------------------------------------------------
 Matrix4x4 Matrix4x4::MakeIdentity()
 {
 	Matrix4x4 result{};
@@ -196,6 +230,9 @@ Matrix4x4 Matrix4x4::MakeIdentity()
 	return result;
 }
 
+/// -------------------------------------------------------------
+///				　　	拡大縮小行列の生成
+/// -------------------------------------------------------------
 Matrix4x4 Matrix4x4::MakeScaleMatrix(const Vector3& scale)
 {
 	Matrix4x4 result{};
@@ -206,6 +243,9 @@ Matrix4x4 Matrix4x4::MakeScaleMatrix(const Vector3& scale)
 	return result;
 }
 
+/// -------------------------------------------------------------
+///				　　	回転行列の生成
+/// -------------------------------------------------------------
 Matrix4x4 Matrix4x4::MakeRotateX(float radian)
 {
 	Matrix4x4 result{};
@@ -218,6 +258,9 @@ Matrix4x4 Matrix4x4::MakeRotateX(float radian)
 	return result;
 }
 
+/// -------------------------------------------------------------
+///				　　	回転行列の生成
+/// -------------------------------------------------------------
 Matrix4x4 Matrix4x4::MakeRotateY(float radian)
 {
 	Matrix4x4 result{};
@@ -230,6 +273,9 @@ Matrix4x4 Matrix4x4::MakeRotateY(float radian)
 	return result;
 }
 
+/// -------------------------------------------------------------
+///				　　	回転行列の生成
+/// -------------------------------------------------------------
 Matrix4x4 Matrix4x4::MakeRotateZMatrix(float radian)
 {
 	Matrix4x4 result{};
@@ -242,11 +288,17 @@ Matrix4x4 Matrix4x4::MakeRotateZMatrix(float radian)
 	return result;
 }
 
+/// -------------------------------------------------------------
+///				　　		回転行列の生成
+/// -------------------------------------------------------------
 Matrix4x4 Matrix4x4::MakeRotateMatrix(const Vector3& radian)
 {
 	return Multiply(Multiply(MakeRotateX(radian.x), MakeRotateY(radian.y)), MakeRotateZMatrix(radian.z));
 }
 
+/// -------------------------------------------------------------
+///				　　		平行移動行列の生成
+/// -------------------------------------------------------------
 Matrix4x4 Matrix4x4::MakeTranslateMatrix(const Vector3& translate)
 {
 	Matrix4x4 result{};
@@ -270,16 +322,25 @@ Matrix4x4 Matrix4x4::MakeTranslateMatrix(const Vector3& translate)
 	return result;
 }
 
+/// -------------------------------------------------------------
+///				　　	アフィン変換行列の生成
+/// -------------------------------------------------------------
 Matrix4x4 Matrix4x4::MakeAffineMatrix(const Vector3& scale, const Vector3& rotate, const Vector3& translate)
 {
 	return  Multiply(Multiply(MakeScaleMatrix(scale), MakeRotateMatrix(rotate)), MakeTranslateMatrix(translate));
 }
 
+/// -------------------------------------------------------------
+///			 アフィン変換行列の生成（クォータニオン版）
+/// -------------------------------------------------------------
 Matrix4x4 Matrix4x4::MakeAffineMatrix(const Vector3& scale, const Quaternion& rotate, const Vector3& translate)
 {
 	return Multiply(Multiply(MakeScaleMatrix(scale), Quaternion::MakeRotateMatrix(rotate)), MakeTranslateMatrix(translate));
 }
 
+/// -------------------------------------------------------------
+///				　　		透視投影行列の生成
+/// -------------------------------------------------------------
 Matrix4x4 Matrix4x4::MakePerspectiveFovMatrix(float fovY, float aspectRatio, float nearClip, float farClip)
 {
 	Matrix4x4 result{};
@@ -291,6 +352,9 @@ Matrix4x4 Matrix4x4::MakePerspectiveFovMatrix(float fovY, float aspectRatio, flo
 	return result;
 }
 
+/// -------------------------------------------------------------
+///				　　		直交投影行列の生成
+/// -------------------------------------------------------------
 Matrix4x4 Matrix4x4::MakeOrthographicMatrix(float left, float top, float right, float bottom, float nearClip, float farClip)
 {
 	Matrix4x4 result{};
@@ -304,6 +368,9 @@ Matrix4x4 Matrix4x4::MakeOrthographicMatrix(float left, float top, float right, 
 	return result;
 }
 
+/// -------------------------------------------------------------
+///				　　ビューポート変換行列の生成
+/// -------------------------------------------------------------
 Matrix4x4 Matrix4x4::MakeViewportMatrix(float left, float top, float width, float height, float minDepth, float maxDepth)
 {
 	Matrix4x4 result{};
@@ -317,6 +384,9 @@ Matrix4x4 Matrix4x4::MakeViewportMatrix(float left, float top, float width, floa
 	return result;
 }
 
+/// -------------------------------------------------------------
+///				　　		軸回転行列の生成
+/// -------------------------------------------------------------
 Matrix4x4 Matrix4x4::MakeRotateAxisAngleMatrix(const Vector3& axis, float angle)
 {
 	Vector3 a = Vector3::Normalize(axis);
@@ -353,6 +423,9 @@ Matrix4x4 Matrix4x4::MakeRotateAxisAngleMatrix(const Vector3& axis, float angle)
 	return result;
 }
 
+/// -------------------------------------------------------------
+///				　　		行列の分解
+/// -------------------------------------------------------------
 void Matrix4x4::Decompose(const Matrix4x4& matrix, Vector3& outScale, Vector3& outRotate, Vector3& outTranslate)
 {
 	// 平行移動成分
@@ -383,6 +456,9 @@ void Matrix4x4::Decompose(const Matrix4x4& matrix, Vector3& outScale, Vector3& o
 	}
 }
 
+/// -------------------------------------------------------------
+///				　　		ベクトルの変換
+/// -------------------------------------------------------------
 Vector3 Matrix4x4::Transform(const Vector3& v, const Matrix4x4& m)
 {
 	Vector3 result;
@@ -392,6 +468,9 @@ Vector3 Matrix4x4::Transform(const Vector3& v, const Matrix4x4& m)
 	return result;
 }
 
+/// -------------------------------------------------------------
+///				　　		LookAt行列の生成
+/// -------------------------------------------------------------
 Matrix4x4 Matrix4x4::LookAt(const Vector3& eye, const Vector3& target, const Vector3& up)
 {
 	// カメラの正面方向 (Z軸)

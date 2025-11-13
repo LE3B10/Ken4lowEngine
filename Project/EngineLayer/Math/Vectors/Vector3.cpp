@@ -1,6 +1,9 @@
 #include "Vector3.h"
 #include "Matrix4x4.h"
 
+/// -------------------------------------------------------------
+///					　		加算
+/// -------------------------------------------------------------
 Vector3 Vector3::Add(const Vector3& v1, const Vector3& v2)
 {
 	Vector3 result{};
@@ -10,6 +13,9 @@ Vector3 Vector3::Add(const Vector3& v1, const Vector3& v2)
 	return result;
 }
 
+/// -------------------------------------------------------------
+///					　		減算
+/// -------------------------------------------------------------
 Vector3 Vector3::Subtract(const Vector3& v1, const Vector3& v2)
 {
 	Vector3 result{};
@@ -19,6 +25,9 @@ Vector3 Vector3::Subtract(const Vector3& v1, const Vector3& v2)
 	return result;
 }
 
+/// -------------------------------------------------------------
+///					　		スカラー倍
+/// -------------------------------------------------------------
 Vector3 Vector3::Multiply(float scalar, const Vector3& v)
 {
 	Vector3 result{};
@@ -28,16 +37,25 @@ Vector3 Vector3::Multiply(float scalar, const Vector3& v)
 	return result;
 }
 
+/// -------------------------------------------------------------
+///					　		内積
+/// -------------------------------------------------------------
 float Vector3::Dot(const Vector3& v1, const Vector3& v2)
 {
 	return v1.x * v2.x + v1.y * v2.y + v1.z * v2.z;
 }
 
+/// -------------------------------------------------------------
+///					　		長さ（ノルム）
+/// -------------------------------------------------------------
 float Vector3::Length(const Vector3& v)
 {
 	return sqrtf(powf(v.x, 2) + powf(v.y, 2) + powf(v.z, 2));
 }
 
+/// -------------------------------------------------------------
+///					　		正規化
+/// -------------------------------------------------------------
 Vector3 Vector3::Normalize(const Vector3& v)
 {
 	float length = Length(v);
@@ -51,6 +69,9 @@ Vector3 Vector3::Normalize(const Vector3& v)
 	return result;
 }
 
+/// -------------------------------------------------------------
+///					座標変換（4x4行列）
+/// -------------------------------------------------------------
 Vector3 Vector3::Transform(const Vector3& vector, const Matrix4x4& matrix)
 {
 	Vector3 result{};
@@ -65,6 +86,9 @@ Vector3 Vector3::Transform(const Vector3& vector, const Matrix4x4& matrix)
 	return result;
 }
 
+/// -------------------------------------------------------------
+///					　		クロス積
+/// -------------------------------------------------------------
 Vector3 Vector3::Cross(const Vector3& v1, const Vector3& v2)
 {
 	Vector3 result{};
@@ -74,6 +98,9 @@ Vector3 Vector3::Cross(const Vector3& v1, const Vector3& v2)
 	return result;
 }
 
+/// -------------------------------------------------------------
+///					Catmull-Rom スプライン補間
+/// -------------------------------------------------------------
 Vector3 Vector3::CatmullRomSpline(const Vector3& P0, const Vector3& P1, const Vector3& P2, const Vector3& P3, float t)
 {
 	float t2 = t * t;
@@ -87,10 +114,15 @@ Vector3 Vector3::CatmullRomSpline(const Vector3& P0, const Vector3& P1, const Ve
 		);
 }
 
+/// -------------------------------------------------------------
+///				　　　演算子オーバーロード
+/// -------------------------------------------------------------
 Vector3 Vector3::operator+() const { return *this; }
-
 Vector3 Vector3::operator-() const { return Vector3(-x, -y, -z); }
 
+/// -------------------------------------------------------------
+///				　　	複合代入演算子
+/// -------------------------------------------------------------
 Vector3& Vector3::operator+=(const Vector3& other)
 {
 	x += other.x;
@@ -123,6 +155,9 @@ Vector3& Vector3::operator/=(float s)
 	return *this;
 }
 
+/// -------------------------------------------------------------
+///				　　	等価比較演算子
+/// -------------------------------------------------------------
 bool Vector3::operator==(const Vector3& other) const
 {
 	return x == other.x && y == other.y && z == other.z;
@@ -133,6 +168,9 @@ bool Vector3::operator!=(const Vector3& other) const
 	return !(*this == other);
 }
 
+/// -------------------------------------------------------------
+///				　　		二項演算子
+/// -------------------------------------------------------------
 Vector3 operator+(const Vector3& v1, const Vector3& v2) { return Vector3(v1) += v2; }
 
 Vector3 operator-(const Vector3& v1, const Vector3& v2) { return Vector3(v1) -= v2; }

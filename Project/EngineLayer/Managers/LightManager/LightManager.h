@@ -15,9 +15,15 @@ class LightManager
 {
 private: /// ---------- コンストラクタ・デストラクタ ---------- ///
 
-	// デフォルトコンストラクタ  
+	/// <summary>
+	/// 外部からの生成を禁止するためのプライベートコンストラクタ。<br/>
+	/// シングルトンパターンとして利用します。
+	/// </summary>
 	LightManager() = default;
-	// デフォルトデストラクタ  
+
+	/// <summary>
+	/// デフォルトデストラクタ。
+	/// </summary>
 	~LightManager() = default;
 
 public: /// ---------- 構造体 ---------- ///
@@ -46,26 +52,73 @@ public: /// ---------- 構造体 ---------- ///
 
 public: /// ---------- メンバ関数 ---------- ///
 
+	/// <summary>
+	/// LightManager のシングルトンインスタンスを取得します。
+	/// </summary>
+	/// <returns>LightManager の唯一のインスタンス。</returns>
 	static LightManager* GetInstance();
 
-	// 初期化処理
+	/// <summary>
+	/// ライトマネージャの初期化処理。<br/>
+	/// ・DirectXCommon の保持<br/>
+	/// ・ライト数用 CBV の作成とマップ<br/>
+	/// ・パンクチュアルライト用 Structured Buffer / SRV の準備（必要最小限のサイズ）<br/>
+	/// を行います。
+	/// </summary>
+	/// <param name="dxCommon">DirectX12 共通クラスへのポインタ。</param>
 	void Initialize(DirectXCommon* dxCommon);
 
-	// ImGuiを描画
+	/// <summary>
+	/// ImGui を用いたパンクチュアルライトの編集 UI を描画します。<br/>
+	/// ・ライトの追加 / 全削除<br/>
+	/// ・種類（None / Directional / Point / Spot）の切り替え<br/>
+	/// ・色 / 輝度 / 位置 / 方向 / 半径 / 減衰 / 角度 の編集<br/>
+	/// ・ライトごとの削除<br/>
+	/// などを行います。
+	/// </summary>
 	void DrawImGui();
 
-	// ライト情報をシェーダーにバインド
+	/// <summary>
+	/// パンクチュアルライト情報をシェーダにバインドします。<br/>
+	/// 内部で UpdatePunctualLight() を呼び出して GPU バッファと SRV を更新し、<br/>
+	/// ・b2: LightInfo 用 CBV<br/>
+	/// ・t2: パンクチュアルライト配列用 SRV<br/>
+	/// をそれぞれルートパラメータに設定します。
+	/// </summary>
+	/// <param name="rootIndexCB_b2">ライト数 CBV をバインドするルートインデックス（b2）。</param>
+	/// <param name="rootIndexSRV_t2">パンクチュアルライト SRV をバインドするルートインデックス（t2）。</param>
 	void BindPunctualLights(uint32_t rootIndexCB_b2, uint32_t rootIndexSRV_t2);
 
 private: /// ---------- メンバ関数 ---------- ///
 
-	// パンクチュアルライトの生成
+	/// <summary>
+	/// パンクチュアルライト用リソースの生成処理。<br/>
+	/// ・ライト数 CBV 用バッファの生成とマップ<br/>
+	/// ・SRV 用インデックスの確保<br/>
+	/// ・GPU バッファの最小確保と SRV 作成<br/>
+	/// を行います。Initialize から一度だけ呼び出されます。
+	/// </summary>
 	void CreatePunctualLight();
 
-	// パンクチュアルライトの更新
+	/// <summary>
+	/// パンクチュアルライトの GPU バッファ更新処理。<br/>
+	/// ・有効なライトだけを抽出・正規化して一時配列に詰める<br/>
+	/// ・必要であればバッファを再確保（サイズ拡張）し、データを書き込む<br/>
+	/// ・NumElements に応じて SRV を再作成（最低 1 要素）<br/>
+	/// ・ライト数 CBV に有効ライト数を書き込み<br/>
+	/// ・デバッグ用ライトギズモの描画<br/>
+	/// を行います。
+	/// </summary>
 	void UpdatePunctualLight();
 
-	// デバッグ用ライトギズモ描画
+	/// <summary>
+	/// デバッグ用のライトギズモを描画します。<br/>
+	/// Wireframe クラスを用いて、ライトの種類に応じて：<br/>
+	/// ・平行光源：原点付近に矢印線<br/>
+	/// ・点光源：位置に小さな球＋到達半径の球（半透明）<br/>
+	/// ・スポットライト：位置に球＋方向線<br/>
+	/// を描画します。
+	/// </summary>
 	void DebugDrawLightGizmos();
 
 private: /// ---------- メンバ変数 ---------- ///
@@ -86,14 +139,24 @@ private: /// ---------- メンバ変数 ---------- ///
 
 private: /// ---------- コピー禁止 ---------- ///
 
-	// コピーコンストラクタ
+	/// <summary>
+	/// コピーコンストラクタは禁止。
+	/// </summary>
 	LightManager(const LightManager&) = delete;
-	// コピー代入演算子
-	LightManager& operator=(const LightManager&) = delete;
-	// ムーブコンストラクタ
-	LightManager(LightManager&&) = delete;
-	// ムーブ代入演算子
-	LightManager& operator=(LightManager&&) = delete;
 
+	/// <summary>
+	/// コピー代入演算子は禁止。
+	/// </summary>
+	LightManager& operator=(const LightManager&) = delete;
+
+	/// <summary>
+	/// ムーブコンストラクタは禁止。
+	/// </summary>
+	LightManager(LightManager&&) = delete;
+
+	/// <summary>
+	/// ムーブ代入演算子は禁止。
+	/// </summary>
+	LightManager& operator=(LightManager&&) = delete;
 };
 

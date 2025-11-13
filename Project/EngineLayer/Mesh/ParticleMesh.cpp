@@ -26,23 +26,28 @@ void ParticleMesh::Initialize()
 /// -------------------------------------------------------------
 void ParticleMesh::InitializeRing()
 {
-	const uint32_t kSubdivision = 32;
-	const float innerRadius = 1.0f;
-	const float outerRadius = 0.4f;
+	const uint32_t kSubdivision = 32; // 分割数
+	const float innerRadius = 1.0f;	  // 内側の半径
+	const float outerRadius = 0.4f;	  // 外側の半径
 
+	// 頂点データのクリア
 	for (uint32_t i = 0; i < kSubdivision; ++i)
 	{
+		// 角度を計算
 		float theta1 = 2.0f * std::numbers::pi_v<float> *i / kSubdivision;
 		float theta2 = 2.0f * std::numbers::pi_v<float> *(i + 1) / kSubdivision;
 
+		// UV座標を計算
 		float u1 = static_cast<float>(i) / kSubdivision;
 		float u2 = static_cast<float>(i + 1) / kSubdivision;
 
+		// 頂点の位置を計算
 		Vector4 p0 = { std::cos(theta1) * innerRadius, std::sin(theta1) * innerRadius, 0.0f, 1.0f };
 		Vector4 p1 = { std::cos(theta2) * innerRadius, std::sin(theta2) * innerRadius, 0.0f, 1.0f };
 		Vector4 p2 = { std::cos(theta1) * outerRadius, std::sin(theta1) * outerRadius, 0.0f, 1.0f };
 		Vector4 p3 = { std::cos(theta2) * outerRadius, std::sin(theta2) * outerRadius, 0.0f, 1.0f };
 
+		// 法線（Z方向の外向き）
 		Vector3 normal = { 0.0f, 0.0f, 1.0f };
 
 		// 三角形1（内→外→外）
@@ -65,13 +70,15 @@ void ParticleMesh::InitializeRing()
 /// -------------------------------------------------------------
 void ParticleMesh::InitializeCylinder()
 {
-	const uint32_t kCylinderDivide = 32;
-	const float kTopRadius = 1.0f;
-	const float kBottomRadius = 1.0f;
-	const float kHeight = 3.0f;
-	const float radianPerDivide = 2.0f * std::numbers::pi_v<float> / float(kCylinderDivide);
+	const uint32_t kCylinderDivide = 32;													 // シリンダーの分割数
+	const float kTopRadius = 1.0f;															 // 上面の半径
+	const float kBottomRadius = 1.0f;														 // 下面の半径
+	const float kHeight = 3.0f;																 // 高さ
+	const float radianPerDivide = 2.0f * std::numbers::pi_v<float> / float(kCylinderDivide); // 分割ごとのラジアン角度
 
-	for (uint32_t index = 0; index < kCylinderDivide; ++index) {
+	// 頂点データのクリア
+	for (uint32_t index = 0; index < kCylinderDivide; ++index)
+	{
 		float sin0 = std::sin(index * radianPerDivide);
 		float cos0 = std::cos(index * radianPerDivide);
 		float sin1 = std::sin((index + 1) * radianPerDivide);
@@ -111,11 +118,13 @@ void ParticleMesh::InitializeStar()
 	vertices.clear();
 	indices.clear();
 
-	const int numRays = 8;
-	const float radius = 1.0f;
+	const int numRays = 8;		// 星の光線の数
+	const float radius = 1.0f;  // 星の半径
 
+	// 頂点データの生成
 	for (int i = 0; i < numRays; ++i)
 	{
+		// 角度を計算
 		float angle = (float)i / numRays * 2.0f * std::numbers::pi_v<float>;
 
 		Vector4 center = { 0.0f, 0.0f, 0.0f, 1.0f };

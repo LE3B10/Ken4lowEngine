@@ -150,9 +150,6 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	std::unique_ptr<FadeController> fadeController_ = nullptr; // フェードコントローラー
 
-	// 3Dオブジェクト
-	std::unique_ptr<Object3D> terrein_ = nullptr; // 地形オブジェクト
-
 	std::unique_ptr<CollisionManager> collisionManager_; // 衝突マネージャー
 
 	std::unique_ptr<SkyBox> skyBox_ = nullptr; // スカイボックス

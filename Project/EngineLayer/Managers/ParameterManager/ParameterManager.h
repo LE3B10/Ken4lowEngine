@@ -152,6 +152,11 @@ public: /// ---------- 項目の取得 ---------- ///
 
 private: /// ---------- メンバ関数 ---------- ///
 
+	/// <summary>
+	/// 指定されたアイテム名とアイテムデータを使用してアイテムを描画する関数。
+	/// </summary>
+	/// <param name="itemName">描画対象のアイテム名。入力専用の参照（const std::string&）</param>
+	/// <param name="item">描画に使用するアイテムデータ。非const参照で渡され、関数内で読み取り／更新される可能性がある（ParameterManager::Item&）</param>
 	void DrawItem(const std::string& itemName, ParameterManager::Item& item);
 
 private: /// ---------- メンバ変数 ---------- ///

@@ -48,33 +48,85 @@ private: /// ---------- 構造体 ---------- ///
 
 public: /// ---------- メンバ関数 ---------- ///
 
-	// 初期化処理
+	/// <summary>
+	/// スカイボックスの初期化処理を行います。<br/>
+	/// ・テクスチャの読み込みと SRV ハンドル取得<br/>
+	/// ・デフォルトカメラ / DirectXCommon の取得<br/>
+	/// ・スケール / 回転 / 平行移動の初期化<br/>
+	/// ・マテリアル / 頂点 / インデックス / WVP バッファの生成<br/>
+	/// などをまとめて行います。
+	/// </summary>
+	/// <param name="filePath">読み込む環境テクスチャのファイルパス。</param>
 	void Initialize(const std::string& filePath);
 
-	// 更新処理
+	/// <summary>
+	/// 毎フレームの更新処理を行います。<br/>
+	/// ・ワールド行列の計算（スケール / 回転 / 平行移動）<br/>
+	/// ・カメラ or デバッグカメラのビュー・プロジェクション行列取得<br/>
+	/// ・World * ViewProjection を計算して WVP を更新<br/>
+	/// ・カメラに ViewProjection 行列をセット<br/>
+	/// を行い、描画用の定数バッファを書き換えます。
+	/// </summary>
 	void Update();
 
-	// 描画処理
+	/// <summary>
+	/// スカイボックスの描画処理を行います。<br/>
+	/// ・SkyBoxManager で PSO / ルートシグネチャをセット<br/>
+	/// ・頂点 / インデックスバッファのバインド<br/>
+	/// ・マテリアル / WVP 定数バッファのバインド<br/>
+	/// ・環境テクスチャの SRV 設定<br/>
+	/// ・DrawIndexedInstanced によるキューブ描画<br/>
+	/// を行います。
+	/// </summary>
 	void Draw();
 
-	// デバッグカメラの有無
+	/// <summary>
+	/// デバッグカメラを使用するかどうかを設定します。<br/>
+	/// true の場合、Update 時に DebugCamera の ViewProjection を使用します。
+	/// </summary>
+	/// <param name="isDebugCamera">デバッグカメラを使用する場合は true。</param>
 	void SetDebugCamera(bool isDebugCamera) { isDebugCamera_ = isDebugCamera; }
 
-	// デバッグカメラの有無を取得
+	/// <summary>
+	/// デバッグカメラを使用しているかどうかを取得します。
+	/// </summary>
+	/// <returns>デバッグカメラ使用時 true。</returns>
 	bool GetDebugCamera() { return isDebugCamera_; }
 
+	/// <summary>
+	/// 環境マップとして使用しているテクスチャの GPU ディスクリプタハンドルを取得します。<br/>
+	/// IBL など、他の描画パスで利用したい場合に参照します。
+	/// </summary>
+	/// <returns>SRV の GPU ディスクリプタハンドル。</returns>
 	D3D12_GPU_DESCRIPTOR_HANDLE GetEnvironmentMapHandle() const { return gpuHandle_; }
 
+private: /// ---------- 内部メンバ関数 ---------- ///
 
-private: /// ---------- メンバ関数 ---------- ///
-
-	// マテリアルデータの初期化処理
+	/// <summary>
+	/// マテリアル定数バッファを初期化します。<br/>
+	/// ・Material 用のバッファリソースを生成<br/>
+	/// ・マップして書き込み用ポインタを取得<br/>
+	/// ・色を白(1,1,1,1)、UV 行列を単位行列に設定<br/>
+	/// を行います。
+	/// </summary>
 	void InitializeMaterial();
 
-	// 頂点バッファデータの初期化
+	/// <summary>
+	/// キューブ形状の頂点バッファを初期化します。<br/>
+	/// ・VertexData × kNumVertex 分のバッファリソースを生成<br/>
+	/// ・頂点バッファビューを設定<br/>
+	/// ・左右 / 前後 / 上下 6 面分の頂点位置 & テクスチャ座標をセット<br/>
+	/// を行います。
+	/// </summary>
 	void InitializeVertexBufferData();
 
-	// インデックスデータの初期化
+	/// <summary>
+	/// キューブ形状のインデックスバッファを初期化します。<br/>
+	/// ・uint32_t × kNumIndex 分のバッファリソースを生成<br/>
+	/// ・インデックスバッファビューを設定<br/>
+	/// ・各面 2 三角形分のインデックスを時計回りで登録<br/>
+	/// を行います。
+	/// </summary>
 	void InitializeIndexData();
 
 private: /// ---------- メンバ変数 ---------- ///

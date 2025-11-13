@@ -14,15 +14,15 @@ void Material::Initialize()
 {
 	ID3D12Device* device = DirectXCommon::GetInstance()->GetDevice();
 
-	// マテリアル用のリソースを作る。今回はcolor1つ分のサイズを用意する
+	// マテリアル用定数バッファを 1 つ分確保して、CPU から書き込めるようにマップする
 	materialResource_ = ResourceManager::CreateBufferResource(device, sizeof(MaterialCBData));
-	// 書き込むためのアドレスを取得
 	materialResource_->Map(0, nullptr, reinterpret_cast<void**>(&materialData_));
 
-	materialData_->color = { 1.0f, 1.0f, 1.0f, 1.0f }; // 色
-	materialData_->shininess = 32.0f;			   // シェーディングの強さ
-	materialData_->reflection = 0.0f; 				   // 反射率
-	materialData_->uvTransform = Matrix4x4::MakeIdentity(); // UV変換行列
+	// デフォルト値で初期化
+	materialData_->color = { 1.0f, 1.0f, 1.0f, 1.0f };			 // 白
+	materialData_->shininess = 32.0f;							 // 光沢度
+	materialData_->reflection = 0.0f;							 // 反射なし
+	materialData_->uvTransform = Matrix4x4::MakeIdentity();		 // UV はそのまま
 }
 
 
@@ -48,6 +48,7 @@ void Material::SetPipeline(UINT rootParameterIndex) const
 {
 	ID3D12GraphicsCommandList* commandList = DirectXCommon::GetInstance()->GetCommandManager()->GetCommandList();
 
+	// 有効な定数バッファがある場合のみ、指定されたルートパラメータにバインドする
 	if (materialResource_)
 	{
 		commandList->SetGraphicsRootConstantBufferView(rootParameterIndex, materialResource_->GetGPUVirtualAddress());
@@ -63,9 +64,12 @@ void Material::DrawImGui()
 #ifdef USE_IMGUI
 	if (ImGui::CollapsingHeader("Material Settings"))
 	{
-		ImGui::ColorEdit4("Color", &materialData_->color.x); // 色変更
-		ImGui::DragFloat("Shininess", &materialData_->shininess, 1.0f, 1.0f, 256.0f); // シェーディングの強さ変更
-		ImGui::DragFloat("Reflectivity", &materialData_->reflection, 0.01f, 0.0f, 1.0f); // シェーディングの強さ変更
+		// ベースカラー
+		ImGui::ColorEdit4("Color", &materialData_->color.x);
+		// 光沢度（スペキュラの鋭さ）
+		ImGui::DragFloat("Shininess", &materialData_->shininess, 1.0f, 1.0f, 256.0f);
+		// 反射率
+		ImGui::DragFloat("Reflectivity", &materialData_->reflection, 0.01f, 0.0f, 1.0f);
 	}
 #endif // USE_IMGUI
 }

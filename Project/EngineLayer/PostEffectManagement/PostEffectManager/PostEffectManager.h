@@ -29,78 +29,123 @@ private: /// ---------- 構造体 ---------- ///
 	// ポストエフェクトのエントリ
 	struct EffectEntry
 	{
-		std::function<std::unique_ptr<IPostEffect>()> creator;
-		bool enabled;
+		std::function<std::unique_ptr<IPostEffect>()> creator; // エフェクト生成用のファクトリー関数
+		bool enabled; 	   // 初期有効フラグ
 		int order;           // 適用順
-		std::string category; // 任意（例："Visual", "Debug", "Color"など）
+		std::string category; // カテゴリ名
 	};
 
-public:
+public: /// ---------- テンプレート ---------- ///
 
+	// レンダーターゲットを表す構造体
 	struct RenderTarget
 	{
-		ComPtr<ID3D12Resource> resource = nullptr; // レンダーテクスチャリソース
-		D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle = {}; // RTVハンドル
+		ComPtr<ID3D12Resource> resource = nullptr;				   // レンダーテクスチャリソース
+		D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle = {};				   // RTVハンドル
 		D3D12_RESOURCE_STATES state = D3D12_RESOURCE_STATE_COMMON; // リソース状態
-		uint32_t srvIndex = 0; // SRVインデックス
-		uint32_t uavIndex = 0; // UAVインデックス
-		uint32_t srvIndexOnUavHeap = 0; // CS用に、UAVヒープ上へ複製したSRV
-		Vector4 clearColor = { 0.08f, 0.08f, 0.18f, 1.0f }; // クリアカラー
+		uint32_t srvIndex = 0;									   // SRVインデックス
+		uint32_t uavIndex = 0;									   // UAVインデックス
+		uint32_t srvIndexOnUavHeap = 0;							   // CS用に、UAVヒープ上へ複製したSRV
+		Vector4 clearColor = { 0.08f, 0.08f, 0.18f, 1.0f };		   // クリアカラー
 	};
 
 public: /// ---------- メンバ関数 ---------- ///
 
-	// シングルトンインスタンス
+	/// <summary>
+	/// PostEffectManager のシングルトンインスタンスへのポインタを返します。
+	/// </summary>
+	/// <returns>PostEffectManager へのポインタ。シングルトンとして管理されるインスタンスを指します。</returns>
 	static PostEffectManager* GetInstance();
 
-	// 初期化処理
+	/// <summary>
+	/// DirectXCommon オブジェクトを使用して初期化処理を行う関数。
+	/// </summary>
+	/// <param name="dxCommon">初期化対象の DirectXCommon オブジェクトへのポインター。関数はこのオブジェクトを用いて必要な初期化を行います。</param>
 	void Initialieze(DirectXCommon* dxCommon);
 
-	// 更新処理
+	/// <summary>
+	/// オブジェクトやシステムの状態を更新する関数。
+	/// </summary>
 	void Update();
 
-	// 描画開始処理
+	/// <summary>
+	/// 描画操作の開始を宣言します。描画コマンドを発行する前に呼び出して、描画コンテキストを準備します。
+	/// </summary>
 	void BeginDraw();
 
-	// 描画終了処理
+	/// <summary>
+	/// 現在の描画操作を終了します。フレームの描画を完了し、必要に応じてバッファの入れ替えや後処理を行います。
+	/// </summary>
 	void EndDraw();
 
-	// ポストエフェクトの描画適用処理
+	/// <summary>
+	/// ポストプロセス（後処理）エフェクトをレンダリングします。
+	/// </summary>
 	void RenderPostEffect();
 
-	// ImGuiの描画
+	/// <summary>
+	/// ImGui の描画をレンダリングします。
+	/// </summary>
 	void ImGuiRender();
 
-	void EnableEffect(const std::string& effectName) { effectEnableFlags_[effectName] = true; } // エフェクトを有効化
-	void DisableEffect(const std::string& effectName) { effectEnableFlags_[effectName] = false; }  // エフェクトを無効化
+	/// <summary>
+	/// 指定された名前のエフェクトを有効にします。内部の effectEnableFlags_ マップの該当エントリを true に設定します。
+	/// </summary>
+	/// <param name="effectName">有効にするエフェクトの名前。</param>
+	void EnableEffect(const std::string& effectName) { effectEnableFlags_[effectName] = true; }
+
+	/// <summary>
+	/// 指定された名前のエフェクトを無効にします。内部の effectEnableFlags_ マップの該当エントリを false に設定します。
+	/// </summary>
+	/// <param name="effectName">無効にするエフェクトの名前。</param>
+	void DisableEffect(const std::string& effectName) { effectEnableFlags_[effectName] = false; }
 
 private: /// ---------- メンバ関数 ---------- ///
 
-	// レンダーテクスチャリソースの生成
+	/// <summary>
+	/// 指定した幅・高さ・ピクセル形式・クリアカラーでレンダー用テクスチャ（リソース）を作成して返します。
+	/// </summary>
+	/// <param name="width">テクスチャの幅（ピクセル単位）。</param>
+	/// <param name="height">テクスチャの高さ（ピクセル単位）。</param>
+	/// <param name="format">テクスチャのピクセルフォーマットを指定する DXGI_FORMAT。</param>
+	/// <param name="clearColor">リソース作成時に使用するクリアカラー（RGBA を表す Vector4）。</param>
+	/// <returns>作成された ID3D12Resource を保持する ComPtr。レンダーターゲットとして使用できるテクスチャリソースを指し、作成に失敗した場合は空の ComPtr を返す可能性があります。</returns>
 	ComPtr<ID3D12Resource> CreateRenderTextureResource(uint32_t width, uint32_t height, DXGI_FORMAT format, const Vector4& clearColor);
 
-	// 深度バッファリソースの生成
+	/// <summary>
+	/// 指定した幅と高さで深度バッファー用の ID3D12Resource を作成します。
+	/// </summary>
+	/// <param name="width">深度バッファーの幅（ピクセル単位）。</param>
+	/// <param name="height">深度バッファーの高さ（ピクセル単位）。</param>
+	/// <returns>作成された深度バッファーを参照する ComPtr<ID3D12Resource>。作成に失敗した場合は空の ComPtr を返すことがあります。</returns>
 	ComPtr<ID3D12Resource> CreateDepthBufferResource(uint32_t width, uint32_t height);
 
 private: /// ---------- メンバ関数 ---------- ///
 
-	// RTVとSRVの確保
+	/// <summary>
+	/// RTV、DSV、SRV、および UAV 用のディスクリプタ（ハンドル）を割り当てます。
+	/// </summary>
 	void AllocateRTV_DSV_SRV_UAV();
 
-	// ビューポート矩形とシザリング矩形の設定
+	/// <summary>
+	/// ビューポートとシザー矩形（切り抜き矩形）を設定します。
+	/// </summary>
 	void SetViewportAndScissorRect();
 
 private: /// ---------- メンバ変数 ---------- ///
 
+	// DirectX共通クラス
 	DirectXCommon* dxCommon_ = nullptr;
+
+	// カメラ
 	Camera* camera_ = nullptr;
 
 	// エフェクトを管理するクラス
-	std::unordered_map<std::string, std::unique_ptr<IPostEffect>> postEffects_;
-	std::unique_ptr<PostEffectPipelineBuilder> pipelineBuilder_ = nullptr;
+	std::unordered_map<std::string, std::unique_ptr<IPostEffect>> postEffects_; // ポストエフェクトのリスト
+	std::unique_ptr<PostEffectPipelineBuilder> pipelineBuilder_ = nullptr;		// ポストエフェクトパイプラインビルダー
 
 	// エフェクトを有効にするかどうかのフラグ
-	std::unordered_map<std::string, bool> effectEnabled_;
+	std::unordered_map<std::string, bool> effectEnabled_;	  // ImGui用のエフェクトON/OFFフラグ
 	std::unordered_map<std::string, bool> effectEnableFlags_; // エフェクトのON/OFFフラグ
 
 	// ポストエフェクトの適用順（名前と順序番号）
@@ -112,17 +157,19 @@ private: /// ---------- メンバ変数 ---------- ///
 	// レンダーテクスチャのクリアカラー
 	const Vector4 kRenderTextureClearColor_ = { 0.08f, 0.08f, 0.18f, 1.0f }; // 分かりやすいように一旦赤色にする
 
-	ComPtr <ID3DBlob> signatureBlob_;
-	ComPtr <ID3DBlob> errorBlob_;
+	// シェーダーバイナリ
+	ComPtr <ID3DBlob> signatureBlob_; // ルートシグネチャ用
+	ComPtr <ID3DBlob> errorBlob_;	  // エラーメッセージ用
 
-	D3D12_VIEWPORT viewport{};
-	D3D12_RECT scissorRect{};
+	// 描画開始・終了処理に使う
+	D3D12_VIEWPORT viewport{}; // ビューポート矩形
+	D3D12_RECT scissorRect{};  // シザリング矩形
 
 	// DSVのハンドル
-	ComPtr<ID3D12Resource> depthResource_;
-	D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle = {};
-	D3D12_RESOURCE_STATES depthState_ = D3D12_RESOURCE_STATE_DEPTH_WRITE;
-	uint32_t dsvSrvIndex_ = 0;
+	ComPtr<ID3D12Resource> depthResource_;		// 深度バッファリソース
+	D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle = {}; // DSVハンドル
+	D3D12_RESOURCE_STATES depthState_ = D3D12_RESOURCE_STATE_DEPTH_WRITE; // 深度バッファのリソース状態
+	uint32_t dsvSrvIndex_ = 0; // 深度バッファのSRVインデックス
 
 	static constexpr int kPostRTCount = 1; // ポストエフェクト用のレンダーテクスチャ数
 	std::vector<RenderTarget> renderTargets_; // レンダーテクスチャのリスト

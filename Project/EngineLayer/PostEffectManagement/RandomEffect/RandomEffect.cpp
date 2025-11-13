@@ -47,7 +47,7 @@ void RandomEffect::Initialize(DirectXCommon* dxCommon, PostEffectPipelineBuilder
 void RandomEffect::Update()
 {
 	// 時間の更新
-	randomSetting_->time += 1.0f / 120.0f; // 適当な値で更新	
+	randomSetting_->time += dxCommon_->GetFPSCounter().GetDeltaTime(); // 適当な値で更新	
 }
 
 
@@ -63,7 +63,7 @@ void RandomEffect::Apply(ID3D12GraphicsCommandList* commandList, uint32_t srvInd
 	commandList->SetPipelineState(computePipelineState_.Get());
 
 	// SRVとUAVを設定（ディスクリプタテーブル）
-	commandList->SetComputeRootDescriptorTable(0, UAVManager::GetInstance()->GetGPUDescriptorHandle(srvIndex));  // t0
+	commandList->SetComputeRootDescriptorTable(0, UAVManager::GetInstance()->GetGPUDescriptorHandle(srvIndex)); // t0
 	commandList->SetComputeRootDescriptorTable(1, UAVManager::GetInstance()->GetGPUDescriptorHandle(uavIndex)); // u0
 
 	// CBVを設定（b0）
