@@ -35,8 +35,8 @@ void VignetteEffect::Initialize(DirectXCommon* dxCommon, PostEffectPipelineBuild
 	constantBuffer_->Map(0, nullptr, reinterpret_cast<void**>(&vignetteSetting_));
 
 	// ヴィグネットの設定
-	vignetteSetting_->power = 0.8f;
-	vignetteSetting_->range = 0.5f;
+	vignetteSetting_->power = 0.8f; // 強さ
+	vignetteSetting_->range = 0.5f; // 範囲
 }
 
 
@@ -66,9 +66,11 @@ void VignetteEffect::Apply(ID3D12GraphicsCommandList* commandList, uint32_t srvI
 	uint32_t width = WinApp::kClientWidth; // ウィンドウの幅
 	uint32_t height = WinApp::kClientHeight; // ウィンドウの高さ
 
+	// スレッドグループの数を計算
 	uint32_t groupCountX = (width + threadGroupSizeX - 1) / threadGroupSizeX;
 	uint32_t groupCountY = (height + threadGroupSizeY - 1) / threadGroupSizeY;
 
+	// ディスパッチの実行
 	commandList->Dispatch(groupCountX, groupCountY, 1);
 }
 

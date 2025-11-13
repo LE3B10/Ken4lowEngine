@@ -8,20 +8,22 @@
 class Player;
 class LevelObjectManager;
 
+// 分解運動データ構造体
 struct GibMotion
 {
-	Vector3 velocity; // 初速度
+	Vector3 velocity;		 // 初速度
 	Vector3 angularVelocity; // 角速度（ラジアン）
 };
 
+// 死亡演出状態構造体
 struct DeathEnemyState
 {
-	bool  active = false;     // 死亡演出中
-	bool  finished = false;   // 完了（クリア判定用）
-	float timer = 0.0f;
-	float duration = 1.2f;    // 分解が終わるまでの時間
+	bool  active = false;		 // 死亡演出中
+	bool  finished = false;		 // 完了（クリア判定用）
+	float timer = 0.0f;			 // 経過時間
+	float duration = 1.2f;		 // 分解が終わるまでの時間
 	std::vector<GibMotion> gibs; // 各部位の分解運動データ
-	GibMotion bodyGib; // 体幹部位の分解運動データ
+	GibMotion bodyGib;			 // 体幹部位の分解運動データ
 };
 
 
@@ -68,9 +70,7 @@ public: /// ---------- メンバ関数 ---------- ///
 	Vector3 GetCenterPosition() const override;
 
 	// 出現座標をセット（GamePlaySceneとかから呼ぶ）
-	void SetSpawnPosition(const Vector3& pos) {
-		body_.transform.translate_ = pos;
-	}
+	void SetSpawnPosition(const Vector3& pos) { body_.transform.translate_ = pos; }
 
 	// プレイヤーのポインタを設定
 	void SetPlayerPointer(Player* player) { player_ = player; }
@@ -84,19 +84,27 @@ public: /// ---------- メンバ関数 ---------- ///
 	// 死亡状態かどうか取得
 	bool IsDead() const { return aiState_ == AIState::Dead; }
 
+	// 今まさに死亡演出中かどうか取得
 	bool IsDeadNow() const { return death_.finished; }
 
+	/// <summary>
+	/// オブジェクトのボス状態とボスの体力（HP）を設定します。
+	/// </summary>
+	/// <param name="isBoss">ボスに設定する場合は true、解除する場合は false を指定します。</param>
+	/// <param name="bossHp">ボスの体力（HP）。省略した場合のデフォルト値は 2500.0f です。</param>
 	void SetBoss(bool isBoss, float bossHp = 2500.0f);
 
-	void ApplyStageParams(
-		float hp,
-		float walkSpeed,
-		float chaseSpeed,
-		float attackDamage,
-		float attackCooldown,
-		float detectRadius
-	);
-	
+	/// <summary>
+	/// ステージのパラメータを適用
+	/// </summary>
+	/// <param name="hp">エンティティまたはステージのヒットポイント（HP）。</param>
+	/// <param name="walkSpeed">通常移動（歩行）時の移動速度。</param>
+	/// <param name="chaseSpeed">ターゲット追跡時の移動速度。</param>
+	/// <param name="attackDamage">攻撃1回あたりのダメージ量。</param>
+	/// <param name="attackCooldown">攻撃のクールダウン時間（秒などの時間単位）。</param>
+	/// <param name="detectRadius">ターゲットを検出する半径（距離）。</param>
+	void ApplyStageParams(float hp, float walkSpeed, float chaseSpeed, float attackDamage, float attackCooldown, float detectRadius);
+
 	// 死亡時のドロップ位置を取得
 	const Vector3& GetDropPosAtDeath() const { return dropPosAtDeath_; }
 

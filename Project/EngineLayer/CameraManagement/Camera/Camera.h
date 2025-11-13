@@ -9,80 +9,153 @@ class Camera
 {
 public: /// ---------- メンバ関数 ---------- ///
 
-	// デストラクタ
+	/// <summary>
+	/// 仮想デストラクタ。
+	/// </summary>
 	virtual ~Camera() = default;
 
-	// デフォルトコンストラクタ
+	/// <summary>
+	/// デフォルトコンストラクタ。<br/>
+	/// クライアントサイズからアスペクト比を計算し、<br/>
+	/// デフォルトの FOV / ニアクリップ / ファークリップで各種行列を初期化します。
+	/// </summary>
 	Camera();
 
-	// 更新処理
+	/// <summary>
+	/// カメラの状態を更新します。<br/>
+	/// ・target_ が現在位置と異なる場合は LookAt でビュー行列を構築<br/>
+	/// ・それ以外の場合は WorldTransform からワールド行列を作成して逆行列からビュー行列を計算<br/>
+	/// ・FOV / アスペクト比 / ニア・ファークリップから射影行列を再計算<br/>
+	/// ・viewProjectionMatrix_ = viewMatrix_ × projectionMatrix_ を更新<br/>
+	/// といった処理を行います。
+	/// </summary>
 	void Update();
 
-	// ImGuiを描画
+	/// <summary>
+	/// カメラ用の ImGui デバッグ UI を描画します。<br/>
+	/// 位置・回転・FOV・ニア／ファークリップを編集でき、調整結果は次回 Update() で反映されます。<br/>
+	/// （USE_IMGUI が定義されている場合のみ有効）
+	/// </summary>
 	void DrawImGui();
 
 public: /// ---------- セッター ---------- ///
 
-	// スケールの設定
+	/// <summary>
+	/// ワールド座標系のスケールを設定します。
+	/// </summary>
+	/// <param name="scale">XYZ スケール。</param>
 	void SetScale(const Vector3& scale) { worldTransform_.scale_ = scale; }
 
-	// 回転の設定
+	/// <summary>
+	/// ワールド座標系の回転を設定します（オイラー角）。<br/>
+	/// 単位はラジアンを想定しています。
+	/// </summary>
+	/// <param name="rotate">XYZ 回転（ラジアン）。</param>
 	void SetRotate(const Vector3& rotate) { worldTransform_.rotate_ = rotate; }
 
-	// 移動の設定
+	/// <summary>
+	/// カメラの位置を設定します。
+	/// </summary>
+	/// <param name="translate">新しいカメラ位置。</param>
 	void SetTranslate(const Vector3& translate) { worldTransform_.translate_ = translate; }
 
-	// 水平方向視野角の設定
+	/// <summary>
+	/// 垂直方向視野角(FoV Y)を設定します（ラジアン）。
+	/// </summary>
+	/// <param name="fovY">垂直方向 FOV。</param>
 	void SetFovY(const float fovY) { fovY_ = fovY; }
 
-	// アスペクト比の設定
+	/// <summary>
+	/// アスペクト比を設定します。<br/>
+	/// 通常は「画面幅 / 画面高さ」を指定します。
+	/// </summary>
+	/// <param name="aspectRatio">アスペクト比。</param>
 	void SetAspectRatio(const float aspectRatio) { aspectRatio_ = aspectRatio; }
 
-	// ニアクリップの設定
+	/// <summary>
+	/// ニアクリップ距離を設定します。
+	/// </summary>
+	/// <param name="nearClip">ニアクリップ距離。</param>
 	void SetNearClip(const float nearClip) { nearClip_ = nearClip; }
 
-	// ファークリップの設定
+	/// <summary>
+	/// ファークリップ距離を設定します。
+	/// </summary>
+	/// <param name="farClip">ファークリップ距離。</param>
 	void SetFarClip(const float farClip) { farClip_ = farClip; }
 
-	// ビュー行列の設定
+	/// <summary>
+	/// ビュー行列を直接設定します。<br/>
+	/// 外部で計算したビュー行列をそのまま使いたい場合に利用します。
+	/// </summary>
+	/// <param name="viewMatrix">新しいビュー行列。</param>
 	void SetViewMatrix(const Matrix4x4& viewMatrix) { viewMatrix_ = viewMatrix; }
 
-	// 射影行列の設定
+	/// <summary>
+	/// 射影行列を直接設定します。
+	/// </summary>
+	/// <param name="projectionMatrix">新しい射影行列。</param>
 	void SetProjectionMatrix(const Matrix4x4& projectionMatrix) { projectionMatrix_ = projectionMatrix; }
 
-	// ビュー射影行列の設定
+	/// <summary>
+	/// ビュー射影行列を直接設定します。
+	/// </summary>
+	/// <param name="viewProjectionMatrix">新しいビュー射影行列。</param>
 	void SetViewProjectionMatrix(const Matrix4x4& viewProjectionMatrix) { viewProjectionMatrix_ = viewProjectionMatrix; }
 
-	// 中視点の設定
-	void SetTraget(const Vector3& target) { target_ = target; }
+	/// <summary>
+	/// 注視点（ターゲット）を設定します。<br/>
+	/// target_ がカメラ位置と異なる場合、Update() 内で LookAt によるビュー行列計算に切り替わります。
+	/// </summary>
+	/// <param name="target">カメラが向く注視位置。</param>
+	void SetTraget(const Vector3& target) { target_ = target; } // ※命名は既存コードを維持
 
 public: /// ---------- ゲッター ---------- ///
 
-	// スケールの取得
+	/// <summary>
+	/// 現在のスケールを取得します。
+	/// </summary>
 	const Vector3& GetScale() const { return worldTransform_.scale_; }
 
-	// 回転の取得
+	/// <summary>
+	/// 現在の回転（オイラー角）を取得します。
+	/// </summary>
 	const Vector3& GetRotate() const { return worldTransform_.rotate_; }
 
-	// 移動の取得
+	/// <summary>
+	/// 現在のカメラ位置を取得します。
+	/// </summary>
 	const Vector3& GetTranslate() const { return worldTransform_.translate_; }
 
-	// ワールド行列データを取得
+	/// <summary>
+	/// ワールド行列を取得します。
+	/// </summary>
 	const Matrix4x4& GetWorldMatrix() const { return worldMatrix_; }
 
-	// ビュー行列データを取得
+	/// <summary>
+	/// ビュー行列を取得します。
+	/// </summary>
 	const Matrix4x4& GetViewMatrix() const { return viewMatrix_; }
 
-	// プロジェクション行列データを取得
+	/// <summary>
+	/// 射影行列を取得します。
+	/// </summary>
 	const Matrix4x4& GetProjectionMatrix() const { return projectionMatrix_; }
 
-	// 合成行列データを取得
+	/// <summary>
+	/// ビュー射影行列を取得します。
+	/// </summary>
 	const Matrix4x4& GetViewProjectionMatrix() const { return viewProjectionMatrix_; }
 
-	// カメラからの前方ベクトルを取得
+	/// <summary>
+	/// カメラの前方ベクトル（ワールド空間）を取得します。<br/>
+	/// ローカル Z+ を前方向とみなし、現在の回転行列を適用して正規化したベクトルを返します。
+	/// </summary>
 	Vector3 GetForward() const;
 
-	// 水平方向視野角の取得
+	/// <summary>
+	/// 垂直方向視野角(FoV Y)を取得します（ラジアン）。
+	/// </summary>
 	float GetFovY() const { return fovY_; }
 
 private: /// ---------- メンバ変数 ----- ///

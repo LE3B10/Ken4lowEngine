@@ -104,6 +104,9 @@ void DSVManager::Free(uint32_t dsvIndex)
 	{
 		throw std::runtime_error("Invalid DSV index for freeing");
 	}
+
+	// 解放済みインデックスとして保存（再利用可能にする）
+	freeIndices_.push(dsvIndex);
 }
 
 

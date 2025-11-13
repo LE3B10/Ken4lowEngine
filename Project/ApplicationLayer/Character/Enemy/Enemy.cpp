@@ -35,8 +35,7 @@ void Enemy::Initialize()
 	Collider::SetOBBHalfSize({ 0.8f, 2.0f, 0.8f });
 
 	// テクスチャの設定
-	if (body_.object) BaseCharacter::ApplySkinTo(body_.object.get(), skinTexturePath_);
-	for (auto& part : parts_) if (part.object) BaseCharacter::ApplySkinTo(part.object.get(), skinTexturePath_);
+	BaseCharacter::ApplySkinToAllParts(skinTexturePath_);
 
 	float idleRad = idlePoseAngleDeg * std::numbers::pi_v<float> / 180.0f;
 	parts_[leftArmIndex_].transform.rotate_.x = idleRad;

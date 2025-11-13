@@ -165,11 +165,6 @@ void GamePlayScene::Initialize()
 	fadeController_->SetCheckerDelay(0.036f);
 	fadeController_->StartFadeIn(0.8f); // 暗転明け
 
-	terrein_ = std::make_unique<Object3D>();
-	// 地形オブジェクトの初期化
-	terrein_->Initialize("cube.gltf");
-	terrein_->SetTranslate({ 0.0f,1.0f,0.0f });
-
 	skyBox_ = std::make_unique<SkyBox>();
 	skyBox_->Initialize("SkyBox/skybox.dds");
 
@@ -188,8 +183,7 @@ void GamePlayScene::Initialize()
 	// アイテムマネージャーの初期化
 	itemManager_ = std::make_unique<ItemManager>();
 	itemManager_->Initialize();
-	itemManager_->Spawn(ItemType::HealSmall, player_->GetWorldTransform()->translate_ + Vector3{ 0.0f, 0.0f, -30.0f });
-
+	
 	auto levelLoader = std::make_unique<LevelLoader>();
 
 	// StageSelectScene から渡されたインデックスを読む
@@ -494,8 +488,6 @@ void GamePlayScene::Draw3DObjects()
 
 
 #pragma region オブジェクト3Dの描画
-
-	//terrein_->Draw();
 
 	if (gameState_ != GameState::CutScene)
 	{

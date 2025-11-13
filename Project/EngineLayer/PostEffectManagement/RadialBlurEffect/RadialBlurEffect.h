@@ -2,7 +2,6 @@
 #include "IPostEffect.h"
 #include <Vector2.h>
 
-
 /// -------------------------------------------------------------
 ///				　ラジアルブラーエフェクトクラス
 /// -------------------------------------------------------------
@@ -13,20 +12,32 @@ private: /// ---------- 構造体 ---------- ///
 	// ラジアルブラーの設定
 	struct RadialBlurSetting
 	{
-		Vector2 center = { 0.5f, 0.5f };
-		float blurStrength = 1.0f;
-		float sampleCount = 16.0f;
+		Vector2 center = { 0.5f, 0.5f }; // ブラーの中心座標（0～1の範囲）
+		float blurStrength = 1.0f;		 // ブラーの強さ
+		float sampleCount = 16.0f;		 // サンプル数
 	};
 
 public: /// ---------- メンバ関数 ---------- ///
 
-	// 初期化処理
+	/// <summary>
+	/// DirectX 共通リソースとポストエフェクトパイプラインのビルダーを使用して初期化します。基底クラスの仮想関数をオーバーライドします。
+	/// </summary>
+	/// <param name="dxCommon">DirectX の共通リソース（デバイス、コンテキスト、スワップチェーンなど）へのポインタ。レンダリングに必要なリソースにアクセスします。</param>
+	/// <param name="builder">ポストエフェクトパイプラインを構築・登録するためのビルダーへのポインタ。エフェクトやパスの設定を行います。</param>
 	void Initialize(DirectXCommon* dxCommon, PostEffectPipelineBuilder* builder) override;
 
-	// 適用処理
+	/// <summary>
+	/// 指定したコマンドリストに対して、SRV（シェーダリソースビュー）、UAV（アンオーダードアクセ スビュー）、DSV（深度ステンシルビュー）のインデックスに基づく設定を適用します。
+	/// </summary>
+	/// <param name="commandList">設定を適用する対象の ID3D12GraphicsCommandList へのポインタ。描画コマンドの記録に使用されます。</param>
+	/// <param name="srvIndex">適用するシェーダリソースビュー (SRV) のインデックス。</param>
+	/// <param name="uavIndex">適用するアンオーダードアクセスビュー (UAV) のインデックス。</param>
+	/// <param name="dsvIndex">適用する深度ステンシルビュー (DSV) のインデックス。</param>
 	void Apply(ID3D12GraphicsCommandList* commandList, uint32_t srvIndex, uint32_t uavIndex, uint32_t dsvIndex) override;
 
-	// ImGui描画処理
+	/// <summary>
+	/// ImGui を用いて UI の描画処理を行う。基底クラスの同名メソッドをオーバーライドする。
+	/// </summary>
 	void DrawImGui() override;
 
 private: /// ---------- メンバ変数 ---------- ///
@@ -44,7 +55,7 @@ private: /// ---------- メンバ変数 ---------- ///
 	Microsoft::WRL::ComPtr<ID3D12RootSignature> computeRootSignature_;
 
 	// ラジアルブラーの設定
-	Microsoft::WRL::ComPtr<ID3D12Resource> constantBuffer_;
-	RadialBlurSetting* radialBlurSetting_ = nullptr;
+	Microsoft::WRL::ComPtr<ID3D12Resource> constantBuffer_; // 定数バッファ
+	RadialBlurSetting* radialBlurSetting_ = nullptr;		// ラジアルブラーの設定データ
 };
 

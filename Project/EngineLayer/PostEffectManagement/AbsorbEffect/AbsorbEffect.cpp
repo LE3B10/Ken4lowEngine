@@ -27,10 +27,7 @@ void AbsorbEffect::Initialize(DirectXCommon* dxCommon, PostEffectPipelineBuilder
 	rootSignature_ = builder->CreateRootSignature();
 
 	// パイプラインの生成
-	graphicsPipelineState_ = builder->CreateGraphicsPipeline(
-		ShaderCompiler::GetShaderPath(L"AbsorbEffect", L".PS.hlsl"), // ピクセルシェーダーのパス
-		rootSignature_.Get(),										 // ルートシグネチャ
-		false);														 // 深度なし
+	graphicsPipelineState_ = builder->CreateGraphicsPipeline(ShaderCompiler::GetShaderPath(L"AbsorbEffect", L".PS.hlsl"), rootSignature_.Get(), false);
 
 	// リソースの生成
 	constantBuffer_ = ResourceManager::CreateBufferResource(dxCommon_->GetDevice(), sizeof(AbsorbSetting));

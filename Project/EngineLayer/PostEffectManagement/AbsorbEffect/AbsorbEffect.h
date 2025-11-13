@@ -29,28 +29,28 @@ private: /// ---------- 構造体 ---------- ///
 public: /// ---------- メンバ関数 ---------- ///
 
 	/// <summary>
-	/// アブソーブエフェクトの初期化処理
+	/// DirectX 共通リソースとポストエフェクトパイプラインのビルダーを使用して初期化します。基底クラスの仮想関数をオーバーライドします。
 	/// </summary>
-	/// <param name="dxCommon">DirectX共通</param>
-	/// <param name="builder">ポストエフェクトパイプラインビルダー</param>
+	/// <param name="dxCommon">DirectX の共通リソース（デバイス、コンテキスト、スワップチェーンなど）へのポインタ。レンダリングに必要なリソースにアクセスします。</param>
+	/// <param name="builder">ポストエフェクトパイプラインを構築・登録するためのビルダーへのポインタ。エフェクトやパスの設定を行います。</param>
 	void Initialize(DirectXCommon* dxCommon, PostEffectPipelineBuilder* builder) override;
 
 	/// <summary>
-	///	アブソーブエフェクトの更新処理
+	/// 基底クラスの仮想関数をオーバーライドして、オブジェクトやコンポーネントの更新処理を行います。
 	/// </summary>
 	void Update() override;
 
 	/// <summary>
-	/// アブソーブエフェクトの適用処理
+	/// 指定したコマンドリストに対して、SRV（シェーダリソースビュー）、UAV（アンオーダードアクセ スビュー）、DSV（深度ステンシルビュー）のインデックスに基づく設定を適用します。
 	/// </summary>
-	/// <param name="commandList">コマンドリスト</param>
-	/// <param name="srvIndex">SRVインデックス</param>
-	/// <param name="uavIndex">UAVインデックス</param>
-	/// <param name="dsvIndex">DSVインデックス</param>
+	/// <param name="commandList">設定を適用する対象の ID3D12GraphicsCommandList へのポインタ。描画コマンドの記録に使用されます。</param>
+	/// <param name="srvIndex">適用するシェーダリソースビュー (SRV) のインデックス。</param>
+	/// <param name="uavIndex">適用するアンオーダードアクセスビュー (UAV) のインデックス。</param>
+	/// <param name="dsvIndex">適用する深度ステンシルビュー (DSV) のインデックス。</param>
 	void Apply(ID3D12GraphicsCommandList* commandList, uint32_t srvIndex, uint32_t uavIndex, uint32_t dsvIndex) override;
 
 	/// <summary>
-	/// アブソーブエフェクトのImGui描画処理
+	/// ImGui を用いて UI の描画処理を行う。基底クラスの同名メソッドをオーバーライドする。
 	/// </summary>
 	void DrawImGui() override;
 

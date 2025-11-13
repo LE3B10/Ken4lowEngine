@@ -46,18 +46,18 @@ void SmoothingEffect::Apply(ID3D12GraphicsCommandList* commandList, uint32_t srv
 {
 	(void)dsvIndex; // 未使用
 
-	// ① コンピュート用のルートシグネチャとPSOを設定
+	// コンピュート用のルートシグネチャとPSOを設定
 	commandList->SetComputeRootSignature(computeRootSignature_.Get());
 	commandList->SetPipelineState(computePipelineState_.Get());
 
-	// ② SRVとUAVを設定（ディスクリプタテーブル）
-	commandList->SetComputeRootDescriptorTable(0, UAVManager::GetInstance()->GetGPUDescriptorHandle(srvIndex));  // t0
+	// SRVとUAVを設定（ディスクリプタテーブル）
+	commandList->SetComputeRootDescriptorTable(0, UAVManager::GetInstance()->GetGPUDescriptorHandle(srvIndex)); // t0
 	commandList->SetComputeRootDescriptorTable(1, UAVManager::GetInstance()->GetGPUDescriptorHandle(uavIndex)); // u0
 
-	// ③ CBVを設定（b0）
+	// CBVを設定（b0）
 	commandList->SetComputeRootConstantBufferView(2, constantBuffer_->GetGPUVirtualAddress()); // b0
 
-	// ④ スレッドグループの数を計算して Dispatch
+	// スレッドグループの数を計算して Dispatch
 	const uint32_t threadGroupSizeX = 8;
 	const uint32_t threadGroupSizeY = 8;
 
@@ -65,9 +65,11 @@ void SmoothingEffect::Apply(ID3D12GraphicsCommandList* commandList, uint32_t srv
 	uint32_t width = WinApp::kClientWidth; // ウィンドウの幅
 	uint32_t height = WinApp::kClientHeight; // ウィンドウの高さ
 
+	// スレッドグループの数を計算
 	uint32_t groupCountX = (width + threadGroupSizeX - 1) / threadGroupSizeX;
 	uint32_t groupCountY = (height + threadGroupSizeY - 1) / threadGroupSizeY;
 
+	// Dispatch の実行
 	commandList->Dispatch(groupCountX, groupCountY, 1);
 }
 

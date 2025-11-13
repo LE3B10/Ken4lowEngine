@@ -150,10 +150,12 @@ public: /// ---------- アクセサー関数 ---------- ///
 	// 敵の攻撃などで吹っ飛ばす用
 	void AddKnockback(const Vector3& impulse) { knockbackVel_ += impulse; }
 
-	// 敵から殴られた瞬間のリアクション用
-	// dir           : プレイヤーから見て押し返す方向（Enemy側でプレイヤー→敵の向きから計算してるやつ）
-	// horizontalPow : 水平ノックバックの強さ
-	// upPow         : 真上に跳ねる初速
+	/// <summary>
+	/// ダメージによる衝撃を対象に適用します。
+	/// </summary>
+	/// <param name="dir">インパルスの方向を表すVector3へのconst参照。</param>
+	/// <param name="horizontalPow">水平方向の力の大きさ（強さ）。</param>
+	/// <param name="upPow">上向き（垂直）方向の力の大きさ。</param>
 	void ApplyDamageImpulse(const Vector3& dir, float horizontalPow, float upPow);
 
 	// ダメージを受けたときの処理

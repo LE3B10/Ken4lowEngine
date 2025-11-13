@@ -2,6 +2,7 @@
 #include "Vector3.h"
 #include "Segment.h"
 
+/// ---------- カプセル構造体 ---------- ///
 struct Capsule
 {
 	Segment segment; // 中心線分

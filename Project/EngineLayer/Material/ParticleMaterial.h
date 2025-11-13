@@ -21,19 +21,30 @@ public: /// ---------- 構造体 ---------- ///
 
 public: /// ---------- メンバ関数 ---------- ///
 
-	// コンストラクタ
+	/// <summary>
+	/// コンストラクタ
+	/// </summary>
 	ParticleMaterial() = default;
 
-	// 初期化処理
+	/// <summary>
+	/// 初期化処理
+	/// </summary>
 	void Initialize();
 
-	// 更新処理
+	/// <summary>
+	/// 更新処理
+	/// </summary>
 	void Update();
 
-	// パイプラインの設定
+	/// <summary>
+	/// 指定したルートパラメーターのインデックスに基づいてパイプラインを設定する、オブジェクトを変更しない const メンバー関数。
+	/// </summary>
+	/// <param name="rootParameterIndex">設定対象のルートパラメーターのインデックス。省略した場合の既定値は 0</param>
 	void SetPipeline(UINT rootParameterIndex = 0) const;
 
-	// ImGuiの描画
+	/// <summary>
+	/// ImGuiの描画
+	/// </summary>
 	void DrawImGui();
 
 public: /// ---------- メンバ変数 ---------- ///

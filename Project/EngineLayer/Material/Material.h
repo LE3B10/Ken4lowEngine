@@ -31,50 +31,97 @@ public: /// ---------- メンバ変数 ---------- ///
 
 public: /// ---------- メンバ関数 ---------- ///
 
-	// コンストラクト
+	/// <summary>
+	/// デフォルトコンストラクタ。
+	/// メンバはゼロ初期化されますが、GPU リソースの確保は行いません。
+	/// </summary>
 	Material() = default;
 
-	// 初期化処理
+	/// <summary>
+	/// マテリアル用定数バッファの GPU リソースを作成し、
+	/// CPU から書き込むためにマップします。
+	/// また、色や光沢度などのパラメータをデフォルト値で初期化します。
+	/// </summary>
 	void Initialize();
 
-	// 更新処理
+	/// <summary>
+	/// マテリアルのパラメータを更新するための処理。
+	/// マップ済みの定数バッファに対して、現在の materialData_ の内容を書き戻します。
+	/// </summary>
 	void Update();
 
-	// パイプラインの設定
+	/// <summary>
+	/// 指定したルートパラメータインデックスに、このマテリアルの定数バッファをバインドします。
+	/// 描画前に呼び出すことで、シェーダからマテリアル情報へアクセスできるようにします。
+	/// </summary>
+	/// <param name="rootParameterIndex">
+	/// ルートシグネチャ内でマテリアル定数バッファをバインドするスロット番号。
+	/// デフォルトは 0 番。
+	/// </param>
 	void SetPipeline(UINT rootParameterIndex = 0) const;
 
-	// ImGuiの描画
+	/// <summary>
+	/// ImGui を用いてマテリアルパラメータを編集する UI を描画します。
+	/// 色、光沢度、反射率などをリアルタイムに調整できます。
+	/// USE_IMGUI が有効なときのみ機能します。
+	/// </summary>
 	void DrawImGui();
 
 public: /// ---------- ゲッタ ---------- ///
 
-	// マテリアルリソースを取得
+	/// <summary>
+	/// マテリアル用定数バッファのリソースを取得します。
+	/// </summary>
+	/// <returns>定数バッファを表す ID3D12Resource のスマートポインタ。</returns>
 	ComPtr<ID3D12Resource> GetMaterialResource() { return materialResource_; }
 
-	// マテリアルデータを取得
+	/// <summary>
+	/// マテリアルデータへのポインタを取得します。
+	/// ImGui やゲーム側から直接パラメータを書き換える際に使用します。
+	/// </summary>
+	/// <returns>マップ済みの MaterialCBData へのポインタ。</returns>
 	MaterialCBData* GetMaterialData() { return materialData_; }
 
 public: /// ---------- セッタ ---------- ///
 
-	// 色を設定
+	/// <summary>
+	/// マテリアルのベースカラーを設定します。
+	/// </summary>
+	/// <param name="color">設定する RGBA カラー。</param>
 	void SetColor(const Vector4& color) { materialData_->color = color; }
 
-	// シェーディングの強さを設定
+	/// <summary>
+	/// マテリアルの光沢度（スペキュラの鋭さ）を設定します。
+	/// </summary>
+	/// <param name="shininess">設定する光沢度。</param>
 	void SetShininess(float shininess) { materialData_->reflection = shininess; }
 
-	// 輝度
+	/// <summary>
+	/// マテリアルの輝度（明るさ）を設定します。
+	/// 光沢度とは別に、全体の明るさパラメータとして利用できます。
+	/// </summary>
+	/// <param name="shininess">設定する輝度。</param>
 	void SetIntensity(float shininess) { materialData_->shininess = shininess; }
 
-	// 反射率を設定
+	/// <summary>
+	/// マテリアルの反射率を設定します。
+	/// 環境マップ等を用いた反射表現の強さを調整するための係数です。
+	/// </summary>
+	/// <param name="reflection">設定する反射率（0.0 ～ 1.0 を推奨）。</param>
 	void SetReflection(float reflection) { materialData_->reflection = reflection; }
 
-	// UV変換行列を設定
+	/// <summary>
+	/// UV 変換行列を設定します。
+	/// タイルやスクロール、回転などの UV アニメーションを行う際に使用します。
+	/// </summary>
+	/// <param name="uvTransform">UV 座標に適用する 4x4 行列。</param>
 	void SetUVTransform(const Matrix4x4& uvTransform) { materialData_->uvTransform = uvTransform; }
 
 private: /// ---------- メンバ変数 ---------- ///
 
 	// マテリアル用のリソース
 	ComPtr<ID3D12Resource> materialResource_{};
+
 	// マテリアルデータ
 	MaterialCBData* materialData_{};
 
