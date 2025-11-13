@@ -22,50 +22,114 @@ public: /// ---------- 列挙型 ---------- ///
 		ThirdFront	 // 三人称視点（正面）
 	};
 
-public: // ---------- 関数 ---------- //
+public: // ---------- メンバ関数 ---------- //
 
-	// 初期化処理
+	/// <summary>
+	/// カメラの初期化処理を行います。<br/>
+	/// ・Input シングルトンの取得<br/>
+	/// ・Player との紐付け<br/>
+	/// ・デフォルト Camera の取得と NearClip の設定<br/>
+	/// を行います。
+	/// </summary>
+	/// <param name="player">視点の基準となるプレイヤーへのポインタ。</param>
 	void Initialize(Player* player);
 
-	// 更新処理
+	/// <summary>
+	/// 毎フレームのカメラ更新処理。<br/>
+	/// ・マウス入力から yaw / pitch を更新（ignoreInput が true の場合はスキップ）<br/>
+	/// ・プレイヤーの頭位置を基準に視点位置を決定<br/>
+	/// ・現在の ViewMode に応じて一人称 / 三人称の位置を計算<br/>
+	/// ・Camera へ回転と位置を反映し、Update() を呼び出す<br/>
+	/// といった処理を行います。<br/>
+	/// Player がデバッグカメラ中の場合は何もしません。
+	/// </summary>
+	/// <param name="ignoreInput">true のとき、今フレームはマウス入力による回転更新を無視します。</param>
 	void Update(bool ignoreInput = false);
 
-	// デバッグ用カメラの位置をワイヤーフレームで描画
+	/// <summary>
+	/// デバッグ用に「プレイヤー頭位置付近のカメラ領域」をワイヤーフレームで描画します。<br/>
+	/// AABB を青色のワイヤーフレームで描画し、カメラ位置の確認に利用します。
+	/// </summary>
 	void DrawDebugCamera();
 
-	// ImGuiを描画
+	/// <summary>
+	/// ImGui によるデバッグ UI を描画します。<br/>
+	/// ・ViewMode の切り替え<br/>
+	/// ・Yaw / Pitch / 目線の高さ / TPS オフセット<br/>
+	/// ・FOV / Near / Far の調整<br/>
+	/// ・パラメータリセットボタン<br/>
+	/// などを操作できます。（USE_IMGUI 定義時のみ有効）
+	/// </summary>
 	void DrawImGui();
 
-	// リコイルを加える
+	/// <summary>
+	/// カメラにリコイル（反動）を加えます。<br/>
+	/// ・verticalAmount：上方向へのリコイル量（ピッチをマイナス方向へ）<br/>
+	/// ・horizontalAmount：ランダムな左右ブレの最大値<br/>
+	/// 実際の適用は Update 内で yaw_ / pitch_ に反映する想定です。
+	/// </summary>
+	/// <param name="verticalAmount">縦方向（ピッチ）に加えるリコイル量。</param>
+	/// <param name="horizontalAmount">横方向（ヨー）のランダムブレの最大値。</param>
 	void AddRecoil(float verticalAmount = 0.0f, float horizontalAmount = 0.0f);
 
-	// 1回呼ぶごとにモードを切替（F5で呼ぶ）
+	/// <summary>
+	/// ViewMode を一つずつ切り替えます。<br/>
+	/// FirstPerson → ThirdBack → ThirdFront → FirstPerson → …<br/>
+	/// のようにループします。（例：F5 キーが押されたときに呼ぶ）
+	/// </summary>
 	void CycleViewMode();
 
 public: // ---------- ゲッタ ---------- //
 
-	// カメラ取得
+	/// <summary>
+	/// 内部で使用している Camera を取得します。
+	/// </summary>
+	/// <returns>FpsCamera が操作している Camera インスタンス。</returns>
 	Camera* GetCamera() const { return camera_; }
 
-	// Yaw / Pitch取得
+	/// <summary>
+	/// 現在の yaw 角（ラジアン）を取得します。
+	/// </summary>
 	float GetYaw() const { return yaw_; }
+
+	/// <summary>
+	/// 現在の pitch 角（ラジアン）を取得します。
+	/// </summary>
 	float GetPitch() const { return pitch_; }
 
-	// 現在のモード取得
+	/// <summary>
+	/// 現在の表示モードを取得します。
+	/// </summary>
+	/// <returns>FirstPerson / ThirdBack / ThirdFront のいずれか。</returns>
 	ViewMode GetViewMode() const { return viewMode_; }
 
 public: // ---------- セッタ ---------- //
 
-	// Aiming状態を設定
+	/// <summary>
+	/// ADS（Aim Down Sights：覗き込み）状態フラグを設定します。<br/>
+	/// true のときはマウス感度を下げるなどの処理に利用できます。
+	/// </summary>
+	/// <param name="isAiming">ADS 状態なら true。</param>
 	void SetAiming(bool isAiming) { isAiming_ = isAiming; }
 
-	// ADS状態の感度補正係数を設定
+	/// <summary>
+	/// ADS 時の感度補正係数を設定します。<br/>
+	/// 例：0.5f なら通常時の半分の感度になります。
+	/// </summary>
+	/// <param name="factor">ADS 時に掛ける感度係数。</param>
 	void SetAdsSensitivityFactor(float factor) { adsSensitivityFactor_ = factor; }
 
-	// 外部から時間を貰う
+	/// <summary>
+	/// 外部から Δt（1フレームの経過時間）をセットします。<br/>
+	/// 歩行ボビングなどの時間ベース処理に利用します。
+	/// </summary>
+	/// <param name="deltaTime">前フレームからの経過時間（秒）。</param>
 	void SetDeltaTime(float deltaTime) { deltaTime_ = deltaTime; }
 
-	// 任意に設定したい場合
+	/// <summary>
+	/// 表示モードを直接設定します。
+	/// </summary>
+	/// <param name="m">設定したい ViewMode。</param>
 	void SetViewMode(ViewMode m) { viewMode_ = m; }
 
 private: // ---------- メンバ ---------- //

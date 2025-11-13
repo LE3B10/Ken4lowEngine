@@ -20,10 +20,6 @@ class DirectXCommon;
 class SRVManager;
 class Camera;
 
-// Δt を定義。とりあえず60fps固定してあるが、実時間を計測して可変fpsで動かせるようにする
-const float kDeltaTime = 1.0f / 60.0f;
-
-
 /// -------------------------------------------------------------
 ///				パーティクルマネージャークラス
 /// -------------------------------------------------------------
@@ -81,49 +77,132 @@ public: /// ---------- 構造体 ---------- ///
 
 public: /// ---------- メンバ関数 ---------- ///
 
-	//  シングルトンインスタンス
+	/// <summary>
+	/// ParticleManager のシングルトンインスタンスを取得します。
+	/// </summary>
+	/// <returns>ParticleManager の唯一のインスタンス。</returns>
 	static ParticleManager* GetInstance();
 
-	// 初期化処理
+	/// <summary>
+	/// パーティクルシステム全体の初期化処理。<br/>
+	/// ・DirectXCommon / Camera の保持<br/>
+	/// ・乱数エンジンの初期化<br/>
+	/// ・ルートシグネチャ / PSO の生成<br/>
+	/// ・マテリアルと各種パーティクルメッシュの初期化<br/>
+	/// を行います。
+	/// </summary>
+	/// <param name="dxCommon">DirectX12 共通クラスへのポインタ。</param>
+	/// <param name="camera">メインカメラへのポインタ。</param>
 	void Initialize(DirectXCommon* dxCommon, Camera* camera);
 
-	// パーティクルグループの生成
+	/// <summary>
+	/// 新しいパーティクルグループを作成します。<br/>
+	/// ・指定テクスチャの読み込み<br/>
+	/// ・インスタンシング用バッファの作成とマップ<br/>
+	/// ・インスタンシング SRV の生成<br/>
+	/// を行い、name をキーとして登録します。<br/>
+	/// すでに同名のグループが存在する場合は何もしません。
+	/// </summary>
+	/// <param name="name">パーティクルグループ名（後で Emit 時に使用）。</param>
+	/// <param name="textureFilePath">使用するテクスチャファイルのパス。</param>
+	/// <param name="effectType">このグループで使用するエフェクト種別。</param>
 	void CreateParticleGroup(const std::string& name, const std::string& textureFilePath, ParticleEffectType effectType);
 
-	// 更新処理
+	/// <summary>
+	/// 毎フレームの更新処理。<br/>
+	/// 各グループのパーティクルに対して：<br/>
+	/// ・寿命の更新と削除<br/>
+	/// ・位置/スケール/色/回転などの更新<br/>
+	/// ・ビルボード行列の計算<br/>
+	/// ・インスタンシングバッファへの書き込み<br/>
+	/// ・風 / 加速度フィールドの適用<br/>
+	/// を行います。
+	/// </summary>
 	void Update();
 
-	// 描画処理
+	/// <summary>
+	/// パーティクル描画処理。<br/>
+	/// ・ルートシグネチャ / PSO のセット<br/>
+	/// ・マテリアル CBV のセット<br/>
+	/// ・テクスチャ SRV / インスタンス SRV のセット<br/>
+	/// ・各エフェクトタイプごとのメッシュを使ってインスタンシング描画<br/>
+	/// を行います。
+	/// </summary>
 	void Draw();
 
-	// 終了処理
+	/// <summary>
+	/// パーティクル関連リソースの解放処理。<br/>
+	/// 各パーティクルグループが保持しているインスタンスバッファなどを解放し、コンテナをクリアします。
+	/// </summary>
 	void Finalize();
 
-	// パーティクルの発生
+	/// <summary>
+	/// 指定グループからパーティクルを発生させます。<br/>
+	/// パーティクル数が count を超える場合は、それ以上は生成しません。
+	/// </summary>
+	/// <param name="name">発生させるパーティクルグループ名。</param>
+	/// <param name="position">発生位置。</param>
+	/// <param name="count">生成する個数。</param>
+	/// <param name="type">使用するエフェクト種別。</param>
 	void Emit(const std::string name, const Vector3 position, uint32_t count, ParticleEffectType type);
 
+	/// <summary>
+	/// レーザービーム状のパーティクルを 1 本発生させます。<br/>
+	/// position と length、色を指定してレーザー用パーティクルを生成します。
+	/// </summary>
 	void EmitLaser(const std::string& name, const Vector3& position, float length, const Vector3& color);
 
-	void EmitLaserBeamFakeStretch(const std::string& name, const Vector3& startPos, const Vector3& direction, const Vector3& velocity, float totalLength, int count, const Vector4& color);
+	/// <summary>
+	/// 疑似的に伸びて見えるレーザービームを複数のパーティクルで構成して発生させます。<br/>
+	/// startPos から direction 方向に totalLength 分だけ分割して配置し、<br/>
+	/// 弾速と同じ velocity で移動させることで「伸びている」ように見せます。
+	/// </summary>
+	void EmitLaserBeamFakeStretch(const std::string& name,
+		const Vector3& startPos,
+		const Vector3& direction,
+		const Vector3& velocity,
+		float totalLength,
+		int count,
+		const Vector4& color);
 
+	/// <summary>
+	/// 登録済みパーティクルグループのコピーを取得します（デバッグ用）。<br/>
+	/// ※ 値コピーなので、更新は反映されません。
+	/// </summary>
 	std::unordered_map<std::string, ParticleManager::ParticleGroup> GetParticleGroups() { return particleGroups; }
 
-	// ImGuiの描画
+	/// <summary>
+	/// パーティクルに関する ImGui デバッグ UI の描画処理。<br/>
+	/// （現在はコメントアウトされており、必要に応じて有効化します）
+	/// </summary>
 	void DrawImGui();
 
-	// デバッグカメラの有無
+	/// <summary>
+	/// デバッグカメラを使用するかどうかを設定します。<br/>
+	/// 有効な場合、パーティクルの ViewProjection 行列に DebugCamera を使用します。
+	/// </summary>
 	void SetDebugCamera(bool isDebugCamera) { isDebugCamera_ = isDebugCamera; }
 
-	// デバッグカメラの有無を取得
+	/// <summary>
+	/// デバッグカメラ使用フラグを取得します。
+	/// </summary>
 	bool GetDebugCamera() { return isDebugCamera_; }
 
-	// ビルボードを有効にするかを設定
+	/// <summary>
+	/// ビルボード描画を有効にするかどうかを設定します。<br/>
+	/// 有効な場合、カメラ方向に正面を向ける行列で描画されます。
+	/// </summary>
 	void SetBillboard(bool isBillboard) { useBillboard = isBillboard; }
 
-	// ビルボードを有効にするかを取得
+	/// <summary>
+	/// ビルボード描画が有効かどうかを取得します。
+	/// </summary>
 	bool GetBillboard() { return useBillboard; }
 
-	// パーティクルエフェクトの種類を取得
+	/// <summary>
+	/// 指定グループのパーティクルエフェクト種別を取得します。<br/>
+	/// 見つからない場合は ParticleEffectType::Default を返します。
+	/// </summary>
 	ParticleEffectType GetGroupType(const std::string& name)
 	{
 		auto it = particleGroups.find(name);
@@ -131,11 +210,13 @@ public: /// ---------- メンバ関数 ---------- ///
 		{
 			return it->second.type;
 		}
-
 		return ParticleEffectType::Default;
 	}
 
-	// パーティクルグループを取得
+	/// <summary>
+	/// 指定グループへの参照を取得します。<br/>
+	/// 見つからない場合は std::runtime_error を送出します。
+	/// </summary>
 	ParticleGroup& GetGroup(const std::string& name)
 	{
 		auto it = particleGroups.find(name);
@@ -148,12 +229,29 @@ public: /// ---------- メンバ関数 ---------- ///
 
 private: /// ---------- ヘルパー関数 ---------- ///
 
-	// ルートシグネチャの生成
+	/// <summary>
+	/// パーティクル用のルートシグネチャを生成します。<br/>
+	/// ・マテリアル用 CBV<br/>
+	/// ・インスタンス用 SRV（VS）<br/>
+	/// ・テクスチャ用 SRV（PS）<br/>
+	/// を持つ構成になっています。
+	/// </summary>
 	void CreateRootSignature();
 
-	// PSOを生成
+	/// <summary>
+	/// パーティクル描画用のグラフィックスパイプラインステートを生成します。<br/>
+	/// ・頂点レイアウト<br/>
+	/// ・ブレンドステート（BlendMode に応じたもの）<br/>
+	/// ・ラスタライザ・深度ステート<br/>
+	/// ・使用するシェーダ（Particle.VS/PS）<br/>
+	/// をまとめて設定します。
+	/// </summary>
 	void CreatePSO();
 
+	/// <summary>
+	/// Emitter 設定に従ってパーティクルを生成するヘルパー関数。<br/>
+	/// EmitQueue などから内部的に呼び出されます。
+	/// </summary>
 	std::list<Particle> Emit(const Emitter& emitter, std::mt19937& randomEngine, ParticleEffectType type);
 
 private: /// ---------- メンバ変数 ---------- ///
@@ -169,6 +267,7 @@ private: /// ---------- メンバ変数 ---------- ///
 	SRVManager* srvManager_ = nullptr;
 	Camera* camera_ = nullptr;
 
+	// 合成行列
 	Matrix4x4 worldViewProjectionMatrix;
 	Matrix4x4 debugViewProjectionMatrix_;
 	Matrix4x4 viewProjectionMatrix_;
@@ -191,10 +290,13 @@ private: /// ---------- メンバ変数 ---------- ///
 	// 描画数
 	const uint32_t kNumMaxInstance = 1024;
 
+	// ビルボード描画を使用するかどうか
 	bool useBillboard = true;
 
+	// 風エフェクト
 	bool isWind = false;
 
+	// デバッグカメラを使用するかどうか
 	bool isDebugCamera_ = false;
 
 	// Fieldを作る
@@ -202,9 +304,25 @@ private: /// ---------- メンバ変数 ---------- ///
 
 private: /// ---------- コピー禁止 ---------- ///
 
+	/// <summary>
+	/// 外部からの生成を禁止するためのプライベートコンストラクタ。<br/>
+	/// シングルトンパターンとして利用します。
+	/// </summary>
 	ParticleManager() = default;
+
+	/// <summary>
+	/// デフォルトデストラクタ。
+	/// </summary>
 	~ParticleManager() = default;
+
+	/// <summary>
+	/// コピーコンストラクタは使用禁止です。
+	/// </summary>
 	ParticleManager(const ParticleManager&) = delete;
+
+	/// <summary>
+	/// 代入演算子は使用禁止です。
+	/// </summary>
 	ParticleManager& operator=(const ParticleManager&) = delete;
 };
 

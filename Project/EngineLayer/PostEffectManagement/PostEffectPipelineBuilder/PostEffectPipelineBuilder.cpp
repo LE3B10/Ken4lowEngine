@@ -12,6 +12,7 @@ using namespace Microsoft::WRL;
 /// -------------------------------------------------------------
 void PostEffectPipelineBuilder::Initialize(DirectXCommon* dxCommon)
 {
+	// DirectXCommon の設定
 	dxCommon_ = dxCommon;
 }
 

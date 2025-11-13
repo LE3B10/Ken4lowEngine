@@ -29,8 +29,7 @@ void Player::Initialize()
 	input_ = Input::GetInstance();
 
 	// テクスチャの設定
-	if (body_.object) BaseCharacter::ApplySkinTo(body_.object.get(), skinTexturePath_);
-	for (auto& part : parts_) { if (part.object) BaseCharacter::ApplySkinTo(part.object.get(), skinTexturePath_); }
+	BaseCharacter::ApplySkinToAllParts(skinTexturePath_);
 
 	// ID登録
 	Collider::SetTypeID(static_cast<uint32_t>(CollisionTypeIdDef::kPlayer));

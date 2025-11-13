@@ -138,6 +138,8 @@ void ParticleManager::Update()
 	Matrix4x4 billboardMatrix = Matrix4x4::Multiply(backToFrontMatrix, cameraMatrix);
 	billboardMatrix.m[3][0] = billboardMatrix.m[3][1] = billboardMatrix.m[3][2] = 0.0f;
 
+	float kDeltaTime = dxCommon_->GetFPSCounter().GetDeltaTime();
+
 	// パーティクルグループごとに更新処理
 	for (auto& group : particleGroups)
 	{

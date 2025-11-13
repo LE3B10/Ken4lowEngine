@@ -1,9 +1,9 @@
 #pragma once
 #include "Vector3.h"
 
-//平面
+/// ---------- 平面の構造体 ---------- ///
 struct Plane final
 {
-	Vector3 normal;		//!< 法線
-	float distance;		//!< 距離
+	Vector3 normal;	//!< 法線
+	float distance;	//!< 距離
 };

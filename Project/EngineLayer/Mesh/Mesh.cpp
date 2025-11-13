@@ -55,8 +55,8 @@ void Mesh::Draw()
 {
 	ID3D12GraphicsCommandList* commandList = DirectXCommon::GetInstance()->GetCommandManager()->GetCommandList();
 
-	commandList->IASetVertexBuffers(0, 1, &vertexBufferView);
-	commandList->IASetIndexBuffer(&indexBufferView);
-	commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-	commandList->DrawIndexedInstanced(static_cast<UINT>(indices.size()), 1, 0, 0, 0);
+	commandList->IASetVertexBuffers(0, 1, &vertexBufferView); // 頂点バッファをセット
+	commandList->IASetIndexBuffer(&indexBufferView);		  // インデックスバッファをセット
+	commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST); // プリミティブ形状を設定
+	commandList->DrawIndexedInstanced(static_cast<UINT>(indices.size()), 1, 0, 0, 0); // インデックス描画
 }

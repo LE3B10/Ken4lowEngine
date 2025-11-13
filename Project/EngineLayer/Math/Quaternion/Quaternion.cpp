@@ -1,8 +1,12 @@
 #include "Quaternion.h"
 #include <corecrt_math.h>
 
+/// -------------------------------------------------------------
+///					　		四元数の掛け算
+/// -------------------------------------------------------------
 Quaternion Quaternion::Multiply(const Quaternion& lhs, const Quaternion& rhs)
 {
+	// 四元数の掛け算を計算
 	Quaternion result;
 	result.w = lhs.w * rhs.w - lhs.x * rhs.x - lhs.y * rhs.y - lhs.z * rhs.z;
 	result.x = lhs.w * rhs.x + lhs.x * rhs.w + lhs.y * rhs.z - lhs.z * rhs.y;
@@ -11,40 +15,72 @@ Quaternion Quaternion::Multiply(const Quaternion& lhs, const Quaternion& rhs)
 	return result;
 }
 
+/// -------------------------------------------------------------
+///					　		単位四元数の取得
+/// -------------------------------------------------------------
 Quaternion Quaternion::IdentityQuaternion()
 {
+	// 単位四元数を返す
 	return { 0.0f, 0.0f, 0.0f, 1.0f };
 }
 
+/// -------------------------------------------------------------
+///					　		共役四元数の取得
+/// -------------------------------------------------------------
 Quaternion Quaternion::Conjugate(const Quaternion& quaternion)
 {
+	// 共役四元数を計算
 	return { -quaternion.x, -quaternion.y, -quaternion.z, quaternion.w };
 }
 
+/// -------------------------------------------------------------
+///					　		ノルム（長さ）の取得
+/// -------------------------------------------------------------
 float Quaternion::Norm(const Quaternion& quaternion)
 {
+	// ノルム（長さ）を計算
 	return sqrtf(quaternion.x * quaternion.x + quaternion.y * quaternion.y + quaternion.z * quaternion.z + quaternion.w * quaternion.w);
 }
 
+/// -------------------------------------------------------------
+///					　		正規化
+/// -------------------------------------------------------------
 Quaternion Quaternion::Normalize(const Quaternion& quaternion)
 {
+	// 正規化を計算
 	float norm = Norm(quaternion);
-	if (norm == 0.0f)
-		return { 0.0f, 0.0f, 0.0f, 1.0f }; // デフォルトの単位Quaternionを返す
+
+	// ノルムが0の場合、デフォルトの単位Quaternionを返す
+	if (norm == 0.0f) return { 0.0f, 0.0f, 0.0f, 1.0f }; // デフォルトの単位Quaternionを返す
+
+	// 正規化された四元数を返す
 	return { quaternion.x / norm, quaternion.y / norm, quaternion.z / norm, quaternion.w / norm };
 }
 
+/// -------------------------------------------------------------
+///					　		逆四元数の取得
+/// -------------------------------------------------------------
 Quaternion Quaternion::Inverse(const Quaternion& quaternion)
 {
+	// 逆四元数を計算
 	float norm = Norm(quaternion);
-	if (norm == 0.0f)
-		return { 0.0f, 0.0f, 0.0f, 1.0f }; // デフォルトの単位Quaternionを返す
+
+	// ノルムが0の場合、デフォルトの単位Quaternionを返す
+	if (norm == 0.0f) return { 0.0f, 0.0f, 0.0f, 1.0f }; // デフォルトの単位Quaternionを返す
+
+	// 逆四元数の計算
 	Quaternion conjugate = Conjugate(quaternion);
+
+	// 逆四元数を返す
 	return { conjugate.x / (norm * norm), conjugate.y / (norm * norm), conjugate.z / (norm * norm), conjugate.w / (norm * norm) };
 }
 
+/// -------------------------------------------------------------
+///					任意軸まわりの回転四元数生成
+/// -------------------------------------------------------------
 Quaternion Quaternion::MakeRotateAxisAngleQuaternion(const Vector3& axis, float angle)
 {
+	// 任意軸まわりの回転を表す四元数を生成
 	Quaternion result;
 	float halfAngle = angle / 2.0f;
 	float sinHalfAngle = sinf(halfAngle);
@@ -61,6 +97,9 @@ Quaternion Quaternion::MakeRotateAxisAngleQuaternion(const Vector3& axis, float 
 	return result;
 }
 
+/// -------------------------------------------------------------
+///					ベクトルの回転
+/// -------------------------------------------------------------
 Vector3 Quaternion::RotateVector(const Vector3& vector, const Quaternion& quaternion)
 {
 	// クォータニオンを正規化することで、回転の精度を向上させる
@@ -79,6 +118,9 @@ Vector3 Quaternion::RotateVector(const Vector3& vector, const Quaternion& quater
 	return { qResult.x, qResult.y, qResult.z };
 }
 
+/// -------------------------------------------------------------
+///					四元数から回転行列の生成
+/// -------------------------------------------------------------
 Matrix4x4 Quaternion::MakeRotateMatrix(const Quaternion& quaternion)
 {
 	Matrix4x4 result;
@@ -117,6 +159,9 @@ Matrix4x4 Quaternion::MakeRotateMatrix(const Quaternion& quaternion)
 	return result;
 }
 
+/// -------------------------------------------------------------
+///					球面線形補間（Slerp）
+/// -------------------------------------------------------------
 Quaternion Quaternion::Slerp(const Quaternion& q0, const Quaternion& q1, float t)
 {
 	// クォータニオンの内積を計算

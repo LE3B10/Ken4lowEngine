@@ -57,86 +57,174 @@ private: /// ---------- 構造体　----------- ///
 public: /// ---------- メンバ関数 ---------- ///
 
 	/// <summary>
-	/// スプライトを初期化する
+	/// スプライトを初期化します。<br/>
+	/// ・テクスチャの読み込みと SRV 取得<br/>
+	/// ・インデックスバッファの生成<br/>
+	/// ・マテリアル用定数バッファの生成と初期値設定<br/>
+	/// ・頂点バッファ／座標変換行列用定数バッファの生成<br/>
+	/// ・テクスチャサイズに合わせたサイズ調整<br/>
+	/// ・リロード進捗用定数バッファの生成と初期化<br/>
+	/// を行います。
 	/// </summary>
-	/// <param name="filePath">テクスチャファイルパス</param>
+	/// <param name="filePath">使用するテクスチャファイルのパス。</param>
 	void Initialize(const std::string& filePath);
 
 	/// <summary>
-	/// スプライトの更新処理
+	/// スプライトの更新処理を行います。<br/>
+	/// ・アンカーポイント／フリップ状態を反映した頂点座標の計算<br/>
+	/// ・UV 範囲（leftTop, size）を反映したテクスチャ座標の計算<br/>
+	/// ・正射影行列を用いた WVP 行列の再計算<br/>
+	/// を行い、マッピング済みのバッファへ書き込みます。
 	/// </summary>
 	void Update();
 
 	/// <summary>
-	/// スプライトの描画処理
+	/// スプライトの描画処理を行います。<br/>
+	/// ・VBV / IBV の設定<br/>
+	/// ・マテリアル / リロード進捗 / 座標変換行列の CBV をルートに設定<br/>
+	/// ・テクスチャ SRV をディスクリプタテーブルとして設定<br/>
+	/// ・DrawIndexedInstanced による描画<br/>
+	/// を行います。
 	/// </summary>
 	void Draw();
 
 public: /// ---------- ゲッター ---------- ///
 
-	// 左右フリップを取得
+	/// <summary>
+	/// 左右反転フラグを取得します。
+	/// </summary>
+	/// <returns>左右フリップしている場合は true。</returns>
 	bool GetFlipX() const { return isFlipX_; }
 
-	// 上下フリップを取得
+	/// <summary>
+	/// 上下反転フラグを取得します。
+	/// </summary>
+	/// <returns>上下フリップしている場合は true。</returns>
 	bool GetFlipY() const { return isFlipY_; }
 
-	// 座標を取得
+	/// <summary>
+	/// スプライトの左上座標（スクリーン座標）を取得します。
+	/// </summary>
+	/// <returns>座標 (x, y)。</returns>
 	const Vector2& GetPosition() const { return position_; }
 
-	// 回転を取得
+	/// <summary>
+	/// スプライトの回転角を取得します（Z 軸周り・ラジアン）。
+	/// </summary>
+	/// <returns>回転角（ラジアン）。</returns>
 	float GetRotation() const { return rotation_; }
 
-	// サイズを取得
+	/// <summary>
+	/// スプライトのサイズ（幅・高さ）を取得します。
+	/// </summary>
+	/// <returns>サイズ (width, height)。</returns>
 	const Vector2& GetSize() const { return size_; }
 
-	// 色を取得
+	/// <summary>
+	/// スプライトの色を取得します。
+	/// </summary>
+	/// <returns>RGBA 形式の色。</returns>
 	const Vector4& GetColor() const { return materialData->color; }
 
-	// アンカーを取得
+	/// <summary>
+	/// アンカーポイント（0〜1 の正規化座標）を取得します。<br/>
+	/// (0,0)=左上, (0.5,0.5)=中心, (1,1)=右下。
+	/// </summary>
+	/// <returns>アンカーポイント (ax, ay)。</returns>
 	const Vector2& GetAnchorPoint() const { return anchorPoint_; }
 
-	// テクスチャ左上座標を取得
+	/// <summary>
+	/// テクスチャ内での切り出し領域の左上座標（ピクセル）を取得します。
+	/// </summary>
+	/// <returns>左上座標 (x, y)。</returns>
 	const Vector2& GetTextureLeftTop() const { return textureLeftTop_; }
 
-	// テクスチャ切り出しサイズを取得
+	/// <summary>
+	/// テクスチャ内での切り出しサイズ（ピクセル）を取得します。
+	/// </summary>
+	/// <returns>サイズ (width, height)。</returns>
 	const Vector2& GetTextureSize() { return textureSize_; }
 
 public: /// ---------- セッター ---------- ///
 
-	// 左右フリップの設定
+	/// <summary>
+	/// 左右反転の状態を設定します。
+	/// </summary>
+	/// <param name="isFlipX">左右フリップする場合は true。</param>
 	void SetFlipX(bool isFlipX) { isFlipX_ = isFlipX; }
 
-	// 上下フリップの設定
+	/// <summary>
+	/// 上下反転の状態を設定します。
+	/// </summary>
+	/// <param name="isFlipY">上下フリップする場合は true。</param>
 	void SetFlipY(bool isFlipY) { isFlipY_ = isFlipY; }
 
-	// 座標の設定
+	/// <summary>
+	/// スプライトの左上座標（スクリーン座標）を設定します。
+	/// </summary>
+	/// <param name="position">座標 (x, y)。</param>
 	void SetPosition(const Vector2& position) { position_ = position; }
 
-	// 回転の設定
+	/// <summary>
+	/// スプライトの回転角を設定します（Z 軸周り・ラジアン）。
+	/// </summary>
+	/// <param name="rotation">回転角（ラジアン）。</param>
 	void SetRotation(float rotation) { rotation_ = rotation; }
 
-	// サイズの設定
+	/// <summary>
+	/// スプライトのサイズ（幅・高さ）を設定します。
+	/// </summary>
+	/// <param name="size">サイズ (width, height)。</param>
 	void SetSize(const Vector2& size) { size_ = size; }
 
-	// 色の設定
+	/// <summary>
+	/// スプライトの色を設定します。
+	/// </summary>
+	/// <param name="color">RGBA 形式の色。</param>
 	void SetColor(const Vector4& color) { materialData->color = color; }
 
-	// アンカーの設定
+	/// <summary>
+	/// アンカーポイント（0〜1 の正規化座標）を設定します。<br/>
+	/// 例: (0.5, 0.5) にするとスプライト中心回転になります。
+	/// </summary>
+	/// <param name="anchorPoint">アンカーポイント (ax, ay)。</param>
 	void SetAnchorPoint(const Vector2& anchorPoint) { anchorPoint_ = anchorPoint; }
 
-	// テクスチャ左上座標の設定
+	/// <summary>
+	/// テクスチャ内での切り出し領域の左上座標（ピクセル）を設定します。
+	/// </summary>
+	/// <param name="textureLeftTop">左上座標 (x, y)。</param>
 	void SetTextureLeftTop(const Vector2& textureLeftTop) { textureLeftTop_ = textureLeftTop; }
 
-	// テクスチャ切り出しサイズの設定
+	/// <summary>
+	/// テクスチャ内での切り出しサイズ（ピクセル）を設定します。
+	/// </summary>
+	/// <param name="textureSize">サイズ (width, height)。</param>
 	void SetTextureSize(const Vector2& textureSize) { textureSize_ = textureSize; }
 
-	// テクスチャの変更
+	/// <summary>
+	/// 使用するテクスチャを変更します。<br/>
+	/// Initialize 済みの Sprite に対して、別の SRV を割り当てたい場合に使います。
+	/// </summary>
+	/// <param name="filePath">新しく使用するテクスチャファイルのパス。</param>
 	void SetTexture(const std::string& filePath);
 
-	// UV座標の設定
+	/// <summary>
+	/// テクスチャ内の UV 切り出し範囲をまとめて設定します。<br/>
+	/// leftTop / size から textureLeftTop_ と textureSize_ を更新します。
+	/// </summary>
+	/// <param name="leftTop">切り出し左上座標（ピクセル）。</param>
+	/// <param name="size">切り出しサイズ（ピクセル）。</param>
 	void SetUVRect(const Vector2& leftTop, const Vector2& size) { textureLeftTop_ = leftTop; textureSize_ = size; }
 
-	// リロード進捗の設定
+	/// <summary>
+	/// リロード進捗を設定します。<br/>
+	/// ・isReloading : リロード中かどうか<br/>
+	/// ・progress   : 進捗度合い (0.0〜1.0)<br/>
+	/// この値は ReloadProgress 用の定数バッファに書き込まれ、ピクセルシェーダで利用されます。
+	/// </summary>
+	/// <param name="isReloading">リロード中かどうか。</param>
+	/// <param name="progress">進捗度合い (0.0〜1.0)。</param>
 	void SetReloadProgress(bool isReloading, float progress)
 	{
 		reloadProgressData->isReloading = isReloading; // リロード中かどうか
@@ -145,19 +233,40 @@ public: /// ---------- セッター ---------- ///
 
 private: /// ---------- メンバ関数 ---------- ///
 
-	// スプライト用のマテリアルリソースを作成し設定する処理を行う
+	/// <summary>
+	/// スプライト用のマテリアルリソースを作成し、初期値を設定します。<br/>
+	/// ・色を白 (1,1,1,1)<br/>
+	/// ・UVTransform を単位行列<br/>
+	/// で初期化します。
+	/// </summary>
 	void CreateMaterialResource();
 
-	// スプライトの頂点バッファリソースと変換行列リソースを生成
+	/// <summary>
+	/// スプライトの頂点バッファと、座標変換行列用の定数バッファを生成します。<br/>
+	/// ・VertexData × kNumVertex 分の頂点バッファを作成し、マッピングしてポインタを保持<br/>
+	/// ・TransformationMatrix 用の定数バッファを作成し、単位行列で初期化<br/>
+	/// を行います。
+	/// </summary>
 	void CreateVertexBufferResource();
 
-	// スプライトのインデックスバッファを作成
+	/// <summary>
+	/// スプライト用のインデックスバッファを生成し、0〜5 のインデックスを設定します。<br/>
+	/// 2 枚の三角形で長方形を構成するためのインデックスになります。
+	/// </summary>
 	void CreateIndexBuffer();
 
-	// テクスチャ債ぞをイメージに合わせる
+	/// <summary>
+	/// テクスチャのメタデータを参照し、textureSize_ と size_ をテクスチャの幅・高さに合わせます。
+	/// </summary>
 	void AdjustTextureSize();
 
-	// リロード新緑の初期化処理
+	/// <summary>
+	/// リロード進捗用定数バッファの初期化を行います。<br/>
+	/// ・ReloadProgress 用バッファを生成<br/>
+	/// ・マッピングして reloadProgressData ポインタを取得<br/>
+	/// ・初期値（isReloading, progress）を書き込み<br/>
+	/// を行います。
+	/// </summary>
 	void InitializeReloadProgress();
 
 private: /// ---------- メンバ変数 ---------- ///

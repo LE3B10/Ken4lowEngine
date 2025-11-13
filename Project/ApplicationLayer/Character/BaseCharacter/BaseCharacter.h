@@ -70,6 +70,22 @@ protected: /// ---------- メンバ関数 ---------- ///
 	// 指定部位の描画/非描画設定
 	void SetPartActive(size_t i, bool a) { if (i < parts_.size()) parts_[i].active = a; }
 
+	// 全部位にスキンを適用
+	void ApplySkinToAllParts(const std::string& texPath)
+	{
+		// 体幹部位
+		if (body_.object) {
+			ApplySkinTo(body_.object.get(), texPath);
+		}
+
+		// 各部位
+		for (auto& part : parts_) {
+			if (part.object) {
+				ApplySkinTo(part.object.get(), texPath);
+			}
+		}
+	}
+
 private: /// ---------- メンバ関数 ---------- ///
 
 	// 階層更新

@@ -13,13 +13,17 @@ class Mesh
 {
 public: /// ---------- メンバ関数 ---------- ///
 
-	// 初期化処理
+	/// <summary>
+	/// モデルの頂点データとインデックスを使って初期化を行います。
+	/// </summary>
+	/// <param name="modelVertices">初期化に使用する頂点データの配列（読み取り専用の参照）。</param>
+	/// <param name="modelIndices">頂点の順序やプリミティブを示すインデックスの配列（読み取り専用の参照）。</param>
 	void Initialize(const std::vector<VertexData>& modelVertices, const std::vector<uint32_t>& modelIndices);
 
-	// 描画処理
+	/// <summary>
+	/// 描画処理
+	/// </summary>
 	void Draw();
-
-public: /// ---------- ゲッタ ---------- ///
 
 private: /// ---------- メンバ変数 ---------- ///
 

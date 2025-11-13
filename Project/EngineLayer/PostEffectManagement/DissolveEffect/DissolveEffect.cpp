@@ -68,7 +68,7 @@ void DissolveEffect::Apply(ID3D12GraphicsCommandList* commandList, uint32_t srvI
 	commandList->SetPipelineState(computePipelineState_.Get());
 
 	// SRVとUAVを設定（ディスクリプタテーブル）
-	commandList->SetComputeRootDescriptorTable(0, UAVManager::GetInstance()->GetGPUDescriptorHandle(srvIndex));  // t0
+	commandList->SetComputeRootDescriptorTable(0, UAVManager::GetInstance()->GetGPUDescriptorHandle(srvIndex)); // t0
 	commandList->SetComputeRootDescriptorTable(1, UAVManager::GetInstance()->GetGPUDescriptorHandle(uavIndex)); // u0
 
 	// CBVを設定（b0）
@@ -86,6 +86,7 @@ void DissolveEffect::Apply(ID3D12GraphicsCommandList* commandList, uint32_t srvI
 	uint32_t groupCountX = (width + threadGroupSizeX - 1) / threadGroupSizeX;
 	uint32_t groupCountY = (height + threadGroupSizeY - 1) / threadGroupSizeY;
 
+	// ディスパッチ処理
 	commandList->Dispatch(groupCountX, groupCountY, 1);
 }
 

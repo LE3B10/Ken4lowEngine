@@ -11,10 +11,13 @@ void ParticleMaterial::Initialize()
 
 	//マテリアル用のリソースを作る。今回はcolor1つ分のサイズを用意する
 	materialResource_ = ResourceManager::CreateBufferResource(device, sizeof(MaterialCBData));
+
 	//書き込むためのアドレスを取得
 	materialResource_->Map(0, nullptr, reinterpret_cast<void**>(&materialData_));
+
 	//今回は赤を書き込んでみる
 	materialData_->color = { 1.0f, 1.0f, 1.0f, 1.0f };
+
 	//UVTramsform行列を単位行列で初期化
 	materialData_->uvTransform = Matrix4x4::MakeIdentity();
 }
@@ -24,6 +27,7 @@ void ParticleMaterial::Initialize()
 /// -------------------------------------------------------------
 void ParticleMaterial::Update()
 {
+	// マテリアルデータがある場合
 	if (materialData_)
 	{
 		materialData_->color = this->materialData_->color;			   // 色
@@ -38,8 +42,10 @@ void ParticleMaterial::SetPipeline(UINT rootParameterIndex) const
 {
 	ID3D12GraphicsCommandList* commandList = DirectXCommon::GetInstance()->GetCommandManager()->GetCommandList();
 
+	// マテリアルのリソースがある場合
 	if (materialResource_)
 	{
+		// 定数バッファビューをセット
 		commandList->SetGraphicsRootConstantBufferView(rootParameterIndex, materialResource_->GetGPUVirtualAddress());
 	}
 }

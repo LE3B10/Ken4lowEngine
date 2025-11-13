@@ -23,9 +23,7 @@ void ItemManager::Update(Player* player, float deltaTime)
 
 	// 寿命切れまたは取得済みのアイテムを削除
 	items_.erase(std::remove_if(items_.begin(), items_.end(), [](const std::unique_ptr<Item>& item) {
-		return item->IsCollected() || item->IsExpired(); }),
-		items_.end()
-		);
+		return item->IsCollected() || item->IsExpired(); }), items_.end());
 }
 
 /// -------------------------------------------------------------

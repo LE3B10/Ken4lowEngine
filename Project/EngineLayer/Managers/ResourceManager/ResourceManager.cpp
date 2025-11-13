@@ -31,7 +31,7 @@ ComPtr<ID3D12Resource> ResourceManager::CreateBufferResource(ID3D12Device* devic
 
 	//バッファリソース。テクスチャの場合はまた別の設定をする
 	desc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
-	desc.Width = size;				//リソースのサイズ
+	desc.Width = size;				// リソースのサイズ
 	desc.Height = 1;
 	desc.DepthOrArraySize = 1;
 	desc.MipLevels = 1;
