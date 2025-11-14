@@ -28,9 +28,15 @@ jobs:
         with: 
           msbuild-architecture: x64
 
+      - name: Build ImGui (Debug)
+        run: |
+          msbuild Project/Externals/imgui/imgui.vcxproj /p:Platform=x64,Configuration=${{ env.CONFIGURATION }}
+          
+      # ---------- デバッグビルド ---------- #
       - name: Build Debug
         run: |
           msbuild ${{env.SOLUTION_FILE_PATH}} /p:Platform=x64,Configuration=${{env.CONFIGURATION}}
+          
   # ---------- リリースビルドジョブ ---------- #
   release-build:
     runs-on: windows-2022
