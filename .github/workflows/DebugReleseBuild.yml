@@ -28,9 +28,16 @@ jobs:
         with: 
           msbuild-architecture: x64
 
+      # ここで先に imgui の static lib を作っておく
+      - name: Build ImGui (Debug)
+        run: |
+          msbuild Project/Externals/imgui/imgui.vcxproj ^
+            /p:Platform=x64,Configuration=${{ env.CONFIGURATION }}
+
       - name: Build Debug
         run: |
-          msbuild ${{env.SOLUTION_FILE_PATH}} /p:Platform=x64,Configuration=${{env.CONFIGURATION}}
+          msbuild ${{ env.SOLUTION_FILE_PATH }} ^
+            /p:Platform=x64,Configuration=${{ env.CONFIGURATION }}
 
   # ---------- リリースビルドジョブ ---------- #
   release-build:
@@ -48,4 +55,5 @@ jobs:
 
       - name: Build Release
         run: |
-          msbuild ${{env.SOLUTION_FILE_PATH}} /p:Platform=x64,Configuration=${{env.CONFIGURATION}}
+          msbuild ${{ env.SOLUTION_FILE_PATH }} ^
+            /p:Platform=x64,Configuration=${{ env.CONFIGURATION }}
