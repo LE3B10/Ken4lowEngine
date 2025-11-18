@@ -47,7 +47,7 @@ public: /// ---------- 構造体 ---------- ///
 public: /// ---------- メンバ関数 ---------- ///
 
 	/// <summary>
-	/// 3D オブジェクトの初期化処理を行います。:contentReference[oaicite:1]{index=1}  <br/>
+	/// 3D オブジェクトの初期化処理を行います。<br/>
 	/// ・DirectXCommon / デフォルトカメラの取得<br/>
 	/// ・AssimpLoader による ModelData の読み込み<br/>
 	/// ・SubMesh ごとの Mesh 生成とテクスチャ SRV の登録<br/>
@@ -60,7 +60,7 @@ public: /// ---------- メンバ関数 ---------- ///
 	void Initialize(const std::string& fileName);
 
 	/// <summary>
-	/// 毎フレームの更新処理を行います。:contentReference[oaicite:2]{index=2}  <br/>
+	/// 毎フレームの更新処理を行います。<br/>
 	/// ・Object3DCommon からデフォルトカメラを取得し直す<br/>
 	/// ・Material / WorldTransform の更新<br/>
 	/// ・CameraForGPU にアクティブカメラのワールド位置を書き込み<br/>
@@ -69,7 +69,7 @@ public: /// ---------- メンバ関数 ---------- ///
 	void Update();
 
 	/// <summary>
-	/// ImGui を使ったデバッグ用 UI の描画を行います。:contentReference[oaicite:3]{index=3}  <br/>
+	/// ImGui を使ったデバッグ用 UI の描画を行います。<br/>
 	/// ・Position / Rotation / Scale の編集<br/>
 	/// ・カメラ位置の簡易調整（Slider）<br/>
 	/// ・Material 側の ImGui 表示<br/>
@@ -78,7 +78,7 @@ public: /// ---------- メンバ関数 ---------- ///
 	void DrawImGui();
 
 	/// <summary>
-	/// 3D オブジェクトの描画処理を行います。:contentReference[oaicite:4]{index=4}  <br/>
+	/// 3D オブジェクトの描画処理を行います。<br/>
 	/// ・Object3DCommon で共通 PSO / ルートシグネチャ設定<br/>
 	/// ・Material / WorldTransform のパイプラインセット<br/>
 	/// ・カメラ CBV / 環境マップ / ディゾルブ用 CBV / マスク SRV をルートにバインド<br/>
@@ -90,7 +90,7 @@ public: /// ---------- メンバ関数 ---------- ///
 public: /// ---------- 設定処理 ---------- ///
 
 	/// <summary>
-	/// モデルを外部の ModelManager から検索して設定します。:contentReference[oaicite:5]{index=5}  <br/>
+	/// モデルを外部の ModelManager から検索して設定します。<br/>
 	/// FindModel(filePath) で共有ポインタとして取得し、必要に応じて Model 側の Initialize を呼び出します。
 	/// </summary>
 	/// <param name="filePath">モデルを探す際のキーとなるパス。</param>
@@ -153,14 +153,14 @@ public: /// ---------- 設定処理 ---------- ///
 	void SetReflectivity(float reflectivity) { material_.SetReflection(reflectivity); }
 
 	/// <summary>
-	/// 全てのサブメッシュのテクスチャを同じものに差し替えます。:contentReference[oaicite:6]{index=6}  <br/>
+	/// 全てのサブメッシュのテクスチャを同じものに差し替えます。<br/>
 	/// UI から一括でテクスチャを変えたい場合などに使用します。
 	/// </summary>
 	/// <param name="texturePath">読み込むテクスチャファイルのパス。</param>
 	void SetTextureForAll(const std::string& texturePath);
 
 	/// <summary>
-	/// 指定したサブメッシュのテクスチャだけを変更します。:contentReference[oaicite:7]{index=7}  <br/>
+	/// 指定したサブメッシュのテクスチャだけを変更します。<br/>
 	/// メッシュごとに異なるテクスチャを貼りたい場合に使用します。
 	/// </summary>
 	/// <param name="index">対象となるサブメッシュのインデックス。</param>
@@ -198,7 +198,7 @@ public: /// ---------- ディゾルブの設定 ---------- ///
 private: /// ---------- 内部メンバ関数 ---------- ///
 
 	/// <summary>
-	/// カメラ情報用の定数バッファを生成・初期化します。:contentReference[oaicite:8]{index=8}  <br/>
+	/// カメラ情報用の定数バッファを生成・初期化します。<br/>
 	/// ・CameraForGPU 用のバッファを作成<br/>
 	/// ・Map して cameraData ポインタを取得<br/>
 	/// ・初期値として現在のカメラ位置を worldPosition に書き込む<br/>
@@ -207,7 +207,7 @@ private: /// ---------- 内部メンバ関数 ---------- ///
 	void InitializeCameraResource();
 
 	/// <summary>
-	/// ディゾルブ用定数バッファを生成・初期化します。:contentReference[oaicite:9]{index=9}  <br/>
+	/// ディゾルブ用定数バッファを生成・初期化します。<br/>
 	/// ・DissolveSetting 用のバッファを作成<br/>
 	/// ・Map して dissolveSetting_ ポインタを取得<br/>
 	/// ・threshold / edgeThickness / edgeColor の初期値を設定<br/>

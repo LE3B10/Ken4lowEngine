@@ -13,6 +13,7 @@
 #include "LinearInterpolation.h"
 
 #include "StageRepository.h"
+#include "PauseOverlay.h"
 
 #ifdef _DEBUG
 #include <DebugCamera.h>
@@ -183,7 +184,7 @@ void GamePlayScene::Initialize()
 	// アイテムマネージャーの初期化
 	itemManager_ = std::make_unique<ItemManager>();
 	itemManager_->Initialize();
-	
+
 	auto levelLoader = std::make_unique<LevelLoader>();
 
 	// StageSelectScene から渡されたインデックスを読む
@@ -270,6 +271,29 @@ void GamePlayScene::Update()
 	// デバッグカメラの更新
 	UpdateDebug();
 
+	// --- ポーズオーバーレイの更新 ---
+	if (pauseOverlay_)
+	{
+		pauseOverlay_->Update();
+
+		if (pauseOverlay_->IsClose())
+		{
+			bool goTitle = pauseOverlay_->IsGoTitle();
+
+			pauseOverlay_.reset();
+
+			if (!goTitle)
+			{
+				// 続きから = ゲーム再開のときだけロックON
+				isPaused_ = false;
+				gameState_ = GameState::Playing;
+
+				Input::GetInstance()->SetLockCursor(true);
+				ShowCursor(false);
+			}
+		}
+	}
+
 	// --- ポーズトグル（ESCキーでON/OFF） ---
 	if (gameState_ == GameState::Playing || gameState_ == GameState::Paused)
 	{
@@ -277,19 +301,27 @@ void GamePlayScene::Update()
 		{
 			if (isDebugCamera_) return; // デバッグカメラ中はポーズ無効
 
-			if (gameState_ == GameState::Playing)
+			if (pauseOverlay_)
 			{
-				isPaused_ = true;
-				gameState_ = GameState::Paused;
-				Input::GetInstance()->SetLockCursor(false);
-				ShowCursor(true);
-			}
-			else if (gameState_ == GameState::Paused)
-			{
+				// ポーズ中に ESC → ポーズ解除
+				pauseOverlay_.reset();
 				isPaused_ = false;
 				gameState_ = GameState::Playing;
+
 				Input::GetInstance()->SetLockCursor(true);
 				ShowCursor(false);
+			}
+			else
+			{
+				// プレイ中に ESC → ポーズ開始
+				Input::GetInstance()->SetLockCursor(false);
+				ShowCursor(true);
+
+				pauseOverlay_ = std::make_unique<PauseOverlay>();
+				pauseOverlay_->Open(sceneManager_);
+
+				isPaused_ = true;
+				gameState_ = GameState::Paused;
 			}
 		}
 	}
@@ -569,6 +601,12 @@ void GamePlayScene::Draw2DSprites()
 		{
 			retryButtonSprite_->Draw();
 		}
+	}
+
+	// ---------- ポーズオーバーレイ ----------
+	if (pauseOverlay_)
+	{
+		pauseOverlay_->Draw2D();
 	}
 
 #pragma endregion

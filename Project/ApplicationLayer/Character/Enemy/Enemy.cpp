@@ -513,7 +513,7 @@ void Enemy::UpdateAttack(float deltaTime)
 
 	// -------- 実ダメージとノックバック --------
 	// 今のコードは「UpdateAttack()が始まった瞬間に毎回 player_->TakeDamage() を呼んでる」ので、
-	// 見た目と当たりのタイミングがズレてる。:contentReference[oaicite:5]{index=5}
+	// 見た目と当たりのタイミングがズレてる
 	//
 	// swingフェーズが始まった瞬間（=腕を振り下ろし始めた瞬間）に1回だけヒットさせる
 	if (!didHitThisAttack_ && t >= attackWindup_ && t < attackWindup_ + attackSwing_)
@@ -522,7 +522,7 @@ void Enemy::UpdateAttack(float deltaTime)
 		player_->TakeDamage(attackDamage_);
 
 		didHitThisAttack_ = true;
-		attackCooldownTimer_ = attackCooldown_; // クールダウン開始 :contentReference[oaicite:6]{index=6}
+		attackCooldownTimer_ = attackCooldown_; // クールダウン開始
 	}
 
 	// -------- 攻撃が終わったらChaseに戻る --------
@@ -600,13 +600,13 @@ void Enemy::SolveWorldCollision(const Vector3& oldTranslate)
 
 	// プレイヤーと同じ当たり判定の前提:
 	//  - コライダー半サイズ 0.8,2.0,0.8 は Enemy::Initialize() でも使っている値
-	//    Collider::SetOBBHalfSize({ 0.8f, 2.0f, 0.8f }); :contentReference[oaicite:7]{index=7}
+	//    Collider::SetOBBHalfSize({ 0.8f, 2.0f, 0.8f });
 	const Vector3 half = { 0.8f, 2.0f, 0.8f };
 	const float kEps = 0.002f;
 
 	// プレイヤーと同じく「見た目の原点」と「物理中心」にオフセット差があるのでそろえる
 	// Player側では kCenterOffset = {0,0.25f,0} を使って、
-	// body_.transform.translate_ - kCenterOffset を物理中心扱いにしている。:contentReference[oaicite:8]{index=8}
+	// body_.transform.translate_ - kCenterOffset を物理中心扱いにしている。
 	const Vector3 kCenterOffset = { 0.0f, 0.0f, 0.0f };
 
 	// old/new の中心
@@ -623,7 +623,7 @@ void Enemy::SolveWorldCollision(const Vector3& oldTranslate)
 	Vector3 fixedCenter = oldCenter;
 
 	// プレイヤーのMove()と同じロジック：
-	// X → Z → Y の順番で軸ごとに押し戻す。:contentReference[oaicite:9]{index=9}
+	// X → Z → Y の順番で軸ごとに押し戻す。
 	auto resolveAxis = [&](int axis, float delta)
 		{
 			if (delta == 0.0f) { return; }
@@ -640,7 +640,7 @@ void Enemy::SolveWorldCollision(const Vector3& oldTranslate)
 
 			for (const auto& w : worldAABBs)
 			{
-				// AABB同士が交差しているかどうかをチェック（プレイヤーと同じ式）:contentReference[oaicite:10]{index=10}
+				// AABB同士が交差しているかどうかをチェック（プレイヤーと同じ式）
 				if (!(p.min.x <= w.max.x && p.max.x >= w.min.x &&
 					p.min.y <= w.max.y && p.max.y >= w.min.y &&
 					p.min.z <= w.max.z && p.max.z >= w.min.z)) {
@@ -670,7 +670,7 @@ void Enemy::SolveWorldCollision(const Vector3& oldTranslate)
 				}
 				else if (axis == 2)
 				{
-					// Z方向押し戻し（ほぼXと同じロジックのZ版）:contentReference[oaicite:11]{index=11}
+					// Z方向押し戻し（ほぼXと同じロジックのZ版）
 					if (oldCenter.z + half.z <= w.min.z) { cand = (w.min.z - half.z) - kEps; valid = true; }
 					else if (oldCenter.z - half.z >= w.max.z) { cand = (w.max.z + half.z) + kEps; valid = true; }
 					else {
@@ -722,7 +722,7 @@ void Enemy::SolveWorldCollision(const Vector3& oldTranslate)
 	// 最終的な位置を反映
 	body_.transform.translate_ = fixedCenter + kCenterOffset;
 
-	// コライダー中心も同期（プレイヤーと同じく物理中心ベースで渡す）:contentReference[oaicite:12]{index=12}
+	// コライダー中心も同期（プレイヤーと同じく物理中心ベースで渡す）
 	Collider::SetCenterPosition(fixedCenter);
 }
 
