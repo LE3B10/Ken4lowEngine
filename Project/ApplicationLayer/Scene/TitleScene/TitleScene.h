@@ -5,6 +5,8 @@
 #include "SkyBox.h"
 #include <FadeController.h>
 
+#include "ConfirmQuitOverlay.h"
+
 #include <memory>
 #include <numbers>
 
@@ -193,13 +195,6 @@ private: /// ---------- メンバ変数 ---------- ///
 	// タイトル用ロゴ（タイトル時だけ描画）
 	std::unique_ptr<Sprite> logoSprite_;
 
-	// --- ロビーHUD（見た目だけのプレースホルダ） ---
-	std::unique_ptr<Sprite> iconGear_;    // 右上：設定
-	std::unique_ptr<Sprite> iconCoin_;    // 右上：コインアイコン
-	std::unique_ptr<Sprite> btnShop_;     // 左下：ショップ
-	std::unique_ptr<Sprite> xpBack_;      // 左上：XPバー 背景
-	std::unique_ptr<Sprite> xpFill_;      // 左上：XPバー 充填
-
 private: /// ---------- 定数 ---------- ///
 
 	Vector2 xpBackBaseSize_{ 0,0 };         // XPバー元サイズ
@@ -209,5 +204,7 @@ private: /// ---------- 定数 ---------- ///
 	int debugXP_ = 45;
 	int debugXPNext_ = 175;
 	int debugCoins_ = 1234;
+
+	std::unique_ptr<ConfirmQuitOverlay> quitOverlay_;
 };
 

@@ -436,6 +436,15 @@
     <ClCompile Include="EngineLayer\GPUParticleSystem\GpuParticleRenderer\GpuParticleRenderer.cpp">
       <Filter>EngineLayer\GpuParticleSystem\GpuParticleRenderer</Filter>
     </ClCompile>
+    <ClCompile Include="ApplicationLayer\OverlaySystem\BaseOverlay.cpp">
+      <Filter>ApplicationLayer\OverlaySystem</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\OverlaySystem\ConfirmQuitOverlay.cpp">
+      <Filter>ApplicationLayer\OverlaySystem</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\OverlaySystem\PauseOverlay.cpp">
+      <Filter>ApplicationLayer\OverlaySystem</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="EngineLayer\Math\MultipleStructs\AABB.h">
@@ -918,6 +927,18 @@
     <ClInclude Include="EngineLayer\GPUParticleSystem\GpuParticleRenderer\GpuParticleRenderer.h">
       <Filter>EngineLayer\GpuParticleSystem\GpuParticleRenderer</Filter>
     </ClInclude>
+    <ClInclude Include="ApplicationLayer\OverlaySystem\BaseOverlay.h">
+      <Filter>ApplicationLayer\OverlaySystem</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\OverlaySystem\ConfirmQuitOverlay.h">
+      <Filter>ApplicationLayer\OverlaySystem</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\OverlaySystem\PauseOverlay.h">
+      <Filter>ApplicationLayer\OverlaySystem</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\OverlaySystem\Rect.h">
+      <Filter>ApplicationLayer\OverlaySystem</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="Resources\Shaders\PostEffect\FullScreen.hlsli">
@@ -1308,6 +1329,12 @@
     </Filter>
     <Filter Include="EngineLayer\GpuParticleSystem\GpuParticleRenderer">
       <UniqueIdentifier>{8de7978e-bff9-4fb1-b028-02c0d699b8c7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ApplicationLayer\Character\Boss">
+      <UniqueIdentifier>{2eb5300f-0d61-45f6-9135-abeca7252557}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ApplicationLayer\OverlaySystem">
+      <UniqueIdentifier>{5d4ee373-f3d9-40f5-b704-87da7fd9875e}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

@@ -4,21 +4,18 @@
 #include <Object3D.h>
 #include <SkyBox.h>
 #include <FadeController.h>
-
 #include "CollisionManager.h"
-
 #include "Player.h"
 #include "Enemy.h"
 #include "ModelParticle.h"
 #include "BallisticEffect.h"
 #include "Crosshair.h"
 #include "ItemManager.h"
-
-
 #include "LevelObjectManager.h"
+#include <ItemDropTable.h>
+#include "BaseOverlay.h"
 
 #include <memory>
-#include <ItemDropTable.h>
 
 /// ---------- 前方宣言 ---------- ///
 class DirectXCommon;
@@ -200,6 +197,9 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	// ボス
 	std::unique_ptr<Enemy> boss_ = nullptr;
+
+	// ポーズオーバーレイ（ESC で開く）
+	std::unique_ptr<BaseOverlay> pauseOverlay_;
 
 	// Wave関連
 	std::vector<WaveConfig> waveConfigs_;

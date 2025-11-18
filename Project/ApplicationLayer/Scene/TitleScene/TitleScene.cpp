@@ -84,21 +84,6 @@ void TitleScene::Initialize()
 	battleButtonUI_.btnShadow->SetSize({ battleButtonUI_.size.x * 1.02f, battleButtonUI_.size.y * 1.02f }); // わずかに大きく
 	battleButtonUI_.btnShadow->SetColor({ 0, 0, 0, 0.35f }); // 半透明の黒
 
-	// --- HUDアイコン/バー（仮アセット名でOK。手持ちの白テクでも可） ---
-	auto make = [&](std::unique_ptr<Sprite>& s, const std::string& path, Vector2 pos, Vector2 anchor) {
-		s = std::make_unique<Sprite>();
-		s->Initialize("icon/" + path);
-		s->SetAnchorPoint(anchor);
-		s->SetPosition(pos);
-		};
-
-	make(iconGear_, "ui_gear.png", { 1230, 60 }, { 0.5f,0.5f }); // 右上（1280x720想定）
-	make(iconCoin_, "ui_coin.png", { 1080, 60 }, { 0.5f,0.5f }); // 右上・コイン
-	make(btnShop_, "btn_shop.png", { 180, 640 }, { 0.5f,0.5f }); // 左下
-	make(xpBack_, "ui_xp_back.png", { 40, 60 }, { 0.0f,0.5f });  // 左上（左端基準）
-	xpBackBaseSize_ = xpBack_->GetSize();                        // 元サイズ保持
-	make(xpFill_, "ui_xp_fill.png", { 40, 60 }, { 0.0f,0.5f });  // 同位置（幅だけ後で変える）
-
 	clickHintUI_.hintSprite = std::make_unique<Sprite>();
 	clickHintUI_.hintSprite->Initialize("ui_click_hint.png");
 	clickHintUI_.hintSprite->SetAnchorPoint({ 0.5f, 0.0f });      // 中央上
@@ -126,6 +111,32 @@ void TitleScene::Update()
 	timers_.state += dt;
 	if (timers_.inputCooldownLeft > 0.0f) { timers_.inputCooldownLeft = std::max(0.0f, timers_.inputCooldownLeft - dt); }
 
+	// ====== 1) すでにオーバーレイが出ているならそれを最優先で更新＆早期return ======
+	if (quitOverlay_) {
+		quitOverlay_->Update();                                           // ConfirmQuitOverlay は自前でマウス/キー処理を持つ
+		if (quitOverlay_->IsClose()) { quitOverlay_.reset(); }            // 閉じられたら破棄
+		skyBox_->Update();
+		fadeController_->Update(dt);
+		return;                                                           // オーバーレイ中は他の入力・遷移を止める
+	}
+
+	// ====== 2) トリガー（ESC / Q）で生成して Open(sceneManager_) ======
+	if (input_->TriggerKey(DIK_ESCAPE)) {
+		quitOverlay_ = std::make_unique<ConfirmQuitOverlay>();
+		quitOverlay_->Open(sceneManager_);                                // BaseOverlay::Open で SceneManager を注入
+		// Yes: アプリ終了 / No: 何もしない（Close は Overlay 側が呼ぶ）
+		quitOverlay_->SetCallbacks([]() {
+#ifdef _WIN32
+			PostQuitMessage(0); // Windowsアプリ終了
+#else
+			std::exit(0); // 他プラットフォームでは標準終了
+#endif
+			},
+			[]()
+			{}
+		);
+	}
+
 	switch (state_)
 	{
 	case TitleScene::State::TitleAttract: // タイトルアトラクトモード
@@ -148,27 +159,6 @@ void TitleScene::Update()
 	skyBox_->Update();
 
 	fadeController_->Update(dxCommon_->GetFPSCounter().GetDeltaTime());
-
-#ifdef _DEBUG
-	if (input_->TriggerKey(DIK_ESCAPE) && state_ != State::ToTitle)
-	{
-		// いまの姿勢からタイトルのオービットへ戻すスナップショット作成
-		Vector3 orbitPos{
-			orbitState_.center.x + orbitState_.radius * std::sin(orbitState_.angle),
-			orbitState_.center.y,
-			orbitState_.center.z + orbitState_.radius * std::cos(orbitState_.angle)
-		};
-		float toYaw = 0.0f, toPitch = 0.0f;
-		YawPitchLookAt(orbitPos, orbitState_.center, toYaw, toPitch);
-
-		poseFrom_ = { camera_->GetTranslate(), orbitState_.lastYaw, orbitState_.lastPitch };
-		poseTo_ = { orbitPos, toYaw, toPitch };
-		timers_.time = 0.0f;
-		timers_.state = 0.0f;
-		state_ = State::ToTitle;
-		timers_.inputCooldownLeft = timers_.afterReturnCooldown;   // 戻ってすぐの誤爆を防止
-	}
-#endif // _DEBUG
 }
 
 
@@ -225,17 +215,15 @@ void TitleScene::Draw2DSprites()
 	{
 		if (battleButtonUI_.btnShadow) { battleButtonUI_.btnShadow->Draw(); } // ← 影を先に
 		if (battleButtonUI_.btnSprite) { battleButtonUI_.btnSprite->Draw(); } // ← ボタン本体
-
-		// HUD
-		if (xpBack_)  xpBack_->Draw();
-		if (xpFill_)  xpFill_->Draw();
-		if (iconCoin_) iconCoin_->Draw();
-		if (btnShop_)  btnShop_->Draw();
-		if (iconGear_) iconGear_->Draw();
 	}
 
 	// フェードコントローラー
 	fadeController_->Draw();
+
+	// ====== 3) 最後にオーバーレイを最前面へ重ね描き ======
+	if (quitOverlay_) {
+		quitOverlay_->Draw2D();
+	}
 
 #pragma endregion
 
@@ -608,21 +596,6 @@ void TitleScene::UpdateLobbyIdle(float dt)
 		logoUI_.showLeft = logoUI_.showDelay;         // 戻り後の出現ディレイを仕込む
 		return;
 	}
-
-	// アイコン—右上系は48px統一
-	if (iconGear_) iconGear_->SetSize({ 48,48 });
-	if (iconCoin_) iconCoin_->SetSize({ 48,48 });
-
-	// XPバー—左上 480×20 に固定、fillは幅だけ可変
-	if (xpBack_) { xpBack_->SetSize({ 480,20 }); xpBackBaseSize_ = xpBack_->GetSize(); }
-	if (xpFill_) { xpFill_->SetSize({ 480,20 }); }
-
-	// 見た目だけなのでUpdate呼ぶ（アニメ用）
-	if (xpBack_) xpBack_->Update();
-	if (xpFill_) xpFill_->Update();
-	if (iconGear_) iconGear_->Update();
-	if (iconCoin_) iconCoin_->Update();
-	if (btnShop_) btnShop_->Update();
 
 	if (battleButtonUI_.btnSprite) battleButtonUI_.btnSprite->Update();
 }
