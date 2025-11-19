@@ -3,9 +3,9 @@
 #include <Object3D.h>
 #include <BaseScene.h>
 #include "SkyBox.h"
-#include <FadeController.h>
 
 #include "ConfirmQuitOverlay.h"
+#include "ITitleSceneState.h"
 
 #include <memory>
 #include <numbers>
@@ -14,6 +14,7 @@
 class DirectXCommon;
 class Input;
 class Camera;
+class SceneManager;
 
 /// -------------------------------------------------------------
 ///					　ゲームタイトルシーンクラス
@@ -117,13 +118,13 @@ private: /// ---------- 構造体 ---------- ///
 		float duration = 1.0f;			   // シーン全体の継続時間
 		float state = 0.0f;				   // 状態遷移用
 		float idle = 0.0f;				   // 無操作でタイトルに
-		float returnSeconds = 75.0f;	   // 無操作でタイトルに戻るまでの時間
+		float returnSeconds = 15.0f;	   // 無操作でタイトルに戻るまでの時間
 		float minTitleSeconds = 1.0f;      // タイトルの最小表示時間
 		float afterReturnCooldown = 0.75f; // タイトルへ戻った直後の入力クールダウン
 		float inputCooldownLeft = 0.0f;    // 現在のクールダウン残り
 	};
 
-private: /// ---------- 列挙型 ---------- ///
+public: /// ---------- 列挙型 ---------- ///
 
 	// シーンの状態を管理する列挙型
 	enum class State
@@ -132,6 +133,10 @@ private: /// ---------- 列挙型 ---------- ///
 		TransitionToLobby, // ロビーへの遷移
 		LobbyIdle,		   // ロビーでの待機
 		ToTitle,		   // 操作時間が無かったらタイトルへ戻る
+		Loading,		   // ロード中
+		FadeOut,		   // フェードアウト
+		FadeIn,			   // フェードイン
+		SettingUp,		   // セットアップ中
 	};
 	State state_ = State::TitleAttract; // 現在のシーン状態
 
@@ -157,15 +162,82 @@ public: /// ---------- メンバ関数 ---------- ///
 
 private: /// ---------- メンバ関数 ---------- ///
 
+	// カメラの初期化
+	void InitializeCamera();
+
+	// タイトルロゴの初期化
+	void InitializeLogoUI();
+
+	// バトルへボタンUIの初期化
+	void InitializeBattleButtonUI();
+
+	// 影のスプライトの初期化
+	void InitializeButtonShadowSprite();
+
+	// クリックヒントUIの初期化
+	void InitializeClickHintUI();
+
+	// フェードオーバーレイの初期化
+	void InitializeFadeOverlay();
+
+public: /// ---------- セッタ ---------- ///
+
+	// シーン状態を変更
+	void ChangeState(std::unique_ptr<ITitleSceneState> newState);
+
+	// 状態をセット
+	void SetState(State s) { state_ = s; }
+
+public: /// ---------- ゲッタ ---------- ///
+
+	// シーンマネージャーを取得
+	SceneManager* GetSceneManager() const { return sceneManager_; }
+
+	// 操作入力を取得
+	Input* GetInput()  const { return input_; }
+
+	// メインカメラを取得
+	Camera* GetCamera() { return EnsureCamera(); } // 必要ならデフォルト取得
+
+	// ロゴスプライトを取得
+	Sprite* GetLogoSprite() const { return logoSprite_.get(); }
+
+	// 現在のシーン状態を取得
+	State GetState() const { return state_; }
+
+	// カメラの軌道状態を取得
+	OrbitState& GetOrbitState() { return orbitState_; }
+
+	// ロゴ＆ヒントUI状態を取得
+	LogoUI& GetLogoUI() { return logoUI_; }
+
+	// クリックヒントUI状態を取得
+	ClickHintUI& GetClickHintUI() { return clickHintUI_; }
+
+	// バトルへボタンUI状態を取得
+	BattleButtonUI& GetBattleButtonUI() { return battleButtonUI_; }
+
+	// 各種タイマー状態を取得
+	Timers& GetTimers() { return timers_; }
+
+	// ロビーでのカメラスイング状態を取得
+	LobbySwing& GetLobbySwing() { return lobbySwing_; }
+
+	// カメラの遷移元姿勢を取得
+	Pose& GetPoseFrom() { return poseFrom_; }
+
+	// カメラの遷移先姿勢を取得
+	Pose& GetPoseTo() { return poseTo_; }
+
+	// フェード用アクセサ
+	void SetFadeAlpha(float a) { fadeAlpha_ = std::clamp(a, 0.0f, 1.0f); }
+	float GetFadeAlpha() const { return fadeAlpha_; }
+	Sprite* GetFadeSprite() const { return fadeSprite_.get(); }
+
+private: /// ---------- メンバ関数 ---------- ///
+
 	// Debug用更新処理
 	void UpdateDebug();
-
-	// 状態ごとの更新処理
-	void UpdateTitleAttract(float dt);	    // タイトルアトラクトモードの
-	void UpdateTransitionToLobby(float dt); // ロビーへの遷移
-	void UpdateLobbyIdle(float dt);		    // ロビーでの待機
-	void UpdateToTitle(float dt);		    // 操作時間が無かったらタイトルへ戻
-
 	Camera* EnsureCamera();
 
 private: /// ---------- メンバ変数 ---------- ///
@@ -187,24 +259,20 @@ private: /// ---------- メンバ変数 ---------- ///
 	std::unique_ptr<SkyBox> skyBox_;	// スカイボックス
 	std::unique_ptr<Object3D> terrain_; // 地形オブジェクト
 
-	// フェード制御
-	std::unique_ptr<FadeController> fadeController_;
 	bool requestChange_ = false; // シーン切り替え要求
 	float timer_ = 0.0f;   // シーン開始からの経過時間
 
 	// タイトル用ロゴ（タイトル時だけ描画）
 	std::unique_ptr<Sprite> logoSprite_;
 
-private: /// ---------- 定数 ---------- ///
-
-	Vector2 xpBackBaseSize_{ 0,0 };         // XPバー元サイズ
-
-	// ダミー数値（システム実装前の見た目用）
-	int debugLevel_ = 7;
-	int debugXP_ = 45;
-	int debugXPNext_ = 175;
-	int debugCoins_ = 1234;
-
+	// ボタン影スプライト
 	std::unique_ptr<ConfirmQuitOverlay> quitOverlay_;
+
+	// 現在のシーン状態
+	std::unique_ptr<ITitleSceneState> currentState_ = nullptr;
+
+	// フェードオーバーレイ
+	std::unique_ptr<Sprite> fadeSprite_; // 画面全体を覆う黒スプライト
+	float fadeAlpha_ = 0.0f;             // 0=透明, 1=真っ黒
 };
 

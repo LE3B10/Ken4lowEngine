@@ -10,246 +10,156 @@
 #include <CollisionUtility.h>
 #include "LevelLoader.h"
 #include <CollisionTypeIdDef.h>
+#include <DirectXCommon.h>
+
+#include <GpuParticleManager.h>
+#include <PostEffectManager.h>
 
 #ifdef USE_IMGUI
 #include <imgui.h>
 #endif // USE_IMGUI
 
-namespace {
-
-	// OBB → その外接AABB（8頂点を出してmin/max）
-	AABB ToAABB(const OBB& obb) {
-		// 8頂点（±size）
-		Vector3 s = obb.size;
-		Vector3 local[8] = {
-			{-s.x,-s.y,-s.z}, { s.x,-s.y,-s.z}, { s.x, s.y,-s.z}, {-s.x, s.y,-s.z},
-			{-s.x,-s.y, s.z}, { s.x,-s.y, s.z}, { s.x, s.y, s.z}, {-s.x, s.y, s.z},
-		};
-		AABB aabb;
-		aabb.min = { FLT_MAX,  FLT_MAX,  FLT_MAX };
-		aabb.max = { -FLT_MAX, -FLT_MAX, -FLT_MAX };
-
-		for (int i = 0; i < 8; ++i) {
-			Vector3 w =
-				obb.center +
-				obb.orientations[0] * local[i].x +
-				obb.orientations[1] * local[i].y +
-				obb.orientations[2] * local[i].z;
-			aabb.min.x = std::min(aabb.min.x, w.x);
-			aabb.min.y = std::min(aabb.min.y, w.y);
-			aabb.min.z = std::min(aabb.min.z, w.z);
-			aabb.max.x = std::max(aabb.max.x, w.x);
-			aabb.max.y = std::max(aabb.max.y, w.y);
-			aabb.max.z = std::max(aabb.max.z, w.z);
-		}
-		return aabb;
-	}
-
-	// プレイヤー（いまは軸揃えOBB）→ AABB
-	AABB MakePlayerAABB(const OBB& obb) {
-		// orientationsが単位基底なら center ± size でOK
-		return { obb.center - obb.size, obb.center + obb.size };
-	}
-
-} // namespace
 
 void PhysicalScene::Initialize()
 {
+	dxCommon_ = DirectXCommon::GetInstance();
 	input_ = Input::GetInstance();
 
 	camera = Object3DCommon::GetInstance()->GetDefaultCamera();
 	camera->SetTranslate({ 0.0f, 2.0f, -20.0f });
 	camera->SetRotate({ 0.0f, 0.0f, 0.0f });
 
-	obb_.center = { 0.0f, 4.0f, 0.0f };
-	obb_.orientations[0] = { 1.0f, 0.0f, 0.0f };
-	obb_.orientations[1] = { 0.0f, 1.0f, 0.0f };
-	obb_.orientations[2] = { 0.0f, 0.0f, 1.0f };
-	obb_.size = { 1.0f, 2.0f, 1.0f };
+	object3D_ = std::make_unique<Object3D>();
+	object3D_->Initialize("cube.gltf");
 
-	playerCollider_ = std::make_unique<Collider>();
-	playerCollider_->SetTypeID(static_cast<uint32_t>(CollisionTypeIdDef::kPlayer));
-	// 初期 OBB を PhysicalScene::obb_ からコピー（half サイズの取り扱いに注意）
-	playerCollider_->SetCenterPosition(obb_.center);
-	playerCollider_->SetOBBHalfSize(obb_.size);        // ← Collider は「半サイズ」を持ちます。:contentReference[oaicite:7]{index=7}
-	playerCollider_->SetOrientation({ 0,0,0 });          // 必要なら回転を設定
+	// 最初はロック状態の見た目にしておく
+	state_ = StageState::Locked;
+	unlockTimer_ = 0.0f;
+	unlockDuration_ = 1.0f;
+	ApplyLockedVisual();
 
-	auto levelLoader = std::make_unique<LevelLoader>();
-	levelObjectManager_ = std::make_unique<LevelObjectManager>();
-	levelObjectManager_->Initialize(*levelLoader->LoadLevel("Stage1.json"), "Stage1.gltf");
+	// GPUパーティクルエミッターの作成
+	GpuParticleEmitter::EmitterInfo info{};
+	info.type = GpuParticleType::Default;
+	info.billboardMode = BillboardMode::Camera; // ビルボードしない
+	info.radius = 10.0f;
+	info.loopCount = 0;        // 一回で10個
+	info.loopFrequency = 0.0f;  // 0.5秒に一回
 
-	collisionManager_ = std::make_unique<CollisionManager>();
-	collisionManager_->Initialize();
+	unlockEmitter_ = GpuParticleManager::GetInstance()->CreateEmitter("StageUnlock", info);
+
+	if (unlockEmitter_)
+	{
+		unlockEmitter_->SetPosition({ 0.0f, 1.5f, 0.0f }); // キューブの少し上あたり
+	}
+
+	floatTimer_ = 0.0f;
+	isSelected_ = true; // このシーンでは常に「選択中」という扱いでOK
 }
 
 void PhysicalScene::Update()
 {
-	// --- 入力による移動方向の決定 ---
-	Vector3 move = { 0.0f, 0.0f, 0.0f };
+	float dt = dxCommon_->GetFPSCounter().GetDeltaTime();
 
-	if (input_->PushKey(DIK_W)) { move.z += 1.0f; }
-	if (input_->PushKey(DIK_S)) { move.z -= 1.0f; }
-	if (input_->PushKey(DIK_A)) { move.x -= 1.0f; }
-	if (input_->PushKey(DIK_D)) { move.x += 1.0f; }
+	Vector3 move = { 0.0f,0.0f,0.0f };
 
-	if (Vector3::Length(move) > 0.0f) {
-		move = Vector3::Normalize(move) * 0.05f; // 移動スピード
-	}
+	// カメラの移動
+	if (input_->PushKey(DIK_W)) move.z += 0.2f;
+	if (input_->PushKey(DIK_S)) move.z -= 0.2f;
+	if (input_->PushKey(DIK_A)) move.x -= 0.2f;
+	if (input_->PushKey(DIK_D)) move.x += 0.2f;
 
-	// --- ジャンプ ---
-	if (isGrounded_ && input_->TriggerKey(DIK_SPACE)) {
-		jumpVelocity_ = jumpPower_;
-		isGrounded_ = false;
-	}
+	if (input_->PushKey(DIK_Q)) move.y += 0.2f;
+	if (input_->PushKey(DIK_E)) move.y -= 0.2f;
 
-	// --- Y軸速度に重力を適用 ---
-	jumpVelocity_ -= gravity_;
-	move.y += jumpVelocity_;
+	Vector3 position = camera->GetTranslate();
+	position += move;
 
-	// レベル側の衝突形状をAABB化（OBB→AABB）
-	const auto worldAABBs = levelObjectManager_->GetWorldAABBs(); // 安全なAABB群:contentReference[oaicite:1]{index=1}
-
-	const float kEps = 0.002f; // すき間
-
-	auto resolveAxis = [&](int axis, float delta)
-		{
-			if (delta == 0.0f) return;
-
-			// 移動前の中心（どちら側から来たか判定に使う）
-			const Vector3 old = obb_.center;
-
-			// 予定位置へその軸だけ動かす
-			if (axis == 0) obb_.center.x += delta;
-			if (axis == 1) obb_.center.y += delta;
-			if (axis == 2) obb_.center.z += delta;
-
-			// 予定位置のプレイヤーAABB（軸揃えOBB想定）
-			AABB p{ obb_.center - obb_.size, obb_.center + obb_.size };
-
-			bool hit = false;
-			float bestFix = 0.0f;
-			float bestDist = FLT_MAX;
-
-			// 最も近い“正しい側”の面へクランプ候補を取る
-			for (const auto& w : worldAABBs) {
-				// AABB×AABB重なり判定（簡易）
-				if (!(p.min.x <= w.max.x && p.max.x >= w.min.x &&
-					p.min.y <= w.max.y && p.max.y >= w.min.y &&
-					p.min.z <= w.max.z && p.max.z >= w.min.z)) {
-					continue;
-				}
-
-				float cand = 0.0f; // この軸の新しい center 座標
-				bool  valid = false;
-
-				if (axis == 0) {
-					// old（移動前）がどちら側にいたかで面を固定
-					if (old.x + obb_.size.x <= w.min.x) { // 左（min側）から来た
-						cand = (w.min.x - obb_.size.x) - kEps;
-						valid = true;
-					}
-					else if (old.x - obb_.size.x >= w.max.x) { // 右（max側）から来た
-						cand = (w.max.x + obb_.size.x) + kEps;
-						valid = true;
-					}
-					else {
-						// すでに内部にスポーンしていた：近い方の面へ
-						float dMin = std::abs((w.min.x - obb_.size.x) - old.x);
-						float dMax = std::abs((w.max.x + obb_.size.x) - old.x);
-						cand = (dMin <= dMax) ? (w.min.x - obb_.size.x - kEps)
-							: (w.max.x + obb_.size.x + kEps);
-						valid = true;
-					}
-					if (valid) {
-						float dist = std::abs(cand - obb_.center.x); // 今の予定位置からの修正量の小さい方
-						if (dist < bestDist) { bestDist = dist; bestFix = cand; hit = true; }
-					}
-				}
-				else if (axis == 2) {
-					if (old.z + obb_.size.z <= w.min.z) { // 手前→min側面
-						cand = (w.min.z - obb_.size.z) - kEps; valid = true;
-					}
-					else if (old.z - obb_.size.z >= w.max.z) { // 奥→max側面
-						cand = (w.max.z + obb_.size.z) + kEps; valid = true;
-					}
-					else {
-						float dMin = std::abs((w.min.z - obb_.size.z) - old.z);
-						float dMax = std::abs((w.max.z + obb_.size.z) - old.z);
-						cand = (dMin <= dMax) ? (w.min.z - obb_.size.z - kEps)
-							: (w.max.z + obb_.size.z + kEps);
-						valid = true;
-					}
-					if (valid) {
-						float dist = std::abs(cand - obb_.center.z);
-						if (dist < bestDist) { bestDist = dist; bestFix = cand; hit = true; }
-					}
-				}
-				else { // Y（床/天井）
-					if (old.y - obb_.size.y >= w.max.y) { // 上から落ちて床（max面）へ
-						cand = (w.max.y + obb_.size.y) + kEps; valid = true;
-					}
-					else if (old.y + obb_.size.y <= w.min.y) { // 下から上昇して天井（min面）へ
-						cand = (w.min.y - obb_.size.y) - kEps; valid = true;
-					}
-					else {
-						// 既に内部：近い方の面へ
-						float dToFloor = std::abs((w.max.y + obb_.size.y) - old.y);
-						float dToCeil = std::abs((w.min.y - obb_.size.y) - old.y);
-						cand = (dToFloor <= dToCeil) ? (w.max.y + obb_.size.y + kEps)
-							: (w.min.y - obb_.size.y - kEps);
-						valid = true;
-					}
-					if (valid) {
-						float dist = std::abs(cand - obb_.center.y);
-						if (dist < bestDist) { bestDist = dist; bestFix = cand; hit = true; }
-					}
-				}
-			}
-
-			if (hit) {
-				if (axis == 0) obb_.center.x = bestFix;         // X壁にくっつく（横スライドOK）
-				if (axis == 2) obb_.center.z = bestFix;         // Z壁にくっつく
-				if (axis == 1) {                                // 床/天井
-					obb_.center.y = bestFix;
-					if (delta < 0.0f) { isGrounded_ = true; jumpVelocity_ = 0.0f; } // 床
-					else { if (jumpVelocity_ > 0.0f) jumpVelocity_ = 0.0f; } // 天井
-				}
-			}
-		};
-
-	// フレーム先頭で接地フラグは一旦false（Yで床に触れたら立て直す）
-	isGrounded_ = false;
-
-	// X → Z → Y（Yは最後：床処理）
-	resolveAxis(0, move.x);
-	resolveAxis(2, move.z);
-	resolveAxis(1, move.y);
-
-	// プレイヤーColliderへ反映
-	playerCollider_->SetCenterPosition(obb_.center);
-	playerCollider_->SetOBBHalfSize(obb_.size); // HalfExtentで統一
-
-	// ===== ここから既存処理 =====
+	camera->SetTranslate(position);
 	camera->Update();
-	levelObjectManager_->Update();
 
-	collisionManager_->Update();
-	collisionManager_->Reset();
+	bool canFloat =
+		isSelected_ &&
+		(state_ == StageState::Available || state_ == StageState::Cleared);
 
-	collisionManager_->AddCollider(playerCollider_.get());
-	for (auto& collider : levelObjectManager_->GetWorldColliders()) {
-		collisionManager_->AddCollider(collider.get());
+	if (canFloat)
+	{
+		floatTimer_ += dt;
+
+		const float amplitude = 0.3f;   // 上下の幅
+		const float speed = 0.5f;   // 1秒あたりの上下サイクル数
+
+		float offsetY = std::sinf(floatTimer_ * speed * 2.0f * std::numbers::pi_v<float>) * amplitude;
+
+		Vector3 pos = baseTranslate_;
+		pos.y += offsetY;
+
+		object3D_->SetTranslate(pos);
 	}
-	collisionManager_->CheckAllCollisions();
+	else
+	{
+		// ロック中・アンロック演出中・非選択のときは常に基準位置
+		object3D_->SetTranslate(baseTranslate_);
+	}
+
+	// 1キー: ロック状態
+	if (input_->TriggerKey(DIK_1))
+	{
+		state_ = StageState::Locked;
+		ApplyLockedVisual();
+	}
+
+	// 2キー: 未クリア状態（プレイ可能）
+	if (input_->TriggerKey(DIK_2))
+	{
+		state_ = StageState::Available;
+		ApplyAvailableVisual();
+	}
+
+	// SPACE: Locked → Unlocking（解放演出スタート）
+	if (input_->TriggerKey(DIK_SPACE) && state_ == StageState::Locked)
+	{
+		StartUnlock();
+	}
+
+	// Unlocking 中は演出進行
+	if (state_ == StageState::Unlocking)
+	{
+		UpdateUnlock(dt);
+	}
+
+	// エミッタ位置をキューブに追従させたい場合
+	if (unlockEmitter_)
+	{
+		Vector3 p = object3D_->GetTranslate();
+		p.y += 1.5f;
+		unlockEmitter_->SetPosition(p);
+	}
+
+	if (state_ == StageState::Cleared)
+	{
+		const float slowSpinSpeed = std::numbers::pi_v<float> *0.125f; // 0.25回転/秒くらい
+
+		Vector3 rot = object3D_->GetRotate();
+		rot.y += slowSpinSpeed * dt;
+		object3D_->SetRotate(rot);
+	}
+
+	// BackSpace でタイトルに戻る（デバッグ用）
+	if (input_->TriggerKey(DIK_BACK))
+	{
+		// タイトル側の Initialize で PixelateEffect をOFFにしているので、
+		// ここではシーン切り替えだけでOK
+		SceneManager::GetInstance()->ChangeScene("TitleScene");
+		return; // このフレームの後続処理はスキップ
+	}
+
+	object3D_->Update();
 }
 
 void PhysicalScene::Draw3DObjects()
 {
-	levelObjectManager_->Draw();
-
-	Wireframe::GetInstance()->DrawOBB(obb_, { 1.0f, 1.0f, 0.0f, 1.0f });
-
-	collisionManager_->Draw();
+	object3D_->Draw();
 }
 
 void PhysicalScene::Draw2DSprites()
@@ -270,13 +180,103 @@ void PhysicalScene::Finalize()
 
 void PhysicalScene::DrawImGui()
 {
+#ifdef USE_IMGUI
 	camera->DrawImGui();
 
-#ifdef USE_IMGUI
-	// プレイヤーOBB情報
-	ImGui::Begin("Player OBB");
-	ImGui::Text("Center: (%.2f, %.2f, %.2f)", obb_.center.x, obb_.center.y, obb_.center.z);
-	ImGui::Text("Size: (%.2f, %.2f, %.2f)", obb_.size.x, obb_.size.y, obb_.size.z);
-	ImGui::End();
+	object3D_->DrawImGui();
 #endif // USE_IMGUI
+}
+
+void PhysicalScene::ApplyLockedVisual()
+{
+	object3D_->SetColor({ 0.0f, 0.0f, 0.0f, 1.0f });
+	object3D_->SetDissolveThreshold(1.0f);
+	object3D_->SetDissolveEdgeThickness(0.0f);
+	object3D_->SetDissolveEdgeColor({ 1.0f, 1.0f, 1.0f, 1.0f });
+
+	// ロック中は小さめ
+	object3D_->SetScale({ 1.0f, 1.0f, 1.0f });
+	object3D_->SetRotate({ 0.0f, 0.0f, 0.0f });
+}
+
+void PhysicalScene::ApplyAvailableVisual()
+{
+	// まだクリアしてないけど選べるステージ：少し暗めの色
+	object3D_->SetColor({ 0.3f, 0.3f, 0.4f, 1.0f });
+	object3D_->SetDissolveThreshold(1.0f);
+	object3D_->SetDissolveEdgeThickness(0.0f);
+}
+
+void PhysicalScene::ApplyClearedVisual()
+{
+	object3D_->SetColor({ 0.2f, 0.7f, 1.0f, 1.0f });
+	object3D_->SetDissolveThreshold(1.0f);
+	object3D_->SetDissolveEdgeThickness(0.05f);
+	object3D_->SetDissolveEdgeColor({ 1.0f, 0.9f, 0.4f, 1.0f });
+
+	// 解放後はドンと大きく
+	object3D_->SetScale({ 3.0f, 3.0f, 3.0f });
+}
+
+void PhysicalScene::StartUnlock()
+{
+	state_ = StageState::Unlocking;
+	unlockTimer_ = 0.0f;
+
+	// 解放の瞬間にパーティクルをバースト
+	if (unlockEmitter_)
+	{
+		// 50〜150はお好みで調整
+		GpuParticleManager::GetInstance()->BurstEmitter("StageUnlock", 80);
+	}
+}
+
+void PhysicalScene::UpdateUnlock(float deltaTime)
+{
+	unlockTimer_ += deltaTime;
+
+	float t = unlockTimer_ / unlockDuration_;
+	if (t > 1.0f) t = 1.0f;
+
+	// --- カラー：黒 → クリア済みカラー ---
+	Vector4 lockedCol = { 0.0f, 0.0f, 0.0f, 1.0f };
+	Vector4 clearedCol = { 0.2f, 0.7f, 1.0f, 1.0f };
+
+	Vector4 col;
+	col.x = lockedCol.x + (clearedCol.x - lockedCol.x) * t;
+	col.y = lockedCol.y + (clearedCol.y - lockedCol.y) * t;
+	col.z = lockedCol.z + (clearedCol.z - lockedCol.z) * t;
+	col.w = 1.0f;
+	object3D_->SetColor(col);
+
+	// --- スケール：小さい → 大きい（＋ちょいバウンド） ---
+	const float startScale = 1.0f;   // ロック中サイズ
+	const float endScale = 3.0f;   // 解放後サイズ
+
+	float baseScale = startScale + (endScale - startScale) * t;
+	float bounce = 1.0f + 0.2f * sinf(t * std::numbers::pi_v<float>);
+	float s = baseScale * bounce;
+
+	object3D_->SetScale({ s, s, s });
+
+	// --- 回転：高速スピンして「パーン」 ---
+	const float spinSpeed = std::numbers::pi_v<float> *10.0f; // 5回転/秒くらい
+	float spinFactor = 1.0f - t * 0.7f;                        // 終わりに向かって減速
+	spinFactor = std::max(spinFactor, 0.2f);
+
+	Vector3 rot = object3D_->GetRotate();
+	rot.y += spinSpeed * spinFactor * deltaTime;
+	object3D_->SetRotate(rot);
+
+	// --- ディゾルブエッジ強調 ---
+	object3D_->SetDissolveThreshold(1.0f);
+	object3D_->SetDissolveEdgeThickness(0.1f * t);
+	object3D_->SetDissolveEdgeColor({ 1.0f, 0.9f, 0.4f, 1.0f });
+
+	// 演出が終わったら Cleared 状態へ確定
+	if (unlockTimer_ >= unlockDuration_)
+	{
+		state_ = StageState::Cleared;
+		ApplyClearedVisual();
+	}
 }

@@ -3,7 +3,6 @@
 #include <Sprite.h>
 #include <Object3D.h>
 #include <SkyBox.h>
-#include <FadeController.h>
 #include "CollisionManager.h"
 #include "Player.h"
 #include "Enemy.h"
@@ -15,6 +14,7 @@
 #include <ItemDropTable.h>
 #include "BaseOverlay.h"
 
+#include <array>
 #include <memory>
 
 /// ---------- 前方宣言 ---------- ///
@@ -50,24 +50,30 @@ struct StageConfig
 	float enemyDetectRadius = 10.0f;  // 索敵範囲
 };
 
-
-/// -------------------------------------------------------------
-///				　		ゲームの状態を管理する列挙型
-/// -------------------------------------------------------------
-enum class GameState
-{
-	Playing, // プレイ中
-	Paused, // ポーズ中
-	GameClear, // ゲームクリア
-	GameOver, // ゲームオーバー
-	CutScene, // カットシーン中
-};
-
 /// -------------------------------------------------------------
 ///				　		ゲームプレイシーン
 /// -------------------------------------------------------------
 class GamePlayScene : public BaseScene
 {
+public: /// ---------- メンバ型 ---------- ///
+
+	// ゲームの状態を管理する列挙型
+	enum class GameState
+	{
+		CutScene,	// カットシーン中
+		Playing,	// プレイ中
+		Paused,		// ポーズ中
+		GameClear,	// ゲームクリア
+		Result,		// リザルト画面
+		GameOver,	// ゲームオーバー
+		FadeOut,	// フェードアウト中
+		FadeIn,		// フェードイン中
+		Loading,	// ローディング中
+		SettingUp,	// セットアップ中
+	};
+
+	// ToDo: ゲームシーンにステートパターンを導入する予定
+
 private: /// ---------- 構造体 ---------- ///
 
 	// カメラキーフレーム構造体
@@ -145,8 +151,6 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	GameState gameState_ = GameState::Playing; // ゲームの状態
 
-	std::unique_ptr<FadeController> fadeController_ = nullptr; // フェードコントローラー
-
 	std::unique_ptr<CollisionManager> collisionManager_; // 衝突マネージャー
 
 	std::unique_ptr<SkyBox> skyBox_ = nullptr; // スカイボックス
@@ -184,6 +188,20 @@ private: /// ---------- メンバ変数 ---------- ///
 	std::unique_ptr<Sprite> retryButtonSprite_;   // 右下: リトライ
 	std::unique_ptr<Sprite> retireButtonSprite_;  // 左下: リタイア(タイトルへ)
 
+	// クリア演出用
+	float gameClearTimer_ = 0.0f;        // 経過時間
+	bool  gameClearInputAccepted_ = false; // 入力受付開始フラグ
+	std::unique_ptr<Sprite> clearPanelSprite_; // 半透明パネル
+	std::unique_ptr<Sprite> clearTextSprite_;  // 「STAGE CLEAR!」などの文字
+
+	// ★ 星３つ演出
+	static constexpr int kClearStarCount = 3;
+	std::array<std::unique_ptr<Sprite>, kClearStarCount> clearStarSprites_;
+	std::array<float, kClearStarCount> clearStarDelay_;      // 何秒後に出るか
+	std::array<bool, kClearStarCount> clearStarBurstPlayed_;
+	float clearStarPopDuration_ = 0.25f;                     // 1 個のポップ時間
+	float clearStarBaseSize_ = 96.0f;                        // 星の基本サイズ(px)
+
 	ItemDropTable normalDropTable_;
 
 	struct ButtonRect {
@@ -192,6 +210,15 @@ private: /// ---------- メンバ変数 ---------- ///
 	};
 	ButtonRect retryRect_;   // クリック判定用
 	ButtonRect retireRect_;  // クリック判定用
+
+	// ---------- GameClear 用 三択ボタン ----------
+	// 0: もう一度同じステージ
+	// 1: 次のステージへ
+	// 2: セレクトシーンに戻る
+	static constexpr int kClearOptionCount = 3;
+	std::array<std::unique_ptr<Sprite>, kClearOptionCount> clearOptionSprites_;
+	std::array<ButtonRect, kClearOptionCount> clearOptionRects_;
+
 
 	std::vector<std::unique_ptr<Enemy>> enemies_;  // 通常敵
 

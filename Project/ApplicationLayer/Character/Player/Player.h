@@ -22,6 +22,23 @@ class Enemy;
 /// -------------------------------------------------------------
 class Player : public BaseCharacter
 {
+public: /// ---------- 列挙型 ---------- ///
+
+	// プレイヤーの状態
+	enum class State
+	{
+		Idle,       // 待機
+		Walking,    // 歩行
+		Running,    // 走行
+		Jumping,    // ジャンプ
+		Attacking,  // 攻撃
+		Reloading,  // リロード
+		Damaged,    // ダメージ
+		Dead        // 死亡
+	};
+
+	// Todo: ステートパターンで書き直す予定
+
 private: /// ---------- 構造体 ---------- ///
 
 	// ビュー状態構造体

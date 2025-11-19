@@ -4,6 +4,7 @@
 #include "DirectXCommon.h"
 #include <Object3DCommon.h>
 #include "SRVManager.h"
+#include <UAVManager.h>
 
 #include <cassert>
 
@@ -22,7 +23,7 @@
 #include <RandomEffect.h>
 #include <AbsorbEffect.h>
 #include <DepthOutlineEffect.h>
-#include <UAVManager.h>
+#include <PixelateEffect.h>
 
 /// <summary>
 /// レンダーターゲットのリソース状態を指定した状態に遷移させるラムダ関数。二重バリアを防ぎ、内部状態を同期する。
@@ -76,7 +77,8 @@ void PostEffectManager::Initialieze(DirectXCommon* dxCommon)
 		{ "DissolveEffect",			{ [] { return std::make_unique<DissolveEffect>(); },         false, 7, "Visual" } },
 		{ "RandomEffect",			{ [] { return std::make_unique<RandomEffect>(); },			 false, 8, "Visual" } },
 		{ "AbsorbEffect",			{ [] { return std::make_unique<AbsorbEffect>(); },           false, 9, "Visual" } },
-		{"DepthOutLineEffect"     , { [] { return std::make_unique<DepthOutlineEffect>(Object3DCommon::GetInstance()->GetDefaultCamera()); }, false, 10, "Visual"} },
+		{ "DepthOutLineEffect",		{ [] { return std::make_unique<DepthOutlineEffect>(Object3DCommon::GetInstance()->GetDefaultCamera()); }, false, 10, "Visual"} },
+		{ "PixelateEffect",			{ [] { return std::make_unique<PixelateEffect>(); },		 false, 11, "Visual" } },
 	};
 
 	// ファクトリー関数を使ってエフェクトを生成
@@ -218,7 +220,7 @@ void PostEffectManager::RenderPostEffect()
 		auto& inRT = renderTargets_[src]; // 入力レンダーテクスチャ
 		auto& outRT = renderTargets_[dst]; // 出力レンダーテクスチャ
 
-		if (name == "GrayScaleEffect" || name == "RandomEffect" || name == "DissolveEffect" || name == "VignetteEffect" || name == "GaussianFilterEffect" || name == "RadialBlurEffect" || name == "LuminanceOutlineEffect" || name == "SmoothingEffect")
+		if (name == "GrayScaleEffect" || name == "RandomEffect" || name == "DissolveEffect" || name == "VignetteEffect" || name == "GaussianFilterEffect" || name == "RadialBlurEffect" || name == "LuminanceOutlineEffect" || name == "SmoothingEffect" || name == "PixelateEffect")
 		{
 			Transition(inRT, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
 			Transition(outRT, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
@@ -292,6 +294,17 @@ void PostEffectManager::ImGuiRender()
 #endif // USE_IMGUI
 }
 
+/// -------------------------------------------------------------
+///				　	エフェクトの取得
+/// -------------------------------------------------------------
+IPostEffect* PostEffectManager::GetEffect(const std::string& effectName)
+{
+	auto it = postEffects_.find(effectName);
+	if (it == postEffects_.end()) {
+		return nullptr;
+	}
+	return it->second.get();
+}
 
 /// -------------------------------------------------------------
 ///				　レンダーテクスチャリソースを生成

@@ -11,6 +11,80 @@
 /// -------------------------------------------------------------
 class GridStageSelector : public IStageSelector
 {
+private: /// ---------- 構造体 ---------- ///
+
+	// ロックアイコンセット
+	struct LockIconSet
+	{
+		std::vector<std::unique_ptr<Sprite>> sprites; // ロックアイコンスプライト群
+		float   scale = 0.5f;						  // スケール
+		Vector2 offset = { 0.0f, 0.0f };			  // カード中心からのオフセット
+	};
+
+	// レイアウトパラメータ
+	struct LayoutParam
+	{
+		Vector2 center = { 640.0f, 360.0f }; // グリッド中心位置
+		float gapX = 360.0f;				 // 横間隔
+		float gapY = 220.0f;                 // （今後縦グリッドにするとき用）
+		float baseW = 300.0f;                // カード基本幅
+		float baseH = 180.0f;                // カード基本高さ
+		float focusScale = 0.08f;            // フォーカス時の拡大率
+	};
+
+	// スクロールドラッグ状態
+	struct ScrollDragState
+	{
+		float scrollX = 0.0f;			 // スクロール位置
+		float velocityX = 0.0f;			 // スクロール速度
+		bool dragging = false;			 // ドラッグ中かどうか
+		Vector2 lastMouse{};			 // 直近マウス位置
+		Vector2 dragStart{};			 // ドラッグ開始位置
+		float clickDeltaAccum = 0.0f;	 // クリックかドラッグかの判定用移動量
+		std::optional<int> pressIndex;	 // 押下開始インデックス
+		bool clickStartedOnCard = false; // クリックがカード上で始まったかどうか
+		float lastDxPerSec = 0.0f;		 // 慣性用の速度
+		float friction = 0.92f;			 // 今は未使用だが慣性調整用
+		bool  loop = true;				 // ループの有無
+	};
+
+	// チューニングパラメータ
+	struct TuningParam
+	{
+		float maxVel = 2000.0f;		  // 慣性の最大速度
+		float maxDxPerFrame = 100.0f; // 1フレームの最大移動量
+		float overdragFactor = 0.5f;  // 端でのオーバードラッグ係数
+		float springK = 800.0f;		  // ばね定数（今は未使用）
+		float snapK = 8.0f;			  // 中心カードへの吸着強さ
+	};
+
+	// トゥイーン状態
+	struct TweenState
+	{
+		bool  active = false;  // トゥイーン中かどうか
+		float startX = 0.0f;   // トゥイーン開始位置
+		float targetX = 0.0f;  // トゥイーン目標位置
+		float timer = 0.0f;    // トゥイーン経過時間
+		float duration = 0.3f; // トゥイーン所要時間
+	};
+
+	// 画面振動状態
+	struct ShakeState
+	{
+		bool active = false;	// シェイク中かどうか
+		float timer = 0.0f;		// 経過時間
+		float duration = 0.28f;	// 持続時間
+		float ampPx = 18.0f;	// 振幅(px)
+		float freqHz = 28.0f;	// 周波数(Hz)
+	};
+
+	// アンロックアニメーション状態
+	struct UnlockAnimState
+	{
+		std::vector<float> timers; // 各カードの残り時間
+		float duration = 0.6f;	   // アニメーション所要時間
+	};
+
 public: /// ---------- メンバ関数 ---------- ///
 
 	// 仮想デストラクタ
@@ -68,12 +142,15 @@ private: /// ---------- メンバ関数 ---------- ///
 	// レイアウト更新
 	void UpdateLayout();
 
+	// 中央カード変更チェック
+	void CheckCenterCardChanged(float deltaTime);
+
 private: /// ---------- メンバ関数 ---------- ///
 
 	// ユーティリティ
 	int HitTestCardIndex(const Vector2& mousePosition) const; // -1 ならヒットなし
 	void StartTweenToIndex(int index, float duration = 0.3f); // 指定インデックスへトゥイーン開始
-	void CancelTween() { tweenActive_ = false; tweenTimer_ = 0.0f; } // トゥイーンキャンセル
+	void CancelTween() { tween_.active = false; tween_.timer = 0.0f; } // トゥイーンキャンセル
 
 	int GetSelectedIndex(Vector2& mousePosition) const;
 
@@ -91,58 +168,31 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	// サムネイルグリッド設定
 	std::vector<std::unique_ptr<Sprite>> thumbs_; // ステージサムネイルスプライト
-	std::unique_ptr<Sprite> selShadow_; // 選択枠影
+	std::unique_ptr<Sprite> selShadow_;           // 選択枠影
 
-	// ロックアイコン
-	std::vector<std::unique_ptr<Sprite>> lockIcons_;
-	float lockScale_ = 0.5f;
-	Vector2 lockOffset_ = { 0.0f, 0.0f };
+	// ロックアイコン＆UI
+	LockIconSet lockUI_{};
 
-	std::function<void(uint32_t)> onCenterChanged_; // 中央カード変更時コールバック
-	int prevCenterIndex_ = -1; // 前回の中央インデックス
+	// 中央カード変更コールバック
+	std::function<void(uint32_t)> onCenterChanged_;
+	int prevCenterIndex_ = -1;
 
 	// レイアウト・見た目
-	Vector2 center_ = { 640.0f, 360.0f }; // グリッド中心位置
-	float gapX_ = 360.0f; // 横間隔
-	float gapY_ = 220.0f; // 縦間隔
-	float baseW_ = 300.0f; // カード基本幅
-	float baseH_ = 180.0f; // カード基本高
-	float focusScale_ = 0.08f; // フォーカス時の拡大率
+	LayoutParam layout_{};
 
-	// スクロール・ドラッグ
-	float scrollX_ = 0.0f;      // スクロール位置
-	float velocityX_ = 0.0f;    // スクロール速度
-	bool dragging_ = false;   // ドラッグ中かどうか
-	Vector2 lastMouse_{};
-	Vector2 dragStart_{};
-	float clickDeltaAccum_ = 0.0f; // クリックとドラッグの判定用
-	std::optional<int> pressIndex_; // 押下開始時のインデックス（-1ならカード外、nulloptならカード外で押している）
-	bool clickStartedOnCard_ = false; // 押下開始がカード上かどうか
-	float lastDxPerSec_ = 0.0f; // 直近フレームのマウス移動速度（慣性用）
-	float friction_ = 0.92f; // 慣性摩擦係数
-	bool loop_ = true;
+	// スクロール・ドラッグ状態
+	ScrollDragState scroll_{};
 
-	// チューニング
-	float maxVel_ = 2000.0f;        // 慣性の最大速度
-	float maxDxPerFrame_ = 100.0f;   // 1フレームあたりの最大移動量（ドラッグの暴発防止）
-	float overdragFactor_ = 0.5f;   // 端でのオーバードラッグ抑制係数
-	float springK_ = 800.0f;         // ばね定数（慣性減衰）
-	float snapK_ = 8.0f;            // スナップ係数（手動スクロール時に近くのカードへ吸着する）
+	// 各種チューニング値
+	TuningParam tuning_{};
 
-	// クリック時の時間ベース移動
-	bool tweenActive_ = false;   // トゥイーン中かどうか
-	float tweenStartX_ = 0.0f;  // トゥイーン開始時のスクロール位置
-	float tweenTargetX_ = 0.0f; // トゥイーン目標位置
-	float tweenTimer_ = 0.0f;  // トゥイーン経過時間
-	float tweenDuration_ = 0.3f; // トゥイーン総時間
+	// クリック時のトゥイーン状態
+	TweenState tween_{};
 
-	bool  shakeActive_ = false;
-	float shakeTimer_ = 0.0f;
-	float shakeDuration_ = 0.28f;   // ブレ時間
-	float shakeAmpPx_ = 18.0f;   // 振幅(px)
-	float shakeFreqHz_ = 28.0f;   // 周波数(Hz)
+	// ロック時のシェイク状態
+	ShakeState shake_{};
 
-	std::vector<float> unlockTimers_; // 各ステージの残り演出時間
-	float unlockDuration_ = 0.6f;     // 演出の長さ
+	// アンロック演出状態
+	UnlockAnimState unlockAnim_{};
 };
 

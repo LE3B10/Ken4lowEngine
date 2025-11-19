@@ -115,6 +115,7 @@ namespace
 	};
 }
 
+// 角度差を -π ～ +π に正規化して返す関数
 static inline float DeltaAngle(float a, float b)
 {
 	// -π..+π の差に正規化
@@ -123,6 +124,7 @@ static inline float DeltaAngle(float a, float b)
 	return d - std::numbers::pi_v<float>;
 }
 
+// 角度をスムーズに目標値へ近づける関数
 float GamePlayScene::SmoothDampAngle(float current, float target, float& currentVelocity, float smoothTime, float deltaTime)
 {
 	const float eps = 1e-5f;
@@ -158,13 +160,6 @@ void GamePlayScene::Initialize()
 
 	dxCommon_ = DirectXCommon::GetInstance();
 	input_ = Input::GetInstance();
-
-	fadeController_ = std::make_unique<FadeController>();
-	fadeController_->Initialize(static_cast<float>(dxCommon_->GetSwapChainDesc().Width), static_cast<float>(dxCommon_->GetSwapChainDesc().Height), "white.png");
-	fadeController_->SetFadeMode(FadeController::FadeMode::Checkerboard);
-	fadeController_->SetGrid(14, 8);
-	fadeController_->SetCheckerDelay(0.036f);
-	fadeController_->StartFadeIn(0.8f); // 暗転明け
 
 	skyBox_ = std::make_unique<SkyBox>();
 	skyBox_->Initialize("SkyBox/skybox.dds");
@@ -244,6 +239,87 @@ void GamePlayScene::Initialize()
 	retryRect_.x = screenW - margin - btnW;
 	retryRect_.y = screenH - margin - btnH;
 
+
+	// --------- クリア演出用パネル／テキスト ---------
+	clearPanelSprite_ = std::make_unique<Sprite>();
+	clearPanelSprite_->Initialize("white.png"); // 仮の真っ白テクスチャ
+	clearPanelSprite_->SetAnchorPoint({ 0.5f, 0.5f });
+	clearPanelSprite_->SetPosition({ screenW * 0.5f, screenH * 0.5f }); // 位置
+	clearPanelSprite_->SetSize({ screenW * 0.6f, screenH * 0.8f });     // 大きさ
+	clearPanelSprite_->SetColor({ 0.0f, 0.0f, 0.0f, 0.0f });          // 最初は透明
+
+	clearTextSprite_ = std::make_unique<Sprite>();
+	clearTextSprite_->Initialize("white.png");
+	clearTextSprite_->SetAnchorPoint({ 0.5f, 0.5f });
+	clearTextSprite_->SetPosition({ screenW * 0.5f, screenH * 0.3f }); // 位置
+
+	gameClearTimer_ = 0.0f;
+	gameClearInputAccepted_ = false;
+
+	// --------- 星３つスプライト ---------
+	const float starY = screenH * 0.3f;   // パネルの上の方
+	const float centerX = screenW * 0.5f;
+	const float offsetX = 140.0f;            // 星同士の間隔
+	clearStarBaseSize_ = 96.0f;
+	clearStarPopDuration_ = 0.25f;
+
+	for (int i = 0; i < kClearStarCount; ++i)
+	{
+		clearStarSprites_[i] = std::make_unique<Sprite>();
+		clearStarSprites_[i]->Initialize("white.png"); // ★星テクスチャを用意しておく
+		clearStarSprites_[i]->SetAnchorPoint({ 0.5f, 0.5f });
+
+		float x = centerX + (i - 1) * offsetX; // -1,0,1 で左右に配置
+		clearStarSprites_[i]->SetPosition({ x, starY });
+
+		// 最初はサイズ0 & 完全透明
+		clearStarSprites_[i]->SetSize({ 0.0f, 0.0f });
+		clearStarSprites_[i]->SetColor({ 1.0f, 1.0f, 1.0f, 0.0f });
+
+		// パネルが出てから順番に 0.6, 0.9, 1.2 秒後にポップ
+		clearStarDelay_[i] = 0.6f + 0.3f * i;
+		clearStarBurstPlayed_[i] = false; // 花火はまだ出してない
+	}
+
+	// パネルの位置・サイズ（あなたが今調整している値）
+	const float panelX = screenW * 0.5f;
+	const float panelY = screenH * 0.5f;
+	//const float panelW = screenW * 0.45f;
+	//const float panelH = screenH * 0.18f;
+
+	// --------- GameClear 三択ボタン(長方形) ---------
+	const float optionWidth = 220.0f;           // ボタンの横幅
+	const float optionHeight = 48.0f;            // ボタンの高さ
+
+	// 一番上のボタンの Y（パネル中心よりちょい上）
+	const float firstOptionY = panelY - optionHeight * 0.5f;
+	// ボタン同士の縦方向の間隔
+	const float optionGapY = optionHeight + 32.0f;
+
+	// X は全部パネル中央に固定
+	const float optionX = panelX;
+
+	for (int i = 0; i < kClearOptionCount; ++i)
+	{
+		clearOptionSprites_[i] = std::make_unique<Sprite>();
+		clearOptionSprites_[i]->Initialize("white.png"); // とりあえず白い四角
+		clearOptionSprites_[i]->SetAnchorPoint({ 0.5f, 0.5f });
+
+		// 上から順に縦に並べる
+		float y = firstOptionY + optionGapY * i;
+		clearOptionSprites_[i]->SetPosition({ optionX, y });
+		clearOptionSprites_[i]->SetSize({ optionWidth, optionHeight });
+
+		// 見やすいように少し明るめに
+		clearOptionSprites_[i]->SetColor({ 1.0f, 1.0f, 1.0f, 0.9f });
+
+		// クリック判定用の矩形（左上＋サイズ）
+		clearOptionRects_[i].w = optionWidth;
+		clearOptionRects_[i].h = optionHeight;
+		clearOptionRects_[i].x = optionX - optionWidth * 0.5f;
+		clearOptionRects_[i].y = y - optionHeight * 0.5f;
+	}
+
 	// 敵ウェーブの初期化
 	InitializeWaves();
 
@@ -262,11 +338,6 @@ void GamePlayScene::Update()
 {
 	// デルタタイムの取得
 	const float deltaTime = dxCommon_->GetFPSCounter().GetDeltaTime();
-
-	// ここで毎フレームフェード更新
-	if (fadeController_) {
-		fadeController_->Update(deltaTime);
-	}
 
 	// デバッグカメラの更新
 	UpdateDebug();
@@ -426,6 +497,7 @@ void GamePlayScene::Update()
 	case GameState::Paused:
 		break;
 	case GameState::GameOver:
+	{
 		// 死亡演出を最後まで回すためにプレイヤーだけは更新
 		player_->Update(deltaTime);
 
@@ -446,10 +518,6 @@ void GamePlayScene::Update()
 		itemManager_->Update(player_.get(), deltaTime);
 		retryButtonSprite_->Update();
 		retireButtonSprite_->Update();
-
-		if (fadeController_) {
-			fadeController_->Update(deltaTime);
-		}
 
 		// キー操作でもまだ残しておく（デバッグ用）
 		if (input_->TriggerKey(DIK_R))
@@ -490,7 +558,153 @@ void GamePlayScene::Update()
 				return;
 			}
 		}
-		break;
+	}
+	break;
+
+	case GameState::GameClear:
+	{
+		// 背景やアイテムの軽い更新
+		skyBox_->Update();
+		itemManager_->Update(player_.get(), deltaTime);
+
+		// タイマー進行
+		gameClearTimer_ += deltaTime;
+
+		// =========================================================
+		// ① パネル＆テキストのフェードイン
+		// =========================================================
+		const float panelFadeTime = 0.5f;
+		float panelT = std::clamp(gameClearTimer_ / panelFadeTime, 0.0f, 1.0f);
+
+		if (clearPanelSprite_)
+		{
+			auto col = clearPanelSprite_->GetColor();
+			col.w = panelT * 0.8f;  // 少し透けた黒
+			clearPanelSprite_->SetColor(col);
+			clearPanelSprite_->Update();
+		}
+
+		if (clearTextSprite_)
+		{
+			auto col = clearTextSprite_->GetColor();
+			col.w = panelT;
+			clearTextSprite_->SetColor(col);
+			clearTextSprite_->Update();
+		}
+
+		// =========================================================
+		// ② 星３つのポップ演出
+		// =========================================================
+		bool allStarsFinished = true;
+
+		for (int i = 0; i < kClearStarCount; ++i)
+		{
+			if (!clearStarSprites_[i]) continue;
+
+			float local = (gameClearTimer_ - clearStarDelay_[i]) / clearStarPopDuration_;
+
+			if (local <= 0.0f)
+			{
+				// まだ出番が来ていない星
+				allStarsFinished = false;
+				continue;
+			}
+
+			float u = std::clamp(local, 0.0f, 1.0f);
+
+			// サイズを0→基準サイズに補間
+			float size = clearStarBaseSize_ * u;
+			clearStarSprites_[i]->SetSize({ size, size });
+
+			// アルファも0→1
+			auto col = clearStarSprites_[i]->GetColor();
+			col.w = u;
+			clearStarSprites_[i]->SetColor(col);
+			clearStarSprites_[i]->Update();
+
+			// ちょうど出始めのフレームで一回だけ花火パーティクルを出す想定
+			if (!clearStarBurstPlayed_[i])
+			{
+				if (local >= 0.0f) // 0を跨いだ瞬間
+				{
+					// ★ここに自分のパーティクル呼び出しを入れる
+					//   例）SpriteParticleManager::GetInstance()->EmitFirework(
+					//           clearStarSprites_[i]->GetPosition());
+					clearStarBurstPlayed_[i] = true;
+				}
+			}
+
+			if (u < 1.0f)
+			{
+				// まだアニメ途中の星がある
+				allStarsFinished = false;
+			}
+		}
+
+		// ボタンも軽くアップデート
+		if (retireButtonSprite_) retireButtonSprite_->Update();
+		if (retryButtonSprite_)  retryButtonSprite_->Update();
+		for (auto& s : clearOptionSprites_) {
+			if (s) s->Update();
+		}
+
+		// =========================================================
+		// ③ 全部の星が出そろったら入力受付開始
+		// =========================================================
+		// 星のポップが全部終わったら入力受付開始
+		if (!gameClearInputAccepted_ && allStarsFinished)
+		{
+			gameClearInputAccepted_ = true;
+		}
+
+		if (gameClearInputAccepted_)
+		{
+			// --- マウス操作（三つの長方形で三択） ---
+			Vector2 mousePos = input_->GetMousePosition();
+			auto IsInside = [](const Vector2& p, const ButtonRect& r) {
+				return (p.x >= r.x && p.x <= r.x + r.w &&
+					p.y >= r.y && p.y <= r.y + r.h);
+				};
+			bool leftClick = input_->TriggerMouse(0);
+
+			if (leftClick)
+			{
+				// 0: 左ボタン → もう一度同じステージを遊ぶ
+				if (IsInside(mousePos, clearOptionRects_[0]))
+				{
+					auto& repo = StageRepository::GetInstance();
+					// currentStageIndex_ は今のステージ番号を持っている前提
+					repo.SetStartIndex(currentStageIndex_);
+					SceneManager::GetInstance()->ChangeScene("GamePlayScene");
+					return;
+				}
+
+				// 1: 真ん中ボタン → 次のステージへ進む
+				if (IsInside(mousePos, clearOptionRects_[1]))
+				{
+					// OnStageClear() 内で repo.SetStartIndex(next) 済みのはずなので、
+					// そのまま GamePlayScene をロードすると「次ステージ」が始まる
+					SceneManager::GetInstance()->ChangeScene("GamePlayScene");
+					return;
+				}
+
+				// 2: 右ボタン → セレクトシーンに戻る
+				if (IsInside(mousePos, clearOptionRects_[2]))
+				{
+					SceneManager::GetInstance()->ChangeScene("StageSelectScene");
+					return;
+				}
+			}
+
+			// キーボードで簡易操作：Enter / Space は「セレクトへ戻る」にしておく
+			if (input_->TriggerKey(DIK_RETURN) || input_->TriggerKey(DIK_SPACE))
+			{
+				SceneManager::GetInstance()->ChangeScene("StageSelectScene");
+				return;
+			}
+		}
+	}
+	break;
 	}
 
 	levelObjectManager_->Update();
@@ -584,22 +798,30 @@ void GamePlayScene::Draw2DSprites()
 		crosshair_->Draw();
 	}
 
-	// フェード
-	fadeController_->Draw();
-
-	// ---------- Result(ゲームオーバー)時のUI ----------
-	if (gameState_ == GameState::GameOver)
+	// ---------- Result(ゲームオーバー / クリア)時のUI ----------
+	if (gameState_ == GameState::GameOver || gameState_ == GameState::GameClear)
 	{
-		// 左下(リタイア)
-		if (retireButtonSprite_)
+		if (gameState_ == GameState::GameClear)
 		{
-			retireButtonSprite_->Draw();
+			if (clearPanelSprite_) clearPanelSprite_->Draw();
+			if (clearTextSprite_)  clearTextSprite_->Draw();
+
+			// 星（飾り）：そのまま描画
+			for (auto& s : clearStarSprites_) {
+				if (s) s->Draw();
+			}
+
+			// ★ 三択ボタン
+			for (auto& s : clearOptionSprites_) {
+				if (s) s->Draw();
+			}
 		}
 
-		// 右下(リトライ)
-		if (retryButtonSprite_)
+		// GameOver 用の下部ボタンを併用したいならここはそのままでもOK
+		if (gameState_ == GameState::GameOver)
 		{
-			retryButtonSprite_->Draw();
+			if (retireButtonSprite_) retireButtonSprite_->Draw();
+			if (retryButtonSprite_)  retryButtonSprite_->Draw();
 		}
 	}
 
@@ -910,8 +1132,14 @@ void GamePlayScene::CheckAllCollisions()
 /// -------------------------------------------------------------
 void GamePlayScene::OnStageClear()
 {
+	// 1) 状態を GameClear に
 	gameState_ = GameState::GameClear;
 
+	// 2) クリア演出用タイマー初期化
+	gameClearTimer_ = 0.0f;
+	gameClearInputAccepted_ = false;
+
+	// 3) ステージ解放処理はそのまま残す
 	auto& repo = StageRepository::GetInstance();
 	auto stages = repo.GetStages();
 	auto startIndexOpt = repo.GetStartIndex();
@@ -929,24 +1157,11 @@ void GamePlayScene::OnStageClear()
 				stages[next].justUnlocked = true;
 			}
 
-			// 次回セレクト画面を開いたときの初期選択を「次ステージ」にする
+			// 次回セレクト画面での初期選択を「次ステージ」にしておく
 			repo.SetStartIndex(next);
 		}
 
 		repo.SetStages(stages);
-	}
-
-	// ステージセレクトへ戻る
-	if (fadeController_)
-	{
-		fadeController_->SetOnComplete([this]() {
-			if (sceneManager_) sceneManager_->ChangeScene("StageSelectScene");
-			});
-		fadeController_->StartFadeOut(0.8f);
-	}
-	else
-	{
-		if (sceneManager_) sceneManager_->ChangeScene("StageSelectScene");
 	}
 }
 
@@ -997,21 +1212,21 @@ void GamePlayScene::SpawnWave(int waveIndex)
 
 		Vector3 pos;
 
-		// 1) 個別指定があればそれを使う（最優先）
+		// 個別指定があればそれを使う
 		if (!cfg.spawnPositions.empty() && i < (int)cfg.spawnPositions.size())
 		{
 			pos = cfg.spawnPositions[i];
 		}
 		else
 		{
-			// 2) なければ「ステージ基準位置」を中心に円形スポーン
+			// なければ「ステージ基準位置」を中心に円形スポーン
 			const float angle =
 				(2.0f * std::numbers::pi_v<float> / std::max(cfg.enemyCount, 1))
 				* i;
 
 			pos = center + Vector3{
 				std::cos(angle) * cfg.spawnRadius,
-				0.0f,                               // 敵の足元Y（お好みで調整）
+				0.0f,                               // 敵の足元Y
 				std::sin(angle) * cfg.spawnRadius
 			};
 		}

@@ -100,6 +100,11 @@ public: /// ---------- メンバ関数 ---------- ///
 	/// <param name="effectName">無効にするエフェクトの名前。</param>
 	void DisableEffect(const std::string& effectName) { effectEnableFlags_[effectName] = false; }
 
+	/// <summary>
+	/// 指定された名前のポストエフェクト(IPostEffect)を取得します。見つからなければ nullptr を返します。
+	/// </summary>
+	IPostEffect* GetEffect(const std::string& effectName);
+
 private: /// ---------- メンバ関数 ---------- ///
 
 	/// <summary>

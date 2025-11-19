@@ -11,6 +11,7 @@
 
 #include "IStageSelector.h"        // StageInfo / SelectorContext / IStageSelector
 #include "GridStageSelector.h"     // まずは Grid を使う
+#include "IStageSelectSceneState.h" // ステート基底クラス
 
 /// ---------- 前方宣言 ---------- ///
 class DirectXCommon;
@@ -22,6 +23,25 @@ class Input;
 /// -------------------------------------------------------------
 class StageSelectScene : public BaseScene
 {
+public: /// ---------- 型定義 ---------- ///
+
+	// シーンの状態を管理する列挙型
+	enum class State
+	{
+		Selecting,  // ステージセレクト中
+		Loading,    // ローディング中
+		FadingOut,  // フェードアウト中
+		FadingIn    // フェードイン中
+	};
+
+	// 次に遷移するシーン
+	enum class NextScene
+	{
+		None,	  // なし
+		Title,	  // タイトルへ
+		GamePlay, // ゲームプレイへ
+	};
+
 public: /// ---------- メンバ関数 ---------- ///
 
 	// 仮想デストラクタ
@@ -45,7 +65,64 @@ public: /// ---------- メンバ関数 ---------- ///
 	// ImGui描画処理
 	void DrawImGui() override;
 
+private: /// ---------- メンバ関数 ---------- ///
+
+	void InitializeStages(); // ステージ情報初期化
+
+	void InitializeSelectors(); // セレクター初期化
+
+	void InitializeBackground(); // 背景初期化
+
+	// フェード用初期化
+	void InitializeFadeOverlay();
+
+public: /// ---------- 状態管理 ---------- ///
+
+	// ステート差し替え
+	void ChangeState(std::unique_ptr<IStageSelectSceneState> newState);
+
+	// 現在の enum 状態
+	State GetState() const { return state_; }
+	void SetState(State s) { state_ = s; }
+
+	// ステート用アクセサ（ステートクラスから必要な情報だけ触れるようにする）
+	DirectXCommon* GetDxCommon() const { return dxCommon_; }
+	Input* GetInput() const { return input_; }
+
+	std::vector<StageInfo>& GetStages() { return stages_; }
+	const std::vector<StageInfo>& GetStages() const { return stages_; }
+
+	IStageSelector* GetActiveSelector() const { return activeSelector_; }
+
+	Sprite* GetBgSprite() const { return bg_.get(); }
+	Vector4& GetBgNow() { return bgNow_; }
+	Vector4& GetBgTarget() { return bgTarget_; }
+
+	// ペンディングアンロックインデックス
+	int& GetPendingUnlockIndex() { return pendingUnlockIndex_; }
+
+	// フェード用アクセサ
+	void SetFadeAlpha(float a) { fadeAlpha_ = a; }
+	float GetFadeAlpha() const { return fadeAlpha_; }
+	Sprite* GetFadeSprite() const { return fadeSprite_.get(); }
+
+	// 次に遷移するシーンの設定
+	void SetNextScene(NextScene n) { nextScene_ = n; }
+	NextScene GetNextScene() const { return nextScene_; }
+
+	// シーン遷移のヘルパー
+	void BackToTitle();     // ← TitleScene へ戻る
+
+	void GoToGamePlay();    // ← GamePlayScene へ進む
+
 private: /// ---------- メンバ変数 ---------- ///
+
+	// 状態管理
+	State state_ = State::Selecting; // とりあえず「セレクト中」から始める
+	std::unique_ptr<IStageSelectSceneState> currentState_; // 現在のステート
+
+	// 次に遷移するシーン
+	NextScene nextScene_ = NextScene::None;
 
 	// 依存注入
 	DirectXCommon* dxCommon_ = nullptr;
@@ -53,9 +130,6 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	// データ
 	std::vector<StageInfo> stages_;
-
-	// フェード用
-	std::unique_ptr<FadeController> fadeController_ = nullptr;
 
 	// セレクタ
 	SelectorContext context_{};
@@ -68,5 +142,9 @@ private: /// ---------- メンバ変数 ---------- ///
 	Vector4 bgTarget_ = bgNow_; // 目標の色
 
 	int pendingUnlockIndex_ = -1;
+
+	// フェードオーバーレイ（黒スプライト）
+	std::unique_ptr<Sprite> fadeSprite_;
+	float fadeAlpha_ = 0.0f;
 };
 
