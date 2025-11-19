@@ -1,36 +1,28 @@
 #pragma once
 #include <BaseScene.h>
-
-#include <AABB.h>
-#include <Capsule.h>
-#include <OBB.h>
-#include <Plane.h>
-#include <Segment.h>
-#include <Sphere.h>
-#include <Triangle.h>
-
-#include "LevelObjectManager.h"
-#include "CollisionManager.h"
+#include <Object3D.h>
 
 #include <vector>
 
 /// ---------- 前方宣言 ---------- ///
+class DirectXCommon;
 class Input;
 class Camera;
+class GpuParticleEmitter;
 
 /// -------------------------------------------------------------
-//				　		物理シーン
+//				物理シーン（デバッグテスト用・サブシーン）
 /// -------------------------------------------------------------
 class PhysicalScene : public BaseScene
 {
-	// コライダータイプ
-	enum class ColliderType
+	// ステージの状態
+	enum class StageState
 	{
-		None, // コライダーなし
-		Ground, // 地面の平面
-		Wall, // 壁のAABB
+		Locked,      // 真っ黒・未開放
+		Available,   // 未クリア（普通）
+		Unlocking,   // 解放演出中
+		Cleared      // 解放済み
 	};
-
 
 public: /// ---------- メンバ関数 ---------- ///
 
@@ -52,38 +44,37 @@ public: /// ---------- メンバ関数 ---------- ///
 	// ImGui描画処理
 	void DrawImGui() override;
 
+private: /// ---------- メンバ関数 ---------- ///
+
+	void ApplyLockedVisual();
+
+	void ApplyAvailableVisual();
+
+	void ApplyClearedVisual();
+
+	void StartUnlock();
+
+	void UpdateUnlock(float deltaTime);
+
 private: /// ---------- メンバ変数 ---------- ///
 
+	DirectXCommon* dxCommon_ = nullptr; // DirectX共通管理クラス
 	Input* input_ = nullptr; // 入力管理クラス
 	Camera* camera = nullptr; // カメラ
 
-	AABB aabb_ = {};
-	AABB wallAABB_ = {}; // 壁用のAABBを追加
+	std::unique_ptr<Object3D> object3D_; // 3Dオブジェクト
 
+	// GPUパーティクル（解放エフェクト用）
+	GpuParticleEmitter* unlockEmitter_ = nullptr;
 
-	//Capsule capsule_ = {};
-	OBB obb_ = {};
-	Plane plane_ = {};
-	Segment segment_ = {};
-	Sphere sphere_ = {};
-	Triangle triangle_ = {};
+	StageState state_ = StageState::Locked;
 
-	float gravity_ = 0.01f; // 重力の値
-	bool isGrounded_ = false;     // 接地判定
-	float jumpVelocity_ = 0.0f;   // ジャンプの上向き速度
-	const float jumpPower_ = 0.25f; // ジャンプ初速度
+	// 解放演出用タイマー
+	float unlockTimer_ = 0.0f;
+	float unlockDuration_ = 1.0f; // 1秒くらいで解放
 
-	// 壁判定
-	bool isWallCollision_ = false;
-
-	std::vector<std::pair<ColliderType, AABB>> aabbs_;
-
-	// 衝突マネージャー
-	std::unique_ptr<CollisionManager> collisionManager_ = nullptr;
-
-	std::unique_ptr<Collider> playerCollider_;
-
-	// レベルオブジェクトマネージャー
-	std::unique_ptr<LevelObjectManager> levelObjectManager_ = nullptr;
+	Vector3 baseTranslate_{};   // 浮遊の基準となる位置
+	float   floatTimer_ = 0.0f; // 上下移動用のタイマー
+	bool    isSelected_ = true; // このキューブが「現在選択中か」
 };
 

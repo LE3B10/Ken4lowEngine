@@ -94,6 +94,9 @@
     <FxCompile Include="Resources\Shaders\GpuParticle\GpuParticleUpdate.CS.hlsl">
       <Filter>Shader\ComputeShader</Filter>
     </FxCompile>
+    <FxCompile Include="Resources\Shaders\PostEffect\PixelateEffect.CS.hlsl">
+      <Filter>Shader\ComputeShader</Filter>
+    </FxCompile>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="WinMain.cpp" />
@@ -412,9 +415,6 @@
     <ClCompile Include="ApplicationLayer\WeaponSystem\Weapon\WeaponCatalog\WeaponCatalog.cpp">
       <Filter>ApplicationLayer\WeaponSystem\Weapon\WeaponCatalog</Filter>
     </ClCompile>
-    <ClCompile Include="ApplicationLayer\Stage\Stage.cpp">
-      <Filter>ApplicationLayer\Stage</Filter>
-    </ClCompile>
     <ClCompile Include="ApplicationLayer\WeaponSystem\WeaponManager\WeaponManager.cpp">
       <Filter>ApplicationLayer\WeaponSystem\WeaponManager</Filter>
     </ClCompile>
@@ -445,6 +445,58 @@
     <ClCompile Include="ApplicationLayer\OverlaySystem\PauseOverlay.cpp">
       <Filter>ApplicationLayer\OverlaySystem</Filter>
     </ClCompile>
+    <ClCompile Include="EngineLayer\PostEffectManagement\PixelateEffect\PixelateEffect.cpp">
+      <Filter>EngineLayer\PostEffectManagement\PixelateEffect</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\Scene\TitleScene\State\TitleAttractState.cpp">
+      <Filter>ApplicationLayer\Scene\TitleScene\State</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\Scene\TitleScene\State\TitleFadeOutState.cpp">
+      <Filter>ApplicationLayer\Scene\TitleScene\State</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\Scene\TitleScene\State\TitleLoadState.cpp">
+      <Filter>ApplicationLayer\Scene\TitleScene\State</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\Scene\TitleScene\State\TitleLobbyState.cpp">
+      <Filter>ApplicationLayer\Scene\TitleScene\State</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\Scene\TitleScene\State\TitleLobbyToTitleState.cpp">
+      <Filter>ApplicationLayer\Scene\TitleScene\State</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\Scene\TitleScene\State\TitleTransitionToLobby.cpp">
+      <Filter>ApplicationLayer\Scene\TitleScene\State</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\Scene\GamePlayScene\State\GameLoadState.cpp">
+      <Filter>ApplicationLayer\Scene\GamePlayScene\State</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\Scene\GamePlayScene\State\GameOverState.cpp">
+      <Filter>ApplicationLayer\Scene\GamePlayScene\State</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\Scene\GamePlayScene\State\GamePauseState.cpp">
+      <Filter>ApplicationLayer\Scene\GamePlayScene\State</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\Scene\StageSelectScene\State\StageSelectSelectingState.cpp">
+      <Filter>ApplicationLayer\Scene\StageSelectScene\State</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\Scene\StageSelectScene\State\StageSelectFadeInState.cpp">
+      <Filter>ApplicationLayer\Scene\StageSelectScene\State</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\Scene\StageSelectScene\State\StageSelectFadeOutState.cpp">
+      <Filter>ApplicationLayer\Scene\StageSelectScene\State</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\Scene\StageSelectScene\State\StageSelectLoadState.cpp">
+      <Filter>ApplicationLayer\Scene\StageSelectScene\State</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\Scene\TitleScene\State\TitleFadeInState.cpp">
+      <Filter>ApplicationLayer\Scene\TitleScene\State</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\Scene\GamePlayScene\State\GameCutSceneState.cpp" />
+    <ClCompile Include="ApplicationLayer\Scene\GamePlayScene\State\GamePlayingState.cpp" />
+    <ClCompile Include="ApplicationLayer\Scene\GamePlayScene\State\GameClearState.cpp" />
+    <ClCompile Include="ApplicationLayer\Scene\GamePlayScene\State\GameResultState.cpp" />
+    <ClCompile Include="ApplicationLayer\Scene\GamePlayScene\State\GameFadeOut.cpp" />
+    <ClCompile Include="ApplicationLayer\Scene\GamePlayScene\State\GameFadeIn.cpp" />
+    <ClCompile Include="ApplicationLayer\Scene\GamePlayScene\State\GameSettingUpState.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="EngineLayer\Math\MultipleStructs\AABB.h">
@@ -888,9 +940,6 @@
     <ClInclude Include="ApplicationLayer\WeaponSystem\Weapon\WeaponConfig\WeaponClass.h">
       <Filter>ApplicationLayer\WeaponSystem\Weapon\WeaponConfig</Filter>
     </ClInclude>
-    <ClInclude Include="ApplicationLayer\Stage\Stage.h">
-      <Filter>ApplicationLayer\Stage</Filter>
-    </ClInclude>
     <ClInclude Include="ApplicationLayer\WeaponSystem\WeaponManager\WeaponManager.h">
       <Filter>ApplicationLayer\WeaponSystem\WeaponManager</Filter>
     </ClInclude>
@@ -939,6 +988,67 @@
     <ClInclude Include="ApplicationLayer\OverlaySystem\Rect.h">
       <Filter>ApplicationLayer\OverlaySystem</Filter>
     </ClInclude>
+    <ClInclude Include="EngineLayer\PostEffectManagement\PixelateEffect\PixelateEffect.h">
+      <Filter>EngineLayer\PostEffectManagement\PixelateEffect</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Scene\TitleScene\State\ITitleSceneState.h">
+      <Filter>ApplicationLayer\Scene\TitleScene\State</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Scene\TitleScene\State\TitleAttractState.h">
+      <Filter>ApplicationLayer\Scene\TitleScene\State</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Scene\TitleScene\State\TitleFadeOutState.h">
+      <Filter>ApplicationLayer\Scene\TitleScene\State</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Scene\TitleScene\State\TitleLoadState.h">
+      <Filter>ApplicationLayer\Scene\TitleScene\State</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Scene\TitleScene\State\TitleLobbyState.h">
+      <Filter>ApplicationLayer\Scene\TitleScene\State</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Scene\TitleScene\State\TitleLobbyToTitleState.h">
+      <Filter>ApplicationLayer\Scene\TitleScene\State</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Scene\TitleScene\State\TitleTransitionToLobby.h">
+      <Filter>ApplicationLayer\Scene\TitleScene\State</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Scene\GamePlayScene\State\GameLoadState.h">
+      <Filter>ApplicationLayer\Scene\GamePlayScene\State</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Scene\GamePlayScene\State\GameOverState.h">
+      <Filter>ApplicationLayer\Scene\GamePlayScene\State</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Scene\GamePlayScene\State\GamePauseState.h">
+      <Filter>ApplicationLayer\Scene\GamePlayScene\State</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Scene\GamePlayScene\State\IGamePlaySceneState.h">
+      <Filter>ApplicationLayer\Scene\GamePlayScene\State</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Scene\StageSelectScene\State\IStageSelectSceneState.h">
+      <Filter>ApplicationLayer\Scene\StageSelectScene\State</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Scene\StageSelectScene\State\StageSelectSelectingState.h">
+      <Filter>ApplicationLayer\Scene\StageSelectScene\State</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Scene\StageSelectScene\State\StageSelectFadeInState.h">
+      <Filter>ApplicationLayer\Scene\StageSelectScene\State</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Scene\StageSelectScene\State\StageSelectFadeOutState.h">
+      <Filter>ApplicationLayer\Scene\StageSelectScene\State</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Scene\StageSelectScene\State\StageSelectLoadState.h">
+      <Filter>ApplicationLayer\Scene\StageSelectScene\State</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Scene\TitleScene\State\TitleFadeInState.h">
+      <Filter>ApplicationLayer\Scene\TitleScene\State</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Scene\GamePlayScene\State\GameCutSceneState.h" />
+    <ClInclude Include="ApplicationLayer\Scene\GamePlayScene\State\GamePlayingState.h" />
+    <ClInclude Include="ApplicationLayer\Scene\GamePlayScene\State\GameClearState.h" />
+    <ClInclude Include="ApplicationLayer\Scene\GamePlayScene\State\GameResultState.h" />
+    <ClInclude Include="ApplicationLayer\Scene\GamePlayScene\State\GameFadeOut.h" />
+    <ClInclude Include="ApplicationLayer\Scene\GamePlayScene\State\GameFadeIn.h" />
+    <ClInclude Include="ApplicationLayer\Scene\GamePlayScene\State\GameSettingUpState.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Resources\Shaders\PostEffect\FullScreen.hlsli">
@@ -1300,9 +1410,6 @@
     <Filter Include="ApplicationLayer\WeaponSystem\Weapon\WeaponEditorUI">
       <UniqueIdentifier>{dde46e9d-1210-4c0e-8a73-6e30efac8c57}</UniqueIdentifier>
     </Filter>
-    <Filter Include="ApplicationLayer\Stage">
-      <UniqueIdentifier>{31caff86-1e45-42d6-a811-339b4742900f}</UniqueIdentifier>
-    </Filter>
     <Filter Include="ApplicationLayer\WeaponSystem\WeaponManager">
       <UniqueIdentifier>{80dd651f-f280-4c45-89e1-e945e60331a1}</UniqueIdentifier>
     </Filter>
@@ -1335,6 +1442,18 @@
     </Filter>
     <Filter Include="ApplicationLayer\OverlaySystem">
       <UniqueIdentifier>{5d4ee373-f3d9-40f5-b704-87da7fd9875e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="EngineLayer\PostEffectManagement\PixelateEffect">
+      <UniqueIdentifier>{e3999bd4-082c-4d5b-9c16-27e6c04752f3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ApplicationLayer\Scene\TitleScene\State">
+      <UniqueIdentifier>{b9166ef1-ae9d-4c3e-9647-630ab8d4a23f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ApplicationLayer\Scene\GamePlayScene\State">
+      <UniqueIdentifier>{2e9971fc-3e52-4f91-b19c-7f3b83efc32d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ApplicationLayer\Scene\StageSelectScene\State">
+      <UniqueIdentifier>{9d2c63a5-c625-4369-909d-240c88706ac1}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

@@ -10,19 +10,14 @@
 #include <Wireframe.h>
 #include <LinearInterpolation.h>
 #include <AudioManager.h>
+#include <PostEffectManager.h>
 
-/// -------------------------------------------------------------
-///				　			　補助関数
-/// -------------------------------------------------------------
-static inline void YawPitchLookAt(const Vector3& from, const Vector3& to, float& outYaw, float& outPitch)
-{
-	const float dx = to.x - from.x; // Xは横方向
-	const float dy = to.y - from.y; // Yは高さ
-	const float dz = to.z - from.z;	// Zは奥行き
-	outYaw = std::atan2(dx, dz);                    // 水平角（Y軸まわり）
-	const float distXZ = std::sqrt(dx * dx + dz * dz); // XZ平面距離
-	outPitch = std::atan2(dy, distXZ);                // 上下角（X軸まわり）
-}
+#include "TitleLoadState.h"
+#include "TitleAttractState.h"
+#include "TitleLobbyState.h"
+#include "TitleFadeOutState.h"
+#include "TitleFadeInState.h"
+
 
 /// -------------------------------------------------------------
 ///				　			　初期化処理
@@ -32,68 +27,37 @@ void TitleScene::Initialize()
 	dxCommon_ = DirectXCommon::GetInstance();
 	input_ = Input::GetInstance();
 
-	// フェードコントローラーの初期化
-	fadeController_ = std::make_unique<FadeController>();
-	fadeController_->Initialize(static_cast<float>(dxCommon_->GetSwapChainDesc().Width), static_cast<float>(dxCommon_->GetSwapChainDesc().Height), "white.png");
-	fadeController_->SetFadeMode(FadeController::FadeMode::Checkerboard);
-	fadeController_->SetGrid(14, 8);
-	fadeController_->SetCheckerDelay(0.012f);
-	fadeController_->StartFadeIn(0.32f); // 暗転明け
-
 	skyBox_ = std::make_unique<SkyBox>();
 	skyBox_->Initialize("SkyBox/skybox.dds");
 
-	state_ = State::TitleAttract; // 最初はタイトルアトラクトモード
 	timers_.state = timers_.idle = 0.0f;
 	timers_.inputCooldownLeft = 0.0f;
 
-	logoUI_.scale = 0.9f;   // 少し小さく出して拡大
-	logoUI_.showLeft = logoUI_.showDelay;
-	logoUI_.exitLeft = 0.0f;
+	// カメラの初期化
+	InitializeCamera();
 
-	// カメラの生成と初期化
-	camera_ = Object3DCommon::GetInstance()->GetDefaultCamera();
-	if (camera_)
-	{
-		camera_->SetTranslate({ orbitState_.center.x, orbitState_.center.y, orbitState_.center.z - orbitState_.radius });
-		orbitState_.lastPitch = -0.10f; orbitState_.lastYaw = std::numbers::pi_v<float>;
-		camera_->SetRotate({ orbitState_.lastPitch, orbitState_.lastYaw, 0.0f });
-		camera_->Update();
-	}
+	// タイトルロゴの初期化
+	InitializeLogoUI();
 
-	// タイトルロゴ（透明PNG推奨、例: Resources/UI/logo_rittai_sensen.png）
-	logoSprite_ = std::make_unique<Sprite>();
-	logoSprite_->Initialize("logo_rittai_sensen.png");
-	logoUI_.baseSize = logoSprite_->GetSize();
-	logoUI_.baseSize *= 0.7f; // 元画像が大きい場合は適宜縮小
-	logoSprite_->SetAnchorPoint({ 0.5f, 0.5f });
-	logoSprite_->SetPosition({ 1280.0f * 0.5f, 180.0f });
+	// バトルへボタンの初期化
+	InitializeBattleButtonUI();
 
-	// バトルボタンUI
-	battleButtonUI_.btnSprite = std::make_unique<Sprite>();
-	battleButtonUI_.btnSprite->Initialize("btn_battle.png");
-	battleButtonUI_.btnSprite->SetAnchorPoint(battleButtonUI_.anchor);
-	battleButtonUI_.btnSprite->SetPosition(battleButtonUI_.position);
-	battleButtonUI_.btnSprite->SetSize(battleButtonUI_.size);
+	// 影の初期化
+	InitializeButtonShadowSprite();
 
-	// 影スプライトも作成
-	battleButtonUI_.btnShadow = std::make_unique<Sprite>();
-	battleButtonUI_.btnShadow->Initialize("btn_battle.png");
-	battleButtonUI_.btnShadow->SetAnchorPoint(battleButtonUI_.anchor);
-	battleButtonUI_.btnShadow->SetPosition({ battleButtonUI_.position.x, battleButtonUI_.position.y + 6.0f }); // 影は少し下
-	battleButtonUI_.btnShadow->SetSize({ battleButtonUI_.size.x * 1.02f, battleButtonUI_.size.y * 1.02f }); // わずかに大きく
-	battleButtonUI_.btnShadow->SetColor({ 0, 0, 0, 0.35f }); // 半透明の黒
+	// クリックヒントの初期化
+	InitializeClickHintUI();
 
-	clickHintUI_.hintSprite = std::make_unique<Sprite>();
-	clickHintUI_.hintSprite->Initialize("ui_click_hint.png");
-	clickHintUI_.hintSprite->SetAnchorPoint({ 0.5f, 0.0f });      // 中央上
-	// ここは今の 1/10 スケール指定のままでOK
-	clickHintUI_.hintSprite->SetPosition({ 1280.0f * 0.5f + clickHintUI_.offset.x, 180.0f + clickHintUI_.offset.y });
-	clickHintUI_.hintSprite->SetSize({ 153.6f, 102.4f });       // 元画像が1536x1024pxなので1/10スケール
-	clickHintUI_.baseSize = clickHintUI_.hintSprite->GetSize(); // 基準サイズを保存
+	// フェードオーバーレイの初期化
+	InitializeFadeOverlay();
 
+	// ロビー地形の初期化
 	terrain_ = std::make_unique<Object3D>();
 	terrain_->Initialize("lobby03.gltf");
+
+	// 最初のステートに入る
+	ChangeState(std::make_unique<TitleFadeInState>());
+	state_ = State::FadeIn; // 最初のステート
 }
 
 
@@ -102,25 +66,31 @@ void TitleScene::Initialize()
 /// -------------------------------------------------------------
 void TitleScene::Update()
 {
+	// デバッグ更新
 	UpdateDebug();
+
+	// 地形更新
 	if (terrain_) terrain_->Update();
 
 	if (isDebugCamera_) return; // デバッグカメラ中はポーズ無効
 
+	// 時間更新
 	const float dt = dxCommon_->GetFPSCounter().GetDeltaTime();
 	timers_.state += dt;
+
+	// 入力クールダウン更新
 	if (timers_.inputCooldownLeft > 0.0f) { timers_.inputCooldownLeft = std::max(0.0f, timers_.inputCooldownLeft - dt); }
 
-	// ====== 1) すでにオーバーレイが出ているならそれを最優先で更新＆早期return ======
-	if (quitOverlay_) {
+	// ====== すでにオーバーレイが出ているならそれを最優先で更新＆早期return ======
+	if (quitOverlay_)
+	{
 		quitOverlay_->Update();                                           // ConfirmQuitOverlay は自前でマウス/キー処理を持つ
 		if (quitOverlay_->IsClose()) { quitOverlay_.reset(); }            // 閉じられたら破棄
 		skyBox_->Update();
-		fadeController_->Update(dt);
 		return;                                                           // オーバーレイ中は他の入力・遷移を止める
 	}
 
-	// ====== 2) トリガー（ESC / Q）で生成して Open(sceneManager_) ======
+	// ====== トリガー（ESC / Q）で生成して Open(sceneManager_) ======
 	if (input_->TriggerKey(DIK_ESCAPE)) {
 		quitOverlay_ = std::make_unique<ConfirmQuitOverlay>();
 		quitOverlay_->Open(sceneManager_);                                // BaseOverlay::Open で SceneManager を注入
@@ -137,28 +107,15 @@ void TitleScene::Update()
 		);
 	}
 
-	switch (state_)
+	// ----- 状態更新共通処理 -----
+	if (currentState_)
 	{
-	case TitleScene::State::TitleAttract: // タイトルアトラクトモード
-		UpdateTitleAttract(dt);
-		break;
-
-	case TitleScene::State::TransitionToLobby: // ロビーへの遷移
-		UpdateTransitionToLobby(dt);
-		break;
-
-	case TitleScene::State::LobbyIdle: // ロビーでの待機
-		UpdateLobbyIdle(dt);
-		break;
-
-	case TitleScene::State::ToTitle: // 操作時間が無かったらタイトルへ戻る
-		UpdateToTitle(dt);
-		break;
+		// ステートクラスに丸投げ
+		currentState_->Update(this, dt);
 	}
 
+	// スカイボックス更新
 	skyBox_->Update();
-
-	fadeController_->Update(dxCommon_->GetFPSCounter().GetDeltaTime());
 }
 
 
@@ -211,18 +168,26 @@ void TitleScene::Draw2DSprites()
 	}
 
 	// ロビー系（TransitionToLobby と LobbyIdle の間だけロビーUIを表示）
-	if (state_ == State::TransitionToLobby || state_ == State::LobbyIdle)
+	if (state_ == State::TransitionToLobby ||
+		state_ == State::LobbyIdle ||
+		state_ == State::Loading ||
+		state_ == State::FadeOut)
 	{
 		if (battleButtonUI_.btnShadow) { battleButtonUI_.btnShadow->Draw(); } // ← 影を先に
 		if (battleButtonUI_.btnSprite) { battleButtonUI_.btnSprite->Draw(); } // ← ボタン本体
 	}
 
-	// フェードコントローラー
-	fadeController_->Draw();
-
-	// ====== 3) 最後にオーバーレイを最前面へ重ね描き ======
+	// ====== 最後にオーバーレイを最前面へ重ね描き ======
 	if (quitOverlay_) {
 		quitOverlay_->Draw2D();
+	}
+
+	// フェードオーバーレイ
+	if (fadeSprite_ && fadeAlpha_ > 0.0f)
+	{
+		fadeSprite_->SetColor({ 0.0f, 0.0f, 0.0f, fadeAlpha_ });
+		fadeSprite_->Update();
+		fadeSprite_->Draw();
 	}
 
 #pragma endregion
@@ -249,389 +214,128 @@ void TitleScene::DrawImGui()
 	const char* stateNames =
 		state_ == State::TitleAttract ? "TitleAttract" :
 		state_ == State::TransitionToLobby ? "TransitionToLobby" :
-		state_ == State::LobbyIdle ? "LobbyIdle" : "ToTitle";
+		state_ == State::LobbyIdle ? "LobbyIdle" :
+		state_ == State::Loading ? "Loading" :
+		state_ == State::FadeOut ? "FadeOut" : "";
 	ImGui::Text("State: %s", stateNames);
 	ImGui::Text("Idle: %.1fs / Return: %.0fs", timers_.idle, timers_.returnSeconds);
 	ImGui::End();
 
-	if (state_ == State::TransitionToLobby || state_ == State::LobbyIdle) {
-		// 半透明・装飾無しのミニHUD
-		ImGui::SetNextWindowBgAlpha(0.0f);
-		ImGui::Begin("HUD", nullptr,
-			ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoInputs |
-			ImGuiWindowFlags_NoMove | ImGuiWindowFlags_AlwaysAutoResize);
-
-		// 左上：レベル/XP
-		ImGui::SetWindowPos(ImVec2(40, 30));
-		ImGui::Text("Lv.%d  %d/%d XP", debugLevel_, debugXP_, debugXPNext_);
-
-		// 右上：コイン
-		ImGui::SetWindowPos(ImVec2(1100, 30));
-		ImGui::Text("%d", debugCoins_);
-
-		ImGui::End();
-	}
 #endif // USE_IMGUI
 
 	LightManager::GetInstance()->DrawImGui();
 }
 
 /// -------------------------------------------------------------
-///				　タイトルアトラクトモードの更新
+///				　		　カメラ初期化処理
 /// -------------------------------------------------------------
-void TitleScene::UpdateTitleAttract(float dt)
+void TitleScene::InitializeCamera()
 {
-	// ゆっくりカメラを周回させる
+	// カメラの生成と初期化
+	camera_ = Object3DCommon::GetInstance()->GetDefaultCamera();
 	if (camera_)
 	{
-		// 角度を進める
-		orbitState_.angle += orbitState_.speed * dt;
-
-		const float x = orbitState_.center.x + orbitState_.radius * sin(orbitState_.angle);
-		const float z = orbitState_.center.z + orbitState_.radius * cos(orbitState_.angle);
-		camera_->SetTranslate({ x, orbitState_.center.y, z });
-
-		// 中心を見る
-		YawPitchLookAt({ x, orbitState_.center.y, z }, orbitState_.center, orbitState_.lastYaw, orbitState_.lastPitch);
+		// ロビー用の初期位置にセット
+		camera_->SetTranslate({ orbitState_.center.x, orbitState_.center.y, orbitState_.center.z - orbitState_.radius });
+		orbitState_.lastPitch = -0.10f; orbitState_.lastYaw = std::numbers::pi_v<float>;
 		camera_->SetRotate({ orbitState_.lastPitch, orbitState_.lastYaw, 0.0f });
 		camera_->Update();
 	}
-
-	// ディレイ消化
-	if (logoUI_.showLeft > 0.0f) {
-		logoUI_.showLeft = std::max(0.0f, logoUI_.showLeft - dt);
-	}
-
-	// --- ロゴのフェード＆スケール（0.8秒でふわっと出す） ---
-	{
-		float t = (logoUI_.showLeft > 0.0f) ? 0.0f
-			: std::clamp((timers_.state - logoUI_.showDelay) / 0.8f, 0.0f, 1.0f);
-		float te = EaseOutCubic(t);
-		logoUI_.alpha = te;
-		logoUI_.scale = 0.9f + 0.1f * te;
-	}
-
-	// 整数ピクセルにスナップ（ドット絵の滲み防止）
-	auto snap = [](float v) { return std::floor(v + 0.5f); };
-
-	bool canAcceptInput =
-		(timers_.state >= (timers_.minTitleSeconds + logoUI_.showDelay)) &&
-		(timers_.inputCooldownLeft <= 0.0f);
-
-	clickHintUI_.isVisible = canAcceptInput;   // 表示条件
-
-	// === クリックヒント：追従・アニメ・ヒットテスト ===
-	bool clickHintCommit = false;
-	if (clickHintUI_.isVisible && clickHintUI_.hintSprite && logoSprite_) {
-
-		clickHintUI_.phase += dt;
-
-		// ロゴのすぐ下（アンカー：ヒント=中央上）
-		const Vector2 logoPos = logoSprite_->GetPosition();
-		const Vector2 logoSz = { logoUI_.baseSize.x * logoUI_.scale, logoUI_.baseSize.y * logoUI_.scale };
-		Vector2 basePos = { logoPos.x, logoPos.y + (logoSz.y * 0.5f) + clickHintUI_.marginY };
-
-		// アニメ成分（点滅・上下ゆれ・脈動）
-		const float blink = clickHintUI_.blinkMin + (1.0f - clickHintUI_.blinkMin) * (0.5f * (sinf(clickHintUI_.phase * 2.2f) + 1.0f));
-		const float wobble = sinf(clickHintUI_.phase * 4.0f) * clickHintUI_.wobblePx;
-		const float pulse = 1.0f + clickHintUI_.pulseMag * sinf(clickHintUI_.phase * 2.0f);
-
-		// いまの“見た目”でヒットテスト（前フレームの押し/ホバー値を反映）
-		const float scaleNow =
-			(pulse + clickHintUI_.scaleHover * clickHintUI_.hoverAnim) -
-			(clickHintUI_.scalePress * clickHintUI_.pressAnim);
-		Vector2 posNow = { basePos.x, basePos.y + wobble + clickHintUI_.offsetPressY * clickHintUI_.pressAnim };
-		posNow.y = std::min(posNow.y, 720.0f - 60.0f); // 画面下クランプ（1280x720基準）
-
-		const Vector2 sizeNow = { clickHintUI_.baseSize.x * scaleNow, clickHintUI_.baseSize.y * scaleNow };
-		const float minX = posNow.x - sizeNow.x * 0.5f; // アンカー(0.5,0.0)
-		const float minY = posNow.y;                    // 上端
-		const float maxX = minX + sizeNow.x;
-		const float maxY = minY + sizeNow.y;
-
-		// マウス
-		const Vector2 mp = input_->GetMousePosition();
-		const bool inHint = (mp.x >= minX && mp.x <= maxX && mp.y >= minY && mp.y <= maxY);
-
-		// 入力：押し始めは内側、離したのも内側なら確定
-		if (input_->TriggerMouse(0) && inHint) clickHintUI_.isPressing = true;
-		const bool mouseHeld = input_->PushMouse(0);
-		const bool mouseUp = input_->ReleaseMouse(0);
-		if (mouseUp) {
-			if (clickHintUI_.isPressing && inHint) clickHintCommit = true; // ← 確定
-			clickHintUI_.isPressing = false;
-		}
-
-		// 目標値→アニメ補間
-		const float pressTarget = (clickHintUI_.isPressing && mouseHeld) ? 1.0f : 0.0f;
-		const float hoverTarget = (!pressTarget && inHint) ? 1.0f : 0.0f;
-		const float s = std::clamp(dt * 12.0f, 0.0f, 1.0f);
-		clickHintUI_.pressAnim = Lerp(clickHintUI_.pressAnim, pressTarget, s);
-		clickHintUI_.hoverAnim = Lerp(clickHintUI_.hoverAnim, hoverTarget, s);
-
-		//“更新後”の見た目で描画セット（次フレームの ③ で使われる）
-		const float scaleDraw =
-			(pulse + clickHintUI_.scaleHover * clickHintUI_.hoverAnim) -
-			(clickHintUI_.scalePress * clickHintUI_.pressAnim);
-		Vector2 posDraw = {
-			basePos.x,
-			basePos.y + wobble + clickHintUI_.offsetPressY * clickHintUI_.pressAnim
-		};
-		posDraw.y = std::min(posDraw.y, 720.0f - 60.0f);
-
-		clickHintUI_.hintSprite->SetPosition({ snap(posDraw.x), snap(posDraw.y) });
-		clickHintUI_.hintSprite->SetSize({ clickHintUI_.baseSize.x * scaleDraw, clickHintUI_.baseSize.y * scaleDraw });
-		clickHintUI_.hintSprite->SetColor({ 1.0f, 0.95f, 0.25f, blink });
-		clickHintUI_.hintSprite->Update();
-	}
-
-	// === 入力受付 ===
-	if (canAcceptInput && (
-		clickHintCommit ||
-		input_->TriggerKey(DIK_RETURN) ||          // Enter
-		input_->TriggerKey(DIK_SPACE) ||          // Space
-		input_->TriggerButton(XButtons.A)		// Aが押されたら
-		)) {
-		// 逆参照しないように
-		auto* camera = camera_ ? camera_ : EnsureCamera();
-
-		// 現在姿勢 -> ロビーの姿勢 へのスナップショットを取得
-		poseFrom_ = { camera->GetTranslate(), orbitState_.lastYaw, orbitState_.lastPitch };
-		float toYaw = 0.0f, toPitch = 0.0f;
-		YawPitchLookAt(lobbySwing_.cameraPosition, lobbySwing_.lookAt, toYaw, toPitch);
-		poseTo_ = { lobbySwing_.cameraPosition, toYaw, toPitch };
-		timers_.time = 0.0f; // 遷移時間リセット
-		timers_.state = 0.0f; // タイマーリセット
-
-		state_ = State::TransitionToLobby; // ロビーへの遷移へ
-		logoUI_.exitLeft = logoUI_.exitFade;          // Exitフェード開始
-	}
-
-	logoSprite_->Update();
 }
 
 /// -------------------------------------------------------------
-///				　		ロビーへの遷移の更新
+///				　		　ロゴUI初期化処理
 /// -------------------------------------------------------------
-void TitleScene::UpdateTransitionToLobby(float dt)
+void TitleScene::InitializeLogoUI()
 {
-	timers_.time += dt;
-	float t = std::clamp(timers_.time / timers_.duration, 0.0f, 1.0f);
-	float te = EaseInOutCubic(t);                // ← “滑らか”補間（お好みで変更可）
+	logoUI_.scale = 0.9f;   // 少し小さく出して拡大
+	logoUI_.showLeft = logoUI_.showDelay;
+	logoUI_.exitLeft = 0.0f;
 
-	Vector3 p;
-
-	// 位置・向き補間
-	p.x = Lerp(poseFrom_.position.x, poseTo_.position.x, te);
-	p.y = Lerp(poseFrom_.position.y, poseTo_.position.y, te);
-	p.z = Lerp(poseFrom_.position.z, poseTo_.position.z, te);
-	const float yaw = LerpAngle(poseFrom_.yaw, poseTo_.yaw, te);
-	const float pitch = Lerp(poseFrom_.pitch, poseTo_.pitch, te);
-
-	// カメラ更新
-	camera_->SetTranslate(p);
-	camera_->SetRotate({ pitch, yaw, 0.0f });
-	camera_->Update();
-	orbitState_.lastYaw = yaw; orbitState_.lastPitch = pitch;
-
-	if (t >= 1.0f)
-	{
-		state_ = State::LobbyIdle;
-		timers_.state = timers_.idle = 0.0f;
-
-		// lookAt からの水平半径と高さ
-		const Vector3& P = poseTo_.position;
-		lobbySwing_.radius = std::hypot(P.x - lobbySwing_.lookAt.x, P.z - lobbySwing_.lookAt.z);
-		lobbySwing_.height = P.y;
-
-		// 基準角（θ）とピッチを記録：yaw = θ + π なので θ = yaw - π
-		lobbySwing_.baseTheta = poseTo_.yaw - std::numbers::pi_v<float>;
-		lobbySwing_.basePitch = poseTo_.pitch;
-		lobbySwing_.phase = 0.0f;
-	}
-
-	// ロゴの退出フェード（あれば減衰）
-	if (logoUI_.exitLeft > 0.0f)
-	{
-		logoUI_.exitLeft = std::max(0.0f, logoUI_.exitLeft - dt);
-		logoUI_.alpha = (logoUI_.exitLeft / logoUI_.exitFade);  // 線形でOK
-	}
+	// ロゴスプライトの生成
+	logoSprite_ = std::make_unique<Sprite>();
+	logoSprite_->Initialize("logo_rittai_sensen.png");
+	logoUI_.baseSize = logoSprite_->GetSize();
+	logoUI_.baseSize *= 0.7f; // 元画像が大きい場合は適宜縮小
+	logoSprite_->SetAnchorPoint({ 0.5f, 0.5f });
+	logoSprite_->SetPosition({ 1280.0f * 0.5f, 180.0f });
 }
 
 /// -------------------------------------------------------------
-///				　		ロビーでの待機の更新
+///				　	バトルボタンUI初期化処理
 /// -------------------------------------------------------------
-void TitleScene::UpdateLobbyIdle(float dt)
+void TitleScene::InitializeBattleButtonUI()
 {
-	Vector2 mp = input_->GetMousePosition();
-
-	// ボタン矩形（アンカー対応）
-	const float minX = battleButtonUI_.position.x - battleButtonUI_.size.x * battleButtonUI_.anchor.x;
-	const float minY = battleButtonUI_.position.y - battleButtonUI_.size.y * battleButtonUI_.anchor.y;
-	const float maxX = minX + battleButtonUI_.size.x;
-	const float maxY = minY + battleButtonUI_.size.y;
-	const bool inBtn = (mp.x >= minX && mp.x <= maxX && mp.y >= minY && mp.y <= maxY);
-
-	// ----- クリック確定ルール -----
-	// 1) ボタン内で押し始めたら「押下中」フラグを立てる
-	if (input_->TriggerMouse(0) && inBtn)
-	{
-		battleButtonUI_.isPressing = true;
-	}
-	// 2) ボタンを押している間は「押下演出」を出す
-	const bool mouseHeld = input_->PushMouse(0);      // ※ Input に実装済み
-	const bool mouseUp = input_->ReleaseMouse(0);   // ※ 離しの立ち上がり
-
-	// 3) 離した瞬間、押下開始していて かつ いまもボタン内なら確定
-	if (mouseUp)
-	{
-		if (battleButtonUI_.isPressing && inBtn && !fadeController_->IsFading())
-		{
-			fadeController_->SetFadeMode(FadeController::FadeMode::Checkerboard);
-			fadeController_->SetOnComplete([this] {if (sceneManager_) { sceneManager_->ChangeScene("StageSelectScene"); }});
-			fadeController_->SetCheckerDelay(0.012f);
-			fadeController_->StartFadeOut(0.32f); // 暗転
-			battleButtonUI_.isPressing = false;
-			return;
-		}
-		// 外で離したらキャンセル
-		battleButtonUI_.isPressing = false;
-	}
-
-	// ----- 視覚効果（押し込み・ホバーをスムーズに補間） -----
-	// 目標値
-	const float pressTarget = (battleButtonUI_.isPressing && mouseHeld) ? 1.0f : 0.0f;
-	const float hoverTarget = (!pressTarget && inBtn) ? 1.0f : 0.0f;
-
-	// 補間（指数近似っぽく）
-	const float s = std::clamp(dt * 12.0f, 0.0f, 1.0f);
-	battleButtonUI_.pressAnim = Lerp(battleButtonUI_.pressAnim, pressTarget, s);
-	battleButtonUI_.hoverAnim = Lerp(battleButtonUI_.hoverAnim, hoverTarget, s);
-
-	// スケール：ホバーで+、押下で-（両方効く）
-	const float scale =
-		(1.0f + battleButtonUI_.scaleHover * battleButtonUI_.hoverAnim) - (battleButtonUI_.scalePress * battleButtonUI_.pressAnim);
-
-	// 位置：押下時だけ下に沈む
-	const Vector2 pos = {
-		battleButtonUI_.position.x,
-		battleButtonUI_.position.y + battleButtonUI_.pressOffsetPx * battleButtonUI_.pressAnim
-	};
-
-	// 色：押下時は少し暗く（0.85倍）
-	const float tint = 1.0f - 0.15f * battleButtonUI_.pressAnim;
-
-	// ボタン本体
-	if (battleButtonUI_.btnSprite)
-	{
-		battleButtonUI_.btnSprite->SetSize({ battleButtonUI_.size.x * scale, battleButtonUI_.size.y * scale });
-		battleButtonUI_.btnSprite->SetPosition(pos);
-		battleButtonUI_.btnSprite->SetColor({ tint, tint, tint, 1.0f });
-		battleButtonUI_.btnSprite->Update();
-	}
-
-	// 影：押下すると「距離が縮む」＝影のオフセットを減らす
-	if (battleButtonUI_.btnShadow)
-	{
-		const float shadowOffset = Lerp(6.0f, 2.0f, battleButtonUI_.pressAnim); // 未押下→押下で 6px→2px
-		battleButtonUI_.btnShadow->SetSize({ battleButtonUI_.size.x * (scale + 0.02f), battleButtonUI_.size.y * (scale + 0.02f) });
-		battleButtonUI_.btnShadow->SetPosition({ battleButtonUI_.position.x, battleButtonUI_.position.y + shadowOffset });
-		battleButtonUI_.btnShadow->SetColor({ 0, 0, 0, 0.35f + 0.1f * battleButtonUI_.hoverAnim }); // ホバーで少し濃く
-		battleButtonUI_.btnShadow->Update();
-	}
-
-	// --- キーボード/パッド開始 ---
-	if ((input_->TriggerKey(DIK_RETURN) || input_->TriggerButton(XButtons.A)) && !fadeController_->IsFading())
-	{
-		fadeController_->SetFadeMode(FadeController::FadeMode::Checkerboard);
-		fadeController_->SetOnComplete([this] {if (sceneManager_) { sceneManager_->ChangeScene("StageSelectScene"); }});
-		fadeController_->SetCheckerDelay(0.012f);
-		fadeController_->StartFadeOut(0.32f); // 暗転
-		return;
-	}
-
-	// 無操作タイマー更新（何かキーでリセット）
-	timers_.idle += dt;
-	if (input_->TriggerMouse(0) || input_->TriggerKey(DIK_RETURN) || input_->TriggerButton(XButtons.A))
-	{
-		timers_.idle = 0.0f;
-	}
-
-	// --- カメラの水平スイング（左右のみ／上下固定） ---
-	if (camera_)
-	{
-		lobbySwing_.phase += dt * lobbySwing_.speed;
-		const float theta = lobbySwing_.baseTheta + std::sin(lobbySwing_.phase) * lobbySwing_.amplitude;
-		// 位置：lookAt 周りの円弧（y は固定）
-		const float x = lobbySwing_.lookAt.x + lobbySwing_.radius * std::sin(theta);
-		const float z = lobbySwing_.lookAt.z + lobbySwing_.radius * std::cos(theta);
-		const float y = lobbySwing_.height;
-		camera_->SetTranslate({ x, y, z });
-		// 向き：常に中心を見る（yaw=θ+π、pitchは基準のまま）
-		const float yaw = theta + std::numbers::pi_v<float>;
-		camera_->SetRotate({ lobbySwing_.basePitch, yaw, 0.0f });
-		camera_->Update();
-		orbitState_.lastYaw = yaw; orbitState_.lastPitch = lobbySwing_.basePitch;
-	}
-
-	// 規定時間無操作なら「タイトルへ戻る補間」を開始
-	if (timers_.idle >= timers_.returnSeconds && camera_)
-	{
-		// 戻り先：現在のオービット角での位置（必ず中心を見る）
-		Vector3 orbitPos{
-			orbitState_.center.x + orbitState_.radius * std::sin(orbitState_.angle),
-			orbitState_.center.y,
-			orbitState_.center.z + orbitState_.radius * std::cos(orbitState_.angle)
-		};
-		float toYaw = 0.0f, toPitch = 0.0f;
-		YawPitchLookAt(orbitPos, orbitState_.center, toYaw, toPitch);
-
-		// 現在姿勢 → タイトル姿勢 のスナップショット
-		poseFrom_ = { camera_->GetTranslate(), orbitState_.lastYaw, orbitState_.lastPitch };
-		poseTo_ = { orbitPos, toYaw, toPitch };
-		timers_.time = 0.0f;
-		timers_.state = 0.0f;
-		state_ = State::ToTitle;   // ← 補間専用ステートへ
-		timers_.inputCooldownLeft = timers_.afterReturnCooldown;   // 戻った直後の誤爆防止
-		logoUI_.showLeft = logoUI_.showDelay;         // 戻り後の出現ディレイを仕込む
-		return;
-	}
-
-	if (battleButtonUI_.btnSprite) battleButtonUI_.btnSprite->Update();
+	// バトルボタンUI
+	battleButtonUI_.btnSprite = std::make_unique<Sprite>();
+	battleButtonUI_.btnSprite->Initialize("btn_battle.png");
+	battleButtonUI_.btnSprite->SetAnchorPoint(battleButtonUI_.anchor);
+	battleButtonUI_.btnSprite->SetPosition(battleButtonUI_.position);
+	battleButtonUI_.btnSprite->SetSize(battleButtonUI_.size);
 }
 
 /// -------------------------------------------------------------
-///				　	タイトルへ戻る補間の更新
+///				　	ボタン影スプライト初期化処理
 /// -------------------------------------------------------------
-void TitleScene::UpdateToTitle(float dt)
+void TitleScene::InitializeButtonShadowSprite()
 {
-	timers_.time += dt;
-	float t = std::clamp(timers_.time / timers_.duration, 0.0f, 1.0f);
-	float te = EaseInOutCubic(t); // 好みでカーブ変更可
+	// 影スプライトも作成
+	battleButtonUI_.btnShadow = std::make_unique<Sprite>();
+	battleButtonUI_.btnShadow->Initialize("btn_battle.png");
+	battleButtonUI_.btnShadow->SetAnchorPoint(battleButtonUI_.anchor);
+	battleButtonUI_.btnShadow->SetPosition({ battleButtonUI_.position.x, battleButtonUI_.position.y + 6.0f }); // 影は少し下
+	battleButtonUI_.btnShadow->SetSize({ battleButtonUI_.size.x * 1.02f, battleButtonUI_.size.y * 1.02f }); // わずかに大きく
+	battleButtonUI_.btnShadow->SetColor({ 0, 0, 0, 0.35f }); // 半透明の黒
+}
 
-	// 位置・角度を補間（角度は最短回転で）
-	Vector3 p;
-	p.x = Lerp(poseFrom_.position.x, poseTo_.position.x, te);
-	p.y = Lerp(poseFrom_.position.y, poseTo_.position.y, te);
-	p.z = Lerp(poseFrom_.position.z, poseTo_.position.z, te);
-	float yaw = LerpAngle(poseFrom_.yaw, poseTo_.yaw, te);
-	float pitch = Lerp(poseFrom_.pitch, poseTo_.pitch, te);
+/// -------------------------------------------------------------
+///				　	クリックヒントUI初期化処理
+/// -------------------------------------------------------------
+void TitleScene::InitializeClickHintUI()
+{
+	clickHintUI_.hintSprite = std::make_unique<Sprite>();
+	clickHintUI_.hintSprite->Initialize("ui_click_hint.png");
+	clickHintUI_.hintSprite->SetAnchorPoint({ 0.5f, 0.0f });      // 中央上
+	// ここは今の 1/10 スケール指定のままでOK
+	clickHintUI_.hintSprite->SetPosition({ 1280.0f * 0.5f + clickHintUI_.offset.x, 180.0f + clickHintUI_.offset.y });
+	clickHintUI_.hintSprite->SetSize({ 153.6f, 102.4f });       // 元画像が1536x1024pxなので1/10スケール
+	clickHintUI_.baseSize = clickHintUI_.hintSprite->GetSize(); // 基準サイズを保存
+}
 
-	camera_->SetTranslate(p);
-	camera_->SetRotate({ pitch, yaw, 0.0f });
-	camera_->Update();
-	orbitState_.lastYaw = yaw; orbitState_.lastPitch = pitch;
+/// -------------------------------------------------------------
+///				　	フェードオーバーレイ初期化処理
+/// -------------------------------------------------------------
+void TitleScene::InitializeFadeOverlay()
+{
+	// フェード用スプライト（黒の1x1テクスチャを用意しておく）
+	fadeSprite_ = std::make_unique<Sprite>();
+	fadeSprite_->Initialize("white.png");
+	fadeSprite_->SetAnchorPoint({ 0.5f, 0.5f });
+	fadeSprite_->SetPosition({ 1280.0f * 0.5f, 720.0f * 0.5f });
+	fadeSprite_->SetSize({ 1280.0f, 720.0f });   // 画面全体を覆う
+	fadeSprite_->SetColor({ 0.0f, 0.0f, 0.0f, 0.0f }); // 最初は透明
+	fadeAlpha_ = 0.0f;
+}
 
-	// 補間完了→タイトルのオービットへ
-	if (t >= 1.0f)
-	{
-		timers_.idle = timers_.state = 0.0f;
-		state_ = State::TitleAttract;
+/// -------------------------------------------------------------
+///				　　ステート変更処理の共通化
+/// -------------------------------------------------------------
+void TitleScene::ChangeState(std::unique_ptr<ITitleSceneState> newState)
+{
+	// 今のステートから抜ける
+	if (currentState_) {
+		currentState_->Exit(this);
+	}
 
-		logoUI_.alpha = 0.0f;            // 戻ってもしばらく見えない
-		logoUI_.scale = 0.9f;
+	// ステート差し替え
+	currentState_ = std::move(newState);
+
+	// 新しいステートに入る
+	if (currentState_) {
+		currentState_->Enter(this);
 	}
 }
+
 
 /// -------------------------------------------------------------
 ///				カメラの確保（なければデフォルトを取得）
@@ -652,6 +356,9 @@ void TitleScene::UpdateDebug()
 #ifdef _DEBUG
 	if (input_->TriggerKey(DIK_BACK))
 	{
+		// タイトルに来たら必ずピクセルエフェクトはOFFにしておく
+		PostEffectManager::GetInstance()->DisableEffect("PixelateEffect");
+
 		if (sceneManager_)
 		{
 			sceneManager_->ChangeScene("PhysicalScene"); // 戻るキーでゲームプレイシーンに戻る
