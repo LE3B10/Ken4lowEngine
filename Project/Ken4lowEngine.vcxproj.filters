@@ -490,13 +490,27 @@
     <ClCompile Include="ApplicationLayer\Scene\TitleScene\State\TitleFadeInState.cpp">
       <Filter>ApplicationLayer\Scene\TitleScene\State</Filter>
     </ClCompile>
-    <ClCompile Include="ApplicationLayer\Scene\GamePlayScene\State\GameCutSceneState.cpp" />
-    <ClCompile Include="ApplicationLayer\Scene\GamePlayScene\State\GamePlayingState.cpp" />
-    <ClCompile Include="ApplicationLayer\Scene\GamePlayScene\State\GameClearState.cpp" />
-    <ClCompile Include="ApplicationLayer\Scene\GamePlayScene\State\GameResultState.cpp" />
-    <ClCompile Include="ApplicationLayer\Scene\GamePlayScene\State\GameFadeOut.cpp" />
-    <ClCompile Include="ApplicationLayer\Scene\GamePlayScene\State\GameFadeIn.cpp" />
-    <ClCompile Include="ApplicationLayer\Scene\GamePlayScene\State\GameSettingUpState.cpp" />
+    <ClCompile Include="ApplicationLayer\Scene\GamePlayScene\State\GameClearState.cpp">
+      <Filter>ApplicationLayer\Scene\GamePlayScene\State</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\Scene\GamePlayScene\State\GameCutSceneState.cpp">
+      <Filter>ApplicationLayer\Scene\GamePlayScene\State</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\Scene\GamePlayScene\State\GameFadeIn.cpp">
+      <Filter>ApplicationLayer\Scene\GamePlayScene\State</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\Scene\GamePlayScene\State\GameFadeOut.cpp">
+      <Filter>ApplicationLayer\Scene\GamePlayScene\State</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\Scene\GamePlayScene\State\GamePlayingState.cpp">
+      <Filter>ApplicationLayer\Scene\GamePlayScene\State</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\Scene\GamePlayScene\State\GameResultState.cpp">
+      <Filter>ApplicationLayer\Scene\GamePlayScene\State</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\Scene\GamePlayScene\State\GameSettingUpState.cpp">
+      <Filter>ApplicationLayer\Scene\GamePlayScene\State</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="EngineLayer\Math\MultipleStructs\AABB.h">
@@ -1042,13 +1056,27 @@
     <ClInclude Include="ApplicationLayer\Scene\TitleScene\State\TitleFadeInState.h">
       <Filter>ApplicationLayer\Scene\TitleScene\State</Filter>
     </ClInclude>
-    <ClInclude Include="ApplicationLayer\Scene\GamePlayScene\State\GameCutSceneState.h" />
-    <ClInclude Include="ApplicationLayer\Scene\GamePlayScene\State\GamePlayingState.h" />
-    <ClInclude Include="ApplicationLayer\Scene\GamePlayScene\State\GameClearState.h" />
-    <ClInclude Include="ApplicationLayer\Scene\GamePlayScene\State\GameResultState.h" />
-    <ClInclude Include="ApplicationLayer\Scene\GamePlayScene\State\GameFadeOut.h" />
-    <ClInclude Include="ApplicationLayer\Scene\GamePlayScene\State\GameFadeIn.h" />
-    <ClInclude Include="ApplicationLayer\Scene\GamePlayScene\State\GameSettingUpState.h" />
+    <ClInclude Include="ApplicationLayer\Scene\GamePlayScene\State\GameClearState.h">
+      <Filter>ApplicationLayer\Scene\GamePlayScene\State</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Scene\GamePlayScene\State\GameCutSceneState.h">
+      <Filter>ApplicationLayer\Scene\GamePlayScene\State</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Scene\GamePlayScene\State\GameFadeIn.h">
+      <Filter>ApplicationLayer\Scene\GamePlayScene\State</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Scene\GamePlayScene\State\GameFadeOut.h">
+      <Filter>ApplicationLayer\Scene\GamePlayScene\State</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Scene\GamePlayScene\State\GamePlayingState.h">
+      <Filter>ApplicationLayer\Scene\GamePlayScene\State</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Scene\GamePlayScene\State\GameResultState.h">
+      <Filter>ApplicationLayer\Scene\GamePlayScene\State</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Scene\GamePlayScene\State\GameSettingUpState.h">
+      <Filter>ApplicationLayer\Scene\GamePlayScene\State</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="Resources\Shaders\PostEffect\FullScreen.hlsli">
