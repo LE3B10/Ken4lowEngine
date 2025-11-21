@@ -22,7 +22,6 @@ struct SelectorContext
 	float screenWidth = 1280.0f;  // 画面幅
 	float screenHeight = 720.0f;  // 画面高さ
 	class Input* input = nullptr; // 入力インターフェース
-	class FadeController* fadeController = nullptr; // フェードコントローラー
 	const std::vector<StageInfo>* stages = nullptr; // ステージ情報リスト（外部管理）
 
 	// コールバック

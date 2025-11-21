@@ -1,7 +1,6 @@
 #pragma once
 #include "BaseScene.h"
 #include <Sprite.h>
-#include <FadeController.h>
 
 #include <string>
 #include <vector>
@@ -67,11 +66,14 @@ public: /// ---------- メンバ関数 ---------- ///
 
 private: /// ---------- メンバ関数 ---------- ///
 
-	void InitializeStages(); // ステージ情報初期化
+	// ステージ情報初期化
+	void InitializeStages();
 
-	void InitializeSelectors(); // セレクター初期化
+	// セレクター初期化
+	void InitializeSelectors();
 
-	void InitializeBackground(); // 背景初期化
+	// 背景初期化
+	void InitializeBackground();
 
 	// フェード用初期化
 	void InitializeFadeOverlay();
@@ -109,6 +111,10 @@ public: /// ---------- 状態管理 ---------- ///
 	// 次に遷移するシーンの設定
 	void SetNextScene(NextScene n) { nextScene_ = n; }
 	NextScene GetNextScene() const { return nextScene_; }
+
+	SelectorContext& GetSelectorContext() { return context_; }
+
+public: /// ---------- シーン遷移ヘルパー ---------- ///
 
 	// シーン遷移のヘルパー
 	void BackToTitle();     // ← TitleScene へ戻る

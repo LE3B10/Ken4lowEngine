@@ -30,5 +30,10 @@ public: /// ---------- 仮想関数のオーバーライド ---------- ///
 	/// </summary>
 	/// <param name="scene"></param>
 	virtual void Exit(GamePlayScene* scene) override;
+
+private: /// ---------- メンバ変数 ---------- ///
+
+	float timer_ = 0.0f; 	 // ロード経過時間
+	float duration_ = 1.0f; // ロードにかける時間（秒）
 };
 

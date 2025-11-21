@@ -28,5 +28,17 @@ public: /// ---------- メンバ関数 ---------- ///
 	/// </summary>
 	/// <param name="scene"></param>
 	void Exit(GamePlayScene* scene) override;
+
+private: /// ---------- メンバ関数 ---------- ///
+
+	// 敵ウェーブ出現処理
+	void SpawnWave(GamePlayScene* scene, int waveIndex);
+
+	// ボス出現処理
+	void SpawnBoss(GamePlayScene* scene);
+
+	// ステージクリア時の処理
+	void OnStageClear(GamePlayScene* scene);
+
 };
 

@@ -1,6 +1,9 @@
 #define NOMINMAX
 #include "StageSelectLoadState.h"
 #include "StageSelectScene.h"
+#include <StageSelectFadeInState.h>
+#include <StageSelectFadeOutState.h>
+#include "StageRepository.h"
 
 void StageSelectLoadState::Enter(StageSelectScene* scene)
 {
@@ -34,7 +37,10 @@ void StageSelectLoadState::Update(StageSelectScene* scene, float deltaTime)
 			break;
 
 		default:
-			// 何も設定されていなければ安全に抜ける
+			// ロードが終わったらフェードインステートへ
+			scene->ChangeState(std::make_unique<StageSelectFadeInState>());
+			auto* selector = scene->GetActiveSelector();
+			selector->Update(deltaTime); // 念のため一回更新
 			break;
 		}
 	}

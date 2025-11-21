@@ -376,9 +376,6 @@
     <ClCompile Include="EngineLayer\PostEffectManagement\PostEffectManager\PostEffectManager.cpp">
       <Filter>EngineLayer\Managers\PostEffectManager</Filter>
     </ClCompile>
-    <ClCompile Include="ApplicationLayer\EffectLayer\FadeController.cpp">
-      <Filter>ApplicationLayer\EffectLayer</Filter>
-    </ClCompile>
     <ClCompile Include="ApplicationLayer\Scene\StageSelectScene\GridStageSelector.cpp">
       <Filter>ApplicationLayer\Scene\StageSelectScene</Filter>
     </ClCompile>
@@ -878,9 +875,6 @@
     </ClInclude>
     <ClInclude Include="EngineLayer\PostEffectManagement\PostEffectManager\PostEffectManager.h">
       <Filter>EngineLayer\Managers\PostEffectManager</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\EffectLayer\FadeController.h">
-      <Filter>ApplicationLayer\EffectLayer</Filter>
     </ClInclude>
     <ClInclude Include="ApplicationLayer\Scene\StageSelectScene\GridStageSelector.h">
       <Filter>ApplicationLayer\Scene\StageSelectScene</Filter>
