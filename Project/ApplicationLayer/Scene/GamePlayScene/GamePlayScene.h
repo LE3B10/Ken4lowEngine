@@ -14,6 +14,8 @@
 #include <ItemDropTable.h>
 #include "BaseOverlay.h"
 
+#include "IGamePlaySceneState.h"
+
 #include <array>
 #include <memory>
 
@@ -55,45 +57,37 @@ struct StageConfig
 /// -------------------------------------------------------------
 class GamePlayScene : public BaseScene
 {
+	// ★ 星３つ演出
+	static constexpr int kClearStarCount = 3;
+	static constexpr int kClearOptionCount = 3;
+
 public: /// ---------- メンバ型 ---------- ///
 
 	// ゲームの状態を管理する列挙型
-	enum class GameState
+	enum class State
 	{
-		CutScene,	// カットシーン中
-		Playing,	// プレイ中
-		Paused,		// ポーズ中
-		GameClear,	// ゲームクリア
-		Result,		// リザルト画面
-		GameOver,	// ゲームオーバー
-		FadeOut,	// フェードアウト中
-		FadeIn,		// フェードイン中
-		Loading,	// ローディング中
-		SettingUp,	// セットアップ中
+		SettingUp,  // ステージ読み込み前のセットアップ
+		Loading,    // リソースロード
+
+		FadeIn,     // 画面が明るくなってくる
+		CutScene,   // オープニング演出
+		Playing,    // プレイ中
+		Paused,     // ポーズ
+
+		GameClear,  // クリア
+		GameOver,   // ゲームオーバー
+		Result,     // リザルト画面
+
+		FadeOut,    // 次のシーンへフェードアウト
 	};
 
 	// ToDo: ゲームシーンにステートパターンを導入する予定
 
-private: /// ---------- 構造体 ---------- ///
-
-	// カメラキーフレーム構造体
-	struct CameraKeyFrame
+	struct ButtonRect
 	{
-		float time;		  // 時間
-		Vector3 position; // 位置
-		Vector3 lookAt;	  // 注視点
+		float x, y;      // 左上
+		float w, h;      // サイズ
 	};
-
-	// ヨー回転キーフレーム構造体
-	struct YawKey
-	{
-		float time;
-		float deg;
-	};
-
-	static float SmoothDampAngle(float current, float target,
-		float& currentVelocity,
-		float smoothTime, float deltaTime);
 
 public: /// ---------- メンバ関数 ---------- ///
 
@@ -115,45 +109,118 @@ public: /// ---------- メンバ関数 ---------- ///
 	// ImGui描画処理
 	void DrawImGui() override;
 
+public: /// ---------- セッタ ー ---------- ///
+
+	// シーン状態を変更
+	void ChangeState(std::unique_ptr<IGamePlaySceneState> newState);
+
+	// 状態をセット
+	void SetState(State state) { state_ = state; }
+
+public: /// ---------- ゲッター ---------- ///
+
+	DirectXCommon* GetDirectXCommon() { return dxCommon_; }
+	Input* GetInput() { return input_; }
+	Player* GetPlayer() { return player_.get(); }
+	std::unique_ptr<Enemy>& GetBoss() { return boss_; }
+	SkyBox* GetSkyBox() { return skyBox_.get(); }
+	std::vector<std::unique_ptr<Enemy>>* GetEnemies() { return &enemies_; }
+	Crosshair* GetCrosshair() { return crosshair_.get(); }
+	BallisticEffect* GetBallisticEffect() { return ballisticEffect_.get(); }
+	ItemManager* GetItemManager() { return itemManager_.get(); }
+	std::unique_ptr<LevelObjectManager>& GetLevelObjectManager() { return levelObjectManager_; }
+	CollisionManager* GetCollisionManager() { return collisionManager_.get(); }
+	State GetState() const { return state_; }
+	ItemDropTable& GetItemDropTable() { return normalDropTable_; }
+	std::vector<WaveConfig>* GetWaveConfigs() { return &currentStageConfig_.waves; }
+	StageConfig& GetCurrentWaveConfig() { return currentStageConfig_; }
+	ButtonRect& GetRetryRect() { return retryRect_; }
+	ButtonRect& GetRetireRect() { return retireRect_; }
+
+	int GetCurrentStageIndex() const { return currentStageIndex_; }
+	void SetCurrentStageIndex(int index) { currentStageIndex_ = index; }
+
+	// 半透明パネル
+	std::unique_ptr<Sprite>& GetClearPanelSprite() { return clearPanelSprite_; }
+	std::unique_ptr<Sprite>& GetClearTextSprite() { return clearTextSprite_; }
+
+	std::unique_ptr<Sprite>& GetRetryButtonSprite() { return retryButtonSprite_; }
+	std::unique_ptr<Sprite>& GetRetireButtonSprite() { return retireButtonSprite_; }
+
+	int GetClearStarCount() const { return kClearStarCount; }
+	std::array<std::unique_ptr<Sprite>, kClearStarCount>& GetClearStarSprites() { return clearStarSprites_; }
+	std::array<float, kClearStarCount>& GetClearStarDelay() { return clearStarDelay_; }
+	std::array<bool, kClearStarCount>& GetClearStarBurstPlayed() { return clearStarBurstPlayed_; }
+	float GetClearStarPopDuration() const { return clearStarPopDuration_; }
+	float GetClearStarBaseSize() const { return clearStarBaseSize_; }
+
+	int GetClearOptionCount() const { return kClearOptionCount; }
+	std::array<std::unique_ptr<Sprite>, kClearOptionCount>& GetClearOptionSprites() { return clearOptionSprites_; }
+	std::array<ButtonRect, kClearOptionCount>& GetClearOptionRects() { return clearOptionRects_; }
+
+	// フェード用アクセサ
+	void SetFadeAlpha(float a) { fadeAlpha_ = a; }
+	float GetFadeAlpha() const { return fadeAlpha_; }
+	Sprite* GetFadeSprite() const { return fadeSprite_.get(); }
+
+	bool IsBossSpawned() const { return bossSpawned_; }
+	void SetBossSpawned(bool spawned) { bossSpawned_ = spawned; }
+
+	bool IsAllWavesCleared() const { return allWavesCleared_; }
+	void SetAllWavesCleared(bool cleared) { allWavesCleared_ = cleared; }
+
+	int GetCurrentWaveIndex() const { return currentWaveIndex_; }
+	void SetCurrentWaveIndex(int index) { currentWaveIndex_ = index; }
+
+	bool IsGameClearInputAccepted() const { return gameClearInputAccepted_; }
+	void SetGameClearInputAccepted(bool accepted) { gameClearInputAccepted_ = accepted; }
+
+	float GetGameClearTimer() const { return gameClearTimer_; }
+	void SetGameClearTimer(float time) { gameClearTimer_ = time; }
+
+public: /// ---------- ポーズオーバーレイ関連 ---------- ///
+
+	BaseOverlay* GetPauseOverlay() { return pauseOverlay_.get(); }
+	void SetPauseOverlay(std::unique_ptr<BaseOverlay> overlay) { pauseOverlay_ = std::move(overlay); }
+	void ClearPauseOverlay() { pauseOverlay_.reset(); }
+
+	bool IsPaused() const { return isPaused_; }
+	void SetPaused(bool paused) { isPaused_ = paused; }
+
+	bool IsDebugCamera() const { return isDebugCamera_; }
+
+private: /// ---------- メンバ関数 ---------- ///
+
+	// フェードオーバーレイの初期化
+	void InitializeFadeOverlay();
+
+	// アイテムの初期化
+	void InitializeItems();
+
+	// クリア演出スプライトの初期化
+	void InitializeClearEffectSprites();
+
 private: /// ---------- メンバ関数 ---------- ///
 
 	// Debug用更新処理
 	void UpdateDebug();
 
-	void StartIntroCutscene();   // セットアップ
-
-	bool UpdateIntroCutscene(float dt); // true=終わった
-
-	float SampleYawDeg(float t) const; // 補間関数
-
-	// 再生を最初からやり直す小関数
-	void RestartIntroCutscene();
-
 	// 衝突判定と応答
 	void CheckAllCollisions();
-
-	// ステージクリア時の処理
-	void OnStageClear();
-
-	// 敵ウェーブ初期化処理
-	void InitializeWaves();
-
-	// 敵ウェーブ出現処理
-	void SpawnWave(int waveIndex);
-
-	// ボス出現処理
-	void SpawnBoss();
 
 private: /// ---------- メンバ変数 ---------- ///
 
 	DirectXCommon* dxCommon_ = nullptr;
 	Input* input_ = nullptr;
 
-	GameState gameState_ = GameState::Playing; // ゲームの状態
+	State state_ = State::Playing; // ゲームの状態
 
 	std::unique_ptr<CollisionManager> collisionManager_; // 衝突マネージャー
 
 	std::unique_ptr<SkyBox> skyBox_ = nullptr; // スカイボックス
+
+	// 現在のシーン状態
+	std::unique_ptr<IGamePlaySceneState> currentState_ = nullptr;
 
 	// デバッグカメラのON/OFF用
 	bool isDebugCamera_ = false;
@@ -161,23 +228,9 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	bool isPaused_ = false; // ポーズ中かどうか
 
-	std::vector<CameraKeyFrame> introKeys_;
-	float introLength_ = 0.0f;
-	float introTime_ = 0.0f;
-	bool  introDone_ = false;
-
-	std::vector<YawKey> introYawKeys_; // Yawオフセット（度）
-	float introYawRad_ = 0.0f;   // 現在のヨー（rad）
-	float introYawVel_ = 0.0f;   // 角速度（rad/s）
-
-	bool introLoop_ = false;        // ループ再生（ImGuiトグル）
-	float introSmoothTime_ = 0.6f;  // Yawのスムーズ時間（ImGuiで可変）
-	bool forceSnapFirstYaw_ = true; // 開始フレームで進行方向にヨーを合わせる
-
 private: /// ---------- メンバ変数 ---------- ///
 
 	std::unique_ptr<Player> player_ = nullptr; // プレイヤー
-	std::unique_ptr<Enemy> enemy_ = nullptr; // 敵キャラクター
 	std::unique_ptr<Crosshair> crosshair_ = nullptr; // クロスヘア
 	std::unique_ptr<BallisticEffect> ballisticEffect_ = nullptr; // 弾道エフェクト
 
@@ -195,7 +248,6 @@ private: /// ---------- メンバ変数 ---------- ///
 	std::unique_ptr<Sprite> clearTextSprite_;  // 「STAGE CLEAR!」などの文字
 
 	// ★ 星３つ演出
-	static constexpr int kClearStarCount = 3;
 	std::array<std::unique_ptr<Sprite>, kClearStarCount> clearStarSprites_;
 	std::array<float, kClearStarCount> clearStarDelay_;      // 何秒後に出るか
 	std::array<bool, kClearStarCount> clearStarBurstPlayed_;
@@ -204,10 +256,6 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	ItemDropTable normalDropTable_;
 
-	struct ButtonRect {
-		float x, y;      // 左上
-		float w, h;      // サイズ
-	};
 	ButtonRect retryRect_;   // クリック判定用
 	ButtonRect retireRect_;  // クリック判定用
 
@@ -215,7 +263,6 @@ private: /// ---------- メンバ変数 ---------- ///
 	// 0: もう一度同じステージ
 	// 1: 次のステージへ
 	// 2: セレクトシーンに戻る
-	static constexpr int kClearOptionCount = 3;
 	std::array<std::unique_ptr<Sprite>, kClearOptionCount> clearOptionSprites_;
 	std::array<ButtonRect, kClearOptionCount> clearOptionRects_;
 
@@ -237,4 +284,8 @@ private: /// ---------- メンバ変数 ---------- ///
 	// ステージ設定
 	StageConfig currentStageConfig_{};
 	int currentStageIndex_ = 0;
+
+	// フェードオーバーレイ（黒スプライト）
+	std::unique_ptr<Sprite> fadeSprite_;
+	float fadeAlpha_ = 0.0f;
 };

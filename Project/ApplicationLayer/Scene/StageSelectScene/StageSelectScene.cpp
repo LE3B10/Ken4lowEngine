@@ -33,9 +33,9 @@ void StageSelectScene::Initialize()
 	// フェードオーバーレイ初期化
 	InitializeFadeOverlay();
 
-	// --- 最初のステートをセット（Selecting） ---
-	state_ = State::FadingIn;
-	ChangeState(std::make_unique<StageSelectFadeInState>());
+	// --- 最初のステートをセット（Loading） ---
+	state_ = State::Loading;
+	ChangeState(std::make_unique<StageSelectLoadState>());
 }
 
 /// -------------------------------------------------------------
@@ -47,6 +47,7 @@ void StageSelectScene::Update()
 
 	// ステート更新
 	if (currentState_) currentState_->Update(this, deltaTime);
+
 }
 
 /// -------------------------------------------------------------
@@ -127,7 +128,6 @@ void StageSelectScene::InitializeSelectors()
 	context_.screenWidth = screenWidth;
 	context_.screenHeight = screenHeight;
 	context_.input = input_;
-	context_.fadeController = nullptr; // 後でセット
 	context_.stages = &stages_;
 
 	// コールバック設定

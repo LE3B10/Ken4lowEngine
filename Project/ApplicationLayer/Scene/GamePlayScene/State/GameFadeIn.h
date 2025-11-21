@@ -28,5 +28,10 @@ public: /// ---------- メンバ関数 ---------- ///
 	/// </summary>
 	/// <param name="scene"></param>
 	void Exit(GamePlayScene* scene) override;
+
+private: /// ---------- メンバ変数 ---------- ///
+
+	float timer_ = 0.0f; 	 // フェードイン経過時間
+	float duration_ = 0.5f; // フェードインにかける時間（秒）
 };
 
