@@ -469,7 +469,8 @@ void GamePlayScene::CheckAllCollisions()
 			collisionManager_->AddCollider(e.get());
 		}
 	}
-	if (boss_ && boss_->IsActive()) {
+
+	if (boss_) {
 		collisionManager_->AddCollider(boss_.get());
 	}
 

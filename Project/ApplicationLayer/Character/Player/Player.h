@@ -104,16 +104,6 @@ private: /// ---------- 構造体 ---------- ///
 		Vector4 edgeColor = { 0.2f,0.8f,1.0f,1.0f }; // 縁色
 	};
 
-	// 各部位のインデックス
-	struct PartIndices
-	{
-		const uint32_t head = 0;	 // 頭
-		const uint32_t leftArm = 1;  // 左腕
-		const uint32_t rightArm = 2; // 右腕
-		const uint32_t leftLeg = 3;	 // 左脚
-		const uint32_t rightLeg = 4; // 右脚
-	};
-
 public: /// ---------- メンバ関数 ---------- ///
 
 	// デストラクタ
@@ -234,9 +224,6 @@ private: /// ----------メンバ変数 ---------- ///
 
 	// ディゾルブエフェクト構造体
 	DissolveEffect dissolveEffect_ = {};
-
-	// 各部位のインデックス
-	PartIndices partIndices_ = {};
 
 	// ノックバック速度（毎フレームMove()で加算＆減衰させる）
 	Vector3 knockbackVel_ = { 0.0f, 0.0f, 0.0f };

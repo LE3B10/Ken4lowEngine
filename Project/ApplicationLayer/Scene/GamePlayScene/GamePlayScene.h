@@ -6,6 +6,7 @@
 #include "CollisionManager.h"
 #include "Player.h"
 #include "Enemy.h"
+#include "BossEnemy.h"
 #include "ModelParticle.h"
 #include "BallisticEffect.h"
 #include "Crosshair.h"
@@ -122,9 +123,9 @@ public: /// ---------- ゲッター ---------- ///
 	DirectXCommon* GetDirectXCommon() { return dxCommon_; }
 	Input* GetInput() { return input_; }
 	Player* GetPlayer() { return player_.get(); }
-	std::unique_ptr<Enemy>& GetBoss() { return boss_; }
+	std::unique_ptr<BossEnemy>& GetBoss() { return boss_; }
+	std::vector<std::unique_ptr<Enemy>>& GetEnemies() { return enemies_; }
 	SkyBox* GetSkyBox() { return skyBox_.get(); }
-	std::vector<std::unique_ptr<Enemy>>* GetEnemies() { return &enemies_; }
 	Crosshair* GetCrosshair() { return crosshair_.get(); }
 	BallisticEffect* GetBallisticEffect() { return ballisticEffect_.get(); }
 	ItemManager* GetItemManager() { return itemManager_.get(); }
@@ -177,6 +178,9 @@ public: /// ---------- ゲッター ---------- ///
 
 	float GetGameClearTimer() const { return gameClearTimer_; }
 	void SetGameClearTimer(float time) { gameClearTimer_ = time; }
+
+	bool IsGameplayInitialized() const { return isGameplayInitialized_; }
+	void SetGameplayInitialized(bool v) { isGameplayInitialized_ = v; }
 
 public: /// ---------- ポーズオーバーレイ関連 ---------- ///
 
@@ -266,11 +270,9 @@ private: /// ---------- メンバ変数 ---------- ///
 	std::array<std::unique_ptr<Sprite>, kClearOptionCount> clearOptionSprites_;
 	std::array<ButtonRect, kClearOptionCount> clearOptionRects_;
 
-
-	std::vector<std::unique_ptr<Enemy>> enemies_;  // 通常敵
-
 	// ボス
-	std::unique_ptr<Enemy> boss_ = nullptr;
+	std::unique_ptr<BossEnemy> boss_ = nullptr;
+	std::vector<std::unique_ptr<Enemy>> enemies_;
 
 	// ポーズオーバーレイ（ESC で開く）
 	std::unique_ptr<BaseOverlay> pauseOverlay_;
@@ -288,4 +290,7 @@ private: /// ---------- メンバ変数 ---------- ///
 	// フェードオーバーレイ（黒スプライト）
 	std::unique_ptr<Sprite> fadeSprite_;
 	float fadeAlpha_ = 0.0f;
+
+	// ゲームプレイ初期化フラグ
+	bool isGameplayInitialized_ = false;
 };

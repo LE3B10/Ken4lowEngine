@@ -143,7 +143,7 @@ void GameLoadState::Update(GamePlayScene* scene, float deltaTime)
 
 	auto& levelObjectManager = scene->GetLevelObjectManager();
 	auto* player = scene->GetPlayer();
-	auto& enemies = *scene->GetEnemies();
+	auto& enemies = scene->GetEnemies();
 	auto* skybox = scene->GetSkyBox();
 
 	// プレイヤー更新

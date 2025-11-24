@@ -14,7 +14,7 @@ class Camera;
 /// -------------------------------------------------------------
 class BaseCharacter : public Collider
 {
-protected: /// ---------- 構造体 ---------- ///
+public: /// ---------- 構造体 ---------- ///
 
 	/// ---------- 部位データ ---------- ///
 	struct BodyPart
@@ -22,6 +22,16 @@ protected: /// ---------- 構造体 ---------- ///
 		std::unique_ptr<Object3D> object; // 部位の3Dオブジェクト
 		WorldTransformEx transform;		  // 部位のワールド変換情報
 		bool active = true;				  // 描画/非描画
+	};
+
+	// 各部位のインデックス
+	struct PartIndices
+	{
+		const uint32_t head = 0;	 // 頭
+		const uint32_t leftArm = 1;  // 左腕
+		const uint32_t rightArm = 2; // 右腕
+		const uint32_t leftLeg = 3;	 // 左脚
+		const uint32_t rightLeg = 4; // 右脚
 	};
 
 public: /// ---------- メンバ関数 ---------- ///
@@ -58,6 +68,15 @@ public: /// ---------- メンバ関数 ---------- ///
 		// 全サブメッシュを同じテクスチャに差し替える
 		obj->SetTextureForAll(texPath);
 	}
+
+public: /// ---------- アクセッサ ---------- ///
+
+	BodyPart& GetBody() { return body_; }
+
+	std::vector<BodyPart>& GetBodyParts() { return parts_; }
+
+	// 各部位のインデックスを取得
+	PartIndices& GetPartIndices() { return partIndices_; }
 
 protected: /// ---------- メンバ関数 ---------- ///
 
@@ -98,5 +117,8 @@ protected: /// ---------- メンバ変数 ---------- ///
 
 	// 部位データ配列
 	std::vector<BodyPart> parts_;
+
+	// 各部位のインデックス
+	PartIndices partIndices_ = {};
 };
 

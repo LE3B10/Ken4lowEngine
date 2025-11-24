@@ -31,7 +31,7 @@ void GameOverState::Update(GamePlayScene* scene, float deltaTime)
 	auto& retryRect = scene->GetRetryRect();
 	auto& retireRect = scene->GetRetireRect();
 
-	auto& enemies = *(scene->GetEnemies());
+	auto& enemies = scene->GetEnemies();
 	auto& boss = scene->GetBoss();
 
 	// 死亡演出を最後まで回すためにプレイヤーだけは更新

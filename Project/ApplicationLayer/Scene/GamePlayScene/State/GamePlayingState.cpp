@@ -22,6 +22,18 @@ void GamePlayingState::Enter(GamePlayScene* scene)
 	using State = GamePlayScene::State;
 	scene->SetState(State::Playing);
 
+	auto* input = scene->GetInput();
+	input->SetLockCursor(true);
+	ShowCursor(false);
+
+	// --- ここから下は「ゲームプレイ初回だけ」走らせたい処理 ---
+	if (scene->IsGameplayInitialized()) {
+		// すでにゲーム進行中だった場合 → 何も初期化しないで戻る
+		return;
+	}
+
+	scene->SetGameplayInitialized(true);
+
 	// Wave 情報をシーンから取得
 	auto& waveConfigs = *scene->GetWaveConfigs();
 
@@ -31,18 +43,14 @@ void GamePlayingState::Enter(GamePlayScene* scene)
 	scene->SetBossSpawned(false);
 
 	// 敵 / ボスもクリア
-	auto* enemies = scene->GetEnemies();
-	enemies->clear();
+	auto& enemies = scene->GetEnemies();
+	enemies.clear();
 	scene->GetBoss().reset();
 
 	// 最初の Wave を出す
 	if (!waveConfigs.empty()) {
 		SpawnWave(scene, 0);
 	}
-
-	auto* input = scene->GetInput();
-	input->SetLockCursor(true);
-	ShowCursor(false);
 }
 
 void GamePlayingState::Update(GamePlayScene* scene, float deltaTime)
@@ -85,7 +93,7 @@ void GamePlayingState::Update(GamePlayScene* scene, float deltaTime)
 	using State = GamePlayScene::State;
 
 	auto* player = scene->GetPlayer();
-	std::vector<std::unique_ptr<Enemy>>& enemies = *scene->GetEnemies();
+	std::vector<std::unique_ptr<Enemy>>& enemies = scene->GetEnemies();
 	auto& boss = scene->GetBoss(); // ボス敵
 	auto* skyBox = scene->GetSkyBox();
 	auto* crosshair = scene->GetCrosshair();
@@ -189,7 +197,7 @@ void GamePlayingState::SpawnWave(GamePlayScene* scene, int waveIndex)
 {
 	auto& waveConfigs = *scene->GetWaveConfigs();
 	auto* player = scene->GetPlayer();
-	std::vector<std::unique_ptr<Enemy>>& enemies = *scene->GetEnemies();
+	std::vector<std::unique_ptr<Enemy>>& enemies = scene->GetEnemies();
 	auto& levelObjectManager = scene->GetLevelObjectManager();
 	auto& currentStageConfig = scene->GetCurrentWaveConfig();
 
@@ -248,31 +256,31 @@ void GamePlayingState::SpawnWave(GamePlayScene* scene, int waveIndex)
 
 void GamePlayingState::SpawnBoss(GamePlayScene* scene)
 {
-	auto& currentStageConfig = scene->GetCurrentWaveConfig();
-	auto* player = scene->GetPlayer();
-	auto& levelObjectManager = scene->GetLevelObjectManager();
-	std::unique_ptr<Enemy>& boss = scene->GetBoss();
+	//auto& currentStageConfig = scene->GetCurrentWaveConfig();
+	//auto* player = scene->GetPlayer();
+	//auto& levelObjectManager = scene->GetLevelObjectManager();
+	auto& boss = scene->GetBoss();
 
 	if (scene->IsBossSpawned()) return;
 	scene->SetBossSpawned(true);
 
-	boss = std::make_unique<Enemy>();
+	boss = std::make_unique<BossEnemy>();
 	boss->Initialize();
-	boss->SetPlayerPointer(player);
-	boss->SetLevelObjectManager(levelObjectManager.get());
+	//boss->SetPlayerPointer(player);
+	//boss->SetLevelObjectManager(levelObjectManager.get());
 
-	boss->SetSpawnPosition(currentStageConfig.bossSpawnPos);
-	boss->SetBoss(true, currentStageConfig.bossHp);
+	//boss->SetSpawnPosition(currentStageConfig.bossSpawnPos);
+	//boss->SetBoss(true, currentStageConfig.bossHp);
 
-	// ボスは敵より少し強めにする
-	boss->ApplyStageParams(
-		currentStageConfig.bossHp,
-		currentStageConfig.enemyChaseSpeed * 0.8f,   // 徘徊はあまり速くなくてもOK
-		currentStageConfig.enemyChaseSpeed * 1.2f,   // 追跡はちょい速く
-		currentStageConfig.enemyAttackDamage * 1.5f, // ダメージアップ
-		currentStageConfig.enemyAttackCooldown * 0.8f,
-		currentStageConfig.enemyDetectRadius + 3.0f
-	);
+	//// ボスは敵より少し強めにする
+	//boss->ApplyStageParams(
+	//	currentStageConfig.bossHp,
+	//	currentStageConfig.enemyChaseSpeed * 0.8f,   // 徘徊はあまり速くなくてもOK
+	//	currentStageConfig.enemyChaseSpeed * 1.2f,   // 追跡はちょい速く
+	//	currentStageConfig.enemyAttackDamage * 1.5f, // ダメージアップ
+	//	currentStageConfig.enemyAttackCooldown * 0.8f,
+	//	currentStageConfig.enemyDetectRadius + 3.0f
+	//);
 
 	boss->Update(0.0f); // 一度更新しておく
 }

@@ -160,7 +160,7 @@ void CollisionManager::RegisterCollisionFuncsions()
 	constexpr CollisionType kBullet = static_cast<CollisionType>(CollisionTypeIdDef::kBullet);
 	//constexpr CollisionType kEnemyBullet = static_cast<CollisionType>(CollisionTypeIdDef::kEnemyBullet);
 	constexpr CollisionType kItem = static_cast<CollisionType>(CollisionTypeIdDef::kItem);
-	//constexpr CollisionType kBoss = static_cast<CollisionType>(CollisionTypeIdDef::kBoss);
+	constexpr CollisionType kBoss = static_cast<CollisionType>(CollisionTypeIdDef::kBoss);
 	//constexpr CollisionType kBossBullet = static_cast<CollisionType>(CollisionTypeIdDef::kBossBullet);
 	constexpr CollisionType kWorld = static_cast<CollisionType>(CollisionTypeIdDef::kWorld);
 
@@ -179,6 +179,22 @@ void CollisionManager::RegisterCollisionFuncsions()
 		};
 
 	collisionTable_[{kEnemy, kBullet}] = [](Collider* a, Collider* b) {
+		return CollisionUtility::IsCollision(a->GetOBB(), b->GetSegment());
+		};
+
+	/// ---------- プレイヤーとボスの衝突判定 ---------- ///
+	collisionTable_[{kBoss, kPlayer}] = [](Collider* a, Collider* b) {
+		return CollisionUtility::IsCollision(a->GetOBB(), b->GetOBB());
+		};
+	collisionTable_[{kPlayer, kBoss}] = [](Collider* a, Collider* b) {
+		return CollisionUtility::IsCollision(a->GetOBB(), b->GetOBB());
+		};
+
+	/// ---------- 弾とボスの衝突判定 ---------- ///
+	collisionTable_[{kBullet, kBoss}] = [](Collider* a, Collider* b) {
+		return CollisionUtility::IsCollision(b->GetOBB(), a->GetSegment());
+		};
+	collisionTable_[{kBoss, kBullet}] = [](Collider* a, Collider* b) {
 		return CollisionUtility::IsCollision(a->GetOBB(), b->GetSegment());
 		};
 
