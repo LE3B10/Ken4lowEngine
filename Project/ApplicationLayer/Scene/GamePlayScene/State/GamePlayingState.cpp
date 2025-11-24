@@ -266,6 +266,8 @@ void GamePlayingState::SpawnBoss(GamePlayScene* scene)
 
 	boss = std::make_unique<BossEnemy>();
 	boss->Initialize();
+	boss->SetLevelObjectManager(scene->GetLevelObjectManager().get());
+	boss->SetPlayer(scene->GetPlayer());
 	//boss->SetPlayerPointer(player);
 	//boss->SetLevelObjectManager(levelObjectManager.get());
 

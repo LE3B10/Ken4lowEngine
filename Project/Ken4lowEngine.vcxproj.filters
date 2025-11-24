@@ -535,6 +535,18 @@
     <ClCompile Include="ApplicationLayer\Character\Enemy\State\EnemyAIWanderState.cpp">
       <Filter>ApplicationLayer\Character\Enemy\State</Filter>
     </ClCompile>
+    <ClCompile Include="ApplicationLayer\Character\Boss\BehaviorTree\Builder\BossBehaviorTreeBuilder.cpp">
+      <Filter>ApplicationLayer\Character\Boss\BehaviorTree\Builder</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\Character\Boss\State\BossChaseState.cpp">
+      <Filter>ApplicationLayer\Character\Boss\State</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\Character\Boss\State\BossRushState.cpp">
+      <Filter>ApplicationLayer\Character\Boss\State</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\Character\Boss\State\BossSpinState.cpp">
+      <Filter>ApplicationLayer\Character\Boss\State</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="EngineLayer\Math\MultipleStructs\AABB.h">
@@ -1152,6 +1164,45 @@
     <ClInclude Include="ApplicationLayer\Character\Enemy\State\IEnemyAIState.h">
       <Filter>ApplicationLayer\Character\Enemy\State</Filter>
     </ClInclude>
+    <ClInclude Include="ApplicationLayer\Character\Boss\BehaviorTree\Nodes\BossActionNode.h">
+      <Filter>ApplicationLayer\Character\Boss\BehaviorTree\Nodes</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Character\Boss\BehaviorTree\Nodes\IBossBehaviorNode.h">
+      <Filter>ApplicationLayer\Character\Boss\BehaviorTree\Nodes</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Character\Boss\BehaviorTree\Nodes\BossSequenceNode.h">
+      <Filter>ApplicationLayer\Character\Boss\BehaviorTree\Nodes</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Character\Boss\BehaviorTree\Nodes\BossSelectorNode.h">
+      <Filter>ApplicationLayer\Character\Boss\BehaviorTree\Nodes</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Character\Boss\BehaviorTree\Nodes\BossConditionNode.h">
+      <Filter>ApplicationLayer\Character\Boss\BehaviorTree\Nodes</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Character\Boss\BehaviorTree\Builder\BossBehaviorTree.h">
+      <Filter>ApplicationLayer\Character\Boss\BehaviorTree\Builder</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Character\Boss\BehaviorTree\Builder\BossBehaviorTreeBuilder.h">
+      <Filter>ApplicationLayer\Character\Boss\BehaviorTree\Builder</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Character\BaseCharacter\BehaviorStatus.h">
+      <Filter>ApplicationLayer\Character\BaseCharacter</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Character\Boss\State\BossChaseState.h">
+      <Filter>ApplicationLayer\Character\Boss\State</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Character\Boss\State\BossRushState.h">
+      <Filter>ApplicationLayer\Character\Boss\State</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Character\Boss\State\BossSpinState.h">
+      <Filter>ApplicationLayer\Character\Boss\State</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Character\Boss\BossType.h">
+      <Filter>ApplicationLayer\Character\Boss\State</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Character\Boss\State\IBossAttackState.h">
+      <Filter>ApplicationLayer\Character\Boss\State</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="Resources\Shaders\PostEffect\FullScreen.hlsli">
@@ -1572,6 +1623,18 @@
     </Filter>
     <Filter Include="ApplicationLayer\Character\Enemy\BehaviorTree\Builder">
       <UniqueIdentifier>{c34fe77d-2ab5-41f3-932a-1cba38116a4c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ApplicationLayer\Character\Boss\BehaviorTree">
+      <UniqueIdentifier>{08a35f77-f66c-442c-a329-32bd44ae3f5c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ApplicationLayer\Character\Boss\BehaviorTree\Builder">
+      <UniqueIdentifier>{9d58a07d-4d6c-467f-a192-622f404063fe}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ApplicationLayer\Character\Boss\BehaviorTree\Nodes">
+      <UniqueIdentifier>{9e11cc03-a5de-44c2-a9a1-5efeebb3db6a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ApplicationLayer\Character\Boss\State">
+      <UniqueIdentifier>{fe60fccf-aa1c-4228-b0e9-4d3c35150097}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

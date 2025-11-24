@@ -1,15 +1,8 @@
 #pragma once
+#include <BehaviorStatus.h>
 
 /// ---------- 前方宣言 ---------- ///
 class Enemy;
-
-/// ---------- ノードの実行結果 ---------- ///
-enum class BehaviorStatus
-{
-	Success, // 成功
-	Failure, // 失敗
-	Running, // 実行中
-};
 
 /// ---------------------------------------------
 ///		 ビヘイビアノードインターフェース
