@@ -547,6 +547,15 @@
     <ClCompile Include="ApplicationLayer\Character\Boss\State\BossSpinState.cpp">
       <Filter>ApplicationLayer\Character\Boss\State</Filter>
     </ClCompile>
+    <ClCompile Include="ApplicationLayer\Colliders\WorldCollisionResolver.cpp">
+      <Filter>ApplicationLayer\Colliders</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\EffectLayer\BaseGpuVfx.cpp">
+      <Filter>ApplicationLayer\EffectLayer</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\EffectLayer\BossEnemyVfx.cpp">
+      <Filter>ApplicationLayer\EffectLayer</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="EngineLayer\Math\MultipleStructs\AABB.h">
@@ -1202,6 +1211,15 @@
     </ClInclude>
     <ClInclude Include="ApplicationLayer\Character\Boss\State\IBossAttackState.h">
       <Filter>ApplicationLayer\Character\Boss\State</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Colliders\WorldCollisionResolver.h">
+      <Filter>ApplicationLayer\Colliders</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\EffectLayer\BaseGpuVfx.h">
+      <Filter>ApplicationLayer\EffectLayer</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\EffectLayer\BossEnemyVfx.h">
+      <Filter>ApplicationLayer\EffectLayer</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

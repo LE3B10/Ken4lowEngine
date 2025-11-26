@@ -40,5 +40,7 @@ private: /// ---------- メンバ関数 ---------- ///
 	// ステージクリア時の処理
 	void OnStageClear(GamePlayScene* scene);
 
+	// 次のステージへ進む処理
+	void GoToNextStage(GamePlayScene* scene);
 };
 

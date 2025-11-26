@@ -182,6 +182,9 @@ public: /// ---------- ゲッター ---------- ///
 	bool IsGameplayInitialized() const { return isGameplayInitialized_; }
 	void SetGameplayInitialized(bool v) { isGameplayInitialized_ = v; }
 
+	bool IsNextStageKeySpawned() const { return nextStageKeySpawned_; }
+	void SetNextStageKeySpawned(bool spawned) { nextStageKeySpawned_ = spawned; }
+
 public: /// ---------- ポーズオーバーレイ関連 ---------- ///
 
 	BaseOverlay* GetPauseOverlay() { return pauseOverlay_.get(); }
@@ -293,4 +296,6 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	// ゲームプレイ初期化フラグ
 	bool isGameplayInitialized_ = false;
+
+	bool nextStageKeySpawned_ = false;
 };

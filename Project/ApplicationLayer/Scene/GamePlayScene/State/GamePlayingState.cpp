@@ -42,6 +42,9 @@ void GamePlayingState::Enter(GamePlayScene* scene)
 	scene->SetAllWavesCleared(false);
 	scene->SetBossSpawned(false);
 
+	// 鍵フラグもリセット
+	scene->SetNextStageKeySpawned(false);
+
 	// 敵 / ボスもクリア
 	auto& enemies = scene->GetEnemies();
 	enemies.clear();
@@ -134,7 +137,7 @@ void GamePlayingState::Update(GamePlayScene* scene, float deltaTime)
 		if (e->IsDeadNow()) {
 			ItemType drop;
 			if (normalDropTable.RollForDrop(drop)) {
-				const Vector3 pos = e->GetDropPosAtDeath();
+				const Vector3 pos = e->GetDropPosAtDeath() - Vector3(0.0f, 2.0f, 0.0f);
 				itemManager->Spawn(drop, pos);
 			}
 		}
@@ -147,14 +150,8 @@ void GamePlayingState::Update(GamePlayScene* scene, float deltaTime)
 	levelObjectManager->Update();
 
 	// 通常敵の死亡したやつを消す
-	enemies.erase(
-		std::remove_if(
-			enemies.begin(), enemies.end(),
-			[](const std::unique_ptr<Enemy>& e) {
-				return e->IsDeadNow();
-			}),
-		enemies.end()
-	);
+	enemies.erase(std::remove_if(enemies.begin(), enemies.end(), [](const std::unique_ptr<Enemy>& e) {
+		return e->IsDeadNow(); }), enemies.end());
 
 	// ウェーブクリア / ボス撃破判定
 	bool hasAliveEnemies = !enemies.empty();
@@ -179,11 +176,22 @@ void GamePlayingState::Update(GamePlayScene* scene, float deltaTime)
 	}
 	else
 	{
+		// ボスが存在していて、かつ「死亡演出まで完了」しているか？
 		if (boss && boss->IsDeadNow())
 		{
-			input->SetLockCursor(false);
-			ShowCursor(true);
-			OnStageClear(scene);
+			// 鍵を1回だけスポーン（まだ出していないときだけ）
+			if (!scene->IsNextStageKeySpawned())
+			{
+				itemManager->Spawn(ItemType::NextStageKey, boss->GetCenterPosition());
+				itemManager->Update(player, deltaTime); // 即座に更新して出現させておく
+				scene->SetNextStageKeySpawned(true);
+			}
+
+			// 鍵を拾ったらステージクリア扱いにする
+			if (itemManager->ConsumeCollected(ItemType::NextStageKey))
+			{
+				GoToNextStage(scene);
+			}
 		}
 	}
 }
@@ -256,9 +264,6 @@ void GamePlayingState::SpawnWave(GamePlayScene* scene, int waveIndex)
 
 void GamePlayingState::SpawnBoss(GamePlayScene* scene)
 {
-	//auto& currentStageConfig = scene->GetCurrentWaveConfig();
-	//auto* player = scene->GetPlayer();
-	//auto& levelObjectManager = scene->GetLevelObjectManager();
 	auto& boss = scene->GetBoss();
 
 	if (scene->IsBossSpawned()) return;
@@ -268,22 +273,6 @@ void GamePlayingState::SpawnBoss(GamePlayScene* scene)
 	boss->Initialize();
 	boss->SetLevelObjectManager(scene->GetLevelObjectManager().get());
 	boss->SetPlayer(scene->GetPlayer());
-	//boss->SetPlayerPointer(player);
-	//boss->SetLevelObjectManager(levelObjectManager.get());
-
-	//boss->SetSpawnPosition(currentStageConfig.bossSpawnPos);
-	//boss->SetBoss(true, currentStageConfig.bossHp);
-
-	//// ボスは敵より少し強めにする
-	//boss->ApplyStageParams(
-	//	currentStageConfig.bossHp,
-	//	currentStageConfig.enemyChaseSpeed * 0.8f,   // 徘徊はあまり速くなくてもOK
-	//	currentStageConfig.enemyChaseSpeed * 1.2f,   // 追跡はちょい速く
-	//	currentStageConfig.enemyAttackDamage * 1.5f, // ダメージアップ
-	//	currentStageConfig.enemyAttackCooldown * 0.8f,
-	//	currentStageConfig.enemyDetectRadius + 3.0f
-	//);
-
 	boss->Update(0.0f); // 一度更新しておく
 }
 
@@ -330,4 +319,15 @@ void GamePlayingState::OnStageClear(GamePlayScene* scene)
 
 		repo.SetStages(stages);
 	}
+}
+
+void GamePlayingState::GoToNextStage(GamePlayScene* scene)
+{
+	auto* input = scene->GetInput();
+
+	input->SetLockCursor(false);
+	ShowCursor(true);
+
+	// 今までボス撃破時に直接呼んでいたステージクリア処理をここで使う
+	OnStageClear(scene);
 }

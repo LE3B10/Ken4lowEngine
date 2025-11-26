@@ -137,6 +137,8 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClCompile Include="ApplicationLayer\Character\Boss\State\BossChaseState.cpp" />
     <ClCompile Include="ApplicationLayer\Character\Boss\State\BossRushState.cpp" />
     <ClCompile Include="ApplicationLayer\Character\Boss\State\BossSpinState.cpp" />
+    <ClCompile Include="ApplicationLayer\EffectLayer\BaseGpuVfx.cpp" />
+    <ClCompile Include="ApplicationLayer\EffectLayer\BossEnemyVfx.cpp" />
     <ClCompile Include="EngineLayer\3D\LevelData\LevelLoader.cpp" />
     <ClCompile Include="EngineLayer\3D\LevelData\LevelObjectManager.cpp" />
     <ClCompile Include="EngineLayer\Base\BlendStateFactory\BlendStateFactory.cpp" />
@@ -302,6 +304,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     </ClCompile>
     <ClCompile Include="EngineLayer\3D\Wireframe\Wireframe.cpp" />
     <ClCompile Include="EngineLayer\Transform\WorldTransformEx.cpp" />
+    <ClCompile Include="ApplicationLayer\Colliders\WorldCollisionResolver.cpp" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Resources\Shaders\GpuParticle\GpuParticleEmit.CS.hlsl">
@@ -551,6 +554,8 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="ApplicationLayer\Character\Boss\State\BossChaseState.h" />
     <ClInclude Include="ApplicationLayer\Character\Boss\State\BossRushState.h" />
     <ClInclude Include="ApplicationLayer\Character\Boss\State\BossSpinState.h" />
+    <ClInclude Include="ApplicationLayer\EffectLayer\BaseGpuVfx.h" />
+    <ClInclude Include="ApplicationLayer\EffectLayer\BossEnemyVfx.h" />
     <ClInclude Include="EngineLayer\GPUParticleSystem\GpuParticleDatas\BillboardMode.h" />
     <ClInclude Include="EngineLayer\3D\LevelData\LevelData.h" />
     <ClInclude Include="EngineLayer\3D\LevelData\LevelLoader.h" />
@@ -773,6 +778,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="ApplicationLayer\Character\Enemy\State\IEnemyAIState.h" />
     <ClInclude Include="ApplicationLayer\Character\Boss\BehaviorTree\Nodes\IBossBehaviorNode.h" />
     <ClInclude Include="ApplicationLayer\Character\Boss\State\IBossAttackState.h" />
+    <ClInclude Include="ApplicationLayer\Colliders\WorldCollisionResolver.h" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="externals\DirectXTex\DirectXTex_Desktop_2022_Win10.vcxproj">

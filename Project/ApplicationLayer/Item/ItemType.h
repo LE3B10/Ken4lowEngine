@@ -9,5 +9,6 @@ enum class ItemType
 	PowerUp,       // 一時的な強化（後で）
 	ExperienceOrb, // 経験値オーブ（後で）
 	Coin,          // コイン（後で）
+	NextStageKey, // 次ステージへの鍵（後で）
 	None           // 無効
 };

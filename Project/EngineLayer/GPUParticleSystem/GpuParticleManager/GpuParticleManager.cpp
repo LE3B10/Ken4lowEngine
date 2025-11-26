@@ -62,8 +62,9 @@ void GpuParticleManager::Update(float deltaTime)
 		if (emitter->BuildCB(*cb, deltaTime))
 		{
 			DispatchEmit(gpuParticleBuffers_->GetEmitterCBAddress(slot));
-			slot++;
 		}
+
+		slot++;
 	}
 }
 

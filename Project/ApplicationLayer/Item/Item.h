@@ -52,9 +52,10 @@ public: /// ---------- オーバーライド ---------- ///
 	Vector3 GetOrientation() const override { return rotation_; }
 	void SetOrientation(const Vector3& rot) override { rotation_ = rot; }
 
-private: /// ---------- メンバ変数 ---------- ///
+	// アイテムの種類を取得
+	ItemType GetType() const { return type_; }
 
-	GpuParticleEmitter* 
+private: /// ---------- メンバ変数 ---------- ///
 
 	// アイテムの種類
 	ItemType type_ = {};

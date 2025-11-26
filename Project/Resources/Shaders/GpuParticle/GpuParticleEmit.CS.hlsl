@@ -144,6 +144,7 @@ void main(uint3 DTid : SV_DispatchThreadID)
                         float t = rand3dTo1d(seed + 6.0f);
                         float3 c = lerp(float3(1.0f, 0.95f, 0.60f), float3(1.0f, 0.50f, 0.10f), t);
                         particle.color = float4(c, 1.0f);
+                        break;
                     }
                   
                 case GPU_PARTICLE_TYPE_EXPLOSION_FIRE: // 爆発・火の粒
@@ -177,8 +178,8 @@ void main(uint3 DTid : SV_DispatchThreadID)
                           float3(1.0f, 0.9f, 0.4f), // 黄っぽい
                           t);
                         particle.color = float4(col, 1.0f);
+                        break;
                     }
-                    break;
                 
                 // ボスの登場砂埃パーティクルタイプ
                 case GPU_PARTCILE_TYPE_BOSS_APPEAR_DUST: // ボス登場砂埃パーティクルタイプ
@@ -389,6 +390,36 @@ void main(uint3 DTid : SV_DispatchThreadID)
                         particle.color = float4(g, g, g, 0.5f);
                         break;
                     }
+                case GPU_PARTICLE_TYPE_HEAL:
+                    {
+                        // 正方形範囲（XZ）: [-radius, +radius]
+                        float hx = gEmitter.radius;
+                        float hz = gEmitter.radius;
+
+                        float x = (rand3dTo1d(seed + 1.0f) * 2.0f - 1.0f) * hx;
+                        float z = (rand3dTo1d(seed + 2.0f) * 2.0f - 1.0f) * hz;
+
+                        // 下から開始（エミッター中心より下）
+                        float y = -0.8f + rand3dTo1d(seed + 3.0f) * 0.2f; // -0.8 ～ -0.6
+                        particle.translate = gEmitter.translate + float3(x, y, z);
+
+                        // 上昇 + ちょいフワ（横ブレは小さめ）
+                        float driftX = (rand3dTo1d(seed + 4.0f) - 0.5f) * 0.5f;
+                        float driftZ = (rand3dTo1d(seed + 5.0f) - 0.5f) * 0.5f;
+                        float up = 5.0f + rand3dTo1d(seed + 6.0f) * 1.2f; // 1.8 ～ 3.0
+                        particle.velocity = float3(driftX, up, driftZ);
+
+                        // 見た目（縦長寄り）
+                        float s = 0.08f + rand3dTo1d(seed + 7.0f) * 0.07f;
+                        particle.scale = float3(s, s * 1.6f, s);
+
+                        // 寿命 & 色（緑～水色）
+                        particle.lifeTime = 0.8f + rand3dTo1d(seed + 8.0f) * 0.7f;
+                        float t = rand3dTo1d(seed + 9.0f);
+                        float3 c = lerp(float3(0.2f, 1.0f, 0.4f), float3(0.6f, 1.0f, 0.9f), t);
+                        particle.color = float4(c, 0.85f);
+                    }
+                    break;
             }
             
             // 共通設定

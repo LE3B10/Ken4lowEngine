@@ -1,6 +1,9 @@
 #include "Item.h"
 #include "Player.h"
 #include "ScoreManager.h"
+#include "GpuParticleEmitter.h"   // EmitterInfo を使うため（必要なら）
+#include "GpuParticleType.h"      // GpuParticleType::Heal_Effect
+#include "BillboardMode.h"
 #include <CollisionTypeIdDef.h>
 
 /// -------------------------------------------------------------
@@ -34,6 +37,14 @@ void Item::Initialize(ItemType type, const Vector3& pos)
 	case ItemType::PowerUp:
 		modelPath = "cube.gltf"; break;
 
+	case ItemType::ExperienceOrb:
+		modelPath = "cube.gltf"; break;
+
+	case ItemType::Coin:
+		modelPath = "cube.gltf"; break;
+
+	case ItemType::NextStageKey:
+		modelPath = "cube.gltf"; break;
 	}
 
 	object3d_->Initialize(modelPath);
@@ -59,6 +70,17 @@ void Item::Initialize(ItemType type, const Vector3& pos)
 		object3d_->SetColor({ 1.0f, 0.5f, 0.0f, 1.0f }); // オレンジ色
 		break;
 
+	case ItemType::ExperienceOrb:
+		object3d_->SetColor({ 0.5f, 0.0f, 0.5f, 1.0f }); // 紫色
+		break;
+
+	case ItemType::Coin:
+		object3d_->SetColor({ 1.0f, 0.84f, 0.0f, 1.0f }); // 金色
+		break;
+
+	case ItemType::NextStageKey:
+		object3d_->SetColor({ 0.0f, 1.0f, 1.0f, 1.0f }); // シアン色
+		break;
 	}
 }
 
@@ -114,25 +136,48 @@ bool Item::CheckCollisionWithPlayer(const Vector3& playerPos)
 /// -------------------------------------------------------------
 void Item::ApplyTo(Player* player)
 {
-	if (collected_) return;
+	if (collected_ || !player) return;
 
-	(void)player;
+	switch (type_)
+	{
+	case ItemType::HealSmall:
+	{
+		// ① 回復（値は仮）
+		//player->AddHP(300);
 
-	//switch (type_)
-	//{
-	//case ItemType::HealSmall:
-	//	player->AddHP(300); // 仮値
-	//	break;
-	//case ItemType::AmmoSmall:
-	//	player->AddAmmo(30); // 仮値
-	//	break;
-	//case ItemType::ScoreBonus:
-	//	ScoreManager::GetInstance()->AddScore(100);
-	//	break;
-	//case ItemType::PowerUp:
-	//	// 将来的な強化
-	//	break;
-	//}
+		// ② 回復パーティクル（下→上の Emit はシェーダ側 type=21 で実装済み想定）
+		auto* pm = GpuParticleManager::GetInstance();
+
+		// エミッターを作ってなければ作る（1回だけ）
+		GpuParticleEmitter* emitter = pm->GetEmitter("Heal_Effect");
+		if (!emitter)
+		{
+			GpuParticleEmitter::EmitterInfo info{};
+			info.textureFilePath = "white.png"; // とりあえず既存の白テクでOK（後で差し替え）
+			info.radius = 1.5f;                // 正方形範囲の“半辺”として使う想定
+			info.loopCount = 0;
+			info.loopFrequency = 0.0f;
+			info.drawType = 0;                 // 0なら type を使う
+			info.type = GpuParticleType::Heal_Effect;
+			info.billboardMode = BillboardMode::Camera;
+
+			emitter = pm->CreateEmitter("Heal_Effect", info);
+		}
+
+		if (emitter)
+		{
+			// プレイヤー位置にセットしてバースト
+			// ※ Player の位置取得はあなたの実装に合わせて差し替え
+			emitter->SetPosition(player->GetCenterPosition() - Vector3(0.0f, 2.0f, 0.0f));
+			emitter->RequestEmit(40); // まずは 30〜60 で調整
+		}
+		break;
+	}
+
+	// 他のアイテムもここに追加していける
+	default:
+		break;
+	}
 
 	collected_ = true;
 }

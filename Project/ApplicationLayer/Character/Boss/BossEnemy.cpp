@@ -6,6 +6,7 @@
 #include <CollisionTypeIdDef.h>
 #include <LinearInterpolation.h>
 #include <LevelObjectManager.h>
+#include "WorldCollisionResolver.h"
 #include <Player.h>
 
 #include <random>
@@ -30,15 +31,9 @@ void BossEnemy::Initialize()
 	// GPUパーティクルマネージャー取得
 	gpuParticleManager_ = GpuParticleManager::GetInstance();
 
-	// ボス登場用パーティクルエミッター生成
-	CreateAppearEmitter();
-	CreateAuraEmitter(); // 常時オーラ用パーティクルエミッター生成
-	CreateRushTrailEmitter(); // ラッシュ軌跡用パーティクルエミッター生成
-	CreateRushHitEmitter(); // ラッシュ軌跡エフェクト
-	CreateSpinAttackEmitter(); // スピン攻撃エフェクト生成
-	CreateDeathEffectEmitters(); // 死亡用エフェクト
-	CreateDeathSoulEmitter();
-	CreateDebrisDustEmitter();
+	// VFX初期化
+	vfx_ = std::make_unique<BossEnemyVfx>();
+	vfx_->Initialize(gpuParticleManager_, "");
 
 	// HP 初期化
 	currentHP_ = maxHP_;
@@ -73,33 +68,9 @@ void BossEnemy::Update(float deltaTime)
 		// 死亡アニメだけ更新
 		UpdateDeath(deltaTime);
 
-		// バラバラ演出が始まる瞬間に爆発＋衝撃波を出す
-		EmitDeathEffects();
-
-		// 死亡開始時の一回だけ：破片の余韻（埃）
-		if (!death_.startBurstDone)
+		if (vfx_)
 		{
-			Vector3 c = GetCenterPosition();
-
-			if (debrisDustEmitter_)
-			{
-				debrisDustEmitter_->SetPosition(c);
-				debrisDustEmitter_->RequestEmit(48); // ここが埃の量（30〜80で調整）
-			}
-
-			// ここに「小さな爆発 + 衝撃波リング」も同タイミングで足せる
-			// 例：deathExplosionEmitter_->RequestEmit(32)、deathShockwaveEmitter_->RequestEmit(1)
-
-			death_.startBurstDone = true;
-		}
-
-		// 死亡中しばらく：魂がふわっと上に昇る
-		if (deathSoulEmitter_ && death_.timer < 1.6f)
-		{
-			Vector3 c = GetCenterPosition();
-			c.y += 1.2f; // 胸〜頭あたりから出したい
-			deathSoulEmitter_->SetPosition(c);
-			deathSoulEmitter_->RequestEmit(2); // 毎フレ2〜4くらいが雰囲気出る
+			vfx_->UpdateDeathEffect(GetCenterPosition(), death_.timer, death_.startBurstDone);
 		}
 
 		// コライダー位置だけは同期しておく（床とのめり込み防止など）
@@ -107,10 +78,6 @@ void BossEnemy::Update(float deltaTime)
 		BaseCharacter::Update(deltaTime);
 		return;
 	}
-
-	// コライダーサイズ設定
-	// 登場したらコライダーを適用
-	if (appear_.finished) Collider::SetOBBHalfSize({ 0.8f, 2.0f, 0.8f });
 
 	// 移動前の位置を保存
 	Vector3 oldPos = body_.transform.translate_;
@@ -122,15 +89,42 @@ void BossEnemy::Update(float deltaTime)
 	UpdateDamageFlash(deltaTime);
 
 	// 移動後に必ずワールドとの衝突を解決
-	if (state_ != State::Appear) SolveWorldCollision(oldPos); // 登場演出中は衝突解決しない
+	if (state_ != State::Appear)
+	{
+		if (levelObjectManager_)
+		{
+			WorldCollisionSettings s{};
+			s.half = { 0.8f, 2.0f, 0.8f };
+			s.centerOffset = { 0.0f, 0.0f, 0.0f };
+
+			const auto worldAABBs = levelObjectManager_->GetWorldAABBs();
+			auto res = WorldCollisionResolver::Resolve(worldAABBs, s, oldPos, body_.transform.translate_, false);
+
+			body_.transform.translate_ = res.fixedCenter + s.centerOffset;
+			Collider::SetCenterPosition(res.fixedCenter);
+		}
+	}
 
 	if (appear_.finished)
 	{
-		UpdateAuraEmitter(deltaTime); // 常時オーラエフェクト更新
-		UpdateRushTrailEmitter(deltaTime, oldPos); // ラッシュ軌跡エフェクト更新
-		UpdateSpinAttackEmitter(deltaTime); // スピン攻撃エフェクト更新
-		// ラッシュヒットクールダウン更新
-		if (rushHitCooldown_ > 0.0f) rushHitCooldown_ -= deltaTime;
+		vfx_->UpdateAura(GetCenterPosition(), 2); // 常時オーラエフェクト更新
+
+		// クールダウン更新
+		vfx_->Tick(deltaTime);
+
+		const bool isRush =
+			(currentAttackKind_ == AttackKind::kRush) ||
+			(currentAttackKind_ == AttackKind::kBackstepRush) ||
+			(currentAttackKind_ == AttackKind::kMultiRush);
+
+		const bool isSpin = (currentAttackKind_ == AttackKind::kSpinAttack);
+
+		// 攻撃系VFX更新
+		vfx_->UpdateRushTrail(deltaTime, GetCenterPosition(), oldPos, isRush);
+		vfx_->UpdateSpinAttack(GetCenterPosition(), isSpin);
+
+		// コライダー半サイズ更新（仮の固定値、後で調整）
+		Collider::SetOBBHalfSize({ 0.8f, 2.0f, 0.8f });
 	}
 
 	// コライダー中心座標更新
@@ -163,6 +157,10 @@ void BossEnemy::DrawImGui()
 /// -------------------------------------------------------------
 void BossEnemy::OnCollision(Collider* other)
 {
+	if (state_ == State::Dead || death_.active || death_.finished) {
+		return; // 死亡中は当たり判定処理しない
+	}
+
 	uint32_t serialNumber = other->GetUniqueID(); // 相手のシリアルナンバー取得
 
 	// 弾丸と衝突したときの処理
@@ -196,10 +194,6 @@ void BossEnemy::OnCollision(Collider* other)
 		if (currentAttackKind_ == AttackKind::kRush ||
 			currentAttackKind_ == AttackKind::kSpinAttack)
 		{
-			// 連続ヒットを防ぎたい場合は ContactRecord を使っても良い
-			// if (contactRecord_.Check(serialNumber)) return;
-			// contactRecord_.Add(serialNumber);
-
 			if (Player* player = other->GetOwner<Player>())
 			{
 				// ダメージ
@@ -246,7 +240,7 @@ void BossEnemy::OnCollision(Collider* other)
 
 				if (currentAttackKind_ == AttackKind::kRush)
 				{
-					EmitRushHit(player->GetCenterPosition());
+					if (vfx_) vfx_->UpdateRushHit(player->GetCenterPosition(), GetCenterPosition());
 				}
 			}
 		}
@@ -260,430 +254,6 @@ Vector3 BossEnemy::GetCenterPosition() const
 {
 	const Vector3 offset = { 0.0f,0.0f,0.0f };
 	return body_.transform.translate_ + offset;
-}
-
-/// -------------------------------------------------------------
-///				　　　登場エミッター生成
-/// -------------------------------------------------------------
-void BossEnemy::CreateAppearEmitter()
-{
-	if (!gpuParticleManager_) return;
-
-	// まず既存を取りに行く
-	appearEmitter_ = gpuParticleManager_->GetEmitter("BossAppear");
-	if (appearEmitter_) return;
-
-	GpuParticleEmitter::EmitterInfo emitterInfo = {};
-	emitterInfo.type = GpuParticleType::Boss_Appear_Dust; // ボス登場砂埃
-	emitterInfo.radius = 3.0f;							  // 発生範囲半径
-	emitterInfo.loopCount = 0;							  // 1回のループで0個発生
-	emitterInfo.loopFrequency = 0.0f; 					  // ループなし
-	emitterInfo.billboardMode = BillboardMode::Camera;	  // カメラ追従
-
-	// テクスチャ設定
-	emitterInfo.textureFilePath = "white.png";
-
-	// エミッター生成
-	appearEmitter_ = gpuParticleManager_->CreateEmitter("BossAppear", emitterInfo);
-}
-
-/// -------------------------------------------------------------
-///				　　　オーラエミッター生成
-/// -------------------------------------------------------------
-void BossEnemy::CreateAuraEmitter()
-{
-	if (!gpuParticleManager_) return;
-
-	// まず既存を取りに行く
-	auraEmitter_ = gpuParticleManager_->GetEmitter("BossAura");
-	if (auraEmitter_) return;
-
-	GpuParticleEmitter::EmitterInfo info{};
-	info.type = GpuParticleType::Boss_Aura;   // ボスオーラ
-	info.radius = 0.5f;                       // ボス中心からの広がり
-	info.loopCount = 0;	                       // ループは使わず毎フレーム RequestEmit 方式
-	info.loopFrequency = 0.0f;
-	info.billboardMode = BillboardMode::Camera;
-
-	// テクスチャ切り替え機能を入れてあるならここで指定（四角い白 or オーラ用）
-	info.textureFilePath = "white.png";
-
-	auraEmitter_ = gpuParticleManager_->CreateEmitter("BossAura", info);
-}
-
-void BossEnemy::UpdateAuraEmitter(float deltaTime)
-{
-	(void)deltaTime;
-
-	if (death_.active) return; // 死亡中は出さない
-
-	// エミッターがなければ何もしない
-	if (!auraEmitter_) return;
-	// エミッター位置をボス中心にセット
-	Vector3 emitterPos = GetCenterPosition();
-	emitterPos.y += 0.0f; // 少し上にオフセット
-	auraEmitter_->SetPosition(emitterPos);
-	// 毎フレーム一定数発生させる
-	const int emitCountPerFrame = 2;
-	auraEmitter_->RequestEmit(emitCountPerFrame);
-}
-
-void BossEnemy::CreateRushTrailEmitter()
-{
-	if (!gpuParticleManager_) return;
-
-	// まず既存を取りに行く
-	rushTrailEmitter_ = gpuParticleManager_->GetEmitter("BossRushTrail");
-	if (rushTrailEmitter_) return;
-
-	GpuParticleEmitter::EmitterInfo info{};
-	info.type = GpuParticleType::Boss_Rush_Trail;
-
-	info.radius = 0.0f;         // 細め（太いなら 0.2f へ）
-	info.loopCount = 0;
-	info.loopFrequency = 0.0f;   // ループは使わず、Rush中に RequestEmit する
-	info.billboardMode = BillboardMode::Camera;
-
-	// とりあえず既存でOK（後で “横長グラデの白” にすると一気に良くなる）
-	info.textureFilePath = "white.png";
-
-	rushTrailEmitter_ = gpuParticleManager_->CreateEmitter("BossRushTrail", info);
-}
-
-void BossEnemy::UpdateRushTrailEmitter(float deltaTime, const Vector3& oldPos)
-{
-	if (death_.active) return; // 死亡中は出さない
-	if (!rushTrailEmitter_) return;
-
-	const bool isRush =
-		(currentAttackKind_ == AttackKind::kRush) ||
-		(currentAttackKind_ == AttackKind::kBackstepRush) ||
-		(currentAttackKind_ == AttackKind::kMultiRush);
-
-	if (!isRush) return;
-
-	// 位置はボス中心（少し上げたいなら +0.5f とか）
-	Vector3 emitterPos = GetCenterPosition();
-	rushTrailEmitter_->SetPosition(emitterPos);
-
-	// 速度に応じて発生数を増減（XZだけ見ると安定）
-	Vector3 d = body_.transform.translate_ - oldPos;
-	float distXZ = std::sqrt(d.x * d.x + d.z * d.z);
-	float dt = (deltaTime > 0.00001f) ? deltaTime : 0.00001f;
-	float speed = distXZ / dt;
-
-	// 発生数計算（速度に応じて6～30の範囲で変化）
-	uint32_t emitCount = static_cast<uint32_t>(std::clamp(speed, 15.0f, 50.0f));
-	rushTrailEmitter_->RequestEmit(emitCount);
-}
-
-void BossEnemy::CreateSpinAttackEmitter()
-{
-	if (!gpuParticleManager_) return;
-
-	// まず既存を取りに行く
-	spinAttackEmitter_ = gpuParticleManager_->GetEmitter("BossSpinAttack");
-	if (spinAttackEmitter_) return;
-
-	GpuParticleEmitter::EmitterInfo info{};
-	info.type = GpuParticleType::Boss_Spin_Slash;
-	info.radius = 0.1f;                          // 発生の散り幅（小さめでOK）
-	info.loopCount = 0;
-	info.loopFrequency = 0.0f;
-	info.billboardMode = BillboardMode::Camera;
-	info.textureFilePath = "white.png";         // 衝撃波っぽいならこれが相性良い
-	spinAttackEmitter_ = gpuParticleManager_->CreateEmitter("BossSpinAttack", info);
-}
-
-void BossEnemy::UpdateSpinAttackEmitter(float deltaTime)
-{
-	(void)deltaTime;
-
-	if (death_.active) return; // 死亡中は出さない
-	if (!spinAttackEmitter_) return;
-	if (currentAttackKind_ != AttackKind::kSpinAttack) return;
-
-	Vector3 pos = GetCenterPosition();
-	pos.y += 0.0f;                 // 体の中心〜胸あたり（好みで調整）
-	spinAttackEmitter_->SetPosition(pos);
-
-	// とりあえず毎フレームばら撒く（数は調整）
-	spinAttackEmitter_->RequestEmit(10);
-}
-
-void BossEnemy::CreateDeathEffectEmitters()
-{
-	if (!gpuParticleManager_) return;
-
-	// すでに存在する場合は流用（ゲームやり直し対策）
-	if (!deathExplosionEmitter_)
-	{
-		GpuParticleEmitter::EmitterInfo info{};
-		info.type = GpuParticleType::Explosion_Fire; // 小さな爆発
-		info.radius = 0.5f;                          // ボス中心周りにちょっと広がる
-		info.loopCount = 0;
-		info.loopFrequency = 0.0f;
-		info.billboardMode = BillboardMode::Camera;
-		info.textureFilePath = "white.png";          // 炎っぽいテクスチャあるなら差し替え
-
-		deathExplosionEmitter_ =
-			gpuParticleManager_->CreateEmitter("BossDeathExplosion", info);
-	}
-
-	if (!deathShockwaveEmitter_)
-	{
-		GpuParticleEmitter::EmitterInfo info{};
-		info.type = GpuParticleType::Shockwave;      // 衝撃波タイプ（GPU_PARTICLE_TYPE_SHOCKWAVE と一致）
-		info.radius = 0.15f;                         // ほぼ中心から出す
-		info.loopCount = 0;
-		info.loopFrequency = 0.0f;
-		info.billboardMode = BillboardMode::Camera;
-		info.textureFilePath = "white.png";        // リングっぽいテクスチャがあればそれ
-
-		deathShockwaveEmitter_ = gpuParticleManager_->CreateEmitter("BossDeathShockwave", info);
-	}
-}
-
-void BossEnemy::EmitDeathEffects()
-{
-	// ボス中心
-	Vector3 center = GetCenterPosition();
-
-	// ---------- 中心の小さな爆発 ----------
-	if (deathExplosionEmitter_)
-	{
-		deathExplosionEmitter_->SetPosition(center);
-		// 火の玉をドッと出す。多いほど派手になる
-		deathExplosionEmitter_->RequestEmit(12);
-	}
-
-	// ---------- 足元の衝撃波リング ----------
-	if (deathShockwaveEmitter_)
-	{
-		Vector3 ringPos = center;
-		// 地面に沿わせたいので少し下げる（コライダー半径が 2.0f なら -1.8f くらい）
-		ringPos.y -= 1.8f;
-		deathShockwaveEmitter_->SetPosition(ringPos);
-
-		// リングの密度。調整して好みの見た目に
-		deathShockwaveEmitter_->RequestEmit(6);
-	}
-}
-
-void BossEnemy::CreateDeathSoulEmitter()
-{
-	if (!gpuParticleManager_) return;
-
-	deathSoulEmitter_ = gpuParticleManager_->GetEmitter("BossDeathSoul");
-	if (deathSoulEmitter_) return;
-
-	GpuParticleEmitter::EmitterInfo info{};
-	info.type = GpuParticleType::Boss_Death_Soul;
-	info.radius = 0.35f;                            // 発生の散り幅（小さめ）
-	info.loopCount = 0;
-	info.loopFrequency = 0.0f;                      // UpdateDeathでRequestEmitする
-	info.billboardMode = BillboardMode::Camera;
-	info.textureFilePath = "white.png";           // ふわっと感が出やすい
-
-	deathSoulEmitter_ = gpuParticleManager_->CreateEmitter("BossDeathSoul", info);
-}
-
-void BossEnemy::CreateDebrisDustEmitter()
-{
-	if (!gpuParticleManager_) return;
-
-	debrisDustEmitter_ = gpuParticleManager_->GetEmitter("BossDebrisDust");
-	if (debrisDustEmitter_) return;
-
-	GpuParticleEmitter::EmitterInfo info{};
-	info.type = GpuParticleType::Boss_Debris_Dust;
-	info.radius = 1.5f;                             // 破片周りに散る想定で少し広め
-	info.loopCount = 0;
-	info.loopFrequency = 0.0f;                      // 死亡開始の瞬間だけバースト
-	info.billboardMode = BillboardMode::Camera;
-	info.textureFilePath = "white.png";             // 粒埃はwhiteでOK
-
-	debrisDustEmitter_ = gpuParticleManager_->CreateEmitter("BossDebrisDust", info);
-}
-
-void BossEnemy::CreateRushHitEmitter()
-{
-	if (!gpuParticleManager_) return;
-
-	// まず既存を取りに行く
-	rushHitEmitter_ = gpuParticleManager_->GetEmitter("BossRushHit");
-	if (rushHitEmitter_) return;
-
-	GpuParticleEmitter::EmitterInfo info{};
-	info.type = GpuParticleType::Shockwave;   // ←新規タイプ
-	info.radius = 0.5f;                          // 発生の散り幅（小さめでOK）
-	info.loopCount = 0;
-	info.loopFrequency = 0.0f;
-	info.billboardMode = BillboardMode::Camera;
-	info.textureFilePath = "white.png";         // 衝撃波っぽいならこれが相性良い
-
-	rushHitEmitter_ = gpuParticleManager_->CreateEmitter("BossRushHit", info);
-}
-
-void BossEnemy::EmitRushHit(const Vector3& hitPos)
-{
-	if (!rushHitEmitter_) return;
-	if (rushHitCooldown_ > 0.0f) return;
-
-	Vector3 pos = hitPos;
-
-	// 地面に貼り付けたいなら、中心から下げる（コライダー半分がy=2.0fなので目安）
-	Vector3 bossCenter = GetCenterPosition();
-	pos.y = bossCenter.y - 2.0f + 0.05f;
-
-	rushHitEmitter_->SetPosition(pos);
-
-	// ここが“衝撃波の強さ”
-	rushHitEmitter_->RequestEmit(64);
-
-	rushHitCooldown_ = 0.20f; // 0.2秒は連続発生させない
-}
-
-/// -------------------------------------------------------------
-///				　　　ワールド衝突解決処理
-/// -------------------------------------------------------------
-void BossEnemy::SolveWorldCollision(const Vector3& oldTranslate)
-{
-	// ステージ情報がなければ何もしない
-	if (!levelObjectManager_) return;
-
-	// プレイヤーと同じ当たり判定の前提:
-	const Vector3 half = { 0.8f, 2.0f, 0.8f };
-	const float kEps = 0.002f;
-
-	// プレイヤーと同じく「見た目の原点」と「物理中心」にオフセット差があるのでそろえる
-	const Vector3 kCenterOffset = { 0.0f, 0.0f, 0.0f };
-
-	// old/new の中心
-	Vector3 oldCenter = oldTranslate - kCenterOffset;
-	Vector3 newCenter = body_.transform.translate_ - kCenterOffset;
-
-	// ワールドの当たり判定AABB群を取得
-	const auto worldAABBs = levelObjectManager_->GetWorldAABBs();
-
-	// プレイヤーAABBを作るラムダ
-	auto makeAABB = [&](const Vector3& c) {return AABB{ c - half, c + half };	};
-
-	// 押し戻し後の中心位置
-	Vector3 fixedCenter = oldCenter;
-
-	// 指定軸方向の押し戻しを解決するラムダ
-	auto resolveAxis = [&](int axis, float delta)
-		{
-			// 動いていなければ何もしない
-			if (delta == 0.0f) { return; }
-
-			if (axis == 0) fixedCenter.x += delta;
-			if (axis == 1) fixedCenter.y += delta;
-			if (axis == 2) fixedCenter.z += delta;
-
-			// プレイヤーAABBを作成
-			AABB p = makeAABB(fixedCenter);
-
-			bool hit = false;
-			float bestFix = 0.0f;
-			float bestDist = FLT_MAX;
-
-			// ワールドAABB群と当たり判定
-			for (const auto& w : worldAABBs)
-			{
-				// AABB同士が交差しているかどうかをチェック（プレイヤーと同じ式）
-				if (!(p.min.x <= w.max.x && p.max.x >= w.min.x &&
-					p.min.y <= w.max.y && p.max.y >= w.min.y &&
-					p.min.z <= w.max.z && p.max.z >= w.min.z)) {
-					continue; // 交差していなければ次へ
-				}
-
-				float cand = 0.0f;
-				bool valid = false;
-
-				// 押し戻し候補を軸ごとに計算
-				if (axis == 0)
-				{
-					// X方向押し戻し
-					if (oldCenter.x + half.x <= w.min.x) { cand = (w.min.x - half.x) - kEps; valid = true; }
-					else if (oldCenter.x - half.x >= w.max.x) { cand = (w.max.x + half.x) + kEps; valid = true; }
-					else
-					{
-						float dMin = fabsf((w.min.x - half.x) - oldCenter.x);
-						float dMax = fabsf((w.max.x + half.x) - oldCenter.x);
-						cand = (dMin <= dMax) ?
-							(w.min.x - half.x - kEps) :
-							(w.max.x + half.x + kEps);
-						valid = true;
-					}
-
-					// 最も近い押し戻し候補を採用
-					if (valid)
-					{
-						float dist = fabsf(cand - fixedCenter.x);
-						if (dist < bestDist) { bestDist = dist; bestFix = cand; hit = true; }
-					}
-				}
-				else if (axis == 2)
-				{
-					// Z方向押し戻し（ほぼXと同じロジックのZ版）
-					if (oldCenter.z + half.z <= w.min.z) { cand = (w.min.z - half.z) - kEps; valid = true; }
-					else if (oldCenter.z - half.z >= w.max.z) { cand = (w.max.z + half.z) + kEps; valid = true; }
-					else
-					{
-						float dMin = fabsf((w.min.z - half.z) - oldCenter.z);
-						float dMax = fabsf((w.max.z + half.z) - oldCenter.z);
-						cand = (dMin <= dMax) ?
-							(w.min.z - half.z - kEps) :
-							(w.max.z + half.z + kEps);
-						valid = true;
-					}
-					if (valid)
-					{
-						float dist = fabsf(cand - fixedCenter.z);
-						if (dist < bestDist) { bestDist = dist; bestFix = cand; hit = true; }
-					}
-				}
-				else
-				{
-					// Y方向押し戻し（床/天井処理）
-					if (oldCenter.y - half.y >= w.max.y) { cand = (w.max.y + half.y) + kEps; valid = true; }     // 床の上に乗る
-					else if (oldCenter.y + half.y <= w.min.y) { cand = (w.min.y - half.y) - kEps; valid = true; } // 天井の下で止まる
-					else {
-						float dFloor = fabsf((w.max.y + half.y) - oldCenter.y);
-						float dCeil = fabsf((w.min.y - half.y) - oldCenter.y);
-						cand = (dFloor <= dCeil) ?
-							(w.max.y + half.y + kEps) :
-							(w.min.y - half.y - kEps);
-						valid = true;
-					}
-					if (valid) {
-						float dist = fabsf(cand - fixedCenter.y);
-						if (dist < bestDist) { bestDist = dist; bestFix = cand; hit = true; }
-					}
-				}
-			}
-
-			// 押し戻しが発生していれば位置を修正
-			if (hit)
-			{
-				if (axis == 0) fixedCenter.x = bestFix;
-				if (axis == 2) fixedCenter.z = bestFix;
-				if (axis == 1) fixedCenter.y = bestFix;
-			}
-		};
-
-	// 軸ごとに、"どれだけ動いたか" を解決
-	resolveAxis(0, newCenter.x - oldCenter.x);
-	resolveAxis(2, newCenter.z - oldCenter.z);
-	resolveAxis(1, newCenter.y - oldCenter.y);
-
-	// 最終的な位置を反映
-	body_.transform.translate_ = fixedCenter + kCenterOffset;
-
-	// コライダー中心も同期（プレイヤーと同じく物理中心ベースで渡す）
-	Collider::SetCenterPosition(fixedCenter);
 }
 
 /// -------------------------------------------------------------
@@ -970,11 +540,8 @@ void BossEnemy::UpdateAppear(float deltaTime)
 	body_.transform.translate_.z =
 		appear_.startPosition.z + (appear_.endPosition.z - appear_.startPosition.z) * eased;
 
-	if (appearEmitter_)
-	{
-		appearEmitter_->SetPosition({ 0.0f,0.0f,0.0f });
-		appearEmitter_->RequestEmit(5); // 毎フレーム5個発生
-	}
+	// 砂埃VFX更新
+	if (vfx_) vfx_->UpdateAppearDust({ 0.0f,0.0f,0.0f }, 5);
 
 	// 登場演出完了判定
 	if (appear_.timer >= appear_.duration)

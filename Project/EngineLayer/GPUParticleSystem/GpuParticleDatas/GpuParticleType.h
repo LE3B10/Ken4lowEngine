@@ -27,4 +27,5 @@ enum class GpuParticleType : uint32_t
 	Boss_Spin_Slash = 18,   // 回転斬り
 	Boss_Death_Soul = 19,	// ボス死亡魂エフェクト
 	Boss_Debris_Dust = 20,	// ボス破片埃
+	Heal_Effect = 21,       // 回復エフェクト
 };

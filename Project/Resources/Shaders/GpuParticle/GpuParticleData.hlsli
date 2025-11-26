@@ -20,6 +20,7 @@ static const uint GPU_PARTICLE_TYPE_BOSS_SHOCKWAVE = 17; // 衝撃波パーテ�
 static const uint GPU_PARTICLE_TYPE_SPIN_ATTACK_SLASH = 18; // 旋風攻撃パーティクルタイプ : ☑実装済み
 static const uint GPU_PARTICLE_TYPE_BOSS_DEATH_SOUL = 19; // ボス死亡魂パーティクルタイプ : ☑実装済み
 static const uint GPU_PARTICLE_TYPE_BOSS_DEBRIS_DUST = 20; // ボス破片砂埃パーティクルタイプ : ☑実装済み
+static const uint GPU_PARTICLE_TYPE_HEAL = 21; // 回復パーティクルタイプ : ☑実装済み
 
 // パーティクルデータ構造体
 struct Particle

@@ -29,8 +29,14 @@ public: /// ---------- メンバ関数 ---------- ///
 	// スポーン処理
 	void Spawn(ItemType type, const Vector3& position);
 
+	// 取得イベントの消費
+	bool ConsumeCollected(ItemType type);
+
 private: /// ---------- メンバ変数 ---------- ///
 
 	// アイテムリスト
 	std::vector<std::unique_ptr<Item>> items_;
+
+	// 取得イベントリスト
+	std::vector<ItemType> collectedEvents_;
 };
