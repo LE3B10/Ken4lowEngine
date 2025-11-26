@@ -52,15 +52,17 @@ void GpuParticleManager::Update(float deltaTime)
 	// 更新用ディスパッチ処理
 	DispatchUpdate();
 
-	GpuEmitterCBData* emitterCBData = gpuParticleBuffers_->GetEmitterCBData();
+	uint32_t slot = 0;
 
 	for (auto& [name, emitter] : emitters_)
 	{
-		// エミッターのCBデータを構築
-		if (emitter->BuildCB(*emitterCBData, deltaTime))
+		// slotの場所に書く
+		auto* cb = gpuParticleBuffers_->GetEmitterCBData(slot);
+
+		if (emitter->BuildCB(*cb, deltaTime))
 		{
-			// エミット用ディスパッチ処理
-			DispatchEmit();
+			DispatchEmit(gpuParticleBuffers_->GetEmitterCBAddress(slot));
+			slot++;
 		}
 	}
 }
@@ -70,8 +72,24 @@ void GpuParticleManager::Update(float deltaTime)
 /// -------------------------------------------------------------
 void GpuParticleManager::Draw()
 {
-	// GPUパーティクルレンダラーの描画処理
-	gpuParticleRenderer_->Draw(GpuParticleBuffers::GetMaxParticles());
+	const UINT instanceCount = GpuParticleBuffers::GetMaxParticles();
+
+	uint32_t drawSlot = 0;
+
+	for (auto& [name, emitter] : emitters_)
+	{
+		const auto& info = emitter->GetInfo();
+
+		gpuParticleRenderer_->SetTextureFilePath(info.textureFilePath);
+
+		// emitter->GetDrawType() を使う（drawType=0ならtype）
+		gpuParticleRenderer_->SetDrawType(emitter->GetDrawType(), drawSlot);
+
+		// ★同じslotで描く
+		gpuParticleRenderer_->Draw(instanceCount, drawSlot);
+
+		++drawSlot;
+	}
 }
 
 /// -------------------------------------------------------------
@@ -160,7 +178,7 @@ void GpuParticleManager::Dispatch()
 /// -------------------------------------------------------------
 ///				　　	ディスパッチ処理（エミット用）
 /// -------------------------------------------------------------
-void GpuParticleManager::DispatchEmit()
+void GpuParticleManager::DispatchEmit(D3D12_GPU_VIRTUAL_ADDRESS emitterCbAddr)
 {
 	auto* dxCommon = DirectXCommon::GetInstance();
 	auto* commandList = dxCommon->GetCommandManager()->GetCommandList();
@@ -179,7 +197,7 @@ void GpuParticleManager::DispatchEmit()
 	commandList->SetComputeRootDescriptorTable(1, UAVManager::GetInstance()->GetGPUDescriptorHandle(gpuParticleBuffers_->GetParticleUavIndex())); // u0 : UAV
 
 	// CBVをセット (エミッターバッファ)
-	commandList->SetComputeRootConstantBufferView(2, gpuParticleBuffers_->GetEmitterBuffer()->GetGPUVirtualAddress());
+	commandList->SetComputeRootConstantBufferView(2, emitterCbAddr);
 
 	// CBVをセット (時間計測用バッファ)
 	commandList->SetComputeRootConstantBufferView(3, gpuParticleBuffers_->GetPerFrameBuffer()->GetGPUVirtualAddress());

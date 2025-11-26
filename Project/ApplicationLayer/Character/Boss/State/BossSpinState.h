@@ -21,5 +21,8 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	float elapsed_ = 0.0f;
 	float startYaw_ = 0.0f;
+
+	// このスピン中にプレイヤーへヒット済みかどうか
+	bool hasHitPlayer_ = false;
 };
 

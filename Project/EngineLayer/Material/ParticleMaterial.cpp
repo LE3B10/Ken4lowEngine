@@ -9,17 +9,21 @@ void ParticleMaterial::Initialize()
 {
 	ID3D12Device* device = DirectXCommon::GetInstance()->GetDevice();
 
-	//マテリアル用のリソースを作る。今回はcolor1つ分のサイズを用意する
-	materialResource_ = ResourceManager::CreateBufferResource(device, sizeof(MaterialCBData));
+	const UINT stride = Align256(sizeof(MaterialCBData));
+	const UINT bufferSize = stride * kSlotCount;
 
-	//書き込むためのアドレスを取得
-	materialResource_->Map(0, nullptr, reinterpret_cast<void**>(&materialData_));
+	materialResource_ = ResourceManager::CreateBufferResource(device, bufferSize);
+	materialResource_->Map(0, nullptr, &materialDataBase_);
+	std::memset(materialDataBase_, 0, bufferSize);
 
-	//今回は赤を書き込んでみる
-	materialData_->color = { 1.0f, 1.0f, 1.0f, 1.0f };
-
-	//UVTramsform行列を単位行列で初期化
-	materialData_->uvTransform = Matrix4x4::MakeIdentity();
+	// 初期値（全スロット同じでOK）
+	for (uint32_t i = 0; i < kSlotCount; ++i)
+	{
+		auto* m = reinterpret_cast<MaterialCBData*>(reinterpret_cast<uint8_t*>(materialDataBase_) + stride * i);
+		m->color = { 1,1,1,1 };
+		m->uvTransform = Matrix4x4::MakeIdentity();
+		m->drawType = 0;
+	}
 }
 
 /// -------------------------------------------------------------
@@ -38,15 +42,16 @@ void ParticleMaterial::Update()
 /// -------------------------------------------------------------
 ///				         パイプラインの設定
 /// -------------------------------------------------------------
-void ParticleMaterial::SetPipeline(UINT rootParameterIndex) const
+void ParticleMaterial::SetPipeline(UINT rootParameterIndex, uint32_t slot) const
 {
 	ID3D12GraphicsCommandList* commandList = DirectXCommon::GetInstance()->GetCommandManager()->GetCommandList();
 
 	// マテリアルのリソースがある場合
 	if (materialResource_)
 	{
-		// 定数バッファビューをセット
-		commandList->SetGraphicsRootConstantBufferView(rootParameterIndex, materialResource_->GetGPUVirtualAddress());
+		const UINT stride = Align256(sizeof(MaterialCBData));
+		const uint32_t s = slot % kSlotCount;
+		commandList->SetGraphicsRootConstantBufferView(rootParameterIndex, materialResource_->GetGPUVirtualAddress() + stride * s);
 	}
 }
 

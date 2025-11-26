@@ -17,11 +17,15 @@ public: /// ---------- 構造体 ---------- ///
 	// エミッター情報構造体
 	struct EmitterInfo
 	{
-		GpuParticleType type = GpuParticleType::Default; // パーティクルの種類
+		std::string textureFilePath; // テクスチャファイルパス
 		float radius = 0.0f;          // 発生範囲
 		uint32_t loopCount = 0;       // ループ発生時に1回で出す数
 		float loopFrequency = 0.0f;   // ループ発生周期(秒)。0ならループしない
 
+		// 描画パス用フィルタ
+		uint32_t drawType = 0; // 描画タイプ
+
+		GpuParticleType type = GpuParticleType::Default; // パーティクルの種類
 		BillboardMode billboardMode = BillboardMode::Camera;
 	};
 
@@ -74,6 +78,17 @@ public: /// ---------- ゲッター ---------- ///
 	/// <returns>コンストラクタで指定したエミッター名</returns>
 	const std::string& GetName() const { return name_; }
 
+	/// <summary>
+	/// 
+	/// </summary>
+	/// <returns></returns>
+	const EmitterInfo& GetInfo() const { return info_; }
+
+	// 描画に使うID（0なら type を返す）
+	uint32_t GetDrawType() const
+	{
+		return (info_.drawType != 0) ? info_.drawType : static_cast<uint32_t>(info_.type);
+	}
 
 private: /// ---------- メンバ変数 ---------- ///
 

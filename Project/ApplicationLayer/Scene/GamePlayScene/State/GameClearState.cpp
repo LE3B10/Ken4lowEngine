@@ -26,6 +26,7 @@ void GameClearState::Update(GamePlayScene* scene, float deltaTime)
 
 	auto* input_ = scene->GetInput();
 	auto* player_ = scene->GetPlayer();
+	auto& boss = scene->GetBoss();
 	auto* skyBox_ = scene->GetSkyBox();
 	auto* itemManager_ = scene->GetItemManager();
 	auto& clearPanelSprite_ = scene->GetClearPanelSprite();
@@ -37,6 +38,7 @@ void GameClearState::Update(GamePlayScene* scene, float deltaTime)
 	auto& retryButtonSprite_ = scene->GetRetryButtonSprite();
 	auto& clearOptionSprites_ = scene->GetClearOptionSprites();
 	auto& clearOptionRects_ = scene->GetClearOptionRects();
+	auto& levelObjectManager = scene->GetLevelObjectManager();
 
 	int kClearStarCount = scene->GetClearStarCount();
 	int currentStageIndex_ = scene->GetCurrentStageIndex();
@@ -49,6 +51,8 @@ void GameClearState::Update(GamePlayScene* scene, float deltaTime)
 	// 背景やアイテムの軽い更新
 	skyBox_->Update();
 	itemManager_->Update(player_, deltaTime);
+	boss->Update(deltaTime);
+	levelObjectManager->Update();
 
 	// タイマー進行
 	gameClearTimer_ += deltaTime;

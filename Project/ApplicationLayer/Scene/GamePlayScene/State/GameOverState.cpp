@@ -26,6 +26,7 @@ void GameOverState::Update(GamePlayScene* scene, float deltaTime)
 	auto* skyBox = scene->GetSkyBox();
 	auto* crosshair = scene->GetCrosshair();
 	auto* itemManager = scene->GetItemManager();
+	auto& levelObjectManager = scene->GetLevelObjectManager();
 	auto& retryButtonSprite = scene->GetRetryButtonSprite();
 	auto& retireButtonSprite = scene->GetRetireButtonSprite();
 	auto& retryRect = scene->GetRetryRect();
@@ -54,6 +55,7 @@ void GameOverState::Update(GamePlayScene* scene, float deltaTime)
 	itemManager->Update(player, deltaTime);
 	retryButtonSprite->Update();
 	retireButtonSprite->Update();
+	levelObjectManager->Update();
 
 	// --------- マウスクリック判定 ---------
 	// マウス座標を取得（例：スクリーン座標のfloat2を返す想定）

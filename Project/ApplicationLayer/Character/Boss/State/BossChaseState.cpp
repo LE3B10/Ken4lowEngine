@@ -6,8 +6,8 @@
 namespace
 {
 	// パラメータ
-	const float kWalkSpeed = 3.0f; // ふだんの追いかけ速度
-	const float kRushDistance = 7.0f; // この距離以上だと「遠い」
+	const float kWalkSpeed = 4.0f; // ふだんの追いかけ速度
+	const float kRushDistance = 8.0f; // この距離以上だと「遠い」
 	const float kRushFarTime = 1.0f; // 遠い状態が続いた時間で Rush 解禁
 	const float kMinDistance = 2.0f; // これ以上は近づかない（プレイヤーとの最小距離）
 }

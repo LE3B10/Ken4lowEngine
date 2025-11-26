@@ -1,9 +1,12 @@
 #include "GpuParticle.hlsli"
 
+// マテリアル構造体
 struct Material
 {
-    float4 color;
-    float4x4 uvTransform;
+    float4 color; // マテリアルカラー
+    float4x4 uvTransform; // UV変換行列
+    uint drawType; // 描画タイプ
+    float3 _pad; // パディング
 };
 
 //ピクセルシェーダーの出力
@@ -20,6 +23,12 @@ SamplerState gSampler : register(s0);
 PixelShaderOutput main(VertexShaderOutput input)
 {
     PixelShaderOutput output;
+    
+    // この描画パスの対象(type)じゃない粒子は捨てる
+    if (input.type != gMaterial.drawType)
+    {
+        discard;
+    }
     
     //TextureをSamplingする
     float4 transformedUV = mul(float4(input.texcoord, 0.0f, 1.0f), gMaterial.uvTransform);

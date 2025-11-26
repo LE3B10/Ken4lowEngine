@@ -4,6 +4,8 @@
 #include "Collider.h"
 #include "ItemType.h"
 
+#include <GpuParticleManager.h>
+
 #include <memory>
 
 /// -------------------------------------------------------------
@@ -52,6 +54,8 @@ public: /// ---------- オーバーライド ---------- ///
 
 private: /// ---------- メンバ変数 ---------- ///
 
+	GpuParticleEmitter* 
+
 	// アイテムの種類
 	ItemType type_ = {};
 
@@ -65,7 +69,7 @@ private: /// ---------- メンバ変数 ---------- ///
 	bool collected_ = false;
 
 	// アイテムの大きさ（スケール）
-	Vector3 scale_ = { 1.0f, 1.0f, 1.0f }; // スケール（大きさ）設定
+	Vector3 scale_ = { 0.4f, 0.4f, 0.4f }; // スケール（大きさ）設定
 
 	float floatTimer_ = 0.0f;     // サイン波用タイマー
 	float floatAmplitude_ = 0.6f; // 上下振幅（移動幅）

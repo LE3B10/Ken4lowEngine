@@ -11,7 +11,7 @@ namespace
 	const float kRushDuration = 2.0f;	 // 全体時間
 	const float kRushChargeTime = 0.5f;  // 溜め時間
 	const float kRushSpeed = 250.0f;	 // 最大速度
-	const float kRushCooldown = 2.5f;	 // 終了後クールタイム
+	const float kRushCooldown = 3.0f;	 // 終了後クールタイム
 }
 
 void BossRushState::OnEnter(BossEnemy* boss)

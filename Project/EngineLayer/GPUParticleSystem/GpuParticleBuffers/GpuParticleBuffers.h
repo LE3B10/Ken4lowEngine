@@ -140,6 +140,11 @@ public: /// ---------- ゲッター ---------- ///
 	/// </summary>
 	GpuEmitterCBData* GetEmitterCBData() const { return emitterCBData_; }
 
+	// 256byteアライン
+	static inline constexpr UINT Align256(UINT size) { return (size + 255) & ~255u; }
+	GpuEmitterCBData* GetEmitterCBData(uint32_t slot);
+	D3D12_GPU_VIRTUAL_ADDRESS GetEmitterCBAddress(uint32_t slot);
+
 private: /// ---------- 内部メンバ関数 ---------- ///
 
 	/// <summary>

@@ -109,7 +109,7 @@ private: /// ---------- ディスパッチ関数 ---------- ///
 	/// ・Emitter CB / PerFrame CB を RootConstantBufferView でセット<br/>
 	/// することで、エミット部分だけを GPU 上で実行します。
 	/// </summary>
-	void DispatchEmit();
+	void DispatchEmit(D3D12_GPU_VIRTUAL_ADDRESS emitterCbAddr);
 
 	/// <summary>
 	/// 毎フレームの更新専用ディスパッチ処理。<br/>

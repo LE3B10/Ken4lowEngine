@@ -30,14 +30,14 @@ bool IsBillboardMode(uint mode, uint flag)
     return (mode & flag) != 0;
 }
 
-StructuredBuffer<Particle> gParticlea : register(t0); // 読み取り可能なパーティクルバッファ
+StructuredBuffer<Particle> gParticles : register(t0); // 読み取り可能なパーティクルバッファ
 ConstantBuffer<PerView> gPerView : register(b0); // ビュー情報
 
 // 頂点シェーダー 
 VertexShaderOutput main(VertexShaderInput input, uint instanceId : SV_InstanceID)
 {
     VertexShaderOutput output;
-    Particle particle = gParticlea[instanceId]; // インスタンスIDに基づいてパーティクルデータを取得
+    Particle particle = gParticles[instanceId]; // インスタンスIDに基づいてパーティクルデータを取得
     float4x4 worldMatrix;
     
     // ベース行列を分岐で決める（ここだけ追加）
@@ -72,6 +72,7 @@ VertexShaderOutput main(VertexShaderInput input, uint instanceId : SV_InstanceID
     output.position = mul(input.position, mul(worldMatrix, gPerView.viewProjectionMatrix)); // ワールドビュー射影変換 
     output.texcoord = input.texcoord; // テクスチャ座標をそのまま渡す 
     output.color = particle.color; // パーティクルの色を頂点シェーダー出力に渡す
+    output.type = particle.type; // パーティクルのタイプを頂点シェーダー出力に渡す
 
     // 出力頂点構造を返す
     return output;

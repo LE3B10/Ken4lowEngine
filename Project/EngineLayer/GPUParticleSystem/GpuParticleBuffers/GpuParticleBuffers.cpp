@@ -7,6 +7,9 @@
 #include <Camera.h>
 #include <DebugCamera.h>
 
+// スロット数（好きな数でOK。emitを同フレームで何回Dispatchするかの上限）
+static constexpr uint32_t kEmitterCBSlotCount = 256;
+
 /// -------------------------------------------------------------
 ///			　　　	初期化処理
 /// -------------------------------------------------------------
@@ -68,6 +71,23 @@ void GpuParticleBuffers::Update(float deltaTime)
 	perFrameData_->time += perFrameData_->deltaTime;
 }
 
+GpuEmitterCBData* GpuParticleBuffers::GetEmitterCBData(uint32_t slot)
+{
+	const UINT stride = Align256(sizeof(GpuEmitterCBData));
+	const uint32_t s = slot % kEmitterCBSlotCount;
+
+	auto* base = reinterpret_cast<uint8_t*>(emitterCBData_);
+	return reinterpret_cast<GpuEmitterCBData*>(base + stride * s);
+}
+
+D3D12_GPU_VIRTUAL_ADDRESS GpuParticleBuffers::GetEmitterCBAddress(uint32_t slot)
+{
+	const UINT stride = Align256(sizeof(GpuEmitterCBData));
+	const uint32_t s = slot % kEmitterCBSlotCount;
+
+	return emitterBuffer_->GetGPUVirtualAddress() + stride * s;
+}
+
 /// -------------------------------------------------------------
 ///			　	パーティクルバッファの生成
 /// -------------------------------------------------------------
@@ -111,21 +131,27 @@ void GpuParticleBuffers::CreatePerViewBuffer()
 /// -------------------------------------------------------------
 void GpuParticleBuffers::CreateEmitterBuffer()
 {
-	// 今回は球体エミッターのみ対応
-	emitterBuffer_ = ResourceManager::CreateBufferResource(DirectXCommon::GetInstance()->GetDevice(), sizeof(GpuEmitterCBData));
+	auto* device = DirectXCommon::GetInstance()->GetDevice();
 
-	// マッピング
+	const UINT stride = Align256(sizeof(GpuEmitterCBData));
+	const UINT bufferSize = stride * kEmitterCBSlotCount;
+
+	emitterBuffer_ = ResourceManager::CreateBufferResource(device, bufferSize);
 	emitterBuffer_->Map(0, nullptr, reinterpret_cast<void**>(&emitterCBData_));
 
-	// 初期化
-	emitterCBData_->count = 10;												// 一度に発生させるパーティクル数
-	emitterCBData_->frequency = 0.5f;										// 発生間隔(秒)
-	emitterCBData_->frequencyTime = 0.0f;									// 発生間隔タイマー
-	emitterCBData_->translate = { 0.0f, 2.0f, 0.0f };						// エミッター位置
-	emitterCBData_->radius = 1.0f;											// エミッター半径
-	emitterCBData_->emit = 1;												// 発生フラグON
-	emitterCBData_->type = static_cast<uint32_t>(GpuParticleType::Default); // デフォルトタイプ
-	emitterCBData_->billboardMode = static_cast<uint32_t>(BillboardMode::Camera); // ビルボードモード
+	// 全スロット初期化（0クリア）
+	std::memset(emitterCBData_, 0, bufferSize);
+
+	// 必要なら 0番スロットにデフォ値だけ入れておく（デバッグ用）
+	auto* cb0 = GetEmitterCBData(0);
+	cb0->count = 10;
+	cb0->frequency = 0.5f;
+	cb0->frequencyTime = 0.0f;
+	cb0->translate = { 0.0f, 2.0f, 0.0f };
+	cb0->radius = 1.0f;
+	cb0->emit = 1;
+	cb0->type = static_cast<uint32_t>(GpuParticleType::Default);
+	cb0->billboardMode = static_cast<uint32_t>(BillboardMode::Camera);
 }
 
 /// -------------------------------------------------------------

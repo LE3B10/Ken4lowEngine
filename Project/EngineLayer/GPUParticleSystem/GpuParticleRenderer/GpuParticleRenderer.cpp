@@ -28,7 +28,7 @@ void GpuParticleRenderer::Initialize(GpuParticlePipeline* pipeline, GpuParticleB
 /// -------------------------------------------------------------
 ///				　　　			描画処理
 /// -------------------------------------------------------------
-void GpuParticleRenderer::Draw(UINT instanceCount)
+void GpuParticleRenderer::Draw(UINT instanceCount, uint32_t slot)
 {
 	auto* commandList = DirectXCommon::GetInstance()->GetCommandManager()->GetCommandList();
 
@@ -50,7 +50,7 @@ void GpuParticleRenderer::Draw(UINT instanceCount)
 	SRVManager::GetInstance()->SetGraphicsRootDescriptorTable(1, gpuParticleBuffers_->GetParticleSrvIndex());
 
 	// マテリアル設定
-	particleMaterial_->SetPipeline(2);
+	particleMaterial_->SetPipeline(2, slot);
 
 	TextureManager::GetInstance()->SetGraphicsRootDescriptorTable(commandList, 3, TextureManager::GetInstance()->GetSrvHandleGPU(textureFilePath_));
 
@@ -67,4 +67,15 @@ void GpuParticleRenderer::Draw(UINT instanceCount)
 		commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 		commandList->DrawInstanced(static_cast<UINT>(vbView.SizeInBytes / vbView.StrideInBytes), instanceCount, 0, 0);
 	}
+}
+
+void GpuParticleRenderer::SetTextureFilePath(const std::string& path)
+{
+	textureFilePath_ = path;
+	TextureManager::GetInstance()->LoadTexture(textureFilePath_); // 念のためロード（キャッシュされる想定）
+}
+
+void GpuParticleRenderer::SetDrawType(uint32_t drawType, uint32_t slot)
+{
+	if (particleMaterial_) { particleMaterial_->SetDrawType(drawType, slot); }
 }

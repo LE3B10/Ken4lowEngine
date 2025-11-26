@@ -4,11 +4,16 @@
 #include "BossBehaviorTree.h"
 #include "IBossAttackState.h"
 
+#include "GpuParticleManager.h"
+#include "GpuParticleType.h"
+#include "BillboardMode.h"
+
 #include <optional>
 
 /// ---------- 前方宣言 ---------- ///
 class Player;
 class LevelObjectManager;
+class GpuParticleManager;
 
 /// -------------------------------------------------------------
 ///					　ボス敵キャラクタークラス
@@ -31,8 +36,6 @@ public: /// ---------- 列挙型 ---------- ///
 		kNone,  // なし（待機）
 		kRush,  // 突進攻撃
 		kSpinAttack,    // 近距離回転攻撃
-
-
 		kSideStepSlash, // 横ステップ → 斬りつけ
 		kBackstepRush,  // バックステップ → 高速突進
 		kMultiRush,     // 連続ラッシュ（2～3回）
@@ -101,6 +104,8 @@ public: /// ---------- 分解用構造体 ---------- ///
 		float duration = 1.2f;		 // 分解が終わるまでの時間
 		std::vector<GibMotion> gibs; // 各部位の分解運動データ
 		GibMotion bodyGib;			 // 体幹部位の分解運動データ
+
+		bool  startBurstDone = false; // 死亡開始時の一回バースト管理
 	};
 
 public: /// ---------- メンバ関数 ---------- ///
@@ -125,6 +130,46 @@ public: /// ---------- メンバ関数 ---------- ///
 
 	// 中心座標を取得
 	Vector3 GetCenterPosition() const override;
+
+private: /// ---------- メンバ関数 ---------- ///
+
+	// ボス登場用パーティクルエミッター作成
+	void CreateAppearEmitter();
+
+	// 常時オーラ用パーティクルエミッター作成
+	void CreateAuraEmitter();
+
+	// 登場エフェクト更新
+	void UpdateAuraEmitter(float deltaTime);
+
+	// ラッシュ軌跡用パーティクルエミッター作成
+	void CreateRushTrailEmitter();
+
+	// 衝撃波エフェクト作成
+	void CreateRushHitEmitter();
+
+	// ラッシュヒットエフェクト発生
+	void EmitRushHit(const Vector3& hitPos);
+
+	// ラッシュ軌跡エフェクト更新
+	void UpdateRushTrailEmitter(float deltaTime, const Vector3& oldPos);
+
+	// スピン攻撃エフェクト作成
+	void CreateSpinAttackEmitter();
+
+	// スピン攻撃エフェクト更新
+	void UpdateSpinAttackEmitter(float deltaTime);
+
+	// 死亡用エミッター作成＆発生
+	void CreateDeathEffectEmitters();
+	void EmitDeathEffects();
+
+	void CreateDeathSoulEmitter();
+	void CreateDebrisDustEmitter();
+
+
+	// ToDo: 他の攻撃エフェクトも追加予定
+	// こういう演出系のエフェクトは別クラスに切り出すのも検討中
 
 private: /// ---------- メンバ関数 ---------- ///
 
@@ -206,6 +251,23 @@ private: /// ---------- メンバ変数 ---------- ///
 	Player* player_ = nullptr;                     // プレイヤーへの参照
 	LevelObjectManager* levelObjectManager_ = nullptr; // レベルマネージャーへの参照
 
+	GpuParticleManager* gpuParticleManager_ = nullptr; // GPUパーティクルマネージャーへの参照
+
+	/// ---------- パーティクルエミッター ---------- ///
+	GpuParticleEmitter* hitSparkEmitter_ = nullptr; // 命中火花エフェクト用エミッター
+	GpuParticleEmitter* appearEmitter_ = nullptr; // 登場エフェクト用エミッター
+	GpuParticleEmitter* auraEmitter_ = nullptr;	  // 常時オーラ用エミッター
+	GpuParticleEmitter* rushTrailEmitter_ = nullptr; // ラッシュ軌跡用エミッター
+	GpuParticleEmitter* rushHitEmitter_ = nullptr; // ラッシュヒット用エミッター
+	float rushHitCooldown_ = 0.0f; // 連続発生防止(秒)
+	GpuParticleEmitter* spinAttackEmitter_ = nullptr; // スピン攻撃用エミッター
+
+	GpuParticleEmitter* deathExplosionEmitter_ = nullptr; // 中心爆発
+	GpuParticleEmitter* deathShockwaveEmitter_ = nullptr; // 足元衝撃波リング
+
+	GpuParticleEmitter* deathSoulEmitter_ = nullptr;     // 魂が昇る
+	GpuParticleEmitter* debrisDustEmitter_ = nullptr;    // 破片の埃（余韻）
+
 	State state_ = State::Appear; // 現在の状態
 
 	FlashInfo flashInfo_;	 // ダメージフラッシュ情報
@@ -219,7 +281,7 @@ private: /// ---------- メンバ変数 ---------- ///
 	AttackKind currentAttackKind_ = AttackKind::kNone;
 
 	// HP
-	float maxHP_ = 2000.0f;
+	float maxHP_ = 3000.0f;
 	float currentHP_ = maxHP_;
 
 	float attackPower_ = 20.0f; // ボスがプレイヤーに与えるダメージ量（仮）

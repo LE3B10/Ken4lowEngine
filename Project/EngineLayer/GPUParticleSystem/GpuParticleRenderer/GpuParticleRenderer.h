@@ -38,7 +38,15 @@ public: /// ---------- メンバ関数 ---------- ///
 	/// を設定した上で、instanceCount 個分のインスタンシング描画を行います。
 	/// </summary>
 	/// <param name="instanceCount">描画するパーティクルインスタンス数（GPU 上で生存しているパーティクル数など）。</param>
-	void Draw(UINT instanceCount);
+	void Draw(UINT instanceCount, uint32_t slot = 0);
+
+public: /// ---------- セッター ---------- ///
+
+	// テクスチャファイルパスのセッター
+	void SetTextureFilePath(const std::string& path);
+
+	// 描画タイプのセッター
+	void SetDrawType(uint32_t type, uint32_t slot);
 
 private: /// ---------- メンバ変数 ---------- ///
 
