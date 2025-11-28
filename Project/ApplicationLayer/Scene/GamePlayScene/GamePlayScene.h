@@ -281,7 +281,6 @@ private: /// ---------- メンバ変数 ---------- ///
 	std::unique_ptr<BaseOverlay> pauseOverlay_;
 
 	// Wave関連
-	std::vector<WaveConfig> waveConfigs_;
 	int  currentWaveIndex_ = 0;
 	bool allWavesCleared_ = false;
 	bool bossSpawned_ = false;

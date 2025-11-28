@@ -164,54 +164,45 @@ void CollisionManager::RegisterCollisionFuncsions()
 	//constexpr CollisionType kBossBullet = static_cast<CollisionType>(CollisionTypeIdDef::kBossBullet);
 	constexpr CollisionType kWorld = static_cast<CollisionType>(CollisionTypeIdDef::kWorld);
 
-	/// ---------- プレイヤーと敵の衝突判定 ---------- ///
-	collisionTable_[{kEnemy, kPlayer}] = [](Collider* a, Collider* b) {
+	// 衝突判定関数登録用ラムダ
+	auto AddCollisionFunc = [&](CollisionType a, CollisionType b, const CollisionFunc& func) {
+		collisionTable_[{a, b}] = func;
+		};
+
+	// 左右対称の衝突判定関数登録用ラムダ
+	auto AddSymmetricCollisionFunc = [&](CollisionType a, CollisionType b, const CollisionFunc& func) {
+		AddCollisionFunc(a, b, func);
+		AddCollisionFunc(b, a, func);
+		};
+
+	// OBB vs OBB
+	const CollisionFunc OBB_OBB = [](Collider* a, Collider* b) {
 		return CollisionUtility::IsCollision(a->GetOBB(), b->GetOBB());
 		};
 
-	collisionTable_[{kPlayer, kEnemy}] = [](Collider* a, Collider* b) {
-		return CollisionUtility::IsCollision(a->GetOBB(), b->GetOBB());
+	// OBB vs Segment
+	const CollisionFunc SEG_OBB = [](Collider* segOwner, Collider* obbOwner) {
+		return CollisionUtility::IsCollision(obbOwner->GetOBB(), segOwner->GetSegment());
 		};
 
-	/// ---------- 弾と敵の衝突判定 ---------- ///
-	collisionTable_[{kBullet, kEnemy}] = [](Collider* a, Collider* b) {
-		return CollisionUtility::IsCollision(b->GetOBB(), a->GetSegment());
-		};
+	// OBB vs OBB （左右対称）
+	for (auto [a, b] : std::initializer_list<std::pair<CollisionType, CollisionType>>{
+		{kPlayer, kEnemy},
+		{kPlayer, kBoss},
+		{kPlayer, kItem},
+		{kPlayer, kWorld},
+		})
+	{
+		AddSymmetricCollisionFunc(a, b, OBB_OBB);
+	}
 
-	collisionTable_[{kEnemy, kBullet}] = [](Collider* a, Collider* b) {
-		return CollisionUtility::IsCollision(a->GetOBB(), b->GetSegment());
-		};
-
-	/// ---------- プレイヤーとボスの衝突判定 ---------- ///
-	collisionTable_[{kBoss, kPlayer}] = [](Collider* a, Collider* b) {
-		return CollisionUtility::IsCollision(a->GetOBB(), b->GetOBB());
-		};
-	collisionTable_[{kPlayer, kBoss}] = [](Collider* a, Collider* b) {
-		return CollisionUtility::IsCollision(a->GetOBB(), b->GetOBB());
-		};
-
-	/// ---------- 弾とボスの衝突判定 ---------- ///
-	collisionTable_[{kBullet, kBoss}] = [](Collider* a, Collider* b) {
-		return CollisionUtility::IsCollision(b->GetOBB(), a->GetSegment());
-		};
-	collisionTable_[{kBoss, kBullet}] = [](Collider* a, Collider* b) {
-		return CollisionUtility::IsCollision(a->GetOBB(), b->GetSegment());
-		};
-
-	/// ---------- プレイヤーとアイテムの衝突判定 ---------- ///
-	collisionTable_[{kPlayer, kItem}] = [](Collider* a, Collider* b) {
-		return CollisionUtility::IsCollision(a->GetOBB(), b->GetOBB());
-		};
-
-	collisionTable_[{kItem, kPlayer}] = [](Collider* a, Collider* b) {
-		return CollisionUtility::IsCollision(a->GetOBB(), b->GetOBB());
-		};
-
-	/// ---------- プレイヤーとワールドの衝突判定 ---------- ///
-	collisionTable_[{kPlayer, kWorld}] = [](Collider* a, Collider* b) {
-		return CollisionUtility::IsCollision(a->GetOBB(), b->GetOBB());
-		};
-	collisionTable_[{kWorld, kPlayer}] = [](Collider* a, Collider* b) {
-		return CollisionUtility::IsCollision(a->GetOBB(), b->GetOBB());
-		};
+	// OBB vs Segment （左右対称）
+	for (auto [seg, obb] : std::initializer_list<std::pair<CollisionType, CollisionType>>{
+		{ kBullet, kEnemy },
+		{ kBullet, kBoss  },
+		})
+	{
+		AddCollisionFunc(seg, obb, SEG_OBB);
+		AddCollisionFunc(obb, seg, [=](Collider* obbOwner, Collider* segOwner) {return SEG_OBB(segOwner, obbOwner); });
+	}
 }
