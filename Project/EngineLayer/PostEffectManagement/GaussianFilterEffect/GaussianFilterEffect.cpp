@@ -40,6 +40,28 @@ void GaussianFilterEffect::Initialize(DirectXCommon* dxCommon, PostEffectPipelin
 	gaussianFilterSetting_->threshold = 0.0f;	 // 閾値
 	gaussianFilterSetting_->sigma = 1.0f;		 // ガウス関数の標準偏差
 	gaussianFilterSetting_->isHorizontal = true; // 水平方向か垂直方向か
+
+	// 名前の設定
+	constantBuffer_->SetName(L"GaussianFilterEffect ConstantBuffer");
+	computePipelineState_->SetName(L"GaussianFilterEffect ComputePipelineState");
+	computeRootSignature_->SetName(L"GaussianFilterEffect ComputeRootSignature");
+}
+
+void GaussianFilterEffect::Finalize()
+{
+	// Mapしているポインタを無効化（Unmapは安全のため）
+	if (constantBuffer_) {
+		constantBuffer_->Unmap(0, nullptr);
+	}
+	gaussianFilterSetting_ = nullptr;
+
+	// D3Dリソース解放
+	constantBuffer_.Reset();
+	computePipelineState_.Reset();
+	computeRootSignature_.Reset();
+
+	// 借り物参照を切る
+	dxCommon_ = nullptr;
 }
 
 

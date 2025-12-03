@@ -73,6 +73,9 @@ void ParticleManager::Initialize(DirectXCommon* dxCommon, Camera* camera)
 	meshMap_[ParticleEffectType::Blood].Initialize();     // 血飛沫用のメッシュ
 
 	meshMap_[ParticleEffectType::LaserBeam].Initialize(); // レーザービーム用のメッシュ
+
+	rootSignature->SetName(L"ParticleManager_RootSignature");
+	graphicsPipelineState->SetName(L"ParticleManager_PSO");
 }
 
 
@@ -94,6 +97,7 @@ void ParticleManager::CreateParticleGroup(const std::string& name, const std::st
 	// インスタンスバッファ作成
 	group.instancebuffer = ResourceManager::CreateBufferResource(dxCommon_->GetDevice(), sizeof(ParticleForGPU) * kNumMaxInstance);
 	group.instancebuffer->Map(0, nullptr, reinterpret_cast<void**>(&group.mappedData));
+	group.instancebuffer->SetName(L"ParticleManager_InstanceBuffer");
 
 	// パーティクルのエフェクトの種類を設定
 	group.type = effectType;
@@ -328,13 +332,29 @@ void ParticleManager::Draw()
 /// -------------------------------------------------------------
 void ParticleManager::Finalize()
 {
-	// particleGroups 内のリソースを解放
+	emitQueue.clear();
+
 	for (auto& [key, group] : particleGroups)
 	{
-		group.instancebuffer.Reset(); // ComPtr の解放
-		group.mappedData = nullptr;  // ポインタを無効化
+		group.instancebuffer.Reset();
+		group.mappedData = nullptr;
+
+		// SRVManager に解放APIがあるなら呼ぶ（なければ一旦OK）
+		// srvManager_->Free(group.srvIndex);
 	}
 	particleGroups.clear();
+
+	// マテリアル解放
+	material_.Finalize();
+
+	// ここが今回の“ド本命”
+	meshMap_.clear();                 // ParticleMeshが持つVB/IBが解放される
+	graphicsPipelineState.Reset();
+	rootSignature.Reset();
+
+	dxCommon_ = nullptr;
+	srvManager_ = nullptr;
+	camera_ = nullptr;
 }
 
 

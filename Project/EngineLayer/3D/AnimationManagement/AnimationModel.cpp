@@ -416,22 +416,39 @@ void AnimationModel::DrawImGui()
 /// -------------------------------------------------------------
 void AnimationModel::Clear()
 {
-	animationMesh_.reset(); // アニメーションメッシュ解放
-	skeleton_.reset();		// スケルトン解放
-
-	// LODごとのスキンクラスタ解放
+	animationMesh_.reset();
+	skeleton_.reset();
 	for (auto& sc : skinClusterLOD_) { sc.reset(); }
+	skinClusterLOD_.clear();
 
-	wvpResource.Reset();		// 行列リソース解放
-	cameraResource.Reset();		// カメラリソース解放
+	wvpResource.Reset();
+	cameraResource.Reset();
+	wvpData_ = nullptr;
+	cameraData = nullptr;
 
-	wvpData_ = nullptr;			// 行列データ初期化
-	cameraData = nullptr;		// カメラデータ初期化
+	// --- ここから追加：Compute Skinning 周りの解放 ---
+	if (srvInputVerticesOnUavHeap_ != UINT32_MAX) {
+		UAVManager::GetInstance()->Free(srvInputVerticesOnUavHeap_);
+		srvInputVerticesOnUavHeap_ = UINT32_MAX;
+	}
+	if (uavOutIndex_ != UINT32_MAX) {
+		UAVManager::GetInstance()->Free(uavOutIndex_);
+		uavOutIndex_ = UINT32_MAX;
+	}
 
-	modelData = {};				// モデルデータ初期化
-	animation = {};				// アニメーション初期化
-	animationTime_ = 0.0f;		// アニメーション時間初期化
-	bodyPartColliders_.clear(); // ボディパートコライダー情報初期化
+	csCBMapped_ = nullptr;
+	csCB_.Reset();
+	skinnedVB_.Reset();
+	staticVBDefault_.Reset();
+	skinnedVBV_ = {};
+	skinnedVBState_ = D3D12_RESOURCE_STATE_COMMON;
+
+	lods_.clear(); // LODにComPtr持ってるならここで落とす
+
+	modelData = {};
+	animation = {};
+	animationTime_ = 0.0f;
+	bodyPartColliders_.clear();
 }
 
 /// -------------------------------------------------------------

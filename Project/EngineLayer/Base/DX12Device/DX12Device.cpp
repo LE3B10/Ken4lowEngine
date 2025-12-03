@@ -6,6 +6,7 @@
 
 #pragma comment(lib, "d3d12.lib")
 #pragma comment(lib, "dxgi.lib")
+#pragma comment(lib, "dxguid.lib")
 
 
 /// -------------------------------------------------------------
@@ -16,7 +17,7 @@ void DX12Device::Initialize()
 	//HRESULTはWindows系のエラーコードであり、
 	//関数が成功したかどうかをSUCCEEDEDマクロ判定できる
 	HRESULT hr = CreateDXGIFactory(IID_PPV_ARGS(&dxgiFactory));
-	
+
 	//初期化の根本的な部分でエラーが出た場合はプログラムが間違っているか、どうにもできない場合があるのでassertにしておく
 	assert(SUCCEEDED(hr));
 
@@ -28,7 +29,7 @@ void DX12Device::Initialize()
 		DXGI_ADAPTER_DESC3 adapterDesc{};
 		hr = useAdapter->GetDesc3(&adapterDesc);
 		assert(SUCCEEDED(hr));	//取得できないのは一大事
-		
+
 		//ソフトウェアアダプタでなければ採用
 		if (!(adapterDesc.Flags & DXGI_ADAPTER_FLAG3_SOFTWARE))
 		{
@@ -38,14 +39,14 @@ void DX12Device::Initialize()
 		}
 		useAdapter = nullptr;	//ソフトウェアアダプタの場合は見なかったことにする
 	}
-	
+
 	//適切なアダプタが見つからなかったので起動できない
 	assert(useAdapter != nullptr);
 
 	//機能レベルとログ出力用の文字列
 	D3D_FEATURE_LEVEL featureLevels[] = { D3D_FEATURE_LEVEL_12_2,D3D_FEATURE_LEVEL_12_1,D3D_FEATURE_LEVEL_12_0 };
 	const char* featureLevelStrings[] = { "12.2","12.1","12.0" };
-	
+
 	//高い順に生成できるか試していく
 	for (size_t i = 0; i < _countof(featureLevels); ++i)
 	{
@@ -59,8 +60,16 @@ void DX12Device::Initialize()
 			break;
 		}
 	}
-	
+
 	//デバイスの生成がうまくいかなかったので起動できない
 	assert(device != nullptr);
+	device->SetName(L"DX12Device");
 	Log("Complete create D3D12Device!!!\n");	//初期化完了のログを出す
+}
+
+void DX12Device::Finalize()
+{
+	device = nullptr;
+	useAdapter = nullptr;
+	dxgiFactory = nullptr;
 }

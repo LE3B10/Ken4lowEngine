@@ -68,13 +68,13 @@ void LevelObjectManager::Initialize(const LevelData& levelData, const std::strin
 		}
 		else if (data.type == "PlayerSpawnPoint")
 		{
-			// ここでプレイヤーモデル（スキニング対応）を生成
-			std::unique_ptr<AnimationModel> animationModel = std::make_unique<AnimationModel>();
-			animationModel->Initialize(modelName, true); // スキニングを有効にする
-			animationModel->SetTranslate(data.position);
-			animationModel->SetRotate(data.rotation);
-			animationModel->SetScale(data.scale);
-			animationModels_.emplace_back(std::move(animationModel));
+			//// ここでプレイヤーモデル（スキニング対応）を生成
+			//std::unique_ptr<AnimationModel> animationModel = std::make_unique<AnimationModel>();
+			//animationModel->Initialize(modelName, true); // スキニングを有効にする
+			//animationModel->SetTranslate(data.position);
+			//animationModel->SetRotate(data.rotation);
+			//animationModel->SetScale(data.scale);
+			//animationModels_.emplace_back(std::move(animationModel));
 		}
 	}
 }

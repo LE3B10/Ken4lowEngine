@@ -19,6 +19,11 @@ public: /// ---------- メンバ関数 ---------- ///
 	void Initialize(DirectXCommon* dxCommon);
 
 	/// <summary>
+	/// PostEffectPipelineBuilder の終了処理を行います。
+	/// </summary>
+	void Finalize();
+
+	/// <summary>
 	/// 新しい ID3D12RootSignature を作成し、その参照を保持する ComPtr を返します。
 	/// </summary>
 	/// <returns>作成された ID3D12RootSignature を指す Microsoft::WRL::ComPtr<ID3D12RootSignature>。</returns>

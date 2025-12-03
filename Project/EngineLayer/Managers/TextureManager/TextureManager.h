@@ -23,7 +23,7 @@ private: /// ---------- テクスチャデータの構造体 ---------- ///
 	{
 		DirectX::TexMetadata metaData = {};			// 画像の幅や高さなどの情報
 		ComPtr<ID3D12Resource> resource;		    // テクスチャリソース
-		uint32_t srvIndex = 0;
+		uint32_t srvIndex = UINT32_MAX;				// SRV のディスクリプタヒープ上のインデックス
 		D3D12_CPU_DESCRIPTOR_HANDLE srvHandleCPU{}; // SRV作成時に必要なCPUハンドル
 		D3D12_GPU_DESCRIPTOR_HANDLE srvHandleGPU{}; // 描画コマンドに必要なGPUハンドル
 	};
@@ -42,6 +42,12 @@ public: /// ---------- メンバ関数 ---------- ///
 	/// </summary>
 	/// <param name="dxCommon">DirectX12 の共通クラスへのポインタ</param>
 	void Initialize(DirectXCommon* dxCommon);
+
+	/// <summary>
+	/// TextureManager の終了処理を行います。
+	/// 保持しているテクスチャリソースや SRV を解放します。
+	/// </summary>
+	void Finalize();
 
 	/// <summary>
 	/// DirectX12 のテクスチャ用リソースを作成します。

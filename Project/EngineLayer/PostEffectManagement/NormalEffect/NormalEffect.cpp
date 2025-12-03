@@ -20,8 +20,19 @@ void NormalEffect::Initialize(DirectXCommon* dxCommon, PostEffectPipelineBuilder
 
 	// パイプラインの生成
 	graphicsPipelineState_ = builder->CreateGraphicsPipeline(ShaderCompiler::GetShaderPath(L"NormalEffect", L".PS.hlsl"), rootSignature_.Get(), false);
+
+	// 名前の設定
+	rootSignature_->SetName(L"NormalEffect RootSignature");
+	graphicsPipelineState_->SetName(L"NormalEffect PSO");
 }
 
+void NormalEffect::Finalize()
+{
+	graphicsPipelineState_.Reset();
+	rootSignature_.Reset();
+
+	dxCommon_ = nullptr;
+}
 
 /// -------------------------------------------------------------
 ///						　適用処理

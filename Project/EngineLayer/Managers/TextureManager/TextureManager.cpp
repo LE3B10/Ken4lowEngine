@@ -23,11 +23,36 @@ TextureManager* TextureManager::GetInstance()
 	return &instance;
 }
 
+/// -------------------------------------------------------------
+///						 初期化関数
+/// -------------------------------------------------------------
 void TextureManager::Initialize(DirectXCommon* dxCommon)
 {
 	dxCommon_ = dxCommon;
 }
 
+/// -------------------------------------------------------------
+///						終了処理関数
+/// -------------------------------------------------------------
+void TextureManager::Finalize()
+{
+	// 先に各テクスチャのSRVとResourceを解放
+	for (auto& [path, tex] : textureDatas)
+	{
+		// 0 を無効扱いにしているなら条件はこれでOK
+		if (tex.srvIndex != 0)
+		{
+			SRVManager::GetInstance()->Free(tex.srvIndex);
+			tex.srvIndex = 0;
+		}
+		tex.resource.Reset();
+		tex.srvHandleCPU = {};
+		tex.srvHandleGPU = {};
+	}
+
+	textureDatas.clear();
+	dxCommon_ = nullptr; // 借り物参照を切る
+}
 
 /// -------------------------------------------------------------
 ///					リソースを作成する関数
@@ -207,6 +232,7 @@ void TextureManager::LoadTexture(const std::string& filePath)
 	// テクスチャリソースの生成
 	textureData.metaData = mipImages.GetMetadata();
 	textureData.resource = CreateTextureResource(dxCommon_->GetDevice(), textureData.metaData);
+	textureData.resource->SetName(L"TextureResource");
 
 	// 中間リソースにデータを転送
 	ComPtr<ID3D12Resource> intermediateResource = UploadTextureData(textureData.resource.Get(), mipImages, dxCommon_->GetDevice(), dxCommon_->GetCommandManager()->GetCommandList());

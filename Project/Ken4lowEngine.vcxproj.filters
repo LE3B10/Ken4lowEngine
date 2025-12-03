@@ -136,16 +136,7 @@
     <ClCompile Include="ApplicationLayer\Crosshair\Crosshair.cpp">
       <Filter>ApplicationLayer\Crosshair</Filter>
     </ClCompile>
-    <ClCompile Include="ApplicationLayer\Colliders\Collider.cpp">
-      <Filter>ApplicationLayer\Colliders</Filter>
-    </ClCompile>
     <ClCompile Include="ApplicationLayer\Colliders\CollisionManager.cpp">
-      <Filter>ApplicationLayer\Colliders</Filter>
-    </ClCompile>
-    <ClCompile Include="ApplicationLayer\Colliders\CollisionUtility.cpp">
-      <Filter>ApplicationLayer\Colliders</Filter>
-    </ClCompile>
-    <ClCompile Include="ApplicationLayer\Colliders\ContactRecord.cpp">
       <Filter>ApplicationLayer\Colliders</Filter>
     </ClCompile>
     <ClCompile Include="ApplicationLayer\Item\Item.cpp">
@@ -313,7 +304,7 @@
     <ClCompile Include="EngineLayer\FrameworkLayer\Framework\Framework.cpp">
       <Filter>EngineLayer\FrameworkLayer\Framework</Filter>
     </ClCompile>
-    <ClCompile Include="EngineLayer\FrameworkLayer\Framework\GameEngine.cpp">
+    <ClCompile Include="EngineLayer\FrameworkLayer\Framework\GameApplication.cpp">
       <Filter>EngineLayer\FrameworkLayer\Framework</Filter>
     </ClCompile>
     <ClCompile Include="EngineLayer\FrameworkLayer\Log\LogString.cpp">
@@ -487,22 +478,10 @@
     <ClCompile Include="ApplicationLayer\Scene\GamePlayScene\State\GameClearState.cpp">
       <Filter>ApplicationLayer\Scene\GamePlayScene\State</Filter>
     </ClCompile>
-    <ClCompile Include="ApplicationLayer\Scene\GamePlayScene\State\GameCutSceneState.cpp">
-      <Filter>ApplicationLayer\Scene\GamePlayScene\State</Filter>
-    </ClCompile>
     <ClCompile Include="ApplicationLayer\Scene\GamePlayScene\State\GameFadeIn.cpp">
       <Filter>ApplicationLayer\Scene\GamePlayScene\State</Filter>
     </ClCompile>
-    <ClCompile Include="ApplicationLayer\Scene\GamePlayScene\State\GameFadeOut.cpp">
-      <Filter>ApplicationLayer\Scene\GamePlayScene\State</Filter>
-    </ClCompile>
     <ClCompile Include="ApplicationLayer\Scene\GamePlayScene\State\GamePlayingState.cpp">
-      <Filter>ApplicationLayer\Scene\GamePlayScene\State</Filter>
-    </ClCompile>
-    <ClCompile Include="ApplicationLayer\Scene\GamePlayScene\State\GameResultState.cpp">
-      <Filter>ApplicationLayer\Scene\GamePlayScene\State</Filter>
-    </ClCompile>
-    <ClCompile Include="ApplicationLayer\Scene\GamePlayScene\State\GameSettingUpState.cpp">
       <Filter>ApplicationLayer\Scene\GamePlayScene\State</Filter>
     </ClCompile>
     <ClCompile Include="ApplicationLayer\Character\Enemy\BehaviorTree\Builder\EnemyBehaviorTreeBuilder.cpp">
@@ -547,14 +526,23 @@
     <ClCompile Include="ApplicationLayer\Character\Boss\State\BossSpinState.cpp">
       <Filter>ApplicationLayer\Character\Boss\State</Filter>
     </ClCompile>
-    <ClCompile Include="ApplicationLayer\Colliders\WorldCollisionResolver.cpp">
-      <Filter>ApplicationLayer\Colliders</Filter>
-    </ClCompile>
     <ClCompile Include="ApplicationLayer\EffectLayer\BaseGpuVfx.cpp">
       <Filter>ApplicationLayer\EffectLayer</Filter>
     </ClCompile>
     <ClCompile Include="ApplicationLayer\EffectLayer\BossEnemyVfx.cpp">
       <Filter>ApplicationLayer\EffectLayer</Filter>
+    </ClCompile>
+    <ClCompile Include="EngineLayer\Colliders\Collider.cpp">
+      <Filter>EngineLayer\Colliders</Filter>
+    </ClCompile>
+    <ClCompile Include="EngineLayer\Colliders\CollisionUtility.cpp">
+      <Filter>EngineLayer\Colliders</Filter>
+    </ClCompile>
+    <ClCompile Include="EngineLayer\Colliders\ContactRecord.cpp">
+      <Filter>EngineLayer\Colliders</Filter>
+    </ClCompile>
+    <ClCompile Include="EngineLayer\Colliders\WorldCollisionResolver.cpp">
+      <Filter>EngineLayer\Colliders</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -633,22 +621,10 @@
     <ClInclude Include="ApplicationLayer\Crosshair\Crosshair.h">
       <Filter>ApplicationLayer\Crosshair</Filter>
     </ClInclude>
-    <ClInclude Include="ApplicationLayer\Colliders\Collider.h">
-      <Filter>ApplicationLayer\Colliders</Filter>
-    </ClInclude>
     <ClInclude Include="ApplicationLayer\Colliders\CollisionManager.h">
       <Filter>ApplicationLayer\Colliders</Filter>
     </ClInclude>
     <ClInclude Include="ApplicationLayer\Colliders\CollisionTypeIdDef.h">
-      <Filter>ApplicationLayer\Colliders</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Colliders\CollisionUtility.h">
-      <Filter>ApplicationLayer\Colliders</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Colliders\ContactRecord.h">
-      <Filter>ApplicationLayer\Colliders</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Colliders\IDGenerator.h">
       <Filter>ApplicationLayer\Colliders</Filter>
     </ClInclude>
     <ClInclude Include="ApplicationLayer\Item\Item.h">
@@ -861,7 +837,7 @@
     <ClInclude Include="EngineLayer\FrameworkLayer\Framework\Framework.h">
       <Filter>EngineLayer\FrameworkLayer\Framework</Filter>
     </ClInclude>
-    <ClInclude Include="EngineLayer\FrameworkLayer\Framework\GameEngine.h">
+    <ClInclude Include="EngineLayer\FrameworkLayer\Framework\GameApplication.h">
       <Filter>EngineLayer\FrameworkLayer\Framework</Filter>
     </ClInclude>
     <ClInclude Include="EngineLayer\FrameworkLayer\Log\LogString.h">
@@ -1098,22 +1074,10 @@
     <ClInclude Include="ApplicationLayer\Scene\GamePlayScene\State\GameClearState.h">
       <Filter>ApplicationLayer\Scene\GamePlayScene\State</Filter>
     </ClInclude>
-    <ClInclude Include="ApplicationLayer\Scene\GamePlayScene\State\GameCutSceneState.h">
-      <Filter>ApplicationLayer\Scene\GamePlayScene\State</Filter>
-    </ClInclude>
     <ClInclude Include="ApplicationLayer\Scene\GamePlayScene\State\GameFadeIn.h">
       <Filter>ApplicationLayer\Scene\GamePlayScene\State</Filter>
     </ClInclude>
-    <ClInclude Include="ApplicationLayer\Scene\GamePlayScene\State\GameFadeOut.h">
-      <Filter>ApplicationLayer\Scene\GamePlayScene\State</Filter>
-    </ClInclude>
     <ClInclude Include="ApplicationLayer\Scene\GamePlayScene\State\GamePlayingState.h">
-      <Filter>ApplicationLayer\Scene\GamePlayScene\State</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Scene\GamePlayScene\State\GameResultState.h">
-      <Filter>ApplicationLayer\Scene\GamePlayScene\State</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Scene\GamePlayScene\State\GameSettingUpState.h">
       <Filter>ApplicationLayer\Scene\GamePlayScene\State</Filter>
     </ClInclude>
     <ClInclude Include="ApplicationLayer\Character\Enemy\BehaviorTree\Nodes\ActionNode.h">
@@ -1212,14 +1176,26 @@
     <ClInclude Include="ApplicationLayer\Character\Boss\State\IBossAttackState.h">
       <Filter>ApplicationLayer\Character\Boss\State</Filter>
     </ClInclude>
-    <ClInclude Include="ApplicationLayer\Colliders\WorldCollisionResolver.h">
-      <Filter>ApplicationLayer\Colliders</Filter>
-    </ClInclude>
     <ClInclude Include="ApplicationLayer\EffectLayer\BaseGpuVfx.h">
       <Filter>ApplicationLayer\EffectLayer</Filter>
     </ClInclude>
     <ClInclude Include="ApplicationLayer\EffectLayer\BossEnemyVfx.h">
       <Filter>ApplicationLayer\EffectLayer</Filter>
+    </ClInclude>
+    <ClInclude Include="EngineLayer\Colliders\WorldCollisionResolver.h">
+      <Filter>EngineLayer\Colliders</Filter>
+    </ClInclude>
+    <ClInclude Include="EngineLayer\Colliders\Collider.h">
+      <Filter>EngineLayer\Colliders</Filter>
+    </ClInclude>
+    <ClInclude Include="EngineLayer\Colliders\CollisionUtility.h">
+      <Filter>EngineLayer\Colliders</Filter>
+    </ClInclude>
+    <ClInclude Include="EngineLayer\Colliders\ContactRecord.h">
+      <Filter>EngineLayer\Colliders</Filter>
+    </ClInclude>
+    <ClInclude Include="EngineLayer\Colliders\IDGenerator.h">
+      <Filter>EngineLayer\Colliders</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -1653,6 +1629,9 @@
     </Filter>
     <Filter Include="ApplicationLayer\Character\Boss\State">
       <UniqueIdentifier>{fe60fccf-aa1c-4228-b0e9-4d3c35150097}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="EngineLayer\Colliders">
+      <UniqueIdentifier>{6041bdf3-208c-40a4-8d98-c134efb4a3cb}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

@@ -1,4 +1,4 @@
-#include "GameEngine.h"
+#include "GameApplication.h"
 #include "SceneFactory.h"
 #include "ParameterManager.h"
 #include "ParticleManager.h"
@@ -9,12 +9,18 @@
 #include "PostEffectManager.h"
 #include "LightManager.h"
 #include <GpuParticleManager.h>
+#include <SceneManager.h>
+#include <Input.h>
+
+#ifdef USE_IMGUI
+#include <ImGuiManager.h>
+#endif // USE_IMGUI
 
 
 /// -------------------------------------------------------------
 ///				　		　　初期化処理
 /// -------------------------------------------------------------
-void GameEngine::Initialize()
+void GameApplication::Initialize()
 {
 	// 基底クラスの初期化処理
 	Framework::Initialize();
@@ -30,14 +36,14 @@ void GameEngine::Initialize()
 	SceneManager::GetInstance()->SetAbstractSceneFactory(std::move(sceneFactory));
 
 	// 最初のシーンを設定
-	SceneManager::GetInstance()->SetNextScene(std::make_unique<TitleScene>());
+	SceneManager::GetInstance()->ChangeScene("TitleScene");
 }
 
 
 /// -------------------------------------------------------------
 ///				　			更新処理
 /// -------------------------------------------------------------
-void GameEngine::Update()
+void GameApplication::Update()
 {
 	// 基底クラスの更新処理
 	Framework::Update();
@@ -66,7 +72,7 @@ void GameEngine::Update()
 /// -------------------------------------------------------------
 ///				　			描画処理
 /// -------------------------------------------------------------
-void GameEngine::Draw()
+void GameApplication::Draw()
 {
 	// 描画開始（バックバッファのクリア）
 	dxCommon_->BeginDraw();
@@ -141,11 +147,11 @@ void GameEngine::Draw()
 /// -------------------------------------------------------------
 ///				　			終了処理
 /// -------------------------------------------------------------
-void GameEngine::Finalize()
+void GameApplication::Finalize()
 {
-	// 基底クラスの終了処理
-	Framework::Finalize();
-
 	// シーンマネージャーの終了処理
 	SceneManager::GetInstance()->Finalize();
+
+	// 基底クラスの終了処理
+	Framework::Finalize();
 }

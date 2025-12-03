@@ -1,9 +1,7 @@
 #pragma once
-#include <AbstractSceneFactory.h>
-#include <SceneManager.h>
 #include <Camera.h>
-#include <ImGuiManager.h>
 
+#include <memory>
 
 /// ---------- 前方宣言 ---------- ///
 class WinApp;
@@ -81,11 +79,5 @@ protected: /// ---------- メンバ変数 ---------- ///
 
 	// カメラ
 	std::unique_ptr<Camera> defaultCamera_;
-
-	// シーンマネージャー
-	std::unique_ptr<SceneManager> sceneManager_;
-
-	// シーンファクトリー
-	std::unique_ptr<AbstractSceneFactory> sceneFactory_;
 };
 

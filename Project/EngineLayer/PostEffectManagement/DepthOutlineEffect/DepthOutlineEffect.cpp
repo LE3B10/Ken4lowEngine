@@ -54,6 +54,24 @@ void DepthOutlineEffect::Initialize(DirectXCommon* dxCommon, PostEffectPipelineB
 	depthOutlineSetting_->projectionInverse = Matrix4x4::Inverse(proj);
 }
 
+void DepthOutlineEffect::Finalize()
+{
+	// Mapして保持している生ポインタを無効化（Unmapは安全のため）
+	if (constantBuffer_) {
+		constantBuffer_->Unmap(0, nullptr);
+	}
+	depthOutlineSetting_ = nullptr;
+
+	// D3Dリソース解放
+	constantBuffer_.Reset();
+	graphicsPipelineState_.Reset();
+	rootSignature_.Reset();
+
+	// 借り物参照を切る（所有してない）
+	dxCommon_ = nullptr;
+	camera_ = nullptr;
+}
+
 /// -------------------------------------------------------------
 ///							適用処理
 /// -------------------------------------------------------------

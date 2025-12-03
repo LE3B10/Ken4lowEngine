@@ -53,6 +53,34 @@ void DissolveEffect::Initialize(DirectXCommon* dxCommon, PostEffectPipelineBuild
 	dissolveSetting_->threshold = 0.5f;
 	dissolveSetting_->edgeThickness = 0.05f;
 	dissolveSetting_->edgeColor = { 1.0f, 1.0f, 1.0f, 1.0f };
+
+	// 名前の設定
+	constantBuffer_->SetName(L"DissolveEffect::ConstantBuffer");
+	computePipelineState_->SetName(L"DissolveEffect::ComputePipelineState");
+	computeRootSignature_->SetName(L"DissolveEffect::ComputeRootSignature");
+}
+
+void DissolveEffect::Finalize()
+{
+	// UAVヒープ側に確保したSRVインデックスを返却（超重要）
+	if (dissolveMaskSrvIndexOnUAV_ != UINT32_MAX) {
+		UAVManager::GetInstance()->Free(dissolveMaskSrvIndexOnUAV_);
+		dissolveMaskSrvIndexOnUAV_ = UINT32_MAX;
+	}
+
+	// Mapしているポインタを無効化（Unmapは安全のため）
+	if (constantBuffer_) {
+		constantBuffer_->Unmap(0, nullptr);
+	}
+	dissolveSetting_ = nullptr;
+
+	// D3Dリソース解放
+	constantBuffer_.Reset();
+	computePipelineState_.Reset();
+	computeRootSignature_.Reset();
+
+	// 借り物参照を切る
+	dxCommon_ = nullptr;
 }
 
 

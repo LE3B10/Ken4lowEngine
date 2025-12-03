@@ -92,6 +92,49 @@ void PostEffectManager::Initialieze(DirectXCommon* dxCommon)
 	}
 }
 
+void PostEffectManager::Finalize()
+{
+	if (!dxCommon_) { return; }
+
+	// まずGPU待ち（これ大事）
+	dxCommon_->GetCommandManager()->ExecuteAndWait();
+
+	for (auto& [name, effect] : postEffects_) {
+		if (effect) { effect->Finalize(); }
+	}
+
+	pipelineBuilder_->Finalize();
+
+	// エフェクト破棄
+	postEffects_.clear();
+	effectEnabled_.clear();
+	effectEnableFlags_.clear();
+	effectOrder_.clear();
+	effectCategory_.clear();
+	pipelineBuilder_.reset();
+
+	// レンダーターゲット破棄
+	for (auto& rt : renderTargets_) {
+		rt.resource.Reset();
+		rt.rtvHandle = {};
+		rt.state = D3D12_RESOURCE_STATE_COMMON;
+		// srvIndex/uavIndex を Free できる設計ならここでFree（後述）
+	}
+	renderTargets_.clear();
+
+	// 深度破棄
+	depthResource_.Reset();
+	dsvHandle = {};
+	depthState_ = D3D12_RESOURCE_STATE_DEPTH_WRITE;
+	// dsvSrvIndex_ を Free できる設計ならここでFree（後述）
+
+	signatureBlob_.Reset();
+	errorBlob_.Reset();
+
+	camera_ = nullptr;
+	dxCommon_ = nullptr;
+}
+
 
 /// -------------------------------------------------------------
 ///				　	ポストエフェクトの更新処理
@@ -412,6 +455,7 @@ void PostEffectManager::AllocateRTV_DSV_SRV_UAV()
 
 		// レンダーテクスチャリソースの生成
 		rt.resource = CreateRenderTextureResource(WinApp::kClientWidth, WinApp::kClientHeight, DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, kRenderTextureClearColor_);
+		rt.resource->SetName((L"PostEffectManager RenderTarget " + std::to_wstring(i)).c_str());
 
 		// RTVの生成
 		uint32_t rtvIndex = RTVManager::GetInstance()->Allocate();
@@ -433,6 +477,7 @@ void PostEffectManager::AllocateRTV_DSV_SRV_UAV()
 
 	// 深度バッファの生成
 	depthResource_ = CreateDepthBufferResource(WinApp::kClientWidth, WinApp::kClientHeight);
+	depthResource_->SetName(L"PostEffectManager DepthBuffer");
 
 	// SRVの確保（深度用）
 	uint32_t dsvIndex = DSVManager::GetInstance()->Allocate();

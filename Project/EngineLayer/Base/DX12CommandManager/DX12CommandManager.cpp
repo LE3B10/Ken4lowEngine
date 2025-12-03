@@ -10,11 +10,13 @@ void DX12CommandManager::Initialize(ID3D12Device* device)
 
 	//コマンドロケータを生成する
 	hr = device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&commandAllocator_));
+	commandAllocator_->SetName(L"Main Command Allocator");
 	//コマンドアロケータの生成がうまくいかなかったので起動できない
 	assert(SUCCEEDED(hr));
 
 	//コマンドリストを生成する
 	hr = device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, commandAllocator_.Get(), nullptr, IID_PPV_ARGS(&commandList_));
+	commandList_->SetName(L"Main Command List");
 	//コマンドリストの生成がうまくいかなかったので起動できない
 	assert(SUCCEEDED(hr));
 
@@ -22,8 +24,16 @@ void DX12CommandManager::Initialize(ID3D12Device* device)
 	commandQueueDesc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT; // 追加
 	commandQueueDesc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;
 	hr = device->CreateCommandQueue(&commandQueueDesc, IID_PPV_ARGS(&commandQueue_));
+	commandQueue_->SetName(L"Main Command Queue");
 	//コマンドキューの生成がうまくいかなかったので起動できない
 	assert(SUCCEEDED(hr));
+}
+
+void DX12CommandManager::Finalize()
+{
+	commandQueue_.Reset();
+	commandList_.Reset();
+	commandAllocator_.Reset();
 }
 
 /// -------------------------------------------------------------

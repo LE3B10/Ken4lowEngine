@@ -18,3 +18,10 @@ void DXCCompilerManager::Initialize()
 	hr = dxcUtils_->CreateDefaultIncludeHandler(&includeHandler_);
 	assert(SUCCEEDED(hr));
 }
+
+void DXCCompilerManager::Finalize()
+{
+	dxcUtils_.Reset();
+	dxcCompiler_.Reset();
+	includeHandler_.Reset();
+}

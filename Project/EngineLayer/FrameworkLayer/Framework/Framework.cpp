@@ -18,6 +18,11 @@
 #include <BlendStateFactory.h>
 #include "GpuParticleManager.h"
 
+#ifdef USE_IMGUI
+#include <ImGuiManager.h>
+#endif // USE_IMGUI
+
+
 
 /// -------------------------------------------------------------
 ///				　		ゲーム全体の実行処理
@@ -140,18 +145,52 @@ void Framework::Update()
 /// -------------------------------------------------------------
 void Framework::Finalize()
 {
-	// ウィンドウアプリケーションの終了処理
-	winApp_->Finalize();
+	// GPUパーティクルマネージャーの終了処理
+	GpuParticleManager::GetInstance()->Finalize();
+
+	// ポストエフェクトの終了処理
+	PostEffectManager::GetInstance()->Finalize();
+
+	// スカイボックスの終了処理
+	SkyBoxManager::GetInstance()->Finalize();
+
+	// ParticleManagerの終了処理
+	ParticleManager::GetInstance()->Finalize();
+
+	// ワイヤーフレームの終了処理
+	Wireframe::GetInstance()->Finalize();
+
+	// デバッグカメラの終了処理
+	DebugCamera::GetInstance()->Finalize();
+
+	// アニメーションパイプラインビルダーの終了処理
+	AnimationPipelineBuilder::GetInstance()->Finalize();
+
+	// Object3DCommonの終了処理
+	Object3DCommon::GetInstance()->Finalize();
+
+	// スプライトマネージャの終了処理
+	SpriteManager::GetInstance()->Finalize();
+
+	// BlendStateFactoryの終了処理
+	BlendStateFactory::GetInstance()->Finalize();
+
+	// TextureManagerの終了処理
+	TextureManager::GetInstance()->Finalize();
+
+	// UAVManagerの終了処理
+	UAVManager::GetInstance()->Finalize();
+
+	// ImGuiManagerの終了処理
+	ImGuiManager::GetInstance()->Finalize();
+
+	// SRVManagerの終了処理
+	SRVManager::GetInstance()->Finalize();
 
 	// DirectX共通クラスの終了処理
 	dxCommon_->Finalize();
 
-#ifdef _DEBUG // デバッグモードの場合
-	// ImGuiManagerの終了処理
-	ImGuiManager::GetInstance()->Finalize();
-#endif // _DEBUG
-
-	// ParticleManagerの終了処理
-	ParticleManager::GetInstance()->Finalize();
+	// ウィンドウアプリケーションの終了処理
+	winApp_->Finalize();
 }
 

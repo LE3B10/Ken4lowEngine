@@ -35,6 +35,11 @@ public: /// ---------- メンバ関数 ---------- ///
 	void Initialize(DirectXCommon* dxCommon, uint32_t maxDSVCount = kDefaultMaxDSVCount_);
 
 	/// <summary>
+	/// 終了処理
+	/// </summary>
+	void Finalize();
+
+	/// <summary>
 	/// 深度ステンシルバッファ用のリソースを生成します。<br/>
 	/// ・TEXTURE2D / 1 ミップ / D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL<br/>
 	/// ・指定フォーマット / サイズ<br/>

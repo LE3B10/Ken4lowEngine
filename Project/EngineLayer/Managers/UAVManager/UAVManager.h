@@ -31,6 +31,11 @@ public: /// ---------- メンバ関数 ---------- ///
 	void Initialize(DirectXCommon* dxCommon);
 
 	/// <summary>
+	/// 終了処理
+	/// </summary>
+	void Finalize();
+
+	/// <summary>
 	/// Dispatch 前に、このマネージャが保持しているディスクリプタヒープを
 	/// コマンドリストへセットします。
 	/// Compute Shader から UAV/SRV にアクセスする前に呼び出してください。

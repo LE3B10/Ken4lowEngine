@@ -32,6 +32,12 @@ public: /// ---------- メンバ関数 ---------- ///
 	void Initialize(DirectXCommon* dxCommon);
 
 	/// <summary>
+	/// SRV 用ディスクリプタヒープの終了処理を行います。
+	/// 内部で保持しているディスクリプタヒープを解放します。
+	/// </summary>
+	void Finalize();
+
+	/// <summary>
 	/// Texture2D 用の SRV を作成します。<br/>
 	/// 通常のカラー / テクスチャマップ用の SRV 生成に使用します。
 	/// </summary>

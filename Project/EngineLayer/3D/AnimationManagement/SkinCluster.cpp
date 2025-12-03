@@ -62,6 +62,7 @@ void SkinCluster::Initialize(const ModelData& modelData, Skeleton& skeleton)
 
 	// t0: パレット（UPLOAD & Map）
 	paletteResource_ = ResourceManager::CreateBufferResource(device, sizeof(WellForGPU) * joints.size());
+	paletteResource_->SetName(L"SkinCluster_PaletteResource_UPLOADED");
 
 	WellForGPU* mappedPalette = nullptr;
 	paletteResource_->Map(0, nullptr, reinterpret_cast<void**>(&mappedPalette));
@@ -98,6 +99,7 @@ void SkinCluster::Initialize(const ModelData& modelData, Skeleton& skeleton)
 	// t2: インフルエンス（UPLOAD を作成して Map）
 	VertexInfluence* mappedInfluence = nullptr;
 	influenceResource_ = ResourceManager::CreateBufferResource(device, sizeof(VertexInfluence) * totalVerts);
+	influenceResource_->SetName(L"SkinCluster_InfluenceResource_UPLOADED");
 	influenceResource_->Map(0, nullptr, reinterpret_cast<void**>(&mappedInfluence));
 	std::memset(mappedInfluence, 0, sizeof(VertexInfluence) * totalVerts);
 	mappedInfluenceData_ = { mappedInfluence, totalVerts }; // span
@@ -141,6 +143,7 @@ void SkinCluster::Initialize(const ModelData& modelData, Skeleton& skeleton)
 		// 初期ステートは COMMON
 		HRESULT hr = S_FALSE;
 		hr = device->CreateCommittedResource(&heapDefault, D3D12_HEAP_FLAG_NONE, &bufDesc, D3D12_RESOURCE_STATE_COMMON, nullptr, IID_PPV_ARGS(&influenceResourceDefault_));
+		influenceResourceDefault_->SetName(L"SkinCluster_InfluenceResource_DEFAULT");
 		assert(SUCCEEDED(hr));
 
 		// COMMON → COPY_DEST に明示遷移
@@ -192,6 +195,7 @@ void SkinCluster::UpdatePaletteMatrix(Skeleton& skeleton)
 
 	// 書き込み用に遷移
 	dxCommon->ResourceTransition(paletteResourceDefault_.Get(), D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_STATE_COPY_DEST);
+	paletteResourceDefault_->SetName(L"SkinCluster_PaletteResource_DEFAULT_Update");
 
 	// コピー
 	const UINT64 bytes = UINT64(sizeof(WellForGPU)) * UINT64(joints.size());

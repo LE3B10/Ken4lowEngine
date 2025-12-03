@@ -40,6 +40,11 @@ public: /// ---------- メンバ関数 ---------- ///
 	void Initialize(Camera* camera);
 
 	/// <summary>
+	/// 終了処理
+	/// </summary>
+	void Finalize();
+
+	/// <summary>
 	/// 毎フレームの更新処理。<br/>
 	/// ・GpuParticleBuffers::Update() で Δt やビュー情報などを更新<br/>
 	/// ・DispatchUpdate() で GPU 上の全パーティクルを一括更新（位置・寿命など）<br/>

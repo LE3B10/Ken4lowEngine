@@ -18,6 +18,8 @@ public: /// ---------- メンバ関数 ---------- ///
 	/// </summary>
 	void Initialize();
 
+	void Finalize();
+
 public: /// ---------- ゲッター ---------- ///
 
 	/// <summary>

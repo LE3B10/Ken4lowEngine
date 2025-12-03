@@ -134,6 +134,9 @@ void GameLoadState::Enter(GamePlayScene* scene)
 
 	player->Initialize();
 	player->SetLevelObjectManager(levelObjectManager.get());
+
+	// プレイヤー更新
+	player->Update(0.0f);
 }
 
 void GameLoadState::Update(GamePlayScene* scene, float deltaTime)
@@ -142,12 +145,8 @@ void GameLoadState::Update(GamePlayScene* scene, float deltaTime)
 	if (!scene) { return; }
 
 	auto& levelObjectManager = scene->GetLevelObjectManager();
-	auto* player = scene->GetPlayer();
 	auto& enemies = scene->GetEnemies();
 	auto* skybox = scene->GetSkyBox();
-
-	// プレイヤー更新
-	player->Update(deltaTime);
 
 	// 敵更新
 	for (auto& e : enemies)
@@ -170,6 +169,37 @@ void GameLoadState::Update(GamePlayScene* scene, float deltaTime)
 		// ロードが終わったらフェードインステートへ
 		scene->ChangeState(std::make_unique<GameFadeIn>());
 	}
+}
+
+void GameLoadState::Draw3DObjects(GamePlayScene* scene)
+{
+	// シーンが有効か確認
+	if (!scene) return;
+
+	auto* player_ = scene->GetPlayer();
+	auto& enemies_ = scene->GetEnemies();
+	auto* itemManager_ = scene->GetItemManager();
+	auto& levelObjectManager_ = scene->GetLevelObjectManager();
+	auto& boss_ = scene->GetBoss();
+
+	player_->Draw();
+
+	for (auto& e : enemies_) {
+		e->Draw();
+	}
+
+	if (boss_) {
+		boss_->Draw();
+	}
+
+	itemManager_->Draw();
+
+	levelObjectManager_->Draw();
+}
+
+void GameLoadState::Draw2DSprites(GamePlayScene* scene)
+{
+	(void)scene; // 未使用
 }
 
 void GameLoadState::Exit(GamePlayScene* scene)

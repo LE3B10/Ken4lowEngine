@@ -31,6 +31,8 @@ void ImGuiManager::Initialize(WinApp* winApp, DirectXCommon* dxCommon)
 
 	if (srvIndex_ >= SRVManager::GetInstance()->GetkMaxSRVCount())
 	{
+		SRVManager::GetInstance()->Free(srvIndex_);
+		srvIndex_ = UINT32_MAX;
 		throw std::runtime_error("Failed to allocate SRV for ImGuiManager");
 	}
 

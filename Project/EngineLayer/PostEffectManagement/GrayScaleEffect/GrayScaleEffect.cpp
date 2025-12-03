@@ -36,6 +36,28 @@ void GrayScaleEffect::Initialize(DirectXCommon* dxCommon, PostEffectPipelineBuil
 
 	// グレイスケールエフェクトの設定
 	grayScaleSetting_->color = Vector4(1.0f, 1.0f, 1.0f, 1.0f); // 強度
+
+	// 名前の設定
+	constantBuffer_->SetName(L"GrayScaleEffect ConstantBuffer");
+	computePipelineState_->SetName(L"GrayScaleEffect PipelineState");
+	computeRootSignature_->SetName(L"GrayScaleEffect RootSignature");
+}
+
+void GrayScaleEffect::Finalize()
+{
+	// Mapして保持している生ポインタを無効化
+	if (constantBuffer_ && grayScaleSetting_) {
+		constantBuffer_->Unmap(0, nullptr);   // 常時Map運用なら省略してもOK
+		grayScaleSetting_ = nullptr;
+	}
+
+	// D3Dリソース解放
+	constantBuffer_.Reset();
+	computePipelineState_.Reset();
+	computeRootSignature_.Reset();
+
+	// 借り物ポインタ
+	dxCommon_ = nullptr;
 }
 
 

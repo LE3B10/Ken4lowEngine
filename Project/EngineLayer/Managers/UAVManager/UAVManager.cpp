@@ -8,7 +8,7 @@ UAVManager* UAVManager::GetInstance()
 }
 
 /// -------------------------------------------------------------
-///						初期化処理
+///							初期化処理
 /// -------------------------------------------------------------
 void UAVManager::Initialize(DirectXCommon* dxCommon)
 {
@@ -26,6 +26,27 @@ void UAVManager::Initialize(DirectXCommon* dxCommon)
 	}
 	// デスクリプタサイズを取得
 	descriptorSize_ = dxCommon_->GetDevice()->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+
+	descriptorHeap_->SetName(L"UAV Descriptor Heap");
+}
+
+/// -------------------------------------------------------------
+///							終了処理
+/// -------------------------------------------------------------
+void UAVManager::Finalize()
+{
+	std::lock_guard<std::mutex> lock(allocationMutex_);
+
+	// 所有しているCOM(ヒープ)を解放
+	descriptorHeap_.Reset();
+
+	// 管理状態を初期化
+	descriptorSize_ = 0;
+	useIndex_ = 0;
+	while (!freeIndices_.empty()) { freeIndices_.pop(); }
+
+	// 借り物参照を切る
+	dxCommon_ = nullptr;
 }
 
 /// -------------------------------------------------------------

@@ -28,6 +28,11 @@ public: /// ---------- メンバ関数 ---------- ///
 	void Initialize(DirectXCommon* dxCommon, PostEffectPipelineBuilder* builder) override;
 
 	/// <summary>
+	/// ポストエフェクトの終了処理を行います。基底クラスの仮想関数をオーバーライドします。
+	/// </summary>
+	void Finalize() override;
+
+	/// <summary>
 	/// 指定したコマンドリストに対して、SRV（シェーダリソースビュー）、UAV（アンオーダードアクセ スビュー）、DSV（深度ステンシルビュー）のインデックスに基づく設定を適用します。
 	/// </summary>
 	/// <param name="commandList">設定を適用する対象の ID3D12GraphicsCommandList へのポインタ。描画コマンドの記録に使用されます。</param>

@@ -38,6 +38,28 @@ void RandomEffect::Initialize(DirectXCommon* dxCommon, PostEffectPipelineBuilder
 	randomSetting_->time = 0.0f; // 時間
 	randomSetting_->useMultiply = false; // 乗算を使用するかどうか
 	randomSetting_->textureSize = Vector2(WinApp::kClientWidth, WinApp::kClientHeight); // テクスチャのサイズ
+
+	// 名前の設定
+	constantBuffer_->SetName(L"RandomEffect_ConstantBuffer");
+	computeRootSignature_->SetName(L"RandomEffect_ComputeRootSignature");
+	computePipelineState_->SetName(L"RandomEffect_ComputePipelineState");
+}
+
+void RandomEffect::Finalize()
+{
+	// Mapしているポインタを無効化（Unmapは安全のため）
+	if (constantBuffer_) {
+		constantBuffer_->Unmap(0, nullptr);
+	}
+	randomSetting_ = nullptr;
+
+	// D3Dリソース解放
+	constantBuffer_.Reset();
+	computePipelineState_.Reset();
+	computeRootSignature_.Reset();
+
+	// 借り物参照を切る
+	dxCommon_ = nullptr;
 }
 
 

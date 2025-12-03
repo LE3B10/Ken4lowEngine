@@ -24,8 +24,40 @@ void LightManager::Initialize(DirectXCommon* dxCommon)
 	dxCommon_ = dxCommon;
 
 	CreatePunctualLight();
+
+	punctualBuffer_->SetName(L"PunctualLightBuffer");
+	lightInfoResource_->SetName(L"LightInfoConstantBuffer");
 }
 
+void LightManager::Finalize()
+{
+	// SRV インデックス返却（二重Free防止のためフラグと無効値を戻す）
+	if (punctualSRVAllocated_ && punctualSRVIndex_ != UINT32_MAX)
+	{
+		SRVManager::GetInstance()->Free(punctualSRVIndex_);
+		punctualSRVIndex_ = UINT32_MAX;
+		punctualSRVAllocated_ = false;
+	}
+
+	// Mapしているポインタは、Resourceを落とす前に無効化（Unmapは必須ではないが安全のため）
+	if (lightInfoResource_)
+	{
+		lightInfoResource_->Unmap(0, nullptr);
+		lightInfoData_ = nullptr;
+	}
+
+	// GPU/COMリソース解放
+	punctualBuffer_.Reset();
+	punctualBufferBytes_ = 0;
+	lightInfoResource_.Reset();
+
+	// CPU側データ
+	punctualLights_.clear();
+	punctualType_ = 1;
+
+	// 借り物参照
+	dxCommon_ = nullptr;
+}
 
 /// -------------------------------------------------------------
 ///				　		パンクチュアルライトの生成
@@ -49,7 +81,7 @@ void LightManager::CreatePunctualLight()
 	}
 
 	/// ---------- GPUバッファは初期化時点では最小確保 ---------- ///
-	if (!punctualSRVAllocated_)
+	if (!punctualBuffer_)
 	{
 		const uint32_t stride = sizeof(PunctualLightGPU);
 		const uint32_t minElems = 1;

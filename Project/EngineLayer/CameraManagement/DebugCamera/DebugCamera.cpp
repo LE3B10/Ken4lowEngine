@@ -29,6 +29,25 @@ void DebugCamera::Initialize()
 }
 
 /// -------------------------------------------------------------
+///						　終了処理
+/// -------------------------------------------------------------
+void DebugCamera::Finalize()
+{
+	worldTransform_ = {};
+	worldMatrix_ = {};
+	rotateMatrix_ = {};
+	viewMatrix_ = {};
+	projectionMatrix_ = {};
+	viewProjectionMatrix_ = {};
+	rotation_ = {};
+
+	fovY_ = 0.0f;
+	aspectRatio_ = 0.0f;
+	nearClip_ = 0.0f;
+	farClip_ = 0.0f;
+}
+
+/// -------------------------------------------------------------
 ///							　更新処理
 /// -------------------------------------------------------------
 void DebugCamera::Update()

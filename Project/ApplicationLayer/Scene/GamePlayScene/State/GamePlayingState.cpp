@@ -194,6 +194,45 @@ void GamePlayingState::Update(GamePlayScene* scene, float deltaTime)
 			}
 		}
 	}
+
+	// 衝突判定チェック
+	auto collisionManager = scene->GetCollisionManager();
+	collisionManager->Update();
+	CheckCollisions(scene);
+}
+
+void GamePlayingState::Draw3DObjects(GamePlayScene* scene)
+{
+	// シーンが有効か確認
+	if (!scene) return;
+
+	auto* player_ = scene->GetPlayer();
+	auto& enemies_ = scene->GetEnemies();
+	auto* itemManager_ = scene->GetItemManager();
+	auto& levelObjectManager_ = scene->GetLevelObjectManager();
+	auto& boss_ = scene->GetBoss();
+
+	player_->Draw();
+
+	for (auto& e : enemies_) {
+		e->Draw();
+	}
+
+	if (boss_) {
+		boss_->Draw();
+	}
+
+	itemManager_->Draw();
+
+	levelObjectManager_->Draw();
+}
+
+void GamePlayingState::Draw2DSprites(GamePlayScene* scene)
+{
+	// シーンが有効か確認
+	if (!scene) return;
+	auto* crosshair = scene->GetCrosshair();
+	crosshair->Draw();
 }
 
 void GamePlayingState::Exit(GamePlayScene* scene)
@@ -330,4 +369,45 @@ void GamePlayingState::GoToNextStage(GamePlayScene* scene)
 
 	// 今までボス撃破時に直接呼んでいたステージクリア処理をここで使う
 	OnStageClear(scene);
+}
+
+void GamePlayingState::CheckCollisions(GamePlayScene* scene)
+{
+	auto* player_ = scene->GetPlayer();
+	auto& enemies_ = scene->GetEnemies();
+	auto* itemManager_ = scene->GetItemManager();
+	auto& levelObjectManager_ = scene->GetLevelObjectManager();
+	auto* collisionManager_ = scene->GetCollisionManager();
+	auto& boss_ = scene->GetBoss();
+
+	// 衝突マネージャのリセット
+	collisionManager_->Reset();
+
+	// レベルオブジェクトのコライダーを登録
+	for (auto& uptr : levelObjectManager_->GetWorldColliders())
+	{
+		collisionManager_->AddCollider(uptr.get());
+	}
+
+	// コライダーをリストに登録
+	collisionManager_->AddCollider(player_); // プレイヤー
+	player_->RegisterColliders(collisionManager_);
+
+	// 敵キャラクターのコライダーを登録
+	for (auto& e : enemies_)
+	{
+		if (e->IsActive()) {
+			collisionManager_->AddCollider(e.get());
+		}
+	}
+
+	if (boss_) {
+		collisionManager_->AddCollider(boss_.get());
+	}
+
+	// アイテムのコライダーを登録
+	itemManager_->RegisterColliders(collisionManager_);
+
+	// 衝突判定と応答
+	collisionManager_->CheckAllCollisions();
 }

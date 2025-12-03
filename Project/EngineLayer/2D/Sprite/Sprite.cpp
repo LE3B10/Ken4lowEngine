@@ -124,6 +124,20 @@ void Sprite::Draw()
 	commandList->DrawIndexedInstanced(kNumVertex, 1, 0, 0, 0);
 }
 
+void Sprite::Finalize()
+{
+	// リソースの解放
+	vertexResource.Reset();
+	indexResource.Reset();
+	materialResource.Reset();
+	transformationMatrixResource.Reset();
+	reloadProgressResource.Reset();
+
+	gpuHandle_ = {};
+
+	dxCommon_ = nullptr;
+}
+
 /// -------------------------------------------------------------
 ///						テクスチャの変更
 /// -------------------------------------------------------------

@@ -24,6 +24,23 @@ void SpriteManager::Initialize(DirectXCommon* dxCommon)
 
 	// ルートシグネチャの生成
 	CreatePSO();
+
+	graphicsPipelineState_Background_->SetName(L"SpriteManager::graphicsPipelineState_Background_");
+	graphicsPipelineState_UI_->SetName(L"SpriteManager::graphicsPipelineState_UI_");
+	rootSignature_->SetName(L"SpriteManager::rootSignature_");
+}
+
+void SpriteManager::Finalize()
+{
+	// GPU/COMリソース
+	graphicsPipelineState_Background_.Reset();
+	graphicsPipelineState_UI_.Reset();
+	rootSignature_.Reset();
+	signatureBlob_.Reset();
+	errorBlob_.Reset();
+
+	// 借り物参照
+	dxCommon_ = nullptr;
 }
 
 /// -------------------------------------------------------------

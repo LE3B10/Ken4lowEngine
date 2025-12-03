@@ -22,6 +22,8 @@ public: /// ---------- メンバ関数 ---------- ///
 	/// <param name="device">コマンドまわりのオブジェクトを生成するための ID3D12Device。</param>
 	void Initialize(ID3D12Device* device);
 
+	void Finalize();
+
 	/// <summary>
 	/// 指定したリソースのステート遷移をコマンドリストに記録します。<br/>
 	/// ・stateBefore と stateAfter が同じ場合は何もしません。<br/>

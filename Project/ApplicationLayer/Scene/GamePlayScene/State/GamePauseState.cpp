@@ -81,6 +81,42 @@ void GamePauseState::Update(GamePlayScene* scene, float deltaTime)
 	}
 }
 
+void GamePauseState::Draw3DObjects(GamePlayScene* scene)
+{
+	// シーンが有効か確認
+	if (!scene) return;
+
+	auto* player_ = scene->GetPlayer();
+	auto& enemies_ = scene->GetEnemies();
+	auto* itemManager_ = scene->GetItemManager();
+	auto& levelObjectManager_ = scene->GetLevelObjectManager();
+	auto& boss_ = scene->GetBoss();
+
+	player_->Draw();
+
+	for (auto& e : enemies_) {
+		e->Draw();
+	}
+
+	if (boss_) {
+		boss_->Draw();
+	}
+
+	itemManager_->Draw();
+
+	levelObjectManager_->Draw();
+}
+
+void GamePauseState::Draw2DSprites(GamePlayScene* scene)
+{
+	if (!scene) return;
+
+	auto* pauseOverlay_ = scene->GetPauseOverlay();
+
+	// ---------- ポーズオーバーレイ ----------
+	if (pauseOverlay_) pauseOverlay_->Draw2D();
+}
+
 void GamePauseState::Exit(GamePlayScene* scene)
 {
 	(void)scene; // 未使用

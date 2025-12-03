@@ -35,6 +35,8 @@ public: /// ---------- メンバ関数 ---------- ///
 	/// </summary>
 	void Initialize();
 
+	void Finalize();
+
 	/// <summary>
 	/// 更新処理
 	/// </summary>

@@ -37,6 +37,22 @@ void DSVManager::Initialize(DirectXCommon* dxCommon, uint32_t maxDSVCount)
 
 	// DSVのデスクリプタサイズを取得
 	descriptorSize_ = dxCommon_->GetDevice()->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
+
+	descriptorHeap_->SetName(L"DSV Descriptor Heap");
+}
+
+void DSVManager::Finalize()
+{
+	descriptorHeap_.Reset();
+
+	dxCommon_ = nullptr;
+	descriptorSize_ = 0;
+	maxDSVCount_ = kDefaultMaxDSVCount_;
+	useIndex_ = 0;
+
+	std::lock_guard<std::mutex> lock(allocationMutex_);
+	std::queue<uint32_t> empty;
+	std::swap(freeIndices_, empty);
 }
 
 ComPtr<ID3D12Resource> DSVManager::CreateDepthStencilBuffer(uint32_t width, uint32_t height, DXGI_FORMAT format, D3D12_CLEAR_VALUE& outClearValue)

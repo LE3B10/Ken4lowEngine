@@ -15,15 +15,11 @@
 #include "PauseOverlay.h"
 
 #include "GameClearState.h"
-#include "GameCutSceneState.h"
 #include "GameFadeIn.h"
-#include "GameFadeOut.h"
 #include "GameLoadState.h"
 #include "GameOverState.h"
 #include "GamePauseState.h"
 #include "GamePlayingState.h"
-#include "GameResultState.h"
-#include "GameSettingUpState.h"
 
 #ifdef _DEBUG
 #include <DebugCamera.h>
@@ -90,13 +86,6 @@ void GamePlayScene::Update()
 		// ステートクラスに丸投げ
 		currentState_->Update(this, deltaTime);
 	}
-
-	// 衝突マネージャの更新はゲーム中のみ
-	if (state_ == State::Playing)
-	{
-		collisionManager_->Update();
-		CheckAllCollisions();
-	}
 }
 
 /// -------------------------------------------------------------
@@ -116,23 +105,8 @@ void GamePlayScene::Draw3DObjects()
 
 #pragma region オブジェクト3Dの描画
 
-	if (state_ != State::CutScene)
-	{
-		player_->Draw();
-
-		for (auto& e : enemies_) {
-			e->Draw();
-		}
-
-		if (boss_) {
-			boss_->Draw();
-		}
-
-		itemManager_->Draw();
-	}
-
-	//targetModel_->Draw();
-	levelObjectManager_->Draw();
+	// ステートクラスに丸投げ
+	if (currentState_) { currentState_->Draw3DObjects(this); }
 
 #pragma endregion
 
@@ -174,51 +148,8 @@ void GamePlayScene::Draw2DSprites()
 	// UI用の共通描画設定
 	SpriteManager::GetInstance()->SetRenderSetting_UI();
 
-	// カットシーン中はクロスヘア非表示
-	if (state_ != State::CutScene) {
-		crosshair_->Draw();
-	}
-
-	// ---------- Result(ゲームオーバー / クリア)時のUI ----------
-	if (state_ == State::GameOver || state_ == State::GameClear)
-	{
-		if (state_ == State::GameClear)
-		{
-			if (clearPanelSprite_) clearPanelSprite_->Draw();
-			if (clearTextSprite_)  clearTextSprite_->Draw();
-
-			// 星（飾り）：そのまま描画
-			for (auto& s : clearStarSprites_) {
-				if (s) s->Draw();
-			}
-
-			// ★ 三択ボタン
-			for (auto& s : clearOptionSprites_) {
-				if (s) s->Draw();
-			}
-		}
-
-		// GameOver 用の下部ボタンを併用したいならここはそのままでもOK
-		if (state_ == State::GameOver)
-		{
-			if (retireButtonSprite_) retireButtonSprite_->Draw();
-			if (retryButtonSprite_)  retryButtonSprite_->Draw();
-		}
-	}
-
-	// ---------- ポーズオーバーレイ ----------
-	if (pauseOverlay_)
-	{
-		pauseOverlay_->Draw2D();
-	}
-
-	// フェードオーバーレイ
-	if (fadeSprite_ && fadeAlpha_ > 0.0f)
-	{
-		fadeSprite_->SetColor({ 0.0f, 0.0f, 0.0f, fadeAlpha_ });
-		fadeSprite_->Update();
-		fadeSprite_->Draw();
-	}
+	// ステートクラスに丸投げ
+	if (currentState_) { currentState_->Draw2DSprites(this); }
 
 #pragma endregion
 }
@@ -229,6 +160,52 @@ void GamePlayScene::Draw2DSprites()
 /// -------------------------------------------------------------
 void GamePlayScene::Finalize()
 {
+	// 入力状態を必ず戻す（ロック/非表示のまま終了しない）
+	Input::GetInstance()->SetLockCursor(false);
+	ShowCursor(true);
+
+	// ステートを抜ける（ステートがシーン内リソースを握ってる可能性がある）
+	if (currentState_) {
+		currentState_->Exit(this);
+	}
+	currentState_.reset();
+
+	// 参照が残りやすいものから順に解放（安全寄り）
+	pauseOverlay_.reset();
+
+	// 衝突は内部に “生ポインタのリスト” を持ちやすいので先に無効化
+	if (collisionManager_) {
+		collisionManager_->Reset();
+	}
+	collisionManager_.reset();
+
+	// ゲームオブジェクト
+	boss_.reset();
+	enemies_.clear();
+	enemies_.shrink_to_fit();
+
+	itemManager_.reset();
+	levelObjectManager_.reset();
+
+	ballisticEffect_.reset();
+	crosshair_.reset();
+	player_.reset();
+
+	// UI/演出スプライト
+	retryButtonSprite_.reset();
+	retireButtonSprite_.reset();
+	clearPanelSprite_.reset();
+	clearTextSprite_.reset();
+	for (auto& s : clearStarSprites_) { s.reset(); }
+	for (auto& s : clearOptionSprites_) { s.reset(); }
+	fadeSprite_.reset();
+
+	// 3D背景など
+	skyBox_.reset();
+
+	// 生ポインタ参照は最後に切る
+	input_ = nullptr;
+	dxCommon_ = nullptr;
 }
 
 void GamePlayScene::ChangeState(std::unique_ptr<IGamePlaySceneState> newState)
@@ -442,41 +419,4 @@ void GamePlayScene::UpdateDebug()
 		ShowCursor(isDebugCamera_);// 表示・非表示も連動（オプション）
 	}
 #endif // _DEBUG
-}
-
-/// -------------------------------------------------------------
-///				　			衝突判定と応答
-/// -------------------------------------------------------------
-void GamePlayScene::CheckAllCollisions()
-{
-	// 衝突マネージャのリセット
-	collisionManager_->Reset();
-
-	// レベルオブジェクトのコライダーを登録
-	for (auto& uptr : levelObjectManager_->GetWorldColliders())
-	{
-		collisionManager_->AddCollider(uptr.get());
-	}
-
-	// コライダーをリストに登録
-	collisionManager_->AddCollider(player_.get()); // プレイヤー
-	player_->RegisterColliders(collisionManager_.get());
-
-	// 敵キャラクターのコライダーを登録
-	for (auto& e : enemies_)
-	{
-		if (e->IsActive()) {
-			collisionManager_->AddCollider(e.get());
-		}
-	}
-
-	if (boss_) {
-		collisionManager_->AddCollider(boss_.get());
-	}
-
-	// アイテムのコライダーを登録
-	itemManager_->RegisterColliders(collisionManager_.get());
-
-	// 衝突判定と応答
-	collisionManager_->CheckAllCollisions();
 }

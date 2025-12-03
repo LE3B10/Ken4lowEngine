@@ -27,6 +27,7 @@ void AnimationMesh::Initialize(ID3D12Device* device, const ModelData& modelData)
 		gpu.vertexResource_->Map(0, nullptr, reinterpret_cast<void**>(&vertexData));	 // 頂点データマッピング
 		std::span<VertexData> vertexSpan{ vertexData, subMesh.vertices.size() };		 // span 作成
 		std::copy(subMesh.vertices.begin(), subMesh.vertices.end(), vertexSpan.begin()); // 頂点データコピー
+		gpu.vertexResource_->SetName(L"AnimationMesh VertexBuffer");
 
 		// インデックスバッファの作成
 		size_t indexCount = sizeof(uint32_t) * subMesh.indices.size();					  // インデックスデータサイズ
@@ -40,6 +41,7 @@ void AnimationMesh::Initialize(ID3D12Device* device, const ModelData& modelData)
 		gpu.indexResource_->Map(0, nullptr, reinterpret_cast<void**>(&indexData));	  // インデックスデータマッピング
 		std::span<uint32_t> indexSpan{ indexData, subMesh.indices.size() };			  // span 作成
 		std::copy(subMesh.indices.begin(), subMesh.indices.end(), indexSpan.begin()); // インデックスデータコピー
+		gpu.indexResource_->SetName(L"AnimationMesh IndexBuffer");
 
 		// 作成したサブメッシュを保存
 		subMeshes_.emplace_back(std::move(gpu));

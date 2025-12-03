@@ -77,7 +77,7 @@ public:	/// ---------- メンバ関数 ---------- ///
 private: /// ---------- メンバ関数 ---------- ///
 
 	// SRVIndex確保
-	uint32_t srvIndex_;
+	uint32_t srvIndex_ = UINT32_MAX;
 
 private: /// ---------- コンストラクタ・デストラクタ ---------- ///
 

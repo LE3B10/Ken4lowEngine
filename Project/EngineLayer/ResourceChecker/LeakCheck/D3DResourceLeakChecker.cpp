@@ -4,6 +4,10 @@
 #include <dxgi1_6.h>
 #include <wrl.h>
 
+#pragma comment(lib, "dxguid.lib")
+#pragma comment(lib, "dxgi.lib")
+#pragma comment(lib, "d3d12.lib")
+
 /// -------------------------------------------------------------
 ///			　				デストラクタ
 /// -------------------------------------------------------------

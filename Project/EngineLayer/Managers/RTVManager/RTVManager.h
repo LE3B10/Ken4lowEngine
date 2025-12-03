@@ -32,6 +32,11 @@ public: /// ---------- メンバ関数 ---------- ///
 	void Initialize(DirectXCommon* dxCommon, uint32_t maxRTVCount = kDefaultMaxRTVCount_);
 
 	/// <summary>
+	/// 終了処理
+	/// </summary>
+	void Finalize();
+
+	/// <summary>
 	/// 空いている RTV インデックスを 1 つ確保します。<br/>
 	/// 解放済みのインデックスがあればそれを再利用し、なければ新規に割り当てます。<br/>
 	/// 最大数を超えると std::runtime_error を送出します。<br/>

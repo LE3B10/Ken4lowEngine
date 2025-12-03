@@ -16,6 +16,11 @@ public: /// ---------- メンバ関数 ---------- ///
 	void Initialize(DirectXCommon* dxCommon, PostEffectPipelineBuilder* builder) override;
 
 	/// <summary>
+	/// 終了処理
+	/// </summary>
+	void Finalize() override;
+
+	/// <summary>
 	/// 指定したコマンドリストに対して、SRV（シェーダリソースビュー）、UAV（アンオーダードアクセ スビュー）、DSV（深度ステンシルビュー）のインデックスに基づく設定を適用します。
 	/// </summary>
 	/// <param name="commandList">設定を適用する対象の ID3D12GraphicsCommandList へのポインタ。描画コマンドの記録に使用されます。</param>
@@ -28,9 +33,6 @@ private: /// ---------- メンバ変数 ---------- ///
 	
 	// DirectX共通クラス
 	DirectXCommon* dxCommon_ = nullptr;
-
-	// パイプラインビルダー
-	PostEffectPipelineBuilder* pipelineBuilder_ = nullptr;
 
 	// グラフィックスパイプラインステートオブジェクト
 	Microsoft::WRL::ComPtr<ID3D12PipelineState> graphicsPipelineState_;

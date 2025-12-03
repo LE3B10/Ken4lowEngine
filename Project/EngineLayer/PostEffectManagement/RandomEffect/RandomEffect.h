@@ -28,6 +28,11 @@ public: /// ---------- メンバ関数 ---------- ///
 	void Initialize(DirectXCommon* dxCommon, PostEffectPipelineBuilder* builder) override;
 
 	/// <summary>
+	/// ポストエフェクトの終了処理を行います。基底クラスの仮想関数をオーバーライドします。
+	/// </summary>
+	void Finalize() override;
+
+	/// <summary>
 	/// 基底クラスの仮想関数をオーバーライドして、毎フレームまたは定期的な更新処理を実行するメソッド。
 	/// </summary>
 	void Update() override;
@@ -50,9 +55,6 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	// DirectX共通クラス
 	DirectXCommon* dxCommon_ = nullptr;
-
-	// パイプラインビルダー
-	PostEffectPipelineBuilder* pipelineBuilder_ = nullptr;
 
 	// コンピュートパイプラインステートオブジェクト
 	Microsoft::WRL::ComPtr<ID3D12PipelineState> computePipelineState_;

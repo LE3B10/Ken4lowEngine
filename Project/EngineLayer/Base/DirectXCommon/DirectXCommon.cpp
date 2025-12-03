@@ -1,14 +1,7 @@
 #include "DirectXCommon.h"
 #include "WinApp.h"
-#include "PostEffectManager.h"
 
 #include <cassert>
-#include <Wireframe.h>
-#include <SceneManager.h>
-#include <ParticleManager.h>
-
-#include "ImGuiManager.h"
-
 
 #pragma comment(lib,"dxcompiler.lib")
 
@@ -49,14 +42,14 @@ void DirectXCommon::Initialize(WinApp* winApp, uint32_t Width, uint32_t Height)
 	ErrorWarning();
 
 	// コマンド生成
-	commandManager_->Initialize(device_->GetDevice());
+	commandManager_->Initialize(GetDevice());
 	commandManager_->SetFenceManager(fenceManager_.get());
 
 	// スワップチェインの生成
 	swapChain_->Initialize(winApp, device_->GetDXGIFactory(), commandManager_->GetCommandQueue(), Width, Height);
 
 	// フェンスとイベントの生成
-	fenceManager_->Initialize(device_->GetDevice());
+	fenceManager_->Initialize(GetDevice());
 
 	// DXCコンパイラの生成
 	dxcCompilerManager_->Initialize();
@@ -132,13 +125,61 @@ void DirectXCommon::EndDraw()
 /// -------------------------------------------------------------
 void DirectXCommon::Finalize()
 {
+	if (!commandManager_ || !fenceManager_) { return; }
+
+	// GPUの処理が完了するまで待機
 	fenceManager_->Signal(commandManager_->GetCommandQueue());
 	fenceManager_->Wait();
 
-	// フェンスとイベントの解放
+	// DSV/RTVで使ってる深度リソースは先に切る
+	depthStencilResource.Reset();
+
+	// それぞれが持つCOMを確実に解放（Finalizeがあるなら呼ぶ）
 	fenceManager_->Finalize();
-	device_.reset();
+	commandManager_->Finalize();
+	dxcCompilerManager_->Finalize();
+	swapChain_->Finalize();
+
+	// RTVManagerの解放
+	RTVManager::GetInstance()->Finalize();
+
+	// DSVManagerの解放
+	DSVManager::GetInstance()->Finalize();
+
+	// unique_ptr を全部落とす（←ここが今足りてない）
+	fenceManager_.reset();
+	commandManager_.reset();
+	dxcCompilerManager_.reset();
 	swapChain_.reset();
+
+//#ifdef _DEBUG
+//	// ReportLiveDeviceObjects は WARNING を出すので、warning break してるなら一時的に止めると楽
+//	{
+//		// InfoQueue の警告で止まるのを一時的に無効化
+//		Microsoft::WRL::ComPtr<ID3D12InfoQueue> q;
+//		if (SUCCEEDED(device_->GetDevice()->QueryInterface(IID_PPV_ARGS(&q)))) {
+//			q->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_WARNING, FALSE);
+//		}
+//
+//		// デバイス側でレポート
+//		Microsoft::WRL::ComPtr<ID3D12DebugDevice> dbg;
+//		if (SUCCEEDED(device_->GetDevice()->QueryInterface(IID_PPV_ARGS(&dbg)))) {
+//			dbg->ReportLiveDeviceObjects(D3D12_RLDO_DETAIL | D3D12_RLDO_IGNORE_INTERNAL);
+//		}
+//
+//		// DXGI側でもレポート
+//		Microsoft::WRL::ComPtr<IDXGIDebug1> dxgiDbg;
+//		if (SUCCEEDED(DXGIGetDebugInterface1(0, IID_PPV_ARGS(&dxgiDbg)))) {
+//			dxgiDbg->ReportLiveObjects(DXGI_DEBUG_ALL, DXGI_DEBUG_RLO_DETAIL);
+//		}
+//
+//		if (q) { q->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_WARNING, TRUE); }
+//	}
+//#endif
+
+	// デバイスの解放
+	device_->Finalize();
+	device_.reset();
 }
 
 
@@ -147,11 +188,11 @@ void DirectXCommon::Finalize()
 /// -------------------------------------------------------------
 ComPtr<ID3D12Resource> DirectXCommon::GetBackBuffer(uint32_t index)
 {
-	ComPtr<ID3D12Resource> backBuffer = nullptr;
+	ComPtr<ID3D12Resource> backBuffer;
 	HRESULT hr = S_FALSE;
 	hr = swapChain_->GetSwapChain()->GetBuffer(index, IID_PPV_ARGS(&backBuffer));
 	assert(SUCCEEDED(hr));
-	return backBuffer.Get();
+	return backBuffer;
 }
 
 
@@ -169,7 +210,7 @@ void DirectXCommon::DebugLayer()
 		//デバッグレイヤーを有効化する
 		debugController->EnableDebugLayer();
 		//さらにGPU側でもチェックを行うようにする
-		debugController->SetEnableGPUBasedValidation(TRUE);
+		debugController->SetEnableGPUBasedValidation(FALSE);
 	}
 #endif
 }
@@ -183,7 +224,7 @@ void DirectXCommon::ErrorWarning()
 	// エラー・警告、すなわち停止
 #ifdef _DEBUG
 	ComPtr<ID3D12InfoQueue> infoQueue = nullptr;
-	if (SUCCEEDED(device_->GetDevice()->QueryInterface(IID_PPV_ARGS(&infoQueue))))
+	if (SUCCEEDED(GetDevice()->QueryInterface(IID_PPV_ARGS(&infoQueue))))
 	{
 		//ヤバいエラー時に止まる
 		infoQueue->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_CORRUPTION, true);
@@ -257,6 +298,7 @@ void DirectXCommon::InitializeRTVAndDSV()
 	// 深度バッファリソースの作成
 	D3D12_CLEAR_VALUE clearValue{};
 	depthStencilResource = DSVManager::GetInstance()->CreateDepthStencilBuffer(kClientWidth, kClientHeight, DXGI_FORMAT_D24_UNORM_S8_UINT, clearValue);
+	depthStencilResource->SetName(L"DepthStencilBuffer");
 
 	// DSVの作成
 	dsvIndex_ = DSVManager::GetInstance()->Allocate();
@@ -270,6 +312,7 @@ void DirectXCommon::InitializeRTVAndDSV()
 	{
 		uint32_t rtvIndex = RTVManager::GetInstance()->Allocate();
 		RTVManager::GetInstance()->CreateRTVForTexture2D(rtvIndex, swapChain_->GetSwapChainResources(i));
+		swapChain_->GetSwapChainResources(i)->SetName((L"BackBuffer_" + std::to_wstring(i)).c_str());
 	}
 }
 

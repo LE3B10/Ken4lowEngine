@@ -38,6 +38,28 @@ void LuminanceOutlineEffect::Initialize(DirectXCommon* dxCommon, PostEffectPipel
 	luminanceOutlineSetting_->texelSize = Vector2(1.0f / static_cast<float>(WinApp::kClientWidth), 1.0f / static_cast<float>(WinApp::kClientHeight));
 	luminanceOutlineSetting_->edgeStrength = 1.0f; // エッジ強度
 	luminanceOutlineSetting_->threshold = 0.5f; // 閾値
+
+	// 名前の設定
+	constantBuffer_->SetName(L"LuminanceOutlineEffect ConstantBuffer");
+	computePipelineState_->SetName(L"LuminanceOutlineEffect ComputePipelineState");
+	computeRootSignature_->SetName(L"LuminanceOutlineEffect ComputeRootSignature");
+}
+
+void LuminanceOutlineEffect::Finalize()
+{
+	// Mapして保持している生ポインタを無効化（Unmapは安全のため）
+	if (constantBuffer_ && luminanceOutlineSetting_) {
+		constantBuffer_->Unmap(0, nullptr);
+		luminanceOutlineSetting_ = nullptr;
+	}
+
+	// D3Dリソース解放
+	constantBuffer_.Reset();
+	computePipelineState_.Reset();
+	computeRootSignature_.Reset();
+
+	// 借り物参照を切る（所有してない）
+	dxCommon_ = nullptr;
 }
 
 

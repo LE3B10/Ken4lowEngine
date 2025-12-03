@@ -32,6 +32,15 @@ public: /// ---------- メンバ関数 ---------- ///
 	/// <param name="Height">バックバッファの高さ（クライアント領域の高さ）。</param>
 	void Initialize(WinApp* winApp, IDXGIFactory7* dxgiFactory, ID3D12CommandQueue* commandQueue, uint32_t Width, uint32_t Height);
 
+	void Finalize()
+	{
+		swapChain.Reset();
+		for (auto& resource : swapChainResources)
+		{
+			resource.Reset();
+		}
+	}
+
 public: /// ---------- ゲッター ---------- ///
 
 	/// <summary>

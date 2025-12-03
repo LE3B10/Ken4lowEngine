@@ -34,6 +34,12 @@ public: /// ---------- メンバ関数 ---------- ///
 	void Initialize(DirectXCommon* dxCommon);
 
 	/// <summary>
+	/// Object3DCommon の終了処理を行います。<br/>
+	/// ・LightManager の終了処理<br/>
+	/// </summary>
+	void Finalize();
+
+	/// <summary>
 	/// フレーム毎の更新処理を行います。<br/>
 	/// isDebugCamera_ の状態に応じて、利用するカメラが切り替わります。<br/>
 	/// ・通常カメラ使用時：<br/>

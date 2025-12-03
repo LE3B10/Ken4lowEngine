@@ -36,6 +36,23 @@ void RTVManager::Initialize(DirectXCommon* dxCommon, uint32_t maxRTVCount)
 
 	// RTVデスクリプタサイズを取得
 	descriptorSize_ = dxCommon_->GetDevice()->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+
+	descriptorHeap_->SetName(L"RTV Descriptor Heap");
+}
+
+void RTVManager::Finalize()
+{
+	// デスクリプタヒープを解放
+	descriptorHeap_.Reset();
+	// メンバ変数をリセット
+	dxCommon_ = nullptr;
+	descriptorSize_ = 0;
+	maxRTVCount_ = kDefaultMaxRTVCount_;
+	useIndex_ = 0;
+	// 解放済みインデックスリストをクリア
+	std::lock_guard<std::mutex> lock(allocationMutex_);
+	std::queue<uint32_t> emptyQueue;
+	std::swap(freeIndices_, emptyQueue);
 }
 
 

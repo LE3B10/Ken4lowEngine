@@ -40,6 +40,27 @@ void SRVManager::Initialize(DirectXCommon* dxCommon)
 
 	// デスクリプタサイズを取得
 	descriptorSize = dxCommon_->GetDevice()->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+
+	descriptorHeap_->SetName(L"SRV Descriptor Heap");
+}
+
+/// -------------------------------------------------------------
+///					　		終了処理
+/// -------------------------------------------------------------
+void SRVManager::Finalize()
+{
+	std::lock_guard<std::mutex> lock(allocationMutex);
+
+	// デスクリプタヒープの解放
+	descriptorHeap_.Reset();
+
+	// 管理状態（再初期化できるように戻す）
+	descriptorSize = 0;
+	useIndex = 0;
+	while (!freeIndices.empty()) { freeIndices.pop(); }
+
+	// メンバ変数のクリア
+	dxCommon_ = nullptr;
 }
 
 

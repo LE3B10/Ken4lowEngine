@@ -23,6 +23,10 @@ public: /// ---------- メンバ関数 ---------- ///
 	/// <param name="scene"></param>
 	void Update(GamePlayScene* scene, float deltaTime) override;
 
+	void Draw3DObjects(GamePlayScene* scene) override;
+
+	void Draw2DSprites(GamePlayScene* scene) override;
+
 	/// <summary>
 	/// ステートから抜ける瞬間の処理
 	/// </summary>
@@ -42,5 +46,7 @@ private: /// ---------- メンバ関数 ---------- ///
 
 	// 次のステージへ進む処理
 	void GoToNextStage(GamePlayScene* scene);
+
+	void CheckCollisions(GamePlayScene* scene);
 };
 

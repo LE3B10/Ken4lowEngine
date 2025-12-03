@@ -27,6 +27,11 @@ public: /// ---------- メンバ関数 ---------- ///
 	void Initialize();
 
 	/// <summary>
+	/// 終了処理
+	/// </summary>
+	void Finalize();
+
+	/// <summary>
 	/// 毎フレームの更新処理。<br/>
 	/// ・キーボード入力によるカメラ移動／回転（Move）<br/>
 	/// ・それに基づくビュー行列・射影行列・ビュー射影行列の更新（UpdateViewProjection）<br/>

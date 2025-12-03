@@ -1,7 +1,5 @@
 #pragma once
 #include <BaseScene.h>
-#include <TitleScene.h>
-#include <GamePlayScene.h>
 #include "AbstractSceneFactory.h"
 
 /// -------------------------------------------------------------

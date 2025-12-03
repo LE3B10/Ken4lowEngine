@@ -35,6 +35,13 @@ void GpuParticleBuffers::Initialize(Camera* camera)
 
 	// フリーリストバッファの生成
 	CreateFreeListBuffer();
+
+	particleBuffer_->SetName(L"GpuParticleBuffers::particleBuffer_");
+	perViewBuffer_->SetName(L"GpuParticleBuffers::perViewBuffer_");
+	emitterBuffer_->SetName(L"GpuParticleBuffers::emitterBuffer_");
+	perFrameBuffer_->SetName(L"GpuParticleBuffers::perFrameBuffer_");
+	freeListIndexBuffer_->SetName(L"GpuParticleBuffers::freeListIndexBuffer_");
+	freeListBuffer_->SetName(L"GpuParticleBuffers::freeListBuffer_");
 }
 
 /// -------------------------------------------------------------

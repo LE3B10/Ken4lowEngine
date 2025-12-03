@@ -36,8 +36,32 @@ void AnimationPipelineBuilder::Initialize(DirectXCommon* dxCommon)
 	CreateComputePSO();
 
 	LightManager::GetInstance()->Initialize(dxCommon_); // ライトマネージャの初期化
+
+	rootSignature->SetName(L"AnimationPipelineBuilder::rootSignature");
+	graphicsPipelineState->SetName(L"AnimationPipelineBuilder::graphicsPipelineState");
+	computeRootSignature_->SetName(L"AnimationPipelineBuilder::computeRootSignature");
+	computePipelineState_->SetName(L"AnimationPipelineBuilder::computePipelineState");
 }
 
+/// ---------------------------------------------------------------
+///					　			終了処理
+/// //---------------------------------------------------------------
+void AnimationPipelineBuilder::Finalize()
+{
+	LightManager::GetInstance()->Finalize(); // ライトマネージャの終了処理
+
+	// D3D12オブジェクト（デバイスにぶら下がる）
+	computePipelineState_.Reset();
+	computeRootSignature_.Reset();
+	graphicsPipelineState.Reset();
+	rootSignature.Reset();
+
+	// 借り物参照
+	dxCommon_ = nullptr;
+
+	// 状態（任意）
+	blendMode_ = BlendMode::kBlendModeNone;
+}
 
 /// ---------------------------------------------------------------
 ///				　		共通描画処理設定

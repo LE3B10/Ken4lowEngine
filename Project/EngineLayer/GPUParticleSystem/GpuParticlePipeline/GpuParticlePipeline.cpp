@@ -31,6 +31,14 @@ void GpuParticlePipeline::Initialize()
 
 	// パーティクル更新用コンピュートシェーダーのコンパイル
 	CreateUpdateComputePSO();
+
+	// オブジェクト名の設定
+	rootSignature_->SetName(L"GpuParticlePipeline_RootSignature");
+	pipelineState_->SetName(L"GpuParticlePipeline_Gfx_PSO");
+	computePipelineState_->SetName(L"GpuParticlePipeline_Compute_PSO");
+	computeRootSignature_->SetName(L"GpuParticlePipeline_Compute_RootSignature");
+	emitComputePipelineState_->SetName(L"GpuParticlePipeline_Emit_Compute_PSO");
+	updateComputePipelineState_->SetName(L"GpuParticlePipeline_Update_Compute_PSO");
 }
 
 /// -------------------------------------------------------------

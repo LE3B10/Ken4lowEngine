@@ -86,6 +86,44 @@ void GameOverState::Update(GamePlayScene* scene, float deltaTime)
 	}
 }
 
+void GameOverState::Draw3DObjects(GamePlayScene* scene)
+{
+	// シーンが有効か確認
+	if (!scene) return;
+
+	auto* player_ = scene->GetPlayer();
+	auto& enemies_ = scene->GetEnemies();
+	auto* itemManager_ = scene->GetItemManager();
+	auto& levelObjectManager_ = scene->GetLevelObjectManager();
+	auto& boss_ = scene->GetBoss();
+
+	player_->Draw();
+
+	for (auto& e : enemies_) {
+		e->Draw();
+	}
+
+	if (boss_) {
+		boss_->Draw();
+	}
+
+	itemManager_->Draw();
+
+	levelObjectManager_->Draw();
+}
+
+void GameOverState::Draw2DSprites(GamePlayScene* scene)
+{
+	// シーンが有効か確認
+	if (!scene) return;
+
+	auto& retireButtonSprite_ = scene->GetRetireButtonSprite();
+	auto& retryButtonSprite_ = scene->GetRetryButtonSprite();
+
+	if (retireButtonSprite_) retireButtonSprite_->Draw();
+	if (retryButtonSprite_)  retryButtonSprite_->Draw();
+}
+
 void GameOverState::Exit(GamePlayScene* scene)
 {
 	// 特に何もしない

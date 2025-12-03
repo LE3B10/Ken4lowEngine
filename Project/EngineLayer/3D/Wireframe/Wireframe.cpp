@@ -52,8 +52,72 @@ void Wireframe::Initialize(DirectXCommon* dxCommon)
 
 	// 球の頂点座標を計算
 	CalcSphereVertexData();
+
+	// 名前の設定
+	trianglePipelineState_->SetName(L"Wireframe_Triangle_PSO");
+	triangleRootSignature_->SetName(L"Wireframe_Triangle_RootSignature");
+
+	linePipelineState_->SetName(L"Wireframe_Line_PSO");
+	lineRootSignature_->SetName(L"Wireframe_Line_RootSignature");
 }
 
+/// -------------------------------------------------------------
+///								終了処理
+/// -------------------------------------------------------------
+void Wireframe::Finalize()
+{
+	// すでに解放済みなら何もしない
+	if (!dxCommon_) { return; }
+
+	// ---- Mapしているポインタを先に無効化 & Unmap ----
+	if (transformationMatrixBuffer_) {
+		transformationMatrixBuffer_->Unmap(0, nullptr);
+	}
+	transformationMatrixData_ = nullptr;
+	transformationMatrixBuffer_.Reset();
+
+	auto UnmapAndResetVB = [](auto& resource, auto*& mappedPtr) {
+		if (resource) { resource->Unmap(0, nullptr); }
+		mappedPtr = nullptr;
+		resource.Reset();
+		};
+
+	if (triangleData_) {
+		UnmapAndResetVB(triangleData_->vertexBuffer, triangleData_->vertexData);
+		triangleData_.reset();
+	}
+
+	if (boxData_) {
+		if (boxData_->vertexBuffer) boxData_->vertexBuffer->Unmap(0, nullptr);
+		boxData_->vertexData = nullptr;
+		boxData_->vertexBuffer.Reset();
+
+		if (boxData_->indexBuffer) boxData_->indexBuffer->Unmap(0, nullptr);
+		boxData_->indexData = nullptr;
+		boxData_->indexBuffer.Reset();
+
+		boxData_.reset();
+	}
+
+	if (lineData_) {
+		UnmapAndResetVB(lineData_->vertexBuffer, lineData_->vertexData);
+		lineData_.reset();
+	}
+
+	spheres_.clear();
+
+	// ---- PSO / RootSignature を解放 ----
+	trianglePipelineState_.Reset();
+	linePipelineState_.Reset();
+	triangleRootSignature_.Reset();
+	lineRootSignature_.Reset();
+
+	// ---- 参照だけ持ってるポインタは切る ----
+	camera_ = nullptr;
+	dxCommon_ = nullptr;
+
+	Reset();
+}
 
 /// -------------------------------------------------------------
 ///				　	        　更新処理

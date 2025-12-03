@@ -89,9 +89,33 @@ void StageSelectScene::Draw2DSprites()
 /// -------------------------------------------------------------
 void StageSelectScene::Finalize()
 {
-	if (activeSelector_) activeSelector_->OnExit();
+	// 1) ステートを確実に抜ける（ステート側で何か掴んでる可能性がある）
+	if (currentState_) {
+		currentState_->Exit(this);
+	}
+	currentState_.reset();
+
+	// 2) セレクタを確実に抜ける
+	// activeSelector_ は gridSelector_.get() の生ポインタなので、先に OnExit してから所有側を破棄
+	if (activeSelector_) {
+		activeSelector_->OnExit();
+	}
 	activeSelector_ = nullptr;
-	gridSelector_ = nullptr;
+	gridSelector_.reset();
+
+	// 3) スプライト解放（GPUリソースがぶら下がりやすい）
+	fadeSprite_.reset();
+	bg_.reset();
+
+	// 4) データや参照を整理（任意だけど安全）
+	stages_.clear();
+	pendingUnlockIndex_ = -1;
+	nextScene_ = NextScene::None;
+	state_ = State::Selecting;
+
+	// 依存注入ポインタは最後に切る
+	input_ = nullptr;
+	dxCommon_ = nullptr;
 }
 
 /// -------------------------------------------------------------

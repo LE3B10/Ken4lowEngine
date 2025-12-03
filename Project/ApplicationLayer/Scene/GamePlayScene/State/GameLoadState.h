@@ -11,25 +11,29 @@ public: /// ---------- 仮想関数のオーバーライド ---------- ///
 	/// <summary>
 	/// デストラクタ
 	/// </summary>
-	virtual ~GameLoadState() override = default;
+	~GameLoadState() override = default;
 
 	/// <summary>
 	/// ステートに入った瞬間の処理
 	/// </summary>
 	/// <param name="scene"></param>
-	virtual void Enter(GamePlayScene* scene) override;
+	void Enter(GamePlayScene* scene) override;
 
 	/// <summary>
 	/// ステート中の更新処理
 	/// </summary>
 	/// <param name="scene"></param>
-	virtual void Update(GamePlayScene* scene, float deltaTime) override;
+	void Update(GamePlayScene* scene, float deltaTime) override;
+
+	void Draw3DObjects(GamePlayScene* scene) override;
+
+	void Draw2DSprites(GamePlayScene* scene) override;
 
 	/// <summary>
 	/// ステートから抜ける瞬間の処理
 	/// </summary>
 	/// <param name="scene"></param>
-	virtual void Exit(GamePlayScene* scene) override;
+	void Exit(GamePlayScene* scene) override;
 
 private: /// ---------- メンバ変数 ---------- ///
 

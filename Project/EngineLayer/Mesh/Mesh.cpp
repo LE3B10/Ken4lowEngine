@@ -23,6 +23,7 @@ void Mesh::Initialize(const std::vector<VertexData>& modelVertices, const std::v
 	// 書き込むためのアドレスを取得
 	VertexData* vertexDataRaw = nullptr;
 	vertexResource->Map(0, nullptr, reinterpret_cast<void**>(&vertexDataRaw));
+	vertexResource->SetName(L"Mesh::VertexBuffer");
 
 	// GPU側の書き込み先をspanで安全に囲む
 	std::span<VertexData> vertexSpan{ vertexDataRaw, vertices.size() };
@@ -39,6 +40,7 @@ void Mesh::Initialize(const std::vector<VertexData>& modelVertices, const std::v
 	// 書き込むためのアドレスを取得
 	uint32_t* indexDataRaw = nullptr;
 	indexResource->Map(0, nullptr, reinterpret_cast<void**>(&indexDataRaw));
+	indexResource->SetName(L"Mesh::IndexBuffer");
 
 	// GPU側の書き込み先をspanで安全に囲む
 	std::span<uint32_t> indexSpan{ indexDataRaw, indices.size() };

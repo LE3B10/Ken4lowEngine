@@ -9,6 +9,7 @@ void DX12FenceManager::Initialize(ID3D12Device* device)
 	// フェンスの生成
 	HRESULT hr = S_OK;
 	hr = device->CreateFence(fenceValue_, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&fence_));
+	fence_->SetName(L"DX12FenceManager Fence");
 	assert(SUCCEEDED(hr));
 
 	// イベントの生成
@@ -29,6 +30,7 @@ void DX12FenceManager::Finalize()
 		fenceEvent_ = nullptr;
 	}
 	fence_.Reset();
+	fenceValue_ = 0;
 }
 
 /// -------------------------------------------------------------

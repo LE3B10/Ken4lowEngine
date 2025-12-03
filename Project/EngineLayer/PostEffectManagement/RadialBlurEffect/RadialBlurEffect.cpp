@@ -37,6 +37,31 @@ void RadialBlurEffect::Initialize(DirectXCommon* dxCommon, PostEffectPipelineBui
 	radialBlurSetting_->center = Vector2(0.5f, 0.5f); // 中心座標
 	radialBlurSetting_->blurStrength = 0.3f; // ブラー強度
 	radialBlurSetting_->sampleCount = 16.0f; // サンプル数
+
+	// 名前の設定
+	constantBuffer_->SetName(L"RadialBlurEffect::ConstantBuffer");
+	computePipelineState_->SetName(L"RadialBlurEffect::ComputePipelineState");
+	computeRootSignature_->SetName(L"RadialBlurEffect::ComputeRootSignature");
+}
+
+void RadialBlurEffect::Finalize()
+{
+	// Mapして保持している生ポインタを無効化（Unmapは安全のため）
+	if (constantBuffer_ && radialBlurSetting_) {
+		constantBuffer_->Unmap(0, nullptr);
+		radialBlurSetting_ = nullptr;
+	}
+	else {
+		radialBlurSetting_ = nullptr;
+	}
+
+	// D3Dリソース解放
+	constantBuffer_.Reset();
+	computePipelineState_.Reset();
+	computeRootSignature_.Reset();
+
+	// 借り物参照を切る
+	dxCommon_ = nullptr;
 }
 
 

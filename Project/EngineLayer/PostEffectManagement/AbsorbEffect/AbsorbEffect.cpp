@@ -40,6 +40,23 @@ void AbsorbEffect::Initialize(DirectXCommon* dxCommon, PostEffectPipelineBuilder
 	absorbSetting_->strength = 1.0f; // 吸収の強さ
 }
 
+void AbsorbEffect::Finalize()
+{
+	// Mapしているポインタを無効化（Unmapは安全のため）
+	if (constantBuffer_) {
+		constantBuffer_->Unmap(0, nullptr);
+	}
+	absorbSetting_ = nullptr;
+
+	// D3Dリソース解放
+	constantBuffer_.Reset();
+	graphicsPipelineState_.Reset();
+	rootSignature_.Reset();
+
+	// 借り物参照を切る（所有してない）
+	dxCommon_ = nullptr;
+}
+
 
 /// -------------------------------------------------------------
 ///							更新処理

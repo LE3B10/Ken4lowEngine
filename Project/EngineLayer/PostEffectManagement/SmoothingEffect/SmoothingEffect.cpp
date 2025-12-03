@@ -36,6 +36,27 @@ void SmoothingEffect::Initialize(DirectXCommon* dxCommon, PostEffectPipelineBuil
 
 	// スムージングの設定
 	smoothingSetting_->kernelType = 0; // 0: none, 1: box3x3, ...
+
+	constantBuffer_->SetName(L"SmoothingEffect_ConstantBuffer");
+	computeRootSignature_->SetName(L"SmoothingEffect_RootSignature");
+	computePipelineState_->SetName(L"SmoothingEffect_PipelineState");
+}
+
+void SmoothingEffect::Finalize()
+{
+	// Mapして保持している生ポインタを無効化（Unmapは安全のため）
+	if (constantBuffer_ && smoothingSetting_) {
+		constantBuffer_->Unmap(0, nullptr);
+		smoothingSetting_ = nullptr;
+	}
+
+	// D3Dリソース解放
+	constantBuffer_.Reset();
+	computePipelineState_.Reset();
+	computeRootSignature_.Reset();
+
+	// 借り物参照を切る（所有してない）
+	dxCommon_ = nullptr;
 }
 
 

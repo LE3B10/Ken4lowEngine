@@ -52,6 +52,16 @@ public: /// ---------- メンバ関数 ---------- ///
 	/// ・LightManager::BindPunctualLights() によるライト情報のバインド<br/>
 	/// を行い、その後で各メッシュの Draw() を呼び出す想定です。
 	/// </summary>
+	void Finalize();
+
+	/// <summary>
+	/// スキニング済みメッシュを描画する前に、共通のレンダリング設定を行います。 <br/>
+	/// ・グラフィックス用ルートシグネチャのセット<br/>
+	/// ・アニメーション用グラフィックスパイプラインステートのセット<br/>
+	/// ・プリミティブトポロジを三角形リストに設定<br/>
+	/// ・LightManager::BindPunctualLights() によるライト情報のバインド<br/>
+	/// を行い、その後で各メッシュの Draw() を呼び出す想定です。
+	/// </summary>
 	void SetRenderSetting();
 
 	/// <summary>

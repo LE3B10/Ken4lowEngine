@@ -30,6 +30,28 @@ void PixelateEffect::Initialize(DirectXCommon* dxCommon, PostEffectPipelineBuild
 	pixelateSetting_->screenSize = { (float)WinApp::kClientWidth,(float)WinApp::kClientHeight };
 	pixelateSetting_->blockSize = 8.0f;  // 8x8 ピクセルブロック
 	pixelateSetting_->strength = 1.0f;  // 最初はフルピクセル化
+
+	// 名前の設定
+	constantBuffer_->SetName(L"PixelateEffect ConstantBuffer");
+	computePipelineState_->SetName(L"PixelateEffect PipelineState");
+	computeRootSignature_->SetName(L"PixelateEffect RootSignature");
+}
+
+void PixelateEffect::Finalize()
+{
+	// Mapしているポインタを無効化（Unmapは安全のため）
+	if (constantBuffer_) {
+		constantBuffer_->Unmap(0, nullptr);
+	}
+	pixelateSetting_ = nullptr;
+
+	// D3Dリソース解放
+	constantBuffer_.Reset();
+	computePipelineState_.Reset();
+	computeRootSignature_.Reset();
+
+	// 借り物参照を切る
+	dxCommon_ = nullptr;
 }
 
 /// -------------------------------------------------------------

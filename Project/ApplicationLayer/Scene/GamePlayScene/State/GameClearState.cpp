@@ -197,6 +197,56 @@ void GameClearState::Update(GamePlayScene* scene, float deltaTime)
 
 }
 
+void GameClearState::Draw3DObjects(GamePlayScene* scene)
+{
+	// シーンが有効か確認
+	if (!scene) return;
+
+	auto* player_ = scene->GetPlayer();
+	auto& enemies_ = scene->GetEnemies();
+	auto* itemManager_ = scene->GetItemManager();
+	auto& levelObjectManager_ = scene->GetLevelObjectManager();
+	auto& boss_ = scene->GetBoss();
+
+	player_->Draw();
+
+	for (auto& e : enemies_) {
+		e->Draw();
+	}
+
+	if (boss_) {
+		boss_->Draw();
+	}
+
+	itemManager_->Draw();
+
+	levelObjectManager_->Draw();
+}
+
+void GameClearState::Draw2DSprites(GamePlayScene* scene)
+{
+	// シーンが有効か確認
+	if (!scene) return;
+
+	auto& clearPanelSprite_ = scene->GetClearPanelSprite();
+	auto& clearTextSprite_ = scene->GetClearTextSprite();
+	auto& clearStarSprites_ = scene->GetClearStarSprites();
+	auto& clearOptionSprites_ = scene->GetClearOptionSprites();
+
+	if (clearPanelSprite_) clearPanelSprite_->Draw();
+	if (clearTextSprite_)  clearTextSprite_->Draw();
+
+	// 星（飾り）：そのまま描画
+	for (auto& s : clearStarSprites_) {
+		if (s) s->Draw();
+	}
+
+	// ★ 三択ボタン
+	for (auto& s : clearOptionSprites_) {
+		if (s) s->Draw();
+	}
+}
+
 void GameClearState::Exit(GamePlayScene* scene)
 {
 	// 特にやることなし

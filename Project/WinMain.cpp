@@ -1,14 +1,16 @@
-// ゲームエンジンの初期化処理
-#include "GameEngine.h"
-
-// 解放し忘れがないか確認するリークチェッカー
-D3DResourceLeakChecker resourceLeakCheck;
+#include "GameApplication.h"
+#include "D3DResourceLeakChecker.h"
 
 // Windowsアプリでのエントリーポイント(main関数)
 int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 {
+#ifdef _DEBUG
+	// 解放し忘れがないか確認するリークチェッカー
+	D3DResourceLeakChecker resourceLeakCheck;
+#endif // _DEBUG
+
 	// Frameworkの派生クラスであるGameEngineを使用
-	std::unique_ptr<Framework> game = std::make_unique<GameEngine>();
+	std::unique_ptr<Framework> game = std::make_unique<GameApplication>();
 
 	// 実行処理
 	game->Run();

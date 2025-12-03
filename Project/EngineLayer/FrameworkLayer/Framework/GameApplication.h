@@ -1,18 +1,11 @@
 #pragma once
-#include "Input.h"
-#include "D3DResourceLeakChecker.h"
-#include "LogString.h"
-#include "ResourceManager.h"
-#include <FPSCounter.h>
-
 #include <Framework.h>
-#include <SceneManager.h>
 
 
 /// -------------------------------------------------------------
 ///				　	ゲーム全体を管理するクラス
 /// -------------------------------------------------------------
-class GameEngine : public Framework
+class GameApplication : public Framework
 {
 public: /// ---------- メンバ関数 ---------- ///
 

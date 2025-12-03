@@ -28,8 +28,32 @@ void Object3DCommon::Initialize(DirectXCommon* dxCommon)
 
 	// ライトマネージャの生成と初期化
 	LightManager::GetInstance()->Initialize(dxCommon_);
+
+	graphicsPipelineState_->SetName(L"Object3DCommon_PSO");
+	rootSignature_->SetName(L"Object3DCommon_RootSignature");
 }
 
+void Object3DCommon::Finalize()
+{
+	// 先に依存先（ライト）を解放
+	LightManager::GetInstance()->Finalize();
+
+	// D3D関連（ComPtr）を解放
+	graphicsPipelineState_.Reset();
+	rootSignature_.Reset();
+	signatureBlob_.Reset();
+	errorBlob_.Reset();
+
+	// 状態を戻す（借り物参照は切る）
+	dxCommon_ = nullptr;
+	defaultCamera_ = nullptr;
+
+	isDebugCamera_ = false;
+	inputLayoutDesc_ = {};
+	viewProjectionMatrix_ = {};
+	debugViewProjectionMatrix_ = {};
+	activeCameraPosition_ = { 0,0,0 };
+}
 
 /// -------------------------------------------------------------
 ///				　			更新処理

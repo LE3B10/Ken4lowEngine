@@ -27,8 +27,31 @@ void SkyBoxManager::Initialize(DirectXCommon* dxCommon)
 
 	// PSOの生成
 	CreatePSO();
+
+	// オブジェクト名の設定
+	graphicsPipelineState_->SetName(L"SkyBoxManager_PSO");
+	rootSignature_->SetName(L"SkyBoxManager_RootSignature");
 }
 
+/// -------------------------------------------------------------
+///				　　		終了処理
+/// -------------------------------------------------------------
+void SkyBoxManager::Finalize()
+{
+	// 何度呼ばれても安全に
+	if (!dxCommon_) { return; }
+
+	graphicsPipelineState_.Reset();
+	rootSignature_.Reset();
+
+	// Serializeで作ったBlobもメンバに残ってるので解放
+	signatureBlob_.Reset();
+	errorBlob_.Reset();
+
+	inputLayoutDesc_ = {};
+
+	dxCommon_ = nullptr;
+}
 
 /// -------------------------------------------------------------
 ///						共通描画設定処理

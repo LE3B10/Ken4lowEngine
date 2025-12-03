@@ -41,6 +41,16 @@ void GpuParticleManager::Initialize(Camera* camera)
 	Dispatch();
 }
 
+void GpuParticleManager::Finalize()
+{
+	emitters_.clear();
+	gpuParticleRenderer_.reset();
+	gpuParticleBuffers_.reset();
+	gpuParticlePipeline_.reset();
+
+	camera_ = nullptr;
+}
+
 /// -------------------------------------------------------------
 ///				　　　			更新処理
 /// -------------------------------------------------------------

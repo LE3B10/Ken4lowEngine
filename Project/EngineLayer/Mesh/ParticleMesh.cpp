@@ -206,7 +206,7 @@ void ParticleMesh::CreateVertexBuffer()
 	vertexBufferView_.StrideInBytes = sizeof(VertexData);
 	vertexResource_->Map(0, nullptr, reinterpret_cast<void**>(&vertexData_));
 	std::memcpy(vertexData_, vertices.data(), sizeof(VertexData) * vertices.size());
-
+	vertexResource_->SetName(L"ParticleMesh_VertexBuffer");
 	hasIndex_ = !indices.empty();
 	if (hasIndex_)
 	{
@@ -217,5 +217,6 @@ void ParticleMesh::CreateVertexBuffer()
 		void* dst = nullptr;
 		indexResource_->Map(0, nullptr, &dst);
 		std::memcpy(dst, indices.data(), sizeof(uint32_t) * indices.size());
+		indexResource_->SetName(L"ParticleMesh_IndexBuffer");
 	}
 }

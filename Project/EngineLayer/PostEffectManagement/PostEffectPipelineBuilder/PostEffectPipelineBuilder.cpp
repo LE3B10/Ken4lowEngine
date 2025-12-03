@@ -16,6 +16,13 @@ void PostEffectPipelineBuilder::Initialize(DirectXCommon* dxCommon)
 	dxCommon_ = dxCommon;
 }
 
+void PostEffectPipelineBuilder::Finalize()
+{
+	copyPipelineState_.Reset();
+	copyRootSignature_.Reset();
+	dxCommon_ = nullptr;
+}
+
 
 /// -------------------------------------------------------------
 ///					ルートシグネチャの生成
@@ -291,4 +298,8 @@ void PostEffectPipelineBuilder::BuildCopyPipeline()
 	// ② FSQ 用ピクセルシェーダ（色をそのまま出力）
 	const std::wstring kCopyPS = L"Resources/Shaders/PostEffect/NormalEffect.PS.hlsl";
 	copyPipelineState_ = CreateGraphicsPipeline(kCopyPS, copyRootSignature_.Get(), false);
+
+	// 名前設定
+	copyPipelineState_->SetName(L"PostEffectPipelineBuilder_Copy_PSO");
+	copyRootSignature_->SetName(L"PostEffectPipelineBuilder_Copy_RootSignature");
 }

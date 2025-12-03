@@ -67,7 +67,16 @@ void WinApp::CreateMainWindow(uint32_t Width, uint32_t Height)
 /// -------------------------------------------------------------
 void WinApp::Finalize()
 {
-	CloseWindow(hwnd);
+	// ウィンドウが存在していれば破棄する
+	if (hwnd)
+	{
+		DestroyWindow(hwnd); // ウィンドウの破棄
+		hwnd = nullptr;   // ハンドルをクリア
+	}
+
+	// ウィンドウクラスの登録解除
+	UnregisterClass(wc.lpszClassName, wc.hInstance);
+
 	// COMの終了処理
 	CoUninitialize();
 }

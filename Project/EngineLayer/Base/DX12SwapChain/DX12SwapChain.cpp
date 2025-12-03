@@ -28,10 +28,12 @@ void DX12SwapChain::Initialize(WinApp* winApp, IDXGIFactory7* dxgiFactory, ID3D1
 
 	//SwapChainからResourceを引っ張ってくる
 	hr = swapChain->GetBuffer(0, IID_PPV_ARGS(&swapChainResources[0]));
+	swapChainResources[0]->SetName(L"BackBuffer : 0");
 	//うまく取得できなければ起動できない
 	assert(SUCCEEDED(hr));
 
 	// 2つ目のバッファも同様に取得
 	hr = swapChain->GetBuffer(1, IID_PPV_ARGS(&swapChainResources[1]));
+	swapChainResources[1]->SetName(L"BackBuffer : 1");
 	assert(SUCCEEDED(hr));
 }

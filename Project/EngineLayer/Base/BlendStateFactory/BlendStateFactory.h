@@ -34,6 +34,13 @@ public: /// ---------- メンバ関数 ---------- ///
 	/// Initialize() で事前に生成された配列から、指定モードの D3D12_RENDER_TARGET_BLEND_DESC を返します。<br/>
 	/// index が範囲外の場合は assert でチェックされます。
 	/// </summary>
+	void Finalize();
+
+	/// <summary>
+	/// BlendMode に応じた RenderTarget[0] 用のブレンド設定を取得します。<br/>
+	/// Initialize() で事前に生成された配列から、指定モードの D3D12_RENDER_TARGET_BLEND_DESC を返します。<br/>
+	/// index が範囲外の場合は assert でチェックされます。
+	/// </summary>
 	/// <param name="blendMode">取得したいブレンドモード。</param>
 	/// <returns>指定したブレンドモード用の D3D12_RENDER_TARGET_BLEND_DESC への参照。</returns>
 	const D3D12_RENDER_TARGET_BLEND_DESC& GetBlendDesc(BlendMode blendMode) const;
@@ -61,7 +68,7 @@ public: /// ---------- メンバ関数 ---------- ///
 
 private: /// ---------- メンバ変数 ---------- ///
 
-	std::array<D3D12_RENDER_TARGET_BLEND_DESC, blendModeNum> blendDescs_;
+	std::array<D3D12_RENDER_TARGET_BLEND_DESC, blendModeNum> blendDescs_ = {};
 	std::unordered_map<std::string, D3D12_RENDER_TARGET_BLEND_DESC> customBlends_;
 
 private: /// ---------- コピー禁止 ---------- ///

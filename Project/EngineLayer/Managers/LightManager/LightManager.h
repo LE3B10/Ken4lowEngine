@@ -69,6 +69,12 @@ public: /// ---------- メンバ関数 ---------- ///
 	void Initialize(DirectXCommon* dxCommon);
 
 	/// <summary>
+	/// ライトマネージャの終了処理。<br/>
+	/// 内部で確保したリソースを解放します。
+	/// </summary>
+	void Finalize();
+
+	/// <summary>
 	/// ImGui を用いたパンクチュアルライトの編集 UI を描画します。<br/>
 	/// ・ライトの追加 / 全削除<br/>
 	/// ・種類（None / Directional / Point / Spot）の切り替え<br/>

@@ -201,6 +201,27 @@ void TitleScene::Draw2DSprites()
 void TitleScene::Finalize()
 {
 	AudioManager::GetInstance()->StopBGM();
+
+	// ステートを確実に終了
+	if (currentState_) { currentState_->Exit(this); }
+	currentState_.reset();
+
+	// オーバーレイ破棄
+	quitOverlay_.reset();
+
+	// UI破棄（ここが今抜けてる）
+	clickHintUI_.hintSprite.reset();
+	battleButtonUI_.btnSprite.reset();
+	battleButtonUI_.btnShadow.reset();
+
+	fadeSprite_.reset();
+	logoSprite_.reset();
+	terrain_.reset();
+	skyBox_.reset();
+
+	camera_ = nullptr;
+	input_ = nullptr;
+	dxCommon_ = nullptr;
 }
 
 

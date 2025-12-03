@@ -28,6 +28,18 @@ public: /// ---------- 純粋仮想関数 ---------- ///
 	virtual void Update(GamePlayScene* scene, float deltaTime) = 0;
 
 	/// <summary>
+	/// 3Dオブジェクト描画処理（必要に応じてオーバーライド）
+	/// </summary>
+	/// <param name="scene"></param>
+	virtual void Draw3DObjects(GamePlayScene* scene) = 0;
+
+	/// <summary>
+	/// スプライト描画処理（必要に応じてオーバーライド）
+	/// </summary>
+	/// <param name="scene"></param>
+	virtual void Draw2DSprites(GamePlayScene* scene) = 0;
+
+	/// <summary>
 	/// ステートから抜ける瞬間の処理
 	/// </summary>
 	/// <param name="scene"></param>

@@ -34,6 +34,48 @@ void GameFadeIn::Update(GamePlayScene* scene, float deltaTime)
 	}
 }
 
+void GameFadeIn::Draw3DObjects(GamePlayScene* scene)
+{
+	// シーンが有効か確認
+	if (!scene) return;
+
+	auto* player_ = scene->GetPlayer();
+	auto& enemies_ = scene->GetEnemies();
+	auto* itemManager_ = scene->GetItemManager();
+	auto& levelObjectManager_ = scene->GetLevelObjectManager();
+	auto& boss_ = scene->GetBoss();
+
+	player_->Draw();
+
+	for (auto& e : enemies_) {
+		e->Draw();
+	}
+
+	if (boss_) {
+		boss_->Draw();
+	}
+
+	itemManager_->Draw();
+
+	levelObjectManager_->Draw();
+}
+
+void GameFadeIn::Draw2DSprites(GamePlayScene* scene)
+{
+	if (!scene) return;
+
+	auto* fadeSprite_ = scene->GetFadeSprite();
+	float fadeAlpha_ = scene->GetFadeAlpha();
+
+	// フェードオーバーレイ
+	if (fadeSprite_ && fadeAlpha_ > 0.0f)
+	{
+		fadeSprite_->SetColor({ 0.0f, 0.0f, 0.0f, fadeAlpha_ });
+		fadeSprite_->Update();
+		fadeSprite_->Draw();
+	}
+}
+
 void GameFadeIn::Exit(GamePlayScene* scene)
 {
 	(void)scene; // 未使用

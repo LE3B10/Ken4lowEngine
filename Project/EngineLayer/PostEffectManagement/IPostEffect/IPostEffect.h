@@ -28,6 +28,11 @@ public: /// ---------- メンバ関数 ---------- ///
 	virtual void Initialize(DirectXCommon* dxCommon, PostEffectPipelineBuilder* builder) = 0;
 
 	/// <summary>
+	/// ポストエフェクトの終了処理を行う純粋仮想関数。派生クラスで実装する必要があります。
+	/// </summary>
+	virtual void Finalize() = 0;
+
+	/// <summary>
 	/// オブジェクトの状態を更新します。仮想関数であり、派生クラスでオーバーライドできます。
 	/// </summary>
 	virtual void Update() {} // 更新処理が必要ない場合もあるので空でOK

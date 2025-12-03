@@ -43,9 +43,9 @@ public: /// ---------- テンプレート ---------- ///
 		ComPtr<ID3D12Resource> resource = nullptr;				   // レンダーテクスチャリソース
 		D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle = {};				   // RTVハンドル
 		D3D12_RESOURCE_STATES state = D3D12_RESOURCE_STATE_COMMON; // リソース状態
-		uint32_t srvIndex = 0;									   // SRVインデックス
-		uint32_t uavIndex = 0;									   // UAVインデックス
-		uint32_t srvIndexOnUavHeap = 0;							   // CS用に、UAVヒープ上へ複製したSRV
+		uint32_t srvIndex = UINT32_MAX;									   // SRVインデックス
+		uint32_t uavIndex = UINT32_MAX;									   // UAVインデックス
+		uint32_t srvIndexOnUavHeap = UINT32_MAX;							   // CS用に、UAVヒープ上へ複製したSRV
 		Vector4 clearColor = { 0.08f, 0.08f, 0.18f, 1.0f };		   // クリアカラー
 	};
 
@@ -62,6 +62,11 @@ public: /// ---------- メンバ関数 ---------- ///
 	/// </summary>
 	/// <param name="dxCommon">初期化対象の DirectXCommon オブジェクトへのポインター。関数はこのオブジェクトを用いて必要な初期化を行います。</param>
 	void Initialieze(DirectXCommon* dxCommon);
+
+	/// <summary>
+	/// PostEffectManager の終了処理を行う関数。
+	/// </summary>
+	void Finalize();
 
 	/// <summary>
 	/// オブジェクトやシステムの状態を更新する関数。
@@ -174,7 +179,7 @@ private: /// ---------- メンバ変数 ---------- ///
 	ComPtr<ID3D12Resource> depthResource_;		// 深度バッファリソース
 	D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle = {}; // DSVハンドル
 	D3D12_RESOURCE_STATES depthState_ = D3D12_RESOURCE_STATE_DEPTH_WRITE; // 深度バッファのリソース状態
-	uint32_t dsvSrvIndex_ = 0; // 深度バッファのSRVインデックス
+	uint32_t dsvSrvIndex_ = UINT32_MAX; // 深度バッファのSRVインデックス
 
 	static constexpr int kPostRTCount = 1; // ポストエフェクト用のレンダーテクスチャ数
 	std::vector<RenderTarget> renderTargets_; // レンダーテクスチャのリスト

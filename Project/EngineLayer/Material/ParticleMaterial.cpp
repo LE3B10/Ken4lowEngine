@@ -26,6 +26,17 @@ void ParticleMaterial::Initialize()
 	}
 }
 
+void ParticleMaterial::Finalize()
+{
+	if (materialResource_)
+	{
+		materialResource_->Unmap(0, nullptr);
+		materialDataBase_ = nullptr;
+		materialData_ = nullptr;
+		materialResource_.Reset();
+	}
+}
+
 /// -------------------------------------------------------------
 ///				           　更新処理
 /// -------------------------------------------------------------

@@ -29,6 +29,11 @@ public: /// ---------- メンバ関数 ---------- ///
 	void Initialize(DirectXCommon* dxCommon);
 
 	/// <summary>
+	/// スプライト描画に必要な共通リソースを解放します。
+	/// </summary>
+	void Finalize();
+
+	/// <summary>
 	/// 背景スプライトを描画する前に呼び出す共通設定です。<br/>
 	/// ・ルートシグネチャをセット<br/>
 	/// ・背景用 PSO（graphicsPipelineState_Background_）をセット<br/>

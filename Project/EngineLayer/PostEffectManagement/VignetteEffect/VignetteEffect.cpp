@@ -37,6 +37,27 @@ void VignetteEffect::Initialize(DirectXCommon* dxCommon, PostEffectPipelineBuild
 	// ヴィグネットの設定
 	vignetteSetting_->power = 0.8f; // 強さ
 	vignetteSetting_->range = 0.5f; // 範囲
+
+	constantBuffer_->SetName(L"VignetteEffect::ConstantBuffer");
+	computeRootSignature_->SetName(L"VignetteEffect::ComputeRootSignature");
+	computePipelineState_->SetName(L"VignetteEffect::ComputePipelineState");
+}
+
+void VignetteEffect::Finalize()
+{
+	// Mapしてるポインタを無効化（Unmapは安全のため）
+	if (constantBuffer_ && vignetteSetting_) {
+		constantBuffer_->Unmap(0, nullptr);
+		vignetteSetting_ = nullptr;
+	}
+
+	// D3Dリソース解放
+	constantBuffer_.Reset();
+	computePipelineState_.Reset();
+	computeRootSignature_.Reset();
+
+	// 借り物参照を切る
+	dxCommon_ = nullptr;
 }
 
 
