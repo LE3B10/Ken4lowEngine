@@ -9,6 +9,8 @@
 #include "BillboardMode.h"
 #include "BossEnemyVfx.h"
 
+#include "BossTurning.h"
+
 #include <optional>
 
 /// ---------- 前方宣言 ---------- ///
@@ -34,14 +36,14 @@ public: /// ---------- 列挙型 ---------- ///
 	// ボスの攻撃種類
 	enum class AttackKind
 	{
-		kNone,  // なし（待機）
-		kRush,  // 突進攻撃
+		kNone,			// なし（待機）
+		kRush,			// 突進攻撃
 		kSpinAttack,    // 近距離回転攻撃
 		kSideStepSlash, // 横ステップ → 斬りつけ
 		kBackstepRush,  // バックステップ → 高速突進
 		kMultiRush,     // 連続ラッシュ（2～3回）
 		kJumpSlam,      // 素早く飛び上がっての叩きつけ
-		// TODO: kSwipe, kJumpSlam, kShotgun などを追加予定
+		kDead,			// 死亡
 	};
 
 public: /// ---------- 構造体 ---------- ///
@@ -140,9 +142,6 @@ private: /// ---------- メンバ関数 ---------- ///
 	// 全部位に色を適用
 	void ApplyColorToAll(const Vector4& color);
 
-	// 死亡演出更新
-	void UpdateDeath(float deltaTime);
-
 public: /// ---------- メンバ関数 ---------- ///
 
 	// 移動方向に体の向きを合わせる
@@ -181,6 +180,17 @@ public: /// ---------- アクセッサ ---------- ///
 	// ダメージを受け取る
 	void ChangeAttackState(AttackKind nextKind);
 
+	// 現在の攻撃種類を取得
+	const BossTurning& GetTurning() const { return turning_; }
+	BossTurning& GetTurning() { return turning_; }
+
+	// 死亡演出状態の取得・設定 
+	DeathEnemyState& GetDeathState() { return death_; }
+	void SetDeathState(const DeathEnemyState& state) { death_ = state; }
+
+	BossEnemyVfx* GetVfx() const { return vfx_.get(); }
+	void SetVfx(std::unique_ptr<BossEnemyVfx> vfx) { vfx_ = std::move(vfx); }
+
 public: /// ---------- ビヘイビアツリー用 ---------- ///
 
 	// HP 0 か？（死亡判定用）
@@ -216,6 +226,8 @@ private: /// ---------- メンバ変数 ---------- ///
 	FlashInfo flashInfo_;	 // ダメージフラッシュ情報
 	DeathEnemyState death_;  // 死亡演出状態
 	AppearState     appear_; // 登場演出状態
+
+	BossTurning turning_;
 
 	ContactRecord contactRecord_; // 接触記録
 

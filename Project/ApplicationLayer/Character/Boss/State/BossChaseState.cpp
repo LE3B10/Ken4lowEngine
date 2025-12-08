@@ -3,15 +3,6 @@
 #include <Player.h>
 #include <cmath>
 
-namespace
-{
-	// パラメータ
-	const float kWalkSpeed = 4.0f; // ふだんの追いかけ速度
-	const float kRushDistance = 8.0f; // この距離以上だと「遠い」
-	const float kRushFarTime = 1.0f; // 遠い状態が続いた時間で Rush 解禁
-	const float kMinDistance = 2.0f; // これ以上は近づかない（プレイヤーとの最小距離）
-}
-
 void BossChaseState::OnEnter(BossEnemy* boss)
 {
 	// 安全確認
@@ -23,6 +14,8 @@ void BossChaseState::OnEnter(BossEnemy* boss)
 BehaviorStatus BossChaseState::Update(BossEnemy* boss, float deltaTime)
 {
 	Player* player = boss->GetPlayer();
+
+	const auto& turning = boss->GetTurning();
 
 	if (!player) return BehaviorStatus::Running;
 
@@ -49,10 +42,10 @@ BehaviorStatus BossChaseState::Update(BossEnemy* boss, float deltaTime)
 	boss->UpdateFacingDirection(moveDir, deltaTime);
 
 	// 歩きで追いかける（近づきすぎないようにクランプ）
-	if (dist > kMinDistance && dist > 0.001f)
+	if (dist > turning.chase.minDistance && dist > 0.001f)
 	{
-		float move = kWalkSpeed * deltaTime;
-		float excess = dist - kMinDistance; // ここまでなら近づいてOK
+		float move = turning.chase.walkSpeed * deltaTime;
+		float excess = dist - turning.chase.minDistance; // ここまでなら近づいてOK
 
 		if (move > excess) move = excess;
 
@@ -72,7 +65,7 @@ BehaviorStatus BossChaseState::Update(BossEnemy* boss, float deltaTime)
 
 	// 「遠い状態が続いている時間」を更新（Rush 用）
 	float farT = boss->GetFarFromPlayerTimer();
-	if (dist > kRushDistance)
+	if (dist > turning.chase.rushDistance)
 	{
 		farT += deltaTime;
 	}

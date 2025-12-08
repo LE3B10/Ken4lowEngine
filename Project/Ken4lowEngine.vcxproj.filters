@@ -544,6 +544,7 @@
     <ClCompile Include="EngineLayer\Colliders\WorldCollisionResolver.cpp">
       <Filter>EngineLayer\Colliders</Filter>
     </ClCompile>
+    <ClCompile Include="ApplicationLayer\Character\Boss\State\BossDeadState.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="EngineLayer\Math\MultipleStructs\AABB.h">
@@ -1197,6 +1198,8 @@
     <ClInclude Include="EngineLayer\Colliders\IDGenerator.h">
       <Filter>EngineLayer\Colliders</Filter>
     </ClInclude>
+    <ClInclude Include="ApplicationLayer\Character\Boss\BossTurning.h" />
+    <ClInclude Include="ApplicationLayer\Character\Boss\State\BossDeadState.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Resources\Shaders\PostEffect\FullScreen.hlsli">

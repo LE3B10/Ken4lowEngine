@@ -1,8 +1,9 @@
 #include "BossEnemy.h"
 #include "BossBehaviorTreeBuilder.h"
-#include "BossChaseState.h"  
-#include "BossRushState.h"   
-#include "BossSpinState.h"   
+#include "BossChaseState.h"
+#include "BossRushState.h"
+#include "BossSpinState.h"
+#include "BossDeadState.h"
 #include <CollisionTypeIdDef.h>
 #include <LinearInterpolation.h>
 #include <LevelObjectManager.h>
@@ -62,20 +63,9 @@ void BossEnemy::Initialize()
 /// -------------------------------------------------------------
 void BossEnemy::Update(float deltaTime)
 {
-	// すでに死亡演出中なら、ほかの行動はしない
-	if (state_ == State::Dead && death_.active)
+	if (state_ == State::Dead)
 	{
-		// 死亡アニメだけ更新
-		UpdateDeath(deltaTime);
-
-		if (vfx_)
-		{
-			vfx_->UpdateDeathEffect(GetCenterPosition(), death_.timer, death_.startBurstDone);
-		}
-
-		// コライダー位置だけは同期しておく（床とのめり込み防止など）
-		Collider::SetCenterPosition(GetCenterPosition());
-		BaseCharacter::Update(deltaTime);
+		attackState_->Update(this, deltaTime);
 		return;
 	}
 
@@ -301,70 +291,6 @@ void BossEnemy::ApplyColorToAll(const Vector4& color)
 }
 
 /// -------------------------------------------------------------
-///						死亡演出
-/// -------------------------------------------------------------
-void BossEnemy::UpdateDeath(float deltaTime)
-{
-	death_.timer += deltaTime;
-	const Vector3 gravity = { 0.0f, -9.8f * 3.0f, 0.0f };
-	const float   groundY = 0.5f; // 床の高さとして扱う
-
-	// 床で止めるためのラムダ
-	auto clampToGround = [&](WorldTransformEx& tr, GibMotion& gm)
-		{
-			if (tr.translate_.y < groundY)
-			{
-				tr.translate_.y = groundY;
-
-				// 下向きの速度は殺す
-				if (gm.velocity.y < 0.0f) gm.velocity.y = 0.0f;
-
-				// すこし摩擦っぽく減速＆回転減衰
-				gm.velocity.x *= 0.6f;
-				gm.velocity.z *= 0.6f;
-				gm.angularVelocity.x *= 0.5f;
-				gm.angularVelocity.y *= 0.5f;
-				gm.angularVelocity.z *= 0.5f;
-			}
-		};
-
-	// body も飛ばす
-	death_.bodyGib.velocity += gravity * deltaTime;
-	body_.transform.translate_ += death_.bodyGib.velocity * deltaTime;
-	body_.transform.rotate_ += death_.bodyGib.angularVelocity * deltaTime;
-	clampToGround(body_.transform, death_.bodyGib);
-
-	// --- パーツ ---
-	for (size_t i = 0; i < parts_.size() && i < death_.gibs.size(); ++i)
-	{
-		auto& part = parts_[i];
-		auto& gm = death_.gibs[i];
-
-		gm.velocity += gravity * deltaTime;
-		part.transform.translate_ += gm.velocity * deltaTime;
-		part.transform.rotate_ += gm.angularVelocity * deltaTime;
-
-		clampToGround(part.transform, gm);
-	}
-
-	// 終了判定
-	if (death_.timer >= death_.duration)
-	{
-		// 一応完全に止めておく（この後は UpdateDeath 呼ばれないけど保険）
-		death_.active = false;
-		death_.finished = true;
-
-		death_.bodyGib.velocity = { 0.0f, 0.0f, 0.0f };
-		death_.bodyGib.angularVelocity = { 0.0f, 0.0f, 0.0f };
-		for (auto& gm : death_.gibs)
-		{
-			gm.velocity = { 0.0f, 0.0f, 0.0f };
-			gm.angularVelocity = { 0.0f, 0.0f, 0.0f };
-		}
-	}
-}
-
-/// -------------------------------------------------------------
 ///					移動方向に体の向きを合わせる
 /// -------------------------------------------------------------
 void BossEnemy::UpdateFacingDirection(const Vector3& moveDir, float deltaTime)
@@ -403,32 +329,33 @@ void BossEnemy::UpdateFacingDirection(const Vector3& moveDir, float deltaTime)
 /// -------------------------------------------------------------
 BossEnemy::AttackKind BossEnemy::DecideNextAttackKind()
 {
-	// プレイヤーがいないなら何もしない
 	if (!player_) return AttackKind::kNone;
-
-	// パラメータ（ChaseState と共有）
-	const float kRushDistance = 8.0f;   // この距離以上離れていると「遠い」
-	const float kRushFarTime = 1.0f;   // 遠い状態が続いた時間で Rush 解禁
-	const float kSpinRange = 12.0f;   // これより近いと回転攻撃候補
-
-	// クールタイム中なら何もしない
 	if (attackCooldown_ > 0.0f) return AttackKind::kNone;
 
-	// 現在距離を計算
-	Vector3 bossPos = body_.transform.translate_;
-	Vector3 playerPos = player_->GetCenterPosition();
+	const auto& turning = GetTurning();
 
-	// XZ 平面の距離ベクトル
-	Vector3 toPlayer{ playerPos.x - bossPos.x, 0.0f, playerPos.z - bossPos.z };
+	// ChaseState と同じ閾値を参照
+	const float rushDistance = turning.chase.rushDistance;
+	const float rushFarTime = turning.chase.rushFarTime;
 
-	float distSq = toPlayer.x * toPlayer.x + toPlayer.z * toPlayer.z;
-	float dist = (distSq > 0.0f) ? std::sqrt(distSq) : 0.0f;
+	// 「Spinを出していい距離」：ひとまず hitRadius を流用（※後で分離推奨）
+	const float spinRange = turning.spin.hitRadius;
+
+	// 距離（XZ）
+	const Vector3 bossPos = body_.transform.translate_;
+	const Vector3 playerPos = player_->GetCenterPosition();
+	const Vector3 toPlayer{ playerPos.x - bossPos.x, 0.0f, playerPos.z - bossPos.z };
+
+	const float distSq = toPlayer.x * toPlayer.x + toPlayer.z * toPlayer.z;
+	const float spinRangeSq = spinRange * spinRange;
+	const float rushDistanceSq = rushDistance * rushDistance;
 
 	// 近距離なら回転攻撃を優先
-	if (dist <= kSpinRange)	return AttackKind::kSpinAttack;
+	if (distSq <= spinRangeSq) return AttackKind::kSpinAttack;
 
 	// 遠距離かつ、遠い状態が一定時間続いていたら突進
-	if (dist > kRushDistance && farFromPlayerTimer_ >= kRushFarTime) return AttackKind::kRush;
+	if (distSq > rushDistanceSq && farFromPlayerTimer_ >= rushFarTime)
+		return AttackKind::kRush;
 
 	return AttackKind::kNone;
 }
@@ -450,54 +377,10 @@ bool BossEnemy::IsDead() const
 /// -------------------------------------------------------------
 void BossEnemy::RequestDeadState()
 {
-	// すでに死亡状態なら何もしない
 	if (state_ == State::Dead) return;
 
-	state_ = State::Dead; // 死亡状態に遷移
-	death_.active = true; // 死亡演出開始
-
-	// とりあえず即終了にしておく（あとで分解演出をここに実装）
-	death_.finished = false;
-	death_.timer = 0.0f;
-
-	// 簡単な吹っ飛び設定（とりあえず体幹だけ）
-	death_.bodyGib.velocity = { 0.0f, 8.0f, 0.0f }; // 上方向へ
-	death_.bodyGib.angularVelocity = { 0.0f, 5.0f, 0.0f }; // Y軸回転
-
-	death_.gibs.clear();
-	death_.gibs.resize(parts_.size());
-
-	static thread_local std::mt19937 rng{ std::random_device{}() };
-	std::uniform_real_distribution<float> dirDist(-1.0f, 1.0f);
-	std::uniform_real_distribution<float> upDist(2.0f, 6.0f);
-	std::uniform_real_distribution<float> angDist(-6.0f, 6.0f);
-
-	for (size_t i = 0; i < parts_.size(); ++i)
-	{
-		auto& part = parts_[i];
-		GibMotion gm{};
-
-		// ランダム速度
-		Vector3 dir{ dirDist(rng), 0.0f, dirDist(rng) };
-		if (Vector3::Length(dir) < 0.001f) dir = { 0.0f, 0.0f, 1.0f };
-		dir = Vector3::Normalize(dir);
-		gm.velocity = dir * 3.0f;
-		gm.velocity.y += upDist(rng);
-		gm.angularVelocity = { angDist(rng), angDist(rng), angDist(rng) };
-		death_.gibs[i] = gm;
-
-		// 今までの translate_ は body からのローカル位置なので、
-		// 親を外す前に「ワールド位置」に焼き直す
-		Vector3 worldPos = part.transform.translate_;
-		if (part.transform.parent_ == &body_.transform) {
-			worldPos += body_.transform.translate_;
-		}
-
-		part.transform.parent_ = nullptr;
-		part.transform.translate_ = worldPos;
-	}
-
-	death_.startBurstDone = false;
+	state_ = State::Dead;
+	ChangeAttackState(AttackKind::kDead); // ここでDeadState生成→OnEnterが走る
 }
 
 /// -------------------------------------------------------------
@@ -583,6 +466,12 @@ void BossEnemy::ChangeAttackState(AttackKind nextKind)
 	// 新しいステートを生成
 	switch (nextKind)
 	{
+	case AttackKind::kNone:
+	default:
+		// 待機・追尾状態
+		attackState_ = std::make_unique<BossChaseState>();
+		break;
+
 	case AttackKind::kRush:
 		attackState_ = std::make_unique<BossRushState>();
 		break;
@@ -591,10 +480,8 @@ void BossEnemy::ChangeAttackState(AttackKind nextKind)
 		attackState_ = std::make_unique<BossSpinState>();
 		break;
 
-	case AttackKind::kNone:
-	default:
-		// 待機・追尾状態
-		attackState_ = std::make_unique<BossChaseState>();
+	case AttackKind::kDead:
+		attackState_ = std::make_unique<BossDeadState>();
 		break;
 	}
 

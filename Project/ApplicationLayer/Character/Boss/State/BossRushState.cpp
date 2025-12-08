@@ -5,24 +5,16 @@
 #include <LinearInterpolation.h>
 #include <cmath>
 
-namespace
-{
-	// Rush 用パラメータ
-	const float kRushDuration = 2.0f;	 // 全体時間
-	const float kRushChargeTime = 0.5f;  // 溜め時間
-	const float kRushSpeed = 250.0f;	 // 最大速度
-	const float kRushCooldown = 3.0f;	 // 終了後クールタイム
-}
-
 void BossRushState::OnEnter(BossEnemy* boss)
 {
-	elapsed_ = 0.0f;
-
 	// 方向決定（開始時のプレイヤー位置を見る）
 	Player* player = boss->GetPlayer();
 	Vector3 bossPos = boss->GetPosition();
+	const auto& turning = boss->GetTurning();
 
-	float keepDistance = -10.0f; // プレイヤーを通り過ぎるようにする距離調整
+	elapsed_ = 0.0f;
+	moved_ = 0.0f;
+	const float keepDistance = turning.rush.keepDistance;
 
 	if (player)
 	{
@@ -59,9 +51,10 @@ void BossRushState::OnEnter(BossEnemy* boss)
 
 BehaviorStatus BossRushState::Update(BossEnemy* boss, float deltaTime)
 {
+	const auto& turning = boss->GetTurning();
 	elapsed_ += deltaTime;
 
-	if (elapsed_ < kRushChargeTime)
+	if (elapsed_ < turning.rush.chargeTime)
 	{
 		// 溜め中：向きだけキープ
 		boss->UpdateFacingDirection(dir_, deltaTime);
@@ -69,15 +62,15 @@ BehaviorStatus BossRushState::Update(BossEnemy* boss, float deltaTime)
 	else
 	{
 		// Rush フェーズ
-		const float rushPhaseDuration = kRushDuration - kRushChargeTime;
-		float rushTime = elapsed_ - kRushChargeTime;
+		const float rushPhaseDuration = turning.rush.duration - turning.rush.chargeTime;
+		float rushTime = elapsed_ - turning.rush.chargeTime;
 		rushTime = std::clamp(rushTime, 0.0f, rushPhaseDuration);
 
 		float t = (rushPhaseDuration > 0.0f) ? (rushTime / rushPhaseDuration) : 1.0f;
 
 		// 加速→減速のカーブ
 		float speedScale = EaseInOutQuad(t);
-		float speed = kRushSpeed * speedScale;
+		float speed = turning.rush.speed * speedScale;
 
 		// 移動距離制限
 		float step = speed * deltaTime;
@@ -104,9 +97,9 @@ BehaviorStatus BossRushState::Update(BossEnemy* boss, float deltaTime)
 	}
 
 	// 終了判定（時間 or 距離を走り切ったあと）
-	if (elapsed_ >= kRushDuration || moved_ >= moveDistance_)
+	if (elapsed_ >= turning.rush.duration || moved_ >= moveDistance_)
 	{
-		boss->SetAttackCooldown(kRushCooldown);
+		boss->SetAttackCooldown(turning.rush.cooldown);
 		boss->SetFarFromPlayerTimer(0.0f);
 
 		OutputDebugStringA("BossRushState::End\n");
