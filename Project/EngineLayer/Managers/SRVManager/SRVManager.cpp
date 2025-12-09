@@ -56,7 +56,7 @@ void SRVManager::Finalize()
 
 	// 管理状態（再初期化できるように戻す）
 	descriptorSize = 0;
-	useIndex = 0;
+	useIndex = 1;
 	while (!freeIndices.empty()) { freeIndices.pop(); }
 
 	// メンバ変数のクリア

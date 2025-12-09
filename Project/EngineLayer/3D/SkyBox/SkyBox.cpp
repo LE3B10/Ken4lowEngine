@@ -12,13 +12,15 @@
 /// -------------------------------------------------------------
 void SkyBox::Initialize(const std::string& filePath)
 {
-	TextureManager::GetInstance()->LoadTexture(filePath);
+	dxCommon_ = DirectXCommon::GetInstance();
 
 	camera_ = Object3DCommon::GetInstance()->GetDefaultCamera();
 
-	dxCommon_ = DirectXCommon::GetInstance();
+	// テクスチャの読み込み
+	TextureManager::GetInstance()->LoadTexture(filePath);
 
-	gpuHandle_ = TextureManager::GetInstance()->GetSrvHandleGPU(filePath);
+	// テクスチャのSRV用GPUハンドルを取得
+	textureIndex_ = TextureManager::GetInstance()->GetSrvIndex(filePath);
 
 	worldTransform_.scale_ = { 1000.0f, 1000.0f, 1000.0f };
 	worldTransform_.rotate_ = { 0.0f, 0.0f, 0.0f };
@@ -85,14 +87,14 @@ void SkyBox::Draw()
 
 	SkyBoxManager::GetInstance()->SetRenderSetting();
 
+	// マテリアルデータの更新
+	materialData_->textureIndex = textureIndex_;
+
 	// 頂点バッファの設定
 	commandList->IASetVertexBuffers(0, 1, &vertexBufferView); // スプライト用VBV
 	commandList->IASetIndexBuffer(&indexBufferView); // IBVの設定
 	commandList->SetGraphicsRootConstantBufferView(0, materialResource.Get()->GetGPUVirtualAddress());
 	commandList->SetGraphicsRootConstantBufferView(1, wvpResource->GetGPUVirtualAddress());
-
-	// ディスクリプタテーブルの設定
-	TextureManager::GetInstance()->SetGraphicsRootDescriptorTable(commandList, 2, gpuHandle_);
 
 	// プリミティブ形状の設定（三角形リスト）
 	commandList->DrawIndexedInstanced(kNumVertex, 1, 0, 0, 0);
@@ -111,6 +113,7 @@ void SkyBox::InitializeMaterial()
 
 	materialData_->color = { 1.0f, 1.0f, 1.0f, 1.0f };
 	materialData_->uvTransform = Matrix4x4::MakeIdentity();
+	materialData_->textureIndex = textureIndex_;
 }
 
 

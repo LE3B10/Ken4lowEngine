@@ -2,8 +2,9 @@
 
 struct Material
 {
-    float4 color;
-    float4x4 uvTransform;
+    float4 color; // マテリアルカラー
+    float4x4 uvTransform; // UV変換行列
+    uint textureIndex; // 使用するテクスチャのインデックス
 };
 
 struct ReloadProgress
@@ -17,10 +18,13 @@ struct PixelShaderOutput
     float4 color : SV_TARGET0;
 };
 
+// 使用するテクスチャの最大数 : SRV配列のサイズに依存
+static const uint textureCount = 1024;
+
 ConstantBuffer<Material> gMaterial : register(b0);
 ConstantBuffer<ReloadProgress> gReloadProgress : register(b1);
 
-Texture2D<float4> gTexture : register(t0);
+Texture2D<float4> gTexture[textureCount] : register(t0);
 SamplerState gSampler : register(s0);
 
 PixelShaderOutput main(VertexShaderOutput input)
@@ -29,7 +33,7 @@ PixelShaderOutput main(VertexShaderOutput input)
 
     // 通常のUV変換とテクスチャ取得
     float4 transformedUV = mul(float4(input.texcoord, 0, 1), gMaterial.uvTransform);
-    float4 texColor = gTexture.Sample(gSampler, transformedUV.xy);
+    float4 texColor = gTexture[gMaterial.textureIndex].Sample(gSampler, transformedUV.xy);
 
     // デフォルトの最終色（通常表示）
     output.color = texColor * gMaterial.color;

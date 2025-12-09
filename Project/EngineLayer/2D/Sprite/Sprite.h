@@ -29,6 +29,7 @@ private: /// ---------- 構造体　----------- ///
 	{
 		Vector4 color;		   // 色(RGBA)
 		Matrix4x4 uvTransform; // UV変換行列
+		uint32_t textureIndex; // テクスチャインデックス
 		float padding[3];	   // パディング
 	};
 
@@ -45,6 +46,8 @@ private: /// ---------- 構造体　----------- ///
 		Matrix4x4 WVP;	 // ワールドビュー射影変換行列
 		Matrix4x4 World; // ワールド変換行列
 	};
+
+private: /// ---------- ゲーム用の構造体 ---------- ///
 
 	// リロード進捗の構造体
 	struct ReloadProgress
@@ -150,6 +153,8 @@ public: /// ---------- ゲッター ---------- ///
 	/// </summary>
 	/// <returns>サイズ (width, height)。</returns>
 	const Vector2& GetTextureSize() { return textureSize_; }
+
+	const uint32_t GetTextureIndex() const { return materialData->textureIndex; }
 
 public: /// ---------- セッター ---------- ///
 
@@ -301,7 +306,11 @@ private: /// ---------- メンバ変数 ---------- ///
 	// テクスチャ番号
 	D3D12_GPU_DESCRIPTOR_HANDLE gpuHandle_{};
 
+	// テクスチャファイルのパス
 	std::string filePath_;
+
+	// テクスチャインデックス
+	uint32_t textureIndex_ = 0;
 
 private: /// ---------- メンバ変数 ---------- ///
 

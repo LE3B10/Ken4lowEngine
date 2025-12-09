@@ -544,7 +544,12 @@
     <ClCompile Include="EngineLayer\Colliders\WorldCollisionResolver.cpp">
       <Filter>EngineLayer\Colliders</Filter>
     </ClCompile>
-    <ClCompile Include="ApplicationLayer\Character\Boss\State\BossDeadState.cpp" />
+    <ClCompile Include="ApplicationLayer\Character\Boss\State\BossDeadState.cpp">
+      <Filter>ApplicationLayer\Character\Boss\State</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\Scene\DebugScene\DebugScene.cpp">
+      <Filter>ApplicationLayer\Scene\DebugScene</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="EngineLayer\Math\MultipleStructs\AABB.h">
@@ -1198,8 +1203,15 @@
     <ClInclude Include="EngineLayer\Colliders\IDGenerator.h">
       <Filter>EngineLayer\Colliders</Filter>
     </ClInclude>
-    <ClInclude Include="ApplicationLayer\Character\Boss\BossTurning.h" />
-    <ClInclude Include="ApplicationLayer\Character\Boss\State\BossDeadState.h" />
+    <ClInclude Include="ApplicationLayer\Character\Boss\State\BossDeadState.h">
+      <Filter>ApplicationLayer\Character\Boss\State</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Character\Boss\BossTurning.h">
+      <Filter>ApplicationLayer\Character\Boss\State</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Scene\DebugScene\DebugScene.h">
+      <Filter>ApplicationLayer\Scene\DebugScene</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="Resources\Shaders\PostEffect\FullScreen.hlsli">
@@ -1635,6 +1647,9 @@
     </Filter>
     <Filter Include="EngineLayer\Colliders">
       <UniqueIdentifier>{6041bdf3-208c-40a4-8d98-c134efb4a3cb}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ApplicationLayer\Scene\DebugScene">
+      <UniqueIdentifier>{aca779c2-4030-4199-8102-ea3e7cd9fbc1}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

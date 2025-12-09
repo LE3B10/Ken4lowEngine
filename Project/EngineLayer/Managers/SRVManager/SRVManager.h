@@ -156,7 +156,7 @@ private: /// ---------- メンバ変数 ---------- ///
 	ComPtr<ID3D12DescriptorHeap> descriptorHeap_;
 
 	// 次に使用するSRVインデックス
-	uint32_t useIndex = 0;
+	uint32_t useIndex = 1;
 
 	// スレッドセーフ用
 	std::mutex allocationMutex;

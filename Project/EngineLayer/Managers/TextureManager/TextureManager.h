@@ -102,6 +102,10 @@ public: /// ---------- メンバ関数 ---------- ///
 	/// <param name="filePath">再読み込みするテクスチャファイルのパス</param>
 	void ReloadTexture(const std::string& filePath);
 
+	// TextureManager.h
+	void CreateSolidColorTexture(const std::string& key, uint8_t r, uint8_t g, uint8_t b, uint8_t a,
+		uint32_t width = 64, uint32_t height = 64);
+
 public:	/// ---------- セッタ－	---------- ///
 
 	/// <summary>

@@ -29,6 +29,7 @@ private: /// ---------- 構造体 ---------- ///
 	{
 		Vector4 color;
 		Matrix4x4 uvTransform;
+		uint32_t textureIndex;
 		float padding[3];
 	};
 
@@ -160,5 +161,8 @@ private: /// ---------- メンバ変数 ---------- ///
 	Matrix4x4 viewProjectionMatrix_;
 	Matrix4x4 debugViewProjectionMatrix_;
 	bool isDebugCamera_ = false;
+
+	// テクスチャインデックス
+	uint32_t textureIndex_ = 0;
 };
 

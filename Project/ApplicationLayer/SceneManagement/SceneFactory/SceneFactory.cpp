@@ -5,6 +5,7 @@
 #include "GameOverScene.h"
 #include "StageSelectScene.h"
 #include <PhysicalScene.h>
+#include "DebugScene.h"
 
 
 /// -------------------------------------------------------------
@@ -33,6 +34,9 @@ std::unique_ptr<BaseScene> SceneFactory::CreateScene(const std::string& sceneNam
 #ifdef _DEBUG
 	// 物理演算シーン
 	else if (sceneName == "PhysicalScene")		return std::make_unique<PhysicalScene>();
+
+	// デバッグシーン
+	else if (sceneName == "DebugScene")			return std::make_unique<DebugScene>();
 #endif // _DEBUG
 
 	// 不明なシーン名の場合は例外を投げる

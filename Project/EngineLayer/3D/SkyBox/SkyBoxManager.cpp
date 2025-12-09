@@ -3,6 +3,7 @@
 #include "LogString.h"
 #include "ShaderCompiler.h"
 #include <BlendStateFactory.h>
+#include <SRVManager.h>
 
 
 /// -------------------------------------------------------------
@@ -62,6 +63,10 @@ void SkyBoxManager::SetRenderSetting()
 	commandList->SetGraphicsRootSignature(rootSignature_.Get());
 	commandList->SetPipelineState(graphicsPipelineState_.Get());
 	commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+	// SRVヒープはこのパス開始時に1回だけ
+	SRVManager::GetInstance()->PreDraw();
+	SRVManager::GetInstance()->SetGraphicsRootDescriptorTable(2, 0);
 }
 
 
@@ -90,7 +95,7 @@ void SkyBoxManager::CreateRootSignature()
 	// DescriptorRangeの設定
 	D3D12_DESCRIPTOR_RANGE descriptorRange[1] = {};
 	descriptorRange[0].BaseShaderRegister = 0; // レジスタ番号
-	descriptorRange[0].NumDescriptors = 1;	   // ディスクリプタ数
+	descriptorRange[0].NumDescriptors = SRVManager::GetInstance()->GetkMaxSRVCount();	   // ディスクリプタ数
 	descriptorRange[0].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV; // SRVを使う
 	descriptorRange[0].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
 

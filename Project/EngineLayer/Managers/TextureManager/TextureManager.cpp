@@ -287,15 +287,72 @@ void TextureManager::ReloadTexture(const std::string& filePath)
 	LoadTexture(filePath);
 }
 
+void TextureManager::CreateSolidColorTexture(const std::string& key, uint8_t r, uint8_t g, uint8_t b, uint8_t a, uint32_t width, uint32_t height)
+{
+	std::string filePathStr = NormalizeTexturePath(key);
+
+	// 既に生成済みなら何もしない（LoadTextureと同じ思想）
+	if (textureDatas.contains(filePathStr)) return; 
+
+	// 1) ScratchImage を自作（RGBA8）
+	DirectX::ScratchImage baseImage{};
+	HRESULT hr = baseImage.Initialize2D(DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, width, height, 1, 1);
+	assert(SUCCEEDED(hr));
+
+	auto img = baseImage.GetImage(0, 0, 0);
+	for (uint32_t y = 0; y < height; ++y) {
+		uint8_t* row = img->pixels + y * img->rowPitch;
+		for (uint32_t x = 0; x < width; ++x) {
+			row[x * 4 + 0] = r;
+			row[x * 4 + 1] = g;
+			row[x * 4 + 2] = b;
+			row[x * 4 + 3] = a;
+		}
+	}
+
+	// 2) ミップ（64x64なら作れる。1x1にしたい場合は InitializeFromImage で回避）
+	DirectX::ScratchImage mipImages{};
+	if (width > 1 && height > 1) {
+		hr = DirectX::GenerateMipMaps(baseImage.GetImages(), baseImage.GetImageCount(),
+			baseImage.GetMetadata(), DirectX::TEX_FILTER_SRGB, 0, mipImages);
+		assert(SUCCEEDED(hr));
+	}
+	else {
+		hr = mipImages.InitializeFromImage(*baseImage.GetImages());
+		assert(SUCCEEDED(hr));
+	}
+
+	// 3) ここから下は「LoadTexture の後半」と同じ（SRV確保～CreateSRV）
+	TextureData& textureData = textureDatas[filePathStr];
+	textureData.metaData = mipImages.GetMetadata();
+	textureData.resource = CreateTextureResource(dxCommon_->GetDevice(), textureData.metaData);
+
+	ComPtr<ID3D12Resource> intermediateResource =
+		UploadTextureData(textureData.resource.Get(), mipImages,
+			dxCommon_->GetDevice(), dxCommon_->GetCommandManager()->GetCommandList());
+
+	dxCommon_->GetCommandManager()->ExecuteAndWait();
+
+	textureData.srvIndex = SRVManager::GetInstance()->Allocate();
+	textureData.srvHandleCPU = SRVManager::GetInstance()->GetCPUDescriptorHandle(textureData.srvIndex);
+	textureData.srvHandleGPU = SRVManager::GetInstance()->GetGPUDescriptorHandle(textureData.srvIndex);
+
+	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc{};
+	srvDesc.Format = textureData.metaData.format;
+	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+	srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+	srvDesc.Texture2D.MipLevels = UINT(textureData.metaData.mipLevels);
+
+	dxCommon_->GetDevice()->CreateShaderResourceView(
+		textureData.resource.Get(), &srvDesc, textureData.srvHandleCPU);
+}
+
 
 /// -------------------------------------------------------------
 ///					デスクリプタテーブルの設定
 /// -------------------------------------------------------------
 void TextureManager::SetGraphicsRootDescriptorTable(ID3D12GraphicsCommandList* commandList, UINT rootParameter, D3D12_GPU_DESCRIPTOR_HANDLE textureSRVHandleGPU)
 {
-	// ディスクリプタヒープの設定
-	SRVManager::GetInstance()->PreDraw();
-
 	// ディスクリプタテーブルの設定
 	commandList->SetGraphicsRootDescriptorTable(rootParameter, textureSRVHandleGPU);
 }

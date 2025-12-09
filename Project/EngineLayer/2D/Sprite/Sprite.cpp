@@ -13,9 +13,11 @@ void Sprite::Initialize(const std::string& filePath)
 
 	filePath_ = filePath;
 
+	// テクスチャの読み込み
 	TextureManager::GetInstance()->LoadTexture(filePath_);
 
-	gpuHandle_ = TextureManager::GetInstance()->GetSrvHandleGPU(filePath_);
+	// テクスチャのSRV用GPUハンドルを取得
+	textureIndex_ = TextureManager::GetInstance()->GetSrvIndex(filePath_);
 
 	// スプライトのインデックスバッファを作成および設定する
 	CreateIndexBuffer();
@@ -111,14 +113,14 @@ void Sprite::Draw()
 {
 	auto commandList = dxCommon_->GetCommandManager()->GetCommandList();
 
+	// スプライトが使うテクスチャ番号をシェーダーに渡す
+	materialData->textureIndex = textureIndex_;
+
 	commandList->IASetVertexBuffers(0, 1, &vertexBufferView); // スプライト用VBV
 	commandList->IASetIndexBuffer(&indexBufferView); // IBVの設定
 	commandList->SetGraphicsRootConstantBufferView(0, materialResource.Get()->GetGPUVirtualAddress()); // マテリアルリソースの設定
 	commandList->SetGraphicsRootConstantBufferView(1, reloadProgressResource.Get()->GetGPUVirtualAddress()); // リロード進捗リソースの設定
 	commandList->SetGraphicsRootConstantBufferView(2, transformationMatrixResource.Get()->GetGPUVirtualAddress()); // 座標変換行列リソースの設定
-
-	// ディスクリプタテーブルの設定
-	TextureManager::GetInstance()->SetGraphicsRootDescriptorTable(commandList, 3, gpuHandle_);
 
 	// 描画コマンド
 	commandList->DrawIndexedInstanced(kNumVertex, 1, 0, 0, 0);
@@ -133,7 +135,7 @@ void Sprite::Finalize()
 	transformationMatrixResource.Reset();
 	reloadProgressResource.Reset();
 
-	gpuHandle_ = {};
+	textureIndex_ = 0;
 
 	dxCommon_ = nullptr;
 }
@@ -147,7 +149,7 @@ void Sprite::SetTexture(const std::string& filePath)
 	filePath_ = filePath;
 
 	// テクスチャを読み込む
-	gpuHandle_ = TextureManager::GetInstance()->GetSrvHandleGPU(filePath_);
+	textureIndex_ = TextureManager::GetInstance()->GetSrvIndex(filePath_);
 }
 
 /// -------------------------------------------------------------
@@ -161,6 +163,7 @@ void Sprite::CreateMaterialResource()
 	//書き込むためのアドレスを取得
 	materialResource->Map(0, nullptr, reinterpret_cast<void**>(&materialData));
 	materialData->color = { 1.0f, 1.0f, 1.0f, 1.0f };
+	materialData->textureIndex = textureIndex_; // テクスチャインデックスを設定
 	//UVTramsform行列を単位行列で初期化(スプライト用)
 	materialData->uvTransform = Matrix4x4::MakeIdentity();
 }
