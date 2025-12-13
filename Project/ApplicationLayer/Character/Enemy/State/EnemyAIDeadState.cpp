@@ -20,6 +20,7 @@ void EnemyAIDeadState::Update(Enemy* enemy, float deltaTime)
 	using GibMotion = Enemy::GibMotion;
 	using FlashInfo = Enemy::FlashInfo;
 	using BodyPart = BaseCharacter::BodyPart;
+	auto* vfx_ = enemy->GetVfx();
 
 	BodyPart& body = enemy->GetBody();
 	std::vector<BodyPart>& parts = enemy->GetBodyParts();
@@ -30,9 +31,28 @@ void EnemyAIDeadState::Update(Enemy* enemy, float deltaTime)
 	float t = std::clamp(death.timer / death.duration, 0.0f, 1.0f);
 	const Vector3 gravity = { 0.0f, -9.8f * 3.0f, 0.0f };
 
+	auto ClampToFloorY = [](Vector3& pos, Vector3& vel, float floorY)
+		{
+			if (pos.y < floorY)
+			{
+				pos.y = floorY;
+				if (vel.y < 0.0f) vel.y = 0.0f;
+
+				// 着地したら横滑りも減らしたいなら（任意）
+				vel.x *= 0.92f;
+				vel.z *= 0.92f;
+			}
+		};
+
+	constexpr float kFloorY = 0.0f;
+
 	// body も飛ばす
 	death.bodyGib.velocity += gravity * deltaTime;
 	body.transform.translate_ += death.bodyGib.velocity * deltaTime;
+
+	// body 位置更新の直後に
+	ClampToFloorY(body.transform.translate_, death.bodyGib.velocity, kFloorY);
+
 	body.transform.rotate_ += death.bodyGib.angularVelocity * deltaTime;
 
 	for (size_t i = 0; i < parts.size() && i < death.gibs.size(); ++i)
@@ -42,6 +62,9 @@ void EnemyAIDeadState::Update(Enemy* enemy, float deltaTime)
 
 		gm.velocity += gravity * deltaTime;
 		part.transform.translate_ += gm.velocity * deltaTime;
+		// ループ内、part 位置更新の直後に
+		ClampToFloorY(part.transform.translate_, gm.velocity, kFloorY);
+
 		part.transform.rotate_ += gm.angularVelocity * deltaTime;
 
 		// だんだん消えていく（ディゾルブがあるならそこに繋ぐ）
@@ -55,6 +78,9 @@ void EnemyAIDeadState::Update(Enemy* enemy, float deltaTime)
 		death.finished = true;
 		enemy->SetActive(false);
 	}
+
+	// 死亡エフェクト更新
+	vfx_->UpdateDeathEffect(enemy->GetCenterPosition(), death.timer, death.startBurstDone);
 }
 
 void EnemyAIDeadState::Exit(Enemy* enemy)

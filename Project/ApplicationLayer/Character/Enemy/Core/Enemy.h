@@ -7,12 +7,14 @@
 #include <EnemyConfig.h>
 #include <EnemyType.h>
 #include <BehaviorTree.h>
+#include <BossEnemyVfx.h>
 
 #include <memory>
 
 /// ---------- 前方宣言 ---------- ///
 class Player;
 class LevelObjectManager;
+class GpuParticleManager;
 
 /// -------------------------------------------------------------
 ///					　敵キャラクタークラス
@@ -53,6 +55,8 @@ public: /// ---------- 構造体 ---------- ///
 		float duration = 1.2f;		 // 分解が終わるまでの時間
 		std::vector<GibMotion> gibs; // 各部位の分解運動データ
 		GibMotion bodyGib;			 // 体幹部位の分解運動データ
+
+		bool startBurstDone = false; // 死亡エフェクトの最初の爆発が起きたかどうか
 	};
 
 	// 攻撃情報構造体
@@ -199,6 +203,9 @@ public: /// ---------- アクセッサ ---------- ///
 	// レベルマネージャーを取得
 	LevelObjectManager* GetLevelObjectManager() const { return levelObjectManager_; }
 
+	BossEnemyVfx* GetVfx() const { return vfx_.get(); }
+	void SetVfx(std::unique_ptr<BossEnemyVfx> vfx) { vfx_ = std::move(vfx); }
+
 private: /// ---------- メンバ関数 ---------- ///
 
 	// ワールド衝突解決処理
@@ -245,11 +252,14 @@ private: /// ---------- メンバ関数 ---------- ///
 
 	Player* player_ = nullptr; // プレイヤーへのポインタ
 	LevelObjectManager* levelObjectManager_ = nullptr; // ステージコリジョン用
+	GpuParticleManager* gpuParticleManager_ = nullptr; // GPUパーティクルマネージャーへの参照
 
 	AIState currentStateId_ = AIState::Spawn;
 	std::unique_ptr<IEnemyAIState> currentState_ = nullptr;
 
 	std::unique_ptr<BehaviorTree> behaviorTree_;
+
+	std::unique_ptr<BossEnemyVfx> vfx_ = nullptr; // エフェクト管理
 
 	EnemyType type_{};    // 種類
 	EnemyConfig config_{}; // パラメータ

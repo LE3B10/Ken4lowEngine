@@ -8,6 +8,7 @@
 #include <LinearInterpolation.h>
 #include <LevelObjectManager.h>
 #include "WorldCollisionResolver.h"
+#include <GpuParticleManager.h>
 #include <Player.h>
 
 #include <random>
@@ -533,4 +534,3 @@ BehaviorStatus BossEnemy::UpdateRagePhase(float deltaTime)
 	// TODO: 激怒フェーズの行動（弾幕・レーザー・召喚など）をここに書く
 	return UpdateNormalPhase(deltaTime);
 }
-

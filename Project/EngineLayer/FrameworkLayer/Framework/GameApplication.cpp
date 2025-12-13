@@ -36,7 +36,7 @@ void GameApplication::Initialize()
 	SceneManager::GetInstance()->SetAbstractSceneFactory(std::move(sceneFactory));
 
 	// 最初のシーンを設定
-	SceneManager::GetInstance()->ChangeScene("TitleScene");
+	SceneManager::GetInstance()->ChangeScene("DebugScene");
 }
 
 
@@ -77,6 +77,7 @@ void GameApplication::Draw()
 	// 描画開始（バックバッファのクリア）
 	dxCommon_->BeginDraw();
 
+#ifdef USE_IMGUI
 	/// ---------- ImGuiフレーム開始 ---------- ///
 	ImGuiManager::GetInstance()->BeginFrame();
 
@@ -99,6 +100,7 @@ void GameApplication::Draw()
 
 	/// ---------- ImGuiフレーム終了 ---------- ///
 	ImGuiManager::GetInstance()->EndFrame();
+#endif // USE_IMGUI
 
 	//--------------------------------------------
 	// 1. オフスクリーンレンダリングの開始（3D用）
@@ -132,10 +134,12 @@ void GameApplication::Draw()
 	//--------------------------------------------
 	SceneManager::GetInstance()->Draw2DSprites();
 
+#ifdef USE_IMGUI
 	//--------------------------------------------
 	// 6. ImGui描画
 	//--------------------------------------------
 	ImGuiManager::GetInstance()->Draw();
+#endif // USE_IMGUI
 
 	//--------------------------------------------
 	// 7. 描画終了

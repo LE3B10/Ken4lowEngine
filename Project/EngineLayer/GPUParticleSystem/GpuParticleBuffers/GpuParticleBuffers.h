@@ -145,6 +145,9 @@ public: /// ---------- ゲッター ---------- ///
 	GpuEmitterCBData* GetEmitterCBData(uint32_t slot);
 	D3D12_GPU_VIRTUAL_ADDRESS GetEmitterCBAddress(uint32_t slot);
 
+	// デバッグカメラの有効化・無効化
+	void SetDebugCameraEnabled(bool enabled) { isDebugCamera_ = enabled; }
+
 private: /// ---------- 内部メンバ関数 ---------- ///
 
 	/// <summary>

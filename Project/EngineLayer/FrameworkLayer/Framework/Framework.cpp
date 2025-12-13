@@ -67,8 +67,10 @@ void Framework::Initialize()
 	// SRVマネージャーの初期化
 	SRVManager::GetInstance()->Initialize(dxCommon_);
 
+#ifdef USE_IMGUI
 	// ImGuiManagerの初期化
 	ImGuiManager::GetInstance()->Initialize(winApp_, dxCommon_);
+#endif // USE_IMGUI
 
 	// UAVマネージャーの初期化
 	UAVManager::GetInstance()->Initialize(dxCommon_);
@@ -94,7 +96,7 @@ void Framework::Initialize()
 	// デフォルトカメラの生成と初期化
 	defaultCamera_ = std::make_unique<Camera>();
 	defaultCamera_->SetRotate({ 0.3f,0.0f,0.0f });
-	defaultCamera_->SetTranslate({ 0.0f,15.0f,-50.0f });
+	defaultCamera_->SetTranslate({ 0.0f,10.0f,-20.0f });
 
 	// デフォルトカメラの設定
 	Object3DCommon::GetInstance()->SetDefaultCamera(defaultCamera_.get());
@@ -181,8 +183,10 @@ void Framework::Finalize()
 	// UAVManagerの終了処理
 	UAVManager::GetInstance()->Finalize();
 
+#ifdef USE_IMGUI
 	// ImGuiManagerの終了処理
 	ImGuiManager::GetInstance()->Finalize();
+#endif // USE_IMGUI
 
 	// SRVManagerの終了処理
 	SRVManager::GetInstance()->Finalize();

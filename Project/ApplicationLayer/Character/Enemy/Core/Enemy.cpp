@@ -12,6 +12,8 @@
 #include <EnemyAISpawnState.h>
 #include <EnemyBehaviorTreeBuilder.h>
 
+#include <GpuParticleManager.h>
+
 #include <AABB.h>                
 #include <cfloat>                // FLT_MAX
 #include <cmath>
@@ -44,6 +46,13 @@ void Enemy::Initialize()
 
 	// テクスチャの設定
 	BaseCharacter::ApplySkinToAllParts(skinTexturePath_);
+
+	// GPUパーティクルマネージャー取得
+	gpuParticleManager_ = GpuParticleManager::GetInstance();
+
+	// VFX初期化
+	vfx_ = std::make_unique<BossEnemyVfx>();
+	vfx_->Initialize(gpuParticleManager_, "");
 
 	float idleRad = wander_.idlePoseAngleDeg * std::numbers::pi_v<float> / 180.0f;
 	parts_[partIndices_.leftArm].transform.rotate_.x = idleRad;

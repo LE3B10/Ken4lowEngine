@@ -4,7 +4,6 @@
 #include "BossBehaviorTree.h"
 #include "IBossAttackState.h"
 
-#include "GpuParticleManager.h"
 #include "GpuParticleType.h"
 #include "BillboardMode.h"
 #include "BossEnemyVfx.h"
@@ -257,6 +256,6 @@ private: /// ---------- メンバ変数 ---------- ///
 	std::unique_ptr<BossEnemyVfx> vfx_;
 
 	// スキンテクスチャのパス
-	const std::string skinTexturePath_ = "zombie.png";
+	const std::string skinTexturePath_ = "zombie.png";	
 };
 

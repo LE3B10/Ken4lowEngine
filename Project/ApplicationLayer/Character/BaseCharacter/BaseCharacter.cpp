@@ -9,7 +9,7 @@ void BaseCharacter::Initialize()
 	// 体幹部位の初期化
 	body_.object = std::make_unique<Object3D>();
 	body_.object->Initialize("Character/body.gltf");
-	body_.transform.translate_ = { 0.0f, 2.5f, 0.0f };	// 初期位置
+	body_.transform.translate_ = { 0.0f, 2.25f, 0.0f };	// 初期位置
 
 	// 子オブジェクト（頭、腕、脚）をリストに追加
 	std::vector<std::pair<std::string, Vector3>> partData =
@@ -96,7 +96,7 @@ void BaseCharacter::UpdateHierarchy()
 Vector3 BaseCharacter::GetCenterPosition() const
 {
 	// ローカル座標でのオフセット
-	const Vector3 offset = { 0.0f,1.0f,0.0f };
+	const Vector3 offset = { 0.0f,0.0f,0.0f };
 	// ワールド座標に変換
 	Vector3 worldPosition = body_.transform.translate_ + offset;
 	return worldPosition;

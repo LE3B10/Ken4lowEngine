@@ -93,6 +93,9 @@ public: /// ---------- エミッター関連 ---------- ///
 	/// <param name="count">発生させるパーティクルの個数。</param>
 	void BurstEmitter(const std::string& name, uint32_t count);
 
+	// デバッグ用：デバッグカメラの有効／無効を切り替え
+	void SetDebugCameraEnabled(bool enabled) { gpuParticleBuffers_->SetDebugCameraEnabled(enabled); }
+
 private: /// ---------- ディスパッチ関数 ---------- ///
 
 	/// <summary>

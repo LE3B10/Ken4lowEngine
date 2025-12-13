@@ -1,9 +1,14 @@
 #pragma once
 #include "BaseScene.h"
 #include "Sprite.h"
+#include <Boss.h>
 
 #include <vector>
 #include <memory>
+
+/// ---------- 前方宣言 ---------- ///
+class DirectXCommon;
+class Input;
 
 /// -------------------------------------------------------------
 ///					　	デバッグシーン
@@ -30,25 +35,18 @@ public: /// ---------- メンバ関数 ---------- ///
 	// ImGui描画処理
 	void DrawImGui() override;
 
-private: /// ---------- 内部メンバ関数 ---------- ///
+private: /// ---------- メンバ関数 ---------- ///
 
-	void RebuildSprites_();
-	void BuildTextureListIfEmpty_();
+	// デバッグカメラの更新
+	void UpdateDebug();
 
 private: /// ---------- メンバ変数 ---------- ///
 
-	std::vector<std::unique_ptr<Sprite>> sprites_; // スプライトコンテナ
-	std::vector<std::string> texturePaths_;	  // テクスチャパスコンテナ
+	DirectXCommon* dxCommon_ = nullptr; // DirectXCommonのポインタ
+	Input* input_ = nullptr; // Inputのポインタ
 
-	int spriteCount_ = 1024;          // 描画枚数
-	int uniqueTextureCount_ = 1;      // 使うテクスチャ種類数（texturePaths_の先頭から使う）
-	Vector2 spriteSize_ = { 32.0f, 32.0f };
+	std::unique_ptr<Boss> boss_; // ボス
 
-	bool updateEveryFrame_ = false;   // trueにすると Update()で全スプライト更新（CPU負荷も増える）
-	bool rebuildRequested_ = true;
-
-	double lastDrawMs_ = 0.0;
-	double avgDrawMs_ = 0.0;
-	int avgCounter_ = 0;
+	bool isDebugCamera_ = false; // デバッグカメラ使用フラグ
 };
 

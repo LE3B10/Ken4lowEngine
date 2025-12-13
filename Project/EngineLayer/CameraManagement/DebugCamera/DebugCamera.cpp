@@ -18,7 +18,7 @@ DebugCamera* DebugCamera::GetInstance()
 void DebugCamera::Initialize()
 {
 	worldTransform_.Initialize();
-	worldTransform_.translate_ = { 0.0f,0.0f,-50.0f };
+	worldTransform_.translate_ = { 0.0f,0.0f,-20.0f };
 
 	fovY_ = 0.45f;
 	aspectRatio_ = float(WinApp::kClientWidth) / float(WinApp::kClientHeight);

@@ -10,6 +10,9 @@
 ///						線形補間を行う関数
 /// -------------------------------------------------------------
 
+// ---------- 度をラジアンに変換する関数 ---------- ///
+static float DegToRad(float deg) { return deg * std::numbers::pi_v<float> / 180.0f; }
+
 /// ---------- 線形補間を行う関数 ---------- ///
 inline float Lerp(float a, float b, float t) { return a + (b - a) * t; }
 
