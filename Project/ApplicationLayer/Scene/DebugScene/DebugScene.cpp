@@ -36,6 +36,10 @@ void DebugScene::Initialize()
 
 	boss_ = std::make_unique<Boss>();
 	boss_->Initialize();
+
+	object3D_ = std::make_unique<Object3D>();
+	object3D_->Initialize("cube.gltf");
+	object3D_->SetTextureForAll("AnimatedCube_BaseColor.dds");
 }
 
 void DebugScene::Update()
@@ -46,10 +50,14 @@ void DebugScene::Update()
 
 	// ボスの更新
 	boss_->Update(dxCommon_->GetFPSCounter().GetDeltaTime());
+
+	object3D_->Update();
 }
 
 void DebugScene::Draw3DObjects()
 {
+	object3D_->Draw();
+
 	boss_->Draw();
 
 #ifdef _DEBUG
@@ -60,11 +68,11 @@ void DebugScene::Draw3DObjects()
 
 void DebugScene::Draw2DSprites()
 {
-
 }
 
 void DebugScene::Finalize()
 {
+	object3D_.reset();
 	boss_.reset();
 
 	input_ = nullptr;

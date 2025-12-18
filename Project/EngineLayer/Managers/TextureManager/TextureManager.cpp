@@ -5,6 +5,9 @@
 #include "SRVManager.h"
 #include "ResourceManager.h"
 
+#include <algorithm>
+#include <cctype>
+
 #include <d3dx12.h>
 
 #pragma comment(lib, "d3d12.lib")        // Direct3D 12用
@@ -126,16 +129,13 @@ DirectX::ScratchImage TextureManager::LoadTextureData(const std::string& filePat
 	//テクスチャファイルを呼んでプログラムで扱えるようにする
 	DirectX::ScratchImage image{};
 	std::wstring filePathW = ConvertString(filePath);
+
+	// WIC形式（pngやjpgなど）として読み込む
 	HRESULT hr = DirectX::LoadFromWICFile(filePathW.c_str(), DirectX::WIC_FLAGS_FORCE_SRGB, nullptr, image);
 	assert(SUCCEEDED(hr));
 
-	//ミップマップの作成
-	DirectX::ScratchImage mipImages{};
-	hr = DirectX::GenerateMipMaps(image.GetImages(), image.GetImageCount(), image.GetMetadata(), DirectX::TEX_FILTER_SRGB, 0, mipImages);
-	assert(SUCCEEDED(hr));
-
 	//ミップマップ付きのデータを返す
-	return mipImages;
+	return image;
 }
 
 
@@ -155,87 +155,60 @@ void TextureManager::LoadTexture(const std::string& filePath)
 	DirectX::ScratchImage image{};
 	std::wstring filePathW = ConvertString(filePathStr);
 
+	const bool isDDS = filePathW.ends_with(L".dds");
+
 	// DDSの読み込み
-	if (filePathW.ends_with(L".dds"))
+	if (isDDS)
 	{
-		// .ddsで終わっていたらDDSとして読み込む
 		hr = DirectX::LoadFromDDSFile(filePathW.c_str(), DirectX::DDS_FLAGS_NONE, nullptr, image);
 		assert(SUCCEEDED(hr));
 	}
 	else
 	{
-		// WIC形式（pngやjpgなど）として読み込む
 		hr = DirectX::LoadFromWICFile(filePathW.c_str(), DirectX::WIC_FLAGS_FORCE_SRGB, nullptr, image);
 		assert(SUCCEEDED(hr));
 	}
 
-	// ミップマップの作成（ScratchImageに保持する）
-	DirectX::ScratchImage mipImages{};
-	//const auto& meta = image.GetMetadata(); // 読み込んだ画像のメタデータを取得
-	const auto& meta0 = image.GetMetadata(); // 最初の画像のメタデータを取得
+	// ただし、旧スキン系の正方化だけは「WIC読み込み時のみ」残す（DDSを加工するとDDS内ミップが崩れるため）
+	const auto& meta0 = image.GetMetadata();
+	const bool isLegacyTall = (!isDDS) && (meta0.width == meta0.height * 2);
 
-	// 旧スキン系：幅が高さの2倍 (64x32, 128x64, 256x128 ...)
-	const bool isLegacyTall = (meta0.width == meta0.height * 2);
+	DirectX::ScratchImage normalized{};
+	const DirectX::ScratchImage* uploadImage = &image;
 
-	// 正方ではないテクスチャなら、縦を倍にした空キャンパスへコピーして正方化
-	DirectX::ScratchImage normalized; // 正方化した画像を保持するScratchImage
 	if (isLegacyTall)
 	{
-		DirectX::TexMetadata metaData0 = meta0; // 最初の画像のメタデータを取得
-		metaData0.height = meta0.width; // 高さを幅に合わせて正方化
-		metaData0.mipLevels = 1; // ミップレベルは1に設定
-		metaData0.arraySize = 1; // 配列サイズは元のまま
+		DirectX::TexMetadata metaData0 = meta0;
+		metaData0.height = meta0.width; // 正方化
+		metaData0.mipLevels = 1;
+		metaData0.arraySize = 1;
 
-		// 64x64 128x128 ... の正方キャンパスを作成
 		hr = normalized.Initialize2D(metaData0.format, metaData0.width, metaData0.height, metaData0.arraySize, metaData0.mipLevels);
-		assert(SUCCEEDED(hr)); // 正方キャンパスの初期化に成功
-
-		// 元画像を正方キャンパスの上半分にコピー
-		const DirectX::Image* srcImage = image.GetImage(0, 0, 0); // 元画像の最初のイメージを取得
-		const DirectX::Image* destImage = normalized.GetImage(0, 0, 0); // 正方キャンパスの最初のイメージを取得
-
-		DirectX::Rect srcRect = { 0, 0, static_cast<size_t>(srcImage->width), static_cast<size_t>(srcImage->height) }; // 元画像のコピー元矩形
-
-		// コピー先のYオフセットを計算（正方キャンパスの上半分に配置）
-		hr = DirectX::CopyRectangle(*srcImage, srcRect, *destImage, DirectX::TEX_FILTER_DEFAULT, 0, UINT(srcImage->height)); // 元画像を正方キャンパスにコピー
-		assert(SUCCEEDED(hr)); // コピーに成功
-	}
-
-	DirectX::ScratchImage& baseImage = isLegacyTall ? normalized : image; // 正方化した画像か元画像かを選択
-	const auto& baseMeta = baseImage.GetMetadata(); // ベース画像のメタデータを取得
-
-	// ミップレベル数を画像サイズから自動算出
-	size_t maxMips = static_cast<size_t>(std::log2(std::max(baseMeta.width, baseMeta.height))) + 1;
-	size_t mipLevels = std::min(maxMips, size_t(4)); // 最大4ミップまで生成
-
-	if (DirectX::IsCompressed(baseMeta.format))
-	{
-		// 圧縮フォーマットならミップ生成せずそのまま使う
-		mipImages = std::move(baseImage);
-	}
-	else if (baseMeta.width > 1 && baseMeta.height > 1)
-	{
-		// 非圧縮かつ2x2以上ならミップマップを生成
-		hr = DirectX::GenerateMipMaps(baseImage.GetImages(), baseImage.GetImageCount(), baseMeta, DirectX::TEX_FILTER_SRGB, mipLevels, mipImages);
 		assert(SUCCEEDED(hr));
-	}
-	else
-	{
-		// 1x1などミップマップを生成できないサイズのときは、そのまま1レベルの画像として初期化
-		hr = mipImages.InitializeFromImage(*baseImage.GetImages()); // ← ここで参照渡し
+
+		const DirectX::Image* srcImage = image.GetImage(0, 0, 0);
+		const DirectX::Image* destImage = normalized.GetImage(0, 0, 0);
+
+		DirectX::Rect srcRect = { 0, 0, static_cast<size_t>(srcImage->width), static_cast<size_t>(srcImage->height) };
+
+		hr = DirectX::CopyRectangle(*srcImage, srcRect, *destImage, DirectX::TEX_FILTER_DEFAULT, 0, UINT(srcImage->height));
 		assert(SUCCEEDED(hr));
+
+		uploadImage = &normalized;
 	}
 
 	// 追加したテクスチャデータの参照を取得
 	TextureData& textureData = textureDatas[filePathStr];
 
-	// テクスチャリソースの生成
-	textureData.metaData = mipImages.GetMetadata();
+	// テクスチャリソースの生成（DDSならDDS内のmipLevelsがそのまま入る）
+	textureData.metaData = uploadImage->GetMetadata();
 	textureData.resource = CreateTextureResource(dxCommon_->GetDevice(), textureData.metaData);
 	textureData.resource->SetName(L"TextureResource");
 
-	// 中間リソースにデータを転送
-	ComPtr<ID3D12Resource> intermediateResource = UploadTextureData(textureData.resource.Get(), mipImages, dxCommon_->GetDevice(), dxCommon_->GetCommandManager()->GetCommandList());
+	// 中間リソースにデータを転送（uploadImage の中身をそのまま上げる）
+	ComPtr<ID3D12Resource> intermediateResource =
+		UploadTextureData(textureData.resource.Get(), *uploadImage,
+			dxCommon_->GetDevice(), dxCommon_->GetCommandManager()->GetCommandList());
 
 	// コマンドを実行し完了まで待機
 	dxCommon_->GetCommandManager()->ExecuteAndWait();
@@ -252,7 +225,6 @@ void TextureManager::LoadTexture(const std::string& filePath)
 
 	if (textureData.metaData.IsCubemap())
 	{
-		// キューブマップとして扱う場合
 		srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURECUBE;
 		srvDesc.TextureCube.MostDetailedMip = 0;
 		srvDesc.TextureCube.MipLevels = UINT_MAX;
@@ -260,7 +232,6 @@ void TextureManager::LoadTexture(const std::string& filePath)
 	}
 	else
 	{
-		// 通常の2Dテクスチャ
 		srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
 		srvDesc.Texture2D.MipLevels = UINT(textureData.metaData.mipLevels);
 	}
@@ -275,26 +246,25 @@ void TextureManager::LoadTexture(const std::string& filePath)
 /// -------------------------------------------------------------
 void TextureManager::ReloadTexture(const std::string& filePath)
 {
-	// 既存テクスチャが存在する場合、古いリソースを解放
-	auto it = textureDatas.find(filePath);
+	std::string key = NormalizeTexturePath(filePath);
+
+	auto it = textureDatas.find(key);
 	if (it != textureDatas.end())
 	{
 		SRVManager::GetInstance()->Free(it->second.srvIndex);
 		it->second.resource.Reset();
+		textureDatas.erase(it);
 	}
 
-	// 新しいテクスチャを読み込む
-	LoadTexture(filePath);
+	LoadTexture(key); // keyはすでに正規化済み
 }
 
 void TextureManager::CreateSolidColorTexture(const std::string& key, uint8_t r, uint8_t g, uint8_t b, uint8_t a, uint32_t width, uint32_t height)
 {
 	std::string filePathStr = NormalizeTexturePath(key);
 
-	// 既に生成済みなら何もしない（LoadTextureと同じ思想）
-	if (textureDatas.contains(filePathStr)) return; 
+	if (textureDatas.contains(filePathStr)) return;
 
-	// 1) ScratchImage を自作（RGBA8）
 	DirectX::ScratchImage baseImage{};
 	HRESULT hr = baseImage.Initialize2D(DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, width, height, 1, 1);
 	assert(SUCCEEDED(hr));
@@ -310,25 +280,12 @@ void TextureManager::CreateSolidColorTexture(const std::string& key, uint8_t r, 
 		}
 	}
 
-	// 2) ミップ（64x64なら作れる。1x1にしたい場合は InitializeFromImage で回避）
-	DirectX::ScratchImage mipImages{};
-	if (width > 1 && height > 1) {
-		hr = DirectX::GenerateMipMaps(baseImage.GetImages(), baseImage.GetImageCount(),
-			baseImage.GetMetadata(), DirectX::TEX_FILTER_SRGB, 0, mipImages);
-		assert(SUCCEEDED(hr));
-	}
-	else {
-		hr = mipImages.InitializeFromImage(*baseImage.GetImages());
-		assert(SUCCEEDED(hr));
-	}
-
-	// 3) ここから下は「LoadTexture の後半」と同じ（SRV確保～CreateSRV）
 	TextureData& textureData = textureDatas[filePathStr];
-	textureData.metaData = mipImages.GetMetadata();
+	textureData.metaData = baseImage.GetMetadata();
 	textureData.resource = CreateTextureResource(dxCommon_->GetDevice(), textureData.metaData);
 
 	ComPtr<ID3D12Resource> intermediateResource =
-		UploadTextureData(textureData.resource.Get(), mipImages,
+		UploadTextureData(textureData.resource.Get(), baseImage,
 			dxCommon_->GetDevice(), dxCommon_->GetCommandManager()->GetCommandList());
 
 	dxCommon_->GetCommandManager()->ExecuteAndWait();
@@ -377,30 +334,33 @@ uint32_t TextureManager::GetTextureIndexByFilePath(const std::string& filePath)
 /// -------------------------------------------------------------
 D3D12_GPU_DESCRIPTOR_HANDLE TextureManager::GetSrvHandleGPU(const std::string& filePath)
 {
-	std::string filePathStr = NormalizeTexturePath(filePath);
+	std::string key = NormalizeTexturePath(filePath);
 
-	// 範囲外指定違反チェック
-	assert(textureDatas.find(filePathStr) != textureDatas.end()); // テクスチャ番号が正常範囲内である
+	auto it = textureDatas.find(key);
+	if (it == textureDatas.end())
+	{
+		// まだならロードしてみる
+		LoadTexture(filePath);
+		it = textureDatas.find(key);
+	}
 
-	// テクスチャデータの参照を取得
-	TextureData& textureData = textureDatas[filePathStr];
-
-	// GPUハンドルを返す
-	return textureData.srvHandleGPU;
+	assert(it != textureDatas.end());
+	return it->second.srvHandleGPU;
 }
 
 uint32_t TextureManager::GetSrvIndex(const std::string& filePath)
 {
-	std::string filePathStr = NormalizeTexturePath(filePath);
+	std::string key = NormalizeTexturePath(filePath);
 
-	// 範囲外指定違反チェック
-	assert(textureDatas.find(filePathStr) != textureDatas.end()); // テクスチャ番号が正常範囲内である
+	auto it = textureDatas.find(key);
+	if (it == textureDatas.end())
+	{
+		LoadTexture(filePath);
+		it = textureDatas.find(key);
+	}
 
-	// テクスチャデータの参照を取得
-	TextureData& textureData = textureDatas[filePathStr];
-
-	// GPUハンドルを返す
-	return textureData.srvIndex;
+	assert(it != textureDatas.end());
+	return it->second.srvIndex;
 }
 
 
@@ -429,3 +389,30 @@ ID3D12Resource* TextureManager::GetResource(const std::string& filePath)
 	return it->second.resource.Get();                 // ID3D12Resource* を返す
 }
 
+std::string TextureManager::NormalizeTexturePath(const std::string& filePath)
+{
+	std::string path = filePath;
+
+	// 区切りを統一（Assimp由来の \ 対策）
+	std::replace(path.begin(), path.end(), '\\', '/');
+
+	// 先頭の "./" を消す（あれば）
+	if (path.rfind("./", 0) == 0) {
+		path.erase(0, 2);
+	}
+
+	// 絶対パス（例: C:/...）はそのまま返す
+	if (path.size() >= 2 &&
+		std::isalpha(static_cast<unsigned char>(path[0])) &&
+		path[1] == ':')
+	{
+		return path;
+	}
+
+	// すでに prefix 済みならそのまま
+	if (path.rfind("Resources/Textures/", 0) == 0) {
+		return path;
+	}
+
+	return "Resources/Textures/" + path;
+}

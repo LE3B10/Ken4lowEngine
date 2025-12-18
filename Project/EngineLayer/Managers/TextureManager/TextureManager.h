@@ -169,12 +169,8 @@ private: /// ---------- メンバ関数 ---------- ///
 	/// </summary>
 	/// <param name="filePath">元のファイルパス</param>
 	/// <returns>正規化されたファイルパス</returns>
-	std::string NormalizeTexturePath(const std::string& filePath)
-	{
-		if (filePath.starts_with("Resources/Textures/")) return filePath;
-		return "Resources/Textures/" + filePath;
-	}
-
+	std::string NormalizeTexturePath(const std::string& filePath);
+	
 private: /// ---------- メンバ変数 ---------- ///
 
 	// DirectXCommonのポインタ

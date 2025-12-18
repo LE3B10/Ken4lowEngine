@@ -3,6 +3,11 @@
 #include "Sprite.h"
 #include <Boss.h>
 
+#include <Sprite.h>
+#include <Object3D.h>
+#include <SkyBox.h>
+
+
 #include <vector>
 #include <memory>
 
@@ -46,6 +51,10 @@ private: /// ---------- メンバ変数 ---------- ///
 	Input* input_ = nullptr; // Inputのポインタ
 
 	std::unique_ptr<Boss> boss_; // ボス
+
+	std::unique_ptr<Sprite> sprite_; // スプライト
+	std::unique_ptr<Object3D> object3D_; // 3Dオブジェクト
+	std::unique_ptr<SkyBox> skyBox_; // スカイボックス
 
 	bool isDebugCamera_ = false; // デバッグカメラ使用フラグ
 };

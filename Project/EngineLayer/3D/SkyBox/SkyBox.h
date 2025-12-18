@@ -101,6 +101,12 @@ public: /// ---------- メンバ関数 ---------- ///
 	/// <returns>SRV の GPU ディスクリプタハンドル。</returns>
 	D3D12_GPU_DESCRIPTOR_HANDLE GetEnvironmentMapHandle() const { return gpuHandle_; }
 
+public: /// ---------- アクセッサ ---------- ///
+
+	// 座標を取得 : 設定
+	WorldTransform& GetWorldTransform() { return worldTransform_; }
+	void SetWorldTransform(const WorldTransform& worldTransform) { worldTransform_ = worldTransform; }
+
 private: /// ---------- 内部メンバ関数 ---------- ///
 
 	/// <summary>
