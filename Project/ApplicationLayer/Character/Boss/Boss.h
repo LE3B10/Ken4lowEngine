@@ -1,6 +1,5 @@
 #pragma once
 #include "BaseCharacter.h"
-#include <Object3D.h>
 #include <BossConfig.h>
 #include "IBossAttack.h"
 
@@ -119,6 +118,7 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	std::unique_ptr<IBossAttack> vineSweepAttack_;  // ツタ薙ぎ払い攻撃
 	std::unique_ptr<IBossAttack> seedMortarAttack_; // 種子迫撃攻撃
+	std::unique_ptr<IBossAttack> rootCageAttack_;   // 根っこ突き上げ攻撃
 
 #ifdef USE_IMGUI
 	bool debugStartVineSweep_ = false;
@@ -131,6 +131,9 @@ private: /// ---------- メンバ変数 ---------- ///
 	bool  debugPlayerInSector_ = false;
 	int   debugHitCount_ = 0;
 	float debugHitFlash_ = 0.0f;   // HIT表示を出す秒数
+
+	// 根っこ檻の見える化
+	bool debugStartRootCage_ = false;
 
 	// 角度・補間の見える化
 	float debugStartYaw_ = 0.0f;

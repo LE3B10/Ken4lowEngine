@@ -5,6 +5,7 @@
 
 #include "VineSweepAttack.h"
 #include "SeedMortarAttack.h"
+#include "RootCageAttack.h"
 
 #ifdef _DEBUG
 #include <Wireframe.h>
@@ -29,6 +30,9 @@ void Boss::Initialize()
 
 	seedMortarAttack_ = std::make_unique<SeedMortarAttack>();
 	seedMortarAttack_->Initialize();
+
+	rootCageAttack_ = std::make_unique<RootCageAttack>();
+	rootCageAttack_->Initialize();
 }
 
 void Boss::Update(float deltaTime)
@@ -59,6 +63,19 @@ void Boss::Update(float deltaTime)
 		seedMortarAttack_->Update(this, deltaTime, bossYawRad, playerPos);
 	}
 
+	if (rootCageAttack_)
+	{
+		rootCageAttack_->Update(this, deltaTime, bossYawRad, playerPos);
+
+#ifdef USE_IMGUI
+		if (debugStartRootCage_)
+		{
+			rootCageAttack_->Attack();
+			debugStartRootCage_ = false;
+		}
+#endif
+	}
+
 	// 基底更新
 	BaseCharacter::Update(deltaTime);
 }
@@ -72,6 +89,9 @@ void Boss::Draw()
 
 	// 種子迫撃攻撃描画
 	if (seedMortarAttack_) seedMortarAttack_->Draw();
+
+	// 根っこ突き上げ攻撃描画
+	if (rootCageAttack_) { rootCageAttack_->Draw(); }
 
 #ifdef _DEBUG
 
@@ -101,9 +121,8 @@ void Boss::DrawImGui()
 	{
 		ImGui::Separator();
 		if (ImGui::CollapsingHeader(vineSweepAttack_->GetName(), ImGuiTreeNodeFlags_DefaultOpen))
-		{
 			vineSweepAttack_->DrawImGui(*this); // ← 中身だけ描いてもらう
-		}
+
 	}
 
 	// 攻撃（種子迫撃）
@@ -111,9 +130,15 @@ void Boss::DrawImGui()
 	{
 		ImGui::Separator();
 		if (ImGui::CollapsingHeader(seedMortarAttack_->GetName(), ImGuiTreeNodeFlags_DefaultOpen))
-		{
 			seedMortarAttack_->DrawImGui(*this); // ← 中身だけ描いてもらう
-		}
+
+	}
+
+	if (rootCageAttack_)
+	{
+		ImGui::Separator();
+		if (ImGui::CollapsingHeader(rootCageAttack_->GetName(), ImGuiTreeNodeFlags_DefaultOpen))
+			rootCageAttack_->DrawImGui(*this); // ← 中身だけ描いてもらう
 	}
 
 	ImGui::End();
