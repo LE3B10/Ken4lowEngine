@@ -29,51 +29,91 @@ void ParameterManager::CreateGroup(const std::string& groupName)
 void ParameterManager::Update()
 {
 #ifdef USE_IMGUI
-	// ImGuiウィンドウを開始
-	if (!ImGui::Begin("Global Variables", nullptr, ImGuiWindowFlags_MenuBar))
+	if (!ImGui::Begin("Parameters", nullptr, ImGuiWindowFlags_MenuBar))
 	{
 		ImGui::End();
 		return;
 	}
 
-	// メニューバーの開始
-	if (!ImGui::BeginMenuBar())
+	// --- Menu bar（必要なら） ---
+	if (ImGui::BeginMenuBar())
 	{
-		ImGui::EndMenuBar();
-		return;
-	}
-
-	// 全グループをループ
-	for (auto& [groupNames, group] : datas_)
-	{
-		// グループ名を表示し、展開可能なメニューを作成
-		if (!ImGui::BeginMenu(groupNames.c_str()))
-			continue;
-
-		if (ImGui::CollapsingHeader(groupNames.c_str()))
+		if (ImGui::BeginMenu("File"))
 		{
-			for (auto& [itemName, item] : group.items)
+			if (ImGui::MenuItem("Save All"))
 			{
-				// 各アイテムの型に応じたUI描画
-				DrawItem(itemName, item);
+				for (auto& [name, _] : datas_) { SaveFile(name); }
 			}
+			ImGui::EndMenu();
 		}
-
-
-		// 保存ボタンを作成
-		if (ImGui::Button("Save"))
-		{
-			SaveFile(groupNames); // グループを保存
-			std::string message = std::format("{}.json saved.", groupNames);
-			MessageBoxA(nullptr, message.c_str(), "GlobalVariables", 0);
-		}
-
-		ImGui::EndMenu();
+		ImGui::EndMenuBar();
 	}
 
-	ImGui::EndMenuBar();
+	// --- 検索 ---
+	static char filter[64] = {};
+	ImGui::InputTextWithHint("##filter", "search group...", filter, IM_ARRAYSIZE(filter));
+	ImGui::Separator();
+
+	// --- 選択グループ ---
+	static std::string selectedGroup;
+	if (selectedGroup.empty() && !datas_.empty())
+	{
+		selectedGroup = datas_.begin()->first;
+	}
+
+	// 2カラム（Docking不要）
+	ImGui::Columns(2, "param_cols", true);
+	ImGui::SetColumnWidth(0, 220.0f);
+
+	// 左：グループ一覧（＝サブメニュー）
+	ImGui::BeginChild("##groups", ImVec2(0, 0), true);
+	for (auto& [groupName, group] : datas_)
+	{
+		if (filter[0] != '\0')
+		{
+			if (groupName.find(filter) == std::string::npos) continue;
+		}
+
+		bool selected = (selectedGroup == groupName);
+		if (ImGui::Selectable(groupName.c_str(), selected))
+		{
+			selectedGroup = groupName;
+		}
+	}
+	ImGui::EndChild();
+
+	ImGui::NextColumn();
+
+	// 右：選択グループの編集
+	ImGui::BeginChild("##items", ImVec2(0, 0), true);
+
+	auto it = datas_.find(selectedGroup);
+	if (it != datas_.end())
+	{
+		auto& group = it->second;
+
+		ImGui::Text("Group: %s", selectedGroup.c_str());
+		ImGui::Separator();
+
+		// 1) 自動パラメータ（CollisionManager方式）
+		for (auto& [itemName, item] : group.items)
+		{
+			DrawItem(itemName, item);
+		}
+
+		// 2) カスタムUI（WinAppみたいにコンボ/ボタンが必要なもの）
+		if (group.customDraw)
+		{
+			ImGui::Separator();
+			group.customDraw();
+		}
+	}
+
+	ImGui::EndChild();
+	ImGui::Columns(1);
+
 	ImGui::End();
-#endif // USE_IMGUI
+#endif
 }
 
 
@@ -281,6 +321,12 @@ void ParameterManager::LoadFile(const std::string& groupName)
 			assert(0);
 		}
 	}
+}
+
+void ParameterManager::RegisterCustomDraw(const std::string& groupName, std::function<void()> fn)
+{
+	CreateGroup(groupName);                 // グループが無ければ作る（＝左メニューに出る）
+	datas_[groupName].customDraw = std::move(fn);
 }
 
 

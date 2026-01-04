@@ -63,7 +63,7 @@ void PostEffectManager::Initialieze(DirectXCommon* dxCommon)
 	AllocateRTV_DSV_SRV_UAV();
 
 	// ビューポート矩形とシザリング矩形の設定
-	SetViewportAndScissorRect();
+	SetViewportAndScissorRect(dxCommon_->GetClientWidth(), dxCommon_->GetClientHeight());
 
 	// エフェクトの初期化と生成
 	std::unordered_map<std::string, EffectEntry> effectTable = {
@@ -204,6 +204,49 @@ void PostEffectManager::EndDraw()
 
 	// GPU が完了するのを待つ (デバッグ用)
 	dxCommon_->GetCommandManager()->ExecuteAndWait();
+}
+
+/// -------------------------------------------------------------
+///				　			リサイズ処理
+/// -------------------------------------------------------------
+void PostEffectManager::Resize(uint32_t width, uint32_t height)
+{
+	if (width == 0 || height == 0) return;
+
+	SetViewportAndScissorRect(width, height);
+
+	// RTを作り直して、同じdescriptor indexに上書き
+	for (auto& rt : renderTargets_)
+	{
+		rt.resource.Reset();
+		rt.resource = CreateRenderTextureResource(width, height,
+			DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, kRenderTextureClearColor_);
+
+		RTVManager::GetInstance()->CreateRTVForTexture2D(rt.rtvIndex, rt.resource.Get());
+		rt.rtvHandle = RTVManager::GetInstance()->GetCPUDescriptorHandle(rt.rtvIndex);
+
+		SRVManager::GetInstance()->CreateSRVForTexture2D(rt.srvIndex, rt.resource.Get(),
+			DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, 1);
+
+		UAVManager::GetInstance()->CreateUAVForTexture2D(rt.uavIndex, rt.resource.Get(),
+			DXGI_FORMAT_R8G8B8A8_UNORM, 0);
+
+		UAVManager::GetInstance()->CreateSRVForTexture2DOnThisHeap(rt.srvIndexOnUavHeap, rt.resource.Get(),
+			DXGI_FORMAT_R8G8B8A8_UNORM, 1);
+
+		rt.state = D3D12_RESOURCE_STATE_COMMON;
+	}
+
+	// depth作り直し
+	depthResource_.Reset();
+	depthResource_ = CreateDepthBufferResource(width, height);
+	DSVManager::GetInstance()->CreateDSVForTexture2D(depthDsvIndex_, depthResource_.Get());
+	dsvHandle = DSVManager::GetInstance()->GetCPUDescriptorHandle(depthDsvIndex_);
+
+	SRVManager::GetInstance()->CreateSRVForTexture2D(dsvSrvIndex_, depthResource_.Get(),
+		DXGI_FORMAT_R24_UNORM_X8_TYPELESS, 1);
+
+	depthState_ = D3D12_RESOURCE_STATE_DEPTH_WRITE;
 }
 
 
@@ -454,13 +497,13 @@ void PostEffectManager::AllocateRTV_DSV_SRV_UAV()
 		auto& rt = renderTargets_[i];
 
 		// レンダーテクスチャリソースの生成
-		rt.resource = CreateRenderTextureResource(WinApp::kClientWidth, WinApp::kClientHeight, DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, kRenderTextureClearColor_);
+		rt.resource = CreateRenderTextureResource(dxCommon_->GetClientWidth(), dxCommon_->GetClientHeight(), DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, kRenderTextureClearColor_);
 		rt.resource->SetName((L"PostEffectManager RenderTarget " + std::to_wstring(i)).c_str());
 
 		// RTVの生成
-		uint32_t rtvIndex = RTVManager::GetInstance()->Allocate();
-		RTVManager::GetInstance()->CreateRTVForTexture2D(rtvIndex, rt.resource.Get());
-		rt.rtvHandle = RTVManager::GetInstance()->GetCPUDescriptorHandle(rtvIndex);
+		rt.rtvIndex = RTVManager::GetInstance()->Allocate();
+		RTVManager::GetInstance()->CreateRTVForTexture2D(rt.rtvIndex, rt.resource.Get());
+		rt.rtvHandle = RTVManager::GetInstance()->GetCPUDescriptorHandle(rt.rtvIndex);
 
 		// SRVの生成
 		rt.srvIndex = SRVManager::GetInstance()->Allocate();
@@ -480,9 +523,9 @@ void PostEffectManager::AllocateRTV_DSV_SRV_UAV()
 	depthResource_->SetName(L"PostEffectManager DepthBuffer");
 
 	// SRVの確保（深度用）
-	uint32_t dsvIndex = DSVManager::GetInstance()->Allocate();
-	DSVManager::GetInstance()->CreateDSVForTexture2D(dsvIndex, depthResource_.Get());
-	dsvHandle = DSVManager::GetInstance()->GetCPUDescriptorHandle(dsvIndex);
+	depthDsvIndex_ = DSVManager::GetInstance()->Allocate();
+	DSVManager::GetInstance()->CreateDSVForTexture2D(depthDsvIndex_, depthResource_.Get());
+	dsvHandle = DSVManager::GetInstance()->GetCPUDescriptorHandle(depthDsvIndex_);
 
 	// SRVの確保（深度用）
 	dsvSrvIndex_ = SRVManager::GetInstance()->Allocate();
@@ -493,11 +536,11 @@ void PostEffectManager::AllocateRTV_DSV_SRV_UAV()
 /// -------------------------------------------------------------
 ///				ビューポート矩形とシザリング矩形の設定
 /// -------------------------------------------------------------
-void PostEffectManager::SetViewportAndScissorRect()
+void PostEffectManager::SetViewportAndScissorRect(uint32_t width, uint32_t height)
 {
 	// ビューポート矩形の設定
-	viewport = D3D12_VIEWPORT(0.0f, 0.0f, static_cast<float>(WinApp::kClientWidth), static_cast<float>(WinApp::kClientHeight), 0.0f, 1.0f);
+	viewport = D3D12_VIEWPORT(0.0f, 0.0f, static_cast<float>(width), static_cast<float>(height), 0.0f, 1.0f);
 
 	// シザリング矩形の設定
-	scissorRect = { 0, 0, static_cast<LONG>(WinApp::kClientWidth), static_cast<LONG>(WinApp::kClientHeight) };
+	scissorRect = { 0, 0, static_cast<LONG>(width), static_cast<LONG>(height) };
 }

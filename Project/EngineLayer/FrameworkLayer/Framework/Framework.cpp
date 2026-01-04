@@ -35,6 +35,47 @@ void Framework::Run()
 	// ゲームループ
 	while (!winApp_->ProcessMessage())// 終了リクエストが来たら抜ける
 	{
+		// Alt+Enter トグル（要求が来たらDisplaySettingsを作って予約）
+		if (winApp_->ConsumeToggleFullscreen())
+		{
+			DisplaySettings cur = winApp_->GetCurrentDisplaySettings();
+			DisplaySettings next = cur;
+
+			if (cur.mode == WindowMode::Windowed)
+			{
+				// Windowed→Borderless（戻すためにWindowed設定を保存）
+				winApp_->RememberWindowedSettings(cur);
+				next.mode = WindowMode::BorderlessFullscreen;
+			}
+			else
+			{
+				// Borderless→Windowed（最後のWindowedへ戻す）
+				next = winApp_->GetLastWindowedSettingsOrDefault();
+				next.mode = WindowMode::Windowed;
+			}
+
+			winApp_->RequestDisplaySettings(next);
+		}
+
+		// 画面設定の変更処理用構造体
+		DisplaySettings ds;
+
+		// 画面設定の変更要求があれば処理
+		if (winApp_->ConsumeDisplaySettings(ds))
+		{
+			winApp_->ApplyDisplaySettings(ds);
+		}
+
+		// リサイズ要求があれば処理
+		uint32_t newWidth = 0;
+		uint32_t newHeight = 0;
+
+		if (winApp_->ConsumeResize(newWidth, newHeight))
+		{
+			dxCommon_->Resize(newWidth, newHeight);
+			PostEffectManager::GetInstance()->Resize(newWidth, newHeight);
+		}
+
 		// 毎フレーム更新
 		Update();
 
@@ -55,14 +96,19 @@ void Framework::Initialize()
 #pragma region ---------- ウィンドウアプリケーションの初期化処理 ----------
 	// ウィンドウアプリケーションの生成
 	winApp_ = WinApp::GetInstance();
-	winApp_->CreateMainWindow();
+
+	DisplaySettings ds{};
+	ds.mode = WindowMode::BorderlessFullscreen; // 初期フルスクリーン
+	ds.monitorIndex = 0;
+
+	winApp_->CreateMainWindow(ds);
 #pragma endregion ---------------------------------------------------------
 
 
 #pragma region ---------- 基盤システムの初期化処理 ----------
 	// DirectX共通クラスの生成
 	dxCommon_ = DirectXCommon::GetInstance();
-	dxCommon_->Initialize(winApp_, WinApp::kClientWidth, WinApp::kClientHeight);
+	dxCommon_->Initialize(winApp_, winApp_->GetClientWidth(), winApp_->GetClientHeight());
 
 	// SRVマネージャーの初期化
 	SRVManager::GetInstance()->Initialize(dxCommon_);

@@ -100,6 +100,8 @@ public: /// ---------- メンバ関数 ---------- ///
 		commandManager_->ResourceTransition(resource, stateBefore, stateAfter);
 	}
 
+	void Resize(uint32_t width, uint32_t height);
+
 public: /// ---------- ゲッター ---------- ///
 
 	/// <summary>
@@ -165,6 +167,10 @@ public: /// ---------- ゲッター ---------- ///
 	/// </summary>
 	/// <returns>深度ステンシル用の ID3D12Resource を保持した ComPtr。</returns>
 	ComPtr<ID3D12Resource> GetDepthStencilResource() const { return depthStencilResource.Get(); }
+
+	uint32_t GetClientWidth()  const { return kClientWidth; }
+
+	uint32_t GetClientHeight() const { return kClientHeight; }
 
 private: /// ---------- メンバ関数 ---------- ///
 

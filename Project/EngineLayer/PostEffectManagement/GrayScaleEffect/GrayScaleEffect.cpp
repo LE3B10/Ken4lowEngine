@@ -84,8 +84,8 @@ void GrayScaleEffect::Apply(ID3D12GraphicsCommandList* commandList, uint32_t srv
 	const uint32_t threadGroupSizeY = 8;
 
 	// レンダーターゲットの解像度（仮に 1280x720）
-	uint32_t width = WinApp::kClientWidth; // ウィンドウの幅
-	uint32_t height = WinApp::kClientHeight; // ウィンドウの高さ
+	uint32_t width = dxCommon_->GetClientWidth(); // ウィンドウの幅
+	uint32_t height = dxCommon_->GetClientHeight(); // ウィンドウの高さ
 
 	uint32_t groupCountX = (width + threadGroupSizeX - 1) / threadGroupSizeX;
 	uint32_t groupCountY = (height + threadGroupSizeY - 1) / threadGroupSizeY;

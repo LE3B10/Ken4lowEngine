@@ -13,14 +13,16 @@ ConstantBuffer<VignetteSetting> gVignetteSetting : register(b0); // 定数バッ
 [numthreads(8, 8, 1)]
 void main(uint3 DTid : SV_DispatchThreadID)
 {
-    uint2 texSize;
-    gOutputTexture.GetDimensions(texSize.x, texSize.y);
+    uint w, h;
+    gOutputTexture.GetDimensions(w, h);
+    if (DTid.x >= w || DTid.y >= h)
+        return;
 
-    float2 uv = DTid.xy / (float2) texSize;
+    float2 texSize = float2(w, h);
+    float2 uv = (float2(DTid.xy) + 0.5f) / texSize;
+
     float2 center = float2(0.5, 0.5);
     float dist = distance(uv, center);
-
-    // vignetteの計算
     float vignette = pow(1.0 - smoothstep(0.0, gVignetteSetting.range, dist), gVignetteSetting.power);
 
     float4 color = gInputTexture.Load(int3(DTid.xy, 0));

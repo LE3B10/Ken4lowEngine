@@ -1,6 +1,6 @@
 #pragma once
 #include <Windows.h>
-#include <cstdint>
+#include <DisplaySettings.h>
 
 /// -------------------------------------------------------------
 ///				WIndowsAPI - ウィンドウズ作成クラス
@@ -16,16 +16,10 @@ public: /// ---------- メンバ関数 ---------- ///
 	static WinApp* GetInstance();
 
 	/// <summary>
-	/// メインウィンドウを作成します。<br/>
-	/// ・COM ライブラリの初期化（CoInitializeEx）<br/>
-	/// ・ウィンドウクラス（WNDCLASS）の登録<br/>
-	/// ・指定されたクライアントサイズでウィンドウを生成<br/>
-	/// ・ウィンドウの表示（ShowWindow）<br/>
-	/// を行います。
+	/// 
 	/// </summary>
-	/// <param name="Width">クライアント領域の幅。省略時は kClientWidth。</param>
-	/// <param name="Height">クライアント領域の高さ。省略時は kClientHeight。</param>
-	void CreateMainWindow(uint32_t Width = kClientWidth, uint32_t Height = kClientHeight);
+	/// <param name="settings"></param>
+	void CreateMainWindow(const DisplaySettings& settings);
 
 	/// <summary>
 	/// 終了処理を行います。<br/>
@@ -45,6 +39,41 @@ public: /// ---------- メンバ関数 ---------- ///
 	bool ProcessMessage();
 
 	/// <summary>
+	/// ウィンドウのリサイズ要求を取得します。<br/>
+	/// リサイズ要求があれば true を返し、引数 outWidth / outHeight に新しいクライアントサイズを設定します。<br/>
+	/// リサイズ要求がなければ false を返します。
+	/// </summary>
+	/// <param name="outWidth">新しいクライアント領域の幅を受け取る参照。</param>
+	/// <param name="outHeight">新しいクライアント領域の高さを受け取る参照。</param>
+	/// <returns>リサイズ要求があれば true、それ以外は false。</returns>
+	bool ConsumeResize(uint32_t& outWidth, uint32_t& outHeight);
+
+	// 画面設定の変更を予約（UI側から呼ぶ）
+	void RequestDisplaySettings(const DisplaySettings& settings);
+
+	// 予約されていたら取り出す（メインループ先頭で呼ぶ）
+	bool ConsumeDisplaySettings(DisplaySettings& out);
+
+	// 実際にウィンドウへ適用（Win32）
+	bool ApplyDisplaySettings(const DisplaySettings& settings);
+
+	// ImGuiで表示する設定UI
+	void DrawDisplaySettingsImGui();
+
+	// Alt+Enter トグル要求
+	void RequestToggleFullscreen();
+	bool ConsumeToggleFullscreen();
+
+	// 現在の表示設定
+	const DisplaySettings& GetCurrentDisplaySettings() const { return currentDisplaySettings_; }
+
+	// Windowed を保存しておく（Borderlessから戻す用）
+	void RememberWindowedSettings(const DisplaySettings& s);
+	DisplaySettings GetLastWindowedSettingsOrDefault() const;
+
+public: /// ---------- アクセッサ ---------- ///
+
+	/// <summary>
 	/// 作成されたウィンドウの HWND を取得します。<br/>
 	/// DirectX のスワップチェーン生成などに使用します。
 	/// </summary>
@@ -54,6 +83,9 @@ public: /// ---------- メンバ関数 ---------- ///
 	/// ウィンドウクラス登録時に使用したインスタンスハンドル (HINSTANCE) を取得します。
 	/// </summary>
 	HINSTANCE GetHInstance() const { return wc.hInstance; }
+
+	uint32_t GetClientWidth() const { return clientWidth_; }
+	uint32_t GetClientHeight() const { return clientHeight_; }
 
 	// クライアント領域サイズ
 	static inline const UINT32 kClientWidth = 1280;
@@ -83,8 +115,29 @@ private: /// ---------- メンバ変数 ---------- ///
 	// ウィンドウクラスの設定
 	WNDCLASS wc{};
 
+	uint32_t clientWidth_ = kClientWidth;
+	uint32_t clientHeight_ = kClientHeight;
+
+	bool resizePending_ = false;
+	bool inSizeMove_ = false;
+
+	DisplaySettings currentDisplaySettings_{};
+	DisplaySettings pendingDisplaySettings_{};
+	bool displaySettingsPending_ = false;
+
+	// Windowed ⇄ Borderless の復元用
+	RECT savedWindowRect_{};
+	DWORD savedStyle_ = 0;
+	DWORD savedExStyle_ = 0;
+	bool hasSavedWindowed_ = false;
+
+	bool toggleFullscreenPending_ = false;
+
+	DisplaySettings lastWindowedSettings_{};
+	bool hasLastWindowedSettings_ = false;
+
 private: /// ---------- コピー禁止 ---------- ///
-	
+
 	/// <summary>
 	/// 外部からの生成を禁止するためのプライベートコンストラクタ。<br/>
 	/// シングルトンパターンとして利用します。

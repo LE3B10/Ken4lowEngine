@@ -37,3 +37,29 @@ void DX12SwapChain::Initialize(WinApp* winApp, IDXGIFactory7* dxgiFactory, ID3D1
 	swapChainResources[1]->SetName(L"BackBuffer : 1");
 	assert(SUCCEEDED(hr));
 }
+
+void DX12SwapChain::Resize(uint32_t width, uint32_t height)
+{
+	if (!swapChain) return;
+
+	// 既存参照を外す（重要）
+	for (auto& r : swapChainResources) r.Reset();
+
+	// 0 / UNKNOWN で「現状維持」
+	HRESULT hr = swapChain->ResizeBuffers(
+		0, width, height,
+		DXGI_FORMAT_UNKNOWN,
+		0
+	);
+	assert(SUCCEEDED(hr));
+
+	// 再取得
+	hr = swapChain->GetBuffer(0, IID_PPV_ARGS(&swapChainResources[0]));
+	assert(SUCCEEDED(hr));
+	hr = swapChain->GetBuffer(1, IID_PPV_ARGS(&swapChainResources[1]));
+	assert(SUCCEEDED(hr));
+
+	// descも更新しておくと便利
+	swapChainDesc.Width = width;
+	swapChainDesc.Height = height;
+}

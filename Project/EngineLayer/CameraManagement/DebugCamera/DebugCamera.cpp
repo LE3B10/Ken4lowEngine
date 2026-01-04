@@ -21,7 +21,7 @@ void DebugCamera::Initialize()
 	worldTransform_.translate_ = { 0.0f,0.0f,-20.0f };
 
 	fovY_ = 0.45f;
-	aspectRatio_ = float(WinApp::kClientWidth) / float(WinApp::kClientHeight);
+	aspectRatio_ = float(WinApp::GetInstance()->GetClientWidth()) / float(WinApp::GetInstance()->GetClientHeight());
 	nearClip_ = 0.1f;
 	farClip_ = 100.0f;
 

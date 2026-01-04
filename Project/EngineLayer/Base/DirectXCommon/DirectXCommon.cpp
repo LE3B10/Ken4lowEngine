@@ -48,6 +48,9 @@ void DirectXCommon::Initialize(WinApp* winApp, uint32_t Width, uint32_t Height)
 	// スワップチェインの生成
 	swapChain_->Initialize(winApp, device_->GetDXGIFactory(), commandManager_->GetCommandQueue(), Width, Height);
 
+	// ウィンドウの Alt+Enter を無効化
+	device_->GetDXGIFactory()->MakeWindowAssociation(winApp->GetHwnd(), DXGI_MWA_NO_ALT_ENTER);
+
 	// フェンスとイベントの生成
 	fenceManager_->Initialize(GetDevice());
 
@@ -152,34 +155,47 @@ void DirectXCommon::Finalize()
 	dxcCompilerManager_.reset();
 	swapChain_.reset();
 
-//#ifdef _DEBUG
-//	// ReportLiveDeviceObjects は WARNING を出すので、warning break してるなら一時的に止めると楽
-//	{
-//		// InfoQueue の警告で止まるのを一時的に無効化
-//		Microsoft::WRL::ComPtr<ID3D12InfoQueue> q;
-//		if (SUCCEEDED(device_->GetDevice()->QueryInterface(IID_PPV_ARGS(&q)))) {
-//			q->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_WARNING, FALSE);
-//		}
-//
-//		// デバイス側でレポート
-//		Microsoft::WRL::ComPtr<ID3D12DebugDevice> dbg;
-//		if (SUCCEEDED(device_->GetDevice()->QueryInterface(IID_PPV_ARGS(&dbg)))) {
-//			dbg->ReportLiveDeviceObjects(D3D12_RLDO_DETAIL | D3D12_RLDO_IGNORE_INTERNAL);
-//		}
-//
-//		// DXGI側でもレポート
-//		Microsoft::WRL::ComPtr<IDXGIDebug1> dxgiDbg;
-//		if (SUCCEEDED(DXGIGetDebugInterface1(0, IID_PPV_ARGS(&dxgiDbg)))) {
-//			dxgiDbg->ReportLiveObjects(DXGI_DEBUG_ALL, DXGI_DEBUG_RLO_DETAIL);
-//		}
-//
-//		if (q) { q->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_WARNING, TRUE); }
-//	}
-//#endif
-
 	// デバイスの解放
 	device_->Finalize();
 	device_.reset();
+}
+
+
+/// -------------------------------------------------------------
+///						画面サイズ変更
+/// -------------------------------------------------------------
+void DirectXCommon::Resize(uint32_t width, uint32_t height)
+{
+	if (width == 0 || height == 0) return;
+
+	// GPU待ち（Resize中にGPUがバックバッファ使ってると落ちる）
+	fenceManager_->Signal(commandManager_->GetCommandQueue());
+	fenceManager_->Wait();
+
+	kClientWidth = width;
+	kClientHeight = height;
+
+	// 深度を作り直す
+	depthStencilResource.Reset();
+
+	// SwapChainをResize
+	swapChain_->Resize(width, height);
+
+	// RTVを作り直す（あなたの実装は backBufferIndex=0/1 を直参照なので 0,1 を上書きするのが安全）
+	for (uint32_t i = 0; i < 2; i++) {
+		RTVManager::GetInstance()->CreateRTVForTexture2D(i, swapChain_->GetSwapChainResources(i));
+	}
+
+	// DSVを作り直す（同じdsvIndex_を上書き）
+	D3D12_CLEAR_VALUE clearValue{};
+	depthStencilResource = DSVManager::GetInstance()->CreateDepthStencilBuffer(
+		kClientWidth, kClientHeight, DXGI_FORMAT_D24_UNORM_S8_UINT, clearValue
+	);
+	DSVManager::GetInstance()->CreateDSVForDepthBuffer(dsvIndex_, depthStencilResource.Get());
+
+	// Viewport/Scissor更新
+	viewport = D3D12_VIEWPORT(0.0f, 0.0f, (float)kClientWidth, (float)kClientHeight, 0.0f, 1.0f);
+	scissorRect = D3D12_RECT(0, 0, kClientWidth, kClientHeight);
 }
 
 

@@ -20,19 +20,20 @@ void main(uint3 DTid : SV_DispatchThreadID)
 {
     uint2 coord = DTid.xy;
 
-    // 画面外ガード
-    if (coord.x >= (uint) gSettingCB.screenSize.x || coord.y >= (uint) gSettingCB.screenSize.y)
+    uint w, h;
+    gOutput.GetDimensions(w, h);
+    if (coord.x >= w || coord.y >= h)
         return;
 
-    float2 uv = (coord + 0.5) / gSettingCB.screenSize;
+    float2 screenSize = float2(w, h);
 
-    // ブロック座標（BlockSize ピクセル単位で量子化）
+    float2 uv = (coord + 0.5) / screenSize;
+
     float2 block = floor(coord / gSettingCB.blockSize) * gSettingCB.blockSize + gSettingCB.blockSize * 0.5;
-    float2 blockUV = block / gSettingCB.screenSize;
+    float2 blockUV = block / screenSize;
 
     float4 original = gInput.SampleLevel(gLinearSampler, uv, 0);
     float4 pixelated = gInput.SampleLevel(gPointSampler, blockUV, 0);
 
-    float4 col = lerp(original, pixelated, saturate(gSettingCB.strength));
-    gOutput[coord] = col;
+    gOutput[coord] = lerp(original, pixelated, saturate(gSettingCB.strength));
 }

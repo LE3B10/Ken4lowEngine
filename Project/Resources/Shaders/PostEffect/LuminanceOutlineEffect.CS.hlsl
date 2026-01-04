@@ -21,24 +21,25 @@ float GetLuminance(float3 color)
 [numthreads(8, 8, 1)]
 void main(uint3 DTid : SV_DispatchThreadID)
 {
-    float2 uv = DTid.xy * gLuminanceOutlineSetting.texelSize;
+    uint w, h;
+    gOutput.GetDimensions(w, h);
+    if (DTid.x >= w || DTid.y >= h)
+        return;
+
+    float2 texel = 1.0 / float2(w, h);
+    float2 uv = (float2(DTid.xy) + 0.5f) * texel;
 
     float lum = GetLuminance(gInputTexture.SampleLevel(gSampler, uv, 0).rgb);
 
     float diff = 0.0f;
-
-    // 4方向から輝度差を見る
-    diff += abs(lum - GetLuminance(gInputTexture.SampleLevel(gSampler, uv + float2(gLuminanceOutlineSetting.texelSize.x, 0), 0).rgb));
-    diff += abs(lum - GetLuminance(gInputTexture.SampleLevel(gSampler, uv + float2(-gLuminanceOutlineSetting.texelSize.x, 0), 0).rgb));
-    diff += abs(lum - GetLuminance(gInputTexture.SampleLevel(gSampler, uv + float2(0, gLuminanceOutlineSetting.texelSize.y), 0).rgb));
-    diff += abs(lum - GetLuminance(gInputTexture.SampleLevel(gSampler, uv + float2(0, -gLuminanceOutlineSetting.texelSize.y), 0).rgb));
+    diff += abs(lum - GetLuminance(gInputTexture.SampleLevel(gSampler, uv + float2(texel.x, 0), 0).rgb));
+    diff += abs(lum - GetLuminance(gInputTexture.SampleLevel(gSampler, uv + float2(-texel.x, 0), 0).rgb));
+    diff += abs(lum - GetLuminance(gInputTexture.SampleLevel(gSampler, uv + float2(0, texel.y), 0).rgb));
+    diff += abs(lum - GetLuminance(gInputTexture.SampleLevel(gSampler, uv + float2(0, -texel.y), 0).rgb));
 
     float4 finalColor = gInputTexture.SampleLevel(gSampler, uv, 0);
-
     if (diff > gLuminanceOutlineSetting.threshold)
-    {
         finalColor.rgb = gLuminanceOutlineSetting.color.rgb;
-    }
 
     gOutput[DTid.xy] = finalColor;
 }

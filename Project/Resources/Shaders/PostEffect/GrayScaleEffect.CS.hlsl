@@ -12,6 +12,11 @@ ConstantBuffer<GrayScaleSetting> gGrayScaleSetting : register(b0); // グレー�
 [numthreads(8, 8, 1)]
 void main(uint3 DTid : SV_DispatchThreadID)
 {
+    uint w, h;
+    gOutputTexture.GetDimensions(w, h);
+    if (DTid.x >= w || DTid.y >= h)
+        return;
+    
     // 入力テクスチャから色を取得
     float4 inputColor = gInputTexture.Load(int3(DTid.xy, 0));
     float gray = dot(inputColor.rgb, float3(0.2125f, 0.7154f, 0.0721f)); // グレースケール値を計算

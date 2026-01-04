@@ -17,9 +17,17 @@ void main(uint3 DTid : SV_DispatchThreadID)
 
     uint width, height;
     gInputTexture.GetDimensions(width, height);
+    if (coord.x >= width || coord.y >= height)
+        return;
+    
     float2 texSize = float2(width, height);
-    float2 texelSize = 1.0 / texSize;
 
+    if (gSmoothingSetting.kernelType < 1 || gSmoothingSetting.kernelType > 7)
+    {
+        gOutputTexture[coord] = gInputTexture.Load(int3(coord, 0));
+        return;
+    }
+    
     float4 color = float4(0, 0, 0, 0);
     int halfSize = 0;
 

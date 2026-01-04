@@ -43,9 +43,10 @@ public: /// ---------- テンプレート ---------- ///
 		ComPtr<ID3D12Resource> resource = nullptr;				   // レンダーテクスチャリソース
 		D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle = {};				   // RTVハンドル
 		D3D12_RESOURCE_STATES state = D3D12_RESOURCE_STATE_COMMON; // リソース状態
-		uint32_t srvIndex = UINT32_MAX;									   // SRVインデックス
-		uint32_t uavIndex = UINT32_MAX;									   // UAVインデックス
-		uint32_t srvIndexOnUavHeap = UINT32_MAX;							   // CS用に、UAVヒープ上へ複製したSRV
+		uint32_t rtvIndex = UINT32_MAX;							   // RTVインデックス
+		uint32_t srvIndex = UINT32_MAX;							   // SRVインデックス
+		uint32_t uavIndex = UINT32_MAX;							   // UAVインデックス
+		uint32_t srvIndexOnUavHeap = UINT32_MAX;				   // CS用に、UAVヒープ上へ複製したSRV
 		Vector4 clearColor = { 0.08f, 0.08f, 0.18f, 1.0f };		   // クリアカラー
 	};
 
@@ -82,6 +83,13 @@ public: /// ---------- メンバ関数 ---------- ///
 	/// 現在の描画操作を終了します。フレームの描画を完了し、必要に応じてバッファの入れ替えや後処理を行います。
 	/// </summary>
 	void EndDraw();
+
+	/// <summary>
+	/// 
+	/// </summary>
+	/// <param name="width"></param>
+	/// <param name="height"></param>
+	void Resize(uint32_t width, uint32_t height);
 
 	/// <summary>
 	/// ポストプロセス（後処理）エフェクトをレンダリングします。
@@ -140,7 +148,7 @@ private: /// ---------- メンバ関数 ---------- ///
 	/// <summary>
 	/// ビューポートとシザー矩形（切り抜き矩形）を設定します。
 	/// </summary>
-	void SetViewportAndScissorRect();
+	void SetViewportAndScissorRect(uint32_t width, uint32_t height);
 
 private: /// ---------- メンバ変数 ---------- ///
 
@@ -183,6 +191,9 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	static constexpr int kPostRTCount = 1; // ポストエフェクト用のレンダーテクスチャ数
 	std::vector<RenderTarget> renderTargets_; // レンダーテクスチャのリスト
+
+	// 深度ステンシルビューのインデックス
+	uint32_t depthDsvIndex_ = UINT32_MAX;
 
 private: /// ---------- コピー禁止 ---------- ///
 

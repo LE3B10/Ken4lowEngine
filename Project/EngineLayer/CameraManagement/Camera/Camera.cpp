@@ -15,7 +15,7 @@
 /// -------------------------------------------------------------
 Camera::Camera() :
 	fovY_(1.0f),
-	aspectRatio_(float(WinApp::kClientWidth) / float(WinApp::kClientHeight)),
+	aspectRatio_(float(WinApp::GetInstance()->GetClientWidth()) / float(WinApp::GetInstance()->GetClientHeight())),
 	nearClip_(0.1f), farClip_(1000.0f),
 	worldMatrix_(Matrix4x4::MakeAffineMatrix(worldTransform_.scale_, worldTransform_.rotate_, worldTransform_.translate_)),
 	viewMatrix_(Matrix4x4::Inverse(worldMatrix_)),

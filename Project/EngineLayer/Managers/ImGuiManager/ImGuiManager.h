@@ -5,12 +5,30 @@
 #include <wrl.h>
 
 #include <cstdint>
+#include <functional>
+#include <string>
+#include <vector>
 
 #ifdef USE_IMGUI
 #include <imgui.h>
 #include <imgui_impl_dx12.h>
 #include <imgui_impl_win32.h>
 #endif // USE_IMGUI
+
+/// -------------------------------------------------------------
+///					デバッグパネル構造体
+/// -------------------------------------------------------------
+struct DebugPanel
+{
+	std::string name;
+	bool open = true;        // 一覧に出すか/表示するか
+	bool popOut = false;     // 別ウィンドウ化（固定したい時）
+	bool pinned = false;     // ポップアウト時に位置固定
+	ImVec2 pinnedPos{ 20,20 };
+	ImVec2 pinnedSize{ 380,240 };
+
+	std::function<void()> drawContent; // ★ Begin/Endしない「中身だけ描く」関数
+};
 
 /// ---------- 前方宣言 ---------- ///
 class WinApp;
@@ -74,10 +92,24 @@ public:	/// ---------- メンバ関数 ---------- ///
 	/// </summary>
 	void Finalize();
 
+	/// <summary>
+	/// デバッグパネルを登録します。
+	/// </summary>
+	/// <param name="panel">登録するデバッグパネル。</param>
+	void RegisterPanel(const DebugPanel& panel);
+
+	/// <summary>
+	/// デバッグハブウィンドウの描画処理を行います。
+	/// </summary>
+	void DrawDebugHub(); // 親ウィンドウ（左メニュー＋右編集）
+
 private: /// ---------- メンバ関数 ---------- ///
 
 	// SRVIndex確保
 	uint32_t srvIndex_ = UINT32_MAX;
+
+	std::vector<DebugPanel> panels_;
+	int selectedIndex_ = 0;
 
 private: /// ---------- コンストラクタ・デストラクタ ---------- ///
 

@@ -15,6 +15,8 @@
 #ifdef USE_IMGUI
 #include <ImGuiManager.h>
 #endif // USE_IMGUI
+#include <DisplaySettings.h>
+#include <WinApp.h>
 
 
 /// -------------------------------------------------------------
@@ -80,6 +82,9 @@ void GameApplication::Draw()
 #ifdef USE_IMGUI
 	/// ---------- ImGuiフレーム開始 ---------- ///
 	ImGuiManager::GetInstance()->BeginFrame();
+
+	// ウィンドウ表示用の画面設定の変更
+	winApp_->DrawDisplaySettingsImGui();
 
 	// グローバル変数の更新
 	ParameterManager::GetInstance()->Update();

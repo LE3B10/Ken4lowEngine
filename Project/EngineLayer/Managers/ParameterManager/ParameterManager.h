@@ -4,13 +4,13 @@
 #include <variant>
 #include <json.hpp>
 #include <limits>
+#include <functional>
 
 #include "Vector3.h"
 #include "Vector4.h"
 
 // コードの冗長を防ぐため省略
 using json = nlohmann::json;
-
 
 /// -------------------------------------------------------------
 ///			　パラメータや調整項目を管理するクラス
@@ -30,6 +30,7 @@ private: /// ---------- 構造体 ---------- ///
 	struct Group
 	{
 		std::map<std::string, Item> items;
+		std::function<void()> customDraw; // このグループ専用UI
 	};
 
 public: /// ---------- メンバ関数 ---------- ///
@@ -64,6 +65,9 @@ public: /// ---------- メンバ関数 ---------- ///
 	/// </summary>
 	/// <param name="groupName">グループ名</param>
 	void LoadFile(const std::string& groupName);
+
+	// カスタム描画関数登録
+	void RegisterCustomDraw(const std::string& groupName, std::function<void()> fn);
 
 public: /// ---------- 項目の設定 ---------- ///
 

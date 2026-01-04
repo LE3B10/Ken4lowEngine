@@ -37,7 +37,7 @@ void RandomEffect::Initialize(DirectXCommon* dxCommon, PostEffectPipelineBuilder
 	// ランダムエフェクトの設定
 	randomSetting_->time = 0.0f; // 時間
 	randomSetting_->useMultiply = false; // 乗算を使用するかどうか
-	randomSetting_->textureSize = Vector2(WinApp::kClientWidth, WinApp::kClientHeight); // テクスチャのサイズ
+	randomSetting_->textureSize = Vector2(static_cast<float>(dxCommon_->GetClientWidth()), static_cast<float>(dxCommon_->GetClientHeight())); // テクスチャのサイズ
 
 	// 名前の設定
 	constantBuffer_->SetName(L"RandomEffect_ConstantBuffer");
@@ -95,9 +95,12 @@ void RandomEffect::Apply(ID3D12GraphicsCommandList* commandList, uint32_t srvInd
 	const uint32_t threadGroupSizeX = 8;
 	const uint32_t threadGroupSizeY = 8;
 
-	// レンダーターゲットの解像度（仮に 1280x720）
-	uint32_t width = static_cast<uint32_t>(randomSetting_->textureSize.x); // ウィンドウの幅
-	uint32_t height = static_cast<uint32_t>(randomSetting_->textureSize.y); // ウィンドウの高さ
+	// いまの画面サイズを使う
+	uint32_t width = dxCommon_->GetClientWidth();
+	uint32_t height = dxCommon_->GetClientHeight();
+
+	// （textureSize を残すなら毎回更新しておく）
+	randomSetting_->textureSize = Vector2((float)width, (float)height);
 
 	uint32_t groupCountX = (width + threadGroupSizeX - 1) / threadGroupSizeX;
 	uint32_t groupCountY = (height + threadGroupSizeY - 1) / threadGroupSizeY;
