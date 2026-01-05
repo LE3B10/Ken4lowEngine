@@ -150,10 +150,10 @@ void TitleAttractState::Update(TitleScene* scene, float deltaTime)
 
 	// === 入力受付 ===
 	if (canAcceptInput && (
-		clickHintCommit ||
-		input->TriggerKey(DIK_RETURN) ||          // Enter
-		input->TriggerKey(DIK_SPACE) ||          // Space
-		input->TriggerButton(XButtons.A)		// Aが押されたら
+		clickHintCommit //||
+		//input->TriggerKey(DIK_RETURN) ||          // Enter
+		//input->TriggerKey(DIK_SPACE) ||          // Space
+		//input->TriggerButton(XButtons.A)		// Aが押されたら
 		)) {
 
 		// カメラ姿勢スナップショット

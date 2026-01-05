@@ -279,7 +279,7 @@ void TitleScene::InitializeLogoUI()
 	logoUI_.baseSize = logoSprite_->GetSize();
 	logoUI_.baseSize *= 0.7f; // 元画像が大きい場合は適宜縮小
 	logoSprite_->SetAnchorPoint({ 0.5f, 0.5f });
-	logoSprite_->SetPosition({ 1280.0f * 0.5f, 180.0f });
+	logoSprite_->SetPosition({ dxCommon_->GetClientWidth() * 0.5f, dxCommon_->GetClientHeight() * 0.25f });
 }
 
 /// -------------------------------------------------------------
@@ -291,6 +291,9 @@ void TitleScene::InitializeBattleButtonUI()
 	battleButtonUI_.btnSprite = std::make_unique<Sprite>();
 	battleButtonUI_.btnSprite->Initialize("btn_battle.png");
 	battleButtonUI_.btnSprite->SetAnchorPoint(battleButtonUI_.anchor);
+
+	battleButtonUI_.position = { dxCommon_->GetClientWidth() * 0.5f, dxCommon_->GetClientHeight() * 0.75f }; // 画面中央下
+
 	battleButtonUI_.btnSprite->SetPosition(battleButtonUI_.position);
 	battleButtonUI_.btnSprite->SetSize(battleButtonUI_.size);
 }
@@ -318,7 +321,7 @@ void TitleScene::InitializeClickHintUI()
 	clickHintUI_.hintSprite->Initialize("ui_click_hint.png");
 	clickHintUI_.hintSprite->SetAnchorPoint({ 0.5f, 0.0f });      // 中央上
 	// ここは今の 1/10 スケール指定のままでOK
-	clickHintUI_.hintSprite->SetPosition({ 1280.0f * 0.5f + clickHintUI_.offset.x, 180.0f + clickHintUI_.offset.y });
+	clickHintUI_.hintSprite->SetPosition({ dxCommon_->GetClientWidth() * 0.5f + clickHintUI_.offset.x, dxCommon_->GetClientHeight() * 0.25f + clickHintUI_.offset.y });
 	clickHintUI_.hintSprite->SetSize({ 153.6f, 102.4f });       // 元画像が1536x1024pxなので1/10スケール
 	clickHintUI_.baseSize = clickHintUI_.hintSprite->GetSize(); // 基準サイズを保存
 }
@@ -332,8 +335,8 @@ void TitleScene::InitializeFadeOverlay()
 	fadeSprite_ = std::make_unique<Sprite>();
 	fadeSprite_->Initialize("white.png");
 	fadeSprite_->SetAnchorPoint({ 0.5f, 0.5f });
-	fadeSprite_->SetPosition({ 1280.0f * 0.5f, 720.0f * 0.5f });
-	fadeSprite_->SetSize({ 1280.0f, 720.0f });   // 画面全体を覆う
+	fadeSprite_->SetPosition({ dxCommon_->GetClientWidth() * 0.5f,  dxCommon_->GetClientHeight() * 0.5f });
+	fadeSprite_->SetSize({ static_cast<float>(dxCommon_->GetClientWidth()), static_cast<float>(dxCommon_->GetClientHeight()) });   // 画面全体を覆う
 	fadeSprite_->SetColor({ 0.0f, 0.0f, 0.0f, 0.0f }); // 最初は透明
 	fadeAlpha_ = 0.0f;
 }

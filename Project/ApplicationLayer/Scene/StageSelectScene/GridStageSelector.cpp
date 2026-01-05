@@ -56,6 +56,9 @@ void GridStageSelector::Initialize(const SelectorContext& context)
 	scroll_.scrollX = 0.0f;
 	scroll_.velocityX = 0.0f;
 
+	DirectXCommon* dxCommon = DirectXCommon::GetInstance();
+	layout_.center = { dxCommon->GetClientWidth() * 0.5f, dxCommon->GetClientHeight() * 0.5f };
+
 	// 起動時の中央も通知
 	prevCenterIndex_ = GetCenterIndex();
 	if (onCenterChanged_) onCenterChanged_(static_cast<uint32_t>(prevCenterIndex_));

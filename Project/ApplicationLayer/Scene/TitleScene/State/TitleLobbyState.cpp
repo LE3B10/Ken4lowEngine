@@ -123,17 +123,17 @@ void TitleLobbyState::Update(TitleScene* scene, float deltaTime)
 		battleButtonUI.btnShadow->Update();
 	}
 
-	// --- キーボード/パッド開始 ---
-	if ((input->TriggerKey(DIK_RETURN) || input->TriggerButton(XButtons.A)))
-	{
-		// 直接シーン変更せず、ロードステートへ
-		scene->ChangeState(std::make_unique<TitleLoadState>());
-		return;
-	}
+	//// --- キーボード/パッド開始 ---
+	//if ((input->TriggerKey(DIK_RETURN) || input->TriggerButton(XButtons.A)))
+	//{
+	//	// 直接シーン変更せず、ロードステートへ
+	//	scene->ChangeState(std::make_unique<TitleLoadState>());
+	//	return;
+	//}
 
 	// 無操作タイマー更新（何かキーでリセット）
 	timers.idle += deltaTime;
-	if (input->TriggerMouse(0) || input->TriggerKey(DIK_RETURN) || input->TriggerButton(XButtons.A))
+	if (input->TriggerMouse(0)/* || input->TriggerKey(DIK_RETURN) || input->TriggerButton(XButtons.A)*/)
 	{
 		timers.idle = 0.0f;
 	}

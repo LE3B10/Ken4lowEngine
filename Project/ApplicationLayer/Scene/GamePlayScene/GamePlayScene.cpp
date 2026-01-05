@@ -255,8 +255,8 @@ void GamePlayScene::InitializeFadeOverlay()
 	fadeSprite_ = std::make_unique<Sprite>();
 	fadeSprite_->Initialize("white.png");
 	fadeSprite_->SetAnchorPoint({ 0.5f, 0.5f });
-	fadeSprite_->SetPosition({ 1280.0f * 0.5f, 720.0f * 0.5f });
-	fadeSprite_->SetSize({ 1280.0f, 720.0f });   // 画面全体を覆う
+	fadeSprite_->SetPosition({ dxCommon_->GetClientWidth() * 0.5f, dxCommon_->GetClientHeight() * 0.5f });
+	fadeSprite_->SetSize({ static_cast<float>(dxCommon_->GetClientWidth()), static_cast<float>(dxCommon_->GetClientHeight()) });   // 画面全体を覆う
 	fadeSprite_->SetColor({ 0.0f, 0.0f, 0.0f, 0.0f }); // 最初は透明
 	fadeAlpha_ = 0.0f;
 }

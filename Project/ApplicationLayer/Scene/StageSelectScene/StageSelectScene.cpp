@@ -213,6 +213,10 @@ void StageSelectScene::InitializeBackground()
 	bg_ = std::make_unique<Sprite>();
 	bg_->Initialize("white.png");
 	bg_->SetPosition({});
+
+	context_.screenWidth = static_cast<float>(dxCommon_->GetClientWidth());
+	context_.screenHeight = static_cast<float>(dxCommon_->GetClientHeight());
+
 	bg_->SetSize({ context_.screenWidth, context_.screenHeight });
 	bg_->SetColor(bgNow_);
 	bg_->Update();

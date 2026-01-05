@@ -25,8 +25,8 @@ void Wireframe::Initialize(DirectXCommon* dxCommon)
 	dxCommon_ = dxCommon;
 	isDebugCamera_ = false;
 
-	projectionMatrix_ = Matrix4x4::MakeOrthographicMatrix(0.0f, 0.0f, float(WinApp::kClientWidth), float(WinApp::kClientHeight), 0.0f, 1.0f);
-	viewProjectionMatrix_ = Matrix4x4::MakeViewportMatrix(0.0f, 0.0f, float(WinApp::kClientWidth), float(WinApp::kClientHeight), 0.0f, 1.0f);
+	projectionMatrix_ = Matrix4x4::MakeOrthographicMatrix(0.0f, 0.0f, float(dxCommon_->GetClientWidth()), float(dxCommon_->GetClientHeight()), 0.0f, 1.0f);
+	viewProjectionMatrix_ = Matrix4x4::MakeViewportMatrix(0.0f, 0.0f, float(dxCommon_->GetClientWidth()), float(dxCommon_->GetClientHeight()), 0.0f, 1.0f);
 
 	// パイプラインステートの生成
 	// 三角形用のPSOを作成

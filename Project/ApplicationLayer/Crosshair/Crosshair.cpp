@@ -16,8 +16,8 @@ void Crosshair::Initialize(const std::string& texturePath)
 
 	sprite_->SetAnchorPoint({ 0.5f, 0.5f }); // アンカーを中央に設定
 	sprite_->SetPosition({
-		static_cast<float>(WinApp::kClientWidth / 2.0f),
-		static_cast<float>(WinApp::kClientHeight / 2.0f) });
+		static_cast<float>(WinApp::GetInstance()->GetClientWidth() / 2.0f),
+		static_cast<float>(WinApp::GetInstance()->GetClientHeight() / 2.0f) });
 	sprite_->SetSize({ 64.0f, 64.0f });
 
 	// 影（黒半透明を少し大きく描く）
@@ -34,7 +34,7 @@ void Crosshair::Initialize(const std::string& texturePath)
 	hitMarkerSprite_ = std::make_unique<Sprite>();
 	hitMarkerSprite_->Initialize(hitTexture);
 	hitMarkerSprite_->SetAnchorPoint({ 0.5f, 0.5f });
-	hitMarkerSprite_->SetPosition({ static_cast<float>(WinApp::kClientWidth / 2.0f), static_cast<float>(WinApp::kClientHeight / 2.0f) });
+	hitMarkerSprite_->SetPosition({ static_cast<float>(WinApp::GetInstance()->GetClientWidth() / 2.0f), static_cast<float>(WinApp::GetInstance()->GetClientHeight() / 2.0f) });
 	hitMarkerSprite_->SetSize({ 128.0f, 128.0f });
 
 	// 影

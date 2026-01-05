@@ -98,7 +98,7 @@ void Sprite::Update()
 
 	// ビュー行列とプロジェクション行列の計算(スプライト用)
 	Matrix4x4 viewMatrixSprite = Matrix4x4::MakeIdentity();
-	Matrix4x4 projectionMatrixSprite = Matrix4x4::MakeOrthographicMatrix(0.0f, 0.0f, 1280.0f, 720.0f, 0.0f, 100.0f);
+	Matrix4x4 projectionMatrixSprite = Matrix4x4::MakeOrthographicMatrix(0.0f, 0.0f, (float)dxCommon_->GetClientWidth(), (float)dxCommon_->GetClientHeight(), 0.0f, 100.0f);
 	Matrix4x4 worldViewProjectionMatrixSprite = Matrix4x4::Multiply(worldMatrixSprite, Matrix4x4::Multiply(viewMatrixSprite, projectionMatrixSprite));
 
 	// 座標変換行列を更新

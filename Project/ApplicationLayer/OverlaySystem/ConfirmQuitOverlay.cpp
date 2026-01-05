@@ -1,6 +1,7 @@
 #include "ConfirmQuitOverlay.h"
 #include <Input.h>
 #include <SpriteManager.h>
+#include "WinApp.h"
 
 /// -------------------------------------------------------------
 ///					　オーバーレイを開く処理
@@ -8,25 +9,33 @@
 void ConfirmQuitOverlay::Open(SceneManager* sceneManager)
 {
 	BaseOverlay::Open(sceneManager);
+	WinApp* winApp = WinApp::GetInstance();
 
 	input_ = Input::GetInstance();
 	input_->SetLockCursor(false);
 
 	dim_ = std::make_unique<Sprite>(); dim_->Initialize(kWhiteTex);
-	dim_->SetPosition({ 0,0 }); dim_->SetSize({ 1280,720 }); dim_->SetAnchorPoint({ 0,0 });
+	dim_->SetPosition({ 0,0 }); dim_->SetSize({ (float)winApp->GetClientWidth(),(float)winApp->GetClientHeight() }); dim_->SetAnchorPoint({ 0,0 });
 	dim_->SetColor({ 0,0,0,0.5f });
 
 	// パネル
 	panel_ = std::make_unique<Sprite>(); panel_->Initialize(kPanelTex);
-	panel_->SetAnchorPoint({ 0.5f,0.5f }); panel_->SetPosition({ 640,360 }); panel_->SetSize({ 960,640 });
+	panel_->SetAnchorPoint({ 0.5f,0.5f }); panel_->SetPosition({ (float)winApp->GetClientWidth() * 0.5f,(float)winApp->GetClientHeight() * 0.5f }); panel_->SetSize({ 960,640 });
 
 	// ボタン
 	btnYes_ = std::make_unique<Sprite>(); btnYes_->Initialize(kBtnTexYes_);
+	rYes_.x = (float)(winApp->GetClientWidth() / 2.0f - (rYes_.width + rNo_.width) / 2 - 10);
+	rYes_.y = (float)(winApp->GetClientHeight() / 2.0f);
 	btnYes_->SetAnchorPoint({ 0.5f,0.5f }); btnYes_->SetPosition({ rYes_.x + rYes_.width * 0.5f, rYes_.y + rYes_.height * 0.5f }); btnYes_->SetSize({ rYes_.width,rYes_.height });
 
 	// ボタン
 	btnNo_ = std::make_unique<Sprite>(); btnNo_->Initialize(kBtnTexNo_);
-	btnNo_->SetAnchorPoint({ 0.5f,0.5f });  btnNo_->SetPosition({ rNo_.x + rNo_.width * 0.5f, rNo_.y + rNo_.height * 0.5f });    btnNo_->SetSize({ rNo_.width,rNo_.height });
+	btnNo_->SetAnchorPoint({ 0.5f,0.5f });
+	
+	rNo_.x = (float)(winApp->GetClientWidth() / 2.0f + (rYes_.width + rNo_.width) / 2 + 10 - rNo_.width);
+	rNo_.y = (float)(winApp->GetClientHeight() / 2.0f);
+
+	btnNo_->SetPosition({ rNo_.x + rNo_.width * 0.5f, rNo_.y + rNo_.height * 0.5f });    btnNo_->SetSize({ rNo_.width,rNo_.height });
 
 }
 
@@ -54,17 +63,10 @@ void ConfirmQuitOverlay::Update()
 	else if (isOverNo) { focus_ = 1; }
 
 	// 入力（キーボード / マウス）
-	bool pressedEnter = input_->TriggerKey(DIK_RETURN);
 	bool clickedMouse = input_->TriggerMouse(0);
 
-	// Enter キー → フォーカスしているボタンで決定
-	if (pressedEnter)
-	{
-		if (focus_ == 0) { if (onYes_) onYes_(); Close(); }
-		else { if (onNo_)  onNo_();  Close(); }
-	}
 	// マウスクリック → クリック位置がボタンの中のときだけ決定
-	else if (clickedMouse)
+	if (clickedMouse)
 	{
 		if (isOverYes)
 		{
