@@ -167,12 +167,15 @@ void Input::Update()
 	memcpy(prevButtonStates_, buttonStates_, sizeof(prevButtonStates_));
 
 	/// ----- マウスカーソルを画面中央に固定する処理 ----- ///
-	if (lockCursor_) // カーソルロックが有効なときだけ中央に固定
+	if (lockCursor_)
 	{
-		POINT center{};
-		center.x = WinApp::kClientWidth / 2;
-		center.y = WinApp::kClientHeight / 2;
-		SetMousePosition(center.x, center.y); // これは ClientToScreen → SetCursorPos を含む関数
+		// 最小化などで 0 になっている時は何もしない
+		uint32_t w = winApp_->GetClientWidth();
+		uint32_t h = winApp_->GetClientHeight();
+		if (w > 0 && h > 0)
+		{
+			SetMousePosition((int)w / 2, (int)h / 2);
+		}
 	}
 }
 
@@ -272,6 +275,29 @@ Vector2 Input::GetMousePosition()
 	return Vector2(float(mousePosition_.x), float(mousePosition_.y));
 }
 
+
+void Input::SetLockCursor(bool lock)
+{
+	if (lockCursor_ == lock) { return; }
+	lockCursor_ = lock;
+
+	//if (lockCursor_)
+	//{
+	//	// カーソルを非表示（ShowCursorはカウンタ方式なので注意）
+	//	ShowCursor(FALSE);
+
+	//	// ウィンドウのクライアント領域を画面座標にしてクリップ
+	//	RECT rc{};
+	//	GetClientRect(winApp_->GetHwnd(), &rc);
+	//	MapWindowPoints(winApp_->GetHwnd(), nullptr, (POINT*)&rc, 2); // client→screen
+	//	ClipCursor(&rc);
+	//}
+	//else
+	//{
+	//	ClipCursor(nullptr);
+	//	ShowCursor(TRUE);
+	//}
+}
 
 /// -------------------------------------------------------------
 ///				　ゲームパッドの状態を取得

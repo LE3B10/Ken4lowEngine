@@ -2,6 +2,7 @@
 #include "SceneManager.h"
 #include <SpriteManager.h>
 #include <Input.h>
+#include <DirectXCommon.h>
 
 
 /// -------------------------------------------------------------
@@ -30,9 +31,11 @@ void PauseOverlay::Open(SceneManager* sceneManager)
 /// -------------------------------------------------------------
 void PauseOverlay::InitializeSprites()
 {
+	DirectXCommon* dxCommon = DirectXCommon::GetInstance();
+
 	// 今は 1280x720 前提でレイアウト
-	const float screenW = 1280.0f;
-	const float screenH = 720.0f;
+	const float screenW = static_cast<float>(dxCommon->GetClientWidth());
+	const float screenH = static_cast<float>(dxCommon->GetClientHeight());
 
 	// --- 背景暗転 ---
 	dim_ = std::make_unique<Sprite>();

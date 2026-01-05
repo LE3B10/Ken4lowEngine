@@ -148,7 +148,7 @@ public: /// ---------- マウスのメンバ関数 ---------- ///
 	Vector2 GetDragDelta() const { return Vector2(static_cast<float>(mouseState_.lX), static_cast<float>(mouseState_.lY)); }
 
 	// カーソルをロックするかどうかを設定
-	void SetLockCursor(bool lock) { lockCursor_ = lock; }
+	void SetLockCursor(bool lock);
 	bool GetLockCursor() const { return lockCursor_; }
 
 	// カーソルをロックするかどうかを取得
