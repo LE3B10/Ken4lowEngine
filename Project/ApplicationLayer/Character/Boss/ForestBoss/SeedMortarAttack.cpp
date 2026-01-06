@@ -119,9 +119,9 @@ void SeedMortarAttack::Draw()
 	}
 }
 
+#ifdef USE_IMGUI
 void SeedMortarAttack::DrawImGui(Boss& boss)
 {
-#ifdef USE_IMGUI
 
 	// ★ 編集したいので const を外す
 	auto& params = boss.GetParams().seedMortar;
@@ -219,8 +219,8 @@ void SeedMortarAttack::DrawImGui(Boss& boss)
 			poseParams_ = PoseParams{}; // デフォルト値に戻す
 		}
 	}
-#endif // USE_IMGUI
 }
+#endif // USE_IMGUI
 
 void SeedMortarAttack::UpdatePhase_Idle(float bossYawRad)
 {

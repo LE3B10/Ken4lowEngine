@@ -126,6 +126,7 @@ void ImGuiManager::Finalize()
 #endif // USE_IMGUI
 }
 
+#ifdef USE_IMGUI
 /// -------------------------------------------------------------
 ///						デバッグパネル登録
 /// -------------------------------------------------------------
@@ -134,6 +135,7 @@ void ImGuiManager::RegisterPanel(const DebugPanel& panel)
 	panels_.push_back(panel);
 	if (selectedIndex_ >= (int)panels_.size()) selectedIndex_ = 0;
 }
+#endif // USE_IMGUI
 
 /// -------------------------------------------------------------
 ///						デバッグハブ描画

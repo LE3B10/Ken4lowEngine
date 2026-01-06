@@ -136,9 +136,9 @@ void VineSweepAttack::Draw()
 	vineObject_->Draw();
 }
 
+#ifdef USE_IMGUI
 void VineSweepAttack::DrawImGui(Boss& boss)
 {
-#ifdef USE_IMGUI
 	// 便利：フェーズ名
 	auto PhaseName = [](Phase p)->const char*
 		{
@@ -215,8 +215,8 @@ void VineSweepAttack::DrawImGui(Boss& boss)
 	ImGui::DragFloat("Life", &trailLife_, 0.005f, 0.03f, 0.4f);
 	ImGui::DragInt("Max", &trailMax_, 1, 1, 32);
 	ImGui::Text("ActiveTrailCount: %d", (int)afterImages_.size());
-#endif // USE_IMGUI
 }
+#endif // USE_IMGUI
 
 
 bool VineSweepAttack::IsPointInSectorXZ(const Vector3& position, const Vector3& origin, float forwardYawRad, float radius, float angleDeg, float yThickness) const

@@ -13,7 +13,6 @@
 #include <imgui.h>
 #include <imgui_impl_dx12.h>
 #include <imgui_impl_win32.h>
-#endif // USE_IMGUI
 
 /// -------------------------------------------------------------
 ///					デバッグパネル構造体
@@ -29,6 +28,7 @@ struct DebugPanel
 
 	std::function<void()> drawContent; // ★ Begin/Endしない「中身だけ描く」関数
 };
+#endif // USE_IMGUI
 
 /// ---------- 前方宣言 ---------- ///
 class WinApp;
@@ -92,11 +92,13 @@ public:	/// ---------- メンバ関数 ---------- ///
 	/// </summary>
 	void Finalize();
 
+#ifdef USE_IMGUI
 	/// <summary>
 	/// デバッグパネルを登録します。
 	/// </summary>
 	/// <param name="panel">登録するデバッグパネル。</param>
 	void RegisterPanel(const DebugPanel& panel);
+#endif // USE_IMGUI
 
 	/// <summary>
 	/// デバッグハブウィンドウの描画処理を行います。
@@ -108,7 +110,10 @@ private: /// ---------- メンバ関数 ---------- ///
 	// SRVIndex確保
 	uint32_t srvIndex_ = UINT32_MAX;
 
+#ifdef USE_IMGUI
 	std::vector<DebugPanel> panels_;
+#endif // USE_IMGUI
+
 	int selectedIndex_ = 0;
 
 private: /// ---------- コンストラクタ・デストラクタ ---------- ///

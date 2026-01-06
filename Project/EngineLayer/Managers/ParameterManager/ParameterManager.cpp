@@ -376,5 +376,8 @@ void ParameterManager::DrawItem(const std::string& itemName, ParameterManager::I
 	{
 		ImGui::Text("Unsupported type for item: %s", itemName.c_str());
 	}
+#else
+	(void)itemName;
+	(void)item;
 #endif // USE_IMGUI
 }

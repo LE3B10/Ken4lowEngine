@@ -103,9 +103,9 @@ void RootCageAttack::Draw()
 	}
 }
 
+#ifdef USE_IMGUI
 void RootCageAttack::DrawImGui(Boss& boss)
 {
-#ifdef USE_IMGUI
 	auto& params = boss.GetParams().rootCage;
 
 	// フェーズ名表示用
@@ -188,10 +188,8 @@ void RootCageAttack::DrawImGui(Boss& boss)
 	}
 
 	ImGui::DragFloat("exposeCoreAfter", &params.exposeCoreAfter, 0.01f, 0.0f, 20.0f);
-#else
-	(void)boss;
-#endif // USE_IMGUI
 }
+#endif // USE_IMGUI
 
 void RootCageAttack::UpdatePhase_Idle(Boss* boss, float deltaTime, float bossYaw, const Vector3& playerPos)
 {
