@@ -7,8 +7,6 @@
 #include "LinearInterpolation.h"
 #include <SpriteManager.h>
 #include <StageSelectSelectingState.h>
-#include "StageSelectFadeInState.h"
-#include "StageSelectFadeOutState.h"
 #include "StageSelectLoadState.h"
 
 #include <algorithm>
@@ -30,12 +28,9 @@ void StageSelectScene::Initialize()
 	// 背景初期化
 	InitializeBackground();
 
-	// フェードオーバーレイ初期化
-	InitializeFadeOverlay();
-
 	// --- 最初のステートをセット（Loading） ---
 	state_ = State::Loading;
-	ChangeState(std::make_unique<StageSelectLoadState>());
+	ChangeState(std::make_unique<StageSelectSelectingState>());
 }
 
 /// -------------------------------------------------------------
@@ -74,14 +69,6 @@ void StageSelectScene::Draw2DSprites()
 
 	// アクティブセレクタの2D描画
 	if (activeSelector_) activeSelector_->Draw2DSprites();
-
-	// 最前面にフェードオーバーレイ
-	if (fadeSprite_ && fadeAlpha_ > 0.0f)
-	{
-		fadeSprite_->SetColor({ 0.0f, 0.0f, 0.0f, fadeAlpha_ });
-		fadeSprite_->Update();
-		fadeSprite_->Draw();
-	}
 }
 
 /// -------------------------------------------------------------
@@ -103,8 +90,7 @@ void StageSelectScene::Finalize()
 	activeSelector_ = nullptr;
 	gridSelector_.reset();
 
-	// 3) スプライト解放（GPUリソースがぶら下がりやすい）
-	fadeSprite_.reset();
+	// 3) スプライト解放
 	bg_.reset();
 
 	// 4) データや参照を整理（任意だけど安全）
@@ -148,44 +134,32 @@ void StageSelectScene::InitializeSelectors()
 	float screenWidth = static_cast<float>(dxCommon_->GetSwapChainDesc().Width);
 	float screenHeight = static_cast<float>(dxCommon_->GetSwapChainDesc().Height);
 
-	// セレクタの初期化
 	context_.screenWidth = screenWidth;
 	context_.screenHeight = screenHeight;
 	context_.input = input_;
 	context_.stages = &stages_;
 
-	// コールバック設定
-
-	// 戻る要求
+	// 戻る要求（即タイトルへ）
 	context_.onRequestBack = [this]() {
-		// 次のシーンは Title
-		SetNextScene(NextScene::Title);
 
-		if (state_ == State::Selecting)
-		{
-			// フェードアウトへ
-			ChangeState(std::make_unique<StageSelectFadeOutState>());
-		}
-		else
-		{
-			// 万が一 Selecting 以外で呼ばれたら即戻る
-			BackToTitle();
-		}
+		// 多重遷移防止
+		if (nextScene_ != NextScene::None) return;
+
+		SetNextScene(NextScene::Title);
+		BackToTitle();                 // ★即 ChangeScene（SceneManager側フェードに任せる）
 		};
 
+	// ステージ決定（即ゲームへ）
 	context_.onRequestMap = [this](uint32_t stageIndex) {
-		// ステージ一覧と開始フォーカスをリポジトリへ
+
+		// 多重遷移防止
+		if (nextScene_ != NextScene::None) return;
+
 		StageRepository::GetInstance().SetStages(stages_);
-		StageRepository::GetInstance().SetStartIndex((int)stageIndex); // 選択IDの保持
+		StageRepository::GetInstance().SetStartIndex((int)stageIndex);
 
-		// 次のシーンは GamePlay
 		SetNextScene(NextScene::GamePlay);
-
-		// ロードステートへ移行
-		if (state_ == State::Selecting)
-		{
-			ChangeState(std::make_unique<StageSelectFadeOutState>());
-		}
+		GoToGamePlay();                // ★即 ChangeScene（SceneManager側フェードに任せる）
 		};
 }
 
@@ -248,20 +222,6 @@ void StageSelectScene::InitializeBackground()
 
 	// アクティブセレクタに通知
 	activeSelector_->OnEnter();
-}
-
-/// -------------------------------------------------------------
-///				　		　フェード用初期化
-/// -------------------------------------------------------------
-void StageSelectScene::InitializeFadeOverlay()
-{
-	// フェード用スプライト（画面全体を覆う黒）
-	fadeSprite_ = std::make_unique<Sprite>();
-	fadeSprite_->Initialize("white.png");
-	fadeSprite_->SetSize({ context_.screenWidth, context_.screenHeight });
-	fadeSprite_->SetColor({ 0.0f, 0.0f, 0.0f, 1.0f });
-	fadeSprite_->Update();
-	fadeAlpha_ = 1.0f; // 最初は真っ黒からフェードイン
 }
 
 /// -------------------------------------------------------------

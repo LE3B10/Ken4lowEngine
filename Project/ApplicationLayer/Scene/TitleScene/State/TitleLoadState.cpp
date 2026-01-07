@@ -1,6 +1,5 @@
 #include "TitleLoadState.h"
 #include "TitleScene.h"
-#include "TitleFadeOutState.h"
 #include "SceneManager.h"
 
 void TitleLoadState::Enter(TitleScene* scene)
@@ -13,9 +12,6 @@ void TitleLoadState::Enter(TitleScene* scene)
 
 	// タイマーの初期化
 	timer_ = 0.0f;
-
-	// フェードアウト済みなので、黒を維持
-	scene->SetFadeAlpha(1.0f);
 }
 
 void TitleLoadState::Update(TitleScene* scene, float deltaTime)

@@ -15,8 +15,6 @@
 #include "TitleLoadState.h"
 #include "TitleAttractState.h"
 #include "TitleLobbyState.h"
-#include "TitleFadeOutState.h"
-#include "TitleFadeInState.h"
 
 
 /// -------------------------------------------------------------
@@ -48,16 +46,13 @@ void TitleScene::Initialize()
 	// クリックヒントの初期化
 	InitializeClickHintUI();
 
-	// フェードオーバーレイの初期化
-	InitializeFadeOverlay();
-
 	// ロビー地形の初期化
 	terrain_ = std::make_unique<Object3D>();
 	terrain_->Initialize("lobby03.gltf");
 
 	// 最初のステートに入る
-	ChangeState(std::make_unique<TitleFadeInState>());
-	state_ = State::FadeIn; // 最初のステート
+	ChangeState(std::make_unique<TitleAttractState>());
+	state_ = State::TitleAttract; // 最初のステート
 }
 
 
@@ -170,8 +165,7 @@ void TitleScene::Draw2DSprites()
 	// ロビー系（TransitionToLobby と LobbyIdle の間だけロビーUIを表示）
 	if (state_ == State::TransitionToLobby ||
 		state_ == State::LobbyIdle ||
-		state_ == State::Loading ||
-		state_ == State::FadeOut)
+		state_ == State::Loading)
 	{
 		if (battleButtonUI_.btnShadow) { battleButtonUI_.btnShadow->Draw(); } // ← 影を先に
 		if (battleButtonUI_.btnSprite) { battleButtonUI_.btnSprite->Draw(); } // ← ボタン本体
@@ -180,14 +174,6 @@ void TitleScene::Draw2DSprites()
 	// ====== 最後にオーバーレイを最前面へ重ね描き ======
 	if (quitOverlay_) {
 		quitOverlay_->Draw2D();
-	}
-
-	// フェードオーバーレイ
-	if (fadeSprite_ && fadeAlpha_ > 0.0f)
-	{
-		fadeSprite_->SetColor({ 0.0f, 0.0f, 0.0f, fadeAlpha_ });
-		fadeSprite_->Update();
-		fadeSprite_->Draw();
 	}
 
 #pragma endregion
@@ -214,7 +200,6 @@ void TitleScene::Finalize()
 	battleButtonUI_.btnSprite.reset();
 	battleButtonUI_.btnShadow.reset();
 
-	fadeSprite_.reset();
 	logoSprite_.reset();
 	terrain_.reset();
 	skyBox_.reset();
@@ -236,8 +221,7 @@ void TitleScene::DrawImGui()
 		state_ == State::TitleAttract ? "TitleAttract" :
 		state_ == State::TransitionToLobby ? "TransitionToLobby" :
 		state_ == State::LobbyIdle ? "LobbyIdle" :
-		state_ == State::Loading ? "Loading" :
-		state_ == State::FadeOut ? "FadeOut" : "";
+		state_ == State::Loading ? "Loading" : "";
 	ImGui::Text("State: %s", stateNames);
 	ImGui::Text("Idle: %.1fs / Return: %.0fs", timers_.idle, timers_.returnSeconds);
 	ImGui::End();
@@ -324,21 +308,6 @@ void TitleScene::InitializeClickHintUI()
 	clickHintUI_.hintSprite->SetPosition({ dxCommon_->GetClientWidth() * 0.5f + clickHintUI_.offset.x, dxCommon_->GetClientHeight() * 0.25f + clickHintUI_.offset.y });
 	clickHintUI_.hintSprite->SetSize({ 153.6f, 102.4f });       // 元画像が1536x1024pxなので1/10スケール
 	clickHintUI_.baseSize = clickHintUI_.hintSprite->GetSize(); // 基準サイズを保存
-}
-
-/// -------------------------------------------------------------
-///				　	フェードオーバーレイ初期化処理
-/// -------------------------------------------------------------
-void TitleScene::InitializeFadeOverlay()
-{
-	// フェード用スプライト（黒の1x1テクスチャを用意しておく）
-	fadeSprite_ = std::make_unique<Sprite>();
-	fadeSprite_->Initialize("white.png");
-	fadeSprite_->SetAnchorPoint({ 0.5f, 0.5f });
-	fadeSprite_->SetPosition({ dxCommon_->GetClientWidth() * 0.5f,  dxCommon_->GetClientHeight() * 0.5f });
-	fadeSprite_->SetSize({ static_cast<float>(dxCommon_->GetClientWidth()), static_cast<float>(dxCommon_->GetClientHeight()) });   // 画面全体を覆う
-	fadeSprite_->SetColor({ 0.0f, 0.0f, 0.0f, 0.0f }); // 最初は透明
-	fadeAlpha_ = 0.0f;
 }
 
 /// -------------------------------------------------------------

@@ -134,8 +134,6 @@ public: /// ---------- 列挙型 ---------- ///
 		LobbyIdle,		   // ロビーでの待機
 		ToTitle,		   // 操作時間が無かったらタイトルへ戻る
 		Loading,		   // ロード中
-		FadeOut,		   // フェードアウト
-		FadeIn,			   // フェードイン
 		SettingUp,		   // セットアップ中
 	};
 	State state_ = State::TitleAttract; // 現在のシーン状態
@@ -176,9 +174,6 @@ private: /// ---------- メンバ関数 ---------- ///
 
 	// クリックヒントUIの初期化
 	void InitializeClickHintUI();
-
-	// フェードオーバーレイの初期化
-	void InitializeFadeOverlay();
 
 public: /// ---------- セッタ ---------- ///
 
@@ -229,11 +224,6 @@ public: /// ---------- ゲッタ ---------- ///
 	// カメラの遷移先姿勢を取得
 	Pose& GetPoseTo() { return poseTo_; }
 
-	// フェード用アクセサ
-	void SetFadeAlpha(float a) { fadeAlpha_ = std::clamp(a, 0.0f, 1.0f); }
-	float GetFadeAlpha() const { return fadeAlpha_; }
-	Sprite* GetFadeSprite() const { return fadeSprite_.get(); }
-
 private: /// ---------- メンバ関数 ---------- ///
 
 	// Debug用更新処理
@@ -270,9 +260,5 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	// 現在のシーン状態
 	std::unique_ptr<ITitleSceneState> currentState_ = nullptr;
-
-	// フェードオーバーレイ
-	std::unique_ptr<Sprite> fadeSprite_; // 画面全体を覆う黒スプライト
-	float fadeAlpha_ = 0.0f;             // 0=透明, 1=真っ黒
 };
 

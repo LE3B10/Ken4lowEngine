@@ -33,6 +33,9 @@ void GameApplication::Initialize()
 	// グローバル変数の読み込み
 	ParameterManager::GetInstance()->LoadFiles();
 
+	// シーンマネージャーの初期化
+	SceneManager::GetInstance()->Initialize();
+
 	// シーンファクトリーの生成と設定
 	auto sceneFactory = std::make_unique<SceneFactory>();
 	SceneManager::GetInstance()->SetAbstractSceneFactory(std::move(sceneFactory));

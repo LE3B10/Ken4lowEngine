@@ -70,7 +70,6 @@ public: /// ---------- メンバ型 ---------- ///
 		SettingUp,  // ステージ読み込み前のセットアップ
 		Loading,    // リソースロード
 
-		FadeIn,     // 画面が明るくなってくる
 		CutScene,   // オープニング演出
 		Playing,    // プレイ中
 		Paused,     // ポーズ
@@ -109,6 +108,11 @@ public: /// ---------- メンバ関数 ---------- ///
 
 	// ImGui描画処理
 	void DrawImGui() override;
+
+	bool IsReadyToStartUncover() const override
+	{
+		return state_ != State::Loading; // GamePlayingState::Enterで Playing に変わる
+	}
 
 public: /// ---------- セッタ ー ---------- ///
 
@@ -158,11 +162,6 @@ public: /// ---------- ゲッター ---------- ///
 	int GetClearOptionCount() const { return kClearOptionCount; }
 	std::array<std::unique_ptr<Sprite>, kClearOptionCount>& GetClearOptionSprites() { return clearOptionSprites_; }
 	std::array<ButtonRect, kClearOptionCount>& GetClearOptionRects() { return clearOptionRects_; }
-
-	// フェード用アクセサ
-	void SetFadeAlpha(float a) { fadeAlpha_ = a; }
-	float GetFadeAlpha() const { return fadeAlpha_; }
-	Sprite* GetFadeSprite() const { return fadeSprite_.get(); }
 
 	bool IsBossSpawned() const { return bossSpawned_; }
 	void SetBossSpawned(bool spawned) { bossSpawned_ = spawned; }

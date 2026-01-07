@@ -436,9 +436,6 @@
     <ClCompile Include="ApplicationLayer\Scene\TitleScene\State\TitleAttractState.cpp">
       <Filter>ApplicationLayer\Scene\TitleScene\State</Filter>
     </ClCompile>
-    <ClCompile Include="ApplicationLayer\Scene\TitleScene\State\TitleFadeOutState.cpp">
-      <Filter>ApplicationLayer\Scene\TitleScene\State</Filter>
-    </ClCompile>
     <ClCompile Include="ApplicationLayer\Scene\TitleScene\State\TitleLoadState.cpp">
       <Filter>ApplicationLayer\Scene\TitleScene\State</Filter>
     </ClCompile>
@@ -463,22 +460,10 @@
     <ClCompile Include="ApplicationLayer\Scene\StageSelectScene\State\StageSelectSelectingState.cpp">
       <Filter>ApplicationLayer\Scene\StageSelectScene\State</Filter>
     </ClCompile>
-    <ClCompile Include="ApplicationLayer\Scene\StageSelectScene\State\StageSelectFadeInState.cpp">
-      <Filter>ApplicationLayer\Scene\StageSelectScene\State</Filter>
-    </ClCompile>
-    <ClCompile Include="ApplicationLayer\Scene\StageSelectScene\State\StageSelectFadeOutState.cpp">
-      <Filter>ApplicationLayer\Scene\StageSelectScene\State</Filter>
-    </ClCompile>
     <ClCompile Include="ApplicationLayer\Scene\StageSelectScene\State\StageSelectLoadState.cpp">
       <Filter>ApplicationLayer\Scene\StageSelectScene\State</Filter>
     </ClCompile>
-    <ClCompile Include="ApplicationLayer\Scene\TitleScene\State\TitleFadeInState.cpp">
-      <Filter>ApplicationLayer\Scene\TitleScene\State</Filter>
-    </ClCompile>
     <ClCompile Include="ApplicationLayer\Scene\GamePlayScene\State\GameClearState.cpp">
-      <Filter>ApplicationLayer\Scene\GamePlayScene\State</Filter>
-    </ClCompile>
-    <ClCompile Include="ApplicationLayer\Scene\GamePlayScene\State\GameFadeIn.cpp">
       <Filter>ApplicationLayer\Scene\GamePlayScene\State</Filter>
     </ClCompile>
     <ClCompile Include="ApplicationLayer\Scene\GamePlayScene\State\GamePlayingState.cpp">
@@ -561,6 +546,9 @@
     </ClCompile>
     <ClCompile Include="ApplicationLayer\Character\Boss\ForestBoss\RootCageAttack.cpp">
       <Filter>ApplicationLayer\Character\Boss\ForestBoss</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\SceneManagement\FadeManager\FadeManager.cpp">
+      <Filter>ApplicationLayer\SceneManager\FadeManager</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -1044,9 +1032,6 @@
     <ClInclude Include="ApplicationLayer\Scene\TitleScene\State\TitleAttractState.h">
       <Filter>ApplicationLayer\Scene\TitleScene\State</Filter>
     </ClInclude>
-    <ClInclude Include="ApplicationLayer\Scene\TitleScene\State\TitleFadeOutState.h">
-      <Filter>ApplicationLayer\Scene\TitleScene\State</Filter>
-    </ClInclude>
     <ClInclude Include="ApplicationLayer\Scene\TitleScene\State\TitleLoadState.h">
       <Filter>ApplicationLayer\Scene\TitleScene\State</Filter>
     </ClInclude>
@@ -1077,22 +1062,10 @@
     <ClInclude Include="ApplicationLayer\Scene\StageSelectScene\State\StageSelectSelectingState.h">
       <Filter>ApplicationLayer\Scene\StageSelectScene\State</Filter>
     </ClInclude>
-    <ClInclude Include="ApplicationLayer\Scene\StageSelectScene\State\StageSelectFadeInState.h">
-      <Filter>ApplicationLayer\Scene\StageSelectScene\State</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Scene\StageSelectScene\State\StageSelectFadeOutState.h">
-      <Filter>ApplicationLayer\Scene\StageSelectScene\State</Filter>
-    </ClInclude>
     <ClInclude Include="ApplicationLayer\Scene\StageSelectScene\State\StageSelectLoadState.h">
       <Filter>ApplicationLayer\Scene\StageSelectScene\State</Filter>
     </ClInclude>
-    <ClInclude Include="ApplicationLayer\Scene\TitleScene\State\TitleFadeInState.h">
-      <Filter>ApplicationLayer\Scene\TitleScene\State</Filter>
-    </ClInclude>
     <ClInclude Include="ApplicationLayer\Scene\GamePlayScene\State\GameClearState.h">
-      <Filter>ApplicationLayer\Scene\GamePlayScene\State</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Scene\GamePlayScene\State\GameFadeIn.h">
       <Filter>ApplicationLayer\Scene\GamePlayScene\State</Filter>
     </ClInclude>
     <ClInclude Include="ApplicationLayer\Scene\GamePlayScene\State\GamePlayingState.h">
@@ -1241,6 +1214,9 @@
     </ClInclude>
     <ClInclude Include="ApplicationLayer\Character\Boss\ForestBoss\RootCageAttack.h">
       <Filter>ApplicationLayer\Character\Boss\ForestBoss</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\SceneManagement\FadeManager\FadeManager.h">
+      <Filter>ApplicationLayer\SceneManager\FadeManager</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -1686,6 +1662,9 @@
     </Filter>
     <Filter Include="ApplicationLayer\Character\Boss\ForestBoss">
       <UniqueIdentifier>{6db4ef1d-71a7-4d07-9818-12520b9df4b2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ApplicationLayer\SceneManager\FadeManager">
+      <UniqueIdentifier>{9a668ff4-4230-45d3-9b68-31c77b30e350}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

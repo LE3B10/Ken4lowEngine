@@ -15,7 +15,6 @@
 #include "PauseOverlay.h"
 
 #include "GameClearState.h"
-#include "GameFadeIn.h"
 #include "GameLoadState.h"
 #include "GameOverState.h"
 #include "GamePauseState.h"

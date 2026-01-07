@@ -29,8 +29,6 @@ public: /// ---------- 型定義 ---------- ///
 	{
 		Selecting,  // ステージセレクト中
 		Loading,    // ローディング中
-		FadingOut,  // フェードアウト中
-		FadingIn    // フェードイン中
 	};
 
 	// 次に遷移するシーン
@@ -75,9 +73,6 @@ private: /// ---------- メンバ関数 ---------- ///
 	// 背景初期化
 	void InitializeBackground();
 
-	// フェード用初期化
-	void InitializeFadeOverlay();
-
 public: /// ---------- 状態管理 ---------- ///
 
 	// ステート差し替え
@@ -102,11 +97,6 @@ public: /// ---------- 状態管理 ---------- ///
 
 	// ペンディングアンロックインデックス
 	int& GetPendingUnlockIndex() { return pendingUnlockIndex_; }
-
-	// フェード用アクセサ
-	void SetFadeAlpha(float a) { fadeAlpha_ = a; }
-	float GetFadeAlpha() const { return fadeAlpha_; }
-	Sprite* GetFadeSprite() const { return fadeSprite_.get(); }
 
 	// 次に遷移するシーンの設定
 	void SetNextScene(NextScene n) { nextScene_ = n; }
@@ -148,9 +138,5 @@ private: /// ---------- メンバ変数 ---------- ///
 	Vector4 bgTarget_ = bgNow_; // 目標の色
 
 	int pendingUnlockIndex_ = -1;
-
-	// フェードオーバーレイ（黒スプライト）
-	std::unique_ptr<Sprite> fadeSprite_;
-	float fadeAlpha_ = 0.0f;
 };
 

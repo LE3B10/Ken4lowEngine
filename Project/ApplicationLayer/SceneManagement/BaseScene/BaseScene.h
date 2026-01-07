@@ -35,6 +35,9 @@ public: /// ---------- 純粋仮想関数 ---------- ///
 	// シーンマネージャーをセット
 	virtual void SetSceneManager(SceneManager* sceneManager) { sceneManager_ = sceneManager; }
 
+	// フェードイン開始準備完了か
+	virtual bool IsReadyToStartUncover() const { return true; }
+
 protected: /// ---------- メンバ変数 ---------- ///
 
 	// シーンマネージャーを借りてくる

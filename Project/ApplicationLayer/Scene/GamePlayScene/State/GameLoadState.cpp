@@ -1,8 +1,9 @@
 #include "GameLoadState.h"
 #include "GamePlayScene.h"
-#include "GameFadeIn.h"
 #include <LevelLoader.h>
 #include "StageRepository.h"
+#include <GamePlayingState.h>
+#include "SceneManager.h"
 
 namespace
 {
@@ -105,9 +106,6 @@ void GameLoadState::Enter(GamePlayScene* scene)
 
 	timer_ = 0.0f;
 
-	// フェードアウト後なので、真っ黒を維持
-	scene->SetFadeAlpha(1.0f);
-
 	auto* player = scene->GetPlayer();
 	auto levelLoader = std::make_unique<LevelLoader>();
 	auto& levelObjectManager = scene->GetLevelObjectManager();
@@ -166,8 +164,9 @@ void GameLoadState::Update(GamePlayScene* scene, float deltaTime)
 	// ロード完了＆演出時間経過で遷移先へ
 	if (timer_ >= duration_)
 	{
-		// ロードが終わったらフェードインステートへ
-		scene->ChangeState(std::make_unique<GameFadeIn>());
+		// ロードが終わったらプレイへ
+		scene->ChangeState(std::make_unique<GamePlayingState>());
+		return;
 	}
 }
 

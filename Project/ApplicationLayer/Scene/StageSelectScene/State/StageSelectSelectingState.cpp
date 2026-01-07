@@ -7,7 +7,7 @@
 #include "GridStageSelector.h"
 #include "StageRepository.h"
 #include "LinearInterpolation.h"
-#include <StageSelectFadeOutState.h>
+#include "StageSelectLoadState.h"
 
 #include <algorithm>
 
@@ -50,8 +50,11 @@ void StageSelectSelectingState::Update(StageSelectScene* scene, float deltaTime)
 	// --- ESC でタイトルへ戻る ---
 	if (input->TriggerKey(DIK_ESCAPE))
 	{
-		scene->SetNextScene(StageSelectScene::NextScene::Title);
-		scene->ChangeState(std::make_unique<StageSelectFadeOutState>());
+		if (scene->GetNextScene() == StageSelectScene::NextScene::None)
+		{
+			scene->SetNextScene(StageSelectScene::NextScene::Title);
+			scene->BackToTitle();   // ★即 ChangeScene
+		}
 		return;
 	}
 
