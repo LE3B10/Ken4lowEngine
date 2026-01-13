@@ -61,7 +61,10 @@ bool FadeManager::Update(float dt)
 
 	EnsureTiles();
 
+	// タイルアニメーションの進行
 	const float animSec = std::max(tileAnimSec_, 0.0001f);
+
+	// タイル完全被覆までの合計時間
 	const float coverTotal = tileMaxDelay_ + animSec;
 
 	switch (state_)
@@ -84,7 +87,7 @@ bool FadeManager::Update(float dt)
 	{
 		// タイルは完全被覆のまま保持
 		holdTimer_ += dt;
-		if (holdFramesLeft_ > 0) { --holdFramesLeft_; }
+		if (holdFramesLeft_ >= 0) { --holdFramesLeft_; }
 		break;
 	}
 	case State::TileUncover:
@@ -144,13 +147,6 @@ void FadeManager::Cancel()
 	minHoldFrames_ = 0;
 	holdTimer_ = 0.0f;
 	holdFramesLeft_ = 0;
-}
-
-void FadeManager::SetFadeFrames(int frames)
-{
-	// 互換：framesを「1タイルの閉じ時間」に反映（60fps基準）
-	frames = std::max(frames, 1);
-	tileAnimSec_ = static_cast<float>(frames) / 60.0f;
 }
 
 void FadeManager::EnsureTiles()

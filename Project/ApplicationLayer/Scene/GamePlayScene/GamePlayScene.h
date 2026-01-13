@@ -16,6 +16,9 @@
 #include "BaseOverlay.h"
 
 #include "IGamePlaySceneState.h"
+#include "WeaponSlot.h"
+#include "ReloadCircle.h"
+#include "HUDManager.h"
 
 #include <array>
 #include <memory>
@@ -238,7 +241,11 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	std::unique_ptr<Player> player_ = nullptr; // プレイヤー
 	std::unique_ptr<Crosshair> crosshair_ = nullptr; // クロスヘア
+	std::unique_ptr<ReloadCircle> reloadCircle_ = nullptr;
+
 	std::unique_ptr<BallisticEffect> ballisticEffect_ = nullptr; // 弾道エフェクト
+
+	std::unique_ptr<WeaponSlot> weaponSlot_ = nullptr; // 武器スロット
 
 	std::unique_ptr<ItemManager> itemManager_ = nullptr; // アイテムマネージャー
 
@@ -246,6 +253,8 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	std::unique_ptr<Sprite> retryButtonSprite_;   // 右下: リトライ
 	std::unique_ptr<Sprite> retireButtonSprite_;  // 左下: リタイア(タイトルへ)
+
+	std::unique_ptr<HUDManager> hudManager_ = nullptr; // HUDマネージャー
 
 	// クリア演出用
 	float gameClearTimer_ = 0.0f;        // 経過時間

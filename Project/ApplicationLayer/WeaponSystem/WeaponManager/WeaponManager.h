@@ -11,8 +11,8 @@
 #include "BaseWeapon.h"
 
 #include <vector>
-
 #include <memory>
+#include <unordered_map>
 
 /// ---------- 前方宣言 ---------- ///
 class Input;
@@ -28,6 +28,46 @@ class WeaponManager
 
 	// 武器生成処理
 	std::unique_ptr<BaseWeapon> CreateWeaponFromConfig(const WeaponConfig& config) const;
+
+public: /// ---------- 構造体 ---------- ///
+
+	// 弾薬表示用構造体
+	struct AmmoView
+	{
+		int mag = 0;			// 現在のマガジン
+		int reserve = 0;		// 予備弾
+		int magSize = 0;		// マガジン最大
+		int reserveMax = 0;		// 予備弾最大
+		bool reloading = false;	// リロード中かどうか
+		float reloadT = 0.0f;	// リロード経過時間
+		float reloadSec = 0.0f;	// リロード所要時間
+		bool usesAmmo = false;	// 弾薬を使用する武器かどうか
+	};
+
+private: /// ---------- 構造体 ---------- ///
+
+	// 内部用：弾薬パラメータ構造体
+	struct AmmoParams
+	{
+		int magSize = 0;
+		int reserveMax = 0;
+		int consumePerShot = 1;
+		float reloadSec = 1.5f;
+		bool usesAmmo = true;     // melee等はfalse
+		bool infinite = false;    // デバッグ用
+
+		bool autoReload = true;
+	};
+
+	// 内部用：弾薬状態構造体
+	struct AmmoState
+	{
+		AmmoParams p{};
+		int mag = 0;
+		int reserve = 0;
+		bool reloading = false;
+		float t = 0.0f;
+	};
 
 public: /// ---------- メンバ関数 ---------- ///
 
@@ -64,10 +104,35 @@ public: /// ---------- メンバ関数 ---------- ///
 	// 銃口のワールド座標を取得
 	Vector3 GetMuzzleWorld() const { return ballisticEffect_ ? ballisticEffect_->GetMuzzleWorld() : Vector3{}; }
 
+	// 0..5 を返す（Primary..Heavy）。未選択なら -1
+	int GetSelectedHotbarIndex() const;
+
+public: /// ---------- ゲッター ---------- ///
+
+	/// <summary>
+	/// 現在選択中のスロットの弾薬情報を取得します。
+	/// </summary>
+	/// <returns>弾薬情報構造体。</returns>
+	AmmoView GetCurrentAmmoView() const;
+
+	// スロット(0..5)の弾薬情報を取得（空/近接は usesAmmo=false）
+	AmmoView GetAmmoViewByHotbarIndex(int hotbarIndex) const;
+
 private: /// ---------- メンバ関数 ---------- ///
 
 	// 武器選択
 	void SelectWeapon(const std::string& name);
+
+	void BuildDefaultAmmo();
+	AmmoState* GetAmmo(const std::string& weaponName);
+	const AmmoState* GetAmmo(const std::string& weaponName) const;
+	AmmoState* GetCurrentAmmo();
+	const AmmoState* GetCurrentAmmo() const;
+
+	void StartReload();
+	void UpdateReload(float dt);
+
+	bool TryConsumeAmmoForShot(); // 撃てるなら消費してtrue
 
 private: /// ---------- メンバ変数 ---------- ///
 
@@ -100,6 +165,9 @@ private: /// ---------- メンバ変数 ---------- ///
 	std::unordered_map<std::string, bool> weaponEditorOpen_;
 
 	int currentIndex_ = -1; // 現在装備
+
+	// 武器ごとの弾薬状態管理用マップ
+	std::unordered_map<std::string, AmmoState> ammoByWeapon_;
 
 private: /// ---------- 武器データパス定数 ---------- ///
 

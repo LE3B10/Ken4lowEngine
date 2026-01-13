@@ -26,10 +26,13 @@ public: /// ---------- メンバ関数 ---------- ///
 
 public: /// ---------- ゲッタ ---------- ///
 
-	// 
+	// 可視化状態取得
 	bool IsVisible() const { return isVisible_; }
 
 public: /// ---------- セッタ ---------- ///
+
+	// リロード状態設定
+	void SetReloading(bool isReloading, float progress);
 
 	// 可視化設定
 	void SetVisible(bool visible) { isVisible_ = visible; }

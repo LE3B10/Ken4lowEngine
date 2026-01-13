@@ -3,6 +3,7 @@
 #include <SpriteManager.h>
 #include <Input.h>
 #include <DirectXCommon.h>
+#include "HUDManager.h"
 
 
 /// -------------------------------------------------------------

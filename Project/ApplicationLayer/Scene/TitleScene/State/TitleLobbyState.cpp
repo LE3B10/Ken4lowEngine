@@ -6,6 +6,7 @@
 #include "SceneManager.h"
 #include "Input.h"
 #include <LinearInterpolation.h>
+#include <DirectXCommon.h>
 
 /// -------------------------------------------------------------
 ///				　			　補助関数
@@ -29,6 +30,9 @@ void TitleLobbyState::Update(TitleScene* scene, float deltaTime)
 {
 	using State = TitleScene::State;
 	State state = scene->GetState();
+
+	//float width = scene->GetDirectXCommon()->GetClientWidth();
+	//float height = scene->GetDirectXCommon()->GetClientHeight();
 
 	auto& orbitState = scene->GetOrbitState();
 	auto& logoUI = scene->GetLogoUI();

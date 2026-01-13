@@ -164,7 +164,7 @@ void TitleAttractState::Update(TitleScene* scene, float deltaTime)
 		float toYaw = 0.0f, toPitch = 0.0f;
 		YawPitchLookAt(lobbySwing.cameraPosition, lobbySwing.lookAt, toYaw, toPitch);
 		poseTo = { lobbySwing.cameraPosition, toYaw, toPitch };
-		
+
 		timers.time = 0.0f; // 遷移時間リセット
 		timers.state = 0.0f; // タイマーリセット
 

@@ -60,9 +60,6 @@ public: /// ---------- アクセサ関数 ---------- ///
 	// Hold の最低条件が満たされたか（Scene側のロード完了判定と組み合わせる）
 	bool IsHoldMinSatisfied() const;
 
-	/// frames を「1タイルの閉じ時間」に反映（60fps基準）
-	void SetFadeFrames(int frames);
-
 	/// 追加チューニング（必要なら）
 	void SetTileSizePx(float px) { tileSizePx_ = px; InvalidateCache(); }
 	void SetTileAnimSec(float sec) { tileAnimSec_ = sec; }

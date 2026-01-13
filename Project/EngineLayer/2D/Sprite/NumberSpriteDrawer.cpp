@@ -6,78 +6,70 @@
 /// -------------------------------------------------------------
 ///				　			初期化処理
 /// -------------------------------------------------------------
-void NumberSpriteDrawer::Initialize(const std::string& texturePath, float digitWidth, float digitHeight)
+void NumberSpriteDrawer::Initialize(const std::string& texturePath, float srcDigitW, float srcDigitH, float drawDigitW, float drawDigitH)
 {
-	// 引数をメンバ変数に設定
-	digitWidth_ = digitWidth;	// テクスチャの幅
-	digitHeight_ = digitHeight; // テクスチャの高さ
-	texturePath_ = texturePath; // テクスチャパス
+	texturePath_ = texturePath;
+	srcW_ = srcDigitW;
+	srcH_ = srcDigitH;
+
+	if (drawDigitW <= 0.0f) drawDigitW = srcDigitW;
+	if (drawDigitH <= 0.0f) drawDigitH = srcDigitH;
+	drawW_ = drawDigitW;
+	drawH_ = drawDigitH;
+
+	TextureManager::GetInstance()->LoadTexture(texturePath_);
+	reusable_.clear();
 	currentIndex_ = 0;
+}
 
-	// テクスチャの読み込み
-	TextureManager::GetInstance()->LoadTexture(texturePath);
-
-	// スプライトの初期化
-	reusableSprites_.clear();
+void NumberSpriteDrawer::SetDrawDigitSize(float drawDigitW, float drawDigitH)
+{
+	if (drawDigitW <= 0.0f || drawDigitH <= 0.0f) return;
+	drawW_ = drawDigitW;
+	drawH_ = drawDigitH;
 }
 
 /// -------------------------------------------------------------
 ///				　	 左詰めで数字を描画
 /// -------------------------------------------------------------
-void NumberSpriteDrawer::DrawNumberLeftAligned(int value, const Vector2& position, float spacing)
+void NumberSpriteDrawer::DrawNumberLeftAligned(int value, const Vector2& pos, float spacing)
 {
-	// 桁数の制限
-	std::string numberStr = std::to_string(value);
-	float x = position.x;
+	std::string s = std::to_string(value);
+	float x = pos.x;
 
-	// 文字列の長さを制限
-	for (char c : numberStr)
+	const int kCols = 5; // 0-9 が 5列×2行 前提
+
+	for (char c : s)
 	{
-		// 文字を数字に変換
-		int digit = c - '0';
+		int d = c - '0';
+		if (d < 0 || d > 9) continue;
 
-		// 数字以外は無視
-		if (digit < 0 || digit > 9) continue;
-
-		// スプライトのインデックスをリセット
-		if (currentIndex_ >= reusableSprites_.size())
+		if (currentIndex_ >= reusable_.size())
 		{
-			// スプライトの再利用が必要な場合、新しいスプライトを作成
-			auto sprite = std::make_unique<Sprite>();
-			sprite->Initialize(texturePath_);				// スプライトの初期化
-			sprite->SetSize({ digitWidth_, digitHeight_ }); // スプライトのサイズを設定
-			reusableSprites_.push_back(std::move(sprite));  // スプライトを追加
+			auto sp = std::make_unique<Sprite>();
+			sp->Initialize(texturePath_);
+			sp->SetAnchorPoint({ 0.0f, 0.0f }); // 左上
+			reusable_.push_back(std::move(sp));
 		}
 
-		// スプライトのインデックスを取得
-		auto& sprite = reusableSprites_[currentIndex_++];
+		auto& sp = reusable_[currentIndex_++];
 
-		int row = digit / 5; // 5行に分けているので、行は5で割る
-		int col = digit % 5; // 5列に分けているので、列は5で割った余り
+		// ★毎回表示サイズを反映（これが無いとサイズ変更が効かない）
+		sp->SetSize({ drawW_, drawH_ });
 
-		// UV座標の計算
-		Vector2 uvPos =
-		{
-			static_cast<float>(col) * digitWidth_, // UV座標左上
-			static_cast<float>(row) * digitHeight_ // UV座標左上
-		};
+		int row = d / kCols;
+		int col = d % kCols;
 
-		// UV座標テクスチャサイズ
-		Vector2 size = { digitWidth_, digitHeight_ };
+		Vector2 uv{ col * srcW_, row * srcH_ };
+		sp->SetTextureLeftTop(uv);
+		sp->SetTextureSize({ srcW_, srcH_ });
 
-		// スプライトの設定
-		sprite->SetTextureLeftTop(uvPos);		// UV座標の設定
-		sprite->SetTextureSize(size);			// UVサイズの設定
-		sprite->SetPosition({ x, position.y }); // スプライトの位置設定
+		sp->SetPosition({ x, pos.y });
+		sp->Update();
+		sp->Draw();
 
-		// スプライトの更新
-		sprite->Update();
-
-		// スプライトの描画
-		sprite->Draw();
-
-		// 次の桁の位置を計算
-		x += spacing;
+		// ★次の桁：表示幅 + spacing
+		x += drawW_ + spacing;
 	}
 }
 
@@ -86,17 +78,11 @@ void NumberSpriteDrawer::DrawNumberLeftAligned(int value, const Vector2& positio
 /// -------------------------------------------------------------
 void NumberSpriteDrawer::DrawNumberCentered(int value, const Vector2& centerPosition, float spacing)
 {
-	// 数字を文字列に変換
-	std::string numberStr = std::to_string(value);
-
-	// 合計幅を計算
-	float totalWidth = static_cast<float>(numberStr.size()) * spacing;
-
-	// 開始位置を計算
-	float x = centerPosition.x - totalWidth / 2.0f;
-
-	// 左詰めで描画
-	DrawNumberLeftAligned(value, { x, centerPosition.y }, spacing);
+	std::string s = std::to_string(value);
+	int len = (int)s.size();
+	float total = len * drawW_ + (len - 1) * spacing;
+	float startX = centerPosition.x - total * 0.5f;
+	DrawNumberLeftAligned(value, { startX, centerPosition.y }, spacing);
 }
 
 /// -------------------------------------------------------------
@@ -104,15 +90,9 @@ void NumberSpriteDrawer::DrawNumberCentered(int value, const Vector2& centerPosi
 /// -------------------------------------------------------------
 void NumberSpriteDrawer::DrawNumberRightAligned(int value, Vector2 rightPosition, float spacing)
 {
-	// 数字を文字列に変換
-	std::string numberStr = std::to_string(value);
-
-	// 合計幅を計算
-	float totalWidth = static_cast<float>(numberStr.size()) * spacing;
-
-	// 開始位置を計算
-	float x = rightPosition.x - totalWidth;
-
-	// 左詰めで描画
-	DrawNumberLeftAligned(value, { x, rightPosition.y }, spacing);
+	std::string s = std::to_string(value);
+	int len = (int)s.size();
+	float total = len * drawW_ + (len - 1) * spacing;
+	float startX = rightPosition.x - total;
+	DrawNumberLeftAligned(value, { startX, rightPosition.y }, spacing);
 }

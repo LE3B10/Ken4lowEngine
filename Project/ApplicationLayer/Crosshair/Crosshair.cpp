@@ -1,7 +1,6 @@
 #include "Crosshair.h"
 #include <DirectXCommon.h>
 #include <TextureManager.h>
-#include "WinApp.h"
 
 
 /// -------------------------------------------------------------
@@ -14,10 +13,12 @@ void Crosshair::Initialize(const std::string& texturePath)
 	sprite_ = std::make_unique<Sprite>();
 	sprite_->Initialize(texturePath);
 
+	auto dxCommon = DirectXCommon::GetInstance();
+	float clientWidth = static_cast<float>(dxCommon->GetClientWidth());
+	float clientHeight = static_cast<float>(dxCommon->GetClientHeight());
+
 	sprite_->SetAnchorPoint({ 0.5f, 0.5f }); // アンカーを中央に設定
-	sprite_->SetPosition({
-		static_cast<float>(WinApp::GetInstance()->GetClientWidth() / 2.0f),
-		static_cast<float>(WinApp::GetInstance()->GetClientHeight() / 2.0f) });
+	sprite_->SetPosition({ clientWidth / 2.0f, clientHeight / 2.0f });
 	sprite_->SetSize({ 64.0f, 64.0f });
 
 	// 影（黒半透明を少し大きく描く）
@@ -34,7 +35,7 @@ void Crosshair::Initialize(const std::string& texturePath)
 	hitMarkerSprite_ = std::make_unique<Sprite>();
 	hitMarkerSprite_->Initialize(hitTexture);
 	hitMarkerSprite_->SetAnchorPoint({ 0.5f, 0.5f });
-	hitMarkerSprite_->SetPosition({ static_cast<float>(WinApp::GetInstance()->GetClientWidth() / 2.0f), static_cast<float>(WinApp::GetInstance()->GetClientHeight() / 2.0f) });
+	hitMarkerSprite_->SetPosition({ clientWidth / 2.0f, clientHeight / 2.0f });
 	hitMarkerSprite_->SetSize({ 128.0f, 128.0f });
 
 	// 影
@@ -51,15 +52,24 @@ void Crosshair::Initialize(const std::string& texturePath)
 /// -------------------------------------------------------------
 void Crosshair::Update()
 {
+	auto dxCommon = DirectXCommon::GetInstance();
+	float clientWidth = static_cast<float>(dxCommon->GetClientWidth());
+	float clientHeight = static_cast<float>(dxCommon->GetClientHeight());
+
+	sprite_->SetPosition({ clientWidth / 2.0f, clientHeight / 2.0f });
 	sprite_->Update();
+
+	shadow_->SetPosition({ clientWidth / 2.0f, clientHeight / 2.0f });
 	shadow_->Update();
+
+	float deltaTime = DirectXCommon::GetInstance()->GetFPSCounter().GetDeltaTime();
 
 	if (showHitMarker_)
 	{
-		hitMarkerTimer_ -= 1.0f / 60.0f;
+		hitMarkerTimer_ -= deltaTime;
 
 		// スケール変化アニメーション
-		hitMarkerScale_ += hitMarkerScaleVelocity_ * (1.0f / 60.0f);
+		hitMarkerScale_ += hitMarkerScaleVelocity_ * deltaTime;
 		if (hitMarkerScale_ < 1.0f) hitMarkerScale_ = 1.0f;
 
 		// アルファをタイマーから計算（0→1→0 ではなく 1→0）
@@ -83,7 +93,11 @@ void Crosshair::Update()
 		hitMarkerSprite_->SetColor({ 1,1,1, hitAlpha_ }); // 白ベース画像をαでフェード
 
 	}
+
+	hitMarkerShadow_->SetPosition({ clientWidth / 2.0f, clientHeight / 2.0f });
 	hitMarkerShadow_->Update();
+
+	hitMarkerSprite_->SetPosition({ clientWidth / 2.0f, clientHeight / 2.0f });
 	hitMarkerSprite_->Update();
 }
 

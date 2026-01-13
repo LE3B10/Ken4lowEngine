@@ -1,3 +1,4 @@
+#define NOMINMAX
 #include "WeaponManager.h"
 #include <Input.h>
 #include <ToWeaponConfig.h>
@@ -6,6 +7,7 @@
 #include <ImGuiManager.h>
 #endif // USE_IMGUI
 
+#include <algorithm>
 
 /// -------------------------------------------------------------
 ///				　	武器名からインデックスを取得
@@ -74,6 +76,9 @@ void WeaponManager::InitializeWeapons(const FireState& fireState, const DeathSta
 	loadout_ = std::make_unique<Loadout>();
 	loadout_->Rebuild(weaponCatalog_->All()); // 在庫に基づき再構築
 
+	// ★弾の初期値を武器ごとに作る
+	BuildDefaultAmmo();
+
 	// 武器リストクリア
 	weapons_.clear();
 
@@ -99,6 +104,15 @@ void WeaponManager::InitializeWeapons(const FireState& fireState, const DeathSta
 /// -------------------------------------------------------------
 void WeaponManager::UpdateWeapons(float deltaTime)
 {
+	// リロード進行（先に進めておくと気持ちいい）
+	UpdateReload(deltaTime);
+
+	// Rでリロード開始
+	if (input_->TriggerKey(DIK_R))
+	{
+		StartReload();
+	}
+
 	// 武器選択 : 数字キー1〜6 : クラス別選択
 	if (input_->TriggerKey(DIK_1)) { auto n = loadout_->SelectNameByClass(WeaponClass::Primary, weaponCatalog_->All()); if (!n.empty()) SelectWeapon(n); }
 	if (input_->TriggerKey(DIK_2)) { auto n = loadout_->SelectNameByClass(WeaponClass::Backup, weaponCatalog_->All()); if (!n.empty()) SelectWeapon(n); }
@@ -106,6 +120,42 @@ void WeaponManager::UpdateWeapons(float deltaTime)
 	if (input_->TriggerKey(DIK_4)) { auto n = loadout_->SelectNameByClass(WeaponClass::Special, weaponCatalog_->All()); if (!n.empty()) SelectWeapon(n); }
 	if (input_->TriggerKey(DIK_5)) { auto n = loadout_->SelectNameByClass(WeaponClass::Sniper, weaponCatalog_->All()); if (!n.empty()) SelectWeapon(n); }
 	if (input_->TriggerKey(DIK_6)) { auto n = loadout_->SelectNameByClass(WeaponClass::Heavy, weaponCatalog_->All()); if (!n.empty()) SelectWeapon(n); }
+
+	// --- マウスホイールで武器クラスを循環選択（1～6相当） ---
+	if (input_ && loadout_ && weaponCatalog_)
+	{
+		const int wheel = input_->GetMouseWheel(); // DIMOUSESTATE.lZ（だいたい ±120 で1ノッチ）
+		if (wheel != 0)
+		{
+			const int dir = (wheel > 0) ? -1 : +1;
+
+			// 速く回した時に ±240 などが来るので段数をざっくり反映（最大6回まで）
+			int mag = (wheel >= 0) ? wheel : -wheel;
+			int steps = mag / 120;
+			if (steps <= 0) steps = 1;
+			if (steps > 6)  steps = 6;
+
+			for (int s = 0; s < steps; ++s)
+			{
+				int idx = GetSelectedHotbarIndex();
+				if (idx < 0) idx = 0;
+
+				// 空のクラスを飛ばして次の装備を探す（最大6回で打ち切り）
+				for (int tries = 0; tries < 6; ++tries)
+				{
+					idx = (idx + dir + 6) % 6;
+
+					auto name = loadout_->SelectNameByClass(static_cast<WeaponClass>(idx), weaponCatalog_->All());
+					if (!name.empty())
+					{
+						SelectWeapon(name);
+						break;
+					}
+				}
+			}
+		}
+	}
+
 
 	// 現在装備の武器インデックスを取得
 	if (0 <= currentIndex_ && currentIndex_ < static_cast<int>(weapons_.size()))
@@ -124,14 +174,65 @@ void WeaponManager::UpdateWeapons(float deltaTime)
 void WeaponManager::DrawWeapons()
 {
 	// 現在装備の武器インデックスを取得
-	if (!deathState_.isDead && 0 <= currentIndex_ && currentIndex_ < static_cast<int>(weapons_.size()))
-	{
+	//if (!deathState_.isDead && 0 <= currentIndex_ && currentIndex_ < static_cast<int>(weapons_.size()))
+	//{
 		// 武器描画
-		weapons_[currentIndex_]->Draw();
-	}
+	weapons_[currentIndex_]->Draw();
+	//}
 
 	// 弾道エフェクト描画
 	if (!deathState_.isDead) ballisticEffect_->Draw();
+}
+
+int WeaponManager::GetSelectedHotbarIndex() const
+{
+	if (!weapon_) return -1;
+	// WeaponData::clazz は Primary..Heavy(0..5) になってる前提（Loadout.cppの並び）
+	return static_cast<int>(weapon_->Data().clazz);
+}
+
+WeaponManager::AmmoView WeaponManager::GetCurrentAmmoView() const
+{
+	AmmoView v{};
+	const AmmoState* st = GetCurrentAmmo();
+	if (!st) return v;
+
+	v.mag = st->mag;
+	v.reserve = st->reserve;
+	v.magSize = st->p.magSize;
+	v.reserveMax = st->p.reserveMax;
+	v.reloading = st->reloading;
+	v.reloadT = st->t;
+	v.reloadSec = st->p.reloadSec;
+	v.usesAmmo = st->p.usesAmmo;
+	return v;
+}
+
+WeaponManager::AmmoView WeaponManager::GetAmmoViewByHotbarIndex(int hotbarIndex) const
+{
+	AmmoView v{};
+	if (hotbarIndex < 0 || hotbarIndex >= 6) return v;
+	if (!loadout_) return v;
+
+	const auto& map = loadout_->GetEquipMap();
+	auto it = map.find(static_cast<WeaponClass>(hotbarIndex));
+	if (it == map.end()) return v;
+
+	const std::string& weaponName = it->second;
+	if (weaponName.empty()) return v;
+
+	const AmmoState* st = GetAmmo(weaponName);
+	if (!st) return v;
+
+	v.mag = st->mag;
+	v.reserve = st->reserve;
+	v.magSize = st->p.magSize;
+	v.reserveMax = st->p.reserveMax;
+	v.reloading = st->reloading;
+	v.reloadT = st->t;
+	v.reloadSec = st->p.reloadSec;
+	v.usesAmmo = st->p.usesAmmo;
+	return v;
 }
 
 /// -------------------------------------------------------------
@@ -153,11 +254,129 @@ void WeaponManager::SelectWeapon(const std::string& name)
 	}
 }
 
+void WeaponManager::BuildDefaultAmmo()
+{
+	ammoByWeapon_.clear();
+	if (!weaponCatalog_) return;
+
+	for (auto& [name, data] : weaponCatalog_->All())
+	{
+		AmmoState st{};
+
+		// 近接は弾薬を使わない（表示もしない）
+		st.p.usesAmmo = (data.clazz != WeaponClass::Melee);
+		st.p.infinite = false;
+
+		// JSON反映（WeaponData.h の項目）
+		st.p.magSize = std::max(0, data.magCapacity);
+		st.p.reserveMax = std::max(0, data.startingReserve);
+		st.p.reloadSec = std::max(0.0f, data.reloadTime);
+		st.p.autoReload = data.autoReload;
+
+		// 1発で消費する弾数：今は 1 のまま（JSONに別項目が無いので）
+		st.p.consumePerShot = 1;
+
+		// usesAmmo=false の武器は 0固定
+		if (!st.p.usesAmmo)
+		{
+			st.p.magSize = 0;
+			st.p.reserveMax = 0;
+			st.p.reloadSec = 0.0f;
+			st.p.consumePerShot = 0;
+		}
+
+		// 初期値：マガジン満タン + 予備満タン
+		st.mag = st.p.usesAmmo ? st.p.magSize : 0;
+		st.reserve = st.p.usesAmmo ? st.p.reserveMax : 0;
+
+		ammoByWeapon_[name] = st;
+	}
+}
+
+WeaponManager::AmmoState* WeaponManager::GetAmmo(const std::string& weaponName)
+{
+	auto it = ammoByWeapon_.find(weaponName);
+	return (it == ammoByWeapon_.end()) ? nullptr : &it->second;
+}
+
+const WeaponManager::AmmoState* WeaponManager::GetAmmo(const std::string& weaponName) const
+{
+	auto it = ammoByWeapon_.find(weaponName);
+	return (it == ammoByWeapon_.end()) ? nullptr : &it->second;
+}
+
+WeaponManager::AmmoState* WeaponManager::GetCurrentAmmo()
+{
+	if (!weapon_) return nullptr;
+	return GetAmmo(weapon_->Data().name);
+}
+
+const WeaponManager::AmmoState* WeaponManager::GetCurrentAmmo() const
+{
+	if (!weapon_) return nullptr;
+	return GetAmmo(weapon_->Data().name);
+}
+
+void WeaponManager::StartReload()
+{
+	AmmoState* st = GetCurrentAmmo();
+	if (!st) return;
+	if (!st->p.usesAmmo || st->p.infinite) return;
+	if (st->reloading) return;
+	if (st->mag >= st->p.magSize) return;
+	if (st->reserve <= 0) return;
+
+	st->reloading = true;
+	st->t = 0.0f;
+}
+
+void WeaponManager::UpdateReload(float dt)
+{
+	AmmoState* st = GetCurrentAmmo();
+	if (!st) return;
+	if (!st->reloading) return;
+
+	st->t += dt;
+	if (st->t < st->p.reloadSec) return;
+
+	// リロード完了
+	const int need = st->p.magSize - st->mag;
+	const int load = std::min(need, st->reserve);
+
+	st->mag += load;
+	st->reserve -= load;
+
+	st->reloading = false;
+	st->t = 0.0f;
+}
+
+bool WeaponManager::TryConsumeAmmoForShot()
+{
+	AmmoState* st = GetCurrentAmmo();
+	if (!st) return true;                 // 未設定は無限扱い
+	if (!st->p.usesAmmo || st->p.infinite) return true;
+	if (st->reloading) return false;
+
+	if (st->mag >= st->p.consumePerShot)
+	{
+		st->mag -= st->p.consumePerShot;
+		return true;
+	}
+
+	// 弾切れ：autoReload が true のときだけ自動リロード
+	if (st->reserve > 0 && st->p.autoReload) StartReload();
+	return false;
+}
+
 /// -------------------------------------------------------------
 ///				　	 弾道エフェクト開始処理
 /// -------------------------------------------------------------
 void WeaponManager::StartFireBallisticEffect(const Vector3& position, const Vector3& velocity)
 {
+	// ★弾が無いなら発射しない
+	if (!TryConsumeAmmoForShot()) return;
+
+	// 弾道エフェクト開始
 	ballisticEffect_->Start(position, velocity, fireState_.weaponConfig);
 }
 
@@ -210,7 +429,7 @@ void WeaponManager::DrawWeaponImGui()
 	ImGui::Text("Loadout by Class");
 
 	const auto& map = loadout_->GetEquipMap();
-	for (int c = 0; c < 6; ++c) 
+	for (int c = 0; c < 6; ++c)
 	{
 		WeaponClass wc = static_cast<WeaponClass>(c);
 		const char* label = kClassLabels[c];

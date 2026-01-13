@@ -188,6 +188,9 @@ public: /// ---------- ゲッタ ---------- ///
 	// シーンマネージャーを取得
 	SceneManager* GetSceneManager() const { return sceneManager_; }
 
+	// DirectX共通管理を取得
+	DirectXCommon* GetDirectXCommon() const { return dxCommon_; }
+
 	// 操作入力を取得
 	Input* GetInput()  const { return input_; }
 

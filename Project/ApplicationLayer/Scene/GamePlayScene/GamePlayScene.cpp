@@ -24,6 +24,8 @@
 #include <DebugCamera.h>
 #endif // _DEBUG
 
+#include <array>
+
 /// -------------------------------------------------------------
 ///				　			　初期化処理
 /// -------------------------------------------------------------
@@ -54,6 +56,39 @@ void GamePlayScene::Initialize()
 	crosshair_ = std::make_unique<Crosshair>();
 	crosshair_->Initialize();
 
+	reloadCircle_ = std::make_unique<ReloadCircle>();
+	reloadCircle_->Initialize("reload-circle.png");
+	reloadCircle_->SetVisible(false);
+
+	weaponSlot_ = std::make_unique<WeaponSlot>();
+	weaponSlot_->Initialize("slot_frame.png", "slot_frame_selected.png");
+	weaponSlot_->InitializeSlotNumbers("numbers02.png", 50.0f, 50.0f, { 8.0f, 8.0f }, 2.0f, 32, 32);
+
+	// キューブアイコン
+	// 武器カテゴリ別アイコン（スロット0..5）
+	const std::array<std::string, WeaponSlot::kSlotCount> weaponIcons = {
+		"icon/primary_icon.png",
+		"icon/backup_icon.png",
+		"icon/melee_icon.png",
+		"icon/special_icon.png",
+		"icon/sniper_icon.png",
+		"icon/heavy_icon.png"
+	};
+	weaponSlot_->InitializeIcons(weaponIcons);
+
+	weaponSlot_->InitializeAmmoDelimiter(
+		"icon/slash_icon.png",
+		{ 20.0f, 20.0f },   // 数字が20x20ならこれがちょうど良い
+		{ 0.0f, 0.0f }      // 微調整したいならここでオフセット
+	);
+
+	// 弾薬表示初期化
+	weaponSlot_->InitializeAmmoNumbers("Number.png",
+		50, 50,
+		{ 10, 10 },
+		-5.0f,   // spacingは小さく
+		20.0f, 20.0f); // drawサイズ
+
 	// フェードオーバーレイの初期化
 	InitializeFadeOverlay();
 
@@ -62,6 +97,9 @@ void GamePlayScene::Initialize()
 
 	// クリアエフェクトスプライトの初期化
 	InitializeClearEffectSprites();
+
+	hudManager_ = std::make_unique<HUDManager>();
+	hudManager_->Initialize();
 
 	// 最初の状態をセット （Loading）
 	ChangeState(std::make_unique<GameLoadState>());
@@ -85,6 +123,31 @@ void GamePlayScene::Update()
 		// ステートクラスに丸投げ
 		currentState_->Update(this, deltaTime);
 	}
+
+	if (weaponSlot_ && player_)
+	{
+		weaponSlot_->Update(*player_->GetWeaponManager()); // ← Player側に getter を用意
+	}
+
+	// ★リロード円の更新
+	if (reloadCircle_ && player_->GetWeaponManager())
+	{
+		const auto ammo = player_->GetWeaponManager()->GetCurrentAmmoView();
+
+		if (ammo.usesAmmo && ammo.reloading && ammo.reloadSec > 0.0f)
+		{
+			const float p = ammo.reloadT / ammo.reloadSec; // 0..1
+			reloadCircle_->SetReloading(true, p);
+		}
+		else
+		{
+			reloadCircle_->SetReloading(false, 0.0f);
+		}
+
+		reloadCircle_->Update();
+	}
+
+	hudManager_->Update();
 }
 
 /// -------------------------------------------------------------
@@ -147,8 +210,14 @@ void GamePlayScene::Draw2DSprites()
 	// UI用の共通描画設定
 	SpriteManager::GetInstance()->SetRenderSetting_UI();
 
+	weaponSlot_->Draw();
+
+	if (reloadCircle_) reloadCircle_->Draw();
+
 	// ステートクラスに丸投げ
 	if (currentState_) { currentState_->Draw2DSprites(this); }
+
+	hudManager_->Draw();
 
 #pragma endregion
 }
@@ -178,6 +247,8 @@ void GamePlayScene::Finalize()
 	}
 	collisionManager_.reset();
 
+	hudManager_.reset();
+
 	// ゲームオブジェクト
 	boss_.reset();
 	enemies_.clear();
@@ -187,6 +258,8 @@ void GamePlayScene::Finalize()
 	levelObjectManager_.reset();
 
 	ballisticEffect_.reset();
+	weaponSlot_.reset();
+	reloadCircle_.reset();
 	crosshair_.reset();
 	player_.reset();
 
@@ -240,6 +313,8 @@ void GamePlayScene::DrawImGui()
 	if (boss_) {
 		boss_->DrawImGui();
 	}
+
+	hudManager_->DrawImGui();
 
 #ifdef USE_IMGUI
 

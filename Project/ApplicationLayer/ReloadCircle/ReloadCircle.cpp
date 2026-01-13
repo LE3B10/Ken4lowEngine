@@ -1,6 +1,6 @@
 #include "ReloadCircle.h"
 #include "winApp.h"
-
+#include <DirectXCommon.h>
 #include <numbers>
 
 
@@ -12,10 +12,7 @@ void ReloadCircle::Initialize(const std::string& texturePath)
 	sprite_ = std::make_unique<Sprite>();
 	sprite_->Initialize(texturePath);
 	sprite_->SetAnchorPoint({ 0.5f, 0.5f }); // アンカーを中央に設定
-	sprite_->SetPosition({
-		static_cast<float>(WinApp::kClientWidth / 2.0f),
-		static_cast<float>(WinApp::kClientHeight / 2.0f) });
-	sprite_->SetSize({ 48.0f, 48.0f }); // サイズは適宜調整
+	sprite_->SetSize({ 64, 64 }); // サイズは適宜調整
 	sprite_->SetRotation(-std::numbers::pi_v<float> / 2.0f); // 初期回転
 }
 
@@ -26,15 +23,15 @@ void ReloadCircle::Initialize(const std::string& texturePath)
 void ReloadCircle::Update()
 {
 	// 武器とスプライトがセットされていない場合は処理しない
-	if (!sprite_ || !weapon_) return;
+	if (!sprite_) return;
 
-	// 武器の状態を直接参照
-	/*bool isReloading = weapon_->IsReloading();
-	float progress = weapon_->GetReloadProgress();*/
+	auto* dxCommon = DirectXCommon::GetInstance();
+	// 画面中央に配置
+	sprite_->SetPosition({ static_cast<float>(dxCommon->GetClientWidth()) * 0.5f,
+						   static_cast<float>(dxCommon->GetClientHeight()) * 0.5f });
 
-	// スプライトに情報を渡す
-	/*sprite_->SetReloadProgress(isReloading, progress);
-	sprite_->Update();*/
+	// 位置/サイズ反映
+	sprite_->Update();
 }
 
 
@@ -54,4 +51,19 @@ void ReloadCircle::SetProgress(float progress)
 {
 	progress_ = std::clamp(progress, 0.0f, 1.0f);
 	if (sprite_) sprite_->SetReloadProgress(true, progress); // HLSLへ進行度を反映
+}
+
+/// -------------------------------------------------------------
+///				　	リロード状態を設定
+/// -------------------------------------------------------------
+void ReloadCircle::SetReloading(bool isReloading, float progress)
+{
+	isVisible_ = isReloading;
+	progress_ = std::clamp(progress, 0.0f, 1.0f);
+
+	if (sprite_)
+	{
+		// シェーダーへ渡す（円の塗り）
+		sprite_->SetReloadProgress(isReloading, progress_);
+	}
 }

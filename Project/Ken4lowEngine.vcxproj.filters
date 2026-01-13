@@ -550,6 +550,9 @@
     <ClCompile Include="ApplicationLayer\SceneManagement\FadeManager\FadeManager.cpp">
       <Filter>ApplicationLayer\SceneManager\FadeManager</Filter>
     </ClCompile>
+    <ClCompile Include="ApplicationLayer\WeaponSystem\Weapon\WeaponSlot\WeaponSlot.cpp">
+      <Filter>ApplicationLayer\WeaponSystem\Weapon\WeaponSlot</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="EngineLayer\Math\MultipleStructs\AABB.h">
@@ -1218,6 +1221,9 @@
     <ClInclude Include="ApplicationLayer\SceneManagement\FadeManager\FadeManager.h">
       <Filter>ApplicationLayer\SceneManager\FadeManager</Filter>
     </ClInclude>
+    <ClInclude Include="ApplicationLayer\WeaponSystem\Weapon\WeaponSlot\WeaponSlot.h">
+      <Filter>ApplicationLayer\WeaponSystem\Weapon\WeaponSlot</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="Resources\Shaders\PostEffect\FullScreen.hlsli">
@@ -1665,6 +1671,9 @@
     </Filter>
     <Filter Include="ApplicationLayer\SceneManager\FadeManager">
       <UniqueIdentifier>{9a668ff4-4230-45d3-9b68-31c77b30e350}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ApplicationLayer\WeaponSystem\Weapon\WeaponSlot">
+      <UniqueIdentifier>{a4e6b6fd-ac3e-44d8-afbf-8ba99257777f}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>
