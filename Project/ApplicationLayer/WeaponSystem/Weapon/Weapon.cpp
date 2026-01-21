@@ -109,7 +109,7 @@ static bool FromJsonWeaponObject(const json& wj, WeaponData& w) {
 		// 基本
 		if (!wj.contains("name")) return false;
 		w.name = wj.at("name").get<std::string>();
-		w.clazz = ParseClass(wj);
+		w.weapon_class = ParseClass(wj);
 
 		read_if(wj, "muzzleSpeed", w.muzzleSpeed);
 		read_if(wj, "maxDistance", w.maxDistance);
@@ -195,7 +195,7 @@ static ojson ToPrettyOrderedJson(const WeaponData& w) {
 	ojson j;
 	// 「基本 → トレーサ → マズル → 薬莢」など、出したい順で手動で詰める
 	j["name"] = w.name;
-	j["class"] = ClassToString(w.clazz);
+	j["class"] = ClassToString(w.weapon_class);
 	j["muzzleSpeed"] = w.muzzleSpeed;
 	j["maxDistance"] = w.maxDistance;
 	j["rpm"] = w.rpm;
@@ -305,7 +305,7 @@ std::unordered_map<std::string, WeaponData> Weapon::LoadWeapon(const std::string
 
 		/// ---------- 基本情報読み込み ---------- ///
 		w.name = wj["name"].get<std::string>(); // 武器名
-		w.clazz = ParseClass(wj);				// カテゴリー
+		w.weapon_class = ParseClass(wj);				// カテゴリー
 		w.muzzleSpeed = wj["muzzleSpeed"];		// m/s (銃口初速)
 		w.maxDistance = wj["maxDistance"];		// m (弾の飛距離)
 		w.rpm = wj["rpm"];						// 発射レート (rounds per minute)

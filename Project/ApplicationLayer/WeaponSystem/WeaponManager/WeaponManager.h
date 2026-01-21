@@ -1,5 +1,4 @@
 #pragma once
-#include "PistolWeapon.h"
 #include "BallisticEffect.h"
 #include "Weapon.h"
 #include "WeaponCatalog.h"
@@ -13,6 +12,10 @@
 #include <vector>
 #include <memory>
 #include <unordered_map>
+#include <WeaponConfig.h>
+#include <Vector3.h>
+#include <utility>
+#include <string>
 
 /// ---------- 前方宣言 ---------- ///
 class Input;
@@ -84,7 +87,7 @@ public: /// ---------- メンバ関数 ---------- ///
 	void DrawWeaponImGui();
 
 	// 弾道エフェクト開始
-	void StartFireBallisticEffect(const Vector3& position, const Vector3& velocity);
+	bool StartFireBallisticEffect(const Vector3& position, const Vector3& velocity);
 
 	// プレイヤーのボディを設定
 	void SetPlayerBody(const WorldTransformEx* bodyTransform);
@@ -105,7 +108,7 @@ public: /// ---------- メンバ関数 ---------- ///
 	Vector3 GetMuzzleWorld() const { return ballisticEffect_ ? ballisticEffect_->GetMuzzleWorld() : Vector3{}; }
 
 	// 0..5 を返す（Primary..Heavy）。未選択なら -1
-	int GetSelectedHotbarIndex() const;
+	int GetSelectedHot_barIndex() const;
 
 public: /// ---------- ゲッター ---------- ///
 
@@ -116,7 +119,7 @@ public: /// ---------- ゲッター ---------- ///
 	AmmoView GetCurrentAmmoView() const;
 
 	// スロット(0..5)の弾薬情報を取得（空/近接は usesAmmo=false）
-	AmmoView GetAmmoViewByHotbarIndex(int hotbarIndex) const;
+	AmmoView GetAmmoViewByHot_barIndex(int hotbarIndex) const;
 
 private: /// ---------- メンバ関数 ---------- ///
 

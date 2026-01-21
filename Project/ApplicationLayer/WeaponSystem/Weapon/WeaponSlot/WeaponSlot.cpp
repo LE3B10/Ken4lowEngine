@@ -3,6 +3,12 @@
 #include <DirectXCommon.h>
 
 #include <cstdlib> // std::abs
+#include <Vector2.h>
+#include <string>
+#include <Sprite.h>
+#include <memory>
+#include <array>
+#include <algorithm>
 
 /// -------------------------------------------------------------
 ///				　		初期化処理
@@ -103,7 +109,7 @@ void WeaponSlot::InitializeAmmoDelimiter(const std::string& slashTex, const Vect
 /// -------------------------------------------------------------
 void WeaponSlot::Update(const WeaponManager& weaponManager)
 {
-	selectedIndex_ = weaponManager.GetSelectedHotbarIndex();
+	selectedIndex_ = weaponManager.GetSelectedHot_barIndex();
 	RebuildLayout();
 
 	// 常に全スロット分更新
@@ -114,10 +120,10 @@ void WeaponSlot::Update(const WeaponManager& weaponManager)
 
 	for (int i = 0; i < kSlotCount; ++i)
 	{
-		auto v = weaponManager.GetAmmoViewByHotbarIndex(i);
-		ammoUses_[i] = v.usesAmmo;                 // 近接は false になる
-		ammoInfos_[i].currentAmmo = v.mag;
-		ammoInfos_[i].reserveAmmo = v.reserve;
+		auto view = weaponManager.GetAmmoViewByHot_barIndex(i);
+		ammoUses_[i] = view.usesAmmo;                 // 近接は false になる
+		ammoInfos_[i].currentAmmo = view.mag;
+		ammoInfos_[i].reserveAmmo = view.reserve;
 	}
 }
 

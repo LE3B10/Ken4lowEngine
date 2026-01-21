@@ -4,10 +4,27 @@
 #include <ToWeaponConfig.h>
 
 #ifdef USE_IMGUI
-#include <ImGuiManager.h>
+#include <imgui.h>
 #endif // USE_IMGUI
 
 #include <algorithm>
+#include <WorldTransformEx.h>
+#include <WeaponEditorUI.h>
+#include <WeaponData.h>
+#include <WeaponConfig.h>
+#include <WeaponClass.h>
+#include <WeaponCatalog.h>
+#include <Vector3.h>
+#include <Weapon.h>
+#include <string>
+#include <PistolWeapon.h>
+#include <memory>
+#include <Loadout.h>
+#include <FireState.h>
+#include <dinput.h>
+#include <DeathState.h>
+#include <BaseWeapon.h>
+#include <BallisticEffect.h>
 
 /// -------------------------------------------------------------
 ///				　	武器名からインデックスを取得
@@ -137,7 +154,7 @@ void WeaponManager::UpdateWeapons(float deltaTime)
 
 			for (int s = 0; s < steps; ++s)
 			{
-				int idx = GetSelectedHotbarIndex();
+				int idx = GetSelectedHot_barIndex();
 				if (idx < 0) idx = 0;
 
 				// 空のクラスを飛ばして次の装備を探す（最大6回で打ち切り）
@@ -184,11 +201,11 @@ void WeaponManager::DrawWeapons()
 	if (!deathState_.isDead) ballisticEffect_->Draw();
 }
 
-int WeaponManager::GetSelectedHotbarIndex() const
+int WeaponManager::GetSelectedHot_barIndex() const
 {
 	if (!weapon_) return -1;
-	// WeaponData::clazz は Primary..Heavy(0..5) になってる前提（Loadout.cppの並び）
-	return static_cast<int>(weapon_->Data().clazz);
+	// WeaponData::weapon_class は Primary..Heavy(0..5) になってる前提（Loadout.cppの並び）
+	return static_cast<int>(weapon_->Data().weapon_class);
 }
 
 WeaponManager::AmmoView WeaponManager::GetCurrentAmmoView() const
@@ -208,14 +225,14 @@ WeaponManager::AmmoView WeaponManager::GetCurrentAmmoView() const
 	return v;
 }
 
-WeaponManager::AmmoView WeaponManager::GetAmmoViewByHotbarIndex(int hotbarIndex) const
+WeaponManager::AmmoView WeaponManager::GetAmmoViewByHot_barIndex(int hot_barIndex) const
 {
 	AmmoView v{};
-	if (hotbarIndex < 0 || hotbarIndex >= 6) return v;
+	if (hot_barIndex < 0 || hot_barIndex >= 6) return v;
 	if (!loadout_) return v;
 
 	const auto& map = loadout_->GetEquipMap();
-	auto it = map.find(static_cast<WeaponClass>(hotbarIndex));
+	auto it = map.find(static_cast<WeaponClass>(hot_barIndex));
 	if (it == map.end()) return v;
 
 	const std::string& weaponName = it->second;
@@ -264,7 +281,7 @@ void WeaponManager::BuildDefaultAmmo()
 		AmmoState st{};
 
 		// 近接は弾薬を使わない（表示もしない）
-		st.p.usesAmmo = (data.clazz != WeaponClass::Melee);
+		st.p.usesAmmo = (data.weapon_class != WeaponClass::Melee);
 		st.p.infinite = false;
 
 		// JSON反映（WeaponData.h の項目）
@@ -371,13 +388,15 @@ bool WeaponManager::TryConsumeAmmoForShot()
 /// -------------------------------------------------------------
 ///				　	 弾道エフェクト開始処理
 /// -------------------------------------------------------------
-void WeaponManager::StartFireBallisticEffect(const Vector3& position, const Vector3& velocity)
+bool WeaponManager::StartFireBallisticEffect(const Vector3& position, const Vector3& velocity)
 {
-	// ★弾が無いなら発射しない
-	if (!TryConsumeAmmoForShot()) return;
+	// 弾が無いなら発射しない
+	if (!TryConsumeAmmoForShot()) return false;
 
 	// 弾道エフェクト開始
 	ballisticEffect_->Start(position, velocity, fireState_.weaponConfig);
+
+	return true;
 }
 
 /// -------------------------------------------------------------
@@ -442,7 +461,7 @@ void WeaponManager::DrawWeaponImGui()
 	if (weapon_)
 	{
 		const auto& D = weapon_->Data(); // 現在装備中の武器データ（const）
-		int idx = static_cast<int>(D.clazz);
+		int idx = static_cast<int>(D.weapon_class);
 		if (0 <= idx && idx < IM_ARRAYSIZE(kClassLabels))
 		{
 			ImGui::Text("Current Category: %s", kClassLabels[idx]);

@@ -33,14 +33,14 @@ void Loadout::Rebuild(const std::unordered_map<std::string, WeaponData>& weaponT
 
 	for (auto& [cls, name] : equippedByClass_) {
 		auto it = weaponTable.find(name);
-		if (it != weaponTable.end() && it->second.clazz == cls)
+		if (it != weaponTable.end() && it->second.weapon_class == cls)
 		{
 			nextEquipMap[cls] = name;
 		}
 	}
 
 	for (auto& [name, w] : weaponTable) {
-		if (!nextEquipMap.count(w.clazz)) nextEquipMap[w.clazz] = name;
+		if (!nextEquipMap.count(w.weapon_class)) nextEquipMap[w.weapon_class] = name;
 	}
 
 	// 置き換え
@@ -56,7 +56,7 @@ std::string Loadout::SelectNameByClass(WeaponClass className, const std::unorder
 	if (auto it = equippedByClass_.find(className); it != equippedByClass_.end()) return it->second;
 
 	// 存在しないなら武器テーブルを走査して探す
-	for (auto& [name, w] : weaponTable) if (w.clazz == className) return name;
+	for (auto& [name, w] : weaponTable) if (w.weapon_class == className) return name;
 
 	// 見つからなければ空文字列を返す
 	return {};

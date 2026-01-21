@@ -33,5 +33,5 @@ struct WeaponData
 	MuzzleData muzzle; // マズルフラッシュ設定
 	CasingData casing; // 薬莢設定
 
-	WeaponClass clazz = WeaponClass::Primary; // 
+	WeaponClass weapon_class = WeaponClass::Primary; // 
 };

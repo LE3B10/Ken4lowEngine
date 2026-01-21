@@ -73,87 +73,87 @@ void WeaponEditorUI::DrawOne(WeaponData& E, const std::string& currentWeaponName
 {
 #ifdef USE_IMGUI
 	// ---- 既存の “1本分” 編集UIを移植（カテゴリ変更→ランタイム反映→Loadout再構築） ----
-	int clazz = static_cast<int>(E.clazz);
+	int clazz = static_cast<int>(E.weapon_class);
 	if (ImGui::Combo("Category", &clazz, kClassLabels, IM_ARRAYSIZE(kClassLabels))) {
-		E.clazz = static_cast<WeaponClass>(clazz);
+		E.weapon_class = static_cast<WeaponClass>(clazz);
 		if (hooks.RebuildLoadout) hooks.RebuildLoadout();
 		if (hooks.ApplyToRuntimeIfCurrent && E.name == currentWeaponName) hooks.ApplyToRuntimeIfCurrent(E);
 	}
 
-	if (ImGui::TreeNode("Basic"))
+	if (ImGui::TreeNode("武器設定"))
 	{
-		ImGui::DragFloat("muzzleSpeed", &E.muzzleSpeed, 1.0f, 10.0f, 2000.0f);
-		ImGui::DragFloat("maxDistance", &E.maxDistance, 1.0f, 10.0f, 5000.0f);
-		ImGui::DragFloat("rpm", &E.rpm, 1.0f, 1.0f, 2000.0f);
-		ImGui::DragFloat("damage", &E.damage, 0.1f, 0.1f, 1000.0f);
-		ImGui::DragInt("magCapacity", &E.magCapacity, 1, 1, 200);
-		ImGui::DragInt("startingReserve", &E.startingReserve, 1, 0, 1000);
-		ImGui::DragFloat("reloadTime", &E.reloadTime, 0.01f, 0.1f, 10.0f);
-		ImGui::DragInt("bulletsPerShot", &E.bulletsPerShot, 1, 1, 20);
+		ImGui::DragFloat("銃口初速", &E.muzzleSpeed, 1.0f, 10.0f, 2000.0f);
+		ImGui::DragFloat("最大距離", &E.maxDistance, 1.0f, 10.0f, 5000.0f);
+		ImGui::DragFloat("連射速度", &E.rpm, 1.0f, 1.0f, 2000.0f);
+		ImGui::DragFloat("一発あたりのダメージ量", &E.damage, 0.1f, 0.1f, 1000.0f);
+		ImGui::DragInt("弾倉の装弾数", &E.magCapacity, 1, 1, 200);
+		ImGui::DragInt("初期予備弾数", &E.startingReserve, 1, 0, 1000);
+		ImGui::DragFloat("リロード時間", &E.reloadTime, 0.01f, 0.1f, 10.0f);
+		ImGui::DragInt("発射する弾の数", &E.bulletsPerShot, 1, 1, 20);
 
-		ImGui::Checkbox("autoReload", &E.autoReload);
-		ImGui::DragInt("requestedMaxSegments", &E.requestedMaxSegments, 1, 10, 1000);
-		ImGui::DragFloat("spreadDeg", &E.spreadDeg, 0.1f, 0.0f, 45.0f);
+		ImGui::Checkbox("オートリロード", &E.autoReload);
+		ImGui::DragInt("弾道セグメント最大数", &E.requestedMaxSegments, 1, 10, 1000);
+		ImGui::DragFloat("発射時の拡がり角", &E.spreadDeg, 0.1f, 0.0f, 45.0f);
 		int mode = E.pelletTracerMode;
-		const char* modes[] = { "None", "One of pellets", "All pellets" };
-		if (ImGui::Combo("pelletTracerMode", &mode, modes, IM_ARRAYSIZE(modes))) {
+		const char* modes[] = { "なし", "1発ずつ", "全弾" };
+		if (ImGui::Combo("散弾時のトレーサ動作モード", &mode, modes, IM_ARRAYSIZE(modes))) {
 			E.pelletTracerMode = mode;
 		}
-		ImGui::DragInt("pelletTracerCount", &E.pelletTracerCount, 1, 1, 64);
+		ImGui::DragInt("散弾時にトレーサを出す発数", &E.pelletTracerCount, 1, 1, 64);
 
 		ImGui::TreePop();
 	}
-	if (ImGui::TreeNode("Tracer"))
+	if (ImGui::TreeNode("弾道の設定"))
 	{
-		ImGui::Checkbox("enabled", &E.tracer.enabled);
-		ImGui::DragFloat("tracerLength", &E.tracer.tracerLength, 0.01f, 0.01f, 50.0f);
-		ImGui::DragFloat("tracerWidth", &E.tracer.tracerWidth, 0.001f, 0.001f, 1.0f);
-		ImGui::DragFloat("minSegLength", &E.tracer.minSegLength, 0.001f, 0.001f, 1.0f);
-		ImGui::DragFloat("startOffsetForward", &E.tracer.startOffsetForward, 0.01f, -10.0f, 10.0f);
-		ImGui::ColorEdit4("color", &E.tracer.color.x);
+		ImGui::Checkbox("弾道の有効", &E.tracer.enabled);
+		ImGui::DragFloat("見た目の長さ", &E.tracer.tracerLength, 0.01f, 0.01f, 50.0f);
+		ImGui::DragFloat("幅", &E.tracer.tracerWidth, 0.001f, 0.001f, 1.0f);
+		ImGui::DragFloat("セグメント間引き閾値", &E.tracer.minSegLength, 0.001f, 0.001f, 1.0f);
+		ImGui::DragFloat("弾/トレーサの開始点を銃口から前後にオフセット", &E.tracer.startOffsetForward, 0.01f, -10.0f, 10.0f);
+		ImGui::ColorEdit4("弾道の色", &E.tracer.color.x);
 		ImGui::TreePop();
 	}
-	if (ImGui::TreeNode("Muzzle"))
+	if (ImGui::TreeNode("マズルフラッシュ設定"))
 	{
-		ImGui::Checkbox("enabled##mz", &E.muzzle.enabled);
-		ImGui::DragFloat("life", &E.muzzle.life, 0.005f, 0.01f, 0.5f);
-		ImGui::DragFloat("startLength", &E.muzzle.startLength, 0.01f, 0.01f, 1.0f);
-		ImGui::DragFloat("endLength", &E.muzzle.endLength, 0.01f, 0.01f, 1.0f);
-		ImGui::DragFloat("startWidth", &E.muzzle.startWidth, 0.005f, 0.01f, 0.5f);
-		ImGui::DragFloat("endWidth", &E.muzzle.endWidth, 0.005f, 0.01f, 0.5f);
-		ImGui::DragFloat("randomYawDeg", &E.muzzle.randomYawDeg, 0.1f, 0.0f, 45.0f);
-		ImGui::ColorEdit4("color##mz", &E.muzzle.color.x);
-		ImGui::DragFloat("offsetForward", &E.muzzle.offsetForward, 0.01f, -1.0f, 1.0f);
-		ImGui::Checkbox("sparksEnabled", &E.muzzle.sparksEnabled);
-		ImGui::DragInt("sparkCount", &E.muzzle.sparkCount, 1, 0, 200);
-		ImGui::DragFloat("sparkLifeMin", &E.muzzle.sparkLifeMin, 0.005f, 0.01f, 1.0f);
-		ImGui::DragFloat("sparkLifeMax", &E.muzzle.sparkLifeMax, 0.005f, 0.01f, 1.0f);
-		ImGui::DragFloat("sparkSpeedMin", &E.muzzle.sparkSpeedMin, 0.1f, 0.1f, 100.0f);
-		ImGui::DragFloat("sparkSpeedMax", &E.muzzle.sparkSpeedMax, 0.1f, 0.1f, 100.0f);
-		ImGui::DragFloat("sparkConeDeg", &E.muzzle.sparkConeDeg, 0.1f, 0.0f, 90.0f);
-		ImGui::DragFloat("sparkGravityY", &E.muzzle.sparkGravityY, 0.1f, -100.0f, 0.0f);
-		ImGui::DragFloat("sparkWidth", &E.muzzle.sparkWidth, 0.001f, 0.001f, 0.1f);
-		ImGui::DragFloat("sparkOffsetForward", &E.muzzle.sparkOffsetForward, 0.01f, -1.0f, 1.0f);
-		ImGui::ColorEdit4("sparkColorStart", &E.muzzle.sparkColorStart.x);
-		ImGui::ColorEdit4("sparkColorEnd", &E.muzzle.sparkColorEnd.x);
+		ImGui::Checkbox("マズルフラッシュ有効", &E.muzzle.enabled);
+		ImGui::DragFloat("寿命", &E.muzzle.life, 0.005f, 0.01f, 0.5f);
+		ImGui::DragFloat("初期の長さ", &E.muzzle.startLength, 0.01f, 0.01f, 1.0f);
+		ImGui::DragFloat("終了時の長さ", &E.muzzle.endLength, 0.01f, 0.01f, 1.0f);
+		ImGui::DragFloat("初期の太さ", &E.muzzle.startWidth, 0.005f, 0.01f, 0.5f);
+		ImGui::DragFloat("終了時の太さ", &E.muzzle.endWidth, 0.005f, 0.01f, 0.5f);
+		ImGui::DragFloat("発射ごとのランダム広がり", &E.muzzle.randomYawDeg, 0.1f, 0.0f, 45.0f);
+		ImGui::ColorEdit4("マズルの色", &E.muzzle.color.x);
+		ImGui::DragFloat("フラッシュ根元を前後にオフセット", &E.muzzle.offsetForward, 0.01f, -1.0f, 1.0f);
+		ImGui::Checkbox("火花を有効", &E.muzzle.sparksEnabled);
+		ImGui::DragInt("1発で何本", &E.muzzle.sparkCount, 1, 0, 200);
+		ImGui::DragFloat("火花の最小寿命", &E.muzzle.sparkLifeMin, 0.005f, 0.01f, 1.0f);
+		ImGui::DragFloat("火花の最大寿命", &E.muzzle.sparkLifeMax, 0.005f, 0.01f, 1.0f);
+		ImGui::DragFloat("火花の最小速度", &E.muzzle.sparkSpeedMin, 0.1f, 0.1f, 100.0f);
+		ImGui::DragFloat("火花の最大速度", &E.muzzle.sparkSpeedMax, 0.1f, 0.1f, 100.0f);
+		ImGui::DragFloat("前方への拡がり角", &E.muzzle.sparkConeDeg, 0.1f, 0.0f, 90.0f);
+		ImGui::DragFloat("火花用重力", &E.muzzle.sparkGravityY, 0.1f, -100.0f, 0.0f);
+		ImGui::DragFloat("火花の太さ", &E.muzzle.sparkWidth, 0.001f, 0.001f, 0.1f);
+		ImGui::DragFloat("火花の開始位置", &E.muzzle.sparkOffsetForward, 0.01f, -1.0f, 1.0f);
+		ImGui::ColorEdit4("火花の始まりの色", &E.muzzle.sparkColorStart.x);
+		ImGui::ColorEdit4("火花の終わりの色", &E.muzzle.sparkColorEnd.x);
 		ImGui::TreePop();
 	}
-	if (ImGui::TreeNode("Casing"))
+	if (ImGui::TreeNode("薬莢の設定"))
 	{
-		ImGui::Checkbox("enabled##cs", &E.casing.enabled);
-		ImGui::DragFloat3("offset R/U/B", &E.casing.offsetRight, 0.005f);
-		ImGui::DragFloat("speedMin", &E.casing.speedMin, 0.1f, 0.0f, 20.0f);
-		ImGui::DragFloat("speedMax", &E.casing.speedMax, 0.1f, 0.0f, 20.0f);
-		ImGui::DragFloat("coneDeg", &E.casing.coneDeg, 0.1f, 0.0f, 90.0f);
-		ImGui::DragFloat("gravityY", &E.casing.gravityY, 0.1f, -100.0f, 0.0f);
-		ImGui::DragFloat("life", &E.casing.life, 0.05f, 0.1f, 10.0f);
-		ImGui::DragFloat("drag", &E.casing.drag, 0.01f, 0.0f, 1.0f);
-		ImGui::DragFloat("upKick", &E.casing.upKick, 0.01f, 0.0f, 10.0f);
-		ImGui::DragFloat("upBias", &E.casing.upBias, 0.01f, 0.0f, 1.0f);
-		ImGui::DragFloat("spinMin", &E.casing.spinMin, 0.1f, 0.0f, 100.0f);
-		ImGui::DragFloat("spinMax", &E.casing.spinMax, 0.1f, 0.0f, 100.0f);
-		ImGui::ColorEdit4("color##cs", &E.casing.color.x);
-		ImGui::DragFloat3("scale", &E.casing.scale.x, 0.001f);
+		ImGui::Checkbox("薬莢を有効", &E.casing.enabled);
+		ImGui::DragFloat3("銃口基準のローカルオフセット（右 / 上 / 後）", &E.casing.offsetRight, 0.005f);
+		ImGui::DragFloat("薬莢の初速最小", &E.casing.speedMin, 0.1f, 0.0f, 20.0f);
+		ImGui::DragFloat("薬莢の初速最大", &E.casing.speedMax, 0.1f, 0.0f, 20.0f);
+		ImGui::DragFloat("右方向を中心にした円錐拡がり", &E.casing.coneDeg, 0.1f, 0.0f, 90.0f);
+		ImGui::DragFloat("自然落下", &E.casing.gravityY, 0.1f, -100.0f, 0.0f);
+		ImGui::DragFloat("寿命", &E.casing.life, 0.05f, 0.1f, 10.0f);
+		ImGui::DragFloat("空気抵抗", &E.casing.drag, 0.01f, 0.0f, 1.0f);
+		ImGui::DragFloat("真上方向への瞬間的なキック", &E.casing.upKick, 0.01f, 0.0f, 10.0f);
+		ImGui::DragFloat("方向ベクトルを上向きに寄せるブレンド", &E.casing.upBias, 0.01f, 0.0f, 1.0f);
+		ImGui::DragFloat("回転速度最小", &E.casing.spinMin, 0.1f, 0.0f, 100.0f);
+		ImGui::DragFloat("回転速度最大", &E.casing.spinMax, 0.1f, 0.0f, 100.0f);
+		ImGui::ColorEdit4("真鍮の色", &E.casing.color.x);
+		ImGui::DragFloat3("大きさ", &E.casing.scale.x, 0.001f);
 		ImGui::TreePop();
 	}
 

@@ -70,8 +70,13 @@ private: /// ---------- 構造体 ---------- ///
 	{
 		float baseFovDeg = 60.0f;        // 基本FOV角度
 		Vector3 baseOffset = { 0.75f, -0.75f, 0.75f }; // 基本オフセット
+		Vector3 adsOffset = { 0.20f, -0.75f, 1.0f }; // ADS時オフセット
 		bool lockSizeByFov = true;    // FOVでサイズ固定フラグ
 		Vector3 baseScale = { 1.0f,1.0f,1.0f };         // 基本スケール
+
+		// ADS中の腕非表示
+		bool hideArmInAds = true;        // まずON推奨（邪魔なら確実に消える）
+		float hideArmAimAlpha = 0.85f;   // aimAlpha がこれ以上なら隠す
 	}vm_;
 
 	// ジャンプ状態構造体
@@ -238,7 +243,7 @@ private: /// ----------メンバ変数 ---------- ///
 
 	float centerOffsetY_ = 2.0f;  // 足裏ピボットなら -half.y を入れる
 
-	std::string skinTexturePath_ = "green.png"; // スキンテクスチャパス
+	std::string skinTexturePath_ = "steve.png"; // スキンテクスチャパス
 
 	// 体力
 	float maxHp_ = 100.0f;
@@ -247,5 +252,7 @@ private: /// ----------メンバ変数 ---------- ///
 	// ヒット後の無敵（連続でゴリゴリ削られないように）
 	float hurtInvincibleTime_ = 0.5f; // 0.5秒くらいヒット無敵
 	float hurtTimer_ = 0.0f;
+
+	Vector3 offsetRightHand_ = { 0.0f, 0.0f, 0.0f }; // 右手オフセット
 };
 

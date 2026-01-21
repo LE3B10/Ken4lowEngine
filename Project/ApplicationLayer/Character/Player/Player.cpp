@@ -17,6 +17,36 @@
 #include <imgui.h>
 #endif // USE_IMGUI
 
+namespace
+{
+	static std::mt19937 sRng{ std::random_device{}() };
+
+	static Vector3 ApplySpreadCone(const Vector3& forwardN, float angleRad)
+	{
+		if (angleRad <= 0.0f) return forwardN;
+
+		std::uniform_real_distribution<float> dist01(0.0f, 1.0f);
+		const float u = dist01(sRng);
+		const float v = dist01(sRng);
+
+		const float cosMax = std::cosf(angleRad);
+		const float cosTheta = (1.0f - u) + u * cosMax; // [cosMax,1]
+		const float sinTheta = std::sqrtf(std::max(0.0f, 1.0f - cosTheta * cosTheta));
+		const float phi = 2.0f * std::numbers::pi_v<float> *v;
+
+		Vector3 up = { 0.0f, 1.0f, 0.0f };
+		Vector3 right = Vector3::Cross(up, forwardN);
+		if (Vector3::Length(right) < 1e-4f) right = { 1.0f, 0.0f, 0.0f };
+		right = Vector3::Normalize(right);
+		up = Vector3::Normalize(Vector3::Cross(forwardN, right));
+
+		Vector3 dir = forwardN * cosTheta
+			+ right * (std::cosf(phi) * sinTheta)
+			+ up * (std::sinf(phi) * sinTheta);
+		return Vector3::Normalize(dir);
+	}
+}
+
 /// -------------------------------------------------------------
 ///				　			　 初期化処理
 /// -------------------------------------------------------------
@@ -71,10 +101,19 @@ void Player::Update(float deltaTime)
 	switch (fpsCamera_->GetViewMode()) // ← カメラの現在モード
 	{
 	case FpsCamera::ViewMode::FirstPerson:
-		SetBodyActive(false);          // 体幹は映さない
-		SetAllPartsActive(false);      // 一旦全部オフ
-		SetPartActive(partIndices_.rightArm, true); // 右手だけオン
+	{
+		//SetBodyActive(false);          // 体幹は映さない
+		//SetAllPartsActive(false);      // 一旦全部オフ
+
+		//// ADS中は腕が邪魔なら非表示
+		//const bool hideArm = vm_.hideArmInAds && (fpsCamera_->GetAimAlpha() >= vm_.hideArmAimAlpha);
+		//SetPartActive(partIndices_.rightArm, !hideArm);
+
+		SetBodyActive(false);
+		SetAllPartsActive(false);
+		SetPartActive(partIndices_.rightArm, true);
 		break;
+	}
 
 	case FpsCamera::ViewMode::ThirdBack:
 	case FpsCamera::ViewMode::ThirdFront:
@@ -111,6 +150,23 @@ void Player::Update(float deltaTime)
 		if (hurtTimer_ < 0.0f) hurtTimer_ = 0.0f;
 	}
 
+	// デバッグカメラ中は移動処理しない
+	if (IsDebugCamera())
+	{
+		// 武器更新
+		weaponManager_->UpdateWeapons(deltaTime);
+		BaseCharacter::Update(deltaTime); // ベースキャラクターの更新は行う
+		return;
+	}
+
+	// FPSカメラへ Δt を渡す（揺れ・ADS補間に必要）
+	fpsCamera_->SetDeltaTime(deltaTime);
+
+	// 右クリック（Mouse1）でADS。※一人称のみ有効
+	const bool wantAds = input_->PushMouse(1);
+	const bool isFPNow = (fpsCamera_->GetViewMode() == FpsCamera::ViewMode::FirstPerson);
+	fpsCamera_->SetAiming(isFPNow && wantAds);
+
 	// 移動処理
 	Move(deltaTime);
 
@@ -120,29 +176,53 @@ void Player::Update(float deltaTime)
 	// マウス左ボタンで射撃
 	if (input_->PushMouse(0))
 	{
-		// クールダウン終了で発射可能
-		if (fireState_.cooldown <= 0.0f)
+		// リロード中は発射ループを止める（超重要）
+		const auto ammo = weaponManager_->GetCurrentAmmoView();
+		if (ammo.reloading)
 		{
-			// forward の計算（あなたの式でOK）
-			float yaw = fpsCamera_->GetYaw();
+			// 押しっぱでも何もしない
+		}
+		else if (fireState_.cooldown <= 0.0f)
+		{
+			/*float yaw = fpsCamera_->GetYaw();
 			float pitch = fpsCamera_->GetPitch();
 			Vector3 forward = {
-				-std::sinf(yaw) * std::cosf(pitch), // x
-				-std::sinf(pitch),                  // y
-				 std::cosf(yaw) * std::cosf(pitch)  // z
+				-std::sinf(yaw) * std::cosf(pitch),
+				-std::sinf(pitch),
+				 std::cosf(yaw) * std::cosf(pitch)
 			};
+			forward = Vector3::Normalize(forward);*/
 
-			// 正規化
-			forward = Vector3::Normalize(forward);
-			Vector3 worldUp = { 0.0f, 1.0f, 0.0f }; // ワールドの上方向
-			Vector3 right = Vector3::Normalize(Vector3::Cross(worldUp, forward)); // 右方向
+			Camera* cam = fpsCamera_->GetCamera();
+			Vector3 forward = Vector3::Normalize(cam->GetForward());
 
-			// 弾道エフェクト開始
-			const WeaponConfig& config = weaponManager_->GetCurrentConfig(); // 現在の武器設定取得
-			Vector3 velocity = forward * config.muzzleSpeed;				 // 銃口初速を掛ける
-			weaponManager_->StartFireBallisticEffect(GetCenterPosition(), velocity); // プレイヤー中心位置から発射
-			fireState_.interval = 60.0f / config.rpm; 					 // 連射間隔計算（秒）
-			fireState_.cooldown = fireState_.interval; 					 // クールダウンリセット
+			// 腰だめ/ADSでスプレッドを変える（百発百中を崩す）
+			const float hipSpreadDeg = 0.9f;
+			const float adsSpreadDeg = 0.15f;
+			const float spreadDeg = Lerp(hipSpreadDeg, adsSpreadDeg, fpsCamera_->GetAimAlpha());
+			forward = ApplySpreadCone(forward, DegToRad(spreadDeg));
+
+			const WeaponConfig& config = weaponManager_->GetCurrentConfig();
+			Vector3 velocity = forward * config.muzzleSpeed;
+
+			// 実際に撃てたかを受け取る
+			const bool fired = weaponManager_->StartFireBallisticEffect(GetCenterPosition(), velocity);
+
+			if (fired)
+			{
+				fireState_.interval = 60.0f / config.rpm;
+				fireState_.cooldown = fireState_.interval;
+
+				// リコイルも“撃てた時だけ”
+				fpsCamera_->AddRecoil(DegToRad(0.3f), DegToRad(0.2f));
+				fpsCamera_->Update(true);
+			}
+			else
+			{
+				// 弾切れ・リロード中などで撃てなかった時：
+				// 毎フレーム呼び続けて重くなる/音を鳴らし続けるのを防ぐ保険（任意）
+				fireState_.cooldown = 0.05f;
+			}
 		}
 	}
 
@@ -292,7 +372,11 @@ void Player::Move(float deltaTime)
 	Collider::SetCenterPosition(physCenter);  // ← ここを body_ から計算した physCenter に統一
 
 	// --- 前準備 ---
-	const float moveSpeed = 0.1f;
+	const float baseMoveSpeed = 0.1f;
+	const float adsMoveMul = 0.4f; // ADS中の移動速度倍率（0.5〜0.8で調整）
+	const bool aimingNow = fpsCamera_->IsAiming() && (fpsCamera_->GetViewMode() == FpsCamera::ViewMode::FirstPerson);
+	const float moveSpeed = baseMoveSpeed * (aimingNow ? adsMoveMul : 1.0f);
+
 	const Vector3 half = { 0.8f, 2.0f, 0.8f }; // Collider::SetOBBHalfSize と同じ半サイズ
 	const float kEps = 0.002f;
 
@@ -440,7 +524,7 @@ void Player::Move(float deltaTime)
 	}
 	else
 	{
-		// 三人称：補間（現状のまま）
+		// 三人称：補間
 		float targetHeadYawLocal = NormalizeAngle(camYaw - viewState_.bodyYaw);
 		targetHeadYawLocal = std::clamp(targetHeadYawLocal, -viewState_.headYawLimit, viewState_.headYawLimit);
 		viewState_.headYawLocal = Lerp(viewState_.headYawLocal, targetHeadYawLocal, 0.25f);
@@ -465,8 +549,14 @@ void Player::Move(float deltaTime)
 		const float fovBase = vm_.baseFovDeg * std::numbers::pi_v<float> / 180.0f;
 		const float k = std::tanf(fovNow * 0.5f) / std::tanf(fovBase * 0.5f); // ←FOV係数
 
-		// 右(X)/上(Y)はFOVに応じて補正、前(Z)はそのまま（好みに応じて）
-		Vector3 local = { vm_.baseOffset.x * k, vm_.baseOffset.y * k, vm_.baseOffset.z };
+		// ADS補間値（FpsCamera側でスムーズに 0→1）
+		const float aimA = fpsCamera_->GetAimAlpha();
+
+		// 腰だめ→ADSでオフセットを補間（顔の前へ寄せる）
+		Vector3 off = Lerp(vm_.baseOffset, vm_.adsOffset, aimA);
+
+		// 右(X)/上(Y)はFOV補正、前(Z)はそのまま
+		Vector3 local = { off.x * k, off.y * k, off.z };
 
 		// カメラ姿勢（Yaw→Pitch）でローカル→ワールドへ
 		Matrix4x4 Ry = Matrix4x4::MakeRotateY(camYaw);
@@ -482,12 +572,14 @@ void Player::Move(float deltaTime)
 		// 見た目サイズをFOVに依存させない
 		if (vm_.lockSizeByFov)
 		{
-			Vector3 sc = vm_.baseScale * (std::tanf(fovBase * 0.5f) / std::tanf(fovNow * 0.5f));
-			parts_[partIndices_.rightArm].object->SetScale(sc);
+			Vector3 sc = vm_.baseScale * k;      // ← 逆じゃなくて k
+			armT.scale_ = sc;
+			parts_[partIndices_.rightArm].object->SetScale(sc); // 念のため両方
 		}
 		else
 		{
-			armT.scale_ = { vm_.baseScale.x, vm_.baseScale.x, vm_.baseScale.x };
+			armT.scale_ = vm_.baseScale;
+			parts_[partIndices_.rightArm].object->SetScale(vm_.baseScale);
 		}
 	}
 	else
@@ -709,7 +801,34 @@ void Player::DrawImGui()
 	ImGui::Checkbox("Lock Size By FOV", &vm_.lockSizeByFov);
 	ImGui::DragFloat3("Base Scale", &vm_.baseScale.x, 0.01f, 0.1f, 4.0f);
 	ImGui::End();
-#endif // USE_IMGUI
+
+	// 各パーツの表示/非表示切替
+	ImGui::Begin("Player Parts Visibility");
+	ImGui::Checkbox("Body", &body_.active);
+	ImGui::Checkbox("Head", &parts_[partIndices_.head].active);
+	ImGui::Checkbox("Right Arm", &parts_[partIndices_.rightArm].active);
+	ImGui::Checkbox("Left Arm", &parts_[partIndices_.leftArm].active);
+	ImGui::Checkbox("Right Leg", &parts_[partIndices_.rightLeg].active);
+	ImGui::Checkbox("Left Leg", &parts_[partIndices_.leftLeg].active);
+	ImGui::End();
+
+	// 各パーツの座標調整
+	ImGui::Begin("Player Parts Transform");
+	ImGui::DragFloat3("Body Position", &body_.transform.translate_.x, 0.01f);
+	ImGui::DragFloat3("Body Rotation", &body_.transform.rotate_.x, 0.01f);
+	ImGui::DragFloat3("Head Position", &parts_[partIndices_.head].transform.translate_.x, 0.01f);
+	ImGui::DragFloat3("Head Rotation", &parts_[partIndices_.head].transform.rotate_.x, 0.01f);
+	ImGui::DragFloat3("Right Arm Position", &parts_[partIndices_.rightArm].transform.translate_.x, 0.01f);
+	ImGui::DragFloat3("Right Arm Rotation", &parts_[partIndices_.rightArm].transform.rotate_.x, 0.01f);
+	ImGui::DragFloat3("Left Arm Position", &parts_[partIndices_.leftArm].transform.translate_.x, 0.01f);
+	ImGui::DragFloat3("Left Arm Rotation", &parts_[partIndices_.leftArm].transform.rotate_.x, 0.01f);
+	ImGui::DragFloat3("Right Leg Position", &parts_[partIndices_.rightLeg].transform.translate_.x, 0.01f);
+	ImGui::DragFloat3("Right Leg Rotation", &parts_[partIndices_.rightLeg].transform.rotate_.x, 0.01f);
+	ImGui::DragFloat3("Left Leg Position", &parts_[partIndices_.leftLeg].transform.translate_.x, 0.01f);
+	ImGui::DragFloat3("Left Leg Rotation", &parts_[partIndices_.leftLeg].transform.rotate_.x, 0.01f);
+	ImGui::End();
+
 	// --- 武器管理 ---
 	weaponManager_->DrawWeaponImGui();
+#endif // USE_IMGUI
 }

@@ -280,6 +280,7 @@ void Input::SetLockCursor(bool lock)
 {
 	if (lockCursor_ == lock) { return; }
 	lockCursor_ = lock;
+	ShowCursor(TRUE);
 
 	//if (lockCursor_)
 	//{

@@ -10,6 +10,7 @@
 #ifdef USE_IMGUI
 #include <imgui.h>
 #endif // USE_IMGUI
+#include <random>
 
 /// ----------------------------------------------
 ///					初期化処理
@@ -20,6 +21,12 @@ void FpsCamera::Initialize(Player* player)
 	player_ = player;
 	camera_ = Object3DCommon::GetInstance()->GetDefaultCamera();
 	camera_->SetNearClip(0.05f);
+
+	// リコイルの横ブレ用
+	randomEngine_.seed(std::random_device{}());
+
+	// 初期FOV（腰だめ）
+	camera_->SetFovY(DegToRad(hipFovDeg_));
 }
 
 /// ----------------------------------------------
@@ -28,64 +35,143 @@ void FpsCamera::Initialize(Player* player)
 void FpsCamera::Update(bool ignoreInput)
 {
 	if (!player_ || !camera_) return;
-	if (player_->IsDebugCamera()) return; // デバッグカメラ中は無効
+	if (player_->IsDebugCamera()) return;
 
-	// ------------- 入力から yaw/pitch 更新 -------------
+	// ---------- ADS ブレンド更新（0=腰だめ, 1=ADS） ----------
+	const float targetAim = (isAiming_ && viewMode_ == ViewMode::FirstPerson) ? 1.0f : 0.0f;
+	const float aimSpeed = (targetAim > aimAlpha_) ? adsInSpeed_ : adsOutSpeed_;
+	const float tAim = 1.0f - std::exp(-aimSpeed * deltaTime_);
+	aimAlpha_ = Lerp(aimAlpha_, targetAim, tAim);
+
+	// ---------- FOV 補間 ----------
+	const float fovDeg = Lerp(hipFovDeg_, adsFovDeg_, aimAlpha_);
+	camera_->SetFovY(DegToRad(fovDeg));
+
+	// 入力から yaw/pitch 更新
 	if (!ignoreInput)
 	{
 		const int dx = input_->GetMouseMoveX();
 		const int dy = input_->GetMouseMoveY();
 
-		// ADS中は少し感度を下げる（必要なければ isAiming_ を false のままで）
-		const float sensMouse = isAiming_ ? mouseSensitivity_ * 0.5f : mouseSensitivity_;
+		// ADS中は感度を落とす（補間）
+		const float sensScale = Lerp(1.0f, adsSensitivityFactor_, aimAlpha_);
+		const float sensMouse = mouseSensitivity_ * sensScale;
 
-		yaw_ += -dx * sensMouse;                 // 横：左ドラッグで+Yaw
-		pitch_ += dy * sensMouse;                 // 縦：上ドラッグで-視線にしたいなら符号を反転
-		pitch_ = std::clamp(pitch_, minPitch_, maxPitch_);  // ピッチ制限
+		yaw_ += -dx * sensMouse;
+		pitch_ += dy * sensMouse;
+		pitch_ = std::clamp(pitch_, minPitch_, maxPitch_);
 	}
 
-	// ------------- プレイヤーの頭位置へ置く -------------
+	// プレイヤーの頭位置
 	Vector3 playerPos = player_->GetWorldTransform()->translate_;
 	const Vector3 eyeBase = playerPos + Vector3{ 0.0f, eyeHeight_, 0.0f };
 
-	// このフレームのカメラ回転を先に適用して forward を最新化
-	Vector3 camEuler = { pitch_, yaw_, 0.0f };
+	// ---------- Idle sway（撃っていない時の微揺れ） ----------
+	const bool applyIdleSway = idleSwayEnabled_ && (viewMode_ == ViewMode::FirstPerson || idleSwayApplyInThird_);
+	if (applyIdleSway)
+	{
+		idleSwayTimer_ += deltaTime_;
+
+		// ADS中は揺れを弱くする（補間）
+		const float swayScale = Lerp(1.0f, adsSwayScale_, aimAlpha_);
+
+		// 目標（ラジアン）
+		const float Ay = DegToRad(idleSwayAmpYawDeg_) * swayScale;
+		const float Ap = DegToRad(idleSwayAmpPitchDeg_) * swayScale;
+		const float targetYaw =
+			sinf(idleSwayTimer_ * idleSwayFreqYaw1_) * Ay * 0.65f +
+			sinf(idleSwayTimer_ * idleSwayFreqYaw2_) * Ay * 0.35f;
+		const float targetPitch =
+			sinf(idleSwayTimer_ * idleSwayFreqPit1_) * Ap * 0.60f +
+			sinf(idleSwayTimer_ * idleSwayFreqPit2_) * Ap * 0.40f;
+
+		// 目標（位置オフセット）
+		const float posX = idleSwayPosX_ * swayScale;
+		const float posY = idleSwayPosY_ * swayScale;
+		const float posZ = idleSwayPosZ_ * swayScale;
+		const float sx =
+			sinf(idleSwayTimer_ * idleSwayFreqPos1_) * posX * 0.60f +
+			sinf(idleSwayTimer_ * idleSwayFreqPos2_) * posX * 0.40f;
+		const float sy =
+			sinf(idleSwayTimer_ * idleSwayFreqPos1_) * posY * 0.65f +
+			sinf(idleSwayTimer_ * (idleSwayFreqPos2_ * 0.9f)) * posY * 0.35f;
+		const float sz =
+			cosf(idleSwayTimer_ * (idleSwayFreqPos1_ * 0.8f)) * posZ * 0.60f +
+			cosf(idleSwayTimer_ * (idleSwayFreqPos2_ * 0.7f)) * posZ * 0.40f;
+		const Vector3 targetPos = { sx, sy, sz };
+
+		// スムーズ追従
+		const float t = 1.0f - std::exp(-idleSwaySmooth_ * deltaTime_);
+		idleSwayYawRad_ = Lerp(idleSwayYawRad_, targetYaw, t);
+		idleSwayPitchRad_ = Lerp(idleSwayPitchRad_, targetPitch, t);
+		idleSwayPosOffset_ = Lerp(idleSwayPosOffset_, targetPos, t);
+	}
+	else
+	{
+		idleSwayYawRad_ = 0.0f;
+		idleSwayPitchRad_ = 0.0f;
+		idleSwayPosOffset_ = { 0.0f, 0.0f, 0.0f };
+	}
+
+	// 回転を適用して forward 更新
+	Vector3 camEuler = {
+		pitch_ + idleSwayPitchRad_ + recoilOffsetPitch_,
+		yaw_ + idleSwayYawRad_ + recoilOffsetYaw_,
+		0.0f
+	};
 	if (viewMode_ == ViewMode::ThirdFront)
 	{
-		// 自撮りモードはプレイヤー側を向くため180度回す
 		camEuler.y -= std::numbers::pi_v<float>;
-		camEuler.x = -camEuler.x; // 上下も反転
+		camEuler.x = -camEuler.x;
 	}
 	camera_->SetRotate(camEuler);
-	camera_->Update(); // ここで forward が最新になる
+	camera_->Update();
 
-	// 最新の forward を取得
 	Vector3 fwd = camera_->GetForward();
-
 	Vector3 camPos = eyeBase;
 
 	switch (viewMode_)
 	{
 	case ViewMode::FirstPerson:
-		// ほんの少しだけ前へ押し出して首振り時に埋まらないように
 		camPos = eyeBase + fwd * 0.08f;
 		break;
 
 	case ViewMode::ThirdBack:
-		// 後ろから肩越し。少し上げると見やすい
 		camPos = eyeBase - fwd * tpsDistance_;
 		camPos.y += tpsUpOffset_;
 		break;
 
 	case ViewMode::ThirdFront:
-		// 前方から自分を見る。上の camEuler で180°回してあるので向きはプレイヤー側
 		camPos = eyeBase - fwd * tpsForward_;
 		camPos.y += tpsUpOffset_;
 		break;
 	}
 
+	// 位置オフセット（呼吸）
+	if (applyIdleSway)
+	{
+		const Vector3 worldUp = { 0.0f, 1.0f, 0.0f };
+		Vector3 right = Vector3::Normalize(Vector3::Cross(worldUp, fwd));
+		camPos += right * idleSwayPosOffset_.x;
+		camPos += worldUp * idleSwayPosOffset_.y;
+		camPos += fwd * idleSwayPosOffset_.z;
+	}
+
 	camera_->SetTranslate(camPos);
 	camera_->Update();
+
+	// ----- リコイルを元に戻す（毎フレーム）-----
+	if (recoilEnabled_)
+	{
+		const float t = 1.0f - std::exp(-recoilReturnSpeed_ * deltaTime_);
+		recoilOffsetPitch_ = Lerp(recoilOffsetPitch_, 0.0f, t);
+		recoilOffsetYaw_ = Lerp(recoilOffsetYaw_, 0.0f, t);
+	}
+	else
+	{
+		recoilOffsetPitch_ = 0.0f;
+		recoilOffsetYaw_ = 0.0f;
+	}
 }
 
 /// ----------------------------------------------
@@ -107,31 +193,58 @@ void FpsCamera::DrawImGui()
 #ifdef USE_IMGUI
 	ImGui::Begin("FPS Camera");
 
-	// モード
-	static const char* kModes[] = { "FirstPerson", "ThirdBack", "ThirdFront" };
-	int mode = static_cast<int>(viewMode_);
-	if (ImGui::Combo("View Mode", &mode, kModes, IM_ARRAYSIZE(kModes))) {
-		viewMode_ = static_cast<ViewMode>(mode);
+	// 現在モード表示
+	const char* modeStr = "";
+	switch (viewMode_)
+	{
+	case ViewMode::FirstPerson: modeStr = "FirstPerson"; break;
+	case ViewMode::ThirdBack:   modeStr = "ThirdBack";   break;
+	case ViewMode::ThirdFront:  modeStr = "ThirdFront";  break;
 	}
+	ImGui::Text("ViewMode: %s", modeStr);
 
-	// 視点角度/目線高
-	ImGui::DragFloat("Yaw", &yaw_, 0.002f);
-	ImGui::DragFloat("Pitch", &pitch_, 0.002f);
-	pitch_ = std::clamp(pitch_, -1.5f, +1.5f); // 安全範囲
-	ImGui::DragFloat("Eye Height", &eyeHeight_, 0.005f, 0.8f, 2.0f);
+	// TPS用
+	ImGui::DragFloat("TPS Distance", &tpsDistance_, 0.05f, 0.1f, 20.0f);
+	ImGui::DragFloat("TPS Up Offset", &tpsUpOffset_, 0.05f, 0.0f, 10.0f);
+	ImGui::DragFloat("TPS Forward (front)", &tpsForward_, 0.05f, 0.1f, 20.0f);
 
-	// TPS微調整
-	ImGui::DragFloat("TPS Distance", &tpsDistance_, 0.05f, 1.0f, 30.0f);
-	ImGui::DragFloat("TPS Forward", &tpsForward_, 0.05f, 1.0f, 30.0f);
-	ImGui::DragFloat("TPS Up Offset", &tpsUpOffset_, 0.005f, 0.0f, 1.0f);
+	// Idle sway
+	ImGui::Separator();
+	ImGui::Checkbox("Idle Sway Enabled", &idleSwayEnabled_);
+	ImGui::Checkbox("Apply in TPS", &idleSwayApplyInThird_);
+	ImGui::DragFloat("Sway Amp Yaw (deg)", &idleSwayAmpYawDeg_, 0.01f, 0.0f, 2.0f);
+	ImGui::DragFloat("Sway Amp Pitch (deg)", &idleSwayAmpPitchDeg_, 0.01f, 0.0f, 2.0f);
+	ImGui::DragFloat("Sway Freq Yaw1", &idleSwayFreqYaw1_, 0.01f, 0.1f, 10.0f);
+	ImGui::DragFloat("Sway Freq Yaw2", &idleSwayFreqYaw2_, 0.01f, 0.1f, 10.0f);
+	ImGui::DragFloat("Sway Freq Pit1", &idleSwayFreqPit1_, 0.01f, 0.1f, 10.0f);
+	ImGui::DragFloat("Sway Freq Pit2", &idleSwayFreqPit2_, 0.01f, 0.1f, 10.0f);
 
-	// 紐付いている Camera の near/FOV を直編集
-	float fovDeg = camera_->GetFovY() * 180.0f / 3.14159265f;
-	if (ImGui::SliderFloat("FOV (deg)", &fovDeg, 40.0f, 100.0f, "%.1f")) {
-		camera_->SetFovY(fovDeg * 3.14159265f / 180.0f);
-	}
-	float nearZ = camera_->GetProjectionMatrix().m[3][2]; // 直接参照は好ましくないので…
-	(void)nearZ; // ここは UI からの設定を優先
+	// 位置揺れ（メンバへ反映）
+	float posX = idleSwayPosX_;
+	float posY = idleSwayPosY_;
+	float posZ = idleSwayPosZ_;
+	ImGui::DragFloat("Sway Pos X", &posX, 0.001f, 0.0f, 0.05f, "%.3f");
+	ImGui::DragFloat("Sway Pos Y", &posY, 0.001f, 0.0f, 0.05f, "%.3f");
+	ImGui::DragFloat("Sway Pos Z", &posZ, 0.001f, 0.0f, 0.05f, "%.3f");
+	idleSwayPosX_ = posX;
+	idleSwayPosY_ = posY;
+	idleSwayPosZ_ = posZ;
+
+	ImGui::DragFloat("Sway Freq Pos1", &idleSwayFreqPos1_, 0.01f, 0.1f, 10.0f);
+	ImGui::DragFloat("Sway Freq Pos2", &idleSwayFreqPos2_, 0.01f, 0.1f, 10.0f);
+	ImGui::DragFloat("Sway Smooth", &idleSwaySmooth_, 0.1f, 0.0f, 60.0f);
+
+	// ADS
+	ImGui::Separator();
+	ImGui::Text("ADS");
+	ImGui::DragFloat("Hip FOV (deg)", &hipFovDeg_, 0.1f, 40.0f, 110.0f, "%.1f");
+	ImGui::DragFloat("ADS FOV (deg)", &adsFovDeg_, 0.1f, 20.0f, hipFovDeg_, "%.1f");
+	ImGui::DragFloat("ADS Sens Factor", &adsSensitivityFactor_, 0.01f, 0.05f, 1.0f, "%.2f");
+	ImGui::DragFloat("ADS In Speed", &adsInSpeed_, 0.1f, 0.1f, 60.0f, "%.1f");
+	ImGui::DragFloat("ADS Out Speed", &adsOutSpeed_, 0.1f, 0.1f, 60.0f, "%.1f");
+	ImGui::DragFloat("ADS Sway Scale", &adsSwayScale_, 0.01f, 0.0f, 1.0f, "%.2f");
+	ImGui::Text("Aim Alpha: %.2f", aimAlpha_);
+
 	static float nearTmp = 0.05f;
 	static float farTmp = 1000.0f;
 	if (ImGui::DragFloat("Near (for FPS)", &nearTmp, 0.001f, 0.01f, 0.2f, "%.3f")) {
@@ -141,12 +254,23 @@ void FpsCamera::DrawImGui()
 		camera_->SetFarClip(farTmp);
 	}
 
-	if (ImGui::Button("Reset View")) {
-		yaw_ = 0.0f; pitch_ = 0.0f; eyeHeight_ = 1.5f;
-		camera_->SetFovY(60.0f * 3.14159265f / 180.0f);
+	if (ImGui::Button("Reset View")) 
+	{
+		yaw_ = 0.0f;
+		pitch_ = 0.0f;
+		eyeHeight_ = 1.5f;
+		hipFovDeg_ = 60.0f;
+		adsFovDeg_ = 45.0f;
+		adsSensitivityFactor_ = 0.25f;
+		adsInSpeed_ = 18.0f;
+		adsOutSpeed_ = 14.0f;
+		adsSwayScale_ = 0.25f;
+		camera_->SetFovY(DegToRad(hipFovDeg_));
 		camera_->SetNearClip(0.05f);
 		camera_->SetFarClip(1000.0f);
+		aimAlpha_ = 0.0f;
 	}
+
 	ImGui::End();
 #endif // USE_IMGUI
 }
@@ -156,9 +280,21 @@ void FpsCamera::DrawImGui()
 /// ----------------------------------------------
 void FpsCamera::AddRecoil(float verticalAmount, float horizontalAmount)
 {
+	if (!recoilEnabled_) return;
+
 	std::uniform_real_distribution<float> horizontalDist(-horizontalAmount, horizontalAmount);
+
+	// 縦：上を向かせたいので pitch をマイナス方向へ（あなたの実装に合わせて -vertical）
 	recoilOffsetPitch_ += -verticalAmount;
-	recoilOffsetYaw_ += horizontalDist(randomEngine_);  // ランダムな横ブレ
+
+	// 横：ランダムブレ
+	recoilOffsetYaw_ += horizontalDist(randomEngine_);
+
+	// 上限（度→ラジアン）
+	const float maxP = DegToRad(recoilMaxPitchDeg_);
+	const float maxY = DegToRad(recoilMaxYawDeg_);
+	recoilOffsetPitch_ = std::clamp(recoilOffsetPitch_, -maxP, +maxP);
+	recoilOffsetYaw_ = std::clamp(recoilOffsetYaw_, -maxY, +maxY);
 }
 
 /// ----------------------------------------------

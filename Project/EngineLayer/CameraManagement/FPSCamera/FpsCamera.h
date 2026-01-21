@@ -1,6 +1,6 @@
 #pragma once
-#include <Quaternion.h>
 #include <random>
+#include <Vector3.h>
 
 /// ---------- 前方宣言 ---------- ///
 class Player;
@@ -103,6 +103,16 @@ public: // ---------- ゲッタ ---------- //
 	/// <returns>FirstPerson / ThirdBack / ThirdFront のいずれか。</returns>
 	ViewMode GetViewMode() const { return viewMode_; }
 
+	/// <summary>
+	/// ADS中かどうか（入力の状態）を取得します。
+	/// </summary>
+	bool IsAiming() const { return isAiming_; }
+
+	/// <summary>
+	/// ADSブレンド値を取得します。0=腰だめ, 1=ADS（補間値）
+	/// </summary>
+	float GetAimAlpha() const { return aimAlpha_; }
+
 public: // ---------- セッタ ---------- //
 
 	/// <summary>
@@ -143,56 +153,101 @@ private: // ---------- メンバ ---------- //
 	float pitch_ = 0.0f;
 
 	// 感度
-	const float mouseSensitivity_ = 0.002f; // マウス感度（例: 0.002f）
-	const float controllerSensitivity_ = 0.05f; // コントローラー感度（例: 0.05f）
+	const float mouseSensitivity_ = 0.002f;
+	const float controllerSensitivity_ = 0.05f;
 
 	// ピッチ制限
-	const float minPitch_ = -1.5f; // 下限
-	const float maxPitch_ = +1.5f; // 上限
+	const float minPitch_ = -1.5f;
+	const float maxPitch_ = +1.5f;
 
 	// カメラ高さオフセット（頭位置）
 	float eyeHeight_ = 1.5f;
 
 	// Aiming状態フラグ
 	bool isAiming_ = false;
-	// ADS状態の感度補正係数（例: 0.5で半分の感度）
 	float adsSensitivityFactor_ = 0.25f;
+
+	// ADSブレンド（0=腰だめ,1=ADS）と切替速度
+	float aimAlpha_ = 0.0f;
+	float adsInSpeed_ = 18.0f;   // ADSに入る速さ（大きいほど速い）
+	float adsOutSpeed_ = 14.0f;   // ADSから戻る速さ
+
+	// FOV（度）
+	float hipFovDeg_ = 60.0f;
+	float adsFovDeg_ = 45.0f;
+
+	// ADS中は揺れを弱くする（1=そのまま、0=止める）
+	float adsSwayScale_ = 0.25f;
 
 	// ボビング処理用
 	float currentBobbingSpeed_ = 0.0f;
 	float currentBobbingAmplitude_ = 0.0f;
 	float bobbingTimer_ = 0.0f;
-	float bobbingAmplitude_ = 0.25f;   // 振れ幅
-	float bobbingSpeed_ = 10.0f;       // サイクル速度
-	float deltaTime_ = 1.0f / 60.0f;    // 仮：外部から渡すべき
+	float bobbingAmplitude_ = 0.25f;
+	float bobbingSpeed_ = 10.0f;
+	float deltaTime_ = 1.0f / 60.0f;
 
 	// しゃがむ状態のフラグ
-	bool isCrouching_ = false; // しゃがむ状態のフラグ
-	const float standEyeHeight_ = 1.685f; // 立ち上がり時の目の高さ
-	const float crouchEyeHeight_ = 1.2f; // しゃがみ時の目の高さ
+	bool isCrouching_ = false;
+	const float standEyeHeight_ = 1.685f;
+	const float crouchEyeHeight_ = 1.2f;
 
-	// 着地検出用（前フレームとの比較）
 	bool wasGrounded_ = true;
 
-	// 着地バウンド処理用
+	// 着地バウンド
 	float landingBounceTimer_ = 0.0f;
-	const float landingBounceDuration_ = 0.25f; // バウンドの持続時間
-	const float landingBounceAmplitude_ = 0.25f; // バウンドの深さ
+	const float landingBounceDuration_ = 0.25f;
+	const float landingBounceAmplitude_ = 0.25f;
 
+	// リコイル（後で使う）
 	float recoilOffsetPitch_ = 0.0f;
 	float recoilOffsetYaw_ = 0.0f;
+
+	// リコイル設定（まずは固定値）
+	bool  recoilEnabled_ = true;
+	float recoilReturnSpeed_ = 22.0f;   // 戻る速さ（大きいほど早く戻る）
+	float recoilMaxPitchDeg_ = 12.0f;   // 縦反動の上限（度）
+	float recoilMaxYawDeg_ = 6.0f;    // 横ブレの上限（度）
+
+	// ---------- Idle sway (撃っていない時の微揺れ) ----------
+	bool idleSwayEnabled_ = true;
+	bool idleSwayApplyInThird_ = false; // TPSにも適用したいなら true
+	float idleSwayTimer_ = 0.0f;
+
+	// 回転揺れ（度で管理：Update内でラジアンへ変換）
+	float idleSwayAmpYawDeg_ = 0.25f;   // 左右
+	float idleSwayAmpPitchDeg_ = 0.18f; // 上下
+	float idleSwayFreqYaw1_ = 1.2f;
+	float idleSwayFreqYaw2_ = 2.1f;
+	float idleSwayFreqPit1_ = 1.6f;
+	float idleSwayFreqPit2_ = 2.7f;
+
+	// 位置揺れ（メートル）
+	float idleSwayPosX_ = 0.006f; // 左右
+	float idleSwayPosY_ = 0.008f; // 呼吸上下
+	float idleSwayPosZ_ = 0.004f; // 前後
+	float idleSwayFreqPos1_ = 1.0f;
+	float idleSwayFreqPos2_ = 2.3f;
+
+	// 追従（大きいほど即座に追従）
+	float idleSwaySmooth_ = 10.0f;
+
+	// 内部：スムーズ後のオフセット（ラジアン / メートル）
+	float idleSwayYawRad_ = 0.0f;
+	float idleSwayPitchRad_ = 0.0f;
+	Vector3 idleSwayPosOffset_ = { 0.0f, 0.0f, 0.0f };
+
 	std::default_random_engine randomEngine_;
 
-	bool debugThirdPerson_ = false;   // true のとき TPS 表示
-	// TPS オフセット（好みに応じて調整）
-	float debugCamDistance_ = 3.0f; // 背後距離
-	float debugShoulderHeight_ = 1.6f; // 肩の高さ
-	float debugSideOffset_ = 0.0f;// 右肩越し (+左なら負に)
+	bool debugThirdPerson_ = false;
+	float debugCamDistance_ = 3.0f;
+	float debugShoulderHeight_ = 1.6f;
+	float debugSideOffset_ = 0.0f;
 
 	ViewMode viewMode_ = ViewMode::FirstPerson;
 
 	// TPS用オフセット
-	float tpsDistance_ = 20.0f;     // 後方へ下げる距離
-	float tpsForward_ = 20.0f;     // 前方へ出す距離（ThirdFront 用）
-	float tpsUpOffset_ = 0.15f;    // 少し上げる微調整
+	float tpsDistance_ = 20.0f;
+	float tpsForward_ = 20.0f;
+	float tpsUpOffset_ = 0.15f;
 };

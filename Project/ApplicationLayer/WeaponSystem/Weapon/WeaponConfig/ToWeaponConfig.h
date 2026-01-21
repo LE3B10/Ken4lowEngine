@@ -7,7 +7,7 @@ static WeaponConfig ToWeaponConfig(const WeaponData& E)
 {
 	WeaponConfig w{};
 	w.name = E.name;
-	w.clazz = E.clazz;
+	w.clazz = E.weapon_class;
 	w.muzzleSpeed = E.muzzleSpeed;
 	w.maxDistance = E.maxDistance;
 	w.rpm = E.rpm;
