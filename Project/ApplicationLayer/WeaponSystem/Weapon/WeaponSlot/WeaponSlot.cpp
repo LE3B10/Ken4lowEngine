@@ -70,18 +70,16 @@ void WeaponSlot::InitializeAmmoNumbers(const std::string& numberTex, float srcDi
 	ammoDrawer_.Initialize(numberTex, srcDigitW, srcDigitH, drawDigitW, drawDigitH);
 }
 
+/// -------------------------------------------------------------
+///				　	弾薬区切り文字初期化処理
+/// -------------------------------------------------------------
 void WeaponSlot::InitializeAmmoDelimiter(const std::string& slashTex, const Vector2& size, const Vector2& offset)
 {
 	// いったん全スロット消す
-	for (int i = 0; i < kSlotCount; ++i)
-	{
-		ammoSlash_[i].reset();
-	}
+	for (int i = 0; i < kSlotCount; ++i) ammoSlash_[i].reset();
 
-	if (slashTex.empty())
-	{
-		return;
-	}
+	// テクスチャ無ければ終了
+	if (slashTex.empty()) return;
 
 	// スロット分作る（使い回ししない）
 	for (int i = 0; i < kSlotCount; ++i)

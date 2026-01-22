@@ -3,9 +3,14 @@
 #ifdef USE_IMGUI
 #include "imgui.h"
 #endif // USE_IMGUI
+#include <WeaponData.h>
+#include <WeaponCatalog.h>
+#include <WeaponClass.h>
+#include <string>
+#include <vector>
 
 // 武器クラスラベル
-static const char* kClassLabels[] = { "Primary","Backup","Melee","Special","Sniper","Heavy" };
+static const char* kClassLabels[] = { "プライマリ","バックアップ","近接","特殊","スナイパー","ヘビー" };
 
 /// -------------------------------------------------------------
 /// 			　　追加・削除コントロールの描画
@@ -13,14 +18,15 @@ static const char* kClassLabels[] = { "Primary","Backup","Melee","Special","Snip
 void WeaponEditorUI::DrawImGui(WeaponCatalog& catalog, const std::string& currentWeaponName, const WeaponEditorHooks& hooks)
 {
 #ifdef USE_IMGUI
+	ImGui::Begin("武器編集");
 	auto& table = catalog.All();   // 参照を一度だけ取る
 
 	// 管理パネル（Editors 見出しと開閉トグル）
 	ImGui::Separator();
 	ImGui::Text("Editors");
-	if (ImGui::Button("Open all"))  for (auto& kv : table) weaponEditorOpen_[kv.first] = true;
+	if (ImGui::Button("全て開く"))  for (auto& kv : table) weaponEditorOpen_[kv.first] = true;
 	ImGui::SameLine();
-	if (ImGui::Button("Close all")) for (auto& kv : table) weaponEditorOpen_[kv.first] = false;
+	if (ImGui::Button("全て閉じる")) for (auto& kv : table) weaponEditorOpen_[kv.first] = false;
 
 	// 一覧（チェックでトグル）
 	for (auto& [name, _] : table) {
@@ -38,7 +44,7 @@ void WeaponEditorUI::DrawImGui(WeaponCatalog& catalog, const std::string& curren
 		if (it == table.end()) continue; // そのフレームで消えた場合に備える
 
 		bool open = weaponEditorOpen_[name];
-		std::string title = "Weapon Editor: " + name + "###editor_" + name;
+		std::string title = "武器編集: " + name + "###editor_" + name;
 		if (ImGui::Begin(title.c_str(), &open, ImGuiWindowFlags_AlwaysAutoResize)) {
 			ImGui::PushID(name.c_str());
 			DrawOne(it->second, currentWeaponName, hooks);
@@ -49,21 +55,23 @@ void WeaponEditorUI::DrawImGui(WeaponCatalog& catalog, const std::string& curren
 	}
 
 	// 下部の便利ボタン＆Add/Delete
-	if (ImGui::Button("Save folder")) { if (hooks.SaveAll) hooks.SaveAll(); }
+	if (ImGui::Button("フォルダ保存")) { if (hooks.SaveAll) hooks.SaveAll(); }
 	ImGui::SameLine();
-	if (ImGui::Button("Reload folder")) {
+	if (ImGui::Button("フォルダ読込")) {
 		// フォーカス対象は“現在装備”や最初の1本でもOK。ここでは装備中を優先
 		if (hooks.RequestReloadFocus) hooks.RequestReloadFocus(currentWeaponName);
 	}
 	ImGui::SameLine();
-	if (ImGui::Button("Apply to runtime")) {
+	if (ImGui::Button("ランタイム適用")) {
 		if (!currentWeaponName.empty()) {
 			auto it = table.find(currentWeaponName);
 			if (it != table.end() && hooks.ApplyToRuntimeIfCurrent) hooks.ApplyToRuntimeIfCurrent(it->second);
 		}
 	}
-#endif // USE_IMGUI
 	DrawAddDeleteControls(catalog, currentWeaponName, hooks);
+
+	ImGui::End();
+#endif // USE_IMGUI
 }
 
 /// -------------------------------------------------------------
@@ -73,9 +81,9 @@ void WeaponEditorUI::DrawOne(WeaponData& E, const std::string& currentWeaponName
 {
 #ifdef USE_IMGUI
 	// ---- 既存の “1本分” 編集UIを移植（カテゴリ変更→ランタイム反映→Loadout再構築） ----
-	int clazz = static_cast<int>(E.weapon_class);
-	if (ImGui::Combo("Category", &clazz, kClassLabels, IM_ARRAYSIZE(kClassLabels))) {
-		E.weapon_class = static_cast<WeaponClass>(clazz);
+	int classes = static_cast<int>(E.weapon_class);
+	if (ImGui::Combo("カテゴリー", &classes, kClassLabels, IM_ARRAYSIZE(kClassLabels))) {
+		E.weapon_class = static_cast<WeaponClass>(classes);
 		if (hooks.RebuildLoadout) hooks.RebuildLoadout();
 		if (hooks.ApplyToRuntimeIfCurrent && E.name == currentWeaponName) hooks.ApplyToRuntimeIfCurrent(E);
 	}
@@ -158,7 +166,7 @@ void WeaponEditorUI::DrawOne(WeaponData& E, const std::string& currentWeaponName
 	}
 
 	// Apply ボタン（“このウィンドウの武器”で即反映したいとき）
-	if (ImGui::Button("Apply to runtime")) {
+	if (ImGui::Button("ランタイムを適用")) {
 		if (hooks.ApplyToRuntimeIfCurrent && E.name == currentWeaponName) hooks.ApplyToRuntimeIfCurrent(E);
 	}
 #endif // USE_IMGUI
@@ -171,23 +179,23 @@ void WeaponEditorUI::DrawAddDeleteControls(WeaponCatalog& catalog, const std::st
 {
 #ifdef USE_IMGUI
 	// Add
-	if (ImGui::Button("Add Weapon")) {
-		ImGui::OpenPopup("AddWeaponPopup");
+	if (ImGui::Button("武器を追加")) {
+		ImGui::OpenPopup("武器ポップアップを追加");
 	}
-	if (ImGui::BeginPopupModal("AddWeaponPopup", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
-		static char nameBuf[64] = "NewWeapon";
+	if (ImGui::BeginPopupModal("武器ポップアップを追加", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
+		static char nameBuf[64] = "新しい武器";
 		static int sourceMode = 0; // 0=Duplicate Current, 1=Empty(Default), 2=Duplicate Selected
 		static int selectedIndex = 0;
 
 		auto& table = catalog.All();
 		std::vector<std::string> names; names.reserve(table.size());
 		for (auto& kv : table) names.push_back(kv.first);
-		if (names.empty()) names.push_back("Pistol");
+		if (names.empty()) names.push_back("ピストル");
 
-		ImGui::InputText("Name", nameBuf, IM_ARRAYSIZE(nameBuf));
-		ImGui::RadioButton("Duplicate Current", &sourceMode, 0); ImGui::SameLine();
-		ImGui::RadioButton("Empty(Default)", &sourceMode, 1); ImGui::SameLine();
-		ImGui::RadioButton("Duplicate Selected", &sourceMode, 2);
+		ImGui::InputText("名前", nameBuf, IM_ARRAYSIZE(nameBuf));
+		ImGui::RadioButton("複製", &sourceMode, 0); ImGui::SameLine();
+		ImGui::RadioButton("空", &sourceMode, 1); ImGui::SameLine();
+		ImGui::RadioButton("選択して複製", &sourceMode, 2);
 		if (sourceMode == 2) {
 			if (ImGui::BeginCombo("From", names[selectedIndex].c_str())) {
 				for (int i = 0; i < (int)names.size(); ++i) {
@@ -199,7 +207,7 @@ void WeaponEditorUI::DrawAddDeleteControls(WeaponCatalog& catalog, const std::st
 			}
 		}
 
-		if (ImGui::Button("Create")) {
+		if (ImGui::Button("作成")) {
 			std::string baseName;
 			if (sourceMode == 0) baseName = currentWeaponName;        // 現在装備を複製
 			else if (sourceMode == 2) baseName = names[selectedIndex]; // 選択複製
@@ -207,23 +215,23 @@ void WeaponEditorUI::DrawAddDeleteControls(WeaponCatalog& catalog, const std::st
 			ImGui::CloseCurrentPopup();
 		}
 		ImGui::SameLine();
-		if (ImGui::Button("Cancel")) ImGui::CloseCurrentPopup();
+		if (ImGui::Button("キャンセル")) ImGui::CloseCurrentPopup();
 		ImGui::EndPopup();
 	}
 
 	ImGui::SameLine();
 
 	// Delete
-	if (ImGui::Button("Delete Weapon")) ImGui::OpenPopup("DeleteWeaponConfirm");
-	if (ImGui::BeginPopupModal("DeleteWeaponConfirm", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
+	if (ImGui::Button("武器を削除")) ImGui::OpenPopup("武器削除の確認");
+	if (ImGui::BeginPopupModal("武器削除の確認", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
 		ImGui::Text("Delete '%s' ?\nThis cannot be undone.", currentWeaponName.c_str());
 		ImGui::Separator();
-		if (ImGui::Button("Yes, delete", ImVec2(120, 0))) {
+		if (ImGui::Button("はい, 削除", ImVec2(120, 0))) {
 			if (hooks.RequestDelete) hooks.RequestDelete(currentWeaponName); // 依頼だけ
 			ImGui::CloseCurrentPopup();
 		}
 		ImGui::SameLine();
-		if (ImGui::Button("Cancel", ImVec2(120, 0))) ImGui::CloseCurrentPopup();
+		if (ImGui::Button("キャンセル", ImVec2(120, 0))) ImGui::CloseCurrentPopup();
 		ImGui::EndPopup();
 	}
 #endif // USE_IMGUI

@@ -93,7 +93,7 @@ void WeaponManager::InitializeWeapons(const FireState& fireState, const DeathSta
 	loadout_ = std::make_unique<Loadout>();
 	loadout_->Rebuild(weaponCatalog_->All()); // 在庫に基づき再構築
 
-	// ★弾の初期値を武器ごとに作る
+	// 弾の初期値を武器ごとに作る
 	BuildDefaultAmmo();
 
 	// 武器リストクリア
@@ -442,7 +442,7 @@ void WeaponManager::DrawWeaponImGui()
 	const std::string currentName = weapon_ ? weapon_->Data().name : std::string{};
 
 	// ---------- ロードアウト表示 ---------- ///
-	static const char* kClassLabels[] = { "Primary","Backup","Melee","Special","Sniper","Heavy" };
+	static const char* kClassLabels[] = { "プライマリ","バックアップ","近接","特殊","スナイパー","ヘビー" };
 
 	ImGui::Separator();
 	ImGui::Text("Loadout by Class");

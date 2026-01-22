@@ -1,11 +1,15 @@
 #include "Loadout.h"
 #include <json.hpp>
 #include <fstream>
+#include <WeaponClass.h>
+#include <string>
+#include <unordered_map>
+#include <WeaponData.h>
 
 using nlohmann::json;
 
 /// ---------- クラス名ラベル配列 ---------- ///
-static const char* kClassLabels[] = { "Primary","Backup","Melee","Special","Sniper","Heavy" };
+static const char* kClassLabels[] = { "プライマリ","バックアップ","近接","特殊","スナイパー","ヘビー" };
 
 /// ---------- WeaponClass → 文字列変換 ---------- ///
 static std::string ClassToString(WeaponClass c)

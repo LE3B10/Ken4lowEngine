@@ -152,7 +152,7 @@ void GamePlayScene::Update()
 		hudManager_->SetPlayerHp(player_->GetHp(), player_->GetMaxHp());
 
 		// WeaponSlotが矩形を返せるならこれが最強
-		// hudManager_->SetHotbarRect( weaponSlot_->GetBarRect() );
+		// hudManager_->SetHot_barRect( weaponSlot_->GetBarRect() );
 	}
 	hudManager_->Update();
 }
