@@ -553,6 +553,21 @@
     <ClCompile Include="ApplicationLayer\WeaponSystem\Weapon\WeaponSlot\WeaponSlot.cpp">
       <Filter>ApplicationLayer\WeaponSystem\Weapon\WeaponSlot</Filter>
     </ClCompile>
+    <ClCompile Include="ApplicationLayer\WeaponSystem\WeaponMasterData\WeaponMasterDataDatabase.cpp">
+      <Filter>ApplicationLayer\WeaponSystem\WeaponMasterData</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\WeaponSystem\WeaponMasterData\WeaponMasterDataEditor.cpp">
+      <Filter>ApplicationLayer\WeaponSystem\WeaponMasterData</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\WeaponSystem\WeaponMasterData\WeaponMasterDataLoader.cpp">
+      <Filter>ApplicationLayer\WeaponSystem\WeaponMasterData</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\WeaponSystem\WeaponMasterData\WeaponMasterDataValidator.cpp">
+      <Filter>ApplicationLayer\WeaponSystem\WeaponMasterData</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\WeaponSystem\WeaponMasterData\WeaponMasterDataWriter.cpp">
+      <Filter>ApplicationLayer\WeaponSystem\WeaponMasterData</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="EngineLayer\Math\MultipleStructs\AABB.h">
@@ -1224,6 +1239,24 @@
     <ClInclude Include="ApplicationLayer\WeaponSystem\Weapon\WeaponSlot\WeaponSlot.h">
       <Filter>ApplicationLayer\WeaponSystem\Weapon\WeaponSlot</Filter>
     </ClInclude>
+    <ClInclude Include="ApplicationLayer\WeaponSystem\WeaponMasterData\WeaponMasterData.h">
+      <Filter>ApplicationLayer\WeaponSystem\WeaponMasterData</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\WeaponSystem\WeaponMasterData\WeaponMasterDataDatabase.h">
+      <Filter>ApplicationLayer\WeaponSystem\WeaponMasterData</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\WeaponSystem\WeaponMasterData\WeaponMasterDataEditor.h">
+      <Filter>ApplicationLayer\WeaponSystem\WeaponMasterData</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\WeaponSystem\WeaponMasterData\WeaponMasterDataLoader.h">
+      <Filter>ApplicationLayer\WeaponSystem\WeaponMasterData</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\WeaponSystem\WeaponMasterData\WeaponMasterDataValidator.h">
+      <Filter>ApplicationLayer\WeaponSystem\WeaponMasterData</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\WeaponSystem\WeaponMasterData\WeaponMasterDataWriter.h">
+      <Filter>ApplicationLayer\WeaponSystem\WeaponMasterData</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="Resources\Shaders\PostEffect\FullScreen.hlsli">
@@ -1674,6 +1707,9 @@
     </Filter>
     <Filter Include="ApplicationLayer\WeaponSystem\Weapon\WeaponSlot">
       <UniqueIdentifier>{a4e6b6fd-ac3e-44d8-afbf-8ba99257777f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ApplicationLayer\WeaponSystem\WeaponMasterData">
+      <UniqueIdentifier>{4a404601-f1af-44a1-8471-a7f192721594}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>
