@@ -90,6 +90,12 @@ public: /// ---------- ゲッター ---------- ///
 		return (info_.drawType != 0) ? info_.drawType : static_cast<uint32_t>(info_.type);
 	}
 
+	// ImGui編集用
+	EmitterInfo& GetInfoMutable() { return info_; }
+
+	// 位置もUIで見たい
+	const Vector3 GetPosition() const { return position_; }
+
 private: /// ---------- メンバ変数 ---------- ///
 
 	std::string name_; // エミッター名

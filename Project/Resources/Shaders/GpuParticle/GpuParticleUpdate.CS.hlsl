@@ -1,14 +1,5 @@
 #include "GpuParticleData.hlsli" // パーティクルデータ構造体
 
-// 時間制御用定数
-struct PerFrame
-{
-    float time; // 経過時間
-    float deltaTime; // フレーム間の時間差
-};
-
-static const uint kMaxParticleCount = 131072; // 最大パーティクル数 2^17
-
 RWStructuredBuffer<Particle> gParticles : register(u0); // 書き込み可能なパーティクルバッファ
 RWStructuredBuffer<int> gFreeListIndex : register(u1); // フリーリストインデックスバッファ
 RWStructuredBuffer<uint> gFreeList : register(u2); // フリーリストバッファ

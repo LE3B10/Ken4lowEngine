@@ -8,6 +8,11 @@
 #include "GpuParticleEmitter.h"
 #include "GpuParticleEmitterData.h"
 
+#ifdef USE_IMGUI
+#include <imgui.h>
+#endif // USE_IMGUI
+
+
 /// -------------------------------------------------------------
 ///				　	シングルトンインスタンス
 /// -------------------------------------------------------------
@@ -101,6 +106,83 @@ void GpuParticleManager::Draw()
 
 		++drawSlot;
 	}
+}
+
+void GpuParticleManager::DrawImGui()
+{
+#ifdef USE_IMGUI
+	if (!ImGui::Begin("GPU Particle")) { ImGui::End(); return; }
+
+	static std::string selected;
+
+	// エミッター一覧
+	if (ImGui::BeginListBox("Emitters"))
+	{
+		for (auto& [name, emitter] : emitters_)
+		{
+			bool isSelected = (selected == name);
+			if (ImGui::Selectable(name.c_str(), isSelected)) { selected = name; }
+		}
+		ImGui::EndListBox();
+	}
+
+	// 選択されたエミッター編集
+	if (!selected.empty())
+	{
+		if (auto* e = GetEmitter(selected))
+		{
+			auto& info = e->GetInfoMutable();
+
+			ImGui::SeparatorText("Emitter Params");
+
+			// 位置
+			Vector3 pos = e->GetPosition();
+			float p[3] = { pos.x, pos.y, pos.z };
+			if (ImGui::DragFloat3("Position", p, 0.01f))
+			{
+				e->SetPosition({ p[0], p[1], p[2] });
+			}
+
+			// 発生設定
+			ImGui::DragFloat("Radius", &info.radius, 0.01f, 0.0f, 100.0f);
+			int loopCount = (int)info.loopCount;
+			if (ImGui::DragInt("Loop Count", &loopCount, 1, 0, 100000)) info.loopCount = (uint32_t)loopCount;
+			ImGui::DragFloat("Loop Frequency (sec)", &info.loopFrequency, 0.01f, 0.0f, 10.0f);
+
+			// タイプ（簡易）
+			const char* typeItems[] = { "Default" /*, ...増やす*/ };
+			int type = (int)info.type;
+			if (ImGui::Combo("Type", &type, typeItems, IM_ARRAYSIZE(typeItems)))
+			{
+				info.type = (GpuParticleType)type;
+			}
+
+			// Billboard
+			const char* bbItems[] = { "Camera" /*, "Velocity", ...*/ };
+			int bb = (int)info.billboardMode;
+			if (ImGui::Combo("Billboard", &bb, bbItems, IM_ARRAYSIZE(bbItems)))
+			{
+				info.billboardMode = (BillboardMode)bb;
+			}
+
+			// その場バースト
+			static int burstCount = 50;
+			ImGui::DragInt("Burst Count", &burstCount, 1, 0, 100000);
+			if (ImGui::Button("Burst"))
+			{
+				e->RequestEmit((uint32_t)burstCount);
+			}
+		}
+	}
+
+	ImGui::Separator();
+	ImGui::Checkbox("Debug Camera", &isDebugCamera_);
+	SetDebugCameraEnabled(isDebugCamera_);
+
+	ImGui::End();
+
+#endif // USE_IMGUI
+
 }
 
 /// -------------------------------------------------------------

@@ -106,6 +106,26 @@ void DebugScene::Initialize()
 
 	boss_ = std::make_unique<Boss>();
 	boss_->Initialize();
+
+	// ----------------------------
+	// テスト用エミッター作成（ループで出し続ける）
+	// ----------------------------
+	GpuParticleEmitter::EmitterInfo info{};
+	info.textureFilePath = "circle2.png"; // まず既存のやつ（Rendererのデフォと同じ）
+	info.radius = 0.2f;
+	info.loopCount = 0;        // 1回に出す数
+	info.loopFrequency = 0.0f; // 秒（0.05なら20回/秒）
+	info.type = GpuParticleType::Default;
+	info.billboardMode = BillboardMode::Ribbon;
+
+	if (auto* e = GpuParticleManager::GetInstance()->CreateEmitter("DebugEmitter", info))
+	{
+		e->SetPosition({ 0.0f, 1.0f, 0.0f }); // とりあえず原点の少し上
+	}
+
+	auto* mgr = GpuParticleManager::GetInstance();
+	if (!mgr->GetEmitter("Dbg_HitSpark"))
+		mgr->CreateEmitter("Dbg_HitSpark", info);
 }
 
 void DebugScene::Update()
@@ -116,6 +136,12 @@ void DebugScene::Update()
 
 	// ボスの更新
 	boss_->Update(dxCommon_->GetFPSCounter().GetDeltaTime());
+
+	auto* mgr = GpuParticleManager::GetInstance();
+	if (auto* e = mgr->GetEmitter("Dbg_HitSpark"))
+	{
+		e->SetPosition(boss_->GetCenterPosition()); // 実関数名に合わせて
+	}
 }
 
 void DebugScene::Draw3DObjects()
@@ -145,6 +171,17 @@ void DebugScene::DrawImGui()
 #ifdef USE_IMGUI
 
 	boss_->DrawImGui();
+
+	if (ImGui::CollapsingHeader("GPU Particle", ImGuiTreeNodeFlags_DefaultOpen))
+	{
+		static int burstCount = 100;
+		ImGui::DragInt("Burst Count", &burstCount, 1, 0, 100000);
+
+		if (ImGui::Button("Burst DebugEmitter"))
+		{
+			GpuParticleManager::GetInstance()->BurstEmitter("DebugEmitter", (uint32_t)burstCount);
+		}
+	}
 
 	/// ---------- 武器マスターデータエディタ ---------- ///
 	static WeaponMasterDataDatabase weaponDB;

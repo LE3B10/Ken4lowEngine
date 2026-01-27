@@ -1,11 +1,6 @@
 #include "GpuParticle.hlsli" //頂点シェーダーへの入力頂点構造
 #include "GpuParticleData.hlsli" //パーティクルデータ構造体"
 
-// ビルボードモードフラグ
-static const uint BILLBOARD_NONE = 0; // ビルボードなし
-static const uint BILLBOARD_CAMERA = 1 << 0; // カメラ方向ビルボード
-static const uint BILLBOARD_YAXIS = 1 << 1; // Y軸回転ビルボード
-
 // 頂点シェーダーの出力頂点構造
 struct VertexShaderInput
 {
@@ -30,6 +25,22 @@ bool IsBillboardMode(uint mode, uint flag)
     return (mode & flag) != 0;
 }
 
+float3 SafeNormalize(float3 v, float3 fallbackDir)
+{
+    float len = length(v);
+    return (len > 1e-6f) ? (v / len) : normalize(fallbackDir);
+}
+
+float4x4 MakeBasisRowMajor(float3 xAxis, float3 yAxis, float3 zAxis)
+{
+    return float4x4(
+    xAxis.x, xAxis.y, xAxis.z, 0.0f,
+    yAxis.x, yAxis.y, yAxis.z, 0.0f,
+    zAxis.x, zAxis.y, zAxis.z, 0.0f,
+    0.0f, 0.0f, 0.0f, 1.0f
+);
+}
+
 StructuredBuffer<Particle> gParticles : register(t0); // 読み取り可能なパーティクルバッファ
 ConstantBuffer<PerView> gPerView : register(b0); // ビュー情報
 
@@ -37,43 +48,77 @@ ConstantBuffer<PerView> gPerView : register(b0); // ビュー情報
 VertexShaderOutput main(VertexShaderInput input, uint instanceId : SV_InstanceID)
 {
     VertexShaderOutput output;
-    Particle particle = gParticles[instanceId]; // インスタンスIDに基づいてパーティクルデータを取得
+
+    Particle particle = gParticles[instanceId];
     float4x4 worldMatrix;
-    
-    // ベース行列を分岐で決める（ここだけ追加）
-    if (IsBillboardMode(particle.billboardMode, BILLBOARD_CAMERA))
+
+    // ----------------------------
+    // 擬似リボン：速度方向に伸ばす
+    // （入力クワッドの +Y 方向が「長手方向」になる想定）
+    // ----------------------------
+    if (IsBillboardMode(particle.billboardMode, BILLBOARD_RIBBON))
     {
-        // カメラビルボード
+        // billboardMatrix からカメラ軸を取る（行ベクトル想定）
+        float3 camRight = SafeNormalize(gPerView.billboardMatrix[0].xyz, float3(1, 0, 0));
+        float3 camUp = SafeNormalize(gPerView.billboardMatrix[1].xyz, float3(0, 1, 0));
+        float3 camForward = SafeNormalize(gPerView.billboardMatrix[2].xyz, float3(0, 0, 1));
+
+        // 速度が 0 でも落ちないように fallback は camUp
+        float3 tangent = SafeNormalize(particle.velocity, camUp); // リボンの長手方向（Y軸）
+
+        // カメラへ向くように「幅方向」を作る
+        float3 side = cross(camForward, tangent);
+        float sideLen = length(side);
+        if (sideLen <= 1e-5f)
+        {
+            // tangent と camForward がほぼ平行：退避
+            side = camRight;
+        }
+        else
+        {
+            side /= sideLen;
+        }
+
+        // 法線方向（Z軸）
+        float3 forward = SafeNormalize(cross(side, tangent), camForward);
+
+        worldMatrix = MakeBasisRowMajor(side, tangent, forward);
+    }
+    // ----------------------------
+    // 通常ビルボード
+    // ----------------------------
+    else if (IsBillboardMode(particle.billboardMode, BILLBOARD_CAMERA))
+    {
         worldMatrix = gPerView.billboardMatrix;
     }
     else if (IsBillboardMode(particle.billboardMode, BILLBOARD_YAXIS))
     {
-        // Y軸ビルボード用
+        // 今の実装では Camera と同じ。必要なら Y軸だけ回す行列を別途作る。
         worldMatrix = gPerView.billboardMatrix;
     }
     else
     {
-        // ビルボードなし：ふつうのローカル→ワールド
-        worldMatrix =
-        float4x4(
+        worldMatrix = float4x4(
             1.0f, 0.0f, 0.0f, 0.0f,
             0.0f, 1.0f, 0.0f, 0.0f,
             0.0f, 0.0f, 1.0f, 0.0f,
             0.0f, 0.0f, 0.0f, 1.0f
         );
     }
-    
-    // スケールと座標移動をワールド行列に適用
-    worldMatrix[0] *= particle.scale.x; // スケール適用
-    worldMatrix[1] *= particle.scale.y; // スケール適用
-    worldMatrix[2] *= particle.scale.z; // スケール適用
-    worldMatrix[3].xyz += particle.translate; // 座標移動適用 // 頂点位置をワールドビュー射影変換
-    
-    output.position = mul(input.position, mul(worldMatrix, gPerView.viewProjectionMatrix)); // ワールドビュー射影変換 
-    output.texcoord = input.texcoord; // テクスチャ座標をそのまま渡す 
-    output.color = particle.color; // パーティクルの色を頂点シェーダー出力に渡す
-    output.type = particle.type; // パーティクルのタイプを頂点シェーダー出力に渡す
 
-    // 出力頂点構造を返す
+    // スケール適用（row-major）
+    worldMatrix[0] *= particle.scale.x; // 幅
+    worldMatrix[1] *= particle.scale.y; // 長さ（リボンならここが伸びる）
+    worldMatrix[2] *= particle.scale.z;
+
+    // 平行移動
+    worldMatrix[3].xyz += particle.translate;
+
+    // 変換
+    output.position = mul(input.position, mul(worldMatrix, gPerView.viewProjectionMatrix));
+    output.texcoord = input.texcoord;
+    output.color = particle.color;
+    output.type = particle.type;
+
     return output;
 }

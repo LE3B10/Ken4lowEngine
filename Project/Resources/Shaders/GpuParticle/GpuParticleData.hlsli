@@ -1,3 +1,37 @@
+/// ---------- Config ---------- ///
+static const uint kMaxParticleCount = 131072; // 2^17 : 最大パーティクル数
+
+/// ---------- 描画種類 ---------- ///
+static const uint GPU_PARTICLE_KIND_SHIFT = 16;
+static const uint GPU_PARTICLE_KIND_MASK = 0x00FF0000;
+static const uint GPU_PARTICLE_BB_MASK = 0x0000FFFF;
+
+static const uint GPU_PARTICLE_KIND_SPRITE = 0; // Sprite / Billboard
+static const uint GPU_PARTICLE_KIND_MESH = 1; // Mesh Particle (instanced mesh)
+static const uint GPU_PARTICLE_KIND_RIBBON = 2; // Ribbon / Trail
+static const uint GPU_PARTICLE_KIND_BEAM = 3; // Beam (start -> end)
+
+/// ---------- ビルボードフラグ ---------- ///
+static const uint BILLBOARD_NONE = 0; // ビルボードなし
+static const uint BILLBOARD_CAMERA = 1u << 0; // カメラ方向ビルボード
+static const uint BILLBOARD_YAXIS = 1u << 1; // Y軸回転ビルボード
+// 拡張用
+static const uint BILLBOARD_RIBBON = 1u << 2; // 速度方向に伸ばす疑似リボン（トレイル / トレーサー用）
+
+// パック
+uint GPUParticle_GetKind(uint packedBillboardMode)
+{
+    return (packedBillboardMode & GPU_PARTICLE_KIND_MASK) >> GPU_PARTICLE_KIND_SHIFT;
+}
+uint GPUParticle_GetBillboardFlags(uint packedBillboardMode)
+{
+    return (packedBillboardMode & GPU_PARTICLE_BB_MASK);
+}
+uint GPUParticle_PackBillboardMode(uint kind, uint billboardFlags)
+{
+    return ((kind << GPU_PARTICLE_KIND_SHIFT) & GPU_PARTICLE_KIND_MASK) | (billboardFlags & GPU_PARTICLE_BB_MASK);
+}
+
 // パーティクルタイプ定数
 static const uint GPU_PARTICLE_TYPE_DEFAULT = 0; // デフォルトパーティクルタイプ : ☑実装済み
 static const uint GPU_PARTICLE_TYPE_MUZZLEFLASH = 1; // マズルフラッシュパーティクルタイプ
@@ -47,3 +81,22 @@ struct EmitterCBData
     uint type; // パーティクルタイプ : GPU_PARTICLE_TYPE_***
     uint billboardMode; // ビルボードモードフラグ
 };
+
+// 時間制御用定数
+struct PerFrame
+{
+    float time; // 経過時間
+    float deltaTime; // フレーム間の時間差
+};
+
+// ---------- Random helpers ----------
+float3 GPURand3(float3 seed)
+{
+    seed = frac(seed * 0.1031f);
+    seed += dot(seed, seed.yzx + 33.33f);
+    return frac((seed.xxy + seed.yzz) * seed.zyx);
+}
+float GPURand1(float3 seed)
+{
+    return GPURand3(seed).x;
+}

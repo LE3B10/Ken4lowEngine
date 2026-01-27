@@ -41,7 +41,7 @@ void GameApplication::Initialize()
 	SceneManager::GetInstance()->SetAbstractSceneFactory(std::move(sceneFactory));
 
 	// 最初のシーンを設定
-	SceneManager::GetInstance()->ChangeScene("DebugScene");
+	SceneManager::GetInstance()->ChangeScene("TitleScene");
 }
 
 
