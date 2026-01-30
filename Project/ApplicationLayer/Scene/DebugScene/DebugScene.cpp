@@ -172,16 +172,8 @@ void DebugScene::DrawImGui()
 
 	boss_->DrawImGui();
 
-	if (ImGui::CollapsingHeader("GPU Particle", ImGuiTreeNodeFlags_DefaultOpen))
-	{
-		static int burstCount = 100;
-		ImGui::DragInt("Burst Count", &burstCount, 1, 0, 100000);
-
-		if (ImGui::Button("Burst DebugEmitter"))
-		{
-			GpuParticleManager::GetInstance()->BurstEmitter("DebugEmitter", (uint32_t)burstCount);
-		}
-	}
+	/// ---------- GPUパーティクルデバッグ ---------- ///
+	GpuParticleManager::GetInstance()->DrawImGui();
 
 	/// ---------- 武器マスターデータエディタ ---------- ///
 	static WeaponMasterDataDatabase weaponDB;
@@ -232,6 +224,7 @@ void DebugScene::DrawImGui()
 		weaponDB.Clear();
 	}
 
+	ImGui::Begin("武器マスターデータエディタ");
 	if (ImGui::CollapsingHeader("Weapon Master Editor", ImGuiTreeNodeFlags_DefaultOpen))
 	{
 		ImGui::Text("Count: %zu", weaponDB.Size());
@@ -240,6 +233,7 @@ void DebugScene::DrawImGui()
 
 		weaponEditor.DrawImGui(weaponDB, hooks);
 	}
+	ImGui::End();
 
 #endif // USE_IMGUI
 

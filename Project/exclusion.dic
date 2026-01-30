@@ -119,3 +119,6 @@ skybox
 wireframe
 fullscreen
 vsync
+hlsl
+Descs
+numthreads

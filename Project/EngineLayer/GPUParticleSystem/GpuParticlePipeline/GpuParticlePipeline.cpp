@@ -82,12 +82,12 @@ void GpuParticlePipeline::CreatePSO()
 	depthStencilDesc.DepthFunc = D3D12_COMPARISON_FUNC_LESS_EQUAL; // 比較関数はLessEqual。つまり、近ければ描画される
 
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC graphicsPipelineStateDesc{};												// パイプラインステートディスクリプタの初期化
-	graphicsPipelineStateDesc.pRootSignature = rootSignature_.Get();											// RootSgnature
+	graphicsPipelineStateDesc.pRootSignature = rootSignature_.Get();											// RootSignature
 	graphicsPipelineStateDesc.InputLayout = inputLayoutDesc;													// InputLayout
 	graphicsPipelineStateDesc.VS = { vertexShaderBlob->GetBufferPointer(),vertexShaderBlob->GetBufferSize() };	// VertexDhader
 	graphicsPipelineStateDesc.PS = { pixelShaderBlob->GetBufferPointer(),pixelShaderBlob->GetBufferSize() };	// PixelShader
 	graphicsPipelineStateDesc.BlendState.RenderTarget[0] = blendDesc;											// BlendState
-	graphicsPipelineStateDesc.RasterizerState = rasterizerDesc;													// RasterizeerState
+	graphicsPipelineStateDesc.RasterizerState = rasterizerDesc;													// RasterizerState
 
 	//レンダーターゲットの設定
 	graphicsPipelineStateDesc.NumRenderTargets = 1;
@@ -137,7 +137,7 @@ void GpuParticlePipeline::CreateRootSignature()
 
 	/// ---------- VertexShader用SRVテーブルの設定 ---------- ///
 
-	// t0～tn : Perticle用SRVテーブル
+	// t0～tn : Particle用SRVテーブル
 	rootParameters[1].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;					// DescriptorTableを使う
 	rootParameters[1].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;							// VertexShaderで使う
 	rootParameters[1].DescriptorTable.pDescriptorRanges = descriptorRangeForInstancing;				// Tableの中身の配列を指定
@@ -152,7 +152,7 @@ void GpuParticlePipeline::CreateRootSignature()
 
 	// t0～tn : パーティクル用テクスチャSRVテーブル
 	rootParameters[3].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;					// DescriptorTableを使う
-	rootParameters[3].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;								// PixelxShaderで使う
+	rootParameters[3].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;								// PixelShaderで使う
 	rootParameters[3].DescriptorTable.pDescriptorRanges = descriptorRangeForInstancing;				// Tableの中身の配列を指定
 	rootParameters[3].DescriptorTable.NumDescriptorRanges = _countof(descriptorRangeForInstancing); // Tableで利用する
 
@@ -204,7 +204,7 @@ void GpuParticlePipeline::CreateComputeRootSignature()
 	// UAVテーブル(u0〜uN): 書き込み用（NextState, Alive/Dead, Counter等）
 	D3D12_DESCRIPTOR_RANGE uavRange{};
 	uavRange.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_UAV;
-	uavRange.NumDescriptors = 3; // 必要数に合わせて調整
+	uavRange.NumDescriptors = 5; // 必要数に合わせて調整
 	uavRange.BaseShaderRegister = 0; // u0から始まる
 	uavRange.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
 
