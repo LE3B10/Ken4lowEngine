@@ -97,8 +97,12 @@
     <FxCompile Include="Resources\Shaders\PostEffect\PixelateEffect.CS.hlsl">
       <Filter>Shader\ComputeShader</Filter>
     </FxCompile>
-    <FxCompile Include="Resources\Shaders\GpuParticle\GpuParticleMesh.VS.hlsl" />
-    <FxCompile Include="Resources\Shaders\GpuParticle\GpuParticleMesh.PS.hlsl" />
+    <FxCompile Include="Resources\Shaders\GpuParticle\GpuParticleMesh.VS.hlsl">
+      <Filter>Shader\VertexShader</Filter>
+    </FxCompile>
+    <FxCompile Include="Resources\Shaders\GpuParticle\GpuParticleMesh.PS.hlsl">
+      <Filter>Shader\PixelShader</Filter>
+    </FxCompile>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="WinMain.cpp" />
@@ -567,9 +571,21 @@
     <ClCompile Include="ApplicationLayer\WeaponSystem\WeaponMasterData\WeaponMasterDataWriter.cpp">
       <Filter>ApplicationLayer\WeaponSystem\WeaponMasterData</Filter>
     </ClCompile>
-    <ClCompile Include="EngineLayer\GPUParticleSystem\GpuParticlePipeline\GpuParticleSpritePipeline.cpp" />
-    <ClCompile Include="EngineLayer\GPUParticleSystem\GpuParticlePipeline\GpuParticleComputePipeline.cpp" />
-    <ClCompile Include="EngineLayer\GPUParticleSystem\GpuParticlePipeline\GpuParticleMeshPipeline.cpp" />
+    <ClCompile Include="EngineLayer\GPUParticleSystem\GpuParticlePipeline\GpuParticleMeshPipeline.cpp">
+      <Filter>EngineLayer\GpuParticleSystem\GpuParticlePipeline</Filter>
+    </ClCompile>
+    <ClCompile Include="EngineLayer\GPUParticleSystem\GpuParticlePipeline\GpuParticleSpritePipeline.cpp">
+      <Filter>EngineLayer\GpuParticleSystem\GpuParticlePipeline</Filter>
+    </ClCompile>
+    <ClCompile Include="EngineLayer\GPUParticleSystem\GpuParticlePipeline\GpuParticleComputePipeline.cpp">
+      <Filter>EngineLayer\GpuParticleSystem\GpuParticlePipeline</Filter>
+    </ClCompile>
+    <ClCompile Include="EngineLayer\2D\Sprite\SpriteDebrisEmitter.cpp">
+      <Filter>EngineLayer\2D\Sprite</Filter>
+    </ClCompile>
+    <ClCompile Include="EngineLayer\2D\Sprite\SpriteFractureEffect.cpp">
+      <Filter>EngineLayer\2D\Sprite</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="EngineLayer\Math\MultipleStructs\AABB.h">
@@ -1256,9 +1272,24 @@
     <ClInclude Include="ApplicationLayer\WeaponSystem\WeaponMasterData\WeaponMasterDataWriter.h">
       <Filter>ApplicationLayer\WeaponSystem\WeaponMasterData</Filter>
     </ClInclude>
-    <ClInclude Include="EngineLayer\GPUParticleSystem\GpuParticlePipeline\GpuParticleSpritePipeline.h" />
-    <ClInclude Include="EngineLayer\GPUParticleSystem\GpuParticlePipeline\GpuParticleComputePipeline.h" />
-    <ClInclude Include="EngineLayer\GPUParticleSystem\GpuParticlePipeline\GpuParticleMeshPipeline.h" />
+    <ClInclude Include="EngineLayer\GPUParticleSystem\GpuParticlePipeline\GpuParticleSpritePipeline.h">
+      <Filter>EngineLayer\GpuParticleSystem\GpuParticlePipeline</Filter>
+    </ClInclude>
+    <ClInclude Include="EngineLayer\GPUParticleSystem\GpuParticlePipeline\GpuParticleMeshPipeline.h">
+      <Filter>EngineLayer\GpuParticleSystem\GpuParticlePipeline</Filter>
+    </ClInclude>
+    <ClInclude Include="EngineLayer\GPUParticleSystem\GpuParticlePipeline\GpuParticleComputePipeline.h">
+      <Filter>EngineLayer\GpuParticleSystem\GpuParticlePipeline</Filter>
+    </ClInclude>
+    <ClInclude Include="EngineLayer\GPUParticleSystem\GpuParticlePipeline\GpuParticleMeshAsset.h">
+      <Filter>EngineLayer\GpuParticleSystem</Filter>
+    </ClInclude>
+    <ClInclude Include="EngineLayer\2D\Sprite\SpriteDebrisEmitter.h">
+      <Filter>EngineLayer\2D\Sprite</Filter>
+    </ClInclude>
+    <ClInclude Include="EngineLayer\2D\Sprite\SpriteFractureEffect.h">
+      <Filter>EngineLayer\2D\Sprite</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="Resources\Shaders\PostEffect\FullScreen.hlsli">

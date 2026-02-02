@@ -70,7 +70,7 @@ void TitleLobbyState::Update(TitleScene* scene, float deltaTime)
 			battleButtonUI.isPressing = false;
 
 			// 即シーン変更要求
-			SceneManager::GetInstance()->ChangeScene("StageSelectScene", true);
+			SceneManager::GetInstance()->ChangeScene("StageSelectScene");
 
 			return;
 		}

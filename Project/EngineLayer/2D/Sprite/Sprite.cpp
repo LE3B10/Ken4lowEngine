@@ -1,8 +1,8 @@
+#define NOMINMAX
 #include "Sprite.h"
 #include "DirectXCommon.h"
 #include "TextureManager.h"
 #include "ResourceManager.h"
-#include "ImGuiManager.h"
 
 /// -------------------------------------------------------------
 ///							初期化処理
@@ -119,7 +119,7 @@ void Sprite::Draw()
 	commandList->IASetVertexBuffers(0, 1, &vertexBufferView); // スプライト用VBV
 	commandList->IASetIndexBuffer(&indexBufferView); // IBVの設定
 	commandList->SetGraphicsRootConstantBufferView(0, materialResource.Get()->GetGPUVirtualAddress()); // マテリアルリソースの設定
-	commandList->SetGraphicsRootConstantBufferView(1, reloadProgressResource.Get()->GetGPUVirtualAddress()); // リロード進捗リソースの設定
+	commandList->SetGraphicsRootConstantBufferView(1, effectParamsResource.Get()->GetGPUVirtualAddress()); // リロード進捗リソースの設定
 	commandList->SetGraphicsRootConstantBufferView(2, transformationMatrixResource.Get()->GetGPUVirtualAddress()); // 座標変換行列リソースの設定
 
 	// 描画コマンド
@@ -133,7 +133,7 @@ void Sprite::Finalize()
 	indexResource.Reset();
 	materialResource.Reset();
 	transformationMatrixResource.Reset();
-	reloadProgressResource.Reset();
+	effectParamsResource.Reset();
 
 	textureIndex_ = 0;
 
@@ -152,6 +152,26 @@ void Sprite::SetTexture(const std::string& filePath)
 	textureIndex_ = TextureManager::GetInstance()->GetSrvIndex(filePath_);
 }
 
+void Sprite::SetReloadProgress(bool isReloading, float progress)
+{
+	effectParamsData->isReloading = isReloading ? 1u : 0u;
+	effectParamsData->reloadProgress = std::clamp(progress, 0.0f, 1.0f);
+}
+
+void Sprite::SetCrack(bool enable, float progress)
+{
+	effectParamsData->enableCrack = enable ? 1u : 0u;
+	effectParamsData->crackProgress = std::clamp(progress, 0.0f, 1.0f);
+}
+
+void Sprite::SetCrackParams(float scale, float thickness, float intensity, const Vector2& hitUV)
+{
+	effectParamsData->crackScale = std::max(1.0f, scale);
+	effectParamsData->crackThickness = std::max(0.0005f, thickness);
+	effectParamsData->crackIntensity = std::max(0.0f, intensity);
+	effectParamsData->crackHitUV = hitUV;
+}
+
 /// -------------------------------------------------------------
 ///	 スプライト用のマテリアルリソースを作成し設定する処理を行う
 /// -------------------------------------------------------------
@@ -164,7 +184,7 @@ void Sprite::CreateMaterialResource()
 	materialResource->Map(0, nullptr, reinterpret_cast<void**>(&materialData));
 	materialData->color = { 1.0f, 1.0f, 1.0f, 1.0f };
 	materialData->textureIndex = textureIndex_; // テクスチャインデックスを設定
-	//UVTramsform行列を単位行列で初期化(スプライト用)
+	//UVTransform行列を単位行列で初期化(スプライト用)
 	materialData->uvTransform = Matrix4x4::MakeIdentity();
 }
 
@@ -236,12 +256,21 @@ void Sprite::AdjustTextureSize()
 /// -------------------------------------------------------------
 void Sprite::InitializeReloadProgress()
 {
-	// リロード進捗のリソースを作成
-	reloadProgressResource = ResourceManager::CreateBufferResource(dxCommon_->GetDevice(), sizeof(ReloadProgress));
-	// リロード進捗のリソースにデータを書き込むためのアドレスを取得
-	reloadProgressResource->Map(0, nullptr, reinterpret_cast<void**>(&reloadProgressData));
+	// エフェクトパラメータのリソースを作成
+	effectParamsResource = ResourceManager::CreateBufferResource(dxCommon_->GetDevice(), sizeof(EffectParams));
+	// エフェクトパラメータのリソースにデータを書き込むためのアドレスを取得
+	effectParamsResource->Map(0, nullptr, reinterpret_cast<void**>(&effectParamsData));
 
-	// リロード進捗の初期化
-	reloadProgressData->isReloading = this->reloadProgressData->isReloading;
-	reloadProgressData->progress = this->reloadProgressData->progress;
+	// エフェクトパラメータの初期化
+	// 初期値
+	effectParamsData->isReloading = false;
+	effectParamsData->reloadProgress = 0.0f;
+
+	effectParamsData->enableCrack = false;
+	effectParamsData->crackProgress = 0.0f;
+
+	effectParamsData->crackHitUV = { 0.5f, 0.5f };
+	effectParamsData->crackScale = 18.0f;
+	effectParamsData->crackThickness = 0.03f;
+	effectParamsData->crackIntensity = 1.0f;
 }

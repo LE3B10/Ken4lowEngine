@@ -4,6 +4,10 @@
 #include <memory>
 #include <string>
 #include <vector>
+#include <random>
+
+#include <Vector4.h>
+#include <Vector2.h>
 
 /// -------------------------------------------------------------
 ///					　	フェード管理クラス
@@ -16,94 +20,161 @@ private: /// ---------- 列挙型 ---------- ///
 	enum class State
 	{
 		None,
-		TileCover,   // タイルが閉じる（覆う）
-		Hold,        // ホールド（完全に覆われた状態を維持）
-		TileUncover  // タイルが開く（戻る）
+		TileCover,   // タイルが閉じる（覆う）: 回転＋拡縮しながら設置
+		Hold,        // 完全に覆われた状態（シーン切替タイミング）
+		Crack,       // ひび割れアニメーション（覆ったまま上にヒビを出す）
+		TileUncover  // ドロップ中（タイルが落ちてシーンが見える）
 	};
 
-private: /// ---------- 構造体 ---------- ///
-
+private:
 	struct Tile
 	{
-		Vector2 center;                 // タイル中心座標（Sprite座標系）
-		float delay = 0.0f;             // このタイルが開始する遅延（秒）
-		std::unique_ptr<Sprite> sp;     // ★タイルごとにSpriteを持つ
+		std::unique_ptr<Sprite> base;  // ブロック
+		std::unique_ptr<Sprite> crack; // ひび割れ（CrackAtlas）
+
+		Vector2 targetCenter{}; // 完成位置（中心）
+		Vector2 startCenter{};  // 出現開始位置（中心）
+
+		Vector2 pos{};
+		Vector2 vel{};
+
+		float startRot = 0.0f;
+		float rot = 0.0f;
+		float rotVel = 0.0f;
+
+		float startScale = 1.0f;
+		float scale = 1.0f;
+
+		float delayCover = 0.0f; // 設置の遅延（波状に置く）
+		float delayCrack = 0.0f; // ヒビ開始の遅延（波状に割る）
+		float delayDrop = 0.0f; // ドロップ開始の遅延（波状に落とす）
+
+		bool placed = false;
+		bool dead = false;
+
+		// ドロップ開始後の「アイテム化」用
+		bool dropStarted = false;
+		float dropTime = 0.0f;
 	};
 
 public: /// ---------- メンバ関数 ---------- ///
 
-	// 初期化処理
+	// 初期化
 	void Initialize();
 
 	// 更新処理
-	bool Update(float dt);
+	void Update(float dt);
 
-	// 2Dオブジェクトの描画
+	// 2D描画（タイル）
 	void Draw2DSprites();
 
-	// 終了処理
+	// ImGuiデバッグ
+	void DrawImGui();
+
+	// 破棄
 	void Finalize();
 
-	// 開き始める
-	void StartUncover();
+public: /// ---------- 外部から操作（SceneManager等から呼べる） ---------- ///
 
-	// キャンセル
-	void Cancel();
+	// タイルで覆う（フェードアウト開始）
+	void StartCover();
 
-public: /// ---------- アクセサ関数 ---------- ///
+	// ひび割れアニメを開始（シーン切替後に呼ぶ想定）
+	void StartCrack();
 
-	bool IsTransitioning() const { return state_ != State::None; }
-	bool IsCovering() const { return state_ == State::TileCover; }
-	bool IsHolding() const { return state_ == State::Hold; }
-	State GetState() const { return state_; }
+	// ドロップ開始（ひび割れ完了後に呼ぶ/自動遷移でもOK）
+	void StartDrop();
 
-	// Hold の最低条件が満たされたか（Scene側のロード完了判定と組み合わせる）
-	bool IsHoldMinSatisfied() const;
+	// 覆いが完了しているか（シーン切替の合図に）
+	bool IsFullyCovered() const { return state_ == State::Hold || state_ == State::Crack; }
 
-	/// 追加チューニング（必要なら）
-	void SetTileSizePx(float px) { tileSizePx_ = px; InvalidateCache(); }
-	void SetTileAnimSec(float sec) { tileAnimSec_ = sec; }
-	void SetTileStaggerSec(float sec) { tileStaggerSec_ = sec; }
+	// ひび割れが完了しているか（次に「ドロップ」へ進める合図に使える）
+	bool IsCrackDone() const { return crackDone_; }
 
-	// 覆い始める（ホールド指定つき）
-	void StartCover(float holdSec, int holdFrames = 0);
+	// ドロップが完了しているか（全タイルが画面外に落ちた）
+	bool IsDropDone() const { return dropDone_; }
 
-	// Scene更新を止めるべきか（Cover中＋Hold中）
-	bool IsBlockingSceneUpdate() const { return state_ == State::TileCover || state_ == State::Hold; }
+	// フェードが動作中か
+	bool IsBusy() const { return state_ != State::None; }
 
-private: /// ---------- ヘルパ関数 ---------- ///
+private:
+	// タイル再構築
+	void RebuildTiles(int screenW, int screenH);
 
-	// タイル群の準備
-	void EnsureTiles();
+	// タイルカバー更新
+	void UpdateCover(float dt);
 
-	// タイル群の描画
-	void DrawTileOverlay();
+	// ひび割れ更新
+	void UpdateCrack(float dt);
 
-	// 画面サイズ変化時のキャッシュ無効化
-	void InvalidateCache() { cachedW_ = cachedH_ = -1.0f; }
+	// ドロップ更新
+	void UpdateDrop(float dt);
 
-private: /// ---------- メンバ変数 ---------- ///
+	// 補助
+	static float Clamp01(float v);
+	static float Lerp(float a, float b, float t);
+	static Vector2 Lerp(const Vector2& a, const Vector2& b, float t);
+	static float EaseOutBack(float t);
+	static float EaseOutCubic(float t);
+	static float RandRange(std::mt19937& rng, float a, float b);
 
+private:
+	// 状態
 	State state_ = State::None;
-	float timer_ = 0.0f;
+	float stateTime_ = 0.0f;
 
-	// ---- Hold (最低保持) ----
-	float minHoldSec_ = 0.0f;
-	int minHoldFrames_ = 0;
-	float holdTimer_ = 0.0f;
-	int holdFramesLeft_ = 0;
+	// ひび割れ完了フラグ
+	bool crackDone_ = false;
+	bool dropDone_ = false;
 
-	// ---- タイル遷移パラメータ ----
-	float tileSizePx_ = 64.0f;          // タイル1枚のサイズ
-	float tileAnimSec_ = 0.08f;         // 1枚が 0→100% になる時間（短いほどキビキビ）
-	float tileStaggerSec_ = 0.0015f;    // 並べる速度（大きいほど遅い）
-	float tileMaxDelay_ = 0.0f;
+	// 画面サイズ（Spriteが使うクライアントサイズ）
+	int screenW_ = 0;
+	int screenH_ = 0;
 
+	// タイル設定
+	Vector2 tileSize_ = { 128.0f, 128.0f };
 	int tilesX_ = 0;
 	int tilesY_ = 0;
-	float cachedW_ = -1.0f;
-	float cachedH_ = -1.0f;
 
+	std::string tileTexturePath_ = "stone.png";
+
+	// ひび割れアトラス
+	std::string crackAtlasPath_ = "CrackAtlas.png";
+	Vector2 crackFrameSizePx_ = { 128.0f, 128.0f };
+	static constexpr int kCrackFrames_ = 10;
+
+	// カバー演出パラメータ
+	float coverTileAnimTime_ = 0.18f;   // 1タイルの設置アニメ時間
+	float coverStaggerTotal_ = 0.30f;   // 置く順の遅延総量（大きいほど波っぽい）
+	float coverSpawnYOffset_ = 520.0f;  // 出現開始Yオフセット（上から降ってくる）
+
+	// ひび割れ演出パラメータ
+	float crackTileAnimTime_ = 0.55f;   // 1タイルが stage0->9 になる時間
+	float crackStaggerTotal_ = 0.35f;   // ヒビ開始の遅延総量
+
+	// ドロップ演出パラメータ
+	float dropStartDelay_ = 0.05f;     // ひび割れ完了後、落下を始めるまでの待ち
+	float dropItemScale_ = 0.18f;      // ドロップ開始時に「小さいアイテム」に縮むスケール
+	float dropShrinkTime_ = 0.08f;     // 1→dropItemScale_ へ縮む時間
+	float dropCrackFadeTime_ = 0.06f;  // ドロップ開始時にヒビを消すフェード時間
+	float dropStaggerTotal_ = 0.20f;   // タイルごとの落下開始遅延の総量
+	float dropGravity_ = 2600.0f;      // 重力（y+が下なら正）
+	float dropDamping_ = 0.985f;       // 速度減衰（空気抵抗っぽい）
+	float dropKickOut_ = 420.0f;       // 外側への初速（中心→外へ）
+	float dropKickRand_ = 120.0f;      // 初速のランダムばらつき
+	float dropKickDownMin_ = 80.0f;    // 落ち始めy初速（最小）
+	float dropKickDownMax_ = 260.0f;   // 落ち始めy初速（最大）
+	float dropRotVelMin_ = -10.0f;     // 回転速度
+	float dropRotVelMax_ = 10.0f;      // 回転速度
+	float dropKillMargin_ = 360.0f;    // 画面外に出たら消すマージン
+
+	// タイル群
 	std::vector<Tile> tiles_;
-};
+	std::mt19937 rng_{ 20260202 };
 
+#ifdef USE_IMGUI
+	// ImGui用の編集バッファ
+	char tileTexBuf_[256]{};
+	char crackTexBuf_[256]{};
+#endif
+};

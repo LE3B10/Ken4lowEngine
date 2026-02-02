@@ -1,8 +1,8 @@
 #pragma once
 #include <BaseScene.h>
 #include "AbstractSceneFactory.h"
+
 #include "FadeManager.h"
-#include "Sprite.h"
 
 #include <memory>
 #include <string>
@@ -37,9 +37,6 @@ public: /// ---------- メンバ関数 ---------- ///
 	// 終了処理
 	void Finalize();
 
-	// 画面最前面にフェードだけ描く（遷移中のみ）
-	void DrawTransitionOverlay();
-
 public: /// ---------- セッタ ---------- ///
 
 	// 次のシーンの設定
@@ -49,26 +46,16 @@ public: /// ---------- セッタ ---------- ///
 	void SetAbstractSceneFactory(std::unique_ptr<AbstractSceneFactory> sceneFactory) { sceneFactory_ = std::move(sceneFactory); }
 
 	// シーン切り替え
-	void ChangeScene(const std::string& sceneName, bool useFade = true);
+	void ChangeScene(const std::string& sceneName);
 
-	// 今遷移中か
-	bool IsTransitioning() const { return fadeManager_.IsTransitioning(); }
-
-	// フェード時間設定（フレーム数）
-	void SetFadeFrames(int frames);
+	bool IsTransitioning() const { return isTransitioning_ || (fadeManager_ && fadeManager_->IsBusy()); }
 
 private: /// ---------- メンバ関数 ---------- ///
 
 	// 次シーン適用（Finalize→差し替え→Initialize）
 	void ApplyNextScene();
 
-	// 予約している sceneName から nextScene_ を生成（成功したら true）
-	bool CreateReservedNextScene();
-
-	// 「開けて良いか？」判定（デフォルトは true。重いシーンだけ待つ）
-	bool IsSceneReadyForUncover() const;
-
-private: /// ---------- メンバ関数 ---------- ///
+private: /// ---------- メンバ変数 ---------- ///
 
 	// 現在のシーン
 	std::unique_ptr<BaseScene> scene_;
@@ -79,14 +66,11 @@ private: /// ---------- メンバ関数 ---------- ///
 	// シーンファクトリー
 	std::unique_ptr<AbstractSceneFactory> sceneFactory_;
 
-	// タイルフェード
-	FadeManager fadeManager_;
+	// フェードマネージャー
+	std::unique_ptr<FadeManager> fadeManager_;
+	bool isTransitioning_ = false; // フェード遷移中
+	bool sceneSwapped_ = false; // 既にシーン差し替え済みか
 
-	// ---- 遷移用（CreateSceneを遅延） ----
-	bool hasReservedScene_ = false;
-	std::string reservedSceneName_;
-
-	// ---- Cover完了後、Uncover開始を待つ ----
-	bool waitingUncover_ = false;
+	bool hasQueuedChange_ = false;
+	std::string queuedSceneName_;
 };
-

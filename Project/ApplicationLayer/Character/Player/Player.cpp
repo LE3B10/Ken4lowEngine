@@ -729,7 +729,7 @@ void Player::UpdateDeath(float deltaTime)
 		const float startDelay = 0.50f;   // 開始まで待つ時間
 		const float duration = 3.50f;   // 消え切るまでの時間
 
-		// progress: 0→1（deltaTimeは掛けない）
+		// reloadProgress: 0→1（deltaTimeは掛けない）
 		float progress = (deathState_.timer - startDelay) / duration;
 		if (progress < 0.0f) progress = 0.0f;
 		if (progress > 1.0f) progress = 1.0f;

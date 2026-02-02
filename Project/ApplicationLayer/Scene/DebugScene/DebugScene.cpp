@@ -107,6 +107,36 @@ void DebugScene::Initialize()
 	boss_ = std::make_unique<Boss>();
 	boss_->Initialize();
 
+	fadeManager_ = std::make_unique<FadeManager>();
+	fadeManager_->Initialize();
+
+	crackDemoSprite_ = std::make_unique<Sprite>();
+	crackDemoSprite_->Initialize("uvChecker.png");
+
+	// 下のSprite（例：uvCheckerなど）
+	blockSprite_ = std::make_unique<Sprite>();
+	blockSprite_->Initialize("uvChecker.png");
+	blockSprite_->SetAnchorPoint({ 0.0f, 0.0f });
+	blockSprite_->SetPosition({ 0.0f, 0.0f });
+	blockSprite_->SetSize({ 512.0f, 512.0f });
+	blockSprite_->Update();
+
+	// 上のひび割れ（CrackAtlas）
+	crackOverlaySprite_ = std::make_unique<Sprite>();
+	crackOverlaySprite_->Initialize("CrackAtlas.png"); // ←自作スプライトシート
+	crackOverlaySprite_->SetAnchorPoint({ 0.0f, 0.0f });
+	crackOverlaySprite_->SetPosition(blockSprite_->GetPosition());
+	crackOverlaySprite_->SetSize(blockSprite_->GetSize());
+	crackOverlaySprite_->SetColor({ 1,1,1,1 }); // 透過PNGならこれでOK
+	crackOverlaySprite_->Update();
+
+
+	SpriteDebrisEmitter::Params p;
+	p.maxParticles = 256;
+	p.groundY = 520.0f; // ブロックの下に合わせて調整
+	debris_ = std::make_unique<SpriteDebrisEmitter>();
+	debris_->Initialize("DebrisAtlas.png", p);
+
 	auto* mgr = GpuParticleManager::GetInstance();
 
 	// ------------------------------------------------------------
@@ -176,8 +206,126 @@ void DebugScene::Update()
 	UpdateDebug();
 #endif // _DEBUG
 
+	float deltaTime = dxCommon_->GetFPSCounter().GetDeltaTime();
+
 	// ボスの更新
-	boss_->Update(dxCommon_->GetFPSCounter().GetDeltaTime());
+	boss_->Update(deltaTime);
+
+	fadeManager_->Update(deltaTime);
+
+	// 画面左に大きく出す（好きなサイズでOK）
+	crackDemoSprite_->Update();
+
+	// --- ひび割れ表示（元スプライト） ---
+	if (!fractureActive_)
+	{
+		crackDemoSprite_->SetCrack(crackEnable_, crackProgress_);
+		crackDemoSprite_->SetCrackParams(crackScale_, crackThickness_, crackIntensity_, hitUV_);
+		crackDemoSprite_->SetColor({ 1,1,1,1 });
+		crackDemoSprite_->Update();
+
+		// crackProgress が 1 になったら分解開始
+		if (crackEnable_ && crackProgress_ >= 0.999f)
+		{
+			// 破片生成（細かいほど砕ける：8x8, 16x16 など）
+			fracture_ = std::make_unique<SpriteFractureEffect>();
+			fracture_->Initialize(*crackDemoSprite_, 16, 16);
+			fracture_->SetHitUV(hitUV_);
+			fracture_->SetGravity(2600.0f);
+			fracture_->SetImpulse(900.0f);
+			fracture_->SetLifetime(1.6f);
+			fracture_->SetFadeOut(0.55f);
+
+			fractureProgress_ = 0.0f;
+			fractureActive_ = true;
+		}
+	}
+	else
+	{
+		// 分解中：0→1 で剥がれを進める（速さは調整）
+		fractureProgress_ = std::min(1.0f, fractureProgress_ + deltaTime * 3.0f);
+		fracture_->SetHitUV(hitUV_);
+		fracture_->SetProgress(fractureProgress_);
+		fracture_->Update(deltaTime);
+
+		// 元スプライトはフェードアウト（描いてもいいし、描かなくてもOK）
+		float a = std::max(0.0f, 1.0f - fractureProgress_ * 2.0f);
+		crackDemoSprite_->SetColor({ 1,1,1,a });
+		crackDemoSprite_->Update();
+
+		// 全部消えたら終了（必要ならリセット）
+		if (fracture_->IsFinished())
+		{
+			fractureActive_ = false;
+			crackProgress_ = 0.0f; // 次のテスト用に戻す
+		}
+	}
+
+	// リセットキー（任意）
+	if (input_->TriggerKey(DIK_R))
+	{
+		fractureActive_ = false;
+		fracture_->Reset();
+		crackProgress_ = 0.0f;
+	}
+
+	// 自動再生
+	if (atlasAuto_)
+	{
+		atlasTime_ += deltaTime;
+		int stage = (int)(atlasTime_ * atlasFps_) % kCrackFrames;
+		breakProgress_ = (float)stage / (kCrackFrames - 1); // 表示用（任意）
+	}
+	else
+	{
+		// 手動（breakProgress_ による段階）
+		// 0..1 → 0..9
+		// ※1.0ちょうどで10にならないように0.9999
+	}
+
+	int stage = (int)(std::clamp(breakProgress_, 0.0f, 0.9999f) * kCrackFrames);
+	stage = std::clamp(stage, 0, kCrackFrames - 1);
+
+	// 横10枚×縦1枚
+	Vector2 leftTopPx = { crackFrameSizePx_.x * stage, 0.0f };
+	Vector2 sizePx = { crackFrameSizePx_.x, crackFrameSizePx_.y };
+
+	crackOverlaySprite_->SetUVRect(leftTopPx, sizePx);
+
+	// 下Spriteと同じ変形
+	crackOverlaySprite_->SetPosition(blockSprite_->GetPosition());
+	crackOverlaySprite_->SetSize(blockSprite_->GetSize());
+	crackOverlaySprite_->SetRotation(blockSprite_->GetRotation());
+	crackOverlaySprite_->SetAnchorPoint(blockSprite_->GetAnchorPoint());
+
+	// テスト中は stage0 でも表示したいので atlasHideAtZero_ で制御
+	float alpha = 1.0f;
+	if (atlasHideAtZero_ && stage == 0) { alpha = 0.0f; }
+	crackOverlaySprite_->SetColor({ 1,1,1,alpha });
+
+	blockSprite_->Update();
+	crackOverlaySprite_->Update();
+
+
+	// stageが進んだ瞬間に欠片をバースト
+	if (debrisEnable_)
+	{
+		if (stage > prevCrackStage_)
+		{
+			// ブロックの中心付近に出す（座標はあなたのspriteに合わせて調整）
+			Vector2 center = {
+				blockSprite_->GetPosition().x + blockSprite_->GetSize().x * 0.5f,
+				blockSprite_->GetPosition().y + blockSprite_->GetSize().y * 0.5f
+			};
+
+			int count = debrisBurstBase_ + stage * 2;
+			debris_->Burst(center, count);
+		}
+	}
+	prevCrackStage_ = stage;
+
+	// 欠片更新
+	debris_->Update(deltaTime);
 
 	auto* mgr = GpuParticleManager::GetInstance();
 
@@ -227,10 +375,45 @@ void DebugScene::Draw3DObjects()
 
 void DebugScene::Draw2DSprites()
 {
+#pragma region スプライトの描画                    
+
+	// 背景用の共通描画設定（後面）
+	SpriteManager::GetInstance()->SetRenderSetting_Background();
+
+#pragma endregion
+
+
+#pragma region UIの描画
+
+	// UI用の共通描画設定
+	SpriteManager::GetInstance()->SetRenderSetting_UI();
+
+	fadeManager_->Draw2DSprites();
+
+	//// 元スプライト（ひび割れ）
+	//if (crackDemoSprite_) { crackDemoSprite_->Draw(); }
+
+	//// 破片（分解中だけ）
+	//if (fractureActive_) 
+	//	fracture_->Draw();
+
+
+	//blockSprite_->Draw();        // 下
+	//crackOverlaySprite_->Draw(); // 上（透明PNGの黒線が乗る）
+
+	//debris_->Draw();
+
+#pragma endregion
 }
 
 void DebugScene::Finalize()
 {
+	debris_.reset();
+	crackOverlaySprite_.reset();
+	blockSprite_.reset();
+	fracture_.reset();
+	crackDemoSprite_.reset();
+	fadeManager_.reset();
 	boss_.reset();
 
 	input_ = nullptr;
@@ -242,6 +425,49 @@ void DebugScene::DrawImGui()
 #ifdef USE_IMGUI
 
 	boss_->DrawImGui();
+
+	fadeManager_->DrawImGui();
+
+	ImGui::Begin("Debug Crack");
+
+	ImGui::Checkbox("Crack Enable", &crackEnable_);
+	ImGui::SliderFloat("Crack Progress", &crackProgress_, 0.0f, 1.0f);
+	ImGui::SliderFloat("Crack Scale", &crackScale_, 1.0f, 60.0f);
+	ImGui::SliderFloat("Crack Thickness", &crackThickness_, 0.001f, 0.08f);
+	ImGui::SliderFloat("Crack Intensity", &crackIntensity_, 0.0f, 2.0f);
+	ImGui::SliderFloat2("HitUV", &hitUV_.x, 0.0f, 1.0f);
+
+	// “Updateに渡ってる値” を見える化（効いてるか即わかる）
+	ImGui::Separator();
+	ImGui::Text("Applied (member) progress = %.3f", crackProgress_);
+
+	ImGui::SeparatorText("Crack Atlas (Minecraft-like)");
+
+	ImGui::Checkbox("Atlas Auto", &atlasAuto_);
+	ImGui::SliderFloat("Atlas FPS", &atlasFps_, 1.0f, 30.0f);
+	ImGui::Checkbox("Hide Stage0", &atlasHideAtZero_);
+
+	if (!atlasAuto_)
+	{
+		ImGui::SliderFloat("Break Progress (Atlas)", &breakProgress_, 0.0f, 1.0f);
+	}
+
+	ImGui::SliderFloat2("Frame Size(px)", &crackFrameSizePx_.x, 1.0f, 512.0f);
+
+	ImGui::SeparatorText("Debris (Sprite)");
+	ImGui::Checkbox("Debris Enable", &debrisEnable_);
+	ImGui::SliderInt("Burst Base", &debrisBurstBase_, 0, 60);
+
+	auto& dp = debris_->GetParams();
+	ImGui::SliderFloat("Gravity", &dp.gravity, 0.0f, 6000.0f);
+	ImGui::SliderFloat("Bounce", &dp.bounce, 0.0f, 0.9f);
+	ImGui::SliderFloat("Min Life", &dp.minLife, 0.05f, 2.0f);
+	ImGui::SliderFloat("Max Life", &dp.maxLife, 0.05f, 2.0f);
+	ImGui::SliderFloat("Min Speed", &dp.minSpeed, 0.0f, 1200.0f);
+	ImGui::SliderFloat("Max Speed", &dp.maxSpeed, 0.0f, 1800.0f);
+	ImGui::SliderFloat("GroundY", &dp.groundY, 0.0f, 1200.0f);
+
+	ImGui::End();
 
 	/// ---------- GPUパーティクルデバッグ ---------- ///
 	GpuParticleManager::GetInstance()->DrawImGui();

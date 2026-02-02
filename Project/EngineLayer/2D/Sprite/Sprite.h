@@ -4,9 +4,9 @@
 #include "Vector2.h"
 #include "Vector4.h"
 
-#include <array>
-#include <memory>
-
+#include <algorithm>
+#include <cstdint>
+#include <functional>
 
 /// ---------- 前方宣言 ---------- ///
 class DirectXCommon;
@@ -50,10 +50,21 @@ private: /// ---------- 構造体　----------- ///
 private: /// ---------- ゲーム用の構造体 ---------- ///
 
 	// リロード進捗の構造体
-	struct ReloadProgress
+	struct EffectParams
 	{
 		bool isReloading = false; // リロード中かどうか
-		float progress = 0.0f;	  // 進捗度合い(0.0f〜1.0f)
+		float reloadProgress = 0.0f;	  // 進捗度合い(0.0f〜1.0f)
+
+		bool enableCrack = false; // ひび割れエフェクトを有効にするかどうか
+		float crackProgress = 0.0f;  // ひび割れ進捗度合い(0.0f〜1.0f)
+
+		Vector2 crackHitUV = { 0.5f, 0.5f }; // ひび割れの中心UV座標
+		float crackScale = 18.0f;		   // ひび割れの大きさスケール
+		float crackThickness = 0.03f;	   // ひび割れの太さ
+
+		uint32_t crackSpeed = 1;		   // ひび割れの進行速度
+		float crackIntensity = 1.0f;	   // ひび割れの強さ
+
 		float padding[2];		  // パディング
 	};
 
@@ -156,6 +167,12 @@ public: /// ---------- ゲッター ---------- ///
 
 	const uint32_t GetTextureIndex() const { return materialData->textureIndex; }
 
+	// 使用しているテクスチャファイルのパスを取得します。
+	const std::string& GetFilePath() const { return filePath_; }
+
+	// テクスチャ内での切り出しサイズ（ピクセル）を取得します。
+	const Vector2& GetTextureSize() const { return textureSize_; }
+
 public: /// ---------- セッター ---------- ///
 
 	/// <summary>
@@ -235,12 +252,12 @@ public: /// ---------- セッター ---------- ///
 	/// この値は ReloadProgress 用の定数バッファに書き込まれ、ピクセルシェーダで利用されます。
 	/// </summary>
 	/// <param name="isReloading">リロード中かどうか。</param>
-	/// <param name="progress">進捗度合い (0.0〜1.0)。</param>
-	void SetReloadProgress(bool isReloading, float progress)
-	{
-		reloadProgressData->isReloading = isReloading; // リロード中かどうか
-		reloadProgressData->progress = progress;	   // 進捗度合い(0.0f〜1.0f)
-	}
+	/// <param name="reloadProgress">進捗度合い (0.0〜1.0)。</param>
+	void SetReloadProgress(bool isReloading, float progress);
+
+	void SetCrack(bool enable, float progress);
+
+	void SetCrackParams(float scale, float thickness, float intensity, const Vector2& hitUV);
 
 private: /// ---------- メンバ関数 ---------- ///
 
@@ -338,7 +355,7 @@ private: /// ---------- メンバ変数 ---------- ///
 	uint32_t* indexData = nullptr;
 
 	// リロード進捗のリソース
-	ComPtr <ID3D12Resource> reloadProgressResource;
-	ReloadProgress* reloadProgressData = nullptr;
+	ComPtr <ID3D12Resource> effectParamsResource;
+	EffectParams* effectParamsData = nullptr;
 };
 

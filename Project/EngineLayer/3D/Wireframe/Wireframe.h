@@ -308,7 +308,7 @@ public: /// ---------- 2D用の線の描画 ---------- ///
 	/// <param name="center">五芒星の中心位置。</param>
 	/// <param name="radius">五芒星の半径。</param>
 	/// <param name="color">線色（RGBA）。</param>
-	/// <param name="progress">0.0～1.0 の描画進行度。</param>
+	/// <param name="reloadProgress">0.0～1.0 の描画進行度。</param>
 	void DrawPentagramProgressive(const Vector3& center, float radius, const Vector4& color, float progress);
 
 	/// <summary>
@@ -317,7 +317,7 @@ public: /// ---------- 2D用の線の描画 ---------- ///
 	/// <param name="center">六芒星の中心位置。</param>
 	/// <param name="radius">六芒星の半径。</param>
 	/// <param name="color">線色（RGBA）。</param>
-	/// <param name="progress">0.0～1.0 の描画進行度。</param>
+	/// <param name="reloadProgress">0.0～1.0 の描画進行度。</param>
 	void DrawHexagramProgressive(const Vector3& center, float radius, const Vector4& color, float progress);
 
 	/// <summary>
