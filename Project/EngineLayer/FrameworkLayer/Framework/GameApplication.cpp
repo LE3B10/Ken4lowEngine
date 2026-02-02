@@ -41,7 +41,7 @@ void GameApplication::Initialize()
 	SceneManager::GetInstance()->SetAbstractSceneFactory(std::move(sceneFactory));
 
 	// 最初のシーンを設定
-	SceneManager::GetInstance()->ChangeScene("DebugScene");
+	SceneManager::GetInstance()->ChangeScene("TitleScene");
 }
 
 
@@ -115,17 +115,17 @@ void GameApplication::Draw()
 	//--------------------------------------------
 	PostEffectManager::GetInstance()->BeginDraw(); // RTV/DSVの設定・Clear
 
+	// --- デバッグ描画（3D用） ---
+	Wireframe::GetInstance()->Draw();
+
 	// --- 2. 3Dオブジェクトの描画 ---
 	SceneManager::GetInstance()->Draw3DObjects();
-
-	// --- パーティクル（UIエフェクトなどあれば） ---
-	ParticleManager::GetInstance()->Draw();
 
 	// --- Gpuパーティクル ---
 	GpuParticleManager::GetInstance()->Draw();
 
-	// --- デバッグ描画（3D用） ---
-	Wireframe::GetInstance()->Draw();
+	// --- パーティクル（UIエフェクトなどあれば） ---
+	ParticleManager::GetInstance()->Draw();
 
 	//--------------------------------------------
 	// 3. オフスクリーン描画終了（SRVへ切り替え）

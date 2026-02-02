@@ -21,12 +21,14 @@ void GpuParticleEmitter::RequestEmit(uint32_t count)
 /// -------------------------------------------------------------
 bool GpuParticleEmitter::BuildCB(GpuEmitterCBData& out, float deltaTime)
 {
-	// ループ発生(デフォルトパーティクル用)
+	// ------------------------------
+	// ループ発生（定期発生）
+	// ------------------------------
 	if (info_.loopFrequency > 0.0f && info_.loopCount > 0)
 	{
-		loopTimer_ += deltaTime; // タイマー加算
+		loopTimer_ += deltaTime;
 
-		// 発生周期を超えたら発生数を加算
+		// 周期を超えた分だけ発生（取りこぼし防止でwhile）
 		while (loopTimer_ >= info_.loopFrequency)
 		{
 			pendingBurstCount_ += info_.loopCount;
@@ -34,31 +36,36 @@ bool GpuParticleEmitter::BuildCB(GpuEmitterCBData& out, float deltaTime)
 		}
 	}
 
-	// 発生数が0なら何もしない
+	// ------------------------------
+	// 共通でCBに書く値（Emitしない場合も）
+	// ------------------------------
+	out.translate = position_;
+	out.radius = info_.radius;
+	out.frequency = info_.loopFrequency;
+	out.frequencyTime = loopTimer_; // デバッグ用に残す（不要なら0でもOK）
+
+	// kindに応じた type / packed billboardMode
+	out.type = GetEffectiveType();
+	out.billboardMode = GetPackedBillboardMode();
+
+	// ------------------------------
+	// Emitしない
+	// ------------------------------
 	if (pendingBurstCount_ == 0)
 	{
 		out.emit = 0;
 		out.count = 0;
-		out.translate = position_;
-		out.radius = info_.radius;
-		out.frequency = info_.loopFrequency;
-		out.frequencyTime = loopTimer_; // 使わないなら 0.0f でもOK
-		out.type = static_cast<uint32_t>(info_.type);
-		out.billboardMode = static_cast<uint32_t>(info_.billboardMode);
 		return false;
 	}
 
-	// CBに書き込み
-	out.translate = position_;
-	out.radius = info_.radius;
-	out.count = pendingBurstCount_;
-	out.frequency = info_.loopFrequency;
-	out.frequencyTime = 0.0f; // 使わないなら0でOK
+	// ------------------------------
+	// Emitする
+	// ------------------------------
 	out.emit = 1;
-	out.type = static_cast<uint32_t>(info_.type);
-	out.billboardMode = static_cast<uint32_t>(info_.billboardMode);
+	out.count = pendingBurstCount_;
+	out.frequencyTime = 0.0f; // 使わないなら0固定でOK
 
-	// 消費
+	// 消費（このフレーム分を確定）
 	pendingBurstCount_ = 0;
 
 	return true;

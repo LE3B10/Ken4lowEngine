@@ -38,20 +38,20 @@ void PhysicalScene::Initialize()
 	unlockDuration_ = 1.0f;
 	ApplyLockedVisual();
 
-	// GPUパーティクルエミッターの作成
-	GpuParticleEmitter::EmitterInfo info{};
-	info.type = GpuParticleType::Default;
-	info.billboardMode = BillboardMode::Camera; // ビルボードしない
-	info.radius = 10.0f;
-	info.loopCount = 0;        // 一回で10個
-	info.loopFrequency = 0.0f;  // 0.5秒に一回
+	//// GPUパーティクルエミッターの作成
+	//GpuParticleEmitter::EmitterInfo info{};
+	//info.type = GpuParticleType::Default;
+	//info.billboardMode = BillboardMode::Camera; // ビルボードしない
+	//info.radius = 10.0f;
+	//info.loopCount = 0;        // 一回で10個
+	//info.loopFrequency = 0.0f;  // 0.5秒に一回
 
-	unlockEmitter_ = GpuParticleManager::GetInstance()->CreateEmitter("StageUnlock", info);
+	//unlockEmitter_ = GpuParticleManager::GetInstance()->CreateEmitter("StageUnlock", info);
 
-	if (unlockEmitter_)
-	{
-		unlockEmitter_->SetPosition({ 0.0f, 1.5f, 0.0f }); // キューブの少し上あたり
-	}
+	//if (unlockEmitter_)
+	//{
+	//	unlockEmitter_->SetPosition({ 0.0f, 1.5f, 0.0f }); // キューブの少し上あたり
+	//}
 
 	floatTimer_ = 0.0f;
 	isSelected_ = true; // このシーンでは常に「選択中」という扱いでOK

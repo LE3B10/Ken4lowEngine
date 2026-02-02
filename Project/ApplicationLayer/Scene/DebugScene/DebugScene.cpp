@@ -107,25 +107,67 @@ void DebugScene::Initialize()
 	boss_ = std::make_unique<Boss>();
 	boss_->Initialize();
 
-	// ----------------------------
-	// テスト用エミッター作成（ループで出し続ける）
-	// ----------------------------
-	GpuParticleEmitter::EmitterInfo info{};
-	info.textureFilePath = "circle2.png"; // まず既存のやつ（Rendererのデフォと同じ）
-	info.radius = 0.2f;
-	info.loopCount = 0;        // 1回に出す数
-	info.loopFrequency = 0.0f; // 秒（0.05なら20回/秒）
-	info.type = GpuParticleType::Default;
-	info.billboardMode = BillboardMode::Ribbon;
+	auto* mgr = GpuParticleManager::GetInstance();
 
-	if (auto* e = GpuParticleManager::GetInstance()->CreateEmitter("DebugEmitter", info))
+	// ------------------------------------------------------------
+	//  Spriteデバッグ用：HitSpark（GPU Sprite / 21タイプの中の1つ）
+	// ------------------------------------------------------------
 	{
-		e->SetPosition({ 0.0f, 1.0f, 0.0f }); // とりあえず原点の少し上
+		GpuParticleEmitter::EmitterInfo info{};
+		info.textureFilePath = "circle2.png";
+		info.radius = 0.2f;
+
+		// ループ発生は無効（必要ならここを設定）
+		info.loopCount = 0;
+		info.loopFrequency = 0.0f;
+
+		// ★差別化：Spriteモード
+		info.kind = GpuParticleKind::Sprite;
+
+		// ★Spriteタイプ（21個のうち）
+		info.spriteType = GpuParticleType::HitSpark;
+
+		// ★flags（下位16bit）：通常はCameraでOK
+		info.billboardFlags = BillboardMode::Camera;
+
+		if (!mgr->GetEmitter("Dbg_HitSpark"))
+		{
+			if (auto* e = mgr->CreateEmitter("Dbg_HitSpark", info))
+			{
+				e->SetPosition({ 0.0f, 1.0f, 0.0f });
+			}
+		}
 	}
 
-	auto* mgr = GpuParticleManager::GetInstance();
-	if (!mgr->GetEmitter("Dbg_HitSpark"))
-		mgr->CreateEmitter("Dbg_HitSpark", info);
+	// ------------------------------------------------------------
+	//  Ribbonデバッグ用：BulletTracer（Ribbonモード）
+	// ------------------------------------------------------------
+	{
+		GpuParticleEmitter::EmitterInfo info{};
+		info.textureFilePath = "circle2.png";
+		info.radius = 0.15f;
+
+		// ループは無効（キーでバーストして確認）
+		info.loopCount = 0;
+		info.loopFrequency = 0.0f;
+
+		// ★差別化：Ribbonモード
+		info.kind = GpuParticleKind::Ribbon;
+
+		// ★Ribbonタイプ（Emitter内の enum）
+		info.ribbonType = GpuRibbonType::BulletTracer;
+
+		// ★flags（下位16bit）：Camera/YAxisなど（Ribbonフラグは使わない運用）
+		info.billboardFlags = BillboardMode::Camera;
+
+		if (!mgr->GetEmitter("Dbg_Ribbon"))
+		{
+			if (auto* e = mgr->CreateEmitter("Dbg_Ribbon", info))
+			{
+				e->SetPosition({ 0.0f, 1.0f, 0.0f });
+			}
+		}
+	}
 }
 
 void DebugScene::Update()
@@ -138,9 +180,38 @@ void DebugScene::Update()
 	boss_->Update(dxCommon_->GetFPSCounter().GetDeltaTime());
 
 	auto* mgr = GpuParticleManager::GetInstance();
+
+	// 位置追従（ボス中心に合わせる）
+	const Vector3 bossPos = boss_->GetCenterPosition(); // 実関数名に合わせて
 	if (auto* e = mgr->GetEmitter("Dbg_HitSpark"))
 	{
-		e->SetPosition(boss_->GetCenterPosition()); // 実関数名に合わせて
+		e->SetPosition(bossPos);
+	}
+	if (auto* e = mgr->GetEmitter("Dbg_Ribbon"))
+	{
+		e->SetPosition(bossPos);
+	}
+
+	// ------------------------------------------------------------
+	// デバッグ用：キーで複数射出（同フレーム合算も確認できる）
+	// ------------------------------------------------------------
+	// 1キー：HitSpark を 50個バースト
+	if (input_->TriggerKey(DIK_1))
+	{
+		mgr->BurstEmitter("Dbg_HitSpark", 50);
+	}
+
+	// 2キー：Ribbon を 10個バースト（疑似リボン/モード分離の確認用）
+	if (input_->TriggerKey(DIK_2))
+	{
+		mgr->BurstEmitter("Dbg_Ribbon", 10);
+	}
+
+	// 3キー：同フレームに「複数回」射出して合算確認（50 + 50 = 100）
+	if (input_->TriggerKey(DIK_3))
+	{
+		mgr->BurstEmitter("Dbg_HitSpark", 50);
+		mgr->BurstEmitter("Dbg_HitSpark", 50);
 	}
 }
 

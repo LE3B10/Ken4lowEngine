@@ -34,6 +34,21 @@ public: /// ---------- メンバ関数 ---------- ///
 	// 連続発生防止のクールダウン更新
 	void Tick(float deltaTime) { if (rushHitCooldown_ > 0.0f) rushHitCooldown_ -= deltaTime; }
 
+	// 念のため（再初期化などで使える）
+	void Reset() override
+	{
+		appearDustEmitter_ = nullptr;
+		auraEmitter_ = nullptr;
+		rushTrailEmitter_ = nullptr;
+		rushHitEmitter_ = nullptr;
+		spinAttackEmitter_ = nullptr;
+		deathExplosionEmitter_ = nullptr;
+		deathShockwaveEmitter_ = nullptr;
+		deathSoulEmitter_ = nullptr;
+		debrisDustEmitter_ = nullptr;
+		rushHitCooldown_ = 0.0f;
+	}
+
 protected: /// ---------- メンバ関数 ---------- ///
 
 	/// <summary>

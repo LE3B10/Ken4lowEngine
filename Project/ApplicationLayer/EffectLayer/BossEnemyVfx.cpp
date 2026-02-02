@@ -119,102 +119,135 @@ void BossEnemyVfx::UpdateDeathEffect(const Vector3& center, float deathTimer, bo
 /// -------------------------------------------------------------
 void BossEnemyVfx::RegisterEmitters()
 {
-	{ // ボス登場砂埃エミッター登録
+	// もし再初期化される可能性があるなら、先にリセット
+	Reset();
+
+	// 共通：いったん白テクスチャ前提（存在するテクスチャ名に合わせて変更OK）
+	const char* kDefaultTex = "white.png";
+
+	// --- ボス登場砂埃 ---
+	{
 		GpuParticleEmitter::EmitterInfo info{};
-		info.type = GpuParticleType::Boss_Appear_Dust; // ボス登場砂埃
+		info.kind = GpuParticleKind::Sprite;
+		info.spriteType = GpuParticleType::Boss_Appear_Dust;
 		info.radius = 3.0f;
 		info.loopCount = 0;
 		info.loopFrequency = 0.0f;
-		info.billboardMode = BillboardMode::Camera;
-		info.textureFilePath = "white.png";
+		info.billboardFlags = BillboardMode::Camera;
+		info.textureFilePath = kDefaultTex;
+
 		appearDustEmitter_ = GetOrCreateEmitter("BossAppear", info);
 	}
 
-	{ // ボスオーラエミッター登録
+	// --- ボスオーラ ---
+	{
 		GpuParticleEmitter::EmitterInfo info{};
-		info.type = GpuParticleType::Boss_Aura;   // ボスオーラ
-		info.radius = 0.5f;                       // ボス中心からの広がり
-		info.loopCount = 0;	                       // ループは使わず毎フレーム RequestEmit 方式
+		info.kind = GpuParticleKind::Sprite;
+		info.spriteType = GpuParticleType::Boss_Aura;
+		info.radius = 0.5f;
+		info.loopCount = 0;
 		info.loopFrequency = 0.0f;
-		info.billboardMode = BillboardMode::Camera;
-		info.textureFilePath = "white.png";
+		info.billboardFlags = BillboardMode::Camera;
+		info.textureFilePath = kDefaultTex;
+
 		auraEmitter_ = GetOrCreateEmitter("BossAura", info);
 	}
 
-	{ // ラッシュ軌跡エミッター登録
+	// --- ラッシュ軌跡 ---
+	{
 		GpuParticleEmitter::EmitterInfo info{};
-		info.type = GpuParticleType::Boss_Rush_Trail;
-		info.radius = 0.0f;         // 細め（太いなら 0.2f へ）
+		info.kind = GpuParticleKind::Sprite;
+		info.spriteType = GpuParticleType::Boss_Rush_Trail;
+		info.radius = 0.0f;
 		info.loopCount = 0;
-		info.loopFrequency = 0.0f;   // ループは使わず、Rush中に RequestEmit する
-		info.billboardMode = BillboardMode::Camera;
-		info.textureFilePath = "white.png";
+		info.loopFrequency = 0.0f;
+		info.billboardFlags = BillboardMode::Camera;
+		info.textureFilePath = kDefaultTex;
+
 		rushTrailEmitter_ = GetOrCreateEmitter("BossRushTrail", info);
 	}
 
-	{ // スピン攻撃エミッター登録
+	// --- ラッシュヒット（衝撃波で代用）---
+	{
 		GpuParticleEmitter::EmitterInfo info{};
-		info.type = GpuParticleType::Boss_Spin_Slash;
-		info.radius = 0.1f;         // ボス中心からの広がり
+		info.kind = GpuParticleKind::Sprite;
+		info.spriteType = GpuParticleType::Shockwave;
+		info.radius = 0.5f;
 		info.loopCount = 0;
-		info.loopFrequency = 0.0f;   // ループは使わず、Spin中に RequestEmit する
-		info.billboardMode = BillboardMode::Camera;
-		info.textureFilePath = "white.png";
+		info.loopFrequency = 0.0f;
+		info.billboardFlags = BillboardMode::Camera;
+		info.textureFilePath = kDefaultTex;
+
+		rushHitEmitter_ = GetOrCreateEmitter("BossRushHit", info);
+	}
+
+	// --- スピン攻撃 ---
+	{
+		GpuParticleEmitter::EmitterInfo info{};
+		info.kind = GpuParticleKind::Sprite;
+		info.spriteType = GpuParticleType::Boss_Spin_Slash;
+		info.radius = 0.1f;
+		info.loopCount = 0;
+		info.loopFrequency = 0.0f;
+		info.billboardFlags = BillboardMode::Camera;
+		info.textureFilePath = kDefaultTex;
+
 		spinAttackEmitter_ = GetOrCreateEmitter("BossSpinAttack", info);
 	}
 
-	{ // 死亡中心爆発エミッター登録
+	// --- 死亡：中心爆発 ---
+	{
 		GpuParticleEmitter::EmitterInfo info{};
-		info.type = GpuParticleType::Explosion_Fire; // 小さな爆発
-		info.radius = 0.5f;                          // ボス中心周りにちょっと広がる
+		info.kind = GpuParticleKind::Sprite;
+		info.spriteType = GpuParticleType::Explosion_Fire;
+		info.radius = 0.5f;
 		info.loopCount = 0;
 		info.loopFrequency = 0.0f;
-		info.billboardMode = BillboardMode::Camera;
-		info.textureFilePath = "white.png";          // 炎っぽいテクスチャあるなら差し替え
+		info.billboardFlags = BillboardMode::Camera;
+		info.textureFilePath = kDefaultTex;
+
 		deathExplosionEmitter_ = GetOrCreateEmitter("BossDeathExplosion", info);
 	}
 
-	{ // 死亡衝撃波エミッター登録
+	// --- 死亡：衝撃波 ---
+	{
 		GpuParticleEmitter::EmitterInfo info{};
-		info.type = GpuParticleType::Shockwave;      // 衝撃波タイプ（GPU_PARTICLE_TYPE_SHOCKWAVE と一致）
-		info.radius = 0.15f;                         // ほぼ中心から出す
+		info.kind = GpuParticleKind::Sprite;
+		info.spriteType = GpuParticleType::Shockwave;
+		info.radius = 0.15f;
 		info.loopCount = 0;
 		info.loopFrequency = 0.0f;
-		info.billboardMode = BillboardMode::Camera;
-		info.textureFilePath = "white.png";
+		info.billboardFlags = BillboardMode::Camera;
+		info.textureFilePath = kDefaultTex;
+
 		deathShockwaveEmitter_ = GetOrCreateEmitter("BossDeathShockwave", info);
 	}
 
-	{ // 死亡魂エミッター登録
+	// --- 死亡：魂 ---
+	{
 		GpuParticleEmitter::EmitterInfo info{};
-		info.type = GpuParticleType::Boss_Death_Soul;
-		info.radius = 0.35f;                            // 発生の散り幅（小さめ）
+		info.kind = GpuParticleKind::Sprite;
+		info.spriteType = GpuParticleType::Boss_Death_Soul;
+		info.radius = 0.35f;
 		info.loopCount = 0;
-		info.loopFrequency = 0.0f;                      // UpdateDeathでRequestEmitする
-		info.billboardMode = BillboardMode::Camera;
-		info.textureFilePath = "white.png";           // ふわっと感が出やすい
+		info.loopFrequency = 0.0f;
+		info.billboardFlags = BillboardMode::Camera;
+		info.textureFilePath = kDefaultTex;
+
 		deathSoulEmitter_ = GetOrCreateEmitter("BossDeathSoul", info);
 	}
 
-	{ // 破片埃エミッター登録
-		GpuParticleEmitter::EmitterInfo info{};
-		info.type = GpuParticleType::Boss_Debris_Dust;
-		info.radius = 1.5f;                             // 破片周りに散る想定で少し広め
-		info.loopCount = 0;
-		info.loopFrequency = 0.0f;                      // 死亡開始の瞬間だけバースト
-		info.billboardMode = BillboardMode::Camera;
-		info.textureFilePath = "white.png";             // 粒埃はwhiteでOK
-		debrisDustEmitter_ = GetOrCreateEmitter("BossDebrisDust", info);
-	}
-
+	// --- 死亡：破片埃 ---
 	{
 		GpuParticleEmitter::EmitterInfo info{};
-		info.type = GpuParticleType::Shockwave;
-		info.radius = 0.5f;                          // 発生の散り幅（小さめでOK）
+		info.kind = GpuParticleKind::Sprite;
+		info.spriteType = GpuParticleType::Boss_Debris_Dust;
+		info.radius = 1.5f;
 		info.loopCount = 0;
 		info.loopFrequency = 0.0f;
-		info.billboardMode = BillboardMode::Camera;
-		info.textureFilePath = "white.png";         // 衝撃波っぽいならこれが相性良い
-		rushHitEmitter_ = GetOrCreateEmitter("BossRushHit", info);
+		info.billboardFlags = BillboardMode::Camera;
+		info.textureFilePath = kDefaultTex;
+
+		debrisDustEmitter_ = GetOrCreateEmitter("BossDebrisDust", info);
 	}
 }

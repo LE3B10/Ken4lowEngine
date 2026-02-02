@@ -146,31 +146,31 @@ void Item::ApplyTo(Player* player)
 		//player->AddHP(300);
 
 		// ② 回復パーティクル（下→上の Emit はシェーダ側 type=21 で実装済み想定）
-		auto* pm = GpuParticleManager::GetInstance();
+		////auto* pm = GpuParticleManager::GetInstance();
 
-		// エミッターを作ってなければ作る（1回だけ）
-		GpuParticleEmitter* emitter = pm->GetEmitter("Heal_Effect");
-		if (!emitter)
-		{
-			GpuParticleEmitter::EmitterInfo info{};
-			info.textureFilePath = "white.png"; // とりあえず既存の白テクでOK（後で差し替え）
-			info.radius = 1.5f;                // 正方形範囲の“半辺”として使う想定
-			info.loopCount = 0;
-			info.loopFrequency = 0.0f;
-			info.drawType = 0;                 // 0なら type を使う
-			info.type = GpuParticleType::Heal_Effect;
-			info.billboardMode = BillboardMode::Camera;
+		//// エミッターを作ってなければ作る（1回だけ）
+		//GpuParticleEmitter* emitter = pm->GetEmitter("Heal_Effect");
+		//if (!emitter)
+		//{
+		//	GpuParticleEmitter::EmitterInfo info{};
+		//	info.textureFilePath = "white.png"; // とりあえず既存の白テクでOK（後で差し替え）
+		//	info.radius = 1.5f;                // 正方形範囲の“半辺”として使う想定
+		//	info.loopCount = 0;
+		//	info.loopFrequency = 0.0f;
+		//	info.drawType = 0;                 // 0なら type を使う
+		//	info.type = GpuParticleType::Heal_Effect;
+		//	info.billboardMode = BillboardMode::Camera;
 
-			emitter = pm->CreateEmitter("Heal_Effect", info);
-		}
+		//	emitter = pm->CreateEmitter("Heal_Effect", info);
+		//}
 
-		if (emitter)
-		{
-			// プレイヤー位置にセットしてバースト
-			// ※ Player の位置取得はあなたの実装に合わせて差し替え
-			emitter->SetPosition(player->GetCenterPosition() - Vector3(0.0f, 2.0f, 0.0f));
-			emitter->RequestEmit(40); // まずは 30〜60 で調整
-		}
+		//if (emitter)
+		//{
+		//	// プレイヤー位置にセットしてバースト
+		//	// ※ Player の位置取得はあなたの実装に合わせて差し替え
+		//	emitter->SetPosition(player->GetCenterPosition() - Vector3(0.0f, 2.0f, 0.0f));
+		//	emitter->RequestEmit(40); // まずは 30〜60 で調整
+		//}
 		break;
 	}
 

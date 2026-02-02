@@ -97,6 +97,8 @@
     <FxCompile Include="Resources\Shaders\PostEffect\PixelateEffect.CS.hlsl">
       <Filter>Shader\ComputeShader</Filter>
     </FxCompile>
+    <FxCompile Include="Resources\Shaders\GpuParticle\GpuParticleMesh.VS.hlsl" />
+    <FxCompile Include="Resources\Shaders\GpuParticle\GpuParticleMesh.PS.hlsl" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="WinMain.cpp" />
@@ -415,9 +417,6 @@
     <ClCompile Include="EngineLayer\GPUParticleSystem\GpuParticleManager\GpuParticleManager.cpp">
       <Filter>EngineLayer\GpuParticleSystem\GpuParticleManager</Filter>
     </ClCompile>
-    <ClCompile Include="EngineLayer\GPUParticleSystem\GpuParticlePipeline\GpuParticlePipeline.cpp">
-      <Filter>EngineLayer\GpuParticleSystem\GpuParticlePipeline</Filter>
-    </ClCompile>
     <ClCompile Include="EngineLayer\GPUParticleSystem\GpuParticleRenderer\GpuParticleRenderer.cpp">
       <Filter>EngineLayer\GpuParticleSystem\GpuParticleRenderer</Filter>
     </ClCompile>
@@ -568,6 +567,9 @@
     <ClCompile Include="ApplicationLayer\WeaponSystem\WeaponMasterData\WeaponMasterDataWriter.cpp">
       <Filter>ApplicationLayer\WeaponSystem\WeaponMasterData</Filter>
     </ClCompile>
+    <ClCompile Include="EngineLayer\GPUParticleSystem\GpuParticlePipeline\GpuParticleSpritePipeline.cpp" />
+    <ClCompile Include="EngineLayer\GPUParticleSystem\GpuParticlePipeline\GpuParticleComputePipeline.cpp" />
+    <ClCompile Include="EngineLayer\GPUParticleSystem\GpuParticlePipeline\GpuParticleMeshPipeline.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="EngineLayer\Math\MultipleStructs\AABB.h">
@@ -1023,9 +1025,6 @@
     <ClInclude Include="EngineLayer\GPUParticleSystem\GpuParticleManager\GpuParticleManager.h">
       <Filter>EngineLayer\GpuParticleSystem\GpuParticleManager</Filter>
     </ClInclude>
-    <ClInclude Include="EngineLayer\GPUParticleSystem\GpuParticlePipeline\GpuParticlePipeline.h">
-      <Filter>EngineLayer\GpuParticleSystem\GpuParticlePipeline</Filter>
-    </ClInclude>
     <ClInclude Include="EngineLayer\GPUParticleSystem\GpuParticleRenderer\GpuParticleRenderer.h">
       <Filter>EngineLayer\GpuParticleSystem\GpuParticleRenderer</Filter>
     </ClInclude>
@@ -1257,6 +1256,9 @@
     <ClInclude Include="ApplicationLayer\WeaponSystem\WeaponMasterData\WeaponMasterDataWriter.h">
       <Filter>ApplicationLayer\WeaponSystem\WeaponMasterData</Filter>
     </ClInclude>
+    <ClInclude Include="EngineLayer\GPUParticleSystem\GpuParticlePipeline\GpuParticleSpritePipeline.h" />
+    <ClInclude Include="EngineLayer\GPUParticleSystem\GpuParticlePipeline\GpuParticleComputePipeline.h" />
+    <ClInclude Include="EngineLayer\GPUParticleSystem\GpuParticlePipeline\GpuParticleMeshPipeline.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Resources\Shaders\PostEffect\FullScreen.hlsli">

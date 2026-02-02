@@ -4,7 +4,7 @@
 #include "ParticleMaterial.h"
 
 /// ---------- 前方宣言 ---------- ///
-class GpuParticlePipeline;
+class GpuParticleSpritePipeline;
 class GpuParticleBuffers;
 
 /// -------------------------------------------------------------
@@ -24,7 +24,7 @@ public: /// ---------- メンバ関数 ---------- ///
 	/// </summary>
 	/// <param name="pipeline">描画に使用する GPU パーティクル用グラフィックスパイプライン。</param>
 	/// <param name="buffers">PerView 定数バッファやパーティクル用 SRV を持つバッファ管理クラス。</param>
-	void Initialize(GpuParticlePipeline* pipeline, GpuParticleBuffers* buffers);
+	void Initialize(GpuParticleSpritePipeline* pipeline, GpuParticleBuffers* buffers);
 
 	/// <summary>
 	/// GPU パーティクルの描画処理を行います。<br/>
@@ -50,8 +50,8 @@ public: /// ---------- セッター ---------- ///
 
 private: /// ---------- メンバ変数 ---------- ///
 
-	// GPUパーティクルパイプライン
-	GpuParticlePipeline* gpuParticlePipeline_ = nullptr;
+	// GPUパーティクルスプライトパイプライン
+	GpuParticleSpritePipeline* gpuParticlePipeline_ = nullptr;
 
 	// GPUパーティクルバッファ
 	GpuParticleBuffers* gpuParticleBuffers_ = nullptr;

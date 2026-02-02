@@ -42,22 +42,19 @@ float3 SampleHemisphereUp(float3 seed)
     return normalize(d);
 }
 
-uint DecideRenderKind(uint type)
+uint DecideRenderKind()
 {
-    // ★None(0) は Mesh として扱う（Mesh Particle 用）
-    if (GPUParticle_GetBillboardFlags(gEmitter.billboardMode) == BILLBOARD_NONE)
+    // まず flags を見る：Noneなら Mesh（互換＆安全）
+    uint flags = GPUParticle_GetBillboardFlags(gEmitter.billboardMode);
+    if (flags == BILLBOARD_NONE)
     {
         return GPU_PARTICLE_KIND_MESH;
     }
 
-    // Ribbon
-    if (type == GPU_PARTICLE_TYPE_BULLETTRACER ||
-        type == GPU_PARTICLE_TYPE_BOSS_RUSH_TRAIL)
-    {
-        return GPU_PARTICLE_KIND_RIBBON;
-    }
-
-    return GPU_PARTICLE_KIND_SPRITE;
+    // C++側で Pack された kind を最優先（Sprite/Ribbon/Beam など）
+    // kind = 0..3 を想定
+    uint kindFromCB = GPUParticle_GetKind(gEmitter.billboardMode);
+    return kindFromCB;
 }
 
 void FinalizeParticle(inout Particle p, uint kind)
@@ -65,7 +62,8 @@ void FinalizeParticle(inout Particle p, uint kind)
     p.currentTime = 0.0f;
     p.type = gEmitter.type;
 
-    // CB側のbillboardModeは「低bit=フラグ」として使う想定
+   // gEmitter.billboardMode は C++ 側で kind+flags を Pack 済み
+    // ここでは flags（下位16bit）だけ取り出す
     uint bbFlags = GPUParticle_GetBillboardFlags(gEmitter.billboardMode);
 
     // Ribbonのときは「速度方向に伸ばす」フラグを追加
@@ -599,7 +597,7 @@ void main(uint3 DTid : SV_DispatchThreadID)
     if (gEmitter.emit == 0 || gEmitter.count == 0)
         return;
 
-    uint kind = DecideRenderKind(gEmitter.type);
+    uint kind = DecideRenderKind();
 
     for (uint i = 0; i < gEmitter.count; ++i)
     {

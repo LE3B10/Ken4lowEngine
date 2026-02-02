@@ -1,6 +1,6 @@
 #include "GpuParticleRenderer.h"
 #include "DirectXCommon.h"
-#include "GpuParticlePipeline.h"
+#include "GpuParticleSpritePipeline.h"
 #include "GpuParticleBuffers.h"
 #include "SRVManager.h"
 #include <TextureManager.h>
@@ -8,7 +8,7 @@
 /// -------------------------------------------------------------
 ///				　　　	初期化処理
 /// -------------------------------------------------------------
-void GpuParticleRenderer::Initialize(GpuParticlePipeline* pipeline, GpuParticleBuffers* buffers)
+void GpuParticleRenderer::Initialize(GpuParticleSpritePipeline* pipeline, GpuParticleBuffers* buffers)
 {
 	TextureManager::GetInstance()->LoadTexture(textureFilePath_);
 

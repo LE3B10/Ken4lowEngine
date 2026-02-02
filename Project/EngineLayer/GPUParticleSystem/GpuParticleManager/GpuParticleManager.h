@@ -1,13 +1,18 @@
 #pragma once
-#include "GpuParticlePipeline.h"
+#include "GpuParticleSpritePipeline.h"
+#include "GpuParticleComputePipeline.h"
 #include "GpuParticleBuffers.h"
 #include "GpuParticleRenderer.h"
 #include "GpuParticleEmitter.h"
+
+#include "GpuParticleMeshPipeline.h"
+#include "GpuParticleMeshAsset.h"
 
 #include "GpuParticleEmitterData.h"
 
 #include <unordered_map>
 #include <memory>
+#include <ModelData.h>
 
 /// ---------- 前方宣言 ---------- ///
 class DirectXCommon;
@@ -65,6 +70,36 @@ public: /// ---------- メンバ関数 ---------- ///
 
 	///
 	void DrawImGui();
+
+public: /// ---------- メッシュパーティクル関連 ---------- ///
+	
+	/// <summary>
+	/// meshId をキーに MeshParticleAsset を登録します。
+	/// overwrite=true なら既存を上書きします。
+	/// </summary>
+	bool RegisterMeshAsset(uint32_t meshId, MeshParticleAsset asset, bool overwrite = true);
+
+	/// <summary>
+	/// 登録済みメッシュ資産を取得します。無ければ nullptr。
+	/// </summary>
+	const MeshParticleAsset* FindMeshAsset(uint32_t meshId) const;
+
+	/// <summary>
+	/// AssimpLoader でモデルを読み込み、subMesh ごとに
+	/// (baseMeshId + i) で MeshParticleAsset を生成・登録します。
+	/// modelFilePath は AssimpLoader と同じ指定（例："Debris/Debris.gltf"）
+	/// </summary>
+	bool LoadMeshAssetsFromAssimp(uint32_t baseMeshId, const std::string& modelFilePath, bool loadTextures = true);
+
+	/// <summary>
+	/// Mesh資産を全削除
+	/// </summary>
+	void ClearMeshAssets();
+
+	/// <summary>
+	/// デバッグ表示用：登録済みMesh資産テーブルを参照
+	/// </summary>
+	const std::unordered_map<uint32_t, MeshParticleAsset>& GetMeshAssets() const { return meshAssets_; }
 
 public: /// ---------- エミッター関連 ---------- ///
 
@@ -131,14 +166,18 @@ private: /// ---------- ディスパッチ関数 ---------- ///
 	/// </summary>
 	void DispatchUpdate();
 
+	// submesh から DefaultHeap VB/IB を作って MeshParticleAsset を組み立てる
+	MeshParticleAsset CreateMeshAssetFromSubMesh(const SubMesh& subMesh, bool loadTexture);
+
 private: /// ---------- メンバ変数 ---------- ///
 
 	Camera* camera_ = nullptr; // カメラのポインタ
 
 	bool isDebugCamera_ = false; // デバッグカメラ有効フラグ
 
-	// GPUパーティクルパイプライン
-	std::unique_ptr<GpuParticlePipeline> gpuParticlePipeline_;
+	// GPUパーティクルスプライトパイプライン
+	std::unique_ptr<GpuParticleSpritePipeline> spritePipeline_;
+	std::unique_ptr<GpuParticleComputePipeline> computePipeline_;
 
 	// GPUパーティクルバッファ
 	std::unique_ptr<GpuParticleBuffers> gpuParticleBuffers_;
@@ -148,5 +187,12 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	// エミッターコンテナ
 	std::unordered_map<std::string, std::unique_ptr<GpuParticleEmitter>> emitters_;
+
+private: /// ---------- メッシュデータ ---------- ///
+
+	std::unique_ptr<GpuParticleMeshPipeline> meshPipeline_;
+
+	// meshId -> MeshParticleAsset
+	std::unordered_map<uint32_t, MeshParticleAsset> meshAssets_;
 };
 

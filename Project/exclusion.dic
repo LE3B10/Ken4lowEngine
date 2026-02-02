@@ -122,3 +122,8 @@ vsync
 hlsl
 Descs
 numthreads
+perframe
+Unmap
+rast
+Assimp
+submesh

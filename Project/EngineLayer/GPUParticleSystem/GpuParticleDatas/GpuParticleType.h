@@ -1,6 +1,25 @@
 #pragma once
 #include <cstdint>
 
+enum class GpuParticleKind : uint32_t
+{
+	Sprite = 0,
+	Mesh = 1,
+	Ribbon = 2,
+	Beam = 3,
+};
+
+// --- pack（HLSLと一致）---
+static constexpr uint32_t GPU_PARTICLE_KIND_SHIFT = 16;
+static constexpr uint32_t GPU_PARTICLE_KIND_MASK = 0x00FF0000u;
+static constexpr uint32_t GPU_PARTICLE_BB_MASK = 0x0000FFFFu;
+
+static constexpr uint32_t PackBillboardMode(GpuParticleKind kind, uint32_t bbFlags)
+{
+	return ((static_cast<uint32_t>(kind) << GPU_PARTICLE_KIND_SHIFT) & GPU_PARTICLE_KIND_MASK) |
+		(bbFlags & GPU_PARTICLE_BB_MASK);
+}
+
 /// -------------------------------------------------------------
 ///				GPUパーティクルの種類を管理する列挙型
 /// -------------------------------------------------------------
@@ -29,3 +48,22 @@ enum class GpuParticleType : uint32_t
 	Boss_Debris_Dust = 20,	// ボス破片埃
 	Heal_Effect = 21,       // 回復エフェクト
 };
+
+enum class GpuRibbonType : uint32_t
+{
+	BulletTracer = 0,
+	BossRushTrail = 1,
+	BossSpinSlash = 2,
+};
+
+// RibbonType → 既存の SpawnByType 用 type にマップ（当面はこれでOK）
+static constexpr GpuParticleType ToGpuParticleType(GpuRibbonType t)
+{
+	switch (t)
+	{
+	case GpuRibbonType::BulletTracer:  return GpuParticleType::BulletTracer;
+	case GpuRibbonType::BossRushTrail: return GpuParticleType::Boss_Rush_Trail;
+	case GpuRibbonType::BossSpinSlash: return GpuParticleType::Boss_Spin_Slash;
+	default:                           return GpuParticleType::BulletTracer;
+	}
+}

@@ -14,19 +14,30 @@ class GpuParticleEmitter
 {
 public: /// ---------- 構造体 ---------- ///
 
-	// エミッター情報構造体
+	/// エミッター情報構造体
 	struct EmitterInfo
 	{
-		std::string textureFilePath; // テクスチャファイルパス
-		float radius = 0.0f;          // 発生範囲
-		uint32_t loopCount = 0;       // ループ発生時に1回で出す数
-		float loopFrequency = 0.0f;   // ループ発生周期(秒)。0ならループしない
+		std::string textureFilePath;
+		float radius = 0.0f;
 
-		// 描画パス用フィルタ
-		uint32_t drawType = 0; // 描画タイプ
+		// ループ発生（定期発生）
+		uint32_t loopCount = 0;
+		float loopFrequency = 0.0f;
 
-		GpuParticleType type = GpuParticleType::Default; // パーティクルの種類
-		BillboardMode billboardMode = BillboardMode::Camera;
+		// 描画ID（0ならtypeを使う）
+		uint32_t drawType = 0;
+
+		// ★差別化の核：モード（Sprite / Ribbon など）
+		GpuParticleKind kind = GpuParticleKind::Sprite;
+
+		// ★Sprite用：21タイプ（DefaultはUIに出さない運用）
+		GpuParticleType spriteType = GpuParticleType::MuzzleFlash;
+
+		// ★Ribbon用：リボンタイプ（UIで別枠にする）
+		GpuRibbonType ribbonType = GpuRibbonType::BulletTracer;
+
+		// ★下位16bitのフラグ（Camera/YAxis など）
+		BillboardMode billboardFlags = BillboardMode::Camera;
 	};
 
 public: /// ---------- メンバ関数 ---------- ///
@@ -87,7 +98,8 @@ public: /// ---------- ゲッター ---------- ///
 	// 描画に使うID（0なら type を返す）
 	uint32_t GetDrawType() const
 	{
-		return (info_.drawType != 0) ? info_.drawType : static_cast<uint32_t>(info_.type);
+		const uint32_t effectiveType = GetEffectiveType();
+		return (info_.drawType != 0) ? info_.drawType : effectiveType;
 	}
 
 	// ImGui編集用
@@ -95,6 +107,33 @@ public: /// ---------- ゲッター ---------- ///
 
 	// 位置もUIで見たい
 	const Vector3 GetPosition() const { return position_; }
+
+private: /// ---------- プライベート関数 ---------- ///
+
+	static constexpr uint32_t ToU32(BillboardMode m) { return static_cast<uint32_t>(m); }
+
+	/// kind に応じて GPUへ渡す type を決める
+	uint32_t GetEffectiveType() const
+	{
+		if (info_.kind == GpuParticleKind::Sprite)
+		{
+			return static_cast<uint32_t>(info_.spriteType);
+		}
+		if (info_.kind == GpuParticleKind::Ribbon)
+		{
+			return static_cast<uint32_t>(ToGpuParticleType(info_.ribbonType));
+		}
+
+		// Mesh/Beam未実装時の保険：とりあえずSpriteTypeを流す（必要ならここを拡張）
+		return static_cast<uint32_t>(info_.spriteType);
+	}
+
+	/// kind + flags をパックした billboardMode を返す
+	uint32_t GetPackedBillboardMode() const
+	{
+		const uint32_t flags = ToU32(info_.billboardFlags);
+		return PackBillboardMode(info_.kind, flags);
+	}
 
 private: /// ---------- メンバ変数 ---------- ///
 
