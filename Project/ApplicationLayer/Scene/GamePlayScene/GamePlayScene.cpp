@@ -217,14 +217,21 @@ void GamePlayScene::Draw2DSprites()
 	// UI用の共通描画設定
 	SpriteManager::GetInstance()->SetRenderSetting_UI();
 
-	weaponSlot_->Draw();
+	if (state_ != State::GameOver)
+	{
+		weaponSlot_->Draw();
 
-	if (reloadCircle_) reloadCircle_->Draw();
+		if (reloadCircle_) reloadCircle_->Draw();
+	}
+
 
 	// ステートクラスに丸投げ
 	if (currentState_) { currentState_->Draw2DSprites(this); }
 
-	hudManager_->Draw();
+	if (state_ != State::GameOver)
+	{
+		hudManager_->Draw();
+	}
 
 #pragma endregion
 }

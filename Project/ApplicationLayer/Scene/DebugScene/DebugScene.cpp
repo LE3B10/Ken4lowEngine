@@ -428,46 +428,46 @@ void DebugScene::DrawImGui()
 
 	fadeManager_->DrawImGui();
 
-	ImGui::Begin("Debug Crack");
+	//ImGui::Begin("Debug Crack");
 
-	ImGui::Checkbox("Crack Enable", &crackEnable_);
-	ImGui::SliderFloat("Crack Progress", &crackProgress_, 0.0f, 1.0f);
-	ImGui::SliderFloat("Crack Scale", &crackScale_, 1.0f, 60.0f);
-	ImGui::SliderFloat("Crack Thickness", &crackThickness_, 0.001f, 0.08f);
-	ImGui::SliderFloat("Crack Intensity", &crackIntensity_, 0.0f, 2.0f);
-	ImGui::SliderFloat2("HitUV", &hitUV_.x, 0.0f, 1.0f);
+	//ImGui::Checkbox("Crack Enable", &crackEnable_);
+	//ImGui::SliderFloat("Crack Progress", &crackProgress_, 0.0f, 1.0f);
+	//ImGui::SliderFloat("Crack Scale", &crackScale_, 1.0f, 60.0f);
+	//ImGui::SliderFloat("Crack Thickness", &crackThickness_, 0.001f, 0.08f);
+	//ImGui::SliderFloat("Crack Intensity", &crackIntensity_, 0.0f, 2.0f);
+	//ImGui::SliderFloat2("HitUV", &hitUV_.x, 0.0f, 1.0f);
 
-	// “Updateに渡ってる値” を見える化（効いてるか即わかる）
-	ImGui::Separator();
-	ImGui::Text("Applied (member) progress = %.3f", crackProgress_);
+	//// “Updateに渡ってる値” を見える化（効いてるか即わかる）
+	//ImGui::Separator();
+	//ImGui::Text("Applied (member) progress = %.3f", crackProgress_);
 
-	ImGui::SeparatorText("Crack Atlas (Minecraft-like)");
+	//ImGui::SeparatorText("Crack Atlas (Minecraft-like)");
 
-	ImGui::Checkbox("Atlas Auto", &atlasAuto_);
-	ImGui::SliderFloat("Atlas FPS", &atlasFps_, 1.0f, 30.0f);
-	ImGui::Checkbox("Hide Stage0", &atlasHideAtZero_);
+	//ImGui::Checkbox("Atlas Auto", &atlasAuto_);
+	//ImGui::SliderFloat("Atlas FPS", &atlasFps_, 1.0f, 30.0f);
+	//ImGui::Checkbox("Hide Stage0", &atlasHideAtZero_);
 
-	if (!atlasAuto_)
-	{
-		ImGui::SliderFloat("Break Progress (Atlas)", &breakProgress_, 0.0f, 1.0f);
-	}
+	//if (!atlasAuto_)
+	//{
+	//	ImGui::SliderFloat("Break Progress (Atlas)", &breakProgress_, 0.0f, 1.0f);
+	//}
 
-	ImGui::SliderFloat2("Frame Size(px)", &crackFrameSizePx_.x, 1.0f, 512.0f);
+	//ImGui::SliderFloat2("Frame Size(px)", &crackFrameSizePx_.x, 1.0f, 512.0f);
 
-	ImGui::SeparatorText("Debris (Sprite)");
-	ImGui::Checkbox("Debris Enable", &debrisEnable_);
-	ImGui::SliderInt("Burst Base", &debrisBurstBase_, 0, 60);
+	//ImGui::SeparatorText("Debris (Sprite)");
+	//ImGui::Checkbox("Debris Enable", &debrisEnable_);
+	//ImGui::SliderInt("Burst Base", &debrisBurstBase_, 0, 60);
 
-	auto& dp = debris_->GetParams();
-	ImGui::SliderFloat("Gravity", &dp.gravity, 0.0f, 6000.0f);
-	ImGui::SliderFloat("Bounce", &dp.bounce, 0.0f, 0.9f);
-	ImGui::SliderFloat("Min Life", &dp.minLife, 0.05f, 2.0f);
-	ImGui::SliderFloat("Max Life", &dp.maxLife, 0.05f, 2.0f);
-	ImGui::SliderFloat("Min Speed", &dp.minSpeed, 0.0f, 1200.0f);
-	ImGui::SliderFloat("Max Speed", &dp.maxSpeed, 0.0f, 1800.0f);
-	ImGui::SliderFloat("GroundY", &dp.groundY, 0.0f, 1200.0f);
+	//auto& dp = debris_->GetParams();
+	//ImGui::SliderFloat("Gravity", &dp.gravity, 0.0f, 6000.0f);
+	//ImGui::SliderFloat("Bounce", &dp.bounce, 0.0f, 0.9f);
+	//ImGui::SliderFloat("Min Life", &dp.minLife, 0.05f, 2.0f);
+	//ImGui::SliderFloat("Max Life", &dp.maxLife, 0.05f, 2.0f);
+	//ImGui::SliderFloat("Min Speed", &dp.minSpeed, 0.0f, 1200.0f);
+	//ImGui::SliderFloat("Max Speed", &dp.maxSpeed, 0.0f, 1800.0f);
+	//ImGui::SliderFloat("GroundY", &dp.groundY, 0.0f, 1200.0f);
 
-	ImGui::End();
+	//ImGui::End();
 
 	/// ---------- GPUパーティクルデバッグ ---------- ///
 	GpuParticleManager::GetInstance()->DrawImGui();

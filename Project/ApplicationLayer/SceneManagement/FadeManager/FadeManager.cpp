@@ -62,6 +62,7 @@ void FadeManager::Initialize()
 	screenH_ = dx->GetClientHeight();
 
 	RebuildTiles(screenW_, screenH_);
+	InitDustPool();
 
 #ifdef USE_IMGUI
 	strncpy_s(tileTexBuf_, sizeof(tileTexBuf_), tileTexturePath_.c_str(), _TRUNCATE);
@@ -233,6 +234,9 @@ void FadeManager::RebuildTiles(int screenW, int screenH)
 // ------------------------------
 void FadeManager::StartCover()
 {
+	// 前の演出の粉塵を消す
+	ResetDust();
+
 	// 画面サイズが変わってたら作り直す
 	auto* dx = DirectXCommon::GetInstance();
 	int w = dx->GetClientWidth();
@@ -268,6 +272,8 @@ void FadeManager::StartCover()
 		t.crack->Update();
 	}
 
+	ResetDust();
+
 	state_ = State::TileCover;
 	stateTime_ = 0.0f;
 	crackDone_ = false;
@@ -293,6 +299,38 @@ void FadeManager::StartCrack()
 		t.crack->SetUVRect({ 0.0f, 0.0f }, crackFrameSizePx_);
 		t.crack->SetColor({ 1,1,1,0 });
 		t.crack->Update();
+	}
+
+	// 粉塵もここでリセット（ひび割れ開始と同時に出す）
+	ResetDust();
+	dustSpawnAcc_ = 0.0f;
+
+	// 開始バースト：dt が跳ねた場合でも「粉が出た」と分かるように、最初に少しだけ撒く
+	{
+		const int kBurst = 48;
+		const Vector2 center = { screenW_ * 0.5f, screenH_ * 0.5f };
+
+		for (int i = 0; i < kBurst; ++i)
+		{
+			const Tile& tile = tiles_[(size_t)(RandRange(rng_, 0.0f, (float)tiles_.size() - 0.0001f))];
+
+			Vector2 p = tile.pos;
+			p.x += RandRange(rng_, -tileSize_.x * 0.45f, tileSize_.x * 0.45f);
+			p.y += RandRange(rng_, -tileSize_.y * 0.45f, tileSize_.y * 0.45f);
+
+			Vector2 dir = { p.x - center.x, p.y - center.y };
+			float len = std::sqrt(dir.x * dir.x + dir.y * dir.y);
+			if (len < 1e-4f) { dir = { 1,0 }; len = 1.0f; }
+			dir.x /= len;
+			dir.y /= len;
+
+			float kick = RandRange(rng_, dustKickMin_, dustKickMax_);
+			Vector2 v{};
+			v.x = dir.x * kick + RandRange(rng_, -dustJitter_, dustJitter_);
+			v.y = dir.y * kick - dustUpBias_ + RandRange(rng_, -dustJitter_, dustJitter_);
+
+			EmitDust(p, v);
+		}
 	}
 
 	state_ = State::Crack;
@@ -364,6 +402,10 @@ void FadeManager::StartDrop()
 		t.crack->Update();
 	}
 
+	// 粉塵は落下開始直後もしばらく残した方が「採掘中」の雰囲気が出るので残す。
+	// （消したい場合は次の1行を有効化）
+	// ResetDust();
+
 	state_ = State::TileUncover; // Drop状態として使う
 	stateTime_ = 0.0f;
 	dropDone_ = false;
@@ -379,6 +421,11 @@ void FadeManager::Update(float dt)
 	{
 		return;
 	}
+
+	// 重い初期化などで dt が跳ねると、Crack/粉塵が一瞬で終わって「出てない」ように見えるので
+// フェード演出だけ dt をクランプする（ゲーム全体の dt は触らない）
+	const float kFadeDtMax = 1.0f / 30.0f; // 30fps 相当
+	if (dt > kFadeDtMax) { dt = kFadeDtMax; }
 
 	// 画面サイズの変化に追従（ウィンドウリサイズ対応）
 	{
@@ -422,6 +469,9 @@ void FadeManager::Update(float dt)
 	default:
 		break;
 	}
+
+	// 粉塵の物理更新（Crack中に生成され、状態が変わっても消えるまで更新したい場合はここで回す）
+	UpdateDust(dt);
 }
 
 // ------------------------------
@@ -483,7 +533,9 @@ void FadeManager::UpdateCover(float dt)
 // ------------------------------
 void FadeManager::UpdateCrack(float dt)
 {
-	(void)dt;
+	// ひび割れ中に粉塵を出す
+	std::vector<int> cracking;
+	cracking.reserve(tiles_.size());
 
 	bool allDone = true;
 
@@ -518,9 +570,52 @@ void FadeManager::UpdateCrack(float dt)
 		t.crack->SetColor({ 1,1,1,a });
 		t.crack->Update();
 
+		// 「今まさに割れているタイル」を候補として集める（uが0..1の間）
+		if (u > 0.001f && u < 0.999f)
+		{
+			int idx = (int)(&t - tiles_.data());
+			cracking.push_back(idx);
+		}
+
 		if (u < 0.999f)
 		{
 			allDone = false;
+		}
+	}
+
+	// ----- 粉塵エミット（生成数をレート制御して、タイル数が多くても破綻しないようにする） -----
+	if (!cracking.empty())
+	{
+		// 生成数 = rate * dt の積算
+		dustSpawnAcc_ += dt * dustRate_;
+		int spawn = (int)dustSpawnAcc_;
+		dustSpawnAcc_ -= (float)spawn;
+
+		const Vector2 center = { screenW_ * 0.5f, screenH_ * 0.5f };
+
+		for (int i = 0; i < spawn; ++i)
+		{
+			int pick = cracking[(size_t)(RandRange(rng_, 0.0f, (float)cracking.size() - 0.0001f))];
+			const Tile& tile = tiles_[(size_t)pick];
+
+			// タイル内のランダム位置から出す（中心±45%）
+			Vector2 p = tile.pos;
+			p.x += RandRange(rng_, -tileSize_.x * 0.45f, tileSize_.x * 0.45f);
+			p.y += RandRange(rng_, -tileSize_.y * 0.45f, tileSize_.y * 0.45f);
+
+			// 画面中心→外側に飛ぶ成分 + 上方向（-Y）
+			Vector2 dir = { p.x - center.x, p.y - center.y };
+			float len = std::sqrt(dir.x * dir.x + dir.y * dir.y);
+			if (len < 1e-4f) { dir = { 1,0 }; len = 1.0f; }
+			dir.x /= len;
+			dir.y /= len;
+
+			float kick = RandRange(rng_, dustKickMin_, dustKickMax_);
+			Vector2 v{};
+			v.x = dir.x * kick + RandRange(rng_, -dustJitter_, dustJitter_);
+			v.y = dir.y * kick - dustUpBias_ + RandRange(rng_, -dustJitter_, dustJitter_);
+
+			EmitDust(p, v);
 		}
 	}
 
@@ -647,6 +742,13 @@ void FadeManager::Draw2DSprites()
 		if (t.dead) { continue; }
 		t.crack->Draw();
 	}
+
+	// dust（粉塵）
+	for (auto& p : dust_)
+	{
+		if (!p.active) { continue; }
+		p.sprite->Draw();
+	}
 }
 
 // ------------------------------
@@ -658,15 +760,15 @@ void FadeManager::DrawImGui()
 	ImGui::Begin("FadeManager - Tile Fade");
 
 	const char* st =
-		(state_ == State::None) ? "None" :
-		(state_ == State::TileCover) ? "TileCover" :
-		(state_ == State::Hold) ? "Hold" :
-		(state_ == State::Crack) ? "Crack" :
-		(state_ == State::TileUncover) ? "TileUncover" : "Unknown";
+		(state_ == State::None) ? "演出していない待機状態" :
+		(state_ == State::TileCover) ? "タイルが配置されて画面を覆う段階" :
+		(state_ == State::Hold) ? "待機" :
+		(state_ == State::Crack) ? "ひび割れアニメーション中" :
+		(state_ == State::TileUncover) ? "タイルを解除して画面が戻る段階" : "Unknown";
 
 	ImGui::Text("State: %s", st);
-	ImGui::Text("CrackDone: %s", crackDone_ ? "true" : "false");
-	ImGui::Text("DropDone : %s", dropDone_ ? "true" : "false");
+	ImGui::Text("ひび割れ: %s", crackDone_ ? "完了" : "途中");
+	ImGui::Text("落下演出: %s", dropDone_ ? "落下完了" : "落下中");
 
 	ImGui::Separator();
 
@@ -698,6 +800,21 @@ void FadeManager::DrawImGui()
 	ImGui::SeparatorText("Crack Params");
 	ImGui::SliderFloat("Crack Tile Anim Time", &crackTileAnimTime_, 0.05f, 2.0f);
 	ImGui::SliderFloat("Crack Stagger Total", &crackStaggerTotal_, 0.0f, 1.5f);
+
+	ImGui::SeparatorText("Dust (CPU Sprite Particle)");
+	ImGui::SliderFloat("Dust Rate", &dustRate_, 0.0f, 1200.0f);
+	ImGui::SliderFloat("Dust Gravity", &dustGravity_, 0.0f, 8000.0f);
+	ImGui::SliderFloat("Dust Damping", &dustDamping_, 0.60f, 0.99f);
+	ImGui::SliderFloat("Dust Life Min", &dustLifeMin_, 0.05f, 2.0f);
+	ImGui::SliderFloat("Dust Life Max", &dustLifeMax_, 0.05f, 2.0f);
+	ImGui::SliderFloat("Dust Size Min", &dustSizeMin_, 1.0f, 32.0f);
+	ImGui::SliderFloat("Dust Size Max", &dustSizeMax_, 1.0f, 64.0f);
+	ImGui::SliderFloat("Dust Alpha Min", &dustAlphaMin_, 0.0f, 1.0f);
+	ImGui::SliderFloat("Dust Alpha Max", &dustAlphaMax_, 0.0f, 1.0f);
+	ImGui::SliderFloat("Dust Kick Min", &dustKickMin_, 0.0f, 1200.0f);
+	ImGui::SliderFloat("Dust Kick Max", &dustKickMax_, 0.0f, 1800.0f);
+	ImGui::SliderFloat("Dust Up Bias", &dustUpBias_, 0.0f, 1200.0f);
+	ImGui::SliderFloat("Dust Jitter", &dustJitter_, 0.0f, 800.0f);
 
 	ImGui::SeparatorText("Drop Params");
 	ImGui::SliderFloat("Drop Start Delay", &dropStartDelay_, 0.0f, 1.0f);
@@ -754,8 +871,125 @@ void FadeManager::DrawImGui()
 void FadeManager::Finalize()
 {
 	tiles_.clear();
+	dust_.clear();
 	state_ = State::None;
 	stateTime_ = 0.0f;
 	crackDone_ = false;
 	dropDone_ = false;
+}
+
+// ------------------------------
+// 粉塵（CPUスプライト・パーティクル）
+// ------------------------------
+void FadeManager::InitDustPool()
+{
+	// 既に作ってあれば何もしない（ウィンドウリサイズなどでInitializeが呼ばれ直す可能性に備える）
+	if (!dust_.empty()) { return; }
+
+	dust_.resize((size_t)dustMax_);
+	for (auto& p : dust_)
+	{
+		p.sprite = std::make_unique<Sprite>();
+		p.sprite->Initialize(dustTexturePath_);
+		p.sprite->SetAnchorPoint({ 0.5f, 0.5f });
+		p.sprite->SetColor({ 1,1,1,0 });
+		p.sprite->Update();
+		p.active = false;
+	}
+
+	dustCursor_ = 0;
+	dustSpawnAcc_ = 0.0f;
+}
+
+void FadeManager::ResetDust()
+{
+	for (auto& p : dust_)
+	{
+		p.active = false;
+		if (p.sprite)
+		{
+			p.sprite->SetColor({ 1,1,1,0 });
+			p.sprite->Update();
+		}
+	}
+	dustCursor_ = 0;
+	dustSpawnAcc_ = 0.0f;
+}
+
+void FadeManager::EmitDust(const Vector2& origin, const Vector2& baseVel)
+{
+	if (dust_.empty()) { return; }
+
+	DustParticle& p = dust_[(size_t)dustCursor_];
+	dustCursor_ = (dustCursor_ + 1) % (int)dust_.size();
+
+	p.active = true;
+	p.pos = origin;
+	p.vel = baseVel;
+	p.rot = RandRange(rng_, -3.14159f, 3.14159f);
+	p.rotVel = RandRange(rng_, -10.0f, 10.0f);
+	p.age = 0.0f;
+	p.life = RandRange(rng_, dustLifeMin_, dustLifeMax_);
+	p.size0 = RandRange(rng_, dustSizeMin_, dustSizeMax_);
+	p.size1 = std::max(1.0f, p.size0 * RandRange(rng_, 0.25f, 0.55f));
+	p.alpha0 = RandRange(rng_, dustAlphaMin_, dustAlphaMax_);
+
+	// 見た目：石粉っぽく少しグレー
+	Vector4 col{ 0.85f, 0.85f, 0.85f, p.alpha0 };
+
+	p.sprite->SetPosition(p.pos);
+	p.sprite->SetRotation(p.rot);
+	p.sprite->SetSize({ p.size0, p.size0 });
+	p.sprite->SetColor(col);
+	p.sprite->Update();
+}
+
+void FadeManager::UpdateDust(float dt)
+{
+	if (dust_.empty()) { return; }
+
+	// 速度減衰をdtに合わせて（60fps基準）
+	float damp = std::pow(dustDamping_, dt * 60.0f);
+
+	for (auto& p : dust_)
+	{
+		if (!p.active) { continue; }
+
+		p.age += dt;
+		if (p.age >= p.life)
+		{
+			p.active = false;
+			p.sprite->SetColor({ 1,1,1,0 });
+			p.sprite->Update();
+			continue;
+		}
+
+		// 物理（+Yが下）
+		p.vel.y += dustGravity_ * dt;
+		p.vel.x *= damp;
+		p.vel.y *= damp;
+		p.pos.x += p.vel.x * dt;
+		p.pos.y += p.vel.y * dt;
+		p.rot += p.rotVel * dt;
+
+		float t = Clamp01(p.age / std::max(0.0001f, p.life));
+
+		// サイズは縮ませる（粉が散って小さくなる感じ）
+		float s = Lerp(p.size0, p.size1, t);
+
+		// 後半でフェードアウト
+		float fadeStart = 0.55f;
+		float a = p.alpha0;
+		if (t >= fadeStart)
+		{
+			float u = (t - fadeStart) / std::max(0.0001f, 1.0f - fadeStart);
+			a = p.alpha0 * (1.0f - Clamp01(u));
+		}
+
+		p.sprite->SetPosition(p.pos);
+		p.sprite->SetRotation(p.rot);
+		p.sprite->SetSize({ s, s });
+		p.sprite->SetColor({ 0.85f, 0.85f, 0.85f, a });
+		p.sprite->Update();
+	}
 }

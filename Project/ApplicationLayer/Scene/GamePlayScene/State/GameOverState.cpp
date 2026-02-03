@@ -3,6 +3,8 @@
 #include "GameLoadState.h" // 遷移先ステート用(リトライ)
 #include "SceneManager.h"
 
+#include <DirectXCommon.h>
+
 #include <Input.h>
 
 void GameOverState::Enter(GamePlayScene* scene)
@@ -13,6 +15,60 @@ void GameOverState::Enter(GamePlayScene* scene)
 
 	Input::GetInstance()->SetLockCursor(false);
 	ShowCursor(true);
+
+	// --------- GameOver UI を中央にレイアウト（見えやすくする） ---------
+	if (auto* dx = scene->GetDirectXCommon())
+	{
+		const float screenW = static_cast<float>(dx->GetSwapChainDesc().Width);
+		const float screenH = static_cast<float>(dx->GetSwapChainDesc().Height);
+
+		// 半透明パネル（既存の clearPanelSprite を流用）
+		auto& panel = scene->GetClearPanelSprite();
+		if (panel)
+		{
+			panel->SetAnchorPoint({ 0.5f, 0.5f });
+			panel->SetPosition({ screenW * 0.5f, screenH * 0.52f });
+			panel->SetSize({ screenW * 0.60f, screenH * 0.40f });
+			panel->SetColor({ 0.0f, 0.0f, 0.0f, 0.65f });
+		}
+
+		// ボタン配置（中央・縦並び）
+		const float btnW = 360.0f;
+		const float btnH = 86.0f;
+		const float gap = 18.0f;
+		const float centerX = screenW * 0.5f;
+		const float panelY = screenH * 0.52f;
+		const float panelH = screenH * 0.40f;
+		const float topY = panelY - panelH * 0.5f;
+
+		auto& retrySprite = scene->GetRetryButtonSprite();
+		auto& retireSprite = scene->GetRetireButtonSprite();
+		auto& retryRect = scene->GetRetryRect();
+		auto& retireRect = scene->GetRetireRect();
+
+		const float retryY = topY + panelH * 0.55f;
+		const float retireY = retryY + btnH + gap;
+
+		if (retrySprite)
+		{
+			retrySprite->SetAnchorPoint({ 0.5f, 0.5f });
+			retrySprite->SetSize({ btnW, btnH });
+			retrySprite->SetPosition({ centerX, retryY });
+			retrySprite->SetColor({ 0.2f, 1.0f, 0.2f, 0.85f });
+
+			retryRect = { centerX - btnW * 0.5f, retryY - btnH * 0.5f, btnW, btnH };
+		}
+
+		if (retireSprite)
+		{
+			retireSprite->SetAnchorPoint({ 0.5f, 0.5f });
+			retireSprite->SetSize({ btnW, btnH });
+			retireSprite->SetPosition({ centerX, retireY });
+			retireSprite->SetColor({ 1.0f, 0.2f, 0.2f, 0.85f });
+
+			retireRect = { centerX - btnW * 0.5f, retireY - btnH * 0.5f, btnW, btnH };
+		}
+	}
 }
 
 void GameOverState::Update(GamePlayScene* scene, float deltaTime)
@@ -117,8 +173,11 @@ void GameOverState::Draw2DSprites(GamePlayScene* scene)
 	// シーンが有効か確認
 	if (!scene) return;
 
+	auto& panelSprite_ = scene->GetClearPanelSprite();
 	auto& retireButtonSprite_ = scene->GetRetireButtonSprite();
 	auto& retryButtonSprite_ = scene->GetRetryButtonSprite();
+
+	if (panelSprite_) panelSprite_->Draw();
 
 	if (retireButtonSprite_) retireButtonSprite_->Draw();
 	if (retryButtonSprite_)  retryButtonSprite_->Draw();
@@ -126,6 +185,10 @@ void GameOverState::Draw2DSprites(GamePlayScene* scene)
 
 void GameOverState::Exit(GamePlayScene* scene)
 {
-	// 特に何もしない
-	(void)scene;
+	// パネルを元に戻す（次のステートに影響しないように）
+	if (scene)
+	{
+		auto& panel = scene->GetClearPanelSprite();
+		if (panel) { panel->SetColor({ 0.0f, 0.0f, 0.0f, 0.0f }); }
+	}
 }

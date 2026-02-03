@@ -70,6 +70,7 @@ private: /// ---------- メンバ変数 ---------- ///
 	std::unique_ptr<FadeManager> fadeManager_;
 	bool isTransitioning_ = false; // フェード遷移中
 	bool sceneSwapped_ = false; // 既にシーン差し替え済みか
+	bool pendingCrack_ = false; // 差し替え直後、次フレームでCrackを開始
 
 	bool hasQueuedChange_ = false;
 	std::string queuedSceneName_;

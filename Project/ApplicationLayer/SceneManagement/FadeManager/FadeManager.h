@@ -57,6 +57,27 @@ private:
 		float dropTime = 0.0f;
 	};
 
+	// ------------------------------
+	// ひび割れ中の粉塵（スプライト・CPU更新）
+	// ※GPUパーティクルは使わない
+	// ------------------------------
+	struct DustParticle
+	{
+		std::unique_ptr<Sprite> sprite;
+		bool active = false;
+
+		Vector2 pos{};
+		Vector2 vel{};
+		float rot = 0.0f;
+		float rotVel = 0.0f;
+
+		float age = 0.0f;
+		float life = 0.6f;
+		float size0 = 6.0f;
+		float size1 = 2.0f;
+		float alpha0 = 0.55f;
+	};
+
 public: /// ---------- メンバ関数 ---------- ///
 
 	// 初期化
@@ -110,6 +131,14 @@ private:
 	// ドロップ更新
 	void UpdateDrop(float dt);
 
+	// ------------------------------
+	// 粉塵（ひび割れ中）
+	// ------------------------------
+	void InitDustPool();
+	void ResetDust();
+	void EmitDust(const Vector2& origin, const Vector2& baseVel);
+	void UpdateDust(float dt);
+
 	// 補助
 	static float Clamp01(float v);
 	static float Lerp(float a, float b, float t);
@@ -136,7 +165,7 @@ private:
 	int tilesX_ = 0;
 	int tilesY_ = 0;
 
-	std::string tileTexturePath_ = "stone.png";
+	std::string tileTexturePath_ = "rock.png";
 
 	// ひび割れアトラス
 	std::string crackAtlasPath_ = "CrackAtlas.png";
@@ -149,8 +178,8 @@ private:
 	float coverSpawnYOffset_ = 520.0f;  // 出現開始Yオフセット（上から降ってくる）
 
 	// ひび割れ演出パラメータ
-	float crackTileAnimTime_ = 0.55f;   // 1タイルが stage0->9 になる時間
-	float crackStaggerTotal_ = 0.35f;   // ヒビ開始の遅延総量
+	float crackTileAnimTime_ = 1.5f;   // 1タイルが stage0->9 になる時間
+	float crackStaggerTotal_ = 0.5f;   // ヒビ開始の遅延総量
 
 	// ドロップ演出パラメータ
 	float dropStartDelay_ = 0.05f;     // ひび割れ完了後、落下を始めるまでの待ち
@@ -171,6 +200,28 @@ private:
 	// タイル群
 	std::vector<Tile> tiles_;
 	std::mt19937 rng_{ 20260202 };
+
+	// 粉塵（スプライト・パーティクル）
+	std::vector<DustParticle> dust_;
+	int dustCursor_ = 0;           // リングバッファ用
+	float dustSpawnAcc_ = 0.0f;    // 生成レート積算
+
+	// 粉塵設定（必要ならImGuiに出して調整してOK）
+	std::string dustTexturePath_ = "black.png"; // 小さい点/粉のテクスチャがあれば差し替え推奨（無ければ stone を流用）
+	int dustMax_ = 96;
+	float dustRate_ = 220.0f;      // 1秒あたり生成数（ひび割れ中）
+	float dustGravity_ = 2000.0f;  // +Yが下
+	float dustDamping_ = 0.88f;    // 60fps基準の減衰
+	float dustLifeMin_ = 0.35f;
+	float dustLifeMax_ = 0.75f;
+	float dustSizeMin_ = 32.0f;
+	float dustSizeMax_ = 64.0f;
+	float dustAlphaMin_ = 0.18f;
+	float dustAlphaMax_ = 0.55f;
+	float dustKickMin_ = 80.0f;
+	float dustKickMax_ = 360.0f;
+	float dustUpBias_ = 220.0f;    // 初速に「上方向」を足して採掘っぽく
+	float dustJitter_ = 140.0f;    // ばらつき
 
 #ifdef USE_IMGUI
 	// ImGui用の編集バッファ

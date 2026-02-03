@@ -5,6 +5,7 @@
 #include <SpriteManager.h>
 
 #include <cassert>
+#include <algorithm>
 
 /// -------------------------------------------------------------
 ///                     シングルトンインスタンス
@@ -25,22 +26,24 @@ void SceneManager::Initialize()
 
 	isTransitioning_ = false;
 	sceneSwapped_ = false;
+	pendingCrack_ = false;
 }
 
 void SceneManager::Update()
 {
-	float dt = DirectXCommon::GetInstance()->GetFPSCounter().GetDeltaTime();
+	float dtRaw = DirectXCommon::GetInstance()->GetFPSCounter().GetDeltaTime();
+	// シーン切替の重い処理でフレームが止まると dt が跳ねて演出が一瞬で終わるのでクランプする
+	float dtFade = std::min(dtRaw, 1.0f / 30.0f);
 
-	if (fadeManager_) fadeManager_->Update(dt);
+	if (fadeManager_) fadeManager_->Update(dtFade);
 
-	// 例：あなたが「覆ったら切替→Crack開始」をやっている前提
 	if (isTransitioning_)
 	{
 		if (!sceneSwapped_ && fadeManager_ && fadeManager_->IsFullyCovered() && nextScene_)
 		{
 			ApplyNextScene();
 			sceneSwapped_ = true;
-			fadeManager_->StartCrack();
+			pendingCrack_ = true;
 		}
 
 		// フェードが終わったら遷移終了
@@ -49,7 +52,7 @@ void SceneManager::Update()
 			isTransitioning_ = false;
 			sceneSwapped_ = false;
 
-			// ★ここが肝：フェード中に来た遷移要求を実行
+			// フェード中に来た遷移要求を実行
 			if (hasQueuedChange_)
 			{
 				std::string name = queuedSceneName_;
@@ -58,6 +61,14 @@ void SceneManager::Update()
 				ChangeScene(name); // ここで次のフェード開始
 			}
 		}
+	}
+
+
+	// 差し替え直後のフレームでCrackを開始（Initializeの重い処理直後のdt跳ねも抑えられる）
+	if (pendingCrack_ && fadeManager_ && fadeManager_->IsFullyCovered())
+	{
+		fadeManager_->StartCrack();
+		pendingCrack_ = false;
 	}
 
 	// シーン更新（好みで止める/動かす）
