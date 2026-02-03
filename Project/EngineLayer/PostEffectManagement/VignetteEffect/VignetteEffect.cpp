@@ -12,102 +12,101 @@
 
 #ifdef USE_IMGUI
 #include <imgui.h>
+#endif // USE_IMGUI
 
 namespace Ken4lowEngine
 {
-#endif // USE_IMGUI
 
+	/// -------------------------------------------------------------
+	///						　初期化処理
+	/// -------------------------------------------------------------
+	void VignetteEffect::Initialize(DirectXCommon* dxCommon, PostEffectPipelineBuilder* builder)
+	{
+		dxCommon_ = dxCommon;
 
-/// -------------------------------------------------------------
-///						　初期化処理
-/// -------------------------------------------------------------
-void VignetteEffect::Initialize(DirectXCommon* dxCommon, PostEffectPipelineBuilder* builder)
-{
-	dxCommon_ = dxCommon;
+		// ルートシグネチャの生成（コンピュート用）
+		computeRootSignature_ = builder->CreateComputeRootSignature();
 
-	// ルートシグネチャの生成（コンピュート用）
-	computeRootSignature_ = builder->CreateComputeRootSignature();
+		// パイプラインステートの生成（コンピュート用）
+		computePipelineState_ = builder->CreateComputePipeline(ShaderCompiler::GetShaderPath(L"VignetteEffect", L".CS.hlsl"), computeRootSignature_.Get());
 
-	// パイプラインステートの生成（コンピュート用）
-	computePipelineState_ = builder->CreateComputePipeline(ShaderCompiler::GetShaderPath(L"VignetteEffect", L".CS.hlsl"), computeRootSignature_.Get());
+		// リソースの生成
+		constantBuffer_ = ResourceManager::CreateBufferResource(dxCommon_->GetDevice(), sizeof(VignetteSetting));
 
-	// リソースの生成
-	constantBuffer_ = ResourceManager::CreateBufferResource(dxCommon_->GetDevice(), sizeof(VignetteSetting));
+		// データの設定
+		constantBuffer_->Map(0, nullptr, reinterpret_cast<void**>(&vignetteSetting_));
 
-	// データの設定
-	constantBuffer_->Map(0, nullptr, reinterpret_cast<void**>(&vignetteSetting_));
+		// ヴィグネットの設定
+		vignetteSetting_->power = 0.8f; // 強さ
+		vignetteSetting_->range = 0.5f; // 範囲
 
-	// ヴィグネットの設定
-	vignetteSetting_->power = 0.8f; // 強さ
-	vignetteSetting_->range = 0.5f; // 範囲
-
-	constantBuffer_->SetName(L"VignetteEffect::ConstantBuffer");
-	computeRootSignature_->SetName(L"VignetteEffect::ComputeRootSignature");
-	computePipelineState_->SetName(L"VignetteEffect::ComputePipelineState");
-}
-
-void VignetteEffect::Finalize()
-{
-	// Mapしてるポインタを無効化（Unmapは安全のため）
-	if (constantBuffer_ && vignetteSetting_) {
-		constantBuffer_->Unmap(0, nullptr);
-		vignetteSetting_ = nullptr;
+		constantBuffer_->SetName(L"VignetteEffect::ConstantBuffer");
+		computeRootSignature_->SetName(L"VignetteEffect::ComputeRootSignature");
+		computePipelineState_->SetName(L"VignetteEffect::ComputePipelineState");
 	}
 
-	// D3Dリソース解放
-	constantBuffer_.Reset();
-	computePipelineState_.Reset();
-	computeRootSignature_.Reset();
+	void VignetteEffect::Finalize()
+	{
+		// Mapしてるポインタを無効化（Unmapは安全のため）
+		if (constantBuffer_ && vignetteSetting_) {
+			constantBuffer_->Unmap(0, nullptr);
+			vignetteSetting_ = nullptr;
+		}
 
-	// 借り物参照を切る
-	dxCommon_ = nullptr;
-}
+		// D3Dリソース解放
+		constantBuffer_.Reset();
+		computePipelineState_.Reset();
+		computeRootSignature_.Reset();
 
-
-/// -------------------------------------------------------------
-///						　適用処理
-/// -------------------------------------------------------------
-void VignetteEffect::Apply(ID3D12GraphicsCommandList* commandList, uint32_t srvIndex, uint32_t uavIndex, uint32_t dsvIndex)
-{
-	(void)dsvIndex; // 未使用
-
-	// コンピュート用のルートシグネチャとPSOを設定
-	commandList->SetComputeRootSignature(computeRootSignature_.Get());
-	commandList->SetPipelineState(computePipelineState_.Get());
-
-	// SRVとUAVを設定（ディスクリプタテーブル）
-	commandList->SetComputeRootDescriptorTable(0, UAVManager::GetInstance()->GetGPUDescriptorHandle(srvIndex));  // t0
-	commandList->SetComputeRootDescriptorTable(1, UAVManager::GetInstance()->GetGPUDescriptorHandle(uavIndex)); // u0
-
-	// CBVを設定（b0）
-	commandList->SetComputeRootConstantBufferView(2, constantBuffer_->GetGPUVirtualAddress()); // b0
-
-	// スレッドグループの数を計算して Dispatch
-	const uint32_t threadGroupSizeX = 8;
-	const uint32_t threadGroupSizeY = 8;
-
-	// レンダーターゲットの解像度（仮に 1280x720）
-	uint32_t width = dxCommon_->GetClientWidth(); // ウィンドウの幅
-	uint32_t height = dxCommon_->GetClientHeight(); // ウィンドウの高さ
-
-	// スレッドグループの数を計算
-	uint32_t groupCountX = (width + threadGroupSizeX - 1) / threadGroupSizeX;
-	uint32_t groupCountY = (height + threadGroupSizeY - 1) / threadGroupSizeY;
-
-	// ディスパッチの実行
-	commandList->Dispatch(groupCountX, groupCountY, 1);
-}
+		// 借り物参照を切る
+		dxCommon_ = nullptr;
+	}
 
 
-/// -------------------------------------------------------------
-///						　ImGui描画処理
-/// -------------------------------------------------------------
-void VignetteEffect::DrawImGui()
-{
+	/// -------------------------------------------------------------
+	///						　適用処理
+	/// -------------------------------------------------------------
+	void VignetteEffect::Apply(ID3D12GraphicsCommandList* commandList, uint32_t srvIndex, uint32_t uavIndex, uint32_t dsvIndex)
+	{
+		(void)dsvIndex; // 未使用
+
+		// コンピュート用のルートシグネチャとPSOを設定
+		commandList->SetComputeRootSignature(computeRootSignature_.Get());
+		commandList->SetPipelineState(computePipelineState_.Get());
+
+		// SRVとUAVを設定（ディスクリプタテーブル）
+		commandList->SetComputeRootDescriptorTable(0, UAVManager::GetInstance()->GetGPUDescriptorHandle(srvIndex));  // t0
+		commandList->SetComputeRootDescriptorTable(1, UAVManager::GetInstance()->GetGPUDescriptorHandle(uavIndex)); // u0
+
+		// CBVを設定（b0）
+		commandList->SetComputeRootConstantBufferView(2, constantBuffer_->GetGPUVirtualAddress()); // b0
+
+		// スレッドグループの数を計算して Dispatch
+		const uint32_t threadGroupSizeX = 8;
+		const uint32_t threadGroupSizeY = 8;
+
+		// レンダーターゲットの解像度（仮に 1280x720）
+		uint32_t width = dxCommon_->GetClientWidth(); // ウィンドウの幅
+		uint32_t height = dxCommon_->GetClientHeight(); // ウィンドウの高さ
+
+		// スレッドグループの数を計算
+		uint32_t groupCountX = (width + threadGroupSizeX - 1) / threadGroupSizeX;
+		uint32_t groupCountY = (height + threadGroupSizeY - 1) / threadGroupSizeY;
+
+		// ディスパッチの実行
+		commandList->Dispatch(groupCountX, groupCountY, 1);
+	}
+
+
+	/// -------------------------------------------------------------
+	///						　ImGui描画処理
+	/// -------------------------------------------------------------
+	void VignetteEffect::DrawImGui()
+	{
 #ifdef USE_IMGUI
-	ImGui::SliderFloat("Vignette Power", &vignetteSetting_->power, 0.0f, 3.0f);
-	ImGui::SliderFloat("Vignette Range", &vignetteSetting_->range, 0.0f, 1.0f);
+		ImGui::SliderFloat("Vignette Power", &vignetteSetting_->power, 0.0f, 3.0f);
+		ImGui::SliderFloat("Vignette Range", &vignetteSetting_->range, 0.0f, 1.0f);
 #endif // USE_IMGUI
-}
+	}
 
 } // namespace Ken4lowEngine

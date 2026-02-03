@@ -127,3 +127,9 @@ Unmap
 rast
 Assimp
 submesh
+Uninitialize
+wparam
+lparam
+Assimp
+numthreads
+Unmap

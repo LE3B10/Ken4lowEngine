@@ -12,10 +12,10 @@
 
 #ifdef USE_IMGUI
 #include <imgui.h>
+#endif // USE_IMGUI
 
 namespace Ken4lowEngine
 {
-#endif // USE_IMGUI
 
 
 /// -------------------------------------------------------------
