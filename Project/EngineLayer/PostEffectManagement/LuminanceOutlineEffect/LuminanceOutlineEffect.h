@@ -3,6 +3,9 @@
 #include <Vector2.h>
 #include <Vector4.h>
 
+namespace Ken4lowEngine
+{
+
 /// -------------------------------------------------------------
 ///			輝度ベースのアウトラインエフェクトクラス
 /// -------------------------------------------------------------
@@ -63,3 +66,5 @@ private: /// ---------- 構造体 ---------- ///
 	LuminanceOutlineSetting* luminanceOutlineSetting_ = nullptr;
 };
 
+
+} // namespace Ken4lowEngine

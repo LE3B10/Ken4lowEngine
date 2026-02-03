@@ -5,6 +5,9 @@
 #include "SRVManager.h"
 #include <TextureManager.h>
 
+namespace Ken4lowEngine
+{
+
 /// -------------------------------------------------------------
 ///				　　　	初期化処理
 /// -------------------------------------------------------------
@@ -79,3 +82,4 @@ void GpuParticleRenderer::SetDrawType(uint32_t drawType, uint32_t slot)
 {
 	if (particleMaterial_) { particleMaterial_->SetDrawType(drawType, slot); }
 }
+} // namespace Ken4lowEngine

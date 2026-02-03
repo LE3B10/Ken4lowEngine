@@ -11,6 +11,8 @@
 #include <random>
 #include <numbers>
 
+namespace K4E = ::Ken4lowEngine;
+
 namespace
 {
 	float Random01()
@@ -58,11 +60,11 @@ void SeedMortarAttack::Attack()
 	requestStart_ = true;
 }
 
-void SeedMortarAttack::Update(Boss* boss, float deltaTime, float bossYawRad, const Vector3& playerPosition)
+void SeedMortarAttack::Update(Boss* boss, float deltaTime, float bossYawRad, const K4E::Vector3& playerPosition)
 {
 	if (!boss) { return; }
 
-	Vector3 playerPos = playerPosition;
+	K4E::Vector3 playerPos = playerPosition;
 #ifdef USE_IMGUI
 	if (debugUseTestPlayerPos_)
 	{
@@ -168,7 +170,7 @@ void SeedMortarAttack::DrawImGui(Boss& boss)
 	ImGui::DragFloat3("Test PlayerPos", &debugTestPlayerPos_.x, 0.1f);
 
 	// Config 編集ブロック
-	if (ImGui::CollapsingHeader("SeedMortar Params", ImGuiTreeNodeFlags_DefaultOpen))
+	if (ImGui::CollapsingHeader("SeedMortar K4E::Params", ImGuiTreeNodeFlags_DefaultOpen))
 	{
 		ImGui::TextUnformatted("Timing");
 		ImGui::DragFloat("windup", &params.windup, 0.01f, 0.0f, 5.0f);
@@ -214,7 +216,7 @@ void SeedMortarAttack::DrawImGui(Boss& boss)
 		ImGui::DragFloat("clapX", &poseParams_.clapX, 0.01f, -3.14f, 3.14f);
 		ImGui::DragFloat("holdUntil", &poseParams_.holdUntil, 0.01f, 0.0f, 1.0f);
 
-		if (ImGui::Button("Reset Pose Params"))
+		if (ImGui::Button("Reset Pose K4E::Params"))
 		{
 			poseParams_ = PoseParams{}; // デフォルト値に戻す
 		}
@@ -256,7 +258,7 @@ void SeedMortarAttack::UpdatePhase_Windup(Boss* boss, float deltaTime)
 	}
 }
 
-void SeedMortarAttack::UpdatePhase_Active(Boss* boss, float deltaTime, const Vector3& playerPosition)
+void SeedMortarAttack::UpdatePhase_Active(Boss* boss, float deltaTime, const K4E::Vector3& playerPosition)
 {
 	const auto& params = boss->GetParams().seedMortar;
 
@@ -264,11 +266,11 @@ void SeedMortarAttack::UpdatePhase_Active(Boss* boss, float deltaTime, const Vec
 	if (!spawned_)
 	{
 		// プレイヤー位置（XZ）とボス位置（XZ）を用意
-		Vector3 playerXZ = playerPosition;
+		K4E::Vector3 playerXZ = playerPosition;
 		playerXZ.y = 0.0f;
 
-		Vector3 bossCenter = boss->GetCenterPosition();
-		Vector3 bossXZ = bossCenter;
+		K4E::Vector3 bossCenter = boss->GetCenterPosition();
+		K4E::Vector3 bossXZ = bossCenter;
 		bossXZ.y = 0.0f;
 
 		SpawnSeeds(playerXZ, bossXZ, params);
@@ -348,16 +350,16 @@ void SeedMortarAttack::UpdateBossPose(Boss* boss)
 	const auto& params = boss->GetParams().seedMortar;
 	const PoseParams& pp = poseParams_;
 
-	Vector3 leftRot{};
-	Vector3 rightRot{};
+	K4E::Vector3 leftRot{};
+	K4E::Vector3 rightRot{};
 
 	// --- Windup：ニュートラル → 腕を上げる (Y=0 のまま) ---
 	if (runtime_.phase == Phase::Windup)
 	{
-		float t = clamp01(runtime_.phaseTimer / std::max(0.001f, params.windup));
-		t = EaseInOutCubic(t);
+		float t = K4E::clamp01(runtime_.phaseTimer / std::max(0.001f, params.windup));
+		t = K4E::EaseInOutCubic(t);
 
-		float x = Lerp(0.0f, pp.raiseX, t);
+		float x = K4E::Lerp(0.0f, pp.raiseX, t);
 
 		leftRot = { x, 0.0f, 0.0f };
 		rightRot = { x, 0.0f, 0.0f };
@@ -366,7 +368,7 @@ void SeedMortarAttack::UpdateBossPose(Boss* boss)
 	else if (runtime_.phase == Phase::Active)
 	{
 		// 0〜1 に正規化した進行度（riseTime ベース）
-		float t = clamp01(runtime_.phaseTimer / std::max(0.001f, params.riseTime));
+		float t = K4E::clamp01(runtime_.phaseTimer / std::max(0.001f, params.riseTime));
 
 		// 「どこまで溜めるか」(0〜1)
 		float hold = std::clamp(poseParams_.holdUntil, 0.0f, 1.0f);
@@ -388,19 +390,19 @@ void SeedMortarAttack::UpdateBossPose(Boss* boss)
 		{
 			// ② 開く：0 → yawMin（外側）へ
 			float u = (t - hold) / std::max(0.001f, openEnd - hold); // 0〜1
-			u = clamp01(u);
-			u = EaseInOutCubic(u);
+			u = K4E::clamp01(u);
+			u = K4E::EaseInOutCubic(u);
 
-			yaw = Lerp(0.0f, yawMin, u);
+			yaw = K4E::Lerp(0.0f, yawMin, u);
 		}
 		else
 		{
 			// ③ 閉じる：yawMin（外）→ yawMax（内寄り）へ
 			float u = (t - openEnd) / std::max(0.001f, 1.0f - openEnd); // 0〜1
-			u = clamp01(u);
-			u = EaseInOutCubic(u);
+			u = K4E::clamp01(u);
+			u = K4E::EaseInOutCubic(u);
 
-			yaw = Lerp(yawMin, yawMax, u);
+			yaw = K4E::Lerp(yawMin, yawMax, u);
 		}
 
 		// 左右で ± を反転させることで「外 → 中央」っぽい動きにする
@@ -410,12 +412,12 @@ void SeedMortarAttack::UpdateBossPose(Boss* boss)
 	// --- Recovery：合掌状態からニュートラルへ戻す ---
 	else if (runtime_.phase == Phase::Recovery)
 	{
-		float t = clamp01(runtime_.phaseTimer / std::max(0.001f, params.recovery));
-		t = EaseInOutCubic(t);
+		float t = K4E::clamp01(runtime_.phaseTimer / std::max(0.001f, params.recovery));
+		t = K4E::EaseInOutCubic(t);
 
 		// Active 終了時点では yaw ≒ yawMax, x ≒ raiseX とみなす
-		float x = Lerp(pp.clapX, 0.0f, t);
-		float yawL = Lerp(pp.openYawMax, 0.0f, t);
+		float x = K4E::Lerp(pp.clapX, 0.0f, t);
+		float yawL = K4E::Lerp(pp.openYawMax, 0.0f, t);
 		float yawR = -yawL;
 
 		leftRot = { x, yawL, 0.0f };
@@ -427,7 +429,7 @@ void SeedMortarAttack::UpdateBossPose(Boss* boss)
 }
 
 
-void SeedMortarAttack::SpawnSeeds(const Vector3& centerXZ, const Vector3& bossCenterXZ, const ForestBossParams::SeedMortar& params)
+void SeedMortarAttack::SpawnSeeds(const K4E::Vector3& centerXZ, const K4E::Vector3& bossCenterXZ, const ForestBossParams::SeedMortar& params)
 {
 	seeds_.clear();
 	seeds_.resize(static_cast<size_t>(std::max(1, params.count)));
@@ -439,12 +441,12 @@ void SeedMortarAttack::SpawnSeeds(const Vector3& centerXZ, const Vector3& bossCe
 	const float spacing2 = spacing * spacing;
 
 	// すでに確定した種の配置リスト（XZ 平面）
-	std::vector<Vector3> placedPositions;
+	std::vector<K4E::Vector3> placedPositions;
 	placedPositions.reserve(seeds_.size());
 
 	for (auto& seed : seeds_)
 	{
-		Vector3 groundPos{};
+		K4E::Vector3 groundPos{};
 		const int kMaxRetry = 32; // 種同士の距離チェックも増えるので少し多めに
 		int retry = 0;
 
@@ -462,7 +464,7 @@ void SeedMortarAttack::SpawnSeeds(const Vector3& centerXZ, const Vector3& bossCe
 			groundPos.z += offsetZ;
 
 			// --- 1) ボスから十分離れているか（XZ） ---
-			Vector3 toBoss{
+			K4E::Vector3 toBoss{
 				groundPos.x - bossCenterXZ.x,
 				0.0f,
 				groundPos.z - bossCenterXZ.z
@@ -478,7 +480,7 @@ void SeedMortarAttack::SpawnSeeds(const Vector3& centerXZ, const Vector3& bossCe
 			bool tooClose = false;
 			for (const auto& p : placedPositions)
 			{
-				Vector3 d{
+				K4E::Vector3 d{
 					groundPos.x - p.x,
 					0.0f,
 					groundPos.z - p.z
@@ -512,10 +514,10 @@ void SeedMortarAttack::SpawnSeeds(const Vector3& centerXZ, const Vector3& bossCe
 		seed.position = seed.groundPos;
 		seed.position.y -= params.emergeDepth;
 
-		// Object3D がまだなければ作る
+		// K4E::Object3D がまだなければ作る
 		if (!seed.object)
 		{
-			seed.object = std::make_unique<Object3D>();
+			seed.object = std::make_unique<K4E::Object3D>();
 			seed.object->Initialize("cube.gltf");
 		}
 

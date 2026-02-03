@@ -8,6 +8,8 @@
 
 #include <algorithm>
 
+namespace K4E = ::Ken4lowEngine;
+
 namespace
 {
 	// テクスチャパス
@@ -45,7 +47,7 @@ void HUDManager::Initialize()
 /// -------------------------------------------------------------
 void HUDManager::Update()
 {
-	auto* dxCommon = DirectXCommon::GetInstance();
+	auto* dxCommon = K4E::DirectXCommon::GetInstance();
 	const float screenW = static_cast<float>(dxCommon->GetClientWidth());
 	const float screenH = static_cast<float>(dxCommon->GetClientHeight());
 
@@ -133,23 +135,23 @@ void HUDManager::DrawImGui()
 void HUDManager::InitializeSprites()
 {
 	// --- 上段 ---
-	reload_icon_ = std::make_unique<Sprite>();
+	reload_icon_ = std::make_unique<K4E::Sprite>();
 	reload_icon_->Initialize(kPathReload);
 
-	ammo_icon_ = std::make_unique<Sprite>();
+	ammo_icon_ = std::make_unique<K4E::Sprite>();
 	ammo_icon_->Initialize(kPathAmmo);
 
-	reticle_grid_icon_ = std::make_unique<Sprite>();
+	reticle_grid_icon_ = std::make_unique<K4E::Sprite>();
 	reticle_grid_icon_->Initialize(kPathReticle);
 
 	// --- 下段 ---
-	r_key_icon_ = std::make_unique<Sprite>();
+	r_key_icon_ = std::make_unique<K4E::Sprite>();
 	r_key_icon_->Initialize(kPathRKey);
 
-	mouse_left_icon_ = std::make_unique<Sprite>();
+	mouse_left_icon_ = std::make_unique<K4E::Sprite>();
 	mouse_left_icon_->Initialize(kPathMouseL);
 
-	mouse_right_icon_ = std::make_unique<Sprite>();
+	mouse_right_icon_ = std::make_unique<K4E::Sprite>();
 	mouse_right_icon_->Initialize(kPathMouseR);
 }
 
@@ -157,7 +159,7 @@ void HUDManager::UpdateSprites(float screenW, float screenH, float dt)
 {
 	// サイズ即反映
 	const float s = layout_.gridIconSize;
-	auto setGridCommon = [&](std::unique_ptr<Sprite>& spr)
+	auto setGridCommon = [&](std::unique_ptr<K4E::Sprite>& spr)
 		{
 			spr->SetSize({ s, s });
 		};
@@ -198,7 +200,7 @@ void HUDManager::UpdateGridPositions(float screenW, float screenH)
 		xL = xLeft; xM = xMid; xR = xRight;
 		yTop = yT; yBottom = yB;
 
-		auto setRB = [&](std::unique_ptr<Sprite>& spr)
+		auto setRB = [&](std::unique_ptr<K4E::Sprite>& spr)
 			{
 				spr->SetAnchorPoint({ 1.0f, 1.0f });
 			};
@@ -229,7 +231,7 @@ void HUDManager::UpdateGridPositions(float screenW, float screenH)
 		yTop = startY;
 		yBottom = startY + stepY;
 
-		auto setC = [&](std::unique_ptr<Sprite>& spr)
+		auto setC = [&](std::unique_ptr<K4E::Sprite>& spr)
 			{
 				spr->SetAnchorPoint({ 0.5f, 0.5f });
 			};
@@ -279,7 +281,7 @@ void HUDManager::UpdateHearts(float screenW, float screenH, float dt)
 		for (int i = 0; i < maxHearts; ++i)
 		{
 			HeartSlot hs;
-			hs.spr = std::make_unique<Sprite>();
+			hs.spr = std::make_unique<K4E::Sprite>();
 			hs.currentPath = "";
 			hearts_.push_back(std::move(hs));
 		}

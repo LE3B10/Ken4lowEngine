@@ -4,6 +4,8 @@
 #include "Player.h"
 #include <numbers>
 
+namespace K4E = ::Ken4lowEngine;
+
 void BossSpinState::OnEnter(BossEnemy* boss)
 {
 	const auto& turning = boss->GetTurning();
@@ -17,11 +19,11 @@ void BossSpinState::OnEnter(BossEnemy* boss)
 	// 近すぎる場合は、少しだけプレイヤーから離れる
 	if (Player* player = boss->GetPlayer())
 	{
-		Vector3 bossPos = boss->GetPosition();
-		Vector3 playerPos = player->GetCenterPosition();
+		K4E::Vector3 bossPos = boss->GetPosition();
+		K4E::Vector3 playerPos = player->GetCenterPosition();
 
 		// ボスから見たプレイヤーへのベクトル（Y成分は無視）
-		Vector3 toPlayer{ playerPos.x - bossPos.x, 0.0f, playerPos.z - bossPos.z };
+		K4E::Vector3 toPlayer{ playerPos.x - bossPos.x, 0.0f, playerPos.z - bossPos.z };
 
 		// プレイヤーまでの距離の2乗
 		float distSq = toPlayer.x * toPlayer.x + toPlayer.z * toPlayer.z;
@@ -37,7 +39,7 @@ void BossSpinState::OnEnter(BossEnemy* boss)
 
 				// プレイヤーと逆方向へ押し戻す
 				float inv = 1.0f / dist;
-				Vector3 away{ -toPlayer.x * inv, 0.0f, -toPlayer.z * inv };
+				K4E::Vector3 away{ -toPlayer.x * inv, 0.0f, -toPlayer.z * inv };
 
 				// 位置を更新
 				bossPos.x += away.x * push;
@@ -63,7 +65,7 @@ BehaviorStatus BossSpinState::Update(BossEnemy* boss, float deltaTime)
 	if (t > 1.0f) t = 1.0f;
 
 	// 緩急のある回転（0→速く→0）
-	float eased = EaseInOutQuad(t);
+	float eased = K4E::EaseInOutQuad(t);
 
 	const float twoPi = 2.0f * std::numbers::pi_v<float>; // 開始時のヨー角を保存（最初のフレームのみ）
 	float angleOffset = twoPi * turning.spin.rotations * eased;	  // 最初のフレームで保存
@@ -75,11 +77,11 @@ BehaviorStatus BossSpinState::Update(BossEnemy* boss, float deltaTime)
 	{
 		if (Player* player = boss->GetPlayer())
 		{
-			Vector3 bossPos = boss->GetPosition();
-			Vector3 playerPos = player->GetCenterPosition();
+			K4E::Vector3 bossPos = boss->GetPosition();
+			K4E::Vector3 playerPos = player->GetCenterPosition();
 
 			// XZ 平面上の距離
-			Vector3 diff{
+			K4E::Vector3 diff{
 				playerPos.x - bossPos.x,
 				0.0f,
 				playerPos.z - bossPos.z
@@ -100,7 +102,7 @@ BehaviorStatus BossSpinState::Update(BossEnemy* boss, float deltaTime)
 				if (distSq > 0.0001f)
 				{
 					float inv = 1.0f / std::sqrt(distSq);
-					Vector3 dir{
+					K4E::Vector3 dir{
 						diff.x * inv,
 						0.0f,
 						diff.z * inv

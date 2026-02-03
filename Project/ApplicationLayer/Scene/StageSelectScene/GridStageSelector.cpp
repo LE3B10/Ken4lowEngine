@@ -8,12 +8,14 @@
 #include <AudioManager.h>
 #include <LinearInterpolation.h>
 
+namespace K4E = ::Ken4lowEngine;
+
 /// -------------------------------------------------------------
 ///				　			　コンストラクタ
 /// -------------------------------------------------------------
 GridStageSelector::GridStageSelector()
 {
-	AudioManager::GetInstance()->PlaySE("negative.mp3", 0.0f, 0.0f, false); // プリロード
+	K4E::AudioManager::GetInstance()->PlaySE("negative.mp3", 0.0f, 0.0f, false); // プリロード
 }
 
 /// -------------------------------------------------------------
@@ -28,7 +30,7 @@ void GridStageSelector::Initialize(const SelectorContext& context)
 	// サムネ生成
 	for (const auto& stage : *stages_)
 	{
-		auto sprite = std::make_unique<Sprite>();
+		auto sprite = std::make_unique<K4E::Sprite>();
 		sprite->Initialize(stage.thumbPath.empty() ? "white.png" : stage.thumbPath.c_str());
 		sprite->SetAnchorPoint({ 0.5f, 0.5f }); // 中心
 		sprite->SetColor({ 1.0f, 1.0f, 1.0f, 1.0f });
@@ -39,7 +41,7 @@ void GridStageSelector::Initialize(const SelectorContext& context)
 	lockUI_.sprites.clear();
 	for (size_t i = 0; i < stages_->size(); ++i)
 	{
-		auto lock = std::make_unique<Sprite>();
+		auto lock = std::make_unique<K4E::Sprite>();
 		lock->Initialize("lock.png");
 		lock->SetAnchorPoint({ 0.5f, 0.5f });
 		lock->SetColor({ 1.0f, 1.0f, 1.0f, 1.0f });
@@ -47,7 +49,7 @@ void GridStageSelector::Initialize(const SelectorContext& context)
 	}
 
 	// 影
-	selShadow_ = std::make_unique<Sprite>();
+	selShadow_ = std::make_unique<K4E::Sprite>();
 	selShadow_->Initialize("white.png");
 	selShadow_->SetAnchorPoint({ 0.5f, 0.5f });
 	selShadow_->SetColor({ 0, 0, 0, 0.25f });
@@ -56,7 +58,7 @@ void GridStageSelector::Initialize(const SelectorContext& context)
 	scroll_.scrollX = 0.0f;
 	scroll_.velocityX = 0.0f;
 
-	DirectXCommon* dxCommon = DirectXCommon::GetInstance();
+	K4E::DirectXCommon* dxCommon = K4E::DirectXCommon::GetInstance();
 	layout_.center = { dxCommon->GetClientWidth() * 0.5f, dxCommon->GetClientHeight() * 0.5f };
 
 	// 起動時の中央も通知
@@ -72,10 +74,10 @@ void GridStageSelector::Initialize(const SelectorContext& context)
 /// -------------------------------------------------------------
 void GridStageSelector::Update(float deltaTime)
 {
-	if (!(deltaTime > 0.f) || deltaTime > 0.05f) deltaTime = DirectXCommon::GetInstance()->GetFPSCounter().GetDeltaTime(); // 異常値補正
+	if (!(deltaTime > 0.f) || deltaTime > 0.05f) deltaTime = K4E::DirectXCommon::GetInstance()->GetFPSCounter().GetDeltaTime(); // 異常値補正
 
 	auto* input = context_.input;
-	Vector2 mp = input->GetMousePosition();
+	K4E::Vector2 mp = input->GetMousePosition();
 
 	// 押下
 	UpdatePress(input, mp);
@@ -156,7 +158,7 @@ void GridStageSelector::OnExit()
 /// -------------------------------------------------------------
 ///				　		指定インデックスへフォーカス
 /// -------------------------------------------------------------
-int GridStageSelector::HitTestCardIndex(const Vector2& mousePosition) const
+int GridStageSelector::HitTestCardIndex(const K4E::Vector2& mousePosition) const
 {
 	int n = (int)thumbs_.size();
 	if (n == 0) return -1;
@@ -231,7 +233,7 @@ void GridStageSelector::StartTweenToIndex(int index, float duration)
 /// -------------------------------------------------------------
 ///	   マウス位置からヒットしているカードのインデックスを取得
 /// -------------------------------------------------------------
-int GridStageSelector::GetSelectedIndex(Vector2& mousePosition) const
+int GridStageSelector::GetSelectedIndex(K4E::Vector2& mousePosition) const
 {
 	int n = (int)thumbs_.size();
 	if (n == 0) return -1;
@@ -372,7 +374,7 @@ void GridStageSelector::PlayUnlockAnim(int index)
 /// -------------------------------------------------------------
 ///				　		　押下
 /// -------------------------------------------------------------
-void GridStageSelector::UpdatePress(Input* input, Vector2& mp)
+void GridStageSelector::UpdatePress(K4E::Input* input, K4E::Vector2& mp)
 {
 	// 押下開始
 	if (input->TriggerMouse(0))
@@ -433,7 +435,7 @@ void GridStageSelector::UpdateWheel()
 /// -------------------------------------------------------------
 ///				　		　ドラッグ更新
 /// -------------------------------------------------------------
-void GridStageSelector::UpdateDrassing(Input* input, Vector2& mp, float deltaTime)
+void GridStageSelector::UpdateDrassing(K4E::Input* input, K4E::Vector2& mp, float deltaTime)
 {
 	if (scroll_.pressIndex.has_value() && input->PushMouse(0))
 	{
@@ -456,7 +458,7 @@ void GridStageSelector::UpdateDrassing(Input* input, Vector2& mp, float deltaTim
 /// -------------------------------------------------------------
 ///				　		　離し
 /// -------------------------------------------------------------
-void GridStageSelector::UpdateRelease(Input* input, Vector2& mp)
+void GridStageSelector::UpdateRelease(K4E::Input* input, K4E::Vector2& mp)
 {
 	// 押下中かつ離された時
 	if (scroll_.pressIndex.has_value() && input->ReleaseMouse(0))
@@ -478,7 +480,7 @@ void GridStageSelector::UpdateRelease(Input* input, Vector2& mp)
 				if ((*stages_)[centerIdx].locked)
 				{
 					// TODO: 効果音/点滅など
-					AudioManager::GetInstance()->PlaySE("negative02.mp3", 0.5f, 0.7f);
+					K4E::AudioManager::GetInstance()->PlaySE("negative02.mp3", 0.5f, 0.7f);
 
 					// シェイク
 					TriggerLockedShake();
@@ -519,8 +521,8 @@ void GridStageSelector::UpdateTween(float deltaTime)
 	{
 		tween_.timer += deltaTime;
 		float t = std::clamp(tween_.timer / tween_.duration, 0.f, 1.f);
-		float u = EaseInOutCubic(t); // イージング関数適用
-		scroll_.scrollX = Lerp(tween_.startX, tween_.targetX, u);
+		float u = K4E::EaseInOutCubic(t); // イージング関数適用
+		scroll_.scrollX = K4E::Lerp(tween_.startX, tween_.targetX, u);
 		if (t >= 1.f) CancelTween();
 	}
 }
@@ -547,7 +549,7 @@ void GridStageSelector::UpdateInertia(float deltaTime)
 				if (d < -total * 0.5f) d += total;
 				target = scroll_.scrollX + d;
 			}
-			scroll_.scrollX = Lerp(scroll_.scrollX, target, std::clamp(deltaTime * tuning_.snapK, 0.f, 1.f));
+			scroll_.scrollX = K4E::Lerp(scroll_.scrollX, target, std::clamp(deltaTime * tuning_.snapK, 0.f, 1.f));
 		}
 	}
 

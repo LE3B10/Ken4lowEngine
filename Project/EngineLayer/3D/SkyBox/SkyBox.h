@@ -9,6 +9,9 @@
 #include <array>
 #include <memory>
 
+namespace Ken4lowEngine
+{
+
 /// ---------- 前方宣言 ---------- ///
 class DirectXCommon;
 
@@ -172,3 +175,5 @@ private: /// ---------- メンバ変数 ---------- ///
 	uint32_t textureIndex_ = 0;
 };
 
+
+} // namespace Ken4lowEngine

@@ -4,6 +4,9 @@
 #include "DirectXCommon.h"
 #include <numeric>
 
+namespace Ken4lowEngine
+{
+
 /// -------------------------------------------------------------
 ///				　		ノードからスケルトンを生成
 /// -------------------------------------------------------------
@@ -99,3 +102,5 @@ uint32_t Skeleton::CreateJointRecursive(const Node& node, const std::optional<in
 	// 現在のジョイントのインデックスを返す
 	return currentIndex;
 }
+
+} // namespace Ken4lowEngine

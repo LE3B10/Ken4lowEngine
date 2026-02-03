@@ -11,9 +11,11 @@
 #include <memory>
 #include <numbers>
 
+namespace K4E = ::Ken4lowEngine;
+
 /// ---------- 前方宣言 ---------- ///
-class Input;
-class LevelObjectManager;
+namespace Ken4lowEngine { class Input; }
+namespace Ken4lowEngine { class LevelObjectManager; }
 class CollisionManager;
 class Enemy;
 
@@ -69,10 +71,10 @@ private: /// ---------- 構造体 ---------- ///
 	struct ViewModelTurning
 	{
 		float baseFovDeg = 60.0f;        // 基本FOV角度
-		Vector3 baseOffset = { 0.75f, -0.75f, 0.75f }; // 基本オフセット
-		Vector3 adsOffset = { 0.20f, -0.75f, 1.0f }; // ADS時オフセット
+		K4E::Vector3 baseOffset = { 0.75f, -0.75f, 0.75f }; // 基本オフセット
+		K4E::Vector3 adsOffset = { 0.20f, -0.75f, 1.0f }; // ADS時オフセット
 		bool lockSizeByFov = true;    // FOVでサイズ固定フラグ
-		Vector3 baseScale = { 1.0f,1.0f,1.0f };         // 基本スケール
+		K4E::Vector3 baseScale = { 1.0f,1.0f,1.0f };         // 基本スケール
 
 		// ADS中の腕非表示
 		bool hideArmInAds = true;        // まずON推奨（邪魔なら確実に消える）
@@ -106,7 +108,7 @@ private: /// ---------- 構造体 ---------- ///
 	{
 		float threshold = 1.0f;   // 閾値
 		float edgeThickness = 0.16f; // 縁の太さ
-		Vector4 edgeColor = { 0.2f,0.8f,1.0f,1.0f }; // 縁色
+		K4E::Vector4 edgeColor = { 0.2f,0.8f,1.0f,1.0f }; // 縁色
 	};
 
 public: /// ---------- メンバ関数 ---------- ///
@@ -127,13 +129,13 @@ public: /// ---------- メンバ関数 ---------- ///
 	void DrawImGui() override;
 
 	// ワールド変換の取得
-	WorldTransformEx* GetWorldTransform() { return &body_.transform; }
+	K4E::WorldTransformEx* GetWorldTransform() { return &body_.transform; }
 
 	// 衝突時に呼ばれる仮想関数
-	void OnCollision(Collider* other) override;
+	void OnCollision(K4E::Collider* other) override;
 
 	// 中心座標を取得する純粋仮想関数
-	Vector3 GetCenterPosition() const override;
+	K4E::Vector3 GetCenterPosition() const override;
 
 public: /// ---------- アクセサー関数 ---------- ///
 
@@ -142,13 +144,13 @@ public: /// ---------- アクセサー関数 ---------- ///
 	void SetDebugCamera(bool isDebug) { viewState_.isDebugCamera = isDebug; }
 
 	// FPSカメラ取得
-	FpsCamera* GetFpsCamera() const { return fpsCamera_.get(); }
+	K4E::FpsCamera* GetFpsCamera() const { return fpsCamera_.get(); }
 
 	// プレイヤーモデル取得
-	Object3D* GetPlayerModel() const { return body_.object.get(); }
+	K4E::Object3D* GetPlayerModel() const { return body_.object.get(); }
 
 	// レベルオブジェクトマネージャー設定
-	void SetLevelObjectManager(LevelObjectManager* mgr) { levelObjectManager_ = mgr; }
+	void SetLevelObjectManager(K4E::LevelObjectManager* mgr) { levelObjectManager_ = mgr; }
 
 	// 衝突マネージャー設定
 	void SetCollisionManager(CollisionManager* mgr) { collisionManager_ = mgr; }
@@ -160,7 +162,7 @@ public: /// ---------- アクセサー関数 ---------- ///
 	void RegisterColliders(CollisionManager* mgr);
 
 	// 敵の攻撃などで吹っ飛ばす用
-	void AddKnockback(const Vector3& impulse) { knockbackVel_ += impulse; }
+	void AddKnockback(const K4E::Vector3& impulse) { knockbackVel_ += impulse; }
 
 	/// <summary>
 	/// ダメージによる衝撃を対象に適用します。
@@ -168,7 +170,7 @@ public: /// ---------- アクセサー関数 ---------- ///
 	/// <param name="dir">インパルスの方向を表すVector3へのconst参照。</param>
 	/// <param name="horizontalPow">水平方向の力の大きさ（強さ）。</param>
 	/// <param name="upPow">上向き（垂直）方向の力の大きさ。</param>
-	void ApplyDamageImpulse(const Vector3& dir, float horizontalPow, float upPow);
+	void ApplyDamageImpulse(const K4E::Vector3& dir, float horizontalPow, float upPow);
 
 	// ダメージを受けたときの処理
 	void TakeDamage(float amount);
@@ -201,14 +203,14 @@ private: /// ---------- メンバ関数 ---------- ///
 
 private: /// ----------メンバ変数 ---------- ///
 
-	Input* input_ = nullptr; // 入力クラス
-	LevelObjectManager* levelObjectManager_ = nullptr; // レベルオブジェクトマネージャー
+	K4E::Input* input_ = nullptr; // 入力クラス
+	K4E::LevelObjectManager* levelObjectManager_ = nullptr; // レベルオブジェクトマネージャー
 	CollisionManager* collisionManager_ = nullptr; // 衝突マネージャー
 	Enemy* enemy_ = nullptr; // 敵キャラクター
 
-	ContactRecord contactRecord_; // 接触記録
+	K4E::ContactRecord contactRecord_; // 接触記録
 
-	std::unique_ptr<FpsCamera> fpsCamera_; // FPSカメラ
+	std::unique_ptr<K4E::FpsCamera> fpsCamera_; // FPSカメラ
 
 	std::unique_ptr<WeaponManager> weaponManager_; // 武器マネージャー
 
@@ -231,7 +233,7 @@ private: /// ----------メンバ変数 ---------- ///
 	DissolveEffect dissolveEffect_ = {};
 
 	// ノックバック速度（毎フレームMove()で加算＆減衰させる）
-	Vector3 knockbackVel_ = { 0.0f, 0.0f, 0.0f };
+	K4E::Vector3 knockbackVel_ = { 0.0f, 0.0f, 0.0f };
 
 	// 減衰係数。1フレームごとにこれを掛けるイメージ
 	float knockbackDamping_ = 1.0f;
@@ -253,6 +255,6 @@ private: /// ----------メンバ変数 ---------- ///
 	float hurtInvincibleTime_ = 0.5f; // 0.5秒くらいヒット無敵
 	float hurtTimer_ = 0.0f;
 
-	Vector3 offsetRightHand_ = { 0.0f, 0.0f, 0.0f }; // 右手オフセット
+	K4E::Vector3 offsetRightHand_ = { 0.0f, 0.0f, 0.0f }; // 右手オフセット
 };
 

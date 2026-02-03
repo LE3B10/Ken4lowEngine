@@ -4,6 +4,9 @@
 #include "Vector4.h"
 #include <cstdint>
 
+namespace Ken4lowEngine
+{
+
 
 /// -------------------------------------------------------------
 ///					　	マテリアルクラス
@@ -126,3 +129,4 @@ private: /// ---------- メンバ変数 ---------- ///
 	MaterialCBData* materialData_{};
 
 };
+} // namespace Ken4lowEngine

@@ -1,6 +1,9 @@
 #pragma once
 #include <Framework.h>
 
+namespace Ken4lowEngine
+{
+
 
 /// -------------------------------------------------------------
 ///				　	ゲーム全体を管理するクラス
@@ -57,3 +60,5 @@ public: /// ---------- メンバ関数 ---------- ///
 	void Finalize() override;
 };
 
+
+} // namespace Ken4lowEngine

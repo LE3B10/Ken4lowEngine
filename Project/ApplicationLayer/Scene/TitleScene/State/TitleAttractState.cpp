@@ -6,10 +6,12 @@
 #include <LinearInterpolation.h>
 #include "TitleTransitionToLobby.h"
 
+namespace K4E = ::Ken4lowEngine;
+
 /// -------------------------------------------------------------
 ///				　			　補助関数
 /// -------------------------------------------------------------
-static inline void YawPitchLookAt(const Vector3& from, const Vector3& to, float& outYaw, float& outPitch)
+static inline void YawPitchLookAt(const K4E::Vector3& from, const K4E::Vector3& to, float& outYaw, float& outPitch)
 {
 	const float dx = to.x - from.x; // Xは横方向
 	const float dy = to.y - from.y; // Yは高さ
@@ -40,9 +42,9 @@ void TitleAttractState::Update(TitleScene* scene, float deltaTime)
 	auto& poseFrom = scene->GetPoseFrom();
 	auto& poseTo = scene->GetPoseTo();
 
-	Camera* camera = scene->GetCamera();
-	Input* input = scene->GetInput();
-	Sprite* logoSprite = scene->GetLogoSprite();
+	K4E::Camera* camera = scene->GetCamera();
+	K4E::Input* input = scene->GetInput();
+	K4E::Sprite* logoSprite = scene->GetLogoSprite();
 
 	// ゆっくりカメラを周回させる
 	if (camera)
@@ -69,7 +71,7 @@ void TitleAttractState::Update(TitleScene* scene, float deltaTime)
 	{
 		float t = (logoUI.showLeft > 0.0f) ? 0.0f
 			: std::clamp((timers.state - logoUI.showDelay) / 0.8f, 0.0f, 1.0f);
-		float te = EaseOutCubic(t);
+		float te = K4E::EaseOutCubic(t);
 		logoUI.alpha = te;
 		logoUI.scale = 0.9f + 0.1f * te;
 	}
@@ -90,9 +92,9 @@ void TitleAttractState::Update(TitleScene* scene, float deltaTime)
 		clickHintUI.phase += deltaTime;
 
 		// ロゴのすぐ下（アンカー：ヒント=中央上）
-		const Vector2 logoPos = logoSprite->GetPosition();
-		const Vector2 logoSz = { logoUI.baseSize.x * logoUI.scale, logoUI.baseSize.y * logoUI.scale };
-		Vector2 basePos = { logoPos.x, logoPos.y + (logoSz.y * 0.5f) + clickHintUI.marginY };
+		const K4E::Vector2 logoPos = logoSprite->GetPosition();
+		const K4E::Vector2 logoSz = { logoUI.baseSize.x * logoUI.scale, logoUI.baseSize.y * logoUI.scale };
+		K4E::Vector2 basePos = { logoPos.x, logoPos.y + (logoSz.y * 0.5f) + clickHintUI.marginY };
 
 		// アニメ成分（点滅・上下ゆれ・脈動）
 		const float blink = clickHintUI.blinkMin + (1.0f - clickHintUI.blinkMin) * (0.5f * (sinf(clickHintUI.phase * 2.2f) + 1.0f));
@@ -103,17 +105,17 @@ void TitleAttractState::Update(TitleScene* scene, float deltaTime)
 		const float scaleNow =
 			(pulse + clickHintUI.scaleHover * clickHintUI.hoverAnim) -
 			(clickHintUI.scalePress * clickHintUI.pressAnim);
-		Vector2 posNow = { basePos.x, basePos.y + wobble + clickHintUI.offsetPressY * clickHintUI.pressAnim };
+		K4E::Vector2 posNow = { basePos.x, basePos.y + wobble + clickHintUI.offsetPressY * clickHintUI.pressAnim };
 		posNow.y = std::min(posNow.y, 720.0f - 60.0f); // 画面下クランプ（1280x720基準）
 
-		const Vector2 sizeNow = { clickHintUI.baseSize.x * scaleNow, clickHintUI.baseSize.y * scaleNow };
+		const K4E::Vector2 sizeNow = { clickHintUI.baseSize.x * scaleNow, clickHintUI.baseSize.y * scaleNow };
 		const float minX = posNow.x - sizeNow.x * 0.5f; // アンカー(0.5,0.0)
 		const float minY = posNow.y;                    // 上端
 		const float maxX = minX + sizeNow.x;
 		const float maxY = minY + sizeNow.y;
 
 		// マウス
-		const Vector2 mp = input->GetMousePosition();
+		const K4E::Vector2 mp = input->GetMousePosition();
 		const bool inHint = (mp.x >= minX && mp.x <= maxX && mp.y >= minY && mp.y <= maxY);
 
 		// 入力：押し始めは内側、離したのも内側なら確定
@@ -129,14 +131,14 @@ void TitleAttractState::Update(TitleScene* scene, float deltaTime)
 		const float pressTarget = (clickHintUI.isPressing && mouseHeld) ? 1.0f : 0.0f;
 		const float hoverTarget = (!pressTarget && inHint) ? 1.0f : 0.0f;
 		const float s = std::clamp(deltaTime * 12.0f, 0.0f, 1.0f);
-		clickHintUI.pressAnim = Lerp(clickHintUI.pressAnim, pressTarget, s);
-		clickHintUI.hoverAnim = Lerp(clickHintUI.hoverAnim, hoverTarget, s);
+		clickHintUI.pressAnim = K4E::Lerp(clickHintUI.pressAnim, pressTarget, s);
+		clickHintUI.hoverAnim = K4E::Lerp(clickHintUI.hoverAnim, hoverTarget, s);
 
 		//“更新後”の見た目で描画セット（次フレームの ③ で使われる）
 		const float scaleDraw =
 			(pulse + clickHintUI.scaleHover * clickHintUI.hoverAnim) -
 			(clickHintUI.scalePress * clickHintUI.pressAnim);
-		Vector2 posDraw = {
+		K4E::Vector2 posDraw = {
 			basePos.x,
 			basePos.y + wobble + clickHintUI.offsetPressY * clickHintUI.pressAnim
 		};
@@ -157,7 +159,7 @@ void TitleAttractState::Update(TitleScene* scene, float deltaTime)
 		)) {
 
 		// カメラ姿勢スナップショット
-		Camera* cam = camera ? camera : scene->GetCamera();
+		K4E::Camera* cam = camera ? camera : scene->GetCamera();
 
 		// 現在姿勢 -> ロビーの姿勢 へのスナップショットを取得
 		poseFrom = { cam->GetTranslate(), orbitState.lastYaw, orbitState.lastPitch };

@@ -3,11 +3,13 @@
 #include <DirectXCommon.h>
 #include <ParticleManager.h>
 
+namespace K4E = ::Ken4lowEngine;
+
 
 /// -------------------------------------------------------------
 ///				　		コンストラクタ
 /// -------------------------------------------------------------
-ParticleEmitter::ParticleEmitter(ParticleManager* manager, const std::string& groupName)
+ParticleEmitter::ParticleEmitter(K4E::ParticleManager* manager, const std::string& groupName)
     : particleManager_(manager), groupName_(groupName), position_({ 0.0f,0.0f,0.0f }),
     emissionRate_(10.0f), accumulatedTime_(0.0f)
 {
@@ -19,13 +21,13 @@ ParticleEmitter::ParticleEmitter(ParticleManager* manager, const std::string& gr
 /// -------------------------------------------------------------
 void ParticleEmitter::Update()
 {
-    accumulatedTime_ += 1.0f / DirectXCommon::GetInstance()->GetFPSCounter().GetFPS();
+    accumulatedTime_ += 1.0f / K4E::DirectXCommon::GetInstance()->GetFPSCounter().GetFPS();
 
     int particleCount = static_cast<int>(emissionRate_);
     if (particleCount > 0)
     {
         // グループに設定された type を取得
-        ParticleEffectType type = particleManager_->GetGroupType(groupName_);
+        K4E::ParticleEffectType type = particleManager_->GetGroupType(groupName_);
 
         // 自動で対応した type を使って射出
         particleManager_->Emit(groupName_, position_, particleCount, type);
@@ -41,6 +43,6 @@ void ParticleEmitter::Update()
 /// -------------------------------------------------------------
 void ParticleEmitter::Burst(int count)
 {
-    ParticleEffectType type = particleManager_->GetGroupType(groupName_);
+    K4E::ParticleEffectType type = particleManager_->GetGroupType(groupName_);
     particleManager_->Emit(groupName_, position_, count, type);
 }

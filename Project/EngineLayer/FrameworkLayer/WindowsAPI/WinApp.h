@@ -2,6 +2,9 @@
 #include <Windows.h>
 #include <DisplaySettings.h>
 
+namespace Ken4lowEngine
+{
+
 /// -------------------------------------------------------------
 ///				WIndowsAPI - ウィンドウズ作成クラス
 /// -------------------------------------------------------------
@@ -159,3 +162,5 @@ private: /// ---------- コピー禁止 ---------- ///
 	/// </summary>
 	const WinApp& operator=(const WinApp&) = delete;
 };
+
+} // namespace Ken4lowEngine

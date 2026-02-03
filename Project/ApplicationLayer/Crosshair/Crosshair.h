@@ -4,6 +4,8 @@
 #include <memory>
 #include <string>
 
+namespace K4E = ::Ken4lowEngine;
+
 
 /// -------------------------------------------------------------
 ///				　		十字カーソルクラス
@@ -32,11 +34,11 @@ public: /// ---------- メンバ関数 ---------- ///
 
 private: /// ---------- メンバ変数 ---------- ///
 
-	std::unique_ptr<Sprite> sprite_; // 十字カーソル本体
-	std::unique_ptr<Sprite> shadow_; // 影
+	std::unique_ptr<K4E::Sprite> sprite_; // 十字カーソル本体
+	std::unique_ptr<K4E::Sprite> shadow_; // 影
 
 	std::string textureName_;	// テクスチャ名
-	Vector2 size_ = { 16, 16 }; // サイズ（ピクセル）
+	K4E::Vector2 size_ = { 16, 16 }; // サイズ（ピクセル）
 	bool isVisible_ = true;		// 表示フラグ
 
 	bool showHitMarker_ = false;			// ヒットマーカー表示フラグ
@@ -47,9 +49,9 @@ private: /// ---------- メンバ変数 ---------- ///
 	float hitMarkerScale_ = 1.0f;			// 拡大率
 	float hitMarkerScaleVelocity_ = 0.0f;	// 拡大率の変化速度
 
-	std::unique_ptr<Sprite> hitMarkerSprite_;	// ヒットマーカー本体
+	std::unique_ptr<K4E::Sprite> hitMarkerSprite_;	// ヒットマーカー本体
 
-	std::unique_ptr<Sprite> hitMarkerShadow_;   // ヒットマーカー影
+	std::unique_ptr<K4E::Sprite> hitMarkerShadow_;   // ヒットマーカー影
 	float hitAlpha_ = 0.0f;                     // フェード用
 
 	// ヒットマーカーの基準サイズ（大きさの元）

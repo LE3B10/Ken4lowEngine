@@ -15,13 +15,16 @@
 
 #ifdef USE_IMGUI
 #include <imgui.h>
+
+namespace K4E = ::Ken4lowEngine;
+
 #endif // USE_IMGUI
 
 namespace
 {
 	static std::mt19937 sRng{ std::random_device{}() };
 
-	static Vector3 ApplySpreadCone(const Vector3& forwardN, float angleRad)
+	static K4E::Vector3 ApplySpreadCone(const K4E::Vector3& forwardN, float angleRad)
 	{
 		if (angleRad <= 0.0f) return forwardN;
 
@@ -34,16 +37,16 @@ namespace
 		const float sinTheta = std::sqrtf(std::max(0.0f, 1.0f - cosTheta * cosTheta));
 		const float phi = 2.0f * std::numbers::pi_v<float> *v;
 
-		Vector3 up = { 0.0f, 1.0f, 0.0f };
-		Vector3 right = Vector3::Cross(up, forwardN);
-		if (Vector3::Length(right) < 1e-4f) right = { 1.0f, 0.0f, 0.0f };
-		right = Vector3::Normalize(right);
-		up = Vector3::Normalize(Vector3::Cross(forwardN, right));
+		K4E::Vector3 up = { 0.0f, 1.0f, 0.0f };
+		K4E::Vector3 right = K4E::Vector3::Cross(up, forwardN);
+		if (K4E::Vector3::Length(right) < 1e-4f) right = { 1.0f, 0.0f, 0.0f };
+		right = K4E::Vector3::Normalize(right);
+		up = K4E::Vector3::Normalize(K4E::Vector3::Cross(forwardN, right));
 
-		Vector3 dir = forwardN * cosTheta
+		K4E::Vector3 dir = forwardN * cosTheta
 			+ right * (std::cosf(phi) * sinTheta)
 			+ up * (std::sinf(phi) * sinTheta);
-		return Vector3::Normalize(dir);
+		return K4E::Vector3::Normalize(dir);
 	}
 }
 
@@ -56,18 +59,18 @@ void Player::Initialize()
 	BaseCharacter::Initialize();
 
 	// 入力取得
-	input_ = Input::GetInstance();
+	input_ = K4E::Input::GetInstance();
 
 	// テクスチャの設定
 	BaseCharacter::ApplySkinToAllParts(skinTexturePath_);
 
 	// ID登録
-	Collider::SetTypeID(static_cast<uint32_t>(CollisionTypeIdDef::kPlayer));
-	Collider::SetOwner<Player>(this);
-	Collider::SetOBBHalfSize({ 0.8f, 2.0f, 0.8f });
+	K4E::Collider::SetTypeID(static_cast<uint32_t>(CollisionTypeIdDef::kPlayer));
+	K4E::Collider::SetOwner<Player>(this);
+	K4E::Collider::SetOBBHalfSize({ 0.8f, 2.0f, 0.8f });
 
 	// FPSカメラ
-	fpsCamera_ = std::make_unique<FpsCamera>();
+	fpsCamera_ = std::make_unique<K4E::FpsCamera>();
 	fpsCamera_->Initialize(this);
 
 	// 武器マネージャー初期化
@@ -100,23 +103,16 @@ void Player::Update(float deltaTime)
 	// ここで表示切替
 	switch (fpsCamera_->GetViewMode()) // ← カメラの現在モード
 	{
-	case FpsCamera::ViewMode::FirstPerson:
+	case K4E::FpsCamera::ViewMode::FirstPerson:
 	{
-		//SetBodyActive(false);          // 体幹は映さない
-		//SetAllPartsActive(false);      // 一旦全部オフ
-
-		//// ADS中は腕が邪魔なら非表示
-		//const bool hideArm = vm_.hideArmInAds && (fpsCamera_->GetAimAlpha() >= vm_.hideArmAimAlpha);
-		//SetPartActive(partIndices_.rightArm, !hideArm);
-
 		SetBodyActive(false);
 		SetAllPartsActive(false);
 		SetPartActive(partIndices_.rightArm, true);
 		break;
 	}
 
-	case FpsCamera::ViewMode::ThirdBack:
-	case FpsCamera::ViewMode::ThirdFront:
+	case K4E::FpsCamera::ViewMode::ThirdBack:
+	case K4E::FpsCamera::ViewMode::ThirdFront:
 		SetBodyActive(true);
 		SetAllPartsActive(true);       // 全パーツオン
 		break;
@@ -164,7 +160,7 @@ void Player::Update(float deltaTime)
 
 	// 右クリック（Mouse1）でADS。※一人称のみ有効
 	const bool wantAds = input_->PushMouse(1);
-	const bool isFPNow = (fpsCamera_->GetViewMode() == FpsCamera::ViewMode::FirstPerson);
+	const bool isFPNow = (fpsCamera_->GetViewMode() == K4E::FpsCamera::ViewMode::FirstPerson);
 	fpsCamera_->SetAiming(isFPNow && wantAds);
 
 	// 移動処理
@@ -184,26 +180,17 @@ void Player::Update(float deltaTime)
 		}
 		else if (fireState_.cooldown <= 0.0f)
 		{
-			/*float yaw = fpsCamera_->GetYaw();
-			float pitch = fpsCamera_->GetPitch();
-			Vector3 forward = {
-				-std::sinf(yaw) * std::cosf(pitch),
-				-std::sinf(pitch),
-				 std::cosf(yaw) * std::cosf(pitch)
-			};
-			forward = Vector3::Normalize(forward);*/
-
-			Camera* cam = fpsCamera_->GetCamera();
-			Vector3 forward = Vector3::Normalize(cam->GetForward());
+			K4E::Camera* cam = fpsCamera_->GetCamera();
+			K4E::Vector3 forward = K4E::Vector3::Normalize(cam->GetForward());
 
 			// 腰だめ/ADSでスプレッドを変える（百発百中を崩す）
 			const float hipSpreadDeg = 0.9f;
 			const float adsSpreadDeg = 0.15f;
-			const float spreadDeg = Lerp(hipSpreadDeg, adsSpreadDeg, fpsCamera_->GetAimAlpha());
-			forward = ApplySpreadCone(forward, DegToRad(spreadDeg));
+			const float spreadDeg = K4E::Lerp(hipSpreadDeg, adsSpreadDeg, fpsCamera_->GetAimAlpha());
+			forward = ApplySpreadCone(forward, K4E::DegToRad(spreadDeg));
 
 			const WeaponConfig& config = weaponManager_->GetCurrentConfig();
-			Vector3 velocity = forward * config.muzzleSpeed;
+			K4E::Vector3 velocity = forward * config.muzzleSpeed;
 
 			// 実際に撃てたかを受け取る
 			const bool fired = weaponManager_->StartFireBallisticEffect(GetCenterPosition(), velocity);
@@ -214,7 +201,7 @@ void Player::Update(float deltaTime)
 				fireState_.cooldown = fireState_.interval;
 
 				// リコイルも“撃てた時だけ”
-				fpsCamera_->AddRecoil(DegToRad(0.3f), DegToRad(0.2f));
+				fpsCamera_->AddRecoil(K4E::DegToRad(0.3f), K4E::DegToRad(0.2f));
 				fpsCamera_->Update(true);
 			}
 			else
@@ -249,7 +236,7 @@ void Player::Draw()
 /// -------------------------------------------------------------
 ///				　	衝突時に呼ばれる仮想関数
 /// -------------------------------------------------------------
-void Player::OnCollision(Collider* other)
+void Player::OnCollision(K4E::Collider* other)
 {
 	uint32_t serialNumber = other->GetUniqueID(); // 相手のシリアルナンバー取得
 
@@ -278,10 +265,10 @@ void Player::OnCollision(Collider* other)
 /// -------------------------------------------------------------
 ///				　中心座標を取得する純粋仮想関数
 /// -------------------------------------------------------------
-Vector3 Player::GetCenterPosition() const
+K4E::Vector3 Player::GetCenterPosition() const
 {
-	const Vector3 offset = { 0.0f,1.5f,0.0f };
-	Vector3 worldPosition = body_.transform.translate_ + offset;
+	const K4E::Vector3 offset = { 0.0f,1.5f,0.0f };
+	K4E::Vector3 worldPosition = body_.transform.translate_ + offset;
 	return worldPosition;
 }
 
@@ -296,20 +283,20 @@ void Player::RegisterColliders(CollisionManager* mgr)
 /// -------------------------------------------------------------
 ///				　　敵から殴られた瞬間のリアクション用
 /// -------------------------------------------------------------
-void Player::ApplyDamageImpulse(const Vector3& dir, float horizontalPow, float upPow)
+void Player::ApplyDamageImpulse(const K4E::Vector3& dir, float horizontalPow, float upPow)
 {
 	// 水平向きだけ取り出して正規化
-	Vector3 flatDir = dir;
+	K4E::Vector3 flatDir = dir;
 	flatDir.y = 0.0f;
-	if (Vector3::Length(flatDir) > 0.0001f) {
-		flatDir = Vector3::Normalize(flatDir);
+	if (K4E::Vector3::Length(flatDir) > 0.0001f) {
+		flatDir = K4E::Vector3::Normalize(flatDir);
 	}
 	else {
 		flatDir = { 0.0f, 0.0f, -1.0f };
 	}
 
 	// 「こう押し飛ばされたい」理想の速度
-	Vector3 desired = flatDir * horizontalPow;
+	K4E::Vector3 desired = flatDir * horizontalPow;
 
 	// 今の knockbackVel_ を desired に近づける（いきなりドンじゃなく、スッと押される感じ）
 	// lerp: v = v + (desired - v) * gain
@@ -363,28 +350,28 @@ void Player::Move(float deltaTime)
 	(void)deltaTime; // 未使用
 
 	// 物理中心 ←→ 描画ピボットの固定オフセット（いままで -0.25 を使っていた値）
-	const Vector3 kCenterOffset = { 0.0f, 0.25f, 0.0f };
+	const K4E::Vector3 kCenterOffset = { 0.0f, 0.25f, 0.0f };
 
 	// 物理は「中心」で扱うので、まず現在の物理中心を求める
-	Vector3 physCenter = body_.transform.translate_ - kCenterOffset;
+	K4E::Vector3 physCenter = body_.transform.translate_ - kCenterOffset;
 
 	// コライダー中心も同期（物理中心を渡す）
-	Collider::SetCenterPosition(physCenter);  // ← ここを body_ から計算した physCenter に統一
+	K4E::Collider::SetCenterPosition(physCenter);  // ← ここを body_ から計算した physCenter に統一
 
 	// --- 前準備 ---
 	const float baseMoveSpeed = 0.1f;
 	const float adsMoveMul = 0.4f; // ADS中の移動速度倍率（0.5〜0.8で調整）
-	const bool aimingNow = fpsCamera_->IsAiming() && (fpsCamera_->GetViewMode() == FpsCamera::ViewMode::FirstPerson);
+	const bool aimingNow = fpsCamera_->IsAiming() && (fpsCamera_->GetViewMode() == K4E::FpsCamera::ViewMode::FirstPerson);
 	const float moveSpeed = baseMoveSpeed * (aimingNow ? adsMoveMul : 1.0f);
 
-	const Vector3 half = { 0.8f, 2.0f, 0.8f }; // Collider::SetOBBHalfSize と同じ半サイズ
+	const K4E::Vector3 half = { 0.8f, 2.0f, 0.8f }; // K4E::Collider::SetOBBHalfSize と同じ半サイズ
 	const float kEps = 0.002f;
 
 	// AABBユーティリティ
-	auto makeAABB = [&](const Vector3& c) { return AABB{ c - half, c + half }; };
+	auto makeAABB = [&](const K4E::Vector3& c) { return K4E::AABB{ c - half, c + half }; };
 
 	// --- 入力から水平移動ベクトル ---
-	Vector3 move{ 0,0,0 };
+	K4E::Vector3 move{ 0,0,0 };
 	if (!viewState_.isDebugCamera)
 	{
 		if (input_->PushKey(DIK_W)) move.z += moveSpeed;
@@ -394,10 +381,10 @@ void Player::Move(float deltaTime)
 	}
 
 	// 正規化して移動速度に調整
-	if (Vector3::Length(move) > 0.0f) move = Vector3::Normalize(move) * moveSpeed;
+	if (K4E::Vector3::Length(move) > 0.0f) move = K4E::Vector3::Normalize(move) * moveSpeed;
 
 	// 三人称前方視点なら前後反転
-	if (fpsCamera_->GetViewMode() == FpsCamera::ViewMode::ThirdFront) move.z *= -1.0f;
+	if (fpsCamera_->GetViewMode() == K4E::FpsCamera::ViewMode::ThirdFront) move.z *= -1.0f;
 
 	// カメラYawで回す（水平）
 	const float yaw = fpsCamera_->GetCamera()->GetRotate().y;
@@ -421,8 +408,8 @@ void Player::Move(float deltaTime)
 	const auto worldAABBs = levelObjectManager_->GetWorldAABBs();
 
 	// 物理中心
-	Vector3 oldCenter = physCenter;
-	Vector3 newCenter = oldCenter;
+	K4E::Vector3 oldCenter = physCenter;
+	K4E::Vector3 newCenter = oldCenter;
 
 	// 衝突解決ラムダ
 	auto resolveAxis = [&](int axis, float delta)
@@ -432,7 +419,7 @@ void Player::Move(float deltaTime)
 			if (axis == 1) newCenter.y += delta;
 			if (axis == 2) newCenter.z += delta;
 
-			AABB p = makeAABB(newCenter);
+			K4E::AABB p = makeAABB(newCenter);
 
 			bool hit = false; float bestFix = 0.0f; float bestDist = FLT_MAX;
 
@@ -510,7 +497,7 @@ void Player::Move(float deltaTime)
 	body_.transform.translate_ = physCenter + kCenterOffset;
 
 	/// ---------- 体と頭の回転処理 ---------- ///
-	const bool  isFP = (fpsCamera_->GetViewMode() == FpsCamera::ViewMode::FirstPerson);
+	const bool  isFP = (fpsCamera_->GetViewMode() == K4E::FpsCamera::ViewMode::FirstPerson);
 	const float camYaw = fpsCamera_->GetYaw();
 	const float camPitch = fpsCamera_->GetPitch();
 
@@ -525,10 +512,10 @@ void Player::Move(float deltaTime)
 	else
 	{
 		// 三人称：補間
-		float targetHeadYawLocal = NormalizeAngle(camYaw - viewState_.bodyYaw);
+		float targetHeadYawLocal = K4E::NormalizeAngle(camYaw - viewState_.bodyYaw);
 		targetHeadYawLocal = std::clamp(targetHeadYawLocal, -viewState_.headYawLimit, viewState_.headYawLimit);
-		viewState_.headYawLocal = Lerp(viewState_.headYawLocal, targetHeadYawLocal, 0.25f);
-		viewState_.bodyYaw = LerpAngle(viewState_.bodyYaw, camYaw, 0.10f);
+		viewState_.headYawLocal = K4E::Lerp(viewState_.headYawLocal, targetHeadYawLocal, 0.25f);
+		viewState_.bodyYaw = K4E::LerpAngle(viewState_.bodyYaw, camYaw, 0.10f);
 		parts_[partIndices_.head].transform.rotate_.x = std::clamp(camPitch, -viewState_.headPitchLimit, viewState_.headPitchLimit);
 	}
 
@@ -537,14 +524,14 @@ void Player::Move(float deltaTime)
 	parts_[partIndices_.head].transform.rotate_.y = viewState_.headYawLocal;
 
 	/// ---------- 右手：FPはカメラ基準で固定 ---------- ///
-	WorldTransformEx& armT = parts_[partIndices_.rightArm].transform;
+	K4E::WorldTransformEx& armT = parts_[partIndices_.rightArm].transform;
 
 	if (isFP)
 	{
 		fpsCamera_->Update();
 		armT.parent_ = nullptr;
 
-		Camera* cam = fpsCamera_->GetCamera();
+		K4E::Camera* cam = fpsCamera_->GetCamera();
 		const float fovNow = cam->GetFovY();                         // 現在FOV
 		const float fovBase = vm_.baseFovDeg * std::numbers::pi_v<float> / 180.0f;
 		const float k = std::tanf(fovNow * 0.5f) / std::tanf(fovBase * 0.5f); // ←FOV係数
@@ -553,18 +540,18 @@ void Player::Move(float deltaTime)
 		const float aimA = fpsCamera_->GetAimAlpha();
 
 		// 腰だめ→ADSでオフセットを補間（顔の前へ寄せる）
-		Vector3 off = Lerp(vm_.baseOffset, vm_.adsOffset, aimA);
+		K4E::Vector3 off = Lerp(vm_.baseOffset, vm_.adsOffset, aimA);
 
 		// 右(X)/上(Y)はFOV補正、前(Z)はそのまま
-		Vector3 local = { off.x * k, off.y * k, off.z };
+		K4E::Vector3 local = { off.x * k, off.y * k, off.z };
 
 		// カメラ姿勢（Yaw→Pitch）でローカル→ワールドへ
-		Matrix4x4 Ry = Matrix4x4::MakeRotateY(camYaw);
-		Matrix4x4 Rx = Matrix4x4::MakeRotateX(camPitch);
-		Matrix4x4 R = Matrix4x4::Multiply(Rx, Ry);
-		Vector3 offset = Matrix4x4::Transform(local, R);
+		K4E::Matrix4x4 Ry = K4E::Matrix4x4::MakeRotateY(camYaw);
+		K4E::Matrix4x4 Rx = K4E::Matrix4x4::MakeRotateX(camPitch);
+		K4E::Matrix4x4 R = K4E::Matrix4x4::Multiply(Rx, Ry);
+		K4E::Vector3 offset = K4E::Matrix4x4::Transform(local, R);
 
-		const Vector3 camPos = cam->GetTranslate();
+		const K4E::Vector3 camPos = cam->GetTranslate();
 		armT.translate_ = camPos + offset;
 		armT.rotate_.y = camYaw;
 		armT.rotate_.x = camPitch - (90.0f * std::numbers::pi_v<float> / 180.0f);
@@ -572,7 +559,7 @@ void Player::Move(float deltaTime)
 		// 見た目サイズをFOVに依存させない
 		if (vm_.lockSizeByFov)
 		{
-			Vector3 sc = vm_.baseScale * k;      // ← 逆じゃなくて k
+			K4E::Vector3 sc = vm_.baseScale * k;      // ← 逆じゃなくて k
 			armT.scale_ = sc;
 			parts_[partIndices_.rightArm].object->SetScale(sc); // 念のため両方
 		}
@@ -595,7 +582,7 @@ void Player::Move(float deltaTime)
 	float damp = jumpState_.isGrounded ? groundKnockbackDamping_ : airKnockbackDamping_;
 	knockbackVel_ *= damp;
 
-	if (Vector3::Length(knockbackVel_) < 0.001f) {
+	if (K4E::Vector3::Length(knockbackVel_) < 0.001f) {
 		knockbackVel_ = { 0.0f, 0.0f, 0.0f };
 	}
 }
@@ -619,9 +606,9 @@ void Player::StartDeath(DeathMode mode)
 	parts_[partIndices_.rightArm].transform.rotate_ = { 0.0f, 0.0f, 0.0f }; // 回転リセット
 
 	// カメラを三人称視点に切替
-	fpsCamera_->SetViewMode(FpsCamera::ViewMode::ThirdBack);
+	fpsCamera_->SetViewMode(K4E::FpsCamera::ViewMode::ThirdBack);
 
-	Camera* cam = fpsCamera_->GetCamera();
+	K4E::Camera* cam = fpsCamera_->GetCamera();
 	deathState_.camLockPos = cam->GetTranslate();
 	deathState_.camLockRot = cam->GetRotate();
 	deathState_.camLock = true;    // 固定ON
@@ -632,7 +619,7 @@ void Player::StartDeath(DeathMode mode)
 	// プレイヤーの視線の逆方向に後方へ + 少し上へ
 	const float yaw = fpsCamera_->GetYaw();
 	const float pitch = fpsCamera_->GetPitch();
-	Vector3 fwd = { -sinf(yaw) * cosf(pitch), -sinf(pitch), cosf(yaw) * cosf(pitch) };
+	K4E::Vector3 fwd = { -sinf(yaw) * cosf(pitch), -sinf(pitch), cosf(yaw) * cosf(pitch) };
 
 	// チューンしやすい初速（m/s想定）
 	float speedBack = 64.0f;   // 後ろ方向
@@ -641,8 +628,8 @@ void Player::StartDeath(DeathMode mode)
 	float side = ((rand() & 1) ? 1.0f : -1.0f) * 2.5f;
 
 	// 右方向ベクトルを作って横ブレを足す
-	Vector3 worldUp{ 0,1,0 };
-	Vector3 right = Vector3::Normalize(Vector3::Cross(worldUp, fwd));
+	K4E::Vector3 worldUp{ 0,1,0 };
+	K4E::Vector3 right = K4E::Vector3::Normalize(K4E::Vector3::Cross(worldUp, fwd));
 	deathState_.velocity = (-fwd * speedBack) + (worldUp * speedUp) + (right * side);
 
 	// ランダムな角速度（rad/s）
@@ -669,8 +656,8 @@ void Player::StartDeath(DeathMode mode)
 void Player::UpdateDeath(float deltaTime)
 {
 	deathState_.timer += deltaTime;
-	float u = clamp01(deathState_.timer / deathState_.length);
-	float e = EaseOutCubic(u);
+	float u = K4E::clamp01(deathState_.timer / deathState_.length);
+	float e = K4E::EaseOutCubic(u);
 
 	static float sCamYawFixed = 0.0f;
 	static bool sLatched = false;
@@ -682,11 +669,11 @@ void Player::UpdateDeath(float deltaTime)
 
 	// ---- 並進：線形 + 二乗空気抵抗（速いほど強く減速）----
 	{
-		float speed = Vector3::Length(deathState_.velocity);
+		float speed = K4E::Vector3::Length(deathState_.velocity);
 		if (speed > 0.0f) {
-			Vector3 v = deathState_.velocity;
+			K4E::Vector3 v = deathState_.velocity;
 			// 方向は v と同じ、強さは (k1 * v + k2 * |v| * v)
-			Vector3 dragAcc = -(deathState_.linDragK * v + deathState_.quadDragK * speed * v); // [m/s^2]
+			K4E::Vector3 dragAcc = -(deathState_.linDragK * v + deathState_.quadDragK * speed * v); // [m/s^2]
 			deathState_.velocity += dragAcc * deltaTime;
 		}
 		body_.transform.translate_ += deathState_.velocity * deltaTime;
@@ -710,17 +697,17 @@ void Player::UpdateDeath(float deltaTime)
 	}
 
 	// ---- カメラ演出 ----
-	Camera* cam = fpsCamera_->GetCamera();
+	K4E::Camera* cam = fpsCamera_->GetCamera();
 
 	if (deathState_.camLock)
 	{
 		// 位置は固定：保存したラッチ位置を使う
-		const Vector3 camPos = deathState_.camLockPos;
+		const K4E::Vector3 camPos = deathState_.camLockPos;
 		cam->SetTranslate(camPos);
 
 		// 向きは毎フレームプレイヤー中心を向く（追従）
-		Vector3 to = GetCenterPosition();                  // プレイヤー中心
-		Vector3 look = Vector3::Normalize(to - camPos);    // カメラ→プレイヤー方向
+		K4E::Vector3 to = GetCenterPosition();                  // プレイヤー中心
+		K4E::Vector3 look = K4E::Vector3::Normalize(to - camPos);    // カメラ→プレイヤー方向
 
 		float yaw = std::atan2f(-look.x, look.z);
 		float pitch = -std::asinf(look.y);
@@ -748,12 +735,12 @@ void Player::UpdateDeath(float deltaTime)
 	else
 	{
 		// 背後に引いて注視カメラ
-		Matrix4x4 Ry = Matrix4x4::MakeRotateY(sCamYawFixed);
-		Vector3 offset = Matrix4x4::Transform(deathState_.cameraEndOffset, Ry);
-		Vector3 camTargetPos = body_.transform.translate_ + offset;
-		Vector3 camPos = Lerp(deathState_.cameraStartPos, camTargetPos, e);
+		K4E::Matrix4x4 Ry = K4E::Matrix4x4::MakeRotateY(sCamYawFixed);
+		K4E::Vector3 offset = K4E::Matrix4x4::Transform(deathState_.cameraEndOffset, Ry);
+		K4E::Vector3 camTargetPos = body_.transform.translate_ + offset;
+		K4E::Vector3 camPos = Lerp(deathState_.cameraStartPos, camTargetPos, e);
 
-		Vector3 look = Vector3::Normalize(GetCenterPosition() - camPos);
+		K4E::Vector3 look = K4E::Vector3::Normalize(GetCenterPosition() - camPos);
 		float yaw = std::atan2f(-look.x, look.z);
 		float pitch = -std::asinf(look.y);
 
@@ -763,7 +750,7 @@ void Player::UpdateDeath(float deltaTime)
 	}
 
 	// フェードアウト時間ではなく、速度と角速度が十分に小さくなったら終了でもOK
-	bool stopped = (Vector3::Length(deathState_.velocity) < 0.15f) &&
+	bool stopped = (K4E::Vector3::Length(deathState_.velocity) < 0.15f) &&
 		(std::fabs(deathState_.angularVelocity.x) + std::fabs(deathState_.angularVelocity.y) + std::fabs(deathState_.angularVelocity.z) < 0.30f);
 	if (stopped || deathState_.timer > 5.0f) { deathState_.inDeathSeq = false; deathState_.isDead = true; }
 }

@@ -1,6 +1,9 @@
 #include "LevelObjectManager.h"
 #include "CollisionTypeIdDef.h"
 
+namespace Ken4lowEngine
+{
+
 
 /// -------------------------------------------------------------
 ///				　			　 初期化処理
@@ -127,3 +130,5 @@ void LevelObjectManager::OnCollision(Collider* other)
 		// プレイヤーが敵と衝突した場合の処理をここに記述
 	}
 }
+
+} // namespace Ken4lowEngine

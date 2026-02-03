@@ -1,10 +1,12 @@
 #include "BossEnemyVfx.h"
 #include <algorithm>
 
+namespace K4E = ::Ken4lowEngine;
+
 /// -------------------------------------------------------------
 ///					ボス登場砂埃エフェクト更新
 /// -------------------------------------------------------------
-void BossEnemyVfx::UpdateAppearDust(const Vector3& position, uint32_t count)
+void BossEnemyVfx::UpdateAppearDust(const K4E::Vector3& position, uint32_t count)
 {
 	// エミッターが未取得なら取得を試みる
 	if (!appearDustEmitter_)
@@ -17,7 +19,7 @@ void BossEnemyVfx::UpdateAppearDust(const Vector3& position, uint32_t count)
 	SetPositionAndEmit(appearDustEmitter_, position, count);
 }
 
-void BossEnemyVfx::UpdateAura(const Vector3& position, uint32_t count)
+void BossEnemyVfx::UpdateAura(const K4E::Vector3& position, uint32_t count)
 {
 	// エミッターが未取得なら取得を試みる
 	if (!auraEmitter_)
@@ -29,7 +31,7 @@ void BossEnemyVfx::UpdateAura(const Vector3& position, uint32_t count)
 	SetPositionAndEmit(auraEmitter_, position, count);
 }
 
-void BossEnemyVfx::UpdateRushTrail(float deltaTime, const Vector3& currentPosition, const Vector3& oldPosition, bool isRush)
+void BossEnemyVfx::UpdateRushTrail(float deltaTime, const K4E::Vector3& currentPosition, const K4E::Vector3& oldPosition, bool isRush)
 {
 	if (!isRush) return;
 
@@ -43,7 +45,7 @@ void BossEnemyVfx::UpdateRushTrail(float deltaTime, const Vector3& currentPositi
 	rushTrailEmitter_->SetPosition(currentPosition);
 
 	// 速度に応じて発生数を増減（XZだけ見ると安定）
-	Vector3 d = currentPosition - oldPosition;
+	K4E::Vector3 d = currentPosition - oldPosition;
 	float distXZ = std::sqrt(d.x * d.x + d.z * d.z);
 	float dt = (deltaTime > 0.00001f) ? deltaTime : 0.00001f;
 	float speed = distXZ / dt;
@@ -53,7 +55,7 @@ void BossEnemyVfx::UpdateRushTrail(float deltaTime, const Vector3& currentPositi
 	rushTrailEmitter_->RequestEmit(emitCount);
 }
 
-void BossEnemyVfx::UpdateRushHit(const Vector3& hitPosition, const Vector3& bossCenter)
+void BossEnemyVfx::UpdateRushHit(const K4E::Vector3& hitPosition, const K4E::Vector3& bossCenter)
 {
 	if (!rushHitEmitter_)
 	{
@@ -62,7 +64,7 @@ void BossEnemyVfx::UpdateRushHit(const Vector3& hitPosition, const Vector3& boss
 	}
 	if (rushHitCooldown_ > 0.0f) return;
 
-	Vector3 pos = hitPosition;
+	K4E::Vector3 pos = hitPosition;
 	pos.y = bossCenter.y - 2.0f + 0.05f; // BossEnemy側の計算を移植
 
 	rushHitEmitter_->SetPosition(pos);
@@ -71,7 +73,7 @@ void BossEnemyVfx::UpdateRushHit(const Vector3& hitPosition, const Vector3& boss
 	rushHitCooldown_ = 0.20f;
 }
 
-void BossEnemyVfx::UpdateSpinAttack(const Vector3& currentPosition, bool isSpin)
+void BossEnemyVfx::UpdateSpinAttack(const K4E::Vector3& currentPosition, bool isSpin)
 {
 	if (!isSpin) return;
 
@@ -81,19 +83,19 @@ void BossEnemyVfx::UpdateSpinAttack(const Vector3& currentPosition, bool isSpin)
 		if (!spinAttackEmitter_) return;
 	}
 
-	Vector3 pos = currentPosition;
+	K4E::Vector3 pos = currentPosition;
 	pos.y += 0.0f;
 	SetPositionAndEmit(spinAttackEmitter_, pos, 10);
 }
 
-static Vector3 MakeShockwavePosition(const Vector3& center)
+static K4E::Vector3 MakeShockwavePosition(const K4E::Vector3& center)
 {
-	Vector3 ringPos = center;
+	K4E::Vector3 ringPos = center;
 	ringPos.y -= 1.8f;
 	return ringPos;
 }
 
-void BossEnemyVfx::UpdateDeathEffect(const Vector3& center, float deathTimer, bool& startBurstDone)
+void BossEnemyVfx::UpdateDeathEffect(const K4E::Vector3& center, float deathTimer, bool& startBurstDone)
 {
 	// 死亡開始の一回だけ：爆発＋衝撃波＋破片埃
 	if (!startBurstDone)
@@ -108,7 +110,7 @@ void BossEnemyVfx::UpdateDeathEffect(const Vector3& center, float deathTimer, bo
 	// 死亡中しばらく：魂がふわっと上に昇る
 	if (deathSoulEmitter_ && deathTimer < 1.6f)
 	{
-		Vector3 c = center;
+		K4E::Vector3 c = center;
 		c.y += 1.2f;
 		SetPositionAndEmit(deathSoulEmitter_, c, 2);
 	}
@@ -127,13 +129,13 @@ void BossEnemyVfx::RegisterEmitters()
 
 	// --- ボス登場砂埃 ---
 	{
-		GpuParticleEmitter::EmitterInfo info{};
-		info.kind = GpuParticleKind::Sprite;
-		info.spriteType = GpuParticleType::Boss_Appear_Dust;
+		K4E::GpuParticleEmitter::EmitterInfo info{};
+		info.kind = K4E::GpuParticleKind::Sprite;
+		info.spriteType = K4E::GpuParticleType::Boss_Appear_Dust;
 		info.radius = 3.0f;
 		info.loopCount = 0;
 		info.loopFrequency = 0.0f;
-		info.billboardFlags = BillboardMode::Camera;
+		info.billboardFlags = K4E::BillboardMode::Camera;
 		info.textureFilePath = kDefaultTex;
 
 		appearDustEmitter_ = GetOrCreateEmitter("BossAppear", info);
@@ -141,13 +143,13 @@ void BossEnemyVfx::RegisterEmitters()
 
 	// --- ボスオーラ ---
 	{
-		GpuParticleEmitter::EmitterInfo info{};
-		info.kind = GpuParticleKind::Sprite;
-		info.spriteType = GpuParticleType::Boss_Aura;
+		K4E::GpuParticleEmitter::EmitterInfo info{};
+		info.kind = K4E::GpuParticleKind::Sprite;
+		info.spriteType = K4E::GpuParticleType::Boss_Aura;
 		info.radius = 0.5f;
 		info.loopCount = 0;
 		info.loopFrequency = 0.0f;
-		info.billboardFlags = BillboardMode::Camera;
+		info.billboardFlags = K4E::BillboardMode::Camera;
 		info.textureFilePath = kDefaultTex;
 
 		auraEmitter_ = GetOrCreateEmitter("BossAura", info);
@@ -155,13 +157,13 @@ void BossEnemyVfx::RegisterEmitters()
 
 	// --- ラッシュ軌跡 ---
 	{
-		GpuParticleEmitter::EmitterInfo info{};
-		info.kind = GpuParticleKind::Sprite;
-		info.spriteType = GpuParticleType::Boss_Rush_Trail;
+		K4E::GpuParticleEmitter::EmitterInfo info{};
+		info.kind = K4E::GpuParticleKind::Sprite;
+		info.spriteType = K4E::GpuParticleType::Boss_Rush_Trail;
 		info.radius = 0.0f;
 		info.loopCount = 0;
 		info.loopFrequency = 0.0f;
-		info.billboardFlags = BillboardMode::Camera;
+		info.billboardFlags = K4E::BillboardMode::Camera;
 		info.textureFilePath = kDefaultTex;
 
 		rushTrailEmitter_ = GetOrCreateEmitter("BossRushTrail", info);
@@ -169,13 +171,13 @@ void BossEnemyVfx::RegisterEmitters()
 
 	// --- ラッシュヒット（衝撃波で代用）---
 	{
-		GpuParticleEmitter::EmitterInfo info{};
-		info.kind = GpuParticleKind::Sprite;
-		info.spriteType = GpuParticleType::Shockwave;
+		K4E::GpuParticleEmitter::EmitterInfo info{};
+		info.kind = K4E::GpuParticleKind::Sprite;
+		info.spriteType = K4E::GpuParticleType::Shockwave;
 		info.radius = 0.5f;
 		info.loopCount = 0;
 		info.loopFrequency = 0.0f;
-		info.billboardFlags = BillboardMode::Camera;
+		info.billboardFlags = K4E::BillboardMode::Camera;
 		info.textureFilePath = kDefaultTex;
 
 		rushHitEmitter_ = GetOrCreateEmitter("BossRushHit", info);
@@ -183,13 +185,13 @@ void BossEnemyVfx::RegisterEmitters()
 
 	// --- スピン攻撃 ---
 	{
-		GpuParticleEmitter::EmitterInfo info{};
-		info.kind = GpuParticleKind::Sprite;
-		info.spriteType = GpuParticleType::Boss_Spin_Slash;
+		K4E::GpuParticleEmitter::EmitterInfo info{};
+		info.kind = K4E::GpuParticleKind::Sprite;
+		info.spriteType = K4E::GpuParticleType::Boss_Spin_Slash;
 		info.radius = 0.1f;
 		info.loopCount = 0;
 		info.loopFrequency = 0.0f;
-		info.billboardFlags = BillboardMode::Camera;
+		info.billboardFlags = K4E::BillboardMode::Camera;
 		info.textureFilePath = kDefaultTex;
 
 		spinAttackEmitter_ = GetOrCreateEmitter("BossSpinAttack", info);
@@ -197,13 +199,13 @@ void BossEnemyVfx::RegisterEmitters()
 
 	// --- 死亡：中心爆発 ---
 	{
-		GpuParticleEmitter::EmitterInfo info{};
-		info.kind = GpuParticleKind::Sprite;
-		info.spriteType = GpuParticleType::Explosion_Fire;
+		K4E::GpuParticleEmitter::EmitterInfo info{};
+		info.kind = K4E::GpuParticleKind::Sprite;
+		info.spriteType = K4E::GpuParticleType::Explosion_Fire;
 		info.radius = 0.5f;
 		info.loopCount = 0;
 		info.loopFrequency = 0.0f;
-		info.billboardFlags = BillboardMode::Camera;
+		info.billboardFlags = K4E::BillboardMode::Camera;
 		info.textureFilePath = kDefaultTex;
 
 		deathExplosionEmitter_ = GetOrCreateEmitter("BossDeathExplosion", info);
@@ -211,13 +213,13 @@ void BossEnemyVfx::RegisterEmitters()
 
 	// --- 死亡：衝撃波 ---
 	{
-		GpuParticleEmitter::EmitterInfo info{};
-		info.kind = GpuParticleKind::Sprite;
-		info.spriteType = GpuParticleType::Shockwave;
+		K4E::GpuParticleEmitter::EmitterInfo info{};
+		info.kind = K4E::GpuParticleKind::Sprite;
+		info.spriteType = K4E::GpuParticleType::Shockwave;
 		info.radius = 0.15f;
 		info.loopCount = 0;
 		info.loopFrequency = 0.0f;
-		info.billboardFlags = BillboardMode::Camera;
+		info.billboardFlags = K4E::BillboardMode::Camera;
 		info.textureFilePath = kDefaultTex;
 
 		deathShockwaveEmitter_ = GetOrCreateEmitter("BossDeathShockwave", info);
@@ -225,13 +227,13 @@ void BossEnemyVfx::RegisterEmitters()
 
 	// --- 死亡：魂 ---
 	{
-		GpuParticleEmitter::EmitterInfo info{};
-		info.kind = GpuParticleKind::Sprite;
-		info.spriteType = GpuParticleType::Boss_Death_Soul;
+		K4E::GpuParticleEmitter::EmitterInfo info{};
+		info.kind = K4E::GpuParticleKind::Sprite;
+		info.spriteType = K4E::GpuParticleType::Boss_Death_Soul;
 		info.radius = 0.35f;
 		info.loopCount = 0;
 		info.loopFrequency = 0.0f;
-		info.billboardFlags = BillboardMode::Camera;
+		info.billboardFlags = K4E::BillboardMode::Camera;
 		info.textureFilePath = kDefaultTex;
 
 		deathSoulEmitter_ = GetOrCreateEmitter("BossDeathSoul", info);
@@ -239,13 +241,13 @@ void BossEnemyVfx::RegisterEmitters()
 
 	// --- 死亡：破片埃 ---
 	{
-		GpuParticleEmitter::EmitterInfo info{};
-		info.kind = GpuParticleKind::Sprite;
-		info.spriteType = GpuParticleType::Boss_Debris_Dust;
+		K4E::GpuParticleEmitter::EmitterInfo info{};
+		info.kind = K4E::GpuParticleKind::Sprite;
+		info.spriteType = K4E::GpuParticleType::Boss_Debris_Dust;
 		info.radius = 1.5f;
 		info.loopCount = 0;
 		info.loopFrequency = 0.0f;
-		info.billboardFlags = BillboardMode::Camera;
+		info.billboardFlags = K4E::BillboardMode::Camera;
 		info.textureFilePath = kDefaultTex;
 
 		debrisDustEmitter_ = GetOrCreateEmitter("BossDebrisDust", info);

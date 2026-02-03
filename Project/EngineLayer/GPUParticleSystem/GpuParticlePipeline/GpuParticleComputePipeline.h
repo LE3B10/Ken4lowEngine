@@ -1,6 +1,9 @@
 #pragma once
 #include <DX12Include.h>
 
+namespace Ken4lowEngine
+{
+
 class DirectXCommon;
 
 /// -------------------------------------------------------------
@@ -45,3 +48,5 @@ private: /// ---------- メンバ変数 ---------- ///
 	ComPtr<ID3D12PipelineState> emitComputePipelineState_;
 	ComPtr<ID3D12PipelineState> updateComputePipelineState_;
 };
+
+} // namespace Ken4lowEngine

@@ -23,9 +23,11 @@
 #include <array>
 #include <memory>
 
+namespace K4E = ::Ken4lowEngine;
+
 /// ---------- 前方宣言 ---------- ///
-class DirectXCommon;
-class Input;
+namespace Ken4lowEngine { class DirectXCommon; }
+namespace Ken4lowEngine { class Input; }
 
 // 敵ウェーブ設定構造体
 struct WaveConfig
@@ -35,7 +37,7 @@ struct WaveConfig
 
 	// 個別スポーン位置
 	// 空でなければこの配列を優先して使う
-	std::vector<Vector3> spawnPositions;
+	std::vector<K4E::Vector3> spawnPositions;
 };
 
 // ステージごとの設定
@@ -45,7 +47,7 @@ struct StageConfig
 	const char* levelModel;         // ステージモデル
 	std::vector<WaveConfig> waves;  // ウェーブ構成
 	float bossHp = 2500.0f;         // ボスHP
-	Vector3 bossSpawnPos{ 0.0f, 2.5f, 0.0f }; // ボス出現位置
+	K4E::Vector3 bossSpawnPos{ 0.0f, 2.5f, 0.0f }; // ボス出現位置
 
 	// ステージごとの敵パラメータ
 	float enemymaxHp = 100.0f;    // 敵最大HP
@@ -127,16 +129,16 @@ public: /// ---------- セッタ ー ---------- ///
 
 public: /// ---------- ゲッター ---------- ///
 
-	DirectXCommon* GetDirectXCommon() { return dxCommon_; }
-	Input* GetInput() { return input_; }
+	K4E::DirectXCommon* GetDirectXCommon() { return dxCommon_; }
+	K4E::Input* GetInput() { return input_; }
 	Player* GetPlayer() { return player_.get(); }
 	std::unique_ptr<BossEnemy>& GetBoss() { return boss_; }
 	std::vector<std::unique_ptr<Enemy>>& GetEnemies() { return enemies_; }
-	SkyBox* GetSkyBox() { return skyBox_.get(); }
+	K4E::SkyBox* GetSkyBox() { return skyBox_.get(); }
 	Crosshair* GetCrosshair() { return crosshair_.get(); }
 	BallisticEffect* GetBallisticEffect() { return ballisticEffect_.get(); }
 	ItemManager* GetItemManager() { return itemManager_.get(); }
-	std::unique_ptr<LevelObjectManager>& GetLevelObjectManager() { return levelObjectManager_; }
+	std::unique_ptr<K4E::LevelObjectManager>& GetLevelObjectManager() { return levelObjectManager_; }
 	CollisionManager* GetCollisionManager() { return collisionManager_.get(); }
 	State GetState() const { return state_; }
 	ItemDropTable& GetItemDropTable() { return normalDropTable_; }
@@ -149,21 +151,21 @@ public: /// ---------- ゲッター ---------- ///
 	void SetCurrentStageIndex(int index) { currentStageIndex_ = index; }
 
 	// 半透明パネル
-	std::unique_ptr<Sprite>& GetClearPanelSprite() { return clearPanelSprite_; }
-	std::unique_ptr<Sprite>& GetClearTextSprite() { return clearTextSprite_; }
+	std::unique_ptr<K4E::Sprite>& GetClearPanelSprite() { return clearPanelSprite_; }
+	std::unique_ptr<K4E::Sprite>& GetClearTextSprite() { return clearTextSprite_; }
 
-	std::unique_ptr<Sprite>& GetRetryButtonSprite() { return retryButtonSprite_; }
-	std::unique_ptr<Sprite>& GetRetireButtonSprite() { return retireButtonSprite_; }
+	std::unique_ptr<K4E::Sprite>& GetRetryButtonSprite() { return retryButtonSprite_; }
+	std::unique_ptr<K4E::Sprite>& GetRetireButtonSprite() { return retireButtonSprite_; }
 
 	int GetClearStarCount() const { return kClearStarCount; }
-	std::array<std::unique_ptr<Sprite>, kClearStarCount>& GetClearStarSprites() { return clearStarSprites_; }
+	std::array<std::unique_ptr<K4E::Sprite>, kClearStarCount>& GetClearStarSprites() { return clearStarSprites_; }
 	std::array<float, kClearStarCount>& GetClearStarDelay() { return clearStarDelay_; }
 	std::array<bool, kClearStarCount>& GetClearStarBurstPlayed() { return clearStarBurstPlayed_; }
 	float GetClearStarPopDuration() const { return clearStarPopDuration_; }
 	float GetClearStarBaseSize() const { return clearStarBaseSize_; }
 
 	int GetClearOptionCount() const { return kClearOptionCount; }
-	std::array<std::unique_ptr<Sprite>, kClearOptionCount>& GetClearOptionSprites() { return clearOptionSprites_; }
+	std::array<std::unique_ptr<K4E::Sprite>, kClearOptionCount>& GetClearOptionSprites() { return clearOptionSprites_; }
 	std::array<ButtonRect, kClearOptionCount>& GetClearOptionRects() { return clearOptionRects_; }
 
 	bool IsBossSpawned() const { return bossSpawned_; }
@@ -219,14 +221,14 @@ private: /// ---------- メンバ関数 ---------- ///
 
 private: /// ---------- メンバ変数 ---------- ///
 
-	DirectXCommon* dxCommon_ = nullptr;
-	Input* input_ = nullptr;
+	K4E::DirectXCommon* dxCommon_ = nullptr;
+	K4E::Input* input_ = nullptr;
 
 	State state_ = State::Playing; // ゲームの状態
 
 	std::unique_ptr<CollisionManager> collisionManager_; // 衝突マネージャー
 
-	std::unique_ptr<SkyBox> skyBox_ = nullptr; // スカイボックス
+	std::unique_ptr<K4E::SkyBox> skyBox_ = nullptr; // スカイボックス
 
 	// 現在のシーン状態
 	std::unique_ptr<IGamePlaySceneState> currentState_ = nullptr;
@@ -249,21 +251,21 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	std::unique_ptr<ItemManager> itemManager_ = nullptr; // アイテムマネージャー
 
-	std::unique_ptr<LevelObjectManager> levelObjectManager_ = nullptr; // レベルオブジェクトマネージャー
+	std::unique_ptr<K4E::LevelObjectManager> levelObjectManager_ = nullptr; // レベルオブジェクトマネージャー
 
-	std::unique_ptr<Sprite> retryButtonSprite_;   // 右下: リトライ
-	std::unique_ptr<Sprite> retireButtonSprite_;  // 左下: リタイア(タイトルへ)
+	std::unique_ptr<K4E::Sprite> retryButtonSprite_;   // 右下: リトライ
+	std::unique_ptr<K4E::Sprite> retireButtonSprite_;  // 左下: リタイア(タイトルへ)
 
 	std::unique_ptr<HUDManager> hudManager_ = nullptr; // HUDマネージャー
 
 	// クリア演出用
 	float gameClearTimer_ = 0.0f;        // 経過時間
 	bool  gameClearInputAccepted_ = false; // 入力受付開始フラグ
-	std::unique_ptr<Sprite> clearPanelSprite_; // 半透明パネル
-	std::unique_ptr<Sprite> clearTextSprite_;  // 「STAGE CLEAR!」などの文字
+	std::unique_ptr<K4E::Sprite> clearPanelSprite_; // 半透明パネル
+	std::unique_ptr<K4E::Sprite> clearTextSprite_;  // 「STAGE CLEAR!」などの文字
 
 	// ★ 星３つ演出
-	std::array<std::unique_ptr<Sprite>, kClearStarCount> clearStarSprites_;
+	std::array<std::unique_ptr<K4E::Sprite>, kClearStarCount> clearStarSprites_;
 	std::array<float, kClearStarCount> clearStarDelay_;      // 何秒後に出るか
 	std::array<bool, kClearStarCount> clearStarBurstPlayed_;
 	float clearStarPopDuration_ = 0.25f;                     // 1 個のポップ時間
@@ -278,7 +280,7 @@ private: /// ---------- メンバ変数 ---------- ///
 	// 0: もう一度同じステージ
 	// 1: 次のステージへ
 	// 2: セレクトシーンに戻る
-	std::array<std::unique_ptr<Sprite>, kClearOptionCount> clearOptionSprites_;
+	std::array<std::unique_ptr<K4E::Sprite>, kClearOptionCount> clearOptionSprites_;
 	std::array<ButtonRect, kClearOptionCount> clearOptionRects_;
 
 	// ボス
@@ -298,7 +300,7 @@ private: /// ---------- メンバ変数 ---------- ///
 	int currentStageIndex_ = 0;
 
 	// フェードオーバーレイ（黒スプライト）
-	std::unique_ptr<Sprite> fadeSprite_;
+	std::unique_ptr<K4E::Sprite> fadeSprite_;
 	float fadeAlpha_ = 0.0f;
 
 	// ゲームプレイ初期化フラグ

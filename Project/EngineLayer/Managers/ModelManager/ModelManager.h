@@ -12,6 +12,9 @@
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
 
+namespace Ken4lowEngine
+{
+
 /// ---------- 前方宣言 ---------- ///
 class Object3D;
 
@@ -140,3 +143,5 @@ private: /// ---------- コピー禁止 ---------- ///
 	const ModelManager& operator=(const ModelManager&) = delete;
 };
 
+
+} // namespace Ken4lowEngine

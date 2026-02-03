@@ -2,6 +2,9 @@
 #include "IPostEffect.h"
 #include <Vector4.h>
 
+namespace Ken4lowEngine
+{
+
 
 /// -------------------------------------------------------------
 ///					ディゾルブエフェクトクラス
@@ -65,3 +68,5 @@ private: /// ---------- メンバ変数 ---------- ///
 	uint32_t dissolveMaskSrvIndexOnUAV_ = UINT32_MAX;   // UAVヒープ側に複製したSRV
 };
 
+
+} // namespace Ken4lowEngine

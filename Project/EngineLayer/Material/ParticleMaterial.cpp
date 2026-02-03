@@ -2,6 +2,9 @@
 #include "ResourceManager.h"
 #include "DirectXCommon.h"
 
+namespace Ken4lowEngine
+{
+
 /// -------------------------------------------------------------
 ///				           初期化処理
 /// -------------------------------------------------------------
@@ -66,3 +69,5 @@ void ParticleMaterial::SetPipeline(UINT rootParameterIndex, uint32_t slot) const
 	}
 }
 
+
+} // namespace Ken4lowEngine

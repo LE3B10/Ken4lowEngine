@@ -21,6 +21,9 @@
 
 #ifdef USE_IMGUI
 #include <imgui.h>
+
+namespace K4E = ::Ken4lowEngine;
+
 #endif // USE_IMGUI
 
 /// -------------------------------------------------------------
@@ -40,15 +43,15 @@ void Enemy::Initialize()
 	// ベースキャラクター初期化
 	BaseCharacter::Initialize();
 	// ID登録
-	Collider::SetTypeID(static_cast<uint32_t>(CollisionTypeIdDef::kEnemy));
-	Collider::SetOwner<Enemy>(this);
-	Collider::SetOBBHalfSize({ 0.8f, 2.0f, 0.8f });
+	K4E::Collider::SetTypeID(static_cast<uint32_t>(CollisionTypeIdDef::kEnemy));
+	K4E::Collider::SetOwner<Enemy>(this);
+	K4E::Collider::SetOBBHalfSize({ 0.8f, 2.0f, 0.8f });
 
 	// テクスチャの設定
 	BaseCharacter::ApplySkinToAllParts(skinTexturePath_);
 
 	// GPUパーティクルマネージャー取得
-	gpuParticleManager_ = GpuParticleManager::GetInstance();
+	gpuParticleManager_ = K4E::GpuParticleManager::GetInstance();
 
 	// VFX初期化
 	vfx_ = std::make_unique<BossEnemyVfx>();
@@ -89,13 +92,13 @@ void Enemy::Update(float deltaTime)
 	if (death_.active)
 	{
 		if (currentState_) currentState_->Update(this, deltaTime);
-		Collider::SetOBBHalfSize({ 0.0f, 0.0f, 0.0f }); // 衝突判定無効化
+		K4E::Collider::SetOBBHalfSize({ 0.0f, 0.0f, 0.0f }); // 衝突判定無効化
 		BaseCharacter::Update(deltaTime);
 		return;
 	}
 
 	// 移動前の位置を保存
-	Vector3 oldPos = body_.transform.translate_;
+	K4E::Vector3 oldPos = body_.transform.translate_;
 
 	// Damaged 中は BT を止めてステートだけ
 	if (currentStateId_ == AIState::Spawn || currentStateId_ == AIState::Damaged)
@@ -113,7 +116,7 @@ void Enemy::Update(float deltaTime)
 	SolveWorldCollision(oldPos);
 
 	// コライダー中心を同期
-	Collider::SetCenterPosition(GetCenterPosition());
+	K4E::Collider::SetCenterPosition(GetCenterPosition());
 
 	// ベースキャラクターの更新
 	BaseCharacter::Update(deltaTime);
@@ -144,7 +147,7 @@ void Enemy::DrawImGui()
 /// -------------------------------------------------------------
 ///				　　　 衝突時に呼ばれる仮想関数
 /// -------------------------------------------------------------
-void Enemy::OnCollision(Collider* other)
+void Enemy::OnCollision(K4E::Collider* other)
 {
 	uint32_t serialNumber = other->GetUniqueID(); // 相手のシリアルナンバー取得
 
@@ -174,8 +177,8 @@ bool Enemy::IsPlayerInAttackRange() const
 {
 	if (!player_) return false;
 
-	Vector3 toPlayer = player_->GetCenterPosition() - GetCenterPosition();
-	float dist = Vector3::Length(toPlayer);
+	K4E::Vector3 toPlayer = player_->GetCenterPosition() - GetCenterPosition();
+	float dist = K4E::Vector3::Length(toPlayer);
 
 	// 敵とプレイヤーの最接近距離（これ以上近づけない距離）
 	float minDist = GetPersonalSpaceRadius(); // ≒1.6
@@ -201,8 +204,8 @@ bool Enemy::CanSeePlayer() const
 {
 	if (!player_) return false;
 
-	Vector3 toPlayer = player_->GetCenterPosition() - GetCenterPosition();
-	float dist = Vector3::Length(toPlayer);
+	K4E::Vector3 toPlayer = player_->GetCenterPosition() - GetCenterPosition();
+	float dist = K4E::Vector3::Length(toPlayer);
 
 	// 1) 近づかれたら、とりあえず気付く（背後からでも）
 	if (dist <= wander_.detectRadius)
@@ -230,9 +233,9 @@ bool Enemy::CanSeePlayer() const
 	}
 
 	// 4) まだ警戒していないときだけ視野角で判定
-	Vector3 forward = { 0.0f, 0.0f, 1.0f }; // 本当は body_.transform の向きから計算するとベスト
-	Vector3 dir = Vector3::Normalize(toPlayer);
-	float dot = Vector3::Dot(forward, dir);
+	K4E::Vector3 forward = { 0.0f, 0.0f, 1.0f }; // 本当は body_.transform の向きから計算するとベスト
+	K4E::Vector3 dir = K4E::Vector3::Normalize(toPlayer);
+	float dot = K4E::Vector3::Dot(forward, dir);
 
 	float halfAngleRad = (config_.viewAngle * 0.5f) * (3.14159265f / 180.0f);
 	float cosHalf = std::cos(halfAngleRad);
@@ -290,9 +293,9 @@ void Enemy::ChangeState(std::unique_ptr<IEnemyAIState> newState)
 /// -------------------------------------------------------------
 ///				　　　中心座標を取得する純粋仮想関数
 /// -------------------------------------------------------------
-Vector3 Enemy::GetCenterPosition() const
+K4E::Vector3 Enemy::GetCenterPosition() const
 {
-	const Vector3 offset = { 0.0f,0.0f,0.0f };
+	const K4E::Vector3 offset = { 0.0f,0.0f,0.0f };
 	return body_.transform.translate_ + offset;
 }
 
@@ -317,30 +320,30 @@ void Enemy::InitializeBehaviorTree()
 /// -------------------------------------------------------------
 ///				　　　ワールド衝突解決処理
 /// -------------------------------------------------------------
-void Enemy::SolveWorldCollision(const Vector3& oldTranslate)
+void Enemy::SolveWorldCollision(const K4E::Vector3& oldTranslate)
 {
 	// ステージ情報がなければ何もしない
 	if (!levelObjectManager_) return;
 
 	// プレイヤーと同じ当たり判定の前提:
-	const Vector3 half = { 0.8f, 2.0f, 0.8f };
+	const K4E::Vector3 half = { 0.8f, 2.0f, 0.8f };
 	const float kEps = 0.002f;
 
 	// プレイヤーと同じく「見た目の原点」と「物理中心」にオフセット差があるのでそろえる
-	const Vector3 kCenterOffset = { 0.0f, 0.0f, 0.0f };
+	const K4E::Vector3 kCenterOffset = { 0.0f, 0.0f, 0.0f };
 
 	// old/new の中心
-	Vector3 oldCenter = oldTranslate - kCenterOffset;
-	Vector3 newCenter = body_.transform.translate_ - kCenterOffset;
+	K4E::Vector3 oldCenter = oldTranslate - kCenterOffset;
+	K4E::Vector3 newCenter = body_.transform.translate_ - kCenterOffset;
 
 	// ワールドの当たり判定AABB群を取得
 	const auto worldAABBs = levelObjectManager_->GetWorldAABBs();
 
 	// プレイヤーAABBを作るラムダ
-	auto makeAABB = [&](const Vector3& c) {return AABB{ c - half, c + half };	};
+	auto makeAABB = [&](const K4E::Vector3& c) {return K4E::AABB{ c - half, c + half };	};
 
 	// 押し戻し後の中心位置
-	Vector3 fixedCenter = oldCenter;
+	K4E::Vector3 fixedCenter = oldCenter;
 
 	// 指定軸方向の押し戻しを解決するラムダ
 	auto resolveAxis = [&](int axis, float delta)
@@ -353,7 +356,7 @@ void Enemy::SolveWorldCollision(const Vector3& oldTranslate)
 			if (axis == 2) fixedCenter.z += delta;
 
 			// プレイヤーAABBを作成
-			AABB p = makeAABB(fixedCenter);
+			K4E::AABB p = makeAABB(fixedCenter);
 
 			bool hit = false;
 			float bestFix = 0.0f;
@@ -453,7 +456,7 @@ void Enemy::SolveWorldCollision(const Vector3& oldTranslate)
 	body_.transform.translate_ = fixedCenter + kCenterOffset;
 
 	// コライダー中心も同期（プレイヤーと同じく物理中心ベースで渡す）
-	Collider::SetCenterPosition(fixedCenter);
+	K4E::Collider::SetCenterPosition(fixedCenter);
 }
 
 void Enemy::RequestSpawnState()

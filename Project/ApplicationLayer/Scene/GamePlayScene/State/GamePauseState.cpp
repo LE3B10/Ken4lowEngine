@@ -7,6 +7,8 @@
 
 #include <memory>
 
+namespace K4E = ::Ken4lowEngine;
+
 void GamePauseState::Enter(GamePlayScene* scene)
 {
 	if (!scene) return;
@@ -18,7 +20,7 @@ void GamePauseState::Enter(GamePlayScene* scene)
 	scene->SetPaused(true);
 
 	// カーソル解放（ポーズメニューを操作できるように）
-	Input::GetInstance()->SetLockCursor(false);
+	K4E::Input::GetInstance()->SetLockCursor(false);
 	ShowCursor(true);
 }
 
@@ -55,7 +57,7 @@ void GamePauseState::Update(GamePlayScene* scene, float deltaTime)
 			else
 			{
 				// ゲーム再開（Playing へ戻る）
-				Input::GetInstance()->SetLockCursor(true);
+				K4E::Input::GetInstance()->SetLockCursor(true);
 				ShowCursor(false);
 
 				scene->SetState(State::Playing);
@@ -72,7 +74,7 @@ void GamePauseState::Update(GamePlayScene* scene, float deltaTime)
 		scene->ClearPauseOverlay();
 		scene->SetPaused(false);
 
-		Input::GetInstance()->SetLockCursor(true);
+		K4E::Input::GetInstance()->SetLockCursor(true);
 		ShowCursor(false);
 
 		scene->SetState(State::Playing);

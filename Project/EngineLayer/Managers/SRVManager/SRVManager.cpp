@@ -2,6 +2,9 @@
 
 #include "DirectXCommon.h"
 
+namespace Ken4lowEngine
+{
+
 #pragma comment(lib, "d3d12.lib")
 #pragma comment(lib, "dxgi.lib")
 
@@ -234,3 +237,5 @@ D3D12_GPU_DESCRIPTOR_HANDLE SRVManager::GetGPUDescriptorHandle(uint32_t index)
 	handle.ptr += descriptorSize * index;
 	return handle;
 }
+
+} // namespace Ken4lowEngine

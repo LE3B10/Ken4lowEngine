@@ -4,6 +4,9 @@
 #include "Particle.h"
 #include "ParticleEffectType.h"
 
+namespace Ken4lowEngine
+{
+
 /// -------------------------------------------------------------
 ///						パーティクル生成クラス
 /// -------------------------------------------------------------
@@ -30,3 +33,5 @@ public: /// ---------- メンバ関数 ---------- ///
 	static Particle CreateLaserBeam(const Vector3& position, float length, const Vector3& color);
 };
 
+
+} // namespace Ken4lowEngine

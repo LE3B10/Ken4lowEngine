@@ -3,6 +3,9 @@
 #include "DX12Include.h"
 #include "LogString.h"
 
+namespace Ken4lowEngine
+{
+
 /// -------------------------------------------------------------
 ///				シェーダーコンパイラ専用クラス
 /// -------------------------------------------------------------
@@ -54,3 +57,5 @@ public: /// ---------- メンバ関数 ---------- ///
 	static std::wstring GetShaderPath(const std::wstring& shaderName, const std::wstring& extension = L"");
 };
 
+
+} // namespace Ken4lowEngine

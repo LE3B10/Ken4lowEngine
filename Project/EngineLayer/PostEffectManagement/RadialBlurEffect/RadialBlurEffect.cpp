@@ -12,6 +12,9 @@
 
 #ifdef USE_IMGUI
 #include <imgui.h>
+
+namespace Ken4lowEngine
+{
 #endif // USE_IMGUI
 
 /// -------------------------------------------------------------
@@ -110,3 +113,5 @@ void RadialBlurEffect::DrawImGui()
 	ImGui::SliderFloat2("Center", &radialBlurSetting_->center.x, 0.0f, 1.0f);
 #endif // USE_IMGUI
 }
+
+} // namespace Ken4lowEngine

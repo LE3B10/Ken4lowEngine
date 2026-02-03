@@ -3,6 +3,9 @@
 #include "Vector3.h"
 #include "Matrix4x4.h"
 
+namespace Ken4lowEngine
+{
+
 /// ---------- 前方宣言 ---------- ///
 class Camera;
 
@@ -78,3 +81,5 @@ private: /// ---------- メンバ変数 ---------- ///
 	ComPtr <ID3D12Resource> wvpResource;	 // WVP行列データ用リソース
 	TransformationMatrix* wvpData = nullptr; // WVP行列データのマッピング先ポインタ
 };
+
+} // namespace Ken4lowEngine

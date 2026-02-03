@@ -2,6 +2,7 @@
 
 #ifdef USE_IMGUI
 #include <imgui.h>
+
 #endif // USE_IMGUI
 
 namespace
@@ -93,7 +94,7 @@ void WeaponMasterDataEditor::DrawToolbar(WeaponMasterDataDatabase& database, Wea
 	}
 
 	ImGui::SameLine();
-	ImGui::Checkbox("Group", &groupByCategory_);
+	ImGui::Checkbox("K4E::Group", &groupByCategory_);
 
 	ImGui::SameLine();
 	const char* viewLabel = (viewCategory_ < 0) ? "All" : kCategoryNames[viewCategory_];

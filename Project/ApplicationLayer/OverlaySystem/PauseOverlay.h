@@ -6,8 +6,10 @@
 #include <memory>
 #include <string>
 
+namespace K4E = ::Ken4lowEngine;
+
 /// ---------- 前方宣言 ---------- ///
-class Input;
+namespace Ken4lowEngine { class Input; }
 
 /// -------------------------------------------------------------
 ///                      ポーズオーバーレイクラス
@@ -60,19 +62,19 @@ private:
     void DecideCurrent();
 
     /// ボタンのフォーカス強調
-    void setEmphasis(Sprite* sprite, bool emphasized);
+    void setEmphasis(K4E::Sprite* sprite, bool emphasized);
 
 private:
     // 入力
-    Input* input_ = nullptr;
+    K4E::Input* input_ = nullptr;
 
     // 背景暗転 & パネル
-    std::unique_ptr<Sprite> dim_;
-    std::unique_ptr<Sprite> panel_;
+    std::unique_ptr<K4E::Sprite> dim_;
+    std::unique_ptr<K4E::Sprite> panel_;
 
     // ボタン（ゲームに戻る・タイトルへ）
-    std::unique_ptr<Sprite> btnContinue_;
-    std::unique_ptr<Sprite> btnTitle_;
+    std::unique_ptr<K4E::Sprite> btnContinue_;
+    std::unique_ptr<K4E::Sprite> btnTitle_;
 
     // クリック判定用
     ButtonRect rectContinue_{};

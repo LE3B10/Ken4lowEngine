@@ -6,6 +6,9 @@
 #include "Vector3.h"
 #include "Vector4.h"
 
+namespace Ken4lowEngine
+{
+
 /// -------------------------------------------------------------
 ///						線形補間を行う関数
 /// -------------------------------------------------------------
@@ -260,3 +263,5 @@ inline float EaseInOutBounce(float t)
 		return EaseOutBounce(t * 2.0f - 1.0f) / 2.0f + 0.5f;
 	}
 }
+
+} // namespace Ken4lowEngine

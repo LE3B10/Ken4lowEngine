@@ -3,6 +3,9 @@
 #include <algorithm>
 #include <cmath>
 
+namespace Ken4lowEngine
+{
+
 float SpriteFractureEffect::RandRange(float a, float b)
 {
     std::uniform_real_distribution<float> dist(a, b);
@@ -217,3 +220,5 @@ void SpriteFractureEffect::Draw()
         p.sprite->Draw();
     }
 }
+
+} // namespace Ken4lowEngine

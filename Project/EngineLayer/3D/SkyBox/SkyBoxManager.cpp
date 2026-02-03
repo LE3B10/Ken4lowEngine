@@ -5,6 +5,9 @@
 #include <BlendStateFactory.h>
 #include <SRVManager.h>
 
+namespace Ken4lowEngine
+{
+
 
 /// -------------------------------------------------------------
 ///				　	シングルトンインスタンス
@@ -202,3 +205,5 @@ void SkyBoxManager::CreatePSO()
 	hr = dxCommon_->GetDevice()->CreateGraphicsPipelineState(&graphicsPipelineStateDesc, IID_PPV_ARGS(&graphicsPipelineState_));
 	assert(SUCCEEDED(hr));
 }
+
+} // namespace Ken4lowEngine

@@ -4,6 +4,8 @@
 
 #include <random>
 
+namespace K4E = ::Ken4lowEngine;
+
 void EnemyAIDeadState::Enter(Enemy* enemy)
 {
 	using AIState = Enemy::AIState;
@@ -29,9 +31,9 @@ void EnemyAIDeadState::Update(Enemy* enemy, float deltaTime)
 
 	death.timer += deltaTime;
 	float t = std::clamp(death.timer / death.duration, 0.0f, 1.0f);
-	const Vector3 gravity = { 0.0f, -9.8f * 3.0f, 0.0f };
+	const K4E::Vector3 gravity = { 0.0f, -9.8f * 3.0f, 0.0f };
 
-	auto ClampToFloorY = [](Vector3& pos, Vector3& vel, float floorY)
+	auto ClampToFloorY = [](K4E::Vector3& pos, K4E::Vector3& vel, float floorY)
 		{
 			if (pos.y < floorY)
 			{

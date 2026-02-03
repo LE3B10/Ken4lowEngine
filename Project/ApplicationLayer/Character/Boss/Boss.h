@@ -5,6 +5,8 @@
 
 #include <memory>
 
+namespace K4E = ::Ken4lowEngine;
+
 /// -------------------------------------------------------------
 ///					　		ボスクラス
 /// -------------------------------------------------------------
@@ -44,15 +46,15 @@ public: /// ---------- メンバ関数 ---------- ///
 	virtual void DrawImGui() override;
 
 	// 衝突判定処理
-	virtual void OnCollision(Collider* other) override;
+	virtual void OnCollision(K4E::Collider* other) override;
 
 	// 中心座標を取得
-	virtual Vector3 GetCenterPosition() const override;
+	virtual K4E::Vector3 GetCenterPosition() const override;
 
 public: /// ---------- 腕周りの関数 ---------- ///
 
 	// 左腕部位のローカル回転を設定
-	void SetLeftArmLocalRotate(const Vector3& rotate)
+	void SetLeftArmLocalRotate(const K4E::Vector3& rotate)
 	{
 		auto& parts = GetBodyParts();
 		const auto idx = GetPartIndices().leftArm; // 左腕部位インデックス
@@ -62,7 +64,7 @@ public: /// ---------- 腕周りの関数 ---------- ///
 	}
 
 	// 左腕部位のワールド座標を取得
-	Vector3 GetLeftArmRootWorldPosition()
+	K4E::Vector3 GetLeftArmRootWorldPosition()
 	{
 		auto& parts = GetBodyParts();
 		const auto idx = GetPartIndices().leftArm;
@@ -80,7 +82,7 @@ public: /// ---------- 腕周りの関数 ---------- ///
 	}
 
 	// 右腕部位のローカル回転を設定
-	void SetRightArmLocalRotate(const Vector3& rotate)
+	void SetRightArmLocalRotate(const K4E::Vector3& rotate)
 	{
 		auto& parts = GetBodyParts();
 		const auto idx = GetPartIndices().rightArm; // 右腕部位インデックス
@@ -90,7 +92,7 @@ public: /// ---------- 腕周りの関数 ---------- ///
 	}
 
 	// 右腕部位のワールド座標を取得
-	Vector3 GetRightArmRootWorldPosition()
+	K4E::Vector3 GetRightArmRootWorldPosition()
 	{
 		auto& parts = GetBodyParts();
 		const auto idx = GetPartIndices().rightArm;
@@ -125,7 +127,7 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	// テスト用プレイヤー座標（プレイヤー接続できてない間の確認用）
 	bool  debugUseTestPlayerPos_ = true;
-	Vector3 debugTestPlayerPos_{ 0.0f, 0.0f, 4.0f };
+	K4E::Vector3 debugTestPlayerPos_{ 0.0f, 0.0f, 4.0f };
 
 	// 状態の可視化
 	bool  debugPlayerInSector_ = false;

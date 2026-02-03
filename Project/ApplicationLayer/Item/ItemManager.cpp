@@ -2,6 +2,8 @@
 #include "Player.h"
 #include "CollisionManager.h"
 
+namespace K4E = ::Ken4lowEngine;
+
 /// -------------------------------------------------------------
 ///							初期化処理
 /// -------------------------------------------------------------
@@ -66,7 +68,7 @@ void ItemManager::RegisterColliders(CollisionManager* collisionManager)
 /// -------------------------------------------------------------
 ///							スポーン処理
 /// -------------------------------------------------------------
-void ItemManager::Spawn(ItemType type, const Vector3& position)
+void ItemManager::Spawn(ItemType type, const K4E::Vector3& position)
 {
 	auto item = std::make_unique<Item>(); // アイテムを生成
 	item->Initialize(type, position);	  // 初期化

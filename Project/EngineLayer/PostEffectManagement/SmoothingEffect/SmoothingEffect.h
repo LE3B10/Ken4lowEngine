@@ -1,6 +1,9 @@
 #pragma once
 #include "IPostEffect.h"
 
+namespace Ken4lowEngine
+{
+
 /// -------------------------------------------------------------
 ///					スムージングエフェクトクラス
 /// -------------------------------------------------------------
@@ -58,3 +61,5 @@ private: /// ---------- メンバ変数 ---------- ///
 	SmoothingSetting* smoothingSetting_ = nullptr;			// 設定データ
 };
 
+
+} // namespace Ken4lowEngine

@@ -14,6 +14,9 @@
 #include <IPostEffect.h>
 #include "PostEffectPipelineBuilder.h"
 
+namespace Ken4lowEngine
+{
+
 /// ---------- 前方宣言 ---------- ///
 class DirectXCommon;
 class Camera;
@@ -202,3 +205,5 @@ private: /// ---------- コピー禁止 ---------- ///
 	PostEffectManager(const PostEffectManager&) = delete;
 	const PostEffectManager& operator=(const PostEffectManager&) = delete;
 };
+
+} // namespace Ken4lowEngine

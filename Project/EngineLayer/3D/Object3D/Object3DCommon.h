@@ -6,6 +6,9 @@
 
 #include <memory>
 
+namespace Ken4lowEngine
+{
+
 /// ---------- 前方宣言 ---------- ///
 class DirectXCommon;
 
@@ -171,3 +174,5 @@ private: /// ---------- コピー禁止 ---------- ///
 	Object3DCommon& operator=(const Object3DCommon&) = delete;
 };
 
+
+} // namespace Ken4lowEngine

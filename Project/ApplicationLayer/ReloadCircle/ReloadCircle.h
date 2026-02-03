@@ -4,6 +4,8 @@
 #include <algorithm>
 #include <memory>
 
+namespace K4E = ::Ken4lowEngine;
+
 /// ---------- 前方宣言 ---------- ///
 class Weapon;
 
@@ -47,7 +49,7 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	Weapon* weapon_ = nullptr; // 武器へのポインタ
 
-	std::unique_ptr<Sprite> sprite_;
+	std::unique_ptr<K4E::Sprite> sprite_;
 	float progress_ = 0.0f;
 	bool isVisible_ = false;
 

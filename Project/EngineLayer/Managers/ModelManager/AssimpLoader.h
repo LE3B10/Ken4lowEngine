@@ -9,6 +9,9 @@
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
 
+namespace Ken4lowEngine
+{
+
 /// -------------------------------------------------------------
 /// 				Assimpでモデルを読み込むクラス
 /// -------------------------------------------------------------
@@ -56,3 +59,5 @@ private: /// ---------- メンバ関数 ---------- ///
 	static void ParseMeshes(const aiScene* scene, ModelData& modelData);
 };
 
+
+} // namespace Ken4lowEngine

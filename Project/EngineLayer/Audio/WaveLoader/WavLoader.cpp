@@ -1,6 +1,9 @@
 #include "WavLoader.h"
 #include "WavLoaderException.h"
 
+namespace Ken4lowEngine
+{
+
 #pragma comment(lib, "xaudio2.lib")
 
 
@@ -325,3 +328,5 @@ void WavLoader::UpdatePitchAndVolume(IXAudio2SourceVoice* voice, float volume, f
 		previousVolume = volume;  // 記録
 	}
 }
+
+} // namespace Ken4lowEngine

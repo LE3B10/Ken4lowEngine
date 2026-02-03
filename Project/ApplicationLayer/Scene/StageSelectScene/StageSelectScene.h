@@ -12,9 +12,11 @@
 #include "GridStageSelector.h"     // まずは Grid を使う
 #include "IStageSelectSceneState.h" // ステート基底クラス
 
+namespace K4E = ::Ken4lowEngine;
+
 /// ---------- 前方宣言 ---------- ///
-class DirectXCommon;
-class Input;
+namespace Ken4lowEngine { class DirectXCommon; }
+namespace Ken4lowEngine { class Input; }
 
 
 /// -------------------------------------------------------------
@@ -83,17 +85,17 @@ public: /// ---------- 状態管理 ---------- ///
 	void SetState(State s) { state_ = s; }
 
 	// ステート用アクセサ（ステートクラスから必要な情報だけ触れるようにする）
-	DirectXCommon* GetDxCommon() const { return dxCommon_; }
-	Input* GetInput() const { return input_; }
+	K4E::DirectXCommon* GetDxCommon() const { return dxCommon_; }
+	K4E::Input* GetInput() const { return input_; }
 
 	std::vector<StageInfo>& GetStages() { return stages_; }
 	const std::vector<StageInfo>& GetStages() const { return stages_; }
 
 	IStageSelector* GetActiveSelector() const { return activeSelector_; }
 
-	Sprite* GetBgSprite() const { return bg_.get(); }
-	Vector4& GetBgNow() { return bgNow_; }
-	Vector4& GetBgTarget() { return bgTarget_; }
+	K4E::Sprite* GetBgSprite() const { return bg_.get(); }
+	K4E::Vector4& GetBgNow() { return bgNow_; }
+	K4E::Vector4& GetBgTarget() { return bgTarget_; }
 
 	// ペンディングアンロックインデックス
 	int& GetPendingUnlockIndex() { return pendingUnlockIndex_; }
@@ -121,8 +123,8 @@ private: /// ---------- メンバ変数 ---------- ///
 	NextScene nextScene_ = NextScene::None;
 
 	// 依存注入
-	DirectXCommon* dxCommon_ = nullptr;
-	Input* input_ = nullptr;
+	K4E::DirectXCommon* dxCommon_ = nullptr;
+	K4E::Input* input_ = nullptr;
 
 	// データ
 	std::vector<StageInfo> stages_;
@@ -133,9 +135,9 @@ private: /// ---------- メンバ変数 ---------- ///
 	IStageSelector* activeSelector_ = nullptr; // 生ポインタでアクセス
 
 	// 背景色
-	std::unique_ptr<Sprite> bg_;
-	Vector4 bgNow_ = { 0.18f, 0.49f, 0.20f, 1.0f }; // 現在の色
-	Vector4 bgTarget_ = bgNow_; // 目標の色
+	std::unique_ptr<K4E::Sprite> bg_;
+	K4E::Vector4 bgNow_ = { 0.18f, 0.49f, 0.20f, 1.0f }; // 現在の色
+	K4E::Vector4 bgTarget_ = bgNow_; // 目標の色
 
 	int pendingUnlockIndex_ = -1;
 };

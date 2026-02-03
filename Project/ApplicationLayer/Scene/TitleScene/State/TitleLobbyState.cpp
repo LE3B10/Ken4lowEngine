@@ -8,10 +8,12 @@
 #include <LinearInterpolation.h>
 #include <DirectXCommon.h>
 
+namespace K4E = ::Ken4lowEngine;
+
 /// -------------------------------------------------------------
 ///				　			　補助関数
 /// -------------------------------------------------------------
-static inline void YawPitchLookAt(const Vector3& from, const Vector3& to, float& outYaw, float& outPitch)
+static inline void YawPitchLookAt(const K4E::Vector3& from, const K4E::Vector3& to, float& outYaw, float& outPitch)
 {
 	const float dx = to.x - from.x; // Xは横方向
 	const float dy = to.y - from.y; // Yは高さ
@@ -42,10 +44,10 @@ void TitleLobbyState::Update(TitleScene* scene, float deltaTime)
 	auto& poseTo = scene->GetPoseTo();
 	auto& battleButtonUI = scene->GetBattleButtonUI();
 
-	Camera* camera = scene->GetCamera();
-	Input* input = scene->GetInput();
+	K4E::Camera* camera = scene->GetCamera();
+	K4E::Input* input = scene->GetInput();
 
-	Vector2 mp = input->GetMousePosition();
+	K4E::Vector2 mp = input->GetMousePosition();
 
 	// ボタン矩形（アンカー対応）
 	const float minX = battleButtonUI.position.x - battleButtonUI.size.x * battleButtonUI.anchor.x;
@@ -83,13 +85,13 @@ void TitleLobbyState::Update(TitleScene* scene, float deltaTime)
 	const float hoverTarget = (!pressTarget && inBtn) ? 1.0f : 0.0f;
 
 	const float s = std::clamp(deltaTime * 12.0f, 0.0f, 1.0f);
-	battleButtonUI.pressAnim = Lerp(battleButtonUI.pressAnim, pressTarget, s);
-	battleButtonUI.hoverAnim = Lerp(battleButtonUI.hoverAnim, hoverTarget, s);
+	battleButtonUI.pressAnim = K4E::Lerp(battleButtonUI.pressAnim, pressTarget, s);
+	battleButtonUI.hoverAnim = K4E::Lerp(battleButtonUI.hoverAnim, hoverTarget, s);
 
 	const float scale =
 		(1.0f + battleButtonUI.scaleHover * battleButtonUI.hoverAnim) - (battleButtonUI.scalePress * battleButtonUI.pressAnim);
 
-	const Vector2 pos = {
+	const K4E::Vector2 pos = {
 		battleButtonUI.position.x,
 		battleButtonUI.position.y + battleButtonUI.pressOffsetPx * battleButtonUI.pressAnim
 	};
@@ -106,7 +108,7 @@ void TitleLobbyState::Update(TitleScene* scene, float deltaTime)
 
 	if (battleButtonUI.btnShadow)
 	{
-		const float shadowOffset = Lerp(6.0f, 2.0f, battleButtonUI.pressAnim);
+		const float shadowOffset = K4E::Lerp(6.0f, 2.0f, battleButtonUI.pressAnim);
 		battleButtonUI.btnShadow->SetSize({ battleButtonUI.size.x * (scale + 0.02f), battleButtonUI.size.y * (scale + 0.02f) });
 		battleButtonUI.btnShadow->SetPosition({ battleButtonUI.position.x, battleButtonUI.position.y + shadowOffset });
 		battleButtonUI.btnShadow->SetColor({ 0, 0, 0, 0.35f + 0.1f * battleButtonUI.hoverAnim });
@@ -140,7 +142,7 @@ void TitleLobbyState::Update(TitleScene* scene, float deltaTime)
 	// 規定時間無操作なら戻る（元のままでOK）
 	if (timers.idle >= timers.returnSeconds && camera)
 	{
-		Vector3 orbitPos{
+		K4E::Vector3 orbitPos{
 			orbitState.center.x + orbitState.radius * std::sin(orbitState.angle),
 			orbitState.center.y,
 			orbitState.center.z + orbitState.radius * std::cos(orbitState.angle)

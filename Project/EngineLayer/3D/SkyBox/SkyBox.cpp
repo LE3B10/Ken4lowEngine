@@ -6,6 +6,9 @@
 #include "DebugCamera.h"
 #include <SkyBoxManager.h>
 
+namespace Ken4lowEngine
+{
+
 
 /// -------------------------------------------------------------
 ///				　			初期化処理
@@ -216,3 +219,4 @@ void SkyBox::InitializeIndexData()
 
 	memcpy(indexData_, &indexData_[0], sizeof(uint32_t) * kNumIndex);
 }
+} // namespace Ken4lowEngine

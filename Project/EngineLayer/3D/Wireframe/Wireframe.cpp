@@ -7,6 +7,9 @@
 #include "DebugCamera.h"
 #include "ResourceManager.h"
 
+namespace Ken4lowEngine
+{
+
 /// -------------------------------------------------------------
 ///				　	シングルトンインスタンス
 /// -------------------------------------------------------------
@@ -1716,3 +1719,5 @@ void Wireframe::CalcSphereVertexData()
 		}
 	}
 }
+
+} // namespace Ken4lowEngine

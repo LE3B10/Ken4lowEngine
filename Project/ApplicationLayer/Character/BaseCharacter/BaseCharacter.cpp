@@ -1,18 +1,20 @@
 #include "BaseCharacter.h"
 #include "Object3DCommon.h"
 
+namespace K4E = ::Ken4lowEngine;
+
 /// -------------------------------------------------------------
 ///				　			　 更新処理
 /// -------------------------------------------------------------
 void BaseCharacter::Initialize()
 {
 	// 体幹部位の初期化
-	body_.object = std::make_unique<Object3D>();
+	body_.object = std::make_unique<K4E::Object3D>();
 	body_.object->Initialize("Character/body.gltf");
 	body_.transform.translate_ = { 0.0f, 2.25f, 0.0f };	// 初期位置
 
 	// 子オブジェクト（頭、腕、脚）をリストに追加
-	std::vector<std::pair<std::string, Vector3>> partData =
+	std::vector<std::pair<std::string, K4E::Vector3>> partData =
 	{
 		{"Character/head.gltf",		 { 0.0f,   0.75f, 0.0f } },	// 頭   : 0
 		{"Character/left_arm.gltf",  {-0.75f,  0.75f, 0.0f } },	// 左腕 : 1
@@ -26,7 +28,7 @@ void BaseCharacter::Initialize()
 	{
 		// ローカル変数で部位データを作成
 		BodyPart part = {};
-		part.object = std::make_unique<Object3D>();			  // オブジェクト生成
+		part.object = std::make_unique<K4E::Object3D>();			  // オブジェクト生成
 		part.object->Initialize(modelPath); 				  // モデル読み込み
 		part.transform.translate_ = position;				  // 位置設定
 		part.object->SetTranslate(part.transform.translate_); // オブジェクトにも位置設定
@@ -93,11 +95,11 @@ void BaseCharacter::UpdateHierarchy()
 /// -------------------------------------------------------------
 ///					　	中心座標を取得
 /// -------------------------------------------------------------
-Vector3 BaseCharacter::GetCenterPosition() const
+K4E::Vector3 BaseCharacter::GetCenterPosition() const
 {
 	// ローカル座標でのオフセット
-	const Vector3 offset = { 0.0f,0.0f,0.0f };
+	const K4E::Vector3 offset = { 0.0f,0.0f,0.0f };
 	// ワールド座標に変換
-	Vector3 worldPosition = body_.transform.translate_ + offset;
+	K4E::Vector3 worldPosition = body_.transform.translate_ + offset;
 	return worldPosition;
 }

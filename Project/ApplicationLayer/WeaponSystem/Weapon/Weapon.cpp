@@ -3,6 +3,8 @@
 #include <filesystem>
 #include <cctype>
 
+namespace K4E = ::Ken4lowEngine;
+
 using nlohmann::json;
 namespace fs = std::filesystem;
 using ojson = nlohmann::ordered_json;
@@ -11,13 +13,13 @@ template<class T>
 static void read_if(const nlohmann::json& j, const char* key, T& dst) {
 	if (j.contains(key)) dst = j.at(key).get<T>(); // at() は例外、[]のconst版はアサート
 }
-static void read_vec4(const nlohmann::json& j, const char* key, Vector4& dst) {
+static void read_vec4(const nlohmann::json& j, const char* key, K4E::Vector4& dst) {
 	if (j.contains(key) && j.at(key).is_array() && j.at(key).size() >= 4) {
 		const auto& a = j.at(key);
 		a[0].get_to(dst.x); a[1].get_to(dst.y); a[2].get_to(dst.z); a[3].get_to(dst.w);
 	}
 }
-static void read_vec3(const nlohmann::json& j, const char* key, Vector3& dst) {
+static void read_vec3(const nlohmann::json& j, const char* key, K4E::Vector3& dst) {
 	if (j.contains(key) && j.at(key).is_array() && j.at(key).size() >= 3) {
 		const auto& a = j.at(key);
 		a[0].get_to(dst.x); a[1].get_to(dst.y); a[2].get_to(dst.z);
@@ -40,16 +42,16 @@ static void RoundFloatsInJson(ojson& j, int decimals) {
 }
 
 /// json配列からfloat[4]へコピー
-inline static void Copy4(const json& a, Vector4& out) { a[0].get_to(out.x);	a[1].get_to(out.y);	a[2].get_to(out.z);	a[3].get_to(out.w); }
+inline static void Copy4(const json& a, K4E::Vector4& out) { a[0].get_to(out.x);	a[1].get_to(out.y);	a[2].get_to(out.z);	a[3].get_to(out.w); }
 
 /// json配列からfloat[3]へコピー
-inline static void Copy3(const json& a, Vector3& out) { a[0].get_to(out.x);	a[1].get_to(out.y);	a[2].get_to(out.z); }
+inline static void Copy3(const json& a, K4E::Vector3& out) { a[0].get_to(out.x);	a[1].get_to(out.y);	a[2].get_to(out.z); }
 
-// / Vector4→json配列変換
-static json ToJsonColor(const Vector4& v) { return json::array({ v.x,v.y,v.z,v.w }); }
+// / K4E::Vector4→json配列変換
+static json ToJsonColor(const K4E::Vector4& v) { return json::array({ v.x,v.y,v.z,v.w }); }
 
-// / Vector3→json配列変換
-static json ToJsonVec3(const Vector3& v) { return json::array({ v.x,v.y,v.z }); }
+// / K4E::Vector3→json配列変換
+static json ToJsonVec3(const K4E::Vector3& v) { return json::array({ v.x,v.y,v.z }); }
 
 // ファイル名用スラッグ（name→"machine_gun.json" など）
 static std::string Slugify(const std::string& s) {

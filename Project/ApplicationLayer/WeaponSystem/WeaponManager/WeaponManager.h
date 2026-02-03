@@ -17,8 +17,10 @@
 #include <utility>
 #include <string>
 
+namespace K4E = ::Ken4lowEngine;
+
 /// ---------- 前方宣言 ---------- ///
-class Input;
+namespace Ken4lowEngine { class Input; }
 class CollisionManager;
 
 /// -------------------------------------------------------------
@@ -87,13 +89,13 @@ public: /// ---------- メンバ関数 ---------- ///
 	void DrawWeaponImGui();
 
 	// 弾道エフェクト開始
-	bool StartFireBallisticEffect(const Vector3& position, const Vector3& velocity);
+	bool StartFireBallisticEffect(const K4E::Vector3& position, const K4E::Vector3& velocity);
 
 	// プレイヤーのボディを設定
-	void SetPlayerBody(const WorldTransformEx* bodyTransform);
+	void SetPlayerBody(const K4E::WorldTransformEx* bodyTransform);
 
 	// 親を設定
-	void SetParentTransforms(const WorldTransformEx* rightArmTransform);
+	void SetParentTransforms(const K4E::WorldTransformEx* rightArmTransform);
 
 	// 現在の武器設定を取得
 	const WeaponConfig& GetCurrentConfig() const { return fireState_.weaponConfig; }
@@ -105,7 +107,7 @@ public: /// ---------- メンバ関数 ---------- ///
 	void RegisterColliders(CollisionManager* mgr);
 
 	// 銃口のワールド座標を取得
-	Vector3 GetMuzzleWorld() const { return ballisticEffect_ ? ballisticEffect_->GetMuzzleWorld() : Vector3{}; }
+	K4E::Vector3 GetMuzzleWorld() const { return ballisticEffect_ ? ballisticEffect_->GetMuzzleWorld() : K4E::Vector3{}; }
 
 	// 0..5 を返す（Primary..Heavy）。未選択なら -1
 	int GetSelectedHot_barIndex() const;
@@ -139,11 +141,11 @@ private: /// ---------- メンバ関数 ---------- ///
 
 private: /// ---------- メンバ変数 ---------- ///
 
-	Input* input_ = nullptr; // 入力クラス
+	K4E::Input* input_ = nullptr; // 入力クラス
 	CollisionManager* collisionManager_ = nullptr; // 衝突管理者
 
 	// 親ワールド変換ポインタ
-	const WorldTransformEx* rightArmTransform_ = nullptr;
+	const K4E::WorldTransformEx* rightArmTransform_ = nullptr;
 
 	FireState fireState_; // 射撃状態構造体
 	DeathState deathState_; // 死亡状態構造体

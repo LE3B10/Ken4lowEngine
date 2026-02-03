@@ -1,6 +1,9 @@
 #pragma once
 #include <vector>
 
+namespace Ken4lowEngine
+{
+
 
 /// -------------------------------------------------------------
 ///						　接触履歴クラス
@@ -28,3 +31,5 @@ private: /// ---------- メンバ変数 ---------- ///
 
 };
 
+
+} // namespace Ken4lowEngine

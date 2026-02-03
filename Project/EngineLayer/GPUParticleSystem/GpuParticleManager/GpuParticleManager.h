@@ -14,6 +14,9 @@
 #include <memory>
 #include <ModelData.h>
 
+namespace Ken4lowEngine
+{
+
 /// ---------- 前方宣言 ---------- ///
 class DirectXCommon;
 class Camera;
@@ -196,3 +199,5 @@ private: /// ---------- メッシュデータ ---------- ///
 	std::unordered_map<uint32_t, MeshParticleAsset> meshAssets_;
 };
 
+
+} // namespace Ken4lowEngine

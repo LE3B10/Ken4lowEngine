@@ -12,6 +12,9 @@
 
 #ifdef USE_IMGUI
 #include <imgui.h>
+
+namespace Ken4lowEngine
+{
 #endif // USE_IMGUI
 
 
@@ -108,3 +111,5 @@ void GrayScaleEffect::DrawImGui()
 	ImGui::Separator();
 #endif // USE_IMGUI
 }
+
+} // namespace Ken4lowEngine

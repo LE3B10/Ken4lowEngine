@@ -1,4 +1,7 @@
 #pragma once
+
+namespace Ken4lowEngine
+{
 // エフェクトの種類を列挙型で定義
 enum class ParticleEffectType
 {
@@ -18,3 +21,4 @@ enum class ParticleEffectType
 	Blood,		  // 血飛沫
 	LaserBeam,	  // レーザービーム
 };
+} // namespace Ken4lowEngine

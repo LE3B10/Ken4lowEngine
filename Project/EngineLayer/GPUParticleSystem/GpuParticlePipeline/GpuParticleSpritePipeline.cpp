@@ -5,6 +5,9 @@
 #include "BlendStateFactory.h"
 #include "ShaderCompiler.h"
 
+namespace Ken4lowEngine
+{
+
 /// -------------------------------------------------------------
 /// 初期化
 /// -------------------------------------------------------------
@@ -150,3 +153,5 @@ void GpuParticleSpritePipeline::CreateRootSignature()
 	hr = dxCommon_->GetDevice()->CreateRootSignature(0, sig->GetBufferPointer(), sig->GetBufferSize(), IID_PPV_ARGS(&rootSignature_));
 	assert(SUCCEEDED(hr));
 }
+
+} // namespace Ken4lowEngine

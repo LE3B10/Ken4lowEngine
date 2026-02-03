@@ -15,6 +15,9 @@
 #include <Segment.h>
 #include <Plane.h>
 
+namespace Ken4lowEngine
+{
+
 
 /// ---------- 前方宣言 ---------- ///
 class DirectXCommon;
@@ -687,3 +690,5 @@ private: /// ---------- コピー禁止 ---------- ///
 	Wireframe(const Wireframe&) = delete;
 	Wireframe& operator=(const Wireframe&) = delete;
 };
+
+} // namespace Ken4lowEngine

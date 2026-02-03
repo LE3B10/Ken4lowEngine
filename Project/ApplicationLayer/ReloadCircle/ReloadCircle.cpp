@@ -3,13 +3,15 @@
 #include <DirectXCommon.h>
 #include <numbers>
 
+namespace K4E = ::Ken4lowEngine;
+
 
 /// -------------------------------------------------------------
 ///				　		初期化処理
 /// -------------------------------------------------------------
 void ReloadCircle::Initialize(const std::string& texturePath)
 {
-	sprite_ = std::make_unique<Sprite>();
+	sprite_ = std::make_unique<K4E::Sprite>();
 	sprite_->Initialize(texturePath);
 	sprite_->SetAnchorPoint({ 0.5f, 0.5f }); // アンカーを中央に設定
 	sprite_->SetSize({ 64, 64 }); // サイズは適宜調整
@@ -25,7 +27,7 @@ void ReloadCircle::Update()
 	// 武器とスプライトがセットされていない場合は処理しない
 	if (!sprite_) return;
 
-	auto* dxCommon = DirectXCommon::GetInstance();
+	auto* dxCommon = K4E::DirectXCommon::GetInstance();
 	// 画面中央に配置
 	sprite_->SetPosition({ static_cast<float>(dxCommon->GetClientWidth()) * 0.5f,
 						   static_cast<float>(dxCommon->GetClientHeight()) * 0.5f });

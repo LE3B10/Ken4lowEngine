@@ -1,6 +1,9 @@
 #include "ParticleTransform.h"
 #include <DirectXCommon.h>
 
+namespace Ken4lowEngine
+{
+
 /// -------------------------------------------------------------
 ///				パーティクル用の座標変換データクラス
 /// -------------------------------------------------------------
@@ -36,3 +39,5 @@ void ParticleTransform::UpdateMatrix(const Matrix4x4& viewProjection, bool useBi
 	// WVP更新
 	wvpMatrix_ = Matrix4x4::Multiply(worldMatrix_, viewProjection);
 }
+
+} // namespace Ken4lowEngine

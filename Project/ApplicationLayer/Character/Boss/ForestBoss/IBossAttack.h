@@ -1,6 +1,8 @@
 #pragma once
 #include <Vector3.h>
 
+namespace K4E = ::Ken4lowEngine;
+
 /// ---------- 前方宣言 ---------- ///
 class Boss;
 
@@ -30,7 +32,7 @@ public: /// ---------- 純粋仮想関数 ---------- ///
 	virtual void Attack() = 0;
 
 	// 更新処理
-	virtual void Update(Boss* boss, float deltaTime, float bossYawRad, const Vector3& playerPosition) = 0;
+	virtual void Update(Boss* boss, float deltaTime, float bossYawRad, const K4E::Vector3& playerPosition) = 0;
 
 	// 攻撃がアクティブか
 	virtual bool IsActive() const = 0;

@@ -11,13 +11,15 @@
 
 #include <algorithm>
 
+namespace K4E = ::Ken4lowEngine;
+
 /// -------------------------------------------------------------
 ///				　			　初期化処理
 /// -------------------------------------------------------------
 void StageSelectScene::Initialize()
 {
-	dxCommon_ = DirectXCommon::GetInstance();
-	input_ = Input::GetInstance();
+	dxCommon_ = K4E::DirectXCommon::GetInstance();
+	input_ = K4E::Input::GetInstance();
 
 	// ステージ情報初期化
 	InitializeStages();
@@ -59,13 +61,13 @@ void StageSelectScene::Draw3DObjects()
 void StageSelectScene::Draw2DSprites()
 {
 	// 背景描画設定（後面）
-	SpriteManager::GetInstance()->SetRenderSetting_Background();
+	K4E::SpriteManager::GetInstance()->SetRenderSetting_Background();
 
 	// 背景描画
 	if (bg_) bg_->Draw();
 
 	// 背景描画設定（UI）
-	SpriteManager::GetInstance()->SetRenderSetting_UI();
+	K4E::SpriteManager::GetInstance()->SetRenderSetting_UI();
 
 	// アクティブセレクタの2D描画
 	if (activeSelector_) activeSelector_->Draw2DSprites();
@@ -184,7 +186,7 @@ void StageSelectScene::InitializeBackground()
 	}
 
 	// 背景スプライト（全画面）
-	bg_ = std::make_unique<Sprite>();
+	bg_ = std::make_unique<K4E::Sprite>();
 	bg_->Initialize("white.png");
 	bg_->SetPosition({});
 

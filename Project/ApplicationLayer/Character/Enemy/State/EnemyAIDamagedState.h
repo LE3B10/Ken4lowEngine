@@ -2,6 +2,8 @@
 #include "IEnemyAIState.h"
 #include <Vector4.h>
 
+namespace K4E = ::Ken4lowEngine;
+
 /// -------------------------------------------------------------
 ///				　		敵AIダメージ状態クラス
 /// -------------------------------------------------------------
@@ -27,6 +29,6 @@ private: /// ---------- メンバ関数 ---------- ///
 	void StartDeathSequence(Enemy* enemy);
 
 	// 全部位に色を適用する
-	void ApplyColorToAll(Enemy* enemy, const Vector4& color); // body_ と parts_ に一括適用
+	void ApplyColorToAll(Enemy* enemy, const K4E::Vector4& color); // body_ と parts_ に一括適用
 };
 

@@ -9,6 +9,8 @@
 #include <Vector4.h>
 #include <Vector2.h>
 
+namespace K4E = ::Ken4lowEngine;
+
 /// -------------------------------------------------------------
 ///					　	フェード管理クラス
 /// -------------------------------------------------------------
@@ -29,14 +31,14 @@ private: /// ---------- 列挙型 ---------- ///
 private:
 	struct Tile
 	{
-		std::unique_ptr<Sprite> base;  // ブロック
-		std::unique_ptr<Sprite> crack; // ひび割れ（CrackAtlas）
+		std::unique_ptr<K4E::Sprite> base;  // ブロック
+		std::unique_ptr<K4E::Sprite> crack; // ひび割れ（CrackAtlas）
 
-		Vector2 targetCenter{}; // 完成位置（中心）
-		Vector2 startCenter{};  // 出現開始位置（中心）
+		K4E::Vector2 targetCenter{}; // 完成位置（中心）
+		K4E::Vector2 startCenter{};  // 出現開始位置（中心）
 
-		Vector2 pos{};
-		Vector2 vel{};
+		K4E::Vector2 pos{};
+		K4E::Vector2 vel{};
 
 		float startRot = 0.0f;
 		float rot = 0.0f;
@@ -63,11 +65,11 @@ private:
 	// ------------------------------
 	struct DustParticle
 	{
-		std::unique_ptr<Sprite> sprite;
+		std::unique_ptr<K4E::Sprite> sprite;
 		bool active = false;
 
-		Vector2 pos{};
-		Vector2 vel{};
+		K4E::Vector2 pos{};
+		K4E::Vector2 vel{};
 		float rot = 0.0f;
 		float rotVel = 0.0f;
 
@@ -136,13 +138,13 @@ private:
 	// ------------------------------
 	void InitDustPool();
 	void ResetDust();
-	void EmitDust(const Vector2& origin, const Vector2& baseVel);
+	void EmitDust(const K4E::Vector2& origin, const K4E::Vector2& baseVel);
 	void UpdateDust(float dt);
 
 	// 補助
 	static float Clamp01(float v);
 	static float Lerp(float a, float b, float t);
-	static Vector2 Lerp(const Vector2& a, const Vector2& b, float t);
+	static K4E::Vector2 Lerp(const K4E::Vector2& a, const K4E::Vector2& b, float t);
 	static float EaseOutBack(float t);
 	static float EaseOutCubic(float t);
 	static float RandRange(std::mt19937& rng, float a, float b);
@@ -161,7 +163,7 @@ private:
 	int screenH_ = 0;
 
 	// タイル設定
-	Vector2 tileSize_ = { 128.0f, 128.0f };
+	K4E::Vector2 tileSize_ = { 128.0f, 128.0f };
 	int tilesX_ = 0;
 	int tilesY_ = 0;
 
@@ -169,7 +171,7 @@ private:
 
 	// ひび割れアトラス
 	std::string crackAtlasPath_ = "CrackAtlas.png";
-	Vector2 crackFrameSizePx_ = { 128.0f, 128.0f };
+	K4E::Vector2 crackFrameSizePx_ = { 128.0f, 128.0f };
 	static constexpr int kCrackFrames_ = 10;
 
 	// カバー演出パラメータ

@@ -3,6 +3,9 @@
 #include "Vector2.h"
 #include "Vector4.h"
 
+namespace Ken4lowEngine
+{
+
 /// -------------------------------------------------------------
 ///				　		ピクセル化エフェクト
 /// -------------------------------------------------------------
@@ -70,3 +73,5 @@ private: /// ---------- メンバ変数 ---------- ///
 	PixelateSetting* pixelateSetting_ = nullptr;
 };
 
+
+} // namespace Ken4lowEngine

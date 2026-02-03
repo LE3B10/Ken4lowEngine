@@ -6,13 +6,15 @@
 #include <StageRepository.h>
 #include <Player.h>
 
+namespace K4E = ::Ken4lowEngine;
+
 void GameClearState::Enter(GamePlayScene* scene)
 {
 	if (!scene) return;
 
 	scene->SetState(GamePlayScene::State::GameClear);
 
-	Input::GetInstance()->SetLockCursor(false);
+	K4E::Input::GetInstance()->SetLockCursor(false);
 	ShowCursor(true);
 }
 
@@ -147,8 +149,8 @@ void GameClearState::Update(GamePlayScene* scene, float deltaTime)
 	if (gameClearInputAccepted_)
 	{
 		// --- マウス操作（三つの長方形で三択） ---
-		Vector2 mousePos = input_->GetMousePosition();
-		auto IsInside = [](const Vector2& p, const ButtonRect& r) {
+		K4E::Vector2 mousePos = input_->GetMousePosition();
+		auto IsInside = [](const K4E::Vector2& p, const ButtonRect& r) {
 			return (p.x >= r.x && p.x <= r.x + r.w &&
 				p.y >= r.y && p.y <= r.y + r.h);
 			};

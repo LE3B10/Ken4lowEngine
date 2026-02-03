@@ -1,6 +1,9 @@
 #pragma once
 #include "IPostEffect.h"
 
+namespace Ken4lowEngine
+{
+
 /// -------------------------------------------------------------
 ///				　		ノーマルエフェクト
 /// -------------------------------------------------------------
@@ -41,3 +44,5 @@ private: /// ---------- メンバ変数 ---------- ///
 	Microsoft::WRL::ComPtr<ID3D12RootSignature> rootSignature_;
 };
 
+
+} // namespace Ken4lowEngine

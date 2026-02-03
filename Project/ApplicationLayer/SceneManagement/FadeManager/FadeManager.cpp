@@ -9,6 +9,9 @@
 
 #ifdef USE_IMGUI
 #include <imgui.h>
+
+namespace K4E = ::Ken4lowEngine;
+
 #endif // USE_IMGUI
 
 // ------------------------------
@@ -24,7 +27,7 @@ float FadeManager::Lerp(float a, float b, float t)
 	return a + (b - a) * t;
 }
 
-Vector2 FadeManager::Lerp(const Vector2& a, const Vector2& b, float t)
+K4E::Vector2 FadeManager::Lerp(const K4E::Vector2& a, const K4E::Vector2& b, float t)
 {
 	return { Lerp(a.x, b.x, t), Lerp(a.y, b.y, t) };
 }
@@ -57,7 +60,7 @@ float FadeManager::RandRange(std::mt19937& rng, float a, float b)
 // ------------------------------
 void FadeManager::Initialize()
 {
-	auto* dx = DirectXCommon::GetInstance();
+	auto* dx = K4E::DirectXCommon::GetInstance();
 	screenW_ = dx->GetClientWidth();
 	screenH_ = dx->GetClientHeight();
 
@@ -104,7 +107,7 @@ void FadeManager::RebuildTiles(int screenW, int screenH)
 
 	std::vector<int> orderCrack = orderCover;
 
-	const Vector2 center = { screenW * 0.5f, screenH * 0.5f };
+	const K4E::Vector2 center = { screenW * 0.5f, screenH * 0.5f };
 
 	std::vector<float> keyCover(total);
 	std::vector<float> keyCrack(total);
@@ -114,7 +117,7 @@ void FadeManager::RebuildTiles(int screenW, int screenH)
 		int x = idx % tilesX_;
 		int y = idx / tilesX_;
 
-		Vector2 c = { (x + 0.5f) * tileSize_.x, (y + 0.5f) * tileSize_.y };
+		K4E::Vector2 c = { (x + 0.5f) * tileSize_.x, (y + 0.5f) * tileSize_.y };
 		float dx = c.x - center.x;
 		float dy = c.y - center.y;
 		float d = std::sqrt(dx * dx + dy * dy);
@@ -155,14 +158,14 @@ void FadeManager::RebuildTiles(int screenW, int screenH)
 		// -----------------------------------------
 		// base
 		// -----------------------------------------
-		t.base = std::make_unique<Sprite>();
+		t.base = std::make_unique<K4E::Sprite>();
 		t.base->Initialize(tileTexturePath_);
 		t.base->SetAnchorPoint({ 0.5f, 0.5f }); // 回転中心
 
 		// -----------------------------------------
 		// crack
 		// -----------------------------------------
-		t.crack = std::make_unique<Sprite>();
+		t.crack = std::make_unique<K4E::Sprite>();
 		t.crack->Initialize(crackAtlasPath_);
 		t.crack->SetAnchorPoint({ 0.5f, 0.5f });
 		t.crack->SetColor({ 1,1,1,0 }); // 初期は非表示
@@ -238,7 +241,7 @@ void FadeManager::StartCover()
 	ResetDust();
 
 	// 画面サイズが変わってたら作り直す
-	auto* dx = DirectXCommon::GetInstance();
+	auto* dx = K4E::DirectXCommon::GetInstance();
 	int w = dx->GetClientWidth();
 	int h = dx->GetClientHeight();
 
@@ -308,24 +311,24 @@ void FadeManager::StartCrack()
 	// 開始バースト：dt が跳ねた場合でも「粉が出た」と分かるように、最初に少しだけ撒く
 	{
 		const int kBurst = 48;
-		const Vector2 center = { screenW_ * 0.5f, screenH_ * 0.5f };
+		const K4E::Vector2 center = { screenW_ * 0.5f, screenH_ * 0.5f };
 
 		for (int i = 0; i < kBurst; ++i)
 		{
 			const Tile& tile = tiles_[(size_t)(RandRange(rng_, 0.0f, (float)tiles_.size() - 0.0001f))];
 
-			Vector2 p = tile.pos;
+			K4E::Vector2 p = tile.pos;
 			p.x += RandRange(rng_, -tileSize_.x * 0.45f, tileSize_.x * 0.45f);
 			p.y += RandRange(rng_, -tileSize_.y * 0.45f, tileSize_.y * 0.45f);
 
-			Vector2 dir = { p.x - center.x, p.y - center.y };
+			K4E::Vector2 dir = { p.x - center.x, p.y - center.y };
 			float len = std::sqrt(dir.x * dir.x + dir.y * dir.y);
 			if (len < 1e-4f) { dir = { 1,0 }; len = 1.0f; }
 			dir.x /= len;
 			dir.y /= len;
 
 			float kick = RandRange(rng_, dustKickMin_, dustKickMax_);
-			Vector2 v{};
+			K4E::Vector2 v{};
 			v.x = dir.x * kick + RandRange(rng_, -dustJitter_, dustJitter_);
 			v.y = dir.y * kick - dustUpBias_ + RandRange(rng_, -dustJitter_, dustJitter_);
 
@@ -349,7 +352,7 @@ void FadeManager::StartDrop()
 	}
 
 	// 画面中心から外へ飛ばしつつ、重力で落ちる
-	const Vector2 center = { screenW_ * 0.5f, screenH_ * 0.5f };
+	const K4E::Vector2 center = { screenW_ * 0.5f, screenH_ * 0.5f };
 
 	for (auto& t : tiles_)
 	{
@@ -362,7 +365,7 @@ void FadeManager::StartDrop()
 		t.dropTime = 0.0f;
 
 		// 外側への方向
-		Vector2 dir = { t.targetCenter.x - center.x, t.targetCenter.y - center.y };
+		K4E::Vector2 dir = { t.targetCenter.x - center.x, t.targetCenter.y - center.y };
 		float len = std::sqrt(dir.x * dir.x + dir.y * dir.y);
 		if (len < 0.001f)
 		{
@@ -385,7 +388,7 @@ void FadeManager::StartDrop()
 		// ひびは見える状態にしておく（割れてる感を保ったまま落下）
 		// ※既にCrackが終わっていればalpha=1になっているはずだが、念のため
 		// stageは最後(9)に固定
-		Vector2 lt = { crackFrameSizePx_.x * (float)(kCrackFrames_ - 1), 0.0f };
+		K4E::Vector2 lt = { crackFrameSizePx_.x * (float)(kCrackFrames_ - 1), 0.0f };
 		t.crack->SetUVRect(lt, crackFrameSizePx_);
 		t.crack->SetColor({ 1,1,1,1 });
 
@@ -429,7 +432,7 @@ void FadeManager::Update(float dt)
 
 	// 画面サイズの変化に追従（ウィンドウリサイズ対応）
 	{
-		auto* dx = DirectXCommon::GetInstance();
+		auto* dx = K4E::DirectXCommon::GetInstance();
 		int w = dx->GetClientWidth();
 		int h = dx->GetClientHeight();
 		if (w != screenW_ || h != screenH_)
@@ -564,7 +567,7 @@ void FadeManager::UpdateCrack(float dt)
 		float a = Clamp01(u * 1.25f); // すぐ見えるように
 		if (u >= 1.0f) a = 1.0f;
 
-		Vector2 lt = { crackFrameSizePx_.x * (float)stage, 0.0f };
+		K4E::Vector2 lt = { crackFrameSizePx_.x * (float)stage, 0.0f };
 
 		t.crack->SetUVRect(lt, crackFrameSizePx_);
 		t.crack->SetColor({ 1,1,1,a });
@@ -591,7 +594,7 @@ void FadeManager::UpdateCrack(float dt)
 		int spawn = (int)dustSpawnAcc_;
 		dustSpawnAcc_ -= (float)spawn;
 
-		const Vector2 center = { screenW_ * 0.5f, screenH_ * 0.5f };
+		const K4E::Vector2 center = { screenW_ * 0.5f, screenH_ * 0.5f };
 
 		for (int i = 0; i < spawn; ++i)
 		{
@@ -599,19 +602,19 @@ void FadeManager::UpdateCrack(float dt)
 			const Tile& tile = tiles_[(size_t)pick];
 
 			// タイル内のランダム位置から出す（中心±45%）
-			Vector2 p = tile.pos;
+			K4E::Vector2 p = tile.pos;
 			p.x += RandRange(rng_, -tileSize_.x * 0.45f, tileSize_.x * 0.45f);
 			p.y += RandRange(rng_, -tileSize_.y * 0.45f, tileSize_.y * 0.45f);
 
 			// 画面中心→外側に飛ぶ成分 + 上方向（-Y）
-			Vector2 dir = { p.x - center.x, p.y - center.y };
+			K4E::Vector2 dir = { p.x - center.x, p.y - center.y };
 			float len = std::sqrt(dir.x * dir.x + dir.y * dir.y);
 			if (len < 1e-4f) { dir = { 1,0 }; len = 1.0f; }
 			dir.x /= len;
 			dir.y /= len;
 
 			float kick = RandRange(rng_, dustKickMin_, dustKickMax_);
-			Vector2 v{};
+			K4E::Vector2 v{};
 			v.x = dir.x * kick + RandRange(rng_, -dustJitter_, dustJitter_);
 			v.y = dir.y * kick - dustUpBias_ + RandRange(rng_, -dustJitter_, dustJitter_);
 
@@ -777,7 +780,7 @@ void FadeManager::DrawImGui()
 		StartCover();
 	}
 	ImGui::SameLine();
-	if (ImGui::Button("Start Crack Animation"))
+	if (ImGui::Button("Start Crack K4E::Animation"))
 	{
 		StartCrack();
 	}
@@ -792,16 +795,16 @@ void FadeManager::DrawImGui()
 	bool rebuild = false;
 	rebuild |= ImGui::SliderFloat2("Tile Size", &tileSize_.x, 32.0f, 256.0f);
 
-	ImGui::SeparatorText("Cover Params");
+	ImGui::SeparatorText("Cover K4E::Params");
 	ImGui::SliderFloat("Cover Tile Anim Time", &coverTileAnimTime_, 0.05f, 0.6f);
 	ImGui::SliderFloat("Cover Stagger Total", &coverStaggerTotal_, 0.0f, 1.0f);
 	ImGui::SliderFloat("Spawn Y Offset", &coverSpawnYOffset_, 0.0f, 1400.0f);
 
-	ImGui::SeparatorText("Crack Params");
+	ImGui::SeparatorText("Crack K4E::Params");
 	ImGui::SliderFloat("Crack Tile Anim Time", &crackTileAnimTime_, 0.05f, 2.0f);
 	ImGui::SliderFloat("Crack Stagger Total", &crackStaggerTotal_, 0.0f, 1.5f);
 
-	ImGui::SeparatorText("Dust (CPU Sprite Particle)");
+	ImGui::SeparatorText("Dust (CPU K4E::Sprite Particle)");
 	ImGui::SliderFloat("Dust Rate", &dustRate_, 0.0f, 1200.0f);
 	ImGui::SliderFloat("Dust Gravity", &dustGravity_, 0.0f, 8000.0f);
 	ImGui::SliderFloat("Dust Damping", &dustDamping_, 0.60f, 0.99f);
@@ -816,7 +819,7 @@ void FadeManager::DrawImGui()
 	ImGui::SliderFloat("Dust Up Bias", &dustUpBias_, 0.0f, 1200.0f);
 	ImGui::SliderFloat("Dust Jitter", &dustJitter_, 0.0f, 800.0f);
 
-	ImGui::SeparatorText("Drop Params");
+	ImGui::SeparatorText("Drop K4E::Params");
 	ImGui::SliderFloat("Drop Start Delay", &dropStartDelay_, 0.0f, 1.0f);
 	ImGui::SliderFloat("Drop Item Scale", &dropItemScale_, 0.02f, 0.60f);
 	ImGui::SliderFloat("Drop Shrink Time", &dropShrinkTime_, 0.01f, 0.40f);
@@ -853,7 +856,7 @@ void FadeManager::DrawImGui()
 
 	if (rebuild)
 	{
-		auto* dx = DirectXCommon::GetInstance();
+		auto* dx = K4E::DirectXCommon::GetInstance();
 		screenW_ = dx->GetClientWidth();
 		screenH_ = dx->GetClientHeight();
 		RebuildTiles(screenW_, screenH_);
@@ -889,7 +892,7 @@ void FadeManager::InitDustPool()
 	dust_.resize((size_t)dustMax_);
 	for (auto& p : dust_)
 	{
-		p.sprite = std::make_unique<Sprite>();
+		p.sprite = std::make_unique<K4E::Sprite>();
 		p.sprite->Initialize(dustTexturePath_);
 		p.sprite->SetAnchorPoint({ 0.5f, 0.5f });
 		p.sprite->SetColor({ 1,1,1,0 });
@@ -916,7 +919,7 @@ void FadeManager::ResetDust()
 	dustSpawnAcc_ = 0.0f;
 }
 
-void FadeManager::EmitDust(const Vector2& origin, const Vector2& baseVel)
+void FadeManager::EmitDust(const K4E::Vector2& origin, const K4E::Vector2& baseVel)
 {
 	if (dust_.empty()) { return; }
 
@@ -935,7 +938,7 @@ void FadeManager::EmitDust(const Vector2& origin, const Vector2& baseVel)
 	p.alpha0 = RandRange(rng_, dustAlphaMin_, dustAlphaMax_);
 
 	// 見た目：石粉っぽく少しグレー
-	Vector4 col{ 0.85f, 0.85f, 0.85f, p.alpha0 };
+	K4E::Vector4 col{ 0.85f, 0.85f, 0.85f, p.alpha0 };
 
 	p.sprite->SetPosition(p.pos);
 	p.sprite->SetRotation(p.rot);

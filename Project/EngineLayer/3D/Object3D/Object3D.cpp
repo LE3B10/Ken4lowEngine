@@ -10,6 +10,9 @@
 #include "ParameterManager.h"
 #include "SkyBox.h"
 
+namespace Ken4lowEngine
+{
+
 
 /// -------------------------------------------------------------
 ///					　		初期化処理
@@ -217,3 +220,5 @@ void Object3D::InitializeDissolveResource()
 	dissolveSetting_->edgeThickness = 0.0f;
 	dissolveSetting_->edgeColor = { 1.0f, 1.0f, 1.0f, 1.0f };
 }
+
+} // namespace Ken4lowEngine

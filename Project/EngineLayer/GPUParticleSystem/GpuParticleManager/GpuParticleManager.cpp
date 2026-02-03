@@ -18,6 +18,9 @@
 #endif // USE_IMGUI
 #include <cstdint>
 
+namespace Ken4lowEngine
+{
+
 
 /// -------------------------------------------------------------
 ///				　	シングルトンインスタンス
@@ -803,3 +806,5 @@ MeshParticleAsset GpuParticleManager::CreateMeshAssetFromSubMesh(const SubMesh& 
 
 	return out;
 }
+
+} // namespace Ken4lowEngine

@@ -10,6 +10,8 @@
 #include <array>
 #include <algorithm>
 
+namespace K4E = ::Ken4lowEngine;
+
 /// -------------------------------------------------------------
 ///				　		初期化処理
 /// -------------------------------------------------------------
@@ -21,8 +23,8 @@ void WeaponSlot::Initialize(const std::string& frameTex, const std::string& sele
 
 	for (int i = 0; i < kSlotCount; ++i)
 	{
-		frame_[i] = std::make_unique<Sprite>();
-		frameSelected_[i] = std::make_unique<Sprite>();
+		frame_[i] = std::make_unique<K4E::Sprite>();
+		frameSelected_[i] = std::make_unique<K4E::Sprite>();
 
 		frame_[i]->Initialize(frameTex_);
 		frameSelected_[i]->Initialize(selectedTex_);
@@ -31,7 +33,7 @@ void WeaponSlot::Initialize(const std::string& frameTex, const std::string& sele
 	RebuildLayout();
 }
 
-void WeaponSlot::InitializeSlotNumbers(const std::string& numberTex, float srcDigitWidth, float srcDigitHeight, const Vector2& offset, float spacing, float drawDigitWidth, float drawDigitHeight)
+void WeaponSlot::InitializeSlotNumbers(const std::string& numberTex, float srcDigitWidth, float srcDigitHeight, const K4E::Vector2& offset, float spacing, float drawDigitWidth, float drawDigitHeight)
 {
 	drawSlotNumbers_ = !numberTex.empty();
 	if (!drawSlotNumbers_) { return; }
@@ -53,7 +55,7 @@ void WeaponSlot::InitializeSlotNumbers(const std::string& numberTex, float srcDi
 /// -------------------------------------------------------------
 ///				　	弾薬番号初期化処理
 /// -------------------------------------------------------------
-void WeaponSlot::InitializeAmmoNumbers(const std::string& numberTex, float srcDigitW, float srcDigitH, const Vector2& padding, float spacing, float drawDigitW, float drawDigitH)
+void WeaponSlot::InitializeAmmoNumbers(const std::string& numberTex, float srcDigitW, float srcDigitH, const K4E::Vector2& padding, float spacing, float drawDigitW, float drawDigitH)
 {
 	drawAmmo_ = !numberTex.empty();
 	if (!drawAmmo_) return;
@@ -73,7 +75,7 @@ void WeaponSlot::InitializeAmmoNumbers(const std::string& numberTex, float srcDi
 /// -------------------------------------------------------------
 ///				　	弾薬区切り文字初期化処理
 /// -------------------------------------------------------------
-void WeaponSlot::InitializeAmmoDelimiter(const std::string& slashTex, const Vector2& size, const Vector2& offset)
+void WeaponSlot::InitializeAmmoDelimiter(const std::string& slashTex, const K4E::Vector2& size, const K4E::Vector2& offset)
 {
 	// いったん全スロット消す
 	for (int i = 0; i < kSlotCount; ++i) ammoSlash_[i].reset();
@@ -84,7 +86,7 @@ void WeaponSlot::InitializeAmmoDelimiter(const std::string& slashTex, const Vect
 	// スロット分作る（使い回ししない）
 	for (int i = 0; i < kSlotCount; ++i)
 	{
-		ammoSlash_[i] = std::make_unique<Sprite>();
+		ammoSlash_[i] = std::make_unique<K4E::Sprite>();
 		ammoSlash_[i]->Initialize(slashTex);
 		ammoSlash_[i]->SetAnchorPoint({ 0.5f, 0.5f });
 	}
@@ -143,8 +145,8 @@ void WeaponSlot::Draw()
 
 		if (drawAmmo_ && i < static_cast<int>(ammoInfos_.size()) && ammoUses_[i])
 		{
-			const Vector2 base = frame_[i]->GetPosition();
-			const Vector2 size = frame_[i]->GetSize();
+			const K4E::Vector2 base = frame_[i]->GetPosition();
+			const K4E::Vector2 size = frame_[i]->GetSize();
 
 			const float y = base.y + size.y - ammoDigitH_ - ammoPadding_.y;
 
@@ -216,7 +218,7 @@ void WeaponSlot::Draw()
 		// スロット番号（必要なら最後に）
 		if (drawSlotNumbers_)
 		{
-			const Vector2 base = frame_[i]->GetPosition();
+			const K4E::Vector2 base = frame_[i]->GetPosition();
 			numberDrawer_.DrawNumberLeftAligned(i + 1, { base.x + numberOffset_.x, base.y + numberOffset_.y }, numberSpacing_);
 		}
 	}
@@ -233,7 +235,7 @@ void WeaponSlot::InitializeIcons(const std::array<std::string, kSlotCount>& icon
 			continue;
 		}
 
-		icon_[i] = std::make_unique<Sprite>();
+		icon_[i] = std::make_unique<K4E::Sprite>();
 		icon_[i]->Initialize(iconTex[i]);
 
 		// 中央基準で置くとレイアウトが楽
@@ -259,8 +261,8 @@ void WeaponSlot::RebuildLayout()
 	const float space = layout_.spacing;
 	const float totalW = kSlotCount * slot + (kSlotCount - 1) * space;
 
-	float screenW = static_cast<float>(DirectXCommon::GetInstance()->GetClientWidth());
-	float screenH = static_cast<float>(DirectXCommon::GetInstance()->GetClientHeight());
+	float screenW = static_cast<float>(K4E::DirectXCommon::GetInstance()->GetClientWidth());
+	float screenH = static_cast<float>(K4E::DirectXCommon::GetInstance()->GetClientHeight());
 
 	const float startX = (screenW - totalW) * 0.5f;
 	const float y = screenH - layout_.marginBottom - slot;

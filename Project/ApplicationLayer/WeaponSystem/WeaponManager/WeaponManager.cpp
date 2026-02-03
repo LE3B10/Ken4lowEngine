@@ -26,6 +26,8 @@
 #include <BaseWeapon.h>
 #include <BallisticEffect.h>
 
+namespace K4E = ::Ken4lowEngine;
+
 /// -------------------------------------------------------------
 ///				　	武器名からインデックスを取得
 /// -------------------------------------------------------------
@@ -75,7 +77,7 @@ std::unique_ptr<BaseWeapon> WeaponManager::CreateWeaponFromConfig(const WeaponCo
 /// -------------------------------------------------------------
 void WeaponManager::InitializeWeapons(const FireState& fireState, const DeathState& deathState)
 {
-	input_ = Input::GetInstance();
+	input_ = K4E::Input::GetInstance();
 
 	fireState_ = fireState; // 射撃状態構造体コピー
 	deathState_ = deathState; // 死亡状態構造体コピー
@@ -388,7 +390,7 @@ bool WeaponManager::TryConsumeAmmoForShot()
 /// -------------------------------------------------------------
 ///				　	 弾道エフェクト開始処理
 /// -------------------------------------------------------------
-bool WeaponManager::StartFireBallisticEffect(const Vector3& position, const Vector3& velocity)
+bool WeaponManager::StartFireBallisticEffect(const K4E::Vector3& position, const K4E::Vector3& velocity)
 {
 	// 弾が無いなら発射しない
 	if (!TryConsumeAmmoForShot()) return false;
@@ -402,7 +404,7 @@ bool WeaponManager::StartFireBallisticEffect(const Vector3& position, const Vect
 /// -------------------------------------------------------------
 ///				　	　 プレイヤーボディ設定処理
 /// -------------------------------------------------------------
-void WeaponManager::SetPlayerBody(const WorldTransformEx* bodyTransform)
+void WeaponManager::SetPlayerBody(const K4E::WorldTransformEx* bodyTransform)
 {
 	// プレイヤーボディTransformを保存
 	if (ballisticEffect_) ballisticEffect_->SetPlayerBodyTransform(*bodyTransform, {});
@@ -411,7 +413,7 @@ void WeaponManager::SetPlayerBody(const WorldTransformEx* bodyTransform)
 /// -------------------------------------------------------------
 ///				　	 親ワールド変換設定処理
 /// -------------------------------------------------------------
-void WeaponManager::SetParentTransforms(const WorldTransformEx* rightArmTransform)
+void WeaponManager::SetParentTransforms(const K4E::WorldTransformEx* rightArmTransform)
 {
 	// 右腕Transformを保存
 	rightArmTransform_ = rightArmTransform;

@@ -5,6 +5,9 @@
 #include "BlendStateFactory.h"
 #include "ShaderCompiler.h"
 
+namespace Ken4lowEngine
+{
+
 void GpuParticleMeshPipeline::Initialize()
 {
 	dxCommon_ = DirectXCommon::GetInstance();
@@ -145,3 +148,5 @@ void GpuParticleMeshPipeline::CreatePSO()
 	hr = dxCommon_->GetDevice()->CreateGraphicsPipelineState(&desc, IID_PPV_ARGS(&pipelineState_));
 	assert(SUCCEEDED(hr));
 }
+
+} // namespace Ken4lowEngine

@@ -7,6 +7,8 @@
 #include <cassert>
 #include <algorithm>
 
+namespace K4E = ::Ken4lowEngine;
+
 /// -------------------------------------------------------------
 ///                     シングルトンインスタンス
 /// -------------------------------------------------------------
@@ -31,7 +33,7 @@ void SceneManager::Initialize()
 
 void SceneManager::Update()
 {
-	float dtRaw = DirectXCommon::GetInstance()->GetFPSCounter().GetDeltaTime();
+	float dtRaw = K4E::DirectXCommon::GetInstance()->GetFPSCounter().GetDeltaTime();
 	// シーン切替の重い処理でフレームが止まると dt が跳ねて演出が一瞬で終わるのでクランプする
 	float dtFade = std::min(dtRaw, 1.0f / 30.0f);
 
@@ -98,7 +100,7 @@ void SceneManager::Draw2DSprites()
 	if (fadeManager_)
 	{
 		// UI用の共通描画設定
-		SpriteManager::GetInstance()->SetRenderSetting_UI();
+		K4E::SpriteManager::GetInstance()->SetRenderSetting_UI();
 		fadeManager_->Draw2DSprites();
 	}
 }

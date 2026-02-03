@@ -12,10 +12,12 @@
 
 #include <optional>
 
+namespace K4E = ::Ken4lowEngine;
+
 /// ---------- 前方宣言 ---------- ///
 class Player;
-class LevelObjectManager;
-class GpuParticleManager;
+namespace Ken4lowEngine { class LevelObjectManager; }
+namespace Ken4lowEngine { class GpuParticleManager; }
 
 /// -------------------------------------------------------------
 ///					　ボス敵キャラクタークラス
@@ -54,8 +56,8 @@ public: /// ---------- 構造体 ---------- ///
 		bool  finished = false;     // 登場演出が完了したか
 		float timer = 0.0f;         // 経過時間
 		float duration = 2.0f;      // 演出時間（秒）
-		Vector3 startPosition;      // 開始位置
-		Vector3 endPosition;        // 終了位置
+		K4E::Vector3 startPosition;      // 開始位置
+		K4E::Vector3 endPosition;        // 終了位置
 	};
 
 	// フラッシュ情報の構造体
@@ -63,9 +65,9 @@ public: /// ---------- 構造体 ---------- ///
 	{
 		float duration = 0.08f;   // フラッシュ継続秒
 		float timer = 0.0f;    // 残りタイム
-		Vector4 baseColor = { 1.0f,1.0f,1.0f,1.0f }; // 元の色
-		Vector4 hitColor = { 1.0f,0.0f,0.0f,1.0f };  // ヒット時の色
-		Vector4 colorModulate = { 1.0f,1.0f,1.0f,1.0f }; // 現在の色補正
+		K4E::Vector4 baseColor = { 1.0f,1.0f,1.0f,1.0f }; // 元の色
+		K4E::Vector4 hitColor = { 1.0f,0.0f,0.0f,1.0f };  // ヒット時の色
+		K4E::Vector4 colorModulate = { 1.0f,1.0f,1.0f,1.0f }; // 現在の色補正
 	};
 
 	// 戦闘スキル情報
@@ -74,7 +76,7 @@ public: /// ---------- 構造体 ---------- ///
 		AttackKind kind = AttackKind::kNone;       // スキルの種類
 		float      elapsed = 0.0f;               // 発動からの経過時間
 		float      duration = 0.0f;               // スキル全体の長さ
-		Vector3    moveDirection{ 0.0f,0.0f,0.0f }; // 移動方向（Rush 用）
+		K4E::Vector3    moveDirection{ 0.0f,0.0f,0.0f }; // 移動方向（Rush 用）
 
 		int   phase = 0;        // 0:サイドステップ, 1:斬りつけ
 		float phaseTime = 0.0f;
@@ -93,8 +95,8 @@ public: /// ---------- 分解用構造体 ---------- ///
 	// 分解運動データ構造体
 	struct GibMotion
 	{
-		Vector3 velocity;		 // 初速度
-		Vector3 angularVelocity; // 角速度（ラジアン）
+		K4E::Vector3 velocity;		 // 初速度
+		K4E::Vector3 angularVelocity; // 角速度（ラジアン）
 	};
 
 	// 死亡演出状態構造体
@@ -128,10 +130,10 @@ public: /// ---------- メンバ関数 ---------- ///
 	void DrawImGui() override;
 
 	// 衝突判定を行う
-	void OnCollision(Collider* other) override;
+	void OnCollision(K4E::Collider* other) override;
 
 	// 中心座標を取得
-	Vector3 GetCenterPosition() const override;
+	K4E::Vector3 GetCenterPosition() const override;
 
 private: /// ---------- メンバ関数 ---------- ///
 
@@ -139,12 +141,12 @@ private: /// ---------- メンバ関数 ---------- ///
 	void UpdateDamageFlash(float deltaTime);
 
 	// 全部位に色を適用
-	void ApplyColorToAll(const Vector4& color);
+	void ApplyColorToAll(const K4E::Vector4& color);
 
 public: /// ---------- メンバ関数 ---------- ///
 
 	// 移動方向に体の向きを合わせる
-	void UpdateFacingDirection(const Vector3& moveDir, float deltaTime);
+	void UpdateFacingDirection(const K4E::Vector3& moveDir, float deltaTime);
 
 	// 次の攻撃種類を選択
 	AttackKind DecideNextAttackKind();
@@ -158,11 +160,11 @@ public: /// ---------- アクセッサ ---------- ///
 	void SetPlayer(Player* player) { player_ = player; }
 
 	// レベルマネージャー設定
-	void SetLevelObjectManager(LevelObjectManager* levelObjectManager) { levelObjectManager_ = levelObjectManager; }
+	void SetLevelObjectManager(K4E::LevelObjectManager* levelObjectManager) { levelObjectManager_ = levelObjectManager; }
 
 	// 位置の取得・設定（body の位置）
-	Vector3 GetPosition() const { return body_.transform.translate_; }
-	void SetPosition(const Vector3& pos) { body_.transform.translate_ = pos; }
+	K4E::Vector3 GetPosition() const { return body_.transform.translate_; }
+	void SetPosition(const K4E::Vector3& pos) { body_.transform.translate_ = pos; }
 
 	// Y回転の取得・設定
 	float GetYaw() const { return body_.transform.rotate_.y; }
@@ -216,9 +218,9 @@ public: /// ---------- ビヘイビアツリー用 ---------- ///
 private: /// ---------- メンバ変数 ---------- ///
 
 	Player* player_ = nullptr;                     // プレイヤーへの参照
-	LevelObjectManager* levelObjectManager_ = nullptr; // レベルマネージャーへの参照
+	K4E::LevelObjectManager* levelObjectManager_ = nullptr; // レベルマネージャーへの参照
 
-	GpuParticleManager* gpuParticleManager_ = nullptr; // GPUパーティクルマネージャーへの参照
+	K4E::GpuParticleManager* gpuParticleManager_ = nullptr; // GPUパーティクルマネージャーへの参照
 
 	State state_ = State::Appear; // 現在の状態
 
@@ -228,7 +230,7 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	BossTurning turning_;
 
-	ContactRecord contactRecord_; // 接触記録
+	K4E::ContactRecord contactRecord_; // 接触記録
 
 	// 攻撃状態
 	std::unique_ptr<IBossAttackState> attackState_;

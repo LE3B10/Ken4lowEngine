@@ -3,6 +3,9 @@
 #include <vector>
 #include <Vector3.h>
 
+namespace Ken4lowEngine
+{
+
 /// -------------------------------------------------------------
 ///				　	ボックスコライダーデータ構造体
 /// -------------------------------------------------------------
@@ -34,3 +37,4 @@ struct LevelData
 {
 	std::vector<ObjectData> objects; // レベル内のオブジェクトデータ
 };
+} // namespace Ken4lowEngine

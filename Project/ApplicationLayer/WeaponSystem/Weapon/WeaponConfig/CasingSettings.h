@@ -2,6 +2,8 @@
 #include <Vector3.h>
 #include <Vector4.h>
 
+namespace K4E = ::Ken4lowEngine;
+
 // 薬莢エフェクト設定（将来用）
 struct CasingSettings
 {
@@ -24,6 +26,6 @@ struct CasingSettings
 	float upBias = 0.25f;     // 方向ベクトルを上向きに寄せるブレンド(0..1)
 	float spinMin = 12.0f;     // rad/s
 	float spinMax = 28.0f;     // rad/s
-	Vector4 color = { 0.9f, 0.8f, 0.3f, 1.0f }; // 真鍮色っぽい
-	Vector3 scale = { 0.01f, 0.01f, 0.03f };    // 見た目スケール
+	K4E::Vector4 color = { 0.9f, 0.8f, 0.3f, 1.0f }; // 真鍮色っぽい
+	K4E::Vector3 scale = { 0.01f, 0.01f, 0.03f };    // 見た目スケール
 };

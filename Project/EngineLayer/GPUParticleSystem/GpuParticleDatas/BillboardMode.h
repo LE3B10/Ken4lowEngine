@@ -1,6 +1,9 @@
 #pragma once
 #include <cstdint>
 
+namespace Ken4lowEngine
+{
+
 /// -------------------------------------------------------------
 ///				　	ビルボードモード列挙型
 /// -------------------------------------------------------------
@@ -11,3 +14,4 @@ enum class BillboardMode : uint32_t
 	YAxis = 1 << 1,  // 0x2 : Y軸だけビルボード（木・縦の煙など）
 	Ribbon = 1 << 2, // 0x3 : リボン
 };
+} // namespace Ken4lowEngine

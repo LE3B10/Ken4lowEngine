@@ -21,3 +21,7 @@
 using namespace Microsoft::WRL;
 
 #include "BlendModeType.h"
+namespace Ken4lowEngine
+{
+
+} // namespace Ken4lowEngine

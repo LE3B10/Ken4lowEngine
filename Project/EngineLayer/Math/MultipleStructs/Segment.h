@@ -1,6 +1,9 @@
 #pragma once
 #include "Vector3.h"
 
+namespace Ken4lowEngine
+{
+
 /// ---------- 線分の構造体 ---------- ///
 struct Segment final
 {
@@ -9,3 +12,4 @@ struct Segment final
 };
 
 // Line Ray Segment
+} // namespace Ken4lowEngine

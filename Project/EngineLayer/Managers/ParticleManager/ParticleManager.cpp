@@ -12,6 +12,9 @@
 #include "CollisionUtility.h"
 #include "LinearInterpolation.h"
 
+namespace Ken4lowEngine
+{
+
 
 /// -------------------------------------------------------------
 ///				　　　 風が吹くエリアと風の強さ
@@ -590,3 +593,5 @@ std::list<Particle> ParticleManager::Emit(const Emitter& emitter, std::mt19937& 
 
 	return particles;
 }
+
+} // namespace Ken4lowEngine

@@ -5,6 +5,8 @@
 #include <EnemyAIDeadState.h>
 #include <Player.h>
 
+namespace K4E = ::Ken4lowEngine;
+
 void EnemyAIDamagedState::Enter(Enemy* enemy)
 {
 	using AIState = Enemy::AIState;
@@ -46,11 +48,11 @@ void EnemyAIDamagedState::Update(Enemy* enemy, float deltaTime)
 		if (flash.timer < 0.0f) flash.timer = 0.0f;
 
 		float t = 1.0f - std::clamp(flash.timer / flash.duration, 0.0f, 1.0f); // 0→1
-		Vector4 c = {
-			Lerp(flash.hitColor.x,  flash.baseColor.x,  t),
-			Lerp(flash.hitColor.y,  flash.baseColor.y,  t),
-			Lerp(flash.hitColor.z,  flash.baseColor.z,  t),
-			Lerp(flash.hitColor.w,  flash.baseColor.w,  t),
+		K4E::Vector4 c = {
+			K4E::Lerp(flash.hitColor.x,  flash.baseColor.x,  t),
+			K4E::Lerp(flash.hitColor.y,  flash.baseColor.y,  t),
+			K4E::Lerp(flash.hitColor.z,  flash.baseColor.z,  t),
+			K4E::Lerp(flash.hitColor.w,  flash.baseColor.w,  t),
 		};
 		ApplyColorToAll(enemy, c);
 
@@ -98,7 +100,7 @@ void EnemyAIDamagedState::StartDeathSequence(Enemy* enemy)
 	DeathEnemyState& death = enemy->GetDeathState();
 	BodyPart& body = enemy->GetBody();
 	std::vector<BodyPart>& parts = enemy->GetBodyParts();
-	Vector3& dropPosAtDeath = enemy->GetDropPosAtDeath();
+	K4E::Vector3& dropPosAtDeath = enemy->GetDropPosAtDeath();
 
 	if (death.active) return;
 
@@ -125,9 +127,9 @@ void EnemyAIDamagedState::StartDeathSequence(Enemy* enemy)
 		GibMotion gm{};
 
 		// ランダム速度
-		Vector3 dir{ dirDist(rng), 0.0f, dirDist(rng) };
-		if (Vector3::Length(dir) < 0.001f) dir = { 0.0f, 0.0f, 1.0f };
-		dir = Vector3::Normalize(dir);
+		K4E::Vector3 dir{ dirDist(rng), 0.0f, dirDist(rng) };
+		if (K4E::Vector3::Length(dir) < 0.001f) dir = { 0.0f, 0.0f, 1.0f };
+		dir = K4E::Vector3::Normalize(dir);
 		gm.velocity = dir * 3.0f;
 		gm.velocity.y += upDist(rng);
 		gm.angularVelocity = { angDist(rng), angDist(rng), angDist(rng) };
@@ -135,7 +137,7 @@ void EnemyAIDamagedState::StartDeathSequence(Enemy* enemy)
 
 		// 今までの translate_ は body からのローカル位置なので、
 		// 親を外す前に「ワールド位置」に焼き直す
-		Vector3 worldPos = part.transform.translate_;
+		K4E::Vector3 worldPos = part.transform.translate_;
 		if (part.transform.parent_ == &body.transform) {
 			worldPos += body.transform.translate_;
 		}
@@ -145,7 +147,7 @@ void EnemyAIDamagedState::StartDeathSequence(Enemy* enemy)
 	}
 }
 
-void EnemyAIDamagedState::ApplyColorToAll(Enemy* enemy, const Vector4& color)
+void EnemyAIDamagedState::ApplyColorToAll(Enemy* enemy, const K4E::Vector4& color)
 {
 	using FlashInfo = Enemy::FlashInfo;
 	using BodyPart = BaseCharacter::BodyPart;

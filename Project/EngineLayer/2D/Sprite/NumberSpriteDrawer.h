@@ -6,6 +6,9 @@
 #include "Vector2.h"
 #include <vector>
 
+namespace Ken4lowEngine
+{
+
 
 /// --------------------------------------------------------------
 ///				　	数字スプライト描画クラス
@@ -70,3 +73,5 @@ private: /// ---------- メンバ変数 ---------------- ///
 	std::vector<std::unique_ptr<Sprite>> reusable_;
 	size_t currentIndex_ = 0;
 };
+
+} // namespace Ken4lowEngine

@@ -4,6 +4,8 @@
 #include "Item.h"
 #include "CollisionManager.h"
 
+namespace K4E = ::Ken4lowEngine;
+
 /// ---------- 前方宣言 ---------- ///
 class Player;
 
@@ -27,7 +29,7 @@ public: /// ---------- メンバ関数 ---------- ///
 	void RegisterColliders(CollisionManager* collisionManager);
 
 	// スポーン処理
-	void Spawn(ItemType type, const Vector3& position);
+	void Spawn(ItemType type, const K4E::Vector3& position);
 
 	// 取得イベントの消費
 	bool ConsumeCollected(ItemType type);

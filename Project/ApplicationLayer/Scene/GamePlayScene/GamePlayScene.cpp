@@ -26,6 +26,8 @@
 
 #include <array>
 
+namespace K4E = ::Ken4lowEngine;
+
 /// -------------------------------------------------------------
 ///				　			　初期化処理
 /// -------------------------------------------------------------
@@ -33,16 +35,16 @@ void GamePlayScene::Initialize()
 {
 #ifdef _DEBUG
 	// デバッグカメラの初期化
-	DebugCamera::GetInstance()->Initialize();
+	K4E::DebugCamera::GetInstance()->Initialize();
 #endif // _DEBUG
 
-	Input::GetInstance()->SetLockCursor(true);
+	K4E::Input::GetInstance()->SetLockCursor(true);
 	ShowCursor(false);
 
-	dxCommon_ = DirectXCommon::GetInstance();
-	input_ = Input::GetInstance();
+	dxCommon_ = K4E::DirectXCommon::GetInstance();
+	input_ = K4E::Input::GetInstance();
 
-	skyBox_ = std::make_unique<SkyBox>();
+	skyBox_ = std::make_unique<K4E::SkyBox>();
 	skyBox_->Initialize("SkyBox/skybox.dds");
 
 	// 衝突マネージャーの初期化
@@ -165,7 +167,7 @@ void GamePlayScene::Draw3DObjects()
 #pragma region スカイボックスの描画
 
 	// スカイボックスの共通描画設定
-	SkyBoxManager::GetInstance()->SetRenderSetting();
+	K4E::SkyBoxManager::GetInstance()->SetRenderSetting();
 
 	skyBox_->Draw();
 
@@ -193,7 +195,7 @@ void GamePlayScene::Draw3DObjects()
 	//fpsCamera_->DrawDebugCamera();
 
 	// ワイヤーフレームの描画
-	Wireframe::GetInstance()->DrawGrid(100.0f, 50.0f, { 0.25f, 0.25f, 0.25f,1.0f });
+	K4E::Wireframe::GetInstance()->DrawGrid(100.0f, 50.0f, { 0.25f, 0.25f, 0.25f,1.0f });
 
 #endif // _DEBUG
 }
@@ -207,7 +209,7 @@ void GamePlayScene::Draw2DSprites()
 #pragma region スプライトの描画                    
 
 	// 背景用の共通描画設定（後面）
-	SpriteManager::GetInstance()->SetRenderSetting_Background();
+	K4E::SpriteManager::GetInstance()->SetRenderSetting_Background();
 
 #pragma endregion
 
@@ -215,7 +217,7 @@ void GamePlayScene::Draw2DSprites()
 #pragma region UIの描画
 
 	// UI用の共通描画設定
-	SpriteManager::GetInstance()->SetRenderSetting_UI();
+	K4E::SpriteManager::GetInstance()->SetRenderSetting_UI();
 
 	if (state_ != State::GameOver)
 	{
@@ -243,7 +245,7 @@ void GamePlayScene::Draw2DSprites()
 void GamePlayScene::Finalize()
 {
 	// 入力状態を必ず戻す（ロック/非表示のまま終了しない）
-	Input::GetInstance()->SetLockCursor(false);
+	K4E::Input::GetInstance()->SetLockCursor(false);
 	ShowCursor(true);
 
 	// ステートを抜ける（ステートがシーン内リソースを握ってる可能性がある）
@@ -316,7 +318,7 @@ void GamePlayScene::ChangeState(std::unique_ptr<IGamePlaySceneState> newState)
 void GamePlayScene::DrawImGui()
 {
 	// ライト
-	LightManager::GetInstance()->DrawImGui();
+	K4E::LightManager::GetInstance()->DrawImGui();
 
 	player_->DrawImGui();
 
@@ -340,7 +342,7 @@ void GamePlayScene::DrawImGui()
 void GamePlayScene::InitializeFadeOverlay()
 {
 	// フェード用スプライト（黒の1x1テクスチャを用意しておく）
-	fadeSprite_ = std::make_unique<Sprite>();
+	fadeSprite_ = std::make_unique<K4E::Sprite>();
 	fadeSprite_->Initialize("white.png");
 	fadeSprite_->SetAnchorPoint({ 0.5f, 0.5f });
 	fadeSprite_->SetPosition({ dxCommon_->GetClientWidth() * 0.5f, dxCommon_->GetClientHeight() * 0.5f });
@@ -377,7 +379,7 @@ void GamePlayScene::InitializeClearEffectSprites()
 	float margin = 24.0f;
 
 	// 左下：リタイア（タイトルへ戻る）
-	retireButtonSprite_ = std::make_unique<Sprite>();
+	retireButtonSprite_ = std::make_unique<K4E::Sprite>();
 	retireButtonSprite_->Initialize("white.png");
 	retireButtonSprite_->SetAnchorPoint({ 0.0f, 1.0f }); // 左下基準
 	retireButtonSprite_->SetPosition({ margin, screenH - margin });
@@ -386,7 +388,7 @@ void GamePlayScene::InitializeClearEffectSprites()
 	retireButtonSprite_->SetColor({ 1.0f, 0.2f, 0.2f, 0.6f });
 
 	// 右下：リトライ（リスタート）
-	retryButtonSprite_ = std::make_unique<Sprite>();
+	retryButtonSprite_ = std::make_unique<K4E::Sprite>();
 	retryButtonSprite_->Initialize("white.png");
 	retryButtonSprite_->SetAnchorPoint({ 1.0f, 1.0f }); // 右下基準
 	retryButtonSprite_->SetPosition({ screenW - margin, screenH - margin });
@@ -407,14 +409,14 @@ void GamePlayScene::InitializeClearEffectSprites()
 
 
 	// --------- クリア演出用パネル／テキスト ---------
-	clearPanelSprite_ = std::make_unique<Sprite>();
+	clearPanelSprite_ = std::make_unique<K4E::Sprite>();
 	clearPanelSprite_->Initialize("white.png"); // 仮の真っ白テクスチャ
 	clearPanelSprite_->SetAnchorPoint({ 0.5f, 0.5f });
 	clearPanelSprite_->SetPosition({ screenW * 0.5f, screenH * 0.5f }); // 位置
 	clearPanelSprite_->SetSize({ screenW * 0.6f, screenH * 0.8f });     // 大きさ
 	clearPanelSprite_->SetColor({ 0.0f, 0.0f, 0.0f, 0.0f });          // 最初は透明
 
-	clearTextSprite_ = std::make_unique<Sprite>();
+	clearTextSprite_ = std::make_unique<K4E::Sprite>();
 	clearTextSprite_->Initialize("white.png");
 	clearTextSprite_->SetAnchorPoint({ 0.5f, 0.5f });
 	clearTextSprite_->SetPosition({ screenW * 0.5f, screenH * 0.3f }); // 位置
@@ -431,7 +433,7 @@ void GamePlayScene::InitializeClearEffectSprites()
 
 	for (int i = 0; i < kClearStarCount; ++i)
 	{
-		clearStarSprites_[i] = std::make_unique<Sprite>();
+		clearStarSprites_[i] = std::make_unique<K4E::Sprite>();
 		clearStarSprites_[i]->Initialize("white.png"); // ★星テクスチャを用意しておく
 		clearStarSprites_[i]->SetAnchorPoint({ 0.5f, 0.5f });
 
@@ -467,7 +469,7 @@ void GamePlayScene::InitializeClearEffectSprites()
 
 	for (int i = 0; i < kClearOptionCount; ++i)
 	{
-		clearOptionSprites_[i] = std::make_unique<Sprite>();
+		clearOptionSprites_[i] = std::make_unique<K4E::Sprite>();
 		clearOptionSprites_[i]->Initialize("white.png"); // とりあえず白い四角
 		clearOptionSprites_[i]->SetAnchorPoint({ 0.5f, 0.5f });
 
@@ -497,13 +499,13 @@ void GamePlayScene::UpdateDebug()
 	{
 		if (isPaused_) return; // ポーズ中はデバッグカメラ切り替えを無効化
 
-		Object3DCommon::GetInstance()->SetDebugCamera(!Object3DCommon::GetInstance()->GetDebugCamera());
-		Wireframe::GetInstance()->SetDebugCamera(!Wireframe::GetInstance()->GetDebugCamera());
-		//ParticleManager::GetInstance()->SetDebugCamera(!ParticleManager::GetInstance()->GetDebugCamera());
+		K4E::Object3DCommon::GetInstance()->SetDebugCamera(!K4E::Object3DCommon::GetInstance()->GetDebugCamera());
+		K4E::Wireframe::GetInstance()->SetDebugCamera(!K4E::Wireframe::GetInstance()->GetDebugCamera());
+		//K4E::ParticleManager::GetInstance()->SetDebugCamera(!K4E::ParticleManager::GetInstance()->GetDebugCamera());
 		skyBox_->SetDebugCamera(!skyBox_->GetDebugCamera());
 		player_->SetDebugCamera(!player_->IsDebugCamera());
 		isDebugCamera_ = !isDebugCamera_;
-		Input::GetInstance()->SetLockCursor(!isDebugCamera_);
+		K4E::Input::GetInstance()->SetLockCursor(!isDebugCamera_);
 		ShowCursor(isDebugCamera_);// 表示・非表示も連動（オプション）
 	}
 #endif // _DEBUG

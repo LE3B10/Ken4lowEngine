@@ -1,6 +1,9 @@
 #pragma once
 #include "IPostEffect.h"
 
+namespace Ken4lowEngine
+{
+
 /// -------------------------------------------------------------
 ///						ヴィネットエフェクト
 /// -------------------------------------------------------------
@@ -65,3 +68,5 @@ private: /// ---------- メンバ変数 ---------- ///
 	VignetteSetting setting_ = { 1.0f, 0.5f };
 };
 
+
+} // namespace Ken4lowEngine

@@ -1,6 +1,9 @@
 #include "UAVManager.h"
 #include "DirectXCommon.h"
 
+namespace Ken4lowEngine
+{
+
 UAVManager* UAVManager::GetInstance()
 {
 	static UAVManager instance;
@@ -205,3 +208,4 @@ void UAVManager::CreateSRVForStructureBuffer(uint32_t srvIndex, ID3D12Resource* 
 	srv.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_NONE; // 特にフラグは指定しない
 	dxCommon_->GetDevice()->CreateShaderResourceView(pResource, &srv, GetCPUDescriptorHandle(srvIndex));
 }
+} // namespace Ken4lowEngine

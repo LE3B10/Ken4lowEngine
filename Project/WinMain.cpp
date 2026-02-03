@@ -1,6 +1,8 @@
 #include "GameApplication.h"
 #include "D3DResourceLeakChecker.h"
 
+using namespace Ken4lowEngine;
+
 // Windowsアプリでのエントリーポイント(main関数)
 int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 {

@@ -3,6 +3,9 @@
 
 #include <memory>
 
+namespace Ken4lowEngine
+{
+
 /// ---------- 前方宣言 ---------- ///
 class WinApp;
 class DirectXCommon;
@@ -81,3 +84,5 @@ protected: /// ---------- メンバ変数 ---------- ///
 	std::unique_ptr<Camera> defaultCamera_;
 };
 
+
+} // namespace Ken4lowEngine

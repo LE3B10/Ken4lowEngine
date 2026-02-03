@@ -1,6 +1,9 @@
 #pragma once
 #include <cstdint>
 
+namespace Ken4lowEngine
+{
+
 /// -------------------------------------------------------------
 ///				　		ID生成クラス
 /// -------------------------------------------------------------
@@ -20,3 +23,5 @@ private: /// ---------- メンバ変数 ---------- ///
 	static inline uint32_t nextID_ = 0;
 };
 
+
+} // namespace Ken4lowEngine

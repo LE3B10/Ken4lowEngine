@@ -4,6 +4,9 @@
 #include <wrl.h>
 #include <string>
 
+namespace Ken4lowEngine
+{
+
 /// -------------------------------------------------------------
 ///			　	メッシュパーティクルアセット構造体
 /// -------------------------------------------------------------
@@ -18,3 +21,4 @@ struct MeshParticleAsset
 
 	std::string textureFilePath;
 };
+} // namespace Ken4lowEngine

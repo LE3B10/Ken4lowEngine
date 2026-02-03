@@ -2,6 +2,9 @@
 #include "IPostEffect.h"
 #include <Vector2.h>
 
+namespace Ken4lowEngine
+{
+
 /// -------------------------------------------------------------
 ///				　ラジアルブラーエフェクトクラス
 /// -------------------------------------------------------------
@@ -61,3 +64,5 @@ private: /// ---------- メンバ変数 ---------- ///
 	RadialBlurSetting* radialBlurSetting_ = nullptr;		// ラジアルブラーの設定データ
 };
 
+
+} // namespace Ken4lowEngine

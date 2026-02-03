@@ -8,6 +8,9 @@
 #include <mutex>
 #include <atomic>
 
+namespace Ken4lowEngine
+{
+
 
 /// -------------------------------------------------------------
 ///				　	　MP3 を読み込むクラス
@@ -197,3 +200,5 @@ private: /// ---------- メンバ変数 ---------- ///
 	std::atomic<float> currentVolume = 1.0f;
 	std::atomic<float> frequencyRatio = 1.0f;
 };
+
+} // namespace Ken4lowEngine

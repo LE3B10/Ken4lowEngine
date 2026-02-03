@@ -6,6 +6,8 @@
 #include <optional>
 #include <memory>
 
+namespace K4E = ::Ken4lowEngine;
+
 /// -------------------------------------------------------------
 ///				　	グリッド型ステージセレクター
 /// -------------------------------------------------------------
@@ -16,15 +18,15 @@ private: /// ---------- 構造体 ---------- ///
 	// ロックアイコンセット
 	struct LockIconSet
 	{
-		std::vector<std::unique_ptr<Sprite>> sprites; // ロックアイコンスプライト群
+		std::vector<std::unique_ptr<K4E::Sprite>> sprites; // ロックアイコンスプライト群
 		float   scale = 0.5f;						  // スケール
-		Vector2 offset = { 0.0f, 0.0f };			  // カード中心からのオフセット
+		K4E::Vector2 offset = { 0.0f, 0.0f };			  // カード中心からのオフセット
 	};
 
 	// レイアウトパラメータ
 	struct LayoutParam
 	{
-		Vector2 center = { 640.0f, 360.0f }; // グリッド中心位置
+		K4E::Vector2 center = { 640.0f, 360.0f }; // グリッド中心位置
 		float gapX = 360.0f;				 // 横間隔
 		float gapY = 220.0f;                 // （今後縦グリッドにするとき用）
 		float baseW = 300.0f;                // カード基本幅
@@ -38,8 +40,8 @@ private: /// ---------- 構造体 ---------- ///
 		float scrollX = 0.0f;			 // スクロール位置
 		float velocityX = 0.0f;			 // スクロール速度
 		bool dragging = false;			 // ドラッグ中かどうか
-		Vector2 lastMouse{};			 // 直近マウス位置
-		Vector2 dragStart{};			 // ドラッグ開始位置
+		K4E::Vector2 lastMouse{};			 // 直近マウス位置
+		K4E::Vector2 dragStart{};			 // ドラッグ開始位置
 		float clickDeltaAccum = 0.0f;	 // クリックかドラッグかの判定用移動量
 		std::optional<int> pressIndex;	 // 押下開始インデックス
 		bool clickStartedOnCard = false; // クリックがカード上で始まったかどうか
@@ -122,16 +124,16 @@ public: /// ---------- メンバ関数 ---------- ///
 private: /// ---------- メンバ関数 ---------- ///
 
 	// 押下
-	void UpdatePress(Input* input, Vector2& mp);
+	void UpdatePress(K4E::Input* input, K4E::Vector2& mp);
 
 	// ホイール更新
 	void UpdateWheel();
 
 	// ドラッグ更新
-	void UpdateDrassing(Input* input, Vector2& mp, float deltaTime);
+	void UpdateDrassing(K4E::Input* input, K4E::Vector2& mp, float deltaTime);
 
 	// 離し
-	void UpdateRelease(Input* input, Vector2& mp);
+	void UpdateRelease(K4E::Input* input, K4E::Vector2& mp);
 
 	// クリックTween更新
 	void UpdateTween(float deltaTime);
@@ -148,11 +150,11 @@ private: /// ---------- メンバ関数 ---------- ///
 private: /// ---------- メンバ関数 ---------- ///
 
 	// ユーティリティ
-	int HitTestCardIndex(const Vector2& mousePosition) const; // -1 ならヒットなし
+	int HitTestCardIndex(const K4E::Vector2& mousePosition) const; // -1 ならヒットなし
 	void StartTweenToIndex(int index, float duration = 0.3f); // 指定インデックスへトゥイーン開始
 	void CancelTween() { tween_.active = false; tween_.timer = 0.0f; } // トゥイーンキャンセル
 
-	int GetSelectedIndex(Vector2& mousePosition) const;
+	int GetSelectedIndex(K4E::Vector2& mousePosition) const;
 
 	int GetCenterIndex() const;   // 中央に最も近いインデックス
 
@@ -167,8 +169,8 @@ private: /// ---------- メンバ変数 ---------- ///
 	const std::vector<StageInfo>* stages_ = nullptr; // ステージ情報リスト（外部管理）
 
 	// サムネイルグリッド設定
-	std::vector<std::unique_ptr<Sprite>> thumbs_; // ステージサムネイルスプライト
-	std::unique_ptr<Sprite> selShadow_;           // 選択枠影
+	std::vector<std::unique_ptr<K4E::Sprite>> thumbs_; // ステージサムネイルスプライト
+	std::unique_ptr<K4E::Sprite> selShadow_;           // 選択枠影
 
 	// ロックアイコン＆UI
 	LockIconSet lockUI_{};

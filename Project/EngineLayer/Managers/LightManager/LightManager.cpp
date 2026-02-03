@@ -10,6 +10,9 @@
 #include <algorithm>  // std::clamp
 #include <cmath>      // sin/cos/atan2/asin/acos
 
+namespace Ken4lowEngine
+{
+
 LightManager* LightManager::GetInstance()
 {
 	static LightManager instance;
@@ -297,3 +300,5 @@ void LightManager::BindPunctualLights(uint32_t rootIndexCB_b2, uint32_t rootInde
 	// パンクチュアルライトSRVの設定（t2）
 	SRVManager::GetInstance()->SetGraphicsRootDescriptorTable(rootIndexSRV_t2, punctualSRVIndex_);
 }
+
+} // namespace Ken4lowEngine

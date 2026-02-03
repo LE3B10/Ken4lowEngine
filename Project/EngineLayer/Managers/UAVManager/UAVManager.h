@@ -6,6 +6,9 @@
 #include <cstdint>
 #include <stdexcept>
 
+namespace Ken4lowEngine
+{
+
 /// ---------- 前方宣言 ---------- ///
 class DirectXCommon;
 
@@ -168,3 +171,5 @@ private: /// ---------- コピー禁止 ---------- ///
 	const UAVManager& operator=(const UAVManager&) = delete;
 };
 
+
+} // namespace Ken4lowEngine

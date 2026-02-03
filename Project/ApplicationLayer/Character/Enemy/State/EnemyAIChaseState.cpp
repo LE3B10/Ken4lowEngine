@@ -4,6 +4,8 @@
 #include "Player.h"
 #include <EnemyAIAttackState.h>
 
+namespace K4E = ::Ken4lowEngine;
+
 void EnemyAIChaseState::Enter(Enemy* enemy)
 {
 	using AIState = Enemy::AIState;
@@ -48,12 +50,12 @@ void EnemyAIChaseState::Update(Enemy* enemy, float deltaTime)
 		return;
 	}
 
-	Vector3 playerPos = player->GetCenterPosition();
-	Vector3 enemyPos = body.transform.translate_;
+	K4E::Vector3 playerPos = player->GetCenterPosition();
+	K4E::Vector3 enemyPos = body.transform.translate_;
 
-	Vector3 diff = playerPos - enemyPos; diff.y = 0.0f;
-	float  dist = std::max(0.0001f, Vector3::Length(diff));
-	Vector3 dir = diff / dist;
+	K4E::Vector3 diff = playerPos - enemyPos; diff.y = 0.0f;
+	float  dist = std::max(0.0001f, K4E::Vector3::Length(diff));
+	K4E::Vector3 dir = diff / dist;
 
 	const float minDist = enemy->GetPersonalSpaceRadius();
 	const float triggerDist = std::max(attack.range, minDist + attack.reachMargin);
@@ -71,9 +73,9 @@ void EnemyAIChaseState::Update(Enemy* enemy, float deltaTime)
 	// dist <= minDist のときは下がらない（押されない）
 
 	// 移動「後」の距離で判定し直す
-	Vector3 d2 = player->GetCenterPosition() - body.transform.translate_;
+	K4E::Vector3 d2 = player->GetCenterPosition() - body.transform.translate_;
 	d2.y = 0.0f;
-	float distAfter = Vector3::Length(d2);
+	float distAfter = K4E::Vector3::Length(d2);
 
 	if (distAfter <= triggerDist && attack.cooldownTimer <= 0.0f)
 	{

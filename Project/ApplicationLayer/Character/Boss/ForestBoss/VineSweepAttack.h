@@ -5,6 +5,8 @@
 
 #include <memory>
 
+namespace K4E = ::Ken4lowEngine;
+
 /// ---------- 前方宣言 ---------- ///
 class Boss;
 
@@ -41,7 +43,7 @@ private: /// ---------- 構造体 ---------- ///
 	// ツタの残像情報
 	struct AfterImage
 	{
-		Vector3 pos{};
+		K4E::Vector3 pos{};
 		float yaw = 0.0f;
 		float reach = 1.0f;  // 伸び具合（Windup連動用に使ってもOK）
 		float age = 0.0f;
@@ -65,7 +67,7 @@ public: /// ---------- メンバ関数 ---------- ///
 	void Attack() override;
 
 	// 更新処理
-	void Update(Boss* boss, float deltaTime, float bossYawRad, const Vector3& playerPosition) override;
+	void Update(Boss* boss, float deltaTime, float bossYawRad, const K4E::Vector3& playerPosition) override;
 
 	// 攻撃がアクティブか
 	bool IsActive() const override;
@@ -81,7 +83,7 @@ public: /// ---------- メンバ関数 ---------- ///
 private: /// ---------- メンバ関数 ---------- ///
 
 	// XZ平面上でセクター内に点があるか判定する
-	bool IsPointInSectorXZ(const Vector3& position, const Vector3& origin, float forwardYawRad, float radius, float angleDeg, float yThickness) const;
+	bool IsPointInSectorXZ(const K4E::Vector3& position, const K4E::Vector3& origin, float forwardYawRad, float radius, float angleDeg, float yThickness) const;
 
 	// ツタのビジュアル更新
 	void UpdateVineVisual(Boss* boss);
@@ -104,14 +106,14 @@ private: /// ---------- フェーズの更新処理関数 ---------- ///
 	void UpdatePhase_Windup(Boss* boss, float deltaTime);
 
 	// Activeフェーズ更新
-	void UpdatePhase_Active(Boss* boss, float deltaTime, const Vector3& playerPosition);
+	void UpdatePhase_Active(Boss* boss, float deltaTime, const K4E::Vector3& playerPosition);
 
 	// Recoveryフェーズ更新
 	void UpdatePhase_Recovery(Boss* boss, float deltaTime);
 
 private: /// ---------- メンバ変数 ---------- ///
 
-	std::unique_ptr<Object3D> vineObject_; // つるオブジェクト
+	std::unique_ptr<K4E::Object3D> vineObject_; // つるオブジェクト
 
 	bool requestStart_ = false; // 攻撃開始要求フラグ
 
@@ -124,9 +126,9 @@ private: /// ---------- ツタ残像用メンバ変数 ---------- ///
 
 	float trailTimer_ = 0.0f;
 	std::vector<AfterImage> afterImages_;
-	std::vector<std::unique_ptr<Object3D>> trailObjects_;
+	std::vector<std::unique_ptr<K4E::Object3D>> trailObjects_;
 
-	Vector3 lastVinePos_{};
+	K4E::Vector3 lastVinePos_{};
 	float   lastVineYaw_ = 0.0f;
 	float   lastVineReach_ = 1.0f;
 
@@ -137,7 +139,7 @@ private: /// ---------- デバッグ用メンバ変数 ---------- ///
 
 	// テスト用プレイヤー座標（プレイヤー接続できてない間の確認用）
 	bool  debugUseTestPlayerPos_ = true;
-	Vector3 debugTestPlayerPos_{ 0.0f, 0.0f, 4.0f };
+	K4E::Vector3 debugTestPlayerPos_{ 0.0f, 0.0f, 4.0f };
 
 	// 状態の可視化
 	bool  debugPlayerInSector_ = false;

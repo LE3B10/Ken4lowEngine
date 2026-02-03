@@ -1,5 +1,8 @@
 #pragma once
 
+namespace Ken4lowEngine
+{
+
 /// ---------- オーディオカテゴリ ---------- ///
 enum class AudioCategory
 {
@@ -8,3 +11,4 @@ enum class AudioCategory
 	Voice, // ボイス
 	Count  // 上限チェック用
 };
+} // namespace Ken4lowEngine

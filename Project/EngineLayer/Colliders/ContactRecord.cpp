@@ -1,6 +1,9 @@
 #include "ContactRecord.h"
 #include <algorithm>
 
+namespace Ken4lowEngine
+{
+
 
 /// -------------------------------------------------------------
 ///						履歴を追加する処理
@@ -30,3 +33,5 @@ void ContactRecord::Clear()
 	// 履歴を削除
 	record_.clear();
 }
+
+} // namespace Ken4lowEngine

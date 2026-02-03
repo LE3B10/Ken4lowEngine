@@ -1,6 +1,9 @@
 #pragma once
 #include "DX12Include.h"
 
+namespace Ken4lowEngine
+{
+
 
 /// ---------- 前方宣言 ---------- ///
 class DirectXCommon;
@@ -77,3 +80,5 @@ private: /// ---------- メンバ変数 ---------- ///
 	D3D12_INPUT_LAYOUT_DESC inputLayoutDesc_{};
 };
 
+
+} // namespace Ken4lowEngine

@@ -1,6 +1,9 @@
 #pragma once
 #include "DX12Include.h"
 
+namespace Ken4lowEngine
+{
+
 
 /// -------------------------------------------------------------
 ///					デバイスの生成クラス
@@ -50,3 +53,5 @@ private: /// ---------- メンバ変数 ---------- ///
 	ComPtr <IDXGIAdapter4> useAdapter;
 };
 
+
+} // namespace Ken4lowEngine

@@ -7,6 +7,9 @@
 #include "GpuParticleEmitterData.h" // エミッターのCBデータ
 #include "BillboardMode.h" // ビルボードモード
 
+namespace Ken4lowEngine
+{
+
 /// -------------------------------------------------------------
 ///			　	GPUパーティクルエミッタークラス
 /// -------------------------------------------------------------
@@ -149,3 +152,5 @@ private: /// ---------- メンバ変数 ---------- ///
 	uint32_t pendingBurstCount_ = 0;
 };
 
+
+} // namespace Ken4lowEngine

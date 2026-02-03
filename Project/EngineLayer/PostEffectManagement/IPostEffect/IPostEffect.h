@@ -3,6 +3,9 @@
 #include <wrl.h>
 #include <string>
 
+namespace Ken4lowEngine
+{
+
 /// ---------- 前方宣言 ---------- ///
 class DirectXCommon;
 class PostEffectPipelineBuilder;
@@ -52,3 +55,5 @@ public: /// ---------- メンバ関数 ---------- ///
 	virtual void DrawImGui() {} // ImGuiが必要ない場合もあるので空でOK
 };
 
+
+} // namespace Ken4lowEngine

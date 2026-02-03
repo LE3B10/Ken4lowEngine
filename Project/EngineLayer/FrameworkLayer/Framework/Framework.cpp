@@ -20,6 +20,9 @@
 
 #ifdef USE_IMGUI
 #include <ImGuiManager.h>
+
+namespace Ken4lowEngine
+{
 #endif // USE_IMGUI
 
 
@@ -244,3 +247,5 @@ void Framework::Finalize()
 	winApp_->Finalize();
 }
 
+
+} // namespace Ken4lowEngine

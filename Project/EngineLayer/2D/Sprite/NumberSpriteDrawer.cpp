@@ -3,6 +3,9 @@
 #include <string>
 #include <cassert>
 
+namespace Ken4lowEngine
+{
+
 /// -------------------------------------------------------------
 ///				　			初期化処理
 /// -------------------------------------------------------------
@@ -96,3 +99,5 @@ void NumberSpriteDrawer::DrawNumberRightAligned(int value, Vector2 rightPosition
 	float startX = rightPosition.x - total;
 	DrawNumberLeftAligned(value, { startX, rightPosition.y }, spacing);
 }
+
+} // namespace Ken4lowEngine

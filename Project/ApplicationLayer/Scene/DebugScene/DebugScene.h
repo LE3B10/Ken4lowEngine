@@ -11,9 +11,11 @@
 #include <vector>
 #include <memory>
 
+namespace K4E = ::Ken4lowEngine;
+
 /// ---------- 前方宣言 ---------- ///
-class DirectXCommon;
-class Input;
+namespace Ken4lowEngine { class DirectXCommon; }
+namespace Ken4lowEngine { class Input; }
 
 /// -------------------------------------------------------------
 ///					　	デバッグシーン
@@ -47,13 +49,13 @@ private: /// ---------- メンバ関数 ---------- ///
 
 private: /// ---------- メンバ変数 ---------- ///
 
-	DirectXCommon* dxCommon_ = nullptr; // DirectXCommonのポインタ
-	Input* input_ = nullptr; // Inputのポインタ
+	K4E::DirectXCommon* dxCommon_ = nullptr; // DirectXCommonのポインタ
+	K4E::Input* input_ = nullptr; // Inputのポインタ
 
 	std::unique_ptr<Boss> boss_; // ボス
 
-	std::unique_ptr<Sprite> sprite_; // スプライト
-	std::unique_ptr<SkyBox> skyBox_; // スカイボックス
+	std::unique_ptr<K4E::Sprite> sprite_; // スプライト
+	std::unique_ptr<K4E::SkyBox> skyBox_; // スカイボックス
 
 	bool isDebugCamera_ = false; // デバッグカメラ使用フラグ
 
@@ -63,8 +65,8 @@ private: /// ---------- メンバ変数 ---------- ///
 	int prevH_ = 0;
 
 	// --- ひび割れ＆分解デモ用 ---
-	std::unique_ptr<Sprite> crackDemoSprite_;
-	std::unique_ptr<SpriteFractureEffect> fracture_;
+	std::unique_ptr<K4E::Sprite> crackDemoSprite_;
+	std::unique_ptr<K4E::SpriteFractureEffect> fracture_;
 
 	bool fractureActive_ = false;
 	float fractureProgress_ = 0.0f;
@@ -75,11 +77,11 @@ private: /// ---------- メンバ変数 ---------- ///
 	float crackScale_ = 18.0f;
 	float crackThickness_ = 0.03f;
 	float crackIntensity_ = 1.0f;
-	Vector2 hitUV_ = { 0.5f, 0.5f };
+	K4E::Vector2 hitUV_ = { 0.5f, 0.5f };
 
 
-	std::unique_ptr<Sprite> blockSprite_;        // 下の絵（タイル/ブロック）
-	std::unique_ptr<Sprite> crackOverlaySprite_; // 上のひび割れ
+	std::unique_ptr<K4E::Sprite> blockSprite_;        // 下の絵（タイル/ブロック）
+	std::unique_ptr<K4E::Sprite> crackOverlaySprite_; // 上のひび割れ
 
 	// 0..1 の進行度
 	float breakProgress_ = 0.0f;
@@ -88,14 +90,14 @@ private: /// ---------- メンバ変数 ---------- ///
 	static constexpr int kCrackFrames = 10;
 
 	// CrackAtlas の1コマのピクセルサイズ（あなたの作った画像に合わせる）
-	Vector2 crackFrameSizePx_ = { 128.0f, 128.0f }; // 例：128x128/フレーム
+	K4E::Vector2 crackFrameSizePx_ = { 128.0f, 128.0f }; // 例：128x128/フレーム
 
 	bool atlasAuto_ = true;
 	float atlasFps_ = 12.0f;
 	float atlasTime_ = 0.0f;
 	bool atlasHideAtZero_ = false; // テスト中はfalse推奨（0でも表示）
 
-	std::unique_ptr<SpriteDebrisEmitter> debris_;
+	std::unique_ptr<K4E::SpriteDebrisEmitter> debris_;
 	int prevCrackStage_ = 0;
 
 	// テスト用：欠片ON/OFF

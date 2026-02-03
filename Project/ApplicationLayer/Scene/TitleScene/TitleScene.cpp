@@ -16,16 +16,18 @@
 #include "TitleAttractState.h"
 #include "TitleLobbyState.h"
 
+namespace K4E = ::Ken4lowEngine;
+
 
 /// -------------------------------------------------------------
 ///				　			　初期化処理
 /// -------------------------------------------------------------
 void TitleScene::Initialize()
 {
-	dxCommon_ = DirectXCommon::GetInstance();
-	input_ = Input::GetInstance();
+	dxCommon_ = K4E::DirectXCommon::GetInstance();
+	input_ = K4E::Input::GetInstance();
 
-	skyBox_ = std::make_unique<SkyBox>();
+	skyBox_ = std::make_unique<K4E::SkyBox>();
 	skyBox_->Initialize("SkyBox/skybox.dds");
 
 	timers_.state = timers_.idle = 0.0f;
@@ -47,7 +49,7 @@ void TitleScene::Initialize()
 	InitializeClickHintUI();
 
 	// ロビー地形の初期化
-	terrain_ = std::make_unique<Object3D>();
+	terrain_ = std::make_unique<K4E::Object3D>();
 	terrain_->Initialize("lobby03.gltf");
 
 	// 最初のステートに入る
@@ -138,7 +140,7 @@ void TitleScene::Draw2DSprites()
 #pragma region 背景の描画（後面）
 
 	// 背景用の共通描画設定（後面）
-	SpriteManager::GetInstance()->SetRenderSetting_Background();
+	K4E::SpriteManager::GetInstance()->SetRenderSetting_Background();
 
 
 #pragma endregion
@@ -146,7 +148,7 @@ void TitleScene::Draw2DSprites()
 
 #pragma region UIの描画（前面）
 	// UI用の共通描画設定
-	SpriteManager::GetInstance()->SetRenderSetting_UI();
+	K4E::SpriteManager::GetInstance()->SetRenderSetting_UI();
 
 	// タイトル系（TitleAttract と ToTitle の間だけロゴを表示）
 	if (state_ == State::TitleAttract || state_ == State::ToTitle || logoUI_.exitLeft > 0.0f)
@@ -154,7 +156,7 @@ void TitleScene::Draw2DSprites()
 		if (logoSprite_)
 		{
 			logoSprite_->SetColor({ 1,1,1,logoUI_.alpha });
-			const Vector2 sz = { logoUI_.baseSize.x * logoUI_.scale, logoUI_.baseSize.y * logoUI_.scale };
+			const K4E::Vector2 sz = { logoUI_.baseSize.x * logoUI_.scale, logoUI_.baseSize.y * logoUI_.scale };
 			logoSprite_->SetSize(sz);
 			logoSprite_->Draw();
 
@@ -186,7 +188,7 @@ void TitleScene::Draw2DSprites()
 /// -------------------------------------------------------------
 void TitleScene::Finalize()
 {
-	AudioManager::GetInstance()->StopBGM();
+	K4E::AudioManager::GetInstance()->StopBGM();
 
 	// ステートを確実に終了
 	if (currentState_) { currentState_->Exit(this); }
@@ -228,7 +230,7 @@ void TitleScene::DrawImGui()
 
 #endif // USE_IMGUI
 
-	LightManager::GetInstance()->DrawImGui();
+	K4E::LightManager::GetInstance()->DrawImGui();
 }
 
 /// -------------------------------------------------------------
@@ -237,7 +239,7 @@ void TitleScene::DrawImGui()
 void TitleScene::InitializeCamera()
 {
 	// カメラの生成と初期化
-	camera_ = Object3DCommon::GetInstance()->GetDefaultCamera();
+	camera_ = K4E::Object3DCommon::GetInstance()->GetDefaultCamera();
 	if (camera_)
 	{
 		// ロビー用の初期位置にセット
@@ -258,7 +260,7 @@ void TitleScene::InitializeLogoUI()
 	logoUI_.exitLeft = 0.0f;
 
 	// ロゴスプライトの生成
-	logoSprite_ = std::make_unique<Sprite>();
+	logoSprite_ = std::make_unique<K4E::Sprite>();
 	logoSprite_->Initialize("logo_rittai_sensen.png");
 	logoUI_.baseSize = logoSprite_->GetSize();
 	logoUI_.baseSize *= 0.7f; // 元画像が大きい場合は適宜縮小
@@ -272,7 +274,7 @@ void TitleScene::InitializeLogoUI()
 void TitleScene::InitializeBattleButtonUI()
 {
 	// バトルボタンUI
-	battleButtonUI_.btnSprite = std::make_unique<Sprite>();
+	battleButtonUI_.btnSprite = std::make_unique<K4E::Sprite>();
 	battleButtonUI_.btnSprite->Initialize("btn_battle.png");
 	battleButtonUI_.btnSprite->SetAnchorPoint(battleButtonUI_.anchor);
 
@@ -288,7 +290,7 @@ void TitleScene::InitializeBattleButtonUI()
 void TitleScene::InitializeButtonShadowSprite()
 {
 	// 影スプライトも作成
-	battleButtonUI_.btnShadow = std::make_unique<Sprite>();
+	battleButtonUI_.btnShadow = std::make_unique<K4E::Sprite>();
 	battleButtonUI_.btnShadow->Initialize("btn_battle.png");
 	battleButtonUI_.btnShadow->SetAnchorPoint(battleButtonUI_.anchor);
 	battleButtonUI_.btnShadow->SetPosition({ battleButtonUI_.position.x, battleButtonUI_.position.y + 6.0f }); // 影は少し下
@@ -301,7 +303,7 @@ void TitleScene::InitializeButtonShadowSprite()
 /// -------------------------------------------------------------
 void TitleScene::InitializeClickHintUI()
 {
-	clickHintUI_.hintSprite = std::make_unique<Sprite>();
+	clickHintUI_.hintSprite = std::make_unique<K4E::Sprite>();
 	clickHintUI_.hintSprite->Initialize("ui_click_hint.png");
 	clickHintUI_.hintSprite->SetAnchorPoint({ 0.5f, 0.0f });      // 中央上
 	// ここは今の 1/10 スケール指定のままでOK
@@ -333,10 +335,10 @@ void TitleScene::ChangeState(std::unique_ptr<ITitleSceneState> newState)
 /// -------------------------------------------------------------
 ///				カメラの確保（なければデフォルトを取得）
 /// -------------------------------------------------------------
-Camera* TitleScene::EnsureCamera()
+K4E::Camera* TitleScene::EnsureCamera()
 {
 	if (!camera_) {
-		camera_ = Object3DCommon::GetInstance()->GetDefaultCamera();
+		camera_ = K4E::Object3DCommon::GetInstance()->GetDefaultCamera();
 	}
 	return camera_;
 }
@@ -350,7 +352,7 @@ void TitleScene::UpdateDebug()
 	if (input_->TriggerKey(DIK_BACK))
 	{
 		// タイトルに来たら必ずピクセルエフェクトはOFFにしておく
-		PostEffectManager::GetInstance()->DisableEffect("PixelateEffect");
+		K4E::PostEffectManager::GetInstance()->DisableEffect("K4E::PixelateEffect");
 
 		if (sceneManager_)
 		{
@@ -360,8 +362,8 @@ void TitleScene::UpdateDebug()
 
 	if (input_->TriggerKey(DIK_F12))
 	{
-		Object3DCommon::GetInstance()->SetDebugCamera(!Object3DCommon::GetInstance()->GetDebugCamera());
-		Wireframe::GetInstance()->SetDebugCamera(!Wireframe::GetInstance()->GetDebugCamera());
+		K4E::Object3DCommon::GetInstance()->SetDebugCamera(!K4E::Object3DCommon::GetInstance()->GetDebugCamera());
+		K4E::Wireframe::GetInstance()->SetDebugCamera(!K4E::Wireframe::GetInstance()->GetDebugCamera());
 		isDebugCamera_ = !isDebugCamera_;
 	}
 #endif // _DEBUG

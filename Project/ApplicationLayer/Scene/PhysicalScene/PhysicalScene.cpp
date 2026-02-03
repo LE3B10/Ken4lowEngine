@@ -17,19 +17,22 @@
 
 #ifdef USE_IMGUI
 #include <imgui.h>
+
+namespace K4E = ::Ken4lowEngine;
+
 #endif // USE_IMGUI
 
 
 void PhysicalScene::Initialize()
 {
-	dxCommon_ = DirectXCommon::GetInstance();
-	input_ = Input::GetInstance();
+	dxCommon_ = K4E::DirectXCommon::GetInstance();
+	input_ = K4E::Input::GetInstance();
 
-	camera = Object3DCommon::GetInstance()->GetDefaultCamera();
+	camera = K4E::Object3DCommon::GetInstance()->GetDefaultCamera();
 	camera->SetTranslate({ 0.0f, 2.0f, -20.0f });
 	camera->SetRotate({ 0.0f, 0.0f, 0.0f });
 
-	object3D_ = std::make_unique<Object3D>();
+	object3D_ = std::make_unique<K4E::Object3D>();
 	object3D_->Initialize("cube.gltf");
 
 	// 最初はロック状態の見た目にしておく
@@ -39,14 +42,14 @@ void PhysicalScene::Initialize()
 	ApplyLockedVisual();
 
 	//// GPUパーティクルエミッターの作成
-	//GpuParticleEmitter::EmitterInfo info{};
-	//info.type = GpuParticleType::Default;
-	//info.billboardMode = BillboardMode::Camera; // ビルボードしない
+	//K4E::GpuParticleEmitter::K4E::EmitterInfo info{};
+	//info.type = K4E::GpuParticleType::Default;
+	//info.billboardMode = K4E::BillboardMode::K4E::Camera; // ビルボードしない
 	//info.radius = 10.0f;
 	//info.loopCount = 0;        // 一回で10個
 	//info.loopFrequency = 0.0f;  // 0.5秒に一回
 
-	//unlockEmitter_ = GpuParticleManager::GetInstance()->CreateEmitter("StageUnlock", info);
+	//unlockEmitter_ = K4E::GpuParticleManager::GetInstance()->CreateEmitter("StageUnlock", info);
 
 	//if (unlockEmitter_)
 	//{
@@ -61,7 +64,7 @@ void PhysicalScene::Update()
 {
 	float dt = dxCommon_->GetFPSCounter().GetDeltaTime();
 
-	Vector3 move = { 0.0f,0.0f,0.0f };
+	K4E::Vector3 move = { 0.0f,0.0f,0.0f };
 
 	// カメラの移動
 	if (input_->PushKey(DIK_W)) move.z += 0.2f;
@@ -72,7 +75,7 @@ void PhysicalScene::Update()
 	if (input_->PushKey(DIK_Q)) move.y += 0.2f;
 	if (input_->PushKey(DIK_E)) move.y -= 0.2f;
 
-	Vector3 position = camera->GetTranslate();
+	K4E::Vector3 position = camera->GetTranslate();
 	position += move;
 
 	camera->SetTranslate(position);
@@ -91,7 +94,7 @@ void PhysicalScene::Update()
 
 		float offsetY = std::sinf(floatTimer_ * speed * 2.0f * std::numbers::pi_v<float>) * amplitude;
 
-		Vector3 pos = baseTranslate_;
+		K4E::Vector3 pos = baseTranslate_;
 		pos.y += offsetY;
 
 		object3D_->SetTranslate(pos);
@@ -131,7 +134,7 @@ void PhysicalScene::Update()
 	// エミッタ位置をキューブに追従させたい場合
 	if (unlockEmitter_)
 	{
-		Vector3 p = object3D_->GetTranslate();
+		K4E::Vector3 p = object3D_->GetTranslate();
 		p.y += 1.5f;
 		unlockEmitter_->SetPosition(p);
 	}
@@ -140,7 +143,7 @@ void PhysicalScene::Update()
 	{
 		const float slowSpinSpeed = std::numbers::pi_v<float> *0.125f; // 0.25回転/秒くらい
 
-		Vector3 rot = object3D_->GetRotate();
+		K4E::Vector3 rot = object3D_->GetRotate();
 		rot.y += slowSpinSpeed * dt;
 		object3D_->SetRotate(rot);
 	}
@@ -148,7 +151,7 @@ void PhysicalScene::Update()
 	// BackSpace でタイトルに戻る（デバッグ用）
 	if (input_->TriggerKey(DIK_BACK))
 	{
-		// タイトル側の Initialize で PixelateEffect をOFFにしているので、
+		// タイトル側の Initialize で K4E::PixelateEffect をOFFにしているので、
 		// ここではシーン切り替えだけでOK
 		SceneManager::GetInstance()->ChangeScene("TitleScene");
 		return; // このフレームの後続処理はスキップ
@@ -164,11 +167,11 @@ void PhysicalScene::Draw3DObjects()
 
 void PhysicalScene::Draw2DSprites()
 {
-	SpriteManager::GetInstance()->SetRenderSetting_Background();
+	K4E::SpriteManager::GetInstance()->SetRenderSetting_Background();
 
 	// 2Dスプライトの描画処理をここに追加
 
-	SpriteManager::GetInstance()->SetRenderSetting_UI();
+	K4E::SpriteManager::GetInstance()->SetRenderSetting_UI();
 
 
 }
@@ -227,7 +230,7 @@ void PhysicalScene::StartUnlock()
 	if (unlockEmitter_)
 	{
 		// 50〜150はお好みで調整
-		GpuParticleManager::GetInstance()->BurstEmitter("StageUnlock", 80);
+		K4E::GpuParticleManager::GetInstance()->BurstEmitter("StageUnlock", 80);
 	}
 }
 
@@ -239,10 +242,10 @@ void PhysicalScene::UpdateUnlock(float deltaTime)
 	if (t > 1.0f) t = 1.0f;
 
 	// --- カラー：黒 → クリア済みカラー ---
-	Vector4 lockedCol = { 0.0f, 0.0f, 0.0f, 1.0f };
-	Vector4 clearedCol = { 0.2f, 0.7f, 1.0f, 1.0f };
+	K4E::Vector4 lockedCol = { 0.0f, 0.0f, 0.0f, 1.0f };
+	K4E::Vector4 clearedCol = { 0.2f, 0.7f, 1.0f, 1.0f };
 
-	Vector4 col;
+	K4E::Vector4 col;
 	col.x = lockedCol.x + (clearedCol.x - lockedCol.x) * t;
 	col.y = lockedCol.y + (clearedCol.y - lockedCol.y) * t;
 	col.z = lockedCol.z + (clearedCol.z - lockedCol.z) * t;
@@ -264,7 +267,7 @@ void PhysicalScene::UpdateUnlock(float deltaTime)
 	float spinFactor = 1.0f - t * 0.7f;                        // 終わりに向かって減速
 	spinFactor = std::max(spinFactor, 0.2f);
 
-	Vector3 rot = object3D_->GetRotate();
+	K4E::Vector3 rot = object3D_->GetRotate();
 	rot.y += spinSpeed * spinFactor * deltaTime;
 	object3D_->SetRotate(rot);
 

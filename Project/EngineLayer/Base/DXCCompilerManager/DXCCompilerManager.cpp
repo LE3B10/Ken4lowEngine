@@ -1,6 +1,9 @@
 #include "DXCCompilerManager.h"
 #include <cassert>
 
+namespace Ken4lowEngine
+{
+
 /// -------------------------------------------------------------
 ///					        初期化処理
 /// -------------------------------------------------------------
@@ -25,3 +28,4 @@ void DXCCompilerManager::Finalize()
 	dxcCompiler_.Reset();
 	includeHandler_.Reset();
 }
+} // namespace Ken4lowEngine

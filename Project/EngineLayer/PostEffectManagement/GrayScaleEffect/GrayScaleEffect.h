@@ -2,6 +2,9 @@
 #include "IPostEffect.h"
 #include "Vector4.h"
 
+namespace Ken4lowEngine
+{
+
 /// -------------------------------------------------------------
 ///				　グレイスケールエフェクトクラス
 /// -------------------------------------------------------------
@@ -75,3 +78,5 @@ private: /// ---------- メンバ変数 ---------- ///
 	GrayScaleSetting* grayScaleSetting_ = nullptr;
 };
 
+
+} // namespace Ken4lowEngine

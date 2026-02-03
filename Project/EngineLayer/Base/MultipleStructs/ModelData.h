@@ -10,6 +10,9 @@
 #include <span>
 #include <array>
 
+namespace Ken4lowEngine
+{
+
 // EulerTransformの構造体
 struct EulerTransform
 {
@@ -133,3 +136,4 @@ struct SkinningInformationForGPU
 	uint32_t numVertices; // 頂点数
 	bool isSkinning;    // スキニングするか
 };
+} // namespace Ken4lowEngine

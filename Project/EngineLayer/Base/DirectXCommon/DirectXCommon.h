@@ -13,6 +13,9 @@
 #include <memory>
 #include <Vector4.h>
 
+namespace Ken4lowEngine
+{
+
 /// ---------- 前方宣言 ---------- ///
 class WinApp;
 
@@ -214,3 +217,5 @@ private: /// ---------- コピー禁止 ---------- ///
 	DirectXCommon(const DirectXCommon&) = delete;
 	const DirectXCommon& operator=(const DirectXCommon&) = delete;
 };
+
+} // namespace Ken4lowEngine

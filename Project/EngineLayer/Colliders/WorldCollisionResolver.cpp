@@ -1,5 +1,8 @@
 #include "WorldCollisionResolver.h"
 
+namespace Ken4lowEngine
+{
+
 WorldCollisionResult WorldCollisionResolver::Resolve(const std::vector<AABB>& worldAABBs, const WorldCollisionSettings& s, const Vector3& oldTranslate, const Vector3& newTranslate, bool useGrounded, float* inoutJumpVelocity)
 {
     WorldCollisionResult r{};
@@ -120,3 +123,5 @@ WorldCollisionResult WorldCollisionResolver::Resolve(const std::vector<AABB>& wo
     r.fixedCenter = fixedCenter;
     return r;
 }
+
+} // namespace Ken4lowEngine

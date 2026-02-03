@@ -1,6 +1,9 @@
 #pragma once
 #include <cmath>
 
+namespace Ken4lowEngine
+{
+
 class Vector3;
 class Quaternion;
 
@@ -252,3 +255,5 @@ public: /// ---------- その他ユーティリティ ---------- ///
 	/// <returns>ビュー変換行列。</returns>
 	static Matrix4x4 LookAt(const Vector3& eye, const Vector3& target, const Vector3& up);
 };
+
+} // namespace Ken4lowEngine

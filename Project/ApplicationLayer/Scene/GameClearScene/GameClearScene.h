@@ -5,9 +5,11 @@
 #include "ParticleManager.h"
 #include <BaseScene.h>
 
+namespace K4E = ::Ken4lowEngine;
+
 /// ---------- 前方宣言 ---------- ///
-class DirectXCommon;
-class Input;
+namespace Ken4lowEngine { class DirectXCommon; }
+namespace Ken4lowEngine { class Input; }
 
 
 /// -------------------------------------------------------------
@@ -36,7 +38,7 @@ public: /// ---------- メンバ関数 ---------- ///
 
 private: /// ---------- メンバ変数 ---------- ///
 
-	DirectXCommon* dxCommon_ = nullptr;
-	Input* input = nullptr;
+	K4E::DirectXCommon* dxCommon_ = nullptr;
+	K4E::Input* input = nullptr;
 };
 

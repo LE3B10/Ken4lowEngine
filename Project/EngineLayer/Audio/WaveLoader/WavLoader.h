@@ -7,6 +7,9 @@
 #include <mutex>
 #include <wrl.h>
 
+namespace Ken4lowEngine
+{
+
 // 省略
 using namespace Microsoft::WRL;
 
@@ -189,3 +192,5 @@ private: /// ---------- メンバ変数 ---------- ///
 	std::atomic<float> frequencyRatio = 1.0f; // デフォルトは通常再生
 };
 
+
+} // namespace Ken4lowEngine

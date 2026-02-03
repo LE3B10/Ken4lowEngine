@@ -2,6 +2,9 @@
 #include "Vector3.h"
 #include "Matrix4x4.h"
 
+namespace Ken4lowEngine
+{
+
 /// -------------------------------------------------------------
 ///							四元数クラス
 /// -------------------------------------------------------------
@@ -117,3 +120,5 @@ public: /// ---------- 静的メンバ関数 ---------- ///
 	/// <returns>t の位置に対応する補間結果の四元数</returns>
 	static Quaternion Slerp(const Quaternion& q0, const Quaternion& q1, float t);
 };
+
+} // namespace Ken4lowEngine

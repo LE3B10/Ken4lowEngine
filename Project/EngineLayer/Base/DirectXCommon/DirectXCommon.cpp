@@ -3,6 +3,9 @@
 
 #include <cassert>
 
+namespace Ken4lowEngine
+{
+
 #pragma comment(lib,"dxcompiler.lib")
 
 using namespace Microsoft::WRL;
@@ -332,3 +335,5 @@ void DirectXCommon::InitializeRTVAndDSV()
 	}
 }
 
+
+} // namespace Ken4lowEngine

@@ -3,6 +3,9 @@
 
 #include <cassert>
 
+namespace Ken4lowEngine
+{
+
 
 /// -------------------------------------------------------------
 ///				スワップチェインの初期化処理
@@ -63,3 +66,5 @@ void DX12SwapChain::Resize(uint32_t width, uint32_t height)
 	swapChainDesc.Width = width;
 	swapChainDesc.Height = height;
 }
+
+} // namespace Ken4lowEngine

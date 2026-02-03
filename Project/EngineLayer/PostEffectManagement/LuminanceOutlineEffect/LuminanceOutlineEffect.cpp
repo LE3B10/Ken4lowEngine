@@ -12,6 +12,9 @@
 
 #ifdef USE_IMGUI
 #include <imgui.h>
+
+namespace Ken4lowEngine
+{
 #endif // USE_IMGUI
 
 /// -------------------------------------------------------------
@@ -109,3 +112,5 @@ void LuminanceOutlineEffect::DrawImGui()
 	ImGui::SliderFloat("Threshold", &luminanceOutlineSetting_->threshold, 0.0f, 1.0f);
 #endif // USE_IMGUI
 }
+
+} // namespace Ken4lowEngine

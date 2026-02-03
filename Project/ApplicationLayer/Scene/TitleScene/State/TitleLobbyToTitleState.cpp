@@ -3,6 +3,8 @@
 #include <LinearInterpolation.h>
 #include "TitleAttractState.h"
 
+namespace K4E = ::Ken4lowEngine;
+
 void TitleLobbyToTitleState::Enter(TitleScene* scene)
 {
 	scene->SetState(TitleScene::State::ToTitle);
@@ -21,19 +23,19 @@ void TitleLobbyToTitleState::Update(TitleScene* scene, float deltaTime)
 	auto& poseFrom = scene->GetPoseFrom();
 	auto& poseTo = scene->GetPoseTo();
 
-	Camera* camera = scene->GetCamera();
+	K4E::Camera* camera = scene->GetCamera();
 
 	timers.time += deltaTime;
 	float t = std::clamp(timers.time / timers.duration, 0.0f, 1.0f);
-	float te = EaseInOutCubic(t); // 好みでカーブ変更可
+	float te = K4E::EaseInOutCubic(t); // 好みでカーブ変更可
 
 	// 位置・角度を補間（角度は最短回転で）
-	Vector3 p;
-	p.x = Lerp(poseFrom.position.x, poseTo.position.x, te);
-	p.y = Lerp(poseFrom.position.y, poseTo.position.y, te);
-	p.z = Lerp(poseFrom.position.z, poseTo.position.z, te);
-	float yaw = LerpAngle(poseFrom.yaw, poseTo.yaw, te);
-	float pitch = Lerp(poseFrom.pitch, poseTo.pitch, te);
+	K4E::Vector3 p;
+	p.x = K4E::Lerp(poseFrom.position.x, poseTo.position.x, te);
+	p.y = K4E::Lerp(poseFrom.position.y, poseTo.position.y, te);
+	p.z = K4E::Lerp(poseFrom.position.z, poseTo.position.z, te);
+	float yaw = K4E::LerpAngle(poseFrom.yaw, poseTo.yaw, te);
+	float pitch = K4E::Lerp(poseFrom.pitch, poseTo.pitch, te);
 
 	camera->SetTranslate(p);
 	camera->SetRotate({ pitch, yaw, 0.0f });

@@ -1,6 +1,9 @@
 #pragma once
 #include <DX12Include.h>
 
+namespace Ken4lowEngine
+{
+
 /// -------------------------------------------------------------
 ///			DirectX12のHLSLコンパイラーを管理するクラス
 /// -------------------------------------------------------------
@@ -46,3 +49,4 @@ private: /// ---------- メンバ変数 ---------- ///
 	ComPtr<IDxcCompiler3> dxcCompiler_;
 	ComPtr<IDxcIncludeHandler> includeHandler_;
 };
+} // namespace Ken4lowEngine

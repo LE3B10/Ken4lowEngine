@@ -3,6 +3,9 @@
 #include "ParticleMesh.h"
 #include "ParticleMaterial.h"
 
+namespace Ken4lowEngine
+{
+
 /// ---------- 前方宣言 ---------- ///
 class GpuParticleSpritePipeline;
 class GpuParticleBuffers;
@@ -65,3 +68,5 @@ private: /// ---------- メンバ変数 ---------- ///
 	std::string textureFilePath_ = "circle2.png";
 };
 
+
+} // namespace Ken4lowEngine

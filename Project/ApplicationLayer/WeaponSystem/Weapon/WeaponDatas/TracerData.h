@@ -1,6 +1,8 @@
 #pragma once
 #include <Vector4.h>
 
+namespace K4E = ::Ken4lowEngine;
+
 /// ---------- 弾道（トレーサ）見た目の設定 ---------- ///
 struct TracerData
 {
@@ -10,5 +12,5 @@ struct TracerData
 	float  minSegLength = 0.04f;      // セグメント間引き閾値
 	float  startOffsetForward = 0.0f; // [m] 弾/トレーサの開始点を銃口から前後にオフセット
 	// RGBA
-	Vector4  color = { 0.8f, 1.0f, 0.6f, 1.0f };
+	K4E::Vector4  color = { 0.8f, 1.0f, 0.6f, 1.0f };
 };

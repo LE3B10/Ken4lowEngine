@@ -4,6 +4,9 @@
 #include "DirectXCommon.h"
 #include "SRVManager.h"
 
+namespace Ken4lowEngine
+{
+
 #pragma comment(lib, "d3d12.lib")
 #pragma comment(lib, "dxgi.lib")
 
@@ -219,3 +222,5 @@ void ImGuiManager::DrawDebugHub()
 #endif // USE_IMGUI
 
 }
+
+} // namespace Ken4lowEngine

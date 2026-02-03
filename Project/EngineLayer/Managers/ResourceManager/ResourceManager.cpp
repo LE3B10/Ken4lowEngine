@@ -2,6 +2,9 @@
 
 #include "DirectXCommon.h"
 
+namespace Ken4lowEngine
+{
+
 #pragma comment(lib, "d3d12.lib")
 #pragma comment(lib, "dxgi.lib")
 
@@ -48,3 +51,5 @@ ComPtr<ID3D12Resource> ResourceManager::CreateBufferResource(ID3D12Device* devic
 
 	return resource;
 }
+
+} // namespace Ken4lowEngine

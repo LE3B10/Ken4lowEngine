@@ -15,6 +15,9 @@
 
 #ifdef USE_IMGUI
 #include <imgui.h>
+
+namespace K4E = ::Ken4lowEngine;
+
 #endif // USE_IMGUI
 
 void Boss::Initialize()
@@ -23,7 +26,7 @@ void Boss::Initialize()
 	BaseCharacter::ApplySkinToAllParts("zombie.png");
 
 	// ID登録
-	Collider::SetTypeID(static_cast<uint32_t>(CollisionTypeIdDef::kBoss));
+	K4E::Collider::SetTypeID(static_cast<uint32_t>(CollisionTypeIdDef::kBoss));
 
 	vineSweepAttack_ = std::make_unique<VineSweepAttack>();
 	vineSweepAttack_->Initialize();
@@ -47,7 +50,7 @@ void Boss::Update(float deltaTime)
 	float bossYawRad = body.transform.worldRotate_.y;
 
 	// --- プレイヤー座標取得 ---
-	Vector3 playerPos{};          // TODO: 実際のプレイヤー座標を渡す
+	K4E::Vector3 playerPos{};          // TODO: 実際のプレイヤー座標を渡す
 
 	// ツタ薙ぎ払い攻撃更新
 	if (vineSweepAttack_)
@@ -104,7 +107,7 @@ void Boss::DrawImGui()
 #ifdef USE_IMGUI
 	ImGui::Begin("Boss Debug");
 
-	const Vector3 c = GetCenterPosition();
+	const K4E::Vector3 c = GetCenterPosition();
 	ImGui::Text("Center: (%.2f, %.2f, %.2f)", c.x, c.y, c.z);
 
 	auto& body = GetBody();
@@ -145,12 +148,12 @@ void Boss::DrawImGui()
 #endif // USE_IMGUI
 }
 
-void Boss::OnCollision(Collider* other)
+void Boss::OnCollision(K4E::Collider* other)
 {
 	(void)other;
 }
 
-Vector3 Boss::GetCenterPosition() const
+K4E::Vector3 Boss::GetCenterPosition() const
 {
 	return BaseCharacter::GetCenterPosition();
 }

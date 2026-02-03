@@ -15,6 +15,9 @@
 #include <vector>
 #include <numbers>
 
+namespace Ken4lowEngine
+{
+
 /// ---------- 前方宣言 ---------- ///
 class DirectXCommon;
 class Model;
@@ -253,3 +256,5 @@ private: /// ---------- メンバ変数 ---------- ///
 	Microsoft::WRL::ComPtr<ID3D12Resource> constantBuffer_;
 	DissolveSetting* dissolveSetting_ = nullptr;
 };
+
+} // namespace Ken4lowEngine

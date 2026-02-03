@@ -1,5 +1,8 @@
 #include "BlendStateFactory.h"
 
+namespace Ken4lowEngine
+{
+
 
 /// -------------------------------------------------------------
 ///				シングルトンインスタンス取得
@@ -126,3 +129,5 @@ const D3D12_RENDER_TARGET_BLEND_DESC* BlendStateFactory::GetCustomBlend(const st
 	}
 	return nullptr;
 }
+
+} // namespace Ken4lowEngine

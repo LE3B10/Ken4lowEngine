@@ -5,11 +5,13 @@
 #include <LinearInterpolation.h>
 #include <cmath>
 
+namespace K4E = ::Ken4lowEngine;
+
 void BossRushState::OnEnter(BossEnemy* boss)
 {
 	// 方向決定（開始時のプレイヤー位置を見る）
 	Player* player = boss->GetPlayer();
-	Vector3 bossPos = boss->GetPosition();
+	K4E::Vector3 bossPos = boss->GetPosition();
 	const auto& turning = boss->GetTurning();
 
 	elapsed_ = 0.0f;
@@ -18,8 +20,8 @@ void BossRushState::OnEnter(BossEnemy* boss)
 
 	if (player)
 	{
-		Vector3 playerPos = player->GetCenterPosition();
-		Vector3 toPlayer{ playerPos.x - bossPos.x, 0.0f, playerPos.z - bossPos.z };
+		K4E::Vector3 playerPos = player->GetCenterPosition();
+		K4E::Vector3 toPlayer{ playerPos.x - bossPos.x, 0.0f, playerPos.z - bossPos.z };
 
 		float distSq = toPlayer.x * toPlayer.x + toPlayer.z * toPlayer.z;
 		if (distSq > 0.0001f)
@@ -69,7 +71,7 @@ BehaviorStatus BossRushState::Update(BossEnemy* boss, float deltaTime)
 		float t = (rushPhaseDuration > 0.0f) ? (rushTime / rushPhaseDuration) : 1.0f;
 
 		// 加速→減速のカーブ
-		float speedScale = EaseInOutQuad(t);
+		float speedScale = K4E::EaseInOutQuad(t);
 		float speed = turning.rush.speed * speedScale;
 
 		// 移動距離制限
@@ -83,7 +85,7 @@ BehaviorStatus BossRushState::Update(BossEnemy* boss, float deltaTime)
 		if (step > 0.0f)
 		{
 
-			Vector3 pos = boss->GetPosition();
+			K4E::Vector3 pos = boss->GetPosition();
 			pos.x += dir_.x * speed * deltaTime;
 			pos.z += dir_.z * speed * deltaTime;
 			boss->SetPosition(pos);

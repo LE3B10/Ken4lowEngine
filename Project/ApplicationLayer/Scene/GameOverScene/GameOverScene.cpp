@@ -5,6 +5,8 @@
 #include <ParticleManager.h>
 #include <SceneManager.h>
 
+namespace K4E = ::Ken4lowEngine;
+
 
 /// -------------------------------------------------------------
 ///				　			初期化処理
@@ -12,11 +14,11 @@
 void GameOverScene::Initialize()
 {
 	// カーソルのロックを解除
-	Input::GetInstance()->SetLockCursor(false);
+	K4E::Input::GetInstance()->SetLockCursor(false);
 	ShowCursor(true); // 表示・非表示も連動（オプション）
 
-	dxCommon_ = DirectXCommon::GetInstance();
-	input = Input::GetInstance();
+	dxCommon_ = K4E::DirectXCommon::GetInstance();
+	input = K4E::Input::GetInstance();
 }
 
 

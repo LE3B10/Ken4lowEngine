@@ -5,6 +5,8 @@
 #include <memory>
 #include <string>
 
+namespace K4E = ::Ken4lowEngine;
+
 class ResultManager
 {
 public: /// ---------- メンバ関数 ---------- ///
@@ -42,13 +44,13 @@ public: /// ---------- ゲッター ---------- ///
 
 private: /// ---------- メンバ変数 ---------- ///
 
-	std::unique_ptr<Sprite> resultBackground_; // 結果画面の背景
-	std::unique_ptr<Sprite> restartText_;	   // リスタートテキスト
-	std::unique_ptr<Sprite> titleText_;		   // タイトルへ戻るテキスト
+	std::unique_ptr<K4E::Sprite> resultBackground_; // 結果画面の背景
+	std::unique_ptr<K4E::Sprite> restartText_;	   // リスタートテキスト
+	std::unique_ptr<K4E::Sprite> titleText_;		   // タイトルへ戻るテキスト
 
-	std::unique_ptr<NumberSpriteDrawer> scoreDrawer_; // スコア描画用
-	std::unique_ptr<NumberSpriteDrawer> killDrawer_;  // キル数描画用
-	std::unique_ptr<NumberSpriteDrawer> waveDrawer_;  // ウェーブ数描画用
+	std::unique_ptr<K4E::NumberSpriteDrawer> scoreDrawer_; // スコア描画用
+	std::unique_ptr<K4E::NumberSpriteDrawer> killDrawer_;  // キル数描画用
+	std::unique_ptr<K4E::NumberSpriteDrawer> waveDrawer_;  // ウェーブ数描画用
 
 	int finalScore_ = 0; // 最終スコア
 	int killCount_ = 0;  // キル数

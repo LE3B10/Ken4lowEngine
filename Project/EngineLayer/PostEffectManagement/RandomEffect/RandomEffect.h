@@ -2,6 +2,9 @@
 #include "IPostEffect.h"
 #include "Vector2.h"
 
+namespace Ken4lowEngine
+{
+
 /// -------------------------------------------------------------
 ///					ランダムエフェクトクラス
 /// -------------------------------------------------------------
@@ -67,3 +70,5 @@ private: /// ---------- メンバ変数 ---------- ///
 	RandomSetting* randomSetting_ = nullptr;				// 設定データ
 };
 
+
+} // namespace Ken4lowEngine

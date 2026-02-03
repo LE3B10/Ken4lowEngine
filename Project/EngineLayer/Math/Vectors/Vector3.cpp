@@ -1,6 +1,9 @@
 #include "Vector3.h"
 #include "Matrix4x4.h"
 
+namespace Ken4lowEngine
+{
+
 /// -------------------------------------------------------------
 ///					　		加算
 /// -------------------------------------------------------------
@@ -191,3 +194,5 @@ Vector3 operator*(const Matrix4x4& matrix, const Vector3& vec)
 
 	return Vector3(x, y, z);
 }
+
+} // namespace Ken4lowEngine

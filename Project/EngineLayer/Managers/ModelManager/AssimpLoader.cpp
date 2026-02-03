@@ -1,5 +1,8 @@
 #include "AssimpLoader.h"
 
+namespace Ken4lowEngine
+{
+
 /// -------------------------------------------------------------
 /// 			Assimpを使ったモデル読み込みクラス
 /// -------------------------------------------------------------
@@ -184,3 +187,5 @@ void AssimpLoader::ParseMeshes(const aiScene* scene, ModelData& modelData)
 		baseVertex += mesh->mNumVertices; // 次のメッシュ用に進める
 	}
 }
+
+} // namespace Ken4lowEngine

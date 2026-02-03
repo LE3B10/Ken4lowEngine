@@ -1,6 +1,9 @@
 #include "DX12FenceManager.h"
 #include <cassert>
 
+namespace Ken4lowEngine
+{
+
 /// -------------------------------------------------------------
 ///						　初期化処理
 /// -------------------------------------------------------------
@@ -59,3 +62,5 @@ void DX12FenceManager::Wait()
 		WaitForSingleObject(fenceEvent_, INFINITE);
 	}
 }
+
+} // namespace Ken4lowEngine

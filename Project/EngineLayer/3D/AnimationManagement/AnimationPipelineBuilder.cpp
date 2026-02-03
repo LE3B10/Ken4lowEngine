@@ -5,6 +5,9 @@
 #include <ShaderCompiler.h>
 #include <BlendStateFactory.h>
 
+namespace Ken4lowEngine
+{
+
 
 /// ---------------------------------------------------------------
 ///				　	シングルトンインスタンス
@@ -398,3 +401,5 @@ void AnimationPipelineBuilder::CreateComputePSO()
 	hr = dxCommon_->GetDevice()->CreateComputePipelineState(&desc, IID_PPV_ARGS(&computePipelineState_));
 	assert(SUCCEEDED(hr) && "CreateComputePipelineState Failed");
 }
+
+} // namespace Ken4lowEngine

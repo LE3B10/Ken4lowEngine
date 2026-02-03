@@ -4,6 +4,9 @@
 #include "Vector4.h"
 #include "Matrix4x4.h"
 
+namespace Ken4lowEngine
+{
+
 /// ---------- 前方宣言 ---------- ///
 class DirectXCommon;
 
@@ -166,3 +169,5 @@ private: /// ---------- コピー禁止 ---------- ///
 	LightManager& operator=(LightManager&&) = delete;
 };
 
+
+} // namespace Ken4lowEngine

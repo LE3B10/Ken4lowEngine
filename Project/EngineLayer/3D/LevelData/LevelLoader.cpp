@@ -4,6 +4,9 @@
 #include <cassert>
 #include <iostream>
 
+namespace Ken4lowEngine
+{
+
 /// ---------- jsonのエイリアス ---------- ///
 using json = nlohmann::json;
 
@@ -126,3 +129,5 @@ std::unique_ptr<LevelData> LevelLoader::LoadLevel(const std::string& filePath)
 
 	return levelData;
 }
+
+} // namespace Ken4lowEngine

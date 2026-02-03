@@ -11,10 +11,12 @@
 
 #include <memory>
 
+namespace K4E = ::Ken4lowEngine;
+
 /// ---------- 前方宣言 ---------- ///
 class Player;
-class LevelObjectManager;
-class GpuParticleManager;
+namespace Ken4lowEngine { class LevelObjectManager; }
+namespace Ken4lowEngine { class GpuParticleManager; }
 
 /// -------------------------------------------------------------
 ///					　敵キャラクタークラス
@@ -42,8 +44,8 @@ public: /// ---------- 構造体 ---------- ///
 	// 分解運動データ構造体
 	struct GibMotion
 	{
-		Vector3 velocity;		 // 初速度
-		Vector3 angularVelocity; // 角速度（ラジアン）
+		K4E::Vector3 velocity;		 // 初速度
+		K4E::Vector3 angularVelocity; // 角速度（ラジアン）
 	};
 
 	// 死亡演出状態構造体
@@ -94,9 +96,9 @@ public: /// ---------- 構造体 ---------- ///
 	{
 		float duration = 0.08f;   // フラッシュ継続秒
 		float timer = 0.0f;    // 残りタイム
-		Vector4 baseColor = { 1.0f,1.0f,1.0f,1.0f }; // 元の色
-		Vector4 hitColor = { 1.0f,0.0f,0.0f,1.0f };  // ヒット時の色
-		Vector4 colorModulate = { 1.0f,1.0f,1.0f,1.0f }; // 現在の色補正
+		K4E::Vector4 baseColor = { 1.0f,1.0f,1.0f,1.0f }; // 元の色
+		K4E::Vector4 hitColor = { 1.0f,0.0f,0.0f,1.0f };  // ヒット時の色
+		K4E::Vector4 colorModulate = { 1.0f,1.0f,1.0f,1.0f }; // 現在の色補正
 	};
 
 public: /// ---------- メンバ関数 ---------- ///
@@ -117,19 +119,19 @@ public: /// ---------- メンバ関数 ---------- ///
 	void DrawImGui() override;
 
 	// 衝突時に呼ばれる仮想関数
-	void OnCollision(Collider* other) override;
+	void OnCollision(K4E::Collider* other) override;
 
 	// 中心座標を取得する純粋仮想関数
-	Vector3 GetCenterPosition() const override;
+	K4E::Vector3 GetCenterPosition() const override;
 
 	// 出現座標をセット（GamePlaySceneとかから呼ぶ）
-	void SetSpawnPosition(const Vector3& pos) { body_.transform.translate_ = pos; }
+	void SetSpawnPosition(const K4E::Vector3& pos) { body_.transform.translate_ = pos; }
 
 	// プレイヤーのポインタを設定
 	void SetPlayerPointer(Player* player) { player_ = player; }
 
 	// レベルオブジェクトマネージャー設定
-	void SetLevelObjectManager(LevelObjectManager* mgr) { levelObjectManager_ = mgr; }
+	void SetLevelObjectManager(K4E::LevelObjectManager* mgr) { levelObjectManager_ = mgr; }
 
 
 	// 死亡状態かどうか取得
@@ -150,7 +152,7 @@ public: /// ---------- メンバ関数 ---------- ///
 	void ApplyStageParams(float hp, float walkSpeed, float chaseSpeed, float attackDamage, float attackCooldown, float detectRadius);
 
 	// 死亡時のドロップ位置を取得
-	const Vector3& GetDropPosAtDeath() const { return dropPosAtDeath_; }
+	const K4E::Vector3& GetDropPosAtDeath() const { return dropPosAtDeath_; }
 
 public: /// ---------- アクセッサ ---------- ///
 
@@ -179,13 +181,13 @@ public: /// ---------- アクセッサ ---------- ///
 	const EnemyConfig& GetEnemyConfig() const { return config_; }
 
 	// 接触記録を取得
-	ContactRecord& GetContactRecord() { return contactRecord_; }
+	K4E::ContactRecord& GetContactRecord() { return contactRecord_; }
 
 	// 死亡演出状態を取得
 	DeathEnemyState& GetDeathState() { return death_; }
 
 	// ドロップ位置を設定
-	void SetDropPosAtDeath(const Vector3& pos) { dropPosAtDeath_ = pos; }
+	void SetDropPosAtDeath(const K4E::Vector3& pos) { dropPosAtDeath_ = pos; }
 
 	AttackInfo& GetAttackInfo() { return attack_; }
 	WanderInfo& GetWanderInfo() { return wander_; }
@@ -197,11 +199,11 @@ public: /// ---------- アクセッサ ---------- ///
 	float GetHp() const { return hp_; }
 	void  SetHp(float hp) { hp_ = hp; }
 
-	Vector3& GetPrevPos() { return prevPos_; }
-	Vector3& GetDropPosAtDeath() { return dropPosAtDeath_; }
+	K4E::Vector3& GetPrevPos() { return prevPos_; }
+	K4E::Vector3& GetDropPosAtDeath() { return dropPosAtDeath_; }
 
 	// レベルマネージャーを取得
-	LevelObjectManager* GetLevelObjectManager() const { return levelObjectManager_; }
+	K4E::LevelObjectManager* GetLevelObjectManager() const { return levelObjectManager_; }
 
 	BossEnemyVfx* GetVfx() const { return vfx_.get(); }
 	void SetVfx(std::unique_ptr<BossEnemyVfx> vfx) { vfx_ = std::move(vfx); }
@@ -209,7 +211,7 @@ public: /// ---------- アクセッサ ---------- ///
 private: /// ---------- メンバ関数 ---------- ///
 
 	// ワールド衝突解決処理
-	void SolveWorldCollision(const Vector3& oldTranslate);
+	void SolveWorldCollision(const K4E::Vector3& oldTranslate);
 
 	// ビヘイビアツリー初期化
 	void InitializeBehaviorTree();
@@ -251,8 +253,8 @@ public: /// ---------- BT から呼びたい「状態リクエスト」関数 --
 private: /// ---------- メンバ関数 ---------- ///
 
 	Player* player_ = nullptr; // プレイヤーへのポインタ
-	LevelObjectManager* levelObjectManager_ = nullptr; // ステージコリジョン用
-	GpuParticleManager* gpuParticleManager_ = nullptr; // GPUパーティクルマネージャーへの参照
+	K4E::LevelObjectManager* levelObjectManager_ = nullptr; // ステージコリジョン用
+	K4E::GpuParticleManager* gpuParticleManager_ = nullptr; // GPUパーティクルマネージャーへの参照
 
 	AIState currentStateId_ = AIState::Spawn;
 	std::unique_ptr<IEnemyAIState> currentState_ = nullptr;
@@ -276,7 +278,7 @@ private: /// ---------- メンバ関数 ---------- ///
 	// 
 	DeathEnemyState death_;
 
-	ContactRecord contactRecord_; // 接触記録
+	K4E::ContactRecord contactRecord_; // 接触記録
 
 	// テクスチャスキンパス
 	std::string skinTexturePath_ = "yellow.png";
@@ -301,7 +303,7 @@ private: /// ---------- 調整用パラメータ ---------- ///
 	float hitAngleDeg = -60.0f; // 振り下ろした瞬間(ちょい下がる)
 	float returnAngleDeg = -55.0f; // 回復途中でだんだん下がってくる角度
 
-	Vector3 prevPos_;                      // 1フレーム前の位置(スタック検出用)
+	K4E::Vector3 prevPos_;                      // 1フレーム前の位置(スタック検出用)
 
 	bool hasAggro_ = false;  // 攻撃されて警戒中か？
 
@@ -310,6 +312,6 @@ private: /// ---------- 定数 ---------- ///
 	float maxHp_ = 250.0f; // 最大体力
 	float hp_ = maxHp_;    // 現在体力
 
-	Vector3 dropPosAtDeath_{};
+	K4E::Vector3 dropPosAtDeath_{};
 };
 

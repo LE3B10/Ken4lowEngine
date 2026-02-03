@@ -6,6 +6,8 @@
 #include <vector>
 #include <memory>
 
+namespace K4E = ::Ken4lowEngine;
+
 /// ---------- 前方宣言 ---------- ///
 class Boss;
 
@@ -34,11 +36,11 @@ private: /// ---------- 構造体 ---------- ///
 	{
 		bool    active = false;  // まだ上昇中か
 		bool    exploded = false;  // 爆発済みか（演出用）
-		Vector3 groundPos{};       // 地面上の中心位置
-		Vector3 position{};        // 現在位置（描画用）
+		K4E::Vector3 groundPos{};       // 地面上の中心位置
+		K4E::Vector3 position{};        // 現在位置（描画用）
 		float   timer = 0.0f;   // 出現してからの経過時間
 
-		std::unique_ptr<Object3D> object;
+		std::unique_ptr<K4E::Object3D> object;
 	};
 
 	/// ---------- 攻撃全体のランタイム ---------- ///
@@ -80,7 +82,7 @@ public: /// ---------- メンバ関数 ---------- ///
 	void Attack() override;
 
 	// 更新処理
-	void Update(Boss* boss, float deltaTime, float bossYawRad, const Vector3& playerPosition) override;
+	void Update(Boss* boss, float deltaTime, float bossYawRad, const K4E::Vector3& playerPosition) override;
 
 	// 攻撃がアクティブか
 	bool IsActive() const override;
@@ -102,7 +104,7 @@ private: /// ---------- フェーズの更新処理関数 ---------- ///
 	void UpdatePhase_Windup(Boss* boss, float deltaTime);
 
 	// Activeフェーズ更新
-	void UpdatePhase_Active(Boss* boss, float deltaTime, const Vector3& playerPosition);
+	void UpdatePhase_Active(Boss* boss, float deltaTime, const K4E::Vector3& playerPosition);
 
 	// Recoveryフェーズ更新
 	void UpdatePhase_Recovery(Boss* boss, float deltaTime);
@@ -111,7 +113,7 @@ private: /// ---------- フェーズの更新処理関数 ---------- ///
 	void UpdateBossPose(Boss* boss);
 
 	// 種をまとめて出現させる
-	void SpawnSeeds(const Vector3& centerXZ, const Vector3& bossCenterXZ, const ForestBossParams::SeedMortar& params);
+	void SpawnSeeds(const K4E::Vector3& centerXZ, const K4E::Vector3& bossCenterXZ, const ForestBossParams::SeedMortar& params);
 
 private: /// ---------- メンバ変数 ---------- ///
 
@@ -132,12 +134,12 @@ private: /// ---------- デバッグ用メンバ変数 ---------- ///
 
 	// テスト用プレイヤー位置
 	bool    debugUseTestPlayerPos_ = false;
-	Vector3 debugTestPlayerPos_{ 0.0f, 0.0f, 0.0f };
+	K4E::Vector3 debugTestPlayerPos_{ 0.0f, 0.0f, 0.0f };
 
 	// 腕のポーズ調整用
 	bool debugEditPose_ = false;
-	Vector3 debugLeftArmRotate_{ 0.0f, 0.0f, 0.0f };
-	Vector3 debugRightArmRotate_{ 0.0f, 0.0f, 0.0f };
+	K4E::Vector3 debugLeftArmRotate_{ 0.0f, 0.0f, 0.0f };
+	K4E::Vector3 debugRightArmRotate_{ 0.0f, 0.0f, 0.0f };
 #endif // USE_IMGUI
 };
 

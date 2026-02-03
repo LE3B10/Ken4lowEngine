@@ -3,6 +3,8 @@
 #include "GpuParticleType.h"
 #include "BillboardMode.h"
 
+namespace K4E = ::Ken4lowEngine;
+
 /// -------------------------------------------------------------
 ///          Boss専用VFX（まずは登場エフェクトだけ）
 /// -------------------------------------------------------------
@@ -14,22 +16,22 @@ public: /// ---------- メンバ関数 ---------- ///
 	virtual ~BossEnemyVfx() = default;
 
 	// 砂埃エフェクト更新
-	void UpdateAppearDust(const Vector3& position, uint32_t count);
+	void UpdateAppearDust(const K4E::Vector3& position, uint32_t count);
 
 	// ボスオーラエフェクト更新
-	void UpdateAura(const Vector3& position, uint32_t count);
+	void UpdateAura(const K4E::Vector3& position, uint32_t count);
 
 	// ラッシュ軌跡エフェクト更新
-	void UpdateRushTrail(float deltaTime, const Vector3& currentPosition, const Vector3& oldPosition, bool isRush);
+	void UpdateRushTrail(float deltaTime, const K4E::Vector3& currentPosition, const K4E::Vector3& oldPosition, bool isRush);
 
 	// ラッシュヒットエフェクト更新
-	void UpdateRushHit(const Vector3& hitPosition, const Vector3& bossCenter);
+	void UpdateRushHit(const K4E::Vector3& hitPosition, const K4E::Vector3& bossCenter);
 
 	// スピン攻撃エフェクト更新
-	void UpdateSpinAttack(const Vector3& currentPosition, bool isSpin);
+	void UpdateSpinAttack(const K4E::Vector3& currentPosition, bool isSpin);
 
 	// 死亡時エフェクト更新
-	void UpdateDeathEffect(const Vector3& center, float deathTimer, bool& startBurstDone);
+	void UpdateDeathEffect(const K4E::Vector3& center, float deathTimer, bool& startBurstDone);
 
 	// 連続発生防止のクールダウン更新
 	void Tick(float deltaTime) { if (rushHitCooldown_ > 0.0f) rushHitCooldown_ -= deltaTime; }
@@ -58,15 +60,15 @@ protected: /// ---------- メンバ関数 ---------- ///
 
 private: /// ---------- メンバ変数 ---------- ///
 
-	GpuParticleEmitter* appearDustEmitter_ = nullptr;	  // 登場時の砂埃エミッター
-	GpuParticleEmitter* auraEmitter_ = nullptr;			  // ボスオーラエミッター
-	GpuParticleEmitter* rushTrailEmitter_ = nullptr;	  // ラッシュ軌跡用エミッター
-	GpuParticleEmitter* rushHitEmitter_ = nullptr;		  // ラッシュヒット用エミッター
-	GpuParticleEmitter* spinAttackEmitter_ = nullptr;	  // スピン攻撃用エミッター
-	GpuParticleEmitter* deathExplosionEmitter_ = nullptr; // 中心爆発
-	GpuParticleEmitter* deathShockwaveEmitter_ = nullptr; // 足元衝撃波リング
-	GpuParticleEmitter* deathSoulEmitter_ = nullptr;      // 魂が昇る
-	GpuParticleEmitter* debrisDustEmitter_ = nullptr;     // 破片の埃（余韻）
+	K4E::GpuParticleEmitter* appearDustEmitter_ = nullptr;	  // 登場時の砂埃エミッター
+	K4E::GpuParticleEmitter* auraEmitter_ = nullptr;			  // ボスオーラエミッター
+	K4E::GpuParticleEmitter* rushTrailEmitter_ = nullptr;	  // ラッシュ軌跡用エミッター
+	K4E::GpuParticleEmitter* rushHitEmitter_ = nullptr;		  // ラッシュヒット用エミッター
+	K4E::GpuParticleEmitter* spinAttackEmitter_ = nullptr;	  // スピン攻撃用エミッター
+	K4E::GpuParticleEmitter* deathExplosionEmitter_ = nullptr; // 中心爆発
+	K4E::GpuParticleEmitter* deathShockwaveEmitter_ = nullptr; // 足元衝撃波リング
+	K4E::GpuParticleEmitter* deathSoulEmitter_ = nullptr;      // 魂が昇る
+	K4E::GpuParticleEmitter* debrisDustEmitter_ = nullptr;     // 破片の埃（余韻）
 
 	float rushHitCooldown_ = 0.0f; // 連続発生防止(秒)
 };

@@ -12,6 +12,9 @@
 
 #ifdef USE_IMGUI
 #include <imgui.h>
+
+namespace Ken4lowEngine
+{
 #endif // USE_IMGUI
 
 
@@ -116,3 +119,5 @@ void SmoothingEffect::DrawImGui()
 	ImGui::Combo("Kernel Type", &smoothingSetting_->kernelType, kernelOptions, IM_ARRAYSIZE(kernelOptions));
 #endif // USE_IMGUI
 }
+
+} // namespace Ken4lowEngine

@@ -2,6 +2,9 @@
 #include "Vector3.h"
 #include "Quaternion.h"
 
+namespace Ken4lowEngine
+{
+
 /// -------------------------------------------------------------
 ///					　		平行移動成分の取得
 /// -------------------------------------------------------------
@@ -507,3 +510,5 @@ Matrix4x4 Matrix4x4::LookAt(const Vector3& eye, const Vector3& target, const Vec
 
 	return view;
 }
+
+} // namespace Ken4lowEngine

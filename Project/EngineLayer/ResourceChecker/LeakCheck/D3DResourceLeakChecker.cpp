@@ -4,6 +4,9 @@
 #include <dxgi1_6.h>
 #include <wrl.h>
 
+namespace Ken4lowEngine
+{
+
 #pragma comment(lib, "dxguid.lib")
 #pragma comment(lib, "dxgi.lib")
 #pragma comment(lib, "d3d12.lib")
@@ -25,3 +28,5 @@ D3DResourceLeakChecker::~D3DResourceLeakChecker()
 		debug->ReportLiveObjects(DXGI_DEBUG_D3D12, DXGI_DEBUG_RLO_ALL); // D3D12のライブオブジェクトを報告
 	}
 }
+
+} // namespace Ken4lowEngine

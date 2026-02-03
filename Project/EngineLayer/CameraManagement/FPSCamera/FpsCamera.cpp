@@ -12,6 +12,9 @@
 #endif // USE_IMGUI
 #include <random>
 
+namespace Ken4lowEngine
+{
+
 /// ----------------------------------------------
 ///					初期化処理
 /// ----------------------------------------------
@@ -309,3 +312,5 @@ void FpsCamera::CycleViewMode()
 	case ViewMode::ThirdFront:  viewMode_ = ViewMode::FirstPerson; break;
 	}
 }
+
+} // namespace Ken4lowEngine

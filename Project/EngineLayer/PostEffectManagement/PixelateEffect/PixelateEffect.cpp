@@ -8,6 +8,9 @@
 
 #ifdef USE_IMGUI
 #include <imgui.h>
+
+namespace Ken4lowEngine
+{
 #endif // USE_IMGUI
 
 
@@ -92,3 +95,5 @@ void PixelateEffect::DrawImGui()
 	ImGui::SliderFloat("Strength", &pixelateSetting_->strength, 0.0f, 1.0f);
 #endif
 }
+
+} // namespace Ken4lowEngine

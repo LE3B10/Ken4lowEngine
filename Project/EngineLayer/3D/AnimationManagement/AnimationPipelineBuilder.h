@@ -13,6 +13,9 @@
 #include <numbers>
 #include <map>
 
+namespace Ken4lowEngine
+{
+
 
 /// ---------- 前方宣言 ---------- ///
 class DirectXCommon;
@@ -162,3 +165,5 @@ private: /// ---------- メンバ変数 ---------- ///
 	BlendMode blendMode_ = BlendMode::kBlendModeNone;
 };
 
+
+} // namespace Ken4lowEngine

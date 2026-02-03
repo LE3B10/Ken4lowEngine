@@ -2,18 +2,20 @@
 #include <DirectXCommon.h>
 #include <TextureManager.h>
 
+namespace K4E = ::Ken4lowEngine;
+
 
 /// -------------------------------------------------------------
 ///				　		初期化処理
 /// -------------------------------------------------------------
 void Crosshair::Initialize(const std::string& texturePath)
 {
-	TextureManager::GetInstance()->LoadTexture(texturePath);
+	K4E::TextureManager::GetInstance()->LoadTexture(texturePath);
 
-	sprite_ = std::make_unique<Sprite>();
+	sprite_ = std::make_unique<K4E::Sprite>();
 	sprite_->Initialize(texturePath);
 
-	auto dxCommon = DirectXCommon::GetInstance();
+	auto dxCommon = K4E::DirectXCommon::GetInstance();
 	float clientWidth = static_cast<float>(dxCommon->GetClientWidth());
 	float clientHeight = static_cast<float>(dxCommon->GetClientHeight());
 
@@ -22,7 +24,7 @@ void Crosshair::Initialize(const std::string& texturePath)
 	sprite_->SetSize({ 64.0f, 64.0f });
 
 	// 影（黒半透明を少し大きく描く）
-	shadow_ = std::make_unique<Sprite>();
+	shadow_ = std::make_unique<K4E::Sprite>();
 	shadow_->Initialize(texturePath);
 	shadow_->SetAnchorPoint({ 0.5f,0.5f });
 	shadow_->SetPosition(sprite_->GetPosition());
@@ -31,15 +33,15 @@ void Crosshair::Initialize(const std::string& texturePath)
 
 	// ヒットマーカー読み込み
 	std::string hitTexture = "Crosshair/hitmarker_x_glow.png"; // 生成した×画像のパス
-	TextureManager::GetInstance()->LoadTexture(hitTexture);
-	hitMarkerSprite_ = std::make_unique<Sprite>();
+	K4E::TextureManager::GetInstance()->LoadTexture(hitTexture);
+	hitMarkerSprite_ = std::make_unique<K4E::Sprite>();
 	hitMarkerSprite_->Initialize(hitTexture);
 	hitMarkerSprite_->SetAnchorPoint({ 0.5f, 0.5f });
 	hitMarkerSprite_->SetPosition({ clientWidth / 2.0f, clientHeight / 2.0f });
 	hitMarkerSprite_->SetSize({ 128.0f, 128.0f });
 
 	// 影
-	hitMarkerShadow_ = std::make_unique<Sprite>();
+	hitMarkerShadow_ = std::make_unique<K4E::Sprite>();
 	hitMarkerShadow_->Initialize(hitTexture);
 	hitMarkerShadow_->SetAnchorPoint({ 0.5f,0.5f });
 	hitMarkerShadow_->SetPosition(sprite_->GetPosition());
@@ -52,7 +54,7 @@ void Crosshair::Initialize(const std::string& texturePath)
 /// -------------------------------------------------------------
 void Crosshair::Update()
 {
-	auto dxCommon = DirectXCommon::GetInstance();
+	auto dxCommon = K4E::DirectXCommon::GetInstance();
 	float clientWidth = static_cast<float>(dxCommon->GetClientWidth());
 	float clientHeight = static_cast<float>(dxCommon->GetClientHeight());
 
@@ -62,7 +64,7 @@ void Crosshair::Update()
 	shadow_->SetPosition({ clientWidth / 2.0f, clientHeight / 2.0f });
 	shadow_->Update();
 
-	float deltaTime = DirectXCommon::GetInstance()->GetFPSCounter().GetDeltaTime();
+	float deltaTime = K4E::DirectXCommon::GetInstance()->GetFPSCounter().GetDeltaTime();
 
 	if (showHitMarker_)
 	{
@@ -86,7 +88,7 @@ void Crosshair::Update()
 	// ヒットマーカーの表示制御
 	// サイズ＆色を更新してから Update（スプライト実装がUpdate前提のため）
 	if (showHitMarker_) {
-		const Vector2 sz = { hitBaseSize_ * hitMarkerScale_, hitBaseSize_ * hitMarkerScale_ };
+		const K4E::Vector2 sz = { hitBaseSize_ * hitMarkerScale_, hitBaseSize_ * hitMarkerScale_ };
 		hitMarkerShadow_->SetSize({ sz.x + 4.0f, sz.y + 4.0f });
 		hitMarkerSprite_->SetSize(sz);
 		hitMarkerShadow_->SetColor({ 0,0,0,0.6f * hitAlpha_ });

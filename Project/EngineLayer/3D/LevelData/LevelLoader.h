@@ -2,6 +2,9 @@
 #include <LevelData.h>
 #include <memory>
 
+namespace Ken4lowEngine
+{
+
 /// -------------------------------------------------------------
 /// 			　		レベルローダー
 /// -------------------------------------------------------------
@@ -32,3 +35,5 @@ private: /// ---------- メンバ変数 ---------- ///
 	static inline const std::string fileDirectory_ = "Resources/JSON/";
 };
 
+
+} // namespace Ken4lowEngine

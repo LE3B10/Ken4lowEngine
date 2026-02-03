@@ -7,6 +7,9 @@
 
 #include <cassert>
 
+namespace Ken4lowEngine
+{
+
 
 /// -------------------------------------------------------------
 ///						　初期化処理
@@ -53,3 +56,5 @@ void NormalEffect::Apply(ID3D12GraphicsCommandList* commandList, uint32_t srvInd
 	commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	commandList->DrawInstanced(3, 1, 0, 0);
 }
+
+} // namespace Ken4lowEngine

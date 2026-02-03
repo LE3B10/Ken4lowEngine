@@ -12,6 +12,9 @@
 
 #ifdef USE_IMGUI
 #include <imgui.h>
+
+namespace Ken4lowEngine
+{
 #endif // USE_IMGUI
 
 
@@ -102,3 +105,5 @@ void AbsorbEffect::DrawImGui()
 	ImGui::SliderFloat("Absorb Strength", &absorbSetting_->strength, 0.0f, 5.0f);
 #endif // USE_IMGUI
 }
+
+} // namespace Ken4lowEngine

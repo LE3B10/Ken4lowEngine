@@ -10,10 +10,12 @@
 #include <memory>
 #include <numbers>
 
+namespace K4E = ::Ken4lowEngine;
+
 /// ---------- 前方宣言 ---------- ///
-class DirectXCommon;
-class Input;
-class Camera;
+namespace Ken4lowEngine { class DirectXCommon; }
+namespace Ken4lowEngine { class Input; }
+namespace Ken4lowEngine { class Camera; }
 class SceneManager;
 
 /// -------------------------------------------------------------
@@ -26,7 +28,7 @@ private: /// ---------- 構造体 ---------- ///
 	/// ---------- カメラの姿勢スナップショット ---------- ///
 	struct Pose
 	{
-		Vector3 position; // 位置
+		K4E::Vector3 position; // 位置
 		float yaw;		// Y軸回りの回転角
 		float pitch;	// X軸回りの回転角
 	};
@@ -34,7 +36,7 @@ private: /// ---------- 構造体 ---------- ///
 	/// ---------- カメラの軌道状態 ---------- ///
 	struct OrbitState
 	{
-		Vector3 center = { 0.0f, 10.0f, 0.0f }; // 注視点
+		K4E::Vector3 center = { 0.0f, 10.0f, 0.0f }; // 注視点
 		float radius = 10.0f;					// 半径
 		float speed = 0.0625f;					// 速度
 		float angle = 0.0f;						// 角度
@@ -52,17 +54,17 @@ private: /// ---------- 構造体 ---------- ///
 		float phase = 0.0f;      // 進行フェーズ
 		float speed = 0.0625f;   // 速度
 		float amplitude = 0.03f; // 振幅
-		Vector3 lookAt = { std::numbers::pi_v<float>, 6.0f, 0.0f }; // 注視点のオフセット角度（Y軸回り、X軸回り、Z軸回り）
-		Vector3 cameraPosition = { 0.0f, 3.0f, -12.0f };			// カメラのオフセット位置
+		K4E::Vector3 lookAt = { std::numbers::pi_v<float>, 6.0f, 0.0f }; // 注視点のオフセット角度（Y軸回り、X軸回り、Z軸回り）
+		K4E::Vector3 cameraPosition = { 0.0f, 3.0f, -12.0f };			// カメラのオフセット位置
 	};
 
 	/// ---------- タイトル・ロゴ＆ヒント ---------- ///
 	struct LogoUI
 	{
-		std::unique_ptr<Sprite> logoSprite; // ロゴスプライト
+		std::unique_ptr<K4E::Sprite> logoSprite; // ロゴスプライト
 		float alpha = 0.0f;                  // アルファ値
 		float scale = 1.0f;                  // スケール
-		Vector2 baseSize = { 0.0f, 0.0f };    // 基準サイズ（Initializeで取得）
+		K4E::Vector2 baseSize = { 0.0f, 0.0f };    // 基準サイズ（Initializeで取得）
 
 		// サブ : 入場タイミング
 		float showDelay = 0.5f;    // 表示遅延時間
@@ -74,11 +76,11 @@ private: /// ---------- 構造体 ---------- ///
 	/// ---------- クリックヒント ---------- ///
 	struct ClickHintUI
 	{
-		std::unique_ptr<Sprite> hintSprite; // ヒントスプライト
+		std::unique_ptr<K4E::Sprite> hintSprite; // ヒントスプライト
 		bool isVisible = false;             // 表示フラグ
 		float phase = 0.0f;                 // 点滅/ゆれ用
-		Vector2 offset = { 0.0f, 40.0f };   // ロゴの少し下
-		Vector2 baseSize = { 0.0f, 0.0f };  // 基準サイズ（Initializeで取得）
+		K4E::Vector2 offset = { 0.0f, 40.0f };   // ロゴの少し下
+		K4E::Vector2 baseSize = { 0.0f, 0.0f };  // 基準サイズ（Initializeで取得）
 		float marginY = 16.0f;              // ロゴの下マージン(px)
 		float wobblePx = 3.0f;              // 上下ゆれ振幅(px)
 		float pulseMag = 0.06f;             // スケール脈動(=±6%)
@@ -98,11 +100,11 @@ private: /// ---------- 構造体 ---------- ///
 	/// ---------- バトルへボタンUI ---------- ///
 	struct BattleButtonUI
 	{
-		std::unique_ptr<Sprite> btnSprite;	   // ボタンスプライト
-		std::unique_ptr<Sprite> btnShadow;	   // 影スプライト
-		Vector2 position = { 640.0f, 600.0f }; // 配置座標（画面中央下）
-		Vector2 size = { 420.0f, 140.0f };     // 表示サイズ
-		Vector2 anchor = { 0.5f, 0.5f };	   // アンカー（中心）
+		std::unique_ptr<K4E::Sprite> btnSprite;	   // ボタンスプライト
+		std::unique_ptr<K4E::Sprite> btnShadow;	   // 影スプライト
+		K4E::Vector2 position = { 640.0f, 600.0f }; // 配置座標（画面中央下）
+		K4E::Vector2 size = { 420.0f, 140.0f };     // 表示サイズ
+		K4E::Vector2 anchor = { 0.5f, 0.5f };	   // アンカー（中心）
 		bool isPressing = false;               // ボタン内で押し始めたか
 		float pressAnim = 0.0f;                // 0=通常, 1=押し込み
 		float hoverAnim = 0.0f;                // 0=非ホバー, 1=ホバー
@@ -189,16 +191,16 @@ public: /// ---------- ゲッタ ---------- ///
 	SceneManager* GetSceneManager() const { return sceneManager_; }
 
 	// DirectX共通管理を取得
-	DirectXCommon* GetDirectXCommon() const { return dxCommon_; }
+	K4E::DirectXCommon* GetDirectXCommon() const { return dxCommon_; }
 
 	// 操作入力を取得
-	Input* GetInput()  const { return input_; }
+	K4E::Input* GetInput()  const { return input_; }
 
 	// メインカメラを取得
-	Camera* GetCamera() { return EnsureCamera(); } // 必要ならデフォルト取得
+	K4E::Camera* GetCamera() { return EnsureCamera(); } // 必要ならデフォルト取得
 
 	// ロゴスプライトを取得
-	Sprite* GetLogoSprite() const { return logoSprite_.get(); }
+	K4E::Sprite* GetLogoSprite() const { return logoSprite_.get(); }
 
 	// 現在のシーン状態を取得
 	State GetState() const { return state_; }
@@ -231,7 +233,7 @@ private: /// ---------- メンバ関数 ---------- ///
 
 	// Debug用更新処理
 	void UpdateDebug();
-	Camera* EnsureCamera();
+	K4E::Camera* EnsureCamera();
 
 private: /// ---------- メンバ変数 ---------- ///
 
@@ -243,20 +245,20 @@ private: /// ---------- メンバ変数 ---------- ///
 	BattleButtonUI battleButtonUI_ = {}; // バトルへボタンUI状態
 	Timers timers_ = {};				 // 各種タイマー
 
-	DirectXCommon* dxCommon_ = nullptr; // DirectX共通管理
-	Input* input_ = nullptr;			// 入力管理
-	Camera* camera_ = nullptr;			// メインカメラ
+	K4E::DirectXCommon* dxCommon_ = nullptr; // DirectX共通管理
+	K4E::Input* input_ = nullptr;			// 入力管理
+	K4E::Camera* camera_ = nullptr;			// メインカメラ
 
 	bool isDebugCamera_ = false; // デバッグモード
 
-	std::unique_ptr<SkyBox> skyBox_;	// スカイボックス
-	std::unique_ptr<Object3D> terrain_; // 地形オブジェクト
+	std::unique_ptr<K4E::SkyBox> skyBox_;	// スカイボックス
+	std::unique_ptr<K4E::Object3D> terrain_; // 地形オブジェクト
 
 	bool requestChange_ = false; // シーン切り替え要求
 	float timer_ = 0.0f;   // シーン開始からの経過時間
 
 	// タイトル用ロゴ（タイトル時だけ描画）
-	std::unique_ptr<Sprite> logoSprite_;
+	std::unique_ptr<K4E::Sprite> logoSprite_;
 
 	// ボタン影スプライト
 	std::unique_ptr<ConfirmQuitOverlay> quitOverlay_;

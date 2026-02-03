@@ -7,6 +7,9 @@
 #include <vector>
 #include <utility>
 
+namespace Ken4lowEngine
+{
+
 /// ---------- 前方宣言 ---------- ///
 class Skeleton;
 
@@ -107,3 +110,5 @@ private: /// ---------- メンバ変数 ---------- ///
 	D3D12_GPU_DESCRIPTOR_HANDLE influenceSrvGpuOnUavHeap_{}; // t2
 };
 
+
+} // namespace Ken4lowEngine

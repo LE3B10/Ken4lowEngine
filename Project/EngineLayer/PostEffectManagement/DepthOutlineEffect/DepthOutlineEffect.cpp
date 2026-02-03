@@ -12,6 +12,9 @@
 
 #ifdef USE_IMGUI
 #include <imgui.h>
+
+namespace Ken4lowEngine
+{
 #endif // USE_IMGUI
 
 /// -------------------------------------------------------------
@@ -103,3 +106,5 @@ void DepthOutlineEffect::DrawImGui()
 	ImGui::ColorEdit4("Edge Color", &depthOutlineSetting_->edgeColor.x);
 #endif // USE_IMGUI
 }
+
+} // namespace Ken4lowEngine

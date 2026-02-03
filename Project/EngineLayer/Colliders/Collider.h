@@ -10,6 +10,9 @@
 #include "Capsule.h"
 #include "Sphere.h"
 
+namespace Ken4lowEngine
+{
+
 
 /// -------------------------------------------------------------
 ///                     当たり判定クラス
@@ -147,3 +150,5 @@ protected: /// ---------- シリアルナンバー ---------- ///
 	// シリアルナンバー
 	uint32_t serialNumber_ = 0;
 };
+
+} // namespace Ken4lowEngine

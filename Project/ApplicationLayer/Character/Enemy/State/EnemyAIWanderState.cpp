@@ -6,6 +6,8 @@
 #include <vector>
 #include <random>
 
+namespace K4E = ::Ken4lowEngine;
+
 void EnemyAIWanderState::Enter(Enemy* enemy)
 {
 	using AIState = Enemy::AIState;
@@ -63,12 +65,12 @@ void EnemyAIWanderState::Update(Enemy* enemy, float deltaTime)
 
 	// いま向いてる方向に歩く
 	float yaw = body.transform.rotate_.y;
-	Vector3 forward = { -std::sinf(yaw), 0.0f, std::cosf(yaw) };
-	Vector3 before = body.transform.translate_;
+	K4E::Vector3 forward = { -std::sinf(yaw), 0.0f, std::cosf(yaw) };
+	K4E::Vector3 before = body.transform.translate_;
 	body.transform.translate_ += forward * wander.walkSpeed;
 
 	// ほとんど動けなかったら詰まってると判断→すぐ方向再抽選
-	Vector3 moved = body.transform.translate_ - before;
+	K4E::Vector3 moved = body.transform.translate_ - before;
 	float movedLenSq = moved.x * moved.x + moved.z * moved.z;
 	if (movedLenSq < (wander.stuckThreshold * wander.stuckThreshold))
 	{
@@ -79,8 +81,8 @@ void EnemyAIWanderState::Update(Enemy* enemy, float deltaTime)
 	// プレイヤー生存＆近距離ならChaseへ移行するロジックは今まで通りでOK
 	if (player && !player->IsDeadNow())
 	{
-		Vector3 toPlayer = player->GetCenterPosition() - body.transform.translate_;
-		float distToPlayer = Vector3::Length(toPlayer);
+		K4E::Vector3 toPlayer = player->GetCenterPosition() - body.transform.translate_;
+		float distToPlayer = K4E::Vector3::Length(toPlayer);
 		if (distToPlayer <= wander.detectRadius)
 		{
 			enemy->ResetStateTimer();

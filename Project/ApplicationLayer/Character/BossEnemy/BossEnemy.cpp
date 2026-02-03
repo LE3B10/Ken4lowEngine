@@ -14,6 +14,8 @@
 #include <random>
 #include <cmath>
 
+namespace K4E = ::Ken4lowEngine;
+
 /// -------------------------------------------------------------
 ///					　		初期化処理
 /// -------------------------------------------------------------
@@ -26,12 +28,12 @@ void BossEnemy::Initialize()
 	BaseCharacter::ApplySkinToAllParts(skinTexturePath_);
 
 	// ID登録
-	Collider::SetTypeID(static_cast<uint32_t>(CollisionTypeIdDef::kBoss));
-	Collider::SetOwner<BossEnemy>(this); //	オーナー設定
-	Collider::SetOBBHalfSize({}); // コライダーサイズ設定（後で調整）
+	K4E::Collider::SetTypeID(static_cast<uint32_t>(CollisionTypeIdDef::kBoss));
+	K4E::Collider::SetOwner<BossEnemy>(this); //	オーナー設定
+	K4E::Collider::SetOBBHalfSize({}); // コライダーサイズ設定（後で調整）
 
 	// GPUパーティクルマネージャー取得
-	gpuParticleManager_ = GpuParticleManager::GetInstance();
+	gpuParticleManager_ = K4E::GpuParticleManager::GetInstance();
 
 	// VFX初期化
 	vfx_ = std::make_unique<BossEnemyVfx>();
@@ -71,7 +73,7 @@ void BossEnemy::Update(float deltaTime)
 	}
 
 	// 移動前の位置を保存
-	Vector3 oldPos = body_.transform.translate_;
+	K4E::Vector3 oldPos = body_.transform.translate_;
 
 	// ビヘイビアツリー更新（死亡チェック・登場演出・フェーズ行動）
 	if (behaviorTree_) behaviorTree_->Tick(*this, deltaTime);
@@ -84,15 +86,15 @@ void BossEnemy::Update(float deltaTime)
 	{
 		if (levelObjectManager_)
 		{
-			WorldCollisionSettings s{};
+			K4E::WorldCollisionSettings s{};
 			s.half = { 0.8f, 2.0f, 0.8f };
 			s.centerOffset = { 0.0f, 0.0f, 0.0f };
 
 			const auto worldAABBs = levelObjectManager_->GetWorldAABBs();
-			auto res = WorldCollisionResolver::Resolve(worldAABBs, s, oldPos, body_.transform.translate_, false);
+			auto res = K4E::WorldCollisionResolver::Resolve(worldAABBs, s, oldPos, body_.transform.translate_, false);
 
 			body_.transform.translate_ = res.fixedCenter + s.centerOffset;
-			Collider::SetCenterPosition(res.fixedCenter);
+			K4E::Collider::SetCenterPosition(res.fixedCenter);
 		}
 	}
 
@@ -115,11 +117,11 @@ void BossEnemy::Update(float deltaTime)
 		vfx_->UpdateSpinAttack(GetCenterPosition(), isSpin);
 
 		// コライダー半サイズ更新（仮の固定値、後で調整）
-		Collider::SetOBBHalfSize({ 0.8f, 2.0f, 0.8f });
+		K4E::Collider::SetOBBHalfSize({ 0.8f, 2.0f, 0.8f });
 	}
 
 	// コライダー中心座標更新
-	Collider::SetCenterPosition(GetCenterPosition());
+	K4E::Collider::SetCenterPosition(GetCenterPosition());
 
 	// ベースキャラクター更新
 	BaseCharacter::Update(deltaTime);
@@ -146,7 +148,7 @@ void BossEnemy::DrawImGui()
 /// -------------------------------------------------------------
 ///					　		衝突判定処理
 /// -------------------------------------------------------------
-void BossEnemy::OnCollision(Collider* other)
+void BossEnemy::OnCollision(K4E::Collider* other)
 {
 	if (state_ == State::Dead || death_.active || death_.finished) {
 		return; // 死亡中は当たり判定処理しない
@@ -193,9 +195,9 @@ void BossEnemy::OnCollision(Collider* other)
 				// --- ノックバック方向と強さを決める ---
 
 				// ボス中心 → プレイヤー中心 方向（押し飛ばす方向）
-				Vector3 bossCenter = GetCenterPosition();
-				Vector3 playerCenter = player->GetCenterPosition();
-				Vector3 toPlayer{
+				K4E::Vector3 bossCenter = GetCenterPosition();
+				K4E::Vector3 playerCenter = player->GetCenterPosition();
+				K4E::Vector3 toPlayer{
 					playerCenter.x - bossCenter.x,
 					playerCenter.y - bossCenter.y,
 					playerCenter.z - bossCenter.z
@@ -241,9 +243,9 @@ void BossEnemy::OnCollision(Collider* other)
 /// -------------------------------------------------------------
 ///					　		中心座標取得
 /// -------------------------------------------------------------
-Vector3 BossEnemy::GetCenterPosition() const
+K4E::Vector3 BossEnemy::GetCenterPosition() const
 {
-	const Vector3 offset = { 0.0f,0.0f,0.0f };
+	const K4E::Vector3 offset = { 0.0f,0.0f,0.0f };
 	return body_.transform.translate_ + offset;
 }
 
@@ -259,11 +261,11 @@ void BossEnemy::UpdateDamageFlash(float deltaTime)
 		if (flashInfo_.timer < 0.0f) flashInfo_.timer = 0.0f;
 
 		float t = 1.0f - std::clamp(flashInfo_.timer / flashInfo_.duration, 0.0f, 1.0f); // 0→1
-		Vector4 c = {
-			Lerp(flashInfo_.hitColor.x,  flashInfo_.baseColor.x,  t),
-			Lerp(flashInfo_.hitColor.y,  flashInfo_.baseColor.y,  t),
-			Lerp(flashInfo_.hitColor.z,  flashInfo_.baseColor.z,  t),
-			Lerp(flashInfo_.hitColor.w,  flashInfo_.baseColor.w,  t),
+		K4E::Vector4 c = {
+			K4E::Lerp(flashInfo_.hitColor.x,  flashInfo_.baseColor.x,  t),
+			K4E::Lerp(flashInfo_.hitColor.y,  flashInfo_.baseColor.y,  t),
+			K4E::Lerp(flashInfo_.hitColor.z,  flashInfo_.baseColor.z,  t),
+			K4E::Lerp(flashInfo_.hitColor.w,  flashInfo_.baseColor.w,  t),
 		};
 		ApplyColorToAll(c);
 	}
@@ -277,7 +279,7 @@ void BossEnemy::UpdateDamageFlash(float deltaTime)
 /// -------------------------------------------------------------
 ///					全部位に色を適用
 /// -------------------------------------------------------------
-void BossEnemy::ApplyColorToAll(const Vector4& color)
+void BossEnemy::ApplyColorToAll(const K4E::Vector4& color)
 {
 	// 全パーツに色を適用
 	flashInfo_.colorModulate = color;
@@ -294,7 +296,7 @@ void BossEnemy::ApplyColorToAll(const Vector4& color)
 /// -------------------------------------------------------------
 ///					移動方向に体の向きを合わせる
 /// -------------------------------------------------------------
-void BossEnemy::UpdateFacingDirection(const Vector3& moveDir, float deltaTime)
+void BossEnemy::UpdateFacingDirection(const K4E::Vector3& moveDir, float deltaTime)
 {
 	// ほぼ動いていないなら回転しない
 	float lenSq = moveDir.x * moveDir.x + moveDir.z * moveDir.z;
@@ -343,9 +345,9 @@ BossEnemy::AttackKind BossEnemy::DecideNextAttackKind()
 	const float spinRange = turning.spin.hitRadius;
 
 	// 距離（XZ）
-	const Vector3 bossPos = body_.transform.translate_;
-	const Vector3 playerPos = player_->GetCenterPosition();
-	const Vector3 toPlayer{ playerPos.x - bossPos.x, 0.0f, playerPos.z - bossPos.z };
+	const K4E::Vector3 bossPos = body_.transform.translate_;
+	const K4E::Vector3 playerPos = player_->GetCenterPosition();
+	const K4E::Vector3 toPlayer{ playerPos.x - bossPos.x, 0.0f, playerPos.z - bossPos.z };
 
 	const float distSq = toPlayer.x * toPlayer.x + toPlayer.z * toPlayer.z;
 	const float spinRangeSq = spinRange * spinRange;

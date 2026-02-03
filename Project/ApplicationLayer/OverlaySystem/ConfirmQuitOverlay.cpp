@@ -3,33 +3,35 @@
 #include <SpriteManager.h>
 #include "WinApp.h"
 
+namespace K4E = ::Ken4lowEngine;
+
 /// -------------------------------------------------------------
 ///					　オーバーレイを開く処理
 /// -------------------------------------------------------------
 void ConfirmQuitOverlay::Open(SceneManager* sceneManager)
 {
 	BaseOverlay::Open(sceneManager);
-	WinApp* winApp = WinApp::GetInstance();
+	K4E::WinApp* winApp = K4E::WinApp::GetInstance();
 
-	input_ = Input::GetInstance();
+	input_ = K4E::Input::GetInstance();
 	input_->SetLockCursor(false);
 
-	dim_ = std::make_unique<Sprite>(); dim_->Initialize(kWhiteTex);
+	dim_ = std::make_unique<K4E::Sprite>(); dim_->Initialize(kWhiteTex);
 	dim_->SetPosition({ 0,0 }); dim_->SetSize({ (float)winApp->GetClientWidth(),(float)winApp->GetClientHeight() }); dim_->SetAnchorPoint({ 0,0 });
 	dim_->SetColor({ 0,0,0,0.5f });
 
 	// パネル
-	panel_ = std::make_unique<Sprite>(); panel_->Initialize(kPanelTex);
+	panel_ = std::make_unique<K4E::Sprite>(); panel_->Initialize(kPanelTex);
 	panel_->SetAnchorPoint({ 0.5f,0.5f }); panel_->SetPosition({ (float)winApp->GetClientWidth() * 0.5f,(float)winApp->GetClientHeight() * 0.5f }); panel_->SetSize({ 960,640 });
 
 	// ボタン
-	btnYes_ = std::make_unique<Sprite>(); btnYes_->Initialize(kBtnTexYes_);
+	btnYes_ = std::make_unique<K4E::Sprite>(); btnYes_->Initialize(kBtnTexYes_);
 	rYes_.x = (float)(winApp->GetClientWidth() / 2.0f - (rYes_.width + rNo_.width) / 2 - 10);
 	rYes_.y = (float)(winApp->GetClientHeight() / 2.0f);
 	btnYes_->SetAnchorPoint({ 0.5f,0.5f }); btnYes_->SetPosition({ rYes_.x + rYes_.width * 0.5f, rYes_.y + rYes_.height * 0.5f }); btnYes_->SetSize({ rYes_.width,rYes_.height });
 
 	// ボタン
-	btnNo_ = std::make_unique<Sprite>(); btnNo_->Initialize(kBtnTexNo_);
+	btnNo_ = std::make_unique<K4E::Sprite>(); btnNo_->Initialize(kBtnTexNo_);
 	btnNo_->SetAnchorPoint({ 0.5f,0.5f });
 	
 	rNo_.x = (float)(winApp->GetClientWidth() / 2.0f + (rYes_.width + rNo_.width) / 2 + 10 - rNo_.width);
@@ -52,7 +54,7 @@ void ConfirmQuitOverlay::Update()
 	if (input_->TriggerKey(DIK_ESCAPE)) { Close(); return; }
 
 	// マウス位置
-	Vector2 mp = input_->GetMousePosition();
+	K4E::Vector2 mp = input_->GetMousePosition();
 
 	// 今のマウス位置がボタン上にあるかどうか
 	bool isOverYes = HitRect(mp, rYes_);
@@ -81,9 +83,9 @@ void ConfirmQuitOverlay::Update()
 	}
 
 	// ボタンの色設定用ラムダ
-	auto setHot = [](Sprite* s, bool hot) {
+	auto setHot = [](K4E::Sprite* s, bool hot) {
 		// ホットなら白、そうでなければグレー
-		s->SetColor(hot ? Vector4{ 1,1,1,1 } : Vector4{ 0.4f,0.4f,0.4f,1.0f });
+		s->SetColor(hot ? K4E::Vector4{ 1,1,1,1 } : K4E::Vector4{ 0.4f,0.4f,0.4f,1.0f });
 		s->Update();
 		};
 

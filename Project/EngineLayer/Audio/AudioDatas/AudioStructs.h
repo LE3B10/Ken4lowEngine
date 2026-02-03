@@ -2,6 +2,9 @@
 #include <xaudio2.h>
 #include <vector>
 
+namespace Ken4lowEngine
+{
+
 /// ---------- 音声データの読み込み ---------- ///
 
 // チャンクヘッダー
@@ -32,3 +35,5 @@ struct SoundData
 	BYTE* pBuffer;			 // バッファの先頭アドレス
 	unsigned int bufferSize; // バッファのサイズ
 };
+
+} // namespace Ken4lowEngine

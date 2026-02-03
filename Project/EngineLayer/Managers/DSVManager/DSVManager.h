@@ -5,6 +5,9 @@
 #include <stdexcept>
 #include <queue>
 
+namespace Ken4lowEngine
+{
+
 
 /// ---------- 前方宣言 ---------- ///
 class DirectXCommon;
@@ -140,3 +143,5 @@ private: /// ---------- コピー禁止 ---------- ///
 	/// </summary>
 	DSVManager& operator=(const DSVManager&) = delete;
 };
+
+} // namespace Ken4lowEngine

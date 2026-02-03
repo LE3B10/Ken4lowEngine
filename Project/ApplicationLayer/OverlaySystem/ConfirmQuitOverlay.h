@@ -6,8 +6,10 @@
 #include <functional>
 #include <memory>
 
+namespace K4E = ::Ken4lowEngine;
+
 /// ---------- 前方宣言 ---------- ///
-class Input;
+namespace Ken4lowEngine { class Input; }
 
 /// -------------------------------------------------------------
 ///					終了確認オーバーレイクラス
@@ -36,12 +38,12 @@ public: /// ---------- メンバ関数 ---------- ///
 
 private: /// ---------- メンバ変数 ---------- ///
 
-	Input* input_ = nullptr; // 入力管理オブジェクトへのポインタ
+	K4E::Input* input_ = nullptr; // 入力管理オブジェクトへのポインタ
 
-	std::unique_ptr<Sprite> dim_;
-	std::unique_ptr<Sprite> panel_;
-	std::unique_ptr<Sprite> btnYes_;
-	std::unique_ptr<Sprite> btnNo_;
+	std::unique_ptr<K4E::Sprite> dim_;
+	std::unique_ptr<K4E::Sprite> panel_;
+	std::unique_ptr<K4E::Sprite> btnYes_;
+	std::unique_ptr<K4E::Sprite> btnNo_;
 	Rect rYes_{ 350, 400, 261, 89 };
 	Rect rNo_{ 660, 400, 260, 89 };
 	int focus_ = 0; // 0:Yes,1:No

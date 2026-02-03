@@ -4,11 +4,13 @@
 
 #include <vector>
 
+namespace K4E = ::Ken4lowEngine;
+
 /// ---------- 前方宣言 ---------- ///
-class DirectXCommon;
-class Input;
-class Camera;
-class GpuParticleEmitter;
+namespace Ken4lowEngine { class DirectXCommon; }
+namespace Ken4lowEngine { class Input; }
+namespace Ken4lowEngine { class Camera; }
+namespace Ken4lowEngine { class GpuParticleEmitter; }
 
 /// -------------------------------------------------------------
 //				物理シーン（デバッグテスト用・サブシーン）
@@ -58,14 +60,14 @@ private: /// ---------- メンバ関数 ---------- ///
 
 private: /// ---------- メンバ変数 ---------- ///
 
-	DirectXCommon* dxCommon_ = nullptr; // DirectX共通管理クラス
-	Input* input_ = nullptr; // 入力管理クラス
-	Camera* camera = nullptr; // カメラ
+	K4E::DirectXCommon* dxCommon_ = nullptr; // DirectX共通管理クラス
+	K4E::Input* input_ = nullptr; // 入力管理クラス
+	K4E::Camera* camera = nullptr; // カメラ
 
-	std::unique_ptr<Object3D> object3D_; // 3Dオブジェクト
+	std::unique_ptr<K4E::Object3D> object3D_; // 3Dオブジェクト
 
 	// GPUパーティクル（解放エフェクト用）
-	GpuParticleEmitter* unlockEmitter_ = nullptr;
+	K4E::GpuParticleEmitter* unlockEmitter_ = nullptr;
 
 	StageState state_ = StageState::Locked;
 
@@ -73,7 +75,7 @@ private: /// ---------- メンバ変数 ---------- ///
 	float unlockTimer_ = 0.0f;
 	float unlockDuration_ = 1.0f; // 1秒くらいで解放
 
-	Vector3 baseTranslate_{};   // 浮遊の基準となる位置
+	K4E::Vector3 baseTranslate_{};   // 浮遊の基準となる位置
 	float   floatTimer_ = 0.0f; // 上下移動用のタイマー
 	bool    isSelected_ = true; // このキューブが「現在選択中か」
 };

@@ -1,6 +1,9 @@
 #pragma once
 #include "DX12Include.h"
 
+namespace Ken4lowEngine
+{
+
 /// ---------- 前方宣言 ---------- ///
 class DX12FenceManager;
 
@@ -89,3 +92,5 @@ private: /// ---------- メンバ変数 ---------- ///
 	ComPtr<ID3D12CommandQueue> commandQueue_;		  // コマンドキュー
 	D3D12_COMMAND_QUEUE_DESC commandQueueDesc{};	  // コマンドキューの設定情報
 };
+
+} // namespace Ken4lowEngine

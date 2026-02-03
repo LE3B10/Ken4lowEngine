@@ -5,6 +5,9 @@
 #include "GpuParticleType.h"
 #include "BillboardMode.h"
 
+namespace Ken4lowEngine
+{
+
 // エミッターの球体情報
 struct GpuEmitterCBData
 {
@@ -17,3 +20,4 @@ struct GpuEmitterCBData
 	uint32_t type;			// エミッターの種類
 	uint32_t billboardMode; // ビルボードモード
 };
+} // namespace Ken4lowEngine

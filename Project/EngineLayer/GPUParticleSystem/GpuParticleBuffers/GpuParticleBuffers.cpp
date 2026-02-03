@@ -7,6 +7,9 @@
 #include <Camera.h>
 #include <DebugCamera.h>
 
+namespace Ken4lowEngine
+{
+
 // スロット数（好きな数でOK。emitを同フレームで何回Dispatchするかの上限）
 static constexpr uint32_t kEmitterCBSlotCount = 256;
 
@@ -215,3 +218,5 @@ void GpuParticleBuffers::CreateFreeListBuffer()
 	freeListUavIndex_ = UAVManager::GetInstance()->Allocate();
 	UAVManager::GetInstance()->CreateUAVForStructuredBuffer(freeListUavIndex_, freeListBuffer_.Get(), kMaxParticles, sizeof(int32_t));
 }
+
+} // namespace Ken4lowEngine

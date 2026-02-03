@@ -2,6 +2,9 @@
 #include "WorldTransform.h"
 #include "Quaternion.h"
 
+namespace Ken4lowEngine
+{
+
 
 /// -------------------------------------------------------------
 ///						デバッグカメラクラス
@@ -189,3 +192,5 @@ private: /// ---------- コピー禁止 ---------- ///
 	DebugCamera& operator=(const DebugCamera&) = delete;
 };
 
+
+} // namespace Ken4lowEngine

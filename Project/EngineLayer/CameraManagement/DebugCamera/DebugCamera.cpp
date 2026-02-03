@@ -3,6 +3,9 @@
 #include "Input.h"
 #include "ParameterManager.h"
 
+namespace Ken4lowEngine
+{
+
 /// -------------------------------------------------------------
 ///					シングルトンインスタンス
 /// -------------------------------------------------------------
@@ -117,3 +120,5 @@ void DebugCamera::UpdateViewProjection()
 	// ビュー射影行列を更新
 	viewProjectionMatrix_ = Matrix4x4::Multiply(viewMatrix_, projectionMatrix_);
 }
+
+} // namespace Ken4lowEngine

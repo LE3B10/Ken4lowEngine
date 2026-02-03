@@ -9,6 +9,9 @@
 #include "Vector3.h"
 #include "Vector4.h"
 
+namespace Ken4lowEngine
+{
+
 // コードの冗長を防ぐため省略
 using json = nlohmann::json;
 
@@ -178,3 +181,5 @@ private: /// ---------- コピー禁止 ---------- ///
 	ParameterManager(const ParameterManager&) = delete;
 	ParameterManager& operator=(const ParameterManager&) = delete;
 };
+
+} // namespace Ken4lowEngine

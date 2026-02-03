@@ -4,6 +4,9 @@
 #include "Matrix4x4.h"
 #include "Camera.h"
 
+namespace Ken4lowEngine
+{
+
 
 /// -------------------------------------------------------------
 ///				パーティクル用の座標変換データクラス
@@ -47,3 +50,5 @@ private: /// ---------- メンバ変数 ---------- ///
 	Matrix4x4 wvpMatrix_ = Matrix4x4::MakeIdentity();
 };
 
+
+} // namespace Ken4lowEngine

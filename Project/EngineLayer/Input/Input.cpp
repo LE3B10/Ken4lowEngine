@@ -3,6 +3,9 @@
 #include <cassert>
 #include <cstring> // memcpyを使うために追加
 
+namespace Ken4lowEngine
+{
+
 #pragma comment(lib, "XInput.lib")
 #pragma comment(lib, "dinput8.lib")
 #pragma comment(lib, "dxguid.lib")
@@ -510,3 +513,5 @@ void Input::StopVibration()
 
 	XInputSetState(0, &vibration);
 }
+
+} // namespace Ken4lowEngine

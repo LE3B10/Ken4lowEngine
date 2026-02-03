@@ -2,8 +2,12 @@
 #include <random>
 #include <Vector3.h>
 
-/// ---------- 前方宣言 ---------- ///
 class Player;
+
+namespace Ken4lowEngine
+{
+
+/// ---------- 前方宣言 ---------- ///
 class Input;
 class Camera;
 
@@ -251,3 +255,5 @@ private: // ---------- メンバ ---------- //
 	float tpsForward_ = 20.0f;
 	float tpsUpOffset_ = 0.15f;
 };
+
+} // namespace Ken4lowEngine

@@ -5,6 +5,8 @@
 #include <GamePlayingState.h>
 #include "SceneManager.h"
 
+namespace K4E = ::Ken4lowEngine;
+
 namespace
 {
 	using std::vector;
@@ -21,7 +23,7 @@ namespace
 			// bossHp
 			1000.0f,
 			// bossSpawnPos
-			Vector3{ 0.0f, 2.5f, 0.0f },
+			K4E::Vector3{ 0.0f, 2.5f, 0.0f },
 			// Stage1: 基本パラメータ
 			200.0f,  // maxHp
 			0.03f,   // walk
@@ -38,7 +40,7 @@ namespace
 				WaveConfig{10, 30.0f },
 			},
 			2500.0f,
-			Vector3{ 0.0f, 2.5f, 0.0f },
+			K4E::Vector3{ 0.0f, 2.5f, 0.0f },
 			// Stage2: ちょい強化
 			400.0f,
 			0.032f,
@@ -54,7 +56,7 @@ namespace
 				WaveConfig{12, 25.0f },
 			},
 			4000.0f,
-			Vector3{ 0.0f, 2.5f, 0.0f },
+			K4E::Vector3{ 0.0f, 2.5f, 0.0f },
 			// Stage3: さらに強化
 			800.0f,
 			0.034f,
@@ -70,7 +72,7 @@ namespace
 				WaveConfig{14, 25.0f },
 			},
 			6000.0f,
-			Vector3{ 0.0f, 2.5f, 0.0f },
+			K4E::Vector3{ 0.0f, 2.5f, 0.0f },
 			// Stage4
 			1000.0f,
 			0.036f,
@@ -87,7 +89,7 @@ namespace
 				WaveConfig{20, 30.0f },
 			},
 			8000.0f,
-			Vector3{ 0.0f, 2.5f, 0.0f },
+			K4E::Vector3{ 0.0f, 2.5f, 0.0f },
 			// Stage5: 地獄
 			2000.0f,
 			0.038f,
@@ -107,7 +109,7 @@ void GameLoadState::Enter(GamePlayScene* scene)
 	timer_ = 0.0f;
 
 	auto* player = scene->GetPlayer();
-	auto levelLoader = std::make_unique<LevelLoader>();
+	auto levelLoader = std::make_unique<K4E::LevelLoader>();
 	auto& levelObjectManager = scene->GetLevelObjectManager();
 	auto& currentStageConfig = scene->GetCurrentWaveConfig();
 
@@ -124,7 +126,7 @@ void GameLoadState::Enter(GamePlayScene* scene)
 	currentStageConfig = kStageConfigs[stageIndex];
 
 	// ステージ読み込みを差し替え
-	levelObjectManager = std::make_unique<LevelObjectManager>();
+	levelObjectManager = std::make_unique<K4E::LevelObjectManager>();
 	levelObjectManager->Initialize(
 		*levelLoader->LoadLevel(currentStageConfig.levelJson),
 		currentStageConfig.levelModel

@@ -7,6 +7,8 @@
 #endif
 #include <cmath>
 
+namespace K4E = ::Ken4lowEngine;
+
 namespace
 {
 	constexpr int   kRootCount = 12;   // 円周上の本数
@@ -26,7 +28,7 @@ void RootCageAttack::Initialize()
 	for (int i = 0; i < kRootCount; ++i)
 	{
 		RootColumn col;
-		col.object = std::make_unique<Object3D>();
+		col.object = std::make_unique<K4E::Object3D>();
 		// ★ モデルは後で差し替えOK（仮にキューブ）
 		col.object->Initialize("cube.gltf");
 		col.object->SetColor({ 0.4f, 0.9f, 0.4f, 1.0f });
@@ -53,9 +55,9 @@ void RootCageAttack::Attack()
 	requestStart_ = true;
 }
 
-void RootCageAttack::Update(Boss* boss, float deltaTime, float bossYawRad, const Vector3& playerPosition)
+void RootCageAttack::Update(Boss* boss, float deltaTime, float bossYawRad, const K4E::Vector3& playerPosition)
 {
-	//const auto& p = Params(boss);
+	//const auto& p = K4E::Params(boss);
 
 	switch (rootCage_.phase)
 	{
@@ -76,7 +78,7 @@ void RootCageAttack::Update(Boss* boss, float deltaTime, float bossYawRad, const
 		break;
 	}
 
-	// ルートの Object3D を Update
+	// ルートの K4E::Object3D を Update
 	if (rootCage_.visible)
 	{
 		for (auto& col : columns_)
@@ -191,7 +193,7 @@ void RootCageAttack::DrawImGui(Boss& boss)
 }
 #endif // USE_IMGUI
 
-void RootCageAttack::UpdatePhase_Idle(Boss* boss, float deltaTime, float bossYaw, const Vector3& playerPos)
+void RootCageAttack::UpdatePhase_Idle(Boss* boss, float deltaTime, float bossYaw, const K4E::Vector3& playerPos)
 {
 	(void)deltaTime;
 
@@ -207,7 +209,7 @@ void RootCageAttack::UpdatePhase_Idle(Boss* boss, float deltaTime, float bossYaw
 		rootCage_.visible = true;
 
 		// プレイヤー足元あたりを中心にする
-		Vector3 center = playerPos;
+		K4E::Vector3 center = playerPos;
 		center.y = boss->GetCenterPosition().y;
 
 		BuildColumns(p, center, bossYaw);
@@ -229,7 +231,7 @@ void RootCageAttack::UpdatePhase_Windup(Boss* boss, float deltaTime)
 	}
 }
 
-void RootCageAttack::UpdatePhase_Active(Boss* boss, float deltaTime, const Vector3& playerPos)
+void RootCageAttack::UpdatePhase_Active(Boss* boss, float deltaTime, const K4E::Vector3& playerPos)
 {
 	const auto& p = Params(boss);
 	rootCage_.phaseTimer += deltaTime;
@@ -280,7 +282,7 @@ const ForestBossParams::RootCage& RootCageAttack::Params(const Boss* boss) const
 	return boss->GetParams().rootCage;
 }
 
-void RootCageAttack::BuildColumns(const ForestBossParams::RootCage& p, const Vector3& center, float yaw)
+void RootCageAttack::BuildColumns(const ForestBossParams::RootCage& p, const K4E::Vector3& center, float yaw)
 {
 	rootCage_.center = center;
 	rootCage_.lockedYaw = yaw;
@@ -293,8 +295,8 @@ void RootCageAttack::BuildColumns(const ForestBossParams::RootCage& p, const Vec
 	{
 		float angle = yaw + angleStep * static_cast<float>(i);
 
-		Vector3 dir{ std::cos(angle), 0.0f, std::sin(angle) };
-		Vector3 pos{
+		K4E::Vector3 dir{ std::cos(angle), 0.0f, std::sin(angle) };
+		K4E::Vector3 pos{
 			center.x + dir.x * radius,
 			center.y,
 			center.z + dir.z * radius
@@ -307,7 +309,7 @@ void RootCageAttack::BuildColumns(const ForestBossParams::RootCage& p, const Vec
 
 		// 最初は地面の下に潜っているイメージ
 		col.object->SetScale({ p.ringThickness * 0.5f, 0.01f, p.ringThickness * 0.5f });
-		col.object->SetTranslate(pos + Vector3{ 0.0f, -0.5f * baseHeight, 0.0f });
+		col.object->SetTranslate(pos + K4E::Vector3{ 0.0f, -0.5f * baseHeight, 0.0f });
 		col.object->SetRotate({ 0.0f, angle, 0.0f });
 		col.object->Update();
 	}
@@ -315,14 +317,14 @@ void RootCageAttack::BuildColumns(const ForestBossParams::RootCage& p, const Vec
 
 void RootCageAttack::UpdateColumnsGrow(const ForestBossParams::RootCage& p, float tGrow)
 {
-	tGrow = clamp01(tGrow);
-	tGrow = EaseInOutCubic(tGrow);
+	tGrow = K4E::clamp01(tGrow);
+	tGrow = K4E::EaseInOutCubic(tGrow);
 
 	for (auto& col : columns_)
 	{
 		float h = col.height * tGrow;
-		Vector3 scale{ p.ringThickness * 0.5f, h, p.ringThickness * 0.5f };
-		Vector3 pos = col.basePosition;
+		K4E::Vector3 scale{ p.ringThickness * 0.5f, h, p.ringThickness * 0.5f };
+		K4E::Vector3 pos = col.basePosition;
 		// 下端固定で上に伸びる想定（モデルの原点によって調整）
 		pos.y += h * 0.5f;
 
@@ -334,15 +336,15 @@ void RootCageAttack::UpdateColumnsGrow(const ForestBossParams::RootCage& p, floa
 void RootCageAttack::UpdateColumnsShrink(const ForestBossParams::RootCage& p, float tShrink)
 {
 	// tShrink 0→1 でだんだん消える
-	tShrink = clamp01(tShrink);
-	tShrink = EaseInOutCubic(tShrink);
+	tShrink = K4E::clamp01(tShrink);
+	tShrink = K4E::EaseInOutCubic(tShrink);
 
 	float remain = 1.0f - tShrink;
 	for (auto& col : columns_)
 	{
 		float h = col.height * remain;
-		Vector3 scale{ p.ringThickness * 0.5f, h, p.ringThickness * 0.5f };
-		Vector3 pos = col.basePosition;
+		K4E::Vector3 scale{ p.ringThickness * 0.5f, h, p.ringThickness * 0.5f };
+		K4E::Vector3 pos = col.basePosition;
 		pos.y += h * 0.5f;
 
 		col.object->SetScale(scale);

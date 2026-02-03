@@ -1,6 +1,8 @@
 #pragma once
 #include "Vector3.h"
 
+namespace K4E = ::Ken4lowEngine;
+
 // 死亡モード
 enum class DeathMode
 {
@@ -17,14 +19,14 @@ struct DeathState
 	float length = 3.0f;        // 死亡演出時間
 	int side = 1;               // 横倒れ方向(+1 or -1)
 
-	Vector3 cameraStartPos{ 0.0f, 0.0f, 0.0f }; // カメラ奪取用開始位置
-	Vector3 cameraEndOffset{ 0.0f, 2.0f, -20.0f }; // カメラ奪取用終了オフセット
-	Vector3 camLockPos{ 0,0,0 };
-	Vector3 camLockRot{ 0,0,0 }; // {pitch,yaw,roll}
+	K4E::Vector3 cameraStartPos{ 0.0f, 0.0f, 0.0f }; // カメラ奪取用開始位置
+	K4E::Vector3 cameraEndOffset{ 0.0f, 2.0f, -20.0f }; // カメラ奪取用終了オフセット
+	K4E::Vector3 camLockPos{ 0,0,0 };
+	K4E::Vector3 camLockRot{ 0,0,0 }; // {pitch,yaw,roll}
 	bool   camLock = true;      // 死亡中はカメラ固定するか
 
-	Vector3 velocity{ 0,0,0 };      // 並進速度（m/s）
-	Vector3 angularVelocity{ 0,0,0 };   // 角速度（rad/s）(x=pitch, y=yaw, z=roll)
+	K4E::Vector3 velocity{ 0,0,0 };      // 並進速度（m/s）
+	K4E::Vector3 angularVelocity{ 0,0,0 };   // 角速度（rad/s）(x=pitch, y=yaw, z=roll)
 	float bounce = 0.25f;          // 地面反発係数
 	float friction = 0.7f;        // 地面摩擦係数
 

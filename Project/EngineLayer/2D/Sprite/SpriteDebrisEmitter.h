@@ -4,6 +4,9 @@
 #include <random>
 #include "Sprite.h"
 
+namespace Ken4lowEngine
+{
+
 class SpriteDebrisEmitter
 {
 public:
@@ -76,3 +79,5 @@ private: /// ---------- 構造体 ---------- ///
     float Rand_(float a, float b);
     int RandI_(int a, int b);
 };
+
+} // namespace Ken4lowEngine

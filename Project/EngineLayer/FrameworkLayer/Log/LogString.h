@@ -3,10 +3,14 @@
 #include <string>
 #include <format>
 
-// ログ出力
-void Log(const std::string& message);
-// 文字コードユーティリティ
-// string->wstring
-std::wstring ConvertString(const std::string& str);
-// wstring->string
-std::string ConvertString(const std::wstring& str);
+namespace Ken4lowEngine
+{
+
+	// ログ出力
+	void Log(const std::string& message);
+	// 文字コードユーティリティ
+	// string->wstring
+	std::wstring ConvertString(const std::string& str);
+	// wstring->string
+	std::string ConvertString(const std::wstring& str);
+} // namespace Ken4lowEngine

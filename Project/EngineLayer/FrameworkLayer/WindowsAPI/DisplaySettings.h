@@ -1,6 +1,9 @@
 #pragma once
 #include <cstdint>
 
+namespace Ken4lowEngine
+{
+
 /// ---------- ウィンドウモード列挙型 ---------- ///
 enum class WindowMode
 {
@@ -20,3 +23,4 @@ struct DisplaySettings
 	int monitorIndex = 0;				   // 使用するモニターのインデックス（0がメインモニター）
 	bool maximize = false;				   // ウィンドウモード時に最大化するかどうか
 };
+} // namespace Ken4lowEngine

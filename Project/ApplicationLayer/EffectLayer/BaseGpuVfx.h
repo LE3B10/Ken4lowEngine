@@ -3,6 +3,8 @@
 
 #include "GpuParticleManager.h" // GpuParticleEmitter も含まれる
 
+namespace K4E = ::Ken4lowEngine;
+
 /// -------------------------------------------------------------
 ///			　GPUパーティクル演出の共通基底クラス
 /// -------------------------------------------------------------
@@ -14,11 +16,11 @@ public: /// ---------- メンバ関数 ---------- ///
 	virtual ~BaseGpuVfx() = default;
 
 	/// <summary>
-	/// GpuParticleManager を初期化します。
+	/// K4E::GpuParticleManager を初期化します。
 	/// </summary>
-	/// <param name="manager">初期化対象の GpuParticleManager へのポインタ。</param>
+	/// <param name="manager">初期化対象の K4E::GpuParticleManager へのポインタ。</param>
 	/// <param name="prefix">オプションの接頭辞。リソース名や識別子に使われることがあり、デフォルトは空文字列</param>
-	void Initialize(GpuParticleManager* manager, const std::string& prefix = "");
+	void Initialize(K4E::GpuParticleManager* manager, const std::string& prefix = "");
 
 	/// <summary>
 	/// オブジェクトの状態を初期状態にリセットする仮想メソッド。
@@ -45,28 +47,28 @@ protected: /// ---------- メンバ関数 ---------- ///
 	/// 指定したキーに対応するエミッターを取得し、存在しない場合は新しく作成して返します。
 	/// </summary>
 	/// <param name="key">エミッターを識別するキー。</param>
-	/// <param name="info">新しくエミッターを作成する際の設定情報（GpuParticleEmitter::EmitterInfo）。</param>
-	/// <returns>指定したキーに対応する GpuParticleEmitter へのポインタ。既存のエミッターがあればそのポインタを、存在しなければ新たに作成したエミッターのポインタを返します。</returns>
-	GpuParticleEmitter* GetOrCreateEmitter(const std::string& key, const GpuParticleEmitter::EmitterInfo& info);
+	/// <param name="info">新しくエミッターを作成する際の設定情報（K4E::GpuParticleEmitter::K4E::EmitterInfo）。</param>
+	/// <returns>指定したキーに対応する K4E::GpuParticleEmitter へのポインタ。既存のエミッターがあればそのポインタを、存在しなければ新たに作成したエミッターのポインタを返します。</returns>
+	K4E::GpuParticleEmitter* GetOrCreateEmitter(const std::string& key, const K4E::GpuParticleEmitter::EmitterInfo& info);
 
 	/// <summary>
 	/// 指定されたキーに対応するGPUパーティクルエミッタを検索して返します。
 	/// </summary>
 	/// <param name="key">検索に使用する識別キー（const std::string&）。</param>
 	/// <returns>対応するGpuParticleEmitterへのポインタ。該当するエミッタが存在しない場合はnullptrを返します。</returns>
-	GpuParticleEmitter* FindEmitter(const std::string& key);
+	K4E::GpuParticleEmitter* FindEmitter(const std::string& key);
 
 	/// <summary>
 	/// エミッタの位置を設定し、指定数のパーティクルを放出する。
 	/// </summary>
 	/// <param name="emitter">パーティクルエミッタを指すポインタ。位置の設定と放出の対象となる。</param>
-	/// <param name="position">設定する位置（const Vector3&）。</param>
+	/// <param name="position">設定する位置（const K4E::Vector3&）。</param>
 	/// <param name="count">放出するパーティクルの数（uint32_t）。</param>
-	void SetPositionAndEmit(GpuParticleEmitter* emitter, const Vector3& position, uint32_t count);
+	void SetPositionAndEmit(K4E::GpuParticleEmitter* emitter, const K4E::Vector3& position, uint32_t count);
 
 protected: /// ---------- メンバ変数 ---------- ///
 
-	GpuParticleManager* manager_ = nullptr; // GPUパーティクルマネージャへのポインタ
+	K4E::GpuParticleManager* manager_ = nullptr; // GPUパーティクルマネージャへのポインタ
 	std::string prefix_;              // 名前の接頭辞
 };
 

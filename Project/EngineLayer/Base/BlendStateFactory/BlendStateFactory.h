@@ -6,6 +6,9 @@
 #include <unordered_map>
 #include <string>
 
+namespace Ken4lowEngine
+{
+
 
 /// -------------------------------------------------------------
 ///			ブレンドステートを生成するファクトリークラス
@@ -86,3 +89,5 @@ private: /// ---------- コピー禁止 ---------- ///
 	BlendStateFactory& operator=(const BlendStateFactory&) = delete;
 };
 
+
+} // namespace Ken4lowEngine

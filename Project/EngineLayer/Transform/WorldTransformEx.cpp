@@ -1,5 +1,8 @@
 #include "WorldTransformEx.h"
 
+namespace Ken4lowEngine
+{
+
 /// -------------------------------------------------------------
 ///				　			更新処理
 /// -------------------------------------------------------------
@@ -47,3 +50,5 @@ void WorldTransformEx::Update(const WorldTransformEx* parent, const Vector3& off
 	rotate_.y += selfAdd.y;
 	rotate_.z += selfAdd.z;
 }
+
+} // namespace Ken4lowEngine

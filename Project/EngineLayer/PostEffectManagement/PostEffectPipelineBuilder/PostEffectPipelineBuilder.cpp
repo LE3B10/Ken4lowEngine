@@ -4,6 +4,9 @@
 
 #include <cassert>
 
+namespace Ken4lowEngine
+{
+
 using namespace Microsoft::WRL;
 
 
@@ -303,3 +306,5 @@ void PostEffectPipelineBuilder::BuildCopyPipeline()
 	copyPipelineState_->SetName(L"PostEffectPipelineBuilder_Copy_PSO");
 	copyRootSignature_->SetName(L"PostEffectPipelineBuilder_Copy_RootSignature");
 }
+
+} // namespace Ken4lowEngine

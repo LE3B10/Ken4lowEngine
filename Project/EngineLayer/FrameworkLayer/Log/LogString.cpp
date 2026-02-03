@@ -1,5 +1,8 @@
 #include "LogString.h"
 
+namespace Ken4lowEngine
+{
+
 void Log(const std::string& message)
 {
 	OutputDebugStringA(message.c_str());
@@ -40,3 +43,4 @@ std::string ConvertString(const std::wstring& str)
 	WideCharToMultiByte(CP_UTF8, 0, str.data(), static_cast<int>(str.size()), result.data(), sizeNeeded, NULL, NULL);
 	return result;
 }
+} // namespace Ken4lowEngine

@@ -1,6 +1,9 @@
 #include "Quaternion.h"
 #include <corecrt_math.h>
 
+namespace Ken4lowEngine
+{
+
 /// -------------------------------------------------------------
 ///					　		四元数の掛け算
 /// -------------------------------------------------------------
@@ -206,3 +209,5 @@ Quaternion Quaternion::Slerp(const Quaternion& q0, const Quaternion& q1, float t
 
 	return result;
 }
+
+} // namespace Ken4lowEngine

@@ -1,6 +1,9 @@
 #include "AudioManager.h"
 #include <filesystem>
 
+namespace Ken4lowEngine
+{
+
 /// -------------------------------------------------------------
 ///				　シングルトンインスタンス取得
 /// -------------------------------------------------------------
@@ -125,3 +128,5 @@ void AudioManager::ResumeBGM()
 	if (wavLoader_) wavLoader_->ResumeBGM(); // WAVローダーが存在する場合に再開
 	if (mp3Loader_) mp3Loader_->ResumeBGM(); // MP3ローダーが存在する場合に再開
 }
+
+} // namespace Ken4lowEngine

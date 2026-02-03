@@ -8,6 +8,9 @@
 #include <cstdint>
 #include <functional>
 
+namespace Ken4lowEngine
+{
+
 /// ---------- 前方宣言 ---------- ///
 class DirectXCommon;
 
@@ -359,3 +362,5 @@ private: /// ---------- メンバ変数 ---------- ///
 	EffectParams* effectParamsData = nullptr;
 };
 
+
+} // namespace Ken4lowEngine

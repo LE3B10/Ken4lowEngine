@@ -7,6 +7,9 @@
 #include <list>
 #include <memory>
 
+namespace Ken4lowEngine
+{
+
 class AudioLoader; // 前方宣言
 
 
@@ -137,3 +140,5 @@ private: /// ---------- コピー禁止 ---------- ///
 	/// <summary>代入演算子は禁止。</summary>
 	AudioManager& operator=(const AudioManager&) = delete;
 };
+
+} // namespace Ken4lowEngine

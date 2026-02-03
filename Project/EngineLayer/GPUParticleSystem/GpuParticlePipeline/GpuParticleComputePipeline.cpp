@@ -5,6 +5,9 @@
 #include "ShaderCompiler.h"
 #include <cassert>
 
+namespace Ken4lowEngine
+{
+
 void GpuParticleComputePipeline::Initialize()
 {
 	dxCommon_ = DirectXCommon::GetInstance();
@@ -103,3 +106,5 @@ void GpuParticleComputePipeline::CreateUpdateComputePSO()
 	HRESULT hr = dxCommon_->GetDevice()->CreateComputePipelineState(&desc, IID_PPV_ARGS(&updateComputePipelineState_));
 	assert(SUCCEEDED(hr));
 }
+
+} // namespace Ken4lowEngine

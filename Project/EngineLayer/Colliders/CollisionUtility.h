@@ -8,6 +8,9 @@
 #include "OBB.h"
 #include "Capsule.h"
 
+namespace Ken4lowEngine
+{
+
 
 //// -------------------------------------------------------------
 ///						衝突判定ユーティリティ
@@ -78,3 +81,5 @@ public: /// ---------- メンバ関数 ---------- ///
 	static bool IsCollision(const Capsule& capsule, const Plane& plane);
 	static bool IsCollision(const Plane& plane, const Capsule& capsule) { return IsCollision(capsule, plane); }
 };
+
+} // namespace Ken4lowEngine

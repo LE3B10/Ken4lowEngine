@@ -18,6 +18,9 @@
 #include <DisplaySettings.h>
 #include <WinApp.h>
 
+namespace Ken4lowEngine
+{
+
 
 /// -------------------------------------------------------------
 ///				　		　　初期化処理
@@ -167,3 +170,5 @@ void GameApplication::Finalize()
 	// 基底クラスの終了処理
 	Framework::Finalize();
 }
+
+} // namespace Ken4lowEngine

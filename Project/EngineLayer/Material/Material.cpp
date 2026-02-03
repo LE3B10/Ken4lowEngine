@@ -4,6 +4,9 @@
 
 #ifdef USE_IMGUI
 #include <imgui.h>
+
+namespace Ken4lowEngine
+{
 #endif // USE_IMGUI
 
 
@@ -73,3 +76,5 @@ void Material::DrawImGui()
 	}
 #endif // USE_IMGUI
 }
+
+} // namespace Ken4lowEngine

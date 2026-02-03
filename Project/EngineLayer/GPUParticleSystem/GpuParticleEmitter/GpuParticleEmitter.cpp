@@ -1,5 +1,8 @@
 #include "GpuParticleEmitter.h"
 
+namespace Ken4lowEngine
+{
+
 /// -------------------------------------------------------------
 ///				　　　	コンストラクタ
 /// -------------------------------------------------------------
@@ -71,3 +74,5 @@ bool GpuParticleEmitter::BuildCB(GpuEmitterCBData& out, float deltaTime)
 	return true;
 }
 
+
+} // namespace Ken4lowEngine

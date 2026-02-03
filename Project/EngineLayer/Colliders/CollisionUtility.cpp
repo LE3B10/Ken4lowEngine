@@ -2,6 +2,9 @@
 
 #include <algorithm>
 
+namespace Ken4lowEngine
+{
+
 /// -------------------------------------------------------------
 ///						球と球の衝突判定
 /// -------------------------------------------------------------
@@ -557,3 +560,5 @@ bool CollisionUtility::IsCollision(const Capsule& capsule, const Plane& plane)
 	}
 	return false;
 }
+
+} // namespace Ken4lowEngine

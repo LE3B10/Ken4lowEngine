@@ -2,6 +2,9 @@
 #include <DX12Include.h>
 #include "BlendStateFactory.h"
 
+namespace Ken4lowEngine
+{
+
 /// ---------- 前方宣言 ---------- ///
 class DirectXCommon;
 
@@ -49,3 +52,5 @@ private: /// ---------- メンバ変数 ---------- ///
 	BlendMode blendMode_ = BlendMode::kBlendModeAdd;
 };
 
+
+} // namespace Ken4lowEngine

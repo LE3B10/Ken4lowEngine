@@ -6,6 +6,8 @@
 #include "Player.h"
 #include "LevelObjectManager.h"
 
+namespace K4E = ::Ken4lowEngine;
+
 void EnemyAIAttackState::Enter(Enemy* enemy)
 {
 	using AIState = Enemy::AIState;
@@ -60,7 +62,7 @@ void EnemyAIAttackState::Update(Enemy* enemy, float deltaTime)
 	}
 
 	// いまの位置を覚えておく（衝突解決の基準になる）
-	Vector3 oldPos = body.transform.translate_;
+	K4E::Vector3 oldPos = body.transform.translate_;
 
 	if (!player)
 	{
@@ -80,11 +82,11 @@ void EnemyAIAttackState::Update(Enemy* enemy, float deltaTime)
 	}
 
 	// 距離と向きは今までどおり
-	Vector3 to = player->GetCenterPosition() - body.transform.translate_;
+	K4E::Vector3 to = player->GetCenterPosition() - body.transform.translate_;
 	to.y = 0.0f;
-	float dist = Vector3::Length(to);
+	float dist = K4E::Vector3::Length(to);
 	if (dist < 0.0001f) dist = 0.0001f;
-	Vector3 dir = to / dist;
+	K4E::Vector3 dir = to / dist;
 
 	// 顔はターゲットを見る（いまのコードと同じ）
 	body.transform.rotate_.y = std::atan2f(-dir.x, dir.z);

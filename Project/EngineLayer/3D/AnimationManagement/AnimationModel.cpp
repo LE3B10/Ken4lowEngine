@@ -16,6 +16,9 @@
 
 #ifdef USE_IMGUI
 #include <imgui.h>
+
+namespace Ken4lowEngine
+{
 #endif // USE_IMGUI
 
 // -------------------------------------------------------------
@@ -1167,3 +1170,5 @@ void AnimationModel::DrawSkinned()
 		}
 	}
 }
+
+} // namespace Ken4lowEngine

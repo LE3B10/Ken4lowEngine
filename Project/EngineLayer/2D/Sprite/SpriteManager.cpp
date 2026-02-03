@@ -4,6 +4,9 @@
 #include <BlendStateFactory.h>
 #include <SRVManager.h>
 
+namespace Ken4lowEngine
+{
+
 
 /// -------------------------------------------------------------
 ///				　	シングルトンインスタンス
@@ -255,3 +258,5 @@ void SpriteManager::CreatePSO()
 		assert(SUCCEEDED(hr));
 	}
 }
+
+} // namespace Ken4lowEngine

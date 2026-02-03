@@ -3,6 +3,8 @@
 #include <Player.h>
 #include <cmath>
 
+namespace K4E = ::Ken4lowEngine;
+
 void BossChaseState::OnEnter(BossEnemy* boss)
 {
 	// 安全確認
@@ -20,17 +22,17 @@ BehaviorStatus BossChaseState::Update(BossEnemy* boss, float deltaTime)
 	if (!player) return BehaviorStatus::Running;
 
 	// 位置
-	Vector3 bossPos = boss->GetPosition();
-	Vector3 playerPos = player->GetCenterPosition();
+	K4E::Vector3 bossPos = boss->GetPosition();
+	K4E::Vector3 playerPos = player->GetCenterPosition();
 
 	// XZ 平面の方向ベクトル
-	Vector3 toPlayer{ playerPos.x - bossPos.x, 0.0f, playerPos.z - bossPos.z };
+	K4E::Vector3 toPlayer{ playerPos.x - bossPos.x, 0.0f, playerPos.z - bossPos.z };
 
 	float distSq = toPlayer.x * toPlayer.x + toPlayer.z * toPlayer.z;
 	float dist = (distSq > 0.0f) ? std::sqrt(distSq) : 0.0f;
 
 	// 正規化方向
-	Vector3 moveDir{ 0.0f, 0.0f, 0.0f };
+	K4E::Vector3 moveDir{ 0.0f, 0.0f, 0.0f };
 	if (dist > 0.001f)
 	{
 		float inv = 1.0f / dist;

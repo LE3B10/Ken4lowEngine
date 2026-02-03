@@ -2,6 +2,8 @@
 #include "Input.h"
 #include "LinearInterpolation.h"
 
+namespace K4E = ::Ken4lowEngine;
+
 // 省略 <numbers>
 using namespace std::numbers;
 
@@ -10,9 +12,9 @@ using namespace std::numbers;
 /// -------------------------------------------------------------
 void ModelParticle::Initialize()
 {
-	input_ = Input::GetInstance();
+	input_ = K4E::Input::GetInstance();
 
-	object3D_ = std::make_unique<Object3D>();
+	object3D_ = std::make_unique<K4E::Object3D>();
 	object3D_->Initialize("cube.gltf");
 
 	// パーティクルプールの確保
@@ -105,12 +107,12 @@ void ModelParticle::DrawImGui()
 /// -------------------------------------------------------------
 ///				　			バースト生成
 /// -------------------------------------------------------------
-void ModelParticle::SpawnBurst(const Vector3& pos, const Vector3& normal, uint32_t count)
+void ModelParticle::SpawnBurst(const K4E::Vector3& pos, const K4E::Vector3& normal, uint32_t count)
 {
-	Vector3 n = Vector3::Normalize(normal);
+	K4E::Vector3 n = K4E::Vector3::Normalize(normal);
 	// nに直交する基底を作る（拡散用）
-	Vector3 tangent = std::abs(n.y) < 0.99f ? Vector3::Normalize(Vector3::Cross(n, { 0,1,0 })) : Vector3::Normalize(Vector3::Cross(n, { 1,0,0 }));
-	Vector3 bitan = Vector3::Cross(n, tangent);
+	K4E::Vector3 tangent = std::abs(n.y) < 0.99f ? K4E::Vector3::Normalize(K4E::Vector3::Cross(n, { 0,1,0 })) : K4E::Vector3::Normalize(K4E::Vector3::Cross(n, { 1,0,0 }));
+	K4E::Vector3 bitan = K4E::Vector3::Cross(n, tangent);
 
 	for (uint32_t i = 0; i < count; ++i)
 	{
@@ -120,7 +122,7 @@ void ModelParticle::SpawnBurst(const Vector3& pos, const Vector3& normal, uint32
 		if (!p) break; // いっぱいなら諦める
 
 		// 新規オブジェクト
-		p->obj = std::make_unique<Object3D>();
+		p->obj = std::make_unique<K4E::Object3D>();
 		p->obj->Initialize("cube.gltf");
 
 		// 拡散方向（法線nを中心に円錐分布）
@@ -128,7 +130,7 @@ void ModelParticle::SpawnBurst(const Vector3& pos, const Vector3& normal, uint32
 		float r2 = urand_(rng_);
 		float theta = 2.0f * pi_v<float> *r1;
 		float cone = spread_ * r2; // 0〜spread
-		Vector3 dir = Vector3::Normalize(n + tangent * (std::cos(theta) * cone) + bitan * (std::sin(theta) * cone));
+		K4E::Vector3 dir = K4E::Vector3::Normalize(n + tangent * (std::cos(theta) * cone) + bitan * (std::sin(theta) * cone));
 
 		// 速度・角速度
 		p->vel = { dir.x * baseSpeed_, dir.y * baseSpeed_, dir.z * baseSpeed_ };
@@ -155,7 +157,7 @@ void ModelParticle::SpawnBurst(const Vector3& pos, const Vector3& normal, uint32
 /// -------------------------------------------------------------
 ///				　			ヒット時処理
 /// -------------------------------------------------------------
-void ModelParticle::OnHit(const Vector3& hitPos, const Vector3& hitNormal)
+void ModelParticle::OnHit(const K4E::Vector3& hitPos, const K4E::Vector3& hitNormal)
 {
 	SpawnBurst(hitPos, hitNormal, defaultCount_);
 }

@@ -25,6 +25,9 @@
 #include <DepthOutlineEffect.h>
 #include <PixelateEffect.h>
 
+namespace Ken4lowEngine
+{
+
 /// <summary>
 /// レンダーターゲットのリソース状態を指定した状態に遷移させるラムダ関数。二重バリアを防ぎ、内部状態を同期する。
 /// </summary>
@@ -544,3 +547,5 @@ void PostEffectManager::SetViewportAndScissorRect(uint32_t width, uint32_t heigh
 	// シザリング矩形の設定
 	scissorRect = { 0, 0, static_cast<LONG>(width), static_cast<LONG>(height) };
 }
+
+} // namespace Ken4lowEngine

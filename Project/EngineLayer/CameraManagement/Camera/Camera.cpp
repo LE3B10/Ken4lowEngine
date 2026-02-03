@@ -8,6 +8,9 @@
 
 #ifdef USE_IMGUI
 #include "ImGuiManager.h"
+
+namespace Ken4lowEngine
+{
 #endif // USE_IMGUI
 
 /// -------------------------------------------------------------
@@ -97,3 +100,5 @@ Vector3 Camera::GetForward() const
 	Vector3 forward = Vector3::Transform({ 0.0f, 0.0f, 1.0f }, rotMat);
 	return Vector3::Normalize(forward); // 念のため正規化
 }
+
+} // namespace Ken4lowEngine

@@ -5,8 +5,10 @@
 #include <vector>
 #include <random>
 
+namespace K4E = ::Ken4lowEngine;
+
 /// ---------- 前方宣言 ---------- ///
-class Input;
+namespace Ken4lowEngine { class Input; }
 
 /// -------------------------------------------------------------
 ///				　		　モデルパーティクル
@@ -15,11 +17,11 @@ class ModelParticle
 {
 	struct ModelParticleInfo
 	{
-		std::unique_ptr<Object3D> obj;
-		Vector3 pos{};
-		Vector3 vel{};
-		Vector3 angVel{};   // 角速度(ラジアン/秒)
-		Vector3 euler{};    // オイラー角
+		std::unique_ptr<K4E::Object3D> obj;
+		K4E::Vector3 pos{};
+		K4E::Vector3 vel{};
+		K4E::Vector3 angVel{};   // 角速度(ラジアン/秒)
+		K4E::Vector3 euler{};    // オイラー角
 		float   ttl = 0.0f; // 残り寿命
 		float   scale = 1.0f;
 		bool    alive = false;
@@ -39,15 +41,15 @@ public: /// ---------- メンバ関数 ---------- ///
 	// ImGui描画処理
 	void DrawImGui();
 
-	void SpawnBurst(const Vector3& pos, const Vector3& normal, uint32_t count);
+	void SpawnBurst(const K4E::Vector3& pos, const K4E::Vector3& normal, uint32_t count);
 
-	void OnHit(const Vector3& hitPos, const Vector3& hitNormal);
+	void OnHit(const K4E::Vector3& hitPos, const K4E::Vector3& hitNormal);
 
 private: /// ---------- メンバ変数 ---------- ///
 
-	Input* input_ = nullptr; // 入力
+	K4E::Input* input_ = nullptr; // 入力
 
-	std::unique_ptr<Object3D> object3D_; // 3Dオブジェクト
+	std::unique_ptr<K4E::Object3D> object3D_; // 3Dオブジェクト
 
 	// パーティクルプール
 	std::vector<ModelParticleInfo> pool_;

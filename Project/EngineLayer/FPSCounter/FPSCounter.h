@@ -2,6 +2,9 @@
 #include <chrono>
 #include <thread>
 
+namespace Ken4lowEngine
+{
+
 
 /// -------------------------------------------------------------
 ///						　FPS管理用クラス
@@ -81,3 +84,5 @@ private: /// ---------- メンバ変数 ---------- ///
 	int frameCount_;   // フレームカウント（FPS計測用）
 	float currentFPS_; // 現在のFPS
 };
+
+} // namespace Ken4lowEngine

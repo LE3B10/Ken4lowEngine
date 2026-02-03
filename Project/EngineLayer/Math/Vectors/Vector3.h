@@ -4,6 +4,9 @@
 #include <cmath>
 #include <numbers>
 
+namespace Ken4lowEngine
+{
+
 /// ---------- 前方宣言 ---------- ///
 class Matrix4x4;
 
@@ -195,3 +198,5 @@ public:	/// ---------- 友達関数 ---------- ///
 	/// </summary>
 	friend Vector3 operator*(const Matrix4x4& matrix, const Vector3& vec);
 };
+
+} // namespace Ken4lowEngine

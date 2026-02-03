@@ -6,13 +6,15 @@
 #include "BillboardMode.h"
 #include <CollisionTypeIdDef.h>
 
+namespace K4E = ::Ken4lowEngine;
+
 /// -------------------------------------------------------------
 ///							初期化処理
 /// -------------------------------------------------------------
-void Item::Initialize(ItemType type, const Vector3& pos)
+void Item::Initialize(ItemType type, const K4E::Vector3& pos)
 {
-	Collider::SetTypeID(static_cast<uint32_t>(CollisionTypeIdDef::kItem));
-	Collider::SetOBBHalfSize(scale_);
+	K4E::Collider::SetTypeID(static_cast<uint32_t>(CollisionTypeIdDef::kItem));
+	K4E::Collider::SetOBBHalfSize(scale_);
 
 	// アイテムの種類と位置を設定
 	type_ = type;
@@ -20,7 +22,7 @@ void Item::Initialize(ItemType type, const Vector3& pos)
 	basePosition_ = pos;
 
 	std::string modelPath; // モデルパス
-	object3d_ = std::make_unique<Object3D>();
+	object3d_ = std::make_unique<K4E::Object3D>();
 
 	// アイテムの種類に応じてモデルと色を設定
 	switch (type_)
@@ -107,7 +109,7 @@ void Item::Update(float deltaTime)
 	object3d_->SetRotate(rotation_);
 	object3d_->Update();
 
-	Collider::SetCenterPosition(position_);
+	K4E::Collider::SetCenterPosition(position_);
 }
 
 /// -------------------------------------------------------------
@@ -123,12 +125,12 @@ void Item::Draw()
 /// -------------------------------------------------------------
 ///						プレイヤーとの当たり判定
 /// -------------------------------------------------------------
-bool Item::CheckCollisionWithPlayer(const Vector3& playerPos)
+bool Item::CheckCollisionWithPlayer(const K4E::Vector3& playerPos)
 {
 	const float pickupRadius = 2.0f;
-	const Vector3 diff = position_ - playerPos;
+	const K4E::Vector3 diff = position_ - playerPos;
 	// 距離^2 ≤ 半径^2
-	return Vector3::Length(diff) <= (pickupRadius * pickupRadius);
+	return K4E::Vector3::Length(diff) <= (pickupRadius * pickupRadius);
 }
 
 /// -------------------------------------------------------------
@@ -146,20 +148,20 @@ void Item::ApplyTo(Player* player)
 		//player->AddHP(300);
 
 		// ② 回復パーティクル（下→上の Emit はシェーダ側 type=21 で実装済み想定）
-		////auto* pm = GpuParticleManager::GetInstance();
+		////auto* pm = K4E::GpuParticleManager::GetInstance();
 
 		//// エミッターを作ってなければ作る（1回だけ）
-		//GpuParticleEmitter* emitter = pm->GetEmitter("Heal_Effect");
+		//K4E::GpuParticleEmitter* emitter = pm->GetEmitter("Heal_Effect");
 		//if (!emitter)
 		//{
-		//	GpuParticleEmitter::EmitterInfo info{};
+		//	K4E::GpuParticleEmitter::K4E::EmitterInfo info{};
 		//	info.textureFilePath = "white.png"; // とりあえず既存の白テクでOK（後で差し替え）
 		//	info.radius = 1.5f;                // 正方形範囲の“半辺”として使う想定
 		//	info.loopCount = 0;
 		//	info.loopFrequency = 0.0f;
 		//	info.drawType = 0;                 // 0なら type を使う
-		//	info.type = GpuParticleType::Heal_Effect;
-		//	info.billboardMode = BillboardMode::Camera;
+		//	info.type = K4E::GpuParticleType::Heal_Effect;
+		//	info.billboardMode = K4E::BillboardMode::K4E::Camera;
 
 		//	emitter = pm->CreateEmitter("Heal_Effect", info);
 		//}
@@ -168,7 +170,7 @@ void Item::ApplyTo(Player* player)
 		//{
 		//	// プレイヤー位置にセットしてバースト
 		//	// ※ Player の位置取得はあなたの実装に合わせて差し替え
-		//	emitter->SetPosition(player->GetCenterPosition() - Vector3(0.0f, 2.0f, 0.0f));
+		//	emitter->SetPosition(player->GetCenterPosition() - K4E::Vector3(0.0f, 2.0f, 0.0f));
 		//	emitter->RequestEmit(40); // まずは 30〜60 で調整
 		//}
 		break;
@@ -185,7 +187,7 @@ void Item::ApplyTo(Player* player)
 /// -------------------------------------------------------------
 ///						衝突時の処理
 /// -------------------------------------------------------------
-void Item::OnCollision(Collider* other)
+void Item::OnCollision(K4E::Collider* other)
 {
 	if (other->GetTypeID() == static_cast<uint32_t>(CollisionTypeIdDef::kPlayer))
 	{

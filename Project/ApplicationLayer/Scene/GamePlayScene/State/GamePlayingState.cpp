@@ -15,6 +15,8 @@
 #include <vector>
 #include <memory>
 
+namespace K4E = ::Ken4lowEngine;
+
 void GamePlayingState::Enter(GamePlayScene* scene)
 {
 	if (!scene) return;
@@ -137,7 +139,7 @@ void GamePlayingState::Update(GamePlayScene* scene, float deltaTime)
 		if (e->IsDeadNow()) {
 			ItemType drop;
 			if (normalDropTable.RollForDrop(drop)) {
-				const Vector3 pos = e->GetDropPosAtDeath() - Vector3(0.0f, 2.0f, 0.0f);
+				const K4E::Vector3 pos = e->GetDropPosAtDeath() - K4E::Vector3(0.0f, 2.0f, 0.0f);
 				itemManager->Spawn(drop, pos);
 			}
 		}
@@ -255,7 +257,7 @@ void GamePlayingState::SpawnWave(GamePlayScene* scene, int waveIndex)
 	enemies.clear();
 
 	// ステージ側で決める基準位置
-	const Vector3 center = currentStageConfig.bossSpawnPos;
+	const K4E::Vector3 center = currentStageConfig.bossSpawnPos;
 
 	for (int i = 0; i < cfg.enemyCount; ++i)
 	{
@@ -274,7 +276,7 @@ void GamePlayingState::SpawnWave(GamePlayScene* scene, int waveIndex)
 			currentStageConfig.enemyDetectRadius
 		);
 
-		Vector3 pos;
+		K4E::Vector3 pos;
 
 		// 個別指定があればそれを使う
 		if (!cfg.spawnPositions.empty() && i < (int)cfg.spawnPositions.size())
@@ -288,7 +290,7 @@ void GamePlayingState::SpawnWave(GamePlayScene* scene, int waveIndex)
 				(2.0f * std::numbers::pi_v<float> / std::max(cfg.enemyCount, 1))
 				* i;
 
-			pos = center + Vector3{
+			pos = center + K4E::Vector3{
 				std::cos(angle) * cfg.spawnRadius,
 				0.0f,                               // 敵の足元Y
 				std::sin(angle) * cfg.spawnRadius

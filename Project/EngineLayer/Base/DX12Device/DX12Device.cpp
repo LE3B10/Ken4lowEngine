@@ -4,6 +4,9 @@
 
 #include "LogString.h"
 
+namespace Ken4lowEngine
+{
+
 #pragma comment(lib, "d3d12.lib")
 #pragma comment(lib, "dxgi.lib")
 #pragma comment(lib, "dxguid.lib")
@@ -73,3 +76,4 @@ void DX12Device::Finalize()
 	useAdapter = nullptr;
 	dxgiFactory = nullptr;
 }
+} // namespace Ken4lowEngine

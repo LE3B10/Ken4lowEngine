@@ -3,6 +3,9 @@
 #include "Vector3.h"
 #include "Vector4.h"
 
+namespace Ken4lowEngine
+{
+
 ///==========================================================
 /// 頂点データの拡張
 ///==========================================================
@@ -12,3 +15,5 @@ struct VertexData
 	Vector2 texcoord; // テクスチャ座標
 	Vector3 normal;	  // 法線ベクトル
 };
+
+} // namespace Ken4lowEngine

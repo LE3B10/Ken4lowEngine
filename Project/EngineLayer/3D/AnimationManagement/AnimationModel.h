@@ -21,6 +21,9 @@
 #include <filesystem>
 #include <regex>
 
+namespace Ken4lowEngine
+{
+
 /// ---------- 前方宣言 ---------- ///
 class DirectXCommon;
 class Camera;
@@ -477,3 +480,5 @@ private: /// ---------- LOD・カリング関連 ---------- ///
 	std::vector<uint32_t> lodUpdateEvery_{ 1, 1, 2, 4 }; // 既定: LOD0/1=毎フレ, LOD2=隔フレ, LOD3=4フレ
 };
 
+
+} // namespace Ken4lowEngine

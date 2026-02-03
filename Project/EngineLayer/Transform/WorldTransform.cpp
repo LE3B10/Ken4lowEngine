@@ -4,6 +4,9 @@
 #include "Camera.h"
 #include <Object3DCommon.h>
 
+namespace Ken4lowEngine
+{
+
 /// -------------------------------------------------------------
 ///                 ワールド変換行列初期化処理
 /// -------------------------------------------------------------
@@ -68,3 +71,5 @@ void WorldTransform::SetPipeline(UINT rootParameterIndex)
 	// 定数バッファビューをセット
 	commandList->SetGraphicsRootConstantBufferView(rootParameterIndex, wvpResource->GetGPUVirtualAddress());
 }
+
+} // namespace Ken4lowEngine

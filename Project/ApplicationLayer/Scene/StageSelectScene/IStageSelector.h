@@ -4,6 +4,10 @@
 #include <string>
 #include <Vector4.h>
 
+namespace K4E = ::Ken4lowEngine;
+
+namespace Ken4lowEngine { class Input; }
+
 /// ---------- シーン側から渡す共有コンテキスト ---------- ///
 struct StageInfo
 {
@@ -12,7 +16,7 @@ struct StageInfo
 	std::string thumbPath;		  // サムネイル画像パス
 	bool locked = false;		  // ロックされているかどうか
 	uint32_t startsCompleted = 0; // クリア済みスター数
-	Vector4 color = { 1,1,1,1 };  // ステージカラー（背景用）
+	K4E::Vector4 color = { 1,1,1,1 };  // ステージカラー（背景用）
 	bool justUnlocked = false;    // 今回アンロックされたかどうか
 };
 
@@ -21,7 +25,7 @@ struct SelectorContext
 {
 	float screenWidth = 1280.0f;  // 画面幅
 	float screenHeight = 720.0f;  // 画面高さ
-	class Input* input = nullptr; // 入力インターフェース
+	class K4E::Input* input = nullptr; // 入力インターフェース
 	const std::vector<StageInfo>* stages = nullptr; // ステージ情報リスト（外部管理）
 
 	// コールバック

@@ -3,6 +3,9 @@
 #include <numeric>
 #include <Object3D.h>
 
+namespace Ken4lowEngine
+{
+
 /// ---------- 初期容量の設定 ----- ///
 constexpr size_t INITIAL_POSITION_CAPACITY = 1000; // 頂点位置（v）の初期容量
 constexpr size_t INITIAL_NORMAL_CAPACITY = 1000;   // 法線（vn）の初期容量
@@ -261,3 +264,5 @@ Material ModelManager::LoadMaterialTemplateFile(const std::string& directoryPath
 	// 5. MaterialDataを返す
 	return material;
 }
+
+} // namespace Ken4lowEngine

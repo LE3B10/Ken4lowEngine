@@ -4,6 +4,8 @@
 #include <DirectXCommon.h>
 #include <algorithm>
 
+namespace K4E = ::Ken4lowEngine;
+
 /// -------------------------------------------------------------
 ///                      オーバーレイを開く処理
 /// -------------------------------------------------------------
@@ -13,7 +15,7 @@ void PauseOverlay::Open(SceneManager* sceneManager)
     BaseOverlay::Open(sceneManager);
 
     // 入力管理オブジェクトの取得
-    input_ = Input::GetInstance();
+    input_ = K4E::Input::GetInstance();
 
     // スプライト生成＆レイアウト
     InitializeSprites();
@@ -29,13 +31,13 @@ void PauseOverlay::Open(SceneManager* sceneManager)
 /// -------------------------------------------------------------
 void PauseOverlay::InitializeSprites()
 {
-    DirectXCommon* dxCommon = DirectXCommon::GetInstance();
+    K4E::DirectXCommon* dxCommon = K4E::DirectXCommon::GetInstance();
 
     const float screenW = static_cast<float>(dxCommon->GetClientWidth());
     const float screenH = static_cast<float>(dxCommon->GetClientHeight());
 
     // --- 背景暗転 ---
-    dim_ = std::make_unique<Sprite>();
+    dim_ = std::make_unique<K4E::Sprite>();
     dim_->Initialize(kWhiteTex.c_str());
     dim_->SetAnchorPoint({ 0.0f, 0.0f });
     dim_->SetPosition({ 0.0f, 0.0f });
@@ -43,7 +45,7 @@ void PauseOverlay::InitializeSprites()
     dim_->SetColor({ 0.0f, 0.0f, 0.0f, 0.5f });
 
     // --- パネル ---
-    panel_ = std::make_unique<Sprite>();
+    panel_ = std::make_unique<K4E::Sprite>();
     panel_->Initialize(kPanelTex.c_str());
     panel_->SetAnchorPoint({ 0.5f, 0.5f });
     panel_->SetPosition({ screenW * 0.5f, screenH * 0.5f });
@@ -65,9 +67,9 @@ void PauseOverlay::InitializeSprites()
     const float groupCenterY = (screenH * 0.5f) + yOffset;
     const float topY = groupCenterY - (totalH * 0.5f) + (btnH * 0.5f);
 
-    auto makeButton = [&](std::unique_ptr<Sprite>& dst, const std::string& tex, float cx, float cy)
+    auto makeButton = [&](std::unique_ptr<K4E::Sprite>& dst, const std::string& tex, float cx, float cy)
         {
-            dst = std::make_unique<Sprite>();
+            dst = std::make_unique<K4E::Sprite>();
             dst->Initialize(tex.c_str());
             dst->SetAnchorPoint({ 0.5f, 0.5f });
             dst->SetPosition({ cx, cy });
@@ -220,12 +222,12 @@ void PauseOverlay::DecideCurrent()
 /// -------------------------------------------------------------
 ///                      ボタンの強調表示
 /// -------------------------------------------------------------
-void PauseOverlay::setEmphasis(Sprite* sprite, bool emphasized)
+void PauseOverlay::setEmphasis(K4E::Sprite* sprite, bool emphasized)
 {
     if (!sprite) { return; }
 
     // 画像ボタンなので、色で“明るさ”だけ変える
-    sprite->SetColor(emphasized ? Vector4{ 1,1,1,1 } : Vector4{ 0.55f,0.55f,0.55f,1.0f });
+    sprite->SetColor(emphasized ? K4E::Vector4{ 1,1,1,1 } : K4E::Vector4{ 0.55f,0.55f,0.55f,1.0f });
 }
 
 /// -------------------------------------------------------------

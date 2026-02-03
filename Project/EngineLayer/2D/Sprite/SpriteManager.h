@@ -1,6 +1,9 @@
 #pragma once
 #include "DX12Include.h"
 
+namespace Ken4lowEngine
+{
+
 
 /// ---------- 前方宣言 ---------- ///
 class DirectXCommon;
@@ -107,3 +110,5 @@ private: /// ---------- コピー禁止 ---------- ///
 	/// <summary>代入演算子は禁止。</summary>
 	SpriteManager& operator=(const SpriteManager&) = delete;
 };
+
+} // namespace Ken4lowEngine

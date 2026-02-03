@@ -1,6 +1,9 @@
 #pragma once
 #include <cstdint>
 
+namespace Ken4lowEngine
+{
+
 enum class GpuParticleKind : uint32_t
 {
 	Sprite = 0,
@@ -67,3 +70,4 @@ static constexpr GpuParticleType ToGpuParticleType(GpuRibbonType t)
 	default:                           return GpuParticleType::BulletTracer;
 	}
 }
+} // namespace Ken4lowEngine

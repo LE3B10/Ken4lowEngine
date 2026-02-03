@@ -10,6 +10,9 @@
 #include <memory>
 #include <vector>
 
+namespace Ken4lowEngine
+{
+
 
 /// -------------------------------------------------------------
 ///				レベルオブジェクトマネージャークラス
@@ -97,3 +100,5 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	std::unique_ptr<CollisionManager> collisionManager_; // 衝突マネージャー
 };
+
+} // namespace Ken4lowEngine

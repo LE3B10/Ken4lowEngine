@@ -4,6 +4,8 @@
 
 #include <random>
 
+namespace K4E = ::Ken4lowEngine;
+
 void BossDeadState::OnEnter(BossEnemy* boss)
 {
 	using GibMotion = BossEnemy::GibMotion;
@@ -39,9 +41,9 @@ void BossDeadState::OnEnter(BossEnemy* boss)
 		auto& part = parts_[i];
 		GibMotion gm{};
 
-		Vector3 dir{ dirDist(rng), 0.0f, dirDist(rng) };
-		if (Vector3::Length(dir) < 0.001f) dir = { 0.0f, 0.0f, 1.0f };
-		dir = Vector3::Normalize(dir);
+		K4E::Vector3 dir{ dirDist(rng), 0.0f, dirDist(rng) };
+		if (K4E::Vector3::Length(dir) < 0.001f) dir = { 0.0f, 0.0f, 1.0f };
+		dir = K4E::Vector3::Normalize(dir);
 
 		gm.velocity = dir * 3.0f;
 		gm.velocity.y += upDist(rng);
@@ -49,7 +51,7 @@ void BossDeadState::OnEnter(BossEnemy* boss)
 		death_.gibs[i] = gm;
 
 		// ローカル→ワールド焼き直しして親を外す（既存ロジックそのまま）
-		Vector3 worldPos = part.transform.translate_;
+		K4E::Vector3 worldPos = part.transform.translate_;
 		if (part.transform.parent_ == &body_.transform) {
 			worldPos += body_.transform.translate_;
 		}
@@ -70,11 +72,11 @@ BehaviorStatus BossDeadState::Update(BossEnemy* boss, float deltaTime)
 	auto* vfx_ = boss->GetVfx();
 
 	death_.timer += deltaTime;
-	const Vector3 gravity = { 0.0f, -9.8f * 3.0f, 0.0f };
+	const K4E::Vector3 gravity = { 0.0f, -9.8f * 3.0f, 0.0f };
 	const float   groundY = 0.5f; // 床の高さとして扱う
 
 	// 床で止めるためのラムダ
-	auto clampToGround = [&](WorldTransformEx& tr, GibMotion& gm)
+	auto clampToGround = [&](K4E::WorldTransformEx& tr, GibMotion& gm)
 		{
 			if (tr.translate_.y < groundY)
 			{
@@ -131,7 +133,7 @@ BehaviorStatus BossDeadState::Update(BossEnemy* boss, float deltaTime)
 	vfx_->UpdateDeathEffect(boss->GetCenterPosition(), death_.timer, death_.startBurstDone);
 
 	// コライダー位置だけは同期しておく（床とのめり込み防止など）
-	boss->Collider::SetCenterPosition(boss->GetCenterPosition());
+	boss->K4E::Collider::SetCenterPosition(boss->GetCenterPosition());
 
 	boss->BaseCharacter::Update(deltaTime);
 

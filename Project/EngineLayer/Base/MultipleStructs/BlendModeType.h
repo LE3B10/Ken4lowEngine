@@ -1,6 +1,9 @@
 #pragma once
 #include <cstdint>
 
+namespace Ken4lowEngine
+{
+
 /// ---------- ブレンドモードの列挙型 ---------- ///
 enum class BlendMode
 {
@@ -16,3 +19,5 @@ enum class BlendMode
 // ブレンドモードの数
 static inline const uint32_t blendModeNum = static_cast<size_t>(BlendMode::kcountOfBlendMode);
 
+
+} // namespace Ken4lowEngine

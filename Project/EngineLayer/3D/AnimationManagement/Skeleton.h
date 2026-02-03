@@ -10,6 +10,9 @@
 #include <optional>
 #include <algorithm>
 
+namespace Ken4lowEngine
+{
+
 
 /// -------------------------------------------------------------
 ///		　				　スケルトンクラス
@@ -98,3 +101,5 @@ private: /// ---------- メンバ変数 ---------- ///
 	std::vector<Joint> joints_; // 所属しているジョイント
 };
 
+
+} // namespace Ken4lowEngine

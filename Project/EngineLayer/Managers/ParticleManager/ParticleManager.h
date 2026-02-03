@@ -15,6 +15,9 @@
 
 #include <AABB.h>
 
+namespace Ken4lowEngine
+{
+
 /// ---------- 前方宣言 ----------///
 class DirectXCommon;
 class SRVManager;
@@ -326,3 +329,5 @@ private: /// ---------- コピー禁止 ---------- ///
 	ParticleManager& operator=(const ParticleManager&) = delete;
 };
 
+
+} // namespace Ken4lowEngine

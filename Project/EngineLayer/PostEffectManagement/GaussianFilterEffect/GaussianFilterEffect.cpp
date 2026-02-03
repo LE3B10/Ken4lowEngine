@@ -12,6 +12,9 @@
 
 #ifdef USE_IMGUI
 #include <imgui.h>
+
+namespace Ken4lowEngine
+{
 #endif // USE_IMGUI
 
 
@@ -113,3 +116,5 @@ void GaussianFilterEffect::DrawImGui()
 	ImGui::Checkbox("Horizontal", &gaussianFilterSetting_->isHorizontal);
 #endif // USE_IMGUI
 }
+
+} // namespace Ken4lowEngine

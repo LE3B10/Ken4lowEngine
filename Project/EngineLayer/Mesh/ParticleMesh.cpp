@@ -3,6 +3,9 @@
 #include <ResourceManager.h>
 #include <numbers>
 
+namespace Ken4lowEngine
+{
+
 /// -------------------------------------------------------------
 ///				　　　		初期化処理
 /// -------------------------------------------------------------
@@ -220,3 +223,5 @@ void ParticleMesh::CreateVertexBuffer()
 		indexResource_->SetName(L"ParticleMesh_IndexBuffer");
 	}
 }
+
+} // namespace Ken4lowEngine

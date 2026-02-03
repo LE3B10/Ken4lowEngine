@@ -11,6 +11,9 @@
 #pragma warning(disable: 4456)  // ローカル変数隠蔽
 #pragma warning(disable: 4459)  // 外部スコープ変数隠蔽
 #include "minimp3_ex.h"
+
+namespace Ken4lowEngine
+{
 #pragma warning(pop)
 
 /// -------------------------------------------------------------
@@ -348,3 +351,5 @@ void Mp3Loader::WaitForBufferPlayback(IXAudio2SourceVoice* voice)
 		Sleep(10); // CPU負荷軽減
 	} while (state.BuffersQueued > 0 && isPlaying);
 }
+
+} // namespace Ken4lowEngine

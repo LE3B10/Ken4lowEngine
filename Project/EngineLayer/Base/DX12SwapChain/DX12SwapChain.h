@@ -7,6 +7,9 @@
 #include <dxgi1_6.h>
 #include <wrl.h>
 
+namespace Ken4lowEngine
+{
+
 /// ---------- 前方宣言 ---------- ///
 class WinApp;
 
@@ -100,3 +103,5 @@ private: /// ---------- メンバ変数 ---------- ///
 	D3D12_RESOURCE_STATES backBufferStates[2] = {};
 };
 
+
+} // namespace Ken4lowEngine

@@ -4,6 +4,9 @@
 #include <vector>
 #include <random>
 
+namespace Ken4lowEngine
+{
+
 class SpriteFractureEffect
 {
 public:
@@ -84,3 +87,5 @@ private:
 	// hitUV からの距離を 0..1 に正規化（中心0、四隅1）
 	static float NormalizedDist01(const Vector2& uv, const Vector2& hitUV);
 };
+
+} // namespace Ken4lowEngine

@@ -6,6 +6,8 @@
 #include <memory>
 #include <chrono>
 
+namespace K4E = ::Ken4lowEngine;
+
 /// -------------------------------------------------------------
 /// 				　		HUDマネージャー
 /// -------------------------------------------------------------
@@ -67,21 +69,21 @@ private: /// ---------- メンバ関数 ---------- ///
 private: /// ---------- メンバ変数 ---------- ///
 
 	// --- 上段 ---
-	std::unique_ptr<Sprite> reload_icon_;
-	std::unique_ptr<Sprite> ammo_icon_;
-	std::unique_ptr<Sprite> reticle_grid_icon_;
+	std::unique_ptr<K4E::Sprite> reload_icon_;
+	std::unique_ptr<K4E::Sprite> ammo_icon_;
+	std::unique_ptr<K4E::Sprite> reticle_grid_icon_;
 
 	// --- 下段 ---
-	std::unique_ptr<Sprite> r_key_icon_;
-	std::unique_ptr<Sprite> mouse_left_icon_;
-	std::unique_ptr<Sprite> mouse_right_icon_;
+	std::unique_ptr<K4E::Sprite> r_key_icon_;
+	std::unique_ptr<K4E::Sprite> mouse_left_icon_;
+	std::unique_ptr<K4E::Sprite> mouse_right_icon_;
 
 private: /// ---------- メンバ変数 ---------- ///
 
 	// ハートHP
 	struct HeartSlot
 	{
-		std::unique_ptr<Sprite> spr;
+		std::unique_ptr<K4E::Sprite> spr;
 		std::string currentPath; // いま貼ってるテクスチャ
 	};
 	std::vector<HeartSlot> hearts_;

@@ -2,6 +2,8 @@
 #include <Vector3.h>
 #include <Vector4.h>
 
+namespace K4E = ::Ken4lowEngine;
+
 /// ---------- 薬莢エフェクト設定 ---------- ///
 struct CasingData
 {
@@ -21,6 +23,6 @@ struct CasingData
 	float spinMax = 28.0f;	   // rad/s : 回転速度最大
 
 
-	Vector4 color = { 0.9f,0.8f,0.3f,1.0f };  // 真鍮色っぽく
-	Vector3 scale = { 0.016f,0.016f,0.048f }; // ピストル用に小さめ
+	K4E::Vector4 color = { 0.9f,0.8f,0.3f,1.0f };  // 真鍮色っぽく
+	K4E::Vector3 scale = { 0.016f,0.016f,0.048f }; // ピストル用に小さめ
 };

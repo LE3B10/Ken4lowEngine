@@ -8,6 +8,9 @@
 #include <cassert>
 #include <cstring>
 
+namespace Ken4lowEngine
+{
+
 /// -------------------------------------------------------------
 ///				　　　 総頂点数を数える
 /// -------------------------------------------------------------
@@ -204,3 +207,5 @@ void SkinCluster::UpdatePaletteMatrix(Skeleton& skeleton)
 	// 読み取り用に遷移
 	dxCommon->ResourceTransition(paletteResourceDefault_.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_GENERIC_READ);
 }
+
+} // namespace Ken4lowEngine

@@ -1,6 +1,9 @@
 #pragma once
 #include "IPostEffect.h"
 
+namespace Ken4lowEngine
+{
+
 /// -------------------------------------------------------------
 ///				ガウシアンフィルタエフェクトクラス
 /// -------------------------------------------------------------
@@ -63,3 +66,5 @@ private: /// ---------- 構造体 ---------- ///
 	GaussianFilterSetting* gaussianFilterSetting_ = nullptr;
 };
 
+
+} // namespace Ken4lowEngine

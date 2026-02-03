@@ -1,6 +1,9 @@
 #pragma once
 #include "IPostEffect.h"
 
+namespace Ken4lowEngine
+{
+
 
 /// -------------------------------------------------------------
 ///					アブソーブエフェクトクラス
@@ -80,3 +83,5 @@ private: /// ---------- メンバ変数 ---------- ///
 	AbsorbParams absorbParams_ = {};
 };
 
+
+} // namespace Ken4lowEngine

@@ -3,6 +3,9 @@
 #include "DirectXCommon.h"
 #include <span>
 
+namespace Ken4lowEngine
+{
+
 
 /// -------------------------------------------------------------
 ///				　		 初期化処理
@@ -62,3 +65,5 @@ void Mesh::Draw()
 	commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST); // プリミティブ形状を設定
 	commandList->DrawIndexedInstanced(static_cast<UINT>(indices.size()), 1, 0, 0, 0); // インデックス描画
 }
+
+} // namespace Ken4lowEngine

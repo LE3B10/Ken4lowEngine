@@ -1,5 +1,8 @@
 #include "ParticleFactory.h"
 
+namespace Ken4lowEngine
+{
+
 /// -------------------------------------------------------------
 ///				　		パーティクル生成
 /// -------------------------------------------------------------
@@ -368,3 +371,4 @@ Particle ParticleFactory::CreateLaserBeam(const Vector3& position, float length,
 	particle.currentTime = 0.0f;
 	return particle;
 }
+} // namespace Ken4lowEngine

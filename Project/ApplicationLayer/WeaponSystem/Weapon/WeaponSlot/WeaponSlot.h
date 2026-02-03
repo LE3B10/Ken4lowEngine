@@ -7,6 +7,8 @@
 #include <memory>
 #include <vector>
 
+namespace K4E = ::Ken4lowEngine;
+
 /// ---------- 前方宣言 ---------- ///
 class WeaponManager;
 
@@ -37,7 +39,7 @@ public: /// ---------- メンバ関数 ---------- ///
 
 public: /// ---------- メンバ関数 ---------- ///
 
-	// frameTex/selectedTex は TextureManager 等で読み込んだハンドルを渡す想定
+	// frameTex/selectedTex は K4E::TextureManager 等で読み込んだハンドルを渡す想定
 	void Initialize(const std::string& frameTex, const std::string& selectedTex, const Layout& layout = {});
 
 	/// <summary>
@@ -45,7 +47,7 @@ public: /// ---------- メンバ関数 ---------- ///
 	/// </summary>
 	void InitializeSlotNumbers(const std::string& numberTex,
 		float srcDigitWidth = 50.0f, float srcDigitHeight = 50.0f,
-		const Vector2& offset = { 8.0f, 8.0f },
+		const K4E::Vector2& offset = { 8.0f, 8.0f },
 		float spacing = 24.0f,
 		float drawDigitWidth = -1.0f, float drawDigitHeight = -1.0f);
 
@@ -55,14 +57,14 @@ public: /// ---------- メンバ関数 ---------- ///
 	/// </summary>
 	void InitializeAmmoNumbers(const std::string& numberTex,
 		float srcDigitW = 50.0f, float srcDigitH = 50.0f,
-		const Vector2& padding = { 10.0f, 10.0f },
+		const K4E::Vector2& padding = { 10.0f, 10.0f },
 		float spacing = 2.0f,
 		float drawDigitW = -1.0f, float drawDigitH = -1.0f);
 
 	// 弾薬区切り文字スプライト初期化
 	void InitializeAmmoDelimiter(const std::string& slashTex,
-		const Vector2& size = { -1.0f, -1.0f },
-		const Vector2& offset = { 0.0f, 0.0f });
+		const K4E::Vector2& size = { -1.0f, -1.0f },
+		const K4E::Vector2& offset = { 0.0f, 0.0f });
 
 	// 更新処理
 	void Update(const WeaponManager& weaponManager);
@@ -91,25 +93,25 @@ private: /// ---------- メンバ変数 ---------- ///
 	std::string selectedTex_;
 
 	// 通常枠 / 選択枠（まずは枠だけ描画するので2枚持ちが安全）
-	std::array<std::unique_ptr<Sprite>, kSlotCount> frame_;
-	std::array<std::unique_ptr<Sprite>, kSlotCount> frameSelected_;
+	std::array<std::unique_ptr<K4E::Sprite>, kSlotCount> frame_;
+	std::array<std::unique_ptr<K4E::Sprite>, kSlotCount> frameSelected_;
 
 	// スロット番号表示用
 	bool drawSlotNumbers_ = false;
-	NumberSpriteDrawer numberDrawer_;
-	Vector2 numberOffset_{ 8.0f, 8.0f };
+	K4E::NumberSpriteDrawer numberDrawer_;
+	K4E::Vector2 numberOffset_{ 8.0f, 8.0f };
 	float numberSpacing_ = 24.0f;
 
 	// --- 弾薬(残弾/予備弾)表示 ---
 	bool drawAmmo_ = false;
-	NumberSpriteDrawer ammoDrawer_;
-	Vector2 ammoPadding_{ 10.0f, 10.0f };
+	K4E::NumberSpriteDrawer ammoDrawer_;
+	K4E::Vector2 ammoPadding_{ 10.0f, 10.0f };
 	float ammoSpacing_ = 2.0f;
 	float ammoDigitW_ = 24.0f;
 	float ammoDigitH_ = 24.0f;
 
 	// アイコン用スプライト配列
-	std::array<std::unique_ptr<Sprite>, kSlotCount> icon_;
+	std::array<std::unique_ptr<K4E::Sprite>, kSlotCount> icon_;
 
 	// 弾薬情報配列（スロット0..5に対応して6個）
 	std::vector<WeaponAmmoInfo> ammoInfos_;
@@ -118,8 +120,8 @@ private: /// ---------- メンバ変数 ---------- ///
 	float numberDigitW_ = 50.0f;
 	float numberDigitH_ = 50.0f;
 
-	std::array<std::unique_ptr<Sprite>, kSlotCount> ammoSlash_;
-	Vector2 ammoSlashSize_{ 0.0f, 0.0f };
-	Vector2 ammoSlashOffset_{ 0.0f, 0.0f };
+	std::array<std::unique_ptr<K4E::Sprite>, kSlotCount> ammoSlash_;
+	K4E::Vector2 ammoSlashSize_{ 0.0f, 0.0f };
+	K4E::Vector2 ammoSlashOffset_{ 0.0f, 0.0f };
 };
 

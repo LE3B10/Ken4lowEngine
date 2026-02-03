@@ -4,6 +4,8 @@
 #include <CollisionUtility.h>
 #include <CollisionTypeIdDef.h>
 
+namespace K4E = ::Ken4lowEngine;
+
 
 /// -------------------------------------------------------------
 ///				　			　初期化処理
@@ -11,8 +13,8 @@
 void CollisionManager::Initialize()
 {
 	isCollider_ = true;
-	ParameterManager::GetInstance()->CreateGroup("Collider");
-	ParameterManager::GetInstance()->AddItem("Collider", "isCollider", isCollider_);
+	K4E::ParameterManager::GetInstance()->CreateGroup("K4E::Collider");
+	K4E::ParameterManager::GetInstance()->AddItem("K4E::Collider", "isCollider", isCollider_);
 
 	// 衝突判定関数の登録
 	RegisterCollisionFuncsions();
@@ -24,10 +26,10 @@ void CollisionManager::Initialize()
 /// -------------------------------------------------------------
 void CollisionManager::Update()
 {
-	isCollider_ = ParameterManager::GetInstance()->GetValue<bool>("Collider", "isCollider");
+	isCollider_ = K4E::ParameterManager::GetInstance()->GetValue<bool>("K4E::Collider", "isCollider");
 
 	// 更新処理
-	for (Collider* collider : all_) collider->Update();
+	for (K4E::Collider* collider : all_) collider->Update();
 }
 
 
@@ -40,7 +42,7 @@ void CollisionManager::Draw()
 	if (!isCollider_) return;
 
 	// 描画処理
-	for (Collider* collider : all_)
+	for (K4E::Collider* collider : all_)
 		if (isCollider_) collider->Draw();
 }
 
@@ -73,7 +75,7 @@ void CollisionManager::CheckAllCollisions()
 		auto& A = buckets_[aId];
 		auto& B = buckets_[bId];
 		if (A.empty() || B.empty()) return;
-		for (Collider* a : A) for (Collider* b : B) {
+		for (K4E::Collider* a : A) for (K4E::Collider* b : B) {
 			CheckCollisionPair(a, b);
 		}
 		};
@@ -94,7 +96,7 @@ void CollisionManager::CheckAllCollisions()
 /// -------------------------------------------------------------
 ///						コライダーを追加
 /// -------------------------------------------------------------
-void CollisionManager::AddCollider(Collider* other)
+void CollisionManager::AddCollider(K4E::Collider* other)
 {
 	all_.push_back(other);
 	const uint32_t id = other->GetTypeID();
@@ -104,7 +106,7 @@ void CollisionManager::AddCollider(Collider* other)
 /// -------------------------------------------------------------
 ///						コライダーを削除
 /// -------------------------------------------------------------
-void CollisionManager::RemoveCollider(Collider* other)
+void CollisionManager::RemoveCollider(K4E::Collider* other)
 {
 	// all から削除
 	all_.erase(std::remove(all_.begin(), all_.end(), other), all_.end());
@@ -121,7 +123,7 @@ void CollisionManager::RemoveCollider(Collider* other)
 /// -------------------------------------------------------------
 ///				コライダー２つの衝突判定と応答処理
 /// -------------------------------------------------------------
-void CollisionManager::CheckCollisionPair(Collider* colliderA, Collider* colliderB)
+void CollisionManager::CheckCollisionPair(K4E::Collider* colliderA, K4E::Collider* colliderB)
 {
 	// 自分同士は無視
 	if (colliderA == colliderB) return;
@@ -175,17 +177,17 @@ void CollisionManager::RegisterCollisionFuncsions()
 		AddCollisionFunc(b, a, func);
 		};
 
-	// OBB vs OBB
-	const CollisionFunc OBB_OBB = [](Collider* a, Collider* b) {
-		return CollisionUtility::IsCollision(a->GetOBB(), b->GetOBB());
+	// K4E::OBB vs K4E::OBB
+	const CollisionFunc OBB_OBB = [](K4E::Collider* a, K4E::Collider* b) {
+		return K4E::CollisionUtility::IsCollision(a->GetOBB(), b->GetOBB());
 		};
 
-	// OBB vs Segment
-	const CollisionFunc SEG_OBB = [](Collider* segOwner, Collider* obbOwner) {
-		return CollisionUtility::IsCollision(obbOwner->GetOBB(), segOwner->GetSegment());
+	// K4E::OBB vs K4E::Segment
+	const CollisionFunc SEG_OBB = [](K4E::Collider* segOwner, K4E::Collider* obbOwner) {
+		return K4E::CollisionUtility::IsCollision(obbOwner->GetOBB(), segOwner->GetSegment());
 		};
 
-	// OBB vs OBB （左右対称）
+	// K4E::OBB vs K4E::OBB （左右対称）
 	for (auto [a, b] : std::initializer_list<std::pair<CollisionType, CollisionType>>{
 		{kPlayer, kEnemy},
 		{kPlayer, kBoss},
@@ -196,13 +198,13 @@ void CollisionManager::RegisterCollisionFuncsions()
 		AddSymmetricCollisionFunc(a, b, OBB_OBB);
 	}
 
-	// OBB vs Segment （左右対称）
+	// K4E::OBB vs K4E::Segment （左右対称）
 	for (auto [seg, obb] : std::initializer_list<std::pair<CollisionType, CollisionType>>{
 		{ kBullet, kEnemy },
 		{ kBullet, kBoss  },
 		})
 	{
 		AddCollisionFunc(seg, obb, SEG_OBB);
-		AddCollisionFunc(obb, seg, [=](Collider* obbOwner, Collider* segOwner) {return SEG_OBB(segOwner, obbOwner); });
+		AddCollisionFunc(obb, seg, [=](K4E::Collider* obbOwner, K4E::Collider* segOwner) {return SEG_OBB(segOwner, obbOwner); });
 	}
 }

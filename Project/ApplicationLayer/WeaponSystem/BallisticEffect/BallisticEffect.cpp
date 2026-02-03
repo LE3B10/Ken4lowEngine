@@ -7,31 +7,45 @@
 #include <algorithm>
 #include <cmath>
 
+namespace K4E = ::Ken4lowEngine;
+
 // 省略 <numbers>
 using namespace std::numbers;
 
+// ------------------------------------------------------------
+// K4E::Collider の RAII 破棄（RemoveCollider → delete）
+// ------------------------------------------------------------
+void BallisticEffect::ColliderDeleter::operator()(K4E::Collider* p) const noexcept
+{
+	if (!p) { return; }
+	if (mgr) { mgr->RemoveCollider(p); }
+	delete p;
+}
+
+
+
 /// 銃口のワールド座標を計算する（親Transform＋ローカルオフセット）
-static inline Vector3 ComputeMuzzleWorld(const WorldTransformEx* parent, const WorldTransformEx& self, const Vector3& localOffset)
+static inline K4E::Vector3 ComputeMuzzleWorld(const K4E::WorldTransformEx* parent, const K4E::WorldTransformEx& self, const K4E::Vector3& localOffset)
 {
 	// 親が無いなら自分の transform から（フォールバック）
 	if (!parent) {
 		// self.worldMatrix_ が最新でない可能性もあるので Update
-		const_cast<WorldTransformEx&>(self).Update();
-		return Matrix4x4::Transform(localOffset, self.worldMatrix_);
+		const_cast<K4E::WorldTransformEx&>(self).Update();
+		return K4E::Matrix4x4::Transform(localOffset, self.worldMatrix_);
 	}
 
 	// 親の回転（Yaw→Pitch）を作る
-	Matrix4x4 Rx = Matrix4x4::MakeRotateX(parent->rotate_.x);
-	Matrix4x4 Ry = Matrix4x4::MakeRotateY(parent->rotate_.y);
-	Matrix4x4 R = Matrix4x4::Multiply(Rx, Ry);
+	K4E::Matrix4x4 Rx = K4E::Matrix4x4::MakeRotateX(parent->rotate_.x);
+	K4E::Matrix4x4 Ry = K4E::Matrix4x4::MakeRotateY(parent->rotate_.y);
+	K4E::Matrix4x4 R = K4E::Matrix4x4::Multiply(Rx, Ry);
 
 	// 右腕モデル由来の -90° を打ち消す +90° 補正（Pistol と同じ方針）
 	constexpr float kHalfPi = std::numbers::pi_v<float> *0.5f;
-	Matrix4x4 RxFix = Matrix4x4::MakeRotateX(+kHalfPi);
+	K4E::Matrix4x4 RxFix = K4E::Matrix4x4::MakeRotateX(+kHalfPi);
 
 	// ローカルオフセットを補正→親回転へ→親位置へ
-	Vector3 ofsFixed = Matrix4x4::Transform(localOffset, RxFix);
-	Vector3 ofsWorld = Matrix4x4::Transform(ofsFixed, R);
+	K4E::Vector3 ofsFixed = K4E::Matrix4x4::Transform(localOffset, RxFix);
+	K4E::Vector3 ofsWorld = K4E::Matrix4x4::Transform(ofsFixed, R);
 	return parent->translate_ + ofsWorld;
 }
 
@@ -50,10 +64,10 @@ void BallisticEffect::Initialize()
 	// --- 軌跡セグメント用プール（細長い棒） ---
 	for (uint32_t i = 0; i < maxSegments_; ++i)
 	{
-		auto obj = std::make_unique<Object3D>();
+		auto obj = std::make_unique<K4E::Object3D>();
 		obj->Initialize("cube.gltf");
 
-		Object3D* raw = obj.get();                // 先に生ポインタを取る
+		K4E::Object3D* raw = obj.get();                // 先に生ポインタを取る
 		objectPool_.push_back(std::move(obj));    // 1) プールに入れる
 		freeList_.push_back(raw);                 // 2) 空きリストに積む
 	}
@@ -64,7 +78,7 @@ void BallisticEffect::Initialize()
 	flashPool_.reserve(maxFlashes_);
 	for (uint32_t i = 0; i < maxFlashes_; ++i)
 	{
-		auto obj = std::make_unique<Object3D>();
+		auto obj = std::make_unique<K4E::Object3D>();
 		// 手持ちのモデルでOK： "quad.gltf" が理想。なければ "cube.gltf" を薄く伸ばして使う
 		obj->Initialize("cube.gltf");
 		flashFree_.push_back(obj.get());
@@ -77,7 +91,7 @@ void BallisticEffect::Initialize()
 	sparkPool_.reserve(maxSparks_);
 	for (uint32_t i = 0; i < maxSparks_; ++i)
 	{
-		auto obj = std::make_unique<Object3D>();
+		auto obj = std::make_unique<K4E::Object3D>();
 		obj->Initialize("cube.gltf");        // 四角を細く伸ばして使う
 		sparkFree_.push_back(obj.get());
 		sparkPool_.push_back(std::move(obj));
@@ -88,7 +102,7 @@ void BallisticEffect::Initialize()
 	casingFree_.clear();
 	casingPool_.reserve(maxCasings_);
 	for (uint32_t i = 0; i < maxCasings_; ++i) {
-		auto obj = std::make_unique<Object3D>();
+		auto obj = std::make_unique<K4E::Object3D>();
 		obj->Initialize("cube.gltf"); // 細長い直方体で代用
 		casingFree_.push_back(obj.get());
 		casingPool_.push_back(std::move(obj));
@@ -107,7 +121,7 @@ void BallisticEffect::Update()
 	{
 		if (!b.alive) continue;
 
-		Vector3 prev = b.position;
+		K4E::Vector3 prev = b.position;
 
 		// 物理
 		b.velocity.y += gravityY_ * dt;							 // 重力
@@ -115,18 +129,18 @@ void BallisticEffect::Update()
 		b.position += b.velocity * dt;							 // 位置更新
 
 		// 衝突判定
-		b.traveled += Vector3::Length(b.position - prev);
+		b.traveled += K4E::Vector3::Length(b.position - prev);
 
 		// ===== 単一セグメント（1発＝1本）を更新 =====
 		if (currentWeapon_.tracer.enabled)
 		{
-			Vector3 v = b.velocity;
-			float   speed = Vector3::Length(v);
-			Vector3 dir = (speed > 1e-6f) ? (v / speed) : Vector3{ 0,0,1 };
+			K4E::Vector3 v = b.velocity;
+			float   speed = K4E::Vector3::Length(v);
+			K4E::Vector3 dir = (speed > 1e-6f) ? (v / speed) : K4E::Vector3{ 0,0,1 };
 
 			// 望む見た目の長さ
 			float len = currentWeapon_.tracer.tracerLength;
-			Vector3 tail = b.position - dir * len;
+			K4E::Vector3 tail = b.position - dir * len;
 
 			// 自分のセグメントを探す
 			TrailSegment* seg = nullptr;
@@ -138,7 +152,7 @@ void BallisticEffect::Update()
 			{
 				// まだない → プールから1本借りて作る
 				if (!freeList_.empty()) {
-					Object3D* obj = freeList_.back(); freeList_.pop_back();
+					K4E::Object3D* obj = freeList_.back(); freeList_.pop_back();
 					TrailSegment t{};
 					t.object = obj;
 					t.p0 = tail;
@@ -167,7 +181,7 @@ void BallisticEffect::Update()
 		}
 
 		// 最大距離や速度で弾を終了
-		float speedNow = Vector3::Length(b.velocity);
+		float speedNow = K4E::Vector3::Length(b.velocity);
 		if (b.traveled > currentWeapon_.maxDistance || speedNow < 1.0f)
 		{
 			b.alive = false;
@@ -224,29 +238,27 @@ void BallisticEffect::Update()
 		if (drag_ > 0.0f) c.velocity -= c.velocity * drag_ * dt;
 		c.position += c.velocity * dt;
 
-		c.traveled += Vector3::Length(c.position - c.prev);
+		c.traveled += K4E::Vector3::Length(c.position - c.prev);
 
 		// === コライダー更新 ===
 		if (c.collider)
 		{
 			c.collider->SetCenterPosition(c.position); // デバッグ可視化用
-			Segment seg{};
+			K4E::Segment seg{};
 			seg.origin = c.prev;
 			seg.diff = (c.position - c.prev);
 			c.collider->SetSegment(seg);
 		}
 
 		// 寿命/速度/距離で終了
-		float speedNow = Vector3::Length(c.velocity);
+		float speedNow = K4E::Vector3::Length(c.velocity);
 		if (c.traveled > currentWeapon_.maxDistance || speedNow < 1.0f) {
 			c.alive = false;
 		}
 
-		// 死亡後の後片付け
+		// 死亡後の後片付け（RemoveCollider→delete は unique_ptr のデリータで行う）
 		if (!c.alive && c.collider) {
-			if (collisionMgr_) collisionMgr_->RemoveCollider(c.collider);
-			delete c.collider;
-			c.collider = nullptr;
+			c.collider.reset();
 		}
 	}
 
@@ -264,7 +276,7 @@ void BallisticEffect::Update()
 
 		// 追従（親＋offset_ を毎フレ再計算）
 		if (parentTransform_) {
-			Vector3 base = ComputeMuzzleWorld(parentTransform_, transform_, offset_);
+			K4E::Vector3 base = ComputeMuzzleWorld(parentTransform_, transform_, offset_);
 			f.pos = base + f.dir * currentWeapon_.muzzle.offsetForward;
 		}
 
@@ -337,8 +349,8 @@ void BallisticEffect::Draw()
 	{
 		if (!s.alive || !s.object) continue;
 
-		Vector3 dir = s.p1 - s.p0;
-		float   len = Vector3::Length(dir);
+		K4E::Vector3 dir = s.p1 - s.p0;
+		float   len = K4E::Vector3::Length(dir);
 		if (len <= 1e-6f) continue;
 		dir = dir / len;
 
@@ -394,7 +406,7 @@ void BallisticEffect::Draw()
 
 		float t = std::clamp(s.age / s.life, 0.0f, 1.0f);
 		// 色を補間（オレンジ→赤→α0）
-		Vector4 col{
+		K4E::Vector4 col{
 			s.col0.x + (s.col1.x - s.col0.x) * t,
 			s.col0.y + (s.col1.y - s.col0.y) * t,
 			s.col0.z + (s.col1.z - s.col0.z) * t,
@@ -402,8 +414,8 @@ void BallisticEffect::Draw()
 		};
 
 		// 向き＆“尾”っぽい長さ（速度に比例）
-		Vector3 dir = (Vector3::Length(s.vel) > 1e-6f) ? Vector3::Normalize(s.vel) : Vector3{ 0,0,1 };
-		float   len = std::clamp(Vector3::Length(s.vel) * 0.015f, 0.03f, 0.12f);
+		K4E::Vector3 dir = (K4E::Vector3::Length(s.vel) > 1e-6f) ? K4E::Vector3::Normalize(s.vel) : K4E::Vector3{ 0,0,1 };
+		float   len = std::clamp(K4E::Vector3::Length(s.vel) * 0.015f, 0.03f, 0.12f);
 
 		float yaw = std::atan2(-dir.x, dir.z);
 		float pitch = -std::asin(dir.y);
@@ -434,29 +446,29 @@ void BallisticEffect::Draw()
 /// -------------------------------------------------------------
 ///				　			　 弾道開始
 /// -------------------------------------------------------------
-void BallisticEffect::Start(const Vector3& position, const Vector3& velocity, const WeaponConfig& weapon)
+void BallisticEffect::Start(const K4E::Vector3& position, const K4E::Vector3& velocity, const WeaponConfig& weapon)
 {
 	currentWeapon_ = weapon;
 
 	// --- 起点を分離 ---
 	// 右腕（親Transform＋offset）…見た目・マズル用
-	Vector3 basePosMuzzle = parentTransform_
+	K4E::Vector3 basePosMuzzle = parentTransform_
 		? ComputeMuzzleWorld(parentTransform_, transform_, offset_)
 		: position;
 	// プレイヤーのボディ（呼び出し側が渡す position）…衝突（セグメント）用
-	Vector3 basePosBody = position;
+	K4E::Vector3 basePosBody = position;
 
 	// 前方ベクトル
-	Vector3 fwd = (Vector3::Length(velocity) > 1e-6f) ? Vector3::Normalize(velocity) : Vector3{ 0,0,1 };
+	K4E::Vector3 fwd = (K4E::Vector3::Length(velocity) > 1e-6f) ? K4E::Vector3::Normalize(velocity) : K4E::Vector3{ 0,0,1 };
 
 	// マズル／スパークの出現位置（右腕基準）
-	Vector3 muzzlePos = basePosMuzzle + fwd * weapon.muzzle.offsetForward;
-	Vector3 sparkPos = basePosMuzzle + fwd * weapon.muzzle.sparkOffsetForward;
+	K4E::Vector3 muzzlePos = basePosMuzzle + fwd * weapon.muzzle.offsetForward;
+	K4E::Vector3 sparkPos = basePosMuzzle + fwd * weapon.muzzle.sparkOffsetForward;
 
 	// 見た目用の弾の初期位置（右腕＝銃口側から少し押し出す）
-	Vector3 bulletBasePosVFX = basePosMuzzle + fwd * weapon.tracer.startOffsetForward;
+	K4E::Vector3 bulletBasePosVFX = basePosMuzzle + fwd * weapon.tracer.startOffsetForward;
 	// 衝突用の弾の初期位置（ボディ側。自爆が気になるなら +fwd*小オフセット を好みで）
-	Vector3 bulletBasePosCOL = basePosBody /* + fwd * 0.0f */;
+	K4E::Vector3 bulletBasePosCOL = basePosBody /* + fwd * 0.0f */;
 
 	// --- 演出 ---
 	if (weapon.muzzle.enabled) {
@@ -489,15 +501,15 @@ void BallisticEffect::Start(const Vector3& position, const Vector3& velocity, co
 		float theta = coneRad * std::sqrt(u);
 		float phi_ = 2.0f * std::numbers::pi_v<float> *v;
 
-		Vector3 z = Vector3::Normalize(fwd);
-		Vector3 x = Vector3::Normalize((fabs(z.y) < 0.999f) ? Vector3{ -z.z,0,z.x } : Vector3{ 1,0,0 });
-		Vector3 y = Vector3::Normalize(Vector3::Cross(z, x));
-		Vector3 dir = Vector3::Normalize(
+		K4E::Vector3 z = K4E::Vector3::Normalize(fwd);
+		K4E::Vector3 x = K4E::Vector3::Normalize((fabs(z.y) < 0.999f) ? K4E::Vector3{ -z.z,0,z.x } : K4E::Vector3{ 1,0,0 });
+		K4E::Vector3 y = K4E::Vector3::Normalize(K4E::Vector3::Cross(z, x));
+		K4E::Vector3 dir = K4E::Vector3::Normalize(
 			x * (std::sin(theta) * std::cos(phi_)) +
 			y * (std::sin(theta) * std::sin(phi_)) +
 			z * (std::cos(theta))
 		);
-		Vector3 pelletVel = dir * weapon.muzzleSpeed;
+		K4E::Vector3 pelletVel = dir * weapon.muzzleSpeed;
 
 		// ===== 見た目用（bullets_）：右腕＝マズル起点 =====
 		bool placed = false;
@@ -532,16 +544,17 @@ void BallisticEffect::Start(const Vector3& position, const Vector3& velocity, co
 		cb.userShotCount = shotCounter_; // 同じ発射IDを共有しておく
 
 		// 衝突用コライダーの生成・登録（セグメント初期化）
-		cb.collider = new Collider();
+		auto col = std::make_unique<K4E::Collider>();
+		cb.collider = ColliderPtr(col.release(), ColliderDeleter{ collisionMgr_ });
 		cb.collider->Initialize();
 		cb.collider->SetTypeID(static_cast<uint32_t>(CollisionTypeIdDef::kBullet));
 		cb.collider->SetOBBHalfSize({ 0,0,0 });           // セグメント専用
 		cb.collider->SetCenterPosition(cb.position);
-		Segment s{}; s.origin = cb.position; s.diff = { 0,0,0 };
+		K4E::Segment s{}; s.origin = cb.position; s.diff = { 0,0,0 };
 		cb.collider->SetSegment(s);
-		if (collisionMgr_) collisionMgr_->AddCollider(cb.collider);
+		if (collisionMgr_) collisionMgr_->AddCollider(cb.collider.get());
 
-		colliderBullets_.push_back(cb);
+		colliderBullets_.push_back(std::move(cb));
 
 		// （トレーサ出すかの判定は従来通り Update() 側で ownerId を見て処理）
 		// あるいはここで spawnTracer を見てフラグを記録してもよい
@@ -552,7 +565,7 @@ void BallisticEffect::Start(const Vector3& position, const Vector3& velocity, co
 /// -------------------------------------------------------------
 ///				　	マズル位置のワールド座標を取得
 /// -------------------------------------------------------------
-Vector3 BallisticEffect::GetMuzzleWorld() const
+K4E::Vector3 BallisticEffect::GetMuzzleWorld() const
 {
 	return ComputeMuzzleWorld(parentTransform_, transform_, offset_);
 }
@@ -563,7 +576,9 @@ void BallisticEffect::RegisterColliders(CollisionManager* mgr)
 	for (auto& b : colliderBullets_)
 	{
 		if (b.alive && b.collider) {
-			mgr->AddCollider(b.collider);
+			// 念のためデリータの mgr も更新しておく
+			b.collider.get_deleter().mgr = mgr;
+			mgr->AddCollider(b.collider.get());
 		}
 	}
 }
@@ -571,10 +586,10 @@ void BallisticEffect::RegisterColliders(CollisionManager* mgr)
 /// -------------------------------------------------------------
 ///				　		　セグメントを1本追加
 /// -------------------------------------------------------------
-void BallisticEffect::PushTrail(const Vector3& p0, const Vector3& p1, float speed, const WeaponConfig& weapon)
+void BallisticEffect::PushTrail(const K4E::Vector3& p0, const K4E::Vector3& p1, float speed, const WeaponConfig& weapon)
 {
 	// 間引き
-	float segLen = Vector3::Length(p1 - p0);
+	float segLen = K4E::Vector3::Length(p1 - p0);
 	if (segLen < weapon.tracer.minSegLength) return;
 
 	// weapon.tracer.tracerLength(メートル) を基準に life を決定
@@ -592,7 +607,7 @@ void BallisticEffect::PushTrail(const Vector3& p0, const Vector3& p1, float spee
 
 	// セグメントを作る（プールから借りる）
 	if (freeList_.empty()) return;
-	Object3D* obj = freeList_.back(); freeList_.pop_back();
+	K4E::Object3D* obj = freeList_.back(); freeList_.pop_back();
 
 	TrailSegment t{};
 	t.p0 = p0; t.p1 = p1;
@@ -609,7 +624,7 @@ void BallisticEffect::PushTrail(const Vector3& p0, const Vector3& p1, float spee
 /// -------------------------------------------------------------
 ///				　		　マズルフラッシュを追加
 /// -------------------------------------------------------------
-void BallisticEffect::SpawnMuzzleFlash(const Vector3& position, const Vector3& forward, const WeaponConfig& weapon)
+void BallisticEffect::SpawnMuzzleFlash(const K4E::Vector3& position, const K4E::Vector3& forward, const WeaponConfig& weapon)
 {
 	// プールに空きがなければ出せない
 	if (flashFree_.empty()) return;
@@ -619,14 +634,14 @@ void BallisticEffect::SpawnMuzzleFlash(const Vector3& position, const Vector3& f
 	float yawRad = weapon.muzzle.randomYawDeg * (std::numbers::pi_v<float> / 180.0f) * (rand01() * 2.0f - 1.0f);
 
 	// forward をXZで少し回す
-	Vector3 dir = forward;
+	K4E::Vector3 dir = forward;
 	{
 		float c = std::cos(yawRad), s = std::sin(yawRad);
-		Vector3 xz = { dir.x * c - dir.z * s, dir.y, dir.x * s + dir.z * c };
-		dir = Vector3::Normalize(xz);
+		K4E::Vector3 xz = { dir.x * c - dir.z * s, dir.y, dir.x * s + dir.z * c };
+		dir = K4E::Vector3::Normalize(xz);
 	}
 
-	Object3D* obj = flashFree_.back(); flashFree_.pop_back();
+	K4E::Object3D* obj = flashFree_.back(); flashFree_.pop_back();
 
 	MuzzleFlash mf{};
 	mf.object = obj;
@@ -647,7 +662,7 @@ void BallisticEffect::SpawnMuzzleFlash(const Vector3& position, const Vector3& f
 /// -------------------------------------------------------------
 ///				　		　マズルスパークを生成
 /// -------------------------------------------------------------
-void BallisticEffect::SpawnMuzzleSparks(const Vector3& pos, const Vector3& forward, const WeaponConfig& weapon)
+void BallisticEffect::SpawnMuzzleSparks(const K4E::Vector3& pos, const K4E::Vector3& forward, const WeaponConfig& weapon)
 {
 	if (sparkFree_.empty()) return;
 
@@ -662,10 +677,10 @@ void BallisticEffect::SpawnMuzzleSparks(const Vector3& pos, const Vector3& forwa
 		float phi_ = 2.0f * pi_v<float> *v;
 
 		// 直交基底を作って forward を中心に回す
-		Vector3 z = Vector3::Normalize(forward);
-		Vector3 x = Vector3::Normalize((fabs(z.y) < 0.999f) ? Vector3{ -z.z,0,z.x } : Vector3{ 1,0,0 });
-		Vector3 y = Vector3::Normalize(Vector3::Cross(z, x));
-		Vector3 dir = Vector3::Normalize(x * (std::sin(theta) * std::cos(phi_)) +
+		K4E::Vector3 z = K4E::Vector3::Normalize(forward);
+		K4E::Vector3 x = K4E::Vector3::Normalize((fabs(z.y) < 0.999f) ? K4E::Vector3{ -z.z,0,z.x } : K4E::Vector3{ 1,0,0 });
+		K4E::Vector3 y = K4E::Vector3::Normalize(K4E::Vector3::Cross(z, x));
+		K4E::Vector3 dir = K4E::Vector3::Normalize(x * (std::sin(theta) * std::cos(phi_)) +
 			y * (std::sin(theta) * std::sin(phi_)) +
 			z * (std::cos(theta)));
 
@@ -673,7 +688,7 @@ void BallisticEffect::SpawnMuzzleSparks(const Vector3& pos, const Vector3& forwa
 			(weapon.muzzle.sparkSpeedMax - weapon.muzzle.sparkSpeedMin) * rand01();
 
 		if (sparkFree_.empty()) break;
-		Object3D* obj = sparkFree_.back(); sparkFree_.pop_back();
+		K4E::Object3D* obj = sparkFree_.back(); sparkFree_.pop_back();
 
 		Spark sp{};
 		sp.object = obj;
@@ -693,21 +708,21 @@ void BallisticEffect::SpawnMuzzleSparks(const Vector3& pos, const Vector3& forwa
 /// -------------------------------------------------------------
 ///				　		　薬莢を生成
 /// -------------------------------------------------------------
-void BallisticEffect::SpawnCasing(const Vector3& basePos, const Vector3& forward, const WeaponConfig& weapon)
+void BallisticEffect::SpawnCasing(const K4E::Vector3& basePos, const K4E::Vector3& forward, const WeaponConfig& weapon)
 {
 	if (casingFree_.empty()) return;
 
-	Vector3 z = Vector3::Normalize(forward);
-	Vector3 worldUp = { 0,1,0 };
+	K4E::Vector3 z = K4E::Vector3::Normalize(forward);
+	K4E::Vector3 worldUp = { 0,1,0 };
 
 	// 右 = worldUp × forward
-	Vector3 x = Vector3::Normalize(Vector3::Cross(worldUp, z));
+	K4E::Vector3 x = K4E::Vector3::Normalize(K4E::Vector3::Cross(worldUp, z));
 
 	// 上 = forward × 右
-	Vector3 y = Vector3::Normalize(Vector3::Cross(z, x));
+	K4E::Vector3 y = K4E::Vector3::Normalize(K4E::Vector3::Cross(z, x));
 
 	// スポーン位置：銃口根元から 右・上・後ろ へずらす
-	Vector3 spawnPos = basePos
+	K4E::Vector3 spawnPos = basePos
 		+ x * weapon.casing.offsetRight
 		+ y * weapon.casing.offsetUp
 		- z * weapon.casing.offsetBack;
@@ -717,18 +732,18 @@ void BallisticEffect::SpawnCasing(const Vector3& basePos, const Vector3& forward
 	float theta = (weapon.casing.coneDeg * std::numbers::pi_v<float> / 180.0f) * std::sqrt(rand01());
 	float phi_ = 2.0f * std::numbers::pi_v<float> *rand01();
 	// 右(x)を中心軸にする
-	Vector3 dir = Vector3::Normalize(
+	K4E::Vector3 dir = K4E::Vector3::Normalize(
 		x * std::cos(theta) +
 		(y * std::cos(phi_) + z * std::sin(phi_)) * std::sin(theta)
 	);
 
-	dir = Vector3::Normalize(dir + y * weapon.casing.upBias);
+	dir = K4E::Vector3::Normalize(dir + y * weapon.casing.upBias);
 
 	float speed = weapon.casing.speedMin + (weapon.casing.speedMax - weapon.casing.speedMin) * rand01();
 
-	Vector3 vel = dir * speed + y * weapon.casing.upKick;
+	K4E::Vector3 vel = dir * speed + y * weapon.casing.upKick;
 
-	Object3D* obj = casingFree_.back(); casingFree_.pop_back();
+	K4E::Object3D* obj = casingFree_.back(); casingFree_.pop_back();
 
 	// 薬莢生成
 	Casing c{};

@@ -4,6 +4,9 @@
 #include "TextureManager.h"
 #include "ResourceManager.h"
 
+namespace Ken4lowEngine
+{
+
 /// -------------------------------------------------------------
 ///							初期化処理
 /// -------------------------------------------------------------
@@ -274,3 +277,5 @@ void Sprite::InitializeReloadProgress()
 	effectParamsData->crackThickness = 0.03f;
 	effectParamsData->crackIntensity = 1.0f;
 }
+
+} // namespace Ken4lowEngine

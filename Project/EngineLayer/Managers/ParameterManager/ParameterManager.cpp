@@ -2,6 +2,9 @@
 #include <ImGuiManager.h>
 #include <fstream>
 
+namespace Ken4lowEngine
+{
+
 
 /// -------------------------------------------------------------
 ///			　		シングルトンインスタンス
@@ -381,3 +384,5 @@ void ParameterManager::DrawItem(const std::string& itemName, ParameterManager::I
 	(void)item;
 #endif // USE_IMGUI
 }
+
+} // namespace Ken4lowEngine

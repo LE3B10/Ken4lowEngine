@@ -1,6 +1,9 @@
 #pragma once
 #include "Matrix4x4.h"
 
+namespace Ken4lowEngine
+{
+
 ///==========================================================
 /// TransformationMatrixを拡張
 ///==========================================================
@@ -20,3 +23,4 @@ struct TransformationAnimationMatrix final
 	Matrix4x4 World;				  // ワールド行列
 	Matrix4x4 WorldInversedTranspose; // ワールド行列の逆転置行列
 };
+} // namespace Ken4lowEngine

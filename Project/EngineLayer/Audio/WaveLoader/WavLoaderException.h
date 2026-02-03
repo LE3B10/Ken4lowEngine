@@ -2,6 +2,9 @@
 #include <exception> // std::exception の基底クラスを使用するためのヘッダファイル
 #include <string>	 // std::string を使用するためのヘッダファイル
 
+namespace Ken4lowEngine
+{
+
 
 /// -------------------------------------------------------------
 ///		　WavLoader 専用のカスタム例外クラス
@@ -36,3 +39,4 @@ public: /// ---------- メンバ関数 ---------- ///
 	/// <returns>保持しているエラーメッセージへのポインタ。</returns>
 	const char* what() const noexcept override { return errorMessage.c_str(); }
 };
+} // namespace Ken4lowEngine

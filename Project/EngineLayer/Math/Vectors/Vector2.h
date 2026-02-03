@@ -1,5 +1,8 @@
 #pragma once
 
+namespace Ken4lowEngine
+{
+
 /// -------------------------------------------------------------
 ///							2次元ベクトル
 /// -------------------------------------------------------------
@@ -84,3 +87,4 @@ public: /// ---------- 単項演算子 ---------- ///
 /// <param name="v">スカラー倍されるベクトル。</param>
 /// <returns>各成分を scalar 倍したベクトル。</returns>
 inline Vector2 operator*(float scalar, const Vector2& v) { return v * scalar; }
+} // namespace Ken4lowEngine

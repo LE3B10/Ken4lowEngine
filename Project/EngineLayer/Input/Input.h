@@ -7,6 +7,9 @@
 #include <Xinput.h>						// ゲームコントローラーAPI
 #include <dinput.h>
 
+namespace Ken4lowEngine
+{
+
 /// ---------- 前方宣言 ---------- ///
 class WinApp;
 
@@ -278,3 +281,4 @@ private: /// ---------- コピー禁止 ---------- ///
 };
 
 extern XButtonIDs XButtons;
+} // namespace Ken4lowEngine

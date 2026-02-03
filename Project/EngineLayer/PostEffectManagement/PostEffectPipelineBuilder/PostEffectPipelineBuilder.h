@@ -2,6 +2,9 @@
 #include "DX12Include.h"
 #include <string>
 
+namespace Ken4lowEngine
+{
+
 /// ---------- 前方宣言 ---------- ///
 class DirectXCommon;
 
@@ -79,3 +82,5 @@ private: /// ---------- メンバ変数 ---------- ///
 	ComPtr<ID3D12PipelineState> copyPipelineState_; // コピー用パイプラインステート
 };
 
+
+} // namespace Ken4lowEngine

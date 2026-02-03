@@ -1,6 +1,9 @@
 #include "ShaderCompiler.h"
 #include "DXCCompilerManager.h"
 
+namespace Ken4lowEngine
+{
+
 #pragma comment(lib, "dxcompiler.lib")   // DXC (DirectX Shader Compiler)用
 
 
@@ -93,3 +96,5 @@ std::wstring ShaderCompiler::GetShaderPath(const std::wstring& shaderName, const
 	}
 	return path;
 }
+
+} // namespace Ken4lowEngine

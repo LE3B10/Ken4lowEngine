@@ -7,13 +7,15 @@
 
 #include <Input.h>
 
+namespace K4E = ::Ken4lowEngine;
+
 void GameOverState::Enter(GamePlayScene* scene)
 {
 	if (!scene) return;
 	using State = GamePlayScene::State;
 	scene->SetState(State::GameOver);
 
-	Input::GetInstance()->SetLockCursor(false);
+	K4E::Input::GetInstance()->SetLockCursor(false);
 	ShowCursor(true);
 
 	// --------- GameOver UI を中央にレイアウト（見えやすくする） ---------
@@ -115,9 +117,9 @@ void GameOverState::Update(GamePlayScene* scene, float deltaTime)
 
 	// --------- マウスクリック判定 ---------
 	// マウス座標を取得（例：スクリーン座標のfloat2を返す想定）
-	Vector2 mousePos = input->GetMousePosition(); // 想定API
+	K4E::Vector2 mousePos = input->GetMousePosition(); // 想定API
 
-	auto IsInside = [](const Vector2& p, const ButtonRect& r) {
+	auto IsInside = [](const K4E::Vector2& p, const ButtonRect& r) {
 		return (p.x >= r.x && p.x <= r.x + r.w &&
 			p.y >= r.y && p.y <= r.y + r.h);
 		};

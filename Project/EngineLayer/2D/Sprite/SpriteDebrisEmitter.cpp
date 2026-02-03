@@ -2,6 +2,9 @@
 #include <algorithm>
 #include <cmath>
 
+namespace Ken4lowEngine
+{
+
 void SpriteDebrisEmitter::Initialize(const std::string& debrisAtlasPath, const Params& p)
 {
     params_ = p;
@@ -157,3 +160,5 @@ void SpriteDebrisEmitter::Draw()
         pt.sprite->Draw();
     }
 }
+
+} // namespace Ken4lowEngine

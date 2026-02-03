@@ -29,6 +29,8 @@
 #include "WeaponMasterDataWriter.h"
 #include <filesystem>
 
+namespace K4E = ::Ken4lowEngine;
+
 namespace
 {
 	static const char* CategoryFolder(EWeaponCategory c)
@@ -98,11 +100,11 @@ void DebugScene::Initialize()
 {
 #ifdef _DEBUG
 	// デバッグカメラの初期化
-	DebugCamera::GetInstance()->Initialize();
+	K4E::DebugCamera::GetInstance()->Initialize();
 #endif // _DEBUG
 
-	dxCommon_ = DirectXCommon::GetInstance();
-	input_ = Input::GetInstance();
+	dxCommon_ = K4E::DirectXCommon::GetInstance();
+	input_ = K4E::Input::GetInstance();
 
 	boss_ = std::make_unique<Boss>();
 	boss_->Initialize();
@@ -110,11 +112,11 @@ void DebugScene::Initialize()
 	fadeManager_ = std::make_unique<FadeManager>();
 	fadeManager_->Initialize();
 
-	crackDemoSprite_ = std::make_unique<Sprite>();
+	crackDemoSprite_ = std::make_unique<K4E::Sprite>();
 	crackDemoSprite_->Initialize("uvChecker.png");
 
 	// 下のSprite（例：uvCheckerなど）
-	blockSprite_ = std::make_unique<Sprite>();
+	blockSprite_ = std::make_unique<K4E::Sprite>();
 	blockSprite_->Initialize("uvChecker.png");
 	blockSprite_->SetAnchorPoint({ 0.0f, 0.0f });
 	blockSprite_->SetPosition({ 0.0f, 0.0f });
@@ -122,7 +124,7 @@ void DebugScene::Initialize()
 	blockSprite_->Update();
 
 	// 上のひび割れ（CrackAtlas）
-	crackOverlaySprite_ = std::make_unique<Sprite>();
+	crackOverlaySprite_ = std::make_unique<K4E::Sprite>();
 	crackOverlaySprite_->Initialize("CrackAtlas.png"); // ←自作スプライトシート
 	crackOverlaySprite_->SetAnchorPoint({ 0.0f, 0.0f });
 	crackOverlaySprite_->SetPosition(blockSprite_->GetPosition());
@@ -131,19 +133,19 @@ void DebugScene::Initialize()
 	crackOverlaySprite_->Update();
 
 
-	SpriteDebrisEmitter::Params p;
+	K4E::SpriteDebrisEmitter::Params p;
 	p.maxParticles = 256;
 	p.groundY = 520.0f; // ブロックの下に合わせて調整
-	debris_ = std::make_unique<SpriteDebrisEmitter>();
+	debris_ = std::make_unique<K4E::SpriteDebrisEmitter>();
 	debris_->Initialize("DebrisAtlas.png", p);
 
-	auto* mgr = GpuParticleManager::GetInstance();
+	auto* mgr = K4E::GpuParticleManager::GetInstance();
 
 	// ------------------------------------------------------------
-	//  Spriteデバッグ用：HitSpark（GPU Sprite / 21タイプの中の1つ）
+	//  Spriteデバッグ用：HitSpark（GPU K4E::Sprite / 21タイプの中の1つ）
 	// ------------------------------------------------------------
 	{
-		GpuParticleEmitter::EmitterInfo info{};
+		K4E::GpuParticleEmitter::EmitterInfo info{};
 		info.textureFilePath = "circle2.png";
 		info.radius = 0.2f;
 
@@ -152,13 +154,13 @@ void DebugScene::Initialize()
 		info.loopFrequency = 0.0f;
 
 		// ★差別化：Spriteモード
-		info.kind = GpuParticleKind::Sprite;
+		info.kind = K4E::GpuParticleKind::Sprite;
 
 		// ★Spriteタイプ（21個のうち）
-		info.spriteType = GpuParticleType::HitSpark;
+		info.spriteType = K4E::GpuParticleType::HitSpark;
 
 		// ★flags（下位16bit）：通常はCameraでOK
-		info.billboardFlags = BillboardMode::Camera;
+		info.billboardFlags = K4E::BillboardMode::Camera;
 
 		if (!mgr->GetEmitter("Dbg_HitSpark"))
 		{
@@ -173,7 +175,7 @@ void DebugScene::Initialize()
 	//  Ribbonデバッグ用：BulletTracer（Ribbonモード）
 	// ------------------------------------------------------------
 	{
-		GpuParticleEmitter::EmitterInfo info{};
+		K4E::GpuParticleEmitter::EmitterInfo info{};
 		info.textureFilePath = "circle2.png";
 		info.radius = 0.15f;
 
@@ -182,13 +184,13 @@ void DebugScene::Initialize()
 		info.loopFrequency = 0.0f;
 
 		// ★差別化：Ribbonモード
-		info.kind = GpuParticleKind::Ribbon;
+		info.kind = K4E::GpuParticleKind::Ribbon;
 
 		// ★Ribbonタイプ（Emitter内の enum）
-		info.ribbonType = GpuRibbonType::BulletTracer;
+		info.ribbonType = K4E::GpuRibbonType::BulletTracer;
 
-		// ★flags（下位16bit）：Camera/YAxisなど（Ribbonフラグは使わない運用）
-		info.billboardFlags = BillboardMode::Camera;
+		// ★flags（下位16bit）：K4E::Camera/YAxisなど（Ribbonフラグは使わない運用）
+		info.billboardFlags = K4E::BillboardMode::Camera;
 
 		if (!mgr->GetEmitter("Dbg_Ribbon"))
 		{
@@ -228,7 +230,7 @@ void DebugScene::Update()
 		if (crackEnable_ && crackProgress_ >= 0.999f)
 		{
 			// 破片生成（細かいほど砕ける：8x8, 16x16 など）
-			fracture_ = std::make_unique<SpriteFractureEffect>();
+			fracture_ = std::make_unique<K4E::SpriteFractureEffect>();
 			fracture_->Initialize(*crackDemoSprite_, 16, 16);
 			fracture_->SetHitUV(hitUV_);
 			fracture_->SetGravity(2600.0f);
@@ -287,8 +289,8 @@ void DebugScene::Update()
 	stage = std::clamp(stage, 0, kCrackFrames - 1);
 
 	// 横10枚×縦1枚
-	Vector2 leftTopPx = { crackFrameSizePx_.x * stage, 0.0f };
-	Vector2 sizePx = { crackFrameSizePx_.x, crackFrameSizePx_.y };
+	K4E::Vector2 leftTopPx = { crackFrameSizePx_.x * stage, 0.0f };
+	K4E::Vector2 sizePx = { crackFrameSizePx_.x, crackFrameSizePx_.y };
 
 	crackOverlaySprite_->SetUVRect(leftTopPx, sizePx);
 
@@ -313,7 +315,7 @@ void DebugScene::Update()
 		if (stage > prevCrackStage_)
 		{
 			// ブロックの中心付近に出す（座標はあなたのspriteに合わせて調整）
-			Vector2 center = {
+			K4E::Vector2 center = {
 				blockSprite_->GetPosition().x + blockSprite_->GetSize().x * 0.5f,
 				blockSprite_->GetPosition().y + blockSprite_->GetSize().y * 0.5f
 			};
@@ -327,10 +329,10 @@ void DebugScene::Update()
 	// 欠片更新
 	debris_->Update(deltaTime);
 
-	auto* mgr = GpuParticleManager::GetInstance();
+	auto* mgr = K4E::GpuParticleManager::GetInstance();
 
 	// 位置追従（ボス中心に合わせる）
-	const Vector3 bossPos = boss_->GetCenterPosition(); // 実関数名に合わせて
+	const K4E::Vector3 bossPos = boss_->GetCenterPosition(); // 実関数名に合わせて
 	if (auto* e = mgr->GetEmitter("Dbg_HitSpark"))
 	{
 		e->SetPosition(bossPos);
@@ -369,7 +371,7 @@ void DebugScene::Draw3DObjects()
 
 #ifdef _DEBUG
 	// ワイヤーフレームの描画
-	Wireframe::GetInstance()->DrawGrid(100.0f, 50.0f, { 0.25f, 0.25f, 0.25f,1.0f });
+	K4E::Wireframe::GetInstance()->DrawGrid(100.0f, 50.0f, { 0.25f, 0.25f, 0.25f,1.0f });
 #endif // _DEBUG
 }
 
@@ -378,7 +380,7 @@ void DebugScene::Draw2DSprites()
 #pragma region スプライトの描画                    
 
 	// 背景用の共通描画設定（後面）
-	SpriteManager::GetInstance()->SetRenderSetting_Background();
+	K4E::SpriteManager::GetInstance()->SetRenderSetting_Background();
 
 #pragma endregion
 
@@ -386,7 +388,7 @@ void DebugScene::Draw2DSprites()
 #pragma region UIの描画
 
 	// UI用の共通描画設定
-	SpriteManager::GetInstance()->SetRenderSetting_UI();
+	K4E::SpriteManager::GetInstance()->SetRenderSetting_UI();
 
 	fadeManager_->Draw2DSprites();
 
@@ -454,7 +456,7 @@ void DebugScene::DrawImGui()
 
 	//ImGui::SliderFloat2("Frame Size(px)", &crackFrameSizePx_.x, 1.0f, 512.0f);
 
-	//ImGui::SeparatorText("Debris (Sprite)");
+	//ImGui::SeparatorText("Debris (K4E::Sprite)");
 	//ImGui::Checkbox("Debris Enable", &debrisEnable_);
 	//ImGui::SliderInt("Burst Base", &debrisBurstBase_, 0, 60);
 
@@ -470,7 +472,7 @@ void DebugScene::DrawImGui()
 	//ImGui::End();
 
 	/// ---------- GPUパーティクルデバッグ ---------- ///
-	GpuParticleManager::GetInstance()->DrawImGui();
+	K4E::GpuParticleManager::GetInstance()->DrawImGui();
 
 	/// ---------- 武器マスターデータエディタ ---------- ///
 	static WeaponMasterDataDatabase weaponDB;
@@ -540,9 +542,9 @@ void DebugScene::UpdateDebug()
 {
 	if (input_->TriggerKey(DIK_F12))
 	{
-		Object3DCommon::GetInstance()->SetDebugCamera(!Object3DCommon::GetInstance()->GetDebugCamera());
-		Wireframe::GetInstance()->SetDebugCamera(!Wireframe::GetInstance()->GetDebugCamera());
-		GpuParticleManager::GetInstance()->SetDebugCameraEnabled(!isDebugCamera_);
+		K4E::Object3DCommon::GetInstance()->SetDebugCamera(!K4E::Object3DCommon::GetInstance()->GetDebugCamera());
+		K4E::Wireframe::GetInstance()->SetDebugCamera(!K4E::Wireframe::GetInstance()->GetDebugCamera());
+		K4E::GpuParticleManager::GetInstance()->SetDebugCameraEnabled(!isDebugCamera_);
 		isDebugCamera_ = !isDebugCamera_;
 	}
 }

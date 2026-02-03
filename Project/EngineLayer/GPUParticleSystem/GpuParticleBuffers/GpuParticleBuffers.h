@@ -7,6 +7,9 @@
 #include "BillboardMode.h"
 #include "GpuParticleEmitterData.h"
 
+namespace Ken4lowEngine
+{
+
 /// ---------- 前方宣言 ---------- ///
 class Camera;
 
@@ -229,3 +232,5 @@ private: /// ---------- メンバ変数 ---------- ///
 	Matrix4x4 viewProjectionMatrix_;	  // ビュー射影行列
 };
 
+
+} // namespace Ken4lowEngine

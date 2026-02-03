@@ -3,6 +3,9 @@
 #include <sstream>
 #include <windows.h>
 
+namespace Ken4lowEngine
+{
+
 /// -------------------------------------------------------------
 ///					コンストラクタ
 /// -------------------------------------------------------------
@@ -73,3 +76,5 @@ void FPSCounter::EndFrame()
 		reference_ = now;
 	}
 }
+
+} // namespace Ken4lowEngine

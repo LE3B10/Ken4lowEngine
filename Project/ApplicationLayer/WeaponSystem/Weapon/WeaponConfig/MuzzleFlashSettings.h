@@ -1,6 +1,8 @@
 #pragma once
 #include <Vector4.h>
 
+namespace K4E = ::Ken4lowEngine;
+
 // マズルフラッシュ設定
 struct MuzzleFlashSettings
 {
@@ -11,7 +13,7 @@ struct MuzzleFlashSettings
 	float   startWidth = 0.10f;        // [m] 初期の太さ
 	float   endWidth = 0.03f;        // [m] 終了時の太さ
 	float   randomYawDeg = 0.0f;         // 発射毎のランダム広がり
-	Vector4 color = { 1.0f, 1.0f, 0.6f, 1.0f }; // 温かい発光色（αはコード側でフェード）
+	K4E::Vector4 color = { 1.0f, 1.0f, 0.6f, 1.0f }; // 温かい発光色（αはコード側でフェード）
 
 	float   offsetForward = 0.00f; // フラッシュ根元を前後
 	bool  sparksEnabled = true;     // 火花を出すか
@@ -24,6 +26,6 @@ struct MuzzleFlashSettings
 	float sparkGravityY = -30.0f;   // 火花用重力（強めに落とす）
 	float sparkWidth = 0.018f;   // 太さ
 	float sparkOffsetForward = 0.02f; // 火花の開始位置
-	Vector4 sparkColorStart = { 1.0f,1.0f,0.6f,1.0f }; // 明るい橙
-	Vector4 sparkColorEnd = { 0.8f,0.2f,0.0f,0.0f }; // 赤～消失
+	K4E::Vector4 sparkColorStart = { 1.0f,1.0f,0.6f,1.0f }; // 明るい橙
+	K4E::Vector4 sparkColorEnd = { 0.8f,0.2f,0.0f,0.0f }; // 赤～消失
 };

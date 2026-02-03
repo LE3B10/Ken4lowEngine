@@ -1,6 +1,9 @@
 #pragma once
 #include "DX12Include.h"
 
+namespace Ken4lowEngine
+{
+
 
 /// -------------------------------------------------------------
 ///						リソース管理クラス
@@ -41,3 +44,5 @@ public: /// ---------- メンバ関数 ---------- ///
 		D3D12_RESOURCE_STATES initState);
 };
 
+
+} // namespace Ken4lowEngine

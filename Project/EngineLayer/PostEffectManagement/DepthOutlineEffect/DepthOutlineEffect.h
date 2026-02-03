@@ -4,6 +4,9 @@
 #include "Vector4.h"
 #include "Matrix4x4.h"
 
+namespace Ken4lowEngine
+{
+
 /// ---------- 前方宣言 ---------- ///
 class Camera;
 
@@ -76,3 +79,5 @@ private: /// ---------- 構造体 ---------- ///
 	DepthOutlineSetting* depthOutlineSetting_ = nullptr;
 };
 
+
+} // namespace Ken4lowEngine

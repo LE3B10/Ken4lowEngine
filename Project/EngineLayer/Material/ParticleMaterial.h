@@ -3,6 +3,9 @@
 #include "Vector4.h"
 #include "Matrix4x4.h"
 
+namespace Ken4lowEngine
+{
+
 
 /// -------------------------------------------------------------
 ///				　パーティクル用マテリアルクラス
@@ -79,3 +82,5 @@ public: /// ---------- メンバ変数 ---------- ///
 
 };
 
+
+} // namespace Ken4lowEngine

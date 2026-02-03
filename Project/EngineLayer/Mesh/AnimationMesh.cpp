@@ -1,6 +1,9 @@
 #include "AnimationMesh.h"
 #include <ResourceManager.h>
 
+namespace Ken4lowEngine
+{
+
 /// -------------------------------------------------------------
 ///				　　　 初期化処理
 /// -------------------------------------------------------------
@@ -47,3 +50,5 @@ void AnimationMesh::Initialize(ID3D12Device* device, const ModelData& modelData)
 		subMeshes_.emplace_back(std::move(gpu));
 	}
 }
+
+} // namespace Ken4lowEngine

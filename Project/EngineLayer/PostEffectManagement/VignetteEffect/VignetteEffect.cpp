@@ -12,6 +12,9 @@
 
 #ifdef USE_IMGUI
 #include <imgui.h>
+
+namespace Ken4lowEngine
+{
 #endif // USE_IMGUI
 
 
@@ -106,3 +109,5 @@ void VignetteEffect::DrawImGui()
 	ImGui::SliderFloat("Vignette Range", &vignetteSetting_->range, 0.0f, 1.0f);
 #endif // USE_IMGUI
 }
+
+} // namespace Ken4lowEngine

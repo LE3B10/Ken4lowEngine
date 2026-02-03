@@ -2,6 +2,9 @@
 #include "Vector3.h"
 #include "Segment.h"
 
+namespace Ken4lowEngine
+{
+
 /// ---------- カプセル構造体 ---------- ///
 struct Capsule
 {
@@ -17,3 +20,5 @@ struct Capsule
 	// 軸ベクトル（正規化済み）
 	Vector3 GetAxis() const { return Vector3::Normalize(segment.diff - segment.origin); }
 };
+
+} // namespace Ken4lowEngine

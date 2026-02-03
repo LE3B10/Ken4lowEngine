@@ -1,6 +1,9 @@
 #include "DX12CommandManager.h"
 #include "DX12FenceManager.h"
 
+namespace Ken4lowEngine
+{
+
 /// -------------------------------------------------------------
 ///						　初期化処理
 /// -------------------------------------------------------------
@@ -83,3 +86,5 @@ void DX12CommandManager::ExecuteAndWait()
 	hr = commandList_->Reset(commandAllocator_.Get(), nullptr);
 	assert(SUCCEEDED(hr));
 }
+
+} // namespace Ken4lowEngine
