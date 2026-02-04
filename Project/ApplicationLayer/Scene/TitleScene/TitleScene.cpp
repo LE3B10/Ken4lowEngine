@@ -305,11 +305,20 @@ void TitleScene::InitializeClickHintUI()
 {
 	clickHintUI_.hintSprite = std::make_unique<K4E::Sprite>();
 	clickHintUI_.hintSprite->Initialize("ui_click_hint.png");
-	clickHintUI_.hintSprite->SetAnchorPoint({ 0.5f, 0.0f });      // 中央上
-	// ここは今の 1/10 スケール指定のままでOK
-	clickHintUI_.hintSprite->SetPosition({ dxCommon_->GetClientWidth() * 0.5f + clickHintUI_.offset.x, dxCommon_->GetClientHeight() * 0.25f + clickHintUI_.offset.y });
-	clickHintUI_.hintSprite->SetSize({ 153.6f, 102.4f });       // 元画像が1536x1024pxなので1/10スケール
-	clickHintUI_.baseSize = clickHintUI_.hintSprite->GetSize(); // 基準サイズを保存
+	clickHintUI_.hintSprite->SetAnchorPoint({ 0.5f, 0.0f }); // 中央上
+
+	// 基準位置
+	const K4E::Vector2 basePos = {
+		dxCommon_->GetClientWidth() * 0.5f + clickHintUI_.offset.x,
+		dxCommon_->GetClientHeight() * 0.25f + clickHintUI_.offset.y
+	};
+	clickHintUI_.hintSprite->SetPosition(basePos);
+
+	// ★大きくする（例：1/10 → 1/6くらい）
+	// 元が 1536x1024 なら、256x170 くらいでもOK
+	clickHintUI_.hintSprite->SetSize({ 256.0f, 170.0f });
+
+	clickHintUI_.baseSize = clickHintUI_.hintSprite->GetSize();
 }
 
 /// -------------------------------------------------------------
@@ -351,9 +360,6 @@ void TitleScene::UpdateDebug()
 #ifdef _DEBUG
 	if (input_->TriggerKey(DIK_BACK))
 	{
-		// タイトルに来たら必ずピクセルエフェクトはOFFにしておく
-		K4E::PostEffectManager::GetInstance()->DisableEffect("K4E::PixelateEffect");
-
 		if (sceneManager_)
 		{
 			sceneManager_->ChangeScene("PhysicalScene"); // 戻るキーでゲームプレイシーンに戻る

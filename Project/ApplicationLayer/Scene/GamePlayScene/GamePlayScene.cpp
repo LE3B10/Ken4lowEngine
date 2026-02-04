@@ -38,11 +38,11 @@ void GamePlayScene::Initialize()
 	K4E::DebugCamera::GetInstance()->Initialize();
 #endif // _DEBUG
 
-	K4E::Input::GetInstance()->SetLockCursor(true);
-	ShowCursor(false);
-
 	dxCommon_ = K4E::DirectXCommon::GetInstance();
 	input_ = K4E::Input::GetInstance();
+
+	input_->SetLockCursor(true);
+	input_->SetCursorVisible(false);
 
 	skyBox_ = std::make_unique<K4E::SkyBox>();
 	skyBox_->Initialize("SkyBox/skybox.dds");
@@ -245,8 +245,8 @@ void GamePlayScene::Draw2DSprites()
 void GamePlayScene::Finalize()
 {
 	// 入力状態を必ず戻す（ロック/非表示のまま終了しない）
-	K4E::Input::GetInstance()->SetLockCursor(false);
-	ShowCursor(true);
+	input_->SetLockCursor(false);
+	input_->SetCursorVisible(true);
 
 	// ステートを抜ける（ステートがシーン内リソースを握ってる可能性がある）
 	if (currentState_) {
@@ -505,8 +505,8 @@ void GamePlayScene::UpdateDebug()
 		skyBox_->SetDebugCamera(!skyBox_->GetDebugCamera());
 		player_->SetDebugCamera(!player_->IsDebugCamera());
 		isDebugCamera_ = !isDebugCamera_;
-		K4E::Input::GetInstance()->SetLockCursor(!isDebugCamera_);
-		ShowCursor(isDebugCamera_);// 表示・非表示も連動（オプション）
+		input_->SetLockCursor(!isDebugCamera_);
+		input_->SetCursorVisible(isDebugCamera_);
 	}
 #endif // _DEBUG
 }

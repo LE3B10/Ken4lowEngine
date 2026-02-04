@@ -93,8 +93,13 @@ private: /// ---------- 構造体 ---------- ///
 
 		// 押下・ホバー時の見た目（ボタンと同じ思想）
 		const float scalePress = 0.05f;    // 押下で-5%縮む
-		const float scaleHover = 0.04f;    // ホバーで+4%拡大
+		const float scaleHover = 0.08f;    // ホバーで+8%拡大
 		const float offsetPressY = 3.0f;   // 押下で3px沈む
+
+		// 近づいたら表示する用
+		float showAnim = 0.0f;                 // 0..1
+		float showSpeed = 10.0f;               // 大きいほど追従が速い
+		K4E::Vector2 hoverInflate = { 220.0f, 140.0f }; // 「近づいた」の判定をどれだけ広げるか(px)
 	};
 
 	/// ---------- バトルへボタンUI ---------- ///

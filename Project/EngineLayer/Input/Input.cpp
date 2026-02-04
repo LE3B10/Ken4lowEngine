@@ -10,508 +10,509 @@ namespace Ken4lowEngine
 #pragma comment(lib, "dinput8.lib")
 #pragma comment(lib, "dxguid.lib")
 
-XButtonIDs XButtons;
+	XButtonIDs XButtons;
 
-/// -------------------------------------------------------------
-///				　XButtonIDsのコンストラクタ
-/// -------------------------------------------------------------
-XButtonIDs::XButtonIDs()
-{
-	// アクションボタン
-	A = 0;
-	B = 1;
-	X = 2;
-	Y = 3;
-
-	// DPADのボタン
-	DPad_Up = 4;
-	DPad_Down = 5;
-	DPad_Left = 6;
-	DPad_Right = 7;
-
-	// Shoulderボタン
-	L_Shoulder = 8;
-	R_Shoulder = 9;
-
-	// Thumbstick
-	L_Thumbstick = 10;
-	R_Thumbstick = 11;
-
-	Start = 12; // 'START' ボタン
-	Back = 13;  // 'BACK' ボタン
-
-	// Triggerボタン
-	L_Trigger = 14;
-	R_Trigger = 15;
-}
-
-
-/// -------------------------------------------------------------
-///					　　シングルトンインスタンス
-/// -------------------------------------------------------------
-Input* Input::GetInstance()
-{
-	static Input instance;
-	return &instance;
-}
-
-
-/// -------------------------------------------------------------
-///					　　	初期化処理
-/// -------------------------------------------------------------
-void Input::Initialize(WinApp* winApp)
-{
-	// 借りてきたWinAppのインスタンスを記録
-	winApp_ = winApp;
-
-	HRESULT result{};
-
-	// DirectInputのインスタンス生成
-	result = DirectInput8Create(winApp->GetHInstance(), DIRECTINPUT_VERSION, IID_IDirectInput8, (void**)&directInput, nullptr);
-	assert(SUCCEEDED(result));
-
-	// キーボードデバイスの生成
-	result = directInput->CreateDevice(GUID_SysKeyboard, &keyboard, NULL);
-	assert(SUCCEEDED(result));
-
-	// 入力データ形式のセット
-	result = keyboard->SetDataFormat(&c_dfDIKeyboard); // 標準形式
-	assert(SUCCEEDED(result));
-
-	// 排他制御レベルのセット
-	result = keyboard->SetCooperativeLevel(winApp->GetHwnd(), DISCL_FOREGROUND | DISCL_NONEXCLUSIVE | DISCL_NOWINKEY);
-	assert(SUCCEEDED(result));
-
-	// キー配列の初期化
-	memset(key, 0, sizeof(key));
-	memset(keyPre, 0, sizeof(keyPre));
-
-	// マウスデバイスの生成
-	result = directInput->CreateDevice(GUID_SysMouse, mouseDevice_.GetAddressOf(), NULL);
-	assert(SUCCEEDED(result));
-
-	// マウスデバイスのフォーマット設定
-	result = mouseDevice_->SetDataFormat(&c_dfDIMouse);
-	assert(SUCCEEDED(result));
-
-	// マウスデバイスの協調レベル設定
-	result = mouseDevice_->SetCooperativeLevel(winApp_->GetHwnd(), DISCL_FOREGROUND | DISCL_NONEXCLUSIVE);
-	assert(SUCCEEDED(result));
-
-	// マウスの座標を取得
-	POINT point;
-	GetCursorPos(&point);
-	ScreenToClient(winApp_->GetHwnd(), &point);
-	mousePosition_.x = point.x;
-	mousePosition_.y = point.y;
-
-	// ゲームパッドの初期化
-	for (int i = 0; i < GAMEPAD_BUTTON_NUM; i++)
+	/// -------------------------------------------------------------
+	///				　XButtonIDsのコンストラクタ
+	/// -------------------------------------------------------------
+	XButtonIDs::XButtonIDs()
 	{
-		prevButtonStates_[i] = false;
-		buttonStates_[i] = false;
-		buttonsTriger_[i] = false;
-	}
-}
+		// アクションボタン
+		A = 0;
+		B = 1;
+		X = 2;
+		Y = 3;
 
+		// DPADのボタン
+		DPad_Up = 4;
+		DPad_Down = 5;
+		DPad_Left = 6;
+		DPad_Right = 7;
 
-/// -------------------------------------------------------------
-///					　　	更新処理
-/// -------------------------------------------------------------
-void Input::Update()
-{
-	HRESULT result{};
+		// Shoulderボタン
+		L_Shoulder = 8;
+		R_Shoulder = 9;
 
-	// 前回のキー入力を保存
-	memcpy(keyPre, key, sizeof(key));
+		// Thumbstick
+		L_Thumbstick = 10;
+		R_Thumbstick = 11;
 
-	// キーボード情報の取得開始
-	result = keyboard->Acquire();
-	if (FAILED(result))
-	{
-		// デバイスの取得が失敗した場合はここで処理を終了する
-		return;
+		Start = 12; // 'START' ボタン
+		Back = 13;  // 'BACK' ボタン
+
+		// Triggerボタン
+		L_Trigger = 14;
+		R_Trigger = 15;
 	}
 
-	// 全キーの入力情報を取得する
-	result = keyboard->GetDeviceState(sizeof(key), key);
-	if (FAILED(result))
+
+	/// -------------------------------------------------------------
+	///					　　シングルトンインスタンス
+	/// -------------------------------------------------------------
+	Input* Input::GetInstance()
 	{
-		// 取得が失敗した場合はキー配列をリセット
+		static Input instance;
+		return &instance;
+	}
+
+
+	/// -------------------------------------------------------------
+	///					　　	初期化処理
+	/// -------------------------------------------------------------
+	void Input::Initialize(WinApp* winApp)
+	{
+		// 借りてきたWinAppのインスタンスを記録
+		winApp_ = winApp;
+
+		HRESULT result{};
+
+		// DirectInputのインスタンス生成
+		result = DirectInput8Create(winApp->GetHInstance(), DIRECTINPUT_VERSION, IID_IDirectInput8, (void**)&directInput, nullptr);
+		assert(SUCCEEDED(result));
+
+		// キーボードデバイスの生成
+		result = directInput->CreateDevice(GUID_SysKeyboard, &keyboard, NULL);
+		assert(SUCCEEDED(result));
+
+		// 入力データ形式のセット
+		result = keyboard->SetDataFormat(&c_dfDIKeyboard); // 標準形式
+		assert(SUCCEEDED(result));
+
+		// 排他制御レベルのセット
+		result = keyboard->SetCooperativeLevel(winApp->GetHwnd(), DISCL_FOREGROUND | DISCL_NONEXCLUSIVE | DISCL_NOWINKEY);
+		assert(SUCCEEDED(result));
+
+		// キー配列の初期化
 		memset(key, 0, sizeof(key));
-	}
+		memset(keyPre, 0, sizeof(keyPre));
 
-	prevMouseState_ = mouseState_; // マウスの状態を保存
+		// マウスデバイスの生成
+		result = directInput->CreateDevice(GUID_SysMouse, mouseDevice_.GetAddressOf(), NULL);
+		assert(SUCCEEDED(result));
 
-	// マウスの情報の所得
-	mouseDevice_->Acquire();
-	mouseDevice_->GetDeviceState(sizeof(DIMOUSESTATE), &mouseState_);
+		// マウスデバイスのフォーマット設定
+		result = mouseDevice_->SetDataFormat(&c_dfDIMouse);
+		assert(SUCCEEDED(result));
 
-	// マウスの座標を取得
-	UpdateMousePosition();
+		// マウスデバイスの協調レベル設定
+		result = mouseDevice_->SetCooperativeLevel(winApp_->GetHwnd(), DISCL_FOREGROUND | DISCL_NONEXCLUSIVE);
+		assert(SUCCEEDED(result));
 
-	// ゲームパッドの状態を取得
-	state_ = GetGamePadState();
+		// マウスの座標を取得
+		POINT point;
+		GetCursorPos(&point);
+		ScreenToClient(winApp_->GetHwnd(), &point);
+		mousePosition_.x = point.x;
+		mousePosition_.y = point.y;
 
-	// ゲームパッドのボタンの状態を更新
-	for (int i = 0; i < 14; i++)
-	{
-		buttonStates_[i] = (state_.Gamepad.wButtons & XINPUT_Buttons[i]) == XINPUT_Buttons[i];
-		buttonsTriger_[i] = !prevButtonStates_[i] && buttonStates_[i]; // トリガー判定
-	}
-
-	// トリガーの状態をボタンと同じように扱う
-	buttonStates_[XButtons.L_Trigger] = state_.Gamepad.bLeftTrigger > XINPUT_GAMEPAD_TRIGGER_THRESHOLD;
-	buttonStates_[XButtons.R_Trigger] = state_.Gamepad.bRightTrigger > XINPUT_GAMEPAD_TRIGGER_THRESHOLD;
-	buttonsTriger_[XButtons.L_Trigger] = !prevButtonStates_[XButtons.L_Trigger] && buttonStates_[XButtons.L_Trigger];
-	buttonsTriger_[XButtons.R_Trigger] = !prevButtonStates_[XButtons.R_Trigger] && buttonStates_[XButtons.R_Trigger];
-
-	// **ここで前回の状態を更新**
-	memcpy(prevButtonStates_, buttonStates_, sizeof(prevButtonStates_));
-
-	/// ----- マウスカーソルを画面中央に固定する処理 ----- ///
-	if (lockCursor_)
-	{
-		// 最小化などで 0 になっている時は何もしない
-		uint32_t w = winApp_->GetClientWidth();
-		uint32_t h = winApp_->GetClientHeight();
-		if (w > 0 && h > 0)
+		// ゲームパッドの初期化
+		for (int i = 0; i < GAMEPAD_BUTTON_NUM; i++)
 		{
-			SetMousePosition((int)w / 2, (int)h / 2);
+			prevButtonStates_[i] = false;
+			buttonStates_[i] = false;
+			buttonsTriger_[i] = false;
 		}
 	}
-}
 
 
-/// -------------------------------------------------------------
-///					　　キーの押下処理
-/// -------------------------------------------------------------
-bool Input::PushKey(BYTE keyNumber) const
-{
-	return key[keyNumber] != 0;
-}
-
-
-/// -------------------------------------------------------------
-///				　キーの押下処理（押した瞬間）
-/// -------------------------------------------------------------
-bool Input::TriggerKey(BYTE keyNumber) const
-{
-	return key[keyNumber] != 0 && keyPre[keyNumber] == 0;
-}
-
-
-/// -------------------------------------------------------------
-///				　		マウスの座標を更新
-/// -------------------------------------------------------------
-void Input::UpdateMousePosition()
-{
-	// マウスの座標を取得
-	POINT point;
-	GetCursorPos(&point);
-	ScreenToClient(winApp_->GetHwnd(), &point);
-	mousePosition_.x = point.x;
-	mousePosition_.y = point.y;
-}
-
-
-/// -------------------------------------------------------------
-///				　	マウスの押下状態を取得
-/// -------------------------------------------------------------
-bool Input::PushMouse(int button) const
-{
-	if (mouseState_.rgbButtons[button])
+	/// -------------------------------------------------------------
+	///					　　	更新処理
+	/// -------------------------------------------------------------
+	void Input::Update()
 	{
-		return true;
+		HRESULT result{};
+
+		// 前回のキー入力を保存
+		memcpy(keyPre, key, sizeof(key));
+
+		// キーボード情報の取得開始
+		result = keyboard->Acquire();
+		if (FAILED(result))
+		{
+			// デバイスの取得が失敗した場合はここで処理を終了する
+			return;
+		}
+
+		// 全キーの入力情報を取得する
+		result = keyboard->GetDeviceState(sizeof(key), key);
+		if (FAILED(result))
+		{
+			// 取得が失敗した場合はキー配列をリセット
+			memset(key, 0, sizeof(key));
+		}
+
+		prevMouseState_ = mouseState_; // マウスの状態を保存
+
+		// マウスの情報の所得
+		mouseDevice_->Acquire();
+		mouseDevice_->GetDeviceState(sizeof(DIMOUSESTATE), &mouseState_);
+
+		// マウスの座標を取得
+		UpdateMousePosition();
+
+		// ゲームパッドの状態を取得
+		state_ = GetGamePadState();
+
+		// ゲームパッドのボタンの状態を更新
+		for (int i = 0; i < 14; i++)
+		{
+			buttonStates_[i] = (state_.Gamepad.wButtons & XINPUT_Buttons[i]) == XINPUT_Buttons[i];
+			buttonsTriger_[i] = !prevButtonStates_[i] && buttonStates_[i]; // トリガー判定
+		}
+
+		// トリガーの状態をボタンと同じように扱う
+		buttonStates_[XButtons.L_Trigger] = state_.Gamepad.bLeftTrigger > XINPUT_GAMEPAD_TRIGGER_THRESHOLD;
+		buttonStates_[XButtons.R_Trigger] = state_.Gamepad.bRightTrigger > XINPUT_GAMEPAD_TRIGGER_THRESHOLD;
+		buttonsTriger_[XButtons.L_Trigger] = !prevButtonStates_[XButtons.L_Trigger] && buttonStates_[XButtons.L_Trigger];
+		buttonsTriger_[XButtons.R_Trigger] = !prevButtonStates_[XButtons.R_Trigger] && buttonStates_[XButtons.R_Trigger];
+
+		// **ここで前回の状態を更新**
+		memcpy(prevButtonStates_, buttonStates_, sizeof(prevButtonStates_));
+
+		/// ----- マウスカーソルを画面中央に固定する処理 ----- ///
+		if (lockCursor_)
+		{
+			// 最小化などで 0 になっている時は何もしない
+			uint32_t w = winApp_->GetClientWidth();
+			uint32_t h = winApp_->GetClientHeight();
+			if (w > 0 && h > 0)
+			{
+				SetMousePosition((int)w / 2, (int)h / 2);
+			}
+		}
 	}
 
-	return false;
-}
 
-
-/// -------------------------------------------------------------
-///				　	マウスのトリガー状態を取得
-/// -------------------------------------------------------------
-bool Input::TriggerMouse(int button) const
-{
-	if (mouseState_.rgbButtons[button] && !prevMouseState_.rgbButtons[button])
+	/// -------------------------------------------------------------
+	///					　　キーの押下処理
+	/// -------------------------------------------------------------
+	bool Input::PushKey(BYTE keyNumber) const
 	{
-		return true;
+		return key[keyNumber] != 0;
 	}
 
-	return false;
-}
 
-
-/// -------------------------------------------------------------
-///				　	マウスのリリース状態を取得
-/// -------------------------------------------------------------
-bool Input::ReleaseMouse(int button) const
-{
-	if (!mouseState_.rgbButtons[button] && prevMouseState_.rgbButtons[button])
+	/// -------------------------------------------------------------
+	///				　キーの押下処理（押した瞬間）
+	/// -------------------------------------------------------------
+	bool Input::TriggerKey(BYTE keyNumber) const
 	{
-		return true;
+		return key[keyNumber] != 0 && keyPre[keyNumber] == 0;
 	}
 
-	return false;
-}
 
-
-/// -------------------------------------------------------------
-///				　		マウスの座標を設定
-/// -------------------------------------------------------------
-void Input::SetMousePosition(int x, int y)
-{
-	POINT point;
-	point.x = x;
-	point.y = y;
-	ClientToScreen(winApp_->GetHwnd(), &point);
-	SetCursorPos(point.x, point.y);
-}
-
-
-/// -------------------------------------------------------------
-///				　	マウスの座標を取得
-/// -------------------------------------------------------------
-Vector2 Input::GetMousePosition()
-{
-	return Vector2(float(mousePosition_.x), float(mousePosition_.y));
-}
-
-
-void Input::SetLockCursor(bool lock)
-{
-	if (lockCursor_ == lock) { return; }
-	lockCursor_ = lock;
-	ShowCursor(TRUE);
-
-	//if (lockCursor_)
-	//{
-	//	// カーソルを非表示（ShowCursorはカウンタ方式なので注意）
-	//	ShowCursor(FALSE);
-
-	//	// ウィンドウのクライアント領域を画面座標にしてクリップ
-	//	RECT rc{};
-	//	GetClientRect(winApp_->GetHwnd(), &rc);
-	//	MapWindowPoints(winApp_->GetHwnd(), nullptr, (POINT*)&rc, 2); // client→screen
-	//	ClipCursor(&rc);
-	//}
-	//else
-	//{
-	//	ClipCursor(nullptr);
-	//	ShowCursor(TRUE);
-	//}
-}
-
-/// -------------------------------------------------------------
-///				　ゲームパッドの状態を取得
-/// -------------------------------------------------------------
-XINPUT_STATE Input::GetGamePadState()
-{
-	XINPUT_STATE state;
-	ZeroMemory(&state, sizeof(XINPUT_STATE));
-	XInputGetState(0, &state); // ゲームパッドの状態を取得
-	return state;
-}
-
-
-/// -------------------------------------------------------------
-///				　ゲームパッドの状態を更新
-/// -------------------------------------------------------------
-void Input::UpdateGamePadState()
-{
-	memcpy(prevButtonStates_, buttonStates_, sizeof(prevButtonStates_));
-}
-
-
-/// -------------------------------------------------------------
-///				　ゲームパッドの接続状態を取得
-/// -------------------------------------------------------------
-bool Input::IsConnect()
-{
-	ZeroMemory(&state_, sizeof(XINPUT_STATE));
-	DWORD result = XInputGetState(0, &state_); // ゲームパッドの状態を取得
-	return result == ERROR_SUCCESS;
-}
-
-
-/// -------------------------------------------------------------
-///				ゲームパッドのリリース状態を取得
-/// -------------------------------------------------------------
-bool Input::ReleaseButton(int button) const
-{
-	if (!buttonStates_[button] && prevButtonStates_[button])
+	/// -------------------------------------------------------------
+	///				　		マウスの座標を更新
+	/// -------------------------------------------------------------
+	void Input::UpdateMousePosition()
 	{
-		return true;
+		// マウスの座標を取得
+		POINT point;
+		GetCursorPos(&point);
+		ScreenToClient(winApp_->GetHwnd(), &point);
+		mousePosition_.x = point.x;
+		mousePosition_.y = point.y;
 	}
 
-	return false;
-}
 
-
-/// -------------------------------------------------------------
-///				ゲームパッドの押下状態を取得
-/// -------------------------------------------------------------
-bool Input::PushButton(int button) const
-{
-	if (button == XButtons.L_Trigger)
+	/// -------------------------------------------------------------
+	///				　	マウスの押下状態を取得
+	/// -------------------------------------------------------------
+	bool Input::PushMouse(int button) const
 	{
-		return state_.Gamepad.bLeftTrigger > XINPUT_GAMEPAD_TRIGGER_THRESHOLD;
-	}
-	if (button == XButtons.R_Trigger)
-	{
-		return state_.Gamepad.bRightTrigger > XINPUT_GAMEPAD_TRIGGER_THRESHOLD;
-	}
-	return buttonStates_[button];
-}
+		if (mouseState_.rgbButtons[button])
+		{
+			return true;
+		}
 
-
-/// -------------------------------------------------------------
-///				ゲームパッドのトリガー状態を取得
-/// -------------------------------------------------------------
-bool Input::TriggerButton(int button) const
-{
-	return buttonsTriger_[button];
-}
-
-
-/// -------------------------------------------------------------
-///					左スティックのデッドゾーン
-/// -------------------------------------------------------------
-bool Input::LStickInDeadZone() const
-{
-	// 左スティックの値を取得
-	short x = state_.Gamepad.sThumbLX;
-	short y = state_.Gamepad.sThumbLY;
-
-	// デッドゾーンの設定
-	if (x > XINPUT_GAMEPAD_LEFT_THUMB_DEADZONE || x < -XINPUT_GAMEPAD_LEFT_THUMB_DEADZONE)
-	{
 		return false;
 	}
 
-	if (y > XINPUT_GAMEPAD_LEFT_THUMB_DEADZONE || y < -XINPUT_GAMEPAD_LEFT_THUMB_DEADZONE)
+
+	/// -------------------------------------------------------------
+	///				　	マウスのトリガー状態を取得
+	/// -------------------------------------------------------------
+	bool Input::TriggerMouse(int button) const
 	{
+		if (mouseState_.rgbButtons[button] && !prevMouseState_.rgbButtons[button])
+		{
+			return true;
+		}
+
 		return false;
 	}
 
-	return true;
-}
 
-
-/// -------------------------------------------------------------
-///					右スティックのデッドゾーン
-/// -------------------------------------------------------------
-bool Input::RStickInDeadZone() const
-{
-	// 右スティックの値を取得
-	short x = state_.Gamepad.sThumbRX;
-	short y = state_.Gamepad.sThumbRY;
-
-	// デッドゾーンの設定
-	if (x > XINPUT_GAMEPAD_RIGHT_THUMB_DEADZONE || x < -XINPUT_GAMEPAD_RIGHT_THUMB_DEADZONE)
+	/// -------------------------------------------------------------
+	///				　	マウスのリリース状態を取得
+	/// -------------------------------------------------------------
+	bool Input::ReleaseMouse(int button) const
 	{
+		if (!mouseState_.rgbButtons[button] && prevMouseState_.rgbButtons[button])
+		{
+			return true;
+		}
+
 		return false;
 	}
 
-	if (y > XINPUT_GAMEPAD_RIGHT_THUMB_DEADZONE || y < -XINPUT_GAMEPAD_RIGHT_THUMB_DEADZONE)
+
+	/// -------------------------------------------------------------
+	///				　		マウスの座標を設定
+	/// -------------------------------------------------------------
+	void Input::SetMousePosition(int x, int y)
 	{
+		POINT point;
+		point.x = x;
+		point.y = y;
+		ClientToScreen(winApp_->GetHwnd(), &point);
+		SetCursorPos(point.x, point.y);
+	}
+
+	/// -------------------------------------------------------------
+	///				　		カーソルの表示・非表示
+	/// -------------------------------------------------------------
+	void Input::SetCursorVisible(bool visible)
+	{
+		if (cursorVisible_ == visible) { return; }
+		cursorVisible_ = visible;
+
+		if (visible)
+		{
+			// カウンタが 0以上になるまで TRUE を回す
+			while (ShowCursor(TRUE) < 0) {}
+		}
+		else
+		{
+			// カウンタが 0未満になるまで FALSE を回す
+			while (ShowCursor(FALSE) >= 0) {}
+		}
+	}
+
+	/// -------------------------------------------------------------
+	///				　	マウスの座標を取得
+	/// -------------------------------------------------------------
+	Vector2 Input::GetMousePosition()
+	{
+		return Vector2(float(mousePosition_.x), float(mousePosition_.y));
+	}
+
+
+	void Input::SetLockCursor(bool lock)
+	{
+		if (lockCursor_ == lock) { return; }
+		lockCursor_ = lock;
+	}
+
+	/// -------------------------------------------------------------
+	///				　ゲームパッドの状態を取得
+	/// -------------------------------------------------------------
+	XINPUT_STATE Input::GetGamePadState()
+	{
+		XINPUT_STATE state;
+		ZeroMemory(&state, sizeof(XINPUT_STATE));
+		XInputGetState(0, &state); // ゲームパッドの状態を取得
+		return state;
+	}
+
+
+	/// -------------------------------------------------------------
+	///				　ゲームパッドの状態を更新
+	/// -------------------------------------------------------------
+	void Input::UpdateGamePadState()
+	{
+		memcpy(prevButtonStates_, buttonStates_, sizeof(prevButtonStates_));
+	}
+
+
+	/// -------------------------------------------------------------
+	///				　ゲームパッドの接続状態を取得
+	/// -------------------------------------------------------------
+	bool Input::IsConnect()
+	{
+		ZeroMemory(&state_, sizeof(XINPUT_STATE));
+		DWORD result = XInputGetState(0, &state_); // ゲームパッドの状態を取得
+		return result == ERROR_SUCCESS;
+	}
+
+
+	/// -------------------------------------------------------------
+	///				ゲームパッドのリリース状態を取得
+	/// -------------------------------------------------------------
+	bool Input::ReleaseButton(int button) const
+	{
+		if (!buttonStates_[button] && prevButtonStates_[button])
+		{
+			return true;
+		}
+
 		return false;
 	}
 
-	return true;
-}
 
-
-/// -------------------------------------------------------------
-///					左スティックの値を取得
-/// -------------------------------------------------------------
-Vector2 Input::GetLeftStick()
-{
-	// 左スティックの値を取得
-	short x = state_.Gamepad.sThumbLX;
-	short y = state_.Gamepad.sThumbLY;
-
-	return Vector2(static_cast<float>(x) / 32768.0f, static_cast<float>(y) / 32768.0f);
-}
-
-
-/// -------------------------------------------------------------
-///					右スティックの値を取得
-/// -------------------------------------------------------------
-Vector2 Input::GetRightStick()
-{
-	// 右スティックの値を取得
-	short x = state_.Gamepad.sThumbRX;
-	short y = state_.Gamepad.sThumbRY;
-
-	return Vector2(static_cast<float>(x) / 32768.0f, static_cast<float>(y) / 32768.0f);
-}
-
-
-/// -------------------------------------------------------------
-///					左トリガーの値を取得
-/// -------------------------------------------------------------
-float Input::GetLeftTrigger()
-{
-	// 左トリガーの値を取得
-	BYTE trigger = state_.Gamepad.bLeftTrigger;
-
-	if (trigger > XINPUT_GAMEPAD_TRIGGER_THRESHOLD)
+	/// -------------------------------------------------------------
+	///				ゲームパッドの押下状態を取得
+	/// -------------------------------------------------------------
+	bool Input::PushButton(int button) const
 	{
-		return static_cast<float>(trigger) / 255.0f;
+		if (button == XButtons.L_Trigger)
+		{
+			return state_.Gamepad.bLeftTrigger > XINPUT_GAMEPAD_TRIGGER_THRESHOLD;
+		}
+		if (button == XButtons.R_Trigger)
+		{
+			return state_.Gamepad.bRightTrigger > XINPUT_GAMEPAD_TRIGGER_THRESHOLD;
+		}
+		return buttonStates_[button];
 	}
 
-	return 0.0f;
-}
 
-
-/// -------------------------------------------------------------
-///					右トリガーの値を取得
-/// -------------------------------------------------------------
-float Input::GetRightTrigger()
-{
-	// 左トリガーの値を取得
-	BYTE trigger = state_.Gamepad.bRightTrigger;
-
-	if (trigger > XINPUT_GAMEPAD_TRIGGER_THRESHOLD)
+	/// -------------------------------------------------------------
+	///				ゲームパッドのトリガー状態を取得
+	/// -------------------------------------------------------------
+	bool Input::TriggerButton(int button) const
 	{
-		return static_cast<float>(trigger) / 255.0f;
+		return buttonsTriger_[button];
 	}
 
-	return 0.0f;
-}
+
+	/// -------------------------------------------------------------
+	///					左スティックのデッドゾーン
+	/// -------------------------------------------------------------
+	bool Input::LStickInDeadZone() const
+	{
+		// 左スティックの値を取得
+		short x = state_.Gamepad.sThumbLX;
+		short y = state_.Gamepad.sThumbLY;
+
+		// デッドゾーンの設定
+		if (x > XINPUT_GAMEPAD_LEFT_THUMB_DEADZONE || x < -XINPUT_GAMEPAD_LEFT_THUMB_DEADZONE)
+		{
+			return false;
+		}
+
+		if (y > XINPUT_GAMEPAD_LEFT_THUMB_DEADZONE || y < -XINPUT_GAMEPAD_LEFT_THUMB_DEADZONE)
+		{
+			return false;
+		}
+
+		return true;
+	}
 
 
-/// -------------------------------------------------------------
-///						ゲームパッドの振動
-/// -------------------------------------------------------------
-void Input::SetVibration(float leftMotor, float rightMotor)
-{
-	// モーターの振動設定
-	XINPUT_VIBRATION vibration;
-	ZeroMemory(&vibration, sizeof(XINPUT_VIBRATION));
+	/// -------------------------------------------------------------
+	///					右スティックのデッドゾーン
+	/// -------------------------------------------------------------
+	bool Input::RStickInDeadZone() const
+	{
+		// 右スティックの値を取得
+		short x = state_.Gamepad.sThumbRX;
+		short y = state_.Gamepad.sThumbRY;
 
-	vibration.wLeftMotorSpeed = static_cast<WORD>(leftMotor * 65535.0f);
-	vibration.wRightMotorSpeed = static_cast<WORD>(rightMotor * 65535.0f);
+		// デッドゾーンの設定
+		if (x > XINPUT_GAMEPAD_RIGHT_THUMB_DEADZONE || x < -XINPUT_GAMEPAD_RIGHT_THUMB_DEADZONE)
+		{
+			return false;
+		}
 
-	XInputSetState(0, &vibration);
-}
+		if (y > XINPUT_GAMEPAD_RIGHT_THUMB_DEADZONE || y < -XINPUT_GAMEPAD_RIGHT_THUMB_DEADZONE)
+		{
+			return false;
+		}
+
+		return true;
+	}
 
 
-/// -------------------------------------------------------------
-///					ゲームパッドの振動を停止
-/// -------------------------------------------------------------
-void Input::StopVibration()
-{
-	// モーターの振動の停止
-	XINPUT_VIBRATION vibration;
-	ZeroMemory(&vibration, sizeof(XINPUT_VIBRATION));
+	/// -------------------------------------------------------------
+	///					左スティックの値を取得
+	/// -------------------------------------------------------------
+	Vector2 Input::GetLeftStick()
+	{
+		// 左スティックの値を取得
+		short x = state_.Gamepad.sThumbLX;
+		short y = state_.Gamepad.sThumbLY;
 
-	vibration.wLeftMotorSpeed = 0;
-	vibration.wRightMotorSpeed = 0;
+		return Vector2(static_cast<float>(x) / 32768.0f, static_cast<float>(y) / 32768.0f);
+	}
 
-	XInputSetState(0, &vibration);
-}
+
+	/// -------------------------------------------------------------
+	///					右スティックの値を取得
+	/// -------------------------------------------------------------
+	Vector2 Input::GetRightStick()
+	{
+		// 右スティックの値を取得
+		short x = state_.Gamepad.sThumbRX;
+		short y = state_.Gamepad.sThumbRY;
+
+		return Vector2(static_cast<float>(x) / 32768.0f, static_cast<float>(y) / 32768.0f);
+	}
+
+
+	/// -------------------------------------------------------------
+	///					左トリガーの値を取得
+	/// -------------------------------------------------------------
+	float Input::GetLeftTrigger()
+	{
+		// 左トリガーの値を取得
+		BYTE trigger = state_.Gamepad.bLeftTrigger;
+
+		if (trigger > XINPUT_GAMEPAD_TRIGGER_THRESHOLD)
+		{
+			return static_cast<float>(trigger) / 255.0f;
+		}
+
+		return 0.0f;
+	}
+
+
+	/// -------------------------------------------------------------
+	///					右トリガーの値を取得
+	/// -------------------------------------------------------------
+	float Input::GetRightTrigger()
+	{
+		// 左トリガーの値を取得
+		BYTE trigger = state_.Gamepad.bRightTrigger;
+
+		if (trigger > XINPUT_GAMEPAD_TRIGGER_THRESHOLD)
+		{
+			return static_cast<float>(trigger) / 255.0f;
+		}
+
+		return 0.0f;
+	}
+
+
+	/// -------------------------------------------------------------
+	///						ゲームパッドの振動
+	/// -------------------------------------------------------------
+	void Input::SetVibration(float leftMotor, float rightMotor)
+	{
+		// モーターの振動設定
+		XINPUT_VIBRATION vibration;
+		ZeroMemory(&vibration, sizeof(XINPUT_VIBRATION));
+
+		vibration.wLeftMotorSpeed = static_cast<WORD>(leftMotor * 65535.0f);
+		vibration.wRightMotorSpeed = static_cast<WORD>(rightMotor * 65535.0f);
+
+		XInputSetState(0, &vibration);
+	}
+
+
+	/// -------------------------------------------------------------
+	///					ゲームパッドの振動を停止
+	/// -------------------------------------------------------------
+	void Input::StopVibration()
+	{
+		// モーターの振動の停止
+		XINPUT_VIBRATION vibration;
+		ZeroMemory(&vibration, sizeof(XINPUT_VIBRATION));
+
+		vibration.wLeftMotorSpeed = 0;
+		vibration.wRightMotorSpeed = 0;
+
+		XInputSetState(0, &vibration);
+	}
 
 } // namespace Ken4lowEngine
