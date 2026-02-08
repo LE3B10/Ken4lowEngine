@@ -8,6 +8,8 @@
 #include "SpriteFractureEffect.h"
 #include "SpriteDebrisEmitter.h"
 
+#include "AnimationModel.h"
+
 #include <vector>
 #include <memory>
 
@@ -103,5 +105,7 @@ private: /// ---------- メンバ変数 ---------- ///
 	// テスト用：欠片ON/OFF
 	bool debrisEnable_ = true;
 	int debrisBurstBase_ = 10;
+
+	std::unique_ptr<K4E::AnimationModel> animModel_;
 };
 

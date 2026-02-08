@@ -109,6 +109,9 @@ void DebugScene::Initialize()
 	boss_ = std::make_unique<Boss>();
 	boss_->Initialize();
 
+	animModel_ = std::make_unique<K4E::AnimationModel>();
+	animModel_->Initialize("human.gltf");
+
 	fadeManager_ = std::make_unique<FadeManager>();
 	fadeManager_->Initialize();
 
@@ -212,6 +215,8 @@ void DebugScene::Update()
 
 	// ボスの更新
 	boss_->Update(deltaTime);
+
+	animModel_->Update();
 
 	fadeManager_->Update(deltaTime);
 
@@ -369,6 +374,8 @@ void DebugScene::Draw3DObjects()
 {
 	boss_->Draw();
 
+	animModel_->Draw();
+
 #ifdef _DEBUG
 	// ワイヤーフレームの描画
 	K4E::Wireframe::GetInstance()->DrawGrid(100.0f, 50.0f, { 0.25f, 0.25f, 0.25f,1.0f });
@@ -416,6 +423,7 @@ void DebugScene::Finalize()
 	fracture_.reset();
 	crackDemoSprite_.reset();
 	fadeManager_.reset();
+	animModel_.reset();
 	boss_.reset();
 
 	input_ = nullptr;
@@ -427,6 +435,8 @@ void DebugScene::DrawImGui()
 #ifdef USE_IMGUI
 
 	boss_->DrawImGui();
+
+	animModel_->DrawImGui();
 
 	fadeManager_->DrawImGui();
 

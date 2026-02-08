@@ -214,12 +214,6 @@
     <ClCompile Include="EngineLayer\PostEffectManagement\VignetteEffect\VignetteEffect.cpp">
       <Filter>EngineLayer\PostEffectManagement\VignetteEffect</Filter>
     </ClCompile>
-    <ClCompile Include="ApplicationLayer\Scene\GameClearScene\GameClearScene.cpp">
-      <Filter>ApplicationLayer\Scene\GameClearScene</Filter>
-    </ClCompile>
-    <ClCompile Include="ApplicationLayer\Scene\GameOverScene\GameOverScene.cpp">
-      <Filter>ApplicationLayer\Scene\GameOverScene</Filter>
-    </ClCompile>
     <ClCompile Include="ApplicationLayer\Scene\GamePlayScene\GamePlayScene.cpp">
       <Filter>ApplicationLayer\Scene\GamePlayScene</Filter>
     </ClCompile>
@@ -261,18 +255,6 @@
     </ClCompile>
     <ClCompile Include="EngineLayer\3D\Wireframe\Wireframe.cpp">
       <Filter>EngineLayer\3D\Wireframe</Filter>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\3D\AnimationManagement\AnimationModel.cpp">
-      <Filter>EngineLayer\3D\AnimationManagement</Filter>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\3D\AnimationManagement\AnimationPipelineBuilder.cpp">
-      <Filter>EngineLayer\3D\AnimationManagement</Filter>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\3D\AnimationManagement\Skeleton.cpp">
-      <Filter>EngineLayer\3D\AnimationManagement</Filter>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\3D\AnimationManagement\SkinCluster.cpp">
-      <Filter>EngineLayer\3D\AnimationManagement</Filter>
     </ClCompile>
     <ClCompile Include="EngineLayer\Base\BlendStateFactory\BlendStateFactory.cpp">
       <Filter>EngineLayer\Base\BlendStateFactory</Filter>
@@ -586,6 +568,42 @@
     <ClCompile Include="EngineLayer\2D\Sprite\SpriteFractureEffect.cpp">
       <Filter>EngineLayer\2D\Sprite</Filter>
     </ClCompile>
+    <ClCompile Include="EngineLayer\3D\AnimationSystem\Debug\AnimationModelDebugView.cpp">
+      <Filter>EngineLayer\3D\AnimationManagement\Debug</Filter>
+    </ClCompile>
+    <ClCompile Include="EngineLayer\3D\AnimationSystem\Core\AnimationLoader.cpp">
+      <Filter>EngineLayer\3D\AnimationManagement\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="EngineLayer\3D\AnimationSystem\Core\AnimationModel.cpp">
+      <Filter>EngineLayer\3D\AnimationManagement\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="EngineLayer\3D\AnimationSystem\Skeleton\SkeletonAnimator.cpp">
+      <Filter>EngineLayer\3D\AnimationManagement\Skeleton</Filter>
+    </ClCompile>
+    <ClCompile Include="EngineLayer\3D\AnimationSystem\Skeleton\Skeleton.cpp">
+      <Filter>EngineLayer\3D\AnimationManagement\Skeleton</Filter>
+    </ClCompile>
+    <ClCompile Include="EngineLayer\3D\AnimationSystem\Skinning\SkinCluster.cpp">
+      <Filter>EngineLayer\3D\AnimationManagement\Skinning</Filter>
+    </ClCompile>
+    <ClCompile Include="EngineLayer\3D\AnimationSystem\Skinning\AnimationModelSkinningCS.cpp">
+      <Filter>EngineLayer\3D\AnimationManagement\Skinning</Filter>
+    </ClCompile>
+    <ClCompile Include="EngineLayer\3D\AnimationSystem\LOD\AnimationModelLODBuilder.cpp">
+      <Filter>EngineLayer\3D\AnimationManagement\LOD</Filter>
+    </ClCompile>
+    <ClCompile Include="EngineLayer\3D\AnimationSystem\LOD\AnimationModelLODController.cpp">
+      <Filter>EngineLayer\3D\AnimationManagement\LOD</Filter>
+    </ClCompile>
+    <ClCompile Include="EngineLayer\3D\AnimationSystem\Pipeline\AnimationPipelineBuilder.cpp">
+      <Filter>EngineLayer\3D\AnimationManagement\Pipeline</Filter>
+    </ClCompile>
+    <ClCompile Include="EngineLayer\3D\AnimationSystem\Collider\AnimationModelColliderController.cpp">
+      <Filter>EngineLayer\3D\AnimationManagement\Collider</Filter>
+    </ClCompile>
+    <ClCompile Include="EngineLayer\3D\AnimationSystem\Core\AnimationPlayer.cpp">
+      <Filter>EngineLayer\3D\AnimationManagement\Core</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="EngineLayer\Math\MultipleStructs\AABB.h">
@@ -759,12 +777,6 @@
     <ClInclude Include="EngineLayer\PostEffectManagement\VignetteEffect\VignetteEffect.h">
       <Filter>EngineLayer\PostEffectManagement\VignetteEffect</Filter>
     </ClInclude>
-    <ClInclude Include="ApplicationLayer\Scene\GameClearScene\GameClearScene.h">
-      <Filter>ApplicationLayer\Scene\GameClearScene</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Scene\GameOverScene\GameOverScene.h">
-      <Filter>ApplicationLayer\Scene\GameOverScene</Filter>
-    </ClInclude>
     <ClInclude Include="ApplicationLayer\Scene\GamePlayScene\GamePlayScene.h">
       <Filter>ApplicationLayer\Scene\GamePlayScene</Filter>
     </ClInclude>
@@ -815,18 +827,6 @@
     </ClInclude>
     <ClInclude Include="EngineLayer\3D\Wireframe\Wireframe.h">
       <Filter>EngineLayer\3D\Wireframe</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\3D\AnimationManagement\AnimationModel.h">
-      <Filter>EngineLayer\3D\AnimationManagement</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\3D\AnimationManagement\AnimationPipelineBuilder.h">
-      <Filter>EngineLayer\3D\AnimationManagement</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\3D\AnimationManagement\Skeleton.h">
-      <Filter>EngineLayer\3D\AnimationManagement</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\3D\AnimationManagement\SkinCluster.h">
-      <Filter>EngineLayer\3D\AnimationManagement</Filter>
     </ClInclude>
     <ClInclude Include="EngineLayer\Base\BlendStateFactory\BlendStateFactory.h">
       <Filter>EngineLayer\Base\BlendStateFactory</Filter>
@@ -1290,6 +1290,48 @@
     <ClInclude Include="EngineLayer\2D\Sprite\SpriteFractureEffect.h">
       <Filter>EngineLayer\2D\Sprite</Filter>
     </ClInclude>
+    <ClInclude Include="EngineLayer\3D\AnimationSystem\Debug\AnimationModelDebugView.h">
+      <Filter>EngineLayer\3D\AnimationManagement\Debug</Filter>
+    </ClInclude>
+    <ClInclude Include="EngineLayer\3D\AnimationSystem\Core\AnimationLoader.h">
+      <Filter>EngineLayer\3D\AnimationManagement\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="EngineLayer\3D\AnimationSystem\Core\AnimationModel.h">
+      <Filter>EngineLayer\3D\AnimationManagement\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="EngineLayer\3D\AnimationSystem\Core\AnimationSampler.h">
+      <Filter>EngineLayer\3D\AnimationManagement\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="EngineLayer\3D\AnimationSystem\Skeleton\SkeletonAnimator.h">
+      <Filter>EngineLayer\3D\AnimationManagement\Skeleton</Filter>
+    </ClInclude>
+    <ClInclude Include="EngineLayer\3D\AnimationSystem\Skeleton\Skeleton.h">
+      <Filter>EngineLayer\3D\AnimationManagement\Skeleton</Filter>
+    </ClInclude>
+    <ClInclude Include="EngineLayer\3D\AnimationSystem\Skinning\SkinCluster.h">
+      <Filter>EngineLayer\3D\AnimationManagement\Skinning</Filter>
+    </ClInclude>
+    <ClInclude Include="EngineLayer\3D\AnimationSystem\Skinning\AnimationModelSkinningCS.h">
+      <Filter>EngineLayer\3D\AnimationManagement\Skinning</Filter>
+    </ClInclude>
+    <ClInclude Include="EngineLayer\3D\AnimationSystem\LOD\AnimationModelLODBuilder.h">
+      <Filter>EngineLayer\3D\AnimationManagement\LOD</Filter>
+    </ClInclude>
+    <ClInclude Include="EngineLayer\3D\AnimationSystem\LOD\AnimationModelLODController.h">
+      <Filter>EngineLayer\3D\AnimationManagement\LOD</Filter>
+    </ClInclude>
+    <ClInclude Include="EngineLayer\3D\AnimationSystem\Pipeline\AnimationPipelineBuilder.h">
+      <Filter>EngineLayer\3D\AnimationManagement\Pipeline</Filter>
+    </ClInclude>
+    <ClInclude Include="EngineLayer\3D\AnimationSystem\Collider\AnimationModelColliderController.h">
+      <Filter>EngineLayer\3D\AnimationManagement\Collider</Filter>
+    </ClInclude>
+    <ClInclude Include="EngineLayer\3D\AnimationSystem\Collider\BodyPartCollider.h">
+      <Filter>EngineLayer\3D\AnimationManagement\Collider</Filter>
+    </ClInclude>
+    <ClInclude Include="EngineLayer\3D\AnimationSystem\Core\AnimationPlayer.h">
+      <Filter>EngineLayer\3D\AnimationManagement\Core</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="Resources\Shaders\PostEffect\FullScreen.hlsli">
@@ -1743,6 +1785,27 @@
     </Filter>
     <Filter Include="ApplicationLayer\WeaponSystem\WeaponMasterData">
       <UniqueIdentifier>{4a404601-f1af-44a1-8471-a7f192721594}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="EngineLayer\3D\AnimationManagement\Core">
+      <UniqueIdentifier>{8f00a53d-654e-4adb-acb9-5bcc8f90c705}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="EngineLayer\3D\AnimationManagement\Skeleton">
+      <UniqueIdentifier>{7a987f47-fc89-4024-893b-b74db7b8d4e2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="EngineLayer\3D\AnimationManagement\Skinning">
+      <UniqueIdentifier>{a9efea0d-0bf6-442c-99bd-bc264c08859d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="EngineLayer\3D\AnimationManagement\LOD">
+      <UniqueIdentifier>{037a48ed-287e-4859-b16f-e2b0690d05d7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="EngineLayer\3D\AnimationManagement\Pipeline">
+      <UniqueIdentifier>{0d5d1ba2-87c8-43e5-8c70-b11d6b802f07}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="EngineLayer\3D\AnimationManagement\Collider">
+      <UniqueIdentifier>{2d6a8f0c-f527-40f4-b0a4-29ad0fe6689f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="EngineLayer\3D\AnimationManagement\Debug">
+      <UniqueIdentifier>{64dd504b-09cb-4ce7-b7b5-3377b0a7ad71}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

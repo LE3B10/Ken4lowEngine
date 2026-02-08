@@ -65,6 +65,8 @@ public: /// ---------- ゲッタ ---------- ///
 	/// <returns>Joint 配列への参照。</returns>
 	std::vector<Joint>& GetJoints() { return joints_; }
 
+	const std::vector<Joint>& GetJoints() const { return joints_; }
+
 	/// <summary>
 	/// ジョイント名からインデックスを引くためのマップを取得します。<br/>
 	/// SkinCluster 側で「ジョイント名 → パレットインデックス」を解決する際などに使用されます。

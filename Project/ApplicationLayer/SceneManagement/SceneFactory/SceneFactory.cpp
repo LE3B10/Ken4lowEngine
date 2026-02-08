@@ -1,8 +1,6 @@
 #include "SceneFactory.h"
 #include "TitleScene.h"
 #include "GamePlayScene.h"
-#include "GameClearScene.h"
-#include "GameOverScene.h"
 #include "StageSelectScene.h"
 #include <PhysicalScene.h>
 #include "DebugScene.h"
@@ -24,12 +22,6 @@ std::unique_ptr<BaseScene> SceneFactory::CreateScene(const std::string& sceneNam
 
 	// ゲームプレイシーン
 	else if (sceneName == "GamePlayScene")		return std::make_unique<GamePlayScene>();
-
-	// ゲームクリアシーン
-	else if (sceneName == "GameClearScene")		return std::make_unique<GameClearScene>();
-
-	// ゲームオーバーシーン
-	else if (sceneName == "GameOverScene")		return std::make_unique<GameOverScene>();
 
 #ifdef _DEBUG
 	// 物理演算シーン
