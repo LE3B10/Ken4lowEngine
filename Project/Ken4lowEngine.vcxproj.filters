@@ -604,6 +604,15 @@
     <ClCompile Include="EngineLayer\3D\AnimationSystem\Core\AnimationPlayer.cpp">
       <Filter>EngineLayer\3D\AnimationManagement\Core</Filter>
     </ClCompile>
+    <ClCompile Include="ApplicationLayer\Scene\DebugScene\DummyBullet.cpp">
+      <Filter>ApplicationLayer\Scene\DebugScene</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\Scene\DebugScene\DummyEnemy.cpp">
+      <Filter>ApplicationLayer\Scene\DebugScene</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\Scene\DebugScene\DummyPlayer.cpp">
+      <Filter>ApplicationLayer\Scene\DebugScene</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="EngineLayer\Math\MultipleStructs\AABB.h">
@@ -1332,6 +1341,15 @@
     <ClInclude Include="EngineLayer\3D\AnimationSystem\Core\AnimationPlayer.h">
       <Filter>EngineLayer\3D\AnimationManagement\Core</Filter>
     </ClInclude>
+    <ClInclude Include="ApplicationLayer\Scene\DebugScene\DummyBullet.h">
+      <Filter>ApplicationLayer\Scene\DebugScene</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Scene\DebugScene\DummyEnemy.h">
+      <Filter>ApplicationLayer\Scene\DebugScene</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Scene\DebugScene\DummyPlayer.h">
+      <Filter>ApplicationLayer\Scene\DebugScene</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="Resources\Shaders\PostEffect\FullScreen.hlsli">
@@ -1539,9 +1557,6 @@
     </Filter>
     <Filter Include="EngineLayer\3D\Object3D">
       <UniqueIdentifier>{e65d1f69-7154-46c7-90a3-6230845cc9a4}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="EngineLayer\3D\Model">
-      <UniqueIdentifier>{98677fc2-9c16-4169-8408-51393e5e55dd}</UniqueIdentifier>
     </Filter>
     <Filter Include="EngineLayer\3D\SkyBox">
       <UniqueIdentifier>{06408644-6de6-497d-809e-e5aa7ae27550}</UniqueIdentifier>

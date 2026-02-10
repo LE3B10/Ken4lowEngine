@@ -118,6 +118,9 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     </FxCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="ApplicationLayer\Scene\DebugScene\DummyBullet.cpp" />
+    <ClCompile Include="ApplicationLayer\Scene\DebugScene\DummyEnemy.cpp" />
+    <ClCompile Include="ApplicationLayer\Scene\DebugScene\DummyPlayer.cpp" />
     <ClCompile Include="EngineLayer\3D\AnimationSystem\Collider\AnimationModelColliderController.cpp" />
     <ClCompile Include="EngineLayer\3D\AnimationSystem\Debug\AnimationModelDebugView.cpp" />
     <ClCompile Include="EngineLayer\3D\AnimationSystem\LOD\AnimationModelLODController.cpp" />
@@ -935,6 +938,9 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     </FxCompile>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="ApplicationLayer\Scene\DebugScene\DummyBullet.h" />
+    <ClInclude Include="ApplicationLayer\Scene\DebugScene\DummyEnemy.h" />
+    <ClInclude Include="ApplicationLayer\Scene\DebugScene\DummyPlayer.h" />
     <ClInclude Include="EngineLayer\3D\AnimationSystem\Collider\AnimationModelColliderController.h" />
     <ClInclude Include="EngineLayer\3D\AnimationSystem\Debug\AnimationModelDebugView.h" />
     <ClInclude Include="EngineLayer\3D\AnimationSystem\LOD\AnimationModelLODController.h" />

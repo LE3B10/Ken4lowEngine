@@ -112,6 +112,22 @@ void DebugScene::Initialize()
 	animModel_ = std::make_unique<K4E::AnimationModel>();
 	animModel_->Initialize("human.gltf");
 
+	collisionManager_ = std::make_unique<CollisionManager>();
+	collisionManager_->Initialize();
+
+	player_ = std::make_unique<DummyPlayer>();
+	player_->Initialize();
+	collisionManager_->AddCollider(player_.get());
+
+	for (int i = 0; i < 5; ++i)
+	{
+		auto enemy = std::make_unique<DummyEnemy>();
+		enemy->Initialize();
+		enemy->SetCenterPosition({ 0.0f, 0.0f, 5.0f + i * 4.0f });
+		collisionManager_->AddCollider(enemy.get());
+		enemies_.emplace_back(std::move(enemy));
+	}
+
 	fadeManager_ = std::make_unique<FadeManager>();
 	fadeManager_->Initialize();
 
@@ -217,6 +233,52 @@ void DebugScene::Update()
 	boss_->Update(deltaTime);
 
 	animModel_->Update();
+
+	player_->Update();
+
+	for (auto& enemy : enemies_)
+	{
+		enemy->Update();
+	}
+
+
+	// --- 弾の生成（SPACEで発射） ---
+	if (input_->TriggerKey(DIK_SPACE))
+	{
+		// 生成位置：プレイヤーの少し前
+		K4E::Vector3 start = player_->GetCenterPosition() + K4E::Vector3{ 0.0f, 0.0f, 1.0f };
+		K4E::Vector3 vel = { 0.0f, 0.0f, 250.0f }; // 1フレームあたりの移動量
+
+		auto bullet = std::make_unique<DummyBullet>();
+		bullet->Initialize(start, vel, 1);
+		collisionManager_->AddCollider(bullet.get());
+		bullets_.emplace_back(std::move(bullet));
+	}
+
+	// --- 弾の更新 ---
+	for (auto& b : bullets_)
+	{
+		b->Update();
+	}
+
+	collisionManager_->Update();
+	collisionManager_->CheckAllCollisions();
+
+
+	// --- 消滅した弾を削除（Exitが解決されるまで1フレーム猶予） ---
+	for (auto it = bullets_.begin(); it != bullets_.end(); )
+	{
+		if ((*it)->IsRemovable())
+		{
+			collisionManager_->RemoveCollider(it->get());
+			it = bullets_.erase(it);
+		}
+		else
+		{
+			++it;
+		}
+	}
+
 
 	fadeManager_->Update(deltaTime);
 
@@ -376,9 +438,23 @@ void DebugScene::Draw3DObjects()
 
 	animModel_->Draw();
 
+	player_->Draw();
+
+	for (auto& enemy : enemies_)
+	{
+		enemy->Draw();
+	}
+
+	for (auto& b : bullets_)
+	{
+		b->Draw();
+	}
+
 #ifdef _DEBUG
 	// ワイヤーフレームの描画
 	K4E::Wireframe::GetInstance()->DrawGrid(100.0f, 50.0f, { 0.25f, 0.25f, 0.25f,1.0f });
+
+	collisionManager_->Draw();
 #endif // _DEBUG
 }
 
@@ -423,6 +499,20 @@ void DebugScene::Finalize()
 	fracture_.reset();
 	crackDemoSprite_.reset();
 	fadeManager_.reset();
+	player_.reset();
+
+	for (auto& enemy : enemies_)
+	{
+		enemy.reset();
+	}
+
+	for (auto& b : bullets_)
+	{
+		b.reset();
+	}
+	bullets_.clear();
+
+	collisionManager_.reset();
 	animModel_.reset();
 	boss_.reset();
 
@@ -439,47 +529,6 @@ void DebugScene::DrawImGui()
 	animModel_->DrawImGui();
 
 	fadeManager_->DrawImGui();
-
-	//ImGui::Begin("Debug Crack");
-
-	//ImGui::Checkbox("Crack Enable", &crackEnable_);
-	//ImGui::SliderFloat("Crack Progress", &crackProgress_, 0.0f, 1.0f);
-	//ImGui::SliderFloat("Crack Scale", &crackScale_, 1.0f, 60.0f);
-	//ImGui::SliderFloat("Crack Thickness", &crackThickness_, 0.001f, 0.08f);
-	//ImGui::SliderFloat("Crack Intensity", &crackIntensity_, 0.0f, 2.0f);
-	//ImGui::SliderFloat2("HitUV", &hitUV_.x, 0.0f, 1.0f);
-
-	//// “Updateに渡ってる値” を見える化（効いてるか即わかる）
-	//ImGui::Separator();
-	//ImGui::Text("Applied (member) progress = %.3f", crackProgress_);
-
-	//ImGui::SeparatorText("Crack Atlas (Minecraft-like)");
-
-	//ImGui::Checkbox("Atlas Auto", &atlasAuto_);
-	//ImGui::SliderFloat("Atlas FPS", &atlasFps_, 1.0f, 30.0f);
-	//ImGui::Checkbox("Hide Stage0", &atlasHideAtZero_);
-
-	//if (!atlasAuto_)
-	//{
-	//	ImGui::SliderFloat("Break Progress (Atlas)", &breakProgress_, 0.0f, 1.0f);
-	//}
-
-	//ImGui::SliderFloat2("Frame Size(px)", &crackFrameSizePx_.x, 1.0f, 512.0f);
-
-	//ImGui::SeparatorText("Debris (K4E::Sprite)");
-	//ImGui::Checkbox("Debris Enable", &debrisEnable_);
-	//ImGui::SliderInt("Burst Base", &debrisBurstBase_, 0, 60);
-
-	//auto& dp = debris_->GetParams();
-	//ImGui::SliderFloat("Gravity", &dp.gravity, 0.0f, 6000.0f);
-	//ImGui::SliderFloat("Bounce", &dp.bounce, 0.0f, 0.9f);
-	//ImGui::SliderFloat("Min Life", &dp.minLife, 0.05f, 2.0f);
-	//ImGui::SliderFloat("Max Life", &dp.maxLife, 0.05f, 2.0f);
-	//ImGui::SliderFloat("Min Speed", &dp.minSpeed, 0.0f, 1200.0f);
-	//ImGui::SliderFloat("Max Speed", &dp.maxSpeed, 0.0f, 1800.0f);
-	//ImGui::SliderFloat("GroundY", &dp.groundY, 0.0f, 1200.0f);
-
-	//ImGui::End();
 
 	/// ---------- GPUパーティクルデバッグ ---------- ///
 	K4E::GpuParticleManager::GetInstance()->DrawImGui();

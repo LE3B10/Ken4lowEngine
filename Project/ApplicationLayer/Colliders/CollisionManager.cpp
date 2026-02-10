@@ -4,207 +4,257 @@
 #include <CollisionUtility.h>
 #include <CollisionTypeIdDef.h>
 
+#include <algorithm>
+#include <unordered_set>
+
 namespace K4E = ::Ken4lowEngine;
 
-
 /// -------------------------------------------------------------
-///				　			　初期化処理
-///	-------------------------------------------------------------
+///                         初期化処理
+/// -------------------------------------------------------------
 void CollisionManager::Initialize()
 {
-	isCollider_ = true;
-	K4E::ParameterManager::GetInstance()->CreateGroup("K4E::Collider");
-	K4E::ParameterManager::GetInstance()->AddItem("K4E::Collider", "isCollider", isCollider_);
+    isCollider_ = true;
+    K4E::ParameterManager::GetInstance()->CreateGroup("K4E::Collider");
+    K4E::ParameterManager::GetInstance()->AddItem("K4E::Collider", "isCollider", isCollider_);
 
-	// 衝突判定関数の登録
-	RegisterCollisionFuncsions();
+    // 衝突判定関数の登録
+    RegisterCollisionFuncsions();
 }
 
-
 /// -------------------------------------------------------------
-///				　			　更新処理
+///                         更新処理
 /// -------------------------------------------------------------
 void CollisionManager::Update()
 {
-	isCollider_ = K4E::ParameterManager::GetInstance()->GetValue<bool>("K4E::Collider", "isCollider");
+    isCollider_ = K4E::ParameterManager::GetInstance()->GetValue<bool>("K4E::Collider", "isCollider");
 
-	// 更新処理
-	for (K4E::Collider* collider : all_) collider->Update();
+    // Collider 本体の Update はデバッグ用（Wireframeなど）
+    for (K4E::Collider* collider : all_) collider->Update();
 }
 
-
 /// -------------------------------------------------------------
-///				　			　描画処理
+///                         描画処理
 /// -------------------------------------------------------------
 void CollisionManager::Draw()
 {
-	// 非表示なら抜ける
-	if (!isCollider_) return;
+    if (!isCollider_) return;
 
-	// 描画処理
-	for (K4E::Collider* collider : all_)
-		if (isCollider_) collider->Draw();
+    for (K4E::Collider* collider : all_)
+        collider->Draw();
 }
 
-
 /// -------------------------------------------------------------
-///							リセット処理
+///                         リセット処理
 /// -------------------------------------------------------------
 void CollisionManager::Reset()
 {
-	all_.clear();
-	for (auto& v : buckets_) v.clear(); // 型ごとのバケットも空にする
+    all_.clear();
+    for (auto& v : buckets_) v.clear();
 }
 
-
 /// -------------------------------------------------------------
-///				すべての当たり判定を確認する処理
+///                 すべての当たり判定を確認する処理
 /// -------------------------------------------------------------
 void CollisionManager::CheckAllCollisions()
 {
-	using CId = uint32_t;
-	const CId kPlayer = static_cast<CId>(CollisionTypeIdDef::kPlayer);
-	const CId kEnemy = static_cast<CId>(CollisionTypeIdDef::kEnemy);
-	const CId kBoss = static_cast<CId>(CollisionTypeIdDef::kBoss);
-	const CId kBullet = static_cast<CId>(CollisionTypeIdDef::kBullet);
-	const CId kBossBullet = static_cast<CId>(CollisionTypeIdDef::kBossBullet);
-	const CId kItem = static_cast<CId>(CollisionTypeIdDef::kItem);
-	const CId kWorld = static_cast<CId>(CollisionTypeIdDef::kWorld);
+    using CId = uint32_t;
+    const CId kPlayer = static_cast<CId>(CollisionTypeIdDef::kPlayer);
+    const CId kEnemy = static_cast<CId>(CollisionTypeIdDef::kEnemy);
+    const CId kBoss = static_cast<CId>(CollisionTypeIdDef::kBoss);
+    const CId kBullet = static_cast<CId>(CollisionTypeIdDef::kBullet);
+    const CId kBossBullet = static_cast<CId>(CollisionTypeIdDef::kBossBullet);
+    const CId kItem = static_cast<CId>(CollisionTypeIdDef::kItem);
+    const CId kWorld = static_cast<CId>(CollisionTypeIdDef::kWorld);
 
-	auto pairLoop = [&](CId aId, CId bId) {
-		auto& A = buckets_[aId];
-		auto& B = buckets_[bId];
-		if (A.empty() || B.empty()) return;
-		for (K4E::Collider* a : A) for (K4E::Collider* b : B) {
-			CheckCollisionPair(a, b);
-		}
-		};
+    // --- スナップショット（イベント中の追加/削除に備える） ---
+    std::vector<K4E::Collider*> snapshot = all_;
 
-	// 片方向だけにする（OnCollisionはCheckCollisionPair内で両者に通知済み）
-	pairLoop(kBoss, kPlayer);
-	pairLoop(kEnemy, kPlayer);
-	pairLoop(kBullet, kEnemy);
-	pairLoop(kEnemy, kBullet);
-	pairLoop(kBoss, kBullet);
-	pairLoop(kPlayer, kBossBullet);
-	pairLoop(kPlayer, kItem);
-	pairLoop(kItem, kPlayer);
-	pairLoop(kPlayer, kWorld);
-	pairLoop(kWorld, kPlayer);
+    // --- 1) フレーム開始：衝突状態をローテーション ---
+    for (K4E::Collider* c : snapshot)
+    {
+        if (c) c->BeginCollisionFrame();
+    }
+
+    // --- 2) ID -> Collider のマップ（Enter/Exit 解決用） ---
+    std::unordered_map<uint32_t, K4E::Collider*> idMap;
+    idMap.reserve(snapshot.size());
+    for (K4E::Collider* c : snapshot)
+    {
+        if (!c) continue;
+        idMap.emplace(c->GetUniqueID(), c);
+    }
+
+    // --- 3) 判定：当たったペアは両者に「このフレーム接触中」を登録 ---
+    auto pairLoop = [&](CId aId, CId bId)
+        {
+            auto& A = buckets_[aId];
+            auto& B = buckets_[bId];
+            if (A.empty() || B.empty()) return;
+
+            for (K4E::Collider* a : A)
+            {
+                if (!a) continue;
+                for (K4E::Collider* b : B)
+                {
+                    if (!b) continue;
+                    CheckCollisionPair(a, b);
+                }
+            }
+        };
+
+    // ここは片方向だけ回す（CheckCollisionPair 内で両者に登録するため）
+    pairLoop(kBoss, kPlayer);
+    pairLoop(kEnemy, kPlayer);
+    pairLoop(kBullet, kEnemy);
+    pairLoop(kBoss, kBullet);
+    pairLoop(kPlayer, kBossBullet);
+    pairLoop(kPlayer, kItem);
+    pairLoop(kPlayer, kWorld);
+
+    // --- 4) Enter/Stay/Exit を解決して通知 ---
+    for (K4E::Collider* self : snapshot)
+    {
+        if (!self) continue;
+
+        const auto& cur = self->GetCurrentCollisions();
+        const auto& prev = self->GetPrevCollisions();
+
+        // Enter / Stay
+        for (uint32_t otherId : cur)
+        {
+            auto it = idMap.find(otherId);
+            if (it == idMap.end()) continue;
+            K4E::Collider* other = it->second;
+            if (!other || other == self) continue;
+
+            if (prev.find(otherId) == prev.end())
+            {
+                self->OnCollisionEnter(other);
+            }
+            else
+            {
+                self->OnCollisionStay(other);
+            }
+        }
+
+        // Exit
+        for (uint32_t otherId : prev)
+        {
+            if (cur.find(otherId) != cur.end()) continue;
+
+            auto it = idMap.find(otherId);
+            if (it == idMap.end()) continue;
+            K4E::Collider* other = it->second;
+            if (!other || other == self) continue;
+
+            self->OnCollisionExit(other);
+        }
+    }
 }
 
 /// -------------------------------------------------------------
-///						コライダーを追加
+///                     コライダーを追加
 /// -------------------------------------------------------------
 void CollisionManager::AddCollider(K4E::Collider* other)
 {
-	all_.push_back(other);
-	const uint32_t id = other->GetTypeID();
-	if (id < kMaxTypes) buckets_[id].push_back(other);
+    all_.push_back(other);
+    const uint32_t id = other->GetTypeID();
+    if (id < kMaxTypes) buckets_[id].push_back(other);
 }
 
 /// -------------------------------------------------------------
-///						コライダーを削除
+///                     コライダーを削除
 /// -------------------------------------------------------------
 void CollisionManager::RemoveCollider(K4E::Collider* other)
 {
-	// all から削除
-	all_.erase(std::remove(all_.begin(), all_.end(), other), all_.end());
+    all_.erase(std::remove(all_.begin(), all_.end(), other), all_.end());
 
-	// バケットから削除
-	const uint32_t id = other->GetTypeID();
-	if (id < kMaxTypes)
-	{
-		auto& v = buckets_[id];
-		v.erase(std::remove(v.begin(), v.end(), other), v.end());
-	}
+    const uint32_t id = other->GetTypeID();
+    if (id < kMaxTypes)
+    {
+        auto& v = buckets_[id];
+        v.erase(std::remove(v.begin(), v.end(), other), v.end());
+    }
 }
 
 /// -------------------------------------------------------------
-///				コライダー２つの衝突判定と応答処理
+///                 コライダー２つの衝突判定と接触登録
 /// -------------------------------------------------------------
 void CollisionManager::CheckCollisionPair(K4E::Collider* colliderA, K4E::Collider* colliderB)
 {
-	// 自分同士は無視
-	if (colliderA == colliderB) return;
+    // 自分同士は無視
+    if (colliderA == colliderB) return;
 
-	// 衝突判定関数を取得
-	auto key = std::make_pair(colliderA->GetTypeID(), colliderB->GetTypeID());
+    // 衝突判定関数を取得
+    auto key = std::make_pair(colliderA->GetTypeID(), colliderB->GetTypeID());
 
-	// 衝突判定関数を検索
-	auto it = collisionTable_.find(key);
+    // 衝突判定関数を検索
+    auto it = collisionTable_.find(key);
 
-	// 衝突判定関数が登録されているか確認
-	if (it != collisionTable_.end())
-	{
-		if (!it->second(colliderA, colliderB))
-		{
-			return; // 衝突していない
-		}
-	}
-	else
-	{
-		return; // 登録されていない型は無視
-	}
+    // 登録されていない型は無視
+    if (it == collisionTable_.end()) return;
 
-	colliderA->OnCollision(colliderB); // Bの衝突応答処理
-	colliderB->OnCollision(colliderA); // Aの衝突応答処理
+    // 衝突していなければ無視
+    if (!it->second(colliderA, colliderB)) return;
+
+    // 衝突していたので「このフレーム接触中」を両者へ登録
+    colliderA->AddCollisionThisFrame(colliderB->GetUniqueID());
+    colliderB->AddCollisionThisFrame(colliderA->GetUniqueID());
 }
 
 /// -------------------------------------------------------------
-///				コライダーの衝突判定関数の登録
+///                 コライダーの衝突判定関数の登録
 /// -------------------------------------------------------------
 void CollisionManager::RegisterCollisionFuncsions()
 {
-	using CollisionType = uint32_t;
-	constexpr CollisionType kPlayer = static_cast<CollisionType>(CollisionTypeIdDef::kPlayer);
-	constexpr CollisionType kEnemy = static_cast<CollisionType>(CollisionTypeIdDef::kEnemy);
-	constexpr CollisionType kBullet = static_cast<CollisionType>(CollisionTypeIdDef::kBullet);
-	//constexpr CollisionType kEnemyBullet = static_cast<CollisionType>(CollisionTypeIdDef::kEnemyBullet);
-	constexpr CollisionType kItem = static_cast<CollisionType>(CollisionTypeIdDef::kItem);
-	constexpr CollisionType kBoss = static_cast<CollisionType>(CollisionTypeIdDef::kBoss);
-	//constexpr CollisionType kBossBullet = static_cast<CollisionType>(CollisionTypeIdDef::kBossBullet);
-	constexpr CollisionType kWorld = static_cast<CollisionType>(CollisionTypeIdDef::kWorld);
+    using CollisionType = uint32_t;
+    constexpr CollisionType kPlayer = static_cast<CollisionType>(CollisionTypeIdDef::kPlayer);
+    constexpr CollisionType kEnemy = static_cast<CollisionType>(CollisionTypeIdDef::kEnemy);
+    constexpr CollisionType kBullet = static_cast<CollisionType>(CollisionTypeIdDef::kBullet);
+    constexpr CollisionType kItem = static_cast<CollisionType>(CollisionTypeIdDef::kItem);
+    constexpr CollisionType kBoss = static_cast<CollisionType>(CollisionTypeIdDef::kBoss);
+    constexpr CollisionType kWorld = static_cast<CollisionType>(CollisionTypeIdDef::kWorld);
 
-	// 衝突判定関数登録用ラムダ
-	auto AddCollisionFunc = [&](CollisionType a, CollisionType b, const CollisionFunc& func) {
-		collisionTable_[{a, b}] = func;
-		};
+    auto AddCollisionFunc = [&](CollisionType a, CollisionType b, const CollisionFunc& func) {
+        collisionTable_[{a, b}] = func;
+        };
 
-	// 左右対称の衝突判定関数登録用ラムダ
-	auto AddSymmetricCollisionFunc = [&](CollisionType a, CollisionType b, const CollisionFunc& func) {
-		AddCollisionFunc(a, b, func);
-		AddCollisionFunc(b, a, func);
-		};
+    auto AddSymmetricCollisionFunc = [&](CollisionType a, CollisionType b, const CollisionFunc& func) {
+        AddCollisionFunc(a, b, func);
+        AddCollisionFunc(b, a, func);
+        };
 
-	// K4E::OBB vs K4E::OBB
-	const CollisionFunc OBB_OBB = [](K4E::Collider* a, K4E::Collider* b) {
-		return K4E::CollisionUtility::IsCollision(a->GetOBB(), b->GetOBB());
-		};
+    // OBB vs OBB
+    const CollisionFunc OBB_OBB = [](K4E::Collider* a, K4E::Collider* b) {
+        return K4E::CollisionUtility::IsCollision(a->GetOBB(), b->GetOBB());
+        };
 
-	// K4E::OBB vs K4E::Segment
-	const CollisionFunc SEG_OBB = [](K4E::Collider* segOwner, K4E::Collider* obbOwner) {
-		return K4E::CollisionUtility::IsCollision(obbOwner->GetOBB(), segOwner->GetSegment());
-		};
+    // Segment vs OBB（弾など）
+    const CollisionFunc SEG_OBB = [](K4E::Collider* segOwner, K4E::Collider* obbOwner) {
+        return K4E::CollisionUtility::IsCollision(obbOwner->GetOBB(), segOwner->GetSegment());
+        };
 
-	// K4E::OBB vs K4E::OBB （左右対称）
-	for (auto [a, b] : std::initializer_list<std::pair<CollisionType, CollisionType>>{
-		{kPlayer, kEnemy},
-		{kPlayer, kBoss},
-		{kPlayer, kItem},
-		{kPlayer, kWorld},
-		})
-	{
-		AddSymmetricCollisionFunc(a, b, OBB_OBB);
-	}
+    // OBB vs OBB（左右対称）
+    for (auto [a, b] : std::initializer_list<std::pair<CollisionType, CollisionType>>{
+        {kPlayer, kEnemy},
+        {kPlayer, kBoss},
+        {kPlayer, kItem},
+        {kPlayer, kWorld},
+        })
+    {
+        AddSymmetricCollisionFunc(a, b, OBB_OBB);
+    }
 
-	// K4E::OBB vs K4E::Segment （左右対称）
-	for (auto [seg, obb] : std::initializer_list<std::pair<CollisionType, CollisionType>>{
-		{ kBullet, kEnemy },
-		{ kBullet, kBoss  },
-		})
-	{
-		AddCollisionFunc(seg, obb, SEG_OBB);
-		AddCollisionFunc(obb, seg, [=](K4E::Collider* obbOwner, K4E::Collider* segOwner) {return SEG_OBB(segOwner, obbOwner); });
-	}
+    // Segment vs OBB（左右対称）
+    for (auto [seg, obb] : std::initializer_list<std::pair<CollisionType, CollisionType>>{
+        {kBullet, kEnemy},
+        {kBullet, kBoss},
+        })
+    {
+        AddCollisionFunc(seg, obb, SEG_OBB);
+        AddCollisionFunc(obb, seg, [=](K4E::Collider* obbOwner, K4E::Collider* segOwner) {
+            return SEG_OBB(segOwner, obbOwner);
+            });
+    }
 }

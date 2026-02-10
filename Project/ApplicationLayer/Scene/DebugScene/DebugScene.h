@@ -10,8 +10,14 @@
 
 #include "AnimationModel.h"
 
+#include "CollisionManager.h"
+#include "DummyPlayer.h"
+#include "DummyEnemy.h"
+#include "DummyBullet.h"
+
 #include <vector>
 #include <memory>
+#include <Vector2.h>
 
 namespace K4E = ::Ken4lowEngine;
 
@@ -62,6 +68,13 @@ private: /// ---------- メンバ変数 ---------- ///
 	bool isDebugCamera_ = false; // デバッグカメラ使用フラグ
 
 	std::unique_ptr<FadeManager> fadeManager_; // フェードマネージャー
+
+	std::unique_ptr<CollisionManager> collisionManager_; // 衝突管理マネージャー
+	std::unique_ptr<DummyPlayer> player_; // ダミープレイヤー
+	std::vector<std::unique_ptr<DummyEnemy>> enemies_; // ダミーエネミー群
+	std::vector<std::unique_ptr<DummyBullet>> bullets_; // ダミーバレット群
+
+
 
 	int prevW_ = 0;
 	int prevH_ = 0;

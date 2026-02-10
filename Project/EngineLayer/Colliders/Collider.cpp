@@ -10,7 +10,7 @@ namespace Ken4lowEngine
 {
 
 	/// -------------------------------------------------------------
-	///						　	OBBを取得
+	///					　	OBBを取得
 	/// -------------------------------------------------------------
 	OBB Collider::GetOBB() const
 	{
@@ -28,27 +28,42 @@ namespace Ken4lowEngine
 		return obb;
 	}
 
+	/// -------------------------------------------------------------
+	///					  衝突状態フレーム開始
+	/// -------------------------------------------------------------
+	void Collider::BeginCollisionFrame()
+	{
+		// prev <- current, current をクリア
+		prevCollisions_.swap(currentCollisions_);
+		currentCollisions_.clear();
+	}
 
 	/// -------------------------------------------------------------
-	///						　	初期化処理
+	///					  このフレームでの接触登録
+	/// -------------------------------------------------------------
+	void Collider::AddCollisionThisFrame(uint32_t otherUniqueId)
+	{
+		currentCollisions_.insert(otherUniqueId);
+	}
+
+	/// -------------------------------------------------------------
+	///					　	初期化処理
 	/// -------------------------------------------------------------
 	void Collider::Initialize()
 	{
 
 	}
 
-
 	/// -------------------------------------------------------------
-	///						　	 更新処理
+	///					　	 更新処理
 	/// -------------------------------------------------------------
 	void Collider::Update()
 	{
 
 	}
 
-
 	/// -------------------------------------------------------------
-	///						　	 描画処理
+	///					　	 描画処理
 	/// -------------------------------------------------------------
 	void Collider::Draw()
 	{
@@ -76,9 +91,8 @@ namespace Ken4lowEngine
 		}
 	}
 
-
 	/// -------------------------------------------------------------
-	///						　	 ImGui描画処理
+	///					　	 ImGui描画処理
 	/// -------------------------------------------------------------
 	void Collider::DrawImGui()
 	{
@@ -103,15 +117,33 @@ namespace Ken4lowEngine
 
 			// -------- Capsule -------- //
 			if (ImGui::Checkbox("Use Capsule", &useCapsule_)) {}
+			if (ImGui::Checkbox("Draw Capsule", &drawCapsule_)) {}
 			if (useCapsule_)
 			{
+				// Segment::diff は「終点への差分(end - origin)」として扱う
 				Vector3 pA = capsule_.segment.origin;
-				Vector3 pB = capsule_.segment.diff;
+				Vector3 pB = capsule_.segment.origin + capsule_.segment.diff;
 				float   r = capsule_.radius;
 
-				if (ImGui::DragFloat3("Point A", &pA.x, 0.05f)) capsule_.segment.origin = pA;
-				if (ImGui::DragFloat3("Point B", &pB.x, 0.05f)) capsule_.segment.diff = pB;
-				if (ImGui::DragFloat("Radius", &r, 0.01f))  capsule_.radius = std::max(0.0f, r);
+				bool changedA = ImGui::DragFloat3("Point A", &pA.x, 0.05f);
+				bool changedB = ImGui::DragFloat3("Point B", &pB.x, 0.05f);
+
+				if (changedA)
+				{
+					// Aを動かしたときはBを固定したいので diff を更新
+					capsule_.segment.origin = pA;
+					capsule_.segment.diff = pB - pA;
+				}
+				if (changedB && !changedA)
+				{
+					// Bのみ変更された場合
+					capsule_.segment.diff = pB - capsule_.segment.origin;
+				}
+
+				if (ImGui::DragFloat("Radius", &r, 0.01f))
+				{
+					capsule_.radius = std::max(0.0f, r);
+				}
 			}
 
 			ImGui::TreePop();
