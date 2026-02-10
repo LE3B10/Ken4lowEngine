@@ -5,8 +5,6 @@
 #include "Loadout.h"
 #include "WeaponEditorUI.h"
 #include "WorldTransformEx.h"
-#include "FireState.h"
-#include "DeathState.h"
 #include "BaseWeapon.h"
 
 #include <vector>

@@ -20,9 +20,7 @@
 #include <PistolWeapon.h>
 #include <memory>
 #include <Loadout.h>
-#include <FireState.h>
 #include <dinput.h>
-#include <DeathState.h>
 #include <BaseWeapon.h>
 #include <BallisticEffect.h>
 

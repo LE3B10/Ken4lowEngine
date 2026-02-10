@@ -38,7 +38,6 @@ void FpsCamera::Initialize(Player* player)
 void FpsCamera::Update(bool ignoreInput)
 {
 	if (!player_ || !camera_) return;
-	if (player_->IsDebugCamera()) return;
 
 	// ---------- ADS ブレンド更新（0=腰だめ, 1=ADS） ----------
 	const float targetAim = (isAiming_ && viewMode_ == ViewMode::FirstPerson) ? 1.0f : 0.0f;

@@ -157,9 +157,6 @@
     <ClCompile Include="ApplicationLayer\ReloadCircle\ReloadCircle.cpp">
       <Filter>ApplicationLayer\ReloadCircle</Filter>
     </ClCompile>
-    <ClCompile Include="ApplicationLayer\ResultManager\ResultManager.cpp">
-      <Filter>ApplicationLayer\ResultManager</Filter>
-    </ClCompile>
     <ClCompile Include="ApplicationLayer\ScoreManager\ScoreManager.cpp">
       <Filter>ApplicationLayer\ScoreManager</Filter>
     </ClCompile>
@@ -307,9 +304,6 @@
     <ClCompile Include="EngineLayer\Audio\AudioManager\AudioManager.cpp">
       <Filter>EngineLayer\Audio</Filter>
     </ClCompile>
-    <ClCompile Include="ApplicationLayer\Scene\GamePlayScene\HUDManager\HUDManager.cpp">
-      <Filter>ApplicationLayer\Scene\GamePlayScene\HUDManager</Filter>
-    </ClCompile>
     <ClCompile Include="EngineLayer\Managers\ModelManager\AssimpLoader.cpp">
       <Filter>EngineLayer\Managers\ModelManager</Filter>
     </ClCompile>
@@ -406,95 +400,14 @@
     <ClCompile Include="EngineLayer\GPUParticleSystem\GpuParticleRenderer\GpuParticleRenderer.cpp">
       <Filter>EngineLayer\GpuParticleSystem\GpuParticleRenderer</Filter>
     </ClCompile>
-    <ClCompile Include="ApplicationLayer\OverlaySystem\BaseOverlay.cpp">
-      <Filter>ApplicationLayer\OverlaySystem</Filter>
-    </ClCompile>
-    <ClCompile Include="ApplicationLayer\OverlaySystem\ConfirmQuitOverlay.cpp">
-      <Filter>ApplicationLayer\OverlaySystem</Filter>
-    </ClCompile>
-    <ClCompile Include="ApplicationLayer\OverlaySystem\PauseOverlay.cpp">
-      <Filter>ApplicationLayer\OverlaySystem</Filter>
-    </ClCompile>
     <ClCompile Include="EngineLayer\PostEffectManagement\PixelateEffect\PixelateEffect.cpp">
       <Filter>EngineLayer\PostEffectManagement\PixelateEffect</Filter>
-    </ClCompile>
-    <ClCompile Include="ApplicationLayer\Scene\TitleScene\State\TitleAttractState.cpp">
-      <Filter>ApplicationLayer\Scene\TitleScene\State</Filter>
-    </ClCompile>
-    <ClCompile Include="ApplicationLayer\Scene\TitleScene\State\TitleLoadState.cpp">
-      <Filter>ApplicationLayer\Scene\TitleScene\State</Filter>
-    </ClCompile>
-    <ClCompile Include="ApplicationLayer\Scene\TitleScene\State\TitleLobbyState.cpp">
-      <Filter>ApplicationLayer\Scene\TitleScene\State</Filter>
-    </ClCompile>
-    <ClCompile Include="ApplicationLayer\Scene\TitleScene\State\TitleLobbyToTitleState.cpp">
-      <Filter>ApplicationLayer\Scene\TitleScene\State</Filter>
-    </ClCompile>
-    <ClCompile Include="ApplicationLayer\Scene\TitleScene\State\TitleTransitionToLobby.cpp">
-      <Filter>ApplicationLayer\Scene\TitleScene\State</Filter>
-    </ClCompile>
-    <ClCompile Include="ApplicationLayer\Scene\GamePlayScene\State\GameLoadState.cpp">
-      <Filter>ApplicationLayer\Scene\GamePlayScene\State</Filter>
-    </ClCompile>
-    <ClCompile Include="ApplicationLayer\Scene\GamePlayScene\State\GameOverState.cpp">
-      <Filter>ApplicationLayer\Scene\GamePlayScene\State</Filter>
-    </ClCompile>
-    <ClCompile Include="ApplicationLayer\Scene\GamePlayScene\State\GamePauseState.cpp">
-      <Filter>ApplicationLayer\Scene\GamePlayScene\State</Filter>
     </ClCompile>
     <ClCompile Include="ApplicationLayer\Scene\StageSelectScene\State\StageSelectSelectingState.cpp">
       <Filter>ApplicationLayer\Scene\StageSelectScene\State</Filter>
     </ClCompile>
     <ClCompile Include="ApplicationLayer\Scene\StageSelectScene\State\StageSelectLoadState.cpp">
       <Filter>ApplicationLayer\Scene\StageSelectScene\State</Filter>
-    </ClCompile>
-    <ClCompile Include="ApplicationLayer\Scene\GamePlayScene\State\GameClearState.cpp">
-      <Filter>ApplicationLayer\Scene\GamePlayScene\State</Filter>
-    </ClCompile>
-    <ClCompile Include="ApplicationLayer\Scene\GamePlayScene\State\GamePlayingState.cpp">
-      <Filter>ApplicationLayer\Scene\GamePlayScene\State</Filter>
-    </ClCompile>
-    <ClCompile Include="ApplicationLayer\Character\Enemy\BehaviorTree\Builder\EnemyBehaviorTreeBuilder.cpp">
-      <Filter>ApplicationLayer\Character\Enemy\BehaviorTree\Builder</Filter>
-    </ClCompile>
-    <ClCompile Include="ApplicationLayer\Character\BossEnemy\BossEnemy.cpp">
-      <Filter>ApplicationLayer\Character\BossEnemy</Filter>
-    </ClCompile>
-    <ClCompile Include="ApplicationLayer\Character\Enemy\Core\Enemy.cpp">
-      <Filter>ApplicationLayer\Character\Enemy\Core</Filter>
-    </ClCompile>
-    <ClCompile Include="ApplicationLayer\Character\Enemy\State\EnemyAIAttackState.cpp">
-      <Filter>ApplicationLayer\Character\Enemy\State</Filter>
-    </ClCompile>
-    <ClCompile Include="ApplicationLayer\Character\Enemy\State\EnemyAIChaseState.cpp">
-      <Filter>ApplicationLayer\Character\Enemy\State</Filter>
-    </ClCompile>
-    <ClCompile Include="ApplicationLayer\Character\Enemy\State\EnemyAIDamagedState.cpp">
-      <Filter>ApplicationLayer\Character\Enemy\State</Filter>
-    </ClCompile>
-    <ClCompile Include="ApplicationLayer\Character\Enemy\State\EnemyAIDeadState.cpp">
-      <Filter>ApplicationLayer\Character\Enemy\State</Filter>
-    </ClCompile>
-    <ClCompile Include="ApplicationLayer\Character\Enemy\State\EnemyAIIdleState.cpp">
-      <Filter>ApplicationLayer\Character\Enemy\State</Filter>
-    </ClCompile>
-    <ClCompile Include="ApplicationLayer\Character\Enemy\State\EnemyAISpawnState.cpp">
-      <Filter>ApplicationLayer\Character\Enemy\State</Filter>
-    </ClCompile>
-    <ClCompile Include="ApplicationLayer\Character\Enemy\State\EnemyAIWanderState.cpp">
-      <Filter>ApplicationLayer\Character\Enemy\State</Filter>
-    </ClCompile>
-    <ClCompile Include="ApplicationLayer\Character\BossEnemy\BehaviorTree\Builder\BossBehaviorTreeBuilder.cpp">
-      <Filter>ApplicationLayer\Character\BossEnemy\BehaviorTree\Builder</Filter>
-    </ClCompile>
-    <ClCompile Include="ApplicationLayer\Character\BossEnemy\State\BossChaseState.cpp">
-      <Filter>ApplicationLayer\Character\BossEnemy\State</Filter>
-    </ClCompile>
-    <ClCompile Include="ApplicationLayer\Character\BossEnemy\State\BossRushState.cpp">
-      <Filter>ApplicationLayer\Character\BossEnemy\State</Filter>
-    </ClCompile>
-    <ClCompile Include="ApplicationLayer\Character\BossEnemy\State\BossSpinState.cpp">
-      <Filter>ApplicationLayer\Character\BossEnemy\State</Filter>
     </ClCompile>
     <ClCompile Include="ApplicationLayer\EffectLayer\BaseGpuVfx.cpp">
       <Filter>ApplicationLayer\EffectLayer</Filter>
@@ -513,9 +426,6 @@
     </ClCompile>
     <ClCompile Include="EngineLayer\Colliders\WorldCollisionResolver.cpp">
       <Filter>EngineLayer\Colliders</Filter>
-    </ClCompile>
-    <ClCompile Include="ApplicationLayer\Character\BossEnemy\State\BossDeadState.cpp">
-      <Filter>ApplicationLayer\Character\BossEnemy\State</Filter>
     </ClCompile>
     <ClCompile Include="ApplicationLayer\Scene\DebugScene\DebugScene.cpp">
       <Filter>ApplicationLayer\Scene\DebugScene</Filter>
@@ -714,9 +624,6 @@
     <ClInclude Include="ApplicationLayer\EffectLayer\Emitter.h">
       <Filter>ApplicationLayer\EffectLayer</Filter>
     </ClInclude>
-    <ClInclude Include="ApplicationLayer\ResultManager\ResultManager.h">
-      <Filter>ApplicationLayer\ResultManager</Filter>
-    </ClInclude>
     <ClInclude Include="ApplicationLayer\ScoreManager\ScoreManager.h">
       <Filter>ApplicationLayer\ScoreManager</Filter>
     </ClInclude>
@@ -903,9 +810,6 @@
     <ClInclude Include="EngineLayer\Audio\AudioManager\AudioManager.h">
       <Filter>EngineLayer\Audio</Filter>
     </ClInclude>
-    <ClInclude Include="ApplicationLayer\Scene\GamePlayScene\HUDManager\HUDManager.h">
-      <Filter>ApplicationLayer\Scene\GamePlayScene\HUDManager</Filter>
-    </ClInclude>
     <ClInclude Include="EngineLayer\Managers\ModelManager\AssimpLoader.h">
       <Filter>EngineLayer\Managers\ModelManager</Filter>
     </ClInclude>
@@ -1026,12 +930,6 @@
     <ClInclude Include="ApplicationLayer\WeaponSystem\WeaponManager\WeaponManager.h">
       <Filter>ApplicationLayer\WeaponSystem\WeaponManager</Filter>
     </ClInclude>
-    <ClInclude Include="ApplicationLayer\Character\Player\DeathState.h">
-      <Filter>ApplicationLayer\Character\Player</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Character\Player\FireState.h">
-      <Filter>ApplicationLayer\Character\Player</Filter>
-    </ClInclude>
     <ClInclude Include="EngineLayer\GPUParticleSystem\GpuParticleBuffers\GpuParticleBuffers.h">
       <Filter>EngineLayer\GpuParticleSystem\GpuParticleBuffers</Filter>
     </ClInclude>
@@ -1053,50 +951,8 @@
     <ClInclude Include="EngineLayer\GPUParticleSystem\GpuParticleRenderer\GpuParticleRenderer.h">
       <Filter>EngineLayer\GpuParticleSystem\GpuParticleRenderer</Filter>
     </ClInclude>
-    <ClInclude Include="ApplicationLayer\OverlaySystem\BaseOverlay.h">
-      <Filter>ApplicationLayer\OverlaySystem</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\OverlaySystem\ConfirmQuitOverlay.h">
-      <Filter>ApplicationLayer\OverlaySystem</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\OverlaySystem\PauseOverlay.h">
-      <Filter>ApplicationLayer\OverlaySystem</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\OverlaySystem\Rect.h">
-      <Filter>ApplicationLayer\OverlaySystem</Filter>
-    </ClInclude>
     <ClInclude Include="EngineLayer\PostEffectManagement\PixelateEffect\PixelateEffect.h">
       <Filter>EngineLayer\PostEffectManagement\PixelateEffect</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Scene\TitleScene\State\ITitleSceneState.h">
-      <Filter>ApplicationLayer\Scene\TitleScene\State</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Scene\TitleScene\State\TitleAttractState.h">
-      <Filter>ApplicationLayer\Scene\TitleScene\State</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Scene\TitleScene\State\TitleLoadState.h">
-      <Filter>ApplicationLayer\Scene\TitleScene\State</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Scene\TitleScene\State\TitleLobbyState.h">
-      <Filter>ApplicationLayer\Scene\TitleScene\State</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Scene\TitleScene\State\TitleLobbyToTitleState.h">
-      <Filter>ApplicationLayer\Scene\TitleScene\State</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Scene\TitleScene\State\TitleTransitionToLobby.h">
-      <Filter>ApplicationLayer\Scene\TitleScene\State</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Scene\GamePlayScene\State\GameLoadState.h">
-      <Filter>ApplicationLayer\Scene\GamePlayScene\State</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Scene\GamePlayScene\State\GameOverState.h">
-      <Filter>ApplicationLayer\Scene\GamePlayScene\State</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Scene\GamePlayScene\State\GamePauseState.h">
-      <Filter>ApplicationLayer\Scene\GamePlayScene\State</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Scene\GamePlayScene\State\IGamePlaySceneState.h">
-      <Filter>ApplicationLayer\Scene\GamePlayScene\State</Filter>
     </ClInclude>
     <ClInclude Include="ApplicationLayer\Scene\StageSelectScene\State\IStageSelectSceneState.h">
       <Filter>ApplicationLayer\Scene\StageSelectScene\State</Filter>
@@ -1107,107 +963,8 @@
     <ClInclude Include="ApplicationLayer\Scene\StageSelectScene\State\StageSelectLoadState.h">
       <Filter>ApplicationLayer\Scene\StageSelectScene\State</Filter>
     </ClInclude>
-    <ClInclude Include="ApplicationLayer\Scene\GamePlayScene\State\GameClearState.h">
-      <Filter>ApplicationLayer\Scene\GamePlayScene\State</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Scene\GamePlayScene\State\GamePlayingState.h">
-      <Filter>ApplicationLayer\Scene\GamePlayScene\State</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Character\Enemy\BehaviorTree\Nodes\ActionNode.h">
-      <Filter>ApplicationLayer\Character\Enemy\BehaviorTree\Nodes</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Character\Enemy\BehaviorTree\Nodes\ConditionNode.h">
-      <Filter>ApplicationLayer\Character\Enemy\BehaviorTree\Nodes</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Character\Enemy\BehaviorTree\Nodes\IBehaviorNode.h">
-      <Filter>ApplicationLayer\Character\Enemy\BehaviorTree\Nodes</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Character\Enemy\BehaviorTree\Nodes\SelectorNode.h">
-      <Filter>ApplicationLayer\Character\Enemy\BehaviorTree\Nodes</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Character\Enemy\BehaviorTree\Nodes\SequenceNode.h">
-      <Filter>ApplicationLayer\Character\Enemy\BehaviorTree\Nodes</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Character\Enemy\BehaviorTree\Builder\BehaviorTree.h">
-      <Filter>ApplicationLayer\Character\Enemy\BehaviorTree\Builder</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Character\Enemy\BehaviorTree\Builder\EnemyBehaviorTreeBuilder.h">
-      <Filter>ApplicationLayer\Character\Enemy\BehaviorTree\Builder</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Character\BossEnemy\BossEnemy.h">
-      <Filter>ApplicationLayer\Character\BossEnemy</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Character\Enemy\Core\Enemy.h">
-      <Filter>ApplicationLayer\Character\Enemy\Core</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Character\Enemy\Core\EnemyConfig.h">
-      <Filter>ApplicationLayer\Character\Enemy\Core</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Character\Enemy\Core\EnemyType.h">
-      <Filter>ApplicationLayer\Character\Enemy\Core</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Character\Enemy\State\EnemyAIAttackState.h">
-      <Filter>ApplicationLayer\Character\Enemy\State</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Character\Enemy\State\EnemyAIChaseState.h">
-      <Filter>ApplicationLayer\Character\Enemy\State</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Character\Enemy\State\EnemyAIDamagedState.h">
-      <Filter>ApplicationLayer\Character\Enemy\State</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Character\Enemy\State\EnemyAIDeadState.h">
-      <Filter>ApplicationLayer\Character\Enemy\State</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Character\Enemy\State\EnemyAIIdleState.h">
-      <Filter>ApplicationLayer\Character\Enemy\State</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Character\Enemy\State\EnemyAISpawnState.h">
-      <Filter>ApplicationLayer\Character\Enemy\State</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Character\Enemy\State\EnemyAIWanderState.h">
-      <Filter>ApplicationLayer\Character\Enemy\State</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Character\Enemy\State\IEnemyAIState.h">
-      <Filter>ApplicationLayer\Character\Enemy\State</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Character\BossEnemy\BehaviorTree\Nodes\BossActionNode.h">
-      <Filter>ApplicationLayer\Character\BossEnemy\BehaviorTree\Nodes</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Character\BossEnemy\BehaviorTree\Nodes\IBossBehaviorNode.h">
-      <Filter>ApplicationLayer\Character\BossEnemy\BehaviorTree\Nodes</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Character\BossEnemy\BehaviorTree\Nodes\BossSequenceNode.h">
-      <Filter>ApplicationLayer\Character\BossEnemy\BehaviorTree\Nodes</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Character\BossEnemy\BehaviorTree\Nodes\BossSelectorNode.h">
-      <Filter>ApplicationLayer\Character\BossEnemy\BehaviorTree\Nodes</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Character\BossEnemy\BehaviorTree\Nodes\BossConditionNode.h">
-      <Filter>ApplicationLayer\Character\BossEnemy\BehaviorTree\Nodes</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Character\BossEnemy\BehaviorTree\Builder\BossBehaviorTree.h">
-      <Filter>ApplicationLayer\Character\BossEnemy\BehaviorTree\Builder</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Character\BossEnemy\BehaviorTree\Builder\BossBehaviorTreeBuilder.h">
-      <Filter>ApplicationLayer\Character\BossEnemy\BehaviorTree\Builder</Filter>
-    </ClInclude>
     <ClInclude Include="ApplicationLayer\Character\BaseCharacter\BehaviorStatus.h">
       <Filter>ApplicationLayer\Character\BaseCharacter</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Character\BossEnemy\State\BossChaseState.h">
-      <Filter>ApplicationLayer\Character\BossEnemy\State</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Character\BossEnemy\State\BossRushState.h">
-      <Filter>ApplicationLayer\Character\BossEnemy\State</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Character\BossEnemy\State\BossSpinState.h">
-      <Filter>ApplicationLayer\Character\BossEnemy\State</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Character\BossEnemy\BossType.h">
-      <Filter>ApplicationLayer\Character\BossEnemy\State</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Character\BossEnemy\State\IBossAttackState.h">
-      <Filter>ApplicationLayer\Character\BossEnemy\State</Filter>
     </ClInclude>
     <ClInclude Include="ApplicationLayer\EffectLayer\BaseGpuVfx.h">
       <Filter>ApplicationLayer\EffectLayer</Filter>
@@ -1229,12 +986,6 @@
     </ClInclude>
     <ClInclude Include="EngineLayer\Colliders\IDGenerator.h">
       <Filter>EngineLayer\Colliders</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Character\BossEnemy\State\BossDeadState.h">
-      <Filter>ApplicationLayer\Character\BossEnemy\State</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Character\BossEnemy\BossTurning.h">
-      <Filter>ApplicationLayer\Character\BossEnemy\State</Filter>
     </ClInclude>
     <ClInclude Include="ApplicationLayer\Scene\DebugScene\DebugScene.h">
       <Filter>ApplicationLayer\Scene\DebugScene</Filter>
