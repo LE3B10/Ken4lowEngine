@@ -1,152 +1,199 @@
+#define NOMINMAX
 #include "Enemy.h"
-#include <Input.h>
-#include "CollisionTypeIdDef.h"
+
+#include <algorithm>
+#include <cmath>
+
 #include "Bullet.h"
+#include "BulletManager.h"
+#include "CollisionTypeIdDef.h"
 
-using namespace Ken4lowEngine;
-
-void Enemy::Initialize()
+namespace
 {
-	input_ = K4E::Input::GetInstance();
+	using K4E::Vector3;
 
-	Collider::SetTypeID(static_cast<uint32_t>(CollisionTypeIdDef::kEnemy));
-	Collider::SetOwner(this);
+	inline float LengthXZ(const Vector3& v)
+	{
+		return std::sqrt(v.x * v.x + v.z * v.z);
+	}
 
-	model_ = std::make_unique<K4E::Object3D>();
-	model_->Initialize("cube.gltf");
-	Collider::SetOBBHalfSize(model_->GetScale());
+	inline float Length(const Vector3& v)
+	{
+		return std::sqrt(v.x * v.x + v.y * v.y + v.z * v.z);
+	}
 
-	debugColor_ = { 0.0f, 1.0f, 0.0f, 1.0f };
-	model_->SetColor(debugColor_);
-	model_->Update();
-
-	contactRecord_.Clear();
-	hp_ = 10;
+	inline Vector3 NormalizeSafe(const Vector3& v)
+	{
+		const float len = Length(v);
+		if (len <= 1e-6f) return { 0.0f, 0.0f, 0.0f };
+		return { v.x / len, v.y / len, v.z / len };
+	}
 }
 
-void Enemy::Update()
+void Enemy::Initialize(const K4E::Vector3& startPos, const std::string& modelPath)
 {
-	if (removable_) return;
+	EnemyBase::Initialize(startPos, modelPath);
 
-	if (isDead_)
+	// 初期値
+	lastSeenPos_ = startPos;
+	timeSinceSeen_ = 9999.0f;
+	stunRequestedSec_ = 0.0f;
+
+	// FSM初期化
+	EnemyAICommand cmd{};
+	EnemyAIContext<Enemy> ctx{ *this, cmd, 0.0f };
+	BuildContext(ctx);
+	fsm_.Reset(ctx);
+}
+
+void Enemy::Update(float dt)
+{
+	if (IsRemovable()) return;
+	if (IsDead())
 	{
-		// Exit 解決用に 1〜2フレームだけ残す（Bulletと同じ考え方）
-		++deadFrames_;
-		if (deadFrames_ >= 2) removable_ = true;
+		EnemyBase::Update(dt);
 		return;
 	}
 
-	// 移動処理（矢印キー）
-	moveVelocity_ = { 0.0f, 0.0f, 0.0f };
-	if (input_->PushKey(DIK_UP)) { moveVelocity_.z += 0.1f; }
-	if (input_->PushKey(DIK_DOWN)) { moveVelocity_.z -= 0.1f; }
-	if (input_->PushKey(DIK_LEFT)) { moveVelocity_.x -= 0.1f; }
-	if (input_->PushKey(DIK_RIGHT)) { moveVelocity_.x += 0.1f; }
+	// 1) command を作る（毎フレーム）
+	EnemyAICommand cmd{};
+	cmd.Clear();
 
-	model_->SetTranslate(K4E::Vector3::Add(model_->GetTranslate(), moveVelocity_));
-	Collider::SetCenterPosition(model_->GetTranslate());
+	// 2) context を組み立てる
+	EnemyAIContext<Enemy> ctx{ *this, cmd, dt };
+	BuildContext(ctx);
 
-	model_->Update();
-}
-
-void Enemy::Draw()
-{
-	if (isDead_) return;
-	if (model_) model_->Draw();
-}
-
-void Enemy::DrawImGui()
-{
-	if (model_) model_->DrawImGui();
-#ifdef USE_IMGUI
-	// HP表示を追加したい場合はここにImGuiを足す
-#endif
-}
-
-void Enemy::TakeDamage(int damage)
-{
-	hp_ -= damage;
-	if (hp_ < 0) hp_ = 0;
-
-	if (hp_ == 0 && !isDead_)
+	// 3) スタン要求があるなら先に強制遷移
+	if (stunRequestedSec_ > 0.0f)
 	{
-		KillAndDisableCollider();
-		return;
+		fsm_.Force(EnemyStateId::Stunned, ctx);
 	}
 
-	// ヒットしたら赤（接触が切れたらExitで戻る）
-	debugColor_ = { 1.0f, 0.0f, 0.0f, 1.0f };
-	if (model_)
+	// 4) decision
+	fsm_.Update(ctx);
+
+	// 5) act
+	ApplyAICommand(cmd);
+
+	// 6) physics integrate
+	EnemyBase::Update(dt);
+}
+
+void Enemy::BuildContext(EnemyAIContext<Enemy>& ctx)
+{
+	// ターゲットが無いなら何も見えない
+	ctx.canSeePlayer = false;
+	ctx.distToPlayer = 999999.0f;
+	ctx.playerPos = { 0.0f,0.0f,0.0f };
+
+	if (target_)
 	{
-		model_->SetColor(debugColor_);
-		model_->Update();
-	}
-}
-
-void Enemy::SetCenterPosition(const K4E::Vector3& pos)
-{
-	Collider::SetCenterPosition(pos);
-	if (model_) { model_->SetTranslate(pos); }
-}
-
-void Enemy::KillAndDisableCollider()
-{
-	isDead_ = true;
-	deadFrames_ = 0;
-
-	// ★ OBB枠を描かせない（Collider::Draw が halfSize 0 なら描かない仕様）
-	SetOBBHalfSize({ 0.0f, 0.0f, 0.0f });
-
-	// ★ Segmentも無効化
-	K4E::Segment s{};
-	s.origin = GetCenterPosition();
-	s.diff = { 0.0f, 0.0f, 0.0f };
-	SetSegment(s);
-
-	// 見えない場所へ（衝突も起きないように）
-	const K4E::Vector3 far_ = { 1e9f, 1e9f, 1e9f };
-	SetCenterPosition(far_);
-	if (model_) { model_->SetTranslate(far_); model_->Update(); }
-}
-
-void Enemy::OnCollisionEnter(K4E::Collider* other)
-{
-	if (!other) return;
-	if (other->GetTypeID() != (uint32_t)CollisionTypeIdDef::kBullet) return;
-
-	// Bullet側を取ってダメージ
-	if (auto* b = other->GetOwner<Bullet>())
-	{
-		hp_ -= b->GetDamage();
-		if (hp_ <= 0) { isDead_ = true; }
+		ctx.playerPos = target_->GetCenterPosition();
+		const auto d = ctx.playerPos - GetCenterPosition();
+		const float dist = Length(d);
+		ctx.distToPlayer = dist;
+		ctx.canSeePlayer = (dist <= viewRange_);
 	}
 
-	// 接触中リストに登録（重複はContactRecord側で防止）
-	contactRecord_.Add(other->GetUniqueID());
-
-	// 何かと当たっている間は赤にする（デバッグ用）
-	debugColor_ = { 1.0f, 0.0f, 0.0f, 1.0f };
-	if (model_)
+	// memory
+	if (ctx.canSeePlayer)
 	{
-		model_->SetColor(debugColor_);
-		model_->Update();
+		lastSeenPos_ = ctx.playerPos;
+		timeSinceSeen_ = 0.0f;
 	}
+	else
+	{
+		timeSinceSeen_ += ctx.dt;
+	}
+
+	ctx.lastSeenPos = lastSeenPos_;
+	ctx.timeSinceSeen = timeSinceSeen_;
 }
 
-void Enemy::OnCollisionExit(K4E::Collider* other)
+void Enemy::ApplyAICommand(const EnemyAICommand& cmd)
 {
-	if (!other) return;
-
-	contactRecord_.Remove(other->GetUniqueID());
-
-	// 接触相手がいなくなったら元の色に戻す
-	if (contactRecord_.GetRecordCount() == 0)
+	if (cmd.stopMove)
 	{
-		debugColor_ = { 0.0f, 1.0f, 0.0f, 1.0f };
-		if (model_)
+		StopMove();
+	}
+	else if (cmd.moveGoal)
+	{
+		MoveTowards(*cmd.moveGoal);
+	}
+	else
+	{
+		// 何も指示が無いなら停止（好みで）
+		StopMove();
+	}
+
+	if (cmd.lookAt) FaceTo(*cmd.lookAt);
+	if (cmd.fireAt) FireAt(*cmd.fireAt);
+}
+
+void Enemy::MoveTowards(const K4E::Vector3& goal)
+{
+	auto to = goal - GetCenterPosition();
+	to.y = 0.0f;
+
+	const Vector3 dir = NormalizeSafe(to);
+	SetVelocity(dir * moveSpeed_);
+}
+
+void Enemy::StopMove()
+{
+	SetVelocity({ 0.0f, 0.0f, 0.0f });
+}
+
+void Enemy::FaceTo(const K4E::Vector3& lookAt)
+{
+	auto d = lookAt - GetCenterPosition();
+	d.y = 0.0f;
+	if (LengthXZ(d) <= 1e-6f) return;
+
+	// Z前方の想定（必要なら atan2 の引数を入れ替えて調整）
+	const float yaw = std::atan2(d.x, d.z);
+	SetOrientation({ 0.0f, yaw, 0.0f });
+}
+
+void Enemy::FireAt(const K4E::Vector3& targetPos)
+{
+	if (!bulletManager_) return;
+
+	Vector3 origin = GetCenterPosition();
+	origin.y += muzzleHeight_;
+
+	Vector3 dir = NormalizeSafe(targetPos - origin);
+	if (Length(dir) <= 1e-6f) return;
+
+	bulletManager_->Spawn(origin, dir, bulletSpeed_, bulletDamage_, bulletLifeSec_,
+		static_cast<uint32_t>(CollisionTypeIdDef::kEnemyBullet));
+}
+
+void Enemy::RequestStun(float sec)
+{
+	stunRequestedSec_ = std::max(stunRequestedSec_, sec);
+}
+
+float Enemy::ConsumeStunDurationOr(float fallbackSec)
+{
+	if (stunRequestedSec_ <= 0.0f) return fallbackSec;
+	const float v = stunRequestedSec_;
+	stunRequestedSec_ = 0.0f;
+	return v;
+}
+
+void Enemy::OnBulletHit(K4E::Collider* bulletCollider)
+{
+	int dmg = 10;
+	if (bulletCollider)
+	{
+		if (auto* b = bulletCollider->GetOwner<Bullet>())
 		{
-			model_->SetColor(debugColor_);
-			model_->Update();
+			dmg = b->GetDamage();
 		}
 	}
+	TakeDamage(dmg);
+
+	// 被弾で軽スタン（任意）
+	RequestStun(0.12f);
 }

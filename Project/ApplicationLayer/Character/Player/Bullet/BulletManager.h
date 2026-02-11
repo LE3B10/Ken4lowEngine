@@ -18,7 +18,13 @@ public: /// ---------- メンバ関数 ---------- ///
 	void Initialize(CollisionManager* collisionManager);
 
 	// 生成（dirは正規化済み推奨。speedは units/sec）
-	Bullet* Spawn(const Ken4lowEngine::Vector3& startPos, const Ken4lowEngine::Vector3& dir, float speed, int damage = 1, float lifeTimeSec = 3.0f);
+	// typeId: CollisionTypeIdDef の弾種（デフォはプレイヤー弾）
+	Bullet* Spawn(const Ken4lowEngine::Vector3& startPos,
+		const Ken4lowEngine::Vector3& dir,
+		float speed,
+		int damage = 1,
+		float lifeTimeSec = 3.0f,
+		uint32_t typeId = static_cast<uint32_t>(CollisionTypeIdDef::kBullet));
 
 	// 更新処理
 	void Update(float dt);

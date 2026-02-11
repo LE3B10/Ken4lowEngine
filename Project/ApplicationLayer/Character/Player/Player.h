@@ -3,9 +3,12 @@
 #include <Object3D.h>
 #include "ContactRecord.h"
 #include "FpsCamera.h"
+#include "PlayerHurtbox.h"
 
 #include "PlayerStateMachines.h"   // PlayerBrain / PlayerAPI / LocoId等
 #include "PlayerInputSnapshot.h"   // InputSnapshot型
+
+#include <array>
 
 namespace K4E = ::Ken4lowEngine;
 
@@ -14,6 +17,15 @@ namespace Ken4lowEngine { class Input; }
 class CollisionManager;
 class BulletManager;
 class Enemy;
+
+struct HurtboxTuning
+{
+	K4E::Vector3 localOffset{ 0,0,0 };   // 部位ローカルでの中心オフセット
+	K4E::Vector3 halfSize{ 0.2f,0.2f,0.2f };
+	K4E::Vector3 rotOffset{ 0,0,0 };     // 必要なら（基本0でOK）
+	float damageMul = 1.0f;
+	bool enabled = true;
+};
 
 /// -------------------------------------------------------------
 ///					　プレイヤークラス
@@ -48,8 +60,13 @@ public: /// ---------- メンバ関数 ---------- ///
 
 	void SetCollisionManager(CollisionManager* mgr) { collisionManager_ = mgr; }
 
+	// 敵の弾に当たったときの処理
+	void OnHitByEnemyBullet(K4E::Collider* bullet, PlayerHitPart part, float mul);
+
 	void SetBulletManager(BulletManager* mgr) { bulletManager_ = mgr; }
 	void SetShootCamera(K4E::Camera* cam) { shootCamera_ = cam; }
+
+	void SetDebugCamera(bool on) { isDebugCamera_ = on; }
 
 public:	// ---- FSMから呼ばれる最小API（PlayerAPIがここを呼ぶ）----
 
@@ -80,6 +97,8 @@ private: /// ---------- メンバ関数 ---------- ///
 
 	// ★1発撃つ（入力判定は外でやる）
 	void FireOnce();
+
+	void SyncHurtboxes();
 
 private: /// ----------メンバ変数 ---------- ///
 
@@ -133,5 +152,12 @@ private: /// ----------メンバ変数 ---------- ///
 
 	float hitscanRange_ = 100.0f;
 	float shotDebugTimer_ = 0.0f;
+
+	std::array<std::unique_ptr<PlayerHurtbox>, 6> hurtboxes_{};
+	std::array<HurtboxTuning, 6> hbTuning_{};
+	int hbSelected_ = 0;
+	bool hbDebugDraw_ = true;
+
+	bool isDebugCamera_ = false;
 };
 

@@ -124,6 +124,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClCompile Include="ApplicationLayer\Character\Player\Bullet\Bullet.cpp" />
     <ClCompile Include="ApplicationLayer\Character\Player\Bullet\BulletManager.cpp" />
     <ClCompile Include="ApplicationLayer\Character\Enemy\Enemy.cpp" />
+    <ClCompile Include="ApplicationLayer\Character\Enemy\EnemyBase.cpp" />
     <ClCompile Include="EngineLayer\3D\AnimationSystem\Collider\AnimationModelColliderController.cpp" />
     <ClCompile Include="EngineLayer\3D\AnimationSystem\Debug\AnimationModelDebugView.cpp" />
     <ClCompile Include="EngineLayer\3D\AnimationSystem\LOD\AnimationModelLODController.cpp" />
@@ -585,6 +586,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClCompile Include="EngineLayer\2D\Sprite\SpriteDebrisEmitter.cpp" />
     <ClCompile Include="EngineLayer\2D\Sprite\SpriteFractureEffect.cpp" />
     <ClCompile Include="EngineLayer\3D\AnimationSystem\Skeleton\SkeletonAnimator.cpp" />
+    <ClCompile Include="ApplicationLayer\Character\Player\PlayerHurtbox.cpp" />
     <ClCompile Include="WinMain.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
@@ -833,6 +835,9 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="ApplicationLayer\Character\Player\Bullet\Bullet.h" />
     <ClInclude Include="ApplicationLayer\Character\Player\Bullet\BulletManager.h" />
     <ClInclude Include="ApplicationLayer\Character\Enemy\Enemy.h" />
+    <ClInclude Include="ApplicationLayer\Character\Enemy\EnemyBase.h" />
+    <ClInclude Include="ApplicationLayer\Character\Enemy\EnemyStateMachine.h" />
+    <ClInclude Include="ApplicationLayer\Character\Enemy\EnemyAICommand.h" />
     <ClInclude Include="EngineLayer\3D\AnimationSystem\Collider\AnimationModelColliderController.h" />
     <ClInclude Include="EngineLayer\3D\AnimationSystem\Debug\AnimationModelDebugView.h" />
     <ClInclude Include="EngineLayer\3D\AnimationSystem\LOD\AnimationModelLODController.h" />
@@ -1502,6 +1507,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="EngineLayer\Input\InputSnapshot.h" />
     <ClInclude Include="ApplicationLayer\Character\Player\PlayerInputSnapshot.h" />
     <ClInclude Include="ApplicationLayer\Character\Player\PlayerStateMachines.h" />
+    <ClInclude Include="ApplicationLayer\Character\Player\PlayerHurtbox.h" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="externals\DirectXTex\DirectXTex_Desktop_2022_Win10.vcxproj">

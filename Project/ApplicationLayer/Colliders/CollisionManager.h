@@ -40,8 +40,10 @@ public: /// ---------- メンバ関数 ---------- ///
     // 衝突判定
     using CollisionFunc = std::function<bool(K4E::Collider*, K4E::Collider*)>;
 
-	// セグメントキャスト
+    // セグメントキャスト
     bool SegmentCast(uint32_t targetType, const K4E::Segment& seg, K4E::Collider** outHit = nullptr) const;
+
+    bool SegmentCast(uint32_t typeId, const K4E::Segment& seg, K4E::Collider** outHit = nullptr) const;
 
 private: /// ---------- メンバ関数 ---------- ///
 

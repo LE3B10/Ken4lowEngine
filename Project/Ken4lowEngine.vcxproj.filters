@@ -532,6 +532,12 @@
     <ClCompile Include="ApplicationLayer\Character\Player\Bullet\BulletManager.cpp">
       <Filter>ApplicationLayer\Character\Player\Bullet</Filter>
     </ClCompile>
+    <ClCompile Include="ApplicationLayer\Character\Player\PlayerHurtbox.cpp">
+      <Filter>ApplicationLayer\Character\Player</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\Character\Enemy\EnemyBase.cpp">
+      <Filter>ApplicationLayer\Character\Enemy</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="EngineLayer\Math\MultipleStructs\AABB.h">
@@ -1127,6 +1133,18 @@
     </ClInclude>
     <ClInclude Include="ApplicationLayer\Character\Player\PlayerStateMachines.h">
       <Filter>ApplicationLayer\Character\Player</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Character\Player\PlayerHurtbox.h">
+      <Filter>ApplicationLayer\Character\Player</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Character\Enemy\EnemyAICommand.h">
+      <Filter>ApplicationLayer\Character\Enemy</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Character\Enemy\EnemyBase.h">
+      <Filter>ApplicationLayer\Character\Enemy</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Character\Enemy\EnemyStateMachine.h">
+      <Filter>ApplicationLayer\Character\Enemy</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

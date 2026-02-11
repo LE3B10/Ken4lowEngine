@@ -1,5 +1,6 @@
 #define NOMINMAX
 #include "Player.h"
+#include "Bullet.h"
 #include <CollisionTypeIdDef.h>
 #include <Input.h>
 #include "BulletManager.h"      
@@ -12,6 +13,19 @@
 #ifdef USE_IMGUI
 #include <imgui.h>
 #endif // USE_IMGUI
+
+static K4E::Vector3 RotateByEuler(const K4E::Vector3& v, const K4E::Vector3& rot)
+{
+	// エンジン側のMatrix4x4::MakeRotateMatrixが使える前提
+	const auto m = K4E::Matrix4x4::MakeRotateMatrix(rot);
+
+	// 行/列の定義が環境で違うことがあるので、もし方向が変なら下の式を入れ替えてOK
+	return {
+		v.x * m.m[0][0] + v.y * m.m[1][0] + v.z * m.m[2][0],
+		v.x * m.m[0][1] + v.y * m.m[1][1] + v.z * m.m[2][1],
+		v.x * m.m[0][2] + v.y * m.m[1][2] + v.z * m.m[2][2],
+	};
+}
 
 /// -------------------------------------------------------------
 ///				　			　 初期化処理
@@ -30,6 +44,36 @@ void Player::Initialize()
 	// ID登録
 	K4E::Collider::SetTypeID(static_cast<uint32_t>(CollisionTypeIdDef::kPlayer));
 	K4E::Collider::SetOwner<Player>(this);
+
+	// hurtbox作成（部位ごと）
+	const uint32_t hurtType = (uint32_t)CollisionTypeIdDef::kPlayer;
+	// ↑まず最小はこれでOK（同じkPlayerバケットに入れて判定させる）
+	// ちゃんと分けたいなら kPlayerHurtbox を enum に追加して typeId を変える
+
+	auto make = [&](int idx, PlayerHitPart part, float mul, K4E::Vector3 half)
+		{
+			hurtboxes_[idx] = std::make_unique<PlayerHurtbox>();
+			hurtboxes_[idx]->Initialize(this, part, mul, hurtType);
+			hurtboxes_[idx]->SetOBBHalfSize(half);
+
+			auto& t = hbTuning_[idx];
+			t.halfSize = half;
+			t.damageMul = mul;
+			t.enabled = true;
+		};
+
+	make(0, PlayerHitPart::Body, 1.0f, { 0.5f, 0.75f, 0.25f });
+	make(1, PlayerHitPart::Head, 2.0f, { 0.5f, 0.5f, 0.5f });
+	make(2, PlayerHitPart::LeftArm, 1.0f, { 0.25, 0.75, 0.25 });
+	make(3, PlayerHitPart::RightArm, 1.0f, { 0.25, 0.75, 0.25 });
+	make(4, PlayerHitPart::LeftLeg, 1.0f, { 0.25, 0.75, 0.25 });
+	make(5, PlayerHitPart::RightLeg, 1.0f, { 0.25, 0.75, 0.25 });
+
+	// CollisionManagerに登録（Scene側でやってるなら不要）
+	if (collisionManager_)
+	{
+		for (auto& hb : hurtboxes_) collisionManager_->AddCollider(hb.get());
+	}
 
 	// 体力初期化
 	hp_ = maxHp_;
@@ -64,6 +108,12 @@ void Player::Initialize()
 void Player::Update(float deltaTime)
 {
 	if (!input_) { BaseCharacter::Update(deltaTime); return; }
+	if (isDebugCamera_)
+	{
+		BaseCharacter::Update(deltaTime); // デバッグカメラ中はベースのUpdateも呼ぶ（移動や回転を反映させるため）
+		SyncHurtboxes(); // コライダー位置も合わせる
+		return; // デバッグカメラ中は以降の処理をスキップ
+	}
 
 	// Snapshot生成
 	inputSnap_ = BuildInputSnapshot(*input_);
@@ -83,6 +133,13 @@ void Player::Update(float deltaTime)
 	// 移動・重力などでプレイヤー位置更新
 	SimulateLocomotion(deltaTime);
 
+	// 衝突用コライダー同期（描画の親子付けとは別物なので毎フレーム合わせる）
+	if (auto* tr = GetWorldTransform())
+	{
+		SetCenterPosition(tr->translate_);
+		//SetOrientation(tr->rotate_);
+	}
+
 	// 最後にカメラをプレイヤーへ位置同期（行列更新もここで）
 	fpsCamera_.SyncToPlayer();
 
@@ -96,6 +153,8 @@ void Player::Update(float deltaTime)
 
 	// 親子描画更新
 	BaseCharacter::Update(deltaTime);
+
+	SyncHurtboxes();
 }
 
 
@@ -117,6 +176,21 @@ void Player::DrawImGui()
 
 	fpsCamera_.DrawImGui();
 
+	static const char* kPartNames[] = { "Body","Head","LeftArm","RightArm","LeftLeg","RightLeg" };
+
+	if (ImGui::CollapsingHeader("Player Hurtbox Tuning", ImGuiTreeNodeFlags_DefaultOpen))
+	{
+		ImGui::Checkbox("DebugDraw", &hbDebugDraw_);
+		ImGui::Combo("Part", &hbSelected_, kPartNames, IM_ARRAYSIZE(kPartNames));
+
+		auto& t = hbTuning_[hbSelected_];
+		ImGui::Checkbox("Enabled", &t.enabled);
+		ImGui::DragFloat3("LocalOffset", &t.localOffset.x, 0.01f);
+		ImGui::DragFloat3("HalfSize", &t.halfSize.x, 0.01f, 0.01f, 10.0f);
+		ImGui::DragFloat3("RotOffset", &t.rotOffset.x, 0.01f);
+		ImGui::DragFloat("DamageMul", &t.damageMul, 0.01f, 0.1f, 10.0f);
+	}
+
 #endif // USE_IMGUI
 }
 
@@ -125,7 +199,29 @@ void Player::DrawImGui()
 /// -------------------------------------------------------------
 void Player::OnCollision(K4E::Collider* other)
 {
-	(void)other;
+	if (!other) return;
+
+	//const uint32_t otherType = other->GetTypeID();
+	//const uint32_t kEnemyBullet = static_cast<uint32_t>(CollisionTypeIdDef::kEnemyBullet);
+	//const uint32_t kBossBullet = static_cast<uint32_t>(CollisionTypeIdDef::kBossBullet);
+
+	//if (otherType != kEnemyBullet && otherType != kBossBullet) return;
+
+	// 多段ヒット防止（OnCollisionStay 対策）
+	const uint32_t otherId = other->GetUniqueID();
+	if (contactRecord_.Check(otherId)) return;
+	contactRecord_.Add(otherId);
+
+	//int dmg = 1;
+	//if (auto* b = other->GetOwner<Bullet>())
+	//{
+	//	dmg = b->GetDamage();
+	//}
+
+	//hp_ -= static_cast<float>(dmg);
+	//if (hp_ < 0.0f) hp_ = 0.0f;
+
+	OnHitByEnemyBullet(other, PlayerHitPart::Body, 1.0f);
 }
 
 bool PlayerAPI::IsGrounded() const { return player ? player->FSM_IsGrounded() : true; }
@@ -152,6 +248,59 @@ void Player::SetFirstPersonView(bool enabled)
 	if (isFirstPersonView_ == enabled) return;
 	isFirstPersonView_ = enabled;
 	ApplyFirstPersonRenderFlags();
+}
+
+void Player::OnHitByEnemyBullet(K4E::Collider* bullet, PlayerHitPart part, float mul)
+{
+	if (!bullet) return;
+
+	const uint32_t otherType = bullet->GetTypeID();
+	const uint32_t kEnemyBullet = static_cast<uint32_t>(CollisionTypeIdDef::kEnemyBullet);
+	const uint32_t kBossBullet = static_cast<uint32_t>(CollisionTypeIdDef::kBossBullet);
+
+	// 敵弾以外は無視
+	if (otherType != kEnemyBullet && otherType != kBossBullet) return;
+
+	// ---- 多段ヒット防止（重要）
+	// 1発の弾が「頭」「腕」「胴」など複数Hurtboxに同フレームで当たっても1回だけにする
+	const uint32_t bulletId = bullet->GetUniqueID();
+	if (contactRecord_.Check(bulletId)) return;
+	contactRecord_.Add(bulletId);
+
+	// ---- ダメージ取得
+	int baseDmg = 1;
+	if (auto* b = bullet->GetOwner<Bullet>())
+	{
+		baseDmg = b->GetDamage();
+	}
+
+	// ---- 部位倍率（mulはHurtbox側で渡してる）
+	float dmg = static_cast<float>(baseDmg) * mul;
+	hp_ -= dmg;
+	if (hp_ < 0.0f) hp_ = 0.0f;
+
+	// ---- 任意：被弾スタン（入れたいなら）
+	// PlayerBrain は status が Stunned だと loco/combat を止める設計なので相性が良い
+	float stunSec = 0.08f; // 基本
+	switch (part)
+	{
+	case PlayerHitPart::Head: stunSec = 0.15f; break; // ヘッドは少し長め
+	default: break;
+	}
+
+	PlayerContext ctx{ api_, inputSnap_, 0.0f };
+	brain_.status.RequestStun(ctx, stunSec);
+
+	// スタン中に「前の移動状態」が残って動くのを防ぐ（おすすめ）
+	moveX_ = 0.0f;
+	moveZ_ = 0.0f;
+	sprint_ = false;
+	dashTimer_ = 0.0f;
+
+	brain_.loco.Change(ctx, LocoId::Idle);
+	brain_.combat.Change(ctx, CombatId::Hip);
+
+	// TODO: hp_==0 のとき死亡処理を入れるならここ
 }
 
 bool Player::FSM_IsGrounded() const
@@ -345,4 +494,41 @@ void Player::FireOnce()
 	origin = origin + dir * muzzleForwardOffset_;
 
 	bulletManager_->Spawn(origin, dir, bulletSpeed_, bulletDamage_);
+}
+
+void Player::SyncHurtboxes()
+{
+	if (!hbDebugDraw_) return;
+
+	auto apply = [&](int hbIdx, const K4E::Vector3& worldPos, const K4E::Vector3& worldRot)
+		{
+			auto& t = hbTuning_[hbIdx];
+
+			if (!t.enabled)
+			{
+				// 非表示（Collider::DrawはhalfSize≒0で描かない実装）
+				hurtboxes_[hbIdx]->SetOBBHalfSize({ 0,0,0 });
+				return;
+			}
+
+			K4E::Vector3 rot = worldRot;
+			rot.y = -rot.y;
+
+			hurtboxes_[hbIdx]->SetOBBHalfSize(t.halfSize);
+			hurtboxes_[hbIdx]->SetOrientation(rot + t.rotOffset);
+
+			const K4E::Vector3 offsetW = RotateByEuler(t.localOffset, rot);
+			hurtboxes_[hbIdx]->SetCenterPosition(worldPos + offsetW);
+		};
+
+	// Body: body_.transform.translate_ / rotate_ でOK（親なし）
+	apply(0, body_.transform.translate_, body_.transform.rotate_);
+
+	// Parts: worldTranslate_ / worldRotate_ を必ず使う
+	const auto idx = GetPartIndices();
+	apply(1, parts_[idx.head].transform.worldTranslate_ + K4E::Vector3(0.0f,0.5f,0.0f), parts_[idx.head].transform.worldRotate_);
+	apply(2, parts_[idx.leftArm].transform.worldTranslate_ + K4E::Vector3(0.0f, -0.75f, 0.0f), parts_[idx.leftArm].transform.worldRotate_);
+	apply(3, parts_[idx.rightArm].transform.worldTranslate_ + K4E::Vector3(0.0f, -0.75f, 0.0f), parts_[idx.rightArm].transform.worldRotate_);
+	apply(4, parts_[idx.leftLeg].transform.worldTranslate_ + K4E::Vector3(0.0f, -0.75f, 0.0f), parts_[idx.leftLeg].transform.worldRotate_);
+	apply(5, parts_[idx.rightLeg].transform.worldTranslate_ + K4E::Vector3(0.0f, -0.75f, 0.0f), parts_[idx.rightLeg].transform.worldRotate_);
 }

@@ -109,14 +109,14 @@ void DebugScene::Initialize()
 	input_->SetLockCursor(true);
 	input_->SetCursorVisible(false);
 
-	player_ = std::make_unique<Player>();
-	player_->Initialize();
-
 	collisionManager_ = std::make_unique<CollisionManager>();
 	collisionManager_->Initialize();
 
+	player_ = std::make_unique<Player>();
 	player_->SetCollisionManager(collisionManager_.get());
-	collisionManager_->AddCollider(player_.get()); // ← 線描画のためにも便利
+	player_->Initialize();
+
+	collisionManager_->AddCollider(player_.get());
 
 	bulletManager_ = std::make_unique<BulletManager>();
 	bulletManager_->Initialize(collisionManager_.get());
@@ -126,6 +126,8 @@ void DebugScene::Initialize()
 
 	enemy_ = std::make_unique<Enemy>();
 	enemy_->Initialize();
+	enemy_->SetTarget(player_.get());
+	enemy_->SetBulletManager(bulletManager_.get());
 	collisionManager_->AddCollider(enemy_.get());
 }
 
@@ -141,10 +143,10 @@ void DebugScene::Update()
 
 	bulletManager_->Update(deltaTime);
 
-	enemy_->Update();
+	enemy_->Update(deltaTime);
 
 	collisionManager_->Update();
-	collisionManager_->CheckAllCollisions(); // 今後の衝突イベント用。Raycastだけでも入れてOK
+	collisionManager_->CheckAllCollisions();
 
 	if (enemy_ && enemy_->IsRemovable())
 	{
@@ -202,6 +204,8 @@ void DebugScene::Finalize()
 void DebugScene::DrawImGui()
 {
 #ifdef USE_IMGUI
+
+	player_->DrawImGui();
 
 	/// ---------- GPUパーティクルデバッグ ---------- ///
 	K4E::GpuParticleManager::GetInstance()->DrawImGui();
@@ -279,6 +283,7 @@ void DebugScene::UpdateDebug()
 		K4E::GpuParticleManager::GetInstance()->SetDebugCameraEnabled(!isDebugCamera_);
 		isDebugCamera_ = !isDebugCamera_;
 
+		player_->SetDebugCamera(isDebugCamera_);
 		input_->SetLockCursor(!isDebugCamera_);
 		input_->SetCursorVisible(isDebugCamera_);
 	}

@@ -6,26 +6,31 @@ using namespace Ken4lowEngine;
 void Bullet::Initialize(const K4E::Vector3& startPos,
 	const K4E::Vector3& velocity,
 	int damage,
-	float lifeTimeSec)
+	float lifeTimeSec,
+	uint32_t typeId)
 {
 	damage_ = damage;
 	moveVelocity_ = velocity;
 	lifeTimeSec_ = lifeTimeSec;
 	lifeTimer_ = 0.0f;
 
-	Collider::SetTypeID(static_cast<uint32_t>(CollisionTypeIdDef::kBullet));
+	Collider::SetTypeID(typeId);
 	Collider::SetOwner(this);
 
 	// デバッグ表示したいなら
 	model_ = std::make_unique<K4E::Object3D>();
 	model_->Initialize("cube.gltf");
 
+	// 弾種で色を変えたいなら（任意）
+	// if (typeId == (uint32_t)CollisionTypeIdDef::kEnemyBullet) debugColor_ = {1,0,0,1};
+
 	// セグメント判定が主なので OBB は小さめでOK
-	Collider::SetOBBHalfSize({ 0.1f, 0.1f, 0.1f });
+	Collider::SetOBBHalfSize(scale_);
 
 	prevPos_ = startPos;
 	Collider::SetCenterPosition(startPos);
 	if (model_) {
+		model_->SetScale(scale_);
 		model_->SetTranslate(startPos);
 		model_->SetColor(debugColor_);
 		model_->Update();
@@ -120,12 +125,29 @@ void Bullet::OnCollisionEnter(K4E::Collider* other)
 	if (!other) return;
 	if (isDead_ || removable_) return;
 
+	const uint32_t selfType = GetTypeID();
 	const uint32_t otherType = other->GetTypeID();
-	if (otherType != static_cast<uint32_t>(CollisionTypeIdDef::kEnemy) &&
-		otherType != static_cast<uint32_t>(CollisionTypeIdDef::kBoss))
+
+	// どこに当たったら消すかは「弾種」で決める
+	const uint32_t kPlayer = static_cast<uint32_t>(CollisionTypeIdDef::kPlayer);
+	const uint32_t kEnemy = static_cast<uint32_t>(CollisionTypeIdDef::kEnemy);
+	const uint32_t kBoss = static_cast<uint32_t>(CollisionTypeIdDef::kBoss);
+	const uint32_t kWorld = static_cast<uint32_t>(CollisionTypeIdDef::kWorld);
+
+	bool shouldHit = false;
+	if (selfType == static_cast<uint32_t>(CollisionTypeIdDef::kBullet))
 	{
-		return;
+		// プレイヤー弾：敵/ボス/ワールド
+		shouldHit = (otherType == kEnemy || otherType == kBoss || otherType == kWorld);
 	}
+	else if (selfType == static_cast<uint32_t>(CollisionTypeIdDef::kEnemyBullet) ||
+		selfType == static_cast<uint32_t>(CollisionTypeIdDef::kBossBullet))
+	{
+		// 敵弾/ボス弾：プレイヤー/ワールド
+		shouldHit = (otherType == kPlayer || otherType == kWorld);
+	}
+
+	if (!shouldHit) return;
 
 	// 多段ヒット防止（基本は当たったら即死なので保険）
 	const uint32_t otherId = other->GetUniqueID();

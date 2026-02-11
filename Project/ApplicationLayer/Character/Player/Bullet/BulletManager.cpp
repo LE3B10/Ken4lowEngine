@@ -14,10 +14,11 @@ Bullet* BulletManager::Spawn(const Vector3& startPos,
 	const Vector3& dirNormalized,
 	float speed,
 	int damage,
-	float lifeTimeSec)
+	float lifeTimeSec,
+	uint32_t typeId)
 {
 	auto b = std::make_unique<Bullet>();
-	b->Initialize(startPos, dirNormalized * speed, damage, lifeTimeSec);
+	b->Initialize(startPos, dirNormalized * speed, damage, lifeTimeSec, typeId);
 
 	if (collisionManager_) collisionManager_->AddCollider(b.get());
 
