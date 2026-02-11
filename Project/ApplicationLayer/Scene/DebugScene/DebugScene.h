@@ -1,6 +1,8 @@
 #pragma once
 #include "BaseScene.h"
 #include "CollisionManager.h"
+#include "BulletManager.h"
+#include "Enemy.h"
 
 #include "Player.h"
 
@@ -51,5 +53,7 @@ private: /// ---------- メンバ変数 ---------- ///
 	std::unique_ptr<CollisionManager> collisionManager_; // 衝突管理マネージャー
 	
 	std::unique_ptr<Player> player_; // 実際のプレイヤー
+	std::unique_ptr<BulletManager> bulletManager_;
+	std::unique_ptr<Enemy> enemy_;
 };
 

@@ -42,8 +42,7 @@ void BaseCharacter::Initialize()
 /// -------------------------------------------------------------
 void BaseCharacter::Update(float deltaTime)
 {
-	// デルタタイム未使用
-	(void)deltaTime;
+	(void)deltaTime; // 未使用
 
 	// 階層更新
 	UpdateHierarchy();

@@ -106,11 +106,27 @@ void DebugScene::Initialize()
 	dxCommon_ = K4E::DirectXCommon::GetInstance();
 	input_ = K4E::Input::GetInstance();
 
+	input_->SetLockCursor(true);
+	input_->SetCursorVisible(false);
+
 	player_ = std::make_unique<Player>();
 	player_->Initialize();
 
 	collisionManager_ = std::make_unique<CollisionManager>();
 	collisionManager_->Initialize();
+
+	player_->SetCollisionManager(collisionManager_.get());
+	collisionManager_->AddCollider(player_.get()); // ← 線描画のためにも便利
+
+	bulletManager_ = std::make_unique<BulletManager>();
+	bulletManager_->Initialize(collisionManager_.get());
+
+	// ★Playerへ渡す
+	player_->SetBulletManager(bulletManager_.get());
+
+	enemy_ = std::make_unique<Enemy>();
+	enemy_->Initialize();
+	collisionManager_->AddCollider(enemy_.get());
 }
 
 void DebugScene::Update()
@@ -122,13 +138,25 @@ void DebugScene::Update()
 	float deltaTime = dxCommon_->GetFPSCounter().GetDeltaTime();
 
 	player_->Update(deltaTime);
+
+	bulletManager_->Update(deltaTime);
+
+	enemy_->Update();
+
+	collisionManager_->Update();
+	collisionManager_->CheckAllCollisions(); // 今後の衝突イベント用。Raycastだけでも入れてOK
+
+	if (enemy_ && enemy_->IsRemovable())
+	{
+		collisionManager_->RemoveCollider(enemy_.get());
+	}
 }
 
 void DebugScene::Draw3DObjects()
 {
-	
 	player_->Draw();
-
+	bulletManager_->Draw();
+	enemy_->Draw();
 #ifdef _DEBUG
 	// ワイヤーフレームの描画
 	K4E::Wireframe::GetInstance()->DrawGrid(100.0f, 50.0f, { 0.25f, 0.25f, 0.25f,1.0f });
@@ -151,13 +179,19 @@ void DebugScene::Draw2DSprites()
 
 	// UI用の共通描画設定
 	K4E::SpriteManager::GetInstance()->SetRenderSetting_UI();
-	
+
 
 #pragma endregion
 }
 
 void DebugScene::Finalize()
 {
+	// 入力状態を必ず戻す（ロック/非表示のまま終了しない）
+	input_->SetLockCursor(false);
+	input_->SetCursorVisible(true);
+
+	enemy_.reset();
+	bulletManager_.reset();
 	player_.reset();
 	collisionManager_.reset();
 
@@ -244,5 +278,8 @@ void DebugScene::UpdateDebug()
 		K4E::Wireframe::GetInstance()->SetDebugCamera(!K4E::Wireframe::GetInstance()->GetDebugCamera());
 		K4E::GpuParticleManager::GetInstance()->SetDebugCameraEnabled(!isDebugCamera_);
 		isDebugCamera_ = !isDebugCamera_;
+
+		input_->SetLockCursor(!isDebugCamera_);
+		input_->SetCursorVisible(isDebugCamera_);
 	}
 }

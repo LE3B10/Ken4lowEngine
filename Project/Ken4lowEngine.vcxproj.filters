@@ -523,6 +523,15 @@
     <ClCompile Include="ApplicationLayer\Scene\DebugScene\DummyPlayer.cpp">
       <Filter>ApplicationLayer\Scene\DebugScene</Filter>
     </ClCompile>
+    <ClCompile Include="ApplicationLayer\Character\Enemy\Enemy.cpp">
+      <Filter>ApplicationLayer\Character\Enemy</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\Character\Player\Bullet\Bullet.cpp">
+      <Filter>ApplicationLayer\Character\Player\Bullet</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\Character\Player\Bullet\BulletManager.cpp">
+      <Filter>ApplicationLayer\Character\Player\Bullet</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="EngineLayer\Math\MultipleStructs\AABB.h">
@@ -1101,6 +1110,24 @@
     <ClInclude Include="ApplicationLayer\Scene\DebugScene\DummyPlayer.h">
       <Filter>ApplicationLayer\Scene\DebugScene</Filter>
     </ClInclude>
+    <ClInclude Include="EngineLayer\Input\InputSnapshot.h">
+      <Filter>EngineLayer\Input</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Character\Enemy\Enemy.h">
+      <Filter>ApplicationLayer\Character\Enemy</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Character\Player\Bullet\Bullet.h">
+      <Filter>ApplicationLayer\Character\Player\Bullet</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Character\Player\Bullet\BulletManager.h">
+      <Filter>ApplicationLayer\Character\Player\Bullet</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Character\Player\PlayerInputSnapshot.h">
+      <Filter>ApplicationLayer\Character\Player</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Character\Player\PlayerStateMachines.h">
+      <Filter>ApplicationLayer\Character\Player</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="Resources\Shaders\PostEffect\FullScreen.hlsli">
@@ -1200,9 +1227,6 @@
     </Filter>
     <Filter Include="ApplicationLayer\ReloadCircle">
       <UniqueIdentifier>{28c95605-c9f2-44e5-94d0-86aca3440279}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="ApplicationLayer\ResultManager">
-      <UniqueIdentifier>{4c1e2d8e-c147-4afd-b5ae-eb649ecdd76a}</UniqueIdentifier>
     </Filter>
     <Filter Include="ApplicationLayer\Scene">
       <UniqueIdentifier>{2c06b534-d429-48a2-9781-834affe90ebd}</UniqueIdentifier>
@@ -1426,9 +1450,6 @@
     <Filter Include="ApplicationLayer\Character\Player">
       <UniqueIdentifier>{c109cc45-a229-47d4-948e-cab986d311a3}</UniqueIdentifier>
     </Filter>
-    <Filter Include="ApplicationLayer\Character\Player\Weapon">
-      <UniqueIdentifier>{8f30bd8f-faaa-4fde-a565-96d12d50afe0}</UniqueIdentifier>
-    </Filter>
     <Filter Include="ApplicationLayer\WeaponSystem">
       <UniqueIdentifier>{11e77611-2a8a-40a3-83a8-40fad2043d80}</UniqueIdentifier>
     </Filter>
@@ -1486,9 +1507,6 @@
     <Filter Include="EngineLayer\GpuParticleSystem\GpuParticleRenderer">
       <UniqueIdentifier>{8de7978e-bff9-4fb1-b028-02c0d699b8c7}</UniqueIdentifier>
     </Filter>
-    <Filter Include="ApplicationLayer\OverlaySystem">
-      <UniqueIdentifier>{5d4ee373-f3d9-40f5-b704-87da7fd9875e}</UniqueIdentifier>
-    </Filter>
     <Filter Include="EngineLayer\PostEffectManagement\PixelateEffect">
       <UniqueIdentifier>{e3999bd4-082c-4d5b-9c16-27e6c04752f3}</UniqueIdentifier>
     </Filter>
@@ -1500,21 +1518,6 @@
     </Filter>
     <Filter Include="ApplicationLayer\Scene\StageSelectScene\State">
       <UniqueIdentifier>{9d2c63a5-c625-4369-909d-240c88706ac1}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="ApplicationLayer\Character\Enemy\Core">
-      <UniqueIdentifier>{3714bafc-5dfc-4c9f-b0e8-7aae156a22eb}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="ApplicationLayer\Character\Enemy\BehaviorTree">
-      <UniqueIdentifier>{dc97a9f3-620b-486c-a040-5e7f04d2ffa2}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="ApplicationLayer\Character\Enemy\BehaviorTree\Nodes">
-      <UniqueIdentifier>{4e4bfa01-64c2-447b-90dc-5c042354efe7}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="ApplicationLayer\Character\Enemy\State">
-      <UniqueIdentifier>{9f05e27f-a39c-4f81-ad16-c768d562f145}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="ApplicationLayer\Character\Enemy\BehaviorTree\Builder">
-      <UniqueIdentifier>{c34fe77d-2ab5-41f3-932a-1cba38116a4c}</UniqueIdentifier>
     </Filter>
     <Filter Include="EngineLayer\Colliders">
       <UniqueIdentifier>{6041bdf3-208c-40a4-8d98-c134efb4a3cb}</UniqueIdentifier>
@@ -1572,6 +1575,9 @@
     </Filter>
     <Filter Include="EngineLayer\3D\AnimationManagement\Debug">
       <UniqueIdentifier>{64dd504b-09cb-4ce7-b7b5-3377b0a7ad71}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ApplicationLayer\Character\Player\Bullet">
+      <UniqueIdentifier>{cf916607-2b99-464e-8993-67ea1777d323}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

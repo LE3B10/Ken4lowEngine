@@ -6,6 +6,7 @@
 
 #include <algorithm>
 #include <unordered_set>
+#include <limits>
 
 namespace K4E = ::Ken4lowEngine;
 
@@ -176,6 +177,35 @@ void CollisionManager::RemoveCollider(K4E::Collider* other)
         auto& v = buckets_[id];
         v.erase(std::remove(v.begin(), v.end(), other), v.end());
     }
+}
+
+bool CollisionManager::SegmentCast(uint32_t targetType, const K4E::Segment& seg, K4E::Collider** outHit) const
+{
+    if (outHit) *outHit = nullptr;
+    if (targetType >= kMaxTypes) return false;
+
+    float best = std::numeric_limits<float>::max();
+    K4E::Collider* bestCol = nullptr;
+
+    for (K4E::Collider* c : buckets_[targetType])
+    {
+        if (!c) continue;
+
+        // Segment vs OBB 判定（既存の仕組みを利用）
+        if (!K4E::CollisionUtility::IsCollision(c->GetOBB(), seg)) continue;
+
+        // “近いものを優先” の簡易（最短でそれっぽく）
+        const K4E::Vector3 d = c->GetCenterPosition() - seg.origin;
+        const float distSq = d.x * d.x + d.y * d.y + d.z * d.z;
+        if (distSq < best)
+        {
+            best = distSq;
+            bestCol = c;
+        }
+    }
+
+    if (outHit) *outHit = bestCol;
+    return bestCol != nullptr;
 }
 
 /// -------------------------------------------------------------
