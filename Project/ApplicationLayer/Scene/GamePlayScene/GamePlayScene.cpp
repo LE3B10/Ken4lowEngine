@@ -36,9 +36,19 @@ void GamePlayScene::Initialize()
 	collisionManager_ = std::make_unique<CollisionManager>();
 	collisionManager_->Initialize();
 
-	// プレイヤーの初期化
-	player_ = std::make_unique<Player>();
-	player_->Initialize();
+	// 弾丸マネージャーの初期化
+	bulletManager_ = std::make_unique<BulletManager>();
+	bulletManager_->Initialize(collisionManager_.get());
+
+	// キャラクター関連の初期化
+	GameContext ctx{};
+	ctx.collisionManager_ = collisionManager_.get();
+	ctx.bulletManager_ = bulletManager_.get();
+	characters_.Initialize(ctx);
+
+	characters_.SpawnEnemy(EnemyArchetype::RifleGrunt, { 0.0f, 0.0f, 30.0f });
+	characters_.SpawnEnemy(EnemyArchetype::SMGFlanker, { 6.0f, 0.0f, 28.0f });
+	characters_.SpawnEnemy(EnemyArchetype::Sniper, { -6.0f, 0.0f, 38.0f });
 }
 
 /// -------------------------------------------------------------
@@ -52,7 +62,16 @@ void GamePlayScene::Update()
 	// デバッグカメラの更新
 	UpdateDebug();
 
-	(void)deltaTime;
+	// キャラクター関連の更新
+	characters_.Update(deltaTime);
+
+	// 弾丸マネージャーの更新
+	bulletManager_->Update(deltaTime);
+
+	// 衝突判定の更新
+	CollisionUpdate();
+
+	skyBox_->Update();
 }
 
 /// -------------------------------------------------------------
@@ -65,12 +84,18 @@ void GamePlayScene::Draw3DObjects()
 	// スカイボックスの共通描画設定
 	K4E::SkyBoxManager::GetInstance()->SetRenderSetting();
 
-	skyBox_->Draw();
+	//skyBox_->Draw();
 
 #pragma endregion
 
 
 #pragma region オブジェクト3Dの描画
+
+	// キャラクターの描画
+	characters_.Draw();
+
+	// 弾丸の描画
+	bulletManager_->Draw();
 
 #pragma endregion
 
@@ -126,13 +151,18 @@ void GamePlayScene::Finalize()
 	input_->SetLockCursor(false);
 	input_->SetCursorVisible(true);
 
-	// 衝突は内部に “生ポインタのリスト” を持ちやすいので先に無効化
+	// ★重要：CharacterWorld は CollisionManager を使って RemoveCollider する
+	//         ので、先に characters_ を Finalize してから manager 類を破棄する
+	characters_.Finalize();
+
+	// 弾丸マネージャーの終了処理（Collision を参照している可能性があるため先）
+	bulletManager_.reset();
+
+	// 衝突マネージャーの終了処理
 	if (collisionManager_) {
 		collisionManager_->Reset();
 	}
 	collisionManager_.reset();
-
-	player_.reset();
 
 	// 3D背景など
 	skyBox_.reset();
@@ -150,8 +180,6 @@ void GamePlayScene::DrawImGui()
 {
 	// ライト
 	K4E::LightManager::GetInstance()->DrawImGui();
-
-	player_->DrawImGui();
 
 #ifdef USE_IMGUI
 
@@ -172,10 +200,20 @@ void GamePlayScene::UpdateDebug()
 		K4E::Wireframe::GetInstance()->SetDebugCamera(!K4E::Wireframe::GetInstance()->GetDebugCamera());
 		//K4E::ParticleManager::GetInstance()->SetDebugCamera(!K4E::ParticleManager::GetInstance()->GetDebugCamera());
 		skyBox_->SetDebugCamera(!skyBox_->GetDebugCamera());
-		//player_->SetDebugCamera(!player_->IsDebugCamera());
 		isDebugCamera_ = !isDebugCamera_;
+		characters_.SetDebug(!isDebugCamera_);
 		input_->SetLockCursor(!isDebugCamera_);
 		input_->SetCursorVisible(isDebugCamera_);
 	}
 #endif // _DEBUG
+}
+
+/// -------------------------------------------------------------
+///				　		衝突判定更新処理
+/// -------------------------------------------------------------
+void GamePlayScene::CollisionUpdate()
+{
+	if (!collisionManager_) return;
+	collisionManager_->Update();
+	collisionManager_->CheckAllCollisions();
 }

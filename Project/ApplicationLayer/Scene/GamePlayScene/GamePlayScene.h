@@ -3,9 +3,11 @@
 #include <Sprite.h>
 #include <SkyBox.h>
 #include "CollisionManager.h"
-#include "Player.h"
+#include "CharacterWorld.h"
+#include "BulletManager.h"
 
 #include <memory>
+#include <vector>
 
 namespace K4E = ::Ken4lowEngine;
 
@@ -44,20 +46,23 @@ private: /// ---------- メンバ関数 ---------- ///
 	// Debug用更新処理
 	void UpdateDebug();
 
+	// 衝突判定更新処理
+	void CollisionUpdate();
+
 private: /// ---------- メンバ変数 ---------- ///
 
 	K4E::DirectXCommon* dxCommon_ = nullptr;
 	K4E::Input* input_ = nullptr;
 
 	std::unique_ptr<CollisionManager> collisionManager_; // 衝突マネージャー
+	std::unique_ptr<BulletManager> bulletManager_; // 弾丸マネージャー
+	CharacterWorld characters_;
 
 	std::unique_ptr<K4E::SkyBox> skyBox_ = nullptr; // スカイボックス
+
+private: /// ---------- 内部メンバ変数 ---------- ///
 
 	// デバッグカメラのON/OFF用
 	bool isDebugCamera_ = false;
 	bool isLockedCursor_ = false;
-
-private: /// ---------- メンバ変数 ---------- ///
-
-	std::unique_ptr<Player> player_ = nullptr; // プレイヤー
 };

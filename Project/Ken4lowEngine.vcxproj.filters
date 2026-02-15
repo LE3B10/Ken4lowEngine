@@ -538,6 +538,9 @@
     <ClCompile Include="ApplicationLayer\Character\Enemy\EnemyBase.cpp">
       <Filter>ApplicationLayer\Character\Enemy</Filter>
     </ClCompile>
+    <ClCompile Include="ApplicationLayer\Character\CharacterWorld\CharacterWorld.cpp">
+      <Filter>ApplicationLayer\Character\CharacterWorld</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="EngineLayer\Math\MultipleStructs\AABB.h">
@@ -1146,6 +1149,15 @@
     <ClInclude Include="ApplicationLayer\Character\Enemy\EnemyStateMachine.h">
       <Filter>ApplicationLayer\Character\Enemy</Filter>
     </ClInclude>
+    <ClInclude Include="ApplicationLayer\Character\Enemy\EnemyGunAI.h">
+      <Filter>ApplicationLayer\Character\Enemy</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Character\Enemy\EnemyArchetype.h">
+      <Filter>ApplicationLayer\Character\Enemy</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Character\CharacterWorld\CharacterWorld.h">
+      <Filter>ApplicationLayer\Character\CharacterWorld</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="Resources\Shaders\PostEffect\FullScreen.hlsli">
@@ -1596,6 +1608,9 @@
     </Filter>
     <Filter Include="ApplicationLayer\Character\Player\Bullet">
       <UniqueIdentifier>{cf916607-2b99-464e-8993-67ea1777d323}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ApplicationLayer\Character\CharacterWorld">
+      <UniqueIdentifier>{a75a8185-2be8-480c-9967-b52e96c8864b}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

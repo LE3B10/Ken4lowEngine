@@ -43,8 +43,6 @@ public: /// ---------- メンバ関数 ---------- ///
     // セグメントキャスト
     bool SegmentCast(uint32_t targetType, const K4E::Segment& seg, K4E::Collider** outHit = nullptr) const;
 
-    bool SegmentCast(uint32_t typeId, const K4E::Segment& seg, K4E::Collider** outHit = nullptr) const;
-
 private: /// ---------- メンバ関数 ---------- ///
 
     // コライダー2つの衝突判定（衝突したら両者へ接触を登録）

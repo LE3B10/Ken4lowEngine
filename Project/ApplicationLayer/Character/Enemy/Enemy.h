@@ -1,13 +1,16 @@
 #pragma once
-
+#include "Vector3.h"
 #include <string>
 
 #include "EnemyBase.h"
 #include "EnemyAICommand.h"
 #include "EnemyStateMachine.h"
+#include "EnemyGunAI.h"
+#include "EnemyArchetype.h"
 
 // 前方宣言
 class BulletManager;
+class CollisionManager;
 
 namespace K4E = ::Ken4lowEngine;
 
@@ -31,9 +34,14 @@ public:
 	void Update() { Update(1.0f / 60.0f); }
 	void Update(float dt) override;
 
+	void Draw() override;       // 追加（視野のワイヤー描画をここで）
+
+	void DrawImGui() override;  // 任意（調整したければ）
+
 	// 依存の注入
 	void SetTarget(K4E::Collider* target) { target_ = target; }
 	void SetBulletManager(BulletManager* bm) { bulletManager_ = bm; }
+	void SetCollisionManager(CollisionManager* cm) { collisionManager_ = cm; }
 
 	// ---- FSMから参照される query ----
 	bool  IsInAttackRange(float distToPlayer) const { return distToPlayer <= attackRange_; }
@@ -51,6 +59,16 @@ public:
 
 	EnemyStateId GetStateId() const { return fsm_.GetStateId(); }
 
+	float GetMoveSpeed() const { return moveSpeed_; }
+	float GetAttackRange() const { return attackRange_; }
+
+	const K4E::Vector3& GetHomePos() const { return homePos_; }
+
+	// ---- Archetype / tuning ----
+	void SetArchetype(EnemyArchetype t);
+	EnemyArchetype GetArchetype() const { return archetype_; }
+	const EnemyTuning& GetTuning() const { return tuning_; }
+
 protected:
 	// EnemyBaseからの弾ヒット
 	void OnBulletHit(K4E::Collider* bulletCollider) override;
@@ -60,10 +78,29 @@ private:
 	void BuildContext(EnemyAIContext<Enemy>& ctx);
 
 private:
+	// 視覚判定
+	bool CanSeeTarget(const K4E::Vector3& targetPos, float distToTarget);
+
+
+
+	// 射線判定（発砲できるか：マズル→ターゲットが壁に当たらない）
+	bool CanShootTarget(const K4E::Vector3& targetPos) const;
+	// ワイヤー描画
+	void DrawVisionWire() const;
+
+private:
 	EnemyStateMachine<Enemy> fsm_{};
 
 	K4E::Collider* target_ = nullptr;
 	BulletManager* bulletManager_ = nullptr;
+
+	CollisionManager* collisionManager_ = nullptr;
+
+	K4E::Vector3 homePos_{ 0.0f, 0.0f, 0.0f };
+
+	// archetype / tuning
+	EnemyArchetype archetype_ = EnemyArchetype::RifleGrunt;
+	EnemyTuning tuning_{};
 
 	// perception / memory
 	float viewRange_ = 25.0f;
@@ -81,4 +118,23 @@ private:
 
 	// stun request
 	float stunRequestedSec_ = 0.0f;
+
+	// ---- Vision params（追加）----
+	float viewFovDeg_ = 90.0f;      // 視野角（左右合計）
+	float viewFovVerticalDeg_ = 60.0f; // 縦（上下合計）
+	float eyeHeight_ = 1.2f;       // 目の高さ
+	float targetEyeHeight_ = 1.2f;     // ターゲット側の高さ（雑に同じでもOK）
+	bool  useLOS_ = true;       // 遮蔽チェックをするか
+
+	// ---- Facing（追加）----
+	float yawRad_ = 0.0f;           // FaceToで更新
+	float pitchRad_ = 0.0f; 	   // 将来の拡張用
+
+	// ---- Debug draw（追加）----
+	bool  debugDrawVision_ = true;
+	int   debugVisionSegments_ = 24;
+
+	// デバッグ用に直近の結果を保持（任意）
+	bool  lastCanSee_ = false;
+	K4E::Vector3 lastPlayerPos_{};
 };

@@ -125,9 +125,10 @@ void DebugScene::Initialize()
 	player_->SetBulletManager(bulletManager_.get());
 
 	enemy_ = std::make_unique<Enemy>();
-	enemy_->Initialize();
+	enemy_->SetCollisionManager(collisionManager_.get());
 	enemy_->SetTarget(player_.get());
 	enemy_->SetBulletManager(bulletManager_.get());
+	enemy_->Initialize();
 	collisionManager_->AddCollider(enemy_.get());
 }
 
@@ -143,7 +144,7 @@ void DebugScene::Update()
 
 	bulletManager_->Update(deltaTime);
 
-	enemy_->Update(deltaTime);
+	enemy_->Update();
 
 	collisionManager_->Update();
 	collisionManager_->CheckAllCollisions();
