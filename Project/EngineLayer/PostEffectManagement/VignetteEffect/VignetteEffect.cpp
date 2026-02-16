@@ -109,4 +109,27 @@ namespace Ken4lowEngine
 #endif // USE_IMGUI
 	}
 
+	/// -------------------------------------------------------------
+	///					 runtime control
+	/// -------------------------------------------------------------
+	void VignetteEffect::SetPower(float power)
+	{
+		if (vignetteSetting_) { vignetteSetting_->power = power; }
+	}
+
+	void VignetteEffect::SetRange(float range)
+	{
+		if (vignetteSetting_) { vignetteSetting_->range = range; }
+	}
+
+	float VignetteEffect::GetPower() const
+	{
+		return vignetteSetting_ ? vignetteSetting_->power : 0.0f;
+	}
+
+	float VignetteEffect::GetRange() const
+	{
+		return vignetteSetting_ ? vignetteSetting_->range : 0.0f;
+	}
+
 } // namespace Ken4lowEngine

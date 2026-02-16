@@ -114,4 +114,37 @@ namespace Ken4lowEngine
 #endif // USE_IMGUI
 	}
 
+	/// -------------------------------------------------------------
+	///					 runtime control
+	/// -------------------------------------------------------------
+	void RadialBlurEffect::SetCenter(const Vector2& center)
+	{
+		if (radialBlurSetting_) { radialBlurSetting_->center = center; }
+	}
+
+	void RadialBlurEffect::SetBlurStrength(float strength)
+	{
+		if (radialBlurSetting_) { radialBlurSetting_->blurStrength = strength; }
+	}
+
+	void RadialBlurEffect::SetSampleCount(float samples)
+	{
+		if (radialBlurSetting_) { radialBlurSetting_->sampleCount = samples; }
+	}
+
+	Vector2 RadialBlurEffect::GetCenter() const
+	{
+		return radialBlurSetting_ ? radialBlurSetting_->center : Vector2{ 0.5f, 0.5f };
+	}
+
+	float RadialBlurEffect::GetBlurStrength() const
+	{
+		return radialBlurSetting_ ? radialBlurSetting_->blurStrength : 0.0f;
+	}
+
+	float RadialBlurEffect::GetSampleCount() const
+	{
+		return radialBlurSetting_ ? radialBlurSetting_->sampleCount : 0.0f;
+	}
+
 } // namespace Ken4lowEngine

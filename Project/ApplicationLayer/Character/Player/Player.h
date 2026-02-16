@@ -140,6 +140,11 @@ private: /// ---------- メンバ関数 ---------- ///
 
 	void SyncHurtboxes();
 
+private:
+	// 被弾時ポストエフェクト（Vignette + RadialBlur）
+	void StartDamagePostEffect(float damage);
+	void UpdateDamagePostEffect(float dt);
+
 private: /// ----------メンバ変数 ---------- ///
 
 	K4E::Input* input_ = nullptr; // 入力クラス
@@ -195,6 +200,16 @@ private: /// ----------メンバ変数 ---------- ///
 	// 体力
 	float maxHp_ = 100.0f;
 	float hp_ = 100.0f;
+
+	// ---- 被弾ポストエフェクト ----
+	float damagePostTimer_ = 0.0f;
+	float damagePostDuration_ = 0.18f;   // 秒
+	float damagePostStrength_ = 0.0f;    // 0..1（大きいほど強い）
+	bool  damagePostCapturedBase_ = false;
+	float baseVignettePower_ = 0.8f;
+	float baseVignetteRange_ = 0.5f;
+	float baseRadialBlurStrength_ = 0.3f;
+	float baseRadialBlurSamples_ = 16.0f;
 
 	float hitscanRange_ = 100.0f; // デバッグ用レイ
 	float shotDebugTimer_ = 0.0f;

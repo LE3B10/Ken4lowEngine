@@ -4,6 +4,9 @@
 
 using namespace Ken4lowEngine;
 
+/// -------------------------------------------------------------
+///							初期化処理
+/// -------------------------------------------------------------
 void EnemyBase::Initialize(const Vector3& startPos, const std::string& modelPath)
 {
 	// Collider設定
@@ -26,6 +29,9 @@ void EnemyBase::Initialize(const Vector3& startPos, const std::string& modelPath
 	hp_ = maxHp_;
 }
 
+/// -------------------------------------------------------------
+///							中心座標
+/// -------------------------------------------------------------
 void EnemyBase::SetCenterPosition(const Vector3& pos)
 {
 	Collider::SetCenterPosition(pos);
@@ -36,11 +42,17 @@ void EnemyBase::SetCenterPosition(const Vector3& pos)
 	}
 }
 
+/// -------------------------------------------------------------
+///							位置
+/// -------------------------------------------------------------
 void EnemyBase::SetPosition(const Vector3& p)
 {
 	SetCenterPosition(p);
 }
 
+/// -------------------------------------------------------------
+///							更新処理
+/// -------------------------------------------------------------
 void EnemyBase::Update(float dt)
 {
 	if (removable_) return;
@@ -60,17 +72,26 @@ void EnemyBase::Update(float dt)
 	UpdateHitFlash(dt);
 }
 
+/// -------------------------------------------------------------
+///							描画処理
+/// -------------------------------------------------------------
 void EnemyBase::Draw()
 {
 	if (isDead_ || removable_) return;
 	if (model_) model_->Draw();
 }
 
+/// -------------------------------------------------------------
+///							ImGui描画処理
+/// -------------------------------------------------------------
 void EnemyBase::DrawImGui()
 {
 	if (model_) model_->DrawImGui();
 }
 
+/// -------------------------------------------------------------
+///							ダメージ処理
+/// -------------------------------------------------------------
 void EnemyBase::TakeDamage(int amount)
 {
 	if (isDead_) return;
@@ -87,11 +108,17 @@ void EnemyBase::TakeDamage(int amount)
 	}
 }
 
+/// -------------------------------------------------------------
+///							死亡処理
+/// -------------------------------------------------------------
 void EnemyBase::OnKilled()
 {
 	// 派生で死亡演出を入れたいならここ
 }
 
+/// -------------------------------------------------------------
+/// 						コライダー無効化
+/// -------------------------------------------------------------
 void EnemyBase::DisableColliderAndMoveFar()
 {
 	// OBB枠と判定を消す
@@ -111,13 +138,18 @@ void EnemyBase::DisableColliderAndMoveFar()
 	}
 }
 
-
+/// -------------------------------------------------------------
+///						ヒットフラッシュ開始
+/// -------------------------------------------------------------
 void EnemyBase::StartHitFlash()
 {
 	if (!hitFlashEnabled_) return;
 	hitFlashTimer_ = hitFlashDuration_;
 }
 
+/// -------------------------------------------------------------
+///						ヒットフラッシュ更新
+/// -------------------------------------------------------------
 void EnemyBase::UpdateHitFlash(float dt)
 {
 	if (!model_) return;
@@ -151,12 +183,18 @@ void EnemyBase::UpdateHitFlash(float dt)
 	}
 }
 
+/// -------------------------------------------------------------
+/// 						弾丸ヒット処理
+/// -------------------------------------------------------------
 void EnemyBase::OnBulletHit(Collider* bulletCollider)
 {
 	(void)bulletCollider;
 	TakeDamage(10);
 }
 
+/// -------------------------------------------------------------
+///							衝突開始
+/// -------------------------------------------------------------
 void EnemyBase::OnCollisionEnter(Collider* other)
 {
 	if (!other || isDead_) return;

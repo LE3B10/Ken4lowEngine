@@ -16,14 +16,25 @@ namespace K4E = ::Ken4lowEngine;
 /// -------------------------------------------------------------
 class EnemyBase : public K4E::Collider
 {
-public:
+public: /// ---------- メンバ関数 ---------- ///
+
+	// コンストラクタ・デストラクタ
 	EnemyBase() = default;
 	virtual ~EnemyBase() = default;
 
+	// 初期化処理
 	virtual void Initialize(const K4E::Vector3& startPos, const std::string& modelPath = "cube.gltf");
+
+	// 更新処理
 	virtual void Update(float dt);
+
+	// 描画処理
 	virtual void Draw();
+
+	// ImGui描画処理
 	virtual void DrawImGui();
+
+public: /// ---------- HP / 物理関連のメンバ関数 ---------- ///
 
 	// HP
 	void SetMaxHp(int v) { maxHp_ = v; hp_ = v; }
@@ -61,9 +72,15 @@ public:
 	void OnCollisionStay(K4E::Collider* other) override { OnCollisionEnter(other); }
 	void OnCollisionExit(K4E::Collider* other) override { (void)other; }
 
-protected:
+protected: /// ---------- 被弾・死亡処理の仮想関数 ---------- ///
+
 	virtual void OnKilled();
 	virtual void OnBulletHit(K4E::Collider* bulletCollider);
+
+private: /// ---------- 内部処理 ---------- ///
+
+	void DisableColliderAndMoveFar();
+	void UpdateHitFlash(float dt);
 
 protected:
 	std::unique_ptr<K4E::Object3D> model_;
@@ -90,8 +107,4 @@ protected:
 	float hitFlashDuration_ = 0.12f;     // 秒
 	float hitFlashFrequencyHz_ = 18.0f;  // 点滅周波数
 	bool hitFlashEnabled_ = true;
-
-private:
-	void DisableColliderAndMoveFar();
-	void UpdateHitFlash(float dt);
 };
