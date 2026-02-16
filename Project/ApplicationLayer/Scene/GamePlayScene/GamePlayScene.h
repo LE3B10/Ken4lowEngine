@@ -5,6 +5,7 @@
 #include "CollisionManager.h"
 #include "CharacterWorld.h"
 #include "BulletManager.h"
+#include "Crosshair.h"
 
 #include <memory>
 #include <vector>
@@ -57,6 +58,8 @@ private: /// ---------- メンバ変数 ---------- ///
 	std::unique_ptr<CollisionManager> collisionManager_; // 衝突マネージャー
 	std::unique_ptr<BulletManager> bulletManager_; // 弾丸マネージャー
 	CharacterWorld characters_;
+
+	std::unique_ptr<Crosshair> crosshair_ = nullptr; // クロスヘア
 
 	std::unique_ptr<K4E::SkyBox> skyBox_ = nullptr; // スカイボックス
 

@@ -69,6 +69,8 @@ public:
 	EnemyArchetype GetArchetype() const { return archetype_; }
 	const EnemyTuning& GetTuning() const { return tuning_; }
 
+	void SetDebugCamera(bool enabled) { debugCamera_ = enabled; }
+
 protected:
 	// EnemyBaseからの弾ヒット
 	void OnBulletHit(K4E::Collider* bulletCollider) override;
@@ -80,8 +82,6 @@ private:
 private:
 	// 視覚判定
 	bool CanSeeTarget(const K4E::Vector3& targetPos, float distToTarget);
-
-
 
 	// 射線判定（発砲できるか：マズル→ターゲットが壁に当たらない）
 	bool CanShootTarget(const K4E::Vector3& targetPos) const;
@@ -137,4 +137,6 @@ private:
 	// デバッグ用に直近の結果を保持（任意）
 	bool  lastCanSee_ = false;
 	K4E::Vector3 lastPlayerPos_{};
+
+	bool debugCamera_ = false;
 };

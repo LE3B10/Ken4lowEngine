@@ -11,6 +11,16 @@
 #include <DebugCamera.h>
 #endif // _DEBUG
 
+#ifdef USE_IMGUI
+#include <imgui.h>
+#endif // USE_IMGUI
+
+
+#include "WeaponMasterDataDatabase.h"
+#include "WeaponMasterDataEditor.h"
+#include "WeaponMasterDataWriter.h"
+#include <filesystem>
+
 namespace K4E = ::Ken4lowEngine;
 
 /// -------------------------------------------------------------
@@ -49,6 +59,9 @@ void GamePlayScene::Initialize()
 	characters_.SpawnEnemy(EnemyArchetype::RifleGrunt, { 0.0f, 0.0f, 30.0f });
 	characters_.SpawnEnemy(EnemyArchetype::SMGFlanker, { 6.0f, 0.0f, 28.0f });
 	characters_.SpawnEnemy(EnemyArchetype::Sniper, { -6.0f, 0.0f, 38.0f });
+
+	crosshair_ = std::make_unique<Crosshair>();
+	crosshair_->Initialize();
 }
 
 /// -------------------------------------------------------------
@@ -72,6 +85,8 @@ void GamePlayScene::Update()
 	CollisionUpdate();
 
 	skyBox_->Update();
+
+	crosshair_->Update();
 }
 
 /// -------------------------------------------------------------
@@ -137,6 +152,7 @@ void GamePlayScene::Draw2DSprites()
 	// UI用の共通描画設定
 	K4E::SpriteManager::GetInstance()->SetRenderSetting_UI();
 
+	crosshair_->Draw();
 
 #pragma endregion
 }
@@ -150,6 +166,8 @@ void GamePlayScene::Finalize()
 	// 入力状態を必ず戻す（ロック/非表示のまま終了しない）
 	input_->SetLockCursor(false);
 	input_->SetCursorVisible(true);
+
+	crosshair_.reset();
 
 	// ★重要：CharacterWorld は CollisionManager を使って RemoveCollider する
 	//         ので、先に characters_ を Finalize してから manager 類を破棄する
@@ -178,12 +196,75 @@ void GamePlayScene::Finalize()
 /// -------------------------------------------------------------
 void GamePlayScene::DrawImGui()
 {
+#ifdef USE_IMGUI
+
 	// ライト
 	K4E::LightManager::GetInstance()->DrawImGui();
 
-#ifdef USE_IMGUI
 
+	characters_.DrawImGui();
 
+	/// ---------- 武器マスターデータエディタ ---------- ///
+	static WeaponMasterDataDatabase weaponDB;
+	static WeaponMasterDataEditor weaponEditor;
+	static WeaponEditorHooks hooks;
+	static bool initialized = false;
+	static int32_t lastAppliedID = 0;
+
+	static const std::filesystem::path kRoot = "Resources/JSON/weapons";
+
+	if (!initialized)
+	{
+		initialized = true;
+
+		// ★ ここでロードする（既存jsonを表示したいなら必須）
+		// 空から始めたいなら LoadFromDirectory をコメントアウトしてOK
+		{
+			std::string err;
+			weaponDB.LoadFromDirectory(kRoot, &err);
+			// errをImGuiに出したいなら保持して表示
+		}
+
+		hooks.SaveAll = [&]()
+			{
+				std::string err;
+				WeaponMasterDataWriter::SaveAllByCategory(weaponDB, kRoot, &err);
+			};
+
+		hooks.RequestReloadFocus = [](int32_t) {};
+		hooks.RebuildLoadout = []() {};
+
+		hooks.ApplyToRuntimeIfCurrent =
+			[&](int32_t weaponID, const FWeaponMasterData&)
+			{
+				lastAppliedID = weaponID;
+			};
+
+		hooks.RequestDelete =
+			[&](int32_t weaponID)
+			{
+				std::string err;
+
+				// ディスク上のjson削除
+				WeaponMasterDataWriter::DeleteFilesByWeaponID(kRoot, weaponID, &err);
+
+				// DBから削除
+				weaponDB.RemoveByID(weaponID);
+			};
+
+		hooks.RequestAdd = [](const std::string&, int32_t) {}; // Editor側はDB直操作なので空でOK
+
+		// ★ これがあると毎回空になる。1枚目が「常に0」なのはこれが原因。
+		// weaponDB.Clear();
+	}
+
+	// ★ 外側で Begin/End しない。これだけ呼ぶ。
+	weaponEditor.DrawImGui(weaponDB, hooks);
+
+	// どうしても lastAppliedID を別窓で出したいなら “別タイトル” で出す
+	ImGui::Begin("Weapon Master Debug");
+	ImGui::Text("Last Applied ID: %d", lastAppliedID);
+	ImGui::End();
 
 #endif // USE_IMGUI
 }
@@ -201,7 +282,10 @@ void GamePlayScene::UpdateDebug()
 		//K4E::ParticleManager::GetInstance()->SetDebugCamera(!K4E::ParticleManager::GetInstance()->GetDebugCamera());
 		skyBox_->SetDebugCamera(!skyBox_->GetDebugCamera());
 		isDebugCamera_ = !isDebugCamera_;
-		characters_.SetDebug(!isDebugCamera_);
+
+		characters_.GetPlayer()->SetDebugCamera(isDebugCamera_);
+
+		// カーソルのロックと表示を切り替える
 		input_->SetLockCursor(!isDebugCamera_);
 		input_->SetCursorVisible(isDebugCamera_);
 	}

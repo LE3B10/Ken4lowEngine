@@ -16,14 +16,20 @@ bool WeaponMasterDataDatabase::LoadFromDirectory(const std::filesystem::path& di
 	}
 
 	// weapons 直下の旧式 json は読まない。カテゴリフォルダ配下のみ読む。
-	static constexpr std::array<std::string_view, 6> kCategoryFolders = {
-		"primary", "backup", "melee", "special", "sniper", "heavy"
+	struct CatFolder { std::string_view name; EWeaponCategory cat; };
+	static constexpr std::array<CatFolder, 6> kCategoryFolders = {
+		CatFolder{ "primary", EWeaponCategory::Primary },
+		CatFolder{ "backup",  EWeaponCategory::Backup  },
+		CatFolder{ "melee",   EWeaponCategory::Melee   },
+		CatFolder{ "special", EWeaponCategory::Special },
+		CatFolder{ "sniper",  EWeaponCategory::Sniper  },
+		CatFolder{ "heavy",   EWeaponCategory::Heavy   },
 	};
 
 	std::unordered_map<int32_t, FWeaponMasterData> tempMap;
 	std::unordered_map<int32_t, std::filesystem::path> idToFileMap; // 重複チェック用
 
-	auto loadFolder = [&](const std::filesystem::path& folderPath) -> bool
+	auto loadFolder = [&](const std::filesystem::path& folderPath, EWeaponCategory cat) -> bool
 		{
 			if (!std::filesystem::exists(folderPath) || !std::filesystem::is_directory(folderPath))
 				return true; // 無いカテゴリはスキップ
@@ -39,6 +45,9 @@ bool WeaponMasterDataDatabase::LoadFromDirectory(const std::filesystem::path& di
 				{
 					return Fail(outError, errorMsg + "(file:" + entry.path().string() + ")");
 				}
+
+				// フォルダ名をカテゴリとして採用（JSON側は省略してOK）
+				weaponData.coreData.category = cat;
 
 				const int32_t weaponID = weaponData.coreData.weaponID;
 				if (weaponID <= 0)
@@ -62,10 +71,10 @@ bool WeaponMasterDataDatabase::LoadFromDirectory(const std::filesystem::path& di
 		};
 
 	// ✅ weapons 直下は見ない。primary/backup/... の中だけ読む。
-	for (auto sv : kCategoryFolders)
+	for (const auto& cf : kCategoryFolders)
 	{
-		const std::filesystem::path folder = dirPath / std::string(sv);
-		if (!loadFolder(folder))
+		const std::filesystem::path folder = dirPath / std::string(cf.name);
+		if (!loadFolder(folder, cf.cat))
 		{
 			return false;
 		}
@@ -206,6 +215,19 @@ std::vector<int32_t> WeaponMasterDataDatabase::GetSortedIDList() const
 	std::sort(ids.begin(), ids.end());
 	return ids;
 }
+
+std::vector<int32_t> WeaponMasterDataDatabase::GetSortedIDListByCategory(EWeaponCategory category) const
+{
+	std::vector<int32_t> ids;
+	ids.reserve(weaponDataMap_.size());
+	for (const auto& [id, data] : weaponDataMap_)
+	{
+		if (data.coreData.category == category) ids.push_back(id);
+	}
+	std::sort(ids.begin(), ids.end());
+	return ids;
+}
+
 
 /// -------------------------------------------------------------
 ///		エラーメッセージを設定し、失敗を示す false を返す

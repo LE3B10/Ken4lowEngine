@@ -1,6 +1,7 @@
 #include "WeaponMasterDataWriter.h"
 #include <fstream>
 #include <json.hpp>
+#include "WeaponMasterData.h"
 using nlohmann::json;
 
 namespace
@@ -172,6 +173,7 @@ bool WeaponMasterDataWriter::SaveOne(const std::filesystem::path& filePath, cons
 	};
 
 	j["bIsAutomatic"] = data.bIsAutomatic;
+	j["bCanToggleFireMode"] = data.bCanToggleFireMode;
 	j["attributes"] = json::array();
 	for (auto a : data.attributes) j["attributes"].push_back((int)a); // ※ loaderが文字列対応なら文字列でもOK
 

@@ -98,8 +98,6 @@ void CharacterWorld::ClearEnemies()
 
 void CharacterWorld::Update(float dt)
 {
-	if (isDebug_) return; // デバッグモードなら更新しない（描画だけする）
-
 	if (player_) player_->Update(dt);
 
 	for (auto& e : enemies_)

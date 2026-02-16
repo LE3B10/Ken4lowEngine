@@ -10,6 +10,7 @@
 #include <system_error>
 
 #include <json.hpp>
+#include "WeaponMasterData.h"
 using nlohmann::json;
 
 namespace
@@ -279,6 +280,7 @@ static void from_json(const json& j, FWeaponMasterData& v)
 	ReadOptionalIfExists(j, "chargeSettings", v.chargeSettings);
 
 	ReadIfExists(j, "bIsAutomatic", v.bIsAutomatic);
+	ReadIfExists(j, "bCanToggleFireMode", v.bCanToggleFireMode);
 
 	// attributes は文字列配列 or 数値配列対応
 	if (j.contains("attributes") && j.at("attributes").is_array())

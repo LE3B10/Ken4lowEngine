@@ -6,6 +6,7 @@
 #include <optional>
 #include <variant>
 #include <algorithm>
+#include <numbers>
 #include <cmath>
 
 #include "Vector3.h"
@@ -92,7 +93,7 @@ struct EnemyIdle
 	float scanLookRadius = 5.0f;   // lookAt距離
 
 	std::mt19937 rng{ 1234u };
-	std::uniform_real_distribution<float> angDist{ 0.0f, 6.2831853f };
+	std::uniform_real_distribution<float> angDist{ 0.0f, 2.0f * std::numbers::pi_v<float> };
 	std::uniform_real_distribution<float> roamDist{ 0.0f, 1.0f };
 
 	float Rand01() { return roamDist(rng); }

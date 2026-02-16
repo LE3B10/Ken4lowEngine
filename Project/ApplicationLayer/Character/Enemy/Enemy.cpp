@@ -137,6 +137,8 @@ void Enemy::SetArchetype(EnemyArchetype t)
 
 void Enemy::Update(float dt)
 {
+	if (debugCamera_) return; // デバッグカメラ有効ならAI更新しない
+
 	if (IsRemovable()) return;
 	if (IsDead())
 	{

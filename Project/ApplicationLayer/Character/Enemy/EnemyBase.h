@@ -5,6 +5,7 @@
 #include "Collider.h"
 #include "Object3D.h"
 #include "Vector3.h"
+#include "Vector4.h"
 
 namespace K4E = ::Ken4lowEngine;
 
@@ -41,6 +42,19 @@ public:
 
 	// ダメージ
 	virtual void TakeDamage(int amount);
+	virtual void SetColor(const K4E::Vector4& color)
+	{
+		// 基本色として保持（ヒットフラッシュ終了後に戻すため）
+		baseColor_ = color;
+		if (model_) model_->SetColor(color);
+	}
+
+	// ヒット時の赤点滅（被弾フラッシュ）
+	void EnableHitFlash(bool enable) { hitFlashEnabled_ = enable; }
+	void SetHitFlashDuration(float sec) { hitFlashDuration_ = sec; }
+	void SetHitFlashFrequency(float hz) { hitFlashFrequencyHz_ = hz; }
+	void SetHitFlashColor(const K4E::Vector4& c) { hitFlashColor_ = c; }
+	void StartHitFlash();
 
 	// Collider events
 	void OnCollisionEnter(K4E::Collider* other) override;
@@ -54,8 +68,8 @@ protected:
 protected:
 	std::unique_ptr<K4E::Object3D> model_;
 
-	int maxHp_ = 30;
-	int hp_ = 30;
+	int maxHp_ = 240;
+	int hp_ = 240;
 
 	bool isDead_ = false;
 	bool removable_ = false;
@@ -69,6 +83,15 @@ protected:
 	// OBB半サイズ
 	K4E::Vector3 obbHalf_{ 1.0f, 1.0f, 1.0f };
 
+	// ---- Hit flash ----
+	K4E::Vector4 baseColor_{ 1.0f, 1.0f, 1.0f, 1.0f };
+	K4E::Vector4 hitFlashColor_{ 1.0f, 0.0f, 0.0f, 1.0f };
+	float hitFlashTimer_ = 0.0f;
+	float hitFlashDuration_ = 0.12f;     // 秒
+	float hitFlashFrequencyHz_ = 18.0f;  // 点滅周波数
+	bool hitFlashEnabled_ = true;
+
 private:
 	void DisableColliderAndMoveFar();
+	void UpdateHitFlash(float dt);
 };

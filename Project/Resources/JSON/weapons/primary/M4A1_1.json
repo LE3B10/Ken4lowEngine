@@ -1,0 +1,60 @@
+{
+    "assetData": {
+        "iconPath": "",
+        "modelPath": ""
+    },
+    "attributes": [],
+    "bCanToggleFireMode": false,
+    "bIsAutomatic": true,
+    "coreData": {
+        "category": "primary",
+        "rarity": "common",
+        "weaponID": 1,
+        "weaponName": "M4A1"
+    },
+    "economyData": {
+        "bIsLimitedTime": false,
+        "currencyType": "",
+        "discountRate": 0.0,
+        "minLevelToUnlock": 1,
+        "purchasePrice": 0,
+        "upgradeCosts": [
+            50,
+            100,
+            150,
+            200,
+            260,
+            330
+        ]
+    },
+    "handling": {
+        "accuracy": 0.8399999737739563,
+        "adsTransitionSpeed": 12.0,
+        "adsZoomFov": 60.0,
+        "fixedDelayTime": 10.0,
+        "horizontalRecoil": 0.05999999865889549,
+        "recoilRecovery": 9.0,
+        "spreadIncrease": 0.012000000104308128,
+        "verticalRecoil": 0.019999999552965164,
+        "zoomLevel": 1.0
+    },
+    "soundData": {
+        "emptySoundPath": "",
+        "equipSoundPath": "",
+        "fireSoundPath": "",
+        "impactSoundPath": "",
+        "reloadSoundPath": ""
+    },
+    "stats": {
+        "ammoPerShot": 1,
+        "ammoType": "default",
+        "capacity": 30,
+        "criticalChance": 0.05000000074505806,
+        "damage": 12.0,
+        "fireRate": 720.0,
+        "headshotMultiplier": 1.5,
+        "maxReserveAmmo": 120,
+        "mobility": 1.0,
+        "reloadTime": 1.850000023841858
+    }
+}

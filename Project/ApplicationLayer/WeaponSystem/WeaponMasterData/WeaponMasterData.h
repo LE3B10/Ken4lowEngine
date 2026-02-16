@@ -235,5 +235,6 @@ struct FWeaponMasterData
 
 	// 特殊能力
 	bool bIsAutomatic = false;				  // フルオートかどうか
+	bool bCanToggleFireMode = false;          // フル/セミ切替可能か（V等）
 	std::vector<EWeaponAttribute> attributes; // 武器の特殊能力リスト
 };

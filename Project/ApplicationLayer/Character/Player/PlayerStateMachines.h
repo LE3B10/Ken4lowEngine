@@ -234,18 +234,17 @@ struct CombatAim {
 };
 
 struct CombatShoot {
-	float fireTimer = 0.0f; // 例: 連射管理をここでやる（武器側に寄せてもOK）
 	void Enter(PlayerContext& ctx) {
-		fireTimer = 0.0f;
+		// 入口で即1発（押した瞬間の応答性を上げる）
 		if (ctx.api.CanFire()) ctx.api.FireOnce();
 	}
 	Next<CombatId> Update(PlayerContext& ctx) {
 		// トリガー離したら戻る
 		if (!ctx.in.fireHeld) return ctx.in.aimHeld ? CombatId::Aim : CombatId::Hip;
 
-		// 連射するならここでクールダウンを進めて再発射（例）
-		fireTimer += ctx.dt;
-		// if (fireTimer >= weapon.fireInterval && ctx.api.CanFire()) { ctx.api.FireOnce(); fireTimer = 0; }
+		// ★ 武器側(WeaponInstance)にクールダウンを任せる。
+		//    毎フレーム呼んでも、CanFire()/内部クールダウンで適切なタイミングだけ発射される。
+		if (ctx.api.CanFire()) ctx.api.FireOnce();
 
 		// 弾切れ等で撃てないなら戻す（必要なら）
 		// if (!ctx.api.CanFire()) return ctx.in.aimHeld ? CombatId::Aim : CombatId::Hip;

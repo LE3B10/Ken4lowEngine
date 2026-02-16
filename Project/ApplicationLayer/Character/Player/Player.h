@@ -9,6 +9,27 @@
 #include "PlayerInputSnapshot.h"   // InputSnapshot型
 
 #include <array>
+#include <filesystem>
+#include <memory>
+#include <string>
+#include <vector>
+
+// Weapon master data -> runtime weapon system
+#if __has_include("WeaponMasterData/WeaponSystem.h")
+#include "WeaponMasterData/WeaponSystem.h"
+#elif __has_include("WeaponSystem.h")
+#include "WeaponSystem.h"
+#else
+// プロジェクト側の include パスに合わせて修正してください
+#include "WeaponSystem.h"
+#endif
+// WeaponCategory enum
+#if __has_include("WeaponMasterData/WeaponMasterData.h")
+#include "WeaponMasterData/WeaponMasterData.h"
+#elif __has_include("WeaponMasterData.h")
+#include "WeaponMasterData.h"
+#endif
+
 
 namespace K4E = ::Ken4lowEngine;
 
@@ -66,7 +87,22 @@ public: /// ---------- メンバ関数 ---------- ///
 	void SetBulletManager(BulletManager* mgr) { bulletManager_ = mgr; }
 	void SetShootCamera(K4E::Camera* cam) { shootCamera_ = cam; }
 
+	// WeaponMasterData の読み込みディレクトリを外部から指定したい場合
+	// 例: "Resources/JSON/weapons" (primary/backup/... のカテゴリフォルダがあるroot)
+	void SetWeaponMasterDirectory(const std::filesystem::path& dir)
+	{
+		weaponMasterDir_ = dir;
+		weaponLoaded_ = false;
+		weaponLoadError_.clear();
+		weaponIdList_.clear();
+		currentWeaponId_ = 0;
+		weaponSys_ = WeaponSystem{};
+	}
+
 	void SetDebugCamera(bool on) { isDebugCamera_ = on; }
+
+	// WeaponSystemへのアクセス
+	void EquipWeaponById(int32_t weaponID) { (void)EquipWeaponByID(weaponID); }
 
 public:	// ---- FSMから呼ばれる最小API（PlayerAPIがここを呼ぶ）----
 
@@ -95,8 +131,12 @@ private: /// ---------- メンバ関数 ---------- ///
 
 	void ApplyFirstPersonRenderFlags();
 
-	// ★1発撃つ（入力判定は外でやる）
-	void FireOnce();
+	// ---- WeaponMasterData / WeaponSystem ----
+	bool LoadWeaponMasterDataOnce();      // WeaponSystem.Load + Equip
+	void SwitchWeaponByDelta(int delta);  // weaponIdList_から切替
+	void SwitchWeaponCategory(EWeaponCategory category); // 数字キーでカテゴリ切替
+	void TickWeapon(float dt);            // WeaponSystem.Tick
+	bool EquipWeaponByID(int32_t weaponID);
 
 	void SyncHurtboxes();
 
@@ -110,9 +150,15 @@ private: /// ----------メンバ変数 ---------- ///
 	BulletManager* bulletManager_ = nullptr;
 	K4E::Camera* shootCamera_ = nullptr;
 
-	float bulletSpeed_ = 80.0f;   // units/sec（好きに調整）
-	int   bulletDamage_ = 1;
-	float muzzleForwardOffset_ = 0.25f; // カメラ前に少し出す（自分に当たらないため）
+	// ---- Weapon system ----
+	std::filesystem::path weaponMasterDir_ = "Resources/JSON/weapons"; // primary/backup/... がある root
+	WeaponSystem weaponSys_{};
+	bool weaponLoaded_ = false;
+	std::string weaponLoadError_;
+	EWeaponCategory weaponCategory_ = EWeaponCategory::Primary; // 現在扱うカテゴリ（まずはPrimary）
+	std::vector<int32_t> weaponIdList_;
+	int32_t currentWeaponId_ = 0;
+	std::array<int32_t, 6> lastWeaponIdByCategory_{}; // category index -> last equipped id
 
 	// FSM
 	PlayerAPI api_{};
@@ -150,7 +196,7 @@ private: /// ----------メンバ変数 ---------- ///
 	float maxHp_ = 100.0f;
 	float hp_ = 100.0f;
 
-	float hitscanRange_ = 100.0f;
+	float hitscanRange_ = 100.0f; // デバッグ用レイ
 	float shotDebugTimer_ = 0.0f;
 
 	std::array<std::unique_ptr<PlayerHurtbox>, 6> hurtboxes_{};

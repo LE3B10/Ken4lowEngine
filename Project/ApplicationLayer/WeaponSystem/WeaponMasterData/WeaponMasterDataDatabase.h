@@ -111,6 +111,11 @@ public: /// ---------- アクセサ ---------- ///
 	/// <returns>ソート済みの int32_t ID を格納した std::vector<int32_t> を値で返します（コピー）。要素は昇順に並んでいます。</returns>
 	std::vector<int32_t> GetSortedIDList() const;
 
+	/// <summary>
+	/// 指定カテゴリーの武器IDを昇順にソートして返します。
+	/// </summary>
+	std::vector<int32_t> GetSortedIDListByCategory(EWeaponCategory category) const;
+
 public: /// ---------- 状態 ---------- ///
 
 	/// <summary>

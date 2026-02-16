@@ -3,16 +3,19 @@
 #include "Bullet.h"
 #include <CollisionTypeIdDef.h>
 #include <Input.h>
-#include "BulletManager.h"      
 #include "Camera.h"             
 #include "InputSnapshot.h"
 #include "CollisionManager.h"
 
 #include <cmath>                
+#include <algorithm>
 
 #ifdef USE_IMGUI
 #include <imgui.h>
 #endif // USE_IMGUI
+#include "PlayerHurtbox.h"
+#include "PlayerInputSnapshot.h"
+#include "PlayerStateMachines.h"
 
 static K4E::Vector3 RotateByEuler(const K4E::Vector3& v, const K4E::Vector3& rot)
 {
@@ -99,6 +102,9 @@ void Player::Initialize()
 
 	// 一人称なら体を非表示に
 	SetFirstPersonView(fpsCamera_.GetViewMode() == K4E::FpsCamera::ViewMode::FirstPerson);
+
+	// WeaponMasterData をロードして現在武器を適用
+	LoadWeaponMasterDataOnce();
 }
 
 
@@ -107,20 +113,66 @@ void Player::Initialize()
 /// -------------------------------------------------------------
 void Player::Update(float deltaTime)
 {
-	if (!input_) { BaseCharacter::Update(deltaTime); return; }
 	if (isDebugCamera_)
 	{
 		BaseCharacter::Update(deltaTime); // デバッグカメラ中はベースのUpdateも呼ぶ（移動や回転を反映させるため）
-		SyncHurtboxes(); // コライダー位置も合わせる
 		return; // デバッグカメラ中は以降の処理をスキップ
 	}
+	if (!input_) { BaseCharacter::Update(deltaTime); return; }
 
 	// Snapshot生成
 	inputSnap_ = BuildInputSnapshot(*input_);
 
+	// ---- Fire mode toggle (V) ----
+	if (weaponLoaded_ && inputSnap_.toggleFireModePressed)
+	{
+		weaponSys_.Weapon().ToggleFireMode();
+	}
+
+	// ---- Melee category: LMB attacks (disable gun fire) ----
+	if (weaponCategory_ == EWeaponCategory::Melee)
+	{
+		// Fキー近接に加えて、左クリックでも近接できるようにする
+		inputSnap_.meleePressed = inputSnap_.meleePressed || inputSnap_.firePressed;
+		inputSnap_.fireHeld = false;
+		inputSnap_.firePressed = false;
+		inputSnap_.aimHeld = false;
+		inputSnap_.aimPressed = false;
+	}
+
+	// Weapon（クールダウン/リロード/バースト/拡散）
+	TickWeapon(deltaTime);
+
+
+	// カテゴリ切替（数字キー1..6）
+	if (inputSnap_.weaponSlotPressed != 0)
+	{
+		EWeaponCategory cat = weaponCategory_;
+		switch (inputSnap_.weaponSlotPressed)
+		{
+		case 1: cat = EWeaponCategory::Primary; break;
+		case 2: cat = EWeaponCategory::Backup; break;
+		case 3: cat = EWeaponCategory::Melee; break;
+		case 4: cat = EWeaponCategory::Special; break;
+		case 5: cat = EWeaponCategory::Sniper; break;
+		case 6: cat = EWeaponCategory::Heavy; break;
+		default: break;
+		}
+
+		if (cat != weaponCategory_)
+		{
+			SwitchWeaponCategory(cat);
+		}
+	}
+
+	// 武器切替（ホイール/DPAD想定）
+	if (inputSnap_.weaponSwitch != 0)
+	{
+		SwitchWeaponByDelta(inputSnap_.weaponSwitch);
+	}
+
 	// カメラ角度を先に更新（＝移動方向の基準になる）
 	fpsCamera_.SetDeltaTime(deltaTime);
-	fpsCamera_.SetAiming(inputSnap_.aimHeld);   // いまは入力でOK。後でCombatFSMの状態で決めてもOK
 	fpsCamera_.UpdateLook(inputSnap_);
 
 	// 体の向きをカメラYawへ動悸
@@ -146,11 +198,6 @@ void Player::Update(float deltaTime)
 	// 一人称なら体を非表示に
 	SetFirstPersonView(fpsCamera_.GetViewMode() == K4E::FpsCamera::ViewMode::FirstPerson);
 
-	if (input_ && input_->TriggerMouse(0))
-	{
-		FireOnce();
-	}
-
 	// 親子描画更新
 	BaseCharacter::Update(deltaTime);
 
@@ -175,6 +222,56 @@ void Player::DrawImGui()
 #ifdef USE_IMGUI
 
 	fpsCamera_.DrawImGui();
+
+	if (ImGui::CollapsingHeader("Weapon", ImGuiTreeNodeFlags_DefaultOpen))
+	{
+		ImGui::Text("MasterDir: %s", weaponMasterDir_.string().c_str());
+
+		if (!weaponLoaded_)
+		{
+			ImGui::TextColored(ImVec4(1, 0.4f, 0.4f, 1), "WeaponMasterData: NOT LOADED");
+			if (!weaponLoadError_.empty())
+				ImGui::TextWrapped("%s", weaponLoadError_.c_str());
+
+			if (ImGui::Button("Load WeaponMasterData"))
+				LoadWeaponMasterDataOnce();
+		}
+		else
+		{
+			const auto& w = weaponSys_.Weapon();
+			const auto& p = w.Params();
+			const auto& s = w.State();
+
+			ImGui::Text("WeaponID: %d", currentWeaponId_);
+			ImGui::Text("DefaultAutomatic: %s", p.isAutomatic ? "true" : "false");
+			ImGui::Text("CurrentFireMode: %s", w.IsAutomatic() ? "auto" : "semi");
+			ImGui::Text("CanToggleMode: %s", p.canToggleFireMode ? "true" : "false");
+			ImGui::Text("Damage: %.2f", p.damage);
+			ImGui::Text("ProjectileSpeed: %.2f", p.projectileSpeed);
+			ImGui::Text("SecPerShot: %.3fs", p.secPerShot);
+			ImGui::Text("ReloadSec: %.2fs", p.reloadSec);
+
+			ImGui::Separator();
+			ImGui::Text("Ammo: %d / %d   (Reserve: %d)", s.magAmmo, p.magCapacity, s.reserveAmmo);
+			ImGui::Text("Reloading: %s (%.2fs)", s.isReloading ? "true" : "false", s.reloadTimer);
+			ImGui::Text("Cooldown: %.3fs", s.fireCooldown);
+			ImGui::Text("Burst: rem=%d  timer=%.3fs", s.burstRemaining, s.burstTimer);
+			ImGui::Text("Spread: %.3f", s.spread);
+
+			static int sEquipID = 0;
+			ImGui::InputInt("EquipID", &sEquipID);
+			if (ImGui::Button("Equip"))
+				EquipWeaponByID(sEquipID);
+
+			ImGui::SameLine();
+			if (ImGui::Button("Reload WeaponMasterData"))
+			{
+				weaponLoaded_ = false;
+				weaponLoadError_.clear();
+				LoadWeaponMasterDataOnce();
+			}
+		}
+	}
 
 	static const char* kPartNames[] = { "Body","Head","LeftArm","RightArm","LeftLeg","RightLeg" };
 
@@ -355,41 +452,79 @@ void Player::FSM_StartDash()
 
 bool Player::FSM_IsDashFinished() const { return dashTimer_ <= 0.0f; }
 
-// ---- combatは今はスタブ（後でWeapon実装したら置換）----
-bool Player::FSM_CanFire() const { return true; }
+// ---- combat（WeaponSystem/WeaponInstance に委譲）----
+bool Player::FSM_CanFire() const
+{
+	if (!weaponLoaded_) return false;
+	const auto& w = weaponSys_.Weapon();
+	const auto& p = w.Params();
+	const auto& s = w.State();
 
+	if (s.isReloading) return false;
+	if (s.fireCooldown > 0.0f) return false;
+	if (s.magAmmo < p.ammoPerShot) return false;
+	if (s.burstRemaining > 0 && s.burstTimer > 0.0f) return false;
+
+	// 入力ゲート（発射モードに応じて判定）
+	const bool autoMode = w.IsAutomatic();
+	if (autoMode)
+	{
+		if (!inputSnap_.fireHeld) return false;
+	}
+	else
+	{
+		if (!inputSnap_.firePressed) return false;
+	}
+
+	return true;
+}
 void Player::FSM_FireOnce()
 {
-	auto* cam = fpsCamera_.GetCamera();
-	if (!cam) return;
+	// NOTE: CombatFSM から呼ばれる発射処理は「必ずここ」を通す
+	if (!weaponLoaded_) return;
+	if (!bulletManager_ || !shootCamera_) return;
 
-	K4E::Segment seg{};
-	seg.origin = cam->GetTranslate();
-	seg.diff = cam->GetForward() * hitscanRange_;
+	// TryFire は内部で (auto/semiauto)・クールダウン・残弾を処理してくれる
+	const auto before = weaponSys_.Weapon().State();
+	weaponSys_.Weapon().TryFire(inputSnap_.fireHeld, inputSnap_.firePressed, shootCamera_, bulletManager_, collisionManager_);
+	const auto &after = weaponSys_.Weapon().State();
 
-	SetSegment(seg);
-	shotDebugTimer_ = 0.05f;
+	const bool fired = (after.magAmmo != before.magAmmo) || (after.fireCooldown > before.fireCooldown);
+	if (!fired) return;
 
-	K4E::Collider* hit = nullptr;
-
-	const bool hitEnemy = collisionManager_ &&
-		collisionManager_->SegmentCast((uint32_t)CollisionTypeIdDef::kEnemy, seg, &hit);
-
-	const bool hitBoss = collisionManager_ &&
-		collisionManager_->SegmentCast((uint32_t)CollisionTypeIdDef::kBoss, seg, &hit);
-
-	if (hitEnemy || hitBoss)
+	// ---- デバッグ用のショットレイ（命中判定とは別） ----
+	if (auto* cam = fpsCamera_.GetCamera())
 	{
-		// ダメージやヒット演出
+		K4E::Segment seg{};
+		seg.origin = cam->GetTranslate();
+		seg.diff = cam->GetForward() * hitscanRange_;
+		SetSegment(seg);
+		shotDebugTimer_ = 0.05f;
 	}
 }
 
-bool Player::FSM_IsReloadFinished() const { return true; }
-void Player::FSM_StartReload() {}
-bool Player::FSM_IsMeleeFinished() const { return true; }
-void Player::FSM_StartMelee() {}
-void Player::FSM_SetAiming(bool) {}
+bool Player::FSM_IsReloadFinished() const
+{
+	if (!weaponLoaded_) return true;
+	return !weaponSys_.Weapon().State().isReloading;
+}
+
+void Player::FSM_StartReload()
+{
+	if (!weaponLoaded_) return;
+	weaponSys_.Weapon().StartReload();
+}
+
+bool Player::FSM_IsMeleeFinished() const { return true; } // TODO: 近接実装時に置換
+void Player::FSM_StartMelee() {}                           // TODO: 近接実装時に置換
+
+void Player::FSM_SetAiming(bool on)
+{
+	fpsCamera_.SetAiming(on);
+}
+
 void Player::FSM_SetStunned(bool) {}
+
 
 void Player::SimulateLocomotion(float dt)
 {
@@ -474,27 +609,172 @@ void Player::ApplyFirstPersonRenderFlags()
 	}
 }
 
-static K4E::Vector3 NormalizeSafe(const K4E::Vector3& v)
+bool Player::EquipWeaponByID(int32_t weaponID)
 {
-	const float lenSq = v.x * v.x + v.y * v.y + v.z * v.z;
-	if (lenSq <= 1e-6f) return { 0,0,1 };
-	const float inv = 1.0f / std::sqrt(lenSq);
-	return { v.x * inv, v.y * inv, v.z * inv };
+	if (!weaponLoaded_) LoadWeaponMasterDataOnce();
+	if (!weaponLoaded_) return false;
+
+	std::string err;
+	if (!weaponSys_.EquipById(weaponID, &err))
+	{
+		weaponLoadError_ = err;
+		return false;
+	}
+
+	currentWeaponId_ = weaponSys_.GetEquippedWeaponId();
+	weaponLoadError_.clear();
+	return true;
 }
 
-void Player::FireOnce()
+bool Player::LoadWeaponMasterDataOnce()
 {
-	if (!bulletManager_) return;
-	if (!shootCamera_) return;
+	if (weaponLoaded_) return true;
 
-	K4E::Vector3 origin = shootCamera_->GetTranslate();
-	K4E::Vector3 dir = NormalizeSafe(shootCamera_->GetForward());
+	// ディレクトリが違う/作業ディレクトリが環境で変わることがあるので候補を順に試す
+	std::vector<std::filesystem::path> candidates;
+	candidates.push_back(weaponMasterDir_);
+	auto addCandidate = [&](const char* p)
+		{
+			if (weaponMasterDir_ != p) candidates.push_back(p);
+		};
+	// 新しい配置（推奨）: Resources/JSON/weapons/[category]/*.json
+	addCandidate("Resources/JSON/weapons");
+	addCandidate("JSON/weapons");
+	// 旧配置（互換）
+	addCandidate("Resources/WeaponMasterData");
+	addCandidate("WeaponMasterData");
 
-	// 自分の頭/壁へのめり込み回避で少し前に出す
-	origin = origin + dir * muzzleForwardOffset_;
+	std::string err;
+	bool loaded = false;
+	for (const auto& dir : candidates)
+	{
+		if (dir.empty()) continue;
+		if (!std::filesystem::exists(dir)) continue;
+		if (weaponSys_.Load(dir, &err))
+		{
+			weaponMasterDir_ = dir;
+			loaded = true;
+			break;
+		}
+	}
 
-	bulletManager_->Spawn(origin, dir, bulletSpeed_, bulletDamage_);
+	if (!loaded)
+	{
+		weaponLoaded_ = false;
+		weaponLoadError_ = err.empty() ? "WeaponMasterData: 読み込みに失敗しました（ディレクトリを確認してください）" : err;
+		currentWeaponId_ = 0;
+		weaponIdList_.clear();
+		return false;
+	}
+
+	weaponLoaded_ = true;
+
+	// まずはカテゴリ（デフォルトPrimary）だけをプレイヤーの選択リストにする
+	weaponIdList_ = weaponSys_.GetWeaponIdListSortedByCategory(weaponCategory_);
+	if (weaponIdList_.empty())
+	{
+		// そのカテゴリが空なら、全カテゴリのIDリストにフォールバック（データがないと誤認しないため）
+		weaponIdList_ = weaponSys_.GetWeaponIdListSorted();
+	}
+	if (weaponIdList_.empty())
+	{
+		weaponLoaded_ = false;
+		weaponLoadError_ = "WeaponMasterData: データが0件でした。（Resources/JSON/weapons/primary などにjsonがあるか確認してください）";
+		currentWeaponId_ = 0;
+		return false;
+	}
+
+	// 既にIDがあるならそのIDを、なければ先頭を装備
+	std::string equipErr;
+	if (currentWeaponId_ > 0)
+	{
+		if (!weaponSys_.EquipById(currentWeaponId_, &equipErr))
+			weaponSys_.EquipFirst(&equipErr);
+	}
+	else
+	{
+		weaponSys_.EquipFirst(&equipErr);
+	}
+
+	currentWeaponId_ = weaponSys_.GetEquippedWeaponId();
+	if (!equipErr.empty())
+		weaponLoadError_ = equipErr;
+	else
+		weaponLoadError_.clear();
+
+	return true;
 }
+
+void Player::SwitchWeaponByDelta(int delta)
+{
+	if (!weaponLoaded_) LoadWeaponMasterDataOnce();
+	if (!weaponLoaded_) return;
+	if (weaponIdList_.empty()) return;
+
+	// 現在IDのindexを探す
+	int idx = 0;
+	for (int i = 0; i < static_cast<int>(weaponIdList_.size()); ++i)
+	{
+		if (weaponIdList_[i] == currentWeaponId_) { idx = i; break; }
+	}
+
+	idx += (delta > 0) ? 1 : -1;
+	if (idx < 0) idx = static_cast<int>(weaponIdList_.size()) - 1;
+	if (idx >= static_cast<int>(weaponIdList_.size())) idx = 0;
+
+	EquipWeaponByID(weaponIdList_[idx]);
+}
+
+void Player::SwitchWeaponCategory(EWeaponCategory category)
+{
+	// まずロード（失敗したら何もしない）
+	if (!LoadWeaponMasterDataOnce())
+		return;
+
+	// 現カテゴリの最後の武器IDを記録
+	const int curIdx = static_cast<int>(weaponCategory_);
+	if (curIdx >= 0 && curIdx < static_cast<int>(lastWeaponIdByCategory_.size()))
+		lastWeaponIdByCategory_[curIdx] = currentWeaponId_;
+
+	// 新カテゴリのID一覧を作る
+	const auto ids = weaponSys_.GetWeaponIdListSortedByCategory(category);
+	if (ids.empty())
+	{
+		weaponLoadError_ = "WeaponMasterData: このカテゴリに武器データがありません。";
+		return;
+	}
+
+	weaponCategory_ = category;
+	weaponIdList_ = ids;
+
+	// 新カテゴリで前回使ってた武器があれば優先、なければ先頭
+	int32_t targetId = weaponIdList_.front();
+	const int newIdx = static_cast<int>(weaponCategory_);
+	if (newIdx >= 0 && newIdx < static_cast<int>(lastWeaponIdByCategory_.size()))
+	{
+		const int32_t last = lastWeaponIdByCategory_[newIdx];
+		if (last > 0 && std::find(weaponIdList_.begin(), weaponIdList_.end(), last) != weaponIdList_.end())
+			targetId = last;
+	}
+
+	std::string err;
+	if (!weaponSys_.EquipById(targetId, &err))
+	{
+		weaponLoadError_ = err.empty() ? "WeaponMasterData: Equipに失敗しました。" : err;
+		return;
+	}
+
+	currentWeaponId_ = weaponSys_.GetEquippedWeaponId();
+	weaponLoadError_.clear();
+}
+
+
+void Player::TickWeapon(float dt)
+{
+	if (!weaponLoaded_) return;
+	weaponSys_.Tick(dt);
+}
+
 
 void Player::SyncHurtboxes()
 {
@@ -526,7 +806,7 @@ void Player::SyncHurtboxes()
 
 	// Parts: worldTranslate_ / worldRotate_ を必ず使う
 	const auto idx = GetPartIndices();
-	apply(1, parts_[idx.head].transform.worldTranslate_ + K4E::Vector3(0.0f,0.5f,0.0f), parts_[idx.head].transform.worldRotate_);
+	apply(1, parts_[idx.head].transform.worldTranslate_ + K4E::Vector3(0.0f, 0.5f, 0.0f), parts_[idx.head].transform.worldRotate_);
 	apply(2, parts_[idx.leftArm].transform.worldTranslate_ + K4E::Vector3(0.0f, -0.75f, 0.0f), parts_[idx.leftArm].transform.worldRotate_);
 	apply(3, parts_[idx.rightArm].transform.worldTranslate_ + K4E::Vector3(0.0f, -0.75f, 0.0f), parts_[idx.rightArm].transform.worldRotate_);
 	apply(4, parts_[idx.leftLeg].transform.worldTranslate_ + K4E::Vector3(0.0f, -0.75f, 0.0f), parts_[idx.leftLeg].transform.worldRotate_);

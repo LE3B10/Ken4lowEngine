@@ -1,4 +1,5 @@
 #include "EnemyBase.h"
+#include <cmath>
 #include "CollisionTypeIdDef.h"
 
 using namespace Ken4lowEngine;
@@ -14,6 +15,8 @@ void EnemyBase::Initialize(const Vector3& startPos, const std::string& modelPath
 
 	model_ = std::make_unique<Object3D>();
 	model_->Initialize(modelPath);
+	SetColor(baseColor_);
+	hitFlashTimer_ = 0.0f;
 
 	SetCenterPosition(startPos);
 
@@ -54,6 +57,7 @@ void EnemyBase::Update(float dt)
 	Vector3 pos = GetCenterPosition();
 	pos = pos + velocity_ * dt;
 	SetCenterPosition(pos);
+	UpdateHitFlash(dt);
 }
 
 void EnemyBase::Draw()
@@ -71,6 +75,7 @@ void EnemyBase::TakeDamage(int amount)
 {
 	if (isDead_) return;
 
+	StartHitFlash();
 	hp_ -= amount;
 	if (hp_ <= 0)
 	{
@@ -103,6 +108,46 @@ void EnemyBase::DisableColliderAndMoveFar()
 	{
 		model_->SetTranslate(far_);
 		model_->Update();
+	}
+}
+
+
+void EnemyBase::StartHitFlash()
+{
+	if (!hitFlashEnabled_) return;
+	hitFlashTimer_ = hitFlashDuration_;
+}
+
+void EnemyBase::UpdateHitFlash(float dt)
+{
+	if (!model_) return;
+
+	if (hitFlashTimer_ > 0.0f)
+	{
+		hitFlashTimer_ -= dt;
+		if (hitFlashTimer_ < 0.0f) hitFlashTimer_ = 0.0f;
+
+		// 0..1 (1=開始直後, 0=終了)
+		const float t = (hitFlashDuration_ > 0.0f) ? (hitFlashTimer_ / hitFlashDuration_) : 0.0f;
+
+		// 点滅（sin）+ フェードアウト
+		const float elapsed = hitFlashDuration_ - hitFlashTimer_;
+		const float phase = elapsed * hitFlashFrequencyHz_ * 6.28318530718f; // 2π
+		const float blink = 0.5f * (1.0f + std::sinf(phase)); // 0..1
+		const float a = blink * t; // 0..1
+
+		K4E::Vector4 c{};
+		c.x = baseColor_.x + (hitFlashColor_.x - baseColor_.x) * a;
+		c.y = baseColor_.y + (hitFlashColor_.y - baseColor_.y) * a;
+		c.z = baseColor_.z + (hitFlashColor_.z - baseColor_.z) * a;
+		c.w = baseColor_.w + (hitFlashColor_.w - baseColor_.w) * a;
+
+		model_->SetColor(c);
+	}
+	else
+	{
+		// 元の色に戻す
+		model_->SetColor(baseColor_);
 	}
 }
 
