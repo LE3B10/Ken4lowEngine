@@ -514,6 +514,9 @@
     <ClCompile Include="ApplicationLayer\WeaponSystem\WeaponMasterData\WeaponSystem.cpp">
       <Filter>ApplicationLayer\WeaponSystem\WeaponMasterData</Filter>
     </ClCompile>
+    <ClCompile Include="EngineLayer\3D\LevelData\Stage.cpp">
+      <Filter>EngineLayer\3D\LevelData</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="EngineLayer\Math\MultipleStructs\AABB.h">
@@ -1076,6 +1079,9 @@
     </ClInclude>
     <ClInclude Include="ApplicationLayer\WeaponSystem\WeaponMasterData\WeaponSystem.h">
       <Filter>ApplicationLayer\WeaponSystem\WeaponMasterData</Filter>
+    </ClInclude>
+    <ClInclude Include="EngineLayer\3D\LevelData\Stage.h">
+      <Filter>EngineLayer\3D\LevelData</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

@@ -6,6 +6,7 @@
 #include "CharacterWorld.h"
 #include "BulletManager.h"
 #include "Crosshair.h"
+#include "Object3D.h"
 
 #include <memory>
 #include <vector>
