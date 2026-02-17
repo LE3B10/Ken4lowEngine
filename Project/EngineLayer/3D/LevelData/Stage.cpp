@@ -52,6 +52,7 @@ namespace Ken4lowEngine
 
 	void Stage::Update(float dt)
 	{
+		(void)dt; // dt未使用警告回避
 		if (!loaded_) return;
 
 		// objectManager_側にUpdateがあるなら呼ぶ
