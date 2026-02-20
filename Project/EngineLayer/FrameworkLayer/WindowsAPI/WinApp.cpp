@@ -94,7 +94,7 @@ namespace Ken4lowEngine
 		RegisterClass(&wc);
 
 		WindowMode mode = settings.mode;
-		if (mode == WindowMode::ExculusiveFullscreen) {
+		if (mode == WindowMode::ExclusiveFullscreen) {
 			// まずは排他は後回し：初期はボーダレスとして扱うのが安全
 			mode = WindowMode::BorderlessFullscreen;
 		}
@@ -149,6 +149,21 @@ namespace Ken4lowEngine
 		GetClientRect(hwnd, &crc);
 		clientWidth_ = (uint32_t)(crc.right - crc.left);
 		clientHeight_ = (uint32_t)(crc.bottom - crc.top);
+
+		// 現在設定を更新
+		currentDisplaySettings_ = settings;
+		currentDisplaySettings_.mode = mode;
+		if (mode == WindowMode::BorderlessFullscreen)
+		{
+			currentDisplaySettings_.width = clientWidth_;
+			currentDisplaySettings_.height = clientHeight_;
+		}
+		else
+		{
+			// 現在のウィンドウスタイルからリサイズ可能かどうかを判断して保存
+			windowedResizable_ = (style & WS_THICKFRAME) != 0;
+			RememberWindowedSettings(currentDisplaySettings_);
+		}
 	}
 
 	/// -------------------------------------------------------------
@@ -219,7 +234,7 @@ namespace Ken4lowEngine
 
 		// 今は排他は後回し：来たらボーダレス扱い
 		WindowMode mode = settings.mode;
-		if (mode == WindowMode::ExculusiveFullscreen)
+		if (mode == WindowMode::ExclusiveFullscreen)
 		{
 			mode = WindowMode::BorderlessFullscreen;
 		}
@@ -239,7 +254,12 @@ namespace Ken4lowEngine
 				hasSavedWindowed_ = true;
 			}
 
-			DWORD style = WS_POPUP;
+			DWORD style = WS_OVERLAPPEDWINDOW;
+			if (!windowedResizable_)
+			{
+				// 枠ドラッグリサイズと最大化を無効化
+				style &= ~(WS_THICKFRAME | WS_MAXIMIZEBOX);
+			}
 			DWORD exStyle = WS_EX_APPWINDOW;
 
 			SetWindowLongPtr(hwnd, GWL_STYLE, style);
@@ -320,6 +340,34 @@ namespace Ken4lowEngine
 		return DisplaySettings{};
 	}
 
+	void WinApp::ToggleWindowResizable()
+	{
+		SetWindowResizable(!windowedResizable_);
+	}
+
+	void WinApp::SetWindowResizable(bool enable)
+	{
+		// Borderless中でも「戻った時の状態」として保持しておく
+		windowedResizable_ = enable;
+
+		if (!hwnd) return;
+		if (currentDisplaySettings_.mode != WindowMode::Windowed) return;
+
+		DWORD style = (DWORD)GetWindowLongPtr(hwnd, GWL_STYLE);
+		if (enable)
+		{
+			style |= (WS_THICKFRAME | WS_MAXIMIZEBOX);
+		}
+		else
+		{
+			style &= ~(WS_THICKFRAME | WS_MAXIMIZEBOX);
+		}
+
+		SetWindowLongPtr(hwnd, GWL_STYLE, style);
+		SetWindowPos(hwnd, nullptr, 0, 0, 0, 0,
+			SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_FRAMECHANGED);
+	}
+
 	void WinApp::DrawDisplaySettingsImGui()
 	{
 #ifdef USE_IMGUI
@@ -369,6 +417,37 @@ namespace Ken4lowEngine
 	/// -------------------------------------------------------------
 	LRESULT WinApp::WindowProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
 	{
+		// --- ホットキー（ImGuiに取られる前に処理） ---
+		if (msg == WM_KEYDOWN)
+		{
+			const bool altDown = (GetKeyState(VK_MENU) & 0x8000) != 0;
+			const bool firstPress = (lparam & (static_cast<long long>(1) << 30)) == 0;
+
+			if (wparam == VK_F4 && !altDown && firstPress)
+			{
+				auto* winApp = WinApp::GetInstance();
+
+				// Borderless中なら Windowed に戻してからリサイズ可能にする
+				if (winApp->GetCurrentDisplaySettings().mode != WindowMode::Windowed)
+				{
+					DisplaySettings s = winApp->GetLastWindowedSettingsOrDefault();
+					s.mode = WindowMode::Windowed;
+					if (s.width == 0 || s.height == 0) { s.width = 1280; s.height = 720; }
+					s.maximize = false;
+					winApp->RequestDisplaySettings(s);
+
+					// Windowedに戻ったとき、確実に枠ドラッグリサイズON
+					winApp->SetWindowResizable(true);
+				}
+				else
+				{
+					// Windowedで枠ドラッグリサイズをON/OFF
+					winApp->ToggleWindowResizable();
+				}
+				return 0;
+			}
+		}
+
 #ifdef USE_IMGUI
 		if (ImGui_ImplWin32_WndProcHandler(hwnd, msg, wparam, lparam))
 		{

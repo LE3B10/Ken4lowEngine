@@ -20,7 +20,10 @@ struct WeaponRuntimeState
 
 	float fireCooldown = 0.0f; // 次に撃てるまでの残り秒
 
-	bool  isReloading = false;
+	bool isReloading = false;	  // リロード中かどうか
+	bool reloadRequested = false; // リロード要求フラグ
+	bool reloadRequest = false;
+	bool pendingReload = false;
 	float reloadTimer = 0.0f;
 
 	// バースト用
@@ -58,8 +61,16 @@ public:
 
 	const WeaponParams& Params() const { return params_; }
 	const WeaponRuntimeState& State() const { return st_; }
+	WeaponRuntimeState& StateMutable() { return st_; }
 
-private:
+	// リロードをキャンセルできる場合はキャンセルする
+	void CancelReload();
+
+private: /// ---------- メンバ関数 ---------- ///
+
+	bool CanStartReload() const;
+	void StartReloadInternal();
+
 	bool WantFire(bool fireHeld, bool firePressed) const;
 	bool CanFire() const;
 

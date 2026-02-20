@@ -3,25 +3,37 @@
 #include <Input.h>
 #include <SpriteManager.h>
 #include "Object3DCommon.h"
-#include <AnimationPipelineBuilder.h>
-#include "SkyBoxManager.h"
-#include <Wireframe.h>
-#include <SceneManager.h>
-#include <CollisionUtility.h>
-#include "LevelLoader.h"
-#include <CollisionTypeIdDef.h>
 #include <DirectXCommon.h>
 
-#include <GpuParticleManager.h>
-#include <PostEffectManager.h>
+#include <Wireframe.h>
+#include <numbers>
+#include <cmath>
 
 #ifdef USE_IMGUI
 #include <imgui.h>
+#endif
 
 namespace K4E = ::Ken4lowEngine;
 
-#endif // USE_IMGUI
+// row-vector: v' = v * R
+static K4E::Vector3 RotateVec_Row(const K4E::Vector3& v, const K4E::Matrix4x4& R)
+{
+	return {
+		v.x * R.m[0][0] + v.y * R.m[1][0] + v.z * R.m[2][0],
+		v.x * R.m[0][1] + v.y * R.m[1][1] + v.z * R.m[2][1],
+		v.x * R.m[0][2] + v.y * R.m[1][2] + v.z * R.m[2][2],
+	};
+}
 
+static void ExtractAxes_Row(const K4E::Matrix4x4& R, K4E::Vector3& ax, K4E::Vector3& ay, K4E::Vector3& az)
+{
+	ax = { R.m[0][0], R.m[0][1], R.m[0][2] };
+	ay = { R.m[1][0], R.m[1][1], R.m[1][2] };
+	az = { R.m[2][0], R.m[2][1], R.m[2][2] };
+	ax = K4E::Vector3::Normalize(ax);
+	ay = K4E::Vector3::Normalize(ay);
+	az = K4E::Vector3::Normalize(az);
+}
 
 void PhysicalScene::Initialize()
 {
@@ -32,153 +44,195 @@ void PhysicalScene::Initialize()
 	camera->SetTranslate({ 0.0f, 2.0f, -20.0f });
 	camera->SetRotate({ 0.0f, 0.0f, 0.0f });
 
-	object3D_ = std::make_unique<K4E::Object3D>();
-	object3D_->Initialize("cube.gltf");
+	// -------------------------
+	// ★ OBB Rig 初期化（ざっくり人型）
+	// pivot = 関節位置、pivotToCenterLocal = 関節から当たりの中心まで
+	// -------------------------
+	rig_.resize(NodeCount);
 
-	// 最初はロック状態の見た目にしておく
-	state_ = StageState::Locked;
-	unlockTimer_ = 0.0f;
-	unlockDuration_ = 1.0f;
-	ApplyLockedVisual();
+	// Body（root）
+	rig_[Body].parent = -1;
+	rig_[Body].localPivot = { 0,0,0 };                 // rootは未使用
+	rig_[Body].localRotRad = { 0,0,0 };
+	rig_[Body].pivotToCenterLocal = { 0.0f, 0.6f, 0.0f };
+	rig_[Body].halfSize = { 0.45f, 0.60f, 0.25f };
+	rig_[Body].color = { 0.0f, 1.0f, 1.0f, 1.0f };
 
-	//// GPUパーティクルエミッターの作成
-	//K4E::GpuParticleEmitter::K4E::EmitterInfo info{};
-	//info.type = K4E::GpuParticleType::Default;
-	//info.billboardMode = K4E::BillboardMode::K4E::Camera; // ビルボードしない
-	//info.radius = 10.0f;
-	//info.loopCount = 0;        // 一回で10個
-	//info.loopFrequency = 0.0f;  // 0.5秒に一回
+	// Head（首位置をpivotに）
+	rig_[Head].parent = Body;
+	rig_[Head].localPivot = { 0.0f, 1.2f, 0.0f };      // body pivotから首へ
+	rig_[Head].localRotRad = { 0,0,0 };
+	rig_[Head].pivotToCenterLocal = { 0.0f, 0.25f, 0.0f };
+	rig_[Head].halfSize = { 0.25f, 0.25f, 0.25f };
+	rig_[Head].color = { 1.0f, 0.7f, 0.2f, 1.0f };
 
-	//unlockEmitter_ = K4E::GpuParticleManager::GetInstance()->CreateEmitter("StageUnlock", info);
+	// Arms（肩をpivotに）
+	rig_[LeftArm].parent = Body;
+	rig_[LeftArm].localPivot = { -0.55f, 1.05f, 0.0f }; // 左肩
+	rig_[LeftArm].localRotRad = { 0,0,0 };
+	rig_[LeftArm].pivotToCenterLocal = { 0.0f, -0.45f, 0.0f };
+	rig_[LeftArm].halfSize = { 0.18f, 0.45f, 0.18f };
+	rig_[LeftArm].color = { 0.3f, 1.0f, 0.3f, 1.0f };
 
-	//if (unlockEmitter_)
-	//{
-	//	unlockEmitter_->SetPosition({ 0.0f, 1.5f, 0.0f }); // キューブの少し上あたり
-	//}
+	rig_[RightArm].parent = Body;
+	rig_[RightArm].localPivot = { +0.55f, 1.05f, 0.0f }; // 右肩
+	rig_[RightArm].localRotRad = { 0,0,0 };
+	rig_[RightArm].pivotToCenterLocal = { 0.0f, -0.45f, 0.0f };
+	rig_[RightArm].halfSize = { 0.18f, 0.45f, 0.18f };
+	rig_[RightArm].color = { 0.3f, 1.0f, 0.3f, 1.0f };
 
-	floatTimer_ = 0.0f;
-	isSelected_ = true; // このシーンでは常に「選択中」という扱いでOK
+	// Legs（股関節をpivotに）
+	rig_[LeftLeg].parent = Body;
+	rig_[LeftLeg].localPivot = { -0.25f, 0.2f, 0.0f };
+	rig_[LeftLeg].localRotRad = { 0,0,0 };
+	rig_[LeftLeg].pivotToCenterLocal = { 0.0f, -0.60f, 0.0f };
+	rig_[LeftLeg].halfSize = { 0.20f, 0.60f, 0.20f };
+	rig_[LeftLeg].color = { 0.5f, 0.6f, 1.0f, 1.0f };
+
+	rig_[RightLeg].parent = Body;
+	rig_[RightLeg].localPivot = { +0.25f, 0.2f, 0.0f };
+	rig_[RightLeg].localRotRad = { 0,0,0 };
+	rig_[RightLeg].pivotToCenterLocal = { 0.0f, -0.60f, 0.0f };
+	rig_[RightLeg].halfSize = { 0.20f, 0.60f, 0.20f };
+	rig_[RightLeg].color = { 0.5f, 0.6f, 1.0f, 1.0f };
 }
 
 void PhysicalScene::Update()
 {
-	float dt = dxCommon_->GetFPSCounter().GetDeltaTime();
+	const float dt = dxCommon_->GetFPSCounter().GetDeltaTime();
+	UpdateObbRig(dt);
+}
 
-	K4E::Vector3 move = { 0.0f,0.0f,0.0f };
+void PhysicalScene::UpdateObbRig(float dt)
+{
+	if (!rigEnabled_) return;
 
-	// カメラの移動
-	if (input_->PushKey(DIK_W)) move.z += 0.2f;
-	if (input_->PushKey(DIK_S)) move.z -= 0.2f;
-	if (input_->PushKey(DIK_A)) move.x -= 0.2f;
-	if (input_->PushKey(DIK_D)) move.x += 0.2f;
+	rigTime_ += dt;
 
-	if (input_->PushKey(DIK_Q)) move.y += 0.2f;
-	if (input_->PushKey(DIK_E)) move.y -= 0.2f;
-
-	K4E::Vector3 position = camera->GetTranslate();
-	position += move;
-
-	camera->SetTranslate(position);
-	camera->Update();
-
-	bool canFloat =
-		isSelected_ &&
-		(state_ == StageState::Available || state_ == StageState::Cleared);
-
-	if (canFloat)
+	// デモ：体Yaw、腕・脚を振る
+	if (rigAutoAnim_)
 	{
-		floatTimer_ += dt;
+		rig_[Body].localRotRad.y += bodyYawSpeed_ * dt;
 
-		const float amplitude = 0.3f;   // 上下の幅
-		const float speed = 0.5f;   // 1秒あたりの上下サイクル数
+		const float s = std::sinf(rigTime_);
+		rig_[LeftArm].localRotRad.x = +armSwingAmp_ * s;
+		rig_[RightArm].localRotRad.x = -armSwingAmp_ * s;
 
-		float offsetY = std::sinf(floatTimer_ * speed * 2.0f * std::numbers::pi_v<float>) * amplitude;
-
-		K4E::Vector3 pos = baseTranslate_;
-		pos.y += offsetY;
-
-		object3D_->SetTranslate(pos);
-	}
-	else
-	{
-		// ロック中・アンロック演出中・非選択のときは常に基準位置
-		object3D_->SetTranslate(baseTranslate_);
+		rig_[LeftLeg].localRotRad.x = -legSwingAmp_ * s;
+		rig_[RightLeg].localRotRad.x = +legSwingAmp_ * s;
 	}
 
-	// 1キー: ロック状態
-	if (input_->TriggerKey(DIK_1))
+	// ルート
 	{
-		state_ = StageState::Locked;
-		ApplyLockedVisual();
+		auto& n = rig_[Body];
+		n.worldPivot = rigRootPivotWorld_;
+
+		const K4E::Matrix4x4 Rlocal = K4E::Matrix4x4::MakeRotateMatrix(n.localRotRad);
+		n.worldR = Rlocal;
+
+		K4E::Vector3 ax, ay, az;
+		ExtractAxes_Row(n.worldR, ax, ay, az);
+
+		const K4E::Vector3 center =
+			n.worldPivot +
+			ax * n.pivotToCenterLocal.x +
+			ay * n.pivotToCenterLocal.y +
+			az * n.pivotToCenterLocal.z;
+
+		n.obb.center = center;
+		n.obb.size = n.halfSize;
+		n.obb.orientations[0] = ax;
+		n.obb.orientations[1] = ay;
+		n.obb.orientations[2] = az;
 	}
 
-	// 2キー: 未クリア状態（プレイ可能）
-	if (input_->TriggerKey(DIK_2))
+	// 子（親→子の順で計算）
+	for (int i = 1; i < (int)rig_.size(); ++i)
 	{
-		state_ = StageState::Available;
-		ApplyAvailableVisual();
+		auto& n = rig_[i];
+		if (!n.enabled) continue;
+
+		const auto& p = rig_[n.parent];
+
+		// pivotのワールド位置：親pivot + (localPivot を親回転で回す)
+		n.worldPivot = p.worldPivot + RotateVec_Row(n.localPivot, p.worldR);
+
+		// 回転合成（row-vector）：Rworld = Rlocal * Rparent
+		const K4E::Matrix4x4 Rlocal = K4E::Matrix4x4::MakeRotateMatrix(n.localRotRad);
+		n.worldR = K4E::Matrix4x4::Multiply(Rlocal, p.worldR);
+
+		K4E::Vector3 ax, ay, az;
+		ExtractAxes_Row(n.worldR, ax, ay, az);
+
+		// center：pivot基準の回転
+		const K4E::Vector3 center =
+			n.worldPivot +
+			ax * n.pivotToCenterLocal.x +
+			ay * n.pivotToCenterLocal.y +
+			az * n.pivotToCenterLocal.z;
+
+		n.obb.center = center;
+		n.obb.size = n.halfSize;
+		n.obb.orientations[0] = ax;
+		n.obb.orientations[1] = ay;
+		n.obb.orientations[2] = az;
 	}
-
-	// SPACE: Locked → Unlocking（解放演出スタート）
-	if (input_->TriggerKey(DIK_SPACE) && state_ == StageState::Locked)
-	{
-		StartUnlock();
-	}
-
-	// Unlocking 中は演出進行
-	if (state_ == StageState::Unlocking)
-	{
-		UpdateUnlock(dt);
-	}
-
-	// エミッタ位置をキューブに追従させたい場合
-	if (unlockEmitter_)
-	{
-		K4E::Vector3 p = object3D_->GetTranslate();
-		p.y += 1.5f;
-		unlockEmitter_->SetPosition(p);
-	}
-
-	if (state_ == StageState::Cleared)
-	{
-		const float slowSpinSpeed = std::numbers::pi_v<float> *0.125f; // 0.25回転/秒くらい
-
-		K4E::Vector3 rot = object3D_->GetRotate();
-		rot.y += slowSpinSpeed * dt;
-		object3D_->SetRotate(rot);
-	}
-
-	// BackSpace でタイトルに戻る（デバッグ用）
-	if (input_->TriggerKey(DIK_BACK))
-	{
-		// タイトル側の Initialize で K4E::PixelateEffect をOFFにしているので、
-		// ここではシーン切り替えだけでOK
-		SceneManager::GetInstance()->ChangeScene("TitleScene");
-		return; // このフレームの後続処理はスキップ
-	}
-
-	object3D_->Update();
 }
 
 void PhysicalScene::Draw3DObjects()
 {
-	object3D_->Draw();
+	DrawObbRig();
+}
+
+void PhysicalScene::DrawObbRig()
+{
+	if (!rigEnabled_) return;
+
+	auto* wf = K4E::Wireframe::GetInstance();
+	if (!wf) return;
+
+	// OBB描画 + pivot可視化
+	for (int i = 0; i < (int)rig_.size(); ++i)
+	{
+		auto& n = rig_[i];
+		if (!n.enabled) continue;
+
+		wf->DrawOBB(n.obb, n.color);
+
+		// pivot cross
+		const float c = 0.12f;
+		wf->DrawLine(n.worldPivot + K4E::Vector3(c, 0, 0), n.worldPivot - K4E::Vector3(c, 0, 0), K4E::Vector4(1, 1, 0, 1));
+		wf->DrawLine(n.worldPivot + K4E::Vector3(0, c, 0), n.worldPivot - K4E::Vector3(0, c, 0), K4E::Vector4(1, 1, 0, 1));
+		wf->DrawLine(n.worldPivot + K4E::Vector3(0, 0, c), n.worldPivot - K4E::Vector3(0, 0, c), K4E::Vector4(1, 1, 0, 1));
+
+		// pivot->center line
+		wf->DrawLine(n.worldPivot, n.obb.center, K4E::Vector4(1, 1, 1, 1));
+
+		if (rigDrawAxes_)
+		{
+			const float L = rigAxisLen_;
+			wf->DrawLine(n.worldPivot, n.worldPivot + n.obb.orientations[0] * L, K4E::Vector4(1, 0, 0, 1)); // X
+			wf->DrawLine(n.worldPivot, n.worldPivot + n.obb.orientations[1] * L, K4E::Vector4(0, 1, 0, 1)); // Y
+			wf->DrawLine(n.worldPivot, n.worldPivot + n.obb.orientations[2] * L, K4E::Vector4(0, 0, 1, 1)); // Z
+		}
+
+		// 親子の骨ライン
+		if (rigDrawBones_ && n.parent >= 0)
+		{
+			const auto& p = rig_[n.parent];
+			wf->DrawLine(p.worldPivot, n.worldPivot, K4E::Vector4(0.9f, 0.9f, 0.9f, 1));
+		}
+	}
 }
 
 void PhysicalScene::Draw2DSprites()
 {
 	K4E::SpriteManager::GetInstance()->SetRenderSetting_Background();
-
-	// 2Dスプライトの描画処理をここに追加
-
 	K4E::SpriteManager::GetInstance()->SetRenderSetting_UI();
-
-
 }
 
 void PhysicalScene::Finalize()
 {
-
 }
 
 void PhysicalScene::DrawImGui()
@@ -186,100 +240,29 @@ void PhysicalScene::DrawImGui()
 #ifdef USE_IMGUI
 	camera->DrawImGui();
 
-	object3D_->DrawImGui();
-#endif // USE_IMGUI
-}
-
-void PhysicalScene::ApplyLockedVisual()
-{
-	object3D_->SetColor({ 0.0f, 0.0f, 0.0f, 1.0f });
-	object3D_->SetDissolveThreshold(1.0f);
-	object3D_->SetDissolveEdgeThickness(0.0f);
-	object3D_->SetDissolveEdgeColor({ 1.0f, 1.0f, 1.0f, 1.0f });
-
-	// ロック中は小さめ
-	object3D_->SetScale({ 1.0f, 1.0f, 1.0f });
-	object3D_->SetRotate({ 0.0f, 0.0f, 0.0f });
-}
-
-void PhysicalScene::ApplyAvailableVisual()
-{
-	// まだクリアしてないけど選べるステージ：少し暗めの色
-	object3D_->SetColor({ 0.3f, 0.3f, 0.4f, 1.0f });
-	object3D_->SetDissolveThreshold(1.0f);
-	object3D_->SetDissolveEdgeThickness(0.0f);
-}
-
-void PhysicalScene::ApplyClearedVisual()
-{
-	object3D_->SetColor({ 0.2f, 0.7f, 1.0f, 1.0f });
-	object3D_->SetDissolveThreshold(1.0f);
-	object3D_->SetDissolveEdgeThickness(0.05f);
-	object3D_->SetDissolveEdgeColor({ 1.0f, 0.9f, 0.4f, 1.0f });
-
-	// 解放後はドンと大きく
-	object3D_->SetScale({ 3.0f, 3.0f, 3.0f });
-}
-
-void PhysicalScene::StartUnlock()
-{
-	state_ = StageState::Unlocking;
-	unlockTimer_ = 0.0f;
-
-	// 解放の瞬間にパーティクルをバースト
-	if (unlockEmitter_)
+	ImGui::Separator();
+	if (ImGui::CollapsingHeader("OBB Rig (Parent-Child)", ImGuiTreeNodeFlags_DefaultOpen))
 	{
-		// 50〜150はお好みで調整
-		K4E::GpuParticleManager::GetInstance()->BurstEmitter("StageUnlock", 80);
+		ImGui::Checkbox("RigEnabled", &rigEnabled_);
+		ImGui::Checkbox("AutoAnim", &rigAutoAnim_);
+		ImGui::Checkbox("DrawBones", &rigDrawBones_);
+		ImGui::Checkbox("DrawAxes", &rigDrawAxes_);
+		ImGui::DragFloat("AxisLen", &rigAxisLen_, 0.01f, 0.1f, 5.0f);
+		ImGui::DragFloat3("RootPivotWorld", &rigRootPivotWorld_.x, 0.01f);
+
+		ImGui::DragFloat("BodyYawSpeed(rad/s)", &bodyYawSpeed_, 0.01f, -5.0f, 5.0f);
+		ImGui::DragFloat("ArmSwingAmp(rad)", &armSwingAmp_, 0.01f, 0.0f, 3.14f);
+		ImGui::DragFloat("LegSwingAmp(rad)", &legSwingAmp_, 0.01f, 0.0f, 3.14f);
+
+		static const char* names[] = { "Body","Head","LeftArm","RightArm","LeftLeg","RightLeg" };
+		ImGui::Combo("Node", &rigSelected_, names, IM_ARRAYSIZE(names));
+
+		auto& n = rig_[rigSelected_];
+		ImGui::Checkbox("Enabled", &n.enabled);
+		ImGui::DragFloat3("LocalPivot(parent space)", &n.localPivot.x, 0.01f);
+		ImGui::DragFloat3("LocalRot(rad)", &n.localRotRad.x, 0.01f);
+		ImGui::DragFloat3("PivotToCenterLocal", &n.pivotToCenterLocal.x, 0.01f);
+		ImGui::DragFloat3("HalfSize", &n.halfSize.x, 0.01f, 0.01f, 5.0f);
 	}
-}
-
-void PhysicalScene::UpdateUnlock(float deltaTime)
-{
-	unlockTimer_ += deltaTime;
-
-	float t = unlockTimer_ / unlockDuration_;
-	if (t > 1.0f) t = 1.0f;
-
-	// --- カラー：黒 → クリア済みカラー ---
-	K4E::Vector4 lockedCol = { 0.0f, 0.0f, 0.0f, 1.0f };
-	K4E::Vector4 clearedCol = { 0.2f, 0.7f, 1.0f, 1.0f };
-
-	K4E::Vector4 col;
-	col.x = lockedCol.x + (clearedCol.x - lockedCol.x) * t;
-	col.y = lockedCol.y + (clearedCol.y - lockedCol.y) * t;
-	col.z = lockedCol.z + (clearedCol.z - lockedCol.z) * t;
-	col.w = 1.0f;
-	object3D_->SetColor(col);
-
-	// --- スケール：小さい → 大きい（＋ちょいバウンド） ---
-	const float startScale = 1.0f;   // ロック中サイズ
-	const float endScale = 3.0f;   // 解放後サイズ
-
-	float baseScale = startScale + (endScale - startScale) * t;
-	float bounce = 1.0f + 0.2f * sinf(t * std::numbers::pi_v<float>);
-	float s = baseScale * bounce;
-
-	object3D_->SetScale({ s, s, s });
-
-	// --- 回転：高速スピンして「パーン」 ---
-	const float spinSpeed = std::numbers::pi_v<float> *10.0f; // 5回転/秒くらい
-	float spinFactor = 1.0f - t * 0.7f;                        // 終わりに向かって減速
-	spinFactor = std::max(spinFactor, 0.2f);
-
-	K4E::Vector3 rot = object3D_->GetRotate();
-	rot.y += spinSpeed * spinFactor * deltaTime;
-	object3D_->SetRotate(rot);
-
-	// --- ディゾルブエッジ強調 ---
-	object3D_->SetDissolveThreshold(1.0f);
-	object3D_->SetDissolveEdgeThickness(0.1f * t);
-	object3D_->SetDissolveEdgeColor({ 1.0f, 0.9f, 0.4f, 1.0f });
-
-	// 演出が終わったら Cleared 状態へ確定
-	if (unlockTimer_ >= unlockDuration_)
-	{
-		state_ = StageState::Cleared;
-		ApplyClearedVisual();
-	}
+#endif
 }

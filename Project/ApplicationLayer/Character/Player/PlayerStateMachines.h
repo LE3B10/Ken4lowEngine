@@ -20,11 +20,12 @@ struct PlayerAPI
 	float VerticalVelocity() const; // 上下速度
 
 	// --- locomotion commands ---
-	void SetMoveInput(float x, float z);
-	void SetSprint(bool on);
-	void Jump();                    // ジャンプ開始
-	void StartDash();               // ダッシュ開始
-	bool IsDashFinished() const;
+	void SetMoveInput(float x, float z); // 移動入力セット
+	void SetSprint(bool on);			 // スプリント状態のON / OFF
+	void Jump();						 // ジャンプ開始
+	void StartDash();					 // ダッシュ開始
+	bool CanStartDash() const;			 // ダッシュ開始可能か（クールタイムなど）
+	bool IsDashFinished() const;		 // ダッシュ終了判定
 
 	// --- combat queries/commands ---
 	bool CanFire() const;
@@ -67,7 +68,7 @@ struct LocoIdle
 		ctx.api.SetMoveInput(ctx.in.moveX, ctx.in.moveZ);
 
 		if (!ctx.api.IsGrounded()) return LocoId::Fall;
-		if (ctx.in.dashPressed)    return LocoId::Dash;
+		if (ctx.in.dashPressed && !ctx.in.aimHeld && ctx.api.CanStartDash())    return LocoId::Dash;
 		if (ctx.in.jumpPressed)    return LocoId::Jump;
 
 		const bool moving = (ctx.in.moveX * ctx.in.moveX + ctx.in.moveZ * ctx.in.moveZ) > 0.0001f;
@@ -89,7 +90,7 @@ struct LocoWalk
 		ctx.api.SetSprint(false);
 
 		if (!ctx.api.IsGrounded()) return LocoId::Fall;
-		if (ctx.in.dashPressed)    return LocoId::Dash;
+		if (ctx.in.dashPressed && !ctx.in.aimHeld && ctx.api.CanStartDash())    return LocoId::Dash;
 		if (ctx.in.jumpPressed)    return LocoId::Jump;
 
 		const bool moving = (ctx.in.moveX * ctx.in.moveX + ctx.in.moveZ * ctx.in.moveZ) > 0.0001f;
@@ -110,10 +111,12 @@ struct LocoRun
 	Next<LocoId> Update(PlayerContext& ctx)
 	{
 		ctx.api.SetMoveInput(ctx.in.moveX, ctx.in.moveZ);
+		// ADS中はスプリント不可（足を止めやすくしてFPSの体感を出す）
+		if (ctx.in.aimHeld) { ctx.api.SetSprint(false); return LocoId::Walk; }
 		ctx.api.SetSprint(true);
 
 		if (!ctx.api.IsGrounded()) return LocoId::Fall;
-		if (ctx.in.dashPressed)    return LocoId::Dash;
+		if (ctx.in.dashPressed && !ctx.in.aimHeld && ctx.api.CanStartDash())    return LocoId::Dash;
 		if (ctx.in.jumpPressed)    return LocoId::Jump;
 
 		const bool moving = (ctx.in.moveX * ctx.in.moveX + ctx.in.moveZ * ctx.in.moveZ) > 0.0001f;
@@ -173,7 +176,8 @@ struct LocoLand
 		ctx.api.SetMoveInput(ctx.in.moveX, ctx.in.moveZ); // 着地中でも入力反映
 		ctx.api.SetSprint(ctx.in.sprintHeld); // 着地中でもスプリント状態を維持
 
-		if (t < 0.0f) return std::nullopt; // 例: 80msだけ硬直
+		// 例: 80msだけ硬直（※ t < 0.0f だと絶対通らないので注意）
+		if (t < 0.08f) return std::nullopt;
 
 		const bool moving = (ctx.in.moveX * ctx.in.moveX + ctx.in.moveZ * ctx.in.moveZ) > 0.0001f;
 		if (!moving) return LocoId::Idle;
@@ -187,8 +191,12 @@ struct LocoLand
 /// --------------------------------------------------------
 struct LocoDash
 {
-	void Enter(PlayerContext& ctx) { ctx.api.StartDash(); }
-	Next<LocoId> Update(PlayerContext& ctx) {
+	void Enter(PlayerContext& ctx) {
+		// 念のため二重ガード（入力側/遷移側で落としていても、ここで安全に）
+		if (ctx.api.CanStartDash()) ctx.api.StartDash();
+	}
+	Next<LocoId> Update(PlayerContext& ctx)
+	{
 		// ダッシュ中は入力を無視したいならここで固定
 		if (!ctx.api.IsGrounded()) return LocoId::Fall;
 		if (ctx.api.IsDashFinished()) {
@@ -211,7 +219,8 @@ enum class CombatId : uint8_t { Hip, Aim, Shoot, Reload, Melee };
 struct CombatHip
 {
 	void Enter(PlayerContext& ctx) { ctx.api.SetAiming(false); }
-	Next<CombatId> Update(PlayerContext& ctx) {
+	Next<CombatId> Update(PlayerContext& ctx)
+	{
 		if (ctx.in.meleePressed)  return CombatId::Melee;
 		if (ctx.in.reloadPressed) return CombatId::Reload;
 		if (ctx.in.aimHeld)       return CombatId::Aim;
@@ -221,7 +230,8 @@ struct CombatHip
 	void Exit(PlayerContext&) {}
 };
 
-struct CombatAim {
+struct CombatAim
+{
 	void Enter(PlayerContext& ctx) { ctx.api.SetAiming(true); }
 	Next<CombatId> Update(PlayerContext& ctx) {
 		if (ctx.in.meleePressed)  return CombatId::Melee;

@@ -48,7 +48,6 @@ namespace Ken4lowEngine
 		// 便利関数（Look→Syncをまとめてやる）
 		void Update(const InputSnapshot& in, bool ignoreInput = false);
 
-
 		/// <summary>
 		/// 毎フレームのカメラ更新処理。<br/>
 		/// ・マウス入力から yaw / pitch を更新（ignoreInput が true の場合はスキップ）<br/>
@@ -86,6 +85,10 @@ namespace Ken4lowEngine
 		/// <param name="verticalAmount">縦方向（ピッチ）に加えるリコイル量。</param>
 		/// <param name="horizontalAmount">横方向（ヨー）のランダムブレの最大値。</param>
 		void AddRecoil(float verticalAmount = 0.0f, float horizontalAmount = 0.0f);
+
+		// AddRecoil() が UpdateLock() の後に呼ばれても「同フレームのSync」で反映されるように
+		// cachedEuler_ を即座に再構築する。
+		void RebuildCachedEulerAfterExternalChange();
 
 		/// <summary>
 		/// ViewMode を一つずつ切り替えます。<br/>
@@ -156,6 +159,11 @@ namespace Ken4lowEngine
 		/// </summary>
 		/// <param name="m">設定したい ViewMode。</param>
 		void SetViewMode(ViewMode m) { viewMode_ = m; }
+
+	private: /// ---------- メンバ関数 ---------- ///
+
+		// プレイヤーの状態に基づいてカメラ位置を計算し、Camera に反映します。
+		void RebuildCachedEuler();
 
 	private: // ---------- メンバ ---------- //
 

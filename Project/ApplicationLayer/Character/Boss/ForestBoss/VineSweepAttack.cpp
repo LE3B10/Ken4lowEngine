@@ -59,10 +59,10 @@ void VineSweepAttack::Update(Boss* boss, float deltaTime, float bossYawRad, cons
 {
 	if (!boss) return;
 
+#ifdef USE_IMGUI
 	// configはBossから参照（Attack側のparams_は使わない）
 	const auto& a = boss->GetParams().vineSweep;
 
-#ifdef USE_IMGUI
 	// HITフラッシュ減衰
 	if (debugHitFlash_ > 0.0f)
 	{

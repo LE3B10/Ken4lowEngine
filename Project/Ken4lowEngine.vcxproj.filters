@@ -139,8 +139,8 @@
     <ClCompile Include="EngineLayer\ParticleManagement\ParticleFactory.cpp">
       <Filter>EngineLayer\Particle</Filter>
     </ClCompile>
-    <ClCompile Include="ApplicationLayer\Crosshair\Crosshair.cpp">
-      <Filter>ApplicationLayer\Crosshair</Filter>
+    <ClCompile Include="ApplicationLayer\UISystem\Crosshair\Crosshair.cpp">
+      <Filter>ApplicationLayer\UISystem\Crosshair</Filter>
     </ClCompile>
     <ClCompile Include="ApplicationLayer\Colliders\CollisionManager.cpp">
       <Filter>ApplicationLayer\Colliders</Filter>
@@ -154,8 +154,8 @@
     <ClCompile Include="ApplicationLayer\Character\Player\Player.cpp">
       <Filter>ApplicationLayer\Character\Player</Filter>
     </ClCompile>
-    <ClCompile Include="ApplicationLayer\ReloadCircle\ReloadCircle.cpp">
-      <Filter>ApplicationLayer\ReloadCircle</Filter>
+    <ClCompile Include="ApplicationLayer\UISystem\ReloadCircle\ReloadCircle.cpp">
+      <Filter>ApplicationLayer\UISystem\ReloadCircle</Filter>
     </ClCompile>
     <ClCompile Include="ApplicationLayer\ScoreManager\ScoreManager.cpp">
       <Filter>ApplicationLayer\ScoreManager</Filter>
@@ -491,10 +491,10 @@
       <Filter>ApplicationLayer\Character\Enemy</Filter>
     </ClCompile>
     <ClCompile Include="ApplicationLayer\Character\Bullet\Bullet.cpp">
-      <Filter>ApplicationLayer\Character\Player\Bullet</Filter>
+      <Filter>ApplicationLayer\Character\Bullet</Filter>
     </ClCompile>
     <ClCompile Include="ApplicationLayer\Character\Bullet\BulletManager.cpp">
-      <Filter>ApplicationLayer\Character\Player\Bullet</Filter>
+      <Filter>ApplicationLayer\Character\Bullet</Filter>
     </ClCompile>
     <ClCompile Include="ApplicationLayer\Character\Player\PlayerHurtbox.cpp">
       <Filter>ApplicationLayer\Character\Player</Filter>
@@ -516,6 +516,24 @@
     </ClCompile>
     <ClCompile Include="EngineLayer\3D\LevelData\Stage.cpp">
       <Filter>EngineLayer\3D\LevelData</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\UISystem\HPWidget\HPWidget.cpp">
+      <Filter>ApplicationLayer\UISystem\HPWidget</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\UISystem\HUDManager\HUDManager.cpp">
+      <Filter>ApplicationLayer\UISystem\HUDManager</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\Character\Player\Component\PlayerMotorComponent.cpp">
+      <Filter>ApplicationLayer\Character\Player\Component</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\Character\Player\Component\PlayerViewComponent.cpp">
+      <Filter>ApplicationLayer\Character\Player\Component</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\Character\Player\Component\PlayerWeaponComponent.cpp">
+      <Filter>ApplicationLayer\Character\Player\Component</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\Character\Player\Effect\PlayerVfx.cpp">
+      <Filter>ApplicationLayer\Character\Player\Effect</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -591,8 +609,8 @@
     <ClInclude Include="EngineLayer\ParticleManagement\ParticleFactory.h">
       <Filter>EngineLayer\Particle</Filter>
     </ClInclude>
-    <ClInclude Include="ApplicationLayer\Crosshair\Crosshair.h">
-      <Filter>ApplicationLayer\Crosshair</Filter>
+    <ClInclude Include="ApplicationLayer\UISystem\Crosshair\Crosshair.h">
+      <Filter>ApplicationLayer\UISystem\Crosshair</Filter>
     </ClInclude>
     <ClInclude Include="ApplicationLayer\Colliders\CollisionManager.h">
       <Filter>ApplicationLayer\Colliders</Filter>
@@ -612,8 +630,8 @@
     <ClInclude Include="ApplicationLayer\Character\Player\Player.h">
       <Filter>ApplicationLayer\Character\Player</Filter>
     </ClInclude>
-    <ClInclude Include="ApplicationLayer\ReloadCircle\ReloadCircle.h">
-      <Filter>ApplicationLayer\ReloadCircle</Filter>
+    <ClInclude Include="ApplicationLayer\UISystem\ReloadCircle\ReloadCircle.h">
+      <Filter>ApplicationLayer\UISystem\ReloadCircle</Filter>
     </ClInclude>
     <ClInclude Include="ApplicationLayer\EffectLayer\Emitter.h">
       <Filter>ApplicationLayer\EffectLayer</Filter>
@@ -1036,10 +1054,10 @@
       <Filter>ApplicationLayer\Character\Enemy</Filter>
     </ClInclude>
     <ClInclude Include="ApplicationLayer\Character\Bullet\Bullet.h">
-      <Filter>ApplicationLayer\Character\Player\Bullet</Filter>
+      <Filter>ApplicationLayer\Character\Bullet</Filter>
     </ClInclude>
     <ClInclude Include="ApplicationLayer\Character\Bullet\BulletManager.h">
-      <Filter>ApplicationLayer\Character\Player\Bullet</Filter>
+      <Filter>ApplicationLayer\Character\Bullet</Filter>
     </ClInclude>
     <ClInclude Include="ApplicationLayer\Character\Player\PlayerInputSnapshot.h">
       <Filter>ApplicationLayer\Character\Player</Filter>
@@ -1082,6 +1100,24 @@
     </ClInclude>
     <ClInclude Include="EngineLayer\3D\LevelData\Stage.h">
       <Filter>EngineLayer\3D\LevelData</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\UISystem\HPWidget\HPWidget.h">
+      <Filter>ApplicationLayer\UISystem\HPWidget</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\UISystem\HUDManager\HUDManager.h">
+      <Filter>ApplicationLayer\UISystem\HUDManager</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Character\Player\Component\PlayerMotorComponent.h">
+      <Filter>ApplicationLayer\Character\Player\Component</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Character\Player\Component\PlayerViewComponent.h">
+      <Filter>ApplicationLayer\Character\Player\Component</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Character\Player\Component\PlayerWeaponComponent.h">
+      <Filter>ApplicationLayer\Character\Player\Component</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Character\Player\Effect\PlayerVfx.h">
+      <Filter>ApplicationLayer\Character\Player\Effect</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -1171,17 +1207,11 @@
     <Filter Include="ApplicationLayer\Colliders">
       <UniqueIdentifier>{0c178ba0-5b54-4d9e-9492-3b93993b00b5}</UniqueIdentifier>
     </Filter>
-    <Filter Include="ApplicationLayer\Crosshair">
-      <UniqueIdentifier>{0466c132-fa3c-49c5-8f44-8f63dfbb4c16}</UniqueIdentifier>
-    </Filter>
     <Filter Include="ApplicationLayer\EffectLayer">
       <UniqueIdentifier>{ba8af9aa-94fd-4aaf-8cc7-4f030e743e2d}</UniqueIdentifier>
     </Filter>
     <Filter Include="ApplicationLayer\Item">
       <UniqueIdentifier>{025c2654-d662-4906-b53f-75721901c9b5}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="ApplicationLayer\ReloadCircle">
-      <UniqueIdentifier>{28c95605-c9f2-44e5-94d0-86aca3440279}</UniqueIdentifier>
     </Filter>
     <Filter Include="ApplicationLayer\Scene">
       <UniqueIdentifier>{2c06b534-d429-48a2-9781-834affe90ebd}</UniqueIdentifier>
@@ -1251,12 +1281,6 @@
     </Filter>
     <Filter Include="Shader\GeometryShader">
       <UniqueIdentifier>{c40888df-84fa-4096-ae6a-3404250fc298}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="ApplicationLayer\Scene\GameClearScene">
-      <UniqueIdentifier>{939cf676-e2d9-4a96-a018-97a10893cace}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="ApplicationLayer\Scene\GameOverScene">
-      <UniqueIdentifier>{334488c7-3709-4c4e-bd7e-47d215d2b2bf}</UniqueIdentifier>
     </Filter>
     <Filter Include="ApplicationLayer\Scene\GamePlayScene">
       <UniqueIdentifier>{36d2b261-8641-463f-8c40-27d619c5859b}</UniqueIdentifier>
@@ -1498,11 +1522,32 @@
     <Filter Include="EngineLayer\3D\AnimationManagement\Debug">
       <UniqueIdentifier>{64dd504b-09cb-4ce7-b7b5-3377b0a7ad71}</UniqueIdentifier>
     </Filter>
-    <Filter Include="ApplicationLayer\Character\Player\Bullet">
-      <UniqueIdentifier>{cf916607-2b99-464e-8993-67ea1777d323}</UniqueIdentifier>
-    </Filter>
     <Filter Include="ApplicationLayer\Character\CharacterWorld">
       <UniqueIdentifier>{a75a8185-2be8-480c-9967-b52e96c8864b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ApplicationLayer\UISystem">
+      <UniqueIdentifier>{34230b88-8c53-40e4-9a8b-e5d8ca64f2a5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ApplicationLayer\UISystem\Crosshair">
+      <UniqueIdentifier>{0466c132-fa3c-49c5-8f44-8f63dfbb4c16}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ApplicationLayer\UISystem\ReloadCircle">
+      <UniqueIdentifier>{28c95605-c9f2-44e5-94d0-86aca3440279}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ApplicationLayer\UISystem\HUDManager">
+      <UniqueIdentifier>{c6e64e0a-a0d0-48e3-abd0-f830b4001a94}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ApplicationLayer\UISystem\HPWidget">
+      <UniqueIdentifier>{6408c9d1-410a-459b-9906-aaa87415445b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ApplicationLayer\Character\Bullet">
+      <UniqueIdentifier>{cf916607-2b99-464e-8993-67ea1777d323}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ApplicationLayer\Character\Player\Component">
+      <UniqueIdentifier>{4a04e38b-f4bf-41dd-9f13-0ded4623e95f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ApplicationLayer\Character\Player\Effect">
+      <UniqueIdentifier>{664a477b-ffd9-4ca9-b348-e5eec733b1b3}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

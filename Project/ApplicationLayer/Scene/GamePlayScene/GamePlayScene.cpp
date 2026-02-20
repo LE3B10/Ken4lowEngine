@@ -15,6 +15,8 @@
 #include <imgui.h>
 #endif // USE_IMGUI
 
+#include "Player.h"
+
 
 #include "WeaponMasterDataDatabase.h"
 #include "WeaponMasterDataEditor.h"
@@ -56,12 +58,13 @@ void GamePlayScene::Initialize()
 	ctx.bulletManager_ = bulletManager_.get();
 	characters_.Initialize(ctx);
 
-	characters_.SpawnEnemy(EnemyArchetype::RifleGrunt, { 0.0f, 0.0f, 30.0f });
-	characters_.SpawnEnemy(EnemyArchetype::SMGFlanker, { 6.0f, 0.0f, 28.0f });
-	characters_.SpawnEnemy(EnemyArchetype::Sniper, { -6.0f, 0.0f, 38.0f });
+	characters_.SpawnEnemy(EnemyArchetype::RifleGrunt, { -12.0f, 0.0f, 30.0f });
+	characters_.SpawnEnemy(EnemyArchetype::SMGFlanker, { 12.0f, 0.0f, 25.0f });
+	characters_.SpawnEnemy(EnemyArchetype::Sniper, { 0.0f, 0.0f, 40.0f });
 
-	crosshair_ = std::make_unique<Crosshair>();
-	crosshair_->Initialize();
+	hudManager_ = std::make_unique<HUDManager>();
+	hudManager_->SetPlayer(characters_.GetPlayer());
+	hudManager_->Initialize();
 }
 
 /// -------------------------------------------------------------
@@ -69,6 +72,56 @@ void GamePlayScene::Initialize()
 /// -------------------------------------------------------------
 void GamePlayScene::Update()
 {
+	// ------------------------------------------------------------
+	// Pause toggle (ESC)
+	// ------------------------------------------------------------
+	if (input_->TriggerKey(DIK_ESCAPE))
+	{
+		isPaused_ = !isPaused_;
+		if (isPaused_)
+		{
+			// ポーズ中はカーソルを出してロック解除
+			input_->SetLockCursor(false);
+			input_->SetCursorVisible(true);
+		}
+		else
+		{
+			// 復帰時はデバッグカメラ状態に合わせて戻す
+			const bool lock = !isDebugCamera_;
+			input_->SetLockCursor(lock);
+			input_->SetCursorVisible(!lock);
+		}
+	}
+
+	// ポーズ中はゲーム進行を止める（ESCで解除可能）
+	if (isPaused_)
+	{
+		// HUDは更新してOK（アニメ無しなら実質固定表示）
+		if (hudManager_)
+		{
+			hudManager_->SetHP(characters_.GetPlayer()->GetHP(), characters_.GetPlayer()->GetMaxHP());
+			hudManager_->Update();
+		}
+		return;
+	}
+
+	// プレイヤーが死んだらゲームを初期化し直す（リトライ）
+	if (characters_.GetPlayer()->GetHP() <= 0)
+	{
+		Finalize();
+		Initialize();
+		return;
+	}
+
+	// エネミーが全滅したら次のウェーブをスポーン
+	if (characters_.GetEnemyCount() == 0)
+	{
+		characters_.SpawnEnemy(EnemyArchetype::RifleGrunt, { -12.0f, 0.0f, 30.0f });
+		characters_.SpawnEnemy(EnemyArchetype::SMGFlanker, { 12.0f, 0.0f, 25.0f });
+		characters_.SpawnEnemy(EnemyArchetype::Sniper, { 0.0f, 0.0f, 40.0f });
+	}
+	
+
 	// デルタタイムの取得
 	const float deltaTime = dxCommon_->GetFPSCounter().GetDeltaTime();
 
@@ -86,7 +139,8 @@ void GamePlayScene::Update()
 
 	skyBox_->Update();
 
-	crosshair_->Update();
+	hudManager_->SetHP(characters_.GetPlayer()->GetHP(), characters_.GetPlayer()->GetMaxHP());
+	hudManager_->Update();
 }
 
 /// -------------------------------------------------------------
@@ -127,10 +181,10 @@ void GamePlayScene::Draw3DObjects()
 	// FPSカメラの描画
 	//fpsCamera_->DrawDebugCamera();
 
-	// ワイヤーフレームの描画
-	K4E::Wireframe::GetInstance()->DrawGrid(100.0f, 50.0f, { 0.25f, 0.25f, 0.25f,1.0f });
-
 #endif // _DEBUG
+
+	// ワイヤーフレームの描画
+	K4E::Wireframe::GetInstance()->DrawGrid(200.0f, 50.0f, { 0.25f, 0.25f, 0.25f,1.0f });
 }
 
 
@@ -152,7 +206,7 @@ void GamePlayScene::Draw2DSprites()
 	// UI用の共通描画設定
 	K4E::SpriteManager::GetInstance()->SetRenderSetting_UI();
 
-	crosshair_->Draw();
+	hudManager_->Draw();
 
 #pragma endregion
 }
@@ -167,7 +221,7 @@ void GamePlayScene::Finalize()
 	input_->SetLockCursor(false);
 	input_->SetCursorVisible(true);
 
-	crosshair_.reset();
+	hudManager_.reset();
 
 	// ★重要：CharacterWorld は CollisionManager を使って RemoveCollider する
 	//         ので、先に characters_ を Finalize してから manager 類を破棄する

@@ -99,8 +99,12 @@ bool WeaponInstance::ToggleFireMode()
 
 void WeaponInstance::Tick(float dt)
 {
-	// クールダウン
-	if (st_.fireCooldown > 0.0f) st_.fireCooldown -= dt;
+	// 入力 ⇒ 要求ラッチ
+	if (st_.reloadRequest)
+	{
+		st_.reloadRequested = true;
+		st_.reloadRequest = false;
+	}
 
 	// リロード
 	if (st_.isReloading)
@@ -108,9 +112,42 @@ void WeaponInstance::Tick(float dt)
 		st_.reloadTimer -= dt;
 		if (st_.reloadTimer <= 0.0f)
 		{
-			FinishReload();
+			FinishReload(); // 弾補充
+			st_.reloadRequested = false; // 要求処理完了
+			st_.reloadTimer = 0.0f;
+		}
+
+		// リロード中はここで終わり
+		return;
+	}
+
+	// 開始判定
+	if (st_.reloadRequested || st_.pendingReload)
+	{
+		if (CanStartReload())
+		{
+			StartReloadInternal();
+		}
+		else
+		{
+			// どうがんばあっても無理なら要求を捨てる
+			const bool impossible = (st_.magAmmo >= params_.magCapacity) || (st_.reserveAmmo <= 0);
+
+			if (impossible)
+			{
+				st_.reloadRequested = false;
+				st_.pendingReload = false;
+			}
+			else
+			{
+				st_.pendingReload = true;
+				st_.reloadRequested = false;
+			}
 		}
 	}
+
+	// クールダウン
+	if (st_.fireCooldown > 0.0f) st_.fireCooldown -= dt;
 
 	// バースト進行
 	if (st_.burstRemaining > 0)
@@ -136,6 +173,37 @@ void WeaponInstance::StartReload()
 
 	st_.isReloading = true;
 	st_.reloadTimer = std::max(0.0f, params_.reloadSec);
+}
+
+void WeaponInstance::CancelReload()
+{
+	// 途中キャンセル : 弾は補充しない
+	st_.isReloading = false;
+	st_.reloadTimer = 0.0f;
+
+	// 要求 / キューも全部捨てる（再開事故防止）
+	st_.reloadRequested = false;
+	st_.reloadRequest = false;
+	st_.pendingReload = false;
+}
+
+bool WeaponInstance::CanStartReload() const
+{
+	if (st_.isReloading) return false;
+	if (st_.magAmmo >= params_.magCapacity) return false;
+	if (st_.reserveAmmo <= 0) return false;
+	return true;
+}
+
+void WeaponInstance::StartReloadInternal()
+{
+	st_.isReloading = true;
+	st_.reloadTimer = std::max(0.0f, params_.reloadSec);
+
+	// 要求は消費して潰す
+	st_.reloadRequest = false;
+	st_.reloadRequested = false;
+	st_.pendingReload = false;
 }
 
 bool WeaponInstance::WantFire(bool fireHeld, bool firePressed) const

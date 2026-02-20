@@ -9,23 +9,56 @@
 namespace Ken4lowEngine
 {
 
+	static void ExtractAxes_Row(const Matrix4x4& R, Vector3& ax, Vector3& ay, Vector3& az)
+	{
+		ax = { R.m[0][0], R.m[0][1], R.m[0][2] };
+		ay = { R.m[1][0], R.m[1][1], R.m[1][2] };
+		az = { R.m[2][0], R.m[2][1], R.m[2][2] };
+		ax = Vector3::Normalize(ax);
+		ay = Vector3::Normalize(ay);
+		az = Vector3::Normalize(az);
+	}
+
 	/// -------------------------------------------------------------
 	///					　	OBBを取得
 	/// -------------------------------------------------------------
 	OBB Collider::GetOBB() const
 	{
-		Matrix4x4 rotMat = Matrix4x4::MakeRotateMatrix(orientation_);
-
 		OBB obb{};
 		obb.center = colliderPosition_;
 		obb.size = colliderHalfSize_;
 
+		if (useOBBBasis)
+		{
+			obb.orientations[0] = obbBasis_[0];
+			obb.orientations[1] = obbBasis_[1];
+			obb.orientations[2] = obbBasis_[2];
+			return obb;
+		}
+
+		Matrix4x4 rotMat = Matrix4x4::MakeRotateMatrix(orientation_);
+		Vector3 axisX, axisY, axisZ;
+		ExtractAxes_Row(rotMat, axisX, axisY, axisZ);
+
 		// 回転行列から各軸ベクトルを抽出して OBB に設定
-		obb.orientations[0] = { rotMat.m[0][0], rotMat.m[1][0], rotMat.m[2][0] }; // X軸
-		obb.orientations[1] = { rotMat.m[0][1], rotMat.m[1][1], rotMat.m[2][1] }; // Y軸
-		obb.orientations[2] = { rotMat.m[0][2], rotMat.m[1][2], rotMat.m[2][2] }; // Z軸
+		obb.orientations[0] = axisX; // X軸
+		obb.orientations[1] = axisY; // Y軸
+		obb.orientations[2] = axisZ; // Z軸
 
 		return obb;
+	}
+
+	void Collider::SetOBBBasis(const Vector3& axisX, const Vector3& axisY, const Vector3& axisZ)
+	{
+		obbBasis_[0] = Vector3::Normalize(axisX);
+		obbBasis_[1] = Vector3::Normalize(axisY);
+		obbBasis_[2] = Vector3::Normalize(axisZ);
+		useOBBBasis = true;
+	}
+
+	void Collider::ClearOBBBasis()
+	{
+		useOBBBasis = false;
 	}
 
 	/// -------------------------------------------------------------

@@ -6,12 +6,6 @@
 #include "Camera.h"             
 #include "InputSnapshot.h"
 #include "CollisionManager.h"
-#include <PostEffectManager.h>
-#include <VignetteEffect.h>
-#include <RadialBlurEffect.h>
-
-#include <cmath>                
-#include <algorithm>
 
 #ifdef USE_IMGUI
 #include <imgui.h>
@@ -27,10 +21,20 @@ static K4E::Vector3 RotateByEuler(const K4E::Vector3& v, const K4E::Vector3& rot
 
 	// 行/列の定義が環境で違うことがあるので、もし方向が変なら下の式を入れ替えてOK
 	return {
-		v.x * m.m[0][0] + v.y * m.m[1][0] + v.z * m.m[2][0],
-		v.x * m.m[0][1] + v.y * m.m[1][1] + v.z * m.m[2][1],
-		v.x * m.m[0][2] + v.y * m.m[1][2] + v.z * m.m[2][2],
+	   m.m[0][0] * v.x + m.m[0][1] * v.y + m.m[0][2] * v.z,
+	   m.m[1][0] * v.x + m.m[1][1] * v.y + m.m[1][2] * v.z,
+	   m.m[2][0] * v.x + m.m[2][1] * v.y + m.m[2][2] * v.z,
 	};
+}
+
+static void ExtractAxes_Row(const K4E::Matrix4x4& R, K4E::Vector3& ax, K4E::Vector3& ay, K4E::Vector3& az)
+{
+	ax = { R.m[0][0], R.m[0][1], R.m[0][2] };
+	ay = { R.m[1][0], R.m[1][1], R.m[1][2] };
+	az = { R.m[2][0], R.m[2][1], R.m[2][2] };
+	ax = K4E::Vector3::Normalize(ax);
+	ay = K4E::Vector3::Normalize(ay);
+	az = K4E::Vector3::Normalize(az);
 }
 
 /// -------------------------------------------------------------
@@ -66,6 +70,31 @@ void Player::Initialize()
 			t.halfSize = half;
 			t.damageMul = mul;
 			t.enabled = true;
+
+			// 既定の中心オフセット（部位ローカル）
+			// もし将来ロード等で値が入っている場合は上書きしない
+			if (t.localOffset.x == 0.0f && t.localOffset.y == 0.0f && t.localOffset.z == 0.0f)
+			{
+				switch (part)
+				{
+				case PlayerHitPart::Body:
+					t.localOffset = { 0.0f,0.0f, 0.0f };
+					break;
+				case PlayerHitPart::Head:
+					t.localOffset = { 0.0f, t.halfSize.y, 0.0f };
+					break;
+				case PlayerHitPart::LeftArm:
+				case PlayerHitPart::RightArm:
+				case PlayerHitPart::LeftLeg:
+				case PlayerHitPart::RightLeg:
+					t.localOffset = { 0.0f, -t.halfSize.y, 0.0f };
+					break;
+				default:
+					t.localOffset = { 0.0f, 0.0f, 0.0f };
+					break;
+				}
+			}
+
 		};
 
 	make(0, PlayerHitPart::Body, 1.0f, { 0.5f, 0.75f, 0.25f });
@@ -84,8 +113,8 @@ void Player::Initialize()
 	// 体力初期化
 	hp_ = maxHp_;
 
-	// 地面Y（今の立ち位置を地面扱い）
-	groundY_ = body_.transform.translate_.y;
+	// 演出（VFX）の初期化
+	vfx_.Reset();
 
 	// APIをPlayerに接続
 	api_.player = this;
@@ -97,17 +126,35 @@ void Player::Initialize()
 	brain_.loco.Change(ctx, LocoId::Idle);
 	brain_.combat.Change(ctx, CombatId::Hip);
 
-	// カメラ初期化
-	fpsCamera_.Initialize(api_.player);
+	// View（カメラ/表示）初期化
+	view_.BindBodyTransform(GetWorldTransform());
+	PlayerViewComponent::FirstPersonRenderHooks hooks{};
+	hooks.SetBodyActive = [this](bool on) { this->SetBodyActive(on); };
+	hooks.SetAllPartsActive = [this](bool on) { this->SetAllPartsActive(on); };
+	hooks.SetPartActive = [this](int idx, bool on) { this->SetPartActive(idx, on); };
+	hooks.GetLeftArmIndex = [&]() { return (int)GetPartIndices().leftArm; };
+	hooks.GetRightArmIndex = [&]() { return (int)GetPartIndices().rightArm; };
 
-	// シュートカメラを設定
-	shootCamera_ = fpsCamera_.GetCamera();
+	view_.BindFirstPersonRenderHooks(std::move(hooks));
+	auto& parts = GetBodyParts();
+	view_.BindArmTransforms(&parts[GetPartIndices().leftArm].transform, &parts[GetPartIndices().rightArm].transform);
 
-	// 一人称なら体を非表示に
-	SetFirstPersonView(fpsCamera_.GetViewMode() == K4E::FpsCamera::ViewMode::FirstPerson);
+	view_.Initialize(this);
+
+	{
+		auto* cam = view_.GetCamera();
+		PlayerViewComponent::CameraFovHooks fovHooks{};
+
+		fovHooks.GetFov = [cam]() { return cam->GetFovY(); };
+		fovHooks.SetFov = [cam](float fov) { cam->SetFovY(fov); };
+
+		view_.BindCameraFovHooks(std::move(fovHooks));
+	}
 
 	// WeaponMasterData をロードして現在武器を適用
-	LoadWeaponMasterDataOnce();
+	weapon_.LoadWeaponMasterDataOnce();
+
+	prevLocoId_ = brain_.loco.id;
 }
 
 
@@ -121,91 +168,112 @@ void Player::Update(float deltaTime)
 		BaseCharacter::Update(deltaTime); // デバッグカメラ中はベースのUpdateも呼ぶ（移動や回転を反映させるため）
 		return; // デバッグカメラ中は以降の処理をスキップ
 	}
+
 	if (!input_) { BaseCharacter::Update(deltaTime); return; }
 
-	// Snapshot生成
-	inputSnap_ = BuildInputSnapshot(*input_);
+	// ---- 最近当たった弾IDの掃除（多段ヒット防止のTTL） ----
+	TickRecentBulletHits(deltaTime);
 
-	// ---- Fire mode toggle (V) ----
-	if (weaponLoaded_ && inputSnap_.toggleFireModePressed)
+	// Snapshot生成（raw）
+	InputSnapshot rawSnap = BuildInputSnapshot(*input_);
+
+	// ---- Weapon（トグル/近接リマップ/切替/内部Tick）をコンポーネントへ委譲 ----
+	// ※武器側が「移動/ジャンプでリロードキャンセル」等の入力を見る可能性があるため、
+	//   まず raw を渡して武器状態を更新する。
+	weapon_.UpdateAndHandleInput(deltaTime, rawSnap);
+
+	// ---- リロード中の移動制限/キャンセル ----
+	// 仕様:
+	//  - リロード中は走らない（= sprint/dash 無効）
+	//  - リロード中はジャンプしない
+	//  - ただし「走る/ジャンプ/ダッシュ」を入力したらリロードをキャンセルする
+	bool isReloading = false;
+	float reloadTimer = 0.0f;
+	float reloadSec = 0.0f;
+	weapon_.GetReloadUI(isReloading, reloadTimer, reloadSec);
+
+	const bool wantsCancelReload = isReloading && (rawSnap.sprintHeld || rawSnap.jumpPressed || rawSnap.dashPressed);
+	if (wantsCancelReload)
 	{
-		weaponSys_.Weapon().ToggleFireMode();
-	}
+		TryCancelReloadInternal();
 
-	// ---- Melee category: LMB attacks (disable gun fire) ----
-	if (weaponCategory_ == EWeaponCategory::Melee)
-	{
-		// Fキー近接に加えて、左クリックでも近接できるようにする
-		inputSnap_.meleePressed = inputSnap_.meleePressed || inputSnap_.firePressed;
-		inputSnap_.fireHeld = false;
-		inputSnap_.firePressed = false;
-		inputSnap_.aimHeld = false;
-		inputSnap_.aimPressed = false;
-	}
-
-	// Weapon（クールダウン/リロード/バースト/拡散）
-	TickWeapon(deltaTime);
-
-
-	// カテゴリ切替（数字キー1..6）
-	if (inputSnap_.weaponSlotPressed != 0)
-	{
-		EWeaponCategory cat = weaponCategory_;
-		switch (inputSnap_.weaponSlotPressed)
+		// FSM側もリロード状態から即復帰（体感の遅延をなくす）
+		// ※武器側のキャンセル実装が無い場合でも、プレイヤー操作はすぐ戻せる。
+		if (brain_.combat.id == CombatId::Reload)
 		{
-		case 1: cat = EWeaponCategory::Primary; break;
-		case 2: cat = EWeaponCategory::Backup; break;
-		case 3: cat = EWeaponCategory::Melee; break;
-		case 4: cat = EWeaponCategory::Special; break;
-		case 5: cat = EWeaponCategory::Sniper; break;
-		case 6: cat = EWeaponCategory::Heavy; break;
-		default: break;
+			PlayerContext cancelCtx{ api_, rawSnap, deltaTime };
+			brain_.combat.Change(cancelCtx, rawSnap.aimHeld ? CombatId::Aim : CombatId::Hip);
 		}
 
-		if (cat != weaponCategory_)
-		{
-			SwitchWeaponCategory(cat);
-		}
+		// このフレームは「キャンセルした扱い」で制限をかけない
+		isReloading = false;
 	}
 
-	// 武器切替（ホイール/DPAD想定）
-	if (inputSnap_.weaponSwitch != 0)
+	// Snapshot（FSM / Motor / View に流す用）
+	inputSnap_ = rawSnap;
+	if (isReloading)
 	{
-		SwitchWeaponByDelta(inputSnap_.weaponSwitch);
+		// 走る/ジャンプ/ダッシュを抑止（歩きは許可）
+		inputSnap_.sprintHeld = false;
+		inputSnap_.jumpPressed = false;
+		inputSnap_.dashPressed = false;
 	}
 
-	// カメラ角度を先に更新（＝移動方向の基準になる）
-	fpsCamera_.SetDeltaTime(deltaTime);
-	fpsCamera_.UpdateLook(inputSnap_);
+	auto* tr = GetWorldTransform();
+	motor_.BindTransform(tr);
+	motor_.PreprocessInput(inputSnap_, deltaTime);
+	SetCenterPosition(tr->translate_);
 
-	// 体の向きをカメラYawへ動悸
-	body_.transform.rotate_.y = fpsCamera_.GetYaw();
+	// View：カメラ角度を先に更新（＝移動方向の基準になる）
+	view_.BindBodyTransform(tr);
+	view_.SetAiming(inputSnap_.aimHeld);
+	view_.UpdateLook(deltaTime, inputSnap_);
 
 	// FSM更新（SetMoveInputなどが呼ばれる）
 	PlayerContext ctx{ api_, inputSnap_, deltaTime };
 	brain_.Update(ctx);
 
-	// 移動・重力などでプレイヤー位置更新
-	SimulateLocomotion(deltaTime);
+	const LocoId prev = prevLocoId_;
+	const bool isAds = inputSnap_.aimHeld;
+	const bool dashJustStarted = (brain_.loco.id == LocoId::Dash && prev != LocoId::Dash);
+	const bool moving = (inputSnap_.moveX * inputSnap_.moveX + inputSnap_.moveZ * inputSnap_.moveZ) > 0.01f;
 
-	// 衝突用コライダー同期（描画の親子付けとは別物なので毎フレーム合わせる）
-	if (auto* tr = GetWorldTransform())
+	const LocoId cur = brain_.loco.id;
+	const bool isAirLike = (cur == LocoId::Jump || cur == LocoId::Fall || cur == LocoId::Land);
+
+	if (cur == LocoId::Run) runCarry_ = true;
+	if (prev == LocoId::Run && isAirLike) runCarry_ = false; // ジャンプした瞬間は走りの勢いを持ち越すが、空中で一度でも走り以外の状態になったら解除
+
+	// ダッシュは別扱い
+	if (cur == LocoId::Dash) runCarry_ = false;
+
+	if (isAirLike)
 	{
-		SetCenterPosition(tr->translate_);
-		//SetOrientation(tr->rotate_);
+		if (!inputSnap_.sprintHeld || isAds || !moving) runCarry_ = false;
+	}
+	else
+	{
+		// 地上状態では Run 以外ならキャリー不要
+		if (cur != LocoId::Run) runCarry_ = false;
 	}
 
-	// 最後にカメラをプレイヤーへ位置同期（行列更新もここで）
-	fpsCamera_.SyncToPlayer();
+	const bool isRunningForFov = (cur == LocoId::Run) || (isAirLike && runCarry_);
+	const bool isDashing = (cur == LocoId::Dash);
 
-	// 一人称なら体を非表示に
-	SetFirstPersonView(fpsCamera_.GetViewMode() == K4E::FpsCamera::ViewMode::FirstPerson);
+	motor_.Simulate(deltaTime, view_.GetYaw(), brain_.loco.id, isAds, isReloading);
+
+	// 最後にカメラをプレイヤーへ位置同期（行列更新もここで）
+	view_.UpdateMovementFov(deltaTime, isRunningForFov, isDashing, dashJustStarted);
+	view_.SyncToPlayer();
+	view_.SyncViewModeToFirstPersonFlag();
+
+	prevLocoId_ = brain_.loco.id;
 
 	// 親子描画更新
 	BaseCharacter::Update(deltaTime);
 
 	SyncHurtboxes();
-	UpdateDamagePostEffect(deltaTime);
+	vfx_.Update(deltaTime);
 }
 
 
@@ -225,56 +293,18 @@ void Player::DrawImGui()
 {
 #ifdef USE_IMGUI
 
-	fpsCamera_.DrawImGui();
+	view_.DrawImGui();
 
-	if (ImGui::CollapsingHeader("Weapon", ImGuiTreeNodeFlags_DefaultOpen))
+	weapon_.DrawImGui();
+
+	if (ImGui::CollapsingHeader("Recoil Tuning", ImGuiTreeNodeFlags_DefaultOpen))
 	{
-		ImGui::Text("MasterDir: %s", weaponMasterDir_.string().c_str());
-
-		if (!weaponLoaded_)
-		{
-			ImGui::TextColored(ImVec4(1, 0.4f, 0.4f, 1), "WeaponMasterData: NOT LOADED");
-			if (!weaponLoadError_.empty())
-				ImGui::TextWrapped("%s", weaponLoadError_.c_str());
-
-			if (ImGui::Button("Load WeaponMasterData"))
-				LoadWeaponMasterDataOnce();
-		}
-		else
-		{
-			const auto& w = weaponSys_.Weapon();
-			const auto& p = w.Params();
-			const auto& s = w.State();
-
-			ImGui::Text("WeaponID: %d", currentWeaponId_);
-			ImGui::Text("DefaultAutomatic: %s", p.isAutomatic ? "true" : "false");
-			ImGui::Text("CurrentFireMode: %s", w.IsAutomatic() ? "auto" : "semi");
-			ImGui::Text("CanToggleMode: %s", p.canToggleFireMode ? "true" : "false");
-			ImGui::Text("Damage: %.2f", p.damage);
-			ImGui::Text("ProjectileSpeed: %.2f", p.projectileSpeed);
-			ImGui::Text("SecPerShot: %.3fs", p.secPerShot);
-			ImGui::Text("ReloadSec: %.2fs", p.reloadSec);
-
-			ImGui::Separator();
-			ImGui::Text("Ammo: %d / %d   (Reserve: %d)", s.magAmmo, p.magCapacity, s.reserveAmmo);
-			ImGui::Text("Reloading: %s (%.2fs)", s.isReloading ? "true" : "false", s.reloadTimer);
-			ImGui::Text("Cooldown: %.3fs", s.fireCooldown);
-			ImGui::Text("Burst: rem=%d  timer=%.3fs", s.burstRemaining, s.burstTimer);
-			ImGui::Text("Spread: %.3f", s.spread);
-
-			static int sEquipID = 0;
-			ImGui::InputInt("EquipID", &sEquipID);
-			if (ImGui::Button("Equip"))
-				EquipWeaponByID(sEquipID);
-
-			ImGui::SameLine();
-			if (ImGui::Button("Reload WeaponMasterData"))
-			{
-				weaponLoaded_ = false;
-				weaponLoadError_.clear();
-				LoadWeaponMasterDataOnce();
-			}
-		}
+		ImGui::Text("Pre-shot camera kick (deg)");
+		ImGui::DragFloat("Hip Pitch", &recoilPitchDegHip_, 0.01f, 0.0f, 10.0f, "%.2f");
+		ImGui::DragFloat("Hip Yaw", &recoilYawDegHip_, 0.1f, 0.0f, 20.0f);
+		ImGui::Separator();
+		ImGui::DragFloat("ADS Pitch", &recoilPitchDegAds_, 0.01f, 0.0f, 10.0f, "%.2f");
+		ImGui::DragFloat("ADS Yaw", &recoilYawDegAds_, 0.01f, 0.0f, 10.0f, "%.2f");
 	}
 
 	static const char* kPartNames[] = { "Body","Head","LeftArm","RightArm","LeftLeg","RightLeg" };
@@ -302,27 +332,30 @@ void Player::OnCollision(K4E::Collider* other)
 {
 	if (!other) return;
 
-	//const uint32_t otherType = other->GetTypeID();
-	//const uint32_t kEnemyBullet = static_cast<uint32_t>(CollisionTypeIdDef::kEnemyBullet);
-	//const uint32_t kBossBullet = static_cast<uint32_t>(CollisionTypeIdDef::kBossBullet);
-
-	//if (otherType != kEnemyBullet && otherType != kBossBullet) return;
-
-	// 多段ヒット防止（OnCollisionStay 対策）
-	const uint32_t otherId = other->GetUniqueID();
-	if (contactRecord_.Check(otherId)) return;
-	contactRecord_.Add(otherId);
-
-	//int dmg = 1;
-	//if (auto* b = other->GetOwner<Bullet>())
-	//{
-	//	dmg = b->GetDamage();
-	//}
-
-	//hp_ -= static_cast<float>(dmg);
-	//if (hp_ < 0.0f) hp_ = 0.0f;
-
+	// ここでは「弾っぽいもの」を一律で委譲。
 	OnHitByEnemyBullet(other, PlayerHitPart::Body, 1.0f);
+}
+
+void Player::TryCancelReloadInternal()
+{
+	// WeaponComponent 側の実装差に耐えるため、存在する関数だけを呼ぶ。
+	// （存在しない関数は requires によりコンパイル対象にならない）
+	if constexpr (requires(decltype(weapon_) & w) { w.CancelReload(); })
+	{
+		weapon_.CancelReload();
+	}
+	else if constexpr (requires(decltype(weapon_) & w) { w.AbortReload(); })
+	{
+		weapon_.AbortReload();
+	}
+	else if constexpr (requires(decltype(weapon_) & w) { w.StopReload(); })
+	{
+		weapon_.StopReload();
+	}
+	else
+	{
+		// 何もできない場合はFSMだけ解除する（操作感は戻るが、武器側はリロード完了まで撃てない可能性がある）
+	}
 }
 
 bool PlayerAPI::IsGrounded() const { return player ? player->FSM_IsGrounded() : true; }
@@ -332,6 +365,7 @@ void PlayerAPI::SetMoveInput(float x, float z) { if (player) player->FSM_SetMove
 void PlayerAPI::SetSprint(bool on) { if (player) player->FSM_SetSprint(on); }
 void PlayerAPI::Jump() { if (player) player->FSM_Jump(); }
 void PlayerAPI::StartDash() { if (player) player->FSM_StartDash(); }
+bool PlayerAPI::CanStartDash() const { return player ? player->FSM_CanStartDash() : false; }
 bool PlayerAPI::IsDashFinished() const { return player ? player->FSM_IsDashFinished() : true; }
 
 bool PlayerAPI::CanFire() const { return player ? player->FSM_CanFire() : false; }
@@ -343,13 +377,6 @@ void PlayerAPI::StartMelee() { if (player) player->FSM_StartMelee(); }
 
 void PlayerAPI::SetAiming(bool on) { if (player) player->FSM_SetAiming(on); }
 void PlayerAPI::SetStunned(bool on) { if (player) player->FSM_SetStunned(on); }
-
-void Player::SetFirstPersonView(bool enabled)
-{
-	if (isFirstPersonView_ == enabled) return;
-	isFirstPersonView_ = enabled;
-	ApplyFirstPersonRenderFlags();
-}
 
 void Player::OnHitByEnemyBullet(K4E::Collider* bullet, PlayerHitPart part, float mul)
 {
@@ -365,8 +392,8 @@ void Player::OnHitByEnemyBullet(K4E::Collider* bullet, PlayerHitPart part, float
 	// ---- 多段ヒット防止（重要）
 	// 1発の弾が「頭」「腕」「胴」など複数Hurtboxに同フレームで当たっても1回だけにする
 	const uint32_t bulletId = bullet->GetUniqueID();
-	if (contactRecord_.Check(bulletId)) return;
-	contactRecord_.Add(bulletId);
+	if (IsRecentBulletHit(bulletId)) return;
+	MarkRecentBulletHit(bulletId);
 
 	// ---- ダメージ取得
 	int baseDmg = 1;
@@ -380,7 +407,7 @@ void Player::OnHitByEnemyBullet(K4E::Collider* bullet, PlayerHitPart part, float
 	hp_ -= dmg;
 	if (hp_ < 0.0f) hp_ = 0.0f;
 
-	StartDamagePostEffect(dmg);
+	vfx_.OnDamaged(dmg, maxHp_);
 
 	// ---- 任意：被弾スタン（入れたいなら）
 	// PlayerBrain は status が Stunned だと loco/combat を止める設計なので相性が良い
@@ -394,186 +421,29 @@ void Player::OnHitByEnemyBullet(K4E::Collider* bullet, PlayerHitPart part, float
 	PlayerContext ctx{ api_, inputSnap_, 0.0f };
 	brain_.status.RequestStun(ctx, stunSec);
 
-	// スタン中に「前の移動状態」が残って動くのを防ぐ（おすすめ）
-	moveX_ = 0.0f;
-	moveZ_ = 0.0f;
-	sprint_ = false;
-	dashTimer_ = 0.0f;
-
 	brain_.loco.Change(ctx, LocoId::Idle);
 	brain_.combat.Change(ctx, CombatId::Hip);
 
 	// TODO: hp_==0 のとき死亡処理を入れるならここ
 }
 
-\
-void Player::StartDamagePostEffect(float damage)
-{
-	// ダメージ量から 0..1 の強さへ（HP100基準で 5〜25ダメージくらいが気持ちいい）
-	const float s = std::clamp((damage / std::max(1.0f, maxHp_)) * 4.0f, 0.15f, 1.0f);
-
-	// 連続被弾は「上書き＋強さは最大」を採用
-	damagePostTimer_ = damagePostDuration_;
-	damagePostStrength_ = std::max(damagePostStrength_, s);
-}
-
-void Player::UpdateDamagePostEffect(float dt)
-{
-	auto* pem = K4E::PostEffectManager::GetInstance();
-	if (!pem) return;
-
-	// エフェクト取得（無ければ何もしない）
-	auto* vig = dynamic_cast<K4E::VignetteEffect*>(pem->GetEffect("VignetteEffect"));
-	auto* blur = dynamic_cast<K4E::RadialBlurEffect*>(pem->GetEffect("RadialBlurEffect"));
-	if (!vig || !blur) return;
-
-	// 初回だけ「元の値」を保存（終わったら戻すため）
-	if (!damagePostCapturedBase_)
-	{
-		baseVignettePower_ = vig->GetPower();
-		baseVignetteRange_ = vig->GetRange();
-		baseRadialBlurStrength_ = blur->GetBlurStrength();
-		baseRadialBlurSamples_ = blur->GetSampleCount();
-		damagePostCapturedBase_ = true;
-	}
-
-	if (damagePostTimer_ > 0.0f)
-	{
-		damagePostTimer_ -= dt;
-		if (damagePostTimer_ < 0.0f) damagePostTimer_ = 0.0f;
-
-		// 1 -> 0 で減衰（開始が一番強い）
-		const float t = (damagePostDuration_ > 0.0f) ? (damagePostTimer_ / damagePostDuration_) : 0.0f;
-		const float ease = t * t; // smooth fade-out
-		const float amp = ease * damagePostStrength_;
-
-		// 被弾中だけ有効化（ImGuiで常時ONにしてる場合は effectEnabled_ が優先される）
-		pem->EnableEffect("VignetteEffect");
-		pem->EnableEffect("RadialBlurEffect");
-
-		// ---- パラメータ（好みに合わせて調整OK） ----
-		const float maxVignettePower = 2.0f;   // 0.8 -> 2.0 くらい
-		const float maxVignetteRange = 0.70f;  // 0.5 -> 0.7 くらい
-		const float maxBlurStrength = 0.65f;  // 0.3 -> 0.65 くらい
-		const float blurSamples = 16.0f;
-
-		vig->SetPower(baseVignettePower_ + (maxVignettePower - baseVignettePower_) * amp);
-		vig->SetRange(baseVignetteRange_ + (maxVignetteRange - baseVignetteRange_) * amp);
-
-		blur->SetCenter(K4E::Vector2(0.5f, 0.5f));
-		blur->SetSampleCount(blurSamples);
-		blur->SetBlurStrength(baseRadialBlurStrength_ + (maxBlurStrength - baseRadialBlurStrength_) * amp);
-	}
-	else
-	{
-		// 終了：元の値へ戻す
-		vig->SetPower(baseVignettePower_);
-		vig->SetRange(baseVignetteRange_);
-		blur->SetSampleCount(baseRadialBlurSamples_);
-		blur->SetBlurStrength(baseRadialBlurStrength_);
-
-		// プログラム側フラグだけOFF（ImGuiでONならそのまま残る）
-		pem->DisableEffect("VignetteEffect");
-		pem->DisableEffect("RadialBlurEffect");
-
-		damagePostStrength_ = 0.0f;
-	}
-}
-
-bool Player::FSM_IsGrounded() const
-{
-	const auto* tr = BaseCharacter::GetWorldTransform();
-	if (!tr) return true;
-	return (tr->translate_.y <= groundY_ + 0.001f) && (verticalVel_ <= 0.001f);
-}
-
-float Player::FSM_VerticalVelocity() const { return verticalVel_; }
-
-void Player::FSM_SetMoveInput(float x, float z) { moveX_ = x; moveZ_ = z; }
-void Player::FSM_SetSprint(bool on) { sprint_ = on; }
-
-void Player::FSM_Jump()
-{
-	if (FSM_IsGrounded())
-	{
-		verticalVel_ = jumpSpeed_;
-	}
-}
-
-void Player::FSM_StartDash()
-{
-	dashTimer_ = dashDuration_;
-
-	const float yaw = fpsCamera_.GetYaw();
-	const float s = -std::sinf(yaw);
-	const float c = std::cosf(yaw);
-
-	const float fwdX = s, fwdZ = c;
-	const float rightX = c, rightZ = -s;
-
-	float dx = rightX * moveX_ + fwdX * moveZ_;
-	float dz = rightZ * moveX_ + fwdZ * moveZ_;
-
-	const float lenSq = dx * dx + dz * dz;
-	if (lenSq > 1e-6f)
-	{
-		const float invLen = 1.0f / std::sqrt(lenSq);
-		dx *= invLen; dz *= invLen;
-	}
-	else
-	{
-		// 入力ゼロなら “カメラ前” にダッシュ
-		dx = fwdX; dz = fwdZ;
-	}
-
-	dashDirX_ = dx;
-	dashDirZ_ = dz;
-}
-
-bool Player::FSM_IsDashFinished() const { return dashTimer_ <= 0.0f; }
-
-// ---- combat（WeaponSystem/WeaponInstance に委譲）----
-bool Player::FSM_CanFire() const
-{
-	if (!weaponLoaded_) return false;
-	const auto& w = weaponSys_.Weapon();
-	const auto& p = w.Params();
-	const auto& s = w.State();
-
-	if (s.isReloading) return false;
-	if (s.fireCooldown > 0.0f) return false;
-	if (s.magAmmo < p.ammoPerShot) return false;
-	if (s.burstRemaining > 0 && s.burstTimer > 0.0f) return false;
-
-	// 入力ゲート（発射モードに応じて判定）
-	const bool autoMode = w.IsAutomatic();
-	if (autoMode)
-	{
-		if (!inputSnap_.fireHeld) return false;
-	}
-	else
-	{
-		if (!inputSnap_.firePressed) return false;
-	}
-
-	return true;
-}
 void Player::FSM_FireOnce()
 {
 	// NOTE: CombatFSM から呼ばれる発射処理は「必ずここ」を通す
-	if (!weaponLoaded_) return;
-	if (!bulletManager_ || !shootCamera_) return;
+	auto* shootCam = view_.GetShootCamera();
+	if (!bulletManager_ || !shootCam) return;
 
-	// TryFire は内部で (auto/semiauto)・クールダウン・残弾を処理してくれる
-	const auto before = weaponSys_.Weapon().State();
-	weaponSys_.Weapon().TryFire(inputSnap_.fireHeld, inputSnap_.firePressed, shootCamera_, bulletManager_, collisionManager_);
-	const auto& after = weaponSys_.Weapon().State();
-
-	const bool fired = (after.magAmmo != before.magAmmo) || (after.fireCooldown > before.fireCooldown);
+	const bool fired = weapon_.TryFire(inputSnap_, shootCam, bulletManager_, collisionManager_);
 	if (!fired) return;
 
+	/// ---------- カメラリコイル処理 ---------- ///
+	const bool ads = inputSnap_.aimHeld;
+	const float vDeg = ads ? recoilPitchDegAds_ : recoilPitchDegHip_;
+	const float hDeg = ads ? recoilYawDegAds_ : recoilYawDegHip_;
+	view_.AddRecoil(vDeg, hDeg);
+
 	// ---- デバッグ用のショットレイ（命中判定とは別） ----
-	if (auto* cam = fpsCamera_.GetCamera())
+	if (auto* cam = view_.GetCamera())
 	{
 		K4E::Segment seg{};
 		seg.origin = cam->GetTranslate();
@@ -583,312 +453,72 @@ void Player::FSM_FireOnce()
 	}
 }
 
-bool Player::FSM_IsReloadFinished() const
-{
-	if (!weaponLoaded_) return true;
-	return !weaponSys_.Weapon().State().isReloading;
-}
-
-void Player::FSM_StartReload()
-{
-	if (!weaponLoaded_) return;
-	weaponSys_.Weapon().StartReload();
-}
-
 bool Player::FSM_IsMeleeFinished() const { return true; } // TODO: 近接実装時に置換
 void Player::FSM_StartMelee() {}                           // TODO: 近接実装時に置換
 
-void Player::FSM_SetAiming(bool on)
-{
-	fpsCamera_.SetAiming(on);
-}
-
 void Player::FSM_SetStunned(bool) {}
 
-
-void Player::SimulateLocomotion(float dt)
+void Player::TickRecentBulletHits(float dt)
 {
-	auto* tr = GetWorldTransform();
-	if (!tr) return;
-
-	// カメラYawから “平面 forward/right” を作る（+Z前, +X右の想定）
-	const float yaw = fpsCamera_.GetYaw();
-	const float s = -std::sinf(yaw);
-	const float c = std::cosf(yaw);
-
-	// forward=(sin,0,cos), right=(cos,0,-sin)
-	const float fwdX = s, fwdZ = c;
-	const float rightX = c, rightZ = -s;
-
-	// 入力(moveX_/moveZ_) をワールド方向へ変換
-	float moveDirX = rightX * moveX_ + fwdX * moveZ_;
-	float moveDirZ = rightZ * moveX_ + fwdZ * moveZ_;
-
-	// 正規化（入力が0なら0）
-	const float lenSq = moveDirX * moveDirX + moveDirZ * moveDirZ;
-	if (lenSq > 1e-6f)
+	for (auto it = recentBulletHits_.begin(); it != recentBulletHits_.end(); )
 	{
-		const float invLen = 1.0f / std::sqrt(lenSq);
-		moveDirX *= invLen;
-		moveDirZ *= invLen;
-	}
-	else
-	{
-		moveDirX = 0.0f;
-		moveDirZ = 0.0f;
-	}
-
-	// 横移動
-	if (brain_.loco.id == LocoId::Dash)
-	{
-		tr->translate_.x += dashDirX_ * dashSpeed_ * dt;
-		tr->translate_.z += dashDirZ_ * dashSpeed_ * dt;
-		dashTimer_ = (dashTimer_ > dt) ? (dashTimer_ - dt) : 0.0f;
-	}
-	else
-	{
-		float speed = 0.0f;
-		switch (brain_.loco.id)
-		{
-		case LocoId::Walk: speed = walkSpeed_; break;
-		case LocoId::Run:  speed = runSpeed_;  break;
-		case LocoId::Jump:
-		case LocoId::Fall: speed = runSpeed_ * airControl_; break;
-		default: break;
-		}
-
-		tr->translate_.x += moveDirX * speed * dt;
-		tr->translate_.z += moveDirZ * speed * dt;
-	}
-
-	// 縦（重力）
-	verticalVel_ -= gravity_ * dt;
-	tr->translate_.y += verticalVel_ * dt;
-
-	if (tr->translate_.y <= groundY_)
-	{
-		tr->translate_.y = groundY_;
-		verticalVel_ = 0.0f;
+		it->second -= dt;
+		if (it->second <= 0.0f) it = recentBulletHits_.erase(it);
+		else ++it;
 	}
 }
 
-void Player::ApplyFirstPersonRenderFlags()
+void Player::MarkRecentBulletHit(uint32_t id)
 {
-	if (isFirstPersonView_)
-	{
-		SetBodyActive(false);
-		SetAllPartsActive(false);
-
-		const auto idx = GetPartIndices().rightArm;
-		SetPartActive(idx, true);
-	}
-	else
-	{
-		SetBodyActive(true);
-		SetAllPartsActive(true);
-	}
+	// 念のため上限。極端にIDが増える状況でも肥大化しないようにする。
+	if (recentBulletHits_.size() > 256) recentBulletHits_.clear();
+	recentBulletHits_[id] = recentBulletHitTTL_;
 }
-
-bool Player::EquipWeaponByID(int32_t weaponID)
-{
-	if (!weaponLoaded_) LoadWeaponMasterDataOnce();
-	if (!weaponLoaded_) return false;
-
-	std::string err;
-	if (!weaponSys_.EquipById(weaponID, &err))
-	{
-		weaponLoadError_ = err;
-		return false;
-	}
-
-	currentWeaponId_ = weaponSys_.GetEquippedWeaponId();
-	weaponLoadError_.clear();
-	return true;
-}
-
-bool Player::LoadWeaponMasterDataOnce()
-{
-	if (weaponLoaded_) return true;
-
-	// ディレクトリが違う/作業ディレクトリが環境で変わることがあるので候補を順に試す
-	std::vector<std::filesystem::path> candidates;
-	candidates.push_back(weaponMasterDir_);
-	auto addCandidate = [&](const char* p)
-		{
-			if (weaponMasterDir_ != p) candidates.push_back(p);
-		};
-	// 新しい配置（推奨）: Resources/JSON/weapons/[category]/*.json
-	addCandidate("Resources/JSON/weapons");
-	addCandidate("JSON/weapons");
-	// 旧配置（互換）
-	addCandidate("Resources/WeaponMasterData");
-	addCandidate("WeaponMasterData");
-
-	std::string err;
-	bool loaded = false;
-	for (const auto& dir : candidates)
-	{
-		if (dir.empty()) continue;
-		if (!std::filesystem::exists(dir)) continue;
-		if (weaponSys_.Load(dir, &err))
-		{
-			weaponMasterDir_ = dir;
-			loaded = true;
-			break;
-		}
-	}
-
-	if (!loaded)
-	{
-		weaponLoaded_ = false;
-		weaponLoadError_ = err.empty() ? "WeaponMasterData: 読み込みに失敗しました（ディレクトリを確認してください）" : err;
-		currentWeaponId_ = 0;
-		weaponIdList_.clear();
-		return false;
-	}
-
-	weaponLoaded_ = true;
-
-	// まずはカテゴリ（デフォルトPrimary）だけをプレイヤーの選択リストにする
-	weaponIdList_ = weaponSys_.GetWeaponIdListSortedByCategory(weaponCategory_);
-	if (weaponIdList_.empty())
-	{
-		// そのカテゴリが空なら、全カテゴリのIDリストにフォールバック（データがないと誤認しないため）
-		weaponIdList_ = weaponSys_.GetWeaponIdListSorted();
-	}
-	if (weaponIdList_.empty())
-	{
-		weaponLoaded_ = false;
-		weaponLoadError_ = "WeaponMasterData: データが0件でした。（Resources/JSON/weapons/primary などにjsonがあるか確認してください）";
-		currentWeaponId_ = 0;
-		return false;
-	}
-
-	// 既にIDがあるならそのIDを、なければ先頭を装備
-	std::string equipErr;
-	if (currentWeaponId_ > 0)
-	{
-		if (!weaponSys_.EquipById(currentWeaponId_, &equipErr))
-			weaponSys_.EquipFirst(&equipErr);
-	}
-	else
-	{
-		weaponSys_.EquipFirst(&equipErr);
-	}
-
-	currentWeaponId_ = weaponSys_.GetEquippedWeaponId();
-	if (!equipErr.empty())
-		weaponLoadError_ = equipErr;
-	else
-		weaponLoadError_.clear();
-
-	return true;
-}
-
-void Player::SwitchWeaponByDelta(int delta)
-{
-	if (!weaponLoaded_) LoadWeaponMasterDataOnce();
-	if (!weaponLoaded_) return;
-	if (weaponIdList_.empty()) return;
-
-	// 現在IDのindexを探す
-	int idx = 0;
-	for (int i = 0; i < static_cast<int>(weaponIdList_.size()); ++i)
-	{
-		if (weaponIdList_[i] == currentWeaponId_) { idx = i; break; }
-	}
-
-	idx += (delta > 0) ? 1 : -1;
-	if (idx < 0) idx = static_cast<int>(weaponIdList_.size()) - 1;
-	if (idx >= static_cast<int>(weaponIdList_.size())) idx = 0;
-
-	EquipWeaponByID(weaponIdList_[idx]);
-}
-
-void Player::SwitchWeaponCategory(EWeaponCategory category)
-{
-	// まずロード（失敗したら何もしない）
-	if (!LoadWeaponMasterDataOnce())
-		return;
-
-	// 現カテゴリの最後の武器IDを記録
-	const int curIdx = static_cast<int>(weaponCategory_);
-	if (curIdx >= 0 && curIdx < static_cast<int>(lastWeaponIdByCategory_.size()))
-		lastWeaponIdByCategory_[curIdx] = currentWeaponId_;
-
-	// 新カテゴリのID一覧を作る
-	const auto ids = weaponSys_.GetWeaponIdListSortedByCategory(category);
-	if (ids.empty())
-	{
-		weaponLoadError_ = "WeaponMasterData: このカテゴリに武器データがありません。";
-		return;
-	}
-
-	weaponCategory_ = category;
-	weaponIdList_ = ids;
-
-	// 新カテゴリで前回使ってた武器があれば優先、なければ先頭
-	int32_t targetId = weaponIdList_.front();
-	const int newIdx = static_cast<int>(weaponCategory_);
-	if (newIdx >= 0 && newIdx < static_cast<int>(lastWeaponIdByCategory_.size()))
-	{
-		const int32_t last = lastWeaponIdByCategory_[newIdx];
-		if (last > 0 && std::find(weaponIdList_.begin(), weaponIdList_.end(), last) != weaponIdList_.end())
-			targetId = last;
-	}
-
-	std::string err;
-	if (!weaponSys_.EquipById(targetId, &err))
-	{
-		weaponLoadError_ = err.empty() ? "WeaponMasterData: Equipに失敗しました。" : err;
-		return;
-	}
-
-	currentWeaponId_ = weaponSys_.GetEquippedWeaponId();
-	weaponLoadError_.clear();
-}
-
-
-void Player::TickWeapon(float dt)
-{
-	if (!weaponLoaded_) return;
-	weaponSys_.Tick(dt);
-}
-
 
 void Player::SyncHurtboxes()
 {
-	if (!hbDebugDraw_) return;
-
-	auto apply = [&](int hbIdx, const K4E::Vector3& worldPos, const K4E::Vector3& worldRot)
+	auto apply = [&](int hbIdx, const K4E::Vector3& pivotWorld, const K4E::Vector3& worldRotEuler)
 		{
 			auto& t = hbTuning_[hbIdx];
 
 			if (!t.enabled)
 			{
-				// 非表示（Collider::DrawはhalfSize≒0で描かない実装）
 				hurtboxes_[hbIdx]->SetOBBHalfSize({ 0,0,0 });
+				hurtboxes_[hbIdx]->ClearOBBBasis();
 				return;
 			}
 
-			K4E::Vector3 rot = worldRot;
-			rot.y = -rot.y;
-
 			hurtboxes_[hbIdx]->SetOBBHalfSize(t.halfSize);
-			hurtboxes_[hbIdx]->SetOrientation(rot + t.rotOffset);
 
-			const K4E::Vector3 offsetW = RotateByEuler(t.localOffset, rot);
-			hurtboxes_[hbIdx]->SetCenterPosition(worldPos + offsetW);
+			const K4E::Vector3 rotOBB = worldRotEuler + t.rotOffset;
+			const K4E::Matrix4x4 R = K4E::Matrix4x4::MakeRotateMatrix(rotOBB);
+
+			K4E::Vector3 ax, ay, az;
+			ExtractAxes_Row(R, ax, ay, az);
+
+			const K4E::Vector3 center =
+				pivotWorld +
+				ax * t.localOffset.x +
+				ay * t.localOffset.y +
+				az * t.localOffset.z;
+
+			hurtboxes_[hbIdx]->SetCenterPosition(center);
+
+			// ここが「親子計算をOBBに適用」する決め手：軸を直接渡す
+			hurtboxes_[hbIdx]->SetOBBBasis(ax, ay, az);
+
+			// 念のため（他コードがGetOrientation参照しても破綻しない用）
+			hurtboxes_[hbIdx]->SetOrientation(rotOBB);
 		};
 
-	// Body: body_.transform.translate_ / rotate_ でOK（親なし）
+	// Body（pivotは体幹の位置）
 	apply(0, body_.transform.translate_, body_.transform.rotate_);
 
-	// Parts: worldTranslate_ / worldRotate_ を必ず使う
+	// Parts（pivotは各部位のワールド位置）
 	const auto idx = GetPartIndices();
-	apply(1, parts_[idx.head].transform.worldTranslate_ + K4E::Vector3(0.0f, 0.5f, 0.0f), parts_[idx.head].transform.worldRotate_);
-	apply(2, parts_[idx.leftArm].transform.worldTranslate_ + K4E::Vector3(0.0f, -0.75f, 0.0f), parts_[idx.leftArm].transform.worldRotate_);
-	apply(3, parts_[idx.rightArm].transform.worldTranslate_ + K4E::Vector3(0.0f, -0.75f, 0.0f), parts_[idx.rightArm].transform.worldRotate_);
-	apply(4, parts_[idx.leftLeg].transform.worldTranslate_ + K4E::Vector3(0.0f, -0.75f, 0.0f), parts_[idx.leftLeg].transform.worldRotate_);
-	apply(5, parts_[idx.rightLeg].transform.worldTranslate_ + K4E::Vector3(0.0f, -0.75f, 0.0f), parts_[idx.rightLeg].transform.worldRotate_);
+	apply(1, parts_[idx.head].transform.worldTranslate_, parts_[idx.head].transform.worldRotate_);
+	apply(2, parts_[idx.leftArm].transform.worldTranslate_, parts_[idx.leftArm].transform.worldRotate_);
+	apply(3, parts_[idx.rightArm].transform.worldTranslate_, parts_[idx.rightArm].transform.worldRotate_);
+	apply(4, parts_[idx.leftLeg].transform.worldTranslate_, parts_[idx.leftLeg].transform.worldRotate_);
+	apply(5, parts_[idx.rightLeg].transform.worldTranslate_, parts_[idx.rightLeg].transform.worldRotate_);
 }

@@ -176,7 +176,7 @@ namespace Ken4lowEngine
 			const Vector3 worldUp = { 0.0f, 1.0f, 0.0f };
 			Vector3 right = Vector3::Normalize(Vector3::Cross(worldUp, fwd));
 			camPos += right * idleSwayPosOffset_.x;
-			camPos += worldUp * idleSwayPosOffset_.y;
+			camPos += worldUp * idleSwayPosOffset_.y - Vector3(0.0f, 0.25f, 0.0f);
 			camPos += fwd * idleSwayPosOffset_.z;
 		}
 
@@ -337,6 +337,14 @@ namespace Ken4lowEngine
 		const float maxY = DegToRad(recoilMaxYawDeg_);
 		recoilOffsetPitch_ = std::clamp(recoilOffsetPitch_, -maxP, +maxP);
 		recoilOffsetYaw_ = std::clamp(recoilOffsetYaw_, -maxY, +maxY);
+
+		// UpdateLock() の後に呼ばれても同フレームで反映されるようにする
+		RebuildCachedEuler();
+	}
+
+	void FpsCamera::RebuildCachedEulerAfterExternalChange()
+	{
+		RebuildCachedEuler();
 	}
 
 	/// ----------------------------------------------
@@ -349,6 +357,21 @@ namespace Ken4lowEngine
 		case ViewMode::FirstPerson: viewMode_ = ViewMode::ThirdBack;  break;
 		case ViewMode::ThirdBack:   viewMode_ = ViewMode::ThirdFront; break;
 		case ViewMode::ThirdFront:  viewMode_ = ViewMode::FirstPerson; break;
+		}
+	}
+
+	void FpsCamera::RebuildCachedEuler()
+	{
+		cachedEuler_ = {
+			pitch_ + idleSwayPitchRad_ + recoilOffsetPitch_,
+			yaw_ + idleSwayYawRad_ + recoilOffsetYaw_,
+			0.0f
+		};
+
+		if (viewMode_ == ViewMode::ThirdFront)
+		{
+			cachedEuler_.y -= std::numbers::pi_v<float>;
+			cachedEuler_.x = -cachedEuler_.x;
 		}
 	}
 

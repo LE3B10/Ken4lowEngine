@@ -157,6 +157,15 @@ void Enemy::Update(float dt)
 		fsm_.Force(EnemyStateId::Stunned, ctx);
 	}
 
+	// 敵のタイプによって色を変える（debug用）
+	switch (archetype_)
+	{
+	case EnemyArchetype::RifleGrunt: SetColor({ 0.4f, 0.4f, 1.0f, 1.0f }); break;
+	case EnemyArchetype::SMGFlanker: SetColor({ 0.4f, 1.0f, 0.4f, 1.0f }); break;
+	case EnemyArchetype::Sniper:     SetColor({ 1.0f, 0.4f, 0.4f, 1.0f }); break;
+	}
+
+
 	fsm_.Update(ctx);
 	ApplyAICommand(cmd);
 	EnemyBase::Update(dt);
@@ -260,7 +269,7 @@ bool Enemy::CanSeeTarget(const K4E::Vector3& targetPos, float distToTarget)
 	const float lenXZ = std::sqrt(toXZ.x * toXZ.x + toXZ.z * toXZ.z);
 	if (lenXZ > 1e-6f)
 	{
-		const float halfH = (viewFovDeg_ * 3.14159265f / 180.0f) * 0.5f;
+		const float halfH = (viewFovDeg_ * std::numbers::pi_v<float> / 180.0f) * 0.5f;
 		const float cosHalfH = std::cosf(halfH);
 
 		K4E::Vector3 forwardXZ = { std::sinf(yawRad_), 0.0f, std::cosf(yawRad_) };

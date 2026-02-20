@@ -42,6 +42,8 @@ public:
     // 全消し
     void ClearEnemies();
 
+	int GetEnemyCount() const { return static_cast<int>(enemies_.size()); }
+
 public: /// ---------- デバッグ用 ---------- ///
 
 	void SetDebug(bool on) { isDebug_ = on; }

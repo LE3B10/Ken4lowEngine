@@ -1,6 +1,10 @@
 #pragma once
 #include <BaseScene.h>
-#include <Object3D.h>
+
+#include <Vector4.h>
+#include <Vector3.h>
+#include <Matrix4x4.h>
+#include <OBB.h>
 
 #include <vector>
 
@@ -10,73 +14,81 @@ namespace K4E = ::Ken4lowEngine;
 namespace Ken4lowEngine { class DirectXCommon; }
 namespace Ken4lowEngine { class Input; }
 namespace Ken4lowEngine { class Camera; }
-namespace Ken4lowEngine { class GpuParticleEmitter; }
 
 /// -------------------------------------------------------------
 //				物理シーン（デバッグテスト用・サブシーン）
 /// -------------------------------------------------------------
 class PhysicalScene : public BaseScene
 {
-	// ステージの状態
-	enum class StageState
-	{
-		Locked,      // 真っ黒・未開放
-		Available,   // 未クリア（普通）
-		Unlocking,   // 解放演出中
-		Cleared      // 解放済み
-	};
-
-public: /// ---------- メンバ関数 ---------- ///
-
-	// 初期化処理
+public:
 	void Initialize() override;
-
-	// 更新処理
 	void Update() override;
-
-	// 3Dオブジェクトの描画
 	void Draw3DObjects() override;
-
-	// 2Dオブジェクトの描画
 	void Draw2DSprites() override;
-
-	// 終了処理
 	void Finalize() override;
-
-	// ImGui描画処理
 	void DrawImGui() override;
 
-private: /// ---------- メンバ関数 ---------- ///
+private:
+	// ★ OBB親子リグの更新/描画
+	void UpdateObbRig(float dt);
+	void DrawObbRig();
 
-	void ApplyLockedVisual();
+private:
+	K4E::DirectXCommon* dxCommon_ = nullptr;
+	K4E::Input* input_ = nullptr;
+	K4E::Camera* camera = nullptr;
 
-	void ApplyAvailableVisual();
+private:
+	// -------------------------
+	// ★ OBB Rig (Head/Body/Limbs)
+	// -------------------------
+	struct ObbRigNode
+	{
+		int parent = -1;                    // 親ノードindex（-1:root）
+		bool enabled = true;
 
-	void ApplyClearedVisual();
+		K4E::Vector3 localPivot{};          // 親pivotから見た、このpivotのローカル位置（parent空間）
+		K4E::Vector3 localRotRad{};         // pivot周り回転（ラジアン）
+		K4E::Vector3 pivotToCenterLocal{};  // pivot→OBB中心（nodeローカル）
+		K4E::Vector3 halfSize{ 0.3f,0.3f,0.3f };
 
-	void StartUnlock();
+		K4E::Vector4 color{ 0,1,1,1 };
 
-	void UpdateUnlock(float deltaTime);
+		// 計算結果
+		K4E::Vector3 worldPivot{};
+		K4E::Matrix4x4 worldR{};            // 回転のみ（row-vector前提）
+		K4E::OBB obb{};
+	};
 
-private: /// ---------- メンバ変数 ---------- ///
+	enum NodeId
+	{
+		Body = 0,
+		Head,
+		LeftArm,
+		RightArm,
+		LeftLeg,
+		RightLeg,
+		NodeCount
+	};
 
-	K4E::DirectXCommon* dxCommon_ = nullptr; // DirectX共通管理クラス
-	K4E::Input* input_ = nullptr; // 入力管理クラス
-	K4E::Camera* camera = nullptr; // カメラ
+	std::vector<ObbRigNode> rig_;
 
-	std::unique_ptr<K4E::Object3D> object3D_; // 3Dオブジェクト
+	// リグのルート（体）のワールドpivot
+	K4E::Vector3 rigRootPivotWorld_{ 0.0f, 1.0f, 0.0f };
 
-	// GPUパーティクル（解放エフェクト用）
-	K4E::GpuParticleEmitter* unlockEmitter_ = nullptr;
+	// 表示/挙動
+	bool rigEnabled_ = true;
+	bool rigDrawBones_ = true;       // 親pivot↔子pivotを線で描く
+	bool rigDrawAxes_ = true;        // pivotの軸表示
+	float rigAxisLen_ = 0.6f;
 
-	StageState state_ = StageState::Locked;
+	// デモ用アニメ
+	bool rigAutoAnim_ = true;
+	float rigTime_ = 0.0f;
+	float bodyYawSpeed_ = 1.0f;      // rad/sec
+	float armSwingAmp_ = 0.8f;       // rad
+	float legSwingAmp_ = 0.6f;       // rad
 
-	// 解放演出用タイマー
-	float unlockTimer_ = 0.0f;
-	float unlockDuration_ = 1.0f; // 1秒くらいで解放
-
-	K4E::Vector3 baseTranslate_{};   // 浮遊の基準となる位置
-	float   floatTimer_ = 0.0f; // 上下移動用のタイマー
-	bool    isSelected_ = true; // このキューブが「現在選択中か」
+	// ImGui用
+	int rigSelected_ = 0;
 };
-

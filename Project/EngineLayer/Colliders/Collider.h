@@ -15,163 +15,170 @@
 namespace Ken4lowEngine
 {
 
-    /// -------------------------------------------------------------
-    ///                     当たり判定クラス
-    /// -------------------------------------------------------------
-    class Collider
-    {
-    public: /// ---------- 仮想関数 ---------- ///
+	/// -------------------------------------------------------------
+	///                     当たり判定クラス
+	/// -------------------------------------------------------------
+	class Collider
+	{
+	public: /// ---------- 仮想関数 ---------- ///
 
-        // コンストラクタ
-        Collider() : serialNumber_(IDGenerator::Generate()) {} // シリアルナンバーを生成
+		// コンストラクタ
+		Collider() : serialNumber_(IDGenerator::Generate()) {} // シリアルナンバーを生成
 
-        // 仮想デストラクタ
-        virtual ~Collider() = default;
+		// 仮想デストラクタ
+		virtual ~Collider() = default;
 
-        // 旧来の衝突通知（互換用）
-        virtual void OnCollision([[maybe_unused]] Collider* other) {}
+		// 旧来の衝突通知（互換用）
+		virtual void OnCollision([[maybe_unused]] Collider* other) {}
 
-        // Enter/Stay/Exit（デフォルトは互換のため OnCollision を呼ぶ）
-        virtual void OnCollisionEnter(Collider* other) { OnCollision(other); }
-        virtual void OnCollisionStay(Collider* other) { OnCollision(other); }
-        virtual void OnCollisionExit([[maybe_unused]] Collider* other) {}
+		// Enter/Stay/Exit（デフォルトは互換のため OnCollision を呼ぶ）
+		virtual void OnCollisionEnter(Collider* other) { OnCollision(other); }
+		virtual void OnCollisionStay(Collider* other) { OnCollision(other); }
+		virtual void OnCollisionExit([[maybe_unused]] Collider* other) {}
 
-    public: /// ---------- 衝突状態管理（マネージャ側が使用） ---------- ///
+	public: /// ---------- 衝突状態管理（マネージャ側が使用） ---------- ///
 
-        // フレーム開始時に呼ぶ：prev <- current, current をクリア
-        void BeginCollisionFrame();
+		// フレーム開始時に呼ぶ：prev <- current, current をクリア
+		void BeginCollisionFrame();
 
-        // このフレームで接触した相手IDを登録
-        void AddCollisionThisFrame(uint32_t otherUniqueId);
+		// このフレームで接触した相手IDを登録
+		void AddCollisionThisFrame(uint32_t otherUniqueId);
 
-        const std::unordered_set<uint32_t>& GetCurrentCollisions() const { return currentCollisions_; }
-        const std::unordered_set<uint32_t>& GetPrevCollisions() const { return prevCollisions_; }
+		const std::unordered_set<uint32_t>& GetCurrentCollisions() const { return currentCollisions_; }
+		const std::unordered_set<uint32_t>& GetPrevCollisions() const { return prevCollisions_; }
 
-    public: /// ---------- OBBのメンバ関数 ---------- ///
+	public: /// ---------- OBBのメンバ関数 ---------- ///
 
-        // 中心座標取得・設定
-        virtual Vector3 GetCenterPosition() const { return colliderPosition_; }
-        virtual void SetCenterPosition(const Vector3& pos) { colliderPosition_ = pos; }
+		// 中心座標取得・設定
+		virtual Vector3 GetCenterPosition() const { return colliderPosition_; }
+		virtual void SetCenterPosition(const Vector3& pos) { colliderPosition_ = pos; }
 
-        // 半サイズ取得・設定
-        virtual Vector3 GetOBBHalfSize() const { return colliderHalfSize_; }
-        virtual void SetOBBHalfSize(const Vector3& halfSize) { colliderHalfSize_ = halfSize; }
+		// 半サイズ取得・設定
+		virtual Vector3 GetOBBHalfSize() const { return colliderHalfSize_; }
+		virtual void SetOBBHalfSize(const Vector3& halfSize) { colliderHalfSize_ = halfSize; }
 
-        // 回転（オイラー角）取得・設定
-        virtual Vector3 GetOrientation() const { return orientation_; }
-        virtual void SetOrientation(const Vector3& rot) { orientation_ = rot; }
+		// 回転（オイラー角）取得・設定
+		virtual Vector3 GetOrientation() const { return orientation_; }
+		virtual void SetOrientation(const Vector3& rot) { orientation_ = rot; }
 
-        OBB GetOBB() const;
+		OBB GetOBB() const;
 
-    public: /// ---------- セグメントのメンバ関数 ---------- ///
+		void SetOBBBasis(const Vector3& axisX, const Vector3& axisY, const Vector3& axisZ);
+		void ClearOBBBasis();
+		bool HasOBBBasis() const { return useOBBBasis; }
 
-        // セグメントを設定（衝突判定用）
-        void SetSegment(const Segment& segment) { segment_ = segment; }
+	public: /// ---------- セグメントのメンバ関数 ---------- ///
 
-        // セグメントを取得
-        virtual Segment GetSegment() const { return segment_; }
+		// セグメントを設定（衝突判定用）
+		void SetSegment(const Segment& segment) { segment_ = segment; }
 
-    public: /// ---------- Sphere のメンバ関数 ---------- ///
+		// セグメントを取得
+		virtual Segment GetSegment() const { return segment_; }
 
-        // Sphereを設定（衝突判定用）
-        void SetSphere(Sphere& spere) { sphere_ = spere; useSphere_ = true; }
+	public: /// ---------- Sphere のメンバ関数 ---------- ///
 
-        // Sphereを取得
-        virtual Sphere GetSphere() const { return sphere_; }
+		// Sphereを設定（衝突判定用）
+		void SetSphere(Sphere& spere) { sphere_ = spere; useSphere_ = true; }
 
-    public: /// ---------- Capsule のメンバ関数 ---------- ///
+		// Sphereを取得
+		virtual Sphere GetSphere() const { return sphere_; }
 
-        // Capsule を設定
-        virtual void SetCapsule(const Capsule& capsule) { capsule_ = capsule; useCapsule_ = true; }
+	public: /// ---------- Capsule のメンバ関数 ---------- ///
 
-        // Capsule を取得
-        virtual Capsule GetCapsule() const { return capsule_; }
+		// Capsule を設定
+		virtual void SetCapsule(const Capsule& capsule) { capsule_ = capsule; useCapsule_ = true; }
 
-        // 使用フラグ（テーブル判定用）
-        bool HasCapsule() const { return useCapsule_; }
+		// Capsule を取得
+		virtual Capsule GetCapsule() const { return capsule_; }
 
-        // デバッグ可視化フラグの設定
-        void SetCapsuleVisible(bool v) { drawCapsule_ = v; }
+		// 使用フラグ（テーブル判定用）
+		bool HasCapsule() const { return useCapsule_; }
 
-        // デバッグ可視化フラグの取得
-        bool IsCapsuleVisible() const { return drawCapsule_; }
+		// デバッグ可視化フラグの設定
+		void SetCapsuleVisible(bool v) { drawCapsule_ = v; }
 
-    public: /// ---------- デバッグ用メンバ関数 ---------- ///
+		// デバッグ可視化フラグの取得
+		bool IsCapsuleVisible() const { return drawCapsule_; }
 
-        // 初期化処理
-        void Initialize();
+	public: /// ---------- デバッグ用メンバ関数 ---------- ///
 
-        // 更新処理
-        void Update();
+		// 初期化処理
+		void Initialize();
 
-        // 描画処理（OBBの可視化）
-        void Draw();
+		// 更新処理
+		void Update();
 
-        // ImGui描画処理
-        void DrawImGui();
+		// 描画処理（OBBの可視化）
+		void Draw();
 
-    public: /// ---------- 設定 ---------- ///
+		// ImGui描画処理
+		void DrawImGui();
 
-        // 識別IDを取得
-        uint32_t GetTypeID() const { return typeID_; }
+	public: /// ---------- 設定 ---------- ///
 
-        // 識別IDを設定
-        void SetTypeID(uint32_t typeID) { typeID_ = typeID; }
+		// 識別IDを取得
+		uint32_t GetTypeID() const { return typeID_; }
 
-        // シリアルナンバーを取得
-        uint32_t GetUniqueID() const { return serialNumber_; }
+		// 識別IDを設定
+		void SetTypeID(uint32_t typeID) { typeID_ = typeID; }
 
-        // オーナーを設定・取得
-        template<class T> void SetOwner(T* ptr) { owner_ = ptr; }
-        template<class T> T* GetOwner() const { return static_cast<T*>(owner_); }
+		// シリアルナンバーを取得
+		uint32_t GetUniqueID() const { return serialNumber_; }
 
-    private: /// ---------- メンバ変数 ---------- ///
+		// オーナーを設定・取得
+		template<class T> void SetOwner(T* ptr) { owner_ = ptr; }
+		template<class T> T* GetOwner() const { return static_cast<T*>(owner_); }
 
-        // 識別ID
-        uint32_t typeID_ = 0u;
+	private: /// ---------- メンバ変数 ---------- ///
 
-        // オーナー（任意のオブジェクトを指せるようにvoidポインタで持つ）
-        void* owner_ = nullptr;
+		// 識別ID
+		uint32_t typeID_ = 0u;
 
-    private: /// ---------- 衝突履歴（Enter/Stay/Exit 用） ---------- ///
+		// オーナー（任意のオブジェクトを指せるようにvoidポインタで持つ）
+		void* owner_ = nullptr;
 
-        std::unordered_set<uint32_t> currentCollisions_;
-        std::unordered_set<uint32_t> prevCollisions_;
+	private: /// ---------- 衝突履歴（Enter/Stay/Exit 用） ---------- ///
 
-    private: /// ---------- OBBのメンバ変数 ---------- ///
+		std::unordered_set<uint32_t> currentCollisions_;
+		std::unordered_set<uint32_t> prevCollisions_;
 
-        // OBBの半サイズ
-        Vector3 colliderPosition_ = { 0.0f, 0.0f, 0.0f }; // 中心座標
-        Vector3 colliderHalfSize_ = { 0.0f, 0.0f, 0.0f }; // 半サイズ
-        Vector3 orientation_ = { 0.0f, 0.0f, 0.0f };      // オイラー角（ラジアン）
-        Vector4 debugColor_ = { 0.0f, 1.0f, 1.0f, 1.0f }; // デバッグ表示色
+	private: /// ---------- OBBのメンバ変数 ---------- ///
 
-        // OBBを使用するかどうか
-        bool useOBB_ = true;
+		// OBBの半サイズ
+		Vector3 colliderPosition_ = { 0.0f, 0.0f, 0.0f }; // 中心座標
+		Vector3 colliderHalfSize_ = { 0.0f, 0.0f, 0.0f }; // 半サイズ
+		Vector3 orientation_ = { 0.0f, 0.0f, 0.0f };      // オイラー角（ラジアン）
+		Vector4 debugColor_ = { 0.0f, 1.0f, 1.0f, 1.0f }; // デバッグ表示色
 
-    private: /// ---------- セグメントのメンバ変数 ---------- ///
+		// OBBを使用するかどうか
+		bool useOBB_ = true;
 
-        // セグメント（衝突判定用）
-        Segment segment_{};
+		Vector3 obbBasis_[3] = { {1,0,0}, {0,1,0}, {0,0,1} }; // OBBの基底ベクトル（正規化されている前提）
+		bool useOBBBasis = false; // OBBの基底を使用するかどうか
 
-        // セグメントを使用するかどうか
-        bool useSegment_ = true;
+	private: /// ---------- セグメントのメンバ変数 ---------- ///
 
-    private: /// ---------- Sphere のメンバ変数 ---------- ///
+		// セグメント（衝突判定用）
+		Segment segment_{};
 
-        Sphere sphere_{};      // Sphere（衝突判定用）
-        bool useSphere_ = false; // Sphere を使用するかどうか
+		// セグメントを使用するかどうか
+		bool useSegment_ = true;
 
-    private: /// ---------- Capsule のメンバ変数 ---------- ///
+	private: /// ---------- Sphere のメンバ変数 ---------- ///
 
-        Capsule capsule_{};
-        bool useCapsule_ = false; // Capsule を使用するかどうか
-        bool drawCapsule_ = false; // デバッグ可視化するか
+		Sphere sphere_{};      // Sphere（衝突判定用）
+		bool useSphere_ = false; // Sphere を使用するかどうか
 
-    protected: /// ---------- シリアルナンバー ---------- ///
+	private: /// ---------- Capsule のメンバ変数 ---------- ///
 
-        // シリアルナンバー
-        uint32_t serialNumber_ = 0;
-    };
+		Capsule capsule_{};
+		bool useCapsule_ = false; // Capsule を使用するかどうか
+		bool drawCapsule_ = false; // デバッグ可視化するか
+
+	protected: /// ---------- シリアルナンバー ---------- ///
+
+		// シリアルナンバー
+		uint32_t serialNumber_ = 0;
+	};
 
 } // namespace Ken4lowEngine

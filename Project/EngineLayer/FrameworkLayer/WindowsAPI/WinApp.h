@@ -74,6 +74,10 @@ namespace Ken4lowEngine
 		void RememberWindowedSettings(const DisplaySettings& s);
 		DisplaySettings GetLastWindowedSettingsOrDefault() const;
 
+		void ToggleWindowResizable();
+		void SetWindowResizable(bool enable);
+		bool IsWindowResizable() const { return windowedResizable_; }
+
 	public: /// ---------- アクセッサ ---------- ///
 
 		/// <summary>
@@ -138,6 +142,9 @@ namespace Ken4lowEngine
 
 		DisplaySettings lastWindowedSettings_{};
 		bool hasLastWindowedSettings_ = false;
+
+		// Windowed時に枠ドラッグでリサイズできるか（Borderless中でも「戻った時の状態」として保持）
+		bool windowedResizable_ = true;
 
 	private: /// ---------- コピー禁止 ---------- ///
 

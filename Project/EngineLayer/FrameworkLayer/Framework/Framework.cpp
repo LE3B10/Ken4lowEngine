@@ -99,7 +99,7 @@ namespace Ken4lowEngine
 		winApp_ = WinApp::GetInstance();
 
 		DisplaySettings ds{};
-		ds.mode = WindowMode::BorderlessFullscreen; // 初期フルスクリーン
+		ds.mode = WindowMode::BorderlessFullscreen; // 初期ウィンドウモード
 		ds.monitorIndex = 0;
 
 		winApp_->CreateMainWindow(ds);

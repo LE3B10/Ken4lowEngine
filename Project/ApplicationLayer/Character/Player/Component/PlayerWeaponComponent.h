@@ -1,0 +1,89 @@
+#pragma once
+#include <array>
+#include <filesystem>
+#include <string>
+#include <vector>
+
+#include "WeaponSystem.h"
+#include "WeaponMasterData.h"
+
+/// ---------- 前方宣言 ---------- ///
+namespace Ken4lowEngine { class Camera; }
+class BulletManager;
+class CollisionManager;
+struct InputSnapshot;
+
+/// --------------------------------------------------------------
+///				プレイヤーの武器管理コンポーネントクラス
+/// ---------------------------------------------------------------
+class PlayerWeaponComponent
+{
+public: /// ---------- メンバ関数 ---------- ///
+
+	// コンストラクタ
+	PlayerWeaponComponent() = default;
+
+	// WeaponMasterData の読み込みディレクトリを外部から指定
+	// 例: "Resources/JSON/weapons" (primary/backup/... のカテゴリフォルダがある root)
+	void SetMasterDirectory(const std::filesystem::path& dir);
+	const std::filesystem::path& GetMasterDirectory() const { return weaponMasterDir_; }
+
+	// 明示ロード（Initialize で呼びたい時用）
+	bool LoadWeaponMasterDataOnce();
+
+	// 1フレーム分：入力から武器の挙動を処理（切替/モード/近接リマップ/内部Tick）
+	// ※ snapshot を「近接カテゴリ時に fire→melee へ変換」するため参照渡し。
+	void UpdateAndHandleInput(float dt, InputSnapshot& snapshot);
+
+	// 状態
+	bool IsLoaded() const { return weaponLoaded_; }
+	const std::string& GetLoadError() const { return weaponLoadError_; }
+	bool IsMeleeCategory() const { return weaponCategory_ == EWeaponCategory::Melee; }
+
+	// HUD用
+	bool GetReloadUI(bool& outIsReloading, float& outReloadTimer, float& outReloadSec) const;
+
+	// 外部から装備
+	bool EquipWeaponByID(int32_t weaponID);
+	void EquipWeaponById(int32_t weaponID) { (void)EquipWeaponByID(weaponID); }
+
+	// Combat FSM から呼ぶ最小API
+	bool CanFire(const InputSnapshot& snapshot) const;
+	bool TryFire(const InputSnapshot& snapshot, Ken4lowEngine::Camera* shootCamera, BulletManager* bulletManager, CollisionManager* collisionManager);
+
+	// リロード完了判定と開始コマンド
+	bool IsReloadFinished() const;
+	void StartReload();
+
+	// リロードをキャンセルできる場合はキャンセルする
+	void CancelReload();
+
+	// 強制終了（キャンセルできないリロードもこれで止める）
+	void AbortReload();
+
+	// リロード終了（キャンセル/中断も含む）
+	void StopReload();
+
+	// ImGuiの描画処理（デバッグ用）
+	void DrawImGui();
+
+private: /// ---------- メンバ関数 ---------- ///
+
+	void TickWeapon(float dt);
+	void SwitchWeaponByDelta(int delta);
+	void SwitchWeaponCategory(EWeaponCategory category);
+	void ApplyMeleeInputRemap(InputSnapshot& snapshot);
+
+private: /// ---------- メンバ変数 ---------- ///
+
+	// ---- Weapon system ----
+	std::filesystem::path weaponMasterDir_ = "Resources/JSON/weapons"; // primary/backup/... がある root
+	WeaponSystem weaponSys_{};
+	bool weaponLoaded_ = false;
+	std::string weaponLoadError_;
+	EWeaponCategory weaponCategory_ = EWeaponCategory::Primary; // 現在扱うカテゴリ
+	std::vector<int32_t> weaponIdList_;
+	int32_t currentWeaponId_ = 0;
+	std::array<int32_t, 6> lastWeaponIdByCategory_{}; // category index -> last equipped id
+};
+

@@ -53,7 +53,7 @@
         "damage": 12.0,
         "fireRate": 720.0,
         "headshotMultiplier": 1.5,
-        "maxReserveAmmo": 120,
+        "maxReserveAmmo": 1200,
         "mobility": 1.0,
         "reloadTime": 1.850000023841858
     }

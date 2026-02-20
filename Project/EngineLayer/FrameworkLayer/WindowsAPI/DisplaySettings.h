@@ -9,7 +9,7 @@ namespace Ken4lowEngine
 	{
 		Windowed,			  // ウィンドウモード
 		BorderlessFullscreen, // ボーダーレスフルスクリーンモード
-		ExculusiveFullscreen  // 排他フルスクリーンモード
+		ExclusiveFullscreen  // 排他フルスクリーンモード
 	};
 
 	/// ---------- 画面設定構造体 ---------- ///

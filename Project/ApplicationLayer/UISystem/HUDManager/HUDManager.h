@@ -1,0 +1,57 @@
+#pragma once
+#include "ReloadCircle.h"
+#include "Crosshair.h"
+
+#include "HPWidget.h"
+
+#include <memory>
+
+/// ---------- 前方宣言 ---------- ///
+class Player;
+
+/// -------------------------------------------------------------
+///					　HUDマネージャークラス
+/// -------------------------------------------------------------
+class HUDManager
+{
+public: /// ---------- メンバ関数 ---------- ///
+
+	// 初期化処理
+	void Initialize();
+
+	// 更新処理
+	void Update();
+
+	// 描画処理
+	void Draw();
+
+public: /// ---------- セッタ ---------- ///
+
+	void SetPlayer(Player* player) { player_ = player; }
+
+	// HUDへ渡す値（GamePlaySceneなどから呼ぶ）
+	void SetHP(float hp, float maxHp);
+	void NotifyPlayerHit(float strength01 = 1.0f);
+
+	// 必要なら外から切り替え
+	void SetCrosshairVisible(bool v) { if (crosshair_) crosshair_->SetVisible(v); }
+	void SetReloadCircleVisible(bool v) { if (reloadCircle_) reloadCircle_->SetVisible(v); }
+	void SetHPVisible(bool v) { if (hpWidget_) hpWidget_->SetVisible(v); }
+
+public: /// ---------- ゲッタ ---------- ///
+	ReloadCircle* GetReloadCircle() const { return reloadCircle_.get(); }
+	Crosshair* GetCrosshair() const { return crosshair_.get(); }
+	HPWidget* GetHPWidget() const { return hpWidget_.get(); }
+
+private: /// ---------- メンバ変数 ---------- ///
+
+	Player* player_ = nullptr; // プレイヤーへの参照（HUDがゲーム状態を参照するため）
+
+	std::unique_ptr<ReloadCircle> reloadCircle_; // リロード円
+	std::unique_ptr<Crosshair> crosshair_; // 十字照準
+	std::unique_ptr<HPWidget> hpWidget_; // HPウィジェット
+
+	bool reloadTimerIsRemaining_ = true; // リロードタイマーが「残り時間」か「経過時間」かのフラグ
+	bool prevReloading_ = false; // 前フレームのリロード状態（HUDの更新に使う）
+};
+

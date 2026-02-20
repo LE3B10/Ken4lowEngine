@@ -1,5 +1,4 @@
 #pragma once
-
 #include <filesystem>
 #include <string>
 #include <vector>
@@ -8,15 +7,9 @@
 #include "WeaponInstance.h"
 
 // マスターデータ
-#if __has_include("WeaponMasterData/WeaponMasterDataDatabase.h")
-#include "WeaponMasterData/WeaponMasterDataDatabase.h"
-#elif __has_include("WeaponMasterDataDatabase.h")
 #include "WeaponMasterDataDatabase.h"
-#else
-// プロジェクト側のincludeパスに合わせて修正してください
-#include "WeaponMasterDataDatabase.h"
-#endif
 #include "WeaponMasterData.h"
+#include "WeaponParams.h"
 
 /// -------------------------------------------------------------
 ///  WeaponSystem

@@ -2,34 +2,21 @@
 #include <BaseCharacter.h>
 #include <Object3D.h>
 #include "ContactRecord.h"
-#include "FpsCamera.h"
 #include "PlayerHurtbox.h"
 
 #include "PlayerStateMachines.h"   // PlayerBrain / PlayerAPI / LocoId等
 #include "PlayerInputSnapshot.h"   // InputSnapshot型
 
+#include "PlayerVfx.h"
+#include "PlayerWeaponComponent.h"
+#include "PlayerMotorComponent.h"
+#include "PlayerViewComponent.h"
+
 #include <array>
 #include <filesystem>
 #include <memory>
 #include <string>
-#include <vector>
-
-// Weapon master data -> runtime weapon system
-#if __has_include("WeaponMasterData/WeaponSystem.h")
-#include "WeaponMasterData/WeaponSystem.h"
-#elif __has_include("WeaponSystem.h")
-#include "WeaponSystem.h"
-#else
-// プロジェクト側の include パスに合わせて修正してください
-#include "WeaponSystem.h"
-#endif
-// WeaponCategory enum
-#if __has_include("WeaponMasterData/WeaponMasterData.h")
-#include "WeaponMasterData/WeaponMasterData.h"
-#elif __has_include("WeaponMasterData.h")
-#include "WeaponMasterData.h"
-#endif
-
+#include <unordered_map>
 
 namespace K4E = ::Ken4lowEngine;
 
@@ -77,122 +64,92 @@ public: /// ---------- メンバ関数 ---------- ///
 	K4E::WorldTransformEx* GetWorldTransform() { return &body_.transform; }
 
 	// 一人称視点の有効/無効を設定
-	void SetFirstPersonView(bool enabled);
+	void SetFirstPersonView(bool enabled) { view_.SetFirstPersonView(enabled); }
 
+	// 衝突管理クラスのセット
 	void SetCollisionManager(CollisionManager* mgr) { collisionManager_ = mgr; }
 
 	// 敵の弾に当たったときの処理
 	void OnHitByEnemyBullet(K4E::Collider* bullet, PlayerHitPart part, float mul);
 
+	// BulletManager と ShootCamera のセット
 	void SetBulletManager(BulletManager* mgr) { bulletManager_ = mgr; }
-	void SetShootCamera(K4E::Camera* cam) { shootCamera_ = cam; }
+	void SetShootCamera(K4E::Camera* cam) { view_.SetShootCamera(cam); }
 
 	// WeaponMasterData の読み込みディレクトリを外部から指定したい場合
 	// 例: "Resources/JSON/weapons" (primary/backup/... のカテゴリフォルダがあるroot)
-	void SetWeaponMasterDirectory(const std::filesystem::path& dir)
-	{
-		weaponMasterDir_ = dir;
-		weaponLoaded_ = false;
-		weaponLoadError_.clear();
-		weaponIdList_.clear();
-		currentWeaponId_ = 0;
-		weaponSys_ = WeaponSystem{};
-	}
+	void SetWeaponMasterDirectory(const std::filesystem::path& dir) { weapon_.SetMasterDirectory(dir); }
 
+	// デバッグカメラのオンオフ（オンのときはFPSカメラを直接操作して移動する）
 	void SetDebugCamera(bool on) { isDebugCamera_ = on; }
 
+	// ---- HUD用：リロード円などに使える ----
+	// WeaponSystemの実装差があるので「isReloading」「reloadTimer」「reloadSec」をそのまま返す。
+	bool GetReloadUI(bool& outIsReloading, float& outReloadTimer, float& outReloadSec) { return weapon_.GetReloadUI(outIsReloading, outReloadTimer, outReloadSec); }
+
 	// WeaponSystemへのアクセス
-	void EquipWeaponById(int32_t weaponID) { (void)EquipWeaponByID(weaponID); }
+	void EquipWeaponById(int32_t weaponID) { weapon_.EquipWeaponById(weaponID); }
+
+	// HPの取得
+	float GetHP() const { return hp_; }
+	float GetMaxHP() const { return maxHp_; }
 
 public:	// ---- FSMから呼ばれる最小API（PlayerAPIがここを呼ぶ）----
 
-	bool  FSM_IsGrounded() const;
-	float FSM_VerticalVelocity() const;
-
-	void  FSM_SetMoveInput(float x, float z);
-	void  FSM_SetSprint(bool on);
-	void  FSM_Jump();
-	void  FSM_StartDash();
-	bool  FSM_IsDashFinished() const;
+	bool FSM_IsGrounded() const { return motor_.IsGrounded(); }
+	bool FSM_IsSprinting() const { return motor_.IsSprinting(); }
+	float FSM_VerticalVelocity() const { return motor_.VerticalVelocity(); }
+	void FSM_SetMoveInput(float x, float z) { motor_.SetMoveInput(x, z); }
+	void FSM_SetSprint(bool on) { motor_.SetSprint(on); }
+	void FSM_Jump() { motor_.Jump(); }
+	void FSM_StartDash() { motor_.StartDash(view_.GetYaw(), /*isAds*/ inputSnap_.aimHeld); }
+	bool FSM_CanStartDash() const { return motor_.CanStartDash(); }
+	bool FSM_IsDashFinished() const { return motor_.IsDashFinished(); }
 
 	// combat（今はスタブでOK）
-	bool  FSM_CanFire() const;
-	void  FSM_FireOnce();
-	bool  FSM_IsReloadFinished() const;
-	void  FSM_StartReload();
-	bool  FSM_IsMeleeFinished() const;
-	void  FSM_StartMelee();
-	void  FSM_SetAiming(bool on);
-	void  FSM_SetStunned(bool on);
+	bool FSM_CanFire() const { return weapon_.CanFire(inputSnap_); }
+	void FSM_FireOnce();
+
+	bool FSM_IsReloadFinished() const { return weapon_.IsReloadFinished(); }
+	void FSM_StartReload() { weapon_.StartReload(); }
+	bool FSM_IsMeleeFinished() const;
+	void FSM_StartMelee();
+	void FSM_SetAiming(bool on) { view_.SetAiming(on); }
+	void FSM_SetStunned(bool on);
 
 private: /// ---------- メンバ関数 ---------- ///
 
-	void SimulateLocomotion(float dt);
-
-	void ApplyFirstPersonRenderFlags();
-
-	// ---- WeaponMasterData / WeaponSystem ----
-	bool LoadWeaponMasterDataOnce();      // WeaponSystem.Load + Equip
-	void SwitchWeaponByDelta(int delta);  // weaponIdList_から切替
-	void SwitchWeaponCategory(EWeaponCategory category); // 数字キーでカテゴリ切替
-	void TickWeapon(float dt);            // WeaponSystem.Tick
-	bool EquipWeaponByID(int32_t weaponID);
+	// リロードキャンセル
+	void TryCancelReloadInternal();
 
 	void SyncHurtboxes();
 
-private:
-	// 被弾時ポストエフェクト（Vignette + RadialBlur）
-	void StartDamagePostEffect(float damage);
-	void UpdateDamagePostEffect(float dt);
+	// ---- ダメージ多段防止（弾IDのTTL管理） ----
+	void TickRecentBulletHits(float dt);
+	bool IsRecentBulletHit(uint32_t id) const { return recentBulletHits_.find(id) != recentBulletHits_.end(); }
+	void MarkRecentBulletHit(uint32_t id);
 
 private: /// ----------メンバ変数 ---------- ///
 
 	K4E::Input* input_ = nullptr; // 入力クラス
-	K4E::FpsCamera fpsCamera_;        // カメラクラス
-
 	CollisionManager* collisionManager_ = nullptr; // 衝突管理クラス
-
 	BulletManager* bulletManager_ = nullptr;
-	K4E::Camera* shootCamera_ = nullptr;
+
+	// 視点・一人称視点制御
+	PlayerViewComponent view_{};
 
 	// ---- Weapon system ----
-	std::filesystem::path weaponMasterDir_ = "Resources/JSON/weapons"; // primary/backup/... がある root
-	WeaponSystem weaponSys_{};
-	bool weaponLoaded_ = false;
-	std::string weaponLoadError_;
-	EWeaponCategory weaponCategory_ = EWeaponCategory::Primary; // 現在扱うカテゴリ（まずはPrimary）
-	std::vector<int32_t> weaponIdList_;
-	int32_t currentWeaponId_ = 0;
-	std::array<int32_t, 6> lastWeaponIdByCategory_{}; // category index -> last equipped id
+	PlayerWeaponComponent weapon_{};
 
 	// FSM
 	PlayerAPI api_{};
 	PlayerBrain brain_{};
 	InputSnapshot inputSnap_{};
+	LocoId prevLocoId_ = LocoId::Idle;
 
-	// 移動状態（最小）
-	float moveX_ = 0.0f;
-	float moveZ_ = 0.0f;
-	bool  sprint_ = false;
+	bool runCarry_ = false;
 
-	float groundY_ = 0.0f;
-	float verticalVel_ = 0.0f;
-
-	float dashTimer_ = 0.0f;
-	float dashDuration_ = 0.18f;
-	float dashDirX_ = 0.0f;
-	float dashDirZ_ = 1.0f;
-
-	// パラメータ（あとでImGuiで調整しやすい）
-	float walkSpeed_ = 3.5f;
-	float runSpeed_ = 6.0f;
-	float dashSpeed_ = 10.0f;
-	float jumpSpeed_ = 8.0f;
-	float gravity_ = 19.6f;
-	float airControl_ = 0.7f;
-
-	// 一人称視点フラグ
-	bool isFirstPersonView_ = false;
+	PlayerMotorComponent motor_;
 
 	K4E::ContactRecord contactRecord_; // 接触記録
 	std::string skinTexturePath_ = "steve.png"; // スキンテクスチャパス
@@ -201,18 +158,17 @@ private: /// ----------メンバ変数 ---------- ///
 	float maxHp_ = 100.0f;
 	float hp_ = 100.0f;
 
-	// ---- 被弾ポストエフェクト ----
-	float damagePostTimer_ = 0.0f;
-	float damagePostDuration_ = 0.18f;   // 秒
-	float damagePostStrength_ = 0.0f;    // 0..1（大きいほど強い）
-	bool  damagePostCapturedBase_ = false;
-	float baseVignettePower_ = 0.8f;
-	float baseVignetteRange_ = 0.5f;
-	float baseRadialBlurStrength_ = 0.3f;
-	float baseRadialBlurSamples_ = 16.0f;
+	// ---- 演出（VFX） ----
+	PlayerVfx vfx_{};
 
 	float hitscanRange_ = 100.0f; // デバッグ用レイ
 	float shotDebugTimer_ = 0.0f;
+
+	// --- カメラリコイル ---
+	float recoilPitchDegHip_ = 1.35f;	  // 腰撃ちのカメラピッチ反動
+	float recoilYawDegHip_ = 0.85f;   // 腰撃ちのカメラヨー反動
+	float recoilPitchDegAds_ = 0.75f; // ADSのカメラピッチ反動
+	float recoilYawDegAds_ = 0.5f;	  // ADSのカメラヨー反動
 
 	std::array<std::unique_ptr<PlayerHurtbox>, 6> hurtboxes_{};
 	std::array<HurtboxTuning, 6> hbTuning_{};
@@ -220,5 +176,9 @@ private: /// ----------メンバ変数 ---------- ///
 	bool hbDebugDraw_ = true;
 
 	bool isDebugCamera_ = false;
+
+	// 弾IDの最近ヒット管理（TTLで掃除）
+	std::unordered_map<uint32_t, float> recentBulletHits_;
+	float recentBulletHitTTL_ = 0.25f;
 };
 
