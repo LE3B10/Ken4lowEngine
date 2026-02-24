@@ -535,15 +535,33 @@
     <ClCompile Include="ApplicationLayer\Character\Player\Effect\PlayerVfx.cpp">
       <Filter>ApplicationLayer\Character\Player\Effect</Filter>
     </ClCompile>
-    <ClCompile Include="ApplicationLayer\OverlaySystem\BaseOverlay.cpp" />
-    <ClCompile Include="ApplicationLayer\OverlaySystem\ConfirmQuitOverlay.cpp" />
-    <ClCompile Include="ApplicationLayer\OverlaySystem\PauseOverlay.cpp" />
-    <ClCompile Include="ApplicationLayer\Scene\TitleScene\State\TitleAttractState.cpp" />
-    <ClCompile Include="ApplicationLayer\Scene\TitleScene\State\TitleLoadState.cpp" />
-    <ClCompile Include="ApplicationLayer\Scene\TitleScene\State\TitleLobbyState.cpp" />
-    <ClCompile Include="ApplicationLayer\Scene\TitleScene\State\TitleLobbyToTitleState.cpp" />
-    <ClCompile Include="ApplicationLayer\Scene\TitleScene\State\TitleTransitionToLobby.cpp" />
-    <ClCompile Include="ApplicationLayer\Scene\GamePlayScene\PauseMenu.cpp" />
+    <ClCompile Include="ApplicationLayer\OverlaySystem\BaseOverlay.cpp">
+      <Filter>ApplicationLayer\OverlaySystem</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\OverlaySystem\ConfirmQuitOverlay.cpp">
+      <Filter>ApplicationLayer\OverlaySystem</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\OverlaySystem\PauseOverlay.cpp">
+      <Filter>ApplicationLayer\OverlaySystem</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\Scene\TitleScene\State\TitleAttractState.cpp">
+      <Filter>ApplicationLayer\Scene\TitleScene\State</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\Scene\TitleScene\State\TitleLoadState.cpp">
+      <Filter>ApplicationLayer\Scene\TitleScene\State</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\Scene\TitleScene\State\TitleLobbyState.cpp">
+      <Filter>ApplicationLayer\Scene\TitleScene\State</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\Scene\TitleScene\State\TitleLobbyToTitleState.cpp">
+      <Filter>ApplicationLayer\Scene\TitleScene\State</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\Scene\TitleScene\State\TitleTransitionToLobby.cpp">
+      <Filter>ApplicationLayer\Scene\TitleScene\State</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\Scene\GamePlayScene\PauseMenu.cpp">
+      <Filter>ApplicationLayer\Scene\GamePlayScene</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="EngineLayer\Math\MultipleStructs\AABB.h">
@@ -1128,17 +1146,39 @@
     <ClInclude Include="ApplicationLayer\Character\Player\Effect\PlayerVfx.h">
       <Filter>ApplicationLayer\Character\Player\Effect</Filter>
     </ClInclude>
-    <ClInclude Include="ApplicationLayer\OverlaySystem\BaseOverlay.h" />
-    <ClInclude Include="ApplicationLayer\OverlaySystem\ConfirmQuitOverlay.h" />
-    <ClInclude Include="ApplicationLayer\OverlaySystem\PauseOverlay.h" />
-    <ClInclude Include="ApplicationLayer\OverlaySystem\Rect.h" />
-    <ClInclude Include="ApplicationLayer\Scene\TitleScene\State\ITitleSceneState.h" />
-    <ClInclude Include="ApplicationLayer\Scene\TitleScene\State\TitleAttractState.h" />
-    <ClInclude Include="ApplicationLayer\Scene\TitleScene\State\TitleLoadState.h" />
-    <ClInclude Include="ApplicationLayer\Scene\TitleScene\State\TitleLobbyState.h" />
-    <ClInclude Include="ApplicationLayer\Scene\TitleScene\State\TitleLobbyToTitleState.h" />
-    <ClInclude Include="ApplicationLayer\Scene\TitleScene\State\TitleTransitionToLobby.h" />
-    <ClInclude Include="ApplicationLayer\Scene\GamePlayScene\PauseMenu.h" />
+    <ClInclude Include="ApplicationLayer\OverlaySystem\BaseOverlay.h">
+      <Filter>ApplicationLayer\OverlaySystem</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\OverlaySystem\ConfirmQuitOverlay.h">
+      <Filter>ApplicationLayer\OverlaySystem</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\OverlaySystem\PauseOverlay.h">
+      <Filter>ApplicationLayer\OverlaySystem</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Scene\TitleScene\State\TitleTransitionToLobby.h">
+      <Filter>ApplicationLayer\Scene\TitleScene\State</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Scene\TitleScene\State\TitleAttractState.h">
+      <Filter>ApplicationLayer\Scene\TitleScene\State</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Scene\TitleScene\State\TitleLoadState.h">
+      <Filter>ApplicationLayer\Scene\TitleScene\State</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Scene\TitleScene\State\TitleLobbyState.h">
+      <Filter>ApplicationLayer\Scene\TitleScene\State</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Scene\TitleScene\State\TitleLobbyToTitleState.h">
+      <Filter>ApplicationLayer\Scene\TitleScene\State</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Scene\TitleScene\State\ITitleSceneState.h">
+      <Filter>ApplicationLayer\Scene\TitleScene\State</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\OverlaySystem\Rect.h">
+      <Filter>ApplicationLayer\Scene\TitleScene\State</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Scene\GamePlayScene\PauseMenu.h">
+      <Filter>ApplicationLayer\Scene\GamePlayScene</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="Resources\Shaders\PostEffect\FullScreen.hlsli">
@@ -1404,9 +1444,6 @@
     <Filter Include="EngineLayer\Managers\ModelManager">
       <UniqueIdentifier>{b6ad5a17-d01b-4807-98c5-e155f27cc48f}</UniqueIdentifier>
     </Filter>
-    <Filter Include="ApplicationLayer\Scene\GamePlayScene\HUDManager">
-      <UniqueIdentifier>{5e2f58cf-54b5-495c-b1a1-ba85bcee13ea}</UniqueIdentifier>
-    </Filter>
     <Filter Include="EngineLayer\Managers\ParameterManager">
       <UniqueIdentifier>{cfdde0c4-58fa-491c-961d-f423a8acd54d}</UniqueIdentifier>
     </Filter>
@@ -1481,9 +1518,6 @@
     </Filter>
     <Filter Include="ApplicationLayer\Scene\TitleScene\State">
       <UniqueIdentifier>{b9166ef1-ae9d-4c3e-9647-630ab8d4a23f}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="ApplicationLayer\Scene\GamePlayScene\State">
-      <UniqueIdentifier>{2e9971fc-3e52-4f91-b19c-7f3b83efc32d}</UniqueIdentifier>
     </Filter>
     <Filter Include="ApplicationLayer\Scene\StageSelectScene\State">
       <UniqueIdentifier>{9d2c63a5-c625-4369-909d-240c88706ac1}</UniqueIdentifier>
@@ -1568,6 +1602,9 @@
     </Filter>
     <Filter Include="ApplicationLayer\Character\Player\Effect">
       <UniqueIdentifier>{664a477b-ffd9-4ca9-b348-e5eec733b1b3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ApplicationLayer\OverlaySystem">
+      <UniqueIdentifier>{0c6c3acf-d5c3-436f-b78d-b316901a7eb2}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>
