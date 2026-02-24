@@ -543,6 +543,7 @@
     <ClCompile Include="ApplicationLayer\Scene\TitleScene\State\TitleLobbyState.cpp" />
     <ClCompile Include="ApplicationLayer\Scene\TitleScene\State\TitleLobbyToTitleState.cpp" />
     <ClCompile Include="ApplicationLayer\Scene\TitleScene\State\TitleTransitionToLobby.cpp" />
+    <ClCompile Include="ApplicationLayer\Scene\GamePlayScene\PauseMenu.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="EngineLayer\Math\MultipleStructs\AABB.h">
@@ -1137,6 +1138,7 @@
     <ClInclude Include="ApplicationLayer\Scene\TitleScene\State\TitleLobbyState.h" />
     <ClInclude Include="ApplicationLayer\Scene\TitleScene\State\TitleLobbyToTitleState.h" />
     <ClInclude Include="ApplicationLayer\Scene\TitleScene\State\TitleTransitionToLobby.h" />
+    <ClInclude Include="ApplicationLayer\Scene\GamePlayScene\PauseMenu.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Resources\Shaders\PostEffect\FullScreen.hlsli">

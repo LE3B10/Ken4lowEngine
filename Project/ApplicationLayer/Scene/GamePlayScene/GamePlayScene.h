@@ -1,5 +1,6 @@
 #pragma once
 #include <BaseScene.h>
+#include "PauseMenu.h"
 #include <SkyBox.h>
 #include "CollisionManager.h"
 #include "CharacterWorld.h"
@@ -49,11 +50,17 @@ private: /// ---------- メンバ関数 ---------- ///
 	// 衝突判定更新処理
 	void CollisionUpdate();
 
+	// ポーズ制御
+	void EnterPause();
+	void ExitPause();
+	void UpdatePaused();
+
 private: /// ---------- メンバ変数 ---------- ///
 
 	K4E::DirectXCommon* dxCommon_ = nullptr;
 	K4E::Input* input_ = nullptr;
 
+	std::unique_ptr<PauseMenu> pauseMenu_ = nullptr; // ポーズメニュー
 	std::unique_ptr<CollisionManager> collisionManager_; // 衝突マネージャー
 	std::unique_ptr<BulletManager> bulletManager_; // 弾丸マネージャー
 	CharacterWorld characters_;

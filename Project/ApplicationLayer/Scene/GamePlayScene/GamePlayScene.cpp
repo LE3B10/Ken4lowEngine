@@ -7,6 +7,7 @@
 #include "SkyBoxManager.h"
 #include "Wireframe.h"
 #include "AudioManager.h"
+#include <SceneManager.h>
 
 #ifdef _DEBUG
 #include <DebugCamera.h>
@@ -67,6 +68,9 @@ void GamePlayScene::Initialize()
 	hudManager_->SetPlayer(characters_.GetPlayer());
 	hudManager_->Initialize();
 	characters_.GetPlayer()->SetHUDManager(hudManager_.get());
+
+	pauseMenu_ = std::make_unique<PauseMenu>();
+	pauseMenu_->Initialize();
 }
 
 /// -------------------------------------------------------------
@@ -77,38 +81,28 @@ void GamePlayScene::Update()
 	// ------------------------------------------------------------
 	// Pause toggle (ESC)
 	// ------------------------------------------------------------
-	if (input_->TriggerKey(DIK_ESCAPE))
+	if (input_ && input_->TriggerKey(DIK_ESCAPE))
 	{
-		isPaused_ = !isPaused_;
 		if (isPaused_)
 		{
-			// ポーズ中はカーソルを出してロック解除
-			input_->SetLockCursor(false);
-			input_->SetCursorVisible(true);
+			ExitPause();
 		}
 		else
 		{
-			// 復帰時はデバッグカメラ状態に合わせて戻す
-			const bool lock = !isDebugCamera_;
-			input_->SetLockCursor(lock);
-			input_->SetCursorVisible(!lock);
+			EnterPause();
 		}
+		return; // トグルしたフレームはここで終了（誤操作防止）
 	}
 
-	// ポーズ中はゲーム進行を止める（ESCで解除可能）
+	// ポーズ中はゲーム進行を止める（メニューだけ更新）
 	if (isPaused_)
 	{
-		// HUDは更新してOK（アニメ無しなら実質固定表示）
-		if (hudManager_)
-		{
-			hudManager_->SetHP(characters_.GetPlayer()->GetHP(), characters_.GetPlayer()->GetMaxHP());
-			hudManager_->Update();
-		}
+		UpdatePaused();
 		return;
 	}
 
 	// プレイヤーが死んだらゲームを初期化し直す（リトライ）
-	if (characters_.GetPlayer()->GetHP() <= 0)
+	if (characters_.GetPlayer() && characters_.GetPlayer()->GetHP() <= 0)
 	{
 		Finalize();
 		Initialize();
@@ -123,7 +117,6 @@ void GamePlayScene::Update()
 		characters_.SpawnEnemy(EnemyArchetype::Sniper, { 0.0f, 0.0f, 40.0f });
 	}
 
-
 	// デルタタイムの取得
 	const float deltaTime = dxCommon_->GetFPSCounter().GetDeltaTime();
 
@@ -134,15 +127,25 @@ void GamePlayScene::Update()
 	characters_.Update(deltaTime);
 
 	// 弾丸マネージャーの更新
-	bulletManager_->Update(deltaTime);
+	if (bulletManager_)
+	{
+		bulletManager_->Update(deltaTime);
+	}
 
 	// 衝突判定の更新
 	CollisionUpdate();
 
-	skyBox_->Update();
+	if (skyBox_)
+	{
+		skyBox_->Update();
+	}
 
-	hudManager_->SetHP(characters_.GetPlayer()->GetHP(), characters_.GetPlayer()->GetMaxHP());
-	hudManager_->Update();
+	// HUD更新（通常時）
+	if (hudManager_ && characters_.GetPlayer())
+	{
+		hudManager_->SetHP(characters_.GetPlayer()->GetHP(), characters_.GetPlayer()->GetMaxHP());
+		hudManager_->Update();
+	}
 }
 
 /// -------------------------------------------------------------
@@ -166,7 +169,7 @@ void GamePlayScene::Draw3DObjects()
 	characters_.Draw();
 
 	// 弾丸の描画
-	bulletManager_->Draw();
+	if (bulletManager_) { bulletManager_->Draw(); }
 
 #pragma endregion
 
@@ -178,7 +181,7 @@ void GamePlayScene::Draw3DObjects()
 
 #ifdef _DEBUG
 	// 衝突判定を行うオブジェクトの描画
-	collisionManager_->Draw();
+	if (collisionManager_) { collisionManager_->Draw(); }
 
 	// FPSカメラの描画
 	//fpsCamera_->DrawDebugCamera();
@@ -208,7 +211,8 @@ void GamePlayScene::Draw2DSprites()
 	// UI用の共通描画設定
 	K4E::SpriteManager::GetInstance()->SetRenderSetting_UI();
 
-	hudManager_->Draw();
+	if (hudManager_) { hudManager_->Draw(); }
+	if (isPaused_ && pauseMenu_) { pauseMenu_->Draw(); }
 
 #pragma endregion
 }
@@ -220,10 +224,14 @@ void GamePlayScene::Draw2DSprites()
 void GamePlayScene::Finalize()
 {
 	// 入力状態を必ず戻す（ロック/非表示のまま終了しない）
-	input_->SetLockCursor(false);
-	input_->SetCursorVisible(true);
+	if (input_)
+	{
+		input_->SetLockCursor(false);
+		input_->SetCursorVisible(true);
+	}
 
 	hudManager_.reset();
+	pauseMenu_.reset();
 
 	// ★重要：CharacterWorld は CollisionManager を使って RemoveCollider する
 	//         ので、先に characters_ を Finalize してから manager 類を破棄する
@@ -397,6 +405,98 @@ void GamePlayScene::DrawImGui()
 	ImGui::End();
 
 #endif // USE_IMGUI
+}
+
+/// -------------------------------------------------------------
+///				　		ポーズ開始
+/// -------------------------------------------------------------
+void GamePlayScene::EnterPause()
+{
+	if (isPaused_) { return; }
+
+	isPaused_ = true;
+	if (pauseMenu_)
+	{
+		pauseMenu_->Open();
+	}
+
+	// ポーズ中はカーソルを出してロック解除
+	if (input_)
+	{
+		input_->SetLockCursor(false);
+		input_->SetCursorVisible(true);
+	}
+}
+
+/// -------------------------------------------------------------
+///				　		ポーズ解除
+/// -------------------------------------------------------------
+void GamePlayScene::ExitPause()
+{
+	if (!isPaused_) { return; }
+
+	isPaused_ = false;
+	if (pauseMenu_)
+	{
+		pauseMenu_->Close();
+	}
+
+	// 復帰時はデバッグカメラ状態に合わせて戻す
+	if (input_)
+	{
+		const bool lock = !isDebugCamera_;
+		input_->SetLockCursor(lock);
+		input_->SetCursorVisible(!lock);
+	}
+}
+
+/// -------------------------------------------------------------
+///				　		ポーズ中更新
+/// -------------------------------------------------------------
+void GamePlayScene::UpdatePaused()
+{
+	// HUDは更新してOK（値更新・簡易アニメ用）
+	if (hudManager_ && characters_.GetPlayer())
+	{
+		hudManager_->SetHP(characters_.GetPlayer()->GetHP(), characters_.GetPlayer()->GetMaxHP());
+		hudManager_->Update();
+	}
+
+	if (!pauseMenu_)
+	{
+		return;
+	}
+
+	const PauseMenuCommand cmd = pauseMenu_->Update(input_);
+
+	switch (cmd)
+	{
+	case PauseMenuCommand::Resume:
+		ExitPause();
+		break;
+
+	case PauseMenuCommand::ToStageSelect:
+		if (input_)
+		{
+			input_->SetLockCursor(false);
+			input_->SetCursorVisible(true);
+		}
+		sceneManager_->ChangeScene("StageSelectScene");
+		break;
+
+	case PauseMenuCommand::ToTitle:
+		if (input_)
+		{
+			input_->SetLockCursor(false);
+			input_->SetCursorVisible(true);
+		}
+		sceneManager_->ChangeScene("TitleScene");
+		break;
+
+	case PauseMenuCommand::None:
+	default:
+		break;
+	}
 }
 
 /// -------------------------------------------------------------
