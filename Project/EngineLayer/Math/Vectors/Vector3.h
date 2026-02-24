@@ -52,6 +52,10 @@ public: /// ---------- 静的メンバ関数 ---------- ///
 	/// </summary>
 	static Vector3 Multiply(float scalar, const Vector3& v);
 
+	static Vector3 Multiply(const Vector3& v, float scalar) {
+		return Multiply(scalar, v);
+	}
+
 	/// <summary>
 	/// 2 つのベクトルの成分ごとの積を返します。
 	/// </summary>

@@ -6,6 +6,14 @@
 #include "WeaponMasterData.h"
 #include <vector>
 
+/// ---------- 武器エディタの画像プレビュー用構造体 ---------- ///
+struct WeaponEditorImagePreview
+{
+	void* imguiTextureId = nullptr;
+	int width = 0;
+	int height = 0;
+};
+
 /// ---------- 武器エディタ用フック群 ---------- ///
 struct WeaponEditorHooks
 {
@@ -26,8 +34,16 @@ struct WeaponEditorHooks
 
 	// 削除予約
 	std::function<void(int32_t weaponID)> RequestDelete;
-};
 
+	// サウンドプレビュー（SE試聴）
+	std::function<void(const std::string& path)> PlaySoundPreviewSE;
+
+	// サウンドプレビュー停止
+	std::function<void()> StopSoundPreviewSE;
+
+	// 画像プレビューの取得
+	std::function<WeaponEditorImagePreview(const std::string& path)> GetImagePreview;
+};
 
 /// -------------------------------------------------------------
 ///				　		武器マスターデータエディタ
@@ -61,6 +77,44 @@ private: /// ---------- メンバ関数 ---------- ///
 	static bool HasAttributes(const std::vector<EWeaponAttribute>& v, EWeaponAttribute attr);
 
 	static bool ToggleAttributes(std::vector<EWeaponAttribute>& v, EWeaponAttribute attr);
+
+private: /// ---------- 武器の設定関数 ---------- ///
+
+	// 武器の基本データを描画・編集する関数
+	void DrawCoreData(FWeaponMasterData* data, WeaponEditorHooks& hooks);
+
+	// 武器の経済データを描画・編集する関数
+	void DrawEconomyData(FWeaponMasterData* data, WeaponEditorHooks& hooks);
+
+	// 武器の射撃武器用データを描画・編集する関数
+	void DrawStats(FWeaponMasterData* data, WeaponEditorHooks& hooks);
+
+	// 武器の操作・反動データを描画・編集する関数
+	void DrawHandling(FWeaponMasterData* data, WeaponEditorHooks& hooks);
+
+	// 武器のレティクルデータを描画・編集する関数
+	void DrawReticleData(FWeaponMasterData* data, WeaponEditorHooks& hooks);
+
+	// 武器のアセットデータを描画・編集する関数
+	void DrawAssetData(FWeaponMasterData* data, WeaponEditorHooks& hooks);
+
+	// 武器のサウンドデータを描画・編集する関数
+	void DrawSoundData(FWeaponMasterData* data, WeaponEditorHooks& hooks);
+
+	// 武器のVFXデータを描画・編集する関数
+	void DrawVfxData(FWeaponMasterData* data, WeaponEditorHooks& hooks);
+
+	// 武器のソケットデータを描画・編集する関数
+	void DrawSocketData(FWeaponMasterData* data, WeaponEditorHooks& hooks);
+
+	// 武器の近接武器用データを描画・編集する関数
+	void DrawMeleeData(FWeaponMasterData* data, WeaponEditorHooks& hooks);
+
+	// オプションデータを描画・編集する関数
+	void DrawOptionData(FWeaponMasterData* data, WeaponEditorHooks& hooks);
+
+	// 特殊効果・オートデータを描画・編集する関数
+	void DrawSpecialAndAutoData(FWeaponMasterData* data, WeaponEditorHooks& hooks);
 
 private: /// ---------- メンバ変数 ---------- ///
 

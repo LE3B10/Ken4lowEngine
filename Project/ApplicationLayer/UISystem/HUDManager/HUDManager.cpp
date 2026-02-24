@@ -4,7 +4,7 @@
 #include <algorithm>
 
 /// -------------------------------------------------------------
-///				　			　 初期化処理
+///                    初期化処理
 /// -------------------------------------------------------------
 void HUDManager::Initialize()
 {
@@ -27,10 +27,12 @@ void HUDManager::Initialize()
 }
 
 /// -------------------------------------------------------------
-///				　			　 更新処理
+///                    更新処理
 /// -------------------------------------------------------------
 void HUDManager::Update()
 {
+	bool isReloadingForHUD = false; // Crosshairへ渡す用
+
 	/// ---------- リロード円：プレイヤーの武器リロード状態に同期 ---------- ///
 	if (reloadCircle_)
 	{
@@ -43,6 +45,7 @@ void HUDManager::Update()
 		{
 			// 情報が取れない/未ロードなら非表示
 			reloadCircle_->SetReloading(false, 0.0f);
+			isReloadingForHUD = false;
 			prevReloading_ = false;
 		}
 		else
@@ -53,6 +56,8 @@ void HUDManager::Update()
 				// start直後に timer が reloadSec に近ければ「残り時間」扱い、0 に近ければ「経過時間」扱い
 				reloadTimerIsRemaining_ = (reloadTimer > reloadSec * 0.5f);
 			}
+
+			isReloadingForHUD = isReloading;
 
 			float progress01 = 0.0f;
 			if (isReloading)
@@ -66,13 +71,62 @@ void HUDManager::Update()
 		}
 	}
 
+	// ---------- クロスヘア：武器のレティクルデータを反映 ----------
+	if (crosshair_ && player_)
+	{
+		FWeaponReticleData r{};
+		float spread = 0.0f;
+		bool isADS = false;
+
+		if (player_->GetReticleUI(r, spread, isADS))
+		{
+			// 基本
+			crosshair_->SetReticleType(static_cast<int>(r.reticleType));
+			crosshair_->SetReticleTexture(r.reticleTexturePath);
+			crosshair_->SetBaseSize(r.reticleBaseSize);
+			crosshair_->SetMaxSize(r.reticleMaxSize);
+			crosshair_->SetExpandPerShot(r.reticleExpandPerShot);
+			crosshair_->SetRecoverSpeed(r.reticleRecoverSpeed);
+			crosshair_->SetSpreadValue(spread);
+
+			// 移動拡散（移動状態そのものは GamePlayScene などから SetCrosshairMovementState で渡す）
+			crosshair_->SetMoveExpandEnabled(r.bEnableMoveReticleExpand);
+			crosshair_->SetMoveExpandMultipliers(
+				r.moveExpandMultiplier,
+				r.sprintExpandMultiplier,
+				r.airExpandMultiplier,
+				r.landExpandImpulse);
+
+			// ADS切替
+			crosshair_->SetHideInADS(r.bHideReticleInADS);
+			crosshair_->SetADSState(isADS);
+			crosshair_->SetHideWhileReload(true);
+			crosshair_->SetReloadState(isReloadingForHUD);
+			crosshair_->SetUseADSReticleOverride(r.bUseAdsReticleOverride);
+			crosshair_->SetADSReticleTexture(r.adsReticleTexturePath);
+			crosshair_->SetUseADSCenterDot(r.bUseAdsCenterDot);
+			crosshair_->SetADSCenterDotTexture(r.adsCenterDotTexturePath);
+			crosshair_->SetADSBlendTime(r.adsReticleBlendTime);
+
+			// ヒット / 撃破マーカー
+			crosshair_->SetShowHitMarker(r.bShowHitMarker);
+			crosshair_->SetHitMarkerTexture(r.hitMarkerTexturePath);
+			crosshair_->SetUseHeadshotMarker(r.bUseHeadshotMarker);
+			crosshair_->SetHeadshotHitMarkerTexture(r.headshotHitMarkerTexturePath);
+			crosshair_->SetUseKillConfirmMarker(r.bUseKillConfirmMarker);
+			crosshair_->SetKillConfirmMarkerTexture(r.killConfirmMarkerTexturePath);
+			crosshair_->SetHitMarkerDuration(r.hitMarkerDuration);
+			crosshair_->SetKillConfirmDuration(r.killConfirmDuration);
+		}
+	}
+
 	if (hpWidget_) hpWidget_->Update();
 	if (reloadCircle_) reloadCircle_->Update();
 	if (crosshair_) crosshair_->Update();
 }
 
 /// -------------------------------------------------------------
-///				　			　 描画処理
+///                    描画処理
 /// -------------------------------------------------------------
 void HUDManager::Draw()
 {
@@ -89,4 +143,29 @@ void HUDManager::SetHP(float hp, float maxHp)
 void HUDManager::NotifyPlayerHit(float strength01)
 {
 	if (hpWidget_) hpWidget_->NotifyHit(strength01);
+}
+
+void HUDManager::NotifyEnemyHit(bool isHeadshot)
+{
+	if (!crosshair_) return;
+	crosshair_->NotifyEnemyHit(isHeadshot, false);
+}
+
+void HUDManager::NotifyEnemyKill(bool isHeadshot)
+{
+	if (!crosshair_) return;
+	// kill優先（ヘッドショットキルなら killConfirm テクスチャにフォールバック）
+	crosshair_->NotifyEnemyHit(isHeadshot, true);
+}
+
+void HUDManager::SetCrosshairMovementState(bool isMoving, bool isSprinting, bool isAirborne)
+{
+	if (!crosshair_) return;
+	crosshair_->SetMovementState(isMoving, isSprinting, isAirborne);
+}
+
+void HUDManager::NotifyCrosshairLanded()
+{
+	if (!crosshair_) return;
+	crosshair_->NotifyLanded();
 }

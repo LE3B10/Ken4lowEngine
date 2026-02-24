@@ -8,68 +8,41 @@
 // 既存プロジェクトのヘッダー
 #include "BulletManager.h"
 #include "Camera.h"
+#include "Vector3.h"
+
+using namespace Ken4lowEngine;
 
 static float Clamp01(float v) { return std::max(0.0f, std::min(1.0f, v)); }
 
-// K4E::Vector3 はエンジン側の型を使用（Player.cpp で使っている前提）
-static K4E::Vector3 NormalizeSafe(const K4E::Vector3& v)
-{
-	const float lenSq = v.x * v.x + v.y * v.y + v.z * v.z;
-	if (lenSq <= 1e-6f) return { 0,0,1 };
-	const float inv = 1.0f / std::sqrt(lenSq);
-	return { v.x * inv, v.y * inv, v.z * inv };
-}
-
-static K4E::Vector3 Cross(const K4E::Vector3& a, const K4E::Vector3& b)
-{
-	return { a.y * b.z - a.z * b.y,
-			 a.z * b.x - a.x * b.z,
-			 a.x * b.y - a.y * b.x };
-}
-
-static float Dot(const K4E::Vector3& a, const K4E::Vector3& b)
-{
-	return a.x * b.x + a.y * b.y + a.z * b.z;
-}
-
-static K4E::Vector3 Add(const K4E::Vector3& a, const K4E::Vector3& b)
-{
-	return { a.x + b.x, a.y + b.y, a.z + b.z };
-}
-
-static K4E::Vector3 Mul(const K4E::Vector3& a, float s)
-{
-	return { a.x * s, a.y * s, a.z * s };
-}
 
 /// forward を「コーン状」にランダムに曲げる（簡易スプレッド）
 static K4E::Vector3 ApplySpread(const K4E::Vector3& forward, float spreadDeg)
 {
-	if (spreadDeg <= 0.0f) return NormalizeSafe(forward);
+	if (spreadDeg <= 0.0f) return Vector3::Normalize(forward);
 
 	static thread_local std::mt19937 rng{ 12345u };
 	std::uniform_real_distribution<float> u01(0.0f, 1.0f);
 
-	const float spreadRad = spreadDeg * 3.14159265f / 180.0f;
+	const float spreadRad = spreadDeg * std::numbers::pi_v<float> / 180.0f;
 
 	// 角度をランダム（面積一様）
-	const float theta = 2.0f * 3.14159265f * u01(rng);
+	const float theta = 2.0f * std::numbers::pi_v<float> *u01(rng);
 	const float cosPhi = 1.0f - u01(rng) * (1.0f - std::cos(spreadRad));
 	const float sinPhi = std::sqrt(std::max(0.0f, 1.0f - cosPhi * cosPhi));
 
 	// forward に直交する basis を作る
-	K4E::Vector3 f = NormalizeSafe(forward);
+	K4E::Vector3 f = Vector3::Normalize(forward);
 	K4E::Vector3 up = { 0,1,0 };
-	if (std::fabs(Dot(f, up)) > 0.98f) up = { 1,0,0 };
-	K4E::Vector3 right = NormalizeSafe(Cross(up, f));
-	K4E::Vector3 realUp = Cross(f, right);
+	if (std::fabs(Vector3::Dot(f, up)) > 0.98f) up = { 1,0,0 };
+	K4E::Vector3 right = Vector3::Normalize(Vector3::Cross(up, f));
+	K4E::Vector3 realUp = Vector3::Cross(f, right);
 
 	// コーン方向
-	K4E::Vector3 dir = Add(
-		Add(Mul(right, std::cos(theta) * sinPhi), Mul(realUp, std::sin(theta) * sinPhi)),
-		Mul(f, cosPhi)
+	K4E::Vector3 dir = Vector3::Add(
+		Vector3::Add(Vector3::Multiply(right, std::cos(theta) * sinPhi), Vector3::Multiply(realUp, std::sin(theta) * sinPhi)),
+		Vector3::Multiply(f, cosPhi)
 	);
-	return NormalizeSafe(dir);
+	return Vector3::Normalize(dir);
 }
 
 void WeaponInstance::Equip(const WeaponParams& p)
@@ -82,12 +55,16 @@ void WeaponInstance::Equip(const WeaponParams& p)
 
 	st_.fireCooldown = 0.0f;
 	st_.isReloading = false;
+	st_.reloadRequested = false;
+	st_.reloadRequest = false;
+	st_.pendingReload = false;
 	st_.reloadTimer = 0.0f;
 
 	st_.burstRemaining = 0;
 	st_.burstTimer = 0.0f;
 
 	st_.spread = 0.0f;
+	st_.isADS = false;
 }
 
 bool WeaponInstance::ToggleFireMode()
@@ -97,31 +74,38 @@ bool WeaponInstance::ToggleFireMode()
 	return true;
 }
 
+float WeaponInstance::GetCurrentReloadDurationSec() const
+{
+	// 空マガジン時は emptyReload、残弾ありは tacticalReload
+	if (st_.magAmmo <= 0 && params_.emptyReloadSec > 0.0f)
+		return params_.emptyReloadSec;
+
+	if (params_.tacticalReloadSec > 0.0f)
+		return params_.tacticalReloadSec;
+
+	return params_.reloadSec;
+}
+
 void WeaponInstance::Tick(float dt)
 {
-	// 入力 ⇒ 要求ラッチ
 	if (st_.reloadRequest)
 	{
 		st_.reloadRequested = true;
 		st_.reloadRequest = false;
 	}
 
-	// リロード
 	if (st_.isReloading)
 	{
 		st_.reloadTimer -= dt;
 		if (st_.reloadTimer <= 0.0f)
 		{
-			FinishReload(); // 弾補充
-			st_.reloadRequested = false; // 要求処理完了
+			FinishReload();
+			st_.reloadRequested = false;
 			st_.reloadTimer = 0.0f;
 		}
-
-		// リロード中はここで終わり
 		return;
 	}
 
-	// 開始判定
 	if (st_.reloadRequested || st_.pendingReload)
 	{
 		if (CanStartReload())
@@ -130,9 +114,7 @@ void WeaponInstance::Tick(float dt)
 		}
 		else
 		{
-			// どうがんばあっても無理なら要求を捨てる
 			const bool impossible = (st_.magAmmo >= params_.magCapacity) || (st_.reserveAmmo <= 0);
-
 			if (impossible)
 			{
 				st_.reloadRequested = false;
@@ -146,23 +128,19 @@ void WeaponInstance::Tick(float dt)
 		}
 	}
 
-	// クールダウン
 	if (st_.fireCooldown > 0.0f) st_.fireCooldown -= dt;
 
-	// バースト進行
 	if (st_.burstRemaining > 0)
 	{
 		st_.burstTimer -= dt;
 		if (st_.burstTimer <= 0.0f)
 		{
-			// 次弾を撃てる状態に
 			st_.fireCooldown = 0.0f;
 		}
 	}
 
-	// 拡散回復（簡易）
-	const float rec = std::max(0.0f, params_.recoilRecovery);
-	st_.spread = std::max(0.0f, st_.spread - dt * rec * 0.02f);
+	// spreadRecoveryRate をそのまま使う（度/秒）
+	st_.spread = std::max(0.0f, st_.spread - dt * std::max(0.0f, params_.spreadRecoveryRate));
 }
 
 void WeaponInstance::StartReload()
@@ -172,16 +150,17 @@ void WeaponInstance::StartReload()
 	if (st_.reserveAmmo <= 0) return;
 
 	st_.isReloading = true;
-	st_.reloadTimer = std::max(0.0f, params_.reloadSec);
+	st_.reloadTimer = std::max(0.0f, GetCurrentReloadDurationSec());
 }
 
 void WeaponInstance::CancelReload()
 {
-	// 途中キャンセル : 弾は補充しない
+	// 中断不可なら何もしない
+	if (!params_.canInterruptReload) return;
+
 	st_.isReloading = false;
 	st_.reloadTimer = 0.0f;
 
-	// 要求 / キューも全部捨てる（再開事故防止）
 	st_.reloadRequested = false;
 	st_.reloadRequest = false;
 	st_.pendingReload = false;
@@ -198,9 +177,8 @@ bool WeaponInstance::CanStartReload() const
 void WeaponInstance::StartReloadInternal()
 {
 	st_.isReloading = true;
-	st_.reloadTimer = std::max(0.0f, params_.reloadSec);
+	st_.reloadTimer = std::max(0.0f, GetCurrentReloadDurationSec());
 
-	// 要求は消費して潰す
 	st_.reloadRequest = false;
 	st_.reloadRequested = false;
 	st_.pendingReload = false;
@@ -248,7 +226,6 @@ void WeaponInstance::TryFire(bool fireHeld, bool firePressed,
 	const bool want = WantFire(fireHeld, firePressed);
 	if (!want) return;
 
-	// バースト開始条件：バースト武器で、現在バースト中でない
 	if (params_.burstCount >= 2 && st_.burstRemaining == 0)
 	{
 		st_.burstRemaining = params_.burstCount;
@@ -257,20 +234,18 @@ void WeaponInstance::TryFire(bool fireHeld, bool firePressed,
 
 	if (!CanFire())
 	{
-		// 弾切れで自動リロードしたいなら
-		// if (st_.magAmmo < params_.ammoPerShot) StartReload();
 		return;
 	}
 
-	// 実射
 	ConsumeAmmo();
 
-	// 拡散増加（accuracyが低いほど増えやすい、みたいな調整も可能）
-	st_.spread += std::max(0.0f, params_.spreadIncrease);
+	// ✅ spreadIncrease / maxSpread を使う
+	const float baseSpread = GetBaseSpreadDeg();
+	const float maxDynamic = std::max(0.0f, params_.maxSpreadDeg - baseSpread);
+	st_.spread = std::min(maxDynamic, st_.spread + std::max(0.0f, params_.spreadIncrease));
 
 	FireShot(cam, bulletMgr, nullptr);
 
-	// 次弾まで
 	if (st_.burstRemaining > 0)
 	{
 		st_.burstRemaining--;
@@ -281,7 +256,6 @@ void WeaponInstance::TryFire(bool fireHeld, bool firePressed,
 		}
 		else
 		{
-			// バースト終了→武器の発射間隔へ
 			st_.fireCooldown = std::max(0.0f, params_.secPerShot);
 		}
 	}
@@ -295,23 +269,34 @@ void WeaponInstance::FireShot(K4E::Camera* cam, BulletManager* bulletMgr, Collis
 {
 	if (!cam) return;
 
-	// Projectile運用のみ実装（hitscanは必要になったら追加）
+	// いまはProjectile運用のみ
 	if (!params_.isProjectile) return;
 	if (!bulletMgr) return;
 
 	K4E::Vector3 origin = cam->GetTranslate();
-	K4E::Vector3 fwd = NormalizeSafe(cam->GetForward());
+	K4E::Vector3 fwd = Vector3::Normalize(cam->GetForward());
 
-	// 生成位置を少し前へ
-	origin = Add(origin, Mul(fwd, params_.muzzleForwardOffset));
+	origin = Vector3::Add(origin, Vector3::Multiply(fwd, params_.muzzleForwardOffset));
 
-	// spreadDeg を accuracy/spread から作る（簡易）
-	// accuracy=1.0 ならほぼ0deg、accuracyが低いほどブレが増える
-	const float acc = Clamp01(params_.accuracy);
-	const float baseDeg = (1.0f - acc) * 3.0f;      // 調整用（必要ならマスターデータに明示項目を追加）
-	const float spreadDeg = baseDeg + st_.spread * 2.0f;
+	// ✅ accuracyベースの仮計算ではなく、MasterDataの spread値を使う
+	const float baseSpreadDeg = GetBaseSpreadDeg();
+	const float totalSpreadDeg = std::min(params_.maxSpreadDeg, baseSpreadDeg + st_.spread);
 
-	K4E::Vector3 dir = ApplySpread(fwd, spreadDeg);
+	// ✅ ペレット数対応（M4A1は1発なのでそのまま1回）
+	const int pelletCount = std::max(1, params_.pelletCount);
+	const float pelletExtraSpread = std::max(0.0f, params_.pelletSpreadAngle);
 
-	bulletMgr->Spawn(origin, dir, params_.projectileSpeed, static_cast<int>(params_.damage));
+	for (int i = 0; i < pelletCount; ++i)
+	{
+		// ペレット武器だけ少し追加で散らす（通常ARなら0）
+		const float spreadDeg = totalSpreadDeg + ((pelletCount > 1) ? pelletExtraSpread : 0.0f);
+		K4E::Vector3 dir = ApplySpread(fwd, spreadDeg);
+
+		bulletMgr->Spawn(origin, dir, params_.projectileSpeed, static_cast<int>(params_.damage));
+	}
+}
+
+float WeaponInstance::GetBaseSpreadDeg() const
+{
+	return st_.isADS ? params_.baseAdsSpreadDeg : params_.baseHipSpreadDeg;
 }

@@ -1,6 +1,7 @@
 #pragma once
 #include "Vector3.h"
 #include <string>
+#include <functional>
 
 #include "EnemyBase.h"
 #include "EnemyAICommand.h"
@@ -42,6 +43,10 @@ public:
 	void SetTarget(K4E::Collider* target) { target_ = target; }
 	void SetBulletManager(BulletManager* bm) { bulletManager_ = bm; }
 	void SetCollisionManager(CollisionManager* cm) { collisionManager_ = cm; }
+
+	// UI通知（プレイヤー側/HUD側を外から注入）
+	void SetOnPlayerHitUICallback(std::function<void(bool isHeadshot)> cb) { onPlayerHitUICallback_ = std::move(cb); }
+	void SetOnPlayerKillUICallback(std::function<void(bool isHeadshot)> cb) { onPlayerKillUICallback_ = std::move(cb); }
 
 	// ---- FSMから参照される query ----
 	bool  IsInAttackRange(float distToPlayer) const { return distToPlayer <= attackRange_; }
@@ -139,4 +144,7 @@ private:
 	K4E::Vector3 lastPlayerPos_{};
 
 	bool debugCamera_ = false;
+
+	std::function<void(bool isHeadshot)> onPlayerHitUICallback_{};
+	std::function<void(bool isHeadshot)> onPlayerKillUICallback_{};// UI通知用コールバック
 };

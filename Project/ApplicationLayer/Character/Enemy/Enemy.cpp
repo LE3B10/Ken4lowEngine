@@ -475,15 +475,42 @@ float Enemy::ConsumeStunDurationOr(float fallbackSec)
 void Enemy::OnBulletHit(K4E::Collider* bulletCollider)
 {
 	int dmg = 10;
+	bool isHeadshot = false; // 今は未判定。後で頭部判定を入れたらここを true にする
+
 	if (bulletCollider)
 	{
 		if (auto* b = bulletCollider->GetOwner<Bullet>())
 		{
 			dmg = b->GetDamage();
+
+			// もし将来 Bullet 側にヘッドショット情報を持たせたら:
+			// isHeadshot = b->WasHeadshot();
 		}
 	}
+
+	// 死亡前状態を保持
+	const bool wasDead = IsDead();
+
 	TakeDamage(dmg);
 
-	// 被弾で軽スタン（任意）
-	RequestStun(0.12f);
+	// 命中通知（必要なら）
+	if (!wasDead && onPlayerHitUICallback_)
+	{
+		onPlayerHitUICallback_(isHeadshot);
+	}
+
+	// キル通知（このフレームで死んだときだけ）
+	if (!wasDead && IsDead())
+	{
+		if (onPlayerKillUICallback_)
+		{
+			onPlayerKillUICallback_(isHeadshot);
+		}
+	}
+
+	// 生きてる時だけ軽スタン
+	if (!IsDead())
+	{
+		RequestStun(0.12f);
+	}
 }

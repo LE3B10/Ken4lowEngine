@@ -6,6 +6,7 @@
 #include "Camera.h"             
 #include "InputSnapshot.h"
 #include "CollisionManager.h"
+#include "HUDManager.h"
 
 #ifdef USE_IMGUI
 #include <imgui.h>
@@ -112,6 +113,10 @@ void Player::Initialize()
 
 	// 体力初期化
 	hp_ = maxHp_;
+	if (hudManager_)
+	{
+		hudManager_->SetHP(hp_, maxHp_);
+	}
 
 	// 演出（VFX）の初期化
 	vfx_.Reset();
@@ -259,6 +264,20 @@ void Player::Update(float deltaTime)
 
 	const bool isRunningForFov = (cur == LocoId::Run) || (isAirLike && runCarry_);
 	const bool isDashing = (cur == LocoId::Dash);
+
+	// ---- HUD連携（クロスヘア移動状態 / 着地 / HP） ----
+	if (hudManager_)
+	{
+		const bool crosshairMoving = moving || isDashing;
+		const bool crosshairSprinting = (cur == LocoId::Run) || (cur == LocoId::Dash);
+		const bool crosshairAirborne = (cur == LocoId::Jump || cur == LocoId::Fall);
+		hudManager_->SetCrosshairMovementState(crosshairMoving, crosshairSprinting, crosshairAirborne);
+		if (cur == LocoId::Land && prev != LocoId::Land)
+		{
+			hudManager_->NotifyCrosshairLanded();
+		}
+		hudManager_->SetHP(hp_, maxHp_);
+	}
 
 	motor_.Simulate(deltaTime, view_.GetYaw(), brain_.loco.id, isAds, isReloading);
 
@@ -408,6 +427,14 @@ void Player::OnHitByEnemyBullet(K4E::Collider* bullet, PlayerHitPart part, float
 	if (hp_ < 0.0f) hp_ = 0.0f;
 
 	vfx_.OnDamaged(dmg, maxHp_);
+	if (hudManager_)
+	{
+		float strength01 = (maxHp_ > 0.0f) ? (dmg / maxHp_) : 1.0f;
+		if (strength01 < 0.10f) strength01 = 0.10f;
+		if (strength01 > 1.00f) strength01 = 1.00f;
+		hudManager_->SetHP(hp_, maxHp_);
+		hudManager_->NotifyPlayerHit(strength01);
+	}
 
 	// ---- 任意：被弾スタン（入れたいなら）
 	// PlayerBrain は status が Stunned だと loco/combat を止める設計なので相性が良い
@@ -425,6 +452,16 @@ void Player::OnHitByEnemyBullet(K4E::Collider* bullet, PlayerHitPart part, float
 	brain_.combat.Change(ctx, CombatId::Hip);
 
 	// TODO: hp_==0 のとき死亡処理を入れるならここ
+}
+
+void Player::NotifyEnemyHitUI(bool isHeadshot)
+{
+	if (hudManager_) hudManager_->NotifyEnemyHit(isHeadshot);
+}
+
+void Player::NotifyEnemyKillUI(bool isHeadshot)
+{
+	if (hudManager_) hudManager_->NotifyEnemyKill(isHeadshot);
 }
 
 void Player::FSM_FireOnce()

@@ -18,20 +18,22 @@ struct WeaponRuntimeState
 	int32_t magAmmo = 0;
 	int32_t reserveAmmo = 0;
 
-	float fireCooldown = 0.0f; // 次に撃てるまでの残り秒
+	float fireCooldown = 0.0f;
 
-	bool isReloading = false;	  // リロード中かどうか
-	bool reloadRequested = false; // リロード要求フラグ
+	bool isReloading = false;
+	bool reloadRequested = false;
 	bool reloadRequest = false;
 	bool pendingReload = false;
 	float reloadTimer = 0.0f;
 
-	// バースト用
 	int32_t burstRemaining = 0;
 	float   burstTimer = 0.0f;
 
-	// 拡散（0..無限。表示用に0..1にしてもOK）
+	// 動的拡散（度）: baseHip/baseAds に加算される
 	float spread = 0.0f;
+
+	// ✅ ADS状態（Player側から毎フレーム流す）
+	bool isADS = false;
 };
 
 /// -------------------------------------------------------------
@@ -59,6 +61,12 @@ public:
 	bool CanToggleFireMode() const { return params_.canToggleFireMode; }
 	bool ToggleFireMode();
 
+	// ADS状態を外から反映
+	void SetADS(bool v) { st_.isADS = v; }
+
+	// UI用に「今回のリロード時間」を返す
+	float GetCurrentReloadDurationSec() const;
+
 	const WeaponParams& Params() const { return params_; }
 	const WeaponRuntimeState& State() const { return st_; }
 	WeaponRuntimeState& StateMutable() { return st_; }
@@ -78,6 +86,9 @@ private: /// ---------- メンバ関数 ---------- ///
 	void FinishReload();
 
 	void FireShot(K4E::Camera* cam, BulletManager* bulletMgr, CollisionManager* colMgr);
+
+	// 現在の基礎拡散（Hip/ADS）
+	float GetBaseSpreadDeg() const;
 
 private:
 	WeaponParams params_{};

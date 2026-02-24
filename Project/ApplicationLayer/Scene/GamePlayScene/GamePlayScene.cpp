@@ -6,6 +6,7 @@
 #include "Object3DCommon.h"
 #include "SkyBoxManager.h"
 #include "Wireframe.h"
+#include "AudioManager.h"
 
 #ifdef _DEBUG
 #include <DebugCamera.h>
@@ -65,6 +66,7 @@ void GamePlayScene::Initialize()
 	hudManager_ = std::make_unique<HUDManager>();
 	hudManager_->SetPlayer(characters_.GetPlayer());
 	hudManager_->Initialize();
+	characters_.GetPlayer()->SetHUDManager(hudManager_.get());
 }
 
 /// -------------------------------------------------------------
@@ -120,7 +122,7 @@ void GamePlayScene::Update()
 		characters_.SpawnEnemy(EnemyArchetype::SMGFlanker, { 12.0f, 0.0f, 25.0f });
 		characters_.SpawnEnemy(EnemyArchetype::Sniper, { 0.0f, 0.0f, 40.0f });
 	}
-	
+
 
 	// デルタタイムの取得
 	const float deltaTime = dxCommon_->GetFPSCounter().GetDeltaTime();
@@ -283,15 +285,46 @@ void GamePlayScene::DrawImGui()
 			{
 				std::string err;
 				WeaponMasterDataWriter::SaveAllByCategory(weaponDB, kRoot, &err);
+
+				// ★ 保存後、実際のプレイヤー武器を再読込して反映
+				if (auto* player = characters_.GetPlayer())
+				{
+					// ↓ アクセサ名は実装に合わせて変更
+					player->GetWeaponComponent().ReloadWeaponMasterDataAndReequip();
+				}
 			};
 
 		hooks.RequestReloadFocus = [](int32_t) {};
-		hooks.RebuildLoadout = []() {};
+
+		hooks.RebuildLoadout = [&]()
+			{
+				if (auto* player = characters_.GetPlayer())
+				{
+					// ↓ アクセサ名は実装に合わせて変更
+					player->GetWeaponComponent().ReloadWeaponMasterDataAndReequip();
+				}
+			};
 
 		hooks.ApplyToRuntimeIfCurrent =
 			[&](int32_t weaponID, const FWeaponMasterData&)
 			{
 				lastAppliedID = weaponID;
+
+				// Editor DB と runtime DB は別なので、Applyでも一旦保存してから再読込する
+				std::string err;
+				WeaponMasterDataWriter::SaveAllByCategory(weaponDB, kRoot, &err);
+
+				if (auto* player = characters_.GetPlayer())
+				{
+					// ↓ アクセサ名は実装に合わせて変更
+					auto& wc = player->GetWeaponComponent();
+
+					// 現在装備中IDだけ再反映したいならこれ
+					if (wc.GetCurrentWeaponId() == weaponID)
+					{
+						wc.ReloadWeaponMasterDataAndReequip();
+					}
+				}
 			};
 
 		hooks.RequestDelete =
@@ -310,6 +343,49 @@ void GamePlayScene::DrawImGui()
 
 		// ★ これがあると毎回空になる。1枚目が「常に0」なのはこれが原因。
 		// weaponDB.Clear();
+
+		hooks.PlaySoundPreviewSE = [](const std::string& path)
+			{
+				if (path.empty()) return;
+
+				// まずはSEとしてワンショット再生
+				K4E::AudioManager::GetInstance()->PlayBGM(path, 1.0f, 1.0f, false);
+			};
+
+		hooks.GetImagePreview = [](const std::string& path)
+			{
+				WeaponEditorImagePreview out{};
+				if (path.empty()) return out;
+
+				// パスの区切りを統一
+				std::string normalized = path;
+				for (char& c : normalized) if (c == '\\') c = '/';
+
+				std::error_code ec;
+				if (!std::filesystem::exists(normalized, ec))
+				{
+					OutputDebugStringA(("[GetImagePreview] file not found: " + normalized + "\n").c_str());
+					return out;
+				}
+
+				auto* texMgr = K4E::TextureManager::GetInstance();
+				if (!texMgr)
+				{
+					OutputDebugStringA("[GetImagePreview] TextureManager is null\n");
+					return out;
+				}
+
+				// ここで未ロードなら自動ロードされる
+				auto gpuHandle = texMgr->GetSrvHandleGPU(normalized);
+				const auto& meta = texMgr->GetMetaData(normalized);
+
+				out.imguiTextureId = reinterpret_cast<void*>(gpuHandle.ptr);
+				out.width = static_cast<int>(meta.width);
+				out.height = static_cast<int>(meta.height);
+
+				OutputDebugStringA(("[GetImagePreview] OK: " + normalized + "\n").c_str());
+				return out;
+			};
 	}
 
 	// ★ 外側で Begin/End しない。これだけ呼ぶ。

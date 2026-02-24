@@ -10,7 +10,7 @@
 class Player;
 
 /// -------------------------------------------------------------
-///					　HUDマネージャークラス
+///                     HUDマネージャークラス
 /// -------------------------------------------------------------
 class HUDManager
 {
@@ -33,6 +33,14 @@ public: /// ---------- セッタ ---------- ///
 	void SetHP(float hp, float maxHp);
 	void NotifyPlayerHit(float strength01 = 1.0f);
 
+	// クロスヘア（敵ヒット/撃破通知）
+	void NotifyEnemyHit(bool isHeadshot = false);
+	void NotifyEnemyKill(bool isHeadshot = false);
+
+	// クロスヘア（移動状態は外部から渡す：APEX風拡散）
+	void SetCrosshairMovementState(bool isMoving, bool isSprinting, bool isAirborne);
+	void NotifyCrosshairLanded();
+
 	// 必要なら外から切り替え
 	void SetCrosshairVisible(bool v) { if (crosshair_) crosshair_->SetVisible(v); }
 	void SetReloadCircleVisible(bool v) { if (reloadCircle_) reloadCircle_->SetVisible(v); }
@@ -54,4 +62,3 @@ private: /// ---------- メンバ変数 ---------- ///
 	bool reloadTimerIsRemaining_ = true; // リロードタイマーが「残り時間」か「経過時間」かのフラグ
 	bool prevReloading_ = false; // 前フレームのリロード状態（HUDの更新に使う）
 };
-

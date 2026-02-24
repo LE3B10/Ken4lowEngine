@@ -48,6 +48,24 @@ void CharacterWorld::InjectEnemyDeps(Enemy& e)
 	if (player_)
 	{
 		e.SetTarget(player_.get());
+
+		// 命中UI（ヒットマーカー）
+		e.SetOnPlayerHitUICallback([this](bool isHeadshot)
+			{
+				if (player_)
+				{
+					player_->NotifyEnemyHitUI(isHeadshot);
+				}
+			});
+
+		// 撃破UI（キル確認マーカー）
+		e.SetOnPlayerKillUICallback([this](bool isHeadshot)
+			{
+				if (player_)
+				{
+					player_->NotifyEnemyKillUI(isHeadshot);
+				}
+			});
 	}
 }
 

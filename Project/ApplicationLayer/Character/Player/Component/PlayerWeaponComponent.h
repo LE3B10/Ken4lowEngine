@@ -67,6 +67,15 @@ public: /// ---------- メンバ関数 ---------- ///
 	// ImGuiの描画処理（デバッグ用）
 	void DrawImGui();
 
+	bool ReloadWeaponMasterDataAndReequip();
+	bool RebuildCurrentWeaponFromDatabase();
+
+	WeaponMasterDataDatabase& GetWeaponMasterDatabase() { return weaponSys_.Database(); }
+	const WeaponMasterDataDatabase& GetWeaponMasterDatabase() const { return weaponSys_.Database(); }
+	int32_t GetCurrentWeaponId() const { return currentWeaponId_; }
+
+	bool GetReticleUI(FWeaponReticleData& outReticle, float& outSpread, bool& outIsADS) const;
+
 private: /// ---------- メンバ関数 ---------- ///
 
 	void TickWeapon(float dt);
@@ -85,5 +94,6 @@ private: /// ---------- メンバ変数 ---------- ///
 	std::vector<int32_t> weaponIdList_;
 	int32_t currentWeaponId_ = 0;
 	std::array<int32_t, 6> lastWeaponIdByCategory_{}; // category index -> last equipped id
+	bool lastAimHeld_ = false;
 };
 

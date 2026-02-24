@@ -113,6 +113,16 @@ bool PlayerWeaponComponent::LoadWeaponMasterDataOnce()
 	return true;
 }
 
+bool PlayerWeaponComponent::GetReticleUI(FWeaponReticleData& outReticle, float& outSpread, bool& outIsADS) const
+{
+	if (!weaponLoaded_) return false;
+
+	outReticle = weaponSys_.GetEquippedReticleData();
+	outSpread = weaponSys_.Weapon().State().spread; // いまの動的拡散値
+	outIsADS = lastAimHeld_;
+	return true;
+}
+
 void PlayerWeaponComponent::TickWeapon(float dt)
 {
 	if (!weaponLoaded_) return;
@@ -231,6 +241,8 @@ void PlayerWeaponComponent::UpdateAndHandleInput(float dt, InputSnapshot& snapsh
 	// ---- 近接カテゴリ時の入力リマップ ----
 	ApplyMeleeInputRemap(snapshot);
 
+	lastAimHeld_ = snapshot.aimHeld;
+
 	// Weapon（クールダウン/リロード/バースト/拡散）
 	TickWeapon(dt);
 
@@ -255,12 +267,13 @@ void PlayerWeaponComponent::UpdateAndHandleInput(float dt, InputSnapshot& snapsh
 bool PlayerWeaponComponent::GetReloadUI(bool& outIsReloading, float& outReloadTimer, float& outReloadSec) const
 {
 	if (!weaponLoaded_) { outIsReloading = false; outReloadTimer = 0.0f; outReloadSec = 0.0f; return false; }
+
 	const auto& w = weaponSys_.Weapon();
 	const auto& s = w.State();
-	const auto& p = w.Params();
+
 	outIsReloading = s.isReloading;
 	outReloadTimer = s.reloadTimer;
-	outReloadSec = p.reloadSec;
+	outReloadSec = w.GetCurrentReloadDurationSec(); // ✅ ここ変更
 	return true;
 }
 
@@ -298,14 +311,16 @@ bool PlayerWeaponComponent::TryFire(const InputSnapshot& snapshot,
 	if (!weaponLoaded_) return false;
 	if (!bulletManager || !shootCamera) return false;
 
-	// 重要: State() は参照返しなので、参照のまま before を取ると
-	// TryFire() 後に "before" まで更新後の値になってしまう（同じ実体を見ている）。
-	// → 発射判定が常に false になり、Player 側の recoil が発動しない原因になる。
-	const auto before = weaponSys_.Weapon().State(); // 値コピーでスナップショット化
+	auto& weapon = weaponSys_.Weapon();
 
-	weaponSys_.Weapon().TryFire(snapshot.fireHeld, snapshot.firePressed, shootCamera, bulletManager, collisionManager);
+	// ADS状態を毎フレーム反映
+	weapon.SetADS(snapshot.aimHeld);
 
-	const auto& after = weaponSys_.Weapon().State();
+	const auto before = weapon.State();
+
+	weapon.TryFire(snapshot.fireHeld, snapshot.firePressed, shootCamera, bulletManager, collisionManager);
+
+	const auto& after = weapon.State();
 	const bool fired = (after.magAmmo != before.magAmmo) ||
 		(after.fireCooldown > before.fireCooldown) ||
 		(after.burstRemaining != before.burstRemaining);
@@ -401,4 +416,60 @@ void PlayerWeaponComponent::DrawImGui()
 		LoadWeaponMasterDataOnce();
 	}
 #endif
+}
+
+bool PlayerWeaponComponent::ReloadWeaponMasterDataAndReequip()
+{
+	if (!weaponLoaded_)
+	{
+		return LoadWeaponMasterDataOnce();
+	}
+
+	std::string err;
+	if (!weaponSys_.ReloadAndReequip(&err))
+	{
+		weaponLoadError_ = err;
+		return false;
+	}
+
+	// 現カテゴリの一覧を更新
+	weaponIdList_ = weaponSys_.GetWeaponIdListSortedByCategory(weaponCategory_);
+	if (weaponIdList_.empty())
+	{
+		weaponIdList_ = weaponSys_.GetWeaponIdListSorted();
+	}
+
+	currentWeaponId_ = weaponSys_.GetEquippedWeaponId();
+	weaponLoadError_.clear();
+	return true;
+}
+
+bool PlayerWeaponComponent::RebuildCurrentWeaponFromDatabase()
+{
+	if (!weaponLoaded_)
+	{
+		return LoadWeaponMasterDataOnce();
+	}
+
+	std::string err;
+	bool ok = false;
+
+	if (currentWeaponId_ > 0)
+	{
+		ok = weaponSys_.EquipById(currentWeaponId_, &err);
+	}
+	else
+	{
+		ok = weaponSys_.EquipFirst(&err);
+	}
+
+	if (!ok)
+	{
+		weaponLoadError_ = err;
+		return false;
+	}
+
+	currentWeaponId_ = weaponSys_.GetEquippedWeaponId();
+	weaponLoadError_.clear();
+	return true;
 }

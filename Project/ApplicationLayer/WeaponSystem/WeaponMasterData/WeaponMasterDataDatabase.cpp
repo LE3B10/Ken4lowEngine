@@ -1,18 +1,123 @@
 #include "WeaponMasterDataDatabase.h"
 #include "WeaponMasterDataLoader.h"
+#include "WeaponMasterDataValidator.h"
+
 #include <string_view>
 #include <array>
 #include <cstdint>
+#include <algorithm>
+#include <stdexcept>
+#include <filesystem>
+
 #include "WeaponMasterData.h"
+
+namespace
+{
+	void EnsureFireModeVectorValid(FWeaponMasterData& data)
+	{
+		// 空なら default を入れる
+		if (data.supportedFireModels.empty())
+		{
+			data.supportedFireModels.push_back(data.defaultFireMode);
+		}
+
+		// 重複除去（順序維持）
+		std::vector<EFireMode> uniqueModes;
+		uniqueModes.reserve(data.supportedFireModels.size());
+
+		for (auto m : data.supportedFireModels)
+		{
+			if (std::find(uniqueModes.begin(), uniqueModes.end(), m) == uniqueModes.end())
+			{
+				uniqueModes.push_back(m);
+			}
+		}
+		data.supportedFireModels = std::move(uniqueModes);
+
+		// default が含まれていなければ追加
+		if (std::find(data.supportedFireModels.begin(), data.supportedFireModels.end(), data.defaultFireMode)
+			== data.supportedFireModels.end())
+		{
+			data.supportedFireModels.push_back(data.defaultFireMode);
+		}
+
+		// フルオート互換フラグを同期（validatorの整合性対策）
+		const bool hasFullAuto =
+			(std::find(data.supportedFireModels.begin(), data.supportedFireModels.end(), EFireMode::FullAuto)
+				!= data.supportedFireModels.end());
+
+		data.bIsAutomatic = hasFullAuto;
+
+		// 複数モードなら切替可能に寄せる（運用しやすくする）
+		if (data.supportedFireModels.size() <= 1)
+		{
+			data.bCanToggleFireMode = false;
+		}
+	}
+
+	void EnsureBurstChargeConsistency(FWeaponMasterData& data)
+	{
+		const bool hasBurst =
+			(std::find(data.supportedFireModels.begin(), data.supportedFireModels.end(), EFireMode::Burst)
+				!= data.supportedFireModels.end());
+
+		const bool hasCharge =
+			(std::find(data.supportedFireModels.begin(), data.supportedFireModels.end(), EFireMode::Charge)
+				!= data.supportedFireModels.end());
+
+		if (hasBurst)
+		{
+			if (!data.burstSettings.has_value())
+			{
+				data.burstSettings.emplace();
+				data.burstSettings->count = 3;
+				data.burstSettings->interval = 0.08f;
+			}
+			else
+			{
+				if (data.burstSettings->count <= 0) data.burstSettings->count = 3;
+				if (data.burstSettings->interval < 0.0f) data.burstSettings->interval = 0.08f;
+			}
+		}
+		else
+		{
+			data.burstSettings.reset();
+		}
+
+		if (hasCharge)
+		{
+			if (!data.chargeSettings.has_value())
+			{
+				data.chargeSettings.emplace();
+				data.chargeSettings->maxChargeTime = 1.0f;
+			}
+			else
+			{
+				if (data.chargeSettings->maxChargeTime <= 0.0f)
+					data.chargeSettings->maxChargeTime = 1.0f;
+			}
+		}
+		else
+		{
+			data.chargeSettings.reset();
+		}
+	}
+}
 
 /// -------------------------------------------------------------
 ///		指定したディレクトリからデータを読み込む関数
 /// -------------------------------------------------------------
 bool WeaponMasterDataDatabase::LoadFromDirectory(const std::filesystem::path& dirPath, std::string* outError)
 {
-	if (!std::filesystem::exists(dirPath))
+	namespace fs = std::filesystem;
+
+	if (!fs::exists(dirPath))
 	{
 		return Fail(outError, "WeaponMasterDataDatabase: 指定されたディレクトリが存在しません: " + dirPath.string());
+	}
+	if (!fs::is_directory(dirPath))
+	{
+		return Fail(outError, "WeaponMasterDataDatabase: 指定されたパスはディレクトリではありません: " + dirPath.string());
 	}
 
 	// weapons 直下の旧式 json は読まない。カテゴリフォルダ配下のみ読む。
@@ -27,14 +132,14 @@ bool WeaponMasterDataDatabase::LoadFromDirectory(const std::filesystem::path& di
 	};
 
 	std::unordered_map<int32_t, FWeaponMasterData> tempMap;
-	std::unordered_map<int32_t, std::filesystem::path> idToFileMap; // 重複チェック用
+	std::unordered_map<int32_t, fs::path> idToFileMap; // 重複チェック用
 
-	auto loadFolder = [&](const std::filesystem::path& folderPath, EWeaponCategory cat) -> bool
+	auto loadFolder = [&](const fs::path& folderPath, EWeaponCategory cat) -> bool
 		{
-			if (!std::filesystem::exists(folderPath) || !std::filesystem::is_directory(folderPath))
+			if (!fs::exists(folderPath) || !fs::is_directory(folderPath))
 				return true; // 無いカテゴリはスキップ
 
-			for (const auto& entry : std::filesystem::directory_iterator(folderPath))
+			for (const auto& entry : fs::directory_iterator(folderPath))
 			{
 				if (!entry.is_regular_file()) continue;
 				if (entry.path().extension() != ".json") continue;
@@ -43,11 +148,23 @@ bool WeaponMasterDataDatabase::LoadFromDirectory(const std::filesystem::path& di
 				std::string errorMsg;
 				if (!WeaponMasterDataLoader::LoadFromFile(entry.path(), weaponData, &errorMsg))
 				{
-					return Fail(outError, errorMsg + "(file:" + entry.path().string() + ")");
+					return Fail(outError, errorMsg + " (file: " + entry.path().string() + ")");
 				}
 
-				// フォルダ名をカテゴリとして採用（JSON側は省略してOK）
+				// フォルダ名をカテゴリとして採用（JSON側より優先）
 				weaponData.coreData.category = cat;
+
+				// カテゴリに応じた整形（必須）
+				NormalizeByCategory(weaponData);
+
+				// Validate（ローダー後の最終チェック）
+				std::string validateErr;
+				if (!WeaponMasterDataValidator::Validate(weaponData, &validateErr))
+				{
+					return Fail(outError,
+						"WeaponMasterDataDatabase: validation failed\n"
+						"file: " + entry.path().string() + "\n" + validateErr);
+				}
 
 				const int32_t weaponID = weaponData.coreData.weaponID;
 				if (weaponID <= 0)
@@ -70,10 +187,10 @@ bool WeaponMasterDataDatabase::LoadFromDirectory(const std::filesystem::path& di
 			return true;
 		};
 
-	// ✅ weapons 直下は見ない。primary/backup/... の中だけ読む。
+	// weapons 直下は見ない。primary/backup/... の中だけ読む。
 	for (const auto& cf : kCategoryFolders)
 	{
-		const std::filesystem::path folder = dirPath / std::string(cf.name);
+		const fs::path folder = dirPath / std::string(cf.name);
 		if (!loadFolder(folder, cf.cat))
 		{
 			return false;
@@ -115,9 +232,18 @@ void WeaponMasterDataDatabase::Clear()
 int32_t WeaponMasterDataDatabase::CreateNewID()
 {
 	const int32_t id = GenerateNewID();
+
 	FWeaponMasterData data{};
 	data.coreData.weaponID = id;
 	data.coreData.weaponName = "Weapon" + std::to_string(id);
+
+	// 新規作成時の最低限の整合性
+	data.defaultFireMode = EFireMode::SemiAuto;
+	data.supportedFireModels = { EFireMode::SemiAuto };
+	data.coreData.category = EWeaponCategory::Primary;
+
+	NormalizeByCategory(data);
+
 	weaponDataMap_[id] = std::move(data);
 	return id;
 }
@@ -131,9 +257,22 @@ int32_t WeaponMasterDataDatabase::Duplicate(int32_t srcID)
 	if (it == weaponDataMap_.end()) return 0;
 
 	const int32_t id = GenerateNewID();
+
 	FWeaponMasterData copy = it->second;
 	copy.coreData.weaponID = id;
-	copy.coreData.weaponName = "_Copy_" + std::to_string(id);
+
+	// 名前をわかりやすく維持
+	if (copy.coreData.weaponName.empty())
+	{
+		copy.coreData.weaponName = "Weapon" + std::to_string(id);
+	}
+	else
+	{
+		copy.coreData.weaponName += "_Copy";
+	}
+
+	NormalizeByCategory(copy);
+
 	weaponDataMap_[id] = std::move(copy);
 	return id;
 }
@@ -155,11 +294,97 @@ int32_t WeaponMasterDataDatabase::CreateNewWithName(const std::string& name)
 
 	FWeaponMasterData data{};
 	data.coreData.weaponID = id;
+	data.coreData.weaponName = name.empty() ? ("Weapon" + std::to_string(id)) : name;
 
-	data.coreData.weaponName = name.empty() ? "Weapon" + std::to_string(id) : name;
+	// 新規作成時の最低限の整合性
+	data.defaultFireMode = EFireMode::SemiAuto;
+	data.supportedFireModels = { EFireMode::SemiAuto };
+	data.coreData.category = EWeaponCategory::Primary;
+
+	NormalizeByCategory(data);
 
 	weaponDataMap_[id] = std::move(data);
 	return id;
+}
+
+/// -------------------------------------------------------------
+///		カテゴリに応じてデータを無効化/有効化する整形関数
+/// -------------------------------------------------------------
+void WeaponMasterDataDatabase::NormalizeByCategory(FWeaponMasterData& data)
+{
+	// まず fire mode 系を整える
+	EnsureFireModeVectorValid(data);
+
+	const bool isMelee = (data.coreData.category == EWeaponCategory::Melee);
+
+	if (isMelee)
+	{
+		// 近接武器は meleeData 必須
+		if (!data.meleeData.has_value())
+		{
+			data.meleeData.emplace();
+		}
+
+		// 近接武器は弾薬/弾道を無効化
+		data.projectileData.reset();
+		data.burstSettings.reset();
+		data.chargeSettings.reset();
+
+		data.stats.ammoType = EAmmoType::None;
+		data.stats.capacity = 0;
+		data.stats.maxReserveAmmo = 0;
+		data.stats.bHasChamber = false;
+		data.stats.chamberSize = 0;
+
+		// 近接でも validator 上 ammoPerShot > 0 が必要なので 1 に補正
+		if (data.stats.ammoPerShot <= 0) data.stats.ammoPerShot = 1;
+
+		// 近接は射撃モードを固定（運用上の事故防止）
+		data.defaultFireMode = EFireMode::SemiAuto;
+		data.supportedFireModels.clear();
+		data.supportedFireModels.push_back(EFireMode::SemiAuto);
+		data.bCanToggleFireMode = false;
+		data.bIsAutomatic = false;
+	}
+	else
+	{
+		// 銃器は meleeData を無効化
+		data.meleeData.reset();
+
+		// 弾薬の最低限補完
+		if (data.stats.ammoType == EAmmoType::None)
+		{
+			data.stats.ammoType = EAmmoType::Default;
+		}
+		if (data.stats.capacity <= 0)
+		{
+			data.stats.capacity = 30;
+		}
+		if (data.stats.ammoPerShot <= 0)
+		{
+			data.stats.ammoPerShot = 1;
+		}
+		if (data.stats.maxReserveAmmo < 0)
+		{
+			data.stats.maxReserveAmmo = 0;
+		}
+		if (data.stats.chamberSize < 0)
+		{
+			data.stats.chamberSize = 0;
+		}
+
+		// projectileData は銃器なら持たせておくと runtime 側で扱いやすい（任意）
+		if (!data.projectileData.has_value())
+		{
+			data.projectileData.emplace();
+		}
+
+		// 再度 fire mode を整形（default変更等の影響吸収）
+		EnsureFireModeVectorValid(data);
+
+		// Burst / Charge の optional を対応モードに合わせて整形
+		EnsureBurstChargeConsistency(data);
+	}
 }
 
 /// -------------------------------------------------------------
@@ -216,18 +441,24 @@ std::vector<int32_t> WeaponMasterDataDatabase::GetSortedIDList() const
 	return ids;
 }
 
+/// -------------------------------------------------------------
+///		指定カテゴリーの武器IDを昇順ソートして返す
+/// -------------------------------------------------------------
 std::vector<int32_t> WeaponMasterDataDatabase::GetSortedIDListByCategory(EWeaponCategory category) const
 {
 	std::vector<int32_t> ids;
 	ids.reserve(weaponDataMap_.size());
+
 	for (const auto& [id, data] : weaponDataMap_)
 	{
-		if (data.coreData.category == category) ids.push_back(id);
+		if (data.coreData.category == category)
+		{
+			ids.push_back(id);
+		}
 	}
 	std::sort(ids.begin(), ids.end());
 	return ids;
 }
-
 
 /// -------------------------------------------------------------
 ///		エラーメッセージを設定し、失敗を示す false を返す
@@ -244,6 +475,9 @@ bool WeaponMasterDataDatabase::Fail(std::string* outError, std::string_view msg)
 int32_t WeaponMasterDataDatabase::GenerateNewID() const
 {
 	int32_t maxId = 0;
-	for (const auto& [id, _] : weaponDataMap_) maxId = std::max(maxId, id);
+	for (const auto& [id, _] : weaponDataMap_)
+	{
+		maxId = std::max(maxId, id);
+	}
 	return maxId + 1;
 }

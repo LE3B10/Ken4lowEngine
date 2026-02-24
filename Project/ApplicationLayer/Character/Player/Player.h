@@ -25,6 +25,7 @@ namespace Ken4lowEngine { class Input; }
 class CollisionManager;
 class BulletManager;
 class Enemy;
+class HUDManager;
 
 struct HurtboxTuning
 {
@@ -76,6 +77,9 @@ public: /// ---------- メンバ関数 ---------- ///
 	void SetBulletManager(BulletManager* mgr) { bulletManager_ = mgr; }
 	void SetShootCamera(K4E::Camera* cam) { view_.SetShootCamera(cam); }
 
+	// HUDとの連携（クロスヘア/HP演出の通知先）
+	void SetHUDManager(HUDManager* hud) { hudManager_ = hud; }
+
 	// WeaponMasterData の読み込みディレクトリを外部から指定したい場合
 	// 例: "Resources/JSON/weapons" (primary/backup/... のカテゴリフォルダがあるroot)
 	void SetWeaponMasterDirectory(const std::filesystem::path& dir) { weapon_.SetMasterDirectory(dir); }
@@ -90,9 +94,17 @@ public: /// ---------- メンバ関数 ---------- ///
 	// WeaponSystemへのアクセス
 	void EquipWeaponById(int32_t weaponID) { weapon_.EquipWeaponById(weaponID); }
 
+	PlayerWeaponComponent& GetWeaponComponent() { return weapon_; }
+
 	// HPの取得
 	float GetHP() const { return hp_; }
 	float GetMaxHP() const { return maxHp_; }
+
+	bool GetReticleUI(FWeaponReticleData& outReticle, float& outSpread, bool& outIsADS) const { return weapon_.GetReticleUI(outReticle, outSpread, outIsADS); }
+
+	// HUD用：敵への命中/撃破演出通知（Enemy/Bullet側から呼ぶ）
+	void NotifyEnemyHitUI(bool isHeadshot = false);
+	void NotifyEnemyKillUI(bool isHeadshot = false);
 
 public:	// ---- FSMから呼ばれる最小API（PlayerAPIがここを呼ぶ）----
 
@@ -134,6 +146,7 @@ private: /// ----------メンバ変数 ---------- ///
 	K4E::Input* input_ = nullptr; // 入力クラス
 	CollisionManager* collisionManager_ = nullptr; // 衝突管理クラス
 	BulletManager* bulletManager_ = nullptr;
+	HUDManager* hudManager_ = nullptr; // HUDへの通知先（任意）
 
 	// 視点・一人称視点制御
 	PlayerViewComponent view_{};
