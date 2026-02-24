@@ -535,6 +535,14 @@
     <ClCompile Include="ApplicationLayer\Character\Player\Effect\PlayerVfx.cpp">
       <Filter>ApplicationLayer\Character\Player\Effect</Filter>
     </ClCompile>
+    <ClCompile Include="ApplicationLayer\OverlaySystem\BaseOverlay.cpp" />
+    <ClCompile Include="ApplicationLayer\OverlaySystem\ConfirmQuitOverlay.cpp" />
+    <ClCompile Include="ApplicationLayer\OverlaySystem\PauseOverlay.cpp" />
+    <ClCompile Include="ApplicationLayer\Scene\TitleScene\State\TitleAttractState.cpp" />
+    <ClCompile Include="ApplicationLayer\Scene\TitleScene\State\TitleLoadState.cpp" />
+    <ClCompile Include="ApplicationLayer\Scene\TitleScene\State\TitleLobbyState.cpp" />
+    <ClCompile Include="ApplicationLayer\Scene\TitleScene\State\TitleLobbyToTitleState.cpp" />
+    <ClCompile Include="ApplicationLayer\Scene\TitleScene\State\TitleTransitionToLobby.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="EngineLayer\Math\MultipleStructs\AABB.h">
@@ -1119,6 +1127,16 @@
     <ClInclude Include="ApplicationLayer\Character\Player\Effect\PlayerVfx.h">
       <Filter>ApplicationLayer\Character\Player\Effect</Filter>
     </ClInclude>
+    <ClInclude Include="ApplicationLayer\OverlaySystem\BaseOverlay.h" />
+    <ClInclude Include="ApplicationLayer\OverlaySystem\ConfirmQuitOverlay.h" />
+    <ClInclude Include="ApplicationLayer\OverlaySystem\PauseOverlay.h" />
+    <ClInclude Include="ApplicationLayer\OverlaySystem\Rect.h" />
+    <ClInclude Include="ApplicationLayer\Scene\TitleScene\State\ITitleSceneState.h" />
+    <ClInclude Include="ApplicationLayer\Scene\TitleScene\State\TitleAttractState.h" />
+    <ClInclude Include="ApplicationLayer\Scene\TitleScene\State\TitleLoadState.h" />
+    <ClInclude Include="ApplicationLayer\Scene\TitleScene\State\TitleLobbyState.h" />
+    <ClInclude Include="ApplicationLayer\Scene\TitleScene\State\TitleLobbyToTitleState.h" />
+    <ClInclude Include="ApplicationLayer\Scene\TitleScene\State\TitleTransitionToLobby.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Resources\Shaders\PostEffect\FullScreen.hlsli">
