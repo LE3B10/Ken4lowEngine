@@ -3,10 +3,8 @@
 #include <DirectXCommon.h>
 #include <Input.h>
 #include <SpriteManager.h>
-#include "Object3DCommon.h"
 #include "SkyBoxManager.h"
 #include "Wireframe.h"
-#include "AudioManager.h"
 #include <SceneManager.h>
 
 #ifdef _DEBUG
@@ -18,12 +16,15 @@
 #endif // USE_IMGUI
 
 #include "Player.h"
-
-
-#include "WeaponMasterDataDatabase.h"
-#include "WeaponMasterDataEditor.h"
-#include "WeaponMasterDataWriter.h"
-#include <filesystem>
+#include "PauseMenu.h"
+#include <BulletManager.h>
+#include <CharacterWorld.h>
+#include <CollisionManager.h>
+#include <EnemyArchetype.h>
+#include <SkyBox.h>
+#include <memory>
+#include <HUDManager.h>
+#include <dinput.h>
 
 namespace K4E = ::Ken4lowEngine;
 

@@ -8,7 +8,6 @@
 #include "HUDManager.h"
 
 #include <memory>
-#include <vector>
 
 namespace K4E = ::Ken4lowEngine;
 

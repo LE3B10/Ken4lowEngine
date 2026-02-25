@@ -451,9 +451,6 @@
     <ClCompile Include="EngineLayer\2D\Sprite\SpriteFractureEffect.cpp">
       <Filter>EngineLayer\2D\Sprite</Filter>
     </ClCompile>
-    <ClCompile Include="EngineLayer\3D\AnimationSystem\Debug\AnimationModelDebugView.cpp">
-      <Filter>EngineLayer\3D\AnimationManagement\Debug</Filter>
-    </ClCompile>
     <ClCompile Include="EngineLayer\3D\AnimationSystem\Core\AnimationLoader.cpp">
       <Filter>EngineLayer\3D\AnimationManagement\Core</Filter>
     </ClCompile>
@@ -561,6 +558,9 @@
     </ClCompile>
     <ClCompile Include="ApplicationLayer\Scene\GamePlayScene\PauseMenu.cpp">
       <Filter>ApplicationLayer\Scene\GamePlayScene</Filter>
+    </ClCompile>
+    <ClCompile Include="EngineLayer\3D\AnimationSystem\DebugView\AnimationModelDebugView.cpp">
+      <Filter>EngineLayer\3D\AnimationManagement\DebugView</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -1032,9 +1032,6 @@
     <ClInclude Include="EngineLayer\2D\Sprite\SpriteFractureEffect.h">
       <Filter>EngineLayer\2D\Sprite</Filter>
     </ClInclude>
-    <ClInclude Include="EngineLayer\3D\AnimationSystem\Debug\AnimationModelDebugView.h">
-      <Filter>EngineLayer\3D\AnimationManagement\Debug</Filter>
-    </ClInclude>
     <ClInclude Include="EngineLayer\3D\AnimationSystem\Core\AnimationLoader.h">
       <Filter>EngineLayer\3D\AnimationManagement\Core</Filter>
     </ClInclude>
@@ -1178,6 +1175,9 @@
     </ClInclude>
     <ClInclude Include="ApplicationLayer\Scene\GamePlayScene\PauseMenu.h">
       <Filter>ApplicationLayer\Scene\GamePlayScene</Filter>
+    </ClInclude>
+    <ClInclude Include="EngineLayer\3D\AnimationSystem\DebugView\AnimationModelDebugView.h">
+      <Filter>EngineLayer\3D\AnimationManagement\DebugView</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -1573,9 +1573,6 @@
     <Filter Include="EngineLayer\3D\AnimationManagement\Collider">
       <UniqueIdentifier>{2d6a8f0c-f527-40f4-b0a4-29ad0fe6689f}</UniqueIdentifier>
     </Filter>
-    <Filter Include="EngineLayer\3D\AnimationManagement\Debug">
-      <UniqueIdentifier>{64dd504b-09cb-4ce7-b7b5-3377b0a7ad71}</UniqueIdentifier>
-    </Filter>
     <Filter Include="ApplicationLayer\Character\CharacterWorld">
       <UniqueIdentifier>{a75a8185-2be8-480c-9967-b52e96c8864b}</UniqueIdentifier>
     </Filter>
@@ -1605,6 +1602,9 @@
     </Filter>
     <Filter Include="ApplicationLayer\OverlaySystem">
       <UniqueIdentifier>{0c6c3acf-d5c3-436f-b78d-b316901a7eb2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="EngineLayer\3D\AnimationManagement\DebugView">
+      <UniqueIdentifier>{64dd504b-09cb-4ce7-b7b5-3377b0a7ad71}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>
