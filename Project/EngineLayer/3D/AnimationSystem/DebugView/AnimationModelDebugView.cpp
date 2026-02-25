@@ -3,6 +3,8 @@
 #include "AnimationModel.h"
 
 #include <Wireframe.h>
+#include <unordered_map>
+#include <vector>
 
 #ifdef USE_IMGUI
 #include <imgui.h>
