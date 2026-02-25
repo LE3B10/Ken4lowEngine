@@ -502,9 +502,6 @@
     <ClCompile Include="ApplicationLayer\Character\CharacterWorld\CharacterWorld.cpp">
       <Filter>ApplicationLayer\Character\CharacterWorld</Filter>
     </ClCompile>
-    <ClCompile Include="ApplicationLayer\WeaponSystem\WeaponMasterData\WeaponDevPanel.cpp">
-      <Filter>ApplicationLayer\WeaponSystem\WeaponMasterData</Filter>
-    </ClCompile>
     <ClCompile Include="ApplicationLayer\WeaponSystem\WeaponMasterData\WeaponInstance.cpp">
       <Filter>ApplicationLayer\WeaponSystem\WeaponMasterData</Filter>
     </ClCompile>
@@ -1109,9 +1106,6 @@
     </ClInclude>
     <ClInclude Include="ApplicationLayer\Character\CharacterWorld\CharacterWorld.h">
       <Filter>ApplicationLayer\Character\CharacterWorld</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\WeaponSystem\WeaponMasterData\WeaponDevPanel.h">
-      <Filter>ApplicationLayer\WeaponSystem\WeaponMasterData</Filter>
     </ClInclude>
     <ClInclude Include="ApplicationLayer\WeaponSystem\WeaponMasterData\WeaponInstance.h">
       <Filter>ApplicationLayer\WeaponSystem\WeaponMasterData</Filter>

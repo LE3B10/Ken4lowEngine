@@ -559,7 +559,6 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClCompile Include="ApplicationLayer\Character\Player\PlayerHurtbox.cpp" />
     <ClCompile Include="ApplicationLayer\WeaponSystem\WeaponMasterData\WeaponInstance.cpp" />
     <ClCompile Include="ApplicationLayer\WeaponSystem\WeaponMasterData\WeaponSystem.cpp" />
-    <ClCompile Include="ApplicationLayer\WeaponSystem\WeaponMasterData\WeaponDevPanel.cpp" />
     <ClCompile Include="EngineLayer\3D\LevelData\Stage.cpp" />
     <ClCompile Include="ApplicationLayer\UISystem\HPWidget\HPWidget.cpp" />
     <ClCompile Include="ApplicationLayer\UISystem\HUDManager\HUDManager.cpp" />
@@ -1426,7 +1425,6 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="ApplicationLayer\WeaponSystem\WeaponMasterData\WeaponInstance.h" />
     <ClInclude Include="ApplicationLayer\WeaponSystem\WeaponMasterData\WeaponParams.h" />
     <ClInclude Include="ApplicationLayer\WeaponSystem\WeaponMasterData\WeaponSystem.h" />
-    <ClInclude Include="ApplicationLayer\WeaponSystem\WeaponMasterData\WeaponDevPanel.h" />
     <ClInclude Include="EngineLayer\3D\LevelData\Stage.h" />
     <ClInclude Include="ApplicationLayer\UISystem\HPWidget\HPWidget.h" />
     <ClInclude Include="ApplicationLayer\UISystem\HUDManager\HUDManager.h" />
