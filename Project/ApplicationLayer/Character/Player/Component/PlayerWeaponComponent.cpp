@@ -26,6 +26,20 @@ namespace
 		default: return false;
 		}
 	}
+
+	inline int CategoryToHotbarIndex(EWeaponCategory c)
+	{
+		switch (c)
+		{
+		case EWeaponCategory::Primary: return 0;
+		case EWeaponCategory::Backup:  return 1;
+		case EWeaponCategory::Melee:   return 2;
+		case EWeaponCategory::Special: return 3;
+		case EWeaponCategory::Sniper:  return 4;
+		case EWeaponCategory::Heavy:   return 5;
+		default: return -1;
+		}
+	}
 }
 
 void PlayerWeaponComponent::SetMasterDirectory(const std::filesystem::path& dir)
@@ -36,6 +50,10 @@ void PlayerWeaponComponent::SetMasterDirectory(const std::filesystem::path& dir)
 	weaponIdList_.clear();
 	currentWeaponId_ = 0;
 	weaponSys_ = WeaponSystem{};
+
+	// HUD弾薬キャッシュをリセット
+	ammoViewCache_ = {};
+	ammoViewCacheValid_.fill(false);
 }
 
 bool PlayerWeaponComponent::LoadWeaponMasterDataOnce()
@@ -81,6 +99,8 @@ bool PlayerWeaponComponent::LoadWeaponMasterDataOnce()
 
 	weaponLoaded_ = true;
 
+	BuildInitialAmmoViewCacheFromMasterData();
+
 	// まずはカテゴリ（デフォルトPrimary）だけをプレイヤーの選択リストにする
 	weaponIdList_ = weaponSys_.GetWeaponIdListSortedByCategory(weaponCategory_);
 	if (weaponIdList_.empty())
@@ -120,6 +140,63 @@ bool PlayerWeaponComponent::GetReticleUI(FWeaponReticleData& outReticle, float& 
 	outReticle = weaponSys_.GetEquippedReticleData();
 	outSpread = weaponSys_.Weapon().State().spread; // いまの動的拡散値
 	outIsADS = lastAimHeld_;
+	return true;
+}
+
+int PlayerWeaponComponent::GetSelectedHot_barIndex() const
+{
+	switch (weaponCategory_)
+	{
+	case EWeaponCategory::Primary: return 0;
+	case EWeaponCategory::Backup:  return 1;
+	case EWeaponCategory::Melee:   return 2;
+	case EWeaponCategory::Special: return 3;
+	case EWeaponCategory::Sniper:  return 4;
+	case EWeaponCategory::Heavy:   return 5;
+	default:                       return -1;
+	}
+}
+
+PlayerWeaponComponent::AmmoView PlayerWeaponComponent::GetAmmoViewByHot_barIndex(int hotbarIndex) const
+{
+	AmmoView out{};
+
+	if (hotbarIndex < 0 || hotbarIndex >= 6) return out;
+	if (!weaponLoaded_) return out;
+
+	// 選択中スロットだけはランタイム値で毎フレーム更新
+	UpdateSelectedAmmoViewCache();
+
+	// 初期キャッシュ or 更新済みキャッシュを返す
+	if (ammoViewCacheValid_[hotbarIndex])
+	{
+		return ammoViewCache_[hotbarIndex];
+	}
+
+	// 未設定スロット（そのカテゴリに武器がない等）は非表示
+	out.usesAmmo = false;
+	return out;
+}
+
+bool PlayerWeaponComponent::GetCurrentAdsViewTuning(float& outAdsFovDeg, float& outAdsTransitionSpeed) const
+{
+	if (!weaponLoaded_) return false;
+
+	const auto& p = weaponSys_.Weapon().Params();
+
+	outAdsFovDeg = p.adsZoomFov;
+	outAdsTransitionSpeed = p.adsTransitionSpeed;
+	return true;
+}
+
+bool PlayerWeaponComponent::GetCurrentAdsMoveMultiplier(float& outAdsMoveMul) const
+{
+	if (!weaponLoaded_) return false;
+
+	const auto& p = weaponSys_.Weapon().Params();
+
+	// WeaponParams 側の名前が違う場合はここだけ合わせてください
+	outAdsMoveMul = std::max(0.0f, p.adsMoveSpeedMultiplier);
 	return true;
 }
 
@@ -219,6 +296,97 @@ void PlayerWeaponComponent::ApplyMeleeInputRemap(InputSnapshot& snapshot)
 	snapshot.firePressed = false;
 	snapshot.aimHeld = false;
 	snapshot.aimPressed = false;
+}
+
+void PlayerWeaponComponent::BuildInitialAmmoViewCacheFromMasterData()
+{
+	ammoViewCache_ = {};
+	ammoViewCacheValid_.fill(false);
+
+	if (!weaponLoaded_) return;
+
+	const auto& db = weaponSys_.Database();
+
+	const EWeaponCategory categories[6] = {
+		EWeaponCategory::Primary,
+		EWeaponCategory::Backup,
+		EWeaponCategory::Melee,
+		EWeaponCategory::Special,
+		EWeaponCategory::Sniper,
+		EWeaponCategory::Heavy
+	};
+
+	for (EWeaponCategory cat : categories)
+	{
+		const int slot = CategoryToHotbarIndex(cat);
+		if (slot < 0 || slot >= 6) continue;
+
+		const auto ids = weaponSys_.GetWeaponIdListSortedByCategory(cat);
+		if (ids.empty())
+		{
+			// このカテゴリに武器が無いなら非表示のまま
+			continue;
+		}
+
+		// そのカテゴリで前回使っていた武器IDがあれば優先、なければ先頭
+		int32_t targetId = ids.front();
+		const int32_t lastId = lastWeaponIdByCategory_[slot];
+		if (lastId > 0 &&
+			std::find(ids.begin(), ids.end(), lastId) != ids.end())
+		{
+			targetId = lastId;
+		}
+
+		const FWeaponMasterData* data = db.FindByID(targetId);
+		if (!data) continue;
+
+		AmmoView v{};
+
+		// 近接 or ammoなし は弾数非表示
+		const bool isMelee = (data->coreData.category == EWeaponCategory::Melee);
+		const bool noAmmo = (data->stats.ammoType == EAmmoType::None);
+
+		if (isMelee || noAmmo)
+		{
+			v.usesAmmo = false;
+		}
+		else
+		{
+			v.usesAmmo = true;
+			v.mag = std::max(0, data->stats.capacity);
+			v.reserve = std::max(0, data->stats.maxReserveAmmo);
+		}
+
+		ammoViewCache_[slot] = v;
+		ammoViewCacheValid_[slot] = true;
+	}
+}
+
+void PlayerWeaponComponent::UpdateSelectedAmmoViewCache() const
+{
+	if (!weaponLoaded_) return;
+
+	const int selected = GetSelectedHot_barIndex();
+	if (selected < 0 || selected >= 6) return;
+
+	// 近接は弾薬表示なし
+	if (weaponCategory_ == EWeaponCategory::Melee)
+	{
+		ammoViewCache_[selected] = AmmoView{};
+		ammoViewCache_[selected].usesAmmo = false;
+		ammoViewCacheValid_[selected] = true;
+		return;
+	}
+
+	const auto& s = weaponSys_.Weapon().State();
+
+	AmmoView cur{};
+	cur.usesAmmo = true;
+	cur.mag = s.magAmmo;
+	cur.reserve = s.reserveAmmo;
+
+	ammoViewCache_[selected] = cur;
+	ammoViewCacheValid_[selected] = true;
 }
 
 void PlayerWeaponComponent::UpdateAndHandleInput(float dt, InputSnapshot& snapshot)

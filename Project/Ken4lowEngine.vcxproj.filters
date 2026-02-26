@@ -559,6 +559,9 @@
     <ClCompile Include="EngineLayer\3D\AnimationSystem\DebugView\AnimationModelDebugView.cpp">
       <Filter>EngineLayer\3D\AnimationManagement\DebugView</Filter>
     </ClCompile>
+    <ClCompile Include="ApplicationLayer\UISystem\WeaponSlot\WeaponSlot.cpp">
+      <Filter>ApplicationLayer\UISystem\WeaponSlot</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="EngineLayer\Math\MultipleStructs\AABB.h">
@@ -1173,6 +1176,9 @@
     <ClInclude Include="EngineLayer\3D\AnimationSystem\DebugView\AnimationModelDebugView.h">
       <Filter>EngineLayer\3D\AnimationManagement\DebugView</Filter>
     </ClInclude>
+    <ClInclude Include="ApplicationLayer\UISystem\WeaponSlot\WeaponSlot.h">
+      <Filter>ApplicationLayer\UISystem\WeaponSlot</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="Resources\Shaders\PostEffect\FullScreen.hlsli">
@@ -1599,6 +1605,9 @@
     </Filter>
     <Filter Include="EngineLayer\3D\AnimationManagement\DebugView">
       <UniqueIdentifier>{64dd504b-09cb-4ce7-b7b5-3377b0a7ad71}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ApplicationLayer\UISystem\WeaponSlot">
+      <UniqueIdentifier>{ec5ef303-d137-4ec3-98ac-c530db273a98}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

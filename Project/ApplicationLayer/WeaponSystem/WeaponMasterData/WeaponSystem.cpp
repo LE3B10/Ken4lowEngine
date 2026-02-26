@@ -148,13 +148,13 @@ WeaponParams WeaponSystem::BuildParams(const FWeaponMasterData& md)
 	p.ammoPerShot = std::max(1, md.stats.ammoPerShot);
 	p.maxReserveAmmo = std::max(0, md.stats.maxReserveAmmo);
 
-	// ✅ リロード詳細
+	// リロード詳細
 	p.reloadSec = std::max(0.0f, md.stats.reloadTime);
 	p.tacticalReloadSec = std::max(0.0f, md.stats.tacticalReloadTime);
 	p.emptyReloadSec = std::max(0.0f, md.stats.emptyReloadTime);
 	p.canInterruptReload = md.stats.bCanInterruptReload;
 
-	// ✅ ペレット
+	// ペレット
 	p.pelletCount = std::max(1, md.stats.pelletCount);
 	p.pelletSpreadAngle = std::max(0.0f, md.stats.pelletSpreadAngle);
 
@@ -163,7 +163,7 @@ WeaponParams WeaponSystem::BuildParams(const FWeaponMasterData& md)
 	p.spreadIncrease = std::max(0.0f, md.handling.spreadIncrease);
 	p.recoilRecovery = std::max(0.0f, md.handling.recoilRecovery);
 
-	// ✅ 散布界（実際に使う）
+	// 散布界（実際に使う）
 	p.baseHipSpreadDeg = std::max(0.0f, md.handling.baseHipSpread);
 	p.baseAdsSpreadDeg = std::max(0.0f, md.handling.baseAdsSpread);
 	p.spreadRecoveryRate = std::max(0.0f, md.handling.spreadRecoveryRate);
@@ -172,6 +172,7 @@ WeaponParams WeaponSystem::BuildParams(const FWeaponMasterData& md)
 	// ADS
 	p.adsZoomFov = md.handling.adsZoomFov;
 	p.adsTransitionSpeed = md.handling.adsTransitionSpeed;
+	p.adsMoveSpeedMultiplier = std::clamp(md.handling.adsMoveSpeedMultiplier, 0.0f, 2.0f);
 
 	// Projectile
 	if (md.projectileData.has_value())

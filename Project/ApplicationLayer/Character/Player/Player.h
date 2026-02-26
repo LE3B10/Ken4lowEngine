@@ -6,11 +6,11 @@
 
 #include "PlayerStateMachines.h"   // PlayerBrain / PlayerAPI / LocoId等
 #include "PlayerInputSnapshot.h"   // InputSnapshot型
-
 #include "PlayerVfx.h"
 #include "PlayerWeaponComponent.h"
 #include "PlayerMotorComponent.h"
 #include "PlayerViewComponent.h"
+#include "WeaponSlot.h"
 
 #include <array>
 #include <filesystem>
@@ -105,6 +105,8 @@ public: /// ---------- メンバ関数 ---------- ///
 	// HUD用：敵への命中/撃破演出通知（Enemy/Bullet側から呼ぶ）
 	void NotifyEnemyHitUI(bool isHeadshot = false);
 	void NotifyEnemyKillUI(bool isHeadshot = false);
+
+	bool GetWeaponSlotHUD(WeaponSlot::HudSnapshot& out) const;
 
 public:	// ---- FSMから呼ばれる最小API（PlayerAPIがここを呼ぶ）----
 

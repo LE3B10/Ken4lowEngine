@@ -232,6 +232,24 @@ void Player::Update(float deltaTime)
 	// View：カメラ角度を先に更新（＝移動方向の基準になる）
 	view_.BindBodyTransform(tr);
 	view_.SetAiming(inputSnap_.aimHeld);
+
+	float adsFovDeg = 60.0f; // 仮のADS時FOV。将来武器ごとに変えたい場合は WeaponData に入れて weapon_ から取る。
+	float adsSpeed = 10.0f; // 仮のADS時FOV変化速度。将来武器ごとに変えたい場合は WeaponData に入れて weapon_ から取る。
+	if (weapon_.GetCurrentAdsViewTuning(adsFovDeg, adsSpeed))
+	{
+		view_.SetWeaponAdsTuning(adsFovDeg, adsSpeed);
+	}
+
+	float adsMoveMul = 0.85f; // fallback（WeaponMasterDataのデフォルトに寄せる）
+	if (weapon_.GetCurrentAdsMoveMultiplier(adsMoveMul))
+	{
+		motor_.SetAdsMoveMultiplier(adsMoveMul);
+	}
+	else
+	{
+		motor_.SetAdsMoveMultiplier(adsMoveMul);
+	}
+
 	view_.UpdateLook(deltaTime, inputSnap_);
 
 	// FSM更新（SetMoveInputなどが呼ばれる）
@@ -462,6 +480,24 @@ void Player::NotifyEnemyHitUI(bool isHeadshot)
 void Player::NotifyEnemyKillUI(bool isHeadshot)
 {
 	if (hudManager_) hudManager_->NotifyEnemyKill(isHeadshot);
+}
+
+bool Player::GetWeaponSlotHUD(WeaponSlot::HudSnapshot& out) const
+{
+	out = {};
+
+	out.selectedIndex = weapon_.GetSelectedHot_barIndex();
+
+	for (int i = 0; i < WeaponSlot::kSlotCount; ++i)
+	{
+		const auto view = weapon_.GetAmmoViewByHot_barIndex(i);
+
+		out.slotStates[i].useAmmo = view.usesAmmo;
+		out.slotStates[i].ammoInfo.currentAmmo = view.mag;
+		out.slotStates[i].ammoInfo.reserveAmmo = view.reserve;
+	}
+
+	return true;
 }
 
 void Player::FSM_FireOnce()

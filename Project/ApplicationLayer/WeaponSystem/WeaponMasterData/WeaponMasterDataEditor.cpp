@@ -558,10 +558,35 @@ void WeaponMasterDataEditor::DrawCoreData(FWeaponMasterData* data, WeaponEditorH
 		edited = true;
 		categoryChanged = true;
 
-		// 使い勝手向上 : 近接にしたら近接データを自動作成
-		if (data->coreData.category == EWeaponCategory::Melee || !data->meleeData.has_value())
+		// 近接にした時だけ meleeData を作る
+		if (data->coreData.category == EWeaponCategory::Melee)
 		{
-			data->meleeData = FMeleeWeaponData{};
+			if (!data->meleeData.has_value())
+			{
+				data->meleeData = FMeleeWeaponData{};
+			}
+
+			// 近接向けの最低限の整合性（任意だけどおすすめ）
+			data->stats.ammoType = EAmmoType::None;
+			data->stats.capacity = 0;
+			data->stats.maxReserveAmmo = 0;
+
+			// 近接では projectileData は使わない想定
+			data->projectileData.reset();
+		}
+		else
+		{
+			// 近接以外に切り替えたら meleeData を消す
+			if (data->meleeData.has_value())
+			{
+				data->meleeData.reset();
+			}
+
+			// 射撃武器なのに None になっていたら戻す
+			if (data->stats.ammoType == EAmmoType::None)
+			{
+				data->stats.ammoType = EAmmoType::Default;
+			}
 		}
 	}
 
@@ -726,7 +751,7 @@ void WeaponMasterDataEditor::DrawStats(FWeaponMasterData* data, WeaponEditorHook
 		data->stats.ammoType = (EAmmoType)ammo;
 		edited = true;
 	}
-
+	
 	ImGui::SeparatorText("リロード・弾数");
 	edited |= ImGui::DragFloat("リロード時間(共通)", &data->stats.reloadTime, 0.01f, 0.0f, 60.0f);
 	edited |= ImGui::DragFloat("タクティカルリロード", &data->stats.tacticalReloadTime, 0.01f, 0.0f, 60.0f);
@@ -1731,6 +1756,26 @@ void WeaponMasterDataEditor::DrawMeleeData(FWeaponMasterData* data, WeaponEditor
 
 	FMeleeWeaponData& m = *data->meleeData;
 	bool edited = false;
+
+	edited |= ImGui::DragFloat("ダメージ", &data->stats.damage, 0.1f, 0.0f, 100000.0f);
+
+	// 近接は減衰を使わないなら最小ダメージを同値にしておくと分かりやすい
+	edited |= ImGui::DragFloat("最小ダメージ", &data->stats.minDamage, 0.1f, 0.0f, 100000.0f);
+
+	// 部位倍率（近接でも使うなら表示）
+	edited |= ImGui::DragFloat("ヘッド倍率", &data->stats.headshotMultiplier, 0.01f, 0.0f, 10.0f);
+	edited |= ImGui::DragFloat("胴体倍率", &data->stats.bodyMultiplier, 0.01f, 0.0f, 10.0f);
+	edited |= ImGui::DragFloat("腕倍率", &data->stats.armMultiplier, 0.01f, 0.0f, 10.0f);
+	edited |= ImGui::DragFloat("脚倍率", &data->stats.legMultiplier, 0.01f, 0.0f, 10.0f);
+
+	// チャージON時の見た目用プレビュー（任意）
+	if (m.bCanCharge)
+	{
+		const float chargedPreview = data->stats.damage * m.chargeDamageMultiplier;
+		ImGui::Text("最大チャージ時ダメージ(目安): %.1f", chargedPreview);
+	}
+
+	ImGui::Spacing();
 
 	ImGui::SeparatorText("攻撃範囲・判定");
 	edited |= ImGui::DragFloat("攻撃範囲", &m.attackRange, 0.01f, 0.0f, 100.0f);

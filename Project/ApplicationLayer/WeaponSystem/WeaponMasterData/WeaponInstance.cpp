@@ -239,7 +239,7 @@ void WeaponInstance::TryFire(bool fireHeld, bool firePressed,
 
 	ConsumeAmmo();
 
-	// ✅ spreadIncrease / maxSpread を使う
+	// spreadIncrease / maxSpread を使う
 	const float baseSpread = GetBaseSpreadDeg();
 	const float maxDynamic = std::max(0.0f, params_.maxSpreadDeg - baseSpread);
 	st_.spread = std::min(maxDynamic, st_.spread + std::max(0.0f, params_.spreadIncrease));
@@ -278,11 +278,11 @@ void WeaponInstance::FireShot(K4E::Camera* cam, BulletManager* bulletMgr, Collis
 
 	origin = Vector3::Add(origin, Vector3::Multiply(fwd, params_.muzzleForwardOffset));
 
-	// ✅ accuracyベースの仮計算ではなく、MasterDataの spread値を使う
+	// accuracyベースの仮計算ではなく、MasterDataの spread値を使う
 	const float baseSpreadDeg = GetBaseSpreadDeg();
 	const float totalSpreadDeg = std::min(params_.maxSpreadDeg, baseSpreadDeg + st_.spread);
 
-	// ✅ ペレット数対応（M4A1は1発なのでそのまま1回）
+	// ペレット数対応（M4A1は1発なのでそのまま1回）
 	const int pelletCount = std::max(1, params_.pelletCount);
 	const float pelletExtraSpread = std::max(0.0f, params_.pelletSpreadAngle);
 

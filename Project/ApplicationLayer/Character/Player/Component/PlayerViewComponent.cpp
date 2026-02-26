@@ -112,31 +112,74 @@ void PlayerViewComponent::SetFirstPersonView(bool enabled)
 
 void PlayerViewComponent::UpdateMovementFov(float deltaTime, bool isRunning, bool isDashing, bool dashJustStarted)
 {
-	// 一人称だけに効かせる（必要なら外してOK）
+	// 一人称だけに効かせる
 	if (fpsCamera_.GetViewMode() != K4E::FpsCamera::ViewMode::FirstPerson) return;
 
+	// カメラ取得（fovHooks優先、なければfpsCamera）
 	auto* cam = fpsCamera_.GetCamera();
 	if (!cam) return;
 
-	// ここで取得するFOVは「UpdateLook() が設定した ADS補間済みFOV」
-	const float baseDeg = RadToDeg(cam->GetFovY());
+	auto getFovRad = [&]() -> float
+		{
+			if (fovHooks_.GetFov) return fovHooks_.GetFov();
+			return cam->GetFovY();
+		};
 
-	// ブレンド
+	auto setFovRad = [&](float fovRad)
+		{
+			if (fovHooks_.SetFov) fovHooks_.SetFov(fovRad);
+			else cam->SetFovY(fovRad);
+		};
+
+	// 現在FOV（度）
+	const float currentDeg = RadToDeg(getFovRad());
+
+	// 腰だめ基準FOVを初回だけキャプチャ
+	if (!hipBaseFovCaptured_)
+	{
+		hipBaseFovDeg_ = std::clamp(currentDeg, minFovDeg_, maxFovDeg_);
+		hipBaseFovCaptured_ = true;
+	}
+
+	// ADSしていない & 走行/ダッシュ演出が乗っていない時は、
+	// 外部変更（デバッグ等）を腰だめ基準として取り直せるようにする
+	const bool noMoveFovEffect =
+		(std::abs(runAlpha_) < 0.0001f) &&
+		(std::abs(dashAlpha_) < 0.0001f) &&
+		(std::abs(dashKick_) < 0.0001f);
+
+	if (!isAiming_ && noMoveFovEffect)
+	{
+		hipBaseFovDeg_ = std::clamp(currentDeg, minFovDeg_, maxFovDeg_);
+	}
+
+	// ---- 武器ADS FOVの補間（武器データの速度を使う）----
+	const float adsTarget = isAiming_ ? 1.0f : 0.0f;
+	const float adsSpeed = std::max(0.01f, weaponAdsTransitionSpeed_);
+	adsFovAlpha_ = Approach(adsFovAlpha_, adsTarget, adsSpeed, deltaTime);
+
+	// 腰だめFOV -> 武器ADS FOVへ補間
+	const float adsBaseDeg =
+		hipBaseFovDeg_ + (weaponAdsFovDeg_ - hipBaseFovDeg_) * adsFovAlpha_;
+
+	// ---- 走行/ダッシュFOV演出（ADS中は弱める）----
 	runAlpha_ = Approach(runAlpha_, isRunning ? 1.0f : 0.0f, isRunning ? runInSpeed_ : runOutSpeed_, deltaTime);
 	dashAlpha_ = Approach(dashAlpha_, isDashing ? 1.0f : 0.0f, isDashing ? dashInSpeed_ : dashOutSpeed_, deltaTime);
 
 	if (dashJustStarted) dashKick_ = 1.0f;
 	dashKick_ = Approach(dashKick_, 0.0f, dashKickOutSpeed_, deltaTime);
 
-	// ADS中は弱める（FpsCameraは aimAlpha を公開してる）
-	const float aimAlpha = fpsCamera_.GetAimAlpha(); // 0..1
-	float scale = 1.0f - aimAlpha * adsSuppress_;
-	scale = std::clamp(scale, 0.0f, 1.0f);
+	float suppressScale = 1.0f - adsFovAlpha_ * adsSuppress_;
+	suppressScale = std::clamp(suppressScale, 0.0f, 1.0f);
 
-	float addDeg = (runAlpha_ * runFovAddDeg_ + dashAlpha_ * dashFovAddDeg_ + dashKick_ * dashKickAddDeg_) * scale;
+	const float moveAddDeg =
+		(runAlpha_ * runFovAddDeg_ +
+			dashAlpha_ * dashFovAddDeg_ +
+			dashKick_ * dashKickAddDeg_) * suppressScale;
 
-	float outDeg = std::clamp(baseDeg + addDeg, minFovDeg_, maxFovDeg_);
-	cam->SetFovY(DegToRad(outDeg));
+	const float outDeg = std::clamp(adsBaseDeg + moveAddDeg, minFovDeg_, maxFovDeg_);
+
+	setFovRad(DegToRad(outDeg));
 }
 
 void PlayerViewComponent::AddRecoil(float verticalDeg, float horizontalDeg)
@@ -161,6 +204,12 @@ void PlayerViewComponent::AddRecoil(float verticalDeg, float horizontalDeg)
 	vmKickRoll_ = std::clamp(vmKickRoll_, -DegToRad(vmKickMaxRollDeg_), DegToRad(vmKickMaxRollDeg_));
 	vmKickBack_ = std::clamp(vmKickBack_, 0.0f, vmKickMaxBack_);
 	vmKickUp_ = std::clamp(vmKickUp_, 0.0f, vmKickMaxUp_);
+}
+
+void PlayerViewComponent::SetWeaponAdsTuning(float adsFovDeg, float adsTransitionSpeed)
+{
+	weaponAdsFovDeg_ = std::clamp(adsFovDeg, 1.0f, 179.0f);
+	weaponAdsTransitionSpeed_ = std::max(0.01f, adsTransitionSpeed);
 }
 
 void PlayerViewComponent::ApplyFirstPersonRenderFlags()

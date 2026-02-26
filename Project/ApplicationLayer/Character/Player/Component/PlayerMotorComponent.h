@@ -54,6 +54,8 @@ public: /// ---------- パブリックメンバ関数 ---------- ///
 	float GetSpeedXZ_Debug() const { return dbgSpeedXZ_; }
 	float GetSpeedY_Debug()  const { return dbgSpeedY_; }
 
+	void SetAdsMoveMultiplier(float mul) { adsMoveMul_ = (mul < 0.0f) ? 0.0f : mul; }
+
 private: /// ---------- プライベートメンバ関数 ---------- ///
 
 	// 地面クエリから groundY_ と groundNormal_ を更新する

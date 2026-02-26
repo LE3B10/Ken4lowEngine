@@ -18,6 +18,15 @@ struct InputSnapshot;
 /// ---------------------------------------------------------------
 class PlayerWeaponComponent
 {
+private: /// ---------- 構造体 ---------- ///
+
+	struct AmmoView
+	{
+		bool usesAmmo = false;
+		int mag = 0;
+		int reserve = 0;
+	};
+
 public: /// ---------- メンバ関数 ---------- ///
 
 	// コンストラクタ
@@ -76,12 +85,21 @@ public: /// ---------- メンバ関数 ---------- ///
 
 	bool GetReticleUI(FWeaponReticleData& outReticle, float& outSpread, bool& outIsADS) const;
 
+	int GetSelectedHot_barIndex() const;
+	AmmoView GetAmmoViewByHot_barIndex(int hotbarIndex) const;
+
+	bool GetCurrentAdsViewTuning(float& outAdsFovDeg, float& outAdsTransitionSpeed) const;
+	bool GetCurrentAdsMoveMultiplier(float& outAdsMoveMul) const;
+
 private: /// ---------- メンバ関数 ---------- ///
 
 	void TickWeapon(float dt);
 	void SwitchWeaponByDelta(int delta);
 	void SwitchWeaponCategory(EWeaponCategory category);
 	void ApplyMeleeInputRemap(InputSnapshot& snapshot);
+
+	void BuildInitialAmmoViewCacheFromMasterData();
+	void UpdateSelectedAmmoViewCache() const;
 
 private: /// ---------- メンバ変数 ---------- ///
 
@@ -95,5 +113,9 @@ private: /// ---------- メンバ変数 ---------- ///
 	int32_t currentWeaponId_ = 0;
 	std::array<int32_t, 6> lastWeaponIdByCategory_{}; // category index -> last equipped id
 	bool lastAimHeld_ = false;
+
+	// HUD表示用：スロットごとの弾薬表示キャッシュ
+	mutable std::array<AmmoView, 6> ammoViewCache_{};
+	mutable std::array<bool, 6> ammoViewCacheValid_{};
 };
 

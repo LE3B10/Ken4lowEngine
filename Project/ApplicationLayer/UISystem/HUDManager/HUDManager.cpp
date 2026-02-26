@@ -20,10 +20,42 @@ void HUDManager::Initialize()
 	hpWidget_ = std::make_unique<HPWidget>();
 	hpWidget_->Initialize();
 	// 位置やサイズは好みで調整OK
-	hpWidget_->SetAnchorTopLeft({ 20.0f, 20.0f });
+	hpWidget_->SetAnchorTopLeft({ 20.0f, 360.0f });
 	hpWidget_->SetIconSize({ 22.0f, 22.0f });
 	hpWidget_->SetPadding(6.0f);
 	hpWidget_->SetHpPerHeart(10.0f); // 1ハート=10HP（必要なら変更）
+
+	// 武器スロットHUDの初期化
+	weaponSlot_ = std::make_unique<WeaponSlot>();
+
+	weaponSlot_ = std::make_unique<WeaponSlot>();
+	weaponSlot_->Initialize("slot_frame.png", "slot_frame_selected.png");
+	weaponSlot_->InitializeSlotNumbers("numbers02.png", 50.0f, 50.0f, { 8.0f, 8.0f }, 2.0f, 32, 32);
+
+	// キューブアイコン
+	// 武器カテゴリ別アイコン（スロット0..5）
+	const std::array<std::string, WeaponSlot::kSlotCount> weaponIcons = {
+		"icon/primary_icon.png",
+		"icon/backup_icon.png",
+		"icon/melee_icon.png",
+		"icon/special_icon.png",
+		"icon/sniper_icon.png",
+		"icon/heavy_icon.png"
+	};
+	weaponSlot_->InitializeIcons(weaponIcons);
+
+	weaponSlot_->InitializeAmmoDelimiter(
+		"icon/slash_icon.png",
+		{ 20.0f, 20.0f },   // 数字が20x20ならこれがちょうど良い
+		{ 0.0f, 0.0f }      // 微調整したいならここでオフセット
+	);
+
+	// 弾薬表示初期化
+	weaponSlot_->InitializeAmmoNumbers("Number.png",
+		50, 50,
+		{ 10, 10 },
+		-5.0f,   // spacingは小さく
+		20.0f, 20.0f); // drawサイズ
 }
 
 /// -------------------------------------------------------------
@@ -123,6 +155,17 @@ void HUDManager::Update()
 	if (hpWidget_) hpWidget_->Update();
 	if (reloadCircle_) reloadCircle_->Update();
 	if (crosshair_) crosshair_->Update();
+
+
+	// ---------- 武器スロットHUD ----------
+	if (weaponSlot_ && player_)
+	{
+		WeaponSlot::HudSnapshot snap{};
+		if (player_->GetWeaponSlotHUD(snap))
+		{
+			weaponSlot_->Update(snap);
+		}
+	}
 }
 
 /// -------------------------------------------------------------
@@ -133,6 +176,7 @@ void HUDManager::Draw()
 	if (hpWidget_ && hpWidget_->IsVisible()) hpWidget_->Draw();
 	if (reloadCircle_ && reloadCircle_->IsVisible()) reloadCircle_->Draw();
 	if (crosshair_ && crosshair_->IsVisible()) crosshair_->Draw();
+	if (weaponSlot_) weaponSlot_->Draw();
 }
 
 void HUDManager::SetHP(float hp, float maxHp)

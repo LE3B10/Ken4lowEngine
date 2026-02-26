@@ -1,8 +1,8 @@
 #pragma once
 #include "ReloadCircle.h"
 #include "Crosshair.h"
-
 #include "HPWidget.h"
+#include "WeaponSlot.h"
 
 #include <memory>
 
@@ -46,10 +46,15 @@ public: /// ---------- セッタ ---------- ///
 	void SetReloadCircleVisible(bool v) { if (reloadCircle_) reloadCircle_->SetVisible(v); }
 	void SetHPVisible(bool v) { if (hpWidget_) hpWidget_->SetVisible(v); }
 
+	// WeaponSlot のHUDスナップショットを受け取る（HUD側でWeaponSlotの状態を参照して描画するため）
+	void SetWeaponSlotSnapshot(const WeaponSlot::HudSnapshot& snapshot) { weaponSlotSnapshot_ = snapshot; }
+
 public: /// ---------- ゲッタ ---------- ///
+
 	ReloadCircle* GetReloadCircle() const { return reloadCircle_.get(); }
 	Crosshair* GetCrosshair() const { return crosshair_.get(); }
 	HPWidget* GetHPWidget() const { return hpWidget_.get(); }
+	WeaponSlot* GetWeaponSlot() const { return weaponSlot_.get(); }
 
 private: /// ---------- メンバ変数 ---------- ///
 
@@ -58,6 +63,9 @@ private: /// ---------- メンバ変数 ---------- ///
 	std::unique_ptr<ReloadCircle> reloadCircle_; // リロード円
 	std::unique_ptr<Crosshair> crosshair_; // 十字照準
 	std::unique_ptr<HPWidget> hpWidget_; // HPウィジェット
+
+	std::unique_ptr<WeaponSlot> weaponSlot_; // 武器スロット
+	WeaponSlot::HudSnapshot weaponSlotSnapshot_{};    // 外部から受け取る表示用データ
 
 	bool reloadTimerIsRemaining_ = true; // リロードタイマーが「残り時間」か「経過時間」かのフラグ
 	bool prevReloading_ = false; // 前フレームのリロード状態（HUDの更新に使う）

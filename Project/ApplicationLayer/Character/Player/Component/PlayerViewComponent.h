@@ -89,7 +89,10 @@ public: /// ---------- メンバ関数 ---------- ///
 	// Debug UI
 	void DrawImGui() { fpsCamera_.DrawImGui(); }
 
+	void SetWeaponAdsTuning(float adsFovDeg, float adsTransitionSpeed);
+
 private:
+
 	void ApplyFirstPersonRenderFlags();
 	void UpdateFirstPersonArmPose(float dt);
 	void UpdateRecoilViewModelKick(float dt);
@@ -187,4 +190,13 @@ private: /// ---------- メンバ変数 ---------- ///
 	float vmKickMaxRollDeg_ = 10.0f;
 	float vmKickMaxBack_ = 0.08f;
 	float vmKickMaxUp_ = 0.04f;
+
+	// ---- ADS（Aim Down Sights） ----
+	float weaponAdsFovDeg_ = 60.0f;
+	float weaponAdsTransitionSpeed_ = 10.0f;
+
+	// ---- ADS FOV合成用 ----
+	float hipBaseFovDeg_ = 60.0f;     // 腰だめ基準FOV（度）
+	bool  hipBaseFovCaptured_ = false; // 初回だけ現在FOVを基準として拾う
+	float adsFovAlpha_ = 0.0f;         // 武器ADS FOV用の補間(0..1)
 };
