@@ -36,6 +36,13 @@ struct HurtboxTuning
 	bool enabled = true;
 };
 
+struct FallDamageSettings
+{
+	bool  enabled = true;
+	float startY = -50.0f;          // ここを -n にする
+	float damagePerSecond = 20.0f;  // 1秒あたりダメージ
+};
+
 /// -------------------------------------------------------------
 ///					　プレイヤークラス
 /// -------------------------------------------------------------
@@ -108,6 +115,14 @@ public: /// ---------- メンバ関数 ---------- ///
 
 	bool GetWeaponSlotHUD(WeaponSlot::HudSnapshot& out) const;
 
+	void SetSpawnPosition(const K4E::Vector3& worldPos);
+	void SetSpawnOffset(const K4E::Vector3& offset);
+
+	void SetStageWorldAABBs(const std::vector<K4E::AABB>* aabbs) { motor_.SetWorldAABBs(aabbs); }
+	void SetWorldCollisionSettings(const K4E::WorldCollisionSettings& s) { motor_.SetWorldCollisionSettings(s); }
+
+	void SetFallDamageSettings(const FallDamageSettings& s) { fallDamageSettings_ = s; }
+
 public:	// ---- FSMから呼ばれる最小API（PlayerAPIがここを呼ぶ）----
 
 	bool FSM_IsGrounded() const { return motor_.IsGrounded(); }
@@ -142,6 +157,8 @@ private: /// ---------- メンバ関数 ---------- ///
 	void TickRecentBulletHits(float dt);
 	bool IsRecentBulletHit(uint32_t id) const { return recentBulletHits_.find(id) != recentBulletHits_.end(); }
 	void MarkRecentBulletHit(uint32_t id);
+
+	void ApplyFallDamage(float deltaTime);
 
 private: /// ----------メンバ変数 ---------- ///
 
@@ -195,5 +212,13 @@ private: /// ----------メンバ変数 ---------- ///
 	// 弾IDの最近ヒット管理（TTLで掃除）
 	std::unordered_map<uint32_t, float> recentBulletHits_;
 	float recentBulletHitTTL_ = 0.25f;
+
+	// ---- Spawn tuning ----
+	K4E::Vector3 spawnPos_{ 0,0,0 };
+	bool hasSpawnPos_ = false;
+	K4E::Vector3 spawnOffset_{ 0,0,0 };
+
+	FallDamageSettings fallDamageSettings_{};
+
 };
 

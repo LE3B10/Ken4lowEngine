@@ -59,9 +59,9 @@ void GamePlayScene::Initialize()
 	ctx.bulletManager_ = bulletManager_.get();
 	characters_.Initialize(ctx);
 
-	characters_.SpawnEnemy(EnemyArchetype::RifleGrunt, { -12.0f, 0.0f, 30.0f });
-	characters_.SpawnEnemy(EnemyArchetype::SMGFlanker, { 12.0f, 0.0f, 25.0f });
-	characters_.SpawnEnemy(EnemyArchetype::Sniper, { 0.0f, 0.0f, 40.0f });
+	characters_.SpawnEnemy(EnemyArchetype::RifleGrunt, { -12.0f, 2.0f, 30.0f });
+	characters_.SpawnEnemy(EnemyArchetype::SMGFlanker, { 12.0f, 2.0f, 25.0f });
+	characters_.SpawnEnemy(EnemyArchetype::Sniper, { 0.0f, 25.0f, 35.0f });
 
 	hudManager_ = std::make_unique<HUDManager>();
 	hudManager_->SetPlayer(characters_.GetPlayer());
@@ -75,6 +75,16 @@ void GamePlayScene::Initialize()
 	stage_->Initialize("stages/fps_stage00.json", "fps_stage00.gltf");
 	stage_->RegisterColliders(collisionManager_.get());
 
+	EnemyBase::SetGlobalStageWorldAABBs(&stage_->GetWorldAABBs());
+
+	auto player = characters_.GetPlayer();
+	player->SetStageWorldAABBs(&stage_->GetWorldAABBs());
+
+	// Playerの衝突サイズを設定
+	WorldCollisionSettings playerCollisionSettings{};
+	playerCollisionSettings.half = { 0.5f, 1.0f, 0.5f }; // プレイヤーの半サイズ
+	playerCollisionSettings.centerOffset = { 0.0f, 1.0f, 0.0f };			 // プレイヤーの見た目座標と物理中心の差
+	player->SetWorldCollisionSettings(playerCollisionSettings);
 }
 
 /// -------------------------------------------------------------
@@ -116,9 +126,9 @@ void GamePlayScene::Update()
 	// エネミーが全滅したら次のウェーブをスポーン
 	if (characters_.GetEnemyCount() == 0)
 	{
-		characters_.SpawnEnemy(EnemyArchetype::RifleGrunt, { -12.0f, 0.0f, 30.0f });
-		characters_.SpawnEnemy(EnemyArchetype::SMGFlanker, { 12.0f, 0.0f, 25.0f });
-		characters_.SpawnEnemy(EnemyArchetype::Sniper, { 0.0f, 0.0f, 40.0f });
+		characters_.SpawnEnemy(EnemyArchetype::RifleGrunt, { -12.0f, 2.0f, 30.0f });
+		characters_.SpawnEnemy(EnemyArchetype::SMGFlanker, { 12.0f, 2.0f, 25.0f });
+		characters_.SpawnEnemy(EnemyArchetype::Sniper, { 0.0f, 25.0f, 35.0f });
 	}
 
 	// デルタタイムの取得

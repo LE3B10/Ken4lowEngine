@@ -4,10 +4,18 @@
 #include <algorithm>
 #include <cmath>
 
+using namespace Ken4lowEngine;
+
 bool PlayerMotorComponent::IsGrounded() const
 {
 	if (!tr_) return true;
-	return (tr_->translate_.y <= groundY_ + groundSnapEpsilon_) && (verticalVel_ <= 0.05f);
+
+	// groundQuery を使う場合だけ groundY_ 判定も有効
+	const bool byQuery = (bool)groundQuery_
+		&& (tr_->translate_.y <= groundY_ + groundSnapEpsilon_)
+		&& (verticalVel_ <= 0.05f);
+
+	return grounded_ || byQuery;
 }
 
 void PlayerMotorComponent::UpdateGroundFromQuery()
@@ -118,6 +126,11 @@ void PlayerMotorComponent::Simulate(float dt, float cameraYawRad, LocoId locoId,
 {
 	if (!tr_) return;
 
+	grounded_ = false;
+
+	// プレイヤーの位置を dt 秒だけ進めるときの処理。
+	const Vector3 oldPosition = tr_->translate_;
+
 	if (dashTimer_ > 0.0f)
 	{
 		dashTimer_ -= dt;
@@ -221,10 +234,30 @@ void PlayerMotorComponent::Simulate(float dt, float cameraYawRad, LocoId locoId,
 	verticalVel_ -= gravity_ * dt;
 	tr_->translate_.y += verticalVel_ * dt;
 
-	if (tr_->translate_.y <= groundY_ + groundSnapEpsilon_)
+	/// ---------- 押し出し処理 ---------- ///
+	if (worldAABBs_ && !worldAABBs_->empty())
 	{
-		tr_->translate_.y = groundY_;
-		verticalVel_ = 0.0f;
+		float vy = verticalVel_;
+
+		const auto result = WorldCollisionResolver::Resolve(
+			*worldAABBs_,
+			worldCollisionSettings_,
+			oldPosition,
+			tr_->translate_,
+			true, // grounded判定を考慮
+			&vy   // ジャンプ速度の修正を受け取る
+		);
+
+		// 衝突解決後の位置を適用
+		verticalVel_ = vy;
+
+		tr_->translate_ = result.fixedCenter + worldCollisionSettings_.centerOffset;
+		grounded_ = result.grounded;
+
+		if (result.grounded)
+		{
+			groundY_ = tr_->translate_.y;
+		}
 	}
 
 	// ---- Debug speed ----

@@ -63,7 +63,7 @@
         "projectileDrag": 0.0,
         "projectileLifeTime": 1.100000023841858,
         "projectileRadius": 0.019999999552965164,
-        "projectileSpeed": 240.0,
+        "projectileSpeed": 480.0,
         "ricochetCount": 0,
         "spawnForwardOffset": 0.30000001192092896,
         "splashRadius": 0.0,

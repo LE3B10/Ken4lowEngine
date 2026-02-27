@@ -177,7 +177,9 @@ void PlayerViewComponent::UpdateMovementFov(float deltaTime, bool isRunning, boo
 			dashAlpha_ * dashFovAddDeg_ +
 			dashKick_ * dashKickAddDeg_) * suppressScale;
 
-	const float outDeg = std::clamp(adsBaseDeg + moveAddDeg, minFovDeg_, maxFovDeg_);
+	dmgFovKickDeg_ = Approach(dmgFovKickDeg_, 0.0f, dmgFovReturnSpeed_, deltaTime);
+
+	const float outDeg = std::clamp(adsBaseDeg + moveAddDeg + dmgFovKickDeg_, minFovDeg_, maxFovDeg_);
 
 	setFovRad(DegToRad(outDeg));
 }
@@ -210,6 +212,35 @@ void PlayerViewComponent::SetWeaponAdsTuning(float adsFovDeg, float adsTransitio
 {
 	weaponAdsFovDeg_ = std::clamp(adsFovDeg, 1.0f, 179.0f);
 	weaponAdsTransitionSpeed_ = std::max(0.01f, adsTransitionSpeed);
+}
+
+void PlayerViewComponent::AddDamageFeedback(float strength01)
+{
+	strength01 = Clamp01(strength01);
+	if (strength01 <= 0.0f) return;
+
+	// 左右に交互に振る（一定のランダムっぽさ）
+	const float sideSign = dmgFlip_ ? 1.0f : -1.0f;
+	dmgFlip_ = !dmgFlip_;
+
+	// 1) カメラ（照準）をガクッとさせる：被弾の手応え
+	// ※向きが逆に感じるなら pitch の符号を反転してOK
+	fpsCamera_.AddRecoil(DegToRad(dmgCamPitchDeg_ * strength01),
+		DegToRad(dmgCamYawDeg_ * strength01) * sideSign);
+
+	// 2) FOVを一瞬だけ広げる（衝撃感）
+	dmgFovKickDeg_ = std::clamp(dmgFovKickDeg_ + dmgFovKickAddDeg_ * strength01,
+		0.0f, dmgFovKickMaxDeg_);
+
+	// 3) 見た目（腕/武器）も少しだけ“ビクッ”（任意）
+	vmKickRoll_ += DegToRad((dmgCamYawDeg_ * 0.90f) * strength01) * sideSign;
+	vmKickBack_ += 0.020f * strength01;
+	vmKickUp_ += 0.008f * strength01;
+
+	// Clamp（暴れすぎ防止）
+	vmKickRoll_ = std::clamp(vmKickRoll_, -DegToRad(vmKickMaxRollDeg_), DegToRad(vmKickMaxRollDeg_));
+	vmKickBack_ = std::clamp(vmKickBack_, 0.0f, vmKickMaxBack_);
+	vmKickUp_ = std::clamp(vmKickUp_, 0.0f, vmKickMaxUp_);
 }
 
 void PlayerViewComponent::ApplyFirstPersonRenderFlags()

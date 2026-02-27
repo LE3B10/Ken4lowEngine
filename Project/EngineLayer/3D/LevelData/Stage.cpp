@@ -53,9 +53,9 @@ void Ken4lowEngine::Stage::Initialize(const std::string& levelJsonPath, const st
 
 		// ローカル →ワールド（スケール反映）
 		const Vector3 centerW = {
-			data.position.x + data.collider.center.x * data.scale.x,
-			data.position.y + data.collider.center.y * data.scale.y,
-			data.position.z + data.collider.center.z * data.scale.z,
+			data.position.x + data.collider.center.x * data.scale.x + offset.x,
+			data.position.y + data.collider.center.y * data.scale.y + offset.y,
+			data.position.z + data.collider.center.z * data.scale.z + offset.z
 		};
 
 		// size(フルサイズ) → half(半サイズ)
@@ -76,7 +76,7 @@ void Ken4lowEngine::Stage::Initialize(const std::string& levelJsonPath, const st
 		Collider* raw = up.get(); // 先に生ポインタを保持
 
 		raw->SetTypeID(static_cast<uint32_t>(CollisionTypeIdDef::kWorld));
-		raw->SetCenterPosition(centerW + offset);
+		raw->SetCenterPosition(centerW);
 		raw->SetOBBHalfSize(halfW);
 		// owner_ が欲しければ raw->SetOwner(this); などしても良い
 

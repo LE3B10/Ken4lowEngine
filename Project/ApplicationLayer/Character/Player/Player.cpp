@@ -46,6 +46,24 @@ void Player::Initialize()
 	// ベースキャラクター初期化
 	BaseCharacter::Initialize();
 
+	// ---- 初期スポーン位置（座標オフセット） ----
+	{
+		auto* tr = GetWorldTransform();
+		if (tr)
+		{
+			const bool hasOffset =
+				(spawnOffset_.x != 0.0f) || (spawnOffset_.y != 0.0f) || (spawnOffset_.z != 0.0f);
+
+			if (hasSpawnPos_ || hasOffset)
+			{
+				if (hasSpawnPos_) tr->translate_ = spawnPos_ + spawnOffset_;
+				else              tr->translate_ = tr->translate_ + spawnOffset_;
+
+				SetCenterPosition(tr->translate_);
+			}
+		}
+	}
+
 	// 入力取得
 	input_ = K4E::Input::GetInstance();
 
@@ -311,6 +329,8 @@ void Player::Update(float deltaTime)
 
 	SyncHurtboxes();
 	vfx_.Update(deltaTime);
+
+	ApplyFallDamage(deltaTime);
 }
 
 
@@ -500,6 +520,31 @@ bool Player::GetWeaponSlotHUD(WeaponSlot::HudSnapshot& out) const
 	return true;
 }
 
+void Player::SetSpawnPosition(const K4E::Vector3& worldPos)
+{
+	spawnPos_ = worldPos;
+	hasSpawnPos_ = true;
+	if (auto* tr = GetWorldTransform())
+	{
+		tr->translate_ = spawnPos_ + spawnOffset_;
+		SetCenterPosition(tr->translate_);
+	}
+}
+
+void Player::SetSpawnOffset(const K4E::Vector3& offset)
+{
+	const K4E::Vector3 delta = offset - spawnOffset_;
+	spawnOffset_ = offset;
+
+	if (auto* tr = GetWorldTransform())
+	{
+		if (hasSpawnPos_) tr->translate_ = spawnPos_ + spawnOffset_;
+		else              tr->translate_ += delta;
+
+		SetCenterPosition(tr->translate_);
+	}
+}
+
 void Player::FSM_FireOnce()
 {
 	// NOTE: CombatFSM から呼ばれる発射処理は「必ずここ」を通す
@@ -546,6 +591,24 @@ void Player::MarkRecentBulletHit(uint32_t id)
 	// 念のため上限。極端にIDが増える状況でも肥大化しないようにする。
 	if (recentBulletHits_.size() > 256) recentBulletHits_.clear();
 	recentBulletHits_[id] = recentBulletHitTTL_;
+}
+
+void Player::ApplyFallDamage(float deltaTime)
+{
+	if (!fallDamageSettings_.enabled) return;
+
+	auto* tr = GetWorldTransform();
+	if (!tr) return;
+
+	if (tr->translate_.y <= fallDamageSettings_.startY)
+	{
+		const float dmg = fallDamageSettings_.damagePerSecond * deltaTime;
+
+		// ここはあなたのHP/ダメージ関数名に合わせて置き換え
+		// 例: TakeDamage(dmg);
+		// 例: hp_ -= dmg;
+		hp_ -= dmg;
+	}
 }
 
 void Player::SyncHurtboxes()

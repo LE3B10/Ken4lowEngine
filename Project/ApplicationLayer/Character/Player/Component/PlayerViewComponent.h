@@ -91,6 +91,8 @@ public: /// ---------- メンバ関数 ---------- ///
 
 	void SetWeaponAdsTuning(float adsFovDeg, float adsTransitionSpeed);
 
+	void AddDamageFeedback(float strength01);
+
 private:
 
 	void ApplyFirstPersonRenderFlags();
@@ -199,4 +201,14 @@ private: /// ---------- メンバ変数 ---------- ///
 	float hipBaseFovDeg_ = 60.0f;     // 腰だめ基準FOV（度）
 	bool  hipBaseFovCaptured_ = false; // 初回だけ現在FOVを基準として拾う
 	float adsFovAlpha_ = 0.0f;         // 武器ADS FOV用の補間(0..1)
+
+	// ---- Damage camera feedback ----
+	bool  dmgFlip_ = false;             // 左右に揺れを交互にする
+	float dmgFovKickDeg_ = 0.0f;        // 一時的に足すFOV（度）
+	float dmgFovReturnSpeed_ = 28.0f;   // 戻り速度（度/s）
+
+	float dmgCamPitchDeg_ = 2.5f;       // カメラの縦キック（度）
+	float dmgCamYawDeg_ = 1.75f;        // カメラの横キック（度）
+	float dmgFovKickAddDeg_ = 4.0f;     // 1回の被弾で増やすFOV（度）
+	float dmgFovKickMaxDeg_ = 8.0f;     // 最大（度）
 };

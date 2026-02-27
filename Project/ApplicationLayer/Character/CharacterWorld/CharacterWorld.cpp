@@ -3,6 +3,10 @@
 #include "BulletManager.h"
 #include <algorithm>
 
+#include "WorldCollisionResolver.h"
+
+using namespace Ken4lowEngine;
+
 void CharacterWorld::Initialize(GameContext& ctx)
 {
 	ctx_ = ctx;
@@ -11,6 +15,8 @@ void CharacterWorld::Initialize(GameContext& ctx)
 	player_ = std::make_unique<Player>();
 	InjectPlayerDeps(*player_);
 	player_->Initialize();
+	player_->SetSpawnPosition({ 0.0f, 10.0f, 0.0f }); // 10m上から開始（落下確認しやすい）
+	player_->SetSpawnOffset({ 5.0f, 0.0f, -10.0f });    // 右へ2mずらす
 
 	// Collider登録（PlayerはColliderとして扱われている前提：DebugSceneと同じ）
 	if (ctx_.collisionManager_)

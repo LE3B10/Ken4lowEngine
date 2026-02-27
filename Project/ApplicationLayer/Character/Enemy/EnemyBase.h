@@ -7,6 +7,9 @@
 #include "Vector3.h"
 #include "Vector4.h"
 
+#include "AABB.h"
+#include "WorldCollisionResolver.h"
+
 namespace K4E = ::Ken4lowEngine;
 
 /// -------------------------------------------------------------
@@ -72,6 +75,9 @@ public: /// ---------- HP / 物理関連のメンバ関数 ---------- ///
 	void OnCollisionStay(K4E::Collider* other) override { OnCollisionEnter(other); }
 	void OnCollisionExit(K4E::Collider* other) override { (void)other; }
 
+	// 全EnemyのAABBをまとめてセット（衝突管理クラスから呼ぶ想定）
+	static void SetGlobalStageWorldAABBs(const std::vector<K4E::AABB>* aabbs);
+
 protected: /// ---------- 被弾・死亡処理の仮想関数 ---------- ///
 
 	virtual void OnKilled();
@@ -107,4 +113,17 @@ protected:
 	float hitFlashDuration_ = 0.12f;     // 秒
 	float hitFlashFrequencyHz_ = 18.0f;  // 点滅周波数
 	bool hitFlashEnabled_ = true;
+
+	// stage AABB（nullなら global を使う）
+	const std::vector<K4E::AABB>* worldAABBs_ = nullptr;
+
+	// 押し出し用の設定（敵は centerOffset=0 前提でOK）
+	K4E::WorldCollisionSettings worldCol_{};
+	bool worldColOverride_ = false;
+
+	bool useWorldResolve_ = true;
+	bool grounded_ = false;
+
+private:
+	static const std::vector<K4E::AABB>* g_worldAABBs_;
 };

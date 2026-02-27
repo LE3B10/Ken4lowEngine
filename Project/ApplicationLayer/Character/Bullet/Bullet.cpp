@@ -111,8 +111,10 @@ void Bullet::Update(float dt)
 
 void Bullet::Draw()
 {
+#ifdef _DEBUG
 	if (removable_) return;
 	if (model_) model_->Draw(); // デバッグ用に見たいならON
+#endif
 }
 
 void Bullet::DrawImGui()

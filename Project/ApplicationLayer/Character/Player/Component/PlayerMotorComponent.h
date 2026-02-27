@@ -2,6 +2,9 @@
 #include "WorldTransformEx.h"
 #include <functional>
 
+#include "AABB.h"
+#include "WorldCollisionResolver.h"
+
 #include "PlayerStateMachines.h" // LocoId / InputSnapshot
 
 namespace K4E = ::Ken4lowEngine;
@@ -56,6 +59,9 @@ public: /// ---------- パブリックメンバ関数 ---------- ///
 
 	void SetAdsMoveMultiplier(float mul) { adsMoveMul_ = (mul < 0.0f) ? 0.0f : mul; }
 
+	void SetWorldAABBs(const std::vector<K4E::AABB>* aabbs) { worldAABBs_ = aabbs; }
+	void SetWorldCollisionSettings(const K4E::WorldCollisionSettings& s) { worldCollisionSettings_ = s; }
+
 private: /// ---------- プライベートメンバ関数 ---------- ///
 
 	// 地面クエリから groundY_ と groundNormal_ を更新する
@@ -67,6 +73,7 @@ private: /// ---------- プライベートメンバ変数 ---------- ///
 	GroundQueryFn groundQuery_{};
 
 	// ---- Ground ----
+	bool grounded_ = false;
 	float groundY_ = 0.0f;
 	K4E::Vector3 groundNormal_{ 0,1,0 };
 	float groundSnapEpsilon_ = 0.02f;
@@ -107,10 +114,10 @@ private: /// ---------- プライベートメンバ変数 ---------- ///
 	float airControl_ = 0.7f;
 
 	// ---- Speeds ----
-	float walkSpeed_ = 3.0f;
-	float runSpeed_ = 6.0f;
+	float walkSpeed_ = 5.0f;
+	float runSpeed_ = 8.0f;
 	float dashSpeed_ = 15.0f;
-	float jumpSpeed_ = 8.0f;
+	float jumpSpeed_ = 10.0f;
 	float gravity_ = 19.6f;
 
 	// ---- Debug speed ----
@@ -118,5 +125,8 @@ private: /// ---------- プライベートメンバ変数 ---------- ///
 	bool prevPosValid_ = false;
 	float dbgSpeedXZ_ = 0.0f;
 	float dbgSpeedY_ = 0.0f;
+
+	const std::vector<K4E::AABB>* worldAABBs_ = nullptr;
+	K4E::WorldCollisionSettings worldCollisionSettings_{};
 };
 

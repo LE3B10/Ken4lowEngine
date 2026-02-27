@@ -82,13 +82,13 @@ struct EnemyIdle
 	bool hasGoal = false;
 
 	// 調整値
-	float roamRadius = 6.0f;      // home周りの徘徊半径
+	float roamRadius = 18.0f;      // home周りの徘徊半径
 	float reachDist = 0.6f;      // 到着判定
-	float moveTimeMin = 1.5f;
-	float moveTimeMax = 3.5f;
+	float moveTimeMin = 0.2f;
+	float moveTimeMax = 5.0f;
 
-	float waitScanMin = 0.4f;     // 停止+索敵時間（短く）
-	float waitScanMax = 1.0f;
+	float waitScanMin = 0.2f;     // 停止+索敵時間（短く）
+	float waitScanMax = 2.0f;
 	float scanAngularSpeed = 2.0f; // 首振り速度
 	float scanLookRadius = 5.0f;   // lookAt距離
 

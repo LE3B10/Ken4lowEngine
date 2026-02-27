@@ -1,8 +1,11 @@
 #include "EnemyBase.h"
 #include <cmath>
 #include "CollisionTypeIdDef.h"
+#include <vector>
 
 using namespace Ken4lowEngine;
+
+const std::vector<Ken4lowEngine::AABB>* EnemyBase::g_worldAABBs_ = nullptr;
 
 /// -------------------------------------------------------------
 ///							初期化処理
@@ -27,6 +30,11 @@ void EnemyBase::Initialize(const Vector3& startPos, const std::string& modelPath
 	removable_ = false;
 	deadFrames_ = 0;
 	hp_ = maxHp_;
+
+	useGravity_ = true;                 // 埋まり対策に基本ON推奨（毎フレY方向のdeltaが出る）
+	worldCol_.half = obbHalf_;          // EnemyのOBB半サイズと一致
+	worldCol_.centerOffset = { 0,0,0 }; // Enemyは中心=描画座標でOK
+	worldColOverride_ = true;
 }
 
 /// -------------------------------------------------------------
@@ -64,11 +72,43 @@ void EnemyBase::Update(float dt)
 		return;
 	}
 
+	grounded_ = false;
+
+	// ---- 速度更新（重力）----
 	if (useGravity_) velocity_.y -= gravity_ * dt;
 
-	Vector3 pos = GetCenterPosition();
-	pos = pos + velocity_ * dt;
-	SetCenterPosition(pos);
+	const Vector3 oldPos = GetCenterPosition();
+	Vector3 newPos = oldPos + velocity_ * dt;
+
+	const auto* aabbs = (worldAABBs_ ? worldAABBs_ : g_worldAABBs_);
+	const auto& s = worldColOverride_ ? worldCol_ : worldCol_;
+
+	// ---- ★ 押し出し（ステージAABB）----
+	if (useWorldResolve_ && aabbs && !aabbs->empty())
+	{
+		float vy = velocity_.y;
+
+		auto res = Ken4lowEngine::WorldCollisionResolver::Resolve(
+			*aabbs,
+			s,
+			oldPos,
+			newPos,
+			true,        // groundedも取ってOK
+			&vy          // y速度を床/天井で止める
+		);
+
+		// 押し戻された軸は速度を止めて壁押しっぱなしの振動を減らす
+		const Vector3 desiredCenter = newPos - s.centerOffset; // centerOffset=0なのでnewPos
+		if (std::fabs(res.fixedCenter.x - desiredCenter.x) > 0.0001f) velocity_.x = 0.0f;
+		if (std::fabs(res.fixedCenter.z - desiredCenter.z) > 0.0001f) velocity_.z = 0.0f;
+
+		velocity_.y = vy;
+		grounded_ = res.grounded;
+
+		newPos = res.fixedCenter + s.centerOffset; // centerOffset=0
+	}
+
+	SetCenterPosition(newPos);
 	UpdateHitFlash(dt);
 }
 
@@ -106,6 +146,11 @@ void EnemyBase::TakeDamage(int amount)
 		OnKilled();
 		DisableColliderAndMoveFar();
 	}
+}
+
+void EnemyBase::SetGlobalStageWorldAABBs(const std::vector<K4E::AABB>* aabbs)
+{
+	g_worldAABBs_ = aabbs;
 }
 
 /// -------------------------------------------------------------
