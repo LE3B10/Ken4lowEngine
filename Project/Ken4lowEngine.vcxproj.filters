@@ -235,9 +235,6 @@
     <ClCompile Include="EngineLayer\2D\Sprite\SpriteManager.cpp">
       <Filter>EngineLayer\2D\Sprite</Filter>
     </ClCompile>
-    <ClCompile Include="EngineLayer\3D\LevelData\LevelLoader.cpp">
-      <Filter>EngineLayer\3D\LevelData</Filter>
-    </ClCompile>
     <ClCompile Include="EngineLayer\3D\LevelData\LevelObjectManager.cpp">
       <Filter>EngineLayer\3D\LevelData</Filter>
     </ClCompile>
@@ -562,6 +559,9 @@
     <ClCompile Include="ApplicationLayer\UISystem\WeaponSlot\WeaponSlot.cpp">
       <Filter>ApplicationLayer\UISystem\WeaponSlot</Filter>
     </ClCompile>
+    <ClCompile Include="EngineLayer\3D\LevelData\LevelLoader.cpp">
+      <Filter>EngineLayer\3D\LevelData</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="EngineLayer\Math\MultipleStructs\AABB.h">
@@ -763,9 +763,6 @@
       <Filter>EngineLayer\2D\Sprite</Filter>
     </ClInclude>
     <ClInclude Include="EngineLayer\3D\LevelData\LevelData.h">
-      <Filter>EngineLayer\3D\LevelData</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\3D\LevelData\LevelLoader.h">
       <Filter>EngineLayer\3D\LevelData</Filter>
     </ClInclude>
     <ClInclude Include="EngineLayer\3D\LevelData\LevelObjectManager.h">
@@ -1178,6 +1175,9 @@
     </ClInclude>
     <ClInclude Include="ApplicationLayer\UISystem\WeaponSlot\WeaponSlot.h">
       <Filter>ApplicationLayer\UISystem\WeaponSlot</Filter>
+    </ClInclude>
+    <ClInclude Include="EngineLayer\3D\LevelData\LevelLoader.h">
+      <Filter>EngineLayer\3D\LevelData</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

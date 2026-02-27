@@ -19,13 +19,12 @@
 
 #include "Player.h"
 
-
 #include "WeaponMasterDataDatabase.h"
 #include "WeaponMasterDataEditor.h"
 #include "WeaponMasterDataWriter.h"
 #include <filesystem>
 
-namespace K4E = ::Ken4lowEngine;
+using namespace Ken4lowEngine;
 
 /// -------------------------------------------------------------
 ///				　			　初期化処理
@@ -72,8 +71,9 @@ void GamePlayScene::Initialize()
 	pauseMenu_ = std::make_unique<PauseMenu>();
 	pauseMenu_->Initialize();
 
-	object3D_ = std::make_unique<K4E::Object3D>();
-	object3D_->Initialize("fps_competitive_sym_v5.obj");
+	stage_ = std::make_unique<K4E::Stage>();
+	stage_->Initialize("stages/fps_stage00.json", "fps_stage00.gltf");
+	stage_->RegisterColliders(collisionManager_.get());
 
 }
 
@@ -151,7 +151,7 @@ void GamePlayScene::Update()
 		hudManager_->Update();
 	}
 
-	object3D_->Update();
+	if (stage_) { stage_->Update(); }
 }
 
 /// -------------------------------------------------------------
@@ -174,7 +174,7 @@ void GamePlayScene::Draw3DObjects()
 	// キャラクターの描画
 	characters_.Draw();
 
-	object3D_->Draw();
+	if (stage_) { stage_->Draw(); }
 
 	// 弾丸の描画
 	if (bulletManager_) { bulletManager_->Draw(); }
@@ -238,7 +238,7 @@ void GamePlayScene::Finalize()
 		input_->SetCursorVisible(true);
 	}
 
-	object3D_.reset();
+	stage_.reset();
 
 	hudManager_.reset();
 	pauseMenu_.reset();

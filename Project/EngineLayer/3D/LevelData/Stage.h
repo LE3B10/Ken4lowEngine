@@ -1,38 +1,57 @@
 #pragma once
+#include "LevelData.h"
+#include "AABB.h"
+#include "Collider.h"
+#include "Object3D.h"
+
 #include <memory>
-#include <string>
+#include <vector>
+
+/// ---------- 前方宣言 ---------- ///
+class CollisionManager;
 
 namespace Ken4lowEngine
 {
-	class LevelLoader;
-	class LevelObjectManager;
-	struct LevelData;
 
+	/// -------------------------------------------------------------
+	///				ステージ（地形＋ワールドコリジョン）クラス
+	///	--------------------------------------------------------------
 	class Stage
 	{
-	public:
+	public: /// ---------- メンバ関数 ---------- ///
+
+		// コンストラクタ・デストラクタ
 		Stage() = default;
 		~Stage() = default;
 
-		// レベルJSONを読み込み、ステージを生成
-		// levelJsonPath: 例 "Resources/JSON/levels/doom_like.json"
-		// defaultModelName: model指定が無い場合に使う（例 "Stage/Stage_All.gltf"）
-		bool Load(const std::string& levelJsonPath, const std::string& defaultModelName);
+		// 初期化処理
+		void Initialize(const std::string& levelJsonPath, const std::string& defaultModelName);
 
-		void Unload();
+		// 更新処理
+		void Update();
 
-		void Update(float dt);
+		// 描画処理
 		void Draw();
 
-		// 必要なら当たり判定マネージャ/オブジェクトマネージャへアクセス
-		LevelObjectManager* GetObjectManager() { return objectManager_.get(); }
-		const LevelObjectManager* GetObjectManager() const { return objectManager_.get(); }
+	public: /// ---------- アクセサ関数 ---------- ///
 
-	private:
-		std::unique_ptr<LevelLoader> loader_;
-		std::unique_ptr<LevelObjectManager> objectManager_;
-		std::unique_ptr<LevelData> levelData_;
+		// ワールドコリジョンのAABBリストを取得
+		const std::vector<AABB>& GetWorldAABBs() const { return worldAABBs_; }
 
-		bool loaded_ = false;
+		// コライダーを衝突マネージャーに登録
+		void RegisterColliders(CollisionManager* collisionManager);
+
+	private: /// ---------- メンバ変数 ---------- ///
+
+		LevelData levelData_; // レベルデータ
+
+		// ステージモデル（今は1つのモデルのみ）
+		std::unique_ptr<Object3D> stageModel_; // ステージの3Dモデル
+
+		std::vector<AABB> worldAABBs_; // ワールドコリジョンのAABBリスト
+
+		std::vector<std::unique_ptr<Collider>> worldColliders_; // コライダーのリスト
+
+		Vector3 offset = { 50.0f, 0.0f, -50.0f }; // ステージモデルのオフセット（原点からの位置）
 	};
-} // namespace Ken4lowEngine
+}

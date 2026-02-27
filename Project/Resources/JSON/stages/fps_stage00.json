@@ -1,0 +1,1116 @@
+{
+    "schema_version": 1,
+    "meta": {
+        "units": "m",
+        "rotation_unit": "deg",
+        "source_forward": "+Y",
+        "source_up": "+Z",
+        "game_forward": "+Z",
+        "game_up": "+Y"
+    },
+    "name": "scene",
+    "objects": [
+        {
+            "type": "MESH",
+            "name": "A_Base_BackWall",
+            "collection": "Collection",
+            "collections": [
+                "Collection"
+            ],
+            "transform": {
+                "translation": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "rotation": [
+                    0.0,
+                    -0.0,
+                    0.0
+                ],
+                "scaling": [
+                    1.0,
+                    1.0,
+                    1.0
+                ]
+            },
+            "collider": {
+                "type": "BOX",
+                "center": [
+                    50.0,
+                    -4.499999523162842,
+                    5.0
+                ],
+                "size": [
+                    50.0,
+                    3.0000007152557373,
+                    10.0
+                ]
+            }
+        },
+        {
+            "type": "MESH",
+            "name": "A_Base_Main",
+            "collection": "Collection",
+            "collections": [
+                "Collection"
+            ],
+            "transform": {
+                "translation": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "rotation": [
+                    0.0,
+                    -0.0,
+                    0.0
+                ],
+                "scaling": [
+                    1.0,
+                    1.0,
+                    1.0
+                ]
+            },
+            "collider": {
+                "type": "BOX",
+                "center": [
+                    50.0,
+                    -16.0,
+                    6.000000953674316
+                ],
+                "size": [
+                    40.0,
+                    12.000000953674316,
+                    12.000000953674316
+                ]
+            }
+        },
+        {
+            "type": "MESH",
+            "name": "A_Base_SpawnPlate",
+            "collection": "Collection",
+            "collections": [
+                "Collection"
+            ],
+            "transform": {
+                "translation": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "rotation": [
+                    0.0,
+                    -0.0,
+                    0.0
+                ],
+                "scaling": [
+                    1.0,
+                    1.0,
+                    1.0
+                ]
+            },
+            "collider": {
+                "type": "BOX",
+                "center": [
+                    50.0,
+                    -10.0,
+                    1.0000007152557373
+                ],
+                "size": [
+                    50.0,
+                    10.0,
+                    2.0000007152557373
+                ]
+            }
+        },
+        {
+            "type": "MESH",
+            "name": "A_LaneLeft_Cover1",
+            "collection": "Collection",
+            "collections": [
+                "Collection"
+            ],
+            "transform": {
+                "translation": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "rotation": [
+                    0.0,
+                    -0.0,
+                    0.0
+                ],
+                "scaling": [
+                    1.0,
+                    1.0,
+                    1.0
+                ]
+            },
+            "collider": {
+                "type": "BOX",
+                "center": [
+                    11.0,
+                    -23.0,
+                    2.000001907348633
+                ],
+                "size": [
+                    6.0,
+                    6.0,
+                    4.000000476837158
+                ]
+            }
+        },
+        {
+            "type": "MESH",
+            "name": "A_LaneLeft_Cover2",
+            "collection": "Collection",
+            "collections": [
+                "Collection"
+            ],
+            "transform": {
+                "translation": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "rotation": [
+                    0.0,
+                    -0.0,
+                    0.0
+                ],
+                "scaling": [
+                    1.0,
+                    1.0,
+                    1.0
+                ]
+            },
+            "collider": {
+                "type": "BOX",
+                "center": [
+                    17.0,
+                    -31.0,
+                    2.000002145767212
+                ],
+                "size": [
+                    6.0,
+                    6.0,
+                    4.000000476837158
+                ]
+            }
+        },
+        {
+            "type": "MESH",
+            "name": "A_LaneLeft_Cover3",
+            "collection": "Collection",
+            "collections": [
+                "Collection"
+            ],
+            "transform": {
+                "translation": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "rotation": [
+                    0.0,
+                    -0.0,
+                    0.0
+                ],
+                "scaling": [
+                    1.0,
+                    1.0,
+                    1.0
+                ]
+            },
+            "collider": {
+                "type": "BOX",
+                "center": [
+                    13.0,
+                    -39.0,
+                    2.0000030994415283
+                ],
+                "size": [
+                    6.0,
+                    6.0,
+                    4.000000476837158
+                ]
+            }
+        },
+        {
+            "type": "MESH",
+            "name": "A_LaneRight_Cover1",
+            "collection": "Collection",
+            "collections": [
+                "Collection"
+            ],
+            "transform": {
+                "translation": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "rotation": [
+                    0.0,
+                    -0.0,
+                    0.0
+                ],
+                "scaling": [
+                    1.0,
+                    1.0,
+                    1.0
+                ]
+            },
+            "collider": {
+                "type": "BOX",
+                "center": [
+                    89.0,
+                    -23.0,
+                    2.000001907348633
+                ],
+                "size": [
+                    6.0,
+                    6.0,
+                    4.000000476837158
+                ]
+            }
+        },
+        {
+            "type": "MESH",
+            "name": "A_LaneRight_Cover2",
+            "collection": "Collection",
+            "collections": [
+                "Collection"
+            ],
+            "transform": {
+                "translation": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "rotation": [
+                    0.0,
+                    -0.0,
+                    0.0
+                ],
+                "scaling": [
+                    1.0,
+                    1.0,
+                    1.0
+                ]
+            },
+            "collider": {
+                "type": "BOX",
+                "center": [
+                    83.0,
+                    -31.0,
+                    2.000002145767212
+                ],
+                "size": [
+                    6.0,
+                    6.0,
+                    4.000000476837158
+                ]
+            }
+        },
+        {
+            "type": "MESH",
+            "name": "A_LaneRight_Cover3",
+            "collection": "Collection",
+            "collections": [
+                "Collection"
+            ],
+            "transform": {
+                "translation": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "rotation": [
+                    0.0,
+                    -0.0,
+                    0.0
+                ],
+                "scaling": [
+                    1.0,
+                    1.0,
+                    1.0
+                ]
+            },
+            "collider": {
+                "type": "BOX",
+                "center": [
+                    87.0,
+                    -39.0,
+                    2.0000030994415283
+                ],
+                "size": [
+                    6.0,
+                    6.0,
+                    4.000000476837158
+                ]
+            }
+        },
+        {
+            "type": "MESH",
+            "name": "A_NearMid_CoverLeft",
+            "collection": "Collection",
+            "collections": [
+                "Collection"
+            ],
+            "transform": {
+                "translation": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "rotation": [
+                    0.0,
+                    -0.0,
+                    0.0
+                ],
+                "scaling": [
+                    1.0,
+                    1.0,
+                    1.0
+                ]
+            },
+            "collider": {
+                "type": "BOX",
+                "center": [
+                    32.0,
+                    -34.0,
+                    1.5000026226043701
+                ],
+                "size": [
+                    8.0,
+                    4.0,
+                    3.000000238418579
+                ]
+            }
+        },
+        {
+            "type": "MESH",
+            "name": "A_NearMid_CoverRight",
+            "collection": "Collection",
+            "collections": [
+                "Collection"
+            ],
+            "transform": {
+                "translation": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "rotation": [
+                    0.0,
+                    -0.0,
+                    0.0
+                ],
+                "scaling": [
+                    1.0,
+                    1.0,
+                    1.0
+                ]
+            },
+            "collider": {
+                "type": "BOX",
+                "center": [
+                    68.0,
+                    -34.0,
+                    1.5000026226043701
+                ],
+                "size": [
+                    8.0,
+                    4.0,
+                    3.000000238418579
+                ]
+            }
+        },
+        {
+            "type": "MESH",
+            "name": "B_Base_BackWall",
+            "collection": "Collection",
+            "collections": [
+                "Collection"
+            ],
+            "transform": {
+                "translation": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "rotation": [
+                    0.0,
+                    -0.0,
+                    0.0
+                ],
+                "scaling": [
+                    1.0,
+                    1.0,
+                    1.0
+                ]
+            },
+            "collider": {
+                "type": "BOX",
+                "center": [
+                    50.0,
+                    -95.5,
+                    5.000007629394531
+                ],
+                "size": [
+                    50.0,
+                    3.0,
+                    10.000000953674316
+                ]
+            }
+        },
+        {
+            "type": "MESH",
+            "name": "B_Base_Main",
+            "collection": "Collection",
+            "collections": [
+                "Collection"
+            ],
+            "transform": {
+                "translation": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "rotation": [
+                    0.0,
+                    -0.0,
+                    0.0
+                ],
+                "scaling": [
+                    1.0,
+                    1.0,
+                    1.0
+                ]
+            },
+            "collider": {
+                "type": "BOX",
+                "center": [
+                    50.0,
+                    -84.0,
+                    6.000006675720215
+                ],
+                "size": [
+                    40.0,
+                    12.0,
+                    12.000000953674316
+                ]
+            }
+        },
+        {
+            "type": "MESH",
+            "name": "B_Base_SpawnPlate",
+            "collection": "Collection",
+            "collections": [
+                "Collection"
+            ],
+            "transform": {
+                "translation": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "rotation": [
+                    0.0,
+                    -0.0,
+                    0.0
+                ],
+                "scaling": [
+                    1.0,
+                    1.0,
+                    1.0
+                ]
+            },
+            "collider": {
+                "type": "BOX",
+                "center": [
+                    50.0,
+                    -90.0,
+                    1.0000067949295044
+                ],
+                "size": [
+                    50.0,
+                    10.0,
+                    2.0000007152557373
+                ]
+            }
+        },
+        {
+            "type": "MESH",
+            "name": "B_LaneLeft_Cover1",
+            "collection": "Collection",
+            "collections": [
+                "Collection"
+            ],
+            "transform": {
+                "translation": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "rotation": [
+                    0.0,
+                    -0.0,
+                    0.0
+                ],
+                "scaling": [
+                    1.0,
+                    1.0,
+                    1.0
+                ]
+            },
+            "collider": {
+                "type": "BOX",
+                "center": [
+                    11.0,
+                    -77.0,
+                    2.0000059604644775
+                ],
+                "size": [
+                    6.0,
+                    6.0,
+                    4.000000476837158
+                ]
+            }
+        },
+        {
+            "type": "MESH",
+            "name": "B_LaneLeft_Cover2",
+            "collection": "Collection",
+            "collections": [
+                "Collection"
+            ],
+            "transform": {
+                "translation": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "rotation": [
+                    0.0,
+                    -0.0,
+                    0.0
+                ],
+                "scaling": [
+                    1.0,
+                    1.0,
+                    1.0
+                ]
+            },
+            "collider": {
+                "type": "BOX",
+                "center": [
+                    17.0,
+                    -69.0,
+                    2.0000052452087402
+                ],
+                "size": [
+                    6.0,
+                    6.0,
+                    4.000000476837158
+                ]
+            }
+        },
+        {
+            "type": "MESH",
+            "name": "B_LaneLeft_Cover3",
+            "collection": "Collection",
+            "collections": [
+                "Collection"
+            ],
+            "transform": {
+                "translation": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "rotation": [
+                    0.0,
+                    -0.0,
+                    0.0
+                ],
+                "scaling": [
+                    1.0,
+                    1.0,
+                    1.0
+                ]
+            },
+            "collider": {
+                "type": "BOX",
+                "center": [
+                    13.0,
+                    -61.0,
+                    2.000004529953003
+                ],
+                "size": [
+                    6.0,
+                    6.0,
+                    4.000000476837158
+                ]
+            }
+        },
+        {
+            "type": "MESH",
+            "name": "B_LaneRight_Cover1",
+            "collection": "Collection",
+            "collections": [
+                "Collection"
+            ],
+            "transform": {
+                "translation": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "rotation": [
+                    0.0,
+                    -0.0,
+                    0.0
+                ],
+                "scaling": [
+                    1.0,
+                    1.0,
+                    1.0
+                ]
+            },
+            "collider": {
+                "type": "BOX",
+                "center": [
+                    89.0,
+                    -77.0,
+                    2.0000059604644775
+                ],
+                "size": [
+                    6.0,
+                    6.0,
+                    4.000000476837158
+                ]
+            }
+        },
+        {
+            "type": "MESH",
+            "name": "B_LaneRight_Cover2",
+            "collection": "Collection",
+            "collections": [
+                "Collection"
+            ],
+            "transform": {
+                "translation": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "rotation": [
+                    0.0,
+                    -0.0,
+                    0.0
+                ],
+                "scaling": [
+                    1.0,
+                    1.0,
+                    1.0
+                ]
+            },
+            "collider": {
+                "type": "BOX",
+                "center": [
+                    83.0,
+                    -69.0,
+                    2.0000052452087402
+                ],
+                "size": [
+                    6.0,
+                    6.0,
+                    4.000000476837158
+                ]
+            }
+        },
+        {
+            "type": "MESH",
+            "name": "B_LaneRight_Cover3",
+            "collection": "Collection",
+            "collections": [
+                "Collection"
+            ],
+            "transform": {
+                "translation": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "rotation": [
+                    0.0,
+                    -0.0,
+                    0.0
+                ],
+                "scaling": [
+                    1.0,
+                    1.0,
+                    1.0
+                ]
+            },
+            "collider": {
+                "type": "BOX",
+                "center": [
+                    87.0,
+                    -61.0,
+                    2.000004529953003
+                ],
+                "size": [
+                    6.0,
+                    6.0,
+                    4.000000476837158
+                ]
+            }
+        },
+        {
+            "type": "MESH",
+            "name": "B_NearMid_CoverLeft",
+            "collection": "Collection",
+            "collections": [
+                "Collection"
+            ],
+            "transform": {
+                "translation": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "rotation": [
+                    0.0,
+                    -0.0,
+                    0.0
+                ],
+                "scaling": [
+                    1.0,
+                    1.0,
+                    1.0
+                ]
+            },
+            "collider": {
+                "type": "BOX",
+                "center": [
+                    32.0,
+                    -66.0,
+                    1.5000051259994507
+                ],
+                "size": [
+                    8.0,
+                    4.0,
+                    3.000000476837158
+                ]
+            }
+        },
+        {
+            "type": "MESH",
+            "name": "B_NearMid_CoverRight",
+            "collection": "Collection",
+            "collections": [
+                "Collection"
+            ],
+            "transform": {
+                "translation": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "rotation": [
+                    0.0,
+                    -0.0,
+                    0.0
+                ],
+                "scaling": [
+                    1.0,
+                    1.0,
+                    1.0
+                ]
+            },
+            "collider": {
+                "type": "BOX",
+                "center": [
+                    68.0,
+                    -66.0,
+                    1.5000051259994507
+                ],
+                "size": [
+                    8.0,
+                    4.0,
+                    3.000000476837158
+                ]
+            }
+        },
+        {
+            "type": "MESH",
+            "name": "Ground",
+            "collection": "Collection",
+            "collections": [
+                "Collection"
+            ],
+            "transform": {
+                "translation": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "rotation": [
+                    0.0,
+                    -0.0,
+                    0.0
+                ],
+                "scaling": [
+                    1.0,
+                    1.0,
+                    1.0
+                ]
+            },
+            "collider": {
+                "type": "BOX",
+                "center": [
+                    50.0,
+                    -50.0,
+                    -0.4999961853027344
+                ],
+                "size": [
+                    100.0,
+                    100.0,
+                    1.0000075101852417
+                ]
+            }
+        },
+        {
+            "type": "MESH",
+            "name": "MidCover_Center",
+            "collection": "Collection",
+            "collections": [
+                "Collection"
+            ],
+            "transform": {
+                "translation": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "rotation": [
+                    0.0,
+                    -0.0,
+                    0.0
+                ],
+                "scaling": [
+                    1.0,
+                    1.0,
+                    1.0
+                ]
+            },
+            "collider": {
+                "type": "BOX",
+                "center": [
+                    50.0,
+                    -50.0,
+                    4.500003814697266
+                ],
+                "size": [
+                    6.0,
+                    6.0,
+                    3.000000238418579
+                ]
+            }
+        },
+        {
+            "type": "MESH",
+            "name": "MidCover_Left",
+            "collection": "Collection",
+            "collections": [
+                "Collection"
+            ],
+            "transform": {
+                "translation": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "rotation": [
+                    0.0,
+                    -0.0,
+                    0.0
+                ],
+                "scaling": [
+                    1.0,
+                    1.0,
+                    1.0
+                ]
+            },
+            "collider": {
+                "type": "BOX",
+                "center": [
+                    34.5,
+                    -49.5,
+                    4.500003814697266
+                ],
+                "size": [
+                    5.0,
+                    5.0,
+                    3.000000238418579
+                ]
+            }
+        },
+        {
+            "type": "MESH",
+            "name": "MidCover_Right",
+            "collection": "Collection",
+            "collections": [
+                "Collection"
+            ],
+            "transform": {
+                "translation": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "rotation": [
+                    0.0,
+                    -0.0,
+                    0.0
+                ],
+                "scaling": [
+                    1.0,
+                    1.0,
+                    1.0
+                ]
+            },
+            "collider": {
+                "type": "BOX",
+                "center": [
+                    65.5,
+                    -49.5,
+                    4.500003814697266
+                ],
+                "size": [
+                    5.0,
+                    5.0,
+                    3.000000238418579
+                ]
+            }
+        },
+        {
+            "type": "MESH",
+            "name": "MidPlatform",
+            "collection": "Collection",
+            "collections": [
+                "Collection"
+            ],
+            "transform": {
+                "translation": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "rotation": [
+                    0.0,
+                    -0.0,
+                    0.0
+                ],
+                "scaling": [
+                    1.0,
+                    1.0,
+                    1.0
+                ]
+            },
+            "collider": {
+                "type": "BOX",
+                "center": [
+                    50.0,
+                    -50.0,
+                    1.500003695487976
+                ],
+                "size": [
+                    40.0,
+                    10.0,
+                    3.0000007152557373
+                ]
+            }
+        },
+        {
+            "type": "MESH",
+            "name": "MidTower_LeftHigh",
+            "collection": "Collection",
+            "collections": [
+                "Collection"
+            ],
+            "transform": {
+                "translation": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "rotation": [
+                    0.0,
+                    -0.0,
+                    0.0
+                ],
+                "scaling": [
+                    1.0,
+                    1.0,
+                    1.0
+                ]
+            },
+            "collider": {
+                "type": "BOX",
+                "center": [
+                    21.0,
+                    -48.0,
+                    5.000003814697266
+                ],
+                "size": [
+                    6.0,
+                    12.0,
+                    10.000000953674316
+                ]
+            }
+        },
+        {
+            "type": "MESH",
+            "name": "MidTower_RightHigh",
+            "collection": "Collection",
+            "collections": [
+                "Collection"
+            ],
+            "transform": {
+                "translation": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "rotation": [
+                    0.0,
+                    -0.0,
+                    0.0
+                ],
+                "scaling": [
+                    1.0,
+                    1.0,
+                    1.0
+                ]
+            },
+            "collider": {
+                "type": "BOX",
+                "center": [
+                    79.0,
+                    -48.0,
+                    5.000003814697266
+                ],
+                "size": [
+                    6.0,
+                    12.0,
+                    10.000000953674316
+                ]
+            }
+        }
+    ]
+}

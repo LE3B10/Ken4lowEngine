@@ -6,8 +6,9 @@
 #include "CharacterWorld.h"
 #include "BulletManager.h"
 #include "HUDManager.h"
+#include "LevelObjectManager.h"
 
-#include <Object3D.h>
+#include "Stage.h"
 
 #include <memory>
 
@@ -68,7 +69,8 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	std::unique_ptr<K4E::SkyBox> skyBox_ = nullptr; // スカイボックス
 
-	std::unique_ptr<K4E::Object3D> object3D_ = nullptr; // 3Dオブジェクト
+	std::unique_ptr<K4E::Stage> stage_ = nullptr; // ステージ（地形＋ワールドコリジョン）
+
 
 	// ポーズ状態（ESCで切替）
 	bool isPaused_ = false;

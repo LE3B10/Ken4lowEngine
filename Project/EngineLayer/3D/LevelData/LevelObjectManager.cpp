@@ -26,7 +26,7 @@ namespace Ken4lowEngine
 		// レベルデータのオブジェクトをループして生成
 		for (const ObjectData& data : levelData.objects)
 		{
-			if (data.type == "MESH") continue;
+			//if (data.type == "MESH") continue;
 
 			if (!stageCreated)
 			{
