@@ -71,6 +71,10 @@ void GamePlayScene::Initialize()
 
 	pauseMenu_ = std::make_unique<PauseMenu>();
 	pauseMenu_->Initialize();
+
+	object3D_ = std::make_unique<K4E::Object3D>();
+	object3D_->Initialize("fps_competitive_sym_v5.obj");
+
 }
 
 /// -------------------------------------------------------------
@@ -146,6 +150,8 @@ void GamePlayScene::Update()
 		hudManager_->SetHP(characters_.GetPlayer()->GetHP(), characters_.GetPlayer()->GetMaxHP());
 		hudManager_->Update();
 	}
+
+	object3D_->Update();
 }
 
 /// -------------------------------------------------------------
@@ -167,6 +173,8 @@ void GamePlayScene::Draw3DObjects()
 
 	// キャラクターの描画
 	characters_.Draw();
+
+	object3D_->Draw();
 
 	// 弾丸の描画
 	if (bulletManager_) { bulletManager_->Draw(); }
@@ -229,6 +237,8 @@ void GamePlayScene::Finalize()
 		input_->SetLockCursor(false);
 		input_->SetCursorVisible(true);
 	}
+
+	object3D_.reset();
 
 	hudManager_.reset();
 	pauseMenu_.reset();

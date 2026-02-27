@@ -7,6 +7,8 @@
 #include "BulletManager.h"
 #include "HUDManager.h"
 
+#include <Object3D.h>
+
 #include <memory>
 
 namespace K4E = ::Ken4lowEngine;
@@ -65,6 +67,8 @@ private: /// ---------- メンバ変数 ---------- ///
 	CharacterWorld characters_;
 
 	std::unique_ptr<K4E::SkyBox> skyBox_ = nullptr; // スカイボックス
+
+	std::unique_ptr<K4E::Object3D> object3D_ = nullptr; // 3Dオブジェクト
 
 	// ポーズ状態（ESCで切替）
 	bool isPaused_ = false;
