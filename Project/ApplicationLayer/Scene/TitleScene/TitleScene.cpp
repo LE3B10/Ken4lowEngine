@@ -49,7 +49,7 @@ void TitleScene::Initialize()
 
 	// ロビー地形の初期化
 	terrain_ = std::make_unique<Object3D>();
-	terrain_->Initialize("lobby03.gltf");
+	terrain_->Initialize("lobby.gltf");
 
 	// 最初のステートに入る
 	ChangeState(std::make_unique<TitleAttractState>());
