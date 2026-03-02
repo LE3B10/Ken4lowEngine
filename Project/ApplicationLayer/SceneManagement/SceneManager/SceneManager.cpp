@@ -89,6 +89,14 @@ void SceneManager::Draw3DObjects()
 	}
 }
 
+void SceneManager::DrawShadowObjects()
+{
+	if (scene_)
+	{
+		scene_->DrawShadowObjects();
+	}
+}
+
 void SceneManager::Draw2DSprites()
 {
 	if (scene_)

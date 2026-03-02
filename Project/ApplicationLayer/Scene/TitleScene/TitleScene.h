@@ -151,6 +151,9 @@ public: /// ---------- メンバ関数 ---------- ///
 	// 3Dオブジェクトの描画
 	void Draw3DObjects() override;
 
+	// シャドウマップの描画
+	void DrawShadowObjects() override;
+
 	// 2Dオブジェクトの描画
 	void Draw2DSprites() override;
 

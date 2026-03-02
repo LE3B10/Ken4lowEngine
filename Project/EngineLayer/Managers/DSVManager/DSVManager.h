@@ -55,6 +55,8 @@ public: /// ---------- メンバ関数 ---------- ///
 	/// <returns>生成された深度ステンシルバッファリソース。</returns>
 	ComPtr<ID3D12Resource> CreateDepthStencilBuffer(uint32_t width, uint32_t height, DXGI_FORMAT format, D3D12_CLEAR_VALUE& outClearValue);
 
+	ComPtr<ID3D12Resource> CreateShadowMapResource(uint32_t width, uint32_t height);
+
 	/// <summary>
 	/// 空いている DSV インデックスを 1 つ確保して返します。<br/>
 	/// ・freeIndices_ に解放済みインデックスがあればそれを再利用<br/>
@@ -89,6 +91,8 @@ public: /// ---------- メンバ関数 ---------- ///
 	/// <param name="dsvIndex">DSV を作成するディスクリプタヒープ上のインデックス。</param>
 	/// <param name="resource">DSV を作成する対象のテクスチャリソース。</param>
 	void CreateDSVForTexture2D(uint32_t dsvIndex, ID3D12Resource* resource);
+
+	void CreateDSVForShadowMap(uint32_t dsvIndex, ID3D12Resource* resource);
 
 public: /// ---------- ゲッター ---------- ///
 

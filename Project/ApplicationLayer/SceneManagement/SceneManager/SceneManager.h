@@ -28,6 +28,9 @@ public: /// ---------- メンバ関数 ---------- ///
 	// 3Dオブジェクトの描画
 	void Draw3DObjects();
 
+	// シャドウマップ用オブジェクトの描画
+	void DrawShadowObjects();
+
 	// 2Dオブジェクトの描画
 	void Draw2DSprites();
 

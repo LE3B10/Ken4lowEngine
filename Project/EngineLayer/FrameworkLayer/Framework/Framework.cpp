@@ -114,6 +114,9 @@ namespace Ken4lowEngine
 		// SRVマネージャーの初期化
 		SRVManager::GetInstance()->Initialize(dxCommon_);
 
+		// シャドウマップ用SRVの生成
+		dxCommon_->CreateShadowMapSRV();
+
 #ifdef USE_IMGUI
 		// ImGuiManagerの初期化
 		ImGuiManager::GetInstance()->Initialize(winApp_, dxCommon_);

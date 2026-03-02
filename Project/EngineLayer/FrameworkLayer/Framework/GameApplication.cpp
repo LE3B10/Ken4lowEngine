@@ -42,7 +42,7 @@ namespace Ken4lowEngine
 		SceneManager::GetInstance()->SetAbstractSceneFactory(std::move(sceneFactory));
 
 		// 最初のシーンを設定
-		SceneManager::GetInstance()->ChangeScene("GamePlayScene");
+		SceneManager::GetInstance()->ChangeScene("ShadowTestScene");
 	}
 
 
@@ -82,6 +82,13 @@ namespace Ken4lowEngine
 	{
 		// 描画開始（バックバッファのクリア）
 		dxCommon_->BeginDraw();
+
+		dxCommon_->BeginShadowMapPass(); // シャドウマップパス開始
+
+		// シャドウマップ生成用の描画処理
+		SceneManager::GetInstance()->DrawShadowObjects(); // シャドウマップ生成用の描画処理
+
+		dxCommon_->EndShadowMapPass(); // シャドウマップパス終了
 
 #ifdef USE_IMGUI
 		/// ---------- ImGuiフレーム開始 ---------- ///

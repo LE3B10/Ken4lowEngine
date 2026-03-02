@@ -6,7 +6,16 @@ struct TransformationMatrix
     float4x4 World;
     float4x4 WorldInverseTranspose;
 };
+
+struct ShadowParameter
+{
+    float4x4 lightViewProjection;
+    float shadowBias;
+    float3 padding; // アラインメントのためのパディング
+};
+
 ConstantBuffer<TransformationMatrix> gTransformationMatrix : register(b0);
+ConstantBuffer<ShadowParameter> gShadowParameter : register(b4);
 
 //頂点シェーダーへの入力頂点構造
 struct VertexShaderInput
@@ -26,7 +35,11 @@ VertexShaderOutput main(VertexShaderInput input)
     output.position = mul(input.position, gTransformationMatrix.WVP);
     output.texcoord = input.texcoord;
     output.normal = normalize(mul(input.normal, (float3x3) gTransformationMatrix.WorldInverseTranspose));
-    output.worldPosition = mul(input.position, gTransformationMatrix.World).xyz;
+
+    float4 worldPosition = mul(input.position, gTransformationMatrix.World);
+    
+    output.worldPosition = worldPosition.xyz;
+    output.shadowPosition = mul(float4(output.worldPosition, 1.0f), gShadowParameter.lightViewProjection);
     
     return output;
 }

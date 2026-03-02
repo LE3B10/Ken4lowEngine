@@ -184,6 +184,10 @@ void PhysicalScene::Draw3DObjects()
 	DrawObbRig();
 }
 
+void PhysicalScene::DrawShadowObjects()
+{
+}
+
 void PhysicalScene::DrawObbRig()
 {
 	if (!rigEnabled_) return;

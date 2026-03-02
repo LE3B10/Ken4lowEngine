@@ -210,6 +210,9 @@ void GamePlayScene::Draw3DObjects()
 	K4E::Wireframe::GetInstance()->DrawGrid(200.0f, 50.0f, { 0.25f, 0.25f, 0.25f,1.0f });
 }
 
+void GamePlayScene::DrawShadowObjects()
+{
+}
 
 /// -------------------------------------------------------------
 ///				　		2Dスプライトの描画

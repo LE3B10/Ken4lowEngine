@@ -130,6 +130,9 @@ void TitleScene::Draw3DObjects()
 
 }
 
+void TitleScene::DrawShadowObjects()
+{
+}
 
 /// -------------------------------------------------------------
 ///				　	2Dオブジェクトの描画

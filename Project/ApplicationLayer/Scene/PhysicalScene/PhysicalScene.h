@@ -24,6 +24,7 @@ public:
 	void Initialize() override;
 	void Update() override;
 	void Draw3DObjects() override;
+	void DrawShadowObjects() override;
 	void Draw2DSprites() override;
 	void Finalize() override;
 	void DrawImGui() override;

@@ -30,6 +30,9 @@ public: /// ---------- メンバ関数 ---------- ///
 	// 仮想3D描画処理
 	void Draw3DObjects() override;
 
+	// 仮想シャドウマップ描画処理
+	void DrawShadowObjects() override;
+
 	// 仮想2D描画処理
 	void Draw2DSprites() override;
 
@@ -51,7 +54,7 @@ private: /// ---------- メンバ変数 ---------- ///
 	bool isDebugCamera_ = false; // デバッグカメラ使用フラグ
 
 	std::unique_ptr<CollisionManager> collisionManager_; // 衝突管理マネージャー
-	
+
 	std::unique_ptr<Player> player_; // 実際のプレイヤー
 	std::unique_ptr<BulletManager> bulletManager_;
 	std::unique_ptr<Enemy> enemy_;

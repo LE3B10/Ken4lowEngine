@@ -103,6 +103,9 @@
     <FxCompile Include="Resources\Shaders\GpuParticle\GpuParticleMesh.PS.hlsl">
       <Filter>Shader\PixelShader</Filter>
     </FxCompile>
+    <FxCompile Include="Resources\Shaders\Object3D\ShadowMap.VS.hlsl">
+      <Filter>Shader\VertexShader</Filter>
+    </FxCompile>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="WinMain.cpp" />
@@ -562,6 +565,7 @@
     <ClCompile Include="EngineLayer\3D\LevelData\LevelLoader.cpp">
       <Filter>EngineLayer\3D\LevelData</Filter>
     </ClCompile>
+    <ClCompile Include="ApplicationLayer\Scene\ShadowTestScene\ShadowTestScene.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="EngineLayer\Math\MultipleStructs\AABB.h">
@@ -1179,6 +1183,7 @@
     <ClInclude Include="EngineLayer\3D\LevelData\LevelLoader.h">
       <Filter>EngineLayer\3D\LevelData</Filter>
     </ClInclude>
+    <ClInclude Include="ApplicationLayer\Scene\ShadowTestScene\ShadowTestScene.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Resources\Shaders\PostEffect\FullScreen.hlsli">

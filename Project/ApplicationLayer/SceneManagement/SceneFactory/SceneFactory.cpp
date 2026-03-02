@@ -4,6 +4,7 @@
 #include "StageSelectScene.h"
 #include <PhysicalScene.h>
 #include "DebugScene.h"
+#include "ShadowTestScene.h"
 
 
 /// -------------------------------------------------------------
@@ -26,6 +27,9 @@ std::unique_ptr<BaseScene> SceneFactory::CreateScene(const std::string& sceneNam
 #ifdef _DEBUG
 	// 物理演算シーン
 	else if (sceneName == "PhysicalScene")		return std::make_unique<PhysicalScene>();
+
+	// 影描画テストシーン
+	else if (sceneName == "ShadowTestScene")	return std::make_unique<ShadowTestScene>();
 
 	// デバッグシーン
 	else if (sceneName == "DebugScene")			return std::make_unique<DebugScene>();

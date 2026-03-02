@@ -52,17 +52,56 @@ struct DissolveSetting
     float3 padding; // アラインメント
 };
 
+struct ShadowParameter
+{
+    float4x4 lightViewProjection;
+    float shadowBias;
+    float3 padding;
+};
+
 ConstantBuffer<Material> gMaterial : register(b0); // マテリアル情報
 ConstantBuffer<Camera> gCamera : register(b1); // カメラ情報
 ConstantBuffer<LightInfo> gLightInfo : register(b2); // ライト情報
 ConstantBuffer<DissolveSetting> gDissolveSetting : register(b3); // Dissolve設定
+ConstantBuffer<ShadowParameter> gShadowParameter : register(b4);
 
 Texture2D<float4> gTexture : register(t0); // テクスチャ
 TextureCube<float4> gEnvironmentTexture : register(t1); // 環境マップ
 StructuredBuffer<PunctualLight> gPunctualLights : register(t2); // パンクチュアルライト
 Texture2D<float4> gDissolveMaskTexture : register(t3); // Dissolveマスクテクスチャ
+Texture2D<float> gShadowMap : register(t4); // シャドウマップ
 
 SamplerState gSampler : register(s0);
+SamplerState gShadowSampler : register(s1);
+
+float CalculateShadow(float4 shadowPosition, float3 normal, float3 lightDir)
+{
+    if (abs(shadowPosition.w) < 1e-5f)
+    {
+        return 1.0f;
+    }
+
+    float3 proj = shadowPosition.xyz / shadowPosition.w;
+
+    float2 uv;
+    uv.x = proj.x * 0.5f + 0.5f;
+    uv.y = -proj.y * 0.5f + 0.5f;
+
+    if (uv.x < 0.0f || uv.x > 1.0f ||
+        uv.y < 0.0f || uv.y > 1.0f ||
+        proj.z < 0.0f || proj.z > 1.0f)
+    {
+        return 1.0f;
+    }
+
+    float NoL = saturate(dot(normal, lightDir));
+    float bias = max(gShadowParameter.shadowBias, (1.0f - NoL) * 0.002f);
+
+    float currentDepth = proj.z - bias;
+    float shadowDepth = gShadowMap.Sample(gShadowSampler, uv).r;
+
+    return (currentDepth <= shadowDepth) ? 1.0f : 0.45f;
+}
 
 // ピクセルシェーダー (PS) のメイン関数 (メインエントリーポイント)
 PixelShaderOutput main(VertexShaderOutput input)
@@ -101,92 +140,77 @@ PixelShaderOutput main(VertexShaderOutput input)
     for (uint i = 0; i < gLightInfo.gLightCount; ++i)
     {
         PunctualLight L = gPunctualLights[i]; // gLights → gPunctualLights
-
-        float atten = 1.0;
-        float3 Ldir = normalize(L.direction);
         
         if (L.lightType == 1)
         {
             // Directional
-            float NdotL = saturate(dot(normal, Ldir));
-            
-            float3 lightColor = L.color.rgb * (L.intensity * atten);
-        
-            // 拡散
-            diffSum += lightColor * NdotL;
-        
-            // 鏡面反射
-            float3 halfVector = normalize(Ldir + viewDir);
+            // L.direction は「光が進む方向」を想定
+            float3 lightDir = normalize(-L.direction);
+            float NdotL = saturate(dot(normal, lightDir));
+
+            float3 lightColor = L.color.rgb * L.intensity;
+
+            float3 diff = lightColor * NdotL;
+
+            float3 halfVector = normalize(lightDir + viewDir);
             float NdotH = saturate(dot(normal, halfVector));
             float specular = pow(NdotH, max(gMaterial.shininess, 1.0f));
-            specSum += lightColor * specular;
-       
-            lightSum = ambient + diffSum + specSum;
-            
-            lightSum += L.color.rgb * (L.intensity * NdotL);
+            float3 spec = lightColor * specular;
+
+            float shadow = CalculateShadow(input.shadowPosition, normal, lightDir);
+
+            diffSum += diff * shadow;
+            specSum += spec * shadow;
         }
         else if (L.lightType == 2)
         {
             // Point
             float3 toL = L.position - position;
             float d = length(toL);
-            Ldir = toL / max(d, 1e-4);
+            float3 lightDir = toL / max(d, 1e-4f);
 
-            float range = max(L.radius, 1e-3);
-            atten = pow(saturate(1.0 - d / range), max(L.decay, 1e-3));
+            float range = max(L.radius, 1e-3f);
+            float atten = pow(saturate(1.0f - d / range), max(L.decay, 1e-3f));
 
-            float NdotL = saturate(dot(normal, Ldir));
+            float NdotL = saturate(dot(normal, lightDir));
             float3 lightColor = L.color.rgb * (L.intensity * atten);
-        
-            // 拡散
-            diffSum += lightColor * NdotL;
-        
-            // 鏡面反射
-            float3 halfVector = normalize(Ldir + viewDir);
+
+            float3 diff = lightColor * NdotL;
+
+            float3 halfVector = normalize(lightDir + viewDir);
             float NdotH = saturate(dot(normal, halfVector));
             float specular = pow(NdotH, max(gMaterial.shininess, 1.0f));
-            specSum += lightColor * specular;
-       
-            lightSum = ambient + diffSum + specSum;
-            lightSum += L.color.rgb * (L.intensity * atten * NdotL);
+            float3 spec = lightColor * specular;
+
+            diffSum += diff;
+            specSum += spec;
         }
         else if (L.lightType == 3)
         {
             // Spot
-            // ① ライト→点 ベクトルにする（position - L.position）
             float3 toL = L.position - position;
             float d = length(toL);
-            float3 Ldir = toL / max(d, 1e-4);
+            float3 lightDir = toL / max(d, 1e-4f);
 
-            // 距離減衰
-            float range = max(L.distance, 1e-3);
-            float atten = pow(saturate(1.0 - d / range), max(L.decay, 1e-3));
+            float range = max(L.distance, 1e-3f);
+            float atten = pow(saturate(1.0f - d / range), max(L.decay, 1e-3f));
 
-            // ② スポット角の評価：
-            //    ct = dot(-dir, L) で「向いている先」と「ライト→点」を比較
-            float3 dir = normalize(L.direction); // 「向いている先」
-            float ct = dot(-dir, Ldir);
-
-            // 内側>=外側（UI/CPUで担保）を前提に smoothstep(edge0=edgeOuter, edge1=edgeInner, x=ct)
+            float3 dir = normalize(L.direction);
+            float ct = dot(-dir, lightDir);
             float spot = smoothstep(L.cosAngle, L.cosFalloffStart, ct);
 
-            // Lambert（N は点の法線、Lambert は 点→光 のベクトルを使うので -Ldir）
-            float NdotL = saturate(dot(normal, Ldir));
-            float halfLambertFactor = saturate(pow(-NdotL * 0.5f + 0.5f, 2.0f)); // ←ここが逆
-            float3 lightColor = L.color.rgb * (L.intensity * atten);
-        
-            // 拡散
-            diffSum += lightColor * halfLambertFactor;
-        
-            // 鏡面反射
-            float3 halfVector = normalize(Ldir + viewDir);
+            float NdotL = saturate(dot(normal, lightDir));
+            float3 lightColor = L.color.rgb * (L.intensity * atten * spot);
+
+            float3 diff = lightColor * NdotL;
+
+            float3 halfVector = normalize(lightDir + viewDir);
             float NdotH = saturate(dot(normal, halfVector));
-            float specular = pow(saturate(dot(normal, halfVector)), gMaterial.shininess);
-            specSum += L.color.rgb * (L.intensity * atten) * spot * specular;
-       
-            lightSum = ambient + diffSum + specSum;
-            
-            lightSum += L.color.rgb * (L.intensity * atten * spot * NdotL);
+            float specular = pow(NdotH, max(gMaterial.shininess, 1.0f));
+            float3 spec = lightColor * specular;
+
+            diffSum += diff;
+            specSum += spec;
         }
         else
         {
@@ -203,13 +227,14 @@ PixelShaderOutput main(VertexShaderOutput input)
     
     // ライトが0の場合の補正
     lightSum = (gLightInfo.gLightCount == 0) ? 1.0.xxx : (lightSum + 0.02.xxx);
-
+    
+    lightSum = ambient + diffSum + specSum;
+    
     // 出力処理
     output.color = gMaterial.color * lerp(textureColor, edgeCol, 1.0 - step(maskValue, gDissolveSetting.threshold));; // αもここで確保
     output.color.rgb *= lightSum; // ライティング適用（RGBのみ）
-
+    
     // 環境マップ合成
-    output.color.rgb += environmentColor.rgb * gMaterial.reflectionRate;
     output.color.rgb = lerp(output.color.rgb, environmentColor.rgb, gMaterial.reflectionRate);
     
     // α値がほぼ0の場合にピクセルを破棄

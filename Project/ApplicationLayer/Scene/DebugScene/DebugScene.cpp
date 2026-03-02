@@ -168,6 +168,10 @@ void DebugScene::Draw3DObjects()
 #endif // _DEBUG
 }
 
+void DebugScene::DrawShadowObjects()
+{
+}
+
 void DebugScene::Draw2DSprites()
 {
 #pragma region スプライトの描画                    
