@@ -3,6 +3,7 @@
 #include "Crosshair.h"
 #include "HPWidget.h"
 #include "WeaponSlot.h"
+#include "WaveUI.h"
 
 #include <memory>
 
@@ -20,7 +21,7 @@ public: /// ---------- メンバ関数 ---------- ///
 	void Initialize();
 
 	// 更新処理
-	void Update();
+	void Update(float deltaTime);
 
 	// 描画処理
 	void Draw();
@@ -49,6 +50,11 @@ public: /// ---------- セッタ ---------- ///
 	// WeaponSlot のHUDスナップショットを受け取る（HUD側でWeaponSlotの状態を参照して描画するため）
 	void SetWeaponSlotSnapshot(const WeaponSlot::HudSnapshot& snapshot) { weaponSlotSnapshot_ = snapshot; }
 
+	void SetWaveDisplayState(const WaveUI::DisplayState& state);
+	void NotifyWaveStarted(int waveNumber, bool isFinalWave);
+	void NotifyAllWavesCleared();
+	void SetWaveUIVisible(bool v);
+
 public: /// ---------- ゲッタ ---------- ///
 
 	ReloadCircle* GetReloadCircle() const { return reloadCircle_.get(); }
@@ -63,6 +69,8 @@ private: /// ---------- メンバ変数 ---------- ///
 	std::unique_ptr<ReloadCircle> reloadCircle_; // リロード円
 	std::unique_ptr<Crosshair> crosshair_; // 十字照準
 	std::unique_ptr<HPWidget> hpWidget_; // HPウィジェット
+
+	std::unique_ptr<WaveUI> waveUI_; // ウェーブUI（WaveDefense用）
 
 	std::unique_ptr<WeaponSlot> weaponSlot_; // 武器スロット
 	WeaponSlot::HudSnapshot weaponSlotSnapshot_{};    // 外部から受け取る表示用データ

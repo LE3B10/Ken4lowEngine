@@ -61,17 +61,18 @@ void GamePlayScene::Initialize()
 	ctx.bulletManager_ = bulletManager_.get();
 	characters_.Initialize(ctx);
 
-	characters_.SpawnEnemy(EnemyArchetype::RifleGrunt, { -12.0f, 2.0f, 30.0f });
-	characters_.SpawnEnemy(EnemyArchetype::SMGFlanker, { 12.0f, 2.0f, 25.0f });
-	characters_.SpawnEnemy(EnemyArchetype::Sniper, { 0.0f, 25.0f, 35.0f });
-
 	hudManager_ = std::make_unique<HUDManager>();
 	hudManager_->SetPlayer(characters_.GetPlayer());
 	hudManager_->Initialize();
 	characters_.GetPlayer()->SetHUDManager(hudManager_.get());
 
+	// ポーズメニューの初期化
 	pauseMenu_ = std::make_unique<PauseMenu>();
 	pauseMenu_->Initialize();
+
+	// 結果メニューの初期化
+	resultMenu_ = std::make_unique<ResultMenu>();
+	resultMenu_->Initialize();
 
 	stage_ = std::make_unique<K4E::Stage>();
 	stage_->Initialize("stages/fps_stage00.json", "fps_stage00.gltf");
@@ -87,6 +88,18 @@ void GamePlayScene::Initialize()
 	playerCollisionSettings.half = { 0.5f, 1.0f, 0.5f }; // プレイヤーの半サイズ
 	playerCollisionSettings.centerOffset = { 0.0f, 1.0f, 0.0f };			 // プレイヤーの見た目座標と物理中心の差
 	player->SetWorldCollisionSettings(playerCollisionSettings);
+
+	isPaused_ = false;
+	gameFlowState_ = GameFlowState::Playing;
+	resultInputCooldown_ = 0.0f;
+
+	waveManager_ = std::make_unique<WaveManager>();
+	SetupWaves();
+	waveManager_->Start();
+
+	prevWaveNumber_ = 0;
+	prevWaveInProgress_ = false;
+	prevAllWavesCleared_ = false;
 }
 
 /// -------------------------------------------------------------
@@ -94,6 +107,19 @@ void GamePlayScene::Initialize()
 /// -------------------------------------------------------------
 void GamePlayScene::Update()
 {
+	// デルタタイムの取得
+	const float deltaTime = dxCommon_->GetFPSCounter().GetDeltaTime();
+
+	// ------------------------------------------------------------
+	// ゲームクリア / ゲームオーバー中
+	// ------------------------------------------------------------
+	if (gameFlowState_ == GameFlowState::GameClear ||
+		gameFlowState_ == GameFlowState::GameOver)
+	{
+		UpdateResult(deltaTime);
+		return;
+	}
+
 	// ------------------------------------------------------------
 	// Pause toggle (ESC)
 	// ------------------------------------------------------------
@@ -113,28 +139,9 @@ void GamePlayScene::Update()
 	// ポーズ中はゲーム進行を止める（メニューだけ更新）
 	if (isPaused_)
 	{
-		UpdatePaused();
+		UpdatePaused(deltaTime);
 		return;
 	}
-
-	// プレイヤーが死んだらゲームを初期化し直す（リトライ）
-	if (characters_.GetPlayer() && characters_.GetPlayer()->GetHP() <= 0)
-	{
-		Finalize();
-		Initialize();
-		return;
-	}
-
-	// エネミーが全滅したら次のウェーブをスポーン
-	if (characters_.GetEnemyCount() == 0)
-	{
-		characters_.SpawnEnemy(EnemyArchetype::RifleGrunt, { -12.0f, 2.0f, 30.0f });
-		characters_.SpawnEnemy(EnemyArchetype::SMGFlanker, { 12.0f, 2.0f, 25.0f });
-		characters_.SpawnEnemy(EnemyArchetype::Sniper, { 0.0f, 25.0f, 35.0f });
-	}
-
-	// デルタタイムの取得
-	const float deltaTime = dxCommon_->GetFPSCounter().GetDeltaTime();
 
 	// デバッグカメラの更新
 	UpdateDebug();
@@ -142,6 +149,7 @@ void GamePlayScene::Update()
 	// キャラクター関連の更新
 	characters_.Update(deltaTime);
 
+	// 影用のライトのビュー射影行列を更新してキャラクターとステージにセット
 	UpdateShadowLightViewProjection();
 	stage_->UpdateShadowMatrix(shadowLightViewProjection_);
 	characters_.UpdateShadowMatrix(shadowLightViewProjection_);
@@ -155,19 +163,75 @@ void GamePlayScene::Update()
 	// 衝突判定の更新
 	CollisionUpdate();
 
-	if (skyBox_)
-	{
-		skyBox_->Update();
-	}
+	if (skyBox_) skyBox_->Update();
 
 	// HUD更新（通常時）
 	if (hudManager_ && characters_.GetPlayer())
 	{
 		hudManager_->SetHP(characters_.GetPlayer()->GetHP(), characters_.GetPlayer()->GetMaxHP());
-		hudManager_->Update();
+		hudManager_->Update(deltaTime);
 	}
 
+	// ステージの更新
 	if (stage_) { stage_->Update(); }
+
+	// ------------------------------------------------------------
+	// プレイヤー死亡判定
+	// ------------------------------------------------------------
+	if (characters_.GetPlayer() && characters_.GetPlayer()->GetHP() <= 0)
+	{
+		EnterGameOver();
+		return;
+	}
+
+	// ------------------------------------------------------------
+	// ウェーブ進行
+	// ------------------------------------------------------------
+	if (waveManager_)
+	{
+		waveManager_->Update(characters_, deltaTime);
+
+		const int currentWave = waveManager_->GetCurrentWaveNumber();
+		const int totalWaves = waveManager_->GetTotalWaveCount();
+		const bool isWaveInProgress = waveManager_->IsWaveInProgress();
+		const bool isWaitingNextWave = waveManager_->IsWaitingNextWave();
+		const bool isAllWavesCleared = waveManager_->IsAllWavesCleared();
+		const bool isFinalWave = (currentWave >= totalWaves);
+
+		if (hudManager_)
+		{
+			WaveUI::DisplayState state{};
+			state.currentWave = currentWave;
+			state.totalWaves = totalWaves;
+			state.isWaveInProgress = isWaveInProgress;
+			state.isWaitingNextWave = isWaitingNextWave;
+			state.isAllWavesCleared = isAllWavesCleared;
+
+			hudManager_->SetWaveDisplayState(state);
+
+			// ウェーブ開始時に1回だけ通知
+			if (isWaveInProgress && (!prevWaveInProgress_ || currentWave != prevWaveNumber_))
+			{
+				hudManager_->NotifyWaveStarted(currentWave, isFinalWave);
+			}
+
+			// 全ウェーブクリア時に1回だけ通知
+			if (isAllWavesCleared && !prevAllWavesCleared_)
+			{
+				hudManager_->NotifyAllWavesCleared();
+			}
+		}
+
+		prevWaveNumber_ = currentWave;
+		prevWaveInProgress_ = isWaveInProgress;
+		prevAllWavesCleared_ = isAllWavesCleared;
+
+		if (isAllWavesCleared)
+		{
+			EnterGameClear();
+			return;
+		}
+	}
 }
 
 /// -------------------------------------------------------------
@@ -180,7 +244,7 @@ void GamePlayScene::Draw3DObjects()
 	// スカイボックスの共通描画設定
 	K4E::SkyBoxManager::GetInstance()->SetRenderSetting();
 
-	//skyBox_->Draw();
+	skyBox_->Draw();
 
 #pragma endregion
 
@@ -243,6 +307,14 @@ void GamePlayScene::Draw2DSprites()
 	if (hudManager_) { hudManager_->Draw(); }
 	if (isPaused_ && pauseMenu_) { pauseMenu_->Draw(); }
 
+	if ((gameFlowState_ == GameFlowState::GameClear ||
+		gameFlowState_ == GameFlowState::GameOver) &&
+		resultMenu_)
+	{
+		resultMenu_->Update();
+		resultMenu_->Draw();
+	}
+
 #pragma endregion
 }
 
@@ -259,10 +331,13 @@ void GamePlayScene::Finalize()
 		input_->SetCursorVisible(true);
 	}
 
+	waveManager_.reset();
+
 	stage_.reset();
 
 	hudManager_.reset();
 	pauseMenu_.reset();
+	resultMenu_.reset();
 
 	// ★重要：CharacterWorld は CollisionManager を使って RemoveCollider する
 	//         ので、先に characters_ を Finalize してから manager 類を破棄する
@@ -484,13 +559,13 @@ void GamePlayScene::ExitPause()
 /// -------------------------------------------------------------
 ///				　		ポーズ中更新
 /// -------------------------------------------------------------
-void GamePlayScene::UpdatePaused()
+void GamePlayScene::UpdatePaused(float deltaTime)
 {
 	// HUDは更新してOK（値更新・簡易アニメ用）
 	if (hudManager_ && characters_.GetPlayer())
 	{
 		hudManager_->SetHP(characters_.GetPlayer()->GetHP(), characters_.GetPlayer()->GetMaxHP());
-		hudManager_->Update();
+		hudManager_->Update(deltaTime);
 	}
 
 	if (!pauseMenu_)
@@ -590,6 +665,195 @@ bool GamePlayScene::TryGetDirectionalLightFromManager(K4E::Vector3& outDirection
 		}
 	}
 	return false;
+}
+
+void GamePlayScene::SetupWaves()
+{
+	if (!waveManager_) { return; }
+
+	std::vector<WaveDefinition> waves;
+
+	// =========================================================
+	// Wave 1
+	// 広めに散らして、最初から左右を少し意識させる
+	// =========================================================
+	{
+		WaveDefinition wave;
+		wave.delayBeforeSpawnSec = 0.0f;
+		wave.enemies =
+		{
+			// 前線
+			{ EnemyArchetype::RifleGrunt, { -10.0f, 3.0f, 26.0f } },
+			{ EnemyArchetype::RifleGrunt, {  10.0f, 3.0f, 26.0f } },
+
+			// 中央圧
+			{ EnemyArchetype::SMGFlanker, {   0.0f, 3.0f, 20.0f } },
+			// 少し後ろ
+			{ EnemyArchetype::SMGFlanker, { -18.0f, 3.0f, 34.0f } },
+			{ EnemyArchetype::SMGFlanker, {  18.0f, 3.0f, 34.0f } },
+		};
+		waves.push_back(wave);
+	}
+
+	// =========================================================
+	// Wave 2
+	// 左右フランクと中央押し込みを強める
+	// =========================================================
+	{
+		WaveDefinition wave;
+		wave.delayBeforeSpawnSec = 2.0f;
+		wave.enemies =
+		{
+			// 前寄り
+			{ EnemyArchetype::RifleGrunt, {  -6.0f, 2.0f, 22.0f } },
+			{ EnemyArchetype::RifleGrunt, {   6.0f, 2.0f, 22.0f } },
+
+			// 左右フランク
+			{ EnemyArchetype::SMGFlanker, { -22.0f, 2.0f, 18.0f } },
+			{ EnemyArchetype::SMGFlanker, {  22.0f, 2.0f, 18.0f } },
+
+			// 中央奥
+			{ EnemyArchetype::RifleGrunt, {   0.0f, 2.0f, 32.0f } },
+
+			// 後方左右
+			{ EnemyArchetype::SMGFlanker, { -16.0f, 2.0f, 40.0f } },
+			{ EnemyArchetype::SMGFlanker, {  16.0f, 2.0f, 40.0f } },
+		};
+		waves.push_back(wave);
+	}
+
+	// =========================================================
+	// Wave 3
+	// 最終ウェーブ。高所 + 地上ラッシュ
+	// ※ 高さはステージに高台がある前提。無ければ Y=2.0f に戻す
+	// =========================================================
+	{
+		WaveDefinition wave;
+		wave.delayBeforeSpawnSec = 2.5f;
+		wave.enemies =
+		{
+			// 高所スナイパー
+			{ EnemyArchetype::Sniper,     { -15.0f, 14.0f, 35.0f } },
+			{ EnemyArchetype::Sniper,     {  15.0f, 14.0f, 35.0f } },
+
+			// 前線制圧
+			{ EnemyArchetype::RifleGrunt, { -10.0f, 5.0f, 0.0f } },
+			{ EnemyArchetype::RifleGrunt, {   0.0f, 5.0f, 0.0f } },
+			{ EnemyArchetype::RifleGrunt, {  10.0f, 5.0f, 0.0f } },
+
+			// 左右から詰める
+			{ EnemyArchetype::SMGFlanker, { -24.0f, 2.0f, 2.0f } },
+			{ EnemyArchetype::SMGFlanker, {  24.0f, 2.0f, 2.0f } },
+
+			// 中央奥の追撃
+			{ EnemyArchetype::RifleGrunt, { -14.0f, 2.0f, 38.0f } },
+			{ EnemyArchetype::RifleGrunt, {  14.0f, 2.0f, 38.0f } },
+
+			// 裏気味の圧
+			{ EnemyArchetype::SMGFlanker, {   0.0f, 2.0f, 40.0f } },
+		};
+		waves.push_back(wave);
+	}
+
+	waveManager_->SetWaves(waves);
+}
+
+void GamePlayScene::EnterGameClear()
+{
+	if (gameFlowState_ == GameFlowState::GameClear) { return; }
+
+	gameFlowState_ = GameFlowState::GameClear;
+	isPaused_ = false;
+	resultInputCooldown_ = 0.25f;
+
+	if (pauseMenu_) { pauseMenu_->Close(); }
+	if (resultMenu_) { resultMenu_->Open(ResultMenuMode::GameClear); }
+
+	if (input_)
+	{
+		input_->SetLockCursor(false);
+		input_->SetCursorVisible(true);
+	}
+}
+
+void GamePlayScene::EnterGameOver()
+{
+	if (gameFlowState_ == GameFlowState::GameOver) { return; }
+
+	gameFlowState_ = GameFlowState::GameOver;
+	isPaused_ = false;
+	resultInputCooldown_ = 0.25f;
+
+	if (pauseMenu_) { pauseMenu_->Close(); }
+	if (resultMenu_) { resultMenu_->Open(ResultMenuMode::GameOver); }
+
+	if (input_)
+	{
+		input_->SetLockCursor(false);
+		input_->SetCursorVisible(true);
+	}
+}
+
+void GamePlayScene::UpdateResult(float deltaTime)
+{
+	if (resultInputCooldown_ > 0.0f)
+	{
+		resultInputCooldown_ -= deltaTime;
+		if (resultInputCooldown_ < 0.0f)
+		{
+			resultInputCooldown_ = 0.0f;
+		}
+	}
+
+	if (!input_ || resultInputCooldown_ > 0.0f)
+	{
+		return;
+	}
+
+	ResultMenuCommand cmd = ResultMenuCommand::None;
+	if (resultMenu_)
+	{
+		cmd = resultMenu_->Update(input_);
+	}
+
+	switch (cmd)
+	{
+	case ResultMenuCommand::NextStage:
+		// まだ「次のステージ番号受け渡し」が無いなら、ひとまず StageSelect に飛ばす
+		// 後で stageIndex を持たせたらそこに差し替える
+		sceneManager_->ChangeScene("StageSelectScene");
+		return;
+
+	case ResultMenuCommand::Retry:
+		RestartGame();
+		return;
+
+	case ResultMenuCommand::ToTitle:
+		sceneManager_->ChangeScene("TitleScene");
+		return;
+
+	case ResultMenuCommand::None:
+	default:
+		break;
+	}
+
+	// 念のためキーボードも残すなら以下
+	if (input_->TriggerKey(DIK_R))
+	{
+		RestartGame();
+		return;
+	}
+	if (input_->TriggerKey(DIK_T))
+	{
+		sceneManager_->ChangeScene("TitleScene");
+		return;
+	}
+}
+
+void GamePlayScene::RestartGame()
+{
+	Finalize();
+	Initialize();
 }
 
 /// -------------------------------------------------------------

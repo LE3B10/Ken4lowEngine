@@ -19,15 +19,14 @@ void HUDManager::Initialize()
 	// HP（ハート）の初期化
 	hpWidget_ = std::make_unique<HPWidget>();
 	hpWidget_->Initialize();
+
 	// 位置やサイズは好みで調整OK
-	hpWidget_->SetAnchorTopLeft({ 20.0f, 360.0f });
+	hpWidget_->SetAnchorTopLeft({ 560.0f, 880.0f });
 	hpWidget_->SetIconSize({ 22.0f, 22.0f });
 	hpWidget_->SetPadding(6.0f);
 	hpWidget_->SetHpPerHeart(10.0f); // 1ハート=10HP（必要なら変更）
 
 	// 武器スロットHUDの初期化
-	weaponSlot_ = std::make_unique<WeaponSlot>();
-
 	weaponSlot_ = std::make_unique<WeaponSlot>();
 	weaponSlot_->Initialize("slot_frame.png", "slot_frame_selected.png");
 	weaponSlot_->InitializeSlotNumbers("numbers02.png", 50.0f, 50.0f, { 8.0f, 8.0f }, 2.0f, 32, 32);
@@ -56,12 +55,16 @@ void HUDManager::Initialize()
 		{ 10, 10 },
 		-5.0f,   // spacingは小さく
 		20.0f, 20.0f); // drawサイズ
+
+	waveUI_ = std::make_unique<WaveUI>();
+	waveUI_->Initialize();
+	waveUI_->SetVisible(true);
 }
 
 /// -------------------------------------------------------------
 ///                    更新処理
 /// -------------------------------------------------------------
-void HUDManager::Update()
+void HUDManager::Update(float deltaTime)
 {
 	bool isReloadingForHUD = false; // Crosshairへ渡す用
 
@@ -166,6 +169,8 @@ void HUDManager::Update()
 			weaponSlot_->Update(snap);
 		}
 	}
+
+	if (waveUI_) waveUI_->Update(deltaTime);
 }
 
 /// -------------------------------------------------------------
@@ -177,6 +182,7 @@ void HUDManager::Draw()
 	if (reloadCircle_ && reloadCircle_->IsVisible()) reloadCircle_->Draw();
 	if (crosshair_ && crosshair_->IsVisible()) crosshair_->Draw();
 	if (weaponSlot_) weaponSlot_->Draw();
+	if (waveUI_ && waveUI_->IsVisible()) waveUI_->Draw();
 }
 
 void HUDManager::SetHP(float hp, float maxHp)
@@ -212,4 +218,24 @@ void HUDManager::NotifyCrosshairLanded()
 {
 	if (!crosshair_) return;
 	crosshair_->NotifyLanded();
+}
+
+void HUDManager::SetWaveDisplayState(const WaveUI::DisplayState& state)
+{
+	if (waveUI_) waveUI_->SetDisplayState(state);
+}
+
+void HUDManager::NotifyWaveStarted(int waveNumber, bool isFinalWave)
+{
+	if (waveUI_) waveUI_->NotifyWaveStarted(waveNumber, isFinalWave);
+}
+
+void HUDManager::NotifyAllWavesCleared()
+{
+	if (waveUI_) waveUI_->NotifyAllWavesCleared();
+}
+
+void HUDManager::SetWaveUIVisible(bool v)
+{
+	if (waveUI_) waveUI_->SetVisible(v);
 }
