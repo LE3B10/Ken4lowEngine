@@ -1,7 +1,7 @@
 {
     "assetData": {
         "iconPath": "",
-        "modelPath": ""
+        "modelPath": "Resources/Models/wapons/M4A1.gltf"
     },
     "attributes": [],
     "bCanToggleFireMode": false,
@@ -83,7 +83,7 @@
         "bUseKillConfirmMarker": true,
         "headshotHitMarkerTexturePath": "",
         "hitMarkerDuration": 0.20000000298023224,
-        "hitMarkerTexturePath": "Resources/Textures/reticles/reticle_hit_m4a1.png",
+        "hitMarkerTexturePath": "Resources/Textures/reticles/reticle_m4a1_hit_white_thin.png",
         "killConfirmDuration": 0.25,
         "killConfirmMarkerTexturePath": "Resources/Textures/reticles/kill_center_flash_core_no_logo.png",
         "landExpandImpulse": 1.7999999523162842,

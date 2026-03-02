@@ -10,6 +10,7 @@
 #include "PlayerWeaponComponent.h"
 #include "PlayerMotorComponent.h"
 #include "PlayerViewComponent.h"
+#include "PlayerWeaponVisualComponent.h"
 #include "WeaponSlot.h"
 
 #include <array>
@@ -127,6 +128,10 @@ public: /// ---------- メンバ関数 ---------- ///
 
 	void SetFallDamageSettings(const FallDamageSettings& s) { fallDamageSettings_ = s; }
 
+	void ApplyEditedWeaponDataFromEditor(int32_t weaponID, const FWeaponMasterData& data);
+
+	void ForceRefreshWeaponVisual() { weaponVisual_.ForceRefresh(); }
+
 public:	// ---- FSMから呼ばれる最小API（PlayerAPIがここを呼ぶ）----
 
 	bool FSM_IsGrounded() const { return motor_.IsGrounded(); }
@@ -176,6 +181,9 @@ private: /// ----------メンバ変数 ---------- ///
 
 	// ---- Weapon system ----
 	PlayerWeaponComponent weapon_{};
+
+	// 武器の見た目（PlayerViewComponent から武器のワールド変換をもらって右手に同期させる）
+	PlayerWeaponVisualComponent weaponVisual_{};
 
 	// FSM
 	PlayerAPI api_{};

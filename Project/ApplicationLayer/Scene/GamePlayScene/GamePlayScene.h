@@ -80,6 +80,10 @@ private: /// ---------- メンバ関数 ---------- ///
 	void UpdateResult(float deltaTime);
 	void RestartGame();
 
+	void EnterImGuiFreeze();
+	void ExitImGuiFreeze();
+	void UpdateImGuiFreeze();
+
 private: /// ---------- メンバ変数 ---------- ///
 
 	K4E::DirectXCommon* dxCommon_ = nullptr;
@@ -127,4 +131,6 @@ private: /// ---------- 内部メンバ変数 ---------- ///
 	// デバッグカメラのON/OFF用
 	bool isDebugCamera_ = false;
 	bool isLockedCursor_ = false;
+
+	bool isImGuiFreeze_ = false;
 };

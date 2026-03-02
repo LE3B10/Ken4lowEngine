@@ -110,6 +110,32 @@ void GamePlayScene::Update()
 	// デルタタイムの取得
 	const float deltaTime = dxCommon_->GetFPSCounter().GetDeltaTime();
 
+#ifdef _DEBUG // デバッグビルドのみ
+
+	// ------------------------------------------------------------
+	// ImGui操作用 完全停止トグル (F1)
+	// ------------------------------------------------------------
+	if (input_ && input_->TriggerKey(DIK_F1))
+	{
+		if (isImGuiFreeze_)
+		{
+			ExitImGuiFreeze();
+		}
+		else
+		{
+			EnterImGuiFreeze();
+		}
+		return; // 切替フレームはここで終了
+	}
+
+	// 完全停止中は ImGui 以外のゲーム更新を全部止める
+	if (isImGuiFreeze_)
+	{
+		UpdateImGuiFreeze();
+		return;
+	}
+#endif // _DEBUG
+
 	// ------------------------------------------------------------
 	// ゲームクリア / ゲームオーバー中
 	// ------------------------------------------------------------
@@ -133,60 +159,46 @@ void GamePlayScene::Update()
 		{
 			EnterPause();
 		}
-		return; // トグルしたフレームはここで終了（誤操作防止）
+		return;
 	}
 
-	// ポーズ中はゲーム進行を止める（メニューだけ更新）
 	if (isPaused_)
 	{
 		UpdatePaused(deltaTime);
 		return;
 	}
 
-	// デバッグカメラの更新
 	UpdateDebug();
 
-	// キャラクター関連の更新
 	characters_.Update(deltaTime);
 
-	// 影用のライトのビュー射影行列を更新してキャラクターとステージにセット
 	UpdateShadowLightViewProjection();
 	stage_->UpdateShadowMatrix(shadowLightViewProjection_);
 	characters_.UpdateShadowMatrix(shadowLightViewProjection_);
 
-	// 弾丸マネージャーの更新
 	if (bulletManager_)
 	{
 		bulletManager_->Update(deltaTime);
 	}
 
-	// 衝突判定の更新
 	CollisionUpdate();
 
 	if (skyBox_) skyBox_->Update();
 
-	// HUD更新（通常時）
 	if (hudManager_ && characters_.GetPlayer())
 	{
 		hudManager_->SetHP(characters_.GetPlayer()->GetHP(), characters_.GetPlayer()->GetMaxHP());
 		hudManager_->Update(deltaTime);
 	}
 
-	// ステージの更新
 	if (stage_) { stage_->Update(); }
 
-	// ------------------------------------------------------------
-	// プレイヤー死亡判定
-	// ------------------------------------------------------------
 	if (characters_.GetPlayer() && characters_.GetPlayer()->GetHP() <= 0)
 	{
 		EnterGameOver();
 		return;
 	}
 
-	// ------------------------------------------------------------
-	// ウェーブ進行
-	// ------------------------------------------------------------
 	if (waveManager_)
 	{
 		waveManager_->Update(characters_, deltaTime);
@@ -209,13 +221,11 @@ void GamePlayScene::Update()
 
 			hudManager_->SetWaveDisplayState(state);
 
-			// ウェーブ開始時に1回だけ通知
 			if (isWaveInProgress && (!prevWaveInProgress_ || currentWave != prevWaveNumber_))
 			{
 				hudManager_->NotifyWaveStarted(currentWave, isFinalWave);
 			}
 
-			// 全ウェーブクリア時に1回だけ通知
 			if (isAllWavesCleared && !prevAllWavesCleared_)
 			{
 				hudManager_->NotifyAllWavesCleared();
@@ -437,6 +447,12 @@ void GamePlayScene::DrawImGui()
 					if (wc.GetCurrentWeaponId() == weaponID)
 					{
 						wc.ReloadWeaponMasterDataAndReequip();
+					}
+
+					if (player)
+					{
+						player->GetWeaponComponent().ReloadWeaponMasterDataAndReequip();
+						player->ForceRefreshWeaponVisual();
 					}
 				}
 			};
@@ -854,6 +870,51 @@ void GamePlayScene::RestartGame()
 {
 	Finalize();
 	Initialize();
+}
+
+void GamePlayScene::EnterImGuiFreeze()
+{
+	if (isImGuiFreeze_) { return; }
+
+	isImGuiFreeze_ = true;
+
+	// もし通常ポーズ中なら解除しておく
+	if (isPaused_)
+	{
+		isPaused_ = false;
+		if (pauseMenu_)
+		{
+			pauseMenu_->Close();
+		}
+	}
+
+	// ImGui操作しやすいようにカーソル解放
+	if (input_)
+	{
+		input_->SetLockCursor(false);
+		input_->SetCursorVisible(true);
+	}
+}
+
+void GamePlayScene::ExitImGuiFreeze()
+{
+	if (!isImGuiFreeze_) { return; }
+
+	isImGuiFreeze_ = false;
+
+	// 通常ゲームに戻る時のカーソル状態
+	if (input_)
+	{
+		const bool lock = !isDebugCamera_;
+		input_->SetLockCursor(lock);
+		input_->SetCursorVisible(!lock);
+	}
+}
+
+void GamePlayScene::UpdateImGuiFreeze()
+{
+	// 完全停止中は何も更新しない
+	// 必要なら「解除キーだけ」ここで受けてもよい
 }
 
 /// -------------------------------------------------------------

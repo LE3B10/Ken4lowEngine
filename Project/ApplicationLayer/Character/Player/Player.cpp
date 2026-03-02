@@ -178,6 +178,10 @@ void Player::Initialize()
 	weapon_.LoadWeaponMasterDataOnce();
 
 	prevLocoId_ = brain_.loco.id;
+
+	weaponVisual_.Initialize();
+	weaponVisual_.BindWeaponLogic(&weapon_);
+	weaponVisual_.BindRightHandTransform(&parts[GetPartIndices().rightArm].transform);
 }
 
 
@@ -327,10 +331,14 @@ void Player::Update(float deltaTime)
 	// 親子描画更新
 	BaseCharacter::Update(deltaTime);
 
+	// 右手のワールド変換が更新されたあとに武器モデルを追従
+	weaponVisual_.Update(deltaTime, inputSnap_.aimHeld);
+
 	SyncHurtboxes();
 	vfx_.Update(deltaTime);
 
 	ApplyFallDamage(deltaTime);
+
 }
 
 
@@ -341,6 +349,8 @@ void Player::Draw()
 {
 	// ベースキャラクター描画
 	BaseCharacter::Draw();
+	// 武器の描画
+	weaponVisual_.Draw();
 }
 
 /// -------------------------------------------------------------
@@ -385,6 +395,7 @@ void Player::DrawImGui()
 void Player::DrawShadow()
 {
 	BaseCharacter::DrawShadow();
+	weaponVisual_.DrawShadow();
 }
 
 void Player::UpdateShadowMatrix(const K4E::Matrix4x4& lightViewProjection)
@@ -552,6 +563,28 @@ void Player::SetSpawnOffset(const K4E::Vector3& offset)
 		else              tr->translate_ += delta;
 
 		SetCenterPosition(tr->translate_);
+	}
+}
+
+void Player::ApplyEditedWeaponDataFromEditor(int32_t weaponID, const FWeaponMasterData& data)
+{
+	// runtime側の WeaponMasterDatabase を更新
+	auto& db = weapon_.GetWeaponMasterDatabase();
+	FWeaponMasterData* runtimeData = db.FindMutableByID(weaponID);
+	if (!runtimeData)
+	{
+		return;
+	}
+
+	*runtimeData = data;
+
+	// 今装備中なら、WeaponInstance を作り直して各種パラメータを反映
+	if (weapon_.GetCurrentWeaponId() == weaponID)
+	{
+		weapon_.RebuildCurrentWeaponFromDatabase();
+
+		// 見た目も次フレームで必ず再構築
+		weaponVisual_.ForceRefresh();
 	}
 }
 
