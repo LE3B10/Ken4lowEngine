@@ -39,6 +39,12 @@ public:
 
 	void DrawImGui() override;  // 任意（調整したければ）
 
+	// シャドウマップ用行列の更新
+	void UpdateShadowMatrix(const K4E::Matrix4x4& lightViewProjection) override;
+
+	// シャドウマップ描画処理
+	void DrawShadow() override;
+
 	// 依存の注入
 	void SetTarget(K4E::Collider* target) { target_ = target; }
 	void SetBulletManager(BulletManager* bm) { bulletManager_ = bm; }

@@ -33,6 +33,12 @@ namespace Ken4lowEngine
 		// 描画処理
 		void Draw();
 
+		// シャドウマップ描画処理
+		void DrawShadow();
+
+		// シャドウマップ用行列の更新
+		void UpdateShadowMatrix(const Matrix4x4& lightViewProjection);
+
 	public: /// ---------- アクセサ関数 ---------- ///
 
 		// ワールドコリジョンのAABBリストを取得

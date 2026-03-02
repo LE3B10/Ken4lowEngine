@@ -97,6 +97,16 @@ void Ken4lowEngine::Stage::Draw()
 	if (stageModel_) stageModel_->Draw();
 }
 
+void Ken4lowEngine::Stage::DrawShadow()
+{
+	if (stageModel_) stageModel_->DrawShadow();
+}
+
+void Ken4lowEngine::Stage::UpdateShadowMatrix(const K4E::Matrix4x4& lightViewProjection)
+{
+	if (stageModel_) stageModel_->UpdateShadowMatrix(lightViewProjection);
+}
+
 void Ken4lowEngine::Stage::RegisterColliders(CollisionManager* collisionManager)
 {
 	// コライダーを衝突マネージャーに登録

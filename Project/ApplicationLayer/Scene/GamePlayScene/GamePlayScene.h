@@ -60,6 +60,10 @@ private: /// ---------- メンバ関数 ---------- ///
 	void ExitPause();
 	void UpdatePaused();
 
+	void UpdateShadowLightViewProjection();
+
+	bool TryGetDirectionalLightFromManager(K4E::Vector3& outDirection);
+
 private: /// ---------- メンバ変数 ---------- ///
 
 	K4E::DirectXCommon* dxCommon_ = nullptr;
@@ -74,9 +78,19 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	std::unique_ptr<K4E::Stage> stage_ = nullptr; // ステージ（地形＋ワールドコリジョン）
 
-
 	// ポーズ状態（ESCで切替）
 	bool isPaused_ = false;
+
+private: /// ---------- 影用 ---------- ///
+
+	K4E::Matrix4x4 shadowLightViewProjection_{}; // ライトのビュー射影行列
+
+	K4E::Vector3 shadowLightDirection_ = { 0.3f, -1.0f, 0.2f, }; // 影用ライトの方向
+	float shadowDistance_ = 50.0f; // 影の最大距離
+	float shadowOrthoHalfWidth_ = 25.0f; // 影の直交投影の半幅
+	float shadowOrthoHalfHeight_ = 25.0f; // 影の直交投影の半高さ
+	float shadowNearZ_ = 0.1f; // 影の近距離
+	float shadowFarZ_ = 120.0f; // 影の遠距離
 
 private: /// ---------- HUD ---------- ///
 

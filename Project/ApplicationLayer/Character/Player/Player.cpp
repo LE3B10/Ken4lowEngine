@@ -382,6 +382,16 @@ void Player::DrawImGui()
 #endif // USE_IMGUI
 }
 
+void Player::DrawShadow()
+{
+	BaseCharacter::DrawShadow();
+}
+
+void Player::UpdateShadowMatrix(const K4E::Matrix4x4& lightViewProjection)
+{
+	BaseCharacter::UpdateShadowMatrix(lightViewProjection);
+}
+
 /// -------------------------------------------------------------
 ///				　			衝突判定処理
 /// -------------------------------------------------------------

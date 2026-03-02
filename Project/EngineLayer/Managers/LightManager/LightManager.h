@@ -98,6 +98,11 @@ namespace Ken4lowEngine
 		/// <param name="rootIndexSRV_t2">パンクチュアルライト SRV をバインドするルートインデックス（t2）。</param>
 		void BindPunctualLights(uint32_t rootIndexCB_b2, uint32_t rootIndexSRV_t2);
 
+		/// <summary>
+		/// デフォルトの指向性ライトを追加します。
+		/// </summary>
+		void AddDefaultDirectionalLight();
+
 	public: /// ---------- ゲッター ---------- ///
 
 		/// <summary>

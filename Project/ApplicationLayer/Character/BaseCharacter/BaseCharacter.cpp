@@ -68,6 +68,30 @@ void BaseCharacter::Draw()
 	}
 }
 
+void BaseCharacter::UpdateShadowMatrix(const K4E::Matrix4x4& lightViewProjection)
+{
+	body_.object->UpdateShadowMatrix(lightViewProjection);
+	for (const auto& part : parts_)
+	{
+		if (part.active && part.object)
+		{
+			part.object->UpdateShadowMatrix(lightViewProjection);
+		}
+	}
+}
+
+void BaseCharacter::DrawShadow()
+{
+	body_.object->DrawShadow();
+	for (const auto& part : parts_)
+	{
+		if (part.active && part.object)
+		{
+			part.object->DrawShadow();
+		}
+	}
+}
+
 /// -------------------------------------------------------------
 ///				　			階層更新
 /// -------------------------------------------------------------

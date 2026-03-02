@@ -36,6 +36,8 @@ void GamePlayScene::Initialize()
 	K4E::DebugCamera::GetInstance()->Initialize();
 #endif // _DEBUG
 
+	LightManager::GetInstance()->AddDefaultDirectionalLight();
+
 	dxCommon_ = K4E::DirectXCommon::GetInstance();
 	input_ = K4E::Input::GetInstance();
 
@@ -140,6 +142,10 @@ void GamePlayScene::Update()
 	// キャラクター関連の更新
 	characters_.Update(deltaTime);
 
+	UpdateShadowLightViewProjection();
+	stage_->UpdateShadowMatrix(shadowLightViewProjection_);
+	characters_.UpdateShadowMatrix(shadowLightViewProjection_);
+
 	// 弾丸マネージャーの更新
 	if (bulletManager_)
 	{
@@ -212,6 +218,8 @@ void GamePlayScene::Draw3DObjects()
 
 void GamePlayScene::DrawShadowObjects()
 {
+	if (stage_) { stage_->DrawShadow(); } // もし Stage 側にあるなら
+	characters_.DrawShadow();
 }
 
 /// -------------------------------------------------------------
@@ -520,6 +528,68 @@ void GamePlayScene::UpdatePaused()
 	default:
 		break;
 	}
+}
+
+void GamePlayScene::UpdateShadowLightViewProjection()
+{
+	K4E::Vector3 lightDir = shadowLightDirection_;
+
+	K4E::Vector3 managerDir{};
+	if (TryGetDirectionalLightFromManager(managerDir))
+	{
+		lightDir = managerDir;
+	}
+
+	lightDir = K4E::Vector3::Normalize(lightDir);
+
+	// プレイヤー中心を影の中心にする
+	K4E::Vector3 center = { 0.0f, 0.0f, 0.0f };
+	if (auto* player = characters_.GetPlayer())
+	{
+		if (auto* wt = player->GetWorldTransform())
+		{
+			center = wt->translate_;
+		}
+	}
+
+	K4E::Vector3 eye = center - lightDir * shadowDistance_;
+	K4E::Vector3 up = { 0.0f, 1.0f, 0.0f };
+
+	// 真上/真下に近いときの保険
+	if (std::abs(K4E::Vector3::Dot(lightDir, up)) > 0.99f)
+	{
+		up = { 0.0f, 0.0f, 1.0f };
+	}
+
+	K4E::Matrix4x4 view = K4E::Matrix4x4::MakeLookAtMatrix(eye, center, up);
+
+	// あなたの MakeOrthographicMatrix は
+	// (left, top, right, bottom, near, far)
+	K4E::Matrix4x4 proj = K4E::Matrix4x4::MakeOrthographicMatrix(
+		-shadowOrthoHalfWidth_,
+		shadowOrthoHalfHeight_,
+		shadowOrthoHalfWidth_,
+		-shadowOrthoHalfHeight_,
+		shadowNearZ_,
+		shadowFarZ_
+	);
+
+	shadowLightViewProjection_ = K4E::Matrix4x4::Multiply(view, proj);
+}
+
+bool GamePlayScene::TryGetDirectionalLightFromManager(K4E::Vector3& outDirection)
+{
+	const auto& lights = K4E::LightManager::GetInstance()->GetPunctualLights();
+
+	for (const auto& L : lights)
+	{
+		if (L.lightType == 1)
+		{
+			outDirection = K4E::Vector3::Normalize(L.direction);
+			return true;
+		}
+	}
+	return false;
 }
 
 /// -------------------------------------------------------------

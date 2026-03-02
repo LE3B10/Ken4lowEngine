@@ -11,6 +11,8 @@
 #include "LinearInterpolation.h"
 #include "Wireframe.h"
 
+using namespace Ken4lowEngine;
+
 namespace
 {
 	using K4E::Vector3;
@@ -180,6 +182,16 @@ void Enemy::Draw()
 void Enemy::DrawImGui()
 {
 
+}
+
+void Enemy::DrawShadow()
+{
+	EnemyBase::DrawShadow();
+}
+
+void Enemy::UpdateShadowMatrix(const Matrix4x4& lightViewProjection)
+{
+	EnemyBase::UpdateShadowMatrix(lightViewProjection);
 }
 
 void Enemy::BuildContext(EnemyAIContext<Enemy>& ctx)

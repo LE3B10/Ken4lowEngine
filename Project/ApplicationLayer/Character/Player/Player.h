@@ -65,6 +65,10 @@ public: /// ---------- メンバ関数 ---------- ///
 	// ImGui描画処理
 	void DrawImGui() override;
 
+	void DrawShadow();
+
+	void UpdateShadowMatrix(const K4E::Matrix4x4& lightViewProjection);
+
 	// 衝突判定を行う
 	void OnCollision(K4E::Collider* other) override;
 

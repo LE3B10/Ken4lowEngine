@@ -163,6 +163,9 @@ public: /// ---------- メンバ関数 ---------- ///
 	// ImGui描画処理
 	void DrawImGui() override;
 
+	void UpdateLightViewProjection();
+	void UpdateShadowMatrices();
+
 private: /// ---------- メンバ関数 ---------- ///
 
 	// カメラの初期化
@@ -265,5 +268,20 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	// 現在のシーン状態
 	std::unique_ptr<ITitleSceneState> currentState_ = nullptr;
+
+private: /// ---------- 影用 ---------- ///
+
+	// 影用ライト行列
+	K4E::Matrix4x4 lightViewProjection_;
+
+	// 影用パラメータ
+	K4E::Vector3 shadowCenter_ = { 0.0f, 0.0f, 0.0f };
+	K4E::Vector3 lightDirection_ = { 0.5f, -1.0f, 0.3f };
+
+	float shadowDistance_ = 40.0f;
+	float orthoHalfWidth_ = 25.0f;
+	float orthoHalfHeight_ = 25.0f;
+	float nearZ_ = 0.1f;
+	float farZ_ = 100.0f;
 };
 

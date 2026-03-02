@@ -108,6 +108,8 @@ PixelShaderOutput main(VertexShaderOutput input)
 {
     PixelShaderOutput output;
 
+    uint activeLightCount = 0;
+    
     // UV設定
     float4 transformedUV = mul(float4(input.texcoord, 0.0f, 1.0f), gMaterial.uvTransform);
     float4 textureColor = gTexture.Sample(gSampler, transformedUV.xy); // テクスチャの色
@@ -134,7 +136,8 @@ PixelShaderOutput main(VertexShaderOutput input)
     float3 specSum = 0.0.xxx;
     
     // ライト0本のときに暗くならないように：ベース係数は1、ライトがあるときは弱いアンビエント
-    float3 ambient = /*(gLightInfo.gLightCount == 0) ? 1.0.xxx : 0.02.xxx;*/float3(0.0, 0.0, 0.0);
+    //float3 ambient = /*(gLightInfo.gLightCount == 0) ? 1.0.xxx : 0.02.xxx;*/
+    float3 ambient = 0.08.xxx;
     
     [loop]
     for (uint i = 0; i < gLightInfo.gLightCount; ++i)
@@ -143,6 +146,8 @@ PixelShaderOutput main(VertexShaderOutput input)
         
         if (L.lightType == 1)
         {
+            activeLightCount++;
+            
             // Directional
             // L.direction は「光が進む方向」を想定
             float3 lightDir = normalize(-L.direction);
@@ -164,6 +169,8 @@ PixelShaderOutput main(VertexShaderOutput input)
         }
         else if (L.lightType == 2)
         {
+            activeLightCount++;
+            
             // Point
             float3 toL = L.position - position;
             float d = length(toL);
@@ -187,6 +194,8 @@ PixelShaderOutput main(VertexShaderOutput input)
         }
         else if (L.lightType == 3)
         {
+            activeLightCount++;
+            
             // Spot
             float3 toL = L.position - position;
             float d = length(toL);
@@ -229,6 +238,11 @@ PixelShaderOutput main(VertexShaderOutput input)
     lightSum = (gLightInfo.gLightCount == 0) ? 1.0.xxx : (lightSum + 0.02.xxx);
     
     lightSum = ambient + diffSum + specSum;
+    
+    if (activeLightCount == 0)
+    {
+        lightSum = 1.0.xxx;
+    }
     
     // 出力処理
     output.color = gMaterial.color * lerp(textureColor, edgeCol, 1.0 - step(maskValue, gDissolveSetting.threshold));; // αもここで確保

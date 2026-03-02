@@ -37,6 +37,10 @@ public: /// ---------- メンバ関数 ---------- ///
 	// ImGui描画処理
 	virtual void DrawImGui();
 
+	virtual void UpdateShadowMatrix(const K4E::Matrix4x4& lightViewProjection);
+
+	virtual void DrawShadow();
+
 public: /// ---------- HP / 物理関連のメンバ関数 ---------- ///
 
 	// HP

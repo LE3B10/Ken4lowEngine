@@ -129,6 +129,17 @@ void EnemyBase::DrawImGui()
 	if (model_) model_->DrawImGui();
 }
 
+void EnemyBase::UpdateShadowMatrix(const K4E::Matrix4x4& lightViewProjection)
+{
+	if (model_) model_->UpdateShadowMatrix(lightViewProjection);
+}
+
+void EnemyBase::DrawShadow()
+{
+	if (isDead_ || removable_) return;
+	if (model_) model_->DrawShadow();
+}
+
 /// -------------------------------------------------------------
 ///							ダメージ処理
 /// -------------------------------------------------------------

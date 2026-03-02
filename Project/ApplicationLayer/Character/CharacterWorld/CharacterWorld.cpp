@@ -161,3 +161,22 @@ void CharacterWorld::DrawImGui()
 	for (auto& e : enemies_) e->DrawImGui();
 #endif
 }
+
+void CharacterWorld::DrawShadow()
+{
+	if (player_) { player_->DrawShadow(); }
+	for (auto& e : enemies_)
+	{
+		e->DrawShadow();
+	}
+}
+
+void CharacterWorld::UpdateShadowMatrix(const K4E::Matrix4x4& lightViewProjection)
+{
+	if (player_) { player_->UpdateShadowMatrix(lightViewProjection); }
+
+	for (auto& e : enemies_)
+	{
+		e->UpdateShadowMatrix(lightViewProjection);
+	}
+}

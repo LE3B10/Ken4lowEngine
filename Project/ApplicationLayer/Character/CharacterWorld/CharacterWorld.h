@@ -32,6 +32,10 @@ public:
     void Draw();
     void DrawImGui();
 
+    void DrawShadow();
+
+    void UpdateShadowMatrix(const K4E::Matrix4x4& lightViewProjection);
+
     Player* GetPlayer() { return player_.get(); }
     const std::vector<std::unique_ptr<Enemy>>& GetEnemies() const { return enemies_; }
 

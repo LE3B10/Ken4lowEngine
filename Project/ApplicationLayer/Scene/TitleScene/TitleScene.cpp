@@ -23,6 +23,8 @@ using namespace Ken4lowEngine;
 /// -------------------------------------------------------------
 void TitleScene::Initialize()
 {
+	LightManager::GetInstance()->AddDefaultDirectionalLight();
+
 	dxCommon_ = DirectXCommon::GetInstance();
 	input_ = Input::GetInstance();
 
@@ -112,6 +114,9 @@ void TitleScene::Update()
 
 	// スカイボックス更新
 	skyBox_->Update();
+
+	UpdateLightViewProjection();
+	UpdateShadowMatrices();
 }
 
 
@@ -132,6 +137,7 @@ void TitleScene::Draw3DObjects()
 
 void TitleScene::DrawShadowObjects()
 {
+	if (terrain_) terrain_->DrawShadow();
 }
 
 /// -------------------------------------------------------------
@@ -233,6 +239,27 @@ void TitleScene::DrawImGui()
 #endif // USE_IMGUI
 
 	LightManager::GetInstance()->DrawImGui();
+}
+
+void TitleScene::UpdateLightViewProjection()
+{
+	// 今は新規シーンで最小確認したいので、中心は原点付近固定でOK
+	shadowCenter_ = { 0.0f, 1.0f, 0.0f };
+
+	lightViewProjection_ = Matrix4x4::MakeLightViewProjection(
+		lightDirection_,
+		shadowCenter_,
+		shadowDistance_,
+		orthoHalfWidth_,
+		orthoHalfHeight_,
+		nearZ_,
+		farZ_
+	);
+}
+
+void TitleScene::UpdateShadowMatrices()
+{
+	if (terrain_) { terrain_->UpdateShadowMatrix(lightViewProjection_); }
 }
 
 /// -------------------------------------------------------------

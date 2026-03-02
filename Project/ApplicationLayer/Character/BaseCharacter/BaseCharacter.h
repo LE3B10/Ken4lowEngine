@@ -53,6 +53,10 @@ public: /// ---------- メンバ関数 ---------- ///
 	// ImGui描画処理
 	virtual void DrawImGui() = 0;
 
+	virtual void UpdateShadowMatrix(const K4E::Matrix4x4& lightViewProjection);
+
+	virtual void DrawShadow();
+
 	// 衝突判定を行う
 	virtual void OnCollision(K4E::Collider* other) override = 0;
 
