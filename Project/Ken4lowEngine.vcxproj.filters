@@ -568,9 +568,15 @@
     <ClCompile Include="ApplicationLayer\Scene\ShadowTestScene\ShadowTestScene.cpp">
       <Filter>ApplicationLayer\Scene\ShadowTextScene</Filter>
     </ClCompile>
-    <ClCompile Include="WaveManager.cpp" />
-    <ClCompile Include="WaveUI.cpp" />
-    <ClCompile Include="ResultMenu.cpp" />
+    <ClCompile Include="ApplicationLayer\Scene\GamePlayScene\ResultMenu.cpp">
+      <Filter>ApplicationLayer\Scene\GamePlayScene</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\Scene\GamePlayScene\WaveManager.cpp">
+      <Filter>ApplicationLayer\Scene\GamePlayScene</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\UISystem\WaveUI\WaveUI.cpp">
+      <Filter>ApplicationLayer\UISystem\WaveUI</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="EngineLayer\Math\MultipleStructs\AABB.h">
@@ -1191,9 +1197,15 @@
     <ClInclude Include="ApplicationLayer\Scene\ShadowTestScene\ShadowTestScene.h">
       <Filter>ApplicationLayer\Scene\ShadowTextScene</Filter>
     </ClInclude>
-    <ClInclude Include="WaveManager.h" />
-    <ClInclude Include="WaveUI.h" />
-    <ClInclude Include="ResultMenu.h" />
+    <ClInclude Include="ApplicationLayer\Scene\GamePlayScene\ResultMenu.h">
+      <Filter>ApplicationLayer\Scene\GamePlayScene</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Scene\GamePlayScene\WaveManager.h">
+      <Filter>ApplicationLayer\Scene\GamePlayScene</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\UISystem\WaveUI\WaveUI.h">
+      <Filter>ApplicationLayer\UISystem\WaveUI</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="Resources\Shaders\PostEffect\FullScreen.hlsli">
@@ -1626,6 +1638,9 @@
     </Filter>
     <Filter Include="ApplicationLayer\Scene\ShadowTextScene">
       <UniqueIdentifier>{c2dd6f73-a270-4cae-a8c8-76032f1b85b9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ApplicationLayer\UISystem\WaveUI">
+      <UniqueIdentifier>{0583b643-8b56-4379-84c4-e41564c7d5b2}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>
