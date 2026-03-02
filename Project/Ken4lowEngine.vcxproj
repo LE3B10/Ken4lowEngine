@@ -566,6 +566,9 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClCompile Include="ApplicationLayer\UISystem\WeaponSlot\WeaponSlot.cpp" />
     <ClCompile Include="EngineLayer\3D\LevelData\LevelLoader.cpp" />
     <ClCompile Include="ApplicationLayer\Scene\ShadowTestScene\ShadowTestScene.cpp" />
+    <ClCompile Include="ResultMenu.cpp" />
+    <ClCompile Include="WaveManager.cpp" />
+    <ClCompile Include="WaveUI.cpp" />
     <ClCompile Include="WinMain.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
@@ -1437,6 +1440,9 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="ApplicationLayer\UISystem\WeaponSlot\WeaponSlot.h" />
     <ClInclude Include="EngineLayer\3D\LevelData\LevelLoader.h" />
     <ClInclude Include="ApplicationLayer\Scene\ShadowTestScene\ShadowTestScene.h" />
+    <ClInclude Include="ResultMenu.h" />
+    <ClInclude Include="WaveManager.h" />
+    <ClInclude Include="WaveUI.h" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="externals\DirectXTex\DirectXTex_Desktop_2022_Win10.vcxproj">

@@ -6,7 +6,8 @@
 #include "CharacterWorld.h"
 #include "BulletManager.h"
 #include "HUDManager.h"
-#include "LevelObjectManager.h"
+#include "WaveManager.h"
+#include "ResultMenu.h"
 
 #include "Stage.h"
 
@@ -24,6 +25,15 @@ namespace Ken4lowEngine { class Input; }
 /// -------------------------------------------------------------
 class GamePlayScene : public BaseScene
 {
+private: /// ---------- 列挙型 ---------- ///
+
+	enum class GameFlowState
+	{
+		Playing, // 通常プレイ中
+		GameClear, // ゲームクリア
+		GameOver, // ゲームオーバー
+	};
+
 public: /// ---------- メンバ関数 ---------- ///
 
 	// 初期化処理
@@ -58,11 +68,17 @@ private: /// ---------- メンバ関数 ---------- ///
 	// ポーズ制御
 	void EnterPause();
 	void ExitPause();
-	void UpdatePaused();
+	void UpdatePaused(float deltaTime);
 
 	void UpdateShadowLightViewProjection();
 
 	bool TryGetDirectionalLightFromManager(K4E::Vector3& outDirection);
+
+	void SetupWaves();
+	void EnterGameClear();
+	void EnterGameOver();
+	void UpdateResult(float deltaTime);
+	void RestartGame();
 
 private: /// ---------- メンバ変数 ---------- ///
 
@@ -70,6 +86,8 @@ private: /// ---------- メンバ変数 ---------- ///
 	K4E::Input* input_ = nullptr;
 
 	std::unique_ptr<PauseMenu> pauseMenu_ = nullptr; // ポーズメニュー
+	std::unique_ptr<ResultMenu> resultMenu_ = nullptr; // 結果メニュー
+
 	std::unique_ptr<CollisionManager> collisionManager_; // 衝突マネージャー
 	std::unique_ptr<BulletManager> bulletManager_; // 弾丸マネージャー
 	CharacterWorld characters_;
@@ -80,6 +98,14 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	// ポーズ状態（ESCで切替）
 	bool isPaused_ = false;
+
+	std::unique_ptr<WaveManager> waveManager_ = nullptr;
+	GameFlowState gameFlowState_ = GameFlowState::Playing;
+	float resultInputCooldown_ = 0.0f;
+
+	int prevWaveNumber_ = 0;
+	bool prevWaveInProgress_ = false;
+	bool prevAllWavesCleared_ = false;
 
 private: /// ---------- 影用 ---------- ///
 

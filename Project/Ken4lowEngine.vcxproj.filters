@@ -568,6 +568,9 @@
     <ClCompile Include="ApplicationLayer\Scene\ShadowTestScene\ShadowTestScene.cpp">
       <Filter>ApplicationLayer\Scene\ShadowTextScene</Filter>
     </ClCompile>
+    <ClCompile Include="WaveManager.cpp" />
+    <ClCompile Include="WaveUI.cpp" />
+    <ClCompile Include="ResultMenu.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="EngineLayer\Math\MultipleStructs\AABB.h">
@@ -1188,6 +1191,9 @@
     <ClInclude Include="ApplicationLayer\Scene\ShadowTestScene\ShadowTestScene.h">
       <Filter>ApplicationLayer\Scene\ShadowTextScene</Filter>
     </ClInclude>
+    <ClInclude Include="WaveManager.h" />
+    <ClInclude Include="WaveUI.h" />
+    <ClInclude Include="ResultMenu.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Resources\Shaders\PostEffect\FullScreen.hlsli">
