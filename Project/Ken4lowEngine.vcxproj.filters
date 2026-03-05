@@ -577,7 +577,9 @@
     <ClCompile Include="ApplicationLayer\UISystem\WaveUI\WaveUI.cpp">
       <Filter>ApplicationLayer\UISystem\WaveUI</Filter>
     </ClCompile>
-    <ClCompile Include="PlayerWeaponVisualComponent.cpp" />
+    <ClCompile Include="ApplicationLayer\Character\Player\Component\PlayerWeaponVisualComponent.cpp">
+      <Filter>ApplicationLayer\Character\Player\Component</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="EngineLayer\Math\MultipleStructs\AABB.h">
@@ -1207,7 +1209,9 @@
     <ClInclude Include="ApplicationLayer\UISystem\WaveUI\WaveUI.h">
       <Filter>ApplicationLayer\UISystem\WaveUI</Filter>
     </ClInclude>
-    <ClInclude Include="PlayerWeaponVisualComponent.h" />
+    <ClInclude Include="ApplicationLayer\Character\Player\Component\PlayerWeaponVisualComponent.h">
+      <Filter>ApplicationLayer\Character\Player\Component</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="Resources\Shaders\PostEffect\FullScreen.hlsli">
