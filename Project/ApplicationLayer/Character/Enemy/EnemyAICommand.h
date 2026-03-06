@@ -30,6 +30,9 @@ struct EnemyAICommand
 	// そのフレームは移動を止めたい
 	bool stopMove = false;
 
+	// リロードしたい（演出/行動用）
+	bool wantReload = false;
+
 	// デバッグ用：どの状態が命令を出したか
 	int debugState = -1;
 
