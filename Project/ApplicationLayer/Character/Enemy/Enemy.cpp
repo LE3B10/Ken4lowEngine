@@ -100,9 +100,9 @@ namespace
 	}
 }
 
-void Enemy::Initialize(const K4E::Vector3& startPos, const std::string& modelPath)
+void Enemy::Initialize(const K4E::Vector3& startPos)
 {
-	EnemyBase::Initialize(startPos, modelPath);
+	EnemyBase::Initialize(startPos);
 
 	// アーキタイプ設定（Spawn側で事前に SetArchetype しててもOK：ここで同じ値を反映するだけ）
 	SetArchetype(archetype_);
@@ -461,7 +461,7 @@ void Enemy::FaceTo(const K4E::Vector3& lookAt)
 	const float lenXZ = std::sqrt(d.x * d.x + d.z * d.z);
 	if (lenXZ <= 1e-6f) return;
 
-	yawRad_ = std::atan2(d.x, d.z);
+	yawRad_ = std::atan2(-d.x, d.z);
 
 	// pitch：上が+。敵が水平なら pitchRad_ は 0 のままでも良い
 	pitchRad_ = std::atan2(d.y, lenXZ);
@@ -516,7 +516,17 @@ void Enemy::OnBulletHit(K4E::Collider* bulletCollider)
 	// 死亡前状態を保持
 	const bool wasDead = IsDead();
 
-	TakeDamage(dmg);
+	K4E::Vector3 hitDir{ 0.0f, 0.0f, 0.0f };
+	float hitPower = 1.0f;
+	if (bulletCollider)
+	{
+		// 被弾点→敵中心（弾の進行方向に近いベクトル）
+		hitDir = GetCenterPosition() - bulletCollider->GetCenterPosition();
+		// ざっくり：ダメージが大きいほど強めに（Bullet側で弾速が取れるなら置き換えてOK）
+		hitPower = 1.0f + static_cast<float>(dmg) * 0.015f;
+	}
+
+	TakeDamage(dmg, hitDir, hitPower);
 
 	// 命中通知（必要なら）
 	if (!wasDead && onPlayerHitUICallback_)

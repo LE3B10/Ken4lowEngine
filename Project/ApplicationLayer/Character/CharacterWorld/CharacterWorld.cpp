@@ -16,7 +16,7 @@ void CharacterWorld::Initialize(GameContext& ctx)
 	InjectPlayerDeps(*player_);
 	player_->Initialize();
 	player_->SetSpawnPosition({ 0.0f, 6.0f, 0.0f }); // 6m上から開始（落下確認しやすい）
-	player_->SetSpawnOffset({ 5.0f, 0.0f, -15.0f });    // 右へ2mずらす
+	player_->SetSpawnOffset({ 0.0f, 0.0f, -15.0f });    // 右へ2mずらす
 
 	// Collider登録（PlayerはColliderとして扱われている前提：DebugSceneと同じ）
 	if (ctx_.collisionManager_)
@@ -75,12 +75,12 @@ void CharacterWorld::InjectEnemyDeps(Enemy& e)
 	}
 }
 
-Enemy& CharacterWorld::SpawnEnemy(const K4E::Vector3& pos, const std::string& modelPath)
+Enemy& CharacterWorld::SpawnEnemy(const K4E::Vector3& pos)
 {
 	auto e = std::make_unique<Enemy>();
 	InjectEnemyDeps(*e);
 
-	e->Initialize(pos, modelPath);
+	e->Initialize(pos);
 
 	if (ctx_.collisionManager_)
 	{
@@ -91,12 +91,12 @@ Enemy& CharacterWorld::SpawnEnemy(const K4E::Vector3& pos, const std::string& mo
 	return *enemies_.back();
 }
 
-Enemy& CharacterWorld::SpawnEnemy(EnemyArchetype type, const K4E::Vector3& pos, const std::string& modelPath)
+Enemy& CharacterWorld::SpawnEnemy(EnemyArchetype type, const K4E::Vector3& pos)
 {
 	auto e = std::make_unique<Enemy>();
 	e->SetArchetype(type); // Initialize前に反映（視覚/射撃距離など）
 	InjectEnemyDeps(*e);
-	e->Initialize(pos, modelPath);
+	e->Initialize(pos);
 
 	if (ctx_.collisionManager_)
 	{
@@ -126,7 +126,6 @@ void CharacterWorld::Update(float dt)
 
 	for (auto& e : enemies_)
 	{
-		// Enemyは Update(dt) がある（Enemy.hの互換Updateもある）
 		e->Update(dt);
 	}
 

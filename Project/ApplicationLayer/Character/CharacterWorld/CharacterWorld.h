@@ -15,8 +15,8 @@ namespace K4E = ::Ken4lowEngine;
 
 struct GameContext
 {
-    CollisionManager* collisionManager_ = nullptr;
-    BulletManager* bulletManager_ = nullptr;
+	CollisionManager* collisionManager_ = nullptr;
+	BulletManager* bulletManager_ = nullptr;
 };
 
 /// -------------------------------------------------------------
@@ -25,26 +25,26 @@ struct GameContext
 class CharacterWorld
 {
 public:
-    void Initialize(GameContext& ctx);
-    void Finalize();
+	void Initialize(GameContext& ctx);
+	void Finalize();
 
-    void Update(float dt);
-    void Draw();
-    void DrawImGui();
+	void Update(float dt);
+	void Draw();
+	void DrawImGui();
 
-    void DrawShadow();
+	void DrawShadow();
 
-    void UpdateShadowMatrix(const K4E::Matrix4x4& lightViewProjection);
+	void UpdateShadowMatrix(const K4E::Matrix4x4& lightViewProjection);
 
-    Player* GetPlayer() { return player_.get(); }
-    const std::vector<std::unique_ptr<Enemy>>& GetEnemies() const { return enemies_; }
+	Player* GetPlayer() { return player_.get(); }
+	const std::vector<std::unique_ptr<Enemy>>& GetEnemies() const { return enemies_; }
 
-    // 生成
-    Enemy& SpawnEnemy(const K4E::Vector3& pos, const std::string& modelPath = "cube.gltf");
-    Enemy& SpawnEnemy(EnemyArchetype type, const K4E::Vector3& pos, const std::string& modelPath = "cube.gltf");
+	// 生成
+	Enemy& SpawnEnemy(const K4E::Vector3& pos);
+	Enemy& SpawnEnemy(EnemyArchetype type, const K4E::Vector3& pos);
 
-    // 全消し
-    void ClearEnemies();
+	// 全消し
+	void ClearEnemies();
 
 	int GetEnemyCount() const { return static_cast<int>(enemies_.size()); }
 
@@ -54,17 +54,17 @@ public: /// ---------- デバッグ用 ---------- ///
 	bool IsDebug() const { return isDebug_; }
 
 private:
-    void InjectPlayerDeps(Player& p);
-    void InjectEnemyDeps(Enemy& e);
+	void InjectPlayerDeps(Player& p);
+	void InjectEnemyDeps(Enemy& e);
 
 private:
-    GameContext ctx_{}; // ポインタ保持しない（Scene側ローカルctxの寿命問題を避ける）
+	GameContext ctx_{}; // ポインタ保持しない（Scene側ローカルctxの寿命問題を避ける）
 
-    std::unique_ptr<Player> player_;
-    std::vector<std::unique_ptr<Enemy>> enemies_;
+	std::unique_ptr<Player> player_;
+	std::vector<std::unique_ptr<Enemy>> enemies_;
 
 private: /// ---------- デバッグ用 ---------- ///
 
-    bool isDebug_ = false;
+	bool isDebug_ = false;
 
 };

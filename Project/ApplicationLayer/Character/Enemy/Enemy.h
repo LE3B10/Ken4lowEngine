@@ -27,9 +27,9 @@ public:
 	~Enemy() override = default;
 
 	// 互換用: 旧シーンが Initialize() を呼んでも動くようにする
-	void Initialize() { Initialize({ 0.0f, 1.5f, 30.0f }, "cube.gltf"); }
+	void Initialize() { Initialize({ 0.0f, 1.5f, 30.0f }); }
 
-	void Initialize(const K4E::Vector3& startPos, const std::string& modelPath = "cube.gltf");
+	void Initialize(const K4E::Vector3& startPos);
 
 	// 互換用: 旧シーンが Update() を呼んでも落ちないようにする（dtは仮値）
 	void Update() { Update(1.0f / 60.0f); }

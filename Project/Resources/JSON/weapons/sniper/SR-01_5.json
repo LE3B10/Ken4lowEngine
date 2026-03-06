@@ -72,7 +72,7 @@
     "reticleData": {
         "adsCenterDotTexturePath": "",
         "adsReticleBlendTime": 0.05999999865889549,
-        "adsReticleTexturePath": "",
+        "adsReticleTexturePath": "Resources/Textures/reticles/hitmarker_arrows_glow.png",
         "airExpandMultiplier": 1.7000000476837158,
         "bEnableMoveReticleExpand": true,
         "bHideReticleInADS": false,
@@ -128,7 +128,7 @@
         "capacity": 5,
         "chamberSize": 1,
         "criticalChance": 0.0,
-        "damage": 95.0,
+        "damage": 300.0,
         "damageFalloffEnd": 120.0,
         "damageFalloffStart": 35.0,
         "emptyReloadTime": 2.9000000953674316,
