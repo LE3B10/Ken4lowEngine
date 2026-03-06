@@ -403,17 +403,21 @@ void Enemy::ApplyAICommand(const EnemyAICommand& cmd)
 	}
 	else if (cmd.moveDir)
 	{
-		// ★GunAI等：そのフレームの移動方向
+		// GunAI等：そのフレームの移動方向（XZのみ更新）
 		K4E::Vector3 dir = *cmd.moveDir;
 		dir.y = 0.0f;
 
 		const Vector3 n = NormalizeSafe(dir);
 		const float spd = cmd.moveSpeed.value_or(moveSpeed_);
-		SetVelocity(n * spd);
+
+		// Y速度は保持して、XZだけ更新する
+		K4E::Vector3 v = GetVelocity();
+		v.x = n.x * spd;
+		v.z = n.z * spd;
+		SetVelocity(v);
 	}
 	else if (cmd.moveGoal)
 	{
-		// ★通常：目標地点へ移動
 		MoveTowards(*cmd.moveGoal);
 	}
 	else
@@ -428,16 +432,25 @@ void Enemy::ApplyAICommand(const EnemyAICommand& cmd)
 
 void Enemy::MoveTowards(const K4E::Vector3& goal)
 {
-	auto to = goal - GetCenterPosition();
+	K4E::Vector3 to = goal - GetCenterPosition();
 	to.y = 0.0f;
 
 	const Vector3 dir = NormalizeSafe(to);
-	SetVelocity(dir * moveSpeed_);
+
+	// Y速度は保持して、XZだけ更新する
+	K4E::Vector3 v = GetVelocity();
+	v.x = dir.x * moveSpeed_;
+	v.z = dir.z * moveSpeed_;
+	SetVelocity(v);
 }
 
 void Enemy::StopMove()
 {
-	SetVelocity({ 0.0f, 0.0f, 0.0f });
+	// 落下中でもY速度は止めない
+	K4E::Vector3 v = GetVelocity();
+	v.x = 0.0f;
+	v.z = 0.0f;
+	SetVelocity(v);
 }
 
 void Enemy::FaceTo(const K4E::Vector3& lookAt)

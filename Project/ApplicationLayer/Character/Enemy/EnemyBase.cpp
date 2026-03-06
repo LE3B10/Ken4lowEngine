@@ -1,26 +1,115 @@
 #include "EnemyBase.h"
 #include <cmath>
-#include "CollisionTypeIdDef.h"
 #include <vector>
+#include "CollisionTypeIdDef.h"
 
 using namespace Ken4lowEngine;
 
 const std::vector<Ken4lowEngine::AABB>* EnemyBase::g_worldAABBs_ = nullptr;
 
 /// -------------------------------------------------------------
-///							初期化処理
+/// 人型見た目の初期化
+/// -------------------------------------------------------------
+void EnemyBase::InitializeHumanoidVisual()
+{
+	body_ = {};
+	parts_.clear();
+
+	body_.object = std::make_unique<Object3D>();
+	body_.object->Initialize("Character/body.gltf");
+	body_.transform.translate_ = { 0.0f, 0.0f, 0.0f };
+	body_.transform.rotate_ = orientation_;
+
+	std::vector<std::pair<std::string, Vector3>> partData =
+	{
+		{"Character/head.gltf",      { 0.0f,  0.75f, 0.0f }},
+		{"Character/left_arm.gltf",  {-0.75f, 0.75f, 0.0f }},
+		{"Character/right_arm.gltf", { 0.75f, 0.75f, 0.0f }},
+		{"Character/left_leg.gltf",  {-0.25f,-0.75f, 0.0f }},
+		{"Character/right_leg.gltf", { 0.25f,-0.75f, 0.0f }},
+	};
+
+	for (const auto& [modelPath, localPos] : partData)
+	{
+		BodyPart part{};
+		part.object = std::make_unique<Object3D>();
+		part.object->Initialize(modelPath);
+		part.transform.translate_ = localPos;
+		part.transform.parent_ = &body_.transform;
+		parts_.push_back(std::move(part));
+	}
+}
+
+/// -------------------------------------------------------------
+/// 見た目階層更新
+/// -------------------------------------------------------------
+void EnemyBase::UpdateVisualHierarchy()
+{
+	if (!body_.object) return;
+
+	body_.transform.rotate_ = orientation_;
+	body_.transform.Update();
+
+	body_.object->SetTranslate(body_.transform.translate_);
+	body_.object->SetRotate(body_.transform.rotate_);
+	body_.object->Update();
+
+	for (auto& part : parts_)
+	{
+		if (!part.object) continue;
+
+		part.transform.parent_ = &body_.transform;
+		part.transform.worldRotate_ = body_.transform.worldRotate_;
+		part.transform.Update();
+
+		part.object->SetTranslate(part.transform.worldTranslate_);
+		part.object->SetRotate(part.transform.worldRotate_);
+		part.object->Update();
+	}
+}
+
+/// -------------------------------------------------------------
+/// 色を全部位へ適用
+/// -------------------------------------------------------------
+void EnemyBase::SetVisualColorAll(const Vector4& color)
+{
+	if (body_.object) body_.object->SetColor(color);
+
+	for (auto& part : parts_)
+	{
+		if (part.object)
+		{
+			part.object->SetColor(color);
+		}
+	}
+}
+
+/// -------------------------------------------------------------
+/// 全見た目を遠方へ移動
+/// -------------------------------------------------------------
+void EnemyBase::MoveVisualFar(const Vector3& pos)
+{
+	if (body_.object)
+	{
+		body_.transform.translate_ = pos;
+		UpdateVisualHierarchy();
+	}
+}
+
+/// -------------------------------------------------------------
+/// 初期化
 /// -------------------------------------------------------------
 void EnemyBase::Initialize(const Vector3& startPos, const std::string& modelPath)
 {
-	// Collider設定
+	(void)modelPath; // いまは人型固定。必要なら後でスキン/種別に転用
+
 	SetTypeID(static_cast<uint32_t>(CollisionTypeIdDef::kEnemy));
 	SetOwner(this);
 
 	SetOBBHalfSize(obbHalf_);
 	SetSegment(Segment{});
 
-	model_ = std::make_unique<Object3D>();
-	model_->Initialize(modelPath);
+	InitializeHumanoidVisual();
 	SetColor(baseColor_);
 	hitFlashTimer_ = 0.0f;
 
@@ -31,27 +120,24 @@ void EnemyBase::Initialize(const Vector3& startPos, const std::string& modelPath
 	deadFrames_ = 0;
 	hp_ = maxHp_;
 
-	useGravity_ = true;                 // 埋まり対策に基本ON推奨（毎フレY方向のdeltaが出る）
-	worldCol_.half = obbHalf_;          // EnemyのOBB半サイズと一致
-	worldCol_.centerOffset = { 0,0,0 }; // Enemyは中心=描画座標でOK
+	useGravity_ = true;
+	worldCol_.half = obbHalf_;
+	worldCol_.centerOffset = { 0,0,0 };
 	worldColOverride_ = true;
 }
 
 /// -------------------------------------------------------------
-///							中心座標
+/// 中心座標
 /// -------------------------------------------------------------
 void EnemyBase::SetCenterPosition(const Vector3& pos)
 {
 	Collider::SetCenterPosition(pos);
-	if (model_)
-	{
-		model_->SetTranslate(pos);
-		model_->Update();
-	}
+	body_.transform.translate_ = pos;
+	UpdateVisualHierarchy();
 }
 
 /// -------------------------------------------------------------
-///							位置
+/// 位置
 /// -------------------------------------------------------------
 void EnemyBase::SetPosition(const Vector3& p)
 {
@@ -59,7 +145,25 @@ void EnemyBase::SetPosition(const Vector3& p)
 }
 
 /// -------------------------------------------------------------
-///							更新処理
+/// 向き
+/// -------------------------------------------------------------
+void EnemyBase::SetOrientation(const Vector3& rot)
+{
+	orientation_ = rot;
+	UpdateVisualHierarchy();
+}
+
+/// -------------------------------------------------------------
+/// 色
+/// -------------------------------------------------------------
+void EnemyBase::SetColor(const Vector4& color)
+{
+	baseColor_ = color;
+	SetVisualColorAll(color);
+}
+
+/// -------------------------------------------------------------
+/// 更新
 /// -------------------------------------------------------------
 void EnemyBase::Update(float dt)
 {
@@ -74,7 +178,6 @@ void EnemyBase::Update(float dt)
 
 	grounded_ = false;
 
-	// ---- 速度更新（重力）----
 	if (useGravity_) velocity_.y -= gravity_ * dt;
 
 	const Vector3 oldPos = GetCenterPosition();
@@ -83,7 +186,6 @@ void EnemyBase::Update(float dt)
 	const auto* aabbs = (worldAABBs_ ? worldAABBs_ : g_worldAABBs_);
 	const auto& s = worldColOverride_ ? worldCol_ : worldCol_;
 
-	// ---- ★ 押し出し（ステージAABB）----
 	if (useWorldResolve_ && aabbs && !aabbs->empty())
 	{
 		float vy = velocity_.y;
@@ -93,19 +195,17 @@ void EnemyBase::Update(float dt)
 			s,
 			oldPos,
 			newPos,
-			true,        // groundedも取ってOK
-			&vy          // y速度を床/天井で止める
+			true,
+			&vy
 		);
 
-		// 押し戻された軸は速度を止めて壁押しっぱなしの振動を減らす
-		const Vector3 desiredCenter = newPos - s.centerOffset; // centerOffset=0なのでnewPos
+		const Vector3 desiredCenter = newPos - s.centerOffset;
 		if (std::fabs(res.fixedCenter.x - desiredCenter.x) > 0.0001f) velocity_.x = 0.0f;
 		if (std::fabs(res.fixedCenter.z - desiredCenter.z) > 0.0001f) velocity_.z = 0.0f;
 
 		velocity_.y = vy;
 		grounded_ = res.grounded;
-
-		newPos = res.fixedCenter + s.centerOffset; // centerOffset=0
+		newPos = res.fixedCenter + s.centerOffset;
 	}
 
 	SetCenterPosition(newPos);
@@ -113,35 +213,69 @@ void EnemyBase::Update(float dt)
 }
 
 /// -------------------------------------------------------------
-///							描画処理
+/// 描画
 /// -------------------------------------------------------------
 void EnemyBase::Draw()
 {
 	if (isDead_ || removable_) return;
-	if (model_) model_->Draw();
+
+	if (body_.active && body_.object)
+	{
+		body_.object->Draw();
+	}
+
+	for (const auto& part : parts_)
+	{
+		if (part.active && part.object)
+		{
+			part.object->Draw();
+		}
+	}
 }
 
 /// -------------------------------------------------------------
-///							ImGui描画処理
+/// ImGui描画
 /// -------------------------------------------------------------
 void EnemyBase::DrawImGui()
 {
-	if (model_) model_->DrawImGui();
+	if (body_.object) body_.object->DrawImGui();
+
+	for (auto& part : parts_)
+	{
+		if (part.object) part.object->DrawImGui();
+	}
 }
 
 void EnemyBase::UpdateShadowMatrix(const K4E::Matrix4x4& lightViewProjection)
 {
-	if (model_) model_->UpdateShadowMatrix(lightViewProjection);
+	if (body_.object) body_.object->UpdateShadowMatrix(lightViewProjection);
+
+	for (auto& part : parts_)
+	{
+		if (part.object) part.object->UpdateShadowMatrix(lightViewProjection);
+	}
 }
 
 void EnemyBase::DrawShadow()
 {
 	if (isDead_ || removable_) return;
-	if (model_) model_->DrawShadow();
+
+	if (body_.active && body_.object)
+	{
+		body_.object->DrawShadow();
+	}
+
+	for (const auto& part : parts_)
+	{
+		if (part.active && part.object)
+		{
+			part.object->DrawShadow();
+		}
+	}
 }
 
 /// -------------------------------------------------------------
-///							ダメージ処理
+/// ダメージ
 /// -------------------------------------------------------------
 void EnemyBase::TakeDamage(int amount)
 {
@@ -165,19 +299,18 @@ void EnemyBase::SetGlobalStageWorldAABBs(const std::vector<K4E::AABB>* aabbs)
 }
 
 /// -------------------------------------------------------------
-///							死亡処理
+/// 死亡
 /// -------------------------------------------------------------
 void EnemyBase::OnKilled()
 {
-	// 派生で死亡演出を入れたいならここ
+	// 派生で死亡演出
 }
 
 /// -------------------------------------------------------------
-/// 						コライダー無効化
+/// コライダー無効化
 /// -------------------------------------------------------------
 void EnemyBase::DisableColliderAndMoveFar()
 {
-	// OBB枠と判定を消す
 	SetOBBHalfSize({ 0.0f, 0.0f, 0.0f });
 
 	Segment s{};
@@ -187,15 +320,11 @@ void EnemyBase::DisableColliderAndMoveFar()
 
 	const Vector3 far_ = { 1e9f, 1e9f, 1e9f };
 	Collider::SetCenterPosition(far_);
-	if (model_)
-	{
-		model_->SetTranslate(far_);
-		model_->Update();
-	}
+	MoveVisualFar(far_);
 }
 
 /// -------------------------------------------------------------
-///						ヒットフラッシュ開始
+/// ヒットフラッシュ開始
 /// -------------------------------------------------------------
 void EnemyBase::StartHitFlash()
 {
@@ -204,43 +333,37 @@ void EnemyBase::StartHitFlash()
 }
 
 /// -------------------------------------------------------------
-///						ヒットフラッシュ更新
+/// ヒットフラッシュ更新
 /// -------------------------------------------------------------
 void EnemyBase::UpdateHitFlash(float dt)
 {
-	if (!model_) return;
-
 	if (hitFlashTimer_ > 0.0f)
 	{
 		hitFlashTimer_ -= dt;
 		if (hitFlashTimer_ < 0.0f) hitFlashTimer_ = 0.0f;
 
-		// 0..1 (1=開始直後, 0=終了)
 		const float t = (hitFlashDuration_ > 0.0f) ? (hitFlashTimer_ / hitFlashDuration_) : 0.0f;
-
-		// 点滅（sin）+ フェードアウト
 		const float elapsed = hitFlashDuration_ - hitFlashTimer_;
-		const float phase = elapsed * hitFlashFrequencyHz_ * 6.28318530718f; // 2π
-		const float blink = 0.5f * (1.0f + std::sinf(phase)); // 0..1
-		const float a = blink * t; // 0..1
+		const float phase = elapsed * hitFlashFrequencyHz_ * 6.28318530718f;
+		const float blink = 0.5f * (1.0f + std::sinf(phase));
+		const float a = blink * t;
 
-		K4E::Vector4 c{};
+		Vector4 c{};
 		c.x = baseColor_.x + (hitFlashColor_.x - baseColor_.x) * a;
 		c.y = baseColor_.y + (hitFlashColor_.y - baseColor_.y) * a;
 		c.z = baseColor_.z + (hitFlashColor_.z - baseColor_.z) * a;
 		c.w = baseColor_.w + (hitFlashColor_.w - baseColor_.w) * a;
 
-		model_->SetColor(c);
+		SetVisualColorAll(c);
 	}
 	else
 	{
-		// 元の色に戻す
-		model_->SetColor(baseColor_);
+		SetVisualColorAll(baseColor_);
 	}
 }
 
 /// -------------------------------------------------------------
-/// 						弾丸ヒット処理
+/// 弾ヒット
 /// -------------------------------------------------------------
 void EnemyBase::OnBulletHit(Collider* bulletCollider)
 {
@@ -249,7 +372,7 @@ void EnemyBase::OnBulletHit(Collider* bulletCollider)
 }
 
 /// -------------------------------------------------------------
-///							衝突開始
+/// 衝突開始
 /// -------------------------------------------------------------
 void EnemyBase::OnCollisionEnter(Collider* other)
 {

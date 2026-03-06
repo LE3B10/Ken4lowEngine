@@ -27,7 +27,7 @@ public:
 	~Enemy() override = default;
 
 	// 互換用: 旧シーンが Initialize() を呼んでも動くようにする
-	void Initialize() { Initialize({ 0.0f, 0.0f, 30.0f }, "cube.gltf"); }
+	void Initialize() { Initialize({ 0.0f, 1.5f, 30.0f }, "cube.gltf"); }
 
 	void Initialize(const K4E::Vector3& startPos, const std::string& modelPath = "cube.gltf");
 

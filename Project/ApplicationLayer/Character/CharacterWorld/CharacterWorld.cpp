@@ -15,7 +15,7 @@ void CharacterWorld::Initialize(GameContext& ctx)
 	player_ = std::make_unique<Player>();
 	InjectPlayerDeps(*player_);
 	player_->Initialize();
-	player_->SetSpawnPosition({ 0.0f, 4.0f, 0.0f }); // 4m上から開始（落下確認しやすい）
+	player_->SetSpawnPosition({ 0.0f, 6.0f, 0.0f }); // 6m上から開始（落下確認しやすい）
 	player_->SetSpawnOffset({ 5.0f, 0.0f, -15.0f });    // 右へ2mずらす
 
 	// Collider登録（PlayerはColliderとして扱われている前提：DebugSceneと同じ）
