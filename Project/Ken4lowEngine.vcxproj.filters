@@ -1561,21 +1561,6 @@
     <Filter Include="ApplicationLayer\Scene\DebugScene">
       <UniqueIdentifier>{aca779c2-4030-4199-8102-ea3e7cd9fbc1}</UniqueIdentifier>
     </Filter>
-    <Filter Include="ApplicationLayer\Character\BossEnemy">
-      <UniqueIdentifier>{2eb5300f-0d61-45f6-9135-abeca7252557}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="ApplicationLayer\Character\BossEnemy\BehaviorTree">
-      <UniqueIdentifier>{08a35f77-f66c-442c-a329-32bd44ae3f5c}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="ApplicationLayer\Character\BossEnemy\BehaviorTree\Builder">
-      <UniqueIdentifier>{9d58a07d-4d6c-467f-a192-622f404063fe}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="ApplicationLayer\Character\BossEnemy\BehaviorTree\Nodes">
-      <UniqueIdentifier>{9e11cc03-a5de-44c2-a9a1-5efeebb3db6a}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="ApplicationLayer\Character\BossEnemy\State">
-      <UniqueIdentifier>{fe60fccf-aa1c-4228-b0e9-4d3c35150097}</UniqueIdentifier>
-    </Filter>
     <Filter Include="ApplicationLayer\Character\Boss">
       <UniqueIdentifier>{9f04e0f2-5d76-464a-a9c1-9bc305498abd}</UniqueIdentifier>
     </Filter>

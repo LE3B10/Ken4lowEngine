@@ -699,14 +699,14 @@ void GamePlayScene::SetupWaves()
 		wave.enemies =
 		{
 			// 前線
-			{ EnemyArchetype::RifleGrunt, { -10.0f, 3.0f, 26.0f } },
-			{ EnemyArchetype::RifleGrunt, {  10.0f, 3.0f, 26.0f } },
+			{ EnemyArchetype::RifleGrunt, { -10.0f, 5.0f, 26.0f } },
+			{ EnemyArchetype::RifleGrunt, {  10.0f, 5.0f, 26.0f } },
 
 			// 中央圧
-			{ EnemyArchetype::SMGFlanker, {   0.0f, 3.0f, 20.0f } },
+			{ EnemyArchetype::SMGFlanker, {   0.0f, 5.0f, 20.0f } },
 			// 少し後ろ
-			{ EnemyArchetype::SMGFlanker, { -18.0f, 3.0f, 34.0f } },
-			{ EnemyArchetype::SMGFlanker, {  18.0f, 3.0f, 34.0f } },
+			{ EnemyArchetype::SMGFlanker, { -18.0f, 5.0f, 34.0f } },
+			{ EnemyArchetype::SMGFlanker, {  18.0f, 5.0f, 34.0f } },
 		};
 		waves.push_back(wave);
 	}
@@ -721,19 +721,19 @@ void GamePlayScene::SetupWaves()
 		wave.enemies =
 		{
 			// 前寄り
-			{ EnemyArchetype::RifleGrunt, {  -6.0f, 2.0f, 22.0f } },
-			{ EnemyArchetype::RifleGrunt, {   6.0f, 2.0f, 22.0f } },
+			{ EnemyArchetype::RifleGrunt, {  -6.0f, 5.0f, 22.0f } },
+			{ EnemyArchetype::RifleGrunt, {   6.0f, 5.0f, 22.0f } },
 
 			// 左右フランク
-			{ EnemyArchetype::SMGFlanker, { -22.0f, 2.0f, 18.0f } },
-			{ EnemyArchetype::SMGFlanker, {  22.0f, 2.0f, 18.0f } },
+			{ EnemyArchetype::SMGFlanker, { -22.0f, 5.0f, 18.0f } },
+			{ EnemyArchetype::SMGFlanker, {  22.0f, 5.0f, 18.0f } },
 
 			// 中央奥
-			{ EnemyArchetype::RifleGrunt, {   0.0f, 2.0f, 32.0f } },
+			{ EnemyArchetype::RifleGrunt, {   0.0f, 5.0f, 32.0f } },
 
 			// 後方左右
-			{ EnemyArchetype::SMGFlanker, { -16.0f, 2.0f, 40.0f } },
-			{ EnemyArchetype::SMGFlanker, {  16.0f, 2.0f, 40.0f } },
+			{ EnemyArchetype::SMGFlanker, { -16.0f, 5.0f, 40.0f } },
+			{ EnemyArchetype::SMGFlanker, {  16.0f, 5.0f, 40.0f } },
 		};
 		waves.push_back(wave);
 	}
@@ -749,8 +749,8 @@ void GamePlayScene::SetupWaves()
 		wave.enemies =
 		{
 			// 高所スナイパー
-			{ EnemyArchetype::Sniper,     { -15.0f, 14.0f, 35.0f } },
-			{ EnemyArchetype::Sniper,     {  15.0f, 14.0f, 35.0f } },
+			{ EnemyArchetype::Sniper,     { -15.0f, 20.0f, 35.0f } },
+			{ EnemyArchetype::Sniper,     {  15.0f, 20.0f, 35.0f } },
 
 			// 前線制圧
 			{ EnemyArchetype::RifleGrunt, { -10.0f, 5.0f, 0.0f } },
@@ -758,15 +758,15 @@ void GamePlayScene::SetupWaves()
 			{ EnemyArchetype::RifleGrunt, {  10.0f, 5.0f, 0.0f } },
 
 			// 左右から詰める
-			{ EnemyArchetype::SMGFlanker, { -24.0f, 2.0f, 2.0f } },
-			{ EnemyArchetype::SMGFlanker, {  24.0f, 2.0f, 2.0f } },
+			{ EnemyArchetype::SMGFlanker, { -24.0f, 5.0f, 2.0f } },
+			{ EnemyArchetype::SMGFlanker, {  24.0f, 5.0f, 2.0f } },
 
 			// 中央奥の追撃
-			{ EnemyArchetype::RifleGrunt, { -14.0f, 2.0f, 38.0f } },
-			{ EnemyArchetype::RifleGrunt, {  14.0f, 2.0f, 38.0f } },
+			{ EnemyArchetype::RifleGrunt, { -14.0f, 5.0f, 38.0f } },
+			{ EnemyArchetype::RifleGrunt, {  14.0f, 5.0f, 38.0f } },
 
 			// 裏気味の圧
-			{ EnemyArchetype::SMGFlanker, {   0.0f, 2.0f, 40.0f } },
+			{ EnemyArchetype::SMGFlanker, {   0.0f, 4.0f, 40.0f } },
 		};
 		waves.push_back(wave);
 	}
