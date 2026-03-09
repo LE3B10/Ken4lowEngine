@@ -59,6 +59,12 @@ public: /// ---------- 外部からのアクセス ---------- ///
 	void SetOnPlayerHitUICallback(std::function<void(bool isHeadshot)> cb) { onPlayerHitUICallback_ = std::move(cb); }
 	void SetOnPlayerKillUICallback(std::function<void(bool isHeadshot)> cb) { onPlayerKillUICallback_ = std::move(cb); }
 
+	// サウンド通知
+	void SetOnHitSECallback(std::function<void()> cb) { onHitSE_ = std::move(cb); }
+	void SetOnFireSECallback(std::function<void()> cb) { onFireSE_ = std::move(cb); }
+	void SetOnReloadSECallback(std::function<void()> cb) { onReloadSE_ = std::move(cb); }
+	void SetOnDeathSECallback(std::function<void()> cb) { onDeathSE_ = std::move(cb); }
+
 	// ---- FSMから参照される query ----
 	bool  IsInAttackRange(float distToPlayer) const { return distToPlayer <= attackRange_; }
 	float GetFireInterval() const { return fireInterval_; }
@@ -142,6 +148,9 @@ private: /// ---------- メンバ変数 ---------- ///
 	// stun request
 	float stunRequestedSec_ = 0.0f;
 
+	// リロード管理
+	bool wasReloadingLastFrame_ = false;
+
 	// ---- Vision params ----
 	float viewFovDeg_ = 120.0f;          // 視野角（左右合計）
 	float viewFovVerticalDeg_ = 85.0f;   // 縦（上下合計）
@@ -173,4 +182,10 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	std::function<void(bool isHeadshot)> onPlayerHitUICallback_{};
 	std::function<void(bool isHeadshot)> onPlayerKillUICallback_{};// UI通知用コールバック
+
+	// サウンド
+	std::function<void()> onHitSE_;		// 被弾時のSE
+	std::function<void()> onFireSE_;	// 射撃時のSE
+	std::function<void()> onReloadSE_;	// リロード時のSE
+	std::function<void()> onDeathSE_;	// 死亡時のSE
 };

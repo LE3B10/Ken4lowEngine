@@ -15,6 +15,9 @@
 
 namespace K4E = ::Ken4lowEngine;
 
+/// ---------- 前方宣言 ---------- ///
+class EnemyParticleEffectSystem;
+
 /// -------------------------------------------------------------
 /// EnemyBase
 ///  - HP / 描画 / Collider / 物理（位置・速度）
@@ -96,6 +99,8 @@ public:
 	BodyPart& GetBody() { return body_; }
 	std::vector<BodyPart>& GetBodyParts() { return parts_; }
 	const PartIndices& GetPartIndices() const { return partIndices_; }
+
+	void SetParticleEffectSystem(EnemyParticleEffectSystem* effectSystem) { particleEffectSystem_ = effectSystem; }
 
 protected:
 	// 派生で差し替え可（デフォルトはバラバラ崩壊開始）
@@ -181,6 +186,8 @@ protected:
 	float deathFriction_ = 0.7f;      // 0..1
 	float deathGroundY_ = 0.0f;       // とりあえず床はY=0想定（必要なら拡張）
 	std::vector<DeathPiece> deathPieces_;
+
+	EnemyParticleEffectSystem* particleEffectSystem_ = nullptr;
 
 private:
 	static const std::vector<K4E::AABB>* g_worldAABBs_;

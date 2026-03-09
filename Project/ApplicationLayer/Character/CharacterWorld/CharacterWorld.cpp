@@ -4,6 +4,7 @@
 #include <algorithm>
 
 #include "WorldCollisionResolver.h"
+#include "AudioManager.h"
 
 using namespace Ken4lowEngine;
 
@@ -11,11 +12,14 @@ void CharacterWorld::Initialize(GameContext& ctx)
 {
 	ctx_ = ctx;
 
+	// 敵の被弾エフェクトシステムを初期化
+	enemyParticleEffectSystem_.Initialize();
+
 	// --- Player ---
 	player_ = std::make_unique<Player>();
 	InjectPlayerDeps(*player_);
 	player_->Initialize();
-	player_->SetSpawnPosition({ 0.0f, 6.0f, 0.0f }); // 6m上から開始（落下確認しやすい）
+	player_->SetSpawnPosition({ 0.0f, 10.0f, 0.0f }); // 6m上から開始（落下確認しやすい）
 	player_->SetSpawnOffset({ 0.0f, 0.0f, -15.0f });    // 右へ2mずらす
 
 	// Collider登録（PlayerはColliderとして扱われている前提：DebugSceneと同じ）
@@ -43,12 +47,34 @@ void CharacterWorld::InjectPlayerDeps(Player& p)
 {
 	p.SetCollisionManager(ctx_.collisionManager_);
 	p.SetBulletManager(ctx_.bulletManager_);
+
+	player_->SetOnHitSECallback([]()
+		{
+			Ken4lowEngine::AudioManager::GetInstance()->PlaySE("enemy_hit.mp3", 0.2f);
+		});
+
+	player_->SetOnFireSECallback([]()
+		{
+			Ken4lowEngine::AudioManager::GetInstance()->PlaySE("player_fire.mp3", 0.1f);
+		});
+
+	player_->SetOnReloadSECallback([]()
+		{
+			Ken4lowEngine::AudioManager::GetInstance()->PlaySE("enemy_reload.mp3", 0.2f);
+		});
+
+	player_->SetOnDeathSECallback([]()
+		{
+			Ken4lowEngine::AudioManager::GetInstance()->PlaySE("enemy_death.mp3", 0.2f);
+		});
 }
 
 void CharacterWorld::InjectEnemyDeps(Enemy& e)
 {
 	e.SetCollisionManager(ctx_.collisionManager_);
 	e.SetBulletManager(ctx_.bulletManager_);
+
+	e.SetParticleEffectSystem(&enemyParticleEffectSystem_); // 敵の被弾エフェクトシステムを渡す
 
 	// Enemyのターゲットは Player(Collider) を渡す（DebugSceneと同じ）
 	if (player_)
@@ -73,6 +99,29 @@ void CharacterWorld::InjectEnemyDeps(Enemy& e)
 				}
 			});
 	}
+
+	// -----------------------------
+	// 敵SE
+	// -----------------------------
+	e.SetOnHitSECallback([]()
+		{
+			AudioManager::GetInstance()->PlaySE("enemy_hit.mp3", 0.2f);
+		});
+
+	e.SetOnFireSECallback([]()
+		{
+			AudioManager::GetInstance()->PlaySE("enemy_fire.mp3", 0.2f);
+		});
+
+	e.SetOnReloadSECallback([]()
+		{
+			AudioManager::GetInstance()->PlaySE("enemy_reload.mp3", 0.2f);
+		});
+
+	e.SetOnDeathSECallback([]()
+		{
+			AudioManager::GetInstance()->PlaySE("enemy_death.mp3", 0.2f);
+		});
 }
 
 Enemy& CharacterWorld::SpawnEnemy(const K4E::Vector3& pos)

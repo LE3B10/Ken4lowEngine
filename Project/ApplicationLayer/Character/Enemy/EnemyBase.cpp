@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <cstdlib>
 #include <vector>
+#include "EnemyParticleEffectSystem.h"
 
 #include "CollisionTypeIdDef.h"
 
@@ -385,6 +386,12 @@ void EnemyBase::SetGlobalStageWorldAABBs(const std::vector<K4E::AABB>* aabbs)
 /// -------------------------------------------------------------
 void EnemyBase::OnKilled()
 {
+	// 死亡パーティクル
+	if (particleEffectSystem_)
+	{
+		particleEffectSystem_->SpawnDeathEffect(GetCenterPosition());
+	}
+
 	StartBreakApartDeath();
 }
 
@@ -597,10 +604,20 @@ void EnemyBase::OnBulletHit(Collider* bulletCollider)
 	Vector3 hitDir{ 0,0,0 };
 	float hitPower = 1.0f;
 
+	// 被弾位置
+	Vector3 hitPos = GetCenterPosition();
+	hitPos.y += 1.0f; // 弾位置が取れない時の保険
+
 	if (bulletCollider)
 	{
-		// 被弾点→中心（= 弾の進行方向に近い）
+		hitPos = bulletCollider->GetCenterPosition();
 		hitDir = GetCenterPosition() - bulletCollider->GetCenterPosition();
+	}
+
+	// 被弾パーティクル
+	if (particleEffectSystem_)
+	{
+		particleEffectSystem_->SpawnHitEffect(hitPos);
 	}
 
 	TakeDamage(10, hitDir, hitPower);

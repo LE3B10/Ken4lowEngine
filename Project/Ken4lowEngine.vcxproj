@@ -118,6 +118,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     </FxCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="ApplicationLayer\Character\Enemy\EnemyParticleEffectSystem.cpp" />
     <ClCompile Include="EngineLayer\3D\AnimationSystem\DebugView\AnimationModelDebugView.cpp" />
     <ClCompile Include="ApplicationLayer\Character\Bullet\Bullet.cpp" />
     <ClCompile Include="ApplicationLayer\Character\Bullet\BulletManager.cpp" />
@@ -570,6 +571,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClCompile Include="ApplicationLayer\Scene\GamePlayScene\WaveManager.cpp" />
     <ClCompile Include="ApplicationLayer\UISystem\WaveUI\WaveUI.cpp" />
     <ClCompile Include="ApplicationLayer\Character\Player\Component\PlayerWeaponVisualComponent.cpp" />
+    <ClCompile Include="EngineLayer\Audio\MFAudioDecoder.cpp" />
     <ClCompile Include="WinMain.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
@@ -818,6 +820,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     </FxCompile>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="ApplicationLayer\Character\Enemy\EnemyParticleEffectSystem.h" />
     <ClInclude Include="EngineLayer\3D\AnimationSystem\DebugView\AnimationModelDebugView.h" />
     <ClInclude Include="ApplicationLayer\Character\Bullet\Bullet.h" />
     <ClInclude Include="ApplicationLayer\Character\Bullet\BulletManager.h" />
@@ -1445,6 +1448,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="ApplicationLayer\Scene\GamePlayScene\WaveManager.h" />
     <ClInclude Include="ApplicationLayer\UISystem\WaveUI\WaveUI.h" />
     <ClInclude Include="ApplicationLayer\Character\Player\Component\PlayerWeaponVisualComponent.h" />
+    <ClInclude Include="EngineLayer\Audio\MFAudioDecoder.h" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="externals\DirectXTex\DirectXTex_Desktop_2022_Win10.vcxproj">

@@ -6,6 +6,7 @@
 #include "Player.h"
 #include "Enemy.h"
 #include "EnemyArchetype.h"
+#include "EnemyParticleEffectSystem.h"
 
 // 前方宣言
 class CollisionManager;
@@ -53,15 +54,20 @@ public: /// ---------- デバッグ用 ---------- ///
 	void SetDebug(bool on) { isDebug_ = on; }
 	bool IsDebug() const { return isDebug_; }
 
-private:
+private: /// ---------- 内部処理 ---------- ///
+
 	void InjectPlayerDeps(Player& p);
 	void InjectEnemyDeps(Enemy& e);
 
-private:
+private: /// ---------- メンバ変数 ---------- ///
+
 	GameContext ctx_{}; // ポインタ保持しない（Scene側ローカルctxの寿命問題を避ける）
 
 	std::unique_ptr<Player> player_;
 	std::vector<std::unique_ptr<Enemy>> enemies_;
+
+	// 敵の被弾エフェクトシステム
+	EnemyParticleEffectSystem enemyParticleEffectSystem_;
 
 private: /// ---------- デバッグ用 ---------- ///
 

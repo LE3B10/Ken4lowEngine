@@ -1,15 +1,15 @@
 #define NOMINMAX
 #include "Enemy.h"
-
-#include <algorithm>
-#include <cmath>
-
 #include "Bullet.h"
 #include "BulletManager.h"
 #include "CollisionTypeIdDef.h"
 #include "CollisionManager.h"
 #include "LinearInterpolation.h"
 #include "Wireframe.h"
+
+
+#include <algorithm>
+#include <cmath>
 
 using namespace Ken4lowEngine;
 
@@ -176,7 +176,11 @@ void Enemy::Update(float dt)
 void Enemy::Draw()
 {
 	EnemyBase::Draw();
+
+#ifdef _DEBUG
+	// デバッグ用：視覚判定の可視化
 	DrawVisionWire();
+#endif // _DEBUG
 }
 
 void Enemy::DrawImGui()
@@ -463,6 +467,16 @@ void Enemy::ApplyAICommand(const EnemyAICommand& cmd)
 		StopMove();
 	}
 
+	// リロード開始の瞬間だけSEを鳴らす
+	if (!wasReloadingLastFrame_ && cmd.wantReload)
+	{
+		if (onReloadSE_)
+		{
+			onReloadSE_();
+		}
+	}
+	wasReloadingLastFrame_ = cmd.wantReload;
+
 	if (cmd.lookAt) FaceTo(*cmd.lookAt);
 	if (cmd.fireAt) FireAt(*cmd.fireAt);
 }
@@ -518,8 +532,10 @@ void Enemy::FireAt(const K4E::Vector3& targetPos)
 	Vector3 dir = NormalizeSafe(targetPos - origin);
 	if (Length(dir) <= 1e-6f) return;
 
-	bulletManager_->Spawn(origin, dir, bulletSpeed_, bulletDamage_, bulletLifeSec_,
-		static_cast<uint32_t>(CollisionTypeIdDef::kEnemyBullet));
+	bulletManager_->Spawn(origin, dir, bulletSpeed_, bulletDamage_, bulletLifeSec_, static_cast<uint32_t>(CollisionTypeIdDef::kEnemyBullet));
+
+	// 銃声
+	if (onFireSE_) onFireSE_();
 }
 
 void Enemy::RequestStun(float sec)
@@ -560,6 +576,15 @@ void Enemy::OnBulletHit(K4E::Collider* bulletCollider)
 
 	TakeDamage(dmg, hitDir, hitPower);
 
+	// 被弾時サウンド
+	if (!wasDead && !IsDead())
+	{
+		if (onHitSE_)
+		{
+			onHitSE_();
+		}
+	}
+
 	if (!wasDead && onPlayerHitUICallback_)
 	{
 		onPlayerHitUICallback_(isHeadshot);
@@ -567,6 +592,12 @@ void Enemy::OnBulletHit(K4E::Collider* bulletCollider)
 
 	if (!wasDead && IsDead())
 	{
+		// 死亡サウンド
+		if (onDeathSE_)
+		{
+			onDeathSE_();
+		}
+
 		if (onPlayerKillUICallback_)
 		{
 			onPlayerKillUICallback_(isHeadshot);

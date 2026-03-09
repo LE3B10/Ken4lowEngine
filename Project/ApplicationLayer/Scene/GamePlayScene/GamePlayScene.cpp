@@ -9,6 +9,11 @@
 #include "AudioManager.h"
 #include <SceneManager.h>
 
+#include "GpuParticleManager.h"
+#include "GpuParticleEmitter.h"
+#include "GpuParticleType.h"
+#include "BillboardMode.h"
+
 #ifdef _DEBUG
 #include <DebugCamera.h>
 #endif // _DEBUG
@@ -284,10 +289,9 @@ void GamePlayScene::Draw3DObjects()
 	// FPSカメラの描画
 	//fpsCamera_->DrawDebugCamera();
 
-#endif // _DEBUG
-
 	// ワイヤーフレームの描画
 	K4E::Wireframe::GetInstance()->DrawGrid(200.0f, 50.0f, { 0.25f, 0.25f, 0.25f,1.0f });
+#endif // _DEBUG
 }
 
 void GamePlayScene::DrawShadowObjects()

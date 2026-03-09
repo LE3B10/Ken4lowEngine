@@ -39,11 +39,11 @@ void GpuParticleManager::Initialize(Camera* camera)
 	// 引数でカメラのポインタを受け取ってメンバ変数に記録する
 	camera_ = camera;
 
-	// ★描画（GPUスプライト）用
+	// 描画（GPUスプライト）用
 	spritePipeline_ = std::make_unique<GpuParticleSpritePipeline>();
 	spritePipeline_->Initialize();
 
-	// ★計算（CS）用
+	// 計算（CS）用
 	computePipeline_ = std::make_unique<GpuParticleComputePipeline>();
 	computePipeline_->Initialize();
 
