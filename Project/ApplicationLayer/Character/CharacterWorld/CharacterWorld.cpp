@@ -19,10 +19,12 @@ void CharacterWorld::Initialize(GameContext& ctx)
 	player_ = std::make_unique<Player>();
 	InjectPlayerDeps(*player_);
 	player_->Initialize();
-	player_->SetSpawnPosition({ 0.0f, 10.0f, 0.0f }); // 6m上から開始（落下確認しやすい）
-	player_->SetSpawnOffset({ 0.0f, 0.0f, -15.0f });    // 右へ2mずらす
 
-	// Collider登録（PlayerはColliderとして扱われている前提：DebugSceneと同じ）
+	// ★ デバッグ用の初期スポーン/オフセットは入れない
+	//   実際の開始位置は GamePlayScene 側の PlayerSpawnPoint で決める
+	player_->SetSpawnOffset({ 0.0f, 0.0f, 0.0f });
+
+	// Collider登録（PlayerはColliderとして扱われている前提）
 	if (ctx_.collisionManager_)
 	{
 		ctx_.collisionManager_->AddCollider(player_.get());
@@ -48,22 +50,22 @@ void CharacterWorld::InjectPlayerDeps(Player& p)
 	p.SetCollisionManager(ctx_.collisionManager_);
 	p.SetBulletManager(ctx_.bulletManager_);
 
-	player_->SetOnHitSECallback([]()
+	p.SetOnHitSECallback([]()
 		{
 			Ken4lowEngine::AudioManager::GetInstance()->PlaySE("enemy_hit.mp3", 0.2f);
 		});
 
-	player_->SetOnFireSECallback([]()
+	p.SetOnFireSECallback([]()
 		{
 			Ken4lowEngine::AudioManager::GetInstance()->PlaySE("player_fire.mp3", 0.1f);
 		});
 
-	player_->SetOnReloadSECallback([]()
+	p.SetOnReloadSECallback([]()
 		{
 			Ken4lowEngine::AudioManager::GetInstance()->PlaySE("enemy_reload.mp3", 0.2f);
 		});
 
-	player_->SetOnDeathSECallback([]()
+	p.SetOnDeathSECallback([]()
 		{
 			Ken4lowEngine::AudioManager::GetInstance()->PlaySE("enemy_death.mp3", 0.2f);
 		});

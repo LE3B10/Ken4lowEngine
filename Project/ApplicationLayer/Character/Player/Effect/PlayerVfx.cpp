@@ -51,8 +51,8 @@ void PlayerVfx::Update(float deltaTime)
 		const float amp = ease * damagePostStrength_;
 
 		// 被弾中だけ有効化
-		pem->EnableEffect("VignetteEffect");
-		pem->EnableEffect("RadialBlurEffect");
+		/*pem->EnableEffect("VignetteEffect");
+		pem->EnableEffect("RadialBlurEffect");*/
 
 		// ---- パラメータ（好みに合わせて調整OK） ----
 		const float maxVignettePower = 2.0f;  // 0.8 -> 2.0 くらい

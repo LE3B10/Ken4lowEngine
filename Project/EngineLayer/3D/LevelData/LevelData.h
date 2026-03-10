@@ -18,6 +18,27 @@ namespace Ken4lowEngine
 	};
 
 	/// -------------------------------------------------------------
+	///				　	スポーンポイントデータ構造体
+	/// -------------------------------------------------------------
+	struct SpawnProps
+	{
+		int wave = 0; // ウェーブ数
+		int group = 0; // グループ数
+		int count = 1; // スポーンする敵の数
+	};
+
+	struct IntroCameraProps
+	{
+		int order = 0;			// カメラの切り替わる順番
+		float duration = 1.5f;	// カメラの切り替わる時間（秒）
+		float fov = 60.0f;		// カメラのFOV（度）
+		std::string targetName; // カメラの注視点となるオブジェクトの名前
+
+		std::string interpMode = "Linear"; // 補間モード（例: "Linear", "EaseInOut"など）
+		std::string aimMode = "Target"; // 注視点のモード（例: "Target"はtargetNameを注視、"Forward"は移動方向を注視など）
+	};
+
+	/// -------------------------------------------------------------
 	///				　		オブジェクトデータ構造体
 	/// -------------------------------------------------------------
 	struct ObjectData
@@ -28,8 +49,16 @@ namespace Ken4lowEngine
 
 		Vector3 position; // 位置
 		Vector3 rotation; // 回転
-		Vector3 scale;	  // スケール
+		Vector3 scale{ 1.0f,1.0f,1.0f }; // スケール
 		ObjectColliderData collider; // コライダーデータ
+
+		// SpawnPoint用
+		SpawnProps spawnProps; // スポーンプロパティ（ウェーブ数、グループ数、スポーン数など）
+		bool hasSpawnProps = false; // スポーンプロパティが有効かどうか
+
+		// IntroCamera用
+		IntroCameraProps introCameraProps; // イントロカメラプロパティ（順番、時間、FOV、注視点など）
+		bool hasIntroCameraProps = false; // イントロカメラプロパティが有効かどうか
 	};
 
 	/// -------------------------------------------------------------

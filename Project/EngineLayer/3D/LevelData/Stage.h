@@ -58,6 +58,6 @@ namespace Ken4lowEngine
 
 		std::vector<std::unique_ptr<Collider>> worldColliders_; // コライダーのリスト
 
-		Vector3 offset = { 50.0f, 0.0f, -50.0f }; // ステージモデルのオフセット（原点からの位置）
+		Vector3 offset = { 0.0f, 0.0f, 0.0f }; // ステージモデルのオフセット（原点からの位置）
 	};
 }

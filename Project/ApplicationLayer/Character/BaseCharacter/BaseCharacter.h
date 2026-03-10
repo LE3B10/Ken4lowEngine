@@ -29,11 +29,11 @@ public: /// ---------- 構造体 ---------- ///
 	// 各部位のインデックス
 	struct PartIndices
 	{
-		const uint32_t head = 0;	 // 頭
-		const uint32_t leftArm = 1;  // 左腕
-		const uint32_t rightArm = 2; // 右腕
-		const uint32_t leftLeg = 3;	 // 左脚
-		const uint32_t rightLeg = 4; // 右脚
+		uint32_t head = 0;	 // 頭
+		uint32_t leftArm = 1;  // 左腕
+		uint32_t rightArm = 2; // 右腕
+		uint32_t leftLeg = 3;	 // 左脚
+		uint32_t rightLeg = 4; // 右脚
 	};
 
 public: /// ---------- メンバ関数 ---------- ///
@@ -53,8 +53,10 @@ public: /// ---------- メンバ関数 ---------- ///
 	// ImGui描画処理
 	virtual void DrawImGui() = 0;
 
+	// シャドウマトリクスの更新
 	virtual void UpdateShadowMatrix(const K4E::Matrix4x4& lightViewProjection);
 
+	// シャドウ描画処理
 	virtual void DrawShadow();
 
 	// 衝突判定を行う
@@ -77,12 +79,17 @@ public: /// ---------- メンバ関数 ---------- ///
 
 public: /// ---------- アクセッサ ---------- ///
 
+	// 体幹部位のアクセス
 	BodyPart& GetBody() { return body_; }
+	const BodyPart& GetBody() const { return body_; }
 
+	// 各部位のアクセス
 	std::vector<BodyPart>& GetBodyParts() { return parts_; }
+	const std::vector<BodyPart>& GetBodyParts() const { return parts_; }
 
 	// 各部位のインデックスを取得
 	PartIndices& GetPartIndices() { return partIndices_; }
+	const PartIndices& GetPartIndices() const { return partIndices_; }
 
 protected: /// ---------- メンバ関数 ---------- ///
 
