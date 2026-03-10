@@ -580,6 +580,12 @@
     <ClCompile Include="ApplicationLayer\Character\Player\Component\PlayerWeaponVisualComponent.cpp">
       <Filter>ApplicationLayer\Character\Player\Component</Filter>
     </ClCompile>
+    <ClCompile Include="EngineLayer\Audio\MFAudioDecoder.cpp">
+      <Filter>EngineLayer\Audio</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\Character\Enemy\EnemyParticleEffectSystem.cpp">
+      <Filter>ApplicationLayer\Character\Enemy</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="EngineLayer\Math\MultipleStructs\AABB.h">
@@ -1211,6 +1217,12 @@
     </ClInclude>
     <ClInclude Include="ApplicationLayer\Character\Player\Component\PlayerWeaponVisualComponent.h">
       <Filter>ApplicationLayer\Character\Player\Component</Filter>
+    </ClInclude>
+    <ClInclude Include="EngineLayer\Audio\MFAudioDecoder.h">
+      <Filter>EngineLayer\Audio</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Character\Enemy\EnemyParticleEffectSystem.h">
+      <Filter>ApplicationLayer\Character\Enemy</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

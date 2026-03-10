@@ -1,0 +1,1295 @@
+{
+    "schema_version": 1,
+    "meta": {
+        "units": "m",
+        "rotation_unit": "deg",
+        "source_forward": "+Y",
+        "source_up": "+Z",
+        "game_forward": "+Z",
+        "game_up": "+Y"
+    },
+    "name": "scene",
+    "objects": [
+        {
+            "type": "EMPTY",
+            "name": "world",
+            "collection": "Collection",
+            "collections": [
+                "Collection"
+            ],
+            "transform": {
+                "translation": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "rotation": [
+                    0.0,
+                    -0.0,
+                    0.0
+                ],
+                "scaling": [
+                    1.0,
+                    1.0,
+                    1.0
+                ]
+            },
+            "children": [
+                {
+                    "type": "MESH",
+                    "name": "Container_1_L",
+                    "collection": "Collection",
+                    "collections": [
+                        "Collection"
+                    ],
+                    "transform": {
+                        "translation": [
+                            0.0,
+                            0.0,
+                            0.0
+                        ],
+                        "rotation": [
+                            0.0,
+                            -0.0,
+                            0.0
+                        ],
+                        "scaling": [
+                            1.0,
+                            1.0,
+                            1.0
+                        ]
+                    },
+                    "collider": {
+                        "type": "BOX",
+                        "center": [
+                            30.0,
+                            24.0,
+                            4.0
+                        ],
+                        "size": [
+                            16.0,
+                            6.0,
+                            8.0
+                        ]
+                    }
+                },
+                {
+                    "type": "MESH",
+                    "name": "Container_1_R",
+                    "collection": "Collection",
+                    "collections": [
+                        "Collection"
+                    ],
+                    "transform": {
+                        "translation": [
+                            0.0,
+                            0.0,
+                            0.0
+                        ],
+                        "rotation": [
+                            0.0,
+                            -0.0,
+                            0.0
+                        ],
+                        "scaling": [
+                            1.0,
+                            1.0,
+                            1.0
+                        ]
+                    },
+                    "collider": {
+                        "type": "BOX",
+                        "center": [
+                            -30.0,
+                            24.0,
+                            4.0
+                        ],
+                        "size": [
+                            16.0,
+                            6.0,
+                            8.0
+                        ]
+                    }
+                },
+                {
+                    "type": "MESH",
+                    "name": "Container_2_L",
+                    "collection": "Collection",
+                    "collections": [
+                        "Collection"
+                    ],
+                    "transform": {
+                        "translation": [
+                            0.0,
+                            0.0,
+                            0.0
+                        ],
+                        "rotation": [
+                            0.0,
+                            -0.0,
+                            0.0
+                        ],
+                        "scaling": [
+                            1.0,
+                            1.0,
+                            1.0
+                        ]
+                    },
+                    "collider": {
+                        "type": "BOX",
+                        "center": [
+                            30.0,
+                            14.0,
+                            4.0
+                        ],
+                        "size": [
+                            12.0,
+                            6.0,
+                            8.0
+                        ]
+                    }
+                },
+                {
+                    "type": "MESH",
+                    "name": "Container_2_R",
+                    "collection": "Collection",
+                    "collections": [
+                        "Collection"
+                    ],
+                    "transform": {
+                        "translation": [
+                            0.0,
+                            0.0,
+                            0.0
+                        ],
+                        "rotation": [
+                            0.0,
+                            -0.0,
+                            0.0
+                        ],
+                        "scaling": [
+                            1.0,
+                            1.0,
+                            1.0
+                        ]
+                    },
+                    "collider": {
+                        "type": "BOX",
+                        "center": [
+                            -30.0,
+                            14.0,
+                            4.0
+                        ],
+                        "size": [
+                            12.0,
+                            6.0,
+                            8.0
+                        ]
+                    }
+                },
+                {
+                    "type": "MESH",
+                    "name": "Container_3_L",
+                    "collection": "Collection",
+                    "collections": [
+                        "Collection"
+                    ],
+                    "transform": {
+                        "translation": [
+                            0.0,
+                            0.0,
+                            0.0
+                        ],
+                        "rotation": [
+                            0.0,
+                            -0.0,
+                            0.0
+                        ],
+                        "scaling": [
+                            1.0,
+                            1.0,
+                            1.0
+                        ]
+                    },
+                    "collider": {
+                        "type": "BOX",
+                        "center": [
+                            30.0,
+                            -14.0,
+                            4.0
+                        ],
+                        "size": [
+                            12.0,
+                            6.0,
+                            8.0
+                        ]
+                    }
+                },
+                {
+                    "type": "MESH",
+                    "name": "Container_3_R",
+                    "collection": "Collection",
+                    "collections": [
+                        "Collection"
+                    ],
+                    "transform": {
+                        "translation": [
+                            0.0,
+                            0.0,
+                            0.0
+                        ],
+                        "rotation": [
+                            0.0,
+                            -0.0,
+                            0.0
+                        ],
+                        "scaling": [
+                            1.0,
+                            1.0,
+                            1.0
+                        ]
+                    },
+                    "collider": {
+                        "type": "BOX",
+                        "center": [
+                            -30.0,
+                            -14.0,
+                            4.0
+                        ],
+                        "size": [
+                            12.0,
+                            6.0,
+                            8.0
+                        ]
+                    }
+                },
+                {
+                    "type": "MESH",
+                    "name": "Container_4_L",
+                    "collection": "Collection",
+                    "collections": [
+                        "Collection"
+                    ],
+                    "transform": {
+                        "translation": [
+                            0.0,
+                            0.0,
+                            0.0
+                        ],
+                        "rotation": [
+                            0.0,
+                            -0.0,
+                            0.0
+                        ],
+                        "scaling": [
+                            1.0,
+                            1.0,
+                            1.0
+                        ]
+                    },
+                    "collider": {
+                        "type": "BOX",
+                        "center": [
+                            30.0,
+                            -24.0,
+                            4.0
+                        ],
+                        "size": [
+                            16.0,
+                            6.0,
+                            8.0
+                        ]
+                    }
+                },
+                {
+                    "type": "MESH",
+                    "name": "Container_4_R",
+                    "collection": "Collection",
+                    "collections": [
+                        "Collection"
+                    ],
+                    "transform": {
+                        "translation": [
+                            0.0,
+                            0.0,
+                            0.0
+                        ],
+                        "rotation": [
+                            0.0,
+                            -0.0,
+                            0.0
+                        ],
+                        "scaling": [
+                            1.0,
+                            1.0,
+                            1.0
+                        ]
+                    },
+                    "collider": {
+                        "type": "BOX",
+                        "center": [
+                            -30.0,
+                            -24.0,
+                            4.0
+                        ],
+                        "size": [
+                            16.0,
+                            6.0,
+                            8.0
+                        ]
+                    }
+                },
+                {
+                    "type": "MESH",
+                    "name": "Container_5_L",
+                    "collection": "Collection",
+                    "collections": [
+                        "Collection"
+                    ],
+                    "transform": {
+                        "translation": [
+                            0.0,
+                            0.0,
+                            0.0
+                        ],
+                        "rotation": [
+                            0.0,
+                            -0.0,
+                            0.0
+                        ],
+                        "scaling": [
+                            1.0,
+                            1.0,
+                            1.0
+                        ]
+                    },
+                    "collider": {
+                        "type": "BOX",
+                        "center": [
+                            12.0,
+                            8.0,
+                            4.0
+                        ],
+                        "size": [
+                            18.0,
+                            6.0,
+                            8.0
+                        ]
+                    }
+                },
+                {
+                    "type": "MESH",
+                    "name": "Container_5_R",
+                    "collection": "Collection",
+                    "collections": [
+                        "Collection"
+                    ],
+                    "transform": {
+                        "translation": [
+                            0.0,
+                            0.0,
+                            0.0
+                        ],
+                        "rotation": [
+                            0.0,
+                            -0.0,
+                            0.0
+                        ],
+                        "scaling": [
+                            1.0,
+                            1.0,
+                            1.0
+                        ]
+                    },
+                    "collider": {
+                        "type": "BOX",
+                        "center": [
+                            -12.0,
+                            8.0,
+                            4.0
+                        ],
+                        "size": [
+                            18.0,
+                            6.0,
+                            8.0
+                        ]
+                    }
+                },
+                {
+                    "type": "MESH",
+                    "name": "Container_6_L",
+                    "collection": "Collection",
+                    "collections": [
+                        "Collection"
+                    ],
+                    "transform": {
+                        "translation": [
+                            0.0,
+                            0.0,
+                            0.0
+                        ],
+                        "rotation": [
+                            0.0,
+                            -0.0,
+                            0.0
+                        ],
+                        "scaling": [
+                            1.0,
+                            1.0,
+                            1.0
+                        ]
+                    },
+                    "collider": {
+                        "type": "BOX",
+                        "center": [
+                            12.0,
+                            -8.0,
+                            4.0
+                        ],
+                        "size": [
+                            18.0,
+                            6.0,
+                            8.0
+                        ]
+                    }
+                },
+                {
+                    "type": "MESH",
+                    "name": "Container_6_R",
+                    "collection": "Collection",
+                    "collections": [
+                        "Collection"
+                    ],
+                    "transform": {
+                        "translation": [
+                            0.0,
+                            0.0,
+                            0.0
+                        ],
+                        "rotation": [
+                            0.0,
+                            -0.0,
+                            0.0
+                        ],
+                        "scaling": [
+                            1.0,
+                            1.0,
+                            1.0
+                        ]
+                    },
+                    "collider": {
+                        "type": "BOX",
+                        "center": [
+                            -12.0,
+                            -8.0,
+                            4.0
+                        ],
+                        "size": [
+                            18.0,
+                            6.0,
+                            8.0
+                        ]
+                    }
+                },
+                {
+                    "type": "MESH",
+                    "name": "Container_7_L",
+                    "collection": "Collection",
+                    "collections": [
+                        "Collection"
+                    ],
+                    "transform": {
+                        "translation": [
+                            0.0,
+                            0.0,
+                            0.0
+                        ],
+                        "rotation": [
+                            0.0,
+                            -0.0,
+                            0.0
+                        ],
+                        "scaling": [
+                            1.0,
+                            1.0,
+                            1.0
+                        ]
+                    },
+                    "collider": {
+                        "type": "BOX",
+                        "center": [
+                            2.0,
+                            24.0,
+                            4.0
+                        ],
+                        "size": [
+                            12.0,
+                            6.0,
+                            8.0
+                        ]
+                    }
+                },
+                {
+                    "type": "MESH",
+                    "name": "Container_7_R",
+                    "collection": "Collection",
+                    "collections": [
+                        "Collection"
+                    ],
+                    "transform": {
+                        "translation": [
+                            0.0,
+                            0.0,
+                            0.0
+                        ],
+                        "rotation": [
+                            0.0,
+                            -0.0,
+                            0.0
+                        ],
+                        "scaling": [
+                            1.0,
+                            1.0,
+                            1.0
+                        ]
+                    },
+                    "collider": {
+                        "type": "BOX",
+                        "center": [
+                            -2.0,
+                            24.0,
+                            4.0
+                        ],
+                        "size": [
+                            12.0,
+                            6.0,
+                            8.0
+                        ]
+                    }
+                },
+                {
+                    "type": "MESH",
+                    "name": "Container_8_L",
+                    "collection": "Collection",
+                    "collections": [
+                        "Collection"
+                    ],
+                    "transform": {
+                        "translation": [
+                            0.0,
+                            0.0,
+                            0.0
+                        ],
+                        "rotation": [
+                            0.0,
+                            -0.0,
+                            0.0
+                        ],
+                        "scaling": [
+                            1.0,
+                            1.0,
+                            1.0
+                        ]
+                    },
+                    "collider": {
+                        "type": "BOX",
+                        "center": [
+                            2.0,
+                            -24.0,
+                            4.0
+                        ],
+                        "size": [
+                            12.0,
+                            6.0,
+                            8.0
+                        ]
+                    }
+                },
+                {
+                    "type": "MESH",
+                    "name": "Container_8_R",
+                    "collection": "Collection",
+                    "collections": [
+                        "Collection"
+                    ],
+                    "transform": {
+                        "translation": [
+                            0.0,
+                            0.0,
+                            0.0
+                        ],
+                        "rotation": [
+                            0.0,
+                            -0.0,
+                            0.0
+                        ],
+                        "scaling": [
+                            1.0,
+                            1.0,
+                            1.0
+                        ]
+                    },
+                    "collider": {
+                        "type": "BOX",
+                        "center": [
+                            -2.0,
+                            -24.0,
+                            4.0
+                        ],
+                        "size": [
+                            12.0,
+                            6.0,
+                            8.0
+                        ]
+                    }
+                },
+                {
+                    "type": "MESH",
+                    "name": "CraneArm_L_N",
+                    "collection": "Collection",
+                    "collections": [
+                        "Collection"
+                    ],
+                    "transform": {
+                        "translation": [
+                            0.0,
+                            0.0,
+                            0.0
+                        ],
+                        "rotation": [
+                            0.0,
+                            -0.0,
+                            0.0
+                        ],
+                        "scaling": [
+                            1.0,
+                            1.0,
+                            1.0
+                        ]
+                    },
+                    "collider": {
+                        "type": "BOX",
+                        "center": [
+                            -10.0,
+                            36.0,
+                            9.5
+                        ],
+                        "size": [
+                            20.0,
+                            3.0,
+                            1.0
+                        ]
+                    }
+                },
+                {
+                    "type": "MESH",
+                    "name": "CraneArm_L_S",
+                    "collection": "Collection",
+                    "collections": [
+                        "Collection"
+                    ],
+                    "transform": {
+                        "translation": [
+                            0.0,
+                            0.0,
+                            0.0
+                        ],
+                        "rotation": [
+                            0.0,
+                            -0.0,
+                            0.0
+                        ],
+                        "scaling": [
+                            1.0,
+                            1.0,
+                            1.0
+                        ]
+                    },
+                    "collider": {
+                        "type": "BOX",
+                        "center": [
+                            -10.0,
+                            -36.0,
+                            9.5
+                        ],
+                        "size": [
+                            20.0,
+                            3.0,
+                            1.0
+                        ]
+                    }
+                },
+                {
+                    "type": "MESH",
+                    "name": "CraneArm_R_N",
+                    "collection": "Collection",
+                    "collections": [
+                        "Collection"
+                    ],
+                    "transform": {
+                        "translation": [
+                            0.0,
+                            0.0,
+                            0.0
+                        ],
+                        "rotation": [
+                            0.0,
+                            -0.0,
+                            0.0
+                        ],
+                        "scaling": [
+                            1.0,
+                            1.0,
+                            1.0
+                        ]
+                    },
+                    "collider": {
+                        "type": "BOX",
+                        "center": [
+                            10.0,
+                            36.0,
+                            9.5
+                        ],
+                        "size": [
+                            20.0,
+                            3.0,
+                            1.0
+                        ]
+                    }
+                },
+                {
+                    "type": "MESH",
+                    "name": "CraneArm_R_S",
+                    "collection": "Collection",
+                    "collections": [
+                        "Collection"
+                    ],
+                    "transform": {
+                        "translation": [
+                            0.0,
+                            0.0,
+                            0.0
+                        ],
+                        "rotation": [
+                            0.0,
+                            -0.0,
+                            0.0
+                        ],
+                        "scaling": [
+                            1.0,
+                            1.0,
+                            1.0
+                        ]
+                    },
+                    "collider": {
+                        "type": "BOX",
+                        "center": [
+                            10.0,
+                            -36.0,
+                            9.5
+                        ],
+                        "size": [
+                            20.0,
+                            3.0,
+                            1.0
+                        ]
+                    }
+                },
+                {
+                    "type": "MESH",
+                    "name": "CraneBase_L_N",
+                    "collection": "Collection",
+                    "collections": [
+                        "Collection"
+                    ],
+                    "transform": {
+                        "translation": [
+                            0.0,
+                            0.0,
+                            0.0
+                        ],
+                        "rotation": [
+                            0.0,
+                            -0.0,
+                            0.0
+                        ],
+                        "scaling": [
+                            1.0,
+                            1.0,
+                            1.0
+                        ]
+                    },
+                    "collider": {
+                        "type": "BOX",
+                        "center": [
+                            -18.0,
+                            36.0,
+                            5.0
+                        ],
+                        "size": [
+                            6.0,
+                            6.0,
+                            10.0
+                        ]
+                    }
+                },
+                {
+                    "type": "MESH",
+                    "name": "CraneBase_L_S",
+                    "collection": "Collection",
+                    "collections": [
+                        "Collection"
+                    ],
+                    "transform": {
+                        "translation": [
+                            0.0,
+                            0.0,
+                            0.0
+                        ],
+                        "rotation": [
+                            0.0,
+                            -0.0,
+                            0.0
+                        ],
+                        "scaling": [
+                            1.0,
+                            1.0,
+                            1.0
+                        ]
+                    },
+                    "collider": {
+                        "type": "BOX",
+                        "center": [
+                            -18.0,
+                            -36.0,
+                            5.0
+                        ],
+                        "size": [
+                            6.0,
+                            6.0,
+                            10.0
+                        ]
+                    }
+                },
+                {
+                    "type": "MESH",
+                    "name": "CraneBase_R_N",
+                    "collection": "Collection",
+                    "collections": [
+                        "Collection"
+                    ],
+                    "transform": {
+                        "translation": [
+                            0.0,
+                            0.0,
+                            0.0
+                        ],
+                        "rotation": [
+                            0.0,
+                            -0.0,
+                            0.0
+                        ],
+                        "scaling": [
+                            1.0,
+                            1.0,
+                            1.0
+                        ]
+                    },
+                    "collider": {
+                        "type": "BOX",
+                        "center": [
+                            18.0,
+                            36.0,
+                            5.0
+                        ],
+                        "size": [
+                            6.0,
+                            6.0,
+                            10.0
+                        ]
+                    }
+                },
+                {
+                    "type": "MESH",
+                    "name": "CraneBase_R_S",
+                    "collection": "Collection",
+                    "collections": [
+                        "Collection"
+                    ],
+                    "transform": {
+                        "translation": [
+                            0.0,
+                            0.0,
+                            0.0
+                        ],
+                        "rotation": [
+                            0.0,
+                            -0.0,
+                            0.0
+                        ],
+                        "scaling": [
+                            1.0,
+                            1.0,
+                            1.0
+                        ]
+                    },
+                    "collider": {
+                        "type": "BOX",
+                        "center": [
+                            18.0,
+                            -36.0,
+                            5.0
+                        ],
+                        "size": [
+                            6.0,
+                            6.0,
+                            10.0
+                        ]
+                    }
+                },
+                {
+                    "type": "MESH",
+                    "name": "EastSeaWall",
+                    "collection": "Collection",
+                    "collections": [
+                        "Collection"
+                    ],
+                    "transform": {
+                        "translation": [
+                            0.0,
+                            0.0,
+                            0.0
+                        ],
+                        "rotation": [
+                            0.0,
+                            -0.0,
+                            0.0
+                        ],
+                        "scaling": [
+                            1.0,
+                            1.0,
+                            1.0
+                        ]
+                    },
+                    "collider": {
+                        "type": "BOX",
+                        "center": [
+                            49.0,
+                            0.0,
+                            5.0
+                        ],
+                        "size": [
+                            2.0,
+                            92.0,
+                            10.0
+                        ]
+                    }
+                },
+                {
+                    "type": "MESH",
+                    "name": "Floor",
+                    "collection": "Collection",
+                    "collections": [
+                        "Collection"
+                    ],
+                    "transform": {
+                        "translation": [
+                            0.0,
+                            0.0,
+                            0.0
+                        ],
+                        "rotation": [
+                            0.0,
+                            -0.0,
+                            0.0
+                        ],
+                        "scaling": [
+                            1.0,
+                            1.0,
+                            1.0
+                        ]
+                    },
+                    "collider": {
+                        "type": "BOX",
+                        "center": [
+                            0.0,
+                            0.0,
+                            -0.5
+                        ],
+                        "size": [
+                            100.0,
+                            100.0,
+                            1.0
+                        ]
+                    }
+                },
+                {
+                    "type": "MESH",
+                    "name": "NorthSeaWall",
+                    "collection": "Collection",
+                    "collections": [
+                        "Collection"
+                    ],
+                    "transform": {
+                        "translation": [
+                            0.0,
+                            0.0,
+                            0.0
+                        ],
+                        "rotation": [
+                            0.0,
+                            -0.0,
+                            0.0
+                        ],
+                        "scaling": [
+                            1.0,
+                            1.0,
+                            1.0
+                        ]
+                    },
+                    "collider": {
+                        "type": "BOX",
+                        "center": [
+                            0.0,
+                            49.0,
+                            5.0
+                        ],
+                        "size": [
+                            92.0,
+                            2.0,
+                            10.0
+                        ]
+                    }
+                },
+                {
+                    "type": "MESH",
+                    "name": "ShipBody",
+                    "collection": "Collection",
+                    "collections": [
+                        "Collection"
+                    ],
+                    "transform": {
+                        "translation": [
+                            0.0,
+                            0.0,
+                            0.0
+                        ],
+                        "rotation": [
+                            0.0,
+                            -0.0,
+                            0.0
+                        ],
+                        "scaling": [
+                            1.0,
+                            1.0,
+                            1.0
+                        ]
+                    },
+                    "collider": {
+                        "type": "BOX",
+                        "center": [
+                            0.0,
+                            0.0,
+                            3.0
+                        ],
+                        "size": [
+                            14.0,
+                            38.0,
+                            6.0
+                        ]
+                    }
+                },
+                {
+                    "type": "MESH",
+                    "name": "ShipDeck",
+                    "collection": "Collection",
+                    "collections": [
+                        "Collection"
+                    ],
+                    "transform": {
+                        "translation": [
+                            0.0,
+                            0.0,
+                            0.0
+                        ],
+                        "rotation": [
+                            0.0,
+                            -0.0,
+                            0.0
+                        ],
+                        "scaling": [
+                            1.0,
+                            1.0,
+                            1.0
+                        ]
+                    },
+                    "collider": {
+                        "type": "BOX",
+                        "center": [
+                            0.0,
+                            0.0,
+                            6.5
+                        ],
+                        "size": [
+                            10.0,
+                            24.0,
+                            1.0
+                        ]
+                    }
+                },
+                {
+                    "type": "MESH",
+                    "name": "ShipNose",
+                    "collection": "Collection",
+                    "collections": [
+                        "Collection"
+                    ],
+                    "transform": {
+                        "translation": [
+                            0.0,
+                            0.0,
+                            0.0
+                        ],
+                        "rotation": [
+                            0.0,
+                            -0.0,
+                            0.0
+                        ],
+                        "scaling": [
+                            1.0,
+                            1.0,
+                            1.0
+                        ]
+                    },
+                    "collider": {
+                        "type": "BOX",
+                        "center": [
+                            0.0,
+                            16.0,
+                            2.0
+                        ],
+                        "size": [
+                            8.0,
+                            6.0,
+                            4.0
+                        ]
+                    }
+                },
+                {
+                    "type": "MESH",
+                    "name": "ShipTail",
+                    "collection": "Collection",
+                    "collections": [
+                        "Collection"
+                    ],
+                    "transform": {
+                        "translation": [
+                            0.0,
+                            0.0,
+                            0.0
+                        ],
+                        "rotation": [
+                            0.0,
+                            -0.0,
+                            0.0
+                        ],
+                        "scaling": [
+                            1.0,
+                            1.0,
+                            1.0
+                        ]
+                    },
+                    "collider": {
+                        "type": "BOX",
+                        "center": [
+                            0.0,
+                            -16.0,
+                            2.0
+                        ],
+                        "size": [
+                            8.0,
+                            6.0,
+                            4.0
+                        ]
+                    }
+                },
+                {
+                    "type": "MESH",
+                    "name": "SouthSeaWall",
+                    "collection": "Collection",
+                    "collections": [
+                        "Collection"
+                    ],
+                    "transform": {
+                        "translation": [
+                            0.0,
+                            0.0,
+                            0.0
+                        ],
+                        "rotation": [
+                            0.0,
+                            -0.0,
+                            0.0
+                        ],
+                        "scaling": [
+                            1.0,
+                            1.0,
+                            1.0
+                        ]
+                    },
+                    "collider": {
+                        "type": "BOX",
+                        "center": [
+                            0.0,
+                            -49.0,
+                            5.0
+                        ],
+                        "size": [
+                            92.0,
+                            2.0,
+                            10.0
+                        ]
+                    }
+                },
+                {
+                    "type": "MESH",
+                    "name": "WestSeaWall",
+                    "collection": "Collection",
+                    "collections": [
+                        "Collection"
+                    ],
+                    "transform": {
+                        "translation": [
+                            0.0,
+                            0.0,
+                            0.0
+                        ],
+                        "rotation": [
+                            0.0,
+                            -0.0,
+                            0.0
+                        ],
+                        "scaling": [
+                            1.0,
+                            1.0,
+                            1.0
+                        ]
+                    },
+                    "collider": {
+                        "type": "BOX",
+                        "center": [
+                            -49.0,
+                            0.0,
+                            5.0
+                        ],
+                        "size": [
+                            2.0,
+                            92.0,
+                            10.0
+                        ]
+                    }
+                }
+            ]
+        }
+    ]
+}

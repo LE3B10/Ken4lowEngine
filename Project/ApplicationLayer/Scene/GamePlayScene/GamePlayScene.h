@@ -11,6 +11,7 @@
 
 #include "Stage.h"
 
+#include <vector>
 #include <memory>
 
 namespace K4E = ::Ken4lowEngine;
@@ -29,9 +30,50 @@ private: /// ---------- 列挙型 ---------- ///
 
 	enum class GameFlowState
 	{
-		Playing, // 通常プレイ中
-		GameClear, // ゲームクリア
-		GameOver, // ゲームオーバー
+		Intro,		// ゲーム開始前のイントロ
+		Playing,	// 通常プレイ中
+		GameClear,	// ゲームクリア
+		GameOver,	// ゲームオーバー
+	};
+
+private: /// ---------- 構造体 ---------- ///
+
+	// ステージアセットのパス
+	struct StageAssetPaths
+	{
+		const std::string jsonPath = "";	// ステージのJSONデータのパス
+		const std::string modelPath = "";	// ステージのモデルデータのパス
+	};
+
+	// 敵スポーン情報
+	struct EnemySpawnInfo
+	{
+		K4E::Vector3 position{ 0.0f,0.0f,0.0f };
+		int wave = 1;
+		int group = 0;
+		int count = 1;
+	};
+
+public: /// ---------- 内部構造体 ---------- ///
+
+	struct IntroCameraPointInfo
+	{
+		K4E::Vector3 position{ 0.0f, 0.0f, 0.0f };
+		K4E::Vector3 rotation{ 0.0f, 0.0f, 0.0f };
+
+		int order = 0;
+		float duration = 1.5f;
+		float fov = 45.0f;
+		std::string targetName;
+
+		std::string interpMode = "Linear"; // 補間モード（例: "Linear", "EaseInOut"）
+		std::string aimMode = "Target"; // エイムモード（例: "None", "LookAt"）
+	};
+
+	struct IntroLookAtPointInfo
+	{
+		std::string name;
+		K4E::Vector3 position{ 0.0f, 0.0f, 0.0f };
 	};
 
 public: /// ---------- メンバ関数 ---------- ///
@@ -75,6 +117,13 @@ private: /// ---------- メンバ関数 ---------- ///
 	bool TryGetDirectionalLightFromManager(K4E::Vector3& outDirection);
 
 	void SetupWaves();
+
+	// イントロ更新処理
+	void UpdateIntro(float deltaTime);
+
+	// イントロからゲームプレイ開始
+	void BeginGamePlayFromIntro();
+
 	void EnterGameClear();
 	void EnterGameOver();
 	void UpdateResult(float deltaTime);
@@ -83,6 +132,14 @@ private: /// ---------- メンバ関数 ---------- ///
 	void EnterImGuiFreeze();
 	void ExitImGuiFreeze();
 	void UpdateImGuiFreeze();
+
+	// アンロックステージ
+	void UnlockNextStage();
+
+	StageAssetPaths GetStageAssetPaths(int stageIndex) const; // ステージインデックスからステージアセットのパスを取得
+
+	// ステージからスポーンポイントを読み込む
+	void LoadSpawnPointsFromLevel(const std::string& jsonPath);
 
 private: /// ---------- メンバ変数 ---------- ///
 
@@ -110,6 +167,30 @@ private: /// ---------- メンバ変数 ---------- ///
 	int prevWaveNumber_ = 0;
 	bool prevWaveInProgress_ = false;
 	bool prevAllWavesCleared_ = false;
+
+private: /// ---------- ステージ管理 ---------- ///
+
+	int currentStageIndex_ = 0; // 現在のステージインデックス
+
+private: /// ---------- スポーンポイント ---------- ///
+
+	std::vector<EnemySpawnInfo> enemySpawnInfos_;
+	K4E::Vector3 playerSpawnPoint_ = { 0.0f, 0.0f, 0.0f };
+	K4E::Vector3 bossSpawnPoint_ = { 0.0f, 0.0f, 0.0f };
+	bool hasPlayerSpawnPoint_ = false;
+	bool hasBossSpawnPoint_ = false;
+
+private: /// ---------- 開始演出 ---------- ///
+
+	bool isIntroStarted_ = false;
+	float introTimer_ = 0.0f;
+	float introDuration_ = 2.5f; // 2.5秒演出
+
+	std::vector<IntroCameraPointInfo> introCameraPoints_;
+	std::vector<IntroLookAtPointInfo> introLookAtPoints_;
+
+	int introCurrentSegment_ = 0;
+	float introSegmentTimer_ = 0.0f;
 
 private: /// ---------- 影用 ---------- ///
 

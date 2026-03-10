@@ -30,7 +30,7 @@ struct EnemyGunAIParams
     float moveSpeed = 2.8f;
     float strafeSpeed = 2.2f;
 
-    // ★射撃中の移動倍率（バースト中は落とすと“当てに来る”っぽくなる）
+    // 射撃中の移動倍率（バースト中は落とすと“当てに来る”っぽくなる）
     float aimMoveMul = 0.65f;        // Aim中
     float burstMoveMul = 0.25f;      // Burst中（0にすると撃つ時だけ停止）
 
@@ -62,7 +62,7 @@ struct EnemyGunAIInput
     bool canSeeTarget = false;     // FOV+距離
     bool canShootTarget = false;   // 射線OK（LOS）
 
-    float distToTarget = 99999.0f; // ★水平距離(XZ)を入れるのを推奨
+    float distToTarget = 99999.0f; // 水平距離(XZ)を入れるのを推奨
 
     // 見失い用
     K4E::Vector3 lastSeenPos{};
@@ -190,7 +190,7 @@ inline void EnemyGunAI_Update(
         else
         {
             // 適正距離：ストレイフ
-            if (st.phase != EnemyGunPhase::Burst) // ★Burst中はスイッチを止めて射撃を安定させる
+            if (st.phase != EnemyGunPhase::Burst) // Burst中はスイッチを止めて射撃を安定させる
             {
                 st.strafeSwitchSec += in.dt;
                 if (st.strafeSwitchSec >= 0.8f)
@@ -206,7 +206,7 @@ inline void EnemyGunAI_Update(
                 st.phase = EnemyGunPhase::Strafe;
         }
 
-        // ★射撃中は移動速度を落とす
+        // 射撃中は移動速度を落とす
         if (st.phase == EnemyGunPhase::Aim)
             out.moveSpeed *= p.aimMoveMul;
         else if (st.phase == EnemyGunPhase::Burst)
@@ -278,7 +278,7 @@ inline void EnemyGunAI_Update(
             if (st.shotsLeftInBurst <= 0)
             {
                 st.phase = EnemyGunPhase::Aim;
-                st.phaseSec = -p.burstCooldownSec; // ★クールダウン
+                st.phaseSec = -p.burstCooldownSec; // クールダウン
             }
         }
     }

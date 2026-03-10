@@ -4,6 +4,7 @@
 #include <algorithm>
 
 #include "WorldCollisionResolver.h"
+#include "AudioManager.h"
 
 using namespace Ken4lowEngine;
 
@@ -11,14 +12,19 @@ void CharacterWorld::Initialize(GameContext& ctx)
 {
 	ctx_ = ctx;
 
+	// 敵の被弾エフェクトシステムを初期化
+	enemyParticleEffectSystem_.Initialize();
+
 	// --- Player ---
 	player_ = std::make_unique<Player>();
 	InjectPlayerDeps(*player_);
 	player_->Initialize();
-	player_->SetSpawnPosition({ 0.0f, 6.0f, 0.0f }); // 6m上から開始（落下確認しやすい）
-	player_->SetSpawnOffset({ 5.0f, 0.0f, -15.0f });    // 右へ2mずらす
 
-	// Collider登録（PlayerはColliderとして扱われている前提：DebugSceneと同じ）
+	// ★ デバッグ用の初期スポーン/オフセットは入れない
+	//   実際の開始位置は GamePlayScene 側の PlayerSpawnPoint で決める
+	player_->SetSpawnOffset({ 0.0f, 0.0f, 0.0f });
+
+	// Collider登録（PlayerはColliderとして扱われている前提）
 	if (ctx_.collisionManager_)
 	{
 		ctx_.collisionManager_->AddCollider(player_.get());
@@ -43,12 +49,34 @@ void CharacterWorld::InjectPlayerDeps(Player& p)
 {
 	p.SetCollisionManager(ctx_.collisionManager_);
 	p.SetBulletManager(ctx_.bulletManager_);
+
+	p.SetOnHitSECallback([]()
+		{
+			Ken4lowEngine::AudioManager::GetInstance()->PlaySE("enemy_hit.mp3", 0.2f);
+		});
+
+	p.SetOnFireSECallback([]()
+		{
+			Ken4lowEngine::AudioManager::GetInstance()->PlaySE("player_fire.mp3", 0.1f);
+		});
+
+	p.SetOnReloadSECallback([]()
+		{
+			Ken4lowEngine::AudioManager::GetInstance()->PlaySE("enemy_reload.mp3", 0.2f);
+		});
+
+	p.SetOnDeathSECallback([]()
+		{
+			Ken4lowEngine::AudioManager::GetInstance()->PlaySE("enemy_death.mp3", 0.2f);
+		});
 }
 
 void CharacterWorld::InjectEnemyDeps(Enemy& e)
 {
 	e.SetCollisionManager(ctx_.collisionManager_);
 	e.SetBulletManager(ctx_.bulletManager_);
+
+	e.SetParticleEffectSystem(&enemyParticleEffectSystem_); // 敵の被弾エフェクトシステムを渡す
 
 	// Enemyのターゲットは Player(Collider) を渡す（DebugSceneと同じ）
 	if (player_)
@@ -73,14 +101,37 @@ void CharacterWorld::InjectEnemyDeps(Enemy& e)
 				}
 			});
 	}
+
+	// -----------------------------
+	// 敵SE
+	// -----------------------------
+	e.SetOnHitSECallback([]()
+		{
+			AudioManager::GetInstance()->PlaySE("enemy_hit.mp3", 0.2f);
+		});
+
+	e.SetOnFireSECallback([]()
+		{
+			AudioManager::GetInstance()->PlaySE("enemy_fire.mp3", 0.2f);
+		});
+
+	e.SetOnReloadSECallback([]()
+		{
+			AudioManager::GetInstance()->PlaySE("enemy_reload.mp3", 0.2f);
+		});
+
+	e.SetOnDeathSECallback([]()
+		{
+			AudioManager::GetInstance()->PlaySE("enemy_death.mp3", 0.2f);
+		});
 }
 
-Enemy& CharacterWorld::SpawnEnemy(const K4E::Vector3& pos, const std::string& modelPath)
+Enemy& CharacterWorld::SpawnEnemy(const K4E::Vector3& pos)
 {
 	auto e = std::make_unique<Enemy>();
 	InjectEnemyDeps(*e);
 
-	e->Initialize(pos, modelPath);
+	e->Initialize(pos);
 
 	if (ctx_.collisionManager_)
 	{
@@ -91,12 +142,12 @@ Enemy& CharacterWorld::SpawnEnemy(const K4E::Vector3& pos, const std::string& mo
 	return *enemies_.back();
 }
 
-Enemy& CharacterWorld::SpawnEnemy(EnemyArchetype type, const K4E::Vector3& pos, const std::string& modelPath)
+Enemy& CharacterWorld::SpawnEnemy(EnemyArchetype type, const K4E::Vector3& pos)
 {
 	auto e = std::make_unique<Enemy>();
 	e->SetArchetype(type); // Initialize前に反映（視覚/射撃距離など）
 	InjectEnemyDeps(*e);
-	e->Initialize(pos, modelPath);
+	e->Initialize(pos);
 
 	if (ctx_.collisionManager_)
 	{
@@ -126,7 +177,6 @@ void CharacterWorld::Update(float dt)
 
 	for (auto& e : enemies_)
 	{
-		// Enemyは Update(dt) がある（Enemy.hの互換Updateもある）
 		e->Update(dt);
 	}
 

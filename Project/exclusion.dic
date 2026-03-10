@@ -175,3 +175,7 @@ imgui
 hotbar
 aabb
 aabbs
+Assimp
+numthreads
+submesh
+inited

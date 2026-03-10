@@ -1,15 +1,15 @@
 #define NOMINMAX
 #include "Enemy.h"
-
-#include <algorithm>
-#include <cmath>
-
 #include "Bullet.h"
 #include "BulletManager.h"
 #include "CollisionTypeIdDef.h"
 #include "CollisionManager.h"
 #include "LinearInterpolation.h"
 #include "Wireframe.h"
+
+
+#include <algorithm>
+#include <cmath>
 
 using namespace Ken4lowEngine;
 
@@ -100,9 +100,9 @@ namespace
 	}
 }
 
-void Enemy::Initialize(const K4E::Vector3& startPos, const std::string& modelPath)
+void Enemy::Initialize(const K4E::Vector3& startPos)
 {
-	EnemyBase::Initialize(startPos, modelPath);
+	EnemyBase::Initialize(startPos);
 
 	// アーキタイプ設定（Spawn側で事前に SetArchetype しててもOK：ここで同じ値を反映するだけ）
 	SetArchetype(archetype_);
@@ -176,7 +176,11 @@ void Enemy::Update(float dt)
 void Enemy::Draw()
 {
 	EnemyBase::Draw();
+
+#ifdef _DEBUG
+	// デバッグ用：視覚判定の可視化
 	DrawVisionWire();
+#endif // _DEBUG
 }
 
 void Enemy::DrawImGui()
@@ -262,7 +266,17 @@ bool Enemy::CanShootTarget(const K4E::Vector3& targetPos) const
 
 bool Enemy::CanSeeTarget(const K4E::Vector3& targetPos, float distToTarget)
 {
-	if (distToTarget > viewRange_) return false;
+	lastDistOk_ = false;
+	lastHorizOk_ = false;
+	lastVertOk_ = true;
+	lastLosOk_ = true;
+	lastNearBypass_ = false;
+
+	if (distToTarget > viewRange_)
+	{
+		return false;
+	}
+	lastDistOk_ = true;
 
 	// 目の位置
 	K4E::Vector3 origin = GetCenterPosition();
@@ -277,16 +291,22 @@ bool Enemy::CanSeeTarget(const K4E::Vector3& targetPos, float distToTarget)
 	// --- 横FOV（XZ）---
 	K4E::Vector3 toXZ = to;
 	toXZ.y = 0.0f;
-
 	const float lenXZ = std::sqrt(toXZ.x * toXZ.x + toXZ.z * toXZ.z);
-	if (lenXZ > 1e-6f)
+
+	const bool nearBypass = (distToTarget <= nearDetectRadius_) || (lastCanSee_ && distToTarget <= nearLoseRadius_);
+	lastNearBypass_ = nearBypass;
+
+	if (nearBypass)
+	{
+		lastHorizOk_ = true;
+	}
+	else if (lenXZ > 1e-6f)
 	{
 		const float halfH = (viewFovDeg_ * std::numbers::pi_v<float> / 180.0f) * 0.5f;
 		const float cosHalfH = std::cosf(halfH);
 
 		K4E::Vector3 forwardXZ = { std::sinf(yawRad_), 0.0f, std::cosf(yawRad_) };
 
-		// normalize（簡易）
 		const float invTo = 1.0f / lenXZ;
 		K4E::Vector3 nTo = { toXZ.x * invTo, 0.0f, toXZ.z * invTo };
 
@@ -295,20 +315,22 @@ bool Enemy::CanSeeTarget(const K4E::Vector3& targetPos, float distToTarget)
 		K4E::Vector3 nFw = { forwardXZ.x * invFw, 0.0f, forwardXZ.z * invFw };
 
 		const float dotH = nFw.x * nTo.x + nFw.z * nTo.z;
-		if (dotH < cosHalfH) return false;
+		lastHorizOk_ = (dotH >= cosHalfH);
+		if (!lastHorizOk_) return false;
+	}
+	else
+	{
+		lastHorizOk_ = true;
 	}
 
 	// --- 縦FOV（pitch）---
+	if (useVerticalFov_)
 	{
 		const float halfV = (viewFovVerticalDeg_ * 3.14159265f / 180.0f) * 0.5f;
-
-		// ターゲットへのpitch
 		const float pitchTo = std::atan2(to.y, std::max(1e-6f, lenXZ));
-
-		// 敵の視線pitch（敵が水平なら 0 でOK。FaceToで更新してるなら pitchRad_）
 		const float pitchForward = pitchRad_;
-
-		if (std::fabs(pitchTo - pitchForward) > halfV) return false;
+		lastVertOk_ = (std::fabs(pitchTo - pitchForward) <= halfV);
+		if (!lastVertOk_) return false;
 	}
 
 	// --- 遮蔽物（LOS）---
@@ -318,10 +340,15 @@ bool Enemy::CanSeeTarget(const K4E::Vector3& targetPos, float distToTarget)
 		seg.origin = origin;
 		seg.diff = target - origin;
 
-		if (collisionManager_->SegmentCast(static_cast<uint32_t>(CollisionTypeIdDef::kWorld), seg))
+		lastLosOk_ = !collisionManager_->SegmentCast(static_cast<uint32_t>(CollisionTypeIdDef::kWorld), seg);
+		if (!lastLosOk_)
 		{
 			return false;
 		}
+	}
+	else
+	{
+		lastLosOk_ = true;
 	}
 
 	return true;
@@ -343,7 +370,6 @@ void Enemy::DrawVisionWire() const
 
 	const float halfH = (viewFovDeg_ * 3.14159265f / 180.0f) * 0.5f;
 	const float halfV = (viewFovVerticalDeg_ * 3.14159265f / 180.0f) * 0.5f;
-
 	const int segN = std::max(3, debugVisionSegments_);
 	const float yawStart = yawRad_ - halfH;
 	const float yawEnd = yawRad_ + halfH;
@@ -353,46 +379,62 @@ void Enemy::DrawVisionWire() const
 		return { std::sinf(yaw) * cp, std::sinf(pitch), std::cosf(yaw) * cp };
 		};
 
-	const float pitchTop = pitchRad_ + halfV;
-	const float pitchBot = pitchRad_ - halfV;
+	const float pitchTop = useVerticalFov_ ? (pitchRad_ + halfV) : 0.35f;
+	const float pitchBot = useVerticalFov_ ? (pitchRad_ - halfV) : -0.35f;
 
-	const K4E::Vector4 col = lastCanSee_ ? K4E::Vector4{ 1,0,0,1 } : K4E::Vector4{ 0,1,0,1 };
+	K4E::Vector4 col = { 0,1,0,1 };
+	if (lastCanSee_) col = { 1,0,0,1 };
+	else if (!lastLosOk_) col = { 1,0.35f,0.35f,1 };
+	else if (!lastHorizOk_) col = { 1,0.65f,0.0f,1 };
+	else if (!lastVertOk_) col = { 0.7f,0.4f,1.0f,1 };
+	else if (!lastDistOk_) col = { 0.35f,0.7f,1.0f,1 };
 
-	// 最初の点
 	K4E::Vector3 topPrev = origin + DirFromYawPitch(yawStart, pitchTop) * viewRange_;
 	K4E::Vector3 botPrev = origin + DirFromYawPitch(yawStart, pitchBot) * viewRange_;
-
-	// 境界線（左端）
 	wf->DrawLine(origin, topPrev, col);
 	wf->DrawLine(origin, botPrev, col);
-	wf->DrawLine(topPrev, botPrev, col); // 左端の縦線
+	wf->DrawLine(topPrev, botPrev, col);
 
-	// 弧（上面/下面）＋縦連結
 	for (int i = 1; i <= segN; ++i)
 	{
 		const float t = static_cast<float>(i) / static_cast<float>(segN);
 		const float yaw = yawStart + (yawEnd - yawStart) * t;
-
 		K4E::Vector3 top = origin + DirFromYawPitch(yaw, pitchTop) * viewRange_;
 		K4E::Vector3 bot = origin + DirFromYawPitch(yaw, pitchBot) * viewRange_;
-
-		// 上面弧、下面弧
 		wf->DrawLine(topPrev, top, col);
 		wf->DrawLine(botPrev, bot, col);
-
-		// 分割ごとの縦線
 		wf->DrawLine(top, bot, col);
-
 		topPrev = top;
 		botPrev = bot;
 	}
 
-	// 境界線（右端）
 	wf->DrawLine(origin, topPrev, col);
 	wf->DrawLine(origin, botPrev, col);
 
-	// 任意：敵→プレイヤー線
-	wf->DrawLine(origin, lastPlayerPos_, K4E::Vector4{ 1,1,0,1 });
+	// 中央向き線
+	const K4E::Vector3 forward = origin + DirFromYawPitch(yawRad_, useVerticalFov_ ? pitchRad_ : 0.0f) * ((lastCanSee_ || lastDistOk_) ? viewRange_ : (viewRange_ * 0.5f));
+	wf->DrawLine(origin, forward, K4E::Vector4{ 0,1,1,1 });
+
+	// 近距離全方位検知リング
+	if (nearDetectRadius_ > 0.0f)
+	{
+		const int ringSeg = 24;
+		K4E::Vector3 prev = origin + K4E::Vector3{ nearDetectRadius_, 0.0f, 0.0f };
+		for (int i = 1; i <= ringSeg; ++i)
+		{
+			const float a = (2.0f * 3.14159265f * i) / static_cast<float>(ringSeg);
+			K4E::Vector3 cur = origin + K4E::Vector3{ std::cosf(a) * nearDetectRadius_, 0.0f, std::sinf(a) * nearDetectRadius_ };
+			wf->DrawLine(prev, cur, K4E::Vector4{ 0.25f,0.9f,1.0f,1 });
+			prev = cur;
+		}
+	}
+
+	// 敵→プレイヤー線（黄:見えてる / 橙:FOV外 / 赤:LOS遮蔽）
+	K4E::Vector4 targetCol = lastCanSee_ ? K4E::Vector4{ 1,1,0,1 }
+		: (!lastLosOk_ ? K4E::Vector4{ 1,0,0,1 }
+			: (!lastHorizOk_ ? K4E::Vector4{ 1,0.5f,0,1 }
+	: K4E::Vector4{ 0.7f,0.7f,0.7f,1 }));
+	wf->DrawLine(origin, lastPlayerPos_, targetCol);
 }
 
 void Enemy::ApplyAICommand(const EnemyAICommand& cmd)
@@ -424,6 +466,16 @@ void Enemy::ApplyAICommand(const EnemyAICommand& cmd)
 	{
 		StopMove();
 	}
+
+	// リロード開始の瞬間だけSEを鳴らす
+	if (!wasReloadingLastFrame_ && cmd.wantReload)
+	{
+		if (onReloadSE_)
+		{
+			onReloadSE_();
+		}
+	}
+	wasReloadingLastFrame_ = cmd.wantReload;
 
 	if (cmd.lookAt) FaceTo(*cmd.lookAt);
 	if (cmd.fireAt) FireAt(*cmd.fireAt);
@@ -480,8 +532,10 @@ void Enemy::FireAt(const K4E::Vector3& targetPos)
 	Vector3 dir = NormalizeSafe(targetPos - origin);
 	if (Length(dir) <= 1e-6f) return;
 
-	bulletManager_->Spawn(origin, dir, bulletSpeed_, bulletDamage_, bulletLifeSec_,
-		static_cast<uint32_t>(CollisionTypeIdDef::kEnemyBullet));
+	bulletManager_->Spawn(origin, dir, bulletSpeed_, bulletDamage_, bulletLifeSec_, static_cast<uint32_t>(CollisionTypeIdDef::kEnemyBullet));
+
+	// 銃声
+	if (onFireSE_) onFireSE_();
 }
 
 void Enemy::RequestStun(float sec)
@@ -500,42 +554,74 @@ float Enemy::ConsumeStunDurationOr(float fallbackSec)
 void Enemy::OnBulletHit(K4E::Collider* bulletCollider)
 {
 	int dmg = 10;
-	bool isHeadshot = false; // 今は未判定。後で頭部判定を入れたらここを true にする
+	bool isHeadshot = false;
 
 	if (bulletCollider)
 	{
 		if (auto* b = bulletCollider->GetOwner<Bullet>())
 		{
 			dmg = b->GetDamage();
-
-			// もし将来 Bullet 側にヘッドショット情報を持たせたら:
-			// isHeadshot = b->WasHeadshot();
 		}
 	}
 
-	// 死亡前状態を保持
 	const bool wasDead = IsDead();
 
-	TakeDamage(dmg);
+	K4E::Vector3 hitDir{ 0.0f, 0.0f, 0.0f };
+	float hitPower = 1.0f;
+	if (bulletCollider)
+	{
+		hitDir = GetCenterPosition() - bulletCollider->GetCenterPosition();
+		hitPower = 1.0f + static_cast<float>(dmg) * 0.015f;
+	}
 
-	// 命中通知（必要なら）
+	TakeDamage(dmg, hitDir, hitPower);
+
+	// 被弾時サウンド
+	if (!wasDead && !IsDead())
+	{
+		if (onHitSE_)
+		{
+			onHitSE_();
+		}
+	}
+
 	if (!wasDead && onPlayerHitUICallback_)
 	{
 		onPlayerHitUICallback_(isHeadshot);
 	}
 
-	// キル通知（このフレームで死んだときだけ）
 	if (!wasDead && IsDead())
 	{
+		// 死亡サウンド
+		if (onDeathSE_)
+		{
+			onDeathSE_();
+		}
+
 		if (onPlayerKillUICallback_)
 		{
 			onPlayerKillUICallback_(isHeadshot);
 		}
 	}
 
-	// 生きてる時だけ軽スタン
+	// 生きている時だけ「撃たれた相手を記憶して警戒」
 	if (!IsDead())
 	{
+		if (target_)
+		{
+			lastSeenPos_ = target_->GetCenterPosition();
+			timeSinceSeen_ = 0.0f;
+			FaceTo(lastSeenPos_);
+		}
+		else if (bulletCollider)
+		{
+			// ターゲット未設定時の保険：弾位置の反対側をざっくり向く
+			K4E::Vector3 alertPos = GetCenterPosition() + hitDir * -6.0f;
+			lastSeenPos_ = alertPos;
+			timeSinceSeen_ = 0.0f;
+			FaceTo(alertPos);
+		}
+
 		RequestStun(0.12f);
 	}
 }

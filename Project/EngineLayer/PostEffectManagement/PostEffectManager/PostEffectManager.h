@@ -65,7 +65,7 @@ public: /// ---------- メンバ関数 ---------- ///
 	/// DirectXCommon オブジェクトを使用して初期化処理を行う関数。
 	/// </summary>
 	/// <param name="dxCommon">初期化対象の DirectXCommon オブジェクトへのポインター。関数はこのオブジェクトを用いて必要な初期化を行います。</param>
-	void Initialieze(DirectXCommon* dxCommon);
+	void Initialize(DirectXCommon* dxCommon);
 
 	/// <summary>
 	/// PostEffectManager の終了処理を行う関数。
@@ -98,6 +98,8 @@ public: /// ---------- メンバ関数 ---------- ///
 	/// ポストプロセス（後処理）エフェクトをレンダリングします。
 	/// </summary>
 	void RenderPostEffect();
+
+	void BindSceneRenderTarget();
 
 	/// <summary>
 	/// ImGui の描画をレンダリングします。

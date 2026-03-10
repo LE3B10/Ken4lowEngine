@@ -132,6 +132,12 @@ public: /// ---------- メンバ関数 ---------- ///
 
 	void ForceRefreshWeaponVisual() { weaponVisual_.ForceRefresh(); }
 
+	// サウンド通知
+	void SetOnHitSECallback(std::function<void()> cb) { onHitSE_ = std::move(cb); }
+	void SetOnFireSECallback(std::function<void()> cb) { onFireSE_ = std::move(cb); }
+	void SetOnReloadSECallback(std::function<void()> cb) { onReloadSE_ = std::move(cb); }
+	void SetOnDeathSECallback(std::function<void()> cb) { onDeathSE_ = std::move(cb); }
+
 public:	// ---- FSMから呼ばれる最小API（PlayerAPIがここを呼ぶ）----
 
 	bool FSM_IsGrounded() const { return motor_.IsGrounded(); }
@@ -149,7 +155,23 @@ public:	// ---- FSMから呼ばれる最小API（PlayerAPIがここを呼ぶ）-
 	void FSM_FireOnce();
 
 	bool FSM_IsReloadFinished() const { return weapon_.IsReloadFinished(); }
-	void FSM_StartReload() { weapon_.StartReload(); }
+	void FSM_StartReload()
+	{
+		bool isReloading = false;
+		float reloadTimer = 0.0f;
+		float reloadSec = 0.0f;
+		weapon_.GetReloadUI(isReloading, reloadTimer, reloadSec);
+
+		if (!isReloading)
+		{
+			weapon_.StartReload();
+
+			if (onReloadSE_)
+			{
+				onReloadSE_();
+			}
+		}
+	}
 	bool FSM_IsMeleeFinished() const;
 	void FSM_StartMelee();
 	void FSM_SetAiming(bool on) { view_.SetAiming(on); }
@@ -232,5 +254,12 @@ private: /// ----------メンバ変数 ---------- ///
 
 	FallDamageSettings fallDamageSettings_{};
 
+private: /// ---------- 音声 ---------- ///
+
+	// サウンド
+	std::function<void()> onHitSE_;		// 被弾時のSE
+	std::function<void()> onFireSE_;	// 射撃時のSE
+	std::function<void()> onReloadSE_;	// リロード時のSE
+	std::function<void()> onDeathSE_;	// 死亡時のSE
 };
 

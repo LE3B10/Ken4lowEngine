@@ -164,7 +164,7 @@ namespace Ken4lowEngine
 		SkyBoxManager::GetInstance()->Initialize(dxCommon_);
 
 		// ポストエフェクトの初期化
-		PostEffectManager::GetInstance()->Initialieze(dxCommon_);
+		PostEffectManager::GetInstance()->Initialize(dxCommon_);
 
 		// GPUパーティクルマネージャーの初期化
 		GpuParticleManager::GetInstance()->Initialize(defaultCamera_.get());

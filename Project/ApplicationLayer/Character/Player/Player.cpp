@@ -482,8 +482,27 @@ void Player::OnHitByEnemyBullet(K4E::Collider* bullet, PlayerHitPart part, float
 
 	// ---- 部位倍率（mulはHurtbox側で渡してる）
 	float dmg = static_cast<float>(baseDmg) * mul;
+
+	// ダメージを受ける前に「生きていたか」を保存
+	const bool wasAlive = (hp_ > 0.0f);
+
 	hp_ -= dmg;
 	if (hp_ < 0.0f) hp_ = 0.0f;
+
+	// 被弾音
+	if (onHitSE_)
+	{
+		onHitSE_();
+	}
+
+	// このフレームで死亡した瞬間だけ死亡音
+	if (wasAlive && hp_ <= 0.0f)
+	{
+		if (onDeathSE_)
+		{
+			onDeathSE_();
+		}
+	}
 
 	vfx_.OnDamaged(dmg, maxHp_);
 	if (hudManager_)
@@ -596,6 +615,9 @@ void Player::FSM_FireOnce()
 
 	const bool fired = weapon_.TryFire(inputSnap_, shootCam, bulletManager_, collisionManager_);
 	if (!fired) return;
+
+	// 発射した瞬間のSE
+	if (onFireSE_) onFireSE_();
 
 	/// ---------- カメラリコイル処理 ---------- ///
 	const bool ads = inputSnap_.aimHeld;

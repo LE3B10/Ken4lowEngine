@@ -1,6 +1,8 @@
 #pragma once
 #include <LevelData.h>
 #include <memory>
+#include <string>
+#include <json.hpp>
 
 namespace Ken4lowEngine
 {
@@ -25,6 +27,15 @@ namespace Ken4lowEngine
 		/// 読み込んだオブジェクト群を保持する LevelData の unique_ptr。
 		/// </returns>
 		static std::unique_ptr<LevelData> LoadLevel(const std::string& filePath);
+
+	private: /// ---------- 内部ヘルパー ---------- ///
+
+		static void ParseObjectRecursive(
+			const nlohmann::json& object,
+			LevelData& levelData,
+			const Vector3& parentPosition,
+			const Vector3& parentRotation,
+			const Vector3& parentScale);
 
 	private: /// ---------- メンバ変数 ---------- ///
 

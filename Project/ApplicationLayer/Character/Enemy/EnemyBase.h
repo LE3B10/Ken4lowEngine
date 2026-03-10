@@ -1,5 +1,6 @@
 #pragma once
 #include <memory>
+#include <cstdint>
 #include <string>
 #include <vector>
 
@@ -14,10 +15,14 @@
 
 namespace K4E = ::Ken4lowEngine;
 
+/// ---------- 前方宣言 ---------- ///
+class EnemyParticleEffectSystem;
+
 /// -------------------------------------------------------------
 /// EnemyBase
 ///  - HP / 描画 / Collider / 物理（位置・速度）
 ///  - 見た目は BaseCharacter 相当の人型パーツで管理
+///  - 死亡時は「バラバラ崩壊」演出（簡易物理）
 /// -------------------------------------------------------------
 class EnemyBase : public K4E::Collider
 {
@@ -42,7 +47,7 @@ public:
 	EnemyBase() = default;
 	virtual ~EnemyBase() = default;
 
-	virtual void Initialize(const K4E::Vector3& startPos, const std::string& modelPath = "cube.gltf");
+	virtual void Initialize(const K4E::Vector3& startPos);
 	virtual void Update(float dt);
 	virtual void Draw();
 	virtual void DrawImGui();
@@ -57,7 +62,7 @@ public:
 	bool IsDead() const { return isDead_; }
 	bool IsRemovable() const { return removable_; }
 
-	// 物理
+	// 物理（生存中のCollider用）
 	void SetPosition(const K4E::Vector3& p);
 	void SetVelocity(const K4E::Vector3& v) { velocity_ = v; }
 	const K4E::Vector3& GetVelocity() const { return velocity_; }
@@ -67,10 +72,13 @@ public:
 
 	// 見た目の向き
 	void SetOrientation(const K4E::Vector3& rot);
-	//const K4E::Vector3& GetOrientation() const { return orientation_; }
 
 	// ダメージ
+	// 既存互換：方向なし（従来通り呼べる）
 	virtual void TakeDamage(int amount);
+	// 新：被弾方向（弾の進行方向）と強さ（演出用）を渡せる
+	virtual void TakeDamage(int amount, const K4E::Vector3& hitDir, float hitPower);
+
 	virtual void SetColor(const K4E::Vector4& color);
 
 	// ヒット時の赤点滅
@@ -92,7 +100,10 @@ public:
 	std::vector<BodyPart>& GetBodyParts() { return parts_; }
 	const PartIndices& GetPartIndices() const { return partIndices_; }
 
+	void SetParticleEffectSystem(EnemyParticleEffectSystem* effectSystem) { particleEffectSystem_ = effectSystem; }
+
 protected:
+	// 派生で差し替え可（デフォルトはバラバラ崩壊開始）
 	virtual void OnKilled();
 	virtual void OnBulletHit(K4E::Collider* bulletCollider);
 
@@ -103,8 +114,23 @@ protected:
 	void MoveVisualFar(const K4E::Vector3& pos);
 
 private:
-	void DisableColliderAndMoveFar();
+	// コライダーだけ無効化（見た目は残す）
+	void DisableColliderOnly();
+	// ヒットフラッシュ
 	void UpdateHitFlash(float dt);
+
+	// ---- death break apart ----
+	struct DeathPiece
+	{
+		BodyPart* part = nullptr;
+		K4E::Vector3 velocity{ 0,0,0 };
+		K4E::Vector3 angularVel{ 0,0,0 };
+		float hitBias = 0.5f; // 被弾方向の影響（部位ごとに調整）
+	};
+
+	void StartBreakApartDeath();
+	void UpdateBreakApartDeath(float dt);
+	void DetachAllPartsToWorldSpace();
 
 protected:
 	// ----- humanoid visual -----
@@ -119,9 +145,8 @@ protected:
 
 	bool isDead_ = false;
 	bool removable_ = false;
-	int deadFrames_ = 0;
 
-	// 物理
+	// 生存中の物理
 	K4E::Vector3 velocity_{ 0.0f, 0.0f, 0.0f };
 	bool useGravity_ = false;
 	float gravity_ = 19.6f;
@@ -140,11 +165,29 @@ protected:
 	// stage AABB
 	const std::vector<K4E::AABB>* worldAABBs_ = nullptr;
 
-	// 押し出し用
+	// 押し出し用（生存中だけ）
 	K4E::WorldCollisionSettings worldCol_{};
 	bool worldColOverride_ = false;
 	bool useWorldResolve_ = true;
 	bool grounded_ = false;
+
+	// ---- last hit info (for death impulse) ----
+	K4E::Vector3 lastHitDir_{ 0.0f, 0.0f, 0.0f };
+	float lastHitPower_ = 1.0f;
+
+	// ---- break apart sim ----
+	bool deathBreakActive_ = false;
+	float deathTimer_ = 0.0f;
+	float deathSimDuration_ = 1.8f;   // 破片が残る時間
+	float deathFadeDuration_ = 0.6f;  // 最後にフェードする時間
+	float deathLinearDamping_ = 2.0f; // 大きいほどすぐ止まる
+	float deathAngularDamping_ = 2.5f;
+	float deathBounce_ = 0.25f;       // 0..1
+	float deathFriction_ = 0.7f;      // 0..1
+	float deathGroundY_ = 0.0f;       // とりあえず床はY=0想定（必要なら拡張）
+	std::vector<DeathPiece> deathPieces_;
+
+	EnemyParticleEffectSystem* particleEffectSystem_ = nullptr;
 
 private:
 	static const std::vector<K4E::AABB>* g_worldAABBs_;

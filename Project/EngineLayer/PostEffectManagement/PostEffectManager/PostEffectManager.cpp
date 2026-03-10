@@ -53,7 +53,7 @@ namespace Ken4lowEngine
 	/// -------------------------------------------------------------
 	///				　			初期化処理
 	/// -------------------------------------------------------------
-	void PostEffectManager::Initialieze(DirectXCommon* dxCommon)
+	void PostEffectManager::Initialize(DirectXCommon* dxCommon)
 	{
 		dxCommon_ = dxCommon;
 
@@ -361,6 +361,25 @@ namespace Ken4lowEngine
 		SRVManager::GetInstance()->SetGraphicsRootDescriptorTable(0, finalRT.srvIndex);
 		commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 		commandList->DrawInstanced(3, 1, 0, 0);
+	}
+
+	void PostEffectManager::BindSceneRenderTarget()
+	{
+		auto commandList = dxCommon_->GetCommandManager()->GetCommandList();
+
+		// 深度を描画可能状態へ戻す
+		if (depthResource_ && depthState_ != D3D12_RESOURCE_STATE_DEPTH_WRITE)
+		{
+			dxCommon_->ResourceTransition(depthResource_.Get(), depthState_, D3D12_RESOURCE_STATE_DEPTH_WRITE);
+			depthState_ = D3D12_RESOURCE_STATE_DEPTH_WRITE;
+		}
+
+		auto& rt = renderTargets_[0];
+		Transition(rt, D3D12_RESOURCE_STATE_RENDER_TARGET);
+
+		commandList->OMSetRenderTargets(1, &rt.rtvHandle, false, &dsvHandle);
+		commandList->RSSetViewports(1, &viewport);
+		commandList->RSSetScissorRects(1, &scissorRect);
 	}
 
 
