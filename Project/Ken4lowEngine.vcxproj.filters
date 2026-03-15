@@ -553,9 +553,6 @@
     <ClCompile Include="ApplicationLayer\Scene\TitleScene\State\TitleTransitionToLobby.cpp">
       <Filter>ApplicationLayer\Scene\TitleScene\State</Filter>
     </ClCompile>
-    <ClCompile Include="ApplicationLayer\Scene\GamePlayScene\PauseMenu.cpp">
-      <Filter>ApplicationLayer\Scene\GamePlayScene</Filter>
-    </ClCompile>
     <ClCompile Include="EngineLayer\3D\AnimationSystem\DebugView\AnimationModelDebugView.cpp">
       <Filter>EngineLayer\3D\AnimationManagement\DebugView</Filter>
     </ClCompile>
@@ -568,12 +565,6 @@
     <ClCompile Include="ApplicationLayer\Scene\ShadowTestScene\ShadowTestScene.cpp">
       <Filter>ApplicationLayer\Scene\ShadowTextScene</Filter>
     </ClCompile>
-    <ClCompile Include="ApplicationLayer\Scene\GamePlayScene\ResultMenu.cpp">
-      <Filter>ApplicationLayer\Scene\GamePlayScene</Filter>
-    </ClCompile>
-    <ClCompile Include="ApplicationLayer\Scene\GamePlayScene\WaveManager.cpp">
-      <Filter>ApplicationLayer\Scene\GamePlayScene</Filter>
-    </ClCompile>
     <ClCompile Include="ApplicationLayer\UISystem\WaveUI\WaveUI.cpp">
       <Filter>ApplicationLayer\UISystem\WaveUI</Filter>
     </ClCompile>
@@ -585,6 +576,30 @@
     </ClCompile>
     <ClCompile Include="ApplicationLayer\Character\Enemy\EnemyParticleEffectSystem.cpp">
       <Filter>ApplicationLayer\Character\Enemy</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\Scene\GamePlayScene\Camera\GamePlayIntroDirector.cpp">
+      <Filter>ApplicationLayer\Scene\GamePlayScene\Camera</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\Scene\GamePlayScene\Core\GamePlayStageContext.cpp">
+      <Filter>ApplicationLayer\Scene\GamePlayScene\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\Scene\GamePlayScene\Core\GamePlayFlow.cpp">
+      <Filter>ApplicationLayer\Scene\GamePlayScene\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\Scene\GamePlayScene\Debug\GamePlayDebugTools.cpp">
+      <Filter>ApplicationLayer\Scene\GamePlayScene\Debug</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\Scene\GamePlayScene\UI\PauseMenu.cpp">
+      <Filter>ApplicationLayer\Scene\GamePlayScene\UI</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\Scene\GamePlayScene\UI\ResultMenu.cpp">
+      <Filter>ApplicationLayer\Scene\GamePlayScene\UI</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\Scene\GamePlayScene\World\GamePlayWorld.cpp">
+      <Filter>ApplicationLayer\Scene\GamePlayScene\World</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\Scene\GamePlayScene\World\WaveManager.cpp">
+      <Filter>ApplicationLayer\Scene\GamePlayScene\World</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -1191,9 +1206,6 @@
     <ClInclude Include="ApplicationLayer\OverlaySystem\Rect.h">
       <Filter>ApplicationLayer\Scene\TitleScene\State</Filter>
     </ClInclude>
-    <ClInclude Include="ApplicationLayer\Scene\GamePlayScene\PauseMenu.h">
-      <Filter>ApplicationLayer\Scene\GamePlayScene</Filter>
-    </ClInclude>
     <ClInclude Include="EngineLayer\3D\AnimationSystem\DebugView\AnimationModelDebugView.h">
       <Filter>EngineLayer\3D\AnimationManagement\DebugView</Filter>
     </ClInclude>
@@ -1206,12 +1218,6 @@
     <ClInclude Include="ApplicationLayer\Scene\ShadowTestScene\ShadowTestScene.h">
       <Filter>ApplicationLayer\Scene\ShadowTextScene</Filter>
     </ClInclude>
-    <ClInclude Include="ApplicationLayer\Scene\GamePlayScene\ResultMenu.h">
-      <Filter>ApplicationLayer\Scene\GamePlayScene</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Scene\GamePlayScene\WaveManager.h">
-      <Filter>ApplicationLayer\Scene\GamePlayScene</Filter>
-    </ClInclude>
     <ClInclude Include="ApplicationLayer\UISystem\WaveUI\WaveUI.h">
       <Filter>ApplicationLayer\UISystem\WaveUI</Filter>
     </ClInclude>
@@ -1223,6 +1229,30 @@
     </ClInclude>
     <ClInclude Include="ApplicationLayer\Character\Enemy\EnemyParticleEffectSystem.h">
       <Filter>ApplicationLayer\Character\Enemy</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Scene\GamePlayScene\Camera\GamePlayIntroDirector.h">
+      <Filter>ApplicationLayer\Scene\GamePlayScene\Camera</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Scene\GamePlayScene\Core\GamePlayStageContext.h">
+      <Filter>ApplicationLayer\Scene\GamePlayScene\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Scene\GamePlayScene\Core\GamePlayFlow.h">
+      <Filter>ApplicationLayer\Scene\GamePlayScene\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Scene\GamePlayScene\Debug\GamePlayDebugTools.h">
+      <Filter>ApplicationLayer\Scene\GamePlayScene\Debug</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Scene\GamePlayScene\UI\PauseMenu.h">
+      <Filter>ApplicationLayer\Scene\GamePlayScene\UI</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Scene\GamePlayScene\UI\ResultMenu.h">
+      <Filter>ApplicationLayer\Scene\GamePlayScene\UI</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Scene\GamePlayScene\World\GamePlayWorld.h">
+      <Filter>ApplicationLayer\Scene\GamePlayScene\World</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Scene\GamePlayScene\World\WaveManager.h">
+      <Filter>ApplicationLayer\Scene\GamePlayScene\World</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -1644,6 +1674,21 @@
     </Filter>
     <Filter Include="ApplicationLayer\UISystem\WaveUI">
       <UniqueIdentifier>{0583b643-8b56-4379-84c4-e41564c7d5b2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ApplicationLayer\Scene\GamePlayScene\Camera">
+      <UniqueIdentifier>{ebdbe23f-9989-492a-a59c-42b2ff1ded96}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ApplicationLayer\Scene\GamePlayScene\Core">
+      <UniqueIdentifier>{3bc827a3-17ea-4cd6-9a81-428c0a1b1d50}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ApplicationLayer\Scene\GamePlayScene\Debug">
+      <UniqueIdentifier>{c81dc3a8-843f-4c5f-b7c6-a2f9ddb1c6b3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ApplicationLayer\Scene\GamePlayScene\UI">
+      <UniqueIdentifier>{f7cecead-d5de-4402-9b61-40dac05abf1a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ApplicationLayer\Scene\GamePlayScene\World">
+      <UniqueIdentifier>{5ced5deb-051c-4b35-9697-e0d7889dfcb1}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>
