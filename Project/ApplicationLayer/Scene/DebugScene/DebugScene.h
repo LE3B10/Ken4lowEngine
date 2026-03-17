@@ -3,10 +3,11 @@
 #include "CollisionManager.h"
 #include "BulletManager.h"
 #include "Enemy.h"
-
 #include "Player.h"
+#include "Derived/GuardianBoss/GuardianBoss.h"
 
 #include <memory>
+#include <string>
 
 namespace K4E = ::Ken4lowEngine;
 
@@ -47,6 +48,18 @@ private: /// ---------- メンバ関数 ---------- ///
 	// デバッグカメラの更新
 	void UpdateDebug();
 
+	/// -------------------------------------------------------------
+	/// 仮ヒット確認
+	/// Hキーなどでボスに対して簡易球判定を飛ばす
+	/// -------------------------------------------------------------
+	void UpdateDebugBossHitTest();
+
+	/// -------------------------------------------------------------
+	/// BossHitPart を文字列へ変換
+	/// ログ確認用
+	/// -------------------------------------------------------------
+	const char* ToString(BossHitPart part) const;
+
 private: /// ---------- メンバ変数 ---------- ///
 
 	K4E::DirectXCommon* dxCommon_ = nullptr; // DirectXCommonのポインタ
@@ -55,8 +68,14 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	std::unique_ptr<CollisionManager> collisionManager_; // 衝突管理マネージャー
 
-	std::unique_ptr<Player> player_; // 実際のプレイヤー
-	std::unique_ptr<BulletManager> bulletManager_;
-	std::unique_ptr<Enemy> enemy_;
+	// 描画確認用ボス
+	std::unique_ptr<GuardianBoss> debugBoss_;
+
+	// --- 仮ヒット確認用パラメータ ---
+	bool debugBossHitTestEnabled_ = true; // 仮ヒット確認ON/OFF
+	float debugHitRadius_ = 0.75f;        // 攻撃球の半径
+	float debugBaseDamage_ = 10.0f;       // 基礎ダメージ
+
+	std::string debugHitLog_ = "Press H to test hit.";
 };
 

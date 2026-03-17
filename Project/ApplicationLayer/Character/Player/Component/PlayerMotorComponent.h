@@ -110,13 +110,13 @@ private: /// ---------- プライベートメンバ変数 ---------- ///
 	float accelAir_ = 12.0f;
 
 	float adsMoveMul_ = 0.25f; // ADS中の移動減速
-	float reloadMoveMul_ = 0.1f; // リロード中の移動減速
+	float reloadMoveMul_ = 0.35f; // リロード中の移動減速
 	float airControl_ = 0.7f;
 
 	// ---- Speeds ----
-	float walkSpeed_ = 5.0f;
-	float runSpeed_ = 8.0f;
-	float dashSpeed_ = 15.0f;
+	float walkSpeed_ = 10.0f;
+	float runSpeed_ = 15.0f;
+	float dashSpeed_ = 20.0f;
 	float jumpSpeed_ = 10.0f;
 	float gravity_ = 19.6f;
 

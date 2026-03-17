@@ -1,217 +1,141 @@
 #pragma once
 #include <BaseScene.h>
-#include "PauseMenu.h"
-#include <SkyBox.h>
-#include "CollisionManager.h"
-#include "CharacterWorld.h"
-#include "BulletManager.h"
-#include "HUDManager.h"
-#include "WaveManager.h"
-#include "ResultMenu.h"
 
-#include "Stage.h"
+#include "GamePlayFlow.h"
+#include "GamePlayStageContext.h"
+#include "GamePlayWorld.h"
+#include "GamePlayIntroDirector.h"
+#include "GamePlayDebugTools.h"
+#include "FadeManager.h"
 
-#include <vector>
 #include <memory>
-
-namespace K4E = ::Ken4lowEngine;
 
 /// ---------- 前方宣言 ---------- ///
 namespace Ken4lowEngine { class DirectXCommon; }
 namespace Ken4lowEngine { class Input; }
 
+namespace K4E = ::Ken4lowEngine;
 
 /// -------------------------------------------------------------
-///				　		ゲームプレイシーン
+/// ゲームプレイシーン
+/// 
+/// 役割:
+/// - ゲームプレイ全体の司令塔
+/// - 各サブシステムの初期化 / 更新 / 描画順制御
+/// - フローごとの分岐管理
+/// 
+/// なるべく「中身を全部持つ」のではなく、
+/// 「各クラスを呼び分ける」ことに集中させる
 /// -------------------------------------------------------------
 class GamePlayScene : public BaseScene
 {
-private: /// ---------- 列挙型 ---------- ///
+public: /// ---------- BaseScene override ---------- ///
 
-	enum class GameFlowState
-	{
-		Intro,		// ゲーム開始前のイントロ
-		Playing,	// 通常プレイ中
-		GameClear,	// ゲームクリア
-		GameOver,	// ゲームオーバー
-	};
-
-private: /// ---------- 構造体 ---------- ///
-
-	// ステージアセットのパス
-	struct StageAssetPaths
-	{
-		const std::string jsonPath = "";	// ステージのJSONデータのパス
-		const std::string modelPath = "";	// ステージのモデルデータのパス
-	};
-
-	// 敵スポーン情報
-	struct EnemySpawnInfo
-	{
-		K4E::Vector3 position{ 0.0f,0.0f,0.0f };
-		int wave = 1;
-		int group = 0;
-		int count = 1;
-	};
-
-public: /// ---------- 内部構造体 ---------- ///
-
-	struct IntroCameraPointInfo
-	{
-		K4E::Vector3 position{ 0.0f, 0.0f, 0.0f };
-		K4E::Vector3 rotation{ 0.0f, 0.0f, 0.0f };
-
-		int order = 0;
-		float duration = 1.5f;
-		float fov = 45.0f;
-		std::string targetName;
-
-		std::string interpMode = "Linear"; // 補間モード（例: "Linear", "EaseInOut"）
-		std::string aimMode = "Target"; // エイムモード（例: "None", "LookAt"）
-	};
-
-	struct IntroLookAtPointInfo
-	{
-		std::string name;
-		K4E::Vector3 position{ 0.0f, 0.0f, 0.0f };
-	};
-
-public: /// ---------- メンバ関数 ---------- ///
-
-	// 初期化処理
+	// 初期化
 	void Initialize() override;
 
-	// 更新処理
+	// 更新
 	void Update() override;
 
-	// 3Dオブジェクトの描画
+	// 3D描画
 	void Draw3DObjects() override;
 
-	// シャドウマップ描画
+	// シャドウ描画
 	void DrawShadowObjects() override;
 
-	// 2Dオブジェクトの描画
+	// 2D描画
 	void Draw2DSprites() override;
 
 	// 終了処理
 	void Finalize() override;
 
-	// ImGui描画処理
+	// ImGui描画
 	void DrawImGui() override;
 
-private: /// ---------- メンバ関数 ---------- ///
+private: /// ---------- 初期化 / 終了系 ---------- ///
 
-	// Debug用更新処理
+	// エンジン依存システム取得やカーソル設定
+	void InitializeSystems();
+
+	// ゲームプレイ構成オブジェクト生成
+	void InitializeGameplayObjects();
+
+	// 新規ゲーム開始時のセットアップ
+	void SetupNewGame(bool skipIntro = false);
+
+	// カーソル状態を通常に戻す
+	void RestoreCursorState();
+
+	// 生成済みオブジェクトの破棄
+	void ReleaseGameplayObjects();
+
+private: /// ---------- 更新系 ---------- ///
+
+	// デバッグ停止のトグル処理
+	// true を返したらそのフレームの Update は打ち切る
+	bool HandleDebugFreeze();
+
+	// リトライフェード更新
+	// true を返したらそのフレームの Update は打ち切る
+	bool UpdateRetryTransition();
+
+	// イントロ更新
+	// true を返したらそのフレームの Update は打ち切る
+	bool UpdateIntro(float deltaTime);
+
+	// リザルト更新
+	// true を返したらそのフレームの Update は打ち切る
+	bool UpdateResult(float deltaTime);
+
+	// ESC によるポーズ切り替え
+	// true を返したらそのフレームの Update は打ち切る
+	bool HandlePauseToggle();
+
+	// ポーズ中更新
+	// true を返したらそのフレームの Update は打ち切る
+	bool UpdatePause(float deltaTime);
+
+	// デバッグカメラなどの通常時デバッグ更新
 	void UpdateDebug();
 
-	// 衝突判定更新処理
-	void CollisionUpdate();
+	// 通常のワールド更新
+	void UpdateWorld(float deltaTime);
 
-	// ポーズ制御
-	void EnterPause();
-	void ExitPause();
-	void UpdatePaused(float deltaTime);
+	// クリア / ゲームオーバー判定
+	void CheckGameEnd();
 
-	void UpdateShadowLightViewProjection();
+private: /// ---------- 補助系 ---------- ///
 
-	bool TryGetDirectionalLightFromManager(K4E::Vector3& outDirection);
+	// イントロ中はキャラクター表示を抑制したいか
+	bool ShouldHideCharactersDuringIntro() const;
 
-	void SetupWaves();
+	// リトライ要求開始
+	void RequestRetryWithFade();
 
-	// イントロ更新処理
-	void UpdateIntro(float deltaTime);
+	// リスタート
+	void RestartGame(bool skipIntro = true);
 
-	// イントロからゲームプレイ開始
-	void BeginGamePlayFromIntro();
-
-	void EnterGameClear();
-	void EnterGameOver();
-	void UpdateResult(float deltaTime);
-	void RestartGame();
-
-	void EnterImGuiFreeze();
-	void ExitImGuiFreeze();
-	void UpdateImGuiFreeze();
-
-	// アンロックステージ
-	void UnlockNextStage();
-
-	StageAssetPaths GetStageAssetPaths(int stageIndex) const; // ステージインデックスからステージアセットのパスを取得
-
-	// ステージからスポーンポイントを読み込む
-	void LoadSpawnPointsFromLevel(const std::string& jsonPath);
+	// フェード開始 / 完了判定
+	void StartRetryFadeOut();
+	bool IsRetryFadeOutFinished() const;
+	void StartRetryFadeIn();
+	bool IsRetryFadeInFinished() const;
 
 private: /// ---------- メンバ変数 ---------- ///
 
+	// エンジン側シングルトン参照
 	K4E::DirectXCommon* dxCommon_ = nullptr;
 	K4E::Input* input_ = nullptr;
 
-	std::unique_ptr<PauseMenu> pauseMenu_ = nullptr; // ポーズメニュー
-	std::unique_ptr<ResultMenu> resultMenu_ = nullptr; // 結果メニュー
+	// ゲームプレイ構成要素
+	std::unique_ptr<GamePlayFlow> flow_;
+	std::unique_ptr<GamePlayStageContext> stageContext_;
+	std::unique_ptr<GamePlayWorld> world_;
+	std::unique_ptr<GamePlayIntroDirector> introDirector_;
+	std::unique_ptr<GamePlayDebugTools> debugTools_;
+	std::unique_ptr<FadeManager> fadeManager_;
 
-	std::unique_ptr<CollisionManager> collisionManager_; // 衝突マネージャー
-	std::unique_ptr<BulletManager> bulletManager_; // 弾丸マネージャー
-	CharacterWorld characters_;
-
-	std::unique_ptr<K4E::SkyBox> skyBox_ = nullptr; // スカイボックス
-
-	std::unique_ptr<K4E::Stage> stage_ = nullptr; // ステージ（地形＋ワールドコリジョン）
-
-	// ポーズ状態（ESCで切替）
-	bool isPaused_ = false;
-
-	std::unique_ptr<WaveManager> waveManager_ = nullptr;
-	GameFlowState gameFlowState_ = GameFlowState::Playing;
-	float resultInputCooldown_ = 0.0f;
-
-	int prevWaveNumber_ = 0;
-	bool prevWaveInProgress_ = false;
-	bool prevAllWavesCleared_ = false;
-
-private: /// ---------- ステージ管理 ---------- ///
-
-	int currentStageIndex_ = 0; // 現在のステージインデックス
-
-private: /// ---------- スポーンポイント ---------- ///
-
-	std::vector<EnemySpawnInfo> enemySpawnInfos_;
-	K4E::Vector3 playerSpawnPoint_ = { 0.0f, 0.0f, 0.0f };
-	K4E::Vector3 bossSpawnPoint_ = { 0.0f, 0.0f, 0.0f };
-	bool hasPlayerSpawnPoint_ = false;
-	bool hasBossSpawnPoint_ = false;
-
-private: /// ---------- 開始演出 ---------- ///
-
-	bool isIntroStarted_ = false;
-	float introTimer_ = 0.0f;
-	float introDuration_ = 2.5f; // 2.5秒演出
-
-	std::vector<IntroCameraPointInfo> introCameraPoints_;
-	std::vector<IntroLookAtPointInfo> introLookAtPoints_;
-
-	int introCurrentSegment_ = 0;
-	float introSegmentTimer_ = 0.0f;
-
-private: /// ---------- 影用 ---------- ///
-
-	K4E::Matrix4x4 shadowLightViewProjection_{}; // ライトのビュー射影行列
-
-	K4E::Vector3 shadowLightDirection_ = { 0.3f, -1.0f, 0.2f, }; // 影用ライトの方向
-	float shadowDistance_ = 50.0f; // 影の最大距離
-	float shadowOrthoHalfWidth_ = 25.0f; // 影の直交投影の半幅
-	float shadowOrthoHalfHeight_ = 25.0f; // 影の直交投影の半高さ
-	float shadowNearZ_ = 0.1f; // 影の近距離
-	float shadowFarZ_ = 120.0f; // 影の遠距離
-
-private: /// ---------- HUD ---------- ///
-
-	std::unique_ptr<HUDManager> hudManager_ = nullptr; // HUDマネージャー
-
-private: /// ---------- 内部メンバ変数 ---------- ///
-
-	// デバッグカメラのON/OFF用
-	bool isDebugCamera_ = false;
-	bool isLockedCursor_ = false;
-
-	bool isImGuiFreeze_ = false;
+	// リトライ遷移制御
+	bool isRetryTransitionActive_ = false; // リトライ演出中か
+	bool isRetryRestartDone_ = false;      // フェードアウト後の再初期化を実行済みか
 };
