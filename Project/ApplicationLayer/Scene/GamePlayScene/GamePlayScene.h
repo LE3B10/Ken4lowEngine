@@ -6,6 +6,7 @@
 #include "GamePlayWorld.h"
 #include "GamePlayIntroDirector.h"
 #include "GamePlayDebugTools.h"
+#include "FadeManager.h"
 
 #include <memory>
 
@@ -60,7 +61,7 @@ private: /// ---------- 初期化 / 終了系 ---------- ///
 	void InitializeGameplayObjects();
 
 	// 新規ゲーム開始時のセットアップ
-	void SetupNewGame();
+	void SetupNewGame(bool skipIntro = false);
 
 	// カーソル状態を通常に戻す
 	void RestoreCursorState();
@@ -73,6 +74,10 @@ private: /// ---------- 更新系 ---------- ///
 	// デバッグ停止のトグル処理
 	// true を返したらそのフレームの Update は打ち切る
 	bool HandleDebugFreeze();
+
+	// リトライフェード更新
+	// true を返したらそのフレームの Update は打ち切る
+	bool UpdateRetryTransition();
 
 	// イントロ更新
 	// true を返したらそのフレームの Update は打ち切る
@@ -104,8 +109,17 @@ private: /// ---------- 補助系 ---------- ///
 	// イントロ中はキャラクター表示を抑制したいか
 	bool ShouldHideCharactersDuringIntro() const;
 
+	// リトライ要求開始
+	void RequestRetryWithFade();
+
 	// リスタート
-	void RestartGame();
+	void RestartGame(bool skipIntro = true);
+
+	// フェード開始 / 完了判定
+	void StartRetryFadeOut();
+	bool IsRetryFadeOutFinished() const;
+	void StartRetryFadeIn();
+	bool IsRetryFadeInFinished() const;
 
 private: /// ---------- メンバ変数 ---------- ///
 
@@ -119,4 +133,9 @@ private: /// ---------- メンバ変数 ---------- ///
 	std::unique_ptr<GamePlayWorld> world_;
 	std::unique_ptr<GamePlayIntroDirector> introDirector_;
 	std::unique_ptr<GamePlayDebugTools> debugTools_;
+	std::unique_ptr<FadeManager> fadeManager_;
+
+	// リトライ遷移制御
+	bool isRetryTransitionActive_ = false; // リトライ演出中か
+	bool isRetryRestartDone_ = false;      // フェードアウト後の再初期化を実行済みか
 };

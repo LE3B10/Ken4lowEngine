@@ -47,6 +47,7 @@ public: /// ---------- 構造体 ---------- ///
 		Ken4lowEngine::Input* input;		  // 結果画面でも入力は受け付けるため、Inputも渡す
 		SceneManager* sceneManager = nullptr; // 結果画面の更新でシーン遷移する可能性があるため、SceneManagerも渡す
 		std::function<void()> onRetry;		  // リトライボタンが押されたときのコールバック
+		std::function<void()> onNextStage;	  // 次のステージへ進むボタンが押されたときのコールバック
 	};
 
 public: /// ---------- メンバ関数 ---------- ///

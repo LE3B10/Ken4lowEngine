@@ -19,7 +19,7 @@ void GamePlayScene::Initialize()
 {
 	InitializeSystems();
 	InitializeGameplayObjects();
-	SetupNewGame();
+	SetupNewGame(false); // 初回はイントロあり
 }
 
 /// -------------------------------------------------------------
@@ -64,6 +64,12 @@ void GamePlayScene::InitializeGameplayObjects()
 
 	debugTools_ = std::make_unique<GamePlayDebugTools>();
 	debugTools_->Initialize();
+
+	if (!fadeManager_)
+	{
+		fadeManager_ = std::make_unique<FadeManager>();
+		fadeManager_->Initialize();
+	}
 }
 
 /// -------------------------------------------------------------
@@ -73,7 +79,7 @@ void GamePlayScene::InitializeGameplayObjects()
 /// - イントロ有無を flow に反映
 /// - イントロが無い場合は即 Wave 開始
 /// -------------------------------------------------------------
-void GamePlayScene::SetupNewGame()
+void GamePlayScene::SetupNewGame(bool skipIntro)
 {
 	if (!introDirector_ || !stageContext_ || !flow_)
 	{
@@ -83,9 +89,11 @@ void GamePlayScene::SetupNewGame()
 	introDirector_->Reset(*stageContext_, 2.5f);
 
 	const bool hasIntroPoints = introDirector_->HasIntro();
-	flow_->ResetForNewGame(hasIntroPoints);
+	const bool startIntro = hasIntroPoints && !skipIntro;
 
-	if (!hasIntroPoints && world_)
+	flow_->ResetForNewGame(startIntro);
+
+	if (!startIntro && world_)
 	{
 		world_->StartWaves();
 	}
@@ -105,8 +113,17 @@ void GamePlayScene::Update()
 	// フレーム開始時に FPSCounter を更新して deltaTime を取得
 	const float deltaTime = dxCommon_->GetFPSCounter().GetDeltaTime();
 
+	// FadeManager は常に更新
+	if (fadeManager_)
+	{
+		fadeManager_->Update(deltaTime);
+	}
+
 	// デバッグ停止系
 	if (HandleDebugFreeze()) return;
+
+	// リトライ遷移中
+	if (UpdateRetryTransition()) return;
 
 	// イントロ更新
 	if (UpdateIntro(deltaTime))	return;
@@ -154,6 +171,37 @@ bool GamePlayScene::HandleDebugFreeze()
 	return false;
 }
 
+bool GamePlayScene::UpdateRetryTransition()
+{
+	if (!isRetryTransitionActive_)
+	{
+		return false;
+	}
+
+	// フェードアウト完了待ち
+	if (!isRetryRestartDone_)
+	{
+		if (IsRetryFadeOutFinished())
+		{
+			RestartGame(true);   // 同じステージをイントロ無しで再構築
+			isRetryRestartDone_ = true;
+
+			StartRetryFadeIn();  // ひび割れ→落下で開く
+		}
+
+		return true;
+	}
+
+	// フェードイン完了待ち
+	if (IsRetryFadeInFinished())
+	{
+		isRetryTransitionActive_ = false;
+		isRetryRestartDone_ = false;
+	}
+
+	return true;
+}
+
 /// -------------------------------------------------------------
 /// イントロ更新
 /// 
@@ -196,9 +244,18 @@ bool GamePlayScene::UpdateResult(float deltaTime)
 	ctx.deltaTime = deltaTime;
 	ctx.input = input_;
 	ctx.sceneManager = sceneManager_;
+
 	ctx.onRetry = [this]()
 		{
-			RestartGame();
+			RequestRetryWithFade();
+		};
+
+	ctx.onNextStage = [this]()
+		{
+			if (stageContext_)
+			{
+				stageContext_->UnlockNextStage();
+			}
 		};
 
 	flow_->UpdateResult(ctx);
@@ -302,15 +359,7 @@ void GamePlayScene::CheckGameEnd()
 	// 全Waveクリア
 	if (world_->IsAllWavesCleared())
 	{
-		flow_->EnterGameClear(
-			input_,
-			[this]()
-			{
-				if (stageContext_)
-				{
-					stageContext_->UnlockNextStage();
-				}
-			});
+		flow_->EnterGameClear(input_, nullptr);
 		return;
 	}
 }
@@ -354,6 +403,11 @@ void GamePlayScene::Draw2DSprites()
 	{
 		flow_->DrawUI();
 	}
+
+	if (fadeManager_)
+	{
+		fadeManager_->Draw2DSprites();
+	}
 }
 
 /// -------------------------------------------------------------
@@ -366,6 +420,19 @@ bool GamePlayScene::ShouldHideCharactersDuringIntro() const
 	return (flow_ && flow_->IsIntro());
 }
 
+void GamePlayScene::RequestRetryWithFade()
+{
+	if (isRetryTransitionActive_)
+	{
+		return;
+	}
+
+	isRetryTransitionActive_ = true;
+	isRetryRestartDone_ = false;
+
+	StartRetryFadeOut();
+}
+
 /// -------------------------------------------------------------
 /// 終了処理
 /// -------------------------------------------------------------
@@ -373,6 +440,12 @@ void GamePlayScene::Finalize()
 {
 	RestoreCursorState();
 	ReleaseGameplayObjects();
+
+	if (fadeManager_)
+	{
+		fadeManager_->Finalize();
+		fadeManager_.reset();
+	}
 
 	input_ = nullptr;
 	dxCommon_ = nullptr;
@@ -439,8 +512,43 @@ void GamePlayScene::DrawImGui()
 /// まず完全に終了してから初期化し直す。
 /// 現状はこの形が最も分かりやすい。
 /// -------------------------------------------------------------
-void GamePlayScene::RestartGame()
+void GamePlayScene::RestartGame(bool skipIntro)
 {
-	Finalize();
-	Initialize();
+	// カーソルをゲームプレイ向けに戻す
+	if (input_)
+	{
+		input_->SetLockCursor(true);
+		input_->SetCursorVisible(false);
+	}
+
+	// フェードは残したまま、ゲームプレイ構成だけ再生成
+	ReleaseGameplayObjects();
+	InitializeGameplayObjects();
+	SetupNewGame(skipIntro);
+}
+
+void GamePlayScene::StartRetryFadeOut()
+{
+	if (fadeManager_)
+	{
+		fadeManager_->StartCover();
+	}
+}
+
+bool GamePlayScene::IsRetryFadeOutFinished() const
+{
+	return fadeManager_ && fadeManager_->IsFullyCovered();
+}
+
+void GamePlayScene::StartRetryFadeIn()
+{
+	if (fadeManager_)
+	{
+		fadeManager_->StartCrack();
+	}
+}
+
+bool GamePlayScene::IsRetryFadeInFinished() const
+{
+	return fadeManager_ && fadeManager_->IsDropDone();
 }

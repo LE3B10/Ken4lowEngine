@@ -261,6 +261,12 @@ void GamePlayFlow::UpdateResult(const ResultUpdateContext& ctx)
 	switch (cmd)
 	{
 	case ResultMenuCommand::NextStage:
+
+		if (ctx.onNextStage)
+		{
+			ctx.onNextStage();
+		}
+
 		if (ctx.sceneManager)
 		{
 			ctx.sceneManager->ChangeScene("StageSelectScene");
