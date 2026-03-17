@@ -20,7 +20,6 @@ namespace Ken4lowEngine
 
 	/// ---------- 前方宣言 ---------- ///
 	class DirectXCommon;
-	class Model;
 	class Object3DCommon;
 	class SkyBox;
 

@@ -406,18 +406,6 @@
     <ClCompile Include="ApplicationLayer\Scene\DebugScene\DebugScene.cpp">
       <Filter>ApplicationLayer\Scene\DebugScene</Filter>
     </ClCompile>
-    <ClCompile Include="ApplicationLayer\Character\Boss\Boss.cpp">
-      <Filter>ApplicationLayer\Character\Boss</Filter>
-    </ClCompile>
-    <ClCompile Include="ApplicationLayer\Character\Boss\ForestBoss\SeedMortarAttack.cpp">
-      <Filter>ApplicationLayer\Character\Boss\ForestBoss</Filter>
-    </ClCompile>
-    <ClCompile Include="ApplicationLayer\Character\Boss\ForestBoss\VineSweepAttack.cpp">
-      <Filter>ApplicationLayer\Character\Boss\ForestBoss</Filter>
-    </ClCompile>
-    <ClCompile Include="ApplicationLayer\Character\Boss\ForestBoss\RootCageAttack.cpp">
-      <Filter>ApplicationLayer\Character\Boss\ForestBoss</Filter>
-    </ClCompile>
     <ClCompile Include="ApplicationLayer\SceneManagement\FadeManager\FadeManager.cpp">
       <Filter>ApplicationLayer\SceneManager\FadeManager</Filter>
     </ClCompile>
@@ -586,8 +574,8 @@
     <ClCompile Include="ApplicationLayer\Scene\GamePlayScene\Core\GamePlayFlow.cpp">
       <Filter>ApplicationLayer\Scene\GamePlayScene\Core</Filter>
     </ClCompile>
-    <ClCompile Include="ApplicationLayer\Scene\GamePlayScene\Debug\GamePlayDebugTools.cpp">
-      <Filter>ApplicationLayer\Scene\GamePlayScene\Debug</Filter>
+    <ClCompile Include="ApplicationLayer\Scene\GamePlayScene\DebugTools\GamePlayDebugTools.cpp">
+      <Filter>ApplicationLayer\Scene\GamePlayScene\DebugTools</Filter>
     </ClCompile>
     <ClCompile Include="ApplicationLayer\Scene\GamePlayScene\UI\PauseMenu.cpp">
       <Filter>ApplicationLayer\Scene\GamePlayScene\UI</Filter>
@@ -600,6 +588,60 @@
     </ClCompile>
     <ClCompile Include="ApplicationLayer\Scene\GamePlayScene\World\WaveManager.cpp">
       <Filter>ApplicationLayer\Scene\GamePlayScene\World</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\Character\Boss\Components\BossAnimationComponent.cpp">
+      <Filter>ApplicationLayer\Character\Boss\Components</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\Character\Boss\Components\BossAttackComponent.cpp">
+      <Filter>ApplicationLayer\Character\Boss\Components</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\Character\Boss\Components\BossMovementComponent.cpp">
+      <Filter>ApplicationLayer\Character\Boss\Components</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\Character\Boss\Components\BossPhaseComponent.cpp">
+      <Filter>ApplicationLayer\Character\Boss\Components</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\Character\Boss\Components\BossStatusComponent.cpp">
+      <Filter>ApplicationLayer\Character\Boss\Components</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\Character\Boss\Components\BossWeakPointComponent.cpp">
+      <Filter>ApplicationLayer\Character\Boss\Components</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\Character\Boss\BehaviorTree\BTActionNode.cpp">
+      <Filter>ApplicationLayer\Character\Boss\BehaviorTree</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\Character\Boss\BehaviorTree\BTConditionNode.cpp">
+      <Filter>ApplicationLayer\Character\Boss\BehaviorTree</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\Character\Boss\BehaviorTree\BTSelectorNode.cpp">
+      <Filter>ApplicationLayer\Character\Boss\BehaviorTree</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\Character\Boss\BehaviorTree\BTSequenceNode.cpp">
+      <Filter>ApplicationLayer\Character\Boss\BehaviorTree</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\Character\Boss\BehaviorTree\IBTNode.cpp">
+      <Filter>ApplicationLayer\Character\Boss\BehaviorTree</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\Character\Boss\Derived\GuardianBoss\GuardianBoss.cpp">
+      <Filter>ApplicationLayer\Character\Boss\Derived</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\Character\Boss\BaseTypes\HumanoidBossBase.cpp">
+      <Filter>ApplicationLayer\Character\Boss\BaseTypes</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\Character\Boss\Core\BossBase.cpp">
+      <Filter>ApplicationLayer\Character\Boss\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\Character\Boss\Core\BossBrain.cpp">
+      <Filter>ApplicationLayer\Character\Boss\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\Character\Boss\Core\BossFactory.cpp">
+      <Filter>ApplicationLayer\Character\Boss\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\Character\Boss\Core\BossStateMachine.cpp">
+      <Filter>ApplicationLayer\Character\Boss\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\Character\Boss\Attacks\BossPunchAttack.cpp">
+      <Filter>ApplicationLayer\Character\Boss\Attacks</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -1011,24 +1053,6 @@
     <ClInclude Include="ApplicationLayer\Scene\DebugScene\DebugScene.h">
       <Filter>ApplicationLayer\Scene\DebugScene</Filter>
     </ClInclude>
-    <ClInclude Include="ApplicationLayer\Character\Boss\Boss.h">
-      <Filter>ApplicationLayer\Character\Boss</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Character\Boss\BossConfig.h">
-      <Filter>ApplicationLayer\Character\Boss</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Character\Boss\ForestBoss\IBossAttack.h">
-      <Filter>ApplicationLayer\Character\Boss\ForestBoss</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Character\Boss\ForestBoss\SeedMortarAttack.h">
-      <Filter>ApplicationLayer\Character\Boss\ForestBoss</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Character\Boss\ForestBoss\VineSweepAttack.h">
-      <Filter>ApplicationLayer\Character\Boss\ForestBoss</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Character\Boss\ForestBoss\RootCageAttack.h">
-      <Filter>ApplicationLayer\Character\Boss\ForestBoss</Filter>
-    </ClInclude>
     <ClInclude Include="ApplicationLayer\SceneManagement\FadeManager\FadeManager.h">
       <Filter>ApplicationLayer\SceneManager\FadeManager</Filter>
     </ClInclude>
@@ -1239,8 +1263,8 @@
     <ClInclude Include="ApplicationLayer\Scene\GamePlayScene\Core\GamePlayFlow.h">
       <Filter>ApplicationLayer\Scene\GamePlayScene\Core</Filter>
     </ClInclude>
-    <ClInclude Include="ApplicationLayer\Scene\GamePlayScene\Debug\GamePlayDebugTools.h">
-      <Filter>ApplicationLayer\Scene\GamePlayScene\Debug</Filter>
+    <ClInclude Include="ApplicationLayer\Scene\GamePlayScene\DebugTools\GamePlayDebugTools.h">
+      <Filter>ApplicationLayer\Scene\GamePlayScene\DebugTools</Filter>
     </ClInclude>
     <ClInclude Include="ApplicationLayer\Scene\GamePlayScene\UI\PauseMenu.h">
       <Filter>ApplicationLayer\Scene\GamePlayScene\UI</Filter>
@@ -1253,6 +1277,66 @@
     </ClInclude>
     <ClInclude Include="ApplicationLayer\Scene\GamePlayScene\World\WaveManager.h">
       <Filter>ApplicationLayer\Scene\GamePlayScene\World</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Character\Boss\Components\BossAnimationComponent.h">
+      <Filter>ApplicationLayer\Character\Boss\Components</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Character\Boss\Components\BossAttackComponent.h">
+      <Filter>ApplicationLayer\Character\Boss\Components</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Character\Boss\Components\BossMovementComponent.h">
+      <Filter>ApplicationLayer\Character\Boss\Components</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Character\Boss\Components\BossPhaseComponent.h">
+      <Filter>ApplicationLayer\Character\Boss\Components</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Character\Boss\Components\BossStatusComponent.h">
+      <Filter>ApplicationLayer\Character\Boss\Components</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Character\Boss\Components\BossWeakPointComponent.h">
+      <Filter>ApplicationLayer\Character\Boss\Components</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Character\Boss\BehaviorTree\BTActionNode.h">
+      <Filter>ApplicationLayer\Character\Boss\BehaviorTree</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Character\Boss\BehaviorTree\BTConditionNode.h">
+      <Filter>ApplicationLayer\Character\Boss\BehaviorTree</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Character\Boss\BehaviorTree\BTSelectorNode.h">
+      <Filter>ApplicationLayer\Character\Boss\BehaviorTree</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Character\Boss\BehaviorTree\BTSequenceNode.h">
+      <Filter>ApplicationLayer\Character\Boss\BehaviorTree</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Character\Boss\BehaviorTree\IBTNode.h">
+      <Filter>ApplicationLayer\Character\Boss\BehaviorTree</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Character\Boss\Attacks\IBossAttack.h">
+      <Filter>ApplicationLayer\Character\Boss\Attacks</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Character\Boss\Derived\GuardianBoss\GuardianBoss.h">
+      <Filter>ApplicationLayer\Character\Boss\Derived</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Character\Boss\BaseTypes\HumanoidBossBase.h">
+      <Filter>ApplicationLayer\Character\Boss\BaseTypes</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Character\Boss\Core\BossBase.h">
+      <Filter>ApplicationLayer\Character\Boss\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Character\Boss\Core\BossBrain.h">
+      <Filter>ApplicationLayer\Character\Boss\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Character\Boss\Core\BossFactory.h">
+      <Filter>ApplicationLayer\Character\Boss\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Character\Boss\Core\BossStateMachine.h">
+      <Filter>ApplicationLayer\Character\Boss\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Character\Boss\Attacks\BossPunchAttack.h">
+      <Filter>ApplicationLayer\Character\Boss\Attacks</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Character\Boss\Core\BossTypes.h">
+      <Filter>ApplicationLayer\Character\Boss\Core</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -1606,9 +1690,6 @@
     <Filter Include="ApplicationLayer\Character\Boss">
       <UniqueIdentifier>{9f04e0f2-5d76-464a-a9c1-9bc305498abd}</UniqueIdentifier>
     </Filter>
-    <Filter Include="ApplicationLayer\Character\Boss\ForestBoss">
-      <UniqueIdentifier>{6db4ef1d-71a7-4d07-9818-12520b9df4b2}</UniqueIdentifier>
-    </Filter>
     <Filter Include="ApplicationLayer\SceneManager\FadeManager">
       <UniqueIdentifier>{9a668ff4-4230-45d3-9b68-31c77b30e350}</UniqueIdentifier>
     </Filter>
@@ -1681,14 +1762,38 @@
     <Filter Include="ApplicationLayer\Scene\GamePlayScene\Core">
       <UniqueIdentifier>{3bc827a3-17ea-4cd6-9a81-428c0a1b1d50}</UniqueIdentifier>
     </Filter>
-    <Filter Include="ApplicationLayer\Scene\GamePlayScene\Debug">
-      <UniqueIdentifier>{c81dc3a8-843f-4c5f-b7c6-a2f9ddb1c6b3}</UniqueIdentifier>
-    </Filter>
     <Filter Include="ApplicationLayer\Scene\GamePlayScene\UI">
       <UniqueIdentifier>{f7cecead-d5de-4402-9b61-40dac05abf1a}</UniqueIdentifier>
     </Filter>
     <Filter Include="ApplicationLayer\Scene\GamePlayScene\World">
       <UniqueIdentifier>{5ced5deb-051c-4b35-9697-e0d7889dfcb1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ApplicationLayer\Scene\GamePlayScene\DebugTools">
+      <UniqueIdentifier>{c81dc3a8-843f-4c5f-b7c6-a2f9ddb1c6b3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ApplicationLayer\Character\Boss\Attacks">
+      <UniqueIdentifier>{0a274766-b157-4428-9898-f9ce7b378bfb}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ApplicationLayer\Character\Boss\BaseTypes">
+      <UniqueIdentifier>{b49e0cd2-4c71-49db-8bbd-2dea12098b9b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ApplicationLayer\Character\Boss\BehaviorTree">
+      <UniqueIdentifier>{621d510e-a99a-4f8b-a00d-4adcfa44ed34}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ApplicationLayer\Character\Boss\Components">
+      <UniqueIdentifier>{1583b068-e191-4518-b9a7-1aa545d90d97}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ApplicationLayer\Character\Boss\Core">
+      <UniqueIdentifier>{6c715102-1e04-49ad-a580-e54c603a9e54}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ApplicationLayer\Character\Boss\Data">
+      <UniqueIdentifier>{229d56fb-48b8-498e-9911-03fc9cd6c9d5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ApplicationLayer\Character\Boss\DebugTools">
+      <UniqueIdentifier>{f4dd3edc-af5c-462b-a11b-0c4b243b579b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ApplicationLayer\Character\Boss\Derived">
+      <UniqueIdentifier>{18fe000a-2c8a-49d3-a448-6a9db9fcf513}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>
