@@ -643,6 +643,15 @@
     <ClCompile Include="ApplicationLayer\Character\Boss\Attacks\BossPunchAttack.cpp">
       <Filter>ApplicationLayer\Character\Boss\Attacks</Filter>
     </ClCompile>
+    <ClCompile Include="ApplicationLayer\Character\Boss\Animations\BossHeavyPunchAttackAnimation.cpp">
+      <Filter>ApplicationLayer\Character\Boss\Animations</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\Character\Boss\Animations\BossPunchAttackAnimation.cpp">
+      <Filter>ApplicationLayer\Character\Boss\Animations</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\Character\Boss\Attacks\BossHeavyPunchAttack.cpp">
+      <Filter>ApplicationLayer\Character\Boss\Attacks</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="EngineLayer\Math\MultipleStructs\AABB.h">
@@ -1338,6 +1347,18 @@
     <ClInclude Include="ApplicationLayer\Character\Boss\Core\BossTypes.h">
       <Filter>ApplicationLayer\Character\Boss\Core</Filter>
     </ClInclude>
+    <ClInclude Include="ApplicationLayer\Character\Boss\Animations\BossHeavyPunchAttackAnimation.h">
+      <Filter>ApplicationLayer\Character\Boss\Animations</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Character\Boss\Animations\BossPunchAttackAnimation.h">
+      <Filter>ApplicationLayer\Character\Boss\Animations</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Character\Boss\Animations\IBossAttackAnimation.h">
+      <Filter>ApplicationLayer\Character\Boss\Animations</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Character\Boss\Attacks\BossHeavyPunchAttack.h">
+      <Filter>ApplicationLayer\Character\Boss\Attacks</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="Resources\Shaders\PostEffect\FullScreen.hlsli">
@@ -1794,6 +1815,9 @@
     </Filter>
     <Filter Include="ApplicationLayer\Character\Boss\Derived">
       <UniqueIdentifier>{18fe000a-2c8a-49d3-a448-6a9db9fcf513}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ApplicationLayer\Character\Boss\Animations">
+      <UniqueIdentifier>{e5af30ea-1e9d-43c1-9c9f-0876d8c7c70b}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

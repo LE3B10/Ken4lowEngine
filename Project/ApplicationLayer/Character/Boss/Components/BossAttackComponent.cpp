@@ -1,5 +1,11 @@
 #include "BossAttackComponent.h"
 #include "Attacks/IBossAttack.h"
+#include "Core/BossBase.h"
+#include "Components/BossAnimationComponent.h"
+
+#ifdef USE_IMGUI
+#include <imgui.h>
+#endif
 
 /// -------------------------------------------------------------
 /// 初期化
@@ -97,7 +103,7 @@ void BossAttackComponent::Update(float deltaTime)
 /// -------------------------------------------------------------
 bool BossAttackComponent::StartAttackByName(const std::string& attackName)
 {
-	IBossAttack* attack = FindAttackByName(attackName);
+	IBossAttack* attack = FindAttackByName(attackName.c_str());
 	return StartAttackInternal(attack);
 }
 
@@ -140,7 +146,7 @@ IBossAttack* BossAttackComponent::GetAttack(size_t index) const
 /// -------------------------------------------------------------
 /// 名前で攻撃取得
 /// -------------------------------------------------------------
-IBossAttack* BossAttackComponent::FindAttackByName(const std::string& attackName) const
+IBossAttack* BossAttackComponent::FindAttackByName(const char* attackName) const
 {
 	for (const auto& attack : attacks_)
 	{
@@ -149,7 +155,7 @@ IBossAttack* BossAttackComponent::FindAttackByName(const std::string& attackName
 			continue;
 		}
 
-		if (attackName == attack->GetName())
+		if (std::strcmp(attack->GetName(), attackName) == 0)
 		{
 			return attack.get();
 		}
@@ -220,13 +226,66 @@ void BossAttackComponent::DrawShadow()
 /// -------------------------------------------------------------
 void BossAttackComponent::DrawImGui()
 {
-	for (auto& attack : attacks_)
+#ifdef USE_IMGUI
+	if (!ImGui::CollapsingHeader("Boss Attack Component", ImGuiTreeNodeFlags_DefaultOpen))
 	{
-		if (attack)
-		{
-			attack->DrawImGui();
-		}
+		return;
 	}
+
+	ImGui::Text("IsAttacking : %s", currentAttack_ ? "true" : "false");
+	ImGui::Text("AttackCount : %d", static_cast<int>(attacks_.size()));
+
+	if (currentAttack_)
+	{
+		ImGui::Text("CurrentAttack : %s", currentAttack_->GetName());
+	}
+	else
+	{
+		ImGui::Text("CurrentAttack : None");
+	}
+
+	ImGui::Separator();
+	ImGui::Text("Registered Attacks");
+
+	for (size_t i = 0; i < attacks_.size(); ++i)
+	{
+		IBossAttack* attack = attacks_[i].get();
+		if (!attack)
+		{
+			continue;
+		}
+
+		ImGui::PushID(static_cast<int>(i));
+
+		ImGui::Text("[%d] %s", static_cast<int>(i), attack->GetName());
+		ImGui::Text("  Active    : %s", attack->IsActive() ? "true" : "false");
+		ImGui::Text("  Cooldown  : %.2f", attack->GetCooldownRemaining());
+		ImGui::Text("  Range     : %.2f - %.2f", attack->GetMinRange(), attack->GetMaxRange());
+		ImGui::Text("  Priority  : %d", attack->GetPriority());
+		ImGui::Text("  CanStart  : %s", attack->CanStart() ? "true" : "false");
+
+		const bool canStartThis = (!currentAttack_ && attack->CanStart());
+		if (!canStartThis)
+		{
+			ImGui::BeginDisabled();
+		}
+
+		if (ImGui::Button("Start This Attack"))
+		{
+			StartAttackByIndex(i);
+		}
+
+		if (!canStartThis)
+		{
+			ImGui::EndDisabled();
+		}
+
+		attack->DrawImGui();
+
+		ImGui::Separator();
+		ImGui::PopID();
+	}
+#endif
 }
 
 /// -------------------------------------------------------------
@@ -254,5 +313,16 @@ bool BossAttackComponent::StartAttackInternal(IBossAttack* attack)
 
 	attack->Start();
 	currentAttack_ = attack;
+
+	// ---------------------------------------------------------
+	// 攻撃開始時にアニメ時間をリセット
+	// これをしないと前回攻撃の経過時間が残って、
+	// Windup が飛んだように見えることがある
+	// ---------------------------------------------------------
+	if (owner_ && owner_->GetAnimationComponent())
+	{
+		owner_->GetAnimationComponent()->ResetAttackTimer();
+	}
+
 	return true;
 }

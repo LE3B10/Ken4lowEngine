@@ -7,39 +7,42 @@ namespace K4E = Ken4lowEngine;
 class BossBase;
 
 /// ---------------------------------------------------------------
-/// 近接パンチ攻撃
+/// 重攻撃パンチ
 ///
 /// 役割:
-/// - 単発の近接攻撃を行う
-/// - 予兆 → ヒット発生 → 終了 の流れを持つ
-/// - 最初の基本攻撃として使う
+/// - 通常 Punch より重い近接攻撃
+/// - 発生は遅いが高威力
+/// - 攻撃後の硬直も大きい
+/// - Guardian の「避けるべき一撃」として使う
 ///
 /// 方針:
-/// - まずはシンプルな時間管理ベースで作る
-/// - 当たり判定は「前方距離 + 半径」で簡易実装
-/// - 後で腕ボーン位置や部位座標に差し替えられるようにする
+/// - 基本構造は BossPunchAttack と揃える
+/// - 後でノックバックやエフェクトを足しやすいようにする
 /// ---------------------------------------------------------------
-class BossPunchAttack : public IBossAttack
+class BossHeavyPunchAttack : public IBossAttack
 {
 public: /// ---------- 列挙型 ---------- ///
 
-	/// ---------- 攻撃内部フェーズ ---------- ///
+	/// <summary>
+	/// 攻撃の内部フェーズ
+	/// </summary>
 	enum class Phase
 	{
-		None,       // 無効
-		Windup,     // 予兆
+		None,       // 未使用
+		Windup,     // 溜め
+		Hold,		// 溜め切って一瞬止める
 		Active,     // 発生
-		Recovery    // 回復 / 終了待ち
+		Recovery    // 攻撃後の硬直
 	};
 
 public: /// ---------- 基本構造 ---------- ///
 
-	~BossPunchAttack() override = default;
+	~BossHeavyPunchAttack() override = default;
 
 public: /// ---------- 初期化 ---------- ///
 
 	/// <summary>
-	/// 攻撃所有者を受け取って初期化
+	/// 所有者を受け取って初期化
 	/// </summary>
 	void Initialize(BossBase* owner) override;
 
@@ -68,12 +71,12 @@ public: /// ---------- 判定系 ---------- ///
 	bool CanStart() const override;
 
 	/// <summary>
-	/// 攻撃が終了したか
+	/// 攻撃終了済みか
 	/// </summary>
 	bool IsFinished() const override { return isFinished_; }
 
 	/// <summary>
-	/// 現在実行中か
+	/// 実行中か
 	/// </summary>
 	bool IsActive() const override { return isActive_; }
 
@@ -85,7 +88,7 @@ public: /// ---------- クールダウン系 ---------- ///
 	void TickCooldown(float deltaTime) override;
 
 	/// <summary>
-	/// 残りクールダウン時間
+	/// 残りクールダウン
 	/// </summary>
 	float GetCooldownRemaining() const override { return cooldownRemaining_; }
 
@@ -94,38 +97,28 @@ public: /// ---------- 参照用情報 ---------- ///
 	/// <summary>
 	/// 攻撃名
 	/// </summary>
-	const char* GetName() const override { return "Punch"; }
+	const char* GetName() const override { return "HeavyPunch"; }
 
 	/// <summary>
 	/// 攻撃優先度
+	/// Punch より高めにしておく
 	/// </summary>
 	int GetPriority() const override { return priority_; }
 
 	/// <summary>
-	/// 有効距離の最小
+	/// 最小距離
 	/// </summary>
 	float GetMinRange() const override { return minRange_; }
 
 	/// <summary>
-	/// 有効距離の最大
+	/// 最大距離
 	/// </summary>
 	float GetMaxRange() const override { return maxRange_; }
 
 public: /// ---------- デバッグ参照 ---------- ///
 
-	/// <summary>
-	/// 現在フェーズを取得
-	/// </summary>
 	Phase GetPhase() const { return phase_; }
-
-	/// <summary>
-	/// フェーズない時間
-	/// </summary>
 	float GetPhaseTimer() const { return phaseTimer_; }
-
-	/// <summary>
-	/// すでにヒット済みか
-	/// </summary>
 	bool HasHit() const { return hasHit_; }
 
 public: /// ---------- 描画 ---------- ///
@@ -137,10 +130,24 @@ public: /// ---------- 描画 ---------- ///
 private: /// ---------- 内部処理 ---------- ///
 
 	/// <summary>
-	/// 3段階フェーズ更新
+	/// 溜め更新
 	/// </summary>
 	void UpdateWindup(float deltaTime);
+
+	/// <summary>
+	/// 溜め切り保持更新
+	/// 一瞬だけ予兆ポーズを見せる
+	/// </summary>
+	void UpdateHold(float deltaTime);
+
+	/// <summary>
+	/// 発生更新
+	/// </summary>
 	void UpdateActive(float deltaTime);
+
+	/// <summary>
+	/// 硬直更新
+	/// </summary>
 	void UpdateRecovery(float deltaTime);
 
 	/// <summary>
@@ -149,17 +156,18 @@ private: /// ---------- 内部処理 ---------- ///
 	void ChangePhase(Phase newPhase);
 
 	/// <summary>
-	/// ヒット判定を一度だけ発生させる
+	/// プレイヤーにヒットするか試す
+	/// 発生中に1回だけ呼ぶ
 	/// </summary>
 	void TryHitPlayer();
 
 	/// <summary>
-	/// 攻撃開始条件に必要な距離内か
+	/// 攻撃開始可能な距離か
 	/// </summary>
 	bool IsTargetInValidRange() const;
 
 	/// <summary>
-	/// デバッグ用フェーズ名
+	/// デバッグ表示用フェーズ名
 	/// </summary>
 	const char* GetPhaseName() const;
 
@@ -169,43 +177,46 @@ private: /// ---------- 参照 ---------- ///
 
 private: /// ---------- 実行状態 ---------- ///
 
-	bool isActive_ = false;     // 実行中か
-	bool isFinished_ = false;   // 今回の実行が終わったか
-	bool hasHit_ = false;       // 今回すでにヒットを出したか
+	bool isActive_ = false;
+	bool isFinished_ = false;
+	bool hasHit_ = false;
 
-	Phase phase_ = Phase::None; // 現在フェーズ
-	float phaseTimer_ = 0.0f;   // フェーズ内経過時間
-	float totalTimer_ = 0.0f;   // 攻撃開始からの合計時間
+	Phase phase_ = Phase::None;
+	float phaseTimer_ = 0.0f;
+	float totalTimer_ = 0.0f;
 
 private: /// ---------- 距離条件 ---------- ///
 
-	float minRange_ = 0.0f;     // 最小有効距離
-	float maxRange_ = 5.75f;    // 最大有効距離
+	// HeavyPunch は少しだけ踏み込みがある想定
+	float minRange_ = 0.0f;
+	float maxRange_ = 6.50f;
 
 private: /// ---------- フェーズ時間 ---------- ///
 
-	// 溜め
-	float windupTime_ = 0.30f;
+	// 通常パンチより重く見せたいので溜めを長くする
+	float windupTime_ = 0.55f;
 
-	// 発生
+	float holdTime_ = 0.12f;
+
+	// 発生は短め
 	float activeTime_ = 0.12f;
 
-	// 硬直
-	float recoveryTime_ = 0.40f;
+	// 硬直は長くして隙を作る
+	float recoveryTime_ = 0.80f;
 
 private: /// ---------- ヒット判定 ---------- ///
 
-	float damage_ = 20.0f;              // 将来プレイヤーに与えるダメージ
-	float hitRadius_ = 1.15f;           // パンチ球の半径
-	float hitForwardOffset_ = 1.35f;    // 右腕根本から前方へずらす距離
-	float targetRadius_ = 0.65f;        // 仮のプレイヤー半径
+	float damage_ = 40.0f;              // 通常より高威力
+	float hitRadius_ = 1.45f;           // 少し大きめ
+	float hitForwardOffset_ = 1.70f;    // より前に届く
+	float targetRadius_ = 0.65f;        // 仮プレイヤー半径
 
 private: /// ---------- クールダウン ---------- ///
 
-	float cooldownSec_ = 1.10f;
+	float cooldownSec_ = 2.20f;
 	float cooldownRemaining_ = 0.0f;
 
 private: /// ---------- 優先度 ---------- ///
 
-	int priority_ = 50;
+	int priority_ = 80;
 };

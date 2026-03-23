@@ -221,6 +221,12 @@ public: /// ---------- 攻撃距離 / 判定補助 ---------- ///
 public: /// ---------- コンポーネント参照 ---------- ///
 
 	/// <summary>
+	/// 思考コンポーネントを取得
+	/// </summary>
+	BossBrain* GetBrain() { return brain_.get(); }
+	const BossBrain* GetBrain() const { return brain_.get(); }
+
+	/// <summary>
 	/// 状態遷移コンポーネントを取得
 	/// </summary>
 	BossStateMachine* GetStateMachine() { return stateMachine_.get(); }
@@ -430,7 +436,7 @@ protected: /// ---------- 攻撃まわり共通値 ---------- ///
 protected: /// ---------- コンポーネント群 ---------- ///
 
 	// 思考
-	//std::unique_ptr<BossBrain> brain_;
+	std::unique_ptr<BossBrain> brain_;
 
 	// 状態遷移
 	std::unique_ptr<BossStateMachine> stateMachine_;

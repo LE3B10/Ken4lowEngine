@@ -15,6 +15,10 @@ void BossBase::Initialize()
 	// ボス用部位を構築
 	BuildBossParts();
 
+	// 思考コンポーネント生成
+	brain_ = std::make_unique<BossBrain>();
+	brain_->Initialize(this);
+
 	// ステータス生成
 	statusComponent_ = std::make_unique<BossStatusComponent>();
 	statusComponent_->Initialize(300.0f); // 仮。後でボスごとに差し替え
@@ -181,7 +185,12 @@ void BossBase::Finalize()
 		statusComponent_.reset();
 	}
 
-	//brain_.reset();
+	if (brain_)
+	{
+		brain_->Finalize();
+		brain_.reset();
+	}
+
 	//phaseComponent_.reset();
 	//weakPointComponent_.reset();
 
@@ -387,21 +396,12 @@ void BossBase::UpdateAttack(float deltaTime)
 		return;
 	}
 
-	// Attack 状態に入っていて、まだ攻撃中でなければ
-	// 開始可能な攻撃の中から1つ選んで開始する
-	if (state_ == BossState::Attack && !attackComponent_->IsAttacking())
-	{
-		std::vector<IBossAttack*> startableAttacks = attackComponent_->CollectStartableAttacks();
-
-		if (!startableAttacks.empty())
-		{
-			// いったん先頭を使う
-			// 将来的には priority を見て選ぶ形にするとよい
-			attackComponent_->StartAttackByName(startableAttacks[0]->GetName());
-		}
-	}
-
-	// 実行中攻撃を更新
+	// ---------------------------------------------------------
+	// 実行中攻撃の更新だけを担当する
+	// 攻撃の「選択」は派生 Boss や Brain 側で行う
+	// ここで勝手に startableAttacks[0] を始めると、
+	// Guardian の判断と二重化してしまうのでやめる
+	// ---------------------------------------------------------
 	attackComponent_->Update(deltaTime);
 }
 

@@ -105,7 +105,7 @@ public: /// ---------- 参照 ---------- ///
 	/// 名前で攻撃取得
 	/// 見つからなければ nullptr
 	/// </summary>
-	IBossAttack* FindAttackByName(const std::string& attackName) const;
+	IBossAttack* FindAttackByName(const char* attackName) const;
 
 	/// <summary>
 	/// 今開始可能な攻撃一覧を返す

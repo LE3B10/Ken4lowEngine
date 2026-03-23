@@ -134,6 +134,9 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClCompile Include="ApplicationLayer\Character\Boss\BehaviorTree\BTSelectorNode.cpp" />
     <ClCompile Include="ApplicationLayer\Character\Boss\BehaviorTree\BTSequenceNode.cpp" />
     <ClCompile Include="ApplicationLayer\Character\Boss\Attacks\BossPunchAttack.cpp" />
+    <ClCompile Include="ApplicationLayer\Character\Boss\Attacks\BossHeavyPunchAttack.cpp" />
+    <ClCompile Include="ApplicationLayer\Character\Boss\Animations\BossPunchAttackAnimation.cpp" />
+    <ClCompile Include="ApplicationLayer\Character\Boss\Animations\BossHeavyPunchAttackAnimation.cpp" />
     <ClCompile Include="EngineLayer\3D\AnimationSystem\DebugView\AnimationModelDebugView.cpp" />
     <ClCompile Include="ApplicationLayer\Character\Bullet\Bullet.cpp" />
     <ClCompile Include="ApplicationLayer\Character\Bullet\BulletManager.cpp" />
@@ -856,6 +859,9 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="ApplicationLayer\Character\Boss\BehaviorTree\BTSequenceNode.h" />
     <ClInclude Include="ApplicationLayer\Character\Boss\Attacks\BossPunchAttack.h" />
     <ClInclude Include="ApplicationLayer\Character\Boss\Core\BossTypes.h" />
+    <ClInclude Include="ApplicationLayer\Character\Boss\Attacks\BossHeavyPunchAttack.h" />
+    <ClInclude Include="ApplicationLayer\Character\Boss\Animations\BossPunchAttackAnimation.h" />
+    <ClInclude Include="ApplicationLayer\Character\Boss\Animations\BossHeavyPunchAttackAnimation.h" />
     <ClInclude Include="EngineLayer\3D\AnimationSystem\DebugView\AnimationModelDebugView.h" />
     <ClInclude Include="ApplicationLayer\Character\Bullet\Bullet.h" />
     <ClInclude Include="ApplicationLayer\Character\Bullet\BulletManager.h" />
@@ -1487,6 +1493,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="ApplicationLayer\Character\Boss\BehaviorTree\IBTNode.h" />
     <ClInclude Include="ApplicationLayer\Character\Boss\Derived\GuardianBoss\GuardianBoss.h" />
     <ClInclude Include="ApplicationLayer\Character\Boss\BaseTypes\HumanoidBossBase.h" />
+    <ClInclude Include="ApplicationLayer\Character\Boss\Animations\IBossAttackAnimation.h" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="externals\DirectXTex\DirectXTex_Desktop_2022_Win10.vcxproj">

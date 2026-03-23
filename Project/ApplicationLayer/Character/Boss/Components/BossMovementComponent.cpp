@@ -50,6 +50,12 @@ void BossMovementComponent::Update(BossBase& boss, float deltaTime)
 		return;
 	}
 
+	// 攻撃中は移動しない
+	if (boss.GetAttackComponent() && boss.GetAttackComponent()->IsAttacking())
+	{
+		return;
+	}
+
 	// Move中だけ移動を担当する
 	if (boss.GetState() != BossState::Move)
 	{

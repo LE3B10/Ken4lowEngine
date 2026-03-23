@@ -1,6 +1,11 @@
 #define NOMINMAX
 #include "BossAnimationComponent.h"
 #include "Core/BossBase.h"
+#include "Components/BossAttackComponent.h"
+#include "Attacks/BossPunchAttack.h"
+#include "Attacks/BossHeavyPunchAttack.h"
+#include "Animations/BossPunchAttackAnimation.h"
+#include "Animations/BossHeavyPunchAttackAnimation.h"
 
 #include <algorithm>
 #include <cmath>
@@ -9,20 +14,28 @@ using namespace Ken4lowEngine;
 
 namespace
 {
-	/// <summary>
-	/// 値を min ～ max に収める
-	/// </summary>
 	float Clamp(float v, float minValue, float maxValue)
 	{
 		return (v < minValue) ? minValue : (v > maxValue ? maxValue : v);
 	}
 
-	/// <summary>
-	/// 線形補間
-	/// </summary>
+	float Clamp01(float v)
+	{
+		return Clamp(v, 0.0f, 1.0f);
+	}
+
 	float Lerp(float a, float b, float t)
 	{
 		return a + (b - a) * t;
+	}
+
+	/// <summary>
+	/// 滑らかな 0～1 補間
+	/// </summary>
+	float Smoothstep01(float t)
+	{
+		t = Clamp01(t);
+		return t * t * (3.0f - 2.0f * t);
 	}
 }
 
@@ -35,6 +48,15 @@ void BossAnimationComponent::Initialize(BossBase* owner)
 
 	walkAnimTime_ = 0.0f;
 	attackAnimTime_ = 0.0f;
+	breathTime_ = 0.0f;
+
+	// 以前の登録を消しておく
+	attackAnimations_.clear();
+
+	// 攻撃アニメーションを登録
+	RegisterAttackAnimation(std::make_unique<BossPunchAttackAnimation>());
+	RegisterAttackAnimation(std::make_unique<BossHeavyPunchAttackAnimation>());
+
 }
 
 /// -------------------------------------------------------------
@@ -89,8 +111,30 @@ void BossAnimationComponent::Update(BossBase& boss, float deltaTime)
 /// -------------------------------------------------------------
 void BossAnimationComponent::UpdateIdle(BossBase& boss, float deltaTime)
 {
-	(void)boss;
-	ResetAllPose(Clamp(deltaTime * 8.0f, 0.0f, 1.0f));
+	auto& body = boss.GetBody();
+	auto& parts = boss.GetBodyParts();
+	const auto& idx = boss.GetPartIndices();
+
+	const float breath = std::sin(breathTime_ * 2.2f);
+	const float breath01 = (breath * 0.5f) + 0.5f;
+	const float headSway = std::sin(breathTime_ * 1.4f + 0.8f);
+
+	const float targetBodyPitch = idleBreathPitch_ * breath;
+	const float targetHeadPitch = -idleBreathPitch_ * 0.6f * breath01;
+	const float targetHeadYaw = idleHeadSway_ * headSway;
+
+	// 実座標Yは触らない
+	Damp(body.transform.rotate_.x, targetBodyPitch, bodyDampSpeed_, deltaTime);
+	Damp(body.transform.rotate_.z, 0.0f, bodyDampSpeed_, deltaTime);
+
+	Damp(parts[idx.head].transform.rotate_.x, targetHeadPitch, headDampSpeed_, deltaTime);
+	Damp(parts[idx.head].transform.rotate_.y, targetHeadYaw, headDampSpeed_, deltaTime);
+	Damp(parts[idx.head].transform.rotate_.z, 0.0f, headDampSpeed_, deltaTime);
+
+	Damp(parts[idx.leftArm].transform.rotate_.x, -0.05f, limbDampSpeed_, deltaTime);
+	Damp(parts[idx.rightArm].transform.rotate_.x, -0.05f, limbDampSpeed_, deltaTime);
+	Damp(parts[idx.leftLeg].transform.rotate_.x, 0.0f, limbDampSpeed_, deltaTime);
+	Damp(parts[idx.rightLeg].transform.rotate_.x, 0.0f, limbDampSpeed_, deltaTime);
 }
 
 /// -------------------------------------------------------------
@@ -129,8 +173,59 @@ void BossAnimationComponent::UpdateStagger(BossBase& boss, float deltaTime)
 /// -------------------------------------------------------------
 void BossAnimationComponent::UpdateDead(BossBase& boss, float deltaTime)
 {
-	(void)boss;
-	ResetAllPose(Clamp(deltaTime * 3.0f, 0.0f, 1.0f));
+	auto& body = boss.GetBody();
+	auto& parts = boss.GetBodyParts();
+	const auto& idx = boss.GetPartIndices();
+
+	Damp(body.transform.rotate_.z, 0.55f, bodyDampSpeed_ * 0.35f, deltaTime);
+	Damp(body.transform.rotate_.x, 0.20f, bodyDampSpeed_ * 0.35f, deltaTime);
+	Damp(parts[idx.leftArm].transform.rotate_.x, 0.75f, limbDampSpeed_ * 0.35f, deltaTime);
+	Damp(parts[idx.rightArm].transform.rotate_.x, 0.85f, limbDampSpeed_ * 0.35f, deltaTime);
+	Damp(parts[idx.leftLeg].transform.rotate_.x, -0.15f, limbDampSpeed_ * 0.35f, deltaTime);
+	Damp(parts[idx.rightLeg].transform.rotate_.x, -0.05f, limbDampSpeed_ * 0.35f, deltaTime);
+}
+
+/// -------------------------------------------------------------
+/// Idle アニメ
+/// 呼吸 + 頭の微揺れ + 軽い体幹揺れ
+///
+/// 重要:
+/// body.transform.rotate_.y は「ロジック用の向き」なので触らない
+/// -------------------------------------------------------------
+void BossAnimationComponent::UpdateIdleAnimation(BossBase& boss, float deltaTime)
+{
+	auto& body = boss.GetBody();
+	auto& parts = boss.GetBodyParts();
+	const auto& idx = boss.GetPartIndices();
+
+	const float breath = std::sin(breathTime_ * 2.2f);
+	const float breath01 = (breath * 0.5f) + 0.5f;
+	const float headSway = std::sin(breathTime_ * 1.4f + 0.8f);
+
+	// 目標値
+	const float targetBodyY = idleBreathHeight_ * breath;
+	const float targetBodyPitch = idleBreathPitch_ * breath;
+	const float targetHeadPitch = -idleBreathPitch_ * 0.6f * breath01;
+	const float targetHeadYaw = idleHeadSway_ * headSway;
+
+	Damp(body.transform.translate_.y, targetBodyY, bodyDampSpeed_, deltaTime);
+	Damp(body.transform.rotate_.x, targetBodyPitch, bodyDampSpeed_, deltaTime);
+
+	// ---------------------------------------------------------
+	// Yaw は触らない
+	// body.transform.rotate_.y は FaceTarget / 移動 / 攻撃前方計算で使う
+	// ---------------------------------------------------------
+
+	Damp(body.transform.rotate_.z, 0.0f, bodyDampSpeed_, deltaTime);
+
+	Damp(parts[idx.head].transform.rotate_.x, targetHeadPitch, headDampSpeed_, deltaTime);
+	Damp(parts[idx.head].transform.rotate_.y, targetHeadYaw, headDampSpeed_, deltaTime);
+	Damp(parts[idx.head].transform.rotate_.z, 0.0f, headDampSpeed_, deltaTime);
+
+	Damp(parts[idx.leftArm].transform.rotate_.x, -0.05f, limbDampSpeed_, deltaTime);
+	Damp(parts[idx.rightArm].transform.rotate_.x, -0.05f, limbDampSpeed_, deltaTime);
+	Damp(parts[idx.leftLeg].transform.rotate_.x, 0.0f, limbDampSpeed_, deltaTime);
+	Damp(parts[idx.rightLeg].transform.rotate_.x, 0.0f, limbDampSpeed_, deltaTime);
 }
 
 /// -------------------------------------------------------------
@@ -139,28 +234,43 @@ void BossAnimationComponent::UpdateDead(BossBase& boss, float deltaTime)
 /// -------------------------------------------------------------
 void BossAnimationComponent::UpdateWalkAnimation(BossBase& boss, float deltaTime)
 {
+	auto& body = boss.GetBody();
 	auto& parts = boss.GetBodyParts();
 	const auto& idx = boss.GetPartIndices();
 
-	// 必要部位が揃っていなければ何もしない
-	if (idx.leftArm >= parts.size() ||
-		idx.rightArm >= parts.size() ||
-		idx.leftLeg >= parts.size() ||
-		idx.rightLeg >= parts.size())
-	{
-		return;
-	}
-
-	// アニメ時間を進める
 	walkAnimTime_ += deltaTime * walkAnimSpeed_;
 
-	// sin 波で前後に振る
 	const float swing = std::sin(walkAnimTime_) * walkSwingAmplitude_;
+	const float twist = std::sin(walkAnimTime_) * moveBodyTwistYaw_;
+	const float shoulderLean = std::sin(walkAnimTime_) * moveShoulderLean_;
 
-	parts[idx.leftArm].transform.rotate_.x = swing;
-	parts[idx.rightArm].transform.rotate_.x = -swing;
-	parts[idx.leftLeg].transform.rotate_.x = -swing;
-	parts[idx.rightLeg].transform.rotate_.x = swing;
+	const float targetLeftArmX = swing;
+	const float targetRightArmX = -swing;
+	const float targetLeftLegX = -swing;
+	const float targetRightLegX = swing;
+
+	const float targetBodyPitch = 0.03f + std::abs(std::sin(walkAnimTime_)) * 0.03f;
+	const float targetBodyRoll = shoulderLean * 0.35f;
+
+	const float targetHeadYaw = -twist * 0.35f;
+	const float targetHeadPitch = 0.03f;
+
+	// 実座標Yは触らない
+	Damp(body.transform.rotate_.x, targetBodyPitch, bodyDampSpeed_, deltaTime);
+	Damp(body.transform.rotate_.z, targetBodyRoll, bodyDampSpeed_, deltaTime);
+
+	Damp(parts[idx.head].transform.rotate_.x, targetHeadPitch, headDampSpeed_, deltaTime);
+	Damp(parts[idx.head].transform.rotate_.y, targetHeadYaw, headDampSpeed_, deltaTime);
+
+	Damp(parts[idx.leftArm].transform.rotate_.x, targetLeftArmX, limbDampSpeed_, deltaTime);
+	Damp(parts[idx.rightArm].transform.rotate_.x, targetRightArmX, limbDampSpeed_, deltaTime);
+	Damp(parts[idx.leftLeg].transform.rotate_.x, targetLeftLegX, limbDampSpeed_, deltaTime);
+	Damp(parts[idx.rightLeg].transform.rotate_.x, targetRightLegX, limbDampSpeed_, deltaTime);
+
+	Damp(parts[idx.leftArm].transform.rotate_.z, -shoulderLean, limbDampSpeed_, deltaTime);
+	Damp(parts[idx.rightArm].transform.rotate_.z, shoulderLean, limbDampSpeed_, deltaTime);
+	Damp(parts[idx.leftLeg].transform.rotate_.z, 0.0f, limbDampSpeed_, deltaTime);
+	Damp(parts[idx.rightLeg].transform.rotate_.z, 0.0f, limbDampSpeed_, deltaTime);
 }
 
 /// -------------------------------------------------------------
@@ -169,42 +279,338 @@ void BossAnimationComponent::UpdateWalkAnimation(BossBase& boss, float deltaTime
 /// -------------------------------------------------------------
 void BossAnimationComponent::UpdateAttackAnimation(BossBase& boss, float deltaTime)
 {
-	(void)deltaTime;
+	IBossAttack* currentAttack = GetCurrentAttack(boss);
 
+	// 攻撃が無ければ基本姿勢へと戻る
+	if (!currentAttack)
+	{
+		ApplyPose(boss, BuildDefaultAttackPose(), deltaTime);
+		return;
+	}
+
+	// 登録済みアニメクラスの中から今の攻撃を扱えるものを探して更新する
+	for (const auto& attackAnimation : attackAnimations_)
+	{
+		if (!attackAnimation)
+		{
+			continue;
+		}
+
+		if (attackAnimation->CanHandle(currentAttack))
+		{
+			attackAnimation->UpdatePose(*this, boss, currentAttack, deltaTime);
+			return;
+		}
+	}
+
+	// 該当アニメがない場合は最低限の姿勢だけを適用
+	ApplyPose(boss, BuildDefaultAttackPose(), deltaTime);
+}
+
+IBossAttack* BossAnimationComponent::GetCurrentAttack(const BossBase& boss) const
+{
+	if (!boss.GetAttackComponent())
+	{
+		return nullptr;
+	}
+
+	return boss.GetAttackComponent()->GetCurrentAttack();
+}
+
+BossAnimationComponent::BossPose BossAnimationComponent::BuildDefaultAttackPose() const
+{
+	BossPose pose;
+
+	pose.bodyPitch = 0.03f;
+	pose.bodyRoll = 0.0f;
+
+	pose.headYaw = 0.0f;
+	pose.headPitch = 0.0f;
+
+	pose.leftArmX = -0.05f;
+	pose.rightArmX = -0.05f;
+	pose.leftArmZ = 0.0f;
+	pose.rightArmZ = 0.0f;
+
+	pose.leftLegX = 0.0f;
+	pose.rightLegX = 0.0f;
+
+	return pose;
+}
+
+BossAnimationComponent::BossPose BossAnimationComponent::BuildPunchPose() const
+{
+	BossPose pose = BuildDefaultAttackPose();
+
+	BossPunchAttack::Phase punchPhase = BossPunchAttack::Phase::None;
+	bool hasPunchPhase = false;
+
+	if (owner_)
+	{
+		if (IBossAttack* current = GetCurrentAttack(*owner_))
+		{
+			if (auto* punch = dynamic_cast<BossPunchAttack*>(current))
+			{
+				punchPhase = punch->GetPhase();
+				hasPunchPhase = true;
+			}
+		}
+	}
+
+	if (!hasPunchPhase)
+	{
+		return pose;
+	}
+
+	switch (punchPhase)
+	{
+	case BossPunchAttack::Phase::Windup:
+	{
+		// 両手を上に振りかざす
+		const float t = Smoothstep01(attackAnimTime_ / 0.30f);
+
+		pose.bodyPitch = Lerp(0.03f, -0.18f, t);
+		pose.bodyRoll = Lerp(0.0f, 0.0f, t);
+
+		pose.headYaw = Lerp(0.0f, 0.0f, t);
+		pose.headPitch = Lerp(0.0f, -0.08f, t);
+
+		pose.leftArmX = Lerp(-0.05f, -2.00f, t);
+		pose.rightArmX = Lerp(-0.05f, -2.00f, t);
+
+		pose.leftArmZ = Lerp(0.0f, 0.35f, t);
+		pose.rightArmZ = Lerp(0.0f, -0.35f, t);
+
+		pose.leftLegX = Lerp(0.0f, 0.08f, t);
+		pose.rightLegX = Lerp(0.0f, 0.08f, t);
+		break;
+	}
+
+	case BossPunchAttack::Phase::Active:
+	{
+		// 両腕を一気に振り下ろす
+		const float t = Smoothstep01(attackAnimTime_ / 0.12f);
+
+		pose.bodyPitch = Lerp(-0.18f, 0.28f, t);
+		pose.bodyRoll = 0.0f;
+
+		pose.headYaw = 0.0f;
+		pose.headPitch = Lerp(-0.08f, 0.06f, t);
+
+		pose.leftArmX = Lerp(-2.00f, 0.85f, t);
+		pose.rightArmX = Lerp(-2.00f, 0.85f, t);
+
+		pose.leftArmZ = Lerp(0.35f, 0.10f, t);
+		pose.rightArmZ = Lerp(-0.35f, -0.10f, t);
+
+		pose.leftLegX = Lerp(0.08f, -0.04f, t);
+		pose.rightLegX = Lerp(0.08f, -0.04f, t);
+		break;
+	}
+
+	case BossPunchAttack::Phase::Recovery:
+	case BossPunchAttack::Phase::None:
+	default:
+	{
+		const float t = Smoothstep01(attackAnimTime_ / 0.40f);
+
+		pose.bodyPitch = Lerp(0.28f, 0.03f, t);
+		pose.bodyRoll = 0.0f;
+
+		pose.headYaw = 0.0f;
+		pose.headPitch = Lerp(0.06f, 0.0f, t);
+
+		pose.leftArmX = Lerp(0.85f, -0.05f, t);
+		pose.rightArmX = Lerp(0.85f, -0.05f, t);
+
+		pose.leftArmZ = Lerp(0.10f, 0.0f, t);
+		pose.rightArmZ = Lerp(-0.10f, 0.0f, t);
+
+		pose.leftLegX = Lerp(-0.04f, 0.0f, t);
+		pose.rightLegX = Lerp(-0.04f, 0.0f, t);
+		break;
+	}
+	}
+
+	return pose;
+}
+
+BossAnimationComponent::BossPose BossAnimationComponent::BuildHeavyPunchPose() const
+{
+	BossPose pose = BuildDefaultAttackPose();
+
+	BossHeavyPunchAttack::Phase heavyPhase = BossHeavyPunchAttack::Phase::None;
+	float phaseTime = 0.0f;
+	bool hasHeavyPhase = false;
+
+	if (owner_)
+	{
+		if (IBossAttack* current = GetCurrentAttack(*owner_))
+		{
+			if (auto* heavy = dynamic_cast<BossHeavyPunchAttack*>(current))
+			{
+				heavyPhase = heavy->GetPhase();
+				phaseTime = heavy->GetPhaseTimer();
+				hasHeavyPhase = true;
+			}
+		}
+	}
+
+	// HeavyPunchでなければ基本姿勢のまま返す
+	if (!hasHeavyPhase)
+	{
+		return pose;
+	}
+
+	switch (heavyPhase)
+	{
+	case BossHeavyPunchAttack::Phase::Windup:
+	{
+		// 大きく両腕をあげる溜め
+		const float t = Smoothstep01(phaseTime / 0.55f);
+
+		pose.bodyPitch = Lerp(0.03f, -0.28f, t);
+		pose.bodyRoll = 0.0f;
+
+		pose.headYaw = 0.0f;
+		pose.headPitch = Lerp(0.0f, -0.10f, t);
+
+		pose.leftArmX = Lerp(-0.05f, -2.35f, t);
+		pose.rightArmX = Lerp(-0.05f, -2.35f, t);
+
+		pose.leftArmZ = Lerp(0.0f, 0.55f, t);
+		pose.rightArmZ = Lerp(0.0f, -0.55f, t);
+
+		pose.leftLegX = Lerp(0.0f, 0.12f, t);
+		pose.rightLegX = Lerp(0.0f, 0.12f, t);
+
+		break;
+	}
+	case BossHeavyPunchAttack::Phase::Hold:
+	{
+		// 上げ切った姿勢を一瞬キープして「重さ」を出す
+		pose.bodyPitch = -0.28f;
+		pose.bodyRoll = 0.0f;
+
+		pose.headYaw = 0.0f;
+		pose.headPitch = -0.10f;
+
+		pose.leftArmX = -2.35f;
+		pose.rightArmX = -2.35f;
+
+		pose.leftArmZ = 0.55f;
+		pose.rightArmZ = -0.55f;
+
+		pose.leftLegX = 0.12f;
+		pose.rightLegX = 0.12f;
+		break;
+	}
+
+	case BossHeavyPunchAttack::Phase::Active:
+	{
+		// 一気に叩き下ろす
+		const float t = Smoothstep01(phaseTime / 0.12f);
+
+		pose.bodyPitch = Lerp(-0.28f, 0.42f, t);
+		pose.bodyRoll = 0.0f;
+
+		pose.headYaw = 0.0f;
+		pose.headPitch = Lerp(-0.10f, 0.12f, t);
+
+		pose.leftArmX = Lerp(-2.35f, 1.05f, t);
+		pose.rightArmX = Lerp(-2.35f, 1.05f, t);
+
+		pose.leftArmZ = Lerp(0.55f, 0.08f, t);
+		pose.rightArmZ = Lerp(-0.55f, -0.08f, t);
+
+		pose.leftLegX = Lerp(0.12f, -0.08f, t);
+		pose.rightLegX = Lerp(0.12f, -0.08f, t);
+		break;
+	}
+
+	case BossHeavyPunchAttack::Phase::Recovery:
+	{
+		// 重攻撃なので戻りは遅め
+		const float t = Smoothstep01(phaseTime / 0.80f);
+
+		pose.bodyPitch = Lerp(0.42f, 0.03f, t);
+		pose.bodyRoll = 0.0f;
+
+		pose.headYaw = 0.0f;
+		pose.headPitch = Lerp(0.12f, 0.0f, t);
+
+		pose.leftArmX = Lerp(1.05f, -0.05f, t);
+		pose.rightArmX = Lerp(1.05f, -0.05f, t);
+
+		pose.leftArmZ = Lerp(0.08f, 0.0f, t);
+		pose.rightArmZ = Lerp(-0.08f, 0.0f, t);
+
+		pose.leftLegX = Lerp(-0.08f, 0.0f, t);
+		pose.rightLegX = Lerp(-0.08f, 0.0f, t);
+		break;
+	}
+
+	case BossHeavyPunchAttack::Phase::None:
+	default:
+		break;
+	}
+
+	return pose;
+}
+
+void BossAnimationComponent::ApplyPose(BossBase& boss, const BossPose& pose, float deltaTime)
+{
+	auto& body = boss.GetBody();
 	auto& parts = boss.GetBodyParts();
 	const auto& idx = boss.GetPartIndices();
 
-	// 必要部位が揃っていなければ何もしない
-	if (idx.leftArm >= parts.size() ||
-		idx.rightArm >= parts.size() ||
-		idx.leftLeg >= parts.size() ||
-		idx.rightLeg >= parts.size())
+	Damp(body.transform.rotate_.x, pose.bodyPitch, bodyDampSpeed_, deltaTime);
+	Damp(body.transform.rotate_.z, pose.bodyRoll, bodyDampSpeed_, deltaTime);
+
+	Damp(parts[idx.head].transform.rotate_.x, pose.headPitch, headDampSpeed_, deltaTime);
+	Damp(parts[idx.head].transform.rotate_.y, pose.headYaw, headDampSpeed_, deltaTime);
+
+	Damp(parts[idx.leftArm].transform.rotate_.x, pose.leftArmX, limbDampSpeed_, deltaTime);
+	Damp(parts[idx.rightArm].transform.rotate_.x, pose.rightArmX, limbDampSpeed_, deltaTime);
+	Damp(parts[idx.leftArm].transform.rotate_.z, pose.leftArmZ, limbDampSpeed_, deltaTime);
+	Damp(parts[idx.rightArm].transform.rotate_.z, pose.rightArmZ, limbDampSpeed_, deltaTime);
+
+	Damp(parts[idx.leftLeg].transform.rotate_.x, pose.leftLegX, limbDampSpeed_, deltaTime);
+	Damp(parts[idx.rightLeg].transform.rotate_.x, pose.rightLegX, limbDampSpeed_, deltaTime);
+}
+
+void BossAnimationComponent::RegisterAttackAnimation(std::unique_ptr<IBossAttackAnimation> attackAnimation)
+{
+	// 攻撃アニメーションは複数登録できるようにする予定
+	if (!attackAnimation)
 	{
 		return;
 	}
 
-	const float duration = std::max(0.01f, attackDuration_);
-	const float t = Clamp(attackAnimTime_ / duration, 0.0f, 1.0f);
+	attackAnimations_.push_back(std::move(attackAnimation));
+}
 
-	float rightArmX = 0.0f;
+void BossAnimationComponent::Damp(float& value, float target, float speed, float deltaTime)
+{
+	const float t = Clamp01(deltaTime * speed);
+	value = Lerp(value, target, t);
+}
 
-	// 前半: 溜め
-	if (t < 0.35f)
-	{
-		const float localT = t / 0.35f;
-		rightArmX = Lerp(0.0f, -1.75f, localT);
-	}
-	// 後半: 振り下ろし
-	else
-	{
-		const float localT = (t - 0.35f) / 0.65f;
-		rightArmX = Lerp(-1.75f, 1.20f, localT);
-	}
+void BossAnimationComponent::DampAngle(float& value, float target, float speed, float deltaTime)
+{
+	Damp(value, target, speed, deltaTime);
+}
 
-	parts[idx.rightArm].transform.rotate_.x = rightArmX;
-	parts[idx.leftArm].transform.rotate_.x = -0.20f;
-	parts[idx.leftLeg].transform.rotate_.x = 0.08f;
-	parts[idx.rightLeg].transform.rotate_.x = -0.08f;
+bool BossAnimationComponent::HasRequiredParts(const BossBase& boss) const
+{
+	const auto& parts = boss.GetBodyParts();
+	const auto& idx = boss.GetPartIndices();
+
+	return idx.head < parts.size() &&
+		idx.leftArm < parts.size() &&
+		idx.rightArm < parts.size() &&
+		idx.leftLeg < parts.size() &&
+		idx.rightLeg < parts.size();
 }
 
 /// -------------------------------------------------------------
@@ -213,43 +619,45 @@ void BossAnimationComponent::UpdateAttackAnimation(BossBase& boss, float deltaTi
 /// -------------------------------------------------------------
 void BossAnimationComponent::ResetAllPose(float blendRate)
 {
-	if (!owner_)
+	if (!owner_ || !HasRequiredParts(*owner_))
 	{
 		return;
 	}
 
+	auto& body = owner_->GetBody();
 	auto& parts = owner_->GetBodyParts();
 	const auto& idx = owner_->GetPartIndices();
 
-	if (idx.leftArm >= parts.size() ||
-		idx.rightArm >= parts.size() ||
-		idx.leftLeg >= parts.size() ||
-		idx.rightLeg >= parts.size())
-	{
-		return;
-	}
+	blendRate = Clamp01(blendRate);
 
-	blendRate = Clamp(blendRate, 0.0f, 1.0f);
-
-	auto BlendToZero = [blendRate](float& v)
+	auto BlendTo = [blendRate](float& v, float target)
 		{
-			v = Lerp(v, 0.0f, blendRate);
+			v = Lerp(v, target, blendRate);
 		};
 
-	BlendToZero(parts[idx.leftArm].transform.rotate_.x);
-	BlendToZero(parts[idx.rightArm].transform.rotate_.x);
-	BlendToZero(parts[idx.leftLeg].transform.rotate_.x);
-	BlendToZero(parts[idx.rightLeg].transform.rotate_.x);
+	// 実座標Yは触らない
+	BlendTo(body.transform.rotate_.x, 0.0f);
+	BlendTo(body.transform.rotate_.z, 0.0f);
 
-	BlendToZero(parts[idx.leftArm].transform.rotate_.y);
-	BlendToZero(parts[idx.rightArm].transform.rotate_.y);
-	BlendToZero(parts[idx.leftLeg].transform.rotate_.y);
-	BlendToZero(parts[idx.rightLeg].transform.rotate_.y);
+	BlendTo(parts[idx.head].transform.rotate_.x, 0.0f);
+	BlendTo(parts[idx.head].transform.rotate_.y, 0.0f);
+	BlendTo(parts[idx.head].transform.rotate_.z, 0.0f);
 
-	BlendToZero(parts[idx.leftArm].transform.rotate_.z);
-	BlendToZero(parts[idx.rightArm].transform.rotate_.z);
-	BlendToZero(parts[idx.leftLeg].transform.rotate_.z);
-	BlendToZero(parts[idx.rightLeg].transform.rotate_.z);
+	BlendTo(parts[idx.leftArm].transform.rotate_.x, 0.0f);
+	BlendTo(parts[idx.leftArm].transform.rotate_.y, 0.0f);
+	BlendTo(parts[idx.leftArm].transform.rotate_.z, 0.0f);
+
+	BlendTo(parts[idx.rightArm].transform.rotate_.x, 0.0f);
+	BlendTo(parts[idx.rightArm].transform.rotate_.y, 0.0f);
+	BlendTo(parts[idx.rightArm].transform.rotate_.z, 0.0f);
+
+	BlendTo(parts[idx.leftLeg].transform.rotate_.x, 0.0f);
+	BlendTo(parts[idx.leftLeg].transform.rotate_.y, 0.0f);
+	BlendTo(parts[idx.leftLeg].transform.rotate_.z, 0.0f);
+
+	BlendTo(parts[idx.rightLeg].transform.rotate_.x, 0.0f);
+	BlendTo(parts[idx.rightLeg].transform.rotate_.y, 0.0f);
+	BlendTo(parts[idx.rightLeg].transform.rotate_.z, 0.0f);
 }
 
 /// -------------------------------------------------------------

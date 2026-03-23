@@ -1,5 +1,5 @@
 #define NOMINMAX
-#include "BossPunchAttack.h"
+#include "BossHeavyPunchAttack.h"
 #include "Core/BossBase.h"
 
 #include <Windows.h>
@@ -23,9 +23,9 @@ namespace
 
 /// ---------------------------------------------------------------
 /// 初期化
-/// BossAttackComponent 側から owner を渡される
+/// BossAttackComponent 側から owner を受け取る
 /// ---------------------------------------------------------------
-void BossPunchAttack::Initialize(BossBase* owner)
+void BossHeavyPunchAttack::Initialize(BossBase* owner)
 {
 	owner_ = owner;
 
@@ -42,9 +42,9 @@ void BossPunchAttack::Initialize(BossBase* owner)
 
 /// ---------------------------------------------------------------
 /// 攻撃開始
-/// 実行可能なときだけ開始する
+/// 条件を満たす場合のみ開始
 /// ---------------------------------------------------------------
-void BossPunchAttack::Start()
+void BossHeavyPunchAttack::Start()
 {
 	if (!CanStart())
 	{
@@ -59,17 +59,17 @@ void BossPunchAttack::Start()
 	phaseTimer_ = 0.0f;
 	totalTimer_ = 0.0f;
 
-	// 最初は溜めから入る
+	// HeavyPunch は最初に Windup から始まる
 	ChangePhase(Phase::Windup);
 
-	DebugLog("[BossPunchAttack] Start\n");
+	DebugLog("[BossHeavyPunchAttack] Start\n");
 }
 
 /// ---------------------------------------------------------------
 /// 攻撃更新
-/// 現在フェーズごとに処理を分ける
+/// フェーズごとに分岐する
 /// ---------------------------------------------------------------
-void BossPunchAttack::Update(float deltaTime)
+void BossHeavyPunchAttack::Update(float deltaTime)
 {
 	if (!isActive_)
 	{
@@ -83,6 +83,10 @@ void BossPunchAttack::Update(float deltaTime)
 	{
 	case Phase::Windup:
 		UpdateWindup(deltaTime);
+		break;
+
+	case Phase::Hold:
+		UpdateHold(deltaTime);
 		break;
 
 	case Phase::Active:
@@ -101,9 +105,9 @@ void BossPunchAttack::Update(float deltaTime)
 
 /// ---------------------------------------------------------------
 /// 攻撃終了
-/// 実行終了後にクールダウン開始
+/// クールダウン開始
 /// ---------------------------------------------------------------
-void BossPunchAttack::End()
+void BossHeavyPunchAttack::End()
 {
 	if (!isActive_)
 	{
@@ -117,38 +121,38 @@ void BossPunchAttack::End()
 	phase_ = Phase::None;
 	phaseTimer_ = 0.0f;
 
-	DebugLog("[BossPunchAttack] End\n");
+	DebugLog("[BossHeavyPunchAttack] End\n");
 }
 
 /// ---------------------------------------------------------------
 /// 今この攻撃を開始できるか
 /// ---------------------------------------------------------------
-bool BossPunchAttack::CanStart() const
+bool BossHeavyPunchAttack::CanStart() const
 {
 	if (owner_ == nullptr)
 	{
 		return false;
 	}
 
-	// 実行中は開始不可
+	// 実行中は不可
 	if (isActive_)
 	{
 		return false;
 	}
 
-	// クールダウン中は開始不可
+	// クールダウン中は不可
 	if (cooldownRemaining_ > 0.0f)
 	{
 		return false;
 	}
 
-	// 死亡中は開始不可
+	// 死亡中は不可
 	if (owner_->IsDead())
 	{
 		return false;
 	}
 
-	// 攻撃距離内でなければ開始不可
+	// 射程内にターゲットがいないと不可
 	if (!IsTargetInValidRange())
 	{
 		return false;
@@ -159,9 +163,9 @@ bool BossPunchAttack::CanStart() const
 
 /// ---------------------------------------------------------------
 /// クールダウン更新
-/// 実行中ではないときに BossAttackComponent から呼ばれる
+/// 実行中ではないときに進める
 /// ---------------------------------------------------------------
-void BossPunchAttack::TickCooldown(float deltaTime)
+void BossHeavyPunchAttack::TickCooldown(float deltaTime)
 {
 	if (cooldownRemaining_ <= 0.0f)
 	{
@@ -177,14 +181,36 @@ void BossPunchAttack::TickCooldown(float deltaTime)
 
 /// ---------------------------------------------------------------
 /// 溜め更新
-/// 少し構えてから発生へ移る
+/// 両腕を上げる予兆フェーズ
+/// 終了後は Hold に入る
 /// ---------------------------------------------------------------
-void BossPunchAttack::UpdateWindup(float deltaTime)
+void BossHeavyPunchAttack::UpdateWindup(float deltaTime)
 {
 	(void)deltaTime;
 
-	// 溜めが終わったら発生へ
+	// 将来的にはここで
+	// - 予兆SE
+	// - 溜めエフェクト
+	// - 体の震え
+	// なども入れられる
+
 	if (phaseTimer_ >= windupTime_)
+	{
+		// すぐ殴らず、一瞬止めて予兆を見せる
+		ChangePhase(Phase::Hold);
+	}
+}
+
+/// ---------------------------------------------------------------
+/// Hold 更新
+/// 溜め切った姿勢を短時間だけ維持する
+/// ここが「エヴォーカー風の腕上げ」を見せる時間
+/// ---------------------------------------------------------------
+void BossHeavyPunchAttack::UpdateHold(float deltaTime)
+{
+	(void)deltaTime;
+
+	if (phaseTimer_ >= holdTime_)
 	{
 		ChangePhase(Phase::Active);
 	}
@@ -192,20 +218,19 @@ void BossPunchAttack::UpdateWindup(float deltaTime)
 
 /// ---------------------------------------------------------------
 /// 発生更新
-/// フェーズ中に1回だけヒット判定を出す
+/// 発生中に1回だけヒットを試す
 /// ---------------------------------------------------------------
-void BossPunchAttack::UpdateActive(float deltaTime)
+void BossHeavyPunchAttack::UpdateActive(float deltaTime)
 {
 	(void)deltaTime;
 
-	// 発生中に一度だけヒット判定
+	// 発生した瞬間に1回だけヒット判定
 	if (!hasHit_)
 	{
 		TryHitPlayer();
 		hasHit_ = true;
 	}
 
-	// 発生時間を過ぎたら硬直へ
 	if (phaseTimer_ >= activeTime_)
 	{
 		ChangePhase(Phase::Recovery);
@@ -214,9 +239,8 @@ void BossPunchAttack::UpdateActive(float deltaTime)
 
 /// ---------------------------------------------------------------
 /// 硬直更新
-/// 攻撃後の隙
 /// ---------------------------------------------------------------
-void BossPunchAttack::UpdateRecovery(float deltaTime)
+void BossHeavyPunchAttack::UpdateRecovery(float deltaTime)
 {
 	(void)deltaTime;
 
@@ -228,9 +252,9 @@ void BossPunchAttack::UpdateRecovery(float deltaTime)
 
 /// ---------------------------------------------------------------
 /// フェーズ切り替え
-/// phaseTimer_ を毎回リセットする
+/// phaseTimer を毎回リセットする
 /// ---------------------------------------------------------------
-void BossPunchAttack::ChangePhase(Phase newPhase)
+void BossHeavyPunchAttack::ChangePhase(Phase newPhase)
 {
 	phase_ = newPhase;
 	phaseTimer_ = 0.0f;
@@ -239,20 +263,24 @@ void BossPunchAttack::ChangePhase(Phase newPhase)
 	switch (phase_)
 	{
 	case Phase::Windup:
-		OutputDebugStringA("[BossPunchAttack] Phase -> Windup\n");
+		OutputDebugStringA("[BossHeavyPunchAttack] Phase -> Windup\n");
+		break;
+
+	case Phase::Hold:
+		OutputDebugStringA("[BossHeavyPunchAttack] Phase -> Hold\n");
 		break;
 
 	case Phase::Active:
-		OutputDebugStringA("[BossPunchAttack] Phase -> Active\n");
+		OutputDebugStringA("[BossHeavyPunchAttack] Phase -> Active\n");
 		break;
 
 	case Phase::Recovery:
-		OutputDebugStringA("[BossPunchAttack] Phase -> Recovery\n");
+		OutputDebugStringA("[BossHeavyPunchAttack] Phase -> Recovery\n");
 		break;
 
 	case Phase::None:
 	default:
-		OutputDebugStringA("[BossPunchAttack] Phase -> None\n");
+		OutputDebugStringA("[BossHeavyPunchAttack] Phase -> None\n");
 		break;
 	}
 #endif
@@ -260,25 +288,25 @@ void BossPunchAttack::ChangePhase(Phase newPhase)
 
 /// ---------------------------------------------------------------
 /// 描画
-/// 将来的に予兆や当たり判定球のデバッグ描画を入れる場所
+/// 今は未実装
+/// 将来的に予兆表示や当たり判定デバッグ描画を置く
 /// ---------------------------------------------------------------
-void BossPunchAttack::Draw()
+void BossHeavyPunchAttack::Draw()
 {
 	// 例:
-	// - Windup 中に拳の前に予兆球
-	// - Active 中に当たり判定球を赤で表示
-	// 今は未実装
+	// - Windup/Hold 中は予兆色を出す
+	// - Active 中は攻撃球を描く
 }
 
 /// ---------------------------------------------------------------
 /// ImGui
-/// 攻撃フェーズ確認用
+/// デバッグ確認用
 /// ---------------------------------------------------------------
-void BossPunchAttack::DrawImGui()
+void BossHeavyPunchAttack::DrawImGui()
 {
 #ifdef USE_IMGUI
 	ImGui::Separator();
-	ImGui::Text("[BossPunchAttack]");
+	ImGui::Text("[BossHeavyPunchAttack]");
 	ImGui::Text("Active            : %s", isActive_ ? "true" : "false");
 	ImGui::Text("Finished          : %s", isFinished_ ? "true" : "false");
 	ImGui::Text("HasHit            : %s", hasHit_ ? "true" : "false");
@@ -292,10 +320,13 @@ void BossPunchAttack::DrawImGui()
 }
 
 /// ---------------------------------------------------------------
-/// ヒット判定を一度だけ発生させる
-/// 右腕根本の前方に仮想球を置いてプレイヤー仮想球と重なり判定する
+/// ヒット判定
+/// 発生中に一度だけ行う
+///
+/// 右腕根本座標 + 前方オフセット位置に攻撃球を置き、
+/// プレイヤー仮想球との重なりで簡易判定する
 /// ---------------------------------------------------------------
-void BossPunchAttack::TryHitPlayer()
+void BossHeavyPunchAttack::TryHitPlayer()
 {
 	if (owner_ == nullptr)
 	{
@@ -303,9 +334,8 @@ void BossPunchAttack::TryHitPlayer()
 	}
 
 	// -----------------------------------------------------------
-	// 攻撃中心を作る
-	// 右腕根本のワールド座標を基準に、
-	// 正面へ少し前に出した位置を攻撃中心にする
+	// 攻撃中心
+	// HeavyPunch は Punch より前に届くよう少し伸ばす
 	// -----------------------------------------------------------
 	const K4E::Vector3 armRoot = owner_->GetRightArmRootWorldPosition();
 	const float yaw = owner_->GetYaw();
@@ -319,12 +349,12 @@ void BossPunchAttack::TryHitPlayer()
 
 	K4E::Vector3 attackCenter = armRoot;
 	attackCenter.x += forward.x * hitForwardOffset_;
-	attackCenter.y += 0.25f;
+	attackCenter.y += 0.30f;
 	attackCenter.z += forward.z * hitForwardOffset_;
 
 	// -----------------------------------------------------------
 	// 仮のプレイヤー中心
-	// 今は BossBase が持つ targetPosition_ をプレイヤー中心として使う
+	// 今は targetPosition_ を使用
 	// -----------------------------------------------------------
 	const K4E::Vector3 targetCenter = owner_->GetTargetPosition();
 
@@ -338,33 +368,32 @@ void BossPunchAttack::TryHitPlayer()
 	if (distanceSq <= (sumRadius * sumRadius))
 	{
 #ifdef _DEBUG
-		OutputDebugStringA("[BossPunchAttack] Melee hit success.\n");
+		OutputDebugStringA("[BossHeavyPunchAttack] Heavy hit success.\n");
 #endif
 
 		// -------------------------------------------------------
 		// TODO:
-		// 将来的にはここでプレイヤーへ本当にダメージを与える
-		//
-		// 例:
-		// if (Player* player = owner_->GetTargetPlayer())
-		// {
-		//     player->OnDamaged(damage_);
-		// }
+		// 将来的にここで
+		// - プレイヤーへダメージ
+		// - ノックバック
+		// - ヒットストップ
+		// - 画面揺れ
+		// を追加する
 		// -------------------------------------------------------
 	}
 	else
 	{
 #ifdef _DEBUG
-		OutputDebugStringA("[BossPunchAttack] Melee hit miss.\n");
+		OutputDebugStringA("[BossHeavyPunchAttack] Heavy hit miss.\n");
 #endif
 	}
 }
 
 /// ---------------------------------------------------------------
-/// 有効距離内か
-/// Guardian の通常パンチなので近距離限定
+/// 射程内判定
+/// HeavyPunch は近～中近距離向け
 /// ---------------------------------------------------------------
-bool BossPunchAttack::IsTargetInValidRange() const
+bool BossHeavyPunchAttack::IsTargetInValidRange() const
 {
 	if (owner_ == nullptr)
 	{
@@ -378,11 +407,12 @@ bool BossPunchAttack::IsTargetInValidRange() const
 /// ---------------------------------------------------------------
 /// デバッグ用フェーズ名
 /// ---------------------------------------------------------------
-const char* BossPunchAttack::GetPhaseName() const
+const char* BossHeavyPunchAttack::GetPhaseName() const
 {
 	switch (phase_)
 	{
 	case Phase::Windup:   return "Windup";
+	case Phase::Hold:     return "Hold";
 	case Phase::Active:   return "Active";
 	case Phase::Recovery: return "Recovery";
 	case Phase::None:
