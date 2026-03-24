@@ -15,8 +15,9 @@ struct InputSnapshot
 
 	// --- Actions ---
 	bool sprintHeld = false;
-	bool jumpPressed = false;
-	bool dashPressed = false;
+	bool jumpHeld = false;		// 押している間 true
+	bool jumpPressed = false;	// 押した瞬間だけ true
+	bool blinkPressed = false;
 
 	bool aimHeld = false;
 	bool aimPressed = false;

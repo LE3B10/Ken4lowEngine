@@ -91,6 +91,8 @@ public: /// ---------- メンバ関数 ---------- ///
 	bool GetCurrentAdsViewTuning(float& outAdsFovDeg, float& outAdsTransitionSpeed) const;
 	bool GetCurrentAdsMoveMultiplier(float& outAdsMoveMul) const;
 
+	void SwitchWeaponCategoryByDelta(int delta);
+
 private: /// ---------- メンバ関数 ---------- ///
 
 	void TickWeapon(float dt);

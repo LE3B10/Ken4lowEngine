@@ -349,11 +349,14 @@ void GamePlayScene::CheckGameEnd()
 		return;
 	}
 
-	// プレイヤー死亡
-	if (world_->IsPlayerDead())
+	// プレイヤー死亡演出が終わったらゲームオーバーへ
+	if (auto* player = world_->GetCharacters().GetPlayer())
 	{
-		flow_->EnterGameOver(input_);
-		return;
+		if (player->IsDeathSequenceFinished())
+		{
+			flow_->EnterGameOver(input_);
+			return;
+		}
 	}
 
 	// 全Waveクリア

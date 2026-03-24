@@ -57,6 +57,9 @@ public:
 
 	const FWeaponReticleData& GetEquippedReticleData() const { return equippedReticleData_; }
 
+	bool EquipNext(std::string* outError = nullptr);
+	bool EquipPrev(std::string* outError = nullptr);
+
 private:
 	static WeaponParams BuildParams(const FWeaponMasterData& md);
 	static std::filesystem::path ResolveWeaponsRoot(const std::filesystem::path& inputPath);

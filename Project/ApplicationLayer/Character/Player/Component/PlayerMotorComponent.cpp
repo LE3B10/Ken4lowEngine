@@ -46,30 +46,47 @@ void PlayerMotorComponent::PreprocessInput(InputSnapshot& in, float dt)
 	// まず地面更新（段差/坂の土台）
 	UpdateGroundFromQuery();
 
-	// dash cooldown
-	dashCooldownTimer_ = std::max(0.0f, dashCooldownTimer_ - dt);
+	// blink cooldown
+	blinkCooldownTimer_ = std::max(0.0f, blinkCooldownTimer_ - dt);
 
-	// ===== クールタイム中はダッシュ入力（LCTRL）を無効化 =====
-	// FSMがDash状態へ入ってしまうと「1フレームだけ足が止まる/走りが切れる」などの体感バグになりやすいので、
-	// ここで入力自体を落として “何も起きない” 状態にする。
-	if (dashCooldownTimer_ > 0.0f || dashTimer_ > 0.0f)
+	// クールタイム中はダッシュ入力を無効化
+	if (blinkCooldownTimer_ > 0.0f || blinkTimer_ > 0.0f)
 	{
-		in.dashPressed = false;
+		in.blinkPressed = false;
 	}
 
+	// ------------------------------------------------------------
 	// Jump Buffer
-	if (in.jumpPressed) jumpBufferTimer_ = jumpBufferTime_;
-	else jumpBufferTimer_ = std::max(0.0f, jumpBufferTimer_ - dt);
+	// 押した瞬間でも、押しっぱなしでも、少し先のジャンプを予約できるようにする
+	// ------------------------------------------------------------
+	if (in.jumpPressed)
+	{
+		jumpBufferTimer_ = jumpBufferTime_;
+	}
+	else if (in.jumpHeld && IsGrounded())
+	{
+		// マイクラ風：押しっぱなしなら着地中に次ジャンプを予約
+		jumpBufferTimer_ = jumpBufferTime_;
+	}
+	else
+	{
+		jumpBufferTimer_ = std::max(0.0f, jumpBufferTimer_ - dt);
+	}
 
 	// Coyote
 	if (IsGrounded()) coyoteTimer_ = coyoteTime_;
-	else coyoteTimer_ = std::max(0.0f, coyoteTimer_ - dt);
+	else              coyoteTimer_ = std::max(0.0f, coyoteTimer_ - dt);
 
 	// バッファが残っていて「いま跳べる」なら、このフレームの jumpPressed を強制発火
 	if (jumpBufferTimer_ > 0.0f && (IsGrounded() || coyoteTimer_ > 0.0f))
 	{
 		in.jumpPressed = true;
 		jumpBufferTimer_ = 0.0f;
+	}
+	else
+	{
+		// このフレームで本当に跳べないなら、押しっぱなし誤爆を避ける
+		in.jumpPressed = false;
 	}
 }
 
@@ -78,21 +95,25 @@ void PlayerMotorComponent::Jump()
 	if (IsGrounded() || coyoteTimer_ > 0.0f)
 	{
 		verticalVel_ = jumpSpeed_;
+
+		// ジャンプ開始直後は非接地扱いにしておく
+		grounded_ = false;
+
 		coyoteTimer_ = 0.0f;
 		jumpBufferTimer_ = 0.0f;
 	}
 }
 
-void PlayerMotorComponent::StartDash(float cameraYawRad, bool isAds)
+void PlayerMotorComponent::StartBlink(float cameraYawRad, bool isAds)
 {
 	// ADS中はダッシュしない
 	if (isAds) return;
 
 	// クールダウン中は開始しない
-	if (dashCooldownTimer_ > 0.0f) return;
-	dashCooldownTimer_ = dashCooldown_;
+	if (blinkCooldownTimer_ > 0.0f) return;
+	blinkCooldownTimer_ = blinkCooldown_;
 
-	dashTimer_ = dashDuration_;
+	blinkTimer_ = blinkDuration_;
 
 	const float s = -std::sinf(cameraYawRad);
 	const float c = std::cosf(cameraYawRad);
@@ -115,47 +136,42 @@ void PlayerMotorComponent::StartDash(float cameraYawRad, bool isAds)
 		dx = fwdX; dz = fwdZ;
 	}
 
-	dashDirX_ = dx;
-	dashDirZ_ = dz;
+	blinkDirX_ = dx;
+	blinkDirZ_ = dz;
 
-	velX_ = dashDirX_ * dashSpeed_;
-	velZ_ = dashDirZ_ * dashSpeed_;
+	velX_ = blinkDirX_ * blinkSpeed_;
+	velZ_ = blinkDirZ_ * blinkSpeed_;
 }
 
 void PlayerMotorComponent::Simulate(float dt, float cameraYawRad, LocoId locoId, bool isAds, bool isReloading)
 {
 	if (!tr_) return;
 
-	grounded_ = false;
-
-	// プレイヤーの位置を dt 秒だけ進めるときの処理。
+	// デバッグ用
 	const Vector3 oldPosition = tr_->translate_;
 
-	if (dashTimer_ > 0.0f)
-	{
-		dashTimer_ -= dt;
+	// Resolve が返した接地情報を最後まで保持する
+	bool resolvedGrounded = false;
 
-		// ★ダッシュ中は加速/減速を通さず固定速度
-		velX_ = dashDirX_ * dashSpeed_;
-		velZ_ = dashDirZ_ * dashSpeed_;
-
-		tr_->translate_.x += velX_ * dt;
-		tr_->translate_.z += velZ_ * dt;
-
-		// 重力や接地スナップは従来通り（verticalVel_ だけ更新）
-		return;
-	}
-
-	// 水平移動前にも地面更新（段差/坂）
+	// ------------------------------------------------------------
+	// 最初に地面情報更新
+	// ------------------------------------------------------------
 	UpdateGroundFromQuery();
 
-	// yawから “平面 forward/right”
+	// ------------------------------------------------------------
+	// yaw から forward / right を作る
+	// ------------------------------------------------------------
 	const float s = -std::sinf(cameraYawRad);
 	const float c = std::cosf(cameraYawRad);
-	const float fwdX = s, fwdZ = c;
-	const float rightX = c, rightZ = -s;
 
-	// 入力(moveX_/moveZ_)をワールド方向へ
+	const float fwdX = s;
+	const float fwdZ = c;
+	const float rightX = c;
+	const float rightZ = -s;
+
+	// ------------------------------------------------------------
+	// 入力をワールド方向へ変換
+	// ------------------------------------------------------------
 	float moveDirX = rightX * moveX_ + fwdX * moveZ_;
 	float moveDirZ = rightZ * moveX_ + fwdZ * moveZ_;
 
@@ -172,106 +188,166 @@ void PlayerMotorComponent::Simulate(float dt, float cameraYawRad, LocoId locoId,
 		moveDirZ = 0.0f;
 	}
 
-	auto approach = [](float cur, float target, float maxDelta)
-		{
-			if (cur < target) return std::min(cur + maxDelta, target);
-			return std::max(cur - maxDelta, target);
-		};
+	// ------------------------------------------------------------
+	// ダッシュ継続判定
+	// ここを locoId 依存ではなく blinkTimer_ 依存にするのが重要
+	// → Jump/Fall 中でもダッシュジャンプの勢いを維持できる
+	// ------------------------------------------------------------
+	const bool blinkActive = (!isAds && blinkTimer_ > 0.0f);
 
-	const bool grounded = IsGrounded();
-
-	// Dash
-	if (locoId == LocoId::Dash && !isAds)
+	// ------------------------------------------------------------
+	// 水平速度
+	// ------------------------------------------------------------
+	if (blinkActive)
 	{
-		velX_ = dashDirX_ * dashSpeed_;
-		velZ_ = dashDirZ_ * dashSpeed_;
-		dashTimer_ = (dashTimer_ > dt) ? (dashTimer_ - dt) : 0.0f;
+		blinkTimer_ = std::max(0.0f, blinkTimer_ - dt);
+
+		// ダッシュ中は固定速度
+		velX_ = blinkDirX_ * blinkSpeed_;
+		velZ_ = blinkDirZ_ * blinkSpeed_;
 	}
 	else
 	{
-		// ADS中にDash状態へ入ってしまった場合は即終了
-		if (locoId == LocoId::Dash && isAds) { dashTimer_ = 0.0f; }
-
-		float speed = 0.0f;
-		// DashをADSで無効化した場合、速度計算は通常の歩き/走りとして扱う
-		const LocoId speedId = (locoId == LocoId::Dash) ? (sprint_ ? LocoId::Run : LocoId::Walk) : locoId;
-		switch (speedId)
+		// ADS中にダッシュ残りがあってもここで切る
+		if (isAds)
 		{
-		case LocoId::Walk: speed = walkSpeed_; break;
-		case LocoId::Run:  speed = runSpeed_;  break;
-		case LocoId::Land: speed = (sprint_ ? runSpeed_ : walkSpeed_); break;
-		case LocoId::Jump:
-		case LocoId::Fall: speed = runSpeed_ * airControl_; break;
-		default: speed = 0.0f; break;
+			blinkTimer_ = 0.0f;
 		}
 
-		// ADS中は移動速度を減速
-		if (isAds) speed *= adsMoveMul_;
+		float speed = 0.0f;
 
-		// リロード中は移動速度を大幅減速
+		switch (locoId)
+		{
+		case LocoId::Walk:
+			speed = walkSpeed_;
+			break;
+
+		case LocoId::Run:
+			speed = runSpeed_;
+			break;
+
+		case LocoId::Land:
+			speed = sprint_ ? runSpeed_ : walkSpeed_;
+			break;
+
+		case LocoId::Jump:
+		case LocoId::Fall:
+			// 空中でも sprint 状態を維持
+			speed = sprint_ ? runSpeed_ : walkSpeed_;
+			break;
+
+		case LocoId::Idle:
+		default:
+			speed = 0.0f;
+			break;
+		}
+
+		const bool groundedNow = IsGrounded();
+		const bool justLeftGround = (wasGroundedLastFrame_ && !groundedNow);
+
+		// 走行ジャンプした瞬間だけ少しブースト
+		if (justLeftGround && sprint_ && locoId == LocoId::Jump)
+		{
+			speed *= sprintJumpBoostMul_;
+		}
+
+		// 地上は少しだけ減衰、空中は保持
+		if (groundedNow)
+		{
+			speed *= groundMoveMul_;
+		}
+		else
+		{
+			speed *= airMoveMul_;
+		}
+
+		if (isAds)       speed *= adsMoveMul_;
 		if (isReloading) speed *= reloadMoveMul_;
 
-		const float targetVX = moveDirX * speed;
-		const float targetVZ = moveDirZ * speed;
-
-		const float accel = grounded ? accelGround_ : accelAir_;
-		const float decel = decelGround_;
-
-		const float maxDX = ((std::abs(targetVX) > std::abs(velX_)) ? accel : decel) * dt;
-		const float maxDZ = ((std::abs(targetVZ) > std::abs(velZ_)) ? accel : decel) * dt;
-
-		velX_ = approach(velX_, targetVX, maxDX);
-		velZ_ = approach(velZ_, targetVZ, maxDZ);
-
-		tr_->translate_.x += velX_ * dt;
-		tr_->translate_.z += velZ_ * dt;
+		// Minecraft寄り：入力がなければ即0
+		velX_ = moveDirX * speed;
+		velZ_ = moveDirZ * speed;
 	}
 
-	// 水平後に地面更新（段差スナップ）
+	// ------------------------------------------------------------
+	// 水平移動
+	// ------------------------------------------------------------
+	tr_->translate_.x += velX_ * dt;
+	tr_->translate_.z += velZ_ * dt;
+
 	UpdateGroundFromQuery();
 
-	// 縦（重力）
+	// ------------------------------------------------------------
+	// 縦移動
+	// ------------------------------------------------------------
 	verticalVel_ -= gravity_ * dt;
 	tr_->translate_.y += verticalVel_ * dt;
 
-	/// ---------- 押し出し処理 ---------- ///
+	// ------------------------------------------------------------
+	// ワールド衝突解決
+	// ------------------------------------------------------------
 	if (worldAABBs_ && !worldAABBs_->empty())
 	{
 		float vy = verticalVel_;
 
-		const auto result = WorldCollisionResolver::Resolve(
-			*worldAABBs_,
-			worldCollisionSettings_,
-			oldPosition,
-			tr_->translate_,
-			true, // grounded判定を考慮
-			&vy   // ジャンプ速度の修正を受け取る
-		);
+		const K4E::WorldCollisionResult r =
+			K4E::WorldCollisionResolver::Resolve(
+				*worldAABBs_,
+				worldCollisionSettings_,
+				oldPosition,
+				tr_->translate_,
+				true,
+				&vy);
 
-		// 衝突解決後の位置を適用
+		// fixedCenter は物理中心なので描画座標へ戻す
+		tr_->translate_ = r.fixedCenter + worldCollisionSettings_.centerOffset;
 		verticalVel_ = vy;
-
-		tr_->translate_ = result.fixedCenter + worldCollisionSettings_.centerOffset;
-		grounded_ = result.grounded;
-
-		if (result.grounded)
-		{
-			groundY_ = tr_->translate_.y;
-		}
+		resolvedGrounded = r.grounded;
 	}
 
-	// ---- Debug speed ----
-	if (!prevPosValid_)
+	// ------------------------------------------------------------
+	// 最後に地面情報を再取得
+	// ------------------------------------------------------------
+	UpdateGroundFromQuery();
+
+	// ------------------------------------------------------------
+	// grounded 判定
+	// Resolve の grounded を優先的に活かす
+	// ------------------------------------------------------------
+	const bool queryGrounded =
+		(tr_->translate_.y <= groundY_ + groundSnapEpsilon_) &&
+		(verticalVel_ <= 0.0f);
+
+	if (resolvedGrounded || queryGrounded)
 	{
-		prevPos_ = tr_->translate_;
-		prevPosValid_ = true;
-		dbgSpeedXZ_ = 0.0f;
-		dbgSpeedY_ = 0.0f;
-		return;
+		if (tr_->translate_.y < groundY_)
+		{
+			tr_->translate_.y = groundY_;
+		}
+
+		if (verticalVel_ < 0.0f)
+		{
+			verticalVel_ = 0.0f;
+		}
+
+		grounded_ = true;
+	}
+	else
+	{
+		grounded_ = false;
 	}
 
-	const K4E::Vector3 dp = tr_->translate_ - prevPos_;
+	// ------------------------------------------------------------
+	// デバッグ速度
+	// ------------------------------------------------------------
+	const Vector3 delta = tr_->translate_ - oldPosition;
+	const float invDt = (dt > 1e-6f) ? (1.0f / dt) : 0.0f;
+
+	dbgSpeedXZ_ = std::sqrt(delta.x * delta.x + delta.z * delta.z) * invDt;
+	dbgSpeedY_ = delta.y * invDt;
+
 	prevPos_ = tr_->translate_;
-	dbgSpeedXZ_ = std::sqrt(dp.x * dp.x + dp.z * dp.z) / std::max(1e-6f, dt);
-	dbgSpeedY_ = dp.y / std::max(1e-6f, dt);
+	prevPosValid_ = true;
+
+	wasGroundedLastFrame_ = grounded_;
 }

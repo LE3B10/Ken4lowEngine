@@ -200,6 +200,51 @@ bool PlayerWeaponComponent::GetCurrentAdsMoveMultiplier(float& outAdsMoveMul) co
 	return true;
 }
 
+void PlayerWeaponComponent::SwitchWeaponCategoryByDelta(int delta)
+{
+	if (!LoadWeaponMasterDataOnce())
+	{
+		return;
+	}
+
+	if (delta == 0)
+	{
+		return;
+	}
+
+	// 現在カテゴリを 0..5 の hotbar index に変換
+	int currentIndex = GetSelectedHot_barIndex();
+	if (currentIndex < 0)
+	{
+		currentIndex = 0;
+	}
+
+	currentIndex += (delta > 0) ? 1 : -1;
+
+	if (currentIndex < 0)
+	{
+		currentIndex = 5;
+	}
+	if (currentIndex >= 6)
+	{
+		currentIndex = 0;
+	}
+
+	EWeaponCategory nextCategory = EWeaponCategory::Primary;
+	switch (currentIndex)
+	{
+	case 0: nextCategory = EWeaponCategory::Primary; break;
+	case 1: nextCategory = EWeaponCategory::Backup;  break;
+	case 2: nextCategory = EWeaponCategory::Melee;   break;
+	case 3: nextCategory = EWeaponCategory::Special; break;
+	case 4: nextCategory = EWeaponCategory::Sniper;  break;
+	case 5: nextCategory = EWeaponCategory::Heavy;   break;
+	default: return;
+	}
+
+	SwitchWeaponCategory(nextCategory);
+}
+
 void PlayerWeaponComponent::TickWeapon(float dt)
 {
 	if (!weaponLoaded_) return;
@@ -391,45 +436,55 @@ void PlayerWeaponComponent::UpdateSelectedAmmoViewCache() const
 
 void PlayerWeaponComponent::UpdateAndHandleInput(float dt, InputSnapshot& snapshot)
 {
-	// ロードしてないなら、入力での切替などは無視できるようにする
+	// ロードしていないなら、切替入力が来た時だけロードを試す
 	if (!weaponLoaded_)
 	{
-		// 明示ロードボタン/初期化でロードする想定だが、保険でトグル等が来ても落ちない
-		// ただし、切替キーが押されたらロードを試みるのは便利なのでやっておく
-		if (snapshot.weaponSlotPressed != 0 || snapshot.weaponSwitch != 0 || snapshot.toggleFireModePressed)
+		if (snapshot.weaponSlotPressed != 0 ||
+			snapshot.weaponSwitch != 0 ||
+			snapshot.toggleFireModePressed)
+		{
 			LoadWeaponMasterDataOnce();
+		}
 	}
 
-	// ---- Fire mode toggle (V) ----
+	// ---- Fire mode toggle ----
 	if (weaponLoaded_ && snapshot.toggleFireModePressed)
 	{
 		weaponSys_.Weapon().ToggleFireMode();
 	}
 
-	// ---- 近接カテゴリ時の入力リマップ ----
-	ApplyMeleeInputRemap(snapshot);
-
-	lastAimHeld_ = snapshot.aimHeld;
-
-	// Weapon（クールダウン/リロード/バースト/拡散）
-	TickWeapon(dt);
-
-	// カテゴリ切替（数字キー1..6）
+	// ------------------------------------------------------------
+	// 先にカテゴリ切替
+	// ------------------------------------------------------------
 	if (snapshot.weaponSlotPressed != 0)
 	{
 		EWeaponCategory cat = weaponCategory_;
 		if (SlotToCategory(snapshot.weaponSlotPressed, cat))
 		{
 			if (cat != weaponCategory_)
+			{
 				SwitchWeaponCategory(cat);
+			}
 		}
 	}
 
-	// 武器切替（ホイール/DPAD想定）
+	// ------------------------------------------------------------
+	// 次に同カテゴリ内切替
+	// ------------------------------------------------------------
 	if (snapshot.weaponSwitch != 0)
 	{
 		SwitchWeaponByDelta(snapshot.weaponSwitch);
 	}
+
+	// ------------------------------------------------------------
+	// 武器カテゴリ確定後に近接入力リマップ
+	// ------------------------------------------------------------
+	ApplyMeleeInputRemap(snapshot);
+
+	lastAimHeld_ = snapshot.aimHeld;
+
+	// 最後に武器内部更新
+	TickWeapon(dt);
 }
 
 bool PlayerWeaponComponent::GetReloadUI(bool& outIsReloading, float& outReloadTimer, float& outReloadSec) const

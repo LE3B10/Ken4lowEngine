@@ -130,6 +130,78 @@ bool WeaponSystem::EquipById(int32_t weaponId, std::string* outError)
 	return true;
 }
 
+bool WeaponSystem::EquipNext(std::string* outError)
+{
+	if (!db_.IsLoaded() || db_.Size() == 0)
+	{
+		if (outError) *outError = "WeaponSystem: database is not loaded or empty.";
+		return false;
+	}
+
+	const auto ids = db_.GetSortedIDList();
+	if (ids.empty())
+	{
+		if (outError) *outError = "WeaponSystem: ID list is empty.";
+		return false;
+	}
+
+	// 現在未装備なら先頭を装備
+	if (equippedWeaponId_ <= 0)
+	{
+		return EquipById(ids.front(), outError);
+	}
+
+	auto it = std::find(ids.begin(), ids.end(), equippedWeaponId_);
+	if (it == ids.end())
+	{
+		return EquipById(ids.front(), outError);
+	}
+
+	++it;
+	if (it == ids.end())
+	{
+		it = ids.begin(); // 末尾なら先頭へループ
+	}
+
+	return EquipById(*it, outError);
+}
+
+bool WeaponSystem::EquipPrev(std::string* outError)
+{
+	if (!db_.IsLoaded() || db_.Size() == 0)
+	{
+		if (outError) *outError = "WeaponSystem: database is not loaded or empty.";
+		return false;
+	}
+
+	const auto ids = db_.GetSortedIDList();
+	if (ids.empty())
+	{
+		if (outError) *outError = "WeaponSystem: ID list is empty.";
+		return false;
+	}
+
+	// 現在未装備なら末尾を装備
+	if (equippedWeaponId_ <= 0)
+	{
+		return EquipById(ids.back(), outError);
+	}
+
+	auto it = std::find(ids.begin(), ids.end(), equippedWeaponId_);
+	if (it == ids.end())
+	{
+		return EquipById(ids.back(), outError);
+	}
+
+	if (it == ids.begin())
+	{
+		it = ids.end();
+	}
+	--it;
+
+	return EquipById(*it, outError);
+}
+
 WeaponParams WeaponSystem::BuildParams(const FWeaponMasterData& md)
 {
 	WeaponParams p{};

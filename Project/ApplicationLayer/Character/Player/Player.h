@@ -138,6 +138,22 @@ public: /// ---------- メンバ関数 ---------- ///
 	void SetOnReloadSECallback(std::function<void()> cb) { onReloadSE_ = std::move(cb); }
 	void SetOnDeathSECallback(std::function<void()> cb) { onDeathSE_ = std::move(cb); }
 
+	bool IsGameOverReady() const { return gameOverReady_; }
+
+	bool ConsumeGameOverReady()
+	{
+		if (!gameOverReady_ || gameOverNotified_)
+		{
+			return false;
+		}
+
+		gameOverNotified_ = true;
+		return true;
+	}
+
+	bool IsDeathActive() const { return deathActive_; }
+	bool IsDeathSequenceFinished() const { return deathFinished_; }
+
 public:	// ---- FSMから呼ばれる最小API（PlayerAPIがここを呼ぶ）----
 
 	bool FSM_IsGrounded() const { return motor_.IsGrounded(); }
@@ -146,9 +162,9 @@ public:	// ---- FSMから呼ばれる最小API（PlayerAPIがここを呼ぶ）-
 	void FSM_SetMoveInput(float x, float z) { motor_.SetMoveInput(x, z); }
 	void FSM_SetSprint(bool on) { motor_.SetSprint(on); }
 	void FSM_Jump() { motor_.Jump(); }
-	void FSM_StartDash() { motor_.StartDash(view_.GetYaw(), /*isAds*/ inputSnap_.aimHeld); }
-	bool FSM_CanStartDash() const { return motor_.CanStartDash(); }
-	bool FSM_IsDashFinished() const { return motor_.IsDashFinished(); }
+	void FSM_StartBlink() { motor_.StartBlink(view_.GetYaw(), /*isAds*/ inputSnap_.aimHeld); }
+	bool FSM_CanStartBlink() const { return motor_.CanStartBlink(); }
+	bool FSM_IsBlinkFinished() const { return motor_.IsBlinkFinished(); }
 
 	// combat（今はスタブでOK）
 	bool FSM_CanFire() const { return weapon_.CanFire(inputSnap_); }
@@ -191,6 +207,12 @@ private: /// ---------- メンバ関数 ---------- ///
 
 	void ApplyFallDamage(float deltaTime);
 
+	void HandleWeaponSwitchInput(InputSnapshot& snap);
+
+	void StartDeath(const K4E::Vector3& launchDirWorld);
+	void UpdateDeath(float deltaTime);
+	bool IsDead() const { return deathActive_; }
+
 private: /// ----------メンバ変数 ---------- ///
 
 	K4E::Input* input_ = nullptr; // 入力クラス
@@ -226,6 +248,29 @@ private: /// ----------メンバ変数 ---------- ///
 
 	// ---- 演出（VFX） ----
 	PlayerVfx vfx_{};
+
+	// ---------- 死亡吹っ飛び ----------
+	bool deathActive_ = false;
+	bool deathFinished_ = false;
+	bool deathSettled_ = false;
+	float deathTimer_ = 0.0f;
+
+	K4E::Vector3 deathVelocity_{ 0.0f, 0.0f, 0.0f };
+	K4E::Vector3 deathLaunchDir_{ 0.0f, 0.0f, -1.0f };
+	K4E::Vector3 deathStartRotate_{ 0.0f, 0.0f, 0.0f };
+
+	float deathDuration_ = 1.25f;
+	float deathGravity_ = 24.0f;
+	float deathGroundFriction_ = 8.0f;
+	float deathLaunchHorizontal_ = 7.5f;
+	float deathLaunchUp_ = 5.0f;
+	float deathTiltTime_ = 0.28f;
+	float deathMaxPitchRad_ = 0.35f;
+	float deathMaxRollRad_ = 1.10f;
+
+	// ---------- 死亡→ゲームオーバー通知 ----------
+	bool gameOverReady_ = false;
+	bool gameOverNotified_ = false;
 
 	float hitscanRange_ = 100.0f; // デバッグ用レイ
 	float shotDebugTimer_ = 0.0f;

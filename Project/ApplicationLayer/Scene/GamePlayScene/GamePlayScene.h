@@ -138,4 +138,6 @@ private: /// ---------- メンバ変数 ---------- ///
 	// リトライ遷移制御
 	bool isRetryTransitionActive_ = false; // リトライ演出中か
 	bool isRetryRestartDone_ = false;      // フェードアウト後の再初期化を実行済みか
+
+	bool gameOverOpened_ = false;
 };

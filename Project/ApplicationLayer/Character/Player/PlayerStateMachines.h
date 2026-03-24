@@ -23,9 +23,9 @@ struct PlayerAPI
 	void SetMoveInput(float x, float z); // 移動入力セット
 	void SetSprint(bool on);			 // スプリント状態のON / OFF
 	void Jump();						 // ジャンプ開始
-	void StartDash();					 // ダッシュ開始
-	bool CanStartDash() const;			 // ダッシュ開始可能か（クールタイムなど）
-	bool IsDashFinished() const;		 // ダッシュ終了判定
+	void StartBlink();					 // ダッシュ開始
+	bool CanStartBlink() const;			 // ダッシュ開始可能か（クールタイムなど）
+	bool IsBlinkFinished() const;		 // ダッシュ終了判定
 
 	// --- combat queries/commands ---
 	bool CanFire() const;
@@ -56,26 +56,50 @@ using Next = std::optional<Id>;
 /// =======================================================
 ///  Locomotion FSM
 /// =======================================================
-enum class LocoId : uint8_t { Idle, Walk, Run, Jump, Fall, Land, Dash };
+enum class LocoId : uint8_t { Idle, Walk, Run, Jump, Fall, Land, Blink };
+
+static inline bool HasMoveInput(const InputSnapshot& in)
+{
+	return (in.moveX * in.moveX + in.moveZ * in.moveZ) > 0.0001f;
+}
+
+static inline bool WantsBlink(PlayerContext& ctx)
+{
+	return ctx.in.blinkPressed && !ctx.in.aimHeld && ctx.api.CanStartBlink();
+}
+
+static inline bool WantsJump(PlayerContext& ctx)
+{
+	return ctx.in.jumpPressed;
+}
 
 /// --------------------------------------------------------
 ///					　　待機状態
 /// --------------------------------------------------------
 struct LocoIdle
 {
-	void Enter(PlayerContext& ctx) { ctx.api.SetSprint(false); }
-	Next<LocoId> Update(PlayerContext& ctx) {
+	void Enter(PlayerContext& ctx)
+	{
+		ctx.api.SetSprint(false);
+	}
+
+	Next<LocoId> Update(PlayerContext& ctx)
+	{
 		ctx.api.SetMoveInput(ctx.in.moveX, ctx.in.moveZ);
+		ctx.api.SetSprint(false);
 
 		if (!ctx.api.IsGrounded()) return LocoId::Fall;
-		if (ctx.in.dashPressed && !ctx.in.aimHeld && ctx.api.CanStartDash())    return LocoId::Dash;
-		if (ctx.in.jumpPressed)    return LocoId::Jump;
+		if (WantsBlink(ctx))        return LocoId::Blink;
+		if (WantsJump(ctx))        return LocoId::Jump;
 
-		const bool moving = (ctx.in.moveX * ctx.in.moveX + ctx.in.moveZ * ctx.in.moveZ) > 0.0001f;
-		if (moving) return ctx.in.sprintHeld ? LocoId::Run : LocoId::Walk;
+		if (HasMoveInput(ctx.in))
+		{
+			return ctx.in.sprintHeld ? LocoId::Run : LocoId::Walk;
+		}
 
 		return std::nullopt;
 	}
+
 	void Exit(PlayerContext&) {}
 };
 
@@ -84,21 +108,26 @@ struct LocoIdle
 /// --------------------------------------------------------
 struct LocoWalk
 {
-	void Enter(PlayerContext&) {}
-	Next<LocoId> Update(PlayerContext& ctx) {
+	void Enter(PlayerContext& ctx)
+	{
+		ctx.api.SetSprint(false);
+	}
+
+	Next<LocoId> Update(PlayerContext& ctx)
+	{
 		ctx.api.SetMoveInput(ctx.in.moveX, ctx.in.moveZ);
 		ctx.api.SetSprint(false);
 
 		if (!ctx.api.IsGrounded()) return LocoId::Fall;
-		if (ctx.in.dashPressed && !ctx.in.aimHeld && ctx.api.CanStartDash())    return LocoId::Dash;
-		if (ctx.in.jumpPressed)    return LocoId::Jump;
+		if (WantsBlink(ctx))        return LocoId::Blink;
+		if (WantsJump(ctx))        return LocoId::Jump;
 
-		const bool moving = (ctx.in.moveX * ctx.in.moveX + ctx.in.moveZ * ctx.in.moveZ) > 0.0001f;
-		if (!moving) return LocoId::Idle;
-		if (ctx.in.sprintHeld) return LocoId::Run;
+		if (!HasMoveInput(ctx.in)) return LocoId::Idle;
+		if (ctx.in.sprintHeld)     return LocoId::Run;
 
 		return std::nullopt;
 	}
+
 	void Exit(PlayerContext&) {}
 };
 
@@ -107,24 +136,33 @@ struct LocoWalk
 /// --------------------------------------------------------
 struct LocoRun
 {
-	void Enter(PlayerContext&) {}
+	void Enter(PlayerContext& ctx)
+	{
+		ctx.api.SetSprint(true);
+	}
+
 	Next<LocoId> Update(PlayerContext& ctx)
 	{
 		ctx.api.SetMoveInput(ctx.in.moveX, ctx.in.moveZ);
-		// ADS中はスプリント不可（足を止めやすくしてFPSの体感を出す）
-		if (ctx.in.aimHeld) { ctx.api.SetSprint(false); return LocoId::Walk; }
+
+		if (ctx.in.aimHeld)
+		{
+			ctx.api.SetSprint(false);
+			return HasMoveInput(ctx.in) ? LocoId::Walk : LocoId::Idle;
+		}
+
 		ctx.api.SetSprint(true);
 
 		if (!ctx.api.IsGrounded()) return LocoId::Fall;
-		if (ctx.in.dashPressed && !ctx.in.aimHeld && ctx.api.CanStartDash())    return LocoId::Dash;
-		if (ctx.in.jumpPressed)    return LocoId::Jump;
+		if (WantsBlink(ctx))        return LocoId::Blink;
+		if (WantsJump(ctx))        return LocoId::Jump;
 
-		const bool moving = (ctx.in.moveX * ctx.in.moveX + ctx.in.moveZ * ctx.in.moveZ) > 0.0001f;
-		if (!moving) return LocoId::Idle;
-		if (!ctx.in.sprintHeld) return LocoId::Walk;
+		if (!HasMoveInput(ctx.in)) return LocoId::Idle;
+		if (!ctx.in.sprintHeld)    return LocoId::Walk;
 
 		return std::nullopt;
 	}
+
 	void Exit(PlayerContext&) {}
 };
 
@@ -133,15 +171,24 @@ struct LocoRun
 /// --------------------------------------------------------
 struct LocoJump
 {
-	void Enter(PlayerContext& ctx) { ctx.api.Jump(); }
+	void Enter(PlayerContext& ctx)
+	{
+		ctx.api.Jump();
+	}
+
 	Next<LocoId> Update(PlayerContext& ctx)
 	{
-		// 上昇が終わったら落下へ
-		ctx.api.SetMoveInput(ctx.in.moveX, ctx.in.moveZ); // 空中でも入力反映
-		ctx.api.SetSprint(ctx.in.sprintHeld); // 空中でもスプリント状態を維持
-		if (ctx.api.VerticalVelocity() <= 0.0f) return LocoId::Fall;
+		ctx.api.SetMoveInput(ctx.in.moveX, ctx.in.moveZ);
+		ctx.api.SetSprint(ctx.in.sprintHeld && !ctx.in.aimHeld);
+
+		if (ctx.api.VerticalVelocity() <= 0.0f)
+		{
+			return LocoId::Fall;
+		}
+
 		return std::nullopt;
 	}
+
 	void Exit(PlayerContext&) {}
 };
 
@@ -151,13 +198,20 @@ struct LocoJump
 struct LocoFall
 {
 	void Enter(PlayerContext&) {}
+
 	Next<LocoId> Update(PlayerContext& ctx)
 	{
-		ctx.api.SetMoveInput(ctx.in.moveX, ctx.in.moveZ); // 空中でも入力反映
-		ctx.api.SetSprint(ctx.in.sprintHeld); // 空中でもスプリント状態を維持
-		if (ctx.api.IsGrounded()) return LocoId::Land;
+		ctx.api.SetMoveInput(ctx.in.moveX, ctx.in.moveZ);
+		ctx.api.SetSprint(ctx.in.sprintHeld && !ctx.in.aimHeld);
+
+		if (ctx.api.IsGrounded())
+		{
+			return LocoId::Land;
+		}
+
 		return std::nullopt;
 	}
+
 	void Exit(PlayerContext&) {}
 };
 
@@ -166,50 +220,69 @@ struct LocoFall
 /// --------------------------------------------------------
 struct LocoLand
 {
-	float t = 0.0f; // 着地硬直(例)
-	void Enter(PlayerContext&) { t = 0.0f; }
+	void Enter(PlayerContext&) {}
+
 	Next<LocoId> Update(PlayerContext& ctx)
 	{
-		// 着地硬直処理（例）
-		t += ctx.dt;
+		ctx.api.SetMoveInput(ctx.in.moveX, ctx.in.moveZ);
+		ctx.api.SetSprint(ctx.in.sprintHeld && !ctx.in.aimHeld);
 
-		ctx.api.SetMoveInput(ctx.in.moveX, ctx.in.moveZ); // 着地中でも入力反映
-		ctx.api.SetSprint(ctx.in.sprintHeld); // 着地中でもスプリント状態を維持
+		if (!ctx.api.IsGrounded()) return LocoId::Fall;
+		if (WantsJump(ctx))        return LocoId::Jump;
+		if (WantsBlink(ctx))        return LocoId::Blink;
 
-		// 例: 80msだけ硬直（※ t < 0.0f だと絶対通らないので注意）
-		if (t < 0.08f) return std::nullopt;
-
-		const bool moving = (ctx.in.moveX * ctx.in.moveX + ctx.in.moveZ * ctx.in.moveZ) > 0.0001f;
-		if (!moving) return LocoId::Idle;
-		return ctx.in.sprintHeld ? LocoId::Run : LocoId::Walk;
+		if (!HasMoveInput(ctx.in)) return LocoId::Idle;
+		return (ctx.in.sprintHeld && !ctx.in.aimHeld) ? LocoId::Run : LocoId::Walk;
 	}
+
 	void Exit(PlayerContext&) {}
 };
 
 /// --------------------------------------------------------
-///						ダッシュ状態
+///						ブリンク状態
 /// --------------------------------------------------------
-struct LocoDash
+struct LocoBlink
 {
-	void Enter(PlayerContext& ctx) {
-		// 念のため二重ガード（入力側/遷移側で落としていても、ここで安全に）
-		if (ctx.api.CanStartDash()) ctx.api.StartDash();
+	void Enter(PlayerContext& ctx)
+	{
+		if (ctx.api.CanStartBlink())
+		{
+			ctx.api.StartBlink();
+		}
 	}
+
 	Next<LocoId> Update(PlayerContext& ctx)
 	{
-		// ダッシュ中は入力を無視したいならここで固定
-		if (!ctx.api.IsGrounded()) return LocoId::Fall;
-		if (ctx.api.IsDashFinished()) {
-			const bool moving = (ctx.in.moveX * ctx.in.moveX + ctx.in.moveZ * ctx.in.moveZ) > 0.0001f;
-			if (!moving) return LocoId::Idle;
+		// ダッシュ中も入力は持たせておく
+		ctx.api.SetMoveInput(ctx.in.moveX, ctx.in.moveZ);
+		ctx.api.SetSprint(true);
+
+		// Minecraftっぽいダッシュジャンプ
+		if (ctx.in.jumpPressed)
+		{
+			return LocoId::Jump;
+		}
+
+		// 地面から離れても、Jump入力なしなら自然にFallへ
+		if (!ctx.api.IsGrounded())
+		{
+			return LocoId::Fall;
+		}
+
+		// ダッシュ終了後は通常移動へ戻す
+		if (ctx.api.IsBlinkFinished())
+		{
+			if (!HasMoveInput(ctx.in)) return LocoId::Idle;
 			return ctx.in.sprintHeld ? LocoId::Run : LocoId::Walk;
 		}
+
 		return std::nullopt;
 	}
+
 	void Exit(PlayerContext&) {}
 };
 
-using LocoState = std::variant<LocoIdle, LocoWalk, LocoRun, LocoJump, LocoFall, LocoLand, LocoDash>;
+using LocoState = std::variant<LocoIdle, LocoWalk, LocoRun, LocoJump, LocoFall, LocoLand, LocoBlink>;
 
 /// =======================================================
 ///  Combat FSM
@@ -330,7 +403,7 @@ struct LocomotionFSM {
 		case LocoId::Jump: st = LocoJump{}; break;
 		case LocoId::Fall: st = LocoFall{}; break;
 		case LocoId::Land: st = LocoLand{}; break;
-		case LocoId::Dash: st = LocoDash{}; break;
+		case LocoId::Blink: st = LocoBlink{}; break;
 		}
 		std::visit([&](auto& s) { s.Enter(ctx); }, st);
 	}

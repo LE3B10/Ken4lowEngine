@@ -28,7 +28,7 @@ public: /// ---------- パブリックメンバ関数 ---------- ///
 	void SetGroundQuery(GroundQueryFn fn) { groundQuery_ = std::move(fn); }
 
 	// ===== Frame hooks =====
-	// JumpBuffer / Coyote / dash cooldown など “入力前処理” を行う（brain.Update の前に呼ぶ）
+	// JumpBuffer / Coyote / blink cooldown など “入力前処理” を行う（brain.Update の前に呼ぶ）
 	void PreprocessInput(InputSnapshot& in, float dt);
 
 	// 移動・重力の積分（brain.Update の後に呼ぶ）
@@ -38,19 +38,19 @@ public: /// ---------- パブリックメンバ関数 ---------- ///
 	bool IsGrounded() const;
 	bool IsSprinting() const { return sprint_; }
 	float VerticalVelocity() const { return verticalVel_; }
-	bool CanStartDash() const { return (dashCooldownTimer_ <= 0.0f) && (dashTimer_ <= 0.0f); }
-	bool IsDashFinished() const { return dashTimer_ <= 0.0f; }
+	bool CanStartBlink() const { return (blinkCooldownTimer_ <= 0.0f) && (blinkTimer_ <= 0.0f); }
+	bool IsBlinkFinished() const { return blinkTimer_ <= 0.0f; }
 
 	// ===== Commands (from FSM via PlayerAPI) =====
 	void SetMoveInput(float x, float z) { moveX_ = x; moveZ_ = z; }
 	void SetSprint(bool on) { sprint_ = on; }
 	void Jump();
-	void StartDash(float cameraYawRad, bool isAds);
+	void StartBlink(float cameraYawRad, bool isAds);
 
 	// ===== Parameters (ImGui で触るなら getter/setter 生やす) =====
 	float& WalkSpeed() { return walkSpeed_; }
 	float& RunSpeed() { return runSpeed_; }
-	float& DashSpeed() { return dashSpeed_; }
+	float& blinkSpeed() { return blinkSpeed_; }
 	float& JumpSpeed() { return jumpSpeed_; }
 	float& Gravity() { return gravity_; }
 
@@ -76,9 +76,9 @@ private: /// ---------- プライベートメンバ変数 ---------- ///
 	bool grounded_ = false;
 	float groundY_ = 0.0f;
 	K4E::Vector3 groundNormal_{ 0,1,0 };
-	float groundSnapEpsilon_ = 0.02f;
+	float groundSnapEpsilon_ = 0.05f;
 	float groundProbeDistance_ = 3.0f;
-	float stepSnapHeight_ = 0.45f;
+	float stepSnapHeight_ = 0.30f;
 
 	// ---- Input from FSM ----
 	float moveX_ = 0.0f;
@@ -90,13 +90,13 @@ private: /// ---------- プライベートメンバ変数 ---------- ///
 	float velZ_ = 0.0f;
 	float verticalVel_ = 0.0f;
 
-	// ---- Dash ----
-	float dashTimer_ = 0.0f;
-	float dashDuration_ = 0.25f; // ダッシュの持続時間
-	float dashDirX_ = 0.0f;
-	float dashDirZ_ = 1.0f;
-	float dashCooldownTimer_ = 0.0f;
-	float dashCooldown_ = 3.0f;
+	// ---- Blink ----
+	float blinkTimer_ = 0.0f;
+	float blinkDuration_ = 0.25f; // ブリンクの持続時間
+	float blinkDirX_ = 0.0f;
+	float blinkDirZ_ = 1.0f;
+	float blinkCooldownTimer_ = 0.0f;
+	float blinkCooldown_ = 3.0f;
 
 	// ---- Jump feel ----
 	float coyoteTimer_ = 0.0f;
@@ -104,21 +104,26 @@ private: /// ---------- プライベートメンバ変数 ---------- ///
 	float jumpBufferTimer_ = 0.0f;
 	float jumpBufferTime_ = 0.10f;
 
+	bool wasGroundedLastFrame_ = true;
+	float sprintJumpBoostMul_ = 1.12f;   // 1.10〜1.18 くらいで調整
+	float groundMoveMul_ = 0.98f;        // 地上だけ少し減衰
+	float airMoveMul_ = 1.00f;           // 空中は勢い保持
+
 	// ---- Motor tuning ----
 	float accelGround_ = 28.0f;
 	float decelGround_ = 32.0f;
 	float accelAir_ = 12.0f;
 
-	float adsMoveMul_ = 0.25f; // ADS中の移動減速
-	float reloadMoveMul_ = 0.35f; // リロード中の移動減速
+	float adsMoveMul_ = 0.80f; // ADS中の移動減速
+	float reloadMoveMul_ = 0.65f; // リロード中の移動減速
 	float airControl_ = 0.7f;
 
 	// ---- Speeds ----
-	float walkSpeed_ = 10.0f;
-	float runSpeed_ = 15.0f;
-	float dashSpeed_ = 20.0f;
-	float jumpSpeed_ = 10.0f;
-	float gravity_ = 19.6f;
+	float walkSpeed_ = 6.0f;
+	float runSpeed_ = 8.5f;
+	float blinkSpeed_ = 20.0f;
+	float jumpSpeed_ = 9.0f;
+	float gravity_ = 24.0f;
 
 	// ---- Debug speed ----
 	K4E::Vector3 prevPos_{ 0,0,0 };

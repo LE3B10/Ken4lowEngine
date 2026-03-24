@@ -553,7 +553,7 @@ float Enemy::ConsumeStunDurationOr(float fallbackSec)
 
 void Enemy::OnBulletHit(K4E::Collider* bulletCollider)
 {
-	int dmg = 10;
+	int dmg = 25;
 	bool isHeadshot = false;
 
 	if (bulletCollider)

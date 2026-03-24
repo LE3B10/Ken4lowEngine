@@ -86,6 +86,10 @@ namespace Ken4lowEngine
 		/// <param name="horizontalAmount">横方向（ヨー）のランダムブレの最大値。</param>
 		void AddRecoil(float verticalAmount = 0.0f, float horizontalAmount = 0.0f);
 
+		void SetDeathTilt(float pitchRad, float rollRad);
+
+		void ClearDeathTilt();
+
 		// AddRecoil() が UpdateLock() の後に呼ばれても「同フレームのSync」で反映されるように
 		// cachedEuler_ を即座に再構築する。
 		void RebuildCachedEulerAfterExternalChange();
@@ -277,6 +281,9 @@ namespace Ken4lowEngine
 		float tpsDistance_ = 20.0f;
 		float tpsForward_ = 20.0f;
 		float tpsUpOffset_ = 0.15f;
+
+		float deathTiltPitch_ = 0.0f;
+		float deathTiltRoll_ = 0.0f;
 	};
 
 } // namespace Ken4lowEngine

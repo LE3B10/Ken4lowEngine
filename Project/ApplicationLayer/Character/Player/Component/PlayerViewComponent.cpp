@@ -110,7 +110,7 @@ void PlayerViewComponent::SetFirstPersonView(bool enabled)
 	}
 }
 
-void PlayerViewComponent::UpdateMovementFov(float deltaTime, bool isRunning, bool isDashing, bool dashJustStarted)
+void PlayerViewComponent::UpdateMovementFov(float deltaTime, bool isRunning, bool isBlinking, bool blinkJustStarted)
 {
 	// 一人称だけに効かせる
 	if (fpsCamera_.GetViewMode() != K4E::FpsCamera::ViewMode::FirstPerson) return;
@@ -145,8 +145,8 @@ void PlayerViewComponent::UpdateMovementFov(float deltaTime, bool isRunning, boo
 	// 外部変更（デバッグ等）を腰だめ基準として取り直せるようにする
 	const bool noMoveFovEffect =
 		(std::abs(runAlpha_) < 0.0001f) &&
-		(std::abs(dashAlpha_) < 0.0001f) &&
-		(std::abs(dashKick_) < 0.0001f);
+		(std::abs(blinkAlpha_) < 0.0001f) &&
+		(std::abs(blinkKick_) < 0.0001f);
 
 	if (!isAiming_ && noMoveFovEffect)
 	{
@@ -164,18 +164,18 @@ void PlayerViewComponent::UpdateMovementFov(float deltaTime, bool isRunning, boo
 
 	// ---- 走行/ダッシュFOV演出（ADS中は弱める）----
 	runAlpha_ = Approach(runAlpha_, isRunning ? 1.0f : 0.0f, isRunning ? runInSpeed_ : runOutSpeed_, deltaTime);
-	dashAlpha_ = Approach(dashAlpha_, isDashing ? 1.0f : 0.0f, isDashing ? dashInSpeed_ : dashOutSpeed_, deltaTime);
+	blinkAlpha_ = Approach(blinkAlpha_, isBlinking ? 1.0f : 0.0f, isBlinking ? blinkInSpeed_ : blinkOutSpeed_, deltaTime);
 
-	if (dashJustStarted) dashKick_ = 1.0f;
-	dashKick_ = Approach(dashKick_, 0.0f, dashKickOutSpeed_, deltaTime);
+	if (blinkJustStarted) blinkKick_ = 1.0f;
+	blinkKick_ = Approach(blinkKick_, 0.0f, blinkKickOutSpeed_, deltaTime);
 
 	float suppressScale = 1.0f - adsFovAlpha_ * adsSuppress_;
 	suppressScale = std::clamp(suppressScale, 0.0f, 1.0f);
 
 	const float moveAddDeg =
 		(runAlpha_ * runFovAddDeg_ +
-			dashAlpha_ * dashFovAddDeg_ +
-			dashKick_ * dashKickAddDeg_) * suppressScale;
+			blinkAlpha_ * blinkFovAddDeg_ +
+			blinkKick_ * blinkKickAddDeg_) * suppressScale;
 
 	dmgFovKickDeg_ = Approach(dmgFovKickDeg_, 0.0f, dmgFovReturnSpeed_, deltaTime);
 
@@ -241,6 +241,42 @@ void PlayerViewComponent::AddDamageFeedback(float strength01)
 	vmKickRoll_ = std::clamp(vmKickRoll_, -DegToRad(vmKickMaxRollDeg_), DegToRad(vmKickMaxRollDeg_));
 	vmKickBack_ = std::clamp(vmKickBack_, 0.0f, vmKickMaxBack_);
 	vmKickUp_ = std::clamp(vmKickUp_, 0.0f, vmKickMaxUp_);
+}
+
+void PlayerViewComponent::StartDeathCamera(float targetPitchRad, float targetRollRad)
+{
+	deathCameraActive_ = true;
+	deathCamPitchNow_ = 0.0f;
+	deathCamRollNow_ = 0.0f;
+	deathCamPitchTarget_ = targetPitchRad;
+	deathCamRollTarget_ = targetRollRad;
+}
+
+void PlayerViewComponent::UpdateDeathCamera(float dt, float normalizedT)
+{
+	if (!deathCameraActive_) return;
+
+	normalizedT = std::clamp(normalizedT, 0.0f, 1.0f);
+
+	const float targetPitch = deathCamPitchTarget_ * normalizedT;
+	const float targetRoll = deathCamRollTarget_ * normalizedT;
+
+	const float speed = std::max(0.01f, deathCamBlendSpeed_);
+	deathCamPitchNow_ = Approach(deathCamPitchNow_, targetPitch, speed, dt);
+	deathCamRollNow_ = Approach(deathCamRollNow_, targetRoll, speed, dt);
+
+	fpsCamera_.SetDeathTilt(deathCamPitchNow_, deathCamRollNow_);
+}
+
+void PlayerViewComponent::ClearDeathCamera()
+{
+	deathCameraActive_ = false;
+	deathCamPitchNow_ = 0.0f;
+	deathCamRollNow_ = 0.0f;
+	deathCamPitchTarget_ = 0.0f;
+	deathCamRollTarget_ = 0.0f;
+
+	fpsCamera_.ClearDeathTilt();
 }
 
 void PlayerViewComponent::ApplyFirstPersonRenderFlags()

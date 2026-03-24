@@ -81,7 +81,7 @@ public: /// ---------- メンバ関数 ---------- ///
 
 	void BindCameraFovHooks(CameraFovHooks hooks) { fovHooks_ = std::move(hooks); }
 
-	void UpdateMovementFov(float deltaTime, bool isRunning, bool isDashing, bool dashJustStarted);
+	void UpdateMovementFov(float deltaTime, bool isRunning, bool isBlinking, bool blinkJustStarted);
 
 	// リコイル処理
 	void AddRecoil(float verticalDeg, float horizontalDeg);
@@ -92,6 +92,12 @@ public: /// ---------- メンバ関数 ---------- ///
 	void SetWeaponAdsTuning(float adsFovDeg, float adsTransitionSpeed);
 
 	void AddDamageFeedback(float strength01);
+
+public:
+
+	void StartDeathCamera(float targetPitchRad, float targetRollRad);
+	void UpdateDeathCamera(float dt, float normalizedT);
+	void ClearDeathCamera();
 
 private:
 
@@ -148,20 +154,19 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	// ---- Movement FOV ----
 	float runAlpha_ = 0.0f;
-	float dashAlpha_ = 0.0f;
-	float dashKick_ = 0.0f;
+	float blinkAlpha_ = 0.0f;
+	float blinkKick_ = 0.0f;
 
-	// 追加するFOV（度）
 	float runFovAddDeg_ = 5.0f;      // 走行中 +5°
-	float dashFovAddDeg_ = 10.0f;     // ダッシュ中 +10°
-	float dashKickAddDeg_ = 5.0f;    // ダッシュ開始瞬間 +5°
+	float blinkFovAddDeg_ = 10.0f;     // ダッシュ中 +10°
+	float blinkKickAddDeg_ = 5.0f;    // ダッシュ開始瞬間 +5°
 
 	// ブレンド速度
 	float runInSpeed_ = 6.0f;
 	float runOutSpeed_ = 4.0f;
-	float dashInSpeed_ = 20.0f;
-	float dashOutSpeed_ = 12.0f;
-	float dashKickOutSpeed_ = 22.0f;
+	float blinkInSpeed_ = 20.0f;
+	float blinkOutSpeed_ = 12.0f;
+	float blinkKickOutSpeed_ = 22.0f;
 
 	// ADS中は効果を弱める（0..1）
 	float adsSuppress_ = 0.85f; // aimAlpha=1 のとき (1-0.85)=0.15倍にする
@@ -211,4 +216,14 @@ private: /// ---------- メンバ変数 ---------- ///
 	float dmgCamYawDeg_ = 1.75f;        // カメラの横キック（度）
 	float dmgFovKickAddDeg_ = 4.0f;     // 1回の被弾で増やすFOV（度）
 	float dmgFovKickMaxDeg_ = 8.0f;     // 最大（度）
+
+	bool deathCameraActive_ = false;
+
+	float deathCamPitchNow_ = 0.0f;
+	float deathCamRollNow_ = 0.0f;
+
+	float deathCamPitchTarget_ = 0.0f;
+	float deathCamRollTarget_ = 0.0f;
+
+	float deathCamBlendSpeed_ = 10.0f;
 };

@@ -198,11 +198,21 @@ void Player::Update(float deltaTime)
 
 	if (!input_) { BaseCharacter::Update(deltaTime); return; }
 
+	// ---- 死亡中は通常の入力/FSM/武器更新を止めて専用演出だけ回す ----
+	if (deathActive_)
+	{
+		UpdateDeath(deltaTime);
+		return;
+	}
+
 	// ---- 最近当たった弾IDの掃除（多段ヒット防止のTTL） ----
 	TickRecentBulletHits(deltaTime);
 
 	// Snapshot生成（raw）
 	InputSnapshot rawSnap = BuildInputSnapshot(*input_);
+
+	// ---- 武器切替入力を先に処理 ----
+	HandleWeaponSwitchInput(rawSnap);
 
 	// ---- Weapon（トグル/近接リマップ/切替/内部Tick）をコンポーネントへ委譲 ----
 	// ※武器側が「移動/ジャンプでリロードキャンセル」等の入力を見る可能性があるため、
@@ -211,7 +221,7 @@ void Player::Update(float deltaTime)
 
 	// ---- リロード中の移動制限/キャンセル ----
 	// 仕様:
-	//  - リロード中は走らない（= sprint/dash 無効）
+	//  - リロード中は走らない（= sprint/blink 無効）
 	//  - リロード中はジャンプしない
 	//  - ただし「走る/ジャンプ/ダッシュ」を入力したらリロードをキャンセルする
 	bool isReloading = false;
@@ -219,7 +229,7 @@ void Player::Update(float deltaTime)
 	float reloadSec = 0.0f;
 	weapon_.GetReloadUI(isReloading, reloadTimer, reloadSec);
 
-	const bool wantsCancelReload = isReloading && (rawSnap.sprintHeld || rawSnap.jumpPressed || rawSnap.dashPressed);
+	const bool wantsCancelReload = isReloading && (rawSnap.sprintHeld || rawSnap.jumpPressed || rawSnap.blinkPressed);
 	if (wantsCancelReload)
 	{
 		TryCancelReloadInternal();
@@ -243,7 +253,7 @@ void Player::Update(float deltaTime)
 		// 走る/ジャンプ/ダッシュを抑止（歩きは許可）
 		inputSnap_.sprintHeld = false;
 		inputSnap_.jumpPressed = false;
-		inputSnap_.dashPressed = false;
+		inputSnap_.blinkPressed = false;
 	}
 
 	auto* tr = GetWorldTransform();
@@ -280,36 +290,57 @@ void Player::Update(float deltaTime)
 
 	const LocoId prev = prevLocoId_;
 	const bool isAds = inputSnap_.aimHeld;
-	const bool dashJustStarted = (brain_.loco.id == LocoId::Dash && prev != LocoId::Dash);
+	const bool blinkJustStarted = (brain_.loco.id == LocoId::Blink && prev != LocoId::Blink);
 	const bool moving = (inputSnap_.moveX * inputSnap_.moveX + inputSnap_.moveZ * inputSnap_.moveZ) > 0.01f;
 
 	const LocoId cur = brain_.loco.id;
 	const bool isAirLike = (cur == LocoId::Jump || cur == LocoId::Fall || cur == LocoId::Land);
 
-	if (cur == LocoId::Run) runCarry_ = true;
-	if (prev == LocoId::Run && isAirLike) runCarry_ = false; // ジャンプした瞬間は走りの勢いを持ち越すが、空中で一度でも走り以外の状態になったら解除
+	if (cur == LocoId::Run)
+	{
+		runCarry_ = true;
+	}
+
+	// Run から空中へ入った瞬間は carry を維持する
+	if (prev == LocoId::Run && isAirLike)
+	{
+		runCarry_ = true;
+	}
 
 	// ダッシュは別扱い
-	if (cur == LocoId::Dash) runCarry_ = false;
+	if (cur == LocoId::Blink)
+	{
+		runCarry_ = false;
+	}
 
 	if (isAirLike)
 	{
-		if (!inputSnap_.sprintHeld || isAds || !moving) runCarry_ = false;
+		// SHIFTを離した、ADSした、移動入力がない、のどれかで初めて解除
+		if (!inputSnap_.sprintHeld || isAds || !moving)
+		{
+			runCarry_ = false;
+		}
 	}
 	else
 	{
-		// 地上状態では Run 以外ならキャリー不要
-		if (cur != LocoId::Run) runCarry_ = false;
+		// 地上では Run 以外なら carry 不要
+		if (cur != LocoId::Run)
+		{
+			runCarry_ = false;
+		}
 	}
 
 	const bool isRunningForFov = (cur == LocoId::Run) || (isAirLike && runCarry_);
-	const bool isDashing = (cur == LocoId::Dash);
+	const bool isBlinking = (cur == LocoId::Blink);
 
 	// ---- HUD連携（クロスヘア移動状態 / 着地 / HP） ----
 	if (hudManager_)
 	{
-		const bool crosshairMoving = moving || isDashing;
-		const bool crosshairSprinting = (cur == LocoId::Run) || (cur == LocoId::Dash);
+		const bool crosshairMoving = moving || isBlinking;
+		const bool crosshairSprinting =
+			(cur == LocoId::Run) ||
+			(cur == LocoId::Blink) ||
+			((cur == LocoId::Jump || cur == LocoId::Fall) && inputSnap_.sprintHeld && !isAds);
 		const bool crosshairAirborne = (cur == LocoId::Jump || cur == LocoId::Fall);
 		hudManager_->SetCrosshairMovementState(crosshairMoving, crosshairSprinting, crosshairAirborne);
 		if (cur == LocoId::Land && prev != LocoId::Land)
@@ -322,7 +353,7 @@ void Player::Update(float deltaTime)
 	motor_.Simulate(deltaTime, view_.GetYaw(), brain_.loco.id, isAds, isReloading);
 
 	// 最後にカメラをプレイヤーへ位置同期（行列更新もここで）
-	view_.UpdateMovementFov(deltaTime, isRunningForFov, isDashing, dashJustStarted);
+	view_.UpdateMovementFov(deltaTime, isRunningForFov, isBlinking, blinkJustStarted);
 	view_.SyncToPlayer();
 	view_.SyncViewModeToFirstPersonFlag();
 
@@ -442,9 +473,9 @@ float PlayerAPI::VerticalVelocity() const { return player ? player->FSM_Vertical
 void PlayerAPI::SetMoveInput(float x, float z) { if (player) player->FSM_SetMoveInput(x, z); }
 void PlayerAPI::SetSprint(bool on) { if (player) player->FSM_SetSprint(on); }
 void PlayerAPI::Jump() { if (player) player->FSM_Jump(); }
-void PlayerAPI::StartDash() { if (player) player->FSM_StartDash(); }
-bool PlayerAPI::CanStartDash() const { return player ? player->FSM_CanStartDash() : false; }
-bool PlayerAPI::IsDashFinished() const { return player ? player->FSM_IsDashFinished() : true; }
+void PlayerAPI::StartBlink() { if (player) player->FSM_StartBlink(); }
+bool PlayerAPI::CanStartBlink() const { return player ? player->FSM_CanStartBlink() : false; }
+bool PlayerAPI::IsBlinkFinished() const { return player ? player->FSM_IsBlinkFinished() : true; }
 
 bool PlayerAPI::CanFire() const { return player ? player->FSM_CanFire() : false; }
 void PlayerAPI::FireOnce() { if (player) player->FSM_FireOnce(); }
@@ -523,13 +554,38 @@ void Player::OnHitByEnemyBullet(K4E::Collider* bullet, PlayerHitPart part, float
 	default: break;
 	}
 
+	// 死亡した瞬間だけ死亡演出開始
+	if (wasAlive && hp_ <= 0.0f)
+	{
+		K4E::Vector3 launchDir = { 0.0f, 0.0f, -1.0f };
+
+		// できるだけ「被弾で後ろに吹っ飛ぶ」感じにする
+		// Bullet の座標APIに依存しないよう、まずはカメラ前方の逆方向を使う
+		if (auto* cam = view_.GetCamera())
+		{
+			launchDir = -cam->GetForward();
+			launchDir.y = 0.0f;
+
+			if (K4E::Vector3::Length(launchDir) > 0.0001f)
+			{
+				launchDir = K4E::Vector3::Normalize(launchDir);
+			}
+			else
+			{
+				launchDir = { 0.0f, 0.0f, -1.0f };
+			}
+		}
+
+		StartDeath(launchDir);
+		return;
+	}
+
+	// 生存中だけスタン/通常復帰
 	PlayerContext ctx{ api_, inputSnap_, 0.0f };
 	brain_.status.RequestStun(ctx, stunSec);
 
 	brain_.loco.Change(ctx, LocoId::Idle);
 	brain_.combat.Change(ctx, CombatId::Hip);
-
-	// TODO: hp_==0 のとき死亡処理を入れるならここ
 }
 
 void Player::NotifyEnemyHitUI(bool isHeadshot)
@@ -660,6 +716,8 @@ void Player::MarkRecentBulletHit(uint32_t id)
 
 void Player::ApplyFallDamage(float deltaTime)
 {
+	if (deathActive_) return;
+
 	if (!fallDamageSettings_.enabled) return;
 
 	auto* tr = GetWorldTransform();
@@ -673,6 +731,181 @@ void Player::ApplyFallDamage(float deltaTime)
 		// 例: TakeDamage(dmg);
 		// 例: hp_ -= dmg;
 		hp_ -= dmg;
+	}
+}
+
+void Player::HandleWeaponSwitchInput(InputSnapshot& snap)
+{
+	bool switched = false;
+
+	// --------------------------------------------------
+	// ホイール切替だけをここで処理
+	// 数字キー切替は PlayerWeaponComponent 側に任せる
+	// --------------------------------------------------
+	if (snap.weaponSwitch > 0)
+	{
+		weapon_.SwitchWeaponCategoryByDelta(-1);
+		switched = true;
+	}
+	else if (snap.weaponSwitch < 0)
+	{
+		weapon_.SwitchWeaponCategoryByDelta(+1);
+		switched = true;
+	}
+
+	if (!switched)
+	{
+		return;
+	}
+
+	// 武器切替時はリロードを即中断したい
+	bool isReloading = false;
+	float reloadTimer = 0.0f;
+	float reloadSec = 0.0f;
+	weapon_.GetReloadUI(isReloading, reloadTimer, reloadSec);
+
+	if (isReloading)
+	{
+		TryCancelReloadInternal();
+
+		// FSM側もすぐ通常戦闘へ戻す
+		if (brain_.combat.id == CombatId::Reload)
+		{
+			PlayerContext cancelCtx{ api_, snap, 0.0f };
+			brain_.combat.Change(cancelCtx, snap.aimHeld ? CombatId::Aim : CombatId::Hip);
+		}
+	}
+
+	// ホイールだけ消費する
+	// 数字キーは weapon_.UpdateAndHandleInput() 側でカテゴリ切替に使う
+	snap.weaponSwitch = 0;
+
+	// 見た目は次フレームで確実に更新
+	weaponVisual_.ForceRefresh();
+}
+
+void Player::StartDeath(const K4E::Vector3& launchDirWorld)
+{
+	if (deathActive_)
+	{
+		return;
+	}
+
+	deathActive_ = true;
+	deathFinished_ = false;
+	deathSettled_ = false;
+	deathTimer_ = 0.0f;
+
+	gameOverReady_ = false;
+	gameOverNotified_ = false;
+
+	inputSnap_ = InputSnapshot{};
+	TryCancelReloadInternal();
+	weaponVisual_.ForceRefresh();
+
+	auto* tr = GetWorldTransform();
+	if (!tr)
+	{
+		return;
+	}
+
+	deathStartRotate_ = tr->rotate_;
+
+	deathLaunchDir_ = launchDirWorld;
+	deathLaunchDir_.y = 0.0f;
+
+	if (K4E::Vector3::Length(deathLaunchDir_) <= 0.0001f)
+	{
+		deathLaunchDir_ = { 0.0f, 0.0f, -1.0f };
+	}
+	else
+	{
+		deathLaunchDir_ = K4E::Vector3::Normalize(deathLaunchDir_);
+	}
+
+	deathVelocity_ =
+		deathLaunchDir_ * deathLaunchHorizontal_ +
+		K4E::Vector3{ 0.0f, deathLaunchUp_, 0.0f };
+
+	runCarry_ = false;
+	view_.SetAiming(false);
+
+	// カメラも一緒に倒す
+	const float rollSign = (deathLaunchDir_.x >= 0.0f) ? -1.0f : 1.0f;
+	view_.StartDeathCamera(-deathMaxPitchRad_, deathMaxRollRad_ * rollSign);
+}
+
+void Player::UpdateDeath(float deltaTime)
+{
+	deathTimer_ += deltaTime;
+
+	auto* tr = GetWorldTransform();
+	if (!tr)
+	{
+		BaseCharacter::Update(deltaTime);
+		return;
+	}
+
+	if (!deathSettled_)
+	{
+		deathVelocity_.y -= deathGravity_ * deltaTime;
+		tr->translate_ += deathVelocity_ * deltaTime;
+
+		if (motor_.IsGrounded() && deathVelocity_.y <= 0.0f)
+		{
+			deathVelocity_.y = 0.0f;
+
+			const float damp = std::max(0.0f, 1.0f - deathGroundFriction_ * deltaTime);
+			deathVelocity_.x *= damp;
+			deathVelocity_.z *= damp;
+
+			const float speedXZSq =
+				deathVelocity_.x * deathVelocity_.x +
+				deathVelocity_.z * deathVelocity_.z;
+
+			if (speedXZSq < 0.01f)
+			{
+				deathVelocity_.x = 0.0f;
+				deathVelocity_.z = 0.0f;
+				deathSettled_ = true;
+			}
+		}
+	}
+
+	float t = deathTimer_ / deathTiltTime_;
+	if (t < 0.0f) t = 0.0f;
+	if (t > 1.0f) t = 1.0f;
+
+	{
+		const float rollSign = (deathLaunchDir_.x >= 0.0f) ? -1.0f : 1.0f;
+
+		tr->rotate_.x = deathStartRotate_.x + deathMaxPitchRad_ * t;
+		tr->rotate_.z = deathStartRotate_.z + deathMaxRollRad_ * rollSign * t;
+	}
+
+	// カメラも同じ進行率で倒す
+	view_.UpdateDeathCamera(deltaTime, t);
+
+	SetCenterPosition(tr->translate_);
+
+	view_.BindBodyTransform(tr);
+	view_.SyncToPlayer();
+	view_.SyncViewModeToFirstPersonFlag();
+
+	weaponVisual_.Update(deltaTime, false);
+	SyncHurtboxes();
+	vfx_.Update(deltaTime);
+	BaseCharacter::Update(deltaTime);
+
+	if (hudManager_)
+	{
+		hudManager_->SetHP(hp_, maxHp_);
+	}
+
+	if (deathTimer_ >= deathDuration_)
+	{
+		deathFinished_ = true;
+		gameOverReady_ = true;
 	}
 }
 

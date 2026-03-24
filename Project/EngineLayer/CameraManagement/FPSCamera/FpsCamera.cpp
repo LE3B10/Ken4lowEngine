@@ -112,9 +112,9 @@ namespace Ken4lowEngine
 
 		// ---------- このフレームの回転をキャッシュ ----------
 		cachedEuler_ = {
-			pitch_ + idleSwayPitchRad_ + recoilOffsetPitch_,
+			pitch_ + idleSwayPitchRad_ + recoilOffsetPitch_ + deathTiltPitch_,
 			yaw_ + idleSwayYawRad_ + recoilOffsetYaw_,
-			0.0f
+			deathTiltRoll_
 		};
 
 		if (viewMode_ == ViewMode::ThirdFront)
@@ -342,6 +342,20 @@ namespace Ken4lowEngine
 		RebuildCachedEuler();
 	}
 
+	void FpsCamera::SetDeathTilt(float pitchRad, float rollRad)
+	{
+		deathTiltPitch_ = pitchRad;
+		deathTiltRoll_ = rollRad;
+		RebuildCachedEulerAfterExternalChange();
+	}
+
+	void FpsCamera::ClearDeathTilt()
+	{
+		deathTiltPitch_ = 0.0f;
+		deathTiltRoll_ = 0.0f;
+		RebuildCachedEulerAfterExternalChange();
+	}
+
 	void FpsCamera::RebuildCachedEulerAfterExternalChange()
 	{
 		RebuildCachedEuler();
@@ -363,9 +377,9 @@ namespace Ken4lowEngine
 	void FpsCamera::RebuildCachedEuler()
 	{
 		cachedEuler_ = {
-			pitch_ + idleSwayPitchRad_ + recoilOffsetPitch_,
+			pitch_ + idleSwayPitchRad_ + recoilOffsetPitch_ + deathTiltPitch_,
 			yaw_ + idleSwayYawRad_ + recoilOffsetYaw_,
-			0.0f
+			deathTiltRoll_
 		};
 
 		if (viewMode_ == ViewMode::ThirdFront)
