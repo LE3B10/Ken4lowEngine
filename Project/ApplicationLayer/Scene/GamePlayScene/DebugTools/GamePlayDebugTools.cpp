@@ -117,32 +117,25 @@ void GamePlayDebugTools::DrawImGui(GamePlayWorld* world)
 
 	auto& characters = world->GetCharacters();
 
-	// ライト
 	K4E::LightManager::GetInstance()->DrawImGui();
-
-	// キャラクタデバッグ
 	characters.DrawImGui();
 
 	/// ---------- 武器マスターデータエディタ ---------- ///
-	WeaponMasterDataDatabase weaponDB;
+	static WeaponMasterDataDatabase weaponDB;
 	static WeaponMasterDataEditor weaponEditor;
-	static bool initialized = false;
-	int32_t lastAppliedID = 0;
-
 	static const std::filesystem::path kRoot = "Resources/JSON/weapons";
 
-	if (!initialized)
+	if (!weaponEditorInitialized_)
 	{
-		initialized = true;
+		weaponEditorInitialized_ = true;
 
 		std::string err;
 		weaponDB.LoadFromDirectory(kRoot, &err);
 	}
 
-	// hooks は毎フレーム組み立てる
 	WeaponEditorHooks hooks{};
 
-	hooks.SaveAll = [world, &weaponDB]()
+	hooks.SaveAll = [world]()
 		{
 			std::string err;
 			WeaponMasterDataWriter::SaveAllByCategory(weaponDB, kRoot, &err);
@@ -166,9 +159,9 @@ void GamePlayDebugTools::DrawImGui(GamePlayWorld* world)
 		};
 
 	hooks.ApplyToRuntimeIfCurrent =
-		[world, &weaponDB, &lastAppliedID](int32_t weaponID, const FWeaponMasterData&)
+		[this, world](int32_t weaponID, const FWeaponMasterData&)
 		{
-			lastAppliedID = weaponID;
+			lastAppliedWeaponID_ = weaponID;
 
 			std::string err;
 			WeaponMasterDataWriter::SaveAllByCategory(weaponDB, kRoot, &err);
@@ -188,7 +181,7 @@ void GamePlayDebugTools::DrawImGui(GamePlayWorld* world)
 			}
 		};
 
-	hooks.RequestDelete = [&weaponDB](int32_t weaponID)
+	hooks.RequestDelete = [](int32_t weaponID)
 		{
 			std::string err;
 			WeaponMasterDataWriter::DeleteFilesByWeaponID(kRoot, weaponID, &err);
@@ -241,7 +234,14 @@ void GamePlayDebugTools::DrawImGui(GamePlayWorld* world)
 	weaponEditor.DrawImGui(weaponDB, hooks);
 
 	ImGui::Begin("Weapon Master Debug");
-	ImGui::Text("Last Applied ID: %d", lastAppliedID);
+	ImGui::Text("Last Applied ID: %d", lastAppliedWeaponID_);
+
+	if (ImGui::Button("Reload Weapon Editor DB"))
+	{
+		std::string err;
+		weaponDB = WeaponMasterDataDatabase{};
+		weaponDB.LoadFromDirectory(kRoot, &err);
+	}
 	ImGui::End();
 #else
 	(void)world;

@@ -3,45 +3,78 @@
 #include <Object3D.h>
 #include "ContactRecord.h"
 #include "PlayerHurtbox.h"
+#include "PlayerDeathComponent.h"
+#include "PlayerHurtboxComponent.h"
 
-#include "PlayerStateMachines.h"   // PlayerBrain / PlayerAPI / LocoId等
-#include "PlayerInputSnapshot.h"   // InputSnapshot型
+#include "PlayerStateMachines.h"
+#include "PlayerFsmApi.h"
+#include "PlayerBrainComponent.h"
+#include "PlayerInputSnapshot.h"
 #include "PlayerVfx.h"
 #include "PlayerWeaponComponent.h"
 #include "PlayerMotorComponent.h"
 #include "PlayerViewComponent.h"
 #include "PlayerWeaponVisualComponent.h"
+#include "PlayerWeaponController.h"
+#include "PlayerCombatComponent.h"
+#include "PlayerDamageComponent.h"
 #include "WeaponSlot.h"
 
 #include <array>
 #include <filesystem>
+#include <functional>
 #include <memory>
 #include <string>
 #include <unordered_map>
+#include <vector>
 
 namespace K4E = ::Ken4lowEngine;
 
 /// ---------- 前方宣言 ---------- ///
-namespace Ken4lowEngine { class Input; }
+namespace Ken4lowEngine
+{
+	class Input;
+	class Camera;
+}
 class CollisionManager;
 class BulletManager;
 class Enemy;
 class HUDManager;
 
-struct HurtboxTuning
-{
-	K4E::Vector3 localOffset{ 0,0,0 };   // 部位ローカルでの中心オフセット
-	K4E::Vector3 halfSize{ 0.2f,0.2f,0.2f };
-	K4E::Vector3 rotOffset{ 0,0,0 };     // 必要なら（基本0でOK）
-	float damageMul = 1.0f;
-	bool enabled = true;
-};
-
 struct FallDamageSettings
 {
 	bool  enabled = true;
-	float startY = -50.0f;          // ここを -n にする
-	float damagePerSecond = 20.0f;  // 1秒あたりダメージ
+	float startY = -50.0f;
+	float damagePerSecond = 20.0f;
+};
+
+struct PlayerExternalRefs
+{
+	K4E::Input* input = nullptr;
+	CollisionManager* collisionManager = nullptr;
+	BulletManager* bulletManager = nullptr;
+	HUDManager* hudManager = nullptr;
+};
+
+struct PlayerAudioCallbacks
+{
+	std::function<void()> onHit{};
+	std::function<void()> onFire{};
+	std::function<void()> onReload{};
+	std::function<void()> onDeath{};
+};
+
+struct PlayerDependencies
+{
+	PlayerExternalRefs refs{};
+	PlayerAudioCallbacks audio{};
+	K4E::Camera* shootCamera = nullptr;
+};
+
+struct PlayerRuntimeState
+{
+	bool runCarry = false;
+	bool isDebugCamera = false;
 };
 
 /// -------------------------------------------------------------
@@ -51,70 +84,59 @@ class Player : public BaseCharacter
 {
 public: /// ---------- メンバ関数 ---------- ///
 
-	// デストラクタ
 	~Player() = default;
 
-	// 初期化処理
 	void Initialize() override;
-
-	// 更新処理
 	void Update(float deltaTime) override;
-
-	// 描画処理
 	void Draw() override;
-
-	// ImGui描画処理
 	void DrawImGui() override;
 
 	void DrawShadow();
-
 	void UpdateShadowMatrix(const K4E::Matrix4x4& lightViewProjection);
 
-	// 衝突判定を行う
 	void OnCollision(K4E::Collider* other) override;
 
-	// ワールド変換の取得
 	K4E::WorldTransformEx* GetWorldTransform() { return &body_.transform; }
 
-	// 一人称視点の有効/無効を設定
 	void SetFirstPersonView(bool enabled) { view_.SetFirstPersonView(enabled); }
 
-	// 衝突管理クラスのセット
-	void SetCollisionManager(CollisionManager* mgr) { collisionManager_ = mgr; }
+	// 依存をまとめて受け取る窓口
+	void BindDependencies(const PlayerDependencies& deps);
 
-	// 敵の弾に当たったときの処理
+	// 既存呼び出し互換のため残す
+	void SetCollisionManager(CollisionManager* mgr) { refs_.collisionManager = mgr; }
+	void SetBulletManager(BulletManager* mgr) { refs_.bulletManager = mgr; }
+	void SetShootCamera(K4E::Camera* cam) { view_.SetShootCamera(cam); }
+	void SetHUDManager(HUDManager* hud) { refs_.hudManager = hud; }
+
 	void OnHitByEnemyBullet(K4E::Collider* bullet, PlayerHitPart part, float mul);
 
-	// BulletManager と ShootCamera のセット
-	void SetBulletManager(BulletManager* mgr) { bulletManager_ = mgr; }
-	void SetShootCamera(K4E::Camera* cam) { view_.SetShootCamera(cam); }
-
-	// HUDとの連携（クロスヘア/HP演出の通知先）
-	void SetHUDManager(HUDManager* hud) { hudManager_ = hud; }
-
-	// WeaponMasterData の読み込みディレクトリを外部から指定したい場合
-	// 例: "Resources/JSON/weapons" (primary/backup/... のカテゴリフォルダがあるroot)
 	void SetWeaponMasterDirectory(const std::filesystem::path& dir) { weapon_.SetMasterDirectory(dir); }
+	void SetDebugCamera(bool on) { runtime_.isDebugCamera = on; }
 
-	// デバッグカメラのオンオフ（オンのときはFPSカメラを直接操作して移動する）
-	void SetDebugCamera(bool on) { isDebugCamera_ = on; }
+	bool GetReloadUI(bool& outIsReloading, float& outReloadTimer, float& outReloadSec)
+	{
+		return weapon_.GetReloadUI(outIsReloading, outReloadTimer, outReloadSec);
+	}
 
-	// ---- HUD用：リロード円などに使える ----
-	// WeaponSystemの実装差があるので「isReloading」「reloadTimer」「reloadSec」をそのまま返す。
-	bool GetReloadUI(bool& outIsReloading, float& outReloadTimer, float& outReloadSec) { return weapon_.GetReloadUI(outIsReloading, outReloadTimer, outReloadSec); }
-
-	// WeaponSystemへのアクセス
 	void EquipWeaponById(int32_t weaponID) { weapon_.EquipWeaponById(weaponID); }
 
 	PlayerWeaponComponent& GetWeaponComponent() { return weapon_; }
 
-	// HPの取得
-	float GetHP() const { return hp_; }
-	float GetMaxHP() const { return maxHp_; }
+	float GetHP() const { return damage_.GetHP(); }
+	float GetMaxHP() const { return damage_.GetMaxHP(); }
 
-	bool GetReticleUI(FWeaponReticleData& outReticle, float& outSpread, bool& outIsADS) const { return weapon_.GetReticleUI(outReticle, outSpread, outIsADS); }
+	PlayerBrainComponent& GetBrainComponent() { return brainComponent_; }
+	const PlayerBrainComponent& GetBrainComponent() const { return brainComponent_; }
 
-	// HUD用：敵への命中/撃破演出通知（Enemy/Bullet側から呼ぶ）
+	PlayerWeaponVisualComponent& GetWeaponVisualComponent() { return weaponVisual_; }
+	const PlayerWeaponVisualComponent& GetWeaponVisualComponent() const { return weaponVisual_; }
+
+	bool GetReticleUI(FWeaponReticleData& outReticle, float& outSpread, bool& outIsADS) const
+	{
+		return weapon_.GetReticleUI(outReticle, outSpread, outIsADS);
+	}
+
 	void NotifyEnemyHitUI(bool isHeadshot = false);
 	void NotifyEnemyKillUI(bool isHeadshot = false);
 
@@ -132,29 +154,18 @@ public: /// ---------- メンバ関数 ---------- ///
 
 	void ForceRefreshWeaponVisual() { weaponVisual_.ForceRefresh(); }
 
-	// サウンド通知
-	void SetOnHitSECallback(std::function<void()> cb) { onHitSE_ = std::move(cb); }
-	void SetOnFireSECallback(std::function<void()> cb) { onFireSE_ = std::move(cb); }
-	void SetOnReloadSECallback(std::function<void()> cb) { onReloadSE_ = std::move(cb); }
-	void SetOnDeathSECallback(std::function<void()> cb) { onDeathSE_ = std::move(cb); }
+	void SetOnHitSECallback(std::function<void()> cb) { audio_.onHit = std::move(cb); }
+	void SetOnFireSECallback(std::function<void()> cb) { audio_.onFire = std::move(cb); }
+	void SetOnReloadSECallback(std::function<void()> cb) { audio_.onReload = std::move(cb); }
+	void SetOnDeathSECallback(std::function<void()> cb) { audio_.onDeath = std::move(cb); }
 
-	bool IsGameOverReady() const { return gameOverReady_; }
+	bool IsGameOverReady() const { return death_.IsGameOverReady(); }
+	bool ConsumeGameOverReady() { return death_.ConsumeGameOverReady(); }
 
-	bool ConsumeGameOverReady()
-	{
-		if (!gameOverReady_ || gameOverNotified_)
-		{
-			return false;
-		}
+	bool IsDeathActive() const { return death_.IsActive(); }
+	bool IsDeathSequenceFinished() const { return death_.IsFinished(); }
 
-		gameOverNotified_ = true;
-		return true;
-	}
-
-	bool IsDeathActive() const { return deathActive_; }
-	bool IsDeathSequenceFinished() const { return deathFinished_; }
-
-public:	// ---- FSMから呼ばれる最小API（PlayerAPIがここを呼ぶ）----
+public:	// ---- FSMから呼ばれる最小API ----
 
 	bool FSM_IsGrounded() const { return motor_.IsGrounded(); }
 	bool FSM_IsSprinting() const { return motor_.IsSprinting(); }
@@ -166,145 +177,109 @@ public:	// ---- FSMから呼ばれる最小API（PlayerAPIがここを呼ぶ）-
 	bool FSM_CanStartBlink() const { return motor_.CanStartBlink(); }
 	bool FSM_IsBlinkFinished() const { return motor_.IsBlinkFinished(); }
 
-	// combat（今はスタブでOK）
 	bool FSM_CanFire() const { return weapon_.CanFire(inputSnap_); }
 	void FSM_FireOnce();
 
 	bool FSM_IsReloadFinished() const { return weapon_.IsReloadFinished(); }
-	void FSM_StartReload()
-	{
-		bool isReloading = false;
-		float reloadTimer = 0.0f;
-		float reloadSec = 0.0f;
-		weapon_.GetReloadUI(isReloading, reloadTimer, reloadSec);
-
-		if (!isReloading)
-		{
-			weapon_.StartReload();
-
-			if (onReloadSE_)
-			{
-				onReloadSE_();
-			}
-		}
-	}
+	void FSM_StartReload();
 	bool FSM_IsMeleeFinished() const;
 	void FSM_StartMelee();
 	void FSM_SetAiming(bool on) { view_.SetAiming(on); }
 	void FSM_SetStunned(bool on);
 
-private: /// ---------- メンバ関数 ---------- ///
+private: /// ---------- 内部構造体 ---------- ///
 
-	// リロードキャンセル
-	void TryCancelReloadInternal();
+	struct ReloadContext
+	{
+		bool isReloading = false;
+		float reloadTimer = 0.0f;
+		float reloadSec = 0.0f;
+	};
+
+	struct InputFrameContext
+	{
+		InputSnapshot rawSnap{};
+		ReloadContext reload{};
+	};
+
+	struct MovementContext
+	{
+		LocoId prev = LocoId::Idle;
+		LocoId cur = LocoId::Idle;
+		CombatId combat = CombatId::Hip;
+
+		bool isAds = false;
+		bool blinkJustStarted = false;
+		bool moving = false;
+		bool isAirLike = false;
+		bool isRunningForFov = false;
+		bool isBlinking = false;
+		bool isReloading = false;
+	};
+
+private: /// ---------- メンバ関数 ---------- ///
 
 	void SyncHurtboxes();
 
-	// ---- ダメージ多段防止（弾IDのTTL管理） ----
-	void TickRecentBulletHits(float dt);
-	bool IsRecentBulletHit(uint32_t id) const { return recentBulletHits_.find(id) != recentBulletHits_.end(); }
-	void MarkRecentBulletHit(uint32_t id);
-
 	void ApplyFallDamage(float deltaTime);
 
-	void HandleWeaponSwitchInput(InputSnapshot& snap);
+	void UpdateInputAndWeapon(float deltaTime);
+	void UpdateBrain(float deltaTime);
+	void UpdateMovementAndView(float deltaTime);
+	void UpdatePresentation(float deltaTime);
+
+	// 入力・武器更新の細分化
+	InputFrameContext BuildInputFrameContext(float deltaTime);
+	void UpdateWeaponBeforeMotor(float deltaTime, InputFrameContext& ctx);
+	void FinalizeInputSnapshotForGameplay(float deltaTime, InputFrameContext& ctx);
+	void ApplyWeaponCameraAndMovementTuning();
+
+	// 移動・視点更新の細分化
+	MovementContext BuildMovementContext() const;
+	void UpdateRunCarry(const MovementContext& ctx);
+	void UpdateHudFromMovement(const MovementContext& ctx);
+	void SimulateMovement(const MovementContext& ctx, float deltaTime);
+	void SyncViewAfterMovement(const MovementContext& ctx, float deltaTime);
 
 	void StartDeath(const K4E::Vector3& launchDirWorld);
 	void UpdateDeath(float deltaTime);
-	bool IsDead() const { return deathActive_; }
+	bool IsDead() const { return death_.IsActive(); }
+
+	void ApplyDamageFeedback(const PlayerDamageComponent::DamageFeedback& fb);
 
 private: /// ----------メンバ変数 ---------- ///
 
-	K4E::Input* input_ = nullptr; // 入力クラス
-	CollisionManager* collisionManager_ = nullptr; // 衝突管理クラス
-	BulletManager* bulletManager_ = nullptr;
-	HUDManager* hudManager_ = nullptr; // HUDへの通知先（任意）
+	PlayerExternalRefs refs_{};
 
-	// 視点・一人称視点制御
 	PlayerViewComponent view_{};
 
-	// ---- Weapon system ----
 	PlayerWeaponComponent weapon_{};
-
-	// 武器の見た目（PlayerViewComponent から武器のワールド変換をもらって右手に同期させる）
 	PlayerWeaponVisualComponent weaponVisual_{};
+	PlayerWeaponController weaponController_{};
+	PlayerCombatComponent combat_{};
 
-	// FSM
 	PlayerAPI api_{};
-	PlayerBrain brain_{};
+	PlayerBrainComponent brainComponent_{};
 	InputSnapshot inputSnap_{};
-	LocoId prevLocoId_ = LocoId::Idle;
 
-	bool runCarry_ = false;
+	PlayerRuntimeState runtime_{};
 
-	PlayerMotorComponent motor_;
+	PlayerMotorComponent motor_{};
 
-	K4E::ContactRecord contactRecord_; // 接触記録
-	std::string skinTexturePath_ = "steve.png"; // スキンテクスチャパス
+	K4E::ContactRecord contactRecord_;
+	std::string skinTexturePath_ = "steve.png";
 
-	// 体力
-	float maxHp_ = 100.0f;
-	float hp_ = 100.0f;
-
-	// ---- 演出（VFX） ----
 	PlayerVfx vfx_{};
 
-	// ---------- 死亡吹っ飛び ----------
-	bool deathActive_ = false;
-	bool deathFinished_ = false;
-	bool deathSettled_ = false;
-	float deathTimer_ = 0.0f;
+	PlayerDeathComponent death_{};
+	PlayerHurtboxComponent hurtbox_{};
+	PlayerDamageComponent damage_{};
 
-	K4E::Vector3 deathVelocity_{ 0.0f, 0.0f, 0.0f };
-	K4E::Vector3 deathLaunchDir_{ 0.0f, 0.0f, -1.0f };
-	K4E::Vector3 deathStartRotate_{ 0.0f, 0.0f, 0.0f };
-
-	float deathDuration_ = 1.25f;
-	float deathGravity_ = 24.0f;
-	float deathGroundFriction_ = 8.0f;
-	float deathLaunchHorizontal_ = 7.5f;
-	float deathLaunchUp_ = 5.0f;
-	float deathTiltTime_ = 0.28f;
-	float deathMaxPitchRad_ = 0.35f;
-	float deathMaxRollRad_ = 1.10f;
-
-	// ---------- 死亡→ゲームオーバー通知 ----------
-	bool gameOverReady_ = false;
-	bool gameOverNotified_ = false;
-
-	float hitscanRange_ = 100.0f; // デバッグ用レイ
-	float shotDebugTimer_ = 0.0f;
-
-	// --- カメラリコイル ---
-	float recoilPitchDegHip_ = 1.35f;	  // 腰撃ちのカメラピッチ反動
-	float recoilYawDegHip_ = 0.85f;   // 腰撃ちのカメラヨー反動
-	float recoilPitchDegAds_ = 0.75f; // ADSのカメラピッチ反動
-	float recoilYawDegAds_ = 0.5f;	  // ADSのカメラヨー反動
-
-	std::array<std::unique_ptr<PlayerHurtbox>, 6> hurtboxes_{};
-	std::array<HurtboxTuning, 6> hbTuning_{};
-	int hbSelected_ = 0;
-	bool hbDebugDraw_ = true;
-
-	bool isDebugCamera_ = false;
-
-	// 弾IDの最近ヒット管理（TTLで掃除）
-	std::unordered_map<uint32_t, float> recentBulletHits_;
-	float recentBulletHitTTL_ = 0.25f;
-
-	// ---- Spawn tuning ----
 	K4E::Vector3 spawnPos_{ 0,0,0 };
 	bool hasSpawnPos_ = false;
 	K4E::Vector3 spawnOffset_{ 0,0,0 };
 
 	FallDamageSettings fallDamageSettings_{};
 
-private: /// ---------- 音声 ---------- ///
-
-	// サウンド
-	std::function<void()> onHitSE_;		// 被弾時のSE
-	std::function<void()> onFireSE_;	// 射撃時のSE
-	std::function<void()> onReloadSE_;	// リロード時のSE
-	std::function<void()> onDeathSE_;	// 死亡時のSE
+	PlayerAudioCallbacks audio_{};
 };
-

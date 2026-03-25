@@ -3,39 +3,35 @@
 #include "Bullet.h"
 #include <CollisionTypeIdDef.h>
 #include <Input.h>
-#include "Camera.h"             
+#include "Camera.h"
 #include "InputSnapshot.h"
 #include "CollisionManager.h"
 #include "HUDManager.h"
 
 #ifdef USE_IMGUI
 #include <imgui.h>
-#endif // USE_IMGUI
+#endif
+
 #include "PlayerHurtbox.h"
 #include "PlayerInputSnapshot.h"
 #include "PlayerStateMachines.h"
+#include "PlayerBrainComponent.h"
+#include "PlayerDeathComponent.h"
+#include "PlayerHurtboxComponent.h"
+#include "PlayerWeaponController.h"
+#include "PlayerCombatComponent.h"
 
-static K4E::Vector3 RotateByEuler(const K4E::Vector3& v, const K4E::Vector3& rot)
+namespace
 {
-	// エンジン側のMatrix4x4::MakeRotateMatrixが使える前提
-	const auto m = K4E::Matrix4x4::MakeRotateMatrix(rot);
+	static bool IsMovingInput(const InputSnapshot& in)
+	{
+		return (in.moveX * in.moveX + in.moveZ * in.moveZ) > 0.01f;
+	}
 
-	// 行/列の定義が環境で違うことがあるので、もし方向が変なら下の式を入れ替えてOK
-	return {
-	   m.m[0][0] * v.x + m.m[0][1] * v.y + m.m[0][2] * v.z,
-	   m.m[1][0] * v.x + m.m[1][1] * v.y + m.m[1][2] * v.z,
-	   m.m[2][0] * v.x + m.m[2][1] * v.y + m.m[2][2] * v.z,
-	};
-}
-
-static void ExtractAxes_Row(const K4E::Matrix4x4& R, K4E::Vector3& ax, K4E::Vector3& ay, K4E::Vector3& az)
-{
-	ax = { R.m[0][0], R.m[0][1], R.m[0][2] };
-	ay = { R.m[1][0], R.m[1][1], R.m[1][2] };
-	az = { R.m[2][0], R.m[2][1], R.m[2][2] };
-	ax = K4E::Vector3::Normalize(ax);
-	ay = K4E::Vector3::Normalize(ay);
-	az = K4E::Vector3::Normalize(az);
+	static bool IsAirLikeLoco(LocoId loco)
+	{
+		return (loco == LocoId::Jump || loco == LocoId::Fall || loco == LocoId::Land);
+	}
 }
 
 /// -------------------------------------------------------------
@@ -43,10 +39,8 @@ static void ExtractAxes_Row(const K4E::Matrix4x4& R, K4E::Vector3& ax, K4E::Vect
 /// -------------------------------------------------------------
 void Player::Initialize()
 {
-	// ベースキャラクター初期化
 	BaseCharacter::Initialize();
 
-	// ---- 初期スポーン位置（座標オフセット） ----
 	{
 		auto* tr = GetWorldTransform();
 		if (tr)
@@ -64,215 +58,198 @@ void Player::Initialize()
 		}
 	}
 
-	// 入力取得
-	input_ = K4E::Input::GetInstance();
+	if (!refs_.input)
+	{
+		refs_.input = K4E::Input::GetInstance();
+	}
 
-	// テクスチャの設定
 	BaseCharacter::ApplySkinToAllParts(skinTexturePath_);
 
-	// ID登録
 	K4E::Collider::SetTypeID(static_cast<uint32_t>(CollisionTypeIdDef::kPlayer));
 	K4E::Collider::SetOwner<Player>(this);
 
-	// hurtbox作成（部位ごと）
-	const uint32_t hurtType = (uint32_t)CollisionTypeIdDef::kPlayer;
-	// ↑まず最小はこれでOK（同じkPlayerバケットに入れて判定させる）
-	// ちゃんと分けたいなら kPlayerHurtbox を enum に追加して typeId を変える
+	hurtbox_.Initialize(*this, refs_.collisionManager);
 
-	auto make = [&](int idx, PlayerHitPart part, float mul, K4E::Vector3 half)
-		{
-			hurtboxes_[idx] = std::make_unique<PlayerHurtbox>();
-			hurtboxes_[idx]->Initialize(this, part, mul, hurtType);
-			hurtboxes_[idx]->SetOBBHalfSize(half);
-
-			auto& t = hbTuning_[idx];
-			t.halfSize = half;
-			t.damageMul = mul;
-			t.enabled = true;
-
-			// 既定の中心オフセット（部位ローカル）
-			// もし将来ロード等で値が入っている場合は上書きしない
-			if (t.localOffset.x == 0.0f && t.localOffset.y == 0.0f && t.localOffset.z == 0.0f)
-			{
-				switch (part)
-				{
-				case PlayerHitPart::Body:
-					t.localOffset = { 0.0f,0.0f, 0.0f };
-					break;
-				case PlayerHitPart::Head:
-					t.localOffset = { 0.0f, t.halfSize.y, 0.0f };
-					break;
-				case PlayerHitPart::LeftArm:
-				case PlayerHitPart::RightArm:
-				case PlayerHitPart::LeftLeg:
-				case PlayerHitPart::RightLeg:
-					t.localOffset = { 0.0f, -t.halfSize.y, 0.0f };
-					break;
-				default:
-					t.localOffset = { 0.0f, 0.0f, 0.0f };
-					break;
-				}
-			}
-
-		};
-
-	make(0, PlayerHitPart::Body, 1.0f, { 0.5f, 0.75f, 0.25f });
-	make(1, PlayerHitPart::Head, 2.0f, { 0.5f, 0.5f, 0.5f });
-	make(2, PlayerHitPart::LeftArm, 1.0f, { 0.25, 0.75, 0.25 });
-	make(3, PlayerHitPart::RightArm, 1.0f, { 0.25, 0.75, 0.25 });
-	make(4, PlayerHitPart::LeftLeg, 1.0f, { 0.25, 0.75, 0.25 });
-	make(5, PlayerHitPart::RightLeg, 1.0f, { 0.25, 0.75, 0.25 });
-
-	// CollisionManagerに登録（Scene側でやってるなら不要）
-	if (collisionManager_)
+	damage_.Initialize(100.0f);
+	if (refs_.hudManager)
 	{
-		for (auto& hb : hurtboxes_) collisionManager_->AddCollider(hb.get());
+		refs_.hudManager->SetHP(damage_.GetHP(), damage_.GetMaxHP());
 	}
 
-	// 体力初期化
-	hp_ = maxHp_;
-	if (hudManager_)
-	{
-		hudManager_->SetHP(hp_, maxHp_);
-	}
-
-	// 演出（VFX）の初期化
 	vfx_.Reset();
 
-	// APIをPlayerに接続
 	api_.player = this;
+	brainComponent_.Initialize(api_);
 
-	// 最初のEnterを呼ぶ（ChangeでEnterが走る）
-	InputSnapshot dummy{};
-	PlayerContext ctx{ api_, dummy, 0.0f };
-	brain_.status.Change(ctx, StatusId::Normal);
-	brain_.loco.Change(ctx, LocoId::Idle);
-	brain_.combat.Change(ctx, CombatId::Hip);
-
-	// View（カメラ/表示）初期化
 	view_.BindBodyTransform(GetWorldTransform());
+
 	PlayerViewComponent::FirstPersonRenderHooks hooks{};
 	hooks.SetBodyActive = [this](bool on) { this->SetBodyActive(on); };
 	hooks.SetAllPartsActive = [this](bool on) { this->SetAllPartsActive(on); };
 	hooks.SetPartActive = [this](int idx, bool on) { this->SetPartActive(idx, on); };
 	hooks.GetLeftArmIndex = [&]() { return (int)GetPartIndices().leftArm; };
 	hooks.GetRightArmIndex = [&]() { return (int)GetPartIndices().rightArm; };
-
 	view_.BindFirstPersonRenderHooks(std::move(hooks));
+
 	auto& parts = GetBodyParts();
-	view_.BindArmTransforms(&parts[GetPartIndices().leftArm].transform, &parts[GetPartIndices().rightArm].transform);
+	view_.BindArmTransforms(
+		&parts[GetPartIndices().leftArm].transform,
+		&parts[GetPartIndices().rightArm].transform);
 
 	view_.Initialize(this);
 
 	{
 		auto* cam = view_.GetCamera();
-		PlayerViewComponent::CameraFovHooks fovHooks{};
-
-		fovHooks.GetFov = [cam]() { return cam->GetFovY(); };
-		fovHooks.SetFov = [cam](float fov) { cam->SetFovY(fov); };
-
-		view_.BindCameraFovHooks(std::move(fovHooks));
+		if (cam)
+		{
+			PlayerViewComponent::CameraFovHooks fovHooks{};
+			fovHooks.GetFov = [cam]() { return cam->GetFovY(); };
+			fovHooks.SetFov = [cam](float fov) { cam->SetFovY(fov); };
+			view_.BindCameraFovHooks(std::move(fovHooks));
+		}
 	}
 
-	// WeaponMasterData をロードして現在武器を適用
 	weapon_.LoadWeaponMasterDataOnce();
 
-	prevLocoId_ = brain_.loco.id;
+	brainComponent_.SetPrevLocoId(brainComponent_.GetCurrentLocoId());
 
 	weaponVisual_.Initialize();
 	weaponVisual_.BindWeaponLogic(&weapon_);
 	weaponVisual_.BindRightHandTransform(&parts[GetPartIndices().rightArm].transform);
+
+	weaponController_.Initialize(&weapon_, &weaponVisual_, &brainComponent_, &api_);
+	combat_.BindDependencies(&weapon_, &view_);
+	combat_.SetAudioCallbacks(&audio_.onFire, &audio_.onReload);
 }
 
+void Player::BindDependencies(const PlayerDependencies& deps)
+{
+	refs_ = deps.refs;
+	audio_ = deps.audio;
+
+	if (!refs_.input)
+	{
+		refs_.input = K4E::Input::GetInstance();
+	}
+
+	if (deps.shootCamera)
+	{
+		view_.SetShootCamera(deps.shootCamera);
+	}
+}
 
 /// -------------------------------------------------------------
 ///				　			　 更新処理
 /// -------------------------------------------------------------
 void Player::Update(float deltaTime)
 {
-	if (isDebugCamera_)
+	if (runtime_.isDebugCamera)
 	{
-		BaseCharacter::Update(deltaTime); // デバッグカメラ中はベースのUpdateも呼ぶ（移動や回転を反映させるため）
-		return; // デバッグカメラ中は以降の処理をスキップ
+		BaseCharacter::Update(deltaTime);
+		return;
 	}
 
-	if (!input_) { BaseCharacter::Update(deltaTime); return; }
+	if (!refs_.input)
+	{
+		BaseCharacter::Update(deltaTime);
+		return;
+	}
 
-	// ---- 死亡中は通常の入力/FSM/武器更新を止めて専用演出だけ回す ----
-	if (deathActive_)
+	if (death_.IsActive())
 	{
 		UpdateDeath(deltaTime);
 		return;
 	}
 
-	// ---- 最近当たった弾IDの掃除（多段ヒット防止のTTL） ----
-	TickRecentBulletHits(deltaTime);
+	damage_.Tick(deltaTime);
+	combat_.Tick(deltaTime);
 
-	// Snapshot生成（raw）
-	InputSnapshot rawSnap = BuildInputSnapshot(*input_);
+	UpdateInputAndWeapon(deltaTime);
+	UpdateBrain(deltaTime);
+	UpdateMovementAndView(deltaTime);
+	UpdatePresentation(deltaTime);
+	ApplyFallDamage(deltaTime);
+}
 
-	// ---- 武器切替入力を先に処理 ----
-	HandleWeaponSwitchInput(rawSnap);
+void Player::UpdateInputAndWeapon(float deltaTime)
+{
+	InputFrameContext ctx = BuildInputFrameContext(deltaTime);
+	UpdateWeaponBeforeMotor(deltaTime, ctx);
+	FinalizeInputSnapshotForGameplay(deltaTime, ctx);
+	ApplyWeaponCameraAndMovementTuning();
+}
 
-	// ---- Weapon（トグル/近接リマップ/切替/内部Tick）をコンポーネントへ委譲 ----
-	// ※武器側が「移動/ジャンプでリロードキャンセル」等の入力を見る可能性があるため、
-	//   まず raw を渡して武器状態を更新する。
-	weapon_.UpdateAndHandleInput(deltaTime, rawSnap);
+Player::InputFrameContext Player::BuildInputFrameContext(float /*deltaTime*/)
+{
+	InputFrameContext ctx{};
+	ctx.rawSnap = BuildInputSnapshot(*refs_.input);
+	return ctx;
+}
 
-	// ---- リロード中の移動制限/キャンセル ----
-	// 仕様:
-	//  - リロード中は走らない（= sprint/blink 無効）
-	//  - リロード中はジャンプしない
-	//  - ただし「走る/ジャンプ/ダッシュ」を入力したらリロードをキャンセルする
-	bool isReloading = false;
-	float reloadTimer = 0.0f;
-	float reloadSec = 0.0f;
-	weapon_.GetReloadUI(isReloading, reloadTimer, reloadSec);
+void Player::UpdateWeaponBeforeMotor(float deltaTime, InputFrameContext& ctx)
+{
+	weaponController_.HandleWheelSwitch(ctx.rawSnap);
 
-	const bool wantsCancelReload = isReloading && (rawSnap.sprintHeld || rawSnap.jumpPressed || rawSnap.blinkPressed);
+	weapon_.UpdateAndHandleInput(deltaTime, ctx.rawSnap);
+
+	weapon_.GetReloadUI(
+		ctx.reload.isReloading,
+		ctx.reload.reloadTimer,
+		ctx.reload.reloadSec);
+
+	const bool wantsCancelReload =
+		ctx.reload.isReloading &&
+		(ctx.rawSnap.sprintHeld || ctx.rawSnap.jumpPressed || ctx.rawSnap.blinkPressed);
+
 	if (wantsCancelReload)
 	{
-		TryCancelReloadInternal();
-
-		// FSM側もリロード状態から即復帰（体感の遅延をなくす）
-		// ※武器側のキャンセル実装が無い場合でも、プレイヤー操作はすぐ戻せる。
-		if (brain_.combat.id == CombatId::Reload)
-		{
-			PlayerContext cancelCtx{ api_, rawSnap, deltaTime };
-			brain_.combat.Change(cancelCtx, rawSnap.aimHeld ? CombatId::Aim : CombatId::Hip);
-		}
-
-		// このフレームは「キャンセルした扱い」で制限をかけない
-		isReloading = false;
+		weaponController_.TryCancelReloadAndRestoreCombat(ctx.rawSnap, deltaTime);
+		ctx.reload.isReloading = false;
+		ctx.reload.reloadTimer = 0.0f;
+		ctx.reload.reloadSec = 0.0f;
 	}
+}
 
-	// Snapshot（FSM / Motor / View に流す用）
-	inputSnap_ = rawSnap;
-	if (isReloading)
+void Player::FinalizeInputSnapshotForGameplay(float deltaTime, InputFrameContext& ctx)
+{
+	inputSnap_ = ctx.rawSnap;
+
+	if (ctx.reload.isReloading)
 	{
-		// 走る/ジャンプ/ダッシュを抑止（歩きは許可）
 		inputSnap_.sprintHeld = false;
 		inputSnap_.jumpPressed = false;
 		inputSnap_.blinkPressed = false;
 	}
 
 	auto* tr = GetWorldTransform();
+	if (!tr)
+	{
+		return;
+	}
+
 	motor_.BindTransform(tr);
 	motor_.PreprocessInput(inputSnap_, deltaTime);
 	SetCenterPosition(tr->translate_);
 
-	// View：カメラ角度を先に更新（＝移動方向の基準になる）
 	view_.BindBodyTransform(tr);
 	view_.SetAiming(inputSnap_.aimHeld);
+	view_.UpdateLook(deltaTime, inputSnap_);
+}
 
-	float adsFovDeg = 60.0f; // 仮のADS時FOV。将来武器ごとに変えたい場合は WeaponData に入れて weapon_ から取る。
-	float adsSpeed = 10.0f; // 仮のADS時FOV変化速度。将来武器ごとに変えたい場合は WeaponData に入れて weapon_ から取る。
+void Player::ApplyWeaponCameraAndMovementTuning()
+{
+	float adsFovDeg = 60.0f;
+	float adsSpeed = 10.0f;
 	if (weapon_.GetCurrentAdsViewTuning(adsFovDeg, adsSpeed))
 	{
 		view_.SetWeaponAdsTuning(adsFovDeg, adsSpeed);
 	}
+	else
+	{
+		view_.SetWeaponAdsTuning(adsFovDeg, adsSpeed);
+	}
 
-	float adsMoveMul = 0.85f; // fallback（WeaponMasterDataのデフォルトに寄せる）
+	float adsMoveMul = 0.85f;
 	if (weapon_.GetCurrentAdsMoveMultiplier(adsMoveMul))
 	{
 		motor_.SetAdsMoveMultiplier(adsMoveMul);
@@ -281,106 +258,153 @@ void Player::Update(float deltaTime)
 	{
 		motor_.SetAdsMoveMultiplier(adsMoveMul);
 	}
+}
 
-	view_.UpdateLook(deltaTime, inputSnap_);
+void Player::UpdateBrain(float deltaTime)
+{
+	brainComponent_.Update(inputSnap_, deltaTime);
+}
 
-	// FSM更新（SetMoveInputなどが呼ばれる）
-	PlayerContext ctx{ api_, inputSnap_, deltaTime };
-	brain_.Update(ctx);
+void Player::UpdateMovementAndView(float deltaTime)
+{
+	const MovementContext ctx = BuildMovementContext();
 
-	const LocoId prev = prevLocoId_;
-	const bool isAds = inputSnap_.aimHeld;
-	const bool blinkJustStarted = (brain_.loco.id == LocoId::Blink && prev != LocoId::Blink);
-	const bool moving = (inputSnap_.moveX * inputSnap_.moveX + inputSnap_.moveZ * inputSnap_.moveZ) > 0.01f;
+	UpdateRunCarry(ctx);
+	UpdateHudFromMovement(ctx);
+	SimulateMovement(ctx, deltaTime);
+	SyncViewAfterMovement(ctx, deltaTime);
 
-	const LocoId cur = brain_.loco.id;
-	const bool isAirLike = (cur == LocoId::Jump || cur == LocoId::Fall || cur == LocoId::Land);
+	brainComponent_.SetPrevLocoId(ctx.cur);
 
-	if (cur == LocoId::Run)
+	BaseCharacter::Update(deltaTime);
+}
+
+Player::MovementContext Player::BuildMovementContext() const
+{
+	MovementContext ctx{};
+
+	ctx.prev = brainComponent_.GetPrevLocoId();
+	ctx.cur = brainComponent_.GetCurrentLocoId();
+	ctx.combat = brainComponent_.GetCurrentCombatId();
+
+	ctx.isAds = (ctx.combat == CombatId::Aim) || inputSnap_.aimHeld;
+	ctx.blinkJustStarted = (ctx.cur == LocoId::Blink && ctx.prev != LocoId::Blink);
+	ctx.moving = IsMovingInput(inputSnap_);
+	ctx.isAirLike = IsAirLikeLoco(ctx.cur);
+	ctx.isBlinking = (ctx.cur == LocoId::Blink);
+
+	float dummyReloadTimer = 0.0f;
+	float dummyReloadSec = 0.0f;
+	weapon_.GetReloadUI(
+		ctx.isReloading,
+		dummyReloadTimer,
+		dummyReloadSec);
+
+	return ctx;
+}
+
+void Player::UpdateRunCarry(const MovementContext& ctx)
+{
+	if (ctx.cur == LocoId::Run)
 	{
-		runCarry_ = true;
+		runtime_.runCarry = true;
 	}
 
-	// Run から空中へ入った瞬間は carry を維持する
-	if (prev == LocoId::Run && isAirLike)
+	if (ctx.prev == LocoId::Run && ctx.isAirLike)
 	{
-		runCarry_ = true;
+		runtime_.runCarry = true;
 	}
 
-	// ダッシュは別扱い
-	if (cur == LocoId::Blink)
+	if (ctx.cur == LocoId::Blink)
 	{
-		runCarry_ = false;
+		runtime_.runCarry = false;
 	}
 
-	if (isAirLike)
+	if (ctx.isAirLike)
 	{
-		// SHIFTを離した、ADSした、移動入力がない、のどれかで初めて解除
-		if (!inputSnap_.sprintHeld || isAds || !moving)
+		if (!inputSnap_.sprintHeld || ctx.isAds || !ctx.moving)
 		{
-			runCarry_ = false;
+			runtime_.runCarry = false;
 		}
 	}
 	else
 	{
-		// 地上では Run 以外なら carry 不要
-		if (cur != LocoId::Run)
+		if (ctx.cur != LocoId::Run)
 		{
-			runCarry_ = false;
+			runtime_.runCarry = false;
 		}
 	}
-
-	const bool isRunningForFov = (cur == LocoId::Run) || (isAirLike && runCarry_);
-	const bool isBlinking = (cur == LocoId::Blink);
-
-	// ---- HUD連携（クロスヘア移動状態 / 着地 / HP） ----
-	if (hudManager_)
-	{
-		const bool crosshairMoving = moving || isBlinking;
-		const bool crosshairSprinting =
-			(cur == LocoId::Run) ||
-			(cur == LocoId::Blink) ||
-			((cur == LocoId::Jump || cur == LocoId::Fall) && inputSnap_.sprintHeld && !isAds);
-		const bool crosshairAirborne = (cur == LocoId::Jump || cur == LocoId::Fall);
-		hudManager_->SetCrosshairMovementState(crosshairMoving, crosshairSprinting, crosshairAirborne);
-		if (cur == LocoId::Land && prev != LocoId::Land)
-		{
-			hudManager_->NotifyCrosshairLanded();
-		}
-		hudManager_->SetHP(hp_, maxHp_);
-	}
-
-	motor_.Simulate(deltaTime, view_.GetYaw(), brain_.loco.id, isAds, isReloading);
-
-	// 最後にカメラをプレイヤーへ位置同期（行列更新もここで）
-	view_.UpdateMovementFov(deltaTime, isRunningForFov, isBlinking, blinkJustStarted);
-	view_.SyncToPlayer();
-	view_.SyncViewModeToFirstPersonFlag();
-
-	prevLocoId_ = brain_.loco.id;
-
-	// 親子描画更新
-	BaseCharacter::Update(deltaTime);
-
-	// 右手のワールド変換が更新されたあとに武器モデルを追従
-	weaponVisual_.Update(deltaTime, inputSnap_.aimHeld);
-
-	SyncHurtboxes();
-	vfx_.Update(deltaTime);
-
-	ApplyFallDamage(deltaTime);
-
 }
 
+void Player::UpdateHudFromMovement(const MovementContext& ctx)
+{
+	if (!refs_.hudManager)
+	{
+		return;
+	}
+
+	const bool crosshairMoving = ctx.moving || ctx.isBlinking;
+	const bool crosshairSprinting =
+		(ctx.cur == LocoId::Run) ||
+		(ctx.cur == LocoId::Blink) ||
+		((ctx.cur == LocoId::Jump || ctx.cur == LocoId::Fall) && inputSnap_.sprintHeld && !ctx.isAds);
+	const bool crosshairAirborne = (ctx.cur == LocoId::Jump || ctx.cur == LocoId::Fall);
+
+	refs_.hudManager->SetCrosshairMovementState(
+		crosshairMoving,
+		crosshairSprinting,
+		crosshairAirborne);
+
+	if (ctx.cur == LocoId::Land && ctx.prev != LocoId::Land)
+	{
+		refs_.hudManager->NotifyCrosshairLanded();
+	}
+
+	refs_.hudManager->SetHP(damage_.GetHP(), damage_.GetMaxHP());
+}
+
+void Player::SimulateMovement(const MovementContext& ctx, float deltaTime)
+{
+	const bool isRunningForFov = (ctx.cur == LocoId::Run) || (ctx.isAirLike && runtime_.runCarry);
+
+	motor_.Simulate(
+		deltaTime,
+		view_.GetYaw(),
+		ctx.cur,
+		ctx.isAds,
+		ctx.isReloading);
+
+	view_.UpdateMovementFov(
+		deltaTime,
+		isRunningForFov,
+		ctx.isBlinking,
+		ctx.blinkJustStarted);
+}
+
+void Player::SyncViewAfterMovement(const MovementContext& /*ctx*/, float /*deltaTime*/)
+{
+	view_.SyncToPlayer();
+	view_.SyncViewModeToFirstPersonFlag();
+}
+
+void Player::UpdatePresentation(float deltaTime)
+{
+	weaponVisual_.Update(deltaTime, inputSnap_.aimHeld);
+	SyncHurtboxes();
+	vfx_.Update(deltaTime);
+}
+
+void Player::SyncHurtboxes()
+{
+	hurtbox_.Sync(*this);
+}
 
 /// -------------------------------------------------------------
-///				　			　 描画処理
+///					　			 描画処理
 /// -------------------------------------------------------------
 void Player::Draw()
 {
-	// ベースキャラクター描画
 	BaseCharacter::Draw();
-	// 武器の描画
 	weaponVisual_.Draw();
 }
 
@@ -390,37 +414,11 @@ void Player::Draw()
 void Player::DrawImGui()
 {
 #ifdef USE_IMGUI
-
 	view_.DrawImGui();
-
 	weapon_.DrawImGui();
-
-	if (ImGui::CollapsingHeader("Recoil Tuning", ImGuiTreeNodeFlags_DefaultOpen))
-	{
-		ImGui::Text("Pre-shot camera kick (deg)");
-		ImGui::DragFloat("Hip Pitch", &recoilPitchDegHip_, 0.01f, 0.0f, 10.0f, "%.2f");
-		ImGui::DragFloat("Hip Yaw", &recoilYawDegHip_, 0.1f, 0.0f, 20.0f);
-		ImGui::Separator();
-		ImGui::DragFloat("ADS Pitch", &recoilPitchDegAds_, 0.01f, 0.0f, 10.0f, "%.2f");
-		ImGui::DragFloat("ADS Yaw", &recoilYawDegAds_, 0.01f, 0.0f, 10.0f, "%.2f");
-	}
-
-	static const char* kPartNames[] = { "Body","Head","LeftArm","RightArm","LeftLeg","RightLeg" };
-
-	if (ImGui::CollapsingHeader("Player Hurtbox Tuning", ImGuiTreeNodeFlags_DefaultOpen))
-	{
-		ImGui::Checkbox("DebugDraw", &hbDebugDraw_);
-		ImGui::Combo("Part", &hbSelected_, kPartNames, IM_ARRAYSIZE(kPartNames));
-
-		auto& t = hbTuning_[hbSelected_];
-		ImGui::Checkbox("Enabled", &t.enabled);
-		ImGui::DragFloat3("LocalOffset", &t.localOffset.x, 0.01f);
-		ImGui::DragFloat3("HalfSize", &t.halfSize.x, 0.01f, 0.01f, 10.0f);
-		ImGui::DragFloat3("RotOffset", &t.rotOffset.x, 0.01f);
-		ImGui::DragFloat("DamageMul", &t.damageMul, 0.01f, 0.1f, 10.0f);
-	}
-
-#endif // USE_IMGUI
+	combat_.DrawImGui();
+	hurtbox_.DrawImGui();
+#endif
 }
 
 void Player::DrawShadow()
@@ -441,161 +439,42 @@ void Player::OnCollision(K4E::Collider* other)
 {
 	if (!other) return;
 
-	// ここでは「弾っぽいもの」を一律で委譲。
 	OnHitByEnemyBullet(other, PlayerHitPart::Body, 1.0f);
 }
 
-void Player::TryCancelReloadInternal()
-{
-	// WeaponComponent 側の実装差に耐えるため、存在する関数だけを呼ぶ。
-	// （存在しない関数は requires によりコンパイル対象にならない）
-	if constexpr (requires(decltype(weapon_) & w) { w.CancelReload(); })
-	{
-		weapon_.CancelReload();
-	}
-	else if constexpr (requires(decltype(weapon_) & w) { w.AbortReload(); })
-	{
-		weapon_.AbortReload();
-	}
-	else if constexpr (requires(decltype(weapon_) & w) { w.StopReload(); })
-	{
-		weapon_.StopReload();
-	}
-	else
-	{
-		// 何もできない場合はFSMだけ解除する（操作感は戻るが、武器側はリロード完了まで撃てない可能性がある）
-	}
-}
-
-bool PlayerAPI::IsGrounded() const { return player ? player->FSM_IsGrounded() : true; }
-float PlayerAPI::VerticalVelocity() const { return player ? player->FSM_VerticalVelocity() : 0.0f; }
-
-void PlayerAPI::SetMoveInput(float x, float z) { if (player) player->FSM_SetMoveInput(x, z); }
-void PlayerAPI::SetSprint(bool on) { if (player) player->FSM_SetSprint(on); }
-void PlayerAPI::Jump() { if (player) player->FSM_Jump(); }
-void PlayerAPI::StartBlink() { if (player) player->FSM_StartBlink(); }
-bool PlayerAPI::CanStartBlink() const { return player ? player->FSM_CanStartBlink() : false; }
-bool PlayerAPI::IsBlinkFinished() const { return player ? player->FSM_IsBlinkFinished() : true; }
-
-bool PlayerAPI::CanFire() const { return player ? player->FSM_CanFire() : false; }
-void PlayerAPI::FireOnce() { if (player) player->FSM_FireOnce(); }
-bool PlayerAPI::IsReloadFinished() const { return player ? player->FSM_IsReloadFinished() : true; }
-void PlayerAPI::StartReload() { if (player) player->FSM_StartReload(); }
-bool PlayerAPI::IsMeleeFinished() const { return player ? player->FSM_IsMeleeFinished() : true; }
-void PlayerAPI::StartMelee() { if (player) player->FSM_StartMelee(); }
-
-void PlayerAPI::SetAiming(bool on) { if (player) player->FSM_SetAiming(on); }
-void PlayerAPI::SetStunned(bool on) { if (player) player->FSM_SetStunned(on); }
-
 void Player::OnHitByEnemyBullet(K4E::Collider* bullet, PlayerHitPart part, float mul)
 {
-	if (!bullet) return;
+	const auto fb = damage_.OnHitByEnemyBullet(
+		*this,
+		bullet,
+		part,
+		mul,
+		view_,
+		weaponController_,
+		death_,
+		inputSnap_,
+		api_,
+		runtime_.runCarry,
+		audio_.onHit,
+		audio_.onDeath);
 
-	const uint32_t otherType = bullet->GetTypeID();
-	const uint32_t kEnemyBullet = static_cast<uint32_t>(CollisionTypeIdDef::kEnemyBullet);
-	const uint32_t kBossBullet = static_cast<uint32_t>(CollisionTypeIdDef::kBossBullet);
-
-	// 敵弾以外は無視
-	if (otherType != kEnemyBullet && otherType != kBossBullet) return;
-
-	// ---- 多段ヒット防止（重要）
-	// 1発の弾が「頭」「腕」「胴」など複数Hurtboxに同フレームで当たっても1回だけにする
-	const uint32_t bulletId = bullet->GetUniqueID();
-	if (IsRecentBulletHit(bulletId)) return;
-	MarkRecentBulletHit(bulletId);
-
-	// ---- ダメージ取得
-	int baseDmg = 1;
-	if (auto* b = bullet->GetOwner<Bullet>())
-	{
-		baseDmg = b->GetDamage();
-	}
-
-	// ---- 部位倍率（mulはHurtbox側で渡してる）
-	float dmg = static_cast<float>(baseDmg) * mul;
-
-	// ダメージを受ける前に「生きていたか」を保存
-	const bool wasAlive = (hp_ > 0.0f);
-
-	hp_ -= dmg;
-	if (hp_ < 0.0f) hp_ = 0.0f;
-
-	// 被弾音
-	if (onHitSE_)
-	{
-		onHitSE_();
-	}
-
-	// このフレームで死亡した瞬間だけ死亡音
-	if (wasAlive && hp_ <= 0.0f)
-	{
-		if (onDeathSE_)
-		{
-			onDeathSE_();
-		}
-	}
-
-	vfx_.OnDamaged(dmg, maxHp_);
-	if (hudManager_)
-	{
-		float strength01 = (maxHp_ > 0.0f) ? (dmg / maxHp_) : 1.0f;
-		if (strength01 < 0.10f) strength01 = 0.10f;
-		if (strength01 > 1.00f) strength01 = 1.00f;
-		hudManager_->SetHP(hp_, maxHp_);
-		hudManager_->NotifyPlayerHit(strength01);
-	}
-
-	// ---- 任意：被弾スタン（入れたいなら）
-	// PlayerBrain は status が Stunned だと loco/combat を止める設計なので相性が良い
-	float stunSec = 0.08f; // 基本
-	switch (part)
-	{
-	case PlayerHitPart::Head: stunSec = 0.15f; break; // ヘッドは少し長め
-	default: break;
-	}
-
-	// 死亡した瞬間だけ死亡演出開始
-	if (wasAlive && hp_ <= 0.0f)
-	{
-		K4E::Vector3 launchDir = { 0.0f, 0.0f, -1.0f };
-
-		// できるだけ「被弾で後ろに吹っ飛ぶ」感じにする
-		// Bullet の座標APIに依存しないよう、まずはカメラ前方の逆方向を使う
-		if (auto* cam = view_.GetCamera())
-		{
-			launchDir = -cam->GetForward();
-			launchDir.y = 0.0f;
-
-			if (K4E::Vector3::Length(launchDir) > 0.0001f)
-			{
-				launchDir = K4E::Vector3::Normalize(launchDir);
-			}
-			else
-			{
-				launchDir = { 0.0f, 0.0f, -1.0f };
-			}
-		}
-
-		StartDeath(launchDir);
-		return;
-	}
-
-	// 生存中だけスタン/通常復帰
-	PlayerContext ctx{ api_, inputSnap_, 0.0f };
-	brain_.status.RequestStun(ctx, stunSec);
-
-	brain_.loco.Change(ctx, LocoId::Idle);
-	brain_.combat.Change(ctx, CombatId::Hip);
+	ApplyDamageFeedback(fb);
 }
 
 void Player::NotifyEnemyHitUI(bool isHeadshot)
 {
-	if (hudManager_) hudManager_->NotifyEnemyHit(isHeadshot);
+	if (refs_.hudManager)
+	{
+		refs_.hudManager->NotifyEnemyHit(isHeadshot);
+	}
 }
 
 void Player::NotifyEnemyKillUI(bool isHeadshot)
 {
-	if (hudManager_) hudManager_->NotifyEnemyKill(isHeadshot);
+	if (refs_.hudManager)
+	{
+		refs_.hudManager->NotifyEnemyKill(isHeadshot);
+	}
 }
 
 bool Player::GetWeaponSlotHUD(WeaponSlot::HudSnapshot& out) const
@@ -620,6 +499,7 @@ void Player::SetSpawnPosition(const K4E::Vector3& worldPos)
 {
 	spawnPos_ = worldPos;
 	hasSpawnPos_ = true;
+
 	if (auto* tr = GetWorldTransform())
 	{
 		tr->translate_ = spawnPos_ + spawnOffset_;
@@ -643,7 +523,6 @@ void Player::SetSpawnOffset(const K4E::Vector3& offset)
 
 void Player::ApplyEditedWeaponDataFromEditor(int32_t weaponID, const FWeaponMasterData& data)
 {
-	// runtime側の WeaponMasterDatabase を更新
 	auto& db = weapon_.GetWeaponMasterDatabase();
 	FWeaponMasterData* runtimeData = db.FindMutableByID(weaponID);
 	if (!runtimeData)
@@ -653,306 +532,76 @@ void Player::ApplyEditedWeaponDataFromEditor(int32_t weaponID, const FWeaponMast
 
 	*runtimeData = data;
 
-	// 今装備中なら、WeaponInstance を作り直して各種パラメータを反映
 	if (weapon_.GetCurrentWeaponId() == weaponID)
 	{
 		weapon_.RebuildCurrentWeaponFromDatabase();
-
-		// 見た目も次フレームで必ず再構築
 		weaponVisual_.ForceRefresh();
 	}
 }
 
-void Player::FSM_FireOnce()
-{
-	// NOTE: CombatFSM から呼ばれる発射処理は「必ずここ」を通す
-	auto* shootCam = view_.GetShootCamera();
-	if (!bulletManager_ || !shootCam) return;
-
-	const bool fired = weapon_.TryFire(inputSnap_, shootCam, bulletManager_, collisionManager_);
-	if (!fired) return;
-
-	// 発射した瞬間のSE
-	if (onFireSE_) onFireSE_();
-
-	/// ---------- カメラリコイル処理 ---------- ///
-	const bool ads = inputSnap_.aimHeld;
-	const float vDeg = ads ? recoilPitchDegAds_ : recoilPitchDegHip_;
-	const float hDeg = ads ? recoilYawDegAds_ : recoilYawDegHip_;
-	view_.AddRecoil(vDeg, hDeg);
-
-	// ---- デバッグ用のショットレイ（命中判定とは別） ----
-	if (auto* cam = view_.GetCamera())
-	{
-		K4E::Segment seg{};
-		seg.origin = cam->GetTranslate();
-		seg.diff = cam->GetForward() * hitscanRange_;
-		SetSegment(seg);
-		shotDebugTimer_ = 0.05f;
-	}
-}
-
-bool Player::FSM_IsMeleeFinished() const { return true; } // TODO: 近接実装時に置換
-void Player::FSM_StartMelee() {}                           // TODO: 近接実装時に置換
-
-void Player::FSM_SetStunned(bool) {}
-
-void Player::TickRecentBulletHits(float dt)
-{
-	for (auto it = recentBulletHits_.begin(); it != recentBulletHits_.end(); )
-	{
-		it->second -= dt;
-		if (it->second <= 0.0f) it = recentBulletHits_.erase(it);
-		else ++it;
-	}
-}
-
-void Player::MarkRecentBulletHit(uint32_t id)
-{
-	// 念のため上限。極端にIDが増える状況でも肥大化しないようにする。
-	if (recentBulletHits_.size() > 256) recentBulletHits_.clear();
-	recentBulletHits_[id] = recentBulletHitTTL_;
-}
-
 void Player::ApplyFallDamage(float deltaTime)
 {
-	if (deathActive_) return;
+	const auto fb = damage_.ApplyFallDamage(
+		*this,
+		deltaTime,
+		fallDamageSettings_,
+		view_,
+		weaponController_,
+		death_,
+		inputSnap_,
+		api_,
+		runtime_.runCarry,
+		audio_.onDeath);
 
-	if (!fallDamageSettings_.enabled) return;
-
-	auto* tr = GetWorldTransform();
-	if (!tr) return;
-
-	if (tr->translate_.y <= fallDamageSettings_.startY)
-	{
-		const float dmg = fallDamageSettings_.damagePerSecond * deltaTime;
-
-		// ここはあなたのHP/ダメージ関数名に合わせて置き換え
-		// 例: TakeDamage(dmg);
-		// 例: hp_ -= dmg;
-		hp_ -= dmg;
-	}
-}
-
-void Player::HandleWeaponSwitchInput(InputSnapshot& snap)
-{
-	bool switched = false;
-
-	// --------------------------------------------------
-	// ホイール切替だけをここで処理
-	// 数字キー切替は PlayerWeaponComponent 側に任せる
-	// --------------------------------------------------
-	if (snap.weaponSwitch > 0)
-	{
-		weapon_.SwitchWeaponCategoryByDelta(-1);
-		switched = true;
-	}
-	else if (snap.weaponSwitch < 0)
-	{
-		weapon_.SwitchWeaponCategoryByDelta(+1);
-		switched = true;
-	}
-
-	if (!switched)
-	{
-		return;
-	}
-
-	// 武器切替時はリロードを即中断したい
-	bool isReloading = false;
-	float reloadTimer = 0.0f;
-	float reloadSec = 0.0f;
-	weapon_.GetReloadUI(isReloading, reloadTimer, reloadSec);
-
-	if (isReloading)
-	{
-		TryCancelReloadInternal();
-
-		// FSM側もすぐ通常戦闘へ戻す
-		if (brain_.combat.id == CombatId::Reload)
-		{
-			PlayerContext cancelCtx{ api_, snap, 0.0f };
-			brain_.combat.Change(cancelCtx, snap.aimHeld ? CombatId::Aim : CombatId::Hip);
-		}
-	}
-
-	// ホイールだけ消費する
-	// 数字キーは weapon_.UpdateAndHandleInput() 側でカテゴリ切替に使う
-	snap.weaponSwitch = 0;
-
-	// 見た目は次フレームで確実に更新
-	weaponVisual_.ForceRefresh();
+	ApplyDamageFeedback(fb);
 }
 
 void Player::StartDeath(const K4E::Vector3& launchDirWorld)
 {
-	if (deathActive_)
-	{
-		return;
-	}
-
-	deathActive_ = true;
-	deathFinished_ = false;
-	deathSettled_ = false;
-	deathTimer_ = 0.0f;
-
-	gameOverReady_ = false;
-	gameOverNotified_ = false;
-
-	inputSnap_ = InputSnapshot{};
-	TryCancelReloadInternal();
-	weaponVisual_.ForceRefresh();
-
-	auto* tr = GetWorldTransform();
-	if (!tr)
-	{
-		return;
-	}
-
-	deathStartRotate_ = tr->rotate_;
-
-	deathLaunchDir_ = launchDirWorld;
-	deathLaunchDir_.y = 0.0f;
-
-	if (K4E::Vector3::Length(deathLaunchDir_) <= 0.0001f)
-	{
-		deathLaunchDir_ = { 0.0f, 0.0f, -1.0f };
-	}
-	else
-	{
-		deathLaunchDir_ = K4E::Vector3::Normalize(deathLaunchDir_);
-	}
-
-	deathVelocity_ =
-		deathLaunchDir_ * deathLaunchHorizontal_ +
-		K4E::Vector3{ 0.0f, deathLaunchUp_, 0.0f };
-
-	runCarry_ = false;
-	view_.SetAiming(false);
-
-	// カメラも一緒に倒す
-	const float rollSign = (deathLaunchDir_.x >= 0.0f) ? -1.0f : 1.0f;
-	view_.StartDeathCamera(-deathMaxPitchRad_, deathMaxRollRad_ * rollSign);
+	death_.Start(
+		*this,
+		launchDirWorld,
+		view_,
+		weaponVisual_,
+		inputSnap_,
+		runtime_.runCarry,
+		[this]() { weaponController_.CancelReloadOnly(); });
 }
 
 void Player::UpdateDeath(float deltaTime)
 {
-	deathTimer_ += deltaTime;
+	death_.Update(
+		*this,
+		deltaTime,
+		motor_,
+		view_,
+		weaponVisual_,
+		hurtbox_,
+		vfx_,
+		refs_.hudManager,
+		damage_.GetHP(),
+		damage_.GetMaxHP());
+}
 
-	auto* tr = GetWorldTransform();
-	if (!tr)
+void Player::ApplyDamageFeedback(const PlayerDamageComponent::DamageFeedback& fb)
+{
+	if (!fb.tookDamage)
 	{
-		BaseCharacter::Update(deltaTime);
 		return;
 	}
 
-	if (!deathSettled_)
+	vfx_.OnDamaged(fb.damage, fb.maxHp);
+
+	if (refs_.hudManager)
 	{
-		deathVelocity_.y -= deathGravity_ * deltaTime;
-		tr->translate_ += deathVelocity_ * deltaTime;
-
-		if (motor_.IsGrounded() && deathVelocity_.y <= 0.0f)
+		if (fb.hpChanged)
 		{
-			deathVelocity_.y = 0.0f;
+			refs_.hudManager->SetHP(fb.hpAfter, fb.maxHp);
+		}
 
-			const float damp = std::max(0.0f, 1.0f - deathGroundFriction_ * deltaTime);
-			deathVelocity_.x *= damp;
-			deathVelocity_.z *= damp;
-
-			const float speedXZSq =
-				deathVelocity_.x * deathVelocity_.x +
-				deathVelocity_.z * deathVelocity_.z;
-
-			if (speedXZSq < 0.01f)
-			{
-				deathVelocity_.x = 0.0f;
-				deathVelocity_.z = 0.0f;
-				deathSettled_ = true;
-			}
+		if (fb.notifyPlayerHit)
+		{
+			refs_.hudManager->NotifyPlayerHit(fb.hitStrength01);
 		}
 	}
-
-	float t = deathTimer_ / deathTiltTime_;
-	if (t < 0.0f) t = 0.0f;
-	if (t > 1.0f) t = 1.0f;
-
-	{
-		const float rollSign = (deathLaunchDir_.x >= 0.0f) ? -1.0f : 1.0f;
-
-		tr->rotate_.x = deathStartRotate_.x + deathMaxPitchRad_ * t;
-		tr->rotate_.z = deathStartRotate_.z + deathMaxRollRad_ * rollSign * t;
-	}
-
-	// カメラも同じ進行率で倒す
-	view_.UpdateDeathCamera(deltaTime, t);
-
-	SetCenterPosition(tr->translate_);
-
-	view_.BindBodyTransform(tr);
-	view_.SyncToPlayer();
-	view_.SyncViewModeToFirstPersonFlag();
-
-	weaponVisual_.Update(deltaTime, false);
-	SyncHurtboxes();
-	vfx_.Update(deltaTime);
-	BaseCharacter::Update(deltaTime);
-
-	if (hudManager_)
-	{
-		hudManager_->SetHP(hp_, maxHp_);
-	}
-
-	if (deathTimer_ >= deathDuration_)
-	{
-		deathFinished_ = true;
-		gameOverReady_ = true;
-	}
-}
-
-void Player::SyncHurtboxes()
-{
-	auto apply = [&](int hbIdx, const K4E::Vector3& pivotWorld, const K4E::Vector3& worldRotEuler)
-		{
-			auto& t = hbTuning_[hbIdx];
-
-			if (!t.enabled)
-			{
-				hurtboxes_[hbIdx]->SetOBBHalfSize({ 0,0,0 });
-				hurtboxes_[hbIdx]->ClearOBBBasis();
-				return;
-			}
-
-			hurtboxes_[hbIdx]->SetOBBHalfSize(t.halfSize);
-
-			const K4E::Vector3 rotOBB = worldRotEuler + t.rotOffset;
-			const K4E::Matrix4x4 R = K4E::Matrix4x4::MakeRotateMatrix(rotOBB);
-
-			K4E::Vector3 ax, ay, az;
-			ExtractAxes_Row(R, ax, ay, az);
-
-			const K4E::Vector3 center =
-				pivotWorld +
-				ax * t.localOffset.x +
-				ay * t.localOffset.y +
-				az * t.localOffset.z;
-
-			hurtboxes_[hbIdx]->SetCenterPosition(center);
-
-			// ここが「親子計算をOBBに適用」する決め手：軸を直接渡す
-			hurtboxes_[hbIdx]->SetOBBBasis(ax, ay, az);
-
-			// 念のため（他コードがGetOrientation参照しても破綻しない用）
-			hurtboxes_[hbIdx]->SetOrientation(rotOBB);
-		};
-
-	// Body（pivotは体幹の位置）
-	apply(0, body_.transform.translate_, body_.transform.rotate_);
-
-	// Parts（pivotは各部位のワールド位置）
-	const auto idx = GetPartIndices();
-	apply(1, parts_[idx.head].transform.worldTranslate_, parts_[idx.head].transform.worldRotate_);
-	apply(2, parts_[idx.leftArm].transform.worldTranslate_, parts_[idx.leftArm].transform.worldRotate_);
-	apply(3, parts_[idx.rightArm].transform.worldTranslate_, parts_[idx.rightArm].transform.worldRotate_);
-	apply(4, parts_[idx.leftLeg].transform.worldTranslate_, parts_[idx.leftLeg].transform.worldRotate_);
-	apply(5, parts_[idx.rightLeg].transform.worldTranslate_, parts_[idx.rightLeg].transform.worldRotate_);
 }

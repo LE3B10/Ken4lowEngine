@@ -594,6 +594,13 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClCompile Include="ApplicationLayer\Character\Boss\BehaviorTree\IBTNode.cpp" />
     <ClCompile Include="ApplicationLayer\Character\Boss\Derived\GuardianBoss\GuardianBoss.cpp" />
     <ClCompile Include="ApplicationLayer\Character\Boss\BaseTypes\HumanoidBossBase.cpp" />
+    <ClCompile Include="ApplicationLayer\Character\Player\Component\PlayerBrainComponent.cpp" />
+    <ClCompile Include="ApplicationLayer\Character\Player\Component\PlayerDeathComponent.cpp" />
+    <ClCompile Include="ApplicationLayer\Character\Player\Component\PlayerHurtboxComponent.cpp" />
+    <ClCompile Include="ApplicationLayer\Character\Player\Component\PlayerCombatComponent.cpp" />
+    <ClCompile Include="ApplicationLayer\Character\Player\Component\PlayerDamageComponent.cpp" />
+    <ClCompile Include="ApplicationLayer\Character\Player\PlayerWeaponController.cpp" />
+    <ClCompile Include="ApplicationLayer\Character\Player\PlayerFsmApi.cpp" />
     <ClCompile Include="WinMain.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
@@ -1494,6 +1501,13 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="ApplicationLayer\Character\Boss\Derived\GuardianBoss\GuardianBoss.h" />
     <ClInclude Include="ApplicationLayer\Character\Boss\BaseTypes\HumanoidBossBase.h" />
     <ClInclude Include="ApplicationLayer\Character\Boss\Animations\IBossAttackAnimation.h" />
+    <ClInclude Include="ApplicationLayer\Character\Player\Component\PlayerBrainComponent.h" />
+    <ClInclude Include="ApplicationLayer\Character\Player\Component\PlayerDeathComponent.h" />
+    <ClInclude Include="ApplicationLayer\Character\Player\Component\PlayerHurtboxComponent.h" />
+    <ClInclude Include="ApplicationLayer\Character\Player\Component\PlayerCombatComponent.h" />
+    <ClInclude Include="ApplicationLayer\Character\Player\Component\PlayerDamageComponent.h" />
+    <ClInclude Include="ApplicationLayer\Character\Player\PlayerWeaponController.h" />
+    <ClInclude Include="ApplicationLayer\Character\Player\PlayerFsmApi.h" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="externals\DirectXTex\DirectXTex_Desktop_2022_Win10.vcxproj">

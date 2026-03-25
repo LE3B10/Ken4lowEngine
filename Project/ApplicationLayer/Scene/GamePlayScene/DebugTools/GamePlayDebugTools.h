@@ -1,4 +1,5 @@
 #pragma once
+#include <cstdint>
 
 /// ---------- 前方宣言 ---------- ///
 namespace Ken4lowEngine { class Input; }
@@ -39,4 +40,7 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	bool isDebugCamera_ = false;
 	bool isImGuiFreeze_ = false;
+
+	bool weaponEditorInitialized_ = false;
+	int32_t lastAppliedWeaponID_ = 0;
 };

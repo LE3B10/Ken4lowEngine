@@ -652,6 +652,27 @@
     <ClCompile Include="ApplicationLayer\Character\Boss\Attacks\BossHeavyPunchAttack.cpp">
       <Filter>ApplicationLayer\Character\Boss\Attacks</Filter>
     </ClCompile>
+    <ClCompile Include="ApplicationLayer\Character\Player\Component\PlayerBrainComponent.cpp">
+      <Filter>ApplicationLayer\Character\Player\Component</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\Character\Player\Component\PlayerDeathComponent.cpp">
+      <Filter>ApplicationLayer\Character\Player\Component</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\Character\Player\Component\PlayerHurtboxComponent.cpp">
+      <Filter>ApplicationLayer\Character\Player\Component</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\Character\Player\Component\PlayerCombatComponent.cpp">
+      <Filter>ApplicationLayer\Character\Player\Component</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\Character\Player\Component\PlayerDamageComponent.cpp">
+      <Filter>ApplicationLayer\Character\Player\Component</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\Character\Player\PlayerWeaponController.cpp">
+      <Filter>ApplicationLayer\Character\Player</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\Character\Player\PlayerFsmApi.cpp">
+      <Filter>ApplicationLayer\Character\Player</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="EngineLayer\Math\MultipleStructs\AABB.h">
@@ -1358,6 +1379,27 @@
     </ClInclude>
     <ClInclude Include="ApplicationLayer\Character\Boss\Attacks\BossHeavyPunchAttack.h">
       <Filter>ApplicationLayer\Character\Boss\Attacks</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Character\Player\Component\PlayerBrainComponent.h">
+      <Filter>ApplicationLayer\Character\Player\Component</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Character\Player\Component\PlayerDeathComponent.h">
+      <Filter>ApplicationLayer\Character\Player\Component</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Character\Player\Component\PlayerHurtboxComponent.h">
+      <Filter>ApplicationLayer\Character\Player\Component</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Character\Player\Component\PlayerCombatComponent.h">
+      <Filter>ApplicationLayer\Character\Player\Component</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Character\Player\Component\PlayerDamageComponent.h">
+      <Filter>ApplicationLayer\Character\Player\Component</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Character\Player\PlayerWeaponController.h">
+      <Filter>ApplicationLayer\Character\Player</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Character\Player\PlayerFsmApi.h">
+      <Filter>ApplicationLayer\Character\Player</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
