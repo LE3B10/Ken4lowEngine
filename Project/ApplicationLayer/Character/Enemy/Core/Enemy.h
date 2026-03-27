@@ -8,6 +8,9 @@
 #include "EnemyStateMachine.h"
 #include "EnemyGunAI.h"
 #include "EnemyArchetype.h"
+#include "EnemyArchetypeBehavior.h"
+
+#include <memory>
 
 // 前方宣言
 class BulletManager;
@@ -83,6 +86,8 @@ public: /// ---------- 外部からのアクセス ---------- ///
 
 	void SetDebugCamera(bool enabled) { debugCamera_ = enabled; }
 
+	const char* GerArcheTypeBehaviorDebugName() const;
+
 public: /// ---------- FSMから呼ばれる行動命令 ---------- ///
 
 	// ---- 行動(命令実行) ----
@@ -117,6 +122,9 @@ private: /// ---------- 視界判定 ---------- ///
 	void DrawVisionWire() const;
 
 private: /// ---------- メンバ変数 ---------- ///
+
+	// 
+	std::unique_ptr<EnemyArchetypeBehavior> archetypeBehavior_;
 
 	EnemyStateMachine<Enemy> fsm_{};
 

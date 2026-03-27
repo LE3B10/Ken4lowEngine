@@ -204,6 +204,11 @@ namespace Ken4lowEngine
 				{
 					objectData->spawnProps.count = props["count"].get<int>();
 				}
+				if (props.contains("archetype") && props["archetype"].is_string())
+				{
+					objectData->spawnProps.archetype = props["archetype"].get<std::string>();
+					objectData->spawnProps.hasArchetype = true;
+				}
 			}
 
 			if (type == "IntroCameraPoint" &&

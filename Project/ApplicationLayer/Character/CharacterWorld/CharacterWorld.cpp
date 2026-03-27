@@ -20,11 +20,9 @@ void CharacterWorld::Initialize(GameContext& ctx)
 	InjectPlayerDeps(*player_);
 	player_->Initialize();
 
-	// ★ デバッグ用の初期スポーン/オフセットは入れない
-	//   実際の開始位置は GamePlayScene 側の PlayerSpawnPoint で決める
+	// 実際の開始位置は Scene 側で決める
 	player_->SetSpawnOffset({ 0.0f, 0.0f, 0.0f });
 
-	// Collider登録（PlayerはColliderとして扱われている前提）
 	if (ctx_.collisionManager_)
 	{
 		ctx_.collisionManager_->AddCollider(player_.get());
@@ -76,14 +74,12 @@ void CharacterWorld::InjectEnemyDeps(Enemy& e)
 	e.SetCollisionManager(ctx_.collisionManager_);
 	e.SetBulletManager(ctx_.bulletManager_);
 
-	e.SetParticleEffectSystem(&enemyParticleEffectSystem_); // 敵の被弾エフェクトシステムを渡す
+	e.SetParticleEffectSystem(&enemyParticleEffectSystem_);
 
-	// Enemyのターゲットは Player(Collider) を渡す（DebugSceneと同じ）
 	if (player_)
 	{
 		e.SetTarget(player_.get());
 
-		// 命中UI（ヒットマーカー）
 		e.SetOnPlayerHitUICallback([this](bool isHeadshot)
 			{
 				if (player_)
@@ -92,7 +88,6 @@ void CharacterWorld::InjectEnemyDeps(Enemy& e)
 				}
 			});
 
-		// 撃破UI（キル確認マーカー）
 		e.SetOnPlayerKillUICallback([this](bool isHeadshot)
 			{
 				if (player_)
@@ -102,9 +97,6 @@ void CharacterWorld::InjectEnemyDeps(Enemy& e)
 			});
 	}
 
-	// -----------------------------
-	// 敵SE
-	// -----------------------------
 	e.SetOnHitSECallback([]()
 		{
 			AudioManager::GetInstance()->PlaySE("enemy_hit.mp3", 0.2f);
@@ -130,7 +122,6 @@ Enemy& CharacterWorld::SpawnEnemy(const K4E::Vector3& pos)
 {
 	auto e = std::make_unique<Enemy>();
 	InjectEnemyDeps(*e);
-
 	e->Initialize(pos);
 
 	if (ctx_.collisionManager_)
@@ -145,7 +136,14 @@ Enemy& CharacterWorld::SpawnEnemy(const K4E::Vector3& pos)
 Enemy& CharacterWorld::SpawnEnemy(EnemyArchetype type, const K4E::Vector3& pos)
 {
 	auto e = std::make_unique<Enemy>();
-	e->SetArchetype(type); // Initialize前に反映（視覚/射撃距離など）
+
+	// --------------------------------------------------------
+	// Initialize前に archetype を設定
+	// - Initialize 内で SetArchetype(archetype_) が走っても
+	//   ここで設定した種類がそのまま再適用される
+	// --------------------------------------------------------
+	e->SetArchetype(type);
+
 	InjectEnemyDeps(*e);
 	e->Initialize(pos);
 
@@ -157,7 +155,6 @@ Enemy& CharacterWorld::SpawnEnemy(EnemyArchetype type, const K4E::Vector3& pos)
 	enemies_.push_back(std::move(e));
 	return *enemies_.back();
 }
-
 
 void CharacterWorld::ClearEnemies()
 {
@@ -180,7 +177,6 @@ void CharacterWorld::Update(float dt)
 		e->Update(dt);
 	}
 
-	// 死亡・削除対象の掃除（IsRemovableで判定）
 	if (ctx_.collisionManager_)
 	{
 		enemies_.erase(
@@ -204,11 +200,63 @@ void CharacterWorld::Draw()
 	for (auto& e : enemies_) e->Draw();
 }
 
+void CharacterWorld::ReapplyEnemyTunings()
+{
+	// --------------------------------------------------------
+	// Repository の最新値を、今いる全Enemyへ反映する
+	// - archetype は各Enemyが持っている
+	// - SetArchetype() を呼び直せば tuning を再取得して反映できる
+	// --------------------------------------------------------
+	for (auto& e : enemies_)
+	{
+		if (!e) continue;
+		e->SetArchetype(e->GetArchetype());
+	}
+}
+
 void CharacterWorld::DrawImGui()
 {
 #ifdef USE_IMGUI
-	if (player_) player_->DrawImGui();
-	for (auto& e : enemies_) e->DrawImGui();
+	// --------------------------------------------------------
+	// 1) Player の ImGui
+	// --------------------------------------------------------
+	if (player_)
+	{
+		player_->DrawImGui();
+	}
+
+	// --------------------------------------------------------
+	// 2) Enemy個体ごとの ImGui
+	// - ここでは各敵の Object3D / Transform などだけ出す
+	// - EnemyTuningEditor は出さない
+	// --------------------------------------------------------
+	for (auto& e : enemies_)
+	{
+		e->DrawImGui();
+	}
+
+	// --------------------------------------------------------
+	// 3) EnemyTuningEditor は 1回だけ描画する
+	// - 保存 / 削除 / Reload 後に全Enemyへ再反映する
+	// --------------------------------------------------------
+	EnemyTuningEditorHooks hooks{};
+
+	hooks.onSaved = [this](EnemyArchetype /*type*/)
+		{
+			ReapplyEnemyTunings();
+		};
+
+	hooks.onDeleted = [this](EnemyArchetype /*type*/)
+		{
+			ReapplyEnemyTunings();
+		};
+
+	hooks.onReloaded = [this]()
+		{
+			ReapplyEnemyTunings();
+		};
+
+	tuningEditor_.Draw(hooks);
 #endif
 }
 

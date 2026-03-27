@@ -56,6 +56,11 @@ float Vector3::Length(const Vector3& v)
 	return sqrtf(powf(v.x, 2) + powf(v.y, 2) + powf(v.z, 2));
 }
 
+float Vector3::LengthXZ(const Vector3& v)
+{
+	return std::sqrt(v.x * v.x + v.z * v.z);
+}
+
 /// -------------------------------------------------------------
 ///					　		正規化
 /// -------------------------------------------------------------
@@ -70,6 +75,13 @@ Vector3 Vector3::Normalize(const Vector3& v)
 		result.z = v.z / length;
 	}
 	return result;
+}
+
+Vector3 Vector3::NormalizeXZ(const Vector3& v)
+{
+	const float len = LengthXZ(v);
+	if (len <= 1e-6f) return { 0.0f, 0.0f, 0.0f };
+	return { v.x / len, 0.0f, v.z / len };
 }
 
 /// -------------------------------------------------------------

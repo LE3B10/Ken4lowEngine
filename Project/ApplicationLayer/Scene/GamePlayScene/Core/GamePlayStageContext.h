@@ -26,6 +26,8 @@ public: /// ---------- 構造体 ---------- ///
 		int wave = 1;
 		int group = 0;
 		int count = 1;
+
+		EnemyArchetype archetype = EnemyArchetype::RifleGrunt;
 	};
 
 	struct IntroCameraPointInfo

@@ -22,9 +22,12 @@ namespace Ken4lowEngine
 	/// -------------------------------------------------------------
 	struct SpawnProps
 	{
-		int wave = 0; // ウェーブ数
-		int group = 0; // グループ数
-		int count = 1; // スポーンする敵の数
+		int wave = 0;   // ウェーブ数
+		int group = 0;  // グループ数
+		int count = 1;  // スポーンする敵の数
+
+		std::string archetype;
+		bool hasArchetype = false;
 	};
 
 	struct IntroCameraProps
@@ -34,8 +37,8 @@ namespace Ken4lowEngine
 		float fov = 60.0f;		// カメラのFOV（度）
 		std::string targetName; // カメラの注視点となるオブジェクトの名前
 
-		std::string interpMode = "Linear"; // 補間モード（例: "Linear", "EaseInOut"など）
-		std::string aimMode = "Target"; // 注視点のモード（例: "Target"はtargetNameを注視、"Forward"は移動方向を注視など）
+		std::string interpMode = "Linear"; // 補間モード
+		std::string aimMode = "Target";    // 注視点のモード
 	};
 
 	/// -------------------------------------------------------------
@@ -43,22 +46,22 @@ namespace Ken4lowEngine
 	/// -------------------------------------------------------------
 	struct ObjectData
 	{
-		std::string name; // オブジェクトの名前
-		std::string type; // オブジェクトのタイプ（例: "Player", "Enemy", "Item"など）
-		std::string modelName; // モデル名（例: "PlayerModel", "EnemyModel"など）
+		std::string name;      // オブジェクトの名前
+		std::string type;      // オブジェクトのタイプ
+		std::string modelName; // モデル名
 
-		Vector3 position; // 位置
-		Vector3 rotation; // 回転
-		Vector3 scale{ 1.0f,1.0f,1.0f }; // スケール
-		ObjectColliderData collider; // コライダーデータ
+		Vector3 position;                 // 位置
+		Vector3 rotation;                 // 回転
+		Vector3 scale{ 1.0f,1.0f,1.0f };  // スケール
+		ObjectColliderData collider;      // コライダーデータ
 
 		// SpawnPoint用
-		SpawnProps spawnProps; // スポーンプロパティ（ウェーブ数、グループ数、スポーン数など）
+		SpawnProps spawnProps;      // スポーンプロパティ
 		bool hasSpawnProps = false; // スポーンプロパティが有効かどうか
 
 		// IntroCamera用
-		IntroCameraProps introCameraProps; // イントロカメラプロパティ（順番、時間、FOV、注視点など）
-		bool hasIntroCameraProps = false; // イントロカメラプロパティが有効かどうか
+		IntroCameraProps introCameraProps;      // イントロカメラプロパティ
+		bool hasIntroCameraProps = false;       // イントロカメラプロパティが有効かどうか
 	};
 
 	/// -------------------------------------------------------------

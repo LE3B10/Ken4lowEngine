@@ -5,7 +5,9 @@
 #include "CollisionTypeIdDef.h"
 #include "CollisionManager.h"
 #include "LinearInterpolation.h"
+#include "EnemyTuningRepository.h"
 #include "Wireframe.h"
+#include "EnemyArchetypeBehaviorFactory.h"
 
 
 #include <algorithm>
@@ -15,88 +17,11 @@ using namespace Ken4lowEngine;
 
 namespace
 {
-	using K4E::Vector3;
-
-	static EnemyTuning MakeTuning(EnemyArchetype t)
-	{
-		EnemyTuning p{};
-		switch (t)
-		{
-		case EnemyArchetype::RifleGrunt:
-			p.moveSpeed = 3.0f;		// [m/s] 移動速度（追跡/回避/徘徊の速さ）
-			p.attackRange = 44.0f;  // [m] 射撃を開始する距離（これ以上遠いと基本撃たない）
-			p.viewRange = 32.0f;	// [m] 視認距離（これより遠いと発見/追跡/攻撃に入らない）
-			p.fireInterval = 0.25f; // [sec] 1発（または次バースト内の次弾）までの最短間隔
-			p.burstMin = 2;			// [shots] 1バーストの最小発射数
-			p.burstMax = 4;			// [shots] 1バーストの最大発射数（ランダムで[min,max]）
-			p.spreadNearDeg = 0.6f; // [deg] 近距離での照準ブレ（小さいほど正確）
-			p.spreadFarDeg = 2.4f;  // [deg] 遠距離での照準ブレ（大きいほど外れやすい）
-			p.bulletSpeed = 95.0f;  // [m/s] 弾速（速いほど当てやすい・すり抜け注意）
-			p.bulletLifeSec = 2.2f; // [sec] 弾の寿命（有効射程 ≒ bulletSpeed * bulletLifeSec）
-			p.bulletDamage = 1;     // [hp] 1発のダメージ（プレイヤーHP/防具とバランス調整）
-			break;
-
-		case EnemyArchetype::SMGFlanker:
-			p.moveSpeed = 3.8f;	 		// [m/s] 移動速度（フランカーは高めがそれっぽい）
-			p.attackRange = 34.0f;		// [m] 近距離で撃ち始める距離（短いほど詰めてくる）
-			p.viewRange = 26.0f;		// [m] 視認距離（短め＝近距離で気づくタイプ）
-			p.fireInterval = 0.10f;		// [sec] 連射間隔（小さいほどレートが高い）
-			p.burstMin = 7;				// [shots] 1バースト最小（SMGはバースト長め）
-			p.burstMax = 12;			// [shots] 1バースト最大
-			p.strafeSpeedMul = 1.10f;	// [ratio] 横移動速度倍率（>1でストレイフが鋭い）
-			p.aimMoveMul = 0.85f;		// [ratio] エイム中の移動倍率（撃つ前の移動の鈍化）
-			p.burstMoveMul = 0.65f;		// [ratio] バースト中の移動倍率（高いほど撃ちながら動く）
-			p.spreadNearDeg = 1.2f;		// [deg] 近距離でもブレ多め（SMGらしさ）
-			p.spreadFarDeg = 5.5f;		// [deg] 遠距離で大きく外す（遠距離弱い）
-			p.reactionDelaySec = 0.15f; // [sec] 発見してから撃ち始めるまでの反応遅延（短い＝即応）
-			p.bulletSpeed = 105.0f;		// [m/s] 弾速（速めにすると近距離でも当てやすい）
-			p.bulletLifeSec = 1.6f;		// [sec] 弾寿命（短め＝遠距離には届きにくい）
-			p.bulletDamage = 1;			// [hp] 1発ダメージ（レートが高いので控えめ推奨）
-			break;
-
-		case EnemyArchetype::Sniper:
-			p.moveSpeed = 2.4f;			 // [m/s] 移動速度（スナは控えめ＝陣取りやすい）
-			p.attackRange = 64.0f;		 // [m] 射撃開始距離（遠距離から撃ってくる）
-			p.viewRange = 55.0f;		 // [m] 視認距離（attackRangeより長くして“見えるが届かない”を防ぐ）
-			p.fireInterval = 1.15f;		 // [sec] 発射間隔（大きい＝低連射）
-			p.burstMin = 1;				 // [shots] 単発
-			p.burstMax = 1;				 // [shots] 単発
-			p.strafeSpeedMul = 0.30f;	 // [ratio] 横移動をほぼしない（陣取るタイプ）
-			p.aimMoveMul = 0.20f;		 // [ratio] エイム中の移動倍率（小さい＝撃つとき止まり気味）
-			p.burstMoveMul = 0.0f;		 // [ratio] 発射中の移動倍率（0で完全停止に近い）
-			p.preferredMinRatio = 0.65f; // [ratio] 取りたい距離（attackRangeに対する最小距離割合）
-			p.preferredMaxRatio = 0.90f; // [ratio] 取りたい距離（attackRangeに対する最大距離割合）
-			p.spreadNearDeg = 0.25f;	 // [deg] 近距離でも精度高い
-			p.spreadFarDeg = 0.55f;		 // [deg] 遠距離でも精度維持（小さいほど“スナっぽい”）
-			p.reactionDelaySec = 0.55f;	 // [sec] 反応遅延（長め＝覗いてから撃つ感じ）
-			p.bulletSpeed = 160.0f;		 // [m/s] 弾速（高速＝偏差撃ち不要/当てやすい）
-			p.bulletLifeSec = 3.2f;		 // [sec] 弾寿命（長め＝遠距離でも届く）
-			p.bulletDamage = 2;			 // [hp] 1発ダメージ（単発なので高めでもバランス取りやすい）
-			break;
-		}
-		return p;
-	}
-
-	inline float LengthXZ(const Vector3& v)
-	{
-		return std::sqrt(v.x * v.x + v.z * v.z);
-	}
-
-	inline float Length(const Vector3& v)
-	{
-		return std::sqrt(v.x * v.x + v.y * v.y + v.z * v.z);
-	}
-
 	inline Vector3 NormalizeSafe(const Vector3& v)
 	{
-		const float len = Length(v);
+		const float len = Vector3::Length(v);
 		if (len <= 1e-6f) return { 0.0f, 0.0f, 0.0f };
 		return { v.x / len, v.y / len, v.z / len };
-	}
-
-	inline float Dot(const Vector3& a, const Vector3& b)
-	{
-		return a.x * b.x + a.y * b.y + a.z * b.z;
 	}
 }
 
@@ -104,17 +29,24 @@ void Enemy::Initialize(const K4E::Vector3& startPos)
 {
 	EnemyBase::Initialize(startPos);
 
-	// アーキタイプ設定（Spawn側で事前に SetArchetype しててもOK：ここで同じ値を反映するだけ）
+	// --------------------------------------------------------
+	// EnemyTuningRepository を初期化
+	// - まず既定値を構築
+	// - その後、敵ごとの JSON で上書き
+	// --------------------------------------------------------
+	EnemyTuningRepository::Initialize();
+
+	// アーキタイプ設定
+	// Spawn 側で先に SetArchetype していても、
+	// ここでは現在の archetype_ をもとに反映し直すだけなので安全
 	SetArchetype(archetype_);
 
 	homePos_ = startPos;
 
-	// 初期値
 	lastSeenPos_ = startPos;
 	timeSinceSeen_ = 9999.0f;
 	stunRequestedSec_ = 0.0f;
 
-	// FSM初期化
 	EnemyAICommand cmd{};
 	EnemyAIContext<Enemy> ctx{ *this, cmd, 0.0f };
 	BuildContext(ctx);
@@ -124,9 +56,11 @@ void Enemy::Initialize(const K4E::Vector3& startPos)
 void Enemy::SetArchetype(EnemyArchetype t)
 {
 	archetype_ = t;
-	tuning_ = MakeTuning(t);
 
-	// 既存メンバへ反映（EnemyStateMachine は GetTuning() を使うが、他の処理はメンバ参照しているため）
+	// Repository から tuning を取得
+	tuning_ = EnemyTuningRepository::Get(t);
+
+	// Enemy 本体が直接使う値を反映
 	moveSpeed_ = tuning_.moveSpeed;
 	attackRange_ = tuning_.attackRange;
 	fireInterval_ = tuning_.fireInterval;
@@ -134,8 +68,20 @@ void Enemy::SetArchetype(EnemyArchetype t)
 
 	bulletSpeed_ = tuning_.bulletSpeed;
 	bulletLifeSec_ = tuning_.bulletLifeSec;
-}
+	bulletDamage_ = tuning_.bulletDamage;
 
+	// 耐久反映
+	SetMaxHp(tuning_.maxHp);
+
+	// archetype固有ロジックを差し替え
+	archetypeBehavior_ = EnemyArchetypeBehaviorFactory::Create(t);
+
+	// tuning適用後の追加補正
+	if (archetypeBehavior_)
+	{
+		archetypeBehavior_->OnApplyTuning(*this, tuning_);
+	}
+}
 
 void Enemy::Update(float dt)
 {
@@ -159,16 +105,36 @@ void Enemy::Update(float dt)
 		fsm_.Force(EnemyStateId::Stunned, ctx);
 	}
 
+	// archetype固有の前補正
+	if (archetypeBehavior_)
+	{
+		archetypeBehavior_->BeforeFSMUpdate(*this, ctx);
+	}
+
 	// 敵のタイプによって色を変える（debug用）
 	switch (archetype_)
 	{
-	case EnemyArchetype::RifleGrunt: SetColor({ 0.4f, 0.4f, 1.0f, 1.0f }); break;
-	case EnemyArchetype::SMGFlanker: SetColor({ 0.4f, 1.0f, 0.4f, 1.0f }); break;
-	case EnemyArchetype::Sniper:     SetColor({ 1.0f, 0.4f, 0.4f, 1.0f }); break;
+	case EnemyArchetype::RifleGrunt:    SetColor({ 0.4f, 0.4f, 1.0f, 1.0f }); break;
+	case EnemyArchetype::SMGFlanker:    SetColor({ 0.4f, 1.0f, 0.4f, 1.0f }); break;
+	case EnemyArchetype::Sniper:        SetColor({ 1.0f, 0.4f, 0.4f, 1.0f }); break;
+	case EnemyArchetype::BurstTrooper:  SetColor({ 0.2f, 0.7f, 1.0f, 1.0f }); break;
+	case EnemyArchetype::HeavyRifleman: SetColor({ 0.9f, 0.7f, 0.2f, 1.0f }); break;
+	case EnemyArchetype::ShotgunRusher: SetColor({ 1.0f, 0.5f, 0.1f, 1.0f }); break;
+	case EnemyArchetype::Scout:         SetColor({ 0.6f, 1.0f, 0.9f, 1.0f }); break;
+	case EnemyArchetype::Marksman:      SetColor({ 0.9f, 0.5f, 0.8f, 1.0f }); break;
+	case EnemyArchetype::Suppressor:    SetColor({ 0.7f, 0.7f, 0.7f, 1.0f }); break;
+	case EnemyArchetype::EliteFlanker:  SetColor({ 0.2f, 1.0f, 0.2f, 1.0f }); break;
+	case EnemyArchetype::HeavySniper:   SetColor({ 1.0f, 0.2f, 0.2f, 1.0f }); break;
 	}
 
-
 	fsm_.Update(ctx);
+
+	// archetype固有の後補正
+	if (archetypeBehavior_)
+	{
+		archetypeBehavior_->AfterFSMUpdate(*this, cmd, dt);
+	}
+
 	ApplyAICommand(cmd);
 	EnemyBase::Update(dt);
 }
@@ -185,7 +151,9 @@ void Enemy::Draw()
 
 void Enemy::DrawImGui()
 {
-
+#ifdef USE_IMGUI
+	EnemyBase::DrawImGui();
+#endif // USE_IMGUI
 }
 
 void Enemy::DrawShadow()
@@ -482,6 +450,15 @@ void Enemy::ApplyAICommand(const EnemyAICommand& cmd)
 }
 
 
+const char* Enemy::GerArcheTypeBehaviorDebugName() const
+{
+	if (!archetypeBehavior_)
+	{
+		return "None";
+	}
+	return archetypeBehavior_->GetDebugName();
+}
+
 void Enemy::MoveTowards(const K4E::Vector3& goal)
 {
 	K4E::Vector3 to = goal - GetCenterPosition();
@@ -530,7 +507,7 @@ void Enemy::FireAt(const K4E::Vector3& targetPos)
 	origin.y += muzzleHeight_;
 
 	Vector3 dir = NormalizeSafe(targetPos - origin);
-	if (Length(dir) <= 1e-6f) return;
+	if (Vector3::Length(dir) <= 1e-6f) return;
 
 	bulletManager_->Spawn(origin, dir, bulletSpeed_, bulletDamage_, bulletLifeSec_, static_cast<uint32_t>(CollisionTypeIdDef::kEnemyBullet));
 

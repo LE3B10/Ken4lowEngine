@@ -3,6 +3,7 @@
 
 #include "StageRepository.h"
 #include "LevelLoader.h"
+#include "EnemyTuningRepository.h"
 
 #include <algorithm>
 
@@ -109,6 +110,19 @@ void GamePlayStageContext::LoadSpawnPointsFromLevel(const std::string& jsonPath)
 				info.wave = (object.spawnProps.wave > 0) ? object.spawnProps.wave : 1;
 				info.group = object.spawnProps.group;
 				info.count = (object.spawnProps.count > 0) ? object.spawnProps.count : 1;
+
+				// --------------------------------------------------------
+				// archetype 文字列があれば EnemyArchetype へ変換する
+				// 無い、または変換失敗時は RifleGrunt のままにする
+				// --------------------------------------------------------
+				if (object.spawnProps.hasArchetype)
+				{
+					EnemyArchetype parsed{};
+					if (EnemyTuningRepository::TryParseArchetype(object.spawnProps.archetype, parsed))
+					{
+						info.archetype = parsed;
+					}
+				}
 			}
 
 			enemySpawnInfos_.push_back(info);
@@ -193,7 +207,7 @@ void GamePlayStageContext::SetupWaves(WaveManager* waveManager) const
 			const int waveIndex = std::max(0, spawn.wave - 1);
 
 			WaveSpawnEntry entry{};
-			entry.archetype = EnemyArchetype::RifleGrunt;
+			entry.archetype = spawn.archetype;
 			entry.position = spawn.position;
 
 			const int spawnCount = std::max(1, spawn.count);

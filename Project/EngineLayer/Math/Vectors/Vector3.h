@@ -63,6 +63,11 @@ public: /// ---------- 静的メンバ関数 ---------- ///
 		return Vector3(v1.x * v2.x, v1.y * v2.y, v1.z * v2.z);
 	}
 
+	static Vector3 PerpRightXZ(const Vector3& v)
+	{
+		return { v.z, 0.0f, -v.x };
+	}
+
 	/// <summary>
 	/// 2 つのベクトルの内積を返します。
 	/// </summary>
@@ -73,11 +78,15 @@ public: /// ---------- 静的メンバ関数 ---------- ///
 	/// </summary>
 	static float Length(const Vector3& v);
 
+	static float LengthXZ(const Vector3& v);
+
 	/// <summary>
 	/// ベクトルを正規化します。
 	/// 長さが 0 の場合は (0,0,0) を返します。
 	/// </summary>
 	static Vector3 Normalize(const Vector3& v);
+
+	static Vector3 NormalizeXZ(const Vector3& v);
 
 	/// <summary>
 	/// 4x4 行列を用いて 3D ベクトルを変換します。

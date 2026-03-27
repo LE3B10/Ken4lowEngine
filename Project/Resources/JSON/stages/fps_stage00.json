@@ -62,7 +62,8 @@
             "props": {
                 "wave": 1,
                 "group": 0,
-                "count": 1
+                "count": 1,
+                "archetype": "RifleGrunt"
             }
         },
         {
@@ -92,7 +93,8 @@
             "props": {
                 "wave": 1,
                 "group": 0,
-                "count": 1
+                "count": 1,
+                "archetype": "SMGFlanker"
             }
         },
         {
@@ -122,7 +124,8 @@
             "props": {
                 "wave": 1,
                 "group": 1,
-                "count": 1
+                "count": 1,
+                "archetype": "Sniper"
             }
         },
         {
@@ -152,7 +155,8 @@
             "props": {
                 "wave": 1,
                 "group": 1,
-                "count": 1
+                "count": 1,
+                "archetype": "BurstTrooper"
             }
         },
         {
@@ -182,7 +186,8 @@
             "props": {
                 "wave": 2,
                 "group": 0,
-                "count": 1
+                "count": 1,
+                "archetype": "HeavyRifleman"
             }
         },
         {
@@ -212,7 +217,8 @@
             "props": {
                 "wave": 2,
                 "group": 0,
-                "count": 1
+                "count": 1,
+                "archetype": "ShotgunRusher"
             }
         },
         {
@@ -242,7 +248,8 @@
             "props": {
                 "wave": 3,
                 "group": 0,
-                "count": 1
+                "count": 1,
+                "archetype": "Scout"
             }
         },
         {
@@ -272,7 +279,8 @@
             "props": {
                 "wave": 3,
                 "group": 0,
-                "count": 1
+                "count": 1,
+                "archetype": "Marksman"
             }
         },
         {
