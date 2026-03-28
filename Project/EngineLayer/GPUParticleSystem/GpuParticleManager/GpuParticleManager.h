@@ -17,187 +17,384 @@
 namespace Ken4lowEngine
 {
 
-/// ---------- 前方宣言 ---------- ///
-class DirectXCommon;
-class Camera;
-
-
-/// -------------------------------------------------------------
-///			　GPUパーティクルマネージャークラス
-/// -------------------------------------------------------------
-class GpuParticleManager
-{
-public: /// ---------- メンバ関数 ---------- ///
+	/// ---------- 前方宣言 ---------- ///
+	class DirectXCommon;
+	class Camera;
 
 	/// <summary>
-	/// GpuParticleManager のシングルトンインスタンスを取得します。
+	/// GPUパーティクルのデバッグUIで使用する既定値・制限値をまとめた構造体です。<br/>
+	/// DrawImGui() 内に直接デバッグ用の数値や文字列を埋め込まず、<br/>
+	/// 既定値・入力制限値・調整値の定義場所を一元化する目的で使用します。<br/>
+	/// 将来的に設定ファイルから読み込む構成へ移行する場合も、<br/>
+	/// この構造体を受け皿として差し替えやすくする想定です。
 	/// </summary>
-	/// <returns>GpuParticleManager の唯一のインスタンス。</returns>
-	static GpuParticleManager* GetInstance();
+	struct GpuParticleDebugPresets
+	{
+		/// <summary>
+		/// デバッグ用 Mesh Asset 読み込みUIの既定モデルパスです。
+		/// AssimpLoader 側の仕様に合わせて "Resources/Models/" からの相対指定を前提とします。
+		/// </summary>
+		static inline constexpr const char* kDefaultMeshModelPath = "cube.gltf";
+
+		/// <summary>
+		/// デバッグ用 Mesh Asset 登録時に使用する既定のベース MeshId です。
+		/// subMesh ごとに連番で登録されるため、他用途のIDと衝突しにくい開始値を与えます。
+		/// </summary>
+		static inline constexpr int kDefaultMeshBaseId = 1000;
+
+		/// <summary>
+		/// MeshId 入力欄の最小値です。
+		/// </summary>
+		static inline constexpr int kMinMeshBaseId = 0;
+
+		/// <summary>
+		/// MeshId 入力欄の最大値です。
+		/// デバッグUI上で極端な値を入力しすぎないための制限値です。
+		/// </summary>
+		static inline constexpr int kMaxMeshBaseId = 1000000;
+
+		/// <summary>
+		/// MeshId 調整時のステップ量です。
+		/// </summary>
+		static inline constexpr int kMeshBaseIdStep = 1;
+
+		/// <summary>
+		/// エミッター新規作成UIで使用する既定名です。
+		/// </summary>
+		static inline constexpr const char* kDefaultEmitterName = "Emitter_0";
+
+		/// <summary>
+		/// エミッター新規作成UIで使用する既定テクスチャ名です。
+		/// </summary>
+		static inline constexpr const char* kDefaultEmitterTexture = "particle.png";
+
+		/// <summary>
+		/// エミッター新規作成UIで使用する既定半径です。
+		/// </summary>
+		static inline constexpr float kDefaultEmitterRadius = 0.0f;
+
+		/// <summary>
+		/// エミッター新規作成UIで使用する既定ループ回数です。
+		/// </summary>
+		static inline constexpr int kDefaultLoopCount = 0;
+
+		/// <summary>
+		/// エミッター新規作成UIで使用する既定ループ間隔です。
+		/// </summary>
+		static inline constexpr float kDefaultLoopFrequency = 0.0f;
+
+		/// <summary>
+		/// 半径調整UIのドラッグ速度です。
+		/// </summary>
+		static inline constexpr float kRadiusDragSpeed = 0.01f;
+
+		/// <summary>
+		/// 半径の最小値です。
+		/// </summary>
+		static inline constexpr float kMinRadius = 0.0f;
+
+		/// <summary>
+		/// 半径の最大値です。
+		/// </summary>
+		static inline constexpr float kMaxRadius = 100.0f;
+
+		/// <summary>
+		/// ループ回数調整UIのステップ量です。
+		/// </summary>
+		static inline constexpr int kLoopCountStep = 1;
+
+		/// <summary>
+		/// ループ回数の最小値です。
+		/// </summary>
+		static inline constexpr int kMinLoopCount = 0;
+
+		/// <summary>
+		/// ループ回数の最大値です。
+		/// </summary>
+		static inline constexpr int kMaxLoopCount = 100000;
+
+		/// <summary>
+		/// ループ周波数調整UIのドラッグ速度です。
+		/// </summary>
+		static inline constexpr float kLoopFrequencyDragSpeed = 0.01f;
+
+		/// <summary>
+		/// ループ周波数の最小値です。
+		/// </summary>
+		static inline constexpr float kMinLoopFrequency = 0.0f;
+
+		/// <summary>
+		/// ループ周波数の最大値です。
+		/// </summary>
+		static inline constexpr float kMaxLoopFrequency = 10.0f;
+
+		/// <summary>
+		/// 選択中エミッター編集UIで使用する半径調整速度です。
+		/// </summary>
+		static inline constexpr float kSelectedRadiusDragSpeed = 0.01f;
+
+		/// <summary>
+		/// 選択中エミッター編集UIで使用するループ回数のステップ量です。
+		/// </summary>
+		static inline constexpr int kSelectedLoopCountStep = 1;
+
+		/// <summary>
+		/// 選択中エミッター編集UIで使用するループ周波数調整速度です。
+		/// </summary>
+		static inline constexpr float kSelectedLoopFrequencyDragSpeed = 0.01f;
+
+		/// <summary>
+		/// バースト発生UIの既定発生数です。
+		/// </summary>
+		static inline constexpr int kDefaultBurstCount = 50;
+
+		/// <summary>
+		/// バースト発生UIの既定反復回数です。
+		/// </summary>
+		static inline constexpr int kDefaultBurstRepeat = 1;
+
+		/// <summary>
+		/// バースト発生数調整UIのステップ量です。
+		/// </summary>
+		static inline constexpr int kBurstCountStep = 1;
+
+		/// <summary>
+		/// バースト発生数の最小値です。
+		/// </summary>
+		static inline constexpr int kMinBurstCount = 0;
+
+		/// <summary>
+		/// バースト発生数の最大値です。
+		/// </summary>
+		static inline constexpr int kMaxBurstCount = 100000;
+
+		/// <summary>
+		/// バースト反復回数調整UIのステップ量です。
+		/// </summary>
+		static inline constexpr int kBurstRepeatStep = 1;
+
+		/// <summary>
+		/// バースト反復回数の最小値です。
+		/// </summary>
+		static inline constexpr int kMinBurstRepeat = 1;
+
+		/// <summary>
+		/// バースト反復回数の最大値です。
+		/// </summary>
+		static inline constexpr int kMaxBurstRepeat = 1000;
+	};
+
 
 	/// <summary>
-	/// GPU パーティクルシステムの初期化処理。<br/>
-	/// ・カメラポインタの保持<br/>
-	/// ・GpuParticlePipeline の生成と初期化<br/>
-	/// ・GpuParticleBuffers の生成と初期化（カメラ情報などを反映）<br/>
-	/// ・GpuParticleRenderer の生成と初期化<br/>
-	/// ・初期状態のパーティクルバッファをセットアップする Dispatch() の呼び出し<br/>
-	/// を行います。
+	/// GPU パーティクル全体を管理するマネージャークラスです。<br/>
+	/// パイプライン・バッファ・レンダラー・エミッター群・Mesh Particle Asset 群を保持し、<br/>
+	/// 初期化・更新・描画・デバッグ編集の入口をまとめて提供します。<br/>
+	/// 実際のシミュレーション更新は Compute Shader の Dispatch により GPU 上で実行し、<br/>
+	/// CPU 側ではエミッター設定の収集や描画要求の制御を主に担当します。
 	/// </summary>
-	/// <param name="camera">ビュー射影行列などを取得するためのカメラ。</param>
-	void Initialize(Camera* camera);
+	class GpuParticleManager
+	{
+	public: /// ---------- メンバ関数 ---------- ///
 
-	/// <summary>
-	/// 終了処理
-	/// </summary>
-	void Finalize();
+		/// <summary>
+		/// GpuParticleManager のシングルトンインスタンスを取得します。
+		/// </summary>
+		/// <returns>GpuParticleManager の唯一のインスタンス。</returns>
+		static GpuParticleManager* GetInstance();
 
-	/// <summary>
-	/// 毎フレームの更新処理。<br/>
-	/// ・GpuParticleBuffers::Update() で Δt やビュー情報などを更新<br/>
-	/// ・DispatchUpdate() で GPU 上の全パーティクルを一括更新（位置・寿命など）<br/>
-	/// ・全エミッターの BuildCB() を呼び出してエミット要求を CB に積む<br/>
-	/// ・Emit が必要なエミッターがあれば DispatchEmit() を呼び出す<br/>
-	/// という流れで GPU パーティクルのシミュレーションを進めます。
-	/// </summary>
-	/// <param name="deltaTime">前フレームからの経過時間（秒）。</param>
-	void Update(float deltaTime);
+		/// <summary>
+		/// GPU パーティクルシステムの初期化処理を行います。<br/>
+		/// カメラ参照の保持、各種パイプライン生成、バッファ生成、レンダラー生成を行い、<br/>
+		/// 最後に初期状態のパーティクルバッファを構築するための Dispatch() を実行します。
+		/// </summary>
+		/// <param name="camera">ビュー・射影情報を参照するためのカメラ。</param>
+		void Initialize(Camera* camera);
 
-	/// <summary>
-	/// GPU パーティクルの描画処理。<br/>
-	/// GpuParticleRenderer を通して、GpuParticleBuffers が持つパーティクルバッファを<br/>
-	/// インスタンシング描画します。<br/>
-	/// 現在は GpuParticleBuffers::GetMaxParticles() をそのまま描画数として渡しています。
-	/// </summary>
-	void Draw();
+		/// <summary>
+		/// GPU パーティクルシステムの終了処理を行います。<br/>
+		/// エミッター一覧・MeshAsset 一覧・各種パイプライン・バッファ・レンダラーを解放し、<br/>
+		/// 保持しているカメラ参照も無効化します。
+		/// </summary>
+		void Finalize();
 
-	///
-	void DrawImGui();
+		/// <summary>
+		/// 毎フレームの更新処理を行います。<br/>
+		/// GPU バッファ側の時間情報やカメラ情報を更新したあと、<br/>
+		/// GPU 上の全パーティクル更新 Dispatch を実行します。<br/>
+		/// その後、各エミッターの CB を構築し、必要ならエミット用 Dispatch を発行します。
+		/// </summary>
+		/// <param name="deltaTime">前フレームからの経過時間（秒）。</param>
+		void Update(float deltaTime);
 
-public: /// ---------- メッシュパーティクル関連 ---------- ///
-	
-	/// <summary>
-	/// meshId をキーに MeshParticleAsset を登録します。
-	/// overwrite=true なら既存を上書きします。
-	/// </summary>
-	bool RegisterMeshAsset(uint32_t meshId, MeshParticleAsset asset, bool overwrite = true);
+		/// <summary>
+		/// GPU パーティクルの描画処理を行います。<br/>
+		/// 登録済みエミッターごとに DrawType やテクスチャを設定し、<br/>
+		/// GpuParticleRenderer を通じてインスタンシング描画します。
+		/// </summary>
+		void Draw();
 
-	/// <summary>
-	/// 登録済みメッシュ資産を取得します。無ければ nullptr。
-	/// </summary>
-	const MeshParticleAsset* FindMeshAsset(uint32_t meshId) const;
+		/// <summary>
+		/// GPU パーティクル用の ImGui デバッグUIを描画します。<br/>
+		/// Mesh Asset の読み込み・エミッターの作成/編集/削除・バースト発生・
+		/// デバッグカメラ切り替えなどを行うための開発用UIです。
+		/// </summary>
+		void DrawImGui();
 
-	/// <summary>
-	/// AssimpLoader でモデルを読み込み、subMesh ごとに
-	/// (baseMeshId + i) で MeshParticleAsset を生成・登録します。
-	/// modelFilePath は AssimpLoader と同じ指定（例："Debris/Debris.gltf"）
-	/// </summary>
-	bool LoadMeshAssetsFromAssimp(uint32_t baseMeshId, const std::string& modelFilePath, bool loadTextures = true);
+	public: /// ---------- メッシュパーティクル関連 ---------- ///
 
-	/// <summary>
-	/// Mesh資産を全削除
-	/// </summary>
-	void ClearMeshAssets();
+		/// <summary>
+		/// meshId をキーに MeshParticleAsset を登録します。<br/>
+		/// overwrite=true の場合は既存エントリを上書きします。
+		/// </summary>
+		/// <param name="meshId">登録先の識別ID。</param>
+		/// <param name="asset">登録するメッシュ資産。</param>
+		/// <param name="overwrite">既存登録を上書きするかどうか。</param>
+		/// <returns>登録に成功した場合は true、上書き禁止かつ既存がある場合は false。</returns>
+		bool RegisterMeshAsset(uint32_t meshId, MeshParticleAsset asset, bool overwrite = true);
 
-	/// <summary>
-	/// デバッグ表示用：登録済みMesh資産テーブルを参照
-	/// </summary>
-	const std::unordered_map<uint32_t, MeshParticleAsset>& GetMeshAssets() const { return meshAssets_; }
+		/// <summary>
+		/// 登録済みの MeshParticleAsset を検索します。<br/>
+		/// 見つからない場合は nullptr を返します。
+		/// </summary>
+		/// <param name="meshId">検索対象の識別ID。</param>
+		/// <returns>見つかった MeshParticleAsset へのポインタ。存在しない場合は nullptr。</returns>
+		const MeshParticleAsset* FindMeshAsset(uint32_t meshId) const;
 
-public: /// ---------- エミッター関連 ---------- ///
+		/// <summary>
+		/// AssimpLoader を使ってモデルを読み込み、subMesh ごとに
+		/// (baseMeshId + i) の連番で MeshParticleAsset を登録します。<br/>
+		/// 1つのモデルから複数 subMesh が生成される場合、それぞれを個別に扱えるようにします。
+		/// </summary>
+		/// <param name="baseMeshId">subMesh 登録開始時のベースID。</param>
+		/// <param name="modelFilePath">読み込むモデルファイルパス。</param>
+		/// <param name="loadTextures">テクスチャも同時にロードするかどうか。</param>
+		/// <returns>少なくとも1つ以上の有効 subMesh を登録できた場合は true。</returns>
+		bool LoadMeshAssetsFromAssimp(uint32_t baseMeshId, const std::string& modelFilePath, bool loadTextures = true);
 
-	/// <summary>
-	/// 新しい GPU パーティクルエミッターを作成します。<br/>
-	/// name をキーとして GpuParticleEmitter を生成し、内部のコンテナに登録します。<br/>
-	/// すでに同名のエミッターが存在する場合は nullptr を返します。
-	/// </summary>
-	/// <param name="name">エミッター名（識別用のキー）。</param>
-	/// <param name="info">エミッターの基本設定（初期速度・寿命・発生レートなど）。</param>
-	/// <returns>作成された GpuParticleEmitter へのポインタ。失敗時は nullptr。</returns>
-	GpuParticleEmitter* CreateEmitter(const std::string& name, const GpuParticleEmitter::EmitterInfo& info);
+		/// <summary>
+		/// 登録済みの MeshAsset をすべて削除します。
+		/// </summary>
+		void ClearMeshAssets();
 
-	/// <summary>
-	/// 指定された名前の GPU パーティクルエミッターを取得します。<br/>
-	/// 見つかった場合は内部で管理しているインスタンスへのポインタを返し、<br/>
-	/// 見つからない場合は nullptr を返します。
-	/// </summary>
-	/// <param name="name">取得したいエミッター名。</param>
-	/// <returns>GpuParticleEmitter へのポインタ。存在しない場合は nullptr。</returns>
-	GpuParticleEmitter* GetEmitter(const std::string& name);
+		/// <summary>
+		/// デバッグ表示用に登録済み MeshAsset テーブル全体を参照します。
+		/// </summary>
+		const std::unordered_map<uint32_t, MeshParticleAsset>& GetMeshAssets() const { return meshAssets_; }
 
-	/// <summary>
-	/// 指定されたエミッターに対して「一度だけ count 個ぶんバースト発生させる」リクエストを行います。<br/>
-	/// 内部的には GpuParticleEmitter::RequestEmit() を呼び出し、<br/>
-	/// 次回 Update() 時に BuildCB() → DispatchEmit() を経由して GPU へ反映されます。
-	/// </summary>
-	/// <param name="name">バーストさせたいエミッター名。</param>
-	/// <param name="count">発生させるパーティクルの個数。</param>
-	void BurstEmitter(const std::string& name, uint32_t count);
+	public: /// ---------- エミッター関連 ---------- ///
 
-	// デバッグ用：デバッグカメラの有効／無効を切り替え
-	void SetDebugCameraEnabled(bool enabled) { gpuParticleBuffers_->SetDebugCameraEnabled(enabled); }
+		/// <summary>
+		/// 新しい GPU パーティクルエミッターを作成し、名前をキーに内部登録します。<br/>
+		/// すでに同名のエミッターが存在する場合は作成しません。
+		/// </summary>
+		/// <param name="name">エミッター名（識別キー）。</param>
+		/// <param name="info">エミッターの初期設定情報。</param>
+		/// <returns>作成成功時はエミッターへのポインタ、失敗時は nullptr。</returns>
+		GpuParticleEmitter* CreateEmitter(const std::string& name, const GpuParticleEmitter::EmitterInfo& info);
 
-private: /// ---------- ディスパッチ関数 ---------- ///
+		/// <summary>
+		/// 指定名のエミッターを取得します。<br/>
+		/// 見つからない場合は nullptr を返します。
+		/// </summary>
+		/// <param name="name">取得したいエミッター名。</param>
+		/// <returns>エミッターへのポインタ。存在しない場合は nullptr。</returns>
+		GpuParticleEmitter* GetEmitter(const std::string& name);
 
-	/// <summary>
-	/// シミュレーション初期化用ディスパッチ。<br/>
-	/// GpuParticleBuffers が持つパーティクルバッファに対して、<br/>
-	/// 「初期状態のパーティクル」を書き込む Compute シェーダを実行します。<br/>
-	/// ・UAV 用の ResourceTransition<br/>
-	/// ・UAVManager::PreDispatch() による UAV ヒープのセット<br/>
-	/// ・GpuParticlePipeline::GetCsPSO() を使った Dispatch<br/>
-	/// ・NON_PIXEL_SHADER_RESOURCE へのバリア戻し<br/>
-	/// などの処理をまとめて行います。
-	/// </summary>
-	void Dispatch();
+		/// <summary>
+		/// 指定エミッターへ一度だけ count 個ぶんの発生要求を出します。<br/>
+		/// 実際の発生処理は次回 Update() 内の BuildCB() / DispatchEmit() で反映されます。
+		/// </summary>
+		/// <param name="name">対象エミッター名。</param>
+		/// <param name="count">発生要求数。</param>
+		void BurstEmitter(const std::string& name, uint32_t count);
 
-	/// <summary>
-	/// エミット専用のディスパッチ処理。<br/>
-	/// ・UAV に遷移したパーティクルバッファに対して<br/>
-	/// ・GpuParticlePipeline::GetCsEmitPSO() を設定して Dispatch<br/>
-	/// ・Emitter CB / PerFrame CB を RootConstantBufferView でセット<br/>
-	/// することで、エミット部分だけを GPU 上で実行します。
-	/// </summary>
-	void DispatchEmit(D3D12_GPU_VIRTUAL_ADDRESS emitterCbAddr);
+		/// <summary>
+		/// デバッグカメラの有効/無効を切り替えます。<br/>
+		/// GPU パーティクルバッファ側へも状態を反映します。
+		/// </summary>
+		/// <param name="enabled">有効にする場合は true。</param>
+		void SetDebugCameraEnabled(bool enabled) { gpuParticleBuffers_->SetDebugCameraEnabled(enabled); }
 
-	/// <summary>
-	/// 毎フレームの更新専用ディスパッチ処理。<br/>
-	/// ・GpuParticlePipeline::GetCsUpdatePSO() を設定して Dispatch<br/>
-	/// ・パーティクルバッファ UAV と PerFrame CB をバインド<br/>
-	/// ・maxParticles / numthreads からスレッドグループ数を計算して Dispatch<br/>
-	/// することで、全パーティクルの寿命・位置・速度などを更新します。
-	/// </summary>
-	void DispatchUpdate();
+	private: /// ---------- ディスパッチ関数 ---------- ///
 
-	// submesh から DefaultHeap VB/IB を作って MeshParticleAsset を組み立てる
-	MeshParticleAsset CreateMeshAssetFromSubMesh(const SubMesh& subMesh, bool loadTexture);
+		/// <summary>
+		/// 初期化用の Compute Dispatch を実行します。<br/>
+		/// パーティクルバッファを初期状態へセットアップする用途で使用します。
+		/// </summary>
+		void Dispatch();
 
-private: /// ---------- メンバ変数 ---------- ///
+		/// <summary>
+		/// エミット専用の Compute Dispatch を実行します。<br/>
+		/// 指定エミッターCBを参照し、新規パーティクル発生処理のみをGPU上で行います。
+		/// </summary>
+		/// <param name="emitterCbAddr">エミッター定数バッファのGPU仮想アドレス。</param>
+		void DispatchEmit(D3D12_GPU_VIRTUAL_ADDRESS emitterCbAddr);
 
-	Camera* camera_ = nullptr; // カメラのポインタ
+		/// <summary>
+		/// 毎フレーム更新用の Compute Dispatch を実行します。<br/>
+		/// 既存パーティクルの位置・寿命・速度などを GPU 上で更新します。
+		/// </summary>
+		void DispatchUpdate();
 
-	bool isDebugCamera_ = false; // デバッグカメラ有効フラグ
+		/// <summary>
+		/// 読み込んだ subMesh から MeshParticleAsset を生成します。<br/>
+		/// DefaultHeap 上に VB/IB を作成し、必要ならテクスチャもロードします。
+		/// </summary>
+		/// <param name="subMesh">変換元の subMesh。</param>
+		/// <param name="loadTexture">テクスチャ読み込みを行うかどうか。</param>
+		/// <returns>生成された MeshParticleAsset。</returns>
+		MeshParticleAsset CreateMeshAssetFromSubMesh(const SubMesh& subMesh, bool loadTexture);
 
-	// GPUパーティクルスプライトパイプライン
-	std::unique_ptr<GpuParticleSpritePipeline> spritePipeline_;
-	std::unique_ptr<GpuParticleComputePipeline> computePipeline_;
+	private: /// ---------- メンバ変数 ---------- ///
 
-	// GPUパーティクルバッファ
-	std::unique_ptr<GpuParticleBuffers> gpuParticleBuffers_;
+		/// <summary>
+		/// カメラ参照です。
+		/// ビュー行列・射影行列など、GPU パーティクル更新や描画に必要な情報取得に使用します。
+		/// </summary>
+		Camera* camera_ = nullptr;
 
-	// GPUパーティクルレンダラー
-	std::unique_ptr<GpuParticleRenderer> gpuParticleRenderer_;
+		/// <summary>
+		/// デバッグカメラの有効状態です。
+		/// </summary>
+		bool isDebugCamera_ = false;
 
-	// エミッターコンテナ
-	std::unordered_map<std::string, std::unique_ptr<GpuParticleEmitter>> emitters_;
+		/// <summary>
+		/// GPU スプライト描画用パイプラインです。
+		/// </summary>
+		std::unique_ptr<GpuParticleSpritePipeline> spritePipeline_;
 
-private: /// ---------- メッシュデータ ---------- ///
+		/// <summary>
+		/// Compute Shader 実行用パイプラインです。
+		/// 初期化・更新・エミット用の PSO / RootSignature を扱います。
+		/// </summary>
+		std::unique_ptr<GpuParticleComputePipeline> computePipeline_;
 
-	std::unique_ptr<GpuParticleMeshPipeline> meshPipeline_;
+		/// <summary>
+		/// GPU パーティクルシミュレーション用バッファ群です。
+		/// </summary>
+		std::unique_ptr<GpuParticleBuffers> gpuParticleBuffers_;
 
-	// meshId -> MeshParticleAsset
-	std::unordered_map<uint32_t, MeshParticleAsset> meshAssets_;
-};
+		/// <summary>
+		/// GPU パーティクル描画処理を担当するレンダラーです。
+		/// </summary>
+		std::unique_ptr<GpuParticleRenderer> gpuParticleRenderer_;
 
+		/// <summary>
+		/// 名前をキーにしたエミッター管理テーブルです。
+		/// </summary>
+		std::unordered_map<std::string, std::unique_ptr<GpuParticleEmitter>> emitters_;
+
+	private: /// ---------- メッシュデータ ---------- ///
+
+		/// <summary>
+		/// Mesh Particle 描画用パイプラインです。
+		/// </summary>
+		std::unique_ptr<GpuParticleMeshPipeline> meshPipeline_;
+
+		/// <summary>
+		/// meshId をキーにした MeshParticleAsset 管理テーブルです。
+		/// </summary>
+		std::unordered_map<uint32_t, MeshParticleAsset> meshAssets_;
+	};
 
 } // namespace Ken4lowEngine
