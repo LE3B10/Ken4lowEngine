@@ -715,7 +715,15 @@
     <ClCompile Include="ApplicationLayer\Character\Enemy\Behavior\EnemyBehavior_Suppressor.cpp">
       <Filter>ApplicationLayer\Character\Enemy\Behavior</Filter>
     </ClCompile>
-    <ClCompile Include="EngineLayer\Input\InputSnapshot.cpp" />
+    <ClCompile Include="EngineLayer\Base\MainRenderTarget\MainRenderTarget.cpp">
+      <Filter>EngineLayer\Base\MainRenderTarget</Filter>
+    </ClCompile>
+    <ClCompile Include="EngineLayer\Base\ShadowMapRenderTarget\ShadowMapRenderTarget.cpp">
+      <Filter>EngineLayer\Base\ShadowMapRenderTarget</Filter>
+    </ClCompile>
+    <ClCompile Include="EngineLayer\Input\InputSnapshot.cpp">
+      <Filter>EngineLayer\Input</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="EngineLayer\Math\MultipleStructs\AABB.h">
@@ -1486,6 +1494,12 @@
     <ClInclude Include="ApplicationLayer\Character\Enemy\Behavior\EnemyBehavior_Suppressor.h">
       <Filter>ApplicationLayer\Character\Enemy\Behavior</Filter>
     </ClInclude>
+    <ClInclude Include="EngineLayer\Base\MainRenderTarget\MainRenderTarget.h">
+      <Filter>EngineLayer\Base\MainRenderTarget</Filter>
+    </ClInclude>
+    <ClInclude Include="EngineLayer\Base\ShadowMapRenderTarget\ShadowMapRenderTarget.h">
+      <Filter>EngineLayer\Base\ShadowMapRenderTarget</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="Resources\Shaders\PostEffect\FullScreen.hlsli">
@@ -1954,6 +1968,12 @@
     </Filter>
     <Filter Include="ApplicationLayer\Character\Enemy\Tuning">
       <UniqueIdentifier>{ff09d9ab-0f57-4a2f-b7f8-c8194f46f252}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="EngineLayer\Base\MainRenderTarget">
+      <UniqueIdentifier>{149474fd-6fc8-4467-ab42-e3b7f659577f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="EngineLayer\Base\ShadowMapRenderTarget">
+      <UniqueIdentifier>{83c4d0b7-1514-4157-ab1e-9e789c81a92b}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

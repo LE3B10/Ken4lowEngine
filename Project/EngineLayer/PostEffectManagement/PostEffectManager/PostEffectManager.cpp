@@ -6,6 +6,7 @@
 #include "SRVManager.h"
 #include <UAVManager.h>
 #include <DSVManager.h>
+#include <RTVManager.h>
 
 #include <cassert>
 
