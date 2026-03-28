@@ -109,12 +109,6 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="WinMain.cpp" />
-    <ClCompile Include="EngineLayer\Audio\MP3Loader\MP3Loader.cpp">
-      <Filter>EngineLayer\Audio</Filter>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\Audio\WaveLoader\WavLoader.cpp">
-      <Filter>EngineLayer\Audio</Filter>
-    </ClCompile>
     <ClCompile Include="EngineLayer\Transform\ParticleTransform.cpp">
       <Filter>EngineLayer\Transform</Filter>
     </ClCompile>
@@ -745,15 +739,6 @@
       <Filter>EngineLayer\Audio</Filter>
     </ClInclude>
     <ClInclude Include="EngineLayer\Audio\AudioDatas\AudioStructs.h">
-      <Filter>EngineLayer\Audio</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\Audio\MP3Loader\MP3Loader.h">
-      <Filter>EngineLayer\Audio</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\Audio\WaveLoader\WavLoader.h">
-      <Filter>EngineLayer\Audio</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\Audio\WaveLoader\WavLoaderException.h">
       <Filter>EngineLayer\Audio</Filter>
     </ClInclude>
     <ClInclude Include="EngineLayer\Math\MultipleStructs\Plane.h">
