@@ -11,6 +11,7 @@
 #include <dxcapi.h>
 #include <memory>
 #include <Vector4.h>
+#include <algorithm>
 
 namespace Ken4lowEngine
 {
@@ -22,182 +23,163 @@ namespace Ken4lowEngine
 	/// -------------------------------------------------------------
 	///			DirectXCommon - DirectX12の基盤クラス
 	/// -------------------------------------------------------------
+	/// デバイス、スワップチェイン、コマンド、フェンス、RTV/DSV など、
+	/// 描画基盤全体の初期化と管理を担当する。
 	class DirectXCommon
 	{
-		// クライアント領域サイズ :	幅
+		// クライアント領域サイズ : 幅
 		uint32_t kClientWidth = 0;
 
 		// クライアント領域サイズ : 高さ
 		uint32_t kClientHeight = 0;
 
+	public: /// ---------- シャドウマップ設定 ---------- ///
+
+		/// <summary>
+		/// シャドウマップ生成に使う設定。
+		/// 以前は 2048x2048 を固定値で持っていたが、
+		/// 品質設定やライト設定から差し替えやすいように構造体へまとめている。
+		/// </summary>
+		struct ShadowMapSettings
+		{
+			uint32_t width = 2048;
+			uint32_t height = 2048;
+		};
+
 	public: /// ---------- メンバ関数 ---------- ///
 
 		/// <summary>
-		/// DirectXCommon のシングルトンインスタンスを取得します。<br/>
-		/// 初回呼び出し時に内部で静的インスタンスを生成します。
+		/// DirectXCommon のシングルトンインスタンスを取得する。
+		/// 描画基盤はアプリ全体で 1 つだけ使う想定のため、シングルトンにしている。
 		/// </summary>
-		/// <returns>DirectXCommon の唯一のインスタンス。</returns>
 		static DirectXCommon* GetInstance();
 
 		/// <summary>
-		/// DirectX12 の初期化処理を行います。<br/>
-		/// おおまかな流れ：<br/>
-		/// 1. DX12Device / DX12SwapChain / DXCCompilerManager / DX12CommandManager / DX12FenceManager の生成<br/>
-		/// 2. デバッグレイヤー有効化(DebugLayer)<br/>
-		/// 3. デバイス生成(DX12Device::Initialize)<br/>
-		/// 4. エラー・警告時にブレークする InfoQueue 設定(ErrorWarning)<br/>
-		/// 5. コマンド関連の初期化(DX12CommandManager::Initialize, SetFenceManager)<br/>
-		/// 6. スワップチェイン生成(DX12SwapChain::Initialize)<br/>
-		/// 7. フェンス生成(DX12FenceManager::Initialize)<br/>
-		/// 8. DXC コンパイラの初期化(DXCCompilerManager::Initialize)<br/>
-		/// 9. RTV / DSV の初期化と深度バッファ作成(InitializeRTVAndDSV)<br/>
-		/// 10. ビューポート・シザー矩形の設定<br/>
+		/// DirectX12 の初期化処理を行う。
+		/// デバイス・スワップチェイン・コマンド・フェンス・RTV/DSV などを順に準備し、
+		/// 最後に通常描画用の Viewport / ScissorRect を設定する。
 		/// </summary>
-		/// <param name="winApp">ウィンドウハンドルを持つ WinApp インスタンス。</param>
-		/// <param name="Width">クライアント領域の幅。</param>
-		/// <param name="Height">クライアント領域の高さ。</param>
 		void Initialize(WinApp* winApp, uint32_t Width, uint32_t Height);
 
 		/// <summary>
-		/// 1 フレーム分の描画開始処理を行います。<br/>
-		/// ・FPSCounter::StartFrame() を呼んでフレーム開始を記録<br/>
-		/// ・ビューポート／シザー矩形のセット<br/>
-		/// ・現在のバックバッファインデックス取得<br/>
-		/// ・バックバッファを PRESENT → RENDER_TARGET にリソース遷移<br/>
-		/// ・深度バッファを DEPTH_WRITE → PIXEL_SHADER_RESOURCE に遷移<br/>
-		/// ・カラー／深度ステンシルのクリア(ClearWindow)<br/>
-		/// といった処理をまとめて行います。
+		/// 1 フレーム分の描画開始処理。
+		/// バックバッファを描画可能状態へ遷移し、画面クリアまでを行う。
 		/// </summary>
 		void BeginDraw();
 
 		/// <summary>
-		/// 1 フレーム分の描画終了処理を行います。<br/>
-		/// ・バックバッファを RENDER_TARGET → PRESENT にリソース遷移<br/>
-		/// ・コマンドリストの実行＆完了待ち(ExecuteAndWait + Fence Signal / Wait)<br/>
-		/// ・スワップチェインの Present (VSync 有効 / Present(1,0))<br/>
-		/// ・FPSCounter::EndFrame() による FPS 計測・スリープ制御<br/>
-		/// を行います。
+		/// 1 フレーム分の描画終了処理。
+		/// バックバッファを Present 状態へ戻し、コマンド実行と Present を行う。
 		/// </summary>
 		void EndDraw();
 
+		/// <summary>
+		/// シャドウマップ描画パスを開始する。
+		/// シャドウマップ用 Viewport / ScissorRect を設定し、
+		/// 深度書き込み用の DSV に切り替える。
+		/// </summary>
 		void BeginShadowMapPass();
 
+		/// <summary>
+		/// シャドウマップ描画パスを終了する。
+		/// 本描画でサンプリングできるよう、シャドウマップを SRV 用ステートへ戻す。
+		/// </summary>
 		void EndShadowMapPass();
 
+		/// <summary>
+		/// シャドウマップの SRV を作成する。
+		/// シャドウマップをピクセルシェーダから参照するために必要。
+		/// </summary>
 		void CreateShadowMapSRV();
 
 		/// <summary>
-		/// DirectXCommon の終了処理を行います。<br/>
-		/// ・フェンスで GPU の処理完了を待機<br/>
-		/// ・フェンスマネージャの Finalize<br/>
-		/// ・デバイス / スワップチェイン等のユニークポインタ解放<br/>
-		/// を行います。アプリ終了時に呼び出します。
+		/// DirectXCommon の終了処理を行う。
+		/// GPU の完了待ち後、保持している描画関連リソースを順に破棄する。
 		/// </summary>
 		void Finalize();
 
 		/// <summary>
-		/// 指定リソースのステートを変更するヘルパー。<br/>
-		/// 内部的には DX12CommandManager::ResourceTransition() を呼び出し、<br/>
-		/// D3D12_RESOURCE_BARRIER を設定してコマンドリストに積みます。
+		/// 指定リソースのステートを変更するヘルパー。
+		/// 内部的にはコマンドリストへ ResourceBarrier を積む。
 		/// </summary>
-		/// <param name="resource">ステートを変更したいリソース。</param>
-		/// <param name="stateBefore">変更前のステート。</param>
-		/// <param name="stateAfter">変更後のステート。</param>
 		void ResourceTransition(ID3D12Resource* resource, D3D12_RESOURCE_STATES stateBefore, D3D12_RESOURCE_STATES stateAfter)
 		{
 			commandManager_->ResourceTransition(resource, stateBefore, stateAfter);
 		}
 
+		/// <summary>
+		/// 画面サイズ変更時の再生成処理。
+		/// スワップチェインと深度バッファ、必要に応じてシャドウマップも作り直す。
+		/// </summary>
 		void Resize(uint32_t width, uint32_t height);
+
+		/// <summary>
+		/// シャドウマップ解像度を設定する。
+		/// 初期化前は設定だけ保持し、初期化後なら必要に応じてシャドウマップを作り直す。
+		/// </summary>
+		void SetShadowMapSize(uint32_t width, uint32_t height);
+
+		/// <summary>
+		/// シャドウマップ設定をまとめて変更する。
+		/// 将来的に品質設定クラスなどから一括適用しやすくするための入口。
+		/// </summary>
+		void SetShadowMapSettings(const ShadowMapSettings& settings);
 
 	public: /// ---------- ゲッター ---------- ///
 
-		/// <summary>
-		/// DirectX12 デバイスを取得します。
-		/// </summary>
-		/// <returns>内部で生成された ID3D12Device。</returns>
 		ID3D12Device* GetDevice() const { return device_->GetDevice(); }
-
-		/// <summary>
-		/// スワップチェインマネージャを取得します。
-		/// </summary>
-		/// <returns>DX12SwapChain インスタンス。</returns>
 		DX12SwapChain* GetSwapChain() { return swapChain_.get(); }
-
-		/// <summary>
-		/// DXC コンパイラマネージャを取得します。<br/>
-		/// ShaderCompiler から DXC のユーティリティ／コンパイラ／インクルードハンドラにアクセスする際に使用します。
-		/// </summary>
 		DXCCompilerManager* GetDXCCompilerManager() { return dxcCompilerManager_.get(); }
-
-		/// <summary>
-		/// コマンドマネージャを取得します。<br/>
-		/// コマンドリストやコマンドキューへのアクセスに使用します。
-		/// </summary>
 		DX12CommandManager* GetCommandManager() { return commandManager_.get(); }
-
-		/// <summary>
-		/// フェンスマネージャを取得します。
-		/// </summary>
 		DX12FenceManager* GetFenceManager() { return fenceManager_.get(); }
-
-		/// <summary>
-		/// スワップチェインの設定情報(DXGI_SWAP_CHAIN_DESC1)を取得します。
-		/// </summary>
-		/// <returns>内部で保持している DXGI_SWAP_CHAIN_DESC1 への参照。</returns>
 		DXGI_SWAP_CHAIN_DESC1& GetSwapChainDesc() const { return swapChain_->GetSwapChainDesc(); }
-
-		/// <summary>
-		/// FPS 計測用の FPSCounter を取得します。<br/>
-		/// 外部で FPS や DeltaTime を参照したい場合に使用します。
-		/// </summary>
-		/// <returns>内部で保持している FPSCounter への参照。</returns>
 		FPSCounter& GetFPSCounter() { return fpsCounter_; }
 
 		/// <summary>
-		/// 指定インデックスのバックバッファリソースを取得します。<br/>
-		/// 0～(バックバッファ数-1) の範囲で指定します。
+		/// 指定インデックスのバックバッファを取得する。
 		/// </summary>
-		/// <param name="index">取得したいバックバッファのインデックス。</param>
-		/// <returns>バックバッファの ID3D12Resource を保持した ComPtr。</returns>
 		ComPtr<ID3D12Resource> GetBackBuffer(uint32_t index);
 
 		/// <summary>
-		/// 指定インデックスのバックバッファ RTV ハンドルを取得します。<br/>
-		/// RTVManager 経由で CPU ディスクリプタハンドルを返します。
+		/// 指定インデックスのバックバッファ RTV を取得する。
 		/// </summary>
-		/// <param name="index">バックバッファインデックス。</param>
-		/// <returns>バックバッファに対応する RTV の CPU ディスクリプタハンドル。</returns>
 		D3D12_CPU_DESCRIPTOR_HANDLE GetBackBufferRTV(uint32_t index) { return RTVManager::GetInstance()->GetCPUDescriptorHandle(index); }
 
 		/// <summary>
-		/// 深度ステンシルバッファリソースを取得します。
+		/// 深度ステンシルバッファを取得する。
 		/// </summary>
-		/// <returns>深度ステンシル用の ID3D12Resource を保持した ComPtr。</returns>
 		ComPtr<ID3D12Resource> GetDepthStencilResource() const { return depthStencilResource.Get(); }
 
 		uint32_t GetClientWidth()  const { return kClientWidth; }
-
 		uint32_t GetClientHeight() const { return kClientHeight; }
 
 		uint32_t GetShadowMapSrvIndex() const { return shadowMapSrvIndex_; }
 
+		/// <summary>
+		/// シャドウマップ SRV の GPU ハンドルを取得する。
+		/// </summary>
 		D3D12_GPU_DESCRIPTOR_HANDLE GetShadowMapSrvHandleGPU() const;
+
+		/// <summary>
+		/// 現在のシャドウマップ設定を取得する。
+		/// </summary>
+		const ShadowMapSettings& GetShadowMapSettings() const { return shadowMapSettings_; }
 
 	private: /// ---------- メンバ関数 ---------- ///
 
-		// デバッグレイヤーの表示
+		// デバッグレイヤーを有効化する
 		void DebugLayer();
 
-		// エラー警告
+		// エラー・警告発生時の停止設定を行う
 		void ErrorWarning();
 
-		// 画面全体をクリア
+		// 画面全体のカラーと深度をクリアする
 		void ClearWindow();
 
-		// RTVとDSVの初期化関数を追加
+		// RTV と DSV を初期化する
 		void InitializeRTVAndDSV();
 
+		// シャドウマップ用深度リソースと Viewport / Scissor を作成する
 		void CreateShadowMapResources(bool allocateDescriptor);
 
 	private: /// ---------- メンバ変数 ---------- ///
@@ -212,31 +194,36 @@ namespace Ken4lowEngine
 
 		D3D12_RESOURCE_BARRIER barrier{};
 
-		// 描画開始・終了処理に使う
+		// 通常描画用の Viewport / Scissor
 		D3D12_VIEWPORT viewport{};
 		D3D12_RECT scissorRect{};
 
 		UINT backBufferIndex = 0;
-		uint32_t dsvIndex_ = 0; // DSVのインデックス
+		uint32_t dsvIndex_ = 0;
 
-		ComPtr<ID3D12Resource> depthStencilResource; // 深度バッファ
+		// メイン描画用深度バッファ
+		ComPtr<ID3D12Resource> depthStencilResource;
 
 	private: /// ---------- シャドウマップ用変数 ---------- ///
 
-		uint32_t shadowMapWidth_ = 2048;
-		uint32_t shadowMapHeight_ = 2048;
+		// シャドウマップ解像度設定
+		ShadowMapSettings shadowMapSettings_{};
 
-		uint32_t shadowMapDsvIndex_ = 0; // シャドウマップ用 DSV のインデックス
-		uint32_t shadowMapSrvIndex_ = 0; // シャドウマップ用 SRV のインデックス
+		uint32_t shadowMapDsvIndex_ = 0;
+		uint32_t shadowMapSrvIndex_ = 0;
 
-		bool hasCreatedShadowMapDSV_ = false; // シャドウマップ用 DSV を作成したかどうか
-		bool hasCreatedShadowMapSRV_ = false; // シャドウマップ用 SRV を作成したかどうか
+		bool hasCreatedShadowMapDSV_ = false;
+		bool hasCreatedShadowMapSRV_ = false;
 
-		D3D12_VIEWPORT shadowMapViewport{}; // シャドウマップ用ビューポート
-		D3D12_RECT shadowMapScissorRect{}; // シャドウマップ用シザー矩形
+		// シャドウマップ専用の Viewport / Scissor
+		D3D12_VIEWPORT shadowMapViewport{};
+		D3D12_RECT shadowMapScissorRect{};
 
-		ComPtr<ID3D12Resource> shadowMapResource_; // シャドウマップ用深度バッファ
-		D3D12_RESOURCE_STATES shadowMapState_ = D3D12_RESOURCE_STATE_DEPTH_WRITE; // シャドウマップの現在のリソースステート
+		// シャドウマップ深度バッファ
+		ComPtr<ID3D12Resource> shadowMapResource_;
+
+		// シャドウマップの現在ステート
+		D3D12_RESOURCE_STATES shadowMapState_ = D3D12_RESOURCE_STATE_DEPTH_WRITE;
 
 	private: /// ---------- コピー禁止 ---------- ///
 
