@@ -715,6 +715,7 @@
     <ClCompile Include="ApplicationLayer\Character\Enemy\Behavior\EnemyBehavior_Suppressor.cpp">
       <Filter>ApplicationLayer\Character\Enemy\Behavior</Filter>
     </ClCompile>
+    <ClCompile Include="EngineLayer\Input\InputSnapshot.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="EngineLayer\Math\MultipleStructs\AABB.h">
