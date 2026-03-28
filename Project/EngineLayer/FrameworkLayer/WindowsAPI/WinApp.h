@@ -94,9 +94,12 @@ namespace Ken4lowEngine
 		uint32_t GetClientWidth() const { return clientWidth_; }
 		uint32_t GetClientHeight() const { return clientHeight_; }
 
-		// クライアント領域サイズ
-		static inline const UINT32 kClientWidth = 1280;
-		static inline const UINT32 kClientHeight = 720;
+		/// <summary>
+		/// クライアント領域サイズの既定値です。
+		/// DisplaySettings の既定解像度を参照することで、WinApp 内での解像度直書きを防ぎます。
+		/// </summary>
+		static inline constexpr UINT32 kClientWidth = DisplaySettings::kDefaultResolution.width;
+		static inline constexpr UINT32 kClientHeight = DisplaySettings::kDefaultResolution.height;
 
 	private: /// ---------- メンバ関数 ---------- ///
 
