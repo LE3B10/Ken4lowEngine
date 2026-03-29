@@ -1,10 +1,8 @@
 #include "DepthOutlineEffect.h"
 #include <DirectXCommon.h>
-#include <LogString.h>
 #include <PostEffectPipelineBuilder.h>
 #include <ResourceManager.h>
 #include <SRVManager.h>
-#include <ShaderCompiler.h>
 #include <WinApp.h>
 #include "Camera.h"
 
@@ -36,7 +34,7 @@ namespace Ken4lowEngine
 
 		// パイプラインの生成
 		graphicsPipelineState_ = builder->CreateGraphicsPipeline(
-			ShaderCompiler::GetShaderPath(L"DepthOutlineEffect", L".PS.hlsl"),
+			PostEffectGraphicsShaderId::DepthOutlinePS,
 			rootSignature_.Get(),
 			false);
 

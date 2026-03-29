@@ -932,6 +932,15 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     </ClInclude>
     <ClInclude Include="ApplicationLayer\Scene\DebugScene\DebugScene.h" />
     <ClInclude Include="EngineLayer\3D\AnimationSystem\Collider\BodyPartCollider.h" />
+    <ClInclude Include="EngineLayer\Base\ShaderCompiler\AnimationShaderManifest.h" />
+    <ClInclude Include="EngineLayer\Base\ShaderCompiler\GpuParticleShaderManifest.h" />
+    <ClInclude Include="EngineLayer\Base\ShaderCompiler\Object3DShaderManifest.h" />
+    <ClInclude Include="EngineLayer\Base\ShaderCompiler\ParticleShaderManifest.h" />
+    <ClInclude Include="EngineLayer\Base\ShaderCompiler\PostEffectShaderManifest.h" />
+    <ClInclude Include="EngineLayer\Base\ShaderCompiler\ShaderManifestTypes.h" />
+    <ClInclude Include="EngineLayer\Base\ShaderCompiler\SkyBoxShaderManifest.h" />
+    <ClInclude Include="EngineLayer\Base\ShaderCompiler\SpriteShaderManifest.h" />
+    <ClInclude Include="EngineLayer\Base\ShaderCompiler\WireframeShaderManifest.h" />
     <ClInclude Include="EngineLayer\Colliders\CollisionUtility.h">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>

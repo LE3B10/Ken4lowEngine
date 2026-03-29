@@ -1527,6 +1527,33 @@
     <ClInclude Include="EngineLayer\GPUParticleSystem\GpuParticleEmitterPreset\GpuParticleEmitterSerializer.h">
       <Filter>EngineLayer\GpuParticleSystem\GpuParticleEmitterPreset</Filter>
     </ClInclude>
+    <ClInclude Include="EngineLayer\Base\ShaderCompiler\AnimationShaderManifest.h">
+      <Filter>EngineLayer\Base\ShaderCompiler</Filter>
+    </ClInclude>
+    <ClInclude Include="EngineLayer\Base\ShaderCompiler\GpuParticleShaderManifest.h">
+      <Filter>EngineLayer\Base\ShaderCompiler</Filter>
+    </ClInclude>
+    <ClInclude Include="EngineLayer\Base\ShaderCompiler\Object3DShaderManifest.h">
+      <Filter>EngineLayer\Base\ShaderCompiler</Filter>
+    </ClInclude>
+    <ClInclude Include="EngineLayer\Base\ShaderCompiler\ParticleShaderManifest.h">
+      <Filter>EngineLayer\Base\ShaderCompiler</Filter>
+    </ClInclude>
+    <ClInclude Include="EngineLayer\Base\ShaderCompiler\PostEffectShaderManifest.h">
+      <Filter>EngineLayer\Base\ShaderCompiler</Filter>
+    </ClInclude>
+    <ClInclude Include="EngineLayer\Base\ShaderCompiler\ShaderManifestTypes.h">
+      <Filter>EngineLayer\Base\ShaderCompiler</Filter>
+    </ClInclude>
+    <ClInclude Include="EngineLayer\Base\ShaderCompiler\SkyBoxShaderManifest.h">
+      <Filter>EngineLayer\Base\ShaderCompiler</Filter>
+    </ClInclude>
+    <ClInclude Include="EngineLayer\Base\ShaderCompiler\SpriteShaderManifest.h">
+      <Filter>EngineLayer\Base\ShaderCompiler</Filter>
+    </ClInclude>
+    <ClInclude Include="EngineLayer\Base\ShaderCompiler\WireframeShaderManifest.h">
+      <Filter>EngineLayer\Base\ShaderCompiler</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="Resources\Shaders\PostEffect\FullScreen.hlsli">

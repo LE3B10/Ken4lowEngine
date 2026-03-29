@@ -1,11 +1,11 @@
 #include "Wireframe.h"
-#include "WinApp.h"
 #include "LogString.h"
 #include "DirectXCommon.h"
 #include "BlendStateFactory.h"
 #include "ShaderCompiler.h"
 #include "DebugCamera.h"
 #include "ResourceManager.h"
+#include "WireframeShaderManifest.h"
 
 namespace Ken4lowEngine
 {
@@ -1544,17 +1544,23 @@ void Wireframe::CreatePSO(D3D12_PRIMITIVE_TOPOLOGY_TYPE primitiveTopologyType, C
 
 	// Shaderをコンパイルする
 
-	// 頂点シェーダーをコンパイル
-	Microsoft::WRL::ComPtr<IDxcBlob> vertexShaderBlob = ShaderCompiler::CompileShader(L"Resources/Shaders/Wireframe/Wireframe.VS.hlsl", L"vs_6_0", dxCommon_->GetDXCCompilerManager());
+	const ShaderDescriptor& vsDesc =
+		WireframeShaderManifest::Get(WireframeShaderId::WireframeVS);
+	const ShaderDescriptor& psDesc =
+		WireframeShaderManifest::Get(WireframeShaderId::WireframePS);
+
+	assert(vsDesc.stage == ShaderStage::Vertex);
+	assert(psDesc.stage == ShaderStage::Pixel);
+
+	ComPtr<IDxcBlob> vertexShaderBlob = ShaderCompiler::CompileShader(
+		vsDesc,
+		dxCommon_->GetDXCCompilerManager());
 	assert(vertexShaderBlob != nullptr);
 
-	// ピクセルシェーダをコンパイル
-	Microsoft::WRL::ComPtr<IDxcBlob> pixelShaderBlob = ShaderCompiler::CompileShader(L"Resources/Shaders/Wireframe/Wireframe.PS.hlsl", L"ps_6_0", dxCommon_->GetDXCCompilerManager());
+	ComPtr<IDxcBlob> pixelShaderBlob = ShaderCompiler::CompileShader(
+		psDesc,
+		dxCommon_->GetDXCCompilerManager());
 	assert(pixelShaderBlob != nullptr);
-
-	// ジオメトリシェーダをコンパイル
-	Microsoft::WRL::ComPtr<IDxcBlob> geometryShaderBlob = ShaderCompiler::CompileShader(L"Resources/Shaders/Wireframe/Wireframe.GS.hlsl", L"gs_6_0", dxCommon_->GetDXCCompilerManager());
-	assert(geometryShaderBlob != nullptr);
 
 	// DepthStencilStateの設定
 	D3D12_DEPTH_STENCIL_DESC depthStencilDesc{};

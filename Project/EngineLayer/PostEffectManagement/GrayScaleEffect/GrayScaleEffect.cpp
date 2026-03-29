@@ -1,12 +1,9 @@
 #include "GrayScaleEffect.h"
 #include <DirectXCommon.h>
-#include <LogString.h>
 #include <PostEffectPipelineBuilder.h>
+#include <PostEffectShaderManifest.h>
 #include <ResourceManager.h>
-#include <SRVManager.h>
 #include <UAVManager.h>
-#include <ShaderCompiler.h>
-#include <WinApp.h>
 
 #include <cassert>
 
@@ -18,26 +15,41 @@ namespace Ken4lowEngine
 {
 
 	/// -------------------------------------------------------------
-	///						　初期化処理
+	///                         初期化処理
 	/// -------------------------------------------------------------
 	void GrayScaleEffect::Initialize(DirectXCommon* dxCommon, PostEffectPipelineBuilder* builder)
 	{
+		assert(dxCommon != nullptr);
+		assert(builder != nullptr);
+
 		dxCommon_ = dxCommon;
 
 		// ルートシグネチャの生成（コンピュート用）
 		computeRootSignature_ = builder->CreateComputeRootSignature();
+		assert(computeRootSignature_ != nullptr);
 
 		// パイプラインの生成（コンピュート用）
-		computePipelineState_ = builder->CreateComputePipeline(ShaderCompiler::GetShaderPath(L"GrayScaleEffect", L".CS.hlsl"), computeRootSignature_.Get());
+		computePipelineState_ = builder->CreateComputePipeline(
+			PostEffectComputeShaderId::GrayScaleCS,
+			computeRootSignature_.Get());
+		assert(computePipelineState_ != nullptr);
 
 		// リソースの生成
-		constantBuffer_ = ResourceManager::CreateBufferResource(dxCommon_->GetDevice(), sizeof(GrayScaleSetting));
+		constantBuffer_ = ResourceManager::CreateBufferResource(
+			dxCommon_->GetDevice(),
+			sizeof(GrayScaleSetting));
+		assert(constantBuffer_ != nullptr);
 
 		// データの設定
-		constantBuffer_->Map(0, nullptr, reinterpret_cast<void**>(&grayScaleSetting_));
+		HRESULT hr = constantBuffer_->Map(
+			0,
+			nullptr,
+			reinterpret_cast<void**>(&grayScaleSetting_));
+		assert(SUCCEEDED(hr));
+		assert(grayScaleSetting_ != nullptr);
 
 		// グレイスケールエフェクトの設定
-		grayScaleSetting_->color = Vector4(1.0f, 1.0f, 1.0f, 1.0f); // 強度
+		grayScaleSetting_->color = Vector4(1.0f, 1.0f, 1.0f, 1.0f);
 
 		// 名前の設定
 		constantBuffer_->SetName(L"GrayScaleEffect ConstantBuffer");
@@ -47,62 +59,77 @@ namespace Ken4lowEngine
 
 	void GrayScaleEffect::Finalize()
 	{
-		// Mapして保持している生ポインタを無効化
-		if (constantBuffer_ && grayScaleSetting_) {
-			constantBuffer_->Unmap(0, nullptr);   // 常時Map運用なら省略してもOK
+		if (constantBuffer_ && grayScaleSetting_)
+		{
+			constantBuffer_->Unmap(0, nullptr);
 			grayScaleSetting_ = nullptr;
 		}
 
-		// D3Dリソース解放
 		constantBuffer_.Reset();
 		computePipelineState_.Reset();
 		computeRootSignature_.Reset();
-
-		// 借り物ポインタ
 		dxCommon_ = nullptr;
 	}
 
-
 	/// -------------------------------------------------------------
-	///				コンピュートシェーダーによる適用処理
+	///             コンピュートシェーダーによる適用処理
 	/// -------------------------------------------------------------
-	void GrayScaleEffect::Apply(ID3D12GraphicsCommandList* commandList, uint32_t srvIndex, uint32_t uavIndex, uint32_t dsvIndex)
+	void GrayScaleEffect::Apply(
+		ID3D12GraphicsCommandList* commandList,
+		uint32_t srvIndex,
+		uint32_t uavIndex,
+		uint32_t dsvIndex)
 	{
-		(void)dsvIndex; // 未使用
+		(void)dsvIndex;
 
-		// コンピュート用のルートシグネチャとPSOを設定
+		assert(commandList != nullptr);
+		assert(dxCommon_ != nullptr);
+		assert(computeRootSignature_ != nullptr);
+		assert(computePipelineState_ != nullptr);
+		assert(constantBuffer_ != nullptr);
+		assert(grayScaleSetting_ != nullptr);
+
 		commandList->SetComputeRootSignature(computeRootSignature_.Get());
 		commandList->SetPipelineState(computePipelineState_.Get());
 
-		// SRVとUAVを設定（ディスクリプタテーブル）
-		commandList->SetComputeRootDescriptorTable(0, UAVManager::GetInstance()->GetGPUDescriptorHandle(srvIndex));  // t0
-		commandList->SetComputeRootDescriptorTable(1, UAVManager::GetInstance()->GetGPUDescriptorHandle(uavIndex)); // u0
+		// t0 : 入力SRV
+		commandList->SetComputeRootDescriptorTable(
+			0,
+			UAVManager::GetInstance()->GetGPUDescriptorHandle(srvIndex));
 
-		// CBVを設定（b0）
-		commandList->SetComputeRootConstantBufferView(2, constantBuffer_->GetGPUVirtualAddress()); // b0
+		// u0 : 出力UAV
+		commandList->SetComputeRootDescriptorTable(
+			1,
+			UAVManager::GetInstance()->GetGPUDescriptorHandle(uavIndex));
 
-		// スレッドグループの数を計算して Dispatch
+		// b0 : 定数バッファ
+		commandList->SetComputeRootConstantBufferView(
+			2,
+			constantBuffer_->GetGPUVirtualAddress());
+
 		const uint32_t threadGroupSizeX = 8;
 		const uint32_t threadGroupSizeY = 8;
 
-		// レンダーターゲットの解像度（仮に 1280x720）
-		uint32_t width = dxCommon_->GetClientWidth(); // ウィンドウの幅
-		uint32_t height = dxCommon_->GetClientHeight(); // ウィンドウの高さ
+		const uint32_t width = dxCommon_->GetClientWidth();
+		const uint32_t height = dxCommon_->GetClientHeight();
 
-		uint32_t groupCountX = (width + threadGroupSizeX - 1) / threadGroupSizeX;
-		uint32_t groupCountY = (height + threadGroupSizeY - 1) / threadGroupSizeY;
+		const uint32_t groupCountX = (width + threadGroupSizeX - 1) / threadGroupSizeX;
+		const uint32_t groupCountY = (height + threadGroupSizeY - 1) / threadGroupSizeY;
 
-		// コンピュートシェーダーの実行
 		commandList->Dispatch(groupCountX, groupCountY, 1);
 	}
 
-
 	/// -------------------------------------------------------------
-	///						　ImGui描画処理
+	///                         ImGui描画処理
 	/// -------------------------------------------------------------
 	void GrayScaleEffect::DrawImGui()
 	{
 #ifdef USE_IMGUI
+		if (grayScaleSetting_ == nullptr)
+		{
+			return;
+		}
+
 		ImGui::ColorEdit4("GrayScale Color", &grayScaleSetting_->color.x);
 		ImGui::Text("GrayScale Effect");
 		ImGui::Separator();

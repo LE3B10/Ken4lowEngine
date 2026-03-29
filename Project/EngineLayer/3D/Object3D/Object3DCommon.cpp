@@ -1,16 +1,17 @@
 #include "Object3DCommon.h"
 #include "DirectXCommon.h"
 #include "DebugCamera.h"
+#include "Object3DShaderManifest.h"
 #include <LogString.h>
 #include <BlendStateFactory.h>
 #include <ShaderCompiler.h>
+#include <LightManager.h>
 
 namespace Ken4lowEngine
 {
 
-
 	/// -------------------------------------------------------------
-	///				　	シングルトンインスタンス
+	///                 シングルトンインスタンス
 	/// -------------------------------------------------------------
 	Object3DCommon* Object3DCommon::GetInstance()
 	{
@@ -18,9 +19,8 @@ namespace Ken4lowEngine
 		return &instance;
 	}
 
-
 	/// -------------------------------------------------------------
-	///				　			初期化処理
+	///                         初期化処理
 	/// -------------------------------------------------------------
 	void Object3DCommon::Initialize(DirectXCommon* dxCommon)
 	{
@@ -28,10 +28,8 @@ namespace Ken4lowEngine
 		isDebugCamera_ = false;
 
 		CreatePSO();
-
 		CreateShadowPSO();
 
-		// ライトマネージャの生成と初期化
 		LightManager::GetInstance()->Initialize(dxCommon_);
 
 		graphicsPipelineState_->SetName(L"Object3DCommon_PSO");
@@ -50,22 +48,18 @@ namespace Ken4lowEngine
 
 	void Object3DCommon::Finalize()
 	{
-		// 先に依存先（ライト）を解放
 		LightManager::GetInstance()->Finalize();
 
-		// D3D関連（ComPtr）を解放
 		graphicsPipelineState_.Reset();
 		rootSignature_.Reset();
 		signatureBlob_.Reset();
 		errorBlob_.Reset();
 
-		// 影用
 		shadowPipelineState_.Reset();
 		shadowRootSignature_.Reset();
 		shadowSignatureBlob_.Reset();
 		shadowErrorBlob_.Reset();
 
-		// 状態を戻す（借り物参照は切る）
 		dxCommon_ = nullptr;
 		defaultCamera_ = nullptr;
 
@@ -77,7 +71,7 @@ namespace Ken4lowEngine
 	}
 
 	/// -------------------------------------------------------------
-	///				　			更新処理
+	///                         更新処理
 	/// -------------------------------------------------------------
 	void Object3DCommon::Update()
 	{
@@ -91,19 +85,19 @@ namespace Ken4lowEngine
 		}
 		else
 		{
-			viewProjectionMatrix_ = Matrix4x4::Multiply(defaultCamera_->GetViewMatrix(), defaultCamera_->GetProjectionMatrix());
+			viewProjectionMatrix_ = Matrix4x4::Multiply(
+				defaultCamera_->GetViewMatrix(),
+				defaultCamera_->GetProjectionMatrix());
 			defaultCamera_->SetViewProjectionMatrix(viewProjectionMatrix_);
-			activeCameraPosition_ = defaultCamera_->GetTranslate(); // 通常カメラの位置
+			activeCameraPosition_ = defaultCamera_->GetTranslate();
 		}
 	}
 
 	void Object3DCommon::DrawImGui()
-	{
-	}
-
+	{}
 
 	/// -------------------------------------------------------------
-	///				　		共通描画処理設定
+	///                     共通描画処理設定
 	/// -------------------------------------------------------------
 	void Object3DCommon::SetRenderSetting()
 	{
@@ -112,7 +106,6 @@ namespace Ken4lowEngine
 		commandList->SetPipelineState(graphicsPipelineState_.Get());
 		commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-		// ライトの設定
 		LightManager::GetInstance()->BindPunctualLights(5, 6);
 	}
 
@@ -126,147 +119,132 @@ namespace Ken4lowEngine
 
 	void Object3DCommon::CreateRootSignature()
 	{
-		// RootSignatureの設定
 		D3D12_ROOT_SIGNATURE_DESC descriptionRootSignature{};
 		descriptionRootSignature.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
 
-		// Samplerの設定
 		D3D12_STATIC_SAMPLER_DESC staticSamplers[2] = {};
 
 		// s0 : 通常テクスチャ用
-		staticSamplers[0].Filter = D3D12_FILTER_MIN_MAG_MIP_POINT; // ←にじみ防止
+		staticSamplers[0].Filter = D3D12_FILTER_MIN_MAG_MIP_POINT;
 		staticSamplers[0].AddressU = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
 		staticSamplers[0].AddressV = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
 		staticSamplers[0].AddressW = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
-		staticSamplers[0].MaxLOD = 0.0f; // ←ベースレベル固定でミップを実質OFF
-		staticSamplers[0].ShaderRegister = 0;								   // レジスタ番号0 (s0)
-		staticSamplers[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;	   // ピクセルシェーダーで使用
+		staticSamplers[0].MaxLOD = 0.0f;
+		staticSamplers[0].ShaderRegister = 0;
+		staticSamplers[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
 
 		// s1 : Shadow Map 用
-		staticSamplers[1].Filter = D3D12_FILTER_MIN_MAG_MIP_POINT; // ←にじみ防止
+		staticSamplers[1].Filter = D3D12_FILTER_MIN_MAG_MIP_POINT;
 		staticSamplers[1].AddressU = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
 		staticSamplers[1].AddressV = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
 		staticSamplers[1].AddressW = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
-		staticSamplers[1].MaxLOD = 0.0f; // ←ベースレベル固定でミップを実質OFF
-		staticSamplers[1].ShaderRegister = 1;								   // レジスタ番号1 (s1)
-		staticSamplers[1].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;	   // ピクセルシェーダーで使用
+		staticSamplers[1].MaxLOD = 0.0f;
+		staticSamplers[1].ShaderRegister = 1;
+		staticSamplers[1].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
 
-		descriptionRootSignature.pStaticSamplers = staticSamplers;			   // サンプラの設定
-		descriptionRootSignature.NumStaticSamplers = _countof(staticSamplers); // サンプラの数
+		descriptionRootSignature.pStaticSamplers = staticSamplers;
+		descriptionRootSignature.NumStaticSamplers = _countof(staticSamplers);
 
 		D3D12_DESCRIPTOR_RANGE descriptorRange[1] = {};
-
-		// SRV0: テクスチャ用のディスクリプタテーブル
-		descriptorRange[0].BaseShaderRegister = 0; // t0
+		descriptorRange[0].BaseShaderRegister = 0;
 		descriptorRange[0].NumDescriptors = 1;
 		descriptorRange[0].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
 		descriptorRange[0].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
 
-		// キューブマップ用SRV範囲（t1）
 		D3D12_DESCRIPTOR_RANGE cubeMapRange{};
-		cubeMapRange.BaseShaderRegister = 1; // t1
+		cubeMapRange.BaseShaderRegister = 1;
 		cubeMapRange.NumDescriptors = 1;
 		cubeMapRange.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
 		cubeMapRange.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
 
-		// ライト配列用SRV範囲（t2）
 		D3D12_DESCRIPTOR_RANGE lightArrayRange{};
-		lightArrayRange.BaseShaderRegister = 2; // t2
-		lightArrayRange.NumDescriptors = 1;     // 配列1個分
-		lightArrayRange.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV; // SRV
-		lightArrayRange.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND; // 自動設定
+		lightArrayRange.BaseShaderRegister = 2;
+		lightArrayRange.NumDescriptors = 1;
+		lightArrayRange.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
+		lightArrayRange.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
 
-		// Dissolve用CBV範囲（t3)
 		D3D12_DESCRIPTOR_RANGE dissolveMaskRange{};
-		dissolveMaskRange.BaseShaderRegister = 3; // t3
+		dissolveMaskRange.BaseShaderRegister = 3;
 		dissolveMaskRange.NumDescriptors = 1;
 		dissolveMaskRange.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
 		dissolveMaskRange.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
 
-		// シャドウマップ用SRV範囲（t4）
 		D3D12_DESCRIPTOR_RANGE shadowMapRange{};
-		shadowMapRange.BaseShaderRegister = 4; // t4
+		shadowMapRange.BaseShaderRegister = 4;
 		shadowMapRange.NumDescriptors = 1;
 		shadowMapRange.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
 		shadowMapRange.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
 
-		// ルートシグネチャの生成
 		D3D12_ROOT_PARAMETER rootParameters[11] = {};
 
-		// マテリアル用のルートシグパラメータの設定 （b0）
-		rootParameters[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;    // 定数バッファビュー
-		rootParameters[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL; // ピクセルシェーダーで使用
-		rootParameters[0].Descriptor.ShaderRegister = 0;                    // レジスタ番号0
+		rootParameters[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
+		rootParameters[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+		rootParameters[0].Descriptor.ShaderRegister = 0;
 
-		// TransformationMatrix用のルートシグネチャの設定 （b0）
-		rootParameters[1].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;     // 定数バッファビュー
-		rootParameters[1].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX; // バーテックスシェーダーで使用
-		rootParameters[1].Descriptor.ShaderRegister = 0;					 // レジスタ番号0
+		rootParameters[1].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
+		rootParameters[1].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
+		rootParameters[1].Descriptor.ShaderRegister = 0;
 
-		// テクスチャのディスクリプタテーブル （t0）
-		rootParameters[2].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;      // ディスクリプタテーブル
-		rootParameters[2].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL; 	           // ピクセルシェーダーで使用
-		rootParameters[2].DescriptorTable.pDescriptorRanges = descriptorRange;             // ディスクリプタテーブルの設定
-		rootParameters[2].DescriptorTable.NumDescriptorRanges = _countof(descriptorRange); // ディスクリプタテーブルの数
+		rootParameters[2].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+		rootParameters[2].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+		rootParameters[2].DescriptorTable.pDescriptorRanges = descriptorRange;
+		rootParameters[2].DescriptorTable.NumDescriptorRanges = _countof(descriptorRange);
 
-		// カメラ用のルートシグネチャの設定 （b1）
-		rootParameters[3].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;	// 定数バッファビュー
-		rootParameters[3].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL; // ピクセルシェーダーで使用
-		rootParameters[3].Descriptor.ShaderRegister = 1; 					// レジスタ番号1
+		rootParameters[3].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
+		rootParameters[3].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+		rootParameters[3].Descriptor.ShaderRegister = 1;
 
-		// キューブマップのルートシグネチャの設定 （t1）
 		rootParameters[4].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
 		rootParameters[4].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
 		rootParameters[4].DescriptorTable.pDescriptorRanges = &cubeMapRange;
 		rootParameters[4].DescriptorTable.NumDescriptorRanges = 1;
 
-		// ライト数 CBV（b2）
-		rootParameters[5].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;    // 定数バッファビュー
-		rootParameters[5].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL; // ピクセルシェーダーで使用
-		rootParameters[5].Descriptor.ShaderRegister = 2;                    // レジスタ番号2
+		rootParameters[5].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
+		rootParameters[5].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+		rootParameters[5].Descriptor.ShaderRegister = 2;
 
-		// ライト配列 SRV（t2）
-		rootParameters[6].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE; 	// ディスクリプタテーブル
-		rootParameters[6].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL; 	        // ピクセルシェーダーで使用
-		rootParameters[6].DescriptorTable.pDescriptorRanges = &lightArrayRange;         //　ディスクリプタテーブルの設定
-		rootParameters[6].DescriptorTable.NumDescriptorRanges = 1;                      //　ディスクリプタテーブルの数
+		rootParameters[6].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+		rootParameters[6].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+		rootParameters[6].DescriptorTable.pDescriptorRanges = &lightArrayRange;
+		rootParameters[6].DescriptorTable.NumDescriptorRanges = 1;
 
-		// Dissolve用CBV（b3)
-		rootParameters[7].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;    // 定数バッファビュー
-		rootParameters[7].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL; // ピクセルシェーダーで使用
-		rootParameters[7].Descriptor.ShaderRegister = 3;                    // レジスタ番号3
+		rootParameters[7].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
+		rootParameters[7].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+		rootParameters[7].Descriptor.ShaderRegister = 3;
 
-		// Dissolve用SRV（t3)
-		rootParameters[8].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE; 	// ディスクリプタテーブル
-		rootParameters[8].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL; 	        // ピクセルシェーダーで使用
-		rootParameters[8].DescriptorTable.pDescriptorRanges = &dissolveMaskRange;         //　ディスクリプタテーブルの設定
-		rootParameters[8].DescriptorTable.NumDescriptorRanges = 1;                      //　ディスクリプタテーブルの数
+		rootParameters[8].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+		rootParameters[8].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+		rootParameters[8].DescriptorTable.pDescriptorRanges = &dissolveMaskRange;
+		rootParameters[8].DescriptorTable.NumDescriptorRanges = 1;
 
-		// シャドウマップ用 CBV（b4)
-		rootParameters[9].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;    // 定数バッファビュー
-		rootParameters[9].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL; // バーテックスシェーダーで使用
-		rootParameters[9].Descriptor.ShaderRegister = 4;                    // レジスタ番号4
+		rootParameters[9].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
+		rootParameters[9].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
+		rootParameters[9].Descriptor.ShaderRegister = 4;
 
-		// シャドウマップ用 SRV（t4)
-		rootParameters[10].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE; 	// ディスクリプタテーブル
-		rootParameters[10].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL; 	        // ピクセルシェーダーで使用
-		rootParameters[10].DescriptorTable.pDescriptorRanges = &shadowMapRange;         //　ディスクリプタテーブルの設定
-		rootParameters[10].DescriptorTable.NumDescriptorRanges = 1;                      //　ディスクリプタテーブルの数
+		rootParameters[10].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+		rootParameters[10].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+		rootParameters[10].DescriptorTable.pDescriptorRanges = &shadowMapRange;
+		rootParameters[10].DescriptorTable.NumDescriptorRanges = 1;
 
-		// ルートシグネチャの設定
 		descriptionRootSignature.pParameters = rootParameters;
 		descriptionRootSignature.NumParameters = _countof(rootParameters);
 
-		// シリアライズしてバイナリに変換
-		HRESULT hr = D3D12SerializeRootSignature(&descriptionRootSignature, D3D_ROOT_SIGNATURE_VERSION_1, &signatureBlob_, &errorBlob_);
+		HRESULT hr = D3D12SerializeRootSignature(
+			&descriptionRootSignature,
+			D3D_ROOT_SIGNATURE_VERSION_1,
+			&signatureBlob_,
+			&errorBlob_);
 		if (FAILED(hr))
 		{
 			Log(reinterpret_cast<char*>(errorBlob_->GetBufferPointer()));
 			assert(false);
 		}
 
-		// バイナリをもとにルートシグネチャ生成
-		hr = dxCommon_->GetDevice()->CreateRootSignature(0, signatureBlob_->GetBufferPointer(), signatureBlob_->GetBufferSize(), IID_PPV_ARGS(&rootSignature_));
+		hr = dxCommon_->GetDevice()->CreateRootSignature(
+			0,
+			signatureBlob_->GetBufferPointer(),
+			signatureBlob_->GetBufferSize(),
+			IID_PPV_ARGS(&rootSignature_));
 		assert(SUCCEEDED(hr));
 	}
 
@@ -274,69 +252,67 @@ namespace Ken4lowEngine
 	{
 		HRESULT hr{};
 
-		// ルートシグネチャを生成
 		CreateRootSignature();
 
 		D3D12_INPUT_ELEMENT_DESC inputElementDescs[3] = {};
 		inputElementDescs[0] = { "POSITION", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 };
-		inputElementDescs[1] = { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT,		0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 };
-		inputElementDescs[2] = { "NORMAL"  , 0, DXGI_FORMAT_R32G32B32_FLOAT,	0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 };
+		inputElementDescs[1] = { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT,       0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 };
+		inputElementDescs[2] = { "NORMAL",   0, DXGI_FORMAT_R32G32B32_FLOAT,    0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 };
 
 		inputLayoutDesc_.pInputElementDescs = inputElementDescs;
 		inputLayoutDesc_.NumElements = _countof(inputElementDescs);
 
-		// BlendStateの設定
-		const D3D12_RENDER_TARGET_BLEND_DESC& blendDesc = BlendStateFactory::GetInstance()->GetBlendDesc(blendMode_);
+		const D3D12_RENDER_TARGET_BLEND_DESC& blendDesc =
+			BlendStateFactory::GetInstance()->GetBlendDesc(blendMode_);
 
-		// RasterizerStateの設定
 		D3D12_RASTERIZER_DESC rasterizerDesc{};
-		rasterizerDesc.FillMode = D3D12_FILL_MODE_SOLID; // ポリゴンを塗りつぶす
-		//rasterizerDesc.CullMode = D3D12_CULL_MODE_BACK;  // 裏面カリングを有効にする
-		rasterizerDesc.CullMode = D3D12_CULL_MODE_NONE;  // 裏面カリングを無効にする
-		rasterizerDesc.FrontCounterClockwise = FALSE;	 // 時計回りの面を表面とする（カリング方向の設定）
+		rasterizerDesc.FillMode = D3D12_FILL_MODE_SOLID;
+		rasterizerDesc.CullMode = D3D12_CULL_MODE_NONE;
+		rasterizerDesc.FrontCounterClockwise = FALSE;
 
-		// Shaderをコンパイル
-		ComPtr <IDxcBlob> vertexShaderBlob = ShaderCompiler::CompileShader(L"Resources/Shaders/Object3D/Object3D.VS.hlsl", L"vs_6_0", dxCommon_->GetDXCCompilerManager());
+		const ShaderDescriptor& vsDesc =
+			Object3DShaderManifest::Get(Object3DShaderId::Object3DVS);
+		const ShaderDescriptor& psDesc =
+			Object3DShaderManifest::Get(Object3DShaderId::Object3DPS);
+
+		assert(vsDesc.stage == ShaderStage::Vertex);
+		assert(psDesc.stage == ShaderStage::Pixel);
+		assert(vsDesc.rootSignature == RootSignatureType::Object3D);
+		assert(psDesc.rootSignature == RootSignatureType::Object3D);
+
+		ComPtr<IDxcBlob> vertexShaderBlob = ShaderCompiler::CompileShader(
+			vsDesc,
+			dxCommon_->GetDXCCompilerManager());
 		assert(vertexShaderBlob != nullptr);
 
-		// Pixelをコンパイル
-		ComPtr <IDxcBlob> pixelShaderBlob = ShaderCompiler::CompileShader(L"Resources/Shaders/Object3D/Object3D.PS.hlsl", L"ps_6_0", dxCommon_->GetDXCCompilerManager());
+		ComPtr<IDxcBlob> pixelShaderBlob = ShaderCompiler::CompileShader(
+			psDesc,
+			dxCommon_->GetDXCCompilerManager());
 		assert(pixelShaderBlob != nullptr);
 
 		D3D12_DEPTH_STENCIL_DESC depthStencilDesc{};
-		//Depthの機能を有効化する
 		depthStencilDesc.DepthEnable = true;
-		//書き込みします
 		depthStencilDesc.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ALL;
-		//比較関数はLessEqual。つまり、近ければ描画される
 		depthStencilDesc.DepthFunc = D3D12_COMPARISON_FUNC_LESS_EQUAL;
 
-		// パイプラインステートディスクリプタの初期化
 		D3D12_GRAPHICS_PIPELINE_STATE_DESC graphicsPipelineStateDesc{};
-		graphicsPipelineStateDesc.pRootSignature = rootSignature_.Get();													// RootSgnature
-		graphicsPipelineStateDesc.InputLayout = inputLayoutDesc_;														// InputLayout
-		graphicsPipelineStateDesc.VS = { vertexShaderBlob->GetBufferPointer(), vertexShaderBlob->GetBufferSize() };	// VertexDhader
-		graphicsPipelineStateDesc.PS = { pixelShaderBlob->GetBufferPointer(), pixelShaderBlob->GetBufferSize() };	// PixelShader
-		graphicsPipelineStateDesc.BlendState.RenderTarget[0] = blendDesc;											// BlendState
-		graphicsPipelineStateDesc.RasterizerState = rasterizerDesc;													// RasterizeerState
-
-		//レンダーターゲットの設定
+		graphicsPipelineStateDesc.pRootSignature = rootSignature_.Get();
+		graphicsPipelineStateDesc.InputLayout = inputLayoutDesc_;
+		graphicsPipelineStateDesc.VS = { vertexShaderBlob->GetBufferPointer(), vertexShaderBlob->GetBufferSize() };
+		graphicsPipelineStateDesc.PS = { pixelShaderBlob->GetBufferPointer(), pixelShaderBlob->GetBufferSize() };
+		graphicsPipelineStateDesc.BlendState.RenderTarget[0] = blendDesc;
+		graphicsPipelineStateDesc.RasterizerState = rasterizerDesc;
 		graphicsPipelineStateDesc.NumRenderTargets = 1;
 		graphicsPipelineStateDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
-
-		//利用するトポロジー（形態）のタイプ。三角形
-		graphicsPipelineStateDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;					// プリミティブトポロジーの設定
-
-		// サンプルマスクとサンプル記述子の設定
+		graphicsPipelineStateDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
 		graphicsPipelineStateDesc.SampleDesc.Count = 1;
 		graphicsPipelineStateDesc.SampleMask = D3D12_DEFAULT_SAMPLE_MASK;
-
-		// DepthStencilステートの設定
 		graphicsPipelineStateDesc.DepthStencilState = depthStencilDesc;
 		graphicsPipelineStateDesc.DSVFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
 
-		// パイプラインステートオブジェクトの生成
-		hr = dxCommon_->GetDevice()->CreateGraphicsPipelineState(&graphicsPipelineStateDesc, IID_PPV_ARGS(&graphicsPipelineState_));
+		hr = dxCommon_->GetDevice()->CreateGraphicsPipelineState(
+			&graphicsPipelineStateDesc,
+			IID_PPV_ARGS(&graphicsPipelineState_));
 		assert(SUCCEEDED(hr));
 	}
 
@@ -347,17 +323,20 @@ namespace Ken4lowEngine
 
 		D3D12_ROOT_PARAMETER rootParameters[1] = {};
 
-		// VS の b0 : ライト用 WVP を渡す定数バッファ
 		rootParameters[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
 		rootParameters[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
-		rootParameters[0].Descriptor.ShaderRegister = 0; // b0
+		rootParameters[0].Descriptor.ShaderRegister = 0;
 
 		descriptionRootSignature.pParameters = rootParameters;
 		descriptionRootSignature.NumParameters = _countof(rootParameters);
 		descriptionRootSignature.pStaticSamplers = nullptr;
 		descriptionRootSignature.NumStaticSamplers = 0;
 
-		HRESULT hr = D3D12SerializeRootSignature(&descriptionRootSignature, D3D_ROOT_SIGNATURE_VERSION_1, &shadowSignatureBlob_, &shadowErrorBlob_);
+		HRESULT hr = D3D12SerializeRootSignature(
+			&descriptionRootSignature,
+			D3D_ROOT_SIGNATURE_VERSION_1,
+			&shadowSignatureBlob_,
+			&shadowErrorBlob_);
 		if (FAILED(hr))
 		{
 			if (shadowErrorBlob_)
@@ -367,41 +346,48 @@ namespace Ken4lowEngine
 			assert(false);
 		}
 
-		hr = dxCommon_->GetDevice()->CreateRootSignature(0, shadowSignatureBlob_->GetBufferPointer(), shadowSignatureBlob_->GetBufferSize(), IID_PPV_ARGS(&shadowRootSignature_));
+		hr = dxCommon_->GetDevice()->CreateRootSignature(
+			0,
+			shadowSignatureBlob_->GetBufferPointer(),
+			shadowSignatureBlob_->GetBufferSize(),
+			IID_PPV_ARGS(&shadowRootSignature_));
+		assert(SUCCEEDED(hr));
 	}
 
 	void Object3DCommon::CreateShadowPSO()
 	{
 		HRESULT hr{};
 
-		// ルートシグネチャを生成
 		CreateShadowRootSignature();
 
 		D3D12_INPUT_ELEMENT_DESC inputElementDescs[3] = {};
 		inputElementDescs[0] = { "POSITION", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 };
-		inputElementDescs[1] = { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT,		0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 };
-		inputElementDescs[2] = { "NORMAL"  , 0, DXGI_FORMAT_R32G32B32_FLOAT,	0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 };
+		inputElementDescs[1] = { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT,       0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 };
+		inputElementDescs[2] = { "NORMAL",   0, DXGI_FORMAT_R32G32B32_FLOAT,    0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 };
 
 		D3D12_INPUT_LAYOUT_DESC shadowInputLayoutDesc{};
 		shadowInputLayoutDesc.pInputElementDescs = inputElementDescs;
 		shadowInputLayoutDesc.NumElements = _countof(inputElementDescs);
 
-		// RasterizerStateの設定
 		D3D12_RASTERIZER_DESC rasterizerDesc{};
-		rasterizerDesc.FillMode = D3D12_FILL_MODE_SOLID; // ポリゴンを塗りつぶす
-		rasterizerDesc.CullMode = D3D12_CULL_MODE_BACK;  // 裏面カリングを有効にする
-		rasterizerDesc.FrontCounterClockwise = FALSE;	 // 時計回りの面を表面とする（カリング方向の設定）
+		rasterizerDesc.FillMode = D3D12_FILL_MODE_SOLID;
+		rasterizerDesc.CullMode = D3D12_CULL_MODE_BACK;
+		rasterizerDesc.FrontCounterClockwise = FALSE;
+		rasterizerDesc.DepthBias = 1000;
+		rasterizerDesc.SlopeScaledDepthBias = 1.0f;
+		rasterizerDesc.DepthBiasClamp = 0.0f;
 
-		// シャドウアクネ対策
-		rasterizerDesc.DepthBias = 1000;				// 深度バイアスの値
-		rasterizerDesc.SlopeScaledDepthBias = 1.0f;		// 傾斜に基づく深度バイアスのスケーリング値
-		rasterizerDesc.DepthBiasClamp = 0.0f;			// 深度バイアスの最大値
+		const ShaderDescriptor& shadowVsDesc =
+			Object3DShaderManifest::Get(Object3DShaderId::ShadowMapVS);
 
-		// 影用VS
-		ComPtr<IDxcBlob> vertexShaderBlob = ShaderCompiler::CompileShader(L"Resources/Shaders/Object3D/ShadowMap.VS.hlsl", L"vs_6_0", dxCommon_->GetDXCCompilerManager());
+		assert(shadowVsDesc.stage == ShaderStage::Vertex);
+		assert(shadowVsDesc.rootSignature == RootSignatureType::ShadowMap);
+
+		ComPtr<IDxcBlob> vertexShaderBlob = ShaderCompiler::CompileShader(
+			shadowVsDesc,
+			dxCommon_->GetDXCCompilerManager());
 		assert(vertexShaderBlob != nullptr);
 
-		// 深度ステンシル
 		D3D12_DEPTH_STENCIL_DESC depthStencilDesc{};
 		depthStencilDesc.DepthEnable = TRUE;
 		depthStencilDesc.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ALL;
@@ -412,16 +398,18 @@ namespace Ken4lowEngine
 		psoDesc.pRootSignature = shadowRootSignature_.Get();
 		psoDesc.InputLayout = shadowInputLayoutDesc;
 		psoDesc.VS = { vertexShaderBlob->GetBufferPointer(), vertexShaderBlob->GetBufferSize() };
-		psoDesc.PS = { nullptr, 0 }; // ピクセルシェーダは不要（深度のみ書き込むため）
+		psoDesc.PS = { nullptr, 0 };
 		psoDesc.RasterizerState = rasterizerDesc;
 		psoDesc.DepthStencilState = depthStencilDesc;
 		psoDesc.SampleDesc.Count = 1;
 		psoDesc.SampleMask = D3D12_DEFAULT_SAMPLE_MASK;
 		psoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
-		psoDesc.NumRenderTargets = 0; // レンダーターゲットは使用しない
+		psoDesc.NumRenderTargets = 0;
 		psoDesc.DSVFormat = DXGI_FORMAT_D32_FLOAT;
 
-		hr = dxCommon_->GetDevice()->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&shadowPipelineState_));
+		hr = dxCommon_->GetDevice()->CreateGraphicsPipelineState(
+			&psoDesc,
+			IID_PPV_ARGS(&shadowPipelineState_));
 		assert(SUCCEEDED(hr));
 	}
 

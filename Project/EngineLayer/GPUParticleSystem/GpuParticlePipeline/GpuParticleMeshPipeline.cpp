@@ -4,6 +4,7 @@
 
 #include "BlendStateFactory.h"
 #include "ShaderCompiler.h"
+#include "GpuParticleShaderManifest.h"
 
 namespace Ken4lowEngine
 {
@@ -119,11 +120,24 @@ void GpuParticleMeshPipeline::CreatePSO()
 	ds.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ZERO;
 	ds.DepthFunc = D3D12_COMPARISON_FUNC_LESS_EQUAL;
 
-	// ---- Shader compile（ここで実体が必要）----
-	ComPtr<IDxcBlob> vs = ShaderCompiler::CompileShader(L"Resources/Shaders/GpuParticle/GpuParticleMesh.VS.hlsl", L"vs_6_0", dxCommon_->GetDXCCompilerManager());
+	const ShaderDescriptor& vsDesc =
+		GpuParticleShaderManifest::GetGraphics(GpuParticleGraphicsShaderId::MeshVS);
+	const ShaderDescriptor& psDesc =
+		GpuParticleShaderManifest::GetGraphics(GpuParticleGraphicsShaderId::MeshPS);
+
+	assert(vsDesc.stage == ShaderStage::Vertex);
+	assert(psDesc.stage == ShaderStage::Pixel);
+	assert(vsDesc.rootSignature == RootSignatureType::GpuParticle);
+	assert(psDesc.rootSignature == RootSignatureType::GpuParticle);
+
+	ComPtr<IDxcBlob> vs = ShaderCompiler::CompileShader(
+		vsDesc,
+		dxCommon_->GetDXCCompilerManager());
 	assert(vs != nullptr);
 
-	ComPtr<IDxcBlob> ps = ShaderCompiler::CompileShader(L"Resources/Shaders/GpuParticle/GpuParticleMesh.PS.hlsl", L"ps_6_0", dxCommon_->GetDXCCompilerManager());
+	ComPtr<IDxcBlob> ps = ShaderCompiler::CompileShader(
+		psDesc,
+		dxCommon_->GetDXCCompilerManager());
 	assert(ps != nullptr);
 
 	// ---- PSO ----

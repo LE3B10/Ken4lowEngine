@@ -1,12 +1,8 @@
 #include "AbsorbEffect.h"
 #include <DirectXCommon.h>
-#include <LogString.h>
 #include <PostEffectPipelineBuilder.h>
 #include <ResourceManager.h>
 #include <SRVManager.h>
-#include <UAVManager.h>
-#include <ShaderCompiler.h>
-#include <WinApp.h>
 
 #include <cassert>
 
@@ -29,7 +25,7 @@ namespace Ken4lowEngine
 		rootSignature_ = builder->CreateRootSignature();
 
 		// パイプラインの生成
-		graphicsPipelineState_ = builder->CreateGraphicsPipeline(ShaderCompiler::GetShaderPath(L"AbsorbEffect", L".PS.hlsl"), rootSignature_.Get(), false);
+		graphicsPipelineState_ = builder->CreateGraphicsPipeline(PostEffectGraphicsShaderId::AbsorbPS, rootSignature_.Get(), false);
 
 		// リソースの生成
 		constantBuffer_ = ResourceManager::CreateBufferResource(dxCommon_->GetDevice(), sizeof(AbsorbSetting));

@@ -11,6 +11,7 @@
 #include <DebugCamera.h>
 #include "CollisionUtility.h"
 #include "LinearInterpolation.h"
+#include "ParticleShaderManifest.h"
 
 namespace Ken4lowEngine
 {
@@ -537,12 +538,24 @@ void ParticleManager::CreatePSO()
 	//三角形の中を塗りつぶす
 	rasterizerDesc.FillMode = D3D12_FILL_MODE_SOLID;
 
-	//Shaderをコンパイルする
-	Microsoft::WRL::ComPtr <IDxcBlob> vertexShaderBlob = ShaderCompiler::CompileShader(L"Resources/Shaders/Particle/Particle.VS.hlsl", L"vs_6_0", dxCommon_->GetDXCCompilerManager());
+	const ShaderDescriptor& vsDesc =
+		ParticleShaderManifest::Get(ParticleShaderId::ParticleVS);
+	const ShaderDescriptor& psDesc =
+		ParticleShaderManifest::Get(ParticleShaderId::ParticlePS);
+
+	assert(vsDesc.stage == ShaderStage::Vertex);
+	assert(psDesc.stage == ShaderStage::Pixel);
+	assert(vsDesc.rootSignature == RootSignatureType::Particle);
+	assert(psDesc.rootSignature == RootSignatureType::Particle);
+
+	Microsoft::WRL::ComPtr<IDxcBlob> vertexShaderBlob = ShaderCompiler::CompileShader(
+		vsDesc,
+		dxCommon_->GetDXCCompilerManager());
 	assert(vertexShaderBlob != nullptr);
 
-	//Pixelをコンパイルする
-	Microsoft::WRL::ComPtr <IDxcBlob> pixelShaderBlob = ShaderCompiler::CompileShader(L"Resources/Shaders/Particle/Particle.PS.hlsl", L"ps_6_0", dxCommon_->GetDXCCompilerManager());
+	Microsoft::WRL::ComPtr<IDxcBlob> pixelShaderBlob = ShaderCompiler::CompileShader(
+		psDesc,
+		dxCommon_->GetDXCCompilerManager());
 	assert(pixelShaderBlob != nullptr);
 
 	D3D12_DEPTH_STENCIL_DESC depthStencilDesc{};

@@ -1,14 +1,8 @@
 #include "GaussianFilterEffect.h"
 #include <DirectXCommon.h>
-#include <LogString.h>
 #include <PostEffectPipelineBuilder.h>
 #include <ResourceManager.h>
-#include <SRVManager.h>
 #include <UAVManager.h>
-#include <ShaderCompiler.h>
-#include <WinApp.h>
-
-#include <cassert>
 
 #ifdef USE_IMGUI
 #include <imgui.h>
@@ -28,7 +22,7 @@ namespace Ken4lowEngine
 		computeRootSignature_ = builder->CreateComputeRootSignature();
 
 		// パイプラインの生成（コンピュート用）
-		computePipelineState_ = builder->CreateComputePipeline(ShaderCompiler::GetShaderPath(L"GaussianFilterEffect", L".CS.hlsl"), computeRootSignature_.Get());
+		computePipelineState_ = builder->CreateComputePipeline(PostEffectComputeShaderId::GaussianFilterCS, computeRootSignature_.Get());
 
 		// リソースの生成
 		constantBuffer_ = ResourceManager::CreateBufferResource(dxCommon_->GetDevice(), sizeof(GaussianFilterSetting));

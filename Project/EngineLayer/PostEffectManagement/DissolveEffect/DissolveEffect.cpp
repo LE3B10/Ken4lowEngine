@@ -1,12 +1,8 @@
 #include "DissolveEffect.h"
 #include <DirectXCommon.h>
-#include <LogString.h>
 #include <PostEffectPipelineBuilder.h>
 #include <ResourceManager.h>
-#include <SRVManager.h>
 #include <UAVManager.h>
-#include <ShaderCompiler.h>
-#include <WinApp.h>
 #include <TextureManager.h>
 
 #include <cassert>
@@ -29,7 +25,7 @@ namespace Ken4lowEngine
 		computeRootSignature_ = builder->CreateComputeRootSignature();
 
 		// パイプライン生成（コンピュート用）
-		computePipelineState_ = builder->CreateComputePipeline(ShaderCompiler::GetShaderPath(L"DissolveEffect", L".CS.hlsl"), computeRootSignature_.Get());
+		computePipelineState_ = builder->CreateComputePipeline(PostEffectComputeShaderId::DissolveCS, computeRootSignature_.Get());
 
 		// ディゾルブの設定
 		std::string filePath = "Mask/Noise.png";
