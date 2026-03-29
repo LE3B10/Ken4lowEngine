@@ -1,10 +1,10 @@
 #pragma once
-#include "LevelData.h"
 #include "AABB.h"
 #include "Collider.h"
 #include "Object3D.h"
 
 #include <memory>
+#include <string>
 #include <vector>
 
 /// ---------- 前方宣言 ---------- ///
@@ -12,52 +12,64 @@ class CollisionManager;
 
 namespace Ken4lowEngine
 {
-
 	/// -------------------------------------------------------------
-	///				ステージ（地形＋ワールドコリジョン）クラス
+	///				ステージ実行時クラス
 	///	--------------------------------------------------------------
 	class Stage
 	{
 	public: /// ---------- メンバ関数 ---------- ///
 
-		// コンストラクタ・デストラクタ
 		Stage() = default;
 		~Stage() = default;
 
-		// 初期化処理
+		/// <summary>
+		/// ステージを初期化する
+		/// ・LevelLoader でレベルデータを読む
+		/// ・StageAssetLoader で描画モデルを作る
+		/// ・StageCollisionBuilder で衝突情報を作る
+		/// </summary>
 		void Initialize(const std::string& levelJsonPath, const std::string& defaultModelName);
 
-		// 更新処理
+		/// <summary>
+		/// ステージ内部状態を破棄して空に戻す
+		/// </summary>
+		void Clear();
+
+		/// <summary>
+		/// 更新処理
+		/// </summary>
 		void Update();
 
-		// 描画処理
+		/// <summary>
+		/// 描画処理
+		/// </summary>
 		void Draw();
 
-		// シャドウマップ描画処理
+		/// <summary>
+		/// シャドウ描画
+		/// </summary>
 		void DrawShadow();
 
-		// シャドウマップ用行列の更新
+		/// <summary>
+		/// シャドウ行列更新
+		/// </summary>
 		void UpdateShadowMatrix(const Matrix4x4& lightViewProjection);
 
-	public: /// ---------- アクセサ関数 ---------- ///
+	public: /// ---------- アクセサ ---------- ///
 
-		// ワールドコリジョンのAABBリストを取得
 		const std::vector<AABB>& GetWorldAABBs() const { return worldAABBs_; }
+		const std::vector<std::unique_ptr<Collider>>& GetWorldColliders() const { return worldColliders_; }
 
-		// コライダーを衝突マネージャーに登録
+		/// <summary>
+		/// 保持しているワールドコライダーを CollisionManager に登録する
+		/// </summary>
 		void RegisterColliders(CollisionManager* collisionManager);
 
 	private: /// ---------- メンバ変数 ---------- ///
 
-		LevelData levelData_; // レベルデータ
-
-		// ステージモデル（今は1つのモデルのみ）
-		std::unique_ptr<Object3D> stageModel_; // ステージの3Dモデル
-
-		std::vector<AABB> worldAABBs_; // ワールドコリジョンのAABBリスト
-
-		std::vector<std::unique_ptr<Collider>> worldColliders_; // コライダーのリスト
-
-		Vector3 offset = { 0.0f, 0.0f, 0.0f }; // ステージモデルのオフセット（原点からの位置）
+		std::unique_ptr<Object3D> stageModel_;                 // ステージ描画モデル
+		std::vector<AABB> worldAABBs_;                         // ワールド衝突AABB
+		std::vector<std::unique_ptr<Collider>> worldColliders_; // ワールド衝突Collider
+		Vector3 offset_ = { 0.0f, 0.0f, 0.0f };               // ステージ全体オフセット
 	};
-}
+} // namespace Ken4lowEngine

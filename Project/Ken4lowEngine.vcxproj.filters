@@ -724,6 +724,12 @@
     <ClCompile Include="EngineLayer\Input\InputSnapshot.cpp">
       <Filter>EngineLayer\Input</Filter>
     </ClCompile>
+    <ClCompile Include="EngineLayer\3D\LevelData\StageAssetLoader.cpp">
+      <Filter>EngineLayer\3D\LevelData</Filter>
+    </ClCompile>
+    <ClCompile Include="EngineLayer\3D\LevelData\StageCollisionBuilder.cpp">
+      <Filter>EngineLayer\3D\LevelData</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="EngineLayer\Math\MultipleStructs\AABB.h">
@@ -1499,6 +1505,12 @@
     </ClInclude>
     <ClInclude Include="EngineLayer\Base\ShadowMapRenderTarget\ShadowMapRenderTarget.h">
       <Filter>EngineLayer\Base\ShadowMapRenderTarget</Filter>
+    </ClInclude>
+    <ClInclude Include="EngineLayer\3D\LevelData\StageAssetLoader.h">
+      <Filter>EngineLayer\3D\LevelData</Filter>
+    </ClInclude>
+    <ClInclude Include="EngineLayer\3D\LevelData\StageCollisionBuilder.h">
+      <Filter>EngineLayer\3D\LevelData</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

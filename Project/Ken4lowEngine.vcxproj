@@ -44,13 +44,13 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <IncludePath>$(SolutionDir)Externals\Audio\minimp3;$(SolutionDir)Externals\imgui;$(SolutionDir)Externals\nlohmann;$(SolutionDir)Externals\DirectXTex;$(IncludePath)</IncludePath>
+    <IncludePath>$(SolutionDir)Externals\imgui;$(SolutionDir)Externals\nlohmann;$(SolutionDir)Externals\DirectXTex;$(IncludePath)</IncludePath>
     <IntDir>$(SolutionDir)..\Generated\obj\$(ProjectName)\$(Platform)\$(Configuration)\</IntDir>
     <OutDir>$(SolutionDir)..\Generated\outputs\$(Platform)\$(Configuration)\</OutDir>
     <ExternalIncludePath>$(ExternalIncludePath)</ExternalIncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <IncludePath>$(SolutionDir)Externals\Audio\minimp3;$(SolutionDir)Externals\imgui;$(SolutionDir)Externals\nlohmann;$(SolutionDir)Externals\DirectXTex;$(IncludePath)</IncludePath>
+    <IncludePath>$(SolutionDir)Externals\imgui;$(SolutionDir)Externals\nlohmann;$(SolutionDir)Externals\DirectXTex;$(IncludePath)</IncludePath>
     <IntDir>$(SolutionDir)..\Generated\obj\$(ProjectName)\$(Platform)\$(Configuration)\</IntDir>
     <OutDir>$(SolutionDir)..\Generated\outputs\$(Platform)\$(Configuration)\</OutDir>
     <ExternalIncludePath>$(ExternalIncludePath)</ExternalIncludePath>
@@ -612,6 +612,8 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClCompile Include="ApplicationLayer\Character\Enemy\Behavior\EnemyBehavior_EliteFlanker.cpp" />
     <ClCompile Include="EngineLayer\Base\MainRenderTarget\MainRenderTarget.cpp" />
     <ClCompile Include="EngineLayer\Base\ShadowMapRenderTarget\ShadowMapRenderTarget.cpp" />
+    <ClCompile Include="EngineLayer\3D\LevelData\StageAssetLoader.cpp" />
+    <ClCompile Include="EngineLayer\3D\LevelData\StageCollisionBuilder.cpp" />
     <ClCompile Include="WinMain.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
@@ -1526,6 +1528,8 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="ApplicationLayer\Character\Enemy\Behavior\EnemyBehavior_EliteFlanker.h" />
     <ClInclude Include="EngineLayer\Base\MainRenderTarget\MainRenderTarget.h" />
     <ClInclude Include="EngineLayer\Base\ShadowMapRenderTarget\ShadowMapRenderTarget.h" />
+    <ClInclude Include="EngineLayer\3D\LevelData\StageAssetLoader.h" />
+    <ClInclude Include="EngineLayer\3D\LevelData\StageCollisionBuilder.h" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="externals\DirectXTex\DirectXTex_Desktop_2022_Win10.vcxproj">
