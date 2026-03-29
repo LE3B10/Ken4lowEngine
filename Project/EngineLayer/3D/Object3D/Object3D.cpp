@@ -111,7 +111,8 @@ namespace Ken4lowEngine
 
 		// シャドウマップ用の行列を GPU に転送
 		shadowParameterData_->lightViewProjection = lightViewProjection;
-		shadowParameterData_->shadowBias = 0.005f; // 適切なバイアス値を設定（例: 0.001f）
+		shadowParameterData_->shadowBias = 0.0015f;
+		shadowParameterData_->normalBias = 0.01f;
 	}
 
 	/// -------------------------------------------------------------
@@ -281,7 +282,8 @@ namespace Ken4lowEngine
 
 		// シャドウバイアスの初期値
 		shadowParameterData_->lightViewProjection = Matrix4x4::MakeIdentity();
-		shadowParameterData_->shadowBias = 0.005f; // 適切な値に調整
+		shadowParameterData_->shadowBias = 0.015f;
+		shadowParameterData_->normalBias = 0.02f;
 	}
 
 	void Object3D::AcquireShadowMapHandle()

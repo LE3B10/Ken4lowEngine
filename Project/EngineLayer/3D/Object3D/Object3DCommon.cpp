@@ -134,7 +134,7 @@ namespace Ken4lowEngine
 		staticSamplers[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
 
 		// s1 : Shadow Map 用
-		staticSamplers[1].Filter = D3D12_FILTER_MIN_MAG_MIP_POINT;
+		staticSamplers[1].Filter = D3D12_FILTER_MIN_MAG_LINEAR_MIP_POINT;
 		staticSamplers[1].AddressU = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
 		staticSamplers[1].AddressV = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
 		staticSamplers[1].AddressW = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;

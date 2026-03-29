@@ -49,8 +49,9 @@ namespace Ken4lowEngine
 		struct ShadowParameterForGPU
 		{
 			Matrix4x4 lightViewProjection; // ライトのビュー射影行列
-			float shadowBias;                 // シャドウバイアス
-			float padding[3];                 // パディング
+			float shadowBias;              // シャドウバイアス
+			float normalBias;              // 法線方向オフセット量
+			float padding[3];              // パディング
 		};
 
 	public: /// ---------- メンバ関数 ---------- ///

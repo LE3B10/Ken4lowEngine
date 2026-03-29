@@ -1,5 +1,3 @@
-// シャドウマップの頂点シェーダー
-
 struct TransformationMatrix
 {
     float4x4 WVP;
