@@ -54,6 +54,9 @@ private: /// ---------- メンバ関数 ---------- ///
 	/// -------------------------------------------------------------
 	void UpdateDebugBossHitTest();
 
+	/// テスト用GPUパーティクル発火
+	void UpdateDebugParticleTest();
+
 	/// -------------------------------------------------------------
 	/// BossHitPart を文字列へ変換
 	/// ログ確認用
@@ -77,5 +80,8 @@ private: /// ---------- メンバ変数 ---------- ///
 	float debugBaseDamage_ = 10.0f;       // 基礎ダメージ
 
 	std::string debugHitLog_ = "Press H to test hit.";
+
+	// --- GPUパーティクルテスト用 ---
+	std::string debugParticleLog_ = "Press 1/2/3 to test GPU particles.";
 };
 

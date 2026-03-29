@@ -34,10 +34,10 @@ public: /// ---------- 構造体 ---------- ///
 		GpuParticleKind kind = GpuParticleKind::Sprite;
 
 		// ★Sprite用：21タイプ（DefaultはUIに出さない運用）
-		GpuParticleType spriteType = GpuParticleType::MuzzleFlash;
+		GpuParticleType spriteType = GpuParticleType::Default;
 
 		// ★Ribbon用：リボンタイプ（UIで別枠にする）
-		GpuRibbonType ribbonType = GpuRibbonType::BulletTracer;
+		GpuRibbonType ribbonType = GpuRibbonType::Trail;
 
 		// ★下位16bitのフラグ（Camera/YAxis など）
 		BillboardMode billboardFlags = BillboardMode::Camera;

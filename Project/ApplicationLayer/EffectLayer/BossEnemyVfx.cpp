@@ -131,7 +131,7 @@ void BossEnemyVfx::RegisterEmitters()
 	{
 		K4E::GpuParticleEmitter::EmitterInfo info{};
 		info.kind = K4E::GpuParticleKind::Sprite;
-		info.spriteType = K4E::GpuParticleType::Boss_Appear_Dust;
+		info.spriteType = K4E::GpuParticleType::Dust;
 		info.radius = 3.0f;
 		info.loopCount = 0;
 		info.loopFrequency = 0.0f;
@@ -145,7 +145,7 @@ void BossEnemyVfx::RegisterEmitters()
 	{
 		K4E::GpuParticleEmitter::EmitterInfo info{};
 		info.kind = K4E::GpuParticleKind::Sprite;
-		info.spriteType = K4E::GpuParticleType::Boss_Aura;
+		info.spriteType = K4E::GpuParticleType::Debris;
 		info.radius = 0.5f;
 		info.loopCount = 0;
 		info.loopFrequency = 0.0f;
@@ -159,7 +159,7 @@ void BossEnemyVfx::RegisterEmitters()
 	{
 		K4E::GpuParticleEmitter::EmitterInfo info{};
 		info.kind = K4E::GpuParticleKind::Sprite;
-		info.spriteType = K4E::GpuParticleType::Boss_Rush_Trail;
+		info.spriteType = K4E::GpuParticleType::Trail;
 		info.radius = 0.0f;
 		info.loopCount = 0;
 		info.loopFrequency = 0.0f;
@@ -187,7 +187,7 @@ void BossEnemyVfx::RegisterEmitters()
 	{
 		K4E::GpuParticleEmitter::EmitterInfo info{};
 		info.kind = K4E::GpuParticleKind::Sprite;
-		info.spriteType = K4E::GpuParticleType::Boss_Spin_Slash;
+		info.spriteType = K4E::GpuParticleType::Default;
 		info.radius = 0.1f;
 		info.loopCount = 0;
 		info.loopFrequency = 0.0f;
@@ -201,7 +201,7 @@ void BossEnemyVfx::RegisterEmitters()
 	{
 		K4E::GpuParticleEmitter::EmitterInfo info{};
 		info.kind = K4E::GpuParticleKind::Sprite;
-		info.spriteType = K4E::GpuParticleType::Explosion_Fire;
+		info.spriteType = K4E::GpuParticleType::Default;
 		info.radius = 0.5f;
 		info.loopCount = 0;
 		info.loopFrequency = 0.0f;
@@ -229,7 +229,7 @@ void BossEnemyVfx::RegisterEmitters()
 	{
 		K4E::GpuParticleEmitter::EmitterInfo info{};
 		info.kind = K4E::GpuParticleKind::Sprite;
-		info.spriteType = K4E::GpuParticleType::Boss_Death_Soul;
+		info.spriteType = K4E::GpuParticleType::Default;
 		info.radius = 0.35f;
 		info.loopCount = 0;
 		info.loopFrequency = 0.0f;
@@ -243,7 +243,7 @@ void BossEnemyVfx::RegisterEmitters()
 	{
 		K4E::GpuParticleEmitter::EmitterInfo info{};
 		info.kind = K4E::GpuParticleKind::Sprite;
-		info.spriteType = K4E::GpuParticleType::Boss_Debris_Dust;
+		info.spriteType = K4E::GpuParticleType::Debris;
 		info.radius = 1.5f;
 		info.loopCount = 0;
 		info.loopFrequency = 0.0f;

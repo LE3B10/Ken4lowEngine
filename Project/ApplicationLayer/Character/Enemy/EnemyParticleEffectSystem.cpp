@@ -9,10 +9,10 @@ namespace
 {
     // ここはあなたの手持ちテクスチャ名に合わせて変更してください
     // 最初は同じテクスチャでもOKです
-    constexpr const char* kHitSparkTex = "particle.png";
-    constexpr const char* kBloodTex = "particle.png";
-    constexpr const char* kSmokeTex = "particle.png";
-    constexpr const char* kShockTex = "particle.png";
+    constexpr const char* kHitSparkTex = "white.png";
+    constexpr const char* kBloodTex = "white.png";
+    constexpr const char* kSmokeTex = "white.png";
+    constexpr const char* kShockTex = "white.png";
 
     constexpr uint32_t kHitSparkCount = 18;
     constexpr uint32_t kBloodCount = 10;
@@ -51,7 +51,7 @@ void EnemyParticleEffectSystem::CreateEmitters()
             "EnemyHitSpark_" + std::to_string(i),
             kHitSparkTex,
             0.08f,
-            GpuParticleType::HitSpark
+            GpuParticleType::Spark
         );
 
         CreateEmitterIfNeeded(
@@ -71,7 +71,7 @@ void EnemyParticleEffectSystem::CreateEmitters()
             "EnemyDeathSmoke_" + std::to_string(i),
             kSmokeTex,
             0.28f,
-            GpuParticleType::Explosion_Smoke
+            GpuParticleType::Default
         );
 
         CreateEmitterIfNeeded(

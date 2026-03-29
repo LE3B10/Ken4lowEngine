@@ -75,7 +75,10 @@ void GpuParticleBuffers::Update(float deltaTime)
 
 	perViewData_->viewProjectionMatrix = viewProjectionMatrix;
 	perViewData_->billboardMatrix = Matrix4x4::Transpose(Matrix4x4::Inverse(billboardMatrix));
-	perViewData_->billboardMode = static_cast<uint32_t>(BillboardMode::Camera); // とりあえず常にカメラ
+	perViewData_->billboardMode = PackBillboardMode(
+		GpuParticleKind::Sprite,
+		static_cast<uint32_t>(BillboardMode::Camera)
+	);
 
 	// 時間計測用データの更新
 	perFrameData_->time += perFrameData_->deltaTime;
@@ -133,7 +136,10 @@ void GpuParticleBuffers::CreatePerViewBuffer()
 	perViewBuffer_->Map(0, nullptr, reinterpret_cast<void**>(&perViewData_));
 	perViewData_->viewProjectionMatrix = Matrix4x4::MakeIdentity();
 	perViewData_->billboardMatrix = Matrix4x4::MakeIdentity();
-	perViewData_->billboardMode = static_cast<uint32_t>(BillboardMode::Camera); // とりあえず常にカメラ
+	perViewData_->billboardMode = PackBillboardMode(
+		GpuParticleKind::Sprite,
+		static_cast<uint32_t>(BillboardMode::Camera)
+	);
 }
 
 /// -------------------------------------------------------------
@@ -161,7 +167,10 @@ void GpuParticleBuffers::CreateEmitterBuffer()
 	cb0->radius = 1.0f;
 	cb0->emit = 1;
 	cb0->type = static_cast<uint32_t>(GpuParticleType::Default);
-	cb0->billboardMode = static_cast<uint32_t>(BillboardMode::Camera);
+	cb0->billboardMode = PackBillboardMode(
+		GpuParticleKind::Sprite,
+		static_cast<uint32_t>(BillboardMode::Camera)
+	);
 }
 
 /// -------------------------------------------------------------

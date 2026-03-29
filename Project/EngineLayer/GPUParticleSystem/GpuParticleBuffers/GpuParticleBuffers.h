@@ -21,14 +21,29 @@ class GpuParticleBuffers
 	// パーティクルの構造体
 	struct ParticleCS
 	{
-		Vector3 translate; // 位置
-		Vector3 scale;	   // スケール
-		float lifeTime;	   // 寿命
-		Vector3 velocity;  // 速度
-		float currentTime; // 経過時間
-		uint32_t type;	   // パーティクルの種類
-		uint32_t billboardMode; // ビルボードモード
-		Vector4 color;	   // 色
+		Vector3 translate;
+		float pad0 = 0.0f;
+
+		Vector3 scale;
+		float lifeTime = 0.0f;
+
+		Vector3 velocity;
+		float currentTime = 0.0f;
+
+		uint32_t type = 0;
+		uint32_t billboardMode = 0;
+		uint32_t atlasCols = 1;
+		uint32_t atlasRows = 1;
+
+		uint32_t animFrameCount = 1;
+		float animFps = 0.0f;
+		uint32_t animFlags = 0;
+		uint32_t startFrame = 0;
+
+		float animSpeed = 1.0f;
+		float pad1[3] = {};
+
+		Vector4 color = { 1.0f, 1.0f, 1.0f, 1.0f };
 	};
 
 	// ビュー行列と射影行列

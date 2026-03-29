@@ -730,6 +730,12 @@
     <ClCompile Include="EngineLayer\3D\LevelData\StageCollisionBuilder.cpp">
       <Filter>EngineLayer\3D\LevelData</Filter>
     </ClCompile>
+    <ClCompile Include="EngineLayer\GPUParticleSystem\GpuParticleEmitterPreset\GpuParticleEmitterPreset.cpp">
+      <Filter>EngineLayer\GpuParticleSystem\GpuParticleEmitterPreset</Filter>
+    </ClCompile>
+    <ClCompile Include="EngineLayer\GPUParticleSystem\GpuParticleEmitterPreset\GpuParticleEmitterSerializer.cpp">
+      <Filter>EngineLayer\GpuParticleSystem\GpuParticleEmitterPreset</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="EngineLayer\Math\MultipleStructs\AABB.h">
@@ -1512,6 +1518,15 @@
     <ClInclude Include="EngineLayer\3D\LevelData\StageCollisionBuilder.h">
       <Filter>EngineLayer\3D\LevelData</Filter>
     </ClInclude>
+    <ClInclude Include="EngineLayer\GPUParticleSystem\GpuParticleEmitterPreset\GpuParticleEmitterPreset.h">
+      <Filter>EngineLayer\GpuParticleSystem\GpuParticleEmitterPreset</Filter>
+    </ClInclude>
+    <ClInclude Include="EngineLayer\GPUParticleSystem\GpuParticleEmitterPreset\GpuParticleEmitterAsset.h">
+      <Filter>EngineLayer\GpuParticleSystem\GpuParticleEmitterPreset</Filter>
+    </ClInclude>
+    <ClInclude Include="EngineLayer\GPUParticleSystem\GpuParticleEmitterPreset\GpuParticleEmitterSerializer.h">
+      <Filter>EngineLayer\GpuParticleSystem\GpuParticleEmitterPreset</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="Resources\Shaders\PostEffect\FullScreen.hlsli">
@@ -1539,6 +1554,12 @@
       <Filter>Shader\Hlsli</Filter>
     </None>
     <None Include="Resources\Shaders\GpuParticle\GpuParticleData.hlsli">
+      <Filter>Shader\Hlsli</Filter>
+    </None>
+    <None Include="Resources\Shaders\GpuParticle\GpuParticleTypeParams.hlsli">
+      <Filter>Shader\Hlsli</Filter>
+    </None>
+    <None Include="Resources\Shaders\GpuParticle\GpuParticleSpawnParams.hlsli">
       <Filter>Shader\Hlsli</Filter>
     </None>
   </ItemGroup>
@@ -1986,6 +2007,9 @@
     </Filter>
     <Filter Include="EngineLayer\Base\ShadowMapRenderTarget">
       <UniqueIdentifier>{83c4d0b7-1514-4157-ab1e-9e789c81a92b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="EngineLayer\GpuParticleSystem\GpuParticleEmitterPreset">
+      <UniqueIdentifier>{675bf2cd-e7c7-4a6b-b38b-dbd4cac2e38e}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

@@ -9,6 +9,7 @@
 #include "GpuParticleMeshAsset.h"
 
 #include "GpuParticleEmitterData.h"
+#include "GpuParticleEmitterAsset.h"
 
 #include <unordered_map>
 #include <memory>
@@ -66,7 +67,7 @@ namespace Ken4lowEngine
 		/// <summary>
 		/// エミッター新規作成UIで使用する既定テクスチャ名です。
 		/// </summary>
-		static inline constexpr const char* kDefaultEmitterTexture = "particle.png";
+		static inline constexpr const char* kDefaultEmitterTexture = "white.png";
 
 		/// <summary>
 		/// エミッター新規作成UIで使用する既定半径です。
@@ -293,6 +294,25 @@ namespace Ken4lowEngine
 		GpuParticleEmitter* CreateEmitter(const std::string& name, const GpuParticleEmitter::EmitterInfo& info);
 
 		/// <summary>
+		/// Sprite 用の既定プリセットから GPU パーティクルエミッターを作成します。<br/>
+		/// GpuParticleEmitterPresetTable に登録された type 別既定値を使って
+		/// EmitterInfo を自動生成する簡易APIです。
+		/// </summary>
+		/// <param name="name">エミッター名（識別キー）。</param>
+		/// <param name="type">作成したい Sprite パーティクル種別。</param>
+		/// <returns>作成成功時はエミッターへのポインタ、失敗時は nullptr。</returns>
+		GpuParticleEmitter* CreateEmitter(const std::string& name, GpuParticleType type);
+
+		/// <summary>
+		/// Sprite 用の既定プリセットからエミッターを作成し、初期位置も設定します。
+		/// </summary>
+		/// <param name="name">エミッター名。</param>
+		/// <param name="type">Sprite パーティクル種別。</param>
+		/// <param name="position">初期配置位置。</param>
+		/// <returns>作成成功時はエミッターへのポインタ、失敗時は nullptr。</returns>
+		GpuParticleEmitter* CreateEmitter(const std::string& name, GpuParticleType type, const Vector3& position);
+
+		/// <summary>
 		/// 指定名のエミッターを取得します。<br/>
 		/// 見つからない場合は nullptr を返します。
 		/// </summary>
@@ -309,11 +329,35 @@ namespace Ken4lowEngine
 		void BurstEmitter(const std::string& name, uint32_t count);
 
 		/// <summary>
+		/// 既定プリセットのエミッターを必要に応じて作成し、指定位置でバースト発生させます。<br/>
+		/// 同名エミッターが既に存在する場合は再利用します。
+		/// </summary>
+		/// <param name="name">エミッター名。</param>
+		/// <param name="type">Sprite パーティクル種別。</param>
+		/// <param name="position">発生位置。</param>
+		/// <param name="count">バースト発生数。</param>
+		/// <returns>利用したエミッターへのポインタ。失敗時は nullptr。</returns>
+		GpuParticleEmitter* EmitBurst(const std::string& name, GpuParticleType type, const Vector3& position, uint32_t count);
+
+		/// <summary>
 		/// デバッグカメラの有効/無効を切り替えます。<br/>
 		/// GPU パーティクルバッファ側へも状態を反映します。
 		/// </summary>
 		/// <param name="enabled">有効にする場合は true。</param>
 		void SetDebugCameraEnabled(bool enabled) { gpuParticleBuffers_->SetDebugCameraEnabled(enabled); }
+
+	public:
+
+		bool RemoveEmitter(const std::string& name);
+
+		GpuParticleEmitterAsset BuildAssetFromEmitter(const std::string& name) const;
+		GpuParticleEmitter* CreateEmitterFromAsset(const GpuParticleEmitterAsset& asset, bool overwrite = true);
+
+		bool SaveEmitterToFile(const std::string& name, const std::string& filePath) const;
+		GpuParticleEmitter* LoadEmitterFromFile(const std::string& filePath, bool overwrite = true);
+
+		void LoadEmittersFromDirectory(const std::string& directoryPath, bool overwrite = true);
+		bool SaveAllEmittersToDirectory(const std::string& directoryPath) const;
 
 	private: /// ---------- ディスパッチ関数 ---------- ///
 
@@ -344,6 +388,9 @@ namespace Ken4lowEngine
 		/// <param name="loadTexture">テクスチャ読み込みを行うかどうか。</param>
 		/// <returns>生成された MeshParticleAsset。</returns>
 		MeshParticleAsset CreateMeshAssetFromSubMesh(const SubMesh& subMesh, bool loadTexture);
+
+		static std::string BuildEmitterJsonPath(const std::string& directoryPath, const std::string& emitterName);
+		std::string MakeUniqueEmitterName(const std::string& baseName) const;
 
 	private: /// ---------- メンバ変数 ---------- ///
 

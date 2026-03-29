@@ -80,6 +80,8 @@ void DebugScene::Update()
 
 	UpdateDebugBossHitTest();
 
+	UpdateDebugParticleTest();
+
 	collisionManager_->Update();
 	collisionManager_->CheckAllCollisions();
 
@@ -223,6 +225,18 @@ void DebugScene::DrawImGui()
 
 		weaponEditor.DrawImGui(weaponDB, hooks);
 	}
+
+	ImGui::Separator();
+	ImGui::Text("Press H to test hit.");
+	ImGui::TextWrapped("%s", debugHitLog_.c_str());
+
+	ImGui::Separator();
+	ImGui::Text("Particle Test");
+	ImGui::Text("1 : HitSpark");
+	ImGui::Text("2 : Heal_Effect");
+	ImGui::Text("3 : Boss_Appear_Dust");
+	ImGui::TextWrapped("%s", debugParticleLog_.c_str());
+
 	ImGui::End();
 
 #endif // USE_IMGUI
@@ -303,6 +317,15 @@ void DebugScene::UpdateDebugBossHitTest()
 		// 倍率込みダメージを適用
 		debugBoss_->ApplyDebugHitResult(hitResult, debugBaseDamage_);
 
+		Vector3 effectPos = attackCenter;
+		effectPos.y += 0.15f;
+
+		GpuParticleManager::GetInstance()->EmitBurst(
+			"Debug_HitSpark_OnHit",
+			GpuParticleType::Spark,
+			effectPos,
+			18);
+
 		// 画面表示用にも保持
 		debugHitLog_ =
 			std::string("HIT  Part: ") + ToString(hitResult.part) +
@@ -317,5 +340,75 @@ void DebugScene::UpdateDebugBossHitTest()
 	{
 		debugHitLog_ = "MISS";
 		DebugLog(debugHitLog_);
+	}
+}
+
+void DebugScene::UpdateDebugParticleTest()
+{
+	if (!debugBoss_)
+	{
+		return;
+	}
+
+	GpuParticleManager* gpuParticleManager = GpuParticleManager::GetInstance();
+	if (!gpuParticleManager)
+	{
+		debugParticleLog_ = "GpuParticleManager is null.";
+		return;
+	}
+
+	const Vector3 bossCenter = debugBoss_->GetCenterPosition();
+
+	// ---------------------------------------------------------
+	// 1キー: ヒット火花
+	// ---------------------------------------------------------
+	if (input_->TriggerKey(DIK_1))
+	{
+		Vector3 pos = bossCenter;
+		pos.y += 1.0f;
+
+		gpuParticleManager->EmitBurst(
+			"Debug_HitSpark",
+			GpuParticleType::Spark,
+			pos,
+			20);
+
+		debugParticleLog_ = "Spawn: HitSpark";
+		DebugLog(debugParticleLog_);
+	}
+
+	// ---------------------------------------------------------
+	// 2キー: 回復エフェクト
+	// ---------------------------------------------------------
+	if (input_->TriggerKey(DIK_2))
+	{
+		Vector3 pos = bossCenter;
+		pos.y += 1.5f;
+
+		gpuParticleManager->EmitBurst(
+			"Debug_Heal",
+			GpuParticleType::Heal,
+			pos,
+			24);
+
+		debugParticleLog_ = "Spawn: Heal_Effect";
+		DebugLog(debugParticleLog_);
+	}
+
+	// ---------------------------------------------------------
+	// 3キー: ボス登場砂埃
+	// ---------------------------------------------------------
+	if (input_->TriggerKey(DIK_3))
+	{
+		Vector3 pos = bossCenter;
+
+		gpuParticleManager->EmitBurst(
+			"Debug_BossAppear",
+			GpuParticleType::Default,
+			pos,
+			48);
+
+		debugParticleLog_ = "Spawn: Boss_Appear_Dust";
+		DebugLog(debugParticleLog_);
 	}
 }

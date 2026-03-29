@@ -1,3 +1,4 @@
+#define NOMINMAX
 #include "GpuParticleManager.h"
 #include "Object3DCommon.h"
 #include <DebugCamera.h>
@@ -5,8 +6,10 @@
 #include <SRVManager.h>
 #include <UAVManager.h>
 
+#include "GpuParticleEmitterPreset.h"
 #include "GpuParticleEmitter.h"
 #include "GpuParticleEmitterData.h"
+#include "GpuParticleEmitterSerializer.h"
 
 #include "AssimpLoader.h"
 #include "ResourceManager.h"
@@ -20,7 +23,10 @@
 
 namespace Ken4lowEngine
 {
-
+	namespace
+	{
+		constexpr int kRibbonTypeCount = 3;
+	}
 
 	/// -------------------------------------------------------------
 	///				　	シングルトンインスタンス
@@ -136,60 +142,48 @@ namespace Ken4lowEngine
 
 		auto ToU32 = [](auto e) { return static_cast<uint32_t>(e); };
 
-		static const char* kSpriteTypeNames[21] =
+		const uint32_t spritePresetCount = GpuParticleEmitterPresetTable::GetSpritePresetCount();
+
+		static char newName[128] = "NewEmitter";
+		static char newTexture[128] = "white.png";
+		static bool createEmitterDefaultsInitialized = false;
+
+		static int newMode = static_cast<int>(GpuParticleKind::Sprite);
+		static int newSpriteTypeIndex = 0;
+		static int newRibbonTypeIndex = 0;
+
+		static float newRadius = 0.25f;
+		static int newLoopCount = 0;
+		static float newLoopFrequency = 0.0f;
+
+		static bool newEmitterPresetInitialized = false;
+
+		static char jsonDir[256] = "Resources/JSON/GpuParticles";
+		static bool overwriteOnLoad = true;
+		static bool createAndSave = false;
+
+		auto ApplyCreateEmitterPreset = [&](int spriteIndex)
+			{
+				const GpuParticleType type =
+					GpuParticleEmitterPresetTable::GetSpriteTypeByIndex(static_cast<uint32_t>(spriteIndex));
+
+				const auto info = GpuParticleEmitterPresetTable::MakeEmitterInfo(type);
+
+				std::snprintf(newTexture, sizeof(newTexture), "%s", info.textureFilePath.c_str());
+				newRadius = info.radius;
+				newLoopCount = static_cast<int>(info.loopCount);
+				newLoopFrequency = info.loopFrequency;
+			};
+
+		if (!newEmitterPresetInitialized)
 		{
-			"MuzzleFlash",
-			"BulletTracer",
-			"HitSpark",
-			"Blood",
-			"Impact_Dust",
-			"Impact_Metal",
-			"Impact_Wood",
-			"Explosion_Fire",
-			"Explosion_Smoke",
-			"Foot_Dust",
-			"Env_Dust",
-			"Pickup_Glow",
-			"Skill_Effect",
-			"Boss_Appear_Dust",
-			"Boss_Aura",
-			"Boss_Rush_Trail",
-			"Shockwave",
-			"Boss_Spin_Slash",
-			"Boss_Death_Soul",
-			"Boss_Debris_Dust",
-			"Heal_Effect",
-		};
-		static const GpuParticleType kSpriteTypeValues[21] =
-		{
-			GpuParticleType::MuzzleFlash,
-			GpuParticleType::BulletTracer,
-			GpuParticleType::HitSpark,
-			GpuParticleType::Blood,
-			GpuParticleType::Impact_Dust,
-			GpuParticleType::Impact_Metal,
-			GpuParticleType::Impact_Wood,
-			GpuParticleType::Explosion_Fire,
-			GpuParticleType::Explosion_Smoke,
-			GpuParticleType::Foot_Dust,
-			GpuParticleType::Env_Dust,
-			GpuParticleType::Pickup_Glow,
-			GpuParticleType::Skill_Effect,
-			GpuParticleType::Boss_Appear_Dust,
-			GpuParticleType::Boss_Aura,
-			GpuParticleType::Boss_Rush_Trail,
-			GpuParticleType::Shockwave,
-			GpuParticleType::Boss_Spin_Slash,
-			GpuParticleType::Boss_Death_Soul,
-			GpuParticleType::Boss_Debris_Dust,
-			GpuParticleType::Heal_Effect,
-		};
+			ApplyCreateEmitterPreset(newSpriteTypeIndex);
+			newEmitterPresetInitialized = true;
+		}
 
 		static const char* kRibbonTypeNames[] =
 		{
-			"Ribbon: BulletTracer",
-			"Ribbon: BossRushTrail",
-			"Ribbon: BossSpinSlash",
+			"Ribbon: Trail",
 		};
 
 		static std::string selected;
@@ -198,10 +192,22 @@ namespace Ken4lowEngine
 
 		ImGui::Begin("GPU Particle");
 
+		ImGui::SeparatorText("Emitter Json");
+		ImGui::InputText("Json Dir", jsonDir, IM_ARRAYSIZE(jsonDir));
+		ImGui::Checkbox("Overwrite On Load", &overwriteOnLoad);
+
+		if (ImGui::Button("Load All Json"))
+		{
+			LoadEmittersFromDirectory(jsonDir, overwriteOnLoad);
+		}
+		ImGui::SameLine();
+		if (ImGui::Button("Save All Json"))
+		{
+			SaveAllEmittersToDirectory(jsonDir);
+		}
+
 		ImGui::SeparatorText("Mesh Assets");
 
-		// デバッグ用の既定値・制限値は GpuParticleDebugPresets に集約する。
-		// DrawImGui() 内で直接数値を埋め込まないことで、調整値の修正箇所を一元化する。
 		static char meshModelPath[256] = {};
 		static bool meshModelPathInitialized = false;
 		if (!meshModelPathInitialized)
@@ -222,10 +228,10 @@ namespace Ken4lowEngine
 
 		if (ImGui::Button("Load Model & Register MeshAssets"))
 		{
-			LoadMeshAssetsFromAssimp(static_cast<uint32_t>(meshBaseId), meshModelPath, /*loadTextures=*/true);
+			LoadMeshAssetsFromAssimp(static_cast<uint32_t>(meshBaseId), meshModelPath, true);
 		}
 
-		ImGui::Text("Registered MeshAssets: %d", (int)meshAssets_.size());
+		ImGui::Text("Registered MeshAssets: %d", static_cast<int>(meshAssets_.size()));
 		if (ImGui::TreeNode("MeshAsset List"))
 		{
 			for (auto& [id, a] : meshAssets_)
@@ -238,9 +244,6 @@ namespace Ken4lowEngine
 
 		ImGui::SeparatorText("Create Emitter");
 
-		static char newName[64] = {};
-		static char newTexture[256] = {};
-		static bool createEmitterDefaultsInitialized = false;
 		if (!createEmitterDefaultsInitialized)
 		{
 			std::snprintf(newName, sizeof(newName), "%s", GpuParticleDebugPresets::kDefaultEmitterName);
@@ -248,14 +251,65 @@ namespace Ken4lowEngine
 			createEmitterDefaultsInitialized = true;
 		}
 
-		static int newMode = (int)GpuParticleKind::Sprite;
-		static int newSpriteTypeIndex = 0;
-		static int newRibbonTypeIndex = 0;
-		static float newRadius = GpuParticleDebugPresets::kDefaultEmitterRadius;
-		static int newLoopCount = GpuParticleDebugPresets::kDefaultLoopCount;
-		static float newLoopFrequency = GpuParticleDebugPresets::kDefaultLoopFrequency;
-
 		ImGui::InputText("Name", newName, IM_ARRAYSIZE(newName));
+
+		const char* kModeNames[] = { "GPU Sprite", "Mesh", "Ribbon", "Beam" };
+		if (ImGui::Combo("Mode", &newMode, kModeNames, IM_ARRAYSIZE(kModeNames)))
+		{
+			if (newMode == static_cast<int>(GpuParticleKind::Sprite))
+			{
+				ApplyCreateEmitterPreset(newSpriteTypeIndex);
+			}
+		}
+
+		if (newMode == static_cast<int>(GpuParticleKind::Sprite))
+		{
+			const GpuParticleType previewType =
+				GpuParticleEmitterPresetTable::GetSpriteTypeByIndex(static_cast<uint32_t>(newSpriteTypeIndex));
+
+			const char* previewName =
+				GpuParticleEmitterPresetTable::GetSpriteDisplayName(previewType);
+
+			if (ImGui::BeginCombo("Sprite Type", previewName))
+			{
+				for (uint32_t i = 0; i < spritePresetCount; ++i)
+				{
+					const GpuParticleType type =
+						GpuParticleEmitterPresetTable::GetSpriteTypeByIndex(i);
+
+					const bool isSelected = (newSpriteTypeIndex == static_cast<int>(i));
+
+					if (ImGui::Selectable(
+						GpuParticleEmitterPresetTable::GetSpriteDisplayName(type),
+						isSelected))
+					{
+						newSpriteTypeIndex = static_cast<int>(i);
+						ApplyCreateEmitterPreset(newSpriteTypeIndex);
+					}
+
+					if (isSelected)
+					{
+						ImGui::SetItemDefaultFocus();
+					}
+				}
+				ImGui::EndCombo();
+			}
+
+			ImGui::SameLine();
+			if (ImGui::Button("Reset To Sprite Preset"))
+			{
+				ApplyCreateEmitterPreset(newSpriteTypeIndex);
+			}
+		}
+		else if (newMode == static_cast<int>(GpuParticleKind::Ribbon))
+		{
+			ImGui::Combo("Ribbon Type", &newRibbonTypeIndex, kRibbonTypeNames, IM_ARRAYSIZE(kRibbonTypeNames));
+		}
+		else
+		{
+			ImGui::TextDisabled("This mode is not fully implemented yet.");
+		}
+
 		ImGui::InputText("Texture", newTexture, IM_ARRAYSIZE(newTexture));
 		ImGui::DragFloat(
 			"Radius",
@@ -276,49 +330,69 @@ namespace Ken4lowEngine
 			GpuParticleDebugPresets::kMinLoopFrequency,
 			GpuParticleDebugPresets::kMaxLoopFrequency);
 
-		const char* kModeNames[] = { "GPU Sprite", "Mesh", "Ribbon", "Beam" };
-		ImGui::Combo("Mode", &newMode, kModeNames, IM_ARRAYSIZE(kModeNames));
-
-		if (newMode == (int)GpuParticleKind::Sprite)
-		{
-			ImGui::Combo("Sprite Type (21)", &newSpriteTypeIndex, kSpriteTypeNames, IM_ARRAYSIZE(kSpriteTypeNames));
-		}
-		else if (newMode == (int)GpuParticleKind::Ribbon)
-		{
-			ImGui::Combo("Ribbon Type", &newRibbonTypeIndex, kRibbonTypeNames, IM_ARRAYSIZE(kRibbonTypeNames));
-		}
-		else
-		{
-			ImGui::TextDisabled("This mode is not fully implemented yet.");
-		}
+		ImGui::Checkbox("Create And Save", &createAndSave);
 
 		if (ImGui::Button("Create"))
 		{
 			GpuParticleEmitter::EmitterInfo ci{};
-			ci.textureFilePath = newTexture;
-			ci.radius = newRadius;
-			ci.loopCount = (newLoopCount < 0) ? 0u : (uint32_t)newLoopCount;
-			ci.loopFrequency = (newLoopFrequency < 0.0f) ? 0.0f : newLoopFrequency;
-			ci.drawType = 0;
-			ci.kind = (GpuParticleKind)newMode;
-			ci.billboardFlags = BillboardMode::Camera;
 
-			ci.spriteType = kSpriteTypeValues[(newSpriteTypeIndex < 0) ? 0 : (newSpriteTypeIndex % 21)];
-			ci.ribbonType = (GpuRibbonType)((newRibbonTypeIndex < 0) ? 0 : (newRibbonTypeIndex % 3));
+			if (newMode == static_cast<int>(GpuParticleKind::Sprite))
+			{
+				const GpuParticleType spriteType =
+					GpuParticleEmitterPresetTable::GetSpriteTypeByIndex(
+						static_cast<uint32_t>(newSpriteTypeIndex));
 
-			if (CreateEmitter(newName, ci))
+				ci = GpuParticleEmitterPresetTable::MakeEmitterInfo(spriteType);
+				ci.textureFilePath = newTexture;
+				ci.radius = newRadius;
+				ci.loopCount = static_cast<uint32_t>(std::max(newLoopCount, 0));
+				ci.loopFrequency = std::max(newLoopFrequency, 0.0f);
+				ci.kind = GpuParticleKind::Sprite;
+				ci.spriteType = spriteType;
+			}
+			else
+			{
+				ci.textureFilePath = newTexture;
+				ci.radius = newRadius;
+				ci.loopCount = static_cast<uint32_t>(std::max(newLoopCount, 0));
+				ci.loopFrequency = std::max(newLoopFrequency, 0.0f);
+				ci.drawType = 0;
+				ci.kind = static_cast<GpuParticleKind>(newMode);
+				ci.billboardFlags = BillboardMode::Camera;
+				ci.ribbonType = static_cast<GpuRibbonType>((newRibbonTypeIndex < 0) ? 0 : (newRibbonTypeIndex % kRibbonTypeCount));
+				ci.spriteType = GpuParticleType::Default;
+			}
+
+			if (GpuParticleEmitter* created = CreateEmitter(newName, ci))
 			{
 				selected = newName;
 				lastSelected.clear();
+
+				if (createAndSave)
+				{
+					const std::string filePath = BuildEmitterJsonPath(jsonDir, newName);
+					SaveEmitterToFile(newName, filePath);
+				}
 			}
 		}
 
 		ImGui::SeparatorText("Emitters");
 		if (ImGui::BeginListBox("Emitters"))
 		{
-			for (auto& [name, emitter] : emitters_)
+			std::vector<std::string> emitterNames;
+			emitterNames.reserve(emitters_.size());
+
+			for (const auto& [name, emitter] : emitters_)
 			{
-				bool isSelected = (selected == name);
+				(void)emitter;
+				emitterNames.push_back(name);
+			}
+
+			std::sort(emitterNames.begin(), emitterNames.end());
+
+			for (const std::string& name : emitterNames)
+			{
+				const bool isSelected = (selected == name);
 				if (ImGui::Selectable(name.c_str(), isSelected))
 				{
 					selected = name;
@@ -341,14 +415,53 @@ namespace Ken4lowEngine
 
 				ImGui::SeparatorText("Selected Emitter");
 				ImGui::Text("Name: %s", selected.c_str());
+
 				ImGui::SameLine();
 				if (ImGui::Button("Delete"))
 				{
-					emitters_.erase(selected);
+					RemoveEmitter(selected);
 					selected.clear();
 					lastSelected.clear();
 					ImGui::End();
 					return;
+				}
+
+				const std::string selectedFilePath = BuildEmitterJsonPath(jsonDir, selected);
+
+				ImGui::SameLine();
+				if (ImGui::Button("Save Json"))
+				{
+					SaveEmitterToFile(selected, selectedFilePath);
+				}
+
+				ImGui::SameLine();
+				if (ImGui::Button("Reload Json"))
+				{
+					if (GpuParticleEmitter* reloaded = LoadEmitterFromFile(selectedFilePath, true))
+					{
+						selected = reloaded->GetName();
+						lastSelected.clear();
+					}
+					else
+					{
+						selected.clear();
+						lastSelected.clear();
+					}
+
+					ImGui::End();
+					return;
+				}
+
+				ImGui::SameLine();
+				if (ImGui::Button("Duplicate"))
+				{
+					GpuParticleEmitterAsset dup = BuildAssetFromEmitter(selected);
+					dup.name = MakeUniqueEmitterName(dup.name + "_copy");
+					if (CreateEmitterFromAsset(dup, false))
+					{
+						selected = dup.name;
+						lastSelected.clear();
+					}
 				}
 
 				{
@@ -367,7 +480,7 @@ namespace Ken4lowEngine
 					GpuParticleDebugPresets::kMinRadius,
 					GpuParticleDebugPresets::kMaxRadius);
 
-				int loopCount = (int)info.loopCount;
+				int loopCount = static_cast<int>(info.loopCount);
 				if (ImGui::DragInt(
 					"Loop Count##Selected",
 					&loopCount,
@@ -376,7 +489,7 @@ namespace Ken4lowEngine
 					GpuParticleDebugPresets::kMaxLoopCount))
 				{
 					if (loopCount < 0) loopCount = 0;
-					info.loopCount = (uint32_t)loopCount;
+					info.loopCount = static_cast<uint32_t>(loopCount);
 				}
 
 				ImGui::DragFloat(
@@ -387,21 +500,21 @@ namespace Ken4lowEngine
 					GpuParticleDebugPresets::kMaxLoopFrequency);
 
 				{
-					int drawType = (int)info.drawType;
+					int drawType = static_cast<int>(info.drawType);
 					if (ImGui::InputInt("DrawType (0=Use EffectiveType)", &drawType))
 					{
 						if (drawType < 0) drawType = 0;
-						info.drawType = (uint32_t)drawType;
+						info.drawType = static_cast<uint32_t>(drawType);
 					}
 				}
 
 				{
-					int mode = (int)info.kind;
+					int mode = static_cast<int>(info.kind);
 					if (ImGui::Combo("Mode##Selected", &mode, kModeNames, IM_ARRAYSIZE(kModeNames)))
 					{
 						if (mode < 0) mode = 0;
 						if (mode > 3) mode = 0;
-						info.kind = (GpuParticleKind)mode;
+						info.kind = static_cast<GpuParticleKind>(mode);
 
 						if (info.kind == GpuParticleKind::Mesh)
 						{
@@ -416,24 +529,58 @@ namespace Ken4lowEngine
 
 				if (info.kind == GpuParticleKind::Sprite)
 				{
-					int spriteIndex = 0;
-					for (int i = 0; i < 21; ++i)
+					int spriteIndex = static_cast<int>(
+						GpuParticleEmitterPresetTable::GetSpriteIndexByType(info.spriteType));
+
+					const GpuParticleType previewType =
+						GpuParticleEmitterPresetTable::GetSpriteTypeByIndex(static_cast<uint32_t>(spriteIndex));
+
+					if (ImGui::BeginCombo(
+						"Sprite Type##Selected",
+						GpuParticleEmitterPresetTable::GetSpriteDisplayName(previewType)))
 					{
-						if (info.spriteType == kSpriteTypeValues[i]) { spriteIndex = i; break; }
+						for (uint32_t i = 0; i < spritePresetCount; ++i)
+						{
+							const GpuParticleType type = GpuParticleEmitterPresetTable::GetSpriteTypeByIndex(i);
+							const bool isSelected = (spriteIndex == static_cast<int>(i));
+
+							if (ImGui::Selectable(
+								GpuParticleEmitterPresetTable::GetSpriteDisplayName(type),
+								isSelected))
+							{
+								info.spriteType = type;
+							}
+
+							if (isSelected)
+							{
+								ImGui::SetItemDefaultFocus();
+							}
+						}
+						ImGui::EndCombo();
 					}
-					if (ImGui::Combo("Sprite Type (21)##Selected", &spriteIndex, kSpriteTypeNames, 21))
+
+					if (ImGui::Button("Apply Sprite Preset"))
 					{
-						info.spriteType = kSpriteTypeValues[spriteIndex];
+						const auto presetInfo = GpuParticleEmitterPresetTable::MakeEmitterInfo(info.spriteType);
+
+						info.textureFilePath = presetInfo.textureFilePath;
+						info.radius = presetInfo.radius;
+						info.loopCount = presetInfo.loopCount;
+						info.loopFrequency = presetInfo.loopFrequency;
+						info.drawType = presetInfo.drawType;
+						info.billboardFlags = presetInfo.billboardFlags;
+
+						std::snprintf(textureBuf, sizeof(textureBuf), "%s", info.textureFilePath.c_str());
 					}
 				}
 				else if (info.kind == GpuParticleKind::Ribbon)
 				{
-					int ribbonIndex = (int)info.ribbonType;
+					int ribbonIndex = static_cast<int>(info.ribbonType);
 					if (ImGui::Combo("Ribbon Type##Selected", &ribbonIndex, kRibbonTypeNames, IM_ARRAYSIZE(kRibbonTypeNames)))
 					{
 						if (ribbonIndex < 0) ribbonIndex = 0;
-						ribbonIndex %= 3;
-						info.ribbonType = (GpuRibbonType)ribbonIndex;
+						ribbonIndex %= kRibbonTypeCount;
+						info.ribbonType = static_cast<GpuRibbonType>(ribbonIndex);
 					}
 				}
 				else
@@ -462,7 +609,7 @@ namespace Ken4lowEngine
 						flags = 0;
 						if (bbCamera) flags |= ToU32(BillboardMode::Camera);
 						if (bbYAxis)  flags |= ToU32(BillboardMode::YAxis);
-						info.billboardFlags = (BillboardMode)flags;
+						info.billboardFlags = static_cast<BillboardMode>(flags);
 					}
 				}
 
@@ -475,13 +622,19 @@ namespace Ken4lowEngine
 
 				uint32_t effectiveType = 0;
 				if (info.kind == GpuParticleKind::Sprite)
-					effectiveType = (uint32_t)info.spriteType;
+				{
+					effectiveType = static_cast<uint32_t>(info.spriteType);
+				}
 				else if (info.kind == GpuParticleKind::Ribbon)
-					effectiveType = (uint32_t)ToGpuParticleType(info.ribbonType);
+				{
+					effectiveType = static_cast<uint32_t>(ToGpuParticleType(info.ribbonType));
+				}
 				else
-					effectiveType = (uint32_t)info.spriteType;
+				{
+					effectiveType = static_cast<uint32_t>(info.spriteType);
+				}
 
-				const uint32_t packed = PackBillboardMode(info.kind, (uint32_t)info.billboardFlags);
+				const uint32_t packed = PackBillboardMode(info.kind, static_cast<uint32_t>(info.billboardFlags));
 				ImGui::Text("EffectiveType (sent to GPU): %u", effectiveType);
 				ImGui::Text("Packed billboardMode: 0x%08X", packed);
 
@@ -504,13 +657,13 @@ namespace Ken4lowEngine
 
 				if (ImGui::Button("Burst"))
 				{
-					e->RequestEmit((uint32_t)((burstCount < 0) ? 0 : burstCount));
+					e->RequestEmit(static_cast<uint32_t>((burstCount < 0) ? 0 : burstCount));
 				}
 				ImGui::SameLine();
 				if (ImGui::Button("Burst x Repeat"))
 				{
-					uint32_t c = (uint32_t)((burstCount < 0) ? 0 : burstCount);
-					uint32_t r = (uint32_t)((burstRepeat < 1) ? 1 : burstRepeat);
+					const uint32_t c = static_cast<uint32_t>((burstCount < 0) ? 0 : burstCount);
+					const uint32_t r = static_cast<uint32_t>((burstRepeat < 1) ? 1 : burstRepeat);
 					e->RequestEmit(c * r);
 				}
 			}
@@ -598,6 +751,26 @@ namespace Ken4lowEngine
 		return emitterPtr;
 	}
 
+	GpuParticleEmitter* GpuParticleManager::CreateEmitter(const std::string& name, GpuParticleType type)
+	{
+		const GpuParticleEmitter::EmitterInfo info =
+			GpuParticleEmitterPresetTable::MakeEmitterInfo(type);
+
+		return CreateEmitter(name, info);
+	}
+
+	GpuParticleEmitter* GpuParticleManager::CreateEmitter(const std::string& name, GpuParticleType type, const Vector3& position)
+	{
+		GpuParticleEmitter* emitter = CreateEmitter(name, type);
+		if (!emitter)
+		{
+			return nullptr;
+		}
+
+		emitter->SetPosition(position);
+		return emitter;
+	}
+
 	/// -------------------------------------------------------------
 	///				　　　		エミッター取得
 	/// -------------------------------------------------------------
@@ -626,6 +799,26 @@ namespace Ken4lowEngine
 			// エミット要求を出す
 			it->RequestEmit(count);
 		}
+	}
+
+	GpuParticleEmitter* GpuParticleManager::EmitBurst(const std::string& name, GpuParticleType type, const Vector3& position, uint32_t count)
+	{
+		GpuParticleEmitter* emitter = GetEmitter(name);
+		if (!emitter)
+		{
+			emitter = CreateEmitter(name, type, position);
+			if (!emitter)
+			{
+				return nullptr;
+			}
+		}
+		else
+		{
+			emitter->SetPosition(position);
+		}
+
+		emitter->RequestEmit(count);
+		return emitter;
 	}
 
 	/// -------------------------------------------------------------
@@ -844,6 +1037,170 @@ namespace Ken4lowEngine
 		}
 
 		return out;
+	}
+
+	std::string GpuParticleManager::BuildEmitterJsonPath(const std::string& directoryPath, const std::string& emitterName)
+	{
+		if (directoryPath.empty())
+		{
+			return emitterName + ".json";
+		}
+
+		const char last = directoryPath.back();
+		if (last == '/' || last == '\\')
+		{
+			return directoryPath + emitterName + ".json";
+		}
+
+		return directoryPath + "/" + emitterName + ".json";
+	}
+
+	std::string GpuParticleManager::MakeUniqueEmitterName(const std::string& baseName) const
+	{
+		if (!emitters_.contains(baseName))
+		{
+			return baseName;
+		}
+
+		for (uint32_t i = 2; i < 1000000; ++i)
+		{
+			const std::string candidate = baseName + std::to_string(i);
+			if (!emitters_.contains(candidate))
+			{
+				return candidate;
+			}
+		}
+
+		return baseName + "_new";
+	}
+
+	bool GpuParticleManager::RemoveEmitter(const std::string& name)
+	{
+		auto it = emitters_.find(name);
+		if (it == emitters_.end())
+		{
+			return false;
+		}
+
+		emitters_.erase(it);
+		return true;
+	}
+
+	GpuParticleEmitterAsset GpuParticleManager::BuildAssetFromEmitter(const std::string& name) const
+	{
+		GpuParticleEmitterAsset asset{};
+
+		auto it = emitters_.find(name);
+		if (it == emitters_.end())
+		{
+			return asset;
+		}
+
+		const GpuParticleEmitter* emitter = it->second.get();
+		const auto& info = emitter->GetInfo();
+		const Vector3 position = emitter->GetPosition();
+
+		asset.name = emitter->GetName();
+		asset.textureFilePath = info.textureFilePath;
+		asset.position = position;
+		asset.radius = info.radius;
+		asset.loopCount = info.loopCount;
+		asset.loopFrequency = info.loopFrequency;
+		asset.drawType = info.drawType;
+		asset.kind = info.kind;
+		asset.spriteType = info.spriteType;
+		asset.ribbonType = info.ribbonType;
+		asset.billboardFlags = info.billboardFlags;
+
+		return asset;
+	}
+
+	GpuParticleEmitter* GpuParticleManager::CreateEmitterFromAsset(const GpuParticleEmitterAsset& asset, bool overwrite)
+	{
+		if (asset.name.empty())
+		{
+			return nullptr;
+		}
+
+		auto it = emitters_.find(asset.name);
+		if (it != emitters_.end())
+		{
+			if (!overwrite)
+			{
+				return nullptr;
+			}
+
+			emitters_.erase(it);
+		}
+
+		GpuParticleEmitter::EmitterInfo info{};
+		info.textureFilePath = asset.textureFilePath;
+		info.radius = asset.radius;
+		info.loopCount = asset.loopCount;
+		info.loopFrequency = asset.loopFrequency;
+		info.drawType = asset.drawType;
+		info.kind = asset.kind;
+		info.spriteType = asset.spriteType;
+		info.ribbonType = asset.ribbonType;
+		info.billboardFlags = asset.billboardFlags;
+
+		GpuParticleEmitter* emitter = CreateEmitter(asset.name, info);
+		if (!emitter)
+		{
+			return nullptr;
+		}
+
+		emitter->SetPosition(asset.position);
+		return emitter;
+	}
+
+	bool GpuParticleManager::SaveEmitterToFile(const std::string& name, const std::string& filePath) const
+	{
+		const GpuParticleEmitterAsset asset = BuildAssetFromEmitter(name);
+		if (asset.name.empty())
+		{
+			return false;
+		}
+
+		return GpuParticleEmitterSerializer::SaveToFile(asset, filePath);
+	}
+
+	GpuParticleEmitter* GpuParticleManager::LoadEmitterFromFile(const std::string& filePath, bool overwrite)
+	{
+		const auto loaded = GpuParticleEmitterSerializer::LoadFromFile(filePath);
+		if (!loaded.has_value())
+		{
+			return nullptr;
+		}
+
+		return CreateEmitterFromAsset(loaded.value(), overwrite);
+	}
+
+	void GpuParticleManager::LoadEmittersFromDirectory(const std::string& directoryPath, bool overwrite)
+	{
+		const auto files = GpuParticleEmitterSerializer::FindJsonFiles(directoryPath);
+		for (const std::string& filePath : files)
+		{
+			LoadEmitterFromFile(filePath, overwrite);
+		}
+	}
+
+	bool GpuParticleManager::SaveAllEmittersToDirectory(const std::string& directoryPath) const
+	{
+		bool allOk = true;
+
+		for (const auto& [name, emitter] : emitters_)
+		{
+			(void)emitter;
+
+			const std::string filePath = BuildEmitterJsonPath(directoryPath, name);
+			if (!SaveEmitterToFile(name, filePath))
+			{
+				allOk = false;
+			}
+		}
+
+		return allOk;
 	}
 
 } // namespace Ken4lowEngine
