@@ -57,9 +57,41 @@ public:
 public:
 	// HP
 	void SetMaxHp(int v) { maxHp_ = v; hp_ = v; }
-	int  GetHp() const { return hp_; }
-	int  GetMaxHp() const { return maxHp_; }
+	// 現在HPを返す
+	int GetHp() const { return hp_; }
+
+	// 最大HPを返す
+	int GetMaxHp() const { return maxHp_; }
+
+	// 死亡しているかどうか
 	bool IsDead() const { return isDead_; }
+
+	// HPバーを表示したいワールド座標を返す
+	// 頭の少し上を想定
+	K4E::Vector3 GetHpBarWorldPosition() const
+	{
+		// ここは敵の中心座標を基準にして上へオフセットする
+		// GetWorldPosition() / GetCenterPosition() など、今使っている関数に合わせてください
+		K4E::Vector3 pos = GetCenterPosition();
+
+		// 頭上に表示するための高さ調整
+		// 人型なら 2.5f～3.5f くらいを試すと良い
+		pos.y += 3.0f;
+
+		return pos;
+	}
+
+	float GetHpRate() const
+	{
+		if (maxHp_ <= 0) { return 0.0f; }
+		return static_cast<float>(hp_) / static_cast<float>(maxHp_);
+	}
+
+	bool IsHpBarVisibleTarget() const
+	{
+		return !isDead_;
+	}
+
 	bool IsRemovable() const { return removable_; }
 
 	// 物理（生存中のCollider用）

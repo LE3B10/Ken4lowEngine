@@ -165,6 +165,9 @@ public: /// ---------- メンバ関数 ---------- ///
 	bool IsDeathActive() const { return death_.IsActive(); }
 	bool IsDeathSequenceFinished() const { return death_.IsFinished(); }
 
+	K4E::Camera* GetCamera() { return view_.GetCamera(); }
+	const K4E::Camera* GetCamera() const { return const_cast<Player*>(this)->view_.GetCamera(); }
+
 public:	// ---- FSMから呼ばれる最小API ----
 
 	bool FSM_IsGrounded() const { return motor_.IsGrounded(); }

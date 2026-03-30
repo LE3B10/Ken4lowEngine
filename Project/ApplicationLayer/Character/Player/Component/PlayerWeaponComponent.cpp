@@ -54,6 +54,8 @@ void PlayerWeaponComponent::SetMasterDirectory(const std::filesystem::path& dir)
 	// HUD弾薬キャッシュをリセット
 	ammoViewCache_ = {};
 	ammoViewCacheValid_.fill(false);
+
+	savedWeaponStates_.clear();
 }
 
 bool PlayerWeaponComponent::LoadWeaponMasterDataOnce()
@@ -256,6 +258,17 @@ bool PlayerWeaponComponent::EquipWeaponByID(int32_t weaponID)
 	if (!weaponLoaded_) LoadWeaponMasterDataOnce();
 	if (!weaponLoaded_) return false;
 
+	if (weaponID <= 0) return false;
+
+	// 同じ武器を再装備するだけなら何もしない
+	if (weaponID == currentWeaponId_)
+	{
+		return true;
+	}
+
+	// 切替前の武器状態を保存
+	SaveCurrentWeaponState();
+
 	std::string err;
 	if (!weaponSys_.EquipById(weaponID, &err))
 	{
@@ -264,7 +277,15 @@ bool PlayerWeaponComponent::EquipWeaponByID(int32_t weaponID)
 	}
 
 	currentWeaponId_ = weaponSys_.GetEquippedWeaponId();
+
+	// 保存済み状態があれば復元
+	RestoreWeaponState(currentWeaponId_);
+
 	weaponLoadError_.clear();
+
+	// 新しい選択武器のHUDを更新
+	UpdateSelectedAmmoViewCache();
+
 	return true;
 }
 
@@ -320,15 +341,14 @@ void PlayerWeaponComponent::SwitchWeaponCategory(EWeaponCategory category)
 			targetId = last;
 	}
 
-	std::string err;
-	if (!weaponSys_.EquipById(targetId, &err))
+	if (!EquipWeaponByID(targetId))
 	{
-		weaponLoadError_ = err.empty() ? "WeaponMasterData: Equipに失敗しました。" : err;
+		if (weaponLoadError_.empty())
+		{
+			weaponLoadError_ = "WeaponMasterData: Equipに失敗しました。";
+		}
 		return;
 	}
-
-	currentWeaponId_ = weaponSys_.GetEquippedWeaponId();
-	weaponLoadError_.clear();
 }
 
 void PlayerWeaponComponent::ApplyMeleeInputRemap(InputSnapshot& snapshot)
@@ -432,6 +452,57 @@ void PlayerWeaponComponent::UpdateSelectedAmmoViewCache() const
 
 	ammoViewCache_[selected] = cur;
 	ammoViewCacheValid_[selected] = true;
+}
+
+void PlayerWeaponComponent::SaveCurrentWeaponState()
+{
+	if (!weaponLoaded_) return;
+	if (currentWeaponId_ <= 0) return;
+
+	const auto& w = weaponSys_.Weapon();
+	const auto& s = w.State();
+
+	SavedWeaponState saved{};
+	saved.valid = true;
+	saved.magAmmo = s.magAmmo;
+	saved.reserveAmmo = s.reserveAmmo;
+	saved.fireModeAutomatic = w.IsAutomatic();
+
+	savedWeaponStates_[currentWeaponId_] = saved;
+
+	// HUDキャッシュも今の武器状態で更新しておく
+	UpdateSelectedAmmoViewCache();
+}
+
+void PlayerWeaponComponent::RestoreWeaponState(int32_t weaponID)
+{
+	if (!weaponLoaded_) return;
+	if (weaponID <= 0) return;
+
+	auto it = savedWeaponStates_.find(weaponID);
+	if (it == savedWeaponStates_.end()) return;
+	if (!it->second.valid) return;
+
+	auto& w = weaponSys_.Weapon();
+	auto& s = w.StateMutable();
+
+	s.magAmmo = std::max(0, it->second.magAmmo);
+	s.reserveAmmo = std::max(0, it->second.reserveAmmo);
+
+	// 武器切替時はリロード中断・ADS解除・一時状態リセット
+	s.isReloading = false;
+	s.reloadRequested = false;
+	s.reloadRequest = false;
+	s.pendingReload = false;
+	s.reloadTimer = 0.0f;
+	s.isADS = false;
+
+	// 発射モード復元
+	const bool wantAuto = it->second.fireModeAutomatic;
+	if (w.IsAutomatic() != wantAuto)
+	{
+		w.ToggleFireMode();
+	}
 }
 
 void PlayerWeaponComponent::UpdateAndHandleInput(float dt, InputSnapshot& snapshot)

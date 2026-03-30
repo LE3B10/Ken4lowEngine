@@ -41,6 +41,9 @@ public:
 	Player* GetPlayer() { return player_.get(); }
 	const std::vector<std::unique_ptr<Enemy>>& GetEnemies() const { return enemies_; }
 
+	// HPバーやロックオンみたいな「EnemyBase* 配列」が欲しい処理用
+	std::vector<EnemyBase*> GetEnemyRawList() const;
+
 	// 生成
 	Enemy& SpawnEnemy(const K4E::Vector3& pos);
 	Enemy& SpawnEnemy(EnemyArchetype type, const K4E::Vector3& pos);

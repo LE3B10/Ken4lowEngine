@@ -105,7 +105,7 @@ private: /// ---------- プライベートメンバ変数 ---------- ///
 	float jumpBufferTime_ = 0.10f;
 
 	bool wasGroundedLastFrame_ = true;
-	float sprintJumpBoostMul_ = 1.12f;   // 1.10〜1.18 くらいで調整
+	float sprintJumpBoostMul_ = 1.14f;   // 1.10〜1.18 くらいで調整
 	float groundMoveMul_ = 0.98f;        // 地上だけ少し減衰
 	float airMoveMul_ = 1.00f;           // 空中は勢い保持
 
@@ -122,7 +122,7 @@ private: /// ---------- プライベートメンバ変数 ---------- ///
 	float walkSpeed_ = 6.0f;
 	float runSpeed_ = 8.5f;
 	float blinkSpeed_ = 20.0f;
-	float jumpSpeed_ = 9.0f;
+	float jumpSpeed_ = 9.4f;
 	float gravity_ = 24.0f;
 
 	// ---- Debug speed ----

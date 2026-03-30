@@ -118,6 +118,19 @@ void CharacterWorld::InjectEnemyDeps(Enemy& e)
 		});
 }
 
+std::vector<EnemyBase*> CharacterWorld::GetEnemyRawList() const
+{
+	std::vector<EnemyBase*> result;
+	result.reserve(enemies_.size());
+
+	for (const auto& enemy : enemies_)
+	{
+		result.push_back(enemy.get());
+	}
+
+	return result;
+}
+
 Enemy& CharacterWorld::SpawnEnemy(const K4E::Vector3& pos)
 {
 	auto e = std::make_unique<Enemy>();

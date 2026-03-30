@@ -3,6 +3,7 @@
 #include <filesystem>
 #include <string>
 #include <vector>
+#include <unordered_map>
 
 #include "WeaponSystem.h"
 #include "WeaponMasterData.h"
@@ -25,6 +26,14 @@ private: /// ---------- 構造体 ---------- ///
 		bool usesAmmo = false;
 		int mag = 0;
 		int reserve = 0;
+	};
+
+	struct SavedWeaponState
+	{
+		bool valid = false;
+		int magAmmo = 0;
+		int reserveAmmo = 0;
+		bool fireModeAutomatic = false;
 	};
 
 public: /// ---------- メンバ関数 ---------- ///
@@ -103,6 +112,9 @@ private: /// ---------- メンバ関数 ---------- ///
 	void BuildInitialAmmoViewCacheFromMasterData();
 	void UpdateSelectedAmmoViewCache() const;
 
+	void SaveCurrentWeaponState();
+	void RestoreWeaponState(int32_t weaponID);
+
 private: /// ---------- メンバ変数 ---------- ///
 
 	// ---- Weapon system ----
@@ -119,5 +131,7 @@ private: /// ---------- メンバ変数 ---------- ///
 	// HUD表示用：スロットごとの弾薬表示キャッシュ
 	mutable std::array<AmmoView, 6> ammoViewCache_{};
 	mutable std::array<bool, 6> ammoViewCacheValid_{};
+
+	std::unordered_map<int32_t, SavedWeaponState> savedWeaponStates_;
 };
 

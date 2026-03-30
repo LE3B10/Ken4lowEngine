@@ -1,4 +1,5 @@
 #define NOMINMAX
+#include "DirectXCommon.h"
 #include "GamePlayWorld.h"
 
 #include "GamePlayStageContext.h"
@@ -94,6 +95,8 @@ void GamePlayWorld::Initialize(GamePlayStageContext& stageContext)
 	prevWaveNumber_ = 0;
 	prevWaveInProgress_ = false;
 	prevAllWavesCleared_ = false;
+
+	enemyHpBarManager_.Initialize();
 }
 
 void GamePlayWorld::Finalize()
@@ -119,6 +122,9 @@ void GamePlayWorld::Finalize()
 
 void GamePlayWorld::Update(float deltaTime)
 {
+	uint32_t width = DirectXCommon::GetInstance()->GetClientWidth();
+	uint32_t height = DirectXCommon::GetInstance()->GetClientHeight();
+
 	if (stage_)
 	{
 		stage_->Update();
@@ -144,6 +150,23 @@ void GamePlayWorld::Update(float deltaTime)
 	if (skyBox_)
 	{
 		skyBox_->Update();
+	}
+
+	if (auto* player = characters_.GetPlayer())
+	{
+		if (auto* camera = player->GetCamera())
+		{
+			const std::vector<EnemyBase*> enemyList = characters_.GetEnemyRawList();
+
+			enemyHpBarManager_.Update(
+				enemyList,
+				camera->GetViewMatrix(),
+				camera->GetProjectionMatrix(),
+				static_cast<float>(width),
+				static_cast<float>(height),
+				deltaTime
+			);
+		}
 	}
 
 	if (hudManager_ && characters_.GetPlayer())
@@ -266,7 +289,11 @@ void GamePlayWorld::DrawShadow(bool hideCharactersDuringIntro)
 
 void GamePlayWorld::DrawHUD(bool hideDuringIntro)
 {
-	if (!hideDuringIntro && hudManager_)
+	if (hideDuringIntro) { return; }
+
+	enemyHpBarManager_.Draw();
+
+	if (hudManager_)
 	{
 		hudManager_->Draw();
 	}

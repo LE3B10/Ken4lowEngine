@@ -550,9 +550,6 @@
     <ClCompile Include="EngineLayer\Audio\MFAudioDecoder.cpp">
       <Filter>EngineLayer\Audio</Filter>
     </ClCompile>
-    <ClCompile Include="ApplicationLayer\Character\Enemy\EnemyParticleEffectSystem.cpp">
-      <Filter>ApplicationLayer\Character\Enemy</Filter>
-    </ClCompile>
     <ClCompile Include="ApplicationLayer\Scene\GamePlayScene\Camera\GamePlayIntroDirector.cpp">
       <Filter>ApplicationLayer\Scene\GamePlayScene\Camera</Filter>
     </ClCompile>
@@ -735,6 +732,18 @@
     </ClCompile>
     <ClCompile Include="EngineLayer\GPUParticleSystem\GpuParticleEmitterPreset\GpuParticleEmitterSerializer.cpp">
       <Filter>EngineLayer\GpuParticleSystem\GpuParticleEmitterPreset</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\Character\Enemy\Effects\EnemyParticleEffectSystem.cpp">
+      <Filter>ApplicationLayer\Character\Enemy\Effects</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\Character\Enemy\HPBar\EnemyHPBar.cpp">
+      <Filter>ApplicationLayer\Character\Enemy\HPBar</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\Character\Enemy\HPBar\EnemyHPBarManager.cpp">
+      <Filter>ApplicationLayer\Character\Enemy\HPBar</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\Character\Enemy\HPBar\EnemyHPBarProjector.cpp">
+      <Filter>ApplicationLayer\Character\Enemy\HPBar</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -1317,9 +1326,6 @@
     <ClInclude Include="EngineLayer\Audio\MFAudioDecoder.h">
       <Filter>EngineLayer\Audio</Filter>
     </ClInclude>
-    <ClInclude Include="ApplicationLayer\Character\Enemy\EnemyParticleEffectSystem.h">
-      <Filter>ApplicationLayer\Character\Enemy</Filter>
-    </ClInclude>
     <ClInclude Include="ApplicationLayer\Scene\GamePlayScene\Camera\GamePlayIntroDirector.h">
       <Filter>ApplicationLayer\Scene\GamePlayScene\Camera</Filter>
     </ClInclude>
@@ -1553,6 +1559,18 @@
     </ClInclude>
     <ClInclude Include="EngineLayer\Base\ShaderCompiler\WireframeShaderManifest.h">
       <Filter>EngineLayer\Base\ShaderCompiler</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Character\Enemy\Effects\EnemyParticleEffectSystem.h">
+      <Filter>ApplicationLayer\Character\Enemy\Effects</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Character\Enemy\HPBar\EnemyHPBar.h">
+      <Filter>ApplicationLayer\Character\Enemy\HPBar</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Character\Enemy\HPBar\EnemyHPBarManager.h">
+      <Filter>ApplicationLayer\Character\Enemy\HPBar</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Character\Enemy\HPBar\EnemyHPBarProjector.h">
+      <Filter>ApplicationLayer\Character\Enemy\HPBar</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -2043,6 +2061,12 @@
     </Filter>
     <Filter Include="EngineLayer\GpuParticleSystem\GpuParticleEmitterPreset">
       <UniqueIdentifier>{675bf2cd-e7c7-4a6b-b38b-dbd4cac2e38e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ApplicationLayer\Character\Enemy\Effects">
+      <UniqueIdentifier>{b1c34b28-c141-4210-b1db-da47c466359f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ApplicationLayer\Character\Enemy\HPBar">
+      <UniqueIdentifier>{766ebd88-31df-49e0-ba03-34cf1d739fef}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

@@ -633,5 +633,11 @@ void EnemyBase::OnCollisionEnter(Collider* other)
 	if (other->GetTypeID() == static_cast<uint32_t>(CollisionTypeIdDef::kBullet))
 	{
 		OnBulletHit(other);
+
+		// パーティクル
+		if (particleEffectSystem_)
+		{
+			particleEffectSystem_->SpawnHitEffect(GetCenterPosition());
+		}
 	}
 }

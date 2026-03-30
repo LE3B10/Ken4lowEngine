@@ -6,6 +6,7 @@
 #include "WaveManager.h"
 #include "Stage.h"
 #include <SkyBox.h>
+#include "EnemyHPBarManager.h"
 
 #include <memory>
 
@@ -63,6 +64,8 @@ private:
 	std::unique_ptr<K4E::Stage> stage_ = nullptr;
 	std::unique_ptr<WaveManager> waveManager_ = nullptr;
 	std::unique_ptr<HUDManager> hudManager_ = nullptr;
+
+	EnemyHPBarManager enemyHpBarManager_;
 
 	int prevWaveNumber_ = 0;
 	bool prevWaveInProgress_ = false;

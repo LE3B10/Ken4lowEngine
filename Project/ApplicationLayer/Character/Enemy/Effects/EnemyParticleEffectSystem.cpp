@@ -71,7 +71,7 @@ void EnemyParticleEffectSystem::CreateEmitters()
             "EnemyDeathSmoke_" + std::to_string(i),
             kSmokeTex,
             0.28f,
-            GpuParticleType::Default
+            GpuParticleType::DeathBurstCore
         );
 
         CreateEmitterIfNeeded(

@@ -8,7 +8,7 @@
     "burstMin": 2,
     "burstMoveMul": 0.20000000298023224,
     "fireInterval": 0.3499999940395355,
-    "maxHp": 3,
+    "maxHp": 300,
     "moveSpeed": 3.0,
     "preferredMaxRatio": 0.6499999761581421,
     "preferredMinRatio": 0.3499999940395355,
