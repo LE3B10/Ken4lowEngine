@@ -15,10 +15,12 @@ Bullet* BulletManager::Spawn(const Vector3& startPos,
 	float speed,
 	int damage,
 	float lifeTimeSec,
-	uint32_t typeId)
+	const Ken4lowEngine::Vector3& shooterPosition,
+	uint32_t typeId
+)
 {
 	auto b = std::make_unique<Bullet>();
-	b->Initialize(startPos, dirNormalized * speed, damage, lifeTimeSec, typeId);
+	b->Initialize(startPos, dirNormalized * speed, damage, lifeTimeSec, shooterPosition, typeId);
 
 	if (collisionManager_) collisionManager_->AddCollider(b.get());
 

@@ -60,6 +60,7 @@ public: /// ---------- メンバ関数 ---------- ///
 
 	// HUD用
 	bool GetReloadUI(bool& outIsReloading, float& outReloadTimer, float& outReloadSec) const;
+	bool ShouldShowNoAmmoUI() const;
 
 	// 外部から装備
 	bool EquipWeaponByID(int32_t weaponID);
@@ -73,6 +74,10 @@ public: /// ---------- メンバ関数 ---------- ///
 	bool IsReloadFinished() const;
 	void StartReload();
 
+	// 自動リロード
+	bool ShouldAutoReload() const;
+	bool TryAutoReload();
+
 	// リロードをキャンセルできる場合はキャンセルする
 	void CancelReload();
 
@@ -81,6 +86,9 @@ public: /// ---------- メンバ関数 ---------- ///
 
 	// リロード終了（キャンセル/中断も含む）
 	void StopReload();
+
+	// 明示的に許可された時だけキャンセル
+	void CancelReloadForced();
 
 	// ImGuiの描画処理（デバッグ用）
 	void DrawImGui();

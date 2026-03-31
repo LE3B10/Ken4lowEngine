@@ -7,12 +7,15 @@ void Bullet::Initialize(const K4E::Vector3& startPos,
 	const K4E::Vector3& velocity,
 	int damage,
 	float lifeTimeSec,
-	uint32_t typeId)
+	const K4E::Vector3& shooterPosition,
+	uint32_t typeId
+)
 {
 	damage_ = damage;
 	moveVelocity_ = velocity;
 	lifeTimeSec_ = lifeTimeSec;
 	lifeTimer_ = 0.0f;
+	shooterPosition_ = shooterPosition;
 
 	Collider::SetTypeID(typeId);
 	Collider::SetOwner(this);

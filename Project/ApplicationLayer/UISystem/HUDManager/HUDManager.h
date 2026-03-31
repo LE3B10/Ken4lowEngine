@@ -4,6 +4,8 @@
 #include "HPWidget.h"
 #include "WeaponSlot.h"
 #include "WaveUI.h"
+#include "DamageIndicatorManager.h"
+#include "NoAmmoUI.h"
 
 #include <memory>
 
@@ -55,6 +57,13 @@ public: /// ---------- セッタ ---------- ///
 	void NotifyAllWavesCleared();
 	void SetWaveUIVisible(bool v);
 
+	void AddDamageIndicator(const K4E::Vector3& playerPos,
+		const K4E::Vector3& attackerPos,
+		const K4E::Vector3& cameraForward,
+		const K4E::Vector3& cameraRight);
+
+	void SetCrosshairTargetingEnemy(bool v);
+
 public: /// ---------- ゲッタ ---------- ///
 
 	ReloadCircle* GetReloadCircle() const { return reloadCircle_.get(); }
@@ -74,6 +83,10 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	std::unique_ptr<WeaponSlot> weaponSlot_; // 武器スロット
 	WeaponSlot::HudSnapshot weaponSlotSnapshot_{};    // 外部から受け取る表示用データ
+
+	std::unique_ptr<DamageIndicatorManager> damageIndicatorManager_;
+
+	std::unique_ptr<NoAmmoUI> noAmmoUI_;
 
 	bool reloadTimerIsRemaining_ = true; // リロードタイマーが「残り時間」か「経過時間」かのフラグ
 	bool prevReloading_ = false; // 前フレームのリロード状態（HUDの更新に使う）

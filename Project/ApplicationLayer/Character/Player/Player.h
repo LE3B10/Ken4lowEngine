@@ -168,6 +168,8 @@ public: /// ---------- メンバ関数 ---------- ///
 	K4E::Camera* GetCamera() { return view_.GetCamera(); }
 	const K4E::Camera* GetCamera() const { return const_cast<Player*>(this)->view_.GetCamera(); }
 
+	bool GetNoAmmoUI(bool& outVisible) const;
+
 public:	// ---- FSMから呼ばれる最小API ----
 
 	bool FSM_IsGrounded() const { return motor_.IsGrounded(); }

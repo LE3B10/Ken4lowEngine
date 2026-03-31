@@ -59,6 +59,12 @@ void HUDManager::Initialize()
 	waveUI_ = std::make_unique<WaveUI>();
 	waveUI_->Initialize();
 	waveUI_->SetVisible(true);
+
+	damageIndicatorManager_ = std::make_unique<DamageIndicatorManager>();
+	damageIndicatorManager_->Initialize();
+
+	noAmmoUI_ = std::make_unique<NoAmmoUI>();
+	noAmmoUI_->Initialize("white.png");
 }
 
 /// -------------------------------------------------------------
@@ -171,6 +177,16 @@ void HUDManager::Update(float deltaTime)
 	}
 
 	if (waveUI_) waveUI_->Update(deltaTime);
+
+	if (damageIndicatorManager_) damageIndicatorManager_->Update(deltaTime);
+
+	if (noAmmoUI_ && player_)
+	{
+		bool showNoAmmo = false;
+		player_->GetNoAmmoUI(showNoAmmo);
+		noAmmoUI_->SetVisible(showNoAmmo);
+		noAmmoUI_->Update(deltaTime);
+	}
 }
 
 /// -------------------------------------------------------------
@@ -183,6 +199,10 @@ void HUDManager::Draw()
 	if (crosshair_ && crosshair_->IsVisible()) crosshair_->Draw();
 	if (weaponSlot_) weaponSlot_->Draw();
 	if (waveUI_ && waveUI_->IsVisible()) waveUI_->Draw();
+
+	if (damageIndicatorManager_) damageIndicatorManager_->Draw();
+
+	if (noAmmoUI_ && noAmmoUI_->IsVisible()) noAmmoUI_->Draw();
 }
 
 void HUDManager::SetHP(float hp, float maxHp)
@@ -238,4 +258,18 @@ void HUDManager::NotifyAllWavesCleared()
 void HUDManager::SetWaveUIVisible(bool v)
 {
 	if (waveUI_) waveUI_->SetVisible(v);
+}
+
+void HUDManager::AddDamageIndicator(const K4E::Vector3& playerPos, const K4E::Vector3& attackerPos, const K4E::Vector3& cameraForward, const K4E::Vector3& cameraRight)
+{
+	if (damageIndicatorManager_)
+	{
+		damageIndicatorManager_->AddIndicator(playerPos, attackerPos, cameraForward, cameraRight);
+	}
+}
+
+void HUDManager::SetCrosshairTargetingEnemy(bool v)
+{
+	if (!crosshair_) return;
+	crosshair_->SetTargetingEnemy(v);
 }

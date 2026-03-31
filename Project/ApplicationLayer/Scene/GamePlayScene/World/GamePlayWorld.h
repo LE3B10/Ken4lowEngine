@@ -50,10 +50,14 @@ public:
 		return shadowLightViewProjection_;
 	}
 
+	bool CheckCrosshairTargetingEnemy() const;
+
 private:
 	void CollisionUpdate();
 	void UpdateShadowLightViewProjection();
 	bool TryGetDirectionalLightFromManager(K4E::Vector3& outDirection) const;
+	
+	bool IsSightBlocked(const K4E::Segment& seg) const;
 
 private:
 	std::unique_ptr<CollisionManager> collisionManager_;

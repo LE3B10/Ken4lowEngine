@@ -26,7 +26,9 @@ public: /// ---------- メンバ関数 ---------- ///
 		const K4E::Vector3& velocity,
 		int damage = 1,
 		float lifeTimeSec = 3.0f,
-		uint32_t typeId = static_cast<uint32_t>(CollisionTypeIdDef::kBullet));
+		const K4E::Vector3& shooterPosition = { 0.0f, 0.0f, 0.0f },
+		uint32_t typeId = static_cast<uint32_t>(CollisionTypeIdDef::kBullet)
+	);
 
 	void Update(float dt);
 	void Draw();
@@ -39,6 +41,9 @@ public: /// ---------- メンバ関数 ---------- ///
 	bool IsRemovable() const { return removable_; }
 	int GetDamage() const { return damage_; }
 
+	void SetShooterPosition(const K4E::Vector3& pos) { shooterPosition_ = pos; }
+	const K4E::Vector3& GetShooterPosition() const { return shooterPosition_; }
+
 private: /// ---------- メンバ関数 ---------- ///
 
 	// 即死して遠くへ移動させる（衝突時など）
@@ -48,6 +53,8 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	K4E::Vector3 moveVelocity_ = { 0.0f, 0.0f, 0.0f };
 	K4E::Vector4 debugColor_ = { 1.0f, 1.0f, 0.0f, 1.0f };
+
+	K4E::Vector3 shooterPosition_ = { 0.0f, 0.0f, 0.0f };
 
 	std::unique_ptr<K4E::Object3D> model_ = nullptr;
 

@@ -72,6 +72,8 @@ public:
 	void SetMoveExpandMultipliers(float walkMul, float sprintMul, float airMul, float landImpulse);
 	void SetMovementState(bool isMoving, bool isSprinting, bool isAirborne);
 	void NotifyLanded();
+	
+	void SetTargetingEnemy(bool flag) { isTargetingEnemy_ = flag; }
 
 private:
 	enum class EHitMarkerKind
@@ -165,4 +167,6 @@ private:
 	float hitAlpha_ = 0.0f;
 
 	float hitBaseSize_ = 112.0f;
+
+	bool isTargetingEnemy_ = false;
 };

@@ -459,6 +459,56 @@ void Player::OnHitByEnemyBullet(K4E::Collider* bullet, PlayerHitPart part, float
 		audio_.onDeath);
 
 	ApplyDamageFeedback(fb);
+
+	if (!fb.tookDamage || !refs_.hudManager || !bullet)
+	{
+		return;
+	}
+
+	auto* cam = view_.GetCamera();
+	if (!cam)
+	{
+		return;
+	}
+
+	K4E::Vector3 attackerPos = bullet->GetCenterPosition();
+
+	if (auto* bulletObj = bullet->GetOwner<Bullet>())
+	{
+		attackerPos = bulletObj->GetShooterPosition();
+	}
+
+	K4E::Vector3 playerPos = GetWorldTransform()->translate_;
+
+	K4E::Vector3 cameraForward = cam->GetForward();
+	cameraForward.y = 0.0f;
+
+	const float forwardLenSq =
+		cameraForward.x * cameraForward.x +
+		cameraForward.z * cameraForward.z;
+
+	if (forwardLenSq <= 0.0001f)
+	{
+		cameraForward = { 0.0f, 0.0f, 1.0f };
+	}
+	else
+	{
+		cameraForward = K4E::Vector3::Normalize(cameraForward);
+	}
+
+	K4E::Vector3 cameraRight =
+	{
+		cameraForward.z,
+		0.0f,
+		-cameraForward.x
+	};
+	cameraRight = K4E::Vector3::Normalize(cameraRight);
+
+	refs_.hudManager->AddDamageIndicator(
+		playerPos,
+		attackerPos,
+		cameraForward,
+		cameraRight);
 }
 
 void Player::NotifyEnemyHitUI(bool isHeadshot)

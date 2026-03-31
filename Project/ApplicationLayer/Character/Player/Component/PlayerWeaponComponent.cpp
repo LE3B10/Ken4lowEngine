@@ -556,6 +556,9 @@ void PlayerWeaponComponent::UpdateAndHandleInput(float dt, InputSnapshot& snapsh
 
 	// 最後に武器内部更新
 	TickWeapon(dt);
+
+	// 弾切れ時の自動リロード
+	TryAutoReload();
 }
 
 bool PlayerWeaponComponent::GetReloadUI(bool& outIsReloading, float& outReloadTimer, float& outReloadSec) const
@@ -569,6 +572,30 @@ bool PlayerWeaponComponent::GetReloadUI(bool& outIsReloading, float& outReloadTi
 	outReloadTimer = s.reloadTimer;
 	outReloadSec = w.GetCurrentReloadDurationSec(); // ✅ ここ変更
 	return true;
+}
+
+bool PlayerWeaponComponent::ShouldShowNoAmmoUI() const
+{
+	if (!weaponLoaded_) return false;
+	if (weaponCategory_ == EWeaponCategory::Melee) return false;
+
+	const auto& w = weaponSys_.Weapon();
+	const auto& p = w.Params();
+	const auto& s = w.State();
+
+	// 弾を使わない武器は対象外
+	if (p.ammoPerShot <= 0) return false;
+
+	// リロード中は「NO AMMO」ではなくリロード表示を優先
+	if (s.isReloading) return false;
+
+	// マガジン不足 ＆ 予備弾ゼロ
+	if (s.magAmmo < p.ammoPerShot && s.reserveAmmo <= 0)
+	{
+		return true;
+	}
+
+	return false;
 }
 
 bool PlayerWeaponComponent::CanFire(const InputSnapshot& snapshot) const
@@ -633,16 +660,47 @@ void PlayerWeaponComponent::StartReload()
 	weaponSys_.Weapon().StartReload();
 }
 
+bool PlayerWeaponComponent::ShouldAutoReload() const
+{
+	if (!weaponLoaded_) return false;
+	if (weaponCategory_ == EWeaponCategory::Melee) return false;
+
+	const auto& w = weaponSys_.Weapon();
+	const auto& p = w.Params();
+	const auto& s = w.State();
+
+	// すでにリロード中なら不要
+	if (s.isReloading) return false;
+
+	// 1発でも残っていれば不要
+	if (s.magAmmo > 0) return false;
+
+	// 予備弾が無ければできない
+	if (s.reserveAmmo <= 0) return false;
+
+	// そもそも弾を使わない武器なら不要
+	if (p.ammoPerShot <= 0) return false;
+
+	// マガジン容量0みたいな特殊ケースも避ける
+	if (p.magCapacity <= 0) return false;
+
+	return true;
+}
+
+bool PlayerWeaponComponent::TryAutoReload()
+{
+	if (!ShouldAutoReload())
+	{
+		return false;
+	}
+
+	weaponSys_.Weapon().StartReload();
+	return true;
+}
+
 void PlayerWeaponComponent::CancelReload()
 {
-	if (!weaponLoaded_) return;
-
-	auto& w = weaponSys_.Weapon();
-	if constexpr (requires(decltype(w) & ww) { ww.CancelReload(); })
-	{
-		w.CancelReload();
-		return;
-	}
+	return; // 現状はリロードキャンセル不可
 }
 
 void PlayerWeaponComponent::AbortReload()
@@ -654,8 +712,21 @@ void PlayerWeaponComponent::AbortReload()
 
 void PlayerWeaponComponent::StopReload()
 {
-	// 別名（CancelReload/AbortReload を統一して呼びたい時用）
-	CancelReload();
+	// 一般用途では止めない
+	// どうしても中断したい場所は AbortReload / CancelReloadForced を使う
+	return;
+}
+
+void PlayerWeaponComponent::CancelReloadForced()
+{
+	if (!weaponLoaded_) return;
+
+	auto& w = weaponSys_.Weapon();
+	if constexpr (requires(decltype(w) & ww) { ww.CancelReload(); })
+	{
+		w.CancelReload();
+		return;
+	}
 }
 
 void PlayerWeaponComponent::DrawImGui()

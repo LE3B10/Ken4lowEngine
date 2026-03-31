@@ -26,6 +26,12 @@ void Player::FSM_StartReload()
 	}
 }
 
+bool Player::GetNoAmmoUI(bool& outVisible) const
+{
+	outVisible = weapon_.ShouldShowNoAmmoUI();
+	return true;
+}
+
 void Player::FSM_FireOnce()
 {
 	combat_.FireOnce(

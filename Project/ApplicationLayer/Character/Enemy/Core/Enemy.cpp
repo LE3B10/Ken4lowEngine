@@ -509,7 +509,7 @@ void Enemy::FireAt(const K4E::Vector3& targetPos)
 	Vector3 dir = NormalizeSafe(targetPos - origin);
 	if (Vector3::Length(dir) <= 1e-6f) return;
 
-	bulletManager_->Spawn(origin, dir, bulletSpeed_, bulletDamage_, bulletLifeSec_, static_cast<uint32_t>(CollisionTypeIdDef::kEnemyBullet));
+	bulletManager_->Spawn(origin, dir, bulletSpeed_, bulletDamage_, bulletLifeSec_, GetCenterPosition(), static_cast<uint32_t>(CollisionTypeIdDef::kEnemyBullet));
 
 	// 銃声
 	if (onFireSE_) onFireSE_();

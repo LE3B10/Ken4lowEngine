@@ -171,6 +171,9 @@ void GamePlayWorld::Update(float deltaTime)
 
 	if (hudManager_ && characters_.GetPlayer())
 	{
+		const bool isTargetingEnemy = CheckCrosshairTargetingEnemy();
+		hudManager_->SetCrosshairTargetingEnemy(isTargetingEnemy);
+
 		hudManager_->SetHP(
 			characters_.GetPlayer()->GetHP(),
 			characters_.GetPlayer()->GetMaxHP());
@@ -343,6 +346,31 @@ void GamePlayWorld::SetDebugCameraEnabled(bool enabled)
 	}
 }
 
+bool GamePlayWorld::CheckCrosshairTargetingEnemy() const
+{
+	if (!collisionManager_) return false;
+
+	const auto* player = characters_.GetPlayer();
+	if (!player) return false;
+
+	const auto* camera = player->GetCamera();
+	if (!camera) return false;
+
+	const K4E::Vector3 origin = camera->GetTranslate();
+	const K4E::Vector3 forward = K4E::Vector3::Normalize(camera->GetForward());
+	const float aimRange = 1000.0f;
+
+	K4E::Segment seg{};
+	seg.origin = origin;
+	seg.diff = forward * aimRange;
+
+	return collisionManager_->SegmentCast(
+		(uint32_t)CollisionTypeIdDef::kEnemy,
+		seg,
+		nullptr
+	);
+}
+
 void GamePlayWorld::CollisionUpdate()
 {
 	if (!collisionManager_) { return; }
@@ -406,5 +434,11 @@ bool GamePlayWorld::TryGetDirectionalLightFromManager(K4E::Vector3& outDirection
 		}
 	}
 
+	return false;
+}
+
+bool GamePlayWorld::IsSightBlocked(const K4E::Segment& seg) const
+{
+	(void)seg; // 未使用
 	return false;
 }

@@ -745,6 +745,8 @@
     <ClCompile Include="ApplicationLayer\Character\Enemy\HPBar\EnemyHPBarProjector.cpp">
       <Filter>ApplicationLayer\Character\Enemy\HPBar</Filter>
     </ClCompile>
+    <ClCompile Include="ApplicationLayer\UISystem\Indicator\DamageIndicatorManager.cpp" />
+    <ClCompile Include="NoAmmoUI.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="EngineLayer\Math\MultipleStructs\AABB.h">
@@ -1572,6 +1574,8 @@
     <ClInclude Include="ApplicationLayer\Character\Enemy\HPBar\EnemyHPBarProjector.h">
       <Filter>ApplicationLayer\Character\Enemy\HPBar</Filter>
     </ClInclude>
+    <ClInclude Include="ApplicationLayer\UISystem\Indicator\DamageIndicatorManager.h" />
+    <ClInclude Include="NoAmmoUI.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Resources\Shaders\PostEffect\FullScreen.hlsli">
