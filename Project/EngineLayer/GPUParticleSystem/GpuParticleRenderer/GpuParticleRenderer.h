@@ -65,7 +65,7 @@ private: /// ---------- メンバ変数 ---------- ///
 	// パーティクルマテリアル
 	std::unique_ptr<ParticleMaterial> particleMaterial_;
 
-	std::string textureFilePath_ = "circle2.png";
+	std::string textureFilePath_ = "Effects/circle2.dds";
 };
 
 

@@ -10,8 +10,8 @@ namespace K4E = ::Ken4lowEngine;
 
 namespace
 {
-	constexpr const char* kDefaultReticleTex = "reticles/crosshair_circle_dot.png";
-	constexpr const char* kDefaultHitTex = "reticles/hitmarker_x_glow.png";
+	constexpr const char* kDefaultReticleTex = "UI/Reticles/crosshair_circle_dot.dds";
+	constexpr const char* kDefaultHitTex = "UI/Reticles/hitmarker_x_glow.dds";
 
 	inline float Clamp01(float v)
 	{

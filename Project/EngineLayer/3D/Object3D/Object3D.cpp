@@ -36,7 +36,7 @@ namespace Ken4lowEngine
 		materialSRVs_.reserve(modelData.subMeshes.size());
 
 		// テクスチャ未指定時のフォールバック
-		static const std::string kDefaultTexturePath = "white.png";
+		static const std::string kDefaultTexturePath = "Effects/white.dds";
 
 		for (const auto& sub : modelData.subMeshes)
 		{
@@ -59,8 +59,8 @@ namespace Ken4lowEngine
 		environmentMapHandle_ = TextureManager::GetInstance()->GetSrvHandleGPU("SkyBox/skybox.dds");
 
 		// ディゾルブマスクテクスチャの読み込み
-		TextureManager::GetInstance()->LoadTexture("Mask/noise.png");
-		dissolveMaskHandle_ = TextureManager::GetInstance()->GetSrvHandleGPU("Mask/noise.png");
+		TextureManager::GetInstance()->LoadTexture("Effects/Masks/noise.dds");
+		dissolveMaskHandle_ = TextureManager::GetInstance()->GetSrvHandleGPU("Effects/Masks/noise.dds");
 
 		// ワールドトランスフォームの初期化
 		worldTransform_.Initialize();

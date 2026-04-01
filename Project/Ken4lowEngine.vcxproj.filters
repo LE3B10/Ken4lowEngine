@@ -765,12 +765,6 @@
     <ClInclude Include="EngineLayer\Math\MultipleStructs\LinearInterpolation.h">
       <Filter>EngineLayer\Math</Filter>
     </ClInclude>
-    <ClInclude Include="Externals\Audio\minimp3\minimp3.h">
-      <Filter>Externals\minimp3</Filter>
-    </ClInclude>
-    <ClInclude Include="Externals\Audio\minimp3\minimp3_ex.h">
-      <Filter>Externals\minimp3</Filter>
-    </ClInclude>
     <ClInclude Include="EngineLayer\Audio\AudioDatas\AudioCategory.h">
       <Filter>EngineLayer\Audio</Filter>
     </ClInclude>
@@ -1638,12 +1632,6 @@
     </Filter>
     <Filter Include="Shader\Hlsli">
       <UniqueIdentifier>{f716f1cc-0aff-4c59-90a6-bf3fb94989fc}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Externals">
-      <UniqueIdentifier>{3c632183-3559-49b5-88a9-b5d94ba5f84b}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Externals\minimp3">
-      <UniqueIdentifier>{495fae69-f787-4db3-af32-fe913ffeb2b4}</UniqueIdentifier>
     </Filter>
     <Filter Include="EngineLayer">
       <UniqueIdentifier>{da5cdd68-e8e8-499a-94c9-54d7d14244c2}</UniqueIdentifier>

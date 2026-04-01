@@ -10,7 +10,7 @@ void HUDManager::Initialize()
 {
 	// リロード円の初期化
 	reloadCircle_ = std::make_unique<ReloadCircle>();
-	reloadCircle_->Initialize("reload-circle.png");
+	reloadCircle_->Initialize("UI/Common/reload-circle.dds");
 
 	// 十字照準の初期化
 	crosshair_ = std::make_unique<Crosshair>();
@@ -28,29 +28,29 @@ void HUDManager::Initialize()
 
 	// 武器スロットHUDの初期化
 	weaponSlot_ = std::make_unique<WeaponSlot>();
-	weaponSlot_->Initialize("slot_frame.png", "slot_frame_selected.png");
-	weaponSlot_->InitializeSlotNumbers("numbers02.png", 50.0f, 50.0f, { 8.0f, 8.0f }, 2.0f, 32, 32);
+	weaponSlot_->Initialize("UI/Common/slot_frame.dds", "UI/Common/slot_frame_selected.dds");
+	weaponSlot_->InitializeSlotNumbers("UI/Common/numbers02.dds", 50.0f, 50.0f, { 8.0f, 8.0f }, 2.0f, 32, 32);
 
 	// キューブアイコン
 	// 武器カテゴリ別アイコン（スロット0..5）
 	const std::array<std::string, WeaponSlot::kSlotCount> weaponIcons = {
-		"icon/primary_icon.png",
-		"icon/backup_icon.png",
-		"icon/melee_icon.png",
-		"icon/special_icon.png",
-		"icon/sniper_icon.png",
-		"icon/heavy_icon.png"
+		"UI/Icons/primary_icon.dds",
+		"UI/Icons/backup_icon.dds",
+		"UI/Icons/melee_icon.dds",
+		"UI/Icons/special_icon.dds",
+		"UI/Icons/sniper_icon.dds",
+		"UI/Icons/heavy_icon.dds"
 	};
 	weaponSlot_->InitializeIcons(weaponIcons);
 
 	weaponSlot_->InitializeAmmoDelimiter(
-		"icon/slash_icon.png",
+		"UI/Icons/slash_icon.dds",
 		{ 20.0f, 20.0f },   // 数字が20x20ならこれがちょうど良い
 		{ 0.0f, 0.0f }      // 微調整したいならここでオフセット
 	);
 
 	// 弾薬表示初期化
-	weaponSlot_->InitializeAmmoNumbers("Number.png",
+	weaponSlot_->InitializeAmmoNumbers("UI/Common/Number.dds",
 		50, 50,
 		{ 10, 10 },
 		-5.0f,   // spacingは小さく
@@ -64,7 +64,7 @@ void HUDManager::Initialize()
 	damageIndicatorManager_->Initialize();
 
 	noAmmoUI_ = std::make_unique<NoAmmoUI>();
-	noAmmoUI_->Initialize("white.png");
+	noAmmoUI_->Initialize("Effects/white.dds");
 }
 
 /// -------------------------------------------------------------

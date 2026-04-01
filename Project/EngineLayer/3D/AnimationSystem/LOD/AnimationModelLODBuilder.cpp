@@ -204,7 +204,7 @@ namespace Ken4lowEngine
 
 	D3D12_GPU_DESCRIPTOR_HANDLE Ken4lowEngine::AnimationModelLODBuilder::LoadSrvOrFallback(const std::string& path)
 	{
-		static const std::string kFallback = "white.png";		// フォールバックテクスチャ
+		static const std::string kFallback = "Effects/white.dds";		// フォールバックテクスチャ
 		auto* tm = TextureManager::GetInstance();				// テクスチャマネージャ取得
 		const std::string& p = path.empty() ? kFallback : path; // パス決定
 		tm->LoadTexture(p);										// テクスチャロード

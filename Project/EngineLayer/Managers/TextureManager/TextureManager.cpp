@@ -7,46 +7,41 @@
 
 #include <algorithm>
 #include <cctype>
+#include <filesystem>
 
 #include <d3dx12.h>
 
-#pragma comment(lib, "d3d12.lib")        // Direct3D 12用
-#pragma comment(lib, "dxgi.lib")         // DXGI (DirectX Graphics Infrastructure)用
-#pragma comment(lib, "dxguid.lib")       // DXGIやD3D12で使用するGUID定義用
+#pragma comment(lib, "d3d12.lib")
+#pragma comment(lib, "dxgi.lib")
+#pragma comment(lib, "dxguid.lib")
 
 namespace Ken4lowEngine
 {
 
-	/// -------------------------------------------------------------
-	///					シングルトンインスタンス
-	/// -------------------------------------------------------------
 	TextureManager* TextureManager::GetInstance()
 	{
 		static TextureManager instance;
 		return &instance;
 	}
 
-	/// -------------------------------------------------------------
-	///						 初期化関数
-	/// -------------------------------------------------------------
 	void TextureManager::Initialize(DirectXCommon* dxCommon)
 	{
 		dxCommon_ = dxCommon;
+
+		// Compiled 配下の .dds 一覧を先に索引化
+		BuildTexturePathIndex();
+
+		LoadTexture("Debug/uvChecker.dds");
 	}
 
-	/// -------------------------------------------------------------
-	///						終了処理関数
-	/// -------------------------------------------------------------
 	void TextureManager::Finalize()
 	{
-		// 先に各テクスチャのSRVとResourceを解放
 		for (auto& [path, tex] : textureDatas)
 		{
-			// 0 を無効扱いにしているなら条件はこれでOK
-			if (tex.srvIndex != 0)
+			if (tex.srvIndex != UINT32_MAX)
 			{
 				SRVManager::GetInstance()->Free(tex.srvIndex);
-				tex.srvIndex = 0;
+				tex.srvIndex = UINT32_MAX;
 			}
 			tex.resource.Reset();
 			tex.srvHandleCPU = {};
@@ -54,59 +49,67 @@ namespace Ken4lowEngine
 		}
 
 		textureDatas.clear();
-		dxCommon_ = nullptr; // 借り物参照を切る
+		texturePathIndex_.clear();
+		dxCommon_ = nullptr;
 	}
 
-	/// -------------------------------------------------------------
-	///					リソースを作成する関数
-	/// -------------------------------------------------------------
 	ComPtr<ID3D12Resource> TextureManager::CreateTextureResource(ID3D12Device* device, const DirectX::TexMetadata& metadata)
 	{
-		//1. metadataを基にResourceの設定
 		D3D12_RESOURCE_DESC resourceDesc{};
-		resourceDesc.Width = UINT(metadata.width);									// Textureの幅
-		resourceDesc.Height = UINT(metadata.height);								// Textureの高さ
-		resourceDesc.MipLevels = UINT16(metadata.mipLevels);						// mipmapの数
-		resourceDesc.DepthOrArraySize = UINT16(metadata.arraySize);					// 奥行 or 配列Textureの配列行数
-		resourceDesc.Format = metadata.format;										// TextureのFormat
-		resourceDesc.SampleDesc.Count = 1;											// サンプリングカウント。1固定
-		resourceDesc.Dimension = D3D12_RESOURCE_DIMENSION(metadata.dimension);		// Textureの次元数。普段使っているのは二次元
+		resourceDesc.Width = UINT(metadata.width);
+		resourceDesc.Height = UINT(metadata.height);
+		resourceDesc.MipLevels = UINT16(metadata.mipLevels);
+		resourceDesc.DepthOrArraySize = UINT16(metadata.arraySize);
+		resourceDesc.Format = metadata.format;
+		resourceDesc.SampleDesc.Count = 1;
+		resourceDesc.Dimension = D3D12_RESOURCE_DIMENSION(metadata.dimension);
 
-		//2. 利用するHeapの設定。非常に特殊な運用。02_04exで一般的なケース版がある
 		D3D12_HEAP_PROPERTIES heapProperties{};
-		heapProperties.Type = D3D12_HEAP_TYPE_CUSTOM;								// 細かい設定を行う
-		heapProperties.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_WRITE_BACK;		// WriteBackポリシーでCPUアクセス可能
-		heapProperties.MemoryPoolPreference = D3D12_MEMORY_POOL_L0;					// プロセッサの近くに配膳
+		heapProperties.Type = D3D12_HEAP_TYPE_CUSTOM;
+		heapProperties.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_WRITE_BACK;
+		heapProperties.MemoryPoolPreference = D3D12_MEMORY_POOL_L0;
 
-		//3. Resourceを生成する
-		ComPtr <ID3D12Resource> resource = nullptr;
-		HRESULT hr = S_FALSE;
-		hr = device->CreateCommittedResource(
-			&heapProperties,														// Heapの設定
-			D3D12_HEAP_FLAG_NONE,													// Heapの特殊な設定。特になし。
-			&resourceDesc,															// /Resourceの設定
-			D3D12_RESOURCE_STATE_COPY_DEST,											// 初回のResourceState。Textureは基本読むだけ
-			nullptr,																// Clear最適値。使わないのでnullptr
-			IID_PPV_ARGS(&resource));												// 作成するResourceポインタへのポインタ
+		ComPtr<ID3D12Resource> resource = nullptr;
+		HRESULT hr = device->CreateCommittedResource(
+			&heapProperties,
+			D3D12_HEAP_FLAG_NONE,
+			&resourceDesc,
+			D3D12_RESOURCE_STATE_COPY_DEST,
+			nullptr,
+			IID_PPV_ARGS(&resource));
 		assert(SUCCEEDED(hr));
 
 		return resource;
 	}
 
-
-	/// -------------------------------------------------------------
-	///					データを転送する関数
-	/// -------------------------------------------------------------
 	[[nodiscard]]
-	ComPtr<ID3D12Resource> TextureManager::UploadTextureData(ID3D12Resource* texture, const DirectX::ScratchImage& mipImages, ID3D12Device* device, ID3D12GraphicsCommandList* commandList)
+	ComPtr<ID3D12Resource> TextureManager::UploadTextureData(
+		ID3D12Resource* texture,
+		const DirectX::ScratchImage& mipImages,
+		ID3D12Device* device,
+		ID3D12GraphicsCommandList* commandList)
 	{
 		std::vector<D3D12_SUBRESOURCE_DATA> subresources;
-		DirectX::PrepareUpload(device, mipImages.GetImages(), mipImages.GetImageCount(), mipImages.GetMetadata(), subresources);
-		uint64_t intermediateSize = GetRequiredIntermediateSize(texture, 0, UINT(subresources.size()));
-		ComPtr<ID3D12Resource> intermediateResource = ResourceManager::CreateBufferResource(device, intermediateSize);
-		UpdateSubresources(commandList, texture, intermediateResource.Get(), 0, 0, UINT(subresources.size()), subresources.data());
+		DirectX::PrepareUpload(
+			device,
+			mipImages.GetImages(),
+			mipImages.GetImageCount(),
+			mipImages.GetMetadata(),
+			subresources);
 
-		// Textureへの転送後は利用できるよう、D3D12_RESOUCE_STATE_COPY_DESTからD3D12RESOURCE_STATE_GENERIC_READへResourceStateを変更する
+		uint64_t intermediateSize = GetRequiredIntermediateSize(texture, 0, UINT(subresources.size()));
+		ComPtr<ID3D12Resource> intermediateResource =
+			ResourceManager::CreateBufferResource(device, intermediateSize);
+
+		UpdateSubresources(
+			commandList,
+			texture,
+			intermediateResource.Get(),
+			0,
+			0,
+			UINT(subresources.size()),
+			subresources.data());
+
 		D3D12_RESOURCE_BARRIER barrier{};
 		barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
 		barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
@@ -120,44 +123,37 @@ namespace Ken4lowEngine
 		return intermediateResource;
 	}
 
-
-	/// -------------------------------------------------------------
-	///				テクスチャデータを読み込む関数
-	/// -------------------------------------------------------------
 	DirectX::ScratchImage TextureManager::LoadTextureData(const std::string& filePath)
 	{
-		//テクスチャファイルを呼んでプログラムで扱えるようにする
 		DirectX::ScratchImage image{};
 		std::wstring filePathW = ConvertString(filePath);
 
-		// WIC形式（pngやjpgなど）として読み込む
-		HRESULT hr = DirectX::LoadFromWICFile(filePathW.c_str(), DirectX::WIC_FLAGS_FORCE_SRGB, nullptr, image);
+		HRESULT hr = DirectX::LoadFromWICFile(
+			filePathW.c_str(),
+			DirectX::WIC_FLAGS_FORCE_SRGB,
+			nullptr,
+			image);
 		assert(SUCCEEDED(hr));
 
-		//ミップマップ付きのデータを返す
 		return image;
 	}
 
-
-	/// -------------------------------------------------------------
-	///			動的なテクスチャファイルを読み込む関数
-	/// -------------------------------------------------------------
 	void TextureManager::LoadTexture(const std::string& filePath)
 	{
 		HRESULT hr{};
 
 		std::string filePathStr = NormalizeTexturePath(filePath);
 
-		// 読み込み済みテクスチャを検索
-		if (textureDatas.contains(filePathStr)) return;
+		if (textureDatas.contains(filePathStr))
+		{
+			return;
+		}
 
-		// テクスチャファイルを読み込んでプログラムで扱えるようにする
 		DirectX::ScratchImage image{};
 		std::wstring filePathW = ConvertString(filePathStr);
 
 		const bool isDDS = filePathW.ends_with(L".dds");
 
-		// DDSの読み込み
 		if (isDDS)
 		{
 			hr = DirectX::LoadFromDDSFile(filePathW.c_str(), DirectX::DDS_FLAGS_NONE, nullptr, image);
@@ -169,7 +165,6 @@ namespace Ken4lowEngine
 			assert(SUCCEEDED(hr));
 		}
 
-		// ただし、旧スキン系の正方化だけは「WIC読み込み時のみ」残す（DDSを加工するとDDS内ミップが崩れるため）
 		const auto& meta0 = image.GetMetadata();
 		const bool isLegacyTall = (!isDDS) && (meta0.width == meta0.height * 2);
 
@@ -179,46 +174,57 @@ namespace Ken4lowEngine
 		if (isLegacyTall)
 		{
 			DirectX::TexMetadata metaData0 = meta0;
-			metaData0.height = meta0.width; // 正方化
+			metaData0.height = meta0.width;
 			metaData0.mipLevels = 1;
 			metaData0.arraySize = 1;
 
-			hr = normalized.Initialize2D(metaData0.format, metaData0.width, metaData0.height, metaData0.arraySize, metaData0.mipLevels);
+			hr = normalized.Initialize2D(
+				metaData0.format,
+				metaData0.width,
+				metaData0.height,
+				metaData0.arraySize,
+				metaData0.mipLevels);
 			assert(SUCCEEDED(hr));
 
 			const DirectX::Image* srcImage = image.GetImage(0, 0, 0);
 			const DirectX::Image* destImage = normalized.GetImage(0, 0, 0);
 
-			DirectX::Rect srcRect = { 0, 0, static_cast<size_t>(srcImage->width), static_cast<size_t>(srcImage->height) };
+			DirectX::Rect srcRect = {
+				0, 0,
+				static_cast<size_t>(srcImage->width),
+				static_cast<size_t>(srcImage->height)
+			};
 
-			hr = DirectX::CopyRectangle(*srcImage, srcRect, *destImage, DirectX::TEX_FILTER_DEFAULT, 0, UINT(srcImage->height));
+			hr = DirectX::CopyRectangle(
+				*srcImage,
+				srcRect,
+				*destImage,
+				DirectX::TEX_FILTER_DEFAULT,
+				0,
+				UINT(srcImage->height));
 			assert(SUCCEEDED(hr));
 
 			uploadImage = &normalized;
 		}
 
-		// 追加したテクスチャデータの参照を取得
 		TextureData& textureData = textureDatas[filePathStr];
-
-		// テクスチャリソースの生成（DDSならDDS内のmipLevelsがそのまま入る）
 		textureData.metaData = uploadImage->GetMetadata();
 		textureData.resource = CreateTextureResource(dxCommon_->GetDevice(), textureData.metaData);
 		textureData.resource->SetName(L"TextureResource");
 
-		// 中間リソースにデータを転送（uploadImage の中身をそのまま上げる）
 		ComPtr<ID3D12Resource> intermediateResource =
-			UploadTextureData(textureData.resource.Get(), *uploadImage,
-				dxCommon_->GetDevice(), dxCommon_->GetCommandManager()->GetCommandList());
+			UploadTextureData(
+				textureData.resource.Get(),
+				*uploadImage,
+				dxCommon_->GetDevice(),
+				dxCommon_->GetCommandManager()->GetCommandList());
 
-		// コマンドを実行し完了まで待機
 		dxCommon_->GetCommandManager()->ExecuteAndWait();
 
-		// SRV（Shader Resource View）の確保
 		textureData.srvIndex = SRVManager::GetInstance()->Allocate();
 		textureData.srvHandleCPU = SRVManager::GetInstance()->GetCPUDescriptorHandle(textureData.srvIndex);
 		textureData.srvHandleGPU = SRVManager::GetInstance()->GetGPUDescriptorHandle(textureData.srvIndex);
 
-		// SRVの設定
 		D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc{};
 		srvDesc.Format = textureData.metaData.format;
 		srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
@@ -236,14 +242,12 @@ namespace Ken4lowEngine
 			srvDesc.Texture2D.MipLevels = UINT(textureData.metaData.mipLevels);
 		}
 
-		// SRVの生成
-		dxCommon_->GetDevice()->CreateShaderResourceView(textureData.resource.Get(), &srvDesc, textureData.srvHandleCPU);
+		dxCommon_->GetDevice()->CreateShaderResourceView(
+			textureData.resource.Get(),
+			&srvDesc,
+			textureData.srvHandleCPU);
 	}
 
-
-	/// -------------------------------------------------------------
-	///					テクスチャの再読み込み
-	/// -------------------------------------------------------------
 	void TextureManager::ReloadTexture(const std::string& filePath)
 	{
 		std::string key = NormalizeTexturePath(filePath);
@@ -251,28 +255,45 @@ namespace Ken4lowEngine
 		auto it = textureDatas.find(key);
 		if (it != textureDatas.end())
 		{
-			SRVManager::GetInstance()->Free(it->second.srvIndex);
+			if (it->second.srvIndex != UINT32_MAX)
+			{
+				SRVManager::GetInstance()->Free(it->second.srvIndex);
+				it->second.srvIndex = UINT32_MAX;
+			}
 			it->second.resource.Reset();
 			textureDatas.erase(it);
 		}
 
-		LoadTexture(key); // keyはすでに正規化済み
+		LoadTexture(key);
 	}
 
-	void TextureManager::CreateSolidColorTexture(const std::string& key, uint8_t r, uint8_t g, uint8_t b, uint8_t a, uint32_t width, uint32_t height)
+	void TextureManager::CreateSolidColorTexture(
+		const std::string& key,
+		uint8_t r, uint8_t g, uint8_t b, uint8_t a,
+		uint32_t width, uint32_t height)
 	{
 		std::string filePathStr = NormalizeTexturePath(key);
 
-		if (textureDatas.contains(filePathStr)) return;
+		if (textureDatas.contains(filePathStr))
+		{
+			return;
+		}
 
 		DirectX::ScratchImage baseImage{};
-		HRESULT hr = baseImage.Initialize2D(DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, width, height, 1, 1);
+		HRESULT hr = baseImage.Initialize2D(
+			DXGI_FORMAT_R8G8B8A8_UNORM_SRGB,
+			width,
+			height,
+			1,
+			1);
 		assert(SUCCEEDED(hr));
 
 		auto img = baseImage.GetImage(0, 0, 0);
-		for (uint32_t y = 0; y < height; ++y) {
+		for (uint32_t y = 0; y < height; ++y)
+		{
 			uint8_t* row = img->pixels + y * img->rowPitch;
-			for (uint32_t x = 0; x < width; ++x) {
+			for (uint32_t x = 0; x < width; ++x)
+			{
 				row[x * 4 + 0] = r;
 				row[x * 4 + 1] = g;
 				row[x * 4 + 2] = b;
@@ -285,8 +306,11 @@ namespace Ken4lowEngine
 		textureData.resource = CreateTextureResource(dxCommon_->GetDevice(), textureData.metaData);
 
 		ComPtr<ID3D12Resource> intermediateResource =
-			UploadTextureData(textureData.resource.Get(), baseImage,
-				dxCommon_->GetDevice(), dxCommon_->GetCommandManager()->GetCommandList());
+			UploadTextureData(
+				textureData.resource.Get(),
+				baseImage,
+				dxCommon_->GetDevice(),
+				dxCommon_->GetCommandManager()->GetCommandList());
 
 		dxCommon_->GetCommandManager()->ExecuteAndWait();
 
@@ -301,37 +325,32 @@ namespace Ken4lowEngine
 		srvDesc.Texture2D.MipLevels = UINT(textureData.metaData.mipLevels);
 
 		dxCommon_->GetDevice()->CreateShaderResourceView(
-			textureData.resource.Get(), &srvDesc, textureData.srvHandleCPU);
+			textureData.resource.Get(),
+			&srvDesc,
+			textureData.srvHandleCPU);
 	}
 
-
-	/// -------------------------------------------------------------
-	///					デスクリプタテーブルの設定
-	/// -------------------------------------------------------------
-	void TextureManager::SetGraphicsRootDescriptorTable(ID3D12GraphicsCommandList* commandList, UINT rootParameter, D3D12_GPU_DESCRIPTOR_HANDLE textureSRVHandleGPU)
+	void TextureManager::SetGraphicsRootDescriptorTable(
+		ID3D12GraphicsCommandList* commandList,
+		UINT rootParameter,
+		D3D12_GPU_DESCRIPTOR_HANDLE textureSRVHandleGPU)
 	{
-		// ディスクリプタテーブルの設定
 		commandList->SetGraphicsRootDescriptorTable(rootParameter, textureSRVHandleGPU);
 	}
 
-
-	/// -------------------------------------------------------------
-	///						SRVの開始番号の取得
-	/// -------------------------------------------------------------
 	uint32_t TextureManager::GetTextureIndexByFilePath(const std::string& filePath)
 	{
-		auto it = textureDatas.find(filePath);
-		if (it != textureDatas.end()) {
+		std::string key = NormalizeTexturePath(filePath);
+
+		auto it = textureDatas.find(key);
+		if (it != textureDatas.end())
+		{
 			return it->second.srvIndex;
 		}
 
-		throw std::runtime_error("Texture not found: " + filePath); // 例外をスロー
+		throw std::runtime_error("Texture not found: " + key);
 	}
 
-
-	/// -------------------------------------------------------------
-	///						GPUハンドルの取得
-	/// -------------------------------------------------------------
 	D3D12_GPU_DESCRIPTOR_HANDLE TextureManager::GetSrvHandleGPU(const std::string& filePath)
 	{
 		std::string key = NormalizeTexturePath(filePath);
@@ -339,7 +358,6 @@ namespace Ken4lowEngine
 		auto it = textureDatas.find(key);
 		if (it == textureDatas.end())
 		{
-			// まだならロードしてみる
 			LoadTexture(filePath);
 			it = textureDatas.find(key);
 		}
@@ -363,21 +381,13 @@ namespace Ken4lowEngine
 		return it->second.srvIndex;
 	}
 
-
-	/// -------------------------------------------------------------
-	///						メタデータを取得
-	/// -------------------------------------------------------------
 	const DirectX::TexMetadata& TextureManager::GetMetaData(const std::string& filePath)
 	{
 		std::string filePathStr = NormalizeTexturePath(filePath);
 
-		// 範囲外指定違反チェック
-		assert(textureDatas.find(filePathStr) != textureDatas.end()); // テクスチャ番号が正常範囲内である
+		assert(textureDatas.find(filePathStr) != textureDatas.end());
 
-		// テクスチャデータの参照を取得
 		TextureData& textureData = textureDatas[filePathStr];
-
-		// GPUハンドルを返す
 		return textureData.metaData;
 	}
 
@@ -385,23 +395,98 @@ namespace Ken4lowEngine
 	{
 		std::string filePathStr = NormalizeTexturePath(filePath);
 		auto it = textureDatas.find(filePathStr);
-		assert(it != textureDatas.end());                 // 事前に LoadTexture 済みであること
-		return it->second.resource.Get();                 // ID3D12Resource* を返す
+		assert(it != textureDatas.end());
+		return it->second.resource.Get();
+	}
+
+	void TextureManager::BuildTexturePathIndex()
+	{
+		texturePathIndex_.clear();
+
+		const std::filesystem::path root = kTextureRootDir;
+		if (!std::filesystem::exists(root))
+		{
+			return;
+		}
+
+		for (const auto& entry : std::filesystem::recursive_directory_iterator(root))
+		{
+			if (!entry.is_regular_file())
+			{
+				continue;
+			}
+
+			const std::filesystem::path path = entry.path();
+			if (!path.has_extension())
+			{
+				continue;
+			}
+
+			if (ToLowerString(path.extension().generic_string()) != ".dds")
+			{
+				continue;
+			}
+
+			const std::string fullPath = NormalizeSlashes(path.generic_string());
+			const std::string fileName = ToLowerString(path.filename().generic_string());
+			const std::string relativePath =
+				ToLowerString(NormalizeSlashes(std::filesystem::relative(path, root).generic_string()));
+
+			texturePathIndex_[fileName].push_back(fullPath);
+			texturePathIndex_[relativePath].push_back(fullPath);
+		}
+	}
+
+	std::string TextureManager::FindCompiledTexturePath(const std::string& query) const
+	{
+		if (query.empty())
+		{
+			return "";
+		}
+
+		std::string normalized = ToLowerString(NormalizeSlashes(query));
+
+		// 1. そのまま検索
+		auto it = texturePathIndex_.find(normalized);
+		if (it != texturePathIndex_.end() && !it->second.empty())
+		{
+			return it->second.front();
+		}
+
+		// 2. ファイル名だけで検索
+		std::filesystem::path p(normalized);
+		const std::string fileName = ToLowerString(p.filename().generic_string());
+
+		it = texturePathIndex_.find(fileName);
+		if (it != texturePathIndex_.end() && !it->second.empty())
+		{
+			return it->second.front();
+		}
+
+		// 3. query が Compiled フルパス風なら root 以下相対にして再検索
+		const std::string compiledRoot = ToLowerString(NormalizeSlashes(kTextureRootDir));
+		if (normalized.rfind(compiledRoot + "/", 0) == 0)
+		{
+			const std::string relative = normalized.substr(compiledRoot.size() + 1);
+			it = texturePathIndex_.find(relative);
+			if (it != texturePathIndex_.end() && !it->second.empty())
+			{
+				return it->second.front();
+			}
+		}
+
+		return "";
 	}
 
 	std::string TextureManager::NormalizeTexturePath(const std::string& filePath)
 	{
-		std::string path = filePath;
+		std::string path = NormalizeSlashes(filePath);
 
-		// 区切りを統一（Assimp由来の \ 対策）
-		std::replace(path.begin(), path.end(), '\\', '/');
-
-		// 先頭の "./" を消す（あれば）
-		if (path.rfind("./", 0) == 0) {
+		while (path.rfind("./", 0) == 0)
+		{
 			path.erase(0, 2);
 		}
 
-		// 絶対パス（例: C:/...）はそのまま返す
 		if (path.size() >= 2 &&
 			std::isalpha(static_cast<unsigned char>(path[0])) &&
 			path[1] == ':')
@@ -409,12 +494,48 @@ namespace Ken4lowEngine
 			return path;
 		}
 
-		// すでに prefix 済みならそのまま
-		if (path.rfind("Resources/Textures/", 0) == 0) {
+		const std::string compiledRoot = NormalizeSlashes(std::string(kTextureRootDir));
+
+		if (path.rfind(compiledRoot, 0) == 0)
+		{
 			return path;
 		}
 
-		return "Resources/Textures/" + path;
+		const std::string oldRoot = "Resources/Textures/";
+		if (path.rfind(oldRoot, 0) == 0)
+		{
+			std::string sub = path.substr(oldRoot.size());
+
+			if (sub.rfind("Compiled/", 0) == 0)
+			{
+				return oldRoot + sub;
+			}
+
+			return compiledRoot + "/" + sub;
+		}
+
+		// Compiled 内索引から実体を探す
+		std::string found = FindCompiledTexturePath(path);
+		if (!found.empty())
+		{
+			return found;
+		}
+
+		return compiledRoot + "/" + path;
+	}
+
+	std::string TextureManager::NormalizeSlashes(std::string path)
+	{
+		std::replace(path.begin(), path.end(), '\\', '/');
+		return path;
+	}
+
+	std::string TextureManager::ToLowerString(std::string s)
+	{
+		std::transform(
+			s.begin(), s.end(), s.begin(),
+			[](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+		return s;
 	}
 
 } // namespace Ken4lowEngine

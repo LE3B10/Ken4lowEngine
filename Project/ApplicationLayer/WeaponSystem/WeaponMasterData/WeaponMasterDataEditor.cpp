@@ -900,8 +900,8 @@ void WeaponMasterDataEditor::DrawReticleData(FWeaponMasterData* data, WeaponEdit
 	namespace fs = std::filesystem;
 
 	// レティクル画像の検索先
-	const fs::path reticleRoot = "Resources/Textures/reticles";
-	static const std::vector<std::string> kReticleExts = { ".png", ".dds", ".jpg", ".jpeg", ".tga", ".bmp" };
+	const fs::path reticleRoot = "Resources/Textures/Compiled/UI/Reticles";
+	static const std::vector<std::string> kReticleExts = { ".dds" };
 
 	// 毎フレーム再帰走査しないようにキャッシュ
 	static std::vector<std::string> cachedReticleFiles;
@@ -1144,7 +1144,7 @@ void WeaponMasterDataEditor::DrawAssetData(FWeaponMasterData* data, WeaponEditor
 
 	// ルートフォルダ
 	const fs::path modelRoot = "Resources/Models";
-	const fs::path iconRoot = "Resources/Textures/icon";
+	const fs::path iconRoot = "Resources/Textures/Compiled/UI/Icons";
 	const fs::path scopeRoot = "Resources/Textures"; // スコープオーバーレイの置き場所（必要なら細かく分けてOK）
 
 	// 拡張子フィルタ

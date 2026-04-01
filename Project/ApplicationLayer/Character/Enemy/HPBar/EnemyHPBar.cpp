@@ -5,27 +5,27 @@ void EnemyHPBar::Initialize()
 {
 	// 枠スプライト
 	frameSprite_ = std::make_unique<K4E::Sprite>();
-	frameSprite_->Initialize("white.png");
+	frameSprite_->Initialize("Effects/white.dds");
 	frameSprite_->SetAnchorPoint({ 0.5f, 0.5f });
 
 	// 背景スプライト
 	backSprite_ = std::make_unique<K4E::Sprite>();
-	backSprite_->Initialize("white.png");
+	backSprite_->Initialize("Effects/white.dds");
 	backSprite_->SetAnchorPoint({ 0.5f, 0.5f });
 
 	// 遅れて減るダメージバースプライト
 	damageDelaySprite_ = std::make_unique<K4E::Sprite>();
-	damageDelaySprite_->Initialize("white.png");
+	damageDelaySprite_->Initialize("Effects/white.dds");
 	damageDelaySprite_->SetAnchorPoint({ 0.0f, 0.5f });
 
 	// 現在HP本体スプライト
 	fillSprite_ = std::make_unique<K4E::Sprite>();
-	fillSprite_->Initialize("white.png");
+	fillSprite_->Initialize("Effects/white.dds");
 	fillSprite_->SetAnchorPoint({ 0.0f, 0.5f });
 
 	// 減少分フラッシュ演出スプライト
 	damageFlashSprite_ = std::make_unique<K4E::Sprite>();
-	damageFlashSprite_->Initialize("white.png");
+	damageFlashSprite_->Initialize("Effects/white.dds");
 	damageFlashSprite_->SetAnchorPoint({ 0.0f, 0.5f });
 
 	// 一度更新しておく

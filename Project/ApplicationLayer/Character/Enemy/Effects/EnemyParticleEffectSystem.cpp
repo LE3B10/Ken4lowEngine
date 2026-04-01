@@ -9,10 +9,10 @@ namespace
 {
     // ここはあなたの手持ちテクスチャ名に合わせて変更してください
     // 最初は同じテクスチャでもOKです
-    constexpr const char* kHitSparkTex = "white.png";
-    constexpr const char* kBloodTex = "white.png";
-    constexpr const char* kSmokeTex = "white.png";
-    constexpr const char* kShockTex = "white.png";
+    constexpr const char* kHitSparkTex = "Effects/white.dds";
+    constexpr const char* kBloodTex = "Effects/white.dds";
+    constexpr const char* kSmokeTex = "Effects/white.dds";
+    constexpr const char* kShockTex = "Effects/white.dds";
 
     constexpr uint32_t kHitSparkCount = 18;
     constexpr uint32_t kBloodCount = 10;

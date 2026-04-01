@@ -15,7 +15,7 @@ void ResultMenu::Initialize()
 	// 背景暗転
 	// ----------------------------------------
 	backdrop_ = std::make_unique<Sprite>();
-	backdrop_->Initialize("result_ui/result_backdrop.png");
+	backdrop_->Initialize("UI/Result/result_ui/result_backdrop.dds");
 	backdrop_->SetAnchorPoint({ 0.5f, 0.5f });
 	backdrop_->SetPosition({ centerX, centerY });
 	backdrop_->SetSize({ screenW, screenH });
@@ -25,13 +25,13 @@ void ResultMenu::Initialize()
 	// ヘッダー
 	// ----------------------------------------
 	clearHeader_ = std::make_unique<Sprite>();
-	clearHeader_->Initialize("result_ui/result_stage_clear.png");
+	clearHeader_->Initialize("UI/Result/result_ui/result_stage_clear.dds");
 	clearHeader_->SetAnchorPoint({ 0.5f, 0.5f });
 	clearHeader_->SetPosition({ centerX, centerY - 170.0f });
 	clearHeader_->SetSize({ 540.0f, 132.0f });
 
 	gameOverHeader_ = std::make_unique<Sprite>();
-	gameOverHeader_->Initialize("result_ui/result_game_over.png");
+	gameOverHeader_->Initialize("UI/Result/result_ui/result_game_over.dds");
 	gameOverHeader_->SetAnchorPoint({ 0.5f, 0.5f });
 	gameOverHeader_->SetPosition({ centerX, centerY - 170.0f });
 	gameOverHeader_->SetSize({ 540.0f, 132.0f });
@@ -40,7 +40,7 @@ void ResultMenu::Initialize()
 	// ボタン
 	// ----------------------------------------
 	nextStageButton_.sprite = std::make_unique<Sprite>();
-	nextStageButton_.sprite->Initialize("result_ui/result_next_stage.png");
+	nextStageButton_.sprite->Initialize("UI/Result/result_ui/result_next_stage.dds");
 	nextStageButton_.basePosition = { centerX, centerY - 20.0f };
 	nextStageButton_.baseSize = { 360.0f, 84.0f };
 	nextStageButton_.sprite->SetAnchorPoint({ 0.5f, 0.5f });
@@ -48,7 +48,7 @@ void ResultMenu::Initialize()
 	nextStageButton_.sprite->SetSize(nextStageButton_.baseSize);
 
 	retryButton_.sprite = std::make_unique<Sprite>();
-	retryButton_.sprite->Initialize("result_ui/result_retry.png");
+	retryButton_.sprite->Initialize("UI/Result/result_ui/result_retry.dds");
 	retryButton_.basePosition = { centerX, centerY + 82.0f };
 	retryButton_.baseSize = { 360.0f, 84.0f };
 	retryButton_.sprite->SetAnchorPoint({ 0.5f, 0.5f });
@@ -56,7 +56,7 @@ void ResultMenu::Initialize()
 	retryButton_.sprite->SetSize(retryButton_.baseSize);
 
 	titleButton_.sprite = std::make_unique<Sprite>();
-	titleButton_.sprite->Initialize("result_ui/result_title.png");
+	titleButton_.sprite->Initialize("UI/Result/result_ui/result_title.dds");
 	titleButton_.basePosition = { centerX, centerY + 184.0f };
 	titleButton_.baseSize = { 360.0f, 84.0f };
 	titleButton_.sprite->SetAnchorPoint({ 0.5f, 0.5f });

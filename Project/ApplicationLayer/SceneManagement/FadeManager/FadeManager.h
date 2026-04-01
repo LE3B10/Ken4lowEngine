@@ -167,10 +167,10 @@ private:
 	int tilesX_ = 0;
 	int tilesY_ = 0;
 
-	std::string tileTexturePath_ = "rock.png";
+	std::string tileTexturePath_ = "Stage/rock.dds";
 
 	// ひび割れアトラス
-	std::string crackAtlasPath_ = "CrackAtlas.png";
+	std::string crackAtlasPath_ = "Effects/CrackAtlas.dds";
 	K4E::Vector2 crackFrameSizePx_ = { 128.0f, 128.0f };
 	static constexpr int kCrackFrames_ = 10;
 
@@ -209,7 +209,7 @@ private:
 	float dustSpawnAcc_ = 0.0f;    // 生成レート積算
 
 	// 粉塵設定（必要ならImGuiに出して調整してOK）
-	std::string dustTexturePath_ = "black.png"; // 小さい点/粉のテクスチャがあれば差し替え推奨（無ければ stone を流用）
+	std::string dustTexturePath_ = "Effects/black.dds"; // 小さい点/粉のテクスチャがあれば差し替え推奨（無ければ stone を流用）
 	int dustMax_ = 96;
 	float dustRate_ = 220.0f;      // 1秒あたり生成数（ひび割れ中）
 	float dustGravity_ = 2000.0f;  // +Yが下

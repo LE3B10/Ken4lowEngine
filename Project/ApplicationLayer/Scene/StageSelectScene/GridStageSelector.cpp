@@ -31,7 +31,7 @@ void GridStageSelector::Initialize(const SelectorContext& context)
 	for (const auto& stage : *stages_)
 	{
 		auto sprite = std::make_unique<K4E::Sprite>();
-		sprite->Initialize(stage.thumbPath.empty() ? "white.png" : stage.thumbPath.c_str());
+		sprite->Initialize(stage.thumbPath.empty() ? "Effects/white.dds" : stage.thumbPath.c_str());
 		sprite->SetAnchorPoint({ 0.5f, 0.5f }); // 中心
 		sprite->SetColor({ 1.0f, 1.0f, 1.0f, 1.0f });
 		thumbs_.push_back(std::move(sprite));// moveで追加
@@ -42,7 +42,7 @@ void GridStageSelector::Initialize(const SelectorContext& context)
 	for (size_t i = 0; i < stages_->size(); ++i)
 	{
 		auto lock = std::make_unique<K4E::Sprite>();
-		lock->Initialize("lock.png");
+		lock->Initialize("UI/Common/lock.dds");
 		lock->SetAnchorPoint({ 0.5f, 0.5f });
 		lock->SetColor({ 1.0f, 1.0f, 1.0f, 1.0f });
 		lockUI_.sprites.push_back(std::move(lock));
@@ -50,7 +50,7 @@ void GridStageSelector::Initialize(const SelectorContext& context)
 
 	// 影
 	selShadow_ = std::make_unique<K4E::Sprite>();
-	selShadow_->Initialize("white.png");
+	selShadow_->Initialize("Effects/white.dds");
 	selShadow_->SetAnchorPoint({ 0.5f, 0.5f });
 	selShadow_->SetColor({ 0, 0, 0, 0.25f });
 

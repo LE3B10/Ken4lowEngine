@@ -145,7 +145,7 @@ namespace Ken4lowEngine
 		const uint32_t spritePresetCount = GpuParticleEmitterPresetTable::GetSpritePresetCount();
 
 		static char newName[128] = "NewEmitter";
-		static char newTexture[128] = "white.png";
+		static char newTexture[128] = "Effects/white.dds";
 		static bool createEmitterDefaultsInitialized = false;
 
 		static int newMode = static_cast<int>(GpuParticleKind::Sprite);

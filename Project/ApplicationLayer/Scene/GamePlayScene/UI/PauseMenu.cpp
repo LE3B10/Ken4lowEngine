@@ -10,13 +10,13 @@ namespace K4E = ::Ken4lowEngine;
 
 namespace
 {
-	constexpr const char* kPauseTitleTex = "Resources/Textures/UI/Pause/pause_paused_text.png";
-	constexpr const char* kPauseHelpTex = "Resources/Textures/UI/Pause/pause_help_text.png";
+	constexpr const char* kPauseTitleTex = "Resources/Textures/Compiled/UI/Pause/pause_paused_text.dds";
+	constexpr const char* kPauseHelpTex = "Resources/Textures/Compiled/UI/Pause/pause_help_text.dds";
 	constexpr const char* kButtonTextTex[3] =
 	{
-		"Resources/Textures/UI/Pause/pause_resume_text.png",
-		"Resources/Textures/UI/Pause/pause_stage_select_text.png",
-		"Resources/Textures/UI/Pause/pause_title_text.png"
+		"Resources/Textures/Compiled/UI/Pause/pause_resume_text.dds",
+		"Resources/Textures/Compiled/UI/Pause/pause_stage_select_text.dds",
+		"Resources/Textures/Compiled/UI/Pause/pause_title_text.dds"
 	};
 }
 
@@ -46,7 +46,7 @@ void PauseMenu::Initialize()
 		b.border = CreateWhiteSprite();
 		b.accent = CreateWhiteSprite();
 
-		const char* path = (i >= 0 && i < 3) ? kButtonTextTex[i] : "white.png";
+		const char* path = (i >= 0 && i < 3) ? kButtonTextTex[i] : "Effects/white.dds";
 		b.text = CreateTextSprite(path);
 
 		buttons_.push_back(std::move(b));
@@ -352,7 +352,7 @@ void PauseMenu::ApplyVisualState()
 std::unique_ptr<K4E::Sprite> PauseMenu::CreateWhiteSprite()
 {
 	auto sp = std::make_unique<K4E::Sprite>();
-	sp->Initialize("white.png");
+	sp->Initialize("Effects/white.dds");
 	sp->SetPosition({ 0.0f, 0.0f });
 	sp->SetSize({ 1.0f, 1.0f });
 	sp->SetAnchorPoint({ 0.0f, 0.0f });

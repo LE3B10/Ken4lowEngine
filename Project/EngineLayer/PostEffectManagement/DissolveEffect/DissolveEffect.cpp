@@ -28,7 +28,7 @@ namespace Ken4lowEngine
 		computePipelineState_ = builder->CreateComputePipeline(PostEffectComputeShaderId::DissolveCS, computeRootSignature_.Get());
 
 		// ディゾルブの設定
-		std::string filePath = "Mask/Noise.png";
+		std::string filePath = "Effects/Masks/Noise.dds";
 		TextureManager::GetInstance()->LoadTexture(filePath);
 
 		// UAVヒープ側のインデックスを確保

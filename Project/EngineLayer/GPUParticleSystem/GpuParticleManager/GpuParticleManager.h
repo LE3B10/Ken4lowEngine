@@ -67,7 +67,7 @@ namespace Ken4lowEngine
 		/// <summary>
 		/// エミッター新規作成UIで使用する既定テクスチャ名です。
 		/// </summary>
-		static inline constexpr const char* kDefaultEmitterTexture = "white.png";
+		static inline constexpr const char* kDefaultEmitterTexture = "Effects/white.dds";
 
 		/// <summary>
 		/// エミッター新規作成UIで使用する既定半径です。

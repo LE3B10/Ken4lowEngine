@@ -7,7 +7,7 @@ namespace K4E = ::Ken4lowEngine;
 class NoAmmoUI
 {
 public:
-	void Initialize(const std::string& texturePath = "ui/no_ammo.png");
+	void Initialize(const std::string& texturePath = "UI/Icons/no_ammo.dds");
 	void Update(float deltaTime);
 	void Draw();
 

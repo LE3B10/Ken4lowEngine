@@ -15,14 +15,14 @@ void WaveUI::Initialize()
 	// 数字描画
 	// -----------------------------
 	numberDrawer_ = std::make_unique<NumberSpriteDrawer>();
-	numberDrawer_->Initialize("Number.png", 50.0f, 50.0f, 28.0f, 28.0f);
+	numberDrawer_->Initialize("UI/Common/Number.dds", 50.0f, 50.0f, 28.0f, 28.0f);
 
 	// -----------------------------
 	// 上部中央：WAVEラベル
 	// 元画像は大きいので中央帯だけ切り出して使う
 	// -----------------------------
 	waveLabelSprite_ = std::make_unique<Sprite>();
-	waveLabelSprite_->Initialize("wave_label.png");
+	waveLabelSprite_->Initialize("UI/Common/wave_label.dds");
 	waveLabelSprite_->SetAnchorPoint({ 0.5f, 0.5f });
 	waveLabelSprite_->SetTextureLeftTop({ 240.0f, 300.0f });
 	waveLabelSprite_->SetTextureSize({ 1050.0f, 320.0f });
@@ -33,7 +33,7 @@ void WaveUI::Initialize()
 	// 画面中央：WAVE START
 	// -----------------------------
 	waveStartBannerSprite_ = std::make_unique<Sprite>();
-	waveStartBannerSprite_->Initialize("wave_start.png");
+	waveStartBannerSprite_->Initialize("UI/Common/wave_start.dds");
 	waveStartBannerSprite_->SetAnchorPoint({ 0.5f, 0.5f });
 	waveStartBannerSprite_->SetTextureLeftTop({ 220.0f, 220.0f });
 	waveStartBannerSprite_->SetTextureSize({ 1100.0f, 560.0f });
@@ -44,7 +44,7 @@ void WaveUI::Initialize()
 	// 画面中央：FINAL WAVE
 	// -----------------------------
 	finalWaveBannerSprite_ = std::make_unique<Sprite>();
-	finalWaveBannerSprite_->Initialize("final_wave.png");
+	finalWaveBannerSprite_->Initialize("UI/Common/final_wave.dds");
 	finalWaveBannerSprite_->SetAnchorPoint({ 0.5f, 0.5f });
 	finalWaveBannerSprite_->SetTextureLeftTop({ 220.0f, 220.0f });
 	finalWaveBannerSprite_->SetTextureSize({ 1100.0f, 560.0f });
@@ -55,7 +55,7 @@ void WaveUI::Initialize()
 	// 画面中央：WAVE CLEAR
 	// -----------------------------
 	clearBannerSprite_ = std::make_unique<Sprite>();
-	clearBannerSprite_->Initialize("wave_clear.png");
+	clearBannerSprite_->Initialize("UI/Common/wave_clear.dds");
 	clearBannerSprite_->SetAnchorPoint({ 0.5f, 0.5f });
 	clearBannerSprite_->SetTextureLeftTop({ 220.0f, 220.0f });
 	clearBannerSprite_->SetTextureSize({ 1100.0f, 560.0f });

@@ -6,7 +6,7 @@ namespace Ken4lowEngine
 	struct GpuParticleEmitterPreset
 	{
 		const char* displayName = "Unknown";
-		const char* defaultTexture = "white.png";
+		const char* defaultTexture = "Effects/white.dds";
 		float defaultRadius = 0.0f;
 		uint32_t defaultLoopCount = 0;
 		float defaultLoopFrequency = 0.0f;

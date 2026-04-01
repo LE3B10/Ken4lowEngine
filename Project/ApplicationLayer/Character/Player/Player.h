@@ -272,7 +272,7 @@ private: /// ----------メンバ変数 ---------- ///
 	PlayerMotorComponent motor_{};
 
 	K4E::ContactRecord contactRecord_;
-	std::string skinTexturePath_ = "steve.png";
+	std::string skinTexturePath_ = "Characters/steve.dds";
 
 	PlayerVfx vfx_{};
 

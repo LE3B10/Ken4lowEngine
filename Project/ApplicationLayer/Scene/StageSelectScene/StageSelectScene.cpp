@@ -125,11 +125,11 @@ void StageSelectScene::InitializeStages()
 {
 	// ステージ配列の生成
 	stages_.clear();
-	stages_.push_back({ 0u, "始まりの森",	  "white.png", false, 0u, { 0.18f, 0.49f, 0.20f, 1.0f } });
-	stages_.push_back({ 1u, "廃鉱山",		  "white.png", true,  0u, { 0.43f, 0.30f, 0.25f, 1.0f } });
-	stages_.push_back({ 2u, "工業地帯",		  "white.png", true,  0u, { 0.96f, 0.49f, 0.00f, 1.0f } });
-	stages_.push_back({ 3u, "朽ちた果てた街", "white.png", true,  0u, { 0.37f, 0.35f, 0.49f, 1.0f } });
-	stages_.push_back({ 4u, "港湾ターミナル", "white.png", true,  0u, { 0.08f, 0.40f, 0.75f, 1.0f } });
+	stages_.push_back({ 0u, "始まりの森",	  "Effects/white.dds", false, 0u, { 0.18f, 0.49f, 0.20f, 1.0f } });
+	stages_.push_back({ 1u, "廃鉱山",		  "Effects/white.dds", true,  0u, { 0.43f, 0.30f, 0.25f, 1.0f } });
+	stages_.push_back({ 2u, "工業地帯",		  "Effects/white.dds", true,  0u, { 0.96f, 0.49f, 0.00f, 1.0f } });
+	stages_.push_back({ 3u, "朽ちた果てた街", "Effects/white.dds", true,  0u, { 0.37f, 0.35f, 0.49f, 1.0f } });
+	stages_.push_back({ 4u, "港湾ターミナル", "Effects/white.dds", true,  0u, { 0.08f, 0.40f, 0.75f, 1.0f } });
 }
 
 /// -------------------------------------------------------------
@@ -191,7 +191,7 @@ void StageSelectScene::InitializeBackground()
 
 	// 背景スプライト（全画面）
 	bg_ = std::make_unique<K4E::Sprite>();
-	bg_->Initialize("white.png");
+	bg_->Initialize("Effects/white.dds");
 	bg_->SetPosition({});
 
 	context_.screenWidth = static_cast<float>(dxCommon_->GetClientWidth());

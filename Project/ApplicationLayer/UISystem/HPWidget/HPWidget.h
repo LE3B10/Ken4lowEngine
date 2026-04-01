@@ -19,9 +19,9 @@ class HPWidget
 public:
 	/// 初期化（テクスチャ読み込み＆スプライト生成）
 	void Initialize(
-		const std::string& fullTex = "icon/heart_full.png",
-		const std::string& halfTex = "icon/heart_half.png",
-		const std::string& emptyTex = "icon/heart_death.png");
+		const std::string& fullTex = "UI/Icons/heart_full.dds",
+		const std::string& halfTex = "UI/Icons/heart_half.dds",
+		const std::string& emptyTex = "UI/Icons/heart_death.dds");
 
 	/// 更新（位置反映など）
 	void Update();

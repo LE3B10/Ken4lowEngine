@@ -125,7 +125,7 @@ void BossEnemyVfx::RegisterEmitters()
 	Reset();
 
 	// 共通：いったん白テクスチャ前提（存在するテクスチャ名に合わせて変更OK）
-	const char* kDefaultTex = "white.png";
+	const char* kDefaultTex = "Effects/white.dds";
 
 	// --- ボス登場砂埃 ---
 	{

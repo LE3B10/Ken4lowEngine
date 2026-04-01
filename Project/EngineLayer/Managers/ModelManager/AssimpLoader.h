@@ -56,7 +56,9 @@ namespace Ken4lowEngine
 		/// </summary>
 		/// <param name="scene">Assimp が解析したシーンデータ</param>
 		/// <param name="modelData">解析結果を書き込む ModelData</param>
-		static void ParseMeshes(const aiScene* scene, ModelData& modelData);
+		static void ParseMeshes(const aiScene* scene, ModelData& modelData, const std::string& modelFilePath);
+
+		static std::string ResolveModelTexturePath(const std::string& modelFilePath, const aiString& aiTexPath);
 	};
 
 

@@ -290,7 +290,7 @@ void TitleScene::InitializeLogoUI()
 
 	// ロゴスプライトの生成
 	logoSprite_ = std::make_unique<Sprite>();
-	logoSprite_->Initialize("logo_rittai_sensen.png");
+	logoSprite_->Initialize("UI/Common/logo_rittai_sensen.dds");
 	logoUI_.baseSize = logoSprite_->GetSize();
 	logoUI_.baseSize *= 0.7f; // 元画像が大きい場合は適宜縮小
 	logoSprite_->SetAnchorPoint({ 0.5f, 0.5f });
@@ -304,7 +304,7 @@ void TitleScene::InitializeBattleButtonUI()
 {
 	// バトルボタンUI
 	battleButtonUI_.btnSprite = std::make_unique<Sprite>();
-	battleButtonUI_.btnSprite->Initialize("btn_battle.png");
+	battleButtonUI_.btnSprite->Initialize("UI/Common/btn_battle.dds");
 	battleButtonUI_.btnSprite->SetAnchorPoint(battleButtonUI_.anchor);
 
 	battleButtonUI_.position = { dxCommon_->GetClientWidth() * 0.5f, dxCommon_->GetClientHeight() * 0.75f }; // 画面中央下
@@ -320,7 +320,7 @@ void TitleScene::InitializeButtonShadowSprite()
 {
 	// 影スプライトも作成
 	battleButtonUI_.btnShadow = std::make_unique<Sprite>();
-	battleButtonUI_.btnShadow->Initialize("btn_battle.png");
+	battleButtonUI_.btnShadow->Initialize("UI/Common/btn_battle.dds");
 	battleButtonUI_.btnShadow->SetAnchorPoint(battleButtonUI_.anchor);
 	battleButtonUI_.btnShadow->SetPosition({ battleButtonUI_.position.x, battleButtonUI_.position.y + 6.0f }); // 影は少し下
 	battleButtonUI_.btnShadow->SetSize({ battleButtonUI_.size.x * 1.02f, battleButtonUI_.size.y * 1.02f }); // わずかに大きく
@@ -333,7 +333,7 @@ void TitleScene::InitializeButtonShadowSprite()
 void TitleScene::InitializeClickHintUI()
 {
 	clickHintUI_.hintSprite = std::make_unique<Sprite>();
-	clickHintUI_.hintSprite->Initialize("ui_click_hint.png");
+	clickHintUI_.hintSprite->Initialize("UI/Common/ui_click_hint.dds");
 	clickHintUI_.hintSprite->SetAnchorPoint({ 0.5f, 0.0f });      // 中央上
 	// ここは今の 1/10 スケール指定のままでOK
 	clickHintUI_.hintSprite->SetPosition({ dxCommon_->GetClientWidth() * 0.5f + clickHintUI_.offset.x, dxCommon_->GetClientHeight() * 0.25f + clickHintUI_.offset.y });

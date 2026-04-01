@@ -26,7 +26,7 @@ namespace Ken4lowEngine
 		static const Preset kDefaultPreset =
 		{
 			"Default",
-			"white.png",
+			"Effects/white.dds",
 			0.25f,
 			0,
 			0.0f,
@@ -42,7 +42,7 @@ namespace Ken4lowEngine
 			// Blood
 			{
 				"Blood",
-				"white.png",
+				"Effects/white.dds",
 				0.20f,
 				0,
 				0.0f,
@@ -55,7 +55,7 @@ namespace Ken4lowEngine
 			// Dust
 			{
 				"Dust",
-				"white.png",
+				"Effects/white.dds",
 				0.22f,
 				0,
 				0.0f,
@@ -68,7 +68,7 @@ namespace Ken4lowEngine
 			// Debris
 			{
 				"Debris",
-				"white.png",
+				"Effects/white.dds",
 				0.18f,
 				0,
 				0.0f,
@@ -81,7 +81,7 @@ namespace Ken4lowEngine
 			// Smoke
 			{
 				"Smoke",
-				"white.png",
+				"Effects/white.dds",
 				0.40f,
 				0,
 				0.0f,
@@ -94,7 +94,7 @@ namespace Ken4lowEngine
 			// Ambient
 			{
 				"Ambient",
-				"white.png",
+				"Effects/white.dds",
 				0.12f,
 				6,
 				0.10f,
@@ -107,7 +107,7 @@ namespace Ken4lowEngine
 			// Spark
 			{
 				"Spark",
-				"white.png",
+				"Effects/white.dds",
 				0.10f,
 				0,
 				0.0f,
@@ -120,7 +120,7 @@ namespace Ken4lowEngine
 			// Shockwave
 			{
 				"Shockwave",
-				"white.png",
+				"Effects/white.dds",
 				0.80f,
 				0,
 				0.0f,
@@ -133,7 +133,7 @@ namespace Ken4lowEngine
 			// Heal
 			{
 				"Heal",
-				"white.png",
+				"Effects/white.dds",
 				0.30f,
 				6,
 				0.08f,
@@ -146,7 +146,7 @@ namespace Ken4lowEngine
 			// Trail
 			{
 				"Trail",
-				"white.png",
+				"Effects/white.dds",
 				0.16f,
 				6,
 				0.03f,
@@ -159,7 +159,7 @@ namespace Ken4lowEngine
 			// DeathBurstCore
 			{
 				"DeathBurstCore",
-				"white.png",
+				"Effects/white.dds",
 				0.28f,
 				0,
 				0.0f,

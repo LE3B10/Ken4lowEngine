@@ -155,5 +155,5 @@ protected: /// ---------- Guardian 専用モデル ---------- ///
 	/// <summary>
 	/// Guardian 用スキン
 	/// </summary>
-	virtual std::string GetGuardianSkinPath() const { return "zombie.png"; }
+	virtual std::string GetGuardianSkinPath() const { return "Characters/zombie.dds"; }
 };

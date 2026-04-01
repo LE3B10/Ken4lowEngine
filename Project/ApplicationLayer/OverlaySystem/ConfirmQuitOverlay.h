@@ -51,9 +51,9 @@ private: /// ---------- メンバ変数 ---------- ///
 	Callback onYes_;
 	Callback onNo_;
 
-	const std::string kWhiteTex = "white.png";   // 1x1 の白
-	const std::string kPanelTex = "assets/ConfirmOverlay_panel_only.png";   // 任意。無ければ白＋色
-	const std::string kBtnTexYes_ = "assets/ConfirmOverlay_button_yes.png";  // 任意
-	const std::string kBtnTexNo_ = "assets/ConfirmOverlay_button_no.png";  // 任意
+	const std::string kWhiteTex = "Effects/white.dds";   // 1x1 の白
+	const std::string kPanelTex = "UI/Overlays/ConfirmOverlay_panel_only.dds";   // 任意。無ければ白＋色
+	const std::string kBtnTexYes_ = "UI/Overlays/ConfirmOverlay_button_yes.dds";  // 任意
+	const std::string kBtnTexNo_ = "UI/Overlays/ConfirmOverlay_button_no.dds";  // 任意
 };
 

@@ -10,7 +10,7 @@ void DamageIndicatorManager::Initialize()
 	for (auto& sprite : sprites_)
 	{
 		sprite = std::make_unique<K4E::Sprite>();
-		sprite->Initialize("white.png");
+		sprite->Initialize("Effects/white.dds");
 		sprite->SetAnchorPoint({ 0.5f, 0.5f });
 		sprite->Update();
 	}

@@ -97,7 +97,7 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	// 使用するテクスチャ名
 	// ※パネルはさっき作ったパネル画像に差し替えてOK（ファイルパスは自分の環境に合わせてね）
-	const std::string kWhiteTex = "white.png";                       // 1x1 の白
-	const std::string kPanelTex = "assets/PauseOverlay_panel_only.png";   // パネル用
-	const std::string kBtnTex = "white.png";                       // ボタン用（白＋色で矩形ボタン）
+	const std::string kWhiteTex = "Effects/white.dds";                       // 1x1 の白
+	const std::string kPanelTex = "UI/Overlays/PauseOverlay_panel_only.dds";   // パネル用
+	const std::string kBtnTex = "Effects/white.dds";                       // ボタン用（白＋色で矩形ボタン）
 };

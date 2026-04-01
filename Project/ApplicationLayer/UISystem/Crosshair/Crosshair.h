@@ -13,7 +13,7 @@ class Crosshair
 {
 public:
 	// 初期化（テクスチャロード）
-	void Initialize(const std::string& texturePath = "reticles/crosshair_circle_dot.png");
+	void Initialize(const std::string& texturePath = "UI/Reticles/crosshair_circle_dot.dds");
 
 	// 更新
 	void Update();

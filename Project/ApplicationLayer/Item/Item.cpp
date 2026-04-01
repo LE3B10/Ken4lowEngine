@@ -155,7 +155,7 @@ void Item::ApplyTo(Player* player)
 		//if (!emitter)
 		//{
 		//	K4E::GpuParticleEmitter::K4E::EmitterInfo info{};
-		//	info.textureFilePath = "white.png"; // とりあえず既存の白テクでOK（後で差し替え）
+		//	info.textureFilePath = "Effects/white.dds"; // とりあえず既存の白テクでOK（後で差し替え）
 		//	info.radius = 1.5f;                // 正方形範囲の“半辺”として使う想定
 		//	info.loopCount = 0;
 		//	info.loopFrequency = 0.0f;
