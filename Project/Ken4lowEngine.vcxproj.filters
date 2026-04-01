@@ -745,8 +745,12 @@
     <ClCompile Include="ApplicationLayer\Character\Enemy\HPBar\EnemyHPBarProjector.cpp">
       <Filter>ApplicationLayer\Character\Enemy\HPBar</Filter>
     </ClCompile>
-    <ClCompile Include="ApplicationLayer\UISystem\Indicator\DamageIndicatorManager.cpp" />
-    <ClCompile Include="NoAmmoUI.cpp" />
+    <ClCompile Include="ApplicationLayer\UISystem\Indicator\DamageIndicatorManager.cpp">
+      <Filter>ApplicationLayer\UISystem\Indicator</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\UISystem\NoAmmoUI\NoAmmoUI.cpp">
+      <Filter>ApplicationLayer\UISystem\NoAmmoUI</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="EngineLayer\Math\MultipleStructs\AABB.h">
@@ -1574,8 +1578,12 @@
     <ClInclude Include="ApplicationLayer\Character\Enemy\HPBar\EnemyHPBarProjector.h">
       <Filter>ApplicationLayer\Character\Enemy\HPBar</Filter>
     </ClInclude>
-    <ClInclude Include="ApplicationLayer\UISystem\Indicator\DamageIndicatorManager.h" />
-    <ClInclude Include="NoAmmoUI.h" />
+    <ClInclude Include="ApplicationLayer\UISystem\Indicator\DamageIndicatorManager.h">
+      <Filter>ApplicationLayer\UISystem\Indicator</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\UISystem\NoAmmoUI\NoAmmoUI.h">
+      <Filter>ApplicationLayer\UISystem\NoAmmoUI</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="Resources\Shaders\PostEffect\FullScreen.hlsli">
@@ -2071,6 +2079,12 @@
     </Filter>
     <Filter Include="ApplicationLayer\Character\Enemy\HPBar">
       <UniqueIdentifier>{766ebd88-31df-49e0-ba03-34cf1d739fef}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ApplicationLayer\UISystem\Indicator">
+      <UniqueIdentifier>{322dc8ba-93cd-404c-a24f-4044201ccf09}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ApplicationLayer\UISystem\NoAmmoUI">
+      <UniqueIdentifier>{1933148b-2819-4648-8ed3-ab859bdc144e}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>
