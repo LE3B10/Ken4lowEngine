@@ -3,6 +3,8 @@
 #include <algorithm>
 #include <json.hpp>
 #include "WeaponMasterData.h"
+#include "PathUtil.h"
+
 using nlohmann::json;
 
 namespace
@@ -242,7 +244,7 @@ bool WeaponMasterDataWriter::SaveOne(const std::filesystem::path& filePath, cons
 
 	// ---------- assetData ----------
 	j["assetData"] = {
-		{"modelPath", data.assetData.modelPath},
+		{"modelPath", K4E::PathUtil::ToModelRelativePath(data.assetData.modelPath)},
 		{"iconPath", data.assetData.iconPath},
 	};
 

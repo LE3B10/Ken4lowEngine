@@ -1,5 +1,6 @@
 #include "WeaponMasterDataLoader.h"
 #include "WeaponMasterDataValidator.h"
+#include "PathUtil.h"
 
 #include <fstream>
 #include <sstream>
@@ -445,6 +446,9 @@ static void from_json(const json& j, FWeaponAssets& v)
 {
 	ReadIfExists(j, "modelPath", v.modelPath);
 	ReadIfExists(j, "iconPath", v.iconPath);
+
+	// 旧データが "Resources/Models/..." でも内部表現は "Sources/..." に揃える
+	v.modelPath = K4E::PathUtil::ToModelRelativePath(v.modelPath);
 }
 
 static void from_json(const json& j, FWeaponSounds& v)

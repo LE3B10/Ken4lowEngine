@@ -10,17 +10,17 @@ void BaseCharacter::Initialize()
 {
 	// 体幹部位の初期化
 	body_.object = std::make_unique<K4E::Object3D>();
-	body_.object->Initialize("Character/body.gltf");
+	body_.object->Initialize("Characters/body.gltf");
 	body_.transform.translate_ = { 0.0f, 2.25f, 0.0f };	// 初期位置
 
 	// 子オブジェクト（頭、腕、脚）をリストに追加
 	std::vector<std::pair<std::string, K4E::Vector3>> partData =
 	{
-		{"Character/head.gltf",		 { 0.0f,   0.75f, 0.0f } },	// 頭   : 0
-		{"Character/left_arm.gltf",  {-0.75f,  0.75f, 0.0f } },	// 左腕 : 1
-		{"Character/right_arm.gltf", { 0.75f,  0.75f, 0.0f } }, // 右腕 : 2
-		{"Character/left_leg.gltf",  {-0.25f, -0.75f, 0.0f } }, // 左脚 : 3
-		{"Character/right_leg.gltf", { 0.25f, -0.75f, 0.0f } }  // 右脚 : 4
+		{"Characters/head.gltf",	  { 0.0f,   0.75f, 0.0f } }, // 頭   : 0
+		{"Characters/left_arm.gltf",  {-0.75f,  0.75f, 0.0f } }, // 左腕 : 1
+		{"Characters/right_arm.gltf", { 0.75f,  0.75f, 0.0f } }, // 右腕 : 2
+		{"Characters/left_leg.gltf",  {-0.25f, -0.75f, 0.0f } }, // 左脚 : 3
+		{"Characters/right_leg.gltf", { 0.25f, -0.75f, 0.0f } }  // 右脚 : 4
 	};
 
 	// 部位データをもとに部位オブジェクトを生成

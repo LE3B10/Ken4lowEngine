@@ -751,6 +751,15 @@
     <ClCompile Include="ApplicationLayer\UISystem\NoAmmoUI\NoAmmoUI.cpp">
       <Filter>ApplicationLayer\UISystem\NoAmmoUI</Filter>
     </ClCompile>
+    <ClCompile Include="EngineLayer\Managers\ModelManager\KMeshLoader.cpp">
+      <Filter>EngineLayer\Managers\ModelManager</Filter>
+    </ClCompile>
+    <ClCompile Include="EngineLayer\Managers\ModelManager\ModelLoader.cpp">
+      <Filter>EngineLayer\Managers\ModelManager</Filter>
+    </ClCompile>
+    <ClCompile Include="EngineLayer\Managers\ModelManager\ModelPathResolver.cpp">
+      <Filter>EngineLayer\Managers\ModelManager</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="EngineLayer\Math\MultipleStructs\AABB.h">
@@ -1577,6 +1586,18 @@
     </ClInclude>
     <ClInclude Include="ApplicationLayer\UISystem\NoAmmoUI\NoAmmoUI.h">
       <Filter>ApplicationLayer\UISystem\NoAmmoUI</Filter>
+    </ClInclude>
+    <ClInclude Include="EngineLayer\Managers\ModelManager\KMeshLoader.h">
+      <Filter>EngineLayer\Managers\ModelManager</Filter>
+    </ClInclude>
+    <ClInclude Include="EngineLayer\Managers\ModelManager\ModelLoader.h">
+      <Filter>EngineLayer\Managers\ModelManager</Filter>
+    </ClInclude>
+    <ClInclude Include="EngineLayer\Managers\ModelManager\ModelPathResolver.h">
+      <Filter>EngineLayer\Managers\ModelManager</Filter>
+    </ClInclude>
+    <ClInclude Include="EngineLayer\Managers\ModelManager\PathUtil.h">
+      <Filter>EngineLayer\Managers\ModelManager</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

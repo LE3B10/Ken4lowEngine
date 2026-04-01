@@ -1,7 +1,7 @@
 {
     "assetData": {
         "iconPath": "",
-        "modelPath": "Resources/Models/wapons/SR-01.gltf"
+        "modelPath": "Weapons/SR-01.gltf"
     },
     "attributes": [],
     "bCanToggleFireMode": false,

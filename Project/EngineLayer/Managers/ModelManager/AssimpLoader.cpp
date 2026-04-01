@@ -1,5 +1,6 @@
 #include "AssimpLoader.h"
 #include "TextureManager.h"
+#include "ModelPathResolver.h"
 
 #include <cassert>
 #include <cctype>
@@ -7,9 +8,12 @@
 
 namespace Ken4lowEngine
 {
-
 	ModelData AssimpLoader::LoadModel(const std::string& modelFilePath)
 	{
+		// ---------------------------------------------------------
+		// 1. 拡張子を取り出して小文字化
+		// ---------------------------------------------------------
+		// 対応形式チェック用に使う
 		std::string extension;
 		{
 			auto dot = modelFilePath.find_last_of('.');
@@ -23,18 +27,30 @@ namespace Ken4lowEngine
 			}
 		}
 
+		// ---------------------------------------------------------
+		// 2. 論理パスを Sources 側の実ファイルパスへ変換
+		// ---------------------------------------------------------
+		// 例:
+		//   "Characters/body.gltf"
+		//    -> "Resources/Models/Sources/Characters/body.gltf"
 		Assimp::Importer importer;
-		const std::string filePath = "Resources/Models/" + modelFilePath;
+		const std::string filePath = ModelPathResolver::ToSourcesPath(modelFilePath).generic_string();
 
+		// ---------------------------------------------------------
+		// 3. Assimp のポストプロセス設定
+		// ---------------------------------------------------------
 		const unsigned int kFlags =
-			aiProcess_Triangulate |
-			aiProcess_JoinIdenticalVertices |
-			aiProcess_GenSmoothNormals |
-			aiProcess_FlipWindingOrder |
-			aiProcess_FlipUVs;
+			aiProcess_Triangulate |          // 三角形化
+			aiProcess_JoinIdenticalVertices |// 同一頂点の結合
+			aiProcess_GenSmoothNormals |     // 法線生成
+			aiProcess_FlipWindingOrder |     // 表裏反転
+			aiProcess_FlipUVs;               // UV反転
 
 		const aiScene* scene = nullptr;
 
+		// ---------------------------------------------------------
+		// 4. 対応拡張子だけ Assimp で読む
+		// ---------------------------------------------------------
 		if (extension == "obj" || extension == "gltf" || extension == "glb")
 		{
 			scene = importer.ReadFile(filePath.c_str(), kFlags);
@@ -44,6 +60,9 @@ namespace Ken4lowEngine
 			throw std::runtime_error("Unsupported file format: " + extension);
 		}
 
+		// ---------------------------------------------------------
+		// 5. 読み込み結果の検証
+		// ---------------------------------------------------------
 		if (!scene || (scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE) || !scene->mRootNode)
 		{
 			throw std::runtime_error(std::string("Assimp ReadFile failed: ") + importer.GetErrorString());
@@ -53,6 +72,9 @@ namespace Ken4lowEngine
 			throw std::runtime_error("Assimp scene has no meshes: " + filePath);
 		}
 
+		// ---------------------------------------------------------
+		// 6. ModelData を組み立てる
+		// ---------------------------------------------------------
 		ModelData modelData;
 		ParseMeshes(scene, modelData, modelFilePath);
 		modelData.rootNode = ReadNode(scene->mRootNode);
@@ -64,22 +86,33 @@ namespace Ken4lowEngine
 	{
 		Node result;
 
+		// ---------------------------------------------------------
+		// Assimp のノード行列を SRT に分解
+		// ---------------------------------------------------------
 		aiVector3D scale, translate;
 		aiQuaternion rotate;
 		node->mTransformation.Decompose(scale, rotate, translate);
 
+		// ---------------------------------------------------------
+		// エンジン座標系へ変換
+		// ---------------------------------------------------------
+		// 既存実装に合わせて
+		//   - X を反転
+		//   - Quaternion の y,z も反転
 		result.transform.scale = { scale.x, scale.y, scale.z };
 		result.transform.rotate = { rotate.x, -rotate.y, -rotate.z, rotate.w };
 		result.transform.translate = { -translate.x, translate.y, translate.z };
 
+		// ローカル行列を再構築
 		result.localMatrix = Matrix4x4::MakeAffineMatrix(
 			result.transform.scale,
 			result.transform.rotate,
 			result.transform.translate);
 
 		result.name = node->mName.C_Str();
-		result.children.resize(node->mNumChildren);
 
+		// 子ノードを再帰的に読む
+		result.children.resize(node->mNumChildren);
 		for (unsigned int i = 0; i < node->mNumChildren; ++i)
 		{
 			result.children[i] = ReadNode(node->mChildren[i]);
@@ -90,12 +123,18 @@ namespace Ken4lowEngine
 
 	void AssimpLoader::ParseMeshes(const aiScene* scene, ModelData& modelData, const std::string& modelFilePath)
 	{
+		// ---------------------------------------------------------
+		// baseVertex はスキニングウェイトの頂点番号補正に使う
+		// ---------------------------------------------------------
 		uint32_t baseVertex = 0;
 
 		for (uint32_t meshIndex = 0; meshIndex < scene->mNumMeshes; ++meshIndex)
 		{
 			aiMesh* mesh = scene->mMeshes[meshIndex];
-			if (!mesh) { continue; }
+			if (!mesh)
+			{
+				continue;
+			}
 
 			SubMesh sub;
 			sub.vertices.resize(mesh->mNumVertices);
@@ -103,6 +142,9 @@ namespace Ken4lowEngine
 			const bool hasNormals = (mesh->HasNormals() && mesh->mNormals != nullptr);
 			const bool hasUV0 = (mesh->HasTextureCoords(0) && mesh->mTextureCoords[0] != nullptr);
 
+			// -------------------------------------------------
+			// 頂点情報の読み出し
+			// -------------------------------------------------
 			for (uint32_t vertexIndex = 0; vertexIndex < mesh->mNumVertices; ++vertexIndex)
 			{
 				const aiVector3D& position = mesh->mVertices[vertexIndex];
@@ -115,6 +157,7 @@ namespace Ken4lowEngine
 				}
 				else
 				{
+					// 法線が無い場合は簡易的に上向きにしておく
 					sub.vertices[vertexIndex].normal = { 0.0f, 1.0f, 0.0f };
 				}
 
@@ -129,6 +172,9 @@ namespace Ken4lowEngine
 				}
 			}
 
+			// -------------------------------------------------
+			// インデックス情報の読み出し
+			// -------------------------------------------------
 			for (uint32_t faceIndex = 0; faceIndex < mesh->mNumFaces; ++faceIndex)
 			{
 				const aiFace& face = mesh->mFaces[faceIndex];
@@ -144,16 +190,23 @@ namespace Ken4lowEngine
 				}
 			}
 
+			// -------------------------------------------------
+			// ボーン / スキニング情報
+			// -------------------------------------------------
 			if (mesh->HasBones() && mesh->mBones != nullptr)
 			{
 				for (uint32_t boneIndex = 0; boneIndex < mesh->mNumBones; ++boneIndex)
 				{
 					aiBone* bone = mesh->mBones[boneIndex];
-					if (!bone) { continue; }
+					if (!bone)
+					{
+						continue;
+					}
 
 					const std::string jointName = bone->mName.C_Str();
 					JointWeightData& jointWeightData = modelData.skinClusterData[jointName];
 
+					// Assimp のオフセット行列から逆バインドポーズ行列を作る
 					const aiMatrix4x4 bindPoseMatrixAssimp = bone->mOffsetMatrix.Inverse();
 
 					aiVector3D scale, translate;
@@ -167,6 +220,7 @@ namespace Ken4lowEngine
 
 					jointWeightData.inverseBindPoseMatrix = Matrix4x4::Inverse(bindPoseMatrix);
 
+					// 各頂点へのウェイトを記録
 					if (bone->mWeights != nullptr)
 					{
 						for (uint32_t weightIndex = 0; weightIndex < bone->mNumWeights; ++weightIndex)
@@ -182,6 +236,9 @@ namespace Ken4lowEngine
 				}
 			}
 
+			// -------------------------------------------------
+			// マテリアルからテクスチャ参照を解決
+			// -------------------------------------------------
 			aiMaterial* material = nullptr;
 			if (mesh->mMaterialIndex < scene->mNumMaterials)
 			{
@@ -216,23 +273,30 @@ namespace Ken4lowEngine
 	{
 		std::filesystem::path texPath(aiTexPath.C_Str());
 
+		// ---------------------------------------------------------
+		// glTF の埋め込みテクスチャ（"*0" のような形式）は今は未対応
+		// ---------------------------------------------------------
 		const std::string raw = texPath.generic_string();
 		if (!raw.empty() && raw[0] == '*')
 		{
 			return "";
 		}
 
+		// 実行時は DDS を使う前提なので拡張子を差し替える
 		texPath.replace_extension(".dds");
 
+		// 論理パス基準で、モデルと同じフォルダからの相対位置を作る
 		std::filesystem::path modelDir = std::filesystem::path(modelFilePath).parent_path();
 		std::filesystem::path relativePath;
 
 		if (texPath.is_absolute())
 		{
+			// 絶対パスで来た場合はファイル名だけ使う
 			relativePath = texPath.filename();
 		}
 		else
 		{
+			// モデル相対パスとして解決
 			relativePath = (modelDir / texPath).lexically_normal();
 		}
 

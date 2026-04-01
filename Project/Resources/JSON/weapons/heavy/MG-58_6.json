@@ -1,7 +1,7 @@
 {
     "assetData": {
         "iconPath": "",
-        "modelPath": "Resources/Models/wapons/MG-58.gltf"
+        "modelPath": "Weapons/MG-58.gltf"
     },
     "attributes": [],
     "bCanToggleFireMode": false,

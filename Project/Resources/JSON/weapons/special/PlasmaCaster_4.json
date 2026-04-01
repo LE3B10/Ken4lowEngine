@@ -1,7 +1,7 @@
 {
     "assetData": {
         "iconPath": "",
-        "modelPath": "Resources/Models/wapons/PlasmaCaster.gltf"
+        "modelPath": "Weapons/PlasmaCaster.gltf"
     },
     "attributes": [],
     "bCanToggleFireMode": false,

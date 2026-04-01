@@ -1,7 +1,7 @@
 {
     "assetData": {
         "iconPath": "",
-        "modelPath": "Resources/Models/wapons/Knife.gltf"
+        "modelPath": "Weapons/Knife.gltf"
     },
     "attributes": [],
     "bCanToggleFireMode": false,

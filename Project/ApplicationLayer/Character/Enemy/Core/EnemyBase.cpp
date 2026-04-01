@@ -60,17 +60,17 @@ void EnemyBase::InitializeHumanoidVisual()
 	parts_.clear();
 
 	body_.object = std::make_unique<Object3D>();
-	body_.object->Initialize("Character/body.gltf");
+	body_.object->Initialize("Characters/body.gltf");
 	body_.transform.translate_ = { 0.0f, 0.0f, 0.0f };
 	body_.transform.rotate_ = orientation_;
 
 	std::vector<std::pair<std::string, Vector3>> partData =
 	{
-		{"Character/head.gltf",      { 0.0f,  0.75f, 0.0f }},
-		{"Character/left_arm.gltf",  {-0.75f, 0.75f, 0.0f }},
-		{"Character/right_arm.gltf", { 0.75f, 0.75f, 0.0f }},
-		{"Character/left_leg.gltf",  {-0.25f,-0.75f, 0.0f }},
-		{"Character/right_leg.gltf", { 0.25f,-0.75f, 0.0f }},
+		{"Characters/head.gltf",      { 0.0f,  0.75f, 0.0f }},
+		{"Characters/left_arm.gltf",  {-0.75f, 0.75f, 0.0f }},
+		{"Characters/right_arm.gltf", { 0.75f, 0.75f, 0.0f }},
+		{"Characters/left_leg.gltf",  {-0.25f,-0.75f, 0.0f }},
+		{"Characters/right_leg.gltf", { 0.25f,-0.75f, 0.0f }},
 	};
 
 	for (const auto& [modelPath, localPos] : partData)
