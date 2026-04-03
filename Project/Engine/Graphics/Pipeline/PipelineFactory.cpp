@@ -13,11 +13,6 @@ namespace Ken4lowEngine
 		device_ = device;
 	}
 
-	void PipelineFactory::Finalize()
-	{
-		device_ = nullptr;
-	}
-
 	Microsoft::WRL::ComPtr<ID3DBlob> PipelineFactory::SerializeRootSignature(const D3D12_ROOT_SIGNATURE_DESC& rootSignatureDesc) const
 	{
 		assert(device_);

@@ -23,7 +23,9 @@ namespace Ken4lowEngine
 		/// <summary>
 		/// ShaderDescriptor の契約情報を使ってシェーダーをコンパイルする。
 		/// </summary>
-		static Microsoft::WRL::ComPtr<IDxcBlob> CompileShader(const ShaderDescriptor& desc, DXCCompilerManager* dxcManager);
+		static Microsoft::WRL::ComPtr<IDxcBlob> CompileShader(
+			const ShaderDescriptor& desc,
+			DXCCompilerManager* dxcManager);
 
 	private: /// ---------- 内部関数 ---------- ///
 
@@ -32,7 +34,9 @@ namespace Ken4lowEngine
 		/// </summary>
 		/// <param name="desc">検証するシェーダーディスクリプタ。</param>
 		/// <param name="dxcManager">DXCコンパイラマネージャーへのポインタ。</param>
-		static void ValidateArguments(const ShaderDescriptor& desc, DXCCompilerManager* dxcManager);
+		static void ValidateArguments(
+			const ShaderDescriptor& desc,
+			DXCCompilerManager* dxcManager);
 	};
 
 } // namespace Ken4lowEngine

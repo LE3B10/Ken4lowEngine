@@ -66,7 +66,7 @@
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <TreatWarningAsError>true</TreatWarningAsError>
-      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)Externals\assimp\include;$(ProjectDir)Externals\imgui;$(ProjectDir)\ApplicationLayer;$(ProjectDir)\ApplicationLayer\Character;$(ProjectDir)\ApplicationLayer\Character\BaseCharacter;$(ProjectDir)\ApplicationLayer\Character\Boss;$(ProjectDir)\ApplicationLayer\Character\Boss\Animations;$(ProjectDir)\ApplicationLayer\Character\Boss\Attacks;$(ProjectDir)\ApplicationLayer\Character\Boss\BaseTypes;$(ProjectDir)\ApplicationLayer\Character\Boss\BehaviorTree;$(ProjectDir)\ApplicationLayer\Character\Boss\Components;$(ProjectDir)\ApplicationLayer\Character\Boss\Core;$(ProjectDir)\ApplicationLayer\Character\Boss\Data;$(ProjectDir)\ApplicationLayer\Character\Boss\DebugTools;$(ProjectDir)\ApplicationLayer\Character\Boss\Derived;$(ProjectDir)\ApplicationLayer\Character\Boss\Derived\GuardianBoss;$(ProjectDir)\ApplicationLayer\Character\Bullet;$(ProjectDir)\ApplicationLayer\Character\CharacterWorld;$(ProjectDir)\ApplicationLayer\Character\Enemy;$(ProjectDir)\ApplicationLayer\Character\Enemy\Behavior;$(ProjectDir)\ApplicationLayer\Character\Enemy\Core;$(ProjectDir)\ApplicationLayer\Character\Enemy\Effects;$(ProjectDir)\ApplicationLayer\Character\Enemy\HPBar;$(ProjectDir)\ApplicationLayer\Character\Enemy\Tuning;$(ProjectDir)\ApplicationLayer\Character\Player;$(ProjectDir)\ApplicationLayer\Character\Player\Component;$(ProjectDir)\ApplicationLayer\Character\Player\Effect;$(ProjectDir)\ApplicationLayer\Colliders;$(ProjectDir)\ApplicationLayer\EffectLayer;$(ProjectDir)\ApplicationLayer\Item;$(ProjectDir)\ApplicationLayer\OverlaySystem;$(ProjectDir)\ApplicationLayer\ResultManager;$(ProjectDir)\ApplicationLayer\Scene;$(ProjectDir)\ApplicationLayer\Scene\DebugScene;$(ProjectDir)\ApplicationLayer\Scene\GameClearScene;$(ProjectDir)\ApplicationLayer\Scene\GameOverScene;$(ProjectDir)\ApplicationLayer\Scene\GamePlayScene;$(ProjectDir)\ApplicationLayer\Scene\GamePlayScene\Camera;$(ProjectDir)\ApplicationLayer\Scene\GamePlayScene\Core;$(ProjectDir)\ApplicationLayer\Scene\GamePlayScene\DebugTools;$(ProjectDir)\ApplicationLayer\Scene\GamePlayScene\UI;$(ProjectDir)\ApplicationLayer\Scene\GamePlayScene\World;$(ProjectDir)\ApplicationLayer\Scene\GamePlayScene\HUDManager;$(ProjectDir)\ApplicationLayer\Scene\GamePlayScene\State;$(ProjectDir)\ApplicationLayer\Scene\PhysicalScene;$(ProjectDir)\ApplicationLayer\Scene\ShadowTestScene;$(ProjectDir)\ApplicationLayer\Scene\StageSelectScene;$(ProjectDir)\ApplicationLayer\Scene\StageSelectScene\State;$(ProjectDir)\ApplicationLayer\Scene\TitleScene;$(ProjectDir)\ApplicationLayer\Scene\TitleScene\State;$(ProjectDir)\ApplicationLayer\SceneManagement;$(ProjectDir)\ApplicationLayer\SceneManagement\AbstractSceneFactory;$(ProjectDir)\ApplicationLayer\SceneManagement\BaseScene;$(ProjectDir)\ApplicationLayer\SceneManagement\FadeManager;$(ProjectDir)\ApplicationLayer\SceneManagement\SceneFactory;$(ProjectDir)\ApplicationLayer\SceneManagement\SceneManager;$(ProjectDir)\ApplicationLayer\ScoreManager;$(ProjectDir)\ApplicationLayer\UISystem;$(ProjectDir)\ApplicationLayer\UISystem\Crosshair;$(ProjectDir)\ApplicationLayer\UISystem\HPWidget;$(ProjectDir)\ApplicationLayer\UISystem\HUDManager;$(ProjectDir)\ApplicationLayer\UISystem\Indicator;$(ProjectDir)\ApplicationLayer\UISystem\NoAmmoUI;$(ProjectDir)\ApplicationLayer\UISystem\ReloadCircle;$(ProjectDir)\ApplicationLayer\UISystem\WaveUI;$(ProjectDir)\ApplicationLayer\UISystem\WeaponSlot;$(ProjectDir)\ApplicationLayer\WeaponSystem;$(ProjectDir)\ApplicationLayer\WeaponSystem\WeaponMasterData;$(ProjectDir)\EngineLayer;$(ProjectDir)\EngineLayer\2D;$(ProjectDir)\EngineLayer\2D\Sprite;$(ProjectDir)\EngineLayer\3D;$(ProjectDir)\EngineLayer\3D\AnimationSystem;$(ProjectDir)\EngineLayer\3D\AnimationSystem\Collider;$(ProjectDir)\EngineLayer\3D\AnimationSystem\Core;$(ProjectDir)\EngineLayer\3D\AnimationSystem\DebugView;$(ProjectDir)\EngineLayer\3D\AnimationSystem\LOD;$(ProjectDir)\EngineLayer\3D\AnimationSystem\Pipeline;$(ProjectDir)\EngineLayer\3D\AnimationSystem\Skeleton;$(ProjectDir)\EngineLayer\3D\AnimationSystem\Skinning;$(ProjectDir)\EngineLayer\3D\LevelData;$(ProjectDir)\EngineLayer\3D\Object3D;$(ProjectDir)\EngineLayer\3D\SkyBox;$(ProjectDir)\EngineLayer\3D\Wireframe;$(ProjectDir)\EngineLayer\Audio;$(ProjectDir)\EngineLayer\Audio\AudioDatas;$(ProjectDir)\EngineLayer\Audio\AudioManager;$(ProjectDir)\EngineLayer\Base;$(ProjectDir)\EngineLayer\Base\BlendStateFactory;$(ProjectDir)\EngineLayer\Base\DirectXCommon;$(ProjectDir)\EngineLayer\Base\DX12CommandManager;$(ProjectDir)\EngineLayer\Base\DX12Device;$(ProjectDir)\EngineLayer\Base\DX12FenceManager;$(ProjectDir)\EngineLayer\Base\DX12SwapChain;$(ProjectDir)\EngineLayer\Base\DXCCompilerManager;$(ProjectDir)\EngineLayer\Base\MainRenderTarget;$(ProjectDir)\EngineLayer\Base\MultipleStructs;$(ProjectDir)\EngineLayer\Base\ShaderCompiler;$(ProjectDir)\EngineLayer\Base\ShadowMapRenderTarget;$(ProjectDir)\EngineLayer\CameraManagement;$(ProjectDir)\EngineLayer\CameraManagement\Camera;$(ProjectDir)\EngineLayer\CameraManagement\DebugCamera;$(ProjectDir)\EngineLayer\CameraManagement\FPSCamera;$(ProjectDir)\EngineLayer\Colliders;$(ProjectDir)\EngineLayer\FPSCounter;$(ProjectDir)\EngineLayer\FrameworkLayer;$(ProjectDir)\EngineLayer\FrameworkLayer\Framework;$(ProjectDir)\EngineLayer\FrameworkLayer\Log;$(ProjectDir)\EngineLayer\FrameworkLayer\WindowsAPI;$(ProjectDir)\EngineLayer\GPUParticleSystem;$(ProjectDir)\EngineLayer\GPUParticleSystem\GpuParticleBuffers;$(ProjectDir)\EngineLayer\GPUParticleSystem\GpuParticleDatas;$(ProjectDir)\EngineLayer\GPUParticleSystem\GpuParticleEmitter;$(ProjectDir)\EngineLayer\GPUParticleSystem\GpuParticleEmitterPreset;$(ProjectDir)\EngineLayer\GPUParticleSystem\GpuParticleManager;$(ProjectDir)\EngineLayer\GPUParticleSystem\GpuParticlePipeline;$(ProjectDir)\EngineLayer\GPUParticleSystem\GpuParticleRenderer;$(ProjectDir)\EngineLayer\Input;$(ProjectDir)\EngineLayer\Managers;$(ProjectDir)\EngineLayer\Managers\DSVManager;$(ProjectDir)\EngineLayer\Managers\ImGuiManager;$(ProjectDir)\EngineLayer\Managers\LightManager;$(ProjectDir)\EngineLayer\Managers\ModelManager;$(ProjectDir)\EngineLayer\Managers\ParameterManager;$(ProjectDir)\EngineLayer\Managers\ParticleManager;$(ProjectDir)\EngineLayer\Managers\ResourceManager;$(ProjectDir)\EngineLayer\Managers\RTVManager;$(ProjectDir)\EngineLayer\Managers\SRVManager;$(ProjectDir)\EngineLayer\Managers\TextureManager;$(ProjectDir)\EngineLayer\Managers\UAVManager;$(ProjectDir)\EngineLayer\Material;$(ProjectDir)\EngineLayer\Math;$(ProjectDir)\EngineLayer\Math\Matrix;$(ProjectDir)\EngineLayer\Math\MultipleStructs;$(ProjectDir)\EngineLayer\Math\Quaternion;$(ProjectDir)\EngineLayer\Math\Vectors;$(ProjectDir)\EngineLayer\Mesh;$(ProjectDir)\EngineLayer\ParticleManagement;$(ProjectDir)\EngineLayer\PostEffectManagement;$(ProjectDir)\EngineLayer\PostEffectManagement\AbsorbEffect;$(ProjectDir)\EngineLayer\PostEffectManagement\DepthOutlineEffect;$(ProjectDir)\EngineLayer\PostEffectManagement\DissolveEffect;$(ProjectDir)\EngineLayer\PostEffectManagement\GaussianFilterEffect;$(ProjectDir)\EngineLayer\PostEffectManagement\GrayScaleEffect;$(ProjectDir)\EngineLayer\PostEffectManagement\IPostEffect;$(ProjectDir)\EngineLayer\PostEffectManagement\LuminanceOutlineEffect;$(ProjectDir)\EngineLayer\PostEffectManagement\NormalEffect;$(ProjectDir)\EngineLayer\PostEffectManagement\PixelateEffect;$(ProjectDir)\EngineLayer\PostEffectManagement\PostEffectManager;$(ProjectDir)\EngineLayer\PostEffectManagement\PostEffectPipelineBuilder;$(ProjectDir)\EngineLayer\PostEffectManagement\RadialBlurEffect;$(ProjectDir)\EngineLayer\PostEffectManagement\RandomEffect;$(ProjectDir)\EngineLayer\PostEffectManagement\SmoothingEffect;$(ProjectDir)\EngineLayer\PostEffectManagement\VignetteEffect;$(ProjectDir)\EngineLayer\ResourceChecker;$(ProjectDir)\EngineLayer\ResourceChecker\LeakCheck;$(ProjectDir)\EngineLayer\Transform</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)Externals\assimp\include;$(ProjectDir)Externals\imgui;$(ProjectDir)\ApplicationLayer;$(ProjectDir)\ApplicationLayer\Character;$(ProjectDir)\ApplicationLayer\Character\BaseCharacter;$(ProjectDir)\ApplicationLayer\Character\Boss;$(ProjectDir)\ApplicationLayer\Character\Boss\Animations;$(ProjectDir)\ApplicationLayer\Character\Boss\Attacks;$(ProjectDir)\ApplicationLayer\Character\Boss\BaseTypes;$(ProjectDir)\ApplicationLayer\Character\Boss\BehaviorTree;$(ProjectDir)\ApplicationLayer\Character\Boss\Components;$(ProjectDir)\ApplicationLayer\Character\Boss\Core;$(ProjectDir)\ApplicationLayer\Character\Boss\Data;$(ProjectDir)\ApplicationLayer\Character\Boss\DebugTools;$(ProjectDir)\ApplicationLayer\Character\Boss\Derived;$(ProjectDir)\ApplicationLayer\Character\Boss\Derived\GuardianBoss;$(ProjectDir)\ApplicationLayer\Character\Bullet;$(ProjectDir)\ApplicationLayer\Character\CharacterWorld;$(ProjectDir)\ApplicationLayer\Character\Enemy;$(ProjectDir)\ApplicationLayer\Character\Enemy\Behavior;$(ProjectDir)\ApplicationLayer\Character\Enemy\Core;$(ProjectDir)\ApplicationLayer\Character\Enemy\Effects;$(ProjectDir)\ApplicationLayer\Character\Enemy\HPBar;$(ProjectDir)\ApplicationLayer\Character\Enemy\Tuning;$(ProjectDir)\ApplicationLayer\Character\Player;$(ProjectDir)\ApplicationLayer\Character\Player\Component;$(ProjectDir)\ApplicationLayer\Character\Player\Effect;$(ProjectDir)\ApplicationLayer\Colliders;$(ProjectDir)\ApplicationLayer\EffectLayer;$(ProjectDir)\ApplicationLayer\Item;$(ProjectDir)\ApplicationLayer\OverlaySystem;$(ProjectDir)\ApplicationLayer\ResultManager;$(ProjectDir)\ApplicationLayer\Scene;$(ProjectDir)\ApplicationLayer\Scene\DebugScene;$(ProjectDir)\ApplicationLayer\Scene\GameClearScene;$(ProjectDir)\ApplicationLayer\Scene\GameOverScene;$(ProjectDir)\ApplicationLayer\Scene\GamePlayScene;$(ProjectDir)\ApplicationLayer\Scene\GamePlayScene\Camera;$(ProjectDir)\ApplicationLayer\Scene\GamePlayScene\Core;$(ProjectDir)\ApplicationLayer\Scene\GamePlayScene\DebugTools;$(ProjectDir)\ApplicationLayer\Scene\GamePlayScene\UI;$(ProjectDir)\ApplicationLayer\Scene\GamePlayScene\World;$(ProjectDir)\ApplicationLayer\Scene\GamePlayScene\HUDManager;$(ProjectDir)\ApplicationLayer\Scene\GamePlayScene\State;$(ProjectDir)\ApplicationLayer\Scene\PhysicalScene;$(ProjectDir)\ApplicationLayer\Scene\ShadowTestScene;$(ProjectDir)\ApplicationLayer\Scene\StageSelectScene;$(ProjectDir)\ApplicationLayer\Scene\StageSelectScene\State;$(ProjectDir)\ApplicationLayer\Scene\TitleScene;$(ProjectDir)\ApplicationLayer\Scene\TitleScene\State;$(ProjectDir)\ApplicationLayer\SceneManagement;$(ProjectDir)\ApplicationLayer\SceneManagement\AbstractSceneFactory;$(ProjectDir)\ApplicationLayer\SceneManagement\BaseScene;$(ProjectDir)\ApplicationLayer\SceneManagement\FadeManager;$(ProjectDir)\ApplicationLayer\SceneManagement\SceneFactory;$(ProjectDir)\ApplicationLayer\SceneManagement\SceneManager;$(ProjectDir)\ApplicationLayer\ScoreManager;$(ProjectDir)\ApplicationLayer\UISystem;$(ProjectDir)\ApplicationLayer\UISystem\Crosshair;$(ProjectDir)\ApplicationLayer\UISystem\HPWidget;$(ProjectDir)\ApplicationLayer\UISystem\HUDManager;$(ProjectDir)\ApplicationLayer\UISystem\Indicator;$(ProjectDir)\ApplicationLayer\UISystem\NoAmmoUI;$(ProjectDir)\ApplicationLayer\UISystem\ReloadCircle;$(ProjectDir)\ApplicationLayer\UISystem\WaveUI;$(ProjectDir)\ApplicationLayer\UISystem\WeaponSlot;$(ProjectDir)\ApplicationLayer\WeaponSystem;$(ProjectDir)\ApplicationLayer\WeaponSystem\WeaponMasterData;$(ProjectDir)Engine;$(ProjectDir)Engine\Core;$(ProjectDir)Engine\Core\Application;$(ProjectDir)Engine\Core\Logging;$(ProjectDir)Engine\Core\Time;$(ProjectDir)Engine\Core\Time\LegacyFPSCounter;$(ProjectDir)Engine\Core\Transform;$(ProjectDir)Engine\Debug;$(ProjectDir)Engine\DebugTools\ImGui;$(ProjectDir)Engine\DebugTools\LeakCheck;$(ProjectDir)Engine\Graphics;$(ProjectDir)Engine\Graphics\Camera;$(ProjectDir)Engine\Graphics\Camera\Core;$(ProjectDir)Engine\Graphics\Camera\DebugCamera;$(ProjectDir)Engine\Graphics\Camera\FPS;$(ProjectDir)Engine\Graphics\Common;$(ProjectDir)Engine\Graphics\Descriptor;$(ProjectDir)Engine\Graphics\Descriptor\DSV;$(ProjectDir)Engine\Graphics\Descriptor\RTV;$(ProjectDir)Engine\Graphics\Descriptor\SRV;$(ProjectDir)Engine\Graphics\Descriptor\UAV;$(ProjectDir)Engine\Graphics\Device;$(ProjectDir)Engine\Graphics\Device\Command;$(ProjectDir)Engine\Graphics\Device\Core;$(ProjectDir)Engine\Graphics\Device\Facade;$(ProjectDir)Engine\Graphics\Device\SwapChain;$(ProjectDir)Engine\Graphics\Device\Synchronization;$(ProjectDir)Engine\Graphics\Lighting;$(ProjectDir)Engine\Graphics\Material;$(ProjectDir)Engine\Graphics\Mesh;$(ProjectDir)Engine\Graphics\Pipeline;$(ProjectDir)Engine\Graphics\PostEffect;$(ProjectDir)Engine\Graphics\PostEffect\Core;$(ProjectDir)Engine\Graphics\PostEffect\Effects;$(ProjectDir)Engine\Graphics\PostEffect\Effects\AbsorbEffect;$(ProjectDir)Engine\Graphics\PostEffect\Effects\DepthOutlineEffect;$(ProjectDir)Engine\Graphics\PostEffect\Effects\DissolveEffect;$(ProjectDir)Engine\Graphics\PostEffect\Effects\GaussianFilterEffect;$(ProjectDir)Engine\Graphics\PostEffect\Effects\GrayScaleEffect;$(ProjectDir)Engine\Graphics\PostEffect\Effects\LuminanceOutlineEffect;$(ProjectDir)Engine\Graphics\PostEffect\Effects\NormalEffect;$(ProjectDir)Engine\Graphics\PostEffect\Effects\PixelateEffect;$(ProjectDir)Engine\Graphics\PostEffect\Effects\RadialBlurEffect;$(ProjectDir)Engine\Graphics\PostEffect\Effects\RandomEffect;$(ProjectDir)Engine\Graphics\PostEffect\Effects\SmoothingEffect;$(ProjectDir)Engine\Graphics\PostEffect\Effects\VignetteEffect;$(ProjectDir)Engine\Graphics\PostEffect\Manager;$(ProjectDir)Engine\Graphics\PostEffect\Pipeline;$(ProjectDir)Engine\Graphics\Renderer;$(ProjectDir)Engine\Graphics\Renderer\Animation;$(ProjectDir)Engine\Graphics\Renderer\Animation\Collider;$(ProjectDir)Engine\Graphics\Renderer\Animation\Core;$(ProjectDir)Engine\Graphics\Renderer\Animation\DebugView;$(ProjectDir)Engine\Graphics\Renderer\Animation\LOD;$(ProjectDir)Engine\Graphics\Renderer\Animation\Pipeline;$(ProjectDir)Engine\Graphics\Renderer\Animation\Skeleton;$(ProjectDir)Engine\Graphics\Renderer\Animation\Skinning;$(ProjectDir)Engine\Graphics\Renderer\GpuParticle;$(ProjectDir)Engine\Graphics\Renderer\GpuParticle\Buffers;$(ProjectDir)Engine\Graphics\Renderer\GpuParticle\Data;$(ProjectDir)Engine\Graphics\Renderer\GpuParticle\Emitter;$(ProjectDir)Engine\Graphics\Renderer\GpuParticle\Manager;$(ProjectDir)Engine\Graphics\Renderer\GpuParticle\Pipeline;$(ProjectDir)Engine\Graphics\Renderer\GpuParticle\Preset;$(ProjectDir)Engine\Graphics\Renderer\GpuParticle\Renderer;$(ProjectDir)Engine\Graphics\Renderer\Object3D;$(ProjectDir)Engine\Graphics\Renderer\Particle;$(ProjectDir)Engine\Graphics\Renderer\Particle\Core;$(ProjectDir)Engine\Graphics\Renderer\Particle\Manager;$(ProjectDir)Engine\Graphics\Renderer\SkyBox;$(ProjectDir)Engine\Graphics\Renderer\Sprite;$(ProjectDir)Engine\Graphics\Renderer\Wireframe;$(ProjectDir)Engine\Graphics\RenderState;$(ProjectDir)Engine\Graphics\RenderState\Blend;$(ProjectDir)Engine\Graphics\RenderTarget;$(ProjectDir)Engine\Graphics\RenderTarget\Main;$(ProjectDir)Engine\Graphics\RenderTarget\Shadow;$(ProjectDir)Engine\Graphics\Resource;$(ProjectDir)Engine\Graphics\Resource\Model;$(ProjectDir)Engine\Graphics\Resource\Texture;$(ProjectDir)Engine\Graphics\Shader;$(ProjectDir)Engine\Graphics\Shader\Compiler;$(ProjectDir)Engine\Graphics\Shader\Manifest;$(ProjectDir)Engine\Math;$(ProjectDir)Engine\Math\Geometry;$(ProjectDir)Engine\Math\Matrix;$(ProjectDir)Engine\Math\Quaternion;$(ProjectDir)Engine\Math\Vector;$(ProjectDir)Engine\Misc;$(ProjectDir)Engine\Misc\Audio;$(ProjectDir)Engine\Phsics;$(ProjectDir)Engine\Phsics\Collision;$(ProjectDir)Engine\Physics\Collision\Core;$(ProjectDir)Engine\Platform;$(ProjectDir)Engine\Platform\Windows;$(ProjectDir)Engine\Scene;$(ProjectDir)Engine\Scene\Level;$(ProjectDir)Engine\System;$(ProjectDir)Engine\System\Audio;$(ProjectDir)Engine\System\Audio\Data;$(ProjectDir)Engine\System\Audio\Manager;$(ProjectDir)Engine\System\Input;$(ProjectDir)Engine\System\Parameters;$(ProjectDir)Engine\System\Resource</AdditionalIncludeDirectories>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
     </ClCompile>
     <Link>
@@ -156,7 +156,6 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClCompile Include="ApplicationLayer\Character\Enemy\HPBar\EnemyHPBarManager.cpp" />
     <ClCompile Include="ApplicationLayer\Character\Enemy\HPBar\EnemyHPBarProjector.cpp" />
     <ClCompile Include="ApplicationLayer\UISystem\Indicator\DamageIndicatorManager.cpp" />
-    <ClCompile Include="EngineLayer\3D\AnimationSystem\DebugView\AnimationModelDebugView.cpp" />
     <ClCompile Include="ApplicationLayer\Character\Bullet\Bullet.cpp" />
     <ClCompile Include="ApplicationLayer\Character\Bullet\BulletManager.cpp" />
     <ClCompile Include="ApplicationLayer\Character\Enemy\Core\Enemy.cpp" />
@@ -170,21 +169,11 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClCompile Include="ApplicationLayer\Scene\TitleScene\State\TitleLobbyState.cpp" />
     <ClCompile Include="ApplicationLayer\Scene\TitleScene\State\TitleLobbyToTitleState.cpp" />
     <ClCompile Include="ApplicationLayer\Scene\TitleScene\State\TitleTransitionToLobby.cpp" />
-    <ClCompile Include="EngineLayer\3D\AnimationSystem\Collider\AnimationModelColliderController.cpp" />
-    <ClCompile Include="EngineLayer\3D\AnimationSystem\LOD\AnimationModelLODController.cpp" />
-    <ClCompile Include="EngineLayer\3D\AnimationSystem\Skinning\AnimationModelSkinningCS.cpp" />
-    <ClCompile Include="EngineLayer\3D\AnimationSystem\LOD\AnimationModelLODBuilder.cpp" />
-    <ClCompile Include="EngineLayer\3D\AnimationSystem\Core\AnimationPlayer.cpp" />
-    <ClCompile Include="EngineLayer\3D\AnimationSystem\Core\AnimationLoader.cpp" />
     <ClCompile Include="ApplicationLayer\UISystem\Crosshair\Crosshair.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="ApplicationLayer\Scene\DebugScene\DebugScene.cpp" />
-    <ClCompile Include="EngineLayer\Colliders\CollisionUtility.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClCompile>
     <ClCompile Include="ApplicationLayer\Character\BaseCharacter\BaseCharacter.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
@@ -197,137 +186,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="EngineLayer\3D\LevelData\LevelObjectManager.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\Base\BlendStateFactory\BlendStateFactory.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\Input\InputSnapshot.cpp" />
-    <ClCompile Include="EngineLayer\PostEffectManagement\DepthOutlineEffect\DepthOutlineEffect.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\3D\AnimationSystem\Core\AnimationModel.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\3D\AnimationSystem\Pipeline\AnimationPipelineBuilder.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\3D\AnimationSystem\Skeleton\Skeleton.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\3D\AnimationSystem\Skinning\SkinCluster.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\Mesh\AnimationMesh.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\Audio\AudioManager\AudioManager.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\Base\DX12CommandManager\DX12CommandManager.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\Base\DX12FenceManager\DX12FenceManager.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\Base\DXCCompilerManager\DXCCompilerManager.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\PostEffectManagement\AbsorbEffect\AbsorbEffect.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\PostEffectManagement\DissolveEffect\DissolveEffect.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\Managers\ModelManager\AssimpLoader.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\Material\Material.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\Managers\DSVManager\DSVManager.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\Math\Quaternion\Quaternion.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\CameraManagement\DebugCamera\DebugCamera.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\Colliders\Collider.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClCompile>
     <ClCompile Include="ApplicationLayer\Colliders\CollisionManager.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\Colliders\ContactRecord.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\CameraManagement\Camera\Camera.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\Transform\WorldTransform.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\ResourceChecker\LeakCheck\D3DResourceLeakChecker.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\Base\DirectXCommon\DirectXCommon.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\Base\DX12Device\DX12Device.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\Base\DX12SwapChain\DX12SwapChain.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\Managers\ImGuiManager\ImGuiManager.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\Input\Input.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\FrameworkLayer\Log\LogString.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\FrameworkLayer\Framework\GameApplication.cpp">
-      <DebugInformationFormat Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">EditAndContinue</DebugInformationFormat>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\FrameworkLayer\Framework\Framework.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
     </ClCompile>
@@ -335,55 +194,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="EngineLayer\Math\Matrix\Matrix4x4.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\Managers\ModelManager\ModelManager.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\3D\Object3D\Object3D.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\Managers\ResourceManager\ResourceManager.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\Base\ShaderCompiler\ShaderCompiler.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\2D\Sprite\Sprite.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\Managers\TextureManager\TextureManager.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\Math\Vectors\Vector3.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\FrameworkLayer\WindowsAPI\WinApp.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\3D\Object3D\Object3DCommon.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClCompile>
     <ClCompile Include="ApplicationLayer\EffectLayer\ParticleEmitter.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\Managers\ParticleManager\ParticleManager.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\Managers\SRVManager\SRVManager.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
     </ClCompile>
@@ -399,103 +210,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="EngineLayer\Managers\ParameterManager\ParameterManager.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\Managers\LightManager\LightManager.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\FPSCounter\FPSCounter.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\3D\SkyBox\SkyBox.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\3D\SkyBox\SkyBoxManager.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\2D\Sprite\SpriteManager.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\PostEffectManagement\PostEffectManager\PostEffectManager.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\Managers\RTVManager\RTVManager.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\Material\ParticleMaterial.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\Mesh\Mesh.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\Transform\ParticleTransform.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\Mesh\ParticleMesh.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\PostEffectManagement\GaussianFilterEffect\GaussianFilterEffect.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\PostEffectManagement\GrayScaleEffect\GrayScaleEffect.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\PostEffectManagement\LuminanceOutlineEffect\LuminanceOutlineEffect.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\PostEffectManagement\NormalEffect\NormalEffect.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\PostEffectManagement\PostEffectPipelineBuilder\PostEffectPipelineBuilder.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\PostEffectManagement\RadialBlurEffect\RadialBlurEffect.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\PostEffectManagement\RandomEffect\RandomEffect.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\PostEffectManagement\SmoothingEffect\SmoothingEffect.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\PostEffectManagement\VignetteEffect\VignetteEffect.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClCompile>
     <ClCompile Include="ApplicationLayer\Character\Player\Player.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\CameraManagement\FPSCamera\FpsCamera.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\ParticleManagement\ParticleFactory.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\2D\Sprite\NumberSpriteDrawer.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
     </ClCompile>
@@ -523,10 +238,6 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="EngineLayer\Managers\UAVManager\UAVManager.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClCompile>
     <ClCompile Include="ApplicationLayer\Scene\StageSelectScene\GridStageSelector.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
@@ -536,26 +247,6 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="ApplicationLayer\EffectLayer\ModelParticle.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\GPUParticleSystem\GpuParticleEmitter\GpuParticleEmitter.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\GPUParticleSystem\GpuParticleManager\GpuParticleManager.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\GPUParticleSystem\GpuParticleBuffers\GpuParticleBuffers.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\GPUParticleSystem\GpuParticleRenderer\GpuParticleRenderer.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\PostEffectManagement\PixelateEffect\PixelateEffect.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
     </ClCompile>
@@ -573,16 +264,9 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClCompile Include="ApplicationLayer\WeaponSystem\WeaponMasterData\WeaponMasterDataLoader.cpp" />
     <ClCompile Include="ApplicationLayer\WeaponSystem\WeaponMasterData\WeaponMasterDataValidator.cpp" />
     <ClCompile Include="ApplicationLayer\WeaponSystem\WeaponMasterData\WeaponMasterDataWriter.cpp" />
-    <ClCompile Include="EngineLayer\GPUParticleSystem\GpuParticlePipeline\GpuParticleComputePipeline.cpp" />
-    <ClCompile Include="EngineLayer\GPUParticleSystem\GpuParticlePipeline\GpuParticleSpritePipeline.cpp" />
-    <ClCompile Include="EngineLayer\GPUParticleSystem\GpuParticlePipeline\GpuParticleMeshPipeline.cpp" />
-    <ClCompile Include="EngineLayer\2D\Sprite\SpriteDebrisEmitter.cpp" />
-    <ClCompile Include="EngineLayer\2D\Sprite\SpriteFractureEffect.cpp" />
-    <ClCompile Include="EngineLayer\3D\AnimationSystem\Skeleton\SkeletonAnimator.cpp" />
     <ClCompile Include="ApplicationLayer\Character\Player\PlayerHurtbox.cpp" />
     <ClCompile Include="ApplicationLayer\WeaponSystem\WeaponMasterData\WeaponInstance.cpp" />
     <ClCompile Include="ApplicationLayer\WeaponSystem\WeaponMasterData\WeaponSystem.cpp" />
-    <ClCompile Include="EngineLayer\3D\LevelData\Stage.cpp" />
     <ClCompile Include="ApplicationLayer\UISystem\HPWidget\HPWidget.cpp" />
     <ClCompile Include="ApplicationLayer\UISystem\HUDManager\HUDManager.cpp" />
     <ClCompile Include="ApplicationLayer\Character\Player\Effect\PlayerVfx.cpp" />
@@ -591,13 +275,11 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClCompile Include="ApplicationLayer\Character\Player\Component\PlayerViewComponent.cpp" />
     <ClCompile Include="ApplicationLayer\Scene\GamePlayScene\UI\PauseMenu.cpp" />
     <ClCompile Include="ApplicationLayer\UISystem\WeaponSlot\WeaponSlot.cpp" />
-    <ClCompile Include="EngineLayer\3D\LevelData\LevelLoader.cpp" />
     <ClCompile Include="ApplicationLayer\Scene\ShadowTestScene\ShadowTestScene.cpp" />
     <ClCompile Include="ApplicationLayer\Scene\GamePlayScene\UI\ResultMenu.cpp" />
     <ClCompile Include="ApplicationLayer\Scene\GamePlayScene\World\WaveManager.cpp" />
     <ClCompile Include="ApplicationLayer\UISystem\WaveUI\WaveUI.cpp" />
     <ClCompile Include="ApplicationLayer\Character\Player\Component\PlayerWeaponVisualComponent.cpp" />
-    <ClCompile Include="EngineLayer\Audio\MFAudioDecoder.cpp" />
     <ClCompile Include="ApplicationLayer\Scene\GamePlayScene\DebugTools\GamePlayDebugTools.cpp" />
     <ClCompile Include="ApplicationLayer\Scene\GamePlayScene\Core\GamePlayFlow.cpp" />
     <ClCompile Include="ApplicationLayer\Scene\GamePlayScene\Camera\GamePlayIntroDirector.cpp" />
@@ -614,32 +296,115 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClCompile Include="ApplicationLayer\Character\Player\PlayerWeaponController.cpp" />
     <ClCompile Include="ApplicationLayer\Character\Player\PlayerFsmApi.cpp" />
     <ClCompile Include="ApplicationLayer\Character\Enemy\Behavior\EnemyBehavior_EliteFlanker.cpp" />
-    <ClCompile Include="EngineLayer\Base\MainRenderTarget\MainRenderTarget.cpp" />
-    <ClCompile Include="EngineLayer\Base\ShadowMapRenderTarget\ShadowMapRenderTarget.cpp" />
-    <ClCompile Include="EngineLayer\3D\LevelData\StageAssetLoader.cpp" />
-    <ClCompile Include="EngineLayer\3D\LevelData\StageCollisionBuilder.cpp" />
-    <ClCompile Include="EngineLayer\GPUParticleSystem\GpuParticleEmitterPreset\GpuParticleEmitterPreset.cpp" />
-    <ClCompile Include="EngineLayer\GPUParticleSystem\GpuParticleEmitterPreset\GpuParticleEmitterSerializer.cpp" />
     <ClCompile Include="ApplicationLayer\UISystem\NoAmmoUI\NoAmmoUI.cpp" />
-    <ClCompile Include="EngineLayer\Managers\ModelManager\KMeshLoader.cpp" />
-    <ClCompile Include="EngineLayer\Managers\ModelManager\ModelLoader.cpp" />
-    <ClCompile Include="EngineLayer\Managers\ModelManager\ModelPathResolver.cpp" />
-    <ClCompile Include="PipelineFactory.cpp" />
-    <ClCompile Include="PipelineStatePresets.cpp" />
-    <ClCompile Include="SpritePipelineSet.cpp" />
+    <ClCompile Include="Engine\Core\Application\Framework.cpp" />
+    <ClCompile Include="Engine\Core\Application\GameApplication.cpp" />
+    <ClCompile Include="Engine\Core\Logging\LogString.cpp" />
+    <ClCompile Include="Engine\Core\Time\LegacyFPSCounter\FPSCounter.cpp" />
+    <ClCompile Include="Engine\Core\Transform\ParticleTransform.cpp" />
+    <ClCompile Include="Engine\Core\Transform\WorldTransform.cpp" />
+    <ClCompile Include="Engine\Core\Transform\WorldTransformEx.cpp" />
+    <ClCompile Include="Engine\DebugTools\ImGui\ImGuiManager.cpp" />
+    <ClCompile Include="Engine\DebugTools\LeakCheck\D3DResourceLeakChecker.cpp" />
+    <ClCompile Include="Engine\Graphics\Camera\Core\Camera.cpp" />
+    <ClCompile Include="Engine\Graphics\Camera\DebugCamera\DebugCamera.cpp" />
+    <ClCompile Include="Engine\Graphics\Camera\FPS\FpsCamera.cpp" />
+    <ClCompile Include="Engine\Graphics\Descriptor\DSV\DSVManager.cpp" />
+    <ClCompile Include="Engine\Graphics\Descriptor\RTV\RTVManager.cpp" />
+    <ClCompile Include="Engine\Graphics\Descriptor\SRV\SRVManager.cpp" />
+    <ClCompile Include="Engine\Graphics\Descriptor\UAV\UAVManager.cpp" />
+    <ClCompile Include="Engine\Graphics\Device\Command\DX12CommandManager.cpp" />
+    <ClCompile Include="Engine\Graphics\Device\Core\DX12Device.cpp" />
+    <ClCompile Include="Engine\Graphics\Device\Facade\DirectXCommon.cpp" />
+    <ClCompile Include="Engine\Graphics\Device\SwapChain\DX12SwapChain.cpp" />
+    <ClCompile Include="Engine\Graphics\Device\Synchronization\DX12FenceManager.cpp" />
+    <ClCompile Include="Engine\Graphics\Lighting\LightManager.cpp" />
+    <ClCompile Include="Engine\Graphics\Material\Material.cpp" />
+    <ClCompile Include="Engine\Graphics\Material\ParticleMaterial.cpp" />
+    <ClCompile Include="Engine\Graphics\Mesh\AnimationMesh.cpp" />
+    <ClCompile Include="Engine\Graphics\Mesh\Mesh.cpp" />
+    <ClCompile Include="Engine\Graphics\Mesh\ParticleMesh.cpp" />
+    <ClCompile Include="Engine\Graphics\Pipeline\PipelineFactory.cpp" />
+    <ClCompile Include="Engine\Graphics\Pipeline\PipelineStatePresets.cpp" />
+    <ClCompile Include="Engine\Graphics\PostEffect\Effects\AbsorbEffect\AbsorbEffect.cpp" />
+    <ClCompile Include="Engine\Graphics\PostEffect\Effects\DepthOutlineEffect\DepthOutlineEffect.cpp" />
+    <ClCompile Include="Engine\Graphics\PostEffect\Effects\DissolveEffect\DissolveEffect.cpp" />
+    <ClCompile Include="Engine\Graphics\PostEffect\Effects\GaussianFilterEffect\GaussianFilterEffect.cpp" />
+    <ClCompile Include="Engine\Graphics\PostEffect\Effects\GrayScaleEffect\GrayScaleEffect.cpp" />
+    <ClCompile Include="Engine\Graphics\PostEffect\Effects\LuminanceOutlineEffect\LuminanceOutlineEffect.cpp" />
+    <ClCompile Include="Engine\Graphics\PostEffect\Effects\NormalEffect\NormalEffect.cpp" />
+    <ClCompile Include="Engine\Graphics\PostEffect\Effects\PixelateEffect\PixelateEffect.cpp" />
+    <ClCompile Include="Engine\Graphics\PostEffect\Effects\RadialBlurEffect\RadialBlurEffect.cpp" />
+    <ClCompile Include="Engine\Graphics\PostEffect\Effects\RandomEffect\RandomEffect.cpp" />
+    <ClCompile Include="Engine\Graphics\PostEffect\Effects\SmoothingEffect\SmoothingEffect.cpp" />
+    <ClCompile Include="Engine\Graphics\PostEffect\Effects\VignetteEffect\VignetteEffect.cpp" />
+    <ClCompile Include="Engine\Graphics\PostEffect\Manager\PostEffectManager.cpp" />
+    <ClCompile Include="Engine\Graphics\PostEffect\Pipeline\PostEffectPipelineBuilder.cpp" />
+    <ClCompile Include="Engine\Graphics\Renderer\Animation\Collider\AnimationModelColliderController.cpp" />
+    <ClCompile Include="Engine\Graphics\Renderer\Animation\Core\AnimationLoader.cpp" />
+    <ClCompile Include="Engine\Graphics\Renderer\Animation\Core\AnimationModel.cpp" />
+    <ClCompile Include="Engine\Graphics\Renderer\Animation\Core\AnimationPlayer.cpp" />
+    <ClCompile Include="Engine\Graphics\Renderer\Animation\DebugView\AnimationModelDebugView.cpp" />
+    <ClCompile Include="Engine\Graphics\Renderer\Animation\LOD\AnimationModelLODBuilder.cpp" />
+    <ClCompile Include="Engine\Graphics\Renderer\Animation\LOD\AnimationModelLODController.cpp" />
+    <ClCompile Include="Engine\Graphics\Renderer\Animation\Pipeline\AnimationPipelineBuilder.cpp" />
+    <ClCompile Include="Engine\Graphics\Renderer\Animation\Skeleton\Skeleton.cpp" />
+    <ClCompile Include="Engine\Graphics\Renderer\Animation\Skeleton\SkeletonAnimator.cpp" />
+    <ClCompile Include="Engine\Graphics\Renderer\Animation\Skinning\AnimationModelSkinningCS.cpp" />
+    <ClCompile Include="Engine\Graphics\Renderer\Animation\Skinning\SkinCluster.cpp" />
+    <ClCompile Include="Engine\Graphics\Renderer\GpuParticle\Buffers\GpuParticleBuffers.cpp" />
+    <ClCompile Include="Engine\Graphics\Renderer\GpuParticle\Emitter\GpuParticleEmitter.cpp" />
+    <ClCompile Include="Engine\Graphics\Renderer\GpuParticle\Manager\GpuParticleManager.cpp" />
+    <ClCompile Include="Engine\Graphics\Renderer\GpuParticle\Pipeline\GpuParticleComputePipeline.cpp" />
+    <ClCompile Include="Engine\Graphics\Renderer\GpuParticle\Pipeline\GpuParticleMeshPipeline.cpp" />
+    <ClCompile Include="Engine\Graphics\Renderer\GpuParticle\Pipeline\GpuParticleSpritePipeline.cpp" />
+    <ClCompile Include="Engine\Graphics\Renderer\GpuParticle\Preset\GpuParticleEmitterPreset.cpp" />
+    <ClCompile Include="Engine\Graphics\Renderer\GpuParticle\Preset\GpuParticleEmitterSerializer.cpp" />
+    <ClCompile Include="Engine\Graphics\Renderer\GpuParticle\Renderer\GpuParticleRenderer.cpp" />
+    <ClCompile Include="Engine\Graphics\Renderer\Object3D\Object3D.cpp" />
+    <ClCompile Include="Engine\Graphics\Renderer\Object3D\Object3DCommon.cpp" />
+    <ClCompile Include="Engine\Graphics\Renderer\Particle\Core\ParticleFactory.cpp" />
+    <ClCompile Include="Engine\Graphics\Renderer\Particle\Manager\ParticleManager.cpp" />
+    <ClCompile Include="Engine\Graphics\Renderer\SkyBox\SkyBox.cpp" />
+    <ClCompile Include="Engine\Graphics\Renderer\SkyBox\SkyBoxManager.cpp" />
+    <ClCompile Include="Engine\Graphics\Renderer\Sprite\NumberSpriteDrawer.cpp" />
+    <ClCompile Include="Engine\Graphics\Renderer\Sprite\Sprite.cpp" />
+    <ClCompile Include="Engine\Graphics\Renderer\Sprite\SpriteDebrisEmitter.cpp" />
+    <ClCompile Include="Engine\Graphics\Renderer\Sprite\SpriteFractureEffect.cpp" />
+    <ClCompile Include="Engine\Graphics\Renderer\Sprite\SpriteManager.cpp" />
+    <ClCompile Include="Engine\Graphics\Renderer\Sprite\SpritePipelineSet.cpp" />
+    <ClCompile Include="Engine\Graphics\Renderer\Wireframe\Wireframe.cpp" />
+    <ClCompile Include="Engine\Graphics\RenderState\Blend\BlendStateFactory.cpp" />
+    <ClCompile Include="Engine\Graphics\RenderTarget\Main\MainRenderTarget.cpp" />
+    <ClCompile Include="Engine\Graphics\RenderTarget\Shadow\ShadowMapRenderTarget.cpp" />
+    <ClCompile Include="Engine\Graphics\Resource\Model\AssimpLoader.cpp" />
+    <ClCompile Include="Engine\Graphics\Resource\Model\KMeshLoader.cpp" />
+    <ClCompile Include="Engine\Graphics\Resource\Model\ModelLoader.cpp" />
+    <ClCompile Include="Engine\Graphics\Resource\Model\ModelManager.cpp" />
+    <ClCompile Include="Engine\Graphics\Resource\Model\ModelPathResolver.cpp" />
+    <ClCompile Include="Engine\Graphics\Resource\Texture\TextureManager.cpp" />
+    <ClCompile Include="Engine\Graphics\Shader\Compiler\DXCCompilerManager.cpp" />
+    <ClCompile Include="Engine\Graphics\Shader\Compiler\ShaderCompiler.cpp" />
+    <ClCompile Include="Engine\Math\Matrix\Matrix4x4.cpp" />
+    <ClCompile Include="Engine\Math\Quaternion\Quaternion.cpp" />
+    <ClCompile Include="Engine\Math\Vector\Vector3.cpp" />
+    <ClCompile Include="Engine\Misc\Audio\MFAudioDecoder.cpp" />
+    <ClCompile Include="Engine\Physics\Collision\Core\Collider.cpp" />
+    <ClCompile Include="Engine\Physics\Collision\Core\CollisionUtility.cpp" />
+    <ClCompile Include="Engine\Physics\Collision\Core\ContactRecord.cpp" />
+    <ClCompile Include="Engine\Physics\Collision\Core\WorldCollisionResolver.cpp" />
+    <ClCompile Include="Engine\Platform\Windows\WinApp.cpp" />
+    <ClCompile Include="Engine\Scene\Level\LevelLoader.cpp" />
+    <ClCompile Include="Engine\Scene\Level\LevelObjectManager.cpp" />
+    <ClCompile Include="Engine\Scene\Level\Stage.cpp" />
+    <ClCompile Include="Engine\Scene\Level\StageAssetLoader.cpp" />
+    <ClCompile Include="Engine\Scene\Level\StageCollisionBuilder.cpp" />
+    <ClCompile Include="Engine\System\Audio\Manager\AudioManager.cpp" />
+    <ClCompile Include="Engine\System\Input\Input.cpp" />
+    <ClCompile Include="Engine\System\Input\InputSnapshot.cpp" />
+    <ClCompile Include="Engine\System\Parameters\ParameterManager.cpp" />
+    <ClCompile Include="Engine\System\Resource\ResourceManager.cpp" />
     <ClCompile Include="WinMain.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\3D\Wireframe\Wireframe.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\Transform\WorldTransformEx.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\Colliders\WorldCollisionResolver.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
     </ClCompile>
@@ -914,7 +679,6 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="ApplicationLayer\Character\Enemy\HPBar\EnemyHPBarManager.h" />
     <ClInclude Include="ApplicationLayer\Character\Enemy\HPBar\EnemyHPBarProjector.h" />
     <ClInclude Include="ApplicationLayer\UISystem\Indicator\DamageIndicatorManager.h" />
-    <ClInclude Include="EngineLayer\3D\AnimationSystem\DebugView\AnimationModelDebugView.h" />
     <ClInclude Include="ApplicationLayer\Character\Bullet\Bullet.h" />
     <ClInclude Include="ApplicationLayer\Character\Bullet\BulletManager.h" />
     <ClInclude Include="ApplicationLayer\Character\Enemy\Core\Enemy.h" />
@@ -934,32 +698,11 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="ApplicationLayer\Scene\TitleScene\State\TitleLobbyState.h" />
     <ClInclude Include="ApplicationLayer\Scene\TitleScene\State\TitleLobbyToTitleState.h" />
     <ClInclude Include="ApplicationLayer\Scene\TitleScene\State\TitleTransitionToLobby.h" />
-    <ClInclude Include="EngineLayer\3D\AnimationSystem\Collider\AnimationModelColliderController.h" />
-    <ClInclude Include="EngineLayer\3D\AnimationSystem\LOD\AnimationModelLODController.h" />
-    <ClInclude Include="EngineLayer\3D\AnimationSystem\Skinning\AnimationModelSkinningCS.h" />
-    <ClInclude Include="EngineLayer\3D\AnimationSystem\LOD\AnimationModelLODBuilder.h" />
-    <ClInclude Include="EngineLayer\3D\AnimationSystem\Core\AnimationPlayer.h" />
-    <ClInclude Include="EngineLayer\3D\AnimationSystem\Core\AnimationSampler.h" />
-    <ClInclude Include="EngineLayer\3D\AnimationSystem\Core\AnimationLoader.h" />
     <ClInclude Include="ApplicationLayer\UISystem\Crosshair\Crosshair.h">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
     </ClInclude>
     <ClInclude Include="ApplicationLayer\Scene\DebugScene\DebugScene.h" />
-    <ClInclude Include="EngineLayer\3D\AnimationSystem\Collider\BodyPartCollider.h" />
-    <ClInclude Include="EngineLayer\Base\ShaderCompiler\AnimationShaderManifest.h" />
-    <ClInclude Include="EngineLayer\Base\ShaderCompiler\GpuParticleShaderManifest.h" />
-    <ClInclude Include="EngineLayer\Base\ShaderCompiler\Object3DShaderManifest.h" />
-    <ClInclude Include="EngineLayer\Base\ShaderCompiler\ParticleShaderManifest.h" />
-    <ClInclude Include="EngineLayer\Base\ShaderCompiler\PostEffectShaderManifest.h" />
-    <ClInclude Include="EngineLayer\Base\ShaderCompiler\ShaderManifestTypes.h" />
-    <ClInclude Include="EngineLayer\Base\ShaderCompiler\SkyBoxShaderManifest.h" />
-    <ClInclude Include="EngineLayer\Base\ShaderCompiler\SpriteShaderManifest.h" />
-    <ClInclude Include="EngineLayer\Base\ShaderCompiler\WireframeShaderManifest.h" />
-    <ClInclude Include="EngineLayer\Colliders\CollisionUtility.h">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClInclude>
     <ClInclude Include="ApplicationLayer\Character\BaseCharacter\BaseCharacter.h">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
@@ -976,127 +719,11 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
     </ClInclude>
-    <ClInclude Include="EngineLayer\GPUParticleSystem\GpuParticleDatas\BillboardMode.h">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\3D\LevelData\LevelData.h">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\3D\LevelData\LevelObjectManager.h">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\Base\BlendStateFactory\BlendStateFactory.h">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\GPUParticleSystem\GpuParticleDatas\GpuParticleEmitterData.h">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\Math\MultipleStructs\Capsule.h">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\PostEffectManagement\DepthOutlineEffect\DepthOutlineEffect.h">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\3D\AnimationSystem\Core\AnimationModel.h">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\3D\AnimationSystem\Pipeline\AnimationPipelineBuilder.h">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\3D\AnimationSystem\Skeleton\Skeleton.h">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\3D\AnimationSystem\Skinning\SkinCluster.h">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\Math\MultipleStructs\Plane.h">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\Math\MultipleStructs\Segment.h">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\Math\MultipleStructs\Triangle.h">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\Mesh\AnimationMesh.h">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\Audio\AudioDatas\AudioCategory.h">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\Audio\AudioManager\AudioManager.h">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\Base\DX12CommandManager\DX12CommandManager.h">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\Base\DX12FenceManager\DX12FenceManager.h">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\Base\DXCCompilerManager\DXCCompilerManager.h">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\ParticleManagement\ParticleEffectType.h">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\PostEffectManagement\AbsorbEffect\AbsorbEffect.h">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\PostEffectManagement\DissolveEffect\DissolveEffect.h">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\Managers\ModelManager\AssimpLoader.h">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\Managers\DSVManager\DSVManager.h">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\Math\Quaternion\Quaternion.h">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\CameraManagement\DebugCamera\DebugCamera.h">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\Colliders\Collider.h">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClInclude>
     <ClInclude Include="ApplicationLayer\Colliders\CollisionManager.h">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
     </ClInclude>
     <ClInclude Include="ApplicationLayer\Colliders\CollisionTypeIdDef.h">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\Colliders\ContactRecord.h">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
     </ClInclude>
@@ -1108,139 +735,11 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
     </ClInclude>
-    <ClInclude Include="EngineLayer\Math\MultipleStructs\AABB.h">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\Audio\AudioDatas\AudioStructs.h">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClInclude>
     <ClInclude Include="ApplicationLayer\EffectLayer\Emitter.h">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
     </ClInclude>
-    <ClInclude Include="EngineLayer\CameraManagement\Camera\Camera.h">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\Base\MultipleStructs\VertexData.h">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\Transform\WorldTransform.h">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\ResourceChecker\LeakCheck\D3DResourceLeakChecker.h">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\Base\DirectXCommon\DirectXCommon.h">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\Base\DX12Device\DX12Device.h">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\Base\MultipleStructs\DX12Include.h">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\Base\DX12SwapChain\DX12SwapChain.h">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\Base\MultipleStructs\BlendModeType.h">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\Managers\ImGuiManager\ImGuiManager.h">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\Input\Input.h">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\FrameworkLayer\Log\LogString.h">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\Material\Material.h">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\Math\Matrix\Matrix4x4.h">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\Base\MultipleStructs\ModelData.h">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\Managers\ModelManager\ModelManager.h">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\3D\Object3D\Object3D.h">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\Managers\ResourceManager\ResourceManager.h">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\Base\ShaderCompiler\ShaderCompiler.h">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\2D\Sprite\Sprite.h">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\Managers\TextureManager\TextureManager.h">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\Math\Vectors\Vector2.h">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\Math\Vectors\Vector3.h">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\Math\Vectors\Vector4.h">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\FrameworkLayer\WindowsAPI\WinApp.h">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\3D\Object3D\Object3DCommon.h">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClInclude>
     <ClInclude Include="ApplicationLayer\EffectLayer\ParticleEmitter.h">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\Managers\ParticleManager\ParticleManager.h">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\FrameworkLayer\Framework\GameApplication.h">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\Managers\SRVManager\SRVManager.h">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\FrameworkLayer\Framework\Framework.h">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
     </ClInclude>
@@ -1260,107 +759,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
     </ClInclude>
-    <ClInclude Include="EngineLayer\Managers\ParameterManager\ParameterManager.h">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\Managers\LightManager\LightManager.h">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\Math\MultipleStructs\OBB.h">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\3D\Wireframe\Wireframe.h">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\FPSCounter\FPSCounter.h">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\3D\SkyBox\SkyBox.h">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\3D\SkyBox\SkyBoxManager.h">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\2D\Sprite\SpriteManager.h">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\PostEffectManagement\PostEffectManager\PostEffectManager.h">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\Managers\RTVManager\RTVManager.h">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\Base\MultipleStructs\TransformationMatrix.h">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\Material\ParticleMaterial.h">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\Mesh\Mesh.h">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\Transform\ParticleTransform.h">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClInclude>
     <ClInclude Include="ApplicationLayer\EffectLayer\Particle.h">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\Mesh\ParticleMesh.h">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\PostEffectManagement\GaussianFilterEffect\GaussianFilterEffect.h">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\PostEffectManagement\GrayScaleEffect\GrayScaleEffect.h">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\PostEffectManagement\IPostEffect\IPostEffect.h">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\PostEffectManagement\LuminanceOutlineEffect\LuminanceOutlineEffect.h">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\PostEffectManagement\NormalEffect\NormalEffect.h">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\PostEffectManagement\PostEffectPipelineBuilder\PostEffectPipelineBuilder.h">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\PostEffectManagement\RadialBlurEffect\RadialBlurEffect.h">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\PostEffectManagement\RandomEffect\RandomEffect.h">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\PostEffectManagement\SmoothingEffect\SmoothingEffect.h">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\PostEffectManagement\VignetteEffect\VignetteEffect.h">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
     </ClInclude>
@@ -1368,27 +767,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
     </ClInclude>
-    <ClInclude Include="EngineLayer\CameraManagement\FPSCamera\FpsCamera.h">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\ParticleManagement\ParticleFactory.h">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\2D\Sprite\NumberSpriteDrawer.h">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\Math\MultipleStructs\Sphere.h">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClInclude>
     <ClInclude Include="ApplicationLayer\ScoreManager\ScoreManager.h">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\Colliders\IDGenerator.h">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
     </ClInclude>
@@ -1412,15 +791,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
     </ClInclude>
-    <ClInclude Include="EngineLayer\Math\MultipleStructs\LinearInterpolation.h">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClInclude>
     <ClInclude Include="ApplicationLayer\Scene\PhysicalScene\PhysicalScene.h">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\Managers\UAVManager\UAVManager.h">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
     </ClInclude>
@@ -1440,35 +811,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
     </ClInclude>
-    <ClInclude Include="EngineLayer\Transform\WorldTransformEx.h">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClInclude>
     <ClInclude Include="ApplicationLayer\EffectLayer\ModelParticle.h">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\GPUParticleSystem\GpuParticleEmitter\GpuParticleEmitter.h">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\GPUParticleSystem\GpuParticleManager\GpuParticleManager.h">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\GPUParticleSystem\GpuParticleBuffers\GpuParticleBuffers.h">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\GPUParticleSystem\GpuParticleRenderer\GpuParticleRenderer.h">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\GPUParticleSystem\GpuParticleDatas\GpuParticleType.h">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\PostEffectManagement\PixelateEffect\PixelateEffect.h">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
     </ClInclude>
@@ -1484,10 +827,6 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
     </ClInclude>
-    <ClInclude Include="EngineLayer\Colliders\WorldCollisionResolver.h">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClInclude>
     <ClInclude Include="ApplicationLayer\SceneManagement\FadeManager\FadeManager.h" />
     <ClInclude Include="ApplicationLayer\WeaponSystem\WeaponMasterData\WeaponMasterData.h" />
     <ClInclude Include="ApplicationLayer\WeaponSystem\WeaponMasterData\WeaponMasterDataDatabase.h" />
@@ -1495,21 +834,12 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="ApplicationLayer\WeaponSystem\WeaponMasterData\WeaponMasterDataLoader.h" />
     <ClInclude Include="ApplicationLayer\WeaponSystem\WeaponMasterData\WeaponMasterDataValidator.h" />
     <ClInclude Include="ApplicationLayer\WeaponSystem\WeaponMasterData\WeaponMasterDataWriter.h" />
-    <ClInclude Include="EngineLayer\GPUParticleSystem\GpuParticlePipeline\GpuParticleComputePipeline.h" />
-    <ClInclude Include="EngineLayer\GPUParticleSystem\GpuParticlePipeline\GpuParticleSpritePipeline.h" />
-    <ClInclude Include="EngineLayer\GPUParticleSystem\GpuParticlePipeline\GpuParticleMeshPipeline.h" />
-    <ClInclude Include="EngineLayer\GPUParticleSystem\GpuParticlePipeline\GpuParticleMeshAsset.h" />
-    <ClInclude Include="EngineLayer\2D\Sprite\SpriteDebrisEmitter.h" />
-    <ClInclude Include="EngineLayer\2D\Sprite\SpriteFractureEffect.h" />
-    <ClInclude Include="EngineLayer\3D\AnimationSystem\Skeleton\SkeletonAnimator.h" />
-    <ClInclude Include="EngineLayer\Input\InputSnapshot.h" />
     <ClInclude Include="ApplicationLayer\Character\Player\PlayerInputSnapshot.h" />
     <ClInclude Include="ApplicationLayer\Character\Player\PlayerStateMachines.h" />
     <ClInclude Include="ApplicationLayer\Character\Player\PlayerHurtbox.h" />
     <ClInclude Include="ApplicationLayer\WeaponSystem\WeaponMasterData\WeaponInstance.h" />
     <ClInclude Include="ApplicationLayer\WeaponSystem\WeaponMasterData\WeaponParams.h" />
     <ClInclude Include="ApplicationLayer\WeaponSystem\WeaponMasterData\WeaponSystem.h" />
-    <ClInclude Include="EngineLayer\3D\LevelData\Stage.h" />
     <ClInclude Include="ApplicationLayer\UISystem\HPWidget\HPWidget.h" />
     <ClInclude Include="ApplicationLayer\UISystem\HUDManager\HUDManager.h" />
     <ClInclude Include="ApplicationLayer\Character\Player\Effect\PlayerVfx.h" />
@@ -1518,13 +848,11 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="ApplicationLayer\Character\Player\Component\PlayerViewComponent.h" />
     <ClInclude Include="ApplicationLayer\Scene\GamePlayScene\UI\PauseMenu.h" />
     <ClInclude Include="ApplicationLayer\UISystem\WeaponSlot\WeaponSlot.h" />
-    <ClInclude Include="EngineLayer\3D\LevelData\LevelLoader.h" />
     <ClInclude Include="ApplicationLayer\Scene\ShadowTestScene\ShadowTestScene.h" />
     <ClInclude Include="ApplicationLayer\Scene\GamePlayScene\UI\ResultMenu.h" />
     <ClInclude Include="ApplicationLayer\Scene\GamePlayScene\World\WaveManager.h" />
     <ClInclude Include="ApplicationLayer\UISystem\WaveUI\WaveUI.h" />
     <ClInclude Include="ApplicationLayer\Character\Player\Component\PlayerWeaponVisualComponent.h" />
-    <ClInclude Include="EngineLayer\Audio\MFAudioDecoder.h" />
     <ClInclude Include="ApplicationLayer\Scene\GamePlayScene\DebugTools\GamePlayDebugTools.h" />
     <ClInclude Include="ApplicationLayer\Scene\GamePlayScene\Core\GamePlayFlow.h" />
     <ClInclude Include="ApplicationLayer\Scene\GamePlayScene\Camera\GamePlayIntroDirector.h" />
@@ -1544,22 +872,154 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="ApplicationLayer\Character\Player\PlayerFsmApi.h" />
     <ClInclude Include="ApplicationLayer\Character\Enemy\Behavior\EnemyArchetypeBehavior.h" />
     <ClInclude Include="ApplicationLayer\Character\Enemy\Behavior\EnemyBehavior_EliteFlanker.h" />
-    <ClInclude Include="EngineLayer\Base\MainRenderTarget\MainRenderTarget.h" />
-    <ClInclude Include="EngineLayer\Base\ShadowMapRenderTarget\ShadowMapRenderTarget.h" />
-    <ClInclude Include="EngineLayer\3D\LevelData\StageAssetLoader.h" />
-    <ClInclude Include="EngineLayer\3D\LevelData\StageCollisionBuilder.h" />
-    <ClInclude Include="EngineLayer\GPUParticleSystem\GpuParticleEmitterPreset\GpuParticleEmitterPreset.h" />
-    <ClInclude Include="EngineLayer\GPUParticleSystem\GpuParticleEmitterPreset\GpuParticleEmitterAsset.h" />
-    <ClInclude Include="EngineLayer\GPUParticleSystem\GpuParticleEmitterPreset\GpuParticleEmitterSerializer.h" />
     <ClInclude Include="ApplicationLayer\UISystem\NoAmmoUI\NoAmmoUI.h" />
-    <ClInclude Include="EngineLayer\Managers\ModelManager\KMeshLoader.h" />
-    <ClInclude Include="EngineLayer\Managers\ModelManager\ModelLoader.h" />
-    <ClInclude Include="EngineLayer\Managers\ModelManager\ModelPathResolver.h" />
-    <ClInclude Include="EngineLayer\Managers\ModelManager\PathUtil.h" />
-    <ClInclude Include="PipelineCommon.h" />
-    <ClInclude Include="PipelineFactory.h" />
-    <ClInclude Include="PipelineStatePresets.h" />
-    <ClInclude Include="SpritePipelineSet.h" />
+    <ClInclude Include="Engine\Core\Application\Framework.h" />
+    <ClInclude Include="Engine\Core\Application\GameApplication.h" />
+    <ClInclude Include="Engine\Core\Logging\LogString.h" />
+    <ClInclude Include="Engine\Core\Time\LegacyFPSCounter\FPSCounter.h" />
+    <ClInclude Include="Engine\Core\Transform\ParticleTransform.h" />
+    <ClInclude Include="Engine\Core\Transform\WorldTransform.h" />
+    <ClInclude Include="Engine\Core\Transform\WorldTransformEx.h" />
+    <ClInclude Include="Engine\DebugTools\ImGui\ImGuiManager.h" />
+    <ClInclude Include="Engine\DebugTools\LeakCheck\D3DResourceLeakChecker.h" />
+    <ClInclude Include="Engine\Graphics\Camera\Core\Camera.h" />
+    <ClInclude Include="Engine\Graphics\Camera\DebugCamera\DebugCamera.h" />
+    <ClInclude Include="Engine\Graphics\Camera\FPS\FpsCamera.h" />
+    <ClInclude Include="Engine\Graphics\Common\BlendModeType.h" />
+    <ClInclude Include="Engine\Graphics\Common\DX12Include.h" />
+    <ClInclude Include="Engine\Graphics\Common\ModelData.h" />
+    <ClInclude Include="Engine\Graphics\Common\TransformationMatrix.h" />
+    <ClInclude Include="Engine\Graphics\Common\VertexData.h" />
+    <ClInclude Include="Engine\Graphics\Descriptor\DSV\DSVManager.h" />
+    <ClInclude Include="Engine\Graphics\Descriptor\RTV\RTVManager.h" />
+    <ClInclude Include="Engine\Graphics\Descriptor\SRV\SRVManager.h" />
+    <ClInclude Include="Engine\Graphics\Descriptor\UAV\UAVManager.h" />
+    <ClInclude Include="Engine\Graphics\Device\Command\DX12CommandManager.h" />
+    <ClInclude Include="Engine\Graphics\Device\Core\DX12Device.h" />
+    <ClInclude Include="Engine\Graphics\Device\Facade\DirectXCommon.h" />
+    <ClInclude Include="Engine\Graphics\Device\SwapChain\DX12SwapChain.h" />
+    <ClInclude Include="Engine\Graphics\Device\Synchronization\DX12FenceManager.h" />
+    <ClInclude Include="Engine\Graphics\Lighting\LightManager.h" />
+    <ClInclude Include="Engine\Graphics\Material\Material.h" />
+    <ClInclude Include="Engine\Graphics\Material\ParticleMaterial.h" />
+    <ClInclude Include="Engine\Graphics\Mesh\AnimationMesh.h" />
+    <ClInclude Include="Engine\Graphics\Mesh\Mesh.h" />
+    <ClInclude Include="Engine\Graphics\Mesh\ParticleMesh.h" />
+    <ClInclude Include="Engine\Graphics\Pipeline\PipelineCommon.h" />
+    <ClInclude Include="Engine\Graphics\Pipeline\PipelineFactory.h" />
+    <ClInclude Include="Engine\Graphics\Pipeline\PipelineStatePresets.h" />
+    <ClInclude Include="Engine\Graphics\PostEffect\Core\IPostEffect.h" />
+    <ClInclude Include="Engine\Graphics\PostEffect\Effects\AbsorbEffect\AbsorbEffect.h" />
+    <ClInclude Include="Engine\Graphics\PostEffect\Effects\DepthOutlineEffect\DepthOutlineEffect.h" />
+    <ClInclude Include="Engine\Graphics\PostEffect\Effects\DissolveEffect\DissolveEffect.h" />
+    <ClInclude Include="Engine\Graphics\PostEffect\Effects\GaussianFilterEffect\GaussianFilterEffect.h" />
+    <ClInclude Include="Engine\Graphics\PostEffect\Effects\GrayScaleEffect\GrayScaleEffect.h" />
+    <ClInclude Include="Engine\Graphics\PostEffect\Effects\LuminanceOutlineEffect\LuminanceOutlineEffect.h" />
+    <ClInclude Include="Engine\Graphics\PostEffect\Effects\NormalEffect\NormalEffect.h" />
+    <ClInclude Include="Engine\Graphics\PostEffect\Effects\PixelateEffect\PixelateEffect.h" />
+    <ClInclude Include="Engine\Graphics\PostEffect\Effects\RadialBlurEffect\RadialBlurEffect.h" />
+    <ClInclude Include="Engine\Graphics\PostEffect\Effects\RandomEffect\RandomEffect.h" />
+    <ClInclude Include="Engine\Graphics\PostEffect\Effects\SmoothingEffect\SmoothingEffect.h" />
+    <ClInclude Include="Engine\Graphics\PostEffect\Effects\VignetteEffect\VignetteEffect.h" />
+    <ClInclude Include="Engine\Graphics\PostEffect\Manager\PostEffectManager.h" />
+    <ClInclude Include="Engine\Graphics\PostEffect\Pipeline\PostEffectPipelineBuilder.h" />
+    <ClInclude Include="Engine\Graphics\Renderer\Animation\Collider\AnimationModelColliderController.h" />
+    <ClInclude Include="Engine\Graphics\Renderer\Animation\Collider\BodyPartCollider.h" />
+    <ClInclude Include="Engine\Graphics\Renderer\Animation\Core\AnimationLoader.h" />
+    <ClInclude Include="Engine\Graphics\Renderer\Animation\Core\AnimationModel.h" />
+    <ClInclude Include="Engine\Graphics\Renderer\Animation\Core\AnimationPlayer.h" />
+    <ClInclude Include="Engine\Graphics\Renderer\Animation\Core\AnimationSampler.h" />
+    <ClInclude Include="Engine\Graphics\Renderer\Animation\DebugView\AnimationModelDebugView.h" />
+    <ClInclude Include="Engine\Graphics\Renderer\Animation\LOD\AnimationModelLODBuilder.h" />
+    <ClInclude Include="Engine\Graphics\Renderer\Animation\LOD\AnimationModelLODController.h" />
+    <ClInclude Include="Engine\Graphics\Renderer\Animation\Pipeline\AnimationPipelineBuilder.h" />
+    <ClInclude Include="Engine\Graphics\Renderer\Animation\Skeleton\Skeleton.h" />
+    <ClInclude Include="Engine\Graphics\Renderer\Animation\Skeleton\SkeletonAnimator.h" />
+    <ClInclude Include="Engine\Graphics\Renderer\Animation\Skinning\AnimationModelSkinningCS.h" />
+    <ClInclude Include="Engine\Graphics\Renderer\Animation\Skinning\SkinCluster.h" />
+    <ClInclude Include="Engine\Graphics\Renderer\GpuParticle\Buffers\GpuParticleBuffers.h" />
+    <ClInclude Include="Engine\Graphics\Renderer\GpuParticle\Data\BillboardMode.h" />
+    <ClInclude Include="Engine\Graphics\Renderer\GpuParticle\Data\GpuParticleEmitterData.h" />
+    <ClInclude Include="Engine\Graphics\Renderer\GpuParticle\Data\GpuParticleType.h" />
+    <ClInclude Include="Engine\Graphics\Renderer\GpuParticle\Emitter\GpuParticleEmitter.h" />
+    <ClInclude Include="Engine\Graphics\Renderer\GpuParticle\Manager\GpuParticleManager.h" />
+    <ClInclude Include="Engine\Graphics\Renderer\GpuParticle\Pipeline\GpuParticleComputePipeline.h" />
+    <ClInclude Include="Engine\Graphics\Renderer\GpuParticle\Pipeline\GpuParticleMeshAsset.h" />
+    <ClInclude Include="Engine\Graphics\Renderer\GpuParticle\Pipeline\GpuParticleMeshPipeline.h" />
+    <ClInclude Include="Engine\Graphics\Renderer\GpuParticle\Pipeline\GpuParticleSpritePipeline.h" />
+    <ClInclude Include="Engine\Graphics\Renderer\GpuParticle\Preset\GpuParticleEmitterAsset.h" />
+    <ClInclude Include="Engine\Graphics\Renderer\GpuParticle\Preset\GpuParticleEmitterPreset.h" />
+    <ClInclude Include="Engine\Graphics\Renderer\GpuParticle\Preset\GpuParticleEmitterSerializer.h" />
+    <ClInclude Include="Engine\Graphics\Renderer\GpuParticle\Renderer\GpuParticleRenderer.h" />
+    <ClInclude Include="Engine\Graphics\Renderer\Object3D\Object3D.h" />
+    <ClInclude Include="Engine\Graphics\Renderer\Object3D\Object3DCommon.h" />
+    <ClInclude Include="Engine\Graphics\Renderer\Particle\Core\ParticleEffectType.h" />
+    <ClInclude Include="Engine\Graphics\Renderer\Particle\Core\ParticleFactory.h" />
+    <ClInclude Include="Engine\Graphics\Renderer\Particle\Manager\ParticleManager.h" />
+    <ClInclude Include="Engine\Graphics\Renderer\SkyBox\SkyBox.h" />
+    <ClInclude Include="Engine\Graphics\Renderer\SkyBox\SkyBoxManager.h" />
+    <ClInclude Include="Engine\Graphics\Renderer\Sprite\NumberSpriteDrawer.h" />
+    <ClInclude Include="Engine\Graphics\Renderer\Sprite\Sprite.h" />
+    <ClInclude Include="Engine\Graphics\Renderer\Sprite\SpriteDebrisEmitter.h" />
+    <ClInclude Include="Engine\Graphics\Renderer\Sprite\SpriteFractureEffect.h" />
+    <ClInclude Include="Engine\Graphics\Renderer\Sprite\SpriteManager.h" />
+    <ClInclude Include="Engine\Graphics\Renderer\Sprite\SpritePipelineSet.h" />
+    <ClInclude Include="Engine\Graphics\Renderer\Wireframe\Wireframe.h" />
+    <ClInclude Include="Engine\Graphics\RenderState\Blend\BlendStateFactory.h" />
+    <ClInclude Include="Engine\Graphics\RenderTarget\Main\MainRenderTarget.h" />
+    <ClInclude Include="Engine\Graphics\RenderTarget\Shadow\ShadowMapRenderTarget.h" />
+    <ClInclude Include="Engine\Graphics\Resource\Model\AssimpLoader.h" />
+    <ClInclude Include="Engine\Graphics\Resource\Model\KMeshLoader.h" />
+    <ClInclude Include="Engine\Graphics\Resource\Model\ModelLoader.h" />
+    <ClInclude Include="Engine\Graphics\Resource\Model\ModelManager.h" />
+    <ClInclude Include="Engine\Graphics\Resource\Model\ModelPathResolver.h" />
+    <ClInclude Include="Engine\Graphics\Resource\Model\PathUtil.h" />
+    <ClInclude Include="Engine\Graphics\Resource\Texture\TextureManager.h" />
+    <ClInclude Include="Engine\Graphics\Shader\Compiler\DXCCompilerManager.h" />
+    <ClInclude Include="Engine\Graphics\Shader\Compiler\ShaderCompiler.h" />
+    <ClInclude Include="Engine\Graphics\Shader\Manifest\AnimationShaderManifest.h" />
+    <ClInclude Include="Engine\Graphics\Shader\Manifest\GpuParticleShaderManifest.h" />
+    <ClInclude Include="Engine\Graphics\Shader\Manifest\Object3DShaderManifest.h" />
+    <ClInclude Include="Engine\Graphics\Shader\Manifest\ParticleShaderManifest.h" />
+    <ClInclude Include="Engine\Graphics\Shader\Manifest\PostEffectShaderManifest.h" />
+    <ClInclude Include="Engine\Graphics\Shader\Manifest\ShaderManifestTypes.h" />
+    <ClInclude Include="Engine\Graphics\Shader\Manifest\SkyBoxShaderManifest.h" />
+    <ClInclude Include="Engine\Graphics\Shader\Manifest\SpriteShaderManifest.h" />
+    <ClInclude Include="Engine\Graphics\Shader\Manifest\WireframeShaderManifest.h" />
+    <ClInclude Include="Engine\Math\Geometry\AABB.h" />
+    <ClInclude Include="Engine\Math\Geometry\Capsule.h" />
+    <ClInclude Include="Engine\Math\Geometry\LinearInterpolation.h" />
+    <ClInclude Include="Engine\Math\Geometry\OBB.h" />
+    <ClInclude Include="Engine\Math\Geometry\Plane.h" />
+    <ClInclude Include="Engine\Math\Geometry\Segment.h" />
+    <ClInclude Include="Engine\Math\Geometry\Sphere.h" />
+    <ClInclude Include="Engine\Math\Geometry\Triangle.h" />
+    <ClInclude Include="Engine\Math\Matrix\Matrix4x4.h" />
+    <ClInclude Include="Engine\Math\Quaternion\Quaternion.h" />
+    <ClInclude Include="Engine\Math\Vector\Vector2.h" />
+    <ClInclude Include="Engine\Math\Vector\Vector3.h" />
+    <ClInclude Include="Engine\Math\Vector\Vector4.h" />
+    <ClInclude Include="Engine\Misc\Audio\MFAudioDecoder.h" />
+    <ClInclude Include="Engine\Physics\Collision\Core\Collider.h" />
+    <ClInclude Include="Engine\Physics\Collision\Core\CollisionUtility.h" />
+    <ClInclude Include="Engine\Physics\Collision\Core\ContactRecord.h" />
+    <ClInclude Include="Engine\Physics\Collision\Core\IDGenerator.h" />
+    <ClInclude Include="Engine\Physics\Collision\Core\WorldCollisionResolver.h" />
+    <ClInclude Include="Engine\Platform\Windows\DisplaySettings.h" />
+    <ClInclude Include="Engine\Platform\Windows\WinApp.h" />
+    <ClInclude Include="Engine\Scene\Level\LevelData.h" />
+    <ClInclude Include="Engine\Scene\Level\LevelLoader.h" />
+    <ClInclude Include="Engine\Scene\Level\LevelObjectManager.h" />
+    <ClInclude Include="Engine\Scene\Level\Stage.h" />
+    <ClInclude Include="Engine\Scene\Level\StageAssetLoader.h" />
+    <ClInclude Include="Engine\Scene\Level\StageCollisionBuilder.h" />
+    <ClInclude Include="Engine\System\Audio\Data\AudioCategory.h" />
+    <ClInclude Include="Engine\System\Audio\Data\AudioStructs.h" />
+    <ClInclude Include="Engine\System\Audio\Manager\AudioManager.h" />
+    <ClInclude Include="Engine\System\Input\Input.h" />
+    <ClInclude Include="Engine\System\Input\InputSnapshot.h" />
+    <ClInclude Include="Engine\System\Parameters\ParameterManager.h" />
+    <ClInclude Include="Engine\System\Resource\ResourceManager.h" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="externals\DirectXTex\DirectXTex_Desktop_2022_Win10.vcxproj">

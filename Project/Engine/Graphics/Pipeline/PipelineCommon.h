@@ -29,12 +29,6 @@ namespace Ken4lowEngine
 	{
 		Microsoft::WRL::ComPtr<ID3D12RootSignature> rootSignature; // ルートシグネチャ
 		Microsoft::WRL::ComPtr<ID3D12PipelineState> pipelineState; // パイプラインステート
-
-		void Reset()
-		{
-			rootSignature.Reset();
-			pipelineState.Reset();
-		}
 	};
 
 	/// ---------- グラフィックスパイプライン ---------- ///

@@ -109,33 +109,6 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="WinMain.cpp" />
-    <ClCompile Include="EngineLayer\Transform\ParticleTransform.cpp">
-      <Filter>EngineLayer\Transform</Filter>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\Transform\WorldTransform.cpp">
-      <Filter>EngineLayer\Transform</Filter>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\Mesh\Mesh.cpp">
-      <Filter>EngineLayer\Mesh</Filter>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\Mesh\ParticleMesh.cpp">
-      <Filter>EngineLayer\Mesh</Filter>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\Mesh\AnimationMesh.cpp">
-      <Filter>EngineLayer\Mesh</Filter>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\Input\Input.cpp">
-      <Filter>EngineLayer\Input</Filter>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\Material\Material.cpp">
-      <Filter>EngineLayer\Material</Filter>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\Material\ParticleMaterial.cpp">
-      <Filter>EngineLayer\Material</Filter>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\ParticleManagement\ParticleFactory.cpp">
-      <Filter>EngineLayer\Particle</Filter>
-    </ClCompile>
     <ClCompile Include="ApplicationLayer\UISystem\Crosshair\Crosshair.cpp">
       <Filter>ApplicationLayer\UISystem\Crosshair</Filter>
     </ClCompile>
@@ -160,54 +133,6 @@
     <ClCompile Include="ApplicationLayer\EffectLayer\ParticleEmitter.cpp">
       <Filter>ApplicationLayer\EffectLayer</Filter>
     </ClCompile>
-    <ClCompile Include="EngineLayer\FPSCounter\FPSCounter.cpp">
-      <Filter>EngineLayer\FPSCounter</Filter>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\Math\Vectors\Vector3.cpp">
-      <Filter>EngineLayer\Math\Vectors</Filter>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\Math\Matrix\Matrix4x4.cpp">
-      <Filter>EngineLayer\Math\Matrix</Filter>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\Math\Quaternion\Quaternion.cpp">
-      <Filter>EngineLayer\Math\Quaternion</Filter>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\PostEffectManagement\AbsorbEffect\AbsorbEffect.cpp">
-      <Filter>EngineLayer\PostEffectManagement\AbsorbEffect</Filter>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\PostEffectManagement\DepthOutlineEffect\DepthOutlineEffect.cpp">
-      <Filter>EngineLayer\PostEffectManagement\DepthOutlineEffect</Filter>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\PostEffectManagement\DissolveEffect\DissolveEffect.cpp">
-      <Filter>EngineLayer\PostEffectManagement\DissolveEffect</Filter>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\PostEffectManagement\GaussianFilterEffect\GaussianFilterEffect.cpp">
-      <Filter>EngineLayer\PostEffectManagement\GaussianFilterEffect</Filter>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\PostEffectManagement\GrayScaleEffect\GrayScaleEffect.cpp">
-      <Filter>EngineLayer\PostEffectManagement\GrayScaleEffect</Filter>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\PostEffectManagement\LuminanceOutlineEffect\LuminanceOutlineEffect.cpp">
-      <Filter>EngineLayer\PostEffectManagement\LuminanceOutlineEffect</Filter>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\PostEffectManagement\NormalEffect\NormalEffect.cpp">
-      <Filter>EngineLayer\PostEffectManagement\NormalEffect</Filter>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\PostEffectManagement\PostEffectPipelineBuilder\PostEffectPipelineBuilder.cpp">
-      <Filter>EngineLayer\PostEffectManagement\PostEffectManagement</Filter>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\PostEffectManagement\RadialBlurEffect\RadialBlurEffect.cpp">
-      <Filter>EngineLayer\PostEffectManagement\RadialBlurEffect</Filter>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\PostEffectManagement\RandomEffect\RandomEffect.cpp">
-      <Filter>EngineLayer\PostEffectManagement\RandomEffect</Filter>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\PostEffectManagement\SmoothingEffect\SmoothingEffect.cpp">
-      <Filter>EngineLayer\PostEffectManagement\SmoothingEffect</Filter>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\PostEffectManagement\VignetteEffect\VignetteEffect.cpp">
-      <Filter>EngineLayer\PostEffectManagement\VignetteEffect</Filter>
-    </ClCompile>
     <ClCompile Include="ApplicationLayer\Scene\GamePlayScene\GamePlayScene.cpp">
       <Filter>ApplicationLayer\Scene\GamePlayScene</Filter>
     </ClCompile>
@@ -223,125 +148,8 @@
     <ClCompile Include="ApplicationLayer\SceneManagement\SceneManager\SceneManager.cpp">
       <Filter>ApplicationLayer\SceneManager\SceneManager</Filter>
     </ClCompile>
-    <ClCompile Include="EngineLayer\2D\Sprite\Sprite.cpp">
-      <Filter>EngineLayer\2D\Sprite</Filter>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\2D\Sprite\NumberSpriteDrawer.cpp">
-      <Filter>EngineLayer\2D\Sprite</Filter>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\2D\Sprite\SpriteManager.cpp">
-      <Filter>EngineLayer\2D\Sprite</Filter>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\3D\LevelData\LevelObjectManager.cpp">
-      <Filter>EngineLayer\3D\LevelData</Filter>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\3D\Object3D\Object3D.cpp">
-      <Filter>EngineLayer\3D\Object3D</Filter>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\3D\Object3D\Object3DCommon.cpp">
-      <Filter>EngineLayer\3D\Object3D</Filter>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\3D\SkyBox\SkyBox.cpp">
-      <Filter>EngineLayer\3D\SkyBox</Filter>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\3D\Wireframe\Wireframe.cpp">
-      <Filter>EngineLayer\3D\Wireframe</Filter>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\Base\BlendStateFactory\BlendStateFactory.cpp">
-      <Filter>EngineLayer\Base\BlendStateFactory</Filter>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\Base\DirectXCommon\DirectXCommon.cpp">
-      <Filter>EngineLayer\Base\DirectXCommon</Filter>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\Base\DX12CommandManager\DX12CommandManager.cpp">
-      <Filter>EngineLayer\Base\DX12CommandManager</Filter>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\Base\DX12Device\DX12Device.cpp">
-      <Filter>EngineLayer\Base\DX12Device</Filter>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\Base\DX12FenceManager\DX12FenceManager.cpp">
-      <Filter>EngineLayer\Base\DX12FenceManager</Filter>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\Base\DX12SwapChain\DX12SwapChain.cpp">
-      <Filter>EngineLayer\Base\DX12SwapChain</Filter>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\Base\DXCCompilerManager\DXCCompilerManager.cpp">
-      <Filter>EngineLayer\Base\DXCCompilerManager</Filter>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\Base\ShaderCompiler\ShaderCompiler.cpp">
-      <Filter>EngineLayer\Base\ShaderCompiler</Filter>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\CameraManagement\Camera\Camera.cpp">
-      <Filter>EngineLayer\CameraManagement\Camera</Filter>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\CameraManagement\DebugCamera\DebugCamera.cpp">
-      <Filter>EngineLayer\CameraManagement\DebugCamera</Filter>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\CameraManagement\FPSCamera\FpsCamera.cpp">
-      <Filter>EngineLayer\CameraManagement\FpsCamera</Filter>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\FrameworkLayer\Framework\Framework.cpp">
-      <Filter>EngineLayer\FrameworkLayer\Framework</Filter>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\FrameworkLayer\Framework\GameApplication.cpp">
-      <Filter>EngineLayer\FrameworkLayer\Framework</Filter>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\FrameworkLayer\Log\LogString.cpp">
-      <Filter>EngineLayer\FrameworkLayer\Log</Filter>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\FrameworkLayer\WindowsAPI\WinApp.cpp">
-      <Filter>EngineLayer\FrameworkLayer\WindowsAPI</Filter>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\ResourceChecker\LeakCheck\D3DResourceLeakChecker.cpp">
-      <Filter>EngineLayer\ResourceChecker</Filter>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\Audio\AudioManager\AudioManager.cpp">
-      <Filter>EngineLayer\Audio</Filter>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\Managers\ModelManager\AssimpLoader.cpp">
-      <Filter>EngineLayer\Managers\ModelManager</Filter>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\Managers\ModelManager\ModelManager.cpp">
-      <Filter>EngineLayer\Managers\ModelManager</Filter>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\Managers\DSVManager\DSVManager.cpp">
-      <Filter>EngineLayer\Managers\DSVManager</Filter>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\Managers\ImGuiManager\ImGuiManager.cpp">
-      <Filter>EngineLayer\Managers\ImGuiManager</Filter>
-    </ClCompile>
     <ClCompile Include="ApplicationLayer\Item\ItemManager.cpp">
       <Filter>ApplicationLayer\Item</Filter>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\Managers\LightManager\LightManager.cpp">
-      <Filter>EngineLayer\Managers\LightManager</Filter>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\Managers\ParameterManager\ParameterManager.cpp">
-      <Filter>EngineLayer\Managers\ParameterManager</Filter>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\Managers\ParticleManager\ParticleManager.cpp">
-      <Filter>EngineLayer\Managers\ParticleManager</Filter>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\Managers\ResourceManager\ResourceManager.cpp">
-      <Filter>EngineLayer\Managers\ResourceManager</Filter>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\Managers\RTVManager\RTVManager.cpp">
-      <Filter>EngineLayer\Managers\RTVManager</Filter>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\3D\SkyBox\SkyBoxManager.cpp">
-      <Filter>EngineLayer\3D\SkyBox</Filter>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\Managers\SRVManager\SRVManager.cpp">
-      <Filter>EngineLayer\Managers\SRVManager</Filter>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\Managers\TextureManager\TextureManager.cpp">
-      <Filter>EngineLayer\Managers\TextureManager</Filter>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\Managers\UAVManager\UAVManager.cpp">
-      <Filter>EngineLayer\Managers\UAVManager</Filter>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\PostEffectManagement\PostEffectManager\PostEffectManager.cpp">
-      <Filter>EngineLayer\Managers\PostEffectManager</Filter>
     </ClCompile>
     <ClCompile Include="ApplicationLayer\Scene\StageSelectScene\GridStageSelector.cpp">
       <Filter>ApplicationLayer\Scene\StageSelectScene</Filter>
@@ -352,26 +160,8 @@
     <ClCompile Include="ApplicationLayer\Character\BaseCharacter\BaseCharacter.cpp">
       <Filter>ApplicationLayer\Character\BaseCharacter</Filter>
     </ClCompile>
-    <ClCompile Include="EngineLayer\Transform\WorldTransformEx.cpp">
-      <Filter>EngineLayer\Transform</Filter>
-    </ClCompile>
     <ClCompile Include="ApplicationLayer\EffectLayer\ModelParticle.cpp">
       <Filter>ApplicationLayer\EffectLayer</Filter>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\GPUParticleSystem\GpuParticleBuffers\GpuParticleBuffers.cpp">
-      <Filter>EngineLayer\GpuParticleSystem\GpuParticleBuffers</Filter>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\GPUParticleSystem\GpuParticleEmitter\GpuParticleEmitter.cpp">
-      <Filter>EngineLayer\GpuParticleSystem\GpuParticleEmitter</Filter>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\GPUParticleSystem\GpuParticleManager\GpuParticleManager.cpp">
-      <Filter>EngineLayer\GpuParticleSystem\GpuParticleManager</Filter>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\GPUParticleSystem\GpuParticleRenderer\GpuParticleRenderer.cpp">
-      <Filter>EngineLayer\GpuParticleSystem\GpuParticleRenderer</Filter>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\PostEffectManagement\PixelateEffect\PixelateEffect.cpp">
-      <Filter>EngineLayer\PostEffectManagement\PixelateEffect</Filter>
     </ClCompile>
     <ClCompile Include="ApplicationLayer\Scene\StageSelectScene\State\StageSelectSelectingState.cpp">
       <Filter>ApplicationLayer\Scene\StageSelectScene\State</Filter>
@@ -384,18 +174,6 @@
     </ClCompile>
     <ClCompile Include="ApplicationLayer\EffectLayer\BossEnemyVfx.cpp">
       <Filter>ApplicationLayer\EffectLayer</Filter>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\Colliders\Collider.cpp">
-      <Filter>EngineLayer\Colliders</Filter>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\Colliders\CollisionUtility.cpp">
-      <Filter>EngineLayer\Colliders</Filter>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\Colliders\ContactRecord.cpp">
-      <Filter>EngineLayer\Colliders</Filter>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\Colliders\WorldCollisionResolver.cpp">
-      <Filter>EngineLayer\Colliders</Filter>
     </ClCompile>
     <ClCompile Include="ApplicationLayer\Scene\DebugScene\DebugScene.cpp">
       <Filter>ApplicationLayer\Scene\DebugScene</Filter>
@@ -418,54 +196,6 @@
     <ClCompile Include="ApplicationLayer\WeaponSystem\WeaponMasterData\WeaponMasterDataWriter.cpp">
       <Filter>ApplicationLayer\WeaponSystem\WeaponMasterData</Filter>
     </ClCompile>
-    <ClCompile Include="EngineLayer\GPUParticleSystem\GpuParticlePipeline\GpuParticleMeshPipeline.cpp">
-      <Filter>EngineLayer\GpuParticleSystem\GpuParticlePipeline</Filter>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\GPUParticleSystem\GpuParticlePipeline\GpuParticleSpritePipeline.cpp">
-      <Filter>EngineLayer\GpuParticleSystem\GpuParticlePipeline</Filter>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\GPUParticleSystem\GpuParticlePipeline\GpuParticleComputePipeline.cpp">
-      <Filter>EngineLayer\GpuParticleSystem\GpuParticlePipeline</Filter>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\2D\Sprite\SpriteDebrisEmitter.cpp">
-      <Filter>EngineLayer\2D\Sprite</Filter>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\2D\Sprite\SpriteFractureEffect.cpp">
-      <Filter>EngineLayer\2D\Sprite</Filter>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\3D\AnimationSystem\Core\AnimationLoader.cpp">
-      <Filter>EngineLayer\3D\AnimationManagement\Core</Filter>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\3D\AnimationSystem\Core\AnimationModel.cpp">
-      <Filter>EngineLayer\3D\AnimationManagement\Core</Filter>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\3D\AnimationSystem\Skeleton\SkeletonAnimator.cpp">
-      <Filter>EngineLayer\3D\AnimationManagement\Skeleton</Filter>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\3D\AnimationSystem\Skeleton\Skeleton.cpp">
-      <Filter>EngineLayer\3D\AnimationManagement\Skeleton</Filter>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\3D\AnimationSystem\Skinning\SkinCluster.cpp">
-      <Filter>EngineLayer\3D\AnimationManagement\Skinning</Filter>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\3D\AnimationSystem\Skinning\AnimationModelSkinningCS.cpp">
-      <Filter>EngineLayer\3D\AnimationManagement\Skinning</Filter>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\3D\AnimationSystem\LOD\AnimationModelLODBuilder.cpp">
-      <Filter>EngineLayer\3D\AnimationManagement\LOD</Filter>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\3D\AnimationSystem\LOD\AnimationModelLODController.cpp">
-      <Filter>EngineLayer\3D\AnimationManagement\LOD</Filter>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\3D\AnimationSystem\Pipeline\AnimationPipelineBuilder.cpp">
-      <Filter>EngineLayer\3D\AnimationManagement\Pipeline</Filter>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\3D\AnimationSystem\Collider\AnimationModelColliderController.cpp">
-      <Filter>EngineLayer\3D\AnimationManagement\Collider</Filter>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\3D\AnimationSystem\Core\AnimationPlayer.cpp">
-      <Filter>EngineLayer\3D\AnimationManagement\Core</Filter>
-    </ClCompile>
     <ClCompile Include="ApplicationLayer\Character\Bullet\Bullet.cpp">
       <Filter>ApplicationLayer\Character\Bullet</Filter>
     </ClCompile>
@@ -483,9 +213,6 @@
     </ClCompile>
     <ClCompile Include="ApplicationLayer\WeaponSystem\WeaponMasterData\WeaponSystem.cpp">
       <Filter>ApplicationLayer\WeaponSystem\WeaponMasterData</Filter>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\3D\LevelData\Stage.cpp">
-      <Filter>EngineLayer\3D\LevelData</Filter>
     </ClCompile>
     <ClCompile Include="ApplicationLayer\UISystem\HPWidget\HPWidget.cpp">
       <Filter>ApplicationLayer\UISystem\HPWidget</Filter>
@@ -529,14 +256,8 @@
     <ClCompile Include="ApplicationLayer\Scene\TitleScene\State\TitleTransitionToLobby.cpp">
       <Filter>ApplicationLayer\Scene\TitleScene\State</Filter>
     </ClCompile>
-    <ClCompile Include="EngineLayer\3D\AnimationSystem\DebugView\AnimationModelDebugView.cpp">
-      <Filter>EngineLayer\3D\AnimationManagement\DebugView</Filter>
-    </ClCompile>
     <ClCompile Include="ApplicationLayer\UISystem\WeaponSlot\WeaponSlot.cpp">
       <Filter>ApplicationLayer\UISystem\WeaponSlot</Filter>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\3D\LevelData\LevelLoader.cpp">
-      <Filter>EngineLayer\3D\LevelData</Filter>
     </ClCompile>
     <ClCompile Include="ApplicationLayer\Scene\ShadowTestScene\ShadowTestScene.cpp">
       <Filter>ApplicationLayer\Scene\ShadowTextScene</Filter>
@@ -546,9 +267,6 @@
     </ClCompile>
     <ClCompile Include="ApplicationLayer\Character\Player\Component\PlayerWeaponVisualComponent.cpp">
       <Filter>ApplicationLayer\Character\Player\Component</Filter>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\Audio\MFAudioDecoder.cpp">
-      <Filter>EngineLayer\Audio</Filter>
     </ClCompile>
     <ClCompile Include="ApplicationLayer\Scene\GamePlayScene\Camera\GamePlayIntroDirector.cpp">
       <Filter>ApplicationLayer\Scene\GamePlayScene\Camera</Filter>
@@ -712,27 +430,6 @@
     <ClCompile Include="ApplicationLayer\Character\Enemy\Behavior\EnemyBehavior_Suppressor.cpp">
       <Filter>ApplicationLayer\Character\Enemy\Behavior</Filter>
     </ClCompile>
-    <ClCompile Include="EngineLayer\Base\MainRenderTarget\MainRenderTarget.cpp">
-      <Filter>EngineLayer\Base\MainRenderTarget</Filter>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\Base\ShadowMapRenderTarget\ShadowMapRenderTarget.cpp">
-      <Filter>EngineLayer\Base\ShadowMapRenderTarget</Filter>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\Input\InputSnapshot.cpp">
-      <Filter>EngineLayer\Input</Filter>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\3D\LevelData\StageAssetLoader.cpp">
-      <Filter>EngineLayer\3D\LevelData</Filter>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\3D\LevelData\StageCollisionBuilder.cpp">
-      <Filter>EngineLayer\3D\LevelData</Filter>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\GPUParticleSystem\GpuParticleEmitterPreset\GpuParticleEmitterPreset.cpp">
-      <Filter>EngineLayer\GpuParticleSystem\GpuParticleEmitterPreset</Filter>
-    </ClCompile>
-    <ClCompile Include="EngineLayer\GPUParticleSystem\GpuParticleEmitterPreset\GpuParticleEmitterSerializer.cpp">
-      <Filter>EngineLayer\GpuParticleSystem\GpuParticleEmitterPreset</Filter>
-    </ClCompile>
     <ClCompile Include="ApplicationLayer\Character\Enemy\Effects\EnemyParticleEffectSystem.cpp">
       <Filter>ApplicationLayer\Character\Enemy\Effects</Filter>
     </ClCompile>
@@ -751,77 +448,329 @@
     <ClCompile Include="ApplicationLayer\UISystem\NoAmmoUI\NoAmmoUI.cpp">
       <Filter>ApplicationLayer\UISystem\NoAmmoUI</Filter>
     </ClCompile>
-    <ClCompile Include="EngineLayer\Managers\ModelManager\KMeshLoader.cpp">
-      <Filter>EngineLayer\Managers\ModelManager</Filter>
+    <ClCompile Include="Engine\Core\Application\Framework.cpp">
+      <Filter>Engine\Core\Application</Filter>
     </ClCompile>
-    <ClCompile Include="EngineLayer\Managers\ModelManager\ModelLoader.cpp">
-      <Filter>EngineLayer\Managers\ModelManager</Filter>
+    <ClCompile Include="Engine\Core\Application\GameApplication.cpp">
+      <Filter>Engine\Core\Application</Filter>
     </ClCompile>
-    <ClCompile Include="EngineLayer\Managers\ModelManager\ModelPathResolver.cpp">
-      <Filter>EngineLayer\Managers\ModelManager</Filter>
+    <ClCompile Include="Engine\Core\Logging\LogString.cpp">
+      <Filter>Engine\Core\Logging</Filter>
     </ClCompile>
-    <ClCompile Include="PipelineFactory.cpp" />
-    <ClCompile Include="PipelineStatePresets.cpp" />
-    <ClCompile Include="SpritePipelineSet.cpp" />
+    <ClCompile Include="Engine\Core\Time\LegacyFPSCounter\FPSCounter.cpp">
+      <Filter>Engine\Core\Time\LegacyFPSCounter</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Core\Transform\ParticleTransform.cpp">
+      <Filter>Engine\Core\Transform</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Core\Transform\WorldTransform.cpp">
+      <Filter>Engine\Core\Transform</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Core\Transform\WorldTransformEx.cpp">
+      <Filter>Engine\Core\Transform</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\DebugTools\ImGui\ImGuiManager.cpp">
+      <Filter>Engine\DebugTools\ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\DebugTools\LeakCheck\D3DResourceLeakChecker.cpp">
+      <Filter>Engine\DebugTools\LeakCheck</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Platform\Windows\WinApp.cpp">
+      <Filter>Engine\Platform\Windows</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Physics\Collision\Core\Collider.cpp">
+      <Filter>Engine\Physics\Collision\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Physics\Collision\Core\CollisionUtility.cpp">
+      <Filter>Engine\Physics\Collision\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Physics\Collision\Core\WorldCollisionResolver.cpp">
+      <Filter>Engine\Physics\Collision\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Physics\Collision\Core\ContactRecord.cpp">
+      <Filter>Engine\Physics\Collision\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Scene\Level\LevelLoader.cpp">
+      <Filter>Engine\Scene\Level</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Scene\Level\LevelObjectManager.cpp">
+      <Filter>Engine\Scene\Level</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Scene\Level\StageAssetLoader.cpp">
+      <Filter>Engine\Scene\Level</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Scene\Level\StageCollisionBuilder.cpp">
+      <Filter>Engine\Scene\Level</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Scene\Level\Stage.cpp">
+      <Filter>Engine\Scene\Level</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Math\Vector\Vector3.cpp">
+      <Filter>Engine\Math\Vector</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Math\Quaternion\Quaternion.cpp">
+      <Filter>Engine\Math\Quaternion</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Math\Matrix\Matrix4x4.cpp">
+      <Filter>Engine\Math\Matrix</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\System\Resource\ResourceManager.cpp">
+      <Filter>Engine\System\Resource</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\System\Parameters\ParameterManager.cpp">
+      <Filter>Engine\System\Parameters</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\System\Input\Input.cpp">
+      <Filter>Engine\System\Input</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\System\Input\InputSnapshot.cpp">
+      <Filter>Engine\System\Input</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\System\Audio\Manager\AudioManager.cpp">
+      <Filter>Engine\System\Audio\Manager</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Misc\Audio\MFAudioDecoder.cpp">
+      <Filter>Engine\Misc\Audio</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Graphics\Camera\Core\Camera.cpp">
+      <Filter>Engine\Graphics\Camera\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Graphics\Camera\DebugCamera\DebugCamera.cpp">
+      <Filter>Engine\Graphics\Camera\DebugCamera</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Graphics\Camera\FPS\FpsCamera.cpp">
+      <Filter>Engine\Graphics\Camera\FPS</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Graphics\Descriptor\DSV\DSVManager.cpp">
+      <Filter>Engine\Graphics\Descriptor\DSV</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Graphics\Descriptor\RTV\RTVManager.cpp">
+      <Filter>Engine\Graphics\Descriptor\RTV</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Graphics\Descriptor\SRV\SRVManager.cpp">
+      <Filter>Engine\Graphics\Descriptor\SRV</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Graphics\Descriptor\UAV\UAVManager.cpp">
+      <Filter>Engine\Graphics\Descriptor\UAV</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Graphics\Lighting\LightManager.cpp">
+      <Filter>Engine\Graphics\Lighting</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Graphics\Material\Material.cpp">
+      <Filter>Engine\Graphics\Material</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Graphics\Material\ParticleMaterial.cpp">
+      <Filter>Engine\Graphics\Material</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Graphics\Mesh\AnimationMesh.cpp">
+      <Filter>Engine\Graphics\Mesh</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Graphics\Mesh\Mesh.cpp">
+      <Filter>Engine\Graphics\Mesh</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Graphics\Mesh\ParticleMesh.cpp">
+      <Filter>Engine\Graphics\Mesh</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Graphics\Pipeline\PipelineFactory.cpp">
+      <Filter>Engine\Graphics\Pipeline</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Graphics\Pipeline\PipelineStatePresets.cpp">
+      <Filter>Engine\Graphics\Pipeline</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Graphics\PostEffect\Effects\AbsorbEffect\AbsorbEffect.cpp">
+      <Filter>Engine\Graphics\PostEffect\Effects</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Graphics\PostEffect\Effects\DepthOutlineEffect\DepthOutlineEffect.cpp">
+      <Filter>Engine\Graphics\PostEffect\Effects</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Graphics\PostEffect\Effects\DissolveEffect\DissolveEffect.cpp">
+      <Filter>Engine\Graphics\PostEffect\Effects</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Graphics\PostEffect\Effects\GaussianFilterEffect\GaussianFilterEffect.cpp">
+      <Filter>Engine\Graphics\PostEffect\Effects</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Graphics\PostEffect\Effects\GrayScaleEffect\GrayScaleEffect.cpp">
+      <Filter>Engine\Graphics\PostEffect\Effects</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Graphics\PostEffect\Effects\LuminanceOutlineEffect\LuminanceOutlineEffect.cpp">
+      <Filter>Engine\Graphics\PostEffect\Effects</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Graphics\PostEffect\Effects\NormalEffect\NormalEffect.cpp">
+      <Filter>Engine\Graphics\PostEffect\Effects</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Graphics\PostEffect\Effects\PixelateEffect\PixelateEffect.cpp">
+      <Filter>Engine\Graphics\PostEffect\Effects</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Graphics\PostEffect\Effects\RadialBlurEffect\RadialBlurEffect.cpp">
+      <Filter>Engine\Graphics\PostEffect\Effects</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Graphics\PostEffect\Effects\RandomEffect\RandomEffect.cpp">
+      <Filter>Engine\Graphics\PostEffect\Effects</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Graphics\PostEffect\Effects\SmoothingEffect\SmoothingEffect.cpp">
+      <Filter>Engine\Graphics\PostEffect\Effects</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Graphics\PostEffect\Effects\VignetteEffect\VignetteEffect.cpp">
+      <Filter>Engine\Graphics\PostEffect\Effects</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Graphics\PostEffect\Manager\PostEffectManager.cpp">
+      <Filter>Engine\Graphics\PostEffect\Manager</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Graphics\PostEffect\Pipeline\PostEffectPipelineBuilder.cpp">
+      <Filter>Engine\Graphics\PostEffect\Pipeline</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Graphics\Device\SwapChain\DX12SwapChain.cpp">
+      <Filter>Engine\Graphics\Device\SwapChain</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Graphics\Device\Synchronization\DX12FenceManager.cpp">
+      <Filter>Engine\Graphics\Device\Synchronization</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Graphics\Device\Core\DX12Device.cpp">
+      <Filter>Engine\Graphics\Device\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Graphics\Device\Command\DX12CommandManager.cpp">
+      <Filter>Engine\Graphics\Device\Command</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Graphics\Device\Facade\DirectXCommon.cpp">
+      <Filter>Engine\Graphics\Device\Facade</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Graphics\Shader\Compiler\DXCCompilerManager.cpp">
+      <Filter>Engine\Graphics\Shader\Compiler</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Graphics\Shader\Compiler\ShaderCompiler.cpp">
+      <Filter>Engine\Graphics\Shader\Compiler</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Graphics\RenderTarget\Main\MainRenderTarget.cpp">
+      <Filter>Engine\Graphics\RenderTarget\Main</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Graphics\RenderTarget\Shadow\ShadowMapRenderTarget.cpp">
+      <Filter>Engine\Graphics\RenderTarget\Shadow</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Graphics\RenderState\Blend\BlendStateFactory.cpp">
+      <Filter>Engine\Graphics\RenderState\Blend</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Graphics\Resource\Model\AssimpLoader.cpp">
+      <Filter>Engine\Graphics\Resource\Model</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Graphics\Resource\Model\KMeshLoader.cpp">
+      <Filter>Engine\Graphics\Resource\Model</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Graphics\Resource\Model\ModelLoader.cpp">
+      <Filter>Engine\Graphics\Resource\Model</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Graphics\Resource\Model\ModelManager.cpp">
+      <Filter>Engine\Graphics\Resource\Model</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Graphics\Resource\Model\ModelPathResolver.cpp">
+      <Filter>Engine\Graphics\Resource\Model</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Graphics\Resource\Texture\TextureManager.cpp">
+      <Filter>Engine\Graphics\Resource\Texture</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Graphics\Renderer\Animation\Collider\AnimationModelColliderController.cpp">
+      <Filter>Engine\Graphics\Renderer\Animation\Collider</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Graphics\Renderer\Animation\Core\AnimationLoader.cpp">
+      <Filter>Engine\Graphics\Renderer\Animation\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Graphics\Renderer\Animation\Core\AnimationModel.cpp">
+      <Filter>Engine\Graphics\Renderer\Animation\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Graphics\Renderer\Animation\Core\AnimationPlayer.cpp">
+      <Filter>Engine\Graphics\Renderer\Animation\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Graphics\Renderer\Animation\DebugView\AnimationModelDebugView.cpp">
+      <Filter>Engine\Graphics\Renderer\Animation\DebugView</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Graphics\Renderer\Animation\LOD\AnimationModelLODBuilder.cpp">
+      <Filter>Engine\Graphics\Renderer\Animation\LOD</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Graphics\Renderer\Animation\LOD\AnimationModelLODController.cpp">
+      <Filter>Engine\Graphics\Renderer\Animation\LOD</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Graphics\Renderer\Animation\Pipeline\AnimationPipelineBuilder.cpp">
+      <Filter>Engine\Graphics\Renderer\Animation\Pipeline</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Graphics\Renderer\Animation\Skinning\AnimationModelSkinningCS.cpp">
+      <Filter>Engine\Graphics\Renderer\Animation\Skinning</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Graphics\Renderer\Animation\Skinning\SkinCluster.cpp">
+      <Filter>Engine\Graphics\Renderer\Animation\Skinning</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Graphics\Renderer\Animation\Skeleton\Skeleton.cpp">
+      <Filter>Engine\Graphics\Renderer\Animation\Skeleton</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Graphics\Renderer\Animation\Skeleton\SkeletonAnimator.cpp">
+      <Filter>Engine\Graphics\Renderer\Animation\Skeleton</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Graphics\Renderer\GpuParticle\Buffers\GpuParticleBuffers.cpp">
+      <Filter>Engine\Graphics\Renderer\GpuParticle\Buffers</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Graphics\Renderer\GpuParticle\Emitter\GpuParticleEmitter.cpp">
+      <Filter>Engine\Graphics\Renderer\GpuParticle\Emitter</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Graphics\Renderer\GpuParticle\Manager\GpuParticleManager.cpp">
+      <Filter>Engine\Graphics\Renderer\GpuParticle\Manager</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Graphics\Renderer\GpuParticle\Pipeline\GpuParticleComputePipeline.cpp">
+      <Filter>Engine\Graphics\Renderer\GpuParticle\Pipeline</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Graphics\Renderer\GpuParticle\Pipeline\GpuParticleMeshPipeline.cpp">
+      <Filter>Engine\Graphics\Renderer\GpuParticle\Pipeline</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Graphics\Renderer\GpuParticle\Pipeline\GpuParticleSpritePipeline.cpp">
+      <Filter>Engine\Graphics\Renderer\GpuParticle\Pipeline</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Graphics\Renderer\GpuParticle\Preset\GpuParticleEmitterPreset.cpp">
+      <Filter>Engine\Graphics\Renderer\GpuParticle\Preset</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Graphics\Renderer\GpuParticle\Preset\GpuParticleEmitterSerializer.cpp">
+      <Filter>Engine\Graphics\Renderer\GpuParticle\Preset</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Graphics\Renderer\GpuParticle\Renderer\GpuParticleRenderer.cpp">
+      <Filter>Engine\Graphics\Renderer\GpuParticle\Renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Graphics\Renderer\Object3D\Object3D.cpp">
+      <Filter>Engine\Graphics\Renderer\Object3D</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Graphics\Renderer\Object3D\Object3DCommon.cpp">
+      <Filter>Engine\Graphics\Renderer\Object3D</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Graphics\Renderer\Sprite\Sprite.cpp">
+      <Filter>Engine\Graphics\Renderer\Sprite</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Graphics\Renderer\Sprite\SpriteDebrisEmitter.cpp">
+      <Filter>Engine\Graphics\Renderer\Sprite</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Graphics\Renderer\Sprite\SpriteFractureEffect.cpp">
+      <Filter>Engine\Graphics\Renderer\Sprite</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Graphics\Renderer\Sprite\SpriteManager.cpp">
+      <Filter>Engine\Graphics\Renderer\Sprite</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Graphics\Renderer\Sprite\SpritePipelineSet.cpp">
+      <Filter>Engine\Graphics\Renderer\Sprite</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Graphics\Renderer\SkyBox\SkyBox.cpp">
+      <Filter>Engine\Graphics\Renderer\SkyBox</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Graphics\Renderer\SkyBox\SkyBoxManager.cpp">
+      <Filter>Engine\Graphics\Renderer\SkyBox</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Graphics\Renderer\Wireframe\Wireframe.cpp">
+      <Filter>Engine\Graphics\Renderer\Wireframe</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Graphics\Renderer\Sprite\NumberSpriteDrawer.cpp">
+      <Filter>Engine\Graphics\Renderer\Sprite</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Graphics\Renderer\Particle\Manager\ParticleManager.cpp">
+      <Filter>Engine\Graphics\Renderer\Particle\Manager</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Graphics\Renderer\Particle\Core\ParticleFactory.cpp">
+      <Filter>Engine\Graphics\Renderer\Particle\Core</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="EngineLayer\Math\MultipleStructs\AABB.h">
-      <Filter>EngineLayer\Math</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\Math\MultipleStructs\OBB.h">
-      <Filter>EngineLayer\Math</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\Math\MultipleStructs\Segment.h">
-      <Filter>EngineLayer\Math</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\Math\MultipleStructs\LinearInterpolation.h">
-      <Filter>EngineLayer\Math</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\Audio\AudioDatas\AudioCategory.h">
-      <Filter>EngineLayer\Audio</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\Audio\AudioDatas\AudioStructs.h">
-      <Filter>EngineLayer\Audio</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\Math\MultipleStructs\Plane.h">
-      <Filter>EngineLayer\Math</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\Math\MultipleStructs\Sphere.h">
-      <Filter>EngineLayer\Math</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\Math\MultipleStructs\Triangle.h">
-      <Filter>EngineLayer\Math</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\Transform\ParticleTransform.h">
-      <Filter>EngineLayer\Transform</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\Transform\WorldTransform.h">
-      <Filter>EngineLayer\Transform</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\Mesh\Mesh.h">
-      <Filter>EngineLayer\Mesh</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\Mesh\ParticleMesh.h">
-      <Filter>EngineLayer\Mesh</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\Mesh\AnimationMesh.h">
-      <Filter>EngineLayer\Mesh</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\Input\Input.h">
-      <Filter>EngineLayer\Input</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\Material\Material.h">
-      <Filter>EngineLayer\Material</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\Material\ParticleMaterial.h">
-      <Filter>EngineLayer\Material</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\ParticleManagement\ParticleEffectType.h">
-      <Filter>EngineLayer\Particle</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\ParticleManagement\ParticleFactory.h">
-      <Filter>EngineLayer\Particle</Filter>
-    </ClInclude>
     <ClInclude Include="ApplicationLayer\UISystem\Crosshair\Crosshair.h">
       <Filter>ApplicationLayer\UISystem\Crosshair</Filter>
     </ClInclude>
@@ -858,66 +807,6 @@
     <ClInclude Include="ApplicationLayer\EffectLayer\Particle.h">
       <Filter>ApplicationLayer\EffectLayer</Filter>
     </ClInclude>
-    <ClInclude Include="EngineLayer\FPSCounter\FPSCounter.h">
-      <Filter>EngineLayer\FPSCounter</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\Math\MultipleStructs\Capsule.h">
-      <Filter>EngineLayer\Math</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\Math\Vectors\Vector2.h">
-      <Filter>EngineLayer\Math\Vectors</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\Math\Vectors\Vector3.h">
-      <Filter>EngineLayer\Math\Vectors</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\Math\Vectors\Vector4.h">
-      <Filter>EngineLayer\Math\Vectors</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\Math\Matrix\Matrix4x4.h">
-      <Filter>EngineLayer\Math\Matrix</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\Math\Quaternion\Quaternion.h">
-      <Filter>EngineLayer\Math\Quaternion</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\PostEffectManagement\AbsorbEffect\AbsorbEffect.h">
-      <Filter>EngineLayer\PostEffectManagement\AbsorbEffect</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\PostEffectManagement\DepthOutlineEffect\DepthOutlineEffect.h">
-      <Filter>EngineLayer\PostEffectManagement\DepthOutlineEffect</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\PostEffectManagement\DissolveEffect\DissolveEffect.h">
-      <Filter>EngineLayer\PostEffectManagement\DissolveEffect</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\PostEffectManagement\GaussianFilterEffect\GaussianFilterEffect.h">
-      <Filter>EngineLayer\PostEffectManagement\GaussianFilterEffect</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\PostEffectManagement\GrayScaleEffect\GrayScaleEffect.h">
-      <Filter>EngineLayer\PostEffectManagement\GrayScaleEffect</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\PostEffectManagement\IPostEffect\IPostEffect.h">
-      <Filter>EngineLayer\PostEffectManagement\IPostEffect</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\PostEffectManagement\LuminanceOutlineEffect\LuminanceOutlineEffect.h">
-      <Filter>EngineLayer\PostEffectManagement\LuminanceOutlineEffect</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\PostEffectManagement\NormalEffect\NormalEffect.h">
-      <Filter>EngineLayer\PostEffectManagement\NormalEffect</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\PostEffectManagement\PostEffectPipelineBuilder\PostEffectPipelineBuilder.h">
-      <Filter>EngineLayer\PostEffectManagement\PostEffectManagement</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\PostEffectManagement\RadialBlurEffect\RadialBlurEffect.h">
-      <Filter>EngineLayer\PostEffectManagement\RadialBlurEffect</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\PostEffectManagement\RandomEffect\RandomEffect.h">
-      <Filter>EngineLayer\PostEffectManagement\RandomEffect</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\PostEffectManagement\SmoothingEffect\SmoothingEffect.h">
-      <Filter>EngineLayer\PostEffectManagement\SmoothingEffect</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\PostEffectManagement\VignetteEffect\VignetteEffect.h">
-      <Filter>EngineLayer\PostEffectManagement\VignetteEffect</Filter>
-    </ClInclude>
     <ClInclude Include="ApplicationLayer\Scene\GamePlayScene\GamePlayScene.h">
       <Filter>ApplicationLayer\Scene\GamePlayScene</Filter>
     </ClInclude>
@@ -939,143 +828,8 @@
     <ClInclude Include="ApplicationLayer\SceneManagement\SceneManager\SceneManager.h">
       <Filter>ApplicationLayer\SceneManager\SceneManager</Filter>
     </ClInclude>
-    <ClInclude Include="EngineLayer\2D\Sprite\NumberSpriteDrawer.h">
-      <Filter>EngineLayer\2D\Sprite</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\2D\Sprite\Sprite.h">
-      <Filter>EngineLayer\2D\Sprite</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\2D\Sprite\SpriteManager.h">
-      <Filter>EngineLayer\2D\Sprite</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\3D\LevelData\LevelData.h">
-      <Filter>EngineLayer\3D\LevelData</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\3D\LevelData\LevelObjectManager.h">
-      <Filter>EngineLayer\3D\LevelData</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\3D\Object3D\Object3D.h">
-      <Filter>EngineLayer\3D\Object3D</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\3D\Object3D\Object3DCommon.h">
-      <Filter>EngineLayer\3D\Object3D</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\3D\SkyBox\SkyBox.h">
-      <Filter>EngineLayer\3D\SkyBox</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\3D\Wireframe\Wireframe.h">
-      <Filter>EngineLayer\3D\Wireframe</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\Base\BlendStateFactory\BlendStateFactory.h">
-      <Filter>EngineLayer\Base\BlendStateFactory</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\Base\DirectXCommon\DirectXCommon.h">
-      <Filter>EngineLayer\Base\DirectXCommon</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\Base\DX12CommandManager\DX12CommandManager.h">
-      <Filter>EngineLayer\Base\DX12CommandManager</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\Base\DX12Device\DX12Device.h">
-      <Filter>EngineLayer\Base\DX12Device</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\Base\DX12FenceManager\DX12FenceManager.h">
-      <Filter>EngineLayer\Base\DX12FenceManager</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\Base\DX12SwapChain\DX12SwapChain.h">
-      <Filter>EngineLayer\Base\DX12SwapChain</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\Base\DXCCompilerManager\DXCCompilerManager.h">
-      <Filter>EngineLayer\Base\DXCCompilerManager</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\Base\MultipleStructs\BlendModeType.h">
-      <Filter>EngineLayer\Base\MultipleStructs</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\Base\MultipleStructs\DX12Include.h">
-      <Filter>EngineLayer\Base\MultipleStructs</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\Base\MultipleStructs\ModelData.h">
-      <Filter>EngineLayer\Base\MultipleStructs</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\Base\MultipleStructs\VertexData.h">
-      <Filter>EngineLayer\Base\MultipleStructs</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\Base\MultipleStructs\TransformationMatrix.h">
-      <Filter>EngineLayer\Base\MultipleStructs</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\Base\ShaderCompiler\ShaderCompiler.h">
-      <Filter>EngineLayer\Base\ShaderCompiler</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\CameraManagement\Camera\Camera.h">
-      <Filter>EngineLayer\CameraManagement\Camera</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\CameraManagement\DebugCamera\DebugCamera.h">
-      <Filter>EngineLayer\CameraManagement\DebugCamera</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\CameraManagement\FPSCamera\FpsCamera.h">
-      <Filter>EngineLayer\CameraManagement\FpsCamera</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\FrameworkLayer\Framework\Framework.h">
-      <Filter>EngineLayer\FrameworkLayer\Framework</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\FrameworkLayer\Framework\GameApplication.h">
-      <Filter>EngineLayer\FrameworkLayer\Framework</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\FrameworkLayer\Log\LogString.h">
-      <Filter>EngineLayer\FrameworkLayer\Log</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\FrameworkLayer\WindowsAPI\WinApp.h">
-      <Filter>EngineLayer\FrameworkLayer\WindowsAPI</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\ResourceChecker\LeakCheck\D3DResourceLeakChecker.h">
-      <Filter>EngineLayer\ResourceChecker</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\Audio\AudioManager\AudioManager.h">
-      <Filter>EngineLayer\Audio</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\Managers\ModelManager\AssimpLoader.h">
-      <Filter>EngineLayer\Managers\ModelManager</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\Managers\ModelManager\ModelManager.h">
-      <Filter>EngineLayer\Managers\ModelManager</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\Managers\DSVManager\DSVManager.h">
-      <Filter>EngineLayer\Managers\DSVManager</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\Managers\ImGuiManager\ImGuiManager.h">
-      <Filter>EngineLayer\Managers\ImGuiManager</Filter>
-    </ClInclude>
     <ClInclude Include="ApplicationLayer\Item\ItemManager.h">
       <Filter>ApplicationLayer\Item</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\Managers\LightManager\LightManager.h">
-      <Filter>EngineLayer\Managers\LightManager</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\Managers\ParameterManager\ParameterManager.h">
-      <Filter>EngineLayer\Managers\ParameterManager</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\Managers\ParticleManager\ParticleManager.h">
-      <Filter>EngineLayer\Managers\ParticleManager</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\Managers\ResourceManager\ResourceManager.h">
-      <Filter>EngineLayer\Managers\ResourceManager</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\Managers\RTVManager\RTVManager.h">
-      <Filter>EngineLayer\Managers\RTVManager</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\3D\SkyBox\SkyBoxManager.h">
-      <Filter>EngineLayer\3D\SkyBox</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\Managers\SRVManager\SRVManager.h">
-      <Filter>EngineLayer\Managers\SRVManager</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\Managers\TextureManager\TextureManager.h">
-      <Filter>EngineLayer\Managers\TextureManager</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\Managers\UAVManager\UAVManager.h">
-      <Filter>EngineLayer\Managers\UAVManager</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\PostEffectManagement\PostEffectManager\PostEffectManager.h">
-      <Filter>EngineLayer\Managers\PostEffectManager</Filter>
     </ClInclude>
     <ClInclude Include="ApplicationLayer\Scene\StageSelectScene\GridStageSelector.h">
       <Filter>ApplicationLayer\Scene\StageSelectScene</Filter>
@@ -1092,35 +846,8 @@
     <ClInclude Include="ApplicationLayer\Character\BaseCharacter\BaseCharacter.h">
       <Filter>ApplicationLayer\Character\BaseCharacter</Filter>
     </ClInclude>
-    <ClInclude Include="EngineLayer\Transform\WorldTransformEx.h">
-      <Filter>EngineLayer\Transform</Filter>
-    </ClInclude>
     <ClInclude Include="ApplicationLayer\EffectLayer\ModelParticle.h">
       <Filter>ApplicationLayer\EffectLayer</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\GPUParticleSystem\GpuParticleBuffers\GpuParticleBuffers.h">
-      <Filter>EngineLayer\GpuParticleSystem\GpuParticleBuffers</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\GPUParticleSystem\GpuParticleDatas\BillboardMode.h">
-      <Filter>EngineLayer\GpuParticleSystem\GpuParticleDatas</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\GPUParticleSystem\GpuParticleDatas\GpuParticleType.h">
-      <Filter>EngineLayer\GpuParticleSystem\GpuParticleDatas</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\GPUParticleSystem\GpuParticleDatas\GpuParticleEmitterData.h">
-      <Filter>EngineLayer\GpuParticleSystem\GpuParticleDatas</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\GPUParticleSystem\GpuParticleEmitter\GpuParticleEmitter.h">
-      <Filter>EngineLayer\GpuParticleSystem\GpuParticleEmitter</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\GPUParticleSystem\GpuParticleManager\GpuParticleManager.h">
-      <Filter>EngineLayer\GpuParticleSystem\GpuParticleManager</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\GPUParticleSystem\GpuParticleRenderer\GpuParticleRenderer.h">
-      <Filter>EngineLayer\GpuParticleSystem\GpuParticleRenderer</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\PostEffectManagement\PixelateEffect\PixelateEffect.h">
-      <Filter>EngineLayer\PostEffectManagement\PixelateEffect</Filter>
     </ClInclude>
     <ClInclude Include="ApplicationLayer\Scene\StageSelectScene\State\IStageSelectSceneState.h">
       <Filter>ApplicationLayer\Scene\StageSelectScene\State</Filter>
@@ -1139,21 +866,6 @@
     </ClInclude>
     <ClInclude Include="ApplicationLayer\EffectLayer\BossEnemyVfx.h">
       <Filter>ApplicationLayer\EffectLayer</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\Colliders\WorldCollisionResolver.h">
-      <Filter>EngineLayer\Colliders</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\Colliders\Collider.h">
-      <Filter>EngineLayer\Colliders</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\Colliders\CollisionUtility.h">
-      <Filter>EngineLayer\Colliders</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\Colliders\ContactRecord.h">
-      <Filter>EngineLayer\Colliders</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\Colliders\IDGenerator.h">
-      <Filter>EngineLayer\Colliders</Filter>
     </ClInclude>
     <ClInclude Include="ApplicationLayer\Scene\DebugScene\DebugScene.h">
       <Filter>ApplicationLayer\Scene\DebugScene</Filter>
@@ -1178,66 +890,6 @@
     </ClInclude>
     <ClInclude Include="ApplicationLayer\WeaponSystem\WeaponMasterData\WeaponMasterDataWriter.h">
       <Filter>ApplicationLayer\WeaponSystem\WeaponMasterData</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\GPUParticleSystem\GpuParticlePipeline\GpuParticleSpritePipeline.h">
-      <Filter>EngineLayer\GpuParticleSystem\GpuParticlePipeline</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\GPUParticleSystem\GpuParticlePipeline\GpuParticleMeshPipeline.h">
-      <Filter>EngineLayer\GpuParticleSystem\GpuParticlePipeline</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\GPUParticleSystem\GpuParticlePipeline\GpuParticleComputePipeline.h">
-      <Filter>EngineLayer\GpuParticleSystem\GpuParticlePipeline</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\GPUParticleSystem\GpuParticlePipeline\GpuParticleMeshAsset.h">
-      <Filter>EngineLayer\GpuParticleSystem</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\2D\Sprite\SpriteDebrisEmitter.h">
-      <Filter>EngineLayer\2D\Sprite</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\2D\Sprite\SpriteFractureEffect.h">
-      <Filter>EngineLayer\2D\Sprite</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\3D\AnimationSystem\Core\AnimationLoader.h">
-      <Filter>EngineLayer\3D\AnimationManagement\Core</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\3D\AnimationSystem\Core\AnimationModel.h">
-      <Filter>EngineLayer\3D\AnimationManagement\Core</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\3D\AnimationSystem\Core\AnimationSampler.h">
-      <Filter>EngineLayer\3D\AnimationManagement\Core</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\3D\AnimationSystem\Skeleton\SkeletonAnimator.h">
-      <Filter>EngineLayer\3D\AnimationManagement\Skeleton</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\3D\AnimationSystem\Skeleton\Skeleton.h">
-      <Filter>EngineLayer\3D\AnimationManagement\Skeleton</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\3D\AnimationSystem\Skinning\SkinCluster.h">
-      <Filter>EngineLayer\3D\AnimationManagement\Skinning</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\3D\AnimationSystem\Skinning\AnimationModelSkinningCS.h">
-      <Filter>EngineLayer\3D\AnimationManagement\Skinning</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\3D\AnimationSystem\LOD\AnimationModelLODBuilder.h">
-      <Filter>EngineLayer\3D\AnimationManagement\LOD</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\3D\AnimationSystem\LOD\AnimationModelLODController.h">
-      <Filter>EngineLayer\3D\AnimationManagement\LOD</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\3D\AnimationSystem\Pipeline\AnimationPipelineBuilder.h">
-      <Filter>EngineLayer\3D\AnimationManagement\Pipeline</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\3D\AnimationSystem\Collider\AnimationModelColliderController.h">
-      <Filter>EngineLayer\3D\AnimationManagement\Collider</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\3D\AnimationSystem\Collider\BodyPartCollider.h">
-      <Filter>EngineLayer\3D\AnimationManagement\Collider</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\3D\AnimationSystem\Core\AnimationPlayer.h">
-      <Filter>EngineLayer\3D\AnimationManagement\Core</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\Input\InputSnapshot.h">
-      <Filter>EngineLayer\Input</Filter>
     </ClInclude>
     <ClInclude Include="ApplicationLayer\Character\Bullet\Bullet.h">
       <Filter>ApplicationLayer\Character\Bullet</Filter>
@@ -1265,9 +917,6 @@
     </ClInclude>
     <ClInclude Include="ApplicationLayer\WeaponSystem\WeaponMasterData\WeaponSystem.h">
       <Filter>ApplicationLayer\WeaponSystem\WeaponMasterData</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\3D\LevelData\Stage.h">
-      <Filter>EngineLayer\3D\LevelData</Filter>
     </ClInclude>
     <ClInclude Include="ApplicationLayer\UISystem\HPWidget\HPWidget.h">
       <Filter>ApplicationLayer\UISystem\HPWidget</Filter>
@@ -1317,14 +966,8 @@
     <ClInclude Include="ApplicationLayer\OverlaySystem\Rect.h">
       <Filter>ApplicationLayer\Scene\TitleScene\State</Filter>
     </ClInclude>
-    <ClInclude Include="EngineLayer\3D\AnimationSystem\DebugView\AnimationModelDebugView.h">
-      <Filter>EngineLayer\3D\AnimationManagement\DebugView</Filter>
-    </ClInclude>
     <ClInclude Include="ApplicationLayer\UISystem\WeaponSlot\WeaponSlot.h">
       <Filter>ApplicationLayer\UISystem\WeaponSlot</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\3D\LevelData\LevelLoader.h">
-      <Filter>EngineLayer\3D\LevelData</Filter>
     </ClInclude>
     <ClInclude Include="ApplicationLayer\Scene\ShadowTestScene\ShadowTestScene.h">
       <Filter>ApplicationLayer\Scene\ShadowTextScene</Filter>
@@ -1334,9 +977,6 @@
     </ClInclude>
     <ClInclude Include="ApplicationLayer\Character\Player\Component\PlayerWeaponVisualComponent.h">
       <Filter>ApplicationLayer\Character\Player\Component</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\Audio\MFAudioDecoder.h">
-      <Filter>EngineLayer\Audio</Filter>
     </ClInclude>
     <ClInclude Include="ApplicationLayer\Scene\GamePlayScene\Camera\GamePlayIntroDirector.h">
       <Filter>ApplicationLayer\Scene\GamePlayScene\Camera</Filter>
@@ -1524,54 +1164,6 @@
     <ClInclude Include="ApplicationLayer\Character\Enemy\Behavior\EnemyBehavior_Suppressor.h">
       <Filter>ApplicationLayer\Character\Enemy\Behavior</Filter>
     </ClInclude>
-    <ClInclude Include="EngineLayer\Base\MainRenderTarget\MainRenderTarget.h">
-      <Filter>EngineLayer\Base\MainRenderTarget</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\Base\ShadowMapRenderTarget\ShadowMapRenderTarget.h">
-      <Filter>EngineLayer\Base\ShadowMapRenderTarget</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\3D\LevelData\StageAssetLoader.h">
-      <Filter>EngineLayer\3D\LevelData</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\3D\LevelData\StageCollisionBuilder.h">
-      <Filter>EngineLayer\3D\LevelData</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\GPUParticleSystem\GpuParticleEmitterPreset\GpuParticleEmitterPreset.h">
-      <Filter>EngineLayer\GpuParticleSystem\GpuParticleEmitterPreset</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\GPUParticleSystem\GpuParticleEmitterPreset\GpuParticleEmitterAsset.h">
-      <Filter>EngineLayer\GpuParticleSystem\GpuParticleEmitterPreset</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\GPUParticleSystem\GpuParticleEmitterPreset\GpuParticleEmitterSerializer.h">
-      <Filter>EngineLayer\GpuParticleSystem\GpuParticleEmitterPreset</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\Base\ShaderCompiler\AnimationShaderManifest.h">
-      <Filter>EngineLayer\Base\ShaderCompiler</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\Base\ShaderCompiler\GpuParticleShaderManifest.h">
-      <Filter>EngineLayer\Base\ShaderCompiler</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\Base\ShaderCompiler\Object3DShaderManifest.h">
-      <Filter>EngineLayer\Base\ShaderCompiler</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\Base\ShaderCompiler\ParticleShaderManifest.h">
-      <Filter>EngineLayer\Base\ShaderCompiler</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\Base\ShaderCompiler\PostEffectShaderManifest.h">
-      <Filter>EngineLayer\Base\ShaderCompiler</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\Base\ShaderCompiler\ShaderManifestTypes.h">
-      <Filter>EngineLayer\Base\ShaderCompiler</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\Base\ShaderCompiler\SkyBoxShaderManifest.h">
-      <Filter>EngineLayer\Base\ShaderCompiler</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\Base\ShaderCompiler\SpriteShaderManifest.h">
-      <Filter>EngineLayer\Base\ShaderCompiler</Filter>
-    </ClInclude>
-    <ClInclude Include="EngineLayer\Base\ShaderCompiler\WireframeShaderManifest.h">
-      <Filter>EngineLayer\Base\ShaderCompiler</Filter>
-    </ClInclude>
     <ClInclude Include="ApplicationLayer\Character\Enemy\Effects\EnemyParticleEffectSystem.h">
       <Filter>ApplicationLayer\Character\Enemy\Effects</Filter>
     </ClInclude>
@@ -1590,22 +1182,447 @@
     <ClInclude Include="ApplicationLayer\UISystem\NoAmmoUI\NoAmmoUI.h">
       <Filter>ApplicationLayer\UISystem\NoAmmoUI</Filter>
     </ClInclude>
-    <ClInclude Include="EngineLayer\Managers\ModelManager\KMeshLoader.h">
-      <Filter>EngineLayer\Managers\ModelManager</Filter>
+    <ClInclude Include="Engine\Core\Application\Framework.h">
+      <Filter>Engine\Core\Application</Filter>
     </ClInclude>
-    <ClInclude Include="EngineLayer\Managers\ModelManager\ModelLoader.h">
-      <Filter>EngineLayer\Managers\ModelManager</Filter>
+    <ClInclude Include="Engine\Core\Application\GameApplication.h">
+      <Filter>Engine\Core\Application</Filter>
     </ClInclude>
-    <ClInclude Include="EngineLayer\Managers\ModelManager\ModelPathResolver.h">
-      <Filter>EngineLayer\Managers\ModelManager</Filter>
+    <ClInclude Include="Engine\Core\Logging\LogString.h">
+      <Filter>Engine\Core\Logging</Filter>
     </ClInclude>
-    <ClInclude Include="EngineLayer\Managers\ModelManager\PathUtil.h">
-      <Filter>EngineLayer\Managers\ModelManager</Filter>
+    <ClInclude Include="Engine\Core\Time\LegacyFPSCounter\FPSCounter.h">
+      <Filter>Engine\Core\Time\LegacyFPSCounter</Filter>
     </ClInclude>
-    <ClInclude Include="PipelineCommon.h" />
-    <ClInclude Include="PipelineFactory.h" />
-    <ClInclude Include="PipelineStatePresets.h" />
-    <ClInclude Include="SpritePipelineSet.h" />
+    <ClInclude Include="Engine\Core\Transform\ParticleTransform.h">
+      <Filter>Engine\Core\Transform</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Core\Transform\WorldTransform.h">
+      <Filter>Engine\Core\Transform</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Core\Transform\WorldTransformEx.h">
+      <Filter>Engine\Core\Transform</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\DebugTools\ImGui\ImGuiManager.h">
+      <Filter>Engine\DebugTools\ImGui</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\DebugTools\LeakCheck\D3DResourceLeakChecker.h">
+      <Filter>Engine\DebugTools\LeakCheck</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Platform\Windows\DisplaySettings.h">
+      <Filter>Engine\Platform\Windows</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Platform\Windows\WinApp.h">
+      <Filter>Engine\Platform\Windows</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Physics\Collision\Core\Collider.h">
+      <Filter>Engine\Physics\Collision\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Physics\Collision\Core\CollisionUtility.h">
+      <Filter>Engine\Physics\Collision\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Physics\Collision\Core\WorldCollisionResolver.h">
+      <Filter>Engine\Physics\Collision\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Physics\Collision\Core\ContactRecord.h">
+      <Filter>Engine\Physics\Collision\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Physics\Collision\Core\IDGenerator.h">
+      <Filter>Engine\Physics\Collision\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Scene\Level\LevelData.h">
+      <Filter>Engine\Scene\Level</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Scene\Level\LevelLoader.h">
+      <Filter>Engine\Scene\Level</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Scene\Level\LevelObjectManager.h">
+      <Filter>Engine\Scene\Level</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Scene\Level\StageAssetLoader.h">
+      <Filter>Engine\Scene\Level</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Scene\Level\StageCollisionBuilder.h">
+      <Filter>Engine\Scene\Level</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Scene\Level\Stage.h">
+      <Filter>Engine\Scene\Level</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Math\Vector\Vector2.h">
+      <Filter>Engine\Math\Vector</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Math\Vector\Vector3.h">
+      <Filter>Engine\Math\Vector</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Math\Vector\Vector4.h">
+      <Filter>Engine\Math\Vector</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Math\Quaternion\Quaternion.h">
+      <Filter>Engine\Math\Quaternion</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Math\Matrix\Matrix4x4.h">
+      <Filter>Engine\Math\Matrix</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Math\Geometry\AABB.h">
+      <Filter>Engine\Math\Geometry</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Math\Geometry\OBB.h">
+      <Filter>Engine\Math\Geometry</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Math\Geometry\Plane.h">
+      <Filter>Engine\Math\Geometry</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Math\Geometry\Segment.h">
+      <Filter>Engine\Math\Geometry</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Math\Geometry\Sphere.h">
+      <Filter>Engine\Math\Geometry</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Math\Geometry\LinearInterpolation.h">
+      <Filter>Engine\Math\Geometry</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Math\Geometry\Capsule.h">
+      <Filter>Engine\Math\Geometry</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Math\Geometry\Triangle.h">
+      <Filter>Engine\Math\Geometry</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\System\Resource\ResourceManager.h">
+      <Filter>Engine\System\Resource</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\System\Parameters\ParameterManager.h">
+      <Filter>Engine\System\Parameters</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\System\Input\Input.h">
+      <Filter>Engine\System\Input</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\System\Input\InputSnapshot.h">
+      <Filter>Engine\System\Input</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\System\Audio\Data\AudioStructs.h">
+      <Filter>Engine\System\Audio\Data</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\System\Audio\Data\AudioCategory.h">
+      <Filter>Engine\System\Audio\Data</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\System\Audio\Manager\AudioManager.h">
+      <Filter>Engine\System\Audio\Manager</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Misc\Audio\MFAudioDecoder.h">
+      <Filter>Engine\Misc\Audio</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Graphics\Camera\Core\Camera.h">
+      <Filter>Engine\Graphics\Camera\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Graphics\Camera\DebugCamera\DebugCamera.h">
+      <Filter>Engine\Graphics\Camera\DebugCamera</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Graphics\Camera\FPS\FpsCamera.h">
+      <Filter>Engine\Graphics\Camera\FPS</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Graphics\Descriptor\DSV\DSVManager.h">
+      <Filter>Engine\Graphics\Descriptor\DSV</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Graphics\Descriptor\RTV\RTVManager.h">
+      <Filter>Engine\Graphics\Descriptor\RTV</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Graphics\Descriptor\SRV\SRVManager.h">
+      <Filter>Engine\Graphics\Descriptor\SRV</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Graphics\Descriptor\UAV\UAVManager.h">
+      <Filter>Engine\Graphics\Descriptor\UAV</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Graphics\Common\DX12Include.h">
+      <Filter>Engine\Graphics\Common</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Graphics\Common\ModelData.h">
+      <Filter>Engine\Graphics\Common</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Graphics\Common\VertexData.h">
+      <Filter>Engine\Graphics\Common</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Graphics\Common\TransformationMatrix.h">
+      <Filter>Engine\Graphics\Common</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Graphics\Lighting\LightManager.h">
+      <Filter>Engine\Graphics\Lighting</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Graphics\Material\Material.h">
+      <Filter>Engine\Graphics\Material</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Graphics\Material\ParticleMaterial.h">
+      <Filter>Engine\Graphics\Material</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Graphics\Mesh\AnimationMesh.h">
+      <Filter>Engine\Graphics\Mesh</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Graphics\Mesh\Mesh.h">
+      <Filter>Engine\Graphics\Mesh</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Graphics\Mesh\ParticleMesh.h">
+      <Filter>Engine\Graphics\Mesh</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Graphics\Pipeline\PipelineCommon.h">
+      <Filter>Engine\Graphics\Pipeline</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Graphics\Pipeline\PipelineFactory.h">
+      <Filter>Engine\Graphics\Pipeline</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Graphics\Pipeline\PipelineStatePresets.h">
+      <Filter>Engine\Graphics\Pipeline</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Graphics\PostEffect\Effects\AbsorbEffect\AbsorbEffect.h">
+      <Filter>Engine\Graphics\PostEffect\Effects</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Graphics\PostEffect\Effects\DepthOutlineEffect\DepthOutlineEffect.h">
+      <Filter>Engine\Graphics\PostEffect\Effects</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Graphics\PostEffect\Effects\DissolveEffect\DissolveEffect.h">
+      <Filter>Engine\Graphics\PostEffect\Effects</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Graphics\PostEffect\Effects\GaussianFilterEffect\GaussianFilterEffect.h">
+      <Filter>Engine\Graphics\PostEffect\Effects</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Graphics\PostEffect\Effects\GrayScaleEffect\GrayScaleEffect.h">
+      <Filter>Engine\Graphics\PostEffect\Effects</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Graphics\PostEffect\Effects\LuminanceOutlineEffect\LuminanceOutlineEffect.h">
+      <Filter>Engine\Graphics\PostEffect\Effects</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Graphics\PostEffect\Effects\NormalEffect\NormalEffect.h">
+      <Filter>Engine\Graphics\PostEffect\Effects</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Graphics\PostEffect\Effects\PixelateEffect\PixelateEffect.h">
+      <Filter>Engine\Graphics\PostEffect\Effects</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Graphics\PostEffect\Effects\RadialBlurEffect\RadialBlurEffect.h">
+      <Filter>Engine\Graphics\PostEffect\Effects</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Graphics\PostEffect\Effects\RandomEffect\RandomEffect.h">
+      <Filter>Engine\Graphics\PostEffect\Effects</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Graphics\PostEffect\Effects\SmoothingEffect\SmoothingEffect.h">
+      <Filter>Engine\Graphics\PostEffect\Effects</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Graphics\PostEffect\Effects\VignetteEffect\VignetteEffect.h">
+      <Filter>Engine\Graphics\PostEffect\Effects</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Graphics\PostEffect\Manager\PostEffectManager.h">
+      <Filter>Engine\Graphics\PostEffect\Manager</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Graphics\PostEffect\Pipeline\PostEffectPipelineBuilder.h">
+      <Filter>Engine\Graphics\PostEffect\Pipeline</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Graphics\PostEffect\Core\IPostEffect.h">
+      <Filter>Engine\Graphics\PostEffect\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Graphics\Device\SwapChain\DX12SwapChain.h">
+      <Filter>Engine\Graphics\Device\SwapChain</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Graphics\Device\Synchronization\DX12FenceManager.h">
+      <Filter>Engine\Graphics\Device\Synchronization</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Graphics\Device\Core\DX12Device.h">
+      <Filter>Engine\Graphics\Device\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Graphics\Device\Command\DX12CommandManager.h">
+      <Filter>Engine\Graphics\Device\Command</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Graphics\Device\Facade\DirectXCommon.h">
+      <Filter>Engine\Graphics\Device\Facade</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Graphics\Shader\Manifest\AnimationShaderManifest.h">
+      <Filter>Engine\Graphics\Shader\Manifest</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Graphics\Shader\Manifest\GpuParticleShaderManifest.h">
+      <Filter>Engine\Graphics\Shader\Manifest</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Graphics\Shader\Manifest\Object3DShaderManifest.h">
+      <Filter>Engine\Graphics\Shader\Manifest</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Graphics\Shader\Manifest\ParticleShaderManifest.h">
+      <Filter>Engine\Graphics\Shader\Manifest</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Graphics\Shader\Manifest\PostEffectShaderManifest.h">
+      <Filter>Engine\Graphics\Shader\Manifest</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Graphics\Shader\Manifest\ShaderManifestTypes.h">
+      <Filter>Engine\Graphics\Shader\Manifest</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Graphics\Shader\Manifest\SkyBoxShaderManifest.h">
+      <Filter>Engine\Graphics\Shader\Manifest</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Graphics\Shader\Manifest\SpriteShaderManifest.h">
+      <Filter>Engine\Graphics\Shader\Manifest</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Graphics\Shader\Manifest\WireframeShaderManifest.h">
+      <Filter>Engine\Graphics\Shader\Manifest</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Graphics\Shader\Compiler\DXCCompilerManager.h">
+      <Filter>Engine\Graphics\Shader\Compiler</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Graphics\Shader\Compiler\ShaderCompiler.h">
+      <Filter>Engine\Graphics\Shader\Compiler</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Graphics\RenderTarget\Main\MainRenderTarget.h">
+      <Filter>Engine\Graphics\RenderTarget\Main</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Graphics\RenderTarget\Shadow\ShadowMapRenderTarget.h">
+      <Filter>Engine\Graphics\RenderTarget\Shadow</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Graphics\RenderState\Blend\BlendStateFactory.h">
+      <Filter>Engine\Graphics\RenderState\Blend</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Graphics\Resource\Model\PathUtil.h">
+      <Filter>Engine\Graphics\Resource\Model</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Graphics\Resource\Model\AssimpLoader.h">
+      <Filter>Engine\Graphics\Resource\Model</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Graphics\Resource\Model\KMeshLoader.h">
+      <Filter>Engine\Graphics\Resource\Model</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Graphics\Resource\Model\ModelLoader.h">
+      <Filter>Engine\Graphics\Resource\Model</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Graphics\Resource\Model\ModelManager.h">
+      <Filter>Engine\Graphics\Resource\Model</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Graphics\Resource\Model\ModelPathResolver.h">
+      <Filter>Engine\Graphics\Resource\Model</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Graphics\Resource\Texture\TextureManager.h">
+      <Filter>Engine\Graphics\Resource\Texture</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Graphics\Renderer\Animation\Collider\AnimationModelColliderController.h">
+      <Filter>Engine\Graphics\Renderer\Animation\Collider</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Graphics\Renderer\Animation\Collider\BodyPartCollider.h">
+      <Filter>Engine\Graphics\Renderer\Animation\Collider</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Graphics\Renderer\Animation\Core\AnimationLoader.h">
+      <Filter>Engine\Graphics\Renderer\Animation\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Graphics\Renderer\Animation\Core\AnimationModel.h">
+      <Filter>Engine\Graphics\Renderer\Animation\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Graphics\Renderer\Animation\Core\AnimationPlayer.h">
+      <Filter>Engine\Graphics\Renderer\Animation\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Graphics\Renderer\Animation\Core\AnimationSampler.h">
+      <Filter>Engine\Graphics\Renderer\Animation\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Graphics\Renderer\Animation\DebugView\AnimationModelDebugView.h">
+      <Filter>Engine\Graphics\Renderer\Animation\DebugView</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Graphics\Renderer\Animation\LOD\AnimationModelLODBuilder.h">
+      <Filter>Engine\Graphics\Renderer\Animation\LOD</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Graphics\Renderer\Animation\LOD\AnimationModelLODController.h">
+      <Filter>Engine\Graphics\Renderer\Animation\LOD</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Graphics\Renderer\Animation\Pipeline\AnimationPipelineBuilder.h">
+      <Filter>Engine\Graphics\Renderer\Animation\Pipeline</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Graphics\Renderer\Animation\Skinning\AnimationModelSkinningCS.h">
+      <Filter>Engine\Graphics\Renderer\Animation\Skinning</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Graphics\Renderer\Animation\Skinning\SkinCluster.h">
+      <Filter>Engine\Graphics\Renderer\Animation\Skinning</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Graphics\Renderer\Animation\Skeleton\Skeleton.h">
+      <Filter>Engine\Graphics\Renderer\Animation\Skeleton</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Graphics\Renderer\Animation\Skeleton\SkeletonAnimator.h">
+      <Filter>Engine\Graphics\Renderer\Animation\Skeleton</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Graphics\Renderer\GpuParticle\Buffers\GpuParticleBuffers.h">
+      <Filter>Engine\Graphics\Renderer\GpuParticle\Buffers</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Graphics\Renderer\GpuParticle\Data\BillboardMode.h">
+      <Filter>Engine\Graphics\Renderer\GpuParticle\Data</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Graphics\Renderer\GpuParticle\Data\GpuParticleType.h">
+      <Filter>Engine\Graphics\Renderer\GpuParticle\Data</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Graphics\Renderer\GpuParticle\Emitter\GpuParticleEmitter.h">
+      <Filter>Engine\Graphics\Renderer\GpuParticle\Emitter</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Graphics\Renderer\GpuParticle\Manager\GpuParticleManager.h">
+      <Filter>Engine\Graphics\Renderer\GpuParticle\Manager</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Graphics\Renderer\GpuParticle\Pipeline\GpuParticleComputePipeline.h">
+      <Filter>Engine\Graphics\Renderer\GpuParticle\Pipeline</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Graphics\Renderer\GpuParticle\Pipeline\GpuParticleMeshPipeline.h">
+      <Filter>Engine\Graphics\Renderer\GpuParticle\Pipeline</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Graphics\Renderer\GpuParticle\Pipeline\GpuParticleSpritePipeline.h">
+      <Filter>Engine\Graphics\Renderer\GpuParticle\Pipeline</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Graphics\Renderer\GpuParticle\Preset\GpuParticleEmitterAsset.h">
+      <Filter>Engine\Graphics\Renderer\GpuParticle\Preset</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Graphics\Renderer\GpuParticle\Preset\GpuParticleEmitterPreset.h">
+      <Filter>Engine\Graphics\Renderer\GpuParticle\Preset</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Graphics\Renderer\GpuParticle\Preset\GpuParticleEmitterSerializer.h">
+      <Filter>Engine\Graphics\Renderer\GpuParticle\Preset</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Graphics\Renderer\GpuParticle\Renderer\GpuParticleRenderer.h">
+      <Filter>Engine\Graphics\Renderer\GpuParticle\Renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Graphics\Renderer\Object3D\Object3D.h">
+      <Filter>Engine\Graphics\Renderer\Object3D</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Graphics\Renderer\Object3D\Object3DCommon.h">
+      <Filter>Engine\Graphics\Renderer\Object3D</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Graphics\Renderer\Sprite\Sprite.h">
+      <Filter>Engine\Graphics\Renderer\Sprite</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Graphics\Renderer\Sprite\SpriteDebrisEmitter.h">
+      <Filter>Engine\Graphics\Renderer\Sprite</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Graphics\Renderer\Sprite\SpriteFractureEffect.h">
+      <Filter>Engine\Graphics\Renderer\Sprite</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Graphics\Renderer\Sprite\SpriteManager.h">
+      <Filter>Engine\Graphics\Renderer\Sprite</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Graphics\Renderer\Sprite\SpritePipelineSet.h">
+      <Filter>Engine\Graphics\Renderer\Sprite</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Graphics\Renderer\SkyBox\SkyBox.h">
+      <Filter>Engine\Graphics\Renderer\SkyBox</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Graphics\Renderer\SkyBox\SkyBoxManager.h">
+      <Filter>Engine\Graphics\Renderer\SkyBox</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Graphics\Renderer\Wireframe\Wireframe.h">
+      <Filter>Engine\Graphics\Renderer\Wireframe</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Graphics\Renderer\Sprite\NumberSpriteDrawer.h">
+      <Filter>Engine\Graphics\Renderer\Sprite</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Graphics\Renderer\Particle\Manager\ParticleManager.h">
+      <Filter>Engine\Graphics\Renderer\Particle\Manager</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Graphics\Renderer\Particle\Core\ParticleEffectType.h">
+      <Filter>Engine\Graphics\Renderer\Particle\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Graphics\Renderer\Particle\Core\ParticleFactory.h">
+      <Filter>Engine\Graphics\Renderer\Particle\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Graphics\Common\BlendModeType.h">
+      <Filter>Engine\Graphics\Common</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Graphics\Renderer\GpuParticle\Data\GpuParticleEmitterData.h">
+      <Filter>Engine\Graphics\Renderer\GpuParticle\Data</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Graphics\Renderer\GpuParticle\Pipeline\GpuParticleMeshAsset.h">
+      <Filter>Engine\Graphics\Renderer\GpuParticle\Pipeline</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="Resources\Shaders\PostEffect\FullScreen.hlsli">
@@ -1661,41 +1678,8 @@
     <Filter Include="Shader\Hlsli">
       <UniqueIdentifier>{f716f1cc-0aff-4c59-90a6-bf3fb94989fc}</UniqueIdentifier>
     </Filter>
-    <Filter Include="EngineLayer">
-      <UniqueIdentifier>{da5cdd68-e8e8-499a-94c9-54d7d14244c2}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="EngineLayer\Math">
-      <UniqueIdentifier>{aa5f1571-6cdc-4116-ad67-88dfd581e693}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="EngineLayer\PostEffectManagement">
-      <UniqueIdentifier>{abaa6d8b-7ffa-4d37-aaf0-a9d23fb0c2a5}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="EngineLayer\Managers">
-      <UniqueIdentifier>{b77c4b7f-b178-42a6-b5d5-5cfc19bf0a09}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="EngineLayer\Audio">
-      <UniqueIdentifier>{a8e6a947-9987-45ee-a72b-cea14d6ad1d0}</UniqueIdentifier>
-    </Filter>
     <Filter Include="ApplicationLayer">
       <UniqueIdentifier>{9c673502-63ce-4a0e-8cd4-12a1564cd777}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="EngineLayer\Transform">
-      <UniqueIdentifier>{f8c23784-045b-4c1e-b0f1-d308508831e0}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="EngineLayer\Mesh">
-      <UniqueIdentifier>{52778210-e4bd-46b9-b446-c375fe68a712}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="EngineLayer\2D">
-      <UniqueIdentifier>{6052c5a7-3d63-41fe-82c2-652b9abcd514}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="EngineLayer\3D">
-      <UniqueIdentifier>{d33c12ee-2e79-4d2a-9d5d-f1a935d4a5ba}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="EngineLayer\Input">
-      <UniqueIdentifier>{f813f105-a79e-49da-aa48-2a380543d503}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="EngineLayer\Particle">
-      <UniqueIdentifier>{a8d87674-267f-42b9-b508-de3cdd8578cd}</UniqueIdentifier>
     </Filter>
     <Filter Include="ApplicationLayer\Colliders">
       <UniqueIdentifier>{0c178ba0-5b54-4d9e-9492-3b93993b00b5}</UniqueIdentifier>
@@ -1715,62 +1699,8 @@
     <Filter Include="ApplicationLayer\ScoreManager">
       <UniqueIdentifier>{96740e9e-b4e9-45c4-9895-87d816c0dfd6}</UniqueIdentifier>
     </Filter>
-    <Filter Include="EngineLayer\Base">
-      <UniqueIdentifier>{9fb2ab48-77e4-4261-b2f9-3ba78a193bd9}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="EngineLayer\FPSCounter">
-      <UniqueIdentifier>{9ccd4517-4428-4ced-832a-19c26d4b31ac}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="EngineLayer\Material">
-      <UniqueIdentifier>{07337d24-a7ba-41d0-81e0-e1f32ba723ab}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Shader\ComputeShader">
       <UniqueIdentifier>{fb1e0abe-9c76-4100-adce-67e4769c07b9}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="EngineLayer\Math\Vectors">
-      <UniqueIdentifier>{b6898a6b-b1d7-4eff-aac2-eaf2125b7972}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="EngineLayer\Math\Matrix">
-      <UniqueIdentifier>{e7fc4062-54b7-4abe-a5dc-52c769416831}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="EngineLayer\Math\Quaternion">
-      <UniqueIdentifier>{02fc266a-d32b-45a3-b932-f015140a08b1}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="EngineLayer\PostEffectManagement\AbsorbEffect">
-      <UniqueIdentifier>{ded8346d-264e-43cf-be5f-b13f8680d561}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="EngineLayer\PostEffectManagement\DepthOutlineEffect">
-      <UniqueIdentifier>{e37f6c25-0d53-4ba5-a7aa-7599e81b2cb8}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="EngineLayer\PostEffectManagement\DissolveEffect">
-      <UniqueIdentifier>{0fb737ba-7184-4eac-becf-7f69246ad6e2}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="EngineLayer\PostEffectManagement\GaussianFilterEffect">
-      <UniqueIdentifier>{0769675f-18cb-41b5-8cf0-f7dedc9bc440}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="EngineLayer\PostEffectManagement\GrayScaleEffect">
-      <UniqueIdentifier>{3def1f49-6f1b-4164-8ff6-d4caae546ac8}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="EngineLayer\PostEffectManagement\IPostEffect">
-      <UniqueIdentifier>{ebaeda25-3a83-4a0f-91d9-ea82f722e35c}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="EngineLayer\PostEffectManagement\LuminanceOutlineEffect">
-      <UniqueIdentifier>{60baa61e-8556-46d2-91c3-6e61f169202a}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="EngineLayer\PostEffectManagement\NormalEffect">
-      <UniqueIdentifier>{117ea9f6-d37e-496e-9162-e25a0e49e1e5}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="EngineLayer\PostEffectManagement\RadialBlurEffect">
-      <UniqueIdentifier>{541fa703-09dc-4b68-baa4-486f1029c8ae}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="EngineLayer\PostEffectManagement\RandomEffect">
-      <UniqueIdentifier>{26ad2221-a237-4b50-886e-9a77f6e8159a}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="EngineLayer\PostEffectManagement\SmoothingEffect">
-      <UniqueIdentifier>{cfdaba14-81ab-4503-a0ad-53aa83b89474}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="EngineLayer\PostEffectManagement\VignetteEffect">
-      <UniqueIdentifier>{400e0cd1-69f2-4758-9c69-2449eb54ba50}</UniqueIdentifier>
     </Filter>
     <Filter Include="Shader\GeometryShader">
       <UniqueIdentifier>{c40888df-84fa-4096-ae6a-3404250fc298}</UniqueIdentifier>
@@ -1796,119 +1726,8 @@
     <Filter Include="ApplicationLayer\SceneManager\SceneManager">
       <UniqueIdentifier>{cdf99a49-df2b-48b5-8f25-6826fb84f04f}</UniqueIdentifier>
     </Filter>
-    <Filter Include="EngineLayer\2D\Sprite">
-      <UniqueIdentifier>{6a7c3bef-b96b-4c89-9a9d-2b80c227488e}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="EngineLayer\3D\LevelData">
-      <UniqueIdentifier>{4d560853-004a-42a1-bdc6-ca91c7217908}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="EngineLayer\3D\Object3D">
-      <UniqueIdentifier>{e65d1f69-7154-46c7-90a3-6230845cc9a4}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="EngineLayer\3D\SkyBox">
-      <UniqueIdentifier>{06408644-6de6-497d-809e-e5aa7ae27550}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="EngineLayer\3D\Wireframe">
-      <UniqueIdentifier>{e1b14ec4-967e-45a4-a9b0-d3a88eb9bf44}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="EngineLayer\Base\BlendStateFactory">
-      <UniqueIdentifier>{13767889-527e-4e62-b725-ee791f7e7aaa}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="EngineLayer\Base\DirectXCommon">
-      <UniqueIdentifier>{5b8f7522-26ff-4fc6-bfe2-6e4e1779cbda}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="EngineLayer\Base\DX12CommandManager">
-      <UniqueIdentifier>{2317e834-2ed8-4df6-a128-a0609842b4a5}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="EngineLayer\Base\DX12Device">
-      <UniqueIdentifier>{48969679-76f9-4092-9c2d-68566b5f06aa}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="EngineLayer\Base\DX12FenceManager">
-      <UniqueIdentifier>{27ffce1c-2451-4a54-b70b-62f3a844787d}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="EngineLayer\Base\DX12SwapChain">
-      <UniqueIdentifier>{8d86587b-0a7e-4f52-ba6b-5e5cfd9b9239}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="EngineLayer\Base\DXCCompilerManager">
-      <UniqueIdentifier>{d66c6682-3106-4d0a-b79d-1936ae6e88f3}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="EngineLayer\Base\MultipleStructs">
-      <UniqueIdentifier>{2d1dd0c1-2136-46dd-aafa-a0e2fb09b308}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="EngineLayer\Base\ShaderCompiler">
-      <UniqueIdentifier>{4f27a535-4afa-4360-a56b-b1826f19f380}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="EngineLayer\CameraManagement">
-      <UniqueIdentifier>{008785b1-c46f-4e53-91f4-a1f706621288}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="EngineLayer\CameraManagement\Camera">
-      <UniqueIdentifier>{7a7309fa-80b2-4d0d-84a9-b806f24a4b2b}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="EngineLayer\CameraManagement\DebugCamera">
-      <UniqueIdentifier>{6c6415b2-fbc4-48a7-bee6-b9d87dce8f89}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="EngineLayer\CameraManagement\FpsCamera">
-      <UniqueIdentifier>{29148480-69cf-4c1f-9d10-51495e92c043}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="EngineLayer\FrameworkLayer">
-      <UniqueIdentifier>{de4a0bff-83a7-4791-b6ff-f5813968870c}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="EngineLayer\FrameworkLayer\Framework">
-      <UniqueIdentifier>{bfede3a3-4999-42a1-b67e-f8ad40beba67}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="EngineLayer\FrameworkLayer\Log">
-      <UniqueIdentifier>{1a6fb466-53be-4aa0-8be0-caf0d531c4d6}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="EngineLayer\FrameworkLayer\WindowsAPI">
-      <UniqueIdentifier>{d9ed64c9-96d3-48bc-b5f9-9e117100ba3c}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="EngineLayer\ResourceChecker">
-      <UniqueIdentifier>{91cb6834-aade-463c-aed5-b97fb78ec716}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="EngineLayer\Managers\DSVManager">
-      <UniqueIdentifier>{e6ea6d1b-b80f-41b2-b8d0-931cd5a1a896}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="EngineLayer\Managers\ImGuiManager">
-      <UniqueIdentifier>{33ea1560-8ab9-4699-b841-34af50b26f49}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="EngineLayer\Managers\LightManager">
-      <UniqueIdentifier>{064774c3-2c61-41dc-ab97-c2a2cc290697}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="EngineLayer\Managers\ModelManager">
-      <UniqueIdentifier>{b6ad5a17-d01b-4807-98c5-e155f27cc48f}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="EngineLayer\Managers\ParameterManager">
-      <UniqueIdentifier>{cfdde0c4-58fa-491c-961d-f423a8acd54d}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="EngineLayer\Managers\ParticleManager">
-      <UniqueIdentifier>{899dc15b-3b10-44d7-9683-b076e68ab026}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="EngineLayer\Managers\PostEffectManager">
-      <UniqueIdentifier>{0de72f60-2ffc-4aee-a9d5-42bf37fcc01d}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="EngineLayer\Managers\ResourceManager">
-      <UniqueIdentifier>{486d3206-48e7-4b55-a126-4a8167118e92}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="EngineLayer\Managers\RTVManager">
-      <UniqueIdentifier>{8e322014-4198-4904-b117-9c17c9b653d1}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="EngineLayer\Managers\SRVManager">
-      <UniqueIdentifier>{7f957ce7-10ea-4688-ba10-9fc4fba60210}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="EngineLayer\Managers\TextureManager">
-      <UniqueIdentifier>{9bbec021-4aa2-4fe7-9b90-367906d2d763}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="EngineLayer\Managers\UAVManager">
-      <UniqueIdentifier>{bd782700-ae6d-4e42-8c1a-07d869d993d0}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="EngineLayer\PostEffectManagement\PostEffectManagement">
-      <UniqueIdentifier>{549db25b-5a48-4909-8720-02dad4b5bd4d}</UniqueIdentifier>
-    </Filter>
     <Filter Include="ApplicationLayer\Scene\StageSelectScene">
       <UniqueIdentifier>{a8ef6c3f-b857-47b2-ab59-763fefc17071}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="EngineLayer\3D\AnimationManagement">
-      <UniqueIdentifier>{2737cf13-57b6-4008-89c3-6ee0302c6040}</UniqueIdentifier>
     </Filter>
     <Filter Include="ApplicationLayer\Character">
       <UniqueIdentifier>{a2348789-5065-4267-9a0b-5b362471c830}</UniqueIdentifier>
@@ -1925,38 +1744,11 @@
     <Filter Include="ApplicationLayer\Character\Enemy">
       <UniqueIdentifier>{be2d6a9f-8c22-4da6-85c8-ff7585c0a873}</UniqueIdentifier>
     </Filter>
-    <Filter Include="EngineLayer\GpuParticleSystem">
-      <UniqueIdentifier>{a9aa778c-2136-4e32-bb02-fcd9fc495938}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="EngineLayer\GpuParticleSystem\GpuParticleBuffers">
-      <UniqueIdentifier>{fd6dba81-c9fd-428d-b4cc-fe94823b47dd}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="EngineLayer\GpuParticleSystem\GpuParticleDatas">
-      <UniqueIdentifier>{8cb401ab-75e0-4749-b346-22742a902f4e}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="EngineLayer\GpuParticleSystem\GpuParticleEmitter">
-      <UniqueIdentifier>{08f140a1-4cb2-46ca-b866-c0379a506e49}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="EngineLayer\GpuParticleSystem\GpuParticleManager">
-      <UniqueIdentifier>{38e62b81-4c52-4668-9c3d-def5aa7c1f8b}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="EngineLayer\GpuParticleSystem\GpuParticlePipeline">
-      <UniqueIdentifier>{ca50520c-6a35-4f2d-a626-be44e959395b}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="EngineLayer\GpuParticleSystem\GpuParticleRenderer">
-      <UniqueIdentifier>{8de7978e-bff9-4fb1-b028-02c0d699b8c7}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="EngineLayer\PostEffectManagement\PixelateEffect">
-      <UniqueIdentifier>{e3999bd4-082c-4d5b-9c16-27e6c04752f3}</UniqueIdentifier>
-    </Filter>
     <Filter Include="ApplicationLayer\Scene\TitleScene\State">
       <UniqueIdentifier>{b9166ef1-ae9d-4c3e-9647-630ab8d4a23f}</UniqueIdentifier>
     </Filter>
     <Filter Include="ApplicationLayer\Scene\StageSelectScene\State">
       <UniqueIdentifier>{9d2c63a5-c625-4369-909d-240c88706ac1}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="EngineLayer\Colliders">
-      <UniqueIdentifier>{6041bdf3-208c-40a4-8d98-c134efb4a3cb}</UniqueIdentifier>
     </Filter>
     <Filter Include="ApplicationLayer\Scene\DebugScene">
       <UniqueIdentifier>{aca779c2-4030-4199-8102-ea3e7cd9fbc1}</UniqueIdentifier>
@@ -1969,24 +1761,6 @@
     </Filter>
     <Filter Include="ApplicationLayer\WeaponSystem\WeaponMasterData">
       <UniqueIdentifier>{4a404601-f1af-44a1-8471-a7f192721594}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="EngineLayer\3D\AnimationManagement\Core">
-      <UniqueIdentifier>{8f00a53d-654e-4adb-acb9-5bcc8f90c705}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="EngineLayer\3D\AnimationManagement\Skeleton">
-      <UniqueIdentifier>{7a987f47-fc89-4024-893b-b74db7b8d4e2}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="EngineLayer\3D\AnimationManagement\Skinning">
-      <UniqueIdentifier>{a9efea0d-0bf6-442c-99bd-bc264c08859d}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="EngineLayer\3D\AnimationManagement\LOD">
-      <UniqueIdentifier>{037a48ed-287e-4859-b16f-e2b0690d05d7}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="EngineLayer\3D\AnimationManagement\Pipeline">
-      <UniqueIdentifier>{0d5d1ba2-87c8-43e5-8c70-b11d6b802f07}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="EngineLayer\3D\AnimationManagement\Collider">
-      <UniqueIdentifier>{2d6a8f0c-f527-40f4-b0a4-29ad0fe6689f}</UniqueIdentifier>
     </Filter>
     <Filter Include="ApplicationLayer\Character\CharacterWorld">
       <UniqueIdentifier>{a75a8185-2be8-480c-9967-b52e96c8864b}</UniqueIdentifier>
@@ -2017,9 +1791,6 @@
     </Filter>
     <Filter Include="ApplicationLayer\OverlaySystem">
       <UniqueIdentifier>{0c6c3acf-d5c3-436f-b78d-b316901a7eb2}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="EngineLayer\3D\AnimationManagement\DebugView">
-      <UniqueIdentifier>{64dd504b-09cb-4ce7-b7b5-3377b0a7ad71}</UniqueIdentifier>
     </Filter>
     <Filter Include="ApplicationLayer\UISystem\WeaponSlot">
       <UniqueIdentifier>{ec5ef303-d137-4ec3-98ac-c530db273a98}</UniqueIdentifier>
@@ -2081,15 +1852,6 @@
     <Filter Include="ApplicationLayer\Character\Enemy\Tuning">
       <UniqueIdentifier>{ff09d9ab-0f57-4a2f-b7f8-c8194f46f252}</UniqueIdentifier>
     </Filter>
-    <Filter Include="EngineLayer\Base\MainRenderTarget">
-      <UniqueIdentifier>{149474fd-6fc8-4467-ab42-e3b7f659577f}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="EngineLayer\Base\ShadowMapRenderTarget">
-      <UniqueIdentifier>{83c4d0b7-1514-4157-ab1e-9e789c81a92b}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="EngineLayer\GpuParticleSystem\GpuParticleEmitterPreset">
-      <UniqueIdentifier>{675bf2cd-e7c7-4a6b-b38b-dbd4cac2e38e}</UniqueIdentifier>
-    </Filter>
     <Filter Include="ApplicationLayer\Character\Enemy\Effects">
       <UniqueIdentifier>{b1c34b28-c141-4210-b1db-da47c466359f}</UniqueIdentifier>
     </Filter>
@@ -2101,6 +1863,282 @@
     </Filter>
     <Filter Include="ApplicationLayer\UISystem\NoAmmoUI">
       <UniqueIdentifier>{1933148b-2819-4648-8ed3-ab859bdc144e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Engine">
+      <UniqueIdentifier>{cb11430c-02b5-4b8f-9018-0211eb3a11ef}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Engine\Core">
+      <UniqueIdentifier>{ca95e646-4503-4940-a665-bf81d3449b14}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Engine\Graphics">
+      <UniqueIdentifier>{cc47dad7-dd53-4744-9973-0c95cd961bce}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Engine\DebugTools">
+      <UniqueIdentifier>{d2e6695d-0a86-4a46-8ef9-66559e60137a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Engine\Math">
+      <UniqueIdentifier>{021cbc87-bbe1-4d98-a024-f3d3fcbe0f35}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Engine\Misc">
+      <UniqueIdentifier>{368852c2-6500-4734-beda-bfb0beec2255}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Engine\Physics">
+      <UniqueIdentifier>{c0d3f7d5-2a5f-405b-8471-6ec37303b909}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Engine\Scene">
+      <UniqueIdentifier>{8f078312-7fc8-4e1a-9587-54b1bd5ac7ed}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Engine\System">
+      <UniqueIdentifier>{7972dfa5-6a87-4f7c-bfc8-a434cb1a458e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Engine\Core\Application">
+      <UniqueIdentifier>{de1e5f03-a36b-4fca-91b6-d2068c387b46}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Engine\Core\Logging">
+      <UniqueIdentifier>{daf9fa84-4076-4994-9a23-bd23a65e1416}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Engine\Core\Time">
+      <UniqueIdentifier>{3af4b694-db39-4c5c-9b44-5835849652a2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Engine\Core\Transform">
+      <UniqueIdentifier>{126fa59f-9279-45dc-8b3e-c96290e7a3ed}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Engine\Core\Time\LegacyFPSCounter">
+      <UniqueIdentifier>{f94abd58-d746-441e-9162-10b8143894a7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Engine\DebugTools\ImGui">
+      <UniqueIdentifier>{f5ace9fb-20e4-42ee-aa14-9e6669099c36}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Engine\DebugTools\LeakCheck">
+      <UniqueIdentifier>{bd073444-12ba-466e-a454-d34a895aedec}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Engine\Math\Geometry">
+      <UniqueIdentifier>{63652bd2-b119-4bc3-b8d6-f67ecaf916b0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Engine\Math\Matrix">
+      <UniqueIdentifier>{2b77f675-827c-41fa-b811-d82f1d11dabf}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Engine\Math\Quaternion">
+      <UniqueIdentifier>{bb13f29d-cad6-44c6-9a10-7db5a9ce1383}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Engine\Math\Vector">
+      <UniqueIdentifier>{af891b96-1e60-4ec8-b328-7ca15b43438d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Engine\Misc\Audio">
+      <UniqueIdentifier>{831b05bf-186b-4de3-92b3-6dfa71da28c6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Engine\Physics\Collision">
+      <UniqueIdentifier>{c193067f-52d7-46f5-86ea-9d12ea211993}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Engine\Physics\Collision\Core">
+      <UniqueIdentifier>{602816af-8a63-411d-be4a-3c6a956cabc0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Engine\Scene\Level">
+      <UniqueIdentifier>{d8135d35-c676-47d1-ac56-ea8a28dabcaf}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Engine\Platform">
+      <UniqueIdentifier>{4a673f9c-1e4f-4c52-8b94-c2708e432395}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Engine\Platform\Windows">
+      <UniqueIdentifier>{faf1f2e8-814f-4979-9118-bd9aa85ee9ac}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Engine\System\Audio">
+      <UniqueIdentifier>{144a44bb-3ac8-49ae-928c-2f0503c6dd72}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Engine\System\Input">
+      <UniqueIdentifier>{2ee2d5c3-14aa-4b14-9cdc-9bfeb3b85e3d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Engine\System\Parameters">
+      <UniqueIdentifier>{c80ec4ac-6b5d-49a2-a1c0-57bfb52ff124}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Engine\System\Resource">
+      <UniqueIdentifier>{b7c91151-cd91-42cd-9241-e91fd2dd4b47}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Engine\System\Audio\Data">
+      <UniqueIdentifier>{b2668164-16ab-4384-a222-4a80abdf2f80}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Engine\System\Audio\Manager">
+      <UniqueIdentifier>{f491d90e-2653-48f7-b123-12c667a8cff8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Engine\Graphics\Camera">
+      <UniqueIdentifier>{cd133ea6-e64e-4da7-888d-94985388f1cd}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Engine\Graphics\Common">
+      <UniqueIdentifier>{fbd4679c-df97-4627-81ef-631b37c79b8b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Engine\Graphics\Descriptor">
+      <UniqueIdentifier>{a11747f3-3968-464d-a8ea-948a9eebf5c2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Engine\Graphics\Device">
+      <UniqueIdentifier>{0f386843-760c-4a1e-a5fb-5f9b246d79d5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Engine\Graphics\Lighting">
+      <UniqueIdentifier>{e58d3a18-7c65-4d41-9460-97e02e7ae522}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Engine\Graphics\Material">
+      <UniqueIdentifier>{b0f19828-2e2c-445c-b709-7708d06927a0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Engine\Graphics\Mesh">
+      <UniqueIdentifier>{1d30b657-ca58-489e-a044-eb56259dddb9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Engine\Graphics\Pipeline">
+      <UniqueIdentifier>{45dbd922-c24a-460c-a521-4c461b4eec82}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Engine\Graphics\PostEffect">
+      <UniqueIdentifier>{5a96c8e9-0c77-4b1c-9bf8-f04c85151a63}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Engine\Graphics\Renderer">
+      <UniqueIdentifier>{79d391d3-abf5-42b2-9867-f00d5524753d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Engine\Graphics\RenderState">
+      <UniqueIdentifier>{b8709d0c-7a63-47fb-ab21-8e9014599f4b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Engine\Graphics\RenderTarget">
+      <UniqueIdentifier>{19f9f5ad-38b2-4f68-b45b-b5d17c709cf1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Engine\Graphics\Shader">
+      <UniqueIdentifier>{5581b52d-1846-44a6-900f-e3220ba70581}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Engine\Graphics\Resource">
+      <UniqueIdentifier>{fb2399d2-cabf-460a-ba45-8d49b663deea}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Engine\Graphics\Camera\Core">
+      <UniqueIdentifier>{519b5ee5-ff7b-46e1-97b9-a6af42a26eb3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Engine\Graphics\Camera\DebugCamera">
+      <UniqueIdentifier>{3ab59e44-0df1-426d-a4f3-d7028e1dce96}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Engine\Graphics\Camera\FPS">
+      <UniqueIdentifier>{efbeb7de-1739-48e5-8dad-caae92974f8f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Engine\Graphics\Descriptor\DSV">
+      <UniqueIdentifier>{fc94ed9b-2fe9-4534-b129-00152094fe17}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Engine\Graphics\Descriptor\RTV">
+      <UniqueIdentifier>{6c375ed3-132c-4516-8b59-7fee975eaec9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Engine\Graphics\Descriptor\SRV">
+      <UniqueIdentifier>{3f165c36-109f-4c1d-9d68-60b6b721b19f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Engine\Graphics\Descriptor\UAV">
+      <UniqueIdentifier>{c15efbc8-53b2-4b90-8b77-186de147d966}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Engine\Graphics\PostEffect\Core">
+      <UniqueIdentifier>{830fb16e-fcb9-4377-88ad-1d2a040a22b7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Engine\Graphics\PostEffect\Effects">
+      <UniqueIdentifier>{f2bf6898-33c2-46b9-95d0-b8651d72b924}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Engine\Graphics\PostEffect\Manager">
+      <UniqueIdentifier>{03b782a9-3b3f-44a6-9bd1-aeeb223086a3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Engine\Graphics\PostEffect\Pipeline">
+      <UniqueIdentifier>{c359b7e1-184d-473c-aaf9-2b3671fab71c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Engine\Graphics\Device\Command">
+      <UniqueIdentifier>{7d3a813f-e239-4fa8-aa51-ab32b4c871fc}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Engine\Graphics\Device\Core">
+      <UniqueIdentifier>{a3ac45ce-3734-44ee-9e46-de6b7db71559}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Engine\Graphics\Device\Facade">
+      <UniqueIdentifier>{89dbcadb-b53b-480e-be20-ce7326569255}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Engine\Graphics\Device\SwapChain">
+      <UniqueIdentifier>{0750e8f9-4d75-4783-8039-6a65193b3087}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Engine\Graphics\Device\Synchronization">
+      <UniqueIdentifier>{b71f8241-ab69-4dae-9a4e-74588fc86b81}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Engine\Graphics\Shader\Compiler">
+      <UniqueIdentifier>{e4d80bea-6981-4772-b010-2c7b418875fb}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Engine\Graphics\Shader\Manifest">
+      <UniqueIdentifier>{716afd18-e7c3-423b-a1a7-2eb6f5a73ead}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Engine\Graphics\RenderTarget\Main">
+      <UniqueIdentifier>{f50572d7-24cc-4d0c-a7d8-0d8cf5bc2235}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Engine\Graphics\RenderTarget\Shadow">
+      <UniqueIdentifier>{4118f011-69f0-4306-9afa-20e83a63edf6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Engine\Graphics\RenderState\Blend">
+      <UniqueIdentifier>{7b9c1912-b325-4752-8f71-e6f91d25bdf2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Engine\Graphics\Resource\Model">
+      <UniqueIdentifier>{4e3cf39b-7dc0-454b-a9f8-73da398d4582}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Engine\Graphics\Resource\Texture">
+      <UniqueIdentifier>{0cd5f98a-1a6c-4484-b127-c2649f848d15}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Engine\Graphics\Renderer\Animation">
+      <UniqueIdentifier>{7e45f588-cbb2-4cf8-841f-81ec2f03247d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Engine\Graphics\Renderer\GpuParticle">
+      <UniqueIdentifier>{e42eb57f-b85a-4468-8d11-1d9744d04765}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Engine\Graphics\Renderer\Object3D">
+      <UniqueIdentifier>{916771ac-d372-45da-959b-187a8edc4400}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Engine\Graphics\Renderer\Particle">
+      <UniqueIdentifier>{ab51a09e-a4fb-4d8c-bd84-dbefedfbb7c6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Engine\Graphics\Renderer\SkyBox">
+      <UniqueIdentifier>{127a5a74-625e-4860-b614-03a964858777}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Engine\Graphics\Renderer\Sprite">
+      <UniqueIdentifier>{0aafae0b-5e92-4f0d-9e9f-d7827edf57fc}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Engine\Graphics\Renderer\Wireframe">
+      <UniqueIdentifier>{62792443-649e-4af4-b4ed-e44e4eabb05c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Engine\Graphics\Renderer\Animation\Collider">
+      <UniqueIdentifier>{70dc25d9-b12d-4561-a1a2-1c468849ecfa}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Engine\Graphics\Renderer\Animation\Core">
+      <UniqueIdentifier>{836fc2d4-6209-479d-b487-344c9036b373}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Engine\Graphics\Renderer\Animation\DebugView">
+      <UniqueIdentifier>{78dfd8f1-2003-406e-9ace-225beae1475f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Engine\Graphics\Renderer\Animation\Pipeline">
+      <UniqueIdentifier>{2ac7a2f0-51c5-4d26-8d81-01b76e723cc6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Engine\Graphics\Renderer\Animation\Skinning">
+      <UniqueIdentifier>{c7999327-f569-480f-82e0-f794669c7f79}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Engine\Graphics\Renderer\Animation\LOD">
+      <UniqueIdentifier>{12a6c2df-ce1a-4dd2-8afd-9561f8b5b5eb}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Engine\Graphics\Renderer\Animation\Skeleton">
+      <UniqueIdentifier>{5298ba0f-0a24-4487-bff9-2d06057703c7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Engine\Graphics\Renderer\GpuParticle\Buffers">
+      <UniqueIdentifier>{86caffb4-cf7e-4d6c-880a-a52beeef6165}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Engine\Graphics\Renderer\GpuParticle\Data">
+      <UniqueIdentifier>{3ece2d00-6118-460a-8acb-f8d3786f2cbd}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Engine\Graphics\Renderer\GpuParticle\Emitter">
+      <UniqueIdentifier>{2fd1c582-c369-43c5-8834-ca098a097295}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Engine\Graphics\Renderer\GpuParticle\Manager">
+      <UniqueIdentifier>{7eaca140-b0d9-4d77-8d54-8a7ee08747bf}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Engine\Graphics\Renderer\GpuParticle\Pipeline">
+      <UniqueIdentifier>{35a9f17e-2053-4e1b-8c1d-f6d7fd221913}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Engine\Graphics\Renderer\GpuParticle\Preset">
+      <UniqueIdentifier>{8dee9b3d-dd82-433d-bdfb-7cd0ca3d3b7b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Engine\Graphics\Renderer\GpuParticle\Renderer">
+      <UniqueIdentifier>{aac5c997-4602-4501-a014-b875a0d49e2a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Engine\Graphics\Renderer\Particle\Core">
+      <UniqueIdentifier>{3fd88138-6ed1-43c1-ada5-eeb9c200c5c2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Engine\Graphics\Renderer\Particle\Manager">
+      <UniqueIdentifier>{c3d2cf9b-a501-4641-bb00-55459989e5dc}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>
