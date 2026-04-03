@@ -67,6 +67,13 @@ public: /// ---------- メンバ関数 ---------- ///
 	// ImGui描画処理
 	void DrawImGui() override;
 
+	// 段階ロード
+	void StartLoad() override;
+
+	void UpdateLoad() override;
+
+	bool IsReadyToStartUncover() const override;
+
 private: /// ---------- メンバ関数 ---------- ///
 
 	// ステージ情報初期化
@@ -143,5 +150,8 @@ private: /// ---------- メンバ変数 ---------- ///
 	K4E::Vector4 bgTarget_ = bgNow_; // 目標の色
 
 	int pendingUnlockIndex_ = -1;
+
+	int loadStep_ = 0; // ロード段階
+	bool isLoadReady_ = false; // ロード完了フラグ
 };
 

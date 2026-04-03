@@ -38,8 +38,23 @@ public: /// ---------- 純粋仮想関数 ---------- ///
 	// シーンマネージャーをセット
 	virtual void SetSceneManager(SceneManager* sceneManager) { sceneManager_ = sceneManager; }
 
+	// ロード開始
+	virtual void StartLoad() {};
+
+	// ロード更新
+	virtual void UpdateLoad() {};
+
+	// アンロード開始
+	virtual void StartUnload() {};
+
+	// アンロード更新
+	virtual void UpdateUnload() {};
+
 	// フェードイン開始準備完了か
 	virtual bool IsReadyToStartUncover() const { return true; }
+
+	// シーン差し替え可能か
+	virtual bool IsReadyToSwapOut() const { return true; }
 
 protected: /// ---------- メンバ変数 ---------- ///
 

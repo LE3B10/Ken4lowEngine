@@ -22,62 +22,128 @@ SceneManager::~SceneManager() = default;
 
 void SceneManager::Initialize()
 {
-	// FadeManager を常駐させる
 	fadeManager_ = std::make_unique<FadeManager>();
 	fadeManager_->Initialize();
 
 	isTransitioning_ = false;
 	sceneSwapped_ = false;
 	pendingCrack_ = false;
+
+	coverHoldCounter_ = 0;
+	uncoverDelayCounter_ = 0;
+	unloadRequested_ = false;
 }
 
 void SceneManager::Update()
 {
 	float dtRaw = K4E::DirectXCommon::GetInstance()->GetFPSCounter().GetDeltaTime();
-	// シーン切替の重い処理でフレームが止まると dt が跳ねて演出が一瞬で終わるのでクランプする
 	float dtFade = std::min(dtRaw, 1.0f / 30.0f);
 
-	if (fadeManager_) fadeManager_->Update(dtFade);
+	if (fadeManager_)
+	{
+		fadeManager_->Update(dtFade);
+	}
 
 	if (isTransitioning_)
 	{
-		if (!sceneSwapped_ && fadeManager_ && fadeManager_->IsFullyCovered() && nextScene_)
+		// ----------------------------
+		// 旧シーンの覆い・段階解放
+		// ----------------------------
+		if (!sceneSwapped_)
 		{
-			ApplyNextScene();
-			sceneSwapped_ = true;
-			pendingCrack_ = true;
+			if (fadeManager_ && fadeManager_->IsFullyCovered() && nextScene_)
+			{
+				if (scene_)
+				{
+					if (!unloadRequested_)
+					{
+						scene_->StartUnload();
+						unloadRequested_ = true;
+					}
+
+					scene_->UpdateUnload();
+				}
+
+				const bool readyToSwap = (!scene_) || scene_->IsReadyToSwapOut();
+
+				if (readyToSwap)
+				{
+					++coverHoldCounter_;
+
+					if (coverHoldCounter_ >= coverHoldFrames_)
+					{
+						ApplyNextScene();
+						sceneSwapped_ = true;
+						pendingCrack_ = true;
+
+						coverHoldCounter_ = 0;
+						uncoverDelayCounter_ = 0;
+						unloadRequested_ = false;
+					}
+				}
+				else
+				{
+					coverHoldCounter_ = 0;
+				}
+			}
+			else
+			{
+				coverHoldCounter_ = 0;
+			}
 		}
 
-		// フェードが終わったら遷移終了
+		// ----------------------------
+		// 新シーンの段階ロード
+		// ----------------------------
+		if (pendingCrack_ && fadeManager_ && fadeManager_->IsFullyCovered() && scene_)
+		{
+			scene_->UpdateLoad();
+
+			if (scene_->IsReadyToStartUncover())
+			{
+				++uncoverDelayCounter_;
+
+				if (uncoverDelayCounter_ >= uncoverDelayFrames_)
+				{
+					fadeManager_->StartCrack();
+					pendingCrack_ = false;
+					uncoverDelayCounter_ = 0;
+				}
+			}
+			else
+			{
+				uncoverDelayCounter_ = 0;
+			}
+		}
+
+		// ----------------------------
+		// 遷移終了
+		// ----------------------------
 		if (fadeManager_ && !fadeManager_->IsBusy())
 		{
 			isTransitioning_ = false;
 			sceneSwapped_ = false;
+			coverHoldCounter_ = 0;
+			uncoverDelayCounter_ = 0;
+			unloadRequested_ = false;
 
-			// フェード中に来た遷移要求を実行
 			if (hasQueuedChange_)
 			{
 				std::string name = queuedSceneName_;
 				hasQueuedChange_ = false;
 				queuedSceneName_.clear();
-				ChangeScene(name); // ここで次のフェード開始
+				ChangeScene(name);
 			}
 		}
 	}
 
-
-	// 差し替え直後のフレームでCrackを開始（Initializeの重い処理直後のdt跳ねも抑えられる）
-	if (pendingCrack_ && fadeManager_ && fadeManager_->IsFullyCovered())
-	{
-		fadeManager_->StartCrack();
-		pendingCrack_ = false;
-	}
-
-	// シーン更新（好みで止める/動かす）
+	// 遷移中は旧シーンの通常 Update を止める
 	if (scene_)
 	{
-		// 覆う間は止めたいなら：(!isTransitioning_ || sceneSwapped_) だけ Update
-		scene_->Update();
+		if (!isTransitioning_ || sceneSwapped_)
+		{
+			scene_->Update();
+		}
 	}
 }
 
@@ -144,7 +210,6 @@ void SceneManager::ChangeScene(const std::string& sceneName)
 {
 	assert(sceneFactory_);
 
-	// フェード中なら「捨てずに予約」
 	if (IsTransitioning())
 	{
 		queuedSceneName_ = sceneName;
@@ -152,20 +217,22 @@ void SceneManager::ChangeScene(const std::string& sceneName)
 		return;
 	}
 
-	// 次シーン生成
 	nextScene_ = sceneFactory_->CreateScene(sceneName);
 
-	// フェードマネージャが無いなら即切替（保険）
 	if (!fadeManager_)
 	{
 		ApplyNextScene();
 		return;
 	}
 
-	// フェード開始
 	fadeManager_->StartCover();
 	isTransitioning_ = true;
 	sceneSwapped_ = false;
+	pendingCrack_ = false;
+
+	coverHoldCounter_ = 0;
+	uncoverDelayCounter_ = 0;
+	unloadRequested_ = false;
 }
 
 void SceneManager::ApplyNextScene()
@@ -181,15 +248,10 @@ void SceneManager::ApplyNextScene()
 	// 差し替え
 	scene_ = std::move(nextScene_);
 
-	// シーンマネージャーをセット
 	if (scene_)
 	{
 		scene_->SetSceneManager(this);
-	}
-
-	// 初期化
-	if (scene_)
-	{
-		scene_->Initialize();
+		scene_->Initialize();   // 軽い初期化だけ
+		scene_->StartLoad();    // 重いロードの開始
 	}
 }

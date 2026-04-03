@@ -35,6 +35,7 @@ void TitleScene::Initialize()
 	timers_.state = timers_.idle = 0.0f;
 	timers_.inputCooldownLeft = 0.0f;
 
+
 	// カメラの初期化
 	InitializeCamera();
 
@@ -50,13 +51,16 @@ void TitleScene::Initialize()
 	// クリックヒントの初期化
 	InitializeClickHintUI();
 
-	// ロビー地形の初期化
-	terrain_ = std::make_unique<Object3D>();
-	terrain_->Initialize("Stages/lobby.gltf");
+	// 段階ロードの初期状態
+	loadStep_ = 0;
+	isLoadReady_ = false;
 
-	// 最初のステートに入る
-	ChangeState(std::make_unique<TitleAttractState>());
-	state_ = State::TitleAttract; // 最初のステート
+	// まだ重い生成はしない
+	skyBox_.reset();
+	terrain_.reset();
+	currentState_.reset();
+
+	state_ = State::Loading;
 }
 
 
@@ -67,6 +71,14 @@ void TitleScene::Update()
 {
 	// デバッグ更新
 	UpdateDebug();
+
+	// ロード中は軽く回すだけ
+	if (state_ == State::Loading)
+	{
+		if (skyBox_) skyBox_->Update();
+		if (terrain_) terrain_->Update();
+		return;
+	}
 
 	// 地形更新
 	if (terrain_) terrain_->Update();
@@ -115,6 +127,7 @@ void TitleScene::Update()
 		// ステートクラスに丸投げ
 		currentState_->Update(this, dt);
 	}
+
 	UpdateLightViewProjection();
 	UpdateShadowMatrices();
 }
@@ -239,6 +252,49 @@ void TitleScene::DrawImGui()
 #endif // USE_IMGUI
 
 	LightManager::GetInstance()->DrawImGui();
+}
+
+void TitleScene::StartLoad()
+{
+	loadStep_ = 0;
+	isLoadReady_ = false;
+	state_ = State::Loading;
+}
+
+void TitleScene::UpdateLoad()
+{
+	switch (loadStep_)
+	{
+	case 0:
+		// SkyBox 読み込み
+		skyBox_ = std::make_unique<SkyBox>();
+		skyBox_->Initialize("SkyBox/skybox.dds");
+		++loadStep_;
+		break;
+
+	case 1:
+		// 地形読み込み
+		terrain_ = std::make_unique<Object3D>();
+		terrain_->Initialize("Stages/lobby.gltf");
+		++loadStep_;
+		break;
+
+	case 2:
+		// 最初のステートに入る
+		ChangeState(std::make_unique<TitleAttractState>());
+		state_ = State::TitleAttract;
+		isLoadReady_ = true;
+		++loadStep_;
+		break;
+
+	default:
+		break;
+	}
+}
+
+bool TitleScene::IsReadyToStartUncover() const
+{
+	return isLoadReady_;
 }
 
 void TitleScene::UpdateLightViewProjection()

@@ -21,18 +21,22 @@ void StageSelectScene::Initialize()
 	dxCommon_ = K4E::DirectXCommon::GetInstance();
 	input_ = K4E::Input::GetInstance();
 
-	// ステージ情報初期化
-	InitializeStages();
+	// 軽い初期値だけ
+	stages_.clear();
+	context_ = {};
+	gridSelector_.reset();
+	activeSelector_ = nullptr;
+	bg_.reset();
 
-	// セレクタ初期化
-	InitializeSelectors();
+	pendingUnlockIndex_ = -1;
+	nextScene_ = NextScene::None;
 
-	// 背景初期化
-	InitializeBackground();
+	loadStep_ = 0;
+	isLoadReady_ = false;
 
-	// --- 最初のステートをセット（Loading） ---
+	// ロード中として待機
 	state_ = State::Loading;
-	ChangeState(std::make_unique<StageSelectSelectingState>());
+	currentState_.reset();
 }
 
 /// -------------------------------------------------------------
@@ -42,8 +46,19 @@ void StageSelectScene::Update()
 {
 	float deltaTime = dxCommon_->GetFPSCounter().GetDeltaTime();
 
+	// ロード中は通常更新をしない
+	if (state_ == State::Loading)
+	{
+		// 背景だけあれば最低限更新
+		if (bg_) { bg_->Update(); }
+		return;
+	}
+
 	// ステート更新
-	if (currentState_) currentState_->Update(this, deltaTime);
+	if (currentState_)
+	{
+		currentState_->Update(this, deltaTime);
+	}
 
 }
 
@@ -116,6 +131,53 @@ void StageSelectScene::Finalize()
 void StageSelectScene::DrawImGui()
 {
 
+}
+
+void StageSelectScene::StartLoad()
+{
+	loadStep_ = 0;
+	isLoadReady_ = false;
+	state_ = State::Loading;
+}
+
+void StageSelectScene::UpdateLoad()
+{
+	switch (loadStep_)
+	{
+	case 0:
+		// ステージ情報だけ先に作る
+		InitializeStages();
+		++loadStep_;
+		break;
+
+	case 1:
+		// セレクタのコンテキストだけ組む
+		InitializeSelectors();
+		++loadStep_;
+		break;
+
+	case 2:
+		// 背景と GridSelector の生成
+		InitializeBackground();
+		++loadStep_;
+		break;
+
+	case 3:
+		// 選択状態へ入る
+		ChangeState(std::make_unique<StageSelectSelectingState>());
+		state_ = State::Selecting;
+		isLoadReady_ = true;
+		++loadStep_;
+		break;
+
+	default:
+		break;
+	}
+}
+
+bool StageSelectScene::IsReadyToStartUncover() const
+{
+	return isLoadReady_;
 }
 
 /// -------------------------------------------------------------

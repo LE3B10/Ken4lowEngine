@@ -77,4 +77,14 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	bool hasQueuedChange_ = false;
 	std::string queuedSceneName_;
+
+	// カバー完了後に少し待ってから差し替える
+	int coverHoldFrames_ = 4;
+	int coverHoldCounter_ = 0;
+
+	// 差し替え後、少し待ってから Crack を始める
+	int uncoverDelayFrames_ = 3;
+	int uncoverDelayCounter_ = 0;
+
+	bool unloadRequested_ = false; // アンロード要求フラグ
 };

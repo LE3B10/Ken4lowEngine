@@ -52,6 +52,20 @@ public: /// ---------- BaseScene override ---------- ///
 	// ImGui描画
 	void DrawImGui() override;
 
+	// 段階ロード
+	void StartLoad() override;
+
+	void UpdateLoad() override;
+
+	// 段階アンロード
+	void StartUnload() override;
+	
+	void UpdateUnload() override;
+
+	bool IsReadyToStartUncover() const override;
+
+	bool IsReadyToSwapOut() const override;
+
 private: /// ---------- 初期化 / 終了系 ---------- ///
 
 	// エンジン依存システム取得やカーソル設定
@@ -140,4 +154,10 @@ private: /// ---------- メンバ変数 ---------- ///
 	bool isRetryRestartDone_ = false;      // フェードアウト後の再初期化を実行済みか
 
 	bool gameOverOpened_ = false;
+
+	int loadStep_ = 0; // ロード段階
+	bool isLoadReady_ = false; // ロード完了フラグ
+
+	int unloadStep_ = 0;
+	bool isUnloadReady_ = false;
 };

@@ -163,6 +163,13 @@ public: /// ---------- メンバ関数 ---------- ///
 	// ImGui描画処理
 	void DrawImGui() override;
 
+	// 段階ロード
+	void StartLoad() override;
+	
+	void UpdateLoad() override;
+
+	bool IsReadyToStartUncover() const override;
+
 	void UpdateLightViewProjection();
 	void UpdateShadowMatrices();
 
@@ -268,6 +275,9 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	// 現在のシーン状態
 	std::unique_ptr<ITitleSceneState> currentState_ = nullptr;
+
+	int loadStep_ = 0; // ロード段階
+	bool isLoadReady_ = false; // ロード完了フラグ
 
 private: /// ---------- 影用 ---------- ///
 

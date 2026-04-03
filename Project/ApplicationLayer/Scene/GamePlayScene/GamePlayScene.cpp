@@ -18,8 +18,21 @@ using namespace Ken4lowEngine;
 void GamePlayScene::Initialize()
 {
 	InitializeSystems();
-	InitializeGameplayObjects();
-	SetupNewGame(false); // 初回はイントロあり
+
+	loadStep_ = 0;
+	isLoadReady_ = false;
+
+	flow_.reset();
+	stageContext_.reset();
+	world_.reset();
+	introDirector_.reset();
+	debugTools_.reset();
+
+	if (!fadeManager_)
+	{
+		fadeManager_ = std::make_unique<FadeManager>();
+		fadeManager_->Initialize();
+	}
 }
 
 /// -------------------------------------------------------------
@@ -117,6 +130,12 @@ void GamePlayScene::Update()
 	if (fadeManager_)
 	{
 		fadeManager_->Update(deltaTime);
+	}
+
+	// ロード中は通常ゲームプレイ更新をしない
+	if (!isLoadReady_)
+	{
+		return;
 	}
 
 	// デバッグ停止系
@@ -507,6 +526,140 @@ void GamePlayScene::DrawImGui()
 		debugTools_->DrawImGui(world_.get());
 	}
 #endif // USE_IMGUI
+}
+
+void GamePlayScene::StartLoad()
+{
+	loadStep_ = 0;
+	isLoadReady_ = false;
+}
+
+void GamePlayScene::UpdateLoad()
+{
+	switch (loadStep_)
+	{
+	case 0:
+		flow_ = std::make_unique<GamePlayFlow>();
+		flow_->Initialize();
+		++loadStep_;
+		break;
+
+	case 1:
+		stageContext_ = std::make_unique<GamePlayStageContext>();
+		stageContext_->InitializeFromRepository();
+		++loadStep_;
+		break;
+
+	case 2:
+		world_ = std::make_unique<GamePlayWorld>();
+		world_->Initialize(*stageContext_);
+		++loadStep_;
+		break;
+
+	case 3:
+		introDirector_ = std::make_unique<GamePlayIntroDirector>();
+		++loadStep_;
+		break;
+
+	case 4:
+		debugTools_ = std::make_unique<GamePlayDebugTools>();
+		debugTools_->Initialize();
+		++loadStep_;
+		break;
+
+	case 5:
+		SetupNewGame(false); // 初回はイントロあり
+		isLoadReady_ = true;
+		++loadStep_;
+		break;
+
+	default:
+		break;
+	}
+}
+
+void GamePlayScene::StartUnload()
+{
+	unloadStep_ = 0;
+	isUnloadReady_ = false;
+}
+
+void GamePlayScene::UpdateUnload()
+{
+	switch (unloadStep_)
+	{
+	case 0:
+		// まず入力系を軽く戻す
+		RestoreCursorState();
+		++unloadStep_;
+		break;
+
+	case 1:
+		// デバッグツール解放
+		if (debugTools_)
+		{
+			debugTools_->Finalize();
+			debugTools_.reset();
+		}
+		++unloadStep_;
+		break;
+
+	case 2:
+		// フローとイントロ系を解放
+		introDirector_.reset();
+
+		if (flow_)
+		{
+			flow_->Finalize();
+			flow_.reset();
+		}
+		++unloadStep_;
+		break;
+
+	case 3:
+		// 一番重そうな world を単独フレームで解放
+		if (world_)
+		{
+			world_->Finalize();
+			world_.reset();
+		}
+		++unloadStep_;
+		break;
+
+	case 4:
+		// ステージ文脈を最後に解放
+		stageContext_.reset();
+		++unloadStep_;
+		break;
+
+	case 5:
+		// FadeManager は SceneManager 側のフェードがあるので、ここで消してもよい
+		if (fadeManager_)
+		{
+			fadeManager_->Finalize();
+			fadeManager_.reset();
+		}
+
+		input_ = nullptr;
+		dxCommon_ = nullptr;
+
+		isUnloadReady_ = true;
+		++unloadStep_;
+		break;
+
+	default:
+		break;
+	}
+}
+
+bool GamePlayScene::IsReadyToStartUncover() const
+{
+	return isLoadReady_;
+}
+
+bool GamePlayScene::IsReadyToSwapOut() const
+{
+	return isUnloadReady_;
 }
 
 /// -------------------------------------------------------------
