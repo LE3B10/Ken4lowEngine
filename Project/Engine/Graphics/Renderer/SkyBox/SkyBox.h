@@ -11,169 +11,182 @@
 
 namespace Ken4lowEngine
 {
+	/// ---------- 前方宣言 ---------- ///
+	class DirectXCommon;
 
-/// ---------- 前方宣言 ---------- ///
-class DirectXCommon;
-
-
-/// -------------------------------------------------------------
-///					　スカイボックスクラス
-/// -------------------------------------------------------------
-class SkyBox
-{
-private: /// ---------- 構造体 ---------- ///
-
-	/// ---------- 頂点数 ( Vertex, Index ) ----------- ///
-	static inline const UINT kNumVertex = 36;
-	static inline const UINT kNumIndex = 36;
-
-	// マテリアルデータの構造体
-	struct Material final
+	/// -------------------------------------------------------------
+	///                        スカイボックスクラス
+	/// -------------------------------------------------------------
+	/// 役割:
+	/// - 環境テクスチャを使ったスカイボックスの頂点/インデックスデータを保持する
+	/// - マテリアル / WVP 定数バッファを更新する
+	/// - SkyBoxManager が設定した描画状態のもとでキューブを描画する
+	///
+	/// 注意:
+	/// - RootSignature / PSO の生成は行わない
+	/// - 描画前の共通レンダリング設定は SkyBoxManager 側が担当する
+	/// -------------------------------------------------------------
+	class SkyBox
 	{
-		Vector4 color;
-		Matrix4x4 uvTransform;
-		uint32_t textureIndex;
-		float padding[3];
+	private: /// ---------- 構造体 ---------- ///
+
+		/// キューブの頂点数 / インデックス数
+		static inline const UINT kNumVertex = 24;
+		static inline const UINT kNumIndex = 36;
+
+		/// <summary>
+		/// PixelShader 側へ渡すマテリアルデータ。
+		/// </summary>
+		struct Material final
+		{
+			Vector4 color;
+			Matrix4x4 uvTransform;
+			uint32_t textureIndex;
+			float padding[3];
+		};
+
+		/// <summary>
+		/// SkyBox 頂点データ。
+		/// position は clip 変換前のローカル座標、
+		/// texcoord は環境テクスチャ参照方向として使う。
+		/// </summary>
+		struct VertexData
+		{
+			Vector4 position;
+			Vector3 texcoord;
+		};
+
+		/// <summary>
+		/// VertexShader 側へ渡す変換行列データ。
+		/// </summary>
+		struct TransformationMatrix final
+		{
+			Matrix4x4 WVP;
+			Matrix4x4 World;
+		};
+
+	public: /// ---------- メンバ関数 ---------- ///
+
+		/// <summary>
+		/// スカイボックス描画を初期化する。
+		/// </summary>
+		/// <param name="filePath">
+		/// 環境テクスチャのファイルパス。
+		/// </param>
+		///
+		/// 実行内容:
+		/// - DirectXCommon と使用カメラを取得する
+		/// - 環境テクスチャを読み込む
+		/// - スカイボックス用のスケール・回転・位置を初期化する
+		/// - マテリアル / 頂点 / インデックス / WVP バッファを生成する
+		void Initialize(const std::string& filePath);
+
+		/// <summary>
+		/// 毎フレームの更新処理を行う。
+		/// </summary>
+		///
+		/// 実行内容:
+		/// - ワールド行列を計算する
+		/// - 通常カメラまたはデバッグカメラの ViewProjection を選ぶ
+		/// - World * ViewProjection を計算して WVP バッファへ反映する
+		void Update();
+
+		/// <summary>
+		/// スカイボックスを描画する。
+		/// </summary>
+		///
+		/// 前提:
+		/// - SkyBoxManager 側で RootSignature / PSO / PrimitiveTopology が設定済み
+		///
+		/// 実行内容:
+		/// - 頂点 / インデックスバッファをバインドする
+		/// - Material / WVP 定数バッファをバインドする
+		/// - DrawIndexedInstanced でキューブを描画する
+		void Draw();
+
+		/// <summary>
+		/// デバッグカメラを使用するかを設定する。
+		/// </summary>
+		void SetDebugCamera(bool isDebugCamera) { isDebugCamera_ = isDebugCamera; }
+
+		/// <summary>
+		/// デバッグカメラ使用状態を取得する。
+		/// </summary>
+		bool GetDebugCamera() { return isDebugCamera_; }
+
+		/// <summary>
+		/// 環境マップの GPU ハンドルを取得する。
+		/// </summary>
+		/// <remarks>
+		/// IBL など別用途で環境マップを参照したい場合を想定。
+		/// </remarks>
+		D3D12_GPU_DESCRIPTOR_HANDLE GetEnvironmentMapHandle() const { return gpuHandle_; }
+
+	public: /// ---------- アクセッサ ---------- ///
+
+		/// ワールド変換の取得 / 設定
+		WorldTransform& GetWorldTransform() { return worldTransform_; }
+		void SetWorldTransform(const WorldTransform& worldTransform) { worldTransform_ = worldTransform; }
+
+	private: /// ---------- 内部メンバ関数 ---------- ///
+
+		/// <summary>
+		/// マテリアル用定数バッファを生成・初期化する。
+		/// </summary>
+		void InitializeMaterial();
+
+		/// <summary>
+		/// キューブ形状の頂点バッファを生成・初期化する。
+		/// </summary>
+		void InitializeVertexBufferData();
+
+		/// <summary>
+		/// キューブ形状のインデックスバッファを生成・初期化する。
+		/// </summary>
+		void InitializeIndexData();
+
+	private: /// ---------- メンバ変数 ---------- ///
+
+		/// D3D12 リソース生成やコマンド取得に使用する共通クラス
+		DirectXCommon* dxCommon_ = nullptr;
+
+		/// 描画に使用するカメラ
+		Camera* camera_ = nullptr;
+
+		/// SkyBox 自身のワールド変換
+		WorldTransform worldTransform_;
+
+		/// 環境マップ用 GPU ハンドル
+		D3D12_GPU_DESCRIPTOR_HANDLE gpuHandle_ = {};
+
+		/// Material 定数バッファ
+		ComPtr<ID3D12Resource> materialResource;
+		Material* materialData_ = nullptr;
+
+		/// 頂点バッファ
+		ComPtr<ID3D12Resource> vertexResource;
+		D3D12_VERTEX_BUFFER_VIEW vertexBufferView{};
+		VertexData* vertexData_ = nullptr;
+
+		/// WVP 定数バッファ
+		ComPtr<ID3D12Resource> wvpResource;
+		TransformationMatrix* wvpData = nullptr;
+
+		/// インデックスバッファ
+		ComPtr<ID3D12Resource> indexResource;
+		D3D12_INDEX_BUFFER_VIEW indexBufferView{};
+		uint32_t* indexData_ = nullptr;
+
+		/// 計算済み行列
+		Matrix4x4 worldViewProjectionMatrix;
+		Matrix4x4 viewProjectionMatrix_;
+		Matrix4x4 debugViewProjectionMatrix_;
+
+		/// デバッグカメラを使うかどうか
+		bool isDebugCamera_ = false;
+
+		/// 使用中の環境テクスチャ index
+		uint32_t textureIndex_ = 0;
 	};
-
-	// 頂点データの構造体
-	struct VertexData
-	{
-		Vector4 position;
-		Vector3 texcoord;
-	};
-
-	// 座標変換行列データの構造体
-	struct TransformationMatrix final
-	{
-		Matrix4x4 WVP;
-		Matrix4x4 World;
-	};
-
-public: /// ---------- メンバ関数 ---------- ///
-
-	/// <summary>
-	/// スカイボックスの初期化処理を行います。<br/>
-	/// ・テクスチャの読み込みと SRV ハンドル取得<br/>
-	/// ・デフォルトカメラ / DirectXCommon の取得<br/>
-	/// ・スケール / 回転 / 平行移動の初期化<br/>
-	/// ・マテリアル / 頂点 / インデックス / WVP バッファの生成<br/>
-	/// などをまとめて行います。
-	/// </summary>
-	/// <param name="filePath">読み込む環境テクスチャのファイルパス。</param>
-	void Initialize(const std::string& filePath);
-
-	/// <summary>
-	/// 毎フレームの更新処理を行います。<br/>
-	/// ・ワールド行列の計算（スケール / 回転 / 平行移動）<br/>
-	/// ・カメラ or デバッグカメラのビュー・プロジェクション行列取得<br/>
-	/// ・World * ViewProjection を計算して WVP を更新<br/>
-	/// ・カメラに ViewProjection 行列をセット<br/>
-	/// を行い、描画用の定数バッファを書き換えます。
-	/// </summary>
-	void Update();
-
-	/// <summary>
-	/// スカイボックスの描画処理を行います。<br/>
-	/// ・SkyBoxManager で PSO / ルートシグネチャをセット<br/>
-	/// ・頂点 / インデックスバッファのバインド<br/>
-	/// ・マテリアル / WVP 定数バッファのバインド<br/>
-	/// ・環境テクスチャの SRV 設定<br/>
-	/// ・DrawIndexedInstanced によるキューブ描画<br/>
-	/// を行います。
-	/// </summary>
-	void Draw();
-
-	/// <summary>
-	/// デバッグカメラを使用するかどうかを設定します。<br/>
-	/// true の場合、Update 時に DebugCamera の ViewProjection を使用します。
-	/// </summary>
-	/// <param name="isDebugCamera">デバッグカメラを使用する場合は true。</param>
-	void SetDebugCamera(bool isDebugCamera) { isDebugCamera_ = isDebugCamera; }
-
-	/// <summary>
-	/// デバッグカメラを使用しているかどうかを取得します。
-	/// </summary>
-	/// <returns>デバッグカメラ使用時 true。</returns>
-	bool GetDebugCamera() { return isDebugCamera_; }
-
-	/// <summary>
-	/// 環境マップとして使用しているテクスチャの GPU ディスクリプタハンドルを取得します。<br/>
-	/// IBL など、他の描画パスで利用したい場合に参照します。
-	/// </summary>
-	/// <returns>SRV の GPU ディスクリプタハンドル。</returns>
-	D3D12_GPU_DESCRIPTOR_HANDLE GetEnvironmentMapHandle() const { return gpuHandle_; }
-
-public: /// ---------- アクセッサ ---------- ///
-
-	// 座標を取得 : 設定
-	WorldTransform& GetWorldTransform() { return worldTransform_; }
-	void SetWorldTransform(const WorldTransform& worldTransform) { worldTransform_ = worldTransform; }
-
-private: /// ---------- 内部メンバ関数 ---------- ///
-
-	/// <summary>
-	/// マテリアル定数バッファを初期化します。<br/>
-	/// ・Material 用のバッファリソースを生成<br/>
-	/// ・マップして書き込み用ポインタを取得<br/>
-	/// ・色を白(1,1,1,1)、UV 行列を単位行列に設定<br/>
-	/// を行います。
-	/// </summary>
-	void InitializeMaterial();
-
-	/// <summary>
-	/// キューブ形状の頂点バッファを初期化します。<br/>
-	/// ・VertexData × kNumVertex 分のバッファリソースを生成<br/>
-	/// ・頂点バッファビューを設定<br/>
-	/// ・左右 / 前後 / 上下 6 面分の頂点位置 & テクスチャ座標をセット<br/>
-	/// を行います。
-	/// </summary>
-	void InitializeVertexBufferData();
-
-	/// <summary>
-	/// キューブ形状のインデックスバッファを初期化します。<br/>
-	/// ・uint32_t × kNumIndex 分のバッファリソースを生成<br/>
-	/// ・インデックスバッファビューを設定<br/>
-	/// ・各面 2 三角形分のインデックスを時計回りで登録<br/>
-	/// を行います。
-	/// </summary>
-	void InitializeIndexData();
-
-private: /// ---------- メンバ変数 ---------- ///
-
-	DirectXCommon* dxCommon_ = nullptr;
-
-	Camera* camera_ = nullptr;
-
-	// ワールド行列の計算
-	WorldTransform worldTransform_;
-
-	// テクスチャ番号
-	D3D12_GPU_DESCRIPTOR_HANDLE gpuHandle_ = {};
-
-	//スプライト用のマテリアルソースを作る
-	ComPtr <ID3D12Resource> materialResource;
-	Material* materialData_ = nullptr;
-
-	ComPtr <ID3D12Resource> vertexResource;// 頂点リソースを作る
-	D3D12_VERTEX_BUFFER_VIEW vertexBufferView{};// 頂点バッファビューを作成する
-	VertexData* vertexData_ = nullptr;// 頂点データを設定する
-	ComPtr <ID3D12Resource> wvpResource;// TransformationMatrix用のリソース
-	TransformationMatrix* wvpData = nullptr;//データを書き込む
-
-	// インデックスバッファを作成および設定する
-	ComPtr <ID3D12Resource> indexResource;
-	D3D12_INDEX_BUFFER_VIEW indexBufferView{};
-	uint32_t* indexData_ = nullptr;
-
-	Matrix4x4 worldViewProjectionMatrix;
-	Matrix4x4 viewProjectionMatrix_;
-	Matrix4x4 debugViewProjectionMatrix_;
-	bool isDebugCamera_ = false;
-
-	// テクスチャインデックス
-	uint32_t textureIndex_ = 0;
-};
-
 
 } // namespace Ken4lowEngine

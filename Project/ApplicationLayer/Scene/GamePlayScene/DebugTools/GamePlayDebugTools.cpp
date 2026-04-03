@@ -5,7 +5,7 @@
 #include "GamePlayWorld.h"
 
 #include <Input.h>
-#include "Object3DCommon.h"
+#include "CameraManager.h"
 #include "Wireframe.h"
 #include "LightManager.h"
 
@@ -89,9 +89,9 @@ void GamePlayDebugTools::UpdateDebugCamera(K4E::Input* input, GamePlayWorld* wor
 	if (input->TriggerKey(DIK_F12))
 	{
 		const bool nextDebug =
-			!K4E::Object3DCommon::GetInstance()->GetDebugCamera();
+			!K4E::CameraManager::GetInstance()->GetMainCamera();
 
-		K4E::Object3DCommon::GetInstance()->SetDebugCamera(nextDebug);
+		K4E::CameraManager::GetInstance()->SetUseDebugCamera(nextDebug);
 		K4E::Wireframe::GetInstance()->SetDebugCamera(nextDebug);
 
 		isDebugCamera_ = nextDebug;

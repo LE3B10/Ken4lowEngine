@@ -74,9 +74,6 @@ public: /// ---------- メンバ関数 ---------- ///
 
 private: /// ---------- メンバ変数 ---------- ///
 
-	// カメラ
-	Camera* camera_ = nullptr;
-
 	// 座標変換行列データ
 	ComPtr <ID3D12Resource> wvpResource;	 // WVP行列データ用リソース
 	TransformationMatrix* wvpData = nullptr; // WVP行列データのマッピング先ポインタ

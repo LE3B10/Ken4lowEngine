@@ -1,11 +1,12 @@
 #include "Object3D.h"
+#include "Object3DCommon.h"
 #include "ImGuiManager.h"
 #include "DirectXCommon.h"
 #include "ResourceManager.h"
 
 #include "ModelManager.h"
 
-#include "Object3DCommon.h"
+#include "CameraManager.h"
 #include "AssimpLoader.h"
 #include "ParameterManager.h"
 #include "SkyBox.h"
@@ -20,7 +21,7 @@ namespace Ken4lowEngine
 	void Object3D::Initialize(const std::string& fileName)
 	{
 		dxCommon_ = DirectXCommon::GetInstance();
-		camera_ = Object3DCommon::GetInstance()->GetDefaultCamera();
+		camera_ = CameraManager::GetInstance()->GetMainCamera();
 
 		// モデル読み込み
 		modelData = AssimpLoader::LoadModel(fileName);
@@ -90,14 +91,11 @@ namespace Ken4lowEngine
 	/// -------------------------------------------------------------
 	void Object3D::Update()
 	{
-		// 描画に使うカメラを明示的に毎フレームセット
-		camera_ = Object3DCommon::GetInstance()->GetDefaultCamera(); // ←ここが重要！
-
 		material_.Update();
 		worldTransform_.Update();
 
 		// カメラ用バッファ更新（必要であれば）
-		cameraData->worldPosition = Object3DCommon::GetInstance()->GetActiveCameraPosition();
+		cameraData->worldPosition = CameraManager::GetInstance()->GetActiveCameraPosition();
 	}
 
 	void Object3D::UpdateShadowMatrix(const Matrix4x4& lightViewProjection)

@@ -3,7 +3,7 @@
 #include <DirectXCommon.h>
 #include <Input.h>
 #include <SpriteManager.h>
-#include "Object3DCommon.h"
+#include "CameraManager.h"
 #include "Wireframe.h"
 #ifdef _DEBUG
 #include <DebugCamera.h>
@@ -247,7 +247,7 @@ void DebugScene::UpdateDebug()
 {
 	if (input_->TriggerKey(DIK_F12))
 	{
-		Object3DCommon::GetInstance()->SetDebugCamera(!Object3DCommon::GetInstance()->GetDebugCamera());
+		CameraManager::GetInstance()->SetUseDebugCamera(!CameraManager::GetInstance()->IsUsingDebugCamera());
 		Wireframe::GetInstance()->SetDebugCamera(!Wireframe::GetInstance()->GetDebugCamera());
 		GpuParticleManager::GetInstance()->SetDebugCameraEnabled(!isDebugCamera_);
 		isDebugCamera_ = !isDebugCamera_;

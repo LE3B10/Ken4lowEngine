@@ -5,7 +5,7 @@
 #include "GamePlayWorld.h"
 
 #include <Input.h>
-#include "Object3DCommon.h"
+#include "CameraManager.h"
 #include "Player.h"
 
 #include <algorithm>
@@ -301,7 +301,7 @@ void GamePlayIntroDirector::Update(
 
 	world.UpdateIntroVisuals();
 
-	K4E::Camera* camera = K4E::Object3DCommon::GetInstance()->GetDefaultCamera();
+	K4E::Camera* camera = CameraManager::GetInstance()->GetMainCamera();
 	if (!camera)
 	{
 		return;
@@ -392,7 +392,7 @@ void GamePlayIntroDirector::BeginGamePlayFromIntro(
 	currentSegment_ = 0;
 	segmentTimer_ = 0.0f;
 
-	if (K4E::Camera* camera = K4E::Object3DCommon::GetInstance()->GetDefaultCamera())
+	if (K4E::Camera* camera = K4E::CameraManager::GetInstance()->GetMainCamera())
 	{
 		camera->SetRotate({ 0.0f, 0.0f, 0.0f });
 		camera->Update();

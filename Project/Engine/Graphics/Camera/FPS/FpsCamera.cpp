@@ -1,6 +1,6 @@
 #include "FpsCamera.h"
+#include "CameraManager.h"
 #include <Matrix4x4.h>
-#include <Object3DCommon.h>
 #include "Player.h"
 #include <Camera.h>
 #include <Input.h>
@@ -22,7 +22,7 @@ namespace Ken4lowEngine
 	{
 		input_ = Input::GetInstance();
 		player_ = player;
-		camera_ = Object3DCommon::GetInstance()->GetDefaultCamera();
+		camera_ = CameraManager::GetInstance()->GetMainCamera();
 		camera_->SetNearClip(0.05f);
 
 		// リコイルの横ブレ用

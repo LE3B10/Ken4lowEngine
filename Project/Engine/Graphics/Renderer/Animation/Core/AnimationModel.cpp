@@ -4,7 +4,7 @@
 #include <AnimationPipelineBuilder.h>
 #include <TextureManager.h>
 #include <DirectXCommon.h>
-#include <Object3DCommon.h>
+#include <CameraManager.h>
 #include <ResourceManager.h>
 #include "AssimpLoader.h"
 #include <SRVManager.h>
@@ -68,7 +68,7 @@ namespace Ken4lowEngine
 	void AnimationModel::InitializeCommon()
 	{
 		dxCommon_ = DirectXCommon::GetInstance();
-		camera_ = Object3DCommon::GetInstance()->GetDefaultCamera();
+		camera_ = CameraManager::GetInstance()->GetMainCamera();
 	}
 
 	/// -------------------------------------------------------------
@@ -124,7 +124,7 @@ namespace Ken4lowEngine
 		// カメラデータ（b#3）
 		cameraResource = ResourceManager::CreateBufferResource(dxCommon_->GetDevice(), sizeof(CameraForGPU));
 		cameraResource->Map(0, nullptr, reinterpret_cast<void**>(&cameraData));
-		cameraData->worldPosition = camera_ ? camera_->GetTranslate() : Vector3{ 0.0f, 0.0f, 0.0f };
+		cameraData->worldPosition = camera_ ? CameraManager::GetInstance()->GetActiveCameraPosition() : Vector3{ 0.0f, 0.0f, 0.0f };
 	}
 
 	/// -------------------------------------------------------------
@@ -230,7 +230,7 @@ namespace Ken4lowEngine
 	/// -------------------------------------------------------------
 	float AnimationModel::CalcDistanceSqToCamera() const
 	{
-		const Vector3 camPos = camera_ ? camera_->GetTranslate() : Vector3{ 0.0f, 0.0f, 0.0f };
+		const Vector3 camPos = camera_ ? CameraManager::GetInstance()->GetActiveCameraPosition() : Vector3{ 0.0f, 0.0f, 0.0f };
 		const Vector3 objPos = worldTransform.translate_;
 		const float dx = camPos.x - objPos.x;
 		const float dy = camPos.y - objPos.y;
@@ -486,7 +486,7 @@ namespace Ken4lowEngine
 			if (camera_)
 			{
 				// カメラ行列取得
-				const Matrix4x4& viewProjectionMatrix = camera_->GetViewProjectionMatrix();
+				const Matrix4x4& viewProjectionMatrix = CameraManager::GetInstance()->GetActiveViewMatrix();
 
 				// ワールドビュー射影行列計算
 				worldViewProjectionMatrix = Matrix4x4::Multiply(worldMatrix, viewProjectionMatrix);
@@ -521,7 +521,7 @@ namespace Ken4lowEngine
 			if (camera_)
 			{
 				// カメラ行列取得
-				const Matrix4x4& viewProjectionMatrix = camera_->GetViewProjectionMatrix();
+				const Matrix4x4& viewProjectionMatrix = CameraManager::GetInstance()->GetActiveViewProjectionMatrix();
 
 				// ワールドビュー射影行列計算
 				worldViewProjectionMatrix = Matrix4x4::Multiply(worldMatrix, viewProjectionMatrix);

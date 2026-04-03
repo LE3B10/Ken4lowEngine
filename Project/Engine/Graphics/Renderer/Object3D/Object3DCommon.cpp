@@ -25,7 +25,6 @@ namespace Ken4lowEngine
 	void Object3DCommon::Initialize(DirectXCommon* dxCommon)
 	{
 		dxCommon_ = dxCommon;
-		isDebugCamera_ = false;
 
 		CreatePSO();
 		CreateShadowPSO();
@@ -61,40 +60,14 @@ namespace Ken4lowEngine
 		shadowErrorBlob_.Reset();
 
 		dxCommon_ = nullptr;
-		defaultCamera_ = nullptr;
-
-		isDebugCamera_ = false;
-		inputLayoutDesc_ = {};
-		viewProjectionMatrix_ = {};
-		debugViewProjectionMatrix_ = {};
-		activeCameraPosition_ = { 0,0,0 };
-	}
-
-	/// -------------------------------------------------------------
-	///                         更新処理
-	/// -------------------------------------------------------------
-	void Object3DCommon::Update()
-	{
-		if (isDebugCamera_)
-		{
-#ifdef _DEBUG
-			debugViewProjectionMatrix_ = DebugCamera::GetInstance()->GetViewProjectionMatrix();
-			defaultCamera_->SetViewProjectionMatrix(debugViewProjectionMatrix_);
-			activeCameraPosition_ = DebugCamera::GetInstance()->GetTranslate();
-#endif // _DEBUG
-		}
-		else
-		{
-			viewProjectionMatrix_ = Matrix4x4::Multiply(
-				defaultCamera_->GetViewMatrix(),
-				defaultCamera_->GetProjectionMatrix());
-			defaultCamera_->SetViewProjectionMatrix(viewProjectionMatrix_);
-			activeCameraPosition_ = defaultCamera_->GetTranslate();
-		}
 	}
 
 	void Object3DCommon::DrawImGui()
-	{}
+	{
+#ifdef USE_IMGUI
+
+#endif // USE_IMGUI
+	}
 
 	/// -------------------------------------------------------------
 	///                     共通描画処理設定

@@ -2,7 +2,7 @@
 #include "PhysicalScene.h"
 #include <Input.h>
 #include <SpriteManager.h>
-#include "Object3DCommon.h"
+#include "CameraManager.h"
 #include <DirectXCommon.h>
 
 #include <Wireframe.h>
@@ -40,7 +40,7 @@ void PhysicalScene::Initialize()
 	dxCommon_ = K4E::DirectXCommon::GetInstance();
 	input_ = K4E::Input::GetInstance();
 
-	camera = K4E::Object3DCommon::GetInstance()->GetDefaultCamera();
+	camera = K4E::CameraManager::GetInstance()->GetMainCamera();
 	camera->SetTranslate({ 0.0f, 2.0f, -20.0f });
 	camera->SetRotate({ 0.0f, 0.0f, 0.0f });
 

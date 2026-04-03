@@ -769,6 +769,12 @@
     <ClCompile Include="Engine\Graphics\Renderer\Particle\Core\ParticleFactory.cpp">
       <Filter>Engine\Graphics\Renderer\Particle\Core</Filter>
     </ClCompile>
+    <ClCompile Include="Engine\Graphics\Renderer\SkyBox\SkyBoxPipelineSet.cpp">
+      <Filter>Engine\Graphics\Renderer\SkyBox</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Graphics\Camera\Manager\CameraManager.cpp">
+      <Filter>Engine\Graphics\Camera\Manager</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ApplicationLayer\UISystem\Crosshair\Crosshair.h">
@@ -1623,6 +1629,12 @@
     <ClInclude Include="Engine\Graphics\Renderer\GpuParticle\Pipeline\GpuParticleMeshAsset.h">
       <Filter>Engine\Graphics\Renderer\GpuParticle\Pipeline</Filter>
     </ClInclude>
+    <ClInclude Include="Engine\Graphics\Renderer\SkyBox\SkyBoxPipelineSet.h">
+      <Filter>Engine\Graphics\Renderer\SkyBox</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Graphics\Camera\Manager\CameraManager.h">
+      <Filter>Engine\Graphics\Camera\Manager</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="Resources\Shaders\PostEffect\FullScreen.hlsli">
@@ -2139,6 +2151,9 @@
     </Filter>
     <Filter Include="Engine\Graphics\Renderer\Particle\Manager">
       <UniqueIdentifier>{c3d2cf9b-a501-4641-bb00-55459989e5dc}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Engine\Graphics\Camera\Manager">
+      <UniqueIdentifier>{0db2a72b-1d84-4a72-85d1-3b5283a20827}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

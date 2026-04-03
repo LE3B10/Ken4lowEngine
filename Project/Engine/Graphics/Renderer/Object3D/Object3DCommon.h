@@ -43,20 +43,6 @@ namespace Ken4lowEngine
 		void Finalize();
 
 		/// <summary>
-		/// フレーム毎の更新処理を行います。<br/>
-		/// isDebugCamera_ の状態に応じて、利用するカメラが切り替わります。<br/>
-		/// ・通常カメラ使用時：<br/>
-		///   - defaultCamera_ から View / Projection を取得し、ViewProjection を計算<br/>
-		///   - defaultCamera_ に ViewProjection をセット<br/>
-		///   - activeCameraPosition_ に defaultCamera_ の位置を保存<br/>
-		/// ・デバッグカメラ使用時(_DEBUGビルドのみ)：<br/>
-		///   - DebugCamera から ViewProjection と位置を取得<br/>
-		///   - defaultCamera_ にデバッグ用 ViewProjection をセット<br/>
-		///   - activeCameraPosition_ に DebugCamera の位置を保存<br/>
-		/// </summary>
-		void Update();
-
-		/// <summary>
 		/// ImGui によるデバッグ描画を行います。<br/>
 		/// 現状は空実装ですが、将来的に共通パラメータの GUI 調整などを行うためのフックです。  
 		/// </summary>
@@ -74,44 +60,10 @@ namespace Ken4lowEngine
 		/// </summary>
 		void SetRenderSetting();
 
+		/// <summary>
+		/// シャドウマップのレンダリング設定を設定します。
+		/// </summary>
 		void SetShadowMapRenderSetting();
-
-		/// <summary>
-		/// 共通で使用する「デフォルトカメラ」を設定します。<br/>
-		/// 通常描画時の View / Projection の取得元となります。
-		/// </summary>
-		/// <param name="defaultCamera">使用するカメラオブジェクトのポインタ。</param>
-		void SetDefaultCamera(Camera* defaultCamera) { defaultCamera_ = defaultCamera; }
-
-		/// <summary>
-		/// デバッグカメラを使用するかどうかを設定します。 <br/>
-		/// true の場合、_DEBUG ビルドでは DebugCamera の ViewProjection / 位置情報を使用し、<br/>
-		/// リリースビルドでは通常カメラと同じ挙動になります。
-		/// </summary>
-		/// <param name="isDebugCamera">デバッグカメラを利用する場合 true。</param>
-		void SetDebugCamera(bool isDebugCamera) { isDebugCamera_ = isDebugCamera; }
-
-	public:	/// ---------- 取得 ---------- ///
-
-		/// <summary>
-		/// 現在アクティブなカメラ（通常 or デバッグ）のワールド座標を取得します。<br/>
-		/// Object3D のシェーダ定数バッファなどに「カメラ位置」を渡したいときに利用します。
-		/// </summary>
-		/// <returns>アクティブカメラの位置ベクトル。</returns>
-		Vector3 GetActiveCameraPosition() const { return activeCameraPosition_; }
-
-		/// <summary>
-		/// デフォルトカメラを取得します。<br/>
-		/// 通常カメラのパラメータに直接アクセスしたい場合に使用します。
-		/// </summary>
-		/// <returns>登録されているデフォルトカメラへのポインタ。</returns>
-		Camera* GetDefaultCamera() const { return defaultCamera_; }
-
-		/// <summary>
-		/// デバッグカメラが有効かどうかを取得します。
-		/// </summary>
-		/// <returns>デバッグカメラ使用時 true。</returns>
-		bool GetDebugCamera() const { return isDebugCamera_; }
 
 	private: /// ---------- 内部メンバ関数 ---------- ///
 
@@ -150,9 +102,6 @@ namespace Ken4lowEngine
 
 		DirectXCommon* dxCommon_ = nullptr;
 
-		// デフォルトカメラ
-		Camera* defaultCamera_ = nullptr;
-
 		BlendMode blendMode_ = BlendMode::kBlendModeNone;
 
 		ComPtr <ID3D12PipelineState> graphicsPipelineState_;
@@ -167,16 +116,6 @@ namespace Ken4lowEngine
 		ComPtr<ID3DBlob> shadowErrorBlob_;
 
 		D3D12_INPUT_LAYOUT_DESC inputLayoutDesc_{};
-
-		// ビュー射影行列
-		Matrix4x4 viewProjectionMatrix_;
-		Matrix4x4 debugViewProjectionMatrix_;
-
-		// アクティブなカメラの位置
-		Vector3 activeCameraPosition_{ 0,0,0 };
-
-		// デバッグカメラのON/OFF用
-		bool isDebugCamera_ = false;
 
 	private: /// ---------- コピー禁止 ---------- ///
 

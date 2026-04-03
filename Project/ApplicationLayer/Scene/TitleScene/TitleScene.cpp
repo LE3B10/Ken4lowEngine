@@ -2,7 +2,7 @@
 #include "TitleScene.h"
 #include <DirectXCommon.h>
 #include <SpriteManager.h>
-#include <Object3DCommon.h>
+#include <CameraManager.h>
 #include <ImGuiManager.h>
 #include "SceneManager.h"
 #include <CollisionUtility.h>
@@ -11,6 +11,7 @@
 #include <LinearInterpolation.h>
 #include <AudioManager.h>
 #include <PostEffectManager.h>
+#include <LightManager.h>
 
 #include "TitleLoadState.h"
 #include "TitleAttractState.h"
@@ -70,6 +71,9 @@ void TitleScene::Update()
 	// 地形更新
 	if (terrain_) terrain_->Update();
 
+	// スカイボックス更新
+	if (skyBox_) skyBox_->Update();
+
 	if (isDebugCamera_) return; // デバッグカメラ中はポーズ無効
 
 	// 時間更新
@@ -111,10 +115,6 @@ void TitleScene::Update()
 		// ステートクラスに丸投げ
 		currentState_->Update(this, dt);
 	}
-
-	// スカイボックス更新
-	skyBox_->Update();
-
 	UpdateLightViewProjection();
 	UpdateShadowMatrices();
 }
@@ -268,7 +268,7 @@ void TitleScene::UpdateShadowMatrices()
 void TitleScene::InitializeCamera()
 {
 	// カメラの生成と初期化
-	camera_ = Object3DCommon::GetInstance()->GetDefaultCamera();
+	camera_ = CameraManager::GetInstance()->GetMainCamera();
 	if (camera_)
 	{
 		// ロビー用の初期位置にセット
@@ -367,7 +367,7 @@ void TitleScene::ChangeState(std::unique_ptr<ITitleSceneState> newState)
 Camera* TitleScene::EnsureCamera()
 {
 	if (!camera_) {
-		camera_ = Object3DCommon::GetInstance()->GetDefaultCamera();
+		camera_ = CameraManager::GetInstance()->GetMainCamera();
 	}
 	return camera_;
 }
@@ -391,9 +391,12 @@ void TitleScene::UpdateDebug()
 
 	if (input_->TriggerKey(DIK_F12))
 	{
-		Object3DCommon::GetInstance()->SetDebugCamera(!Object3DCommon::GetInstance()->GetDebugCamera());
-		Wireframe::GetInstance()->SetDebugCamera(!Wireframe::GetInstance()->GetDebugCamera());
-		isDebugCamera_ = !isDebugCamera_;
+		const bool next = !CameraManager::GetInstance()->IsUsingDebugCamera();
+
+		CameraManager::GetInstance()->SetUseDebugCamera(next);
+		skyBox_->SetDebugCamera(next);
+		Wireframe::GetInstance()->SetDebugCamera(next);
+		isDebugCamera_ = next;
 	}
 #endif // _DEBUG
 }

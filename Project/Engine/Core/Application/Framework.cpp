@@ -10,6 +10,7 @@
 #include <ParticleManager.h>
 #include <SpriteManager.h>
 #include <Object3DCommon.h>
+#include <CameraManager.h>
 #include <DebugCamera.h>
 #include <Wireframe.h>
 #include <AnimationPipelineBuilder.h>
@@ -141,9 +142,12 @@ namespace Ken4lowEngine
 		defaultCamera_ = std::make_unique<Camera>();
 		defaultCamera_->SetRotate({ 0.3f,0.0f,0.0f });
 		defaultCamera_->SetTranslate({ 0.0f,10.0f,-20.0f });
+		defaultCamera_->Update();
 
-		// デフォルトカメラの設定
-		Object3DCommon::GetInstance()->SetDefaultCamera(defaultCamera_.get());
+		// カメラの司令塔の初期化
+		CameraManager::GetInstance()->Initialize();
+		CameraManager::GetInstance()->SetMainCamera(defaultCamera_.get());
+		CameraManager::GetInstance()->SetUseDebugCamera(false);
 
 		// ワイヤーフレームのカメラ設定
 		Wireframe::GetInstance()->SetCamera(defaultCamera_.get());
@@ -172,11 +176,11 @@ namespace Ken4lowEngine
 	/// -------------------------------------------------------------
 	void Framework::Update()
 	{
+		// カメラ司令塔の更新
+		CameraManager::GetInstance()->Update();
+
 		// ワイヤーフレームの更新処理
 		Wireframe::GetInstance()->Update();
-
-		// Object3DCommonの更新処理
-		Object3DCommon::GetInstance()->Update();
 
 		// ParticleManagerの更新処理
 		ParticleManager::GetInstance()->Update();
@@ -208,6 +212,9 @@ namespace Ken4lowEngine
 
 		// デバッグカメラの終了処理
 		DebugCamera::GetInstance()->Finalize();
+
+		// カメラの司令塔の終了処理
+		CameraManager::GetInstance()->Finalize();
 
 		// アニメーションパイプラインビルダーの終了処理
 		AnimationPipelineBuilder::GetInstance()->Finalize();

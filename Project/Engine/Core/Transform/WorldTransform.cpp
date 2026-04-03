@@ -1,75 +1,73 @@
 #include "WorldTransform.h"
 #include <ResourceManager.h>
 #include <DirectXCommon.h>
-#include "Camera.h"
-#include <Object3DCommon.h>
+#include <CameraManager.h>
 
 namespace Ken4lowEngine
 {
 
-/// -------------------------------------------------------------
-///                 ワールド変換行列初期化処理
-/// -------------------------------------------------------------
-void WorldTransform::Initialize()
-{
-	// デフォルトカメラを取得
-	camera_ = Object3DCommon::GetInstance()->GetDefaultCamera();
-
-#pragma region WVP行列データを格納するバッファリソースを生成し初期値として単位行列を設定
-	//WVP用のリソースを作る。Matrix4x4 1つ分のサイズを用意する
-	wvpResource = ResourceManager::CreateBufferResource(DirectXCommon::GetInstance()->GetDevice(), sizeof(TransformationMatrix));
-
-	//書き込むためのアドレスを取得
-	wvpResource->Map(0, nullptr, reinterpret_cast<void**>(&wvpData));
-
-	//単位行列を書き込んでおく
-	wvpData->World = Matrix4x4::MakeIdentity();
-	wvpData->WVP = Matrix4x4::MakeIdentity();
-	wvpData->WorldInversedTranspose = Matrix4x4::MakeIdentity();
-#pragma endregion
-}
-
-/// -------------------------------------------------------------
-///                 ワールド変換行列更新処理
-/// -------------------------------------------------------------
-void WorldTransform::Update()
-{
-	// ローカル変換行列を作成
-	Matrix4x4 worldMatrix = Matrix4x4::MakeAffineMatrix(scale_, rotate_, translate_);
-
-	// 親オブジェクトがあれば親のワールド行列を掛ける
-	if (parent_)
+	/// -------------------------------------------------------------
+	///                 ワールド変換行列初期化処理
+	/// -------------------------------------------------------------
+	void WorldTransform::Initialize()
 	{
-		worldMatrix = Matrix4x4::Multiply(worldMatrix, parent_->matWorld_);
+#pragma region WVP行列データを格納するバッファリソースを生成し初期値として単位行列を設定
+		//WVP用のリソースを作る。Matrix4x4 1つ分のサイズを用意する
+		wvpResource = ResourceManager::CreateBufferResource(DirectXCommon::GetInstance()->GetDevice(), sizeof(TransformationMatrix));
+
+		//書き込むためのアドレスを取得
+		wvpResource->Map(0, nullptr, reinterpret_cast<void**>(&wvpData));
+
+		//単位行列を書き込んでおく
+		wvpData->World = Matrix4x4::MakeIdentity();
+		wvpData->WVP = Matrix4x4::MakeIdentity();
+		wvpData->WorldInversedTranspose = Matrix4x4::MakeIdentity();
+
+		matWorld_ = Matrix4x4::MakeIdentity();
+#pragma endregion
 	}
 
-	// 親の回転を引き継ぐ
-	worldRotate_ = parent_ ? parent_->worldRotate_ + rotate_ : rotate_;
+	/// -------------------------------------------------------------
+	///                 ワールド変換行列更新処理
+	/// -------------------------------------------------------------
+	void WorldTransform::Update()
+	{
+		// ローカル変換行列を作成
+		Matrix4x4 worldMatrix = Matrix4x4::MakeAffineMatrix(scale_, rotate_, translate_);
 
-	// ワールド座標を取得
-	worldTranslate_ = { worldMatrix.m[3][0], worldMatrix.m[3][1], worldMatrix.m[3][2] };
+		// 親オブジェクトがあれば親のワールド行列を掛ける
+		if (parent_)
+		{
+			worldMatrix = Matrix4x4::Multiply(worldMatrix, parent_->matWorld_);
+		}
 
-	// ビュー・プロジェクション変換
-	Matrix4x4 worldViewProjectionMatrix = camera_
-		? Matrix4x4::Multiply(worldMatrix, camera_->GetViewProjectionMatrix())
-		: worldMatrix;
+		// 親の回転を引き継ぐ
+		worldRotate_ = parent_ ? parent_->worldRotate_ + rotate_ : rotate_;
 
-	// ワールド行列を保存
-	matWorld_ = worldMatrix;
-	wvpData->WVP = worldViewProjectionMatrix;
-	wvpData->World = worldMatrix;
-	wvpData->WorldInversedTranspose = Matrix4x4::Transpose(Matrix4x4::Inverse(worldMatrix));
-}
+		// ワールド座標を取得
+		worldTranslate_ = { worldMatrix.m[3][0], worldMatrix.m[3][1], worldMatrix.m[3][2] };
 
-/// -------------------------------------------------------------
-///                 パイプライン設定処理
-/// -------------------------------------------------------------
-void WorldTransform::SetPipeline(UINT rootParameterIndex)
-{
-	auto commandList = DirectXCommon::GetInstance()->GetCommandManager()->GetCommandList();
+		// ビュー・プロジェクション変換
+		const Matrix4x4 viewProjection = CameraManager::GetInstance()->GetActiveViewProjectionMatrix();
 
-	// 定数バッファビューをセット
-	commandList->SetGraphicsRootConstantBufferView(rootParameterIndex, wvpResource->GetGPUVirtualAddress());
-}
+		const Matrix4x4 worldViewProjectionMatrix = Matrix4x4::Multiply(worldMatrix, viewProjection);
+
+		// ワールド行列を保存
+		matWorld_ = worldMatrix;
+		wvpData->WVP = worldViewProjectionMatrix;
+		wvpData->World = worldMatrix;
+		wvpData->WorldInversedTranspose = Matrix4x4::Transpose(Matrix4x4::Inverse(worldMatrix));
+	}
+
+	/// -------------------------------------------------------------
+	///                 パイプライン設定処理
+	/// -------------------------------------------------------------
+	void WorldTransform::SetPipeline(UINT rootParameterIndex)
+	{
+		auto commandList = DirectXCommon::GetInstance()->GetCommandManager()->GetCommandList();
+
+		// 定数バッファビューをセット
+		commandList->SetGraphicsRootConstantBufferView(rootParameterIndex, wvpResource->GetGPUVirtualAddress());
+	}
 
 } // namespace Ken4lowEngine

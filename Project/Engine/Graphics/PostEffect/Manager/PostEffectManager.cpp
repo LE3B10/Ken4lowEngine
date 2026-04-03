@@ -2,7 +2,7 @@
 #include "PostEffectManager.h"
 #include "WinApp.h"
 #include "DirectXCommon.h"
-#include <Object3DCommon.h>
+#include <CameraManager.h>
 #include "SRVManager.h"
 #include <UAVManager.h>
 #include <DSVManager.h>
@@ -82,7 +82,7 @@ namespace Ken4lowEngine
 			{ "DissolveEffect",			{ [] { return std::make_unique<DissolveEffect>(); },         false, 7, "Visual" } },
 			{ "RandomEffect",			{ [] { return std::make_unique<RandomEffect>(); },			 false, 8, "Visual" } },
 			{ "AbsorbEffect",			{ [] { return std::make_unique<AbsorbEffect>(); },           false, 9, "Visual" } },
-			{ "DepthOutLineEffect",		{ [] { return std::make_unique<DepthOutlineEffect>(Object3DCommon::GetInstance()->GetDefaultCamera()); }, false, 10, "Visual"} },
+			{ "DepthOutLineEffect",		{ [] { return std::make_unique<DepthOutlineEffect>(CameraManager::GetInstance()->GetMainCamera()); }, false, 10, "Visual"} },
 			{ "PixelateEffect",			{ [] { return std::make_unique<PixelateEffect>(); },		 false, 11, "Visual" } },
 		};
 

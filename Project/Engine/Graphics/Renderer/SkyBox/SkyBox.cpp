@@ -2,221 +2,207 @@
 #include "DirectXCommon.h"
 #include <ResourceManager.h>
 #include "TextureManager.h"
-#include "Object3DCommon.h"
+#include "CameraManager.h"
 #include "DebugCamera.h"
 #include <SkyBoxManager.h>
 
 namespace Ken4lowEngine
 {
-
-
-/// -------------------------------------------------------------
-///				　			初期化処理
-/// -------------------------------------------------------------
-void SkyBox::Initialize(const std::string& filePath)
-{
-	dxCommon_ = DirectXCommon::GetInstance();
-
-	camera_ = Object3DCommon::GetInstance()->GetDefaultCamera();
-
-	// テクスチャの読み込み
-	TextureManager::GetInstance()->LoadTexture(filePath);
-
-	// テクスチャのSRV用GPUハンドルを取得
-	textureIndex_ = TextureManager::GetInstance()->GetSrvIndex(filePath);
-
-	worldTransform_.scale_ = { 1000.0f, 1000.0f, 1000.0f };
-	worldTransform_.rotate_ = { 0.0f, 0.0f, 0.0f };
-	worldTransform_.translate_ = { 0.0f, 0.0f, 0.0f };
-
-	// マテリアルデータの初期化
-	InitializeMaterial();
-
-	// 頂点データの初期化処理
-	InitializeVertexBufferData();
-
-	// インデックスデータの初期化
-	InitializeIndexData();
-
-	// TransformationMatrix用のリソースを作る。Matrix4x4 1つ分のサイズを用意する
-	wvpResource = ResourceManager::CreateBufferResource(dxCommon_->GetDevice(), sizeof(TransformationMatrix));
-	// 座標変換行列リソースにデータを書き込むためのアドレスを取得
-	wvpResource->Map(0, nullptr, reinterpret_cast<void**>(&wvpData));
-
-	// 単位行列を書き込んでおく
-	wvpData->World = Matrix4x4::MakeIdentity();
-	wvpData->WVP = Matrix4x4::MakeIdentity();
-}
-
-
-/// -------------------------------------------------------------
-///				　			　更新処理
-/// -------------------------------------------------------------
-void SkyBox::Update()
-{
-	// ワールド行列の計算
-	Matrix4x4 worldMatrix = Matrix4x4::MakeAffineMatrix(worldTransform_.scale_, worldTransform_.rotate_, worldTransform_.translate_);
-
-	// ビュー射影行列の計算
-	if (isDebugCamera_)
+	/// -------------------------------------------------------------
+	///                         初期化処理
+	/// -------------------------------------------------------------
+	void SkyBox::Initialize(const std::string& filePath)
 	{
-#ifdef _DEBUG
-		// デバッグカメラのビュー行列とプロジェクション行列を掛け合わせて、ビュー射影行列を計算
-		debugViewProjectionMatrix_ = DebugCamera::GetInstance()->GetViewProjectionMatrix();
-		camera_->SetViewProjectionMatrix(debugViewProjectionMatrix_);
-		worldViewProjectionMatrix = Matrix4x4::Multiply(worldMatrix, debugViewProjectionMatrix_);
-#endif // _DEBUG
-	}
-	else
-	{
-		// カメラのビュー行列とプロジェクション行列を掛け合わせて、ビュー射影行列を計算
-		viewProjectionMatrix_ = Matrix4x4::Multiply(camera_->GetViewMatrix(), camera_->GetProjectionMatrix());
-		camera_->SetViewProjectionMatrix(viewProjectionMatrix_);
-		worldViewProjectionMatrix = Matrix4x4::Multiply(worldMatrix, viewProjectionMatrix_);
+		// 描画やリソース生成に使う共通クラスを取得する
+		dxCommon_ = DirectXCommon::GetInstance();
+
+		// 既定の描画カメラを取得する
+		camera_ = CameraManager::GetInstance()->GetMainCamera();
+
+		// 環境テクスチャを読み込む
+		TextureManager::GetInstance()->LoadTexture(filePath);
+
+		// 読み込んだテクスチャの SRV index を保存する
+		textureIndex_ = TextureManager::GetInstance()->GetSrvIndex(filePath);
+
+		// SkyBox は十分大きなキューブとして配置する
+		worldTransform_.scale_ = { 10000.0f, 10000.0f, 10000.0f };
+		worldTransform_.rotate_ = { 0.0f, 0.0f, 0.0f };
+		worldTransform_.translate_ = { 0.0f, 0.0f, 0.0f };
+
+		// Material 定数バッファを初期化する
+		InitializeMaterial();
+
+		// 頂点バッファを初期化する
+		InitializeVertexBufferData();
+
+		// インデックスバッファを初期化する
+		InitializeIndexData();
+
+		// WVP 用定数バッファを生成する
+		wvpResource = ResourceManager::CreateBufferResource(dxCommon_->GetDevice(), sizeof(TransformationMatrix));
+
+		// CPU から書き込めるようにマップする
+		wvpResource->Map(0, nullptr, reinterpret_cast<void**>(&wvpData));
+
+		// 初期状態は単位行列を書いておく
+		wvpData->World = Matrix4x4::MakeIdentity();
+		wvpData->WVP = Matrix4x4::MakeIdentity();
 	}
 
-	// 座標変換行列データの更新
-	wvpData->WVP = worldViewProjectionMatrix;
-	wvpData->World = worldMatrix;
-}
+	/// -------------------------------------------------------------
+	///                           更新処理
+	/// -------------------------------------------------------------
+	void SkyBox::Update()
+	{
+		// アクティブカメラ位置へ追従
+		worldTransform_.translate_ = CameraManager::GetInstance()->GetActiveCameraPosition();
 
+		Matrix4x4 worldMatrix = Matrix4x4::MakeAffineMatrix(worldTransform_.scale_, worldTransform_.rotate_, worldTransform_.translate_);
 
-/// -------------------------------------------------------------
-///				　			　描画処理
-/// -------------------------------------------------------------
-void SkyBox::Draw()
-{
-	ID3D12GraphicsCommandList* commandList = dxCommon_->GetCommandManager()->GetCommandList();
+		Matrix4x4 viewProjection = CameraManager::GetInstance()->GetActiveViewProjectionMatrix();
 
-	SkyBoxManager::GetInstance()->SetRenderSetting();
+		worldViewProjectionMatrix = Matrix4x4::Multiply(worldMatrix, viewProjection);
 
-	// マテリアルデータの更新
-	materialData_->textureIndex = textureIndex_;
+		wvpData->WVP = worldViewProjectionMatrix;
+		wvpData->World = worldMatrix;
+	}
 
-	// 頂点バッファの設定
-	commandList->IASetVertexBuffers(0, 1, &vertexBufferView); // スプライト用VBV
-	commandList->IASetIndexBuffer(&indexBufferView); // IBVの設定
-	commandList->SetGraphicsRootConstantBufferView(0, materialResource.Get()->GetGPUVirtualAddress());
-	commandList->SetGraphicsRootConstantBufferView(1, wvpResource->GetGPUVirtualAddress());
+	/// -------------------------------------------------------------
+	///                           描画処理
+	/// -------------------------------------------------------------
+	void SkyBox::Draw()
+	{
+		ID3D12GraphicsCommandList* commandList = dxCommon_->GetCommandManager()->GetCommandList();
 
-	// プリミティブ形状の設定（三角形リスト）
-	commandList->DrawIndexedInstanced(kNumVertex, 1, 0, 0, 0);
-}
+		// SkyBox 用の共通描画設定を反映する
+		SkyBoxManager::GetInstance()->SetRenderSetting();
 
+		// 使用テクスチャ index を Material 側へ反映する
+		materialData_->textureIndex = textureIndex_;
 
-/// -------------------------------------------------------------
-///				　マテリアルデータの初期化処理
-/// -------------------------------------------------------------
-void SkyBox::InitializeMaterial()
-{
-	// マテリアル用のリソースを作る。今回はcolor1つ分のサイズを用意する
-	materialResource = ResourceManager::CreateBufferResource(dxCommon_->GetDevice(), sizeof(Material));
-	// 書き込むためのアドレスを取得
-	materialResource->Map(0, nullptr, reinterpret_cast<void**>(&materialData_));
+		// 頂点 / インデックスバッファを設定する
+		commandList->IASetVertexBuffers(0, 1, &vertexBufferView);
+		commandList->IASetIndexBuffer(&indexBufferView);
 
-	materialData_->color = { 1.0f, 1.0f, 1.0f, 1.0f };
-	materialData_->uvTransform = Matrix4x4::MakeIdentity();
-	materialData_->textureIndex = textureIndex_;
-}
+		// Material と WVP の定数バッファを設定する
+		commandList->SetGraphicsRootConstantBufferView(0, materialResource.Get()->GetGPUVirtualAddress());
+		commandList->SetGraphicsRootConstantBufferView(1, wvpResource->GetGPUVirtualAddress());
 
+		// キューブをインデックス描画する
+		commandList->DrawIndexedInstanced(kNumIndex, 1, 0, 0, 0);
+	}
 
-/// -------------------------------------------------------------
-///				　	頂点データの初期化処理
-/// -------------------------------------------------------------
-void SkyBox::InitializeVertexBufferData()
-{
-	// 頂点リソースを作る
-	vertexResource = ResourceManager::CreateBufferResource(dxCommon_->GetDevice(), sizeof(VertexData) * kNumVertex);
+	/// -------------------------------------------------------------
+	///                マテリアルデータの初期化処理
+	/// -------------------------------------------------------------
+	void SkyBox::InitializeMaterial()
+	{
+		// Material 用定数バッファを生成する
+		materialResource = ResourceManager::CreateBufferResource(dxCommon_->GetDevice(), sizeof(Material));
 
-	vertexBufferView.BufferLocation = vertexResource->GetGPUVirtualAddress();
-	vertexBufferView.SizeInBytes = sizeof(VertexData) * kNumVertex;
-	vertexBufferView.StrideInBytes = sizeof(VertexData);
+		// CPU から書き込めるようにマップする
+		materialResource->Map(0, nullptr, reinterpret_cast<void**>(&materialData_));
 
-	vertexResource->Map(0, nullptr, reinterpret_cast<void**>(&vertexData_));
+		// 初期値を設定する
+		materialData_->color = { 1.0f, 1.0f, 1.0f, 1.0f };
+		materialData_->uvTransform = Matrix4x4::MakeIdentity();
+		materialData_->textureIndex = textureIndex_;
+	}
 
-	// 右面（+X）
-	vertexData_[0] = { {  1.0f,  1.0f,  1.0f, 1.0f }, {  1.0f,  1.0f,  1.0f } };
-	vertexData_[1] = { {  1.0f,  1.0f, -1.0f, 1.0f }, {  1.0f,  1.0f, -1.0f } };
-	vertexData_[2] = { {  1.0f, -1.0f,  1.0f, 1.0f }, {  1.0f, -1.0f,  1.0f } };
-	vertexData_[3] = { {  1.0f, -1.0f, -1.0f, 1.0f }, {  1.0f, -1.0f, -1.0f } };
+	/// -------------------------------------------------------------
+	///                頂点データの初期化処理
+	/// -------------------------------------------------------------
+	void SkyBox::InitializeVertexBufferData()
+	{
+		// SkyBox 用頂点バッファを生成する
+		vertexResource = ResourceManager::CreateBufferResource(dxCommon_->GetDevice(), sizeof(VertexData) * kNumVertex);
 
-	// 左面（-X）
-	vertexData_[4] = { { -1.0f,  1.0f, -1.0f, 1.0f }, { -1.0f,  1.0f, -1.0f } };
-	vertexData_[5] = { { -1.0f,  1.0f,  1.0f, 1.0f }, { -1.0f,  1.0f,  1.0f } };
-	vertexData_[6] = { { -1.0f, -1.0f, -1.0f, 1.0f }, { -1.0f, -1.0f, -1.0f } };
-	vertexData_[7] = { { -1.0f, -1.0f,  1.0f, 1.0f }, { -1.0f, -1.0f,  1.0f } };
+		// 頂点バッファビューを設定する
+		vertexBufferView.BufferLocation = vertexResource->GetGPUVirtualAddress();
+		vertexBufferView.SizeInBytes = sizeof(VertexData) * kNumVertex;
+		vertexBufferView.StrideInBytes = sizeof(VertexData);
 
-	// 前面（+Z）
-	vertexData_[8] = { { -1.0f,  1.0f,  1.0f, 1.0f }, { -1.0f,  1.0f,  1.0f } };
-	vertexData_[9] = { {  1.0f,  1.0f,  1.0f, 1.0f }, {  1.0f,  1.0f,  1.0f } };
-	vertexData_[10] = { { -1.0f, -1.0f,  1.0f, 1.0f }, { -1.0f, -1.0f,  1.0f } };
-	vertexData_[11] = { {  1.0f, -1.0f,  1.0f, 1.0f }, {  1.0f, -1.0f,  1.0f } };
+		// CPU から書き込めるようにマップする
+		vertexResource->Map(0, nullptr, reinterpret_cast<void**>(&vertexData_));
 
-	// 背面（-Z）
-	vertexData_[12] = { { -1.0f,  1.0f, -1.0f, 1.0f }, { -1.0f,  1.0f, -1.0f } };
-	vertexData_[13] = { {  1.0f,  1.0f, -1.0f, 1.0f }, {  1.0f,  1.0f, -1.0f } };
-	vertexData_[14] = { { -1.0f, -1.0f, -1.0f, 1.0f }, { -1.0f, -1.0f, -1.0f } };
-	vertexData_[15] = { {  1.0f, -1.0f, -1.0f, 1.0f }, {  1.0f, -1.0f, -1.0f } };
+		// 右面（+X）
+		vertexData_[0] = { {  1.0f,  1.0f,  1.0f, 1.0f }, {  1.0f,  1.0f,  1.0f } };
+		vertexData_[1] = { {  1.0f,  1.0f, -1.0f, 1.0f }, {  1.0f,  1.0f, -1.0f } };
+		vertexData_[2] = { {  1.0f, -1.0f,  1.0f, 1.0f }, {  1.0f, -1.0f,  1.0f } };
+		vertexData_[3] = { {  1.0f, -1.0f, -1.0f, 1.0f }, {  1.0f, -1.0f, -1.0f } };
 
-	// 上面（+Y）
-	vertexData_[16] = { { -1.0f,  1.0f, -1.0f, 1.0f }, { -1.0f,  1.0f, -1.0f } };
-	vertexData_[17] = { {  1.0f,  1.0f, -1.0f, 1.0f }, {  1.0f,  1.0f, -1.0f } };
-	vertexData_[18] = { { -1.0f,  1.0f,  1.0f, 1.0f }, { -1.0f,  1.0f,  1.0f } };
-	vertexData_[19] = { {  1.0f,  1.0f,  1.0f, 1.0f }, {  1.0f,  1.0f,  1.0f } };
+		// 左面（-X）
+		vertexData_[4] = { { -1.0f,  1.0f, -1.0f, 1.0f }, { -1.0f,  1.0f, -1.0f } };
+		vertexData_[5] = { { -1.0f,  1.0f,  1.0f, 1.0f }, { -1.0f,  1.0f,  1.0f } };
+		vertexData_[6] = { { -1.0f, -1.0f, -1.0f, 1.0f }, { -1.0f, -1.0f, -1.0f } };
+		vertexData_[7] = { { -1.0f, -1.0f,  1.0f, 1.0f }, { -1.0f, -1.0f,  1.0f } };
 
-	// 下面（-Y）
-	vertexData_[20] = { { -1.0f, -1.0f,  1.0f, 1.0f }, { -1.0f, -1.0f,  1.0f } };
-	vertexData_[21] = { {  1.0f, -1.0f,  1.0f, 1.0f }, {  1.0f, -1.0f,  1.0f } };
-	vertexData_[22] = { { -1.0f, -1.0f, -1.0f, 1.0f }, { -1.0f, -1.0f, -1.0f } };
-	vertexData_[23] = { {  1.0f, -1.0f, -1.0f, 1.0f }, {  1.0f, -1.0f, -1.0f } };
+		// 前面（+Z）
+		vertexData_[8] = { { -1.0f,  1.0f,  1.0f, 1.0f }, { -1.0f,  1.0f,  1.0f } };
+		vertexData_[9] = { {  1.0f,  1.0f,  1.0f, 1.0f }, {  1.0f,  1.0f,  1.0f } };
+		vertexData_[10] = { { -1.0f, -1.0f,  1.0f, 1.0f }, { -1.0f, -1.0f,  1.0f } };
+		vertexData_[11] = { {  1.0f, -1.0f,  1.0f, 1.0f }, {  1.0f, -1.0f,  1.0f } };
 
-	// 頂点データ更新
-	memcpy(vertexData_, &vertexData_[0], sizeof(VertexData) * kNumVertex);
-}
+		// 背面（-Z）
+		vertexData_[12] = { { -1.0f,  1.0f, -1.0f, 1.0f }, { -1.0f,  1.0f, -1.0f } };
+		vertexData_[13] = { {  1.0f,  1.0f, -1.0f, 1.0f }, {  1.0f,  1.0f, -1.0f } };
+		vertexData_[14] = { { -1.0f, -1.0f, -1.0f, 1.0f }, { -1.0f, -1.0f, -1.0f } };
+		vertexData_[15] = { {  1.0f, -1.0f, -1.0f, 1.0f }, {  1.0f, -1.0f, -1.0f } };
 
+		// 上面（+Y）
+		vertexData_[16] = { { -1.0f,  1.0f, -1.0f, 1.0f }, { -1.0f,  1.0f, -1.0f } };
+		vertexData_[17] = { {  1.0f,  1.0f, -1.0f, 1.0f }, {  1.0f,  1.0f, -1.0f } };
+		vertexData_[18] = { { -1.0f,  1.0f,  1.0f, 1.0f }, { -1.0f,  1.0f,  1.0f } };
+		vertexData_[19] = { {  1.0f,  1.0f,  1.0f, 1.0f }, {  1.0f,  1.0f,  1.0f } };
 
-/// -------------------------------------------------------------
-///				　インデックスデータの初期化処理
-/// -------------------------------------------------------------
-void SkyBox::InitializeIndexData()
-{
-	// インデックスバッファ用のリソースを作成
-	indexResource = ResourceManager::CreateBufferResource(dxCommon_->GetDevice(), sizeof(uint32_t) * kNumIndex);
+		// 下面（-Y）
+		vertexData_[20] = { { -1.0f, -1.0f,  1.0f, 1.0f }, { -1.0f, -1.0f,  1.0f } };
+		vertexData_[21] = { {  1.0f, -1.0f,  1.0f, 1.0f }, {  1.0f, -1.0f,  1.0f } };
+		vertexData_[22] = { { -1.0f, -1.0f, -1.0f, 1.0f }, { -1.0f, -1.0f, -1.0f } };
+		vertexData_[23] = { {  1.0f, -1.0f, -1.0f, 1.0f }, {  1.0f, -1.0f, -1.0f } };
+	}
 
-	// インデックスバッファビューの設定
-	indexBufferView.BufferLocation = indexResource->GetGPUVirtualAddress();
-	indexBufferView.SizeInBytes = sizeof(uint32_t) * kNumIndex;
-	indexBufferView.Format = DXGI_FORMAT_R32_UINT;
+	/// -------------------------------------------------------------
+	///               インデックスデータの初期化処理
+	/// -------------------------------------------------------------
+	void SkyBox::InitializeIndexData()
+	{
+		// インデックスバッファを生成する
+		indexResource = ResourceManager::CreateBufferResource(dxCommon_->GetDevice(), sizeof(uint32_t) * kNumIndex);
 
-	// インデックスデータのマッピング
-	indexResource->Map(0, nullptr, reinterpret_cast<void**>(&indexData_));
+		// インデックスバッファビューを設定する
+		indexBufferView.BufferLocation = indexResource->GetGPUVirtualAddress();
+		indexBufferView.SizeInBytes = sizeof(uint32_t) * kNumIndex;
+		indexBufferView.Format = DXGI_FORMAT_R32_UINT;
 
-	// インデックスバッファの順番を修正（時計回り）
+		// CPU から書き込めるようにマップする
+		indexResource->Map(0, nullptr, reinterpret_cast<void**>(&indexData_));
 
-	// 右面（+X）
-	indexData_[0] = 2; indexData_[1] = 1; indexData_[2] = 0;
-	indexData_[3] = 3; indexData_[4] = 1; indexData_[5] = 2;
+		// 各面 2 三角形ぶんのインデックスを設定する
 
-	// 左面（-X）
-	indexData_[6] = 6; indexData_[7] = 5; indexData_[8] = 4;
-	indexData_[9] = 7; indexData_[10] = 5; indexData_[11] = 6;
+		// 右面（+X）
+		indexData_[0] = 2; indexData_[1] = 1; indexData_[2] = 0;
+		indexData_[3] = 3; indexData_[4] = 1; indexData_[5] = 2;
 
-	// 前面（+Z）
-	indexData_[12] = 10; indexData_[13] = 9; indexData_[14] = 8;
-	indexData_[15] = 11; indexData_[16] = 9; indexData_[17] = 10;
+		// 左面（-X）
+		indexData_[6] = 6; indexData_[7] = 5; indexData_[8] = 4;
+		indexData_[9] = 7; indexData_[10] = 5; indexData_[11] = 6;
 
-	// 後面（-Z）
-	indexData_[18] = 12; indexData_[19] = 13; indexData_[20] = 14;
-	indexData_[21] = 14; indexData_[22] = 13; indexData_[23] = 15;
+		// 前面（+Z）
+		indexData_[12] = 10; indexData_[13] = 9; indexData_[14] = 8;
+		indexData_[15] = 11; indexData_[16] = 9; indexData_[17] = 10;
 
-	// 上面（+Y）
-	indexData_[24] = 17; indexData_[25] = 16; indexData_[26] = 18;
-	indexData_[27] = 17; indexData_[28] = 18; indexData_[29] = 19;
+		// 後面（-Z）
+		indexData_[18] = 12; indexData_[19] = 13; indexData_[20] = 14;
+		indexData_[21] = 14; indexData_[22] = 13; indexData_[23] = 15;
 
-	// 下面（-Y）
-	indexData_[30] = 21; indexData_[31] = 20; indexData_[32] = 22;
-	indexData_[33] = 21; indexData_[34] = 22; indexData_[35] = 23;
+		// 上面（+Y）
+		indexData_[24] = 17; indexData_[25] = 16; indexData_[26] = 18;
+		indexData_[27] = 17; indexData_[28] = 18; indexData_[29] = 19;
 
-	memcpy(indexData_, &indexData_[0], sizeof(uint32_t) * kNumIndex);
-}
+		// 下面（-Y）
+		indexData_[30] = 21; indexData_[31] = 20; indexData_[32] = 22;
+		indexData_[33] = 21; indexData_[34] = 22; indexData_[35] = 23;
+	}
 } // namespace Ken4lowEngine

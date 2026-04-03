@@ -5,6 +5,7 @@
 #include <DebugCamera.h>
 #include <Wireframe.h>
 #include <DirectXCommon.h>
+#include <CameraManager.h>
 #include "Object3DCommon.h"
 #include "PostEffectManager.h"
 #include "LightManager.h"
@@ -51,21 +52,18 @@ namespace Ken4lowEngine
 	/// -------------------------------------------------------------
 	void GameApplication::Update()
 	{
-		// 基底クラスの更新処理
-		Framework::Update();
-
 		// 入力の更新
 		Input::GetInstance()->Update();
 
-		if (Object3DCommon::GetInstance()->GetDebugCamera())
+		// 通常カメラの更新
+		// FPSカメラを使っていない場面では main camera を普通に更新
+		if (defaultCamera_)
 		{
-			DebugCamera::GetInstance()->Update(); // デバッグカメラの更新処理
-		}
-		else
-		{
-			// デフォルトカメラの更新処理
 			defaultCamera_->Update();
 		}
+
+		// 共通更新
+		Framework::Update();
 
 		// シーンマネージャーの更新
 		SceneManager::GetInstance()->Update();
