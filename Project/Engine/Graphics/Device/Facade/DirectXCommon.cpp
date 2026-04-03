@@ -121,8 +121,6 @@ namespace Ken4lowEngine
 	/// -------------------------------------------------------------
 	void DirectXCommon::BeginDraw()
 	{
-		fpsCounter_.StartFrame();
-
 		if (!mainRenderTarget_ || !commandManager_ || !swapChain_)
 		{
 			return;
@@ -169,8 +167,6 @@ namespace Ken4lowEngine
 
 		// 画面表示
 		swapChain_->GetSwapChain()->Present(1, 0);
-
-		fpsCounter_.EndFrame();
 	}
 
 	/// -------------------------------------------------------------

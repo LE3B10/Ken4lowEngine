@@ -12,6 +12,7 @@
 #include <AudioManager.h>
 #include <PostEffectManager.h>
 #include <LightManager.h>
+#include <GameTimer.h>
 
 #include "TitleLoadState.h"
 #include "TitleAttractState.h"
@@ -89,7 +90,7 @@ void TitleScene::Update()
 	if (isDebugCamera_) return; // デバッグカメラ中はポーズ無効
 
 	// 時間更新
-	const float dt = dxCommon_->GetFPSCounter().GetDeltaTime();
+	const float dt = K4E::GameTimer::GetInstance()->GetDeltaTime();
 	timers_.state += dt;
 
 	// 入力クールダウン更新

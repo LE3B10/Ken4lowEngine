@@ -9,6 +9,7 @@
 #include "AssimpLoader.h"
 #include <SRVManager.h>
 #include <UAVManager.h>
+#include <GameTimer.h>
 
 #include "AnimationLoader.h"
 #include "AnimationSampler.h"
@@ -277,8 +278,7 @@ namespace Ken4lowEngine
 		// アニメーション時間の更新
 		if (animationPlayer_.IsPlaying() && animation.duration > 0.0f)
 		{
-			const float fps = dxCommon_ ? dxCommon_->GetFPSCounter().GetFPS() : 0.0f;
-			const float dt = (fps > 0.0f) ? (1.0f / fps) : 0.0f;
+			const float dt = GameTimer::GetInstance()->GetDeltaTime();
 			animationPlayer_.Update(dt, animation.duration);
 		}
 

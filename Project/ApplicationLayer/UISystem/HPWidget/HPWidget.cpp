@@ -3,6 +3,7 @@
 
 #include <DirectXCommon.h>
 #include <TextureManager.h>
+#include <GameTimer.h>
 
 #include <algorithm>
 #include <cmath>
@@ -101,7 +102,7 @@ void HPWidget::Update()
 	if (!isVisible_) return;
 
 	// dt取得（Crosshairと同じ）
-	const float dt = K4E::DirectXCommon::GetInstance()->GetFPSCounter().GetDeltaTime();
+	const float dt = K4E::GameTimer::GetInstance()->GetDeltaTime();
 	shakeTime_ += dt;
 
 	// 瀕死ほど荒く（HP割合が低いほど振幅/周波数アップ）

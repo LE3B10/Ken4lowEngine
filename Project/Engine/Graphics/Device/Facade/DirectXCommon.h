@@ -2,7 +2,6 @@
 #include "DX12Include.h"
 #include "DX12Device.h"
 #include "DX12SwapChain.h"
-#include "FPSCounter.h"
 #include "DXCCompilerManager.h"
 #include "DX12CommandManager.h"
 #include "DX12FenceManager.h"
@@ -77,7 +76,6 @@ namespace Ken4lowEngine
 		DX12CommandManager* GetCommandManager() { return commandManager_.get(); }
 		DX12FenceManager* GetFenceManager() { return fenceManager_.get(); }
 		DXGI_SWAP_CHAIN_DESC1& GetSwapChainDesc() const { return swapChain_->GetSwapChainDesc(); }
-		FPSCounter& GetFPSCounter() { return fpsCounter_; }
 
 		/// 指定インデックスのバックバッファを取得
 		ComPtr<ID3D12Resource> GetBackBuffer(uint32_t index);
@@ -132,8 +130,6 @@ namespace Ken4lowEngine
 		// クライアント領域サイズ
 		uint32_t clientWidth_ = 0;
 		uint32_t clientHeight_ = 0;
-
-		FPSCounter fpsCounter_;
 
 		std::unique_ptr<DX12Device> device_;
 		std::unique_ptr<DX12SwapChain> swapChain_;

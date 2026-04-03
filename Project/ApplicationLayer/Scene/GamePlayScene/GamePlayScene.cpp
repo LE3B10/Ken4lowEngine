@@ -5,6 +5,7 @@
 #include <Input.h>
 #include <SpriteManager.h>
 #include <SceneManager.h>
+#include <GameTimer.h>
 
 #ifdef _DEBUG
 #include <DebugCamera.h>
@@ -124,7 +125,7 @@ void GamePlayScene::Update()
 	if (!dxCommon_)	return;
 
 	// フレーム開始時に FPSCounter を更新して deltaTime を取得
-	const float deltaTime = dxCommon_->GetFPSCounter().GetDeltaTime();
+	const float deltaTime = K4E::GameTimer::GetInstance()->GetDeltaTime();
 
 	// FadeManager は常に更新
 	if (fadeManager_)

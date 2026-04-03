@@ -4,6 +4,7 @@
 #include <SpriteManager.h>
 #include "CameraManager.h"
 #include <DirectXCommon.h>
+#include <GameTimer.h>
 
 #include <Wireframe.h>
 #include <numbers>
@@ -99,7 +100,7 @@ void PhysicalScene::Initialize()
 
 void PhysicalScene::Update()
 {
-	const float dt = dxCommon_->GetFPSCounter().GetDeltaTime();
+	const float dt = K4E::GameTimer::GetInstance()->GetDeltaTime();
 	UpdateObbRig(dt);
 }
 

@@ -3,6 +3,7 @@
 #include <PostEffectPipelineBuilder.h>
 #include <ResourceManager.h>
 #include <UAVManager.h>
+#include <GameTimer.h>
 
 #ifdef USE_IMGUI
 #include <imgui.h>
@@ -65,7 +66,7 @@ namespace Ken4lowEngine
 	void RandomEffect::Update()
 	{
 		// 時間の更新
-		randomSetting_->time += dxCommon_->GetFPSCounter().GetDeltaTime(); // 適当な値で更新	
+		randomSetting_->time += GameTimer::GetInstance()->GetDeltaTime(); // 適当な値で更新	
 	}
 
 

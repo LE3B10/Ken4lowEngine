@@ -1,8 +1,8 @@
 #define NOMINMAX
 #include "SceneManager.h"
 
-#include <DirectXCommon.h>
 #include <SpriteManager.h>
+#include <GameTimer.h>
 
 #include <cassert>
 #include <algorithm>
@@ -36,7 +36,7 @@ void SceneManager::Initialize()
 
 void SceneManager::Update()
 {
-	float dtRaw = K4E::DirectXCommon::GetInstance()->GetFPSCounter().GetDeltaTime();
+	float dtRaw = K4E::GameTimer::GetInstance()->GetDeltaTime();
 	float dtFade = std::min(dtRaw, 1.0f / 30.0f);
 
 	if (fadeManager_)

@@ -1,6 +1,7 @@
 #define NOMINMAX
 #include "GridStageSelector.h"
 #include "DirectXCommon.h"
+#include <GameTimer.h>
 #include "Input.h"
 
 #include <algorithm>
@@ -74,7 +75,7 @@ void GridStageSelector::Initialize(const SelectorContext& context)
 /// -------------------------------------------------------------
 void GridStageSelector::Update(float deltaTime)
 {
-	if (!(deltaTime > 0.f) || deltaTime > 0.05f) deltaTime = K4E::DirectXCommon::GetInstance()->GetFPSCounter().GetDeltaTime(); // 異常値補正
+	if (!(deltaTime > 0.f) || deltaTime > 0.05f) deltaTime = K4E::GameTimer::GetInstance()->GetDeltaTime(); // 異常値補正
 
 	auto* input = context_.input;
 	K4E::Vector2 mp = input->GetMousePosition();

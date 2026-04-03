@@ -2,6 +2,7 @@
 #include <LogString.h>
 #include <DirectXCommon.h>
 #include <ParticleManager.h>
+#include <GameTimer.h>
 
 namespace K4E = ::Ken4lowEngine;
 
@@ -21,7 +22,7 @@ ParticleEmitter::ParticleEmitter(K4E::ParticleManager* manager, const std::strin
 /// -------------------------------------------------------------
 void ParticleEmitter::Update()
 {
-    accumulatedTime_ += 1.0f / K4E::DirectXCommon::GetInstance()->GetFPSCounter().GetFPS();
+	accumulatedTime_ += K4E::GameTimer::GetInstance()->GetDeltaTime();
 
     int particleCount = static_cast<int>(emissionRate_);
     if (particleCount > 0)

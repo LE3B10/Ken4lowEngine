@@ -2,6 +2,7 @@
 #include "Crosshair.h"
 #include <DirectXCommon.h>
 #include <TextureManager.h>
+#include <GameTimer.h>
 
 #include <algorithm>
 #include <cctype>
@@ -44,7 +45,7 @@ void Crosshair::Update()
 	auto* dxCommon = K4E::DirectXCommon::GetInstance();
 	const float clientWidth = static_cast<float>(dxCommon->GetClientWidth());
 	const float clientHeight = static_cast<float>(dxCommon->GetClientHeight());
-	const float deltaTime = dxCommon->GetFPSCounter().GetDeltaTime();
+	const float deltaTime = K4E::GameTimer::GetInstance()->GetDeltaTime();
 
 	// ADSブレンド更新
 	{

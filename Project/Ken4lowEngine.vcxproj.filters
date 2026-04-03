@@ -775,6 +775,7 @@
     <ClCompile Include="Engine\Graphics\Camera\Manager\CameraManager.cpp">
       <Filter>Engine\Graphics\Camera\Manager</Filter>
     </ClCompile>
+    <ClCompile Include="Engine\Core\Time\Core\GameTimer.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ApplicationLayer\UISystem\Crosshair\Crosshair.h">
@@ -1635,6 +1636,7 @@
     <ClInclude Include="Engine\Graphics\Camera\Manager\CameraManager.h">
       <Filter>Engine\Graphics\Camera\Manager</Filter>
     </ClInclude>
+    <ClInclude Include="Engine\Core\Time\Core\GameTimer.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Resources\Shaders\PostEffect\FullScreen.hlsli">

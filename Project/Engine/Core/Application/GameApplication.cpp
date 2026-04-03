@@ -12,6 +12,7 @@
 #include <GpuParticleManager.h>
 #include <SceneManager.h>
 #include <Input.h>
+#include <GameTimer.h>
 
 #ifdef USE_IMGUI
 #include <ImGuiManager.h>
@@ -52,6 +53,9 @@ namespace Ken4lowEngine
 	/// -------------------------------------------------------------
 	void GameApplication::Update()
 	{
+		// 時間の更新処理
+		GameTimer::GetInstance()->BeginFrame();
+
 		// 入力の更新
 		Input::GetInstance()->Update();
 
@@ -70,6 +74,9 @@ namespace Ken4lowEngine
 
 		// ポストエフェクトの更新
 		PostEffectManager::GetInstance()->Update();
+
+		// 時間の更新処理終了
+		GameTimer::GetInstance()->EndFrame();
 	}
 
 

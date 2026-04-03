@@ -18,6 +18,7 @@
 #include <PostEffectManager.h>
 #include <BlendStateFactory.h>
 #include "GpuParticleManager.h"
+#include <GameTimer.h>
 
 #ifdef USE_IMGUI
 #include <ImGuiManager.h>
@@ -186,7 +187,7 @@ namespace Ken4lowEngine
 		ParticleManager::GetInstance()->Update();
 
 		// Gpuパーティクルマネージャーの更新処理
-		GpuParticleManager::GetInstance()->Update(dxCommon_->GetFPSCounter().GetDeltaTime());
+		GpuParticleManager::GetInstance()->Update(GameTimer::GetInstance()->GetDeltaTime());
 	}
 
 

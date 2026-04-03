@@ -5,6 +5,7 @@
 #include <SpriteManager.h>
 #include "CameraManager.h"
 #include "Wireframe.h"
+#include <GameTimer.h>
 #ifdef _DEBUG
 #include <DebugCamera.h>
 #endif // _DEBUG
@@ -65,7 +66,7 @@ void DebugScene::Update()
 	UpdateDebug();
 #endif // _DEBUG
 
-	float deltaTime = dxCommon_->GetFPSCounter().GetDeltaTime();
+	float deltaTime = K4E::GameTimer::GetInstance()->GetDeltaTime();
 
 	static float animTime = 0.0f;
 	animTime += deltaTime;

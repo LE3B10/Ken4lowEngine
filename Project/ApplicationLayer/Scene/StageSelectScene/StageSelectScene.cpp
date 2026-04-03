@@ -8,6 +8,7 @@
 #include <SpriteManager.h>
 #include <StageSelectSelectingState.h>
 #include "StageSelectLoadState.h"
+#include <GameTimer.h>
 
 #include <algorithm>
 
@@ -44,7 +45,7 @@ void StageSelectScene::Initialize()
 /// -------------------------------------------------------------
 void StageSelectScene::Update()
 {
-	float deltaTime = dxCommon_->GetFPSCounter().GetDeltaTime();
+	float deltaTime = K4E::GameTimer::GetInstance()->GetDeltaTime();
 
 	// ロード中は通常更新をしない
 	if (state_ == State::Loading)
