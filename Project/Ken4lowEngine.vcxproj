@@ -624,6 +624,9 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClCompile Include="EngineLayer\Managers\ModelManager\KMeshLoader.cpp" />
     <ClCompile Include="EngineLayer\Managers\ModelManager\ModelLoader.cpp" />
     <ClCompile Include="EngineLayer\Managers\ModelManager\ModelPathResolver.cpp" />
+    <ClCompile Include="PipelineFactory.cpp" />
+    <ClCompile Include="PipelineStatePresets.cpp" />
+    <ClCompile Include="SpritePipelineSet.cpp" />
     <ClCompile Include="WinMain.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
@@ -1553,6 +1556,10 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="EngineLayer\Managers\ModelManager\ModelLoader.h" />
     <ClInclude Include="EngineLayer\Managers\ModelManager\ModelPathResolver.h" />
     <ClInclude Include="EngineLayer\Managers\ModelManager\PathUtil.h" />
+    <ClInclude Include="PipelineCommon.h" />
+    <ClInclude Include="PipelineFactory.h" />
+    <ClInclude Include="PipelineStatePresets.h" />
+    <ClInclude Include="SpritePipelineSet.h" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="externals\DirectXTex\DirectXTex_Desktop_2022_Win10.vcxproj">

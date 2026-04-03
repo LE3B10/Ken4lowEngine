@@ -760,6 +760,9 @@
     <ClCompile Include="EngineLayer\Managers\ModelManager\ModelPathResolver.cpp">
       <Filter>EngineLayer\Managers\ModelManager</Filter>
     </ClCompile>
+    <ClCompile Include="PipelineFactory.cpp" />
+    <ClCompile Include="PipelineStatePresets.cpp" />
+    <ClCompile Include="SpritePipelineSet.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="EngineLayer\Math\MultipleStructs\AABB.h">
@@ -1599,6 +1602,10 @@
     <ClInclude Include="EngineLayer\Managers\ModelManager\PathUtil.h">
       <Filter>EngineLayer\Managers\ModelManager</Filter>
     </ClInclude>
+    <ClInclude Include="PipelineCommon.h" />
+    <ClInclude Include="PipelineFactory.h" />
+    <ClInclude Include="PipelineStatePresets.h" />
+    <ClInclude Include="SpritePipelineSet.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Resources\Shaders\PostEffect\FullScreen.hlsli">
