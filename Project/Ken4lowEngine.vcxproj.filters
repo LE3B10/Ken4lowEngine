@@ -775,7 +775,12 @@
     <ClCompile Include="Engine\Graphics\Camera\Manager\CameraManager.cpp">
       <Filter>Engine\Graphics\Camera\Manager</Filter>
     </ClCompile>
-    <ClCompile Include="Engine\Core\Time\Core\GameTimer.cpp" />
+    <ClCompile Include="Engine\Core\Time\Core\GameTimer.cpp">
+      <Filter>Engine\Core\Time\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Graphics\Resource\Model\Model.cpp">
+      <Filter>Engine\Graphics\Resource\Model</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ApplicationLayer\UISystem\Crosshair\Crosshair.h">
@@ -1636,7 +1641,12 @@
     <ClInclude Include="Engine\Graphics\Camera\Manager\CameraManager.h">
       <Filter>Engine\Graphics\Camera\Manager</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\Core\Time\Core\GameTimer.h" />
+    <ClInclude Include="Engine\Core\Time\Core\GameTimer.h">
+      <Filter>Engine\Core\Time\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Graphics\Resource\Model\Model.h">
+      <Filter>Engine\Graphics\Resource\Model</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="Resources\Shaders\PostEffect\FullScreen.hlsli">
@@ -2156,6 +2166,9 @@
     </Filter>
     <Filter Include="Engine\Graphics\Camera\Manager">
       <UniqueIdentifier>{0db2a72b-1d84-4a72-85d1-3b5283a20827}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Engine\Core\Time\Core">
+      <UniqueIdentifier>{95af982c-ec3d-4a83-9eb2-182d3868ea17}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

@@ -3,9 +3,7 @@
 #include "WorldTransform.h"
 #include "TextureManager.h"
 #include "Material.h"
-#include "Mesh.h"
 #include "VertexData.h"
-#include "ModelData.h"
 #include "Camera.h"
 #include "TransformationMatrix.h"
 
@@ -22,7 +20,7 @@ namespace Ken4lowEngine
 	class DirectXCommon;
 	class Object3DCommon;
 	class SkyBox;
-
+	class Model;
 
 	/// -------------------------------------------------------------
 	///						オブジェクト3Dクラス
@@ -186,7 +184,7 @@ namespace Ken4lowEngine
 		/// ImGui などで「サブメッシュ単位の設定」を行う際に、UI 側でループ回数として利用できます。
 		/// </summary>
 		/// <returns>サブメッシュ数。</returns>
-		size_t GetSubmeshCount() const { return meshes_.size(); }
+		size_t GetSubmeshCount() const;
 
 	public: /// ---------- ディゾルブの設定 ---------- ///
 
@@ -257,7 +255,7 @@ namespace Ken4lowEngine
 		Camera* camera_ = nullptr;
 		SkyBox* skyBox_ = nullptr;
 
-		std::shared_ptr<Object3D> model_;
+		std::shared_ptr<Model> model_;
 
 		// マテリアルデータ
 		Material material_;
@@ -268,10 +266,6 @@ namespace Ken4lowEngine
 		// 影用のワールドトランスフォーム
 		WorldTransform shadowWorldTransform_;
 
-		// メッシュ
-		std::vector<Mesh> meshes_;
-		std::vector<D3D12_GPU_DESCRIPTOR_HANDLE> materialSRVs_;
-
 		// バッファリソースの作成
 		ComPtr <ID3D12Resource> cameraResource;
 
@@ -280,9 +274,6 @@ namespace Ken4lowEngine
 
 		ComPtr<ID3D12Resource> shadowTransformResource_;
 		TransformationMatrix* shadowTransformData_ = nullptr;
-
-		// モデルデータ（subMeshes を想定）
-		ModelData modelData;
 
 		float alpha = 1.0f; // α値
 

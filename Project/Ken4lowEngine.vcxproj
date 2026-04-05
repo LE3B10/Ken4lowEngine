@@ -407,6 +407,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClCompile Include="Engine\System\Resource\ResourceManager.cpp" />
     <ClCompile Include="Engine\Graphics\Renderer\SkyBox\SkyBoxPipelineSet.cpp" />
     <ClCompile Include="Engine\Core\Time\Core\GameTimer.cpp" />
+    <ClCompile Include="Engine\Graphics\Resource\Model\Model.cpp" />
     <ClCompile Include="WinMain.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
@@ -1026,6 +1027,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="Engine\System\Resource\ResourceManager.h" />
     <ClInclude Include="Engine\Graphics\Renderer\SkyBox\SkyBoxPipelineSet.h" />
     <ClInclude Include="Engine\Core\Time\Core\GameTimer.h" />
+    <ClInclude Include="Engine\Graphics\Resource\Model\Model.h" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="externals\DirectXTex\DirectXTex_Desktop_2022_Win10.vcxproj">

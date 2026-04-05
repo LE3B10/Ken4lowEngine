@@ -10,6 +10,7 @@
 #include <ParticleManager.h>
 #include <SpriteManager.h>
 #include <Object3DCommon.h>
+#include <ModelManager.h>
 #include <CameraManager.h>
 #include <DebugCamera.h>
 #include <Wireframe.h>
@@ -222,6 +223,8 @@ namespace Ken4lowEngine
 
 		// Object3DCommonの終了処理
 		Object3DCommon::GetInstance()->Finalize();
+
+		ModelManager::GetInstance()->Finalize();
 
 		// スプライトマネージャの終了処理
 		SpriteManager::GetInstance()->Finalize();

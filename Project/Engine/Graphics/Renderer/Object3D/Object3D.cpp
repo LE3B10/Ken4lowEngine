@@ -4,6 +4,7 @@
 #include "DirectXCommon.h"
 #include "ResourceManager.h"
 
+#include <Model.h>
 #include "ModelManager.h"
 
 #include "CameraManager.h"
@@ -23,35 +24,7 @@ namespace Ken4lowEngine
 		dxCommon_ = DirectXCommon::GetInstance();
 		camera_ = CameraManager::GetInstance()->GetMainCamera();
 
-		// モデル読み込み
-		modelData = AssimpLoader::LoadModel(fileName);
-
-		// サブメッシュ配列に対応してメッシュ・テクスチャを用意
-
-		// 既存データをクリア
-		meshes_.clear();
-		materialSRVs_.clear();
-
-		// メッシュとテクスチャの数を予約
-		meshes_.reserve(modelData.subMeshes.size());
-		materialSRVs_.reserve(modelData.subMeshes.size());
-
-		// テクスチャ未指定時のフォールバック
-		static const std::string kDefaultTexturePath = "Effects/white.dds";
-
-		for (const auto& sub : modelData.subMeshes)
-		{
-			// テクスチャSRV
-			std::string texturePath = sub.material.textureFilePath; // テクスチャパス
-			if (texturePath.empty()) texturePath = kDefaultTexturePath; // フォールバック
-			TextureManager::GetInstance()->LoadTexture(texturePath); // テクスチャ読み込み
-			materialSRVs_.push_back(TextureManager::GetInstance()->GetSrvHandleGPU(texturePath));
-
-			// メッシュ（頂点インデックス）
-			Mesh m = {};
-			m.Initialize(sub.vertices, sub.indices);
-			meshes_.push_back(std::move(m));
-		}
+		SetModel(fileName);
 
 		// 環境マップ
 		TextureManager::GetInstance()->LoadTexture("SkyBox/skybox.dds");
@@ -152,6 +125,8 @@ namespace Ken4lowEngine
 	/// -------------------------------------------------------------
 	void Object3D::Draw()
 	{
+		if (!model_) { return; }
+
 		ID3D12GraphicsCommandList* commandList = dxCommon_->GetCommandManager()->GetCommandList();
 
 		Object3DCommon::GetInstance()->SetRenderSetting();
@@ -169,24 +144,29 @@ namespace Ken4lowEngine
 		commandList->SetGraphicsRootDescriptorTable(10, shadowMapHandle_); // シャドウマップのSRV
 
 		// サブメッシュ事にテクスチャを差し替えて描画
-		for (size_t i = 0; i < meshes_.size(); i++)
+		auto& meshes = model_->GetMeshes();
+		const auto& materialSRVs = model_->GetMaterialSRVs();
+		for (size_t i = 0; i < meshes.size(); i++)
 		{
-			TextureManager::GetInstance()->SetGraphicsRootDescriptorTable(commandList, 2, materialSRVs_[i]);
-			meshes_[i].Draw();
+			TextureManager::GetInstance()->SetGraphicsRootDescriptorTable(commandList, 2, materialSRVs[i]); // t2
+			meshes[i].Draw();
 		}
 	}
 
 	void Object3D::DrawShadow()
 	{
+		if (!model_) { return; }
+
 		ID3D12GraphicsCommandList* commandList = dxCommon_->GetCommandManager()->GetCommandList();
 
 		Object3DCommon::GetInstance()->SetShadowMapRenderSetting();
 
 		commandList->SetGraphicsRootConstantBufferView(0, shadowTransformResource_->GetGPUVirtualAddress());
 
-		for (size_t i = 0; i < meshes_.size(); i++)
+		auto& meshes = model_->GetMeshes();
+		for (auto& mesh : meshes)
 		{
-			meshes_[i].Draw();
+			mesh.Draw();
 		}
 	}
 
@@ -195,14 +175,7 @@ namespace Ken4lowEngine
 	/// -------------------------------------------------------------
 	void Object3D::SetModel(const std::string& filePath)
 	{
-		// モデルを検索してセットする (例: 方法1)
-		model_ = std::move(ModelManager::GetInstance()->FindModel(filePath));
-
-		// モデルがセットされた後に初期化が必要な場合
-		if (model_)
-		{
-			model_->Initialize(filePath);
-		}
+		model_ = ModelManager::GetInstance()->LoadModel(filePath);
 	}
 
 	/// -------------------------------------------------------------
@@ -212,7 +185,9 @@ namespace Ken4lowEngine
 	{
 		TextureManager::GetInstance()->LoadTexture(texturePath);
 		auto h = TextureManager::GetInstance()->GetSrvHandleGPU(texturePath);
-		for (auto& srv : materialSRVs_) {
+		
+		auto& materialSRVs = model_->GetMaterialSRVs();
+		for (auto& srv : materialSRVs) {
 			srv = h;
 		}
 	}
@@ -222,9 +197,15 @@ namespace Ken4lowEngine
 	/// -------------------------------------------------------------
 	void Object3D::SetTextureForSubmesh(size_t index, const std::string& texturePath)
 	{
-		if (index >= materialSRVs_.size()) { return; }
+		auto& materialSRVs = model_->GetMaterialSRVs();
+		if (index >= materialSRVs.size()) { return; }
 		TextureManager::GetInstance()->LoadTexture(texturePath);
-		materialSRVs_[index] = TextureManager::GetInstance()->GetSrvHandleGPU(texturePath);
+		materialSRVs[index] = TextureManager::GetInstance()->GetSrvHandleGPU(texturePath);
+	}
+
+	size_t Object3D::GetSubmeshCount() const
+	{
+		return model_ ? model_->GetMeshes().size() : 0;
 	}
 
 	/// -------------------------------------------------------------
