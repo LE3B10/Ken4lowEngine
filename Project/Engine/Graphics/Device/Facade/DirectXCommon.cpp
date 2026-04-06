@@ -85,6 +85,9 @@ namespace Ken4lowEngine
 
 		// Compiler
 		dxcCompilerManager_->Initialize();
+
+		// PipelineFactory
+		pipelineFactory_.Initialize(GetDevice());
 	}
 
 	/// -------------------------------------------------------------
@@ -219,6 +222,8 @@ namespace Ken4lowEngine
 			shadowMapRenderTarget_->Finalize();
 			shadowMapRenderTarget_.reset();
 		}
+
+		pipelineFactory_.Finalize();
 
 		// 各マネージャ終了
 		fenceManager_->Finalize();

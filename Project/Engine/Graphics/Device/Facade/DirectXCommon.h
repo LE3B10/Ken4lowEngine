@@ -7,6 +7,7 @@
 #include "DX12FenceManager.h"
 #include "MainRenderTarget.h"
 #include "ShadowMapRenderTarget.h"
+#include "PipelineFactory.h"
 
 #include <dxcapi.h>
 #include <memory>
@@ -14,6 +15,7 @@
 
 namespace Ken4lowEngine
 {
+	/// ---------- 前方宣言 ---------- ///
 	class WinApp;
 
 	/// -------------------------------------------------------------
@@ -108,6 +110,9 @@ namespace Ken4lowEngine
 			return shadowMapRenderTarget_->GetSrvHandleGPU();
 		}
 
+		PipelineFactory& GetPipelineFactory() { return pipelineFactory_; }
+		const PipelineFactory& GetPipelineFactory() const { return pipelineFactory_; }
+
 	private: /// ---------- 初期化分割 ---------- ///
 
 		void InitializeCoreObjects();
@@ -136,6 +141,8 @@ namespace Ken4lowEngine
 		std::unique_ptr<DXCCompilerManager> dxcCompilerManager_;
 		std::unique_ptr<DX12CommandManager> commandManager_;
 		std::unique_ptr<DX12FenceManager> fenceManager_;
+
+		PipelineFactory pipelineFactory_;
 
 		// 分離済み描画先
 		std::unique_ptr<MainRenderTarget> mainRenderTarget_;

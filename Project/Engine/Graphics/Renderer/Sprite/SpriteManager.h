@@ -1,6 +1,5 @@
 #pragma once
 #include "DX12Include.h"
-#include "PipelineFactory.h"
 #include "SpritePipelineSet.h"
 
 namespace Ken4lowEngine
@@ -49,9 +48,6 @@ namespace Ken4lowEngine
 	private: /// ---------- メンバ変数 ---------- ///
 
 		DirectXCommon* dxCommon_ = nullptr;
-
-		/// 汎用パイプライン生成クラス
-		PipelineFactory pipelineFactory_{};
 
 		/// Sprite 用 PSO / RootSignature のまとまり
 		SpritePipelineSet pipelineSet_{};

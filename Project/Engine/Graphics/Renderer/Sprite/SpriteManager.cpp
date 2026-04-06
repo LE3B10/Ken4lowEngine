@@ -15,20 +15,14 @@ namespace Ken4lowEngine
 		// 描画設定時に使用する DirectXCommon を保持する
 		dxCommon_ = dxCommon;
 
-		// 汎用パイプライン生成クラスへデバイスを渡す
-		pipelineFactory_.Initialize(dxCommon_->GetDevice());
-
 		// Sprite 用の Background / UI パイプラインをまとめて生成する
-		pipelineSet_.Initialize(pipelineFactory_, dxCommon_->GetDXCCompilerManager(), DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, DXGI_FORMAT_D24_UNORM_S8_UINT);
+		pipelineSet_.Initialize(dxCommon_->GetPipelineFactory(), dxCommon_->GetDXCCompilerManager(), DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, DXGI_FORMAT_D24_UNORM_S8_UINT);
 	}
 
 	void SpriteManager::Finalize()
 	{
 		// 先に Sprite 用パイプライン群を解放する
 		pipelineSet_.Finalize();
-
-		// 生成用 Factory のデバイス参照を解放する
-		pipelineFactory_.Finalize();
 
 		// 最後に DirectXCommon 参照を切る
 		dxCommon_ = nullptr;

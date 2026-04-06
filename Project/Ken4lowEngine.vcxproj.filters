@@ -781,6 +781,9 @@
     <ClCompile Include="Engine\Graphics\Resource\Model\Model.cpp">
       <Filter>Engine\Graphics\Resource\Model</Filter>
     </ClCompile>
+    <ClCompile Include="Engine\Graphics\Renderer\Object3D\Object3DPipelineSet.cpp">
+      <Filter>Engine\Graphics\Renderer\Object3D</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ApplicationLayer\UISystem\Crosshair\Crosshair.h">
@@ -1646,6 +1649,9 @@
     </ClInclude>
     <ClInclude Include="Engine\Graphics\Resource\Model\Model.h">
       <Filter>Engine\Graphics\Resource\Model</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Graphics\Renderer\Object3D\Object3DPipelineSet.h">
+      <Filter>Engine\Graphics\Renderer\Object3D</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

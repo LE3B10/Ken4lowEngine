@@ -6,75 +6,95 @@
 
 namespace Ken4lowEngine
 {
-
-	/// -------------------------------------------------------------
-	///					コンストラクタ
-	/// -------------------------------------------------------------
 	FPSCounter::FPSCounter(int targetFPS)
-		: targetFPS_(targetFPS), frameCount_(0), currentFPS_(0.0f)
+		: targetFPS_(targetFPS)
 	{
-		reference_ = std::chrono::steady_clock::now();
-		fpsReference_ = reference_;
+		auto now = Clock::now();
+		frameBegin_ = now;
+		lastBegin_ = now;
+		fpsReference_ = now;
 	}
 
-	/// -------------------------------------------------------------
-	///					フレーム開始時に呼ぶ
-	/// -------------------------------------------------------------
 	void FPSCounter::StartFrame()
 	{
-		auto now = std::chrono::steady_clock::now();
+		const auto now = Clock::now();
+
 		if (lastBegin_.time_since_epoch().count() != 0)
 		{
 			deltaSecond_ = std::chrono::duration<float>(now - lastBegin_).count();
 		}
 		else
 		{
-			deltaSecond_ = 1.0f / std::max(1, targetFPS_); // 初回は目標fpsから仮置き
+			deltaSecond_ = 1.0f / static_cast<float>(std::max(1, targetFPS_));
 		}
+
 		lastBegin_ = now;
-		reference_ = now; // 既存のフレーム基準も更新
+		frameBegin_ = now;
+
+		updateMs_ = 0.0f;
+		drawMs_ = 0.0f;
+		presentMs_ = 0.0f;
+		sleepMs_ = 0.0f;
+		totalFrameMs_ = 0.0f;
 	}
 
-	/// -------------------------------------------------------------
-	///					フレーム終了時に呼ぶ（FPS固定＆計測）
-	/// -------------------------------------------------------------
+	void FPSCounter::BeginUpdate()
+	{
+		updateBegin_ = Clock::now();
+	}
+
+	void FPSCounter::EndUpdate()
+	{
+		updateMs_ = ToMs(Clock::now() - updateBegin_);
+	}
+
+	void FPSCounter::BeginDraw()
+	{
+		drawBegin_ = Clock::now();
+	}
+
+	void FPSCounter::EndDraw()
+	{
+		drawMs_ = ToMs(Clock::now() - drawBegin_);
+	}
+
+	void FPSCounter::BeginPresent()
+	{
+		presentBegin_ = Clock::now();
+	}
+
+	void FPSCounter::EndPresent()
+	{
+		presentMs_ = ToMs(Clock::now() - presentBegin_);
+	}
+
 	void FPSCounter::EndFrame()
 	{
-		frameCount_++;
+		const auto frameEnd = Clock::now();
+		totalFrameMs_ = ToMs(frameEnd - frameBegin_);
 
-		// ---- FPS計測（1秒ごとに更新）
-		auto now = std::chrono::steady_clock::now();
-		auto secElapsed = std::chrono::duration_cast<std::chrono::seconds>(now - fpsReference_);
-		if (secElapsed.count() >= 1)
+		++frameCount_;
+		const float elapsedSec = std::chrono::duration<float>(frameEnd - fpsReference_).count();
+
+		sleepMs_ = 0.0f; // 一旦FPS固定を切る
+
+		if (elapsedSec >= 1.0f)
 		{
-			currentFPS_ = static_cast<float>(frameCount_) / static_cast<float>(secElapsed.count());
+			currentFPS_ = static_cast<float>(frameCount_) / elapsedSec;
 			frameCount_ = 0;
-			fpsReference_ = now;
+			fpsReference_ = frameEnd;
 
 			std::ostringstream oss;
-			oss << "Current FPS: " << currentFPS_ << " (Target: " << targetFPS_ << ")\n";
+			oss
+				<< "FPS: " << currentFPS_
+				<< " / Target: " << targetFPS_
+				<< " | Update: " << updateMs_ << " ms"
+				<< " | Draw: " << drawMs_ << " ms"
+				<< " | Present: " << presentMs_ << " ms"
+				<< " | Sleep: " << sleepMs_ << " ms"
+				<< " | Total: " << totalFrameMs_ << " ms\n";
+
 			OutputDebugStringA(oss.str().c_str());
-		}
-
-		// ---- FPS固定（steady_clock に統一して sleep_until）
-		const int clampedTarget = std::max(1, targetFPS_);
-		const auto frameDurFloat = std::chrono::duration<float>(1.0f / static_cast<float>(clampedTarget));
-		const auto frameDur = std::chrono::duration_cast<std::chrono::steady_clock::duration>(frameDurFloat);
-
-		// このフレーム開始時刻 reference_ から、次フレームの締切（デッドライン）を決める
-		auto deadline = reference_ + frameDur;
-		now = std::chrono::steady_clock::now();
-
-		if (now < deadline)
-		{
-			// 締切までスリープ（高精度に合わせてくれる）
-			std::this_thread::sleep_until(deadline);
-			reference_ = deadline;                 // 次フレームの基準はデッドライン
-		}
-		else
-		{
-			// ドリフト抑制のため、今を基準にする
-			reference_ = now;
 		}
 	}
 
@@ -85,9 +105,19 @@ namespace Ken4lowEngine
 		currentFPS_ = 0.0f;
 		deltaSecond_ = 0.0f;
 
-		reference_ = std::chrono::steady_clock::now();
-		fpsReference_ = reference_;
-		lastBegin_ = {};
-	}
+		updateMs_ = 0.0f;
+		drawMs_ = 0.0f;
+		presentMs_ = 0.0f;
+		sleepMs_ = 0.0f;
+		totalFrameMs_ = 0.0f;
 
-} // namespace Ken4lowEngine
+		const auto now = Clock::now();
+		frameBegin_ = now;
+		lastBegin_ = now;
+		fpsReference_ = now;
+
+		updateBegin_ = {};
+		drawBegin_ = {};
+		presentBegin_ = {};
+	}
+}

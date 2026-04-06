@@ -2,37 +2,24 @@
 
 namespace Ken4lowEngine
 {
-
-	/// -------------------------------------------------------------
-	///                     シングルトン取得
-	/// -------------------------------------------------------------
 	GameTimer* GameTimer::GetInstance()
 	{
 		static GameTimer instance;
 		return &instance;
 	}
 
-	/// -------------------------------------------------------------
-	///                         初期化
-	/// -------------------------------------------------------------
 	void GameTimer::Initialize(int targetFPS)
 	{
 		targetFPS_ = targetFPS;
-		fpsCounter_ .Reset(targetFPS_);
+		fpsCounter_.Reset(targetFPS_);
 		initialized_ = true;
 	}
 
-	/// -------------------------------------------------------------
-	///                         終了処理
-	/// -------------------------------------------------------------
 	void GameTimer::Finalize()
 	{
 		initialized_ = false;
 	}
 
-	/// -------------------------------------------------------------
-	///                     フレーム開始
-	/// -------------------------------------------------------------
 	void GameTimer::BeginFrame()
 	{
 		if (!initialized_)
@@ -42,9 +29,6 @@ namespace Ken4lowEngine
 		fpsCounter_.StartFrame();
 	}
 
-	/// -------------------------------------------------------------
-	///                     フレーム終了
-	/// -------------------------------------------------------------
 	void GameTimer::EndFrame()
 	{
 		if (!initialized_)
@@ -54,4 +38,39 @@ namespace Ken4lowEngine
 		fpsCounter_.EndFrame();
 	}
 
-} // namespace Ken4lowEngine
+	void GameTimer::BeginUpdate()
+	{
+		if (!initialized_) return;
+		fpsCounter_.BeginUpdate();
+	}
+
+	void GameTimer::EndUpdate()
+	{
+		if (!initialized_) return;
+		fpsCounter_.EndUpdate();
+	}
+
+	void GameTimer::BeginDraw()
+	{
+		if (!initialized_) return;
+		fpsCounter_.BeginDraw();
+	}
+
+	void GameTimer::EndDraw()
+	{
+		if (!initialized_) return;
+		fpsCounter_.EndDraw();
+	}
+
+	void GameTimer::BeginPresent()
+	{
+		if (!initialized_) return;
+		fpsCounter_.BeginPresent();
+	}
+
+	void GameTimer::EndPresent()
+	{
+		if (!initialized_) return;
+		fpsCounter_.EndPresent();
+	}
+}

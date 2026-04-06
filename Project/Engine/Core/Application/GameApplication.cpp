@@ -56,6 +56,9 @@ namespace Ken4lowEngine
 		// 時間の更新処理
 		GameTimer::GetInstance()->BeginFrame();
 
+		// Update計測開始
+		GameTimer::GetInstance()->BeginUpdate();
+
 		// 入力の更新
 		Input::GetInstance()->Update();
 
@@ -85,6 +88,9 @@ namespace Ken4lowEngine
 	/// -------------------------------------------------------------
 	void GameApplication::Draw()
 	{
+		// Deaw計測開始
+		GameTimer::GetInstance()->BeginDraw();
+
 		// 描画開始（バックバッファのクリア）
 		dxCommon_->BeginDraw();
 
@@ -162,10 +168,24 @@ namespace Ken4lowEngine
 		ImGuiManager::GetInstance()->Draw();
 #endif // USE_IMGUI
 
+		// Draw計測終了
+		// ※ EndDraw() の中に Present が含まれている可能性が高いので、
+		//   その手前までを Draw として区切る
+		GameTimer::GetInstance()->EndDraw();
+
+		// Present計測開始
+		GameTimer::GetInstance()->BeginPresent();
+
 		//--------------------------------------------
 		// 7. 描画終了
 		//--------------------------------------------
 		dxCommon_->EndDraw();
+
+		// Present計測終了
+		GameTimer::GetInstance()->EndPresent();
+
+		// フレーム終了
+		GameTimer::GetInstance()->EndFrame();
 	}
 
 

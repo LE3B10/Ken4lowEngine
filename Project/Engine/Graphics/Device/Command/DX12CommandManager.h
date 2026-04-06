@@ -50,6 +50,8 @@ public: /// ---------- メンバ関数 ---------- ///
 	/// </summary>
 	void ExecuteAndWait();
 
+	void Execute();
+
 public: /// ---------- セッター ---------- ///
 
 	/// <summary>

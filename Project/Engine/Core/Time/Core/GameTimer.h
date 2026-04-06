@@ -3,37 +3,37 @@
 
 namespace Ken4lowEngine
 {
-
-	/// -------------------------------------------------------------
-	///                     時間管理クラス
-	/// -------------------------------------------------------------
 	class GameTimer
 	{
 	public:
-		/// ---------------------------------------------------------
-		///                シングルトン取得
-		/// ---------------------------------------------------------
 		static GameTimer* GetInstance();
 
-		/// ---------------------------------------------------------
-		///                初期化 / 更新
-		/// ---------------------------------------------------------
 		void Initialize(int targetFPS = 144);
 		void Finalize();
 
-		// フレーム開始
 		void BeginFrame();
-
-		// フレーム終了
 		void EndFrame();
 
-	public: /// ---------- Getter ---------- ///
+		// 区間計測
+		void BeginUpdate();
+		void EndUpdate();
 
+		void BeginDraw();
+		void EndDraw();
+
+		void BeginPresent();
+		void EndPresent();
+
+	public:
 		float GetDeltaTime() const { return fpsCounter_.GetDeltaTime(); }
 		float GetFPS() const { return fpsCounter_.GetFPS(); }
 		int GetTargetFPS() const { return targetFPS_; }
 
-	public: /// ---------- Setter ---------- ///
+		float GetUpdateMs() const { return fpsCounter_.GetUpdateMs(); }
+		float GetDrawMs() const { return fpsCounter_.GetDrawMs(); }
+		float GetPresentMs() const { return fpsCounter_.GetPresentMs(); }
+		float GetSleepMs() const { return fpsCounter_.GetSleepMs(); }
+		float GetTotalFrameMs() const { return fpsCounter_.GetTotalFrameMs(); }
 
 		void SetTargetFPS(int fps)
 		{
@@ -52,5 +52,4 @@ namespace Ken4lowEngine
 		int targetFPS_ = 144;
 		bool initialized_ = false;
 	};
-
-} // namespace Ken4lowEngine
+}
