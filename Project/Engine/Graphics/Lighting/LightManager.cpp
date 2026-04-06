@@ -12,6 +12,48 @@
 
 namespace Ken4lowEngine
 {
+	namespace
+	{
+		constexpr float kRadToDeg = 180.0f / std::numbers::pi_v<float>;
+		constexpr float kDegToRad = std::numbers::pi_v<float> / 180.0f;
+
+		Vector3 DirectionToEulerDeg(const Vector3& dir)
+		{
+			Vector3 n = Vector3::Normalize(dir);
+
+			// pitch(X): 上下
+			float pitch = std::asin(-n.y);
+
+			// yaw(Y): 左右
+			float yaw = std::atan2(n.x, n.z);
+
+			// directional light の向き自体には roll は基本不要
+			return {
+				pitch * kRadToDeg,
+				yaw * kRadToDeg,
+				0.0f
+			};
+		}
+
+		Vector3 EulerDegToDirection(const Vector3& eulerDeg)
+		{
+			float pitch = eulerDeg.x * kDegToRad;
+			float yaw = eulerDeg.y * kDegToRad;
+
+			float cp = std::cos(pitch);
+			float sp = std::sin(pitch);
+			float cy = std::cos(yaw);
+			float sy = std::sin(yaw);
+
+			// 左手系寄りの前方向ベース
+			Vector3 dir;
+			dir.x = sy * cp;
+			dir.y = -sp;
+			dir.z = cy * cp;
+
+			return Vector3::Normalize(dir);
+		}
+	}
 
 	LightManager* LightManager::GetInstance()
 	{
@@ -150,6 +192,8 @@ namespace Ken4lowEngine
 	/// -------------------------------------------------------------
 	void LightManager::DebugDrawLightGizmos()
 	{
+#ifdef _DEBUG
+
 		auto* wf = Wireframe::GetInstance();
 
 		// 可視化パラメータ（お好みで）
@@ -162,10 +206,36 @@ namespace Ken4lowEngine
 		for (const auto& L : punctualLights_) {
 			switch (L.lightType) {
 			case 1: { // Directional
-				// 原点付近に「光の向き」を示す矢印線
 				Vector3 base = { 0.0f, 3.0f, 0.0f };
 				Vector3 d = Vector3::Normalize(L.direction);
-				wf->DrawLine(base, base - d * dirLen, colDir);
+
+				Vector3 tip = base - d * dirLen;
+				wf->DrawLine(base, tip, colDir);
+
+				// 矢印の羽
+				Vector3 up = { 0.0f, 1.0f, 0.0f };
+				if (std::fabs(Vector3::Dot(d, up)) > 0.95f)
+				{
+					up = { 1.0f, 0.0f, 0.0f };
+				}
+
+				Vector3 right = Vector3::Normalize(Vector3::Cross(up, d));
+				Vector3 sideUp = Vector3::Normalize(Vector3::Cross(d, right));
+
+				const float headLen = 0.35f;
+				const float headWidth = 0.18f;
+
+				Vector3 headBase = tip + d * headLen;
+
+				wf->DrawLine(tip, headBase + right * headWidth, colDir);
+				wf->DrawLine(tip, headBase - right * headWidth, colDir);
+				wf->DrawLine(tip, headBase + sideUp * headWidth, colDir);
+				wf->DrawLine(tip, headBase - sideUp * headWidth, colDir);
+
+				// 方向が分かりやすいように始点にも小さい十字
+				const float crossSize = 0.15f;
+				wf->DrawLine(base - right * crossSize, base + right * crossSize, colDir);
+				wf->DrawLine(base - sideUp * crossSize, base + sideUp * crossSize, colDir);
 				break;
 			}
 			case 2: { // Point
@@ -188,6 +258,7 @@ namespace Ken4lowEngine
 				break;
 			}
 		}
+#endif // _DEBUG
 	}
 
 
@@ -238,11 +309,23 @@ namespace Ken4lowEngine
 				// 種類別
 				if (L.lightType == 1)
 				{
-					// Directional
-					if (ImGui::SliderFloat3("Direction", &L.direction.x, -1.0f, 1.0f))
+					Vector3 eulerDeg = DirectionToEulerDeg(L.direction);
+
+					bool changed = false;
+					changed |= ImGui::DragFloat("Pitch (X)", &eulerDeg.x, 0.5f, -89.0f, 89.0f, "%.1f deg");
+					changed |= ImGui::DragFloat("Yaw (Y)", &eulerDeg.y, 0.5f, -180.0f, 180.0f, "%.1f deg");
+
+					// Roll は光の向き自体には効かないので表示だけにするか、隠す
+					ImGui::BeginDisabled();
+					ImGui::DragFloat("Roll (Z)", &eulerDeg.z, 0.5f, -180.0f, 180.0f, "%.1f deg");
+					ImGui::EndDisabled();
+
+					if (changed)
 					{
-						L.direction = Vector3::Normalize(L.direction);
+						L.direction = EulerDegToDirection(eulerDeg);
 					}
+
+					ImGui::Text("Dir = (%.3f, %.3f, %.3f)", L.direction.x, L.direction.y, L.direction.z);
 				}
 				else if (L.lightType == 2)
 				{

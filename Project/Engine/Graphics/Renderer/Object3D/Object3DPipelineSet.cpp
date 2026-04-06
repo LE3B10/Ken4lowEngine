@@ -154,11 +154,12 @@ namespace Ken4lowEngine
 			staticSamplers[0].MaxLOD = D3D12_FLOAT32_MAX;
 
 			staticSamplers[1] = {};
-			staticSamplers[1].Filter = D3D12_FILTER_MIN_MAG_LINEAR_MIP_POINT;
-			staticSamplers[1].AddressU = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
-			staticSamplers[1].AddressV = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
-			staticSamplers[1].AddressW = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
-			staticSamplers[1].ComparisonFunc = D3D12_COMPARISON_FUNC_NEVER;
+			staticSamplers[1].Filter = D3D12_FILTER_COMPARISON_MIN_MAG_LINEAR_MIP_POINT;
+			staticSamplers[1].AddressU = D3D12_TEXTURE_ADDRESS_MODE_BORDER;
+			staticSamplers[1].AddressV = D3D12_TEXTURE_ADDRESS_MODE_BORDER;
+			staticSamplers[1].AddressW = D3D12_TEXTURE_ADDRESS_MODE_BORDER;
+			staticSamplers[1].ComparisonFunc = D3D12_COMPARISON_FUNC_LESS_EQUAL;
+			staticSamplers[1].BorderColor = D3D12_STATIC_BORDER_COLOR_OPAQUE_WHITE;
 			staticSamplers[1].ShaderRegister = 1;
 			staticSamplers[1].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
 			staticSamplers[1].MaxLOD = D3D12_FLOAT32_MAX;
@@ -172,8 +173,7 @@ namespace Ken4lowEngine
 			return desc;
 		}
 
-		D3D12_ROOT_SIGNATURE_DESC MakeShadowRootSignatureDesc(
-			std::array<D3D12_ROOT_PARAMETER, 1>& rootParameters)
+		D3D12_ROOT_SIGNATURE_DESC MakeShadowRootSignatureDesc(std::array<D3D12_ROOT_PARAMETER, 1>& rootParameters)
 		{
 			rootParameters[0] = {};
 			rootParameters[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
@@ -189,10 +189,7 @@ namespace Ken4lowEngine
 			return desc;
 		}
 
-		GraphicsPipelineDesc MakeBaseObject3DDesc(
-			DXGI_FORMAT rtvFormat,
-			DXGI_FORMAT dsvFormat,
-			const D3D12_INPUT_LAYOUT_DESC& inputLayout)
+		GraphicsPipelineDesc MakeBaseObject3DDesc(DXGI_FORMAT rtvFormat, DXGI_FORMAT dsvFormat, const D3D12_INPUT_LAYOUT_DESC& inputLayout)
 		{
 			GraphicsPipelineDesc desc{};
 			desc.blendState = PipelineStatePresets::MakeBlendOpaque();
@@ -214,8 +211,8 @@ namespace Ken4lowEngine
 			desc.blendState = PipelineStatePresets::MakeBlendOpaque();
 
 			auto rasterizer = PipelineStatePresets::MakeRasterizerCullBack();
-			rasterizer.DepthBias = 1000;
-			rasterizer.SlopeScaledDepthBias = 1.0f;
+			rasterizer.DepthBias = 300;
+			rasterizer.SlopeScaledDepthBias = 0.75f;
 			rasterizer.DepthBiasClamp = 0.0f;
 			desc.rasterizerState = rasterizer;
 
@@ -230,11 +227,7 @@ namespace Ken4lowEngine
 		}
 	}
 
-	void Object3DPipelineSet::Initialize(
-		PipelineFactory& factory,
-		DXCCompilerManager* dxcManager,
-		DXGI_FORMAT rtvFormat,
-		DXGI_FORMAT dsvFormat)
+	void Object3DPipelineSet::Initialize(PipelineFactory& factory, DXCCompilerManager* dxcManager, DXGI_FORMAT rtvFormat, DXGI_FORMAT dsvFormat)
 	{
 		assert(dxcManager != nullptr);
 

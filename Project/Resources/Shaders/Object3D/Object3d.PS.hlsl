@@ -10,18 +10,23 @@ struct Material
 {
     float4 color;
     float shininess;
+    float3 padding0;
     float4x4 uvTransform;
     float reflectionRate;
+    float roughness;
+    float2 padding1;
 };
 
 struct Camera
 {
     float3 worldPosition;
+    float padding0;
 };
 
 struct LightInfo
 {
     uint gLightCount;
+    float padding0;
 };
 
 struct DissolveSetting
@@ -45,9 +50,14 @@ Texture2D<float4> gDissolveMaskTexture : register(t3);
 Texture2D<float> gShadowMap : register(t4);
 
 SamplerState gSampler : register(s0);
-SamplerState gShadowSampler : register(s1);
+SamplerComparisonState gShadowSampler : register(s1);
 
 static const float kAlphaDiscardThreshold = 0.001f;
+
+float ComputeFresnelSchlick(float cosTheta, float f0)
+{
+    return f0 + (1.0f - f0) * pow(1.0f - cosTheta, 5.0f);
+}
 
 PixelShaderOutput main(VertexShaderOutput input)
 {
@@ -61,8 +71,7 @@ PixelShaderOutput main(VertexShaderOutput input)
     float3 normal = normalize(input.normal);
     float3 viewDir = normalize(gCamera.worldPosition - worldPosition);
 
-    float3 lighting = AccumulateLighting(
-        gPunctualLights,
+    float3 lighting = AccumulateLighting(gPunctualLights,
         gLightInfo.gLightCount,
         worldPosition,
         normal,
@@ -71,10 +80,19 @@ PixelShaderOutput main(VertexShaderOutput input)
         gMaterial.shininess,
         gShadowMap,
         gShadowSampler);
+        
+    float3 baseColor = gMaterial.color.rgb * textureColor.rgb;
 
+    // 環境反射
     float3 reflectionDir = reflect(-viewDir, normal);
     float3 environmentColor = gEnvironmentTexture.Sample(gSampler, reflectionDir).rgb;
 
+    // フレネルを少しだけ足す
+    float fresnel = ComputeFresnelSchlick(saturate(dot(normal, viewDir)), 0.02f);
+    float envBlend = saturate(gMaterial.reflectionRate * 0.12f + fresnel * 0.03f);
+    float3 reflectionColor = environmentColor;
+
+    // Dissolve
     float maskValue = gDissolveMaskTexture.Sample(gSampler, input.texcoord).r;
     float edge = smoothstep(
         gDissolveSetting.threshold,
@@ -84,9 +102,14 @@ PixelShaderOutput main(VertexShaderOutput input)
     float4 edgeColor = gDissolveSetting.edgeColor * (1.0f - edge);
     float dissolveBlend = 1.0f - step(maskValue, gDissolveSetting.threshold);
 
-    output.color = gMaterial.color * lerp(textureColor, edgeColor, dissolveBlend);
-    output.color.rgb *= lighting;
-    output.color.rgb = lerp(output.color.rgb, environmentColor, gMaterial.reflectionRate);
+    float3 shadedColor = lerp(baseColor, edgeColor.rgb, dissolveBlend);
+    shadedColor *= lighting;
+
+    // 反射を最後に混ぜる
+    shadedColor = lerp(shadedColor, reflectionColor, envBlend);
+
+    output.color.rgb = shadedColor;
+    output.color.a = gMaterial.color.a * textureColor.a;
 
     if (output.color.a < kAlphaDiscardThreshold)
     {

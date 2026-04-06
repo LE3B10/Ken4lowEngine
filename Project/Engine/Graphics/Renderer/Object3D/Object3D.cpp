@@ -67,8 +67,36 @@ namespace Ken4lowEngine
 		material_.Update();
 		worldTransform_.Update();
 
-		// カメラ用バッファ更新（必要であれば）
+		// カメラ用バッファ更新
 		cameraData->worldPosition = CameraManager::GetInstance()->GetActiveCameraPosition();
+
+		// 平行光源の向きからシャドウ行列を毎フレーム作り直す
+		Vector3 lightDir = { 0.3f, -1.0f, 0.2f }; // fallback
+
+		const auto& lights = LightManager::GetInstance()->GetPunctualLights();
+		for (const auto& light : lights)
+		{
+			if (light.lightType == 1)
+			{
+				lightDir = Vector3::Normalize(light.direction);
+				break;
+			}
+		}
+
+		// まずはカメラ中心で十分
+		const Vector3 focusPos = cameraData->worldPosition;
+
+		const Matrix4x4 lightViewProjection = Matrix4x4::MakeLightViewProjection(
+			lightDir,
+			focusPos,
+			60.0f,   // distanceFromTarget
+			35.0f,   // orthoHalfWidth
+			35.0f,   // orthoHalfHeight
+			0.1f,    // nearZ
+			120.0f   // farZ
+		);
+
+		UpdateShadowMatrix(lightViewProjection);
 	}
 
 	void Object3D::UpdateShadowMatrix(const Matrix4x4& lightViewProjection)
@@ -82,8 +110,8 @@ namespace Ken4lowEngine
 
 		// シャドウマップ用の行列を GPU に転送
 		shadowParameterData_->lightViewProjection = lightViewProjection;
-		shadowParameterData_->shadowBias = 0.0015f;
-		shadowParameterData_->normalBias = 0.01f;
+		shadowParameterData_->shadowBias = 0.00045f;
+		shadowParameterData_->normalBias = 0.025f;
 	}
 
 	/// -------------------------------------------------------------
@@ -185,7 +213,7 @@ namespace Ken4lowEngine
 	{
 		TextureManager::GetInstance()->LoadTexture(texturePath);
 		auto h = TextureManager::GetInstance()->GetSrvHandleGPU(texturePath);
-		
+
 		auto& materialSRVs = model_->GetMaterialSRVs();
 		for (auto& srv : materialSRVs) {
 			srv = h;

@@ -5,7 +5,7 @@
 
 static const float kMinLightLength = 1e-4f;
 static const float kMinRange = 1e-3f;
-static const float3 kAmbientColor = float3(0.08f, 0.08f, 0.08f);
+static const float3 kAmbientColor = float3(0.10f, 0.10f, 0.10f);
 
 static const uint LIGHT_TYPE_NONE = 0;
 static const uint LIGHT_TYPE_DIRECTIONAL = 1;
@@ -36,7 +36,11 @@ float3 ComputeSpecular(float3 normal, float3 lightDir, float3 viewDir, float shi
 {
     float3 halfVector = normalize(lightDir + viewDir);
     float NdotH = saturate(dot(normal, halfVector));
-    float specular = pow(NdotH, max(shininess, 1.0f));
+
+    // ちょっとだけ扱いやすくする
+    float specPower = max(shininess, 4.0f);
+    float specular = pow(NdotH, specPower);
+
     return specular.xxx;
 }
 
@@ -56,7 +60,7 @@ LightingTerms EvaluateDirectionalLight(
     ShadowParameter shadowParam,
     float shininess,
     Texture2D<float> shadowMap,
-    SamplerState shadowSampler)
+    SamplerComparisonState shadowSampler)
 {
     LightingTerms terms = MakeEmptyLightingTerms();
 
@@ -138,7 +142,7 @@ float3 AccumulateLighting(
     ShadowParameter shadowParam,
     float shininess,
     Texture2D<float> shadowMap,
-    SamplerState shadowSampler)
+    SamplerComparisonState shadowSampler)
 {
     float3 diffuseSum = 0.0.xxx;
     float3 specularSum = 0.0.xxx;

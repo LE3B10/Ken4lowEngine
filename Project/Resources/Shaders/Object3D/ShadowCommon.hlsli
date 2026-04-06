@@ -2,7 +2,9 @@
 #define SHADOW_COMMON_HLSLI
 
 static const float kEpsilon = 1e-5f;
-static const float kDefaultShadowStrength = 0.45f;
+static const float kDefaultShadowStrength = 0.60f; // 真っ黒にしない
+static const float kShadowMinVisibility = 0.60f; // 影の最低明るさ
+static const int kPCFRadius = 1; // 3x3 PCF
 
 struct ShadowParameter
 {
@@ -12,16 +14,17 @@ struct ShadowParameter
     float2 padding;
 };
 
-float CalculateShadow(
+float CalculateShadowPCF(
     float3 worldPosition,
     float3 normal,
     float3 lightDir,
     ShadowParameter shadowParam,
     Texture2D<float> shadowMap,
-    SamplerState shadowSampler)
+    SamplerComparisonState shadowSampler)
 {
     float NoL = saturate(dot(normal, lightDir));
 
+    // 法線バイアス
     float offsetAmount = shadowParam.normalBias * (1.0f - NoL);
     float3 biasedWorldPosition = worldPosition + normal * offsetAmount;
 
@@ -45,10 +48,50 @@ float CalculateShadow(
         return 1.0f;
     }
 
-    float currentDepth = proj.z - shadowParam.shadowBias;
-    float shadowDepth = shadowMap.Sample(shadowSampler, uv).r;
+    float compareDepth = proj.z - shadowParam.shadowBias;
 
-    return (currentDepth <= shadowDepth) ? 1.0f : kDefaultShadowStrength;
+    uint shadowWidth, shadowHeight;
+    shadowMap.GetDimensions(shadowWidth, shadowHeight);
+
+    float2 texelSize = 1.0f / float2((float) shadowWidth, (float) shadowHeight);
+
+    float visibility = 0.0f;
+    float sampleCount = 0.0f;
+
+    [unroll]
+    for (int y = -kPCFRadius; y <= kPCFRadius; ++y)
+    {
+        [unroll]
+        for (int x = -kPCFRadius; x <= kPCFRadius; ++x)
+        {
+            float2 offset = float2((float) x, (float) y) * texelSize;
+            visibility += shadowMap.SampleCmpLevelZero(shadowSampler, uv + offset, compareDepth);
+            sampleCount += 1.0f;
+        }
+    }
+
+    visibility /= sampleCount;
+
+    // 真っ暗にせず、最低限の明るさを残す
+    return lerp(kShadowMinVisibility, 1.0f, visibility);
+}
+
+// 既存名を残したいならこれでラップ
+float CalculateShadow(
+    float3 worldPosition,
+    float3 normal,
+    float3 lightDir,
+    ShadowParameter shadowParam,
+    Texture2D<float> shadowMap,
+    SamplerComparisonState shadowSampler)
+{
+    return CalculateShadowPCF(
+        worldPosition,
+        normal,
+        lightDir,
+        shadowParam,
+        shadowMap,
+        shadowSampler);
 }
 
 #endif

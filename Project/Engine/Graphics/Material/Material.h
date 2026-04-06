@@ -23,7 +23,8 @@ public: /// ---------- 構造体 ---------- ///
 		float padding[3];		// パディング : bytes 12
 		Matrix4x4 uvTransform;  // UV変換行列 : bytes 64
 		float reflection;		// 反射率 : bytes 4
-		// 合計 : bytes 100
+		float roughness;		// 粗さ : bytes 4
+		float padding2[2];		// パディング : bytes 8
 	};
 
 public: /// ---------- メンバ変数 ---------- ///

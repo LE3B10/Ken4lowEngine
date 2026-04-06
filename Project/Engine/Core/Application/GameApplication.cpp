@@ -134,11 +134,11 @@ namespace Ken4lowEngine
 		//--------------------------------------------
 		PostEffectManager::GetInstance()->BeginDraw(); // RTV/DSVの設定・Clear
 
-		// --- デバッグ描画（3D用） ---
-		Wireframe::GetInstance()->Draw();
-
 		// --- 2. 3Dオブジェクトの描画 ---
 		SceneManager::GetInstance()->Draw3DObjects();
+
+		// --- デバッグ描画（3D用） ---
+		Wireframe::GetInstance()->Draw();
 
 		// --- Gpuパーティクル ---
 		GpuParticleManager::GetInstance()->Draw();
