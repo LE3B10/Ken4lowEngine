@@ -25,6 +25,10 @@ namespace
 	bool IsPlayerSpawnType(const std::string& type) { return type == "PlayerSpawnPoint"; }
 	bool IsEnemySpawnType(const std::string& type)  { return type == "EnemySpawnPoint"; }
 	bool IsBossSpawnType(const std::string& type)   { return type == "BossSpawnPoint"; }
+
+	bool IsDevicePointType(const std::string& type) { return type == "DevicePoint"; }
+	bool IsDefenseTargetPointType(const std::string& type) { return type == "DefenseTargetPoint"; }
+	bool IsGoalPointType(const std::string& type) { return type == "GoalPoint"; }
 }
 
 void GamePlayStageContext::InitializeFromRepository()
@@ -58,6 +62,11 @@ GamePlayStageContext::StageAssetPaths GamePlayStageContext::GetCurrentStageAsset
 	return GetStageAssetPaths(currentStageIndex_);
 }
 
+GamePlayStageContext::StageRule GamePlayStageContext::GetCurrentStageRule() const
+{
+	return GetStageRule(currentStageIndex_);
+}
+
 GamePlayStageContext::StageAssetPaths GamePlayStageContext::GetStageAssetPaths(int stageIndex) const
 {
 	switch (stageIndex)
@@ -72,8 +81,78 @@ GamePlayStageContext::StageAssetPaths GamePlayStageContext::GetStageAssetPaths(i
 	}
 }
 
+GamePlayStageContext::StageRule GamePlayStageContext::GetStageRule(int stageIndex) const
+{
+	switch (stageIndex)
+	{
+	case 0:
+		return {
+			StageObjectiveType::ClearAllWaves,
+			true,   // useWaveSystem
+			false,  // hasBoss
+			0,      // requiredDeviceCount
+			0.0f,   // defendTimeSec
+			0.0f    // timeLimitSec
+		};
+
+	case 1:
+		return {
+			StageObjectiveType::ActivateDevices,
+			false,
+			false,
+			3,
+			0.0f,
+			0.0f
+		};
+
+	case 2:
+		return {
+			StageObjectiveType::DefendTarget,
+			true,
+			false,
+			0,
+			90.0f,
+			0.0f
+		};
+
+	case 3:
+		return {
+			StageObjectiveType::ReachGoal,
+			false,
+			false,
+			0,
+			0.0f,
+			180.0f
+		};
+
+	case 4:
+		return {
+			StageObjectiveType::DefeatBoss,
+			false,
+			true,
+			0,
+			0.0f,
+			0.0f
+		};
+
+	default:
+		return {
+			StageObjectiveType::ClearAllWaves,
+			true,
+			false,
+			0,
+			0.0f,
+			0.0f
+		};
+	}
+}
+
 void GamePlayStageContext::LoadSpawnPointsFromLevel(const std::string& jsonPath)
 {
+	devicePoints_.clear();
+	defenseTargetPoints_.clear();
+	goalPoints_.clear();
+
 	enemySpawnInfos_.clear();
 	introCameraPoints_.clear();
 	introLookAtPoints_.clear();
@@ -159,6 +238,27 @@ void GamePlayStageContext::LoadSpawnPointsFromLevel(const std::string& jsonPath)
 			info.name = object.name;
 			info.position = object.position;
 			introLookAtPoints_.push_back(info);
+		}
+		else if (IsDevicePointType(object.type))
+		{
+			DevicePointInfo info{};
+			info.name = object.name;
+			info.position = object.position;
+			devicePoints_.push_back(info);
+		}
+		else if (IsDefenseTargetPointType(object.type))
+		{
+			DefenseTargetPointInfo info{};
+			info.name = object.name;
+			info.position = object.position;
+			defenseTargetPoints_.push_back(info);
+		}
+		else if (IsGoalPointType(object.type))
+		{
+			GoalPointInfo info{};
+			info.name = object.name;
+			info.position = object.position;
+			goalPoints_.push_back(info);
 		}
 	}
 

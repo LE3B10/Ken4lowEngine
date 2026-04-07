@@ -41,6 +41,37 @@ namespace Ken4lowEngine
 		std::string aimMode = "Target";    // 注視点のモード
 	};
 
+	struct DeviceObjectiveProps
+	{
+		std::string objectiveId;
+		std::string uiName;
+		float activateTime = 0.0f;
+	};
+
+	struct DefenseTargetProps
+	{
+		std::string objectiveId;
+		std::string uiName;
+		int maxHp = 100;
+		int startHp = 100;
+		float defenseTime = 60.0f;
+	};
+
+	struct EscapePointProps
+	{
+		std::string objectiveId;
+		std::string uiName;
+		float activateTime = 0.0f;
+	};
+
+	struct BossPhaseTriggerProps
+	{
+		int phase = 1;
+		std::string triggerType = "BossHPBelow";
+		float threshold = 1.0f;
+		std::string eventId;
+	};
+
 	/// -------------------------------------------------------------
 	///				　		オブジェクトデータ構造体
 	/// -------------------------------------------------------------
@@ -62,6 +93,19 @@ namespace Ken4lowEngine
 		// IntroCamera用
 		IntroCameraProps introCameraProps;      // イントロカメラプロパティ
 		bool hasIntroCameraProps = false;       // イントロカメラプロパティが有効かどうか
+
+		// Objective系
+		DeviceObjectiveProps deviceObjectiveProps;
+		bool hasDeviceObjectiveProps = false;
+
+		DefenseTargetProps defenseTargetProps;
+		bool hasDefenseTargetProps = false;
+
+		EscapePointProps escapePointProps;
+		bool hasEscapePointProps = false;
+
+		BossPhaseTriggerProps bossPhaseTriggerProps;
+		bool hasBossPhaseTriggerProps = false;
 	};
 
 	/// -------------------------------------------------------------

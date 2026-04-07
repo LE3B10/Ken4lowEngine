@@ -11,16 +11,16 @@ namespace Ken4lowEngine
 	{
 		Clear();
 
-		std::unique_ptr<LevelData> loaded = LevelLoader::LoadLevel(levelJsonPath);
-		if (!loaded)
+		levelData_ = LevelLoader::LoadLevel(levelJsonPath);
+		if (!levelData_)
 		{
 			return;
 		}
 
-		stageModel_ = StageAssetLoader::BuildStageModel(*loaded, defaultModelName, offset_);
+		stageModel_ = StageAssetLoader::BuildStageModel(*levelData_, defaultModelName, offset_);
 
 		StageCollisionBuildResult collisionResult =
-			StageCollisionBuilder::Build(*loaded, offset_);
+			StageCollisionBuilder::Build(*levelData_, offset_);
 
 		worldAABBs_ = std::move(collisionResult.worldAABBs);
 		worldColliders_ = std::move(collisionResult.worldColliders);
@@ -28,6 +28,7 @@ namespace Ken4lowEngine
 
 	void Stage::Clear()
 	{
+		levelData_.reset();
 		stageModel_.reset();
 		worldAABBs_.clear();
 		worldColliders_.clear();

@@ -16,6 +16,16 @@ using namespace Ken4lowEngine;
 
 void GamePlayWorld::Initialize(GamePlayStageContext& stageContext)
 {
+	const auto stageAssets = stageContext.GetCurrentStageAssets();
+	stageRule_ = stageContext.GetCurrentStageRule();
+
+	activatedDeviceCount_ = 0;
+	defendElapsedSec_ = 0.0f;
+	stageElapsedSec_ = 0.0f;
+	reachedGoal_ = false;
+	bossDefeated_ = false;
+	defenseTargetDestroyed_ = false;
+
 	K4E::Vector3 dummy{};
 	if (!TryGetDirectionalLightFromManager(dummy))
 	{
@@ -44,8 +54,6 @@ void GamePlayWorld::Initialize(GamePlayStageContext& stageContext)
 	{
 		player->SetHUDManager(hudManager_.get());
 	}
-
-	const auto stageAssets = stageContext.GetCurrentStageAssets();
 
 	stage_ = std::make_unique<K4E::Stage>();
 	stage_->Initialize(stageAssets.jsonPath, stageAssets.modelPath);
@@ -90,7 +98,15 @@ void GamePlayWorld::Initialize(GamePlayStageContext& stageContext)
 	CollisionUpdate();
 
 	waveManager_ = std::make_unique<WaveManager>();
-	stageContext.SetupWaves(waveManager_.get());
+
+	if (stageRule_.useWaveSystem)
+	{
+		stageContext.SetupWaves(waveManager_.get());
+	}
+	else
+	{
+		waveManager_->SetWaves({});
+	}
 
 	prevWaveNumber_ = 0;
 	prevWaveInProgress_ = false;
@@ -217,6 +233,8 @@ void GamePlayWorld::Update(float deltaTime)
 		prevWaveInProgress_ = isWaveInProgress;
 		prevAllWavesCleared_ = isAllWavesCleared;
 	}
+
+	UpdateStageObjective(deltaTime);
 }
 
 void GamePlayWorld::UpdateIntroVisuals()
@@ -333,6 +351,44 @@ bool GamePlayWorld::IsAllWavesCleared() const
 	return waveManager_ && waveManager_->IsAllWavesCleared();
 }
 
+bool GamePlayWorld::IsStageObjectiveCleared() const
+{
+	switch (stageRule_.objectiveType)
+	{
+	case GamePlayStageContext::StageObjectiveType::ClearAllWaves:
+		return IsAllWavesCleared();
+
+	case GamePlayStageContext::StageObjectiveType::ActivateDevices:
+		return activatedDeviceCount_ >= stageRule_.requiredDeviceCount;
+
+	case GamePlayStageContext::StageObjectiveType::DefendTarget:
+		return !defenseTargetDestroyed_ && defendElapsedSec_ >= stageRule_.defendTimeSec;
+
+	case GamePlayStageContext::StageObjectiveType::ReachGoal:
+		return reachedGoal_;
+
+	case GamePlayStageContext::StageObjectiveType::DefeatBoss:
+		return bossDefeated_;
+	}
+
+	return false;
+}
+
+bool GamePlayWorld::IsStageObjectiveFailed() const
+{
+	switch (stageRule_.objectiveType)
+	{
+	case GamePlayStageContext::StageObjectiveType::DefendTarget:
+		return defenseTargetDestroyed_;
+
+	case GamePlayStageContext::StageObjectiveType::ReachGoal:
+		return (stageRule_.timeLimitSec > 0.0f) && (stageElapsedSec_ >= stageRule_.timeLimitSec) && !reachedGoal_;
+
+	default:
+		return false;
+	}
+}
+
 void GamePlayWorld::SetDebugCameraEnabled(bool enabled)
 {
 	if (skyBox_)
@@ -344,6 +400,11 @@ void GamePlayWorld::SetDebugCameraEnabled(bool enabled)
 	{
 		player->SetDebugCamera(enabled);
 	}
+}
+
+void GamePlayWorld::SetDefenseTargetDestroyed(bool destroyed)
+{
+	defenseTargetDestroyed_ = destroyed;
 }
 
 bool GamePlayWorld::CheckCrosshairTargetingEnemy() const
@@ -369,6 +430,25 @@ bool GamePlayWorld::CheckCrosshairTargetingEnemy() const
 		seg,
 		nullptr
 	);
+}
+
+void GamePlayWorld::AddActivatedDeviceCount(int amount)
+{
+	activatedDeviceCount_ += amount;
+	if (activatedDeviceCount_ < 0)
+	{
+		activatedDeviceCount_ = 0;
+	}
+}
+
+void GamePlayWorld::SetReachedGoal(bool reached)
+{
+	reachedGoal_ = reached;
+}
+
+void GamePlayWorld::SetBossDefeated(bool defeated)
+{
+	bossDefeated_ = defeated;
 }
 
 void GamePlayWorld::CollisionUpdate()
@@ -441,4 +521,35 @@ bool GamePlayWorld::IsSightBlocked(const K4E::Segment& seg) const
 {
 	(void)seg; // 未使用
 	return false;
+}
+
+void GamePlayWorld::UpdateStageObjective(float deltaTime)
+{
+	stageElapsedSec_ += deltaTime;
+
+	switch (stageRule_.objectiveType)
+	{
+	case GamePlayStageContext::StageObjectiveType::DefendTarget:
+		if (!defenseTargetDestroyed_)
+		{
+			defendElapsedSec_ += deltaTime;
+		}
+		break;
+
+	case GamePlayStageContext::StageObjectiveType::ReachGoal:
+		// 到達判定は外部から SetReachedGoal で入れる想定
+		break;
+
+	case GamePlayStageContext::StageObjectiveType::ActivateDevices:
+		// 装置起動数は外部から AddActivatedDeviceCount で入れる想定
+		break;
+
+	case GamePlayStageContext::StageObjectiveType::DefeatBoss:
+		// ボス撃破は外部から SetBossDefeated で入れる想定
+		break;
+
+	case GamePlayStageContext::StageObjectiveType::ClearAllWaves:
+	default:
+		break;
+	}
 }

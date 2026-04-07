@@ -11,7 +11,6 @@
 #include <memory>
 
 /// ---------- 前方宣言 ---------- ///
-namespace Ken4lowEngine { class DirectXCommon; }
 namespace Ken4lowEngine { class Input; }
 
 namespace K4E = ::Ken4lowEngine;
@@ -138,7 +137,6 @@ private: /// ---------- 補助系 ---------- ///
 private: /// ---------- メンバ変数 ---------- ///
 
 	// エンジン側シングルトン参照
-	K4E::DirectXCommon* dxCommon_ = nullptr;
 	K4E::Input* input_ = nullptr;
 
 	// ゲームプレイ構成要素

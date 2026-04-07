@@ -1,7 +1,5 @@
 #define NOMINMAX
 #include "GamePlayScene.h"
-
-#include <DirectXCommon.h>
 #include <Input.h>
 #include <SpriteManager.h>
 #include <SceneManager.h>
@@ -48,8 +46,6 @@ void GamePlayScene::InitializeSystems()
 #ifdef _DEBUG
 	K4E::DebugCamera::GetInstance()->Initialize();
 #endif
-
-	dxCommon_ = K4E::DirectXCommon::GetInstance();
 	input_ = K4E::Input::GetInstance();
 
 	if (input_)
@@ -121,9 +117,6 @@ void GamePlayScene::SetupNewGame(bool skipIntro)
 /// -------------------------------------------------------------
 void GamePlayScene::Update()
 {
-	// 依存システムが揃っていないなら更新できないので早期リターン
-	if (!dxCommon_)	return;
-
 	// フレーム開始時に FPSCounter を更新して deltaTime を取得
 	const float deltaTime = K4E::GameTimer::GetInstance()->GetDeltaTime();
 
@@ -379,8 +372,15 @@ void GamePlayScene::CheckGameEnd()
 		}
 	}
 
-	// 全Waveクリア
-	if (world_->IsAllWavesCleared())
+	// ステージ固有の失敗条件
+	if (world_->IsStageObjectiveFailed())
+	{
+		flow_->EnterGameOver(input_);
+		return;
+	}
+
+	// ステージ固有のクリア条件
+	if (world_->IsStageObjectiveCleared())
 	{
 		flow_->EnterGameClear(input_, nullptr);
 		return;
@@ -471,7 +471,6 @@ void GamePlayScene::Finalize()
 	}
 
 	input_ = nullptr;
-	dxCommon_ = nullptr;
 }
 
 /// -------------------------------------------------------------
@@ -642,7 +641,6 @@ void GamePlayScene::UpdateUnload()
 		}
 
 		input_ = nullptr;
-		dxCommon_ = nullptr;
 
 		isUnloadReady_ = true;
 		++unloadStep_;

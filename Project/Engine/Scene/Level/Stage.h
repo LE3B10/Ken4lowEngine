@@ -2,6 +2,7 @@
 #include "AABB.h"
 #include "Collider.h"
 #include "Object3D.h"
+#include "LevelData.h"
 
 #include <memory>
 #include <string>
@@ -65,8 +66,11 @@ namespace Ken4lowEngine
 		/// </summary>
 		void RegisterColliders(CollisionManager* collisionManager);
 
+		const LevelData* GetLevelData() const { return levelData_ ? levelData_.get() : nullptr; }
+
 	private: /// ---------- メンバ変数 ---------- ///
 
+		std::unique_ptr<LevelData> levelData_;
 		std::unique_ptr<Object3D> stageModel_;                 // ステージ描画モデル
 		std::vector<AABB> worldAABBs_;                         // ワールド衝突AABB
 		std::vector<std::unique_ptr<Collider>> worldColliders_; // ワールド衝突Collider

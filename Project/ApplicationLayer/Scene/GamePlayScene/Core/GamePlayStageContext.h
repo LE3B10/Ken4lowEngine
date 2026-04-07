@@ -8,16 +8,39 @@
 namespace K4E = ::Ken4lowEngine;
 
 /// -------------------------------------------------------------
-///				　	ゲームプレイのフロー制御
+///                      ゲームプレイのフロー制御
 /// -------------------------------------------------------------
 class GamePlayStageContext
 {
+public: /// ---------- 列挙型 ---------- ///
+
+	enum class StageObjectiveType
+	{
+		ClearAllWaves,   // 全ウェーブ撃破
+		ActivateDevices, // 装置起動
+		DefendTarget,    // 防衛
+		ReachGoal,       // ゴール到達
+		DefeatBoss       // ボス撃破
+	};
+
 public: /// ---------- 構造体 ---------- ///
 
 	struct StageAssetPaths
 	{
 		std::string jsonPath;
 		std::string modelPath;
+	};
+
+	struct StageRule
+	{
+		StageObjectiveType objectiveType = StageObjectiveType::ClearAllWaves;
+
+		bool useWaveSystem = true;
+		bool hasBoss = false;
+
+		int requiredDeviceCount = 0;
+		float defendTimeSec = 0.0f;
+		float timeLimitSec = 0.0f;
 	};
 
 	struct EnemySpawnInfo
@@ -49,9 +72,29 @@ public: /// ---------- 構造体 ---------- ///
 		K4E::Vector3 position{ 0.0f, 0.0f, 0.0f };
 	};
 
-public:
+	struct DevicePointInfo
+	{
+		std::string name;
+		K4E::Vector3 position{ 0.0f, 0.0f, 0.0f };
+	};
+
+	struct DefenseTargetPointInfo
+	{
+		std::string name;
+		K4E::Vector3 position{ 0.0f, 0.0f, 0.0f };
+	};
+
+	struct GoalPointInfo
+	{
+		std::string name;
+		K4E::Vector3 position{ 0.0f, 0.0f, 0.0f };
+	};
+
+public: /// ---------- メンバ関数 ---------- ///
+
 	void InitializeFromRepository();
 	StageAssetPaths GetCurrentStageAssets() const;
+	StageRule GetCurrentStageRule() const;
 
 	void LoadSpawnPointsFromLevel(const std::string& jsonPath);
 	void SetupWaves(WaveManager* waveManager) const;
@@ -69,10 +112,17 @@ public:
 	const std::vector<IntroCameraPointInfo>& GetIntroCameraPoints() const { return introCameraPoints_; }
 	const std::vector<IntroLookAtPointInfo>& GetIntroLookAtPoints() const { return introLookAtPoints_; }
 
-private:
-	StageAssetPaths GetStageAssetPaths(int stageIndex) const;
+	const std::vector<DevicePointInfo>& GetDevicePoints() const { return devicePoints_; }
+	const std::vector<DefenseTargetPointInfo>& GetDefenseTargetPoints() const { return defenseTargetPoints_; }
+	const std::vector<GoalPointInfo>& GetGoalPoints() const { return goalPoints_; }
 
-private:
+private: /// ---------- メンバ関数 ---------- ///
+
+	StageAssetPaths GetStageAssetPaths(int stageIndex) const;
+	StageRule GetStageRule(int stageIndex) const;
+
+private: /// ---------- メンバ変数 ---------- ///
+
 	int currentStageIndex_ = 0;
 
 	std::vector<EnemySpawnInfo> enemySpawnInfos_;
@@ -84,5 +134,8 @@ private:
 
 	std::vector<IntroCameraPointInfo> introCameraPoints_;
 	std::vector<IntroLookAtPointInfo> introLookAtPoints_;
-};
 
+	std::vector<DevicePointInfo> devicePoints_;
+	std::vector<DefenseTargetPointInfo> defenseTargetPoints_;
+	std::vector<GoalPointInfo> goalPoints_;
+};

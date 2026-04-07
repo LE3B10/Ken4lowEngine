@@ -72,6 +72,20 @@ namespace Ken4lowEngine
 		{
 			return type == "IntroCameraPoint" || type == "IntroLookAtPoint";
 		}
+
+		bool IsStaticMeshType(const std::string& type)
+		{
+			return type == "MESH" || type == "StaticMesh";
+		}
+
+		bool IsObjectiveType(const std::string& type)
+		{
+			return
+				type == "DeviceObjective" ||
+				type == "DefenseTarget" ||
+				type == "EscapePoint" ||
+				type == "BossPhaseTrigger";
+		}
 	}
 
 	std::unique_ptr<LevelData> LevelLoader::LoadLevel(const std::string& filePath)
@@ -165,7 +179,12 @@ namespace Ken4lowEngine
 		ObjectData* objectData = nullptr;
 		const bool hasCollider = object.contains("collider") && object["collider"].is_object();
 
-		const bool shouldStore = (type == "MESH") || hasCollider || IsSpawnPointType(type) || IsIntroCamera(type);
+		const bool shouldStore =
+			IsStaticMeshType(type) ||
+			hasCollider ||
+			IsSpawnPointType(type) ||
+			IsIntroCamera(type) ||
+			IsObjectiveType(type);
 
 		if (shouldStore)
 		{
@@ -178,7 +197,11 @@ namespace Ken4lowEngine
 			{
 				objectData->name = object["name"].get<std::string>();
 			}
-			if (object.contains("model") && object["model"].is_string())
+			if (object.contains("file_name") && object["file_name"].is_string())
+			{
+				objectData->modelName = object["file_name"].get<std::string>();
+			}
+			else if (object.contains("model") && object["model"].is_string())
 			{
 				objectData->modelName = object["model"].get<std::string>();
 			}
@@ -208,6 +231,92 @@ namespace Ken4lowEngine
 				{
 					objectData->spawnProps.archetype = props["archetype"].get<std::string>();
 					objectData->spawnProps.hasArchetype = true;
+				}
+			}
+
+			if (object.contains("props") && object["props"].is_object())
+			{
+				const json& props = object["props"];
+
+				if (type == "DeviceObjective")
+				{
+					objectData->hasDeviceObjectiveProps = true;
+
+					if (props.contains("objective_id") && props["objective_id"].is_string())
+					{
+						objectData->deviceObjectiveProps.objectiveId = props["objective_id"].get<std::string>();
+					}
+					if (props.contains("ui_name") && props["ui_name"].is_string())
+					{
+						objectData->deviceObjectiveProps.uiName = props["ui_name"].get<std::string>();
+					}
+					if (props.contains("activate_time") && props["activate_time"].is_number())
+					{
+						objectData->deviceObjectiveProps.activateTime = props["activate_time"].get<float>();
+					}
+				}
+				else if (type == "DefenseTarget")
+				{
+					objectData->hasDefenseTargetProps = true;
+
+					if (props.contains("objective_id") && props["objective_id"].is_string())
+					{
+						objectData->defenseTargetProps.objectiveId = props["objective_id"].get<std::string>();
+					}
+					if (props.contains("ui_name") && props["ui_name"].is_string())
+					{
+						objectData->defenseTargetProps.uiName = props["ui_name"].get<std::string>();
+					}
+					if (props.contains("max_hp") && props["max_hp"].is_number_integer())
+					{
+						objectData->defenseTargetProps.maxHp = props["max_hp"].get<int>();
+					}
+					if (props.contains("start_hp") && props["start_hp"].is_number_integer())
+					{
+						objectData->defenseTargetProps.startHp = props["start_hp"].get<int>();
+					}
+					if (props.contains("defense_time") && props["defense_time"].is_number())
+					{
+						objectData->defenseTargetProps.defenseTime = props["defense_time"].get<float>();
+					}
+				}
+				else if (type == "EscapePoint")
+				{
+					objectData->hasEscapePointProps = true;
+
+					if (props.contains("objective_id") && props["objective_id"].is_string())
+					{
+						objectData->escapePointProps.objectiveId = props["objective_id"].get<std::string>();
+					}
+					if (props.contains("ui_name") && props["ui_name"].is_string())
+					{
+						objectData->escapePointProps.uiName = props["ui_name"].get<std::string>();
+					}
+					if (props.contains("activate_time") && props["activate_time"].is_number())
+					{
+						objectData->escapePointProps.activateTime = props["activate_time"].get<float>();
+					}
+				}
+				else if (type == "BossPhaseTrigger")
+				{
+					objectData->hasBossPhaseTriggerProps = true;
+
+					if (props.contains("phase") && props["phase"].is_number_integer())
+					{
+						objectData->bossPhaseTriggerProps.phase = props["phase"].get<int>();
+					}
+					if (props.contains("trigger_type") && props["trigger_type"].is_string())
+					{
+						objectData->bossPhaseTriggerProps.triggerType = props["trigger_type"].get<std::string>();
+					}
+					if (props.contains("threshold") && props["threshold"].is_number())
+					{
+						objectData->bossPhaseTriggerProps.threshold = props["threshold"].get<float>();
+					}
+					if (props.contains("event_id") && props["event_id"].is_string())
+					{
+						objectData->bossPhaseTriggerProps.eventId = props["event_id"].get<std::string>();
+					}
 				}
 			}
 

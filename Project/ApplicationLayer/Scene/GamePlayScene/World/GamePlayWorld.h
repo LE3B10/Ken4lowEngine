@@ -5,6 +5,7 @@
 #include "HUDManager.h"
 #include "WaveManager.h"
 #include "Stage.h"
+#include "GamePlayStageContext.h"
 #include <SkyBox.h>
 #include "EnemyHPBarManager.h"
 
@@ -12,12 +13,10 @@
 
 namespace K4E = ::Ken4lowEngine;
 
-class GamePlayStageContext;
-
-
 class GamePlayWorld
 {
-public:
+public: /// ---------- メンバ関数 ---------- ///
+
 	void Initialize(GamePlayStageContext& stageContext);
 	void Finalize();
 
@@ -35,7 +34,12 @@ public:
 	bool IsPlayerDead();
 	bool IsAllWavesCleared() const;
 
+	bool IsStageObjectiveCleared() const;
+	bool IsStageObjectiveFailed() const;
+
 	void SetDebugCameraEnabled(bool enabled);
+
+	void SetDefenseTargetDestroyed(bool destroyed);
 
 	CharacterWorld& GetCharacters() { return characters_; }
 	const CharacterWorld& GetCharacters() const { return characters_; }
@@ -52,14 +56,22 @@ public:
 
 	bool CheckCrosshairTargetingEnemy() const;
 
-private:
+	// 仮の進捗更新API
+	void AddActivatedDeviceCount(int amount = 1);
+	void SetReachedGoal(bool reached);
+	void SetBossDefeated(bool defeated);
+
+private: /// ---------- メンバ関数 ---------- ///
+
 	void CollisionUpdate();
 	void UpdateShadowLightViewProjection();
 	bool TryGetDirectionalLightFromManager(K4E::Vector3& outDirection) const;
-	
 	bool IsSightBlocked(const K4E::Segment& seg) const;
 
-private:
+	void UpdateStageObjective(float deltaTime);
+
+private: /// ---------- メンバ変数 ---------- ///
+
 	std::unique_ptr<CollisionManager> collisionManager_;
 	std::unique_ptr<BulletManager> bulletManager_;
 	CharacterWorld characters_;
@@ -83,4 +95,14 @@ private:
 	float shadowOrthoHalfHeight_ = 25.0f;
 	float shadowNearZ_ = 0.1f;
 	float shadowFarZ_ = 120.0f;
+
+	GamePlayStageContext::StageRule stageRule_{};
+
+	int activatedDeviceCount_ = 0;
+	float defendElapsedSec_ = 0.0f;
+	float stageElapsedSec_ = 0.0f;
+
+	bool reachedGoal_ = false;
+	bool bossDefeated_ = false;
+	bool defenseTargetDestroyed_ = false;
 };

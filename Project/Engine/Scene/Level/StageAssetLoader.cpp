@@ -4,12 +4,19 @@ namespace Ken4lowEngine
 {
 	namespace
 	{
+		bool IsStageMeshType(const std::string& type)
+		{
+			return type == "StaticMesh" || type == "MESH";
+		}
+
 		std::string FindStageModelName(const LevelData& levelData, const std::string& defaultModelName)
 		{
 			for (const ObjectData& data : levelData.objects)
 			{
-				// MESH を優先して採用したいなら下を有効化
-				// if (data.type != "MESH") { continue; }
+				if (!IsStageMeshType(data.type))
+				{
+					continue;
+				}
 
 				if (!data.modelName.empty())
 				{
