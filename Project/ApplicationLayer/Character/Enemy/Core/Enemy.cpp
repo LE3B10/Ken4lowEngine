@@ -486,17 +486,13 @@ void Enemy::FaceTo(const K4E::Vector3& lookAt)
 {
 	auto d = lookAt - GetCenterPosition();
 
-	// 視覚用：目の高さ基準で見上げ/見下ろしを作るなら y も使う
 	const float lenXZ = std::sqrt(d.x * d.x + d.z * d.z);
 	if (lenXZ <= 1e-6f) return;
 
 	yawRad_ = std::atan2(d.x, d.z);
-
-	// pitch：上が+。敵が水平なら pitchRad_ は 0 のままでも良い
 	pitchRad_ = std::atan2(d.y, lenXZ);
 
-	// 見た目の回転は yaw だけ（必要なら pitch も渡してOK）
-	SetOrientation({ 0.0f, yawRad_, 0.0f });
+	SetOrientation({ 0.0f, -yawRad_, 0.0f });
 }
 
 void Enemy::FireAt(const K4E::Vector3& targetPos)

@@ -64,6 +64,8 @@ void EnemyBase::InitializeHumanoidVisual()
 	body_.transform.translate_ = { 0.0f, 0.0f, 0.0f };
 	body_.transform.rotate_ = orientation_;
 
+	body_.object->SetTextureForAll("Characters/enemy.dds");
+
 	std::vector<std::pair<std::string, Vector3>> partData =
 	{
 		{"Characters/head.gltf",      { 0.0f,  0.75f, 0.0f }},
@@ -78,6 +80,7 @@ void EnemyBase::InitializeHumanoidVisual()
 		BodyPart part{};
 		part.object = std::make_unique<Object3D>();
 		part.object->Initialize(modelPath);
+		part.object->SetTextureForAll("Characters/enemy.dds");
 		part.transform.translate_ = localPos;
 		part.transform.parent_ = &body_.transform;
 		parts_.push_back(std::move(part));

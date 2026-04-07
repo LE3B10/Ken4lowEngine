@@ -173,10 +173,12 @@ namespace Ken4lowEngine
 
 		// サブメッシュ事にテクスチャを差し替えて描画
 		auto& meshes = model_->GetMeshes();
-		const auto& materialSRVs = model_->GetMaterialSRVs();
 		for (size_t i = 0; i < meshes.size(); i++)
 		{
-			TextureManager::GetInstance()->SetGraphicsRootDescriptorTable(commandList, 2, materialSRVs[i]); // t2
+			if (i < materialSRVs_.size())
+			{
+				TextureManager::GetInstance()->SetGraphicsRootDescriptorTable(commandList, 2, materialSRVs_[i]);
+			}
 			meshes[i].Draw();
 		}
 	}
@@ -204,6 +206,12 @@ namespace Ken4lowEngine
 	void Object3D::SetModel(const std::string& filePath)
 	{
 		model_ = ModelManager::GetInstance()->LoadModel(filePath);
+
+		materialSRVs_.clear();
+		if (model_)
+		{
+			materialSRVs_ = model_->GetMaterialSRVs(); // 共有モデルから初期値をコピー
+		}
 	}
 
 	/// -------------------------------------------------------------
@@ -214,8 +222,8 @@ namespace Ken4lowEngine
 		TextureManager::GetInstance()->LoadTexture(texturePath);
 		auto h = TextureManager::GetInstance()->GetSrvHandleGPU(texturePath);
 
-		auto& materialSRVs = model_->GetMaterialSRVs();
-		for (auto& srv : materialSRVs) {
+		for (auto& srv : materialSRVs_)
+		{
 			srv = h;
 		}
 	}
@@ -225,10 +233,10 @@ namespace Ken4lowEngine
 	/// -------------------------------------------------------------
 	void Object3D::SetTextureForSubmesh(size_t index, const std::string& texturePath)
 	{
-		auto& materialSRVs = model_->GetMaterialSRVs();
-		if (index >= materialSRVs.size()) { return; }
+		if (index >= materialSRVs_.size()) return;
+
 		TextureManager::GetInstance()->LoadTexture(texturePath);
-		materialSRVs[index] = TextureManager::GetInstance()->GetSrvHandleGPU(texturePath);
+		materialSRVs_[index] = TextureManager::GetInstance()->GetSrvHandleGPU(texturePath);
 	}
 
 	size_t Object3D::GetSubmeshCount() const

@@ -23,10 +23,10 @@ void DebugCamera::Initialize()
 	worldTransform_.Initialize();
 	worldTransform_.translate_ = { 0.0f,0.0f,-20.0f };
 
-	fovY_ = 0.45f;
+	fovY_ = 1.0f;
 	aspectRatio_ = float(WinApp::GetInstance()->GetClientWidth()) / float(WinApp::GetInstance()->GetClientHeight());
 	nearClip_ = 0.1f;
-	farClip_ = 100.0f;
+	farClip_ = 1000.0f;
 
 	UpdateViewProjection();
 }
