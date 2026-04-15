@@ -11,10 +11,10 @@
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <VCProjectVersion>17.0</VCProjectVersion>
+    <VCProjectVersion>18.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
-    <ProjectGuid>{5e01bf01-f8b1-423a-aa51-ffeba0b4aede}</ProjectGuid>
-    <RootNamespace>TextureConverter</RootNamespace>
+    <ProjectGuid>{1adee1e7-75ab-43ef-be01-c592fe142fdb}</ProjectGuid>
+    <RootNamespace>FontConverter</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
@@ -44,15 +44,12 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <IncludePath>$(IncludePath)</IncludePath>
-    <ExternalIncludePath>$(SolutionDir)Externals\DirectXTex;$(ExternalIncludePath)</ExternalIncludePath>
     <OutDir>$(SolutionDir)..\Generated\Bin\</OutDir>
-    <IntDir>$(SolutionDir)..\Generated\Intermediate\TextureConverter\$(Configuration)\</IntDir>
+    <IntDir>$(SolutionDir)..\Generated\Intermediate\FontConverter\$(Configuration)\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <ExternalIncludePath>$(SolutionDir)Externals\DirectXTex;$(ExternalIncludePath)</ExternalIncludePath>
     <OutDir>$(SolutionDir)..\Generated\Bin\</OutDir>
-    <IntDir>$(SolutionDir)..\Generated\Intermediate\TextureConverter\$(Configuration)\</IntDir>
+    <IntDir>$(SolutionDir)..\Generated\Intermediate\FontConverter\$(Configuration)\</IntDir>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
@@ -61,14 +58,19 @@
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+      <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalDependencies>dwrite.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
+    <PreBuildEvent>
+      <Command>
+      </Command>
+    </PreBuildEvent>
     <PostBuildEvent>
-      <Command>call "$(SolutionDir)Tools\Scripts\RunBuildTextures.bat" "$(SolutionDir)" "$(Configuration)"</Command>
+      <Command>call "$(SolutionDir)Tools\Scripts\RunBuildFonts.bat" "$(SolutionDir)" "$(Configuration)"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -80,27 +82,34 @@
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalDependencies>dwrite.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
+    <PreBuildEvent>
+      <Command>
+      </Command>
+    </PreBuildEvent>
     <PostBuildEvent>
-      <Command>call "$(SolutionDir)Tools\Scripts\RunBuildTextures.bat" "$(SolutionDir)" "$(Configuration)"</Command>
+      <Command>call "$(SolutionDir)Tools\Scripts\RunBuildFonts.bat" "$(SolutionDir)" "$(Configuration)"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="FontConverter.cpp" />
+    <ClCompile Include="FontFileLoader.cpp" />
+    <ClCompile Include="FontFileStream.cpp" />
+    <ClCompile Include="FontRasterizer.cpp" />
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="TextureConverter.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\externals\DirectXTex\DirectXTex_Desktop_2022_Win10.vcxproj">
-      <Project>{371b9fa9-4c90-4ac6-a123-aced756d6c77}</Project>
-    </ProjectReference>
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="TextureConverter.h" />
+    <ClInclude Include="FontConverter.h" />
+    <ClInclude Include="FontConverterTypes.h" />
+    <ClInclude Include="FontFileLoader.h" />
+    <ClInclude Include="FontFileStream.h" />
+    <ClInclude Include="FontRasterizer.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -10,8 +10,8 @@ if "%PROJECT_DIR:~-1%"=="\" set "PROJECT_DIR=%PROJECT_DIR:~0,-1%"
 
 if "%CONFIGURATION%"=="" set "CONFIGURATION=Debug"
 
-echo [RunBuildTextures] PROJECT_DIR=%PROJECT_DIR%
-echo [RunBuildTextures] CONFIGURATION=%CONFIGURATION%
+echo [RunBuildFonts] PROJECT_DIR=%PROJECT_DIR%
+echo [RunBuildFonts] CONFIGURATION=%CONFIGURATION%
 
-powershell -ExecutionPolicy Bypass -NoProfile -File "%~dp0BuildTextures.ps1" -ProjectDir "%PROJECT_DIR%" -Configuration "%CONFIGURATION%"
+powershell -ExecutionPolicy Bypass -NoProfile -File "%~dp0BuildFonts.ps1" -ProjectDir "%PROJECT_DIR%" -Configuration "%CONFIGURATION%"
 exit /b %ERRORLEVEL%

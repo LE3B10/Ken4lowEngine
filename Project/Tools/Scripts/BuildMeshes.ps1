@@ -1,128 +1,159 @@
 param(
-    [Parameter(Mandatory = $true)]
-    [string]$ProjectDir,
-
-    [string]$Config = $(if ($env:Configuration) { $env:Configuration } else { "Debug" }),
-    [string]$Platform = $(if ($env:Platform) { $env:Platform } else { "x64" }),
-
-    [switch]$Pause
+    [string]$ProjectDir = ".",
+    [string]$Configuration = "Debug",
+    [string]$Platform = "x64"
 )
 
-Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
-function Write-Info($message) {
-    Write-Host "[BuildMeshes] $message"
+function Ensure-Directory {
+    param(
+        [string]$Path
+    )
+
+    if (!(Test-Path $Path)) {
+        New-Item -ItemType Directory -Force -Path $Path | Out-Null
+    }
 }
 
-# ------------------------------------------------------------
-# パス解決
-# ------------------------------------------------------------
-$project = (Resolve-Path $ProjectDir).Path
+function Get-RelativePathSafe {
+    param(
+        [string]$BasePath,
+        [string]$TargetPath
+    )
 
-$srcDir = Join-Path $project "Resources\Models\Sources"
-$dstDir = Join-Path $project "Resources\Models\Compiled"
+    $baseFull = [System.IO.Path]::GetFullPath($BasePath)
+    $targetFull = [System.IO.Path]::GetFullPath($TargetPath)
 
-New-Item -ItemType Directory -Force -Path $dstDir | Out-Null
+    $baseUri = New-Object System.Uri(($baseFull.TrimEnd('\') + '\'))
+    $targetUri = New-Object System.Uri($targetFull)
 
-if (-not (Test-Path $srcDir)) {
-    Write-Info "Sources フォルダーが見つかりません: $srcDir"
-    if ($Pause) { pause }
-    exit 0
+    $relativeUri = $baseUri.MakeRelativeUri($targetUri)
+    $relativePath = [System.Uri]::UnescapeDataString($relativeUri.ToString())
+    return $relativePath.Replace('/', '\')
 }
 
-# ------------------------------------------------------------
-# MeshConverter.exe の候補
-# ------------------------------------------------------------
+function Invoke-MeshConverter {
+    param(
+        [string]$ExePath,
+        [string]$InputPath
+    )
+
+    $argList = @(
+        $InputPath
+    )
+
+    Write-Host "[BuildMeshes] EXE  : $ExePath"
+    Write-Host "[BuildMeshes] INPUT: $InputPath"
+    Write-Host "[BuildMeshes] ARGS : $($argList -join ' ')"
+
+    $process = Start-Process `
+        -FilePath $ExePath `
+        -ArgumentList $argList `
+        -NoNewWindow `
+        -Wait `
+        -PassThru
+
+    Write-Host "[BuildMeshes] ExitCode: $($process.ExitCode)"
+    return $process.ExitCode
+}
+
+Write-Host "[BuildMeshes] ProjectDir    : $ProjectDir"
+Write-Host "[BuildMeshes] Configuration : $Configuration"
+Write-Host "[BuildMeshes] Platform      : $Platform"
+
+try {
+    $ProjectDir = (Resolve-Path $ProjectDir).Path
+}
+catch {
+    throw "ProjectDir not found: $ProjectDir"
+}
+
+$rootDir = [System.IO.Path]::GetFullPath((Join-Path $ProjectDir ".."))
+$generatedRoot = Join-Path $rootDir "Generated"
+
 $candidates = @(
-    (Join-Path $project "Tools\MeshConverter\$Platform\$Config\MeshConverter.exe"),
-    (Join-Path $project "Tools\Bin\$Platform\$Config\MeshConverter.exe"),
-    (Join-Path $project "Tools\MeshConverter\MeshConverter.exe"),
-    (Join-Path $project "$Platform\$Config\MeshConverter.exe"),
-    (Join-Path $project "$Platform\$Config\MeshConverter\MeshConverter.exe")
+    (Join-Path $generatedRoot "Bin\MeshConverter.exe"),
+    (Join-Path $generatedRoot "Bin\$Platform\$Configuration\MeshConverter.exe"),
+    (Join-Path $generatedRoot "Bin\$Configuration\MeshConverter.exe"),
+
+    (Join-Path $ProjectDir "Tools\Bin\MeshConverter.exe"),
+    (Join-Path $ProjectDir "Tools\Bin\$Platform\$Configuration\MeshConverter.exe"),
+    (Join-Path $ProjectDir "Tools\Bin\$Configuration\MeshConverter.exe"),
+
+    (Join-Path $ProjectDir "Tools\MeshConverter\MeshConverter.exe"),
+    (Join-Path $ProjectDir "Tools\MeshConverter\$Platform\$Configuration\MeshConverter.exe")
 )
 
-$converter = $candidates | Where-Object { Test-Path $_ } | Select-Object -First 1
-if (-not $converter) {
-    throw "MeshConverter.exe が見つかりません。候補:`n$($candidates -join "`n")"
+$meshConverterExe = $candidates | Where-Object { Test-Path $_ } | Select-Object -First 1
+if (-not $meshConverterExe) {
+    throw "MeshConverter.exe not found. Candidates:`n$($candidates -join "`n")"
 }
 
-Write-Info "Converter: $converter"
-Write-Info "Source   : $srcDir"
-Write-Info "Compiled : $dstDir"
+$modelSourceRoot   = Join-Path $ProjectDir "Resources\Models\Sources"
+$modelCompiledRoot = Join-Path $ProjectDir "Resources\Models\Compiled"
 
-# ------------------------------------------------------------
-# 対象ファイル列挙
-# ------------------------------------------------------------
-$patterns = @("*.gltf", "*.glb", "*.fbx", "*.obj")
-$files = @()
+Write-Host "[BuildMeshes] MeshConverter  : $meshConverterExe"
+Write-Host "[BuildMeshes] ModelSourceRoot: $modelSourceRoot"
+Write-Host "[BuildMeshes] ModelOutputRoot: $modelCompiledRoot"
 
-foreach ($p in $patterns) {
-    $files += Get-ChildItem -Path $srcDir -Recurse -File -Filter $p
+if (!(Test-Path $modelSourceRoot)) {
+    throw "Model source root not found: $modelSourceRoot"
 }
 
-if ($files.Count -eq 0) {
-    Write-Info "変換対象モデルが見つかりません。"
-    if ($Pause) { pause }
-    exit 0
+Ensure-Directory -Path $modelCompiledRoot
+
+# FBX は現在の Assimp 構成で失敗しているため除外
+$extensions = @(".gltf", ".glb", ".obj")
+
+$sourceFiles = Get-ChildItem -Path $modelSourceRoot -Recurse -File | Where-Object {
+    $extensions -contains $_.Extension.ToLower()
 }
 
-# ------------------------------------------------------------
-# MeshConverter オプション
-# エンジン流の左手座標へ寄せる前提
-# ------------------------------------------------------------
-$options = @("-lh")
+Write-Host "[BuildMeshes] Source file count: $($sourceFiles.Count)"
 
-# 必要なら使う
-# $options += @("-scale", "0.01")
-# $options += @("-flipuv")
+$successCount = 0
+$skipCount = 0
 
-# ------------------------------------------------------------
-# 変換
-# ------------------------------------------------------------
-$convertedCount = 0
-$skippedCount = 0
+foreach ($file in $sourceFiles) {
+    $relative = Get-RelativePathSafe -BasePath $modelSourceRoot -TargetPath $file.FullName
+    $relativeWithoutExt = [System.IO.Path]::ChangeExtension($relative, $null)
+    $relativeWithoutExt = $relativeWithoutExt.TrimEnd('.')
 
-foreach ($f in $files) {
+    $sourceDir = Split-Path $file.FullName -Parent
+    $sourceBaseName = [System.IO.Path]::GetFileNameWithoutExtension($file.Name)
+    $generatedKmeshPath = Join-Path $sourceDir ($sourceBaseName + ".kmesh")
 
-    $rel = $f.FullName.Substring($srcDir.Length).TrimStart('\', '/')
-    $outRel = [System.IO.Path]::ChangeExtension($rel, ".kmesh")
-    $outPath = Join-Path $dstDir $outRel
-    $outDir = Split-Path $outPath -Parent
+    $finalOutputPath = Join-Path $modelCompiledRoot ($relativeWithoutExt + ".kmesh")
+    $finalOutDir = Split-Path $finalOutputPath -Parent
 
-    New-Item -ItemType Directory -Force -Path $outDir | Out-Null
+    Ensure-Directory -Path $finalOutDir
 
-    # 差分変換
-    if (Test-Path $outPath) {
-        $srcTime = $f.LastWriteTimeUtc
-        $dstTime = (Get-Item $outPath).LastWriteTimeUtc
-
-        if ($dstTime -ge $srcTime) {
-            Write-Info "Skip: $rel"
-            $skippedCount++
-            continue
-        }
+    if (Test-Path $generatedKmeshPath) {
+        Remove-Item $generatedKmeshPath -Force
     }
 
-    Write-Info "Convert: $rel"
+    Write-Host "[BuildMeshes] Convert: $relative"
 
-    & $converter $f.FullName @options
-    if ($LASTEXITCODE -ne 0) {
-        throw "MeshConverter failed: $($f.FullName)"
+    $exitCode = Invoke-MeshConverter `
+        -ExePath $meshConverterExe `
+        -InputPath $file.FullName
+
+    if ($exitCode -ne 0) {
+        Write-Warning "Skip mesh conversion failed file: $($file.FullName) ExitCode=$exitCode"
+        $skipCount++
+        continue
     }
 
-    # 現在の MeshConverter は入力ファイルの横に .kmesh を吐く仕様
-    $generated = [System.IO.Path]::ChangeExtension($f.FullName, ".kmesh")
-
-    if (-not (Test-Path $generated)) {
-        throw "生成された .kmesh が見つかりません: $generated"
+    if (!(Test-Path $generatedKmeshPath)) {
+        Write-Warning "Output file was not created, skipped: $generatedKmeshPath"
+        $skipCount++
+        continue
     }
 
-    Copy-Item -Force $generated $outPath
-    $convertedCount++
+    Move-Item -Path $generatedKmeshPath -Destination $finalOutputPath -Force
+    $successCount++
 }
 
-Write-Info "完了: converted=$convertedCount, skipped=$skippedCount"
-
-if ($Pause) { pause }
+Write-Host "[BuildMeshes] Mesh conversion completed. Success=$successCount Skip=$skipCount"
 exit 0

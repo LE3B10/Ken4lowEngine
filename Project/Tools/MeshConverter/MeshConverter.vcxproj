@@ -45,13 +45,13 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ExternalIncludePath>$(SolutionDir)Externals\assimp\include\;$(ExternalIncludePath)</ExternalIncludePath>
-    <OutDir>$(SolutionDir)Tools\Bin\</OutDir>
-    <IntDir>$(SolutionDir)Tools\Intermediate\$(ProjectName)\$(Configuration)\</IntDir>
+    <OutDir>$(SolutionDir)..\Generated\Bin\</OutDir>
+    <IntDir>$(SolutionDir)..\Generated\Intermediate\MeshConverter\$(Configuration)\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ExternalIncludePath>$(SolutionDir)Externals\assimp\include\;$(ExternalIncludePath)</ExternalIncludePath>
-    <OutDir>$(SolutionDir)Tools\Bin\</OutDir>
-    <IntDir>$(SolutionDir)Tools\Intermediate\$(ProjectName)\$(Configuration)\</IntDir>
+    <OutDir>$(SolutionDir)..\Generated\Bin\</OutDir>
+    <IntDir>$(SolutionDir)..\Generated\Intermediate\MeshConverter\$(Configuration)\</IntDir>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
@@ -71,7 +71,7 @@
       <AdditionalDependencies>assimp-vc143-mtd.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
-      <Command>if /I "$(Configuration)"=="Debug" call "$(SolutionDir)Tools\Scripts\RunBuildMeshes.bat"</Command>
+      <Command>call "$(SolutionDir)Tools\Scripts\RunBuildMeshes.bat"   "$(SolutionDir)" "$(Configuration)"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -94,8 +94,7 @@
       <AdditionalDependencies>assimp-vc143-mt.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
-      <Command>
-      </Command>
+      <Command>call "$(SolutionDir)Tools\Scripts\RunBuildMeshes.bat"   "$(SolutionDir)" "$(Configuration)"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>

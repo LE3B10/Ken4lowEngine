@@ -36,7 +36,6 @@ void TitleScene::Initialize()
 	timers_.state = timers_.idle = 0.0f;
 	timers_.inputCooldownLeft = 0.0f;
 
-
 	// カメラの初期化
 	InitializeCamera();
 
@@ -106,7 +105,8 @@ void TitleScene::Update()
 	}
 
 	// ====== トリガー（ESC / Q）で生成して Open(sceneManager_) ======
-	if (input_->TriggerKey(DIK_ESCAPE)) {
+	if (input_->TriggerKey(DIK_ESCAPE))
+	{
 		quitOverlay_ = std::make_unique<ConfirmQuitOverlay>();
 		quitOverlay_->Open(sceneManager_);                                // BaseOverlay::Open で SceneManager を注入
 		// Yes: アプリ終了 / No: 何もしない（Close は Overlay 側が呼ぶ）
@@ -196,12 +196,12 @@ void TitleScene::Draw2DSprites()
 	}
 
 	// ====== 最後にオーバーレイを最前面へ重ね描き ======
-	if (quitOverlay_) {
+	if (quitOverlay_)
+	{
 		quitOverlay_->Draw2D();
 	}
 
 #pragma endregion
-
 }
 
 
@@ -404,7 +404,8 @@ void TitleScene::InitializeClickHintUI()
 void TitleScene::ChangeState(std::unique_ptr<ITitleSceneState> newState)
 {
 	// 今のステートから抜ける
-	if (currentState_) {
+	if (currentState_)
+	{
 		currentState_->Exit(this);
 	}
 
@@ -412,7 +413,8 @@ void TitleScene::ChangeState(std::unique_ptr<ITitleSceneState> newState)
 	currentState_ = std::move(newState);
 
 	// 新しいステートに入る
-	if (currentState_) {
+	if (currentState_)
+	{
 		currentState_->Enter(this);
 	}
 }
@@ -423,7 +425,8 @@ void TitleScene::ChangeState(std::unique_ptr<ITitleSceneState> newState)
 /// -------------------------------------------------------------
 Camera* TitleScene::EnsureCamera()
 {
-	if (!camera_) {
+	if (!camera_)
+	{
 		camera_ = CameraManager::GetInstance()->GetMainCamera();
 	}
 	return camera_;

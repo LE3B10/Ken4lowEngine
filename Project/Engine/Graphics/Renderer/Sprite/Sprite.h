@@ -167,14 +167,13 @@ public: /// ---------- ゲッター ---------- ///
 	/// </summary>
 	/// <returns>サイズ (width, height)。</returns>
 	const Vector2& GetTextureSize() { return textureSize_; }
+	// テクスチャ内での切り出しサイズ（ピクセル）を取得します。
+	const Vector2& GetTextureSize() const { return textureSize_; }
 
 	const uint32_t GetTextureIndex() const { return materialData->textureIndex; }
 
 	// 使用しているテクスチャファイルのパスを取得します。
 	const std::string& GetFilePath() const { return filePath_; }
-
-	// テクスチャ内での切り出しサイズ（ピクセル）を取得します。
-	const Vector2& GetTextureSize() const { return textureSize_; }
 
 public: /// ---------- セッター ---------- ///
 

@@ -165,7 +165,7 @@ public: /// ---------- メンバ関数 ---------- ///
 
 	// 段階ロード
 	void StartLoad() override;
-	
+
 	void UpdateLoad() override;
 
 	bool IsReadyToStartUncover() const override;

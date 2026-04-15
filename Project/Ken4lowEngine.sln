@@ -21,6 +21,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "TextureConverter", "Tools\T
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "MeshConverter", "Tools\MeshConverter\MeshConverter.vcxproj", "{F1AABBD3-BF5C-4226-9BDE-C886D12C7C85}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "FontConverter", "Tools\FontConverter\FontConverter.vcxproj", "{1ADEE1E7-75AB-43EF-BE01-C592FE142FDB}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -47,6 +49,10 @@ Global
 		{F1AABBD3-BF5C-4226-9BDE-C886D12C7C85}.Debug|x64.Build.0 = Debug|x64
 		{F1AABBD3-BF5C-4226-9BDE-C886D12C7C85}.Release|x64.ActiveCfg = Release|x64
 		{F1AABBD3-BF5C-4226-9BDE-C886D12C7C85}.Release|x64.Build.0 = Release|x64
+		{1ADEE1E7-75AB-43EF-BE01-C592FE142FDB}.Debug|x64.ActiveCfg = Debug|x64
+		{1ADEE1E7-75AB-43EF-BE01-C592FE142FDB}.Debug|x64.Build.0 = Debug|x64
+		{1ADEE1E7-75AB-43EF-BE01-C592FE142FDB}.Release|x64.ActiveCfg = Release|x64
+		{1ADEE1E7-75AB-43EF-BE01-C592FE142FDB}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -1,14 +1,17 @@
 @echo off
 setlocal
 
-set SCRIPT_DIR=%~dp0
-set PROJECT_DIR=%SCRIPT_DIR%..\..
+set "PROJECT_DIR=%~1"
+set "CONFIGURATION=%~2"
 
-powershell -ExecutionPolicy Bypass -File "%SCRIPT_DIR%BuildMeshes.ps1" -ProjectDir "%PROJECT_DIR%" -Config "%Configuration%" -Platform "%Platform%"
+if "%PROJECT_DIR%"=="" set "PROJECT_DIR=%~dp0..\.."
+for %%I in ("%PROJECT_DIR%") do set "PROJECT_DIR=%%~fI"
+if "%PROJECT_DIR:~-1%"=="\" set "PROJECT_DIR=%PROJECT_DIR:~0,-1%"
 
-if errorlevel 1 (
-    echo [RunBuildMeshes] failed.
-    exit /b 1
-)
+if "%CONFIGURATION%"=="" set "CONFIGURATION=Debug"
 
-exit /b 0
+echo [RunBuildMeshes] PROJECT_DIR=%PROJECT_DIR%
+echo [RunBuildMeshes] CONFIGURATION=%CONFIGURATION%
+
+powershell -ExecutionPolicy Bypass -NoProfile -File "%~dp0BuildMeshes.ps1" -ProjectDir "%PROJECT_DIR%" -Configuration "%CONFIGURATION%"
+exit /b %ERRORLEVEL%
