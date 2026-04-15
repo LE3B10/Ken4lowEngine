@@ -790,7 +790,6 @@
     <ClCompile Include="Engine\Graphics\Renderer\Sprite\FontAtlasLoader.cpp">
       <Filter>Engine\Graphics\Renderer\Sprite</Filter>
     </ClCompile>
-    <ClCompile Include="TextManager.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ApplicationLayer\UISystem\Crosshair\Crosshair.h">
@@ -1666,7 +1665,6 @@
     <ClInclude Include="Engine\Graphics\Renderer\Sprite\FontAtlasLoader.h">
       <Filter>Engine\Graphics\Renderer\Sprite</Filter>
     </ClInclude>
-    <ClInclude Include="TextManager.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Resources\Shaders\PostEffect\FullScreen.hlsli">
