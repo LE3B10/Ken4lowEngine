@@ -6,6 +6,7 @@
 #include "WaveUI.h"
 #include "DamageIndicatorManager.h"
 #include "NoAmmoUI.h"
+#include "ControlGuideUI.h"
 
 #include <memory>
 
@@ -63,6 +64,7 @@ public: /// ---------- セッタ ---------- ///
 		const K4E::Vector3& cameraRight);
 
 	void SetCrosshairTargetingEnemy(bool v);
+	void SetControlGuideVisible(bool v) { if (controlGuideUI_) controlGuideUI_->SetVisible(v); }
 
 public: /// ---------- ゲッタ ---------- ///
 
@@ -70,6 +72,7 @@ public: /// ---------- ゲッタ ---------- ///
 	Crosshair* GetCrosshair() const { return crosshair_.get(); }
 	HPWidget* GetHPWidget() const { return hpWidget_.get(); }
 	WeaponSlot* GetWeaponSlot() const { return weaponSlot_.get(); }
+	ControlGuideUI* GetControlGuideUI() const { return controlGuideUI_.get(); }
 
 private: /// ---------- メンバ変数 ---------- ///
 
@@ -80,6 +83,7 @@ private: /// ---------- メンバ変数 ---------- ///
 	std::unique_ptr<HPWidget> hpWidget_; // HPウィジェット
 
 	std::unique_ptr<WaveUI> waveUI_; // ウェーブUI（WaveDefense用）
+	std::unique_ptr<ControlGuideUI> controlGuideUI_; // コントロールガイドUI
 
 	std::unique_ptr<WeaponSlot> weaponSlot_; // 武器スロット
 	WeaponSlot::HudSnapshot weaponSlotSnapshot_{};    // 外部から受け取る表示用データ

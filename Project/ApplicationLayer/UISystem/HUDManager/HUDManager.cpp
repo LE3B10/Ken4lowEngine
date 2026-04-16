@@ -64,7 +64,19 @@ void HUDManager::Initialize()
 	damageIndicatorManager_->Initialize();
 
 	noAmmoUI_ = std::make_unique<NoAmmoUI>();
-	noAmmoUI_->Initialize("Effects/white.dds");
+	noAmmoUI_->Initialize();
+
+	controlGuideUI_ = std::make_unique<ControlGuideUI>();
+	controlGuideUI_->Initialize(
+		"UI/Common/ammo_icon.dds",
+		"UI/Common/mouse_leftClick.dds",
+		"UI/Common/reticle_icon.dds",
+		"UI/Common/mouse_rightClick.dds",
+		"UI/Common/R_key_icon.dds",
+		"UI/Common/reload_icon.dds"
+	);
+	controlGuideUI_->SetVisible(true);
+	controlGuideUI_->SetAnchorTopLeft({ 1500.0f, 930.0f });
 }
 
 /// -------------------------------------------------------------
@@ -187,6 +199,8 @@ void HUDManager::Update(float deltaTime)
 		noAmmoUI_->SetVisible(showNoAmmo);
 		noAmmoUI_->Update(deltaTime);
 	}
+
+	if (controlGuideUI_) controlGuideUI_->Update(deltaTime);
 }
 
 /// -------------------------------------------------------------
@@ -203,6 +217,8 @@ void HUDManager::Draw()
 	if (damageIndicatorManager_) damageIndicatorManager_->Draw();
 
 	if (noAmmoUI_ && noAmmoUI_->IsVisible()) noAmmoUI_->Draw();
+
+	if (controlGuideUI_ && controlGuideUI_->IsVisible()) controlGuideUI_->Draw();
 }
 
 void HUDManager::SetHP(float hp, float maxHp)

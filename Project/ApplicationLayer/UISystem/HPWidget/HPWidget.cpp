@@ -167,14 +167,15 @@ void HPWidget::Draw()
 	for (size_t i = 0; i < slots_.size(); ++i)
 	{
 		const float slotStart = per * static_cast<float>(i);
-		float remain = hp_ - slotStart;
+		const float remain = hp_ - slotStart;
 
 		if (remain >= per)
 		{
 			slots_[i].full->Draw();
 		}
-		else if (remain >= per * 0.5f)
+		else if (remain > 0.0f)
 		{
+			// HPが少しでも残っていれば半分表示にする
 			slots_[i].half->Draw();
 		}
 		else

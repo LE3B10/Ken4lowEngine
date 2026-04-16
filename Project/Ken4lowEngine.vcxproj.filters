@@ -790,6 +790,9 @@
     <ClCompile Include="Engine\Graphics\Renderer\Sprite\FontAtlasLoader.cpp">
       <Filter>Engine\Graphics\Renderer\Sprite</Filter>
     </ClCompile>
+    <ClCompile Include="ApplicationLayer\UISystem\ControlGuideUI\ControlGuideUI.cpp">
+      <Filter>ApplicationLayer\UISystem\ControlGuideUI</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ApplicationLayer\UISystem\Crosshair\Crosshair.h">
@@ -1665,6 +1668,9 @@
     <ClInclude Include="Engine\Graphics\Renderer\Sprite\FontAtlasLoader.h">
       <Filter>Engine\Graphics\Renderer\Sprite</Filter>
     </ClInclude>
+    <ClInclude Include="ApplicationLayer\UISystem\ControlGuideUI\ControlGuideUI.h">
+      <Filter>ApplicationLayer\UISystem\ControlGuideUI</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="Resources\Shaders\PostEffect\FullScreen.hlsli">
@@ -2187,6 +2193,9 @@
     </Filter>
     <Filter Include="Engine\Core\Time\Core">
       <UniqueIdentifier>{95af982c-ec3d-4a83-9eb2-182d3868ea17}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ApplicationLayer\UISystem\ControlGuideUI">
+      <UniqueIdentifier>{e3047797-8f02-4860-be31-91fd1bcb3eb6}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>
