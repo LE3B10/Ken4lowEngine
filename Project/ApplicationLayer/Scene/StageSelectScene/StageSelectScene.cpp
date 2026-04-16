@@ -14,7 +14,58 @@
 
 #include <algorithm>
 
+#ifdef USE_IMGUI
+#include <imgui.h>
+#endif // USE_IMGUI
+
 namespace K4E = ::Ken4lowEngine;
+
+namespace
+{
+	// カテゴリに対応する表示名を取得
+	const char* GetCategoryDisplayName(const std::string& category)
+	{
+		if (category == "WAVE")    return "WAVE STAGE";
+		if (category == "SEARCH")  return "SEARCH STAGE";
+		if (category == "DEFENSE") return "DEFENSE STAGE";
+		if (category == "ESCAPE")  return "ESCAPE STAGE";
+		if (category == "BOSS")    return "BOSS STAGE";
+		return "UNKNOWN";
+	}
+
+	// ステージのロック状態に応じた解放条件テキストを生成
+	std::string BuildUnlockConditionText(const StageInfo& stage)
+	{
+		if (!stage.locked)
+		{
+			return "";
+		}
+
+		return "前ステージクリアで解放";
+	}
+
+	// カテゴリに対応するキャッチコピーを取得
+	const char* GetCategoryCatchCopy(const std::string& category)
+	{
+		if (category == "WAVE")    return "正面突破で戦況を切り開け";
+		if (category == "SEARCH")  return "探索して進路を切り開け";
+		if (category == "DEFENSE") return "拠点を守り抜け";
+		if (category == "ESCAPE")  return "敵をかわして脱出せよ";
+		if (category == "BOSS")    return "最終決戦に挑め";
+		return "";
+	}
+
+	// カテゴリに対応するアクセントカラーを取得
+	K4E::Vector4 GetCategoryAccentColor(const std::string& category)
+	{
+		if (category == "WAVE")    return { 0.95f, 0.95f, 1.00f, 1.0f };
+		if (category == "SEARCH")  return { 1.00f, 0.90f, 0.65f, 1.0f };
+		if (category == "DEFENSE") return { 0.75f, 0.90f, 1.00f, 1.0f };
+		if (category == "ESCAPE")  return { 1.00f, 0.80f, 0.70f, 1.0f };
+		if (category == "BOSS")    return { 1.00f, 0.60f, 0.60f, 1.0f };
+		return { 1,1,1,1 };
+	}
+}
 
 /// -------------------------------------------------------------
 ///				　			　初期化処理
@@ -72,6 +123,12 @@ void StageSelectScene::Initialize()
 	{
 		isTextReady_ = false;
 	}
+
+	textLayoutDebug_ = CreateDefaultTextLayoutDebug();
+
+	textAnim_.prevStageIndex = currentStageIndex_;
+	textAnim_.changeTimer = textAnim_.changeDuration;
+	textAnim_.guidePulseTimer = 0.0f;
 }
 
 /// -------------------------------------------------------------
@@ -84,7 +141,6 @@ void StageSelectScene::Update()
 	// ロード中は通常更新をしない
 	if (state_ == State::Loading)
 	{
-		// 背景だけあれば最低限更新
 		if (bg_) { bg_->Update(); }
 		return;
 	}
@@ -95,6 +151,18 @@ void StageSelectScene::Update()
 		currentState_->Update(this, deltaTime);
 	}
 
+	// ステージ切替検知
+	if (textAnim_.prevStageIndex != currentStageIndex_)
+	{
+		textAnim_.prevStageIndex = currentStageIndex_;
+		textAnim_.changeTimer = 0.0f;
+	}
+
+	// 切替演出タイマー更新
+	textAnim_.changeTimer = std::min(textAnim_.changeTimer + deltaTime, textAnim_.changeDuration);
+
+	// 操作ガイド点滅タイマー更新
+	textAnim_.guidePulseTimer += deltaTime;
 }
 
 /// -------------------------------------------------------------
@@ -114,48 +182,117 @@ void StageSelectScene::DrawShadowObjects()
 /// -------------------------------------------------------------
 void StageSelectScene::Draw2DSprites()
 {
-	// 背景描画設定（後面）
 	K4E::SpriteManager::GetInstance()->SetRenderSetting_Background();
-
-	// 背景描画
 	if (bg_) bg_->Draw();
 
-	// 背景描画設定（UI）
 	K4E::SpriteManager::GetInstance()->SetRenderSetting_UI();
+	float animT = 1.0f;
+	if (textAnim_.changeDuration > 0.0f)
+	{
+		animT = std::clamp(textAnim_.changeTimer / textAnim_.changeDuration, 0.0f, 1.0f);
+	}
+	float enterEase = K4E::EaseOutCubic(animT);
 
-	// アクティブセレクタの2D描画
+	// 下から少し上がってくる
+	float enterOffsetY = K4E::Lerp(20.0f, 0.0f, enterEase);
+
+	// フェードイン
+	float enterAlpha = K4E::Lerp(0.0f, 1.0f, enterEase);
+
+	// カテゴリだけ少し拡大して戻す
+	float categoryScaleAnim = K4E::Lerp(1.08f, 1.0f, enterEase);
+
+	// 操作ガイドのゆるい点滅
+	float pulse = (std::sin(textAnim_.guidePulseTimer * 2.0f) + 1.0f) * 0.5f; // 0..1
+	float guideAlpha = K4E::Lerp(0.70f, 0.95f, pulse);
+
 	if (activeSelector_) activeSelector_->Draw2DSprites();
 
-	// ---- ここからテキスト描画テスト ----
-	if (textJPDrawer_ && textLatinDrawer_ && isTextReady_)
+	if (!(textJPDrawer_ && textLatinDrawer_ && isTextReady_)) { return; }
+	if (stages_.empty()) { return; }
+
+	int index = std::clamp(currentStageIndex_, 0, (int)stages_.size() - 1);
+	const StageInfo& stage = stages_[index];
+
+	textLatinDrawer_->Reset();
+	textJPDrawer_->Reset();
+
+	const float centerX = context_.screenWidth * 0.5f + textLayoutDebug_.centerXOffset;
+	const float screenH = context_.screenHeight;
+
+	// タイトル
+	textLatinDrawer_->SetScale(textLayoutDebug_.titleScale);
+	textLatinDrawer_->SetLetterSpacing(2.0f);
+	textLatinDrawer_->SetLineSpacing(6.0f);
+	textLatinDrawer_->SetColor({ 1.0f, 1.0f, 1.0f, 0.95f });
+	textLatinDrawer_->DrawTextCentered(
+		"STAGE SELECT",
+		{ centerX, textLayoutDebug_.titleY }
+	);
+
+	// ステージ番号
+	char stageNo[32];
+	std::snprintf(stageNo, sizeof(stageNo), "STAGE %02u", stage.id + 1);
+
+	textLatinDrawer_->SetScale(textLayoutDebug_.stageNoScale);
+	textLatinDrawer_->SetColor({ 0.92f, 0.96f, 1.0f, enterAlpha });
+	textLatinDrawer_->DrawTextCentered(
+		stageNo,
+		{ centerX, screenH + textLayoutDebug_.stageNoY + enterOffsetY }
+	);
+
+	// ステージ名
+	textJPDrawer_->SetScale(textLayoutDebug_.stageNameScale);
+	textJPDrawer_->SetColor({ 1.0f, 1.0f, 1.0f, enterAlpha });
+	textJPDrawer_->DrawTextCentered(
+		stage.name,
+		{ centerX, screenH + textLayoutDebug_.stageNameY + enterOffsetY }
+	);
+
+	// カテゴリ
+	K4E::Vector4 accent = GetCategoryAccentColor(stage.category);
+
+	textLatinDrawer_->SetScale(textLayoutDebug_.categoryScale * categoryScaleAnim);
+	textLatinDrawer_->SetColor({ accent.x, accent.y, accent.z, enterAlpha });
+	textLatinDrawer_->DrawTextCentered(
+		GetCategoryDisplayName(stage.category),
+		{ centerX, screenH + textLayoutDebug_.categoryY + enterOffsetY }
+	);
+
+	// キャッチコピー
+	textJPDrawer_->SetScale(textLayoutDebug_.catchScale);
+	textJPDrawer_->SetColor({ 0.95f, 0.95f, 0.95f, enterAlpha });
+	textJPDrawer_->DrawTextCentered(
+		GetCategoryCatchCopy(stage.category),
+		{ centerX, screenH + textLayoutDebug_.catchY + enterOffsetY }
+	);
+
+	// 説明文
+	textJPDrawer_->SetScale(textLayoutDebug_.descScale);
+	textJPDrawer_->SetColor({ 0.88f, 0.92f, 0.95f, enterAlpha });
+	textJPDrawer_->DrawTextCentered(
+		stage.description,
+		{ centerX, screenH + textLayoutDebug_.descY + enterOffsetY }
+	);
+
+	// ロック時の解放条件
+	if (stage.locked)
 	{
-		textLatinDrawer_->Reset();
-		textJPDrawer_->Reset();
-
-		textLatinDrawer_->SetScale(1.0f);
-		textLatinDrawer_->SetLetterSpacing(2.0f);
-		textLatinDrawer_->SetLineSpacing(6.0f);
-
-		textLatinDrawer_->SetColor({ 1.0f, 1.0f, 1.0f, 1.0f });
-		textLatinDrawer_->DrawTextCentered(
-			"STAGE SELECT",
-			{ context_.screenWidth * 0.5f, 40.0f }
-		);
-
-		textJPDrawer_->SetScale(0.9f);
-		textJPDrawer_->SetColor({ 1.0f, 1.0f, 1.0f, 1.0f });
+		textJPDrawer_->SetScale(textLayoutDebug_.unlockScale);
+		textJPDrawer_->SetColor({ 1.0f, 0.82f, 0.82f, enterAlpha });
 		textJPDrawer_->DrawTextCentered(
-			"始まりの平原",
-			{ context_.screenWidth * 0.5f, context_.screenHeight - 120.0f }
-		);
-
-		textLatinDrawer_->SetScale(0.7f);
-		textLatinDrawer_->SetColor({ 0.85f, 0.90f, 1.0f, 1.0f });
-		textLatinDrawer_->DrawTextCentered(
-			"WAVE",
-			{ context_.screenWidth * 0.5f, context_.screenHeight - 84.0f }
+			BuildUnlockConditionText(stage),
+			{ centerX, screenH + textLayoutDebug_.unlockY + enterOffsetY }
 		);
 	}
+
+	// 操作ガイド
+	textLatinDrawer_->SetScale(textLayoutDebug_.guideScale);
+	textLatinDrawer_->SetColor({ 1.0f, 1.0f, 1.0f, guideAlpha });
+	textLatinDrawer_->DrawTextCentered(
+		"CLICK : SELECT   WHEEL / DRAG : MOVE   ESC : BACK",
+		{ centerX, screenH + textLayoutDebug_.guideY }
+	);
 }
 
 /// -------------------------------------------------------------
@@ -206,6 +343,55 @@ void StageSelectScene::Finalize()
 /// -------------------------------------------------------------
 void StageSelectScene::DrawImGui()
 {
+#ifdef USE_IMGUI
+	if (!textLayoutDebug_.enableImGui) { return; }
+
+	if (ImGui::Begin("StageSelect Text Layout"))
+	{
+		ImGui::Text("Current Stage Index : %d", currentStageIndex_);
+
+		ImGui::SeparatorText("Global");
+		ImGui::DragFloat("Center X Offset", &textLayoutDebug_.centerXOffset, 1.0f, -400.0f, 400.0f);
+
+		ImGui::SeparatorText("Title");
+		ImGui::DragFloat("Title Y", &textLayoutDebug_.titleY, 1.0f, 0.0f, 300.0f);
+		ImGui::DragFloat("Title Scale", &textLayoutDebug_.titleScale, 0.01f, 0.2f, 3.0f);
+
+		ImGui::SeparatorText("Stage No");
+		ImGui::DragFloat("StageNo Y", &textLayoutDebug_.stageNoY, 1.0f, -1000.0f, 100.0f);
+		ImGui::DragFloat("StageNo Scale", &textLayoutDebug_.stageNoScale, 0.01f, 0.2f, 3.0f);
+
+		ImGui::SeparatorText("Stage Name");
+		ImGui::DragFloat("StageName Y", &textLayoutDebug_.stageNameY, 1.0f, -1000.0f, 100.0f);
+		ImGui::DragFloat("StageName Scale", &textLayoutDebug_.stageNameScale, 0.01f, 0.2f, 3.0f);
+
+		ImGui::SeparatorText("Category");
+		ImGui::DragFloat("Category Y", &textLayoutDebug_.categoryY, 1.0f, -1000.0f, 100.0f);
+		ImGui::DragFloat("Category Scale", &textLayoutDebug_.categoryScale, 0.01f, 0.2f, 3.0f);
+
+		ImGui::SeparatorText("Catch Copy");
+		ImGui::DragFloat("Catch Y", &textLayoutDebug_.catchY, 1.0f, -1000.0f, 100.0f);
+		ImGui::DragFloat("Catch Scale", &textLayoutDebug_.catchScale, 0.01f, 0.2f, 3.0f);
+
+		ImGui::SeparatorText("Description");
+		ImGui::DragFloat("Desc Y", &textLayoutDebug_.descY, 1.0f, -1000.0f, 100.0f);
+		ImGui::DragFloat("Desc Scale", &textLayoutDebug_.descScale, 0.01f, 0.2f, 3.0f);
+
+		ImGui::SeparatorText("Unlock");
+		ImGui::DragFloat("Unlock Y", &textLayoutDebug_.unlockY, 1.0f, -1000.0f, 100.0f);
+		ImGui::DragFloat("Unlock Scale", &textLayoutDebug_.unlockScale, 0.01f, 0.2f, 3.0f);
+
+		ImGui::SeparatorText("Guide");
+		ImGui::DragFloat("Guide Y", &textLayoutDebug_.guideY, 1.0f, -1000.0f, 100.0f);
+		ImGui::DragFloat("Guide Scale", &textLayoutDebug_.guideScale, 0.01f, 0.2f, 3.0f);
+
+		if (ImGui::Button("Reset Layout"))
+		{
+			textLayoutDebug_ = CreateDefaultTextLayoutDebug();
+		}
+	}
+	ImGui::End();
+#endif // USE_IMGUI
 
 }
 
@@ -404,19 +590,26 @@ void StageSelectScene::InitializeBackground()
 	gridSelector_->Initialize(context_);
 
 	// 中央カードが変わったら背景ターゲット色を更新
-	static_cast<GridStageSelector*>(gridSelector_.get())->SetOnCenterChanged([this](uint32_t centerIndex) {
-		if (centerIndex < stages_.size()) { bgTarget_ = stages_.at(centerIndex).color; }
+	static_cast<GridStageSelector*>(gridSelector_.get())->SetOnCenterChanged(
+		[this](uint32_t centerIndex)
+		{
+			if (centerIndex < stages_.size())
+			{
+				currentStageIndex_ = static_cast<int>(centerIndex);
+				bgTarget_ = stages_.at(centerIndex).color;
+			}
 		});
 
 	activeSelector_ = gridSelector_.get();
 
 	if (startIndex >= 0 && startIndex < (int)stages_.size())
 	{
+		currentStageIndex_ = startIndex;
 		activeSelector_->FocusToIndex(startIndex, false);
 
 		if (stages_[startIndex].justUnlocked)
 		{
-			pendingUnlockIndex_ = startIndex; // ← フェード完了後に再生する
+			pendingUnlockIndex_ = startIndex;
 		}
 
 		bgNow_ = bgTarget_ = stages_[startIndex].color;
@@ -429,6 +622,40 @@ void StageSelectScene::InitializeBackground()
 
 	// アクティブセレクタに通知
 	activeSelector_->OnEnter();
+}
+
+StageSelectScene::StageSelectTextLayoutDebug StageSelectScene::CreateDefaultTextLayoutDebug() const
+{
+	StageSelectTextLayoutDebug d{};
+	d.enableImGui = true;
+
+	d.titleY = 40.0f;
+	d.titleScale = 1.15f;
+
+	d.stageNoY = -750.0f;
+	d.stageNoScale = 0.60f;
+
+	d.stageNameY = -700.0f;
+	d.stageNameScale = 0.90f;
+
+	d.categoryY = -390.0f;
+	d.categoryScale = 0.62f;
+
+	d.catchY = -340.0f;
+	d.catchScale = 0.56f;
+
+	d.descY = -300.0f;
+	d.descScale = 0.50f;
+
+	d.unlockY = -420.0f;
+	d.unlockScale = 0.46f;
+
+	d.guideY = -50.0f;
+	d.guideScale = 0.40f;
+
+	d.centerXOffset = 0.0f;
+
+	return d;
 }
 
 /// -------------------------------------------------------------

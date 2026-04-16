@@ -26,6 +26,58 @@ namespace Ken4lowEngine { class Input; }
 /// -------------------------------------------------------------
 class StageSelectScene : public BaseScene
 {
+private: /// ---------- 構造体 ---------- ///
+
+	struct StageSelectTextLayoutDebug
+	{
+		// 表示ON/OFF
+		bool enableImGui = true;
+
+		// タイトル
+		float titleY = 40.0f;
+		float titleScale = 1.15f;
+
+		// ステージ情報
+		float stageNoY = -750.0f;
+		float stageNoScale = 0.60f;
+
+		// ステージ名
+		float stageNameY = -70.0f;
+		float stageNameScale = 0.90f;
+
+		// カテゴリ
+		float categoryY = -390.0f;
+		float categoryScale = 0.62f;
+
+		// キャッチコピー
+		float catchY = -340.0f;
+		float catchScale = 0.56f;
+
+		// ステージ説明
+		float descY = -300.0f;
+		float descScale = 0.50f;
+
+		// アンロック条件
+		float unlockY = -420.0f;
+		float unlockScale = 0.46f;
+
+		// 操作ガイド
+		float guideY = -50.0f;
+		float guideScale = 0.40f;
+
+		// 全体オフセット
+		float centerXOffset = 0.0f;
+	};
+
+	struct TextAnimState
+	{
+		int prevStageIndex = -1;          // 前回の選択ステージ
+		float changeTimer = 0.0f;         // 切替演出タイマー
+		float changeDuration = 0.28f;     // 切替演出時間
+
+		float guidePulseTimer = 0.0f;     // 操作ガイド点滅用
+	};
+
 public: /// ---------- 型定義 ---------- ///
 
 	// シーンの状態を管理する列挙型
@@ -87,6 +139,8 @@ private: /// ---------- メンバ関数 ---------- ///
 	// 背景初期化
 	void InitializeBackground();
 
+	StageSelectTextLayoutDebug CreateDefaultTextLayoutDebug() const;
+
 public: /// ---------- 状態管理 ---------- ///
 
 	// ステート差し替え
@@ -118,6 +172,9 @@ public: /// ---------- 状態管理 ---------- ///
 
 	SelectorContext& GetSelectorContext() { return context_; }
 
+	int GetCurrentStageIndex() const { return currentStageIndex_; }
+	void SetCurrentStageIndex(int index) { currentStageIndex_ = index; }
+
 public: /// ---------- シーン遷移ヘルパー ---------- ///
 
 	// シーン遷移のヘルパー
@@ -135,6 +192,10 @@ private: /// ---------- メンバ変数 ---------- ///
 	std::unique_ptr<K4E::TextSpriteDrawer> textJPDrawer_;
 	std::unique_ptr<K4E::TextSpriteDrawer> textLatinDrawer_;
 	bool isTextReady_ = false; // テキスト描画の準備ができているかどうか
+
+	StageSelectTextLayoutDebug textLayoutDebug_{};
+
+	TextAnimState textAnim_{};
 
 	// 次に遷移するシーン
 	NextScene nextScene_ = NextScene::None;
@@ -160,5 +221,7 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	int loadStep_ = 0; // ロード段階
 	bool isLoadReady_ = false; // ロード完了フラグ
+
+	int currentStageIndex_ = 0; // 現在選択中のステージインデックス
 };
 
