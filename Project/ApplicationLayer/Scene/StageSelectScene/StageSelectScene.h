@@ -12,6 +12,8 @@
 #include "GridStageSelector.h"     // まずは Grid を使う
 #include "IStageSelectSceneState.h" // ステート基底クラス
 
+#include <TextSpriteDrawer.h>
+
 namespace K4E = ::Ken4lowEngine;
 
 /// ---------- 前方宣言 ---------- ///
@@ -128,6 +130,11 @@ private: /// ---------- メンバ変数 ---------- ///
 	// 状態管理
 	State state_ = State::Selecting; // とりあえず「セレクト中」から始める
 	std::unique_ptr<IStageSelectSceneState> currentState_; // 現在のステート
+
+	// テキストスプライト描画
+	std::unique_ptr<K4E::TextSpriteDrawer> textJPDrawer_;
+	std::unique_ptr<K4E::TextSpriteDrawer> textLatinDrawer_;
+	bool isTextReady_ = false; // テキスト描画の準備ができているかどうか
 
 	// 次に遷移するシーン
 	NextScene nextScene_ = NextScene::None;

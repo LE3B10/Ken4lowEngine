@@ -119,8 +119,8 @@ if (-not $fontConverterExe) {
 $fontSourceDir = Join-Path $ProjectDir "Resources\Fonts\Sources"
 $charsetDir    = Join-Path $ProjectDir "Resources\Fonts\Charsets"
 
-$latinFontPath    = Join-Path $fontSourceDir "minecraft.ttf"
-$jpFontPath       = Join-Path $fontSourceDir "PixelMplus12-Regular.ttf"
+$latinFontPath    = Join-Path $fontSourceDir "DotGothic16-Regular.ttf"
+$jpFontPath       = Join-Path $fontSourceDir "DotGothic16-Regular.ttf"
 $latinCharsetFile = Join-Path $charsetDir "LatinCharset.txt"
 $jpCharsetFile    = Join-Path $charsetDir "JPCharset.txt"
 

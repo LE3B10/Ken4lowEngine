@@ -277,7 +277,7 @@ bool FontRasterizer::BuildGlyphBitmap(
 		&glyphRun,
 		1.0f,
 		nullptr,
-		DWRITE_RENDERING_MODE_CLEARTYPE_NATURAL_SYMMETRIC,
+		DWRITE_RENDERING_MODE_ALIASED,
 		DWRITE_MEASURING_MODE_NATURAL,
 		0.0f,
 		0.0f,
@@ -291,7 +291,7 @@ bool FontRasterizer::BuildGlyphBitmap(
 
 	RECT textureBounds{};
 	hr = analysis->GetAlphaTextureBounds(
-		DWRITE_TEXTURE_CLEARTYPE_3x1,
+		DWRITE_TEXTURE_ALIASED_1x1,
 		&textureBounds
 	);
 
@@ -311,13 +311,13 @@ bool FontRasterizer::BuildGlyphBitmap(
 		return true;
 	}
 
-	std::vector<std::uint8_t> clearTypePixels(static_cast<size_t>(width * height * 3), 0);
+	std::vector<std::uint8_t> alphaPixels(static_cast<size_t>(width * height), 0);
 
 	hr = analysis->CreateAlphaTexture(
-		DWRITE_TEXTURE_CLEARTYPE_3x1,
+		DWRITE_TEXTURE_ALIASED_1x1,
 		&textureBounds,
-		clearTypePixels.data(),
-		static_cast<UINT32>(clearTypePixels.size())
+		alphaPixels.data(),
+		static_cast<UINT32>(alphaPixels.size())
 	);
 
 	if (FAILED(hr))
@@ -327,24 +327,7 @@ bool FontRasterizer::BuildGlyphBitmap(
 
 	outGlyph.bitmapWidth = width;
 	outGlyph.bitmapHeight = height;
-	outGlyph.pixels.resize(static_cast<size_t>(width * height), 0);
-
-	for (int i = 0; i < width * height; ++i)
-	{
-		const std::uint8_t r = clearTypePixels[i * 3 + 0];
-		const std::uint8_t g = clearTypePixels[i * 3 + 1];
-		const std::uint8_t b = clearTypePixels[i * 3 + 2];
-
-		const unsigned int gray =
-			static_cast<unsigned int>(r) +
-			static_cast<unsigned int>(g) +
-			static_cast<unsigned int>(b);
-
-		outGlyph.pixels[i] = static_cast<std::uint8_t>(gray / 3);
-	}
-
-	outGlyph.glyphInfo.width = static_cast<float>(outGlyph.bitmapWidth);
-	outGlyph.glyphInfo.height = static_cast<float>(outGlyph.bitmapHeight);
+	outGlyph.pixels = std::move(alphaPixels);
 
 	(void)glyphMetrics;
 	(void)fontMetrics;

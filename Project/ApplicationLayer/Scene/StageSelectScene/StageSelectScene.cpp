@@ -9,6 +9,8 @@
 #include <StageSelectSelectingState.h>
 #include "StageSelectLoadState.h"
 #include <GameTimer.h>
+#include "FontAtlasLoader.h"
+#include "TextSpriteDrawer.h"
 
 #include <algorithm>
 
@@ -38,6 +40,38 @@ void StageSelectScene::Initialize()
 	// ロード中として待機
 	state_ = State::Loading;
 	currentState_.reset();
+
+	textJPDrawer_ = std::make_unique<K4E::TextSpriteDrawer>();
+	textLatinDrawer_ = std::make_unique<K4E::TextSpriteDrawer>();
+	isTextReady_ = false;
+
+	try
+	{
+		// ここは自分の実際のフォント生成物のパスに合わせて変更
+		auto fontDefJP = K4E::FontAtlasLoader::LoadFromJson(
+			"UI/Font/JP/DotGothic16-Regular_atlas.dds",
+			"Resources/Fonts/Compiled/JP/DotGothic16-Regular.json",
+			32.0f,
+			32.0f,
+			U'?'
+		);
+
+		auto fontDefLatin = K4E::FontAtlasLoader::LoadFromJson(
+			"UI/Font/Latin/DotGothic16-Regular_atlas.dds",
+			"Resources/Fonts/Compiled/Latin/DotGothic16-Regular.json",
+			32.0f,
+			32.0f,
+			U'?'
+		);
+
+		textJPDrawer_->Initialize(fontDefJP);
+		textLatinDrawer_->Initialize(fontDefLatin);
+		isTextReady_ = true;
+	}
+	catch (...)
+	{
+		isTextReady_ = false;
+	}
 }
 
 /// -------------------------------------------------------------
@@ -91,6 +125,37 @@ void StageSelectScene::Draw2DSprites()
 
 	// アクティブセレクタの2D描画
 	if (activeSelector_) activeSelector_->Draw2DSprites();
+
+	// ---- ここからテキスト描画テスト ----
+	if (textJPDrawer_ && textLatinDrawer_ && isTextReady_)
+	{
+		textLatinDrawer_->Reset();
+		textJPDrawer_->Reset();
+
+		textLatinDrawer_->SetScale(1.0f);
+		textLatinDrawer_->SetLetterSpacing(2.0f);
+		textLatinDrawer_->SetLineSpacing(6.0f);
+
+		textLatinDrawer_->SetColor({ 1.0f, 1.0f, 1.0f, 1.0f });
+		textLatinDrawer_->DrawTextCentered(
+			"STAGE SELECT",
+			{ context_.screenWidth * 0.5f, 40.0f }
+		);
+
+		textJPDrawer_->SetScale(0.9f);
+		textJPDrawer_->SetColor({ 1.0f, 1.0f, 1.0f, 1.0f });
+		textJPDrawer_->DrawTextCentered(
+			"始まりの平原",
+			{ context_.screenWidth * 0.5f, context_.screenHeight - 120.0f }
+		);
+
+		textLatinDrawer_->SetScale(0.7f);
+		textLatinDrawer_->SetColor({ 0.85f, 0.90f, 1.0f, 1.0f });
+		textLatinDrawer_->DrawTextCentered(
+			"WAVE",
+			{ context_.screenWidth * 0.5f, context_.screenHeight - 84.0f }
+		);
+	}
 }
 
 /// -------------------------------------------------------------
@@ -98,30 +163,40 @@ void StageSelectScene::Draw2DSprites()
 /// -------------------------------------------------------------
 void StageSelectScene::Finalize()
 {
-	// 1) ステートを確実に抜ける（ステート側で何か掴んでる可能性がある）
-	if (currentState_) {
+	if (textJPDrawer_)
+	{
+		textJPDrawer_->Finalize();
+		textJPDrawer_.reset();
+	}
+
+	if (textLatinDrawer_)
+	{
+		textLatinDrawer_->Finalize();
+		textLatinDrawer_.reset();
+	}
+
+	isTextReady_ = false;
+
+	if (currentState_)
+	{
 		currentState_->Exit(this);
 	}
 	currentState_.reset();
 
-	// 2) セレクタを確実に抜ける
-	// activeSelector_ は gridSelector_.get() の生ポインタなので、先に OnExit してから所有側を破棄
-	if (activeSelector_) {
+	if (activeSelector_)
+	{
 		activeSelector_->OnExit();
 	}
 	activeSelector_ = nullptr;
 	gridSelector_.reset();
 
-	// 3) スプライト解放
 	bg_.reset();
 
-	// 4) データや参照を整理（任意だけど安全）
 	stages_.clear();
 	pendingUnlockIndex_ = -1;
 	nextScene_ = NextScene::None;
 	state_ = State::Selecting;
 
-	// 依存注入ポインタは最後に切る
 	input_ = nullptr;
 	dxCommon_ = nullptr;
 }
@@ -186,13 +261,72 @@ bool StageSelectScene::IsReadyToStartUncover() const
 /// -------------------------------------------------------------
 void StageSelectScene::InitializeStages()
 {
-	// ステージ配列の生成
 	stages_.clear();
-	stages_.push_back({ 0u, "始まりの森",	  "Effects/white.dds", false, 0u, { 0.18f, 0.49f, 0.20f, 1.0f } });
-	stages_.push_back({ 1u, "廃鉱山",		  "Effects/white.dds", true,  0u, { 0.43f, 0.30f, 0.25f, 1.0f } });
-	stages_.push_back({ 2u, "工業地帯",		  "Effects/white.dds", true,  0u, { 0.96f, 0.49f, 0.00f, 1.0f } });
-	stages_.push_back({ 3u, "朽ちた果てた街", "Effects/white.dds", true,  0u, { 0.37f, 0.35f, 0.49f, 1.0f } });
-	stages_.push_back({ 4u, "港湾ターミナル", "Effects/white.dds", true,  0u, { 0.08f, 0.40f, 0.75f, 1.0f } });
+
+	stages_.push_back({
+		0u,
+		"始まりの平原",
+		"WAVE",
+		"UI/StageSelect/stage01.dds",
+		"基本戦闘を学ぶウェーブ制ステージ",
+		"",
+		false,
+		0u,
+		{ 0.18f, 0.49f, 0.20f, 1.0f },
+		false
+		});
+
+	stages_.push_back({
+		1u,
+		"忘れられた坑道",
+		"SEARCH",
+		"UI/StageSelect/stage02.dds",
+		"ルート探索と装置起動を進める探索ステージ",
+		"Stage 1 クリアで解放",
+		true,
+		0u,
+		{ 0.43f, 0.30f, 0.25f, 1.0f },
+		false
+		});
+
+	stages_.push_back({
+		2u,
+		"旧防衛拠点",
+		"DEFENSE",
+		"UI/StageSelect/stage03.dds",
+		"波状攻撃から拠点を守り抜く防衛ステージ",
+		"Stage 2 クリアで解放",
+		true,
+		0u,
+		{ 0.25f, 0.38f, 0.62f, 1.0f },
+		false
+		});
+
+	stages_.push_back({
+		3u,
+		"崩落都市圏",
+		"ESCAPE",
+		"UI/StageSelect/stage04.dds",
+		"敵をかわしながら出口を目指す脱出ステージ",
+		"Stage 3 クリアで解放",
+		true,
+		0u,
+		{ 0.60f, 0.32f, 0.22f, 1.0f },
+		false
+		});
+
+	stages_.push_back({
+		4u,
+		"中枢制御塔",
+		"BOSS",
+		"UI/StageSelect/stage05.dds",
+		"最終ボスとの決戦に挑む最終ステージ",
+		"Stage 4 クリアで解放",
+		true,
+		0u,
+		{ 0.45f, 0.18f, 0.18f, 1.0f },
+		false
+		});
 }
 
 /// -------------------------------------------------------------
@@ -240,7 +374,8 @@ void StageSelectScene::InitializeBackground()
 	// 保存済みステージ情報を反映
 	auto& repo = StageRepository::GetInstance();
 	const auto& saved = repo.GetStages();
-	if (!saved.empty() && saved.size() == stages_.size()) {
+	if (!saved.empty() && saved.size() == stages_.size())
+	{
 		stages_ = saved;
 	}
 
@@ -275,15 +410,18 @@ void StageSelectScene::InitializeBackground()
 
 	activeSelector_ = gridSelector_.get();
 
-	if (startIndex >= 0 && startIndex < (int)stages_.size()) {
+	if (startIndex >= 0 && startIndex < (int)stages_.size())
+	{
 		activeSelector_->FocusToIndex(startIndex, false);
 
-		if (stages_[startIndex].justUnlocked) {
+		if (stages_[startIndex].justUnlocked)
+		{
 			pendingUnlockIndex_ = startIndex; // ← フェード完了後に再生する
 		}
 
 		bgNow_ = bgTarget_ = stages_[startIndex].color;
-		if (bg_) {
+		if (bg_)
+		{
 			bg_->SetColor(bgNow_);
 			bg_->Update();
 		}

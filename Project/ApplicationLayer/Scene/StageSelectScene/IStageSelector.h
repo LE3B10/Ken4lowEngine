@@ -11,13 +11,16 @@ namespace Ken4lowEngine { class Input; }
 /// ---------- シーン側から渡す共有コンテキスト ---------- ///
 struct StageInfo
 {
-	uint32_t id = {};			  // ステージID
-	std::string name;			  // ステージ名
-	std::string thumbPath;		  // サムネイル画像パス
-	bool locked = false;		  // ロックされているかどうか
-	uint32_t startsCompleted = 0; // クリア済みスター数
-	K4E::Vector4 color = { 1,1,1,1 };  // ステージカラー（背景用）
-	bool justUnlocked = false;    // 今回アンロックされたかどうか
+	uint32_t id = {};                 // ステージID
+	std::string name;                 // ステージ名
+	std::string category;             // WAVE / SEARCH / DEFENSE / ESCAPE / BOSS
+	std::string thumbPath;            // サムネイル画像パス
+	std::string description;          // ステージ説明
+	std::string unlockCondition;      // 解放条件
+	bool locked = false;              // ロックされているかどうか
+	uint32_t startsCompleted = 0;     // クリア済みスター数
+	K4E::Vector4 color = { 1,1,1,1 }; // ステージカラー（背景用）
+	bool justUnlocked = false;        // 今回アンロックされたかどうか
 };
 
 /// ---------- コンテキスト ---------- ///

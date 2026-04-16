@@ -171,14 +171,14 @@ bool FontConverter::ConvertFont(const std::wstring& filePath, int numOptions, wc
 	SaveAtlasAsPgm(atlasPgmPath.wstring(), atlas);
 	SaveGlyphBitmapAsPgm(glyphBitmapPath.wstring(), atlas.glyphs.front());
 
-	SaveGrayImageAsPng(
+	SaveAlphaImageAsPng(
 		atlasPngPath.wstring(),
 		atlas.width,
 		atlas.height,
 		atlas.pixels
 	);
 
-	SaveGrayImageAsPng(
+	SaveAlphaImageAsPng(
 		glyphPngPath.wstring(),
 		atlas.glyphs.front().bitmapWidth,
 		atlas.glyphs.front().bitmapHeight,
@@ -754,11 +754,11 @@ void FontConverter::SaveAtlasAsPgm(const std::wstring& outputPath, const FontAtl
 	);
 }
 
-void FontConverter::SaveGrayImageAsPng(
+void FontConverter::SaveAlphaImageAsPng(
 	const std::wstring& outputPath,
 	int width,
 	int height,
-	const std::vector<std::uint8_t>& pixels
+	const std::vector<std::uint8_t>& alphaPixels
 ) const
 {
 	if (width <= 0 || height <= 0)
@@ -767,13 +767,13 @@ void FontConverter::SaveGrayImageAsPng(
 		return;
 	}
 
-	if (pixels.empty())
+	if (alphaPixels.empty())
 	{
 		std::wcerr << L"[FontConverter] Empty pixel data for png: " << outputPath << L"\n";
 		return;
 	}
 
-	if (pixels.size() != static_cast<size_t>(width * height))
+	if (alphaPixels.size() != static_cast<size_t>(width * height))
 	{
 		std::wcerr << L"[FontConverter] Pixel size mismatch for png: " << outputPath << L"\n";
 		return;
@@ -847,7 +847,7 @@ void FontConverter::SaveGrayImageAsPng(
 		return;
 	}
 
-	WICPixelFormatGUID pixelFormat = GUID_WICPixelFormat8bppGray;
+	WICPixelFormatGUID pixelFormat = GUID_WICPixelFormat32bppRGBA;
 	hr = frame->SetPixelFormat(&pixelFormat);
 	if (FAILED(hr))
 	{
@@ -855,20 +855,26 @@ void FontConverter::SaveGrayImageAsPng(
 		return;
 	}
 
-	if (pixelFormat != GUID_WICPixelFormat8bppGray)
+	std::vector<std::uint8_t> rgbaPixels(static_cast<size_t>(width * height * 4), 0);
+
+	for (int i = 0; i < width * height; ++i)
 	{
-		std::wcerr << L"[FontConverter] WIC changed pixel format. 8bppGray was not accepted.\n";
-		return;
+		const std::uint8_t a = alphaPixels[static_cast<size_t>(i)];
+
+		rgbaPixels[static_cast<size_t>(i * 4 + 0)] = 255; // R
+		rgbaPixels[static_cast<size_t>(i * 4 + 1)] = 255; // G
+		rgbaPixels[static_cast<size_t>(i * 4 + 2)] = 255; // B
+		rgbaPixels[static_cast<size_t>(i * 4 + 3)] = a;   // A
 	}
 
-	const UINT stride = static_cast<UINT>(width);
-	const UINT imageSize = static_cast<UINT>(pixels.size());
+	const UINT stride = static_cast<UINT>(width * 4);
+	const UINT imageSize = static_cast<UINT>(rgbaPixels.size());
 
 	hr = frame->WritePixels(
 		static_cast<UINT>(height),
 		stride,
 		imageSize,
-		const_cast<BYTE*>(reinterpret_cast<const BYTE*>(pixels.data()))
+		reinterpret_cast<BYTE*>(rgbaPixels.data())
 	);
 	if (FAILED(hr))
 	{
@@ -890,5 +896,5 @@ void FontConverter::SaveGrayImageAsPng(
 		return;
 	}
 
-	std::wcout << L"[FontConverter] PNG write success: " << outputPath << L"\n";
+	std::wcout << L"[FontConverter] Alpha PNG write success: " << outputPath << L"\n";
 }

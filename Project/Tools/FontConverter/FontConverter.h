@@ -28,11 +28,11 @@ private:
 	void SaveGlyphBitmapAsPgm(const std::wstring& outputPath, const RasterizedGlyph& glyph) const;
 	void SaveAtlasAsPgm(const std::wstring& outputPath, const FontAtlas& atlas) const;
 
-	void SaveGrayImageAsPng(
+	void SaveAlphaImageAsPng(
 		const std::wstring& outputPath,
 		int width,
 		int height,
-		const std::vector<std::uint8_t>& pixels
+		const std::vector<std::uint8_t>& alphaPixels
 	) const;
 
 	std::wstring MakeOutputBaseName(const std::wstring& inputFilePath) const;

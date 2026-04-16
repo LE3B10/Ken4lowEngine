@@ -14,17 +14,76 @@ namespace
 	std::vector<StageInfo> BuildDefaultStages()
 	{
 		std::vector<StageInfo> stages;
-		stages.push_back({ 0u, "始まりの森",      "Effects/white.dds", false, 0u, { 0.18f, 0.49f, 0.20f, 1.0f } });
-		stages.push_back({ 1u, "廃鉱山",          "Effects/white.dds", true,  0u, { 0.43f, 0.30f, 0.25f, 1.0f } });
-		stages.push_back({ 2u, "工業地帯",        "Effects/white.dds", true,  0u, { 0.96f, 0.49f, 0.00f, 1.0f } });
-		stages.push_back({ 3u, "朽ちた果てた街",  "Effects/white.dds", true,  0u, { 0.37f, 0.35f, 0.49f, 1.0f } });
-		stages.push_back({ 4u, "港湾ターミナル",  "Effects/white.dds", true,  0u, { 0.08f, 0.40f, 0.75f, 1.0f } });
+		stages.push_back({
+		0u,
+		"始まりの平原",
+		"WAVE",
+		"UI/StageSelect/stage01.dds",
+		"基本戦闘を学ぶウェーブ制ステージ",
+		"",
+		false,
+		0u,
+		{ 0.18f, 0.49f, 0.20f, 1.0f },
+		false
+			});
+
+		stages.push_back({
+			1u,
+			"忘れられた坑道",
+			"SEARCH",
+			"UI/StageSelect/stage02.dds",
+			"ルート探索と装置起動を進める探索ステージ",
+			"Stage 1 クリアで解放",
+			true,
+			0u,
+			{ 0.43f, 0.30f, 0.25f, 1.0f },
+			false
+			});
+
+		stages.push_back({
+			2u,
+			"旧防衛拠点",
+			"DEFENSE",
+			"UI/StageSelect/stage03.dds",
+			"波状攻撃から拠点を守り抜く防衛ステージ",
+			"Stage 2 クリアで解放",
+			true,
+			0u,
+			{ 0.25f, 0.38f, 0.62f, 1.0f },
+			false
+			});
+
+		stages.push_back({
+			3u,
+			"崩落都市圏",
+			"ESCAPE",
+			"UI/StageSelect/stage04.dds",
+			"敵をかわしながら出口を目指す脱出ステージ",
+			"Stage 3 クリアで解放",
+			true,
+			0u,
+			{ 0.60f, 0.32f, 0.22f, 1.0f },
+			false
+			});
+
+		stages.push_back({
+			4u,
+			"中枢制御塔",
+			"BOSS",
+			"UI/StageSelect/stage05.dds",
+			"最終ボスとの決戦に挑む最終ステージ",
+			"Stage 4 クリアで解放",
+			true,
+			0u,
+			{ 0.45f, 0.18f, 0.18f, 1.0f },
+			false
+			});
 		return stages;
 	}
 
 	bool IsPlayerSpawnType(const std::string& type) { return type == "PlayerSpawnPoint"; }
-	bool IsEnemySpawnType(const std::string& type)  { return type == "EnemySpawnPoint"; }
-	bool IsBossSpawnType(const std::string& type)   { return type == "BossSpawnPoint"; }
+	bool IsEnemySpawnType(const std::string& type) { return type == "EnemySpawnPoint"; }
+	bool IsBossSpawnType(const std::string& type) { return type == "BossSpawnPoint"; }
 
 	bool IsDevicePointType(const std::string& type) { return type == "DevicePoint"; }
 	bool IsDefenseTargetPointType(const std::string& type) { return type == "DefenseTargetPoint"; }
@@ -297,9 +356,9 @@ void GamePlayStageContext::SetupWaves(WaveManager* waveManager) const
 
 		for (int i = 0; i < maxWave; ++i)
 		{
-			if (i == 0)      { waves[static_cast<size_t>(i)].delayBeforeSpawnSec = 0.0f; }
+			if (i == 0) { waves[static_cast<size_t>(i)].delayBeforeSpawnSec = 0.0f; }
 			else if (i == 1) { waves[static_cast<size_t>(i)].delayBeforeSpawnSec = 2.0f; }
-			else             { waves[static_cast<size_t>(i)].delayBeforeSpawnSec = 2.5f; }
+			else { waves[static_cast<size_t>(i)].delayBeforeSpawnSec = 2.5f; }
 		}
 
 		for (const auto& spawn : enemySpawnInfos_)
