@@ -68,7 +68,7 @@ namespace Ken4lowEngine
 		ImGui::DragFloat3("Position", &worldTransform_.translate_.x, 0.01f);
 		ImGui::DragFloat3("Rotation", &worldTransform_.rotate_.x, 0.005f);
 
-		// 追加: 投影の基本パラメータ
+		// 投影の基本パラメータ
 		float fovDeg = fovY_ * 180.0f / std::numbers::pi_v<float>;
 		if (ImGui::SliderFloat("FOV (deg)", &fovDeg, 40.0f, 100.0f, "%.1f")) {
 			fovY_ = fovDeg * std::numbers::pi_v<float> / 180.0f;
@@ -99,6 +99,31 @@ namespace Ken4lowEngine
 		// ローカルZ+方向を前方向として回転を適用
 		Vector3 forward = Vector3::Transform({ 0.0f, 0.0f, 1.0f }, rotMat);
 		return Vector3::Normalize(forward); // 念のため正規化
+	}
+
+	void Camera::SetForward(const Vector3& forward)
+	{
+		Vector3 f = forward;
+		const float lenSq = f.x * f.x + f.y * f.y + f.z * f.z;
+		if (lenSq <= 0.000001f)
+		{
+			return;
+		}
+
+		f = Vector3::Normalize(f);
+
+		// yaw
+		worldTransform_.rotate_.y = std::atan2(-f.x, f.z);
+
+		// pitch
+		const float xzLen = std::sqrt(f.x * f.x + f.z * f.z);
+		worldTransform_.rotate_.x = std::atan2(-f.y, xzLen);
+
+		// roll は維持しない
+		worldTransform_.rotate_.z = 0.0f;
+
+		// target も前方へ更新しておく
+		target_ = worldTransform_.translate_ + f;
 	}
 
 } // namespace Ken4lowEngine

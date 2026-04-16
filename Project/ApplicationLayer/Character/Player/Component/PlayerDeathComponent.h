@@ -74,4 +74,9 @@ private:
 
 	bool gameOverReady_ = false;
 	bool gameOverNotified_ = false;
+
+private:
+	K4E::Vector3 deathCameraPos_{ 0.0f, 0.0f, 0.0f };
+	K4E::Vector3 deathLookTarget_{ 0.0f, 0.0f, 0.0f };
+	bool useFixedDeathCamera_ = true;
 };

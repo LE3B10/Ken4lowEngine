@@ -91,7 +91,7 @@ public: /// ---------- アクセッサ ---------- ///
 	PartIndices& GetPartIndices() { return partIndices_; }
 	const PartIndices& GetPartIndices() const { return partIndices_; }
 
-protected: /// ---------- メンバ関数 ---------- ///
+public: /// ---------- メンバ関数 ---------- ///
 
 	// 体幹部位の描画/非描画設定
 	void SetBodyActive(bool a) { body_.active = a; }

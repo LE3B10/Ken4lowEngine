@@ -155,6 +155,7 @@ public: /// ---------- ゲッター ---------- ///
 	/// ローカル Z+ を前方向とみなし、現在の回転行列を適用して正規化したベクトルを返します。
 	/// </summary>
 	Vector3 GetForward() const;
+	void SetForward(const Vector3& forward);
 
 	/// <summary>
 	/// 垂直方向視野角(FoV Y)を取得します（ラジアン）。

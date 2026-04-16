@@ -37,6 +37,10 @@ void PlayerDeathComponent::Start(
 	}
 	weaponVisual.ForceRefresh();
 
+	// 一人称で隠していた本体パーツを全部戻す
+	owner.SetBodyActive(true);
+	owner.SetAllPartsActive(true);
+
 	auto* tr = owner.GetWorldTransform();
 	if (!tr)
 	{
@@ -57,10 +61,16 @@ void PlayerDeathComponent::Start(
 		launchDir_ = K4E::Vector3::Normalize(launchDir_);
 	}
 
-	velocity_ = launchDir_ * launchHorizontal_ + K4E::Vector3{ 0.0f, launchUp_, 0.0f };
+	velocity_ = launchDir_ * (launchHorizontal_ * 3.0f) + K4E::Vector3{ 0.0f, launchUp_ * 1.2f, 0.0f };
 
 	runCarry = false;
 	view.SetAiming(false);
+
+	if (auto* cam = view.GetCamera())
+	{
+		deathCameraPos_ = cam->GetTranslate();
+		deathLookTarget_ = owner.GetWorldTransform()->translate_;
+	}
 
 	const float rollSign = (launchDir_.x >= 0.0f) ? -1.0f : 1.0f;
 	view.StartDeathCamera(-maxPitchRad_, maxRollRad_ * rollSign);
@@ -122,9 +132,31 @@ void PlayerDeathComponent::Update(
 
 	owner.SetCenterPosition(tr->translate_);
 
-	view.BindBodyTransform(tr);
-	view.SyncToPlayer();
-	view.SyncViewModeToFirstPersonFlag();
+	if (useFixedDeathCamera_)
+	{
+		if (auto* cam = view.GetCamera())
+		{
+			deathLookTarget_ = tr->translate_;
+
+			K4E::Vector3 toTarget = deathLookTarget_ - deathCameraPos_;
+			if (K4E::Vector3::Length(toTarget) > 0.0001f)
+			{
+				toTarget = K4E::Vector3::Normalize(toTarget);
+			}
+
+			// ここは Camera 側APIに合わせて調整
+			cam->SetTranslate(deathCameraPos_);
+
+			// もし LookAt 系APIがあるならそれを使う
+			cam->SetForward(toTarget);
+		}
+	}
+	else
+	{
+		view.BindBodyTransform(tr);
+		view.SyncToPlayer();
+		view.SyncViewModeToFirstPersonFlag();
+	}
 
 	weaponVisual.Update(deltaTime, false);
 	hurtbox.Sync(owner);
