@@ -243,6 +243,21 @@ void PlayerViewComponent::AddDamageFeedback(float strength01)
 	vmKickUp_ = std::clamp(vmKickUp_, 0.0f, vmKickMaxUp_);
 }
 
+void PlayerViewComponent::SetFirstPersonLeftArmVisible(bool visible)
+{
+	if (fpShowLeftArm_ == visible) return;
+
+	fpShowLeftArm_ = visible;
+
+	if (isFirstPersonView_) ApplyFirstPersonRenderFlags();
+}
+
+void PlayerViewComponent::StartMeleeSwing()
+{
+	meleeSwingActive_ = true;
+	meleeSwingTimer_ = 0.0f;
+}
+
 void PlayerViewComponent::StartDeathCamera(float targetPitchRad, float targetRollRad)
 {
 	deathCameraActive_ = true;
@@ -281,7 +296,6 @@ void PlayerViewComponent::ClearDeathCamera()
 
 void PlayerViewComponent::ApplyFirstPersonRenderFlags()
 {
-	// hooks 未設定なら何もしない（Player側がBindする）
 	if (!fpHooks_.SetBodyActive || !fpHooks_.SetAllPartsActive || !fpHooks_.SetPartActive
 		|| !fpHooks_.GetLeftArmIndex || !fpHooks_.GetRightArmIndex)
 	{
@@ -296,7 +310,7 @@ void PlayerViewComponent::ApplyFirstPersonRenderFlags()
 		const int l = fpHooks_.GetLeftArmIndex();
 		const int r = fpHooks_.GetRightArmIndex();
 
-		if (l >= 0) fpHooks_.SetPartActive(l, true);
+		if (l >= 0) fpHooks_.SetPartActive(l, fpShowLeftArm_);
 		if (r >= 0) fpHooks_.SetPartActive(r, true);
 	}
 	else
@@ -328,14 +342,11 @@ void PlayerViewComponent::UpdateFirstPersonArmPose(float dt)
 
 	const float t = Clamp01(armBlend_);
 
-	// 発射時の見た目反動（腕/武器キック）を更新
 	UpdateRecoilViewModelKick(dt);
 
-	// Keep shoulder position fixed (+ 見た目反動の位置キック)
 	leftArmTr_->translate_ = baseLeftPos_;
 	rightArmTr_->translate_ = baseRightPos_;
 
-	// 両腕を少し後ろ＆上に引く。左右で少しだけズラすと自然に見える。
 	leftArmTr_->translate_.z -= vmKickBack_ * 0.90f;
 	rightArmTr_->translate_.z -= vmKickBack_ * 1.05f;
 	leftArmTr_->translate_.y += vmKickUp_ * 0.90f;
@@ -343,22 +354,89 @@ void PlayerViewComponent::UpdateFirstPersonArmPose(float dt)
 	leftArmTr_->translate_.x -= vmKickYaw_ * 0.010f;
 	rightArmTr_->translate_.x -= vmKickYaw_ * 0.018f;
 
-	// Blend aim rotation, then add camera pitch.
 	K4E::Vector3 lrot = Lerp(baseLeftRot_, aimLeftRot_, t);
 	K4E::Vector3 rrot = Lerp(baseRightRot_, aimRightRot_, t);
 
-	// IMPORTANT:
-	// In this engine, body yaw uses rotate_.y.
-	// Usually pitch is rotate_.x. If your pitch axis differs, change x -> z etc.
-	const float pitchAdd = camPitch_ * armPitchFollow_;
-	lrot.x += pitchAdd + vmKickPitch_ * 0.85f;
-	rrot.x += pitchAdd + vmKickPitch_ * 1.00f;
+	// カメラのピッチ追従
+	lrot.x += camPitch_ * armPitchFollow_;
+	rrot.x += camPitch_ * armPitchFollow_;
 
-	// 上半身の見た目反動（左右/ロール）
-	lrot.y += vmKickYaw_ * 0.45f;
-	rrot.y += vmKickYaw_ * 0.90f;
-	lrot.z += vmKickRoll_ * 0.35f;
-	rrot.z += vmKickRoll_ * 0.80f;
+	// 通常の見た目反動
+	lrot.x += vmKickPitch_ * 0.75f;
+	lrot.y += vmKickYaw_ * 0.35f;
+	lrot.z += vmKickRoll_ * 0.60f;
+
+	rrot.x += vmKickPitch_;
+	rrot.y += vmKickYaw_;
+	rrot.z += vmKickRoll_;
+
+	// -----------------------------
+	// 近接スイング
+	// -----------------------------
+	if (meleeSwingActive_)
+	{
+		meleeSwingTimer_ += dt;
+		float nt = meleeSwingTimer_ / meleeSwingDuration_;
+		nt = std::clamp(nt, 0.0f, 1.0f);
+
+		// 0.0-0.2: 溜め
+		// 0.2-0.65: 振り
+		// 0.65-1.0: 戻し
+		float windup = 0.0f;
+		float slash = 0.0f;
+		float recover = 0.0f;
+
+		if (nt < 0.2f)
+		{
+			windup = nt / 0.2f;
+		}
+		else if (nt < 0.65f)
+		{
+			slash = (nt - 0.2f) / 0.45f;
+		}
+		else
+		{
+			recover = (nt - 0.65f) / 0.35f;
+		}
+
+		// 溜め
+		if (windup > 0.0f)
+		{
+			rrot.x += DegToRad(18.0f) * windup;
+			rrot.y += DegToRad(10.0f) * windup;
+			rrot.z += DegToRad(12.0f) * windup;
+
+			rightArmTr_->translate_.x += 0.04f * windup;
+			rightArmTr_->translate_.y += 0.02f * windup;
+			rightArmTr_->translate_.z -= 0.03f * windup;
+		}
+
+		// 振り
+		if (slash > 0.0f)
+		{
+			const float s = std::sin(slash * std::numbers::pi_v<float>);
+
+			rrot.x -= DegToRad(meleeSwingPitchDeg_) * s;
+			rrot.y -= DegToRad(meleeSwingYawDeg_) * s;
+			rrot.z -= DegToRad(meleeSwingRollDeg_) * s;
+
+			rightArmTr_->translate_.x += meleeSwingRight_ * s;
+			rightArmTr_->translate_.y -= meleeSwingDown_ * s;
+			rightArmTr_->translate_.z += meleeSwingForward_ * s;
+		}
+
+		// 戻し
+		if (recover > 0.0f)
+		{
+			// 特別なことはせず、通常姿勢へ戻る補間に任せる
+		}
+
+		if (nt >= 1.0f)
+		{
+			meleeSwingActive_ = false;
+			meleeSwingTimer_ = 0.0f;
+		}
+	}
 
 	leftArmTr_->rotate_ = lrot;
 	rightArmTr_->rotate_ = rrot;

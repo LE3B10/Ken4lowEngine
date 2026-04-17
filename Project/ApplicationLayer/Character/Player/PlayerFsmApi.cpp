@@ -46,13 +46,22 @@ void Player::FSM_FireOnce()
 
 bool Player::FSM_IsMeleeFinished() const
 {
-	// 近接をまだ未実装なら true のままでOK
-	return true;
+	return melee_.IsFinished();
 }
 
 void Player::FSM_StartMelee()
 {
-	// 近接をまだ未実装なら空でもOK
+	view_.SetAiming(false);
+	weaponController_.CancelReloadOnly();
+
+	// まずは近接中だけ左腕を隠す
+	view_.SetFirstPersonLeftArmVisible(false);
+	view_.StartMeleeSwing();
+
+	if (auto* tr = GetWorldTransform())
+	{
+		melee_.StartAttack(tr->translate_);
+	}
 }
 
 void Player::FSM_SetStunned(bool /*on*/)

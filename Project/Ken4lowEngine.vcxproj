@@ -412,6 +412,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClCompile Include="Engine\Graphics\Renderer\Object3D\Object3DPipelineSet.cpp" />
     <ClCompile Include="Engine\Graphics\Renderer\Sprite\FontAtlasLoader.cpp" />
     <ClCompile Include="Engine\Graphics\Renderer\Sprite\TextSpriteDrawer.cpp" />
+    <ClCompile Include="ApplicationLayer\Character\Player\Component\PlayerMeleeComponent.cpp" />
     <ClCompile Include="WinMain.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
@@ -1036,6 +1037,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="Engine\Graphics\Renderer\Object3D\Object3DPipelineSet.h" />
     <ClInclude Include="Engine\Graphics\Renderer\Sprite\FontAtlasLoader.h" />
     <ClInclude Include="Engine\Graphics\Renderer\Sprite\TextSpriteDrawer.h" />
+    <ClInclude Include="ApplicationLayer\Character\Player\Component\PlayerMeleeComponent.h" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="externals\DirectXTex\DirectXTex_Desktop_2022_Win10.vcxproj">

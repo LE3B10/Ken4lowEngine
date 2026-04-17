@@ -69,7 +69,7 @@ struct EnemyTuning
 	// ----------------------------------------------------------
 	float bulletSpeed = 80.0f;   // 弾速
 	float bulletLifeSec = 2.0f;  // 弾寿命
-	int   bulletDamage = 1;      // 1発ダメージ
+	int   bulletDamage = 50;      // 1発ダメージ
 
 	// ----------------------------------------------------------
 	// 耐久

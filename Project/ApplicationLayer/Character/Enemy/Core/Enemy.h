@@ -150,7 +150,7 @@ private: /// ---------- メンバ変数 ---------- ///
 	float fireInterval_ = 0.35f;
 	float bulletSpeed_ = 18.0f;
 	float bulletLifeSec_ = 3.0f;
-	int   bulletDamage_ = 1;
+	int   bulletDamage_ = 50;
 	float muzzleHeight_ = 1.2f;
 
 	// stun request

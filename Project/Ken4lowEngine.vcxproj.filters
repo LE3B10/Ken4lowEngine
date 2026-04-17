@@ -793,6 +793,7 @@
     <ClCompile Include="ApplicationLayer\UISystem\ControlGuideUI\ControlGuideUI.cpp">
       <Filter>ApplicationLayer\UISystem\ControlGuideUI</Filter>
     </ClCompile>
+    <ClCompile Include="ApplicationLayer\Character\Player\Component\PlayerMeleeComponent.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ApplicationLayer\UISystem\Crosshair\Crosshair.h">
@@ -1671,6 +1672,7 @@
     <ClInclude Include="ApplicationLayer\UISystem\ControlGuideUI\ControlGuideUI.h">
       <Filter>ApplicationLayer\UISystem\ControlGuideUI</Filter>
     </ClInclude>
+    <ClInclude Include="ApplicationLayer\Character\Player\Component\PlayerMeleeComponent.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Resources\Shaders\PostEffect\FullScreen.hlsli">

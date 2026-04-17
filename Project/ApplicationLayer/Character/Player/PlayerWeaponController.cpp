@@ -107,3 +107,8 @@ void PlayerWeaponController::TryCancelReloadAndRestoreCombat(const InputSnapshot
 		brain_->GetBrain().combat.Change(cancelCtx, snap.aimHeld ? CombatId::Aim : CombatId::Hip);
 	}
 }
+
+bool PlayerWeaponController::IsCurrentWeaponMelee() const
+{
+	return false;
+}

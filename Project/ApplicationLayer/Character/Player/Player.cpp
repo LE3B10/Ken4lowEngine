@@ -120,6 +120,12 @@ void Player::Initialize()
 	weaponController_.Initialize(&weapon_, &weaponVisual_, &brainComponent_, &api_);
 	combat_.BindDependencies(&weapon_, &view_);
 	combat_.SetAudioCallbacks(&audio_.onFire, &audio_.onReload);
+
+	// 近接
+	melee_.BindDependencies(&view_, refs_.collisionManager);
+
+	// 近接のヒットコールバックをセット
+	melee_.SetOnHitCallback([this]() { this->NotifyEnemyHitUI(false); });
 }
 
 void Player::BindDependencies(const PlayerDependencies& deps)
@@ -136,6 +142,8 @@ void Player::BindDependencies(const PlayerDependencies& deps)
 	{
 		view_.SetShootCamera(deps.shootCamera);
 	}
+
+	melee_.BindDependencies(&view_, refs_.collisionManager);
 }
 
 /// -------------------------------------------------------------
@@ -163,6 +171,7 @@ void Player::Update(float deltaTime)
 
 	damage_.Tick(deltaTime);
 	combat_.Tick(deltaTime);
+	melee_.Tick(deltaTime, GetWorldTransform()->translate_);
 
 	UpdateInputAndWeapon(deltaTime);
 	UpdateBrain(deltaTime);
@@ -389,6 +398,8 @@ void Player::SyncViewAfterMovement(const MovementContext& /*ctx*/, float /*delta
 
 void Player::UpdatePresentation(float deltaTime)
 {
+	view_.SetFirstPersonLeftArmVisible(!IsCurrentWeaponMeleeForView());
+
 	weaponVisual_.Update(deltaTime, inputSnap_.aimHeld);
 	SyncHurtboxes();
 	vfx_.Update(deltaTime);
@@ -654,4 +665,10 @@ void Player::ApplyDamageFeedback(const PlayerDamageComponent::DamageFeedback& fb
 			refs_.hudManager->NotifyPlayerHit(fb.hitStrength01);
 		}
 	}
+}
+
+bool Player::IsCurrentWeaponMeleeForView() const
+{
+	// 例: 近接武器がスロット2に入っている場合
+	return weapon_.GetSelectedHot_barIndex() == 2;
 }

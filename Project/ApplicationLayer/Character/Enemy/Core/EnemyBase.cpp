@@ -345,7 +345,7 @@ void EnemyBase::DrawShadow()
 void EnemyBase::TakeDamage(int amount)
 {
 	// 方向なしは「最後に当たった方向」更新しない（= 既存挙動を壊さない）
-	TakeDamage(amount, { 0.0f, 0.0f, 0.0f }, 1.0f);
+	TakeDamage(amount, { 0.0f, 0.0f, 0.0f }, 50);
 }
 
 /// -------------------------------------------------------------
@@ -382,6 +382,16 @@ void EnemyBase::TakeDamage(int amount, const Vector3& hitDir, float hitPower)
 void EnemyBase::SetGlobalStageWorldAABBs(const std::vector<K4E::AABB>* aabbs)
 {
 	g_worldAABBs_ = aabbs;
+}
+
+void EnemyBase::SpawnHitEffectAt(const K4E::Vector3& worldPos)
+{
+	if (!particleEffectSystem_)
+	{
+		return;
+	}
+
+	particleEffectSystem_->SpawnHitEffect(worldPos);
 }
 
 /// -------------------------------------------------------------

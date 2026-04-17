@@ -93,6 +93,10 @@ public: /// ---------- メンバ関数 ---------- ///
 
 	void AddDamageFeedback(float strength01);
 
+	void SetFirstPersonLeftArmVisible(bool visible);
+	void StartMeleeSwing();
+	bool IsMeleeSwingActive() const { return meleeSwingActive_; }
+
 public:
 
 	void StartDeathCamera(float targetPitchRad, float targetRollRad);
@@ -197,6 +201,21 @@ private: /// ---------- メンバ変数 ---------- ///
 	float vmKickMaxRollDeg_ = 10.0f;
 	float vmKickMaxBack_ = 0.08f;
 	float vmKickMaxUp_ = 0.04f;
+
+	bool fpShowLeftArm_ = true;
+
+	// ---- Melee view animation ----
+	bool meleeSwingActive_ = false;
+	float meleeSwingTimer_ = 0.0f;
+	float meleeSwingDuration_ = 0.22f;
+
+	// 調整用
+	float meleeSwingPitchDeg_ = 95.0f;   // 振り下ろし
+	float meleeSwingYawDeg_ = 18.0f;     // 右→左へ少し払う
+	float meleeSwingRollDeg_ = 28.0f;    // 手首のひねり
+	float meleeSwingForward_ = 0.10f;    // 少し前へ
+	float meleeSwingDown_ = 0.10f;       // 少し下へ
+	float meleeSwingRight_ = 0.04f;      // 少し右へ
 
 	// ---- ADS（Aim Down Sights） ----
 	float weaponAdsFovDeg_ = 60.0f;

@@ -31,6 +31,8 @@ public:
 	// リロードを中断しつつ CombatFSM を Hip / Aim に戻す
 	void TryCancelReloadAndRestoreCombat(const InputSnapshot& snap, float deltaTime);
 
+	bool IsCurrentWeaponMelee() const;
+
 private:
 	PlayerWeaponComponent* weapon_ = nullptr;
 	PlayerWeaponVisualComponent* visual_ = nullptr;

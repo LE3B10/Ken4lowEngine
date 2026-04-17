@@ -18,6 +18,7 @@
 #include "PlayerWeaponController.h"
 #include "PlayerCombatComponent.h"
 #include "PlayerDamageComponent.h"
+#include <PlayerMeleeComponent.h>
 #include "WeaponSlot.h"
 
 #include <array>
@@ -252,6 +253,8 @@ private: /// ---------- メンバ関数 ---------- ///
 
 	void ApplyDamageFeedback(const PlayerDamageComponent::DamageFeedback& fb);
 
+	bool IsCurrentWeaponMeleeForView() const;
+
 private: /// ----------メンバ変数 ---------- ///
 
 	PlayerExternalRefs refs_{};
@@ -262,6 +265,7 @@ private: /// ----------メンバ変数 ---------- ///
 	PlayerWeaponVisualComponent weaponVisual_{};
 	PlayerWeaponController weaponController_{};
 	PlayerCombatComponent combat_{};
+	PlayerMeleeComponent melee_{};
 
 	PlayerAPI api_{};
 	PlayerBrainComponent brainComponent_{};

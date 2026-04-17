@@ -134,6 +134,8 @@ public:
 
 	void SetParticleEffectSystem(EnemyParticleEffectSystem* effectSystem) { particleEffectSystem_ = effectSystem; }
 
+	void SpawnHitEffectAt(const K4E::Vector3& worldPos);
+
 protected:
 	// 派生で差し替え可（デフォルトはバラバラ崩壊開始）
 	virtual void OnKilled();
