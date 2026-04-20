@@ -20,6 +20,8 @@ env:
   Mesh_CONVERTER_PROJ: Project/Tools/MeshConverter/MeshConverter.vcxproj
   FONT_CONVERTER_PROJ: Project/Tools/FontConverter/FontConverter.vcxproj
 
+  DIRECTXTEX_PROJ: Project/Externals/DirectXTex/DirectXTex_Desktop_2022_Win10.vcxproj
+
 # ---------- ジョブ ---------- #
 jobs:
   build:
@@ -34,11 +36,11 @@ jobs:
     steps:
       # =========================================================
       # ソース取得
+      # サブモジュールがあるなら一緒に取る
       # =========================================================
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          # サブモジュールを使っている場合に必須
           submodules: recursive
 
       # =========================================================
@@ -59,8 +61,7 @@ jobs:
         run: nuget restore "${{ env.SOLUTION_FILE_PATH }}"
 
       # =========================================================
-      # デバッグ用: ワークスペース確認
-      # 必要なときにログでパス確認しやすくする
+      # デバッグ用: パス確認
       # =========================================================
       - name: Show workspace info
         shell: pwsh
@@ -70,10 +71,38 @@ jobs:
           Write-Host "solution         = ${{ env.SOLUTION_FILE_PATH }}"
           Write-Host "tools dir        = ${{ env.TOOLS_DIR }}"
           Write-Host "scripts dir      = ${{ env.SCRIPTS_DIR }}"
+          Write-Host "directxtex proj  = ${{ env.DIRECTXTEX_PROJ }}"
 
       # =========================================================
-      # 各 Converter を先にビルド
-      # 変換スクリプト実行前に exe を作っておく
+      # DirectXTex を先にビルド
+      # TextureConverter のリンク前に DirectXTex.lib を生成する
+      # =========================================================
+      - name: Build DirectXTex
+        run: >
+          msbuild "${{ env.DIRECTXTEX_PROJ }}"
+          /m
+          /p:Platform=x64
+          /p:Configuration=${{ matrix.configuration }}
+
+      # =========================================================
+      # DirectXTex の出力確認
+      # ここに DirectXTex.lib があるかを見る
+      # =========================================================
+      - name: Show DirectXTex output
+        shell: pwsh
+        run: |
+          $dir = Join-Path $env:GITHUB_WORKSPACE "Generated/outputs/lib/x64/${{ matrix.configuration }}"
+          Write-Host "Check dir: $dir"
+
+          if (Test-Path $dir) {
+            Get-ChildItem $dir -Force
+          }
+          else {
+            Write-Host "Directory not found."
+          }
+
+      # =========================================================
+      # 各 Converter をビルド
       # =========================================================
       - name: Build TextureConverter
         run: >
@@ -98,6 +127,7 @@ jobs:
 
       # =========================================================
       # 各アセット変換スクリプトを実行
+      # 普段ローカルで使っている bat を優先して呼ぶ
       # =========================================================
       - name: Run BuildTextures script
         shell: pwsh
@@ -158,17 +188,17 @@ jobs:
         if: failure()
         shell: pwsh
         run: |
-          Write-Host "===== Project/Tools ====="
-          if (Test-Path "$env:GITHUB_WORKSPACE/Project/Tools") {
-            Get-ChildItem "$env:GITHUB_WORKSPACE/Project/Tools" -Force
+          Write-Host "===== Generated ====="
+          if (Test-Path "$env:GITHUB_WORKSPACE/Generated") {
+            Get-ChildItem "$env:GITHUB_WORKSPACE/Generated" -Recurse -Force | Select-Object -First 300
           }
 
-          Write-Host "===== Project/Generated ====="
-          if (Test-Path "$env:GITHUB_WORKSPACE/Project/Generated") {
-            Get-ChildItem "$env:GITHUB_WORKSPACE/Project/Generated" -Recurse -Force | Select-Object -First 200
+          Write-Host "===== Project/Tools ====="
+          if (Test-Path "$env:GITHUB_WORKSPACE/Project/Tools") {
+            Get-ChildItem "$env:GITHUB_WORKSPACE/Project/Tools" -Recurse -Force | Select-Object -First 300
           }
 
           Write-Host "===== Project/Tools/Intermediate ====="
           if (Test-Path "$env:GITHUB_WORKSPACE/Project/Tools/Intermediate") {
-            Get-ChildItem "$env:GITHUB_WORKSPACE/Project/Tools/Intermediate" -Recurse -Force | Select-Object -First 200
+            Get-ChildItem "$env:GITHUB_WORKSPACE/Project/Tools/Intermediate" -Recurse -Force | Select-Object -First 300
           }
