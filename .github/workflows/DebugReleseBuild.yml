@@ -12,39 +12,163 @@ env:
   # リポジトリのルートディレクトリを基点としたソリューションファイルのパス
   SOLUTION_FILE_PATH: Project/Ken4lowEngine.sln
 
+  # Tools 配下
+  TOOLS_DIR: Project/Tools
+
+  # 各ツールのvcxprojファイルのパス
+  TEXTURE_CONVERTER_PROJ: Project/Tools/TextureConverter/TextureConverter.vcxproj
+  Mesh_CONVERTER_PROJ: Project/Tools/MeshConverter/MeshConverter.vcxproj
+  FONT_CONVERTER_PROJ: Project/Tools/FontConverter/FontConverter.vcxproj
+
 # ---------- ジョブ ---------- #
 jobs:
-  # ---------- デバッグビルドジョブ ---------- #
-  debug-build:
+  build:
+    name: Build (${{ matrix.configuration }})
     runs-on: windows-2022
-    env:
-      CONFIGURATION: Debug
-    steps:
-      - name: CheckOut
-        uses: actions/checkout@v4
 
-      - name: Add MSBuild to PATH
+    strategy:
+      fail-fast: false
+      matrix:
+        configuration: [Debug, Release]
+
+    steps:
+      # =========================================================
+      # ソース取得
+      # =========================================================
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          # サブモジュールを使っている場合に必須
+          submodules: recursive
+
+      # =========================================================
+      # MSBuild / NuGet セットアップ
+      # =========================================================
+      - name: Setup MSBuild
         uses: microsoft/setup-msbuild@v2
-        with: 
+        with:
           msbuild-architecture: x64
 
-      # ---------- デバッグビルド ---------- #
-      - name: Build Debug
-        run: msbuild ${{ env.SOLUTION_FILE_PATH }} /p:Platform=x64 /p:Configuration=${{ env.CONFIGURATION }}
-          
-  # ---------- リリースビルドジョブ ---------- #
-  release-build:
-    runs-on: windows-2022
-    env:
-      CONFIGURATION: Release
-    steps:
-      - name: CheckOut
-        uses: actions/checkout@v4
+      - name: Setup NuGet
+        uses: NuGet/setup-nuget@v2
 
-      - name: Add MSBuild to PATH
-        uses: microsoft/setup-msbuild@v2
-        with: 
-          msbuild-architecture: x64
+      # =========================================================
+      # NuGet 復元
+      # =========================================================
+      - name: Restore NuGet packages
+        run: nuget restore "${{ env.SOLUTION_FILE_PATH }}"
 
-      - name: Build Release
-        run: msbuild ${{ env.SOLUTION_FILE_PATH }} /p:Platform=x64 /p:Configuration=${{ env.CONFIGURATION }}
+      # =========================================================
+      # デバッグ用: ワークスペース確認
+      # 必要なときにログでパス確認しやすくする
+      # =========================================================
+      - name: Show workspace info
+        shell: pwsh
+        run: |
+          Write-Host "github.workspace = $env:GITHUB_WORKSPACE"
+          Write-Host "configuration    = ${{ matrix.configuration }}"
+          Write-Host "solution         = ${{ env.SOLUTION_FILE_PATH }}"
+          Write-Host "tools dir        = ${{ env.TOOLS_DIR }}"
+          Write-Host "scripts dir      = ${{ env.SCRIPTS_DIR }}"
+
+      # =========================================================
+      # 各 Converter を先にビルド
+      # 変換スクリプト実行前に exe を作っておく
+      # =========================================================
+      - name: Build TextureConverter
+        run: >
+          msbuild "${{ env.TEXTURE_CONVERTER_PROJ }}"
+          /m
+          /p:Platform=x64
+          /p:Configuration=${{ matrix.configuration }}
+
+      - name: Build MeshConverter
+        run: >
+          msbuild "${{ env.MESH_CONVERTER_PROJ }}"
+          /m
+          /p:Platform=x64
+          /p:Configuration=${{ matrix.configuration }}
+
+      - name: Build FontConverter
+        run: >
+          msbuild "${{ env.FONT_CONVERTER_PROJ }}"
+          /m
+          /p:Platform=x64
+          /p:Configuration=${{ matrix.configuration }}
+
+      # =========================================================
+      # 各アセット変換スクリプトを実行
+      # =========================================================
+      - name: Run BuildTextures script
+        shell: pwsh
+        run: |
+          $script = Join-Path $env:GITHUB_WORKSPACE "${{ env.SCRIPTS_DIR }}/RunBuildTextures.bat"
+          $projectDir = Join-Path $env:GITHUB_WORKSPACE "Project"
+
+          if (Test-Path $script) {
+            Write-Host "Run: $script"
+            cmd /c "`"$script`" `"$projectDir`" `${{ matrix.configuration }}`"
+          }
+          else {
+            Write-Host "RunBuildTextures.bat not found. Skip."
+          }
+
+      - name: Run BuildMeshes script
+        shell: pwsh
+        run: |
+          $script = Join-Path $env:GITHUB_WORKSPACE "${{ env.SCRIPTS_DIR }}/RunBuildMeshes.bat"
+          $projectDir = Join-Path $env:GITHUB_WORKSPACE "Project"
+
+          if (Test-Path $script) {
+            Write-Host "Run: $script"
+            cmd /c "`"$script`" `"$projectDir`" `${{ matrix.configuration }}`"
+          }
+          else {
+            Write-Host "RunBuildMeshes.bat not found. Skip."
+          }
+
+      - name: Run BuildFonts script
+        shell: pwsh
+        run: |
+          $script = Join-Path $env:GITHUB_WORKSPACE "${{ env.SCRIPTS_DIR }}/RunBuildFonts.bat"
+          $projectDir = Join-Path $env:GITHUB_WORKSPACE "Project"
+
+          if (Test-Path $script) {
+            Write-Host "Run: $script"
+            cmd /c "`"$script`" `"$projectDir`" `${{ matrix.configuration }}`"
+          }
+          else {
+            Write-Host "RunBuildFonts.bat not found. Skip."
+          }
+
+      # =========================================================
+      # 本体ソリューションをビルド
+      # =========================================================
+      - name: Build main solution
+        run: >
+          msbuild "${{ env.SOLUTION_FILE_PATH }}"
+          /m
+          /p:Platform=x64
+          /p:Configuration=${{ matrix.configuration }}
+
+      # =========================================================
+      # 失敗時の確認用
+      # =========================================================
+      - name: Show generated directories
+        if: failure()
+        shell: pwsh
+        run: |
+          Write-Host "===== Project/Tools ====="
+          if (Test-Path "$env:GITHUB_WORKSPACE/Project/Tools") {
+            Get-ChildItem "$env:GITHUB_WORKSPACE/Project/Tools" -Force
+          }
+
+          Write-Host "===== Project/Generated ====="
+          if (Test-Path "$env:GITHUB_WORKSPACE/Project/Generated") {
+            Get-ChildItem "$env:GITHUB_WORKSPACE/Project/Generated" -Recurse -Force | Select-Object -First 200
+          }
+
+          Write-Host "===== Project/Tools/Intermediate ====="
+          if (Test-Path "$env:GITHUB_WORKSPACE/Project/Tools/Intermediate") {
+            Get-ChildItem "$env:GITHUB_WORKSPACE/Project/Tools/Intermediate" -Recurse -Force | Select-Object -First 200
+          }
