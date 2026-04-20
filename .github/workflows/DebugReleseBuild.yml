@@ -12,203 +12,39 @@ env:
   # リポジトリのルートディレクトリを基点としたソリューションファイルのパス
   SOLUTION_FILE_PATH: Project/Ken4lowEngine.sln
 
-  # Tools 配下
-  TOOLS_DIR: Project/Tools
-  SCRIPTS_DIR: Project/Tools/Scripts
-
-  # 各ツールのvcxprojファイルのパス
-  TEXTURE_CONVERTER_PROJ: Project/Tools/TextureConverter/TextureConverter.vcxproj
-  Mesh_CONVERTER_PROJ: Project/Tools/MeshConverter/MeshConverter.vcxproj
-  FONT_CONVERTER_PROJ: Project/Tools/FontConverter/FontConverter.vcxproj
-
-  DIRECTXTEX_PROJ: Project/Externals/DirectXTex/DirectXTex_Desktop_2022_Win10.vcxproj
-
 # ---------- ジョブ ---------- #
 jobs:
-  build:
-    name: Build (${{ matrix.configuration }})
+  # ---------- デバッグビルドジョブ ---------- #
+  debug-build:
     runs-on: windows-2022
-
-    strategy:
-      fail-fast: false
-      matrix:
-        configuration: [Debug, Release]
-
+    env:
+      CONFIGURATION: Debug
     steps:
-      # =========================================================
-      # リポジトリ取得
-      # =========================================================
-      - name: Checkout repository
+      - name: CheckOut
         uses: actions/checkout@v4
-        with:
-          submodules: recursive
 
-      # =========================================================
-      # MSBuild / NuGet
-      # =========================================================
-      - name: Setup MSBuild
+      - name: Add MSBuild to PATH
         uses: microsoft/setup-msbuild@v2
-        with:
+        with: 
           msbuild-architecture: x64
 
-      - name: Setup NuGet
-        uses: NuGet/setup-nuget@v2
+      # ---------- デバッグビルド ---------- #
+      - name: Build Debug
+        run: msbuild ${{ env.SOLUTION_FILE_PATH }} /p:Platform=x64 /p:Configuration=${{ env.CONFIGURATION }}
+          
+  # ---------- リリースビルドジョブ ---------- #
+  release-build:
+    runs-on: windows-2022
+    env:
+      CONFIGURATION: Release
+    steps:
+      - name: CheckOut
+        uses: actions/checkout@v4
 
-      - name: Restore NuGet packages
-        run: nuget restore "${{ env.SOLUTION_FILE_PATH }}"
+      - name: Add MSBuild to PATH
+        uses: microsoft/setup-msbuild@v2
+        with: 
+          msbuild-architecture: x64
 
-      # =========================================================
-      # 確認用ログ
-      # =========================================================
-      - name: Show workspace info
-        shell: pwsh
-        run: |
-          Write-Host "github.workspace = $env:GITHUB_WORKSPACE"
-          Write-Host "configuration    = ${{ matrix.configuration }}"
-          Write-Host "solution         = ${{ env.SOLUTION_FILE_PATH }}"
-          Write-Host "tools dir        = ${{ env.TOOLS_DIR }}"
-          Write-Host "scripts dir      = ${{ env.SCRIPTS_DIR }}"
-          Write-Host "directxtex proj  = ${{ env.DIRECTXTEX_PROJ }}"
-
-      # =========================================================
-      # 1. DirectXTex を先にビルド
-      # TextureConverter のリンク前に DirectXTex.lib を生成
-      # =========================================================
-      - name: Build DirectXTex
-        run: >
-          msbuild "${{ env.DIRECTXTEX_PROJ }}"
-          /m
-          /p:Platform=x64
-          /p:Configuration=${{ matrix.configuration }}
-
-      - name: Show DirectXTex output
-        shell: pwsh
-        run: |
-          $dir = Join-Path $env:GITHUB_WORKSPACE "Generated/outputs/lib/x64/${{ matrix.configuration }}"
-          Write-Host "Check dir: $dir"
-
-          if (Test-Path $dir) {
-            Get-ChildItem $dir -Force
-          }
-          else {
-            Write-Host "Directory not found."
-          }
-
-      # =========================================================
-      # 2. FontConverter をビルド
-      # PostBuildEvent は使わず exe だけ作る
-      # =========================================================
-      - name: Build FontConverter
-        run: >
-          msbuild "${{ env.FONT_CONVERTER_PROJ }}"
-          /m
-          /p:Platform=x64
-          /p:Configuration=${{ matrix.configuration }}
-
-      # =========================================================
-      # 3. TextureConverter をビルド
-      # =========================================================
-      - name: Build TextureConverter
-        run: >
-          msbuild "${{ env.TEXTURE_CONVERTER_PROJ }}"
-          /m
-          /p:Platform=x64
-          /p:Configuration=${{ matrix.configuration }}
-
-      # =========================================================
-      # 4. MeshConverter をビルド
-      # =========================================================
-      - name: Build MeshConverter
-        run: >
-          msbuild "${{ env.MESH_CONVERTER_PROJ }}"
-          /m
-          /p:Platform=x64
-          /p:Configuration=${{ matrix.configuration }}
-
-      # =========================================================
-      # 5. フォント生成
-      # FontConverter で atlas/png/json 等を生成
-      # =========================================================
-      - name: Run BuildTextures script
-        shell: pwsh
-        run: |
-          $script = Join-Path $env:GITHUB_WORKSPACE "${{ env.SCRIPTS_DIR }}/RunBuildTextures.bat"
-          $projectDir = Join-Path $env:GITHUB_WORKSPACE "Project"
-
-          if (Test-Path $script) {
-            Write-Host "Run: $script"
-            & $script $projectDir "${{ matrix.configuration }}"
-          }
-          else {
-            Write-Error "RunBuildTextures.bat not found: $script"
-            exit 1
-          }
-
-      # =========================================================
-      # 6. テクスチャ変換
-      # FontConverter 生成物も含めて dds 化
-      # =========================================================
-      - name: Run BuildMeshes script
-        shell: pwsh
-        run: |
-          $script = Join-Path $env:GITHUB_WORKSPACE "${{ env.SCRIPTS_DIR }}/RunBuildMeshes.bat"
-          $projectDir = Join-Path $env:GITHUB_WORKSPACE "Project"
-
-          if (Test-Path $script) {
-            Write-Host "Run: $script"
-            & $script $projectDir "${{ matrix.configuration }}"
-          }
-          else {
-            Write-Error "RunBuildMeshes.bat not found: $script"
-            exit 1
-          }
-
-      # =========================================================
-      # 7. メッシュ変換
-      # =========================================================
-      - name: Run BuildMeshes script
-        shell: pwsh
-        run: |
-          $script = Join-Path $env:GITHUB_WORKSPACE "${{ env.SCRIPTS_DIR }}/RunBuildMeshes.bat"
-          $projectDir = Join-Path $env:GITHUB_WORKSPACE "Project"
-
-          if (Test-Path $script) {
-            Write-Host "Run: $script"
-            cmd /c "`"$script`" `"$projectDir`" `${{ matrix.configuration }}`"
-          }
-          else {
-            Write-Error "RunBuildMeshes.bat not found: $script"
-            exit 1
-          }
-
-      # =========================================================
-      # 8. 本体ソリューションをビルド
-      # =========================================================
-      - name: Build main solution
-        run: >
-          msbuild "${{ env.SOLUTION_FILE_PATH }}"
-          /m
-          /p:Platform=x64
-          /p:Configuration=${{ matrix.configuration }}
-
-      # =========================================================
-      # 失敗時の確認用
-      # =========================================================
-      - name: Show generated directories
-        if: failure()
-        shell: pwsh
-        run: |
-          Write-Host "===== Generated ====="
-          if (Test-Path "$env:GITHUB_WORKSPACE/Generated") {
-            Get-ChildItem "$env:GITHUB_WORKSPACE/Generated" -Recurse -Force | Select-Object -First 300
-          }
-
-          Write-Host "===== Project/Tools ====="
-          if (Test-Path "$env:GITHUB_WORKSPACE/Project/Tools") {
-            Get-ChildItem "$env:GITHUB_WORKSPACE/Project/Tools" -Recurse -Force | Select-Object -First 300
-          }
-
-          Write-Host "===== Project/Tools/Scripts ====="
-          if (Test-Path "$env:GITHUB_WORKSPACE/Project/Tools/Scripts") {
-            Get-ChildItem "$env:GITHUB_WORKSPACE/Project/Tools/Scripts" -Force
-          }
+      - name: Build Release
+        run: msbuild ${{ env.SOLUTION_FILE_PATH }} /p:Platform=x64 /p:Configuration=${{ env.CONFIGURATION }}
