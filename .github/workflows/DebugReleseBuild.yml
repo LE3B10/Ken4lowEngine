@@ -14,6 +14,7 @@ env:
 
   # Tools 配下
   TOOLS_DIR: Project/Tools
+  SCRIPTS_DIR: Project/Tools/Scripts
 
   # 各ツールのvcxprojファイルのパス
   TEXTURE_CONVERTER_PROJ: Project/Tools/TextureConverter/TextureConverter.vcxproj
@@ -36,7 +37,6 @@ jobs:
     steps:
       # =========================================================
       # リポジトリ取得
-      # サブモジュールがある場合もまとめて取得
       # =========================================================
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -44,7 +44,7 @@ jobs:
           submodules: recursive
 
       # =========================================================
-      # MSBuild / NuGet セットアップ
+      # MSBuild / NuGet
       # =========================================================
       - name: Setup MSBuild
         uses: microsoft/setup-msbuild@v2
@@ -54,9 +54,6 @@ jobs:
       - name: Setup NuGet
         uses: NuGet/setup-nuget@v2
 
-      # =========================================================
-      # NuGet 復元
-      # =========================================================
       - name: Restore NuGet packages
         run: nuget restore "${{ env.SOLUTION_FILE_PATH }}"
 
@@ -75,7 +72,7 @@ jobs:
 
       # =========================================================
       # 1. DirectXTex を先にビルド
-      # TextureConverter のリンク前に DirectXTex.lib を生成する
+      # TextureConverter のリンク前に DirectXTex.lib を生成
       # =========================================================
       - name: Build DirectXTex
         run: >
@@ -84,9 +81,6 @@ jobs:
           /p:Platform=x64
           /p:Configuration=${{ matrix.configuration }}
 
-      # =========================================================
-      # DirectXTex の出力確認
-      # =========================================================
       - name: Show DirectXTex output
         shell: pwsh
         run: |
@@ -102,7 +96,7 @@ jobs:
 
       # =========================================================
       # 2. FontConverter をビルド
-      # フォント画像生成を先に行う前提
+      # PostBuildEvent は使わず exe だけ作る
       # =========================================================
       - name: Build FontConverter
         run: >
@@ -113,7 +107,6 @@ jobs:
 
       # =========================================================
       # 3. TextureConverter をビルド
-      # FontConverter が作った png を後で変換する想定
       # =========================================================
       - name: Build TextureConverter
         run: >
@@ -134,7 +127,7 @@ jobs:
 
       # =========================================================
       # 5. フォント生成
-      # まず FontConverter で png などを生成
+      # FontConverter で atlas/png/json 等を生成
       # =========================================================
       - name: Run BuildFonts script
         shell: pwsh
@@ -147,12 +140,13 @@ jobs:
             cmd /c "`"$script`" `"$projectDir`" `${{ matrix.configuration }}`"
           }
           else {
-            Write-Host "RunBuildFonts.bat not found. Skip."
+            Write-Error "RunBuildFonts.bat not found: $script"
+            exit 1
           }
 
       # =========================================================
       # 6. テクスチャ変換
-      # FontConverter 生成物もここで変換できる想定
+      # FontConverter 生成物も含めて dds 化
       # =========================================================
       - name: Run BuildTextures script
         shell: pwsh
@@ -165,7 +159,8 @@ jobs:
             cmd /c "`"$script`" `"$projectDir`" `${{ matrix.configuration }}`"
           }
           else {
-            Write-Host "RunBuildTextures.bat not found. Skip."
+            Write-Error "RunBuildTextures.bat not found: $script"
+            exit 1
           }
 
       # =========================================================
@@ -182,7 +177,8 @@ jobs:
             cmd /c "`"$script`" `"$projectDir`" `${{ matrix.configuration }}`"
           }
           else {
-            Write-Host "RunBuildMeshes.bat not found. Skip."
+            Write-Error "RunBuildMeshes.bat not found: $script"
+            exit 1
           }
 
       # =========================================================
@@ -212,7 +208,7 @@ jobs:
             Get-ChildItem "$env:GITHUB_WORKSPACE/Project/Tools" -Recurse -Force | Select-Object -First 300
           }
 
-          Write-Host "===== Project/Tools/Intermediate ====="
-          if (Test-Path "$env:GITHUB_WORKSPACE/Project/Tools/Intermediate") {
-            Get-ChildItem "$env:GITHUB_WORKSPACE/Project/Tools/Intermediate" -Recurse -Force | Select-Object -First 300
+          Write-Host "===== Project/Tools/Scripts ====="
+          if (Test-Path "$env:GITHUB_WORKSPACE/Project/Tools/Scripts") {
+            Get-ChildItem "$env:GITHUB_WORKSPACE/Project/Tools/Scripts" -Force
           }
