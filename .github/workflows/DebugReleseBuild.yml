@@ -35,8 +35,8 @@ jobs:
 
     steps:
       # =========================================================
-      # ソース取得
-      # サブモジュールがあるなら一緒に取る
+      # リポジトリ取得
+      # サブモジュールがある場合もまとめて取得
       # =========================================================
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -61,7 +61,7 @@ jobs:
         run: nuget restore "${{ env.SOLUTION_FILE_PATH }}"
 
       # =========================================================
-      # デバッグ用: パス確認
+      # 確認用ログ
       # =========================================================
       - name: Show workspace info
         shell: pwsh
@@ -74,7 +74,7 @@ jobs:
           Write-Host "directxtex proj  = ${{ env.DIRECTXTEX_PROJ }}"
 
       # =========================================================
-      # DirectXTex を先にビルド
+      # 1. DirectXTex を先にビルド
       # TextureConverter のリンク前に DirectXTex.lib を生成する
       # =========================================================
       - name: Build DirectXTex
@@ -86,7 +86,6 @@ jobs:
 
       # =========================================================
       # DirectXTex の出力確認
-      # ここに DirectXTex.lib があるかを見る
       # =========================================================
       - name: Show DirectXTex output
         shell: pwsh
@@ -102,22 +101,9 @@ jobs:
           }
 
       # =========================================================
-      # 各 Converter をビルド
+      # 2. FontConverter をビルド
+      # フォント画像生成を先に行う前提
       # =========================================================
-      - name: Build TextureConverter
-        run: >
-          msbuild "${{ env.TEXTURE_CONVERTER_PROJ }}"
-          /m
-          /p:Platform=x64
-          /p:Configuration=${{ matrix.configuration }}
-
-      - name: Build MeshConverter
-        run: >
-          msbuild "${{ env.MESH_CONVERTER_PROJ }}"
-          /m
-          /p:Platform=x64
-          /p:Configuration=${{ matrix.configuration }}
-
       - name: Build FontConverter
         run: >
           msbuild "${{ env.FONT_CONVERTER_PROJ }}"
@@ -126,37 +112,30 @@ jobs:
           /p:Configuration=${{ matrix.configuration }}
 
       # =========================================================
-      # 各アセット変換スクリプトを実行
-      # 普段ローカルで使っている bat を優先して呼ぶ
+      # 3. TextureConverter をビルド
+      # FontConverter が作った png を後で変換する想定
       # =========================================================
-      - name: Run BuildTextures script
-        shell: pwsh
-        run: |
-          $script = Join-Path $env:GITHUB_WORKSPACE "${{ env.SCRIPTS_DIR }}/RunBuildTextures.bat"
-          $projectDir = Join-Path $env:GITHUB_WORKSPACE "Project"
+      - name: Build TextureConverter
+        run: >
+          msbuild "${{ env.TEXTURE_CONVERTER_PROJ }}"
+          /m
+          /p:Platform=x64
+          /p:Configuration=${{ matrix.configuration }}
 
-          if (Test-Path $script) {
-            Write-Host "Run: $script"
-            cmd /c "`"$script`" `"$projectDir`" `${{ matrix.configuration }}`"
-          }
-          else {
-            Write-Host "RunBuildTextures.bat not found. Skip."
-          }
+      # =========================================================
+      # 4. MeshConverter をビルド
+      # =========================================================
+      - name: Build MeshConverter
+        run: >
+          msbuild "${{ env.MESH_CONVERTER_PROJ }}"
+          /m
+          /p:Platform=x64
+          /p:Configuration=${{ matrix.configuration }}
 
-      - name: Run BuildMeshes script
-        shell: pwsh
-        run: |
-          $script = Join-Path $env:GITHUB_WORKSPACE "${{ env.SCRIPTS_DIR }}/RunBuildMeshes.bat"
-          $projectDir = Join-Path $env:GITHUB_WORKSPACE "Project"
-
-          if (Test-Path $script) {
-            Write-Host "Run: $script"
-            cmd /c "`"$script`" `"$projectDir`" `${{ matrix.configuration }}`"
-          }
-          else {
-            Write-Host "RunBuildMeshes.bat not found. Skip."
-          }
-
+      # =========================================================
+      # 5. フォント生成
+      # まず FontConverter で png などを生成
+      # =========================================================
       - name: Run BuildFonts script
         shell: pwsh
         run: |
@@ -172,7 +151,42 @@ jobs:
           }
 
       # =========================================================
-      # 本体ソリューションをビルド
+      # 6. テクスチャ変換
+      # FontConverter 生成物もここで変換できる想定
+      # =========================================================
+      - name: Run BuildTextures script
+        shell: pwsh
+        run: |
+          $script = Join-Path $env:GITHUB_WORKSPACE "${{ env.SCRIPTS_DIR }}/RunBuildTextures.bat"
+          $projectDir = Join-Path $env:GITHUB_WORKSPACE "Project"
+
+          if (Test-Path $script) {
+            Write-Host "Run: $script"
+            cmd /c "`"$script`" `"$projectDir`" `${{ matrix.configuration }}`"
+          }
+          else {
+            Write-Host "RunBuildTextures.bat not found. Skip."
+          }
+
+      # =========================================================
+      # 7. メッシュ変換
+      # =========================================================
+      - name: Run BuildMeshes script
+        shell: pwsh
+        run: |
+          $script = Join-Path $env:GITHUB_WORKSPACE "${{ env.SCRIPTS_DIR }}/RunBuildMeshes.bat"
+          $projectDir = Join-Path $env:GITHUB_WORKSPACE "Project"
+
+          if (Test-Path $script) {
+            Write-Host "Run: $script"
+            cmd /c "`"$script`" `"$projectDir`" `${{ matrix.configuration }}`"
+          }
+          else {
+            Write-Host "RunBuildMeshes.bat not found. Skip."
+          }
+
+      # =========================================================
+      # 8. 本体ソリューションをビルド
       # =========================================================
       - name: Build main solution
         run: >
