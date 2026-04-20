@@ -129,25 +129,6 @@ jobs:
       # 5. フォント生成
       # FontConverter で atlas/png/json 等を生成
       # =========================================================
-      - name: Run BuildFonts script
-        shell: pwsh
-        run: |
-          $script = Join-Path $env:GITHUB_WORKSPACE "${{ env.SCRIPTS_DIR }}/RunBuildFonts.bat"
-          $projectDir = Join-Path $env:GITHUB_WORKSPACE "Project"
-
-          if (Test-Path $script) {
-            Write-Host "Run: $script"
-            cmd /c "`"$script`" `"$projectDir`" `${{ matrix.configuration }}`"
-          }
-          else {
-            Write-Error "RunBuildFonts.bat not found: $script"
-            exit 1
-          }
-
-      # =========================================================
-      # 6. テクスチャ変換
-      # FontConverter 生成物も含めて dds 化
-      # =========================================================
       - name: Run BuildTextures script
         shell: pwsh
         run: |
@@ -156,10 +137,29 @@ jobs:
 
           if (Test-Path $script) {
             Write-Host "Run: $script"
-            cmd /c "`"$script`" `"$projectDir`" `${{ matrix.configuration }}`"
+            & $script $projectDir "${{ matrix.configuration }}"
           }
           else {
             Write-Error "RunBuildTextures.bat not found: $script"
+            exit 1
+          }
+
+      # =========================================================
+      # 6. テクスチャ変換
+      # FontConverter 生成物も含めて dds 化
+      # =========================================================
+      - name: Run BuildMeshes script
+        shell: pwsh
+        run: |
+          $script = Join-Path $env:GITHUB_WORKSPACE "${{ env.SCRIPTS_DIR }}/RunBuildMeshes.bat"
+          $projectDir = Join-Path $env:GITHUB_WORKSPACE "Project"
+
+          if (Test-Path $script) {
+            Write-Host "Run: $script"
+            & $script $projectDir "${{ matrix.configuration }}"
+          }
+          else {
+            Write-Error "RunBuildMeshes.bat not found: $script"
             exit 1
           }
 
