@@ -149,7 +149,7 @@ void PlayerMeleeComponent::EvaluateHit(const K4E::Vector3& playerPos)
 		{
 			if (!enemy->IsDead())
 			{
-				enemy->RequestStun(0.18f);
+				//enemy->RequestStun(0.18f);
 			}
 		}
 

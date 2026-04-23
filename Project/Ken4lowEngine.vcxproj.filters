@@ -382,54 +382,6 @@
     <ClCompile Include="ApplicationLayer\Character\Enemy\Core\EnemyBase.cpp">
       <Filter>ApplicationLayer\Character\Enemy\Core</Filter>
     </ClCompile>
-    <ClCompile Include="ApplicationLayer\Character\Enemy\Tuning\EnemyTuningEditor.cpp">
-      <Filter>ApplicationLayer\Character\Enemy\Tuning</Filter>
-    </ClCompile>
-    <ClCompile Include="ApplicationLayer\Character\Enemy\Tuning\EnemyTuningEditorHooks.cpp">
-      <Filter>ApplicationLayer\Character\Enemy\Tuning</Filter>
-    </ClCompile>
-    <ClCompile Include="ApplicationLayer\Character\Enemy\Tuning\EnemyTuningRepository.cpp">
-      <Filter>ApplicationLayer\Character\Enemy\Tuning</Filter>
-    </ClCompile>
-    <ClCompile Include="ApplicationLayer\Character\Enemy\Behavior\EnemyArchetypeBehaviorFactory.cpp">
-      <Filter>ApplicationLayer\Character\Enemy\Behavior</Filter>
-    </ClCompile>
-    <ClCompile Include="ApplicationLayer\Character\Enemy\Behavior\EnemyBehavior_BurstTrooper.cpp">
-      <Filter>ApplicationLayer\Character\Enemy\Behavior</Filter>
-    </ClCompile>
-    <ClCompile Include="ApplicationLayer\Character\Enemy\Behavior\EnemyBehavior_Default.cpp">
-      <Filter>ApplicationLayer\Character\Enemy\Behavior</Filter>
-    </ClCompile>
-    <ClCompile Include="ApplicationLayer\Character\Enemy\Behavior\EnemyBehavior_EliteFlanker.cpp">
-      <Filter>ApplicationLayer\Character\Enemy\Behavior</Filter>
-    </ClCompile>
-    <ClCompile Include="ApplicationLayer\Character\Enemy\Behavior\EnemyBehavior_HeavyRifleman.cpp">
-      <Filter>ApplicationLayer\Character\Enemy\Behavior</Filter>
-    </ClCompile>
-    <ClCompile Include="ApplicationLayer\Character\Enemy\Behavior\EnemyBehavior_HeavySniper.cpp">
-      <Filter>ApplicationLayer\Character\Enemy\Behavior</Filter>
-    </ClCompile>
-    <ClCompile Include="ApplicationLayer\Character\Enemy\Behavior\EnemyBehavior_Marksman.cpp">
-      <Filter>ApplicationLayer\Character\Enemy\Behavior</Filter>
-    </ClCompile>
-    <ClCompile Include="ApplicationLayer\Character\Enemy\Behavior\EnemyBehavior_RifleGrunt.cpp">
-      <Filter>ApplicationLayer\Character\Enemy\Behavior</Filter>
-    </ClCompile>
-    <ClCompile Include="ApplicationLayer\Character\Enemy\Behavior\EnemyBehavior_Scout.cpp">
-      <Filter>ApplicationLayer\Character\Enemy\Behavior</Filter>
-    </ClCompile>
-    <ClCompile Include="ApplicationLayer\Character\Enemy\Behavior\EnemyBehavior_ShotgunRusher.cpp">
-      <Filter>ApplicationLayer\Character\Enemy\Behavior</Filter>
-    </ClCompile>
-    <ClCompile Include="ApplicationLayer\Character\Enemy\Behavior\EnemyBehavior_SMGFlanker.cpp">
-      <Filter>ApplicationLayer\Character\Enemy\Behavior</Filter>
-    </ClCompile>
-    <ClCompile Include="ApplicationLayer\Character\Enemy\Behavior\EnemyBehavior_Sniper.cpp">
-      <Filter>ApplicationLayer\Character\Enemy\Behavior</Filter>
-    </ClCompile>
-    <ClCompile Include="ApplicationLayer\Character\Enemy\Behavior\EnemyBehavior_Suppressor.cpp">
-      <Filter>ApplicationLayer\Character\Enemy\Behavior</Filter>
-    </ClCompile>
     <ClCompile Include="ApplicationLayer\Character\Enemy\Effects\EnemyParticleEffectSystem.cpp">
       <Filter>ApplicationLayer\Character\Enemy\Effects</Filter>
     </ClCompile>
@@ -793,7 +745,24 @@
     <ClCompile Include="ApplicationLayer\UISystem\ControlGuideUI\ControlGuideUI.cpp">
       <Filter>ApplicationLayer\UISystem\ControlGuideUI</Filter>
     </ClCompile>
-    <ClCompile Include="ApplicationLayer\Character\Player\Component\PlayerMeleeComponent.cpp" />
+    <ClCompile Include="ApplicationLayer\Character\Player\Component\PlayerMeleeComponent.cpp">
+      <Filter>ApplicationLayer\Character\Player\Component</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\Character\Enemy\State\EnemyCombatMoveState.cpp">
+      <Filter>ApplicationLayer\Character\Enemy\State</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\Character\Enemy\State\EnemyDeadState.cpp">
+      <Filter>ApplicationLayer\Character\Enemy\State</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\Character\Enemy\State\EnemyIdleState.cpp">
+      <Filter>ApplicationLayer\Character\Enemy\State</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\Character\Enemy\State\EnemySearchState.cpp">
+      <Filter>ApplicationLayer\Character\Enemy\State</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\Character\Enemy\State\EnemyShootState.cpp">
+      <Filter>ApplicationLayer\Character\Enemy\State</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ApplicationLayer\UISystem\Crosshair\Crosshair.h">
@@ -1123,71 +1092,8 @@
     <ClInclude Include="ApplicationLayer\Character\Enemy\Core\Enemy.h">
       <Filter>ApplicationLayer\Character\Enemy\Core</Filter>
     </ClInclude>
-    <ClInclude Include="ApplicationLayer\Character\Enemy\Core\EnemyAICommand.h">
-      <Filter>ApplicationLayer\Character\Enemy\Core</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Character\Enemy\Core\EnemyArchetype.h">
-      <Filter>ApplicationLayer\Character\Enemy\Core</Filter>
-    </ClInclude>
     <ClInclude Include="ApplicationLayer\Character\Enemy\Core\EnemyBase.h">
       <Filter>ApplicationLayer\Character\Enemy\Core</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Character\Enemy\Core\EnemyGunAI.h">
-      <Filter>ApplicationLayer\Character\Enemy\Core</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Character\Enemy\Core\EnemyStateMachine.h">
-      <Filter>ApplicationLayer\Character\Enemy\Core</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Character\Enemy\Tuning\EnemyTuningEditor.h">
-      <Filter>ApplicationLayer\Character\Enemy\Tuning</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Character\Enemy\Tuning\EnemyTuningEditorHooks.h">
-      <Filter>ApplicationLayer\Character\Enemy\Tuning</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Character\Enemy\Tuning\EnemyTuningRepository.h">
-      <Filter>ApplicationLayer\Character\Enemy\Tuning</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Character\Enemy\Behavior\EnemyArchetypeBehavior.h">
-      <Filter>ApplicationLayer\Character\Enemy\Behavior</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Character\Enemy\Behavior\EnemyArchetypeBehaviorFactory.h">
-      <Filter>ApplicationLayer\Character\Enemy\Behavior</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Character\Enemy\Behavior\EnemyBehavior_BurstTrooper.h">
-      <Filter>ApplicationLayer\Character\Enemy\Behavior</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Character\Enemy\Behavior\EnemyBehavior_Default.h">
-      <Filter>ApplicationLayer\Character\Enemy\Behavior</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Character\Enemy\Behavior\EnemyBehavior_EliteFlanker.h">
-      <Filter>ApplicationLayer\Character\Enemy\Behavior</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Character\Enemy\Behavior\EnemyBehavior_HeavyRifleman.h">
-      <Filter>ApplicationLayer\Character\Enemy\Behavior</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Character\Enemy\Behavior\EnemyBehavior_HeavySniper.h">
-      <Filter>ApplicationLayer\Character\Enemy\Behavior</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Character\Enemy\Behavior\EnemyBehavior_Marksman.h">
-      <Filter>ApplicationLayer\Character\Enemy\Behavior</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Character\Enemy\Behavior\EnemyBehavior_RifleGrunt.h">
-      <Filter>ApplicationLayer\Character\Enemy\Behavior</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Character\Enemy\Behavior\EnemyBehavior_Scout.h">
-      <Filter>ApplicationLayer\Character\Enemy\Behavior</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Character\Enemy\Behavior\EnemyBehavior_ShotgunRusher.h">
-      <Filter>ApplicationLayer\Character\Enemy\Behavior</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Character\Enemy\Behavior\EnemyBehavior_SMGFlanker.h">
-      <Filter>ApplicationLayer\Character\Enemy\Behavior</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Character\Enemy\Behavior\EnemyBehavior_Sniper.h">
-      <Filter>ApplicationLayer\Character\Enemy\Behavior</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Character\Enemy\Behavior\EnemyBehavior_Suppressor.h">
-      <Filter>ApplicationLayer\Character\Enemy\Behavior</Filter>
     </ClInclude>
     <ClInclude Include="ApplicationLayer\Character\Enemy\Effects\EnemyParticleEffectSystem.h">
       <Filter>ApplicationLayer\Character\Enemy\Effects</Filter>
@@ -1672,7 +1578,27 @@
     <ClInclude Include="ApplicationLayer\UISystem\ControlGuideUI\ControlGuideUI.h">
       <Filter>ApplicationLayer\UISystem\ControlGuideUI</Filter>
     </ClInclude>
-    <ClInclude Include="ApplicationLayer\Character\Player\Component\PlayerMeleeComponent.h" />
+    <ClInclude Include="ApplicationLayer\Character\Player\Component\PlayerMeleeComponent.h">
+      <Filter>ApplicationLayer\Character\Player\Component</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Character\Enemy\State\EnemyCombatMoveState.h">
+      <Filter>ApplicationLayer\Character\Enemy\State</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Character\Enemy\State\EnemyDeadState.h">
+      <Filter>ApplicationLayer\Character\Enemy\State</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Character\Enemy\State\EnemyIdleState.h">
+      <Filter>ApplicationLayer\Character\Enemy\State</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Character\Enemy\State\EnemySearchState.h">
+      <Filter>ApplicationLayer\Character\Enemy\State</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Character\Enemy\State\EnemyShootState.h">
+      <Filter>ApplicationLayer\Character\Enemy\State</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Character\Enemy\State\IEnemyState.h">
+      <Filter>ApplicationLayer\Character\Enemy\State</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="Resources\Shaders\PostEffect\FullScreen.hlsli">
@@ -1893,14 +1819,8 @@
     <Filter Include="ApplicationLayer\Character\Boss\Animations">
       <UniqueIdentifier>{e5af30ea-1e9d-43c1-9c9f-0876d8c7c70b}</UniqueIdentifier>
     </Filter>
-    <Filter Include="ApplicationLayer\Character\Enemy\Behavior">
-      <UniqueIdentifier>{712c4e2c-ae40-4b19-906b-8ec1784e1fd0}</UniqueIdentifier>
-    </Filter>
     <Filter Include="ApplicationLayer\Character\Enemy\Core">
       <UniqueIdentifier>{18d937e2-c886-482e-acee-e0326534f8e2}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="ApplicationLayer\Character\Enemy\Tuning">
-      <UniqueIdentifier>{ff09d9ab-0f57-4a2f-b7f8-c8194f46f252}</UniqueIdentifier>
     </Filter>
     <Filter Include="ApplicationLayer\Character\Enemy\Effects">
       <UniqueIdentifier>{b1c34b28-c141-4210-b1db-da47c466359f}</UniqueIdentifier>
@@ -2198,6 +2118,9 @@
     </Filter>
     <Filter Include="ApplicationLayer\UISystem\ControlGuideUI">
       <UniqueIdentifier>{e3047797-8f02-4860-be31-91fd1bcb3eb6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ApplicationLayer\Character\Enemy\State">
+      <UniqueIdentifier>{8d1a8281-ee11-4e60-ad42-ca8175aa8881}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

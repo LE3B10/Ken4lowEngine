@@ -47,8 +47,8 @@ public:
 	EnemyBase() = default;
 	virtual ~EnemyBase() = default;
 
-	virtual void Initialize(const K4E::Vector3& startPos);
-	virtual void Update(float dt);
+	virtual void Initialize();
+	virtual void Update(float deltaTime);
 	virtual void Draw();
 	virtual void DrawImGui();
 	virtual void UpdateShadowMatrix(const K4E::Matrix4x4& lightViewProjection);
@@ -157,8 +157,8 @@ private:
 	struct DeathPiece
 	{
 		BodyPart* part = nullptr;
-		K4E::Vector3 velocity{ 0,0,0 };
-		K4E::Vector3 angularVel{ 0,0,0 };
+		K4E::Vector3 velocity{ 0, 0, 0 };
+		K4E::Vector3 angularVel{ 0, 0, 0 };
 		float hitBias = 0.5f; // 被弾方向の影響（部位ごとに調整）
 	};
 

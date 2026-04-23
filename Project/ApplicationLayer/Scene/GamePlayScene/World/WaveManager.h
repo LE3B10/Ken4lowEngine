@@ -1,8 +1,6 @@
 #pragma once
 #include <vector>
 #include <algorithm>
-
-#include "EnemyArchetype.h"
 #include "Vector3.h"
 
 namespace K4E = ::Ken4lowEngine;
@@ -13,7 +11,6 @@ class CharacterWorld;
 /// ---------- 1体分のスポーン情報 ---------- ///
 struct WaveSpawnEntry
 {
-	EnemyArchetype archetype = EnemyArchetype::RifleGrunt; // デフォルトは RifleGrunt
 	K4E::Vector3 position = { 0.0f, 0.0f, 0.0f }; // スポーン位置
 };
 

@@ -68,11 +68,11 @@ void EnemyBase::InitializeHumanoidVisual()
 
 	std::vector<std::pair<std::string, Vector3>> partData =
 	{
-		{"Characters/head.gltf",      { 0.0f,  0.75f, 0.0f }},
-		{"Characters/left_arm.gltf",  {-0.75f, 0.75f, 0.0f }},
-		{"Characters/right_arm.gltf", { 0.75f, 0.75f, 0.0f }},
-		{"Characters/left_leg.gltf",  {-0.25f,-0.75f, 0.0f }},
-		{"Characters/right_leg.gltf", { 0.25f,-0.75f, 0.0f }},
+		{ "Characters/head.gltf", { 0.0f, 0.75f, 0.0f } },
+		{ "Characters/left_arm.gltf", { -0.75f, 0.75f, 0.0f } },
+		{ "Characters/right_arm.gltf", { 0.75f, 0.75f, 0.0f } },
+		{ "Characters/left_leg.gltf", { -0.25f, -0.75f, 0.0f } },
+		{ "Characters/right_leg.gltf", { 0.25f, -0.75f, 0.0f } },
 	};
 
 	for (const auto& [modelPath, localPos] : partData)
@@ -146,7 +146,7 @@ void EnemyBase::MoveVisualFar(const Vector3& pos)
 /// -------------------------------------------------------------
 /// 初期化
 /// -------------------------------------------------------------
-void EnemyBase::Initialize(const Vector3& startPos)
+void EnemyBase::Initialize()
 {
 	SetTypeID(static_cast<uint32_t>(CollisionTypeIdDef::kEnemy));
 	SetOwner(this);
@@ -158,23 +158,22 @@ void EnemyBase::Initialize(const Vector3& startPos)
 	SetColor(baseColor_);
 	hitFlashTimer_ = 0.0f;
 
-	SetCenterPosition(startPos);
+	SetCenterPosition({ 0.0f, 0.0f, 0.0f });
 
 	isDead_ = false;
 	removable_ = false;
 
-	// death sim
 	deathBreakActive_ = false;
 	deathTimer_ = 0.0f;
 	deathPieces_.clear();
-	lastHitDir_ = { 0,0,0 };
+	lastHitDir_ = { 0, 0, 0 };
 	lastHitPower_ = 1.0f;
 
 	hp_ = maxHp_;
 
 	useGravity_ = true;
 	worldCol_.half = obbHalf_;
-	worldCol_.centerOffset = { 0,0,0 };
+	worldCol_.centerOffset = { 0, 0, 0 };
 	worldColOverride_ = true;
 }
 
@@ -226,23 +225,23 @@ void EnemyBase::SetColor(const Vector4& color)
 /// -------------------------------------------------------------
 /// 更新
 /// -------------------------------------------------------------
-void EnemyBase::Update(float dt)
+void EnemyBase::Update(float deltaTime)
 {
 	if (removable_) return;
 
 	// 死亡演出
 	if (isDead_)
 	{
-		UpdateBreakApartDeath(dt);
+		UpdateBreakApartDeath(deltaTime);
 		return;
 	}
 
 	grounded_ = false;
 
-	if (useGravity_) velocity_.y -= gravity_ * dt;
+	if (useGravity_) velocity_.y -= gravity_ * deltaTime;
 
 	const Vector3 oldPos = GetCenterPosition();
-	Vector3 newPos = oldPos + velocity_ * dt;
+	Vector3 newPos = oldPos + velocity_ * deltaTime;
 
 	const auto* aabbs = (worldAABBs_ ? worldAABBs_ : g_worldAABBs_);
 	const auto& s = worldColOverride_ ? worldCol_ : worldCol_;
@@ -270,7 +269,7 @@ void EnemyBase::Update(float dt)
 	}
 
 	SetCenterPosition(newPos);
-	UpdateHitFlash(dt);
+	UpdateHitFlash(deltaTime);
 }
 
 /// -------------------------------------------------------------
@@ -416,8 +415,8 @@ void EnemyBase::DisableColliderOnly()
 	SetOBBHalfSize({ 0.0f, 0.0f, 0.0f });
 
 	Segment s{};
-	s.origin = { 0,0,0 };
-	s.diff = { 0,0,0 };
+	s.origin = { 0, 0, 0 };
+	s.diff = { 0, 0, 0 };
 	SetSegment(s);
 }
 
@@ -498,7 +497,7 @@ void EnemyBase::StartBreakApartDeath()
 	SetVisualColorAll(baseColor_);
 
 	const Vector3 center = GetCenterPosition();
-	const Vector3 hitDir = NormalizeSafe(lastHitDir_, { 0,0,1 });
+	const Vector3 hitDir = NormalizeSafe(lastHitDir_, { 0, 0, 1 });
 	const float power = (lastHitPower_ > 0.0f) ? lastHitPower_ : 1.0f;
 
 	// 体（重め）
@@ -614,7 +613,7 @@ void EnemyBase::UpdateBreakApartDeath(float dt)
 /// -------------------------------------------------------------
 void EnemyBase::OnBulletHit(Collider* bulletCollider)
 {
-	Vector3 hitDir{ 0,0,0 };
+	Vector3 hitDir{ 0, 0, 0 };
 	float hitPower = 1.0f;
 
 	// 被弾位置
@@ -646,11 +645,5 @@ void EnemyBase::OnCollisionEnter(Collider* other)
 	if (other->GetTypeID() == static_cast<uint32_t>(CollisionTypeIdDef::kBullet))
 	{
 		OnBulletHit(other);
-
-		// パーティクル
-		if (particleEffectSystem_)
-		{
-			particleEffectSystem_->SpawnHitEffect(GetCenterPosition());
-		}
 	}
 }

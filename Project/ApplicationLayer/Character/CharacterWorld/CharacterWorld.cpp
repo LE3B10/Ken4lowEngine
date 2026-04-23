@@ -79,43 +79,7 @@ void CharacterWorld::InjectEnemyDeps(Enemy& e)
 	if (player_)
 	{
 		e.SetTarget(player_.get());
-
-		e.SetOnPlayerHitUICallback([this](bool isHeadshot)
-			{
-				if (player_)
-				{
-					player_->NotifyEnemyHitUI(isHeadshot);
-				}
-			});
-
-		e.SetOnPlayerKillUICallback([this](bool isHeadshot)
-			{
-				if (player_)
-				{
-					player_->NotifyEnemyKillUI(isHeadshot);
-				}
-			});
 	}
-
-	e.SetOnHitSECallback([]()
-		{
-			AudioManager::GetInstance()->PlaySE("enemy_hit.mp3", 0.2f);
-		});
-
-	e.SetOnFireSECallback([]()
-		{
-			AudioManager::GetInstance()->PlaySE("enemy_fire.mp3", 0.2f);
-		});
-
-	e.SetOnReloadSECallback([]()
-		{
-			AudioManager::GetInstance()->PlaySE("enemy_reload.mp3", 0.2f);
-		});
-
-	e.SetOnDeathSECallback([]()
-		{
-			AudioManager::GetInstance()->PlaySE("enemy_death.mp3", 0.2f);
-		});
 }
 
 std::vector<EnemyBase*> CharacterWorld::GetEnemyRawList() const
@@ -131,34 +95,12 @@ std::vector<EnemyBase*> CharacterWorld::GetEnemyRawList() const
 	return result;
 }
 
-Enemy& CharacterWorld::SpawnEnemy(const K4E::Vector3& pos)
+Enemy& CharacterWorld::SpawnEnemy(const EnemySpawnRequest& reqest)
 {
 	auto e = std::make_unique<Enemy>();
 	InjectEnemyDeps(*e);
-	e->Initialize(pos);
-
-	if (ctx_.collisionManager_)
-	{
-		ctx_.collisionManager_->AddCollider(e.get());
-	}
-
-	enemies_.push_back(std::move(e));
-	return *enemies_.back();
-}
-
-Enemy& CharacterWorld::SpawnEnemy(EnemyArchetype type, const K4E::Vector3& pos)
-{
-	auto e = std::make_unique<Enemy>();
-
-	// --------------------------------------------------------
-	// Initialize前に archetype を設定
-	// - Initialize 内で SetArchetype(archetype_) が走っても
-	//   ここで設定した種類がそのまま再適用される
-	// --------------------------------------------------------
-	e->SetArchetype(type);
-
-	InjectEnemyDeps(*e);
-	e->Initialize(pos);
+	e->Initialize();
+	e->SetPosition(reqest.position);
 
 	if (ctx_.collisionManager_)
 	{
@@ -213,63 +155,25 @@ void CharacterWorld::Draw()
 	for (auto& e : enemies_) e->Draw();
 }
 
-void CharacterWorld::ReapplyEnemyTunings()
-{
-	// --------------------------------------------------------
-	// Repository の最新値を、今いる全Enemyへ反映する
-	// - archetype は各Enemyが持っている
-	// - SetArchetype() を呼び直せば tuning を再取得して反映できる
-	// --------------------------------------------------------
-	for (auto& e : enemies_)
-	{
-		if (!e) continue;
-		e->SetArchetype(e->GetArchetype());
-	}
-}
-
 void CharacterWorld::DrawImGui()
 {
 #ifdef USE_IMGUI
 	// --------------------------------------------------------
 	// 1) Player の ImGui
 	// --------------------------------------------------------
-	if (player_)
-	{
-		player_->DrawImGui();
-	}
+	if (player_) { player_->DrawImGui(); }
 
 	// --------------------------------------------------------
 	// 2) Enemy個体ごとの ImGui
 	// - ここでは各敵の Object3D / Transform などだけ出す
 	// - EnemyTuningEditor は出さない
 	// --------------------------------------------------------
-	for (auto& e : enemies_)
-	{
-		e->DrawImGui();
-	}
+	for (auto& e : enemies_) { e->DrawImGui(); }
 
 	// --------------------------------------------------------
 	// 3) EnemyTuningEditor は 1回だけ描画する
 	// - 保存 / 削除 / Reload 後に全Enemyへ再反映する
 	// --------------------------------------------------------
-	EnemyTuningEditorHooks hooks{};
-
-	hooks.onSaved = [this](EnemyArchetype /*type*/)
-		{
-			ReapplyEnemyTunings();
-		};
-
-	hooks.onDeleted = [this](EnemyArchetype /*type*/)
-		{
-			ReapplyEnemyTunings();
-		};
-
-	hooks.onReloaded = [this]()
-		{
-			ReapplyEnemyTunings();
-		};
-
-	tuningEditor_.Draw(hooks);
 #endif
 }
 
