@@ -1,14 +1,17 @@
 #include "EnemyDeadState.h"
+#include "Enemy.h"
 
 void EnemyDeadState::Enter(Enemy& enemy)
 {
-	(void)enemy;
+	enemy.StopMove();
+	enemy.PlayDeadAnimation();
 }
 
 void EnemyDeadState::Update(Enemy& enemy, float deltaTime)
 {
-	(void)enemy;
 	(void)deltaTime;
+	enemy.StopMove();
+	enemy.PlayDeadAnimation();
 }
 
 void EnemyDeadState::Exit(Enemy& enemy)

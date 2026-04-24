@@ -22,5 +22,9 @@ public: /// ---------- メンバ関数 ---------- ///
 
 	// 状態名を取得
 	const char* GetStateName() const override { return "Search"; }
+
+private: /// ---------- メンバ変数 ---------- ///
+
+	float searchTimer_ = 0.0f; // 索敵状態の滞在時間を計測するタイマー
 };
 

@@ -77,6 +77,7 @@ void WaveManager::SpawnWave(CharacterWorld& characters, const WaveDefinition& wa
 {
 	for (const auto& entry : wave.enemies)
 	{
-		(void)characters.SpawnEnemy(entry.position);
+		(void)characters;
+		(void)entry;
 	}
 }
