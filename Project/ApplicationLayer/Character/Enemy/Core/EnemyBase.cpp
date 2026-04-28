@@ -5,6 +5,7 @@
 #include <cstdlib>
 #include <vector>
 #include "EnemyParticleEffectSystem.h"
+#include <Bullet.h>
 
 #include "CollisionTypeIdDef.h"
 
@@ -615,6 +616,7 @@ void EnemyBase::OnBulletHit(Collider* bulletCollider)
 {
 	Vector3 hitDir{ 0, 0, 0 };
 	float hitPower = 1.0f;
+	int damage = 10;
 
 	// 被弾位置
 	Vector3 hitPos = GetCenterPosition();
@@ -623,7 +625,21 @@ void EnemyBase::OnBulletHit(Collider* bulletCollider)
 	if (bulletCollider)
 	{
 		hitPos = bulletCollider->GetCenterPosition();
-		hitDir = GetCenterPosition() - bulletCollider->GetCenterPosition();
+		
+		const Segment bulletSegment = bulletCollider->GetSegment();
+		if (Length(bulletSegment.diff) > 1e-4f)
+		{
+			hitDir = bulletSegment.diff;
+		}
+		else
+		{
+			hitDir = GetCenterPosition() - bulletCollider->GetCenterPosition();
+		}
+
+		if (auto* bullet = bulletCollider->GetOwner<Bullet>())
+		{
+			damage = std::max(1, bullet->GetDamage());
+		}
 	}
 
 	// 被弾パーティクル
@@ -632,7 +648,7 @@ void EnemyBase::OnBulletHit(Collider* bulletCollider)
 		particleEffectSystem_->SpawnHitEffect(hitPos);
 	}
 
-	TakeDamage(10, hitDir, hitPower);
+	TakeDamage(damage, hitDir, hitPower);
 }
 
 /// -------------------------------------------------------------

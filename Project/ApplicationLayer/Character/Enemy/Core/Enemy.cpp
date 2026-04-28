@@ -62,6 +62,11 @@ namespace
 		const float t = Clamp(speed * deltaTime, 0.0f, 1.0f);
 		value += (target - value) * t;
 	}
+
+	Vector3 ForwardFromYaw(float yawRad)
+	{
+		return { std::sin(yawRad), 0.0f, std::cos(yawRad) };
+	}
 }
 
 void Enemy::Initialize()
@@ -252,7 +257,7 @@ void Enemy::FaceTo(const K4E::Vector3& targetPos)
 	if (lenSq <= kEpsilon) return;
 
 	facing_.yawRad = std::atan2(dir.x, dir.z);
-	SetOrientation({ 0.0f, facing_.yawRad, 0.0f });
+	SetOrientation({ 0.0f, -facing_.yawRad, 0.0f });
 }
 
 void Enemy::FireAt(const K4E::Vector3& targetPos)
@@ -270,12 +275,30 @@ void Enemy::FireAt(const K4E::Vector3& targetPos)
 	if (len <= kEpsilon) return;
 	dir = dir * (1.0f / len); // 正規化
 
+	// 射撃方向とモデル向きを一致させる
+	const Vector3 dirXZ = NormalizeXZ(dir);
+	if (LengthSqXZ(dirXZ) > kEpsilon)
+	{
+		facing_.yawRad = std::atan2(dirXZ.x, dirXZ.z);
+		SetOrientation({ 0.0f, facing_.yawRad, 0.0f });
+	}
+	const Vector3 forward = ForwardFromYaw(facing_.yawRad);
+
+	// 自身コライダー内で弾が湧くと即時衝突しやすいため、前方へ少し押し出す
 	constexpr float kMuzzleForwardOffset = 1.2f;
-	muzzle += dir * kMuzzleForwardOffset;
+	muzzle = muzzle + forward * kMuzzleForwardOffset;
 
 	fireCooldown_ = combat_.fireInterval;
 
-	bulletManager_->Spawn(muzzle, dir, combat_.bulletSpeed, combat_.bulletDamage, combat_.bulletLifeSec);
+	bulletManager_->Spawn(
+		muzzle,
+		dir,
+		combat_.bulletSpeed,
+		combat_.bulletDamage,
+		combat_.bulletLifeSec,
+		GetCenterPosition(),
+		GetUniqueID(),
+		static_cast<uint32_t>(CollisionTypeIdDef::kEnemyBullet));
 }
 
 void Enemy::OnBulletHit(K4E::Collider* bulletCollider)
