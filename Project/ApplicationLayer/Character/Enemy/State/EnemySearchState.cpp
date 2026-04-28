@@ -1,6 +1,8 @@
+#define NOMINMAX
 #include "EnemySearchState.h"
 #include "Enemy.h"
 #include <cmath>
+#include <algorithm>
 
 using namespace Ken4lowEngine;
 
@@ -44,12 +46,31 @@ void EnemySearchState::Update(Enemy& enemy, float deltaTime)
 
 	const Vector3 lastSeen = enemy.GetLastSeenTargetPosition();
 	const float distToLastSeen = DistXZ(enemy.GetCenterPosition(), lastSeen);
+	const bool dangerMode = enemy.IsLowHp() || enemy.IsInHitReaction();
+	const float searchSpeed = dangerMode
+		? enemy.GetSearchMoveSpeed() * 0.85f
+		: enemy.GetSearchMoveSpeed();
+
+	if (dangerMode && distToTarget < enemy.GetLowHpRetreatDistance())
+	{
+		Vector3 retreatPos = enemy.GetCenterPosition();
+		if (enemy.TryFindCoverPosition(targetPos, true, retreatPos))
+		{
+			enemy.MoveTowardsPath(retreatPos, enemy.GetRetreatSpeed() * enemy.GetLowHpRetreatSpeedScale(), deltaTime);
+		}
+		else
+		{
+			enemy.MoveAwayFrom(targetPos, enemy.GetRetreatSpeed() * enemy.GetLowHpRetreatSpeedScale());
+		}
+		enemy.PlaySearchAnimation(searchSpeed);
+		return;
+	}
 
 	if (distToLastSeen > 1.35f)
 	{
 		localSweepTimer_ = 0.0f;
-		enemy.MoveTowardsPath(lastSeen, enemy.GetSearchMoveSpeed(), deltaTime);
-		enemy.PlaySearchAnimation(enemy.GetSearchMoveSpeed());
+		enemy.MoveTowardsPath(lastSeen, searchSpeed, deltaTime);
+		enemy.PlaySearchAnimation(searchSpeed);
 	}
 	else
 	{
@@ -63,8 +84,9 @@ void EnemySearchState::Update(Enemy& enemy, float deltaTime)
 
 		// 到達後の短い探索移動: オービット + 小さな接近離脱
 		const float sweepBias = std::sin(localSweepTimer_ * 2.7f) * 0.35f;
-		enemy.MoveTacticalAround(lastSeen, enemy.GetCurrentStrafeSign(), sweepBias, enemy.GetSearchMoveSpeed() * 0.9f);
-		enemy.PlaySearchAnimation(enemy.GetSearchMoveSpeed() * 0.9f);
+		const float bias = dangerMode ? std::min(sweepBias, -0.25f) : sweepBias;
+		enemy.MoveTacticalAround(lastSeen, enemy.GetCurrentStrafeSign(), bias, searchSpeed * 0.9f);
+		enemy.PlaySearchAnimation(searchSpeed * 0.9f);
 	}
 
 	if (searchTimer_ >= enemy.GetSearchDuration())

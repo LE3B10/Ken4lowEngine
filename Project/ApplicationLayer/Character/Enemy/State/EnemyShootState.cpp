@@ -39,15 +39,19 @@ void EnemyShootState::Update(Enemy& enemy, float deltaTime)
 	if (reevalTimer_ <= 0.0f)
 	{
 		reevalTimer_ = enemy.GetShootRepositionEvalSec();
+		const bool lowHp = enemy.IsLowHp();
+		const bool inHitReaction = enemy.IsInHitReaction();
+		const float allowedShootRange = lowHp ? enemy.GetLowHpShootRange() : enemy.GetFireRange();
+		const float stayLimit = lowHp ? enemy.GetLowHpShootStaySec() : enemy.GetShootMaxStaySec();
 
 		const bool canShootNow = enemy.CanShootTargetPublic(targetPos);
-		if (distToTarget > enemy.GetAttackRange() || !canShootNow)
+		if (inHitReaction || distToTarget > allowedShootRange || !canShootNow)
 		{
 			enemy.ChangeStateToCombatMove();
 			return;
 		}
 
-		if (stayTimer_ > enemy.GetShootMaxStaySec())
+		if (stayTimer_ > stayLimit)
 		{
 			enemy.ChangeStateToCombatMove();
 			return;
@@ -56,10 +60,16 @@ void EnemyShootState::Update(Enemy& enemy, float deltaTime)
 
 	// 射撃中も微移動して棒立ち感を減らす
 	enemy.UpdateStrafeDecision(deltaTime);
-	enemy.MoveTacticalAround(targetPos, enemy.GetCurrentStrafeSign(), 0.0f, enemy.GetShootMicroStrafeSpeed());
+	const bool inHitReaction = enemy.IsInHitReaction();
+	const float retreatBias = (enemy.IsLowHp() || inHitReaction) ? -0.75f : 0.0f;
+	const float reactionScale = inHitReaction ? (1.0f + enemy.GetHitReactionMoveWeight() * 0.5f) : 1.0f;
+	const float moveSpeed = (enemy.IsLowHp() || inHitReaction)
+		? enemy.GetShootMicroStrafeSpeed() * enemy.GetLowHpRetreatSpeedScale() * reactionScale
+		: enemy.GetShootMicroStrafeSpeed();
+	enemy.MoveTacticalAround(targetPos, enemy.GetCurrentStrafeSign(), retreatBias, moveSpeed);
 	enemy.FaceTo(targetPos);
 	enemy.PlayShootAnimation();
-	enemy.FireAt(targetPos);
+	if (!inHitReaction) enemy.FireAt(targetPos);
 }
 
 void EnemyShootState::Exit(Enemy& enemy)

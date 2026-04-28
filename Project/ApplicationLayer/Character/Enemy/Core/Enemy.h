@@ -48,9 +48,12 @@ private: /// ---------- 構造体 ---------- ///
 	// 移動 / 戦闘の設定
 	struct EnemyCombatConfig
 	{
-		float attackRange = 15.0f;   // 攻撃可能距離（射程）
-		float idealRangeMin = 8.0f;  // ここより近いと離脱寄り
-		float idealRangeMax = 13.0f; // ここより遠いと接近寄り
+		float attackRange = 24.0f;   // 戦闘を継続する最大距離の目安
+		float fireRange = 21.0f;     // 射線が通るときに実際に撃つ距離
+		float idealRangeMin = 10.0f; // 通常時の適正距離(近側)
+		float idealRangeMax = 17.5f; // 通常時の適正距離(遠側)
+		float tooCloseRange = 7.0f;  // 近すぎるので優先的に離脱
+		float tooFarRange = 25.0f;   // 遠すぎるので優先的に接近
 		float fireInterval = 0.35f;  // 攻撃間隔（秒）
 		float bulletSpeed = 18.0f;   // 弾の速度
 		float bulletLifeSec = 3.0f;  // 弾の寿命（秒）
@@ -60,6 +63,35 @@ private: /// ---------- 構造体 ---------- ///
 		float losRepositionEvalSec = 0.35f; // 射線調整の再評価間隔
 		float shootRepositionEvalSec = 0.28f; // 射撃中の短周期再評価
 		float shootMaxStaySec = 1.35f; // 射撃状態で粘る最大時間
+	};
+
+	// 低HP時の生存行動の設定
+	struct EnemySurvivalConfig
+	{
+		float lowHpThresholdRate = 0.33f;
+		float lowHpRetreatDistance = 18.0f;
+		float lowHpReturnDistance = 28.0f;
+		float lowHpRetreatSpeedScale = 1.25f;
+		float lowHpShootRange = 15.0f;
+		float lowHpShootStaySec = 0.65f;
+		float retreatRepathInterval = 0.35f;
+	};
+
+	struct EnemyReactionConfig
+	{
+		float hitReactionTime = 0.8f;
+		float hitReactionMoveWeight = 0.8f;
+		float coverSearchRadiusMin = 3.5f;
+		float coverSearchRadiusMax = 10.0f;
+		int coverSampleCount = 14;
+		float coverDistanceScoreWeight = 0.65f;
+	};
+
+	struct CoverQueryResult
+	{
+		K4E::Vector3 position{ 0.0f, 0.0f, 0.0f };
+		float score = -9999.0f;
+		bool found = false;
 	};
 
 	// 移動設定
@@ -74,6 +106,19 @@ private: /// ---------- 構造体 ---------- ///
 		float losProbeDistance = 2.6f;
 		float tacticalBlend = 0.45f;
 		float shootMicroStrafeSpeed = 1.35f;
+	};
+
+	// 通常時の徘徊設定
+	struct EnemyWanderConfig
+	{
+		float roamRadius = 10.0f;
+		float minTargetDistance = 2.0f;
+		float reachDistance = 0.9f;
+		float wanderMoveSpeed = 2.0f;
+		float retargetIntervalMin = 1.8f;
+		float retargetIntervalMax = 3.8f;
+		float stuckCheckInterval = 0.8f;
+		float stuckDistance = 0.25f;
 	};
 
 	// 敵の記憶
@@ -146,13 +191,17 @@ public: /// ---------- アクセサ ---------- ///
 	bool CanShootTargetPublic(const K4E::Vector3& targetPos) const { return CanShootTarget(targetPos); }
 
 	float GetAttackRange() const { return combat_.attackRange; }
+	float GetFireRange() const { return combat_.fireRange; }
 
 	float GetIdealRangeMin() const { return combat_.idealRangeMin; }
 	float GetIdealRangeMax() const { return combat_.idealRangeMax; }
+	float GetTooCloseRange() const { return combat_.tooCloseRange; }
+	float GetTooFarRange() const { return combat_.tooFarRange; }
 	float GetSearchDuration() const { return combat_.searchDuration; }
 	float GetLosRepositionEvalSec() const { return combat_.losRepositionEvalSec; }
 	float GetShootRepositionEvalSec() const { return combat_.shootRepositionEvalSec; }
 	float GetShootMaxStaySec() const { return combat_.shootMaxStaySec; }
+	float GetLowHpShootStaySec() const { return survival_.lowHpShootStaySec; }
 
 	float GetApproachSpeed() const { return movement_.approachSpeed; }
 	float GetRetreatSpeed() const { return movement_.retreatSpeed; }
@@ -162,10 +211,21 @@ public: /// ---------- アクセサ ---------- ///
 	float GetLosProbeDistance() const { return movement_.losProbeDistance; }
 	float GetTacticalBlend() const { return movement_.tacticalBlend; }
 	float GetShootMicroStrafeSpeed() const { return movement_.shootMicroStrafeSpeed; }
+	float GetWanderMoveSpeed() const { return wander_.wanderMoveSpeed; }
+	float GetLowHpRetreatDistance() const { return survival_.lowHpRetreatDistance; }
+	float GetLowHpReturnDistance() const { return survival_.lowHpReturnDistance; }
+	float GetLowHpRetreatSpeedScale() const { return survival_.lowHpRetreatSpeedScale; }
+	float GetLowHpShootRange() const { return survival_.lowHpShootRange; }
+	float GetRetreatRepathInterval() const { return survival_.retreatRepathInterval; }
+	bool IsLowHp() const { return GetHpRate() <= survival_.lowHpThresholdRate; }
+	bool IsInHitReaction() const { return hitReactionTimer_ > 0.0f; }
+	float GetHitReactionMoveWeight() const { return reaction_.hitReactionMoveWeight; }
+	[[nodiscard]] bool TryFindCoverPosition(const K4E::Vector3& targetPos, bool preferRetreat, K4E::Vector3& outPosition) const;
 
 	void UpdateStrafeDecision(float dt);
 	float GetCurrentStrafeSign() const { return currentStrafeSign_; }
 	void ForceStrafeSign(float sign) { currentStrafeSign_ = (sign >= 0.0f) ? 1.0f : -1.0f; }
+	void UpdateWander(float deltaTime);
 
 	void PlayIdleAnimation();
 	void PlayMoveAnimation(float moveSpeed = -1.0f);
@@ -192,6 +252,8 @@ private: /// ---------- 内部処理 ---------- ///
 	void SetAnimState(AnimState next);
 	void UpdateAnimation(float dt);
 	void UpdateNavigatorSource();
+	void PickNextWanderTarget();
+	CoverQueryResult EvaluateCoverCandidate(const K4E::Vector3& targetPos, const K4E::Vector3& candidate, bool preferRetreat) const;
 
 private: /// ---------- メンバ変数 ---------- ///
 
@@ -204,7 +266,13 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	EnemyCombatConfig combat_{};
 
+	EnemySurvivalConfig survival_{};
+
+	EnemyReactionConfig reaction_{};
+
 	EnemyMovementConfig movement_{};
+
+	EnemyWanderConfig wander_{};
 
 	EnemyMemory memory_{};
 
@@ -216,6 +284,13 @@ private: /// ---------- メンバ変数 ---------- ///
 	float fireCooldown_ = 0.0f;
 	float strafeDecisionTimer_ = 0.0f;
 	float currentStrafeSign_ = 1.0f;
+	K4E::Vector3 spawnPosition_{ 0.0f, 0.0f, 0.0f };
+	K4E::Vector3 wanderTarget_{ 0.0f, 0.0f, 0.0f };
+	K4E::Vector3 wanderProbePosition_{ 0.0f, 0.0f, 0.0f };
+	float wanderRetargetTimer_ = 0.0f;
+	float wanderStuckTimer_ = 0.0f;
+	bool hasWanderTarget_ = false;
+	float hitReactionTimer_ = 0.0f;
 
 	AnimState animState_ = AnimState::Idle;
 	float animTime_ = 0.0f;

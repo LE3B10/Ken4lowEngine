@@ -14,7 +14,9 @@
 #include <cmath>
 #include <algorithm>
 #include <cstdint>
+#include <limits>
 #include <numbers>
+#include <random>
 
 using namespace Ken4lowEngine;
 
@@ -57,6 +59,27 @@ namespace
 		return degrees * (kPi / 180.0f);
 	}
 
+	float Random01()
+	{
+		thread_local std::mt19937 engine{ std::random_device{}() };
+		static thread_local std::uniform_real_distribution<float> dist(0.0f, 1.0f);
+		return dist(engine);
+	}
+
+	float RandomRange(float minValue, float maxValue)
+	{
+		thread_local std::mt19937 engine{ std::random_device{}() };
+		std::uniform_real_distribution<float> dist(minValue, maxValue);
+		return dist(engine);
+	}
+
+	float RandomSign()
+	{
+		thread_local std::mt19937 engine{ std::random_device{}() };
+		static thread_local std::bernoulli_distribution dist(0.5);
+		return dist(engine) ? 1.0f : -1.0f;
+	}
+
 	void Damp(float& value, float target, float speed, float deltaTime)
 	{
 		const float t = Clamp(speed * deltaTime, 0.0f, 1.0f);
@@ -81,6 +104,13 @@ void Enemy::Initialize()
 	fireCooldown_ = 0.0f;
 	strafeDecisionTimer_ = 0.0f;
 	currentStrafeSign_ = 1.0f;
+	spawnPosition_ = GetCenterPosition();
+	wanderTarget_ = spawnPosition_;
+	wanderProbePosition_ = spawnPosition_;
+	wanderRetargetTimer_ = 0.0f;
+	wanderStuckTimer_ = 0.0f;
+	hasWanderTarget_ = false;
+	hitReactionTimer_ = 0.0f;
 
 	animState_ = AnimState::Idle;
 	animTime_ = 0.0f;
@@ -94,6 +124,12 @@ void Enemy::Update(float deltaTime)
 	UpdateNavigatorSource();
 
 	if (memory_.timeSinceSeen < 9999.0f) memory_.timeSinceSeen += deltaTime;
+
+	if (hitReactionTimer_ > 0.0f)
+	{
+		hitReactionTimer_ -= deltaTime;
+		if (hitReactionTimer_ < 0.0f) hitReactionTimer_ = 0.0f;
+	}
 
 	if (fireCooldown_ > 0.0f)
 	{
@@ -320,10 +356,13 @@ void Enemy::OnBulletHit(K4E::Collider* bulletCollider)
 {
 	EnemyBase::OnBulletHit(bulletCollider);
 
-	if (IsDead())
+	if (!IsDead())
 	{
-		ChangeStateToDead();
+		hitReactionTimer_ = reaction_.hitReactionTime;
+		UpdateStrafeDecision(999.0f);
 	}
+
+	if (IsDead()) ChangeStateToDead();
 }
 
 void Enemy::UpdateNavigatorSource()
@@ -409,7 +448,7 @@ bool Enemy::CanShootTarget(const K4E::Vector3& targetPos) const
 	diff.y = 0.0f;
 
 	const float distSq = diff.x * diff.x + diff.z * diff.z;
-	if (distSq > (combat_.attackRange * combat_.attackRange)) return false;
+	if (distSq > (combat_.fireRange * combat_.fireRange)) return false;
 
 	Vector3 muzzle = selfPos;
 	muzzle.y += combat_.muzzleHeight;
@@ -418,17 +457,164 @@ bool Enemy::CanShootTarget(const K4E::Vector3& targetPos) const
 	return HasLineOfSight(muzzle, targetEye);
 }
 
+bool Enemy::TryFindCoverPosition(const K4E::Vector3& targetPos, bool preferRetreat, K4E::Vector3& outPosition) const
+{
+	const Vector3 self = GetCenterPosition();
+	CoverQueryResult best{};
+	best.score = -std::numeric_limits<float>::infinity();
+
+	for (int i = 0; i < reaction_.coverSampleCount; ++i)
+	{
+		const float t = static_cast<float>(i) / static_cast<float>(std::max(1, reaction_.coverSampleCount));
+		const float angle = (kPi * 2.0f * t) + RandomRange(-0.18f, 0.18f);
+		const float radius = RandomRange(reaction_.coverSearchRadiusMin, reaction_.coverSearchRadiusMax);
+		const Vector3 candidate{
+			self.x + std::cos(angle) * radius,
+			self.y,
+			self.z + std::sin(angle) * radius
+		};
+
+		const CoverQueryResult eval = EvaluateCoverCandidate(targetPos, candidate, preferRetreat);
+		if (eval.score > best.score)
+		{
+			best = eval;
+		}
+	}
+
+	if (!best.found)
+	{
+		return false;
+	}
+
+	outPosition = best.position;
+	return true;
+}
+
 void Enemy::UpdateStrafeDecision(float dt)
 {
 	strafeDecisionTimer_ -= dt;
 	if (strafeDecisionTimer_ > 0.0f) return;
 
-	const float r = static_cast<float>(std::rand()) / static_cast<float>(RAND_MAX);
+	const float r = Random01();
 	const float span = movement_.strafeSwitchMaxSec - movement_.strafeSwitchMinSec;
 	strafeDecisionTimer_ = movement_.strafeSwitchMinSec + span * Clamp(r, 0.0f, 1.0f);
 
-	const float side = (std::rand() & 1) ? 1.0f : -1.0f;
-	currentStrafeSign_ = side;
+	currentStrafeSign_ = RandomSign();
+}
+
+void Enemy::PickNextWanderTarget()
+{
+	const Vector3 center = spawnPosition_;
+	Vector3 selected = center;
+	bool found = false;
+
+	for (int i = 0; i < 8; ++i)
+	{
+		const float angle = RandomRange(0.0f, kPi * 2.0f);
+		const float radius = RandomRange(wander_.minTargetDistance, wander_.roamRadius);
+		Vector3 candidate{
+			center.x + std::cos(angle) * radius,
+			GetCenterPosition().y,
+			center.z + std::sin(angle) * radius
+		};
+
+		if (Vector3::Length(candidate - GetCenterPosition()) < wander_.minTargetDistance)
+		{
+			continue;
+		}
+
+		selected = candidate;
+		found = true;
+		break;
+	}
+
+	if (!found)
+	{
+		const float angle = RandomRange(0.0f, kPi * 2.0f);
+		selected.x = center.x + std::cos(angle) * wander_.minTargetDistance;
+		selected.y = GetCenterPosition().y;
+		selected.z = center.z + std::sin(angle) * wander_.minTargetDistance;
+	}
+
+	wanderTarget_ = selected;
+	hasWanderTarget_ = true;
+	wanderRetargetTimer_ = RandomRange(wander_.retargetIntervalMin, wander_.retargetIntervalMax);
+	wanderStuckTimer_ = wander_.stuckCheckInterval;
+	wanderProbePosition_ = GetCenterPosition();
+}
+
+void Enemy::UpdateWander(float deltaTime)
+{
+	if (!hasWanderTarget_)
+	{
+		spawnPosition_ = GetCenterPosition();
+		PickNextWanderTarget();
+	}
+
+	wanderRetargetTimer_ -= deltaTime;
+	wanderStuckTimer_ -= deltaTime;
+
+	const Vector3 self = GetCenterPosition();
+	const Vector3 toTarget = wanderTarget_ - self;
+	const float targetDist = LengthXZ(toTarget);
+
+	if (targetDist <= wander_.reachDistance || wanderRetargetTimer_ <= 0.0f)
+	{
+		PickNextWanderTarget();
+	}
+
+	if (wanderStuckTimer_ <= 0.0f)
+	{
+		const float moved = LengthXZ(self - wanderProbePosition_);
+		wanderProbePosition_ = self;
+		wanderStuckTimer_ = wander_.stuckCheckInterval;
+		if (moved < wander_.stuckDistance)
+		{
+			PickNextWanderTarget();
+		}
+	}
+
+	MoveTowardsPath(wanderTarget_, wander_.wanderMoveSpeed, deltaTime);
+	PlayMoveAnimation(wander_.wanderMoveSpeed);
+}
+
+Enemy::CoverQueryResult Enemy::EvaluateCoverCandidate(const K4E::Vector3& targetPos, const K4E::Vector3& candidate, bool preferRetreat) const
+{
+	CoverQueryResult result{};
+	result.position = candidate;
+
+	Vector3 candidateEye = candidate;
+	candidateEye.y += perception_.eyeHeight;
+	Vector3 targetEye = targetPos;
+	targetEye.y += perception_.targetEyeHeight;
+
+	const bool blockedFromTarget = !HasLineOfSight(targetEye, candidateEye);
+	const float losScore = EvaluateLineOfSightScore(candidate, targetPos); // 低いほど隠れやすい
+
+	const Vector3 currentPos = GetCenterPosition();
+	Vector3 toTargetCurrent = targetPos - currentPos;
+	toTargetCurrent.y = 0.0f;
+	Vector3 toTargetCandidate = targetPos - candidate;
+	toTargetCandidate.y = 0.0f;
+
+	const float currentDist = std::max(0.1f, LengthXZ(toTargetCurrent));
+	const float candidateDist = LengthXZ(toTargetCandidate);
+	const float retreatDelta = Clamp((candidateDist - currentDist) / currentDist, -1.0f, 1.0f);
+
+	float score = blockedFromTarget ? 2.0f : 0.0f;
+	score += (1.0f - losScore) * 1.4f;
+	if (preferRetreat)
+	{
+		score += retreatDelta * reaction_.coverDistanceScoreWeight;
+	}
+	else
+	{
+		score += std::fabs(retreatDelta) * 0.25f;
+	}
+
+	result.score = score;
+	result.found = (score > 0.8f);
+	return result;
 }
 
 void Enemy::SetAnimState(AnimState next)

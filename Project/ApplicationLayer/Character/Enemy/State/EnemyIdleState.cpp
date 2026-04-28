@@ -5,16 +5,12 @@ using namespace Ken4lowEngine;
 
 void EnemyIdleState::Enter(Enemy& enemy)
 {
-	enemy.StopMove();
-	enemy.PlayIdleAnimation();
+	enemy.UpdateWander(0.0f);
 }
 
 void EnemyIdleState::Update(Enemy& enemy, float deltaTime)
 {
-	(void)deltaTime;
-
-	enemy.StopMove();
-	enemy.PlayIdleAnimation();
+	enemy.UpdateWander(deltaTime);
 
 	if (!enemy.HasTarget()) return;
 
