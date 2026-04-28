@@ -43,6 +43,7 @@ void EnemyCombatMoveState::Update(Enemy& enemy, float deltaTime)
 
 	bool canShoot = enemy.CanShootTargetPublic(targetPos);
 	const auto retreatPlan = enemy.EvaluateRetreatPlan(distToTarget, canShoot);
+	const auto evadePlan = enemy.EvaluateEvadePlan(canShoot);
 	const bool dangerMode = retreatPlan.dangerMode;
 	const bool inHitReaction = enemy.IsInHitReaction();
 
@@ -68,7 +69,14 @@ void EnemyCombatMoveState::Update(Enemy& enemy, float deltaTime)
 		shouldPathChase = true;
 	}
 
-	const bool shouldPrioritizeCover = forceRetreat || (dangerMode && coverStayTimer_ <= 0.0f);
+	if (evadePlan.mode == EnemyEvadeController::Mode::Retreat)
+	{
+		forceRetreat = true;
+		radialBias = std::min(radialBias, evadePlan.radialBias);
+		speed *= evadePlan.speedScale;
+	}
+
+	const bool shouldPrioritizeCover = forceRetreat || (dangerMode && coverStayTimer_ <= 0.0f) || (evadePlan.mode == EnemyEvadeController::Mode::ToCover);
 	if (shouldPrioritizeCover)
 	{
 		if (!hasRetreatTarget_ || retreatRepathTimer_ <= 0.0f)
@@ -85,20 +93,25 @@ void EnemyCombatMoveState::Update(Enemy& enemy, float deltaTime)
 
 		if (hasRetreatTarget_)
 		{
-			enemy.MoveTowardsPath(retreatTarget_, speed, deltaTime);
+			const auto coverAction = enemy.EvaluateCoverAction(targetPos, retreatTarget_, dangerMode, hasRetreatTarget_, deltaTime);
+			enemy.MoveTowardsPath(coverAction.moveTarget, speed, deltaTime);
 			coverStayTimer_ = enemy.GetCoverStayTime();
+			canShoot = canShoot || enemy.ShouldShootFromCover(coverAction);
 		}
 		else
 		{
 			enemy.MoveAwayFrom(targetPos, speed);
+			enemy.ResetCoverAction();
 		}
 	}
 	else if (shouldPathChase)
 	{
+		enemy.ResetCoverAction();
 		enemy.MoveTowardsPath(targetPos, speed, deltaTime);
 	}
 	else
 	{
+		enemy.ResetCoverAction();
 		enemy.MoveTacticalAround(targetPos, enemy.GetCurrentStrafeSign(), radialBias, speed);
 	}
 	enemy.PlayMoveAnimation(speed);

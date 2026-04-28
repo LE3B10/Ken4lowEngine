@@ -96,6 +96,14 @@ void Enemy::Initialize()
 {
 	EnemyBase::Initialize();
 	navigator_.Reset();
+	UpdateTraitProfile();
+	EnemyCoverController::Config coverConfig{};
+	coverConfig.peekOffset = cover_.peekOffset;
+	coverConfig.peekExposeMinSec = cover_.peekExposeMinSec;
+	coverConfig.peekExposeMaxSec = cover_.peekExposeMaxSec;
+	coverConfig.peekHideMinSec = cover_.peekHideMinSec;
+	coverConfig.peekHideMaxSec = cover_.peekHideMaxSec;
+	coverController_.SetConfig(coverConfig);
 
 	memory_.lastSeenPos = GetCenterPosition();
 	memory_.timeSinceSeen = 9999.0f;
@@ -111,6 +119,9 @@ void Enemy::Initialize()
 	wanderStuckTimer_ = 0.0f;
 	hasWanderTarget_ = false;
 	hitReactionTimer_ = 0.0f;
+	jumpCooldownTimer_ = 0.0f;
+	hitChainTimer_ = 0.0f;
+	consecutiveHitCount_ = 0;
 
 	animState_ = AnimState::Idle;
 	animTime_ = 0.0f;
@@ -129,6 +140,21 @@ void Enemy::Update(float deltaTime)
 	{
 		hitReactionTimer_ -= deltaTime;
 		if (hitReactionTimer_ < 0.0f) hitReactionTimer_ = 0.0f;
+	}
+
+	if (jumpCooldownTimer_ > 0.0f)
+	{
+		jumpCooldownTimer_ -= deltaTime;
+		if (jumpCooldownTimer_ < 0.0f) jumpCooldownTimer_ = 0.0f;
+	}
+	if (hitChainTimer_ > 0.0f)
+	{
+		hitChainTimer_ -= deltaTime;
+		if (hitChainTimer_ <= 0.0f)
+		{
+			hitChainTimer_ = 0.0f;
+			consecutiveHitCount_ = 0;
+		}
 	}
 
 	if (fireCooldown_ > 0.0f)
@@ -197,6 +223,7 @@ void Enemy::MoveInDirectionXZ(const K4E::Vector3& direction, float speed)
 	v.x = normDir.x * speed;
 	v.z = normDir.z * speed;
 	SetVelocity(v);
+	TryStepJump(direction);
 }
 
 void Enemy::MoveTowards(const K4E::Vector3& targetPos)
@@ -318,8 +345,23 @@ void Enemy::FireAt(const K4E::Vector3& targetPos)
 	Vector3 muzzle = GetCenterPosition();
 	muzzle.y += combat_.muzzleHeight;
 
-	Vector3 aim = targetPos;
-	aim.y += perception_.targetEyeHeight;
+	Vector3 targetEye = targetPos;
+	targetEye.y += perception_.targetEyeHeight;
+	EnemyAimController::Input aimInput{};
+	aimInput.muzzlePosition = muzzle;
+	aimInput.targetPosition = targetEye;
+	aimInput.distanceToTarget = std::max(0.01f, GetDistanceToTarget());
+	aimInput.movementSpeed = LengthXZ(GetVelocity());
+	aimInput.lowHp = IsLowHp();
+	aimInput.inHitReaction = IsInHitReaction();
+	aimInput.baseSpreadRad = 0.008f;
+	aimInput.maxSpreadRad = 0.12f;
+	aimInput.distanceSpreadWeight = 0.95f;
+	aimInput.moveSpreadWeight = 0.85f;
+	aimInput.stressSpreadWeight = 0.7f;
+	aimInput.stableBonusWeight = 0.55f;
+	aimInput.traits = &traits_;
+	const Vector3 aim = aimController_.BuildAimPoint(aimInput);
 
 	Vector3 dir = aim - muzzle;
 	const float len = Vector3::Length(dir);
@@ -339,7 +381,7 @@ void Enemy::FireAt(const K4E::Vector3& targetPos)
 	constexpr float kMuzzleForwardOffset = 1.2f;
 	muzzle = muzzle + forward * kMuzzleForwardOffset;
 
-	fireCooldown_ = combat_.fireInterval;
+	fireCooldown_ = combat_.fireInterval * traits_.fireIntervalScale;
 
 	bulletManager_->Spawn(
 		muzzle,
@@ -358,7 +400,9 @@ void Enemy::OnBulletHit(K4E::Collider* bulletCollider)
 
 	if (!IsDead())
 	{
-		hitReactionTimer_ = reaction_.hitReactionTime;
+		hitReactionTimer_ = reaction_.hitReactionTime * traits_.reactionDelayScale;
+		hitChainTimer_ = reaction_.hitChainWindow;
+		++consecutiveHitCount_;
 		UpdateStrafeDecision(999.0f);
 	}
 
@@ -471,11 +515,25 @@ EnemyRetreatController::Plan Enemy::EvaluateRetreatPlan(float distToTarget, bool
 	input.retreatSpeed = movement_.retreatSpeed;
 	input.strafeSpeed = movement_.strafeSpeed;
 	input.lowHpRetreatSpeedScale = survival_.lowHpRetreatSpeedScale;
-	input.hitReactionMoveWeight = reaction_.hitReactionMoveWeight;
+	input.hitReactionMoveWeight = reaction_.hitReactionMoveWeight + (1.0f - traits_.aggression) * 0.25f;
 	input.isLowHp = IsLowHp();
 	input.inHitReaction = IsInHitReaction();
 	input.canShoot = canShoot;
 	return retreatController_.EvaluatePlan(input);
+}
+
+EnemyEvadeController::Plan Enemy::EvaluateEvadePlan(bool canShoot) const
+{
+	EnemyEvadeController::Input input{};
+	input.inHitReaction = IsInHitReaction();
+	input.lowHp = IsLowHp();
+	input.canShoot = canShoot;
+	input.consecutiveHits = consecutiveHitCount_;
+	input.evadeWeight = reaction_.evadeWeight;
+	input.coverBias = reaction_.coverBias;
+	input.aggression = traits_.aggression;
+	input.coverPreference = traits_.coverPreference;
+	return evadeController_.Evaluate(input);
 }
 
 bool Enemy::TryFindCoverPosition(const K4E::Vector3& targetPos, bool preferRetreat, K4E::Vector3& outPosition) const
@@ -491,6 +549,35 @@ bool Enemy::TryFindCoverPosition(const K4E::Vector3& targetPos, bool preferRetre
 	return coverSelector_.TryFindCoverPosition(config, collisionManager_, GetCenterPosition(), targetPos, preferRetreat, outPosition);
 }
 
+EnemyCoverController::Output Enemy::EvaluateCoverAction(const K4E::Vector3& targetPos, const K4E::Vector3& coverPos, bool dangerMode, bool hasCover, float deltaTime)
+{
+	EnemyCoverController::UpdateInput input{};
+	input.selfPos = GetCenterPosition();
+	input.targetPos = targetPos;
+	input.coverPos = coverPos;
+	input.dt = deltaTime;
+	input.dangerMode = dangerMode;
+	input.hasCover = hasCover;
+	const Vector3 toTarget = targetPos - coverPos;
+	Vector3 right{ toTarget.z, 0.0f, -toTarget.x };
+	if (LengthXZ(right) <= kEpsilon) right = { 1.0f, 0.0f, 0.0f };
+	const Vector3 leftPos = coverPos - NormalizeXZ(right) * cover_.peekOffset;
+	const Vector3 rightPos = coverPos + NormalizeXZ(right) * cover_.peekOffset;
+	input.losLeftScore = EvaluateLineOfSightScore(leftPos, targetPos);
+	input.losRightScore = EvaluateLineOfSightScore(rightPos, targetPos);
+	return coverController_.Update(input);
+}
+
+void Enemy::ResetCoverAction()
+{
+	coverController_.Reset();
+}
+
+bool Enemy::ShouldShootFromCover(const EnemyCoverController::Output& coverAction) const
+{
+	return coverAction.active && coverAction.exposing && coverAction.shouldShoot;
+}
+
 void Enemy::UpdateStrafeDecision(float dt)
 {
 	strafeDecisionTimer_ -= dt;
@@ -498,9 +585,48 @@ void Enemy::UpdateStrafeDecision(float dt)
 
 	const float r = Random01();
 	const float span = movement_.strafeSwitchMaxSec - movement_.strafeSwitchMinSec;
-	strafeDecisionTimer_ = movement_.strafeSwitchMinSec + span * Clamp(r, 0.0f, 1.0f);
+	strafeDecisionTimer_ = (movement_.strafeSwitchMinSec + span * Clamp(r, 0.0f, 1.0f)) * traits_.strafeSwitchScale;
 
 	currentStrafeSign_ = RandomSign();
+}
+
+void Enemy::TryStepJump(const K4E::Vector3& moveDirection)
+{
+	if (!collisionManager_ || jumpCooldownTimer_ > 0.0f || !grounded_) return;
+	if (LengthXZ(moveDirection) <= kEpsilon) return;
+
+	const Vector3 forward = NormalizeXZ(moveDirection);
+	const Vector3 origin = GetCenterPosition();
+	Segment low{};
+	low.origin = origin + Vector3{ 0.0f, 0.3f, 0.0f };
+	low.diff = forward * movement_.jumpProbeDistance;
+
+	Segment high{};
+	high.origin = origin + Vector3{ 0.0f, movement_.jumpStepHeight + 0.3f, 0.0f };
+	high.diff = forward * movement_.jumpProbeDistance;
+
+	Collider* hitLow = nullptr;
+	const bool lowBlocked = collisionManager_->SegmentCast(static_cast<uint32_t>(CollisionTypeIdDef::kWorld), low, &hitLow);
+	if (!lowBlocked) return;
+
+	Collider* hitHigh = nullptr;
+	const bool highBlocked = collisionManager_->SegmentCast(static_cast<uint32_t>(CollisionTypeIdDef::kWorld), high, &hitHigh);
+	if (highBlocked) return;
+
+	Vector3 v = GetVelocity();
+	v.y = movement_.jumpVelocity;
+	SetVelocity(v);
+	jumpCooldownTimer_ = movement_.jumpCooldown;
+}
+
+void Enemy::UpdateTraitProfile()
+{
+	traits_.reactionDelayScale = RandomRange(0.85f, 1.2f);
+	traits_.strafeSwitchScale = RandomRange(0.8f, 1.35f);
+	traits_.fireIntervalScale = RandomRange(0.82f, 1.3f);
+	traits_.aggression = RandomRange(0.35f, 0.85f);
+	traits_.coverPreference = RandomRange(0.3f, 0.9f);
+	traits_.aimStability = RandomRange(0.25f, 0.9f);
 }
 
 void Enemy::PickNextWanderTarget()

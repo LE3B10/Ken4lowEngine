@@ -7,6 +7,7 @@ void EnemyShootState::Enter(Enemy& enemy)
 {
 	stayTimer_ = 0.0f;
 	reevalTimer_ = 0.0f;
+	enemy.ResetCoverAction();
 	enemy.StopMove();
 	enemy.PlayShootAnimation();
 }
@@ -39,7 +40,8 @@ void EnemyShootState::Update(Enemy& enemy, float deltaTime)
 	}
 
 	// 被弾直後や低HP時は射撃状態に留まらず、すぐ生存行動へ移る
-	if ((inHitReaction && stayTimer_ > 0.05f) || (lowHp && distToTarget < enemy.GetLowHpRetreatDistance()))
+	if (((inHitReaction && enemy.GetConsecutiveHitCount() >= 2) && stayTimer_ > 0.03f) ||
+		(inHitReaction && stayTimer_ > 0.08f) || (lowHp && distToTarget < enemy.GetLowHpRetreatDistance()))
 	{
 		enemy.ChangeStateToCombatMove();
 		return;

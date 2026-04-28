@@ -772,6 +772,15 @@
     <ClCompile Include="ApplicationLayer\Character\Enemy\AI\EnemyRetreatController.cpp">
       <Filter>ApplicationLayer\Character\Enemy\AI</Filter>
     </ClCompile>
+    <ClCompile Include="ApplicationLayer\Character\Enemy\AI\EnemyAimController.cpp">
+      <Filter>ApplicationLayer\Character\Enemy\AI</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\Character\Enemy\AI\EnemyCoverController.cpp">
+      <Filter>ApplicationLayer\Character\Enemy\AI</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\Character\Enemy\AI\EnemyEvadeController.cpp">
+      <Filter>ApplicationLayer\Character\Enemy\AI</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ApplicationLayer\UISystem\Crosshair\Crosshair.h">
@@ -1615,6 +1624,18 @@
       <Filter>ApplicationLayer\Character\Enemy\AI</Filter>
     </ClInclude>
     <ClInclude Include="ApplicationLayer\Character\Enemy\AI\EnemyRetreatController.h">
+      <Filter>ApplicationLayer\Character\Enemy\AI</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Character\Enemy\AI\EnemyAimController.h">
+      <Filter>ApplicationLayer\Character\Enemy\AI</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Character\Enemy\AI\EnemyCoverController.h">
+      <Filter>ApplicationLayer\Character\Enemy\AI</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Character\Enemy\AI\EnemyEvadeController.h">
+      <Filter>ApplicationLayer\Character\Enemy\AI</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Character\Enemy\AI\EnemyTraitProfile.h">
       <Filter>ApplicationLayer\Character\Enemy\AI</Filter>
     </ClInclude>
   </ItemGroup>

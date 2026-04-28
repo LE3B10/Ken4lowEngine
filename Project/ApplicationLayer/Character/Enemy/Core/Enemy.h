@@ -3,8 +3,12 @@
 #include "EnemyBase.h"
 #include "IEnemyState.h"
 #include <EnemyAStarNavigator.h>
+#include <EnemyAimController.h>
+#include <EnemyCoverController.h>
 #include <EnemyCoverSelector.h>
+#include <EnemyEvadeController.h>
 #include <EnemyRetreatController.h>
+#include <EnemyTraitProfile.h>
 
 #include <memory>
 
@@ -83,6 +87,9 @@ private: /// ---------- 構造体 ---------- ///
 	{
 		float hitReactionTime = 0.95f;
 		float hitReactionMoveWeight = 0.8f;
+		float hitChainWindow = 1.15f;
+		float evadeWeight = 0.72f;
+		float coverBias = 0.64f;
 	};
 
 	struct EnemyCoverConfig
@@ -92,6 +99,11 @@ private: /// ---------- 構造体 ---------- ///
 		float coverDistanceScoreWeight = 0.75f;
 		float coverRepathInterval = 0.2f;
 		float coverStayTime = 0.9f;
+		float peekOffset = 1.55f;
+		float peekExposeMinSec = 0.3f;
+		float peekExposeMaxSec = 0.75f;
+		float peekHideMinSec = 0.35f;
+		float peekHideMaxSec = 0.95f;
 	};
 
 	// 移動設定
@@ -106,6 +118,10 @@ private: /// ---------- 構造体 ---------- ///
 		float losProbeDistance = 2.6f;
 		float tacticalBlend = 0.45f;
 		float shootMicroStrafeSpeed = 1.35f;
+		float jumpProbeDistance = 1.05f;
+		float jumpStepHeight = 0.95f;
+		float jumpVelocity = 5.3f;
+		float jumpCooldown = 0.9f;
 	};
 
 	// 通常時の徘徊設定
@@ -119,6 +135,7 @@ private: /// ---------- 構造体 ---------- ///
 		float retargetIntervalMax = 3.8f;
 		float stuckCheckInterval = 0.8f;
 		float stuckDistance = 0.25f;
+
 	};
 
 	// 敵の記憶
@@ -222,8 +239,17 @@ public: /// ---------- アクセサ ---------- ///
 	bool IsLowHp() const { return GetHpRate() <= survival_.lowHpThresholdRate; }
 	bool IsInHitReaction() const { return hitReactionTimer_ > 0.0f; }
 	float GetHitReactionMoveWeight() const { return reaction_.hitReactionMoveWeight; }
+	float GetEvadeWeight() const { return reaction_.evadeWeight; }
+	float GetCoverBias() const { return reaction_.coverBias; }
+	float GetCoverPreference() const { return traits_.coverPreference; }
+	float GetAggression() const { return traits_.aggression; }
+	int GetConsecutiveHitCount() const { return consecutiveHitCount_; }
 	EnemyRetreatController::Plan EvaluateRetreatPlan(float distToTarget, bool canShoot) const;
+	EnemyEvadeController::Plan EvaluateEvadePlan(bool canShoot) const;
 	[[nodiscard]] bool TryFindCoverPosition(const K4E::Vector3& targetPos, bool preferRetreat, K4E::Vector3& outPosition) const;
+	[[nodiscard]] EnemyCoverController::Output EvaluateCoverAction(const K4E::Vector3& targetPos, const K4E::Vector3& coverPos, bool dangerMode, bool hasCover, float deltaTime);
+	void ResetCoverAction();
+	bool ShouldShootFromCover(const EnemyCoverController::Output& coverAction) const;
 
 	void UpdateStrafeDecision(float dt);
 	float GetCurrentStrafeSign() const { return currentStrafeSign_; }
@@ -256,6 +282,8 @@ private: /// ---------- 内部処理 ---------- ///
 	void UpdateAnimation(float dt);
 	void UpdateNavigatorSource();
 	void PickNextWanderTarget();
+	void TryStepJump(const K4E::Vector3& moveDirection);
+	void UpdateTraitProfile();
 
 private: /// ---------- メンバ変数 ---------- ///
 
@@ -286,7 +314,15 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	EnemyCoverSelector coverSelector_{};
 
+	EnemyCoverController coverController_{};
+
 	EnemyRetreatController retreatController_{};
+
+	EnemyEvadeController evadeController_{};
+	
+	EnemyAimController aimController_{};
+
+	EnemyTraitProfile traits_{};
 
 	std::unique_ptr<IEnemyState> state_ = nullptr;
 	float fireCooldown_ = 0.0f;
@@ -299,6 +335,9 @@ private: /// ---------- メンバ変数 ---------- ///
 	float wanderStuckTimer_ = 0.0f;
 	bool hasWanderTarget_ = false;
 	float hitReactionTimer_ = 0.0f;
+	float jumpCooldownTimer_ = 0.0f;
+	float hitChainTimer_ = 0.0f;
+	int consecutiveHitCount_ = 0;
 
 	AnimState animState_ = AnimState::Idle;
 	float animTime_ = 0.0f;
