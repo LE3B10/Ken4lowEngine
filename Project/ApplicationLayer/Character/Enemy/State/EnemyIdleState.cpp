@@ -25,6 +25,7 @@ void EnemyIdleState::Update(Enemy& enemy, float deltaTime)
 	{
 		enemy.RememberLastSeenTarget(targetPos);
 		enemy.ChangeStateToCombatMove();
+		enemy.FaceTo(targetPos);
 		return;
 	}
 }

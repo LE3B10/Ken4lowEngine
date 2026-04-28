@@ -48,7 +48,7 @@ void EnemySearchState::Update(Enemy& enemy, float deltaTime)
 	if (distToLastSeen > 1.35f)
 	{
 		localSweepTimer_ = 0.0f;
-		enemy.MoveToLastSeen(enemy.GetSearchMoveSpeed());
+		enemy.MoveTowardsPath(lastSeen, enemy.GetSearchMoveSpeed(), deltaTime);
 		enemy.PlaySearchAnimation(enemy.GetSearchMoveSpeed());
 	}
 	else

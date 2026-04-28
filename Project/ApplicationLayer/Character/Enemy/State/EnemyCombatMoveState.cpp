@@ -54,6 +54,7 @@ void EnemyCombatMoveState::Update(Enemy& enemy, float deltaTime)
 	float radialBias = Clamp((distToTarget - mid) / half, -1.0f, 1.0f);
 	// radialBias > 0: 接近 / <0: 離脱
 	float speed = enemy.GetStrafeSpeed();
+	bool shouldPathChase = false;
 
 	if (distToTarget < idealMin)
 	{
@@ -62,6 +63,7 @@ void EnemyCombatMoveState::Update(Enemy& enemy, float deltaTime)
 	else if (distToTarget > idealMax)
 	{
 		speed = enemy.GetApproachSpeed();
+		shouldPathChase = true;
 	}
 
 	bool canShoot = enemy.CanShootTargetPublic(targetPos);
@@ -79,9 +81,17 @@ void EnemyCombatMoveState::Update(Enemy& enemy, float deltaTime)
 
 		radialBias = std::max(radialBias, -0.1f);
 		speed = std::max(speed, enemy.GetStrafeSpeed());
+		shouldPathChase = true;
 	}
 
-	enemy.MoveTacticalAround(targetPos, enemy.GetCurrentStrafeSign(), radialBias, speed);
+	if (shouldPathChase)
+	{
+		enemy.MoveTowardsPath(targetPos, speed, deltaTime);
+	}
+	else
+	{
+		enemy.MoveTacticalAround(targetPos, enemy.GetCurrentStrafeSign(), radialBias, speed);
+	}
 	enemy.PlayMoveAnimation(speed);
 
 	canShoot = enemy.CanShootTargetPublic(targetPos);

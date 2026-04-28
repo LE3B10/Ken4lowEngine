@@ -763,6 +763,9 @@
     <ClCompile Include="ApplicationLayer\Character\Enemy\State\EnemyShootState.cpp">
       <Filter>ApplicationLayer\Character\Enemy\State</Filter>
     </ClCompile>
+    <ClCompile Include="ApplicationLayer\Character\Enemy\EnemyAStarNavigator.cpp">
+      <Filter>ApplicationLayer\Character\Enemy</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ApplicationLayer\UISystem\Crosshair\Crosshair.h">
@@ -1598,6 +1601,9 @@
     </ClInclude>
     <ClInclude Include="ApplicationLayer\Character\Enemy\State\IEnemyState.h">
       <Filter>ApplicationLayer\Character\Enemy\State</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Character\Enemy\EnemyAStarNavigator.h">
+      <Filter>ApplicationLayer\Character\Enemy</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

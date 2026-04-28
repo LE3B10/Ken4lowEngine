@@ -87,10 +87,7 @@ public:
 		return static_cast<float>(hp_) / static_cast<float>(maxHp_);
 	}
 
-	bool IsHpBarVisibleTarget() const
-	{
-		return !isDead_;
-	}
+	bool IsHpBarVisibleTarget() const { return !isDead_; }
 
 	bool IsRemovable() const { return removable_; }
 
@@ -135,6 +132,8 @@ public:
 	void SetParticleEffectSystem(EnemyParticleEffectSystem* effectSystem) { particleEffectSystem_ = effectSystem; }
 
 	void SpawnHitEffectAt(const K4E::Vector3& worldPos);
+
+	const std::vector<K4E::AABB>* GetResolvedWorldAABBs() const { return worldAABBs_ ? worldAABBs_ : g_worldAABBs_; }
 
 protected:
 	// 派生で差し替え可（デフォルトはバラバラ崩壊開始）

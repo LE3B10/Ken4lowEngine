@@ -2,6 +2,7 @@
 #include "Vector3.h"
 #include "EnemyBase.h"
 #include "IEnemyState.h"
+#include <EnemyAStarNavigator.h>
 
 #include <memory>
 
@@ -120,6 +121,7 @@ public: /// ---------- アクセサ ---------- ///
 	void StopMove();
 	void MoveTowards(const K4E::Vector3& targetPos);
 	void MoveTowards(const K4E::Vector3& targetPos, float speed);
+	void MoveTowardsPath(const K4E::Vector3& targetPos, float speed, float deltaTime);
 	void MoveAwayFrom(const K4E::Vector3& targetPos, float speed);
 	void MoveStrafeAround(const K4E::Vector3& targetPos, float sign, float speed);
 	void MoveToLastSeen(float speed);
@@ -176,6 +178,7 @@ protected: /// ---------- EnemyBaseからの通知 ---------- ///
 	// EnemyBaseからの弾ヒット
 	void OnBulletHit(K4E::Collider* bulletCollider) override;
 
+
 private: /// ---------- 視界判定 ---------- ///
 
 	bool CanSeeTarget(const K4E::Vector3& targetPos, float distToTarget);
@@ -188,6 +191,7 @@ private: /// ---------- 内部処理 ---------- ///
 	void MoveInDirectionXZ(const K4E::Vector3& dir, float speed);
 	void SetAnimState(AnimState next);
 	void UpdateAnimation(float dt);
+	void UpdateNavigatorSource();
 
 private: /// ---------- メンバ変数 ---------- ///
 
@@ -205,6 +209,8 @@ private: /// ---------- メンバ変数 ---------- ///
 	EnemyMemory memory_{};
 
 	EnemyFacing facing_{};
+
+	EnemyAStarNavigator navigator_{};
 
 	std::unique_ptr<IEnemyState> state_ = nullptr;
 	float fireCooldown_ = 0.0f;

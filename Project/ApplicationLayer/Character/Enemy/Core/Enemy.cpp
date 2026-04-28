@@ -72,6 +72,7 @@ namespace
 void Enemy::Initialize()
 {
 	EnemyBase::Initialize();
+	navigator_.Reset();
 
 	memory_.lastSeenPos = GetCenterPosition();
 	memory_.timeSinceSeen = 9999.0f;
@@ -90,6 +91,8 @@ void Enemy::Initialize()
 
 void Enemy::Update(float deltaTime)
 {
+	UpdateNavigatorSource();
+
 	if (memory_.timeSinceSeen < 9999.0f) memory_.timeSinceSeen += deltaTime;
 
 	if (fireCooldown_ > 0.0f)
@@ -168,6 +171,18 @@ void Enemy::MoveTowards(const K4E::Vector3& targetPos)
 void Enemy::MoveTowards(const K4E::Vector3& targetPos, float speed)
 {
 	Vector3 direction = targetPos - GetCenterPosition();
+	direction.y = 0.0f; // 水平方向のみ
+	MoveInDirectionXZ(direction, speed);
+	FaceTo(targetPos);
+}
+
+void Enemy::MoveTowardsPath(const K4E::Vector3& targetPos, float speed, float deltaTime)
+{
+	Vector3 waypoint = targetPos;
+	const float sampleY = GetCenterPosition().y + 1.0f;
+	navigator_.GetNextWaypoint(GetCenterPosition(), targetPos, sampleY, deltaTime, waypoint);
+
+	Vector3 direction = waypoint - GetCenterPosition();
 	direction.y = 0.0f; // 水平方向のみ
 	MoveInDirectionXZ(direction, speed);
 	FaceTo(targetPos);
@@ -309,6 +324,11 @@ void Enemy::OnBulletHit(K4E::Collider* bulletCollider)
 	{
 		ChangeStateToDead();
 	}
+}
+
+void Enemy::UpdateNavigatorSource()
+{
+	navigator_.SetWorldAABBs(GetResolvedWorldAABBs());
 }
 
 bool Enemy::HasLineOfSight(const K4E::Vector3& fromPos, const K4E::Vector3& toPos) const

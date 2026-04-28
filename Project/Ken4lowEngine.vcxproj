@@ -287,6 +287,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClCompile Include="ApplicationLayer\Character\Enemy\State\EnemyIdleState.cpp" />
     <ClCompile Include="ApplicationLayer\Character\Enemy\State\EnemySearchState.cpp" />
     <ClCompile Include="ApplicationLayer\Character\Enemy\State\EnemyShootState.cpp" />
+    <ClCompile Include="ApplicationLayer\Character\Enemy\EnemyAStarNavigator.cpp" />
     <ClCompile Include="Engine\Graphics\Camera\Manager\CameraManager.cpp" />
     <ClCompile Include="Engine\Core\Application\Framework.cpp" />
     <ClCompile Include="Engine\Core\Application\GameApplication.cpp" />
@@ -856,6 +857,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="ApplicationLayer\Character\Enemy\State\EnemyIdleState.h" />
     <ClInclude Include="ApplicationLayer\Character\Enemy\State\EnemySearchState.h" />
     <ClInclude Include="ApplicationLayer\Character\Enemy\State\EnemyShootState.h" />
+    <ClInclude Include="ApplicationLayer\Character\Enemy\EnemyAStarNavigator.h" />
     <ClInclude Include="Engine\Graphics\Camera\Manager\CameraManager.h" />
     <ClInclude Include="Engine\Core\Application\Framework.h" />
     <ClInclude Include="Engine\Core\Application\GameApplication.h" />
