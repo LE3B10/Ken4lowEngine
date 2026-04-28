@@ -24,6 +24,8 @@ void EnemyShootState::Update(Enemy& enemy, float deltaTime)
 
 	const Vector3 targetPos = enemy.GetTargetPosition();
 	const float distToTarget = enemy.GetDistanceToTarget();
+	const bool inHitReaction = enemy.IsInHitReaction();
+	const bool lowHp = enemy.IsLowHp();
 	const bool canSee = enemy.CanSeeTargetPublic(targetPos, distToTarget);
 
 	if (canSee)
@@ -36,11 +38,16 @@ void EnemyShootState::Update(Enemy& enemy, float deltaTime)
 		return;
 	}
 
+	// 被弾直後や低HP時は射撃状態に留まらず、すぐ生存行動へ移る
+	if ((inHitReaction && stayTimer_ > 0.05f) || (lowHp && distToTarget < enemy.GetLowHpRetreatDistance()))
+	{
+		enemy.ChangeStateToCombatMove();
+		return;
+	}
+
 	if (reevalTimer_ <= 0.0f)
 	{
 		reevalTimer_ = enemy.GetShootRepositionEvalSec();
-		const bool lowHp = enemy.IsLowHp();
-		const bool inHitReaction = enemy.IsInHitReaction();
 		const float allowedShootRange = lowHp ? enemy.GetLowHpShootRange() : enemy.GetFireRange();
 		const float stayLimit = lowHp ? enemy.GetLowHpShootStaySec() : enemy.GetShootMaxStaySec();
 
@@ -60,7 +67,6 @@ void EnemyShootState::Update(Enemy& enemy, float deltaTime)
 
 	// 射撃中も微移動して棒立ち感を減らす
 	enemy.UpdateStrafeDecision(deltaTime);
-	const bool inHitReaction = enemy.IsInHitReaction();
 	const float retreatBias = (enemy.IsLowHp() || inHitReaction) ? -0.75f : 0.0f;
 	const float reactionScale = inHitReaction ? (1.0f + enemy.GetHitReactionMoveWeight() * 0.5f) : 1.0f;
 	const float moveSpeed = (enemy.IsLowHp() || inHitReaction)

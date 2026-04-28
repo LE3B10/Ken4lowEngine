@@ -457,37 +457,38 @@ bool Enemy::CanShootTarget(const K4E::Vector3& targetPos) const
 	return HasLineOfSight(muzzle, targetEye);
 }
 
+EnemyRetreatController::Plan Enemy::EvaluateRetreatPlan(float distToTarget, bool canShoot) const
+{
+	EnemyRetreatController::Input input{};
+	input.distanceToTarget = distToTarget;
+	input.idealRangeMin = combat_.idealRangeMin;
+	input.idealRangeMax = combat_.idealRangeMax;
+	input.tooCloseRange = combat_.tooCloseRange;
+	input.tooFarRange = combat_.tooFarRange;
+	input.lowHpRetreatDistance = survival_.lowHpRetreatDistance;
+	input.lowHpReturnDistance = survival_.lowHpReturnDistance;
+	input.approachSpeed = movement_.approachSpeed;
+	input.retreatSpeed = movement_.retreatSpeed;
+	input.strafeSpeed = movement_.strafeSpeed;
+	input.lowHpRetreatSpeedScale = survival_.lowHpRetreatSpeedScale;
+	input.hitReactionMoveWeight = reaction_.hitReactionMoveWeight;
+	input.isLowHp = IsLowHp();
+	input.inHitReaction = IsInHitReaction();
+	input.canShoot = canShoot;
+	return retreatController_.EvaluatePlan(input);
+}
+
 bool Enemy::TryFindCoverPosition(const K4E::Vector3& targetPos, bool preferRetreat, K4E::Vector3& outPosition) const
 {
-	const Vector3 self = GetCenterPosition();
-	CoverQueryResult best{};
-	best.score = -std::numeric_limits<float>::infinity();
-
-	for (int i = 0; i < reaction_.coverSampleCount; ++i)
-	{
-		const float t = static_cast<float>(i) / static_cast<float>(std::max(1, reaction_.coverSampleCount));
-		const float angle = (kPi * 2.0f * t) + RandomRange(-0.18f, 0.18f);
-		const float radius = RandomRange(reaction_.coverSearchRadiusMin, reaction_.coverSearchRadiusMax);
-		const Vector3 candidate{
-			self.x + std::cos(angle) * radius,
-			self.y,
-			self.z + std::sin(angle) * radius
-		};
-
-		const CoverQueryResult eval = EvaluateCoverCandidate(targetPos, candidate, preferRetreat);
-		if (eval.score > best.score)
-		{
-			best = eval;
-		}
-	}
-
-	if (!best.found)
-	{
-		return false;
-	}
-
-	outPosition = best.position;
-	return true;
+	EnemyCoverSelector::Config config{};
+	config.eyeHeight = perception_.eyeHeight;
+	config.targetEyeHeight = perception_.targetEyeHeight;
+	config.viewRange = perception_.viewRange;
+	config.useLOS = perception_.useLOS;
+	config.coverSearchRadius = cover_.coverSearchRadius;
+	config.coverSampleCount = cover_.coverSampleCount;
+	config.retreatDistanceScoreWeight = cover_.coverDistanceScoreWeight;
+	return coverSelector_.TryFindCoverPosition(config, collisionManager_, GetCenterPosition(), targetPos, preferRetreat, outPosition);
 }
 
 void Enemy::UpdateStrafeDecision(float dt)
@@ -576,45 +577,6 @@ void Enemy::UpdateWander(float deltaTime)
 
 	MoveTowardsPath(wanderTarget_, wander_.wanderMoveSpeed, deltaTime);
 	PlayMoveAnimation(wander_.wanderMoveSpeed);
-}
-
-Enemy::CoverQueryResult Enemy::EvaluateCoverCandidate(const K4E::Vector3& targetPos, const K4E::Vector3& candidate, bool preferRetreat) const
-{
-	CoverQueryResult result{};
-	result.position = candidate;
-
-	Vector3 candidateEye = candidate;
-	candidateEye.y += perception_.eyeHeight;
-	Vector3 targetEye = targetPos;
-	targetEye.y += perception_.targetEyeHeight;
-
-	const bool blockedFromTarget = !HasLineOfSight(targetEye, candidateEye);
-	const float losScore = EvaluateLineOfSightScore(candidate, targetPos); // 低いほど隠れやすい
-
-	const Vector3 currentPos = GetCenterPosition();
-	Vector3 toTargetCurrent = targetPos - currentPos;
-	toTargetCurrent.y = 0.0f;
-	Vector3 toTargetCandidate = targetPos - candidate;
-	toTargetCandidate.y = 0.0f;
-
-	const float currentDist = std::max(0.1f, LengthXZ(toTargetCurrent));
-	const float candidateDist = LengthXZ(toTargetCandidate);
-	const float retreatDelta = Clamp((candidateDist - currentDist) / currentDist, -1.0f, 1.0f);
-
-	float score = blockedFromTarget ? 2.0f : 0.0f;
-	score += (1.0f - losScore) * 1.4f;
-	if (preferRetreat)
-	{
-		score += retreatDelta * reaction_.coverDistanceScoreWeight;
-	}
-	else
-	{
-		score += std::fabs(retreatDelta) * 0.25f;
-	}
-
-	result.score = score;
-	result.found = (score > 0.8f);
-	return result;
 }
 
 void Enemy::SetAnimState(AnimState next)

@@ -763,8 +763,14 @@
     <ClCompile Include="ApplicationLayer\Character\Enemy\State\EnemyShootState.cpp">
       <Filter>ApplicationLayer\Character\Enemy\State</Filter>
     </ClCompile>
-    <ClCompile Include="ApplicationLayer\Character\Enemy\EnemyAStarNavigator.cpp">
-      <Filter>ApplicationLayer\Character\Enemy</Filter>
+    <ClCompile Include="ApplicationLayer\Character\Enemy\Navigation\EnemyAStarNavigator.cpp">
+      <Filter>ApplicationLayer\Character\Enemy\Navigation</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\Character\Enemy\AI\EnemyCoverSelector.cpp">
+      <Filter>ApplicationLayer\Character\Enemy\AI</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\Character\Enemy\AI\EnemyRetreatController.cpp">
+      <Filter>ApplicationLayer\Character\Enemy\AI</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -1602,8 +1608,14 @@
     <ClInclude Include="ApplicationLayer\Character\Enemy\State\IEnemyState.h">
       <Filter>ApplicationLayer\Character\Enemy\State</Filter>
     </ClInclude>
-    <ClInclude Include="ApplicationLayer\Character\Enemy\EnemyAStarNavigator.h">
-      <Filter>ApplicationLayer\Character\Enemy</Filter>
+    <ClInclude Include="ApplicationLayer\Character\Enemy\Navigation\EnemyAStarNavigator.h">
+      <Filter>ApplicationLayer\Character\Enemy\Navigation</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Character\Enemy\AI\EnemyCoverSelector.h">
+      <Filter>ApplicationLayer\Character\Enemy\AI</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Character\Enemy\AI\EnemyRetreatController.h">
+      <Filter>ApplicationLayer\Character\Enemy\AI</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -2127,6 +2139,12 @@
     </Filter>
     <Filter Include="ApplicationLayer\Character\Enemy\State">
       <UniqueIdentifier>{8d1a8281-ee11-4e60-ad42-ca8175aa8881}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ApplicationLayer\Character\Enemy\AI">
+      <UniqueIdentifier>{fbfb788f-ed0f-4c82-b4ff-bbe45e366213}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ApplicationLayer\Character\Enemy\Navigation">
+      <UniqueIdentifier>{505378d6-1e02-4983-891e-b58cd07dbdae}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

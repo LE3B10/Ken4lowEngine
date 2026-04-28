@@ -6,20 +6,11 @@
 
 using namespace Ken4lowEngine;
 
-namespace
-{
-	float Clamp(float v, float lo, float hi)
-	{
-		if (v < lo) return lo;
-		if (v > hi) return hi;
-		return v;
-	}
-}
-
 void EnemyCombatMoveState::Enter(Enemy& enemy)
 {
 	losRepositionTimer_ = 0.0f;
 	retreatRepathTimer_ = 0.0f;
+	coverStayTimer_ = 0.0f;
 	hasRetreatTarget_ = false;
 	enemy.PlayMoveAnimation(enemy.GetApproachSpeed());
 }
@@ -47,68 +38,19 @@ void EnemyCombatMoveState::Update(Enemy& enemy, float deltaTime)
 
 	enemy.UpdateStrafeDecision(deltaTime);
 	losRepositionTimer_ -= deltaTime;
-
-	const float idealMin = enemy.GetIdealRangeMin();
-	const float idealMax = enemy.GetIdealRangeMax();
-	const float tooClose = enemy.GetTooCloseRange();
-	const float tooFar = enemy.GetTooFarRange();
-	const float mid = (idealMin + idealMax) * 0.5f;
-	const float half = std::max(0.2f, (idealMax - idealMin) * 0.5f);
-	const bool lowHp = enemy.IsLowHp();
-	const bool inHitReaction = enemy.IsInHitReaction();
-	const bool dangerMode = lowHp || inHitReaction;
-
-	float radialBias = Clamp((distToTarget - mid) / half, -1.0f, 1.0f);
-	// radialBias > 0: 接近 / <0: 離脱
-	float speed = enemy.GetStrafeSpeed();
-	bool shouldPathChase = false;
-	bool forceRetreat = false;
-
-	if (dangerMode)
-	{
-		const float reactionScale = inHitReaction ? (1.0f + enemy.GetHitReactionMoveWeight() * 0.45f) : 1.0f;
-		const float lowHpRetreatSpeed = enemy.GetRetreatSpeed() * enemy.GetLowHpRetreatSpeedScale() * reactionScale;
-
-		if (distToTarget < enemy.GetLowHpRetreatDistance() || inHitReaction)
-		{
-			forceRetreat = true;
-			speed = lowHpRetreatSpeed;
-			radialBias = -1.0f;
-		}
-		else if (distToTarget > enemy.GetLowHpReturnDistance())
-		{
-			speed = enemy.GetApproachSpeed() * 0.85f;
-			radialBias = 1.0f;
-			shouldPathChase = true;
-		}
-		else
-		{
-			speed = enemy.GetStrafeSpeed();
-			radialBias = Clamp(radialBias, -0.85f, 0.25f);
-		}
-	}
-	else if (distToTarget < tooClose)
-	{
-		speed = enemy.GetRetreatSpeed();
-		radialBias = -1.0f;
-	}
-	else if (distToTarget > tooFar)
-	{
-		speed = enemy.GetApproachSpeed();
-		radialBias = 1.0f;
-		shouldPathChase = true;
-	}
-	else if (distToTarget < idealMin)
-	{
-		speed = enemy.GetRetreatSpeed();
-	}
-	else if (distToTarget > idealMax)
-	{
-		speed = enemy.GetApproachSpeed();
-		shouldPathChase = true;
-	}
+	retreatRepathTimer_ -= deltaTime;
+	coverStayTimer_ -= deltaTime;
 
 	bool canShoot = enemy.CanShootTargetPublic(targetPos);
+	const auto retreatPlan = enemy.EvaluateRetreatPlan(distToTarget, canShoot);
+	const bool dangerMode = retreatPlan.dangerMode;
+	const bool inHitReaction = enemy.IsInHitReaction();
+
+	float radialBias = retreatPlan.radialBias;
+	float speed = retreatPlan.speed;
+	bool shouldPathChase = retreatPlan.shouldPathChase;
+	bool forceRetreat = retreatPlan.forceRetreat;
+
 	if (!canShoot)
 	{
 		if (losRepositionTimer_ <= 0.0f)
@@ -121,21 +63,14 @@ void EnemyCombatMoveState::Update(Enemy& enemy, float deltaTime)
 			losRepositionTimer_ = enemy.GetLosRepositionEvalSec();
 		}
 
-		if (dangerMode)
-		{
-			radialBias = std::min(radialBias, -0.35f);
-		}
-		else
-		{
-			radialBias = std::max(radialBias, -0.1f);
-		}
+		radialBias = dangerMode ? std::min(radialBias, -0.4f) : std::max(radialBias, -0.1f);
 		speed = std::max(speed, enemy.GetStrafeSpeed());
 		shouldPathChase = true;
 	}
 
-	if (forceRetreat)
+	const bool shouldPrioritizeCover = forceRetreat || (dangerMode && coverStayTimer_ <= 0.0f);
+	if (shouldPrioritizeCover)
 	{
-		retreatRepathTimer_ -= deltaTime;
 		if (!hasRetreatTarget_ || retreatRepathTimer_ <= 0.0f)
 		{
 			Ken4lowEngine::Vector3 cover{};
@@ -144,12 +79,14 @@ void EnemyCombatMoveState::Update(Enemy& enemy, float deltaTime)
 			{
 				retreatTarget_ = cover;
 			}
-			retreatRepathTimer_ = enemy.GetRetreatRepathInterval();
+
+			retreatRepathTimer_ = dangerMode ? enemy.GetRetreatDecisionInterval() : enemy.GetCoverRepathInterval();
 		}
 
 		if (hasRetreatTarget_)
 		{
 			enemy.MoveTowardsPath(retreatTarget_, speed, deltaTime);
+			coverStayTimer_ = enemy.GetCoverStayTime();
 		}
 		else
 		{

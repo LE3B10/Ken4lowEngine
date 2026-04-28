@@ -28,6 +28,7 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	float losRepositionTimer_ = 0.0f;
 	float retreatRepathTimer_ = 0.0f;
+	float coverStayTimer_ = 0.0f;
 	Ken4lowEngine::Vector3 retreatTarget_{ 0.0f, 0.0f, 0.0f };
 	bool hasRetreatTarget_ = false;
 };

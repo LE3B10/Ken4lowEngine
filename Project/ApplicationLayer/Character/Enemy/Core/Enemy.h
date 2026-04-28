@@ -3,6 +3,8 @@
 #include "EnemyBase.h"
 #include "IEnemyState.h"
 #include <EnemyAStarNavigator.h>
+#include <EnemyCoverSelector.h>
+#include <EnemyRetreatController.h>
 
 #include <memory>
 
@@ -61,37 +63,35 @@ private: /// ---------- 構造体 ---------- ///
 		float muzzleHeight = 1.2f;   // マズルの高さ
 		float searchDuration = 5.0f; // 索敵状態の滞在時間
 		float losRepositionEvalSec = 0.35f; // 射線調整の再評価間隔
-		float shootRepositionEvalSec = 0.28f; // 射撃中の短周期再評価
-		float shootMaxStaySec = 1.35f; // 射撃状態で粘る最大時間
+		float shootRepositionEvalSec = 0.14f; // 射撃中の短周期再評価
+		float shootMaxStaySec = 1.05f; // 射撃状態で粘る最大時間
 	};
 
 	// 低HP時の生存行動の設定
 	struct EnemySurvivalConfig
 	{
-		float lowHpThresholdRate = 0.33f;
-		float lowHpRetreatDistance = 18.0f;
+		float lowHpThresholdRate = 0.4f;
+		float lowHpRetreatDistance = 20.0f;
 		float lowHpReturnDistance = 28.0f;
-		float lowHpRetreatSpeedScale = 1.25f;
+		float lowHpRetreatSpeedScale = 1.45f;
 		float lowHpShootRange = 15.0f;
-		float lowHpShootStaySec = 0.65f;
-		float retreatRepathInterval = 0.35f;
+		float lowHpShootStaySec = 0.35f;
+		float retreatDecisionInterval = 0.18f;
 	};
 
 	struct EnemyReactionConfig
 	{
-		float hitReactionTime = 0.8f;
+		float hitReactionTime = 0.95f;
 		float hitReactionMoveWeight = 0.8f;
-		float coverSearchRadiusMin = 3.5f;
-		float coverSearchRadiusMax = 10.0f;
-		int coverSampleCount = 14;
-		float coverDistanceScoreWeight = 0.65f;
 	};
 
-	struct CoverQueryResult
+	struct EnemyCoverConfig
 	{
-		K4E::Vector3 position{ 0.0f, 0.0f, 0.0f };
-		float score = -9999.0f;
-		bool found = false;
+		float coverSearchRadius = 10.5f;
+		int coverSampleCount = 16;
+		float coverDistanceScoreWeight = 0.75f;
+		float coverRepathInterval = 0.2f;
+		float coverStayTime = 0.9f;
 	};
 
 	// 移動設定
@@ -216,10 +216,13 @@ public: /// ---------- アクセサ ---------- ///
 	float GetLowHpReturnDistance() const { return survival_.lowHpReturnDistance; }
 	float GetLowHpRetreatSpeedScale() const { return survival_.lowHpRetreatSpeedScale; }
 	float GetLowHpShootRange() const { return survival_.lowHpShootRange; }
-	float GetRetreatRepathInterval() const { return survival_.retreatRepathInterval; }
+	float GetRetreatDecisionInterval() const { return survival_.retreatDecisionInterval; }
+	float GetCoverRepathInterval() const { return cover_.coverRepathInterval; }
+	float GetCoverStayTime() const { return cover_.coverStayTime; }
 	bool IsLowHp() const { return GetHpRate() <= survival_.lowHpThresholdRate; }
 	bool IsInHitReaction() const { return hitReactionTimer_ > 0.0f; }
 	float GetHitReactionMoveWeight() const { return reaction_.hitReactionMoveWeight; }
+	EnemyRetreatController::Plan EvaluateRetreatPlan(float distToTarget, bool canShoot) const;
 	[[nodiscard]] bool TryFindCoverPosition(const K4E::Vector3& targetPos, bool preferRetreat, K4E::Vector3& outPosition) const;
 
 	void UpdateStrafeDecision(float dt);
@@ -253,7 +256,6 @@ private: /// ---------- 内部処理 ---------- ///
 	void UpdateAnimation(float dt);
 	void UpdateNavigatorSource();
 	void PickNextWanderTarget();
-	CoverQueryResult EvaluateCoverCandidate(const K4E::Vector3& targetPos, const K4E::Vector3& candidate, bool preferRetreat) const;
 
 private: /// ---------- メンバ変数 ---------- ///
 
@@ -270,6 +272,8 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	EnemyReactionConfig reaction_{};
 
+	EnemyCoverConfig cover_{};
+
 	EnemyMovementConfig movement_{};
 
 	EnemyWanderConfig wander_{};
@@ -279,6 +283,10 @@ private: /// ---------- メンバ変数 ---------- ///
 	EnemyFacing facing_{};
 
 	EnemyAStarNavigator navigator_{};
+
+	EnemyCoverSelector coverSelector_{};
+
+	EnemyRetreatController retreatController_{};
 
 	std::unique_ptr<IEnemyState> state_ = nullptr;
 	float fireCooldown_ = 0.0f;
