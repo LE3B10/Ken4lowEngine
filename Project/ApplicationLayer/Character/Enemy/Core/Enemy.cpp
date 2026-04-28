@@ -122,6 +122,9 @@ void Enemy::Initialize()
 	jumpCooldownTimer_ = 0.0f;
 	hitChainTimer_ = 0.0f;
 	consecutiveHitCount_ = 0;
+	moveCommandedThisFrame_ = false;
+	isMovementStuck_ = false;
+	stuckController_.Reset(GetCenterPosition());
 
 	animState_ = AnimState::Idle;
 	animTime_ = 0.0f;
@@ -133,6 +136,7 @@ void Enemy::Initialize()
 void Enemy::Update(float deltaTime)
 {
 	UpdateNavigatorSource();
+	moveCommandedThisFrame_ = false;
 
 	if (memory_.timeSinceSeen < 9999.0f) memory_.timeSinceSeen += deltaTime;
 
@@ -164,6 +168,19 @@ void Enemy::Update(float deltaTime)
 	}
 
 	if (state_) state_->Update(*this, deltaTime);
+
+	EnemyStuckController::UpdateInput stuckInput{};
+	stuckInput.selfPos = GetCenterPosition();
+	stuckInput.dt = deltaTime;
+	stuckInput.moveCommanded = moveCommandedThisFrame_;
+	const auto stuckOutput = stuckController_.Update(stuckInput);
+	isMovementStuck_ = stuckOutput.isStuck;
+	if (stuckOutput.shouldRepath)
+	{
+		navigator_.Reset();
+		UpdateStrafeDecision(999.0f);
+		currentStrafeSign_ *= -1.0f;
+	}
 
 	if (IsDead()) PlayDeadAnimation();
 
@@ -218,6 +235,7 @@ void Enemy::MoveInDirectionXZ(const K4E::Vector3& direction, float speed)
 		StopMove();
 		return; // 方向がほとんどない場合は移動しない
 	}
+	moveCommandedThisFrame_ = (speed > 0.05f);
 
 	Vector3 v = GetVelocity();
 	v.x = normDir.x * speed;
@@ -243,7 +261,23 @@ void Enemy::MoveTowardsPath(const K4E::Vector3& targetPos, float speed, float de
 {
 	Vector3 waypoint = targetPos;
 	const float sampleY = GetCenterPosition().y + 1.0f;
+	if (isMovementStuck_)
+	{
+		navigator_.Reset();
+	}
 	navigator_.GetNextWaypoint(GetCenterPosition(), targetPos, sampleY, deltaTime, waypoint);
+
+	if (isMovementStuck_)
+	{
+		Vector3 toTarget = targetPos - GetCenterPosition();
+		toTarget.y = 0.0f;
+		Vector3 side{ toTarget.z, 0.0f, -toTarget.x };
+		side = NormalizeXZ(side);
+		if (LengthSqXZ(side) > kEpsilon)
+		{
+			waypoint += side * movement_.losProbeDistance * currentStrafeSign_;
+		}
+	}
 
 	Vector3 direction = waypoint - GetCenterPosition();
 	direction.y = 0.0f; // 水平方向のみ
@@ -518,6 +552,10 @@ EnemyRetreatController::Plan Enemy::EvaluateRetreatPlan(float distToTarget, bool
 	input.hitReactionMoveWeight = reaction_.hitReactionMoveWeight + (1.0f - traits_.aggression) * 0.25f;
 	input.isLowHp = IsLowHp();
 	input.inHitReaction = IsInHitReaction();
+	if (consecutiveHitCount_ < 2)
+	{
+		input.inHitReaction = false;
+	}
 	input.canShoot = canShoot;
 	return retreatController_.EvaluatePlan(input);
 }
