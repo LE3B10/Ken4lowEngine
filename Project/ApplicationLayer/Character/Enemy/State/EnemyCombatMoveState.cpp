@@ -77,12 +77,19 @@ void EnemyCombatMoveState::Update(Enemy& enemy, float deltaTime)
 	}
 
 	const bool shouldPrioritizeCover = forceRetreat || (dangerMode && coverStayTimer_ <= 0.0f) || (evadePlan.mode == EnemyEvadeController::Mode::ToCover);
-	if (shouldPrioritizeCover)
+	const bool shouldUseOpportunisticCover =
+		!dangerMode &&
+		!canShoot &&
+		coverStayTimer_ <= 0.0f &&
+		distToTarget <= enemy.GetFireRange() * 1.15f;
+	const bool useCover = shouldPrioritizeCover || shouldUseOpportunisticCover;
+	if (useCover)
 	{
 		if (!hasRetreatTarget_ || retreatRepathTimer_ <= 0.0f)
 		{
 			Ken4lowEngine::Vector3 cover{};
-			hasRetreatTarget_ = enemy.TryFindCoverPosition(targetPos, true, cover);
+			const bool preferRetreat = dangerMode || forceRetreat;
+			hasRetreatTarget_ = enemy.TryFindCoverPosition(targetPos, preferRetreat, cover);
 			if (hasRetreatTarget_)
 			{
 				retreatTarget_ = cover;
@@ -112,6 +119,10 @@ void EnemyCombatMoveState::Update(Enemy& enemy, float deltaTime)
 	else
 	{
 		enemy.ResetCoverAction();
+		if (enemy.IsMovementStuck())
+		{
+			enemy.ForceStrafeSign(-enemy.GetCurrentStrafeSign());
+		}
 		enemy.MoveTacticalAround(targetPos, enemy.GetCurrentStrafeSign(), radialBias, speed);
 	}
 	enemy.PlayMoveAnimation(speed);

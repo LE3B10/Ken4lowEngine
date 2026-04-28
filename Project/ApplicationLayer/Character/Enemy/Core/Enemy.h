@@ -8,6 +8,7 @@
 #include <EnemyCoverSelector.h>
 #include <EnemyEvadeController.h>
 #include <EnemyRetreatController.h>
+#include <EnemyStuckController.h>
 #include <EnemyTraitProfile.h>
 
 #include <memory>
@@ -74,7 +75,7 @@ private: /// ---------- 構造体 ---------- ///
 	// 低HP時の生存行動の設定
 	struct EnemySurvivalConfig
 	{
-		float lowHpThresholdRate = 0.4f;
+		float lowHpThresholdRate = 0.5f;
 		float lowHpRetreatDistance = 20.0f;
 		float lowHpReturnDistance = 28.0f;
 		float lowHpRetreatSpeedScale = 1.45f;
@@ -119,9 +120,9 @@ private: /// ---------- 構造体 ---------- ///
 		float tacticalBlend = 0.45f;
 		float shootMicroStrafeSpeed = 1.35f;
 		float jumpProbeDistance = 1.05f;
-		float jumpStepHeight = 0.95f;
-		float jumpVelocity = 5.3f;
-		float jumpCooldown = 0.9f;
+		float jumpStepHeight = 1.05f;
+		float jumpVelocity = 6.2f;
+		float jumpCooldown = 0.72f;
 	};
 
 	// 通常時の徘徊設定
@@ -250,6 +251,7 @@ public: /// ---------- アクセサ ---------- ///
 	[[nodiscard]] EnemyCoverController::Output EvaluateCoverAction(const K4E::Vector3& targetPos, const K4E::Vector3& coverPos, bool dangerMode, bool hasCover, float deltaTime);
 	void ResetCoverAction();
 	bool ShouldShootFromCover(const EnemyCoverController::Output& coverAction) const;
+	bool IsMovementStuck() const { return isMovementStuck_; }
 
 	void UpdateStrafeDecision(float dt);
 	float GetCurrentStrafeSign() const { return currentStrafeSign_; }
@@ -317,6 +319,7 @@ private: /// ---------- メンバ変数 ---------- ///
 	EnemyCoverController coverController_{};
 
 	EnemyRetreatController retreatController_{};
+	EnemyStuckController stuckController_{};
 
 	EnemyEvadeController evadeController_{};
 	
@@ -338,6 +341,8 @@ private: /// ---------- メンバ変数 ---------- ///
 	float jumpCooldownTimer_ = 0.0f;
 	float hitChainTimer_ = 0.0f;
 	int consecutiveHitCount_ = 0;
+	bool moveCommandedThisFrame_ = false;
+	bool isMovementStuck_ = false;
 
 	AnimState animState_ = AnimState::Idle;
 	float animTime_ = 0.0f;
