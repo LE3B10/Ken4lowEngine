@@ -290,6 +290,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClCompile Include="ApplicationLayer\Character\Enemy\Navigation\EnemyAStarNavigator.cpp" />
     <ClCompile Include="ApplicationLayer\Character\Enemy\AI\EnemyCoverSelector.cpp" />
     <ClCompile Include="ApplicationLayer\Character\Enemy\AI\EnemyRetreatController.cpp" />
+    <ClCompile Include="ApplicationLayer\Character\Enemy\AI\EnemyRetreatDecisionMemory.cpp" />
     <ClCompile Include="ApplicationLayer\Character\Enemy\AI\EnemyAimController.cpp" />
     <ClCompile Include="ApplicationLayer\Character\Enemy\AI\EnemyCoverController.cpp" />
     <ClCompile Include="ApplicationLayer\Character\Enemy\AI\EnemyStuckController.cpp" />
@@ -866,6 +867,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="ApplicationLayer\Character\Enemy\Navigation\EnemyAStarNavigator.h" />
     <ClInclude Include="ApplicationLayer\Character\Enemy\AI\EnemyCoverSelector.h" />
     <ClInclude Include="ApplicationLayer\Character\Enemy\AI\EnemyRetreatController.h" />
+    <ClInclude Include="ApplicationLayer\Character\Enemy\AI\EnemyRetreatDecisionMemory.h" />
     <ClInclude Include="ApplicationLayer\Character\Enemy\AI\EnemyAimController.h" />
     <ClInclude Include="ApplicationLayer\Character\Enemy\AI\EnemyCoverController.h" />
     <ClInclude Include="ApplicationLayer\Character\Enemy\AI\EnemyStuckController.h" />

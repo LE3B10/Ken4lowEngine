@@ -26,7 +26,7 @@ void EnemyShootState::Update(Enemy& enemy, float deltaTime)
 	const Vector3 targetPos = enemy.GetTargetPosition();
 	const float distToTarget = enemy.GetDistanceToTarget();
 	const bool inHitReaction = enemy.IsInHitReaction();
-	const bool lowHp = enemy.IsLowHp();
+	const bool lowHp = enemy.IsRetreating();
 	const bool canSee = enemy.CanSeeTargetPublic(targetPos, distToTarget);
 
 	if (canSee)

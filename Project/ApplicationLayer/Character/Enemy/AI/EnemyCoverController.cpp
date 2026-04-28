@@ -32,6 +32,13 @@ namespace
 		std::uniform_real_distribution<float> dist(minValue, maxValue);
 		return dist(engine);
 	}
+
+	bool RandomChance(float probability)
+	{
+		thread_local std::mt19937 engine{ std::random_device{}() };
+		std::bernoulli_distribution dist(std::clamp(static_cast<double>(probability), 0.0, 1.0));
+		return dist(engine);
+	}
 }
 
 void EnemyCoverController::Reset()
@@ -58,12 +65,14 @@ EnemyCoverController::Output EnemyCoverController::Update(const UpdateInput& inp
 		exposing_ = !exposing_;
 		if (input.dangerMode && exposing_)
 		{
-			exposing_ = false;
+			exposing_ = RandomChance(0.32f);
 		}
 
 		if (exposing_)
 		{
-			phaseTimer_ = RandomRange(config_.peekExposeMinSec, config_.peekExposeMaxSec);
+			const float exposeMin = input.dangerMode ? config_.peekExposeMinSec * 0.55f : config_.peekExposeMinSec;
+			const float exposeMax = input.dangerMode ? config_.peekExposeMaxSec * 0.7f : config_.peekExposeMaxSec;
+			phaseTimer_ = RandomRange(exposeMin, exposeMax);
 		}
 		else
 		{

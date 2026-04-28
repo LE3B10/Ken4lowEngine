@@ -19,6 +19,8 @@ void EnemyStuckController::Reset(const Vector3& startPos)
 	probeTimer_ = config_.checkIntervalSec;
 	stuckAccumSec_ = 0.0f;
 	unstuckTimer_ = 0.0f;
+	jumpRetryCooldownSec_ = 0.0f;
+	consecutiveStuckEvents_ = 0;
 	initialized_ = true;
 }
 
@@ -33,6 +35,10 @@ EnemyStuckController::Output EnemyStuckController::Update(const UpdateInput& inp
 	if (unstuckTimer_ > 0.0f)
 	{
 		unstuckTimer_ = std::max(0.0f, unstuckTimer_ - input.dt);
+	}
+	if (jumpRetryCooldownSec_ > 0.0f)
+	{
+		jumpRetryCooldownSec_ = std::max(0.0f, jumpRetryCooldownSec_ - input.dt);
 	}
 
 	probeTimer_ -= input.dt;
@@ -54,6 +60,10 @@ EnemyStuckController::Output EnemyStuckController::Update(const UpdateInput& inp
 	else
 	{
 		stuckAccumSec_ = std::max(0.0f, stuckAccumSec_ - config_.checkIntervalSec * 1.5f);
+		if (moved >= config_.minProgressDistance * 1.2f)
+		{
+			consecutiveStuckEvents_ = 0;
+		}
 	}
 
 	if (stuckAccumSec_ >= config_.stuckThresholdSec)
@@ -61,6 +71,12 @@ EnemyStuckController::Output EnemyStuckController::Update(const UpdateInput& inp
 		output.shouldRepath = true;
 		stuckAccumSec_ = 0.0f;
 		unstuckTimer_ = config_.unstuckDurationSec;
+		++consecutiveStuckEvents_;
+		if (jumpRetryCooldownSec_ <= 0.0f || consecutiveStuckEvents_ >= 2)
+		{
+			output.shouldRetryJump = true;
+			jumpRetryCooldownSec_ = 0.45f;
+		}
 	}
 
 	output.isStuck = (unstuckTimer_ > 0.0f);

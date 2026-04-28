@@ -24,6 +24,7 @@ public:
 	{
 		bool isStuck = false;
 		bool shouldRepath = false;
+		bool shouldRetryJump = false;
 	};
 
 	void Reset(const Ken4lowEngine::Vector3& startPos);
@@ -36,5 +37,7 @@ private:
 	float probeTimer_ = 0.0f;
 	float stuckAccumSec_ = 0.0f;
 	float unstuckTimer_ = 0.0f;
+	float jumpRetryCooldownSec_ = 0.0f;
+	int consecutiveStuckEvents_ = 0;
 	bool initialized_ = false;
 };

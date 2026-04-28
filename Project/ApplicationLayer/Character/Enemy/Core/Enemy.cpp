@@ -125,6 +125,7 @@ void Enemy::Initialize()
 	moveCommandedThisFrame_ = false;
 	isMovementStuck_ = false;
 	stuckController_.Reset(GetCenterPosition());
+	retreatDecision_.Reset();
 
 	animState_ = AnimState::Idle;
 	animTime_ = 0.0f;
@@ -180,6 +181,16 @@ void Enemy::Update(float deltaTime)
 		navigator_.Reset();
 		UpdateStrafeDecision(999.0f);
 		currentStrafeSign_ *= -1.0f;
+	}
+	if (stuckOutput.shouldRetryJump)
+	{
+		Vector3 recoverDir = GetVelocity();
+		recoverDir.y = 0.0f;
+		if (LengthSqXZ(recoverDir) <= kEpsilon)
+		{
+			recoverDir = memory_.lastSeenPos - GetCenterPosition();
+		}
+		TryStepJump(recoverDir);
 	}
 
 	if (IsDead()) PlayDeadAnimation();
@@ -535,7 +546,7 @@ bool Enemy::CanShootTarget(const K4E::Vector3& targetPos) const
 	return HasLineOfSight(muzzle, targetEye);
 }
 
-EnemyRetreatController::Plan Enemy::EvaluateRetreatPlan(float distToTarget, bool canShoot) const
+EnemyRetreatController::Plan Enemy::EvaluateRetreatPlan(float distToTarget, bool canShoot)
 {
 	EnemyRetreatController::Input input{};
 	input.distanceToTarget = distToTarget;
@@ -550,7 +561,18 @@ EnemyRetreatController::Plan Enemy::EvaluateRetreatPlan(float distToTarget, bool
 	input.strafeSpeed = movement_.strafeSpeed;
 	input.lowHpRetreatSpeedScale = survival_.lowHpRetreatSpeedScale;
 	input.hitReactionMoveWeight = reaction_.hitReactionMoveWeight + (1.0f - traits_.aggression) * 0.25f;
-	input.isLowHp = IsLowHp();
+	EnemyRetreatDecisionMemory::Input retreatInput{};
+	retreatInput.dt = 0.0f;
+	retreatInput.hpRate = GetHpRate();
+	retreatInput.distanceToTarget = distToTarget;
+	retreatInput.retreatDistance = survival_.lowHpRetreatDistance;
+	retreatInput.returnDistance = survival_.lowHpReturnDistance;
+	retreatInput.decisionInterval = survival_.retreatDecisionInterval;
+	retreatInput.inHitReaction = IsInHitReaction();
+	retreatInput.canShoot = canShoot;
+	retreatInput.consecutiveHits = consecutiveHitCount_;
+	const bool retreating = retreatDecision_.Update(retreatInput);
+	input.isLowHp = retreating;
 	input.inHitReaction = IsInHitReaction();
 	if (consecutiveHitCount_ < 2)
 	{
@@ -659,12 +681,19 @@ void Enemy::TryStepJump(const K4E::Vector3& moveDirection)
 
 void Enemy::UpdateTraitProfile()
 {
-	traits_.reactionDelayScale = RandomRange(0.85f, 1.2f);
-	traits_.strafeSwitchScale = RandomRange(0.8f, 1.35f);
-	traits_.fireIntervalScale = RandomRange(0.82f, 1.3f);
-	traits_.aggression = RandomRange(0.35f, 0.85f);
-	traits_.coverPreference = RandomRange(0.3f, 0.9f);
-	traits_.aimStability = RandomRange(0.25f, 0.9f);
+	traits_.reactionDelayScale = RandomRange(0.9f, 1.12f);
+	traits_.strafeSwitchScale = RandomRange(0.88f, 1.2f);
+	traits_.fireIntervalScale = RandomRange(0.9f, 1.18f);
+	traits_.aggression = RandomRange(0.4f, 0.72f);
+	traits_.coverPreference = RandomRange(0.38f, 0.78f);
+	traits_.aimStability = RandomRange(0.35f, 0.76f);
+
+	const float cautiousness = 1.0f - traits_.aggression;
+	movement_.strafeSwitchMinSec *= RandomRange(0.92f, 1.08f);
+	movement_.strafeSwitchMaxSec *= RandomRange(0.94f, 1.14f);
+	combat_.fireInterval *= (0.95f + cautiousness * 0.08f);
+	reaction_.coverBias = Clamp(reaction_.coverBias + (traits_.coverPreference - 0.5f) * 0.25f, 0.45f, 0.82f);
+	reaction_.evadeWeight = Clamp(reaction_.evadeWeight + cautiousness * 0.08f, 0.58f, 0.84f);
 }
 
 void Enemy::PickNextWanderTarget()
