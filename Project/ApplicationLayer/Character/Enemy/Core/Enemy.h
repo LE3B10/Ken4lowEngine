@@ -11,6 +11,7 @@
 #include <EnemyRetreatDecisionMemory.h>
 #include <EnemyStuckController.h>
 #include <EnemyTraitProfile.h>
+#include "Vector4.h"
 
 #include <memory>
 
@@ -159,6 +160,8 @@ public: /// ---------- メンバ関数 ---------- ///
 	void Initialize() override;
 
 	void Update(float deltaTime) override;
+	void Draw() override;
+	void DrawShadow() override;
 
 public: /// ---------- 外部からのアクセス ---------- ///
 
@@ -288,6 +291,10 @@ private: /// ---------- 内部処理 ---------- ///
 	void PickNextWanderTarget();
 	void TryStepJump(const K4E::Vector3& moveDirection);
 	void UpdateTraitProfile();
+	void InitializeSpawnPresentation();
+	void UpdateSpawnPresentation(float deltaTime);
+	void DrawSpawnPresentation() const;
+	K4E::Vector3 RotateYaw(const K4E::Vector3& v, float yawRad) const;
 
 private: /// ---------- メンバ変数 ---------- ///
 
@@ -350,4 +357,24 @@ private: /// ---------- メンバ変数 ---------- ///
 	AnimState animState_ = AnimState::Idle;
 	float animTime_ = 0.0f;
 	float animMoveRate_ = 1.0f;
+
+	struct SpawnFxParticle
+	{
+		K4E::Vector3 position{ 0.0f, 0.0f, 0.0f };
+		K4E::Vector3 velocity{ 0.0f, 0.0f, 0.0f };
+		float life = 0.0f;
+		float maxLife = 1.0f;
+		float size = 0.08f;
+	};
+
+	struct EnemySpawnPresentation
+	{
+		bool active = true;
+		float timer = 0.0f;
+		float duration = 1.55f;
+		K4E::Vector3 anchor{ 0.0f, 0.0f, 0.0f };
+		std::vector<SpawnFxParticle> particles{};
+	};
+
+	EnemySpawnPresentation spawnPresentation_{};
 };

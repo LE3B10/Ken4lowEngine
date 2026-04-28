@@ -2,7 +2,7 @@
 #include "EnemyBase.h"
 #include <cmath>
 #include <algorithm>
-#include <cstdlib>
+#include <random>
 #include <vector>
 #include "EnemyParticleEffectSystem.h"
 #include <Bullet.h>
@@ -36,7 +36,9 @@ namespace
 
 	static float Rand01()
 	{
-		return static_cast<float>(std::rand()) / static_cast<float>(RAND_MAX);
+		thread_local std::mt19937 engine{ std::random_device{}() };
+		static thread_local std::uniform_real_distribution<float> dist(0.0f, 1.0f);
+		return dist(engine);
 	}
 
 	static float RandRange(float a, float b)
@@ -163,6 +165,7 @@ void EnemyBase::Initialize()
 
 	isDead_ = false;
 	removable_ = false;
+	spawnProtectionActive_ = false;
 
 	deathBreakActive_ = false;
 	deathTimer_ = 0.0f;
@@ -355,7 +358,7 @@ void EnemyBase::TakeDamage(int amount)
 /// -------------------------------------------------------------
 void EnemyBase::TakeDamage(int amount, const Vector3& hitDir, float hitPower)
 {
-	if (isDead_) return;
+	if (isDead_ || spawnProtectionActive_) return;
 
 	// 被弾情報を保存（死亡演出の初速に使う）
 	const Vector3 nd = NormalizeSafe(hitDir, { 0.0f, 0.0f, 1.0f });
@@ -656,7 +659,7 @@ void EnemyBase::OnBulletHit(Collider* bulletCollider)
 /// -------------------------------------------------------------
 void EnemyBase::OnCollisionEnter(Collider* other)
 {
-	if (!other || isDead_) return;
+	if (!other || isDead_ || spawnProtectionActive_) return;
 
 	if (other->GetTypeID() == static_cast<uint32_t>(CollisionTypeIdDef::kBullet))
 	{
