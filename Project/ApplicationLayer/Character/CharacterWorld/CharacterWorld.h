@@ -54,7 +54,8 @@ public: /// ---------- メンバ関数 ---------- ///
 	std::vector<EnemyBase*> GetEnemyRawList() const;
 
 	// 生成
-	Enemy& SpawnEnemy(const EnemySpawnRequest& reqest);
+	Enemy& SpawnEnemy(const EnemySpawnRequest& request);
+	Enemy& SpawnEnemyAt(const K4E::Vector3& position);
 
 	// 全消し
 	void ClearEnemies();

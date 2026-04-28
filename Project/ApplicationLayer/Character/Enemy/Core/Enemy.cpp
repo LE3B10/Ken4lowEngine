@@ -270,6 +270,9 @@ void Enemy::FireAt(const K4E::Vector3& targetPos)
 	if (len <= kEpsilon) return;
 	dir = dir * (1.0f / len); // 正規化
 
+	constexpr float kMuzzleForwardOffset = 1.2f;
+	muzzle += dir * kMuzzleForwardOffset;
+
 	fireCooldown_ = combat_.fireInterval;
 
 	bulletManager_->Spawn(muzzle, dir, combat_.bulletSpeed, combat_.bulletDamage, combat_.bulletLifeSec);

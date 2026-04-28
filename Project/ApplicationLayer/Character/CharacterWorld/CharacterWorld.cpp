@@ -95,12 +95,12 @@ std::vector<EnemyBase*> CharacterWorld::GetEnemyRawList() const
 	return result;
 }
 
-Enemy& CharacterWorld::SpawnEnemy(const EnemySpawnRequest& reqest)
+Enemy& CharacterWorld::SpawnEnemy(const EnemySpawnRequest& request)
 {
 	auto e = std::make_unique<Enemy>();
 	InjectEnemyDeps(*e);
 	e->Initialize();
-	e->SetPosition(reqest.position);
+	e->SetPosition(request.position);
 
 	if (ctx_.collisionManager_)
 	{
@@ -109,6 +109,13 @@ Enemy& CharacterWorld::SpawnEnemy(const EnemySpawnRequest& reqest)
 
 	enemies_.push_back(std::move(e));
 	return *enemies_.back();
+}
+
+Enemy& CharacterWorld::SpawnEnemyAt(const K4E::Vector3& position)
+{
+	EnemySpawnRequest request{};
+	request.position = position;
+	return SpawnEnemy(request);
 }
 
 void CharacterWorld::ClearEnemies()

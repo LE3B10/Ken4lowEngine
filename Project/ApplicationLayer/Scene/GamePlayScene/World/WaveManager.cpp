@@ -12,6 +12,7 @@ void WaveManager::Reset()
 	started_ = false;
 	waveInProgress_ = false;
 	allWavesCleared_ = false;
+	currentWaveSpawnedCount_ = 0;
 }
 
 void WaveManager::SetWaves(const std::vector<WaveDefinition>& waves)
@@ -43,14 +44,14 @@ void WaveManager::Update(CharacterWorld& characters, float deltaTime)
 	if (!waveInProgress_)
 	{
 		nextWaveTimer_ -= deltaTime;
-		
+
 		// タイマーがまだ残っているなら待機
 		if (nextWaveTimer_ > 0.0f) return;
 
 		// ウェーブをスポーン
-		SpawnWave(characters, waves_[currentWaveIndex_]);
-		waveInProgress_ = true;
-		nextWaveTimer_ = 0.0f;
+		currentWaveSpawnedCount_ = SpawnWave(characters, waves_[currentWaveIndex_]);
+		waveInProgress_ = (currentWaveSpawnedCount_ > 0);
+		nextWaveTimer_ = (currentWaveSpawnedCount_) ? 0.0f : 1.0f;
 		return;
 	}
 
@@ -64,6 +65,7 @@ void WaveManager::Update(CharacterWorld& characters, float deltaTime)
 		// 最終ウェーブまで終わった
 		waveInProgress_ = false;
 		allWavesCleared_ = true;
+		currentWaveSpawnedCount_ = 0;
 		return;
 	}
 
@@ -73,11 +75,15 @@ void WaveManager::Update(CharacterWorld& characters, float deltaTime)
 	nextWaveTimer_ = std::max(0.0f, waves_[currentWaveIndex_].delayBeforeSpawnSec);
 }
 
-void WaveManager::SpawnWave(CharacterWorld& characters, const WaveDefinition& wave)
+int WaveManager::SpawnWave(CharacterWorld& characters, const WaveDefinition& wave)
 {
+	int spawnedCount = 0;
+
 	for (const auto& entry : wave.enemies)
 	{
-		(void)characters;
-		(void)entry;
+		characters.SpawnEnemyAt(entry.position);
+		++spawnedCount;
 	}
+
+	return spawnedCount;
 }

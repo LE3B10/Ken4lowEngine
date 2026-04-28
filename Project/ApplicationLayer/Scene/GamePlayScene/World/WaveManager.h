@@ -69,7 +69,7 @@ private: /// ---------- メンバ関数 ---------- ///
 	/// </summary>
 	/// <param name="characters">キャラクターワールド。</param>
 	/// <param name="wave">スポーンするウェーブの定義。</param>
-	void SpawnWave(CharacterWorld& characters, const WaveDefinition& wave);
+	int SpawnWave(CharacterWorld& characters, const WaveDefinition& wave);
 
 private: /// ---------- メンバ変数 ---------- ///
 
@@ -81,5 +81,6 @@ private: /// ---------- メンバ変数 ---------- ///
 	bool started_ = false; // ウェーブスポーンが開始されたかどうか
 	bool waveInProgress_ = false; // 現在ウェーブがスポーン中かどうか
 	bool allWavesCleared_ = false; // すべてのウェーブがクリアされたかどうか
+	int currentWaveSpawnedCount_ = 0; // 現在のウェーブでスポーンした敵の数
 };
 
