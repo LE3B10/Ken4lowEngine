@@ -22,5 +22,10 @@ public: /// ---------- メンバ関数 ---------- ///
 
 	// 状態名を取得
 	const char* GetStateName() const override { return "Shoot"; }
+
+private: /// ---------- メンバ変数 ---------- ///
+
+	float stayTimer_ = 0.0f;
+	float reevalTimer_ = 0.0f;
 };
 

@@ -6,6 +6,7 @@
 #include "EnemyShootState.h"
 #include "EnemySearchState.h"
 #include "EnemyDeadState.h"
+
 #include <BulletManager.h>
 #include <CollisionManager.h>
 #include <CollisionTypeIdDef.h>
@@ -39,6 +40,11 @@ namespace
 		const float len = LengthXZ(v);
 		if (len < kEpsilon) return { 0.0f, 0.0f, 0.0f };
 		return { v.x / len, 0.0f, v.z / len };
+	}
+
+	float LengthSqXZ(const Vector3& v)
+	{
+		return v.x * v.x + v.z * v.z;
 	}
 
 	float DotXZ(const Vector3& v1, const Vector3& v2)
@@ -88,6 +94,8 @@ void Enemy::Update(float deltaTime)
 	}
 
 	if (state_) state_->Update(*this, deltaTime);
+
+	if (IsDead()) PlayDeadAnimation();
 
 	UpdateAnimation(deltaTime);
 	EnemyBase::Update(deltaTime);
@@ -190,6 +198,51 @@ void Enemy::MoveToLastSeen(float speed)
 	MoveTowards(memory_.lastSeenPos, speed);
 }
 
+void Enemy::MoveTacticalAround(const K4E::Vector3& targetPos, float strafeSign, float radialBias, float speed)
+{
+	Vector3 toTarget = targetPos - GetCenterPosition();
+	toTarget.y = 0.0f;
+	Vector3 fwd = NormalizeXZ(toTarget);
+	if (LengthSqXZ(fwd) <= kEpsilon)
+	{
+		StopMove();
+		return;
+	}
+
+	Vector3 right{ fwd.z, 0.0f, -fwd.x };
+	const float clampedBias = Clamp(radialBias, -1.0f, 1.0f);
+	Vector3 dir = right * ((strafeSign >= 0.0f) ? 1.0f : -1.0f) + (fwd * clampedBias * movement_.tacticalBlend);
+
+	MoveInDirectionXZ(dir, speed);
+	FaceTo(targetPos);
+}
+
+float Enemy::ChooseBetterStrafeSign(const K4E::Vector3& targetPos, float probeDistance) const
+{
+	const Vector3 self = GetCenterPosition();
+	Vector3 toTarget = targetPos - self;
+	toTarget.y = 0.0f;
+	Vector3 fwd = NormalizeXZ(toTarget);
+	if (LengthSqXZ(fwd) <= kEpsilon)
+	{
+		return currentStrafeSign_;
+	}
+
+	Vector3 right{ fwd.z, 0.0f, -fwd.x };
+	const Vector3 leftCandidate = self - right * probeDistance;
+	const Vector3 rightCandidate = self + right * probeDistance;
+
+	const float leftScore = EvaluateLineOfSightScore(leftCandidate, targetPos);
+	const float rightScore = EvaluateLineOfSightScore(rightCandidate, targetPos);
+
+	if (std::fabs(leftScore - rightScore) <= 0.001f)
+	{
+		return currentStrafeSign_;
+	}
+
+	return (rightScore > leftScore) ? 1.0f : -1.0f;
+}
+
 void Enemy::FaceTo(const K4E::Vector3& targetPos)
 {
 	K4E::Vector3 dir = targetPos - GetCenterPosition();
@@ -243,6 +296,25 @@ bool Enemy::HasLineOfSight(const K4E::Vector3& fromPos, const K4E::Vector3& toPo
 	Collider* hitWorld = nullptr;
 	const bool blocked = collisionManager_->SegmentCast(static_cast<uint32_t>(CollisionTypeIdDef::kWorld), segment, &hitWorld);
 	return !blocked;
+}
+
+float Enemy::EvaluateLineOfSightScore(const K4E::Vector3& samplePos, const K4E::Vector3& targetPos) const
+{
+	Vector3 sampleEye = samplePos;
+	sampleEye.y += perception_.eyeHeight;
+
+	Vector3 targetEye = targetPos;
+	targetEye.y += perception_.targetEyeHeight;
+
+	if (HasLineOfSight(sampleEye, targetEye))
+	{
+		return 1.0f;
+	}
+
+	const Vector3 toTarget = targetPos - samplePos;
+	const float dist = LengthXZ(toTarget);
+	const float normalize = std::max(0.1f, perception_.viewRange);
+	return 0.15f + Clamp(1.0f - (dist / normalize), 0.0f, 0.35f);
 }
 
 bool Enemy::CanSeeTarget(const K4E::Vector3& targetPos, float distToTarget)

@@ -22,5 +22,9 @@ public: /// ---------- メンバ関数 ---------- ///
 
 	// 状態名を取得
 	const char* GetStateName() const override { return "CombatMove"; }
+
+private: /// ---------- メンバ変数 ---------- ///
+
+	float losRepositionTimer_ = 0.0f;
 };
 

@@ -25,6 +25,8 @@ public: /// ---------- メンバ関数 ---------- ///
 
 private: /// ---------- メンバ変数 ---------- ///
 
-	float searchTimer_ = 0.0f; // 索敵状態の滞在時間を計測するタイマー
+	float searchTimer_ = 0.0f;
+	float localSweepTimer_ = 0.0f;
+	float localSwitchTimer_ = 0.0f;
 };
 
