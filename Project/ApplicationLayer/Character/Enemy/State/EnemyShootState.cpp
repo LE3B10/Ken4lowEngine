@@ -39,9 +39,9 @@ void EnemyShootState::Update(Enemy& enemy, float deltaTime)
 		return;
 	}
 
-	// 被弾直後や低HP時は射撃状態に留まらず、すぐ生存行動へ移る
-	if (((inHitReaction && enemy.GetConsecutiveHitCount() >= 2) && stayTimer_ > 0.03f) ||
-		(inHitReaction && stayTimer_ > 0.08f) || (lowHp && distToTarget < enemy.GetLowHpRetreatDistance()))
+	// 単発被弾だけでは即離脱せず、低HPまたは連続被弾時に生存行動へ移る
+	if ((inHitReaction && enemy.GetConsecutiveHitCount() >= 2 && stayTimer_ > 0.05f) ||
+		(lowHp && distToTarget < enemy.GetLowHpRetreatDistance()))
 	{
 		enemy.ChangeStateToCombatMove();
 		return;

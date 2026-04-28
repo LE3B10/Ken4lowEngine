@@ -8,6 +8,7 @@
 #include <EnemyCoverSelector.h>
 #include <EnemyEvadeController.h>
 #include <EnemyRetreatController.h>
+#include <EnemyStuckController.h>
 #include <EnemyTraitProfile.h>
 
 #include <memory>
@@ -74,13 +75,13 @@ private: /// ---------- 構造体 ---------- ///
 	// 低HP時の生存行動の設定
 	struct EnemySurvivalConfig
 	{
-		float lowHpThresholdRate = 0.4f;
+		float lowHpThresholdRate = 0.5f;
 		float lowHpRetreatDistance = 20.0f;
-		float lowHpReturnDistance = 28.0f;
-		float lowHpRetreatSpeedScale = 1.45f;
+		float lowHpReturnDistance = 24.0f;
+		float lowHpRetreatSpeedScale = 1.25f;
 		float lowHpShootRange = 15.0f;
 		float lowHpShootStaySec = 0.35f;
-		float retreatDecisionInterval = 0.18f;
+		float retreatDecisionInterval = 0.12f;
 	};
 
 	struct EnemyReactionConfig
@@ -119,9 +120,9 @@ private: /// ---------- 構造体 ---------- ///
 		float tacticalBlend = 0.45f;
 		float shootMicroStrafeSpeed = 1.35f;
 		float jumpProbeDistance = 1.05f;
-		float jumpStepHeight = 0.95f;
-		float jumpVelocity = 5.3f;
-		float jumpCooldown = 0.9f;
+		float jumpStepHeight = 1.08f;
+		float jumpVelocity = 6.2f;
+		float jumpCooldown = 0.72f;
 	};
 
 	// 通常時の徘徊設定
@@ -250,6 +251,8 @@ public: /// ---------- アクセサ ---------- ///
 	[[nodiscard]] EnemyCoverController::Output EvaluateCoverAction(const K4E::Vector3& targetPos, const K4E::Vector3& coverPos, bool dangerMode, bool hasCover, float deltaTime);
 	void ResetCoverAction();
 	bool ShouldShootFromCover(const EnemyCoverController::Output& coverAction) const;
+	bool IsMovementRecovering() const { return isMovementRecovering_; }
+	bool ShouldPreferCoverNow() const { return coverPreferenceDecision_; }
 
 	void UpdateStrafeDecision(float dt);
 	float GetCurrentStrafeSign() const { return currentStrafeSign_; }
@@ -284,6 +287,7 @@ private: /// ---------- 内部処理 ---------- ///
 	void PickNextWanderTarget();
 	void TryStepJump(const K4E::Vector3& moveDirection);
 	void UpdateTraitProfile();
+	void RefreshCoverPreferenceDecision(float deltaTime);
 
 private: /// ---------- メンバ変数 ---------- ///
 
@@ -317,6 +321,7 @@ private: /// ---------- メンバ変数 ---------- ///
 	EnemyCoverController coverController_{};
 
 	EnemyRetreatController retreatController_{};
+	EnemyStuckController stuckController_{};
 
 	EnemyEvadeController evadeController_{};
 	
@@ -338,6 +343,11 @@ private: /// ---------- メンバ変数 ---------- ///
 	float jumpCooldownTimer_ = 0.0f;
 	float hitChainTimer_ = 0.0f;
 	int consecutiveHitCount_ = 0;
+	bool moveCommandedThisFrame_ = false;
+	bool isMovementRecovering_ = false;
+	K4E::Vector3 lastMoveDirection_{ 0.0f, 0.0f, 0.0f };
+	float coverPreferenceTimer_ = 0.0f;
+	bool coverPreferenceDecision_ = false;
 
 	AnimState animState_ = AnimState::Idle;
 	float animTime_ = 0.0f;

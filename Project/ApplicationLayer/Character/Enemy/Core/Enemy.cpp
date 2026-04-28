@@ -122,6 +122,12 @@ void Enemy::Initialize()
 	jumpCooldownTimer_ = 0.0f;
 	hitChainTimer_ = 0.0f;
 	consecutiveHitCount_ = 0;
+	moveCommandedThisFrame_ = false;
+	isMovementRecovering_ = false;
+	lastMoveDirection_ = { 0.0f, 0.0f, 0.0f };
+	coverPreferenceTimer_ = 0.0f;
+	coverPreferenceDecision_ = false;
+	stuckController_.Reset(GetCenterPosition());
 
 	animState_ = AnimState::Idle;
 	animTime_ = 0.0f;
@@ -133,6 +139,8 @@ void Enemy::Initialize()
 void Enemy::Update(float deltaTime)
 {
 	UpdateNavigatorSource();
+	moveCommandedThisFrame_ = false;
+	RefreshCoverPreferenceDecision(deltaTime);
 
 	if (memory_.timeSinceSeen < 9999.0f) memory_.timeSinceSeen += deltaTime;
 
@@ -164,6 +172,24 @@ void Enemy::Update(float deltaTime)
 	}
 
 	if (state_) state_->Update(*this, deltaTime);
+
+	EnemyStuckController::UpdateInput stuckInput{};
+	stuckInput.selfPos = GetCenterPosition();
+	stuckInput.dt = deltaTime;
+	stuckInput.moveCommanded = moveCommandedThisFrame_;
+	stuckInput.grounded = grounded_;
+	const auto stuckOutput = stuckController_.Update(stuckInput);
+	isMovementRecovering_ = stuckOutput.isRecovering;
+	if (stuckOutput.shouldRepath)
+	{
+		navigator_.Reset();
+		UpdateStrafeDecision(999.0f);
+		currentStrafeSign_ *= -1.0f;
+	}
+	if (stuckOutput.shouldRetryJump)
+	{
+		TryStepJump(lastMoveDirection_);
+	}
 
 	if (IsDead()) PlayDeadAnimation();
 
@@ -218,6 +244,8 @@ void Enemy::MoveInDirectionXZ(const K4E::Vector3& direction, float speed)
 		StopMove();
 		return; // 方向がほとんどない場合は移動しない
 	}
+	moveCommandedThisFrame_ = (speed > 0.05f);
+	lastMoveDirection_ = normDir;
 
 	Vector3 v = GetVelocity();
 	v.x = normDir.x * speed;
@@ -243,7 +271,19 @@ void Enemy::MoveTowardsPath(const K4E::Vector3& targetPos, float speed, float de
 {
 	Vector3 waypoint = targetPos;
 	const float sampleY = GetCenterPosition().y + 1.0f;
+	if (isMovementRecovering_)
+	{
+		navigator_.Reset();
+	}
 	navigator_.GetNextWaypoint(GetCenterPosition(), targetPos, sampleY, deltaTime, waypoint);
+	if (isMovementRecovering_)
+	{
+		Vector3 toTarget = targetPos - GetCenterPosition();
+		toTarget.y = 0.0f;
+		Vector3 side{ toTarget.z, 0.0f, -toTarget.x };
+		side = NormalizeXZ(side);
+		waypoint += side * (movement_.losProbeDistance * currentStrafeSign_);
+	}
 
 	Vector3 direction = waypoint - GetCenterPosition();
 	direction.y = 0.0f; // 水平方向のみ
@@ -354,11 +394,12 @@ void Enemy::FireAt(const K4E::Vector3& targetPos)
 	aimInput.movementSpeed = LengthXZ(GetVelocity());
 	aimInput.lowHp = IsLowHp();
 	aimInput.inHitReaction = IsInHitReaction();
-	aimInput.baseSpreadRad = 0.008f;
-	aimInput.maxSpreadRad = 0.12f;
-	aimInput.distanceSpreadWeight = 0.95f;
-	aimInput.moveSpreadWeight = 0.85f;
-	aimInput.stressSpreadWeight = 0.7f;
+	const float distanceFactor = Clamp((aimInput.distanceToTarget - 6.0f) / 26.0f, 0.0f, 1.0f);
+	aimInput.baseSpreadRad = 0.0065f + distanceFactor * 0.0055f;
+	aimInput.maxSpreadRad = 0.105f + distanceFactor * 0.045f;
+	aimInput.distanceSpreadWeight = 1.08f;
+	aimInput.moveSpreadWeight = 0.82f;
+	aimInput.stressSpreadWeight = 0.62f;
 	aimInput.stableBonusWeight = 0.55f;
 	aimInput.traits = &traits_;
 	const Vector3 aim = aimController_.BuildAimPoint(aimInput);
@@ -517,7 +558,7 @@ EnemyRetreatController::Plan Enemy::EvaluateRetreatPlan(float distToTarget, bool
 	input.lowHpRetreatSpeedScale = survival_.lowHpRetreatSpeedScale;
 	input.hitReactionMoveWeight = reaction_.hitReactionMoveWeight + (1.0f - traits_.aggression) * 0.25f;
 	input.isLowHp = IsLowHp();
-	input.inHitReaction = IsInHitReaction();
+	input.inHitReaction = IsInHitReaction() && consecutiveHitCount_ >= 2;
 	input.canShoot = canShoot;
 	return retreatController_.EvaluatePlan(input);
 }
@@ -621,12 +662,25 @@ void Enemy::TryStepJump(const K4E::Vector3& moveDirection)
 
 void Enemy::UpdateTraitProfile()
 {
-	traits_.reactionDelayScale = RandomRange(0.85f, 1.2f);
-	traits_.strafeSwitchScale = RandomRange(0.8f, 1.35f);
-	traits_.fireIntervalScale = RandomRange(0.82f, 1.3f);
-	traits_.aggression = RandomRange(0.35f, 0.85f);
-	traits_.coverPreference = RandomRange(0.3f, 0.9f);
-	traits_.aimStability = RandomRange(0.25f, 0.9f);
+	traits_.reactionDelayScale = RandomRange(0.9f, 1.12f);
+	traits_.strafeSwitchScale = RandomRange(0.9f, 1.2f);
+	traits_.fireIntervalScale = RandomRange(0.9f, 1.18f);
+	traits_.aggression = RandomRange(0.42f, 0.74f);
+	traits_.coverPreference = RandomRange(0.38f, 0.76f);
+	traits_.aimStability = RandomRange(0.4f, 0.78f);
+}
+
+void Enemy::RefreshCoverPreferenceDecision(float deltaTime)
+{
+	coverPreferenceTimer_ -= deltaTime;
+	if (coverPreferenceTimer_ > 0.0f)
+	{
+		return;
+	}
+
+	coverPreferenceTimer_ = RandomRange(0.8f, 1.7f);
+	const float willingness = Clamp(traits_.coverPreference * 0.9f + (1.0f - traits_.aggression) * 0.15f, 0.2f, 0.9f);
+	coverPreferenceDecision_ = Random01() < willingness;
 }
 
 void Enemy::PickNextWanderTarget()
