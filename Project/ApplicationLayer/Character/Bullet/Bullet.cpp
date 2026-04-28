@@ -8,6 +8,7 @@ void Bullet::Initialize(const K4E::Vector3& startPos,
 	int damage,
 	float lifeTimeSec,
 	const K4E::Vector3& shooterPosition,
+	uint32_t shooterColliderId,
 	uint32_t typeId
 )
 {
@@ -16,6 +17,7 @@ void Bullet::Initialize(const K4E::Vector3& startPos,
 	lifeTimeSec_ = lifeTimeSec;
 	lifeTimer_ = 0.0f;
 	shooterPosition_ = shooterPosition;
+	shooterColliderId_ = shooterColliderId;
 
 	Collider::SetTypeID(typeId);
 	Collider::SetOwner(this);
@@ -127,6 +129,7 @@ void Bullet::OnCollisionEnter(K4E::Collider* other)
 {
 	if (!other) return;
 	if (isDead_ || removable_) return;
+	if (shooterColliderId_ != 0u && other->GetUniqueID() == shooterColliderId_) return; // 自分を撃ったコライダーとの接触は無視
 
 	const uint32_t selfType = GetTypeID();
 	const uint32_t otherType = other->GetTypeID();

@@ -1,600 +1,818 @@
 #define NOMINMAX
 #include "Enemy.h"
-#include "Bullet.h"
-#include "BulletManager.h"
-#include "CollisionTypeIdDef.h"
-#include "CollisionManager.h"
-#include "LinearInterpolation.h"
-#include "EnemyTuningRepository.h"
-#include "Wireframe.h"
-#include "EnemyArchetypeBehaviorFactory.h"
+#include "IEnemyState.h"
+#include "EnemyIdleState.h"
+#include "EnemyCombatMoveState.h"
+#include "EnemyShootState.h"
+#include "EnemySearchState.h"
+#include "EnemyDeadState.h"
 
+#include <BulletManager.h>
+#include <CollisionManager.h>
+#include <CollisionTypeIdDef.h>
 
-#include <algorithm>
 #include <cmath>
+#include <algorithm>
+#include <cstdint>
+#include <limits>
+#include <numbers>
+#include <random>
 
 using namespace Ken4lowEngine;
 
 namespace
 {
-	inline Vector3 NormalizeSafe(const Vector3& v)
+	constexpr float kPi = std::numbers::pi_v<float>;
+	constexpr float kEpsilon = 0.0001f;
+
+	float Clamp(float value, float minVal, float maxVal)
 	{
-		const float len = Vector3::Length(v);
-		if (len <= 1e-6f) return { 0.0f, 0.0f, 0.0f };
-		return { v.x / len, v.y / len, v.z / len };
+		if (value < minVal) return minVal;
+		if (value > maxVal) return maxVal;
+		return value;
+	}
+
+	float LengthXZ(const Vector3& v)
+	{
+		return std::sqrt(v.x * v.x + v.z * v.z);
+	}
+
+	Vector3 NormalizeXZ(const Vector3& v)
+	{
+		const float len = LengthXZ(v);
+		if (len < kEpsilon) return { 0.0f, 0.0f, 0.0f };
+		return { v.x / len, 0.0f, v.z / len };
+	}
+
+	float LengthSqXZ(const Vector3& v)
+	{
+		return v.x * v.x + v.z * v.z;
+	}
+
+	float DotXZ(const Vector3& v1, const Vector3& v2)
+	{
+		return v1.x * v2.x + v1.z * v2.z;
+	}
+
+	float ToRadians(float degrees)
+	{
+		return degrees * (kPi / 180.0f);
+	}
+
+	float Random01()
+	{
+		thread_local std::mt19937 engine{ std::random_device{}() };
+		static thread_local std::uniform_real_distribution<float> dist(0.0f, 1.0f);
+		return dist(engine);
+	}
+
+	float RandomRange(float minValue, float maxValue)
+	{
+		thread_local std::mt19937 engine{ std::random_device{}() };
+		std::uniform_real_distribution<float> dist(minValue, maxValue);
+		return dist(engine);
+	}
+
+	float RandomSign()
+	{
+		thread_local std::mt19937 engine{ std::random_device{}() };
+		static thread_local std::bernoulli_distribution dist(0.5);
+		return dist(engine) ? 1.0f : -1.0f;
+	}
+
+	void Damp(float& value, float target, float speed, float deltaTime)
+	{
+		const float t = Clamp(speed * deltaTime, 0.0f, 1.0f);
+		value += (target - value) * t;
+	}
+
+	Vector3 ForwardFromYaw(float yawRad)
+	{
+		return { std::sin(yawRad), 0.0f, std::cos(yawRad) };
 	}
 }
 
-void Enemy::Initialize(const K4E::Vector3& startPos)
+void Enemy::Initialize()
 {
-	EnemyBase::Initialize(startPos);
+	EnemyBase::Initialize();
+	navigator_.Reset();
+	UpdateTraitProfile();
+	EnemyCoverController::Config coverConfig{};
+	coverConfig.peekOffset = cover_.peekOffset;
+	coverConfig.peekExposeMinSec = cover_.peekExposeMinSec;
+	coverConfig.peekExposeMaxSec = cover_.peekExposeMaxSec;
+	coverConfig.peekHideMinSec = cover_.peekHideMinSec;
+	coverConfig.peekHideMaxSec = cover_.peekHideMaxSec;
+	coverController_.SetConfig(coverConfig);
 
-	// --------------------------------------------------------
-	// EnemyTuningRepository を初期化
-	// - まず既定値を構築
-	// - その後、敵ごとの JSON で上書き
-	// --------------------------------------------------------
-	EnemyTuningRepository::Initialize();
+	memory_.lastSeenPos = GetCenterPosition();
+	memory_.timeSinceSeen = 9999.0f;
 
-	// アーキタイプ設定
-	// Spawn 側で先に SetArchetype していても、
-	// ここでは現在の archetype_ をもとに反映し直すだけなので安全
-	SetArchetype(archetype_);
+	facing_.yawRad = 0.0f;
+	fireCooldown_ = 0.0f;
+	strafeDecisionTimer_ = 0.0f;
+	currentStrafeSign_ = 1.0f;
+	spawnPosition_ = GetCenterPosition();
+	wanderTarget_ = spawnPosition_;
+	wanderProbePosition_ = spawnPosition_;
+	wanderRetargetTimer_ = 0.0f;
+	wanderStuckTimer_ = 0.0f;
+	hasWanderTarget_ = false;
+	hitReactionTimer_ = 0.0f;
+	jumpCooldownTimer_ = 0.0f;
+	hitChainTimer_ = 0.0f;
+	consecutiveHitCount_ = 0;
 
-	homePos_ = startPos;
+	animState_ = AnimState::Idle;
+	animTime_ = 0.0f;
+	animMoveRate_ = 1.0f;
 
-	lastSeenPos_ = startPos;
-	timeSinceSeen_ = 9999.0f;
-	stunRequestedSec_ = 0.0f;
-
-	EnemyAICommand cmd{};
-	EnemyAIContext<Enemy> ctx{ *this, cmd, 0.0f };
-	BuildContext(ctx);
-	fsm_.Reset(ctx);
+	ChangeState(std::make_unique<EnemyIdleState>());
 }
 
-void Enemy::SetArchetype(EnemyArchetype t)
+void Enemy::Update(float deltaTime)
 {
-	archetype_ = t;
+	UpdateNavigatorSource();
 
-	// Repository から tuning を取得
-	tuning_ = EnemyTuningRepository::Get(t);
+	if (memory_.timeSinceSeen < 9999.0f) memory_.timeSinceSeen += deltaTime;
 
-	// Enemy 本体が直接使う値を反映
-	moveSpeed_ = tuning_.moveSpeed;
-	attackRange_ = tuning_.attackRange;
-	fireInterval_ = tuning_.fireInterval;
-	viewRange_ = tuning_.viewRange;
-
-	bulletSpeed_ = tuning_.bulletSpeed;
-	bulletLifeSec_ = tuning_.bulletLifeSec;
-	bulletDamage_ = tuning_.bulletDamage;
-
-	// 耐久反映
-	SetMaxHp(tuning_.maxHp);
-
-	// archetype固有ロジックを差し替え
-	archetypeBehavior_ = EnemyArchetypeBehaviorFactory::Create(t);
-
-	// tuning適用後の追加補正
-	if (archetypeBehavior_)
+	if (hitReactionTimer_ > 0.0f)
 	{
-		archetypeBehavior_->OnApplyTuning(*this, tuning_);
-	}
-}
-
-void Enemy::Update(float dt)
-{
-	if (debugCamera_) return; // デバッグカメラ有効ならAI更新しない
-
-	if (IsRemovable()) return;
-	if (IsDead())
-	{
-		EnemyBase::Update(dt);
-		return;
+		hitReactionTimer_ -= deltaTime;
+		if (hitReactionTimer_ < 0.0f) hitReactionTimer_ = 0.0f;
 	}
 
-	EnemyAICommand cmd{};
-	cmd.Clear();
-
-	EnemyAIContext<Enemy> ctx{ *this, cmd, dt };
-	BuildContext(ctx);
-
-	if (stunRequestedSec_ > 0.0f)
+	if (jumpCooldownTimer_ > 0.0f)
 	{
-		fsm_.Force(EnemyStateId::Stunned, ctx);
+		jumpCooldownTimer_ -= deltaTime;
+		if (jumpCooldownTimer_ < 0.0f) jumpCooldownTimer_ = 0.0f;
 	}
-
-	// archetype固有の前補正
-	if (archetypeBehavior_)
+	if (hitChainTimer_ > 0.0f)
 	{
-		archetypeBehavior_->BeforeFSMUpdate(*this, ctx);
-	}
-
-	// 敵のタイプによって色を変える（debug用）
-	switch (archetype_)
-	{
-	case EnemyArchetype::RifleGrunt:    SetColor({ 0.4f, 0.4f, 1.0f, 1.0f }); break;
-	case EnemyArchetype::SMGFlanker:    SetColor({ 0.4f, 1.0f, 0.4f, 1.0f }); break;
-	case EnemyArchetype::Sniper:        SetColor({ 1.0f, 0.4f, 0.4f, 1.0f }); break;
-	case EnemyArchetype::BurstTrooper:  SetColor({ 0.2f, 0.7f, 1.0f, 1.0f }); break;
-	case EnemyArchetype::HeavyRifleman: SetColor({ 0.9f, 0.7f, 0.2f, 1.0f }); break;
-	case EnemyArchetype::ShotgunRusher: SetColor({ 1.0f, 0.5f, 0.1f, 1.0f }); break;
-	case EnemyArchetype::Scout:         SetColor({ 0.6f, 1.0f, 0.9f, 1.0f }); break;
-	case EnemyArchetype::Marksman:      SetColor({ 0.9f, 0.5f, 0.8f, 1.0f }); break;
-	case EnemyArchetype::Suppressor:    SetColor({ 0.7f, 0.7f, 0.7f, 1.0f }); break;
-	case EnemyArchetype::EliteFlanker:  SetColor({ 0.2f, 1.0f, 0.2f, 1.0f }); break;
-	case EnemyArchetype::HeavySniper:   SetColor({ 1.0f, 0.2f, 0.2f, 1.0f }); break;
-	}
-
-	fsm_.Update(ctx);
-
-	// archetype固有の後補正
-	if (archetypeBehavior_)
-	{
-		archetypeBehavior_->AfterFSMUpdate(*this, cmd, dt);
-	}
-
-	ApplyAICommand(cmd);
-	EnemyBase::Update(dt);
-}
-
-void Enemy::Draw()
-{
-	EnemyBase::Draw();
-
-#ifdef _DEBUG
-	// デバッグ用：視覚判定の可視化
-	DrawVisionWire();
-#endif // _DEBUG
-}
-
-void Enemy::DrawImGui()
-{
-#ifdef USE_IMGUI
-	EnemyBase::DrawImGui();
-#endif // USE_IMGUI
-}
-
-void Enemy::DrawShadow()
-{
-	EnemyBase::DrawShadow();
-}
-
-void Enemy::UpdateShadowMatrix(const Matrix4x4& lightViewProjection)
-{
-	EnemyBase::UpdateShadowMatrix(lightViewProjection);
-}
-
-void Enemy::BuildContext(EnemyAIContext<Enemy>& ctx)
-{
-	ctx.canSeePlayer = false;
-	ctx.canShootPlayer = false;
-	ctx.distToPlayer = 999999.0f;
-	ctx.playerPos = { 0.0f,0.0f,0.0f };
-
-	if (target_)
-	{
-		ctx.playerPos = target_->GetCenterPosition();
-
-		// ★攻撃/追跡は水平距離(XZ)で統一（段差でAttackに入れない事故を防ぐ）
-		auto d = ctx.playerPos - GetCenterPosition();
-		const float distXZ = std::sqrt(d.x * d.x + d.z * d.z);
-		ctx.distToPlayer = distXZ;
-
-		// 視覚（FOV+縦FOV+LOS）
-		ctx.canSeePlayer = CanSeeTarget(ctx.playerPos, distXZ);
-
-		// 射線（マズル→ターゲット）。collisionManager_未注入なら常に撃てる扱い
-		ctx.canShootPlayer = CanShootTarget(ctx.playerPos);
-	}
-	else
-	{
-		// ターゲットなし
-		ctx.canShootPlayer = false;
-	}
-
-	// debug用（任意）
-	lastCanSee_ = ctx.canSeePlayer;
-	lastPlayerPos_ = ctx.playerPos;
-
-	// memory
-	if (ctx.canSeePlayer)
-	{
-		lastSeenPos_ = ctx.playerPos;
-		timeSinceSeen_ = 0.0f;
-	}
-	else
-	{
-		timeSinceSeen_ += ctx.dt;
-	}
-
-	ctx.lastSeenPos = lastSeenPos_;
-	ctx.timeSinceSeen = timeSinceSeen_;
-}
-
-bool Enemy::CanShootTarget(const K4E::Vector3& targetPos) const
-{
-	if (!useLOS_ || !collisionManager_) return true;
-
-	K4E::Vector3 origin = GetCenterPosition();
-	origin.y += muzzleHeight_;
-
-	K4E::Vector3 target = targetPos;
-	target.y += targetEyeHeight_;
-
-	K4E::Segment seg{};
-	seg.origin = origin;
-	seg.diff = target - origin;
-
-	// true = 何かに当たった
-	return !collisionManager_->SegmentCast(static_cast<uint32_t>(CollisionTypeIdDef::kWorld), seg);
-}
-
-
-bool Enemy::CanSeeTarget(const K4E::Vector3& targetPos, float distToTarget)
-{
-	lastDistOk_ = false;
-	lastHorizOk_ = false;
-	lastVertOk_ = true;
-	lastLosOk_ = true;
-	lastNearBypass_ = false;
-
-	if (distToTarget > viewRange_)
-	{
-		return false;
-	}
-	lastDistOk_ = true;
-
-	// 目の位置
-	K4E::Vector3 origin = GetCenterPosition();
-	origin.y += eyeHeight_;
-
-	// ターゲット側も高さを合わせる（頭/胸を狙う感じ）
-	K4E::Vector3 target = targetPos;
-	target.y += targetEyeHeight_;
-
-	K4E::Vector3 to = target - origin;
-
-	// --- 横FOV（XZ）---
-	K4E::Vector3 toXZ = to;
-	toXZ.y = 0.0f;
-	const float lenXZ = std::sqrt(toXZ.x * toXZ.x + toXZ.z * toXZ.z);
-
-	const bool nearBypass = (distToTarget <= nearDetectRadius_) || (lastCanSee_ && distToTarget <= nearLoseRadius_);
-	lastNearBypass_ = nearBypass;
-
-	if (nearBypass)
-	{
-		lastHorizOk_ = true;
-	}
-	else if (lenXZ > 1e-6f)
-	{
-		const float halfH = (viewFovDeg_ * std::numbers::pi_v<float> / 180.0f) * 0.5f;
-		const float cosHalfH = std::cosf(halfH);
-
-		K4E::Vector3 forwardXZ = { std::sinf(yawRad_), 0.0f, std::cosf(yawRad_) };
-
-		const float invTo = 1.0f / lenXZ;
-		K4E::Vector3 nTo = { toXZ.x * invTo, 0.0f, toXZ.z * invTo };
-
-		const float fwLen = std::sqrt(forwardXZ.x * forwardXZ.x + forwardXZ.z * forwardXZ.z);
-		const float invFw = (fwLen > 1e-6f) ? (1.0f / fwLen) : 0.0f;
-		K4E::Vector3 nFw = { forwardXZ.x * invFw, 0.0f, forwardXZ.z * invFw };
-
-		const float dotH = nFw.x * nTo.x + nFw.z * nTo.z;
-		lastHorizOk_ = (dotH >= cosHalfH);
-		if (!lastHorizOk_) return false;
-	}
-	else
-	{
-		lastHorizOk_ = true;
-	}
-
-	// --- 縦FOV（pitch）---
-	if (useVerticalFov_)
-	{
-		const float halfV = (viewFovVerticalDeg_ * 3.14159265f / 180.0f) * 0.5f;
-		const float pitchTo = std::atan2(to.y, std::max(1e-6f, lenXZ));
-		const float pitchForward = pitchRad_;
-		lastVertOk_ = (std::fabs(pitchTo - pitchForward) <= halfV);
-		if (!lastVertOk_) return false;
-	}
-
-	// --- 遮蔽物（LOS）---
-	if (useLOS_ && collisionManager_)
-	{
-		K4E::Segment seg{};
-		seg.origin = origin;
-		seg.diff = target - origin;
-
-		lastLosOk_ = !collisionManager_->SegmentCast(static_cast<uint32_t>(CollisionTypeIdDef::kWorld), seg);
-		if (!lastLosOk_)
+		hitChainTimer_ -= deltaTime;
+		if (hitChainTimer_ <= 0.0f)
 		{
-			return false;
-		}
-	}
-	else
-	{
-		lastLosOk_ = true;
-	}
-
-	return true;
-}
-
-void Enemy::DrawVisionWire() const
-{
-	if (!debugDrawVision_) return;
-	if (IsDead() || IsRemovable()) return;
-
-	auto* wf = K4E::Wireframe::GetInstance();
-	if (!wf) return;
-
-	const K4E::Vector3 origin = {
-		GetCenterPosition().x,
-		GetCenterPosition().y + eyeHeight_,
-		GetCenterPosition().z
-	};
-
-	const float halfH = (viewFovDeg_ * 3.14159265f / 180.0f) * 0.5f;
-	const float halfV = (viewFovVerticalDeg_ * 3.14159265f / 180.0f) * 0.5f;
-	const int segN = std::max(3, debugVisionSegments_);
-	const float yawStart = yawRad_ - halfH;
-	const float yawEnd = yawRad_ + halfH;
-
-	auto DirFromYawPitch = [](float yaw, float pitch) -> K4E::Vector3 {
-		const float cp = std::cosf(pitch);
-		return { std::sinf(yaw) * cp, std::sinf(pitch), std::cosf(yaw) * cp };
-		};
-
-	const float pitchTop = useVerticalFov_ ? (pitchRad_ + halfV) : 0.35f;
-	const float pitchBot = useVerticalFov_ ? (pitchRad_ - halfV) : -0.35f;
-
-	K4E::Vector4 col = { 0,1,0,1 };
-	if (lastCanSee_) col = { 1,0,0,1 };
-	else if (!lastLosOk_) col = { 1,0.35f,0.35f,1 };
-	else if (!lastHorizOk_) col = { 1,0.65f,0.0f,1 };
-	else if (!lastVertOk_) col = { 0.7f,0.4f,1.0f,1 };
-	else if (!lastDistOk_) col = { 0.35f,0.7f,1.0f,1 };
-
-	K4E::Vector3 topPrev = origin + DirFromYawPitch(yawStart, pitchTop) * viewRange_;
-	K4E::Vector3 botPrev = origin + DirFromYawPitch(yawStart, pitchBot) * viewRange_;
-	wf->DrawLine(origin, topPrev, col);
-	wf->DrawLine(origin, botPrev, col);
-	wf->DrawLine(topPrev, botPrev, col);
-
-	for (int i = 1; i <= segN; ++i)
-	{
-		const float t = static_cast<float>(i) / static_cast<float>(segN);
-		const float yaw = yawStart + (yawEnd - yawStart) * t;
-		K4E::Vector3 top = origin + DirFromYawPitch(yaw, pitchTop) * viewRange_;
-		K4E::Vector3 bot = origin + DirFromYawPitch(yaw, pitchBot) * viewRange_;
-		wf->DrawLine(topPrev, top, col);
-		wf->DrawLine(botPrev, bot, col);
-		wf->DrawLine(top, bot, col);
-		topPrev = top;
-		botPrev = bot;
-	}
-
-	wf->DrawLine(origin, topPrev, col);
-	wf->DrawLine(origin, botPrev, col);
-
-	// 中央向き線
-	const K4E::Vector3 forward = origin + DirFromYawPitch(yawRad_, useVerticalFov_ ? pitchRad_ : 0.0f) * ((lastCanSee_ || lastDistOk_) ? viewRange_ : (viewRange_ * 0.5f));
-	wf->DrawLine(origin, forward, K4E::Vector4{ 0,1,1,1 });
-
-	// 近距離全方位検知リング
-	if (nearDetectRadius_ > 0.0f)
-	{
-		const int ringSeg = 24;
-		K4E::Vector3 prev = origin + K4E::Vector3{ nearDetectRadius_, 0.0f, 0.0f };
-		for (int i = 1; i <= ringSeg; ++i)
-		{
-			const float a = (2.0f * 3.14159265f * i) / static_cast<float>(ringSeg);
-			K4E::Vector3 cur = origin + K4E::Vector3{ std::cosf(a) * nearDetectRadius_, 0.0f, std::sinf(a) * nearDetectRadius_ };
-			wf->DrawLine(prev, cur, K4E::Vector4{ 0.25f,0.9f,1.0f,1 });
-			prev = cur;
+			hitChainTimer_ = 0.0f;
+			consecutiveHitCount_ = 0;
 		}
 	}
 
-	// 敵→プレイヤー線（黄:見えてる / 橙:FOV外 / 赤:LOS遮蔽）
-	K4E::Vector4 targetCol = lastCanSee_ ? K4E::Vector4{ 1,1,0,1 }
-		: (!lastLosOk_ ? K4E::Vector4{ 1,0,0,1 }
-			: (!lastHorizOk_ ? K4E::Vector4{ 1,0.5f,0,1 }
-	: K4E::Vector4{ 0.7f,0.7f,0.7f,1 }));
-	wf->DrawLine(origin, lastPlayerPos_, targetCol);
+	if (fireCooldown_ > 0.0f)
+	{
+		fireCooldown_ -= deltaTime;
+		if (fireCooldown_ < 0.0f) fireCooldown_ = 0.0f;
+	}
+
+	if (state_) state_->Update(*this, deltaTime);
+
+	if (IsDead()) PlayDeadAnimation();
+
+	UpdateAnimation(deltaTime);
+	EnemyBase::Update(deltaTime);
 }
 
-void Enemy::ApplyAICommand(const EnemyAICommand& cmd)
+void Enemy::ChangeState(std::unique_ptr<IEnemyState> nextState)
 {
-	if (cmd.stopMove)
-	{
-		StopMove();
-	}
-	else if (cmd.moveDir)
-	{
-		// GunAI等：そのフレームの移動方向（XZのみ更新）
-		K4E::Vector3 dir = *cmd.moveDir;
-		dir.y = 0.0f;
+	if (state_) state_->Exit(*this);
 
-		const Vector3 n = NormalizeSafe(dir);
-		const float spd = cmd.moveSpeed.value_or(moveSpeed_);
+	state_ = std::move(nextState);
 
-		// Y速度は保持して、XZだけ更新する
-		K4E::Vector3 v = GetVelocity();
-		v.x = n.x * spd;
-		v.z = n.z * spd;
-		SetVelocity(v);
-	}
-	else if (cmd.moveGoal)
-	{
-		MoveTowards(*cmd.moveGoal);
-	}
-	else
-	{
-		StopMove();
-	}
-
-	// リロード開始の瞬間だけSEを鳴らす
-	if (!wasReloadingLastFrame_ && cmd.wantReload)
-	{
-		if (onReloadSE_)
-		{
-			onReloadSE_();
-		}
-	}
-	wasReloadingLastFrame_ = cmd.wantReload;
-
-	if (cmd.lookAt) FaceTo(*cmd.lookAt);
-	if (cmd.fireAt) FireAt(*cmd.fireAt);
+	if (state_) state_->Enter(*this);
 }
 
+/// ------------------------- 状態遷移関数 ------------------------- ///
+void Enemy::ChangeStateToIdle() { ChangeState(std::make_unique<EnemyIdleState>()); }
+void Enemy::ChangeStateToCombatMove() { ChangeState(std::make_unique<EnemyCombatMoveState>()); }
+void Enemy::ChangeStateToShoot() { ChangeState(std::make_unique<EnemyShootState>()); }
+void Enemy::ChangeStateToSearch() { ChangeState(std::make_unique<EnemySearchState>()); }
+void Enemy::ChangeStateToDead() { ChangeState(std::make_unique<EnemyDeadState>()); }
 
-const char* Enemy::GerArcheTypeBehaviorDebugName() const
+K4E::Vector3 Enemy::GetTargetPosition() const
 {
-	if (!archetypeBehavior_)
-	{
-		return "None";
-	}
-	return archetypeBehavior_->GetDebugName();
+	if (!target_) return GetCenterPosition();
+
+	return target_->GetCenterPosition();
 }
 
-void Enemy::MoveTowards(const K4E::Vector3& goal)
+float Enemy::GetDistanceToTarget() const
 {
-	K4E::Vector3 to = goal - GetCenterPosition();
-	to.y = 0.0f;
+	if (!target_) return 9999.0f;
 
-	const Vector3 dir = NormalizeSafe(to);
-
-	// Y速度は保持して、XZだけ更新する
-	K4E::Vector3 v = GetVelocity();
-	v.x = dir.x * moveSpeed_;
-	v.z = dir.z * moveSpeed_;
-	SetVelocity(v);
+	Vector3 diff = target_->GetCenterPosition() - GetCenterPosition();
+	return Vector3::Length(diff);
 }
 
 void Enemy::StopMove()
 {
-	// 落下中でもY速度は止めない
-	K4E::Vector3 v = GetVelocity();
-	v.x = 0.0f;
-	v.z = 0.0f;
-	SetVelocity(v);
+	Vector3 velocity = GetVelocity();
+	velocity.x = 0.0f;
+	velocity.z = 0.0f;
+	SetVelocity(velocity);
 }
 
-void Enemy::FaceTo(const K4E::Vector3& lookAt)
+void Enemy::MoveInDirectionXZ(const K4E::Vector3& direction, float speed)
 {
-	auto d = lookAt - GetCenterPosition();
+	const Vector3 normDir = NormalizeXZ(direction);
+	if (LengthXZ(normDir) < kEpsilon)
+	{
+		StopMove();
+		return; // 方向がほとんどない場合は移動しない
+	}
 
-	const float lenXZ = std::sqrt(d.x * d.x + d.z * d.z);
-	if (lenXZ <= 1e-6f) return;
+	Vector3 v = GetVelocity();
+	v.x = normDir.x * speed;
+	v.z = normDir.z * speed;
+	SetVelocity(v);
+	TryStepJump(direction);
+}
 
-	yawRad_ = std::atan2(d.x, d.z);
-	pitchRad_ = std::atan2(d.y, lenXZ);
+void Enemy::MoveTowards(const K4E::Vector3& targetPos)
+{
+	MoveTowards(targetPos, movement_.approachSpeed);
+}
 
-	SetOrientation({ 0.0f, -yawRad_, 0.0f });
+void Enemy::MoveTowards(const K4E::Vector3& targetPos, float speed)
+{
+	Vector3 direction = targetPos - GetCenterPosition();
+	direction.y = 0.0f; // 水平方向のみ
+	MoveInDirectionXZ(direction, speed);
+	FaceTo(targetPos);
+}
+
+void Enemy::MoveTowardsPath(const K4E::Vector3& targetPos, float speed, float deltaTime)
+{
+	Vector3 waypoint = targetPos;
+	const float sampleY = GetCenterPosition().y + 1.0f;
+	navigator_.GetNextWaypoint(GetCenterPosition(), targetPos, sampleY, deltaTime, waypoint);
+
+	Vector3 direction = waypoint - GetCenterPosition();
+	direction.y = 0.0f; // 水平方向のみ
+	MoveInDirectionXZ(direction, speed);
+	FaceTo(targetPos);
+}
+
+void Enemy::MoveAwayFrom(const K4E::Vector3& targetPos, float speed)
+{
+	Vector3 direction = GetCenterPosition() - targetPos;
+	direction.y = 0.0f; // 水平方向のみ
+	MoveInDirectionXZ(direction, speed);
+	FaceTo(targetPos);
+}
+
+void Enemy::MoveStrafeAround(const K4E::Vector3& targetPos, float sign, float speed)
+{
+	Vector3 toTarget = targetPos - GetCenterPosition();
+	toTarget.y = 0.0f;
+	Vector3 fwd = NormalizeXZ(toTarget);
+	if (LengthXZ(fwd) <= kEpsilon)
+	{
+		StopMove();
+		return;
+	}
+
+	Vector3 right = { fwd.z, 0.0f, -fwd.x }; // XZ平面での右ベクトル
+	MoveInDirectionXZ(right * ((sign >= 0.0f) ? 1.0f : -1.0f), speed);
+	FaceTo(targetPos);
+
+}
+
+void Enemy::MoveToLastSeen(float speed)
+{
+	MoveTowards(memory_.lastSeenPos, speed);
+}
+
+void Enemy::MoveTacticalAround(const K4E::Vector3& targetPos, float strafeSign, float radialBias, float speed)
+{
+	Vector3 toTarget = targetPos - GetCenterPosition();
+	toTarget.y = 0.0f;
+	Vector3 fwd = NormalizeXZ(toTarget);
+	if (LengthSqXZ(fwd) <= kEpsilon)
+	{
+		StopMove();
+		return;
+	}
+
+	Vector3 right{ fwd.z, 0.0f, -fwd.x };
+	const float clampedBias = Clamp(radialBias, -1.0f, 1.0f);
+	Vector3 dir = right * ((strafeSign >= 0.0f) ? 1.0f : -1.0f) + (fwd * clampedBias * movement_.tacticalBlend);
+
+	MoveInDirectionXZ(dir, speed);
+	FaceTo(targetPos);
+}
+
+float Enemy::ChooseBetterStrafeSign(const K4E::Vector3& targetPos, float probeDistance) const
+{
+	const Vector3 self = GetCenterPosition();
+	Vector3 toTarget = targetPos - self;
+	toTarget.y = 0.0f;
+	Vector3 fwd = NormalizeXZ(toTarget);
+	if (LengthSqXZ(fwd) <= kEpsilon)
+	{
+		return currentStrafeSign_;
+	}
+
+	Vector3 right{ fwd.z, 0.0f, -fwd.x };
+	const Vector3 leftCandidate = self - right * probeDistance;
+	const Vector3 rightCandidate = self + right * probeDistance;
+
+	const float leftScore = EvaluateLineOfSightScore(leftCandidate, targetPos);
+	const float rightScore = EvaluateLineOfSightScore(rightCandidate, targetPos);
+
+	if (std::fabs(leftScore - rightScore) <= 0.001f)
+	{
+		return currentStrafeSign_;
+	}
+
+	return (rightScore > leftScore) ? 1.0f : -1.0f;
+}
+
+void Enemy::FaceTo(const K4E::Vector3& targetPos)
+{
+	K4E::Vector3 dir = targetPos - GetCenterPosition();
+	dir.y = 0.0f;
+
+	float lenSq = dir.x * dir.x + dir.z * dir.z;
+	if (lenSq <= kEpsilon) return;
+
+	facing_.yawRad = std::atan2(dir.x, dir.z);
+	SetOrientation({ 0.0f, -facing_.yawRad, 0.0f });
 }
 
 void Enemy::FireAt(const K4E::Vector3& targetPos)
 {
-	if (!bulletManager_) return;
+	if (fireCooldown_ > 0.0f || !bulletManager_) return;
 
-	Vector3 origin = GetCenterPosition();
-	origin.y += muzzleHeight_;
+	Vector3 muzzle = GetCenterPosition();
+	muzzle.y += combat_.muzzleHeight;
 
-	Vector3 dir = NormalizeSafe(targetPos - origin);
-	if (Vector3::Length(dir) <= 1e-6f) return;
+	Vector3 targetEye = targetPos;
+	targetEye.y += perception_.targetEyeHeight;
+	EnemyAimController::Input aimInput{};
+	aimInput.muzzlePosition = muzzle;
+	aimInput.targetPosition = targetEye;
+	aimInput.distanceToTarget = std::max(0.01f, GetDistanceToTarget());
+	aimInput.movementSpeed = LengthXZ(GetVelocity());
+	aimInput.lowHp = IsLowHp();
+	aimInput.inHitReaction = IsInHitReaction();
+	aimInput.baseSpreadRad = 0.008f;
+	aimInput.maxSpreadRad = 0.12f;
+	aimInput.distanceSpreadWeight = 0.95f;
+	aimInput.moveSpreadWeight = 0.85f;
+	aimInput.stressSpreadWeight = 0.7f;
+	aimInput.stableBonusWeight = 0.55f;
+	aimInput.traits = &traits_;
+	const Vector3 aim = aimController_.BuildAimPoint(aimInput);
 
-	bulletManager_->Spawn(origin, dir, bulletSpeed_, bulletDamage_, bulletLifeSec_, GetCenterPosition(), static_cast<uint32_t>(CollisionTypeIdDef::kEnemyBullet));
+	Vector3 dir = aim - muzzle;
+	const float len = Vector3::Length(dir);
+	if (len <= kEpsilon) return;
+	dir = dir * (1.0f / len); // 正規化
 
-	// 銃声
-	if (onFireSE_) onFireSE_();
-}
+	// 射撃方向とモデル向きを一致させる
+	const Vector3 dirXZ = NormalizeXZ(dir);
+	if (LengthSqXZ(dirXZ) > kEpsilon)
+	{
+		facing_.yawRad = std::atan2(dirXZ.x, dirXZ.z);
+		SetOrientation({ 0.0f, facing_.yawRad, 0.0f });
+	}
+	const Vector3 forward = ForwardFromYaw(facing_.yawRad);
 
-void Enemy::RequestStun(float sec)
-{
-	stunRequestedSec_ = std::max(stunRequestedSec_, sec);
-}
+	// 自身コライダー内で弾が湧くと即時衝突しやすいため、前方へ少し押し出す
+	constexpr float kMuzzleForwardOffset = 1.2f;
+	muzzle = muzzle + forward * kMuzzleForwardOffset;
 
-float Enemy::ConsumeStunDurationOr(float fallbackSec)
-{
-	if (stunRequestedSec_ <= 0.0f) return fallbackSec;
-	const float v = stunRequestedSec_;
-	stunRequestedSec_ = 0.0f;
-	return v;
+	fireCooldown_ = combat_.fireInterval * traits_.fireIntervalScale;
+
+	bulletManager_->Spawn(
+		muzzle,
+		dir,
+		combat_.bulletSpeed,
+		combat_.bulletDamage,
+		combat_.bulletLifeSec,
+		GetCenterPosition(),
+		GetUniqueID(),
+		static_cast<uint32_t>(CollisionTypeIdDef::kEnemyBullet));
 }
 
 void Enemy::OnBulletHit(K4E::Collider* bulletCollider)
 {
-	int dmg = 25;
-	bool isHeadshot = false;
+	EnemyBase::OnBulletHit(bulletCollider);
 
-	if (bulletCollider)
-	{
-		if (auto* b = bulletCollider->GetOwner<Bullet>())
-		{
-			dmg = b->GetDamage();
-		}
-	}
-
-	const bool wasDead = IsDead();
-
-	K4E::Vector3 hitDir{ 0.0f, 0.0f, 0.0f };
-	float hitPower = 1.0f;
-	if (bulletCollider)
-	{
-		hitDir = GetCenterPosition() - bulletCollider->GetCenterPosition();
-		hitPower = 1.0f + static_cast<float>(dmg) * 0.015f;
-	}
-
-	TakeDamage(dmg, hitDir, hitPower);
-
-	// 被弾時サウンド
-	if (!wasDead && !IsDead())
-	{
-		if (onHitSE_)
-		{
-			onHitSE_();
-		}
-	}
-
-	if (!wasDead && onPlayerHitUICallback_)
-	{
-		onPlayerHitUICallback_(isHeadshot);
-	}
-
-	if (!wasDead && IsDead())
-	{
-		// 死亡サウンド
-		if (onDeathSE_)
-		{
-			onDeathSE_();
-		}
-
-		if (onPlayerKillUICallback_)
-		{
-			onPlayerKillUICallback_(isHeadshot);
-		}
-	}
-
-	// 生きている時だけ「撃たれた相手を記憶して警戒」
 	if (!IsDead())
 	{
-		if (target_)
+		hitReactionTimer_ = reaction_.hitReactionTime * traits_.reactionDelayScale;
+		hitChainTimer_ = reaction_.hitChainWindow;
+		++consecutiveHitCount_;
+		UpdateStrafeDecision(999.0f);
+	}
+
+	if (IsDead()) ChangeStateToDead();
+}
+
+void Enemy::UpdateNavigatorSource()
+{
+	navigator_.SetWorldAABBs(GetResolvedWorldAABBs());
+}
+
+bool Enemy::HasLineOfSight(const K4E::Vector3& fromPos, const K4E::Vector3& toPos) const
+{
+	if (!collisionManager_ || !perception_.useLOS) return true;
+
+	Segment segment{};
+	segment.origin = fromPos;
+	segment.diff = toPos - fromPos;
+
+	Collider* hitWorld = nullptr;
+	const bool blocked = collisionManager_->SegmentCast(static_cast<uint32_t>(CollisionTypeIdDef::kWorld), segment, &hitWorld);
+	return !blocked;
+}
+
+float Enemy::EvaluateLineOfSightScore(const K4E::Vector3& samplePos, const K4E::Vector3& targetPos) const
+{
+	Vector3 sampleEye = samplePos;
+	sampleEye.y += perception_.eyeHeight;
+
+	Vector3 targetEye = targetPos;
+	targetEye.y += perception_.targetEyeHeight;
+
+	if (HasLineOfSight(sampleEye, targetEye))
+	{
+		return 1.0f;
+	}
+
+	const Vector3 toTarget = targetPos - samplePos;
+	const float dist = LengthXZ(toTarget);
+	const float normalize = std::max(0.1f, perception_.viewRange);
+	return 0.15f + Clamp(1.0f - (dist / normalize), 0.0f, 0.35f);
+}
+
+bool Enemy::CanSeeTarget(const K4E::Vector3& targetPos, float distToTarget)
+{
+	if (distToTarget > perception_.viewRange) return false;
+
+	const Vector3 selfPos = GetCenterPosition();
+	Vector3 toTarget = targetPos - selfPos;
+	const float distXZ = LengthXZ(toTarget);
+
+	// 近距離は視野を甘くして不自然な見失いを防ぐ
+	const bool nearBonus = (distXZ <= perception_.nearDetectRadius) ||
+		(memory_.timeSinceSeen < perception_.nearLoseRadius && distXZ <= perception_.nearLoseRadius);
+
+	if (!nearBonus)
+	{
+		Vector3 facing = { std::sin(facing_.yawRad), 0.0f, std::cos(facing_.yawRad) };
+		Vector3 toTargetXZ = NormalizeXZ(toTarget);
+		const float dot = DotXZ(facing, toTargetXZ);
+		const float cosHalf = std::cos(ToRadians(perception_.viewFovDeg * 0.5f));
+
+		if (dot < cosHalf) return false;
+
+		if (perception_.useVerticalFov)
 		{
-			lastSeenPos_ = target_->GetCenterPosition();
-			timeSinceSeen_ = 0.0f;
-			FaceTo(lastSeenPos_);
+			const float dy = targetPos.y - selfPos.y;
+			const float pitch = std::atan2(std::fabs(dy), std::max(0.01f, distXZ));
+			if (pitch > ToRadians(perception_.viewFovVerticalDeg * 0.5f)) return false;
 		}
-		else if (bulletCollider)
+	}
+
+	Vector3 eye = selfPos;
+	eye.y += perception_.eyeHeight;
+	Vector3 targetEye = targetPos;
+	targetEye.y += perception_.targetEyeHeight;
+
+	if (!HasLineOfSight(eye, targetEye)) return false;
+
+	return true;
+}
+
+bool Enemy::CanShootTarget(const K4E::Vector3& targetPos) const
+{
+	const Vector3 selfPos = GetCenterPosition();
+	Vector3 diff = targetPos - selfPos;
+	diff.y = 0.0f;
+
+	const float distSq = diff.x * diff.x + diff.z * diff.z;
+	if (distSq > (combat_.fireRange * combat_.fireRange)) return false;
+
+	Vector3 muzzle = selfPos;
+	muzzle.y += combat_.muzzleHeight;
+	Vector3 targetEye = targetPos;
+	targetEye.y += perception_.targetEyeHeight;
+	return HasLineOfSight(muzzle, targetEye);
+}
+
+EnemyRetreatController::Plan Enemy::EvaluateRetreatPlan(float distToTarget, bool canShoot) const
+{
+	EnemyRetreatController::Input input{};
+	input.distanceToTarget = distToTarget;
+	input.idealRangeMin = combat_.idealRangeMin;
+	input.idealRangeMax = combat_.idealRangeMax;
+	input.tooCloseRange = combat_.tooCloseRange;
+	input.tooFarRange = combat_.tooFarRange;
+	input.lowHpRetreatDistance = survival_.lowHpRetreatDistance;
+	input.lowHpReturnDistance = survival_.lowHpReturnDistance;
+	input.approachSpeed = movement_.approachSpeed;
+	input.retreatSpeed = movement_.retreatSpeed;
+	input.strafeSpeed = movement_.strafeSpeed;
+	input.lowHpRetreatSpeedScale = survival_.lowHpRetreatSpeedScale;
+	input.hitReactionMoveWeight = reaction_.hitReactionMoveWeight + (1.0f - traits_.aggression) * 0.25f;
+	input.isLowHp = IsLowHp();
+	input.inHitReaction = IsInHitReaction();
+	input.canShoot = canShoot;
+	return retreatController_.EvaluatePlan(input);
+}
+
+EnemyEvadeController::Plan Enemy::EvaluateEvadePlan(bool canShoot) const
+{
+	EnemyEvadeController::Input input{};
+	input.inHitReaction = IsInHitReaction();
+	input.lowHp = IsLowHp();
+	input.canShoot = canShoot;
+	input.consecutiveHits = consecutiveHitCount_;
+	input.evadeWeight = reaction_.evadeWeight;
+	input.coverBias = reaction_.coverBias;
+	input.aggression = traits_.aggression;
+	input.coverPreference = traits_.coverPreference;
+	return evadeController_.Evaluate(input);
+}
+
+bool Enemy::TryFindCoverPosition(const K4E::Vector3& targetPos, bool preferRetreat, K4E::Vector3& outPosition) const
+{
+	EnemyCoverSelector::Config config{};
+	config.eyeHeight = perception_.eyeHeight;
+	config.targetEyeHeight = perception_.targetEyeHeight;
+	config.viewRange = perception_.viewRange;
+	config.useLOS = perception_.useLOS;
+	config.coverSearchRadius = cover_.coverSearchRadius;
+	config.coverSampleCount = cover_.coverSampleCount;
+	config.retreatDistanceScoreWeight = cover_.coverDistanceScoreWeight;
+	return coverSelector_.TryFindCoverPosition(config, collisionManager_, GetCenterPosition(), targetPos, preferRetreat, outPosition);
+}
+
+EnemyCoverController::Output Enemy::EvaluateCoverAction(const K4E::Vector3& targetPos, const K4E::Vector3& coverPos, bool dangerMode, bool hasCover, float deltaTime)
+{
+	EnemyCoverController::UpdateInput input{};
+	input.selfPos = GetCenterPosition();
+	input.targetPos = targetPos;
+	input.coverPos = coverPos;
+	input.dt = deltaTime;
+	input.dangerMode = dangerMode;
+	input.hasCover = hasCover;
+	const Vector3 toTarget = targetPos - coverPos;
+	Vector3 right{ toTarget.z, 0.0f, -toTarget.x };
+	if (LengthXZ(right) <= kEpsilon) right = { 1.0f, 0.0f, 0.0f };
+	const Vector3 leftPos = coverPos - NormalizeXZ(right) * cover_.peekOffset;
+	const Vector3 rightPos = coverPos + NormalizeXZ(right) * cover_.peekOffset;
+	input.losLeftScore = EvaluateLineOfSightScore(leftPos, targetPos);
+	input.losRightScore = EvaluateLineOfSightScore(rightPos, targetPos);
+	return coverController_.Update(input);
+}
+
+void Enemy::ResetCoverAction()
+{
+	coverController_.Reset();
+}
+
+bool Enemy::ShouldShootFromCover(const EnemyCoverController::Output& coverAction) const
+{
+	return coverAction.active && coverAction.exposing && coverAction.shouldShoot;
+}
+
+void Enemy::UpdateStrafeDecision(float dt)
+{
+	strafeDecisionTimer_ -= dt;
+	if (strafeDecisionTimer_ > 0.0f) return;
+
+	const float r = Random01();
+	const float span = movement_.strafeSwitchMaxSec - movement_.strafeSwitchMinSec;
+	strafeDecisionTimer_ = (movement_.strafeSwitchMinSec + span * Clamp(r, 0.0f, 1.0f)) * traits_.strafeSwitchScale;
+
+	currentStrafeSign_ = RandomSign();
+}
+
+void Enemy::TryStepJump(const K4E::Vector3& moveDirection)
+{
+	if (!collisionManager_ || jumpCooldownTimer_ > 0.0f || !grounded_) return;
+	if (LengthXZ(moveDirection) <= kEpsilon) return;
+
+	const Vector3 forward = NormalizeXZ(moveDirection);
+	const Vector3 origin = GetCenterPosition();
+	Segment low{};
+	low.origin = origin + Vector3{ 0.0f, 0.3f, 0.0f };
+	low.diff = forward * movement_.jumpProbeDistance;
+
+	Segment high{};
+	high.origin = origin + Vector3{ 0.0f, movement_.jumpStepHeight + 0.3f, 0.0f };
+	high.diff = forward * movement_.jumpProbeDistance;
+
+	Collider* hitLow = nullptr;
+	const bool lowBlocked = collisionManager_->SegmentCast(static_cast<uint32_t>(CollisionTypeIdDef::kWorld), low, &hitLow);
+	if (!lowBlocked) return;
+
+	Collider* hitHigh = nullptr;
+	const bool highBlocked = collisionManager_->SegmentCast(static_cast<uint32_t>(CollisionTypeIdDef::kWorld), high, &hitHigh);
+	if (highBlocked) return;
+
+	Vector3 v = GetVelocity();
+	v.y = movement_.jumpVelocity;
+	SetVelocity(v);
+	jumpCooldownTimer_ = movement_.jumpCooldown;
+}
+
+void Enemy::UpdateTraitProfile()
+{
+	traits_.reactionDelayScale = RandomRange(0.85f, 1.2f);
+	traits_.strafeSwitchScale = RandomRange(0.8f, 1.35f);
+	traits_.fireIntervalScale = RandomRange(0.82f, 1.3f);
+	traits_.aggression = RandomRange(0.35f, 0.85f);
+	traits_.coverPreference = RandomRange(0.3f, 0.9f);
+	traits_.aimStability = RandomRange(0.25f, 0.9f);
+}
+
+void Enemy::PickNextWanderTarget()
+{
+	const Vector3 center = spawnPosition_;
+	Vector3 selected = center;
+	bool found = false;
+
+	for (int i = 0; i < 8; ++i)
+	{
+		const float angle = RandomRange(0.0f, kPi * 2.0f);
+		const float radius = RandomRange(wander_.minTargetDistance, wander_.roamRadius);
+		Vector3 candidate{
+			center.x + std::cos(angle) * radius,
+			GetCenterPosition().y,
+			center.z + std::sin(angle) * radius
+		};
+
+		if (Vector3::Length(candidate - GetCenterPosition()) < wander_.minTargetDistance)
 		{
-			// ターゲット未設定時の保険：弾位置の反対側をざっくり向く
-			K4E::Vector3 alertPos = GetCenterPosition() + hitDir * -6.0f;
-			lastSeenPos_ = alertPos;
-			timeSinceSeen_ = 0.0f;
-			FaceTo(alertPos);
+			continue;
 		}
 
-		RequestStun(0.12f);
+		selected = candidate;
+		found = true;
+		break;
 	}
+
+	if (!found)
+	{
+		const float angle = RandomRange(0.0f, kPi * 2.0f);
+		selected.x = center.x + std::cos(angle) * wander_.minTargetDistance;
+		selected.y = GetCenterPosition().y;
+		selected.z = center.z + std::sin(angle) * wander_.minTargetDistance;
+	}
+
+	wanderTarget_ = selected;
+	hasWanderTarget_ = true;
+	wanderRetargetTimer_ = RandomRange(wander_.retargetIntervalMin, wander_.retargetIntervalMax);
+	wanderStuckTimer_ = wander_.stuckCheckInterval;
+	wanderProbePosition_ = GetCenterPosition();
+}
+
+void Enemy::UpdateWander(float deltaTime)
+{
+	if (!hasWanderTarget_)
+	{
+		spawnPosition_ = GetCenterPosition();
+		PickNextWanderTarget();
+	}
+
+	wanderRetargetTimer_ -= deltaTime;
+	wanderStuckTimer_ -= deltaTime;
+
+	const Vector3 self = GetCenterPosition();
+	const Vector3 toTarget = wanderTarget_ - self;
+	const float targetDist = LengthXZ(toTarget);
+
+	if (targetDist <= wander_.reachDistance || wanderRetargetTimer_ <= 0.0f)
+	{
+		PickNextWanderTarget();
+	}
+
+	if (wanderStuckTimer_ <= 0.0f)
+	{
+		const float moved = LengthXZ(self - wanderProbePosition_);
+		wanderProbePosition_ = self;
+		wanderStuckTimer_ = wander_.stuckCheckInterval;
+		if (moved < wander_.stuckDistance)
+		{
+			PickNextWanderTarget();
+		}
+	}
+
+	MoveTowardsPath(wanderTarget_, wander_.wanderMoveSpeed, deltaTime);
+	PlayMoveAnimation(wander_.wanderMoveSpeed);
+}
+
+void Enemy::SetAnimState(AnimState next)
+{
+	if (animState_ == next) return;
+	animState_ = next;
+	animTime_ = 0.0f;
+}
+
+void Enemy::PlayIdleAnimation() { SetAnimState(AnimState::Idle); }
+void Enemy::PlayMoveAnimation(float moveSpeed)
+{
+	SetAnimState(AnimState::Move);
+	if (moveSpeed > 0.0f)
+	{
+		animMoveRate_ = Clamp(moveSpeed / std::max(0.1f, movement_.approachSpeed), 0.7f, 1.6f);
+	}
+}
+void Enemy::PlayShootAnimation() { SetAnimState(AnimState::Shoot); }
+void Enemy::PlaySearchAnimation(float moveSpeed)
+{
+	SetAnimState(AnimState::Search);
+	if (moveSpeed > 0.0f)
+	{
+		animMoveRate_ = Clamp(moveSpeed / std::max(0.1f, movement_.searchMoveSpeed), 0.7f, 1.4f);
+	}
+}
+void Enemy::PlayDeadAnimation() { SetAnimState(AnimState::Dead); }
+
+void Enemy::UpdateAnimation(float dt)
+{
+	if (IsDead()) return;
+
+	animTime_ += dt;
+
+	auto& body = GetBody();
+	auto& parts = GetBodyParts();
+	const auto& idx = GetPartIndices();
+
+	if (parts.size() < 5)
+	{
+		return;
+	}
+
+	float targetBodyPitch = 0.0f;
+	float targetBodyRoll = 0.0f;
+	float targetHeadYaw = 0.0f;
+	float targetHeadPitch = 0.0f;
+	float targetLeftArmX = -0.05f;
+	float targetRightArmX = -0.05f;
+	float targetLeftArmZ = 0.0f;
+	float targetRightArmZ = 0.0f;
+	float targetLeftLegX = 0.0f;
+	float targetRightLegX = 0.0f;
+
+	const float walkTime = animTime_ * (5.5f * animMoveRate_);
+	const float swing = std::sin(walkTime) * 0.55f;
+
+	switch (animState_)
+	{
+	case AnimState::Idle:
+	{
+		const float breath = std::sin(animTime_ * 2.1f);
+		targetBodyPitch = 0.04f * breath;
+		targetHeadPitch = -0.03f * breath;
+		targetHeadYaw = std::sin(animTime_ * 1.3f) * 0.04f;
+		break;
+	}
+	case AnimState::Move:
+	case AnimState::Search:
+	{
+		targetBodyPitch = 0.06f + std::fabs(std::sin(walkTime)) * 0.04f;
+		targetBodyRoll = std::sin(walkTime) * 0.06f;
+		targetLeftArmX = swing;
+		targetRightArmX = -swing;
+		targetLeftLegX = -swing;
+		targetRightLegX = swing;
+		targetLeftArmZ = -targetBodyRoll;
+		targetRightArmZ = targetBodyRoll;
+		break;
+	}
+	case AnimState::Shoot:
+	{
+		const float pulse = std::sin(animTime_ * 18.0f);
+		targetBodyPitch = 0.1f;
+		targetHeadPitch = -0.05f;
+		targetLeftArmX = -0.25f;
+		targetRightArmX = -0.9f + pulse * 0.08f;
+		targetLeftArmZ = 0.2f;
+		targetRightArmZ = -0.08f;
+		targetLeftLegX = -0.12f;
+		targetRightLegX = 0.12f;
+		break;
+	}
+	case AnimState::Dead:
+	default:
+	break;
+	}
+
+	Damp(body.transform.rotate_.x, targetBodyPitch, 8.0f, dt);
+	Damp(body.transform.rotate_.z, targetBodyRoll, 8.0f, dt);
+
+	Damp(parts[idx.head].transform.rotate_.x, targetHeadPitch, 7.0f, dt);
+	Damp(parts[idx.head].transform.rotate_.y, targetHeadYaw, 7.0f, dt);
+
+	Damp(parts[idx.leftArm].transform.rotate_.x, targetLeftArmX, 10.0f, dt);
+	Damp(parts[idx.rightArm].transform.rotate_.x, targetRightArmX, 10.0f, dt);
+	Damp(parts[idx.leftArm].transform.rotate_.z, targetLeftArmZ, 10.0f, dt);
+	Damp(parts[idx.rightArm].transform.rotate_.z, targetRightArmZ, 10.0f, dt);
+
+	Damp(parts[idx.leftLeg].transform.rotate_.x, targetLeftLegX, 10.0f, dt);
+	Damp(parts[idx.rightLeg].transform.rotate_.x, targetRightLegX, 10.0f, dt);
 }

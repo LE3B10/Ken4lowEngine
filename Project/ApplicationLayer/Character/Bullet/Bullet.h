@@ -27,6 +27,7 @@ public: /// ---------- メンバ関数 ---------- ///
 		int damage = 1,
 		float lifeTimeSec = 3.0f,
 		const K4E::Vector3& shooterPosition = { 0.0f, 0.0f, 0.0f },
+		uint32_t shooterColliderId = 0u,
 		uint32_t typeId = static_cast<uint32_t>(CollisionTypeIdDef::kBullet)
 	);
 
@@ -43,6 +44,8 @@ public: /// ---------- メンバ関数 ---------- ///
 
 	void SetShooterPosition(const K4E::Vector3& pos) { shooterPosition_ = pos; }
 	const K4E::Vector3& GetShooterPosition() const { return shooterPosition_; }
+	void SetShooterColliderId(uint32_t id) { shooterColliderId_ = id; }
+	uint32_t GetShooterColliderId() const { return shooterColliderId_; }
 
 private: /// ---------- メンバ関数 ---------- ///
 
@@ -55,6 +58,7 @@ private: /// ---------- メンバ変数 ---------- ///
 	K4E::Vector4 debugColor_ = { 1.0f, 1.0f, 0.0f, 1.0f };
 
 	K4E::Vector3 shooterPosition_ = { 0.0f, 0.0f, 0.0f };
+	uint32_t shooterColliderId_ = 0u;
 
 	std::unique_ptr<K4E::Object3D> model_ = nullptr;
 

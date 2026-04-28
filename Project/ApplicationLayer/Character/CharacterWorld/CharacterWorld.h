@@ -5,9 +5,7 @@
 
 #include "Player.h"
 #include "Enemy.h"
-#include "EnemyArchetype.h"
 #include "EnemyParticleEffectSystem.h"
-#include "EnemyTuningEditor.h"
 
 // 前方宣言
 class CollisionManager;
@@ -26,7 +24,17 @@ struct GameContext
 /// -------------------------------------------------------------
 class CharacterWorld
 {
-public:
+private: /// ---------- 構造体 ---------- ///
+
+	struct EnemySpawnRequest
+	{
+		K4E::Vector3 position = {};
+		float yawRad = 0.0f;
+		float maxHp = 240.0f;
+	};
+
+public: /// ---------- メンバ関数 ---------- ///
+
 	void Initialize(GameContext& ctx);
 	void Finalize();
 
@@ -46,8 +54,8 @@ public:
 	std::vector<EnemyBase*> GetEnemyRawList() const;
 
 	// 生成
-	Enemy& SpawnEnemy(const K4E::Vector3& pos);
-	Enemy& SpawnEnemy(EnemyArchetype type, const K4E::Vector3& pos);
+	Enemy& SpawnEnemy(const EnemySpawnRequest& request);
+	Enemy& SpawnEnemyAt(const K4E::Vector3& position);
 
 	// 全消し
 	void ClearEnemies();
@@ -64,14 +72,6 @@ private: /// ---------- 内部処理 ---------- ///
 	void InjectPlayerDeps(Player& p);
 	void InjectEnemyDeps(Enemy& e);
 
-	// --------------------------------------------------------
-	// Repositoryの内容を全Enemyへ再反映する
-	// - Save / Delete / Reload 後に呼ぶ
-	// - 各Enemyは自分の archetype を持っているので、
-	//   それを使って SetArchetype() し直せば最新値になる
-	// --------------------------------------------------------
-	void ReapplyEnemyTunings();
-
 private: /// ---------- メンバ変数 ---------- ///
 
 	GameContext ctx_{}; // ポインタ保持しない（Scene側ローカルctxの寿命問題を避ける）
@@ -81,12 +81,6 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	// 敵の被弾エフェクトシステム
 	EnemyParticleEffectSystem enemyParticleEffectSystem_;
-
-	// --------------------------------------------------------
-	// EnemyTuningEditor は CharacterWorld に 1個だけ持たせる
-	// - 敵個体ではなく、敵種別データを編集するためのUI
-	// --------------------------------------------------------
-	EnemyTuningEditor tuningEditor_{};
 
 private: /// ---------- デバッグ用 ---------- ///
 

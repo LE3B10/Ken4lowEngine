@@ -1,8 +1,6 @@
 #pragma once
 #include <vector>
 #include <algorithm>
-
-#include "EnemyArchetype.h"
 #include "Vector3.h"
 
 namespace K4E = ::Ken4lowEngine;
@@ -13,7 +11,6 @@ class CharacterWorld;
 /// ---------- 1体分のスポーン情報 ---------- ///
 struct WaveSpawnEntry
 {
-	EnemyArchetype archetype = EnemyArchetype::RifleGrunt; // デフォルトは RifleGrunt
 	K4E::Vector3 position = { 0.0f, 0.0f, 0.0f }; // スポーン位置
 };
 
@@ -72,7 +69,7 @@ private: /// ---------- メンバ関数 ---------- ///
 	/// </summary>
 	/// <param name="characters">キャラクターワールド。</param>
 	/// <param name="wave">スポーンするウェーブの定義。</param>
-	void SpawnWave(CharacterWorld& characters, const WaveDefinition& wave);
+	int SpawnWave(CharacterWorld& characters, const WaveDefinition& wave);
 
 private: /// ---------- メンバ変数 ---------- ///
 
@@ -84,5 +81,6 @@ private: /// ---------- メンバ変数 ---------- ///
 	bool started_ = false; // ウェーブスポーンが開始されたかどうか
 	bool waveInProgress_ = false; // 現在ウェーブがスポーン中かどうか
 	bool allWavesCleared_ = false; // すべてのウェーブがクリアされたかどうか
+	int currentWaveSpawnedCount_ = 0; // 現在のウェーブでスポーンした敵の数
 };
 
