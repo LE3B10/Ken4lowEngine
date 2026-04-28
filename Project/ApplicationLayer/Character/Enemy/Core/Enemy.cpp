@@ -10,6 +10,7 @@
 #include <BulletManager.h>
 #include <CollisionManager.h>
 #include <CollisionTypeIdDef.h>
+#include <Wireframe.h>
 
 #include <cmath>
 #include <algorithm>
@@ -90,6 +91,16 @@ namespace
 	{
 		return { std::sin(yawRad), 0.0f, std::cos(yawRad) };
 	}
+
+	Vector4 LerpColor(const Vector4& a, const Vector4& b, float t)
+	{
+		return {
+			a.x + (b.x - a.x) * t,
+			a.y + (b.y - a.y) * t,
+			a.z + (b.z - a.z) * t,
+			a.w + (b.w - a.w) * t
+		};
+	}
 }
 
 void Enemy::Initialize()
@@ -130,12 +141,14 @@ void Enemy::Initialize()
 	animState_ = AnimState::Idle;
 	animTime_ = 0.0f;
 	animMoveRate_ = 1.0f;
+	InitializeSpawnPresentation();
 
 	ChangeState(std::make_unique<EnemyIdleState>());
 }
 
 void Enemy::Update(float deltaTime)
 {
+	UpdateSpawnPresentation(deltaTime);
 	UpdateNavigatorSource();
 	moveCommandedThisFrame_ = false;
 
@@ -168,7 +181,7 @@ void Enemy::Update(float deltaTime)
 		if (fireCooldown_ < 0.0f) fireCooldown_ = 0.0f;
 	}
 
-	if (state_) state_->Update(*this, deltaTime);
+	if (!spawnPresentation_.active && state_) state_->Update(*this, deltaTime);
 
 	EnemyStuckController::UpdateInput stuckInput{};
 	stuckInput.selfPos = GetCenterPosition();
@@ -197,6 +210,18 @@ void Enemy::Update(float deltaTime)
 
 	UpdateAnimation(deltaTime);
 	EnemyBase::Update(deltaTime);
+}
+
+void Enemy::Draw()
+{
+	EnemyBase::Draw();
+	DrawSpawnPresentation();
+}
+
+void Enemy::DrawShadow()
+{
+	if (spawnPresentation_.active) return;
+	EnemyBase::DrawShadow();
 }
 
 void Enemy::ChangeState(std::unique_ptr<IEnemyState> nextState)
@@ -441,6 +466,7 @@ void Enemy::FireAt(const K4E::Vector3& targetPos)
 
 void Enemy::OnBulletHit(K4E::Collider* bulletCollider)
 {
+	if (spawnPresentation_.active) return;
 	EnemyBase::OnBulletHit(bulletCollider);
 
 	if (!IsDead())
@@ -677,6 +703,178 @@ void Enemy::TryStepJump(const K4E::Vector3& moveDirection)
 	v.y = movement_.jumpVelocity;
 	SetVelocity(v);
 	jumpCooldownTimer_ = movement_.jumpCooldown;
+}
+
+void Enemy::InitializeSpawnPresentation()
+{
+	spawnPresentation_ = {};
+	spawnPresentation_.active = true;
+	spawnPresentation_.timer = 0.0f;
+	spawnPresentation_.duration = 1.55f;
+	spawnPresentation_.anchor = GetCenterPosition();
+	spawnPresentation_.particles.clear();
+	spawnPresentation_.particles.reserve(48);
+
+	SetSpawnProtection(true);
+	SetCenterPosition(spawnPresentation_.anchor + Vector3{ 0.0f, -0.65f, 0.0f });
+	SetVelocity({ 0.0f, 0.0f, 0.0f });
+	SetColor({ 0.35f, 0.95f, 1.0f, 0.25f });
+
+	constexpr int kParticleCount = 48;
+	for (int i = 0; i < kParticleCount; ++i)
+	{
+		const float ringT = static_cast<float>(i) / static_cast<float>(kParticleCount);
+		const float angle = ringT * 2.0f * kPi;
+		const float radius = RandomRange(1.7f, 2.8f);
+		const float y = RandomRange(-0.2f, 2.2f);
+		Vector3 pos{
+			spawnPresentation_.anchor.x + std::cos(angle) * radius,
+			spawnPresentation_.anchor.y + y,
+			spawnPresentation_.anchor.z + std::sin(angle) * radius
+		};
+		Vector3 toCenter = spawnPresentation_.anchor - pos;
+
+		SpawnFxParticle particle{};
+		particle.maxLife = RandomRange(0.7f, 1.4f);
+		particle.life = particle.maxLife * RandomRange(0.2f, 1.0f);
+		particle.position = pos;
+		particle.velocity = toCenter * (1.0f / std::max(0.1f, particle.maxLife));
+		particle.size = RandomRange(0.03f, 0.1f);
+		spawnPresentation_.particles.push_back(particle);
+	}
+}
+
+K4E::Vector3 Enemy::RotateYaw(const K4E::Vector3& v, float yawRad) const
+{
+	const float c = std::cos(yawRad);
+	const float s = std::sin(yawRad);
+	return { v.x * c - v.z * s, v.y, v.x * s + v.z * c };
+}
+
+void Enemy::UpdateSpawnPresentation(float deltaTime)
+{
+	if (!spawnPresentation_.active) return;
+
+	spawnPresentation_.timer += deltaTime;
+	const float t = Clamp(spawnPresentation_.timer / spawnPresentation_.duration, 0.0f, 1.0f);
+	const float eased = t * t * (3.0f - 2.0f * t);
+	const float riseOffset = (1.0f - eased) * -0.65f;
+
+	SetCenterPosition(spawnPresentation_.anchor + Vector3{ 0.0f, riseOffset, 0.0f });
+	SetVelocity({ 0.0f, 0.0f, 0.0f });
+	SetColor(LerpColor({ 0.3f, 0.95f, 1.0f, 0.2f }, { 1.0f, 1.0f, 1.0f, 1.0f }, eased));
+
+	for (auto& particle : spawnPresentation_.particles)
+	{
+		particle.life -= deltaTime;
+		if (particle.life <= 0.0f)
+		{
+			const float angle = RandomRange(0.0f, 2.0f * kPi);
+			const float radius = RandomRange(1.4f, 2.5f);
+			const float y = RandomRange(-0.15f, 2.0f);
+			particle.position = spawnPresentation_.anchor + Vector3{ std::cos(angle) * radius, y, std::sin(angle) * radius };
+			particle.maxLife = RandomRange(0.5f, 1.1f);
+			particle.life = particle.maxLife;
+			particle.size = RandomRange(0.03f, 0.1f);
+			const Vector3 toCenter = spawnPresentation_.anchor - particle.position;
+			particle.velocity = toCenter * (1.0f / std::max(0.1f, particle.maxLife));
+		}
+		particle.position = particle.position + particle.velocity * deltaTime;
+	}
+
+	if (t >= 1.0f)
+	{
+		spawnPresentation_.active = false;
+		SetSpawnProtection(false);
+		SetCenterPosition(spawnPresentation_.anchor);
+		SetColor({ 1.0f, 1.0f, 1.0f, 1.0f });
+	}
+}
+
+void Enemy::DrawSpawnPresentation() const
+{
+	if (!spawnPresentation_.active) return;
+
+	auto* wire = Wireframe::GetInstance();
+	const float t = Clamp(spawnPresentation_.timer / spawnPresentation_.duration, 0.0f, 1.0f);
+	const float fade = 1.0f - t;
+	const Vector4 accentColor{ 0.36f, 0.92f, 1.0f, 0.88f * fade + 0.12f };
+	const Vector4 gridColor{ 0.48f, 0.76f, 1.0f, 0.55f * fade + 0.15f };
+	const Vector4 particleColor{ 0.88f, 0.95f, 1.0f, 0.72f * fade + 0.2f };
+
+	const Vector3 floorCenter = spawnPresentation_.anchor + Vector3{ 0.0f, 0.02f, 0.0f };
+	constexpr float kGroundRadius = 1.6f;
+	constexpr int kGroundGrid = 5;
+	for (int i = -kGroundGrid; i <= kGroundGrid; ++i)
+	{
+		const float p = static_cast<float>(i) / static_cast<float>(kGroundGrid);
+		const float x = p * kGroundRadius;
+		const float z = p * kGroundRadius;
+		wire->DrawLine(floorCenter + Vector3{ x, 0.0f, -kGroundRadius }, floorCenter + Vector3{ x, 0.0f, kGroundRadius }, gridColor);
+		wire->DrawLine(floorCenter + Vector3{ -kGroundRadius, 0.0f, z }, floorCenter + Vector3{ kGroundRadius, 0.0f, z }, gridColor);
+	}
+
+	const float pulse = 0.72f + std::sin(spawnPresentation_.timer * 6.0f) * 0.28f;
+	const Vector3 markerExtents{ kGroundRadius * pulse, 0.0f, kGroundRadius * pulse };
+	const Vector3 c0 = floorCenter + Vector3{ -markerExtents.x, 0.0f, -markerExtents.z };
+	const Vector3 c1 = floorCenter + Vector3{ markerExtents.x, 0.0f, -markerExtents.z };
+	const Vector3 c2 = floorCenter + Vector3{ markerExtents.x, 0.0f, markerExtents.z };
+	const Vector3 c3 = floorCenter + Vector3{ -markerExtents.x, 0.0f, markerExtents.z };
+	wire->DrawLine(c0, c1, accentColor);
+	wire->DrawLine(c1, c2, accentColor);
+	wire->DrawLine(c2, c3, accentColor);
+	wire->DrawLine(c3, c0, accentColor);
+
+	constexpr int kFrameCount = 4;
+	for (int i = 0; i < kFrameCount; ++i)
+	{
+		const float fi = static_cast<float>(i);
+		const float frameT = fi / static_cast<float>(kFrameCount - 1);
+		const float rot = spawnPresentation_.timer * (1.9f + fi * 0.42f) + frameT * kPi * 0.7f;
+		const float size = 0.55f + fi * 0.45f - t * 0.3f;
+		const float y = spawnPresentation_.anchor.y + 0.35f + fi * 0.52f;
+		const Vector4 frameColor = LerpColor(accentColor, gridColor, frameT);
+
+		const Vector3 baseCorners[4] = { { -size, 0.0f, -size }, { size, 0.0f, -size }, { size, 0.0f, size }, { -size, 0.0f, size } };
+		Vector3 worldCorners[4];
+		for (int c = 0; c < 4; ++c)
+		{
+			worldCorners[c] = spawnPresentation_.anchor + RotateYaw(baseCorners[c], rot);
+			worldCorners[c].y = y;
+		}
+		for (int e = 0; e < 4; ++e)
+		{
+			wire->DrawLine(worldCorners[e], worldCorners[(e + 1) % 4], frameColor);
+		}
+		if (i > 0)
+		{
+			const float prevSize = 0.55f + (fi - 1.0f) * 0.45f - t * 0.3f;
+			const float prevRot = spawnPresentation_.timer * (1.9f + (fi - 1.0f) * 0.42f) + (frameT - (1.0f / static_cast<float>(kFrameCount - 1))) * kPi * 0.7f;
+			const float prevY = spawnPresentation_.anchor.y + 0.35f + (fi - 1.0f) * 0.52f;
+			for (int c = 0; c < 4; ++c)
+			{
+				const float sx = (c == 0 || c == 3) ? -prevSize : prevSize;
+				const float sz = (c < 2) ? -prevSize : prevSize;
+				Vector3 prev = spawnPresentation_.anchor + RotateYaw({ sx, 0.0f, sz }, prevRot);
+				prev.y = prevY;
+				wire->DrawLine(prev, worldCorners[c], frameColor);
+			}
+		}
+	}
+
+	for (const auto& particle : spawnPresentation_.particles)
+	{
+		const float pt = Clamp(particle.life / std::max(0.01f, particle.maxLife), 0.0f, 1.0f);
+		const Vector4 c = LerpColor(gridColor, particleColor, 1.0f - pt);
+		const Vector3 s0 = particle.position + Vector3{ -particle.size, 0.0f, -particle.size };
+		const Vector3 s1 = particle.position + Vector3{ particle.size, 0.0f, -particle.size };
+		const Vector3 s2 = particle.position + Vector3{ particle.size, 0.0f, particle.size };
+		const Vector3 s3 = particle.position + Vector3{ -particle.size, 0.0f, particle.size };
+		wire->DrawLine(s0, s1, c);
+		wire->DrawLine(s1, s2, c);
+		wire->DrawLine(s2, s3, c);
+		wire->DrawLine(s3, s0, c);
+	}
 }
 
 void Enemy::UpdateTraitProfile()

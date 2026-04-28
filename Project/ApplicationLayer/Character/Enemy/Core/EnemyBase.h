@@ -87,7 +87,9 @@ public:
 		return static_cast<float>(hp_) / static_cast<float>(maxHp_);
 	}
 
-	bool IsHpBarVisibleTarget() const { return !isDead_; }
+	bool IsHpBarVisibleTarget() const { return !isDead_ && !spawnProtectionActive_; }
+	bool IsSpawnProtected() const { return spawnProtectionActive_; }
+	void SetSpawnProtection(bool active) { spawnProtectionActive_ = active; }
 
 	bool IsRemovable() const { return removable_; }
 
@@ -221,6 +223,7 @@ protected:
 	std::vector<DeathPiece> deathPieces_;
 
 	EnemyParticleEffectSystem* particleEffectSystem_ = nullptr;
+	bool spawnProtectionActive_ = false;
 
 private:
 	static const std::vector<K4E::AABB>* g_worldAABBs_;
