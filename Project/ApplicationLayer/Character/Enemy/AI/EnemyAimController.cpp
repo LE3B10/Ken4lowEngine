@@ -48,12 +48,14 @@ Vector3 EnemyAimController::BuildAimPoint(const Input& input) const
 	Vector3 up = NormalizeSafe(Vector3::Cross(right, targetDir));
 
 	const float distanceFactor = Clamp(input.distanceToTarget / 24.0f, 0.0f, 1.2f) * input.distanceSpreadWeight;
+	const float closeBonus = Clamp(1.0f - (input.distanceToTarget / 8.0f), 0.0f, 1.0f);
+	const float farPenalty = Clamp((input.distanceToTarget - 14.0f) / 14.0f, 0.0f, 1.0f);
 	const float speedFactor = Clamp(input.movementSpeed / 4.2f, 0.0f, 1.0f) * input.moveSpreadWeight;
 	const float stress = (input.lowHp ? 0.35f : 0.0f) + (input.inHitReaction ? 0.5f : 0.0f);
 	const float traitStability = input.traits ? input.traits->aimStability : 0.5f;
 	const float stabilityScale = Clamp(1.0f - (traitStability * input.stableBonusWeight), 0.55f, 1.2f);
 	const float spread = Clamp(
-		input.baseSpreadRad + (distanceFactor + speedFactor + stress * input.stressSpreadWeight) * 0.08f,
+		input.baseSpreadRad + (distanceFactor + farPenalty * 0.5f + speedFactor + stress * input.stressSpreadWeight - closeBonus * 0.3f) * 0.08f,
 		input.baseSpreadRad,
 		input.maxSpreadRad) * stabilityScale;
 

@@ -81,7 +81,7 @@ void EnemyCombatMoveState::Update(Enemy& enemy, float deltaTime)
 		!dangerMode &&
 		!canShoot &&
 		coverStayTimer_ <= 0.0f &&
-		distToTarget <= enemy.GetFireRange() * 1.15f;
+		distToTarget <= enemy.GetFireRange() * (1.05f + enemy.GetCoverPreference() * 0.2f);
 	const bool useCover = shouldPrioritizeCover || shouldUseOpportunisticCover;
 	if (useCover)
 	{

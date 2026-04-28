@@ -8,6 +8,7 @@
 #include <EnemyCoverSelector.h>
 #include <EnemyEvadeController.h>
 #include <EnemyRetreatController.h>
+#include <EnemyRetreatDecisionMemory.h>
 #include <EnemyStuckController.h>
 #include <EnemyTraitProfile.h>
 
@@ -238,6 +239,7 @@ public: /// ---------- アクセサ ---------- ///
 	float GetCoverRepathInterval() const { return cover_.coverRepathInterval; }
 	float GetCoverStayTime() const { return cover_.coverStayTime; }
 	bool IsLowHp() const { return GetHpRate() <= survival_.lowHpThresholdRate; }
+	bool IsRetreating() const { return retreatDecision_.IsRetreating(); }
 	bool IsInHitReaction() const { return hitReactionTimer_ > 0.0f; }
 	float GetHitReactionMoveWeight() const { return reaction_.hitReactionMoveWeight; }
 	float GetEvadeWeight() const { return reaction_.evadeWeight; }
@@ -245,7 +247,7 @@ public: /// ---------- アクセサ ---------- ///
 	float GetCoverPreference() const { return traits_.coverPreference; }
 	float GetAggression() const { return traits_.aggression; }
 	int GetConsecutiveHitCount() const { return consecutiveHitCount_; }
-	EnemyRetreatController::Plan EvaluateRetreatPlan(float distToTarget, bool canShoot) const;
+	EnemyRetreatController::Plan EvaluateRetreatPlan(float distToTarget, bool canShoot);
 	EnemyEvadeController::Plan EvaluateEvadePlan(bool canShoot) const;
 	[[nodiscard]] bool TryFindCoverPosition(const K4E::Vector3& targetPos, bool preferRetreat, K4E::Vector3& outPosition) const;
 	[[nodiscard]] EnemyCoverController::Output EvaluateCoverAction(const K4E::Vector3& targetPos, const K4E::Vector3& coverPos, bool dangerMode, bool hasCover, float deltaTime);
@@ -319,6 +321,7 @@ private: /// ---------- メンバ変数 ---------- ///
 	EnemyCoverController coverController_{};
 
 	EnemyRetreatController retreatController_{};
+	EnemyRetreatDecisionMemory retreatDecision_{};
 	EnemyStuckController stuckController_{};
 
 	EnemyEvadeController evadeController_{};
