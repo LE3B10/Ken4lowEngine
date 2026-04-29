@@ -114,7 +114,7 @@ void GpuParticleSpritePipeline::CreateRootSignature()
 	srvRange[0].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
 
 	// RootParameters
-	D3D12_ROOT_PARAMETER params[4]{};
+	D3D12_ROOT_PARAMETER params[5]{};
 
 	// b0 : PerView / シミュレーション定数（全部のシェーダ）
 	params[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
@@ -132,11 +132,16 @@ void GpuParticleSpritePipeline::CreateRootSignature()
 	params[2].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
 	params[2].Descriptor.ShaderRegister = 1;
 
-	// t0 : Texture SRV（PS）
-	params[3].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+	// b2 : Emitter（PS）
+	params[3].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
 	params[3].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
-	params[3].DescriptorTable.NumDescriptorRanges = _countof(srvRange);
-	params[3].DescriptorTable.pDescriptorRanges = srvRange;
+	params[3].Descriptor.ShaderRegister = 2;
+
+	// t0 : Texture SRV（PS）
+	params[4].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+	params[4].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+	params[4].DescriptorTable.NumDescriptorRanges = _countof(srvRange);
+	params[4].DescriptorTable.pDescriptorRanges = srvRange;
 
 	rsDesc.pParameters = params;
 	rsDesc.NumParameters = _countof(params);
