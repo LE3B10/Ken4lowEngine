@@ -19,6 +19,7 @@
 #include "WeaponMasterDataEditor.h"
 #include "WeaponMasterDataWriter.h"
 #include <filesystem>
+#include <algorithm>
 
 using namespace Ken4lowEngine;
 
@@ -58,6 +59,8 @@ void DebugScene::Initialize()
 	// 見やすい位置に置く
 	debugBoss_->SetPosition({ 0.0f, 2.25f, 30.0f });
 	debugBoss_->SetYaw(3.141592f); // 必要ならプレイヤー側へ向ける
+
+	ApplyDebugParticlePreset(0);
 }
 
 void DebugScene::Update()
@@ -231,11 +234,44 @@ void DebugScene::DrawImGui()
 	ImGui::Text("Press H to test hit.");
 	ImGui::TextWrapped("%s", debugHitLog_.c_str());
 
-	ImGui::Separator();
-	ImGui::Text("Particle Test");
-	ImGui::Text("1 : HitSpark");
-	ImGui::Text("2 : Heal_Effect");
-	ImGui::Text("3 : Boss_Appear_Dust");
+	ImGui::SeparatorText("DebugScene GPU Particle Lab");
+	if (ImGui::BeginCombo("Spawn Preset", kDebugParticlePresets_[debugParticlePresetIndex_].label))
+	{
+		for (uint32_t i = 0; i < static_cast<uint32_t>(kDebugParticlePresets_.size()); ++i)
+		{
+			const bool selected = (debugParticlePresetIndex_ == i);
+			if (ImGui::Selectable(kDebugParticlePresets_[i].label, selected))
+			{
+				ApplyDebugParticlePreset(i);
+			}
+			if (selected) { ImGui::SetItemDefaultFocus(); }
+		}
+		ImGui::EndCombo();
+	}
+	ImGui::SameLine();
+	if (ImGui::Button("Apply Preset"))
+	{
+		ApplyDebugParticlePreset(debugParticlePresetIndex_);
+	}
+
+	ImGui::DragFloat3("Spawn Position", &debugParticleSpawnPosition_.x, 0.05f);
+	ImGui::DragInt("Burst Count", &debugParticleBurstCount_, 1.0f, 1, 2048);
+	ImGui::Checkbox("Auto Loop", &debugParticleAutoLoop_);
+	ImGui::DragFloat("Auto Interval", &debugParticleAutoInterval_, 0.01f, 0.05f, 8.0f);
+
+	debugParticleDirty_ |= ImGui::SliderFloat("fadeInRatio", &debugFadeInRatio_, 0.0f, 1.0f);
+	debugParticleDirty_ |= ImGui::SliderFloat("fadeOutRatio", &debugFadeOutRatio_, 0.0f, 1.0f);
+	debugParticleDirty_ |= ImGui::SliderFloat("emissiveBoost", &debugEmissiveBoost_, 0.0f, 8.0f);
+	debugParticleDirty_ |= ImGui::SliderFloat("convergence", &debugConvergence_, 0.0f, 1.0f);
+	debugParticleDirty_ |= ImGui::SliderFloat("divergence", &debugDivergence_, 0.0f, 1.0f);
+	debugParticleDirty_ |= ImGui::SliderFloat("floaty", &debugFloaty_, 0.0f, 2.0f);
+	{ int shape = static_cast<int>(debugSpawnShapeOverride_); if (ImGui::SliderInt("spawnShapeOverride", &shape, 0, 4)) { debugSpawnShapeOverride_ = static_cast<uint32_t>(shape); debugParticleDirty_ = true; } }
+
+	if (ImGui::Button("Trigger Burst") || ImGui::IsKeyPressed(ImGuiKey_P))
+	{
+		TriggerDebugParticleBurst();
+	}
+
 	ImGui::TextWrapped("%s", debugParticleLog_.c_str());
 
 	ImGui::End();
@@ -344,72 +380,104 @@ void DebugScene::UpdateDebugBossHitTest()
 	}
 }
 
+void DebugScene::EnsureDebugParticleEmitter()
+{
+	GpuParticleManager* gpuParticleManager = GpuParticleManager::GetInstance();
+	if (!gpuParticleManager) { return; }
+
+	auto* emitter = gpuParticleManager->FindEmitter(debugParticleEmitterName_);
+	if (!emitter)
+	{
+		emitter = gpuParticleManager->CreateEmitter(
+			debugParticleEmitterName_,
+			kDebugParticlePresets_[debugParticlePresetIndex_].type,
+			debugParticleSpawnPosition_);
+		debugParticleDirty_ = true;
+	}
+
+	if (emitter)
+	{
+		emitter->SetPosition(debugParticleSpawnPosition_);
+	}
+}
+
+void DebugScene::ApplyDebugParticlePreset(uint32_t presetIndex)
+{
+	debugParticlePresetIndex_ = std::min<uint32_t>(presetIndex, static_cast<uint32_t>(kDebugParticlePresets_.size() - 1));
+	const DebugParticlePreset& preset = kDebugParticlePresets_[debugParticlePresetIndex_];
+
+	debugFadeInRatio_ = preset.fadeInRatio;
+	debugFadeOutRatio_ = preset.fadeOutRatio;
+	debugEmissiveBoost_ = preset.emissiveBoost;
+	debugConvergence_ = preset.convergence;
+	debugDivergence_ = preset.divergence;
+	debugFloaty_ = preset.floaty;
+	debugSpawnShapeOverride_ = preset.spawnShapeOverride;
+	debugParticleBurstCount_ = static_cast<int>(preset.burstCount);
+	debugParticleDirty_ = true;
+
+	debugParticleLog_ = std::string("Applied preset: ") + preset.label;
+}
+
+void DebugScene::UpdateDebugParticleEmitterParams()
+{
+	GpuParticleManager* gpuParticleManager = GpuParticleManager::GetInstance();
+	auto* emitter = gpuParticleManager ? gpuParticleManager->FindEmitter(debugParticleEmitterName_) : nullptr;
+	if (!emitter) { return; }
+
+	emitter->SetPosition(debugParticleSpawnPosition_);
+	auto& info = emitter->GetInfoMutable();
+	info.fadeInRatio = debugFadeInRatio_;
+	info.fadeOutRatio = debugFadeOutRatio_;
+	info.emissiveBoost = debugEmissiveBoost_;
+	info.convergence = debugConvergence_;
+	info.divergence = debugDivergence_;
+	info.floaty = debugFloaty_;
+	info.spawnShapeOverride = debugSpawnShapeOverride_;
+	info.spriteType = kDebugParticlePresets_[debugParticlePresetIndex_].type;
+}
+
+void DebugScene::TriggerDebugParticleBurst()
+{
+	GpuParticleManager* gpuParticleManager = GpuParticleManager::GetInstance();
+	auto* emitter = gpuParticleManager ? gpuParticleManager->FindEmitter(debugParticleEmitterName_) : nullptr;
+	if (!emitter) { return; }
+
+	emitter->RequestEmit(static_cast<uint32_t>(std::max(debugParticleBurstCount_, 1)));
+	debugParticleLog_ = std::string("Burst: ") + kDebugParticlePresets_[debugParticlePresetIndex_].label;
+}
+
 void DebugScene::UpdateDebugParticleTest()
 {
-	if (!debugBoss_)
+	EnsureDebugParticleEmitter();
+
+	if (debugParticleDirty_)
 	{
-		return;
+		UpdateDebugParticleEmitterParams();
+		debugParticleDirty_ = false;
 	}
 
-	GpuParticleManager* gpuParticleManager = GpuParticleManager::GetInstance();
-	if (!gpuParticleManager)
+	if (input_->TriggerKey(DIK_1)) { ApplyDebugParticlePreset(0); TriggerDebugParticleBurst(); }
+	if (input_->TriggerKey(DIK_2)) { ApplyDebugParticlePreset(1); TriggerDebugParticleBurst(); }
+	if (input_->TriggerKey(DIK_3)) { ApplyDebugParticlePreset(2); TriggerDebugParticleBurst(); }
+	if (input_->TriggerKey(DIK_4)) { ApplyDebugParticlePreset(3); TriggerDebugParticleBurst(); }
+
+	if (input_->TriggerKey(DIK_P))
 	{
-		debugParticleLog_ = "GpuParticleManager is null.";
-		return;
+		TriggerDebugParticleBurst();
 	}
 
-	const Vector3 bossCenter = debugBoss_->GetCenterPosition();
-
-	// ---------------------------------------------------------
-	// 1キー: ヒット火花
-	// ---------------------------------------------------------
-	if (input_->TriggerKey(DIK_1))
+	if (debugParticleAutoLoop_)
 	{
-		Vector3 pos = bossCenter;
-		pos.y += 1.0f;
-
-		gpuParticleManager->EmitBurst(
-			"Debug_HitSpark",
-			GpuParticleType::Spark,
-			pos,
-			20);
-
-		debugParticleLog_ = "Spawn: HitSpark";
-		DebugLog(debugParticleLog_);
+		debugParticleAutoTimer_ += K4E::GameTimer::GetInstance()->GetDeltaTime();
+		if (debugParticleAutoTimer_ >= std::max(debugParticleAutoInterval_, 0.05f))
+		{
+			debugParticleAutoTimer_ = 0.0f;
+			TriggerDebugParticleBurst();
+		}
 	}
-
-	// ---------------------------------------------------------
-	// 2キー: 回復エフェクト
-	// ---------------------------------------------------------
-	if (input_->TriggerKey(DIK_2))
+	else
 	{
-		Vector3 pos = bossCenter;
-		pos.y += 1.5f;
-
-		gpuParticleManager->EmitBurst(
-			"Debug_Heal",
-			GpuParticleType::Heal,
-			pos,
-			24);
-
-		debugParticleLog_ = "Spawn: Heal_Effect";
-		DebugLog(debugParticleLog_);
-	}
-
-	// ---------------------------------------------------------
-	// 3キー: ボス登場砂埃
-	// ---------------------------------------------------------
-	if (input_->TriggerKey(DIK_3))
-	{
-		Vector3 pos = bossCenter;
-
-		gpuParticleManager->EmitBurst(
-			"Debug_BossAppear",
-			GpuParticleType::Default,
-			pos,
-			48);
-
-		debugParticleLog_ = "Spawn: Boss_Appear_Dust";
-		DebugLog(debugParticleLog_);
+		debugParticleAutoTimer_ = 0.0f;
 	}
 }
