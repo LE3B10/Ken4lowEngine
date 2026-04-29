@@ -4,6 +4,9 @@
 #include <SpriteManager.h>
 #include <SceneManager.h>
 #include <GameTimer.h>
+#ifdef USE_IMGUI
+#include <imgui.h>
+#endif
 
 #ifdef _DEBUG
 #include <DebugCamera.h>
@@ -95,6 +98,22 @@ void GamePlayScene::SetupNewGame(bool skipIntro)
 	{
 		return;
 	}
+
+	missionConfig_ = StageMissionConfig{};
+	missionConfig_.stageType = ResolveStageTypeFromStageIndex(stageContext_->GetCurrentStageIndex());
+	if (!stageContext_->GetGoalPoints().empty())
+	{
+		missionConfig_.clearPoint = stageContext_->GetGoalPoints().front().position;
+		missionConfig_.escapePoint = stageContext_->GetGoalPoints().front().position;
+	}
+	if (!stageContext_->GetDefenseTargetPoints().empty())
+	{
+		missionConfig_.clearPoint = stageContext_->GetDefenseTargetPoints().front().position;
+	}
+	missionConfig_.defenseTime = stageContext_->GetCurrentStageRule().defendTimeSec > 0.0f ? stageContext_->GetCurrentStageRule().defendTimeSec : 60.0f;
+	missionConfig_.timeLimit = stageContext_->GetCurrentStageRule().timeLimitSec;
+	stageMission_ = CreateStageMissionByType(missionConfig_.stageType);
+	if (stageMission_) { stageMission_->Initialize(world_.get(), *stageContext_, missionConfig_); }
 
 	introDirector_->Reset(*stageContext_, 2.5f);
 
@@ -350,6 +369,10 @@ void GamePlayScene::UpdateWorld(float deltaTime)
 	{
 		world_->Update(deltaTime);
 	}
+	if (stageMission_)
+	{
+		stageMission_->Update(deltaTime);
+	}
 }
 
 /// -------------------------------------------------------------
@@ -373,16 +396,24 @@ void GamePlayScene::CheckGameEnd()
 	}
 
 	// ステージ固有の失敗条件
-	if (world_->IsStageObjectiveFailed())
+	if (stageMission_ && stageMission_->IsFailed())
 	{
 		flow_->EnterGameOver(input_);
 		return;
 	}
 
 	// ステージ固有のクリア条件
-	if (world_->IsStageObjectiveCleared())
+	if (stageMission_ && stageMission_->IsCleared())
 	{
-		flow_->EnterGameClear(input_, nullptr);
+		if (stageContext_ && stageContext_->GetCurrentStageIndex() >= 4)
+		{
+			flow_->EnterGameClear(input_, nullptr);
+		}
+		else
+		{
+			if (stageContext_) { stageContext_->UnlockNextStage(); }
+			flow_->EnterGameClear(input_, nullptr);
+		}
 		return;
 	}
 }
@@ -524,6 +555,14 @@ void GamePlayScene::DrawImGui()
 	if (debugTools_)
 	{
 		debugTools_->DrawImGui(world_.get());
+	}
+	if (stageContext_ && stageMission_)
+	{
+		ImGui::Begin("StageMission");
+		ImGui::Text("Current Stage: %d", stageContext_->GetCurrentStageIndex() + 1);
+		ImGui::Text("StageType: %s", ToStageTypeName(stageMission_->GetStageType()));
+		stageMission_->DrawDebugImGui();
+		ImGui::End();
 	}
 #endif // USE_IMGUI
 }

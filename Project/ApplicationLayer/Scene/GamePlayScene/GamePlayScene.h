@@ -7,6 +7,7 @@
 #include "GamePlayIntroDirector.h"
 #include "GamePlayDebugTools.h"
 #include "FadeManager.h"
+#include "Mission/StageMission.h"
 
 #include <memory>
 
@@ -146,6 +147,8 @@ private: /// ---------- メンバ変数 ---------- ///
 	std::unique_ptr<GamePlayIntroDirector> introDirector_;
 	std::unique_ptr<GamePlayDebugTools> debugTools_;
 	std::unique_ptr<FadeManager> fadeManager_;
+	std::unique_ptr<IStageMission> stageMission_;
+	StageMissionConfig missionConfig_{};
 
 	// リトライ遷移制御
 	bool isRetryTransitionActive_ = false; // リトライ演出中か
