@@ -162,6 +162,17 @@ float3 SampleSpawnOffset(float3 seed, uint spawnShape, float radius)
                 float r = radius * (0.10f + GPURand1(seed + 8.2f) * 0.90f);
                 return float3(cos(a) * r, 0.0f, sin(a) * r);
             }
+        case GPU_PARTICLE_SPAWN_SHAPE_BOX:
+        {
+                float3 r = GPURand3(seed) * 2.0f - 1.0f;
+                return r * radius;
+            }
+        case GPU_PARTICLE_SPAWN_SHAPE_CIRCLE:
+        {
+                float a = GPURand1(seed + 13.2f) * 6.2831853f;
+                float r = radius * sqrt(GPURand1(seed + 14.7f));
+                return float3(cos(a) * r, 0.0f, sin(a) * r);
+            }
 
         case GPU_PARTICLE_SPAWN_SHAPE_SPHERE:
         default:

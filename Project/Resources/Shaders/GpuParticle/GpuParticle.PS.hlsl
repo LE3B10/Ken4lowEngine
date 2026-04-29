@@ -1,5 +1,6 @@
 #include "GpuParticle.hlsli"
 #include "GpuParticleData.hlsli"
+#include "GpuParticleTypeParams.hlsli"
 
 struct Material
 {
@@ -77,6 +78,8 @@ float4 main(VertexShaderOutput input) : SV_TARGET0
     float4 textureColor = gTexture.Sample(gSampler, transformedUV.xy);
 
     float4 outColor = gMaterial.color * textureColor * input.color;
+    ParticleTypeParam param = GetParticleTypeParam(input.type);
+    outColor.rgb *= (1.0f + param.emissiveBoost);
 
     if (outColor.a < 0.001f)
     {
