@@ -5,6 +5,7 @@ RWStructuredBuffer<Particle> gParticles : register(u0);
 RWStructuredBuffer<int> gFreeListIndex : register(u1);
 RWStructuredBuffer<uint> gFreeList : register(u2);
 
+ConstantBuffer<EmitterCBData> gEmitter : register(b1);
 ConstantBuffer<PerFrame> gPerFrame : register(b2);
 
 [numthreads(1024, 1, 1)]
@@ -47,7 +48,7 @@ void main(uint3 DTid : SV_DispatchThreadID)
     }
 
     float t = saturate(p.currentTime / max(p.lifeTime, 1e-5f));
-    ParticleTypeParam param = GetParticleTypeParam(p.type);
+    ParticleTypeParam param = ApplyEmitterOverrides(GetParticleTypeParam(p.type), gEmitter);
 
     float damp = max(0.0f, 1.0f - param.drag * dt);
     p.velocity *= damp;

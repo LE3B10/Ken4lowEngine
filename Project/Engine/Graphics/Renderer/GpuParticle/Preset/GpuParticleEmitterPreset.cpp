@@ -211,6 +211,13 @@ namespace Ken4lowEngine
 		info.spriteType = preset.spriteType;
 		info.ribbonType = preset.ribbonType;
 		info.billboardFlags = preset.billboardFlags;
+		info.fadeInRatio = preset.fadeInRatio;
+		info.fadeOutRatio = preset.fadeOutRatio;
+		info.emissiveBoost = preset.emissiveBoost;
+		info.convergence = preset.convergence;
+		info.divergence = preset.divergence;
+		info.floaty = preset.floaty;
+		info.spawnShapeOverride = preset.spawnShapeOverride;
 		return info;
 	}
 

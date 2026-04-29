@@ -377,6 +377,23 @@ namespace Ken4lowEngine
 		}
 
 		ImGui::SeparatorText("Emitters");
+		ImGui::SeparatorText("Prototype Preset");
+		if (ImGui::Button("Create Enemy Spawn Prototype"))
+		{
+			auto makeSpawnEmitter = [&](const std::string& name, GpuParticleType type, const Vector3& pos, float radius, uint32_t loopCount)
+				{
+					auto info = GpuParticleEmitterPresetTable::MakeEmitterInfo(type);
+					info.radius = radius;
+					info.loopCount = loopCount;
+					info.loopFrequency = 0.04f;
+					CreateEmitter(name, info);
+					if (auto* se = GetEmitter(name)) { se->SetPosition(pos); }
+				};
+			makeSpawnEmitter("Spawn_Telegraph_Ground", GpuParticleType::Shockwave, { 0.0f, 0.05f, 0.0f }, 1.6f, 4);
+			makeSpawnEmitter("Spawn_Converge", GpuParticleType::DeathBurstCore, { 0.0f, 0.6f, 0.0f }, 1.2f, 8);
+			makeSpawnEmitter("Spawn_Materialize", GpuParticleType::Heal, { 0.0f, 0.9f, 0.0f }, 0.7f, 6);
+			makeSpawnEmitter("Spawn_Finish_Flash", GpuParticleType::Spark, { 0.0f, 1.0f, 0.0f }, 0.9f, 2);
+		}
 		if (ImGui::BeginListBox("Emitters"))
 		{
 			std::vector<std::string> emitterNames;
@@ -415,6 +432,8 @@ namespace Ken4lowEngine
 
 				ImGui::SeparatorText("Selected Emitter");
 				ImGui::Text("Name: %s", selected.c_str());
+				ImGui::TextColored(ImVec4(0.8f, 1.0f, 0.6f, 1.0f), "Editing Type: %s",
+					GpuParticleEmitterPresetTable::GetSpriteDisplayName(info.spriteType));
 
 				ImGui::SameLine();
 				if (ImGui::Button("Delete"))
@@ -569,6 +588,13 @@ namespace Ken4lowEngine
 						info.loopFrequency = presetInfo.loopFrequency;
 						info.drawType = presetInfo.drawType;
 						info.billboardFlags = presetInfo.billboardFlags;
+						info.fadeInRatio = presetInfo.fadeInRatio;
+						info.fadeOutRatio = presetInfo.fadeOutRatio;
+						info.emissiveBoost = presetInfo.emissiveBoost;
+						info.convergence = presetInfo.convergence;
+						info.divergence = presetInfo.divergence;
+						info.floaty = presetInfo.floaty;
+						info.spawnShapeOverride = presetInfo.spawnShapeOverride;
 
 						std::snprintf(textureBuf, sizeof(textureBuf), "%s", info.textureFilePath.c_str());
 					}
@@ -618,6 +644,23 @@ namespace Ken4lowEngine
 				if (ImGui::Button("Apply Texture"))
 				{
 					info.textureFilePath = textureBuf;
+				}
+
+				ImGui::SeparatorText("Type Param Overrides");
+				ImGui::DragFloat("fadeInRatio", &info.fadeInRatio, 0.005f, 0.0f, 1.0f, "%.3f");
+				ImGui::DragFloat("fadeOutRatio", &info.fadeOutRatio, 0.005f, 0.0f, 1.0f, "%.3f");
+				ImGui::DragFloat("emissiveBoost", &info.emissiveBoost, 0.01f, 0.0f, 8.0f, "%.2f");
+				ImGui::DragFloat("convergence", &info.convergence, 0.01f, -10.0f, 10.0f, "%.2f");
+				ImGui::DragFloat("divergence", &info.divergence, 0.01f, -10.0f, 10.0f, "%.2f");
+				ImGui::DragFloat("floaty", &info.floaty, 0.01f, 0.0f, 10.0f, "%.2f");
+
+				const char* kSpawnShapeItems[] = { "UseTypeDefault", "Box", "Circle" };
+				int spawnShapeUi = 0;
+				if (info.spawnShapeOverride == 3u) { spawnShapeUi = 1; }
+				else if (info.spawnShapeOverride == 4u) { spawnShapeUi = 2; }
+				if (ImGui::Combo("Spawn Shape", &spawnShapeUi, kSpawnShapeItems, IM_ARRAYSIZE(kSpawnShapeItems)))
+				{
+					info.spawnShapeOverride = (spawnShapeUi == 1) ? 3u : (spawnShapeUi == 2) ? 4u : 0u;
 				}
 
 				uint32_t effectiveType = 0;

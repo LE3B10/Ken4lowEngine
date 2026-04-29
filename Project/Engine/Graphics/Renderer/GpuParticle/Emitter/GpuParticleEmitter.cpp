@@ -50,6 +50,13 @@ bool GpuParticleEmitter::BuildCB(GpuEmitterCBData& out, float deltaTime)
 	// kindに応じた type / packed billboardMode
 	out.type = GetEffectiveType();
 	out.billboardMode = GetPackedBillboardMode();
+	out.fadeInRatio = info_.fadeInRatio;
+	out.fadeOutRatio = info_.fadeOutRatio;
+	out.emissiveBoost = info_.emissiveBoost;
+	out.convergence = info_.convergence;
+	out.divergence = info_.divergence;
+	out.floaty = info_.floaty;
+	out.spawnShapeOverride = info_.spawnShapeOverride;
 
 	// ------------------------------
 	// Emitしない

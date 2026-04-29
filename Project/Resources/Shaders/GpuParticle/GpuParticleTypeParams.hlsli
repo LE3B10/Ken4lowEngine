@@ -79,3 +79,14 @@ ParticleTypeParam GetParticleTypeParam(uint type)
 
     return kDefaultParticleTypeParam;
 }
+
+ParticleTypeParam ApplyEmitterOverrides(ParticleTypeParam param, EmitterCBData emitter)
+{
+    param.fadeInRatio = emitter.fadeInRatio;
+    param.fadeOutRatio = emitter.fadeOutRatio;
+    param.emissiveBoost = emitter.emissiveBoost;
+    param.convergence = emitter.convergence;
+    param.divergence = emitter.divergence;
+    param.floaty = emitter.floaty;
+    return param;
+}

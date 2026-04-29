@@ -41,6 +41,13 @@ public: /// ---------- 構造体 ---------- ///
 
 		// ★下位16bitのフラグ（Camera/YAxis など）
 		BillboardMode billboardFlags = BillboardMode::Camera;
+		float fadeInRatio = 0.10f;
+		float fadeOutRatio = 0.25f;
+		float emissiveBoost = 0.0f;
+		float convergence = 0.0f;
+		float divergence = 0.0f;
+		float floaty = 0.0f;
+		uint32_t spawnShapeOverride = 0;
 	};
 
 public: /// ---------- メンバ関数 ---------- ///

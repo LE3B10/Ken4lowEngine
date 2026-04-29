@@ -207,7 +207,8 @@ float3 SampleSpawnDirection(float3 seed, uint dirType, float3 offset)
 
 void InitParticleCommon(uint i, float3 seed, ParticleSpawnParam param, inout Particle p)
 {
-    float3 offset = SampleSpawnOffset(seed, param.spawnShape, gEmitter.radius);
+    uint spawnShape = (gEmitter.spawnShapeOverride == 0u) ? param.spawnShape : gEmitter.spawnShapeOverride;
+    float3 offset = SampleSpawnOffset(seed, spawnShape, gEmitter.radius);
     float3 dir = SampleSpawnDirection(seed + 11.3f, param.dirType, offset);
 
     // DeathBurstCore 用の方向補正
