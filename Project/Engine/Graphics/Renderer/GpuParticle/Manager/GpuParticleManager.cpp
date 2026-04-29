@@ -656,11 +656,11 @@ namespace Ken4lowEngine
 
 				const char* kSpawnShapeItems[] = { "UseTypeDefault", "Box", "Circle" };
 				int spawnShapeUi = 0;
-				if (info.spawnShapeOverride == 3u) { spawnShapeUi = 1; }
-				else if (info.spawnShapeOverride == 4u) { spawnShapeUi = 2; }
+				if (info.spawnShapeOverride == 4u) { spawnShapeUi = 1; }
+				else if (info.spawnShapeOverride == 5u) { spawnShapeUi = 2; }
 				if (ImGui::Combo("Spawn Shape", &spawnShapeUi, kSpawnShapeItems, IM_ARRAYSIZE(kSpawnShapeItems)))
 				{
-					info.spawnShapeOverride = (spawnShapeUi == 1) ? 3u : (spawnShapeUi == 2) ? 4u : 0u;
+					info.spawnShapeOverride = (spawnShapeUi == 1) ? 4u : (spawnShapeUi == 2) ? 5u : 0u;
 				}
 
 				uint32_t effectiveType = 0;
