@@ -4,6 +4,8 @@ static const uint GPU_PARTICLE_SPAWN_SHAPE_POINT = 0;
 static const uint GPU_PARTICLE_SPAWN_SHAPE_SPHERE = 1;
 static const uint GPU_PARTICLE_SPAWN_SHAPE_HEMISPHERE = 2;
 static const uint GPU_PARTICLE_SPAWN_SHAPE_RING = 3;
+static const uint GPU_PARTICLE_SPAWN_SHAPE_BOX = 4;
+static const uint GPU_PARTICLE_SPAWN_SHAPE_CIRCLE = 5;
 
 static const uint GPU_PARTICLE_DIR_RANDOM = 0;
 static const uint GPU_PARTICLE_DIR_UPHEMI = 1;
@@ -36,6 +38,9 @@ struct ParticleSpawnParam
 
     float stretchScaleMin;
     float stretchScaleMax;
+
+    float coneInnerRatio;
+    float coneOuterRatio;
 };
 
 static const ParticleSpawnParam kDefaultSpawnParam =
@@ -49,7 +54,8 @@ static const ParticleSpawnParam kDefaultSpawnParam =
     GPU_PARTICLE_SPAWN_SHAPE_SPHERE,
     GPU_PARTICLE_DIR_RANDOM,
     GPU_PARTICLE_SCALE_UNIFORM,
-    1.0f, 1.0f
+    1.0f, 1.0f,
+    0.0f, 1.0f
 };
 
 static const uint kParticleSpawnParamCount = GPU_PARTICLE_TYPE_DEATH_BURST_CORE + 1;
@@ -67,7 +73,8 @@ static const ParticleSpawnParam kParticleSpawnParams[kParticleSpawnParamCount] =
         GPU_PARTICLE_SPAWN_SHAPE_SPHERE,
         GPU_PARTICLE_DIR_RANDOM,
         GPU_PARTICLE_SCALE_UNIFORM,
-        1.0f, 1.0f
+        1.0f, 1.0f,
+        0.0f, 1.0f
     },
 
     // 1: Blood
@@ -81,7 +88,8 @@ static const ParticleSpawnParam kParticleSpawnParams[kParticleSpawnParamCount] =
         GPU_PARTICLE_SPAWN_SHAPE_HEMISPHERE,
         GPU_PARTICLE_DIR_UPHEMI,
         GPU_PARTICLE_SCALE_UNIFORM,
-        1.0f, 1.0f
+        1.0f, 1.0f,
+        0.0f, 1.0f
     },
 
     // 2: Dust
@@ -95,7 +103,8 @@ static const ParticleSpawnParam kParticleSpawnParams[kParticleSpawnParamCount] =
         GPU_PARTICLE_SPAWN_SHAPE_HEMISPHERE,
         GPU_PARTICLE_DIR_UPHEMI,
         GPU_PARTICLE_SCALE_UNIFORM,
-        1.0f, 1.0f
+        1.0f, 1.0f,
+        0.0f, 1.0f
     },
 
     // 3: Debris
@@ -109,7 +118,8 @@ static const ParticleSpawnParam kParticleSpawnParams[kParticleSpawnParamCount] =
         GPU_PARTICLE_SPAWN_SHAPE_HEMISPHERE,
         GPU_PARTICLE_DIR_RANDOM,
         GPU_PARTICLE_SCALE_UNIFORM,
-        1.0f, 1.0f
+        1.0f, 1.0f,
+        0.0f, 1.0f
     },
 
     // 4: Smoke
@@ -123,7 +133,8 @@ static const ParticleSpawnParam kParticleSpawnParams[kParticleSpawnParamCount] =
         GPU_PARTICLE_SPAWN_SHAPE_SPHERE,
         GPU_PARTICLE_DIR_UPHEMI,
         GPU_PARTICLE_SCALE_UNIFORM,
-        1.0f, 1.0f
+        1.0f, 1.0f,
+        0.0f, 1.0f
     },
 
     // 5: Ambient
@@ -137,7 +148,8 @@ static const ParticleSpawnParam kParticleSpawnParams[kParticleSpawnParamCount] =
         GPU_PARTICLE_SPAWN_SHAPE_SPHERE,
         GPU_PARTICLE_DIR_RANDOM,
         GPU_PARTICLE_SCALE_UNIFORM,
-        1.0f, 1.0f
+        1.0f, 1.0f,
+        0.0f, 1.0f
     },
 
     // 6: Spark
@@ -151,7 +163,8 @@ static const ParticleSpawnParam kParticleSpawnParams[kParticleSpawnParamCount] =
         GPU_PARTICLE_SPAWN_SHAPE_HEMISPHERE,
         GPU_PARTICLE_DIR_RANDOM,
         GPU_PARTICLE_SCALE_UNIFORM,
-        1.0f, 1.0f
+        1.0f, 1.0f,
+        0.0f, 1.0f
     },
 
     // 7: Shockwave
@@ -165,7 +178,8 @@ static const ParticleSpawnParam kParticleSpawnParams[kParticleSpawnParamCount] =
         GPU_PARTICLE_SPAWN_SHAPE_RING,
         GPU_PARTICLE_DIR_RADIAL,
         GPU_PARTICLE_SCALE_UNIFORM,
-        1.0f, 1.0f
+        1.0f, 1.0f,
+        0.0f, 1.0f
     },
 
     // 8: Heal
@@ -179,7 +193,8 @@ static const ParticleSpawnParam kParticleSpawnParams[kParticleSpawnParamCount] =
         GPU_PARTICLE_SPAWN_SHAPE_RING,
         GPU_PARTICLE_DIR_UP,
         GPU_PARTICLE_SCALE_UNIFORM,
-        1.0f, 1.0f
+        1.0f, 1.0f,
+        0.0f, 1.0f
     },
 
     // 9: Trail
@@ -193,7 +208,8 @@ static const ParticleSpawnParam kParticleSpawnParams[kParticleSpawnParamCount] =
         GPU_PARTICLE_SPAWN_SHAPE_SPHERE,
         GPU_PARTICLE_DIR_TANGENT,
         GPU_PARTICLE_SCALE_UNIFORM,
-        1.0f, 1.0f
+        1.0f, 1.0f,
+        0.0f, 1.0f
     },
     
      // 10: DeathBurstCore
@@ -207,7 +223,8 @@ static const ParticleSpawnParam kParticleSpawnParams[kParticleSpawnParamCount] =
         GPU_PARTICLE_SPAWN_SHAPE_SPHERE, // spawnShape
         GPU_PARTICLE_DIR_RANDOM, // dirType
         GPU_PARTICLE_SCALE_UNIFORM, // scaleMode
-        1.0f, 1.0f
+        1.0f, 1.0f,
+        0.0f, 1.0f
     },
 };
 

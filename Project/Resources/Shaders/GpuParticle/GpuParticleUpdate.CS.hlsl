@@ -54,6 +54,10 @@ void main(uint3 DTid : SV_DispatchThreadID)
     p.velocity.y += param.accelY * dt;
 
     p.translate += p.velocity * dt;
+    float3 centerDir = normalize(-p.translate + float3(1e-4f, 1e-4f, 1e-4f));
+    p.velocity += centerDir * param.convergence * dt;
+    p.velocity += normalize(p.translate + float3(1e-4f, 1e-4f, 1e-4f)) * param.divergence * dt;
+    p.velocity.y += sin(p.currentTime * 12.0f + particleIndex * 0.13f) * param.floaty * dt;
 
     if (param.scaleGrow > 0.0f)
     {
@@ -74,7 +78,10 @@ void main(uint3 DTid : SV_DispatchThreadID)
         p.scale *= s;
     }
 
-    float a = pow(1.0f - t, param.alphaPow) * param.baseAlpha;
+    float fadeIn = (param.fadeInRatio <= 0.0f) ? 1.0f : saturate(t / max(param.fadeInRatio, 1e-4f));
+    float fadeOutStart = 1.0f - saturate(param.fadeOutRatio);
+    float fadeOut = (t <= fadeOutStart) ? 1.0f : saturate((1.0f - t) / max(1.0f - fadeOutStart, 1e-4f));
+    float a = pow(1.0f - t, param.alphaPow) * param.baseAlpha * fadeIn * fadeOut;
     p.color.a = saturate(a);
 
     gParticles[particleIndex] = p;
