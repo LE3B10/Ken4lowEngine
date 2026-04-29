@@ -349,7 +349,7 @@ void GamePlayStageContext::SetupWaves(WaveManager* waveManager) const
 
 		for (const auto& spawn : enemySpawnInfos_)
 		{
-			const int waveIndex = std::max(0, spawn.wave - 1);
+			const int waveIndex = std::clamp(spawn.wave - 1, 0, maxWave - 1);
 
 			WaveSpawnEntry entry{};
 			entry.position = spawn.position;
