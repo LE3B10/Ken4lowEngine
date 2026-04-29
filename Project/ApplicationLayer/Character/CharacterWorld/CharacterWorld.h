@@ -6,6 +6,7 @@
 #include "Player.h"
 #include "Enemy.h"
 #include "EnemyParticleEffectSystem.h"
+#include <GpuParticleManager.h>
 
 // 前方宣言
 class CollisionManager;
@@ -31,6 +32,18 @@ private: /// ---------- 構造体 ---------- ///
 		K4E::Vector3 position = {};
 		float yawRad = 0.0f;
 		float maxHp = 240.0f;
+		int spawnPointIndex = -1;
+		int waveNumber = -1;
+	};
+	struct EnemySpawnSequenceState
+	{
+		EnemySpawnRequest request{};
+		float timer = 0.0f;
+		bool telegraphPlayed = false;
+		bool convergePlayed = false;
+		bool materializePlayed = false;
+		bool enemySpawned = false;
+		Enemy* enemy = nullptr;
 	};
 
 public: /// ---------- メンバ関数 ---------- ///
@@ -55,7 +68,7 @@ public: /// ---------- メンバ関数 ---------- ///
 
 	// 生成
 	Enemy& SpawnEnemy(const EnemySpawnRequest& request);
-	Enemy& SpawnEnemyAt(const K4E::Vector3& position);
+	Enemy& SpawnEnemyAt(const K4E::Vector3& position, int spawnPointIndex = -1, int waveNumber = -1);
 
 	// 全消し
 	void ClearEnemies();
@@ -81,6 +94,7 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	// 敵の被弾エフェクトシステム
 	EnemyParticleEffectSystem enemyParticleEffectSystem_;
+	std::vector<EnemySpawnSequenceState> spawnSequences_;
 
 private: /// ---------- デバッグ用 ---------- ///
 

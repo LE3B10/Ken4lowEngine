@@ -12,6 +12,7 @@ class CharacterWorld;
 struct WaveSpawnEntry
 {
 	K4E::Vector3 position = { 0.0f, 0.0f, 0.0f }; // スポーン位置
+	int spawnPointIndex = -1;
 };
 
 /// ---------- 1ウェーブ分の定義 ---------- ///
@@ -83,4 +84,3 @@ private: /// ---------- メンバ変数 ---------- ///
 	bool allWavesCleared_ = false; // すべてのウェーブがクリアされたかどうか
 	int currentWaveSpawnedCount_ = 0; // 現在のウェーブでスポーンした敵の数
 };
-

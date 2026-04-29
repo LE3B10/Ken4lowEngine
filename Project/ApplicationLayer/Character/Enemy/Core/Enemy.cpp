@@ -136,6 +136,12 @@ void Enemy::Initialize()
 
 void Enemy::Update(float deltaTime)
 {
+	if (spawnPresentationActive_)
+	{
+		StopMove();
+		EnemyBase::Update(deltaTime);
+		return;
+	}
 	UpdateNavigatorSource();
 	moveCommandedThisFrame_ = false;
 
@@ -197,6 +203,13 @@ void Enemy::Update(float deltaTime)
 
 	UpdateAnimation(deltaTime);
 	EnemyBase::Update(deltaTime);
+}
+
+void Enemy::SetSpawnPresentationActive(bool active, float normalizedTime)
+{
+	spawnPresentationActive_ = active;
+	const float t = std::clamp(normalizedTime, 0.0f, 1.0f);
+	SetColor({ 1.0f, 1.0f, 1.0f, active ? t : 1.0f });
 }
 
 void Enemy::ChangeState(std::unique_ptr<IEnemyState> nextState)

@@ -81,7 +81,7 @@ int WaveManager::SpawnWave(CharacterWorld& characters, const WaveDefinition& wav
 
 	for (const auto& entry : wave.enemies)
 	{
-		characters.SpawnEnemyAt(entry.position);
+		characters.SpawnEnemyAt(entry.position, entry.spawnPointIndex, currentWaveIndex_ + 1);
 		++spawnedCount;
 	}
 

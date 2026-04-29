@@ -159,6 +159,8 @@ public: /// ---------- メンバ関数 ---------- ///
 	void Initialize() override;
 
 	void Update(float deltaTime) override;
+	void SetSpawnPresentationActive(bool active, float normalizedTime = 1.0f);
+	bool IsSpawnPresentationActive() const { return spawnPresentationActive_; }
 
 public: /// ---------- 外部からのアクセス ---------- ///
 
@@ -348,6 +350,7 @@ private: /// ---------- メンバ変数 ---------- ///
 	bool isMovementStuck_ = false;
 
 	AnimState animState_ = AnimState::Idle;
+	bool spawnPresentationActive_ = false;
 	float animTime_ = 0.0f;
 	float animMoveRate_ = 1.0f;
 };

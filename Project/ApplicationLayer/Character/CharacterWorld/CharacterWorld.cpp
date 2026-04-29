@@ -5,6 +5,7 @@
 
 #include "WorldCollisionResolver.h"
 #include "AudioManager.h"
+#include <imgui.h>
 
 using namespace Ken4lowEngine;
 
@@ -29,6 +30,7 @@ void CharacterWorld::Initialize(GameContext& ctx)
 	}
 
 	enemies_.clear();
+	spawnSequences_.clear();
 }
 
 void CharacterWorld::Finalize()
@@ -111,11 +113,19 @@ Enemy& CharacterWorld::SpawnEnemy(const EnemySpawnRequest& request)
 	return *enemies_.back();
 }
 
-Enemy& CharacterWorld::SpawnEnemyAt(const K4E::Vector3& position)
+Enemy& CharacterWorld::SpawnEnemyAt(const K4E::Vector3& position, int spawnPointIndex, int waveNumber)
 {
 	EnemySpawnRequest request{};
 	request.position = position;
-	return SpawnEnemy(request);
+	request.spawnPointIndex = spawnPointIndex;
+	request.waveNumber = waveNumber;
+	Enemy& enemy = SpawnEnemy(request);
+	enemy.SetSpawnPresentationActive(true, 0.0f);
+	EnemySpawnSequenceState state{};
+	state.request = request;
+	state.enemy = &enemy;
+	spawnSequences_.push_back(state);
+	return enemy;
 }
 
 void CharacterWorld::ClearEnemies()
@@ -137,6 +147,31 @@ void CharacterWorld::Update(float dt)
 	for (auto& e : enemies_)
 	{
 		e->Update(dt);
+	}
+	auto* pm = K4E::GpuParticleManager::GetInstance();
+	for (auto& seq : spawnSequences_)
+	{
+		seq.timer += dt;
+		if (!seq.telegraphPlayed && seq.timer >= 0.0f)
+		{
+			if (auto* e = pm->GetEmitter("Spawn_Telegraph_Ground")) { e->SetPosition(seq.request.position); e->RequestEmit(1); }
+			seq.telegraphPlayed = true;
+		}
+		if (!seq.convergePlayed && seq.timer >= 0.1f)
+		{
+			if (auto* e = pm->GetEmitter("Spawn_Converge")) { e->SetPosition(seq.request.position); e->RequestEmit(1); }
+			seq.convergePlayed = true;
+		}
+		if (!seq.materializePlayed && seq.timer >= 0.35f)
+		{
+			if (auto* e = pm->GetEmitter("Spawn_Materialize")) { e->SetPosition(seq.request.position); e->RequestEmit(1); }
+			seq.materializePlayed = true;
+		}
+		if (seq.enemy)
+		{
+			const float fadeT = (seq.timer - 0.35f) / 0.45f;
+			seq.enemy->SetSpawnPresentationActive(seq.timer < 0.8f, fadeT);
+		}
 	}
 
 	if (ctx_.collisionManager_)
@@ -176,6 +211,16 @@ void CharacterWorld::DrawImGui()
 	// - EnemyTuningEditor は出さない
 	// --------------------------------------------------------
 	for (auto& e : enemies_) { e->DrawImGui(); }
+	if (ImGui::Begin("Enemy Spawn Sequence"))
+	{
+		for (size_t i = 0; i < spawnSequences_.size(); ++i)
+		{
+			const auto& s = spawnSequences_[i];
+			ImGui::Text("Seq[%d] wave=%d spawnPoint=%d pos=(%.2f, %.2f, %.2f) timer=%.2f", static_cast<int>(i), s.request.waveNumber, s.request.spawnPointIndex, s.request.position.x, s.request.position.y, s.request.position.z, s.timer);
+			ImGui::Text("  telegraph=%d converge=%d materialize=%d", s.telegraphPlayed ? 1 : 0, s.convergePlayed ? 1 : 0, s.materializePlayed ? 1 : 0);
+		}
+	}
+	ImGui::End();
 
 	// --------------------------------------------------------
 	// 3) EnemyTuningEditor は 1回だけ描画する

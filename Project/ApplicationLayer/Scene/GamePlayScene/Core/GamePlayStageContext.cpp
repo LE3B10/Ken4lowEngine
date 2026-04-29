@@ -347,12 +347,14 @@ void GamePlayStageContext::SetupWaves(WaveManager* waveManager) const
 			else { waves[static_cast<size_t>(i)].delayBeforeSpawnSec = 2.5f; }
 		}
 
-		for (const auto& spawn : enemySpawnInfos_)
+		for (size_t spawnInfoIndex = 0; spawnInfoIndex < enemySpawnInfos_.size(); ++spawnInfoIndex)
 		{
+			const auto& spawn = enemySpawnInfos_[spawnInfoIndex];
 			const int waveIndex = std::max(0, spawn.wave - 1);
 
 			WaveSpawnEntry entry{};
 			entry.position = spawn.position;
+			entry.spawnPointIndex = static_cast<int>(spawnInfoIndex);
 
 			const int spawnCount = std::max(1, spawn.count);
 			for (int i = 0; i < spawnCount; ++i)
