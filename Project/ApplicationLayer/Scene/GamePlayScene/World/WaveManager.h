@@ -1,6 +1,7 @@
 #pragma once
 #include <vector>
 #include <algorithm>
+#include <string>
 #include "Vector3.h"
 
 namespace K4E = ::Ken4lowEngine;
@@ -11,7 +12,16 @@ class CharacterWorld;
 /// ---------- 1体分のスポーン情報 ---------- ///
 struct WaveSpawnEntry
 {
-	K4E::Vector3 position = { 0.0f, 0.0f, 0.0f }; // スポーン位置
+	K4E::Vector3 position = { 0.0f, 0.0f, 0.0f }; // レベルデータのスポーン位置
+	K4E::Vector3 correctedPosition = { 0.0f, 0.0f, 0.0f }; // 安全補正後位置
+	int wave = 1;
+	int group = 0;
+	int count = 1;
+	int sourceIndex = -1;
+	int spawnRequestId = -1;
+	std::string name;
+	std::string archetype;
+	bool insideStage = false;
 };
 
 /// ---------- 1ウェーブ分の定義 ---------- ///
@@ -60,7 +70,10 @@ public: /// ---------- アクセッサ ---------- ///
 	int GetCurrentWaveNumber() const { return currentWaveIndex_ + 1; } // 現在のウェーブの番号（1始まり）
 	int GetTotalWaveCount() const { return static_cast<int>(waves_.size()); } // 総ウェーブ数
 
-	float GetNextWaveTimer() const { return nextWaveTimer_; } // 次のウェーブスポーンまでのタイマー（秒）
+	float GetNextWaveTimer() const { return nextWaveTimer_; } // 次のウェーブスポーンまでのタイマー（秒)
+	const std::vector<WaveSpawnEntry>& GetSpawnPoints() const { return spawnPoints_; }
+	const std::vector<WaveSpawnEntry>& GetLastSpawnResults() const { return lastSpawnResults_; }
+	int GetLastSpawnWaveNumber() const { return lastSpawnWaveNumber_; }
 
 private: /// ---------- メンバ関数 ---------- ///
 
@@ -82,5 +95,10 @@ private: /// ---------- メンバ変数 ---------- ///
 	bool waveInProgress_ = false; // 現在ウェーブがスポーン中かどうか
 	bool allWavesCleared_ = false; // すべてのウェーブがクリアされたかどうか
 	int currentWaveSpawnedCount_ = 0; // 現在のウェーブでスポーンした敵の数
+
+	std::vector<WaveSpawnEntry> spawnPoints_;
+	std::vector<WaveSpawnEntry> lastSpawnResults_;
+	int lastSpawnWaveNumber_ = 0;
+	int nextSpawnRequestId_ = 1;
 };
 

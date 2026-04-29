@@ -45,10 +45,13 @@ public: /// ---------- 構造体 ---------- ///
 
 	struct EnemySpawnInfo
 	{
+		std::string name;
+		std::string archetype;
 		K4E::Vector3 position{ 0.0f, 0.0f, 0.0f };
 		int wave = 1;
 		int group = 0;
 		int count = 1;
+		int sourceIndex = -1;
 	};
 
 	struct IntroCameraPointInfo
