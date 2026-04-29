@@ -14,29 +14,63 @@ using namespace Ken4lowEngine;
 
 namespace
 {
-	Vector3 ClampToAABB(const Vector3& p, const AABB& aabb)
+	constexpr float kSpawnPaddingXZ = 0.35f;
+	constexpr float kSpawnLiftY = 0.05f;
+	constexpr float kSpawnSpreadStep = 1.5f;
+
+	Vector3 ClampToAABB(const Vector3& p, const AABB& aabb, float paddingXZ = 0.0f)
 	{
+		const float minX = aabb.min.x + paddingXZ;
+		const float maxX = aabb.max.x - paddingXZ;
+		const float minZ = aabb.min.z + paddingXZ;
+		const float maxZ = aabb.max.z - paddingXZ;
 		return {
-			std::clamp(p.x, aabb.min.x, aabb.max.x),
+			std::clamp(p.x, std::min(minX, maxX), std::max(minX, maxX)),
 			std::clamp(p.y, aabb.min.y, aabb.max.y),
-			std::clamp(p.z, aabb.min.z, aabb.max.z)
+			std::clamp(p.z, std::min(minZ, maxZ), std::max(minZ, maxZ))
 		};
 	}
 
-	Vector3 StabilizeSpawnPosition(const Vector3& requested, Enemy& enemy)
+	Vector3 BuildSpawnSpreadOffset(size_t spawnSerial)
+	{
+		if (spawnSerial == 0) { return {0.0f, 0.0f, 0.0f}; }
+		const int layer = static_cast<int>((spawnSerial - 1) / 8) + 1;
+		const int dir = static_cast<int>((spawnSerial - 1) % 8);
+		const float d = static_cast<float>(layer) * kSpawnSpreadStep;
+		switch (dir)
+		{
+		case 0: return { d,0,0};
+		case 1: return {-d,0,0};
+		case 2: return {0,0,d};
+		case 3: return {0,0,-d};
+		case 4: return { d,0,d};
+		case 5: return {-d,0,d};
+		case 6: return { d,0,-d};
+		default:return {-d,0,-d};
+		}
+	}
+
+	Vector3 StabilizeSpawnPosition(const Vector3& requested, Enemy& enemy, size_t spawnSerial, bool* outInside)
 	{
 		const auto* worldAabbs = enemy.GetResolvedWorldAABBs();
 		if (!worldAabbs || worldAabbs->empty())
 		{
+			if (outInside) { *outInside = false; }
 			return requested;
 		}
-
+		const Vector3 spreadRequested = requested + BuildSpawnSpreadOffset(spawnSerial);
 		float bestDistSq = std::numeric_limits<float>::max();
-		Vector3 bestPos = requested;
+		Vector3 bestPos = spreadRequested;
+		bool insideAny = false;
 		for (const auto& aabb : *worldAabbs)
 		{
-			const Vector3 clamped = ClampToAABB(requested, aabb);
-			const Vector3 diff = requested - clamped;
+			const bool inside = (spreadRequested.x >= aabb.min.x && spreadRequested.x <= aabb.max.x &&
+				spreadRequested.y >= aabb.min.y && spreadRequested.y <= aabb.max.y &&
+				spreadRequested.z >= aabb.min.z && spreadRequested.z <= aabb.max.z);
+			insideAny = insideAny || inside;
+			Vector3 clamped = ClampToAABB(spreadRequested, aabb, kSpawnPaddingXZ);
+			clamped.y = aabb.max.y + kSpawnLiftY;
+			const Vector3 diff = spreadRequested - clamped;
 			const float distSq = Vector3::Dot(diff, diff);
 			if (distSq < bestDistSq)
 			{
@@ -44,7 +78,7 @@ namespace
 				bestPos = clamped;
 			}
 		}
-
+		if (outInside) { *outInside = insideAny; }
 		return bestPos;
 	}
 }
@@ -141,13 +175,19 @@ Enemy& CharacterWorld::SpawnEnemy(const EnemySpawnRequest& request)
 	auto e = std::make_unique<Enemy>();
 	InjectEnemyDeps(*e);
 	e->Initialize();
-	const Vector3 stabilizedSpawn = StabilizeSpawnPosition(request.position, *e);
+	bool wasInsideStage = false;
+	const size_t spawnSerial = enemies_.size();
+	const Vector3 stabilizedSpawn = StabilizeSpawnPosition(request.position, *e, spawnSerial, &wasInsideStage);
 	e->SetPosition(stabilizedSpawn);
+	e->SetVelocity({ 0.0f, 0.0f, 0.0f });
 
 #ifdef _DEBUG
 	std::ostringstream oss;
 	oss << "[Spawn] requested=(" << request.position.x << "," << request.position.y << "," << request.position.z
-		<< ") stabilized=(" << stabilizedSpawn.x << "," << stabilizedSpawn.y << "," << stabilizedSpawn.z << ")\n";
+		<< ") stabilized=(" << stabilizedSpawn.x << "," << stabilizedSpawn.y << "," << stabilizedSpawn.z
+		<< ") insideStage=" << (wasInsideStage ? 1 : 0)
+		<< " waveSpawnSerial=" << spawnSerial
+		<< "\n";
 	std::cout << oss.str();
 #endif
 
