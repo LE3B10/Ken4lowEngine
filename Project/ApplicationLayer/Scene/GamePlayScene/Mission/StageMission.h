@@ -1,21 +1,13 @@
 #pragma once
 #include "Vector3.h"
-#include <memory>
+#include "StageMissionFactory.h"
+#include "StageType.h"
 #include <string>
 
 class GamePlayWorld;
 class GamePlayStageContext;
 
 namespace K4E = ::Ken4lowEngine;
-
-enum class StageType
-{
-	Wave,
-	Explore,
-	Defense,
-	Escape,
-	Boss
-};
 
 struct StageMissionConfig
 {
@@ -61,6 +53,3 @@ protected:
 	bool isFailed_ = false;
 };
 
-std::unique_ptr<IStageMission> CreateStageMissionByType(StageType stageType);
-StageType ResolveStageTypeFromStageIndex(int stageIndex);
-const char* ToStageTypeName(StageType stageType);

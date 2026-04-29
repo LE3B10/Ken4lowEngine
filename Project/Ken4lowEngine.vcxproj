@@ -270,6 +270,9 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClCompile Include="ApplicationLayer\Scene\GamePlayScene\Camera\GamePlayIntroDirector.cpp" />
     <ClCompile Include="ApplicationLayer\Scene\GamePlayScene\Core\GamePlayStageContext.cpp" />
     <ClCompile Include="ApplicationLayer\Scene\GamePlayScene\World\GamePlayWorld.cpp" />
+    <ClCompile Include="ApplicationLayer\Scene\GamePlayScene\Mission\StageMission.cpp" />
+    <ClCompile Include="ApplicationLayer\Scene\GamePlayScene\Mission\StageMissionFactory.cpp" />
+    <ClCompile Include="ApplicationLayer\Scene\GamePlayScene\Mission\StageType.cpp" />
     <ClCompile Include="ApplicationLayer\Character\Boss\BehaviorTree\IBTNode.cpp" />
     <ClCompile Include="ApplicationLayer\Character\Boss\Derived\GuardianBoss\GuardianBoss.cpp" />
     <ClCompile Include="ApplicationLayer\Character\Boss\BaseTypes\HumanoidBossBase.cpp" />
@@ -845,6 +848,9 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="ApplicationLayer\Scene\GamePlayScene\Camera\GamePlayIntroDirector.h" />
     <ClInclude Include="ApplicationLayer\Scene\GamePlayScene\Core\GamePlayStageContext.h" />
     <ClInclude Include="ApplicationLayer\Scene\GamePlayScene\World\GamePlayWorld.h" />
+    <ClInclude Include="ApplicationLayer\Scene\GamePlayScene\Mission\StageMission.h" />
+    <ClInclude Include="ApplicationLayer\Scene\GamePlayScene\Mission\StageMissionFactory.h" />
+    <ClInclude Include="ApplicationLayer\Scene\GamePlayScene\Mission\StageType.h" />
     <ClInclude Include="ApplicationLayer\Character\Boss\Attacks\IBossAttack.h" />
     <ClInclude Include="ApplicationLayer\Character\Boss\BehaviorTree\IBTNode.h" />
     <ClInclude Include="ApplicationLayer\Character\Boss\Derived\GuardianBoss\GuardianBoss.h" />
