@@ -18,72 +18,39 @@ using namespace Ken4lowEngine;
 
 namespace
 {
-	constexpr float kSpawnPaddingXZ = 0.35f;
+	constexpr float kSpawnGroundProbeStartYOffset = 10.0f;
+	constexpr float kSpawnGroundProbeEndYOffset = 120.0f;
 	constexpr float kSpawnLiftY = 0.05f;
-	constexpr float kSpawnSpreadStep = 1.5f;
 
-	Vector3 ClampToAABB(const Vector3& p, const AABB& aabb, float paddingXZ = 0.0f)
+	bool ResolveSpawnYFromWorldAabb(const std::vector<AABB>* worldAabbs, const Vector3& requestedSpawnPos, float* outResolvedY, float* outHitY)
 	{
-		const float minX = aabb.min.x + paddingXZ;
-		const float maxX = aabb.max.x - paddingXZ;
-		const float minZ = aabb.min.z + paddingXZ;
-		const float maxZ = aabb.max.z - paddingXZ;
-		return {
-			std::clamp(p.x, std::min(minX, maxX), std::max(minX, maxX)),
-			std::clamp(p.y, aabb.min.y, aabb.max.y),
-			std::clamp(p.z, std::min(minZ, maxZ), std::max(minZ, maxZ))
-		};
-	}
+		if (!worldAabbs || worldAabbs->empty() || !outResolvedY) { return false; }
 
-	Vector3 BuildSpawnSpreadOffset(size_t spawnSerial)
-	{
-		if (spawnSerial == 0) { return {0.0f, 0.0f, 0.0f}; }
-		const int layer = static_cast<int>((spawnSerial - 1) / 8) + 1;
-		const int dir = static_cast<int>((spawnSerial - 1) % 8);
-		const float d = static_cast<float>(layer) * kSpawnSpreadStep;
-		switch (dir)
-		{
-		case 0: return { d,0,0};
-		case 1: return {-d,0,0};
-		case 2: return {0,0,d};
-		case 3: return {0,0,-d};
-		case 4: return { d,0,d};
-		case 5: return {-d,0,d};
-		case 6: return { d,0,-d};
-		default:return {-d,0,-d};
-		}
-	}
+		const float rayX = requestedSpawnPos.x;
+		const float rayZ = requestedSpawnPos.z;
+		const float rayStartY = requestedSpawnPos.y + kSpawnGroundProbeStartYOffset;
+		const float rayEndY = requestedSpawnPos.y - kSpawnGroundProbeEndYOffset;
 
-	Vector3 StabilizeSpawnPosition(const Vector3& requested, Enemy& enemy, size_t spawnSerial, bool* outInside)
-	{
-		const auto* worldAabbs = enemy.GetResolvedWorldAABBs();
-		if (!worldAabbs || worldAabbs->empty())
-		{
-			if (outInside) { *outInside = false; }
-			return requested;
-		}
-		const Vector3 spreadRequested = requested + BuildSpawnSpreadOffset(spawnSerial);
-		float bestDistSq = std::numeric_limits<float>::max();
-		Vector3 bestPos = spreadRequested;
-		bool insideAny = false;
+		float bestHitY = -std::numeric_limits<float>::infinity();
+		bool hit = false;
 		for (const auto& aabb : *worldAabbs)
 		{
-			const bool inside = (spreadRequested.x >= aabb.min.x && spreadRequested.x <= aabb.max.x &&
-				spreadRequested.y >= aabb.min.y && spreadRequested.y <= aabb.max.y &&
-				spreadRequested.z >= aabb.min.z && spreadRequested.z <= aabb.max.z);
-			insideAny = insideAny || inside;
-			Vector3 clamped = ClampToAABB(spreadRequested, aabb, kSpawnPaddingXZ);
-			clamped.y = aabb.max.y + kSpawnLiftY;
-			const Vector3 diff = spreadRequested - clamped;
-			const float distSq = Vector3::Dot(diff, diff);
-			if (distSq < bestDistSq)
+			const bool insideXZ = (rayX >= aabb.min.x && rayX <= aabb.max.x && rayZ >= aabb.min.z && rayZ <= aabb.max.z);
+			if (!insideXZ) { continue; }
+
+			const float topY = aabb.max.y;
+			if (topY <= rayStartY && topY >= rayEndY && topY > bestHitY)
 			{
-				bestDistSq = distSq;
-				bestPos = clamped;
+				bestHitY = topY;
+				hit = true;
 			}
 		}
-		if (outInside) { *outInside = insideAny; }
-		return bestPos;
+
+		if (!hit) { return false; }
+
+		if (outHitY) { *outHitY = bestHitY; }
+		*outResolvedY = bestHitY + kSpawnLiftY;
+		return true;
 	}
 }
 
@@ -176,21 +143,56 @@ std::vector<EnemyBase*> CharacterWorld::GetEnemyRawList() const
 
 CharacterWorld::EnemySpawnResult CharacterWorld::SpawnEnemy(const EnemySpawnRequest& request)
 {
+	EnemySpawnResult result{};
+	result.requestedPosition = request.position;
+	result.correctedPosition = request.position;
+	result.spawnRequestId = request.spawnRequestId;
+
 	auto e = std::make_unique<Enemy>();
 	InjectEnemyDeps(*e);
 	e->Initialize();
-	bool wasInsideStage = false;
-	const size_t spawnSerial = enemies_.size();
-	const Vector3 stabilizedSpawn = StabilizeSpawnPosition(request.position, *e, spawnSerial, &wasInsideStage);
-	e->SetPosition(stabilizedSpawn);
+
+	const auto* worldAabbs = e->GetResolvedWorldAABBs();
+	const bool insideStage = worldAabbs && std::any_of(worldAabbs->begin(), worldAabbs->end(), [&](const AABB& aabb)
+		{
+			return request.position.x >= aabb.min.x && request.position.x <= aabb.max.x &&
+				request.position.y >= aabb.min.y && request.position.y <= aabb.max.y &&
+				request.position.z >= aabb.min.z && request.position.z <= aabb.max.z;
+		});
+	result.insideStage = insideStage;
+
+	float resolvedY = request.position.y;
+	float hitY = 0.0f;
+	const bool groundHit = ResolveSpawnYFromWorldAabb(worldAabbs, request.position, &resolvedY, &hitY);
+	result.groundHit = groundHit;
+	result.hitY = hitY;
+	if (!groundHit)
+	{
+#ifdef _DEBUG
+		std::ostringstream oss;
+		oss << "[SpawnRejected] reqId=" << request.spawnRequestId
+			<< " requested=(" << request.position.x << "," << request.position.y << "," << request.position.z << ")"
+			<< " reason=no_ground_hit insideStage=" << (insideStage ? 1 : 0)
+			<< "\n";
+		std::cout << oss.str();
+#endif
+		return result;
+	}
+
+	result.correctedPosition.y = resolvedY;
+	result.spawnAccepted = true;
+	e->SetPosition(result.correctedPosition);
 	e->SetVelocity({ 0.0f, 0.0f, 0.0f });
 
 #ifdef _DEBUG
 	std::ostringstream oss;
-	oss << "[Spawn] requested=(" << request.position.x << "," << request.position.y << "," << request.position.z
-		<< ") stabilized=(" << stabilizedSpawn.x << "," << stabilizedSpawn.y << "," << stabilizedSpawn.z
-		<< ") insideStage=" << (wasInsideStage ? 1 : 0)
-		<< " waveSpawnSerial=" << spawnSerial
+	oss << "[SpawnAccepted] reqId=" << request.spawnRequestId
+		<< " requested=(" << request.position.x << "," << request.position.y << "," << request.position.z << ")"
+		<< " resolved=(" << result.correctedPosition.x << "," << result.correctedPosition.y << "," << result.correctedPosition.z << ")"
+		<< " deltaXZ=(" << (result.correctedPosition.x - request.position.x) << "," << (result.correctedPosition.z - request.position.z) << ")"
+		<< " deltaY=" << (result.correctedPosition.y - request.position.y)
+		<< " groundHit=1 hitY=" << hitY
+		<< " insideStage=" << (insideStage ? 1 : 0)
 		<< "\n";
 	std::cout << oss.str();
 #endif
@@ -201,12 +203,7 @@ CharacterWorld::EnemySpawnResult CharacterWorld::SpawnEnemy(const EnemySpawnRequ
 	}
 
 	enemies_.push_back(std::move(e));
-	EnemySpawnResult result{};
-	result.requestedPosition = request.position;
-	result.correctedPosition = stabilizedSpawn;
-	result.insideStage = wasInsideStage;
 	result.enemyId = static_cast<int>(enemies_.size()) - 1;
-	result.spawnRequestId = request.spawnRequestId;
 	return result;
 }
 

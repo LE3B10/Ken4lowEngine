@@ -138,11 +138,18 @@ void GamePlayDebugTools::DrawImGui(GamePlayWorld* world)
 			{
 				for (const auto& sr : waveManager->GetLastSpawnResults())
 				{
-					ImGui::Text("reqId=%d name=%s wave=%d group=%d archetype=%s before=(%.2f,%.2f,%.2f) after=(%.2f,%.2f,%.2f) inside=%d",
-						sr.spawnRequestId, sr.name.c_str(), sr.wave, sr.group, sr.archetype.c_str(),
-						sr.position.x, sr.position.y, sr.position.z,
-						sr.correctedPosition.x, sr.correctedPosition.y, sr.correctedPosition.z,
-						sr.insideStage ? 1 : 0);
+					const float deltaX = sr.correctedPosition.x - sr.requestedPosition.x;
+					const float deltaZ = sr.correctedPosition.z - sr.requestedPosition.z;
+					const float deltaY = sr.correctedPosition.y - sr.requestedPosition.y;
+					ImGui::Text("reqId=%d spawn=%s accepted=%d rejected=%d wave=%d group=%d count=%d archetype=%s",
+						sr.spawnRequestId, sr.name.c_str(), sr.spawnAccepted ? 1 : 0, sr.spawnAccepted ? 0 : 1,
+						sr.wave, sr.group, sr.count, sr.archetype.c_str());
+					ImGui::Text("requestedSpawnPos=(%.2f,%.2f,%.2f) resolvedSpawnPos=(%.2f,%.2f,%.2f)",
+						sr.requestedPosition.x, sr.requestedPosition.y, sr.requestedPosition.z,
+						sr.correctedPosition.x, sr.correctedPosition.y, sr.correctedPosition.z);
+					ImGui::Text("deltaXZ=(%.4f,%.4f) deltaY=%.4f inside=%d groundHit=%d hitY=%.2f",
+						deltaX, deltaZ, deltaY, sr.insideStage ? 1 : 0, sr.groundHit ? 1 : 0, sr.hitY);
+					ImGui::Separator();
 				}
 			}
 		}

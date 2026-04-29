@@ -22,6 +22,10 @@ struct WaveSpawnEntry
 	std::string name;
 	std::string archetype;
 	bool insideStage = false;
+	bool groundHit = false;
+	float hitY = 0.0f;
+	bool spawnAccepted = false;
+	K4E::Vector3 requestedPosition = { 0.0f, 0.0f, 0.0f };
 };
 
 /// ---------- 1ウェーブ分の定義 ---------- ///

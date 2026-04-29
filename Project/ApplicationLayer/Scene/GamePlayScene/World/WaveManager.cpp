@@ -82,8 +82,12 @@ int WaveManager::SpawnWave(CharacterWorld& characters, const WaveDefinition& wav
 	{
 		auto spawnResult = characters.SpawnEnemyAt(entry.position, nextSpawnRequestId_++);
 		WaveSpawnEntry debugEntry = entry;
+		debugEntry.requestedPosition = spawnResult.requestedPosition;
 		debugEntry.correctedPosition = spawnResult.correctedPosition;
 		debugEntry.insideStage = spawnResult.insideStage;
+		debugEntry.groundHit = spawnResult.groundHit;
+		debugEntry.hitY = spawnResult.hitY;
+		debugEntry.spawnAccepted = spawnResult.spawnAccepted;
 		debugEntry.spawnRequestId = spawnResult.spawnRequestId;
 		lastSpawnResults_.push_back(debugEntry);
 		++spawnedCount;

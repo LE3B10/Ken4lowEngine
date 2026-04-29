@@ -39,6 +39,9 @@ public: /// ---------- 構造体 ---------- ///
 		K4E::Vector3 requestedPosition = {};
 		K4E::Vector3 correctedPosition = {};
 		bool insideStage = false;
+		bool groundHit = false;
+		float hitY = 0.0f;
+		bool spawnAccepted = false;
 		int enemyId = -1;
 		int spawnRequestId = -1;
 	};
