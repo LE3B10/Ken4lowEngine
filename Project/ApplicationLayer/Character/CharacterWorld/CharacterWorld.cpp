@@ -5,8 +5,48 @@
 
 #include "WorldCollisionResolver.h"
 #include "AudioManager.h"
+#include <iostream>
+#include <limits>
+#include <sstream>
 
 using namespace Ken4lowEngine;
+
+namespace
+{
+	Vector3 ClampToAABB(const Vector3& p, const AABB& aabb)
+	{
+		return {
+			std::clamp(p.x, aabb.min.x, aabb.max.x),
+			std::clamp(p.y, aabb.min.y, aabb.max.y),
+			std::clamp(p.z, aabb.min.z, aabb.max.z)
+		};
+	}
+
+	Vector3 StabilizeSpawnPosition(const Vector3& requested, Enemy& enemy)
+	{
+		const auto* worldAabbs = enemy.GetResolvedWorldAABBs();
+		if (!worldAabbs || worldAabbs->empty())
+		{
+			return requested;
+		}
+
+		float bestDistSq = std::numeric_limits<float>::max();
+		Vector3 bestPos = requested;
+		for (const auto& aabb : *worldAabbs)
+		{
+			const Vector3 clamped = ClampToAABB(requested, aabb);
+			const Vector3 diff = requested - clamped;
+			const float distSq = Vector3::Dot(diff, diff);
+			if (distSq < bestDistSq)
+			{
+				bestDistSq = distSq;
+				bestPos = clamped;
+			}
+		}
+
+		return bestPos;
+	}
+}
 
 void CharacterWorld::Initialize(GameContext& ctx)
 {
@@ -100,7 +140,15 @@ Enemy& CharacterWorld::SpawnEnemy(const EnemySpawnRequest& request)
 	auto e = std::make_unique<Enemy>();
 	InjectEnemyDeps(*e);
 	e->Initialize();
-	e->SetPosition(request.position);
+	const Vector3 stabilizedSpawn = StabilizeSpawnPosition(request.position, *e);
+	e->SetPosition(stabilizedSpawn);
+
+#ifdef _DEBUG
+	std::ostringstream oss;
+	oss << "[Spawn] requested=(" << request.position.x << "," << request.position.y << "," << request.position.z
+		<< ") stabilized=(" << stabilizedSpawn.x << "," << stabilizedSpawn.y << "," << stabilizedSpawn.z << ")\n";
+	std::cout << oss.str();
+#endif
 
 	if (ctx_.collisionManager_)
 	{

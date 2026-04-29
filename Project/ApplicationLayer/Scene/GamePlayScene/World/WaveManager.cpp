@@ -1,6 +1,7 @@
 #define NOMINMAX
 #include "WaveManager.h"
 #include "CharacterWorld.h"
+#include <iostream>
 
 using namespace Ken4lowEngine;
 
@@ -81,6 +82,11 @@ int WaveManager::SpawnWave(CharacterWorld& characters, const WaveDefinition& wav
 
 	for (const auto& entry : wave.enemies)
 	{
+#ifdef _DEBUG
+		std::cout << "[WaveSpawn] wave=" << (currentWaveIndex_ + 1)
+			<< " spawnIndex=" << spawnedCount
+			<< " pos=(" << entry.position.x << "," << entry.position.y << "," << entry.position.z << ")\n";
+#endif
 		characters.SpawnEnemyAt(entry.position);
 		++spawnedCount;
 	}
