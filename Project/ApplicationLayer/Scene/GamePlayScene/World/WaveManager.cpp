@@ -14,11 +14,22 @@ void WaveManager::Reset()
 	waveInProgress_ = false;
 	allWavesCleared_ = false;
 	currentWaveSpawnedCount_ = 0;
+	lastSpawnResults_.clear();
+	lastSpawnWaveNumber_ = 0;
+	nextSpawnRequestId_ = 1;
 }
 
 void WaveManager::SetWaves(const std::vector<WaveDefinition>& waves)
 {
 	waves_ = waves;
+	spawnPoints_.clear();
+	for (const auto& wave : waves_)
+	{
+		for (const auto& entry : wave.enemies)
+		{
+			spawnPoints_.push_back(entry);
+		}
+	}
 	Reset();
 }
 
@@ -28,49 +39,35 @@ void WaveManager::Start()
 
 	if (waves_.empty())
 	{
-		allWavesCleared_ = true; // ウェーブ定義が空なら即クリア扱い
+		allWavesCleared_ = true;
 		return;
 	}
 
 	started_ = true;
-	currentWaveIndex_ = 0; // 最初のウェーブは Update 内でインクリメントしてからスポーンする
-	nextWaveTimer_ = std::max(0.0f, waves_[0].delayBeforeSpawnSec); // 最初のウェーブの待機時間をセット
+	currentWaveIndex_ = 0;
+	nextWaveTimer_ = std::max(0.0f, waves_[0].delayBeforeSpawnSec);
 }
 
 void WaveManager::Update(CharacterWorld& characters, float deltaTime)
 {
 	if (!started_ || allWavesCleared_ || waves_.empty()) return;
-
-	// まだ現在ウェーブをスポーンしていない状態
 	if (!waveInProgress_)
 	{
 		nextWaveTimer_ -= deltaTime;
-
-		// タイマーがまだ残っているなら待機
 		if (nextWaveTimer_ > 0.0f) return;
-
-		// ウェーブをスポーン
 		currentWaveSpawnedCount_ = SpawnWave(characters, waves_[currentWaveIndex_]);
 		waveInProgress_ = (currentWaveSpawnedCount_ > 0);
 		nextWaveTimer_ = (currentWaveSpawnedCount_) ? 0.0f : 1.0f;
 		return;
 	}
-
-	// ウェーブ進行中は、敵が残っている限り何もしない
 	if (characters.GetEnemyCount() > 0) return;
-
-
-	// 現在ウェーブ殲滅完了
 	if (currentWaveIndex_ + 1 >= static_cast<int>(waves_.size()))
 	{
-		// 最終ウェーブまで終わった
 		waveInProgress_ = false;
 		allWavesCleared_ = true;
 		currentWaveSpawnedCount_ = 0;
 		return;
 	}
-
-	// 次ウェーブへ
 	++currentWaveIndex_;
 	waveInProgress_ = false;
 	nextWaveTimer_ = std::max(0.0f, waves_[currentWaveIndex_].delayBeforeSpawnSec);
@@ -79,17 +76,17 @@ void WaveManager::Update(CharacterWorld& characters, float deltaTime)
 int WaveManager::SpawnWave(CharacterWorld& characters, const WaveDefinition& wave)
 {
 	int spawnedCount = 0;
-
+	lastSpawnResults_.clear();
+	lastSpawnWaveNumber_ = currentWaveIndex_ + 1;
 	for (const auto& entry : wave.enemies)
 	{
-#ifdef _DEBUG
-		std::cout << "[WaveSpawn] wave=" << (currentWaveIndex_ + 1)
-			<< " spawnIndex=" << spawnedCount
-			<< " pos=(" << entry.position.x << "," << entry.position.y << "," << entry.position.z << ")\n";
-#endif
-		characters.SpawnEnemyAt(entry.position);
+		auto spawnResult = characters.SpawnEnemyAt(entry.position, nextSpawnRequestId_++);
+		WaveSpawnEntry debugEntry = entry;
+		debugEntry.correctedPosition = spawnResult.correctedPosition;
+		debugEntry.insideStage = spawnResult.insideStage;
+		debugEntry.spawnRequestId = spawnResult.spawnRequestId;
+		lastSpawnResults_.push_back(debugEntry);
 		++spawnedCount;
 	}
-
 	return spawnedCount;
 }

@@ -24,13 +24,23 @@ struct GameContext
 /// -------------------------------------------------------------
 class CharacterWorld
 {
-private: /// ---------- 構造体 ---------- ///
+public: /// ---------- 構造体 ---------- ///
 
 	struct EnemySpawnRequest
 	{
 		K4E::Vector3 position = {};
 		float yawRad = 0.0f;
 		float maxHp = 240.0f;
+		int spawnRequestId = -1;
+	};
+
+	struct EnemySpawnResult
+	{
+		K4E::Vector3 requestedPosition = {};
+		K4E::Vector3 correctedPosition = {};
+		bool insideStage = false;
+		int enemyId = -1;
+		int spawnRequestId = -1;
 	};
 
 public: /// ---------- メンバ関数 ---------- ///
@@ -54,8 +64,8 @@ public: /// ---------- メンバ関数 ---------- ///
 	std::vector<EnemyBase*> GetEnemyRawList() const;
 
 	// 生成
-	Enemy& SpawnEnemy(const EnemySpawnRequest& request);
-	Enemy& SpawnEnemyAt(const K4E::Vector3& position);
+	EnemySpawnResult SpawnEnemy(const EnemySpawnRequest& request);
+	EnemySpawnResult SpawnEnemyAt(const K4E::Vector3& position, int spawnRequestId = -1);
 
 	// 全消し
 	void ClearEnemies();

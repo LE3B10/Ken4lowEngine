@@ -10,6 +10,10 @@
 #include <limits>
 #include <sstream>
 
+#ifdef USE_IMGUI
+#include "imgui.h"
+#endif
+
 using namespace Ken4lowEngine;
 
 namespace
@@ -170,7 +174,7 @@ std::vector<EnemyBase*> CharacterWorld::GetEnemyRawList() const
 	return result;
 }
 
-Enemy& CharacterWorld::SpawnEnemy(const EnemySpawnRequest& request)
+CharacterWorld::EnemySpawnResult CharacterWorld::SpawnEnemy(const EnemySpawnRequest& request)
 {
 	auto e = std::make_unique<Enemy>();
 	InjectEnemyDeps(*e);
@@ -197,13 +201,20 @@ Enemy& CharacterWorld::SpawnEnemy(const EnemySpawnRequest& request)
 	}
 
 	enemies_.push_back(std::move(e));
-	return *enemies_.back();
+	EnemySpawnResult result{};
+	result.requestedPosition = request.position;
+	result.correctedPosition = stabilizedSpawn;
+	result.insideStage = wasInsideStage;
+	result.enemyId = static_cast<int>(enemies_.size()) - 1;
+	result.spawnRequestId = request.spawnRequestId;
+	return result;
 }
 
-Enemy& CharacterWorld::SpawnEnemyAt(const K4E::Vector3& position)
+CharacterWorld::EnemySpawnResult CharacterWorld::SpawnEnemyAt(const K4E::Vector3& position, int spawnRequestId)
 {
 	EnemySpawnRequest request{};
 	request.position = position;
+	request.spawnRequestId = spawnRequestId;
 	return SpawnEnemy(request);
 }
 

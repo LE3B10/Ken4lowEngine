@@ -119,6 +119,36 @@ void GamePlayDebugTools::DrawImGui(GamePlayWorld* world)
 	K4E::LightManager::GetInstance()->DrawImGui();
 	characters.DrawImGui();
 
+	if (auto* waveManager = world->GetWaveManager())
+	{
+		if (ImGui::Begin("Enemy Spawn Debug"))
+		{
+			ImGui::Text("Current Wave: %d / %d", waveManager->GetCurrentWaveNumber(), waveManager->GetTotalWaveCount());
+			ImGui::Text("Last Spawn Wave: %d", waveManager->GetLastSpawnWaveNumber());
+			if (ImGui::CollapsingHeader("Collected EnemySpawnPoints", ImGuiTreeNodeFlags_DefaultOpen))
+			{
+				int idx = 0;
+				for (const auto& sp : waveManager->GetSpawnPoints())
+				{
+					ImGui::Text("[%d] name=%s wave=%d group=%d count=%d archetype=%s pos=(%.2f,%.2f,%.2f)",
+						idx++, sp.name.c_str(), sp.wave, sp.group, sp.count, sp.archetype.c_str(), sp.position.x, sp.position.y, sp.position.z);
+				}
+			}
+			if (ImGui::CollapsingHeader("Last Spawn Results", ImGuiTreeNodeFlags_DefaultOpen))
+			{
+				for (const auto& sr : waveManager->GetLastSpawnResults())
+				{
+					ImGui::Text("reqId=%d name=%s wave=%d group=%d archetype=%s before=(%.2f,%.2f,%.2f) after=(%.2f,%.2f,%.2f) inside=%d",
+						sr.spawnRequestId, sr.name.c_str(), sr.wave, sr.group, sr.archetype.c_str(),
+						sr.position.x, sr.position.y, sr.position.z,
+						sr.correctedPosition.x, sr.correctedPosition.y, sr.correctedPosition.z,
+						sr.insideStage ? 1 : 0);
+				}
+			}
+		}
+		ImGui::End();
+	}
+
 	/// ---------- 武器マスターデータエディタ ---------- ///
 	static WeaponMasterDataDatabase weaponDB;
 	static WeaponMasterDataEditor weaponEditor;
