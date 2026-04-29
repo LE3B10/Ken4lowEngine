@@ -11,6 +11,7 @@ struct Material
 };
 
 ConstantBuffer<Material> gMaterial : register(b1);
+ConstantBuffer<EmitterCBData> gEmitter : register(b2);
 Texture2D<float4> gTexture : register(t0);
 SamplerState gSampler : register(s0);
 
@@ -78,7 +79,7 @@ float4 main(VertexShaderOutput input) : SV_TARGET0
     float4 textureColor = gTexture.Sample(gSampler, transformedUV.xy);
 
     float4 outColor = gMaterial.color * textureColor * input.color;
-    ParticleTypeParam param = GetParticleTypeParam(input.type);
+    ParticleTypeParam param = ApplyEmitterOverrides(GetParticleTypeParam(input.type), gEmitter);
     outColor.rgb *= (1.0f + param.emissiveBoost);
 
     if (outColor.a < 0.001f)

@@ -90,6 +90,14 @@ struct EmitterCBData
     uint emit;
     uint type;
     uint billboardMode;
+    float fadeInRatio;
+    float fadeOutRatio;
+    float emissiveBoost;
+    float convergence;
+    float divergence;
+    float floaty;
+    uint spawnShapeOverride;
+    float _pad0;
 };
 
 /// ---------- 時間制御 ---------- ///
