@@ -58,7 +58,9 @@ namespace Ken4lowEngine
 		// マテリアル設定
 		particleMaterial_->SetPipeline(2, slot);
 
-		TextureManager::GetInstance()->SetGraphicsRootDescriptorTable(commandList, 3, TextureManager::GetInstance()->GetSrvHandleGPU(textureFilePath_));
+		commandList->SetGraphicsRootConstantBufferView(3, gpuParticleBuffers_->GetEmitterCBAddress(slot));
+
+		TextureManager::GetInstance()->SetGraphicsRootDescriptorTable(commandList, 4, TextureManager::GetInstance()->GetSrvHandleGPU(textureFilePath_));
 
 		// インスタンス数分描画
 		if (particleMesh_->HasIndex())
