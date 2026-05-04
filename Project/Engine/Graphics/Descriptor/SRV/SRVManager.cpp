@@ -24,6 +24,10 @@ namespace Ken4lowEngine
 	/// -------------------------------------------------------------
 	void SRVManager::Initialize(DirectXCommon* dxCommon)
 	{
+		if (!dxCommon) {
+			throw std::runtime_error("dxCommon is null in SRVManager::Initialize");
+		}
+
 		// 引数を受け取ってメンバ変数に代入する
 		dxCommon_ = dxCommon;
 
@@ -45,6 +49,9 @@ namespace Ken4lowEngine
 		descriptorSize = dxCommon_->GetDevice()->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
 		descriptorHeap_->SetName(L"SRV Descriptor Heap");
+
+		allocated_.assign(kMaxSRVCount, false);
+		allocated_[0] = true;
 	}
 
 	/// -------------------------------------------------------------
@@ -61,6 +68,7 @@ namespace Ken4lowEngine
 		descriptorSize = 0;
 		useIndex = 1;
 		while (!freeIndices.empty()) { freeIndices.pop(); }
+		allocated_.clear();
 
 		// メンバ変数のクリア
 		dxCommon_ = nullptr;
@@ -136,6 +144,12 @@ namespace Ken4lowEngine
 	/// -------------------------------------------------------------
 	void SRVManager::PreDraw()
 	{
+		assert(dxCommon_ && "dxCommon_ is null in PreDraw");
+		assert(descriptorHeap_ && "descriptorHeap_ is null in PreDraw");
+		if (!dxCommon_ || !descriptorHeap_) {
+			return;
+		}
+
 		// ディスクリプタヒープの設定
 		ID3D12DescriptorHeap* descriptorHeaps[] = { descriptorHeap_.Get() };
 		dxCommon_->GetCommandManager()->GetCommandList()->SetDescriptorHeaps(1, descriptorHeaps);
@@ -177,18 +191,31 @@ namespace Ken4lowEngine
 		// 排他制御のためのロックを取得（スレッドセーフにするため）
 		std::lock_guard<std::mutex> lock(allocationMutex);
 
+		if (allocated_.size() != kMaxSRVCount) {
+			allocated_.assign(kMaxSRVCount, false);
+			allocated_[0] = true;
+		}
+
 		// 空きリストに要素がある場合は、それを利用する
 		if (!freeIndices.empty()) {
 			uint32_t index = freeIndices.front(); // 空きリストの先頭からインデックスを取得
 			freeIndices.pop(); // 空きリストから削除
+			assert(index < kMaxSRVCount && "SRV free index out of range in Allocate");
+			if (index >= kMaxSRVCount) {
+				throw std::runtime_error("SRV free index out of range in Allocate");
+			}
+			allocated_[index] = true;
 			return index; // 空いているインデックスを返す
 		}
 
 		// 空きリストが空の場合、次に使用可能なインデックスを確認
 		if (useIndex >= kMaxSRVCount)
 		{
+			assert(false && "No more SRV descriptors can be allocated");
 			throw std::runtime_error("No more SRV descriptors can be allocated"); // 確保可能な最大数を超えた場合は例外を投げる
 		}
+
+		allocated_[useIndex] = true;
 
 		// 空きリストも使用済みインデックスも残っていれば、新しいインデックスを返す
 		return useIndex++; // 次の未使用インデックスを返す（useIndexをインクリメントして更新）
@@ -203,10 +230,23 @@ namespace Ken4lowEngine
 		// 排他制御のためのロックを取得（スレッドセーフにするため）
 		std::lock_guard<std::mutex> lock(allocationMutex);
 
-		// 解放しようとしているインデックスが有効範囲外（0以上かつ kMaxSRVCount 未満でない）場合はエラーをスロー
+		if (srvIndex == 0) {
+			throw std::runtime_error("SRV index 0 is reserved and cannot be freed");
+		}
+
 		if (srvIndex >= kMaxSRVCount) {
 			throw std::runtime_error("Invalid SRV index for freeing"); // 範囲外のインデックスに対する解放操作は無効
 		}
+
+		if (allocated_.size() != kMaxSRVCount) {
+			throw std::runtime_error("SRV allocation state is not initialized");
+		}
+
+		if (!allocated_[srvIndex]) {
+			throw std::runtime_error("SRV index is not allocated or already freed");
+		}
+
+		allocated_[srvIndex] = false;
 
 		// 解放対象のインデックスを空きリストに追加
 		freeIndices.push(srvIndex); // 再利用可能なインデックスとしてリストに登録
@@ -238,6 +278,12 @@ namespace Ken4lowEngine
 	/// -------------------------------------------------------------
 	D3D12_CPU_DESCRIPTOR_HANDLE SRVManager::GetCPUDescriptorHandle(uint32_t index)
 	{
+		assert(descriptorHeap_ && "descriptorHeap_ is null in GetCPUDescriptorHandle");
+		assert(index < kMaxSRVCount && "SRV index out of range in GetCPUDescriptorHandle");
+		if (!descriptorHeap_ || index >= kMaxSRVCount) {
+			return D3D12_CPU_DESCRIPTOR_HANDLE{};
+		}
+
 		D3D12_CPU_DESCRIPTOR_HANDLE handle = descriptorHeap_->GetCPUDescriptorHandleForHeapStart();
 		handle.ptr += descriptorSize * index;
 		return handle;
@@ -249,6 +295,12 @@ namespace Ken4lowEngine
 	/// -------------------------------------------------------------
 	D3D12_GPU_DESCRIPTOR_HANDLE SRVManager::GetGPUDescriptorHandle(uint32_t index)
 	{
+		assert(descriptorHeap_ && "descriptorHeap_ is null in GetGPUDescriptorHandle");
+		assert(index < kMaxSRVCount && "SRV index out of range in GetGPUDescriptorHandle");
+		if (!descriptorHeap_ || index >= kMaxSRVCount) {
+			return D3D12_GPU_DESCRIPTOR_HANDLE{};
+		}
+
 		D3D12_GPU_DESCRIPTOR_HANDLE handle = descriptorHeap_->GetGPUDescriptorHandleForHeapStart();
 		handle.ptr += descriptorSize * index;
 		return handle;

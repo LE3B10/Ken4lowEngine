@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <stdexcept>
 #include <queue>
+#include <vector>
 
 namespace Ken4lowEngine
 {
@@ -168,6 +169,9 @@ namespace Ken4lowEngine
 
 		// 空きインデックスのリスト
 		std::queue<uint32_t> freeIndices;
+
+		// 確保状態の管理（true:確保済み, false:未確保）
+		std::vector<bool> allocated_;
 
 	private: /// ---------- コピー禁止 ---------- ///
 
