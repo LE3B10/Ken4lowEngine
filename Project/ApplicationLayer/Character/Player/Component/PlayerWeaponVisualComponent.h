@@ -32,6 +32,9 @@ public: /// ---------- メンバ関数 ---------- ///
 	// シャドウ描画
 	void DrawShadow();
 
+	// ImGui から見た目を調整
+	void DrawImGui();
+
 	// 現在の見た目を強制再構築したいときに使う
 	void ForceRefresh();
 
@@ -83,7 +86,10 @@ private: /// ---------- メンバ変数 ---------- ///
 	K4E::Vector3 muzzleLocalOffset_{ 0.0f, -0.02f, 0.85f };
 
 	// 武器のスケール（全体の大きさの調整）
-	K4E::Vector3 modelScale_{ 1.0f, 1.0f, 1.0f };
+	K4E::Vector3 modelScale_{ 0.55f, 0.55f, 0.55f };
+
+	// 一人称武器だけ少し小さくしたい時の倍率。最終的には modelScale_ に掛ける。
+	float viewModelScaleMultiplier_ = 0.55f;
 
 	K4E::Matrix4x4 weaponWorldMatrix_ = K4E::Matrix4x4::MakeIdentity();
 	bool hasWeaponWorldMatrix_ = false;
