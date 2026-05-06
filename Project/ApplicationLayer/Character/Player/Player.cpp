@@ -7,6 +7,7 @@
 #include "InputSnapshot.h"
 #include "CollisionManager.h"
 #include "HUDManager.h"
+#include "GpuParticleManager.h"
 
 #ifdef USE_IMGUI
 #include <imgui.h>
@@ -652,6 +653,21 @@ void Player::ApplyDamageFeedback(const PlayerDamageComponent::DamageFeedback& fb
 	}
 
 	vfx_.OnDamaged(fb.damage, fb.maxHp);
+
+	if (fb.notifyPlayerHit)
+	{
+		if (auto* tr = GetWorldTransform())
+		{
+			K4E::Vector3 emitPos = tr->translate_;
+			emitPos.y += 1.0f;
+
+			K4E::GpuParticleManager::GetInstance()->EmitBurst(
+				"PlayerDamageBlood",
+				K4E::GpuParticleType::PlayerDamageBlood,
+				emitPos,
+				40);
+		}
+	}
 
 	if (refs_.hudManager)
 	{
