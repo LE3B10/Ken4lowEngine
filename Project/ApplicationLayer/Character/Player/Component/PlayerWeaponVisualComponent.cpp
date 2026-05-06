@@ -1,5 +1,7 @@
 #include "PlayerWeaponVisualComponent.h"
 
+#include <algorithm>
+
 namespace
 {
 	std::string NormalizeWeaponModelPath(std::string& path)
@@ -23,24 +25,20 @@ namespace
 		return path;
 	}
 
-	K4E::Vector3 RotateByEulerLocal(const K4E::Vector3& v, const K4E::Vector3& rot)
+	K4E::Vector3 ExtractForwardFromMatrix(const K4E::Matrix4x4& m)
 	{
-		const auto m = K4E::Matrix4x4::MakeRotateMatrix(rot);
-		return {
-			m.m[0][0] * v.x + m.m[0][1] * v.y + m.m[0][2] * v.z,
-			m.m[1][0] * v.x + m.m[1][1] * v.y + m.m[1][2] * v.z,
-			m.m[2][0] * v.x + m.m[2][1] * v.y + m.m[2][2] * v.z,
-		};
-	}
+		K4E::Vector3 forward{ m.m[2][0], m.m[2][1], m.m[2][2] };
+		const float lenSq =
+			forward.x * forward.x +
+			forward.y * forward.y +
+			forward.z * forward.z;
 
-	void ExtractAxes_Row(const K4E::Matrix4x4& R, K4E::Vector3& ax, K4E::Vector3& ay, K4E::Vector3& az)
-	{
-		ax = { R.m[0][0], R.m[0][1], R.m[0][2] };
-		ay = { R.m[1][0], R.m[1][1], R.m[1][2] };
-		az = { R.m[2][0], R.m[2][1], R.m[2][2] };
-		ax = K4E::Vector3::Normalize(ax);
-		ay = K4E::Vector3::Normalize(ay);
-		az = K4E::Vector3::Normalize(az);
+		if (lenSq <= 0.0001f)
+		{
+			return { 0.0f, 0.0f, 1.0f };
+		}
+
+		return K4E::Vector3::Normalize(forward);
 	}
 }
 
@@ -49,6 +47,8 @@ void PlayerWeaponVisualComponent::Initialize()
 	weaponObject_.reset();
 	appliedWeaponId_ = 0;
 	visible_ = true;
+	hasWeaponWorldMatrix_ = false;
+	weaponWorldMatrix_ = K4E::Matrix4x4::MakeIdentity();
 }
 
 void PlayerWeaponVisualComponent::Update(float deltaTime, bool isADS)
@@ -79,6 +79,28 @@ void PlayerWeaponVisualComponent::ForceRefresh()
 	refreshRequested_ = true;
 }
 
+bool PlayerWeaponVisualComponent::TryGetMuzzleWorldPosition(K4E::Vector3& outPosition) const
+{
+	if (!weaponObject_ || !hasWeaponWorldMatrix_)
+	{
+		return false;
+	}
+
+	outPosition = TransformWeaponLocalPoint(muzzleLocalOffset_);
+	return true;
+}
+
+bool PlayerWeaponVisualComponent::TryGetMuzzleForward(K4E::Vector3& outForward) const
+{
+	if (!weaponObject_ || !hasWeaponWorldMatrix_)
+	{
+		return false;
+	}
+
+	outForward = ExtractForwardFromMatrix(weaponWorldMatrix_);
+	return true;
+}
+
 void PlayerWeaponVisualComponent::RebuildIfWeaponChanged()
 {
 	if (!weaponLogic_) return;
@@ -92,6 +114,7 @@ void PlayerWeaponVisualComponent::RebuildIfWeaponChanged()
 		appliedWeaponId_ = 0;
 		appliedModelPath_.clear();
 		refreshRequested_ = false;
+		hasWeaponWorldMatrix_ = false;
 		return;
 	}
 
@@ -103,6 +126,7 @@ void PlayerWeaponVisualComponent::RebuildIfWeaponChanged()
 		appliedWeaponId_ = 0;
 		appliedModelPath_.clear();
 		refreshRequested_ = false;
+		hasWeaponWorldMatrix_ = false;
 		return;
 	}
 
@@ -115,6 +139,7 @@ void PlayerWeaponVisualComponent::RebuildIfWeaponChanged()
 		appliedWeaponId_ = 0;
 		appliedModelPath_.clear();
 		refreshRequested_ = false;
+		hasWeaponWorldMatrix_ = false;
 		return;
 	}
 
@@ -140,38 +165,41 @@ void PlayerWeaponVisualComponent::RebuildIfWeaponChanged()
 
 void PlayerWeaponVisualComponent::SyncToHand(bool isADS)
 {
-	if (!weaponObject_ || !rightHandTransform_) return;
-
-	const K4E::Vector3 handPos = rightHandTransform_->worldTranslate_;
-	const K4E::Vector3 handRot = rightHandTransform_->worldRotate_;
+	if (!weaponObject_ || !rightHandTransform_)
+	{
+		hasWeaponWorldMatrix_ = false;
+		return;
+	}
 
 	const K4E::Vector3 localPos = isADS ? adsLocalOffset_ : hipLocalOffset_;
 	const K4E::Vector3 localRot = isADS ? adsLocalRotate_ : hipLocalRotate_;
 
-	// 右手の回転行列
-	const K4E::Matrix4x4 R = K4E::Matrix4x4::MakeRotateMatrix(handRot);
+	const K4E::Vector3 totalLocalOffset = localPos + handSocketLocalOffset_;
+	const K4E::Vector3 totalLocalRotate = localRot + handSocketLocalRotate_;
 
-	K4E::Vector3 ax, ay, az;
-	ExtractAxes_Row(R, ax, ay, az);
+	const K4E::Matrix4x4 localMatrix = K4E::Matrix4x4::MakeAffineMatrix(
+		modelScale_ * 0.5f,
+		totalLocalRotate,
+		totalLocalOffset);
 
-	// ローカルオフセットを右手基準でワールド化
-	const K4E::Vector3 weaponWorldPos =
-		handPos +
-		ax * localPos.x +
-		ay * localPos.y +
-		az * localPos.z;
+	weaponWorldMatrix_ = K4E::Matrix4x4::Multiply(localMatrix, rightHandTransform_->worldMatrix_);
+	hasWeaponWorldMatrix_ = true;
 
-	weaponObject_->SetTranslate(weaponWorldPos);
+	K4E::Vector3 worldScale{};
+	K4E::Vector3 worldRotate{};
+	K4E::Vector3 worldTranslate{};
+	K4E::Matrix4x4::Decompose(weaponWorldMatrix_, worldScale, worldRotate, worldTranslate);
 
-	// まずは仮でそのまま
-	weaponObject_->SetRotate(handRot + localRot);
-
+	weaponObject_->SetScale(worldScale);
+	weaponObject_->SetRotate(worldRotate);
+	weaponObject_->SetTranslate(worldTranslate);
 	weaponObject_->Update();
 }
 
 bool PlayerWeaponVisualComponent::LoadWeaponModel(const std::string& modelPath)
 {
 	weaponObject_.reset();
+	hasWeaponWorldMatrix_ = false;
 
 	if (modelPath.empty())
 	{
@@ -183,4 +211,9 @@ bool PlayerWeaponVisualComponent::LoadWeaponModel(const std::string& modelPath)
 	obj->SetScale(modelScale_ * 0.2f);
 	weaponObject_ = std::move(obj);
 	return true;
+}
+
+K4E::Vector3 PlayerWeaponVisualComponent::TransformWeaponLocalPoint(const K4E::Vector3& localPoint) const
+{
+	return K4E::Matrix4x4::Transform(localPoint, weaponWorldMatrix_);
 }
