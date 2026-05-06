@@ -61,6 +61,12 @@ public: /// ---------- メンバ関数 ---------- ///
 	void Update();
 
 	/// <summary>
+	/// すでに合成済みのワールド行列をそのまま GPU へ反映します。
+	/// Euler角では表しにくい親子関係やモデル補正を使いたい場合に使います。
+	/// </summary>
+	void UpdateWithWorldMatrix(const Matrix4x4& worldMatrix);
+
+	/// <summary>
 	/// 指定したルートパラメータのインデックスでパイプラインを設定
 	/// </summary>
 	/// <param name="rootParameterIndex">設定するルートパラメータのインデックス</param>
