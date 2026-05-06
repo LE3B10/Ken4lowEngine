@@ -4,12 +4,12 @@
 namespace Ken4lowEngine
 {
 
-/// ---------- 線分の構造体 ---------- ///
-struct Segment final
-{
-	Vector3 origin; // 始点
-	Vector3 diff;   // 終点からの差分
-};
+	/// ---------- 線分の構造体 ---------- ///
+	struct Segment final
+	{
+		Vector3 origin; // 始点
+		Vector3 diff;   // 始点から終点への差分
+	};
 
-// Line Ray Segment
+	// Line Ray Segment
 } // namespace Ken4lowEngine

@@ -122,6 +122,13 @@ namespace Ken4lowEngine
 		static Matrix4x4 Inverse(const Matrix4x4& matrix);
 
 		/// <summary>
+		/// 逆行列の計算を試みます。
+		/// 逆行列が存在する場合は out に結果を格納して true を返します。
+		/// 逆行列が存在しない場合は out を単位行列にして false を返します。
+		/// </summary>
+		static bool TryInverse(const Matrix4x4& matrix, Matrix4x4& out);
+
+		/// <summary>
 		/// 行列の転置行列を返します。
 		/// </summary>
 		/// <param name="m">転置する行列。</param>
