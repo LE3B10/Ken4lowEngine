@@ -99,6 +99,36 @@ namespace Ken4lowEngine
 		UpdateShadowMatrix(lightViewProjection);
 	}
 
+	void Object3D::UpdateWithWorldMatrix(const Matrix4x4& worldMatrix)
+	{
+		material_.Update();
+		worldTransform_.UpdateWithWorldMatrix(worldMatrix);
+		cameraData->worldPosition = CameraManager::GetInstance()->GetActiveCameraPosition();
+
+		Vector3 lightDir = { 0.3f, -1.0f, 0.2f };
+		const auto& lights = LightManager::GetInstance()->GetPunctualLights();
+		for (const auto& light : lights)
+		{
+			if (light.lightType == 1)
+			{
+				lightDir = Vector3::Normalize(light.direction);
+				break;
+			}
+		}
+
+		const Vector3 focusPos = cameraData->worldPosition;
+		const Matrix4x4 lightViewProjection = Matrix4x4::MakeLightViewProjection(
+			lightDir,
+			focusPos,
+			60.0f,
+			35.0f,
+			35.0f,
+			0.1f,
+			120.0f);
+
+		UpdateShadowMatrix(lightViewProjection);
+	}
+
 	void Object3D::UpdateShadowMatrix(const Matrix4x4& lightViewProjection)
 	{
 		const Matrix4x4& worldMatrix = worldTransform_.matWorld_;
