@@ -10,6 +10,7 @@ namespace K4E = ::Ken4lowEngine;
 class BulletManager;
 class CollisionManager;
 class PlayerWeaponComponent;
+class PlayerWeaponVisualComponent;
 class PlayerViewComponent;
 
 /// -------------------------------------------------------------
@@ -21,6 +22,7 @@ class PlayerCombatComponent
 {
 public:
 	void BindDependencies(PlayerWeaponComponent* weapon, PlayerViewComponent* view);
+	void BindWeaponVisual(PlayerWeaponVisualComponent* weaponVisual) { weaponVisual_ = weaponVisual; }
 
 	// Player の音コールバックをそのまま受け取る
 	void SetAudioCallbacks(std::function<void()>* onFire, std::function<void()>* onReload);
@@ -41,6 +43,7 @@ public:
 private:
 	PlayerWeaponComponent* weapon_ = nullptr;
 	PlayerViewComponent* view_ = nullptr;
+	PlayerWeaponVisualComponent* weaponVisual_ = nullptr;
 
 	std::function<void()>* onFireSE_ = nullptr;
 	std::function<void()>* onReloadSE_ = nullptr;
