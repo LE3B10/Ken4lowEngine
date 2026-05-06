@@ -65,7 +65,7 @@ private: /// ---------- 構造体 ---------- ///
 		float fireInterval = 0.35f;  // 攻撃間隔（秒）
 		float bulletSpeed = 18.0f;   // 弾の速度
 		float bulletLifeSec = 3.0f;  // 弾の寿命（秒）
-		int   bulletDamage = 50;     // 弾のダメージ
+		int   bulletDamage = 5;      // 弾のダメージ
 		float muzzleHeight = 1.2f;   // マズルの高さ
 		float searchDuration = 5.0f; // 索敵状態の滞在時間
 		float losRepositionEvalSec = 0.35f; // 射線調整の再評価間隔
