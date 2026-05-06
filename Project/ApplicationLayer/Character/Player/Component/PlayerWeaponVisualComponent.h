@@ -35,6 +35,12 @@ public: /// ---------- メンバ関数 ---------- ///
 	// 現在の見た目を強制再構築したいときに使う
 	void ForceRefresh();
 
+	// 銃口のワールド座標を取得する
+	bool TryGetMuzzleWorldPosition(K4E::Vector3& outPosition) const;
+
+	// 銃口の向きを取得する。取得できない場合は false を返す
+	bool TryGetMuzzleForward(K4E::Vector3& outForward) const;
+
 private: /// ---------- メンバ関数 ---------- ///
 
 	// 武器の切り替えを検知してビジュアルを再構築
@@ -45,6 +51,9 @@ private: /// ---------- メンバ関数 ---------- ///
 
 	// モデルをロードする共通処理
 	bool LoadWeaponModel(const std::string& modelPath);
+
+	// ローカル座標を現在の武器ワールド行列でワールド座標に変換する
+	K4E::Vector3 TransformWeaponLocalPoint(const K4E::Vector3& localPoint) const;
 
 private: /// ---------- メンバ変数 ---------- ///
 
@@ -70,8 +79,14 @@ private: /// ---------- メンバ変数 ---------- ///
 	K4E::Vector3 handSocketLocalOffset_{ 0.05f, -0.08f, 0.12f };
 	K4E::Vector3 handSocketLocalRotate_{ 0.0f, 0.0f, 0.0f };
 
+	// 銃口のローカル位置。モデルによってずれる場合はここを調整する
+	K4E::Vector3 muzzleLocalOffset_{ 0.0f, -0.02f, 0.85f };
+
 	// 武器のスケール（全体の大きさの調整）
 	K4E::Vector3 modelScale_{ 1.0f, 1.0f, 1.0f };
+
+	K4E::Matrix4x4 weaponWorldMatrix_ = K4E::Matrix4x4::MakeIdentity();
+	bool hasWeaponWorldMatrix_ = false;
 
 	bool refreshRequested_ = false;
 	std::string appliedModelPath_;
