@@ -429,6 +429,7 @@ void Player::DrawImGui()
 #ifdef USE_IMGUI
 	view_.DrawImGui();
 	weapon_.DrawImGui();
+	weaponVisual_.DrawImGui();
 	combat_.DrawImGui();
 	hurtbox_.DrawImGui();
 #endif
