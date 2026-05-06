@@ -25,6 +25,16 @@ namespace
 		return path;
 	}
 
+	void ExtractAxes_Row(const K4E::Matrix4x4& R, K4E::Vector3& ax, K4E::Vector3& ay, K4E::Vector3& az)
+	{
+		ax = { R.m[0][0], R.m[0][1], R.m[0][2] };
+		ay = { R.m[1][0], R.m[1][1], R.m[1][2] };
+		az = { R.m[2][0], R.m[2][1], R.m[2][2] };
+		ax = K4E::Vector3::Normalize(ax);
+		ay = K4E::Vector3::Normalize(ay);
+		az = K4E::Vector3::Normalize(az);
+	}
+
 	K4E::Vector3 ExtractForwardFromMatrix(const K4E::Matrix4x4& m)
 	{
 		K4E::Vector3 forward{ m.m[2][0], m.m[2][1], m.m[2][2] };
@@ -171,29 +181,43 @@ void PlayerWeaponVisualComponent::SyncToHand(bool isADS)
 		return;
 	}
 
+	const K4E::Vector3 handPos = rightHandTransform_->worldTranslate_;
+	const K4E::Vector3 handRot = rightHandTransform_->worldRotate_;
+
 	const K4E::Vector3 localPos = isADS ? adsLocalOffset_ : hipLocalOffset_;
 	const K4E::Vector3 localRot = isADS ? adsLocalRotate_ : hipLocalRotate_;
 
 	const K4E::Vector3 totalLocalOffset = localPos + handSocketLocalOffset_;
 	const K4E::Vector3 totalLocalRotate = localRot + handSocketLocalRotate_;
 
-	const K4E::Matrix4x4 localMatrix = K4E::Matrix4x4::MakeAffineMatrix(
-		modelScale_ * 0.5f,
-		totalLocalRotate,
-		totalLocalOffset);
+	// 前回の localMatrix * rightHandWorldMatrix 方式だと、行列の向きと
+	// Object3D 側のオイラー角復元の相性で上下左右が反転していた。
+	// ここでは既存の右手 worldTranslate/worldRotate を基準に戻し、
+	// 位置だけ右手の回転軸でローカル→ワールド変換する。
+	const K4E::Matrix4x4 handRotMatrix = K4E::Matrix4x4::MakeRotateMatrix(handRot);
 
-	weaponWorldMatrix_ = K4E::Matrix4x4::Multiply(localMatrix, rightHandTransform_->worldMatrix_);
-	hasWeaponWorldMatrix_ = true;
+	K4E::Vector3 ax, ay, az;
+	ExtractAxes_Row(handRotMatrix, ax, ay, az);
 
-	K4E::Vector3 worldScale{};
-	K4E::Vector3 worldRotate{};
-	K4E::Vector3 worldTranslate{};
-	K4E::Matrix4x4::Decompose(weaponWorldMatrix_, worldScale, worldRotate, worldTranslate);
+	const K4E::Vector3 weaponWorldPos =
+		handPos +
+		ax * totalLocalOffset.x +
+		ay * totalLocalOffset.y +
+		az * totalLocalOffset.z;
 
-	weaponObject_->SetScale(worldScale);
-	weaponObject_->SetRotate(worldRotate);
-	weaponObject_->SetTranslate(worldTranslate);
+	const K4E::Vector3 weaponWorldRot = handRot + totalLocalRotate;
+	const K4E::Vector3 weaponWorldScale = modelScale_ * 0.5f;
+
+	weaponObject_->SetScale(weaponWorldScale);
+	weaponObject_->SetRotate(weaponWorldRot);
+	weaponObject_->SetTranslate(weaponWorldPos);
 	weaponObject_->Update();
+
+	weaponWorldMatrix_ = K4E::Matrix4x4::MakeAffineMatrix(
+		weaponWorldScale,
+		weaponWorldRot,
+		weaponWorldPos);
+	hasWeaponWorldMatrix_ = true;
 }
 
 bool PlayerWeaponVisualComponent::LoadWeaponModel(const std::string& modelPath)
