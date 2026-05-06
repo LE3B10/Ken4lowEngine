@@ -7,6 +7,7 @@
 #include "GpuParticleManager.h"
 #include "PlayerViewComponent.h"
 #include "PlayerWeaponComponent.h"
+#include "PlayerWeaponVisualComponent.h"
 
 #ifdef USE_IMGUI
 #include <imgui.h>
@@ -69,9 +70,27 @@ void PlayerCombatComponent::FireOnce(
 	// 発射した瞬間のVFX
 	if (auto* cam = view_->GetCamera())
 	{
-		const K4E::Vector3 forward = K4E::Vector3::Normalize(cam->GetForward());
-		const K4E::Vector3 muzzlePos = cam->GetTranslate() + forward * 1.0f;
-		const K4E::Vector3 tracerPos = cam->GetTranslate() + forward * 2.0f;
+		K4E::Vector3 fireForward = K4E::Vector3::Normalize(cam->GetForward());
+		K4E::Vector3 muzzlePos = cam->GetTranslate() + fireForward * 1.0f;
+
+		// できるだけ武器モデル側の銃口位置を使う。
+		// まだ武器が作られていない場合だけ、従来のカメラ前方にフォールバックする。
+		if (weaponVisual_)
+		{
+			K4E::Vector3 visualMuzzle{};
+			if (weaponVisual_->TryGetMuzzleWorldPosition(visualMuzzle))
+			{
+				muzzlePos = visualMuzzle;
+			}
+
+			K4E::Vector3 visualForward{};
+			if (weaponVisual_->TryGetMuzzleForward(visualForward))
+			{
+				fireForward = visualForward;
+			}
+		}
+
+		const K4E::Vector3 tracerPos = muzzlePos + fireForward * 0.35f;
 
 		auto* particle = K4E::GpuParticleManager::GetInstance();
 		particle->EmitBurst(
