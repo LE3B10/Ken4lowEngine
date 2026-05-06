@@ -120,6 +120,7 @@ void Player::Initialize()
 
 	weaponController_.Initialize(&weapon_, &weaponVisual_, &brainComponent_, &api_);
 	combat_.BindDependencies(&weapon_, &view_);
+	combat_.BindWeaponVisual(&weaponVisual_);
 	combat_.SetAudioCallbacks(&audio_.onFire, &audio_.onReload);
 
 	// 近接
