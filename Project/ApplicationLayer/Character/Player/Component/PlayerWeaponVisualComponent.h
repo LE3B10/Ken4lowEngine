@@ -72,11 +72,11 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	// 武器のローカルオフセットと回転（右手に対する位置と向きの調整）
 	K4E::Vector3 hipLocalOffset_{ 0.0f, -2.0f, 0.25f };
-	K4E::Vector3 hipLocalRotate_{ 0.0f, 0.0f, -1.57f };
+	K4E::Vector3 hipLocalRotate_{ -1.57f, 0.0f, 0.0f };
 
 	// ADS（Aim Down Sights）時のローカルオフセットと回転（サイトを覗くときの位置と向きの調整）
 	K4E::Vector3 adsLocalOffset_{ 0.0f, -2.0f, 0.25f };
-	K4E::Vector3 adsLocalRotate_{ 0.0f, 0.0f, -1.57f };
+	K4E::Vector3 adsLocalRotate_{ -1.57f,0.0f, 0.0f };
 
 	// 手に持つときのローカルオフセットと回転（右手に持ったときの位置と向きの調整）
 	K4E::Vector3 handSocketLocalOffset_{ 0.05f, -0.08f, 0.12f };
@@ -86,10 +86,10 @@ private: /// ---------- メンバ変数 ---------- ///
 	K4E::Vector3 muzzleLocalOffset_{ 0.0f, -0.02f, 0.85f };
 
 	// 武器のスケール（全体の大きさの調整）
-	K4E::Vector3 modelScale_{ 0.55f, 0.55f, 0.55f };
+	K4E::Vector3 modelScale_{ 1.0f, 1.0f, 1.0f };
 
 	// 一人称武器だけ少し小さくしたい時の倍率。最終的には modelScale_ に掛ける。
-	float viewModelScaleMultiplier_ = 0.55f;
+	float viewModelScaleMultiplier_ = 1.0f;
 
 	K4E::Matrix4x4 weaponWorldMatrix_ = K4E::Matrix4x4::MakeIdentity();
 	bool hasWeaponWorldMatrix_ = false;

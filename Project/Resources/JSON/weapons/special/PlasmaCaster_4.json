@@ -1,7 +1,7 @@
 {
     "assetData": {
         "iconPath": "",
-        "modelPath": "Weapons/PlasmaCaster.gltf"
+        "modelPath": "Sources/Weapons/special_launcher.gltf"
     },
     "attributes": [],
     "bCanToggleFireMode": false,

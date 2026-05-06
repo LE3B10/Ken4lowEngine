@@ -1,7 +1,7 @@
 {
     "assetData": {
         "iconPath": "",
-        "modelPath": "Weapons/Knife.gltf"
+        "modelPath": "Sources/Weapons/melee_knife.gltf"
     },
     "attributes": [],
     "bCanToggleFireMode": false,

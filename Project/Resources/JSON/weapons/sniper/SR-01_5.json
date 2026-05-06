@@ -1,7 +1,7 @@
 {
     "assetData": {
         "iconPath": "",
-        "modelPath": "Weapons/SR-01.gltf"
+        "modelPath": "Sources/Weapons/sniper_rifle.gltf"
     },
     "attributes": [],
     "bCanToggleFireMode": false,
