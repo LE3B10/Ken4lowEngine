@@ -18,30 +18,39 @@ namespace
 		// \ を / に統一
 		std::replace(path.begin(), path.end(), '\\', '/');
 
-		// ModelPathResolver 側で Resources/Models/Sources を前に付けるため、
-		// 武器データ側の modelPath は「Weapons/xxx.gltf」のような論理パスに揃える。
-		// ここで Sources を残すと
-		// Resources/Models/Sources/Sources/Weapons/xxx.gltf
-		// のように二重になり、モデルを読めなくなる。
-		const std::string prefixes[] =
+		// モデル読み込み側では ModelPathResolver が必ず
+		// Resources/Models/Sources/ を前に付ける。
+		// そのため、ここで返す値は Weapons/xxx.gltf のような論理パスにする。
+		// 例:
+		//   Resources/Models/Sources/Weapons/primary_rifle.gltf -> Weapons/primary_rifle.gltf
+		//   Models/Sources/Weapons/primary_rifle.gltf           -> Weapons/primary_rifle.gltf
+		//   Sources/Models/Weapons/primary_rifle.gltf           -> Weapons/primary_rifle.gltf
+		// 最終的な実ファイルパスは ModelPathResolver 側で
+		// Resources/Models/Sources/Weapons/primary_rifle.gltf になる。
+		const std::string sourceRoot = "Resources/Models/Sources/";
+		const size_t sourceRootPos = path.find(sourceRoot);
+		if (sourceRootPos != std::string::npos)
 		{
-			"Resources/Models/Sources/",
-			"Resources/Models/Compiled/",
-			"Resources/Models/",
-			"Models/Sources/",
-			"Models/Compiled/",
-			"Sources/Models/",
-			"Sources/",
-			"Compiled/",
-		};
-
-		for (const std::string& prefix : prefixes)
+			path = path.substr(sourceRootPos + sourceRoot.size());
+		}
+		else
 		{
-			const size_t pos = path.find(prefix);
-			if (pos != std::string::npos)
+			const std::string removablePrefixes[] =
 			{
-				path = path.substr(pos + prefix.size());
-				break;
+				"Models/Sources/",
+				"Sources/Models/",
+				"Resources/Models/",
+				"Models/",
+				"Sources/",
+			};
+
+			for (const std::string& prefix : removablePrefixes)
+			{
+				if (path.rfind(prefix, 0) == 0)
+				{
+					path = path.substr(prefix.size());
+					break;
+				}
 			}
 		}
 
