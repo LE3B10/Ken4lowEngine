@@ -190,10 +190,7 @@ void PlayerWeaponVisualComponent::SyncToHand(bool isADS)
 	const K4E::Vector3 totalLocalOffset = localPos + handSocketLocalOffset_;
 	const K4E::Vector3 totalLocalRotate = localRot + handSocketLocalRotate_;
 
-	// 前回の localMatrix * rightHandWorldMatrix 方式だと、行列の向きと
-	// Object3D 側のオイラー角復元の相性で上下左右が反転していた。
-	// ここでは既存の右手 worldTranslate/worldRotate を基準に戻し、
-	// 位置だけ右手の回転軸でローカル→ワールド変換する。
+	// 右手の位置は、右手の回転軸でローカルオフセットをワールド化する
 	const K4E::Matrix4x4 handRotMatrix = K4E::Matrix4x4::MakeRotateMatrix(handRot);
 
 	K4E::Vector3 ax, ay, az;
@@ -205,7 +202,15 @@ void PlayerWeaponVisualComponent::SyncToHand(bool isADS)
 		ay * totalLocalOffset.y +
 		az * totalLocalOffset.z;
 
-	const K4E::Vector3 weaponWorldRot = handRot + totalLocalRotate;
+	// 武器モデルはY方向に90度寝かせて正面を合わせているため、
+	// カメラピッチをそのままX回転に足すと、上下入力が横方向の回転に逃げる。
+	// モデルの向き補正後の前方向に対して上下するよう、手のX回転をZ回転側へ逃がす。
+	const K4E::Vector3 weaponWorldRot = {
+		totalLocalRotate.x,
+		handRot.y + totalLocalRotate.y,
+		handRot.z + totalLocalRotate.z - handRot.x,
+	};
+
 	const K4E::Vector3 weaponWorldScale = modelScale_ * 0.5f;
 
 	weaponObject_->SetScale(weaponWorldScale);
