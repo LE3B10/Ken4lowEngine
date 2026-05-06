@@ -4,6 +4,7 @@
 #include "BulletManager.h"
 #include "Camera.h"
 #include "CollisionManager.h"
+#include "GpuParticleManager.h"
 #include "PlayerViewComponent.h"
 #include "PlayerWeaponComponent.h"
 
@@ -63,6 +64,27 @@ void PlayerCombatComponent::FireOnce(
 	if (onFireSE_ && *onFireSE_)
 	{
 		(*onFireSE_)();
+	}
+
+	// 発射した瞬間のVFX
+	if (auto* cam = view_->GetCamera())
+	{
+		const K4E::Vector3 forward = K4E::Vector3::Normalize(cam->GetForward());
+		const K4E::Vector3 muzzlePos = cam->GetTranslate() + forward * 1.0f;
+		const K4E::Vector3 tracerPos = cam->GetTranslate() + forward * 2.0f;
+
+		auto* particle = K4E::GpuParticleManager::GetInstance();
+		particle->EmitBurst(
+			"MuzzleFlash",
+			K4E::GpuParticleType::MuzzleFlash,
+			muzzlePos,
+			8);
+
+		particle->EmitBurst(
+			"BulletTracer",
+			K4E::GpuParticleType::BulletTracer,
+			tracerPos,
+			12);
 	}
 
 	// カメラリコイル
