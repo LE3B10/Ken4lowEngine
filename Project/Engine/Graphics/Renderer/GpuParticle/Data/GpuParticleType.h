@@ -41,6 +41,11 @@ namespace Ken4lowEngine
 		Trail,
 		DeathBurstCore,
 
+		// 相互評価で多かった「被弾」「射撃」「弾道」の手応えを出すための追加タイプ
+		PlayerDamageBlood,
+		MuzzleFlash,
+		BulletTracer,
+
 		Count
 	};
 
