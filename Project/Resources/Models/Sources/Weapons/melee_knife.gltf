@@ -20,7 +20,7 @@
 	],
 	"materials":[
 		{
-			"name":"melee_knife_material",
+			"name":"melee_knife_material.001",
 			"pbrMetallicRoughness":{
 				"baseColorTexture":{
 					"index":0
@@ -32,7 +32,7 @@
 	],
 	"meshes":[
 		{
-			"name":"melee_knife_mesh",
+			"name":"melee_knife_mesh.001",
 			"primitives":[
 				{
 					"attributes":{
@@ -66,13 +66,13 @@
 			"count":96,
 			"max":[
 				0.17000000178813934,
-				0.03999999910593033,
-				0.8101889491081238
+				0.8101889491081238,
+				0.08000002056360245
 			],
 			"min":[
 				-0.17000000178813934,
-				-0.07999999821186066,
-				-0.574999988079071
+				-0.574999988079071,
+				-0.03999999538064003
 			],
 			"type":"VEC3"
 		},
