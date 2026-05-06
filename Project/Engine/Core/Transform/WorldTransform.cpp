@@ -59,6 +59,19 @@ namespace Ken4lowEngine
 		wvpData->WorldInversedTranspose = Matrix4x4::Transpose(Matrix4x4::Inverse(worldMatrix));
 	}
 
+	void WorldTransform::UpdateWithWorldMatrix(const Matrix4x4& worldMatrix)
+	{
+		matWorld_ = worldMatrix;
+		worldTranslate_ = { worldMatrix.m[3][0], worldMatrix.m[3][1], worldMatrix.m[3][2] };
+
+		const Matrix4x4 viewProjection = CameraManager::GetInstance()->GetActiveViewProjectionMatrix();
+		const Matrix4x4 worldViewProjectionMatrix = Matrix4x4::Multiply(worldMatrix, viewProjection);
+
+		wvpData->WVP = worldViewProjectionMatrix;
+		wvpData->World = worldMatrix;
+		wvpData->WorldInversedTranspose = Matrix4x4::Transpose(Matrix4x4::Inverse(worldMatrix));
+	}
+
 	/// -------------------------------------------------------------
 	///                 パイプライン設定処理
 	/// -------------------------------------------------------------
