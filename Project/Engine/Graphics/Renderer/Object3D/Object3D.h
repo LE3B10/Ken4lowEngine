@@ -54,199 +54,42 @@ namespace Ken4lowEngine
 
 	public: /// ---------- メンバ関数 ---------- ///
 
-		/// <summary>
-		/// 3D オブジェクトの初期化処理を行います。<br/>
-		/// ・DirectXCommon / デフォルトカメラの取得<br/>
-		/// ・AssimpLoader による ModelData の読み込み<br/>
-		/// ・SubMesh ごとの Mesh 生成とテクスチャ SRV の登録<br/>
-		/// ・環境マップとディゾルブマスクテクスチャの読み込み<br/>
-		/// ・WorldTransform / Material の初期化<br/>
-		/// ・カメラ用 CBV / ディゾルブ用 CBV の生成とマップ<br/>
-		/// をまとめて行います。
-		/// </summary>
-		/// <param name="fileName">読み込むモデルファイル名（パス）。</param>
 		void Initialize(const std::string& fileName);
-
-		/// <summary>
-		/// 毎フレームの更新処理を行います。<br/>
-		/// ・Object3DCommon からデフォルトカメラを取得し直す<br/>
-		/// ・Material / WorldTransform の更新<br/>
-		/// ・CameraForGPU にアクティブカメラのワールド位置を書き込み<br/>
-		/// などを行い、描画に必要な CBV を更新します。
-		/// </summary>
 		void Update();
-
+		void UpdateWithWorldMatrix(const Matrix4x4& worldMatrix);
 		void UpdateShadowMatrix(const Matrix4x4& lightViewProjection);
-
-		/// <summary>
-		/// ImGui を使ったデバッグ用 UI の描画を行います。<br/>
-		/// ・Position / Rotation / Scale の編集<br/>
-		/// ・カメラ位置の簡易調整（Slider）<br/>
-		/// ・Material 側の ImGui 表示<br/>
-		/// などを行います（USE_IMGUI 定義時のみ有効）。
-		/// </summary>
 		void DrawImGui();
-
-		/// <summary>
-		/// 3D オブジェクトの描画処理を行います。<br/>
-		/// ・Object3DCommon で共通 PSO / ルートシグネチャ設定<br/>
-		/// ・Material / WorldTransform のパイプラインセット<br/>
-		/// ・カメラ CBV / 環境マップ / ディゾルブ用 CBV / マスク SRV をルートにバインド<br/>
-		/// ・SubMesh ごとにテクスチャ SRV をセットして Mesh::Draw() を呼び出し<br/>
-		/// を行います。
-		/// </summary>
 		void Draw();
-
 		void DrawShadow();
 
 	public: /// ---------- 設定処理 ---------- ///
 
-		/// <summary>
-		/// モデルを外部の ModelManager から検索して設定します。<br/>
-		/// FindModel(filePath) で共有ポインタとして取得し、必要に応じて Model 側の Initialize を呼び出します。
-		/// </summary>
-		/// <param name="filePath">モデルを探す際のキーとなるパス。</param>
 		void SetModel(const std::string& filePath);
-
-		/// <summary>
-		/// ワールド座標系でのスケールを設定します。
-		/// </summary>
-		/// <param name="scale">XYZ 各軸の拡大率。</param>
 		void SetScale(const Vector3& scale) { worldTransform_.scale_ = scale; }
-
-		/// <summary>
-		/// 現在のスケールを取得します。
-		/// </summary>
-		/// <returns>XYZ 各軸のスケール。</returns>
 		Vector3 GetScale() const { return worldTransform_.scale_; }
-
-		/// <summary>
-		/// ワールド座標系での回転を設定します（ラジアン指定想定）。
-		/// </summary>
-		/// <param name="rotate">XYZ 各軸の回転量。</param>
 		void SetRotate(const Vector3& rotate) { worldTransform_.rotate_ = rotate; }
-
-		/// <summary>
-		/// 現在の回転値を取得します。
-		/// </summary>
-		/// <returns>XYZ 各軸の回転量。</returns>
 		Vector3 GetRotate() const { return worldTransform_.rotate_; }
-
-		/// <summary>
-		/// ワールド座標系での位置を設定します。
-		/// </summary>
-		/// <param name="translate">XYZ 各軸の位置。</param>
 		void SetTranslate(const Vector3& translate) { worldTransform_.translate_ = translate; }
-
-		/// <summary>
-		/// 現在のワールド座標を取得します。
-		/// </summary>
-		/// <returns>XYZ 各軸の位置。</returns>
 		Vector3 GetTranslate() const { return worldTransform_.translate_; }
-
-		/// <summary>
-		/// マテリアルのベースカラーを設定します。
-		/// </summary>
-		/// <param name="color">RGBA 形式の色。</param>
 		void SetColor(const Vector4& color) { material_.SetColor(color); }
-
-		/// <summary>
-		/// このオブジェクトが使用するカメラを明示的に設定します。<br/>
-		/// 特別なカメラで描画したい場合などに使用します。
-		/// </summary>
-		/// <param name="camera">使用したいカメラのポインタ。</param>
 		void SetCamera(Camera* camera) { camera_ = camera; }
-
-		/// <summary>
-		/// マテリアルの反射率を設定します。<br/>
-		/// シェーダ側でリフレクションの強さとして利用されます。
-		/// </summary>
-		/// <param name="reflectivity">反射率（0.0 ～ 1.0 想定）。</param>
 		void SetReflectivity(float reflectivity) { material_.SetReflection(reflectivity); }
-
-		/// <summary>
-		/// 全てのサブメッシュのテクスチャを同じものに差し替えます。<br/>
-		/// UI から一括でテクスチャを変えたい場合などに使用します。
-		/// </summary>
-		/// <param name="texturePath">読み込むテクスチャファイルのパス。</param>
 		void SetTextureForAll(const std::string& texturePath);
-
-		/// <summary>
-		/// 指定したサブメッシュのテクスチャだけを変更します。<br/>
-		/// メッシュごとに異なるテクスチャを貼りたい場合に使用します。
-		/// </summary>
-		/// <param name="index">対象となるサブメッシュのインデックス。</param>
-		/// <param name="texturePath">差し替えるテクスチャファイルのパス。</param>
 		void SetTextureForSubmesh(size_t index, const std::string& texturePath);
-
-		/// <summary>
-		/// 管理しているサブメッシュの数を取得します。<br/>
-		/// ImGui などで「サブメッシュ単位の設定」を行う際に、UI 側でループ回数として利用できます。
-		/// </summary>
-		/// <returns>サブメッシュ数。</returns>
 		size_t GetSubmeshCount() const;
 
 	public: /// ---------- ディゾルブの設定 ---------- ///
 
-		/// <summary>
-		/// ディゾルブの閾値を設定します。<br/>
-		/// 閾値を小さくしていくことで、モデルがだんだん消えていくような表現に使用します。
-		/// </summary>
-		/// <param name="threshold">ディゾルブの閾値（0.0 ～ 1.0 想定）。</param>
 		void SetDissolveThreshold(float threshold) { dissolveSetting_->threshold = threshold; }
-
-		/// <summary>
-		/// ディゾルブ時のエッジの太さを設定します。
-		/// </summary>
-		/// <param name="thickness">エッジの太さ。</param>
 		void SetDissolveEdgeThickness(float thickness) { dissolveSetting_->edgeThickness = thickness; }
-
-		/// <summary>
-		/// ディゾルブ時のエッジカラーを設定します。
-		/// </summary>
-		/// <param name="color">エッジに使用する RGBA カラー。</param>
 		void SetDissolveEdgeColor(const Vector4& color) { dissolveSetting_->edgeColor = color; }
 
 	private: /// ---------- 内部メンバ関数 ---------- ///
 
-		/// <summary>
-		/// カメラ情報用の定数バッファを生成・初期化します。<br/>
-		/// ・CameraForGPU 用のバッファを作成<br/>
-		/// ・Map して cameraData ポインタを取得<br/>
-		/// ・初期値として現在のカメラ位置を worldPosition に書き込む<br/>
-		/// を行います。
-		/// </summary>
 		void InitializeCameraResource();
-
-		/// <summary>
-		/// ディゾルブ用定数バッファを生成・初期化します。<br/>
-		/// ・DissolveSetting 用のバッファを作成<br/>
-		/// ・Map して dissolveSetting_ ポインタを取得<br/>
-		/// ・threshold / edgeThickness / edgeColor の初期値を設定<br/>
-		/// を行います。
-		/// </summary>
 		void InitializeDissolveResource();
-
-		/// <summary>
-		/// シャドウリソースを初期化します。
-		/// </summary>
 		void InitializeShadowResource();
-
-		/// <summary>
-		 /// シャドウマップ用の定数バッファを生成・初期化します。<br/>
-		 /// ・ShadowParameterForGPU 用のバッファを作成<br/>
-		 /// ・Map して shadowParameterData_ ポインタを取得<br/>
-		 /// ・lightViewProjection を単位行列、shadowBias を適当な初期値に設定<br/>
-		 /// を行います。
-		 /// </summary>
 		void InitializeShadowParameterResource();
-
-		/// <summary>
-		 /// シャドウマップの SRV を DirectXCommon に登録し、GPU ハンドルを取得します。<br/>
-		 /// ・DirectXCommon::CreateShadowMapSRV() を呼び出して SRV を作成<br/>
-		 /// ・DirectXCommon から ShadowMap の GPU ハンドルを取得して shadowMapHandle_ に保存<br/>
-		 /// を行います。
-		 /// </summary>
 		void AcquireShadowMapHandle();
 
 	private: /// ---------- メンバ変数 ---------- ///
