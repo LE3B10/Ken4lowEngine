@@ -68,16 +68,16 @@ private: /// ---------- メンバ変数 ---------- ///
 	bool visible_ = true;
 
 	// 武器のローカルオフセットと回転（右手に対する位置と向きの調整）
-	K4E::Vector3 hipLocalOffset_{ 0.0f, -0.5f, 0.0f };
+	K4E::Vector3 hipLocalOffset_{ 0.0f, -1.5f, 0.25f };
 	K4E::Vector3 hipLocalRotate_{ 0.0f, 0.0f, -1.57f };
 
 	// ADS（Aim Down Sights）時のローカルオフセットと回転（サイトを覗くときの位置と向きの調整）
-	K4E::Vector3 adsLocalOffset_{ 0.0f,  -0.5f, 0.0f };
+	K4E::Vector3 adsLocalOffset_{ 0.0f, -1.5f, 0.25f };
 	K4E::Vector3 adsLocalRotate_{ 0.0f, 0.0f, -1.57f };
 
 	// 手に持つときのローカルオフセットと回転（右手に持ったときの位置と向きの調整）
 	K4E::Vector3 handSocketLocalOffset_{ 0.05f, -0.08f, 0.12f };
-	K4E::Vector3 handSocketLocalRotate_{ 0.0f, 0.0f, 0.0f };
+	K4E::Vector3 handSocketLocalRotate_{ 0.0f, -1.57f, 0.0f };
 
 	// 銃口のローカル位置。モデルによってずれる場合はここを調整する
 	K4E::Vector3 muzzleLocalOffset_{ 0.0f, -0.02f, 0.85f };
