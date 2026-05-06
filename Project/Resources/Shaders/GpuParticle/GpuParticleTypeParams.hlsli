@@ -20,7 +20,7 @@ static const ParticleTypeParam kDefaultParticleTypeParam =
     0.0f
 };
 
-static const uint kParticleTypeParamCount = GPU_PARTICLE_TYPE_DEATH_BURST_CORE + 1;
+static const uint kParticleTypeParamCount = GPU_PARTICLE_TYPE_BULLET_TRACER + 1;
 
 static const ParticleTypeParam kParticleTypeParams[kParticleTypeParamCount] =
 {
@@ -56,6 +56,15 @@ static const ParticleTypeParam kParticleTypeParams[kParticleTypeParamCount] =
     
     // 10: DeathBurstCore
     { 0.95f, 1.80f, 0.4f, 3.8f, 2.8f, 0.0f },
+
+    // 11: PlayerDamageBlood
+    { 0.95f, 1.35f, -7.0f, 1.1f, 0.0f, 0.0f },
+
+    // 12: MuzzleFlash
+    { 1.00f, 2.80f, 0.0f, 8.0f, 0.0f, 14.0f },
+
+    // 13: BulletTracer
+    { 0.85f, 2.20f, 0.0f, 1.2f, 0.0f, 10.0f },
 };
 
 ParticleTypeParam GetParticleTypeParam(uint type)
