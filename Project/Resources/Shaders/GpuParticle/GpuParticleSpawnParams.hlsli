@@ -52,7 +52,7 @@ static const ParticleSpawnParam kDefaultSpawnParam =
     1.0f, 1.0f
 };
 
-static const uint kParticleSpawnParamCount = GPU_PARTICLE_TYPE_DEATH_BURST_CORE + 1;
+static const uint kParticleSpawnParamCount = GPU_PARTICLE_TYPE_BULLET_TRACER + 1;
 
 static const ParticleSpawnParam kParticleSpawnParams[kParticleSpawnParamCount] =
 {
@@ -196,18 +196,60 @@ static const ParticleSpawnParam kParticleSpawnParams[kParticleSpawnParamCount] =
         1.0f, 1.0f
     },
     
-     // 10: DeathBurstCore
+    // 10: DeathBurstCore
     {
-        0.12f, 0.28f, // lifeMin, lifeMax
-        5.5f, 10.5f, // speedMin, speedMax
-        0.06f, 0.16f, // scaleMin, scaleMax
-        0.95f, // alpha
-        float3(1.0f, 1.0f, 1.0f), // colorA
-        float3(1.0f, 1.0f, 1.0f), // colorB
-        GPU_PARTICLE_SPAWN_SHAPE_SPHERE, // spawnShape
-        GPU_PARTICLE_DIR_RANDOM, // dirType
-        GPU_PARTICLE_SCALE_UNIFORM, // scaleMode
+        0.12f, 0.28f,
+        5.5f, 10.5f,
+        0.06f, 0.16f,
+        0.95f,
+        float3(1.0f, 1.0f, 1.0f),
+        float3(1.0f, 1.0f, 1.0f),
+        GPU_PARTICLE_SPAWN_SHAPE_SPHERE,
+        GPU_PARTICLE_DIR_RANDOM,
+        GPU_PARTICLE_SCALE_UNIFORM,
         1.0f, 1.0f
+    },
+
+    // 11: PlayerDamageBlood
+    {
+        0.18f, 0.55f,
+        1.5f, 7.5f,
+        0.025f, 0.075f,
+        0.95f,
+        float3(0.55f, 0.00f, 0.00f),
+        float3(0.95f, 0.04f, 0.04f),
+        GPU_PARTICLE_SPAWN_SHAPE_HEMISPHERE,
+        GPU_PARTICLE_DIR_UPHEMI,
+        GPU_PARTICLE_SCALE_UNIFORM,
+        1.0f, 1.0f
+    },
+
+    // 12: MuzzleFlash
+    {
+        0.035f, 0.085f,
+        0.6f, 2.2f,
+        0.08f, 0.22f,
+        1.0f,
+        float3(1.0f, 0.75f, 0.20f),
+        float3(1.0f, 1.0f, 0.75f),
+        GPU_PARTICLE_SPAWN_SHAPE_POINT,
+        GPU_PARTICLE_DIR_RANDOM,
+        GPU_PARTICLE_SCALE_STRETCH,
+        0.16f, 0.36f
+    },
+
+    // 13: BulletTracer
+    {
+        0.06f, 0.16f,
+        8.0f, 18.0f,
+        0.012f, 0.025f,
+        0.85f,
+        float3(0.80f, 0.90f, 1.0f),
+        float3(1.0f, 1.0f, 1.0f),
+        GPU_PARTICLE_SPAWN_SHAPE_POINT,
+        GPU_PARTICLE_DIR_RANDOM,
+        GPU_PARTICLE_SCALE_STRETCH,
+        0.18f, 0.42f
     },
 };
 
