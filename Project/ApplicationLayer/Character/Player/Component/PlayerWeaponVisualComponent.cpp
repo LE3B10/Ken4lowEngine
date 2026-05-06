@@ -2,6 +2,10 @@
 
 #include <algorithm>
 
+#ifdef USE_IMGUI
+#include <imgui.h>
+#endif
+
 namespace
 {
 	std::string NormalizeWeaponModelPath(std::string& path)
@@ -72,6 +76,27 @@ void PlayerWeaponVisualComponent::DrawShadow()
 	if (!visible_) return;
 	if (!weaponObject_) return;
 	//weaponObject_->DrawShadow();
+}
+
+void PlayerWeaponVisualComponent::DrawImGui()
+{
+#ifdef USE_IMGUI
+	if (ImGui::CollapsingHeader("Weapon Visual", ImGuiTreeNodeFlags_DefaultOpen))
+	{
+		ImGui::Checkbox("Visible", &visible_);
+		ImGui::DragFloat("View Model Scale", &viewModelScaleMultiplier_, 0.01f, 0.05f, 2.0f, "%.2f");
+		ImGui::DragFloat3("Model Scale", &modelScale_.x, 0.01f, 0.05f, 2.0f, "%.2f");
+		ImGui::DragFloat3("Hip Offset", &hipLocalOffset_.x, 0.01f, -5.0f, 5.0f, "%.2f");
+		ImGui::DragFloat3("ADS Offset", &adsLocalOffset_.x, 0.01f, -5.0f, 5.0f, "%.2f");
+		ImGui::DragFloat3("Muzzle Offset", &muzzleLocalOffset_.x, 0.01f, -5.0f, 5.0f, "%.2f");
+
+		if (ImGui::Button("Reset Weapon Size"))
+		{
+			modelScale_ = { 0.55f, 0.55f, 0.55f };
+			viewModelScaleMultiplier_ = 0.55f;
+		}
+	}
+#endif
 }
 
 void PlayerWeaponVisualComponent::ForceRefresh()
@@ -154,7 +179,7 @@ void PlayerWeaponVisualComponent::RebuildIfWeaponChanged()
 	// 新しいオブジェクトを先に作る
 	auto newObject = std::make_unique<K4E::Object3D>();
 	newObject->Initialize(relativePath);
-	newObject->SetScale(modelScale_ * 0.5f);
+	newObject->SetScale(modelScale_ * viewModelScaleMultiplier_);
 
 	// 成功後に差し替える
 	weaponObject_ = std::move(newObject);
@@ -176,7 +201,7 @@ void PlayerWeaponVisualComponent::SyncToHand(bool isADS)
 
 	const K4E::Vector3 totalLocalOffset = localPos + handSocketLocalOffset_;
 	const K4E::Vector3 totalLocalRotate = localRot + handSocketLocalRotate_;
-	const K4E::Vector3 weaponWorldScale = modelScale_ * 0.5f;
+	const K4E::Vector3 weaponWorldScale = modelScale_ * viewModelScaleMultiplier_;
 
 	// 位置・回転を別々のEuler角に戻すと、モデルの90度補正とカメラピッチが噛み合わず、
 	// 上下を向いた時に武器が横回転へ逃げていた。
@@ -204,7 +229,7 @@ bool PlayerWeaponVisualComponent::LoadWeaponModel(const std::string& modelPath)
 
 	auto obj = std::make_unique<K4E::Object3D>();
 	obj->Initialize(modelPath);
-	obj->SetScale(modelScale_ * 0.2f);
+	obj->SetScale(modelScale_ * viewModelScaleMultiplier_);
 	weaponObject_ = std::move(obj);
 	return true;
 }
