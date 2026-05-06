@@ -21,6 +21,9 @@ namespace Ken4lowEngine
 			GpuParticleType::Heal,
 			GpuParticleType::Trail,
 			GpuParticleType::DeathBurstCore,
+			GpuParticleType::PlayerDamageBlood,
+			GpuParticleType::MuzzleFlash,
+			GpuParticleType::BulletTracer,
 		};
 
 		static const Preset kDefaultPreset =
@@ -166,6 +169,45 @@ namespace Ken4lowEngine
 				0,
 				GpuParticleKind::Sprite,
 				GpuParticleType::DeathBurstCore,
+				GpuRibbonType::Trail,
+				BillboardMode::Camera
+			},
+			// PlayerDamageBlood
+			{
+				"PlayerDamageBlood",
+				"Effects/white.dds",
+				0.16f,
+				0,
+				0.0f,
+				0,
+				GpuParticleKind::Sprite,
+				GpuParticleType::PlayerDamageBlood,
+				GpuRibbonType::Trail,
+				BillboardMode::Camera
+			},
+			// MuzzleFlash
+			{
+				"MuzzleFlash",
+				"Effects/white.dds",
+				0.08f,
+				0,
+				0.0f,
+				0,
+				GpuParticleKind::Sprite,
+				GpuParticleType::MuzzleFlash,
+				GpuRibbonType::Trail,
+				BillboardMode::Camera
+			},
+			// BulletTracer
+			{
+				"BulletTracer",
+				"Effects/white.dds",
+				0.04f,
+				0,
+				0.0f,
+				0,
+				GpuParticleKind::Sprite,
+				GpuParticleType::BulletTracer,
 				GpuRibbonType::Trail,
 				BillboardMode::Camera
 			},
