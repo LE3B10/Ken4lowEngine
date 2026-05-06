@@ -1650,9 +1650,15 @@
     <ClInclude Include="ApplicationLayer\Character\Enemy\AI\EnemyTraitProfile.h">
       <Filter>ApplicationLayer\Character\Enemy\AI</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\Math\Ken4lowMath.h" />
-    <ClInclude Include="Engine\Math\MathTypes.h" />
-    <ClInclude Include="Engine\Math\GeometryTypes.h" />
+    <ClInclude Include="Engine\Math\GeometryTypes.h">
+      <Filter>Engine\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Math\Ken4lowMath.h">
+      <Filter>Engine\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Math\MathTypes.h">
+      <Filter>Engine\Math</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="Resources\Shaders\PostEffect\FullScreen.hlsli">

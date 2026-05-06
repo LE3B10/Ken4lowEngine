@@ -1,7 +1,7 @@
 {
     "assetData": {
         "iconPath": "",
-        "modelPath": "Weapons/M4A1.gltf"
+        "modelPath": "Sources/Weapons/primary_rifle.gltf"
     },
     "attributes": [],
     "bCanToggleFireMode": false,
