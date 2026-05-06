@@ -18,12 +18,37 @@ namespace
 		// \ を / に統一
 		std::replace(path.begin(), path.end(), '\\', '/');
 
-		// "Resources/Models/" が含まれていたらそこを削る
-		static const std::string kPrefix = "Resources/Models/";
-		size_t pos = path.find(kPrefix);
-		if (pos != std::string::npos)
+		// ModelPathResolver 側で Resources/Models/Sources を前に付けるため、
+		// 武器データ側の modelPath は「Weapons/xxx.gltf」のような論理パスに揃える。
+		// ここで Sources を残すと
+		// Resources/Models/Sources/Sources/Weapons/xxx.gltf
+		// のように二重になり、モデルを読めなくなる。
+		const std::string prefixes[] =
 		{
-			path = path.substr(pos + kPrefix.size());
+			"Resources/Models/Sources/",
+			"Resources/Models/Compiled/",
+			"Resources/Models/",
+			"Models/Sources/",
+			"Models/Compiled/",
+			"Sources/Models/",
+			"Sources/",
+			"Compiled/",
+		};
+
+		for (const std::string& prefix : prefixes)
+		{
+			const size_t pos = path.find(prefix);
+			if (pos != std::string::npos)
+			{
+				path = path.substr(pos + prefix.size());
+				break;
+			}
+		}
+
+		// 念のため、先頭に残った / を落とす
+		while (!path.empty() && path.front() == '/')
+		{
+			path.erase(path.begin());
 		}
 
 		return path;
