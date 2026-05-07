@@ -36,6 +36,9 @@ public: /// ---------- メンバ関数 ---------- ///
 	// ImGui から見た目を調整
 	void DrawImGui();
 
+	// リロード中の武器表示補正を更新する
+	void SetReloadViewModelState(bool isReloading, float reloadTimer, float reloadDuration);
+
 	// 現在の見た目を強制再構築したいときに使う
 	void ForceRefresh();
 
@@ -98,6 +101,15 @@ private: /// ---------- メンバ変数 ---------- ///
 	K4E::Vector3 hipEulerDeg_{ 90.0f, 90.0f, 0.0f };
 	K4E::Vector3 adsEulerDeg_{ 90.0f, 90.0f, 0.0f };
 	K4E::Vector3 handSocketEulerDeg_{ 0.0f, -90.0f, 0.0f };
+
+	// リロード時の武器補正。手前で落として少し傾ける。
+	bool  reloadViewActive_ = false;
+	float reloadViewTimer_ = 0.0f;
+	float reloadViewDuration_ = 1.0f;
+	float reloadPoseAlpha_ = 0.0f;
+	float reloadPoseBlendSpeed_ = 14.0f;
+	K4E::Vector3 reloadWeaponOffset_{ 0.08f, -0.18f, -0.10f };
+	K4E::Vector3 reloadWeaponRotDeg_{ 10.0f, -12.0f, 18.0f };
 
 	// 銃口のローカル位置。モデルによってずれる場合はここを調整する
 	K4E::Vector3 muzzleLocalOffset_{ 0.0f, -0.02f, 0.85f };
