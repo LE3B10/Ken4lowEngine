@@ -20,6 +20,11 @@ namespace
 	constexpr const char* kMuzzleSparkEmitterName = "MuzzleSparkMesh";
 	constexpr const char* kMuzzleSparkTexturePath = "Effects/white.dds";
 
+	constexpr uint32_t kBulletTracerMeshId = 1001u;
+	constexpr uint32_t kBulletTracerBurstCount = 3u;
+	constexpr const char* kBulletTracerEmitterName = "BulletTracerMesh";
+	constexpr const char* kBulletTracerTexturePath = "Effects/white.dds";
+
 	void EmitMuzzleSparkMesh(K4E::GpuParticleManager* particle, const K4E::Vector3& muzzlePos)
 	{
 		if (!particle)
@@ -49,6 +54,37 @@ namespace
 
 		emitter->SetPosition(muzzlePos);
 		emitter->RequestEmit(kMuzzleSparkBurstCount);
+	}
+
+	void EmitBulletTracerMesh(K4E::GpuParticleManager* particle, const K4E::Vector3& tracerPos)
+	{
+		if (!particle)
+		{
+			return;
+		}
+
+		K4E::GpuParticleEmitter::EmitterInfo info{};
+		info.textureFilePath = kBulletTracerTexturePath;
+		info.radius = 0.0f;
+		info.loopCount = 0;
+		info.loopFrequency = 0.0f;
+		info.drawType = kBulletTracerMeshId;
+		info.kind = K4E::GpuParticleKind::Mesh;
+		info.spriteType = K4E::GpuParticleType::BulletTracer;
+		info.billboardFlags = K4E::BillboardMode::None;
+
+		auto* emitter = particle->GetEmitter(kBulletTracerEmitterName);
+		if (!emitter)
+		{
+			emitter = particle->CreateEmitter(kBulletTracerEmitterName, info);
+		}
+		if (!emitter)
+		{
+			return;
+		}
+
+		emitter->SetPosition(tracerPos);
+		emitter->RequestEmit(kBulletTracerBurstCount);
 	}
 }
 
@@ -143,6 +179,9 @@ void PlayerCombatComponent::FireOnce(
 
 			// 火花はMesh Particleとして別に発生させる。
 			EmitMuzzleSparkMesh(particle, muzzlePos);
+
+			// Sprite版BulletTracerは使わず、Mesh Particleとして発生させる。
+			EmitBulletTracerMesh(particle, tracerPos);
 		}
 	}
 
