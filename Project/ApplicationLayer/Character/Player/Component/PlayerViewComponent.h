@@ -219,10 +219,10 @@ private: /// ---------- メンバ変数 ---------- ///
 	K4E::Vector3 reloadWeaponDrop_{ 0.08f, -0.18f, -0.10f };
 	K4E::Vector3 reloadWeaponRotDeg_{ 10.0f, -12.0f, 18.0f };
 	K4E::Vector3 reloadRightArmRotDeg_{ -18.0f, 12.0f, -24.0f };
-	K4E::Vector3 reloadLeftGrabOffset_{ 0.32f, -0.14f, 0.22f };
-	K4E::Vector3 reloadLeftGrabRotDeg_{ 28.0f, 18.0f, -28.0f };
-	K4E::Vector3 reloadLeftPullOffset_{ 0.42f, -0.36f, 0.02f };
-	K4E::Vector3 reloadLeftPullRotDeg_{ 55.0f, 12.0f, -42.0f };
+
+	// 左腕はリロード中に画面中央へ寄せて、マガジンに手を伸ばす見た目にする。
+	K4E::Vector3 reloadLeftArmOffset_{ 0.22f, -0.10f, 0.18f };
+	K4E::Vector3 reloadLeftArmRotDeg_{ -24.0f, -18.0f, 32.0f };
 
 	// ---- Melee view animation ----
 	bool meleeSwingActive_ = false;
