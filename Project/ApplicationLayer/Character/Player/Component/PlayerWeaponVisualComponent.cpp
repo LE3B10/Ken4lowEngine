@@ -1,6 +1,7 @@
 #include "PlayerWeaponVisualComponent.h"
 
 #include <algorithm>
+#include <cmath>
 
 #ifdef USE_IMGUI
 #include <imgui.h>
@@ -8,6 +9,40 @@
 
 namespace
 {
+	constexpr float kPi = 3.14159265358979323846f;
+
+	float ToRadians(float degrees)
+	{
+		return degrees * (kPi / 180.0f);
+	}
+
+	float ToDegrees(float radians)
+	{
+		return radians * (180.0f / kPi);
+	}
+
+	K4E::Vector3 ToDegreesVec(const K4E::Vector3& radians)
+	{
+		return { ToDegrees(radians.x), ToDegrees(radians.y), ToDegrees(radians.z) };
+	}
+
+	K4E::Quaternion MakeQuaternionFromEulerDeg(const K4E::Vector3& eulerDeg)
+	{
+		const float x = ToRadians(eulerDeg.x);
+		const float y = ToRadians(eulerDeg.y);
+		const float z = ToRadians(eulerDeg.z);
+
+		const K4E::Quaternion qx = K4E::Quaternion::MakeRotateAxisAngleQuaternion({ 1.0f, 0.0f, 0.0f }, x);
+		const K4E::Quaternion qy = K4E::Quaternion::MakeRotateAxisAngleQuaternion({ 0.0f, 1.0f, 0.0f }, y);
+		const K4E::Quaternion qz = K4E::Quaternion::MakeRotateAxisAngleQuaternion({ 0.0f, 0.0f, 1.0f }, z);
+
+		// Matrix4x4::MakeRotateMatrix(Vector3) の X -> Y -> Z と同じ考え方で合成する。
+		return K4E::Quaternion::Normalize(
+			K4E::Quaternion::Multiply(
+				K4E::Quaternion::Multiply(qx, qy),
+				qz));
+	}
+
 	std::string NormalizeWeaponModelPath(std::string& path)
 	{
 		if (path.empty())
@@ -87,6 +122,7 @@ void PlayerWeaponVisualComponent::Initialize()
 	visible_ = true;
 	hasWeaponWorldMatrix_ = false;
 	weaponWorldMatrix_ = K4E::Matrix4x4::MakeIdentity();
+	rotationQuaternionInitialized_ = false;
 }
 
 void PlayerWeaponVisualComponent::Update(float deltaTime, bool isADS)
@@ -123,6 +159,40 @@ void PlayerWeaponVisualComponent::DrawImGui()
 		ImGui::DragFloat3("Hip Offset", &hipLocalOffset_.x, 0.01f, -5.0f, 5.0f, "%.2f");
 		ImGui::DragFloat3("ADS Offset", &adsLocalOffset_.x, 0.01f, -5.0f, 5.0f, "%.2f");
 		ImGui::DragFloat3("Muzzle Offset", &muzzleLocalOffset_.x, 0.01f, -5.0f, 5.0f, "%.2f");
+
+		ImGui::Separator();
+		ImGui::Checkbox("Use Quaternion Rotation", &useQuaternionRotation_);
+
+		if (ImGui::Button("Reset Quaternion From Current Euler"))
+		{
+			InitializeRotationQuaternionsFromEuler();
+		}
+
+		if (useQuaternionRotation_)
+		{
+			bool changed = false;
+			changed |= ImGui::DragFloat3("Hip Rotation Deg", &hipEulerDeg_.x, 0.25f, -360.0f, 360.0f, "%.2f");
+			changed |= ImGui::DragFloat3("ADS Rotation Deg", &adsEulerDeg_.x, 0.25f, -360.0f, 360.0f, "%.2f");
+			changed |= ImGui::DragFloat3("Hand Socket Rotation Deg", &handSocketEulerDeg_.x, 0.25f, -360.0f, 360.0f, "%.2f");
+
+			if (changed || !rotationQuaternionInitialized_)
+			{
+				hipLocalQuaternion_ = MakeQuaternionFromEulerDeg(hipEulerDeg_);
+				adsLocalQuaternion_ = MakeQuaternionFromEulerDeg(adsEulerDeg_);
+				handSocketLocalQuaternion_ = MakeQuaternionFromEulerDeg(handSocketEulerDeg_);
+				rotationQuaternionInitialized_ = true;
+			}
+
+			ImGui::Text("Hip Q: %.3f, %.3f, %.3f, %.3f", hipLocalQuaternion_.x, hipLocalQuaternion_.y, hipLocalQuaternion_.z, hipLocalQuaternion_.w);
+			ImGui::Text("ADS Q: %.3f, %.3f, %.3f, %.3f", adsLocalQuaternion_.x, adsLocalQuaternion_.y, adsLocalQuaternion_.z, adsLocalQuaternion_.w);
+			ImGui::Text("Hand Q: %.3f, %.3f, %.3f, %.3f", handSocketLocalQuaternion_.x, handSocketLocalQuaternion_.y, handSocketLocalQuaternion_.z, handSocketLocalQuaternion_.w);
+		}
+		else
+		{
+			ImGui::DragFloat3("Hip Rotation Rad", &hipLocalRotate_.x, 0.01f, -6.28f, 6.28f, "%.2f");
+			ImGui::DragFloat3("ADS Rotation Rad", &adsLocalRotate_.x, 0.01f, -6.28f, 6.28f, "%.2f");
+			ImGui::DragFloat3("Hand Socket Rotation Rad", &handSocketLocalRotate_.x, 0.01f, -6.28f, 6.28f, "%.2f");
+		}
 
 		if (ImGui::Button("Reset Weapon Size"))
 		{
@@ -231,20 +301,39 @@ void PlayerWeaponVisualComponent::SyncToHand(bool isADS)
 	}
 
 	const K4E::Vector3 localPos = isADS ? adsLocalOffset_ : hipLocalOffset_;
-	const K4E::Vector3 localRot = isADS ? adsLocalRotate_ : hipLocalRotate_;
-
-	const K4E::Vector3 totalLocalOffset = localPos + handSocketLocalOffset_;
-	const K4E::Vector3 totalLocalRotate = localRot + handSocketLocalRotate_;
 	const K4E::Vector3 weaponWorldScale = modelScale_ * viewModelScaleMultiplier_;
+	const K4E::Vector3 totalLocalOffset = localPos + handSocketLocalOffset_;
 
-	// 位置・回転を別々のEuler角に戻すと、モデルの90度補正とカメラピッチが噛み合わず、
-	// 上下を向いた時に武器が横回転へ逃げていた。
-	// ここでは「武器ローカル補正 → 右腕ワールド行列」をそのまま使い、行列のまま描画へ渡す。
-	const K4E::Matrix4x4 localMatrix = K4E::Matrix4x4::MakeAffineMatrix(
-		weaponWorldScale,
-		totalLocalRotate,
-		totalLocalOffset);
+	K4E::Matrix4x4 localMatrix{};
+	if (useQuaternionRotation_)
+	{
+		if (!rotationQuaternionInitialized_)
+		{
+			InitializeRotationQuaternionsFromEuler();
+		}
 
+		const K4E::Quaternion baseRotation = isADS ? adsLocalQuaternion_ : hipLocalQuaternion_;
+		const K4E::Quaternion totalRotation = K4E::Quaternion::Normalize(
+			K4E::Quaternion::Multiply(baseRotation, handSocketLocalQuaternion_));
+
+		localMatrix = K4E::Matrix4x4::MakeAffineMatrix(
+			weaponWorldScale,
+			totalRotation,
+			totalLocalOffset);
+	}
+	else
+	{
+		const K4E::Vector3 localRot = isADS ? adsLocalRotate_ : hipLocalRotate_;
+		const K4E::Vector3 totalLocalRotate = localRot + handSocketLocalRotate_;
+
+		localMatrix = K4E::Matrix4x4::MakeAffineMatrix(
+			weaponWorldScale,
+			totalLocalRotate,
+			totalLocalOffset);
+	}
+
+	// 右腕ワールド行列へ、武器ローカル補正をそのまま合成する。
+	// 回転をEuler角に戻さないことで、ジンバルロックや軸の逃げを避ける。
 	weaponWorldMatrix_ = K4E::Matrix4x4::Multiply(localMatrix, rightHandTransform_->worldMatrix_);
 	hasWeaponWorldMatrix_ = true;
 
@@ -271,4 +360,16 @@ bool PlayerWeaponVisualComponent::LoadWeaponModel(const std::string& modelPath)
 K4E::Vector3 PlayerWeaponVisualComponent::TransformWeaponLocalPoint(const K4E::Vector3& localPoint) const
 {
 	return K4E::Matrix4x4::Transform(localPoint, weaponWorldMatrix_);
+}
+
+void PlayerWeaponVisualComponent::InitializeRotationQuaternionsFromEuler()
+{
+	hipEulerDeg_ = ToDegreesVec(hipLocalRotate_);
+	adsEulerDeg_ = ToDegreesVec(adsLocalRotate_);
+	handSocketEulerDeg_ = ToDegreesVec(handSocketLocalRotate_);
+
+	hipLocalQuaternion_ = MakeQuaternionFromEulerDeg(hipEulerDeg_);
+	adsLocalQuaternion_ = MakeQuaternionFromEulerDeg(adsEulerDeg_);
+	handSocketLocalQuaternion_ = MakeQuaternionFromEulerDeg(handSocketEulerDeg_);
+	rotationQuaternionInitialized_ = true;
 }
