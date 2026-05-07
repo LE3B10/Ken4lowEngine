@@ -7,6 +7,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <limits>
 
 using namespace Ken4lowEngine;
 
@@ -31,6 +32,83 @@ namespace
 		const float len = Length(v);
 		if (len <= 1.0e-5f) return fallback;
 		return v * (1.0f / len);
+	}
+
+	float Dot(const K4E::Vector3& a, const K4E::Vector3& b)
+	{
+		return a.x * b.x + a.y * b.y + a.z * b.z;
+	}
+
+	K4E::Vector3 AddScaled(const K4E::Vector3& base, const K4E::Vector3& diff, float t)
+	{
+		return { base.x + diff.x * t, base.y + diff.y * t, base.z + diff.z * t };
+	}
+
+	bool TryComputeSegmentObbImpactPoint(const K4E::Segment& seg, const K4E::OBB& obb, K4E::Vector3& outPoint)
+	{
+		constexpr float kEpsilon = 1.0e-6f;
+
+		float tMin = 0.0f;
+		float tMax = 1.0f;
+
+		const K4E::Vector3 p = seg.origin - obb.center;
+		const float halfSizes[3] = { obb.size.x, obb.size.y, obb.size.z };
+
+		for (int axisIndex = 0; axisIndex < 3; ++axisIndex)
+		{
+			const K4E::Vector3& axis = obb.orientations[axisIndex];
+			const float originOnAxis = Dot(p, axis);
+			const float diffOnAxis = Dot(seg.diff, axis);
+			const float half = halfSizes[axisIndex];
+
+			if (std::fabs(diffOnAxis) < kEpsilon)
+			{
+				if (originOnAxis < -half || originOnAxis > half)
+				{
+					return false;
+				}
+				continue;
+			}
+
+			float t1 = (-half - originOnAxis) / diffOnAxis;
+			float t2 = (half - originOnAxis) / diffOnAxis;
+			if (t1 > t2)
+			{
+				std::swap(t1, t2);
+			}
+
+			tMin = std::max(tMin, t1);
+			tMax = std::min(tMax, t2);
+
+			if (tMin > tMax)
+			{
+				return false;
+			}
+		}
+
+		// 外から入った場合は tMin、すでに内部から始まっていた場合は tMax を使う。
+		const float t = std::clamp((tMin > 0.0f) ? tMin : tMax, 0.0f, 1.0f);
+		outPoint = AddScaled(seg.origin, seg.diff, t);
+		return true;
+	}
+
+	K4E::Vector3 ResolveBulletImpactPoint(const Bullet& bullet, K4E::Collider* other)
+	{
+		if (!other)
+		{
+			return bullet.GetCenterPosition();
+		}
+
+		K4E::Vector3 impactPoint{};
+		const K4E::Segment bulletSegment = bullet.GetSegment();
+		if (TryComputeSegmentObbImpactPoint(bulletSegment, other->GetOBB(), impactPoint))
+		{
+			return impactPoint;
+		}
+
+		// 退避：判定直後の弾座標。other->GetCenterPosition() を使うと、
+		// 巨大なステージコライダーではステージ中心で爆発してしまう。
+		return bullet.GetCenterPosition();
 	}
 
 	K4E::GpuParticleEmitter* PrepareRocketDebrisMeshEmitter(const K4E::Vector3& position)
@@ -275,7 +353,7 @@ void Bullet::Update(float dt)
 	Collider::SetCenterPosition(next);
 	if (model_) model_->SetTranslate(next);
 
-	// ざっくり範囲外で消す（必要なら後で world bounds に置換）
+	// ざっくり範囲外で消す（必要なら world bounds に置換）
 	if (next.x > 1000.0f || next.x < -1000.0f || next.z > 1000.0f || next.z < -1000.0f)
 	{
 		KillAndMoveFar();
@@ -333,7 +411,8 @@ void Bullet::OnCollisionEnter(K4E::Collider* other)
 
 	if (HasSplashDamage())
 	{
-		TriggerSplashDamageAt(other->GetCenterPosition());
+		const K4E::Vector3 impactPoint = ResolveBulletImpactPoint(*this, other);
+		TriggerSplashDamageAt(impactPoint);
 	}
 
 	KillAndMoveFar();
