@@ -113,6 +113,9 @@ private: /// ---------- メンバ変数 ---------- ///
 	K4E::Vector3 baseLeftRot_ = { -1.35f, 0.58f, -0.45f };
 	K4E::Vector3 baseRightRot_ = { -std::numbers::pi_v<float> *0.5f,0.0f,0.0f };
 
+	// 通常時の左腕を武器側へ寄せるための位置補正。ImGuiから調整する。
+	K4E::Vector3 leftHipSupportOffset_{ 0.48f, -0.02f, 0.55f };
+
 	// ADS時は腕が画面外へ開きすぎないよう、中心寄りに構える。
 	K4E::Vector3 aimLeftPos_{ -0.02f, 0.55f, 0.90f };
 	K4E::Vector3 aimRightPos_{ 0.20f, 0.55f, 0.85f };
