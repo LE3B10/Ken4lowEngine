@@ -33,6 +33,29 @@ namespace
 	{
 		return (loco == LocoId::Jump || loco == LocoId::Fall || loco == LocoId::Land);
 	}
+
+	static void SuppressActionInputDuringReload(InputSnapshot& in)
+	{
+		// リロード中はリロード演出を優先する。
+		// ADS・ジャンプ・ダッシュ・ブリンク・射撃・近接・武器切替を受け付けると、
+		// 腕と武器のポーズが混ざって崩れやすいため、入力だけ無効化する。
+		in.sprintHeld = false;
+		in.jumpHeld = false;
+		in.jumpPressed = false;
+		in.blinkPressed = false;
+
+		in.aimHeld = false;
+		in.aimPressed = false;
+
+		in.fireHeld = false;
+		in.firePressed = false;
+		in.reloadPressed = false;
+		in.meleePressed = false;
+
+		in.weaponSwitch = 0;
+		in.weaponSlotPressed = 0;
+		in.toggleFireModePressed = false;
+	}
 }
 
 /// -------------------------------------------------------------
@@ -199,6 +222,16 @@ Player::InputFrameContext Player::BuildInputFrameContext(float /*deltaTime*/)
 
 void Player::UpdateWeaponBeforeMotor(float deltaTime, InputFrameContext& ctx)
 {
+	bool wasReloading = false;
+	float previousReloadTimer = 0.0f;
+	float previousReloadSec = 0.0f;
+	weapon_.GetReloadUI(wasReloading, previousReloadTimer, previousReloadSec);
+
+	if (wasReloading)
+	{
+		SuppressActionInputDuringReload(ctx.rawSnap);
+	}
+
 	weaponController_.HandleWheelSwitch(ctx.rawSnap);
 
 	weapon_.UpdateAndHandleInput(deltaTime, ctx.rawSnap);
@@ -208,16 +241,9 @@ void Player::UpdateWeaponBeforeMotor(float deltaTime, InputFrameContext& ctx)
 		ctx.reload.reloadTimer,
 		ctx.reload.reloadSec);
 
-	const bool wantsCancelReload =
-		ctx.reload.isReloading &&
-		(ctx.rawSnap.sprintHeld || ctx.rawSnap.jumpPressed || ctx.rawSnap.blinkPressed);
-
-	if (wantsCancelReload)
+	if (ctx.reload.isReloading)
 	{
-		weaponController_.TryCancelReloadAndRestoreCombat(ctx.rawSnap, deltaTime);
-		ctx.reload.isReloading = false;
-		ctx.reload.reloadTimer = 0.0f;
-		ctx.reload.reloadSec = 0.0f;
+		SuppressActionInputDuringReload(ctx.rawSnap);
 	}
 
 	view_.SetReloadViewModelState(
@@ -237,9 +263,7 @@ void Player::FinalizeInputSnapshotForGameplay(float deltaTime, InputFrameContext
 
 	if (ctx.reload.isReloading)
 	{
-		inputSnap_.sprintHeld = false;
-		inputSnap_.jumpPressed = false;
-		inputSnap_.blinkPressed = false;
+		SuppressActionInputDuringReload(inputSnap_);
 	}
 
 	auto* tr = GetWorldTransform();
