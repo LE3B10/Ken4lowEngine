@@ -19,6 +19,7 @@
 #include "WeaponMasterDataEditor.h"
 #include "WeaponMasterDataWriter.h"
 #include <filesystem>
+#include <cstdio>
 
 using namespace Ken4lowEngine;
 
@@ -32,6 +33,66 @@ namespace
 	{
 		std::string line = message + "\n";
 		OutputDebugStringA(line.c_str());
+	}
+
+	GpuParticleType ToDebugParticleType(int index)
+	{
+		switch (index)
+		{
+		case 0: return GpuParticleType::Default;
+		case 1: return GpuParticleType::Debris;
+		case 2: return GpuParticleType::Spark;
+		case 3: return GpuParticleType::Shockwave;
+		case 4: return GpuParticleType::Smoke;
+		case 5: return GpuParticleType::Heal;
+		default: return GpuParticleType::Debris;
+		}
+	}
+
+	GpuParticleEmitter* PrepareDebugMeshParticleEmitter(
+		GpuParticleManager* manager,
+		const std::string& emitterName,
+		uint32_t meshId,
+		GpuParticleType type,
+		const Vector3& position,
+		float radius)
+	{
+		if (!manager)
+		{
+			return nullptr;
+		}
+
+		if (GpuParticleEmitter* existing = manager->GetEmitter(emitterName))
+		{
+			auto& info = existing->GetInfoMutable();
+			info.kind = GpuParticleKind::Mesh;
+			info.spriteType = type;
+			info.drawType = static_cast<uint32_t>(type);
+			info.billboardFlags = BillboardMode::None;
+			info.textureFilePath = "Mesh:" + std::to_string(meshId);
+			info.radius = radius;
+			info.loopCount = 0;
+			info.loopFrequency = 0.0f;
+			existing->SetPosition(position);
+			return existing;
+		}
+
+		GpuParticleEmitter::EmitterInfo info{};
+		info.kind = GpuParticleKind::Mesh;
+		info.spriteType = type;
+		info.drawType = static_cast<uint32_t>(type);
+		info.billboardFlags = BillboardMode::None;
+		info.textureFilePath = "Mesh:" + std::to_string(meshId);
+		info.radius = radius;
+		info.loopCount = 0;
+		info.loopFrequency = 0.0f;
+
+		GpuParticleEmitter* created = manager->CreateEmitter(emitterName, info);
+		if (created)
+		{
+			created->SetPosition(position);
+		}
+		return created;
 	}
 }
 
@@ -167,6 +228,160 @@ void DebugScene::DrawImGui()
 
 	/// ---------- GPUパーティクルデバッグ ---------- ///
 	GpuParticleManager::GetInstance()->DrawImGui();
+
+	/// ---------- Sprite / Mesh Particle 比較テスト ---------- ///
+	{
+		static char meshModelPath[256] = "Test/cube.gltf";
+		static int meshId = 1000;
+		static int particleTypeIndex = 1;
+		static int spriteCount = 48;
+		static int meshCount = 48;
+		static float radius = 1.0f;
+		static float position[3] = { 0.0f, 2.5f, 18.0f };
+		static bool meshLoaded = false;
+		static bool spawnSideBySide = true;
+
+		const char* particleTypeNames[] = {
+			"Default",
+			"Debris",
+			"Spark",
+			"Shockwave",
+			"Smoke",
+			"Heal"
+		};
+
+		GpuParticleManager* gpuParticleManager = GpuParticleManager::GetInstance();
+		const GpuParticleType selectedType = ToDebugParticleType(particleTypeIndex);
+
+		ImGui::Begin("GPU Particle Sprite / Mesh Test");
+		ImGui::TextWrapped("Sprite and Mesh particles can be spawned from this DebugScene-only panel. Mesh uses textureFilePath = Mesh:<MeshId> internally.");
+		ImGui::Separator();
+
+		ImGui::InputText("Mesh Model Path", meshModelPath, IM_ARRAYSIZE(meshModelPath));
+		ImGui::InputInt("MeshId", &meshId);
+		if (meshId < 0) { meshId = 0; }
+
+		if (ImGui::Button("Load Mesh Asset"))
+		{
+			meshLoaded = gpuParticleManager->LoadMeshAssetsFromAssimp(static_cast<uint32_t>(meshId), meshModelPath, true);
+			debugParticleLog_ = meshLoaded
+				? "MeshParticle Debug: LoadMeshAssetsFromAssimp succeeded."
+				: "MeshParticle Debug: LoadMeshAssetsFromAssimp failed.";
+			DebugLog(debugParticleLog_);
+		}
+
+		ImGui::SameLine();
+		ImGui::Text("Loaded: %s", meshLoaded ? "true" : "false");
+		ImGui::Text("Registered MeshAssets: %zu", gpuParticleManager->GetMeshAssets().size());
+
+		if (const auto* meshAsset = gpuParticleManager->FindMeshAsset(static_cast<uint32_t>(meshId)))
+		{
+			ImGui::Text("MeshId %d found. IndexCount: %u", meshId, meshAsset->indexCount);
+			ImGui::Text("Mesh Texture: %s", meshAsset->textureFilePath.c_str());
+		}
+		else
+		{
+			ImGui::TextColored(ImVec4(1.0f, 0.45f, 0.35f, 1.0f), "MeshId %d is not registered yet.", meshId);
+		}
+
+		ImGui::Separator();
+		ImGui::Combo("Particle Type", &particleTypeIndex, particleTypeNames, IM_ARRAYSIZE(particleTypeNames));
+		ImGui::DragInt("Sprite Count", &spriteCount, 1.0f, 0, 1000);
+		ImGui::DragInt("Mesh Count", &meshCount, 1.0f, 0, 1000);
+		ImGui::DragFloat("Emitter Radius", &radius, 0.01f, 0.0f, 30.0f);
+		ImGui::DragFloat3("Center Position", position, 0.05f);
+		ImGui::Checkbox("Side By Side", &spawnSideBySide);
+
+		Vector3 center{ position[0], position[1], position[2] };
+		Vector3 spritePos = center;
+		Vector3 meshPos = center;
+		if (spawnSideBySide)
+		{
+			spritePos.x -= 2.0f;
+			meshPos.x += 2.0f;
+		}
+
+		if (ImGui::Button("Spawn Sprite"))
+		{
+			if (auto* spriteEmitter = gpuParticleManager->EmitBurst(
+				"DebugScene_SpriteParticle",
+				selectedType,
+				spritePos,
+				static_cast<uint32_t>(std::max(spriteCount, 0))))
+			{
+				spriteEmitter->GetInfoMutable().radius = radius;
+				spriteEmitter->SetPosition(spritePos);
+			}
+
+			debugParticleLog_ = "Spawn: DebugScene Sprite Particle";
+			DebugLog(debugParticleLog_);
+		}
+
+		ImGui::SameLine();
+		if (ImGui::Button("Spawn Mesh"))
+		{
+			if (!gpuParticleManager->FindMeshAsset(static_cast<uint32_t>(meshId)))
+			{
+				meshLoaded = gpuParticleManager->LoadMeshAssetsFromAssimp(static_cast<uint32_t>(meshId), meshModelPath, true);
+			}
+
+			if (auto* meshEmitter = PrepareDebugMeshParticleEmitter(
+				gpuParticleManager,
+				"DebugScene_MeshParticle",
+				static_cast<uint32_t>(meshId),
+				selectedType,
+				meshPos,
+				radius))
+			{
+				meshEmitter->RequestEmit(static_cast<uint32_t>(std::max(meshCount, 0)));
+				debugParticleLog_ = "Spawn: DebugScene Mesh Particle";
+			}
+			else
+			{
+				debugParticleLog_ = "Spawn failed: DebugScene Mesh Particle";
+			}
+			DebugLog(debugParticleLog_);
+		}
+
+		ImGui::SameLine();
+		if (ImGui::Button("Spawn Both"))
+		{
+			if (auto* spriteEmitter = gpuParticleManager->EmitBurst(
+				"DebugScene_SpriteParticle",
+				selectedType,
+				spritePos,
+				static_cast<uint32_t>(std::max(spriteCount, 0))))
+			{
+				spriteEmitter->GetInfoMutable().radius = radius;
+				spriteEmitter->SetPosition(spritePos);
+			}
+
+			if (!gpuParticleManager->FindMeshAsset(static_cast<uint32_t>(meshId)))
+			{
+				meshLoaded = gpuParticleManager->LoadMeshAssetsFromAssimp(static_cast<uint32_t>(meshId), meshModelPath, true);
+			}
+
+			if (auto* meshEmitter = PrepareDebugMeshParticleEmitter(
+				gpuParticleManager,
+				"DebugScene_MeshParticle",
+				static_cast<uint32_t>(meshId),
+				selectedType,
+				meshPos,
+				radius))
+			{
+				meshEmitter->RequestEmit(static_cast<uint32_t>(std::max(meshCount, 0)));
+			}
+
+			debugParticleLog_ = "Spawn: DebugScene Sprite + Mesh Particles";
+			DebugLog(debugParticleLog_);
+		}
+
+		ImGui::Separator();
+		ImGui::Text("Sprite position: %.2f, %.2f, %.2f", spritePos.x, spritePos.y, spritePos.z);
+		ImGui::Text("Mesh position:   %.2f, %.2f, %.2f", meshPos.x, meshPos.y, meshPos.z);
+		ImGui::TextWrapped("%s", debugParticleLog_.c_str());
+		ImGui::End();
+	}
 
 	/// ---------- 武器マスターデータエディタ ---------- ///
 	static WeaponMasterDataDatabase weaponDB;
