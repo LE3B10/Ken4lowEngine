@@ -129,9 +129,9 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	float camPitch_ = 0.0f;
 
-	// 前向きの構えを保ちながら、上下視点にも武器と腕が追従するようにする。
-	// 0.28f では下を向いた時に腕と武器がほぼ置いていかれたため、追従量を戻す。
-	float armPitchFollow_ = 0.75f;
+	// 一人称の腕と武器は画面内の見た目用モデルなので、カメラの上下回転を直接乗せない。
+	// これにより前向き時の構えを保ったまま、上・下を向いても腕や武器が画面を覆いにくくなる。
+	float armPitchFollow_ = 0.0f;
 
 	CameraFovHooks fovHooks_{};
 	float prevAppliedFovMul_ = 1.0f;
