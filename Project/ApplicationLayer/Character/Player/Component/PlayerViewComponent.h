@@ -194,10 +194,11 @@ private: /// ---------- メンバ変数 ---------- ///
 	K4E::Vector3 reloadLoadRightArmOffset_{ -0.02f, 0.00f, 0.05f };
 	K4E::Vector3 reloadLoadRightArmRotDeg_{ 2.0f, -3.0f, 3.0f };
 
-	K4E::Vector3 reloadLeftArmOffset_{ 0.12f, -0.34f, 0.08f };
-	K4E::Vector3 reloadLeftArmRotDeg_{ -12.0f, -10.0f, 18.0f };
-	K4E::Vector3 reloadLoadLeftArmOffset_{ -0.05f, 0.02f, -0.10f };
-	K4E::Vector3 reloadLoadLeftArmRotDeg_{ 6.0f, 5.0f, -10.0f };
+	// 左腕は少し後ろへ下げ、画面中央を塞ぎすぎない位置で装填動作を見せる。
+	K4E::Vector3 reloadLeftArmOffset_{ 0.10f, -0.38f, -0.08f };
+	K4E::Vector3 reloadLeftArmRotDeg_{ -4.0f, -8.0f, 10.0f };
+	K4E::Vector3 reloadLoadLeftArmOffset_{ -0.04f, 0.01f, -0.16f };
+	K4E::Vector3 reloadLoadLeftArmRotDeg_{ 3.0f, 4.0f, -6.0f };
 
 	// ---- Melee view animation ----
 	bool meleeSwingActive_ = false;
