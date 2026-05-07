@@ -10,6 +10,12 @@ using namespace Ken4lowEngine;
 
 static inline float Clamp01(float v) { return (v < 0.0f) ? 0.0f : (v > 1.0f ? 1.0f : v); }
 
+static float SmoothStep01(float t)
+{
+	t = Clamp01(t);
+	return t * t * (3.0f - 2.0f * t);
+}
+
 static float Approach(float current, float target, float speed, float deltaTime)
 {
 	const float step = speed * deltaTime;
@@ -65,6 +71,13 @@ void PlayerViewComponent::SetAiming(bool on)
 	fpsCamera_.SetAiming(on);
 }
 
+void PlayerViewComponent::SetReloadViewModelState(bool isReloading, float reloadTimer, float reloadDuration)
+{
+	reloadViewActive_ = isReloading;
+	reloadViewTimer_ = reloadTimer;
+	reloadViewDuration_ = std::max(0.01f, reloadDuration);
+}
+
 void PlayerViewComponent::UpdateLook(float dt, const InputSnapshot& input)
 {
 	fpsCamera_.SetDeltaTime(dt);
@@ -107,6 +120,7 @@ void PlayerViewComponent::SetFirstPersonView(bool enabled)
 		leftArmTr_->rotate_ = baseLeftRot_;
 		rightArmTr_->rotate_ = baseRightRot_;
 		armBlend_ = 0.0f;
+		reloadPoseAlpha_ = 0.0f;
 	}
 }
 
@@ -294,6 +308,30 @@ void PlayerViewComponent::ClearDeathCamera()
 	fpsCamera_.ClearDeathTilt();
 }
 
+void PlayerViewComponent::DrawImGui()
+{
+	fpsCamera_.DrawImGui();
+
+#ifdef USE_IMGUI
+	if (ImGui::CollapsingHeader("ViewModel Arms", ImGuiTreeNodeFlags_DefaultOpen))
+	{
+		ImGui::DragFloat3("Aim Left Pos", &aimLeftPos_.x, 0.01f, -3.0f, 3.0f, "%.2f");
+		ImGui::DragFloat3("Aim Right Pos", &aimRightPos_.x, 0.01f, -3.0f, 3.0f, "%.2f");
+		ImGui::DragFloat3("Aim Left Rot", &aimLeftRot_.x, 0.01f, -6.28f, 6.28f, "%.2f");
+		ImGui::DragFloat3("Aim Right Rot", &aimRightRot_.x, 0.01f, -6.28f, 6.28f, "%.2f");
+		ImGui::Separator();
+		ImGui::Text("Reload Alpha: %.2f", reloadPoseAlpha_);
+		ImGui::DragFloat3("Reload Weapon Drop", &reloadWeaponDrop_.x, 0.01f, -2.0f, 2.0f, "%.2f");
+		ImGui::DragFloat3("Reload Weapon Rot Deg", &reloadWeaponRotDeg_.x, 0.25f, -180.0f, 180.0f, "%.2f");
+		ImGui::DragFloat3("Reload Left Grab Offset", &reloadLeftGrabOffset_.x, 0.01f, -2.0f, 2.0f, "%.2f");
+		ImGui::DragFloat3("Reload Left Grab Rot Deg", &reloadLeftGrabRotDeg_.x, 0.25f, -180.0f, 180.0f, "%.2f");
+		ImGui::DragFloat3("Reload Left Pull Offset", &reloadLeftPullOffset_.x, 0.01f, -2.0f, 2.0f, "%.2f");
+		ImGui::DragFloat3("Reload Left Pull Rot Deg", &reloadLeftPullRotDeg_.x, 0.25f, -180.0f, 180.0f, "%.2f");
+		ImGui::DragFloat("Reload Pose Blend Speed", &reloadPoseBlendSpeed_, 0.1f, 1.0f, 40.0f, "%.1f");
+	}
+#endif
+}
+
 void PlayerViewComponent::ApplyFirstPersonRenderFlags()
 {
 	if (!fpHooks_.SetBodyActive || !fpHooks_.SetAllPartsActive || !fpHooks_.SetPartActive
@@ -340,7 +378,15 @@ void PlayerViewComponent::UpdateFirstPersonArmPose(float dt)
 	if (armBlend_ < target) armBlend_ = (std::min)(target, armBlend_ + maxDelta);
 	else if (armBlend_ > target) armBlend_ = (std::max)(target, armBlend_ - maxDelta);
 
+	reloadPoseAlpha_ = Approach(reloadPoseAlpha_, reloadViewActive_ ? 1.0f : 0.0f, reloadPoseBlendSpeed_, dt);
+
 	const float t = Clamp01(armBlend_);
+	const float reloadT = SmoothStep01(reloadPoseAlpha_);
+	const float reloadPhase = Clamp01(reloadViewTimer_ / std::max(0.01f, reloadViewDuration_));
+	const float grabT = SmoothStep01(std::clamp(reloadPhase / 0.45f, 0.0f, 1.0f));
+	const float pullT = SmoothStep01(std::clamp((reloadPhase - 0.25f) / 0.45f, 0.0f, 1.0f));
+	const float returnT = SmoothStep01(std::clamp((reloadPhase - 0.70f) / 0.30f, 0.0f, 1.0f));
+	const float leftReloadWeight = reloadT * (1.0f - returnT);
 
 	UpdateRecoilViewModelKick(dt);
 
@@ -369,6 +415,25 @@ void PlayerViewComponent::UpdateFirstPersonArmPose(float dt)
 	rrot.x += vmKickPitch_;
 	rrot.y += vmKickYaw_;
 	rrot.z += vmKickRoll_;
+
+	if (leftReloadWeight > 0.0f)
+	{
+		const K4E::Vector3 leftReloadOffset =
+			LerpVec3(reloadLeftGrabOffset_, reloadLeftPullOffset_, pullT) * leftReloadWeight;
+		const K4E::Vector3 leftReloadRotDeg =
+			LerpVec3(reloadLeftGrabRotDeg_, reloadLeftPullRotDeg_, pullT) * leftReloadWeight;
+
+		leftArmTr_->translate_ += leftReloadOffset;
+		lrot.x += DegToRad(leftReloadRotDeg.x);
+		lrot.y += DegToRad(leftReloadRotDeg.y);
+		lrot.z += DegToRad(leftReloadRotDeg.z);
+
+		const K4E::Vector3 rightReloadOffset = reloadWeaponDrop_ * reloadT * (1.0f - returnT);
+		rightArmTr_->translate_ += rightReloadOffset;
+		rrot.x += DegToRad(reloadWeaponRotDeg_.x * reloadT * (1.0f - returnT));
+		rrot.y += DegToRad(reloadWeaponRotDeg_.y * reloadT * (1.0f - returnT));
+		rrot.z += DegToRad(reloadWeaponRotDeg_.z * reloadT * (1.0f - returnT));
+	}
 
 	// -----------------------------
 	// 近接スイング
