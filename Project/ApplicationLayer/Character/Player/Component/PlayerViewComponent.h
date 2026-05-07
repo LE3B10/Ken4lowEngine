@@ -109,20 +109,20 @@ private: /// ---------- メンバ変数 ---------- ///
 	K4E::Vector3 baseRightPos_{};
 
 	// 通常構え。
-	// 左腕は武器の中央へ添えるよう、前回よりさらに内側へひねる。
+	// 左腕は武器の中央へ添えるように内側へひねる。
 	K4E::Vector3 baseLeftRot_ = { -1.04f, 2.35f, -0.61f };
 	K4E::Vector3 baseRightRot_ = { -std::numbers::pi_v<float> *0.5f,0.0f,0.0f };
 
 	// 通常時の左腕を武器側へ寄せるための位置補正。ImGuiから調整する。
 	K4E::Vector3 leftHipSupportOffset_{ 0.63f, -0.16f, 0.40f };
 
-	// ADS時は腕が画面外へ開きすぎないよう、中心寄りに構える。
-	K4E::Vector3 aimLeftPos_{ -0.02f, 0.55f, 0.90f };
+	// ADS時は通常構えの向きを保ったまま、位置だけ少し中央・武器側へ寄せる。
+	K4E::Vector3 aimLeftPos_{ 0.18f, 0.38f, 0.78f };
 	K4E::Vector3 aimRightPos_{ 0.20f, 0.55f, 0.85f };
 
-	// Yaw と Roll を少し強め、左腕が武器側へ向くようにする。
+	// 左腕はADS中に大きく回転させない。通常構えのまま近づける。
 	K4E::Vector3 aimRightRot_ = { -std::numbers::pi_v<float> *0.5f, 0.0f, 0.0f };
-	K4E::Vector3 aimLeftRot_ = { -1.42f,  0.36f, -0.28f };
+	K4E::Vector3 aimLeftRot_ = { -1.04f, 2.35f, -0.61f };
 
 	float armBlend_ = 0.0f;
 	float armBlendSpeed_ = 12.0f;
