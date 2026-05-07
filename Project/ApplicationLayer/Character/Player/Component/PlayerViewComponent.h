@@ -133,7 +133,7 @@ private: /// ---------- メンバ変数 ---------- ///
 	// Apex / Valorant などのFPSでは、上下を向いても武器が完全には画面外へ逃げない。
 	// そのため、カメラPitchへの追従は弱めにする。
 	// 0.82f だと上下端で右腕と武器が画面外へ寄りやすい。
-	float armPitchFollow_ = 0.28f;
+	float armPitchFollow_ = 0.82f;
 
 	CameraFovHooks fovHooks_{};
 	float prevAppliedFovMul_ = 1.0f;
