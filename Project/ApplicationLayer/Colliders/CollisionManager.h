@@ -43,6 +43,15 @@ public: /// ---------- メンバ関数 ---------- ///
     // セグメントキャスト
     bool SegmentCast(uint32_t targetType, const K4E::Segment& seg, K4E::Collider** outHit = nullptr) const;
 
+    // 指定タイプのCollider一覧を返す。
+    // 爆風ダメージなど、通常の接触ペア以外で近傍検索したい時に使う。
+    const std::vector<K4E::Collider*>& GetCollidersByType(uint32_t typeId) const
+    {
+        static const std::vector<K4E::Collider*> empty{};
+        if (typeId >= kMaxTypes) return empty;
+        return buckets_[typeId];
+    }
+
 private: /// ---------- メンバ関数 ---------- ///
 
     // コライダー2つの衝突判定（衝突したら両者へ接触を登録）
