@@ -410,6 +410,8 @@ void PlayerViewComponent::DrawImGui()
 		ImGui::Separator();
 
 		ImGui::Text("Right Arm ADS pose");
+		ImGui::DragFloat3("Right Hip Support Offset", &rightHipSupportOffset_.x, 0.01f, -3.0f, 3.0f, "%.2f");
+		ImGui::DragFloat3("Base Right Rot", &baseRightRot_.x, 0.01f, -6.28f, 6.28f, "%.2f");
 		ImGui::DragFloat3("Aim Right Pos", &aimRightPos_.x, 0.01f, -3.0f, 3.0f, "%.2f");
 		ImGui::DragFloat3("Aim Right Rot", &aimRightRot_.x, 0.01f, -6.28f, 6.28f, "%.2f");
 		ImGui::Separator();
@@ -512,7 +514,7 @@ void PlayerViewComponent::UpdateFirstPersonArmPose(float dt)
 	// 左腕は通常時から少し武器側へ寄せる。
 	// ここで位置も補間しないと、回転だけ変えても腕が画面外側に残りやすい。
 	const K4E::Vector3 leftHipPos = baseLeftPos_ + leftHipSupportOffset_;
-	const K4E::Vector3 rightHipPos = baseRightPos_;
+	const K4E::Vector3 rightHipPos = baseRightPos_ + rightHipSupportOffset_;
 
 	leftArmTr_->translate_ = Lerp(leftHipPos, aimLeftPos_, t);
 	rightArmTr_->translate_ = Lerp(rightHipPos, aimRightPos_, t);

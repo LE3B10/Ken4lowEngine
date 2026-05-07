@@ -115,6 +115,7 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	// 通常時の左腕を武器側へ寄せるための位置補正。ImGuiから調整する。
 	K4E::Vector3 leftHipSupportOffset_{ 0.63f, -0.16f, 0.40f };
+	K4E::Vector3 rightHipSupportOffset_{ 0.0f, 0.0f, 0.0f };
 
 	// ADS時は通常構えの向きを保ったまま、位置だけ少し中央・武器側へ寄せる。
 	K4E::Vector3 aimLeftPos_{ -0.48f, 0.38f, 0.78f };
