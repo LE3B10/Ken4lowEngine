@@ -129,9 +129,11 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	float camPitch_ = 0.0f;
 
-	// 一人称の腕・武器は、前向き構えの形を保ったままカメラの上下方向へ追従させる。
-	// 1.0f だと上・下の端で腕が画面に寄りすぎるため、少しだけ弱める。
-	float armPitchFollow_ = 0.82f;
+	// FPSの腕・武器は「ワールド上の腕」ではなく、カメラ前に固定されるViewModelとして見せる。
+	// Apex / Valorant などのFPSでは、上下を向いても武器が完全には画面外へ逃げない。
+	// そのため、カメラPitchへの追従は弱めにする。
+	// 0.82f だと上下端で右腕と武器が画面外へ寄りやすい。
+	float armPitchFollow_ = 0.28f;
 
 	CameraFovHooks fovHooks_{};
 	float prevAppliedFovMul_ = 1.0f;
