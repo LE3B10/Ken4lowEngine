@@ -240,16 +240,16 @@ static const ParticleSpawnParam kParticleSpawnParams[kParticleSpawnParamCount] =
 
     // 13: BulletTracer
     {
-        0.06f, 0.16f,
-        8.0f, 18.0f,
-        0.012f, 0.025f,
-        0.85f,
+        0.16f, 0.30f,
+        0.0f, 0.0f,
+        0.08f, 0.16f,
+        1.0f,
         float3(0.80f, 0.90f, 1.0f),
         float3(1.0f, 1.0f, 1.0f),
         GPU_PARTICLE_SPAWN_SHAPE_POINT,
         GPU_PARTICLE_DIR_RANDOM,
         GPU_PARTICLE_SCALE_STRETCH,
-        0.18f, 0.42f
+        0.80f, 1.80f
     },
 };
 
