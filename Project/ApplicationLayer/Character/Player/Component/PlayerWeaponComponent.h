@@ -57,6 +57,7 @@ public: /// ---------- メンバ関数 ---------- ///
 	bool IsLoaded() const { return weaponLoaded_; }
 	const std::string& GetLoadError() const { return weaponLoadError_; }
 	bool IsMeleeCategory() const { return weaponCategory_ == EWeaponCategory::Melee; }
+	bool IsHeavyCategory() const { return weaponCategory_ == EWeaponCategory::Heavy; }
 
 	// HUD用
 	bool GetReloadUI(bool& outIsReloading, float& outReloadTimer, float& outReloadSec) const;
