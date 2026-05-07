@@ -339,6 +339,10 @@ void PlayerViewComponent::DrawImGui()
 		ImGui::Text("Weapon rotation follows Right Arm during reload.");
 		ImGui::DragFloat3("Reload Right Arm Offset", &reloadWeaponDrop_.x, 0.01f, -2.0f, 2.0f, "%.2f");
 		ImGui::DragFloat3("Reload Right Arm Rot Deg", &reloadRightArmRotDeg_.x, 0.25f, -180.0f, 180.0f, "%.2f");
+		ImGui::Separator();
+		ImGui::Text("Left Arm reload pose");
+		ImGui::DragFloat3("Reload Left Arm Offset", &reloadLeftArmOffset_.x, 0.01f, -2.0f, 2.0f, "%.2f");
+		ImGui::DragFloat3("Reload Left Arm Rot Deg", &reloadLeftArmRotDeg_.x, 0.25f, -180.0f, 180.0f, "%.2f");
 		ImGui::DragFloat("Reload Pose Blend Speed", &reloadPoseBlendSpeed_, 0.1f, 1.0f, 40.0f, "%.1f");
 	}
 #endif
@@ -423,11 +427,11 @@ void PlayerViewComponent::UpdateFirstPersonArmPose(float dt)
 	rrot.y += vmKickYaw_;
 	rrot.z += vmKickRoll_;
 
-	// まずは右腕だけでリロード姿勢を作る。
-	// 武器は右腕の worldMatrix_ に追従するので、武器側では回転を足さない。
+	// リロード中は右腕を少し下げる。武器は右腕の worldMatrix_ に追従する。
 	if (reloadT > 0.0f)
 	{
 		rightArmTr_->translate_ += reloadWeaponDrop_ * reloadT;
+		leftArmTr_->translate_ += reloadLeftArmOffset_ * reloadT;
 	}
 
 	// -----------------------------
@@ -498,8 +502,20 @@ void PlayerViewComponent::UpdateFirstPersonArmPose(float dt)
 		}
 	}
 
-	leftArmTr_->useQuaternionRotation_ = false;
+	const K4E::Vector3 leftReloadRotRad =
+	{
+		DegToRad(reloadLeftArmRotDeg_.x * reloadT),
+		DegToRad(reloadLeftArmRotDeg_.y * reloadT),
+		DegToRad(reloadLeftArmRotDeg_.z * reloadT),
+	};
+
+	const K4E::Quaternion baseLeftQuat = MakeQuaternionFromEulerRad(lrot);
+	const K4E::Quaternion reloadLeftQuat = MakeQuaternionFromEulerRad(leftReloadRotRad);
+
+	leftArmTr_->useQuaternionRotation_ = true;
 	leftArmTr_->rotate_ = lrot;
+	leftArmTr_->quaternion_ = K4E::Quaternion::Normalize(
+		K4E::Quaternion::Multiply(baseLeftQuat, reloadLeftQuat));
 
 	const K4E::Vector3 rightReloadRotRad =
 	{
