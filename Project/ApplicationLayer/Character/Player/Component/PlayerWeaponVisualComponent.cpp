@@ -47,12 +47,6 @@ namespace
 		return { ToDegrees(radians.x), ToDegrees(radians.y), ToDegrees(radians.z) };
 	}
 
-	K4E::Vector3 LerpVec3(const K4E::Vector3& a, const K4E::Vector3& b, float t)
-	{
-		t = Clamp01(t);
-		return a + (b - a) * t;
-	}
-
 	K4E::Quaternion MakeQuaternionFromEulerDeg(const K4E::Vector3& eulerDeg)
 	{
 		const float x = ToRadians(eulerDeg.x);
@@ -217,8 +211,8 @@ void PlayerWeaponVisualComponent::DrawImGui()
 
 		ImGui::Separator();
 		ImGui::Text("Reload Pose Alpha: %.2f", reloadPoseAlpha_);
+		ImGui::Text("Reload rotation is now controlled by the right arm.");
 		ImGui::DragFloat3("Reload Weapon Offset", &reloadWeaponOffset_.x, 0.01f, -3.0f, 3.0f, "%.2f");
-		ImGui::DragFloat3("Reload Weapon Rot Deg", &reloadWeaponRotDeg_.x, 0.25f, -180.0f, 180.0f, "%.2f");
 		ImGui::DragFloat("Reload Blend Speed", &reloadPoseBlendSpeed_, 0.1f, 1.0f, 40.0f, "%.1f");
 
 		if (ImGui::Button("Reset Weapon Size"))
@@ -346,11 +340,8 @@ void PlayerWeaponVisualComponent::SyncToHand(bool isADS)
 		}
 
 		const K4E::Quaternion baseRotation = isADS ? adsLocalQuaternion_ : hipLocalQuaternion_;
-		const K4E::Quaternion reloadRotation = MakeQuaternionFromEulerDeg(reloadWeaponRotDeg_ * reloadT);
 		const K4E::Quaternion totalRotation = K4E::Quaternion::Normalize(
-			K4E::Quaternion::Multiply(
-				K4E::Quaternion::Multiply(baseRotation, handSocketLocalQuaternion_),
-				reloadRotation));
+			K4E::Quaternion::Multiply(baseRotation, handSocketLocalQuaternion_));
 
 		localMatrix = K4E::Matrix4x4::MakeAffineMatrix(
 			weaponWorldScale,
@@ -360,12 +351,7 @@ void PlayerWeaponVisualComponent::SyncToHand(bool isADS)
 	else
 	{
 		const K4E::Vector3 localRot = isADS ? adsLocalRotate_ : hipLocalRotate_;
-		const K4E::Vector3 reloadRotRad = {
-			ToRadians(reloadWeaponRotDeg_.x * reloadT),
-			ToRadians(reloadWeaponRotDeg_.y * reloadT),
-			ToRadians(reloadWeaponRotDeg_.z * reloadT),
-		};
-		const K4E::Vector3 totalLocalRotate = localRot + handSocketLocalRotate_ + reloadRotRad;
+		const K4E::Vector3 totalLocalRotate = localRot + handSocketLocalRotate_;
 
 		localMatrix = K4E::Matrix4x4::MakeAffineMatrix(
 			weaponWorldScale,
