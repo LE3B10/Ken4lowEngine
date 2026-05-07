@@ -415,6 +415,13 @@ void PlayerViewComponent::DrawImGui()
 		ImGui::DragFloat3("Aim Right Pos", &aimRightPos_.x, 0.01f, -3.0f, 3.0f, "%.2f");
 		ImGui::DragFloat3("Aim Right Rot", &aimRightRot_.x, 0.01f, -6.28f, 6.28f, "%.2f");
 		ImGui::Separator();
+		ImGui::Text("Pitch ViewModel Offset");
+		ImGui::DragFloat("Pitch Offset Max Deg", &viewModelPitchOffsetMaxDeg_, 1.0f, 10.0f, 89.0f, "%.1f");
+		ImGui::DragFloat3("Pitch Up Left Offset", &pitchUpLeftArmOffset_.x, 0.01f, -3.0f, 3.0f, "%.2f");
+		ImGui::DragFloat3("Pitch Down Left Offset", &pitchDownLeftArmOffset_.x, 0.01f, -3.0f, 3.0f, "%.2f");
+		ImGui::DragFloat3("Pitch Up Right Offset", &pitchUpRightArmOffset_.x, 0.01f, -3.0f, 3.0f, "%.2f");
+		ImGui::DragFloat3("Pitch Down Right Offset", &pitchDownRightArmOffset_.x, 0.01f, -3.0f, 3.0f, "%.2f");
+		ImGui::Separator();
 		ImGui::Text("Reload Alpha: %.2f", reloadPoseAlpha_);
 		ImGui::Text("Reload Progress: %.2f", Clamp01(reloadAnimTimer_ / std::max(0.01f, reloadViewDuration_)));
 		ImGui::Text("Weapon rotation follows Right Arm during reload.");
@@ -513,20 +520,37 @@ void PlayerViewComponent::UpdateFirstPersonArmPose(float dt)
 
 	// 左腕は通常時から少し武器側へ寄せる。
 	// ここで位置も補間しないと、回転だけ変えても腕が画面外側に残りやすい。
-	const K4E::Vector3 leftHipPos = baseLeftPos_ + leftHipSupportOffset_;
-	const K4E::Vector3 rightHipPos = baseRightPos_ + rightHipSupportOffset_;
+	const float pitchRangeRad = DegToRad(std::max(1.0f, viewModelPitchOffsetMaxDeg_));
 
-	leftArmTr_->translate_ = Lerp(leftHipPos, aimLeftPos_, t);
-	rightArmTr_->translate_ = Lerp(rightHipPos, aimRightPos_, t);
+	// camPitch_ が + なら上向き、- なら下向き想定。
+	// もし実機で逆に動いたら、camPitch_ と -camPitch_ を入れ替える。
+	const float upT = SmoothStep01(std::clamp(camPitch_ / pitchRangeRad, 0.0f, 1.0f));
+	const float downT = SmoothStep01(std::clamp(-camPitch_ / pitchRangeRad, 0.0f, 1.0f));
 
-	const float viewPitch = camPitch_ * armPitchFollow_;
+	const K4E::Vector3 pitchLeftOffset =
+		pitchUpLeftArmOffset_ * upT +
+		pitchDownLeftArmOffset_ * downT;
 
-	// 胸・肩付近を回転中心にする。
-	// ここを基準に腕と武器の位置もPitch方向へ回す。
-	const K4E::Vector3 viewModelPitchPivot{ 0.0f, 0.30f, 0.45f };
+	const K4E::Vector3 pitchRightOffset =
+		pitchUpRightArmOffset_ * upT +
+		pitchDownRightArmOffset_ * downT;
 
-	leftArmTr_->translate_ = RotatePitchAroundPivot(leftArmTr_->translate_, viewModelPitchPivot, viewPitch);
-	rightArmTr_->translate_ = RotatePitchAroundPivot(rightArmTr_->translate_, viewModelPitchPivot, viewPitch);
+	const K4E::Vector3 leftHipPos =
+		baseLeftPos_ +
+		leftHipSupportOffset_ +
+		pitchLeftOffset;
+
+	const K4E::Vector3 rightHipPos =
+		baseRightPos_ +
+		rightHipSupportOffset_ +
+		pitchRightOffset;
+
+	leftArmTr_->translate_ = Lerp(leftHipPos, aimLeftPos_ + pitchLeftOffset, t);
+	rightArmTr_->translate_ = Lerp(rightHipPos, aimRightPos_ + pitchRightOffset, t);
+
+	// 位置はPitch回転で回さない。
+	// 上下視点時の画面内維持は pitchLeftOffset / pitchRightOffset で行う。
+	//const float viewPitch = camPitch_ * armPitchFollow_;
 
 	leftArmTr_->translate_.z -= vmKickBack_ * 0.90f;
 	rightArmTr_->translate_.z -= vmKickBack_ * 1.05f;

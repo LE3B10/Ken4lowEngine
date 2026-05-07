@@ -117,6 +117,16 @@ private: /// ---------- メンバ変数 ---------- ///
 	K4E::Vector3 leftHipSupportOffset_{ 0.63f, -0.16f, 0.40f };
 	K4E::Vector3 rightHipSupportOffset_{ 0.0f, 0.0f, 0.0f };
 
+	// カメラPitchに応じて、FPSの腕・武器を画面内に残すための補正。
+	// ImGuiで手動調整していた上向き・下向き用のOffsetを自動化する。
+	K4E::Vector3 pitchUpLeftArmOffset_{ 0.00f, 0.50f, -1.10f };
+	K4E::Vector3 pitchDownLeftArmOffset_{ 0.00f, 0.70f, 0.00f };
+
+	K4E::Vector3 pitchUpRightArmOffset_{ 0.00f, 0.45f, -0.59f };
+	K4E::Vector3 pitchDownRightArmOffset_{ 0.00f, 0.45f, 0.31f };
+
+	float viewModelPitchOffsetMaxDeg_ = 70.0f;
+
 	// ADS時は通常構えの向きを保ったまま、位置だけ少し中央・武器側へ寄せる。
 	K4E::Vector3 aimLeftPos_{ -0.48f, 0.38f, 0.78f };
 	K4E::Vector3 aimRightPos_{ 0.20f, 0.55f, 0.85f };
