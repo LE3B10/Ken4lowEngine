@@ -69,14 +69,4 @@ struct WeaponParams
 	// --- Pellet ---
 	int32_t pelletCount = 1;
 	float   pelletSpreadAngle = 0.0f; // ペレット用の追加拡散（度）
-
-	// --- Muzzle spark / fire feedback ---
-	// Spriteのマズルフラッシュではなく、Mesh Particleで火花を出すための設定。
-	// まずは projectileData.spawnForwardOffset を基準に武器ごとの差を反映する。
-	bool     enableMuzzleSparkMesh = true;
-	uint32_t muzzleSparkMeshId = 1000u;
-	uint32_t muzzleSparkBurstCount = 8u;
-	float    muzzleSparkOffsetRight = 0.0f;
-	float    muzzleSparkOffsetUp = -0.08f;
-	float    muzzleSparkOffsetForward = 0.50f;
 };
