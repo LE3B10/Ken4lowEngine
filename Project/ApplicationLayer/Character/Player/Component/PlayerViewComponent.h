@@ -109,17 +109,17 @@ private: /// ---------- メンバ変数 ---------- ///
 	K4E::Vector3 baseRightPos_{};
 
 	// 通常構え。
-	// 左腕は真っすぐ前に突き出すのではなく、武器の中央付近に添えるように少し内側へ寝かせる。
-	K4E::Vector3 baseLeftRot_ = { -1.35f, 0.35f, -0.30f };
+	// 左腕は武器の中央へ添えるよう、前回よりさらに内側へひねる。
+	K4E::Vector3 baseLeftRot_ = { -1.35f, 0.58f, -0.45f };
 	K4E::Vector3 baseRightRot_ = { -std::numbers::pi_v<float> *0.5f,0.0f,0.0f };
 
 	// ADS時は腕が画面外へ開きすぎないよう、中心寄りに構える。
 	K4E::Vector3 aimLeftPos_{ -0.02f, 0.55f, 0.90f };
 	K4E::Vector3 aimRightPos_{ 0.20f, 0.55f, 0.85f };
 
-	// Yawの符号を通常構えより内側へ向く方向に寄せる。
+	// Yaw と Roll を少し強め、左腕が武器側へ向くようにする。
 	K4E::Vector3 aimRightRot_ = { -std::numbers::pi_v<float> *0.5f, -0.10f, 0.0f };
-	K4E::Vector3 aimLeftRot_ = { -1.42f,  0.18f, -0.12f };
+	K4E::Vector3 aimLeftRot_ = { -1.42f,  0.36f, -0.28f };
 
 	float armBlend_ = 0.0f;
 	float armBlendSpeed_ = 12.0f;
