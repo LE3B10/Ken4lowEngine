@@ -75,6 +75,20 @@ static float CalcReloadPoseWeight(float progress, float enterEnd, float holdEnd,
 	return 0.0f;
 }
 
+static K4E::Vector3 RotatePitchAroundPivot(const K4E::Vector3& pos, const K4E::Vector3& pivot, float pitch)
+{
+	K4E::Vector3 local = pos - pivot;
+
+	const float s = std::sin(pitch);
+	const float c = std::cos(pitch);
+
+	K4E::Vector3 rotated = local;
+	rotated.y = local.y * c - local.z * s;
+	rotated.z = local.y * s + local.z * c;
+
+	return rotated + pivot;
+}
+
 static Quaternion MakeQuaternionFromEulerRad(const Vector3& eulerRad)
 {
 	const Quaternion qx = Quaternion::MakeRotateAxisAngleQuaternion({ 1.0f, 0.0f, 0.0f }, eulerRad.x);
@@ -503,6 +517,15 @@ void PlayerViewComponent::UpdateFirstPersonArmPose(float dt)
 	leftArmTr_->translate_ = Lerp(leftHipPos, aimLeftPos_, t);
 	rightArmTr_->translate_ = Lerp(rightHipPos, aimRightPos_, t);
 
+	const float viewPitch = camPitch_ * armPitchFollow_;
+
+	// 胸・肩付近を回転中心にする。
+	// ここを基準に腕と武器の位置もPitch方向へ回す。
+	const K4E::Vector3 viewModelPitchPivot{ 0.0f, 0.30f, 0.45f };
+
+	leftArmTr_->translate_ = RotatePitchAroundPivot(leftArmTr_->translate_, viewModelPitchPivot, viewPitch);
+	rightArmTr_->translate_ = RotatePitchAroundPivot(rightArmTr_->translate_, viewModelPitchPivot, viewPitch);
+
 	leftArmTr_->translate_.z -= vmKickBack_ * 0.90f;
 	rightArmTr_->translate_.z -= vmKickBack_ * 1.05f;
 	leftArmTr_->translate_.y += vmKickUp_ * 0.90f;
@@ -638,5 +661,5 @@ K4E::Quaternion PlayerViewComponent::MakeQuaternionFromEulerDeg(const K4E::Vecto
 		DegToRad(eulerDeg.x),
 		DegToRad(eulerDeg.y),
 		DegToRad(eulerDeg.z),
-	});
+		});
 }
