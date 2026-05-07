@@ -5,6 +5,7 @@
 #include <BaseCharacter.h>   // WorldTransformEx / Vector3
 #include "FpsCamera.h"
 #include "PlayerInputSnapshot.h" // InputSnapshot
+#include "Quaternion.h"
 
 /// ---------- 前方宣言 ---------- ///
 class Player;
@@ -111,6 +112,7 @@ private:
 	void ApplyFirstPersonRenderFlags();
 	void UpdateFirstPersonArmPose(float dt);
 	void UpdateRecoilViewModelKick(float dt);
+	K4E::Quaternion MakeQuaternionFromEulerDeg(const K4E::Vector3& eulerDeg) const;
 
 private: /// ---------- メンバ変数 ---------- ///
 
@@ -216,6 +218,7 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	K4E::Vector3 reloadWeaponDrop_{ 0.08f, -0.18f, -0.10f };
 	K4E::Vector3 reloadWeaponRotDeg_{ 10.0f, -12.0f, 18.0f };
+	K4E::Vector3 reloadRightArmRotDeg_{ -18.0f, 12.0f, -24.0f };
 	K4E::Vector3 reloadLeftGrabOffset_{ 0.32f, -0.14f, 0.22f };
 	K4E::Vector3 reloadLeftGrabRotDeg_{ 28.0f, 18.0f, -28.0f };
 	K4E::Vector3 reloadLeftPullOffset_{ 0.42f, -0.36f, 0.02f };
