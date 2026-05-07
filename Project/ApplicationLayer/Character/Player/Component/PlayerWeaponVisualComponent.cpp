@@ -1,3 +1,4 @@
+#define NOMINMAX
 #include "PlayerWeaponVisualComponent.h"
 
 #include <algorithm>

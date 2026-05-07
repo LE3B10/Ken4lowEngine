@@ -5,6 +5,10 @@
 #include <cmath>
 #include <numbers>
 
+#ifdef USE_IMGUI
+#include <imgui.h>
+#endif // USE_IMGUI
+
 
 using namespace Ken4lowEngine;
 
@@ -383,7 +387,7 @@ void PlayerViewComponent::UpdateFirstPersonArmPose(float dt)
 	const float t = Clamp01(armBlend_);
 	const float reloadT = SmoothStep01(reloadPoseAlpha_);
 	const float reloadPhase = Clamp01(reloadViewTimer_ / std::max(0.01f, reloadViewDuration_));
-	const float grabT = SmoothStep01(std::clamp(reloadPhase / 0.45f, 0.0f, 1.0f));
+	//const float grabT = SmoothStep01(std::clamp(reloadPhase / 0.45f, 0.0f, 1.0f));
 	const float pullT = SmoothStep01(std::clamp((reloadPhase - 0.25f) / 0.45f, 0.0f, 1.0f));
 	const float returnT = SmoothStep01(std::clamp((reloadPhase - 0.70f) / 0.30f, 0.0f, 1.0f));
 	const float leftReloadWeight = reloadT * (1.0f - returnT);
@@ -419,9 +423,9 @@ void PlayerViewComponent::UpdateFirstPersonArmPose(float dt)
 	if (leftReloadWeight > 0.0f)
 	{
 		const K4E::Vector3 leftReloadOffset =
-			LerpVec3(reloadLeftGrabOffset_, reloadLeftPullOffset_, pullT) * leftReloadWeight;
+			Lerp(reloadLeftGrabOffset_, reloadLeftPullOffset_, pullT) * leftReloadWeight;
 		const K4E::Vector3 leftReloadRotDeg =
-			LerpVec3(reloadLeftGrabRotDeg_, reloadLeftPullRotDeg_, pullT) * leftReloadWeight;
+			Lerp(reloadLeftGrabRotDeg_, reloadLeftPullRotDeg_, pullT) * leftReloadWeight;
 
 		leftArmTr_->translate_ += leftReloadOffset;
 		lrot.x += DegToRad(leftReloadRotDeg.x);
