@@ -233,8 +233,11 @@ void PlayerCombatComponent::FireOnce(
 			// 火花はMesh Particleとして別に発生させる。
 			EmitMuzzleSparkMesh(particle, muzzlePos);
 
-			// Sprite版BulletTracerは使わず、Mesh Particleを弾道方向へ点列配置する。
-			EmitBulletTracerMesh(particle, muzzlePos, fireForward);
+			// 弾道Meshは重い/目立つため、ヘビー武器だけ表示する。
+			if (weapon_->IsHeavyCategory())
+			{
+				EmitBulletTracerMesh(particle, muzzlePos, fireForward);
+			}
 		}
 	}
 
