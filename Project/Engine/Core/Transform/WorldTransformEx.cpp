@@ -9,12 +9,15 @@ namespace Ken4lowEngine
 void WorldTransformEx::Update()
 {
 	// ローカル変換行列を作成
-	Matrix4x4 worldMatrix = Matrix4x4::MakeAffineMatrix(scale_, rotate_, translate_);
+	Matrix4x4 worldMatrix = useQuaternionRotation_
+		? Matrix4x4::MakeAffineMatrix(scale_, quaternion_, translate_)
+		: Matrix4x4::MakeAffineMatrix(scale_, rotate_, translate_);
 
 	// 親オブジェクトがあれば親のワールド行列を掛ける
 	if (parent_) worldMatrix = Matrix4x4::Multiply(worldMatrix, parent_->worldMatrix_);
 
-	// 親の回転を引き継ぐ
+	// 親の回転を引き継ぐ。
+	// クォータニオン回転時も既存コード互換のため worldRotate_ は Euler の近似値として残す。
 	worldRotate_ = parent_ ? parent_->worldRotate_ + rotate_ : rotate_;
 
 	// ワールド座標を取得
@@ -49,6 +52,8 @@ void WorldTransformEx::Update(const WorldTransformEx* parent, const Vector3& off
 	rotate_.x += selfAdd.x;
 	rotate_.y += selfAdd.y;
 	rotate_.z += selfAdd.z;
+
+	useQuaternionRotation_ = false;
 }
 
 } // namespace Ken4lowEngine
