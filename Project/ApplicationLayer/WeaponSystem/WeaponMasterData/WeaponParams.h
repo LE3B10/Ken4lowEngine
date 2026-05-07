@@ -33,9 +33,15 @@ struct WeaponParams
 	// --- Projectile / Hitscan ---
 	bool    isProjectile = true;
 	float   projectileSpeed = 90.0f;
+	float   projectileLifeTime = 3.0f;
 	float   maxRange = 100.0f;
 	float   traceRadius = 0.0f;          // hitscan用（今は未使用でも保持）
 	float   muzzleForwardOffset = 0.35f; // projectileData.spawnForwardOffset を反映
+
+	// 着弾時の範囲ダメージ。splashRadius <= 0 なら通常弾。
+	float   splashRadius = 0.0f;
+	int32_t splashDamage = 0;
+	bool    splashCanDamageSelf = false;
 
 	// --- Burst / Charge ---
 	int32_t burstCount = 0;
