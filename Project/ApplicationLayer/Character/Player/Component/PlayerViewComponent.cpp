@@ -29,6 +29,15 @@ static float Approach(float current, float target, float speed, float deltaTime)
 	return target;
 }
 
+static Quaternion MakeQuaternionFromEulerRad(const Vector3& eulerRad)
+{
+	const Quaternion qx = Quaternion::MakeRotateAxisAngleQuaternion({ 1.0f, 0.0f, 0.0f }, eulerRad.x);
+	const Quaternion qy = Quaternion::MakeRotateAxisAngleQuaternion({ 0.0f, 1.0f, 0.0f }, eulerRad.y);
+	const Quaternion qz = Quaternion::MakeRotateAxisAngleQuaternion({ 0.0f, 0.0f, 1.0f }, eulerRad.z);
+
+	return Quaternion::Normalize(Quaternion::Multiply(Quaternion::Multiply(qx, qy), qz));
+}
+
 void PlayerViewComponent::BindArmTransforms(K4E::WorldTransformEx* leftArm, K4E::WorldTransformEx* rightArm)
 {
 	leftArmTr_ = leftArm;
@@ -123,6 +132,8 @@ void PlayerViewComponent::SetFirstPersonView(bool enabled)
 		rightArmTr_->translate_ = baseRightPos_;
 		leftArmTr_->rotate_ = baseLeftRot_;
 		rightArmTr_->rotate_ = baseRightRot_;
+		leftArmTr_->useQuaternionRotation_ = false;
+		rightArmTr_->useQuaternionRotation_ = false;
 		armBlend_ = 0.0f;
 		reloadPoseAlpha_ = 0.0f;
 	}
@@ -325,12 +336,9 @@ void PlayerViewComponent::DrawImGui()
 		ImGui::DragFloat3("Aim Right Rot", &aimRightRot_.x, 0.01f, -6.28f, 6.28f, "%.2f");
 		ImGui::Separator();
 		ImGui::Text("Reload Alpha: %.2f", reloadPoseAlpha_);
-		ImGui::DragFloat3("Reload Weapon Drop", &reloadWeaponDrop_.x, 0.01f, -2.0f, 2.0f, "%.2f");
-		ImGui::DragFloat3("Reload Weapon Rot Deg", &reloadWeaponRotDeg_.x, 0.25f, -180.0f, 180.0f, "%.2f");
-		ImGui::DragFloat3("Reload Left Grab Offset", &reloadLeftGrabOffset_.x, 0.01f, -2.0f, 2.0f, "%.2f");
-		ImGui::DragFloat3("Reload Left Grab Rot Deg", &reloadLeftGrabRotDeg_.x, 0.25f, -180.0f, 180.0f, "%.2f");
-		ImGui::DragFloat3("Reload Left Pull Offset", &reloadLeftPullOffset_.x, 0.01f, -2.0f, 2.0f, "%.2f");
-		ImGui::DragFloat3("Reload Left Pull Rot Deg", &reloadLeftPullRotDeg_.x, 0.25f, -180.0f, 180.0f, "%.2f");
+		ImGui::Text("Weapon rotation follows Right Arm during reload.");
+		ImGui::DragFloat3("Reload Right Arm Offset", &reloadWeaponDrop_.x, 0.01f, -2.0f, 2.0f, "%.2f");
+		ImGui::DragFloat3("Reload Right Arm Rot Deg", &reloadRightArmRotDeg_.x, 0.25f, -180.0f, 180.0f, "%.2f");
 		ImGui::DragFloat("Reload Pose Blend Speed", &reloadPoseBlendSpeed_, 0.1f, 1.0f, 40.0f, "%.1f");
 	}
 #endif
@@ -386,11 +394,6 @@ void PlayerViewComponent::UpdateFirstPersonArmPose(float dt)
 
 	const float t = Clamp01(armBlend_);
 	const float reloadT = SmoothStep01(reloadPoseAlpha_);
-	const float reloadPhase = Clamp01(reloadViewTimer_ / std::max(0.01f, reloadViewDuration_));
-	//const float grabT = SmoothStep01(std::clamp(reloadPhase / 0.45f, 0.0f, 1.0f));
-	const float pullT = SmoothStep01(std::clamp((reloadPhase - 0.25f) / 0.45f, 0.0f, 1.0f));
-	const float returnT = SmoothStep01(std::clamp((reloadPhase - 0.70f) / 0.30f, 0.0f, 1.0f));
-	const float leftReloadWeight = reloadT * (1.0f - returnT);
 
 	UpdateRecoilViewModelKick(dt);
 
@@ -420,23 +423,11 @@ void PlayerViewComponent::UpdateFirstPersonArmPose(float dt)
 	rrot.y += vmKickYaw_;
 	rrot.z += vmKickRoll_;
 
-	if (leftReloadWeight > 0.0f)
+	// まずは右腕だけでリロード姿勢を作る。
+	// 武器は右腕の worldMatrix_ に追従するので、武器側では回転を足さない。
+	if (reloadT > 0.0f)
 	{
-		const K4E::Vector3 leftReloadOffset =
-			Lerp(reloadLeftGrabOffset_, reloadLeftPullOffset_, pullT) * leftReloadWeight;
-		const K4E::Vector3 leftReloadRotDeg =
-			Lerp(reloadLeftGrabRotDeg_, reloadLeftPullRotDeg_, pullT) * leftReloadWeight;
-
-		leftArmTr_->translate_ += leftReloadOffset;
-		lrot.x += DegToRad(leftReloadRotDeg.x);
-		lrot.y += DegToRad(leftReloadRotDeg.y);
-		lrot.z += DegToRad(leftReloadRotDeg.z);
-
-		const K4E::Vector3 rightReloadOffset = reloadWeaponDrop_ * reloadT * (1.0f - returnT);
-		rightArmTr_->translate_ += rightReloadOffset;
-		rrot.x += DegToRad(reloadWeaponRotDeg_.x * reloadT * (1.0f - returnT));
-		rrot.y += DegToRad(reloadWeaponRotDeg_.y * reloadT * (1.0f - returnT));
-		rrot.z += DegToRad(reloadWeaponRotDeg_.z * reloadT * (1.0f - returnT));
+		rightArmTr_->translate_ += reloadWeaponDrop_ * reloadT;
 	}
 
 	// -----------------------------
@@ -507,6 +498,30 @@ void PlayerViewComponent::UpdateFirstPersonArmPose(float dt)
 		}
 	}
 
+	leftArmTr_->useQuaternionRotation_ = false;
 	leftArmTr_->rotate_ = lrot;
+
+	const K4E::Vector3 rightReloadRotRad =
+	{
+		DegToRad(reloadRightArmRotDeg_.x * reloadT),
+		DegToRad(reloadRightArmRotDeg_.y * reloadT),
+		DegToRad(reloadRightArmRotDeg_.z * reloadT),
+	};
+
+	const K4E::Quaternion baseRightQuat = MakeQuaternionFromEulerRad(rrot);
+	const K4E::Quaternion reloadRightQuat = MakeQuaternionFromEulerRad(rightReloadRotRad);
+
+	rightArmTr_->useQuaternionRotation_ = true;
 	rightArmTr_->rotate_ = rrot;
+	rightArmTr_->quaternion_ = K4E::Quaternion::Normalize(
+		K4E::Quaternion::Multiply(baseRightQuat, reloadRightQuat));
+}
+
+K4E::Quaternion PlayerViewComponent::MakeQuaternionFromEulerDeg(const K4E::Vector3& eulerDeg) const
+{
+	return MakeQuaternionFromEulerRad({
+		DegToRad(eulerDeg.x),
+		DegToRad(eulerDeg.y),
+		DegToRad(eulerDeg.z),
+	});
 }
