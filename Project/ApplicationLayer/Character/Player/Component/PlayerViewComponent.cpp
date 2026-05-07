@@ -29,6 +29,32 @@ static float Approach(float current, float target, float speed, float deltaTime)
 	return target;
 }
 
+static float CalcReloadPoseWeight(float progress, float enterEnd, float holdEnd, float returnEnd)
+{
+	progress = Clamp01(progress);
+	enterEnd = std::clamp(enterEnd, 0.01f, 0.95f);
+	holdEnd = std::clamp(holdEnd, enterEnd + 0.01f, 0.98f);
+	returnEnd = std::clamp(returnEnd, holdEnd + 0.01f, 1.0f);
+
+	if (progress < enterEnd)
+	{
+		return SmoothStep01(progress / enterEnd);
+	}
+
+	if (progress < holdEnd)
+	{
+		return 1.0f;
+	}
+
+	if (progress < returnEnd)
+	{
+		const float t = (progress - holdEnd) / (returnEnd - holdEnd);
+		return 1.0f - SmoothStep01(t);
+	}
+
+	return 0.0f;
+}
+
 static Quaternion MakeQuaternionFromEulerRad(const Vector3& eulerRad)
 {
 	const Quaternion qx = Quaternion::MakeRotateAxisAngleQuaternion({ 1.0f, 0.0f, 0.0f }, eulerRad.x);
@@ -86,9 +112,20 @@ void PlayerViewComponent::SetAiming(bool on)
 
 void PlayerViewComponent::SetReloadViewModelState(bool isReloading, float reloadTimer, float reloadDuration)
 {
+	const bool wasReloading = reloadViewActive_;
+
 	reloadViewActive_ = isReloading;
 	reloadViewTimer_ = reloadTimer;
 	reloadViewDuration_ = std::max(0.01f, reloadDuration);
+
+	if (isReloading)
+	{
+		// reloadTimer は残り時間として渡ってくる可能性があるため、表示用には自前タイマーで進行度を作る。
+		if (!wasReloading)
+		{
+			reloadAnimTimer_ = 0.0f;
+		}
+	}
 }
 
 void PlayerViewComponent::UpdateLook(float dt, const InputSnapshot& input)
@@ -136,6 +173,7 @@ void PlayerViewComponent::SetFirstPersonView(bool enabled)
 		rightArmTr_->useQuaternionRotation_ = false;
 		armBlend_ = 0.0f;
 		reloadPoseAlpha_ = 0.0f;
+		reloadAnimTimer_ = 0.0f;
 	}
 }
 
@@ -336,6 +374,7 @@ void PlayerViewComponent::DrawImGui()
 		ImGui::DragFloat3("Aim Right Rot", &aimRightRot_.x, 0.01f, -6.28f, 6.28f, "%.2f");
 		ImGui::Separator();
 		ImGui::Text("Reload Alpha: %.2f", reloadPoseAlpha_);
+		ImGui::Text("Reload Progress: %.2f", Clamp01(reloadAnimTimer_ / std::max(0.01f, reloadViewDuration_)));
 		ImGui::Text("Weapon rotation follows Right Arm during reload.");
 		ImGui::DragFloat3("Reload Right Arm Offset", &reloadWeaponDrop_.x, 0.01f, -2.0f, 2.0f, "%.2f");
 		ImGui::DragFloat3("Reload Right Arm Rot Deg", &reloadRightArmRotDeg_.x, 0.25f, -180.0f, 180.0f, "%.2f");
@@ -343,6 +382,10 @@ void PlayerViewComponent::DrawImGui()
 		ImGui::Text("Left Arm reload pose");
 		ImGui::DragFloat3("Reload Left Arm Offset", &reloadLeftArmOffset_.x, 0.01f, -2.0f, 2.0f, "%.2f");
 		ImGui::DragFloat3("Reload Left Arm Rot Deg", &reloadLeftArmRotDeg_.x, 0.25f, -180.0f, 180.0f, "%.2f");
+		ImGui::Separator();
+		ImGui::DragFloat("Reload Enter End", &reloadEnterEndRate_, 0.01f, 0.05f, 0.60f, "%.2f");
+		ImGui::DragFloat("Reload Hold End", &reloadHoldEndRate_, 0.01f, 0.20f, 0.95f, "%.2f");
+		ImGui::DragFloat("Reload Return End", &reloadReturnEndRate_, 0.01f, 0.40f, 1.00f, "%.2f");
 		ImGui::DragFloat("Reload Pose Blend Speed", &reloadPoseBlendSpeed_, 0.1f, 1.0f, 40.0f, "%.1f");
 	}
 #endif
@@ -394,7 +437,21 @@ void PlayerViewComponent::UpdateFirstPersonArmPose(float dt)
 	if (armBlend_ < target) armBlend_ = (std::min)(target, armBlend_ + maxDelta);
 	else if (armBlend_ > target) armBlend_ = (std::max)(target, armBlend_ - maxDelta);
 
-	reloadPoseAlpha_ = Approach(reloadPoseAlpha_, reloadViewActive_ ? 1.0f : 0.0f, reloadPoseBlendSpeed_, dt);
+	if (reloadViewActive_)
+	{
+		reloadAnimTimer_ = std::min(reloadAnimTimer_ + dt, reloadViewDuration_);
+	}
+	else if (reloadPoseAlpha_ <= 0.0f)
+	{
+		reloadAnimTimer_ = 0.0f;
+	}
+
+	const float reloadProgress = Clamp01(reloadAnimTimer_ / std::max(0.01f, reloadViewDuration_));
+	const float timedReloadTarget = reloadViewActive_
+		? CalcReloadPoseWeight(reloadProgress, reloadEnterEndRate_, reloadHoldEndRate_, reloadReturnEndRate_)
+		: 0.0f;
+
+	reloadPoseAlpha_ = Approach(reloadPoseAlpha_, timedReloadTarget, reloadPoseBlendSpeed_, dt);
 
 	const float t = Clamp01(armBlend_);
 	const float reloadT = SmoothStep01(reloadPoseAlpha_);
@@ -427,7 +484,7 @@ void PlayerViewComponent::UpdateFirstPersonArmPose(float dt)
 	rrot.y += vmKickYaw_;
 	rrot.z += vmKickRoll_;
 
-	// リロード中は右腕を少し下げる。武器は右腕の worldMatrix_ に追従する。
+	// リロード中は時間に応じて寄せる → 保持 → 戻す。
 	if (reloadT > 0.0f)
 	{
 		rightArmTr_->translate_ += reloadWeaponDrop_ * reloadT;
