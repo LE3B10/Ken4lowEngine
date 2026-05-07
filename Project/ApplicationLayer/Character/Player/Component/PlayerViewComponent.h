@@ -117,7 +117,7 @@ private: /// ---------- メンバ変数 ---------- ///
 	K4E::Vector3 leftHipSupportOffset_{ 0.63f, -0.16f, 0.40f };
 
 	// ADS時は通常構えの向きを保ったまま、位置だけ少し中央・武器側へ寄せる。
-	K4E::Vector3 aimLeftPos_{ 0.18f, 0.38f, 0.78f };
+	K4E::Vector3 aimLeftPos_{ -0.48f, 0.38f, 0.78f };
 	K4E::Vector3 aimRightPos_{ 0.20f, 0.55f, 0.85f };
 
 	// 左腕はADS中に大きく回転させない。通常構えのまま近づける。
