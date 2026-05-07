@@ -110,11 +110,13 @@ private: /// ---------- メンバ変数 ---------- ///
 	K4E::Vector3 baseLeftRot_ = { -std::numbers::pi_v<float> *0.5f,0.0f,0.0f };
 	K4E::Vector3 baseRightRot_ = { -std::numbers::pi_v<float> *0.5f,0.0f,0.0f };
 
-	K4E::Vector3 aimLeftPos_{ -0.10f, 0.55f, 0.90f };
-	K4E::Vector3 aimRightPos_{ 0.35f, 0.55f, 0.85f };
+	// ADS時は腕が画面外へ開きすぎないよう、中心寄りに構える。
+	K4E::Vector3 aimLeftPos_{ -0.02f, 0.55f, 0.90f };
+	K4E::Vector3 aimRightPos_{ 0.20f, 0.55f, 0.85f };
 
-	K4E::Vector3 aimRightRot_ = { -std::numbers::pi_v<float> *0.5f,  0.20f, 0.0f };
-	K4E::Vector3 aimLeftRot_ = { -std::numbers::pi_v<float> *0.5f, -0.1f,  0.0f };
+	// Yawの符号を通常構えより内側へ向く方向に寄せる。
+	K4E::Vector3 aimRightRot_ = { -std::numbers::pi_v<float> *0.5f, -0.10f, 0.0f };
+	K4E::Vector3 aimLeftRot_ = { -std::numbers::pi_v<float> *0.5f,  0.10f, 0.0f };
 
 	float armBlend_ = 0.0f;
 	float armBlendSpeed_ = 12.0f;
