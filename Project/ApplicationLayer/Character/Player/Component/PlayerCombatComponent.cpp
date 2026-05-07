@@ -233,11 +233,8 @@ void PlayerCombatComponent::FireOnce(
 			// 火花はMesh Particleとして別に発生させる。
 			EmitMuzzleSparkMesh(particle, muzzlePos);
 
-			// 弾道Meshは重い/目立つため、ヘビー武器だけ表示する。
-			if (weapon_->IsHeavyCategory())
-			{
-				EmitBulletTracerMesh(particle, muzzlePos, fireForward);
-			}
+			// トレーサーは全射撃武器で表示する。弾本体のObject3D描画だけHeavy限定にする。
+			EmitBulletTracerMesh(particle, muzzlePos, fireForward);
 		}
 	}
 
