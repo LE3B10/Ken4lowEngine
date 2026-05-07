@@ -16,6 +16,9 @@ struct WeaponParams
 	bool    isAutomatic = false;
 	bool    canToggleFireMode = true;
 
+	// 弾本体のObject3D描画。通常武器はトレーサーだけ見せ、Heavyだけ弾本体を見せる。
+	bool    drawProjectileModel = false;
+
 	// --- Damage / Fire ---
 	float   damage = 10.0f;
 	float   secPerShot = 0.1f;
