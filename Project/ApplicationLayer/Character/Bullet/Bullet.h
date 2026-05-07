@@ -50,6 +50,11 @@ public: /// ---------- メンバ関数 ---------- ///
 
 	void SetCollisionManager(CollisionManager* collisionManager) { collisionManager_ = collisionManager; }
 
+	// 弾のObject3D描画だけを制御する。
+	// 当たり判定・移動・寿命には影響させない。
+	void SetModelDrawEnabled(bool enabled) { drawModel_ = enabled; }
+	bool IsModelDrawEnabled() const { return drawModel_; }
+
 	// 範囲ダメージ設定。radius <= 0 の場合は通常弾として扱う。
 	void ConfigureSplashDamage(float radius, int damage, bool canDamageSelf = false);
 	bool HasSplashDamage() const { return splashRadius_ > 0.0f && splashDamage_ > 0; }
@@ -78,6 +83,7 @@ private: /// ---------- メンバ変数 ---------- ///
 	bool splashTriggered_ = false;
 
 	std::unique_ptr<K4E::Object3D> model_ = nullptr;
+	bool drawModel_ = true;
 
 	// 接触中の相手ID（多段ヒット防止用）
 	K4E::ContactRecord contactRecord_{};
