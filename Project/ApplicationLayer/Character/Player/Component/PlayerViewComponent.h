@@ -126,11 +126,11 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	// ADS中のPitch補正。
 	// 通常時のPitch補正とは別に、上向き/下向き時のADS腕位置をImGuiから調整する。
-	K4E::Vector3 adsPitchUpLeftArmOffset_{ 0.00f, 0.00f, 0.00f };
-	K4E::Vector3 adsPitchDownLeftArmOffset_{ 0.00f, 0.00f, 0.00f };
+	K4E::Vector3 adsPitchUpLeftArmOffset_{ 0.00f, -0.55f, -1.56f };
+	K4E::Vector3 adsPitchDownLeftArmOffset_{ 0.00f, 1.78f, 0.25f };
 
-	K4E::Vector3 adsPitchUpRightArmOffset_{ 0.00f, 0.00f, 0.00f };
-	K4E::Vector3 adsPitchDownRightArmOffset_{ 0.00f, 0.00f, 0.00f };
+	K4E::Vector3 adsPitchUpRightArmOffset_{ 0.00f, -0.23f, -1.57f };
+	K4E::Vector3 adsPitchDownRightArmOffset_{ 0.00f, 1.32f, -0.23f };
 
 	float viewModelPitchOffsetMaxDeg_ = 70.0f;
 

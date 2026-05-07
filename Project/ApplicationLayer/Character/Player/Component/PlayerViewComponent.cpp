@@ -422,6 +422,12 @@ void PlayerViewComponent::DrawImGui()
 		ImGui::DragFloat3("Pitch Up Right Offset", &pitchUpRightArmOffset_.x, 0.01f, -3.0f, 3.0f, "%.2f");
 		ImGui::DragFloat3("Pitch Down Right Offset", &pitchDownRightArmOffset_.x, 0.01f, -3.0f, 3.0f, "%.2f");
 		ImGui::Separator();
+		ImGui::Text("ADS Pitch ViewModel Offset");
+		ImGui::DragFloat3("ADS Pitch Up Left Offset", &adsPitchUpLeftArmOffset_.x, 0.01f, -3.0f, 3.0f, "%.2f");
+		ImGui::DragFloat3("ADS Pitch Down Left Offset", &adsPitchDownLeftArmOffset_.x, 0.01f, -3.0f, 3.0f, "%.2f");
+		ImGui::DragFloat3("ADS Pitch Up Right Offset", &adsPitchUpRightArmOffset_.x, 0.01f, -3.0f, 3.0f, "%.2f");
+		ImGui::DragFloat3("ADS Pitch Down Right Offset", &adsPitchDownRightArmOffset_.x, 0.01f, -3.0f, 3.0f, "%.2f");
+		ImGui::Separator();
 		ImGui::Text("Reload Alpha: %.2f", reloadPoseAlpha_);
 		ImGui::Text("Reload Progress: %.2f", Clamp01(reloadAnimTimer_ / std::max(0.01f, reloadViewDuration_)));
 		ImGui::Text("Weapon rotation follows Right Arm during reload.");
@@ -527,13 +533,27 @@ void PlayerViewComponent::UpdateFirstPersonArmPose(float dt)
 	const float upT = SmoothStep01(std::clamp(camPitch_ / pitchRangeRad, 0.0f, 1.0f));
 	const float downT = SmoothStep01(std::clamp(-camPitch_ / pitchRangeRad, 0.0f, 1.0f));
 
-	const K4E::Vector3 pitchLeftOffset =
+	const K4E::Vector3 hipPitchLeftOffset =
 		pitchUpLeftArmOffset_ * upT +
 		pitchDownLeftArmOffset_ * downT;
 
-	const K4E::Vector3 pitchRightOffset =
+	const K4E::Vector3 hipPitchRightOffset =
 		pitchUpRightArmOffset_ * upT +
 		pitchDownRightArmOffset_ * downT;
+
+	const K4E::Vector3 adsPitchLeftOffset =
+		adsPitchUpLeftArmOffset_ * upT +
+		adsPitchDownLeftArmOffset_ * downT;
+
+	const K4E::Vector3 adsPitchRightOffset =
+		adsPitchUpRightArmOffset_ * upT +
+		adsPitchDownRightArmOffset_ * downT;
+
+	const K4E::Vector3 pitchLeftOffset =
+		Lerp(hipPitchLeftOffset, adsPitchLeftOffset, t);
+
+	const K4E::Vector3 pitchRightOffset =
+		Lerp(hipPitchRightOffset, adsPitchRightOffset, t);
 
 	const K4E::Vector3 leftHipPos =
 		baseLeftPos_ +
