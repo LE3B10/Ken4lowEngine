@@ -12,6 +12,10 @@ using namespace Ken4lowEngine;
 
 namespace
 {
+	constexpr uint32_t kRocketDebrisMeshId = 1000;
+	constexpr const char* kRocketDebrisEmitterName = "RocketDebrisMesh";
+	constexpr const char* kRocketDebrisMeshModelPath = "cube.gltf";
+
 	float LengthSq(const K4E::Vector3& v)
 	{
 		return v.x * v.x + v.y * v.y + v.z * v.z;
@@ -27,6 +31,54 @@ namespace
 		const float len = Length(v);
 		if (len <= 1.0e-5f) return fallback;
 		return v * (1.0f / len);
+	}
+
+	K4E::GpuParticleEmitter* PrepareRocketDebrisMeshEmitter(const K4E::Vector3& position)
+	{
+		auto* particle = K4E::GpuParticleManager::GetInstance();
+		if (!particle)
+		{
+			return nullptr;
+		}
+
+		static bool meshAssetLoadRequested = false;
+		if (!meshAssetLoadRequested)
+		{
+			// AssimpLoader は内部で Resources/Models/ を付与するため、
+			// まずは既存の cube.gltf を MeshParticle の確認用に使う。
+			// 専用破片モデルを作ったら Sources/Effects/rocket_debris.gltf などへ差し替える。
+			particle->LoadMeshAssetsFromAssimp(kRocketDebrisMeshId, kRocketDebrisMeshModelPath, true);
+			meshAssetLoadRequested = true;
+		}
+
+		if (auto* emitter = particle->GetEmitter(kRocketDebrisEmitterName))
+		{
+			emitter->SetPosition(position);
+			return emitter;
+		}
+
+		K4E::GpuParticleEmitter::EmitterInfo info{};
+		info.kind = K4E::GpuParticleKind::Mesh;
+		info.spriteType = K4E::GpuParticleType::Debris;
+		info.drawType = static_cast<uint32_t>(K4E::GpuParticleType::Debris);
+		info.billboardFlags = K4E::BillboardMode::None;
+		info.textureFilePath = "Mesh:" + std::to_string(kRocketDebrisMeshId);
+		info.radius = 0.8f;
+		info.loopCount = 0;
+		info.loopFrequency = 0.0f;
+
+		K4E::GpuParticleEmitter* emitter = particle->CreateEmitter(kRocketDebrisEmitterName, info);
+		if (!emitter)
+		{
+			emitter = particle->GetEmitter(kRocketDebrisEmitterName);
+		}
+
+		if (emitter)
+		{
+			emitter->SetPosition(position);
+		}
+
+		return emitter;
 	}
 }
 
@@ -163,6 +215,12 @@ void Bullet::TriggerSplashDamageAt(const K4E::Vector3& center)
 		K4E::GpuParticleType::Smoke,
 		center,
 		60);
+
+	// ロケットランチャー用：着弾時に小さなメッシュ破片を飛ばす
+	if (auto* debrisEmitter = PrepareRocketDebrisMeshEmitter(center))
+	{
+		debrisEmitter->RequestEmit(24);
+	}
 }
 
 void Bullet::Update(float dt)
