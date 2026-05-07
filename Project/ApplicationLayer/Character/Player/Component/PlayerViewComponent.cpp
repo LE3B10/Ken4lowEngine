@@ -489,8 +489,14 @@ void PlayerViewComponent::UpdateFirstPersonArmPose(float dt)
 
 	UpdateRecoilViewModelKick(dt);
 
-	leftArmTr_->translate_ = baseLeftPos_;
-	rightArmTr_->translate_ = baseRightPos_;
+	// 左腕は通常時から少し武器側へ寄せる。
+	// ここで位置も補間しないと、回転だけ変えても腕が画面外側に残りやすい。
+	const K4E::Vector3 leftHipSupportOffset{ 0.48f, -0.02f, 0.55f };
+	const K4E::Vector3 leftHipPos = baseLeftPos_ + leftHipSupportOffset;
+	const K4E::Vector3 rightHipPos = baseRightPos_;
+
+	leftArmTr_->translate_ = Lerp(leftHipPos, aimLeftPos_, t);
+	rightArmTr_->translate_ = Lerp(rightHipPos, aimRightPos_, t);
 
 	leftArmTr_->translate_.z -= vmKickBack_ * 0.90f;
 	rightArmTr_->translate_.z -= vmKickBack_ * 1.05f;
