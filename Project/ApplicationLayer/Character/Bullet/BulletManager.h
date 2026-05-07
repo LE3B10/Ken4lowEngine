@@ -29,7 +29,8 @@ public: /// ---------- メンバ関数 ---------- ///
 		uint32_t typeId = static_cast<uint32_t>(CollisionTypeIdDef::kBullet),
 		float splashRadius = 0.0f,
 		int splashDamage = 0,
-		bool splashCanDamageSelf = false
+		bool splashCanDamageSelf = false,
+		bool drawModel = true
 		);
 
 	// 更新処理
