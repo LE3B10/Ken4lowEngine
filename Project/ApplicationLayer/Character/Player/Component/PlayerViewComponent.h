@@ -128,7 +128,10 @@ private: /// ---------- メンバ変数 ---------- ///
 	float armBlendSpeed_ = 12.0f;
 
 	float camPitch_ = 0.0f;
-	float armPitchFollow_ = 1.0f;
+
+	// 上下視点で腕が画面を覆いすぎないよう、カメラPitch追従を弱める。
+	// 以前の 1.0f はカメラ上下回転を腕へそのまま乗せていたため、上・下を向いた時に構えが崩れやすかった。
+	float armPitchFollow_ = 0.28f;
 
 	CameraFovHooks fovHooks_{};
 	float prevAppliedFovMul_ = 1.0f;
