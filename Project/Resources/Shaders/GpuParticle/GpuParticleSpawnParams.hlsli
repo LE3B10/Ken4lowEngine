@@ -248,8 +248,8 @@ static const ParticleSpawnParam kParticleSpawnParams[kParticleSpawnParamCount] =
         float3(1.0f, 1.0f, 1.0f),
         GPU_PARTICLE_SPAWN_SHAPE_POINT,
         GPU_PARTICLE_DIR_RANDOM,
-        GPU_PARTICLE_SCALE_STRETCH,
-        0.80f, 1.80f
+        GPU_PARTICLE_SCALE_UNIFORM,
+        1.0f, 1.0f
     },
 };
 
