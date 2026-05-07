@@ -1,6 +1,7 @@
 #pragma once
 #include "Vector3.h"
 #include "Matrix4x4.h"
+#include "Quaternion.h"
 
 namespace Ken4lowEngine
 {
@@ -17,6 +18,11 @@ public: /// ---------- メンバ変数 ---------- ///
 
 	// ローカル回転角
 	Vector3 rotate_ = { 0.0f, 0.0f, 0.0f };
+
+	// クォータニオン回転を使うか。
+	// true の場合、Update() は rotate_ ではなく quaternion_ からローカル回転行列を作る。
+	bool useQuaternionRotation_ = false;
+	Quaternion quaternion_ = Quaternion::IdentityQuaternion();
 
 	// ローカル座標
 	Vector3 translate_ = { 0.0f, 0.0f, 0.0f };
