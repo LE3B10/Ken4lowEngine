@@ -130,8 +130,8 @@ private: /// ---------- メンバ変数 ---------- ///
 	float camPitch_ = 0.0f;
 
 	// 一人称の腕・武器は、前向き構えの形を保ったままカメラの上下方向へ追従させる。
-	// 0.0f だと上下を向いても前向き位置に残ってしまうため、まずは完全追従に戻す。
-	float armPitchFollow_ = 1.0f;
+	// 1.0f だと上・下の端で腕が画面に寄りすぎるため、少しだけ弱める。
+	float armPitchFollow_ = 0.82f;
 
 	CameraFovHooks fovHooks_{};
 	float prevAppliedFovMul_ = 1.0f;
