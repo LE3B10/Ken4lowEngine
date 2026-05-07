@@ -99,6 +99,67 @@ void PlayerHurtboxComponent::Sync(Player& owner)
 			hb->SetOrientation(rotOBB);
 		};
 
+	auto applyTransform = [&](int hbIdx, const K4E::WorldTransformEx& tr)
+		{
+			auto* hb = hurtboxes_[hbIdx].get();
+			if (!hb)
+			{
+				return;
+			}
+
+			auto& t = tuning_[hbIdx];
+			if (!t.enabled)
+			{
+				hb->SetOBBHalfSize({ 0,0,0 });
+				hb->ClearOBBBasis();
+				return;
+			}
+
+			// 腕などの一人称表示では Quaternion で姿勢を作っている。
+			// その場合 worldRotate_ は既存互換用の Euler 値なので、
+			// コライダーの向きは描画と同じ worldMatrix_ から直接取る。
+			if (!tr.useQuaternionRotation_)
+			{
+				apply(hbIdx, tr.worldTranslate_, tr.worldRotate_);
+				return;
+			}
+
+			hb->SetOBBHalfSize(t.halfSize);
+
+			K4E::Vector3 ax, ay, az;
+			ExtractAxes_Row_HB(tr.worldMatrix_, ax, ay, az);
+
+			// チューニング用の回転オフセットがある場合だけ、行列から取った軸に追加で回転を掛ける。
+			const bool hasRotOffset =
+				(t.rotOffset.x != 0.0f) ||
+				(t.rotOffset.y != 0.0f) ||
+				(t.rotOffset.z != 0.0f);
+
+			if (hasRotOffset)
+			{
+				const K4E::Matrix4x4 offsetR = K4E::Matrix4x4::MakeRotateMatrix(t.rotOffset);
+				const K4E::Matrix4x4 basisR =
+				{
+					ax.x, ax.y, ax.z, 0.0f,
+					ay.x, ay.y, ay.z, 0.0f,
+					az.x, az.y, az.z, 0.0f,
+					0.0f, 0.0f, 0.0f, 1.0f,
+				};
+				const K4E::Matrix4x4 fixedR = K4E::Matrix4x4::Multiply(offsetR, basisR);
+				ExtractAxes_Row_HB(fixedR, ax, ay, az);
+			}
+
+			const K4E::Vector3 center =
+				tr.worldTranslate_ +
+				ax * t.localOffset.x +
+				ay * t.localOffset.y +
+				az * t.localOffset.z;
+
+			hb->SetCenterPosition(center);
+			hb->SetOBBBasis(ax, ay, az);
+			hb->SetOrientation(tr.worldRotate_ + t.rotOffset);
+		};
+
 	auto* bodyTr = owner.GetWorldTransform();
 	if (!bodyTr)
 	{
@@ -109,11 +170,11 @@ void PlayerHurtboxComponent::Sync(Player& owner)
 
 	const auto idx = owner.GetPartIndices();
 	auto& parts = owner.GetBodyParts();
-	apply(1, parts[idx.head].transform.worldTranslate_, parts[idx.head].transform.worldRotate_);
-	apply(2, parts[idx.leftArm].transform.worldTranslate_, parts[idx.leftArm].transform.worldRotate_);
-	apply(3, parts[idx.rightArm].transform.worldTranslate_, parts[idx.rightArm].transform.worldRotate_);
-	apply(4, parts[idx.leftLeg].transform.worldTranslate_, parts[idx.leftLeg].transform.worldRotate_);
-	apply(5, parts[idx.rightLeg].transform.worldTranslate_, parts[idx.rightLeg].transform.worldRotate_);
+	applyTransform(1, parts[idx.head].transform);
+	applyTransform(2, parts[idx.leftArm].transform);
+	applyTransform(3, parts[idx.rightArm].transform);
+	applyTransform(4, parts[idx.leftLeg].transform);
+	applyTransform(5, parts[idx.rightLeg].transform);
 }
 
 void PlayerHurtboxComponent::DrawImGui()
