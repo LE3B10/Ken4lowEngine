@@ -219,6 +219,16 @@ void Player::UpdateWeaponBeforeMotor(float deltaTime, InputFrameContext& ctx)
 		ctx.reload.reloadTimer = 0.0f;
 		ctx.reload.reloadSec = 0.0f;
 	}
+
+	view_.SetReloadViewModelState(
+		ctx.reload.isReloading,
+		ctx.reload.reloadTimer,
+		ctx.reload.reloadSec);
+
+	weaponVisual_.SetReloadViewModelState(
+		ctx.reload.isReloading,
+		ctx.reload.reloadTimer,
+		ctx.reload.reloadSec);
 }
 
 void Player::FinalizeInputSnapshotForGameplay(float deltaTime, InputFrameContext& ctx)
