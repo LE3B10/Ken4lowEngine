@@ -1,7 +1,7 @@
 #include "GpuParticle.hlsli" //頂点シェーダーへの入力頂点構造
 #include "GpuParticleData.hlsli" //パーティクルデータ構造体"
 
-// 頂点シェーダーの出力頂点構造
+// 頂点シェーダーへの入力頂点構造
 struct VertexShaderInput
 {
     float4 position : POSITION0;
@@ -25,10 +25,13 @@ VertexShaderOutput main(VertexShaderInput input, uint instanceId : SV_InstanceID
     
     Particle particle = gParticles[instanceId];
 
-    // world行列の計算
+    // world変換
+    // scale は拡大縮小、translate は加算移動として扱う。
+    // 以前の *= particle.translate は座標を掛け算してしまい、
+    // MeshParticle が正しい位置に出ない原因になる。
     float4 localPosition = input.position;
     localPosition.xyz *= particle.scale;
-    localPosition.xyz *= particle.translate;
+    localPosition.xyz += particle.translate;
     
     output.position = mul(localPosition, gPerView.viewProjectionMatrix);
     output.texcoord = input.texcoord;
