@@ -17,11 +17,16 @@ Bullet* BulletManager::Spawn(const Vector3& startPos,
 	float lifeTimeSec,
 	const Ken4lowEngine::Vector3& shooterPosition,
 	uint32_t shooterColliderId,
-	uint32_t typeId
+	uint32_t typeId,
+	float splashRadius,
+	int splashDamage,
+	bool splashCanDamageSelf
 )
 {
 	auto b = std::make_unique<Bullet>();
 	b->Initialize(startPos, dirNormalized * speed, damage, lifeTimeSec, shooterPosition, shooterColliderId, typeId);
+	b->SetCollisionManager(collisionManager_);
+	b->ConfigureSplashDamage(splashRadius, splashDamage, splashCanDamageSelf);
 
 	if (collisionManager_) collisionManager_->AddCollider(b.get());
 
