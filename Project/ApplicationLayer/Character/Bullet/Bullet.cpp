@@ -1,7 +1,33 @@
 #include "Bullet.h"
 #include "CollisionTypeIdDef.h"
+#include "CollisionManager.h"
+#include "EnemyBase.h"
+#include "GpuParticleManager.h"
+
+#include <algorithm>
+#include <cmath>
 
 using namespace Ken4lowEngine;
+
+namespace
+{
+	float LengthSq(const K4E::Vector3& v)
+	{
+		return v.x * v.x + v.y * v.y + v.z * v.z;
+	}
+
+	float Length(const K4E::Vector3& v)
+	{
+		return std::sqrt(LengthSq(v));
+	}
+
+	K4E::Vector3 NormalizeSafe(const K4E::Vector3& v, const K4E::Vector3& fallback = { 0.0f, 1.0f, 0.0f })
+	{
+		const float len = Length(v);
+		if (len <= 1.0e-5f) return fallback;
+		return v * (1.0f / len);
+	}
+}
 
 void Bullet::Initialize(const K4E::Vector3& startPos,
 	const K4E::Vector3& velocity,
@@ -50,7 +76,22 @@ void Bullet::Initialize(const K4E::Vector3& startPos,
 	isDead_ = false;
 	removable_ = false;
 	deadFrames_ = 0;
+	splashTriggered_ = false;
 	contactRecord_.Clear();
+}
+
+void Bullet::ConfigureSplashDamage(float radius, int damage, bool canDamageSelf)
+{
+	splashRadius_ = std::max(0.0f, radius);
+	splashDamage_ = std::max(0, damage);
+	splashCanDamageSelf_ = canDamageSelf;
+
+	if (HasSplashDamage())
+	{
+		// デバッグ視認性を少し上げる
+		debugColor_ = { 1.0f, 0.35f, 0.05f, 1.0f };
+		if (model_) model_->SetColor(debugColor_);
+	}
 }
 
 void Bullet::KillAndMoveFar()
@@ -71,6 +112,58 @@ void Bullet::KillAndMoveFar()
 	if (model_) model_->Update();
 }
 
+void Bullet::ApplySplashDamageToType(uint32_t targetType, const K4E::Vector3& center)
+{
+	if (!collisionManager_ || !HasSplashDamage()) return;
+
+	const auto& targets = collisionManager_->GetCollidersByType(targetType);
+	const float radiusSq = splashRadius_ * splashRadius_;
+
+	for (K4E::Collider* col : targets)
+	{
+		if (!col) continue;
+		if (!splashCanDamageSelf_ && shooterColliderId_ != 0u && col->GetUniqueID() == shooterColliderId_) continue;
+
+		K4E::Vector3 toTarget = col->GetCenterPosition() - center;
+		const float distSq = LengthSq(toTarget);
+		if (distSq > radiusSq) continue;
+
+		const float dist = std::sqrt(std::max(0.0f, distSq));
+		const float t = (splashRadius_ > 0.0f) ? std::clamp(dist / splashRadius_, 0.0f, 1.0f) : 1.0f;
+		const float damageRate = 1.0f - t;
+		const int finalDamage = std::max(1, static_cast<int>(std::round(static_cast<float>(splashDamage_) * damageRate)));
+
+		if (auto* enemy = col->GetOwner<EnemyBase>())
+		{
+			const K4E::Vector3 hitDir = NormalizeSafe(toTarget, NormalizeSafe(moveVelocity_, { 0.0f, 0.0f, 1.0f }));
+			enemy->TakeDamage(finalDamage, hitDir, 1.8f);
+			enemy->SpawnHitEffectAt(col->GetCenterPosition());
+		}
+	}
+}
+
+void Bullet::TriggerSplashDamageAt(const K4E::Vector3& center)
+{
+	if (!HasSplashDamage()) return;
+	if (splashTriggered_) return;
+	splashTriggered_ = true;
+
+	ApplySplashDamageToType(static_cast<uint32_t>(CollisionTypeIdDef::kEnemy), center);
+	ApplySplashDamageToType(static_cast<uint32_t>(CollisionTypeIdDef::kBoss), center);
+
+	K4E::GpuParticleManager::GetInstance()->EmitBurst(
+		"HeavySplashImpact",
+		K4E::GpuParticleType::DeathBurstCore,
+		center,
+		80);
+
+	K4E::GpuParticleManager::GetInstance()->EmitBurst(
+		"HeavySplashSmoke",
+		K4E::GpuParticleType::Smoke,
+		center,
+		60);
+}
+
 void Bullet::Update(float dt)
 {
 	if (removable_) return;
@@ -86,6 +179,10 @@ void Bullet::Update(float dt)
 	lifeTimer_ += dt;
 	if (lifeTimer_ >= lifeTimeSec_)
 	{
+		if (HasSplashDamage())
+		{
+			TriggerSplashDamageAt(GetCenterPosition());
+		}
 		KillAndMoveFar();
 		return;
 	}
@@ -160,9 +257,10 @@ void Bullet::OnCollisionEnter(K4E::Collider* other)
 	if (contactRecord_.Check(otherId)) return;
 	contactRecord_.Add(otherId);
 
-	// ここで「ダメージ適用」は、今は一旦入れなくてOK
-	// おすすめは “敵側の OnCollisionEnter が Bullet を見て TakeDamageする” 方式
-	// 例：敵側で `if (auto* b = other->GetOwner<Bullet>()) TakeDamage(b->GetDamage());`
+	if (HasSplashDamage())
+	{
+		TriggerSplashDamageAt(other->GetCenterPosition());
+	}
 
 	KillAndMoveFar();
 }
