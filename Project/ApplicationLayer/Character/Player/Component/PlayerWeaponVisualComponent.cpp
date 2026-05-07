@@ -21,9 +21,35 @@ namespace
 		return radians * (180.0f / kPi);
 	}
 
+	float Clamp01(float v)
+	{
+		return std::clamp(v, 0.0f, 1.0f);
+	}
+
+	float SmoothStep01(float t)
+	{
+		t = Clamp01(t);
+		return t * t * (3.0f - 2.0f * t);
+	}
+
+	float Approach(float current, float target, float speed, float deltaTime)
+	{
+		const float step = speed * deltaTime;
+		const float diff = target - current;
+		if (diff > step) return current + step;
+		if (diff < -step) return current - step;
+		return target;
+	}
+
 	K4E::Vector3 ToDegreesVec(const K4E::Vector3& radians)
 	{
 		return { ToDegrees(radians.x), ToDegrees(radians.y), ToDegrees(radians.z) };
+	}
+
+	K4E::Vector3 LerpVec3(const K4E::Vector3& a, const K4E::Vector3& b, float t)
+	{
+		t = Clamp01(t);
+		return a + (b - a) * t;
 	}
 
 	K4E::Quaternion MakeQuaternionFromEulerDeg(const K4E::Vector3& eulerDeg)
@@ -36,7 +62,6 @@ namespace
 		const K4E::Quaternion qy = K4E::Quaternion::MakeRotateAxisAngleQuaternion({ 0.0f, 1.0f, 0.0f }, y);
 		const K4E::Quaternion qz = K4E::Quaternion::MakeRotateAxisAngleQuaternion({ 0.0f, 0.0f, 1.0f }, z);
 
-		// Matrix4x4::MakeRotateMatrix(Vector3) の X -> Y -> Z と同じ考え方で合成する。
 		return K4E::Quaternion::Normalize(
 			K4E::Quaternion::Multiply(
 				K4E::Quaternion::Multiply(qx, qy),
@@ -50,18 +75,8 @@ namespace
 			return path;
 		}
 
-		// \ を / に統一
 		std::replace(path.begin(), path.end(), '\\', '/');
 
-		// モデル読み込み側では ModelPathResolver が必ず
-		// Resources/Models/Sources/ を前に付ける。
-		// そのため、ここで返す値は Weapons/xxx.gltf のような論理パスにする。
-		// 例:
-		//   Resources/Models/Sources/Weapons/primary_rifle.gltf -> Weapons/primary_rifle.gltf
-		//   Models/Sources/Weapons/primary_rifle.gltf           -> Weapons/primary_rifle.gltf
-		//   Sources/Models/Weapons/primary_rifle.gltf           -> Weapons/primary_rifle.gltf
-		// 最終的な実ファイルパスは ModelPathResolver 側で
-		// Resources/Models/Sources/Weapons/primary_rifle.gltf になる。
 		const std::string sourceRoot = "Resources/Models/Sources/";
 		const size_t sourceRootPos = path.find(sourceRoot);
 		if (sourceRootPos != std::string::npos)
@@ -89,7 +104,6 @@ namespace
 			}
 		}
 
-		// 念のため、先頭に残った / を落とす
 		while (!path.empty() && path.front() == '/')
 		{
 			path.erase(path.begin());
@@ -123,13 +137,19 @@ void PlayerWeaponVisualComponent::Initialize()
 	hasWeaponWorldMatrix_ = false;
 	weaponWorldMatrix_ = K4E::Matrix4x4::MakeIdentity();
 	rotationQuaternionInitialized_ = false;
+	reloadViewActive_ = false;
+	reloadViewTimer_ = 0.0f;
+	reloadViewDuration_ = 1.0f;
+	reloadPoseAlpha_ = 0.0f;
 }
 
 void PlayerWeaponVisualComponent::Update(float deltaTime, bool isADS)
 {
-	(void)deltaTime; // 現状は未使用。将来的にアニメーションの更新などで使うかも。
-
 	RebuildIfWeaponChanged();
+
+	const float targetReloadAlpha = reloadViewActive_ ? 1.0f : 0.0f;
+	reloadPoseAlpha_ = Approach(reloadPoseAlpha_, targetReloadAlpha, reloadPoseBlendSpeed_, deltaTime);
+
 	SyncToHand(isADS);
 }
 
@@ -194,6 +214,12 @@ void PlayerWeaponVisualComponent::DrawImGui()
 			ImGui::DragFloat3("Hand Socket Rotation Rad", &handSocketLocalRotate_.x, 0.01f, -6.28f, 6.28f, "%.2f");
 		}
 
+		ImGui::Separator();
+		ImGui::Text("Reload Pose Alpha: %.2f", reloadPoseAlpha_);
+		ImGui::DragFloat3("Reload Weapon Offset", &reloadWeaponOffset_.x, 0.01f, -3.0f, 3.0f, "%.2f");
+		ImGui::DragFloat3("Reload Weapon Rot Deg", &reloadWeaponRotDeg_.x, 0.25f, -180.0f, 180.0f, "%.2f");
+		ImGui::DragFloat("Reload Blend Speed", &reloadPoseBlendSpeed_, 0.1f, 1.0f, 40.0f, "%.1f");
+
 		if (ImGui::Button("Reset Weapon Size"))
 		{
 			modelScale_ = { 0.55f, 0.55f, 0.55f };
@@ -201,6 +227,13 @@ void PlayerWeaponVisualComponent::DrawImGui()
 		}
 	}
 #endif
+}
+
+void PlayerWeaponVisualComponent::SetReloadViewModelState(bool isReloading, float reloadTimer, float reloadDuration)
+{
+	reloadViewActive_ = isReloading;
+	reloadViewTimer_ = reloadTimer;
+	reloadViewDuration_ = std::max(0.01f, reloadDuration);
 }
 
 void PlayerWeaponVisualComponent::ForceRefresh()
@@ -236,7 +269,6 @@ void PlayerWeaponVisualComponent::RebuildIfWeaponChanged()
 
 	const int32_t currentId = weaponLogic_->GetCurrentWeaponId();
 
-	// 武器なしなら安全に見た目だけ消す
 	if (currentId <= 0)
 	{
 		weaponObject_.reset();
@@ -280,12 +312,10 @@ void PlayerWeaponVisualComponent::RebuildIfWeaponChanged()
 		return;
 	}
 
-	// 新しいオブジェクトを先に作る
 	auto newObject = std::make_unique<K4E::Object3D>();
 	newObject->Initialize(relativePath);
 	newObject->SetScale(modelScale_ * viewModelScaleMultiplier_);
 
-	// 成功後に差し替える
 	weaponObject_ = std::move(newObject);
 	appliedWeaponId_ = currentId;
 	appliedModelPath_ = relativePath;
@@ -302,7 +332,9 @@ void PlayerWeaponVisualComponent::SyncToHand(bool isADS)
 
 	const K4E::Vector3 localPos = isADS ? adsLocalOffset_ : hipLocalOffset_;
 	const K4E::Vector3 weaponWorldScale = modelScale_ * viewModelScaleMultiplier_;
-	const K4E::Vector3 totalLocalOffset = localPos + handSocketLocalOffset_;
+	const float reloadT = SmoothStep01(reloadPoseAlpha_);
+	const K4E::Vector3 reloadOffset = reloadWeaponOffset_ * reloadT;
+	const K4E::Vector3 totalLocalOffset = localPos + handSocketLocalOffset_ + reloadOffset;
 
 	K4E::Matrix4x4 localMatrix{};
 	if (useQuaternionRotation_)
@@ -313,8 +345,11 @@ void PlayerWeaponVisualComponent::SyncToHand(bool isADS)
 		}
 
 		const K4E::Quaternion baseRotation = isADS ? adsLocalQuaternion_ : hipLocalQuaternion_;
+		const K4E::Quaternion reloadRotation = MakeQuaternionFromEulerDeg(reloadWeaponRotDeg_ * reloadT);
 		const K4E::Quaternion totalRotation = K4E::Quaternion::Normalize(
-			K4E::Quaternion::Multiply(baseRotation, handSocketLocalQuaternion_));
+			K4E::Quaternion::Multiply(
+				K4E::Quaternion::Multiply(baseRotation, handSocketLocalQuaternion_),
+				reloadRotation));
 
 		localMatrix = K4E::Matrix4x4::MakeAffineMatrix(
 			weaponWorldScale,
@@ -324,7 +359,12 @@ void PlayerWeaponVisualComponent::SyncToHand(bool isADS)
 	else
 	{
 		const K4E::Vector3 localRot = isADS ? adsLocalRotate_ : hipLocalRotate_;
-		const K4E::Vector3 totalLocalRotate = localRot + handSocketLocalRotate_;
+		const K4E::Vector3 reloadRotRad = {
+			ToRadians(reloadWeaponRotDeg_.x * reloadT),
+			ToRadians(reloadWeaponRotDeg_.y * reloadT),
+			ToRadians(reloadWeaponRotDeg_.z * reloadT),
+		};
+		const K4E::Vector3 totalLocalRotate = localRot + handSocketLocalRotate_ + reloadRotRad;
 
 		localMatrix = K4E::Matrix4x4::MakeAffineMatrix(
 			weaponWorldScale,
@@ -332,8 +372,6 @@ void PlayerWeaponVisualComponent::SyncToHand(bool isADS)
 			totalLocalOffset);
 	}
 
-	// 右腕ワールド行列へ、武器ローカル補正をそのまま合成する。
-	// 回転をEuler角に戻さないことで、ジンバルロックや軸の逃げを避ける。
 	weaponWorldMatrix_ = K4E::Matrix4x4::Multiply(localMatrix, rightHandTransform_->worldMatrix_);
 	hasWeaponWorldMatrix_ = true;
 
