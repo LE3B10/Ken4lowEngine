@@ -143,12 +143,6 @@ void PlayerCombatComponent::FireOnce(
 
 			// 火花はMesh Particleとして別に発生させる。
 			EmitMuzzleSparkMesh(particle, muzzlePos);
-
-			particle->EmitBurst(
-				"BulletTracer",
-				K4E::GpuParticleType::BulletTracer,
-				tracerPos,
-				12);
 		}
 	}
 
