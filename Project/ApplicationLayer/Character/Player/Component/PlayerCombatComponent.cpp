@@ -13,6 +13,45 @@
 #include <imgui.h>
 #endif
 
+namespace
+{
+	constexpr uint32_t kMuzzleSparkMeshId = 1000u;
+	constexpr uint32_t kMuzzleSparkBurstCount = 8u;
+	constexpr const char* kMuzzleSparkEmitterName = "MuzzleSparkMesh";
+	constexpr const char* kMuzzleSparkTexturePath = "Effects/white.dds";
+
+	void EmitMuzzleSparkMesh(K4E::GpuParticleManager* particle, const K4E::Vector3& muzzlePos)
+	{
+		if (!particle)
+		{
+			return;
+		}
+
+		K4E::GpuParticleEmitter::EmitterInfo info{};
+		info.textureFilePath = kMuzzleSparkTexturePath;
+		info.radius = 0.0f;
+		info.loopCount = 0;
+		info.loopFrequency = 0.0f;
+		info.drawType = kMuzzleSparkMeshId;
+		info.kind = K4E::GpuParticleKind::Mesh;
+		info.spriteType = K4E::GpuParticleType::Spark;
+		info.billboardFlags = K4E::BillboardMode::None;
+
+		auto* emitter = particle->GetEmitter(kMuzzleSparkEmitterName);
+		if (!emitter)
+		{
+			emitter = particle->CreateEmitter(kMuzzleSparkEmitterName, info);
+		}
+		if (!emitter)
+		{
+			return;
+		}
+
+		emitter->SetPosition(muzzlePos);
+		emitter->RequestEmit(kMuzzleSparkBurstCount);
+	}
+}
+
 void PlayerCombatComponent::BindDependencies(PlayerWeaponComponent* weapon, PlayerViewComponent* view)
 {
 	weapon_ = weapon;
@@ -93,17 +132,24 @@ void PlayerCombatComponent::FireOnce(
 		const K4E::Vector3 tracerPos = muzzlePos + fireForward * 0.35f;
 
 		auto* particle = K4E::GpuParticleManager::GetInstance();
-		particle->EmitBurst(
-			"MuzzleFlash",
-			K4E::GpuParticleType::MuzzleFlash,
-			muzzlePos,
-			8);
+		if (particle)
+		{
+			// Spriteの発光表現はそのまま残す。
+			particle->EmitBurst(
+				"MuzzleFlash",
+				K4E::GpuParticleType::MuzzleFlash,
+				muzzlePos,
+				8);
 
-		particle->EmitBurst(
-			"BulletTracer",
-			K4E::GpuParticleType::BulletTracer,
-			tracerPos,
-			12);
+			// 火花はMesh Particleとして別に発生させる。
+			EmitMuzzleSparkMesh(particle, muzzlePos);
+
+			particle->EmitBurst(
+				"BulletTracer",
+				K4E::GpuParticleType::BulletTracer,
+				tracerPos,
+				12);
+		}
 	}
 
 	// カメラリコイル
