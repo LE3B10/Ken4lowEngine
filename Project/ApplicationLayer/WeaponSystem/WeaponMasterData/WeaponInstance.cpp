@@ -304,7 +304,8 @@ void WeaponInstance::FireShot(K4E::Camera* cam, BulletManager* bulletMgr, Collis
 			static_cast<uint32_t>(CollisionTypeIdDef::kBullet),
 			params_.splashRadius,
 			params_.splashDamage,
-			params_.splashCanDamageSelf);
+			params_.splashCanDamageSelf,
+			params_.drawProjectileModel);
 	}
 }
 
