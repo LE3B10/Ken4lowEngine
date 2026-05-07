@@ -388,9 +388,15 @@ void PlayerViewComponent::DrawImGui()
 #ifdef USE_IMGUI
 	if (ImGui::CollapsingHeader("ViewModel Arms", ImGuiTreeNodeFlags_DefaultOpen))
 	{
+		ImGui::Text("Left Arm normal / ADS pose");
+		ImGui::DragFloat3("Left Hip Support Offset", &leftHipSupportOffset_.x, 0.01f, -3.0f, 3.0f, "%.2f");
+		ImGui::DragFloat3("Base Left Rot", &baseLeftRot_.x, 0.01f, -6.28f, 6.28f, "%.2f");
 		ImGui::DragFloat3("Aim Left Pos", &aimLeftPos_.x, 0.01f, -3.0f, 3.0f, "%.2f");
-		ImGui::DragFloat3("Aim Right Pos", &aimRightPos_.x, 0.01f, -3.0f, 3.0f, "%.2f");
 		ImGui::DragFloat3("Aim Left Rot", &aimLeftRot_.x, 0.01f, -6.28f, 6.28f, "%.2f");
+		ImGui::Separator();
+
+		ImGui::Text("Right Arm ADS pose");
+		ImGui::DragFloat3("Aim Right Pos", &aimRightPos_.x, 0.01f, -3.0f, 3.0f, "%.2f");
 		ImGui::DragFloat3("Aim Right Rot", &aimRightRot_.x, 0.01f, -6.28f, 6.28f, "%.2f");
 		ImGui::Separator();
 		ImGui::Text("Reload Alpha: %.2f", reloadPoseAlpha_);
@@ -491,8 +497,7 @@ void PlayerViewComponent::UpdateFirstPersonArmPose(float dt)
 
 	// 左腕は通常時から少し武器側へ寄せる。
 	// ここで位置も補間しないと、回転だけ変えても腕が画面外側に残りやすい。
-	const K4E::Vector3 leftHipSupportOffset{ 0.48f, -0.02f, 0.55f };
-	const K4E::Vector3 leftHipPos = baseLeftPos_ + leftHipSupportOffset;
+	const K4E::Vector3 leftHipPos = baseLeftPos_ + leftHipSupportOffset_;
 	const K4E::Vector3 rightHipPos = baseRightPos_;
 
 	leftArmTr_->translate_ = Lerp(leftHipPos, aimLeftPos_, t);
