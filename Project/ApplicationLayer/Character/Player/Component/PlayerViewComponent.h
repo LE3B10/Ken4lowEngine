@@ -114,16 +114,19 @@ private: /// ---------- メンバ変数 ---------- ///
 	K4E::Vector3 baseRightRot_ = { -std::numbers::pi_v<float> *0.5f,0.0f,0.0f };
 
 	// 通常時の左腕を武器側へ寄せるための位置補正。ImGuiから調整する。
-	K4E::Vector3 leftHipSupportOffset_{ 0.63f, -0.16f, 0.40f };
-	K4E::Vector3 rightHipSupportOffset_{ 0.0f, 0.0f, 0.0f };
+	// Pitch補正は上端・正面・下端が同一直線上に並ぶよう、
+	// 正面位置を上向き/下向きの中間点に置く。
+	K4E::Vector3 leftHipSupportOffset_{ 0.63f, 0.44f, -0.15f };
+	K4E::Vector3 rightHipSupportOffset_{ 0.00f, 0.45f, -0.14f };
 
 	// カメラPitchに応じて、FPSの腕・武器を画面内に残すための補正。
-	// ImGuiで手動調整していた上向き・下向き用のOffsetを自動化する。
-	K4E::Vector3 pitchUpLeftArmOffset_{ 0.00f, 0.50f, -1.10f };
-	K4E::Vector3 pitchDownLeftArmOffset_{ 0.00f, 0.70f, 0.00f };
+	// 重要: pitchUp と pitchDown は正面位置を中心にした反対方向の値にする。
+	// これにより、上→正面→下の移動軌道が3の字ではなく1本の直線になる。
+	K4E::Vector3 pitchUpLeftArmOffset_{ 0.00f, -0.10f, -0.55f };
+	K4E::Vector3 pitchDownLeftArmOffset_{ 0.00f, 0.10f, 0.55f };
 
-	K4E::Vector3 pitchUpRightArmOffset_{ 0.00f, 0.45f, -0.59f };
-	K4E::Vector3 pitchDownRightArmOffset_{ 0.00f, 0.45f, 0.31f };
+	K4E::Vector3 pitchUpRightArmOffset_{ 0.00f, 0.00f, -0.45f };
+	K4E::Vector3 pitchDownRightArmOffset_{ 0.00f, 0.00f, 0.45f };
 
 	float viewModelPitchOffsetMaxDeg_ = 70.0f;
 
@@ -141,9 +144,7 @@ private: /// ---------- メンバ変数 ---------- ///
 	float camPitch_ = 0.0f;
 
 	// FPSの腕・武器は「ワールド上の腕」ではなく、カメラ前に固定されるViewModelとして見せる。
-	// Apex / Valorant などのFPSでは、上下を向いても武器が完全には画面外へ逃げない。
-	// そのため、カメラPitchへの追従は弱めにする。
-	// 0.82f だと上下端で右腕と武器が画面外へ寄りやすい。
+	// armPitchFollow_ は位置ではなく回転だけに使う。
 	float armPitchFollow_ = 0.82f;
 
 	CameraFovHooks fovHooks_{};
