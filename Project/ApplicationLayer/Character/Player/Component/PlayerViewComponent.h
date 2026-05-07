@@ -213,8 +213,12 @@ private: /// ---------- メンバ変数 ---------- ///
 	bool  reloadViewActive_ = false;
 	float reloadViewTimer_ = 0.0f;
 	float reloadViewDuration_ = 1.0f;
+	float reloadAnimTimer_ = 0.0f;
 	float reloadPoseAlpha_ = 0.0f;
 	float reloadPoseBlendSpeed_ = 14.0f;
+	float reloadEnterEndRate_ = 0.22f;
+	float reloadHoldEndRate_ = 0.72f;
+	float reloadReturnEndRate_ = 1.0f;
 
 	K4E::Vector3 reloadWeaponDrop_{ 0.08f, -0.18f, -0.10f };
 	K4E::Vector3 reloadWeaponRotDeg_{ 10.0f, -12.0f, 18.0f };
