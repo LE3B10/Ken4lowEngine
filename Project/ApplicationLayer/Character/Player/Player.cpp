@@ -449,6 +449,11 @@ void Player::UpdatePresentation(float deltaTime)
 	vfx_.Update(deltaTime);
 }
 
+void Player::SyncHurtboxes()
+{
+	hurtbox_.Sync(*this);
+}
+
 /// -------------------------------------------------------------
 ///					　			 描画処理
 /// -------------------------------------------------------------
