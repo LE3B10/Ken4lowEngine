@@ -366,7 +366,8 @@ void Bullet::Update(float dt)
 void Bullet::Draw()
 {
 	if (removable_) return;
-	if (model_) model_->Draw(); // デバッグ用に見たいならON
+	if (!drawModel_) return;
+	if (model_) model_->Draw();
 }
 
 void Bullet::DrawImGui()
