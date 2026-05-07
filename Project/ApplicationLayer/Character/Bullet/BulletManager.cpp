@@ -20,11 +20,13 @@ Bullet* BulletManager::Spawn(const Vector3& startPos,
 	uint32_t typeId,
 	float splashRadius,
 	int splashDamage,
-	bool splashCanDamageSelf
+	bool splashCanDamageSelf,
+	bool drawModel
 )
 {
 	auto b = std::make_unique<Bullet>();
 	b->Initialize(startPos, dirNormalized * speed, damage, lifeTimeSec, shooterPosition, shooterColliderId, typeId);
+	b->SetModelDrawEnabled(drawModel);
 	b->SetCollisionManager(collisionManager_);
 	b->ConfigureSplashDamage(splashRadius, splashDamage, splashCanDamageSelf);
 
