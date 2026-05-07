@@ -179,6 +179,14 @@ void Player::Update(float deltaTime)
 	if (runtime_.isDebugCamera)
 	{
 		BaseCharacter::Update(deltaTime);
+
+		// デバッグカメラ中はゲーム入力・移動更新を止めるが、
+		// 武器ビジュアルだけは右腕の最新ワールド行列へ追従させる。
+		// ここを更新しないと、BaseCharacter 側で右腕が更新された後も
+		// 武器だけ前フレームの行列に残り、右腕から離れて見える。
+		weaponVisual_.Update(deltaTime, inputSnap_.aimHeld);
+		SyncHurtboxes();
+
 		return;
 	}
 
@@ -439,11 +447,6 @@ void Player::UpdatePresentation(float deltaTime)
 	weaponVisual_.Update(deltaTime, inputSnap_.aimHeld);
 	SyncHurtboxes();
 	vfx_.Update(deltaTime);
-}
-
-void Player::SyncHurtboxes()
-{
-	hurtbox_.Sync(*this);
 }
 
 /// -------------------------------------------------------------
