@@ -4,13 +4,11 @@
 #include <algorithm>
 #include <cmath>
 #include <random>
-#include <string>
 
 // 既存プロジェクトのヘッダー
 #include "BulletManager.h"
 #include "Camera.h"
 #include "CollisionTypeIdDef.h"
-#include "GpuParticleManager.h"
 #include "Vector3.h"
 
 using namespace Ken4lowEngine;
@@ -46,54 +44,6 @@ static K4E::Vector3 ApplySpread(const K4E::Vector3& forward, float spreadDeg)
 		Vector3::Multiply(f, cosPhi)
 	);
 	return Vector3::Normalize(dir);
-}
-
-static void EmitMuzzleSparkMesh(const WeaponParams& params, K4E::Camera* cam)
-{
-	if (!cam) return;
-	if (!params.enableMuzzleSparkMesh) return;
-	if (params.muzzleSparkBurstCount == 0) return;
-
-	auto* particleManager = K4E::GpuParticleManager::GetInstance();
-	if (!particleManager) return;
-
-	K4E::Vector3 forward = Vector3::Normalize(cam->GetForward());
-	K4E::Vector3 up = { 0.0f, 1.0f, 0.0f };
-
-	if (std::fabs(Vector3::Dot(forward, up)) > 0.98f)
-	{
-		up = { 1.0f, 0.0f, 0.0f };
-	}
-
-	const K4E::Vector3 right = Vector3::Normalize(Vector3::Cross(up, forward));
-	const K4E::Vector3 realUp = Vector3::Normalize(Vector3::Cross(forward, right));
-
-	K4E::Vector3 position = cam->GetTranslate();
-	position = Vector3::Add(position, Vector3::Multiply(right, params.muzzleSparkOffsetRight));
-	position = Vector3::Add(position, Vector3::Multiply(realUp, params.muzzleSparkOffsetUp));
-	position = Vector3::Add(position, Vector3::Multiply(forward, params.muzzleSparkOffsetForward));
-
-	GpuParticleEmitter::EmitterInfo info{};
-	info.textureFilePath = "Effects/white.dds";
-	info.radius = 0.0f;
-	info.loopCount = 0;
-	info.loopFrequency = 0.0f;
-	info.drawType = params.muzzleSparkMeshId;
-	info.kind = GpuParticleKind::Mesh;
-	info.spriteType = GpuParticleType::Spark;
-	info.billboardFlags = BillboardMode::None;
-
-	const std::string emitterName = "WeaponMuzzleSpark_" + std::to_string(params.weaponID);
-
-	GpuParticleEmitter* emitter = particleManager->GetEmitter(emitterName);
-	if (!emitter)
-	{
-		emitter = particleManager->CreateEmitter(emitterName, info);
-	}
-	if (!emitter) return;
-
-	emitter->SetPosition(position);
-	emitter->RequestEmit(params.muzzleSparkBurstCount);
 }
 
 void WeaponInstance::Equip(const WeaponParams& p)
@@ -296,7 +246,6 @@ void WeaponInstance::TryFire(bool fireHeld, bool firePressed,
 	st_.spread = std::min(maxDynamic, st_.spread + std::max(0.0f, params_.spreadIncrease));
 
 	FireShot(cam, bulletMgr, nullptr);
-	EmitMuzzleSparkMesh(params_, cam);
 
 	if (st_.burstRemaining > 0)
 	{
