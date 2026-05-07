@@ -11,6 +11,7 @@
 namespace K4E = ::Ken4lowEngine;
 
 namespace Ken4lowEngine { class Input; }
+class CollisionManager;
 
 /// -------------------------------------------------------------
 ///							弾クラス
@@ -47,10 +48,20 @@ public: /// ---------- メンバ関数 ---------- ///
 	void SetShooterColliderId(uint32_t id) { shooterColliderId_ = id; }
 	uint32_t GetShooterColliderId() const { return shooterColliderId_; }
 
+	void SetCollisionManager(CollisionManager* collisionManager) { collisionManager_ = collisionManager; }
+
+	// 範囲ダメージ設定。radius <= 0 の場合は通常弾として扱う。
+	void ConfigureSplashDamage(float radius, int damage, bool canDamageSelf = false);
+	bool HasSplashDamage() const { return splashRadius_ > 0.0f && splashDamage_ > 0; }
+	float GetSplashRadius() const { return splashRadius_; }
+	int GetSplashDamage() const { return splashDamage_; }
+
 private: /// ---------- メンバ関数 ---------- ///
 
 	// 即死して遠くへ移動させる（衝突時など）
 	void KillAndMoveFar();
+	void TriggerSplashDamageAt(const K4E::Vector3& center);
+	void ApplySplashDamageToType(uint32_t targetType, const K4E::Vector3& center);
 
 private: /// ---------- メンバ変数 ---------- ///
 
@@ -59,6 +70,12 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	K4E::Vector3 shooterPosition_ = { 0.0f, 0.0f, 0.0f };
 	uint32_t shooterColliderId_ = 0u;
+
+	CollisionManager* collisionManager_ = nullptr;
+	float splashRadius_ = 0.0f;
+	int splashDamage_ = 0;
+	bool splashCanDamageSelf_ = false;
+	bool splashTriggered_ = false;
 
 	std::unique_ptr<K4E::Object3D> model_ = nullptr;
 
