@@ -102,14 +102,15 @@ private: /// ---------- メンバ変数 ---------- ///
 	K4E::Vector3 adsEulerDeg_{ 90.0f, 90.0f, 0.0f };
 	K4E::Vector3 handSocketEulerDeg_{ 0.0f, -90.0f, 0.0f };
 
-	// リロード時の武器補正。手前で落として、画面右側の武器が外へ逃げない向きに傾ける。
+	// リロード時の武器補正。
+	// 回転は右腕側に任せるため、武器側では軽い位置補正だけ行う。
 	bool  reloadViewActive_ = false;
 	float reloadViewTimer_ = 0.0f;
 	float reloadViewDuration_ = 1.0f;
 	float reloadPoseAlpha_ = 0.0f;
 	float reloadPoseBlendSpeed_ = 14.0f;
-	K4E::Vector3 reloadWeaponOffset_{ 0.08f, -0.18f, -0.10f };
-	K4E::Vector3 reloadWeaponRotDeg_{ -10.0f, 12.0f, -18.0f };
+	K4E::Vector3 reloadWeaponOffset_{ 0.0f, 0.0f, 0.0f };
+	K4E::Vector3 reloadWeaponRotDeg_{ 0.0f, 0.0f, 0.0f };
 
 	// 銃口のローカル位置。モデルによってずれる場合はここを調整する
 	K4E::Vector3 muzzleLocalOffset_{ 0.0f, -0.02f, 0.85f };
@@ -123,7 +124,6 @@ private: /// ---------- メンバ変数 ---------- ///
 	K4E::Matrix4x4 weaponWorldMatrix_ = K4E::Matrix4x4::MakeIdentity();
 	bool hasWeaponWorldMatrix_ = false;
 
-	bool refreshRequested_ = false;
-	std::string appliedModelPath_;
+	bool refreshRequested_ = false;	std::string appliedModelPath_;
 };
 
