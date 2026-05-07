@@ -251,8 +251,12 @@ WeaponParams WeaponSystem::BuildParams(const FWeaponMasterData& md)
 	{
 		p.isProjectile = md.projectileData->bIsProjectile;
 		p.projectileSpeed = md.projectileData->projectileSpeed;
+		p.projectileLifeTime = std::max(0.01f, md.projectileData->projectileLifeTime);
 		p.maxRange = (md.projectileData->maxRange > 0.0f) ? md.projectileData->maxRange : p.maxRange;
 		p.traceRadius = std::max(0.0f, md.projectileData->traceRadius);
+		p.splashRadius = std::max(0.0f, md.projectileData->splashRadius);
+		p.splashDamage = (p.splashRadius > 0.0f) ? std::max(1, static_cast<int>(md.stats.damage)) : 0;
+		p.splashCanDamageSelf = md.projectileData->bCanDamageSelf;
 
 		// ✅ ここが重要（今まで固定値だった）
 		if (md.projectileData->spawnForwardOffset > 0.0f)
