@@ -26,7 +26,10 @@ public: /// ---------- メンバ関数 ---------- ///
 		float lifeTimeSec = 3.0f,
 		const Ken4lowEngine::Vector3& shooterPosition = { 0.0f, 0.0f, 0.0f },
 		uint32_t shooterColliderId = 0u,
-		uint32_t typeId = static_cast<uint32_t>(CollisionTypeIdDef::kBullet)
+		uint32_t typeId = static_cast<uint32_t>(CollisionTypeIdDef::kBullet),
+		float splashRadius = 0.0f,
+		int splashDamage = 0,
+		bool splashCanDamageSelf = false
 		);
 
 	// 更新処理
