@@ -2,6 +2,7 @@
 #include "Object3D.h"
 #include "PlayerWeaponComponent.h"
 #include "WorldTransformEx.h"
+#include "Quaternion.h"
 
 #include <memory>
 
@@ -58,6 +59,9 @@ private: /// ---------- メンバ関数 ---------- ///
 	// ローカル座標を現在の武器ワールド行列でワールド座標に変換する
 	K4E::Vector3 TransformWeaponLocalPoint(const K4E::Vector3& localPoint) const;
 
+	// 現在のオイラー角設定からクォータニオン調整値を初期化する
+	void InitializeRotationQuaternionsFromEuler();
+
 private: /// ---------- メンバ変数 ---------- ///
 
 	// 武器ロジックへのポインタ（装備中の武器の状態を参照するため）
@@ -81,6 +85,19 @@ private: /// ---------- メンバ変数 ---------- ///
 	// 手に持つときのローカルオフセットと回転（右手に持ったときの位置と向きの調整）
 	K4E::Vector3 handSocketLocalOffset_{ 0.05f, -0.08f, 0.12f };
 	K4E::Vector3 handSocketLocalRotate_{ 0.0f, -1.57f, 0.0f };
+
+	// クォータニオンで武器の回転を調整するか。
+	// true の場合は下の Quaternion 値を使い、false の場合は従来の Euler 角を使う。
+	bool useQuaternionRotation_ = true;
+	bool rotationQuaternionInitialized_ = false;
+	K4E::Quaternion hipLocalQuaternion_{};
+	K4E::Quaternion adsLocalQuaternion_{};
+	K4E::Quaternion handSocketLocalQuaternion_{};
+
+	// ImGui で Euler 角から Quaternion を作り直すための調整用。単位は度。
+	K4E::Vector3 hipEulerDeg_{ 90.0f, 90.0f, 0.0f };
+	K4E::Vector3 adsEulerDeg_{ 90.0f, 90.0f, 0.0f };
+	K4E::Vector3 handSocketEulerDeg_{ 0.0f, -90.0f, 0.0f };
 
 	// 銃口のローカル位置。モデルによってずれる場合はここを調整する
 	K4E::Vector3 muzzleLocalOffset_{ 0.0f, -0.02f, 0.85f };
