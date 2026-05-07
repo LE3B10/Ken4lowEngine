@@ -187,16 +187,17 @@ private: /// ---------- メンバ変数 ---------- ///
 	float reloadLoadPeakRate_ = 0.52f;
 	float reloadLoadEndRate_ = 0.66f;
 
-	K4E::Vector3 reloadWeaponDrop_{ 0.08f, -0.18f, -0.10f };
+	// リロード時は腕と武器を少し下げ、前方視界を塞ぎすぎないようにする。
+	K4E::Vector3 reloadWeaponDrop_{ 0.04f, -0.42f, -0.16f };
 	K4E::Vector3 reloadWeaponRotDeg_{ 10.0f, -12.0f, 18.0f };
-	K4E::Vector3 reloadRightArmRotDeg_{ -18.0f, 12.0f, -24.0f };
-	K4E::Vector3 reloadLoadRightArmOffset_{ -0.02f, 0.03f, 0.08f };
-	K4E::Vector3 reloadLoadRightArmRotDeg_{ 3.0f, -4.0f, 5.0f };
+	K4E::Vector3 reloadRightArmRotDeg_{ -8.0f, 8.0f, -12.0f };
+	K4E::Vector3 reloadLoadRightArmOffset_{ -0.02f, 0.00f, 0.05f };
+	K4E::Vector3 reloadLoadRightArmRotDeg_{ 2.0f, -3.0f, 3.0f };
 
-	K4E::Vector3 reloadLeftArmOffset_{ 0.22f, -0.10f, 0.18f };
-	K4E::Vector3 reloadLeftArmRotDeg_{ -24.0f, -18.0f, 32.0f };
-	K4E::Vector3 reloadLoadLeftArmOffset_{ -0.08f, 0.05f, -0.16f };
-	K4E::Vector3 reloadLoadLeftArmRotDeg_{ 10.0f, 8.0f, -18.0f };
+	K4E::Vector3 reloadLeftArmOffset_{ 0.12f, -0.34f, 0.08f };
+	K4E::Vector3 reloadLeftArmRotDeg_{ -12.0f, -10.0f, 18.0f };
+	K4E::Vector3 reloadLoadLeftArmOffset_{ -0.05f, 0.02f, -0.10f };
+	K4E::Vector3 reloadLoadLeftArmRotDeg_{ 6.0f, 5.0f, -10.0f };
 
 	// ---- Melee view animation ----
 	bool meleeSwingActive_ = false;
