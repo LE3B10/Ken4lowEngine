@@ -209,6 +209,7 @@ WeaponParams WeaponSystem::BuildParams(const FWeaponMasterData& md)
 	p.weaponID = md.coreData.weaponID;
 	p.isAutomatic = md.bIsAutomatic;
 	p.canToggleFireMode = md.bCanToggleFireMode;
+	p.drawProjectileModel = (md.coreData.category == EWeaponCategory::Heavy);
 
 	// Stats
 	p.damage = md.stats.damage;
