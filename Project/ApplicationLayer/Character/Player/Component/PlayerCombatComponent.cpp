@@ -1,6 +1,8 @@
 #define NOMINMAX
 #include "PlayerCombatComponent.h"
 
+#include <string>
+
 #include "BulletManager.h"
 #include "Camera.h"
 #include "CollisionManager.h"
@@ -18,24 +20,44 @@ namespace
 	constexpr uint32_t kMuzzleSparkMeshId = 1000u;
 	constexpr uint32_t kMuzzleSparkBurstCount = 8u;
 	constexpr const char* kMuzzleSparkEmitterName = "MuzzleSparkMesh";
-	constexpr const char* kMuzzleSparkTexturePath = "Effects/white.dds";
+	constexpr const char* kMuzzleSparkMeshModelPath = "cube.gltf";
 
 	constexpr uint32_t kBulletTracerMeshId = 1001u;
-	constexpr uint32_t kBulletTracerBurstCountPerPoint = 2u;
-	constexpr int kBulletTracerPointCount = 6;
-	constexpr float kBulletTracerStartOffset = 0.35f;
-	constexpr float kBulletTracerStepDistance = 0.42f;
+	constexpr uint32_t kBulletTracerBurstCountPerPoint = 10u;
+	constexpr int kBulletTracerPointCount = 18;
+	constexpr float kBulletTracerStartOffset = 0.22f;
+	constexpr float kBulletTracerStepDistance = 0.16f;
 	constexpr const char* kBulletTracerEmitterBaseName = "BulletTracerMesh_";
-	constexpr const char* kBulletTracerTexturePath = "Effects/white.dds";
+	constexpr const char* kBulletTracerMeshModelPath = "cube.gltf";
+
+	std::string MakeMeshTexturePath(uint32_t meshId)
+	{
+		return "Mesh:" + std::to_string(meshId);
+	}
+
+	bool EnsureMeshAssetRegistered(K4E::GpuParticleManager* particle, uint32_t meshId, const char* modelPath)
+	{
+		if (!particle)
+		{
+			return false;
+		}
+
+		if (particle->FindMeshAsset(meshId))
+		{
+			return true;
+		}
+
+		return particle->LoadMeshAssetsFromAssimp(meshId, modelPath, true);
+	}
 
 	K4E::GpuParticleEmitter* GetOrCreateMeshEmitter(
 		K4E::GpuParticleManager* particle,
 		const char* name,
 		uint32_t meshId,
-		K4E::GpuParticleType spriteType,
-		const char* texturePath)
+		K4E::GpuParticleType particleType,
+		const char* meshModelPath)
 	{
-		if (!particle)
+		if (!EnsureMeshAssetRegistered(particle, meshId, meshModelPath))
 		{
 			return nullptr;
 		}
@@ -47,13 +69,16 @@ namespace
 		}
 
 		K4E::GpuParticleEmitter::EmitterInfo info{};
-		info.textureFilePath = texturePath;
+		info.textureFilePath = MakeMeshTexturePath(meshId);
 		info.radius = 0.0f;
 		info.loopCount = 0;
 		info.loopFrequency = 0.0f;
-		info.drawType = meshId;
+
+		// drawType は粒子タイプのフィルタに使われるため、MeshIdは入れない。
+		// MeshIdは textureFilePath = "Mesh:<id>" で GpuParticleRenderer に渡す。
+		info.drawType = 0;
 		info.kind = K4E::GpuParticleKind::Mesh;
-		info.spriteType = spriteType;
+		info.spriteType = particleType;
 		info.billboardFlags = K4E::BillboardMode::None;
 
 		return particle->CreateEmitter(name, info);
@@ -66,7 +91,7 @@ namespace
 			kMuzzleSparkEmitterName,
 			kMuzzleSparkMeshId,
 			K4E::GpuParticleType::Spark,
-			kMuzzleSparkTexturePath);
+			kMuzzleSparkMeshModelPath);
 
 		if (!emitter)
 		{
@@ -101,7 +126,7 @@ namespace
 				emitterName.c_str(),
 				kBulletTracerMeshId,
 				K4E::GpuParticleType::BulletTracer,
-				kBulletTracerTexturePath);
+				kBulletTracerMeshModelPath);
 
 			if (!emitter)
 			{
