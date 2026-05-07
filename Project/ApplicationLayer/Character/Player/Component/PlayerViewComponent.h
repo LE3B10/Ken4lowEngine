@@ -68,6 +68,9 @@ public: /// ---------- メンバ関数 ---------- ///
 	// Aim（ADS）状態：FpsCamera の演出（揺れ抑制/視野など） + 腕の“構え”ブレンド
 	void SetAiming(bool on);
 
+	// リロード中の一人称腕・武器姿勢を更新する
+	void SetReloadViewModelState(bool isReloading, float reloadTimer, float reloadDuration);
+
 	// カメラ情報（射撃/デバッグ用）
 	float GetYaw() const { return fpsCamera_.GetYaw(); }
 	K4E::Camera* GetCamera() { return fpsCamera_.GetCamera(); }
@@ -87,7 +90,7 @@ public: /// ---------- メンバ関数 ---------- ///
 	void AddRecoil(float verticalDeg, float horizontalDeg);
 
 	// Debug UI
-	void DrawImGui() { fpsCamera_.DrawImGui(); }
+	void DrawImGui();
 
 	void SetWeaponAdsTuning(float adsFovDeg, float adsTransitionSpeed);
 
@@ -203,6 +206,20 @@ private: /// ---------- メンバ変数 ---------- ///
 	float vmKickMaxUp_ = 0.04f;
 
 	bool fpShowLeftArm_ = true;
+
+	// ---- Reload view animation ----
+	bool  reloadViewActive_ = false;
+	float reloadViewTimer_ = 0.0f;
+	float reloadViewDuration_ = 1.0f;
+	float reloadPoseAlpha_ = 0.0f;
+	float reloadPoseBlendSpeed_ = 14.0f;
+
+	K4E::Vector3 reloadWeaponDrop_{ 0.08f, -0.18f, -0.10f };
+	K4E::Vector3 reloadWeaponRotDeg_{ 10.0f, -12.0f, 18.0f };
+	K4E::Vector3 reloadLeftGrabOffset_{ 0.32f, -0.14f, 0.22f };
+	K4E::Vector3 reloadLeftGrabRotDeg_{ 28.0f, 18.0f, -28.0f };
+	K4E::Vector3 reloadLeftPullOffset_{ 0.42f, -0.36f, 0.02f };
+	K4E::Vector3 reloadLeftPullRotDeg_{ 55.0f, 12.0f, -42.0f };
 
 	// ---- Melee view animation ----
 	bool meleeSwingActive_ = false;
