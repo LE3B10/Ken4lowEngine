@@ -292,7 +292,18 @@ void WeaponInstance::FireShot(K4E::Camera* cam, BulletManager* bulletMgr, Collis
 		const float spreadDeg = totalSpreadDeg + ((pelletCount > 1) ? pelletExtraSpread : 0.0f);
 		K4E::Vector3 dir = ApplySpread(fwd, spreadDeg);
 
-		bulletMgr->Spawn(origin, dir, params_.projectileSpeed, static_cast<int>(params_.damage));
+		bulletMgr->Spawn(
+			origin,
+			dir,
+			params_.projectileSpeed,
+			static_cast<int>(params_.damage),
+			params_.projectileLifeTime,
+			origin,
+			0u,
+			static_cast<uint32_t>(CollisionTypeIdDef::kBullet),
+			params_.splashRadius,
+			params_.splashDamage,
+			params_.splashCanDamageSelf);
 	}
 }
 
