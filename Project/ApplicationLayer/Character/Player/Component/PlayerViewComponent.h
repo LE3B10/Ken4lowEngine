@@ -129,9 +129,9 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	float camPitch_ = 0.0f;
 
-	// 上下視点で腕が画面を覆いすぎないよう、カメラPitch追従を弱める。
-	// 以前の 1.0f はカメラ上下回転を腕へそのまま乗せていたため、上・下を向いた時に構えが崩れやすかった。
-	float armPitchFollow_ = 0.28f;
+	// 前向きの構えを保ちながら、上下視点にも武器と腕が追従するようにする。
+	// 0.28f では下を向いた時に腕と武器がほぼ置いていかれたため、追従量を戻す。
+	float armPitchFollow_ = 0.75f;
 
 	CameraFovHooks fovHooks_{};
 	float prevAppliedFovMul_ = 1.0f;
