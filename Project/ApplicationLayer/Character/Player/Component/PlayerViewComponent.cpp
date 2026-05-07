@@ -20,6 +20,26 @@ static float SmoothStep01(float t)
 	return t * t * (3.0f - 2.0f * t);
 }
 
+static float Pulse01(float progress, float start, float peak, float end)
+{
+	progress = Clamp01(progress);
+	start = std::clamp(start, 0.0f, 0.98f);
+	peak = std::clamp(peak, start + 0.01f, 0.99f);
+	end = std::clamp(end, peak + 0.01f, 1.0f);
+
+	if (progress < start || progress >= end)
+	{
+		return 0.0f;
+	}
+
+	if (progress < peak)
+	{
+		return SmoothStep01((progress - start) / (peak - start));
+	}
+
+	return 1.0f - SmoothStep01((progress - peak) / (end - peak));
+}
+
 static float Approach(float current, float target, float speed, float deltaTime)
 {
 	const float step = speed * deltaTime;
@@ -379,9 +399,18 @@ void PlayerViewComponent::DrawImGui()
 		ImGui::DragFloat3("Reload Right Arm Offset", &reloadWeaponDrop_.x, 0.01f, -2.0f, 2.0f, "%.2f");
 		ImGui::DragFloat3("Reload Right Arm Rot Deg", &reloadRightArmRotDeg_.x, 0.25f, -180.0f, 180.0f, "%.2f");
 		ImGui::Separator();
+		ImGui::Text("Loading motion");
+		ImGui::DragFloat("Load Start", &reloadLoadStartRate_, 0.01f, 0.20f, 0.80f, "%.2f");
+		ImGui::DragFloat("Load Peak", &reloadLoadPeakRate_, 0.01f, 0.25f, 0.90f, "%.2f");
+		ImGui::DragFloat("Load End", &reloadLoadEndRate_, 0.01f, 0.30f, 0.95f, "%.2f");
+		ImGui::DragFloat3("Load Right Offset", &reloadLoadRightArmOffset_.x, 0.01f, -1.0f, 1.0f, "%.2f");
+		ImGui::DragFloat3("Load Right Rot Deg", &reloadLoadRightArmRotDeg_.x, 0.25f, -90.0f, 90.0f, "%.2f");
+		ImGui::Separator();
 		ImGui::Text("Left Arm reload pose");
 		ImGui::DragFloat3("Reload Left Arm Offset", &reloadLeftArmOffset_.x, 0.01f, -2.0f, 2.0f, "%.2f");
 		ImGui::DragFloat3("Reload Left Arm Rot Deg", &reloadLeftArmRotDeg_.x, 0.25f, -180.0f, 180.0f, "%.2f");
+		ImGui::DragFloat3("Load Left Offset", &reloadLoadLeftArmOffset_.x, 0.01f, -1.0f, 1.0f, "%.2f");
+		ImGui::DragFloat3("Load Left Rot Deg", &reloadLoadLeftArmRotDeg_.x, 0.25f, -90.0f, 90.0f, "%.2f");
 		ImGui::Separator();
 		ImGui::DragFloat("Reload Enter End", &reloadEnterEndRate_, 0.01f, 0.05f, 0.60f, "%.2f");
 		ImGui::DragFloat("Reload Hold End", &reloadHoldEndRate_, 0.01f, 0.20f, 0.95f, "%.2f");
@@ -450,11 +479,13 @@ void PlayerViewComponent::UpdateFirstPersonArmPose(float dt)
 	const float timedReloadTarget = reloadViewActive_
 		? CalcReloadPoseWeight(reloadProgress, reloadEnterEndRate_, reloadHoldEndRate_, reloadReturnEndRate_)
 		: 0.0f;
+	const float loadT = Pulse01(reloadProgress, reloadLoadStartRate_, reloadLoadPeakRate_, reloadLoadEndRate_) * timedReloadTarget;
 
 	reloadPoseAlpha_ = Approach(reloadPoseAlpha_, timedReloadTarget, reloadPoseBlendSpeed_, dt);
 
 	const float t = Clamp01(armBlend_);
 	const float reloadT = SmoothStep01(reloadPoseAlpha_);
+	const float loadSmoothT = SmoothStep01(loadT);
 
 	UpdateRecoilViewModelKick(dt);
 
@@ -484,11 +515,17 @@ void PlayerViewComponent::UpdateFirstPersonArmPose(float dt)
 	rrot.y += vmKickYaw_;
 	rrot.z += vmKickRoll_;
 
-	// リロード中は時間に応じて寄せる → 保持 → 戻す。
+	// リロード姿勢へ入る → 装填する押し込み → 戻る。
 	if (reloadT > 0.0f)
 	{
 		rightArmTr_->translate_ += reloadWeaponDrop_ * reloadT;
 		leftArmTr_->translate_ += reloadLeftArmOffset_ * reloadT;
+	}
+
+	if (loadSmoothT > 0.0f)
+	{
+		rightArmTr_->translate_ += reloadLoadRightArmOffset_ * loadSmoothT;
+		leftArmTr_->translate_ += reloadLoadLeftArmOffset_ * loadSmoothT;
 	}
 
 	// -----------------------------
@@ -500,9 +537,6 @@ void PlayerViewComponent::UpdateFirstPersonArmPose(float dt)
 		float nt = meleeSwingTimer_ / meleeSwingDuration_;
 		nt = std::clamp(nt, 0.0f, 1.0f);
 
-		// 0.0-0.2: 溜め
-		// 0.2-0.65: 振り
-		// 0.65-1.0: 戻し
 		float windup = 0.0f;
 		float slash = 0.0f;
 		float recover = 0.0f;
@@ -520,7 +554,6 @@ void PlayerViewComponent::UpdateFirstPersonArmPose(float dt)
 			recover = (nt - 0.65f) / 0.35f;
 		}
 
-		// 溜め
 		if (windup > 0.0f)
 		{
 			rrot.x += DegToRad(18.0f) * windup;
@@ -532,7 +565,6 @@ void PlayerViewComponent::UpdateFirstPersonArmPose(float dt)
 			rightArmTr_->translate_.z -= 0.03f * windup;
 		}
 
-		// 振り
 		if (slash > 0.0f)
 		{
 			const float s = std::sin(slash * std::numbers::pi_v<float>);
@@ -546,10 +578,9 @@ void PlayerViewComponent::UpdateFirstPersonArmPose(float dt)
 			rightArmTr_->translate_.z += meleeSwingForward_ * s;
 		}
 
-		// 戻し
 		if (recover > 0.0f)
 		{
-			// 特別なことはせず、通常姿勢へ戻る補間に任せる
+			// 通常姿勢へ戻る補間に任せる
 		}
 
 		if (nt >= 1.0f)
@@ -561,9 +592,9 @@ void PlayerViewComponent::UpdateFirstPersonArmPose(float dt)
 
 	const K4E::Vector3 leftReloadRotRad =
 	{
-		DegToRad(reloadLeftArmRotDeg_.x * reloadT),
-		DegToRad(reloadLeftArmRotDeg_.y * reloadT),
-		DegToRad(reloadLeftArmRotDeg_.z * reloadT),
+		DegToRad(reloadLeftArmRotDeg_.x * reloadT + reloadLoadLeftArmRotDeg_.x * loadSmoothT),
+		DegToRad(reloadLeftArmRotDeg_.y * reloadT + reloadLoadLeftArmRotDeg_.y * loadSmoothT),
+		DegToRad(reloadLeftArmRotDeg_.z * reloadT + reloadLoadLeftArmRotDeg_.z * loadSmoothT),
 	};
 
 	const K4E::Quaternion baseLeftQuat = MakeQuaternionFromEulerRad(lrot);
@@ -576,9 +607,9 @@ void PlayerViewComponent::UpdateFirstPersonArmPose(float dt)
 
 	const K4E::Vector3 rightReloadRotRad =
 	{
-		DegToRad(reloadRightArmRotDeg_.x * reloadT),
-		DegToRad(reloadRightArmRotDeg_.y * reloadT),
-		DegToRad(reloadRightArmRotDeg_.z * reloadT),
+		DegToRad(reloadRightArmRotDeg_.x * reloadT + reloadLoadRightArmRotDeg_.x * loadSmoothT),
+		DegToRad(reloadRightArmRotDeg_.y * reloadT + reloadLoadRightArmRotDeg_.y * loadSmoothT),
+		DegToRad(reloadRightArmRotDeg_.z * reloadT + reloadLoadRightArmRotDeg_.z * loadSmoothT),
 	};
 
 	const K4E::Quaternion baseRightQuat = MakeQuaternionFromEulerRad(rrot);
