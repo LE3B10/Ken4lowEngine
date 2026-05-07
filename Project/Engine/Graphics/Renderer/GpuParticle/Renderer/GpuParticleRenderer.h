@@ -2,6 +2,7 @@
 #include <DX12Include.h>
 #include "ParticleMesh.h"
 #include "ParticleMaterial.h"
+#include "GpuParticleMeshPipeline.h"
 
 namespace Ken4lowEngine
 {
@@ -31,14 +32,8 @@ public: /// ---------- メンバ関数 ---------- ///
 
 	/// <summary>
 	/// GPU パーティクルの描画処理を行います。<br/>
-	/// ・パイプライン / ルートシグネチャのセット<br/>
-	/// ・パーティクルメッシュ（VB / 必要なら IB）のセット<br/>
-	/// ・SRVManager を使ったディスクリプタヒープのセットアップ<br/>
-	/// ・RootParameter 0: PerView 用 CBV（ビュー射影など）<br/>
-	/// ・RootParameter 1: パーティクルバッファの SRV（GpuParticleBuffers 側で確保したもの）<br/>
-	/// ・RootParameter 2: パーティクルマテリアルの CBV<br/>
-	/// ・RootParameter 3: テクスチャ SRV（textureFilePath_）<br/>
-	/// を設定した上で、instanceCount 個分のインスタンシング描画を行います。
+	/// textureFilePath_ が "Mesh:1000" のような形式なら MeshParticleAsset を使って描画し、<br/>
+	/// それ以外は従来通りスプライト用クアッドで描画します。
 	/// </summary>
 	/// <param name="instanceCount">描画するパーティクルインスタンス数（GPU 上で生存しているパーティクル数など）。</param>
 	void Draw(UINT instanceCount, uint32_t slot = 0);
@@ -50,6 +45,12 @@ public: /// ---------- セッター ---------- ///
 
 	// 描画タイプのセッター
 	void SetDrawType(uint32_t type, uint32_t slot);
+
+private: /// ---------- 内部処理 ---------- ///
+
+	bool TryGetMeshIdFromTexturePath(uint32_t& outMeshId) const;
+	void DrawSprite(UINT instanceCount, uint32_t slot);
+	void DrawMesh(UINT instanceCount, uint32_t slot, uint32_t meshId);
 
 private: /// ---------- メンバ変数 ---------- ///
 
@@ -64,6 +65,9 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	// パーティクルマテリアル
 	std::unique_ptr<ParticleMaterial> particleMaterial_;
+
+	// GPUパーティクルメッシュパイプライン
+	std::unique_ptr<GpuParticleMeshPipeline> gpuParticleMeshPipeline_;
 
 	std::string textureFilePath_ = "Effects/circle2.dds";
 };
