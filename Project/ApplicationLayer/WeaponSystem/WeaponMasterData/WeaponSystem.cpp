@@ -246,6 +246,15 @@ WeaponParams WeaponSystem::BuildParams(const FWeaponMasterData& md)
 	p.adsTransitionSpeed = md.handling.adsTransitionSpeed;
 	p.adsMoveSpeedMultiplier = std::clamp(md.handling.adsMoveSpeedMultiplier, 0.0f, 2.0f);
 
+	// VFX: 発射時のMesh火花。
+	// 既存JSONとの互換を優先し、muzzleFlashScaleだけで強さを調整する。
+	const float muzzleScale = std::max(0.0f, md.vfxData.muzzleFlashScale);
+	p.enableMuzzleSparkMesh = (muzzleScale > 0.0f);
+	p.muzzleSparkBurstCount = static_cast<uint32_t>(std::clamp(8.0f * muzzleScale, 1.0f, 64.0f));
+	p.muzzleSparkOffsetRight = 0.0f;
+	p.muzzleSparkOffsetUp = -0.08f;
+	p.muzzleSparkOffsetForward = 0.50f;
+
 	// Projectile
 	if (md.projectileData.has_value())
 	{
@@ -261,6 +270,9 @@ WeaponParams WeaponSystem::BuildParams(const FWeaponMasterData& md)
 		// ✅ ここが重要（今まで固定値だった）
 		if (md.projectileData->spawnForwardOffset > 0.0f)
 			p.muzzleForwardOffset = md.projectileData->spawnForwardOffset;
+
+		// 弾の発生位置と火花の発生位置を揃える。
+		p.muzzleSparkOffsetForward = p.muzzleForwardOffset;
 	}
 
 	// Burst
