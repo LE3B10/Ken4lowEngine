@@ -109,9 +109,16 @@ void BaseCharacter::UpdateHierarchy()
 		part.transform.worldRotate_ = body_.transform.worldRotate_; // 親の回転を適用
 		part.transform.Update(); // 親の影響を受ける
 
-		part.object->SetTranslate(part.transform.worldTranslate_); // ワールド座標を適用
-		part.object->SetRotate(part.transform.worldRotate_); // ワールド回転を適用
-		part.object->Update();
+		if (part.transform.useQuaternionRotation_)
+		{
+			part.object->UpdateWithWorldMatrix(part.transform.worldMatrix_);
+		}
+		else
+		{
+			part.object->SetTranslate(part.transform.worldTranslate_); // ワールド座標を適用
+			part.object->SetRotate(part.transform.worldRotate_); // ワールド回転を適用
+			part.object->Update();
+		}
 	}
 }
 
