@@ -43,10 +43,20 @@ ComPtr<ID3D12Resource> ResourceManager::CreateBufferResource(ID3D12Device* devic
 	desc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
 	desc.Flags = flags;
 
+	// Buffer は CreateCommittedResource の InitialState に COPY_DEST を指定しても
+	// Debug Layer では STATE_CREATION WARNING #1328 として無視される。
+	// DEFAULT Heap の Buffer は COMMON で作成し、CopyBufferRegion 時の
+	// 暗黙の State Promotion または明示的 Barrier 側に任せる。
+	D3D12_RESOURCE_STATES actualInitState = initState;
+	if (type == D3D12_HEAP_TYPE_DEFAULT && initState == D3D12_RESOURCE_STATE_COPY_DEST)
+	{
+		actualInitState = D3D12_RESOURCE_STATE_COMMON;
+	}
+
 	//実際に頂点リソースを作る
 	ComPtr <ID3D12Resource> resource = nullptr;
 	HRESULT hr = S_FALSE;
-	hr = device->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &desc, initState, nullptr, IID_PPV_ARGS(&resource));
+	hr = device->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &desc, actualInitState, nullptr, IID_PPV_ARGS(&resource));
 	assert(SUCCEEDED(hr));
 
 	return resource;
