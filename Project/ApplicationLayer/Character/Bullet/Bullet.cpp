@@ -63,7 +63,9 @@ namespace
 		info.drawType = static_cast<uint32_t>(K4E::GpuParticleType::Debris);
 		info.billboardFlags = K4E::BillboardMode::None;
 		info.textureFilePath = "Mesh:" + std::to_string(kRocketDebrisMeshId);
-		info.radius = 0.8f;
+
+		// 半径は発生位置のばらけ幅。破片自体のサイズは GpuParticleEmit.CS.hlsl 側で小さくする。
+		info.radius = 1.35f;
 		info.loopCount = 0;
 		info.loopFrequency = 0.0f;
 
@@ -208,18 +210,31 @@ void Bullet::TriggerSplashDamageAt(const K4E::Vector3& center)
 		"HeavySplashImpact",
 		K4E::GpuParticleType::DeathBurstCore,
 		center,
-		80);
+		52);
 
+	// 範囲攻撃であることを見せる外周リング。
+	// splashRadius と同じ大きさに近づけるため、発生前にエミッター半径を上書きする。
+	if (auto* shockwave = K4E::GpuParticleManager::GetInstance()->EmitBurst(
+		"RocketSplashRadiusRing",
+		K4E::GpuParticleType::Shockwave,
+		center,
+		96))
+	{
+		shockwave->GetInfoMutable().radius = std::max(1.0f, splashRadius_);
+		shockwave->SetPosition(center);
+	}
+
+	// 煙を減らし、破片と範囲リングが隠れないようにする。
 	K4E::GpuParticleManager::GetInstance()->EmitBurst(
 		"HeavySplashSmoke",
 		K4E::GpuParticleType::Smoke,
 		center,
-		60);
+		18);
 
-	// ロケットランチャー用：着弾時に小さなメッシュ破片を飛ばす
+	// ロケットランチャー用：着弾時に小さな砂粒・小石を飛ばす
 	if (auto* debrisEmitter = PrepareRocketDebrisMeshEmitter(center))
 	{
-		debrisEmitter->RequestEmit(24);
+		debrisEmitter->RequestEmit(72);
 	}
 }
 

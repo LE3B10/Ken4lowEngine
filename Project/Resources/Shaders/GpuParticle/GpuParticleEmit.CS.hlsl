@@ -218,7 +218,7 @@ void InitParticleCommon(uint i, float3 seed, ParticleSpawnParam param, inout Par
     else
     {
         float s = RandRange(seed + 61.4f, param.scaleMin, param.scaleMax);
-        p.scale = float3(s, s, 1.0f);
+        p.scale = float3(s, s, s);
     }
 
     p.color = float4(RandColor(seed + 71.5f, param.colorA, param.colorB), param.alpha);
@@ -258,7 +258,7 @@ void ApplyParticleSpawnOverride(uint i, float3 seed, inout Particle p)
                 float b = saturate(2.0f - abs(t * 6.0f - 4.0f));
 
                 p.translate = gEmitter.translate + dir * gEmitter.radius;
-                p.scale = float3(0.08f, 0.08f, 1.0f);
+                p.scale = float3(0.08f, 0.08f, 0.08f);
                 p.velocity = dir * 2.0f;
                 p.lifeTime = 1.0f;
                 p.color = float4(r, g, b, 1.0f);
@@ -277,7 +277,7 @@ void ApplyParticleSpawnOverride(uint i, float3 seed, inout Particle p)
                 p.velocity = dir * speed;
 
                 float s = 0.03f + GPURand1(seed + 3.0f) * 0.05f;
-                p.scale = float3(s, s, 1.0f);
+                p.scale = float3(s, s, s);
                 break;
             }
 
@@ -291,21 +291,26 @@ void ApplyParticleSpawnOverride(uint i, float3 seed, inout Particle p)
                 p.velocity.y = abs(p.velocity.y) + 0.2f;
 
                 float s = 0.06f + GPURand1(seed + 2.0f) * 0.10f;
-                p.scale = float3(s, s, 1.0f);
+                p.scale = float3(s, s, s);
                 break;
             }
 
         case GPU_PARTICLE_TYPE_DEBRIS:
         {
+                // ロケット着弾用の砂粒・小石。Mesh でも直方体に見えないようXYZ同一スケールにする。
                 float3 dir = SampleUnitDir(seed + 1.0f);
-                dir.y = abs(dir.y) * 0.7f + 0.2f;
+                dir.y = abs(dir.y) * 0.45f + 0.12f;
                 dir = normalize(dir);
 
-                p.translate = gEmitter.translate + dir * (GPURand1(seed + 2.0f) * gEmitter.radius * 0.10f);
-                p.velocity = dir * (1.5f + GPURand1(seed + 3.0f) * 6.0f);
+                p.translate = gEmitter.translate + dir * (GPURand1(seed + 2.0f) * gEmitter.radius * 0.06f);
+                p.velocity = dir * (5.0f + GPURand1(seed + 3.0f) * 11.0f);
+                p.lifeTime = 0.45f + GPURand1(seed + 5.0f) * 0.55f;
 
-                float s = 0.03f + GPURand1(seed + 4.0f) * 0.06f;
-                p.scale = float3(s, s, 1.0f);
+                float s = 0.010f + GPURand1(seed + 4.0f) * 0.020f;
+                p.scale = float3(s, s, s);
+                p.color = float4(
+                    lerp(float3(0.45f, 0.36f, 0.24f), float3(0.78f, 0.68f, 0.48f), GPURand1(seed + 6.0f)),
+                    0.95f);
                 break;
             }
 
@@ -340,21 +345,21 @@ void ApplyParticleSpawnOverride(uint i, float3 seed, inout Particle p)
                 p.velocity = dir * (4.0f + GPURand1(seed + 3.0f) * 14.0f);
 
                 float s = 0.015f + GPURand1(seed + 4.0f) * 0.02f;
-                p.scale = float3(s, s, 1.0f);
+                p.scale = float3(s, s, s);
                 break;
             }
 
         case GPU_PARTICLE_TYPE_SHOCKWAVE:
         {
                 float a = GPURand1(seed + 1.0f) * 6.2831853f;
-                float r = gEmitter.radius * (0.10f + GPURand1(seed + 2.0f) * 0.20f);
+                float r = gEmitter.radius * (0.75f + GPURand1(seed + 2.0f) * 0.25f);
 
                 float3 radial = normalize(float3(cos(a), 0.0f, sin(a)));
                 p.translate = gEmitter.translate + radial * r;
-                p.velocity = radial * (8.0f + GPURand1(seed + 3.0f) * 10.0f);
+                p.velocity = radial * (1.0f + GPURand1(seed + 3.0f) * 2.5f);
 
-                float s = 0.05f + GPURand1(seed + 4.0f) * 0.05f;
-                p.scale = float3(s, s, 1.0f);
+                float s = 0.035f + GPURand1(seed + 4.0f) * 0.035f;
+                p.scale = float3(s, s, s);
                 break;
             }
 
@@ -366,7 +371,7 @@ void ApplyParticleSpawnOverride(uint i, float3 seed, inout Particle p)
                 p.velocity.z);
 
                 float s = 0.06f + GPURand1(seed + 3.0f) * 0.06f;
-                p.scale = float3(s, s, 1.0f);
+                p.scale = float3(s, s, s);
                 break;
             }
 
@@ -379,7 +384,7 @@ void ApplyParticleSpawnOverride(uint i, float3 seed, inout Particle p)
                 p.velocity = dir * (0.1f + GPURand1(seed + 3.0f) * 0.8f);
 
                 float s = 0.04f + GPURand1(seed + 4.0f) * 0.04f;
-                p.scale = float3(s, s, 1.0f);
+                p.scale = float3(s, s, s);
                 break;
             }
         
@@ -391,7 +396,7 @@ void ApplyParticleSpawnOverride(uint i, float3 seed, inout Particle p)
                 p.translate = gEmitter.translate + dir * (GPURand1(seed + 2.0f) * gEmitter.radius * 0.05f);
                 p.velocity = dir * (5.5f + GPURand1(seed + 3.0f) * 5.0f);
                 float s = 0.06f + GPURand1(seed + 4.0f) * 0.10f;
-                p.scale = float3(s, s, 1.0f);
+                p.scale = float3(s, s, s);
                 break;
             }
     }
