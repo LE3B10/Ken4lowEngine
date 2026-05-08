@@ -22,6 +22,10 @@ namespace Ken4lowEngine { class Input; }
 /// -------------------------------------------------------------
 class DebugScene : public BaseScene
 {
+private: /// ---------- エイリアス ---------- ///
+
+	using Vector3 = K4E::Vector3;
+
 public: /// ---------- メンバ関数 ---------- ///
 
 	// 仮想初期化処理
