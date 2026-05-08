@@ -182,6 +182,10 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClCompile Include="ApplicationLayer\EffectLayer\Disintegration\DisintegrationEmitter.cpp" />
     <ClCompile Include="ApplicationLayer\EffectLayer\Disintegration\DisintegrationRenderer.cpp" />
     <ClCompile Include="ApplicationLayer\EffectLayer\Disintegration\ModelDisintegrationEffect.cpp" />
+    <ClCompile Include="ApplicationLayer\EffectLayer\Disintegration\ModelReconstructionEffect.cpp" />
+    <ClCompile Include="ApplicationLayer\EffectLayer\Disintegration\ReconstructionRenderer.cpp" />
+    <ClCompile Include="ApplicationLayer\EffectLayer\Disintegration\ReconstructionEmitter.cpp" />
+    <ClCompile Include="ApplicationLayer\EffectLayer\Disintegration\ModelSurfaceSampler.cpp" />
     <ClCompile Include="ApplicationLayer\EffectLayer\ParticleEmitter.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
@@ -817,6 +821,11 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="ApplicationLayer\EffectLayer\Disintegration\DisintegrationParticle.h" />
     <ClInclude Include="ApplicationLayer\EffectLayer\Disintegration\DisintegrationRenderer.h" />
     <ClInclude Include="ApplicationLayer\EffectLayer\Disintegration\ModelDisintegrationEffect.h" />
+    <ClInclude Include="ApplicationLayer\EffectLayer\Disintegration\ModelReconstructionEffect.h" />
+    <ClInclude Include="ApplicationLayer\EffectLayer\Disintegration\ReconstructionRenderer.h" />
+    <ClInclude Include="ApplicationLayer\EffectLayer\Disintegration\ReconstructionEmitter.h" />
+    <ClInclude Include="ApplicationLayer\EffectLayer\Disintegration\ReconstructionBlock.h" />
+    <ClInclude Include="ApplicationLayer\EffectLayer\Disintegration\ModelSurfaceSampler.h" />
     <ClInclude Include="ApplicationLayer\EffectLayer\ModelParticle.h">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>

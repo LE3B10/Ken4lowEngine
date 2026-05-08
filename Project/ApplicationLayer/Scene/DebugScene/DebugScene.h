@@ -6,6 +6,7 @@
 #include "Player.h"
 #include "Derived/GuardianBoss/GuardianBoss.h"
 #include "Disintegration/ModelDisintegrationEffect.h"
+#include "Disintegration/ModelReconstructionEffect.h"
 #include "Object3D.h"
 
 #include <memory>
@@ -65,6 +66,15 @@ private: /// ---------- メンバ関数 ---------- ///
 	/// モデル崩壊エフェクトをデバッグ位置で再生
 	void PlayDebugDisintegrationEffect();
 
+	/// モデル再構築エフェクトの単体検証更新
+	void UpdateDebugReconstructionTest(float deltaTime);
+
+	/// モデル再構築エフェクトをデバッグ位置で再生
+	void PlayDebugReconstructionEffect();
+
+	/// モデル再構築テスト用モデルを読み直す
+	void ReloadDebugReconstructionModel();
+
 	/// -------------------------------------------------------------
 	/// BossHitPart を文字列へ変換
 	/// ログ確認用
@@ -101,5 +111,15 @@ private: /// ---------- メンバ変数 ---------- ///
 	std::string debugDisintegrationModelPath_ = "Characters/body.gltf";
 	std::string debugDisintegrationLog_ = "Press F9 or the ImGui button to play.";
 	bool debugDisintegrationModelVisible_ = true;
+
+	// --- モデル再構築エフェクト単体テスト用 ---
+	std::unique_ptr<K4E::Object3D> debugReconstructionModel_;
+	std::unique_ptr<ModelReconstructionEffect> debugReconstructionEffect_;
+	K4E::Vector3 debugReconstructionPosition_{ 4.0f, 2.25f, 18.0f };
+	K4E::Vector3 debugReconstructionRotation_{ 0.0f, 0.0f, 0.0f };
+	K4E::Vector3 debugReconstructionScale_{ 1.0f, 1.0f, 1.0f };
+	std::string debugReconstructionModelPath_ = "Characters/body.gltf";
+	std::string debugReconstructionLog_ = "Press F10 or the ImGui button to play.";
+	bool debugReconstructionModelVisible_ = true;
 };
 

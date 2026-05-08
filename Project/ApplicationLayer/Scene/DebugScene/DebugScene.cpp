@@ -129,6 +129,16 @@ void DebugScene::Initialize()
 
 	debugDisintegrationEffect_ = std::make_unique<ModelDisintegrationEffect>();
 	debugDisintegrationEffect_->Initialize();
+
+	debugReconstructionModel_ = std::make_unique<Object3D>();
+	debugReconstructionModel_->Initialize(debugReconstructionModelPath_);
+	debugReconstructionModel_->SetTranslate(debugReconstructionPosition_);
+	debugReconstructionModel_->SetRotate(debugReconstructionRotation_);
+	debugReconstructionModel_->SetScale(debugReconstructionScale_);
+	debugReconstructionModel_->Update();
+
+	debugReconstructionEffect_ = std::make_unique<ModelReconstructionEffect>();
+	debugReconstructionEffect_->Initialize();
 }
 
 void DebugScene::Update()
@@ -156,6 +166,8 @@ void DebugScene::Update()
 
 	UpdateDebugDisintegrationTest(deltaTime);
 
+	UpdateDebugReconstructionTest(deltaTime);
+
 	collisionManager_->Update();
 	collisionManager_->CheckAllCollisions();
 
@@ -171,6 +183,16 @@ void DebugScene::Draw3DObjects()
 	if (debugDisintegrationEffect_)
 	{
 		debugDisintegrationEffect_->Draw();
+	}
+
+	if (debugReconstructionModelVisible_ && debugReconstructionModel_)
+	{
+		debugReconstructionModel_->Draw();
+	}
+
+	if (debugReconstructionEffect_)
+	{
+		debugReconstructionEffect_->Draw();
 	}
 
 	// ボス描画
@@ -192,6 +214,11 @@ void DebugScene::DrawShadowObjects()
 	if (debugDisintegrationModelVisible_ && debugDisintegrationModel_)
 	{
 		debugDisintegrationModel_->DrawShadow();
+	}
+
+	if (debugReconstructionModelVisible_ && debugReconstructionModel_)
+	{
+		debugReconstructionModel_->DrawShadow();
 	}
 
 	if (debugBoss_)
@@ -225,6 +252,8 @@ void DebugScene::Finalize()
 	input_->SetLockCursor(false);
 	input_->SetCursorVisible(true);
 
+	debugReconstructionEffect_.reset();
+	debugReconstructionModel_.reset();
 	debugDisintegrationEffect_.reset();
 	debugDisintegrationModel_.reset();
 	debugBoss_.reset();
@@ -450,6 +479,41 @@ void DebugScene::DrawImGui()
 		debugDisintegrationEffect_->DrawImGui();
 	}
 
+
+	/// ---------- モデル再構築エフェクト単体テスト ---------- ///
+	{
+		static char reconstructionModelPathBuffer[256] = "Characters/body.gltf";
+
+		ImGui::Begin("Model Reconstruction Debug");
+		ImGui::TextWrapped("DebugScene-only test. F10 or the button gathers scattered CPU cube blocks into sampled model-surface positions.");
+		ImGui::InputText("Test Model Path", reconstructionModelPathBuffer, IM_ARRAYSIZE(reconstructionModelPathBuffer));
+		ImGui::DragFloat3("Position", &debugReconstructionPosition_.x, 0.05f);
+		ImGui::DragFloat3("Rotation", &debugReconstructionRotation_.x, 0.01f);
+		ImGui::DragFloat3("Scale", &debugReconstructionScale_.x, 0.01f, 0.01f, 10.0f);
+
+		if (ImGui::Button("Reload Test Model##Reconstruction"))
+		{
+			debugReconstructionModelPath_ = reconstructionModelPathBuffer;
+			ReloadDebugReconstructionModel();
+		}
+
+		ImGui::SameLine();
+		if (ImGui::Button("Play Reconstruction"))
+		{
+			debugReconstructionModelPath_ = reconstructionModelPathBuffer;
+			PlayDebugReconstructionEffect();
+		}
+
+		ImGui::Text("Model Visible: %s", debugReconstructionModelVisible_ ? "true" : "false");
+		ImGui::TextWrapped("%s", debugReconstructionLog_.c_str());
+		ImGui::End();
+	}
+
+	if (debugReconstructionEffect_)
+	{
+		debugReconstructionEffect_->DrawImGui();
+	}
+
 	/// ---------- 武器マスターデータエディタ ---------- ///
 	static WeaponMasterDataDatabase weaponDB;
 	static WeaponMasterDataEditor weaponEditor;
@@ -538,6 +602,67 @@ void DebugScene::UpdateDebug()
 		/*input_->SetLockCursor(!isDebugCamera_);
 		input_->SetCursorVisible(isDebugCamera_);*/
 	}
+}
+
+void DebugScene::UpdateDebugReconstructionTest(float deltaTime)
+{
+	if (input_ && input_->TriggerKey(DIK_F10))
+	{
+		PlayDebugReconstructionEffect();
+	}
+
+	if (debugReconstructionModel_)
+	{
+		debugReconstructionModel_->SetTranslate(debugReconstructionPosition_);
+		debugReconstructionModel_->SetRotate(debugReconstructionRotation_);
+		debugReconstructionModel_->SetScale(debugReconstructionScale_);
+		debugReconstructionModel_->Update();
+	}
+
+	if (debugReconstructionEffect_)
+	{
+		debugReconstructionEffect_->Update(deltaTime);
+		if (debugReconstructionEffect_->IsActive())
+		{
+			debugReconstructionModelVisible_ = debugReconstructionEffect_->ShouldShowFinalModel();
+		}
+		else if (debugReconstructionEffect_->IsComplete())
+		{
+			debugReconstructionModelVisible_ = debugReconstructionEffect_->ShouldShowFinalModel();
+		}
+	}
+}
+
+void DebugScene::PlayDebugReconstructionEffect()
+{
+	if (!debugReconstructionEffect_)
+	{
+		return;
+	}
+
+	const Matrix4x4 worldMatrix = Matrix4x4::MakeAffineMatrix(
+		debugReconstructionScale_,
+		debugReconstructionRotation_,
+		debugReconstructionPosition_);
+
+	// 表面サンプルを最終到達位置にして、散らばったブロックをモデル形状へ集める。
+	debugReconstructionEffect_->PlayFromModel(debugReconstructionModelPath_, worldMatrix);
+	debugReconstructionModelVisible_ = debugReconstructionEffect_->ShouldShowFinalModel();
+	debugReconstructionLog_ = "Play Reconstruction: " + debugReconstructionModelPath_;
+	DebugLog(debugReconstructionLog_);
+}
+
+void DebugScene::ReloadDebugReconstructionModel()
+{
+	debugReconstructionModel_ = std::make_unique<Object3D>();
+	debugReconstructionModel_->Initialize(debugReconstructionModelPath_);
+	debugReconstructionModel_->SetTranslate(debugReconstructionPosition_);
+	debugReconstructionModel_->SetRotate(debugReconstructionRotation_);
+	debugReconstructionModel_->SetScale(debugReconstructionScale_);
+	debugReconstructionModel_->Update();
+	debugReconstructionModelVisible_ = true;
+	debugReconstructionLog_ = "Reloaded reconstruction test model: " + debugReconstructionModelPath_;
+	DebugLog(debugReconstructionLog_);
 }
 
 /// -------------------------------------------------------------

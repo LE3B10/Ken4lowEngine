@@ -178,6 +178,18 @@
     <ClCompile Include="ApplicationLayer\EffectLayer\Disintegration\ModelDisintegrationEffect.cpp">
       <Filter>ApplicationLayer\EffectLayer</Filter>
     </ClCompile>
+    <ClCompile Include="ApplicationLayer\EffectLayer\Disintegration\ModelSurfaceSampler.cpp">
+      <Filter>ApplicationLayer\EffectLayer</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\EffectLayer\Disintegration\ReconstructionEmitter.cpp">
+      <Filter>ApplicationLayer\EffectLayer</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\EffectLayer\Disintegration\ReconstructionRenderer.cpp">
+      <Filter>ApplicationLayer\EffectLayer</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\EffectLayer\Disintegration\ModelReconstructionEffect.cpp">
+      <Filter>ApplicationLayer\EffectLayer</Filter>
+    </ClCompile>
     <ClCompile Include="ApplicationLayer\Scene\StageSelectScene\State\StageSelectSelectingState.cpp">
       <Filter>ApplicationLayer\Scene\StageSelectScene\State</Filter>
     </ClCompile>
@@ -892,6 +904,21 @@
       <Filter>ApplicationLayer\EffectLayer</Filter>
     </ClInclude>
     <ClInclude Include="ApplicationLayer\EffectLayer\Disintegration\ModelDisintegrationEffect.h">
+      <Filter>ApplicationLayer\EffectLayer</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\EffectLayer\Disintegration\ModelSurfaceSampler.h">
+      <Filter>ApplicationLayer\EffectLayer</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\EffectLayer\Disintegration\ReconstructionBlock.h">
+      <Filter>ApplicationLayer\EffectLayer</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\EffectLayer\Disintegration\ReconstructionEmitter.h">
+      <Filter>ApplicationLayer\EffectLayer</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\EffectLayer\Disintegration\ReconstructionRenderer.h">
+      <Filter>ApplicationLayer\EffectLayer</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\EffectLayer\Disintegration\ModelReconstructionEffect.h">
       <Filter>ApplicationLayer\EffectLayer</Filter>
     </ClInclude>
     <ClInclude Include="ApplicationLayer\Scene\StageSelectScene\State\IStageSelectSceneState.h">
