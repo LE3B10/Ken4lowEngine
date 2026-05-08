@@ -53,6 +53,7 @@ static const uint GPU_PARTICLE_TYPE_DEATH_BURST_CORE = 10;
 static const uint GPU_PARTICLE_TYPE_PLAYER_DAMAGE_BLOOD = 11;
 static const uint GPU_PARTICLE_TYPE_MUZZLE_FLASH = 12;
 static const uint GPU_PARTICLE_TYPE_BULLET_TRACER = 13;
+static const uint GPU_PARTICLE_TYPE_ARMOR_BREAK = 14;
 
 /// ---------- パーティクルデータ ---------- ///
 struct Particle
