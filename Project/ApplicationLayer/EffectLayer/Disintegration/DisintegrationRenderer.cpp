@@ -16,9 +16,9 @@ void DisintegrationRenderer::Draw(const std::vector<DisintegrationParticle>& par
 
 		const float s = particle.size * 0.5f;
 		const K4E::Vector3& p = particle.position;
+		const K4E::Vector3 axis = K4E::Vector3::NormalizeSafe(particle.renderAxis, { 0.0f, 1.0f, 0.0f }) * s;
 
-		// 点群らしい細かな塵に見せるため、立方体ではなく短い交差線だけを描く。
-		wireframe->DrawLine({ p.x - s, p.y, p.z }, { p.x + s, p.y, p.z }, color);
-		wireframe->DrawLine({ p.x, p.y - s, p.z }, { p.x, p.y + s, p.z }, color);
+		// 軸固定の十字線をやめ、極小の1ストロークだけにして砂・灰の点群として見せる。
+		wireframe->DrawLine(p - axis, p + axis, color);
 	}
 }

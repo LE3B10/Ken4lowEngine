@@ -2,6 +2,7 @@
 #include "DisintegrationParticle.h"
 #include "Matrix4x4.h"
 #include "ModelData.h"
+#include "Vector4.h"
 
 #include <random>
 #include <vector>
@@ -15,11 +16,13 @@ public:
 	struct Settings
 	{
 		int particleCount = 1200;
-		float particleSize = 0.035f;
+		float particleSize = 0.018f;
 		float lifeTime = 2.0f;
 		float spreadPower = 1.6f;
 		float upwardPower = 0.65f;
-		float startDelay = 0.35f;
+		float startDelay = 0.20f;
+		K4E::Vector4 baseColor{ 0.64f, 0.61f, 0.56f, 1.0f };
+		float colorVariation = 0.16f;
 	};
 
 	std::vector<DisintegrationParticle> EmitFromModel(
@@ -35,6 +38,12 @@ private:
 		K4E::Vector3 c{};
 		K4E::Vector3 normal{ 0.0f, 1.0f, 0.0f };
 		float cumulativeArea = 0.0f;
+	};
+
+	struct VertexSample
+	{
+		K4E::Vector3 position{};
+		K4E::Vector3 normal{ 0.0f, 1.0f, 0.0f };
 	};
 
 	float Random01();
