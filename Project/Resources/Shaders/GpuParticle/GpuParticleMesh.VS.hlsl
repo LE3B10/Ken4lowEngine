@@ -38,8 +38,8 @@ VertexShaderOutput main(VertexShaderInput input, uint instanceId : SV_InstanceID
     output.color = particle.color;
     output.type = particle.type;
 
-    // deadをPSで捨てるため alphaを0にする
-    if (particle.type <= 0.0f)
+    // Default(type=0) は有効な表示タイプなので、寿命が切れた粒子だけを非表示にする。
+    if (particle.lifeTime <= 0.0f)
     {
         output.color.a = 0.0f;
     }
