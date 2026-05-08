@@ -41,7 +41,8 @@ namespace
 		case 4: return GpuParticleType::Smoke;
 		case 5: return GpuParticleType::Heal;
 		case 6: return GpuParticleType::ArmorBreak;
-		default: return GpuParticleType::ArmorBreak;
+		case 7: return GpuParticleType::VoxelFragment;
+		default: return GpuParticleType::VoxelFragment;
 		}
 	}
 
@@ -226,7 +227,7 @@ void DebugScene::DrawImGui()
 	{
 		static char meshModelPath[256] = "Test/cube.gltf";
 		static int meshId = 1000;
-		static int particleTypeIndex = 6;
+		static int particleTypeIndex = 7;
 		static int spriteCount = 16;
 		static int meshCount = 48;
 		static float radius = 0.35f;
@@ -241,7 +242,8 @@ void DebugScene::DrawImGui()
 			"Shockwave",
 			"Smoke",
 			"Heal",
-			"ArmorBreak"
+			"ArmorBreak",
+			"VoxelFragment"
 		};
 
 		GpuParticleManager* gpuParticleManager = GpuParticleManager::GetInstance();
@@ -687,7 +689,7 @@ void DebugScene::UpdateDebugVoxelDisintegration(float deltaTime)
 			continue;
 		}
 
-		// ブロックを非表示にした地点から破片を出すことで、実際に欠けて崩れるように見せる。
+		// ブロックを非表示にした地点からVoxel専用破片を出して、実際に分解されているように見せる。
 		block.visible = false;
 		EmitDebugVoxelBreakParticle(block.position, debugVoxelParticleCount_);
 	}
@@ -717,7 +719,7 @@ void DebugScene::EmitDebugVoxelBreakParticle(const Vector3& position, uint32_t c
 		gpuParticleManager,
 		"DebugScene_VoxelDisintegrationMesh",
 		debugVoxelMeshId_,
-		GpuParticleType::ArmorBreak,
+		GpuParticleType::VoxelFragment,
 		position,
 		debugVoxelParticleRadius_))
 	{
