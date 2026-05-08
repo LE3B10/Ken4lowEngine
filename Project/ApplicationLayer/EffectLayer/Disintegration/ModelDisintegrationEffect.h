@@ -8,7 +8,7 @@
 #include <vector>
 
 /// -------------------------------------------------------------
-/// モデル形状を砂・灰・霧状に分解して消す完全新規エフェクト
+/// モデル形状を小さいブロック粒子として崩して消す完全新規エフェクト
 /// -------------------------------------------------------------
 class ModelDisintegrationEffect
 {
@@ -16,9 +16,15 @@ public:
 	struct Parameters
 	{
 		int particleCount = 1200;
-		float particleSize = 0.018f;
+		bool blockMode = true;
+		float particleSize = 0.045f;
+		float blockSize = 0.045f;
+		float blockRotationRandomness = 1.2f;
+		bool surfaceSampling = true;
+		bool preserveShape = true;
 		float lifeTime = 2.2f;
 		float spreadPower = 1.6f;
+		float collapsePower = 1.0f;
 		float gravity = -1.25f;
 		float noisePower = 0.55f;
 		float fadeSpeed = 1.0f;
@@ -32,7 +38,7 @@ public:
 	void Initialize();
 	void PlayFromModel(const std::string& modelPath, const K4E::Matrix4x4& worldMatrix);
 	void Update(float deltaTime);
-	void Draw() const;
+	void Draw();
 	void DrawImGui();
 	bool IsActive() const { return isActive_; }
 

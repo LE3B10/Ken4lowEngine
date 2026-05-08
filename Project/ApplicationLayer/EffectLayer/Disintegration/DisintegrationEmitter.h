@@ -16,7 +16,9 @@ public:
 	struct Settings
 	{
 		int particleCount = 1200;
-		float particleSize = 0.018f;
+		float particleSize = 0.045f;
+		float blockRotationRandomness = 1.2f;
+		bool surfaceSampling = true;
 		float lifeTime = 2.0f;
 		float spreadPower = 1.6f;
 		float upwardPower = 0.65f;

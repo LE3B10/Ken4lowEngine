@@ -35,6 +35,8 @@ void ModelDisintegrationEffect::PlayFromModel(const std::string& modelPath, cons
 	DisintegrationEmitter::Settings settings{};
 	settings.particleCount = parameters_.particleCount;
 	settings.particleSize = parameters_.particleSize;
+	settings.blockRotationRandomness = parameters_.blockRotationRandomness;
+	settings.surfaceSampling = parameters_.surfaceSampling;
 	settings.lifeTime = parameters_.lifeTime;
 	settings.spreadPower = parameters_.spreadPower;
 	settings.upwardPower = parameters_.upwardPower;
@@ -66,7 +68,7 @@ void ModelDisintegrationEffect::Update(float deltaTime)
 		}
 
 		const float activeAge = particle.age - particle.startDelay;
-		if (activeAge < parameters_.shapePreserveTime)
+		if (parameters_.preserveShape && activeAge < parameters_.shapePreserveTime)
 		{
 			// 崩壊開始までは初期位置へ引き戻し、粒子群のシルエットをモデル表面に固定する。
 			particle.velocity *= std::pow(0.08f, deltaTime);
@@ -76,14 +78,16 @@ void ModelDisintegrationEffect::Update(float deltaTime)
 			continue;
 		}
 
-		const float disintegrationAge = activeAge - parameters_.shapePreserveTime;
+		const float disintegrationAge = activeAge - (parameters_.preserveShape ? parameters_.shapePreserveTime : 0.0f);
 		const float disintegrationRate = Clamp01(disintegrationAge / std::max(particle.life, 0.0001f));
 		const K4E::Vector3 noise = RandomNoiseVector() * parameters_.noisePower;
 		const K4E::Vector3 downward = { 0.0f, parameters_.gravity, 0.0f };
 
-		particle.velocity += (particle.outward * parameters_.spreadPower + noise + downward) * deltaTime;
-		particle.velocity.y += parameters_.upwardPower * deltaTime;
+		// ブロック粒子を下方向・外方向・ランダム方向へ崩す力として collapsePower をまとめて掛ける。
+		particle.velocity += (particle.outward * parameters_.spreadPower + noise + downward) * parameters_.collapsePower * deltaTime;
+		particle.velocity.y += parameters_.upwardPower * parameters_.collapsePower * deltaTime;
 		particle.position += particle.velocity * deltaTime;
+		particle.rotation += particle.rotationVelocity * parameters_.blockRotationRandomness * deltaTime;
 		particle.size *= std::pow(0.96f, deltaTime);
 		particle.alpha = Clamp01(1.0f - disintegrationRate * parameters_.fadeSpeed);
 
@@ -102,7 +106,7 @@ void ModelDisintegrationEffect::Update(float deltaTime)
 	}
 }
 
-void ModelDisintegrationEffect::Draw() const
+void ModelDisintegrationEffect::Draw()
 {
 	if (!isActive_) { return; }
 	renderer_.Draw(particles_);
@@ -115,9 +119,21 @@ void ModelDisintegrationEffect::DrawImGui()
 	ImGui::Text("Active: %s", isActive_ ? "true" : "false");
 	ImGui::Text("Particle Instances: %zu", particles_.size());
 	ImGui::SliderInt("particleCount", &parameters_.particleCount, 32, 8000);
-	ImGui::SliderFloat("particleSize", &parameters_.particleSize, 0.005f, 0.20f);
+	ImGui::Checkbox("blockMode", &parameters_.blockMode);
+	if (ImGui::SliderFloat("particleSize", &parameters_.particleSize, 0.005f, 0.30f))
+	{
+		parameters_.blockSize = parameters_.particleSize;
+	}
+	if (ImGui::SliderFloat("blockSize", &parameters_.blockSize, 0.005f, 0.30f))
+	{
+		parameters_.particleSize = parameters_.blockSize;
+	}
+	ImGui::SliderFloat("blockRotationRandomness", &parameters_.blockRotationRandomness, 0.0f, 8.0f);
+	ImGui::Checkbox("surfaceSampling", &parameters_.surfaceSampling);
+	ImGui::Checkbox("preserveShape", &parameters_.preserveShape);
 	ImGui::SliderFloat("lifeTime", &parameters_.lifeTime, 0.10f, 8.0f);
 	ImGui::SliderFloat("spreadPower", &parameters_.spreadPower, 0.0f, 8.0f);
+	ImGui::SliderFloat("collapsePower", &parameters_.collapsePower, 0.0f, 8.0f);
 	ImGui::SliderFloat("gravity", &parameters_.gravity, -10.0f, 10.0f);
 	ImGui::SliderFloat("noisePower", &parameters_.noisePower, 0.0f, 8.0f);
 	ImGui::SliderFloat("fadeSpeed", &parameters_.fadeSpeed, 0.1f, 4.0f);
