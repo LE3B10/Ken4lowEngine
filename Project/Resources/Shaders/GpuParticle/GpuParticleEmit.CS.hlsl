@@ -399,6 +399,41 @@ void ApplyParticleSpawnOverride(uint i, float3 seed, inout Particle p)
                 p.scale = float3(s, s, s);
                 break;
             }
+
+        case GPU_PARTICLE_TYPE_ARMOR_BREAK:
+        {
+                float3 dir = SampleUnitDir(seed + 1.0f);
+                dir.y = abs(dir.y) * 0.65f + 0.20f;
+                dir = normalize(dir);
+
+                // 被弾点から装甲片が外へ弾けるように、中心から少しだけ散らす。
+                p.translate = gEmitter.translate + dir * (GPURand1(seed + 2.0f) * gEmitter.radius * 0.12f);
+                p.velocity = dir * (3.5f + GPURand1(seed + 3.0f) * 8.0f);
+
+                float s = 0.025f + GPURand1(seed + 4.0f) * 0.060f;
+                p.scale = float3(s, s, s);
+
+                float c = GPURand1(seed + 5.0f);
+                if (c < 0.55f)
+                {
+                    p.color = float4(0.90f, 1.00f, 1.00f, 1.0f);
+                }
+                else if (c < 0.75f)
+                {
+                    p.color = float4(0.35f, 0.75f, 1.00f, 1.0f);
+                }
+                else if (c < 0.90f)
+                {
+                    p.color = float4(0.75f, 0.35f, 1.00f, 1.0f);
+                }
+                else
+                {
+                    p.color = float4(1.00f, 0.25f, 0.25f, 1.0f);
+                }
+
+                p.lifeTime = 0.25f + GPURand1(seed + 6.0f) * 0.40f;
+                break;
+            }
     }
 }
 
