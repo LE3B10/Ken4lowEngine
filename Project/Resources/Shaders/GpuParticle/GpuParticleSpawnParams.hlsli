@@ -52,7 +52,7 @@ static const ParticleSpawnParam kDefaultSpawnParam =
     1.0f, 1.0f
 };
 
-static const uint kParticleSpawnParamCount = GPU_PARTICLE_TYPE_VOXEL_FRAGMENT + 1;
+static const uint kParticleSpawnParamCount = GPU_PARTICLE_TYPE_VOXEL_ASH_FRAGMENT + 1;
 
 static const ParticleSpawnParam kParticleSpawnParams[kParticleSpawnParamCount] =
 {
@@ -276,6 +276,20 @@ static const ParticleSpawnParam kParticleSpawnParams[kParticleSpawnParamCount] =
         float3(1.0f, 1.0f, 1.0f),
         GPU_PARTICLE_SPAWN_SHAPE_SPHERE,
         GPU_PARTICLE_DIR_RANDOM,
+        GPU_PARTICLE_SCALE_UNIFORM,
+        1.0f, 1.0f
+    },
+
+    // 16: VoxelAshFragment
+    {
+        1.15f, 2.40f,
+        0.20f, 1.60f,
+        0.025f, 0.085f,
+        0.82f,
+        float3(0.42f, 0.42f, 0.40f),
+        float3(0.88f, 0.92f, 0.96f),
+        GPU_PARTICLE_SPAWN_SHAPE_SPHERE,
+        GPU_PARTICLE_DIR_UPHEMI,
         GPU_PARTICLE_SCALE_UNIFORM,
         1.0f, 1.0f
     },
