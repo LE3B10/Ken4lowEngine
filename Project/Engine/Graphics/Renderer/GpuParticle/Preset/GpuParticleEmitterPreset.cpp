@@ -25,6 +25,7 @@ namespace Ken4lowEngine
 			GpuParticleType::MuzzleFlash,
 			GpuParticleType::BulletTracer,
 			GpuParticleType::ArmorBreak,
+			GpuParticleType::VoxelFragment,
 		};
 
 		static const Preset kDefaultPreset =
@@ -71,6 +72,8 @@ namespace Ken4lowEngine
 			{ "BulletTracer", "Effects/white.dds", 0.04f, 0, 0.0f, 0, GpuParticleKind::Sprite, GpuParticleType::BulletTracer, GpuRibbonType::Trail, BillboardMode::Camera },
 			// ArmorBreak
 			{ "ArmorBreak", "Effects/white.dds", 0.35f, 0, 0.0f, 0, GpuParticleKind::Sprite, GpuParticleType::ArmorBreak, GpuRibbonType::Trail, BillboardMode::Camera },
+			// VoxelFragment
+			{ "VoxelFragment", "Effects/white.dds", 0.28f, 0, 0.0f, 0, GpuParticleKind::Sprite, GpuParticleType::VoxelFragment, GpuRibbonType::Trail, BillboardMode::Camera },
 		};
 
 		static_assert(std::size(kSpritePresets) == std::size(kSpriteTypes));
