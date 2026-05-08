@@ -16,6 +16,7 @@ namespace K4E = ::Ken4lowEngine;
 /// ---------- 前方宣言 ---------- ///
 namespace Ken4lowEngine { class DirectXCommon; }
 namespace Ken4lowEngine { class Input; }
+namespace Ken4lowEngine { class Object3D; }
 
 /// -------------------------------------------------------------
 ///					　	デバッグシーン
@@ -67,6 +68,11 @@ private: /// ---------- メンバ関数 ---------- ///
 	void StartDebugArmorBreakDissolve(uint32_t meshId, const std::string& meshModelPath, const Vector3& center, float radius);
 	void UpdateDebugArmorBreakDissolve(float deltaTime);
 
+	/// Object3Dを実際に欠けさせながらMeshParticleを出す崩壊テスト
+	void ResetDebugBreakObject(const std::string& modelPath, const Vector3& center, float scale);
+	void StartDebugBreakObjectDissolve();
+	void UpdateDebugBreakObjectDissolve(float deltaTime);
+
 	/// -------------------------------------------------------------
 	/// BossHitPart を文字列へ変換
 	/// ログ確認用
@@ -83,6 +89,9 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	// 描画確認用ボス
 	std::unique_ptr<GuardianBoss> debugBoss_;
+
+	// 実際にDissolveで欠けさせる確認用Object3D
+	std::unique_ptr<K4E::Object3D> debugBreakObject_;
 
 	// --- 仮ヒット確認用パラメータ ---
 	bool debugBossHitTestEnabled_ = true; // 仮ヒット確認ON/OFF
@@ -105,5 +114,19 @@ private: /// ---------- メンバ変数 ---------- ///
 	uint32_t debugArmorBreakDissolveCountPerBurst_ = 10;
 	Vector3 debugArmorBreakDissolveCenter_{ 0.0f, 2.5f, 18.0f };
 	std::string debugArmorBreakDissolveMeshModelPath_ = "Test/cube.gltf";
+
+	// --- Object3D崩壊テスト用 ---
+	bool debugBreakObjectVisible_ = true;
+	bool debugBreakObjectDissolveActive_ = false;
+	float debugBreakObjectDissolveTimer_ = 0.0f;
+	float debugBreakObjectDissolveDuration_ = 1.80f;
+	float debugBreakObjectEmitTimer_ = 0.0f;
+	float debugBreakObjectEmitInterval_ = 0.050f;
+	float debugBreakObjectScale_ = 1.0f;
+	float debugBreakObjectParticleRadius_ = 0.45f;
+	uint32_t debugBreakObjectMeshId_ = 1000;
+	uint32_t debugBreakObjectCountPerBurst_ = 12;
+	Vector3 debugBreakObjectCenter_{ 0.0f, 2.5f, 18.0f };
+	std::string debugBreakObjectModelPath_ = "Test/cube.gltf";
 };
 
