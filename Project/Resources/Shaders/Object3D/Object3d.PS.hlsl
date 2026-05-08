@@ -67,9 +67,9 @@ PixelShaderOutput main(VertexShaderOutput input)
     float4 textureColor = gTexture.Sample(gSampler, transformedUV.xy);
     textureColor.rgb = pow(textureColor.rgb, 2.2f);
 
-    // threshold が上がるほどノイズマスクの低い部分から欠けて消える。
+    // threshold=1.0 で全表示、0.0 に近づくほどノイズ形状で欠けて消える。
     float maskValue = gDissolveMaskTexture.Sample(gSampler, input.texcoord).r;
-    if (maskValue < gDissolveSetting.threshold)
+    if (maskValue > gDissolveSetting.threshold)
     {
         discard;
     }
@@ -100,10 +100,8 @@ PixelShaderOutput main(VertexShaderOutput input)
     float3 reflectionColor = environmentColor;
 
     // 消え際の境界だけ白く光らせる
-    float edge = 1.0f - smoothstep(
-        gDissolveSetting.threshold,
-        gDissolveSetting.threshold + max(gDissolveSetting.edgeThickness, 0.0001f),
-        maskValue);
+    float edgeStart = gDissolveSetting.threshold - max(gDissolveSetting.edgeThickness, 0.0001f);
+    float edge = 1.0f - smoothstep(edgeStart, gDissolveSetting.threshold, maskValue);
 
     float3 shadedColor = lerp(baseColor, gDissolveSetting.edgeColor.rgb, edge);
     shadedColor *= lighting;
