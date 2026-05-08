@@ -79,6 +79,7 @@ private: /// ---------- メンバ関数 ---------- ///
 	/// Voxel Disintegration確認用
 	void BuildDebugVoxelDisintegration();
 	void StartDebugVoxelDisintegration();
+	void StartDebugVoxelAshDisintegration();
 	void UpdateDebugVoxelDisintegration(float deltaTime);
 	void EmitDebugVoxelBreakParticle(const Vector3& position, uint32_t count);
 
@@ -112,6 +113,7 @@ private: /// ---------- メンバ変数 ---------- ///
 	// --- Voxel Disintegration テスト用 ---
 	std::vector<DebugVoxelBlock> debugVoxelBlocks_;
 	bool debugVoxelDisintegrationActive_ = false;
+	bool debugVoxelAshMode_ = false;
 	float debugVoxelDisintegrationTimer_ = 0.0f;
 	float debugVoxelDisintegrationDuration_ = 1.60f;
 	float debugVoxelBlockScale_ = 0.32f;
