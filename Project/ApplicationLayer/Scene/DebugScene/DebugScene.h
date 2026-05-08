@@ -5,6 +5,7 @@
 #include "Enemy.h"
 #include "Player.h"
 #include "Derived/GuardianBoss/GuardianBoss.h"
+#include "Disintegration/ModelBlockEffectSequence.h"
 #include "Disintegration/ModelDisintegrationEffect.h"
 #include "Disintegration/ModelReconstructionEffect.h"
 #include "Object3D.h"
@@ -75,6 +76,15 @@ private: /// ---------- メンバ関数 ---------- ///
 	/// モデル再構築テスト用モデルを読み直す
 	void ReloadDebugReconstructionModel();
 
+	/// モデルブロック演出シーケンスの更新
+	void UpdateDebugModelBlockSequence(float deltaTime);
+
+	/// モデルブロック演出シーケンス用モデルを読み直す
+	void ReloadDebugModelBlockSequenceModel();
+
+	/// モデルブロック演出シーケンスのワールド行列を作成
+	K4E::Matrix4x4 MakeDebugModelBlockSequenceWorldMatrix() const;
+
 	/// -------------------------------------------------------------
 	/// BossHitPart を文字列へ変換
 	/// ログ確認用
@@ -121,5 +131,16 @@ private: /// ---------- メンバ変数 ---------- ///
 	std::string debugReconstructionModelPath_ = "Characters/body.gltf";
 	std::string debugReconstructionLog_ = "Press F10 or the ImGui button to play.";
 	bool debugReconstructionModelVisible_ = true;
+
+	// --- モデルブロック演出シーケンステスト用 ---
+	std::unique_ptr<K4E::Object3D> debugModelBlockSequenceModel_;
+	std::unique_ptr<ModelDisintegrationEffect> debugSequenceDisintegrationEffect_;
+	std::unique_ptr<ModelReconstructionEffect> debugSequenceReconstructionEffect_;
+	std::unique_ptr<ModelBlockEffectSequence> debugModelBlockSequence_;
+	K4E::Vector3 debugModelBlockSequencePosition_{ 0.0f, 2.25f, 18.0f };
+	K4E::Vector3 debugModelBlockSequenceRotation_{ 0.0f, 0.0f, 0.0f };
+	K4E::Vector3 debugModelBlockSequenceScale_{ 1.0f, 1.0f, 1.0f };
+	std::string debugModelBlockSequenceModelPath_ = "Characters/body.gltf";
+	std::string debugModelBlockSequenceLog_ = "Use the ImGui sequence buttons to play.";
 };
 

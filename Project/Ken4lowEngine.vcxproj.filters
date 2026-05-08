@@ -175,6 +175,9 @@
     <ClCompile Include="ApplicationLayer\EffectLayer\Disintegration\DisintegrationRenderer.cpp">
       <Filter>ApplicationLayer\EffectLayer</Filter>
     </ClCompile>
+    <ClCompile Include="ApplicationLayer\EffectLayer\Disintegration\ModelBlockEffectSequence.cpp">
+      <Filter>ApplicationLayer\EffectLayer</Filter>
+    </ClCompile>
     <ClCompile Include="ApplicationLayer\EffectLayer\Disintegration\ModelDisintegrationEffect.cpp">
       <Filter>ApplicationLayer\EffectLayer</Filter>
     </ClCompile>
@@ -901,6 +904,9 @@
       <Filter>ApplicationLayer\EffectLayer</Filter>
     </ClInclude>
     <ClInclude Include="ApplicationLayer\EffectLayer\Disintegration\DisintegrationRenderer.h">
+      <Filter>ApplicationLayer\EffectLayer</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\EffectLayer\Disintegration\ModelBlockEffectSequence.h">
       <Filter>ApplicationLayer\EffectLayer</Filter>
     </ClInclude>
     <ClInclude Include="ApplicationLayer\EffectLayer\Disintegration\ModelDisintegrationEffect.h">

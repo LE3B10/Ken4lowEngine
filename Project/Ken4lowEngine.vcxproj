@@ -181,6 +181,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     </ClCompile>
     <ClCompile Include="ApplicationLayer\EffectLayer\Disintegration\DisintegrationEmitter.cpp" />
     <ClCompile Include="ApplicationLayer\EffectLayer\Disintegration\DisintegrationRenderer.cpp" />
+    <ClCompile Include="ApplicationLayer\EffectLayer\Disintegration\ModelBlockEffectSequence.cpp" />
     <ClCompile Include="ApplicationLayer\EffectLayer\Disintegration\ModelDisintegrationEffect.cpp" />
     <ClCompile Include="ApplicationLayer\EffectLayer\Disintegration\ModelReconstructionEffect.cpp" />
     <ClCompile Include="ApplicationLayer\EffectLayer\Disintegration\ReconstructionRenderer.cpp" />
@@ -820,6 +821,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="ApplicationLayer\EffectLayer\Disintegration\DisintegrationEmitter.h" />
     <ClInclude Include="ApplicationLayer\EffectLayer\Disintegration\DisintegrationParticle.h" />
     <ClInclude Include="ApplicationLayer\EffectLayer\Disintegration\DisintegrationRenderer.h" />
+    <ClInclude Include="ApplicationLayer\EffectLayer\Disintegration\ModelBlockEffectSequence.h" />
     <ClInclude Include="ApplicationLayer\EffectLayer\Disintegration\ModelDisintegrationEffect.h" />
     <ClInclude Include="ApplicationLayer\EffectLayer\Disintegration\ModelReconstructionEffect.h" />
     <ClInclude Include="ApplicationLayer\EffectLayer\Disintegration\ReconstructionRenderer.h" />
