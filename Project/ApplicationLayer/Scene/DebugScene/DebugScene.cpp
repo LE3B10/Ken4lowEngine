@@ -144,6 +144,7 @@ void DebugScene::Update()
 	UpdateDebugBossHitTest();
 
 	UpdateDebugParticleTest();
+	UpdateDebugArmorBreakDissolve(deltaTime);
 
 	collisionManager_->Update();
 	collisionManager_->CheckAllCollisions();
@@ -378,6 +379,21 @@ void DebugScene::DrawImGui()
 			DebugLog(debugParticleLog_);
 		}
 
+		ImGui::SeparatorText("Dissolve Break Test");
+		ImGui::DragFloat("Dissolve Duration", &debugArmorBreakDissolveDuration_, 0.01f, 0.20f, 5.00f);
+		ImGui::DragFloat("Dissolve Emit Interval", &debugArmorBreakDissolveEmitInterval_, 0.001f, 0.01f, 0.30f);
+		ImGui::DragInt("Dissolve Count/Burst", reinterpret_cast<int*>(&debugArmorBreakDissolveCountPerBurst_), 1.0f, 1, 64);
+		if (ImGui::Button("Start Dissolve Break"))
+		{
+			StartDebugArmorBreakDissolve(static_cast<uint32_t>(meshId), meshModelPath, center, radius);
+		}
+		ImGui::SameLine();
+		if (ImGui::Button("Stop Dissolve Break"))
+		{
+			debugArmorBreakDissolveActive_ = false;
+		}
+		ImGui::Text("Dissolve Active: %s  Time: %.2f / %.2f", debugArmorBreakDissolveActive_ ? "true" : "false", debugArmorBreakDissolveTimer_, debugArmorBreakDissolveDuration_);
+
 		ImGui::Separator();
 		ImGui::Text("Sprite position: %.2f, %.2f, %.2f", spritePos.x, spritePos.y, spritePos.z);
 		ImGui::Text("Mesh position:   %.2f, %.2f, %.2f", meshPos.x, meshPos.y, meshPos.z);
@@ -544,6 +560,8 @@ void DebugScene::UpdateDebugBossHitTest()
 			effectPos,
 			18);
 
+		StartDebugArmorBreakDissolve(1000, "Test/cube.gltf", effectPos, 0.35f);
+
 		// 画面表示用にも保持
 		debugHitLog_ =
 			std::string("HIT  Part: ") + ToString(hitResult.part) +
@@ -628,5 +646,96 @@ void DebugScene::UpdateDebugParticleTest()
 
 		debugParticleLog_ = "Spawn: Boss_Appear_Dust";
 		DebugLog(debugParticleLog_);
+	}
+}
+
+void DebugScene::StartDebugArmorBreakDissolve(uint32_t meshId, const std::string& meshModelPath, const Vector3& center, float radius)
+{
+	GpuParticleManager* gpuParticleManager = GpuParticleManager::GetInstance();
+	if (!gpuParticleManager)
+	{
+		return;
+	}
+
+	if (!gpuParticleManager->FindMeshAsset(meshId))
+	{
+		gpuParticleManager->LoadMeshAssetsFromAssimp(meshId, meshModelPath, true);
+	}
+
+	debugArmorBreakDissolveActive_ = true;
+	debugArmorBreakDissolveTimer_ = 0.0f;
+	debugArmorBreakDissolveEmitTimer_ = 0.0f;
+	debugArmorBreakDissolveMeshId_ = meshId;
+	debugArmorBreakDissolveCenter_ = center;
+	debugArmorBreakDissolveRadius_ = radius;
+	debugArmorBreakDissolveMeshModelPath_ = meshModelPath;
+
+	debugParticleLog_ = "Start: ArmorBreak dissolve-style mesh particle sequence.";
+	DebugLog(debugParticleLog_);
+}
+
+void DebugScene::UpdateDebugArmorBreakDissolve(float deltaTime)
+{
+	if (!debugArmorBreakDissolveActive_)
+	{
+		return;
+	}
+
+	GpuParticleManager* gpuParticleManager = GpuParticleManager::GetInstance();
+	if (!gpuParticleManager)
+	{
+		debugArmorBreakDissolveActive_ = false;
+		return;
+	}
+
+	debugArmorBreakDissolveTimer_ += deltaTime;
+	debugArmorBreakDissolveEmitTimer_ += deltaTime;
+
+	if (debugArmorBreakDissolveTimer_ >= debugArmorBreakDissolveDuration_)
+	{
+		debugArmorBreakDissolveActive_ = false;
+		debugParticleLog_ = "Finish: ArmorBreak dissolve-style mesh particle sequence.";
+		DebugLog(debugParticleLog_);
+		return;
+	}
+
+	if (debugArmorBreakDissolveEmitTimer_ < debugArmorBreakDissolveEmitInterval_)
+	{
+		return;
+	}
+	debugArmorBreakDissolveEmitTimer_ = 0.0f;
+
+	const float t = debugArmorBreakDissolveTimer_ / std::max(debugArmorBreakDissolveDuration_, 0.001f);
+	const float sweepY = 1.0f - t;
+	Vector3 emitPos = debugArmorBreakDissolveCenter_;
+	emitPos.y += (sweepY - 0.5f) * 1.65f;
+	emitPos.x += std::sinf(debugArmorBreakDissolveTimer_ * 18.0f) * 0.18f;
+	emitPos.z += std::cosf(debugArmorBreakDissolveTimer_ * 13.0f) * 0.18f;
+
+	const float localRadius = debugArmorBreakDissolveRadius_ * (0.65f + t * 0.85f);
+	const uint32_t burstCount = debugArmorBreakDissolveCountPerBurst_ + static_cast<uint32_t>(t * 10.0f);
+
+	if (auto* meshEmitter = PrepareDebugMeshParticleEmitter(
+		gpuParticleManager,
+		"DebugScene_ArmorBreakDissolveMesh",
+		debugArmorBreakDissolveMeshId_,
+		GpuParticleType::ArmorBreak,
+		emitPos,
+		localRadius))
+	{
+		meshEmitter->RequestEmit(burstCount);
+	}
+
+	if (t < 0.25f)
+	{
+		if (auto* flashEmitter = gpuParticleManager->EmitBurst(
+			"DebugScene_ArmorBreakDissolveFlash",
+			GpuParticleType::MuzzleFlash,
+			emitPos,
+			3))
+		{
+			flashEmitter->GetInfoMutable().radius = localRadius * 0.45f;
+			flashEmitter->SetPosition(emitPos);
+		}
 	}
 }
