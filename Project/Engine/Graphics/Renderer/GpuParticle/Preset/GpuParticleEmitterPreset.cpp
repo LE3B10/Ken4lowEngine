@@ -24,6 +24,7 @@ namespace Ken4lowEngine
 			GpuParticleType::PlayerDamageBlood,
 			GpuParticleType::MuzzleFlash,
 			GpuParticleType::BulletTracer,
+			GpuParticleType::ArmorBreak,
 		};
 
 		static const Preset kDefaultPreset =
@@ -43,174 +44,33 @@ namespace Ken4lowEngine
 		static const Preset kSpritePresets[] =
 		{
 			// Blood
-			{
-				"Blood",
-				"Effects/white.dds",
-				0.20f,
-				0,
-				0.0f,
-				0,
-				GpuParticleKind::Sprite,
-				GpuParticleType::Blood,
-				GpuRibbonType::Trail,
-				BillboardMode::Camera
-			},
+			{ "Blood", "Effects/white.dds", 0.20f, 0, 0.0f, 0, GpuParticleKind::Sprite, GpuParticleType::Blood, GpuRibbonType::Trail, BillboardMode::Camera },
 			// Dust
-			{
-				"Dust",
-				"Effects/white.dds",
-				0.22f,
-				0,
-				0.0f,
-				0,
-				GpuParticleKind::Sprite,
-				GpuParticleType::Dust,
-				GpuRibbonType::Trail,
-				BillboardMode::Camera
-			},
+			{ "Dust", "Effects/white.dds", 0.22f, 0, 0.0f, 0, GpuParticleKind::Sprite, GpuParticleType::Dust, GpuRibbonType::Trail, BillboardMode::Camera },
 			// Debris
-			{
-				"Debris",
-				"Effects/white.dds",
-				0.18f,
-				0,
-				0.0f,
-				0,
-				GpuParticleKind::Sprite,
-				GpuParticleType::Debris,
-				GpuRibbonType::Trail,
-				BillboardMode::Camera
-			},
+			{ "Debris", "Effects/white.dds", 0.18f, 0, 0.0f, 0, GpuParticleKind::Sprite, GpuParticleType::Debris, GpuRibbonType::Trail, BillboardMode::Camera },
 			// Smoke
-			{
-				"Smoke",
-				"Effects/white.dds",
-				0.40f,
-				0,
-				0.0f,
-				0,
-				GpuParticleKind::Sprite,
-				GpuParticleType::Smoke,
-				GpuRibbonType::Trail,
-				BillboardMode::Camera
-			},
+			{ "Smoke", "Effects/white.dds", 0.40f, 0, 0.0f, 0, GpuParticleKind::Sprite, GpuParticleType::Smoke, GpuRibbonType::Trail, BillboardMode::Camera },
 			// Ambient
-			{
-				"Ambient",
-				"Effects/white.dds",
-				0.12f,
-				6,
-				0.10f,
-				0,
-				GpuParticleKind::Sprite,
-				GpuParticleType::Ambient,
-				GpuRibbonType::Trail,
-				BillboardMode::Camera
-			},
+			{ "Ambient", "Effects/white.dds", 0.12f, 6, 0.10f, 0, GpuParticleKind::Sprite, GpuParticleType::Ambient, GpuRibbonType::Trail, BillboardMode::Camera },
 			// Spark
-			{
-				"Spark",
-				"Effects/white.dds",
-				0.10f,
-				0,
-				0.0f,
-				0,
-				GpuParticleKind::Sprite,
-				GpuParticleType::Spark,
-				GpuRibbonType::Trail,
-				BillboardMode::Camera
-			},
+			{ "Spark", "Effects/white.dds", 0.10f, 0, 0.0f, 0, GpuParticleKind::Sprite, GpuParticleType::Spark, GpuRibbonType::Trail, BillboardMode::Camera },
 			// Shockwave
-			{
-				"Shockwave",
-				"Effects/white.dds",
-				0.80f,
-				0,
-				0.0f,
-				0,
-				GpuParticleKind::Sprite,
-				GpuParticleType::Shockwave,
-				GpuRibbonType::Trail,
-				BillboardMode::Camera
-			},
+			{ "Shockwave", "Effects/white.dds", 0.80f, 0, 0.0f, 0, GpuParticleKind::Sprite, GpuParticleType::Shockwave, GpuRibbonType::Trail, BillboardMode::Camera },
 			// Heal
-			{
-				"Heal",
-				"Effects/white.dds",
-				0.30f,
-				6,
-				0.08f,
-				0,
-				GpuParticleKind::Sprite,
-				GpuParticleType::Heal,
-				GpuRibbonType::Trail,
-				BillboardMode::Camera
-			},
+			{ "Heal", "Effects/white.dds", 0.30f, 6, 0.08f, 0, GpuParticleKind::Sprite, GpuParticleType::Heal, GpuRibbonType::Trail, BillboardMode::Camera },
 			// Trail
-			{
-				"Trail",
-				"Effects/white.dds",
-				0.16f,
-				6,
-				0.03f,
-				0,
-				GpuParticleKind::Sprite,
-				GpuParticleType::Trail,
-				GpuRibbonType::Trail,
-				BillboardMode::Camera
-			},
+			{ "Trail", "Effects/white.dds", 0.16f, 6, 0.03f, 0, GpuParticleKind::Sprite, GpuParticleType::Trail, GpuRibbonType::Trail, BillboardMode::Camera },
 			// DeathBurstCore
-			{
-				"DeathBurstCore",
-				"Effects/white.dds",
-				0.28f,
-				0,
-				0.0f,
-				0,
-				GpuParticleKind::Sprite,
-				GpuParticleType::DeathBurstCore,
-				GpuRibbonType::Trail,
-				BillboardMode::Camera
-			},
+			{ "DeathBurstCore", "Effects/white.dds", 0.28f, 0, 0.0f, 0, GpuParticleKind::Sprite, GpuParticleType::DeathBurstCore, GpuRibbonType::Trail, BillboardMode::Camera },
 			// PlayerDamageBlood
-			{
-				"PlayerDamageBlood",
-				"Effects/white.dds",
-				0.16f,
-				0,
-				0.0f,
-				0,
-				GpuParticleKind::Sprite,
-				GpuParticleType::PlayerDamageBlood,
-				GpuRibbonType::Trail,
-				BillboardMode::Camera
-			},
+			{ "PlayerDamageBlood", "Effects/white.dds", 0.16f, 0, 0.0f, 0, GpuParticleKind::Sprite, GpuParticleType::PlayerDamageBlood, GpuRibbonType::Trail, BillboardMode::Camera },
 			// MuzzleFlash
-			{
-				"MuzzleFlash",
-				"Effects/white.dds",
-				0.08f,
-				0,
-				0.0f,
-				0,
-				GpuParticleKind::Sprite,
-				GpuParticleType::MuzzleFlash,
-				GpuRibbonType::Trail,
-				BillboardMode::Camera
-			},
+			{ "MuzzleFlash", "Effects/white.dds", 0.08f, 0, 0.0f, 0, GpuParticleKind::Sprite, GpuParticleType::MuzzleFlash, GpuRibbonType::Trail, BillboardMode::Camera },
 			// BulletTracer
-			{
-				"BulletTracer",
-				"Effects/white.dds",
-				0.04f,
-				0,
-				0.0f,
-				0,
-				GpuParticleKind::Sprite,
-				GpuParticleType::BulletTracer,
-				GpuRibbonType::Trail,
-				BillboardMode::Camera
-			},
+			{ "BulletTracer", "Effects/white.dds", 0.04f, 0, 0.0f, 0, GpuParticleKind::Sprite, GpuParticleType::BulletTracer, GpuRibbonType::Trail, BillboardMode::Camera },
+			// ArmorBreak
+			{ "ArmorBreak", "Effects/white.dds", 0.35f, 0, 0.0f, 0, GpuParticleKind::Sprite, GpuParticleType::ArmorBreak, GpuRibbonType::Trail, BillboardMode::Camera },
 		};
 
 		static_assert(std::size(kSpritePresets) == std::size(kSpriteTypes));
