@@ -18,6 +18,7 @@
 #include "WeaponMasterDataDatabase.h"
 #include "WeaponMasterDataEditor.h"
 #include "WeaponMasterDataWriter.h"
+#include <algorithm>
 #include <filesystem>
 #include <cstdio>
 
@@ -139,6 +140,20 @@ void DebugScene::Initialize()
 
 	debugReconstructionEffect_ = std::make_unique<ModelReconstructionEffect>();
 	debugReconstructionEffect_->Initialize();
+
+	debugModelBlockSequenceModel_ = std::make_unique<Object3D>();
+	debugModelBlockSequenceModel_->Initialize(debugModelBlockSequenceModelPath_);
+	debugModelBlockSequenceModel_->SetTranslate(debugModelBlockSequencePosition_);
+	debugModelBlockSequenceModel_->SetRotate(debugModelBlockSequenceRotation_);
+	debugModelBlockSequenceModel_->SetScale(debugModelBlockSequenceScale_);
+	debugModelBlockSequenceModel_->Update();
+
+	debugSequenceDisintegrationEffect_ = std::make_unique<ModelDisintegrationEffect>();
+	debugSequenceDisintegrationEffect_->Initialize();
+	debugSequenceReconstructionEffect_ = std::make_unique<ModelReconstructionEffect>();
+	debugSequenceReconstructionEffect_->Initialize();
+	debugModelBlockSequence_ = std::make_unique<ModelBlockEffectSequence>();
+	debugModelBlockSequence_->Initialize(debugSequenceReconstructionEffect_.get(), debugSequenceDisintegrationEffect_.get());
 }
 
 void DebugScene::Update()
@@ -168,6 +183,8 @@ void DebugScene::Update()
 
 	UpdateDebugReconstructionTest(deltaTime);
 
+	UpdateDebugModelBlockSequence(deltaTime);
+
 	collisionManager_->Update();
 	collisionManager_->CheckAllCollisions();
 
@@ -195,6 +212,21 @@ void DebugScene::Draw3DObjects()
 		debugReconstructionEffect_->Draw();
 	}
 
+	if (debugModelBlockSequence_ && debugModelBlockSequence_->IsModelVisible() && debugModelBlockSequenceModel_)
+	{
+		debugModelBlockSequenceModel_->Draw();
+	}
+
+	if (debugSequenceReconstructionEffect_)
+	{
+		debugSequenceReconstructionEffect_->Draw();
+	}
+
+	if (debugSequenceDisintegrationEffect_)
+	{
+		debugSequenceDisintegrationEffect_->Draw();
+	}
+
 	// ボス描画
 	if (debugBoss_)
 	{
@@ -219,6 +251,11 @@ void DebugScene::DrawShadowObjects()
 	if (debugReconstructionModelVisible_ && debugReconstructionModel_)
 	{
 		debugReconstructionModel_->DrawShadow();
+	}
+
+	if (debugModelBlockSequence_ && debugModelBlockSequence_->IsModelVisible() && debugModelBlockSequenceModel_)
+	{
+		debugModelBlockSequenceModel_->DrawShadow();
 	}
 
 	if (debugBoss_)
@@ -252,6 +289,10 @@ void DebugScene::Finalize()
 	input_->SetLockCursor(false);
 	input_->SetCursorVisible(true);
 
+	debugModelBlockSequence_.reset();
+	debugSequenceReconstructionEffect_.reset();
+	debugSequenceDisintegrationEffect_.reset();
+	debugModelBlockSequenceModel_.reset();
 	debugReconstructionEffect_.reset();
 	debugReconstructionModel_.reset();
 	debugDisintegrationEffect_.reset();
@@ -514,6 +555,90 @@ void DebugScene::DrawImGui()
 		debugReconstructionEffect_->DrawImGui();
 	}
 
+	/// ---------- モデルブロック演出シーケンステスト ---------- ///
+	{
+		static char sequenceModelPathBuffer[256] = "Characters/body.gltf";
+
+		ImGui::Begin("Model Block Effect Sequence");
+		ImGui::TextWrapped("DebugScene-only sequence test for Reconstruction -> Model -> Disintegration and Disintegration -> Reconstruction flows.");
+		ImGui::InputText("Model Path##BlockSequence", sequenceModelPathBuffer, IM_ARRAYSIZE(sequenceModelPathBuffer));
+		ImGui::DragFloat3("Position##BlockSequence", &debugModelBlockSequencePosition_.x, 0.05f);
+		ImGui::DragFloat3("Rotation##BlockSequence", &debugModelBlockSequenceRotation_.x, 0.01f);
+		ImGui::DragFloat3("Scale##BlockSequence", &debugModelBlockSequenceScale_.x, 0.01f, 0.01f, 10.0f);
+
+		if (debugModelBlockSequence_)
+		{
+			auto& sequenceParams = debugModelBlockSequence_->GetParameters();
+			ImGui::DragFloat("showDuration", &sequenceParams.showDuration, 0.05f, 0.0f, 10.0f);
+			ImGui::DragFloat("waitDuration", &sequenceParams.waitDuration, 0.05f, 0.0f, 10.0f);
+			ImGui::Checkbox("loopEnabled", &sequenceParams.loopEnabled);
+			ImGui::SliderInt("blockCount##BlockSequence", &sequenceParams.blockCount, 32, 8000);
+			if (ImGui::SliderFloat("blockSize##BlockSequence", &sequenceParams.blockSize, 0.005f, 0.30f))
+			{
+				sequenceParams.blockSize = std::max(sequenceParams.blockSize, 0.005f);
+			}
+			ImGui::Checkbox("surfaceSampling##BlockSequence", &sequenceParams.surfaceSampling);
+
+			if (ImGui::Button("Reload Model##BlockSequence"))
+			{
+				debugModelBlockSequenceModelPath_ = sequenceModelPathBuffer;
+				ReloadDebugModelBlockSequenceModel();
+			}
+
+			if (ImGui::Button("Play Spawn Then Disintegrate"))
+			{
+				debugModelBlockSequenceModelPath_ = sequenceModelPathBuffer;
+				ReloadDebugModelBlockSequenceModel();
+				debugModelBlockSequence_->PlaySpawnThenDisintegrate(debugModelBlockSequenceModelPath_, MakeDebugModelBlockSequenceWorldMatrix());
+				debugModelBlockSequenceLog_ = "Play Spawn Then Disintegrate: " + debugModelBlockSequenceModelPath_;
+				DebugLog(debugModelBlockSequenceLog_);
+			}
+
+			if (ImGui::Button("Play Disintegrate Then Reconstruct"))
+			{
+				debugModelBlockSequenceModelPath_ = sequenceModelPathBuffer;
+				ReloadDebugModelBlockSequenceModel();
+				debugModelBlockSequence_->PlayDisintegrateThenReconstruct(debugModelBlockSequenceModelPath_, MakeDebugModelBlockSequenceWorldMatrix());
+				debugModelBlockSequenceLog_ = "Play Disintegrate Then Reconstruct: " + debugModelBlockSequenceModelPath_;
+				DebugLog(debugModelBlockSequenceLog_);
+			}
+
+			if (ImGui::Button("Play Loop"))
+			{
+				debugModelBlockSequenceModelPath_ = sequenceModelPathBuffer;
+				ReloadDebugModelBlockSequenceModel();
+				debugModelBlockSequence_->PlayLoop(debugModelBlockSequenceModelPath_, MakeDebugModelBlockSequenceWorldMatrix());
+				debugModelBlockSequenceLog_ = "Play Loop: " + debugModelBlockSequenceModelPath_;
+				DebugLog(debugModelBlockSequenceLog_);
+			}
+
+			ImGui::SameLine();
+			if (ImGui::Button("Stop"))
+			{
+				debugModelBlockSequence_->Stop(false);
+				debugModelBlockSequenceLog_ = "Sequence stopped.";
+				DebugLog(debugModelBlockSequenceLog_);
+			}
+
+			ImGui::SameLine();
+			if (ImGui::Button("Reset"))
+			{
+				debugModelBlockSequence_->Reset();
+				debugModelBlockSequenceLog_ = "Sequence reset.";
+				DebugLog(debugModelBlockSequenceLog_);
+			}
+
+			ImGui::Separator();
+			ImGui::Text("currentState: %s", debugModelBlockSequence_->GetStateName());
+			ImGui::Text("sequenceElapsed: %.2f", debugModelBlockSequence_->GetSequenceElapsed());
+			ImGui::Text("reconstructionCompleted: %s", debugModelBlockSequence_->IsReconstructionCompleted() ? "true" : "false");
+			ImGui::Text("disintegrationCompleted: %s", debugModelBlockSequence_->IsDisintegrationCompleted() ? "true" : "false");
+			ImGui::Text("Model Visible: %s", debugModelBlockSequence_->IsModelVisible() ? "true" : "false");
+		}
+		ImGui::TextWrapped("%s", debugModelBlockSequenceLog_.c_str());
+		ImGui::End();
+	}
+
 	/// ---------- 武器マスターデータエディタ ---------- ///
 	static WeaponMasterDataDatabase weaponDB;
 	static WeaponMasterDataEditor weaponEditor;
@@ -663,6 +788,42 @@ void DebugScene::ReloadDebugReconstructionModel()
 	debugReconstructionModelVisible_ = true;
 	debugReconstructionLog_ = "Reloaded reconstruction test model: " + debugReconstructionModelPath_;
 	DebugLog(debugReconstructionLog_);
+}
+
+void DebugScene::UpdateDebugModelBlockSequence(float deltaTime)
+{
+	if (debugModelBlockSequenceModel_)
+	{
+		debugModelBlockSequenceModel_->SetTranslate(debugModelBlockSequencePosition_);
+		debugModelBlockSequenceModel_->SetRotate(debugModelBlockSequenceRotation_);
+		debugModelBlockSequenceModel_->SetScale(debugModelBlockSequenceScale_);
+		debugModelBlockSequenceModel_->Update();
+	}
+
+	if (debugModelBlockSequence_)
+	{
+		debugModelBlockSequence_->Update(deltaTime);
+	}
+}
+
+void DebugScene::ReloadDebugModelBlockSequenceModel()
+{
+	debugModelBlockSequenceModel_ = std::make_unique<Object3D>();
+	debugModelBlockSequenceModel_->Initialize(debugModelBlockSequenceModelPath_);
+	debugModelBlockSequenceModel_->SetTranslate(debugModelBlockSequencePosition_);
+	debugModelBlockSequenceModel_->SetRotate(debugModelBlockSequenceRotation_);
+	debugModelBlockSequenceModel_->SetScale(debugModelBlockSequenceScale_);
+	debugModelBlockSequenceModel_->Update();
+	debugModelBlockSequenceLog_ = "Reloaded sequence test model: " + debugModelBlockSequenceModelPath_;
+	DebugLog(debugModelBlockSequenceLog_);
+}
+
+Matrix4x4 DebugScene::MakeDebugModelBlockSequenceWorldMatrix() const
+{
+	return Matrix4x4::MakeAffineMatrix(
+		debugModelBlockSequenceScale_,
+		debugModelBlockSequenceRotation_,
+		debugModelBlockSequencePosition_);
 }
 
 /// -------------------------------------------------------------
