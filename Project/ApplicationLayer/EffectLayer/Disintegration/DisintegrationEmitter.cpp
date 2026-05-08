@@ -113,7 +113,7 @@ std::vector<DisintegrationParticle> DisintegrationEmitter::EmitFromModel(
 		K4E::Vector3 local{};
 		K4E::Vector3 localNormal{ 0.0f, 1.0f, 0.0f };
 
-		if (!triangles.empty())
+		if (settings.surfaceSampling && !triangles.empty())
 		{
 			const float areaPick = RandomRange(0.0f, totalArea);
 			auto it = std::lower_bound(
@@ -157,12 +157,26 @@ std::vector<DisintegrationParticle> DisintegrationEmitter::EmitFromModel(
 		particle.initialPosition = world;
 		particle.position = world;
 		particle.outward = outward;
-		particle.renderAxis = RandomUnitVector();
+		particle.rotation = {
+			RandomRange(-settings.blockRotationRandomness, settings.blockRotationRandomness),
+			RandomRange(-settings.blockRotationRandomness, settings.blockRotationRandomness),
+			RandomRange(-settings.blockRotationRandomness, settings.blockRotationRandomness),
+		};
+		particle.rotationVelocity = {
+			RandomRange(-settings.blockRotationRandomness, settings.blockRotationRandomness),
+			RandomRange(-settings.blockRotationRandomness, settings.blockRotationRandomness),
+			RandomRange(-settings.blockRotationRandomness, settings.blockRotationRandomness),
+		};
+		particle.scale = {
+			RandomRange(0.82f, 1.18f),
+			RandomRange(0.82f, 1.18f),
+			RandomRange(0.82f, 1.18f),
+		};
 		particle.velocity = outward * RandomRange(settings.spreadPower * 0.15f, settings.spreadPower * 0.55f);
 		particle.velocity.y += RandomRange(-settings.upwardPower * 0.25f, settings.upwardPower);
 		particle.life = RandomRange(settings.lifeTime * 0.85f, settings.lifeTime * 1.20f);
 		particle.startDelay = RandomRange(0.0f, settings.startDelay);
-		particle.size = settings.particleSize * RandomRange(0.45f, 1.05f);
+		particle.size = settings.particleSize * RandomRange(0.80f, 1.15f);
 		particle.color = color;
 		particle.alpha = 1.0f;
 		particle.alive = true;
