@@ -14,4 +14,7 @@ struct VertexShaderOutput
     nointerpolation uint animFlags : TEXCOORD7;
     nointerpolation uint startFrame : TEXCOORD8;
     nointerpolation float animSpeed : TEXCOORD9;
+
+    // SpriteとMeshが同じtypeを持つ場合でも描画パスを分離できるようにする。
+    nointerpolation uint renderKind : TEXCOORD10;
 };
