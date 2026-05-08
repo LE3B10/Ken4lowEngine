@@ -49,6 +49,9 @@ namespace Ken4lowEngine
 		// 被弾時に装甲ブロックが欠けて飛び散る表現用
 		ArmorBreak,
 
+		// Voxel Disintegrationで元オブジェクトから剥がれた小ブロック片を表現するタイプ
+		VoxelFragment,
+
 		Count
 	};
 
