@@ -46,6 +46,9 @@ namespace Ken4lowEngine
 		MuzzleFlash,
 		BulletTracer,
 
+		// 被弾時に装甲ブロックが欠けて飛び散る表現用
+		ArmorBreak,
+
 		Count
 	};
 
