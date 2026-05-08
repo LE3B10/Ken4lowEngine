@@ -1,3 +1,4 @@
+#define NOMINMAX
 #include "DisintegrationEmitter.h"
 
 #include <algorithm>

@@ -1,3 +1,4 @@
+#define NOMINMAX
 #include "ModelDisintegrationEffect.h"
 
 #include "Model.h"
