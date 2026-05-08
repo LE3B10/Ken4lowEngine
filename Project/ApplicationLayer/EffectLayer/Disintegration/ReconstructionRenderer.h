@@ -47,6 +47,8 @@ private:
 	Microsoft::WRL::ComPtr<ID3D12Resource> indexBuffer_;
 	Microsoft::WRL::ComPtr<ID3D12Resource> instanceBuffer_;
 	Microsoft::WRL::ComPtr<ID3D12Resource> viewProjectionBuffer_;
+	std::vector<Microsoft::WRL::ComPtr<ID3D12Resource>> retiredInstanceBuffers_;
+	std::vector<uint32_t> retiredSrvIndices_;
 	D3D12_VERTEX_BUFFER_VIEW vertexBufferView_{};
 	D3D12_INDEX_BUFFER_VIEW indexBufferView_{};
 	InstanceData* instanceData_ = nullptr;

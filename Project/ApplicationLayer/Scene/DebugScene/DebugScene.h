@@ -47,6 +47,19 @@ public: /// ---------- メンバ関数 ---------- ///
 	// ImGui描画処理
 	void DrawImGui() override;
 
+private: /// ---------- 型 ---------- ///
+
+	enum class DebugModelBlockSequenceRequest
+	{
+		None,
+		PlaySpawnThenDisintegrate,
+		PlayDisintegrateThenReconstruct,
+		PlayLoop,
+		Stop,
+		Reset,
+		Reload,
+	};
+
 private: /// ---------- メンバ関数 ---------- ///
 
 	// デバッグカメラの更新
@@ -67,6 +80,12 @@ private: /// ---------- メンバ関数 ---------- ///
 	/// モデル崩壊エフェクトをデバッグ位置で再生
 	void PlayDebugDisintegrationEffect();
 
+	/// モデル崩壊テスト用モデルを読み直す
+	void ReloadDebugDisintegrationModel();
+
+	/// 予約されたモデル崩壊テスト操作を描画前に処理
+	void ProcessDebugDisintegrationRequest();
+
 	/// モデル再構築エフェクトの単体検証更新
 	void UpdateDebugReconstructionTest(float deltaTime);
 
@@ -76,11 +95,17 @@ private: /// ---------- メンバ関数 ---------- ///
 	/// モデル再構築テスト用モデルを読み直す
 	void ReloadDebugReconstructionModel();
 
+	/// 予約されたモデル再構築テスト操作を描画前に処理
+	void ProcessDebugReconstructionRequest();
+
 	/// モデルブロック演出シーケンスの更新
 	void UpdateDebugModelBlockSequence(float deltaTime);
 
 	/// モデルブロック演出シーケンス用モデルを読み直す
 	void ReloadDebugModelBlockSequenceModel();
+
+	/// 予約されたモデルブロック演出シーケンス操作を描画前に処理
+	void ProcessDebugModelBlockSequenceRequest();
 
 	/// モデルブロック演出シーケンスのワールド行列を作成
 	K4E::Matrix4x4 MakeDebugModelBlockSequenceWorldMatrix() const;
@@ -121,6 +146,9 @@ private: /// ---------- メンバ変数 ---------- ///
 	std::string debugDisintegrationModelPath_ = "Characters/body.gltf";
 	std::string debugDisintegrationLog_ = "Press F9 or the ImGui button to play.";
 	bool debugDisintegrationModelVisible_ = true;
+	bool pendingDebugDisintegrationPlay_ = false;
+	bool pendingDebugDisintegrationReload_ = false;
+	std::string pendingDebugDisintegrationPath_;
 
 	// --- モデル再構築エフェクト単体テスト用 ---
 	std::unique_ptr<K4E::Object3D> debugReconstructionModel_;
@@ -131,6 +159,9 @@ private: /// ---------- メンバ変数 ---------- ///
 	std::string debugReconstructionModelPath_ = "Characters/body.gltf";
 	std::string debugReconstructionLog_ = "Press F10 or the ImGui button to play.";
 	bool debugReconstructionModelVisible_ = true;
+	bool pendingDebugReconstructionPlay_ = false;
+	bool pendingDebugReconstructionReload_ = false;
+	std::string pendingDebugReconstructionPath_;
 
 	// --- モデルブロック演出シーケンステスト用 ---
 	std::unique_ptr<K4E::Object3D> debugModelBlockSequenceModel_;
@@ -142,5 +173,7 @@ private: /// ---------- メンバ変数 ---------- ///
 	K4E::Vector3 debugModelBlockSequenceScale_{ 1.0f, 1.0f, 1.0f };
 	std::string debugModelBlockSequenceModelPath_ = "Characters/body.gltf";
 	std::string debugModelBlockSequenceLog_ = "Use the ImGui sequence buttons to play.";
+	DebugModelBlockSequenceRequest debugModelBlockSequenceRequest_ = DebugModelBlockSequenceRequest::None;
+	std::string pendingDebugModelBlockSequencePath_;
 };
 

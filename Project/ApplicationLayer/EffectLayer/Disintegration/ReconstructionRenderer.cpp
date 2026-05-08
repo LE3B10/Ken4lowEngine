@@ -194,7 +194,15 @@ void ReconstructionRenderer::EnsureInstanceCapacity(size_t requiredCapacity)
 {
 	if (requiredCapacity <= instanceCapacity_) { return; }
 
-	ReleaseSrv();
+	if (instanceBuffer_)
+	{
+		retiredInstanceBuffers_.push_back(instanceBuffer_);
+	}
+	if (srvIndex_ != UINT32_MAX)
+	{
+		retiredSrvIndices_.push_back(srvIndex_);
+		srvIndex_ = UINT32_MAX;
+	}
 	instanceCapacity_ = std::max(requiredCapacity, instanceCapacity_ * 2 + 1);
 	auto* device = K4E::DirectXCommon::GetInstance()->GetDevice();
 	instanceBuffer_ = K4E::ResourceManager::CreateBufferResource(device, sizeof(InstanceData) * instanceCapacity_);
@@ -217,6 +225,12 @@ void ReconstructionRenderer::ReleaseSrv()
 		K4E::SRVManager::GetInstance()->Free(srvIndex_);
 		srvIndex_ = UINT32_MAX;
 	}
+	for (uint32_t retiredSrvIndex : retiredSrvIndices_)
+	{
+		K4E::SRVManager::GetInstance()->Free(retiredSrvIndex);
+	}
+	retiredSrvIndices_.clear();
+	retiredInstanceBuffers_.clear();
 	instanceData_ = nullptr;
 	instanceBuffer_.Reset();
 	instanceCapacity_ = 0;

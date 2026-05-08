@@ -496,18 +496,17 @@ void DebugScene::DrawImGui()
 
 		if (ImGui::Button("Reload Test Model"))
 		{
-			debugDisintegrationModelPath_ = modelPathBuffer;
-			debugDisintegrationModel_ = std::make_unique<Object3D>();
-			debugDisintegrationModel_->Initialize(debugDisintegrationModelPath_);
-			debugDisintegrationLog_ = "Reloaded test model: " + debugDisintegrationModelPath_;
-			DebugLog(debugDisintegrationLog_);
+			pendingDebugDisintegrationPath_ = modelPathBuffer;
+			pendingDebugDisintegrationReload_ = true;
+			debugDisintegrationLog_ = "Queued reload test model: " + pendingDebugDisintegrationPath_;
 		}
 
 		ImGui::SameLine();
 		if (ImGui::Button("Play Disintegration"))
 		{
-			debugDisintegrationModelPath_ = modelPathBuffer;
-			PlayDebugDisintegrationEffect();
+			pendingDebugDisintegrationPath_ = modelPathBuffer;
+			pendingDebugDisintegrationPlay_ = true;
+			debugDisintegrationLog_ = "Queued play: " + pendingDebugDisintegrationPath_;
 		}
 
 		ImGui::Text("Model Visible: %s", debugDisintegrationModelVisible_ ? "true" : "false");
@@ -534,15 +533,17 @@ void DebugScene::DrawImGui()
 
 		if (ImGui::Button("Reload Test Model##Reconstruction"))
 		{
-			debugReconstructionModelPath_ = reconstructionModelPathBuffer;
-			ReloadDebugReconstructionModel();
+			pendingDebugReconstructionPath_ = reconstructionModelPathBuffer;
+			pendingDebugReconstructionReload_ = true;
+			debugReconstructionLog_ = "Queued reload reconstruction test model: " + pendingDebugReconstructionPath_;
 		}
 
 		ImGui::SameLine();
 		if (ImGui::Button("Play Reconstruction"))
 		{
-			debugReconstructionModelPath_ = reconstructionModelPathBuffer;
-			PlayDebugReconstructionEffect();
+			pendingDebugReconstructionPath_ = reconstructionModelPathBuffer;
+			pendingDebugReconstructionPlay_ = true;
+			debugReconstructionLog_ = "Queued play reconstruction: " + pendingDebugReconstructionPath_;
 		}
 
 		ImGui::Text("Model Visible: %s", debugReconstructionModelVisible_ ? "true" : "false");
@@ -581,51 +582,44 @@ void DebugScene::DrawImGui()
 
 			if (ImGui::Button("Reload Model##BlockSequence"))
 			{
-				debugModelBlockSequenceModelPath_ = sequenceModelPathBuffer;
-				ReloadDebugModelBlockSequenceModel();
+				pendingDebugModelBlockSequencePath_ = sequenceModelPathBuffer;
+				debugModelBlockSequenceRequest_ = DebugModelBlockSequenceRequest::Reload;
+				debugModelBlockSequenceLog_ = "Queued sequence model reload: " + pendingDebugModelBlockSequencePath_;
 			}
 
 			if (ImGui::Button("Play Spawn Then Disintegrate"))
 			{
-				debugModelBlockSequenceModelPath_ = sequenceModelPathBuffer;
-				ReloadDebugModelBlockSequenceModel();
-				debugModelBlockSequence_->PlaySpawnThenDisintegrate(debugModelBlockSequenceModelPath_, MakeDebugModelBlockSequenceWorldMatrix());
-				debugModelBlockSequenceLog_ = "Play Spawn Then Disintegrate: " + debugModelBlockSequenceModelPath_;
-				DebugLog(debugModelBlockSequenceLog_);
+				pendingDebugModelBlockSequencePath_ = sequenceModelPathBuffer;
+				debugModelBlockSequenceRequest_ = DebugModelBlockSequenceRequest::PlaySpawnThenDisintegrate;
+				debugModelBlockSequenceLog_ = "Queued Spawn Then Disintegrate: " + pendingDebugModelBlockSequencePath_;
 			}
 
 			if (ImGui::Button("Play Disintegrate Then Reconstruct"))
 			{
-				debugModelBlockSequenceModelPath_ = sequenceModelPathBuffer;
-				ReloadDebugModelBlockSequenceModel();
-				debugModelBlockSequence_->PlayDisintegrateThenReconstruct(debugModelBlockSequenceModelPath_, MakeDebugModelBlockSequenceWorldMatrix());
-				debugModelBlockSequenceLog_ = "Play Disintegrate Then Reconstruct: " + debugModelBlockSequenceModelPath_;
-				DebugLog(debugModelBlockSequenceLog_);
+				pendingDebugModelBlockSequencePath_ = sequenceModelPathBuffer;
+				debugModelBlockSequenceRequest_ = DebugModelBlockSequenceRequest::PlayDisintegrateThenReconstruct;
+				debugModelBlockSequenceLog_ = "Queued Disintegrate Then Reconstruct: " + pendingDebugModelBlockSequencePath_;
 			}
 
 			if (ImGui::Button("Play Loop"))
 			{
-				debugModelBlockSequenceModelPath_ = sequenceModelPathBuffer;
-				ReloadDebugModelBlockSequenceModel();
-				debugModelBlockSequence_->PlayLoop(debugModelBlockSequenceModelPath_, MakeDebugModelBlockSequenceWorldMatrix());
-				debugModelBlockSequenceLog_ = "Play Loop: " + debugModelBlockSequenceModelPath_;
-				DebugLog(debugModelBlockSequenceLog_);
+				pendingDebugModelBlockSequencePath_ = sequenceModelPathBuffer;
+				debugModelBlockSequenceRequest_ = DebugModelBlockSequenceRequest::PlayLoop;
+				debugModelBlockSequenceLog_ = "Queued Loop: " + pendingDebugModelBlockSequencePath_;
 			}
 
 			ImGui::SameLine();
 			if (ImGui::Button("Stop"))
 			{
-				debugModelBlockSequence_->Stop(false);
-				debugModelBlockSequenceLog_ = "Sequence stopped.";
-				DebugLog(debugModelBlockSequenceLog_);
+				debugModelBlockSequenceRequest_ = DebugModelBlockSequenceRequest::Stop;
+				debugModelBlockSequenceLog_ = "Queued sequence stop.";
 			}
 
 			ImGui::SameLine();
 			if (ImGui::Button("Reset"))
 			{
-				debugModelBlockSequence_->Reset();
-				debugModelBlockSequenceLog_ = "Sequence reset.";
-				DebugLog(debugModelBlockSequenceLog_);
+				debugModelBlockSequenceRequest_ = DebugModelBlockSequenceRequest::Reset;
+				debugModelBlockSequenceLog_ = "Queued sequence reset.";
 			}
 
 			ImGui::Separator();
@@ -733,8 +727,10 @@ void DebugScene::UpdateDebugReconstructionTest(float deltaTime)
 {
 	if (input_ && input_->TriggerKey(DIK_F10))
 	{
-		PlayDebugReconstructionEffect();
+		pendingDebugReconstructionPlay_ = true;
 	}
+
+	ProcessDebugReconstructionRequest();
 
 	if (debugReconstructionModel_)
 	{
@@ -790,8 +786,38 @@ void DebugScene::ReloadDebugReconstructionModel()
 	DebugLog(debugReconstructionLog_);
 }
 
+void DebugScene::ProcessDebugReconstructionRequest()
+{
+	if (!pendingDebugReconstructionReload_ && !pendingDebugReconstructionPlay_)
+	{
+		return;
+	}
+
+	// ImGui からのGPUリソース更新要求は、コマンドリスト記録前のUpdateでだけ実行する。
+	if (!pendingDebugReconstructionPath_.empty())
+	{
+		debugReconstructionModelPath_ = pendingDebugReconstructionPath_;
+	}
+
+	if (pendingDebugReconstructionReload_)
+	{
+		ReloadDebugReconstructionModel();
+	}
+
+	if (pendingDebugReconstructionPlay_)
+	{
+		PlayDebugReconstructionEffect();
+	}
+
+	pendingDebugReconstructionReload_ = false;
+	pendingDebugReconstructionPlay_ = false;
+	pendingDebugReconstructionPath_.clear();
+}
+
 void DebugScene::UpdateDebugModelBlockSequence(float deltaTime)
 {
+	ProcessDebugModelBlockSequenceRequest();
+
 	if (debugModelBlockSequenceModel_)
 	{
 		debugModelBlockSequenceModel_->SetTranslate(debugModelBlockSequencePosition_);
@@ -816,6 +842,66 @@ void DebugScene::ReloadDebugModelBlockSequenceModel()
 	debugModelBlockSequenceModel_->Update();
 	debugModelBlockSequenceLog_ = "Reloaded sequence test model: " + debugModelBlockSequenceModelPath_;
 	DebugLog(debugModelBlockSequenceLog_);
+}
+
+void DebugScene::ProcessDebugModelBlockSequenceRequest()
+{
+	if (debugModelBlockSequenceRequest_ == DebugModelBlockSequenceRequest::None)
+	{
+		return;
+	}
+
+	if (!pendingDebugModelBlockSequencePath_.empty())
+	{
+		debugModelBlockSequenceModelPath_ = pendingDebugModelBlockSequencePath_;
+	}
+
+	const DebugModelBlockSequenceRequest request = debugModelBlockSequenceRequest_;
+	debugModelBlockSequenceRequest_ = DebugModelBlockSequenceRequest::None;
+	pendingDebugModelBlockSequencePath_.clear();
+
+	if (!debugModelBlockSequence_)
+	{
+		return;
+	}
+
+	switch (request)
+	{
+	case DebugModelBlockSequenceRequest::Reload:
+		ReloadDebugModelBlockSequenceModel();
+		break;
+	case DebugModelBlockSequenceRequest::PlaySpawnThenDisintegrate:
+		ReloadDebugModelBlockSequenceModel();
+		debugModelBlockSequence_->PlaySpawnThenDisintegrate(debugModelBlockSequenceModelPath_, MakeDebugModelBlockSequenceWorldMatrix());
+		debugModelBlockSequenceLog_ = "Play Spawn Then Disintegrate: " + debugModelBlockSequenceModelPath_;
+		DebugLog(debugModelBlockSequenceLog_);
+		break;
+	case DebugModelBlockSequenceRequest::PlayDisintegrateThenReconstruct:
+		ReloadDebugModelBlockSequenceModel();
+		debugModelBlockSequence_->PlayDisintegrateThenReconstruct(debugModelBlockSequenceModelPath_, MakeDebugModelBlockSequenceWorldMatrix());
+		debugModelBlockSequenceLog_ = "Play Disintegrate Then Reconstruct: " + debugModelBlockSequenceModelPath_;
+		DebugLog(debugModelBlockSequenceLog_);
+		break;
+	case DebugModelBlockSequenceRequest::PlayLoop:
+		ReloadDebugModelBlockSequenceModel();
+		debugModelBlockSequence_->PlayLoop(debugModelBlockSequenceModelPath_, MakeDebugModelBlockSequenceWorldMatrix());
+		debugModelBlockSequenceLog_ = "Play Loop: " + debugModelBlockSequenceModelPath_;
+		DebugLog(debugModelBlockSequenceLog_);
+		break;
+	case DebugModelBlockSequenceRequest::Stop:
+		debugModelBlockSequence_->Stop(false);
+		debugModelBlockSequenceLog_ = "Sequence stopped.";
+		DebugLog(debugModelBlockSequenceLog_);
+		break;
+	case DebugModelBlockSequenceRequest::Reset:
+		debugModelBlockSequence_->Reset();
+		debugModelBlockSequenceLog_ = "Sequence reset.";
+		DebugLog(debugModelBlockSequenceLog_);
+		break;
+	case DebugModelBlockSequenceRequest::None:
+	default:
+		break;
+	}
 }
 
 Matrix4x4 DebugScene::MakeDebugModelBlockSequenceWorldMatrix() const
@@ -987,8 +1073,10 @@ void DebugScene::UpdateDebugDisintegrationTest(float deltaTime)
 {
 	if (input_ && input_->TriggerKey(DIK_F9))
 	{
-		PlayDebugDisintegrationEffect();
+		pendingDebugDisintegrationPlay_ = true;
 	}
+
+	ProcessDebugDisintegrationRequest();
 
 	if (debugDisintegrationModel_)
 	{
@@ -1003,6 +1091,46 @@ void DebugScene::UpdateDebugDisintegrationTest(float deltaTime)
 		debugDisintegrationEffect_->Update(deltaTime);
 		debugDisintegrationModelVisible_ = !debugDisintegrationEffect_->IsActive();
 	}
+}
+
+void DebugScene::ReloadDebugDisintegrationModel()
+{
+	debugDisintegrationModel_ = std::make_unique<Object3D>();
+	debugDisintegrationModel_->Initialize(debugDisintegrationModelPath_);
+	debugDisintegrationModel_->SetTranslate(debugDisintegrationPosition_);
+	debugDisintegrationModel_->SetRotate(debugDisintegrationRotation_);
+	debugDisintegrationModel_->SetScale(debugDisintegrationScale_);
+	debugDisintegrationModel_->Update();
+	debugDisintegrationModelVisible_ = true;
+	debugDisintegrationLog_ = "Reloaded test model: " + debugDisintegrationModelPath_;
+	DebugLog(debugDisintegrationLog_);
+}
+
+void DebugScene::ProcessDebugDisintegrationRequest()
+{
+	if (!pendingDebugDisintegrationReload_ && !pendingDebugDisintegrationPlay_)
+	{
+		return;
+	}
+
+	if (!pendingDebugDisintegrationPath_.empty())
+	{
+		debugDisintegrationModelPath_ = pendingDebugDisintegrationPath_;
+	}
+
+	if (pendingDebugDisintegrationReload_)
+	{
+		ReloadDebugDisintegrationModel();
+	}
+
+	if (pendingDebugDisintegrationPlay_)
+	{
+		PlayDebugDisintegrationEffect();
+	}
+
+	pendingDebugDisintegrationReload_ = false;
+	pendingDebugDisintegrationPlay_ = false;
+	pendingDebugDisintegrationPath_.clear();
 }
 
 void DebugScene::PlayDebugDisintegrationEffect()
