@@ -122,6 +122,9 @@ private: /// ---------- メンバ変数 ---------- ///
 	float debugVoxelParticleRadius_ = 0.28f;
 	float debugVoxelAshLeadTime_ = 0.35f;
 	float debugVoxelAshEmitInterval_ = 0.045f;
+	float debugVoxelJitterRate_ = 0.65f;
+	float debugVoxelPlaneNoiseRate_ = 0.22f;
+	float debugVoxelRandomRotationRate_ = 1.0f;
 	int debugVoxelGridX_ = 4;
 	int debugVoxelGridY_ = 4;
 	int debugVoxelGridZ_ = 3;
