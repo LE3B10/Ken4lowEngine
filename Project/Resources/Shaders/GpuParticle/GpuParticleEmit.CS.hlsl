@@ -199,7 +199,6 @@ void InitParticleCommon(uint i, float3 seed, ParticleSpawnParam param, inout Par
     float3 offset = SampleSpawnOffset(seed, param.spawnShape, gEmitter.radius);
     float3 dir = SampleSpawnDirection(seed + 11.3f, param.dirType, offset);
 
-    // DeathBurstCore 用の方向補正
     if (gEmitter.type == GPU_PARTICLE_TYPE_DEATH_BURST_CORE)
     {
         dir = normalize(dir + float3(0.0f, 0.25f, 0.0f));
@@ -297,7 +296,6 @@ void ApplyParticleSpawnOverride(uint i, float3 seed, inout Particle p)
 
         case GPU_PARTICLE_TYPE_DEBRIS:
         {
-                // ロケット着弾用の砂粒・小石。Mesh でも直方体に見えないようXYZ同一スケールにする。
                 float3 dir = SampleUnitDir(seed + 1.0f);
                 dir.y = abs(dir.y) * 0.45f + 0.12f;
                 dir = normalize(dir);
@@ -406,7 +404,6 @@ void ApplyParticleSpawnOverride(uint i, float3 seed, inout Particle p)
                 dir.y = abs(dir.y) * 0.65f + 0.20f;
                 dir = normalize(dir);
 
-                // 被弾点から装甲片が外へ弾けるように、中心から少しだけ散らす。
                 p.translate = gEmitter.translate + dir * (GPURand1(seed + 2.0f) * gEmitter.radius * 0.12f);
                 p.velocity = dir * (3.5f + GPURand1(seed + 3.0f) * 8.0f);
 
@@ -441,7 +438,6 @@ void ApplyParticleSpawnOverride(uint i, float3 seed, inout Particle p)
                 dir.y = abs(dir.y) * 0.35f + 0.10f;
                 dir = normalize(dir);
 
-                // 消えたVoxelの位置から、元オブジェクトの小ブロックが剥がれるように低速で飛ばす。
                 p.translate = gEmitter.translate + dir * (GPURand1(seed + 2.0f) * gEmitter.radius * 0.08f);
                 p.velocity = dir * (1.0f + GPURand1(seed + 3.0f) * 3.5f);
 
@@ -467,6 +463,37 @@ void ApplyParticleSpawnOverride(uint i, float3 seed, inout Particle p)
                 }
 
                 p.lifeTime = 0.45f + GPURand1(seed + 6.0f) * 0.65f;
+                break;
+            }
+
+        case GPU_PARTICLE_TYPE_VOXEL_ASH_FRAGMENT:
+        {
+                float3 dir = SampleHemisphereUp(seed + 1.0f);
+                float3 wind = float3(0.65f, 0.25f, 0.18f);
+                dir = normalize(dir * 0.35f + wind);
+
+                // 指パッチン風に、破片を飛ばすよりも灰として右上方向へ流す。
+                p.translate = gEmitter.translate + SampleSphere(seed + 2.0f, gEmitter.radius * 0.18f);
+                p.velocity = dir * (0.20f + GPURand1(seed + 3.0f) * 1.40f);
+
+                float s = 0.025f + GPURand1(seed + 4.0f) * 0.060f;
+                p.scale = float3(s, s, s);
+
+                float c = GPURand1(seed + 5.0f);
+                if (c < 0.55f)
+                {
+                    p.color = float4(0.45f, 0.45f, 0.43f, 0.82f);
+                }
+                else if (c < 0.85f)
+                {
+                    p.color = float4(0.72f, 0.74f, 0.76f, 0.72f);
+                }
+                else
+                {
+                    p.color = float4(0.88f, 0.94f, 1.00f, 0.65f);
+                }
+
+                p.lifeTime = 1.15f + GPURand1(seed + 6.0f) * 1.25f;
                 break;
             }
     }
