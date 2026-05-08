@@ -20,7 +20,7 @@ static const ParticleTypeParam kDefaultParticleTypeParam =
     0.0f
 };
 
-static const uint kParticleTypeParamCount = GPU_PARTICLE_TYPE_VOXEL_FRAGMENT + 1;
+static const uint kParticleTypeParamCount = GPU_PARTICLE_TYPE_VOXEL_ASH_FRAGMENT + 1;
 
 static const ParticleTypeParam kParticleTypeParams[kParticleTypeParamCount] =
 {
@@ -71,6 +71,9 @@ static const ParticleTypeParam kParticleTypeParams[kParticleTypeParamCount] =
 
     // 15: VoxelFragment
     { 1.00f, 1.35f, -2.0f, 2.4f, 0.0f, 0.0f },
+
+    // 16: VoxelAshFragment
+    { 0.82f, 1.95f, 0.45f, 3.8f, 0.0f, 0.035f },
 };
 
 ParticleTypeParam GetParticleTypeParam(uint type)
