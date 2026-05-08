@@ -37,6 +37,16 @@ VertexShaderOutput main(VertexShaderInput input, uint instanceId : SV_InstanceID
     output.texcoord = input.texcoord;
     output.color = particle.color;
     output.type = particle.type;
+    output.renderKind = GPUParticle_GetKind(particle.billboardMode);
+
+    output.atlasCols = particle.atlasCols;
+    output.atlasRows = particle.atlasRows;
+    output.animFrameCount = particle.animFrameCount;
+    output.animFps = particle.animFps;
+    output.currentTime = particle.currentTime;
+    output.animFlags = particle.animFlags;
+    output.startFrame = particle.startFrame;
+    output.animSpeed = particle.animSpeed;
 
     // Default(type=0) は有効な表示タイプなので、寿命が切れた粒子だけを非表示にする。
     if (particle.lifeTime <= 0.0f)
