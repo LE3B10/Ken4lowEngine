@@ -1,0 +1,58 @@
+#pragma once
+#include "ReconstructionEmitter.h"
+#include "ReconstructionRenderer.h"
+#include "Matrix4x4.h"
+#include "Vector4.h"
+
+#include <string>
+#include <vector>
+
+/// -------------------------------------------------------------
+/// モデル登場時に散らばったブロックを表面サンプル位置へ集める再構築エフェクト
+/// -------------------------------------------------------------
+class ModelReconstructionEffect
+{
+public:
+	struct Parameters
+	{
+		int blockCount = 1200;
+		float blockSize = 0.045f;
+		float duration = 1.8f;
+		float startScatterRadius = 3.0f;
+		float startHeight = 2.5f;
+		float startDelayRange = 0.45f;
+		float rotationRandomness = 4.0f;
+		float easePower = 3.0f;
+		K4E::Vector4 color{ 0.64f, 0.72f, 0.86f, 1.0f };
+		float colorVariation = 0.18f;
+		float holdTime = 0.60f;
+		bool showFinalModel = true;
+		bool autoHideBlocksAfterComplete = true;
+		bool surfaceSampling = true;
+	};
+
+	void Initialize();
+	void PlayFromModel(const std::string& modelPath, const K4E::Matrix4x4& worldMatrix);
+	void Update(float deltaTime);
+	void Draw();
+	void DrawImGui();
+	bool IsActive() const { return isActive_; }
+	bool IsComplete() const { return isComplete_; }
+	bool ShouldShowFinalModel() const { return isComplete_ && parameters_.showFinalModel; }
+	bool ShouldDrawBlocks() const { return isActive_ || (!parameters_.autoHideBlocksAfterComplete && !blocks_.empty()); }
+
+	Parameters& GetParameters() { return parameters_; }
+	const Parameters& GetParameters() const { return parameters_; }
+
+private:
+	float Clamp01(float value) const;
+	float EaseOut(float value) const;
+
+	Parameters parameters_{};
+	ReconstructionEmitter emitter_{};
+	ReconstructionRenderer renderer_{};
+	std::vector<ReconstructionBlock> blocks_{};
+	bool isActive_ = false;
+	bool isComplete_ = false;
+	float elapsedTime_ = 0.0f;
+};
