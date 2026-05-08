@@ -34,10 +34,18 @@ private: /// ---------- エイリアス ---------- ///
 	struct DebugVoxelBlock
 	{
 		std::unique_ptr<K4E::Object3D> object;
+		Vector3 basePosition{};
 		Vector3 position{};
+		Vector3 velocity{};
+		Vector3 rotate{};
+		Vector3 angularVelocity{};
 		bool visible = true;
+		bool active = false;
 		float breakTime = 0.0f;
 		float ashEmitTimer = 0.0f;
+		float age = 0.0f;
+		float lifeTime = 1.5f;
+		float seed = 0.0f;
 	};
 
 public: /// ---------- メンバ関数 ---------- ///
@@ -125,6 +133,10 @@ private: /// ---------- メンバ変数 ---------- ///
 	float debugVoxelJitterRate_ = 0.65f;
 	float debugVoxelPlaneNoiseRate_ = 0.22f;
 	float debugVoxelRandomRotationRate_ = 1.0f;
+	float debugVoxelFlyLifeTime_ = 1.85f;
+	float debugVoxelWindStrength_ = 1.15f;
+	float debugVoxelScatterStrength_ = 0.45f;
+	float debugVoxelDrag_ = 2.6f;
 	int debugVoxelGridX_ = 4;
 	int debugVoxelGridY_ = 4;
 	int debugVoxelGridZ_ = 3;
