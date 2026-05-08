@@ -45,7 +45,8 @@ namespace
 		case 3: return GpuParticleType::Shockwave;
 		case 4: return GpuParticleType::Smoke;
 		case 5: return GpuParticleType::Heal;
-		default: return GpuParticleType::Debris;
+		case 6: return GpuParticleType::ArmorBreak;
+		default: return GpuParticleType::ArmorBreak;
 		}
 	}
 
@@ -233,10 +234,10 @@ void DebugScene::DrawImGui()
 	{
 		static char meshModelPath[256] = "Test/cube.gltf";
 		static int meshId = 1000;
-		static int particleTypeIndex = 1;
-		static int spriteCount = 48;
+		static int particleTypeIndex = 6;
+		static int spriteCount = 16;
 		static int meshCount = 48;
-		static float radius = 1.0f;
+		static float radius = 0.35f;
 		static float position[3] = { 0.0f, 2.5f, 18.0f };
 		static bool meshLoaded = false;
 		static bool spawnSideBySide = true;
@@ -247,7 +248,8 @@ void DebugScene::DrawImGui()
 			"Spark",
 			"Shockwave",
 			"Smoke",
-			"Heal"
+			"Heal",
+			"ArmorBreak"
 		};
 
 		GpuParticleManager* gpuParticleManager = GpuParticleManager::GetInstance();
