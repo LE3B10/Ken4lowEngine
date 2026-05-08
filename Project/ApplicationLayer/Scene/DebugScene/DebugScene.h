@@ -37,6 +37,7 @@ private: /// ---------- エイリアス ---------- ///
 		Vector3 position{};
 		bool visible = true;
 		float breakTime = 0.0f;
+		float ashEmitTimer = 0.0f;
 	};
 
 public: /// ---------- メンバ関数 ---------- ///
@@ -119,6 +120,8 @@ private: /// ---------- メンバ変数 ---------- ///
 	float debugVoxelBlockScale_ = 0.32f;
 	float debugVoxelSpacing_ = 0.34f;
 	float debugVoxelParticleRadius_ = 0.28f;
+	float debugVoxelAshLeadTime_ = 0.35f;
+	float debugVoxelAshEmitInterval_ = 0.045f;
 	int debugVoxelGridX_ = 4;
 	int debugVoxelGridY_ = 4;
 	int debugVoxelGridZ_ = 3;
