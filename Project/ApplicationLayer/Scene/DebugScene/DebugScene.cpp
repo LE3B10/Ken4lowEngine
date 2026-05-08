@@ -14,10 +14,13 @@
 #include <ImGuiManager.h>
 #endif // USE_IMGUI
 #include <GpuParticleManager.h>
+#include <Object3D.h>
 
 #include "WeaponMasterDataDatabase.h"
 #include "WeaponMasterDataEditor.h"
 #include "WeaponMasterDataWriter.h"
+#include <algorithm>
+#include <cmath>
 #include <filesystem>
 #include <cstdio>
 
@@ -120,6 +123,8 @@ void DebugScene::Initialize()
 	// 見やすい位置に置く
 	debugBoss_->SetPosition({ 0.0f, 2.25f, 30.0f });
 	debugBoss_->SetYaw(3.141592f); // 必要ならプレイヤー側へ向ける
+
+	ResetDebugBreakObject(debugBreakObjectModelPath_, debugBreakObjectCenter_, debugBreakObjectScale_);
 }
 
 void DebugScene::Update()
@@ -141,14 +146,19 @@ void DebugScene::Update()
 		debugBoss_->Update(deltaTime);
 	}
 
+	if (debugBreakObject_)
+	{
+		debugBreakObject_->Update();
+	}
+
 	UpdateDebugBossHitTest();
 
 	UpdateDebugParticleTest();
 	UpdateDebugArmorBreakDissolve(deltaTime);
+	UpdateDebugBreakObjectDissolve(deltaTime);
 
 	collisionManager_->Update();
 	collisionManager_->CheckAllCollisions();
-
 }
 
 void DebugScene::Draw3DObjects()
@@ -157,6 +167,11 @@ void DebugScene::Draw3DObjects()
 	if (debugBoss_)
 	{
 		debugBoss_->Draw();
+	}
+
+	if (debugBreakObject_ && debugBreakObjectVisible_)
+	{
+		debugBreakObject_->Draw();
 	}
 
 #ifdef _DEBUG
@@ -172,6 +187,11 @@ void DebugScene::DrawShadowObjects()
 	if (debugBoss_)
 	{
 		debugBoss_->DrawShadow();
+	}
+
+	if (debugBreakObject_ && debugBreakObjectVisible_)
+	{
+		debugBreakObject_->DrawShadow();
 	}
 }
 
@@ -200,6 +220,7 @@ void DebugScene::Finalize()
 	input_->SetLockCursor(false);
 	input_->SetCursorVisible(true);
 
+	debugBreakObject_.reset();
 	debugBoss_.reset();
 	collisionManager_.reset();
 
@@ -394,6 +415,31 @@ void DebugScene::DrawImGui()
 		}
 		ImGui::Text("Dissolve Active: %s  Time: %.2f / %.2f", debugArmorBreakDissolveActive_ ? "true" : "false", debugArmorBreakDissolveTimer_, debugArmorBreakDissolveDuration_);
 
+		ImGui::SeparatorText("Object3D Break Test");
+		static char breakObjectModelPath[256] = "Test/cube.gltf";
+		ImGui::InputText("Break Object Model", breakObjectModelPath, IM_ARRAYSIZE(breakObjectModelPath));
+		ImGui::DragFloat3("Break Object Position", &debugBreakObjectCenter_.x, 0.05f);
+		ImGui::DragFloat("Break Object Scale", &debugBreakObjectScale_, 0.01f, 0.05f, 10.0f);
+		ImGui::DragFloat("Break Object Duration", &debugBreakObjectDissolveDuration_, 0.01f, 0.20f, 5.00f);
+		ImGui::DragFloat("Break Object Emit Interval", &debugBreakObjectEmitInterval_, 0.001f, 0.01f, 0.30f);
+		ImGui::DragFloat("Break Object Particle Radius", &debugBreakObjectParticleRadius_, 0.01f, 0.05f, 5.0f);
+		ImGui::DragInt("Break Object Count/Burst", reinterpret_cast<int*>(&debugBreakObjectCountPerBurst_), 1.0f, 1, 64);
+		if (ImGui::Button("Reset Break Object"))
+		{
+			ResetDebugBreakObject(breakObjectModelPath, debugBreakObjectCenter_, debugBreakObjectScale_);
+		}
+		ImGui::SameLine();
+		if (ImGui::Button("Start Object3D Break"))
+		{
+			debugBreakObjectModelPath_ = breakObjectModelPath;
+			StartDebugBreakObjectDissolve();
+		}
+		ImGui::Text("Object Active: %s  Visible: %s  Time: %.2f / %.2f",
+			debugBreakObjectDissolveActive_ ? "true" : "false",
+			debugBreakObjectVisible_ ? "true" : "false",
+			debugBreakObjectDissolveTimer_,
+			debugBreakObjectDissolveDuration_);
+
 		ImGui::Separator();
 		ImGui::Text("Sprite position: %.2f, %.2f, %.2f", spritePos.x, spritePos.y, spritePos.z);
 		ImGui::Text("Mesh position:   %.2f, %.2f, %.2f", meshPos.x, meshPos.y, meshPos.z);
@@ -474,7 +520,6 @@ void DebugScene::DrawImGui()
 	ImGui::End();
 
 #endif // USE_IMGUI
-
 }
 
 void DebugScene::UpdateDebug()
@@ -534,21 +579,14 @@ void DebugScene::UpdateDebugBossHitTest()
 		return;
 	}
 
-	// ---------------------------------------------------------
-	// 仮の攻撃位置
-	// 本来は弾のヒット位置や近接武器先端などを使うが、
-	// 今回はデバッグ用としてボス中心より少し上を狙う
-	// ---------------------------------------------------------
 	Vector3 attackCenter = debugBoss_->GetCenterPosition();
 	attackCenter.y += 1.0f; // 頭寄りを狙いやすくする
 
-	// BossBase 側の簡易球判定
 	const BossHitResult hitResult =
 		debugBoss_->CheckDebugHitSphere(attackCenter, debugHitRadius_);
 
 	if (hitResult.isHit)
 	{
-		// 倍率込みダメージを適用
 		debugBoss_->ApplyDebugHitResult(hitResult, debugBaseDamage_);
 
 		Vector3 effectPos = attackCenter;
@@ -562,14 +600,12 @@ void DebugScene::UpdateDebugBossHitTest()
 
 		StartDebugArmorBreakDissolve(1000, "Test/cube.gltf", effectPos, 0.35f);
 
-		// 画面表示用にも保持
 		debugHitLog_ =
 			std::string("HIT  Part: ") + ToString(hitResult.part) +
 			"  Damage: " + std::to_string(debugBaseDamage_ * hitResult.damageMultiplier) +
 			"  HP: " + std::to_string(debugBoss_->GetHP()) +
 			" / " + std::to_string(debugBoss_->GetMaxHP());
 
-		// Visual Studio の出力ウィンドウへ送る
 		DebugLog(debugHitLog_);
 	}
 	else
@@ -709,8 +745,8 @@ void DebugScene::UpdateDebugArmorBreakDissolve(float deltaTime)
 	const float sweepY = 1.0f - t;
 	Vector3 emitPos = debugArmorBreakDissolveCenter_;
 	emitPos.y += (sweepY - 0.5f) * 1.65f;
-	emitPos.x += std::sinf(debugArmorBreakDissolveTimer_ * 18.0f) * 0.18f;
-	emitPos.z += std::cosf(debugArmorBreakDissolveTimer_ * 13.0f) * 0.18f;
+	emitPos.x += std::sin(debugArmorBreakDissolveTimer_ * 18.0f) * 0.18f;
+	emitPos.z += std::cos(debugArmorBreakDissolveTimer_ * 13.0f) * 0.18f;
 
 	const float localRadius = debugArmorBreakDissolveRadius_ * (0.65f + t * 0.85f);
 	const uint32_t burstCount = debugArmorBreakDissolveCountPerBurst_ + static_cast<uint32_t>(t * 10.0f);
@@ -737,5 +773,124 @@ void DebugScene::UpdateDebugArmorBreakDissolve(float deltaTime)
 			flashEmitter->GetInfoMutable().radius = localRadius * 0.45f;
 			flashEmitter->SetPosition(emitPos);
 		}
+	}
+}
+
+void DebugScene::ResetDebugBreakObject(const std::string& modelPath, const Vector3& center, float scale)
+{
+	debugBreakObjectModelPath_ = modelPath;
+	debugBreakObjectCenter_ = center;
+	debugBreakObjectScale_ = scale;
+
+	debugBreakObject_ = std::make_unique<K4E::Object3D>();
+	debugBreakObject_->Initialize(modelPath);
+	debugBreakObject_->SetTranslate(center);
+	debugBreakObject_->SetScale({ scale, scale, scale });
+	debugBreakObject_->SetDissolveThreshold(1.0f);
+	debugBreakObject_->SetDissolveEdgeThickness(0.06f);
+	debugBreakObject_->SetDissolveEdgeColor({ 0.85f, 1.0f, 1.0f, 1.0f });
+	debugBreakObject_->Update();
+
+	debugBreakObjectVisible_ = true;
+	debugBreakObjectDissolveActive_ = false;
+	debugBreakObjectDissolveTimer_ = 0.0f;
+	debugBreakObjectEmitTimer_ = 0.0f;
+
+	debugParticleLog_ = "Reset: Object3D break target.";
+	DebugLog(debugParticleLog_);
+}
+
+void DebugScene::StartDebugBreakObjectDissolve()
+{
+	if (!debugBreakObject_)
+	{
+		ResetDebugBreakObject(debugBreakObjectModelPath_, debugBreakObjectCenter_, debugBreakObjectScale_);
+	}
+
+	GpuParticleManager* gpuParticleManager = GpuParticleManager::GetInstance();
+	if (gpuParticleManager && !gpuParticleManager->FindMeshAsset(debugBreakObjectMeshId_))
+	{
+		gpuParticleManager->LoadMeshAssetsFromAssimp(debugBreakObjectMeshId_, debugBreakObjectModelPath_, true);
+	}
+
+	debugBreakObjectVisible_ = true;
+	debugBreakObjectDissolveActive_ = true;
+	debugBreakObjectDissolveTimer_ = 0.0f;
+	debugBreakObjectEmitTimer_ = 0.0f;
+
+	debugBreakObject_->SetDissolveThreshold(1.0f);
+	debugBreakObject_->SetDissolveEdgeThickness(0.08f);
+	debugBreakObject_->SetDissolveEdgeColor({ 0.85f, 1.0f, 1.0f, 1.0f });
+
+	debugParticleLog_ = "Start: Object3D dissolve break.";
+	DebugLog(debugParticleLog_);
+}
+
+void DebugScene::UpdateDebugBreakObjectDissolve(float deltaTime)
+{
+	if (!debugBreakObjectDissolveActive_ || !debugBreakObject_)
+	{
+		return;
+	}
+
+	GpuParticleManager* gpuParticleManager = GpuParticleManager::GetInstance();
+	if (!gpuParticleManager)
+	{
+		debugBreakObjectDissolveActive_ = false;
+		return;
+	}
+
+	debugBreakObjectDissolveTimer_ += deltaTime;
+	debugBreakObjectEmitTimer_ += deltaTime;
+
+	const float duration = std::max(debugBreakObjectDissolveDuration_, 0.001f);
+	const float t = std::clamp(debugBreakObjectDissolveTimer_ / duration, 0.0f, 1.0f);
+	const float threshold = std::max(1.0f - t * 1.08f, -0.05f);
+	debugBreakObject_->SetDissolveThreshold(threshold);
+	debugBreakObject_->SetDissolveEdgeThickness(0.06f + t * 0.06f);
+
+	if (debugBreakObjectEmitTimer_ >= debugBreakObjectEmitInterval_)
+	{
+		debugBreakObjectEmitTimer_ = 0.0f;
+
+		Vector3 emitPos = debugBreakObjectCenter_;
+		emitPos.y += (0.5f - t) * debugBreakObjectScale_ * 1.4f;
+		emitPos.x += std::sin(debugBreakObjectDissolveTimer_ * 21.0f) * debugBreakObjectScale_ * 0.18f;
+		emitPos.z += std::cos(debugBreakObjectDissolveTimer_ * 15.0f) * debugBreakObjectScale_ * 0.18f;
+
+		const float localRadius = debugBreakObjectParticleRadius_ * (0.55f + t * 0.9f);
+		const uint32_t burstCount = debugBreakObjectCountPerBurst_ + static_cast<uint32_t>(t * 12.0f);
+
+		if (auto* meshEmitter = PrepareDebugMeshParticleEmitter(
+			gpuParticleManager,
+			"DebugScene_Object3DBreakMesh",
+			debugBreakObjectMeshId_,
+			GpuParticleType::ArmorBreak,
+			emitPos,
+			localRadius))
+		{
+			meshEmitter->RequestEmit(burstCount);
+		}
+
+		if (t < 0.28f)
+		{
+			if (auto* flashEmitter = gpuParticleManager->EmitBurst(
+				"DebugScene_Object3DBreakFlash",
+				GpuParticleType::MuzzleFlash,
+				emitPos,
+				4))
+			{
+				flashEmitter->GetInfoMutable().radius = localRadius * 0.35f;
+				flashEmitter->SetPosition(emitPos);
+			}
+		}
+	}
+
+	if (t >= 1.0f)
+	{
+		debugBreakObjectDissolveActive_ = false;
+		debugBreakObjectVisible_ = false;
+		debugParticleLog_ = "Finish: Object3D dissolve break.";
+		DebugLog(debugParticleLog_);
 	}
 }
