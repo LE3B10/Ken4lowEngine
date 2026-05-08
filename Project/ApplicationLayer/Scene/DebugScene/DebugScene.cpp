@@ -14,24 +14,16 @@
 #include <ImGuiManager.h>
 #endif // USE_IMGUI
 #include <GpuParticleManager.h>
-#include <Object3D.h>
 
-#include "WeaponMasterDataDatabase.h"
-#include "WeaponMasterDataEditor.h"
-#include "WeaponMasterDataWriter.h"
 #include <algorithm>
 #include <cmath>
-#include <filesystem>
 #include <cstdio>
+#include <string>
 
 using namespace Ken4lowEngine;
 
 namespace
 {
-	/// -------------------------------------------------------------
-	/// Visual Studio の「出力」ウィンドウへ文字列を出す
-	/// 改行付きで送るための簡易ヘルパー
-	/// -------------------------------------------------------------
 	void DebugLog(const std::string& message)
 	{
 		std::string line = message + "\n";
@@ -103,15 +95,11 @@ namespace
 void DebugScene::Initialize()
 {
 #ifdef _DEBUG
-	// デバッグカメラの初期化
 	DebugCamera::GetInstance()->Initialize();
 #endif // _DEBUG
 
 	dxCommon_ = DirectXCommon::GetInstance();
 	input_ = Input::GetInstance();
-
-	/*input_->SetLockCursor(true);
-	input_->SetCursorVisible(false);*/
 
 	collisionManager_ = std::make_unique<CollisionManager>();
 	collisionManager_->Initialize();
@@ -120,11 +108,10 @@ void DebugScene::Initialize()
 	debugBoss_->Initialize();
 	collisionManager_->AddCollider(debugBoss_.get());
 
-	// 見やすい位置に置く
 	debugBoss_->SetPosition({ 0.0f, 2.25f, 30.0f });
-	debugBoss_->SetYaw(3.141592f); // 必要ならプレイヤー側へ向ける
+	debugBoss_->SetYaw(3.141592f);
 
-	ResetDebugBreakObject(debugBreakObjectModelPath_, debugBreakObjectCenter_, debugBreakObjectScale_);
+	BuildDebugVoxelDisintegration();
 }
 
 void DebugScene::Update()
@@ -135,27 +122,23 @@ void DebugScene::Update()
 
 	float deltaTime = K4E::GameTimer::GetInstance()->GetDeltaTime();
 
-	static float animTime = 0.0f;
-	animTime += deltaTime;
-
-	// ボス更新
 	if (debugBoss_)
 	{
-		// とりあえずプレイヤー位置をターゲットに渡す
 		debugBoss_->SetTargetPosition({});
 		debugBoss_->Update(deltaTime);
 	}
 
-	if (debugBreakObject_)
+	for (auto& block : debugVoxelBlocks_)
 	{
-		debugBreakObject_->Update();
+		if (block.object)
+		{
+			block.object->Update();
+		}
 	}
 
 	UpdateDebugBossHitTest();
-
 	UpdateDebugParticleTest();
-	UpdateDebugArmorBreakDissolve(deltaTime);
-	UpdateDebugBreakObjectDissolve(deltaTime);
+	UpdateDebugVoxelDisintegration(deltaTime);
 
 	collisionManager_->Update();
 	collisionManager_->CheckAllCollisions();
@@ -163,21 +146,21 @@ void DebugScene::Update()
 
 void DebugScene::Draw3DObjects()
 {
-	// ボス描画
 	if (debugBoss_)
 	{
 		debugBoss_->Draw();
 	}
 
-	if (debugBreakObject_ && debugBreakObjectVisible_)
+	for (auto& block : debugVoxelBlocks_)
 	{
-		debugBreakObject_->Draw();
+		if (block.visible && block.object)
+		{
+			block.object->Draw();
+		}
 	}
 
 #ifdef _DEBUG
-	// ワイヤーフレームの描画
-	Wireframe::GetInstance()->DrawGrid(100.0f, 50.0f, { 0.25f, 0.25f, 0.25f,1.0f });
-
+	Wireframe::GetInstance()->DrawGrid(100.0f, 50.0f, { 0.25f, 0.25f, 0.25f, 1.0f });
 	collisionManager_->Draw();
 #endif // _DEBUG
 }
@@ -189,38 +172,27 @@ void DebugScene::DrawShadowObjects()
 		debugBoss_->DrawShadow();
 	}
 
-	if (debugBreakObject_ && debugBreakObjectVisible_)
+	for (auto& block : debugVoxelBlocks_)
 	{
-		debugBreakObject_->DrawShadow();
+		if (block.visible && block.object)
+		{
+			block.object->DrawShadow();
+		}
 	}
 }
 
 void DebugScene::Draw2DSprites()
 {
-#pragma region スプライトの描画                    
-
-	// 背景用の共通描画設定（後面）
 	SpriteManager::GetInstance()->SetRenderSetting_Background();
-
-#pragma endregion
-
-
-#pragma region UIの描画
-
-	// UI用の共通描画設定
 	SpriteManager::GetInstance()->SetRenderSetting_UI();
-
-
-#pragma endregion
 }
 
 void DebugScene::Finalize()
 {
-	// 入力状態を必ず戻す（ロック/非表示のまま終了しない）
 	input_->SetLockCursor(false);
 	input_->SetCursorVisible(true);
 
-	debugBreakObject_.reset();
+	debugVoxelBlocks_.clear();
 	debugBoss_.reset();
 	collisionManager_.reset();
 
@@ -249,10 +221,8 @@ void DebugScene::DrawImGui()
 
 	ImGui::End();
 
-	/// ---------- GPUパーティクルデバッグ ---------- ///
 	GpuParticleManager::GetInstance()->DrawImGui();
 
-	/// ---------- Sprite / Mesh Particle 比較テスト ---------- ///
 	{
 		static char meshModelPath[256] = "Test/cube.gltf";
 		static int meshId = 1000;
@@ -278,12 +248,13 @@ void DebugScene::DrawImGui()
 		const GpuParticleType selectedType = ToDebugParticleType(particleTypeIndex);
 
 		ImGui::Begin("GPU Particle Sprite / Mesh Test");
-		ImGui::TextWrapped("Sprite and Mesh particles can be spawned from this DebugScene-only panel. Mesh uses textureFilePath = Mesh:<MeshId> internally.");
-		ImGui::Separator();
 
 		ImGui::InputText("Mesh Model Path", meshModelPath, IM_ARRAYSIZE(meshModelPath));
 		ImGui::InputInt("MeshId", &meshId);
-		if (meshId < 0) { meshId = 0; }
+		if (meshId < 0)
+		{
+			meshId = 0;
+		}
 
 		if (ImGui::Button("Load Mesh Asset"))
 		{
@@ -400,124 +371,51 @@ void DebugScene::DrawImGui()
 			DebugLog(debugParticleLog_);
 		}
 
-		ImGui::SeparatorText("Dissolve Break Test");
-		ImGui::DragFloat("Dissolve Duration", &debugArmorBreakDissolveDuration_, 0.01f, 0.20f, 5.00f);
-		ImGui::DragFloat("Dissolve Emit Interval", &debugArmorBreakDissolveEmitInterval_, 0.001f, 0.01f, 0.30f);
-		ImGui::DragInt("Dissolve Count/Burst", reinterpret_cast<int*>(&debugArmorBreakDissolveCountPerBurst_), 1.0f, 1, 64);
-		if (ImGui::Button("Start Dissolve Break"))
-		{
-			StartDebugArmorBreakDissolve(static_cast<uint32_t>(meshId), meshModelPath, center, radius);
-		}
-		ImGui::SameLine();
-		if (ImGui::Button("Stop Dissolve Break"))
-		{
-			debugArmorBreakDissolveActive_ = false;
-		}
-		ImGui::Text("Dissolve Active: %s  Time: %.2f / %.2f", debugArmorBreakDissolveActive_ ? "true" : "false", debugArmorBreakDissolveTimer_, debugArmorBreakDissolveDuration_);
+		ImGui::SeparatorText("Voxel Disintegration Test");
 
-		ImGui::SeparatorText("Object3D Break Test");
-		static char breakObjectModelPath[256] = "Test/cube.gltf";
-		ImGui::InputText("Break Object Model", breakObjectModelPath, IM_ARRAYSIZE(breakObjectModelPath));
-		ImGui::DragFloat3("Break Object Position", &debugBreakObjectCenter_.x, 0.05f);
-		ImGui::DragFloat("Break Object Scale", &debugBreakObjectScale_, 0.01f, 0.05f, 10.0f);
-		ImGui::DragFloat("Break Object Duration", &debugBreakObjectDissolveDuration_, 0.01f, 0.20f, 5.00f);
-		ImGui::DragFloat("Break Object Emit Interval", &debugBreakObjectEmitInterval_, 0.001f, 0.01f, 0.30f);
-		ImGui::DragFloat("Break Object Particle Radius", &debugBreakObjectParticleRadius_, 0.01f, 0.05f, 5.0f);
-		ImGui::DragInt("Break Object Count/Burst", reinterpret_cast<int*>(&debugBreakObjectCountPerBurst_), 1.0f, 1, 64);
-		if (ImGui::Button("Reset Break Object"))
+		static char voxelModelPath[256] = "Test/cube.gltf";
+		ImGui::InputText("Voxel Model", voxelModelPath, IM_ARRAYSIZE(voxelModelPath));
+		ImGui::DragFloat3("Voxel Center", &debugVoxelCenter_.x, 0.05f);
+		ImGui::DragInt("Grid X", &debugVoxelGridX_, 1.0f, 1, 8);
+		ImGui::DragInt("Grid Y", &debugVoxelGridY_, 1.0f, 1, 8);
+		ImGui::DragInt("Grid Z", &debugVoxelGridZ_, 1.0f, 1, 8);
+		ImGui::DragFloat("Voxel Block Scale", &debugVoxelBlockScale_, 0.01f, 0.05f, 2.0f);
+		ImGui::DragFloat("Voxel Spacing", &debugVoxelSpacing_, 0.01f, 0.05f, 2.0f);
+		ImGui::DragFloat("Voxel Duration", &debugVoxelDisintegrationDuration_, 0.01f, 0.20f, 5.00f);
+		ImGui::DragFloat("Voxel Particle Radius", &debugVoxelParticleRadius_, 0.01f, 0.05f, 3.0f);
+
+		int voxelParticleCount = static_cast<int>(debugVoxelParticleCount_);
+		if (ImGui::DragInt("Voxel Particle Count", &voxelParticleCount, 1.0f, 1, 64))
 		{
-			ResetDebugBreakObject(breakObjectModelPath, debugBreakObjectCenter_, debugBreakObjectScale_);
+			debugVoxelParticleCount_ = static_cast<uint32_t>(std::max(voxelParticleCount, 1));
 		}
+
+		if (ImGui::Button("Build Voxel Object"))
+		{
+			debugVoxelModelPath_ = voxelModelPath;
+			BuildDebugVoxelDisintegration();
+		}
+
 		ImGui::SameLine();
-		if (ImGui::Button("Start Object3D Break"))
+		if (ImGui::Button("Start Voxel Disintegration"))
 		{
-			debugBreakObjectModelPath_ = breakObjectModelPath;
-			StartDebugBreakObjectDissolve();
+			debugVoxelModelPath_ = voxelModelPath;
+			StartDebugVoxelDisintegration();
 		}
-		ImGui::Text("Object Active: %s  Visible: %s  Time: %.2f / %.2f",
-			debugBreakObjectDissolveActive_ ? "true" : "false",
-			debugBreakObjectVisible_ ? "true" : "false",
-			debugBreakObjectDissolveTimer_,
-			debugBreakObjectDissolveDuration_);
+
+		ImGui::Text("Voxel Active: %s  Blocks: %zu  Time: %.2f / %.2f",
+			debugVoxelDisintegrationActive_ ? "true" : "false",
+			debugVoxelBlocks_.size(),
+			debugVoxelDisintegrationTimer_,
+			debugVoxelDisintegrationDuration_);
 
 		ImGui::Separator();
 		ImGui::Text("Sprite position: %.2f, %.2f, %.2f", spritePos.x, spritePos.y, spritePos.z);
 		ImGui::Text("Mesh position:   %.2f, %.2f, %.2f", meshPos.x, meshPos.y, meshPos.z);
 		ImGui::TextWrapped("%s", debugParticleLog_.c_str());
+
 		ImGui::End();
 	}
-
-	/// ---------- 武器マスターデータエディタ ---------- ///
-	static WeaponMasterDataDatabase weaponDB;
-	static WeaponMasterDataEditor weaponEditor;
-	static WeaponEditorHooks hooks;
-	static bool initialized = false;
-	static int32_t lastAppliedID = 0;
-
-	if (!initialized)
-	{
-		initialized = true;
-
-		// まだ保存/再読込はしないので一旦空実装でOK
-		hooks.SaveAll = [&]()
-			{
-				std::string err;
-				const std::filesystem::path outRoot = "Resources/JSON/weapons";
-				WeaponMasterDataWriter::SaveAllByCategory(weaponDB, outRoot, &err);
-			};
-		hooks.RequestReloadFocus = [](int32_t) {};
-		hooks.RebuildLoadout = []() {};
-
-		// Applyされたら「最後のID」を更新（動作確認）
-		hooks.ApplyToRuntimeIfCurrent =
-			[&](int32_t weaponID, const FWeaponMasterData&)
-			{
-				lastAppliedID = weaponID;
-			};
-
-		// 削除はDBから消すだけ（ファイル削除は後で）
-		hooks.RequestDelete =
-			[&](int32_t weaponID)
-			{
-				std::string err;
-				const std::filesystem::path outRoot = "Resources/JSON/weapons";
-
-				// まずはディスク上のjsonファイルを削除
-				WeaponMasterDataWriter::DeleteFilesByWeaponID(outRoot, weaponID, &err);
-
-				// DBから削除
-				weaponDB.RemoveByID(weaponID);
-			};
-
-		// 追加予約は今は使わないなら空でOK
-		hooks.RequestAdd = [](const std::string&, int32_t) {};
-
-		// 初期データを2つだけ作る（任意）
-		weaponDB.Clear();
-	}
-
-	ImGui::Begin("武器マスターデータエディタ");
-	if (ImGui::CollapsingHeader("Weapon Master Editor", ImGuiTreeNodeFlags_DefaultOpen))
-	{
-		ImGui::Text("Count: %zu", weaponDB.Size());
-		ImGui::Text("Last Applied ID: %d", lastAppliedID);
-		ImGui::Separator();
-
-		weaponEditor.DrawImGui(weaponDB, hooks);
-	}
-
-	ImGui::Separator();
-	ImGui::Text("Press H to test hit.");
-	ImGui::TextWrapped("%s", debugHitLog_.c_str());
-
-	ImGui::Separator();
-	ImGui::Text("Particle Test");
-	ImGui::Text("1 : HitSpark");
-	ImGui::Text("2 : Heal_Effect");
-	ImGui::Text("3 : Boss_Appear_Dust");
-	ImGui::TextWrapped("%s", debugParticleLog_.c_str());
-
-	ImGui::End();
 
 #endif // USE_IMGUI
 }
@@ -530,15 +428,9 @@ void DebugScene::UpdateDebug()
 		Wireframe::GetInstance()->SetDebugCamera(!Wireframe::GetInstance()->GetDebugCamera());
 		GpuParticleManager::GetInstance()->SetDebugCameraEnabled(!isDebugCamera_);
 		isDebugCamera_ = !isDebugCamera_;
-
-		/*input_->SetLockCursor(!isDebugCamera_);
-		input_->SetCursorVisible(isDebugCamera_);*/
 	}
 }
 
-/// -------------------------------------------------------------
-/// BossHitPart をログ用文字列へ変換
-/// -------------------------------------------------------------
 const char* DebugScene::ToString(BossHitPart part) const
 {
 	switch (part)
@@ -553,12 +445,6 @@ const char* DebugScene::ToString(BossHitPart part) const
 	}
 }
 
-/// -------------------------------------------------------------
-/// DebugScene での仮ヒット確認
-///
-/// Hキーを押した瞬間に簡易球判定を飛ばし、
-/// 結果を OutputDebugStringA で出力する
-/// -------------------------------------------------------------
 void DebugScene::UpdateDebugBossHitTest()
 {
 	if (!debugBossHitTestEnabled_)
@@ -573,14 +459,13 @@ void DebugScene::UpdateDebugBossHitTest()
 		return;
 	}
 
-	// Hキーを押した瞬間だけ判定
 	if (!input_->TriggerKey(DIK_H))
 	{
 		return;
 	}
 
 	Vector3 attackCenter = debugBoss_->GetCenterPosition();
-	attackCenter.y += 1.0f; // 頭寄りを狙いやすくする
+	attackCenter.y += 1.0f;
 
 	const BossHitResult hitResult =
 		debugBoss_->CheckDebugHitSphere(attackCenter, debugHitRadius_);
@@ -598,21 +483,20 @@ void DebugScene::UpdateDebugBossHitTest()
 			effectPos,
 			18);
 
-		StartDebugArmorBreakDissolve(1000, "Test/cube.gltf", effectPos, 0.35f);
+		StartDebugVoxelDisintegration();
 
 		debugHitLog_ =
 			std::string("HIT  Part: ") + ToString(hitResult.part) +
 			"  Damage: " + std::to_string(debugBaseDamage_ * hitResult.damageMultiplier) +
 			"  HP: " + std::to_string(debugBoss_->GetHP()) +
 			" / " + std::to_string(debugBoss_->GetMaxHP());
-
-		DebugLog(debugHitLog_);
 	}
 	else
 	{
 		debugHitLog_ = "MISS";
-		DebugLog(debugHitLog_);
 	}
+
+	DebugLog(debugHitLog_);
 }
 
 void DebugScene::UpdateDebugParticleTest()
@@ -631,9 +515,6 @@ void DebugScene::UpdateDebugParticleTest()
 
 	const Vector3 bossCenter = debugBoss_->GetCenterPosition();
 
-	// ---------------------------------------------------------
-	// 1キー: ヒット火花
-	// ---------------------------------------------------------
 	if (input_->TriggerKey(DIK_1))
 	{
 		Vector3 pos = bossCenter;
@@ -649,9 +530,6 @@ void DebugScene::UpdateDebugParticleTest()
 		DebugLog(debugParticleLog_);
 	}
 
-	// ---------------------------------------------------------
-	// 2キー: 回復エフェクト
-	// ---------------------------------------------------------
 	if (input_->TriggerKey(DIK_2))
 	{
 		Vector3 pos = bossCenter;
@@ -667,9 +545,6 @@ void DebugScene::UpdateDebugParticleTest()
 		DebugLog(debugParticleLog_);
 	}
 
-	// ---------------------------------------------------------
-	// 3キー: ボス登場砂埃
-	// ---------------------------------------------------------
 	if (input_->TriggerKey(DIK_3))
 	{
 		Vector3 pos = bossCenter;
@@ -685,212 +560,180 @@ void DebugScene::UpdateDebugParticleTest()
 	}
 }
 
-void DebugScene::StartDebugArmorBreakDissolve(uint32_t meshId, const std::string& meshModelPath, const Vector3& center, float radius)
+void DebugScene::BuildDebugVoxelDisintegration()
 {
-	GpuParticleManager* gpuParticleManager = GpuParticleManager::GetInstance();
-	if (!gpuParticleManager)
+	debugVoxelDisintegrationActive_ = false;
+	debugVoxelDisintegrationTimer_ = 0.0f;
+	debugVoxelBlocks_.clear();
+
+	debugVoxelGridX_ = std::clamp(debugVoxelGridX_, 1, 8);
+	debugVoxelGridY_ = std::clamp(debugVoxelGridY_, 1, 8);
+	debugVoxelGridZ_ = std::clamp(debugVoxelGridZ_, 1, 8);
+
+	const Vector3 half{
+		(debugVoxelGridX_ - 1) * debugVoxelSpacing_ * 0.5f,
+		(debugVoxelGridY_ - 1) * debugVoxelSpacing_ * 0.5f,
+		(debugVoxelGridZ_ - 1) * debugVoxelSpacing_ * 0.5f
+	};
+
+	const Vector3 impactCenter{
+		debugVoxelCenter_.x,
+		debugVoxelCenter_.y + debugVoxelSpacing_ * 0.45f,
+		debugVoxelCenter_.z - debugVoxelSpacing_ * 0.35f
+	};
+
+	float maxDistance = 0.001f;
+
+	for (int z = 0; z < debugVoxelGridZ_; ++z)
 	{
-		return;
-	}
-
-	if (!gpuParticleManager->FindMeshAsset(meshId))
-	{
-		gpuParticleManager->LoadMeshAssetsFromAssimp(meshId, meshModelPath, true);
-	}
-
-	debugArmorBreakDissolveActive_ = true;
-	debugArmorBreakDissolveTimer_ = 0.0f;
-	debugArmorBreakDissolveEmitTimer_ = 0.0f;
-	debugArmorBreakDissolveMeshId_ = meshId;
-	debugArmorBreakDissolveCenter_ = center;
-	debugArmorBreakDissolveRadius_ = radius;
-	debugArmorBreakDissolveMeshModelPath_ = meshModelPath;
-
-	debugParticleLog_ = "Start: ArmorBreak dissolve-style mesh particle sequence.";
-	DebugLog(debugParticleLog_);
-}
-
-void DebugScene::UpdateDebugArmorBreakDissolve(float deltaTime)
-{
-	if (!debugArmorBreakDissolveActive_)
-	{
-		return;
-	}
-
-	GpuParticleManager* gpuParticleManager = GpuParticleManager::GetInstance();
-	if (!gpuParticleManager)
-	{
-		debugArmorBreakDissolveActive_ = false;
-		return;
-	}
-
-	debugArmorBreakDissolveTimer_ += deltaTime;
-	debugArmorBreakDissolveEmitTimer_ += deltaTime;
-
-	if (debugArmorBreakDissolveTimer_ >= debugArmorBreakDissolveDuration_)
-	{
-		debugArmorBreakDissolveActive_ = false;
-		debugParticleLog_ = "Finish: ArmorBreak dissolve-style mesh particle sequence.";
-		DebugLog(debugParticleLog_);
-		return;
-	}
-
-	if (debugArmorBreakDissolveEmitTimer_ < debugArmorBreakDissolveEmitInterval_)
-	{
-		return;
-	}
-	debugArmorBreakDissolveEmitTimer_ = 0.0f;
-
-	const float t = debugArmorBreakDissolveTimer_ / std::max(debugArmorBreakDissolveDuration_, 0.001f);
-	const float sweepY = 1.0f - t;
-	Vector3 emitPos = debugArmorBreakDissolveCenter_;
-	emitPos.y += (sweepY - 0.5f) * 1.65f;
-	emitPos.x += std::sin(debugArmorBreakDissolveTimer_ * 18.0f) * 0.18f;
-	emitPos.z += std::cos(debugArmorBreakDissolveTimer_ * 13.0f) * 0.18f;
-
-	const float localRadius = debugArmorBreakDissolveRadius_ * (0.65f + t * 0.85f);
-	const uint32_t burstCount = debugArmorBreakDissolveCountPerBurst_ + static_cast<uint32_t>(t * 10.0f);
-
-	if (auto* meshEmitter = PrepareDebugMeshParticleEmitter(
-		gpuParticleManager,
-		"DebugScene_ArmorBreakDissolveMesh",
-		debugArmorBreakDissolveMeshId_,
-		GpuParticleType::ArmorBreak,
-		emitPos,
-		localRadius))
-	{
-		meshEmitter->RequestEmit(burstCount);
-	}
-
-	if (t < 0.25f)
-	{
-		if (auto* flashEmitter = gpuParticleManager->EmitBurst(
-			"DebugScene_ArmorBreakDissolveFlash",
-			GpuParticleType::MuzzleFlash,
-			emitPos,
-			3))
+		for (int y = 0; y < debugVoxelGridY_; ++y)
 		{
-			flashEmitter->GetInfoMutable().radius = localRadius * 0.45f;
-			flashEmitter->SetPosition(emitPos);
-		}
-	}
-}
-
-void DebugScene::ResetDebugBreakObject(const std::string& modelPath, const Vector3& center, float scale)
-{
-	debugBreakObjectModelPath_ = modelPath;
-	debugBreakObjectCenter_ = center;
-	debugBreakObjectScale_ = scale;
-
-	debugBreakObject_ = std::make_unique<K4E::Object3D>();
-	debugBreakObject_->Initialize(modelPath);
-	debugBreakObject_->SetTranslate(center);
-	debugBreakObject_->SetScale({ scale, scale, scale });
-	debugBreakObject_->SetDissolveThreshold(1.0f);
-	debugBreakObject_->SetDissolveEdgeThickness(0.06f);
-	debugBreakObject_->SetDissolveEdgeColor({ 0.85f, 1.0f, 1.0f, 1.0f });
-	debugBreakObject_->Update();
-
-	debugBreakObjectVisible_ = true;
-	debugBreakObjectDissolveActive_ = false;
-	debugBreakObjectDissolveTimer_ = 0.0f;
-	debugBreakObjectEmitTimer_ = 0.0f;
-
-	debugParticleLog_ = "Reset: Object3D break target.";
-	DebugLog(debugParticleLog_);
-}
-
-void DebugScene::StartDebugBreakObjectDissolve()
-{
-	if (!debugBreakObject_)
-	{
-		ResetDebugBreakObject(debugBreakObjectModelPath_, debugBreakObjectCenter_, debugBreakObjectScale_);
-	}
-
-	GpuParticleManager* gpuParticleManager = GpuParticleManager::GetInstance();
-	if (gpuParticleManager && !gpuParticleManager->FindMeshAsset(debugBreakObjectMeshId_))
-	{
-		gpuParticleManager->LoadMeshAssetsFromAssimp(debugBreakObjectMeshId_, debugBreakObjectModelPath_, true);
-	}
-
-	debugBreakObjectVisible_ = true;
-	debugBreakObjectDissolveActive_ = true;
-	debugBreakObjectDissolveTimer_ = 0.0f;
-	debugBreakObjectEmitTimer_ = 0.0f;
-
-	debugBreakObject_->SetDissolveThreshold(1.0f);
-	debugBreakObject_->SetDissolveEdgeThickness(0.08f);
-	debugBreakObject_->SetDissolveEdgeColor({ 0.85f, 1.0f, 1.0f, 1.0f });
-
-	debugParticleLog_ = "Start: Object3D dissolve break.";
-	DebugLog(debugParticleLog_);
-}
-
-void DebugScene::UpdateDebugBreakObjectDissolve(float deltaTime)
-{
-	if (!debugBreakObjectDissolveActive_ || !debugBreakObject_)
-	{
-		return;
-	}
-
-	GpuParticleManager* gpuParticleManager = GpuParticleManager::GetInstance();
-	if (!gpuParticleManager)
-	{
-		debugBreakObjectDissolveActive_ = false;
-		return;
-	}
-
-	debugBreakObjectDissolveTimer_ += deltaTime;
-	debugBreakObjectEmitTimer_ += deltaTime;
-
-	const float duration = std::max(debugBreakObjectDissolveDuration_, 0.001f);
-	const float t = std::clamp(debugBreakObjectDissolveTimer_ / duration, 0.0f, 1.0f);
-	const float threshold = std::max(1.0f - t * 1.08f, -0.05f);
-	debugBreakObject_->SetDissolveThreshold(threshold);
-	debugBreakObject_->SetDissolveEdgeThickness(0.06f + t * 0.06f);
-
-	if (debugBreakObjectEmitTimer_ >= debugBreakObjectEmitInterval_)
-	{
-		debugBreakObjectEmitTimer_ = 0.0f;
-
-		Vector3 emitPos = debugBreakObjectCenter_;
-		emitPos.y += (0.5f - t) * debugBreakObjectScale_ * 1.4f;
-		emitPos.x += std::sin(debugBreakObjectDissolveTimer_ * 21.0f) * debugBreakObjectScale_ * 0.18f;
-		emitPos.z += std::cos(debugBreakObjectDissolveTimer_ * 15.0f) * debugBreakObjectScale_ * 0.18f;
-
-		const float localRadius = debugBreakObjectParticleRadius_ * (0.55f + t * 0.9f);
-		const uint32_t burstCount = debugBreakObjectCountPerBurst_ + static_cast<uint32_t>(t * 12.0f);
-
-		if (auto* meshEmitter = PrepareDebugMeshParticleEmitter(
-			gpuParticleManager,
-			"DebugScene_Object3DBreakMesh",
-			debugBreakObjectMeshId_,
-			GpuParticleType::ArmorBreak,
-			emitPos,
-			localRadius))
-		{
-			meshEmitter->RequestEmit(burstCount);
-		}
-
-		if (t < 0.28f)
-		{
-			if (auto* flashEmitter = gpuParticleManager->EmitBurst(
-				"DebugScene_Object3DBreakFlash",
-				GpuParticleType::MuzzleFlash,
-				emitPos,
-				4))
+			for (int x = 0; x < debugVoxelGridX_; ++x)
 			{
-				flashEmitter->GetInfoMutable().radius = localRadius * 0.35f;
-				flashEmitter->SetPosition(emitPos);
+				Vector3 pos{
+					debugVoxelCenter_.x + x * debugVoxelSpacing_ - half.x,
+					debugVoxelCenter_.y + y * debugVoxelSpacing_ - half.y,
+					debugVoxelCenter_.z + z * debugVoxelSpacing_ - half.z
+				};
+
+				const float dx = pos.x - impactCenter.x;
+				const float dy = pos.y - impactCenter.y;
+				const float dz = pos.z - impactCenter.z;
+				const float distance = std::sqrt(dx * dx + dy * dy + dz * dz);
+				maxDistance = std::max(maxDistance, distance);
 			}
 		}
 	}
 
-	if (t >= 1.0f)
+	for (int z = 0; z < debugVoxelGridZ_; ++z)
 	{
-		debugBreakObjectDissolveActive_ = false;
-		debugBreakObjectVisible_ = false;
-		debugParticleLog_ = "Finish: Object3D dissolve break.";
+		for (int y = 0; y < debugVoxelGridY_; ++y)
+		{
+			for (int x = 0; x < debugVoxelGridX_; ++x)
+			{
+				Vector3 pos{
+					debugVoxelCenter_.x + x * debugVoxelSpacing_ - half.x,
+					debugVoxelCenter_.y + y * debugVoxelSpacing_ - half.y,
+					debugVoxelCenter_.z + z * debugVoxelSpacing_ - half.z
+				};
+
+				const float dx = pos.x - impactCenter.x;
+				const float dy = pos.y - impactCenter.y;
+				const float dz = pos.z - impactCenter.z;
+				const float distance = std::sqrt(dx * dx + dy * dy + dz * dz);
+				const float normalized = distance / maxDistance;
+				const float jitter = static_cast<float>((x * 13 + y * 7 + z * 5) % 11) / 11.0f;
+
+				DebugVoxelBlock block{};
+				block.object = std::make_unique<K4E::Object3D>();
+				block.object->Initialize(debugVoxelModelPath_);
+				block.object->SetTranslate(pos);
+				block.object->SetScale({ debugVoxelBlockScale_, debugVoxelBlockScale_, debugVoxelBlockScale_ });
+				block.object->SetDissolveThreshold(1.0f);
+				block.object->SetDissolveEdgeThickness(0.0f);
+				block.object->Update();
+
+				block.position = pos;
+				block.visible = true;
+				block.breakTime = normalized * debugVoxelDisintegrationDuration_ * 0.85f + jitter * 0.12f;
+
+				debugVoxelBlocks_.push_back(std::move(block));
+			}
+		}
+	}
+
+	debugParticleLog_ = "Build: Voxel Disintegration object.";
+	DebugLog(debugParticleLog_);
+}
+
+void DebugScene::StartDebugVoxelDisintegration()
+{
+	if (debugVoxelBlocks_.empty())
+	{
+		BuildDebugVoxelDisintegration();
+	}
+
+	GpuParticleManager* gpuParticleManager = GpuParticleManager::GetInstance();
+	if (gpuParticleManager && !gpuParticleManager->FindMeshAsset(debugVoxelMeshId_))
+	{
+		gpuParticleManager->LoadMeshAssetsFromAssimp(debugVoxelMeshId_, debugVoxelModelPath_, true);
+	}
+
+	for (auto& block : debugVoxelBlocks_)
+	{
+		block.visible = true;
+	}
+
+	debugVoxelDisintegrationTimer_ = 0.0f;
+	debugVoxelDisintegrationActive_ = true;
+
+	debugParticleLog_ = "Start: Voxel Disintegration.";
+	DebugLog(debugParticleLog_);
+}
+
+void DebugScene::UpdateDebugVoxelDisintegration(float deltaTime)
+{
+	if (!debugVoxelDisintegrationActive_)
+	{
+		return;
+	}
+
+	debugVoxelDisintegrationTimer_ += deltaTime;
+
+	for (auto& block : debugVoxelBlocks_)
+	{
+		if (!block.visible || debugVoxelDisintegrationTimer_ < block.breakTime)
+		{
+			continue;
+		}
+
+		// ブロックを非表示にした地点から破片を出すことで、実際に欠けて崩れるように見せる。
+		block.visible = false;
+		EmitDebugVoxelBreakParticle(block.position, debugVoxelParticleCount_);
+	}
+
+	if (debugVoxelDisintegrationTimer_ >= debugVoxelDisintegrationDuration_)
+	{
+		debugVoxelDisintegrationActive_ = false;
+		debugParticleLog_ = "Finish: Voxel Disintegration.";
 		DebugLog(debugParticleLog_);
+	}
+}
+
+void DebugScene::EmitDebugVoxelBreakParticle(const Vector3& position, uint32_t count)
+{
+	GpuParticleManager* gpuParticleManager = GpuParticleManager::GetInstance();
+	if (!gpuParticleManager)
+	{
+		return;
+	}
+
+	if (!gpuParticleManager->FindMeshAsset(debugVoxelMeshId_))
+	{
+		gpuParticleManager->LoadMeshAssetsFromAssimp(debugVoxelMeshId_, debugVoxelModelPath_, true);
+	}
+
+	if (auto* meshEmitter = PrepareDebugMeshParticleEmitter(
+		gpuParticleManager,
+		"DebugScene_VoxelDisintegrationMesh",
+		debugVoxelMeshId_,
+		GpuParticleType::ArmorBreak,
+		position,
+		debugVoxelParticleRadius_))
+	{
+		meshEmitter->RequestEmit(count);
+	}
+
+	if (debugVoxelDisintegrationTimer_ < debugVoxelDisintegrationDuration_ * 0.25f)
+	{
+		if (auto* flashEmitter = gpuParticleManager->EmitBurst(
+			"DebugScene_VoxelDisintegrationFlash",
+			GpuParticleType::MuzzleFlash,
+			position,
+			2))
+		{
+			flashEmitter->GetInfoMutable().radius = debugVoxelParticleRadius_ * 0.35f;
+			flashEmitter->SetPosition(position);
+		}
 	}
 }
