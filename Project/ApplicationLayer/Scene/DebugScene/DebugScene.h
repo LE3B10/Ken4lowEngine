@@ -5,6 +5,7 @@
 #include "Enemy.h"
 #include "Player.h"
 #include "Derived/GuardianBoss/GuardianBoss.h"
+#include "Object3D.h"
 #include "Vector3.h"
 
 #include <cstdint>
@@ -16,7 +17,6 @@ namespace K4E = ::Ken4lowEngine;
 /// ---------- 前方宣言 ---------- ///
 namespace Ken4lowEngine { class DirectXCommon; }
 namespace Ken4lowEngine { class Input; }
-namespace Ken4lowEngine { class Object3D; }
 
 /// -------------------------------------------------------------
 ///					　	デバッグシーン
