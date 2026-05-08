@@ -163,6 +163,15 @@
     <ClCompile Include="ApplicationLayer\EffectLayer\ModelParticle.cpp">
       <Filter>ApplicationLayer\EffectLayer</Filter>
     </ClCompile>
+    <ClCompile Include="ApplicationLayer\EffectLayer\Disintegration\DisintegrationEmitter.cpp">
+      <Filter>ApplicationLayer\EffectLayer</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\EffectLayer\Disintegration\DisintegrationRenderer.cpp">
+      <Filter>ApplicationLayer\EffectLayer</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\EffectLayer\Disintegration\ModelDisintegrationEffect.cpp">
+      <Filter>ApplicationLayer\EffectLayer</Filter>
+    </ClCompile>
     <ClCompile Include="ApplicationLayer\Scene\StageSelectScene\State\StageSelectSelectingState.cpp">
       <Filter>ApplicationLayer\Scene\StageSelectScene\State</Filter>
     </ClCompile>
@@ -865,6 +874,18 @@
       <Filter>ApplicationLayer\Character\BaseCharacter</Filter>
     </ClInclude>
     <ClInclude Include="ApplicationLayer\EffectLayer\ModelParticle.h">
+      <Filter>ApplicationLayer\EffectLayer</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\EffectLayer\Disintegration\DisintegrationEmitter.h">
+      <Filter>ApplicationLayer\EffectLayer</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\EffectLayer\Disintegration\DisintegrationParticle.h">
+      <Filter>ApplicationLayer\EffectLayer</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\EffectLayer\Disintegration\DisintegrationRenderer.h">
+      <Filter>ApplicationLayer\EffectLayer</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\EffectLayer\Disintegration\ModelDisintegrationEffect.h">
       <Filter>ApplicationLayer\EffectLayer</Filter>
     </ClInclude>
     <ClInclude Include="ApplicationLayer\Scene\StageSelectScene\State\IStageSelectSceneState.h">
