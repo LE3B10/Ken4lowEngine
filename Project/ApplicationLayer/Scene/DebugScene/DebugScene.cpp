@@ -18,6 +18,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdio>
+#include <limits>
 #include <string>
 
 using namespace Ken4lowEngine;
@@ -28,6 +29,30 @@ namespace
 	{
 		std::string line = message + "\n";
 		OutputDebugStringA(line.c_str());
+	}
+
+
+	float Fract(float value)
+	{
+		return value - std::floor(value);
+	}
+
+	float Hash11(uint32_t value)
+	{
+		float p = static_cast<float>(value) * 0.1031f;
+		p = Fract(p);
+		p *= p + 33.33f;
+		p *= p + p;
+		return Fract(p);
+	}
+
+	Vector3 Hash31(uint32_t value)
+	{
+		return {
+			Hash11(value * 3u + 17u),
+			Hash11(value * 5u + 31u),
+			Hash11(value * 7u + 47u)
+		};
 	}
 
 	GpuParticleType ToDebugParticleType(int index)
@@ -387,8 +412,12 @@ void DebugScene::DrawImGui()
 		ImGui::DragFloat("Voxel Spacing", &debugVoxelSpacing_, 0.01f, 0.05f, 2.0f);
 		ImGui::DragFloat("Voxel Duration", &debugVoxelDisintegrationDuration_, 0.01f, 0.20f, 5.00f);
 		ImGui::DragFloat("Voxel Particle Radius", &debugVoxelParticleRadius_, 0.01f, 0.05f, 3.0f);
+		ImGui::DragFloat3("Plane Direction", &debugVoxelPlaneDirection_.x, 0.01f, -1.0f, 1.0f);
+		ImGui::DragFloat("Plane Noise Width", &debugVoxelPlaneNoiseWidth_, 0.01f, 0.0f, 2.0f);
 		ImGui::DragFloat("Ash Lead Time", &debugVoxelAshLeadTime_, 0.01f, 0.0f, 1.0f);
 		ImGui::DragFloat("Ash Emit Interval", &debugVoxelAshEmitInterval_, 0.001f, 0.005f, 0.20f);
+		ImGui::DragFloat("Jitter Strength", &debugVoxelJitterRate_, 0.01f, 0.0f, 0.95f);
+		ImGui::DragFloat("Voxel Random Rotation", &debugVoxelRandomRotationRate_, 0.01f, 0.0f, 1.0f);
 
 		int voxelParticleCount = static_cast<int>(debugVoxelParticleCount_);
 		if (ImGui::DragInt("Voxel Particle Count", &voxelParticleCount, 1.0f, 1, 64))
@@ -582,6 +611,8 @@ void DebugScene::BuildDebugVoxelDisintegration()
 	debugVoxelGridX_ = std::clamp(debugVoxelGridX_, 1, 8);
 	debugVoxelGridY_ = std::clamp(debugVoxelGridY_, 1, 8);
 	debugVoxelGridZ_ = std::clamp(debugVoxelGridZ_, 1, 8);
+	debugVoxelJitterRate_ = std::clamp(debugVoxelJitterRate_, 0.0f, 0.95f);
+	debugVoxelPlaneNoiseWidth_ = std::max(debugVoxelPlaneNoiseWidth_, 0.0f);
 
 	const Vector3 half{
 		(debugVoxelGridX_ - 1) * debugVoxelSpacing_ * 0.5f,
@@ -589,7 +620,24 @@ void DebugScene::BuildDebugVoxelDisintegration()
 		(debugVoxelGridZ_ - 1) * debugVoxelSpacing_ * 0.5f
 	};
 
-	float maxOrder = 0.001f;
+	const Vector3 planeNormal = Vector3::NormalizeSafe(
+		debugVoxelPlaneDirection_,
+		{ 0.85f, 0.35f, 0.18f });
+
+	struct VoxelBuildEntry
+	{
+		Vector3 basePosition{};
+		Vector3 position{};
+		Vector3 rotate{};
+		float seed = 0.0f;
+		float order = 0.0f;
+	};
+
+	std::vector<VoxelBuildEntry> entries;
+	entries.reserve(static_cast<size_t>(debugVoxelGridX_ * debugVoxelGridY_ * debugVoxelGridZ_));
+
+	float minOrder = std::numeric_limits<float>::max();
+	float maxOrder = std::numeric_limits<float>::lowest();
 
 	for (int z = 0; z < debugVoxelGridZ_; ++z)
 	{
@@ -597,50 +645,71 @@ void DebugScene::BuildDebugVoxelDisintegration()
 		{
 			for (int x = 0; x < debugVoxelGridX_; ++x)
 			{
-				const float nx = debugVoxelGridX_ <= 1 ? 0.0f : static_cast<float>(x) / static_cast<float>(debugVoxelGridX_ - 1);
-				const float ny = debugVoxelGridY_ <= 1 ? 0.0f : static_cast<float>(y) / static_cast<float>(debugVoxelGridY_ - 1);
-				const float nz = debugVoxelGridZ_ <= 1 ? 0.0f : static_cast<float>(z) / static_cast<float>(debugVoxelGridZ_ - 1);
-				const float order = nx * 0.45f + ny * 0.35f + nz * 0.20f;
-				maxOrder = std::max(maxOrder, order);
-			}
-		}
-	}
+				const uint32_t linearIndex = static_cast<uint32_t>(
+					x + y * debugVoxelGridX_ + z * debugVoxelGridX_ * debugVoxelGridY_);
 
-	for (int z = 0; z < debugVoxelGridZ_; ++z)
-	{
-		for (int y = 0; y < debugVoxelGridY_; ++y)
-		{
-			for (int x = 0; x < debugVoxelGridX_; ++x)
-			{
-				Vector3 pos{
+				const Vector3 basePos{
 					debugVoxelCenter_.x + x * debugVoxelSpacing_ - half.x,
 					debugVoxelCenter_.y + y * debugVoxelSpacing_ - half.y,
 					debugVoxelCenter_.z + z * debugVoxelSpacing_ - half.z
 				};
 
-				const float nx = debugVoxelGridX_ <= 1 ? 0.0f : static_cast<float>(x) / static_cast<float>(debugVoxelGridX_ - 1);
-				const float ny = debugVoxelGridY_ <= 1 ? 0.0f : static_cast<float>(y) / static_cast<float>(debugVoxelGridY_ - 1);
-				const float nz = debugVoxelGridZ_ <= 1 ? 0.0f : static_cast<float>(z) / static_cast<float>(debugVoxelGridZ_ - 1);
-				const float order = (nx * 0.45f + ny * 0.35f + nz * 0.20f) / maxOrder;
-				const float jitter = static_cast<float>((x * 13 + y * 7 + z * 5) % 11) / 11.0f;
+				const Vector3 jitter = (Hash31(linearIndex) - Vector3{ 0.5f, 0.5f, 0.5f })
+					* (debugVoxelSpacing_ * debugVoxelJitterRate_);
+				const Vector3 pos = basePos + jitter;
+				const float seed = Hash11(linearIndex + 101u);
+				const float planeNoise = (Hash11(linearIndex + 503u) - 0.5f) * debugVoxelPlaneNoiseWidth_;
+				// 平面が通過する灰化順にノイズを混ぜ、完全なランダム消滅や直線境界を避ける。
+				const float order = Vector3::Dot(pos - debugVoxelCenter_, planeNormal) + planeNoise;
 
-				DebugVoxelBlock block{};
-				block.object = std::make_unique<K4E::Object3D>();
-				block.object->Initialize(debugVoxelModelPath_);
-				block.object->SetTranslate(pos);
-				block.object->SetScale({ debugVoxelBlockScale_, debugVoxelBlockScale_, debugVoxelBlockScale_ });
-				block.object->SetDissolveThreshold(1.0f);
-				block.object->SetDissolveEdgeThickness(0.0f);
-				block.object->Update();
+				VoxelBuildEntry entry{};
+				entry.basePosition = basePos;
+				entry.position = pos;
+				entry.seed = seed;
+				entry.order = order;
+				entry.rotate = {
+					(Hash11(linearIndex + 701u) - 0.5f) * 6.2831853f * debugVoxelRandomRotationRate_,
+					(Hash11(linearIndex + 809u) - 0.5f) * 6.2831853f * debugVoxelRandomRotationRate_,
+					(Hash11(linearIndex + 907u) - 0.5f) * 6.2831853f * debugVoxelRandomRotationRate_
+				};
 
-				block.position = pos;
-				block.visible = true;
-				block.ashEmitTimer = 0.0f;
-				block.breakTime = order * debugVoxelDisintegrationDuration_ * 0.88f + jitter * 0.10f;
-
-				debugVoxelBlocks_.push_back(std::move(block));
+				minOrder = std::min(minOrder, order);
+				maxOrder = std::max(maxOrder, order);
+				entries.push_back(entry);
 			}
 		}
+	}
+
+	const float orderRange = std::max(maxOrder - minOrder, 0.001f);
+
+	for (const VoxelBuildEntry& entry : entries)
+	{
+		const float order01 = std::clamp((entry.order - minOrder) / orderRange, 0.0f, 1.0f);
+		const float localDelay = (entry.seed - 0.5f) * debugVoxelAshEmitInterval_ * 1.5f;
+
+		DebugVoxelBlock block{};
+		block.object = std::make_unique<K4E::Object3D>();
+		block.object->Initialize(debugVoxelModelPath_);
+		block.object->SetTranslate(entry.position);
+		block.object->SetRotate(entry.rotate);
+		block.object->SetScale({ debugVoxelBlockScale_, debugVoxelBlockScale_, debugVoxelBlockScale_ });
+		block.object->SetDissolveThreshold(1.0f);
+		block.object->SetDissolveEdgeThickness(0.0f);
+		// TODO: 既存描画パイプラインに影響しない範囲で、灰化境界のDither discard化を検討する。
+		block.object->Update();
+
+		block.basePosition = entry.basePosition;
+		block.position = entry.position;
+		block.rotate = entry.rotate;
+		block.visible = true;
+		block.ashEmitTimer = debugVoxelAshEmitInterval_;
+		block.breakTime = std::clamp(
+			order01 * debugVoxelDisintegrationDuration_ * 0.92f + localDelay,
+			0.0f,
+			debugVoxelDisintegrationDuration_ * 0.98f);
+		block.seed = entry.seed;
+
+		debugVoxelBlocks_.push_back(std::move(block));
 	}
 
 	debugParticleLog_ = "Build: Voxel Disintegration object.";
@@ -690,7 +759,7 @@ void DebugScene::StartDebugVoxelAshDisintegration()
 	for (auto& block : debugVoxelBlocks_)
 	{
 		block.visible = true;
-		block.ashEmitTimer = 0.0f;
+		block.ashEmitTimer = debugVoxelAshEmitInterval_;
 	}
 
 	debugVoxelAshMode_ = true;
@@ -723,9 +792,10 @@ void DebugScene::UpdateDebugVoxelDisintegration(float deltaTime)
 			if (timeToBreak <= debugVoxelAshLeadTime_ && timeToBreak > 0.0f)
 			{
 				block.ashEmitTimer += deltaTime;
-				if (block.ashEmitTimer >= debugVoxelAshEmitInterval_)
+				const float emitInterval = std::max(debugVoxelAshEmitInterval_, 0.001f);
+				while (block.ashEmitTimer >= emitInterval)
 				{
-					block.ashEmitTimer = 0.0f;
+					block.ashEmitTimer -= emitInterval;
 					// 消える前から少量ずつ灰を漏らして、パッと消える感じを減らす。
 					EmitDebugVoxelBreakParticle(block.position, 1);
 				}

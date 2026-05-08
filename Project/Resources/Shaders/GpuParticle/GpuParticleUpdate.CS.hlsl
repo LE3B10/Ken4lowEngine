@@ -105,10 +105,11 @@ void main(uint3 DTid : SV_DispatchThreadID)
 
     if (p.type == GPU_PARTICLE_TYPE_VOXEL_ASH_FRAGMENT)
     {
+        float particlePhase = Hash13(float3((float) particleIndex, p.lifeTime, p.scale.x)) * 37.0f;
         float3 noisePos = p.translate * 1.75f + float3(
-            gPerFrame.time * 0.35f,
+            gPerFrame.time * 0.35f + particlePhase,
             gPerFrame.time * 0.22f,
-            gPerFrame.time * 0.28f
+            gPerFrame.time * 0.28f - particlePhase * 0.37f
         );
 
         float n1 = FBM3D(noisePos + float3(13.1f, 7.7f, 2.3f));
@@ -117,13 +118,13 @@ void main(uint3 DTid : SV_DispatchThreadID)
 
         float3 curlLikeWind = float3(
             n1 - 0.5f,
-            (n2 - 0.5f) * 0.35f,
+            (n2 - 0.5f) * 0.45f,
             n3 - 0.5f
         );
 
-        float3 mainWind = float3(0.85f, 0.22f, 0.18f);
-        float windStrength = lerp(0.35f, 1.15f, t);
-        float noiseStrength = 1.25f;
+        float3 mainWind = normalize(float3(0.85f, 0.26f, 0.18f));
+        float windStrength = lerp(0.35f, 1.25f, smoothstep(0.0f, 1.0f, t));
+        float noiseStrength = lerp(1.45f, 0.85f, t);
 
         // 灰粒子だけノイズ風の揺れを足して、風に舞うようにする。
         p.velocity += (mainWind * windStrength + curlLikeWind * noiseStrength) * dt;

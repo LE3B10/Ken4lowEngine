@@ -131,7 +131,7 @@ private: /// ---------- メンバ変数 ---------- ///
 	float debugVoxelAshLeadTime_ = 0.35f;
 	float debugVoxelAshEmitInterval_ = 0.045f;
 	float debugVoxelJitterRate_ = 0.65f;
-	float debugVoxelPlaneNoiseRate_ = 0.22f;
+	float debugVoxelPlaneNoiseWidth_ = 0.22f;
 	float debugVoxelRandomRotationRate_ = 1.0f;
 	float debugVoxelFlyLifeTime_ = 1.85f;
 	float debugVoxelWindStrength_ = 1.15f;
@@ -143,6 +143,7 @@ private: /// ---------- メンバ変数 ---------- ///
 	uint32_t debugVoxelMeshId_ = 1000;
 	uint32_t debugVoxelParticleCount_ = 10;
 	Vector3 debugVoxelCenter_{ 0.0f, 2.5f, 18.0f };
+	Vector3 debugVoxelPlaneDirection_{ 0.85f, 0.35f, 0.18f };
 	std::string debugVoxelModelPath_ = "Test/cube.gltf";
 };
 
