@@ -20,7 +20,7 @@ static const ParticleTypeParam kDefaultParticleTypeParam =
     0.0f
 };
 
-static const uint kParticleTypeParamCount = GPU_PARTICLE_TYPE_BULLET_TRACER + 1;
+static const uint kParticleTypeParamCount = GPU_PARTICLE_TYPE_ARMOR_BREAK + 1;
 
 static const ParticleTypeParam kParticleTypeParams[kParticleTypeParamCount] =
 {
@@ -65,6 +65,9 @@ static const ParticleTypeParam kParticleTypeParams[kParticleTypeParamCount] =
 
     // 13: BulletTracer
     { 0.85f, 2.20f, 0.0f, 1.2f, 0.0f, 10.0f },
+
+    // 14: ArmorBreak
+    { 1.00f, 1.65f, -5.5f, 1.8f, 0.0f, 0.0f },
 };
 
 ParticleTypeParam GetParticleTypeParam(uint type)
