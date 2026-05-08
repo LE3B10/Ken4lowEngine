@@ -1,4 +1,5 @@
 #include "GpuParticle.hlsli"
+#include "GpuParticleData.hlsli"
 
 // マテリアル構造体（スプライトPSと同じ）
 struct Material
@@ -22,6 +23,11 @@ PixelShaderOutput main(VertexShaderOutput input)
 {
     PixelShaderOutput output;
 
+    if (input.renderKind != GPU_PARTICLE_KIND_MESH)
+    {
+        discard;
+    }
+
     if (input.type != gMaterial.drawType)
     {
         discard;
@@ -32,7 +38,7 @@ PixelShaderOutput main(VertexShaderOutput input)
 
     output.color = gMaterial.color * tex * input.color;
 
-    if (output.color.a == 0.0f)
+    if (output.color.a < 0.001f)
     {
         discard;
     }
