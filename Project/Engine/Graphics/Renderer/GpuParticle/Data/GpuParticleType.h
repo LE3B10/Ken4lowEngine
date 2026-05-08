@@ -52,6 +52,9 @@ namespace Ken4lowEngine
 		// Voxel Disintegrationで元オブジェクトから剥がれた小ブロック片を表現するタイプ
 		VoxelFragment,
 
+		// 指パッチン風に灰化しながら流れて消えるVoxel破片
+		VoxelAshFragment,
+
 		Count
 	};
 
