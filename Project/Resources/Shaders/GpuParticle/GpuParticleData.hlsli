@@ -55,6 +55,7 @@ static const uint GPU_PARTICLE_TYPE_MUZZLE_FLASH = 12;
 static const uint GPU_PARTICLE_TYPE_BULLET_TRACER = 13;
 static const uint GPU_PARTICLE_TYPE_ARMOR_BREAK = 14;
 static const uint GPU_PARTICLE_TYPE_VOXEL_FRAGMENT = 15;
+static const uint GPU_PARTICLE_TYPE_VOXEL_ASH_FRAGMENT = 16;
 
 /// ---------- パーティクルデータ ---------- ///
 struct Particle
