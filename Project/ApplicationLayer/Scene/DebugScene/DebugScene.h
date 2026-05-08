@@ -5,7 +5,9 @@
 #include "Enemy.h"
 #include "Player.h"
 #include "Derived/GuardianBoss/GuardianBoss.h"
+#include "Vector3.h"
 
+#include <cstdint>
 #include <memory>
 #include <string>
 
@@ -57,6 +59,10 @@ private: /// ---------- メンバ関数 ---------- ///
 	/// テスト用GPUパーティクル発火
 	void UpdateDebugParticleTest();
 
+	/// ArmorBreakを連続発生させて、元オブジェクトが欠けていくように見せるテスト
+	void StartDebugArmorBreakDissolve(uint32_t meshId, const std::string& meshModelPath, const Vector3& center, float radius);
+	void UpdateDebugArmorBreakDissolve(float deltaTime);
+
 	/// -------------------------------------------------------------
 	/// BossHitPart を文字列へ変換
 	/// ログ確認用
@@ -83,5 +89,17 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	// --- GPUパーティクルテスト用 ---
 	std::string debugParticleLog_ = "Press 1/2/3 to test GPU particles.";
+
+	// --- ArmorBreak Dissolve テスト用 ---
+	bool debugArmorBreakDissolveActive_ = false;
+	float debugArmorBreakDissolveTimer_ = 0.0f;
+	float debugArmorBreakDissolveDuration_ = 1.35f;
+	float debugArmorBreakDissolveEmitTimer_ = 0.0f;
+	float debugArmorBreakDissolveEmitInterval_ = 0.055f;
+	float debugArmorBreakDissolveRadius_ = 0.35f;
+	uint32_t debugArmorBreakDissolveMeshId_ = 1000;
+	uint32_t debugArmorBreakDissolveCountPerBurst_ = 10;
+	Vector3 debugArmorBreakDissolveCenter_{ 0.0f, 2.5f, 18.0f };
+	std::string debugArmorBreakDissolveMeshModelPath_ = "Test/cube.gltf";
 };
 
