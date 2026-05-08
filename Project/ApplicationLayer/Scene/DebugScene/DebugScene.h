@@ -11,6 +11,7 @@
 #include <cstdint>
 #include <memory>
 #include <string>
+#include <vector>
 
 namespace K4E = ::Ken4lowEngine;
 
@@ -26,6 +27,17 @@ class DebugScene : public BaseScene
 private: /// ---------- エイリアス ---------- ///
 
 	using Vector3 = K4E::Vector3;
+
+	/// -------------------------------------------------------------
+	/// Voxel Disintegration確認用ブロック
+	/// -------------------------------------------------------------
+	struct DebugVoxelBlock
+	{
+		std::unique_ptr<K4E::Object3D> object;
+		Vector3 position{};
+		bool visible = true;
+		float breakTime = 0.0f;
+	};
 
 public: /// ---------- メンバ関数 ---------- ///
 
@@ -64,14 +76,11 @@ private: /// ---------- メンバ関数 ---------- ///
 	/// テスト用GPUパーティクル発火
 	void UpdateDebugParticleTest();
 
-	/// ArmorBreakを連続発生させて、元オブジェクトが欠けていくように見せるテスト
-	void StartDebugArmorBreakDissolve(uint32_t meshId, const std::string& meshModelPath, const Vector3& center, float radius);
-	void UpdateDebugArmorBreakDissolve(float deltaTime);
-
-	/// Object3Dを実際に欠けさせながらMeshParticleを出す崩壊テスト
-	void ResetDebugBreakObject(const std::string& modelPath, const Vector3& center, float scale);
-	void StartDebugBreakObjectDissolve();
-	void UpdateDebugBreakObjectDissolve(float deltaTime);
+	/// Voxel Disintegration確認用
+	void BuildDebugVoxelDisintegration();
+	void StartDebugVoxelDisintegration();
+	void UpdateDebugVoxelDisintegration(float deltaTime);
+	void EmitDebugVoxelBreakParticle(const Vector3& position, uint32_t count);
 
 	/// -------------------------------------------------------------
 	/// BossHitPart を文字列へ変換
@@ -90,9 +99,6 @@ private: /// ---------- メンバ変数 ---------- ///
 	// 描画確認用ボス
 	std::unique_ptr<GuardianBoss> debugBoss_;
 
-	// 実際にDissolveで欠けさせる確認用Object3D
-	std::unique_ptr<K4E::Object3D> debugBreakObject_;
-
 	// --- 仮ヒット確認用パラメータ ---
 	bool debugBossHitTestEnabled_ = true; // 仮ヒット確認ON/OFF
 	float debugHitRadius_ = 0.75f;        // 攻撃球の半径
@@ -103,30 +109,20 @@ private: /// ---------- メンバ変数 ---------- ///
 	// --- GPUパーティクルテスト用 ---
 	std::string debugParticleLog_ = "Press 1/2/3 to test GPU particles.";
 
-	// --- ArmorBreak Dissolve テスト用 ---
-	bool debugArmorBreakDissolveActive_ = false;
-	float debugArmorBreakDissolveTimer_ = 0.0f;
-	float debugArmorBreakDissolveDuration_ = 1.35f;
-	float debugArmorBreakDissolveEmitTimer_ = 0.0f;
-	float debugArmorBreakDissolveEmitInterval_ = 0.055f;
-	float debugArmorBreakDissolveRadius_ = 0.35f;
-	uint32_t debugArmorBreakDissolveMeshId_ = 1000;
-	uint32_t debugArmorBreakDissolveCountPerBurst_ = 10;
-	Vector3 debugArmorBreakDissolveCenter_{ 0.0f, 2.5f, 18.0f };
-	std::string debugArmorBreakDissolveMeshModelPath_ = "Test/cube.gltf";
-
-	// --- Object3D崩壊テスト用 ---
-	bool debugBreakObjectVisible_ = true;
-	bool debugBreakObjectDissolveActive_ = false;
-	float debugBreakObjectDissolveTimer_ = 0.0f;
-	float debugBreakObjectDissolveDuration_ = 1.80f;
-	float debugBreakObjectEmitTimer_ = 0.0f;
-	float debugBreakObjectEmitInterval_ = 0.050f;
-	float debugBreakObjectScale_ = 1.0f;
-	float debugBreakObjectParticleRadius_ = 0.45f;
-	uint32_t debugBreakObjectMeshId_ = 1000;
-	uint32_t debugBreakObjectCountPerBurst_ = 12;
-	Vector3 debugBreakObjectCenter_{ 0.0f, 2.5f, 18.0f };
-	std::string debugBreakObjectModelPath_ = "Test/cube.gltf";
+	// --- Voxel Disintegration テスト用 ---
+	std::vector<DebugVoxelBlock> debugVoxelBlocks_;
+	bool debugVoxelDisintegrationActive_ = false;
+	float debugVoxelDisintegrationTimer_ = 0.0f;
+	float debugVoxelDisintegrationDuration_ = 1.60f;
+	float debugVoxelBlockScale_ = 0.32f;
+	float debugVoxelSpacing_ = 0.34f;
+	float debugVoxelParticleRadius_ = 0.28f;
+	int debugVoxelGridX_ = 4;
+	int debugVoxelGridY_ = 4;
+	int debugVoxelGridZ_ = 3;
+	uint32_t debugVoxelMeshId_ = 1000;
+	uint32_t debugVoxelParticleCount_ = 10;
+	Vector3 debugVoxelCenter_{ 0.0f, 2.5f, 18.0f };
+	std::string debugVoxelModelPath_ = "Test/cube.gltf";
 };
 
