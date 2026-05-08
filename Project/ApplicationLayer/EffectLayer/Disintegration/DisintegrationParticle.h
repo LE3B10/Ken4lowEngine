@@ -13,6 +13,7 @@ struct DisintegrationParticle
 	K4E::Vector3 position{};
 	K4E::Vector3 velocity{};
 	K4E::Vector3 outward{};
+	K4E::Vector3 renderAxis{ 0.0f, 1.0f, 0.0f };
 	K4E::Vector4 color{ 0.72f, 0.66f, 0.55f, 1.0f };
 	float age = 0.0f;
 	float life = 1.0f;

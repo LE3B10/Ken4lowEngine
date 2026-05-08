@@ -38,6 +38,8 @@ void ModelDisintegrationEffect::PlayFromModel(const std::string& modelPath, cons
 	settings.spreadPower = parameters_.spreadPower;
 	settings.upwardPower = parameters_.upwardPower;
 	settings.startDelay = parameters_.startDelay;
+	settings.baseColor = parameters_.baseColor;
+	settings.colorVariation = parameters_.colorVariation;
 
 	particles_ = emitter_.EmitFromModel(model->GetModelData(), worldMatrix, settings);
 	isActive_ = !particles_.empty();
@@ -63,17 +65,28 @@ void ModelDisintegrationEffect::Update(float deltaTime)
 		}
 
 		const float activeAge = particle.age - particle.startDelay;
-		const float preserveRate = Clamp01(activeAge / std::max(parameters_.shapePreserveTime, 0.0001f));
+		if (activeAge < parameters_.shapePreserveTime)
+		{
+			// 崩壊開始までは初期位置へ引き戻し、粒子群のシルエットをモデル表面に固定する。
+			particle.velocity *= std::pow(0.08f, deltaTime);
+			particle.position += (particle.initialPosition - particle.position) * Clamp01(deltaTime * 12.0f);
+			particle.alpha = 1.0f;
+			anyAlive = true;
+			continue;
+		}
+
+		const float disintegrationAge = activeAge - parameters_.shapePreserveTime;
+		const float disintegrationRate = Clamp01(disintegrationAge / std::max(particle.life, 0.0001f));
 		const K4E::Vector3 noise = RandomNoiseVector() * parameters_.noisePower;
+		const K4E::Vector3 downward = { 0.0f, parameters_.gravity, 0.0f };
 
-		particle.velocity += (particle.outward * parameters_.spreadPower + noise) * (deltaTime * preserveRate);
-		particle.velocity.y += (parameters_.upwardPower + parameters_.gravity) * deltaTime;
-		particle.position += particle.velocity * (deltaTime * preserveRate);
+		particle.velocity += (particle.outward * parameters_.spreadPower + noise + downward) * deltaTime;
+		particle.velocity.y += parameters_.upwardPower * deltaTime;
+		particle.position += particle.velocity * deltaTime;
+		particle.size *= std::pow(0.96f, deltaTime);
+		particle.alpha = Clamp01(1.0f - disintegrationRate * parameters_.fadeSpeed);
 
-		const float lifeRate = Clamp01(activeAge / std::max(particle.life, 0.0001f));
-		particle.alpha = Clamp01(1.0f - lifeRate * parameters_.fadeSpeed);
-
-		if (activeAge >= particle.life || particle.alpha <= 0.0f)
+		if (disintegrationAge >= particle.life || particle.alpha <= 0.0f)
 		{
 			particle.alive = false;
 			continue;
@@ -110,6 +123,8 @@ void ModelDisintegrationEffect::DrawImGui()
 	ImGui::SliderFloat("upwardPower", &parameters_.upwardPower, -4.0f, 8.0f);
 	ImGui::SliderFloat("startDelay", &parameters_.startDelay, 0.0f, 3.0f);
 	ImGui::SliderFloat("shapePreserveTime", &parameters_.shapePreserveTime, 0.0f, 3.0f);
+	ImGui::ColorEdit4("baseColor", &parameters_.baseColor.x);
+	ImGui::SliderFloat("colorVariation", &parameters_.colorVariation, 0.0f, 0.5f);
 	ImGui::Text("Debug Key: F9 plays Characters/body.gltf at the player position.");
 	ImGui::End();
 #endif

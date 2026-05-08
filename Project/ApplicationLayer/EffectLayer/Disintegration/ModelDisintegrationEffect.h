@@ -2,6 +2,7 @@
 #include "DisintegrationEmitter.h"
 #include "DisintegrationRenderer.h"
 #include "Matrix4x4.h"
+#include "Vector4.h"
 
 #include <string>
 #include <vector>
@@ -15,15 +16,17 @@ public:
 	struct Parameters
 	{
 		int particleCount = 1200;
-		float particleSize = 0.035f;
-		float lifeTime = 2.0f;
+		float particleSize = 0.018f;
+		float lifeTime = 2.2f;
 		float spreadPower = 1.6f;
-		float gravity = -0.45f;
-		float noisePower = 0.8f;
+		float gravity = -1.25f;
+		float noisePower = 0.55f;
 		float fadeSpeed = 1.0f;
-		float upwardPower = 0.65f;
-		float startDelay = 0.35f;
-		float shapePreserveTime = 0.35f;
+		float upwardPower = 0.15f;
+		float startDelay = 0.15f;
+		float shapePreserveTime = 0.60f;
+		K4E::Vector4 baseColor{ 0.64f, 0.61f, 0.56f, 1.0f };
+		float colorVariation = 0.16f;
 	};
 
 	void Initialize();
