@@ -66,6 +66,11 @@ float2 ResolveFlipbookUV(VertexShaderOutput input, float2 baseUV)
 
 float4 main(VertexShaderOutput input) : SV_TARGET0
 {
+    if (input.renderKind != GPU_PARTICLE_KIND_SPRITE && input.renderKind != GPU_PARTICLE_KIND_RIBBON)
+    {
+        discard;
+    }
+
     if (input.type != gMaterial.drawType)
     {
         discard;
