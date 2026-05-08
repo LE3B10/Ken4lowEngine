@@ -387,6 +387,8 @@ void DebugScene::DrawImGui()
 		ImGui::DragFloat("Voxel Spacing", &debugVoxelSpacing_, 0.01f, 0.05f, 2.0f);
 		ImGui::DragFloat("Voxel Duration", &debugVoxelDisintegrationDuration_, 0.01f, 0.20f, 5.00f);
 		ImGui::DragFloat("Voxel Particle Radius", &debugVoxelParticleRadius_, 0.01f, 0.05f, 3.0f);
+		ImGui::DragFloat("Ash Lead Time", &debugVoxelAshLeadTime_, 0.01f, 0.0f, 1.0f);
+		ImGui::DragFloat("Ash Emit Interval", &debugVoxelAshEmitInterval_, 0.001f, 0.005f, 0.20f);
 
 		int voxelParticleCount = static_cast<int>(debugVoxelParticleCount_);
 		if (ImGui::DragInt("Voxel Particle Count", &voxelParticleCount, 1.0f, 1, 64))
@@ -587,13 +589,7 @@ void DebugScene::BuildDebugVoxelDisintegration()
 		(debugVoxelGridZ_ - 1) * debugVoxelSpacing_ * 0.5f
 	};
 
-	const Vector3 impactCenter{
-		debugVoxelCenter_.x,
-		debugVoxelCenter_.y + debugVoxelSpacing_ * 0.45f,
-		debugVoxelCenter_.z - debugVoxelSpacing_ * 0.35f
-	};
-
-	float maxDistance = 0.001f;
+	float maxOrder = 0.001f;
 
 	for (int z = 0; z < debugVoxelGridZ_; ++z)
 	{
@@ -601,17 +597,11 @@ void DebugScene::BuildDebugVoxelDisintegration()
 		{
 			for (int x = 0; x < debugVoxelGridX_; ++x)
 			{
-				Vector3 pos{
-					debugVoxelCenter_.x + x * debugVoxelSpacing_ - half.x,
-					debugVoxelCenter_.y + y * debugVoxelSpacing_ - half.y,
-					debugVoxelCenter_.z + z * debugVoxelSpacing_ - half.z
-				};
-
-				const float dx = pos.x - impactCenter.x;
-				const float dy = pos.y - impactCenter.y;
-				const float dz = pos.z - impactCenter.z;
-				const float distance = std::sqrt(dx * dx + dy * dy + dz * dz);
-				maxDistance = std::max(maxDistance, distance);
+				const float nx = debugVoxelGridX_ <= 1 ? 0.0f : static_cast<float>(x) / static_cast<float>(debugVoxelGridX_ - 1);
+				const float ny = debugVoxelGridY_ <= 1 ? 0.0f : static_cast<float>(y) / static_cast<float>(debugVoxelGridY_ - 1);
+				const float nz = debugVoxelGridZ_ <= 1 ? 0.0f : static_cast<float>(z) / static_cast<float>(debugVoxelGridZ_ - 1);
+				const float order = nx * 0.45f + ny * 0.35f + nz * 0.20f;
+				maxOrder = std::max(maxOrder, order);
 			}
 		}
 	}
@@ -628,11 +618,10 @@ void DebugScene::BuildDebugVoxelDisintegration()
 					debugVoxelCenter_.z + z * debugVoxelSpacing_ - half.z
 				};
 
-				const float dx = pos.x - impactCenter.x;
-				const float dy = pos.y - impactCenter.y;
-				const float dz = pos.z - impactCenter.z;
-				const float distance = std::sqrt(dx * dx + dy * dy + dz * dz);
-				const float normalized = distance / maxDistance;
+				const float nx = debugVoxelGridX_ <= 1 ? 0.0f : static_cast<float>(x) / static_cast<float>(debugVoxelGridX_ - 1);
+				const float ny = debugVoxelGridY_ <= 1 ? 0.0f : static_cast<float>(y) / static_cast<float>(debugVoxelGridY_ - 1);
+				const float nz = debugVoxelGridZ_ <= 1 ? 0.0f : static_cast<float>(z) / static_cast<float>(debugVoxelGridZ_ - 1);
+				const float order = (nx * 0.45f + ny * 0.35f + nz * 0.20f) / maxOrder;
 				const float jitter = static_cast<float>((x * 13 + y * 7 + z * 5) % 11) / 11.0f;
 
 				DebugVoxelBlock block{};
@@ -646,7 +635,8 @@ void DebugScene::BuildDebugVoxelDisintegration()
 
 				block.position = pos;
 				block.visible = true;
-				block.breakTime = normalized * debugVoxelDisintegrationDuration_ * 0.85f + jitter * 0.12f;
+				block.ashEmitTimer = 0.0f;
+				block.breakTime = order * debugVoxelDisintegrationDuration_ * 0.88f + jitter * 0.10f;
 
 				debugVoxelBlocks_.push_back(std::move(block));
 			}
@@ -673,6 +663,7 @@ void DebugScene::StartDebugVoxelDisintegration()
 	for (auto& block : debugVoxelBlocks_)
 	{
 		block.visible = true;
+		block.ashEmitTimer = 0.0f;
 	}
 
 	debugVoxelAshMode_ = false;
@@ -699,6 +690,7 @@ void DebugScene::StartDebugVoxelAshDisintegration()
 	for (auto& block : debugVoxelBlocks_)
 	{
 		block.visible = true;
+		block.ashEmitTimer = 0.0f;
 	}
 
 	debugVoxelAshMode_ = true;
@@ -720,14 +712,33 @@ void DebugScene::UpdateDebugVoxelDisintegration(float deltaTime)
 
 	for (auto& block : debugVoxelBlocks_)
 	{
-		if (!block.visible || debugVoxelDisintegrationTimer_ < block.breakTime)
+		if (!block.visible)
 		{
 			continue;
 		}
 
-		// ブロックを非表示にした地点からVoxel専用破片を出して、実際に分解されているように見せる。
+		if (debugVoxelAshMode_)
+		{
+			const float timeToBreak = block.breakTime - debugVoxelDisintegrationTimer_;
+			if (timeToBreak <= debugVoxelAshLeadTime_ && timeToBreak > 0.0f)
+			{
+				block.ashEmitTimer += deltaTime;
+				if (block.ashEmitTimer >= debugVoxelAshEmitInterval_)
+				{
+					block.ashEmitTimer = 0.0f;
+					// 消える前から少量ずつ灰を漏らして、パッと消える感じを減らす。
+					EmitDebugVoxelBreakParticle(block.position, 1);
+				}
+			}
+		}
+
+		if (debugVoxelDisintegrationTimer_ < block.breakTime)
+		{
+			continue;
+		}
+
 		block.visible = false;
-		EmitDebugVoxelBreakParticle(block.position, debugVoxelParticleCount_);
+		EmitDebugVoxelBreakParticle(block.position, debugVoxelAshMode_ ? std::max<uint32_t>(debugVoxelParticleCount_ / 3u, 1u) : debugVoxelParticleCount_);
 	}
 
 	if (debugVoxelDisintegrationTimer_ >= debugVoxelDisintegrationDuration_)
