@@ -52,7 +52,7 @@ static const ParticleSpawnParam kDefaultSpawnParam =
     1.0f, 1.0f
 };
 
-static const uint kParticleSpawnParamCount = GPU_PARTICLE_TYPE_BULLET_TRACER + 1;
+static const uint kParticleSpawnParamCount = GPU_PARTICLE_TYPE_ARMOR_BREAK + 1;
 
 static const ParticleSpawnParam kParticleSpawnParams[kParticleSpawnParamCount] =
 {
@@ -247,6 +247,20 @@ static const ParticleSpawnParam kParticleSpawnParams[kParticleSpawnParamCount] =
         float3(0.80f, 0.90f, 1.0f),
         float3(1.0f, 1.0f, 1.0f),
         GPU_PARTICLE_SPAWN_SHAPE_POINT,
+        GPU_PARTICLE_DIR_RANDOM,
+        GPU_PARTICLE_SCALE_UNIFORM,
+        1.0f, 1.0f
+    },
+
+    // 14: ArmorBreak
+    {
+        0.25f, 0.65f,
+        3.5f, 11.0f,
+        0.025f, 0.085f,
+        1.0f,
+        float3(0.75f, 0.90f, 1.0f),
+        float3(1.0f, 1.0f, 1.0f),
+        GPU_PARTICLE_SPAWN_SHAPE_HEMISPHERE,
         GPU_PARTICLE_DIR_RANDOM,
         GPU_PARTICLE_SCALE_UNIFORM,
         1.0f, 1.0f
