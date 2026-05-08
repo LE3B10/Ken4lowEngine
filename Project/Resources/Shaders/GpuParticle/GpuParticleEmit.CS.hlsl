@@ -434,6 +434,41 @@ void ApplyParticleSpawnOverride(uint i, float3 seed, inout Particle p)
                 p.lifeTime = 0.25f + GPURand1(seed + 6.0f) * 0.40f;
                 break;
             }
+
+        case GPU_PARTICLE_TYPE_VOXEL_FRAGMENT:
+        {
+                float3 dir = SampleUnitDir(seed + 1.0f);
+                dir.y = abs(dir.y) * 0.35f + 0.10f;
+                dir = normalize(dir);
+
+                // 消えたVoxelの位置から、元オブジェクトの小ブロックが剥がれるように低速で飛ばす。
+                p.translate = gEmitter.translate + dir * (GPURand1(seed + 2.0f) * gEmitter.radius * 0.08f);
+                p.velocity = dir * (1.0f + GPURand1(seed + 3.0f) * 3.5f);
+
+                float s = 0.045f + GPURand1(seed + 4.0f) * 0.075f;
+                p.scale = float3(s, s, s);
+
+                float c = GPURand1(seed + 5.0f);
+                if (c < 0.50f)
+                {
+                    p.color = float4(0.92f, 0.98f, 1.00f, 1.0f);
+                }
+                else if (c < 0.75f)
+                {
+                    p.color = float4(0.62f, 0.78f, 0.92f, 1.0f);
+                }
+                else if (c < 0.92f)
+                {
+                    p.color = float4(0.70f, 0.70f, 0.78f, 1.0f);
+                }
+                else
+                {
+                    p.color = float4(0.95f, 0.35f, 0.35f, 1.0f);
+                }
+
+                p.lifeTime = 0.45f + GPURand1(seed + 6.0f) * 0.65f;
+                break;
+            }
     }
 }
 
