@@ -67,13 +67,6 @@ PixelShaderOutput main(VertexShaderOutput input)
     float4 textureColor = gTexture.Sample(gSampler, transformedUV.xy);
     textureColor.rgb = pow(textureColor.rgb, 2.2f);
 
-    // threshold=1.0 で全表示、0.0 に近づくほどノイズ形状で欠けて消える。
-    float maskValue = gDissolveMaskTexture.Sample(gSampler, input.texcoord).r;
-    if (maskValue > gDissolveSetting.threshold)
-    {
-        discard;
-    }
-
     float3 worldPosition = input.worldPosition;
     float3 normal = normalize(input.normal);
     float3 viewDir = normalize(gCamera.worldPosition - worldPosition);
@@ -99,11 +92,17 @@ PixelShaderOutput main(VertexShaderOutput input)
     float envBlend = saturate(gMaterial.reflectionRate * 0.12f + fresnel * 0.03f);
     float3 reflectionColor = environmentColor;
 
-    // 消え際の境界だけ白く光らせる
-    float edgeStart = gDissolveSetting.threshold - max(gDissolveSetting.edgeThickness, 0.0001f);
-    float edge = 1.0f - smoothstep(edgeStart, gDissolveSetting.threshold, maskValue);
+    // Dissolve値は保持するが、Voxel DisintegrationではObject3D側でピクセル破棄しない。
+    float maskValue = gDissolveMaskTexture.Sample(gSampler, input.texcoord).r;
+    float edge = smoothstep(
+        gDissolveSetting.threshold,
+        gDissolveSetting.threshold + gDissolveSetting.edgeThickness,
+        maskValue);
 
-    float3 shadedColor = lerp(baseColor, gDissolveSetting.edgeColor.rgb, edge);
+    float4 edgeColor = gDissolveSetting.edgeColor * (1.0f - edge);
+    float dissolveBlend = 1.0f - step(maskValue, gDissolveSetting.threshold);
+
+    float3 shadedColor = lerp(baseColor, edgeColor.rgb, dissolveBlend);
     shadedColor *= lighting;
 
     // 反射を最後に混ぜる
