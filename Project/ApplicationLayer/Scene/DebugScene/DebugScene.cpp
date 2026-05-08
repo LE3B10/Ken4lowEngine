@@ -42,7 +42,8 @@ namespace
 		case 5: return GpuParticleType::Heal;
 		case 6: return GpuParticleType::ArmorBreak;
 		case 7: return GpuParticleType::VoxelFragment;
-		default: return GpuParticleType::VoxelFragment;
+		case 8: return GpuParticleType::VoxelAshFragment;
+		default: return GpuParticleType::VoxelAshFragment;
 		}
 	}
 
@@ -227,7 +228,7 @@ void DebugScene::DrawImGui()
 	{
 		static char meshModelPath[256] = "Test/cube.gltf";
 		static int meshId = 1000;
-		static int particleTypeIndex = 7;
+		static int particleTypeIndex = 8;
 		static int spriteCount = 16;
 		static int meshCount = 48;
 		static float radius = 0.35f;
@@ -243,7 +244,8 @@ void DebugScene::DrawImGui()
 			"Smoke",
 			"Heal",
 			"ArmorBreak",
-			"VoxelFragment"
+			"VoxelFragment",
+			"VoxelAshFragment"
 		};
 
 		GpuParticleManager* gpuParticleManager = GpuParticleManager::GetInstance();
@@ -405,8 +407,15 @@ void DebugScene::DrawImGui()
 			StartDebugVoxelDisintegration();
 		}
 
-		ImGui::Text("Voxel Active: %s  Blocks: %zu  Time: %.2f / %.2f",
+		if (ImGui::Button("Start Voxel Ash Disintegration"))
+		{
+			debugVoxelModelPath_ = voxelModelPath;
+			StartDebugVoxelAshDisintegration();
+		}
+
+		ImGui::Text("Voxel Active: %s  AshMode: %s  Blocks: %zu  Time: %.2f / %.2f",
 			debugVoxelDisintegrationActive_ ? "true" : "false",
+			debugVoxelAshMode_ ? "true" : "false",
 			debugVoxelBlocks_.size(),
 			debugVoxelDisintegrationTimer_,
 			debugVoxelDisintegrationDuration_);
@@ -666,10 +675,37 @@ void DebugScene::StartDebugVoxelDisintegration()
 		block.visible = true;
 	}
 
+	debugVoxelAshMode_ = false;
 	debugVoxelDisintegrationTimer_ = 0.0f;
 	debugVoxelDisintegrationActive_ = true;
 
 	debugParticleLog_ = "Start: Voxel Disintegration.";
+	DebugLog(debugParticleLog_);
+}
+
+void DebugScene::StartDebugVoxelAshDisintegration()
+{
+	if (debugVoxelBlocks_.empty())
+	{
+		BuildDebugVoxelDisintegration();
+	}
+
+	GpuParticleManager* gpuParticleManager = GpuParticleManager::GetInstance();
+	if (gpuParticleManager && !gpuParticleManager->FindMeshAsset(debugVoxelMeshId_))
+	{
+		gpuParticleManager->LoadMeshAssetsFromAssimp(debugVoxelMeshId_, debugVoxelModelPath_, true);
+	}
+
+	for (auto& block : debugVoxelBlocks_)
+	{
+		block.visible = true;
+	}
+
+	debugVoxelAshMode_ = true;
+	debugVoxelDisintegrationTimer_ = 0.0f;
+	debugVoxelDisintegrationActive_ = true;
+
+	debugParticleLog_ = "Start: Voxel Ash Disintegration.";
 	DebugLog(debugParticleLog_);
 }
 
@@ -697,7 +733,7 @@ void DebugScene::UpdateDebugVoxelDisintegration(float deltaTime)
 	if (debugVoxelDisintegrationTimer_ >= debugVoxelDisintegrationDuration_)
 	{
 		debugVoxelDisintegrationActive_ = false;
-		debugParticleLog_ = "Finish: Voxel Disintegration.";
+		debugParticleLog_ = debugVoxelAshMode_ ? "Finish: Voxel Ash Disintegration." : "Finish: Voxel Disintegration.";
 		DebugLog(debugParticleLog_);
 	}
 }
@@ -715,18 +751,22 @@ void DebugScene::EmitDebugVoxelBreakParticle(const Vector3& position, uint32_t c
 		gpuParticleManager->LoadMeshAssetsFromAssimp(debugVoxelMeshId_, debugVoxelModelPath_, true);
 	}
 
+	const GpuParticleType voxelParticleType = debugVoxelAshMode_
+		? GpuParticleType::VoxelAshFragment
+		: GpuParticleType::VoxelFragment;
+
 	if (auto* meshEmitter = PrepareDebugMeshParticleEmitter(
 		gpuParticleManager,
 		"DebugScene_VoxelDisintegrationMesh",
 		debugVoxelMeshId_,
-		GpuParticleType::VoxelFragment,
+		voxelParticleType,
 		position,
 		debugVoxelParticleRadius_))
 	{
 		meshEmitter->RequestEmit(count);
 	}
 
-	if (debugVoxelDisintegrationTimer_ < debugVoxelDisintegrationDuration_ * 0.25f)
+	if (!debugVoxelAshMode_ && debugVoxelDisintegrationTimer_ < debugVoxelDisintegrationDuration_ * 0.25f)
 	{
 		if (auto* flashEmitter = gpuParticleManager->EmitBurst(
 			"DebugScene_VoxelDisintegrationFlash",
