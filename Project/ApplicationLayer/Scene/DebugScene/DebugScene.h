@@ -5,6 +5,8 @@
 #include "Enemy.h"
 #include "Player.h"
 #include "Derived/GuardianBoss/GuardianBoss.h"
+#include "Disintegration/ModelDisintegrationEffect.h"
+#include "Object3D.h"
 
 #include <memory>
 #include <string>
@@ -57,6 +59,12 @@ private: /// ---------- メンバ関数 ---------- ///
 	/// テスト用GPUパーティクル発火
 	void UpdateDebugParticleTest();
 
+	/// モデル崩壊エフェクトの単体検証更新
+	void UpdateDebugDisintegrationTest(float deltaTime);
+
+	/// モデル崩壊エフェクトをデバッグ位置で再生
+	void PlayDebugDisintegrationEffect();
+
 	/// -------------------------------------------------------------
 	/// BossHitPart を文字列へ変換
 	/// ログ確認用
@@ -83,5 +91,15 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	// --- GPUパーティクルテスト用 ---
 	std::string debugParticleLog_ = "Press 1/2/3 to test GPU particles.";
+
+	// --- モデル崩壊エフェクト単体テスト用 ---
+	std::unique_ptr<K4E::Object3D> debugDisintegrationModel_;
+	std::unique_ptr<ModelDisintegrationEffect> debugDisintegrationEffect_;
+	K4E::Vector3 debugDisintegrationPosition_{ -4.0f, 2.25f, 18.0f };
+	K4E::Vector3 debugDisintegrationRotation_{ 0.0f, 0.0f, 0.0f };
+	K4E::Vector3 debugDisintegrationScale_{ 1.0f, 1.0f, 1.0f };
+	std::string debugDisintegrationModelPath_ = "Characters/body.gltf";
+	std::string debugDisintegrationLog_ = "Press F9 or the ImGui button to play.";
+	bool debugDisintegrationModelVisible_ = true;
 };
 

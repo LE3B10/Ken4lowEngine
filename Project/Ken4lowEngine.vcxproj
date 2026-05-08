@@ -179,6 +179,9 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
     </ClCompile>
+    <ClCompile Include="ApplicationLayer\EffectLayer\Disintegration\DisintegrationEmitter.cpp" />
+    <ClCompile Include="ApplicationLayer\EffectLayer\Disintegration\DisintegrationRenderer.cpp" />
+    <ClCompile Include="ApplicationLayer\EffectLayer\Disintegration\ModelDisintegrationEffect.cpp" />
     <ClCompile Include="ApplicationLayer\EffectLayer\ParticleEmitter.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
@@ -798,6 +801,10 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
     </ClInclude>
+    <ClInclude Include="ApplicationLayer\EffectLayer\Disintegration\DisintegrationEmitter.h" />
+    <ClInclude Include="ApplicationLayer\EffectLayer\Disintegration\DisintegrationParticle.h" />
+    <ClInclude Include="ApplicationLayer\EffectLayer\Disintegration\DisintegrationRenderer.h" />
+    <ClInclude Include="ApplicationLayer\EffectLayer\Disintegration\ModelDisintegrationEffect.h" />
     <ClInclude Include="ApplicationLayer\EffectLayer\ModelParticle.h">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>

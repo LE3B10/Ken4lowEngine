@@ -119,6 +119,16 @@ void DebugScene::Initialize()
 	// 見やすい位置に置く
 	debugBoss_->SetPosition({ 0.0f, 2.25f, 30.0f });
 	debugBoss_->SetYaw(3.141592f); // 必要ならプレイヤー側へ向ける
+
+	debugDisintegrationModel_ = std::make_unique<Object3D>();
+	debugDisintegrationModel_->Initialize(debugDisintegrationModelPath_);
+	debugDisintegrationModel_->SetTranslate(debugDisintegrationPosition_);
+	debugDisintegrationModel_->SetRotate(debugDisintegrationRotation_);
+	debugDisintegrationModel_->SetScale(debugDisintegrationScale_);
+	debugDisintegrationModel_->Update();
+
+	debugDisintegrationEffect_ = std::make_unique<ModelDisintegrationEffect>();
+	debugDisintegrationEffect_->Initialize();
 }
 
 void DebugScene::Update()
@@ -144,6 +154,8 @@ void DebugScene::Update()
 
 	UpdateDebugParticleTest();
 
+	UpdateDebugDisintegrationTest(deltaTime);
+
 	collisionManager_->Update();
 	collisionManager_->CheckAllCollisions();
 
@@ -151,6 +163,16 @@ void DebugScene::Update()
 
 void DebugScene::Draw3DObjects()
 {
+	if (debugDisintegrationModelVisible_ && debugDisintegrationModel_)
+	{
+		debugDisintegrationModel_->Draw();
+	}
+
+	if (debugDisintegrationEffect_)
+	{
+		debugDisintegrationEffect_->Draw();
+	}
+
 	// ボス描画
 	if (debugBoss_)
 	{
@@ -167,6 +189,11 @@ void DebugScene::Draw3DObjects()
 
 void DebugScene::DrawShadowObjects()
 {
+	if (debugDisintegrationModelVisible_ && debugDisintegrationModel_)
+	{
+		debugDisintegrationModel_->DrawShadow();
+	}
+
 	if (debugBoss_)
 	{
 		debugBoss_->DrawShadow();
@@ -198,6 +225,8 @@ void DebugScene::Finalize()
 	input_->SetLockCursor(false);
 	input_->SetCursorVisible(true);
 
+	debugDisintegrationEffect_.reset();
+	debugDisintegrationModel_.reset();
 	debugBoss_.reset();
 	collisionManager_.reset();
 
@@ -381,6 +410,44 @@ void DebugScene::DrawImGui()
 		ImGui::Text("Mesh position:   %.2f, %.2f, %.2f", meshPos.x, meshPos.y, meshPos.z);
 		ImGui::TextWrapped("%s", debugParticleLog_.c_str());
 		ImGui::End();
+	}
+
+
+	/// ---------- モデル崩壊エフェクト単体テスト ---------- ///
+	{
+		static char modelPathBuffer[256] = "Characters/body.gltf";
+
+		ImGui::Begin("Model Disintegration DebugScene Test");
+		ImGui::TextWrapped("DebugScene-only test. F9 or the button samples the displayed model surface and plays the disintegration effect.");
+		ImGui::InputText("Model Path", modelPathBuffer, IM_ARRAYSIZE(modelPathBuffer));
+		ImGui::DragFloat3("Position", &debugDisintegrationPosition_.x, 0.05f);
+		ImGui::DragFloat3("Rotation", &debugDisintegrationRotation_.x, 0.01f);
+		ImGui::DragFloat3("Scale", &debugDisintegrationScale_.x, 0.01f, 0.01f, 10.0f);
+
+		if (ImGui::Button("Reload Test Model"))
+		{
+			debugDisintegrationModelPath_ = modelPathBuffer;
+			debugDisintegrationModel_ = std::make_unique<Object3D>();
+			debugDisintegrationModel_->Initialize(debugDisintegrationModelPath_);
+			debugDisintegrationLog_ = "Reloaded test model: " + debugDisintegrationModelPath_;
+			DebugLog(debugDisintegrationLog_);
+		}
+
+		ImGui::SameLine();
+		if (ImGui::Button("Play Disintegration"))
+		{
+			debugDisintegrationModelPath_ = modelPathBuffer;
+			PlayDebugDisintegrationEffect();
+		}
+
+		ImGui::Text("Model Visible: %s", debugDisintegrationModelVisible_ ? "true" : "false");
+		ImGui::TextWrapped("%s", debugDisintegrationLog_.c_str());
+		ImGui::End();
+	}
+
+	if (debugDisintegrationEffect_)
+	{
+		debugDisintegrationEffect_->DrawImGui();
 	}
 
 	/// ---------- 武器マスターデータエディタ ---------- ///
@@ -627,4 +694,46 @@ void DebugScene::UpdateDebugParticleTest()
 		debugParticleLog_ = "Spawn: Boss_Appear_Dust";
 		DebugLog(debugParticleLog_);
 	}
+}
+
+
+void DebugScene::UpdateDebugDisintegrationTest(float deltaTime)
+{
+	if (input_ && input_->TriggerKey(DIK_F9))
+	{
+		PlayDebugDisintegrationEffect();
+	}
+
+	if (debugDisintegrationModel_)
+	{
+		debugDisintegrationModel_->SetTranslate(debugDisintegrationPosition_);
+		debugDisintegrationModel_->SetRotate(debugDisintegrationRotation_);
+		debugDisintegrationModel_->SetScale(debugDisintegrationScale_);
+		debugDisintegrationModel_->Update();
+	}
+
+	if (debugDisintegrationEffect_)
+	{
+		debugDisintegrationEffect_->Update(deltaTime);
+		debugDisintegrationModelVisible_ = !debugDisintegrationEffect_->IsActive();
+	}
+}
+
+void DebugScene::PlayDebugDisintegrationEffect()
+{
+	if (!debugDisintegrationEffect_)
+	{
+		return;
+	}
+
+	const Matrix4x4 worldMatrix = Matrix4x4::MakeAffineMatrix(
+		debugDisintegrationScale_,
+		debugDisintegrationRotation_,
+		debugDisintegrationPosition_);
+
+	// 表示中のテストモデルと同じ行列から生成し、形状サンプリングのずれを確認しやすくする。
+	debugDisintegrationEffect_->PlayFromModel(debugDisintegrationModelPath_, worldMatrix);
+	debugDisintegrationModelVisible_ = !debugDisintegrationEffect_->IsActive();
+	debugDisintegrationLog_ = "Play: " + debugDisintegrationModelPath_;
+	DebugLog(debugDisintegrationLog_);
 }
