@@ -136,13 +136,13 @@ const char* ModelBlockEffectSequence::GetStateName() const
 {
 	switch (state_)
 	{
-	case SequenceState::Idle: return "Idle";
-	case SequenceState::Reconstructing: return "Reconstructing";
-	case SequenceState::ShowingModel: return "ShowingModel";
-	case SequenceState::Disintegrating: return "Disintegrating";
-	case SequenceState::Waiting: return "Waiting";
-	case SequenceState::Completed: return "Completed";
-	default: return "Unknown";
+	case SequenceState::Idle: return "待機中";
+	case SequenceState::Reconstructing: return "再構築中";
+	case SequenceState::ShowingModel: return "通常モデル表示中";
+	case SequenceState::Disintegrating: return "崩壊中";
+	case SequenceState::Waiting: return "待機中";
+	case SequenceState::Completed: return "完了";
+	default: return "不明";
 	}
 }
 

@@ -483,33 +483,34 @@ void DebugScene::DrawImGui()
 	}
 
 
+	// エフェクト調整時に迷わないよう、崩壊・再構築・シーケンス系ImGuiの表示文言は日本語で統一する。
 	/// ---------- モデル崩壊エフェクト単体テスト ---------- ///
 	{
 		static char modelPathBuffer[256] = "Characters/body.gltf";
 
-		ImGui::Begin("Model Disintegration DebugScene Test");
-		ImGui::TextWrapped("DebugScene-only test. F9 or the button samples the displayed model surface and plays the disintegration effect.");
-		ImGui::InputText("Model Path", modelPathBuffer, IM_ARRAYSIZE(modelPathBuffer));
-		ImGui::DragFloat3("Position", &debugDisintegrationPosition_.x, 0.05f);
-		ImGui::DragFloat3("Rotation", &debugDisintegrationRotation_.x, 0.01f);
-		ImGui::DragFloat3("Scale", &debugDisintegrationScale_.x, 0.01f, 0.01f, 10.0f);
+		ImGui::Begin("モデル崩壊エフェクト確認");
+		ImGui::TextWrapped("DebugScene専用テストです。F9またはボタンで表示中モデルの表面をサンプリングし、崩壊エフェクトを再生します。");
+		ImGui::InputText("モデルパス", modelPathBuffer, IM_ARRAYSIZE(modelPathBuffer));
+		ImGui::DragFloat3("位置", &debugDisintegrationPosition_.x, 0.05f);
+		ImGui::DragFloat3("回転", &debugDisintegrationRotation_.x, 0.01f);
+		ImGui::DragFloat3("スケール", &debugDisintegrationScale_.x, 0.01f, 0.01f, 10.0f);
 
-		if (ImGui::Button("Reload Test Model"))
+		if (ImGui::Button("テストモデル再読み込み"))
 		{
 			pendingDebugDisintegrationPath_ = modelPathBuffer;
 			pendingDebugDisintegrationReload_ = true;
-			debugDisintegrationLog_ = "Queued reload test model: " + pendingDebugDisintegrationPath_;
+			debugDisintegrationLog_ = "テストモデル再読み込みを予約: " + pendingDebugDisintegrationPath_;
 		}
 
 		ImGui::SameLine();
-		if (ImGui::Button("Play Disintegration"))
+		if (ImGui::Button("崩壊再生"))
 		{
 			pendingDebugDisintegrationPath_ = modelPathBuffer;
 			pendingDebugDisintegrationPlay_ = true;
-			debugDisintegrationLog_ = "Queued play: " + pendingDebugDisintegrationPath_;
+			debugDisintegrationLog_ = "再生を予約: " + pendingDebugDisintegrationPath_;
 		}
 
-		ImGui::Text("Model Visible: %s", debugDisintegrationModelVisible_ ? "true" : "false");
+		ImGui::Text("モデル表示: %s", debugDisintegrationModelVisible_ ? "はい" : "いいえ");
 		ImGui::TextWrapped("%s", debugDisintegrationLog_.c_str());
 		ImGui::End();
 	}
@@ -524,29 +525,29 @@ void DebugScene::DrawImGui()
 	{
 		static char reconstructionModelPathBuffer[256] = "Characters/body.gltf";
 
-		ImGui::Begin("Model Reconstruction Debug");
-		ImGui::TextWrapped("DebugScene-only test. F10 or the button gathers scattered CPU cube blocks into sampled model-surface positions.");
-		ImGui::InputText("Test Model Path", reconstructionModelPathBuffer, IM_ARRAYSIZE(reconstructionModelPathBuffer));
-		ImGui::DragFloat3("Position", &debugReconstructionPosition_.x, 0.05f);
-		ImGui::DragFloat3("Rotation", &debugReconstructionRotation_.x, 0.01f);
-		ImGui::DragFloat3("Scale", &debugReconstructionScale_.x, 0.01f, 0.01f, 10.0f);
+		ImGui::Begin("モデル再構築エフェクト確認");
+		ImGui::TextWrapped("DebugScene専用テストです。F10またはボタンで散らばったCPUキューブブロックをモデル表面のサンプル位置へ集めます。");
+		ImGui::InputText("モデルパス", reconstructionModelPathBuffer, IM_ARRAYSIZE(reconstructionModelPathBuffer));
+		ImGui::DragFloat3("位置", &debugReconstructionPosition_.x, 0.05f);
+		ImGui::DragFloat3("回転", &debugReconstructionRotation_.x, 0.01f);
+		ImGui::DragFloat3("スケール", &debugReconstructionScale_.x, 0.01f, 0.01f, 10.0f);
 
-		if (ImGui::Button("Reload Test Model##Reconstruction"))
+		if (ImGui::Button("テストモデル再読み込み##Reconstruction"))
 		{
 			pendingDebugReconstructionPath_ = reconstructionModelPathBuffer;
 			pendingDebugReconstructionReload_ = true;
-			debugReconstructionLog_ = "Queued reload reconstruction test model: " + pendingDebugReconstructionPath_;
+			debugReconstructionLog_ = "再構築テストモデル再読み込みを予約: " + pendingDebugReconstructionPath_;
 		}
 
 		ImGui::SameLine();
-		if (ImGui::Button("Play Reconstruction"))
+		if (ImGui::Button("再構築再生"))
 		{
 			pendingDebugReconstructionPath_ = reconstructionModelPathBuffer;
 			pendingDebugReconstructionPlay_ = true;
-			debugReconstructionLog_ = "Queued play reconstruction: " + pendingDebugReconstructionPath_;
+			debugReconstructionLog_ = "再構築再生を予約: " + pendingDebugReconstructionPath_;
 		}
 
-		ImGui::Text("Model Visible: %s", debugReconstructionModelVisible_ ? "true" : "false");
+		ImGui::Text("モデル表示: %s", debugReconstructionModelVisible_ ? "はい" : "いいえ");
 		ImGui::TextWrapped("%s", debugReconstructionLog_.c_str());
 		ImGui::End();
 	}
@@ -560,74 +561,74 @@ void DebugScene::DrawImGui()
 	{
 		static char sequenceModelPathBuffer[256] = "Characters/body.gltf";
 
-		ImGui::Begin("Model Block Effect Sequence");
-		ImGui::TextWrapped("DebugScene-only sequence test for Reconstruction -> Model -> Disintegration and Disintegration -> Reconstruction flows.");
-		ImGui::InputText("Model Path##BlockSequence", sequenceModelPathBuffer, IM_ARRAYSIZE(sequenceModelPathBuffer));
-		ImGui::DragFloat3("Position##BlockSequence", &debugModelBlockSequencePosition_.x, 0.05f);
-		ImGui::DragFloat3("Rotation##BlockSequence", &debugModelBlockSequenceRotation_.x, 0.01f);
-		ImGui::DragFloat3("Scale##BlockSequence", &debugModelBlockSequenceScale_.x, 0.01f, 0.01f, 10.0f);
+		ImGui::Begin("ブロック演出シーケンス確認");
+		ImGui::TextWrapped("DebugScene専用のシーケンステストです。再構築 → モデル表示 → 崩壊、および崩壊 → 再構築の流れを確認します。");
+		ImGui::InputText("モデルパス##BlockSequence", sequenceModelPathBuffer, IM_ARRAYSIZE(sequenceModelPathBuffer));
+		ImGui::DragFloat3("位置##BlockSequence", &debugModelBlockSequencePosition_.x, 0.05f);
+		ImGui::DragFloat3("回転##BlockSequence", &debugModelBlockSequenceRotation_.x, 0.01f);
+		ImGui::DragFloat3("スケール##BlockSequence", &debugModelBlockSequenceScale_.x, 0.01f, 0.01f, 10.0f);
 
 		if (debugModelBlockSequence_)
 		{
 			auto& sequenceParams = debugModelBlockSequence_->GetParameters();
-			ImGui::DragFloat("showDuration", &sequenceParams.showDuration, 0.05f, 0.0f, 10.0f);
-			ImGui::DragFloat("waitDuration", &sequenceParams.waitDuration, 0.05f, 0.0f, 10.0f);
-			ImGui::Checkbox("loopEnabled", &sequenceParams.loopEnabled);
-			ImGui::SliderInt("blockCount##BlockSequence", &sequenceParams.blockCount, 32, 8000);
-			if (ImGui::SliderFloat("blockSize##BlockSequence", &sequenceParams.blockSize, 0.005f, 0.30f))
+			ImGui::DragFloat("通常モデル表示時間", &sequenceParams.showDuration, 0.05f, 0.0f, 10.0f);
+			ImGui::DragFloat("待機時間", &sequenceParams.waitDuration, 0.05f, 0.0f, 10.0f);
+			ImGui::Checkbox("ループ有効", &sequenceParams.loopEnabled);
+			ImGui::SliderInt("ブロック数##BlockSequence", &sequenceParams.blockCount, 32, 8000);
+			if (ImGui::SliderFloat("ブロックサイズ##BlockSequence", &sequenceParams.blockSize, 0.005f, 0.30f))
 			{
 				sequenceParams.blockSize = std::max(sequenceParams.blockSize, 0.005f);
 			}
-			ImGui::Checkbox("surfaceSampling##BlockSequence", &sequenceParams.surfaceSampling);
+			ImGui::Checkbox("表面サンプリング##BlockSequence", &sequenceParams.surfaceSampling);
 
-			if (ImGui::Button("Reload Model##BlockSequence"))
+			if (ImGui::Button("モデル再読み込み##BlockSequence"))
 			{
 				pendingDebugModelBlockSequencePath_ = sequenceModelPathBuffer;
 				debugModelBlockSequenceRequest_ = DebugModelBlockSequenceRequest::Reload;
-				debugModelBlockSequenceLog_ = "Queued sequence model reload: " + pendingDebugModelBlockSequencePath_;
+				debugModelBlockSequenceLog_ = "シーケンスモデル再読み込みを予約: " + pendingDebugModelBlockSequencePath_;
 			}
 
-			if (ImGui::Button("Play Spawn Then Disintegrate"))
+			if (ImGui::Button("再構築 → 崩壊 を再生"))
 			{
 				pendingDebugModelBlockSequencePath_ = sequenceModelPathBuffer;
 				debugModelBlockSequenceRequest_ = DebugModelBlockSequenceRequest::PlaySpawnThenDisintegrate;
-				debugModelBlockSequenceLog_ = "Queued Spawn Then Disintegrate: " + pendingDebugModelBlockSequencePath_;
+				debugModelBlockSequenceLog_ = "再構築 → 崩壊 の再生を予約: " + pendingDebugModelBlockSequencePath_;
 			}
 
-			if (ImGui::Button("Play Disintegrate Then Reconstruct"))
+			if (ImGui::Button("崩壊 → 再構築 を再生"))
 			{
 				pendingDebugModelBlockSequencePath_ = sequenceModelPathBuffer;
 				debugModelBlockSequenceRequest_ = DebugModelBlockSequenceRequest::PlayDisintegrateThenReconstruct;
-				debugModelBlockSequenceLog_ = "Queued Disintegrate Then Reconstruct: " + pendingDebugModelBlockSequencePath_;
+				debugModelBlockSequenceLog_ = "崩壊 → 再構築 の再生を予約: " + pendingDebugModelBlockSequencePath_;
 			}
 
-			if (ImGui::Button("Play Loop"))
+			if (ImGui::Button("ループ再生"))
 			{
 				pendingDebugModelBlockSequencePath_ = sequenceModelPathBuffer;
 				debugModelBlockSequenceRequest_ = DebugModelBlockSequenceRequest::PlayLoop;
-				debugModelBlockSequenceLog_ = "Queued Loop: " + pendingDebugModelBlockSequencePath_;
+				debugModelBlockSequenceLog_ = "ループ再生を予約: " + pendingDebugModelBlockSequencePath_;
 			}
 
 			ImGui::SameLine();
-			if (ImGui::Button("Stop"))
+			if (ImGui::Button("停止"))
 			{
 				debugModelBlockSequenceRequest_ = DebugModelBlockSequenceRequest::Stop;
-				debugModelBlockSequenceLog_ = "Queued sequence stop.";
+				debugModelBlockSequenceLog_ = "シーケンス停止を予約しました。";
 			}
 
 			ImGui::SameLine();
-			if (ImGui::Button("Reset"))
+			if (ImGui::Button("リセット"))
 			{
 				debugModelBlockSequenceRequest_ = DebugModelBlockSequenceRequest::Reset;
-				debugModelBlockSequenceLog_ = "Queued sequence reset.";
+				debugModelBlockSequenceLog_ = "シーケンスリセットを予約しました。";
 			}
 
 			ImGui::Separator();
-			ImGui::Text("currentState: %s", debugModelBlockSequence_->GetStateName());
-			ImGui::Text("sequenceElapsed: %.2f", debugModelBlockSequence_->GetSequenceElapsed());
-			ImGui::Text("reconstructionCompleted: %s", debugModelBlockSequence_->IsReconstructionCompleted() ? "true" : "false");
-			ImGui::Text("disintegrationCompleted: %s", debugModelBlockSequence_->IsDisintegrationCompleted() ? "true" : "false");
-			ImGui::Text("Model Visible: %s", debugModelBlockSequence_->IsModelVisible() ? "true" : "false");
+			ImGui::Text("現在の状態: %s", debugModelBlockSequence_->GetStateName());
+			ImGui::Text("シーケンス経過時間: %.2f", debugModelBlockSequence_->GetSequenceElapsed());
+			ImGui::Text("再構築完了: %s", debugModelBlockSequence_->IsReconstructionCompleted() ? "はい" : "いいえ");
+			ImGui::Text("崩壊完了: %s", debugModelBlockSequence_->IsDisintegrationCompleted() ? "はい" : "いいえ");
+			ImGui::Text("モデル表示: %s", debugModelBlockSequence_->IsModelVisible() ? "はい" : "いいえ");
 		}
 		ImGui::TextWrapped("%s", debugModelBlockSequenceLog_.c_str());
 		ImGui::End();
@@ -769,7 +770,7 @@ void DebugScene::PlayDebugReconstructionEffect()
 	// 表面サンプルを最終到達位置にして、散らばったブロックをモデル形状へ集める。
 	debugReconstructionEffect_->PlayFromModel(debugReconstructionModelPath_, worldMatrix);
 	debugReconstructionModelVisible_ = debugReconstructionEffect_->ShouldShowFinalModel();
-	debugReconstructionLog_ = "Play Reconstruction: " + debugReconstructionModelPath_;
+	debugReconstructionLog_ = "再構築再生: " + debugReconstructionModelPath_;
 	DebugLog(debugReconstructionLog_);
 }
 
@@ -782,7 +783,7 @@ void DebugScene::ReloadDebugReconstructionModel()
 	debugReconstructionModel_->SetScale(debugReconstructionScale_);
 	debugReconstructionModel_->Update();
 	debugReconstructionModelVisible_ = true;
-	debugReconstructionLog_ = "Reloaded reconstruction test model: " + debugReconstructionModelPath_;
+	debugReconstructionLog_ = "再構築テストモデルを再読み込み: " + debugReconstructionModelPath_;
 	DebugLog(debugReconstructionLog_);
 }
 
@@ -840,7 +841,7 @@ void DebugScene::ReloadDebugModelBlockSequenceModel()
 	debugModelBlockSequenceModel_->SetRotate(debugModelBlockSequenceRotation_);
 	debugModelBlockSequenceModel_->SetScale(debugModelBlockSequenceScale_);
 	debugModelBlockSequenceModel_->Update();
-	debugModelBlockSequenceLog_ = "Reloaded sequence test model: " + debugModelBlockSequenceModelPath_;
+	debugModelBlockSequenceLog_ = "シーケンステストモデルを再読み込み: " + debugModelBlockSequenceModelPath_;
 	DebugLog(debugModelBlockSequenceLog_);
 }
 
@@ -873,29 +874,29 @@ void DebugScene::ProcessDebugModelBlockSequenceRequest()
 	case DebugModelBlockSequenceRequest::PlaySpawnThenDisintegrate:
 		ReloadDebugModelBlockSequenceModel();
 		debugModelBlockSequence_->PlaySpawnThenDisintegrate(debugModelBlockSequenceModelPath_, MakeDebugModelBlockSequenceWorldMatrix());
-		debugModelBlockSequenceLog_ = "Play Spawn Then Disintegrate: " + debugModelBlockSequenceModelPath_;
+		debugModelBlockSequenceLog_ = "再構築 → 崩壊 を再生: " + debugModelBlockSequenceModelPath_;
 		DebugLog(debugModelBlockSequenceLog_);
 		break;
 	case DebugModelBlockSequenceRequest::PlayDisintegrateThenReconstruct:
 		ReloadDebugModelBlockSequenceModel();
 		debugModelBlockSequence_->PlayDisintegrateThenReconstruct(debugModelBlockSequenceModelPath_, MakeDebugModelBlockSequenceWorldMatrix());
-		debugModelBlockSequenceLog_ = "Play Disintegrate Then Reconstruct: " + debugModelBlockSequenceModelPath_;
+		debugModelBlockSequenceLog_ = "崩壊 → 再構築 を再生: " + debugModelBlockSequenceModelPath_;
 		DebugLog(debugModelBlockSequenceLog_);
 		break;
 	case DebugModelBlockSequenceRequest::PlayLoop:
 		ReloadDebugModelBlockSequenceModel();
 		debugModelBlockSequence_->PlayLoop(debugModelBlockSequenceModelPath_, MakeDebugModelBlockSequenceWorldMatrix());
-		debugModelBlockSequenceLog_ = "Play Loop: " + debugModelBlockSequenceModelPath_;
+		debugModelBlockSequenceLog_ = "ループ再生: " + debugModelBlockSequenceModelPath_;
 		DebugLog(debugModelBlockSequenceLog_);
 		break;
 	case DebugModelBlockSequenceRequest::Stop:
 		debugModelBlockSequence_->Stop(false);
-		debugModelBlockSequenceLog_ = "Sequence stopped.";
+		debugModelBlockSequenceLog_ = "シーケンスを停止しました。";
 		DebugLog(debugModelBlockSequenceLog_);
 		break;
 	case DebugModelBlockSequenceRequest::Reset:
 		debugModelBlockSequence_->Reset();
-		debugModelBlockSequenceLog_ = "Sequence reset.";
+		debugModelBlockSequenceLog_ = "シーケンスをリセットしました。";
 		DebugLog(debugModelBlockSequenceLog_);
 		break;
 	case DebugModelBlockSequenceRequest::None:
@@ -1102,7 +1103,7 @@ void DebugScene::ReloadDebugDisintegrationModel()
 	debugDisintegrationModel_->SetScale(debugDisintegrationScale_);
 	debugDisintegrationModel_->Update();
 	debugDisintegrationModelVisible_ = true;
-	debugDisintegrationLog_ = "Reloaded test model: " + debugDisintegrationModelPath_;
+	debugDisintegrationLog_ = "テストモデルを再読み込み: " + debugDisintegrationModelPath_;
 	DebugLog(debugDisintegrationLog_);
 }
 
@@ -1148,6 +1149,6 @@ void DebugScene::PlayDebugDisintegrationEffect()
 	// 表示中のテストモデルと同じ行列から生成し、形状サンプリングのずれを確認しやすくする。
 	debugDisintegrationEffect_->PlayFromModel(debugDisintegrationModelPath_, worldMatrix);
 	debugDisintegrationModelVisible_ = !debugDisintegrationEffect_->IsActive();
-	debugDisintegrationLog_ = "Play: " + debugDisintegrationModelPath_;
+	debugDisintegrationLog_ = "崩壊再生: " + debugDisintegrationModelPath_;
 	DebugLog(debugDisintegrationLog_);
 }
