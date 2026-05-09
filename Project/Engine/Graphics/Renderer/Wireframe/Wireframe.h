@@ -9,6 +9,7 @@
 #include "OBB.h"
 #include "Capsule.h"
 
+#include <array>
 #include <vector>
 #include <list>
 #include <map>
@@ -129,6 +130,13 @@ public: /// ---------- 2D用の線の描画 ---------- ///
 	/// <param name="end">線分の終点のワールド座標。</param>
 	/// <param name="color">RGBA 形式の色。</param>
 	void DrawLine(const Vector3& start, const Vector3& end, const Vector4& color);
+
+	/// <summary>
+	/// Near/Far それぞれ 4 点の合計 8 点から視錐台を 12 本の線で描画します。
+	/// </summary>
+	/// <param name="corners">near 左下/左上/右上/右下、far 左下/左上/右上/右下の順の頂点。</param>
+	/// <param name="color">視錐台ワイヤーの色（RGBA）。</param>
+	void DrawFrustum(const std::array<Vector3, 8>& corners, const Vector4& color);
 
 	/// <summary>
 	/// Segment 構造体で指定された線分を描画します。

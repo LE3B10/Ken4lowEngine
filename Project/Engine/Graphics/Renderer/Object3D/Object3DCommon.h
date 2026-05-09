@@ -13,6 +13,14 @@ namespace Ken4lowEngine
 	class Object3DCommon
 	{
 	public:
+		enum class CullingCameraMode
+		{
+			Active,
+			Main,
+			Debug
+		};
+
+	public:
 		static Object3DCommon* GetInstance();
 
 		void Initialize(DirectXCommon* dxCommon);
@@ -25,6 +33,9 @@ namespace Ken4lowEngine
 		void SetRenderSetting();
 		void SetShadowMapRenderSetting();
 		bool ShouldDrawObject(const BoundingSphere& worldBounds, bool objectCullingEnabled);
+		void SetCullingCameraMode(CullingCameraMode mode) { cullingCameraMode_ = mode; }
+		CullingCameraMode GetCullingCameraMode() const { return cullingCameraMode_; }
+		Matrix4x4 GetCullingViewProjectionMatrix() const;
 
 	public: /// ---------- 拡張予定の関数 ---------- ///
 
@@ -46,6 +57,7 @@ namespace Ken4lowEngine
 		Object3DPipelineSet pipelineSet_{};
 
 		Frustum activeFrustum_{};
+		CullingCameraMode cullingCameraMode_ = CullingCameraMode::Active;
 		bool frustumCullingEnabled_ = false;
 		int drawnObjectCount_ = 0;
 		int culledObjectCount_ = 0;

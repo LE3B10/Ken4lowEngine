@@ -151,6 +151,16 @@ public: /// ---------- ゲッター ---------- ///
 	const Matrix4x4& GetViewProjectionMatrix() const { return viewProjectionMatrix_; }
 
 	/// <summary>
+	/// 現在のニアクリップ距離を取得します。
+	/// </summary>
+	float GetNearClip() const { return nearClip_; }
+
+	/// <summary>
+	/// 現在のファークリップ距離を取得します。
+	/// </summary>
+	float GetFarClip() const { return farClip_; }
+
+	/// <summary>
 	/// カメラの前方ベクトル（ワールド空間）を取得します。<br/>
 	/// ローカル Z+ を前方向とみなし、現在の回転行列を適用して正規化したベクトルを返します。
 	/// </summary>

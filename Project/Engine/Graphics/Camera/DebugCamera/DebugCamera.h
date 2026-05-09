@@ -144,6 +144,16 @@ public: /// ---------- 取得 ---------- ///
 	Matrix4x4 GetViewProjectionMatrix() const { return viewProjectionMatrix_; }
 
 	/// <summary>
+	/// 現在のニアクリップ距離を取得します。
+	/// </summary>
+	float GetNearClip() const { return nearClip_; }
+
+	/// <summary>
+	/// 現在のファークリップ距離を取得します。
+	/// </summary>
+	float GetFarClip() const { return farClip_; }
+
+	/// <summary>
 	/// 現在の回転角（オイラー角）を取得します。
 	/// </summary>
 	Vector3 GetRotate() const { return worldTransform_.rotate_; }
