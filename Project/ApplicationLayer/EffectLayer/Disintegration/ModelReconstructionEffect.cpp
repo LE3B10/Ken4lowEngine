@@ -104,24 +104,24 @@ void ModelReconstructionEffect::Draw()
 void ModelReconstructionEffect::DrawImGui()
 {
 #ifdef USE_IMGUI
-	ImGui::Begin("Model Reconstruction Effect");
-	ImGui::Text("Active: %s", isActive_ ? "true" : "false");
-	ImGui::Text("Complete: %s", isComplete_ ? "true" : "false");
-	ImGui::Text("Block Instances: %zu", blocks_.size());
-	ImGui::SliderInt("blockCount", &parameters_.blockCount, 32, 8000);
-	ImGui::SliderFloat("blockSize", &parameters_.blockSize, 0.005f, 0.30f);
-	ImGui::SliderFloat("duration", &parameters_.duration, 0.05f, 8.0f);
-	ImGui::SliderFloat("startScatterRadius", &parameters_.startScatterRadius, 0.0f, 12.0f);
-	ImGui::SliderFloat("startHeight", &parameters_.startHeight, -2.0f, 10.0f);
-	ImGui::SliderFloat("startDelayRange", &parameters_.startDelayRange, 0.0f, 3.0f);
-	ImGui::SliderFloat("rotationRandomness", &parameters_.rotationRandomness, 0.0f, 12.0f);
-	ImGui::SliderFloat("easePower", &parameters_.easePower, 1.0f, 8.0f);
-	ImGui::ColorEdit4("color", &parameters_.color.x);
-	ImGui::SliderFloat("colorVariation", &parameters_.colorVariation, 0.0f, 0.8f);
-	ImGui::SliderFloat("holdTime", &parameters_.holdTime, 0.0f, 5.0f);
-	ImGui::Checkbox("showFinalModel", &parameters_.showFinalModel);
-	ImGui::Checkbox("autoHideBlocksAfterComplete", &parameters_.autoHideBlocksAfterComplete);
-	ImGui::Checkbox("surfaceSampling", &parameters_.surfaceSampling);
+	ImGui::Begin("モデル再構築エフェクト詳細");
+	ImGui::Text("再生中: %s", isActive_ ? "はい" : "いいえ");
+	ImGui::Text("完了: %s", isComplete_ ? "はい" : "いいえ");
+	ImGui::Text("ブロック数: %zu", blocks_.size());
+	ImGui::SliderInt("ブロック数", &parameters_.blockCount, 32, 8000);
+	ImGui::SliderFloat("ブロックサイズ", &parameters_.blockSize, 0.005f, 0.30f);
+	ImGui::SliderFloat("再構築時間", &parameters_.duration, 0.05f, 8.0f);
+	ImGui::SliderFloat("開始時の散らばり半径", &parameters_.startScatterRadius, 0.0f, 12.0f);
+	ImGui::SliderFloat("開始高さ", &parameters_.startHeight, -2.0f, 10.0f);
+	ImGui::SliderFloat("開始遅延幅", &parameters_.startDelayRange, 0.0f, 3.0f);
+	ImGui::SliderFloat("回転ランダム", &parameters_.rotationRandomness, 0.0f, 12.0f);
+	ImGui::SliderFloat("イージング強度", &parameters_.easePower, 1.0f, 8.0f);
+	ImGui::ColorEdit4("色", &parameters_.color.x);
+	ImGui::SliderFloat("色のばらつき", &parameters_.colorVariation, 0.0f, 0.8f);
+	ImGui::SliderFloat("完了後の保持時間", &parameters_.holdTime, 0.0f, 5.0f);
+	ImGui::Checkbox("完了後にモデル表示", &parameters_.showFinalModel);
+	ImGui::Checkbox("完了後にブロック自動非表示", &parameters_.autoHideBlocksAfterComplete);
+	ImGui::Checkbox("表面サンプリング", &parameters_.surfaceSampling);
 	ImGui::End();
 #endif
 }

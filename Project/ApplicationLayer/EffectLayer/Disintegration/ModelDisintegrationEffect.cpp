@@ -115,34 +115,34 @@ void ModelDisintegrationEffect::Draw()
 void ModelDisintegrationEffect::DrawImGui()
 {
 #ifdef USE_IMGUI
-	ImGui::Begin("Model Disintegration Effect");
-	ImGui::Text("Active: %s", isActive_ ? "true" : "false");
-	ImGui::Text("Particle Instances: %zu", particles_.size());
-	ImGui::SliderInt("particleCount", &parameters_.particleCount, 32, 8000);
-	ImGui::Checkbox("blockMode", &parameters_.blockMode);
-	if (ImGui::SliderFloat("particleSize", &parameters_.particleSize, 0.005f, 0.30f))
+	ImGui::Begin("モデル崩壊エフェクト詳細");
+	ImGui::Text("再生中: %s", isActive_ ? "はい" : "いいえ");
+	ImGui::Text("パーティクル数: %zu", particles_.size());
+	ImGui::SliderInt("パーティクル数", &parameters_.particleCount, 32, 8000);
+	ImGui::Checkbox("ブロックモード", &parameters_.blockMode);
+	if (ImGui::SliderFloat("パーティクルサイズ", &parameters_.particleSize, 0.005f, 0.30f))
 	{
 		parameters_.blockSize = parameters_.particleSize;
 	}
-	if (ImGui::SliderFloat("blockSize", &parameters_.blockSize, 0.005f, 0.30f))
+	if (ImGui::SliderFloat("ブロックサイズ", &parameters_.blockSize, 0.005f, 0.30f))
 	{
 		parameters_.particleSize = parameters_.blockSize;
 	}
-	ImGui::SliderFloat("blockRotationRandomness", &parameters_.blockRotationRandomness, 0.0f, 8.0f);
-	ImGui::Checkbox("surfaceSampling", &parameters_.surfaceSampling);
-	ImGui::Checkbox("preserveShape", &parameters_.preserveShape);
-	ImGui::SliderFloat("lifeTime", &parameters_.lifeTime, 0.10f, 8.0f);
-	ImGui::SliderFloat("spreadPower", &parameters_.spreadPower, 0.0f, 8.0f);
-	ImGui::SliderFloat("collapsePower", &parameters_.collapsePower, 0.0f, 8.0f);
-	ImGui::SliderFloat("gravity", &parameters_.gravity, -10.0f, 10.0f);
-	ImGui::SliderFloat("noisePower", &parameters_.noisePower, 0.0f, 8.0f);
-	ImGui::SliderFloat("fadeSpeed", &parameters_.fadeSpeed, 0.1f, 4.0f);
-	ImGui::SliderFloat("upwardPower", &parameters_.upwardPower, -4.0f, 8.0f);
-	ImGui::SliderFloat("startDelay", &parameters_.startDelay, 0.0f, 3.0f);
-	ImGui::SliderFloat("shapePreserveTime", &parameters_.shapePreserveTime, 0.0f, 3.0f);
-	ImGui::ColorEdit4("baseColor", &parameters_.baseColor.x);
-	ImGui::SliderFloat("colorVariation", &parameters_.colorVariation, 0.0f, 0.5f);
-	ImGui::Text("Debug Key: F9 plays Characters/body.gltf at the player position.");
+	ImGui::SliderFloat("ブロック回転ランダム", &parameters_.blockRotationRandomness, 0.0f, 8.0f);
+	ImGui::Checkbox("表面サンプリング", &parameters_.surfaceSampling);
+	ImGui::Checkbox("形状維持", &parameters_.preserveShape);
+	ImGui::SliderFloat("寿命", &parameters_.lifeTime, 0.10f, 8.0f);
+	ImGui::SliderFloat("拡散力", &parameters_.spreadPower, 0.0f, 8.0f);
+	ImGui::SliderFloat("崩れ落ちる力", &parameters_.collapsePower, 0.0f, 8.0f);
+	ImGui::SliderFloat("重力", &parameters_.gravity, -10.0f, 10.0f);
+	ImGui::SliderFloat("ノイズ強度", &parameters_.noisePower, 0.0f, 8.0f);
+	ImGui::SliderFloat("フェード速度", &parameters_.fadeSpeed, 0.1f, 4.0f);
+	ImGui::SliderFloat("上方向の力", &parameters_.upwardPower, -4.0f, 8.0f);
+	ImGui::SliderFloat("開始遅延", &parameters_.startDelay, 0.0f, 3.0f);
+	ImGui::SliderFloat("形状維持時間", &parameters_.shapePreserveTime, 0.0f, 3.0f);
+	ImGui::ColorEdit4("基本色", &parameters_.baseColor.x);
+	ImGui::SliderFloat("色のばらつき", &parameters_.colorVariation, 0.0f, 0.5f);
+	ImGui::Text("デバッグキー: F9でCharacters/body.gltfをプレイヤー位置で再生します。");
 	ImGui::End();
 #endif
 }
