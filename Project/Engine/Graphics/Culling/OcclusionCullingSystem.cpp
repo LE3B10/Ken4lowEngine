@@ -33,6 +33,8 @@ namespace Ken4lowEngine
 	void OcclusionCullingSystem::ClearOccluders()
 	{
 		occluders_.clear();
+		chunkDebugInfos_.clear();
+		occluderDebugInfos_.clear();
 		statistics_ = {};
 	}
 
@@ -66,20 +68,46 @@ namespace Ken4lowEngine
 	{
 		statistics_ = {};
 		statistics_.occluderCount = static_cast<int>(occluders_.size());
+		chunkDebugInfos_.clear();
+		chunkDebugInfos_.reserve(chunks.size());
+		occluderDebugInfos_.clear();
+		occluderDebugInfos_.reserve(occluders_.size());
+
+		for (const Occluder& occluder : occluders_)
+		{
+			OccluderDebugInfo occluderDebug{};
+			occluderDebug.hasRect = occluder.IsEnabled() && ProjectAABB(occluder.GetWorldBounds(), viewProjection, occluderDebug.rect);
+			occluderDebugInfos_.push_back(occluderDebug);
+		}
 
 		for (StageChunk& chunk : chunks)
 		{
+			ChunkDebugInfo debugInfo{};
+			debugInfo.chunkId = chunk.GetChunkId();
 			chunk.SetOccludedByOcclusion(false);
-			if (!chunk.IsVisible()) { continue; }
-			++statistics_.testedChunkCount;
 
-			// Frustum/StageChunk 後に、完全に遮蔽物へ隠れた Chunk の Draw だけを安全側で止める。
-			if (enabled_ && IsOccluded(chunk.GetBounds(), viewProjection))
+			if (!chunk.IsVisible())
 			{
+				debugInfo.failReason = DebugFailReason::FrustumOutside;
+				++statistics_.frustumOutsideCount;
+				chunkDebugInfos_.push_back(debugInfo);
+				continue;
+			}
+
+			++statistics_.testedChunkCount;
+			debugInfo.tested = true;
+
+			// 判定詳細を保存して、Draw を止めた理由／止めなかった理由を ImGui で追跡できるようにする。
+			const bool wouldBeOccluded = EvaluateOcclusion(chunk.GetBounds(), viewProjection, debugInfo);
+			if (enabled_ && wouldBeOccluded)
+			{
+				debugInfo.occluded = true;
 				chunk.SetOccludedByOcclusion(true);
 				chunk.SetVisible(false);
 				++statistics_.occludedChunkCount;
 			}
+
+			chunkDebugInfos_.push_back(debugInfo);
 		}
 	}
 
@@ -110,13 +138,35 @@ namespace Ken4lowEngine
 		occlusionMargin_ = std::max(0.0f, margin);
 	}
 
-	bool OcclusionCullingSystem::IsOccluded(const BoundingAABB& bounds, const Matrix4x4& viewProjection) const
+	const OcclusionCullingSystem::ChunkDebugInfo* OcclusionCullingSystem::GetSelectedChunkDebugInfo() const
+	{
+		for (const ChunkDebugInfo& debugInfo : chunkDebugInfos_)
+		{
+			if (debugInfo.chunkId == debugSelectedChunkId_)
+			{
+				return &debugInfo;
+			}
+		}
+		return nullptr;
+	}
+
+	bool OcclusionCullingSystem::EvaluateOcclusion(const BoundingAABB& bounds, const Matrix4x4& viewProjection, ChunkDebugInfo& debugInfo)
 	{
 		ScreenRect targetRect{};
 		if (!ProjectAABB(bounds, viewProjection, targetRect))
 		{
+			debugInfo.failReason = DebugFailReason::FrustumOutside;
+			++statistics_.frustumOutsideCount;
 			return false;
 		}
+
+		debugInfo.rect = targetRect;
+		debugInfo.hasRect = true;
+
+		bool sawOccluder = false;
+		bool sawCoverageFailure = false;
+		bool sawDepthFailure = false;
+		bool sawInFrontFailure = false;
 
 		for (const Occluder& occluder : occluders_)
 		{
@@ -127,26 +177,62 @@ namespace Ken4lowEngine
 			{
 				continue;
 			}
+			sawOccluder = true;
 
-			if (targetRect.minDepth <= occluderRect.minDepth + depthBias_)
+			const ScreenRect safeOccluderRect = ApplyMargin(occluderRect, occlusionMargin_);
+			const bool validSafeRect = IsValidRect(safeOccluderRect);
+			const float coverage = validSafeRect ? CalculateCoverage(safeOccluderRect, targetRect) : 0.0f;
+			debugInfo.bestCoverage = std::max(debugInfo.bestCoverage, coverage);
+
+			const float depthDelta = targetRect.minDepth - occluderRect.minDepth;
+			debugInfo.bestDepthDelta = std::max(debugInfo.bestDepthDelta, depthDelta);
+			if (depthDelta <= 0.0f)
 			{
+				sawInFrontFailure = true;
+				continue;
+			}
+			if (depthDelta <= depthBias_)
+			{
+				sawDepthFailure = true;
+				continue;
+			}
+			if (!validSafeRect)
+			{
+				sawCoverageFailure = true;
 				continue;
 			}
 
-			ScreenRect safeOccluderRect = occluderRect;
-			safeOccluderRect.minX += occlusionMargin_;
-			safeOccluderRect.maxX -= occlusionMargin_;
-			safeOccluderRect.minY += occlusionMargin_;
-			safeOccluderRect.maxY -= occlusionMargin_;
-			if (safeOccluderRect.minX >= safeOccluderRect.maxX || safeOccluderRect.minY >= safeOccluderRect.maxY)
+			if (coverage >= coverageThreshold_)
 			{
-				continue;
-			}
-
-			if (CalculateCoverage(safeOccluderRect, targetRect) >= coverageThreshold_)
-			{
+				debugInfo.failReason = DebugFailReason::None;
 				return true;
 			}
+
+			sawCoverageFailure = true;
+		}
+
+		if (!sawOccluder)
+		{
+			debugInfo.failReason = DebugFailReason::NoOccluder;
+		}
+		else if (sawCoverageFailure)
+		{
+			debugInfo.failReason = DebugFailReason::CoverageInsufficient;
+			++statistics_.coverageFailedCount;
+		}
+		else if (sawDepthFailure)
+		{
+			debugInfo.failReason = DebugFailReason::DepthInsufficient;
+			++statistics_.depthFailedCount;
+		}
+		else if (sawInFrontFailure)
+		{
+			debugInfo.failReason = DebugFailReason::InFrontOfOccluder;
+			++statistics_.inFrontOfOccluderCount;
+		}
+		else
+		{
+			debugInfo.failReason = DebugFailReason::NoOccluder;
 		}
 
 		return false;
@@ -204,7 +290,22 @@ namespace Ken4lowEngine
 		outRect.maxX = std::clamp(outRect.maxX, 0.0f, 1.0f);
 		outRect.minY = std::clamp(outRect.minY, 0.0f, 1.0f);
 		outRect.maxY = std::clamp(outRect.maxY, 0.0f, 1.0f);
-		return outRect.minX < outRect.maxX && outRect.minY < outRect.maxY;
+		return IsValidRect(outRect);
+	}
+
+	OcclusionCullingSystem::ScreenRect OcclusionCullingSystem::ApplyMargin(const ScreenRect& rect, float margin)
+	{
+		ScreenRect result = rect;
+		result.minX += margin;
+		result.maxX -= margin;
+		result.minY += margin;
+		result.maxY -= margin;
+		return result;
+	}
+
+	bool OcclusionCullingSystem::IsValidRect(const ScreenRect& rect)
+	{
+		return rect.minX < rect.maxX && rect.minY < rect.maxY;
 	}
 
 	float OcclusionCullingSystem::CalculateCoverage(const ScreenRect& occluderRect, const ScreenRect& targetRect)
