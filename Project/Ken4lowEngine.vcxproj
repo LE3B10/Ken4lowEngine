@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|x64">
@@ -319,6 +319,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClCompile Include="Engine\Graphics\Camera\FPS\FpsCamera.cpp" />
     <ClCompile Include="Engine\Graphics\Culling\Frustum.cpp" />
     <ClCompile Include="ApplicationLayer\DebugTools\FrustumCulling\FrustumCullingDebugController.cpp" />
+    <ClCompile Include="ApplicationLayer\DebugTools\StageChunk\StageChunkDebugController.cpp" />
     <ClCompile Include="Engine\Graphics\Culling\FrustumDebugRenderer.cpp" />
     <ClCompile Include="Engine\Graphics\Culling\FrustumCullingSystem.cpp" />
     <ClCompile Include="Engine\Graphics\Descriptor\DSV\DSVManager.cpp" />
@@ -409,6 +410,8 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClCompile Include="Engine\Scene\Level\LevelLoader.cpp" />
     <ClCompile Include="Engine\Scene\Level\LevelObjectManager.cpp" />
     <ClCompile Include="Engine\Scene\Level\Stage.cpp" />
+    <ClCompile Include="Engine\Scene\Level\StageChunk.cpp" />
+    <ClCompile Include="Engine\Scene\Level\StageChunkManager.cpp" />
     <ClCompile Include="Engine\Scene\Level\StageAssetLoader.cpp" />
     <ClCompile Include="Engine\Scene\Level\StageCollisionBuilder.cpp" />
     <ClCompile Include="Engine\System\Audio\Manager\AudioManager.cpp" />
@@ -924,6 +927,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="Engine\Graphics\Camera\FPS\FpsCamera.h" />
     <ClInclude Include="Engine\Graphics\Culling\Frustum.h" />
     <ClInclude Include="ApplicationLayer\DebugTools\FrustumCulling\FrustumCullingDebugController.h" />
+    <ClInclude Include="ApplicationLayer\DebugTools\StageChunk\StageChunkDebugController.h" />
     <ClInclude Include="Engine\Graphics\Culling\FrustumDebugRenderer.h" />
     <ClInclude Include="Engine\Graphics\Culling\FrustumCullingSystem.h" />
     <ClInclude Include="Engine\Graphics\Culling\BoundingVolume.h" />
@@ -1055,6 +1059,8 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="Engine\Scene\Level\Stage.h" />
     <ClInclude Include="Engine\Scene\Level\StageAssetLoader.h" />
     <ClInclude Include="Engine\Scene\Level\StageCollisionBuilder.h" />
+    <ClInclude Include="Engine\Scene\Level\StageChunk.h" />
+    <ClInclude Include="Engine\Scene\Level\StageChunkManager.h" />
     <ClInclude Include="Engine\System\Audio\Data\AudioCategory.h" />
     <ClInclude Include="Engine\System\Audio\Data\AudioStructs.h" />
     <ClInclude Include="Engine\System\Audio\Manager\AudioManager.h" />

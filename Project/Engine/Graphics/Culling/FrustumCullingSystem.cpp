@@ -21,6 +21,9 @@ namespace Ken4lowEngine
 		totalStageObjectCount_ = 0;
 		drawnStageObjectCount_ = 0;
 		culledStageObjectCount_ = 0;
+		totalStageChunkCount_ = 0;
+		drawnStageChunkCount_ = 0;
+		culledStageChunkCount_ = 0;
 	}
 
 	bool FrustumCullingSystem::IsVisible(const BoundingSphere& bounds, bool ignoreFrustumCulling, bool hasBounds, CullingUnit unit)
@@ -74,6 +77,9 @@ namespace Ken4lowEngine
 		case CullingUnit::Mesh:
 			++totalMeshCount_;
 			break;
+		case CullingUnit::StageChunk:
+			++totalStageChunkCount_;
+			break;
 		case CullingUnit::StageObject:
 			++totalStageObjectCount_;
 			[[fallthrough]];
@@ -91,6 +97,9 @@ namespace Ken4lowEngine
 		case CullingUnit::Mesh:
 			++drawnMeshCount_;
 			break;
+		case CullingUnit::StageChunk:
+			++drawnStageChunkCount_;
+			break;
 		case CullingUnit::StageObject:
 			++drawnStageObjectCount_;
 			[[fallthrough]];
@@ -107,6 +116,9 @@ namespace Ken4lowEngine
 		{
 		case CullingUnit::Mesh:
 			++culledMeshCount_;
+			break;
+		case CullingUnit::StageChunk:
+			++culledStageChunkCount_;
 			break;
 		case CullingUnit::StageObject:
 			++culledStageObjectCount_;

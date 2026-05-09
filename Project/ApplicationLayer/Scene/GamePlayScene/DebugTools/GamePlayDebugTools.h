@@ -1,5 +1,6 @@
 #pragma once
 #include <cstdint>
+#include "ApplicationLayer/DebugTools/StageChunk/StageChunkDebugController.h"
 
 /// ---------- 前方宣言 ---------- ///
 namespace Ken4lowEngine { class Input; }
@@ -43,4 +44,5 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	bool weaponEditorInitialized_ = false;
 	int32_t lastAppliedWeaponID_ = 0;
+	StageChunkDebugController stageChunkDebugController_{};
 };

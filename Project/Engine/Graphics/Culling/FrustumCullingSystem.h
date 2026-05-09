@@ -21,7 +21,8 @@ namespace Ken4lowEngine
 		{
 			Object,
 			Mesh,
-			StageObject
+			StageObject,
+			StageChunk
 		};
 
 		bool IsVisible(const BoundingSphere& bounds, bool ignoreFrustumCulling = false, bool hasBounds = true, CullingUnit unit = CullingUnit::Object);
@@ -38,6 +39,9 @@ namespace Ken4lowEngine
 		int GetTotalStageObjectCount() const { return totalStageObjectCount_; }
 		int GetDrawnStageObjectCount() const { return drawnStageObjectCount_; }
 		int GetCulledStageObjectCount() const { return culledStageObjectCount_; }
+		int GetTotalStageChunkCount() const { return totalStageChunkCount_; }
+		int GetDrawnStageChunkCount() const { return drawnStageChunkCount_; }
+		int GetCulledStageChunkCount() const { return culledStageChunkCount_; }
 
 		const Matrix4x4& GetViewProjectionMatrix() const { return viewProjection_; }
 		const Frustum& GetFrustum() const { return frustum_; }
@@ -62,5 +66,8 @@ namespace Ken4lowEngine
 		int totalStageObjectCount_ = 0;
 		int drawnStageObjectCount_ = 0;
 		int culledStageObjectCount_ = 0;
+		int totalStageChunkCount_ = 0;
+		int drawnStageChunkCount_ = 0;
+		int culledStageChunkCount_ = 0;
 	};
 }

@@ -275,6 +275,7 @@ void GamePlayWorld::Draw3D(bool hideCharactersDuringIntro)
 	if (stage_)
 	{
 		stage_->Draw();
+		stage_->DrawChunkDebug();
 	}
 
 	if (bulletManager_)
