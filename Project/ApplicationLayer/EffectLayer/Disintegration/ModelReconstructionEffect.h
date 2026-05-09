@@ -37,6 +37,9 @@ public:
 		bool showFinalModel = true;
 		bool autoHideBlocksAfterComplete = true;
 		bool surfaceSampling = true;
+		bool useSurfaceInset = false;
+		float surfaceInset = 0.0225f;
+		bool autoSurfaceInsetFromBlockSize = true;
 	};
 
 	void Initialize();

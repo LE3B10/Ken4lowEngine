@@ -28,6 +28,9 @@ public:
 		uint32_t placementSeed = 0xD157E6A7u;
 		float placementSpacing = 0.0f;
 		bool surfaceSampling = true;
+		bool useSurfaceInset = false;
+		float surfaceInset = 0.0225f;
+		bool autoSurfaceInsetFromBlockSize = true;
 		float lifeTime = 2.0f;
 		float spreadPower = 1.6f;
 		float upwardPower = 0.65f;

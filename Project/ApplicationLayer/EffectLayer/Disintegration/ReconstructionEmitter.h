@@ -30,6 +30,9 @@ public:
 		uint32_t placementSeed = 0xD157E6A7u;
 		float placementSpacing = 0.0f;
 		bool surfaceSampling = true;
+		bool useSurfaceInset = false;
+		float surfaceInset = 0.0225f;
+		bool autoSurfaceInsetFromBlockSize = true;
 		K4E::Vector4 color{ 0.64f, 0.72f, 0.86f, 1.0f };
 		float colorVariation = 0.18f;
 	};

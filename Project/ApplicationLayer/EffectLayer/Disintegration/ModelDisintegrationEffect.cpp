@@ -55,6 +55,9 @@ void ModelDisintegrationEffect::PlayFromModel(const std::string& modelPath, cons
 	settings.placementSeed = parameters_.placementSeed;
 	settings.placementSpacing = parameters_.placementSpacing;
 	settings.surfaceSampling = parameters_.surfaceSampling;
+	settings.useSurfaceInset = parameters_.useSurfaceInset;
+	settings.surfaceInset = parameters_.surfaceInset;
+	settings.autoSurfaceInsetFromBlockSize = parameters_.autoSurfaceInsetFromBlockSize;
 	settings.lifeTime = parameters_.lifeTime;
 	settings.spreadPower = parameters_.spreadPower;
 	settings.upwardPower = parameters_.upwardPower;
@@ -106,6 +109,9 @@ void ModelDisintegrationEffect::BuildParticlesFromSamples(const std::vector<Disi
 	settings.placementSeed = parameters_.placementSeed;
 	settings.placementSpacing = parameters_.placementSpacing;
 	settings.surfaceSampling = parameters_.surfaceSampling;
+	settings.useSurfaceInset = parameters_.useSurfaceInset;
+	settings.surfaceInset = parameters_.surfaceInset;
+	settings.autoSurfaceInsetFromBlockSize = parameters_.autoSurfaceInsetFromBlockSize;
 	settings.lifeTime = parameters_.lifeTime;
 	settings.spreadPower = parameters_.spreadPower;
 	settings.upwardPower = parameters_.upwardPower;
@@ -195,6 +201,7 @@ void ModelDisintegrationEffect::DrawImGui()
 		{
 			parameters_.useRandomScale = false;
 			parameters_.useRandomRotation = false;
+			parameters_.useSurfaceInset = true;
 		}
 	}
 	ImGui::Checkbox("ランダムサイズを使う", &parameters_.useRandomScale);
@@ -219,6 +226,17 @@ void ModelDisintegrationEffect::DrawImGui()
 		ImGui::TextWrapped("整列表面配置はAABBを埋めず、三角形表面上の格子候補からブロックを選びます。");
 	}
 	ImGui::Checkbox("表面サンプリング", &parameters_.surfaceSampling);
+	ImGui::Checkbox("表面内側オフセットを使う", &parameters_.useSurfaceInset);
+	ImGui::Checkbox("ブロックサイズから自動計算", &parameters_.autoSurfaceInsetFromBlockSize);
+	if (!parameters_.autoSurfaceInsetFromBlockSize)
+	{
+		ImGui::SliderFloat("表面内側オフセット量", &parameters_.surfaceInset, 0.0f, 0.30f);
+	}
+	else
+	{
+		const float effectiveSurfaceInset = parameters_.blockSize * 0.5f;
+		ImGui::Text("表面内側オフセット量: %.3f", effectiveSurfaceInset);
+	}
 	ImGui::Checkbox("形状維持", &parameters_.preserveShape);
 	ImGui::SliderFloat("寿命", &parameters_.lifeTime, 0.10f, 8.0f);
 	ImGui::SliderFloat("拡散力", &parameters_.spreadPower, 0.0f, 8.0f);

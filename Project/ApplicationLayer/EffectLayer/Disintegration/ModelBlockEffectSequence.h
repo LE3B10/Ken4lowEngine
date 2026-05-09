@@ -54,6 +54,9 @@ public:
 		float blockSize = 0.045f;
 		float placementSpacing = 0.0f;
 		bool surfaceSampling = true;
+		bool useSurfaceInset = true;
+		float surfaceInset = 0.0225f;
+		bool autoSurfaceInsetFromBlockSize = true;
 		DisintegrationPlacementMode placementMode = DisintegrationPlacementMode::UniformSurface;
 		bool useRandomScale = false;
 		float scaleVariation = 0.18f;
