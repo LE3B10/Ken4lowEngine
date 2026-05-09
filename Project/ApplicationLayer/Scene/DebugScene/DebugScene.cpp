@@ -580,6 +580,25 @@ void DebugScene::DrawImGui()
 				sequenceParams.blockSize = std::max(sequenceParams.blockSize, 0.005f);
 			}
 			ImGui::Checkbox("表面サンプリング##BlockSequence", &sequenceParams.surfaceSampling);
+			const char* sequencePlacementModeLabels[] = { "ランダム表面配置", "均一表面配置" };
+			int sequencePlacementModeIndex = sequenceParams.placementMode == DisintegrationPlacementMode::UniformSurface ? 1 : 0;
+			if (ImGui::Combo("配置モード##BlockSequence", &sequencePlacementModeIndex, sequencePlacementModeLabels, IM_ARRAYSIZE(sequencePlacementModeLabels)))
+			{
+				sequenceParams.placementMode = sequencePlacementModeIndex == 1 ? DisintegrationPlacementMode::UniformSurface : DisintegrationPlacementMode::RandomSurface;
+			}
+			ImGui::Checkbox("ランダムサイズを使う##BlockSequence", &sequenceParams.useRandomScale);
+			ImGui::SliderFloat("サイズばらつき##BlockSequence", &sequenceParams.scaleVariation, 0.0f, 0.75f);
+			ImGui::Checkbox("ランダム回転を使う##BlockSequence", &sequenceParams.useRandomRotation);
+			ImGui::SliderFloat("回転ばらつき##BlockSequence", &sequenceParams.rotationRandomness, 0.0f, 8.0f);
+			int sequencePlacementSeed = static_cast<int>(sequenceParams.placementSeed);
+			if (ImGui::InputInt("配置シード##BlockSequence", &sequencePlacementSeed))
+			{
+				sequenceParams.placementSeed = static_cast<uint32_t>(std::max(sequencePlacementSeed, 0));
+			}
+			if (sequenceParams.placementMode == DisintegrationPlacementMode::UniformSurface)
+			{
+				ImGui::TextWrapped("均一表面配置はSweep Erosionで形を保って蝕む表現に推奨です。");
+			}
 			ImGui::SeparatorText("方向侵食崩壊##BlockSequence");
 			ImGui::Checkbox("方向侵食を使う##BlockSequence", &sequenceParams.useSweepErosion);
 			ImGui::DragFloat3("侵食方向##BlockSequence", &sequenceParams.sweepDirection.x, 0.01f, -1.0f, 1.0f);

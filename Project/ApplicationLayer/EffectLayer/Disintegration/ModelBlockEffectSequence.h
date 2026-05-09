@@ -1,8 +1,10 @@
 #pragma once
+#include "ModelSurfaceSampler.h"
 #include "Matrix4x4.h"
 #include "Vector3.h"
 #include "Vector4.h"
 
+#include <cstdint>
 #include <string>
 
 namespace K4E = ::Ken4lowEngine;
@@ -34,6 +36,12 @@ public:
 		int blockCount = 1200;
 		float blockSize = 0.045f;
 		bool surfaceSampling = true;
+		DisintegrationPlacementMode placementMode = DisintegrationPlacementMode::UniformSurface;
+		bool useRandomScale = false;
+		float scaleVariation = 0.18f;
+		bool useRandomRotation = false;
+		float rotationRandomness = 1.2f;
+		uint32_t placementSeed = 0xD157E6A7u;
 		bool useSweepErosion = true;
 		K4E::Vector3 sweepDirection{ 1.0f, 0.0f, 0.0f };
 		float sweepDuration = 1.6f;

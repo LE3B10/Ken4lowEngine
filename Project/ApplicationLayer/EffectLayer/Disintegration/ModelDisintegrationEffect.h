@@ -5,6 +5,7 @@
 #include "Vector4.h"
 #include "Vector3.h"
 
+#include <cstdint>
 #include <string>
 #include <vector>
 
@@ -21,6 +22,12 @@ public:
 		float particleSize = 0.045f;
 		float blockSize = 0.045f;
 		float blockRotationRandomness = 1.2f;
+		DisintegrationPlacementMode placementMode = DisintegrationPlacementMode::RandomSurface;
+		bool useRandomScale = true;
+		float scaleVariation = 0.18f;
+		bool useRandomRotation = true;
+		float rotationRandomness = 1.2f;
+		uint32_t placementSeed = 0xD157E6A7u;
 		bool surfaceSampling = true;
 		bool preserveShape = true;
 		float lifeTime = 2.2f;
