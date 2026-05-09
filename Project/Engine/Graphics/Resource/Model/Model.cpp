@@ -72,9 +72,11 @@ namespace Ken4lowEngine
 		if (!hasVertex)
 		{
 			localBounds_ = { {}, 1.0f };
+			hasLocalBounds_ = false;
 			return;
 		}
 
+		hasLocalBounds_ = true;
 		localBounds_.center = (minPos + maxPos) * 0.5f;
 		localBounds_.radius = Vector3::Length(maxPos - localBounds_.center) * 1.1f;
 		if (localBounds_.radius <= 0.001f)

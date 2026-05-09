@@ -95,6 +95,7 @@ namespace Ken4lowEngine
 		void InitializeShadowParameterResource();
 		void AcquireShadowMapHandle();
 		BoundingSphere GetWorldBounds() const;
+		bool HasWorldBounds() const;
 
 	private: /// ---------- メンバ変数 ---------- ///
 
@@ -143,7 +144,7 @@ namespace Ken4lowEngine
 		// ShadowMap の SRV を引くための GPU ハンドル
 		D3D12_GPU_DESCRIPTOR_HANDLE shadowMapHandle_{};
 
-		bool frustumCullingEnabled_ = false;
+		bool frustumCullingEnabled_ = true;
 	};
 
 } // namespace Ken4lowEngine

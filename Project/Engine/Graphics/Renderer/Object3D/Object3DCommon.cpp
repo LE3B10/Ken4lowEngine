@@ -18,7 +18,7 @@ namespace Ken4lowEngine
 	void Object3DCommon::Initialize(DirectXCommon* dxCommon)
 	{
 		dxCommon_ = dxCommon;
-		cullingCameraMode_ = CullingCameraMode::ActiveCamera;
+		cullingCameraMode_ = CullingCameraMode::MainCamera;
 
 		pipelineSet_.Initialize(dxCommon_->GetPipelineFactory(), dxCommon_->GetDXCCompilerManager(), DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, DXGI_FORMAT_D24_UNORM_S8_UINT);
 
@@ -29,7 +29,7 @@ namespace Ken4lowEngine
 	{
 		LightManager::GetInstance()->Finalize();
 		pipelineSet_.Finalize();
-		cullingCameraMode_ = CullingCameraMode::ActiveCamera;
+		cullingCameraMode_ = CullingCameraMode::MainCamera;
 		dxCommon_ = nullptr;
 	}
 
@@ -83,9 +83,9 @@ namespace Ken4lowEngine
 		LightManager::GetInstance()->BindPunctualLights(5, 6);
 	}
 
-	bool Object3DCommon::ShouldDrawObject(const BoundingSphere& worldBounds, bool objectCullingEnabled)
+	bool Object3DCommon::ShouldDrawObject(const BoundingSphere& worldBounds, bool objectCullingEnabled, bool hasBounds)
 	{
-		return frustumCullingSystem_.IsVisible(worldBounds, !objectCullingEnabled);
+		return frustumCullingSystem_.IsVisible(worldBounds, !objectCullingEnabled, hasBounds);
 	}
 
 	void Object3DCommon::SetShadowMapRenderSetting()

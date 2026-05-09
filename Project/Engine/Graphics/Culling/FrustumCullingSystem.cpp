@@ -13,23 +13,39 @@ namespace Ken4lowEngine
 		totalObjectCount_ = 0;
 		drawnObjectCount_ = 0;
 		culledObjectCount_ = 0;
+		cullingDisabledDrawnObjectCount_ = 0;
+		missingBoundsDrawnObjectCount_ = 0;
 	}
 
-	bool FrustumCullingSystem::IsVisible(const BoundingSphere& bounds, bool ignoreFrustumCulling)
+	bool FrustumCullingSystem::IsVisible(const BoundingSphere& bounds, bool ignoreFrustumCulling, bool hasBounds)
 	{
-		return IsVisibleInternal(frustum_.Intersects(bounds), ignoreFrustumCulling);
+		return IsVisibleInternal(hasBounds ? frustum_.Intersects(bounds) : true, ignoreFrustumCulling, hasBounds);
 	}
 
-	bool FrustumCullingSystem::IsVisible(const BoundingAABB& bounds, bool ignoreFrustumCulling)
+	bool FrustumCullingSystem::IsVisible(const BoundingAABB& bounds, bool ignoreFrustumCulling, bool hasBounds)
 	{
-		return IsVisibleInternal(frustum_.Intersects(bounds), ignoreFrustumCulling);
+		return IsVisibleInternal(hasBounds ? frustum_.Intersects(bounds) : true, ignoreFrustumCulling, hasBounds);
 	}
 
-	bool FrustumCullingSystem::IsVisibleInternal(bool intersects, bool ignoreFrustumCulling)
+	bool FrustumCullingSystem::IsVisibleInternal(bool intersects, bool ignoreFrustumCulling, bool hasBounds)
 	{
 		++totalObjectCount_;
 
-		if (!enabled_ || ignoreFrustumCulling || intersects)
+		if (!enabled_ || ignoreFrustumCulling)
+		{
+			++drawnObjectCount_;
+			++cullingDisabledDrawnObjectCount_;
+			return true;
+		}
+
+		if (!hasBounds)
+		{
+			++drawnObjectCount_;
+			++missingBoundsDrawnObjectCount_;
+			return true;
+		}
+
+		if (intersects)
 		{
 			++drawnObjectCount_;
 			return true;

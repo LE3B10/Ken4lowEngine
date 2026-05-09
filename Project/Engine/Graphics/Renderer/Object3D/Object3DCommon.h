@@ -15,9 +15,9 @@ namespace Ken4lowEngine
 	public:
 		enum class CullingCameraMode
 		{
-			ActiveCamera,
 			MainCamera,
-			DebugCamera
+			DebugCamera,
+			ActiveCamera
 		};
 
 	public:
@@ -32,7 +32,7 @@ namespace Ken4lowEngine
 
 		void SetRenderSetting();
 		void SetShadowMapRenderSetting();
-		bool ShouldDrawObject(const BoundingSphere& worldBounds, bool objectCullingEnabled);
+		bool ShouldDrawObject(const BoundingSphere& worldBounds, bool objectCullingEnabled, bool hasBounds);
 		FrustumCullingSystem& GetFrustumCullingSystem() { return frustumCullingSystem_; }
 		const FrustumCullingSystem& GetFrustumCullingSystem() const { return frustumCullingSystem_; }
 		void SetCullingCameraMode(CullingCameraMode mode) { cullingCameraMode_ = mode; }
@@ -42,6 +42,8 @@ namespace Ken4lowEngine
 		int GetDrawnObjectCount() const { return frustumCullingSystem_.GetDrawnObjectCount(); }
 		int GetCulledObjectCount() const { return frustumCullingSystem_.GetCulledObjectCount(); }
 		int GetTotalObjectCount() const { return frustumCullingSystem_.GetTotalObjectCount(); }
+		int GetCullingDisabledDrawnObjectCount() const { return frustumCullingSystem_.GetCullingDisabledDrawnObjectCount(); }
+		int GetMissingBoundsDrawnObjectCount() const { return frustumCullingSystem_.GetMissingBoundsDrawnObjectCount(); }
 		Matrix4x4 GetCullingViewProjectionMatrix() const;
 
 	public: /// ---------- 拡張予定の関数 ---------- ///
@@ -64,6 +66,6 @@ namespace Ken4lowEngine
 		Object3DPipelineSet pipelineSet_{};
 
 		FrustumCullingSystem frustumCullingSystem_{};
-		CullingCameraMode cullingCameraMode_ = CullingCameraMode::ActiveCamera;
+		CullingCameraMode cullingCameraMode_ = CullingCameraMode::MainCamera;
 	};
 }

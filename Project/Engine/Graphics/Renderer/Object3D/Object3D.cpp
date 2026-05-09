@@ -190,7 +190,8 @@ namespace Ken4lowEngine
 	{
 		if (!model_) { return; }
 
-		if (!Object3DCommon::GetInstance()->ShouldDrawObject(GetWorldBounds(), frustumCullingEnabled_))
+		// Object3D の共通描画直前で Frustum 判定し、Scene 側には Draw 呼び出しだけを残す。
+		if (!Object3DCommon::GetInstance()->ShouldDrawObject(GetWorldBounds(), frustumCullingEnabled_, HasWorldBounds()))
 		{
 			return;
 		}
@@ -344,7 +345,7 @@ namespace Ken4lowEngine
 	BoundingSphere Object3D::GetWorldBounds() const
 	{
 		BoundingSphere worldBounds{};
-		if (!model_)
+		if (!HasWorldBounds())
 		{
 			return worldBounds;
 		}
@@ -358,6 +359,11 @@ namespace Ken4lowEngine
 		const float maxScale = std::max({ scaleX, scaleY, scaleZ, 1.0f });
 		worldBounds.radius = localBounds.radius * maxScale;
 		return worldBounds;
+	}
+
+	bool Object3D::HasWorldBounds() const
+	{
+		return model_ && model_->HasLocalBounds();
 	}
 
 	void Object3D::AcquireShadowMapHandle()

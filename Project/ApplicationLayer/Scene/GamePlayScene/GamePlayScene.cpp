@@ -4,7 +4,6 @@
 #include <SpriteManager.h>
 #include <SceneManager.h>
 #include <GameTimer.h>
-#include <Object3DCommon.h>
 
 #ifdef _DEBUG
 #include <DebugCamera.h>
@@ -79,8 +78,6 @@ void GamePlayScene::InitializeGameplayObjects()
 
 	frustumCullingDebug_ = std::make_unique<FrustumCullingDebugController>();
 	frustumCullingDebug_->Initialize();
-	K4E::Object3DCommon::GetInstance()->SetFrustumCullingEnabled(false);
-	K4E::Object3DCommon::GetInstance()->SetCullingCameraMode(K4E::Object3DCommon::CullingCameraMode::ActiveCamera);
 
 	if (!fadeManager_)
 	{
@@ -589,8 +586,6 @@ void GamePlayScene::UpdateLoad()
 		debugTools_->Initialize();
 		frustumCullingDebug_ = std::make_unique<FrustumCullingDebugController>();
 		frustumCullingDebug_->Initialize();
-		K4E::Object3DCommon::GetInstance()->SetFrustumCullingEnabled(false);
-		K4E::Object3DCommon::GetInstance()->SetCullingCameraMode(K4E::Object3DCommon::CullingCameraMode::ActiveCamera);
 		++loadStep_;
 		break;
 
