@@ -92,7 +92,6 @@ void GamePlayWorld::Initialize(GamePlayStageContext& stageContext)
 
 	if (stage_)
 	{
-		stage_->SetFrustumCullingEnabled(true);
 		stage_->Update();
 	}
 

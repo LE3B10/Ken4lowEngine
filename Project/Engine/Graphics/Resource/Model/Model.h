@@ -24,6 +24,7 @@ namespace Ken4lowEngine
 		const std::vector<Mesh>& GetMeshes() const { return meshes_; }
 		std::vector<Mesh>& GetMeshes() { return meshes_; }
 		const BoundingSphere& GetLocalBounds() const { return localBounds_; }
+		bool HasLocalBounds() const { return hasLocalBounds_; }
 		
 		const std::vector<D3D12_GPU_DESCRIPTOR_HANDLE>& GetMaterialSRVs() const { return materialSRVs_; }
 		std::vector<D3D12_GPU_DESCRIPTOR_HANDLE>& GetMaterialSRVs() { return materialSRVs_; }
@@ -34,6 +35,7 @@ namespace Ken4lowEngine
 		std::vector<Mesh> meshes_;
 		std::vector<D3D12_GPU_DESCRIPTOR_HANDLE> materialSRVs_;
 		BoundingSphere localBounds_{};
+		bool hasLocalBounds_ = false;
 	};
 
 

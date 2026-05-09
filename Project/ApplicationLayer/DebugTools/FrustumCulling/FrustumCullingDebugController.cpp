@@ -62,7 +62,7 @@ void FrustumCullingDebugController::DrawImGui()
 #ifdef USE_IMGUI
 	K4E::Object3DCommon* object3DCommon = K4E::Object3DCommon::GetInstance();
 	int cullingCameraIndex = static_cast<int>(object3DCommon->GetCullingCameraMode());
-	const char* cullingCameraItems[] = { "ActiveCamera", "MainCamera", "DebugCamera" };
+	const char* cullingCameraItems[] = { "MainCamera", "DebugCamera", "ActiveCamera" };
 
 	bool frustumCullingEnabled = object3DCommon->IsFrustumCullingEnabled();
 	float nearDistance = 0.0f;
@@ -96,6 +96,8 @@ void FrustumCullingDebugController::DrawImGui()
 	ImGui::Text("Total Objects: %d", object3DCommon->GetTotalObjectCount());
 	ImGui::Text("Drawn Objects: %d", object3DCommon->GetDrawnObjectCount());
 	ImGui::Text("Culled Objects: %d", object3DCommon->GetCulledObjectCount());
+	ImGui::Text("Drawn (Culling Disabled): %d", object3DCommon->GetCullingDisabledDrawnObjectCount());
+	ImGui::Text("Drawn (Missing Bounds): %d", object3DCommon->GetMissingBoundsDrawnObjectCount());
 	ImGui::TextWrapped("Use DebugCamera outside the view and select MainCamera to inspect gameplay culling results.");
 
 	DrawMainCameraImGui();

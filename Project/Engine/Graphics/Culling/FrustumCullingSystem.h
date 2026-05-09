@@ -17,24 +17,28 @@ namespace Ken4lowEngine
 		void BuildFrustum(const Matrix4x4& viewProjection);
 		void ResetStatistics();
 
-		bool IsVisible(const BoundingSphere& bounds, bool ignoreFrustumCulling = false);
-		bool IsVisible(const BoundingAABB& bounds, bool ignoreFrustumCulling = false);
+		bool IsVisible(const BoundingSphere& bounds, bool ignoreFrustumCulling = false, bool hasBounds = true);
+		bool IsVisible(const BoundingAABB& bounds, bool ignoreFrustumCulling = false, bool hasBounds = true);
 
 		int GetTotalObjectCount() const { return totalObjectCount_; }
 		int GetDrawnObjectCount() const { return drawnObjectCount_; }
 		int GetCulledObjectCount() const { return culledObjectCount_; }
+		int GetCullingDisabledDrawnObjectCount() const { return cullingDisabledDrawnObjectCount_; }
+		int GetMissingBoundsDrawnObjectCount() const { return missingBoundsDrawnObjectCount_; }
 
 		const Matrix4x4& GetViewProjectionMatrix() const { return viewProjection_; }
 		const Frustum& GetFrustum() const { return frustum_; }
 
 	private:
-		bool IsVisibleInternal(bool intersects, bool ignoreFrustumCulling);
+		bool IsVisibleInternal(bool intersects, bool ignoreFrustumCulling, bool hasBounds);
 
 		Frustum frustum_{};
 		Matrix4x4 viewProjection_{};
-		bool enabled_ = false;
+		bool enabled_ = true;
 		int totalObjectCount_ = 0;
 		int drawnObjectCount_ = 0;
 		int culledObjectCount_ = 0;
+		int cullingDisabledDrawnObjectCount_ = 0;
+		int missingBoundsDrawnObjectCount_ = 0;
 	};
 }

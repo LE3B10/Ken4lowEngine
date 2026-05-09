@@ -7,7 +7,6 @@
 #include <SpriteManager.h>
 #include "CameraManager.h"
 #include "Wireframe.h"
-#include "Object3DCommon.h"
 #include "Object3D.h"
 #include "Camera.h"
 #include "WinApp.h"
@@ -138,8 +137,6 @@ void DebugScene::Initialize()
 
 	frustumCullingDebug_ = std::make_unique<FrustumCullingDebugController>();
 	frustumCullingDebug_->Initialize(true);
-	Object3DCommon::GetInstance()->SetFrustumCullingEnabled(true);
-	Object3DCommon::GetInstance()->SetCullingCameraMode(Object3DCommon::CullingCameraMode::MainCamera);
 	InitializeCullingTestObjects();
 }
 
@@ -557,8 +554,7 @@ void DebugScene::InitializeCullingTestObjects()
 		object->SetTranslate(desc.position);
 		object->SetScale(desc.scale);
 		object->SetColor(desc.color);
-		// Object3D のみをカリング対象にし、Wireframe や UI は確認結果から除外する。
-		object->SetFrustumCullingEnabled(true);
+		// Object3D のデフォルト設定で共通カリング経路を確認する。
 		object->Update();
 		cullingTestObjects_.push_back(std::move(object));
 	}
