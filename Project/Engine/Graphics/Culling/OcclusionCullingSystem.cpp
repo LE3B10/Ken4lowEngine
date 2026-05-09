@@ -84,6 +84,7 @@ namespace Ken4lowEngine
 		{
 			ChunkDebugInfo debugInfo{};
 			debugInfo.chunkId = chunk.GetChunkId();
+			debugInfo.bounds = chunk.GetBounds();
 			chunk.SetOccludedByOcclusion(false);
 
 			if (!chunk.IsVisible())
@@ -113,13 +114,40 @@ namespace Ken4lowEngine
 
 	void OcclusionCullingSystem::DrawDebugBounds() const
 	{
-		if (!showOccluderBounds_) { return; }
-
-		const Vector4 occluderColor{ 1.0f, 0.7f, 0.05f, 1.0f };
-		for (const Occluder& occluder : occluders_)
+		if (showOccluderBounds_)
 		{
-			if (!occluder.IsEnabled()) { continue; }
-			Wireframe::GetInstance()->DrawAABB(occluder.GetDebugAABB(), occluderColor);
+			const Vector4 occluderColor{ 1.0f, 0.7f, 0.05f, 1.0f };
+			for (const Occluder& occluder : occluders_)
+			{
+				if (!occluder.IsEnabled()) { continue; }
+				Wireframe::GetInstance()->DrawAABB(occluder.GetDebugAABB(), occluderColor);
+			}
+		}
+
+		if (!showOccludedBounds_) { return; }
+
+		const Vector4 depthFailedColor{ 0.1f, 0.45f, 1.0f, 1.0f };
+		const Vector4 inFrontColor{ 1.0f, 0.45f, 0.05f, 1.0f };
+		for (const ChunkDebugInfo& debugInfo : chunkDebugInfos_)
+		{
+			Vector4 color{};
+			if (debugInfo.failReason == DebugFailReason::DepthInsufficient)
+			{
+				color = depthFailedColor;
+			}
+			else if (debugInfo.failReason == DebugFailReason::InFrontOfOccluder)
+			{
+				color = inFrontColor;
+			}
+			else
+			{
+				continue;
+			}
+
+			AABB aabb{};
+			aabb.min = debugInfo.bounds.min;
+			aabb.max = debugInfo.bounds.max;
+			Wireframe::GetInstance()->DrawAABB(aabb, color);
 		}
 	}
 
@@ -162,6 +190,7 @@ namespace Ken4lowEngine
 
 		debugInfo.rect = targetRect;
 		debugInfo.hasRect = true;
+		debugInfo.bestDepthDelta = std::numeric_limits<float>::lowest();
 
 		bool sawOccluder = false;
 		bool sawCoverageFailure = false;
@@ -182,33 +211,47 @@ namespace Ken4lowEngine
 			const ScreenRect safeOccluderRect = ApplyMargin(occluderRect, occlusionMargin_);
 			const bool validSafeRect = IsValidRect(safeOccluderRect);
 			const float coverage = validSafeRect ? CalculateCoverage(safeOccluderRect, targetRect) : 0.0f;
-			debugInfo.bestCoverage = std::max(debugInfo.bestCoverage, coverage);
+			const float occluderCompareDepth = conservativeMode_ ? occluderRect.maxDepth : occluderRect.minDepth;
+			// DirectX NDC Z は Near=0 / Far=1 なので、Chunk の最手前Depthが Occluder の手前Depthより大きい場合だけ裏側扱いにする。
+			const float depthDelta = targetRect.minDepth - occluderCompareDepth;
+			const bool depthPassed = targetRect.minDepth > occluderCompareDepth + depthBias_;
+			const bool coveragePassed = validSafeRect && coverage >= coverageThreshold_;
 
-			const float depthDelta = targetRect.minDepth - occluderRect.minDepth;
-			debugInfo.bestDepthDelta = std::max(debugInfo.bestDepthDelta, depthDelta);
+			if (coverage > debugInfo.bestCoverage ||
+				(coverage == debugInfo.bestCoverage && depthDelta > debugInfo.bestDepthDelta))
+			{
+				debugInfo.bestCoverage = coverage;
+				debugInfo.bestDepthDelta = depthDelta;
+				debugInfo.matchedOccluderRect = occluderRect;
+				debugInfo.hasMatchedOccluder = true;
+				debugInfo.depthPassed = depthPassed;
+				debugInfo.coveragePassed = coveragePassed;
+			}
+
 			if (depthDelta <= 0.0f)
 			{
 				sawInFrontFailure = true;
 				continue;
 			}
-			if (depthDelta <= depthBias_)
+			if (!depthPassed)
 			{
 				sawDepthFailure = true;
 				continue;
 			}
-			if (!validSafeRect)
+			if (!coveragePassed)
 			{
 				sawCoverageFailure = true;
 				continue;
 			}
 
-			if (coverage >= coverageThreshold_)
-			{
-				debugInfo.failReason = DebugFailReason::None;
-				return true;
-			}
-
-			sawCoverageFailure = true;
+			debugInfo.bestCoverage = coverage;
+			debugInfo.bestDepthDelta = depthDelta;
+			debugInfo.matchedOccluderRect = occluderRect;
+			debugInfo.hasMatchedOccluder = true;
+			debugInfo.depthPassed = true;
+			debugInfo.coveragePassed = true;
+			debugInfo.failReason = DebugFailReason::None;
+			return true;
 		}
 
 		if (!sawOccluder)
@@ -256,6 +299,9 @@ namespace Ken4lowEngine
 		outRect.maxX = std::numeric_limits<float>::lowest();
 		outRect.maxY = std::numeric_limits<float>::lowest();
 		outRect.minDepth = std::numeric_limits<float>::max();
+		outRect.maxDepth = std::numeric_limits<float>::lowest();
+		outRect.averageDepth = 0.0f;
+		int projectedCornerCount = 0;
 
 		for (const Vector3& corner : corners)
 		{
@@ -284,7 +330,16 @@ namespace Ken4lowEngine
 			outRect.minY = std::min(outRect.minY, screenY);
 			outRect.maxY = std::max(outRect.maxY, screenY);
 			outRect.minDepth = std::min(outRect.minDepth, ndcZ);
+			outRect.maxDepth = std::max(outRect.maxDepth, ndcZ);
+			outRect.averageDepth += ndcZ;
+			++projectedCornerCount;
 		}
+
+		if (projectedCornerCount <= 0)
+		{
+			return false;
+		}
+		outRect.averageDepth /= static_cast<float>(projectedCornerCount);
 
 		outRect.minX = std::clamp(outRect.minX, 0.0f, 1.0f);
 		outRect.maxX = std::clamp(outRect.maxX, 0.0f, 1.0f);

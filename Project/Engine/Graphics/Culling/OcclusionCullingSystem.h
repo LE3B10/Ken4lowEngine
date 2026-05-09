@@ -33,6 +33,8 @@ namespace Ken4lowEngine
 			float minY = 0.0f;
 			float maxY = 0.0f;
 			float minDepth = 1.0f;
+			float maxDepth = 0.0f;
+			float averageDepth = 0.0f;
 		};
 
 		enum class DebugFailReason
@@ -48,10 +50,15 @@ namespace Ken4lowEngine
 		struct ChunkDebugInfo
 		{
 			int chunkId = -1;
+			BoundingAABB bounds{};
 			ScreenRect rect{};
+			ScreenRect matchedOccluderRect{};
 			bool hasRect = false;
+			bool hasMatchedOccluder = false;
 			bool tested = false;
 			bool occluded = false;
+			bool depthPassed = false;
+			bool coveragePassed = false;
 			float bestCoverage = 0.0f;
 			float bestDepthDelta = -1.0f;
 			DebugFailReason failReason = DebugFailReason::None;
@@ -85,6 +92,8 @@ namespace Ken4lowEngine
 		float GetDepthBias() const { return depthBias_; }
 		void SetOcclusionMargin(float margin);
 		float GetOcclusionMargin() const { return occlusionMargin_; }
+		void SetConservativeMode(bool enabled) { conservativeMode_ = enabled; }
+		bool IsConservativeMode() const { return conservativeMode_; }
 		void SetDebugSelectedChunkId(int chunkId) { debugSelectedChunkId_ = chunkId; }
 		int GetDebugSelectedChunkId() const { return debugSelectedChunkId_; }
 		const ChunkDebugInfo* GetSelectedChunkDebugInfo() const;
@@ -112,6 +121,7 @@ namespace Ken4lowEngine
 		float coverageThreshold_ = 0.98f;
 		float depthBias_ = 0.02f;
 		float occlusionMargin_ = 0.02f;
+		bool conservativeMode_ = false;
 		int debugSelectedChunkId_ = 0;
 	};
 }
