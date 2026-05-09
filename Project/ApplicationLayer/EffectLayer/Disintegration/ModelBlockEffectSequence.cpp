@@ -193,6 +193,17 @@ void ModelBlockEffectSequence::ApplySharedParameters()
 		disintegrationParams.particleSize = parameters_.blockSize;
 		disintegrationParams.blockSize = parameters_.blockSize;
 		disintegrationParams.surfaceSampling = parameters_.surfaceSampling;
+		disintegrationParams.useSweepErosion = parameters_.useSweepErosion;
+		disintegrationParams.sweepDirection = parameters_.sweepDirection;
+		disintegrationParams.sweepDuration = parameters_.sweepDuration;
+		disintegrationParams.erosionNoisePower = parameters_.erosionNoisePower;
+		disintegrationParams.erosionBandWidth = parameters_.erosionBandWidth;
+		disintegrationParams.preGlowWidth = parameters_.preGlowWidth;
+		disintegrationParams.postGlowWidth = parameters_.postGlowWidth;
+		disintegrationParams.glowEdgeWidth = parameters_.glowEdgeWidth;
+		disintegrationParams.glowIntensity = parameters_.glowIntensity;
+		disintegrationParams.glowSharpness = parameters_.glowSharpness;
+		disintegrationParams.glowColor = parameters_.glowColor;
 	}
 }
 

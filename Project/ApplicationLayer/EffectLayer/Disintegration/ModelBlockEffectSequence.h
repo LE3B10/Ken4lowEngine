@@ -1,5 +1,7 @@
 #pragma once
 #include "Matrix4x4.h"
+#include "Vector3.h"
+#include "Vector4.h"
 
 #include <string>
 
@@ -32,6 +34,17 @@ public:
 		int blockCount = 1200;
 		float blockSize = 0.045f;
 		bool surfaceSampling = true;
+		bool useSweepErosion = true;
+		K4E::Vector3 sweepDirection{ 1.0f, 0.0f, 0.0f };
+		float sweepDuration = 1.6f;
+		float erosionNoisePower = 0.35f;
+		float erosionBandWidth = 0.10f;
+		float preGlowWidth = 0.20f;
+		float postGlowWidth = 0.16f;
+		float glowEdgeWidth = 0.24f;
+		float glowIntensity = 1.8f;
+		float glowSharpness = 1.6f;
+		K4E::Vector4 glowColor{ 1.0f, 0.55f, 0.18f, 1.0f };
 	};
 
 	void Initialize(ModelReconstructionEffect* reconstructionEffect, ModelDisintegrationEffect* disintegrationEffect);

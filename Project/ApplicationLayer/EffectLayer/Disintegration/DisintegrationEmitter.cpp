@@ -50,6 +50,7 @@ std::vector<DisintegrationParticle> DisintegrationEmitter::EmitFromModel(
 
 		DisintegrationParticle particle{};
 		particle.initialPosition = sample.position;
+		particle.origin = sample.position;
 		particle.position = sample.position;
 		particle.outward = outward;
 		particle.rotation = {
@@ -73,7 +74,12 @@ std::vector<DisintegrationParticle> DisintegrationEmitter::EmitFromModel(
 		particle.startDelay = RandomRange(0.0f, settings.startDelay);
 		particle.size = settings.particleSize * RandomRange(0.80f, 1.15f);
 		particle.color = color;
+		particle.edgeColor = { 0.0f, 0.0f, 0.0f, 0.0f };
 		particle.alpha = 1.0f;
+		particle.edgeFactor = 0.0f;
+		particle.erosionNoise = 0.5f;
+		particle.sweepCoord = 0.0f;
+		particle.active = true;
 		particle.alive = true;
 		particles.push_back(particle);
 	}
