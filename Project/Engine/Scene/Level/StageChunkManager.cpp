@@ -2,11 +2,14 @@
 #include "StageChunkManager.h"
 
 #include "Object3DCommon.h"
+#include "Wireframe.h"
 
 #include <algorithm>
 #include <cmath>
 #include <limits>
+#include <map>
 #include <unordered_map>
+#include <vector>
 
 namespace Ken4lowEngine
 {
@@ -19,11 +22,32 @@ namespace Ken4lowEngine
 		{
 			return std::max(chunkSize, kMinChunkSize);
 		}
+
+		BoundingAABB MakeAABBFromSphere(const BoundingSphere& sphere)
+		{
+			const Vector3 radius{ sphere.radius, sphere.radius, sphere.radius };
+			return { sphere.center - radius, sphere.center + radius };
+		}
+
+		Vector3 GetAABBSize(const BoundingAABB& bounds)
+		{
+			return bounds.max - bounds.min;
+		}
+
+		AABB ToDebugAABB(const BoundingAABB& bounds)
+		{
+			AABB aabb{};
+			aabb.min = bounds.min;
+			aabb.max = bounds.max;
+			return aabb;
+		}
 	}
 
 	void StageChunkManager::Clear()
 	{
 		chunks_.clear();
+		chunkCullingExcludedMeshes_.clear();
+		meshChunkAssignments_.clear();
 		statistics_ = {};
 		needsRebuild_ = false;
 	}
@@ -31,6 +55,8 @@ namespace Ken4lowEngine
 	void StageChunkManager::Rebuild(Object3D* stageObject, float chunkSize)
 	{
 		chunks_.clear();
+		chunkCullingExcludedMeshes_.clear();
+		meshChunkAssignments_.clear();
 		chunkSize_ = ClampChunkSize(chunkSize);
 		needsRebuild_ = false;
 
@@ -45,25 +71,51 @@ namespace Ken4lowEngine
 		struct PendingMesh
 		{
 			size_t meshIndex = 0;
-			int xIndex = 0;
-			int zIndex = 0;
+			BoundingAABB bounds{};
+			int minXIndex = 0;
+			int maxXIndex = 0;
+			int minZIndex = 0;
+			int maxZIndex = 0;
 		};
 		std::vector<PendingMesh> pendingMeshes;
 		pendingMeshes.reserve(stageObject->GetSubmeshCount());
+		meshChunkAssignments_.reserve(stageObject->GetSubmeshCount());
 
 		for (size_t meshIndex = 0; meshIndex < stageObject->GetSubmeshCount(); ++meshIndex)
 		{
-			const BoundingSphere meshBounds = stageObject->GetMeshWorldBoundsForCulling(meshIndex);
-			if (!stageObject->HasMeshWorldBoundsForCulling(meshIndex))
+			if (stageObject->IsIgnoreStageChunkCulling())
 			{
+				chunkCullingExcludedMeshes_.push_back({ stageObject, meshIndex });
+				++statistics_.chunkCullingIgnoredObjectCount;
 				continue;
 			}
 
-			const int xIndex = static_cast<int>(std::floor(meshBounds.center.x / chunkSize_));
-			const int zIndex = static_cast<int>(std::floor(meshBounds.center.z / chunkSize_));
-			pendingMeshes.push_back({ meshIndex, xIndex, zIndex });
-			minY = std::min(minY, meshBounds.center.y - meshBounds.radius);
-			maxY = std::max(maxY, meshBounds.center.y + meshBounds.radius);
+			if (!stageObject->HasMeshWorldBoundsForCulling(meshIndex))
+			{
+				chunkCullingExcludedMeshes_.push_back({ stageObject, meshIndex });
+				++statistics_.boundsUnsetDrawObjectCount;
+				continue;
+			}
+
+			const BoundingAABB meshAABB = MakeAABBFromSphere(stageObject->GetMeshWorldBoundsForCulling(meshIndex));
+			minY = std::min(minY, meshAABB.min.y);
+			maxY = std::max(maxY, meshAABB.max.y);
+
+			const Vector3 meshSize = GetAABBSize(meshAABB);
+			if (autoExcludeLargeObjects_ && (meshSize.x > chunkSize_ || meshSize.z > chunkSize_))
+			{
+				chunkCullingExcludedMeshes_.push_back({ stageObject, meshIndex });
+				++statistics_.chunkCullingIgnoredObjectCount;
+				++statistics_.largeObjectExcludedCount;
+				continue;
+			}
+
+			const int minXIndex = static_cast<int>(std::floor(meshAABB.min.x / chunkSize_));
+			const int maxXIndex = static_cast<int>(std::floor(meshAABB.max.x / chunkSize_));
+			const int minZIndex = static_cast<int>(std::floor(meshAABB.min.z / chunkSize_));
+			const int maxZIndex = static_cast<int>(std::floor(meshAABB.max.z / chunkSize_));
+			pendingMeshes.push_back({ meshIndex, meshAABB, minXIndex, maxXIndex, minZIndex, maxZIndex });
+
 		}
 
 		if (pendingMeshes.empty())
@@ -80,22 +132,38 @@ namespace Ken4lowEngine
 		std::unordered_map<unsigned long long, size_t> keyToChunkIndex;
 		for (const PendingMesh& pending : pendingMeshes)
 		{
-			const unsigned long long key = CalculateChunkKey(pending.xIndex, pending.zIndex);
-			auto it = keyToChunkIndex.find(key);
-			if (it == keyToChunkIndex.end())
+			int assignedChunkCount = 0;
+			for (int xIndex = pending.minXIndex; xIndex <= pending.maxXIndex; ++xIndex)
 			{
-				const int chunkId = static_cast<int>(chunks_.size());
-				const Vector3 center = {
-					(static_cast<float>(pending.xIndex) + 0.5f) * chunkSize_,
-					centerY,
-					(static_cast<float>(pending.zIndex) + 0.5f) * chunkSize_
-				};
-				const Vector3 size = { chunkSize_, height, chunkSize_ };
-				it = keyToChunkIndex.emplace(key, chunks_.size()).first;
-				chunks_.emplace_back(chunkId, center, size);
+				for (int zIndex = pending.minZIndex; zIndex <= pending.maxZIndex; ++zIndex)
+				{
+					const unsigned long long key = CalculateChunkKey(xIndex, zIndex);
+					auto it = keyToChunkIndex.find(key);
+					if (it == keyToChunkIndex.end())
+					{
+						const int chunkId = static_cast<int>(chunks_.size());
+						const Vector3 center = {
+							(static_cast<float>(xIndex) + 0.5f) * chunkSize_,
+							centerY,
+							(static_cast<float>(zIndex) + 0.5f) * chunkSize_
+						};
+						const Vector3 size = { chunkSize_, height, chunkSize_ };
+						it = keyToChunkIndex.emplace(key, chunks_.size()).first;
+						chunks_.emplace_back(chunkId, center, size);
+					}
+
+					// Mesh の AABB が重なる全 Chunk に登録し、どれかが可視なら Draw する安全側の判定にする。
+					chunks_[it->second].AddMesh(stageObject, pending.meshIndex);
+					++assignedChunkCount;
+				}
 			}
 
-			chunks_[it->second].AddMesh(stageObject, pending.meshIndex);
+			if (assignedChunkCount <= 0)
+			{
+				chunkCullingExcludedMeshes_.push_back({ stageObject, pending.meshIndex });
+				++statistics_.chunkOutsideDrawObjectCount;
+			}
+			meshChunkAssignments_.push_back({ pending.meshIndex, assignedChunkCount });
 		}
 
 		BuildStatistics();
@@ -109,7 +177,6 @@ namespace Ken4lowEngine
 		auto& cullingSystem = Object3DCommon::GetInstance()->GetFrustumCullingSystem();
 		for (StageChunk& chunk : chunks_)
 		{
-			// 既存 FrustumCullingSystem に Chunk AABB を渡し、Chunk 外の静的 Mesh Draw だけを止める。
 			const bool visible = cullingSystem.IsVisible(
 				chunk.GetBounds(),
 				!enabled,
@@ -129,9 +196,38 @@ namespace Ken4lowEngine
 
 	void StageChunkManager::DrawVisibleChunks() const
 	{
+		std::map<Object3D*, std::vector<size_t>> visibleMeshesByObject;
+
+		for (const StageChunkMeshRef& ref : chunkCullingExcludedMeshes_)
+		{
+			if (ref.object)
+			{
+				visibleMeshesByObject[ref.object].push_back(ref.meshIndex);
+			}
+		}
+
 		for (const StageChunk& chunk : chunks_)
 		{
-			chunk.Draw();
+			if (!chunk.IsVisible()) { continue; }
+
+			for (const StageChunkMeshRef& ref : chunk.GetMeshes())
+			{
+				if (!ref.object) { continue; }
+
+				auto& indices = visibleMeshesByObject[ref.object];
+				if (std::find(indices.begin(), indices.end(), ref.meshIndex) == indices.end())
+				{
+					indices.push_back(ref.meshIndex);
+				}
+			}
+		}
+
+		for (const auto& [object, meshIndices] : visibleMeshesByObject)
+		{
+			if (object && !meshIndices.empty())
+			{
+				object->DrawMeshes(meshIndices);
+			}
 		}
 	}
 
@@ -141,16 +237,52 @@ namespace Ken4lowEngine
 		{
 			chunk.DrawBoundsDebug(showBounds_);
 		}
+
+		if (!showObjectBounds_) { return; }
+
+		const Vector4 registeredColor{ 0.2f, 0.6f, 1.0f, 1.0f };
+		const Vector4 excludedColor{ 1.0f, 0.85f, 0.1f, 1.0f };
+		for (const StageChunk& chunk : chunks_)
+		{
+			for (const StageChunkMeshRef& ref : chunk.GetMeshes())
+			{
+				if (!ref.object || !ref.object->HasMeshWorldBoundsForCulling(ref.meshIndex)) { continue; }
+				Wireframe::GetInstance()->DrawAABB(ToDebugAABB(MakeAABBFromSphere(ref.object->GetMeshWorldBoundsForCulling(ref.meshIndex))), registeredColor);
+			}
+		}
+		for (const StageChunkMeshRef& ref : chunkCullingExcludedMeshes_)
+		{
+			if (!ref.object || !ref.object->HasMeshWorldBoundsForCulling(ref.meshIndex)) { continue; }
+			Wireframe::GetInstance()->DrawAABB(ToDebugAABB(MakeAABBFromSphere(ref.object->GetMeshWorldBoundsForCulling(ref.meshIndex))), excludedColor);
+		}
 	}
 
 	void StageChunkManager::BuildStatistics()
 	{
+		const int boundsUnsetDrawObjectCount = statistics_.boundsUnsetDrawObjectCount;
+		const int chunkOutsideDrawObjectCount = statistics_.chunkOutsideDrawObjectCount;
+		const int chunkCullingIgnoredObjectCount = statistics_.chunkCullingIgnoredObjectCount;
+		const int largeObjectExcludedCount = statistics_.largeObjectExcludedCount;
+
 		statistics_ = {};
+		statistics_.boundsUnsetDrawObjectCount = boundsUnsetDrawObjectCount;
+		statistics_.chunkOutsideDrawObjectCount = chunkOutsideDrawObjectCount;
+		statistics_.chunkCullingIgnoredObjectCount = chunkCullingIgnoredObjectCount;
+		statistics_.largeObjectExcludedCount = largeObjectExcludedCount;
 		statistics_.totalChunkCount = static_cast<int>(chunks_.size());
 		for (const StageChunk& chunk : chunks_)
 		{
 			statistics_.totalObjectCountInChunks += chunk.GetObjectCount();
 			statistics_.totalMeshCountInChunks += static_cast<int>(chunk.GetMeshes().size());
+		}
+
+		for (const MeshChunkAssignment& assignment : meshChunkAssignments_)
+		{
+			if (assignment.meshIndex == debugSelectedMeshIndex_)
+			{
+				statistics_.selectedObjectChunkCount = assignment.chunkCount;
+				break;
+			}
 		}
 	}
 

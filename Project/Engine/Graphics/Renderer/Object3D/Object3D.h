@@ -86,6 +86,9 @@ namespace Ken4lowEngine
 		bool IsFrustumCullingEnabled() const { return frustumCullingEnabled_; }
 		void SetStageObjectCullingUnit(bool enabled) { isStageObjectCullingUnit_ = enabled; }
 		bool IsStageObjectCullingUnit() const { return isStageObjectCullingUnit_; }
+		void SetIgnoreStageChunkCulling(bool ignore) { ignoreStageChunkCulling_ = ignore; }
+		bool IsIgnoreStageChunkCulling() const { return ignoreStageChunkCulling_; }
+		bool HasWorldBoundsForCulling() const { return HasWorldBounds(); }
 
 	public: /// ---------- ディゾルブの設定 ---------- ///
 
@@ -157,6 +160,7 @@ namespace Ken4lowEngine
 
 		bool frustumCullingEnabled_ = true;
 		bool isStageObjectCullingUnit_ = false;
+		bool ignoreStageChunkCulling_ = false;
 	};
 
 } // namespace Ken4lowEngine

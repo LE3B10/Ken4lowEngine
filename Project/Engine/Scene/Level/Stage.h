@@ -71,6 +71,10 @@ namespace Ken4lowEngine
 		bool IsStageChunkCullingEnabled() const;
 		void SetStageChunkBoundsVisible(bool visible);
 		bool IsStageChunkBoundsVisible() const;
+		void SetStageChunkObjectBoundsVisible(bool visible);
+		bool IsStageChunkObjectBoundsVisible() const;
+		void SetStageChunkAutoExcludeLargeObjects(bool enabled);
+		bool IsStageChunkAutoExcludeLargeObjects() const;
 		void SetStageChunkSize(float chunkSize);
 		float GetStageChunkSize() const;
 		void RebuildStageChunks();
