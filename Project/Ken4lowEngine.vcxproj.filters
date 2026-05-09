@@ -208,6 +208,9 @@
     <ClCompile Include="ApplicationLayer\Scene\DebugScene\DebugScene.cpp">
       <Filter>ApplicationLayer\Scene\DebugScene</Filter>
     </ClCompile>
+    <ClCompile Include="ApplicationLayer\Scene\DebugScene\DisintegrationDebugController.cpp">
+      <Filter>ApplicationLayer\Scene\DebugScene</Filter>
+    </ClCompile>
     <ClCompile Include="ApplicationLayer\SceneManagement\FadeManager\FadeManager.cpp">
       <Filter>ApplicationLayer\SceneManager\FadeManager</Filter>
     </ClCompile>
@@ -946,6 +949,9 @@
       <Filter>ApplicationLayer\EffectLayer</Filter>
     </ClInclude>
     <ClInclude Include="ApplicationLayer\Scene\DebugScene\DebugScene.h">
+      <Filter>ApplicationLayer\Scene\DebugScene</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Scene\DebugScene\DisintegrationDebugController.h">
       <Filter>ApplicationLayer\Scene\DebugScene</Filter>
     </ClInclude>
     <ClInclude Include="ApplicationLayer\SceneManagement\FadeManager\FadeManager.h">
