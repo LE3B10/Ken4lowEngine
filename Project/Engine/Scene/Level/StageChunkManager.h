@@ -1,11 +1,13 @@
 #pragma once
 #include "StageChunk.h"
+#include "Matrix4x4.h"
 
 #include <cstddef>
 #include <vector>
 
 namespace Ken4lowEngine
 {
+	class OcclusionCullingSystem;
 	class StageChunkManager
 	{
 	public:
@@ -26,6 +28,7 @@ namespace Ken4lowEngine
 		void Clear();
 		void Rebuild(Object3D* stageObject, float chunkSize);
 		void UpdateVisibility(bool enabled);
+		void ApplyOcclusionCulling(OcclusionCullingSystem& occlusionCullingSystem, const Matrix4x4& viewProjection);
 		void DrawVisibleChunks() const;
 		void DrawDebugBounds() const;
 
@@ -35,6 +38,8 @@ namespace Ken4lowEngine
 		bool IsShowBounds() const { return showBounds_; }
 		void SetShowObjectBounds(bool showObjectBounds) { showObjectBounds_ = showObjectBounds; }
 		bool IsShowObjectBounds() const { return showObjectBounds_; }
+		void SetShowOccludedBounds(bool showOccludedBounds) { showOccludedBounds_ = showOccludedBounds; }
+		bool IsShowOccludedBounds() const { return showOccludedBounds_; }
 		void SetAutoExcludeLargeObjects(bool enabled) { autoExcludeLargeObjects_ = enabled; MarkRebuildRequested(); }
 		bool IsAutoExcludeLargeObjects() const { return autoExcludeLargeObjects_; }
 		void SetChunkSize(float chunkSize) { chunkSize_ = chunkSize; }
@@ -65,6 +70,7 @@ namespace Ken4lowEngine
 		bool enabled_ = true;
 		bool showBounds_ = false;
 		bool showObjectBounds_ = false;
+		bool showOccludedBounds_ = false;
 		bool autoExcludeLargeObjects_ = true;
 		bool needsRebuild_ = false;
 		size_t debugSelectedMeshIndex_ = 0;

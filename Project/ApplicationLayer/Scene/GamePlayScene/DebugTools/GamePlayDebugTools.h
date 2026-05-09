@@ -1,6 +1,7 @@
 #pragma once
 #include <cstdint>
 #include "ApplicationLayer/DebugTools/StageChunk/StageChunkDebugController.h"
+#include "ApplicationLayer/DebugTools/Occlusion/OcclusionDebugController.h"
 
 /// ---------- 前方宣言 ---------- ///
 namespace Ken4lowEngine { class Input; }
@@ -45,4 +46,5 @@ private: /// ---------- メンバ変数 ---------- ///
 	bool weaponEditorInitialized_ = false;
 	int32_t lastAppliedWeaponID_ = 0;
 	StageChunkDebugController stageChunkDebugController_{};
+	OcclusionDebugController occlusionDebugController_{};
 };
