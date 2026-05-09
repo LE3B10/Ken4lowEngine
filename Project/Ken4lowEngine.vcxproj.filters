@@ -1,6 +1,9 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
+    <Filter Include="Engine\Graphics\Culling">
+      <UniqueIdentifier>{3f7d873e-5b71-4bc1-a491-b26704b48611}</UniqueIdentifier>
+    </Filter>
     <FxCompile Include="Resources\Shaders\Disintegration\DisintegrationBlock.PS.hlsl">
       <Filter>Shader\PixelShader</Filter>
     </FxCompile>
@@ -525,6 +528,9 @@
     </ClCompile>
     <ClCompile Include="Engine\Graphics\Camera\FPS\FpsCamera.cpp">
       <Filter>Engine\Graphics\Camera\FPS</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Graphics\Culling\Frustum.cpp">
+      <Filter>Engine\Graphics\Culling</Filter>
     </ClCompile>
     <ClCompile Include="Engine\Graphics\Descriptor\DSV\DSVManager.cpp">
       <Filter>Engine\Graphics\Descriptor\DSV</Filter>
@@ -1340,6 +1346,9 @@
     </ClInclude>
     <ClInclude Include="Engine\Graphics\Camera\FPS\FpsCamera.h">
       <Filter>Engine\Graphics\Camera\FPS</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Graphics\Culling\Frustum.h">
+      <Filter>Engine\Graphics\Culling</Filter>
     </ClInclude>
     <ClInclude Include="Engine\Graphics\Descriptor\DSV\DSVManager.h">
       <Filter>Engine\Graphics\Descriptor\DSV</Filter>

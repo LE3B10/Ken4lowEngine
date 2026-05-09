@@ -1,5 +1,10 @@
 #include "Object3DCommon.h"
 #include "DirectXCommon.h"
+#include "CameraManager.h"
+
+#ifdef USE_IMGUI
+#include "ImGuiManager.h"
+#endif // USE_IMGUI
 
 namespace Ken4lowEngine
 {
@@ -25,9 +30,24 @@ namespace Ken4lowEngine
 		dxCommon_ = nullptr;
 	}
 
+	void Object3DCommon::BeginObject3DPass()
+	{
+		drawnObjectCount_ = 0;
+		culledObjectCount_ = 0;
+		totalObjectCount_ = 0;
+		activeFrustum_.BuildFromViewProjection(CameraManager::GetInstance()->GetActiveViewProjectionMatrix());
+	}
+
 	void Object3DCommon::DrawImGui()
 	{
 #ifdef USE_IMGUI
+		ImGui::Begin("Object3D Frustum Culling");
+		ImGui::Checkbox("Frustum Culling 有効", &frustumCullingEnabled_);
+		ImGui::Separator();
+		ImGui::Text("現在の描画対象数: %d", drawnObjectCount_);
+		ImGui::Text("カリングされた数: %d", culledObjectCount_);
+		ImGui::Text("総オブジェクト数: %d", totalObjectCount_);
+		ImGui::End();
 #endif
 	}
 
@@ -41,6 +61,20 @@ namespace Ken4lowEngine
 		commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
 		LightManager::GetInstance()->BindPunctualLights(5, 6);
+	}
+
+	bool Object3DCommon::ShouldDrawObject(const BoundingSphere& worldBounds, bool objectCullingEnabled)
+	{
+		++totalObjectCount_;
+
+		if (!frustumCullingEnabled_ || !objectCullingEnabled || activeFrustum_.Intersects(worldBounds))
+		{
+			++drawnObjectCount_;
+			return true;
+		}
+
+		++culledObjectCount_;
+		return false;
 	}
 
 	void Object3DCommon::SetShadowMapRenderSetting()
