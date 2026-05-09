@@ -159,6 +159,9 @@ public: /// ---------- メンバ関数 ---------- ///
 	void Initialize() override;
 
 	void Update(float deltaTime) override;
+	void DrawImGui() override;
+	void TakeDamage(int amount) override;
+	void TakeDamage(int amount, const K4E::Vector3& hitDir, float hitPower) override;
 
 public: /// ---------- 外部からのアクセス ---------- ///
 
@@ -179,6 +182,10 @@ public: /// ---------- 状態管理 ---------- ///
 public: /// ---------- アクセサ ---------- ///
 
 	bool HasTarget() const { return target_ != nullptr; }
+	const char* GetCurrentAIStateName() const;
+	bool IsTargetAware() const;
+	bool HasTargetLineOfSight() const;
+	bool CanAttackTarget() const;
 	K4E::Vector3 GetTargetPosition() const;
 	float GetDistanceToTarget() const;
 
@@ -288,6 +295,7 @@ private: /// ---------- 内部処理 ---------- ///
 	void PickNextWanderTarget();
 	void TryStepJump(const K4E::Vector3& moveDirection);
 	void UpdateTraitProfile();
+	void RegisterDamageStimulus(const K4E::Vector3& hitPos, const K4E::Vector3& attackOrigin, const K4E::Vector3& hitDir);
 
 private: /// ---------- メンバ変数 ---------- ///
 
@@ -313,6 +321,14 @@ private: /// ---------- メンバ変数 ---------- ///
 	EnemyMemory memory_{};
 
 	EnemyFacing facing_{};
+
+	K4E::Vector3 lastDamageHitPos_{ 0.0f, 0.0f, 0.0f };
+	K4E::Vector3 lastDamageDirection_{ 0.0f, 0.0f, 0.0f };
+	K4E::Vector3 lastAttackOrigin_{ 0.0f, 0.0f, 0.0f };
+	float lastDamageTimeSec_ = -1.0f;
+	float aliveTimeSec_ = 0.0f;
+	bool hasDamageStimulus_ = false;
+	bool suppressNextDamageStimulus_ = false;
 
 	EnemyAStarNavigator navigator_{};
 

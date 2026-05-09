@@ -54,7 +54,8 @@ void EnemyShootState::Update(Enemy& enemy, float deltaTime)
 		const float stayLimit = lowHp ? enemy.GetLowHpShootStaySec() : enemy.GetShootMaxStaySec();
 
 		const bool canShootNow = enemy.CanShootTargetPublic(targetPos);
-		if (inHitReaction || distToTarget > allowedShootRange || !canShootNow)
+		// 適正射撃距離から外れたら、撃ち続けず位置取り状態へ戻す。
+		if (inHitReaction || distToTarget < enemy.GetIdealRangeMin() || distToTarget > allowedShootRange || !canShootNow)
 		{
 			enemy.ChangeStateToCombatMove();
 			return;
