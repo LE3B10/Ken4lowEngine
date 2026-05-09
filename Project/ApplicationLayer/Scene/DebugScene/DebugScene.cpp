@@ -6,6 +6,7 @@
 #include <SpriteManager.h>
 #include "CameraManager.h"
 #include "Wireframe.h"
+#include "Object3DCommon.h"
 #include <GameTimer.h>
 #ifdef _DEBUG
 #include <DebugCamera.h>
@@ -22,6 +23,7 @@
 #include <algorithm>
 #include <filesystem>
 #include <cstdio>
+#include <array>
 
 using namespace Ken4lowEngine;
 
@@ -178,6 +180,10 @@ void DebugScene::Draw3DObjects()
 #ifdef _DEBUG
 	// ワイヤーフレームの描画
 	Wireframe::GetInstance()->DrawGrid(100.0f, 50.0f, { 0.25f, 0.25f, 0.25f,1.0f });
+	if (showCullingFrustum_)
+	{
+		Wireframe::GetInstance()->DrawFrustum(BuildCullingFrustumCorners(), cullingFrustumWireColor_);
+	}
 
 	collisionManager_->Draw();
 #endif // _DEBUG
@@ -237,6 +243,8 @@ void DebugScene::DrawImGui()
 	{
 		debugBoss_->DrawImGui();
 	}
+
+	DrawCullingFrustumImGui();
 
 	ImGui::Begin("Debug Boss Hit Test");
 
@@ -487,6 +495,106 @@ void DebugScene::DrawImGui()
 
 #endif // USE_IMGUI
 
+}
+
+std::array<Vector3, 8> DebugScene::BuildCullingFrustumCorners() const
+{
+	const Matrix4x4 inverseViewProjection = Matrix4x4::Inverse(Object3DCommon::GetInstance()->GetCullingViewProjectionMatrix());
+	const std::array<Vector3, 8> ndcCorners = {
+		Vector3{ -1.0f, -1.0f, 0.0f },
+		Vector3{ -1.0f,  1.0f, 0.0f },
+		Vector3{  1.0f,  1.0f, 0.0f },
+		Vector3{  1.0f, -1.0f, 0.0f },
+		Vector3{ -1.0f, -1.0f, 1.0f },
+		Vector3{ -1.0f,  1.0f, 1.0f },
+		Vector3{  1.0f,  1.0f, 1.0f },
+		Vector3{  1.0f, -1.0f, 1.0f },
+	};
+
+	std::array<Vector3, 8> worldCorners{};
+	for (size_t i = 0; i < ndcCorners.size(); ++i)
+	{
+		worldCorners[i] = Vector3::Transform(ndcCorners[i], inverseViewProjection);
+	}
+	return worldCorners;
+}
+
+void DebugScene::DrawCullingFrustumImGui()
+{
+#ifdef USE_IMGUI
+	Object3DCommon* object3DCommon = Object3DCommon::GetInstance();
+	int cullingCameraIndex = static_cast<int>(object3DCommon->GetCullingCameraMode());
+	const char* cullingCameraItems[] = { "ActiveCamera", "MainCamera", "DebugCamera" };
+
+	float nearDistance = 0.0f;
+	float farDistance = 0.0f;
+	GetCullingCameraClipDistances(nearDistance, farDistance);
+
+	ImGui::Begin("DebugScene Frustum Culling");
+	ImGui::Checkbox("カリング視錐台を表示", &showCullingFrustum_);
+	ImGui::ColorEdit4("視錐台ワイヤー色", &cullingFrustumWireColor_.x);
+	ImGui::InputFloat("Near距離", &nearDistance, 0.0f, 0.0f, "%.3f", ImGuiInputTextFlags_ReadOnly);
+	ImGui::InputFloat("Far距離", &farDistance, 0.0f, 0.0f, "%.3f", ImGuiInputTextFlags_ReadOnly);
+	if (ImGui::Combo("カリング基準カメラ", &cullingCameraIndex, cullingCameraItems, IM_ARRAYSIZE(cullingCameraItems)))
+	{
+		object3DCommon->SetCullingCameraMode(static_cast<Object3DCommon::CullingCameraMode>(cullingCameraIndex));
+	}
+	ImGui::TextWrapped("DebugCameraで外側から見る場合は、カリング基準カメラをMainCameraにするとMainCameraの判定範囲を確認できます。");
+	ImGui::End();
+#endif // USE_IMGUI
+}
+
+void DebugScene::GetCullingCameraClipDistances(float& nearDistance, float& farDistance) const
+{
+	nearDistance = 0.0f;
+	farDistance = 0.0f;
+
+	const Object3DCommon::CullingCameraMode mode = Object3DCommon::GetInstance()->GetCullingCameraMode();
+	auto* cameraManager = CameraManager::GetInstance();
+
+	auto setMainCameraClips = [&]() -> bool
+		{
+			if (Camera* mainCamera = cameraManager->GetMainCamera())
+			{
+				nearDistance = mainCamera->GetNearClip();
+				farDistance = mainCamera->GetFarClip();
+				return true;
+			}
+			return false;
+		};
+
+	auto setDebugCameraClips = [&]() -> bool
+		{
+#ifdef _DEBUG
+			if (DebugCamera* debugCamera = cameraManager->GetDebugCamera())
+			{
+				nearDistance = debugCamera->GetNearClip();
+				farDistance = debugCamera->GetFarClip();
+				return true;
+			}
+#endif
+			return false;
+		};
+
+	switch (mode)
+	{
+	case Object3DCommon::CullingCameraMode::Main:
+		if (setMainCameraClips()) { return; }
+		break;
+	case Object3DCommon::CullingCameraMode::Debug:
+		if (setDebugCameraClips()) { return; }
+		break;
+	case Object3DCommon::CullingCameraMode::Active:
+	default:
+		if (cameraManager->IsUsingDebugCamera())
+		{
+			if (setDebugCameraClips()) { return; }
+		}
+		if (setMainCameraClips()) { return; }
+		break;
+	}
+
+	setMainCameraClips();
 }
 
 void DebugScene::UpdateDebug()

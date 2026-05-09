@@ -200,6 +200,11 @@ namespace Ken4lowEngine
 	/// -------------------------------------------------------------
 	void Wireframe::DrawLine(const Vector3& start, const Vector3& end, const Vector4& color)
 	{
+		if (!lineData_ || !lineData_->vertexData || lineIndex_ + 1 >= kLineMaxCount_ * kLineVertexCount)
+		{
+			return;
+		}
+
 		// 頂点データの設定
 		lineData_->vertexData[lineIndex_].position = start;
 		lineData_->vertexData[lineIndex_ + 1].position = end;
@@ -209,6 +214,18 @@ namespace Ken4lowEngine
 		lineData_->vertexData[lineIndex_ + 1].color = color;
 
 		lineIndex_ += kLineVertexCount;
+	}
+
+	void Wireframe::DrawFrustum(const std::array<Vector3, 8>& corners, const Vector4& color)
+	{
+		// Near/Far の四角形と対応頂点を結び、視錐台を 12 本の線で可視化する。
+		for (uint32_t i = 0; i < 4; ++i)
+		{
+			const uint32_t next = (i + 1) % 4;
+			DrawLine(corners[i], corners[next], color);
+			DrawLine(corners[i + 4], corners[next + 4], color);
+			DrawLine(corners[i], corners[i + 4], color);
+		}
 	}
 
 	void Wireframe::DrawSegment(const Segment& segment, const Vector4& color)

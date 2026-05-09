@@ -1,6 +1,7 @@
 #include "Object3DCommon.h"
 #include "DirectXCommon.h"
 #include "CameraManager.h"
+#include "DebugCamera.h"
 
 #ifdef USE_IMGUI
 #include "ImGuiManager.h"
@@ -17,6 +18,7 @@ namespace Ken4lowEngine
 	void Object3DCommon::Initialize(DirectXCommon* dxCommon)
 	{
 		dxCommon_ = dxCommon;
+		cullingCameraMode_ = CullingCameraMode::Active;
 
 		pipelineSet_.Initialize(dxCommon_->GetPipelineFactory(), dxCommon_->GetDXCCompilerManager(), DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, DXGI_FORMAT_D24_UNORM_S8_UINT);
 
@@ -27,6 +29,7 @@ namespace Ken4lowEngine
 	{
 		LightManager::GetInstance()->Finalize();
 		pipelineSet_.Finalize();
+		cullingCameraMode_ = CullingCameraMode::Active;
 		dxCommon_ = nullptr;
 	}
 
@@ -35,7 +38,7 @@ namespace Ken4lowEngine
 		drawnObjectCount_ = 0;
 		culledObjectCount_ = 0;
 		totalObjectCount_ = 0;
-		activeFrustum_.BuildFromViewProjection(CameraManager::GetInstance()->GetActiveViewProjectionMatrix());
+		activeFrustum_.BuildFromViewProjection(GetCullingViewProjectionMatrix());
 	}
 
 	void Object3DCommon::DrawImGui()
@@ -49,6 +52,33 @@ namespace Ken4lowEngine
 		ImGui::Text("総オブジェクト数: %d", totalObjectCount_);
 		ImGui::End();
 #endif
+	}
+
+	Matrix4x4 Object3DCommon::GetCullingViewProjectionMatrix() const
+	{
+		auto* cameraManager = CameraManager::GetInstance();
+		switch (cullingCameraMode_)
+		{
+		case CullingCameraMode::Main:
+			if (Camera* mainCamera = cameraManager->GetMainCamera())
+			{
+				return mainCamera->GetViewProjectionMatrix();
+			}
+			break;
+		case CullingCameraMode::Debug:
+#ifdef _DEBUG
+			if (DebugCamera* debugCamera = cameraManager->GetDebugCamera())
+			{
+				return debugCamera->GetViewProjectionMatrix();
+			}
+#endif
+			break;
+		case CullingCameraMode::Active:
+		default:
+			return cameraManager->GetActiveViewProjectionMatrix();
+		}
+
+		return cameraManager->GetActiveViewProjectionMatrix();
 	}
 
 	void Object3DCommon::SetRenderSetting()

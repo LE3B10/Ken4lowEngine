@@ -6,7 +6,10 @@
 #include "Player.h"
 #include "Derived/GuardianBoss/GuardianBoss.h"
 #include "DisintegrationDebugController.h"
+#include "Vector3.h"
+#include "Vector4.h"
 
+#include <array>
 #include <memory>
 #include <string>
 
@@ -59,6 +62,15 @@ private: /// ---------- メンバ関数 ---------- ///
 	/// テスト用GPUパーティクル発火
 	void UpdateDebugParticleTest();
 
+	// カリング基準カメラの ViewProjection から視錐台の 8 頂点を作成
+	std::array<K4E::Vector3, 8> BuildCullingFrustumCorners() const;
+
+	// DebugScene 専用のカリング視錐台 ImGui
+	void DrawCullingFrustumImGui();
+
+	// 選択中カリング基準カメラの Near/Far 距離を取得
+	void GetCullingCameraClipDistances(float& nearDistance, float& farDistance) const;
+
 	/// -------------------------------------------------------------
 	/// BossHitPart を文字列へ変換
 	/// ログ確認用
@@ -87,6 +99,10 @@ private: /// ---------- メンバ変数 ---------- ///
 	std::string debugParticleLog_ = "Press 1/2/3 to test GPU particles.";
 
 	std::unique_ptr<DisintegrationDebugController> disintegrationDebug_;
+
+	// カリング視錐台のワイヤー表示設定
+	bool showCullingFrustum_ = true;
+	K4E::Vector4 cullingFrustumWireColor_ = { 0.1f, 1.0f, 0.2f, 1.0f };
 
 };
 
