@@ -698,6 +698,11 @@ void Player::ApplyDamageFeedback(const PlayerDamageComponent::DamageFeedback& fb
 
 	vfx_.OnDamaged(fb.damage, fb.maxHp);
 
+	if (onDamageTaken_)
+	{
+		onDamageTaken_();
+	}
+
 	if (fb.notifyPlayerHit)
 	{
 		if (auto* tr = GetWorldTransform())

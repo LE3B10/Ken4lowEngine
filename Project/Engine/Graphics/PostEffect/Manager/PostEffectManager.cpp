@@ -26,6 +26,7 @@
 #include <AbsorbEffect.h>
 #include <DepthOutlineEffect.h>
 #include <PixelateEffect.h>
+#include "Effects/PlayerHealthPostEffect/PlayerHealthPostEffect.h"
 
 namespace Ken4lowEngine
 {
@@ -84,6 +85,7 @@ namespace Ken4lowEngine
 			{ "AbsorbEffect",			{ [] { return std::make_unique<AbsorbEffect>(); },           false, 9, "Visual" } },
 			{ "DepthOutLineEffect",		{ [] { return std::make_unique<DepthOutlineEffect>(CameraManager::GetInstance()->GetMainCamera()); }, false, 10, "Visual"} },
 			{ "PixelateEffect",			{ [] { return std::make_unique<PixelateEffect>(); },		 false, 11, "Visual" } },
+			{ "PlayerHealthPostEffect",	{ [] { return std::make_unique<PlayerHealthPostEffect>(); }, false, 12, "Color" } },
 		};
 
 		// ファクトリー関数を使ってエフェクトを生成
@@ -311,7 +313,7 @@ namespace Ken4lowEngine
 			auto& inRT = renderTargets_[src]; // 入力レンダーテクスチャ
 			auto& outRT = renderTargets_[dst]; // 出力レンダーテクスチャ
 
-			if (name == "GrayScaleEffect" || name == "RandomEffect" || name == "DissolveEffect" || name == "VignetteEffect" || name == "GaussianFilterEffect" || name == "RadialBlurEffect" || name == "LuminanceOutlineEffect" || name == "SmoothingEffect" || name == "PixelateEffect")
+			if (name == "GrayScaleEffect" || name == "RandomEffect" || name == "DissolveEffect" || name == "VignetteEffect" || name == "GaussianFilterEffect" || name == "RadialBlurEffect" || name == "LuminanceOutlineEffect" || name == "SmoothingEffect" || name == "PixelateEffect" || name == "PlayerHealthPostEffect")
 			{
 				Transition(inRT, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
 				Transition(outRT, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);

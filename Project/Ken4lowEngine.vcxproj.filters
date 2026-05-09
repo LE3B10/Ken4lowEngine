@@ -106,6 +106,9 @@
     <FxCompile Include="Resources\Shaders\PostEffect\PixelateEffect.CS.hlsl">
       <Filter>Shader\ComputeShader</Filter>
     </FxCompile>
+    <FxCompile Include="Resources\Shaders\PostEffect\PlayerHealthPostEffect.CS.hlsl">
+      <Filter>Shader\ComputeShader</Filter>
+    </FxCompile>
     <FxCompile Include="Resources\Shaders\GpuParticle\GpuParticleMesh.VS.hlsl">
       <Filter>Shader\VertexShader</Filter>
     </FxCompile>
@@ -143,6 +146,9 @@
       <Filter>ApplicationLayer\EffectLayer</Filter>
     </ClCompile>
     <ClCompile Include="ApplicationLayer\Scene\GamePlayScene\GamePlayScene.cpp">
+      <Filter>ApplicationLayer\Scene\GamePlayScene</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\Scene\GamePlayScene\PostEffect\PlayerHealthPostEffectController.cpp">
       <Filter>ApplicationLayer\Scene\GamePlayScene</Filter>
     </ClCompile>
     <ClCompile Include="ApplicationLayer\Scene\PhysicalScene\PhysicalScene.cpp">
@@ -610,6 +616,9 @@
     <ClCompile Include="Engine\Graphics\PostEffect\Effects\PixelateEffect\PixelateEffect.cpp">
       <Filter>Engine\Graphics\PostEffect\Effects</Filter>
     </ClCompile>
+    <ClCompile Include="Engine\Graphics\PostEffect\Effects\PlayerHealthPostEffect\PlayerHealthPostEffect.cpp">
+      <Filter>Engine\Graphics\PostEffect\Effects</Filter>
+    </ClCompile>
     <ClCompile Include="Engine\Graphics\PostEffect\Effects\RadialBlurEffect\RadialBlurEffect.cpp">
       <Filter>Engine\Graphics\PostEffect\Effects</Filter>
     </ClCompile>
@@ -886,6 +895,9 @@
       <Filter>ApplicationLayer\EffectLayer</Filter>
     </ClInclude>
     <ClInclude Include="ApplicationLayer\Scene\GamePlayScene\GamePlayScene.h">
+      <Filter>ApplicationLayer\Scene\GamePlayScene</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Scene\GamePlayScene\PostEffect\PlayerHealthPostEffectController.h">
       <Filter>ApplicationLayer\Scene\GamePlayScene</Filter>
     </ClInclude>
     <ClInclude Include="ApplicationLayer\Scene\PhysicalScene\PhysicalScene.h">
@@ -1465,6 +1477,9 @@
       <Filter>Engine\Graphics\PostEffect\Effects</Filter>
     </ClInclude>
     <ClInclude Include="Engine\Graphics\PostEffect\Effects\PixelateEffect\PixelateEffect.h">
+      <Filter>Engine\Graphics\PostEffect\Effects</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Graphics\PostEffect\Effects\PlayerHealthPostEffect\PlayerHealthPostEffect.h">
       <Filter>Engine\Graphics\PostEffect\Effects</Filter>
     </ClInclude>
     <ClInclude Include="Engine\Graphics\PostEffect\Effects\RadialBlurEffect\RadialBlurEffect.h">
