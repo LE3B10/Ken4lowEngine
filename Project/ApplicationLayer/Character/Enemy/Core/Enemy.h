@@ -66,10 +66,16 @@ private: /// ---------- 構造体 ---------- ///
 		float idealRangeMax = 17.5f;     // 互換用: 通常時の適正距離(遠側)
 		float tooCloseRange = 7.0f;      // 互換用: 近すぎるので優先的に離脱
 		float tooFarRange = 25.0f;       // 互換用: 遠すぎるので優先的に接近
-		float fireInterval = 0.35f;      // 攻撃間隔（秒）
-		float bulletSpeed = 32.0f;       // 弾の速度
-		float accuracyConeRad = 0.045f;  // 弾速上昇に合わせた命中ブレ（ラジアン）
-		int   burstCount = 3;            // 1回の射撃判断で撃つ弾数
+		float fireInterval = 0.22f;      // バースト中の1発ごとの射撃間隔（秒）
+		float enemyBulletSpeed = 48.0f;       // 弾の速度
+		float accuracyConeRad = 0.026f;  // 距離・移動補正前の命中ブレ（ラジアン）
+		float aimErrorAngleRad = 0.018f; // 固定の照準誤差（ラジアン）
+		int   burstCount = 4;            // 1回の攻撃で撃つ最大弾数
+		float burstInterval = 0.10f;     // バースト内の最短発射間隔（秒）
+		float postBurstWait = 0.75f;     // バースト後の待機時間（秒）
+		int   magazineSize = 12;         // マガジン弾数
+		float reloadTime = 1.85f;        // リロード時間（秒）
+		bool  reloadMoveEnabled = true;  // リロード中に移動するか
 		float bulletLifeSec = 3.0f;      // 弾の寿命（秒）
 		int   bulletDamage = 5;          // 弾のダメージ
 		float muzzleHeight = 1.2f;   // マズルの高さ
@@ -208,6 +214,9 @@ public: /// ---------- アクセサ ---------- ///
 
 	void FaceTo(const K4E::Vector3& targetPos);
 	void FireAt(const K4E::Vector3& targetPos);
+	void UpdateReloadMove(const K4E::Vector3& targetPos, float deltaTime);
+	bool CanStartShooting() const;
+	void StartReload();
 
 	void RememberLastSeenTarget(const K4E::Vector3& targetPos)
 	{
@@ -245,9 +254,18 @@ public: /// ---------- アクセサ ---------- ///
 	float GetStrafeSpeed() const { return movement_.strafeSpeed; }
 	float GetSearchMoveSpeed() const { return movement_.searchMoveSpeed; }
 	float GetFireInterval() const { return combat_.fireInterval; }
-	float GetEnemyBulletSpeed() const { return combat_.bulletSpeed; }
+	float GetEnemyBulletSpeed() const { return combat_.enemyBulletSpeed; }
 	float GetAccuracyConeRad() const { return combat_.accuracyConeRad; }
+	float GetAimErrorAngleRad() const { return combat_.aimErrorAngleRad; }
 	int GetBurstCount() const { return combat_.burstCount; }
+	float GetBurstInterval() const { return combat_.burstInterval; }
+	float GetPostBurstWait() const { return combat_.postBurstWait; }
+	int GetMagazineSize() const { return combat_.magazineSize; }
+	int GetCurrentAmmo() const { return currentAmmo_; }
+	float GetReloadTime() const { return combat_.reloadTime; }
+	bool IsReloading() const { return isReloading_; }
+	float GetReloadTimer() const { return reloadTimer_; }
+	bool IsReloadMoveEnabled() const { return combat_.reloadMoveEnabled; }
 	float GetLosProbeDistance() const { return movement_.losProbeDistance; }
 	float GetTacticalBlend() const { return movement_.tacticalBlend; }
 	float GetShootMicroStrafeSpeed() const { return movement_.shootMicroStrafeSpeed; }
@@ -314,6 +332,7 @@ private: /// ---------- 内部処理 ---------- ///
 	void TryStepJump(const K4E::Vector3& moveDirection);
 	void UpdateTraitProfile();
 	void RegisterDamageStimulus(const K4E::Vector3& hitPos, const K4E::Vector3& attackOrigin, const K4E::Vector3& hitDir);
+	void UpdateReloadTimer(float deltaTime);
 
 private: /// ---------- メンバ変数 ---------- ///
 
@@ -368,6 +387,9 @@ private: /// ---------- メンバ変数 ---------- ///
 	std::unique_ptr<IEnemyState> state_ = nullptr;
 	float fireCooldown_ = 0.0f;
 	int burstShotsRemaining_ = 0;
+	int currentAmmo_ = 0;
+	bool isReloading_ = false;
+	float reloadTimer_ = 0.0f;
 	float strafeDecisionTimer_ = 0.0f;
 	float currentStrafeSign_ = 1.0f;
 	K4E::Vector3 spawnPosition_{ 0.0f, 0.0f, 0.0f };

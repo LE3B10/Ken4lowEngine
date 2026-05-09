@@ -139,6 +139,9 @@ void Enemy::Initialize()
 	facing_.yawRad = 0.0f;
 	fireCooldown_ = 0.0f;
 	burstShotsRemaining_ = 0;
+	currentAmmo_ = combat_.magazineSize;
+	isReloading_ = false;
+	reloadTimer_ = 0.0f;
 	strafeDecisionTimer_ = 0.0f;
 	currentStrafeSign_ = 1.0f;
 	spawnPosition_ = GetCenterPosition();
@@ -198,6 +201,7 @@ void Enemy::Update(float deltaTime)
 		fireCooldown_ -= deltaTime;
 		if (fireCooldown_ < 0.0f) fireCooldown_ = 0.0f;
 	}
+	UpdateReloadTimer(deltaTime);
 
 	if (state_) state_->Update(*this, deltaTime);
 
@@ -242,12 +246,16 @@ void Enemy::DrawImGui()
 	const bool canAttack = CanAttackTarget();
 	const float lastHitElapsed = GetLastDamageElapsedSec();
 	float accuracyConeDeg = combat_.accuracyConeRad * (180.0f / kPi);
+	float aimErrorAngleDeg = combat_.aimErrorAngleRad * (180.0f / kPi);
+	const bool inProperRange = hasTarget && GetDistanceToTarget() >= combat_.minCombatRange && GetDistanceToTarget() <= combat_.maxCombatRange;
 
 	if (ImGui::TreeNode("雑魚敵AIデバッグ"))
 	{
 		ImGui::Text("現在のAI状態: %s", GetCurrentAIStateName());
 		ImGui::Text("ターゲット認識中: %s", IsTargetAware() ? "true" : "false");
 		ImGui::Text("射線あり: %s", hasLos ? "true" : "false");
+		ImGui::Text("射撃可能: %s", canAttack ? "true" : "false");
+		ImGui::Text("適正距離内: %s", inProperRange ? "true" : "false");
 		ImGui::Text("現在距離: %.2f", GetDistanceToTarget());
 		ImGui::Text("最後に被弾した時間: %.2f sec", lastHitElapsed);
 		ImGui::Text("被弾後に敵対中: %s", IsHostileFromDamage() ? "true" : "false");
@@ -258,13 +266,28 @@ void Enemy::DrawImGui()
 		ImGui::SliderFloat("理想戦闘距離", &combat_.idealCombatRange, combat_.minCombatRange, 40.0f);
 		ImGui::SliderFloat("最大戦闘距離", &combat_.maxCombatRange, combat_.idealCombatRange, 60.0f);
 		ImGui::SliderFloat("後退距離", &combat_.retreatRange, 0.5f, combat_.minCombatRange);
-		ImGui::SliderFloat("敵弾速度", &combat_.bulletSpeed, 5.0f, 80.0f);
+		ImGui::SliderFloat("敵弾速度", &combat_.enemyBulletSpeed, 5.0f, 100.0f);
 		if (ImGui::SliderFloat("命中ブレ", &accuracyConeDeg, 0.0f, 12.0f, "%.2f deg"))
 		{
 			combat_.accuracyConeRad = ToRadians(accuracyConeDeg);
 		}
+		if (ImGui::SliderFloat("照準誤差角", &aimErrorAngleDeg, 0.0f, 8.0f, "%.2f deg"))
+		{
+			combat_.aimErrorAngleRad = ToRadians(aimErrorAngleDeg);
+		}
 		ImGui::SliderFloat("射撃間隔", &combat_.fireInterval, 0.05f, 2.0f);
-		ImGui::SliderInt("バースト数", &combat_.burstCount, 1, 8);
+		ImGui::SliderInt("バースト数", &combat_.burstCount, 1, 12);
+		ImGui::SliderFloat("バースト間隔", &combat_.burstInterval, 0.03f, 0.5f);
+		ImGui::SliderFloat("バースト待機時間", &combat_.postBurstWait, 0.0f, 3.0f);
+		if (ImGui::SliderInt("マガジン弾数", &combat_.magazineSize, 1, 60))
+		{
+			currentAmmo_ = std::min(currentAmmo_, combat_.magazineSize);
+		}
+		ImGui::Text("現在弾数: %d", currentAmmo_);
+		ImGui::SliderFloat("リロード時間", &combat_.reloadTime, 0.1f, 6.0f);
+		ImGui::Text("リロード中: %s", isReloading_ ? "true" : "false");
+		ImGui::Text("リロード残り時間: %.2f", reloadTimer_);
+		ImGui::Checkbox("リロード中移動", &combat_.reloadMoveEnabled);
 		ImGui::SliderFloat("退避クールダウン", &survival_.retreatCooldown, 0.0f, 8.0f);
 		ImGui::SliderFloat("HP低下退避しきい値", &survival_.lowHpThresholdRate, 0.05f, 0.95f);
 		combat_.fireRange = combat_.maxCombatRange;
@@ -325,7 +348,7 @@ bool Enemy::HasTargetLineOfSight() const
 
 bool Enemy::CanAttackTarget() const
 {
-	return HasTarget() && CanShootTarget(GetTargetPosition()) && fireCooldown_ <= 0.0f && !IsDead();
+	return HasTarget() && CanShootTarget(GetTargetPosition()) && CanStartShooting() && !IsDead();
 }
 
 K4E::Vector3 Enemy::GetTargetPosition() const
@@ -498,7 +521,7 @@ void Enemy::FaceTo(const K4E::Vector3& targetPos)
 
 void Enemy::FireAt(const K4E::Vector3& targetPos)
 {
-	if (fireCooldown_ > 0.0f || !bulletManager_) return;
+	if (!CanStartShooting() || !bulletManager_) return;
 
 	Vector3 muzzle = GetCenterPosition();
 	muzzle.y += combat_.muzzleHeight;
@@ -512,12 +535,12 @@ void Enemy::FireAt(const K4E::Vector3& targetPos)
 	aimInput.movementSpeed = LengthXZ(GetVelocity());
 	aimInput.lowHp = IsLowHp();
 	aimInput.inHitReaction = IsInHitReaction();
-	aimInput.baseSpreadRad = combat_.accuracyConeRad;
-	aimInput.maxSpreadRad = std::max(combat_.accuracyConeRad, 0.16f);
-	aimInput.distanceSpreadWeight = 0.95f;
-	aimInput.moveSpreadWeight = 0.85f;
-	aimInput.stressSpreadWeight = 0.7f;
-	aimInput.stableBonusWeight = 0.55f;
+	aimInput.baseSpreadRad = combat_.accuracyConeRad + combat_.aimErrorAngleRad;
+	aimInput.maxSpreadRad = std::max(aimInput.baseSpreadRad, 0.11f);
+	aimInput.distanceSpreadWeight = 0.55f;
+	aimInput.moveSpreadWeight = 0.65f;
+	aimInput.stressSpreadWeight = 0.45f;
+	aimInput.stableBonusWeight = 0.65f;
 	aimInput.traits = &traits_;
 	const Vector3 aim = aimController_.BuildAimPoint(aimInput);
 
@@ -541,19 +564,80 @@ void Enemy::FireAt(const K4E::Vector3& targetPos)
 
 	if (burstShotsRemaining_ <= 0) burstShotsRemaining_ = std::max(1, combat_.burstCount);
 	--burstShotsRemaining_;
-	fireCooldown_ = (burstShotsRemaining_ > 0)
-		? std::min(0.12f, combat_.fireInterval * 0.35f)
-		: combat_.fireInterval * traits_.fireIntervalScale;
+	--currentAmmo_;
+
+	// バースト上限・弾切れ・通常間隔をまとめて管理し、撃ちっぱなしに見えないテンポを作る。
+	if (currentAmmo_ <= 0)
+	{
+		currentAmmo_ = 0;
+		StartReload();
+	}
+	else
+	{
+		const bool burstContinues = burstShotsRemaining_ > 0;
+		fireCooldown_ = burstContinues
+			? std::max(combat_.burstInterval, combat_.fireInterval)
+			: std::max(combat_.postBurstWait, combat_.fireInterval * traits_.fireIntervalScale);
+	}
 
 	bulletManager_->Spawn(
 		muzzle,
 		dir,
-		combat_.bulletSpeed,
+		combat_.enemyBulletSpeed,
 		combat_.bulletDamage,
 		combat_.bulletLifeSec,
 		GetCenterPosition(),
 		GetUniqueID(),
 		static_cast<uint32_t>(CollisionTypeIdDef::kEnemyBullet));
+}
+
+void Enemy::UpdateReloadMove(const K4E::Vector3& targetPos, float deltaTime)
+{
+	if (!combat_.reloadMoveEnabled)
+	{
+		StopMove();
+		FaceTo(targetPos);
+		return;
+	}
+
+	UpdateStrafeDecision(deltaTime);
+	Vector3 coverPos{};
+	if (TryFindCoverPosition(targetPos, true, coverPos))
+	{
+		MoveTowardsPath(coverPos, movement_.retreatSpeed, deltaTime);
+		return;
+	}
+
+	const float distToTarget = GetDistanceToTarget();
+	const float radialBias = (distToTarget < combat_.idealCombatRange) ? -1.0f : -0.55f;
+	MoveTacticalAround(targetPos, currentStrafeSign_, radialBias, movement_.retreatSpeed);
+}
+
+bool Enemy::CanStartShooting() const
+{
+	return fireCooldown_ <= 0.0f && !isReloading_ && currentAmmo_ > 0;
+}
+
+void Enemy::StartReload()
+{
+	if (isReloading_) return;
+	isReloading_ = true;
+	reloadTimer_ = std::max(0.01f, combat_.reloadTime);
+	fireCooldown_ = reloadTimer_;
+	burstShotsRemaining_ = 0;
+}
+
+void Enemy::UpdateReloadTimer(float deltaTime)
+{
+	if (!isReloading_) return;
+
+	reloadTimer_ -= deltaTime;
+	if (reloadTimer_ > 0.0f) return;
+
+	isReloading_ = false;
+	reloadTimer_ = 0.0f;
+	currentAmmo_ = std::max(1, combat_.magazineSize);
+	fireCooldown_ = std::max(fireCooldown_, combat_.postBurstWait * 0.35f);
 }
 
 void Enemy::TakeDamage(int amount)
