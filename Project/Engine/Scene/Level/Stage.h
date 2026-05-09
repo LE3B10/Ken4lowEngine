@@ -56,6 +56,11 @@ namespace Ken4lowEngine
 		/// </summary>
 		void UpdateShadowMatrix(const Matrix4x4& lightViewProjection);
 
+		/// <summary>
+		/// ステージ描画モデルを Frustum Culling 対象にするか設定する。
+		/// </summary>
+		void SetFrustumCullingEnabled(bool enabled);
+
 	public: /// ---------- アクセサ ---------- ///
 
 		const std::vector<AABB>& GetWorldAABBs() const { return worldAABBs_; }

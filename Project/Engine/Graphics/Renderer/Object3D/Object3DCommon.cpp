@@ -35,23 +35,13 @@ namespace Ken4lowEngine
 
 	void Object3DCommon::BeginObject3DPass()
 	{
-		drawnObjectCount_ = 0;
-		culledObjectCount_ = 0;
-		totalObjectCount_ = 0;
-		activeFrustum_.BuildFromViewProjection(GetCullingViewProjectionMatrix());
+		frustumCullingSystem_.ResetStatistics();
+		frustumCullingSystem_.BuildFrustum(GetCullingViewProjectionMatrix());
 	}
 
 	void Object3DCommon::DrawImGui()
 	{
-#ifdef USE_IMGUI
-		ImGui::Begin("Object3D Frustum Culling");
-		ImGui::Checkbox("Frustum Culling 有効", &frustumCullingEnabled_);
-		ImGui::Separator();
-		ImGui::Text("現在の描画対象数: %d", drawnObjectCount_);
-		ImGui::Text("カリングされた数: %d", culledObjectCount_);
-		ImGui::Text("総オブジェクト数: %d", totalObjectCount_);
-		ImGui::End();
-#endif
+		// Frustum Culling の確認 UI は ApplicationLayer の Controller に集約する。
 	}
 
 	Matrix4x4 Object3DCommon::GetCullingViewProjectionMatrix() const
@@ -95,16 +85,7 @@ namespace Ken4lowEngine
 
 	bool Object3DCommon::ShouldDrawObject(const BoundingSphere& worldBounds, bool objectCullingEnabled)
 	{
-		++totalObjectCount_;
-
-		if (!frustumCullingEnabled_ || !objectCullingEnabled || activeFrustum_.Intersects(worldBounds))
-		{
-			++drawnObjectCount_;
-			return true;
-		}
-
-		++culledObjectCount_;
-		return false;
+		return frustumCullingSystem_.IsVisible(worldBounds, !objectCullingEnabled);
 	}
 
 	void Object3DCommon::SetShadowMapRenderSetting()

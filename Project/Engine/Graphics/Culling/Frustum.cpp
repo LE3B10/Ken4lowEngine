@@ -34,6 +34,26 @@ namespace Ken4lowEngine
 		return true;
 	}
 
+	bool Frustum::Intersects(const BoundingAABB& aabb) const
+	{
+		for (const auto& plane : planes_)
+		{
+			const Vector3 positiveVertex = {
+				plane.x >= 0.0f ? aabb.max.x : aabb.min.x,
+				plane.y >= 0.0f ? aabb.max.y : aabb.min.y,
+				plane.z >= 0.0f ? aabb.max.z : aabb.min.z,
+			};
+
+			const float distance = plane.x * positiveVertex.x + plane.y * positiveVertex.y + plane.z * positiveVertex.z + plane.w;
+			if (distance < 0.0f)
+			{
+				return false;
+			}
+		}
+
+		return true;
+	}
+
 	void Frustum::NormalizePlane(Vector4& plane) const
 	{
 		const float length = std::sqrt(plane.x * plane.x + plane.y * plane.y + plane.z * plane.z);

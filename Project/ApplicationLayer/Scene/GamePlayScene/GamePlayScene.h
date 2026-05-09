@@ -7,6 +7,7 @@
 #include "GamePlayIntroDirector.h"
 #include "GamePlayDebugTools.h"
 #include "FadeManager.h"
+#include "ApplicationLayer/DebugTools/FrustumCulling/FrustumCullingDebugController.h"
 
 #include <memory>
 
@@ -145,6 +146,7 @@ private: /// ---------- メンバ変数 ---------- ///
 	std::unique_ptr<GamePlayWorld> world_;
 	std::unique_ptr<GamePlayIntroDirector> introDirector_;
 	std::unique_ptr<GamePlayDebugTools> debugTools_;
+	std::unique_ptr<FrustumCullingDebugController> frustumCullingDebug_;
 	std::unique_ptr<FadeManager> fadeManager_;
 
 	// リトライ遷移制御
