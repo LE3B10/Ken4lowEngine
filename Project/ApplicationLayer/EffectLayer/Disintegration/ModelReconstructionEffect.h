@@ -39,6 +39,14 @@ public:
 		float easePower = 3.0f;
 		K4E::Vector4 color{ 0.64f, 0.72f, 0.86f, 1.0f };
 		float colorVariation = 0.18f;
+		bool useFadeIn = true;
+		float fadeInDuration = 0.4f;
+		float fadeInDelayRange = 0.2f;
+		float initialAlpha = 0.0f;
+		float targetAlpha = 1.0f;
+		float fadeInEasePower = 2.0f;
+		bool fadeInByDistance = false;
+		bool fadeInNearTarget = true;
 		float holdTime = 0.60f;
 		bool showFinalModel = true;
 		bool autoHideBlocksAfterComplete = true;
@@ -67,6 +75,8 @@ public:
 private:
 	float Clamp01(float value) const;
 	float EaseOut(float value) const;
+	void ApplyFadeInSettings(ReconstructionEmitter::Settings& settings) const;
+	void UpdateBlockFade(ReconstructionBlock& block) const;
 
 	Parameters parameters_{};
 	ReconstructionEmitter emitter_{};

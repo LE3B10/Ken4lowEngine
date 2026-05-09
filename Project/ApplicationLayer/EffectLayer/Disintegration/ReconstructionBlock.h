@@ -22,6 +22,11 @@ struct ReconstructionBlock
 	float startDelay = 0.0f;
 	float size = 0.04f;
 	float alpha = 1.0f;
+	float fadeInDelay = 0.0f;
+	float fadeInDuration = 0.4f;
+	float appearAge = 0.0f;
+	float visibility = 1.0f;
+	float startDistance = 0.0f;
 	bool alive = false;
 	bool arrived = false;
 };

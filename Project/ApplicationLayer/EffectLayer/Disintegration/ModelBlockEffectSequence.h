@@ -70,6 +70,14 @@ public:
 		bool useRandomRotation = false;
 		float rotationRandomness = 1.2f;
 		uint32_t placementSeed = 0xD157E6A7u;
+		bool useFadeIn = true;
+		float fadeInDuration = 0.4f;
+		float fadeInDelayRange = 0.2f;
+		float initialAlpha = 0.0f;
+		float targetAlpha = 1.0f;
+		float fadeInEasePower = 2.0f;
+		bool fadeInByDistance = false;
+		bool fadeInNearTarget = true;
 		bool useSweepErosion = true;
 		ErosionMode erosionMode = ErosionMode::DirectionalSweep;
 		K4E::Vector3 erosionCenter{ 0.0f, 0.0f, 0.0f };

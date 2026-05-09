@@ -631,6 +631,15 @@ void DebugScene::DrawImGui()
 			ImGui::SliderFloat("サイズばらつき##BlockSequence", &sequenceParams.scaleVariation, 0.0f, 0.75f);
 			ImGui::Checkbox("ランダム回転を使う##BlockSequence", &sequenceParams.useRandomRotation);
 			ImGui::SliderFloat("回転ばらつき##BlockSequence", &sequenceParams.rotationRandomness, 0.0f, 8.0f);
+			ImGui::SeparatorText("フェードイン##BlockSequence");
+			ImGui::Checkbox("フェードインを使う##BlockSequence", &sequenceParams.useFadeIn);
+			ImGui::SliderFloat("初期透明度##BlockSequence", &sequenceParams.initialAlpha, 0.0f, 1.0f);
+			ImGui::SliderFloat("目標透明度##BlockSequence", &sequenceParams.targetAlpha, 0.0f, 1.0f);
+			ImGui::SliderFloat("フェードイン時間##BlockSequence", &sequenceParams.fadeInDuration, 0.01f, 3.0f);
+			ImGui::SliderFloat("フェードイン遅延幅##BlockSequence", &sequenceParams.fadeInDelayRange, 0.0f, 2.0f);
+			ImGui::SliderFloat("フェードインの鋭さ##BlockSequence", &sequenceParams.fadeInEasePower, 0.1f, 8.0f);
+			ImGui::Checkbox("距離でフェードイン##BlockSequence", &sequenceParams.fadeInByDistance);
+			ImGui::Checkbox("到着付近で不透明化##BlockSequence", &sequenceParams.fadeInNearTarget);
 			int sequencePlacementSeed = static_cast<int>(sequenceParams.placementSeed);
 			if (ImGui::InputInt("配置シード##BlockSequence", &sequencePlacementSeed))
 			{
