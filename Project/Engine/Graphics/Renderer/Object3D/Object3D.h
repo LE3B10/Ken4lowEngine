@@ -80,6 +80,8 @@ namespace Ken4lowEngine
 		size_t GetSubmeshCount() const;
 		void SetFrustumCullingEnabled(bool enabled) { frustumCullingEnabled_ = enabled; }
 		bool IsFrustumCullingEnabled() const { return frustumCullingEnabled_; }
+		void SetStageObjectCullingUnit(bool enabled) { isStageObjectCullingUnit_ = enabled; }
+		bool IsStageObjectCullingUnit() const { return isStageObjectCullingUnit_; }
 
 	public: /// ---------- ディゾルブの設定 ---------- ///
 
@@ -95,7 +97,11 @@ namespace Ken4lowEngine
 		void InitializeShadowParameterResource();
 		void AcquireShadowMapHandle();
 		BoundingSphere GetWorldBounds() const;
+		BoundingSphere GetMeshWorldBounds(size_t meshIndex) const;
+		BoundingSphere TransformLocalBounds(const BoundingSphere& localBounds) const;
 		bool HasWorldBounds() const;
+		bool HasMeshWorldBounds(size_t meshIndex) const;
+		void DrawBoundsDebug(const BoundingSphere& bounds, bool visible) const;
 
 	private: /// ---------- メンバ変数 ---------- ///
 
@@ -145,6 +151,7 @@ namespace Ken4lowEngine
 		D3D12_GPU_DESCRIPTOR_HANDLE shadowMapHandle_{};
 
 		bool frustumCullingEnabled_ = true;
+		bool isStageObjectCullingUnit_ = false;
 	};
 
 } // namespace Ken4lowEngine

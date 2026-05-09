@@ -83,9 +83,15 @@ namespace Ken4lowEngine
 		LightManager::GetInstance()->BindPunctualLights(5, 6);
 	}
 
-	bool Object3DCommon::ShouldDrawObject(const BoundingSphere& worldBounds, bool objectCullingEnabled, bool hasBounds)
+	bool Object3DCommon::ShouldDrawObject(const BoundingSphere& worldBounds, bool objectCullingEnabled, bool hasBounds, bool isStageObject)
 	{
-		return frustumCullingSystem_.IsVisible(worldBounds, !objectCullingEnabled, hasBounds);
+		const auto unit = isStageObject ? FrustumCullingSystem::CullingUnit::StageObject : FrustumCullingSystem::CullingUnit::Object;
+		return frustumCullingSystem_.IsVisible(worldBounds, !objectCullingEnabled, hasBounds, unit);
+	}
+
+	bool Object3DCommon::ShouldDrawMesh(const BoundingSphere& worldBounds, bool objectCullingEnabled, bool hasBounds)
+	{
+		return frustumCullingSystem_.IsVisible(worldBounds, !objectCullingEnabled, hasBounds, FrustumCullingSystem::CullingUnit::Mesh);
 	}
 
 	void Object3DCommon::SetShadowMapRenderSetting()

@@ -32,7 +32,8 @@ namespace Ken4lowEngine
 
 		void SetRenderSetting();
 		void SetShadowMapRenderSetting();
-		bool ShouldDrawObject(const BoundingSphere& worldBounds, bool objectCullingEnabled, bool hasBounds);
+		bool ShouldDrawObject(const BoundingSphere& worldBounds, bool objectCullingEnabled, bool hasBounds, bool isStageObject = false);
+		bool ShouldDrawMesh(const BoundingSphere& worldBounds, bool objectCullingEnabled, bool hasBounds);
 		FrustumCullingSystem& GetFrustumCullingSystem() { return frustumCullingSystem_; }
 		const FrustumCullingSystem& GetFrustumCullingSystem() const { return frustumCullingSystem_; }
 		void SetCullingCameraMode(CullingCameraMode mode) { cullingCameraMode_ = mode; }
@@ -44,6 +45,14 @@ namespace Ken4lowEngine
 		int GetTotalObjectCount() const { return frustumCullingSystem_.GetTotalObjectCount(); }
 		int GetCullingDisabledDrawnObjectCount() const { return frustumCullingSystem_.GetCullingDisabledDrawnObjectCount(); }
 		int GetMissingBoundsDrawnObjectCount() const { return frustumCullingSystem_.GetMissingBoundsDrawnObjectCount(); }
+		int GetDrawnMeshCount() const { return frustumCullingSystem_.GetDrawnMeshCount(); }
+		int GetCulledMeshCount() const { return frustumCullingSystem_.GetCulledMeshCount(); }
+		int GetTotalMeshCount() const { return frustumCullingSystem_.GetTotalMeshCount(); }
+		int GetTotalStageObjectCount() const { return frustumCullingSystem_.GetTotalStageObjectCount(); }
+		int GetDrawnStageObjectCount() const { return frustumCullingSystem_.GetDrawnStageObjectCount(); }
+		int GetCulledStageObjectCount() const { return frustumCullingSystem_.GetCulledStageObjectCount(); }
+		void SetBoundsDebugVisible(bool visible) { showBoundsDebug_ = visible; }
+		bool IsBoundsDebugVisible() const { return showBoundsDebug_; }
 		Matrix4x4 GetCullingViewProjectionMatrix() const;
 
 	public: /// ---------- 拡張予定の関数 ---------- ///
@@ -67,5 +76,6 @@ namespace Ken4lowEngine
 
 		FrustumCullingSystem frustumCullingSystem_{};
 		CullingCameraMode cullingCameraMode_ = CullingCameraMode::MainCamera;
+		bool showBoundsDebug_ = false;
 	};
 }
