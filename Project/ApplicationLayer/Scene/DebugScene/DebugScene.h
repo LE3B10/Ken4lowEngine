@@ -177,6 +177,8 @@ private: /// ---------- メンバ変数 ---------- ///
 	std::string debugModelBlockSequenceModelPath_ = "Characters/body.gltf";
 	std::string debugModelBlockSequenceLog_ = "Use the ImGui sequence buttons to play.";
 	DebugModelBlockSequenceRequest debugModelBlockSequenceRequest_ = DebugModelBlockSequenceRequest::None;
+	bool debugModelBlockSequencePaused_ = false;
+	bool debugModelBlockSequenceStepFrame_ = false;
 	std::string pendingDebugModelBlockSequencePath_;
 };
 

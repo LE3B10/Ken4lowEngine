@@ -27,6 +27,12 @@ public:
 		float rotationRandomness = 1.2f;
 		uint32_t placementSeed = 0xD157E6A7u;
 		float placementSpacing = 0.0f;
+		float voxelSpacing = 0.0f;
+		int maxVoxelBlockCount = 10000;
+		float voxelSurfaceThickness = 0.0675f;
+		bool useVoxelInsideTest = true;
+		bool useVoxelSurfaceNearTest = true;
+		bool alignVoxelGridToCenter = true;
 		bool surfaceSampling = true;
 		bool useSurfaceInset = false;
 		float surfaceInset = 0.0225f;

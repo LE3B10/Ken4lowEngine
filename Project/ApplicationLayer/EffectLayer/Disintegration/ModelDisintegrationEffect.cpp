@@ -29,6 +29,7 @@ namespace
 void ModelDisintegrationEffect::Initialize()
 {
 	particles_.clear();
+	initialSamples_.clear();
 	isActive_ = false;
 	isStarted_ = false;
 	globalAlpha_ = 1.0f;
@@ -57,6 +58,12 @@ void ModelDisintegrationEffect::PlayFromModel(const std::string& modelPath, cons
 	settings.rotationRandomness = parameters_.rotationRandomness;
 	settings.placementSeed = parameters_.placementSeed;
 	settings.placementSpacing = parameters_.placementSpacing;
+	settings.voxelSpacing = parameters_.voxelSpacing;
+	settings.maxVoxelBlockCount = parameters_.maxVoxelBlockCount;
+	settings.voxelSurfaceThickness = parameters_.voxelSurfaceThickness;
+	settings.useVoxelInsideTest = parameters_.useVoxelInsideTest;
+	settings.useVoxelSurfaceNearTest = parameters_.useVoxelSurfaceNearTest;
+	settings.alignVoxelGridToCenter = parameters_.alignVoxelGridToCenter;
 	settings.surfaceSampling = parameters_.surfaceSampling;
 	settings.useSurfaceInset = parameters_.useSurfaceInset;
 	settings.surfaceInset = parameters_.surfaceInset;
@@ -69,6 +76,12 @@ void ModelDisintegrationEffect::PlayFromModel(const std::string& modelPath, cons
 	settings.colorVariation = parameters_.colorVariation;
 
 	particles_ = emitter_.EmitFromModel(model->GetModelData(), worldMatrix, settings);
+	initialSamples_.clear();
+	initialSamples_.reserve(particles_.size());
+	for (const auto& particle : particles_)
+	{
+		initialSamples_.push_back({ particle.initialPosition, particle.outward });
+	}
 	InitializeErosionData();
 	isActive_ = !particles_.empty();
 	isStarted_ = isActive_;
@@ -111,6 +124,12 @@ void ModelDisintegrationEffect::BuildParticlesFromSamples(const std::vector<Disi
 	settings.rotationRandomness = parameters_.rotationRandomness;
 	settings.placementSeed = parameters_.placementSeed;
 	settings.placementSpacing = parameters_.placementSpacing;
+	settings.voxelSpacing = parameters_.voxelSpacing;
+	settings.maxVoxelBlockCount = parameters_.maxVoxelBlockCount;
+	settings.voxelSurfaceThickness = parameters_.voxelSurfaceThickness;
+	settings.useVoxelInsideTest = parameters_.useVoxelInsideTest;
+	settings.useVoxelSurfaceNearTest = parameters_.useVoxelSurfaceNearTest;
+	settings.alignVoxelGridToCenter = parameters_.alignVoxelGridToCenter;
 	settings.surfaceSampling = parameters_.surfaceSampling;
 	settings.useSurfaceInset = parameters_.useSurfaceInset;
 	settings.surfaceInset = parameters_.surfaceInset;
@@ -123,6 +142,7 @@ void ModelDisintegrationEffect::BuildParticlesFromSamples(const std::vector<Disi
 	settings.colorVariation = parameters_.colorVariation;
 
 	particles_ = emitter_.EmitFromSamples(samples, worldMatrix.GetTranslation(), settings);
+	initialSamples_ = samples;
 	InitializeErosionData();
 	isActive_ = !particles_.empty();
 	isStarted_ = false;
@@ -186,6 +206,11 @@ void ModelDisintegrationEffect::SetGlobalAlpha(float alpha)
 	globalAlpha_ = Clamp01(alpha);
 }
 
+std::vector<DisintegrationSamplePoint> ModelDisintegrationEffect::GetInitialSamples() const
+{
+	return initialSamples_;
+}
+
 void ModelDisintegrationEffect::DrawImGui()
 {
 #ifdef USE_IMGUI
@@ -202,12 +227,23 @@ void ModelDisintegrationEffect::DrawImGui()
 	{
 		parameters_.particleSize = parameters_.blockSize;
 	}
-	const char* placementModeLabels[] = { "ランダム表面配置", "均一表面配置", "整列表面配置" };
-	int placementModeIndex = parameters_.placementMode == DisintegrationPlacementMode::AlignedSurfaceGrid ? 2 : (parameters_.placementMode == DisintegrationPlacementMode::UniformSurface ? 1 : 0);
+	const char* placementModeLabels[] = { "ランダム表面配置", "均一表面配置", "整列表面配置", "ボクセル敷き詰め配置" };
+	int placementModeIndex = parameters_.placementMode == DisintegrationPlacementMode::VoxelFill ? 3 : (parameters_.placementMode == DisintegrationPlacementMode::AlignedSurfaceGrid ? 2 : (parameters_.placementMode == DisintegrationPlacementMode::UniformSurface ? 1 : 0));
 	if (ImGui::Combo("配置モード", &placementModeIndex, placementModeLabels, IM_ARRAYSIZE(placementModeLabels)))
 	{
-		parameters_.placementMode = placementModeIndex == 2 ? DisintegrationPlacementMode::AlignedSurfaceGrid : (placementModeIndex == 1 ? DisintegrationPlacementMode::UniformSurface : DisintegrationPlacementMode::RandomSurface);
-		if (parameters_.placementMode != DisintegrationPlacementMode::RandomSurface)
+		parameters_.placementMode = placementModeIndex == 3 ? DisintegrationPlacementMode::VoxelFill : (placementModeIndex == 2 ? DisintegrationPlacementMode::AlignedSurfaceGrid : (placementModeIndex == 1 ? DisintegrationPlacementMode::UniformSurface : DisintegrationPlacementMode::RandomSurface));
+		if (parameters_.placementMode == DisintegrationPlacementMode::VoxelFill)
+		{
+			parameters_.useRandomScale = false;
+			parameters_.useRandomRotation = false;
+			parameters_.surfaceSampling = false;
+			parameters_.useSurfaceInset = false;
+			parameters_.voxelSpacing = parameters_.blockSize;
+			parameters_.placementSpacing = parameters_.voxelSpacing;
+			parameters_.voxelSurfaceThickness = parameters_.blockSize * 1.5f;
+			parameters_.maxVoxelBlockCount = std::max(parameters_.maxVoxelBlockCount, 10000);
+		}
+		else if (parameters_.placementMode != DisintegrationPlacementMode::RandomSurface)
 		{
 			parameters_.useRandomScale = false;
 			parameters_.useRandomRotation = false;
@@ -227,6 +263,15 @@ void ModelDisintegrationEffect::DrawImGui()
 		parameters_.placementSeed = static_cast<uint32_t>(std::max(placementSeed, 0));
 	}
 	ImGui::SliderFloat("配置間隔", &parameters_.placementSpacing, 0.0f, 0.5f);
+	if (parameters_.placementMode == DisintegrationPlacementMode::VoxelFill)
+	{
+		ImGui::SliderFloat("ボクセル間隔", &parameters_.voxelSpacing, 0.005f, 0.50f);
+		ImGui::SliderInt("最大ブロック数", &parameters_.maxVoxelBlockCount, 128, 30000);
+		ImGui::SliderFloat("表面厚み", &parameters_.voxelSurfaceThickness, 0.0f, 1.0f);
+		ImGui::Checkbox("内外判定を使う", &parameters_.useVoxelInsideTest);
+		ImGui::Checkbox("表面近傍判定を使う", &parameters_.useVoxelSurfaceNearTest);
+		ImGui::Checkbox("グリッド原点を中央に揃える", &parameters_.alignVoxelGridToCenter);
+	}
 	if (parameters_.placementMode == DisintegrationPlacementMode::UniformSurface)
 	{
 		ImGui::TextWrapped("均一表面配置はモデル表面を面積に応じて規則的にサンプルします。Sweep Erosionで形を保って蝕む表現に推奨です。");
@@ -234,6 +279,10 @@ void ModelDisintegrationEffect::DrawImGui()
 	else if (parameters_.placementMode == DisintegrationPlacementMode::AlignedSurfaceGrid)
 	{
 		ImGui::TextWrapped("整列表面配置はAABBを埋めず、三角形表面上の格子候補からブロックを選びます。");
+	}
+	else if (parameters_.placementMode == DisintegrationPlacementMode::VoxelFill)
+	{
+		ImGui::TextWrapped("ボクセル敷き詰め配置は一定間隔の3Dグリッドをモデル形状で間引き、穴の少ないブロック完全体を作ります。");
 	}
 	ImGui::Checkbox("表面サンプリング", &parameters_.surfaceSampling);
 	ImGui::Checkbox("表面内側オフセットを使う", &parameters_.useSurfaceInset);

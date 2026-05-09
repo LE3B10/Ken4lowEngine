@@ -17,6 +17,7 @@ enum class DisintegrationPlacementMode
 	RandomSurface,
 	UniformSurface,
 	AlignedSurfaceGrid,
+	VoxelFill,
 };
 
 /// -------------------------------------------------------------
@@ -42,7 +43,13 @@ public:
 		float vertexJitterRadius = 0.0f,
 		DisintegrationPlacementMode placementMode = DisintegrationPlacementMode::RandomSurface,
 		uint32_t placementSeed = 0x51A7F00Du,
-		float placementSpacing = 0.0f);
+		float placementSpacing = 0.0f,
+		float voxelSpacing = 0.0f,
+		int maxVoxelBlockCount = 10000,
+		float voxelSurfaceThickness = 0.0f,
+		bool useVoxelInsideTest = true,
+		bool useVoxelSurfaceNearTest = true,
+		bool alignVoxelGridToCenter = true);
 
 private:
 	struct TriangleSample

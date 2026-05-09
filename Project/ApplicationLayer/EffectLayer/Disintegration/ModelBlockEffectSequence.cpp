@@ -178,6 +178,10 @@ void ModelBlockEffectSequence::Update(float deltaTime)
 		if (disintegrationEffect_ && !disintegrationEffect_->IsActive())
 		{
 			disintegrationCompleted_ = true;
+			if (mode_ == SequenceMode::DisintegrateThenReconstruct)
+			{
+				sharedCompletedSamples_ = disintegrationEffect_->GetInitialSamples();
+			}
 			modelVisible_ = false;
 			if (mode_ == SequenceMode::DisintegrateThenReconstruct)
 			{
@@ -276,6 +280,12 @@ void ModelBlockEffectSequence::ApplySharedParameters()
 		reconstructionParams.rotationRandomness = parameters_.rotationRandomness;
 		reconstructionParams.placementSeed = parameters_.placementSeed;
 		reconstructionParams.placementSpacing = parameters_.placementSpacing;
+		reconstructionParams.voxelSpacing = parameters_.voxelSpacing;
+		reconstructionParams.maxVoxelBlockCount = parameters_.maxVoxelBlockCount;
+		reconstructionParams.voxelSurfaceThickness = parameters_.voxelSurfaceThickness;
+		reconstructionParams.useVoxelInsideTest = parameters_.useVoxelInsideTest;
+		reconstructionParams.useVoxelSurfaceNearTest = parameters_.useVoxelSurfaceNearTest;
+		reconstructionParams.alignVoxelGridToCenter = parameters_.alignVoxelGridToCenter;
 		reconstructionParams.holdTime = 0.0f;
 		reconstructionParams.showFinalModel = false;
 		reconstructionParams.autoHideBlocksAfterComplete = false;
@@ -298,7 +308,19 @@ void ModelBlockEffectSequence::ApplySharedParameters()
 		disintegrationParams.rotationRandomness = parameters_.rotationRandomness;
 		disintegrationParams.placementSeed = parameters_.placementSeed;
 		disintegrationParams.placementSpacing = parameters_.placementSpacing;
+		disintegrationParams.voxelSpacing = parameters_.voxelSpacing;
+		disintegrationParams.maxVoxelBlockCount = parameters_.maxVoxelBlockCount;
+		disintegrationParams.voxelSurfaceThickness = parameters_.voxelSurfaceThickness;
+		disintegrationParams.useVoxelInsideTest = parameters_.useVoxelInsideTest;
+		disintegrationParams.useVoxelSurfaceNearTest = parameters_.useVoxelSurfaceNearTest;
+		disintegrationParams.alignVoxelGridToCenter = parameters_.alignVoxelGridToCenter;
 		disintegrationParams.useSweepErosion = parameters_.useSweepErosion;
+		disintegrationParams.erosionMode = parameters_.erosionMode;
+		disintegrationParams.erosionCenter = parameters_.erosionCenter;
+		disintegrationParams.useModelCenterAsErosionCenter = parameters_.useModelCenterAsErosionCenter;
+		disintegrationParams.centerErosionDuration = parameters_.centerErosionDuration;
+		disintegrationParams.centerErosionNoisePower = parameters_.centerErosionNoisePower;
+		disintegrationParams.centerGlowWidth = parameters_.centerGlowWidth;
 		disintegrationParams.sweepDirection = parameters_.sweepDirection;
 		disintegrationParams.sweepDuration = parameters_.sweepDuration;
 		disintegrationParams.erosionNoisePower = parameters_.erosionNoisePower;
@@ -324,7 +346,15 @@ void ModelBlockEffectSequence::StartReconstruction()
 	if (reconstructionEffect_)
 	{
 		// 再構築中は通常モデルを隠し、ブロックだけで登場演出を確認する。
-		reconstructionEffect_->PlayFromModel(modelPath_, worldMatrix_);
+		if (!sharedCompletedSamples_.empty())
+		{
+			reconstructionEffect_->GetParameters().useSurfaceInset = false;
+			reconstructionEffect_->PlayFromSamples(sharedCompletedSamples_, worldMatrix_);
+		}
+		else
+		{
+			reconstructionEffect_->PlayFromModel(modelPath_, worldMatrix_);
+		}
 	}
 }
 

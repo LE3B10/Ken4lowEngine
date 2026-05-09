@@ -36,6 +36,12 @@ public:
 		float rotationRandomness = 1.2f;
 		uint32_t placementSeed = 0xD157E6A7u;
 		float placementSpacing = 0.0f;
+		float voxelSpacing = 0.0f;
+		int maxVoxelBlockCount = 10000;
+		float voxelSurfaceThickness = 0.0675f;
+		bool useVoxelInsideTest = true;
+		bool useVoxelSurfaceNearTest = true;
+		bool alignVoxelGridToCenter = true;
 		bool surfaceSampling = true;
 		bool useSurfaceInset = false;
 		float surfaceInset = 0.0225f;
@@ -81,6 +87,7 @@ public:
 	void DrawImGui();
 	void SetGlobalAlpha(float alpha);
 	bool IsActive() const { return isActive_ && isStarted_; }
+	std::vector<DisintegrationSamplePoint> GetInitialSamples() const;
 
 	Parameters& GetParameters() { return parameters_; }
 	const Parameters& GetParameters() const { return parameters_; }
@@ -101,6 +108,7 @@ private:
 	DisintegrationEmitter emitter_{};
 	DisintegrationRenderer renderer_{};
 	std::vector<DisintegrationParticle> particles_{};
+	std::vector<DisintegrationSamplePoint> initialSamples_{};
 	bool isActive_ = false;
 	bool isStarted_ = false;
 	float globalAlpha_ = 1.0f;

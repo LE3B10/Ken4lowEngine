@@ -33,13 +33,27 @@ std::vector<ReconstructionBlock> ReconstructionEmitter::EmitFromModel(
 		settings.blockSize * 1.5f,
 		settings.placementMode,
 		settings.placementSeed,
-		settings.placementSpacing);
+		settings.placementSpacing,
+		settings.voxelSpacing,
+		settings.maxVoxelBlockCount,
+		settings.voxelSurfaceThickness,
+		settings.useVoxelInsideTest,
+		settings.useVoxelSurfaceNearTest,
+		settings.alignVoxelGridToCenter);
 
+	return EmitFromSamples(targets, worldMatrix.GetTranslation(), settings);
+}
+
+std::vector<ReconstructionBlock> ReconstructionEmitter::EmitFromSamples(
+	const std::vector<DisintegrationSamplePoint>& targets,
+	const K4E::Vector3& center,
+	const Settings& settings)
+{
+	rng_.seed(settings.placementSeed ^ 0xC0DE2026u);
 	std::vector<ReconstructionBlock> blocks;
 	blocks.reserve(targets.size());
 	if (targets.empty()) { return blocks; }
 
-	const K4E::Vector3 center = worldMatrix.GetTranslation();
 	const float effectiveSurfaceInset = settings.useSurfaceInset
 		? std::max(settings.autoSurfaceInsetFromBlockSize ? settings.blockSize * 0.5f : settings.surfaceInset, 0.0f)
 		: 0.0f;

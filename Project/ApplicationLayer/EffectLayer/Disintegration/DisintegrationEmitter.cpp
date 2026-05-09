@@ -43,7 +43,13 @@ std::vector<DisintegrationParticle> DisintegrationEmitter::EmitFromModel(
 		settings.particleSize * 1.5f,
 		settings.placementMode,
 		settings.placementSeed,
-		settings.placementSpacing);
+		settings.placementSpacing,
+		settings.voxelSpacing,
+		settings.maxVoxelBlockCount,
+		settings.voxelSurfaceThickness,
+		settings.useVoxelInsideTest,
+		settings.useVoxelSurfaceNearTest,
+		settings.alignVoxelGridToCenter);
 	return EmitFromSamples(samples, worldMatrix.GetTranslation(), settings);
 }
 
