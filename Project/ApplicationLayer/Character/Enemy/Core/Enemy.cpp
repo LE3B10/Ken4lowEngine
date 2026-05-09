@@ -8,6 +8,7 @@
 #include "EnemyDeadState.h"
 
 #include <BulletManager.h>
+#include <Bullet.h>
 #include <CollisionManager.h>
 #include <CollisionTypeIdDef.h>
 
@@ -17,6 +18,10 @@
 #include <limits>
 #include <numbers>
 #include <random>
+
+#ifdef USE_IMGUI
+#include <imgui.h>
+#endif // USE_IMGUI
 
 using namespace Ken4lowEngine;
 
@@ -30,6 +35,18 @@ namespace
 		if (value < minVal) return minVal;
 		if (value > maxVal) return maxVal;
 		return value;
+	}
+
+	float Length(const Vector3& v)
+	{
+		return std::sqrt(v.x * v.x + v.y * v.y + v.z * v.z);
+	}
+
+	Vector3 NormalizeSafe(const Vector3& v, const Vector3& fallback = { 0.0f, 0.0f, 1.0f })
+	{
+		const float len = Length(v);
+		if (len < kEpsilon) return fallback;
+		return { v.x / len, v.y / len, v.z / len };
 	}
 
 	float LengthXZ(const Vector3& v)
@@ -107,6 +124,13 @@ void Enemy::Initialize()
 
 	memory_.lastSeenPos = GetCenterPosition();
 	memory_.timeSinceSeen = 9999.0f;
+	lastDamageHitPos_ = GetCenterPosition();
+	lastDamageDirection_ = { 0.0f, 0.0f, 0.0f };
+	lastAttackOrigin_ = GetCenterPosition();
+	lastDamageTimeSec_ = -1.0f;
+	aliveTimeSec_ = 0.0f;
+	hasDamageStimulus_ = false;
+	suppressNextDamageStimulus_ = false;
 
 	facing_.yawRad = 0.0f;
 	fireCooldown_ = 0.0f;
@@ -136,6 +160,7 @@ void Enemy::Initialize()
 
 void Enemy::Update(float deltaTime)
 {
+	aliveTimeSec_ += deltaTime;
 	UpdateNavigatorSource();
 	moveCommandedThisFrame_ = false;
 
@@ -199,6 +224,36 @@ void Enemy::Update(float deltaTime)
 	EnemyBase::Update(deltaTime);
 }
 
+
+void Enemy::DrawImGui()
+{
+	EnemyBase::DrawImGui();
+
+#ifdef USE_IMGUI
+	const Vector3 targetPos = GetTargetPosition();
+	const bool hasTarget = HasTarget();
+	const bool hasLos = HasTargetLineOfSight();
+	const bool canAttack = CanAttackTarget();
+	const float lastHitElapsed = (lastDamageTimeSec_ >= 0.0f) ? (aliveTimeSec_ - lastDamageTimeSec_) : -1.0f;
+
+	if (ImGui::TreeNode("Enemy AI Debug"))
+	{
+		ImGui::Text("AI State: %s", GetCurrentAIStateName());
+		ImGui::Text("Target Aware: %s", IsTargetAware() ? "true" : "false");
+		ImGui::Text("Line Of Sight: %s", hasLos ? "true" : "false");
+		ImGui::Text("Last Hit Time: %.2f sec", lastHitElapsed);
+		ImGui::Text("Last Player Pos: %.2f, %.2f, %.2f", memory_.lastSeenPos.x, memory_.lastSeenPos.y, memory_.lastSeenPos.z);
+		ImGui::Text("Can Attack: %s", canAttack ? "true" : "false");
+		ImGui::Separator();
+		ImGui::Text("Has Target: %s", hasTarget ? "true" : "false");
+		ImGui::Text("Target Pos: %.2f, %.2f, %.2f", targetPos.x, targetPos.y, targetPos.z);
+		ImGui::Text("Last Hit Pos: %.2f, %.2f, %.2f", lastDamageHitPos_.x, lastDamageHitPos_.y, lastDamageHitPos_.z);
+		ImGui::Text("Last Attack Dir: %.2f, %.2f, %.2f", lastDamageDirection_.x, lastDamageDirection_.y, lastDamageDirection_.z);
+		ImGui::TreePop();
+	}
+#endif // USE_IMGUI
+}
+
 void Enemy::ChangeState(std::unique_ptr<IEnemyState> nextState)
 {
 	if (state_) state_->Exit(*this);
@@ -214,6 +269,34 @@ void Enemy::ChangeStateToCombatMove() { ChangeState(std::make_unique<EnemyCombat
 void Enemy::ChangeStateToShoot() { ChangeState(std::make_unique<EnemyShootState>()); }
 void Enemy::ChangeStateToSearch() { ChangeState(std::make_unique<EnemySearchState>()); }
 void Enemy::ChangeStateToDead() { ChangeState(std::make_unique<EnemyDeadState>()); }
+
+
+const char* Enemy::GetCurrentAIStateName() const
+{
+	return state_ ? state_->GetStateName() : "None";
+}
+
+bool Enemy::IsTargetAware() const
+{
+	const bool recentlyDamaged = hasDamageStimulus_ && lastDamageTimeSec_ >= 0.0f && (aliveTimeSec_ - lastDamageTimeSec_) <= combat_.searchDuration;
+	return HasTarget() && (memory_.timeSinceSeen <= perception_.loseSightGraceSec || hitReactionTimer_ > 0.0f || recentlyDamaged);
+}
+
+bool Enemy::HasTargetLineOfSight() const
+{
+	if (!HasTarget()) return false;
+
+	Vector3 eye = GetCenterPosition();
+	eye.y += perception_.eyeHeight;
+	Vector3 targetEye = GetTargetPosition();
+	targetEye.y += perception_.targetEyeHeight;
+	return HasLineOfSight(eye, targetEye);
+}
+
+bool Enemy::CanAttackTarget() const
+{
+	return HasTarget() && CanShootTarget(GetTargetPosition()) && fireCooldown_ <= 0.0f && !IsDead();
+}
 
 K4E::Vector3 Enemy::GetTargetPosition() const
 {
@@ -439,9 +522,57 @@ void Enemy::FireAt(const K4E::Vector3& targetPos)
 		static_cast<uint32_t>(CollisionTypeIdDef::kEnemyBullet));
 }
 
+void Enemy::TakeDamage(int amount)
+{
+	if (IsDead()) return;
+	if (!suppressNextDamageStimulus_)
+	{
+		RegisterDamageStimulus(GetCenterPosition(), GetCenterPosition(), { 0.0f, 0.0f, 0.0f });
+	}
+	EnemyBase::TakeDamage(amount);
+	if (IsDead()) ChangeStateToDead();
+}
+
+void Enemy::TakeDamage(int amount, const K4E::Vector3& hitDir, float hitPower)
+{
+	if (IsDead()) return;
+	if (!suppressNextDamageStimulus_)
+	{
+		const Vector3 attackOrigin = GetCenterPosition() - NormalizeXZ(hitDir) * perception_.viewRange;
+		RegisterDamageStimulus(GetCenterPosition(), attackOrigin, hitDir);
+	}
+	EnemyBase::TakeDamage(amount, hitDir, hitPower);
+	if (IsDead()) ChangeStateToDead();
+}
+
 void Enemy::OnBulletHit(K4E::Collider* bulletCollider)
 {
+	if (IsDead()) return;
+
+	Vector3 hitPos = GetCenterPosition();
+	Vector3 attackOrigin = GetCenterPosition();
+	Vector3 hitDir{ 0.0f, 0.0f, 0.0f };
+
+	if (bulletCollider)
+	{
+		hitPos = bulletCollider->GetCenterPosition();
+		attackOrigin = hitPos;
+		const Segment bulletSegment = bulletCollider->GetSegment();
+		if (Length(bulletSegment.diff) > kEpsilon)
+		{
+			hitDir = bulletSegment.diff;
+		}
+
+		if (auto* bullet = bulletCollider->GetOwner<Bullet>())
+		{
+			attackOrigin = bullet->GetShooterPosition();
+		}
+	}
+
+	RegisterDamageStimulus(hitPos, attackOrigin, hitDir);
+	suppressNextDamageStimulus_ = true;
 	EnemyBase::OnBulletHit(bulletCollider);
+	suppressNextDamageStimulus_ = false;
 
 	if (!IsDead())
 	{
@@ -452,6 +583,40 @@ void Enemy::OnBulletHit(K4E::Collider* bulletCollider)
 	}
 
 	if (IsDead()) ChangeStateToDead();
+}
+
+
+void Enemy::RegisterDamageStimulus(const K4E::Vector3& hitPos, const K4E::Vector3& attackOrigin, const K4E::Vector3& hitDir)
+{
+	lastDamageHitPos_ = hitPos;
+	lastDamageDirection_ = NormalizeSafe(hitDir, attackOrigin - GetCenterPosition());
+	lastAttackOrigin_ = attackOrigin;
+	lastDamageTimeSec_ = aliveTimeSec_;
+	hasDamageStimulus_ = true;
+
+	Vector3 investigatePos = attackOrigin;
+	if (LengthXZ(investigatePos - GetCenterPosition()) <= kEpsilon && LengthXZ(lastDamageDirection_) > kEpsilon)
+	{
+		investigatePos = GetCenterPosition() - lastDamageDirection_ * perception_.viewRange;
+	}
+
+	// 被弾したら視認前でも最後に攻撃された方向を索敵地点として記憶する。
+	RememberLastSeenTarget(investigatePos);
+
+	if (!IsDead() && HasTarget())
+	{
+		const Vector3 targetPos = GetTargetPosition();
+		const float distToTarget = GetDistanceToTarget();
+		if (CanSeeTarget(targetPos, distToTarget))
+		{
+			RememberLastSeenTarget(targetPos);
+			ChangeStateToCombatMove();
+		}
+		else
+		{
+			ChangeStateToSearch();
+		}
+	}
 }
 
 void Enemy::UpdateNavigatorSource()

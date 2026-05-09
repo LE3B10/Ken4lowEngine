@@ -128,7 +128,7 @@ void EnemyCombatMoveState::Update(Enemy& enemy, float deltaTime)
 	enemy.PlayMoveAnimation(speed);
 
 	const float shootRange = dangerMode ? enemy.GetLowHpShootRange() : enemy.GetFireRange();
-	if (!inHitReaction && distToTarget <= shootRange && canShoot)
+	if (!inHitReaction && distToTarget >= enemy.GetIdealRangeMin() && distToTarget <= shootRange && canShoot)
 	{
 		enemy.ChangeStateToShoot();
 		return;
