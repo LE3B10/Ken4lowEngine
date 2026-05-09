@@ -64,7 +64,14 @@ void EnemyCombatMoveState::Update(Enemy& enemy, float deltaTime)
 			losRepositionTimer_ = enemy.GetLosRepositionEvalSec();
 		}
 
-		radialBias = dangerMode ? std::min(radialBias, -0.4f) : std::max(radialBias, -0.1f);
+		if (distToTarget < enemy.GetMinCombatRange())
+		{
+			radialBias = std::min(radialBias, -0.85f);
+		}
+		else
+		{
+			radialBias = dangerMode ? std::min(radialBias, -0.4f) : std::max(radialBias, -0.1f);
+		}
 		speed = std::max(speed, enemy.GetStrafeSpeed());
 		shouldPathChase = true;
 	}
@@ -127,8 +134,8 @@ void EnemyCombatMoveState::Update(Enemy& enemy, float deltaTime)
 	}
 	enemy.PlayMoveAnimation(speed);
 
-	const float shootRange = dangerMode ? enemy.GetLowHpShootRange() : enemy.GetFireRange();
-	if (!inHitReaction && distToTarget >= enemy.GetIdealRangeMin() && distToTarget <= shootRange && canShoot)
+	const float shootRange = dangerMode ? enemy.GetLowHpShootRange() : enemy.GetMaxCombatRange();
+	if (distToTarget >= enemy.GetMinCombatRange() && distToTarget <= shootRange && canShoot)
 	{
 		enemy.ChangeStateToShoot();
 		return;

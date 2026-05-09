@@ -15,7 +15,8 @@ EnemyEvadeController::Plan EnemyEvadeController::Evaluate(const Input& input) co
 	const float coverNeed = std::clamp(input.coverBias * (0.6f + input.coverPreference * 0.9f) + panic, 0.0f, 1.8f);
 	const float attackNeed = std::clamp(input.aggression - (input.lowHp ? 0.25f : 0.0f), 0.0f, 1.0f);
 
-	if (coverNeed > 0.65f && (!input.canShoot || survivalNeed > attackNeed))
+	const bool allowRetreatReaction = input.lowHp || input.consecutiveHits >= 2;
+	if (allowRetreatReaction && coverNeed > 0.65f && (!input.canShoot || survivalNeed > attackNeed))
 	{
 		plan.mode = Mode::ToCover;
 		plan.radialBias = -1.0f;
@@ -23,7 +24,7 @@ EnemyEvadeController::Plan EnemyEvadeController::Evaluate(const Input& input) co
 		return plan;
 	}
 
-	if (survivalNeed > 0.55f)
+	if (allowRetreatReaction && survivalNeed > 0.55f)
 	{
 		plan.mode = Mode::Retreat;
 		plan.radialBias = -0.9f;
@@ -32,7 +33,7 @@ EnemyEvadeController::Plan EnemyEvadeController::Evaluate(const Input& input) co
 	}
 
 	plan.mode = Mode::Strafe;
-	plan.radialBias = -0.1f;
+	plan.radialBias = input.canShoot ? 0.0f : -0.1f;
 	plan.speedScale = 1.0f;
 	return plan;
 }

@@ -20,6 +20,7 @@ public:
 		float retreatDistance = 18.0f;
 		float returnDistance = 28.0f;
 		float decisionInterval = 0.2f;
+		float cooldownSec = 2.5f;
 		bool inHitReaction = false;
 		bool canShoot = true;
 		int consecutiveHits = 0;
@@ -36,4 +37,5 @@ private:
 	float evalTimer_ = 0.0f;
 	float retreatHoldTimer_ = 0.0f;
 	float safeTimer_ = 0.0f;
+	float cooldownTimer_ = 0.0f;
 };

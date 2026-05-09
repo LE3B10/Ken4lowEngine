@@ -46,7 +46,7 @@ void EnemySearchState::Update(Enemy& enemy, float deltaTime)
 
 	const Vector3 lastSeen = enemy.GetLastSeenTargetPosition();
 	const float distToLastSeen = DistXZ(enemy.GetCenterPosition(), lastSeen);
-	const bool dangerMode = enemy.IsLowHp() || enemy.IsInHitReaction();
+	const bool dangerMode = enemy.IsRetreating();
 	const float searchSpeed = dangerMode
 		? enemy.GetSearchMoveSpeed() * 0.85f
 		: enemy.GetSearchMoveSpeed();

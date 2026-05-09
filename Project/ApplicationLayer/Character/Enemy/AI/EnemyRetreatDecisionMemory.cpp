@@ -8,6 +8,7 @@ void EnemyRetreatDecisionMemory::Reset()
 	evalTimer_ = 0.0f;
 	retreatHoldTimer_ = 0.0f;
 	safeTimer_ = 0.0f;
+	cooldownTimer_ = 0.0f;
 }
 
 bool EnemyRetreatDecisionMemory::Update(const Input& input)
@@ -15,6 +16,10 @@ bool EnemyRetreatDecisionMemory::Update(const Input& input)
 	if (retreatHoldTimer_ > 0.0f)
 	{
 		retreatHoldTimer_ = std::max(0.0f, retreatHoldTimer_ - input.dt);
+	}
+	if (cooldownTimer_ > 0.0f)
+	{
+		cooldownTimer_ = std::max(0.0f, cooldownTimer_ - input.dt);
 	}
 
 	evalTimer_ -= input.dt;
@@ -27,7 +32,8 @@ bool EnemyRetreatDecisionMemory::Update(const Input& input)
 	const bool veryLowHp = input.hpRate <= config_.hpThreshold;
 	const bool pressuredByHits = input.inHitReaction && input.consecutiveHits >= 2;
 	const bool closeThreat = input.distanceToTarget <= (input.retreatDistance + config_.engageDistanceBias);
-	const bool shouldEnterRetreat = veryLowHp && (closeThreat || pressuredByHits);
+	const bool hasLinePressure = !input.canShoot && input.distanceToTarget <= input.retreatDistance;
+	const bool shouldEnterRetreat = veryLowHp && cooldownTimer_ <= 0.0f && (closeThreat || pressuredByHits || hasLinePressure);
 
 	if (!retreating_ && shouldEnterRetreat)
 	{
@@ -60,6 +66,7 @@ bool EnemyRetreatDecisionMemory::Update(const Input& input)
 	{
 		retreating_ = false;
 		safeTimer_ = 0.0f;
+		cooldownTimer_ = std::max(0.0f, input.cooldownSec);
 	}
 
 	return retreating_;
