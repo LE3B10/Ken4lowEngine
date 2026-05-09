@@ -286,6 +286,14 @@ void ModelBlockEffectSequence::ApplySharedParameters()
 		reconstructionParams.useVoxelInsideTest = parameters_.useVoxelInsideTest;
 		reconstructionParams.useVoxelSurfaceNearTest = parameters_.useVoxelSurfaceNearTest;
 		reconstructionParams.alignVoxelGridToCenter = parameters_.alignVoxelGridToCenter;
+		reconstructionParams.useFadeIn = parameters_.useFadeIn;
+		reconstructionParams.fadeInDuration = parameters_.fadeInDuration;
+		reconstructionParams.fadeInDelayRange = parameters_.fadeInDelayRange;
+		reconstructionParams.initialAlpha = parameters_.initialAlpha;
+		reconstructionParams.targetAlpha = parameters_.targetAlpha;
+		reconstructionParams.fadeInEasePower = parameters_.fadeInEasePower;
+		reconstructionParams.fadeInByDistance = parameters_.fadeInByDistance;
+		reconstructionParams.fadeInNearTarget = parameters_.fadeInNearTarget;
 		reconstructionParams.holdTime = 0.0f;
 		reconstructionParams.showFinalModel = false;
 		reconstructionParams.autoHideBlocksAfterComplete = false;

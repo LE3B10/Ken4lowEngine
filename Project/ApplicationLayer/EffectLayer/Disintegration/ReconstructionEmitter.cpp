@@ -92,7 +92,12 @@ std::vector<ReconstructionBlock> ReconstructionEmitter::EmitFromSamples(
 		block.color = MakeColor(settings);
 		block.startDelay = RandomRange(0.0f, settings.startDelayRange);
 		block.size = settings.blockSize * RandomRange(1.0f - scaleVariation, 1.0f + scaleVariation);
-		block.alpha = 1.0f;
+		block.fadeInDelay = settings.useFadeIn ? RandomRange(0.0f, settings.fadeInDelayRange) : 0.0f;
+		block.fadeInDuration = std::max(settings.fadeInDuration, 0.0001f);
+		block.appearAge = 0.0f;
+		block.startDistance = K4E::Vector3::Length(block.targetPosition - block.startPosition);
+		block.alpha = settings.useFadeIn ? std::clamp(settings.initialAlpha, 0.0f, 1.0f) : std::clamp(settings.targetAlpha, 0.0f, 1.0f);
+		block.visibility = block.alpha;
 		block.alive = true;
 		blocks.push_back(block);
 	}

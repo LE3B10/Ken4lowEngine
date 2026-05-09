@@ -41,6 +41,11 @@ public:
 		bool autoSurfaceInsetFromBlockSize = true;
 		K4E::Vector4 color{ 0.64f, 0.72f, 0.86f, 1.0f };
 		float colorVariation = 0.18f;
+		bool useFadeIn = true;
+		float fadeInDuration = 0.4f;
+		float fadeInDelayRange = 0.2f;
+		float initialAlpha = 0.0f;
+		float targetAlpha = 1.0f;
 	};
 
 	std::vector<ReconstructionBlock> EmitFromModel(

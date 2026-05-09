@@ -50,6 +50,7 @@ void ModelReconstructionEffect::PlayFromModel(const std::string& modelPath, cons
 	settings.autoSurfaceInsetFromBlockSize = parameters_.autoSurfaceInsetFromBlockSize;
 	settings.color = parameters_.color;
 	settings.colorVariation = parameters_.colorVariation;
+	ApplyFadeInSettings(settings);
 
 	blocks_ = emitter_.EmitFromModel(model->GetModelData(), worldMatrix, settings);
 	isActive_ = !blocks_.empty();
@@ -86,6 +87,7 @@ void ModelReconstructionEffect::PlayFromSamples(const std::vector<Disintegration
 	settings.autoSurfaceInsetFromBlockSize = parameters_.autoSurfaceInsetFromBlockSize;
 	settings.color = parameters_.color;
 	settings.colorVariation = parameters_.colorVariation;
+	ApplyFadeInSettings(settings);
 
 	blocks_ = emitter_.EmitFromSamples(samples, worldMatrix.GetTranslation(), settings);
 	isActive_ = !blocks_.empty();
@@ -107,9 +109,11 @@ void ModelReconstructionEffect::Update(float deltaTime)
 		if (!block.alive) { continue; }
 
 		block.age += deltaTime;
+		block.appearAge += deltaTime;
 		if (block.age < block.startDelay)
 		{
 			block.position = block.startPosition;
+			UpdateBlockFade(block);
 			allArrived = false;
 			continue;
 		}
@@ -121,10 +125,13 @@ void ModelReconstructionEffect::Update(float deltaTime)
 		block.position = block.startPosition + (block.targetPosition - block.startPosition) * easedT;
 		block.rotation = block.startRotation + block.rotationVelocity * ((1.0f - easedT) * block.age);
 		block.arrived = localT >= 1.0f;
+		UpdateBlockFade(block);
 		if (block.arrived)
 		{
 			block.position = block.targetPosition;
 			block.rotation = { 0.0f, 0.0f, 0.0f };
+			block.alpha = parameters_.useFadeIn ? Clamp01(parameters_.targetAlpha) : block.alpha;
+			block.visibility = block.alpha;
 		}
 		else
 		{
@@ -231,6 +238,15 @@ void ModelReconstructionEffect::DrawImGui()
 	ImGui::SliderFloat("イージング強度", &parameters_.easePower, 1.0f, 8.0f);
 	ImGui::ColorEdit4("色", &parameters_.color.x);
 	ImGui::SliderFloat("色のばらつき", &parameters_.colorVariation, 0.0f, 0.8f);
+	ImGui::SeparatorText("フェードイン");
+	ImGui::Checkbox("フェードインを使う", &parameters_.useFadeIn);
+	ImGui::SliderFloat("初期透明度", &parameters_.initialAlpha, 0.0f, 1.0f);
+	ImGui::SliderFloat("目標透明度", &parameters_.targetAlpha, 0.0f, 1.0f);
+	ImGui::SliderFloat("フェードイン時間", &parameters_.fadeInDuration, 0.01f, 3.0f);
+	ImGui::SliderFloat("フェードイン遅延幅", &parameters_.fadeInDelayRange, 0.0f, 2.0f);
+	ImGui::SliderFloat("フェードインの鋭さ", &parameters_.fadeInEasePower, 0.1f, 8.0f);
+	ImGui::Checkbox("距離でフェードイン", &parameters_.fadeInByDistance);
+	ImGui::Checkbox("到着付近で不透明化", &parameters_.fadeInNearTarget);
 	ImGui::SliderFloat("完了後の保持時間", &parameters_.holdTime, 0.0f, 5.0f);
 	ImGui::Checkbox("完了後にモデル表示", &parameters_.showFinalModel);
 	ImGui::Checkbox("完了後にブロック自動非表示", &parameters_.autoHideBlocksAfterComplete);
@@ -259,4 +275,44 @@ float ModelReconstructionEffect::EaseOut(float value) const
 {
 	const float t = Clamp01(value);
 	return 1.0f - std::pow(1.0f - t, std::max(parameters_.easePower, 1.0f));
+}
+
+void ModelReconstructionEffect::ApplyFadeInSettings(ReconstructionEmitter::Settings& settings) const
+{
+	settings.useFadeIn = parameters_.useFadeIn;
+	settings.fadeInDuration = std::max(parameters_.fadeInDuration, 0.0001f);
+	settings.fadeInDelayRange = std::max(parameters_.fadeInDelayRange, 0.0f);
+	settings.initialAlpha = Clamp01(parameters_.initialAlpha);
+	settings.targetAlpha = Clamp01(parameters_.targetAlpha);
+}
+
+void ModelReconstructionEffect::UpdateBlockFade(ReconstructionBlock& block) const
+{
+	if (!parameters_.useFadeIn)
+	{
+		block.alpha = Clamp01(parameters_.targetAlpha);
+		block.visibility = block.alpha;
+		return;
+	}
+
+	const float fadeDuration = std::max(block.fadeInDuration, 0.0001f);
+	const float fadeT = Clamp01((block.appearAge - block.fadeInDelay) / fadeDuration);
+	const float easedT = 1.0f - std::pow(1.0f - fadeT, std::max(parameters_.fadeInEasePower, 0.0001f));
+	const float initialAlpha = Clamp01(parameters_.initialAlpha);
+	const float targetAlpha = Clamp01(parameters_.targetAlpha);
+	float alpha = initialAlpha + (targetAlpha - initialAlpha) * easedT;
+
+	if (parameters_.fadeInByDistance || parameters_.fadeInNearTarget)
+	{
+		const float startDistance = std::max(block.startDistance, 0.0001f);
+		const float distanceToTarget = K4E::Vector3::Length(block.targetPosition - block.position);
+		const float distanceRate = 1.0f - Clamp01(distanceToTarget / startDistance);
+		const float distanceAlpha = initialAlpha + (targetAlpha - initialAlpha) * distanceRate;
+
+		// 到着に近づくほど透明度を押し上げ、再構築中のブロックを徐々に物質化させる。
+		alpha = parameters_.fadeInNearTarget ? std::max(alpha, distanceAlpha) : distanceAlpha;
+	}
+
+	block.alpha = Clamp01(alpha);
+	block.visibility = block.alpha;
 }
