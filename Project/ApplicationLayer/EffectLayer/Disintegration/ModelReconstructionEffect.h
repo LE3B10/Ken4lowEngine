@@ -30,6 +30,12 @@ public:
 		bool useRandomRotation = true;
 		uint32_t placementSeed = 0xD157E6A7u;
 		float placementSpacing = 0.0f;
+		float voxelSpacing = 0.0f;
+		int maxVoxelBlockCount = 10000;
+		float voxelSurfaceThickness = 0.0675f;
+		bool useVoxelInsideTest = true;
+		bool useVoxelSurfaceNearTest = true;
+		bool alignVoxelGridToCenter = true;
 		float easePower = 3.0f;
 		K4E::Vector4 color{ 0.64f, 0.72f, 0.86f, 1.0f };
 		float colorVariation = 0.18f;
@@ -44,6 +50,7 @@ public:
 
 	void Initialize();
 	void PlayFromModel(const std::string& modelPath, const K4E::Matrix4x4& worldMatrix);
+	void PlayFromSamples(const std::vector<DisintegrationSamplePoint>& samples, const K4E::Matrix4x4& worldMatrix);
 	void Update(float deltaTime);
 	void Draw();
 	void DrawImGui();

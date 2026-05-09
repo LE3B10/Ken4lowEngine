@@ -29,6 +29,12 @@ public:
 		bool useRandomRotation = true;
 		uint32_t placementSeed = 0xD157E6A7u;
 		float placementSpacing = 0.0f;
+		float voxelSpacing = 0.0f;
+		int maxVoxelBlockCount = 10000;
+		float voxelSurfaceThickness = 0.0675f;
+		bool useVoxelInsideTest = true;
+		bool useVoxelSurfaceNearTest = true;
+		bool alignVoxelGridToCenter = true;
 		bool surfaceSampling = true;
 		bool useSurfaceInset = false;
 		float surfaceInset = 0.0225f;
@@ -40,6 +46,10 @@ public:
 	std::vector<ReconstructionBlock> EmitFromModel(
 		const K4E::ModelData& modelData,
 		const K4E::Matrix4x4& worldMatrix,
+		const Settings& settings);
+	std::vector<ReconstructionBlock> EmitFromSamples(
+		const std::vector<DisintegrationSamplePoint>& targets,
+		const K4E::Vector3& center,
 		const Settings& settings);
 
 private:

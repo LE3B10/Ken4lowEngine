@@ -1,5 +1,6 @@
 #pragma once
 #include "ModelSurfaceSampler.h"
+#include "ModelDisintegrationEffect.h"
 #include "Matrix4x4.h"
 #include "Vector3.h"
 #include "Vector4.h"
@@ -53,6 +54,12 @@ public:
 		int blockCount = 1200;
 		float blockSize = 0.045f;
 		float placementSpacing = 0.0f;
+		float voxelSpacing = 0.0f;
+		int maxVoxelBlockCount = 10000;
+		float voxelSurfaceThickness = 0.0675f;
+		bool useVoxelInsideTest = true;
+		bool useVoxelSurfaceNearTest = true;
+		bool alignVoxelGridToCenter = true;
 		bool surfaceSampling = true;
 		bool useSurfaceInset = true;
 		float surfaceInset = 0.0225f;
@@ -64,6 +71,12 @@ public:
 		float rotationRandomness = 1.2f;
 		uint32_t placementSeed = 0xD157E6A7u;
 		bool useSweepErosion = true;
+		ErosionMode erosionMode = ErosionMode::DirectionalSweep;
+		K4E::Vector3 erosionCenter{ 0.0f, 0.0f, 0.0f };
+		bool useModelCenterAsErosionCenter = true;
+		float centerErosionDuration = 1.6f;
+		float centerErosionNoisePower = 0.35f;
+		float centerGlowWidth = 0.24f;
 		K4E::Vector3 sweepDirection{ 1.0f, 0.0f, 0.0f };
 		float sweepDuration = 1.6f;
 		float erosionNoisePower = 0.35f;

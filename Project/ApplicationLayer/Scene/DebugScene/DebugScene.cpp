@@ -604,12 +604,23 @@ void DebugScene::DrawImGui()
 				sequenceParams.blockSize = std::max(sequenceParams.blockSize, 0.005f);
 			}
 			ImGui::Checkbox("表面サンプリング##BlockSequence", &sequenceParams.surfaceSampling);
-			const char* sequencePlacementModeLabels[] = { "ランダム表面配置", "均一表面配置", "整列表面配置" };
-			int sequencePlacementModeIndex = sequenceParams.placementMode == DisintegrationPlacementMode::AlignedSurfaceGrid ? 2 : (sequenceParams.placementMode == DisintegrationPlacementMode::UniformSurface ? 1 : 0);
+			const char* sequencePlacementModeLabels[] = { "ランダム表面配置", "均一表面配置", "整列表面配置", "ボクセル敷き詰め配置" };
+			int sequencePlacementModeIndex = sequenceParams.placementMode == DisintegrationPlacementMode::VoxelFill ? 3 : (sequenceParams.placementMode == DisintegrationPlacementMode::AlignedSurfaceGrid ? 2 : (sequenceParams.placementMode == DisintegrationPlacementMode::UniformSurface ? 1 : 0));
 			if (ImGui::Combo("配置モード##BlockSequence", &sequencePlacementModeIndex, sequencePlacementModeLabels, IM_ARRAYSIZE(sequencePlacementModeLabels)))
 			{
-				sequenceParams.placementMode = sequencePlacementModeIndex == 2 ? DisintegrationPlacementMode::AlignedSurfaceGrid : (sequencePlacementModeIndex == 1 ? DisintegrationPlacementMode::UniformSurface : DisintegrationPlacementMode::RandomSurface);
-				if (sequenceParams.placementMode != DisintegrationPlacementMode::RandomSurface)
+				sequenceParams.placementMode = sequencePlacementModeIndex == 3 ? DisintegrationPlacementMode::VoxelFill : (sequencePlacementModeIndex == 2 ? DisintegrationPlacementMode::AlignedSurfaceGrid : (sequencePlacementModeIndex == 1 ? DisintegrationPlacementMode::UniformSurface : DisintegrationPlacementMode::RandomSurface));
+				if (sequenceParams.placementMode == DisintegrationPlacementMode::VoxelFill)
+				{
+					sequenceParams.useRandomScale = false;
+					sequenceParams.useRandomRotation = false;
+					sequenceParams.surfaceSampling = false;
+					sequenceParams.useSurfaceInset = false;
+					sequenceParams.voxelSpacing = sequenceParams.blockSize;
+					sequenceParams.placementSpacing = sequenceParams.voxelSpacing;
+					sequenceParams.voxelSurfaceThickness = sequenceParams.blockSize * 1.5f;
+					sequenceParams.maxVoxelBlockCount = std::max(sequenceParams.maxVoxelBlockCount, 10000);
+				}
+				else if (sequenceParams.placementMode != DisintegrationPlacementMode::RandomSurface)
 				{
 					sequenceParams.useRandomScale = false;
 					sequenceParams.useRandomRotation = false;
@@ -626,6 +637,15 @@ void DebugScene::DrawImGui()
 				sequenceParams.placementSeed = static_cast<uint32_t>(std::max(sequencePlacementSeed, 0));
 			}
 			ImGui::SliderFloat("配置間隔##BlockSequence", &sequenceParams.placementSpacing, 0.0f, 0.5f);
+			if (sequenceParams.placementMode == DisintegrationPlacementMode::VoxelFill)
+			{
+				ImGui::SliderFloat("ボクセル間隔##BlockSequence", &sequenceParams.voxelSpacing, 0.005f, 0.50f);
+				ImGui::SliderInt("最大ブロック数##BlockSequence", &sequenceParams.maxVoxelBlockCount, 128, 30000);
+				ImGui::SliderFloat("表面厚み##BlockSequence", &sequenceParams.voxelSurfaceThickness, 0.0f, 1.0f);
+				ImGui::Checkbox("内外判定を使う##BlockSequence", &sequenceParams.useVoxelInsideTest);
+				ImGui::Checkbox("表面近傍判定を使う##BlockSequence", &sequenceParams.useVoxelSurfaceNearTest);
+				ImGui::Checkbox("グリッド原点を中央に揃える##BlockSequence", &sequenceParams.alignVoxelGridToCenter);
+			}
 			ImGui::Checkbox("表面内側オフセットを使う##BlockSequence", &sequenceParams.useSurfaceInset);
 			ImGui::Checkbox("ブロックサイズから自動計算##BlockSequence", &sequenceParams.autoSurfaceInsetFromBlockSize);
 			if (!sequenceParams.autoSurfaceInsetFromBlockSize)
@@ -645,12 +665,30 @@ void DebugScene::DrawImGui()
 			{
 				ImGui::TextWrapped("整列表面配置はAABBではなくモデル表面上の格子候補へ配置します。");
 			}
-			ImGui::SeparatorText("方向侵食崩壊##BlockSequence");
-			ImGui::Checkbox("方向侵食を使う##BlockSequence", &sequenceParams.useSweepErosion);
+			else if (sequenceParams.placementMode == DisintegrationPlacementMode::VoxelFill)
+			{
+				ImGui::TextWrapped("ボクセル敷き詰め配置は同じ3Dグリッド配置を再構築と崩壊で共有します。");
+			}
+			ImGui::SeparatorText("侵食崩壊##BlockSequence");
+			ImGui::Checkbox("侵食を使う##BlockSequence", &sequenceParams.useSweepErosion);
+			const char* sequenceErosionModeLabels[] = { "方向侵食", "中心侵食" };
+			int sequenceErosionModeIndex = sequenceParams.erosionMode == ErosionMode::CenterOut ? 1 : 0;
+			if (ImGui::Combo("侵食モード##BlockSequence", &sequenceErosionModeIndex, sequenceErosionModeLabels, IM_ARRAYSIZE(sequenceErosionModeLabels)))
+			{
+				sequenceParams.erosionMode = sequenceErosionModeIndex == 1 ? ErosionMode::CenterOut : ErosionMode::DirectionalSweep;
+				sequenceParams.useSweepErosion = true;
+			}
+			ImGui::SeparatorText("方向侵食##BlockSequence");
 			ImGui::DragFloat3("侵食方向##BlockSequence", &sequenceParams.sweepDirection.x, 0.01f, -1.0f, 1.0f);
 			ImGui::SliderFloat("侵食時間##BlockSequence", &sequenceParams.sweepDuration, 0.05f, 8.0f);
 			ImGui::SliderFloat("侵食ノイズ強度##BlockSequence", &sequenceParams.erosionNoisePower, 0.0f, 4.0f);
 			ImGui::SliderFloat("侵食境界幅##BlockSequence", &sequenceParams.erosionBandWidth, 0.0f, 2.0f);
+			ImGui::SeparatorText("中心侵食##BlockSequence");
+			ImGui::Checkbox("モデル中心を使う##BlockSequence", &sequenceParams.useModelCenterAsErosionCenter);
+			ImGui::DragFloat3("侵食中心##BlockSequence", &sequenceParams.erosionCenter.x, 0.01f);
+			ImGui::SliderFloat("中心侵食時間##BlockSequence", &sequenceParams.centerErosionDuration, 0.05f, 8.0f);
+			ImGui::SliderFloat("中心侵食ノイズ強度##BlockSequence", &sequenceParams.centerErosionNoisePower, 0.0f, 4.0f);
+			ImGui::SliderFloat("中心発光幅##BlockSequence", &sequenceParams.centerGlowWidth, 0.001f, 2.0f);
 			ImGui::SliderFloat("侵食前の発光幅##BlockSequence", &sequenceParams.preGlowWidth, 0.0f, 2.0f);
 			ImGui::SliderFloat("侵食後の発光幅##BlockSequence", &sequenceParams.postGlowWidth, 0.0f, 2.0f);
 			ImGui::SliderFloat("発光エッジ幅##BlockSequence", &sequenceParams.glowEdgeWidth, 0.001f, 2.0f);
@@ -684,6 +722,19 @@ void DebugScene::DrawImGui()
 				pendingDebugModelBlockSequencePath_ = sequenceModelPathBuffer;
 				debugModelBlockSequenceRequest_ = DebugModelBlockSequenceRequest::PlayLoop;
 				debugModelBlockSequenceLog_ = "ループ再生を予約: " + pendingDebugModelBlockSequencePath_;
+			}
+
+			ImGui::SameLine();
+			if (ImGui::Button(debugModelBlockSequencePaused_ ? "再開##BlockSequence" : "一時停止##BlockSequence"))
+			{
+				debugModelBlockSequencePaused_ = !debugModelBlockSequencePaused_;
+			}
+
+			ImGui::SameLine();
+			if (ImGui::Button("1フレーム送り##BlockSequence"))
+			{
+				debugModelBlockSequenceStepFrame_ = true;
+				debugModelBlockSequencePaused_ = true;
 			}
 
 			ImGui::SameLine();
@@ -906,7 +957,9 @@ void DebugScene::UpdateDebugModelBlockSequence(float deltaTime)
 
 	if (debugModelBlockSequence_)
 	{
-		debugModelBlockSequence_->Update(deltaTime);
+		const bool shouldAdvanceSequence = !debugModelBlockSequencePaused_ || debugModelBlockSequenceStepFrame_;
+		debugModelBlockSequence_->Update(shouldAdvanceSequence ? deltaTime : 0.0f);
+		debugModelBlockSequenceStepFrame_ = false;
 	}
 }
 
@@ -949,29 +1002,39 @@ void DebugScene::ProcessDebugModelBlockSequenceRequest()
 		ReloadDebugModelBlockSequenceModel();
 		break;
 	case DebugModelBlockSequenceRequest::PlaySpawnThenDisintegrate:
+		debugModelBlockSequencePaused_ = false;
+		debugModelBlockSequenceStepFrame_ = false;
 		ReloadDebugModelBlockSequenceModel();
 		debugModelBlockSequence_->PlaySpawnThenDisintegrate(debugModelBlockSequenceModelPath_, MakeDebugModelBlockSequenceWorldMatrix());
 		debugModelBlockSequenceLog_ = "再構築 → 崩壊 を再生: " + debugModelBlockSequenceModelPath_;
 		DebugLog(debugModelBlockSequenceLog_);
 		break;
 	case DebugModelBlockSequenceRequest::PlayDisintegrateThenReconstruct:
+		debugModelBlockSequencePaused_ = false;
+		debugModelBlockSequenceStepFrame_ = false;
 		ReloadDebugModelBlockSequenceModel();
 		debugModelBlockSequence_->PlayDisintegrateThenReconstruct(debugModelBlockSequenceModelPath_, MakeDebugModelBlockSequenceWorldMatrix());
 		debugModelBlockSequenceLog_ = "崩壊 → 再構築 を再生: " + debugModelBlockSequenceModelPath_;
 		DebugLog(debugModelBlockSequenceLog_);
 		break;
 	case DebugModelBlockSequenceRequest::PlayLoop:
+		debugModelBlockSequencePaused_ = false;
+		debugModelBlockSequenceStepFrame_ = false;
 		ReloadDebugModelBlockSequenceModel();
 		debugModelBlockSequence_->PlayLoop(debugModelBlockSequenceModelPath_, MakeDebugModelBlockSequenceWorldMatrix());
 		debugModelBlockSequenceLog_ = "ループ再生: " + debugModelBlockSequenceModelPath_;
 		DebugLog(debugModelBlockSequenceLog_);
 		break;
 	case DebugModelBlockSequenceRequest::Stop:
+		debugModelBlockSequencePaused_ = false;
+		debugModelBlockSequenceStepFrame_ = false;
 		debugModelBlockSequence_->Stop(false);
 		debugModelBlockSequenceLog_ = "シーケンスを停止しました。";
 		DebugLog(debugModelBlockSequenceLog_);
 		break;
 	case DebugModelBlockSequenceRequest::Reset:
+		debugModelBlockSequencePaused_ = false;
+		debugModelBlockSequenceStepFrame_ = false;
 		debugModelBlockSequence_->Reset();
 		debugModelBlockSequenceLog_ = "シーケンスをリセットしました。";
 		DebugLog(debugModelBlockSequenceLog_);
