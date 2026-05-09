@@ -4,6 +4,8 @@
 #include <SpriteManager.h>
 #include <SceneManager.h>
 #include <GameTimer.h>
+#include <PostEffectManager.h>
+#include <Player.h>
 
 #ifdef _DEBUG
 #include <DebugCamera.h>
@@ -27,6 +29,11 @@ void GamePlayScene::Initialize()
 	introDirector_.reset();
 	debugTools_.reset();
 	frustumCullingDebug_.reset();
+	if (hpPostEffectController_)
+	{
+		hpPostEffectController_->Finalize();
+		hpPostEffectController_.reset();
+	}
 
 	if (!fadeManager_)
 	{
@@ -79,10 +86,30 @@ void GamePlayScene::InitializeGameplayObjects()
 	frustumCullingDebug_ = std::make_unique<FrustumCullingDebugController>();
 	frustumCullingDebug_->Initialize();
 
+	InitializeHealthPostEffectController();
+
 	if (!fadeManager_)
 	{
 		fadeManager_ = std::make_unique<FadeManager>();
 		fadeManager_->Initialize();
+	}
+}
+
+
+void GamePlayScene::InitializeHealthPostEffectController()
+{
+	hpPostEffectController_ = std::make_unique<PlayerHealthPostEffectController>();
+	hpPostEffectController_->Initialize(K4E::PostEffectManager::GetInstance());
+
+	if (auto* player = world_ ? world_->GetCharacters().GetPlayer() : nullptr)
+	{
+		player->SetOnDamageTakenCallback([this]()
+			{
+				if (hpPostEffectController_)
+				{
+					hpPostEffectController_->NotifyDamageTaken();
+				}
+			});
 	}
 }
 
@@ -359,6 +386,11 @@ void GamePlayScene::UpdateWorld(float deltaTime)
 	{
 		frustumCullingDebug_->Update(deltaTime);
 	}
+
+	if (hpPostEffectController_)
+	{
+		hpPostEffectController_->Update(deltaTime, world_ ? world_->GetCharacters().GetPlayer() : nullptr);
+	}
 }
 
 /// -------------------------------------------------------------
@@ -513,6 +545,12 @@ void GamePlayScene::ReleaseGameplayObjects()
 	}
 	frustumCullingDebug_.reset();
 
+	if (hpPostEffectController_)
+	{
+		hpPostEffectController_->Finalize();
+		hpPostEffectController_.reset();
+	}
+
 	introDirector_.reset();
 
 	if (flow_)
@@ -544,6 +582,11 @@ void GamePlayScene::DrawImGui()
 	if (frustumCullingDebug_)
 	{
 		frustumCullingDebug_->DrawImGui();
+	}
+
+	if (hpPostEffectController_)
+	{
+		hpPostEffectController_->DrawImGui();
 	}
 #endif // USE_IMGUI
 }
@@ -586,6 +629,8 @@ void GamePlayScene::UpdateLoad()
 		debugTools_->Initialize();
 		frustumCullingDebug_ = std::make_unique<FrustumCullingDebugController>();
 		frustumCullingDebug_->Initialize();
+
+		InitializeHealthPostEffectController();
 		++loadStep_;
 		break;
 
@@ -624,6 +669,11 @@ void GamePlayScene::UpdateUnload()
 			debugTools_.reset();
 		}
 		frustumCullingDebug_.reset();
+		if (hpPostEffectController_)
+		{
+			hpPostEffectController_->Finalize();
+			hpPostEffectController_.reset();
+		}
 		++unloadStep_;
 		break;
 

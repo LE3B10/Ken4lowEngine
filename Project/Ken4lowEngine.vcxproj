@@ -279,6 +279,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClCompile Include="ApplicationLayer\Scene\GamePlayScene\Camera\GamePlayIntroDirector.cpp" />
     <ClCompile Include="ApplicationLayer\Scene\GamePlayScene\Core\GamePlayStageContext.cpp" />
     <ClCompile Include="ApplicationLayer\Scene\GamePlayScene\World\GamePlayWorld.cpp" />
+    <ClCompile Include="ApplicationLayer\Scene\GamePlayScene\PostEffect\PlayerHealthPostEffectController.cpp" />
     <ClCompile Include="ApplicationLayer\Character\Boss\BehaviorTree\IBTNode.cpp" />
     <ClCompile Include="ApplicationLayer\Character\Boss\Derived\GuardianBoss\GuardianBoss.cpp" />
     <ClCompile Include="ApplicationLayer\Character\Boss\BaseTypes\HumanoidBossBase.cpp" />
@@ -350,6 +351,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClCompile Include="Engine\Graphics\PostEffect\Effects\LuminanceOutlineEffect\LuminanceOutlineEffect.cpp" />
     <ClCompile Include="Engine\Graphics\PostEffect\Effects\NormalEffect\NormalEffect.cpp" />
     <ClCompile Include="Engine\Graphics\PostEffect\Effects\PixelateEffect\PixelateEffect.cpp" />
+    <ClCompile Include="Engine\Graphics\PostEffect\Effects\PlayerHealthPostEffect\PlayerHealthPostEffect.cpp" />
     <ClCompile Include="Engine\Graphics\PostEffect\Effects\RadialBlurEffect\RadialBlurEffect.cpp" />
     <ClCompile Include="Engine\Graphics\PostEffect\Effects\RandomEffect\RandomEffect.cpp" />
     <ClCompile Include="Engine\Graphics\PostEffect\Effects\SmoothingEffect\SmoothingEffect.cpp" />
@@ -532,6 +534,14 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </FxCompile>
     <FxCompile Include="Resources\Shaders\PostEffect\LuminanceOutlineEffect.CS.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Compute</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">4.0</ShaderModel>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Compute</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">4.0</ShaderModel>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </FxCompile>
+    <FxCompile Include="Resources\Shaders\PostEffect\PlayerHealthPostEffect.CS.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Compute</ShaderType>
       <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">4.0</ShaderModel>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Compute</ShaderType>
@@ -887,6 +897,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="ApplicationLayer\Scene\GamePlayScene\Camera\GamePlayIntroDirector.h" />
     <ClInclude Include="ApplicationLayer\Scene\GamePlayScene\Core\GamePlayStageContext.h" />
     <ClInclude Include="ApplicationLayer\Scene\GamePlayScene\World\GamePlayWorld.h" />
+    <ClInclude Include="ApplicationLayer\Scene\GamePlayScene\PostEffect\PlayerHealthPostEffectController.h" />
     <ClInclude Include="ApplicationLayer\Character\Boss\Attacks\IBossAttack.h" />
     <ClInclude Include="ApplicationLayer\Character\Boss\BehaviorTree\IBTNode.h" />
     <ClInclude Include="ApplicationLayer\Character\Boss\Derived\GuardianBoss\GuardianBoss.h" />
@@ -969,6 +980,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="Engine\Graphics\PostEffect\Effects\LuminanceOutlineEffect\LuminanceOutlineEffect.h" />
     <ClInclude Include="Engine\Graphics\PostEffect\Effects\NormalEffect\NormalEffect.h" />
     <ClInclude Include="Engine\Graphics\PostEffect\Effects\PixelateEffect\PixelateEffect.h" />
+    <ClInclude Include="Engine\Graphics\PostEffect\Effects\PlayerHealthPostEffect\PlayerHealthPostEffect.h" />
     <ClInclude Include="Engine\Graphics\PostEffect\Effects\RadialBlurEffect\RadialBlurEffect.h" />
     <ClInclude Include="Engine\Graphics\PostEffect\Effects\RandomEffect\RandomEffect.h" />
     <ClInclude Include="Engine\Graphics\PostEffect\Effects\SmoothingEffect\SmoothingEffect.h" />

@@ -159,6 +159,7 @@ public: /// ---------- メンバ関数 ---------- ///
 	void SetOnFireSECallback(std::function<void()> cb) { audio_.onFire = std::move(cb); }
 	void SetOnReloadSECallback(std::function<void()> cb) { audio_.onReload = std::move(cb); }
 	void SetOnDeathSECallback(std::function<void()> cb) { audio_.onDeath = std::move(cb); }
+	void SetOnDamageTakenCallback(std::function<void()> cb) { onDamageTaken_ = std::move(cb); }
 
 	bool IsGameOverReady() const { return death_.IsGameOverReady(); }
 	bool ConsumeGameOverReady() { return death_.ConsumeGameOverReady(); }
@@ -289,6 +290,7 @@ private: /// ----------メンバ変数 ---------- ///
 	K4E::Vector3 spawnOffset_{ 0,0,0 };
 
 	FallDamageSettings fallDamageSettings_{};
+	std::function<void()> onDamageTaken_{};
 
 	PlayerAudioCallbacks audio_{};
 };

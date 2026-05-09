@@ -8,6 +8,7 @@
 #include "GamePlayDebugTools.h"
 #include "FadeManager.h"
 #include "ApplicationLayer/DebugTools/FrustumCulling/FrustumCullingDebugController.h"
+#include "PostEffect/PlayerHealthPostEffectController.h"
 
 #include <memory>
 
@@ -80,6 +81,9 @@ private: /// ---------- 初期化 / 終了系 ---------- ///
 	// カーソル状態を通常に戻す
 	void RestoreCursorState();
 
+	// HP連動ポストエフェクトを初期化して被弾通知を接続する
+	void InitializeHealthPostEffectController();
+
 	// 生成済みオブジェクトの破棄
 	void ReleaseGameplayObjects();
 
@@ -148,6 +152,7 @@ private: /// ---------- メンバ変数 ---------- ///
 	std::unique_ptr<GamePlayDebugTools> debugTools_;
 	std::unique_ptr<FrustumCullingDebugController> frustumCullingDebug_;
 	std::unique_ptr<FadeManager> fadeManager_;
+	std::unique_ptr<PlayerHealthPostEffectController> hpPostEffectController_;
 
 	// リトライ遷移制御
 	bool isRetryTransitionActive_ = false; // リトライ演出中か

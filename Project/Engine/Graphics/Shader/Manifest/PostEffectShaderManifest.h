@@ -31,6 +31,7 @@ namespace Ken4lowEngine
 		SmoothingCS,
 		DissolveCS,
 		LuminanceOutlineCS,
+		PlayerHealthCS,
 	};
 
 	/// -------------------------------------------------------------
@@ -207,6 +208,19 @@ namespace Ken4lowEngine
 				static const ShaderDescriptor desc{
 					L"LuminanceOutlineEffectCS",
 					L"Resources/Shaders/PostEffect/LuminanceOutlineEffect.CS.hlsl",
+					L"main",
+					L"cs_6_6",
+					ShaderStage::Compute,
+					RootSignatureType::Compute
+				};
+				return desc;
+			}
+
+			case PostEffectComputeShaderId::PlayerHealthCS:
+			{
+				static const ShaderDescriptor desc{
+					L"PlayerHealthPostEffectCS",
+					L"Resources/Shaders/PostEffect/PlayerHealthPostEffect.CS.hlsl",
 					L"main",
 					L"cs_6_6",
 					ShaderStage::Compute,
