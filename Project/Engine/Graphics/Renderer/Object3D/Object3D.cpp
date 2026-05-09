@@ -12,6 +12,7 @@
 #include "AssimpLoader.h"
 #include "ParameterManager.h"
 #include "SkyBox.h"
+#include "Wireframe.h"
 
 #include <algorithm>
 #include <cmath>
@@ -190,15 +191,20 @@ namespace Ken4lowEngine
 	{
 		if (!model_) { return; }
 
-		// Object3D の共通描画直前で Frustum 判定し、Scene 側には Draw 呼び出しだけを残す。
-		if (!Object3DCommon::GetInstance()->ShouldDrawObject(GetWorldBounds(), frustumCullingEnabled_, HasWorldBounds()))
+		Object3DCommon* object3DCommon = Object3DCommon::GetInstance();
+		const BoundingSphere objectBounds = GetWorldBounds();
+
+		// Object3D 全体が完全に視錐台外なら、更新系は止めず Draw だけをスキップする。
+		if (!object3DCommon->ShouldDrawObject(objectBounds, frustumCullingEnabled_, HasWorldBounds(), isStageObjectCullingUnit_))
 		{
+			DrawBoundsDebug(objectBounds, false);
 			return;
 		}
+		DrawBoundsDebug(objectBounds, true);
 
 		ID3D12GraphicsCommandList* commandList = dxCommon_->GetCommandManager()->GetCommandList();
 
-		Object3DCommon::GetInstance()->SetRenderSetting();
+		object3DCommon->SetRenderSetting();
 
 		material_.SetPipeline();
 		worldTransform_.SetPipeline();
@@ -212,10 +218,19 @@ namespace Ken4lowEngine
 		commandList->SetGraphicsRootConstantBufferView(9, shadowParameterResource_->GetGPUVirtualAddress()); // シャドウマップ用行列
 		commandList->SetGraphicsRootDescriptorTable(10, shadowMapHandle_); // シャドウマップのSRV
 
-		// サブメッシュ事にテクスチャを差し替えて描画
+		// 大きなステージモデルでも一部メッシュだけ Draw できるよう、サブメッシュ単位で Frustum 判定する。
 		auto& meshes = model_->GetMeshes();
 		for (size_t i = 0; i < meshes.size(); i++)
 		{
+			const BoundingSphere meshBounds = GetMeshWorldBounds(i);
+			const bool hasMeshBounds = HasMeshWorldBounds(i);
+			const bool meshVisible = object3DCommon->ShouldDrawMesh(meshBounds, frustumCullingEnabled_, hasMeshBounds);
+			DrawBoundsDebug(meshBounds, meshVisible);
+			if (!meshVisible)
+			{
+				continue;
+			}
+
 			if (i < materialSRVs_.size())
 			{
 				TextureManager::GetInstance()->SetGraphicsRootDescriptorTable(commandList, 2, materialSRVs_[i]);
@@ -344,13 +359,27 @@ namespace Ken4lowEngine
 
 	BoundingSphere Object3D::GetWorldBounds() const
 	{
-		BoundingSphere worldBounds{};
 		if (!HasWorldBounds())
 		{
-			return worldBounds;
+			return {};
 		}
 
-		const BoundingSphere& localBounds = model_->GetLocalBounds();
+		return TransformLocalBounds(model_->GetLocalBounds());
+	}
+
+	BoundingSphere Object3D::GetMeshWorldBounds(size_t meshIndex) const
+	{
+		if (!HasMeshWorldBounds(meshIndex))
+		{
+			return {};
+		}
+
+		return TransformLocalBounds(model_->GetMeshLocalBounds(meshIndex));
+	}
+
+	BoundingSphere Object3D::TransformLocalBounds(const BoundingSphere& localBounds) const
+	{
+		BoundingSphere worldBounds{};
 		worldBounds.center = Vector3::Transform(localBounds.center, worldTransform_.matWorld_);
 
 		const float scaleX = std::sqrt(worldTransform_.matWorld_.m[0][0] * worldTransform_.matWorld_.m[0][0] + worldTransform_.matWorld_.m[0][1] * worldTransform_.matWorld_.m[0][1] + worldTransform_.matWorld_.m[0][2] * worldTransform_.matWorld_.m[0][2]);
@@ -364,6 +393,22 @@ namespace Ken4lowEngine
 	bool Object3D::HasWorldBounds() const
 	{
 		return model_ && model_->HasLocalBounds();
+	}
+
+	bool Object3D::HasMeshWorldBounds(size_t meshIndex) const
+	{
+		return model_ && model_->HasMeshLocalBounds(meshIndex);
+	}
+
+	void Object3D::DrawBoundsDebug(const BoundingSphere& bounds, bool visible) const
+	{
+		if (!Object3DCommon::GetInstance()->IsBoundsDebugVisible() || bounds.radius <= 0.0f)
+		{
+			return;
+		}
+
+		const Vector4 color = visible ? Vector4{ 0.1f, 1.0f, 0.2f, 1.0f } : Vector4{ 1.0f, 0.15f, 0.1f, 1.0f };
+		Wireframe::GetInstance()->DrawSphere(bounds.center, bounds.radius, color);
 	}
 
 	void Object3D::AcquireShadowMapHandle()

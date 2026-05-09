@@ -4,6 +4,7 @@
 #include <Mesh.h>
 #include "Engine/Graphics/Culling/Frustum.h"
 
+#include <cstddef>
 #include <vector>
 #include <string>
 
@@ -25,6 +26,8 @@ namespace Ken4lowEngine
 		std::vector<Mesh>& GetMeshes() { return meshes_; }
 		const BoundingSphere& GetLocalBounds() const { return localBounds_; }
 		bool HasLocalBounds() const { return hasLocalBounds_; }
+		const BoundingSphere& GetMeshLocalBounds(size_t index) const { return meshLocalBounds_.at(index); }
+		bool HasMeshLocalBounds(size_t index) const { return index < meshHasLocalBounds_.size() && meshHasLocalBounds_[index]; }
 		
 		const std::vector<D3D12_GPU_DESCRIPTOR_HANDLE>& GetMaterialSRVs() const { return materialSRVs_; }
 		std::vector<D3D12_GPU_DESCRIPTOR_HANDLE>& GetMaterialSRVs() { return materialSRVs_; }
@@ -36,6 +39,8 @@ namespace Ken4lowEngine
 		std::vector<D3D12_GPU_DESCRIPTOR_HANDLE> materialSRVs_;
 		BoundingSphere localBounds_{};
 		bool hasLocalBounds_ = false;
+		std::vector<BoundingSphere> meshLocalBounds_{};
+		std::vector<bool> meshHasLocalBounds_{};
 	};
 
 

@@ -42,6 +42,11 @@ namespace Ken4lowEngine
 
 	void Model::BuildLocalBounds()
 	{
+		meshLocalBounds_.clear();
+		meshHasLocalBounds_.clear();
+		meshLocalBounds_.reserve(modelData_.subMeshes.size());
+		meshHasLocalBounds_.reserve(modelData_.subMeshes.size());
+
 		Vector3 minPos{
 			std::numeric_limits<float>::max(),
 			std::numeric_limits<float>::max(),
@@ -56,6 +61,18 @@ namespace Ken4lowEngine
 
 		for (const auto& sub : modelData_.subMeshes)
 		{
+			Vector3 meshMin{
+				std::numeric_limits<float>::max(),
+				std::numeric_limits<float>::max(),
+				std::numeric_limits<float>::max()
+			};
+			Vector3 meshMax{
+				std::numeric_limits<float>::lowest(),
+				std::numeric_limits<float>::lowest(),
+				std::numeric_limits<float>::lowest()
+			};
+			bool hasMeshVertex = false;
+
 			for (const auto& vertex : sub.vertices)
 			{
 				const Vector3 position{ vertex.position.x, vertex.position.y, vertex.position.z };
@@ -65,8 +82,28 @@ namespace Ken4lowEngine
 				maxPos.x = std::max(maxPos.x, position.x);
 				maxPos.y = std::max(maxPos.y, position.y);
 				maxPos.z = std::max(maxPos.z, position.z);
+				meshMin.x = std::min(meshMin.x, position.x);
+				meshMin.y = std::min(meshMin.y, position.y);
+				meshMin.z = std::min(meshMin.z, position.z);
+				meshMax.x = std::max(meshMax.x, position.x);
+				meshMax.y = std::max(meshMax.y, position.y);
+				meshMax.z = std::max(meshMax.z, position.z);
 				hasVertex = true;
+				hasMeshVertex = true;
 			}
+
+			BoundingSphere meshBounds{};
+			if (hasMeshVertex)
+			{
+				meshBounds.center = (meshMin + meshMax) * 0.5f;
+				meshBounds.radius = Vector3::Length(meshMax - meshBounds.center) * 1.1f;
+				if (meshBounds.radius <= 0.001f)
+				{
+					meshBounds.radius = 1.0f;
+				}
+			}
+			meshLocalBounds_.push_back(meshBounds);
+			meshHasLocalBounds_.push_back(hasMeshVertex);
 		}
 
 		if (!hasVertex)

@@ -40,6 +40,7 @@ namespace Ken4lowEngine
 		stageModel->SetTranslate(offset);
 		stageModel->SetRotate({ 0.0f, 0.0f, 0.0f });
 		stageModel->SetScale({ 1.0f, 1.0f, 1.0f });
+		stageModel->SetStageObjectCullingUnit(true);
 
 		return stageModel;
 	}

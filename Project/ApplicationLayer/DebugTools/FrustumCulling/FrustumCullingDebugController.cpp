@@ -65,16 +65,17 @@ void FrustumCullingDebugController::DrawImGui()
 	const char* cullingCameraItems[] = { "MainCamera", "DebugCamera", "ActiveCamera" };
 
 	bool frustumCullingEnabled = object3DCommon->IsFrustumCullingEnabled();
+	bool boundsDebugVisible = object3DCommon->IsBoundsDebugVisible();
 	float nearDistance = 0.0f;
 	float farDistance = 0.0f;
 	GetCullingCameraClipDistances(nearDistance, farDistance);
 
 	ImGui::Begin("Frustum Culling Debug");
-	if (ImGui::Checkbox("Frustum Culling Enabled", &frustumCullingEnabled))
+	if (ImGui::Checkbox("Frustum Culling 有効", &frustumCullingEnabled))
 	{
 		object3DCommon->SetFrustumCullingEnabled(frustumCullingEnabled);
 	}
-	if (ImGui::Combo("Culling Camera", &cullingCameraIndex, cullingCameraItems, IM_ARRAYSIZE(cullingCameraItems)))
+	if (ImGui::Combo("カリングカメラ", &cullingCameraIndex, cullingCameraItems, IM_ARRAYSIZE(cullingCameraItems)))
 	{
 		object3DCommon->SetCullingCameraMode(static_cast<K4E::Object3DCommon::CullingCameraMode>(cullingCameraIndex));
 	}
@@ -87,18 +88,26 @@ void FrustumCullingDebugController::DrawImGui()
 #else
 	ImGui::Text("DebugCamera: Disabled in release builds");
 #endif
-	ImGui::Checkbox("Show Frustum Wireframe", &showFrustumWireframe_);
+	ImGui::Checkbox("Frustumワイヤー表示", &showFrustumWireframe_);
+	if (ImGui::Checkbox("Bounds表示ON/OFF", &boundsDebugVisible))
+	{
+		object3DCommon->SetBoundsDebugVisible(boundsDebugVisible);
+	}
 	ImGui::ColorEdit4("Frustum Wire Color", &frustumWireColor_.x);
 	ImGui::InputFloat("Near", &nearDistance, 0.0f, 0.0f, "%.3f", ImGuiInputTextFlags_ReadOnly);
 	ImGui::InputFloat("Far", &farDistance, 0.0f, 0.0f, "%.3f", ImGuiInputTextFlags_ReadOnly);
 
 	ImGui::Separator();
-	ImGui::Text("Total Objects: %d", object3DCommon->GetTotalObjectCount());
-	ImGui::Text("Drawn Objects: %d", object3DCommon->GetDrawnObjectCount());
-	ImGui::Text("Culled Objects: %d", object3DCommon->GetCulledObjectCount());
-	ImGui::Text("Drawn (Culling Disabled): %d", object3DCommon->GetCullingDisabledDrawnObjectCount());
-	ImGui::Text("Drawn (Missing Bounds): %d", object3DCommon->GetMissingBoundsDrawnObjectCount());
-	ImGui::TextWrapped("Use DebugCamera outside the view and select MainCamera to inspect gameplay culling results.");
+	ImGui::Text("Object単位カリング数: %d / %d", object3DCommon->GetCulledObjectCount(), object3DCommon->GetTotalObjectCount());
+	ImGui::Text("StageObject単位カリング数: %d / %d", object3DCommon->GetCulledStageObjectCount(), object3DCommon->GetTotalStageObjectCount());
+	ImGui::Text("Mesh単位カリング数: %d / %d", object3DCommon->GetCulledMeshCount(), object3DCommon->GetTotalMeshCount());
+	ImGui::Text("DrawされたMesh数: %d", object3DCommon->GetDrawnMeshCount());
+	ImGui::Text("カリングされたMesh数: %d", object3DCommon->GetCulledMeshCount());
+	ImGui::Text("DrawされたObject数: %d", object3DCommon->GetDrawnObjectCount());
+	ImGui::Text("DrawされたStageObject数: %d", object3DCommon->GetDrawnStageObjectCount());
+	ImGui::Text("Bounds未設定でDrawしたObject数: %d", object3DCommon->GetMissingBoundsDrawnObjectCount());
+	ImGui::TextWrapped("DebugCameraで外側から見て、カリングカメラをMainCameraにするとMainCameraのFrustum内にあるMesh / StageObjectだけ描画されます。");
+	ImGui::TextWrapped("ステージが1つの巨大メッシュの場合はMesh単位では分割できないため、今後StageChunk単位に分割する設計で拡張してください。");
 
 	DrawMainCameraImGui();
 	ImGui::End();
