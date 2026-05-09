@@ -13,6 +13,12 @@
 /// -------------------------------------------------------------
 /// モデル形状を小さいブロック粒子として崩して消す完全新規エフェクト
 /// -------------------------------------------------------------
+enum class ErosionMode
+{
+	DirectionalSweep,
+	CenterOut,
+};
+
 class ModelDisintegrationEffect
 {
 public:
@@ -47,6 +53,12 @@ public:
 		K4E::Vector4 baseColor{ 0.64f, 0.61f, 0.56f, 1.0f };
 		float colorVariation = 0.16f;
 		bool useSweepErosion = false;
+		ErosionMode erosionMode = ErosionMode::DirectionalSweep;
+		K4E::Vector3 erosionCenter{ 0.0f, 0.0f, 0.0f };
+		bool useModelCenterAsErosionCenter = true;
+		float centerErosionDuration = 1.6f;
+		float centerErosionNoisePower = 0.35f;
+		float centerGlowWidth = 0.24f;
 		K4E::Vector3 sweepDirection{ 1.0f, 0.0f, 0.0f };
 		float sweepDuration = 1.6f;
 		float erosionNoisePower = 0.35f;
@@ -77,8 +89,10 @@ private:
 	K4E::Vector3 RandomNoiseVector();
 	K4E::Vector3 GetSafeSweepDirection() const;
 	float ErosionNoise(const K4E::Vector3& origin) const;
-	void InitializeSweepData();
+	bool UsesErosionGate() const;
+	void InitializeErosionData();
 	void UpdateSweepErosion();
+	void UpdateCenterErosion();
 	void UpdateParticlePhysics(DisintegrationParticle& particle, float deltaTime);
 	void StopIfFinished();
 	void BuildParticlesFromSamples(const std::vector<DisintegrationSamplePoint>& samples, const K4E::Matrix4x4& worldMatrix);
@@ -94,4 +108,7 @@ private:
 	K4E::Vector3 sweepDirectionNormalized_{ 1.0f, 0.0f, 0.0f };
 	float sweepMin_ = 0.0f;
 	float sweepMax_ = 0.0f;
+	K4E::Vector3 erosionCenterResolved_{ 0.0f, 0.0f, 0.0f };
+	float centerMinDistance_ = 0.0f;
+	float centerMaxDistance_ = 0.0f;
 };

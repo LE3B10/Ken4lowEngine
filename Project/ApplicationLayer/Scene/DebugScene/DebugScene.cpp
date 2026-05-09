@@ -509,6 +509,23 @@ void DebugScene::DrawImGui()
 			pendingDebugDisintegrationPlay_ = true;
 			debugDisintegrationLog_ = "再生を予約: " + pendingDebugDisintegrationPath_;
 		}
+		ImGui::SameLine();
+		if (ImGui::Button("リセット"))
+		{
+			pendingDebugDisintegrationReset_ = true;
+			debugDisintegrationLog_ = "崩壊リセットを予約しました。";
+		}
+
+		if (ImGui::Button(debugDisintegrationPaused_ ? "再開" : "一時停止"))
+		{
+			debugDisintegrationPaused_ = !debugDisintegrationPaused_;
+		}
+		ImGui::SameLine();
+		if (ImGui::Button("1フレーム送り"))
+		{
+			debugDisintegrationStepFrame_ = true;
+			debugDisintegrationPaused_ = true;
+		}
 
 		ImGui::Text("モデル表示: %s", debugDisintegrationModelVisible_ ? "はい" : "いいえ");
 		ImGui::TextWrapped("%s", debugDisintegrationLog_.c_str());
@@ -1149,7 +1166,9 @@ void DebugScene::UpdateDebugDisintegrationTest(float deltaTime)
 
 	if (debugDisintegrationEffect_)
 	{
-		debugDisintegrationEffect_->Update(deltaTime);
+		const bool shouldAdvanceEffect = !debugDisintegrationPaused_ || debugDisintegrationStepFrame_;
+		debugDisintegrationEffect_->Update(shouldAdvanceEffect ? deltaTime : 0.0f);
+		debugDisintegrationStepFrame_ = false;
 		debugDisintegrationModelVisible_ = !debugDisintegrationEffect_->IsActive();
 	}
 }
@@ -1169,7 +1188,7 @@ void DebugScene::ReloadDebugDisintegrationModel()
 
 void DebugScene::ProcessDebugDisintegrationRequest()
 {
-	if (!pendingDebugDisintegrationReload_ && !pendingDebugDisintegrationPlay_)
+	if (!pendingDebugDisintegrationReload_ && !pendingDebugDisintegrationPlay_ && !pendingDebugDisintegrationReset_)
 	{
 		return;
 	}
@@ -1184,6 +1203,14 @@ void DebugScene::ProcessDebugDisintegrationRequest()
 		ReloadDebugDisintegrationModel();
 	}
 
+	if (pendingDebugDisintegrationReset_ && debugDisintegrationEffect_)
+	{
+		debugDisintegrationEffect_->Initialize();
+		debugDisintegrationModelVisible_ = true;
+		debugDisintegrationPaused_ = false;
+		debugDisintegrationStepFrame_ = false;
+	}
+
 	if (pendingDebugDisintegrationPlay_)
 	{
 		PlayDebugDisintegrationEffect();
@@ -1191,6 +1218,7 @@ void DebugScene::ProcessDebugDisintegrationRequest()
 
 	pendingDebugDisintegrationReload_ = false;
 	pendingDebugDisintegrationPlay_ = false;
+	pendingDebugDisintegrationReset_ = false;
 	pendingDebugDisintegrationPath_.clear();
 }
 
@@ -1208,6 +1236,8 @@ void DebugScene::PlayDebugDisintegrationEffect()
 
 	// 表示中のテストモデルと同じ行列から生成し、形状サンプリングのずれを確認しやすくする。
 	debugDisintegrationEffect_->PlayFromModel(debugDisintegrationModelPath_, worldMatrix);
+	debugDisintegrationPaused_ = false;
+	debugDisintegrationStepFrame_ = false;
 	debugDisintegrationModelVisible_ = !debugDisintegrationEffect_->IsActive();
 	debugDisintegrationLog_ = "崩壊再生: " + debugDisintegrationModelPath_;
 	DebugLog(debugDisintegrationLog_);
