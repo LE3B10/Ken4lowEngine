@@ -36,6 +36,9 @@ void ModelDisintegrationEffect::Initialize()
 	sweepDirectionNormalized_ = GetSafeSweepDirection();
 	sweepMin_ = 0.0f;
 	sweepMax_ = 0.0f;
+	erosionCenterResolved_ = { 0.0f, 0.0f, 0.0f };
+	centerMinDistance_ = 0.0f;
+	centerMaxDistance_ = 0.0f;
 }
 
 void ModelDisintegrationEffect::PlayFromModel(const std::string& modelPath, const K4E::Matrix4x4& worldMatrix)
@@ -66,7 +69,7 @@ void ModelDisintegrationEffect::PlayFromModel(const std::string& modelPath, cons
 	settings.colorVariation = parameters_.colorVariation;
 
 	particles_ = emitter_.EmitFromModel(model->GetModelData(), worldMatrix, settings);
-	InitializeSweepData();
+	InitializeErosionData();
 	isActive_ = !particles_.empty();
 	isStarted_ = isActive_;
 	globalAlpha_ = 1.0f;
@@ -89,7 +92,7 @@ void ModelDisintegrationEffect::StartPrepared()
 {
 	if (particles_.empty()) { return; }
 	// フェード完了までは同じ配置のブロックを静止させ、開始時の配置ジャンプを防ぐ。
-	InitializeSweepData();
+	InitializeErosionData();
 	isActive_ = true;
 	isStarted_ = true;
 	elapsedTime_ = 0.0f;
@@ -120,7 +123,7 @@ void ModelDisintegrationEffect::BuildParticlesFromSamples(const std::vector<Disi
 	settings.colorVariation = parameters_.colorVariation;
 
 	particles_ = emitter_.EmitFromSamples(samples, worldMatrix.GetTranslation(), settings);
-	InitializeSweepData();
+	InitializeErosionData();
 	isActive_ = !particles_.empty();
 	isStarted_ = false;
 	globalAlpha_ = 1.0f;
@@ -134,9 +137,16 @@ void ModelDisintegrationEffect::Update(float deltaTime)
 	elapsedTime_ += deltaTime;
 	bool anyAlive = false;
 
-	if (parameters_.useSweepErosion)
+	if (UsesErosionGate())
 	{
-		UpdateSweepErosion();
+		if (parameters_.erosionMode == ErosionMode::CenterOut)
+		{
+			UpdateCenterErosion();
+		}
+		else
+		{
+			UpdateSweepErosion();
+		}
 	}
 
 	for (auto& particle : particles_)
@@ -249,12 +259,27 @@ void ModelDisintegrationEffect::DrawImGui()
 	ImGui::SliderFloat("形状維持時間", &parameters_.shapePreserveTime, 0.0f, 3.0f);
 	ImGui::ColorEdit4("基本色", &parameters_.baseColor.x);
 	ImGui::SliderFloat("色のばらつき", &parameters_.colorVariation, 0.0f, 0.5f);
+	ImGui::SeparatorText("侵食モード");
+	ImGui::Checkbox("侵食を使う", &parameters_.useSweepErosion);
+	const char* erosionModeLabels[] = { "方向侵食", "中心侵食" };
+	int erosionModeIndex = parameters_.erosionMode == ErosionMode::CenterOut ? 1 : 0;
+	if (ImGui::Combo("侵食モード", &erosionModeIndex, erosionModeLabels, IM_ARRAYSIZE(erosionModeLabels)))
+	{
+		parameters_.erosionMode = erosionModeIndex == 1 ? ErosionMode::CenterOut : ErosionMode::DirectionalSweep;
+		parameters_.useSweepErosion = true;
+	}
 	ImGui::SeparatorText("方向侵食");
-	ImGui::Checkbox("方向侵食を使う", &parameters_.useSweepErosion);
 	ImGui::DragFloat3("侵食方向", &parameters_.sweepDirection.x, 0.01f, -1.0f, 1.0f);
 	ImGui::SliderFloat("侵食時間", &parameters_.sweepDuration, 0.05f, 8.0f);
 	ImGui::SliderFloat("侵食ノイズ強度", &parameters_.erosionNoisePower, 0.0f, 4.0f);
 	ImGui::SliderFloat("侵食境界幅", &parameters_.erosionBandWidth, 0.0f, 2.0f);
+	ImGui::SeparatorText("中心侵食");
+	ImGui::Checkbox("モデル中心を使う", &parameters_.useModelCenterAsErosionCenter);
+	ImGui::DragFloat3("侵食中心", &parameters_.erosionCenter.x, 0.01f);
+	ImGui::SliderFloat("中心侵食時間", &parameters_.centerErosionDuration, 0.05f, 8.0f);
+	ImGui::SliderFloat("中心侵食ノイズ強度", &parameters_.centerErosionNoisePower, 0.0f, 4.0f);
+	ImGui::SliderFloat("中心発光幅", &parameters_.centerGlowWidth, 0.001f, 2.0f);
+	ImGui::SeparatorText("Glow Edge");
 	ImGui::SliderFloat("侵食前の発光幅", &parameters_.preGlowWidth, 0.0f, 2.0f);
 	ImGui::SliderFloat("侵食後の発光幅", &parameters_.postGlowWidth, 0.0f, 2.0f);
 	ImGui::SliderFloat("発光エッジ幅", &parameters_.glowEdgeWidth, 0.001f, 2.0f);
@@ -296,15 +321,41 @@ float ModelDisintegrationEffect::ErosionNoise(const K4E::Vector3& origin) const
 	return static_cast<float>(hash & 0x00FFFFFFu) / static_cast<float>(0x01000000u);
 }
 
-void ModelDisintegrationEffect::InitializeSweepData()
+bool ModelDisintegrationEffect::UsesErosionGate() const
+{
+	return parameters_.useSweepErosion;
+}
+
+void ModelDisintegrationEffect::InitializeErosionData()
 {
 	sweepDirectionNormalized_ = GetSafeSweepDirection();
 	sweepMin_ = 0.0f;
 	sweepMax_ = 0.0f;
+	erosionCenterResolved_ = parameters_.erosionCenter;
+	centerMinDistance_ = 0.0f;
+	centerMaxDistance_ = 0.0f;
 	if (particles_.empty()) { return; }
 
-	sweepMin_ = K4E::Vector3::Dot(particles_.front().origin, sweepDirectionNormalized_);
+	K4E::Vector3 boundsMin = particles_.front().initialPosition;
+	K4E::Vector3 boundsMax = particles_.front().initialPosition;
+	for (const auto& particle : particles_)
+	{
+		boundsMin.x = std::min(boundsMin.x, particle.initialPosition.x);
+		boundsMin.y = std::min(boundsMin.y, particle.initialPosition.y);
+		boundsMin.z = std::min(boundsMin.z, particle.initialPosition.z);
+		boundsMax.x = std::max(boundsMax.x, particle.initialPosition.x);
+		boundsMax.y = std::max(boundsMax.y, particle.initialPosition.y);
+		boundsMax.z = std::max(boundsMax.z, particle.initialPosition.z);
+	}
+	if (parameters_.useModelCenterAsErosionCenter)
+	{
+		erosionCenterResolved_ = (boundsMin + boundsMax) * 0.5f;
+	}
+
+	sweepMin_ = K4E::Vector3::Dot(particles_.front().initialPosition, sweepDirectionNormalized_);
 	sweepMax_ = sweepMin_;
+	centerMinDistance_ = K4E::Vector3::Length(particles_.front().initialPosition - erosionCenterResolved_);
+	centerMaxDistance_ = centerMinDistance_;
 	for (auto& particle : particles_)
 	{
 		particle.origin = particle.initialPosition;
@@ -315,10 +366,13 @@ void ModelDisintegrationEffect::InitializeSweepData()
 		particle.edgeColor = { 0.0f, 0.0f, 0.0f, 0.0f };
 		particle.erosionNoise = ErosionNoise(particle.origin);
 		particle.sweepCoord = K4E::Vector3::Dot(particle.origin, sweepDirectionNormalized_);
-		particle.active = !parameters_.useSweepErosion;
+		particle.centerDistance = K4E::Vector3::Length(particle.origin - erosionCenterResolved_);
+		particle.active = !UsesErosionGate();
 		particle.alive = true;
 		sweepMin_ = std::min(sweepMin_, particle.sweepCoord);
 		sweepMax_ = std::max(sweepMax_, particle.sweepCoord);
+		centerMinDistance_ = std::min(centerMinDistance_, particle.centerDistance);
+		centerMaxDistance_ = std::max(centerMaxDistance_, particle.centerDistance);
 	}
 }
 
@@ -364,12 +418,53 @@ void ModelDisintegrationEffect::UpdateSweepErosion()
 	}
 }
 
+void ModelDisintegrationEffect::UpdateCenterErosion()
+{
+	const float duration = std::max(parameters_.centerErosionDuration, 0.0001f);
+	const float t = Clamp01(elapsedTime_ / duration);
+	const float currentRadius = Lerp(centerMinDistance_, centerMaxDistance_, t);
+	const float glowEdgeWidth = std::max(parameters_.centerGlowWidth, 0.0001f);
+	const float glowSharpness = std::max(parameters_.glowSharpness, 0.0001f);
+
+	for (auto& particle : particles_)
+	{
+		if (!particle.alive) { continue; }
+
+		const float distanceWithNoise = particle.centerDistance + (particle.erosionNoise - 0.5f) * parameters_.centerErosionNoisePower;
+		const float signedDistance = currentRadius - distanceWithNoise;
+		if (!particle.active && (signedDistance >= 0.0f || t >= 1.0f))
+		{
+			// 中心から広がる半径が粒子へ届いた瞬間に、静止ブロックを崩壊物理へ渡す。
+			particle.active = true;
+			particle.age = 0.0f;
+			particle.position = particle.origin;
+		}
+
+		if (signedDistance >= -parameters_.preGlowWidth && signedDistance <= parameters_.postGlowWidth)
+		{
+			particle.edgeFactor = std::pow(1.0f - Clamp01(std::abs(signedDistance) / glowEdgeWidth), glowSharpness);
+		}
+		else
+		{
+			particle.edgeFactor = 0.0f;
+		}
+
+		const float glowAmount = particle.edgeFactor * parameters_.glowIntensity;
+		particle.edgeColor = {
+			parameters_.glowColor.x * glowAmount,
+			parameters_.glowColor.y * glowAmount,
+			parameters_.glowColor.z * glowAmount,
+			0.0f,
+		};
+	}
+}
+
 void ModelDisintegrationEffect::UpdateParticlePhysics(DisintegrationParticle& particle, float deltaTime)
 {
 	particle.age += deltaTime;
 	if (particle.age < particle.startDelay)
 	{
-		particle.position = parameters_.useSweepErosion ? particle.origin : particle.position;
+		particle.position = UsesErosionGate() ? particle.origin : particle.position;
 		return;
 	}
 

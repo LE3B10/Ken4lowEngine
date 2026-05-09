@@ -27,6 +27,7 @@ struct DisintegrationParticle
 	float edgeFactor = 0.0f;
 	float erosionNoise = 0.5f;
 	float sweepCoord = 0.0f;
+	float centerDistance = 0.0f;
 	bool active = true;
 	bool alive = false;
 };

@@ -148,6 +148,9 @@ private: /// ---------- メンバ変数 ---------- ///
 	bool debugDisintegrationModelVisible_ = true;
 	bool pendingDebugDisintegrationPlay_ = false;
 	bool pendingDebugDisintegrationReload_ = false;
+	bool pendingDebugDisintegrationReset_ = false;
+	bool debugDisintegrationPaused_ = false;
+	bool debugDisintegrationStepFrame_ = false;
 	std::string pendingDebugDisintegrationPath_;
 
 	// --- モデル再構築エフェクト単体テスト用 ---
