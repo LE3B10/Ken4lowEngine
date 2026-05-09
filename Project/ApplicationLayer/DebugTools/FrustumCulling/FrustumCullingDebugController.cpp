@@ -107,7 +107,7 @@ void FrustumCullingDebugController::DrawImGui()
 	ImGui::Text("DrawされたStageObject数: %d", object3DCommon->GetDrawnStageObjectCount());
 	ImGui::Text("Bounds未設定でDrawしたObject数: %d", object3DCommon->GetMissingBoundsDrawnObjectCount());
 	ImGui::TextWrapped("DebugCameraで外側から見て、カリングカメラをMainCameraにするとMainCameraのFrustum内にあるMesh / StageObjectだけ描画されます。");
-	ImGui::TextWrapped("ステージが1つの巨大メッシュの場合はMesh単位では分割できないため、今後StageChunk単位に分割する設計で拡張してください。");
+	ImGui::TextWrapped("StageChunk Cullingを有効にすると、静的ステージMeshをXZグリッドChunk単位で先に判定してからMesh単位カリングを行います。");
 
 	DrawMainCameraImGui();
 	ImGui::End();

@@ -18,6 +18,8 @@ namespace Ken4lowEngine
 		}
 
 		stageModel_ = StageAssetLoader::BuildStageModel(*levelData_, defaultModelName, offset_);
+		stageModel_->Update();
+		RebuildStageChunks();
 
 		StageCollisionBuildResult collisionResult =
 			StageCollisionBuilder::Build(*levelData_, offset_);
@@ -30,6 +32,7 @@ namespace Ken4lowEngine
 	{
 		levelData_.reset();
 		stageModel_.reset();
+		stageChunkManager_.Clear();
 		worldAABBs_.clear();
 		worldColliders_.clear();
 	}
@@ -44,10 +47,30 @@ namespace Ken4lowEngine
 
 	void Stage::Draw()
 	{
-		if (stageModel_)
+		if (!stageModel_)
 		{
-			stageModel_->Draw();
+			return;
 		}
+
+		if (stageChunkManager_.NeedsRebuild())
+		{
+			RebuildStageChunks();
+		}
+
+		if (stageChunkManager_.IsEnabled() && !stageChunkManager_.GetChunks().empty())
+		{
+			stageChunkManager_.UpdateVisibility(true);
+			stageChunkManager_.DrawVisibleChunks();
+			return;
+		}
+
+		stageChunkManager_.UpdateVisibility(false);
+		stageModel_->Draw();
+	}
+
+	void Stage::DrawChunkDebug()
+	{
+		stageChunkManager_.DrawDebugBounds();
 	}
 
 	void Stage::DrawShadow()
@@ -73,6 +96,42 @@ namespace Ken4lowEngine
 			// まずはステージの静的 Object3D だけを Draw スキップ対象にする。
 			stageModel_->SetFrustumCullingEnabled(enabled);
 		}
+	}
+
+	void Stage::SetStageChunkCullingEnabled(bool enabled)
+	{
+		stageChunkManager_.SetEnabled(enabled);
+	}
+
+	bool Stage::IsStageChunkCullingEnabled() const
+	{
+		return stageChunkManager_.IsEnabled();
+	}
+
+	void Stage::SetStageChunkBoundsVisible(bool visible)
+	{
+		stageChunkManager_.SetShowBounds(visible);
+	}
+
+	bool Stage::IsStageChunkBoundsVisible() const
+	{
+		return stageChunkManager_.IsShowBounds();
+	}
+
+	void Stage::SetStageChunkSize(float chunkSize)
+	{
+		stageChunkManager_.SetChunkSize(chunkSize);
+		stageChunkManager_.MarkRebuildRequested();
+	}
+
+	float Stage::GetStageChunkSize() const
+	{
+		return stageChunkManager_.GetChunkSize();
+	}
+
+	void Stage::RebuildStageChunks()
+	{
+		stageChunkManager_.Rebuild(stageModel_.get(), stageChunkManager_.GetChunkSize());
 	}
 
 	void Stage::RegisterColliders(CollisionManager* collisionManager)

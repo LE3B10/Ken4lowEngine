@@ -118,6 +118,9 @@
       <Filter Include="ApplicationLayer\DebugTools\FrustumCulling">
       <UniqueIdentifier>{4f4cae23-3c32-4724-9ab8-fc7cf0d39a43}</UniqueIdentifier>
     </Filter>
+    <Filter Include="ApplicationLayer\DebugTools\StageChunk">
+      <UniqueIdentifier>{ea618bf4-bd85-414f-85f7-7c6d7022f237}</UniqueIdentifier>
+    </Filter>
 </ItemGroup>
   <ItemGroup>
     <ClCompile Include="WinMain.cpp" />
@@ -496,6 +499,12 @@
     <ClCompile Include="Engine\Scene\Level\Stage.cpp">
       <Filter>Engine\Scene\Level</Filter>
     </ClCompile>
+    <ClCompile Include="Engine\Scene\Level\StageChunk.cpp">
+      <Filter>Engine\Scene\Level</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Scene\Level\StageChunkManager.cpp">
+      <Filter>Engine\Scene\Level</Filter>
+    </ClCompile>
     <ClCompile Include="Engine\Math\Vector\Vector3.cpp">
       <Filter>Engine\Math\Vector</Filter>
     </ClCompile>
@@ -537,6 +546,9 @@
     </ClCompile>
     <ClCompile Include="ApplicationLayer\DebugTools\FrustumCulling\FrustumCullingDebugController.cpp">
       <Filter>ApplicationLayer\DebugTools\FrustumCulling</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\DebugTools\StageChunk\StageChunkDebugController.cpp">
+      <Filter>ApplicationLayer\DebugTools\StageChunk</Filter>
     </ClCompile>
     <ClCompile Include="Engine\Graphics\Culling\FrustumDebugRenderer.cpp">
       <Filter>Engine\Graphics\Culling</Filter>
@@ -1284,6 +1296,12 @@
     <ClInclude Include="Engine\Scene\Level\StageCollisionBuilder.h">
       <Filter>Engine\Scene\Level</Filter>
     </ClInclude>
+    <ClInclude Include="Engine\Scene\Level\StageChunk.h">
+      <Filter>Engine\Scene\Level</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Scene\Level\StageChunkManager.h">
+      <Filter>Engine\Scene\Level</Filter>
+    </ClInclude>
     <ClInclude Include="Engine\Scene\Level\Stage.h">
       <Filter>Engine\Scene\Level</Filter>
     </ClInclude>
@@ -1364,6 +1382,9 @@
     </ClInclude>
     <ClInclude Include="ApplicationLayer\DebugTools\FrustumCulling\FrustumCullingDebugController.h">
       <Filter>ApplicationLayer\DebugTools\FrustumCulling</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\DebugTools\StageChunk\StageChunkDebugController.h">
+      <Filter>ApplicationLayer\DebugTools\StageChunk</Filter>
     </ClInclude>
     <ClInclude Include="Engine\Graphics\Culling\FrustumDebugRenderer.h">
       <Filter>Engine\Graphics\Culling</Filter>

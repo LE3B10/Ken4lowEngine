@@ -3,6 +3,7 @@
 #include "Collider.h"
 #include "Object3D.h"
 #include "LevelData.h"
+#include "StageChunkManager.h"
 
 #include <memory>
 #include <string>
@@ -47,6 +48,11 @@ namespace Ken4lowEngine
 		void Draw();
 
 		/// <summary>
+		/// StageChunk Bounds のデバッグワイヤーを描画する。
+		/// </summary>
+		void DrawChunkDebug();
+
+		/// <summary>
 		/// シャドウ描画
 		/// </summary>
 		void DrawShadow();
@@ -60,6 +66,16 @@ namespace Ken4lowEngine
 		/// ステージ描画モデルを Frustum Culling 対象にするか設定する。
 		/// </summary>
 		void SetFrustumCullingEnabled(bool enabled);
+
+		void SetStageChunkCullingEnabled(bool enabled);
+		bool IsStageChunkCullingEnabled() const;
+		void SetStageChunkBoundsVisible(bool visible);
+		bool IsStageChunkBoundsVisible() const;
+		void SetStageChunkSize(float chunkSize);
+		float GetStageChunkSize() const;
+		void RebuildStageChunks();
+		StageChunkManager& GetStageChunkManager() { return stageChunkManager_; }
+		const StageChunkManager& GetStageChunkManager() const { return stageChunkManager_; }
 
 	public: /// ---------- アクセサ ---------- ///
 
@@ -77,6 +93,7 @@ namespace Ken4lowEngine
 
 		std::unique_ptr<LevelData> levelData_;
 		std::unique_ptr<Object3D> stageModel_;                 // ステージ描画モデル
+		StageChunkManager stageChunkManager_;                 // 静的ステージを Chunk 単位で Draw スキップする管理クラス
 		std::vector<AABB> worldAABBs_;                         // ワールド衝突AABB
 		std::vector<std::unique_ptr<Collider>> worldColliders_; // ワールド衝突Collider
 		Vector3 offset_ = { 0.0f, 0.0f, 0.0f };               // ステージ全体オフセット

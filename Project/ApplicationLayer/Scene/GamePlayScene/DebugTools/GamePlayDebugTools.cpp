@@ -118,6 +118,7 @@ void GamePlayDebugTools::DrawImGui(GamePlayWorld* world)
 
 	K4E::LightManager::GetInstance()->DrawImGui();
 	characters.DrawImGui();
+	stageChunkDebugController_.DrawImGui(world->GetStage());
 
 	/// ---------- 武器マスターデータエディタ ---------- ///
 	static WeaponMasterDataDatabase weaponDB;

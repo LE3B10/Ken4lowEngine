@@ -189,18 +189,32 @@ namespace Ken4lowEngine
 	/// -------------------------------------------------------------
 	void Object3D::Draw()
 	{
+		DrawInternal(nullptr);
+	}
+
+	void Object3D::DrawMeshes(const std::vector<size_t>& meshIndices)
+	{
+		DrawInternal(&meshIndices);
+	}
+
+	void Object3D::DrawInternal(const std::vector<size_t>* meshIndices)
+	{
 		if (!model_) { return; }
 
 		Object3DCommon* object3DCommon = Object3DCommon::GetInstance();
-		const BoundingSphere objectBounds = GetWorldBounds();
 
-		// Object3D 全体が完全に視錐台外なら、更新系は止めず Draw だけをスキップする。
-		if (!object3DCommon->ShouldDrawObject(objectBounds, frustumCullingEnabled_, HasWorldBounds(), isStageObjectCullingUnit_))
+		if (!meshIndices)
 		{
-			DrawBoundsDebug(objectBounds, false);
-			return;
+			const BoundingSphere objectBounds = GetWorldBounds();
+
+			// Object3D 全体が完全に視錐台外なら、更新系は止めず Draw だけをスキップする。
+			if (!object3DCommon->ShouldDrawObject(objectBounds, frustumCullingEnabled_, HasWorldBounds(), isStageObjectCullingUnit_))
+			{
+				DrawBoundsDebug(objectBounds, false);
+				return;
+			}
+			DrawBoundsDebug(objectBounds, true);
 		}
-		DrawBoundsDebug(objectBounds, true);
 
 		ID3D12GraphicsCommandList* commandList = dxCommon_->GetCommandManager()->GetCommandList();
 
@@ -218,10 +232,17 @@ namespace Ken4lowEngine
 		commandList->SetGraphicsRootConstantBufferView(9, shadowParameterResource_->GetGPUVirtualAddress()); // シャドウマップ用行列
 		commandList->SetGraphicsRootDescriptorTable(10, shadowMapHandle_); // シャドウマップのSRV
 
-		// 大きなステージモデルでも一部メッシュだけ Draw できるよう、サブメッシュ単位で Frustum 判定する。
+		// StageChunk 経由でも Mesh 単位の既存カリングを残し、Chunk 内の不可視 Mesh はさらに Draw を抑制する。
 		auto& meshes = model_->GetMeshes();
-		for (size_t i = 0; i < meshes.size(); i++)
+		const size_t drawCount = meshIndices ? meshIndices->size() : meshes.size();
+		for (size_t drawIndex = 0; drawIndex < drawCount; ++drawIndex)
 		{
+			const size_t i = meshIndices ? (*meshIndices)[drawIndex] : drawIndex;
+			if (i >= meshes.size())
+			{
+				continue;
+			}
+
 			const BoundingSphere meshBounds = GetMeshWorldBounds(i);
 			const bool hasMeshBounds = HasMeshWorldBounds(i);
 			const bool meshVisible = object3DCommon->ShouldDrawMesh(meshBounds, frustumCullingEnabled_, hasMeshBounds);

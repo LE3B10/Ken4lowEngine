@@ -61,6 +61,7 @@ namespace Ken4lowEngine
 		void UpdateShadowMatrix(const Matrix4x4& lightViewProjection);
 		void DrawImGui();
 		void Draw();
+		void DrawMeshes(const std::vector<size_t>& meshIndices);
 		void DrawShadow();
 
 	public: /// ---------- 設定処理 ---------- ///
@@ -78,6 +79,9 @@ namespace Ken4lowEngine
 		void SetTextureForAll(const std::string& texturePath);
 		void SetTextureForSubmesh(size_t index, const std::string& texturePath);
 		size_t GetSubmeshCount() const;
+		BoundingSphere GetWorldBoundsForCulling() const { return GetWorldBounds(); }
+		BoundingSphere GetMeshWorldBoundsForCulling(size_t meshIndex) const { return GetMeshWorldBounds(meshIndex); }
+		bool HasMeshWorldBoundsForCulling(size_t meshIndex) const { return HasMeshWorldBounds(meshIndex); }
 		void SetFrustumCullingEnabled(bool enabled) { frustumCullingEnabled_ = enabled; }
 		bool IsFrustumCullingEnabled() const { return frustumCullingEnabled_; }
 		void SetStageObjectCullingUnit(bool enabled) { isStageObjectCullingUnit_ = enabled; }
@@ -101,6 +105,7 @@ namespace Ken4lowEngine
 		BoundingSphere TransformLocalBounds(const BoundingSphere& localBounds) const;
 		bool HasWorldBounds() const;
 		bool HasMeshWorldBounds(size_t meshIndex) const;
+		void DrawInternal(const std::vector<size_t>* meshIndices);
 		void DrawBoundsDebug(const BoundingSphere& bounds, bool visible) const;
 
 	private: /// ---------- メンバ変数 ---------- ///
