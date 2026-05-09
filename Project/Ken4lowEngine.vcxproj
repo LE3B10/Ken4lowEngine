@@ -317,6 +317,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClCompile Include="Engine\Graphics\Camera\Core\Camera.cpp" />
     <ClCompile Include="Engine\Graphics\Camera\DebugCamera\DebugCamera.cpp" />
     <ClCompile Include="Engine\Graphics\Camera\FPS\FpsCamera.cpp" />
+    <ClCompile Include="Engine\Graphics\Culling\Frustum.cpp" />
     <ClCompile Include="Engine\Graphics\Descriptor\DSV\DSVManager.cpp" />
     <ClCompile Include="Engine\Graphics\Descriptor\RTV\RTVManager.cpp" />
     <ClCompile Include="Engine\Graphics\Descriptor\SRV\SRVManager.cpp" />
@@ -918,6 +919,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="Engine\Graphics\Camera\Core\Camera.h" />
     <ClInclude Include="Engine\Graphics\Camera\DebugCamera\DebugCamera.h" />
     <ClInclude Include="Engine\Graphics\Camera\FPS\FpsCamera.h" />
+    <ClInclude Include="Engine\Graphics\Culling\Frustum.h" />
     <ClInclude Include="Engine\Graphics\Common\BlendModeType.h" />
     <ClInclude Include="Engine\Graphics\Common\DX12Include.h" />
     <ClInclude Include="Engine\Graphics\Common\ModelData.h" />

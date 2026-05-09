@@ -3,6 +3,7 @@
 #include "LightManager.h"
 #include "Camera.h"
 #include "Object3DPipelineSet.h"
+#include "Engine/Graphics/Culling/Frustum.h"
 
 namespace Ken4lowEngine
 {
@@ -16,12 +17,14 @@ namespace Ken4lowEngine
 
 		void Initialize(DirectXCommon* dxCommon);
 		void Finalize();
+		void BeginObject3DPass();
 		void DrawImGui();
 
 	public: /// ---------- 描画設定関数 ---------- ///
 
 		void SetRenderSetting();
 		void SetShadowMapRenderSetting();
+		bool ShouldDrawObject(const BoundingSphere& worldBounds, bool objectCullingEnabled);
 
 	public: /// ---------- 拡張予定の関数 ---------- ///
 
@@ -41,5 +44,11 @@ namespace Ken4lowEngine
 		DirectXCommon* dxCommon_ = nullptr;
 
 		Object3DPipelineSet pipelineSet_{};
+
+		Frustum activeFrustum_{};
+		bool frustumCullingEnabled_ = false;
+		int drawnObjectCount_ = 0;
+		int culledObjectCount_ = 0;
+		int totalObjectCount_ = 0;
 	};
 }

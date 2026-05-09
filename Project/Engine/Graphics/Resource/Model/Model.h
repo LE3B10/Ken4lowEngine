@@ -2,6 +2,7 @@
 #include "DX12Include.h"
 #include <ModelData.h>
 #include <Mesh.h>
+#include "Engine/Graphics/Culling/Frustum.h"
 
 #include <vector>
 #include <string>
@@ -15,11 +16,14 @@ namespace Ken4lowEngine
 
 		void Initialize(const std::string& filePath);
 
+		void BuildLocalBounds();
+
 	public: /// ---------- アクセッサ ---------- ///
 
 		const ModelData& GetModelData() const { return modelData_; }
 		const std::vector<Mesh>& GetMeshes() const { return meshes_; }
 		std::vector<Mesh>& GetMeshes() { return meshes_; }
+		const BoundingSphere& GetLocalBounds() const { return localBounds_; }
 		
 		const std::vector<D3D12_GPU_DESCRIPTOR_HANDLE>& GetMaterialSRVs() const { return materialSRVs_; }
 		std::vector<D3D12_GPU_DESCRIPTOR_HANDLE>& GetMaterialSRVs() { return materialSRVs_; }
@@ -29,6 +33,7 @@ namespace Ken4lowEngine
 		ModelData modelData_;
 		std::vector<Mesh> meshes_;
 		std::vector<D3D12_GPU_DESCRIPTOR_HANDLE> materialSRVs_;
+		BoundingSphere localBounds_{};
 	};
 
 

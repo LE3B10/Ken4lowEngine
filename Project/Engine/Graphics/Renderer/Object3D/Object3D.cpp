@@ -12,6 +12,9 @@
 #include "ParameterManager.h"
 #include "SkyBox.h"
 
+#include <algorithm>
+#include <cmath>
+
 namespace Ken4lowEngine
 {
 
@@ -159,6 +162,7 @@ namespace Ken4lowEngine
 			ImGui::DragFloat3("Position##pos", &worldTransform_.translate_.x, 0.01f);
 			ImGui::DragFloat3("Rotation##rot", &worldTransform_.rotate_.x, 0.01f);
 			ImGui::DragFloat3("Scale##scl", &worldTransform_.scale_.x, 0.01f);
+			ImGui::Checkbox("Object Frustum Culling", &frustumCullingEnabled_);
 
 			// カメラ（必要ならスコープを分ける）
 			if (ImGui::CollapsingHeader("Camera Settings"))
@@ -184,6 +188,11 @@ namespace Ken4lowEngine
 	void Object3D::Draw()
 	{
 		if (!model_) { return; }
+
+		if (!Object3DCommon::GetInstance()->ShouldDrawObject(GetWorldBounds(), frustumCullingEnabled_))
+		{
+			return;
+		}
 
 		ID3D12GraphicsCommandList* commandList = dxCommon_->GetCommandManager()->GetCommandList();
 
@@ -329,6 +338,25 @@ namespace Ken4lowEngine
 		shadowParameterData_->lightViewProjection = Matrix4x4::MakeIdentity();
 		shadowParameterData_->shadowBias = 0.015f;
 		shadowParameterData_->normalBias = 0.02f;
+	}
+
+	BoundingSphere Object3D::GetWorldBounds() const
+	{
+		BoundingSphere worldBounds{};
+		if (!model_)
+		{
+			return worldBounds;
+		}
+
+		const BoundingSphere& localBounds = model_->GetLocalBounds();
+		worldBounds.center = Vector3::Transform(localBounds.center, worldTransform_.matWorld_);
+
+		const float scaleX = std::sqrt(worldTransform_.matWorld_.m[0][0] * worldTransform_.matWorld_.m[0][0] + worldTransform_.matWorld_.m[0][1] * worldTransform_.matWorld_.m[0][1] + worldTransform_.matWorld_.m[0][2] * worldTransform_.matWorld_.m[0][2]);
+		const float scaleY = std::sqrt(worldTransform_.matWorld_.m[1][0] * worldTransform_.matWorld_.m[1][0] + worldTransform_.matWorld_.m[1][1] * worldTransform_.matWorld_.m[1][1] + worldTransform_.matWorld_.m[1][2] * worldTransform_.matWorld_.m[1][2]);
+		const float scaleZ = std::sqrt(worldTransform_.matWorld_.m[2][0] * worldTransform_.matWorld_.m[2][0] + worldTransform_.matWorld_.m[2][1] * worldTransform_.matWorld_.m[2][1] + worldTransform_.matWorld_.m[2][2] * worldTransform_.matWorld_.m[2][2]);
+		const float maxScale = std::max({ scaleX, scaleY, scaleZ, 1.0f });
+		worldBounds.radius = localBounds.radius * maxScale;
+		return worldBounds;
 	}
 
 	void Object3D::AcquireShadowMapHandle()

@@ -6,6 +6,7 @@
 #include "VertexData.h"
 #include "Camera.h"
 #include "TransformationMatrix.h"
+#include "Engine/Graphics/Culling/Frustum.h"
 
 #include <fstream>
 #include <sstream>
@@ -77,6 +78,8 @@ namespace Ken4lowEngine
 		void SetTextureForAll(const std::string& texturePath);
 		void SetTextureForSubmesh(size_t index, const std::string& texturePath);
 		size_t GetSubmeshCount() const;
+		void SetFrustumCullingEnabled(bool enabled) { frustumCullingEnabled_ = enabled; }
+		bool IsFrustumCullingEnabled() const { return frustumCullingEnabled_; }
 
 	public: /// ---------- ディゾルブの設定 ---------- ///
 
@@ -91,6 +94,7 @@ namespace Ken4lowEngine
 		void InitializeShadowResource();
 		void InitializeShadowParameterResource();
 		void AcquireShadowMapHandle();
+		BoundingSphere GetWorldBounds() const;
 
 	private: /// ---------- メンバ変数 ---------- ///
 
@@ -138,6 +142,8 @@ namespace Ken4lowEngine
 
 		// ShadowMap の SRV を引くための GPU ハンドル
 		D3D12_GPU_DESCRIPTOR_HANDLE shadowMapHandle_{};
+
+		bool frustumCullingEnabled_ = true;
 	};
 
 } // namespace Ken4lowEngine

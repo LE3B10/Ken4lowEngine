@@ -135,6 +135,7 @@ namespace Ken4lowEngine
 		PostEffectManager::GetInstance()->BeginDraw(); // RTV/DSVの設定・Clear
 
 		// --- 2. 3Dオブジェクトの描画 ---
+		Object3DCommon::GetInstance()->BeginObject3DPass();
 		SceneManager::GetInstance()->Draw3DObjects();
 
 		// --- デバッグ描画（3D用） ---
