@@ -39,6 +39,9 @@ void ModelReconstructionEffect::PlayFromModel(const std::string& modelPath, cons
 	settings.placementSeed = parameters_.placementSeed;
 	settings.placementSpacing = parameters_.placementSpacing;
 	settings.surfaceSampling = parameters_.surfaceSampling;
+	settings.useSurfaceInset = parameters_.useSurfaceInset;
+	settings.surfaceInset = parameters_.surfaceInset;
+	settings.autoSurfaceInsetFromBlockSize = parameters_.autoSurfaceInsetFromBlockSize;
 	settings.color = parameters_.color;
 	settings.colorVariation = parameters_.colorVariation;
 
@@ -154,6 +157,7 @@ void ModelReconstructionEffect::DrawImGui()
 		{
 			parameters_.useRandomScale = false;
 			parameters_.useRandomRotation = false;
+			parameters_.useSurfaceInset = true;
 		}
 	}
 	int placementSeed = static_cast<int>(parameters_.placementSeed);
@@ -169,6 +173,17 @@ void ModelReconstructionEffect::DrawImGui()
 	ImGui::Checkbox("完了後にモデル表示", &parameters_.showFinalModel);
 	ImGui::Checkbox("完了後にブロック自動非表示", &parameters_.autoHideBlocksAfterComplete);
 	ImGui::Checkbox("表面サンプリング", &parameters_.surfaceSampling);
+	ImGui::Checkbox("表面内側オフセットを使う", &parameters_.useSurfaceInset);
+	ImGui::Checkbox("ブロックサイズから自動計算", &parameters_.autoSurfaceInsetFromBlockSize);
+	if (!parameters_.autoSurfaceInsetFromBlockSize)
+	{
+		ImGui::SliderFloat("表面内側オフセット量", &parameters_.surfaceInset, 0.0f, 0.30f);
+	}
+	else
+	{
+		const float effectiveSurfaceInset = parameters_.blockSize * 0.5f;
+		ImGui::Text("表面内側オフセット量: %.3f", effectiveSurfaceInset);
+	}
 	ImGui::End();
 #endif
 }

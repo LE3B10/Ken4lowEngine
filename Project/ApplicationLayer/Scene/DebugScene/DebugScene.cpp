@@ -596,6 +596,7 @@ void DebugScene::DrawImGui()
 				{
 					sequenceParams.useRandomScale = false;
 					sequenceParams.useRandomRotation = false;
+					sequenceParams.useSurfaceInset = true;
 				}
 			}
 			ImGui::Checkbox("ランダムサイズを使う##BlockSequence", &sequenceParams.useRandomScale);
@@ -608,6 +609,17 @@ void DebugScene::DrawImGui()
 				sequenceParams.placementSeed = static_cast<uint32_t>(std::max(sequencePlacementSeed, 0));
 			}
 			ImGui::SliderFloat("配置間隔##BlockSequence", &sequenceParams.placementSpacing, 0.0f, 0.5f);
+			ImGui::Checkbox("表面内側オフセットを使う##BlockSequence", &sequenceParams.useSurfaceInset);
+			ImGui::Checkbox("ブロックサイズから自動計算##BlockSequence", &sequenceParams.autoSurfaceInsetFromBlockSize);
+			if (!sequenceParams.autoSurfaceInsetFromBlockSize)
+			{
+				ImGui::SliderFloat("表面内側オフセット量##BlockSequence", &sequenceParams.surfaceInset, 0.0f, 0.30f);
+			}
+			else
+			{
+				const float effectiveSurfaceInset = sequenceParams.blockSize * 0.5f;
+				ImGui::Text("表面内側オフセット量: %.3f", effectiveSurfaceInset);
+			}
 			if (sequenceParams.placementMode == DisintegrationPlacementMode::UniformSurface)
 			{
 				ImGui::TextWrapped("均一表面配置はSweep Erosionで形を保って蝕む表現に推奨です。");

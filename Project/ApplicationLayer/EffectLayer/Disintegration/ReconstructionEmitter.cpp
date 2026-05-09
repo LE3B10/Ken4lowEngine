@@ -4,6 +4,20 @@
 #include <algorithm>
 #include <cmath>
 
+namespace
+{
+	K4E::Vector3 ResolveSurfaceNormal(const DisintegrationSamplePoint& sample, const K4E::Vector3& center)
+	{
+		const K4E::Vector3 radial = K4E::Vector3::NormalizeSafe(sample.position - center, { 0.0f, 1.0f, 0.0f });
+		K4E::Vector3 normal = K4E::Vector3::NormalizeSafe(sample.normal, radial);
+		if (K4E::Vector3::Dot(normal, radial) < 0.0f)
+		{
+			normal = normal * -1.0f;
+		}
+		return normal;
+	}
+}
+
 std::vector<ReconstructionBlock> ReconstructionEmitter::EmitFromModel(
 	const K4E::ModelData& modelData,
 	const K4E::Matrix4x4& worldMatrix,
@@ -26,17 +40,22 @@ std::vector<ReconstructionBlock> ReconstructionEmitter::EmitFromModel(
 	if (targets.empty()) { return blocks; }
 
 	const K4E::Vector3 center = worldMatrix.GetTranslation();
+	const float effectiveSurfaceInset = settings.useSurfaceInset
+		? std::max(settings.autoSurfaceInsetFromBlockSize ? settings.blockSize * 0.5f : settings.surfaceInset, 0.0f)
+		: 0.0f;
 	for (const auto& target : targets)
 	{
+		const K4E::Vector3 surfaceNormal = ResolveSurfaceNormal(target, center);
+		const K4E::Vector3 targetPosition = target.position - surfaceNormal * effectiveSurfaceInset;
 		const K4E::Vector3 radial = K4E::Vector3::NormalizeSafe(target.position - center, RandomUnitVector());
 		K4E::Vector3 scatter = radial * RandomRange(settings.startScatterRadius * 0.35f, settings.startScatterRadius);
 		scatter += RandomUnitVector() * RandomRange(0.0f, settings.startScatterRadius * 0.35f);
 		scatter.y += RandomRange(-0.25f, settings.startHeight);
 
 		ReconstructionBlock block{};
-		block.startPosition = target.position + scatter;
-		block.targetPosition = target.position;
-		block.targetNormal = target.normal;
+		block.startPosition = targetPosition + scatter;
+		block.targetPosition = targetPosition;
+		block.targetNormal = surfaceNormal;
 		block.position = block.startPosition;
 		const float rotationRandomness = settings.useRandomRotation ? settings.rotationRandomness : 0.0f;
 		block.startRotation = {

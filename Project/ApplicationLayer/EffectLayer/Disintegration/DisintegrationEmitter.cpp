@@ -15,6 +15,17 @@ namespace
 			std::clamp(color.w, 0.0f, 1.0f),
 		};
 	}
+
+	K4E::Vector3 ResolveSurfaceNormal(const DisintegrationSamplePoint& sample, const K4E::Vector3& center)
+	{
+		const K4E::Vector3 radial = K4E::Vector3::NormalizeSafe(sample.position - center, { 0.0f, 1.0f, 0.0f });
+		K4E::Vector3 normal = K4E::Vector3::NormalizeSafe(sample.normal, radial);
+		if (K4E::Vector3::Dot(normal, radial) < 0.0f)
+		{
+			normal = normal * -1.0f;
+		}
+		return normal;
+	}
 }
 
 std::vector<DisintegrationParticle> DisintegrationEmitter::EmitFromModel(
@@ -46,10 +57,17 @@ std::vector<DisintegrationParticle> DisintegrationEmitter::EmitFromSamples(
 	particles.reserve(samples.size());
 	if (samples.empty()) { return particles; }
 
+	const float effectiveSurfaceInset = settings.useSurfaceInset
+		? std::max(settings.autoSurfaceInsetFromBlockSize ? settings.particleSize * 0.5f : settings.surfaceInset, 0.0f)
+		: 0.0f;
+
 	for (const auto& sample : samples)
 	{
-		K4E::Vector3 outward = K4E::Vector3::NormalizeSafe(sample.position - center, sample.normal);
-		outward = K4E::Vector3::NormalizeSafe(outward * 0.70f + sample.normal * 0.25f + RandomUnitVector() * 0.20f, sample.normal);
+		const K4E::Vector3 surfaceNormal = ResolveSurfaceNormal(sample, center);
+		// 表面上のサンプル点から法線の内側へ中心を入れ、Cubeの外側への半分はみ出しを抑える。
+		const K4E::Vector3 insetPosition = sample.position - surfaceNormal * effectiveSurfaceInset;
+		K4E::Vector3 outward = K4E::Vector3::NormalizeSafe(sample.position - center, surfaceNormal);
+		outward = K4E::Vector3::NormalizeSafe(outward * 0.70f + surfaceNormal * 0.25f + RandomUnitVector() * 0.20f, surfaceNormal);
 
 		const float brightness = RandomRange(1.0f - settings.colorVariation, 1.0f + settings.colorVariation);
 		K4E::Vector4 color = ClampColor({
@@ -60,9 +78,9 @@ std::vector<DisintegrationParticle> DisintegrationEmitter::EmitFromSamples(
 		});
 
 		DisintegrationParticle particle{};
-		particle.initialPosition = sample.position;
-		particle.origin = sample.position;
-		particle.position = sample.position;
+		particle.initialPosition = insetPosition;
+		particle.origin = insetPosition;
+		particle.position = insetPosition;
 		particle.outward = outward;
 		const float rotationRandomness = settings.useRandomRotation ? settings.rotationRandomness : 0.0f;
 		particle.rotation = {

@@ -140,6 +140,7 @@ void ModelBlockEffectSequence::Update(float deltaTime)
 				ApplySharedParameters();
 				if (disintegrationEffect_)
 				{
+					disintegrationEffect_->GetParameters().useSurfaceInset = false;
 					disintegrationEffect_->PrepareFromSamples(sharedCompletedSamples_, worldMatrix_);
 				}
 				SetDisintegrationAlpha(0.0f);
@@ -265,6 +266,9 @@ void ModelBlockEffectSequence::ApplySharedParameters()
 		reconstructionParams.blockCount = parameters_.blockCount;
 		reconstructionParams.blockSize = parameters_.blockSize;
 		reconstructionParams.surfaceSampling = parameters_.surfaceSampling;
+		reconstructionParams.useSurfaceInset = parameters_.useSurfaceInset;
+		reconstructionParams.surfaceInset = parameters_.surfaceInset;
+		reconstructionParams.autoSurfaceInsetFromBlockSize = parameters_.autoSurfaceInsetFromBlockSize;
 		reconstructionParams.placementMode = parameters_.placementMode;
 		reconstructionParams.useRandomScale = parameters_.useRandomScale;
 		reconstructionParams.scaleVariation = parameters_.scaleVariation;
@@ -284,6 +288,9 @@ void ModelBlockEffectSequence::ApplySharedParameters()
 		disintegrationParams.particleSize = parameters_.blockSize;
 		disintegrationParams.blockSize = parameters_.blockSize;
 		disintegrationParams.surfaceSampling = parameters_.surfaceSampling;
+		disintegrationParams.useSurfaceInset = parameters_.useSurfaceInset;
+		disintegrationParams.surfaceInset = parameters_.surfaceInset;
+		disintegrationParams.autoSurfaceInsetFromBlockSize = parameters_.autoSurfaceInsetFromBlockSize;
 		disintegrationParams.placementMode = parameters_.placementMode;
 		disintegrationParams.useRandomScale = parameters_.useRandomScale;
 		disintegrationParams.scaleVariation = parameters_.scaleVariation;
@@ -349,6 +356,7 @@ void ModelBlockEffectSequence::StartDisintegrationFromSharedSamples()
 	if (disintegrationEffect_)
 	{
 		// 再構築で到着した表面サンプルを崩壊にも使い、完全体から崩れる瞬間の配置ジャンプを防ぐ。
+		disintegrationEffect_->GetParameters().useSurfaceInset = false;
 		disintegrationEffect_->PlayFromSamples(samples, worldMatrix_);
 	}
 }
