@@ -1,3 +1,4 @@
+#define NOMINMAX
 #include "Object3D.h"
 #include "Object3DCommon.h"
 #include "ImGuiManager.h"

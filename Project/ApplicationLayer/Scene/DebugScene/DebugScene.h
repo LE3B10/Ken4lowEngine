@@ -5,6 +5,7 @@
 #include "Enemy.h"
 #include "Player.h"
 #include "Derived/GuardianBoss/GuardianBoss.h"
+#include "DisintegrationDebugController.h"
 
 #include <memory>
 #include <string>
@@ -13,7 +14,6 @@
 namespace Ken4lowEngine { class DirectXCommon; }
 namespace Ken4lowEngine { class Input; }
 namespace K4E = ::Ken4lowEngine;
-class DisintegrationDebugController;
 
 /// -------------------------------------------------------------
 ///					　	デバッグシーン
