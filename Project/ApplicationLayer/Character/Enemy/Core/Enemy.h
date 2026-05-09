@@ -56,16 +56,22 @@ private: /// ---------- 構造体 ---------- ///
 	// 移動 / 戦闘の設定
 	struct EnemyCombatConfig
 	{
-		float attackRange = 24.0f;   // 戦闘を継続する最大距離の目安
-		float fireRange = 21.0f;     // 射線が通るときに実際に撃つ距離
-		float idealRangeMin = 10.0f; // 通常時の適正距離(近側)
-		float idealRangeMax = 17.5f; // 通常時の適正距離(遠側)
-		float tooCloseRange = 7.0f;  // 近すぎるので優先的に離脱
-		float tooFarRange = 25.0f;   // 遠すぎるので優先的に接近
-		float fireInterval = 0.35f;  // 攻撃間隔（秒）
-		float bulletSpeed = 18.0f;   // 弾の速度
-		float bulletLifeSec = 3.0f;  // 弾の寿命（秒）
-		int   bulletDamage = 5;      // 弾のダメージ
+		float attackRange = 26.0f;       // 戦闘を継続する最大距離の目安
+		float fireRange = 23.0f;         // 射線が通るときに実際に撃つ距離
+		float minCombatRange = 9.0f;     // これより近い場合は撃たずに距離を取る
+		float idealCombatRange = 15.0f;  // 銃撃戦で維持したい中心距離
+		float maxCombatRange = 23.0f;    // これより遠い場合は射撃可能距離まで前進する
+		float retreatRange = 7.0f;       // 強制後退を開始する距離
+		float idealRangeMin = 10.0f;     // 互換用: 通常時の適正距離(近側)
+		float idealRangeMax = 17.5f;     // 互換用: 通常時の適正距離(遠側)
+		float tooCloseRange = 7.0f;      // 互換用: 近すぎるので優先的に離脱
+		float tooFarRange = 25.0f;       // 互換用: 遠すぎるので優先的に接近
+		float fireInterval = 0.35f;      // 攻撃間隔（秒）
+		float bulletSpeed = 32.0f;       // 弾の速度
+		float accuracyConeRad = 0.045f;  // 弾速上昇に合わせた命中ブレ（ラジアン）
+		int   burstCount = 3;            // 1回の射撃判断で撃つ弾数
+		float bulletLifeSec = 3.0f;      // 弾の寿命（秒）
+		int   bulletDamage = 5;          // 弾のダメージ
 		float muzzleHeight = 1.2f;   // マズルの高さ
 		float searchDuration = 5.0f; // 索敵状態の滞在時間
 		float losRepositionEvalSec = 0.35f; // 射線調整の再評価間隔
@@ -76,7 +82,8 @@ private: /// ---------- 構造体 ---------- ///
 	// 低HP時の生存行動の設定
 	struct EnemySurvivalConfig
 	{
-		float lowHpThresholdRate = 0.5f;
+		float lowHpThresholdRate = 0.35f;
+		float retreatCooldown = 2.5f;
 		float lowHpRetreatDistance = 20.0f;
 		float lowHpReturnDistance = 28.0f;
 		float lowHpRetreatSpeedScale = 1.45f;
@@ -219,10 +226,14 @@ public: /// ---------- アクセサ ---------- ///
 	float GetAttackRange() const { return combat_.attackRange; }
 	float GetFireRange() const { return combat_.fireRange; }
 
-	float GetIdealRangeMin() const { return combat_.idealRangeMin; }
-	float GetIdealRangeMax() const { return combat_.idealRangeMax; }
-	float GetTooCloseRange() const { return combat_.tooCloseRange; }
-	float GetTooFarRange() const { return combat_.tooFarRange; }
+	float GetMinCombatRange() const { return combat_.minCombatRange; }
+	float GetIdealCombatRange() const { return combat_.idealCombatRange; }
+	float GetMaxCombatRange() const { return combat_.maxCombatRange; }
+	float GetRetreatRange() const { return combat_.retreatRange; }
+	float GetIdealRangeMin() const { return combat_.minCombatRange; }
+	float GetIdealRangeMax() const { return combat_.maxCombatRange; }
+	float GetTooCloseRange() const { return combat_.retreatRange; }
+	float GetTooFarRange() const { return combat_.maxCombatRange; }
 	float GetSearchDuration() const { return combat_.searchDuration; }
 	float GetLosRepositionEvalSec() const { return combat_.losRepositionEvalSec; }
 	float GetShootRepositionEvalSec() const { return combat_.shootRepositionEvalSec; }
@@ -234,6 +245,9 @@ public: /// ---------- アクセサ ---------- ///
 	float GetStrafeSpeed() const { return movement_.strafeSpeed; }
 	float GetSearchMoveSpeed() const { return movement_.searchMoveSpeed; }
 	float GetFireInterval() const { return combat_.fireInterval; }
+	float GetEnemyBulletSpeed() const { return combat_.bulletSpeed; }
+	float GetAccuracyConeRad() const { return combat_.accuracyConeRad; }
+	int GetBurstCount() const { return combat_.burstCount; }
 	float GetLosProbeDistance() const { return movement_.losProbeDistance; }
 	float GetTacticalBlend() const { return movement_.tacticalBlend; }
 	float GetShootMicroStrafeSpeed() const { return movement_.shootMicroStrafeSpeed; }
@@ -243,10 +257,14 @@ public: /// ---------- アクセサ ---------- ///
 	float GetLowHpRetreatSpeedScale() const { return survival_.lowHpRetreatSpeedScale; }
 	float GetLowHpShootRange() const { return survival_.lowHpShootRange; }
 	float GetRetreatDecisionInterval() const { return survival_.retreatDecisionInterval; }
+	float GetRetreatCooldown() const { return survival_.retreatCooldown; }
+	float GetLowHpThresholdRate() const { return survival_.lowHpThresholdRate; }
 	float GetCoverRepathInterval() const { return cover_.coverRepathInterval; }
 	float GetCoverStayTime() const { return cover_.coverStayTime; }
 	bool IsLowHp() const { return GetHpRate() <= survival_.lowHpThresholdRate; }
 	bool IsRetreating() const { return retreatDecision_.IsRetreating(); }
+	bool IsHostileFromDamage() const { return hasDamageStimulus_ && lastDamageTimeSec_ >= 0.0f && (aliveTimeSec_ - lastDamageTimeSec_) <= combat_.searchDuration; }
+	float GetLastDamageElapsedSec() const { return (lastDamageTimeSec_ >= 0.0f) ? (aliveTimeSec_ - lastDamageTimeSec_) : -1.0f; }
 	bool IsInHitReaction() const { return hitReactionTimer_ > 0.0f; }
 	float GetHitReactionMoveWeight() const { return reaction_.hitReactionMoveWeight; }
 	float GetEvadeWeight() const { return reaction_.evadeWeight; }
@@ -327,6 +345,7 @@ private: /// ---------- メンバ変数 ---------- ///
 	K4E::Vector3 lastAttackOrigin_{ 0.0f, 0.0f, 0.0f };
 	float lastDamageTimeSec_ = -1.0f;
 	float aliveTimeSec_ = 0.0f;
+	float lastDeltaTimeSec_ = 0.0f;
 	bool hasDamageStimulus_ = false;
 	bool suppressNextDamageStimulus_ = false;
 
@@ -348,6 +367,7 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	std::unique_ptr<IEnemyState> state_ = nullptr;
 	float fireCooldown_ = 0.0f;
+	int burstShotsRemaining_ = 0;
 	float strafeDecisionTimer_ = 0.0f;
 	float currentStrafeSign_ = 1.0f;
 	K4E::Vector3 spawnPosition_{ 0.0f, 0.0f, 0.0f };

@@ -27,6 +27,7 @@ void EnemyShootState::Update(Enemy& enemy, float deltaTime)
 	const float distToTarget = enemy.GetDistanceToTarget();
 	const bool inHitReaction = enemy.IsInHitReaction();
 	const bool lowHp = enemy.IsRetreating();
+	const bool tooCloseToShoot = distToTarget < enemy.GetMinCombatRange();
 	const bool canSee = enemy.CanSeeTargetPublic(targetPos, distToTarget);
 
 	if (canSee)
@@ -40,7 +41,8 @@ void EnemyShootState::Update(Enemy& enemy, float deltaTime)
 	}
 
 	// 低HP時は早めに離脱。単発被弾だけでは即撤退しない。
-	if ((inHitReaction && enemy.GetConsecutiveHitCount() >= 2 && stayTimer_ > 0.05f) ||
+	if (tooCloseToShoot ||
+		(inHitReaction && lowHp && enemy.GetConsecutiveHitCount() >= 2 && stayTimer_ > 0.05f) ||
 		(lowHp && distToTarget < enemy.GetLowHpRetreatDistance()))
 	{
 		enemy.ChangeStateToCombatMove();
@@ -50,12 +52,12 @@ void EnemyShootState::Update(Enemy& enemy, float deltaTime)
 	if (reevalTimer_ <= 0.0f)
 	{
 		reevalTimer_ = enemy.GetShootRepositionEvalSec();
-		const float allowedShootRange = lowHp ? enemy.GetLowHpShootRange() : enemy.GetFireRange();
+		const float allowedShootRange = lowHp ? enemy.GetLowHpShootRange() : enemy.GetMaxCombatRange();
 		const float stayLimit = lowHp ? enemy.GetLowHpShootStaySec() : enemy.GetShootMaxStaySec();
 
 		const bool canShootNow = enemy.CanShootTargetPublic(targetPos);
 		// 適正射撃距離から外れたら、撃ち続けず位置取り状態へ戻す。
-		if (inHitReaction || distToTarget < enemy.GetIdealRangeMin() || distToTarget > allowedShootRange || !canShootNow)
+		if (distToTarget < enemy.GetMinCombatRange() || distToTarget > allowedShootRange || !canShootNow)
 		{
 			enemy.ChangeStateToCombatMove();
 			return;
@@ -78,7 +80,7 @@ void EnemyShootState::Update(Enemy& enemy, float deltaTime)
 	enemy.MoveTacticalAround(targetPos, enemy.GetCurrentStrafeSign(), retreatBias, moveSpeed);
 	enemy.FaceTo(targetPos);
 	enemy.PlayShootAnimation();
-	if (!inHitReaction) enemy.FireAt(targetPos);
+	enemy.FireAt(targetPos);
 }
 
 void EnemyShootState::Exit(Enemy& enemy)

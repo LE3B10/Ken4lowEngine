@@ -121,6 +121,9 @@ void Enemy::Initialize()
 	coverConfig.peekHideMinSec = cover_.peekHideMinSec;
 	coverConfig.peekHideMaxSec = cover_.peekHideMaxSec;
 	coverController_.SetConfig(coverConfig);
+	EnemyRetreatDecisionMemory::Config retreatConfig{};
+	retreatConfig.hpThreshold = survival_.lowHpThresholdRate;
+	retreatDecision_.SetConfig(retreatConfig);
 
 	memory_.lastSeenPos = GetCenterPosition();
 	memory_.timeSinceSeen = 9999.0f;
@@ -129,11 +132,13 @@ void Enemy::Initialize()
 	lastAttackOrigin_ = GetCenterPosition();
 	lastDamageTimeSec_ = -1.0f;
 	aliveTimeSec_ = 0.0f;
+	lastDeltaTimeSec_ = 0.0f;
 	hasDamageStimulus_ = false;
 	suppressNextDamageStimulus_ = false;
 
 	facing_.yawRad = 0.0f;
 	fireCooldown_ = 0.0f;
+	burstShotsRemaining_ = 0;
 	strafeDecisionTimer_ = 0.0f;
 	currentStrafeSign_ = 1.0f;
 	spawnPosition_ = GetCenterPosition();
@@ -160,6 +165,7 @@ void Enemy::Initialize()
 
 void Enemy::Update(float deltaTime)
 {
+	lastDeltaTimeSec_ = deltaTime;
 	aliveTimeSec_ += deltaTime;
 	UpdateNavigatorSource();
 	moveCommandedThisFrame_ = false;
@@ -234,17 +240,41 @@ void Enemy::DrawImGui()
 	const bool hasTarget = HasTarget();
 	const bool hasLos = HasTargetLineOfSight();
 	const bool canAttack = CanAttackTarget();
-	const float lastHitElapsed = (lastDamageTimeSec_ >= 0.0f) ? (aliveTimeSec_ - lastDamageTimeSec_) : -1.0f;
+	const float lastHitElapsed = GetLastDamageElapsedSec();
+	float accuracyConeDeg = combat_.accuracyConeRad * (180.0f / kPi);
 
-	if (ImGui::TreeNode("Enemy AI Debug"))
+	if (ImGui::TreeNode("雑魚敵AIデバッグ"))
 	{
-		ImGui::Text("AI State: %s", GetCurrentAIStateName());
-		ImGui::Text("Target Aware: %s", IsTargetAware() ? "true" : "false");
-		ImGui::Text("Line Of Sight: %s", hasLos ? "true" : "false");
-		ImGui::Text("Last Hit Time: %.2f sec", lastHitElapsed);
-		ImGui::Text("Last Player Pos: %.2f, %.2f, %.2f", memory_.lastSeenPos.x, memory_.lastSeenPos.y, memory_.lastSeenPos.z);
-		ImGui::Text("Can Attack: %s", canAttack ? "true" : "false");
+		ImGui::Text("現在のAI状態: %s", GetCurrentAIStateName());
+		ImGui::Text("ターゲット認識中: %s", IsTargetAware() ? "true" : "false");
+		ImGui::Text("射線あり: %s", hasLos ? "true" : "false");
+		ImGui::Text("現在距離: %.2f", GetDistanceToTarget());
+		ImGui::Text("最後に被弾した時間: %.2f sec", lastHitElapsed);
+		ImGui::Text("被弾後に敵対中: %s", IsHostileFromDamage() ? "true" : "false");
+		ImGui::Text("退避中: %s", IsRetreating() ? "true" : "false");
 		ImGui::Separator();
+		// FPSらしい距離維持と弾速を実行中に調整するためのデバッグ項目です。
+		ImGui::SliderFloat("最小戦闘距離", &combat_.minCombatRange, 1.0f, 30.0f);
+		ImGui::SliderFloat("理想戦闘距離", &combat_.idealCombatRange, combat_.minCombatRange, 40.0f);
+		ImGui::SliderFloat("最大戦闘距離", &combat_.maxCombatRange, combat_.idealCombatRange, 60.0f);
+		ImGui::SliderFloat("後退距離", &combat_.retreatRange, 0.5f, combat_.minCombatRange);
+		ImGui::SliderFloat("敵弾速度", &combat_.bulletSpeed, 5.0f, 80.0f);
+		if (ImGui::SliderFloat("命中ブレ", &accuracyConeDeg, 0.0f, 12.0f, "%.2f deg"))
+		{
+			combat_.accuracyConeRad = ToRadians(accuracyConeDeg);
+		}
+		ImGui::SliderFloat("射撃間隔", &combat_.fireInterval, 0.05f, 2.0f);
+		ImGui::SliderInt("バースト数", &combat_.burstCount, 1, 8);
+		ImGui::SliderFloat("退避クールダウン", &survival_.retreatCooldown, 0.0f, 8.0f);
+		ImGui::SliderFloat("HP低下退避しきい値", &survival_.lowHpThresholdRate, 0.05f, 0.95f);
+		combat_.fireRange = combat_.maxCombatRange;
+		combat_.attackRange = std::max(combat_.attackRange, combat_.maxCombatRange);
+		combat_.idealRangeMin = combat_.minCombatRange;
+		combat_.idealRangeMax = combat_.maxCombatRange;
+		combat_.tooCloseRange = combat_.retreatRange;
+		combat_.tooFarRange = combat_.maxCombatRange;
+		ImGui::Separator();
+		ImGui::Text("Can Attack: %s", canAttack ? "true" : "false");
 		ImGui::Text("Has Target: %s", hasTarget ? "true" : "false");
 		ImGui::Text("Target Pos: %.2f, %.2f, %.2f", targetPos.x, targetPos.y, targetPos.z);
 		ImGui::Text("Last Hit Pos: %.2f, %.2f, %.2f", lastDamageHitPos_.x, lastDamageHitPos_.y, lastDamageHitPos_.z);
@@ -482,8 +512,8 @@ void Enemy::FireAt(const K4E::Vector3& targetPos)
 	aimInput.movementSpeed = LengthXZ(GetVelocity());
 	aimInput.lowHp = IsLowHp();
 	aimInput.inHitReaction = IsInHitReaction();
-	aimInput.baseSpreadRad = 0.008f;
-	aimInput.maxSpreadRad = 0.12f;
+	aimInput.baseSpreadRad = combat_.accuracyConeRad;
+	aimInput.maxSpreadRad = std::max(combat_.accuracyConeRad, 0.16f);
 	aimInput.distanceSpreadWeight = 0.95f;
 	aimInput.moveSpreadWeight = 0.85f;
 	aimInput.stressSpreadWeight = 0.7f;
@@ -509,7 +539,11 @@ void Enemy::FireAt(const K4E::Vector3& targetPos)
 	constexpr float kMuzzleForwardOffset = 1.2f;
 	muzzle = muzzle + forward * kMuzzleForwardOffset;
 
-	fireCooldown_ = combat_.fireInterval * traits_.fireIntervalScale;
+	if (burstShotsRemaining_ <= 0) burstShotsRemaining_ = std::max(1, combat_.burstCount);
+	--burstShotsRemaining_;
+	fireCooldown_ = (burstShotsRemaining_ > 0)
+		? std::min(0.12f, combat_.fireInterval * 0.35f)
+		: combat_.fireInterval * traits_.fireIntervalScale;
 
 	bulletManager_->Spawn(
 		muzzle,
@@ -614,7 +648,7 @@ void Enemy::RegisterDamageStimulus(const K4E::Vector3& hitPos, const K4E::Vector
 		}
 		else
 		{
-			ChangeStateToSearch();
+			ChangeStateToCombatMove();
 		}
 	}
 }
@@ -702,7 +736,8 @@ bool Enemy::CanShootTarget(const K4E::Vector3& targetPos) const
 	diff.y = 0.0f;
 
 	const float distSq = diff.x * diff.x + diff.z * diff.z;
-	if (distSq > (combat_.fireRange * combat_.fireRange)) return false;
+	if (distSq < (combat_.minCombatRange * combat_.minCombatRange)) return false;
+	if (distSq > (combat_.maxCombatRange * combat_.maxCombatRange)) return false;
 
 	Vector3 muzzle = selfPos;
 	muzzle.y += combat_.muzzleHeight;
@@ -715,10 +750,10 @@ EnemyRetreatController::Plan Enemy::EvaluateRetreatPlan(float distToTarget, bool
 {
 	EnemyRetreatController::Input input{};
 	input.distanceToTarget = distToTarget;
-	input.idealRangeMin = combat_.idealRangeMin;
-	input.idealRangeMax = combat_.idealRangeMax;
-	input.tooCloseRange = combat_.tooCloseRange;
-	input.tooFarRange = combat_.tooFarRange;
+	input.idealRangeMin = combat_.minCombatRange;
+	input.idealRangeMax = combat_.maxCombatRange;
+	input.tooCloseRange = combat_.retreatRange;
+	input.tooFarRange = combat_.maxCombatRange;
 	input.lowHpRetreatDistance = survival_.lowHpRetreatDistance;
 	input.lowHpReturnDistance = survival_.lowHpReturnDistance;
 	input.approachSpeed = movement_.approachSpeed;
@@ -726,20 +761,24 @@ EnemyRetreatController::Plan Enemy::EvaluateRetreatPlan(float distToTarget, bool
 	input.strafeSpeed = movement_.strafeSpeed;
 	input.lowHpRetreatSpeedScale = survival_.lowHpRetreatSpeedScale;
 	input.hitReactionMoveWeight = reaction_.hitReactionMoveWeight + (1.0f - traits_.aggression) * 0.25f;
+	EnemyRetreatDecisionMemory::Config retreatConfig{};
+	retreatConfig.hpThreshold = survival_.lowHpThresholdRate;
+	retreatDecision_.SetConfig(retreatConfig);
 	EnemyRetreatDecisionMemory::Input retreatInput{};
-	retreatInput.dt = 0.0f;
+	retreatInput.dt = lastDeltaTimeSec_;
 	retreatInput.hpRate = GetHpRate();
 	retreatInput.distanceToTarget = distToTarget;
 	retreatInput.retreatDistance = survival_.lowHpRetreatDistance;
 	retreatInput.returnDistance = survival_.lowHpReturnDistance;
 	retreatInput.decisionInterval = survival_.retreatDecisionInterval;
+	retreatInput.cooldownSec = survival_.retreatCooldown;
 	retreatInput.inHitReaction = IsInHitReaction();
 	retreatInput.canShoot = canShoot;
 	retreatInput.consecutiveHits = consecutiveHitCount_;
 	const bool retreating = retreatDecision_.Update(retreatInput);
 	input.isLowHp = retreating;
 	input.inHitReaction = IsInHitReaction();
-	if (consecutiveHitCount_ < 2)
+	if (consecutiveHitCount_ < 2 || !retreating)
 	{
 		input.inHitReaction = false;
 	}
@@ -857,6 +896,12 @@ void Enemy::UpdateTraitProfile()
 	movement_.strafeSwitchMinSec *= RandomRange(0.92f, 1.08f);
 	movement_.strafeSwitchMaxSec *= RandomRange(0.94f, 1.14f);
 	combat_.fireInterval *= (0.95f + cautiousness * 0.08f);
+	combat_.fireRange = combat_.maxCombatRange;
+	combat_.attackRange = std::max(combat_.attackRange, combat_.maxCombatRange);
+	combat_.idealRangeMin = combat_.minCombatRange;
+	combat_.idealRangeMax = combat_.maxCombatRange;
+	combat_.tooCloseRange = combat_.retreatRange;
+	combat_.tooFarRange = combat_.maxCombatRange;
 	reaction_.coverBias = Clamp(reaction_.coverBias + (traits_.coverPreference - 0.5f) * 0.25f, 0.45f, 0.82f);
 	reaction_.evadeWeight = Clamp(reaction_.evadeWeight + cautiousness * 0.08f, 0.58f, 0.84f);
 }

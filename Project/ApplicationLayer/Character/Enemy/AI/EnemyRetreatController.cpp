@@ -68,16 +68,22 @@ EnemyRetreatController::Plan EnemyRetreatController::EvaluatePlan(const Input& i
 
 	if (!input.canShoot)
 	{
-		if (plan.dangerMode)
+		if (input.distanceToTarget < input.idealRangeMin)
+		{
+			plan.radialBias = std::min(plan.radialBias, -0.85f);
+			plan.shouldPathChase = false;
+		}
+		else if (plan.dangerMode)
 		{
 			plan.radialBias = std::min(plan.radialBias, -0.45f);
+			plan.shouldPathChase = true;
 		}
 		else
 		{
 			plan.radialBias = std::max(plan.radialBias, -0.1f);
+			plan.shouldPathChase = true;
 		}
 		plan.speed = std::max(plan.speed, input.strafeSpeed);
-		plan.shouldPathChase = true;
 	}
 
 	return plan;
