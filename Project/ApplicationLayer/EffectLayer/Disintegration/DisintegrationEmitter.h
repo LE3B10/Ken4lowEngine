@@ -26,6 +26,7 @@ public:
 		bool useRandomRotation = true;
 		float rotationRandomness = 1.2f;
 		uint32_t placementSeed = 0xD157E6A7u;
+		float placementSpacing = 0.0f;
 		bool surfaceSampling = true;
 		float lifeTime = 2.0f;
 		float spreadPower = 1.6f;
@@ -38,6 +39,10 @@ public:
 	std::vector<DisintegrationParticle> EmitFromModel(
 		const K4E::ModelData& modelData,
 		const K4E::Matrix4x4& worldMatrix,
+		const Settings& settings);
+	std::vector<DisintegrationParticle> EmitFromSamples(
+		const std::vector<DisintegrationSamplePoint>& samples,
+		const K4E::Vector3& center,
 		const Settings& settings);
 
 private:

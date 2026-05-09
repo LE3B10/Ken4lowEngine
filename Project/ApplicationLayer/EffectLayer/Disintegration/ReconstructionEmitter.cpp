@@ -9,13 +9,17 @@ std::vector<ReconstructionBlock> ReconstructionEmitter::EmitFromModel(
 	const K4E::Matrix4x4& worldMatrix,
 	const Settings& settings)
 {
+	rng_.seed(settings.placementSeed ^ 0xC0DE2026u);
 	ModelSurfaceSampler sampler;
 	const std::vector<DisintegrationSamplePoint> targets = sampler.SampleFromModel(
 		modelData,
 		worldMatrix,
 		settings.blockCount,
-		settings.surfaceSampling,
-		settings.blockSize * 1.5f);
+		settings.placementMode != DisintegrationPlacementMode::RandomSurface ? true : settings.surfaceSampling,
+		settings.blockSize * 1.5f,
+		settings.placementMode,
+		settings.placementSeed,
+		settings.placementSpacing);
 
 	std::vector<ReconstructionBlock> blocks;
 	blocks.reserve(targets.size());
@@ -33,25 +37,27 @@ std::vector<ReconstructionBlock> ReconstructionEmitter::EmitFromModel(
 		block.startPosition = target.position + scatter;
 		block.targetPosition = target.position;
 		block.position = block.startPosition;
+		const float rotationRandomness = settings.useRandomRotation ? settings.rotationRandomness : 0.0f;
 		block.startRotation = {
-			RandomRange(-settings.rotationRandomness, settings.rotationRandomness),
-			RandomRange(-settings.rotationRandomness, settings.rotationRandomness),
-			RandomRange(-settings.rotationRandomness, settings.rotationRandomness),
+			RandomRange(-rotationRandomness, rotationRandomness),
+			RandomRange(-rotationRandomness, rotationRandomness),
+			RandomRange(-rotationRandomness, rotationRandomness),
 		};
 		block.rotation = block.startRotation;
 		block.rotationVelocity = {
-			RandomRange(-settings.rotationRandomness, settings.rotationRandomness),
-			RandomRange(-settings.rotationRandomness, settings.rotationRandomness),
-			RandomRange(-settings.rotationRandomness, settings.rotationRandomness),
+			RandomRange(-rotationRandomness, rotationRandomness),
+			RandomRange(-rotationRandomness, rotationRandomness),
+			RandomRange(-rotationRandomness, rotationRandomness),
 		};
+		const float scaleVariation = settings.useRandomScale ? std::max(settings.scaleVariation, 0.0f) : 0.0f;
 		block.scale = {
-			RandomRange(0.86f, 1.12f),
-			RandomRange(0.86f, 1.12f),
-			RandomRange(0.86f, 1.12f),
+			RandomRange(1.0f - scaleVariation, 1.0f + scaleVariation),
+			RandomRange(1.0f - scaleVariation, 1.0f + scaleVariation),
+			RandomRange(1.0f - scaleVariation, 1.0f + scaleVariation),
 		};
 		block.color = MakeColor(settings);
 		block.startDelay = RandomRange(0.0f, settings.startDelayRange);
-		block.size = settings.blockSize * RandomRange(0.86f, 1.12f);
+		block.size = settings.blockSize * RandomRange(1.0f - scaleVariation, 1.0f + scaleVariation);
 		block.alpha = 1.0f;
 		block.alive = true;
 		blocks.push_back(block);

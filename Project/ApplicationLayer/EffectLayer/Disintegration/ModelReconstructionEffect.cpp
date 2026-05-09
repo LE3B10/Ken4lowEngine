@@ -31,6 +31,12 @@ void ModelReconstructionEffect::PlayFromModel(const std::string& modelPath, cons
 	settings.startHeight = parameters_.startHeight;
 	settings.startDelayRange = parameters_.startDelayRange;
 	settings.rotationRandomness = parameters_.rotationRandomness;
+	settings.placementMode = parameters_.placementMode;
+	settings.useRandomScale = parameters_.useRandomScale;
+	settings.scaleVariation = parameters_.scaleVariation;
+	settings.useRandomRotation = parameters_.useRandomRotation;
+	settings.placementSeed = parameters_.placementSeed;
+	settings.placementSpacing = parameters_.placementSpacing;
 	settings.surfaceSampling = parameters_.surfaceSampling;
 	settings.color = parameters_.color;
 	settings.colorVariation = parameters_.colorVariation;
@@ -101,6 +107,19 @@ void ModelReconstructionEffect::Draw()
 	renderer_.Draw(blocks_);
 }
 
+std::vector<DisintegrationSamplePoint> ModelReconstructionEffect::GetTargetSamples() const
+{
+	std::vector<DisintegrationSamplePoint> samples;
+	samples.reserve(blocks_.size());
+	for (const auto& block : blocks_)
+	{
+		DisintegrationSamplePoint sample{};
+		sample.position = block.targetPosition;
+		samples.push_back(sample);
+	}
+	return samples;
+}
+
 void ModelReconstructionEffect::DrawImGui()
 {
 #ifdef USE_IMGUI
@@ -114,7 +133,27 @@ void ModelReconstructionEffect::DrawImGui()
 	ImGui::SliderFloat("開始時の散らばり半径", &parameters_.startScatterRadius, 0.0f, 12.0f);
 	ImGui::SliderFloat("開始高さ", &parameters_.startHeight, -2.0f, 10.0f);
 	ImGui::SliderFloat("開始遅延幅", &parameters_.startDelayRange, 0.0f, 3.0f);
-	ImGui::SliderFloat("回転ランダム", &parameters_.rotationRandomness, 0.0f, 12.0f);
+	ImGui::Checkbox("ランダム回転を使う", &parameters_.useRandomRotation);
+	ImGui::SliderFloat("回転ばらつき", &parameters_.rotationRandomness, 0.0f, 12.0f);
+	ImGui::Checkbox("ランダムサイズを使う", &parameters_.useRandomScale);
+	ImGui::SliderFloat("サイズばらつき", &parameters_.scaleVariation, 0.0f, 0.75f);
+	const char* placementModeLabels[] = { "ランダム表面配置", "均一表面配置", "整列表面配置" };
+	int placementModeIndex = parameters_.placementMode == DisintegrationPlacementMode::AlignedSurfaceGrid ? 2 : (parameters_.placementMode == DisintegrationPlacementMode::UniformSurface ? 1 : 0);
+	if (ImGui::Combo("配置モード", &placementModeIndex, placementModeLabels, IM_ARRAYSIZE(placementModeLabels)))
+	{
+		parameters_.placementMode = placementModeIndex == 2 ? DisintegrationPlacementMode::AlignedSurfaceGrid : (placementModeIndex == 1 ? DisintegrationPlacementMode::UniformSurface : DisintegrationPlacementMode::RandomSurface);
+		if (parameters_.placementMode != DisintegrationPlacementMode::RandomSurface)
+		{
+			parameters_.useRandomScale = false;
+			parameters_.useRandomRotation = false;
+		}
+	}
+	int placementSeed = static_cast<int>(parameters_.placementSeed);
+	if (ImGui::InputInt("配置シード", &placementSeed))
+	{
+		parameters_.placementSeed = static_cast<uint32_t>(std::max(placementSeed, 0));
+	}
+	ImGui::SliderFloat("配置間隔", &parameters_.placementSpacing, 0.0f, 0.5f);
 	ImGui::SliderFloat("イージング強度", &parameters_.easePower, 1.0f, 8.0f);
 	ImGui::ColorEdit4("色", &parameters_.color.x);
 	ImGui::SliderFloat("色のばらつき", &parameters_.colorVariation, 0.0f, 0.8f);

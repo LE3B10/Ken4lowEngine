@@ -5,6 +5,7 @@
 #include "ModelData.h"
 #include "Vector4.h"
 
+#include <cstdint>
 #include <random>
 #include <vector>
 
@@ -22,6 +23,12 @@ public:
 		float startHeight = 2.5f;
 		float startDelayRange = 0.45f;
 		float rotationRandomness = 4.0f;
+		DisintegrationPlacementMode placementMode = DisintegrationPlacementMode::RandomSurface;
+		bool useRandomScale = true;
+		float scaleVariation = 0.12f;
+		bool useRandomRotation = true;
+		uint32_t placementSeed = 0xD157E6A7u;
+		float placementSpacing = 0.0f;
 		bool surfaceSampling = true;
 		K4E::Vector4 color{ 0.64f, 0.72f, 0.86f, 1.0f };
 		float colorVariation = 0.18f;

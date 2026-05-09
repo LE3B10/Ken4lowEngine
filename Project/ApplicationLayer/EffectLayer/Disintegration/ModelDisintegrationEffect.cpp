@@ -51,6 +51,7 @@ void ModelDisintegrationEffect::PlayFromModel(const std::string& modelPath, cons
 	settings.useRandomRotation = parameters_.useRandomRotation;
 	settings.rotationRandomness = parameters_.rotationRandomness;
 	settings.placementSeed = parameters_.placementSeed;
+	settings.placementSpacing = parameters_.placementSpacing;
 	settings.surfaceSampling = parameters_.surfaceSampling;
 	settings.lifeTime = parameters_.lifeTime;
 	settings.spreadPower = parameters_.spreadPower;
@@ -60,6 +61,33 @@ void ModelDisintegrationEffect::PlayFromModel(const std::string& modelPath, cons
 	settings.colorVariation = parameters_.colorVariation;
 
 	particles_ = emitter_.EmitFromModel(model->GetModelData(), worldMatrix, settings);
+	InitializeSweepData();
+	isActive_ = !particles_.empty();
+	elapsedTime_ = 0.0f;
+}
+
+void ModelDisintegrationEffect::PlayFromSamples(const std::vector<DisintegrationSamplePoint>& samples, const K4E::Matrix4x4& worldMatrix)
+{
+	DisintegrationEmitter::Settings settings{};
+	settings.particleCount = parameters_.particleCount;
+	settings.particleSize = parameters_.particleSize;
+	settings.blockRotationRandomness = parameters_.rotationRandomness;
+	settings.placementMode = parameters_.placementMode;
+	settings.useRandomScale = parameters_.useRandomScale;
+	settings.scaleVariation = parameters_.scaleVariation;
+	settings.useRandomRotation = parameters_.useRandomRotation;
+	settings.rotationRandomness = parameters_.rotationRandomness;
+	settings.placementSeed = parameters_.placementSeed;
+	settings.placementSpacing = parameters_.placementSpacing;
+	settings.surfaceSampling = parameters_.surfaceSampling;
+	settings.lifeTime = parameters_.lifeTime;
+	settings.spreadPower = parameters_.spreadPower;
+	settings.upwardPower = parameters_.upwardPower;
+	settings.startDelay = parameters_.startDelay;
+	settings.baseColor = parameters_.baseColor;
+	settings.colorVariation = parameters_.colorVariation;
+
+	particles_ = emitter_.EmitFromSamples(samples, worldMatrix.GetTranslation(), settings);
 	InitializeSweepData();
 	isActive_ = !particles_.empty();
 	elapsedTime_ = 0.0f;
@@ -125,11 +153,16 @@ void ModelDisintegrationEffect::DrawImGui()
 	{
 		parameters_.particleSize = parameters_.blockSize;
 	}
-	const char* placementModeLabels[] = { "ランダム表面配置", "均一表面配置" };
-	int placementModeIndex = parameters_.placementMode == DisintegrationPlacementMode::UniformSurface ? 1 : 0;
+	const char* placementModeLabels[] = { "ランダム表面配置", "均一表面配置", "整列表面配置" };
+	int placementModeIndex = parameters_.placementMode == DisintegrationPlacementMode::AlignedSurfaceGrid ? 2 : (parameters_.placementMode == DisintegrationPlacementMode::UniformSurface ? 1 : 0);
 	if (ImGui::Combo("配置モード", &placementModeIndex, placementModeLabels, IM_ARRAYSIZE(placementModeLabels)))
 	{
-		parameters_.placementMode = placementModeIndex == 1 ? DisintegrationPlacementMode::UniformSurface : DisintegrationPlacementMode::RandomSurface;
+		parameters_.placementMode = placementModeIndex == 2 ? DisintegrationPlacementMode::AlignedSurfaceGrid : (placementModeIndex == 1 ? DisintegrationPlacementMode::UniformSurface : DisintegrationPlacementMode::RandomSurface);
+		if (parameters_.placementMode != DisintegrationPlacementMode::RandomSurface)
+		{
+			parameters_.useRandomScale = false;
+			parameters_.useRandomRotation = false;
+		}
 	}
 	ImGui::Checkbox("ランダムサイズを使う", &parameters_.useRandomScale);
 	ImGui::SliderFloat("サイズばらつき", &parameters_.scaleVariation, 0.0f, 0.75f);
@@ -143,9 +176,14 @@ void ModelDisintegrationEffect::DrawImGui()
 	{
 		parameters_.placementSeed = static_cast<uint32_t>(std::max(placementSeed, 0));
 	}
+	ImGui::SliderFloat("配置間隔", &parameters_.placementSpacing, 0.0f, 0.5f);
 	if (parameters_.placementMode == DisintegrationPlacementMode::UniformSurface)
 	{
 		ImGui::TextWrapped("均一表面配置はモデル表面を面積に応じて規則的にサンプルします。Sweep Erosionで形を保って蝕む表現に推奨です。");
+	}
+	else if (parameters_.placementMode == DisintegrationPlacementMode::AlignedSurfaceGrid)
+	{
+		ImGui::TextWrapped("整列表面配置はAABBを埋めず、三角形表面上の格子候補からブロックを選びます。");
 	}
 	ImGui::Checkbox("表面サンプリング", &parameters_.surfaceSampling);
 	ImGui::Checkbox("形状維持", &parameters_.preserveShape);

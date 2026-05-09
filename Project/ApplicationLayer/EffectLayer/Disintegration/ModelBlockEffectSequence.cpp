@@ -40,6 +40,7 @@ void ModelBlockEffectSequence::Stop(bool showModelAfterStop)
 	waitingReason_ = WaitingReason::None;
 	sequenceElapsed_ = 0.0f;
 	stateElapsed_ = 0.0f;
+	sharedCompletedSamples_.clear();
 }
 
 void ModelBlockEffectSequence::Reset()
@@ -53,6 +54,7 @@ void ModelBlockEffectSequence::Reset()
 	stateElapsed_ = 0.0f;
 	reconstructionCompleted_ = false;
 	disintegrationCompleted_ = false;
+	sharedCompletedSamples_.clear();
 }
 
 void ModelBlockEffectSequence::Update(float deltaTime)
@@ -80,10 +82,11 @@ void ModelBlockEffectSequence::Update(float deltaTime)
 		if (reconstructionEffect_ && reconstructionEffect_->IsComplete())
 		{
 			reconstructionCompleted_ = true;
-			modelVisible_ = true;
+			sharedCompletedSamples_ = reconstructionEffect_->GetTargetSamples();
+			modelVisible_ = parameters_.showFinalModelAfterComplete && !parameters_.disintegrateAsCompleteBlocks;
 			if (mode_ == SequenceMode::DisintegrateThenReconstruct && !parameters_.loopEnabled)
 			{
-				ResetEffects();
+				if (!parameters_.keepBlocksAfterComplete) { ResetEffects(); }
 				EnterState(SequenceState::Completed);
 			}
 			else
@@ -93,9 +96,20 @@ void ModelBlockEffectSequence::Update(float deltaTime)
 		}
 		break;
 	case SequenceState::ShowingModel:
-		if (stateElapsed_ >= std::max(parameters_.showDuration, 0.0f))
+		if (parameters_.fadeToModelAfterComplete && stateElapsed_ >= parameters_.fullBodyHoldTime)
 		{
-			StartDisintegration();
+			modelVisible_ = parameters_.showFinalModelAfterComplete;
+		}
+		if (stateElapsed_ >= std::max(parameters_.fullBodyHoldTime + parameters_.modelSwitchBlendTime, 0.0f))
+		{
+			if (parameters_.disintegrateAsCompleteBlocks && !sharedCompletedSamples_.empty())
+			{
+				StartDisintegrationFromSharedSamples();
+			}
+			else
+			{
+				StartDisintegration();
+			}
 		}
 		break;
 	case SequenceState::Disintegrating:
@@ -138,7 +152,7 @@ const char* ModelBlockEffectSequence::GetStateName() const
 	{
 	case SequenceState::Idle: return "待機中";
 	case SequenceState::Reconstructing: return "再構築中";
-	case SequenceState::ShowingModel: return "通常モデル表示中";
+	case SequenceState::ShowingModel: return parameters_.disintegrateAsCompleteBlocks ? "ブロック完全体保持中" : "通常モデル表示中";
 	case SequenceState::Disintegrating: return "崩壊中";
 	case SequenceState::Waiting: return "待機中";
 	case SequenceState::Completed: return "完了";
@@ -157,6 +171,7 @@ void ModelBlockEffectSequence::Begin(const std::string& modelPath, const K4E::Ma
 	reconstructionCompleted_ = false;
 	disintegrationCompleted_ = false;
 	waitingReason_ = WaitingReason::None;
+	sharedCompletedSamples_.clear();
 	ResetEffects();
 	ApplySharedParameters();
 	modelVisible_ = false;
@@ -182,8 +197,16 @@ void ModelBlockEffectSequence::ApplySharedParameters()
 		reconstructionParams.blockCount = parameters_.blockCount;
 		reconstructionParams.blockSize = parameters_.blockSize;
 		reconstructionParams.surfaceSampling = parameters_.surfaceSampling;
-		reconstructionParams.showFinalModel = false;
-		reconstructionParams.autoHideBlocksAfterComplete = true;
+		reconstructionParams.placementMode = parameters_.placementMode;
+		reconstructionParams.useRandomScale = parameters_.useRandomScale;
+		reconstructionParams.scaleVariation = parameters_.scaleVariation;
+		reconstructionParams.useRandomRotation = parameters_.useRandomRotation;
+		reconstructionParams.rotationRandomness = parameters_.rotationRandomness;
+		reconstructionParams.placementSeed = parameters_.placementSeed;
+		reconstructionParams.placementSpacing = parameters_.placementSpacing;
+		reconstructionParams.holdTime = parameters_.fullBodyHoldTime;
+		reconstructionParams.showFinalModel = parameters_.showFinalModelAfterComplete;
+		reconstructionParams.autoHideBlocksAfterComplete = !parameters_.keepBlocksAfterComplete;
 	}
 
 	if (disintegrationEffect_)
@@ -199,6 +222,7 @@ void ModelBlockEffectSequence::ApplySharedParameters()
 		disintegrationParams.useRandomRotation = parameters_.useRandomRotation;
 		disintegrationParams.rotationRandomness = parameters_.rotationRandomness;
 		disintegrationParams.placementSeed = parameters_.placementSeed;
+		disintegrationParams.placementSpacing = parameters_.placementSpacing;
 		disintegrationParams.useSweepErosion = parameters_.useSweepErosion;
 		disintegrationParams.sweepDirection = parameters_.sweepDirection;
 		disintegrationParams.sweepDuration = parameters_.sweepDuration;
@@ -242,6 +266,22 @@ void ModelBlockEffectSequence::StartDisintegration()
 	}
 }
 
+void ModelBlockEffectSequence::StartDisintegrationFromSharedSamples()
+{
+	const auto samples = sharedCompletedSamples_;
+	ResetEffects();
+	ApplySharedParameters();
+	modelVisible_ = false;
+	disintegrationCompleted_ = false;
+	waitingReason_ = WaitingReason::None;
+	EnterState(SequenceState::Disintegrating);
+	if (disintegrationEffect_)
+	{
+		// 再構築で到着した表面サンプルを崩壊にも使い、完全体から崩れる瞬間の配置ジャンプを防ぐ。
+		disintegrationEffect_->PlayFromSamples(samples, worldMatrix_);
+	}
+}
+
 void ModelBlockEffectSequence::EnterState(SequenceState nextState)
 {
 	state_ = nextState;
@@ -260,5 +300,6 @@ void ModelBlockEffectSequence::CompleteOrLoop()
 	ResetEffects();
 	modelVisible_ = false;
 	waitingReason_ = WaitingReason::None;
+	sharedCompletedSamples_.clear();
 	EnterState(SequenceState::Completed);
 }
