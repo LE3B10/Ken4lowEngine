@@ -6,10 +6,10 @@
 #include "Player.h"
 #include "Derived/GuardianBoss/GuardianBoss.h"
 #include "DisintegrationDebugController.h"
+#include "ApplicationLayer/DebugTools/FrustumCulling/FrustumCullingDebugController.h"
 #include "Vector3.h"
 #include "Vector4.h"
 
-#include <array>
 #include <memory>
 #include <string>
 #include <vector>
@@ -64,20 +64,8 @@ private: /// ---------- メンバ関数 ---------- ///
 	/// テスト用GPUパーティクル発火
 	void UpdateDebugParticleTest();
 
-	// カリング基準カメラの ViewProjection から視錐台の 8 頂点を作成
-	std::array<K4E::Vector3, 8> BuildCullingFrustumCorners() const;
-
-	// DebugScene 専用のカリング視錐台 ImGui
-	void DrawCullingFrustumImGui();
-
-	// MainCamera のカリング確認用 ImGui
-	void DrawMainCameraCullingImGui();
-
 	// カリング確認用 Object3D を初期化
 	void InitializeCullingTestObjects();
-
-	// 選択中カリング基準カメラの Near/Far 距離を取得
-	void GetCullingCameraClipDistances(float& nearDistance, float& farDistance) const;
 
 	/// -------------------------------------------------------------
 	/// BossHitPart を文字列へ変換
@@ -108,9 +96,7 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	std::unique_ptr<DisintegrationDebugController> disintegrationDebug_;
 
-	// カリング視錐台のワイヤー表示設定
-	bool showCullingFrustum_ = true;
-	K4E::Vector4 cullingFrustumWireColor_ = { 0.1f, 1.0f, 0.2f, 1.0f };
+	std::unique_ptr<FrustumCullingDebugController> frustumCullingDebug_;
 
 	// Frustum Culling の挙動確認用 Object3D 群
 	std::vector<std::unique_ptr<K4E::Object3D>> cullingTestObjects_;

@@ -66,6 +66,15 @@ namespace Ken4lowEngine
 		}
 	}
 
+	void Stage::SetFrustumCullingEnabled(bool enabled)
+	{
+		if (stageModel_)
+		{
+			// まずはステージの静的 Object3D だけを Draw スキップ対象にする。
+			stageModel_->SetFrustumCullingEnabled(enabled);
+		}
+	}
+
 	void Stage::RegisterColliders(CollisionManager* collisionManager)
 	{
 		if (!collisionManager)

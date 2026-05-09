@@ -6,7 +6,7 @@
 #include "VertexData.h"
 #include "Camera.h"
 #include "TransformationMatrix.h"
-#include "Engine/Graphics/Culling/Frustum.h"
+#include "Engine/Graphics/Culling/BoundingVolume.h"
 
 #include <fstream>
 #include <sstream>
@@ -143,7 +143,7 @@ namespace Ken4lowEngine
 		// ShadowMap の SRV を引くための GPU ハンドル
 		D3D12_GPU_DESCRIPTOR_HANDLE shadowMapHandle_{};
 
-		bool frustumCullingEnabled_ = true;
+		bool frustumCullingEnabled_ = false;
 	};
 
 } // namespace Ken4lowEngine

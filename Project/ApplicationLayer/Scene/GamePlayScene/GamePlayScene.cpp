@@ -4,6 +4,7 @@
 #include <SpriteManager.h>
 #include <SceneManager.h>
 #include <GameTimer.h>
+#include <Object3DCommon.h>
 
 #ifdef _DEBUG
 #include <DebugCamera.h>
@@ -26,6 +27,7 @@ void GamePlayScene::Initialize()
 	world_.reset();
 	introDirector_.reset();
 	debugTools_.reset();
+	frustumCullingDebug_.reset();
 
 	if (!fadeManager_)
 	{
@@ -74,6 +76,11 @@ void GamePlayScene::InitializeGameplayObjects()
 
 	debugTools_ = std::make_unique<GamePlayDebugTools>();
 	debugTools_->Initialize();
+
+	frustumCullingDebug_ = std::make_unique<FrustumCullingDebugController>();
+	frustumCullingDebug_->Initialize();
+	K4E::Object3DCommon::GetInstance()->SetFrustumCullingEnabled(false);
+	K4E::Object3DCommon::GetInstance()->SetCullingCameraMode(K4E::Object3DCommon::CullingCameraMode::ActiveCamera);
 
 	if (!fadeManager_)
 	{
@@ -350,6 +357,11 @@ void GamePlayScene::UpdateWorld(float deltaTime)
 	{
 		world_->Update(deltaTime);
 	}
+
+	if (frustumCullingDebug_)
+	{
+		frustumCullingDebug_->Update(deltaTime);
+	}
 }
 
 /// -------------------------------------------------------------
@@ -395,6 +407,11 @@ void GamePlayScene::Draw3DObjects()
 	if (world_)
 	{
 		world_->Draw3D(ShouldHideCharactersDuringIntro());
+	}
+
+	if (frustumCullingDebug_)
+	{
+		frustumCullingDebug_->DrawDebug();
 	}
 }
 
@@ -497,6 +514,7 @@ void GamePlayScene::ReleaseGameplayObjects()
 		debugTools_->Finalize();
 		debugTools_.reset();
 	}
+	frustumCullingDebug_.reset();
 
 	introDirector_.reset();
 
@@ -524,6 +542,11 @@ void GamePlayScene::DrawImGui()
 	if (debugTools_)
 	{
 		debugTools_->DrawImGui(world_.get());
+	}
+
+	if (frustumCullingDebug_)
+	{
+		frustumCullingDebug_->DrawImGui();
 	}
 #endif // USE_IMGUI
 }
@@ -564,6 +587,10 @@ void GamePlayScene::UpdateLoad()
 	case 4:
 		debugTools_ = std::make_unique<GamePlayDebugTools>();
 		debugTools_->Initialize();
+		frustumCullingDebug_ = std::make_unique<FrustumCullingDebugController>();
+		frustumCullingDebug_->Initialize();
+		K4E::Object3DCommon::GetInstance()->SetFrustumCullingEnabled(false);
+		K4E::Object3DCommon::GetInstance()->SetCullingCameraMode(K4E::Object3DCommon::CullingCameraMode::ActiveCamera);
 		++loadStep_;
 		break;
 
@@ -601,6 +628,7 @@ void GamePlayScene::UpdateUnload()
 			debugTools_->Finalize();
 			debugTools_.reset();
 		}
+		frustumCullingDebug_.reset();
 		++unloadStep_;
 		break;
 

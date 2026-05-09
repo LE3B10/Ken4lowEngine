@@ -115,7 +115,10 @@
     <FxCompile Include="Resources\Shaders\Object3D\ShadowMap.VS.hlsl">
       <Filter>Shader\VertexShader</Filter>
     </FxCompile>
-  </ItemGroup>
+      <Filter Include="ApplicationLayer\DebugTools\FrustumCulling">
+      <UniqueIdentifier>{4f4cae23-3c32-4724-9ab8-fc7cf0d39a43}</UniqueIdentifier>
+    </Filter>
+</ItemGroup>
   <ItemGroup>
     <ClCompile Include="WinMain.cpp" />
     <ClCompile Include="ApplicationLayer\UISystem\Crosshair\Crosshair.cpp">
@@ -530,6 +533,15 @@
       <Filter>Engine\Graphics\Camera\FPS</Filter>
     </ClCompile>
     <ClCompile Include="Engine\Graphics\Culling\Frustum.cpp">
+      <Filter>Engine\Graphics\Culling</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\DebugTools\FrustumCulling\FrustumCullingDebugController.cpp">
+      <Filter>ApplicationLayer\DebugTools\FrustumCulling</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Graphics\Culling\FrustumDebugRenderer.cpp">
+      <Filter>Engine\Graphics\Culling</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Graphics\Culling\FrustumCullingSystem.cpp">
       <Filter>Engine\Graphics\Culling</Filter>
     </ClCompile>
     <ClCompile Include="Engine\Graphics\Descriptor\DSV\DSVManager.cpp">
@@ -1348,6 +1360,18 @@
       <Filter>Engine\Graphics\Camera\FPS</Filter>
     </ClInclude>
     <ClInclude Include="Engine\Graphics\Culling\Frustum.h">
+      <Filter>Engine\Graphics\Culling</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\DebugTools\FrustumCulling\FrustumCullingDebugController.h">
+      <Filter>ApplicationLayer\DebugTools\FrustumCulling</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Graphics\Culling\FrustumDebugRenderer.h">
+      <Filter>Engine\Graphics\Culling</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Graphics\Culling\FrustumCullingSystem.h">
+      <Filter>Engine\Graphics\Culling</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Graphics\Culling\BoundingVolume.h">
       <Filter>Engine\Graphics\Culling</Filter>
     </ClInclude>
     <ClInclude Include="Engine\Graphics\Descriptor\DSV\DSVManager.h">
