@@ -42,6 +42,7 @@ void EnemyCombatMoveState::Update(Enemy& enemy, float deltaTime)
 	coverStayTimer_ -= deltaTime;
 
 	bool canShoot = enemy.CanShootTargetPublic(targetPos);
+	bool canFireNow = canShoot && enemy.CanStartShooting();
 	const auto retreatPlan = enemy.EvaluateRetreatPlan(distToTarget, canShoot);
 	const auto evadePlan = enemy.EvaluateEvadePlan(canShoot);
 	const bool dangerMode = retreatPlan.dangerMode;
@@ -111,6 +112,7 @@ void EnemyCombatMoveState::Update(Enemy& enemy, float deltaTime)
 			enemy.MoveTowardsPath(coverAction.moveTarget, speed, deltaTime);
 			coverStayTimer_ = enemy.GetCoverStayTime();
 			canShoot = canShoot || enemy.ShouldShootFromCover(coverAction);
+			canFireNow = canShoot && enemy.CanStartShooting();
 		}
 		else
 		{
@@ -135,7 +137,7 @@ void EnemyCombatMoveState::Update(Enemy& enemy, float deltaTime)
 	enemy.PlayMoveAnimation(speed);
 
 	const float shootRange = dangerMode ? enemy.GetLowHpShootRange() : enemy.GetMaxCombatRange();
-	if (distToTarget >= enemy.GetMinCombatRange() && distToTarget <= shootRange && canShoot)
+	if (distToTarget >= enemy.GetMinCombatRange() && distToTarget <= shootRange && canFireNow)
 	{
 		enemy.ChangeStateToShoot();
 		return;

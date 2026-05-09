@@ -30,6 +30,18 @@ void EnemyShootState::Update(Enemy& enemy, float deltaTime)
 	const bool tooCloseToShoot = distToTarget < enemy.GetMinCombatRange();
 	const bool canSee = enemy.CanSeeTargetPublic(targetPos, distToTarget);
 
+	if (enemy.IsReloading())
+	{
+		// リロード中は射撃を止め、遮蔽候補がなければ横移動や後退で被弾面積をずらす。
+		enemy.UpdateReloadMove(targetPos, deltaTime);
+		enemy.PlayMoveAnimation(enemy.GetRetreatSpeed());
+		if (tooCloseToShoot)
+		{
+			enemy.ChangeStateToCombatMove();
+		}
+		return;
+	}
+
 	if (canSee)
 	{
 		enemy.RememberLastSeenTarget(targetPos);
@@ -80,7 +92,10 @@ void EnemyShootState::Update(Enemy& enemy, float deltaTime)
 	enemy.MoveTacticalAround(targetPos, enemy.GetCurrentStrafeSign(), retreatBias, moveSpeed);
 	enemy.FaceTo(targetPos);
 	enemy.PlayShootAnimation();
-	enemy.FireAt(targetPos);
+	if (enemy.CanStartShooting())
+	{
+		enemy.FireAt(targetPos);
+	}
 }
 
 void EnemyShootState::Exit(Enemy& enemy)
