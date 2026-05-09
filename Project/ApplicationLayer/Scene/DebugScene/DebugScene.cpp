@@ -580,6 +580,18 @@ void DebugScene::DrawImGui()
 				sequenceParams.blockSize = std::max(sequenceParams.blockSize, 0.005f);
 			}
 			ImGui::Checkbox("表面サンプリング##BlockSequence", &sequenceParams.surfaceSampling);
+			ImGui::SeparatorText("方向侵食崩壊##BlockSequence");
+			ImGui::Checkbox("方向侵食を使う##BlockSequence", &sequenceParams.useSweepErosion);
+			ImGui::DragFloat3("侵食方向##BlockSequence", &sequenceParams.sweepDirection.x, 0.01f, -1.0f, 1.0f);
+			ImGui::SliderFloat("侵食時間##BlockSequence", &sequenceParams.sweepDuration, 0.05f, 8.0f);
+			ImGui::SliderFloat("侵食ノイズ強度##BlockSequence", &sequenceParams.erosionNoisePower, 0.0f, 4.0f);
+			ImGui::SliderFloat("侵食境界幅##BlockSequence", &sequenceParams.erosionBandWidth, 0.0f, 2.0f);
+			ImGui::SliderFloat("侵食前の発光幅##BlockSequence", &sequenceParams.preGlowWidth, 0.0f, 2.0f);
+			ImGui::SliderFloat("侵食後の発光幅##BlockSequence", &sequenceParams.postGlowWidth, 0.0f, 2.0f);
+			ImGui::SliderFloat("発光エッジ幅##BlockSequence", &sequenceParams.glowEdgeWidth, 0.001f, 2.0f);
+			ImGui::SliderFloat("発光強度##BlockSequence", &sequenceParams.glowIntensity, 0.0f, 8.0f);
+			ImGui::SliderFloat("発光の鋭さ##BlockSequence", &sequenceParams.glowSharpness, 0.1f, 8.0f);
+			ImGui::ColorEdit4("発光色##BlockSequence", &sequenceParams.glowColor.x);
 
 			if (ImGui::Button("モデル再読み込み##BlockSequence"))
 			{
