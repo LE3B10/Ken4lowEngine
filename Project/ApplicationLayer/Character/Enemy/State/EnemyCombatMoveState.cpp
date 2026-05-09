@@ -46,7 +46,7 @@ void EnemyCombatMoveState::Update(Enemy& enemy, float deltaTime)
 	const auto retreatPlan = enemy.EvaluateRetreatPlan(distToTarget, canShoot);
 	const auto evadePlan = enemy.EvaluateEvadePlan(canShoot);
 	const bool dangerMode = retreatPlan.dangerMode;
-	const bool inHitReaction = enemy.IsInHitReaction();
+	//const bool inHitReaction = enemy.IsInHitReaction();
 
 	float radialBias = retreatPlan.radialBias;
 	float speed = retreatPlan.speed;
