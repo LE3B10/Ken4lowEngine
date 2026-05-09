@@ -118,6 +118,26 @@ namespace Ken4lowEngine
 		return stageChunkManager_.IsShowBounds();
 	}
 
+	void Stage::SetStageChunkObjectBoundsVisible(bool visible)
+	{
+		stageChunkManager_.SetShowObjectBounds(visible);
+	}
+
+	bool Stage::IsStageChunkObjectBoundsVisible() const
+	{
+		return stageChunkManager_.IsShowObjectBounds();
+	}
+
+	void Stage::SetStageChunkAutoExcludeLargeObjects(bool enabled)
+	{
+		stageChunkManager_.SetAutoExcludeLargeObjects(enabled);
+	}
+
+	bool Stage::IsStageChunkAutoExcludeLargeObjects() const
+	{
+		return stageChunkManager_.IsAutoExcludeLargeObjects();
+	}
+
 	void Stage::SetStageChunkSize(float chunkSize)
 	{
 		stageChunkManager_.SetChunkSize(chunkSize);

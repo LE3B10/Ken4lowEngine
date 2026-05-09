@@ -2,6 +2,8 @@
 
 #include "Stage.h"
 
+#include <cstddef>
+
 #ifdef USE_IMGUI
 #include <imgui.h>
 #endif
@@ -15,7 +17,10 @@ void StageChunkDebugController::DrawImGui(K4E::Stage* stage)
 	auto stats = chunkManager.GetStatistics();
 	bool enabled = stage->IsStageChunkCullingEnabled();
 	bool showBounds = stage->IsStageChunkBoundsVisible();
+	bool showObjectBounds = stage->IsStageChunkObjectBoundsVisible();
+	bool autoExcludeLargeObjects = stage->IsStageChunkAutoExcludeLargeObjects();
 	float chunkSize = stage->GetStageChunkSize();
+	int selectedMeshIndex = static_cast<int>(chunkManager.GetDebugSelectedMeshIndex());
 
 	ImGui::Begin("StageChunk Culling Debug");
 	if (ImGui::Checkbox("StageChunk Culling 有効", &enabled))
@@ -26,9 +31,26 @@ void StageChunkDebugController::DrawImGui(K4E::Stage* stage)
 	{
 		stage->SetStageChunkSize(chunkSize);
 	}
+	if (ImGui::Checkbox("巨大ObjectをChunk Culling対象外", &autoExcludeLargeObjects))
+	{
+		stage->SetStageChunkAutoExcludeLargeObjects(autoExcludeLargeObjects);
+	}
 	if (ImGui::Checkbox("Chunk Bounds表示", &showBounds))
 	{
 		stage->SetStageChunkBoundsVisible(showBounds);
+	}
+	if (ImGui::Checkbox("Object Bounds表示", &showObjectBounds))
+	{
+		stage->SetStageChunkObjectBoundsVisible(showObjectBounds);
+	}
+	if (ImGui::InputInt("選択中Object(Mesh) Index", &selectedMeshIndex))
+	{
+		if (selectedMeshIndex < 0)
+		{
+			selectedMeshIndex = 0;
+		}
+		chunkManager.SetDebugSelectedMeshIndex(static_cast<size_t>(selectedMeshIndex));
+		stage->RebuildStageChunks();
 	}
 	if (ImGui::Button("Chunk再構築"))
 	{
@@ -40,9 +62,15 @@ void StageChunkDebugController::DrawImGui(K4E::Stage* stage)
 	ImGui::Text("総Chunk数: %d", stats.totalChunkCount);
 	ImGui::Text("描画Chunk数: %d", stats.drawnChunkCount);
 	ImGui::Text("カリングChunk数: %d", stats.culledChunkCount);
-	ImGui::Text("Chunk内Object数: %d", stats.totalObjectCountInChunks);
-	ImGui::Text("Chunk内Mesh数: %d", stats.totalMeshCountInChunks);
-	ImGui::TextWrapped("DebugCameraで外側から見て、カリングカメラをMainCameraにするとMainCameraのFrustum内Chunkだけが描画されます。");
+	ImGui::Text("選択中Objectの所属Chunk数: %d", stats.selectedObjectChunkCount);
+	ImGui::Text("Chunkに登録されたObject数: %d", stats.totalObjectCountInChunks);
+	ImGui::Text("Chunkに登録されたMesh数: %d", stats.totalMeshCountInChunks);
+	ImGui::Text("Bounds未設定で描画したObject数: %d", stats.boundsUnsetDrawObjectCount);
+	ImGui::Text("Chunk外扱いで描画したObject数: %d", stats.chunkOutsideDrawObjectCount);
+	ImGui::Text("Chunk Culling対象外Object数: %d", stats.chunkCullingIgnoredObjectCount);
+	ImGui::Text("大きすぎてChunk Culling除外されたObject数: %d", stats.largeObjectExcludedCount);
+	ImGui::TextWrapped("可視Chunkは緑、カリングChunkは赤、Object Boundsは青、Chunk Culling対象外Boundsは黄で表示します。");
+	ImGui::TextWrapped("床や壁など大きいBoundsは複数Chunk登録または安全側でChunk Culling対象外にし、見えているObjectを消さないようにDraw側だけを制御します。");
 	ImGui::End();
 #else
 	(void)stage;
