@@ -27,7 +27,7 @@ namespace Ken4lowEngine
 		void AddMesh(Object3D* object, size_t meshIndex);
 		void ClearMeshes();
 		void Draw() const;
-		void DrawBoundsDebug(bool showBounds) const;
+		void DrawBoundsDebug(bool showBounds, bool showOccludedBounds) const;
 
 		int GetChunkId() const { return chunkId_; }
 		const Vector3& GetCenter() const { return center_; }
@@ -38,6 +38,8 @@ namespace Ken4lowEngine
 		int GetObjectCount() const { return objectCount_; }
 		bool IsVisible() const { return visible_; }
 		void SetVisible(bool visible) { visible_ = visible; }
+		bool IsOccludedByOcclusion() const { return occludedByOcclusion_; }
+		void SetOccludedByOcclusion(bool occluded) { occludedByOcclusion_ = occluded; }
 
 	private:
 		int chunkId_ = 0;
@@ -47,5 +49,6 @@ namespace Ken4lowEngine
 		std::vector<StageChunkMeshRef> meshes_{};
 		int objectCount_ = 0;
 		bool visible_ = true;
+		bool occludedByOcclusion_ = false;
 	};
 }

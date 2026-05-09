@@ -3,6 +3,7 @@
 #include "Collider.h"
 #include "Object3D.h"
 #include "LevelData.h"
+#include "OcclusionCullingSystem.h"
 #include "StageChunkManager.h"
 
 #include <memory>
@@ -80,6 +81,8 @@ namespace Ken4lowEngine
 		void RebuildStageChunks();
 		StageChunkManager& GetStageChunkManager() { return stageChunkManager_; }
 		const StageChunkManager& GetStageChunkManager() const { return stageChunkManager_; }
+		OcclusionCullingSystem& GetOcclusionCullingSystem() { return occlusionCullingSystem_; }
+		const OcclusionCullingSystem& GetOcclusionCullingSystem() const { return occlusionCullingSystem_; }
 
 	public: /// ---------- アクセサ ---------- ///
 
@@ -98,6 +101,7 @@ namespace Ken4lowEngine
 		std::unique_ptr<LevelData> levelData_;
 		std::unique_ptr<Object3D> stageModel_;                 // ステージ描画モデル
 		StageChunkManager stageChunkManager_;                 // 静的ステージを Chunk 単位で Draw スキップする管理クラス
+		OcclusionCullingSystem occlusionCullingSystem_;          // Lv4: 遮蔽物裏の StageChunk Draw を安全側で止める管理クラス
 		std::vector<AABB> worldAABBs_;                         // ワールド衝突AABB
 		std::vector<std::unique_ptr<Collider>> worldColliders_; // ワールド衝突Collider
 		Vector3 offset_ = { 0.0f, 0.0f, 0.0f };               // ステージ全体オフセット

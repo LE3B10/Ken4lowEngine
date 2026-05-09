@@ -2,6 +2,7 @@
 #include "StageChunkManager.h"
 
 #include "Object3DCommon.h"
+#include "OcclusionCullingSystem.h"
 #include "Wireframe.h"
 
 #include <algorithm>
@@ -177,6 +178,7 @@ namespace Ken4lowEngine
 		auto& cullingSystem = Object3DCommon::GetInstance()->GetFrustumCullingSystem();
 		for (StageChunk& chunk : chunks_)
 		{
+			chunk.SetOccludedByOcclusion(false);
 			const bool visible = cullingSystem.IsVisible(
 				chunk.GetBounds(),
 				!enabled,
@@ -192,6 +194,15 @@ namespace Ken4lowEngine
 				++statistics_.culledChunkCount;
 			}
 		}
+	}
+
+	void StageChunkManager::ApplyOcclusionCulling(OcclusionCullingSystem& occlusionCullingSystem, const Matrix4x4& viewProjection)
+	{
+		const int beforeDrawnCount = statistics_.drawnChunkCount;
+		occlusionCullingSystem.ApplyToStageChunks(chunks_, viewProjection);
+		const int occludedChunkCount = occlusionCullingSystem.GetStatistics().occludedChunkCount;
+		statistics_.drawnChunkCount = std::max(0, beforeDrawnCount - occludedChunkCount);
+		statistics_.culledChunkCount += occludedChunkCount;
 	}
 
 	void StageChunkManager::DrawVisibleChunks() const
@@ -235,7 +246,7 @@ namespace Ken4lowEngine
 	{
 		for (const StageChunk& chunk : chunks_)
 		{
-			chunk.DrawBoundsDebug(showBounds_);
+			chunk.DrawBoundsDebug(showBounds_, showOccludedBounds_);
 		}
 
 		if (!showObjectBounds_) { return; }

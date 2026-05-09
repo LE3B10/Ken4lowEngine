@@ -62,11 +62,15 @@ namespace Ken4lowEngine
 		flush();
 	}
 
-	void StageChunk::DrawBoundsDebug(bool showBounds) const
+	void StageChunk::DrawBoundsDebug(bool showBounds, bool showOccludedBounds) const
 	{
-		if (!showBounds) { return; }
+		if (!showBounds && !(showOccludedBounds && occludedByOcclusion_)) { return; }
 
-		const Vector4 color = visible_ ? Vector4{ 0.1f, 0.9f, 0.2f, 1.0f } : Vector4{ 1.0f, 0.2f, 0.1f, 1.0f };
+		Vector4 color = visible_ ? Vector4{ 0.1f, 0.9f, 0.2f, 1.0f } : Vector4{ 1.0f, 0.2f, 0.1f, 1.0f };
+		if (occludedByOcclusion_)
+		{
+			color = Vector4{ 0.75f, 0.15f, 1.0f, 1.0f };
+		}
 		Wireframe::GetInstance()->DrawAABB(GetDebugAABB(), color);
 	}
 

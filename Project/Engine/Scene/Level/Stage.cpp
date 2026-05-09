@@ -4,6 +4,7 @@
 #include "LevelLoader.h"
 #include "StageAssetLoader.h"
 #include "StageCollisionBuilder.h"
+#include "Object3DCommon.h"
 
 namespace Ken4lowEngine
 {
@@ -26,6 +27,7 @@ namespace Ken4lowEngine
 
 		worldAABBs_ = std::move(collisionResult.worldAABBs);
 		worldColliders_ = std::move(collisionResult.worldColliders);
+		occlusionCullingSystem_.BuildAutoOccludersFromWorldAABBs(worldAABBs_);
 	}
 
 	void Stage::Clear()
@@ -33,6 +35,7 @@ namespace Ken4lowEngine
 		levelData_.reset();
 		stageModel_.reset();
 		stageChunkManager_.Clear();
+		occlusionCullingSystem_.ClearOccluders();
 		worldAABBs_.clear();
 		worldColliders_.clear();
 	}
@@ -60,6 +63,9 @@ namespace Ken4lowEngine
 		if (stageChunkManager_.IsEnabled() && !stageChunkManager_.GetChunks().empty())
 		{
 			stageChunkManager_.UpdateVisibility(true);
+			stageChunkManager_.ApplyOcclusionCulling(
+				occlusionCullingSystem_,
+				Object3DCommon::GetInstance()->GetFrustumCullingSystem().GetViewProjectionMatrix());
 			stageChunkManager_.DrawVisibleChunks();
 			return;
 		}
@@ -70,7 +76,9 @@ namespace Ken4lowEngine
 
 	void Stage::DrawChunkDebug()
 	{
+		stageChunkManager_.SetShowOccludedBounds(occlusionCullingSystem_.IsShowOccludedBounds());
 		stageChunkManager_.DrawDebugBounds();
+		occlusionCullingSystem_.DrawDebugBounds();
 	}
 
 	void Stage::DrawShadow()

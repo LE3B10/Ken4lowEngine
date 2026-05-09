@@ -121,6 +121,9 @@
     <Filter Include="ApplicationLayer\DebugTools\StageChunk">
       <UniqueIdentifier>{ea618bf4-bd85-414f-85f7-7c6d7022f237}</UniqueIdentifier>
     </Filter>
+    <Filter Include="ApplicationLayer\DebugTools\Occlusion">
+      <UniqueIdentifier>{b7b62a46-4e32-4c54-81af-9a4f54ee1c44}</UniqueIdentifier>
+    </Filter>
 </ItemGroup>
   <ItemGroup>
     <ClCompile Include="WinMain.cpp" />
@@ -550,10 +553,19 @@
     <ClCompile Include="ApplicationLayer\DebugTools\StageChunk\StageChunkDebugController.cpp">
       <Filter>ApplicationLayer\DebugTools\StageChunk</Filter>
     </ClCompile>
+    <ClCompile Include="ApplicationLayer\DebugTools\Occlusion\OcclusionDebugController.cpp">
+      <Filter>ApplicationLayer\DebugTools\Occlusion</Filter>
+    </ClCompile>
     <ClCompile Include="Engine\Graphics\Culling\FrustumDebugRenderer.cpp">
       <Filter>Engine\Graphics\Culling</Filter>
     </ClCompile>
     <ClCompile Include="Engine\Graphics\Culling\FrustumCullingSystem.cpp">
+      <Filter>Engine\Graphics\Culling</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Graphics\Culling\OcclusionCullingSystem.cpp">
+      <Filter>Engine\Graphics\Culling</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Graphics\Culling\Occluder.cpp">
       <Filter>Engine\Graphics\Culling</Filter>
     </ClCompile>
     <ClCompile Include="Engine\Graphics\Descriptor\DSV\DSVManager.cpp">
@@ -1386,10 +1398,19 @@
     <ClInclude Include="ApplicationLayer\DebugTools\StageChunk\StageChunkDebugController.h">
       <Filter>ApplicationLayer\DebugTools\StageChunk</Filter>
     </ClInclude>
+    <ClInclude Include="ApplicationLayer\DebugTools\Occlusion\OcclusionDebugController.h">
+      <Filter>ApplicationLayer\DebugTools\Occlusion</Filter>
+    </ClInclude>
     <ClInclude Include="Engine\Graphics\Culling\FrustumDebugRenderer.h">
       <Filter>Engine\Graphics\Culling</Filter>
     </ClInclude>
     <ClInclude Include="Engine\Graphics\Culling\FrustumCullingSystem.h">
+      <Filter>Engine\Graphics\Culling</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Graphics\Culling\OcclusionCullingSystem.h">
+      <Filter>Engine\Graphics\Culling</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Graphics\Culling\Occluder.h">
       <Filter>Engine\Graphics\Culling</Filter>
     </ClInclude>
     <ClInclude Include="Engine\Graphics\Culling\BoundingVolume.h">
