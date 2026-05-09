@@ -68,10 +68,26 @@ namespace
 			for (const auto& chunkDebug : occlusionSystem.GetChunkDebugInfos())
 			{
 				if (!chunkDebug.hasRect) { continue; }
-				const ImU32 color = chunkDebug.occluded
-					? IM_COL32(190, 32, 255, 230)
-					: IM_COL32(64, 220, 96, 180);
-				DrawScreenRect(chunkDebug.rect, color, chunkDebug.occluded ? 2.5f : 1.0f);
+
+				ImU32 color = IM_COL32(64, 220, 96, 180);
+				float thickness = 1.0f;
+				if (chunkDebug.occluded)
+				{
+					color = IM_COL32(190, 32, 255, 230);
+					thickness = 2.5f;
+				}
+				else if (chunkDebug.failReason == K4E::OcclusionCullingSystem::DebugFailReason::DepthInsufficient)
+				{
+					color = IM_COL32(32, 128, 255, 220);
+					thickness = 2.0f;
+				}
+				else if (chunkDebug.failReason == K4E::OcclusionCullingSystem::DebugFailReason::InFrontOfOccluder)
+				{
+					color = IM_COL32(255, 128, 16, 220);
+					thickness = 2.0f;
+				}
+
+				DrawScreenRect(chunkDebug.rect, color, thickness);
 			}
 		}
 	}
@@ -92,6 +108,7 @@ void OcclusionDebugController::DrawImGui(K4E::Stage* stage)
 	float coverageThreshold = occlusionSystem.GetCoverageThreshold();
 	float depthBias = occlusionSystem.GetDepthBias();
 	float occlusionMargin = occlusionSystem.GetOcclusionMargin();
+	bool conservativeMode = occlusionSystem.IsConservativeMode();
 	int selectedChunkId = occlusionSystem.GetDebugSelectedChunkId();
 
 	DrawDebugScreenRects(occlusionSystem);
@@ -146,7 +163,11 @@ void OcclusionDebugController::DrawImGui(K4E::Stage* stage)
 	{
 		occlusionSystem.SetOcclusionMargin(0.020f);
 	}
-	ImGui::TextWrapped("推奨値は安全確認用の出発点です。見えている物を消す場合は coverageThreshold / depthBias / occlusionMargin を大きくしてください。");
+	if (ImGui::Checkbox("conservativeMode（Occluder最奥Depthで安全判定）", &conservativeMode))
+	{
+		occlusionSystem.SetConservativeMode(conservativeMode);
+	}
+	ImGui::TextWrapped("推奨値は安全確認用の出発点です。見えている物を消す場合は coverageThreshold / depthBias / occlusionMargin を大きくするか conservativeMode を有効にしてください。");
 
 	const auto& stats = occlusionSystem.GetStatistics();
 	ImGui::SeparatorText("統計 / 失敗理由");
@@ -165,9 +186,16 @@ void OcclusionDebugController::DrawImGui(K4E::Stage* stage)
 	}
 	if (const auto* selectedDebug = occlusionSystem.GetSelectedChunkDebugInfo())
 	{
-		ImGui::Text("coverage: %.3f / threshold %.3f", selectedDebug->bestCoverage, occlusionSystem.GetCoverageThreshold());
-		ImGui::Text("depthDelta: %.3f / bias %.3f", selectedDebug->bestDepthDelta, occlusionSystem.GetDepthBias());
-		ImGui::Text("判定結果: %s", selectedDebug->occluded ? "Occluded(Draw Skip)" : "Visible(Draw) ");
+		ImGui::Text("選択中Chunkの最手前Depth: %.6f", selectedDebug->hasRect ? selectedDebug->rect.minDepth : 0.0f);
+		ImGui::Text("選択中Chunkの最奥Depth: %.6f", selectedDebug->hasRect ? selectedDebug->rect.maxDepth : 0.0f);
+		ImGui::Text("選択中Chunkの平均Depth(表示用): %.6f", selectedDebug->hasRect ? selectedDebug->rect.averageDepth : 0.0f);
+		ImGui::Text("対応Occluderの最手前Depth: %.6f", selectedDebug->hasMatchedOccluder ? selectedDebug->matchedOccluderRect.minDepth : 0.0f);
+		ImGui::Text("対応Occluderの最奥Depth: %.6f", selectedDebug->hasMatchedOccluder ? selectedDebug->matchedOccluderRect.maxDepth : 0.0f);
+		ImGui::Text("対応Occluderの平均Depth(表示用): %.6f", selectedDebug->hasMatchedOccluder ? selectedDebug->matchedOccluderRect.averageDepth : 0.0f);
+		ImGui::Text("Depth差: %.6f / bias %.6f", selectedDebug->bestDepthDelta, occlusionSystem.GetDepthBias());
+		ImGui::Text("Depth判定結果: %s", selectedDebug->depthPassed ? "OK（Occluderより奥）" : "NG（手前または差不足）");
+		ImGui::Text("Coverage判定結果: %s (%.3f / threshold %.3f)", selectedDebug->coveragePassed ? "OK" : "NG", selectedDebug->bestCoverage, occlusionSystem.GetCoverageThreshold());
+		ImGui::Text("最終Occlusion判定結果: %s", selectedDebug->occluded ? "Occluded(Draw Skip)" : "Visible(Draw)");
 		ImGui::Text("理由: %s", ToReasonText(selectedDebug->failReason));
 		if (selectedDebug->hasRect)
 		{
@@ -189,7 +217,7 @@ void OcclusionDebugController::DrawImGui(K4E::Stage* stage)
 
 	ImGui::Separator();
 	ImGui::TextWrapped("StageChunk Culling 後の Chunk Bounds をスクリーン矩形に投影し、Occluder に十分覆われ、かつ奥にある場合だけ Draw をスキップします。");
-	ImGui::TextWrapped("Frustum Culling のカリング Chunk は赤、Occlusion Culling のカリング Chunk は紫、Occluder は黄で表示します。Update / Collision は止めず Draw だけをスキップします。");
+	ImGui::TextWrapped("Frustum Culling のカリング Chunk は赤、Occlusion Culling のカリング Chunk は紫、depth条件不足は青、Occluderより手前は橙、Occluder は黄で表示します。Update / Collision は止めず Draw だけをスキップします。");
 	ImGui::End();
 #else
 	(void)stage;
