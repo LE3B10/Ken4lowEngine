@@ -4,6 +4,7 @@
 #include "Matrix4x4.h"
 #include "Vector4.h"
 #include "Vector3.h"
+#include "ModelSurfaceSampler.h"
 
 #include <cstdint>
 #include <string>
@@ -28,6 +29,7 @@ public:
 		bool useRandomRotation = true;
 		float rotationRandomness = 1.2f;
 		uint32_t placementSeed = 0xD157E6A7u;
+		float placementSpacing = 0.0f;
 		bool surfaceSampling = true;
 		bool preserveShape = true;
 		float lifeTime = 2.2f;
@@ -56,6 +58,7 @@ public:
 
 	void Initialize();
 	void PlayFromModel(const std::string& modelPath, const K4E::Matrix4x4& worldMatrix);
+	void PlayFromSamples(const std::vector<DisintegrationSamplePoint>& samples, const K4E::Matrix4x4& worldMatrix);
 	void Update(float deltaTime);
 	void Draw();
 	void DrawImGui();

@@ -572,7 +572,13 @@ void DebugScene::DrawImGui()
 		{
 			auto& sequenceParams = debugModelBlockSequence_->GetParameters();
 			ImGui::DragFloat("通常モデル表示時間", &sequenceParams.showDuration, 0.05f, 0.0f, 10.0f);
+			ImGui::DragFloat("完全体保持時間", &sequenceParams.fullBodyHoldTime, 0.05f, 0.0f, 10.0f);
+			ImGui::DragFloat("モデル切り替えブレンド時間", &sequenceParams.modelSwitchBlendTime, 0.01f, 0.0f, 3.0f);
 			ImGui::DragFloat("待機時間", &sequenceParams.waitDuration, 0.05f, 0.0f, 10.0f);
+			ImGui::Checkbox("完了後に通常モデルを表示", &sequenceParams.showFinalModelAfterComplete);
+			ImGui::Checkbox("完了後もブロックを保持", &sequenceParams.keepBlocksAfterComplete);
+			ImGui::Checkbox("通常モデルへフェードする", &sequenceParams.fadeToModelAfterComplete);
+			ImGui::Checkbox("ブロック完全体のまま崩壊する", &sequenceParams.disintegrateAsCompleteBlocks);
 			ImGui::Checkbox("ループ有効", &sequenceParams.loopEnabled);
 			ImGui::SliderInt("ブロック数##BlockSequence", &sequenceParams.blockCount, 32, 8000);
 			if (ImGui::SliderFloat("ブロックサイズ##BlockSequence", &sequenceParams.blockSize, 0.005f, 0.30f))
@@ -580,11 +586,16 @@ void DebugScene::DrawImGui()
 				sequenceParams.blockSize = std::max(sequenceParams.blockSize, 0.005f);
 			}
 			ImGui::Checkbox("表面サンプリング##BlockSequence", &sequenceParams.surfaceSampling);
-			const char* sequencePlacementModeLabels[] = { "ランダム表面配置", "均一表面配置" };
-			int sequencePlacementModeIndex = sequenceParams.placementMode == DisintegrationPlacementMode::UniformSurface ? 1 : 0;
+			const char* sequencePlacementModeLabels[] = { "ランダム表面配置", "均一表面配置", "整列表面配置" };
+			int sequencePlacementModeIndex = sequenceParams.placementMode == DisintegrationPlacementMode::AlignedSurfaceGrid ? 2 : (sequenceParams.placementMode == DisintegrationPlacementMode::UniformSurface ? 1 : 0);
 			if (ImGui::Combo("配置モード##BlockSequence", &sequencePlacementModeIndex, sequencePlacementModeLabels, IM_ARRAYSIZE(sequencePlacementModeLabels)))
 			{
-				sequenceParams.placementMode = sequencePlacementModeIndex == 1 ? DisintegrationPlacementMode::UniformSurface : DisintegrationPlacementMode::RandomSurface;
+				sequenceParams.placementMode = sequencePlacementModeIndex == 2 ? DisintegrationPlacementMode::AlignedSurfaceGrid : (sequencePlacementModeIndex == 1 ? DisintegrationPlacementMode::UniformSurface : DisintegrationPlacementMode::RandomSurface);
+				if (sequenceParams.placementMode != DisintegrationPlacementMode::RandomSurface)
+				{
+					sequenceParams.useRandomScale = false;
+					sequenceParams.useRandomRotation = false;
+				}
 			}
 			ImGui::Checkbox("ランダムサイズを使う##BlockSequence", &sequenceParams.useRandomScale);
 			ImGui::SliderFloat("サイズばらつき##BlockSequence", &sequenceParams.scaleVariation, 0.0f, 0.75f);
@@ -595,9 +606,14 @@ void DebugScene::DrawImGui()
 			{
 				sequenceParams.placementSeed = static_cast<uint32_t>(std::max(sequencePlacementSeed, 0));
 			}
+			ImGui::SliderFloat("配置間隔##BlockSequence", &sequenceParams.placementSpacing, 0.0f, 0.5f);
 			if (sequenceParams.placementMode == DisintegrationPlacementMode::UniformSurface)
 			{
 				ImGui::TextWrapped("均一表面配置はSweep Erosionで形を保って蝕む表現に推奨です。");
+			}
+			else if (sequenceParams.placementMode == DisintegrationPlacementMode::AlignedSurfaceGrid)
+			{
+				ImGui::TextWrapped("整列表面配置はAABBではなくモデル表面上の格子候補へ配置します。");
 			}
 			ImGui::SeparatorText("方向侵食崩壊##BlockSequence");
 			ImGui::Checkbox("方向侵食を使う##BlockSequence", &sequenceParams.useSweepErosion);

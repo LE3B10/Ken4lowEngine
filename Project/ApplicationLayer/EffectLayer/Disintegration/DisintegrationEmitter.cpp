@@ -28,16 +28,24 @@ std::vector<DisintegrationParticle> DisintegrationEmitter::EmitFromModel(
 		modelData,
 		worldMatrix,
 		settings.particleCount,
-		settings.placementMode == DisintegrationPlacementMode::UniformSurface ? true : settings.surfaceSampling,
+		settings.placementMode != DisintegrationPlacementMode::RandomSurface ? true : settings.surfaceSampling,
 		settings.particleSize * 1.5f,
 		settings.placementMode,
-		settings.placementSeed);
+		settings.placementSeed,
+		settings.placementSpacing);
+	return EmitFromSamples(samples, worldMatrix.GetTranslation(), settings);
+}
 
+std::vector<DisintegrationParticle> DisintegrationEmitter::EmitFromSamples(
+	const std::vector<DisintegrationSamplePoint>& samples,
+	const K4E::Vector3& center,
+	const Settings& settings)
+{
+	rng_.seed(settings.placementSeed ^ 0xD157E6A7u);
 	std::vector<DisintegrationParticle> particles;
 	particles.reserve(samples.size());
 	if (samples.empty()) { return particles; }
 
-	const K4E::Vector3 center = worldMatrix.GetTranslation();
 	for (const auto& sample : samples)
 	{
 		K4E::Vector3 outward = K4E::Vector3::NormalizeSafe(sample.position - center, sample.normal);

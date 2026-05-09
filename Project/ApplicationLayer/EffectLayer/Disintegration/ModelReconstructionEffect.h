@@ -3,7 +3,9 @@
 #include "ReconstructionRenderer.h"
 #include "Matrix4x4.h"
 #include "Vector4.h"
+#include "ModelSurfaceSampler.h"
 
+#include <cstdint>
 #include <string>
 #include <vector>
 
@@ -22,6 +24,12 @@ public:
 		float startHeight = 2.5f;
 		float startDelayRange = 0.45f;
 		float rotationRandomness = 4.0f;
+		DisintegrationPlacementMode placementMode = DisintegrationPlacementMode::RandomSurface;
+		bool useRandomScale = true;
+		float scaleVariation = 0.12f;
+		bool useRandomRotation = true;
+		uint32_t placementSeed = 0xD157E6A7u;
+		float placementSpacing = 0.0f;
 		float easePower = 3.0f;
 		K4E::Vector4 color{ 0.64f, 0.72f, 0.86f, 1.0f };
 		float colorVariation = 0.18f;
@@ -40,6 +48,7 @@ public:
 	bool IsComplete() const { return isComplete_; }
 	bool ShouldShowFinalModel() const { return isComplete_ && parameters_.showFinalModel; }
 	bool ShouldDrawBlocks() const { return isActive_ || (!parameters_.autoHideBlocksAfterComplete && !blocks_.empty()); }
+	std::vector<DisintegrationSamplePoint> GetTargetSamples() const;
 
 	Parameters& GetParameters() { return parameters_; }
 	const Parameters& GetParameters() const { return parameters_; }

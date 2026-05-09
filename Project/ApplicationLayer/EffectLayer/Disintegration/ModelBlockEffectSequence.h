@@ -6,6 +6,7 @@
 
 #include <cstdint>
 #include <string>
+#include <vector>
 
 namespace K4E = ::Ken4lowEngine;
 
@@ -32,9 +33,16 @@ public:
 	{
 		float showDuration = 1.2f;
 		float waitDuration = 0.8f;
+		bool showFinalModelAfterComplete = false;
+		bool keepBlocksAfterComplete = true;
+		bool fadeToModelAfterComplete = false;
+		bool disintegrateAsCompleteBlocks = true;
+		float fullBodyHoldTime = 0.8f;
+		float modelSwitchBlendTime = 0.25f;
 		bool loopEnabled = false;
 		int blockCount = 1200;
 		float blockSize = 0.045f;
+		float placementSpacing = 0.0f;
 		bool surfaceSampling = true;
 		DisintegrationPlacementMode placementMode = DisintegrationPlacementMode::UniformSurface;
 		bool useRandomScale = false;
@@ -93,6 +101,7 @@ private:
 	void ApplySharedParameters();
 	void StartReconstruction();
 	void StartDisintegration();
+	void StartDisintegrationFromSharedSamples();
 	void EnterState(SequenceState nextState);
 	void CompleteOrLoop();
 
@@ -109,4 +118,5 @@ private:
 	bool modelVisible_ = true;
 	bool reconstructionCompleted_ = false;
 	bool disintegrationCompleted_ = false;
+	std::vector<DisintegrationSamplePoint> sharedCompletedSamples_;
 };

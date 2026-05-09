@@ -16,6 +16,7 @@ enum class DisintegrationPlacementMode
 {
 	RandomSurface,
 	UniformSurface,
+	AlignedSurfaceGrid,
 };
 
 /// -------------------------------------------------------------
@@ -40,7 +41,8 @@ public:
 		bool surfaceSampling,
 		float vertexJitterRadius = 0.0f,
 		DisintegrationPlacementMode placementMode = DisintegrationPlacementMode::RandomSurface,
-		uint32_t placementSeed = 0x51A7F00Du);
+		uint32_t placementSeed = 0x51A7F00Du,
+		float placementSpacing = 0.0f);
 
 private:
 	struct TriangleSample

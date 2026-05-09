@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdint>
+#include <tuple>
 
 namespace
 {
@@ -34,7 +35,8 @@ std::vector<DisintegrationSamplePoint> ModelSurfaceSampler::SampleFromModel(
 	bool surfaceSampling,
 	float vertexJitterRadius,
 	DisintegrationPlacementMode placementMode,
-	uint32_t placementSeed)
+	uint32_t placementSeed,
+	float placementSpacing)
 {
 	rng_.seed(placementSeed);
 	std::vector<TriangleSample> triangles;
@@ -91,7 +93,50 @@ std::vector<DisintegrationSamplePoint> ModelSurfaceSampler::SampleFromModel(
 	if ((triangles.empty() && vertices.empty()) || sampleCount <= 0) { return samples; }
 
 	const bool useUniformSurface = placementMode == DisintegrationPlacementMode::UniformSurface && !triangles.empty();
-	const bool useTriangleSurface = (surfaceSampling || useUniformSurface) && !triangles.empty();
+	const bool useAlignedSurfaceGrid = placementMode == DisintegrationPlacementMode::AlignedSurfaceGrid && !triangles.empty();
+	const bool useTriangleSurface = (surfaceSampling || useUniformSurface || useAlignedSurfaceGrid) && !triangles.empty();
+	if (useAlignedSurfaceGrid)
+	{
+		std::vector<DisintegrationSamplePoint> gridCandidates;
+		const float safeSpacing = placementSpacing > 0.0001f ? placementSpacing : std::sqrt(totalArea / static_cast<float>(sampleCount));
+		for (size_t triIndex = 0; triIndex < triangles.size(); ++triIndex)
+		{
+			const auto& tri = triangles[triIndex];
+			const float previousArea = triIndex == 0 ? 0.0f : triangles[triIndex - 1].cumulativeArea;
+			const float triangleArea = std::max(tri.cumulativeArea - previousArea, 0.0f);
+			const int subdivision = std::clamp(static_cast<int>(std::ceil(std::sqrt(triangleArea) / safeSpacing * 2.0f)), 1, 128);
+			for (int y = 0; y <= subdivision; ++y)
+			{
+				for (int x = 0; x + y <= subdivision; ++x)
+				{
+					const float baryB = (static_cast<float>(x) + 0.5f) / (static_cast<float>(subdivision) + 1.0f);
+					const float baryC = (static_cast<float>(y) + 0.5f) / (static_cast<float>(subdivision) + 1.0f);
+					if (baryB + baryC >= 1.0f) { continue; }
+					const K4E::Vector3 local = tri.a + (tri.b - tri.a) * baryB + (tri.c - tri.a) * baryC;
+					DisintegrationSamplePoint sample{};
+					sample.position = K4E::Vector3::Transform(local, worldMatrix);
+					sample.normal = K4E::Vector3::NormalizeSafe(TransformDirection(tri.normal, worldMatrix), { 0.0f, 1.0f, 0.0f });
+					gridCandidates.push_back(sample);
+				}
+			}
+		}
+
+		std::sort(gridCandidates.begin(), gridCandidates.end(), [](const DisintegrationSamplePoint& a, const DisintegrationSamplePoint& b) {
+			return std::tie(a.position.x, a.position.y, a.position.z) < std::tie(b.position.x, b.position.y, b.position.z);
+		});
+		if (!gridCandidates.empty())
+		{
+			for (int i = 0; i < sampleCount; ++i)
+			{
+				const size_t index = sampleCount <= static_cast<int>(gridCandidates.size())
+					? (static_cast<size_t>(i) * gridCandidates.size()) / static_cast<size_t>(sampleCount)
+					: static_cast<size_t>(i) % gridCandidates.size();
+				samples.push_back(gridCandidates[std::min(index, gridCandidates.size() - 1)]);
+			}
+			return samples;
+		}
+	}
+
 	for (int i = 0; i < sampleCount; ++i)
 	{
 		K4E::Vector3 local{};
@@ -132,7 +177,7 @@ std::vector<DisintegrationSamplePoint> ModelSurfaceSampler::SampleFromModel(
 		}
 		else
 		{
-			const bool useUniformVertexFallback = placementMode == DisintegrationPlacementMode::UniformSurface;
+			const bool useUniformVertexFallback = placementMode == DisintegrationPlacementMode::UniformSurface || placementMode == DisintegrationPlacementMode::AlignedSurfaceGrid;
 			const size_t sampleIndex = useUniformVertexFallback
 				? (static_cast<size_t>(i) * vertices.size()) / static_cast<size_t>(sampleCount)
 				: std::min(static_cast<size_t>(Random01() * static_cast<float>(vertices.size())), vertices.size() - 1);
