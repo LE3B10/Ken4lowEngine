@@ -13,7 +13,7 @@ class DisintegrationRenderer
 public:
 	~DisintegrationRenderer();
 
-	void Draw(const std::vector<DisintegrationParticle>& particles);
+	void Draw(const std::vector<DisintegrationParticle>& particles, float globalAlpha = 1.0f);
 
 private:
 	struct CubeVertex

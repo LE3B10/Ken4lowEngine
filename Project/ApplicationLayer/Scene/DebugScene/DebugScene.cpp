@@ -572,13 +572,14 @@ void DebugScene::DrawImGui()
 		{
 			auto& sequenceParams = debugModelBlockSequence_->GetParameters();
 			ImGui::DragFloat("通常モデル表示時間", &sequenceParams.showDuration, 0.05f, 0.0f, 10.0f);
-			ImGui::DragFloat("完全体保持時間", &sequenceParams.fullBodyHoldTime, 0.05f, 0.0f, 10.0f);
-			ImGui::DragFloat("モデル切り替えブレンド時間", &sequenceParams.modelSwitchBlendTime, 0.01f, 0.0f, 3.0f);
+			ImGui::Checkbox("モデルブレンドを使う", &sequenceParams.useModelBlend);
+			ImGui::DragFloat("モデル切り替えブレンド時間", &sequenceParams.modelBlendDuration, 0.01f, 0.0f, 3.0f);
+			ImGui::DragFloat("ブロック完全体保持時間", &sequenceParams.blockHoldDuration, 0.05f, 0.0f, 10.0f);
+			ImGui::Checkbox("崩壊までブロックを保持", &sequenceParams.keepBlocksUntilDisintegration);
+			ImGui::Checkbox("通常モデルを挟まない", &sequenceParams.skipNormalModelInSequence);
+			ImGui::Checkbox("ブロックから通常モデルへフェード", &sequenceParams.useBlockToModelFade);
+			ImGui::Checkbox("通常モデルからブロックへフェード", &sequenceParams.useModelToBlockFade);
 			ImGui::DragFloat("待機時間", &sequenceParams.waitDuration, 0.05f, 0.0f, 10.0f);
-			ImGui::Checkbox("完了後に通常モデルを表示", &sequenceParams.showFinalModelAfterComplete);
-			ImGui::Checkbox("完了後もブロックを保持", &sequenceParams.keepBlocksAfterComplete);
-			ImGui::Checkbox("通常モデルへフェードする", &sequenceParams.fadeToModelAfterComplete);
-			ImGui::Checkbox("ブロック完全体のまま崩壊する", &sequenceParams.disintegrateAsCompleteBlocks);
 			ImGui::Checkbox("ループ有効", &sequenceParams.loopEnabled);
 			ImGui::SliderInt("ブロック数##BlockSequence", &sequenceParams.blockCount, 32, 8000);
 			if (ImGui::SliderFloat("ブロックサイズ##BlockSequence", &sequenceParams.blockSize, 0.005f, 0.30f))

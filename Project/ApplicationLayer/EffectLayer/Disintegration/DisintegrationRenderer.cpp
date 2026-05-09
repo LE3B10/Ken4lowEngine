@@ -33,7 +33,7 @@ DisintegrationRenderer::~DisintegrationRenderer()
 	ReleaseSrv();
 }
 
-void DisintegrationRenderer::Draw(const std::vector<DisintegrationParticle>& particles)
+void DisintegrationRenderer::Draw(const std::vector<DisintegrationParticle>& particles, float globalAlpha)
 {
 	if (particles.empty()) { return; }
 	if (!initialized_) { Initialize(); }
@@ -41,7 +41,7 @@ void DisintegrationRenderer::Draw(const std::vector<DisintegrationParticle>& par
 	size_t visibleCount = 0;
 	for (const auto& particle : particles)
 	{
-		if (particle.alive && particle.alpha > 0.0f) { ++visibleCount; }
+		if (particle.alive && particle.alpha * globalAlpha > 0.0f) { ++visibleCount; }
 	}
 	if (visibleCount == 0) { return; }
 
@@ -51,13 +51,13 @@ void DisintegrationRenderer::Draw(const std::vector<DisintegrationParticle>& par
 	size_t writeIndex = 0;
 	for (const auto& particle : particles)
 	{
-		if (!particle.alive || particle.alpha <= 0.0f) { continue; }
+		if (!particle.alive || particle.alpha * globalAlpha <= 0.0f) { continue; }
 
 		K4E::Vector4 color = particle.color;
 		color.x = std::clamp(color.x + particle.edgeColor.x, 0.0f, 1.0f);
 		color.y = std::clamp(color.y + particle.edgeColor.y, 0.0f, 1.0f);
 		color.z = std::clamp(color.z + particle.edgeColor.z, 0.0f, 1.0f);
-		color.w *= particle.alpha;
+		color.w *= particle.alpha * std::clamp(globalAlpha, 0.0f, 1.0f);
 		instanceData_[writeIndex].world = MakeWorldMatrix(particle);
 		instanceData_[writeIndex].color = color;
 		++writeIndex;

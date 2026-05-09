@@ -13,7 +13,7 @@ class ReconstructionRenderer
 public:
 	~ReconstructionRenderer();
 
-	void Draw(const std::vector<ReconstructionBlock>& particles);
+	void Draw(const std::vector<ReconstructionBlock>& particles, float globalAlpha = 1.0f);
 
 private:
 	struct CubeVertex

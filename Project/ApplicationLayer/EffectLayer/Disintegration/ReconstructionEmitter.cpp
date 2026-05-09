@@ -36,6 +36,7 @@ std::vector<ReconstructionBlock> ReconstructionEmitter::EmitFromModel(
 		ReconstructionBlock block{};
 		block.startPosition = target.position + scatter;
 		block.targetPosition = target.position;
+		block.targetNormal = target.normal;
 		block.position = block.startPosition;
 		const float rotationRandomness = settings.useRandomRotation ? settings.rotationRandomness : 0.0f;
 		block.startRotation = {

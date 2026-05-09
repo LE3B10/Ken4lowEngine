@@ -83,7 +83,8 @@ void ModelBlockEffectSequence::Update(float deltaTime)
 		{
 			reconstructionCompleted_ = true;
 			sharedCompletedSamples_ = reconstructionEffect_->GetTargetSamples();
-			modelVisible_ = parameters_.showFinalModelAfterComplete && !parameters_.disintegrateAsCompleteBlocks;
+			SetReconstructionAlpha(1.0f);
+			modelVisible_ = false;
 			if (mode_ == SequenceMode::DisintegrateThenReconstruct && !parameters_.loopEnabled)
 			{
 				if (!parameters_.keepBlocksAfterComplete) { ResetEffects(); }
@@ -91,18 +92,61 @@ void ModelBlockEffectSequence::Update(float deltaTime)
 			}
 			else
 			{
+				EnterState(SequenceState::HoldingBlocks);
+			}
+		}
+		break;
+	case SequenceState::HoldingBlocks:
+		modelVisible_ = false;
+		SetReconstructionAlpha(1.0f);
+		if (stateElapsed_ >= std::max(parameters_.blockHoldDuration, 0.0f))
+		{
+			if (parameters_.skipNormalModelInSequence)
+			{
+				StartDisintegrationFromSharedSamples();
+			}
+			else if (parameters_.useModelBlend && parameters_.useBlockToModelFade && GetBlendDuration() > 0.0f)
+			{
+				modelVisible_ = true;
+				EnterState(SequenceState::BlendingBlockToModel);
+			}
+			else
+			{
+				modelVisible_ = true;
+				if (!parameters_.keepBlocksUntilDisintegration) { ResetEffects(); }
 				EnterState(SequenceState::ShowingModel);
 			}
 		}
 		break;
-	case SequenceState::ShowingModel:
-		if (parameters_.fadeToModelAfterComplete && stateElapsed_ >= parameters_.fullBodyHoldTime)
+	case SequenceState::BlendingBlockToModel:
+	{
+		const float t = Clamp01(stateElapsed_ / GetBlendDuration());
+		modelVisible_ = true;
+		SetReconstructionAlpha(1.0f - t);
+		if (t >= 1.0f)
 		{
-			modelVisible_ = parameters_.showFinalModelAfterComplete;
+			if (!parameters_.keepBlocksUntilDisintegration) { ResetEffects(); }
+			EnterState(SequenceState::ShowingModel);
 		}
-		if (stateElapsed_ >= std::max(parameters_.fullBodyHoldTime + parameters_.modelSwitchBlendTime, 0.0f))
+		break;
+	}
+	case SequenceState::ShowingModel:
+		modelVisible_ = !parameters_.skipNormalModelInSequence;
+		if (stateElapsed_ >= std::max(parameters_.showDuration, 0.0f))
 		{
-			if (parameters_.disintegrateAsCompleteBlocks && !sharedCompletedSamples_.empty())
+			if (parameters_.useModelBlend && parameters_.useModelToBlockFade && !sharedCompletedSamples_.empty() && GetBlendDuration() > 0.0f)
+			{
+				ResetEffects();
+				ApplySharedParameters();
+				if (disintegrationEffect_)
+				{
+					disintegrationEffect_->PrepareFromSamples(sharedCompletedSamples_, worldMatrix_);
+				}
+				SetDisintegrationAlpha(0.0f);
+				modelVisible_ = true;
+				EnterState(SequenceState::BlendingModelToBlock);
+			}
+			else if (parameters_.disintegrateAsCompleteBlocks && !sharedCompletedSamples_.empty())
 			{
 				StartDisintegrationFromSharedSamples();
 			}
@@ -112,6 +156,23 @@ void ModelBlockEffectSequence::Update(float deltaTime)
 			}
 		}
 		break;
+	case SequenceState::BlendingModelToBlock:
+	{
+		const float t = Clamp01(stateElapsed_ / GetBlendDuration());
+		modelVisible_ = true;
+		SetDisintegrationAlpha(t);
+		if (t >= 1.0f)
+		{
+			modelVisible_ = false;
+			SetDisintegrationAlpha(1.0f);
+			if (disintegrationEffect_)
+			{
+				disintegrationEffect_->StartPrepared();
+			}
+			EnterState(SequenceState::Disintegrating);
+		}
+		break;
+	}
 	case SequenceState::Disintegrating:
 		if (disintegrationEffect_ && !disintegrationEffect_->IsActive())
 		{
@@ -152,7 +213,10 @@ const char* ModelBlockEffectSequence::GetStateName() const
 	{
 	case SequenceState::Idle: return "待機中";
 	case SequenceState::Reconstructing: return "再構築中";
-	case SequenceState::ShowingModel: return parameters_.disintegrateAsCompleteBlocks ? "ブロック完全体保持中" : "通常モデル表示中";
+	case SequenceState::HoldingBlocks: return "ブロック完全体保持中";
+	case SequenceState::BlendingBlockToModel: return "ブロックから通常モデルへブレンド中";
+	case SequenceState::ShowingModel: return "通常モデル表示中";
+	case SequenceState::BlendingModelToBlock: return "通常モデルからブロックへブレンド中";
 	case SequenceState::Disintegrating: return "崩壊中";
 	case SequenceState::Waiting: return "待機中";
 	case SequenceState::Completed: return "完了";
@@ -171,6 +235,10 @@ void ModelBlockEffectSequence::Begin(const std::string& modelPath, const K4E::Ma
 	reconstructionCompleted_ = false;
 	disintegrationCompleted_ = false;
 	waitingReason_ = WaitingReason::None;
+	parameters_.fullBodyHoldTime = parameters_.blockHoldDuration;
+	parameters_.modelSwitchBlendTime = parameters_.modelBlendDuration;
+	parameters_.keepBlocksAfterComplete = parameters_.keepBlocksUntilDisintegration;
+	parameters_.fadeToModelAfterComplete = parameters_.useBlockToModelFade;
 	sharedCompletedSamples_.clear();
 	ResetEffects();
 	ApplySharedParameters();
@@ -204,9 +272,9 @@ void ModelBlockEffectSequence::ApplySharedParameters()
 		reconstructionParams.rotationRandomness = parameters_.rotationRandomness;
 		reconstructionParams.placementSeed = parameters_.placementSeed;
 		reconstructionParams.placementSpacing = parameters_.placementSpacing;
-		reconstructionParams.holdTime = parameters_.fullBodyHoldTime;
-		reconstructionParams.showFinalModel = parameters_.showFinalModelAfterComplete;
-		reconstructionParams.autoHideBlocksAfterComplete = !parameters_.keepBlocksAfterComplete;
+		reconstructionParams.holdTime = 0.0f;
+		reconstructionParams.showFinalModel = false;
+		reconstructionParams.autoHideBlocksAfterComplete = false;
 	}
 
 	if (disintegrationEffect_)
@@ -242,6 +310,7 @@ void ModelBlockEffectSequence::StartReconstruction()
 	ResetEffects();
 	ApplySharedParameters();
 	modelVisible_ = false;
+	SetReconstructionAlpha(1.0f);
 	reconstructionCompleted_ = false;
 	waitingReason_ = WaitingReason::None;
 	EnterState(SequenceState::Reconstructing);
@@ -257,6 +326,7 @@ void ModelBlockEffectSequence::StartDisintegration()
 	ResetEffects();
 	ApplySharedParameters();
 	modelVisible_ = false;
+	SetDisintegrationAlpha(1.0f);
 	disintegrationCompleted_ = false;
 	waitingReason_ = WaitingReason::None;
 	EnterState(SequenceState::Disintegrating);
@@ -272,6 +342,7 @@ void ModelBlockEffectSequence::StartDisintegrationFromSharedSamples()
 	ResetEffects();
 	ApplySharedParameters();
 	modelVisible_ = false;
+	SetDisintegrationAlpha(1.0f);
 	disintegrationCompleted_ = false;
 	waitingReason_ = WaitingReason::None;
 	EnterState(SequenceState::Disintegrating);
@@ -302,4 +373,31 @@ void ModelBlockEffectSequence::CompleteOrLoop()
 	waitingReason_ = WaitingReason::None;
 	sharedCompletedSamples_.clear();
 	EnterState(SequenceState::Completed);
+}
+
+
+float ModelBlockEffectSequence::GetBlendDuration() const
+{
+	return std::max(parameters_.modelBlendDuration, 0.0f);
+}
+
+float ModelBlockEffectSequence::Clamp01(float value) const
+{
+	return std::clamp(value, 0.0f, 1.0f);
+}
+
+void ModelBlockEffectSequence::SetReconstructionAlpha(float alpha)
+{
+	if (reconstructionEffect_)
+	{
+		reconstructionEffect_->SetGlobalAlpha(Clamp01(alpha));
+	}
+}
+
+void ModelBlockEffectSequence::SetDisintegrationAlpha(float alpha)
+{
+	if (disintegrationEffect_)
+	{
+		disintegrationEffect_->SetGlobalAlpha(Clamp01(alpha));
+	}
 }
