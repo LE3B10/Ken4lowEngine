@@ -193,6 +193,12 @@ void ModelBlockEffectSequence::ApplySharedParameters()
 		disintegrationParams.particleSize = parameters_.blockSize;
 		disintegrationParams.blockSize = parameters_.blockSize;
 		disintegrationParams.surfaceSampling = parameters_.surfaceSampling;
+		disintegrationParams.placementMode = parameters_.placementMode;
+		disintegrationParams.useRandomScale = parameters_.useRandomScale;
+		disintegrationParams.scaleVariation = parameters_.scaleVariation;
+		disintegrationParams.useRandomRotation = parameters_.useRandomRotation;
+		disintegrationParams.rotationRandomness = parameters_.rotationRandomness;
+		disintegrationParams.placementSeed = parameters_.placementSeed;
 		disintegrationParams.useSweepErosion = parameters_.useSweepErosion;
 		disintegrationParams.sweepDirection = parameters_.sweepDirection;
 		disintegrationParams.sweepDuration = parameters_.sweepDuration;

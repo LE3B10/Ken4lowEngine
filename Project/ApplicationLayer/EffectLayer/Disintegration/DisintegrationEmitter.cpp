@@ -22,13 +22,16 @@ std::vector<DisintegrationParticle> DisintegrationEmitter::EmitFromModel(
 	const K4E::Matrix4x4& worldMatrix,
 	const Settings& settings)
 {
+	rng_.seed(settings.placementSeed ^ 0xD157E6A7u);
 	ModelSurfaceSampler sampler;
 	const std::vector<DisintegrationSamplePoint> samples = sampler.SampleFromModel(
 		modelData,
 		worldMatrix,
 		settings.particleCount,
-		settings.surfaceSampling,
-		settings.particleSize * 1.5f);
+		settings.placementMode == DisintegrationPlacementMode::UniformSurface ? true : settings.surfaceSampling,
+		settings.particleSize * 1.5f,
+		settings.placementMode,
+		settings.placementSeed);
 
 	std::vector<DisintegrationParticle> particles;
 	particles.reserve(samples.size());
@@ -53,26 +56,28 @@ std::vector<DisintegrationParticle> DisintegrationEmitter::EmitFromModel(
 		particle.origin = sample.position;
 		particle.position = sample.position;
 		particle.outward = outward;
+		const float rotationRandomness = settings.useRandomRotation ? settings.rotationRandomness : 0.0f;
 		particle.rotation = {
-			RandomRange(-settings.blockRotationRandomness, settings.blockRotationRandomness),
-			RandomRange(-settings.blockRotationRandomness, settings.blockRotationRandomness),
-			RandomRange(-settings.blockRotationRandomness, settings.blockRotationRandomness),
+			RandomRange(-rotationRandomness, rotationRandomness),
+			RandomRange(-rotationRandomness, rotationRandomness),
+			RandomRange(-rotationRandomness, rotationRandomness),
 		};
 		particle.rotationVelocity = {
-			RandomRange(-settings.blockRotationRandomness, settings.blockRotationRandomness),
-			RandomRange(-settings.blockRotationRandomness, settings.blockRotationRandomness),
-			RandomRange(-settings.blockRotationRandomness, settings.blockRotationRandomness),
+			RandomRange(-rotationRandomness, rotationRandomness),
+			RandomRange(-rotationRandomness, rotationRandomness),
+			RandomRange(-rotationRandomness, rotationRandomness),
 		};
+		const float scaleVariation = settings.useRandomScale ? std::max(settings.scaleVariation, 0.0f) : 0.0f;
 		particle.scale = {
-			RandomRange(0.82f, 1.18f),
-			RandomRange(0.82f, 1.18f),
-			RandomRange(0.82f, 1.18f),
+			RandomRange(1.0f - scaleVariation, 1.0f + scaleVariation),
+			RandomRange(1.0f - scaleVariation, 1.0f + scaleVariation),
+			RandomRange(1.0f - scaleVariation, 1.0f + scaleVariation),
 		};
 		particle.velocity = outward * RandomRange(settings.spreadPower * 0.15f, settings.spreadPower * 0.55f);
 		particle.velocity.y += RandomRange(-settings.upwardPower * 0.25f, settings.upwardPower);
 		particle.life = RandomRange(settings.lifeTime * 0.85f, settings.lifeTime * 1.20f);
 		particle.startDelay = RandomRange(0.0f, settings.startDelay);
-		particle.size = settings.particleSize * RandomRange(0.80f, 1.15f);
+		particle.size = settings.particleSize * RandomRange(1.0f - scaleVariation, 1.0f + scaleVariation);
 		particle.color = color;
 		particle.edgeColor = { 0.0f, 0.0f, 0.0f, 0.0f };
 		particle.alpha = 1.0f;

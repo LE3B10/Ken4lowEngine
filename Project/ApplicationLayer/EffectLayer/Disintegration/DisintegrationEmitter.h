@@ -5,6 +5,7 @@
 #include "ModelData.h"
 #include "Vector4.h"
 
+#include <cstdint>
 #include <random>
 #include <vector>
 
@@ -19,6 +20,12 @@ public:
 		int particleCount = 1200;
 		float particleSize = 0.045f;
 		float blockRotationRandomness = 1.2f;
+		DisintegrationPlacementMode placementMode = DisintegrationPlacementMode::RandomSurface;
+		bool useRandomScale = true;
+		float scaleVariation = 0.18f;
+		bool useRandomRotation = true;
+		float rotationRandomness = 1.2f;
+		uint32_t placementSeed = 0xD157E6A7u;
 		bool surfaceSampling = true;
 		float lifeTime = 2.0f;
 		float spreadPower = 1.6f;

@@ -3,10 +3,20 @@
 #include "ModelData.h"
 #include "Vector3.h"
 
+#include <cstdint>
 #include <random>
 #include <vector>
 
 namespace K4E = ::Ken4lowEngine;
+
+/// -------------------------------------------------------------
+/// 崩壊ブロックの初期配置モード
+/// -------------------------------------------------------------
+enum class DisintegrationPlacementMode
+{
+	RandomSurface,
+	UniformSurface,
+};
 
 /// -------------------------------------------------------------
 /// 崩壊・再構築エフェクトで共有するモデル表面サンプル点
@@ -28,7 +38,9 @@ public:
 		const K4E::Matrix4x4& worldMatrix,
 		int sampleCount,
 		bool surfaceSampling,
-		float vertexJitterRadius = 0.0f);
+		float vertexJitterRadius = 0.0f,
+		DisintegrationPlacementMode placementMode = DisintegrationPlacementMode::RandomSurface,
+		uint32_t placementSeed = 0x51A7F00Du);
 
 private:
 	struct TriangleSample
@@ -49,6 +61,7 @@ private:
 	float Random01();
 	float RandomRange(float minValue, float maxValue);
 	K4E::Vector3 RandomUnitVector();
+	float VanDerCorput(uint32_t value) const;
 
 	std::mt19937 rng_{ 0x51A7F00Du };
 	std::uniform_real_distribution<float> unitDist_{ 0.0f, 1.0f };

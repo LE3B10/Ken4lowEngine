@@ -3,6 +3,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstdint>
 
 namespace
 {
@@ -31,8 +32,11 @@ std::vector<DisintegrationSamplePoint> ModelSurfaceSampler::SampleFromModel(
 	const K4E::Matrix4x4& worldMatrix,
 	int sampleCount,
 	bool surfaceSampling,
-	float vertexJitterRadius)
+	float vertexJitterRadius,
+	DisintegrationPlacementMode placementMode,
+	uint32_t placementSeed)
 {
+	rng_.seed(placementSeed);
 	std::vector<TriangleSample> triangles;
 	std::vector<VertexSample> vertices;
 	triangles.reserve(1024);
@@ -86,14 +90,18 @@ std::vector<DisintegrationSamplePoint> ModelSurfaceSampler::SampleFromModel(
 	samples.reserve(static_cast<size_t>(std::max(0, sampleCount)));
 	if ((triangles.empty() && vertices.empty()) || sampleCount <= 0) { return samples; }
 
+	const bool useUniformSurface = placementMode == DisintegrationPlacementMode::UniformSurface && !triangles.empty();
+	const bool useTriangleSurface = (surfaceSampling || useUniformSurface) && !triangles.empty();
 	for (int i = 0; i < sampleCount; ++i)
 	{
 		K4E::Vector3 local{};
 		K4E::Vector3 localNormal{ 0.0f, 1.0f, 0.0f };
 
-		if (surfaceSampling && !triangles.empty())
+		if (useTriangleSurface)
 		{
-			const float areaPick = RandomRange(0.0f, totalArea);
+			const float areaPick = useUniformSurface
+				? totalArea * (static_cast<float>(i) + 0.5f) / static_cast<float>(sampleCount)
+				: RandomRange(0.0f, totalArea);
 			auto it = std::lower_bound(
 				triangles.begin(), triangles.end(), areaPick,
 				[](const TriangleSample& tri, float value) { return tri.cumulativeArea < value; });
@@ -101,20 +109,37 @@ std::vector<DisintegrationSamplePoint> ModelSurfaceSampler::SampleFromModel(
 
 			float u = Random01();
 			float v = Random01();
-			if (u + v > 1.0f)
+			if (useUniformSurface)
 			{
-				u = 1.0f - u;
-				v = 1.0f - v;
+				// 面積で層化した三角形上に低差異点を置き、毎回同じ均一表面配置にする。
+				u = (static_cast<float>((static_cast<uint32_t>(i) * 2654435761u + placementSeed) & 0x00FFFFFFu) + 0.5f) / static_cast<float>(0x01000000u);
+				v = VanDerCorput(static_cast<uint32_t>(i) + (placementSeed | 1u));
+				const float sqrtU = std::sqrt(u);
+				const float baryB = sqrtU * (1.0f - v);
+				const float baryC = sqrtU * v;
+				local = it->a + (it->b - it->a) * baryB + (it->c - it->a) * baryC;
 			}
-
-			local = it->a + (it->b - it->a) * u + (it->c - it->a) * v;
+			else
+			{
+				if (u + v > 1.0f)
+				{
+					u = 1.0f - u;
+					v = 1.0f - v;
+				}
+				local = it->a + (it->b - it->a) * u + (it->c - it->a) * v;
+			}
 			localNormal = it->normal;
 		}
 		else
 		{
-			const size_t sampleIndex = std::min(static_cast<size_t>(Random01() * static_cast<float>(vertices.size())), vertices.size() - 1);
-			const VertexSample& sample = vertices[sampleIndex];
-			local = sample.position + RandomUnitVector() * RandomRange(0.0f, vertexJitterRadius);
+			const bool useUniformVertexFallback = placementMode == DisintegrationPlacementMode::UniformSurface;
+			const size_t sampleIndex = useUniformVertexFallback
+				? (static_cast<size_t>(i) * vertices.size()) / static_cast<size_t>(sampleCount)
+				: std::min(static_cast<size_t>(Random01() * static_cast<float>(vertices.size())), vertices.size() - 1);
+			const VertexSample& sample = vertices[std::min(sampleIndex, vertices.size() - 1)];
+			local = useUniformVertexFallback
+				? sample.position
+				: sample.position + RandomUnitVector() * RandomRange(0.0f, vertexJitterRadius);
 			localNormal = sample.normal;
 		}
 
@@ -146,4 +171,15 @@ K4E::Vector3 ModelSurfaceSampler::RandomUnitVector()
 	} while (K4E::Vector3::LengthSquared(v) <= 0.000001f);
 
 	return K4E::Vector3::Normalize(v);
+}
+
+
+float ModelSurfaceSampler::VanDerCorput(uint32_t value) const
+{
+	value = (value << 16u) | (value >> 16u);
+	value = ((value & 0x55555555u) << 1u) | ((value & 0xAAAAAAAAu) >> 1u);
+	value = ((value & 0x33333333u) << 2u) | ((value & 0xCCCCCCCCu) >> 2u);
+	value = ((value & 0x0F0F0F0Fu) << 4u) | ((value & 0xF0F0F0F0u) >> 4u);
+	value = ((value & 0x00FF00FFu) << 8u) | ((value & 0xFF00FF00u) >> 8u);
+	return static_cast<float>(value) * 2.3283064365386963e-10f;
 }
