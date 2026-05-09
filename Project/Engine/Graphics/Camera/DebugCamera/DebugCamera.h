@@ -163,6 +163,16 @@ public: /// ---------- 取得 ---------- ///
 	/// </summary>
 	Vector3 GetTranslate() const { return worldTransform_.translate_; }
 
+	/// <summary>
+	/// 垂直方向視野角(FoV Y)を取得します。
+	/// </summary>
+	float GetFovY() const { return fovY_; }
+
+	/// <summary>
+	/// 現在のアスペクト比を取得します。
+	/// </summary>
+	float GetAspectRatio() const { return aspectRatio_; }
+
 private: /// ---------- メンバ変数 ---------- ///
 
 	// ワールドトランスフォーム

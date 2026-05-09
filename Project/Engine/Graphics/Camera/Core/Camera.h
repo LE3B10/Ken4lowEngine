@@ -172,6 +172,11 @@ public: /// ---------- ゲッター ---------- ///
 	/// </summary>
 	float GetFovY() const { return fovY_; }
 
+	/// <summary>
+	/// 現在のアスペクト比を取得します。
+	/// </summary>
+	float GetAspectRatio() const { return aspectRatio_; }
+
 private: /// ---------- メンバ変数 ----- ///
 
 	// Transform情報

@@ -18,7 +18,7 @@ namespace Ken4lowEngine
 	void Object3DCommon::Initialize(DirectXCommon* dxCommon)
 	{
 		dxCommon_ = dxCommon;
-		cullingCameraMode_ = CullingCameraMode::Active;
+		cullingCameraMode_ = CullingCameraMode::ActiveCamera;
 
 		pipelineSet_.Initialize(dxCommon_->GetPipelineFactory(), dxCommon_->GetDXCCompilerManager(), DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, DXGI_FORMAT_D24_UNORM_S8_UINT);
 
@@ -29,7 +29,7 @@ namespace Ken4lowEngine
 	{
 		LightManager::GetInstance()->Finalize();
 		pipelineSet_.Finalize();
-		cullingCameraMode_ = CullingCameraMode::Active;
+		cullingCameraMode_ = CullingCameraMode::ActiveCamera;
 		dxCommon_ = nullptr;
 	}
 
@@ -59,13 +59,13 @@ namespace Ken4lowEngine
 		auto* cameraManager = CameraManager::GetInstance();
 		switch (cullingCameraMode_)
 		{
-		case CullingCameraMode::Main:
+		case CullingCameraMode::MainCamera:
 			if (Camera* mainCamera = cameraManager->GetMainCamera())
 			{
 				return mainCamera->GetViewProjectionMatrix();
 			}
 			break;
-		case CullingCameraMode::Debug:
+		case CullingCameraMode::DebugCamera:
 #ifdef _DEBUG
 			if (DebugCamera* debugCamera = cameraManager->GetDebugCamera())
 			{
@@ -73,7 +73,7 @@ namespace Ken4lowEngine
 			}
 #endif
 			break;
-		case CullingCameraMode::Active:
+		case CullingCameraMode::ActiveCamera:
 		default:
 			return cameraManager->GetActiveViewProjectionMatrix();
 		}
