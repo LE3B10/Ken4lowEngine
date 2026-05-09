@@ -7,6 +7,9 @@
 #include "CameraManager.h"
 #include "Wireframe.h"
 #include "Object3DCommon.h"
+#include "Object3D.h"
+#include "Camera.h"
+#include "WinApp.h"
 #include <GameTimer.h>
 #ifdef _DEBUG
 #include <DebugCamera.h>
@@ -24,6 +27,7 @@
 #include <filesystem>
 #include <cstdio>
 #include <array>
+#include <numbers>
 
 using namespace Ken4lowEngine;
 
@@ -37,6 +41,26 @@ namespace
 	{
 		std::string line = message + "\n";
 		OutputDebugStringA(line.c_str());
+	}
+
+
+	constexpr float kDegToRad = std::numbers::pi_v<float> / 180.0f;
+	constexpr float kRadToDeg = 180.0f / std::numbers::pi_v<float>;
+
+	Vector3 GetDefaultMainCameraPosition()
+	{
+		return { 0.0f, 3.0f, -12.0f };
+	}
+
+	Vector3 GetDefaultMainCameraRotation()
+	{
+		return { 8.0f * kDegToRad, 0.0f, 0.0f };
+	}
+
+	float GetCurrentWindowAspectRatio()
+	{
+		const float height = static_cast<float>(std::max(WinApp::GetInstance()->GetClientHeight(), 1u));
+		return static_cast<float>(WinApp::GetInstance()->GetClientWidth()) / height;
 	}
 
 	GpuParticleType ToDebugParticleType(int index)
@@ -129,6 +153,20 @@ void DebugScene::Initialize()
 	disintegrationDebug_ = std::make_unique<DisintegrationDebugController>();
 	// Disintegration系の確認処理は専用コントローラへ委譲し、DebugScene本体の責務を絞る。
 	disintegrationDebug_->Initialize();
+
+	if (Camera* mainCamera = CameraManager::GetInstance()->GetMainCamera())
+	{
+		mainCamera->SetTranslate(GetDefaultMainCameraPosition());
+		mainCamera->SetRotate(GetDefaultMainCameraRotation());
+		mainCamera->SetFovY(60.0f * kDegToRad);
+		mainCamera->SetNearClip(0.1f);
+		mainCamera->SetFarClip(80.0f);
+		mainCamera->SetAspectRatio(GetCurrentWindowAspectRatio());
+		mainCamera->Update();
+	}
+
+	Object3DCommon::GetInstance()->SetFrustumCullingEnabled(true);
+	InitializeCullingTestObjects();
 }
 
 void DebugScene::Update()
@@ -159,6 +197,11 @@ void DebugScene::Update()
 		disintegrationDebug_->Update(deltaTime);
 	}
 
+	for (auto& object : cullingTestObjects_)
+	{
+		object->Update();
+	}
+
 	collisionManager_->Update();
 	collisionManager_->CheckAllCollisions();
 
@@ -169,6 +212,11 @@ void DebugScene::Draw3DObjects()
 	if (disintegrationDebug_)
 	{
 		disintegrationDebug_->Draw3DObjects();
+	}
+
+	for (auto& object : cullingTestObjects_)
+	{
+		object->Draw();
 	}
 
 	// ボス描画
@@ -227,6 +275,7 @@ void DebugScene::Finalize()
 	input_->SetLockCursor(false);
 	input_->SetCursorVisible(true);
 
+	cullingTestObjects_.clear();
 	disintegrationDebug_.reset();
 	debugBoss_.reset();
 	collisionManager_.reset();
@@ -497,6 +546,41 @@ void DebugScene::DrawImGui()
 
 }
 
+void DebugScene::InitializeCullingTestObjects()
+{
+	cullingTestObjects_.clear();
+
+	struct CullingTestObjectDesc
+	{
+		Vector3 position;
+		Vector3 scale;
+		Vector4 color;
+	};
+
+	const CullingTestObjectDesc objectDescs[] = {
+		{ { 0.0f, 1.0f, 10.0f }, { 1.5f, 1.5f, 1.5f }, { 0.2f, 1.0f, 0.2f, 1.0f } },
+		{ { -18.0f, 1.0f, 18.0f }, { 1.5f, 1.5f, 1.5f }, { 1.0f, 0.25f, 0.25f, 1.0f } },
+		{ { 18.0f, 1.0f, 18.0f }, { 1.5f, 1.5f, 1.5f }, { 0.25f, 0.45f, 1.0f, 1.0f } },
+		{ { 0.0f, 1.0f, 95.0f }, { 2.0f, 2.0f, 2.0f }, { 1.0f, 0.8f, 0.2f, 1.0f } },
+		{ { 0.0f, 1.0f, -9.0f }, { 1.5f, 1.5f, 1.5f }, { 1.0f, 0.2f, 1.0f, 1.0f } },
+		{ { 0.0f, 5.0f, 22.0f }, { 1.5f, 1.5f, 1.5f }, { 0.2f, 1.0f, 1.0f, 1.0f } },
+	};
+
+	cullingTestObjects_.reserve(sizeof(objectDescs) / sizeof(objectDescs[0]));
+	for (const CullingTestObjectDesc& desc : objectDescs)
+	{
+		auto object = std::make_unique<Object3D>();
+		object->Initialize("Test/cube.gltf");
+		object->SetTranslate(desc.position);
+		object->SetScale(desc.scale);
+		object->SetColor(desc.color);
+		// Object3D のみをカリング対象にし、Wireframe や UI は確認結果から除外する。
+		object->SetFrustumCullingEnabled(true);
+		object->Update();
+		cullingTestObjects_.push_back(std::move(object));
+	}
+}
+
 std::array<Vector3, 8> DebugScene::BuildCullingFrustumCorners() const
 {
 	const Matrix4x4 inverseViewProjection = Matrix4x4::Inverse(Object3DCommon::GetInstance()->GetCullingViewProjectionMatrix());
@@ -524,23 +608,117 @@ void DebugScene::DrawCullingFrustumImGui()
 #ifdef USE_IMGUI
 	Object3DCommon* object3DCommon = Object3DCommon::GetInstance();
 	int cullingCameraIndex = static_cast<int>(object3DCommon->GetCullingCameraMode());
-	const char* cullingCameraItems[] = { "ActiveCamera", "MainCamera", "DebugCamera" };
+	const char* cullingCameraItems[] = { "アクティブカメラ", "メインカメラ", "デバッグカメラ" };
 
+	bool frustumCullingEnabled = object3DCommon->IsFrustumCullingEnabled();
 	float nearDistance = 0.0f;
 	float farDistance = 0.0f;
 	GetCullingCameraClipDistances(nearDistance, farDistance);
 
 	ImGui::Begin("DebugScene Frustum Culling");
-	ImGui::Checkbox("カリング視錐台を表示", &showCullingFrustum_);
-	ImGui::ColorEdit4("視錐台ワイヤー色", &cullingFrustumWireColor_.x);
-	ImGui::InputFloat("Near距離", &nearDistance, 0.0f, 0.0f, "%.3f", ImGuiInputTextFlags_ReadOnly);
-	ImGui::InputFloat("Far距離", &farDistance, 0.0f, 0.0f, "%.3f", ImGuiInputTextFlags_ReadOnly);
+	if (ImGui::Checkbox("Frustum Culling 有効", &frustumCullingEnabled))
+	{
+		object3DCommon->SetFrustumCullingEnabled(frustumCullingEnabled);
+	}
 	if (ImGui::Combo("カリング基準カメラ", &cullingCameraIndex, cullingCameraItems, IM_ARRAYSIZE(cullingCameraItems)))
 	{
 		object3DCommon->SetCullingCameraMode(static_cast<Object3DCommon::CullingCameraMode>(cullingCameraIndex));
 	}
-	ImGui::TextWrapped("DebugCameraで外側から見る場合は、カリング基準カメラをMainCameraにするとMainCameraの判定範囲を確認できます。");
+
+	ImGui::Separator();
+	ImGui::Text("アクティブカメラ: %s", CameraManager::GetInstance()->IsUsingDebugCamera() ? "デバッグカメラ" : "メインカメラ");
+	ImGui::Text("メインカメラ: %s", CameraManager::GetInstance()->GetMainCamera() ? "利用可能" : "未設定");
+#ifdef _DEBUG
+	ImGui::Text("デバッグカメラ: %s", CameraManager::GetInstance()->GetDebugCamera() ? "利用可能" : "未設定");
+#else
+	ImGui::Text("デバッグカメラ: リリースビルドでは無効");
+#endif
+	ImGui::Checkbox("カリング視錐台を表示", &showCullingFrustum_);
+	ImGui::ColorEdit4("視錐台ワイヤー色", &cullingFrustumWireColor_.x);
+	ImGui::InputFloat("Near", &nearDistance, 0.0f, 0.0f, "%.3f", ImGuiInputTextFlags_ReadOnly);
+	ImGui::InputFloat("Far", &farDistance, 0.0f, 0.0f, "%.3f", ImGuiInputTextFlags_ReadOnly);
+
+	ImGui::Separator();
+	ImGui::Text("総オブジェクト数: %d", object3DCommon->GetTotalObjectCount());
+	ImGui::Text("描画された数: %d", object3DCommon->GetDrawnObjectCount());
+	ImGui::Text("カリングされた数: %d", object3DCommon->GetCulledObjectCount());
+	ImGui::TextWrapped("DebugCameraで外側から見る場合は、カリング基準カメラをメインカメラにするとMainCameraの判定範囲を確認できます。");
+
+	DrawMainCameraCullingImGui();
 	ImGui::End();
+#endif // USE_IMGUI
+}
+
+void DebugScene::DrawMainCameraCullingImGui()
+{
+#ifdef USE_IMGUI
+	Camera* mainCamera = CameraManager::GetInstance()->GetMainCamera();
+	if (!mainCamera)
+	{
+		ImGui::Separator();
+		ImGui::Text("MainCameraが未設定です。");
+		return;
+	}
+
+	if (ImGui::CollapsingHeader("MainCamera 調整", ImGuiTreeNodeFlags_DefaultOpen))
+	{
+		Vector3 position = mainCamera->GetTranslate();
+		Vector3 rotation = mainCamera->GetRotate();
+		float fovDeg = mainCamera->GetFovY() * kRadToDeg;
+		float nearClip = mainCamera->GetNearClip();
+		float farClip = mainCamera->GetFarClip();
+		float aspectRatio = mainCamera->GetAspectRatio();
+		bool changed = false;
+
+		changed |= ImGui::DragFloat3("位置", &position.x, 0.05f);
+		changed |= ImGui::DragFloat3("回転", &rotation.x, 0.005f);
+		changed |= ImGui::SliderFloat("FOV", &fovDeg, 10.0f, 140.0f, "%.1f deg");
+		changed |= ImGui::DragFloat("Near", &nearClip, 0.001f, 0.001f, 10.0f, "%.3f");
+		changed |= ImGui::DragFloat("Far", &farClip, 0.5f, 1.0f, 1000.0f, "%.1f");
+		changed |= ImGui::DragFloat("アスペクト比", &aspectRatio, 0.001f, 0.1f, 4.0f, "%.3f");
+
+		if (changed)
+		{
+			farClip = std::max(farClip, 0.011f);
+			nearClip = std::clamp(nearClip, 0.001f, farClip - 0.01f);
+			farClip = std::max(farClip, nearClip + 0.01f);
+			aspectRatio = std::max(aspectRatio, 0.1f);
+			mainCamera->SetTranslate(position);
+			mainCamera->SetRotate(rotation);
+			mainCamera->SetFovY(fovDeg * kDegToRad);
+			mainCamera->SetNearClip(nearClip);
+			mainCamera->SetFarClip(farClip);
+			mainCamera->SetAspectRatio(aspectRatio);
+			mainCamera->Update();
+		}
+
+		if (ImGui::Button("MainCameraをリセット"))
+		{
+			mainCamera->SetTranslate(GetDefaultMainCameraPosition());
+			mainCamera->SetRotate(GetDefaultMainCameraRotation());
+			mainCamera->SetFovY(60.0f * kDegToRad);
+			mainCamera->SetNearClip(0.1f);
+			mainCamera->SetFarClip(80.0f);
+			mainCamera->SetAspectRatio(GetCurrentWindowAspectRatio());
+			mainCamera->Update();
+		}
+#ifdef _DEBUG
+		ImGui::SameLine();
+		if (ImGui::Button("MainCameraを現在のDebugCamera位置に合わせる"))
+		{
+			if (DebugCamera* debugCamera = CameraManager::GetInstance()->GetDebugCamera())
+			{
+				mainCamera->SetTranslate(debugCamera->GetTranslate());
+				mainCamera->SetRotate(debugCamera->GetRotate());
+				mainCamera->SetFovY(debugCamera->GetFovY());
+				mainCamera->SetNearClip(debugCamera->GetNearClip());
+				mainCamera->SetFarClip(debugCamera->GetFarClip());
+				mainCamera->SetAspectRatio(debugCamera->GetAspectRatio());
+				mainCamera->Update();
+			}
+		}
+#endif
+	}
 #endif // USE_IMGUI
 }
 
@@ -578,13 +756,13 @@ void DebugScene::GetCullingCameraClipDistances(float& nearDistance, float& farDi
 
 	switch (mode)
 	{
-	case Object3DCommon::CullingCameraMode::Main:
+	case Object3DCommon::CullingCameraMode::MainCamera:
 		if (setMainCameraClips()) { return; }
 		break;
-	case Object3DCommon::CullingCameraMode::Debug:
+	case Object3DCommon::CullingCameraMode::DebugCamera:
 		if (setDebugCameraClips()) { return; }
 		break;
-	case Object3DCommon::CullingCameraMode::Active:
+	case Object3DCommon::CullingCameraMode::ActiveCamera:
 	default:
 		if (cameraManager->IsUsingDebugCamera())
 		{

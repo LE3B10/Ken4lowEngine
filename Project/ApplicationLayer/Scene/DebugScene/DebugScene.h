@@ -12,10 +12,12 @@
 #include <array>
 #include <memory>
 #include <string>
+#include <vector>
 
 /// ---------- 前方宣言 ---------- ///
 namespace Ken4lowEngine { class DirectXCommon; }
 namespace Ken4lowEngine { class Input; }
+namespace Ken4lowEngine { class Object3D; }
 namespace K4E = ::Ken4lowEngine;
 
 /// -------------------------------------------------------------
@@ -68,6 +70,12 @@ private: /// ---------- メンバ関数 ---------- ///
 	// DebugScene 専用のカリング視錐台 ImGui
 	void DrawCullingFrustumImGui();
 
+	// MainCamera のカリング確認用 ImGui
+	void DrawMainCameraCullingImGui();
+
+	// カリング確認用 Object3D を初期化
+	void InitializeCullingTestObjects();
+
 	// 選択中カリング基準カメラの Near/Far 距離を取得
 	void GetCullingCameraClipDistances(float& nearDistance, float& farDistance) const;
 
@@ -103,6 +111,9 @@ private: /// ---------- メンバ変数 ---------- ///
 	// カリング視錐台のワイヤー表示設定
 	bool showCullingFrustum_ = true;
 	K4E::Vector4 cullingFrustumWireColor_ = { 0.1f, 1.0f, 0.2f, 1.0f };
+
+	// Frustum Culling の挙動確認用 Object3D 群
+	std::vector<std::unique_ptr<K4E::Object3D>> cullingTestObjects_;
 
 };
 
