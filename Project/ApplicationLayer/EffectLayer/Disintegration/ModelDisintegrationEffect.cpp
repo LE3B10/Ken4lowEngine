@@ -30,6 +30,8 @@ void ModelDisintegrationEffect::Initialize()
 {
 	particles_.clear();
 	isActive_ = false;
+	isStarted_ = false;
+	globalAlpha_ = 1.0f;
 	elapsedTime_ = 0.0f;
 	sweepDirectionNormalized_ = GetSafeSweepDirection();
 	sweepMin_ = 0.0f;
@@ -63,10 +65,34 @@ void ModelDisintegrationEffect::PlayFromModel(const std::string& modelPath, cons
 	particles_ = emitter_.EmitFromModel(model->GetModelData(), worldMatrix, settings);
 	InitializeSweepData();
 	isActive_ = !particles_.empty();
+	isStarted_ = isActive_;
+	globalAlpha_ = 1.0f;
 	elapsedTime_ = 0.0f;
 }
 
 void ModelDisintegrationEffect::PlayFromSamples(const std::vector<DisintegrationSamplePoint>& samples, const K4E::Matrix4x4& worldMatrix)
+{
+	BuildParticlesFromSamples(samples, worldMatrix);
+	StartPrepared();
+}
+
+void ModelDisintegrationEffect::PrepareFromSamples(const std::vector<DisintegrationSamplePoint>& samples, const K4E::Matrix4x4& worldMatrix)
+{
+	BuildParticlesFromSamples(samples, worldMatrix);
+	isStarted_ = false;
+}
+
+void ModelDisintegrationEffect::StartPrepared()
+{
+	if (particles_.empty()) { return; }
+	// フェード完了までは同じ配置のブロックを静止させ、開始時の配置ジャンプを防ぐ。
+	InitializeSweepData();
+	isActive_ = true;
+	isStarted_ = true;
+	elapsedTime_ = 0.0f;
+}
+
+void ModelDisintegrationEffect::BuildParticlesFromSamples(const std::vector<DisintegrationSamplePoint>& samples, const K4E::Matrix4x4& worldMatrix)
 {
 	DisintegrationEmitter::Settings settings{};
 	settings.particleCount = parameters_.particleCount;
@@ -90,12 +116,14 @@ void ModelDisintegrationEffect::PlayFromSamples(const std::vector<Disintegration
 	particles_ = emitter_.EmitFromSamples(samples, worldMatrix.GetTranslation(), settings);
 	InitializeSweepData();
 	isActive_ = !particles_.empty();
+	isStarted_ = false;
+	globalAlpha_ = 1.0f;
 	elapsedTime_ = 0.0f;
 }
 
 void ModelDisintegrationEffect::Update(float deltaTime)
 {
-	if (!isActive_) { return; }
+	if (!isActive_ || !isStarted_) { return; }
 
 	elapsedTime_ += deltaTime;
 	bool anyAlive = false;
@@ -134,7 +162,12 @@ void ModelDisintegrationEffect::Update(float deltaTime)
 void ModelDisintegrationEffect::Draw()
 {
 	if (!isActive_) { return; }
-	renderer_.Draw(particles_);
+	renderer_.Draw(particles_, globalAlpha_);
+}
+
+void ModelDisintegrationEffect::SetGlobalAlpha(float alpha)
+{
+	globalAlpha_ = Clamp01(alpha);
 }
 
 void ModelDisintegrationEffect::DrawImGui()

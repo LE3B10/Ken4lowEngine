@@ -44,6 +44,7 @@ public:
 	void Update(float deltaTime);
 	void Draw();
 	void DrawImGui();
+	void SetGlobalAlpha(float alpha);
 	bool IsActive() const { return isActive_; }
 	bool IsComplete() const { return isComplete_; }
 	bool ShouldShowFinalModel() const { return isComplete_ && parameters_.showFinalModel; }
@@ -64,4 +65,5 @@ private:
 	bool isActive_ = false;
 	bool isComplete_ = false;
 	float elapsedTime_ = 0.0f;
+	float globalAlpha_ = 1.0f;
 };

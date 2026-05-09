@@ -11,6 +11,7 @@ struct ReconstructionBlock
 {
 	K4E::Vector3 startPosition{};
 	K4E::Vector3 targetPosition{};
+	K4E::Vector3 targetNormal{ 0.0f, 1.0f, 0.0f };
 	K4E::Vector3 position{};
 	K4E::Vector3 rotation{};
 	K4E::Vector3 startRotation{};

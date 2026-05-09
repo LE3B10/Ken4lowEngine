@@ -17,6 +17,7 @@ void ModelReconstructionEffect::Initialize()
 	isActive_ = false;
 	isComplete_ = false;
 	elapsedTime_ = 0.0f;
+	globalAlpha_ = 1.0f;
 }
 
 void ModelReconstructionEffect::PlayFromModel(const std::string& modelPath, const K4E::Matrix4x4& worldMatrix)
@@ -45,6 +46,7 @@ void ModelReconstructionEffect::PlayFromModel(const std::string& modelPath, cons
 	isActive_ = !blocks_.empty();
 	isComplete_ = false;
 	elapsedTime_ = 0.0f;
+	globalAlpha_ = 1.0f;
 }
 
 void ModelReconstructionEffect::Update(float deltaTime)
@@ -104,7 +106,12 @@ void ModelReconstructionEffect::Update(float deltaTime)
 void ModelReconstructionEffect::Draw()
 {
 	if (!ShouldDrawBlocks()) { return; }
-	renderer_.Draw(blocks_);
+	renderer_.Draw(blocks_, globalAlpha_);
+}
+
+void ModelReconstructionEffect::SetGlobalAlpha(float alpha)
+{
+	globalAlpha_ = Clamp01(alpha);
 }
 
 std::vector<DisintegrationSamplePoint> ModelReconstructionEffect::GetTargetSamples() const
@@ -115,6 +122,7 @@ std::vector<DisintegrationSamplePoint> ModelReconstructionEffect::GetTargetSampl
 	{
 		DisintegrationSamplePoint sample{};
 		sample.position = block.targetPosition;
+		sample.normal = block.targetNormal;
 		samples.push_back(sample);
 	}
 	return samples;

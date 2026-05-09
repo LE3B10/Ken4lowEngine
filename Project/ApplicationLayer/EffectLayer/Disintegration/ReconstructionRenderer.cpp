@@ -33,7 +33,7 @@ ReconstructionRenderer::~ReconstructionRenderer()
 	ReleaseSrv();
 }
 
-void ReconstructionRenderer::Draw(const std::vector<ReconstructionBlock>& particles)
+void ReconstructionRenderer::Draw(const std::vector<ReconstructionBlock>& particles, float globalAlpha)
 {
 	if (particles.empty()) { return; }
 	if (!initialized_) { Initialize(); }
@@ -41,7 +41,7 @@ void ReconstructionRenderer::Draw(const std::vector<ReconstructionBlock>& partic
 	size_t visibleCount = 0;
 	for (const auto& particle : particles)
 	{
-		if (particle.alive && particle.alpha > 0.0f) { ++visibleCount; }
+		if (particle.alive && particle.alpha * globalAlpha > 0.0f) { ++visibleCount; }
 	}
 	if (visibleCount == 0) { return; }
 
@@ -51,10 +51,10 @@ void ReconstructionRenderer::Draw(const std::vector<ReconstructionBlock>& partic
 	size_t writeIndex = 0;
 	for (const auto& particle : particles)
 	{
-		if (!particle.alive || particle.alpha <= 0.0f) { continue; }
+		if (!particle.alive || particle.alpha * globalAlpha <= 0.0f) { continue; }
 
 		K4E::Vector4 color = particle.color;
-		color.w *= particle.alpha;
+		color.w *= particle.alpha * std::clamp(globalAlpha, 0.0f, 1.0f);
 		instanceData_[writeIndex].world = MakeWorldMatrix(particle);
 		instanceData_[writeIndex].color = color;
 		++writeIndex;

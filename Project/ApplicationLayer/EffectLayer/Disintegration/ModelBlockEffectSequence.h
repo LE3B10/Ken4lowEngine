@@ -23,7 +23,10 @@ public:
 	{
 		Idle,
 		Reconstructing,
+		HoldingBlocks,
+		BlendingBlockToModel,
 		ShowingModel,
+		BlendingModelToBlock,
 		Disintegrating,
 		Waiting,
 		Completed,
@@ -33,6 +36,13 @@ public:
 	{
 		float showDuration = 1.2f;
 		float waitDuration = 0.8f;
+		bool useModelBlend = true;
+		float modelBlendDuration = 0.25f;
+		float blockHoldDuration = 0.8f;
+		bool keepBlocksUntilDisintegration = true;
+		bool skipNormalModelInSequence = true;
+		bool useBlockToModelFade = true;
+		bool useModelToBlockFade = true;
 		bool showFinalModelAfterComplete = false;
 		bool keepBlocksAfterComplete = true;
 		bool fadeToModelAfterComplete = false;
@@ -104,6 +114,10 @@ private:
 	void StartDisintegrationFromSharedSamples();
 	void EnterState(SequenceState nextState);
 	void CompleteOrLoop();
+	float GetBlendDuration() const;
+	float Clamp01(float value) const;
+	void SetReconstructionAlpha(float alpha);
+	void SetDisintegrationAlpha(float alpha);
 
 	ModelReconstructionEffect* reconstructionEffect_ = nullptr;
 	ModelDisintegrationEffect* disintegrationEffect_ = nullptr;

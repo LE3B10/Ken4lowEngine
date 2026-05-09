@@ -59,10 +59,13 @@ public:
 	void Initialize();
 	void PlayFromModel(const std::string& modelPath, const K4E::Matrix4x4& worldMatrix);
 	void PlayFromSamples(const std::vector<DisintegrationSamplePoint>& samples, const K4E::Matrix4x4& worldMatrix);
+	void PrepareFromSamples(const std::vector<DisintegrationSamplePoint>& samples, const K4E::Matrix4x4& worldMatrix);
+	void StartPrepared();
 	void Update(float deltaTime);
 	void Draw();
 	void DrawImGui();
-	bool IsActive() const { return isActive_; }
+	void SetGlobalAlpha(float alpha);
+	bool IsActive() const { return isActive_ && isStarted_; }
 
 	Parameters& GetParameters() { return parameters_; }
 	const Parameters& GetParameters() const { return parameters_; }
@@ -75,12 +78,15 @@ private:
 	void UpdateSweepErosion();
 	void UpdateParticlePhysics(DisintegrationParticle& particle, float deltaTime);
 	void StopIfFinished();
+	void BuildParticlesFromSamples(const std::vector<DisintegrationSamplePoint>& samples, const K4E::Matrix4x4& worldMatrix);
 
 	Parameters parameters_{};
 	DisintegrationEmitter emitter_{};
 	DisintegrationRenderer renderer_{};
 	std::vector<DisintegrationParticle> particles_{};
 	bool isActive_ = false;
+	bool isStarted_ = false;
+	float globalAlpha_ = 1.0f;
 	float elapsedTime_ = 0.0f;
 	K4E::Vector3 sweepDirectionNormalized_{ 1.0f, 0.0f, 0.0f };
 	float sweepMin_ = 0.0f;
