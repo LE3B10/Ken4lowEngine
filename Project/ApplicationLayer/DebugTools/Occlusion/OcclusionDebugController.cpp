@@ -33,6 +33,7 @@ namespace
 
 	ImVec2 ToScreenPoint(const K4E::OcclusionCullingSystem::ScreenRect& rect, float x, float y)
 	{
+		(void)rect; // rectは将来の拡張で使うかもなので一応引数に残す
 		const ImGuiViewport* viewport = ImGui::GetMainViewport();
 		return ImVec2(
 			viewport->WorkPos.x + x * viewport->WorkSize.x,

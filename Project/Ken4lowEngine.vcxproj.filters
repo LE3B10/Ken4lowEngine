@@ -115,16 +115,7 @@
     <FxCompile Include="Resources\Shaders\Object3D\ShadowMap.VS.hlsl">
       <Filter>Shader\VertexShader</Filter>
     </FxCompile>
-      <Filter Include="ApplicationLayer\DebugTools\FrustumCulling">
-      <UniqueIdentifier>{4f4cae23-3c32-4724-9ab8-fc7cf0d39a43}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="ApplicationLayer\DebugTools\StageChunk">
-      <UniqueIdentifier>{ea618bf4-bd85-414f-85f7-7c6d7022f237}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="ApplicationLayer\DebugTools\Occlusion">
-      <UniqueIdentifier>{b7b62a46-4e32-4c54-81af-9a4f54ee1c44}</UniqueIdentifier>
-    </Filter>
-</ItemGroup>
+  </ItemGroup>
   <ItemGroup>
     <ClCompile Include="WinMain.cpp" />
     <ClCompile Include="ApplicationLayer\UISystem\Crosshair\Crosshair.cpp">
@@ -547,15 +538,6 @@
     <ClCompile Include="Engine\Graphics\Culling\Frustum.cpp">
       <Filter>Engine\Graphics\Culling</Filter>
     </ClCompile>
-    <ClCompile Include="ApplicationLayer\DebugTools\FrustumCulling\FrustumCullingDebugController.cpp">
-      <Filter>ApplicationLayer\DebugTools\FrustumCulling</Filter>
-    </ClCompile>
-    <ClCompile Include="ApplicationLayer\DebugTools\StageChunk\StageChunkDebugController.cpp">
-      <Filter>ApplicationLayer\DebugTools\StageChunk</Filter>
-    </ClCompile>
-    <ClCompile Include="ApplicationLayer\DebugTools\Occlusion\OcclusionDebugController.cpp">
-      <Filter>ApplicationLayer\DebugTools\Occlusion</Filter>
-    </ClCompile>
     <ClCompile Include="Engine\Graphics\Culling\FrustumDebugRenderer.cpp">
       <Filter>Engine\Graphics\Culling</Filter>
     </ClCompile>
@@ -862,6 +844,9 @@
     <ClCompile Include="ApplicationLayer\Character\Enemy\AI\EnemyEvadeController.cpp">
       <Filter>ApplicationLayer\Character\Enemy\AI</Filter>
     </ClCompile>
+    <ClCompile Include="ApplicationLayer\DebugTools\FrustumCulling\FrustumCullingDebugController.cpp" />
+    <ClCompile Include="ApplicationLayer\DebugTools\StageChunk\StageChunkDebugController.cpp" />
+    <ClCompile Include="ApplicationLayer\DebugTools\Occlusion\OcclusionDebugController.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ApplicationLayer\UISystem\Crosshair\Crosshair.h">
@@ -1392,15 +1377,6 @@
     <ClInclude Include="Engine\Graphics\Culling\Frustum.h">
       <Filter>Engine\Graphics\Culling</Filter>
     </ClInclude>
-    <ClInclude Include="ApplicationLayer\DebugTools\FrustumCulling\FrustumCullingDebugController.h">
-      <Filter>ApplicationLayer\DebugTools\FrustumCulling</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\DebugTools\StageChunk\StageChunkDebugController.h">
-      <Filter>ApplicationLayer\DebugTools\StageChunk</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\DebugTools\Occlusion\OcclusionDebugController.h">
-      <Filter>ApplicationLayer\DebugTools\Occlusion</Filter>
-    </ClInclude>
     <ClInclude Include="Engine\Graphics\Culling\FrustumDebugRenderer.h">
       <Filter>Engine\Graphics\Culling</Filter>
     </ClInclude>
@@ -1800,6 +1776,9 @@
     <ClInclude Include="Engine\Math\MathTypes.h">
       <Filter>Engine\Math</Filter>
     </ClInclude>
+    <ClInclude Include="ApplicationLayer\DebugTools\FrustumCulling\FrustumCullingDebugController.h" />
+    <ClInclude Include="ApplicationLayer\DebugTools\StageChunk\StageChunkDebugController.h" />
+    <ClInclude Include="ApplicationLayer\DebugTools\Occlusion\OcclusionDebugController.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Resources\Shaders\PostEffect\FullScreen.hlsli">
