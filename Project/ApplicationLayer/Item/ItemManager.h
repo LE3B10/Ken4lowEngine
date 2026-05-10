@@ -1,13 +1,13 @@
 #pragma once
-#include <vector>
 #include <memory>
+#include <random>
+#include <vector>
 #include "Item.h"
-#include "CollisionManager.h"
 
 namespace K4E = ::Ken4lowEngine;
 
-/// ---------- 前方宣言 ---------- ///
 class Player;
+class CollisionManager;
 
 /// -------------------------------------------------------------
 ///						アイテムマネージャークラス
@@ -16,29 +16,51 @@ class ItemManager
 {
 public: /// ---------- メンバ関数 ---------- ///
 
-	// 初期化処理
 	void Initialize();
-
-	// 更新処理
+	void Update(float deltaTime);
 	void Update(Player* player, float deltaTime);
-
-	// 描画処理
 	void Draw();
-
-	// 衝突判定を登録
 	void RegisterColliders(CollisionManager* collisionManager);
 
-	// スポーン処理
 	void Spawn(ItemType type, const K4E::Vector3& position);
+	void SpawnHealSmall(const K4E::Vector3& position);
+	void SpawnAmmoSmall(const K4E::Vector3& position);
+	void TryDropFromEnemyDeath(const K4E::Vector3& deathPosition);
+	void CheckPickup(Player& player);
+	void Clear();
 
-	// 取得イベントの消費
 	bool ConsumeCollected(ItemType type);
+	int GetActiveItemCount() const;
+	int GetActiveItemCount(ItemType type) const;
+
+	float GetHealDropChance() const { return healDropChance_; }
+	float GetAmmoDropChance() const { return ammoDropChance_; }
+	int GetHealAmount() const { return healAmount_; }
+	int GetAmmoAmount() const { return ammoAmount_; }
+	float GetPickupRadius() const { return pickupRadius_; }
+	ItemType GetLastPickedItemType() const { return lastPickedItemType_; }
+	ItemType GetLastDroppedItemType() const { return lastDroppedItemType_; }
+
+	void DrawImGui();
+
+private: /// ---------- メンバ関数 ---------- ///
+
+	void RemoveInactiveItems();
+	void SpawnConfigured(ItemType type, const K4E::Vector3& position);
 
 private: /// ---------- メンバ変数 ---------- ///
 
-	// アイテムリスト
 	std::vector<std::unique_ptr<Item>> items_;
-
-	// 取得イベントリスト
 	std::vector<ItemType> collectedEvents_;
+
+	float healDropChance_ = 0.25f;
+	float ammoDropChance_ = 0.35f;
+	int healAmount_ = 25;
+	int ammoAmount_ = 30;
+	float pickupRadius_ = 2.0f;
+	ItemType lastPickedItemType_ = ItemType::None;
+	ItemType lastDroppedItemType_ = ItemType::None;
+	CollisionManager* registeredCollisionManager_ = nullptr;
+
+	std::mt19937 rng_{ std::random_device{}() };
 };

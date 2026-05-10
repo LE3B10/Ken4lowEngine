@@ -2,90 +2,247 @@
 #include "Player.h"
 #include "CollisionManager.h"
 
+#ifdef USE_IMGUI
+#include <imgui.h>
+#endif
+
+#include <algorithm>
+
 namespace K4E = ::Ken4lowEngine;
 
-/// -------------------------------------------------------------
-///							初期化処理
-/// -------------------------------------------------------------
+namespace
+{
+	const char* ToItemTypeName(ItemType type)
+	{
+		switch (type)
+		{
+		case ItemType::HealSmall: return "HealSmall";
+		case ItemType::AmmoSmall: return "AmmoSmall";
+		case ItemType::NextStageKey: return "NextStageKey";
+		case ItemType::None:
+		default: return "None";
+		}
+	}
+}
+
 void ItemManager::Initialize()
 {
-	// アイテムリストをクリア
-	items_.clear();
-
-	// 取得イベントリストをクリア
-	collectedEvents_.clear();
+	Clear();
 }
 
-/// -------------------------------------------------------------
-///							更新処理
-/// -------------------------------------------------------------
+void ItemManager::Update(float deltaTime)
+{
+	for (auto& item : items_)
+	{
+		item->Update(deltaTime);
+	}
+
+	RemoveInactiveItems();
+}
+
 void ItemManager::Update(Player* player, float deltaTime)
 {
-	(void)player;
-
-	// アイテムの更新とプレイヤーとの衝突判定
-	for (auto& item : items_) item->Update(deltaTime);
-
-	// 消える前に「何を拾ったか」記録
-	for (auto& item : items_)
+	Update(deltaTime);
+	if (player)
 	{
-		if (item->IsCollected())
-		{
-			collectedEvents_.push_back(item->GetType()); // 取得イベントを追加
-		}
+		CheckPickup(*player);
 	}
-
-	// 寿命切れまたは取得済みのアイテムを削除
-	items_.erase(std::remove_if(items_.begin(), items_.end(), [](const std::unique_ptr<Item>& item) {
-		return item->IsCollected() || item->IsExpired(); }), items_.end());
 }
 
-/// -------------------------------------------------------------
-///							描画処理
-/// -------------------------------------------------------------
 void ItemManager::Draw()
 {
-	// アイテムの描画
-	for (auto& item : items_) item->Draw();
-}
-
-/// -------------------------------------------------------------
-///						衝突判定を登録
-/// -------------------------------------------------------------
-void ItemManager::RegisterColliders(CollisionManager* collisionManager)
-{
-	// 収集されていないアイテムのコライダーを登録
 	for (auto& item : items_)
 	{
-		// 収集されていないアイテムのみ登録
-		if (!item->IsCollected())
+		item->Draw();
+	}
+}
+
+void ItemManager::RegisterColliders(CollisionManager* collisionManager)
+{
+	if (!collisionManager) return;
+
+	if (registeredCollisionManager_)
+	{
+		for (auto& item : items_)
 		{
-			collisionManager->AddCollider(item.get()); // コライダーを登録
+			if (item)
+			{
+				registeredCollisionManager_->RemoveCollider(item.get());
+			}
+		}
+	}
+
+	registeredCollisionManager_ = collisionManager;
+	for (auto& item : items_)
+	{
+		if (item && item->IsActive())
+		{
+			registeredCollisionManager_->AddCollider(item.get());
 		}
 	}
 }
 
-/// -------------------------------------------------------------
-///							スポーン処理
-/// -------------------------------------------------------------
 void ItemManager::Spawn(ItemType type, const K4E::Vector3& position)
 {
-	auto item = std::make_unique<Item>(); // アイテムを生成
-	item->Initialize(type, position);	  // 初期化
-	items_.push_back(std::move(item));	  // リストに追加
+	SpawnConfigured(type, position);
+}
+
+void ItemManager::SpawnHealSmall(const K4E::Vector3& position)
+{
+	SpawnConfigured(ItemType::HealSmall, position);
+}
+
+void ItemManager::SpawnAmmoSmall(const K4E::Vector3& position)
+{
+	SpawnConfigured(ItemType::AmmoSmall, position);
+}
+
+void ItemManager::TryDropFromEnemyDeath(const K4E::Vector3& deathPosition)
+{
+	std::uniform_real_distribution<float> dist(0.0f, 1.0f);
+	const float roll = dist(rng_);
+
+	K4E::Vector3 dropPosition = deathPosition;
+	dropPosition.y += 0.5f;
+
+	// ドロップ抽選は Heal → Ammo の順で合計確率を評価し、敵1体につき最大1個だけ出す。
+	if (roll < healDropChance_)
+	{
+		SpawnHealSmall(dropPosition);
+		lastDroppedItemType_ = ItemType::HealSmall;
+	}
+	else if (roll < healDropChance_ + ammoDropChance_)
+	{
+		SpawnAmmoSmall(dropPosition);
+		lastDroppedItemType_ = ItemType::AmmoSmall;
+	}
+	else
+	{
+		lastDroppedItemType_ = ItemType::None;
+	}
+}
+
+void ItemManager::CheckPickup(Player& player)
+{
+	const K4E::Vector3 playerPos = player.GetCenterPosition();
+
+	for (auto& item : items_)
+	{
+		if (!item->IsActive()) continue;
+
+		if (item->CheckCollisionWithPlayer(playerPos) && item->OnPickup(player))
+		{
+			lastPickedItemType_ = item->GetType();
+			collectedEvents_.push_back(item->GetType());
+		}
+	}
+
+	RemoveInactiveItems();
+}
+
+void ItemManager::Clear()
+{
+	if (registeredCollisionManager_)
+	{
+		for (auto& item : items_)
+		{
+			if (item)
+			{
+				registeredCollisionManager_->RemoveCollider(item.get());
+			}
+		}
+	}
+	items_.clear();
+	collectedEvents_.clear();
+	lastPickedItemType_ = ItemType::None;
+	lastDroppedItemType_ = ItemType::None;
+	registeredCollisionManager_ = nullptr;
 }
 
 bool ItemManager::ConsumeCollected(ItemType type)
 {
-	// 取得イベントリストを検索
 	auto it = std::find(collectedEvents_.begin(), collectedEvents_.end(), type);
 	if (it != collectedEvents_.end())
 	{
-		// 見つかった場合、イベントを消費して true を返す
 		collectedEvents_.erase(it);
 		return true;
 	}
 
-	// 見つからなかった場合、false を返す
 	return false;
+}
+
+int ItemManager::GetActiveItemCount() const
+{
+	return static_cast<int>(std::count_if(items_.begin(), items_.end(), [](const std::unique_ptr<Item>& item)
+		{
+			return item && item->IsActive();
+		}));
+}
+
+int ItemManager::GetActiveItemCount(ItemType type) const
+{
+	return static_cast<int>(std::count_if(items_.begin(), items_.end(), [type](const std::unique_ptr<Item>& item)
+		{
+			return item && item->IsActive() && item->GetType() == type;
+		}));
+}
+
+void ItemManager::DrawImGui()
+{
+#ifdef USE_IMGUI
+	if (!ImGui::Begin("アイテム管理"))
+	{
+		ImGui::End();
+		return;
+	}
+
+	ImGui::Text("Item数: %d", GetActiveItemCount());
+	ImGui::Text("HealSmall数: %d", GetActiveItemCount(ItemType::HealSmall));
+	ImGui::Text("AmmoSmall数: %d", GetActiveItemCount(ItemType::AmmoSmall));
+	float healDropPercent = healDropChance_ * 100.0f;
+	float ammoDropPercent = ammoDropChance_ * 100.0f;
+	if (ImGui::SliderFloat("Healドロップ確率", &healDropPercent, 0.0f, 100.0f, "%.0f%%"))
+	{
+		healDropChance_ = healDropPercent / 100.0f;
+	}
+	if (ImGui::SliderFloat("Ammoドロップ確率", &ammoDropPercent, 0.0f, 100.0f, "%.0f%%"))
+	{
+		ammoDropChance_ = ammoDropPercent / 100.0f;
+	}
+	ImGui::DragInt("Heal回復量", &healAmount_, 1, 0, 999);
+	ImGui::DragInt("Ammo回復量", &ammoAmount_, 1, 0, 999);
+	ImGui::DragFloat("pickupRadius", &pickupRadius_, 0.1f, 0.1f, 20.0f, "%.2f");
+	ImGui::Text("最後に取得したItemType: %s", ToItemTypeName(lastPickedItemType_));
+	ImGui::Text("最後にドロップしたItemType: %s", ToItemTypeName(lastDroppedItemType_));
+
+	ImGui::End();
+#else
+	(void)this;
+#endif
+}
+
+void ItemManager::RemoveInactiveItems()
+{
+	items_.erase(std::remove_if(items_.begin(), items_.end(), [this](const std::unique_ptr<Item>& item)
+		{
+			const bool shouldRemove = !item || item->IsCollected() || item->IsExpired();
+			if (shouldRemove && item && registeredCollisionManager_)
+			{
+				registeredCollisionManager_->RemoveCollider(item.get());
+			}
+			return shouldRemove;
+		}), items_.end());
+}
+
+void ItemManager::SpawnConfigured(ItemType type, const K4E::Vector3& position)
+{
+	if (type == ItemType::None) return;
+
+	auto item = std::make_unique<Item>();
+	item->Initialize(type, position, healAmount_, ammoAmount_, pickupRadius_);
+	if (registeredCollisionManager_)
+	{
+		registeredCollisionManager_->AddCollider(item.get());
+	}
+	items_.push_back(std::move(item));
 }

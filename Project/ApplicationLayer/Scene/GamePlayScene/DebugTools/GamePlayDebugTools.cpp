@@ -118,6 +118,7 @@ void GamePlayDebugTools::DrawImGui(GamePlayWorld* world)
 
 	K4E::LightManager::GetInstance()->DrawImGui();
 	characters.DrawImGui();
+	world->DrawImGui();
 	stageChunkDebugController_.DrawImGui(world->GetStage());
 	occlusionDebugController_.DrawImGui(world->GetStage());
 

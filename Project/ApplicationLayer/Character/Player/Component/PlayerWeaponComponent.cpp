@@ -427,6 +427,24 @@ void PlayerWeaponComponent::BuildInitialAmmoViewCacheFromMasterData()
 	}
 }
 
+bool PlayerWeaponComponent::AddCurrentWeaponAmmo(int amount)
+{
+	if (!weaponLoaded_) return false;
+	if (amount <= 0) return false;
+	if (weaponCategory_ == EWeaponCategory::Melee) return false;
+
+	auto& weapon = weaponSys_.Weapon();
+	auto& state = weapon.StateMutable();
+	const auto& params = weapon.Params();
+	const int maxReserveAmmo = std::max(0, params.maxReserveAmmo);
+	if (maxReserveAmmo <= 0) return false;
+
+	const int before = state.reserveAmmo;
+	state.reserveAmmo = std::min(maxReserveAmmo, state.reserveAmmo + amount);
+	UpdateSelectedAmmoViewCache();
+	return state.reserveAmmo != before;
+}
+
 void PlayerWeaponComponent::UpdateSelectedAmmoViewCache() const
 {
 	if (!weaponLoaded_) return;

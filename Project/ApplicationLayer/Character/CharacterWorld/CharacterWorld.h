@@ -1,4 +1,5 @@
 #pragma once
+#include <functional>
 #include <memory>
 #include <vector>
 #include <string>
@@ -59,6 +60,7 @@ public: /// ---------- メンバ関数 ---------- ///
 
 	// 全消し
 	void ClearEnemies();
+	void SetEnemyKilledCallback(std::function<void(const K4E::Vector3&)> callback) { onEnemyKilled_ = std::move(callback); }
 
 	int GetEnemyCount() const { return static_cast<int>(enemies_.size()); }
 
@@ -81,6 +83,7 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	// 敵の被弾エフェクトシステム
 	EnemyParticleEffectSystem enemyParticleEffectSystem_;
+	std::function<void(const K4E::Vector3&)> onEnemyKilled_{};
 
 private: /// ---------- デバッグ用 ---------- ///
 

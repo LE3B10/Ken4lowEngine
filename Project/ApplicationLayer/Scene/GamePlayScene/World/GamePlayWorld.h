@@ -8,6 +8,7 @@
 #include "GamePlayStageContext.h"
 #include <SkyBox.h>
 #include "EnemyHPBarManager.h"
+#include "ItemManager.h"
 
 #include <memory>
 
@@ -27,6 +28,7 @@ public: /// ---------- メンバ関数 ---------- ///
 	void Draw3D(bool hideCharactersDuringIntro);
 	void DrawShadow(bool hideCharactersDuringIntro);
 	void DrawHUD(bool hideDuringIntro);
+	void DrawImGui();
 
 	void SyncAfterPlayerSpawn();
 	void StartWaves();
@@ -82,6 +84,7 @@ private: /// ---------- メンバ変数 ---------- ///
 	std::unique_ptr<HUDManager> hudManager_ = nullptr;
 
 	EnemyHPBarManager enemyHpBarManager_;
+	ItemManager itemManager_;
 
 	int prevWaveNumber_ = 0;
 	bool prevWaveInProgress_ = false;

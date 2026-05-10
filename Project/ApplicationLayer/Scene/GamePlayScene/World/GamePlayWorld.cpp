@@ -45,6 +45,11 @@ void GamePlayWorld::Initialize(GamePlayStageContext& stageContext)
 	ctx.collisionManager_ = collisionManager_.get();
 	ctx.bulletManager_ = bulletManager_.get();
 	characters_.Initialize(ctx);
+	itemManager_.Initialize();
+	characters_.SetEnemyKilledCallback([this](const K4E::Vector3& deathPosition)
+		{
+			itemManager_.TryDropFromEnemyDeath(deathPosition);
+		});
 
 	hudManager_ = std::make_unique<HUDManager>();
 	hudManager_->SetPlayer(characters_.GetPlayer());
@@ -121,6 +126,7 @@ void GamePlayWorld::Finalize()
 	hudManager_.reset();
 
 	EnemyBase::SetGlobalStageWorldAABBs(nullptr);
+	itemManager_.Clear();
 
 	characters_.Finalize();
 
@@ -147,6 +153,14 @@ void GamePlayWorld::Update(float deltaTime)
 	}
 
 	characters_.Update(deltaTime);
+	if (auto* player = characters_.GetPlayer())
+	{
+		itemManager_.Update(player, deltaTime);
+	}
+	else
+	{
+		itemManager_.Update(deltaTime);
+	}
 
 	UpdateShadowLightViewProjection();
 
@@ -283,6 +297,8 @@ void GamePlayWorld::Draw3D(bool hideCharactersDuringIntro)
 		bulletManager_->Draw();
 	}
 
+	itemManager_.Draw();
+
 #ifdef _DEBUG
 	if (collisionManager_)
 	{
@@ -319,6 +335,11 @@ void GamePlayWorld::DrawHUD(bool hideDuringIntro)
 	{
 		hudManager_->Draw();
 	}
+}
+
+void GamePlayWorld::DrawImGui()
+{
+	itemManager_.DrawImGui();
 }
 
 void GamePlayWorld::SyncAfterPlayerSpawn()
