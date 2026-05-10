@@ -38,6 +38,7 @@ public: /// ---------- メンバ関数 ---------- ///
 	int GetHealAmount() const { return healAmount_; }
 	int GetAmmoAmount() const { return ammoAmount_; }
 	float GetPickupRadius() const { return pickupRadius_; }
+	bool IsForceEnemyDeathDropEnabled() const { return forceEnemyDeathDrop_; }
 	ItemType GetLastPickedItemType() const { return lastPickedItemType_; }
 	ItemType GetLastDroppedItemType() const { return lastDroppedItemType_; }
 
@@ -60,6 +61,7 @@ private: /// ---------- メンバ変数 ---------- ///
 	float pickupRadius_ = 2.0f;
 	ItemType lastPickedItemType_ = ItemType::None;
 	ItemType lastDroppedItemType_ = ItemType::None;
+	bool forceEnemyDeathDrop_ = true;
 	CollisionManager* registeredCollisionManager_ = nullptr;
 
 	std::mt19937 rng_{ std::random_device{}() };

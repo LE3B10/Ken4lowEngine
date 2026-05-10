@@ -3,6 +3,7 @@
 #include <memory>
 #include <vector>
 #include <string>
+#include <unordered_set>
 
 #include "Player.h"
 #include "Enemy.h"
@@ -84,6 +85,7 @@ private: /// ---------- メンバ変数 ---------- ///
 	// 敵の被弾エフェクトシステム
 	EnemyParticleEffectSystem enemyParticleEffectSystem_;
 	std::function<void(const K4E::Vector3&)> onEnemyKilled_{};
+	std::unordered_set<const Enemy*> notifiedKilledEnemies_;
 
 private: /// ---------- デバッグ用 ---------- ///
 
