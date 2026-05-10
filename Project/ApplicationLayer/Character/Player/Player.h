@@ -127,6 +127,10 @@ public: /// ---------- メンバ関数 ---------- ///
 	float GetHP() const { return damage_.GetHP(); }
 	float GetMaxHP() const { return damage_.GetMaxHP(); }
 	void Heal(float amount) { damage_.Heal(amount); }
+	int AddReserveAmmo(int amount) { return weapon_.AddReserveAmmo(amount); }
+	int GetCurrentWeaponMagazineAmmo() const { return weapon_.GetMagazineAmmo(); }
+	int GetCurrentWeaponReserveAmmo() const { return weapon_.GetReserveAmmo(); }
+	int GetCurrentWeaponMaxReserveAmmo() const { return weapon_.GetMaxReserveAmmo(); }
 	bool AddCurrentWeaponAmmo(int amount) { return weapon_.AddCurrentWeaponAmmo(amount); }
 
 	PlayerBrainComponent& GetBrainComponent() { return brainComponent_; }

@@ -71,6 +71,11 @@ public:
 	const WeaponRuntimeState& State() const { return st_; }
 	WeaponRuntimeState& StateMutable() { return st_; }
 
+	int32_t AddReserveAmmo(int32_t amount);
+	int32_t GetMagazineAmmo() const { return st_.magAmmo; }
+	int32_t GetReserveAmmo() const { return st_.reserveAmmo; }
+	int32_t GetMaxReserveAmmo() const { return params_.maxReserveAmmo; }
+
 	// リロードをキャンセルできる場合はキャンセルする
 	void CancelReload();
 

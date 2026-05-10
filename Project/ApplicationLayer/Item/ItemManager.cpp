@@ -174,10 +174,33 @@ void ItemManager::CheckPickup(Player& player)
 	{
 		if (!item->IsActive()) continue;
 
-		if (item->CheckCollisionWithPlayer(playerPos) && item->OnPickup(player))
+		if (item->CheckCollisionWithPlayer(playerPos))
 		{
-			lastPickedItemType_ = item->GetType();
-			collectedEvents_.push_back(item->GetType());
+			const ItemType pickupType = item->GetType();
+			const int reserveBefore = player.GetCurrentWeaponReserveAmmo();
+
+			if (item->OnPickup(player))
+			{
+				lastPickedItemType_ = pickupType;
+				lastKnownMagazineAmmo_ = player.GetCurrentWeaponMagazineAmmo();
+				lastKnownReserveAmmo_ = player.GetCurrentWeaponReserveAmmo();
+				lastKnownMaxReserveAmmo_ = player.GetCurrentWeaponMaxReserveAmmo();
+				lastAmmoSmallReserveRestored_ = (pickupType == ItemType::AmmoSmall)
+					? std::max(0, lastKnownReserveAmmo_ - reserveBefore)
+					: 0;
+				collectedEvents_.push_back(pickupType);
+
+				std::ostringstream oss;
+				oss << "Item Picked"
+					<< " ItemType=" << ToItemTypeName(pickupType)
+					<< " MagazineAmmo=" << lastKnownMagazineAmmo_
+					<< " ReserveAmmo=" << lastKnownReserveAmmo_
+					<< " MaxReserveAmmo=" << lastKnownMaxReserveAmmo_
+					<< " AmmoSmallAmount=" << ammoAmount_
+					<< " AmmoSmallReserveRestored=" << lastAmmoSmallReserveRestored_
+					<< "\n";
+				OutputDebugStringA(oss.str().c_str());
+			}
 		}
 	}
 
@@ -201,6 +224,10 @@ void ItemManager::Clear()
 	lastPickedItemType_ = ItemType::None;
 	lastDroppedItemType_ = ItemType::None;
 	lastDropPosition_ = {};
+	lastKnownMagazineAmmo_ = 0;
+	lastKnownReserveAmmo_ = 0;
+	lastKnownMaxReserveAmmo_ = 0;
+	lastAmmoSmallReserveRestored_ = 0;
 	registeredCollisionManager_ = nullptr;
 }
 
@@ -273,6 +300,11 @@ void ItemManager::DrawImGui()
 	ImGui::DragInt("Heal回復量", &healAmount_, 1, 0, 999);
 	ImGui::DragInt("Ammo回復量", &ammoAmount_, 1, 0, 999);
 	ImGui::DragFloat("pickupRadius", &pickupRadius_, 0.1f, 0.1f, 20.0f, "%.2f");
+	ImGui::Text("現在マガジン弾数: %d", lastKnownMagazineAmmo_);
+	ImGui::Text("予備弾薬: %d", lastKnownReserveAmmo_);
+	ImGui::Text("最大予備弾薬: %d", lastKnownMaxReserveAmmo_);
+	ImGui::Text("AmmoSmall回復量: %d", ammoAmount_);
+	ImGui::Text("AmmoSmall取得時に回復した予備弾薬量: %d", lastAmmoSmallReserveRestored_);
 	ImGui::Text("最後に取得したItemType: %s", ToItemTypeName(lastPickedItemType_));
 	ImGui::Text("最後にドロップしたItemType: %s", ToItemTypeName(lastDroppedItemType_));
 	ImGui::Text("最後のドロップ位置: (%.2f, %.2f, %.2f)", lastDropPosition_.x, lastDropPosition_.y, lastDropPosition_.z);

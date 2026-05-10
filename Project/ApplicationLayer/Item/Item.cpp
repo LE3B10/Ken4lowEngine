@@ -106,7 +106,7 @@ bool Item::OnPickup(Player& player)
 		player.Heal(static_cast<float>(healAmount_));
 		break;
 	case ItemType::AmmoSmall:
-		player.AddCurrentWeaponAmmo(ammoAmount_);
+		player.AddReserveAmmo(ammoAmount_);
 		break;
 	case ItemType::NextStageKey:
 	case ItemType::None:

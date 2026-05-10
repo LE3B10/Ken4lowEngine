@@ -66,6 +66,10 @@ private: /// ---------- メンバ変数 ---------- ///
 	int healAmount_ = 25;
 	int ammoAmount_ = 30;
 	float pickupRadius_ = 2.0f;
+	int lastKnownMagazineAmmo_ = 0;
+	int lastKnownReserveAmmo_ = 0;
+	int lastKnownMaxReserveAmmo_ = 0;
+	int lastAmmoSmallReserveRestored_ = 0;
 	ItemType lastPickedItemType_ = ItemType::None;
 	ItemType lastDroppedItemType_ = ItemType::None;
 	K4E::Vector3 lastDropPosition_ = {};

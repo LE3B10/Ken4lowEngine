@@ -87,6 +87,19 @@ float WeaponInstance::GetCurrentReloadDurationSec() const
 	return params_.reloadSec;
 }
 
+int32_t WeaponInstance::AddReserveAmmo(int32_t amount)
+{
+	if (amount <= 0) return 0;
+
+	const int32_t maxReserveAmmo = std::max<int32_t>(0, params_.maxReserveAmmo);
+	if (maxReserveAmmo <= 0) return 0;
+
+	const int32_t before = st_.reserveAmmo;
+	// AmmoSmallはマガジンではなく予備弾薬へ補充し、リロード処理で装填させる。
+	st_.reserveAmmo = std::min<int32_t>(maxReserveAmmo, st_.reserveAmmo + amount);
+	return st_.reserveAmmo - before;
+}
+
 void WeaponInstance::Tick(float dt)
 {
 	if (st_.reloadRequest)
