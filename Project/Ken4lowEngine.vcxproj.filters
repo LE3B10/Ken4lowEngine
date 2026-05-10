@@ -166,6 +166,9 @@
     <ClCompile Include="ApplicationLayer\Item\ItemManager.cpp">
       <Filter>ApplicationLayer\Item</Filter>
     </ClCompile>
+    <ClCompile Include="ApplicationLayer\Item\ItemVisualEffect.cpp">
+      <Filter>ApplicationLayer\Item</Filter>
+    </ClCompile>
     <ClCompile Include="ApplicationLayer\Scene\StageSelectScene\GridStageSelector.cpp">
       <Filter>ApplicationLayer\Scene\StageSelectScene</Filter>
     </ClCompile>
@@ -919,6 +922,9 @@
       <Filter>ApplicationLayer\SceneManager\SceneManager</Filter>
     </ClInclude>
     <ClInclude Include="ApplicationLayer\Item\ItemManager.h">
+      <Filter>ApplicationLayer\Item</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Item\ItemVisualEffect.h">
       <Filter>ApplicationLayer\Item</Filter>
     </ClInclude>
     <ClInclude Include="ApplicationLayer\Scene\StageSelectScene\GridStageSelector.h">

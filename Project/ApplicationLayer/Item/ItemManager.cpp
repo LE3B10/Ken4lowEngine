@@ -39,7 +39,13 @@ void ItemManager::Update(float deltaTime)
 {
 	for (auto& item : items_)
 	{
+		if (!item) continue;
+		ApplyVisualSettings(*item);
 		item->Update(deltaTime);
+		if (item->IsActive())
+		{
+			itemVisualEffect_.UpdateIdle(*item, deltaTime);
+		}
 	}
 
 	RemoveInactiveItems();
@@ -185,6 +191,8 @@ void ItemManager::CheckPickup(Player& player)
 			const bool consumePickedItem = effectApplied || (consumeItemWhenFull_ && lastItemEffectDebugInfo_.noEffectBecauseFull);
 			if (consumePickedItem)
 			{
+				itemVisualEffect_.PlayPickup(lastItemEffectDebugInfo_.itemType, item->GetPosition());
+				itemVisualEffect_.StopIdle(*item);
 				item->MarkCollected();
 				collectedEvents_.push_back(lastItemEffectDebugInfo_.itemType);
 			}
@@ -340,6 +348,7 @@ void ItemManager::Clear()
 	lastKnownMaxReserveAmmo_ = 0;
 	lastAmmoSmallReserveRestored_ = 0;
 	lastItemEffectDebugInfo_ = {};
+	itemVisualEffect_.Clear();
 	registeredCollisionManager_ = nullptr;
 }
 
@@ -435,6 +444,7 @@ void ItemManager::DrawImGui()
 	ImGui::Text("最後に取得したItemType: %s", ToItemTypeName(lastPickedItemType_));
 	ImGui::Text("最後にドロップしたItemType: %s", ToItemTypeName(lastDroppedItemType_));
 	ImGui::Text("最後のドロップ位置: (%.2f, %.2f, %.2f)", lastDropPosition_.x, lastDropPosition_.y, lastDropPosition_.z);
+	itemVisualEffect_.DrawImGui();
 
 	ImGui::End();
 #else
@@ -447,9 +457,13 @@ void ItemManager::RemoveInactiveItems()
 	items_.erase(std::remove_if(items_.begin(), items_.end(), [this](const std::unique_ptr<Item>& item)
 		{
 			const bool shouldRemove = !item || item->IsCollected() || item->IsExpired();
-			if (shouldRemove && item && registeredCollisionManager_)
+			if (shouldRemove && item)
 			{
-				registeredCollisionManager_->RemoveCollider(item.get());
+				itemVisualEffect_.StopIdle(*item);
+				if (registeredCollisionManager_)
+				{
+					registeredCollisionManager_->RemoveCollider(item.get());
+				}
 			}
 			return shouldRemove;
 		}), items_.end());
@@ -466,6 +480,8 @@ void ItemManager::SpawnConfigured(ItemType type, const K4E::Vector3& position)
 
 	auto item = std::make_unique<Item>();
 	item->Initialize(type, position, healAmount_, ammoAmount_, pickupRadius_);
+	ApplyVisualSettings(*item);
+	itemVisualEffect_.StartIdle(*item);
 	if (registeredCollisionManager_)
 	{
 		registeredCollisionManager_->AddCollider(item.get());
@@ -479,6 +495,13 @@ void ItemManager::SpawnConfigured(ItemType type, const K4E::Vector3& position)
 		<< " ActiveItemCount=" << GetActiveItemCount()
 		<< "\n";
 	OutputDebugStringA(oss.str().c_str());
+}
+
+void ItemManager::ApplyVisualSettings(Item& item)
+{
+	const auto& settings = itemVisualEffect_.GetSettings();
+	item.SetVisualAnimationSettings(settings.itemFloatHeight, settings.itemFloatSpeed, settings.itemRotationSpeed);
+	item.SetVisualColor(itemVisualEffect_.GetEffectColor(item.GetType()));
 }
 
 void ItemManager::LogDropRollResult(ItemType type, const K4E::Vector3& position) const
