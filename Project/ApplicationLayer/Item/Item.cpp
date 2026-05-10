@@ -1,196 +1,135 @@
 #include "Item.h"
 #include "Player.h"
-#include "ScoreManager.h"
-#include "GpuParticleEmitter.h"   // EmitterInfo を使うため（必要なら）
-#include "GpuParticleType.h"      // GpuParticleType::Heal_Effect
-#include "BillboardMode.h"
 #include <CollisionTypeIdDef.h>
+
+#include <cmath>
+#include <string>
 
 namespace K4E = ::Ken4lowEngine;
 
-/// -------------------------------------------------------------
-///							初期化処理
-/// -------------------------------------------------------------
-void Item::Initialize(ItemType type, const K4E::Vector3& pos)
+namespace
+{
+	const char* GetModelPath(ItemType type)
+	{
+		switch (type)
+		{
+		case ItemType::HealSmall:
+		case ItemType::AmmoSmall:
+		case ItemType::NextStageKey:
+		default:
+			return "cube.gltf";
+		}
+	}
+}
+
+void Item::Initialize(ItemType type, const K4E::Vector3& pos, int healAmount, int ammoAmount, float pickupRadius)
 {
 	K4E::Collider::SetTypeID(static_cast<uint32_t>(CollisionTypeIdDef::kItem));
 	K4E::Collider::SetOBBHalfSize(scale_);
 
-	// アイテムの種類と位置を設定
 	type_ = type;
 	position_ = pos;
 	basePosition_ = pos;
+	active_ = (type_ != ItemType::None);
+	pickupRadius_ = pickupRadius;
+	healAmount_ = healAmount;
+	ammoAmount_ = ammoAmount;
+	lifetime_ = 0.0f;
+	floatTimer_ = 0.0f;
+	rotation_ = { 0.0f, 0.0f, 0.0f };
 
-	std::string modelPath; // モデルパス
 	object3d_ = std::make_unique<K4E::Object3D>();
-
-	// アイテムの種類に応じてモデルと色を設定
-	switch (type_)
-	{
-	case ItemType::HealSmall:
-		modelPath = "cube.gltf"; break;
-
-	case ItemType::AmmoSmall:
-		modelPath = "cube.gltf"; break;
-
-	case ItemType::ScoreBonus:
-		modelPath = "cube.gltf"; break;
-
-	case ItemType::PowerUp:
-		modelPath = "cube.gltf"; break;
-
-	case ItemType::ExperienceOrb:
-		modelPath = "cube.gltf"; break;
-
-	case ItemType::Coin:
-		modelPath = "cube.gltf"; break;
-
-	case ItemType::NextStageKey:
-		modelPath = "cube.gltf"; break;
-	}
-
-	object3d_->Initialize(modelPath);
+	object3d_->Initialize(GetModelPath(type_));
 	object3d_->SetTranslate(position_);
-	object3d_->SetScale(scale_); // サイズを設定
+	object3d_->SetScale(scale_);
 
-	// 条件によって色を変える（変更予定）
 	switch (type_)
 	{
 	case ItemType::HealSmall:
-		object3d_->SetColor({ 1.0f,0.0f,0.0f,1.0f }); // 赤色
+		object3d_->SetColor({ 1.0f, 0.0f, 0.0f, 1.0f });
 		break;
-
 	case ItemType::AmmoSmall:
-		object3d_->SetColor({ 0.0f, 0.0f, 1.0f, 1.0f }); // 青色
+		object3d_->SetColor({ 0.0f, 0.0f, 1.0f, 1.0f });
 		break;
-
-	case ItemType::ScoreBonus:
-		object3d_->SetColor({ 1.0f, 1.0f, 0.0f, 1.0f }); // 黄色
-		break;
-
-	case ItemType::PowerUp:
-		object3d_->SetColor({ 1.0f, 0.5f, 0.0f, 1.0f }); // オレンジ色
-		break;
-
-	case ItemType::ExperienceOrb:
-		object3d_->SetColor({ 0.5f, 0.0f, 0.5f, 1.0f }); // 紫色
-		break;
-
-	case ItemType::Coin:
-		object3d_->SetColor({ 1.0f, 0.84f, 0.0f, 1.0f }); // 金色
-		break;
-
 	case ItemType::NextStageKey:
-		object3d_->SetColor({ 0.0f, 1.0f, 1.0f, 1.0f }); // シアン色
+		object3d_->SetColor({ 0.0f, 1.0f, 1.0f, 1.0f });
+		break;
+	case ItemType::None:
+	default:
+		object3d_->SetColor({ 1.0f, 1.0f, 1.0f, 0.5f });
 		break;
 	}
 }
 
-/// -------------------------------------------------------------
-///							更新処理
-/// -------------------------------------------------------------
 void Item::Update(float deltaTime)
 {
-	// 収集済みなら更新しない
-	if (collected_) return;
+	if (!active_) return;
 
-	// ライフタイム更新
 	lifetime_ += deltaTime;
-
-	// 浮遊アニメーション：サイン波でY位置を変更
-	floatTimer_ += floatSpeed_ * deltaTime;  // フレーム前提。可変FPSなら deltaTime を使う
-	float floatOffset = std::sinf(floatTimer_) * floatAmplitude_;
+	floatTimer_ += floatSpeed_ * deltaTime;
+	const float floatOffset = std::sinf(floatTimer_) * floatAmplitude_;
 	position_.y = basePosition_.y + floatOffset + 1.0f;
-
-	// Y軸を中心に回転
 	rotation_.y += rotationSpeed_;
 
-	object3d_->SetTranslate(position_);
-	object3d_->SetRotate(rotation_);
-	object3d_->Update();
+	if (object3d_)
+	{
+		object3d_->SetTranslate(position_);
+		object3d_->SetRotate(rotation_);
+		object3d_->Update();
+	}
 
 	K4E::Collider::SetCenterPosition(position_);
 }
 
-/// -------------------------------------------------------------
-///							描画処理
-/// -------------------------------------------------------------
 void Item::Draw()
 {
-	if (!collected_ && object3d_) {
+	if (active_ && object3d_)
+	{
 		object3d_->Draw();
 	}
 }
 
-/// -------------------------------------------------------------
-///						プレイヤーとの当たり判定
-/// -------------------------------------------------------------
-bool Item::CheckCollisionWithPlayer(const K4E::Vector3& playerPos)
+bool Item::CheckCollisionWithPlayer(const K4E::Vector3& playerPos) const
 {
-	const float pickupRadius = 2.0f;
+	if (!active_) return false;
 	const K4E::Vector3 diff = position_ - playerPos;
-	// 距離^2 ≤ 半径^2
-	return K4E::Vector3::Length(diff) <= (pickupRadius * pickupRadius);
+	return K4E::Vector3::Length(diff) <= pickupRadius_;
 }
 
-/// -------------------------------------------------------------
-///						効果適用
-/// -------------------------------------------------------------
-void Item::ApplyTo(Player* player)
+bool Item::OnPickup(Player& player)
 {
-	if (collected_ || !player) return;
+	if (!active_) return false;
 
 	switch (type_)
 	{
 	case ItemType::HealSmall:
-	{
-		// ① 回復（値は仮）
-		//player->AddHP(300);
-
-		// ② 回復パーティクル（下→上の Emit はシェーダ側 type=21 で実装済み想定）
-		////auto* pm = K4E::GpuParticleManager::GetInstance();
-
-		//// エミッターを作ってなければ作る（1回だけ）
-		//K4E::GpuParticleEmitter* emitter = pm->GetEmitter("Heal_Effect");
-		//if (!emitter)
-		//{
-		//	K4E::GpuParticleEmitter::K4E::EmitterInfo info{};
-		//	info.textureFilePath = "Effects/white.dds"; // とりあえず既存の白テクでOK（後で差し替え）
-		//	info.radius = 1.5f;                // 正方形範囲の“半辺”として使う想定
-		//	info.loopCount = 0;
-		//	info.loopFrequency = 0.0f;
-		//	info.drawType = 0;                 // 0なら type を使う
-		//	info.type = K4E::GpuParticleType::Heal_Effect;
-		//	info.billboardMode = K4E::BillboardMode::K4E::Camera;
-
-		//	emitter = pm->CreateEmitter("Heal_Effect", info);
-		//}
-
-		//if (emitter)
-		//{
-		//	// プレイヤー位置にセットしてバースト
-		//	// ※ Player の位置取得はあなたの実装に合わせて差し替え
-		//	emitter->SetPosition(player->GetCenterPosition() - K4E::Vector3(0.0f, 2.0f, 0.0f));
-		//	emitter->RequestEmit(40); // まずは 30〜60 で調整
-		//}
+		player.Heal(static_cast<float>(healAmount_));
 		break;
-	}
-
-	// 他のアイテムもここに追加していける
+	case ItemType::AmmoSmall:
+		player.AddCurrentWeaponAmmo(ammoAmount_);
+		break;
+	case ItemType::NextStageKey:
+	case ItemType::None:
 	default:
 		break;
 	}
 
-	collected_ = true;
+	active_ = false;
+	return true;
 }
 
-/// -------------------------------------------------------------
-///						衝突時の処理
-/// -------------------------------------------------------------
+void Item::ApplyTo(Player* player)
+{
+	if (!player) return;
+	(void)OnPickup(*player);
+}
+
 void Item::OnCollision(K4E::Collider* other)
 {
+	if (!other) return;
+
 	if (other->GetTypeID() == static_cast<uint32_t>(CollisionTypeIdDef::kPlayer))
 	{
-		ApplyTo(static_cast<Player*>(other)); // 効果適用
+		ApplyTo(static_cast<Player*>(other));
 	}
 }

@@ -126,6 +126,8 @@ public: /// ---------- メンバ関数 ---------- ///
 
 	float GetHP() const { return damage_.GetHP(); }
 	float GetMaxHP() const { return damage_.GetMaxHP(); }
+	void Heal(float amount) { damage_.Heal(amount); }
+	bool AddCurrentWeaponAmmo(int amount) { return weapon_.AddCurrentWeaponAmmo(amount); }
 
 	PlayerBrainComponent& GetBrainComponent() { return brainComponent_; }
 	const PlayerBrainComponent& GetBrainComponent() const { return brainComponent_; }

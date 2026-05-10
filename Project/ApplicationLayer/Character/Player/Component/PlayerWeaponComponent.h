@@ -111,6 +111,8 @@ public: /// ---------- メンバ関数 ---------- ///
 
 	void SwitchWeaponCategoryByDelta(int delta);
 
+	bool AddCurrentWeaponAmmo(int amount);
+
 private: /// ---------- メンバ関数 ---------- ///
 
 	void TickWeapon(float dt);

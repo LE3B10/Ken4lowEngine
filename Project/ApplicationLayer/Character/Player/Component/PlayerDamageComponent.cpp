@@ -13,6 +13,17 @@
 #include <Camera.h>
 #include <Vector3.h>
 
+
+void PlayerDamageComponent::Heal(float amount)
+{
+	if (amount <= 0.0f) return;
+	state_.hp += amount;
+	if (state_.hp > state_.maxHp)
+	{
+		state_.hp = state_.maxHp;
+	}
+}
+
 void PlayerDamageComponent::Tick(float dt)
 {
 	for (auto it = state_.recentBulletHits.begin(); it != state_.recentBulletHits.end(); )

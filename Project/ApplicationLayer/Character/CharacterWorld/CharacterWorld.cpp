@@ -136,7 +136,12 @@ void CharacterWorld::Update(float dt)
 
 	for (auto& e : enemies_)
 	{
+		const bool wasDead = e->IsDead();
 		e->Update(dt);
+		if (!wasDead && e->IsDead() && onEnemyKilled_)
+		{
+			onEnemyKilled_(e->GetCenterPosition());
+		}
 	}
 
 	if (ctx_.collisionManager_)

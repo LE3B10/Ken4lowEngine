@@ -89,6 +89,7 @@ public:
 
 	float GetHP() const { return state_.hp; }
 	float GetMaxHP() const { return state_.maxHp; }
+	void Heal(float amount);
 
 	bool IsRecentBulletHit(uint32_t id) const
 	{
