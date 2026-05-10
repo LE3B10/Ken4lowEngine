@@ -111,6 +111,10 @@ public: /// ---------- メンバ関数 ---------- ///
 
 	void SwitchWeaponCategoryByDelta(int delta);
 
+	int AddReserveAmmo(int amount);
+	int GetMagazineAmmo() const;
+	int GetReserveAmmo() const;
+	int GetMaxReserveAmmo() const;
 	bool AddCurrentWeaponAmmo(int amount);
 
 private: /// ---------- メンバ関数 ---------- ///

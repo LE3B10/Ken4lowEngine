@@ -427,22 +427,41 @@ void PlayerWeaponComponent::BuildInitialAmmoViewCacheFromMasterData()
 	}
 }
 
+int PlayerWeaponComponent::AddReserveAmmo(int amount)
+{
+	if (!weaponLoaded_) return 0;
+	if (amount <= 0) return 0;
+	if (weaponCategory_ == EWeaponCategory::Melee) return 0;
+
+	const int restored = weaponSys_.Weapon().AddReserveAmmo(amount);
+	if (restored > 0)
+	{
+		UpdateSelectedAmmoViewCache();
+	}
+	return restored;
+}
+
+int PlayerWeaponComponent::GetMagazineAmmo() const
+{
+	if (!weaponLoaded_) return 0;
+	return weaponSys_.Weapon().GetMagazineAmmo();
+}
+
+int PlayerWeaponComponent::GetReserveAmmo() const
+{
+	if (!weaponLoaded_) return 0;
+	return weaponSys_.Weapon().GetReserveAmmo();
+}
+
+int PlayerWeaponComponent::GetMaxReserveAmmo() const
+{
+	if (!weaponLoaded_) return 0;
+	return std::max(0, weaponSys_.Weapon().GetMaxReserveAmmo());
+}
+
 bool PlayerWeaponComponent::AddCurrentWeaponAmmo(int amount)
 {
-	if (!weaponLoaded_) return false;
-	if (amount <= 0) return false;
-	if (weaponCategory_ == EWeaponCategory::Melee) return false;
-
-	auto& weapon = weaponSys_.Weapon();
-	auto& state = weapon.StateMutable();
-	const auto& params = weapon.Params();
-	const int maxReserveAmmo = std::max(0, params.maxReserveAmmo);
-	if (maxReserveAmmo <= 0) return false;
-
-	const int before = state.reserveAmmo;
-	state.reserveAmmo = std::min(maxReserveAmmo, state.reserveAmmo + amount);
-	UpdateSelectedAmmoViewCache();
-	return state.reserveAmmo != before;
+	return AddReserveAmmo(amount) > 0;
 }
 
 void PlayerWeaponComponent::UpdateSelectedAmmoViewCache() const
@@ -780,7 +799,9 @@ void PlayerWeaponComponent::DrawImGui()
 	ImGui::Text("ReloadSec: %.2fs", p.reloadSec);
 
 	ImGui::Separator();
-	ImGui::Text("Ammo: %d / %d   (Reserve: %d)", s.magAmmo, p.magCapacity, s.reserveAmmo);
+	ImGui::Text("現在マガジン弾数: %d / %d", s.magAmmo, p.magCapacity);
+	ImGui::Text("予備弾薬: %d", s.reserveAmmo);
+	ImGui::Text("最大予備弾薬: %d", std::max(0, p.maxReserveAmmo));
 	ImGui::Text("Reloading: %s (%.2fs)", s.isReloading ? "true" : "false", s.reloadTimer);
 	ImGui::Text("Cooldown: %.3fs", s.fireCooldown);
 	ImGui::Text("Burst: rem=%d  timer=%.3fs", s.burstRemaining, s.burstTimer);
