@@ -26,6 +26,8 @@ public: /// ---------- メンバ関数 ---------- ///
 	void SpawnHealSmall(const K4E::Vector3& position);
 	void SpawnAmmoSmall(const K4E::Vector3& position);
 	void TryDropFromEnemyDeath(const K4E::Vector3& deathPosition);
+	void TryDropEnemyItem(const K4E::Vector3& deathPosition);
+	ItemType RollEnemyDrop();
 	void CheckPickup(Player& player);
 	void Clear();
 
@@ -35,19 +37,24 @@ public: /// ---------- メンバ関数 ---------- ///
 
 	float GetHealDropChance() const { return healDropChance_; }
 	float GetAmmoDropChance() const { return ammoDropChance_; }
+	float GetNoneDropChance() const;
 	int GetHealAmount() const { return healAmount_; }
 	int GetAmmoAmount() const { return ammoAmount_; }
 	float GetPickupRadius() const { return pickupRadius_; }
+	bool IsEnemyDeathDropEnabled() const { return enemyDeathDropEnabled_; }
 	bool IsForceEnemyDeathDropEnabled() const { return forceEnemyDeathDrop_; }
 	ItemType GetLastPickedItemType() const { return lastPickedItemType_; }
 	ItemType GetLastDroppedItemType() const { return lastDroppedItemType_; }
+	const K4E::Vector3& GetLastDropPosition() const { return lastDropPosition_; }
 
 	void DrawImGui();
 
 private: /// ---------- メンバ関数 ---------- ///
 
 	void RemoveInactiveItems();
+	void SpawnDropItem(ItemType type, const K4E::Vector3& position);
 	void SpawnConfigured(ItemType type, const K4E::Vector3& position);
+	void LogDropRollResult(ItemType type, const K4E::Vector3& position) const;
 
 private: /// ---------- メンバ変数 ---------- ///
 
@@ -61,7 +68,9 @@ private: /// ---------- メンバ変数 ---------- ///
 	float pickupRadius_ = 2.0f;
 	ItemType lastPickedItemType_ = ItemType::None;
 	ItemType lastDroppedItemType_ = ItemType::None;
-	bool forceEnemyDeathDrop_ = true;
+	K4E::Vector3 lastDropPosition_ = {};
+	bool enemyDeathDropEnabled_ = true;
+	bool forceEnemyDeathDrop_ = false;
 	CollisionManager* registeredCollisionManager_ = nullptr;
 
 	std::mt19937 rng_{ std::random_device{}() };

@@ -99,39 +99,71 @@ void ItemManager::SpawnHealSmall(const K4E::Vector3& position)
 
 void ItemManager::SpawnAmmoSmall(const K4E::Vector3& position)
 {
-	SpawnConfigured(ItemType::AmmoSmall, position);
+	K4E::Vector3 spawnPosition = position;
+	spawnPosition.y += 0.5f;
+	SpawnConfigured(ItemType::AmmoSmall, spawnPosition);
 }
 
 void ItemManager::TryDropFromEnemyDeath(const K4E::Vector3& deathPosition)
 {
+	TryDropEnemyItem(deathPosition);
+}
+
+void ItemManager::TryDropEnemyItem(const K4E::Vector3& deathPosition)
+{
 	K4E::Vector3 dropPosition = deathPosition;
 	dropPosition.y += 0.5f;
+	lastDropPosition_ = dropPosition;
 
-	if (forceEnemyDeathDrop_)
+	if (!enemyDeathDropEnabled_)
 	{
-		SpawnHealSmall(dropPosition);
-		lastDroppedItemType_ = ItemType::HealSmall;
+		lastDroppedItemType_ = ItemType::None;
+		LogDropRollResult(lastDroppedItemType_, dropPosition);
 		return;
+	}
+
+	lastDroppedItemType_ = RollEnemyDrop();
+	if (lastDroppedItemType_ != ItemType::None)
+	{
+		SpawnDropItem(lastDroppedItemType_, dropPosition);
+	}
+
+	LogDropRollResult(lastDroppedItemType_, dropPosition);
+}
+
+ItemType ItemManager::RollEnemyDrop()
+{
+	const float healRate = std::max(0.0f, healDropChance_);
+	const float ammoRate = std::max(0.0f, ammoDropChance_);
+	float totalDropRate = healRate + ammoRate;
+
+	if (totalDropRate <= 0.0f)
+	{
+		return forceEnemyDeathDrop_ ? ItemType::HealSmall : ItemType::None;
+	}
+
+	float effectiveHealRate = healRate;
+	float effectiveAmmoRate = ammoRate;
+	if (forceEnemyDeathDrop_ || totalDropRate > 1.0f)
+	{
+		effectiveHealRate = healRate / totalDropRate;
+		effectiveAmmoRate = ammoRate / totalDropRate;
 	}
 
 	std::uniform_real_distribution<float> dist(0.0f, 1.0f);
 	const float roll = dist(rng_);
 
-	// ドロップ抽選は Heal → Ammo の順で合計確率を評価し、敵1体につき最大1個だけ出す。
-	if (roll < healDropChance_)
+	// Heal/Ammo/None の抽選を ItemManager に集約し、シーン側に確率分岐を置かない。
+	if (roll < effectiveHealRate)
 	{
-		SpawnHealSmall(dropPosition);
-		lastDroppedItemType_ = ItemType::HealSmall;
+		return ItemType::HealSmall;
 	}
-	else if (roll < healDropChance_ + ammoDropChance_)
+	if (roll < effectiveHealRate + effectiveAmmoRate)
 	{
-		SpawnAmmoSmall(dropPosition);
-		lastDroppedItemType_ = ItemType::AmmoSmall;
+		return ItemType::AmmoSmall;
 	}
-	else
-	{
-		lastDroppedItemType_ = ItemType::None;
-	}
+
+	return ItemType::None;
 }
 
 void ItemManager::CheckPickup(Player& player)
@@ -168,6 +200,7 @@ void ItemManager::Clear()
 	collectedEvents_.clear();
 	lastPickedItemType_ = ItemType::None;
 	lastDroppedItemType_ = ItemType::None;
+	lastDropPosition_ = {};
 	registeredCollisionManager_ = nullptr;
 }
 
@@ -199,6 +232,11 @@ int ItemManager::GetActiveItemCount(ItemType type) const
 		}));
 }
 
+float ItemManager::GetNoneDropChance() const
+{
+	return std::max(0.0f, 1.0f - std::max(0.0f, healDropChance_) - std::max(0.0f, ammoDropChance_));
+}
+
 void ItemManager::DrawImGui()
 {
 #ifdef USE_IMGUI
@@ -208,25 +246,36 @@ void ItemManager::DrawImGui()
 		return;
 	}
 
-	ImGui::Text("Item数: %d", GetActiveItemCount());
+	ImGui::Text("Active Item数: %d", GetActiveItemCount());
 	ImGui::Text("HealSmall数: %d", GetActiveItemCount(ItemType::HealSmall));
 	ImGui::Text("AmmoSmall数: %d", GetActiveItemCount(ItemType::AmmoSmall));
-	ImGui::Checkbox("敵死亡時ドロップを必ず発生させる", &forceEnemyDeathDrop_);
+	ImGui::Checkbox("敵死亡時ドロップ有効", &enemyDeathDropEnabled_);
+	ImGui::Checkbox("必ず何か落とす", &forceEnemyDeathDrop_);
 	float healDropPercent = healDropChance_ * 100.0f;
 	float ammoDropPercent = ammoDropChance_ * 100.0f;
-	if (ImGui::SliderFloat("Healドロップ確率", &healDropPercent, 0.0f, 100.0f, "%.0f%%"))
+	if (ImGui::SliderFloat("HealSmallドロップ確率", &healDropPercent, 0.0f, 100.0f, "%.0f%%"))
 	{
 		healDropChance_ = healDropPercent / 100.0f;
 	}
-	if (ImGui::SliderFloat("Ammoドロップ確率", &ammoDropPercent, 0.0f, 100.0f, "%.0f%%"))
+	if (ImGui::SliderFloat("AmmoSmallドロップ確率", &ammoDropPercent, 0.0f, 100.0f, "%.0f%%"))
 	{
 		ammoDropChance_ = ammoDropPercent / 100.0f;
+	}
+	ImGui::Text("None確率表示: %.0f%%", GetNoneDropChance() * 100.0f);
+	if (healDropChance_ + ammoDropChance_ > 1.0f)
+	{
+		ImGui::TextColored(ImVec4(1.0f, 0.75f, 0.0f, 1.0f), "Heal+Ammoが100%%超過: 内部で正規化します");
+	}
+	if (forceEnemyDeathDrop_)
+	{
+		ImGui::Text("必ず何か落とすON: Noneは選ばれません");
 	}
 	ImGui::DragInt("Heal回復量", &healAmount_, 1, 0, 999);
 	ImGui::DragInt("Ammo回復量", &ammoAmount_, 1, 0, 999);
 	ImGui::DragFloat("pickupRadius", &pickupRadius_, 0.1f, 0.1f, 20.0f, "%.2f");
 	ImGui::Text("最後に取得したItemType: %s", ToItemTypeName(lastPickedItemType_));
 	ImGui::Text("最後にドロップしたItemType: %s", ToItemTypeName(lastDroppedItemType_));
+	ImGui::Text("最後のドロップ位置: (%.2f, %.2f, %.2f)", lastDropPosition_.x, lastDropPosition_.y, lastDropPosition_.z);
 
 	ImGui::End();
 #else
@@ -247,6 +296,11 @@ void ItemManager::RemoveInactiveItems()
 		}), items_.end());
 }
 
+void ItemManager::SpawnDropItem(ItemType type, const K4E::Vector3& position)
+{
+	SpawnConfigured(type, position);
+}
+
 void ItemManager::SpawnConfigured(ItemType type, const K4E::Vector3& position)
 {
 	if (type == ItemType::None) return;
@@ -261,6 +315,17 @@ void ItemManager::SpawnConfigured(ItemType type, const K4E::Vector3& position)
 
 	std::ostringstream oss;
 	oss << "DropItem Spawned"
+		<< " ItemType=" << ToItemTypeName(type)
+		<< " SpawnPosition=(" << position.x << ", " << position.y << ", " << position.z << ")"
+		<< " ActiveItemCount=" << GetActiveItemCount()
+		<< "\n";
+	OutputDebugStringA(oss.str().c_str());
+}
+
+void ItemManager::LogDropRollResult(ItemType type, const K4E::Vector3& position) const
+{
+	std::ostringstream oss;
+	oss << "Drop Roll Result"
 		<< " ItemType=" << ToItemTypeName(type)
 		<< " SpawnPosition=(" << position.x << ", " << position.y << ", " << position.z << ")"
 		<< " ActiveItemCount=" << GetActiveItemCount()
