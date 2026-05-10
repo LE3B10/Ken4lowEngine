@@ -3,6 +3,7 @@
 #include "Object3D.h"
 #include "Collider.h"
 #include "ItemType.h"
+#include "Vector4.h"
 
 #include <memory>
 
@@ -23,6 +24,8 @@ public: /// ---------- メンバ関数 --------- ///
 	bool OnPickup(class Player& player);
 	void ApplyTo(class Player* player);
 	void MarkCollected() { active_ = false; }
+	void SetVisualAnimationSettings(float floatHeight, float floatSpeed, float rotationSpeed);
+	void SetVisualColor(const K4E::Vector4& color);
 
 	bool IsCollected() const { return !active_; }
 	bool IsExpired() const { return lifetime_ >= maxLifetime_; }

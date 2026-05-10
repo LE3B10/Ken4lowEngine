@@ -2,6 +2,7 @@
 #include "Player.h"
 #include <CollisionTypeIdDef.h>
 
+#include <algorithm>
 #include <cmath>
 #include <string>
 
@@ -61,6 +62,21 @@ void Item::Initialize(ItemType type, const K4E::Vector3& pos, int healAmount, in
 	}
 }
 
+void Item::SetVisualAnimationSettings(float floatHeight, float floatSpeed, float rotationSpeed)
+{
+	floatAmplitude_ = std::max(0.0f, floatHeight);
+	floatSpeed_ = std::max(0.0f, floatSpeed);
+	rotationSpeed_ = rotationSpeed;
+}
+
+void Item::SetVisualColor(const K4E::Vector4& color)
+{
+	if (object3d_)
+	{
+		object3d_->SetColor(color);
+	}
+}
+
 void Item::Update(float deltaTime)
 {
 	if (!active_) return;
@@ -69,7 +85,7 @@ void Item::Update(float deltaTime)
 	floatTimer_ += floatSpeed_ * deltaTime;
 	const float floatOffset = std::sinf(floatTimer_) * floatAmplitude_;
 	position_.y = basePosition_.y + floatOffset + 1.0f;
-	rotation_.y += rotationSpeed_;
+	rotation_.y += rotationSpeed_ * deltaTime;
 
 	if (object3d_)
 	{

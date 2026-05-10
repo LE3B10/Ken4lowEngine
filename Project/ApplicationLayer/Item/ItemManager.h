@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 #include "Item.h"
+#include "ItemVisualEffect.h"
 
 namespace K4E = ::Ken4lowEngine;
 
@@ -79,6 +80,7 @@ private: /// ---------- メンバ関数 ---------- ///
 	void SpawnConfigured(ItemType type, const K4E::Vector3& position);
 	void LogDropRollResult(ItemType type, const K4E::Vector3& position) const;
 	void LogItemEffectResult() const;
+	void ApplyVisualSettings(Item& item);
 
 private: /// ---------- メンバ変数 ---------- ///
 
@@ -102,6 +104,7 @@ private: /// ---------- メンバ変数 ---------- ///
 	bool enemyDeathDropEnabled_ = true;
 	bool forceEnemyDeathDrop_ = false;
 	CollisionManager* registeredCollisionManager_ = nullptr;
+	ItemVisualEffect itemVisualEffect_;
 
 	std::mt19937 rng_{ std::random_device{}() };
 };
