@@ -1,3 +1,4 @@
+#define NOMINMAX
 #include "ItemManager.h"
 #include "Player.h"
 #include "CollisionManager.h"
@@ -7,6 +8,10 @@
 #endif
 
 #include <algorithm>
+#include <sstream>
+#include <string>
+
+#include <Windows.h>
 
 namespace K4E = ::Ken4lowEngine;
 
@@ -99,11 +104,18 @@ void ItemManager::SpawnAmmoSmall(const K4E::Vector3& position)
 
 void ItemManager::TryDropFromEnemyDeath(const K4E::Vector3& deathPosition)
 {
-	std::uniform_real_distribution<float> dist(0.0f, 1.0f);
-	const float roll = dist(rng_);
-
 	K4E::Vector3 dropPosition = deathPosition;
 	dropPosition.y += 0.5f;
+
+	if (forceEnemyDeathDrop_)
+	{
+		SpawnHealSmall(dropPosition);
+		lastDroppedItemType_ = ItemType::HealSmall;
+		return;
+	}
+
+	std::uniform_real_distribution<float> dist(0.0f, 1.0f);
+	const float roll = dist(rng_);
 
 	// ドロップ抽選は Heal → Ammo の順で合計確率を評価し、敵1体につき最大1個だけ出す。
 	if (roll < healDropChance_)
@@ -199,6 +211,7 @@ void ItemManager::DrawImGui()
 	ImGui::Text("Item数: %d", GetActiveItemCount());
 	ImGui::Text("HealSmall数: %d", GetActiveItemCount(ItemType::HealSmall));
 	ImGui::Text("AmmoSmall数: %d", GetActiveItemCount(ItemType::AmmoSmall));
+	ImGui::Checkbox("敵死亡時ドロップを必ず発生させる", &forceEnemyDeathDrop_);
 	float healDropPercent = healDropChance_ * 100.0f;
 	float ammoDropPercent = ammoDropChance_ * 100.0f;
 	if (ImGui::SliderFloat("Healドロップ確率", &healDropPercent, 0.0f, 100.0f, "%.0f%%"))
@@ -245,4 +258,12 @@ void ItemManager::SpawnConfigured(ItemType type, const K4E::Vector3& position)
 		registeredCollisionManager_->AddCollider(item.get());
 	}
 	items_.push_back(std::move(item));
+
+	std::ostringstream oss;
+	oss << "DropItem Spawned"
+		<< " ItemType=" << ToItemTypeName(type)
+		<< " SpawnPosition=(" << position.x << ", " << position.y << ", " << position.z << ")"
+		<< " ActiveItemCount=" << GetActiveItemCount()
+		<< "\n";
+	OutputDebugStringA(oss.str().c_str());
 }

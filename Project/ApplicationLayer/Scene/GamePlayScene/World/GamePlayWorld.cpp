@@ -46,6 +46,7 @@ void GamePlayWorld::Initialize(GamePlayStageContext& stageContext)
 	ctx.bulletManager_ = bulletManager_.get();
 	characters_.Initialize(ctx);
 	itemManager_.Initialize();
+	itemManager_.RegisterColliders(collisionManager_.get());
 	characters_.SetEnemyKilledCallback([this](const K4E::Vector3& deathPosition)
 		{
 			itemManager_.TryDropFromEnemyDeath(deathPosition);

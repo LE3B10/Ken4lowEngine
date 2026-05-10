@@ -29,6 +29,7 @@ void CharacterWorld::Initialize(GameContext& ctx)
 	}
 
 	enemies_.clear();
+	notifiedKilledEnemies_.clear();
 }
 
 void CharacterWorld::Finalize()
@@ -120,6 +121,8 @@ Enemy& CharacterWorld::SpawnEnemyAt(const K4E::Vector3& position)
 
 void CharacterWorld::ClearEnemies()
 {
+	notifiedKilledEnemies_.clear();
+
 	if (ctx_.collisionManager_)
 	{
 		for (auto& e : enemies_)
@@ -136,11 +139,17 @@ void CharacterWorld::Update(float dt)
 
 	for (auto& e : enemies_)
 	{
-		const bool wasDead = e->IsDead();
+		const bool wasAlreadyNotified = notifiedKilledEnemies_.contains(e.get());
 		e->Update(dt);
-		if (!wasDead && e->IsDead() && onEnemyKilled_)
+
+		// 衝突更新で死亡した敵も次フレームに1回だけ通知して、ドロップ生成の取り逃しを防ぐ。
+		if (!wasAlreadyNotified && e->IsDead())
 		{
-			onEnemyKilled_(e->GetCenterPosition());
+			notifiedKilledEnemies_.insert(e.get());
+			if (onEnemyKilled_)
+			{
+				onEnemyKilled_(e->GetCenterPosition());
+			}
 		}
 	}
 
@@ -152,6 +161,7 @@ void CharacterWorld::Update(float dt)
 				{
 					if (e && e->IsRemovable())
 					{
+						notifiedKilledEnemies_.erase(e.get());
 						ctx_.collisionManager_->RemoveCollider(e.get());
 						return true;
 					}
