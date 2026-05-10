@@ -132,6 +132,8 @@ public: /// ---------- メンバ関数 ---------- ///
 	int GetCurrentWeaponReserveAmmo() const { return weapon_.GetReserveAmmo(); }
 	int GetCurrentWeaponMaxReserveAmmo() const { return weapon_.GetMaxReserveAmmo(); }
 	bool AddCurrentWeaponAmmo(int amount) { return weapon_.AddCurrentWeaponAmmo(amount); }
+	bool CanCurrentWeaponRecoverAmmo() const { return weapon_.CanCurrentWeaponRecoverAmmo(); }
+	std::string GetCurrentWeaponName() const { return weapon_.GetCurrentWeaponName(); }
 
 	PlayerBrainComponent& GetBrainComponent() { return brainComponent_; }
 	const PlayerBrainComponent& GetBrainComponent() const { return brainComponent_; }

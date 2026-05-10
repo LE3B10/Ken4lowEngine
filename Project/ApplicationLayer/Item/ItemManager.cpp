@@ -172,40 +172,151 @@ void ItemManager::CheckPickup(Player& player)
 
 	for (auto& item : items_)
 	{
-		if (!item->IsActive()) continue;
+		if (!item || !item->IsActive()) continue;
 
 		if (item->CheckCollisionWithPlayer(playerPos))
 		{
-			const ItemType pickupType = item->GetType();
-			const int reserveBefore = player.GetCurrentWeaponReserveAmmo();
+			lastItemEffectDebugInfo_ = {};
+			lastItemEffectDebugInfo_.pickupDetected = true;
+			lastItemEffectDebugInfo_.itemType = item->GetType();
+			lastPickedItemType_ = item->GetType();
 
-			if (item->OnPickup(player))
+			const bool effectApplied = ApplyItemEffect(*item, player);
+			const bool consumePickedItem = effectApplied || (consumeItemWhenFull_ && lastItemEffectDebugInfo_.noEffectBecauseFull);
+			if (consumePickedItem)
 			{
-				lastPickedItemType_ = pickupType;
-				lastKnownMagazineAmmo_ = player.GetCurrentWeaponMagazineAmmo();
-				lastKnownReserveAmmo_ = player.GetCurrentWeaponReserveAmmo();
-				lastKnownMaxReserveAmmo_ = player.GetCurrentWeaponMaxReserveAmmo();
-				lastAmmoSmallReserveRestored_ = (pickupType == ItemType::AmmoSmall)
-					? std::max(0, lastKnownReserveAmmo_ - reserveBefore)
-					: 0;
-				collectedEvents_.push_back(pickupType);
-
-				std::ostringstream oss;
-				oss << "Item Picked"
-					<< " ItemType=" << ToItemTypeName(pickupType)
-					<< " MagazineAmmo=" << lastKnownMagazineAmmo_
-					<< " ReserveAmmo=" << lastKnownReserveAmmo_
-					<< " MaxReserveAmmo=" << lastKnownMaxReserveAmmo_
-					<< " AmmoSmallAmount=" << ammoAmount_
-					<< " AmmoSmallReserveRestored=" << lastAmmoSmallReserveRestored_
-					<< "\n";
-				OutputDebugStringA(oss.str().c_str());
+				item->MarkCollected();
+				collectedEvents_.push_back(lastItemEffectDebugInfo_.itemType);
 			}
+
+			lastKnownMagazineAmmo_ = player.GetCurrentWeaponMagazineAmmo();
+			lastKnownReserveAmmo_ = player.GetCurrentWeaponReserveAmmo();
+			lastKnownMaxReserveAmmo_ = player.GetCurrentWeaponMaxReserveAmmo();
+			lastAmmoSmallReserveRestored_ = (lastItemEffectDebugInfo_.itemType == ItemType::AmmoSmall)
+				? std::max(0, lastItemEffectDebugInfo_.reserveAfter - lastItemEffectDebugInfo_.reserveBefore)
+				: 0;
+
+			LogItemEffectResult();
 		}
 	}
 
 	RemoveInactiveItems();
 }
+
+bool ItemManager::ApplyItemEffect(Item& item, Player& player)
+{
+	ItemEffectDebugInfo& info = lastItemEffectDebugInfo_;
+	info.itemType = item.GetType();
+	info.effectApplied = false;
+	info.failReason.clear();
+	info.noEffectBecauseFull = false;
+	info.hpBefore = player.GetHP();
+	info.hpAfter = info.hpBefore;
+	info.maxHp = player.GetMaxHP();
+	info.reserveBefore = player.GetCurrentWeaponReserveAmmo();
+	info.reserveAfter = info.reserveBefore;
+	info.maxReserve = player.GetCurrentWeaponMaxReserveAmmo();
+	info.magazineAmmo = player.GetCurrentWeaponMagazineAmmo();
+	info.currentWeaponName = player.GetCurrentWeaponName();
+	info.currentWeaponAmmoRecoverable = player.CanCurrentWeaponRecoverAmmo();
+	info.hudMagazineAmmo = 0;
+	info.hudReserveAmmo = 0;
+
+	// 取得判定と効果適用を分離し、増加量を比較して成功/失敗理由を残す。
+	switch (item.GetType())
+	{
+	case ItemType::HealSmall:
+		if (item.GetHealAmount() <= 0)
+		{
+			info.failReason = "HealSmall回復量が0以下です";
+			break;
+		}
+		if (info.hpBefore >= info.maxHp)
+		{
+			info.failReason = "HPが最大値のため回復しませんでした";
+			info.noEffectBecauseFull = true;
+			break;
+		}
+		player.Heal(static_cast<float>(item.GetHealAmount()));
+		info.hpAfter = player.GetHP();
+		info.effectApplied = info.hpAfter > info.hpBefore;
+		if (!info.effectApplied)
+		{
+			info.failReason = "Heal処理後もHPが増えませんでした";
+		}
+		break;
+
+	case ItemType::AmmoSmall:
+		if (item.GetAmmoAmount() <= 0)
+		{
+			info.failReason = "AmmoSmall回復量が0以下です";
+			break;
+		}
+		if (!info.currentWeaponAmmoRecoverable)
+		{
+			info.failReason = "現在装備中武器は弾薬回復対象ではありません";
+			break;
+		}
+		if (info.maxReserve <= 0)
+		{
+			info.failReason = "最大予備弾薬が0以下です";
+			break;
+		}
+		if (info.reserveBefore >= info.maxReserve)
+		{
+			info.failReason = "予備弾薬が最大値のため回復しませんでした";
+			info.noEffectBecauseFull = true;
+			break;
+		}
+		(void)player.AddReserveAmmo(item.GetAmmoAmount());
+		info.reserveAfter = player.GetCurrentWeaponReserveAmmo();
+		info.magazineAmmo = player.GetCurrentWeaponMagazineAmmo();
+		info.maxReserve = player.GetCurrentWeaponMaxReserveAmmo();
+		info.effectApplied = info.reserveAfter > info.reserveBefore;
+		if (!info.effectApplied)
+		{
+			info.failReason = "AddReserveAmmo後も予備弾薬が増えませんでした";
+		}
+		break;
+
+	case ItemType::NextStageKey:
+		info.effectApplied = true;
+		break;
+
+	case ItemType::None:
+	default:
+		info.failReason = "未対応のItemTypeです";
+		break;
+	}
+
+	if (info.hpAfter == info.hpBefore)
+	{
+		info.hpAfter = player.GetHP();
+	}
+	if (info.reserveAfter == info.reserveBefore)
+	{
+		info.reserveAfter = player.GetCurrentWeaponReserveAmmo();
+	}
+	info.maxHp = player.GetMaxHP();
+	info.maxReserve = player.GetCurrentWeaponMaxReserveAmmo();
+	info.magazineAmmo = player.GetCurrentWeaponMagazineAmmo();
+
+	WeaponSlot::HudSnapshot hud{};
+	if (player.GetWeaponSlotHUD(hud) && hud.selectedIndex >= 0 && hud.selectedIndex < WeaponSlot::kSlotCount)
+	{
+		const auto& selected = hud.slotStates[hud.selectedIndex];
+		info.hudMagazineAmmo = selected.ammoInfo.currentAmmo;
+		info.hudReserveAmmo = selected.ammoInfo.reserveAmmo;
+	}
+
+	if (info.effectApplied)
+	{
+		info.failReason = "なし";
+	}
+
+	return info.effectApplied;
+}
+
 
 void ItemManager::Clear()
 {
@@ -228,6 +339,7 @@ void ItemManager::Clear()
 	lastKnownReserveAmmo_ = 0;
 	lastKnownMaxReserveAmmo_ = 0;
 	lastAmmoSmallReserveRestored_ = 0;
+	lastItemEffectDebugInfo_ = {};
 	registeredCollisionManager_ = nullptr;
 }
 
@@ -305,6 +417,21 @@ void ItemManager::DrawImGui()
 	ImGui::Text("最大予備弾薬: %d", lastKnownMaxReserveAmmo_);
 	ImGui::Text("AmmoSmall回復量: %d", ammoAmount_);
 	ImGui::Text("AmmoSmall取得時に回復した予備弾薬量: %d", lastAmmoSmallReserveRestored_);
+	ImGui::Checkbox("満タン時もItemを消す", &consumeItemWhenFull_);
+	ImGui::SeparatorText("最後のItem取得診断");
+	ImGui::Text("最後に拾ったItemType: %s", ToItemTypeName(lastItemEffectDebugInfo_.itemType));
+	ImGui::Text("Item取得判定: %s", lastItemEffectDebugInfo_.pickupDetected ? "true" : "false");
+	ImGui::Text("効果適用成功: %s", lastItemEffectDebugInfo_.effectApplied ? "true" : "false");
+	ImGui::TextWrapped("効果適用失敗理由: %s", lastItemEffectDebugInfo_.failReason.c_str());
+	ImGui::Text("取得前HP: %.1f", lastItemEffectDebugInfo_.hpBefore);
+	ImGui::Text("取得後HP: %.1f", lastItemEffectDebugInfo_.hpAfter);
+	ImGui::Text("最大HP: %.1f", lastItemEffectDebugInfo_.maxHp);
+	ImGui::Text("取得前予備弾薬: %d", lastItemEffectDebugInfo_.reserveBefore);
+	ImGui::Text("取得後予備弾薬: %d", lastItemEffectDebugInfo_.reserveAfter);
+	ImGui::Text("最大予備弾薬: %d", lastItemEffectDebugInfo_.maxReserve);
+	ImGui::Text("現在武器名: %s", lastItemEffectDebugInfo_.currentWeaponName.c_str());
+	ImGui::Text("現在武器が弾薬回復可能か: %s", lastItemEffectDebugInfo_.currentWeaponAmmoRecoverable ? "true" : "false");
+	ImGui::Text("HUD表示弾薬: %d / %d", lastItemEffectDebugInfo_.hudMagazineAmmo, lastItemEffectDebugInfo_.hudReserveAmmo);
 	ImGui::Text("最後に取得したItemType: %s", ToItemTypeName(lastPickedItemType_));
 	ImGui::Text("最後にドロップしたItemType: %s", ToItemTypeName(lastDroppedItemType_));
 	ImGui::Text("最後のドロップ位置: (%.2f, %.2f, %.2f)", lastDropPosition_.x, lastDropPosition_.y, lastDropPosition_.z);
@@ -361,6 +488,30 @@ void ItemManager::LogDropRollResult(ItemType type, const K4E::Vector3& position)
 		<< " ItemType=" << ToItemTypeName(type)
 		<< " SpawnPosition=(" << position.x << ", " << position.y << ", " << position.z << ")"
 		<< " ActiveItemCount=" << GetActiveItemCount()
+		<< "\n";
+	OutputDebugStringA(oss.str().c_str());
+}
+
+
+void ItemManager::LogItemEffectResult() const
+{
+	const ItemEffectDebugInfo& info = lastItemEffectDebugInfo_;
+	std::ostringstream oss;
+	oss << "Item取得診断"
+		<< " 最後に拾ったItemType=" << ToItemTypeName(info.itemType)
+		<< " Item取得判定=" << (info.pickupDetected ? "true" : "false")
+		<< " 効果適用成功=" << (info.effectApplied ? "true" : "false")
+		<< " 効果適用失敗理由=" << info.failReason
+		<< " 取得前HP=" << info.hpBefore
+		<< " 取得後HP=" << info.hpAfter
+		<< " 最大HP=" << info.maxHp
+		<< " 取得前予備弾薬=" << info.reserveBefore
+		<< " 取得後予備弾薬=" << info.reserveAfter
+		<< " 最大予備弾薬=" << info.maxReserve
+		<< " 現在武器名=" << info.currentWeaponName
+		<< " 現在武器が弾薬回復可能か=" << (info.currentWeaponAmmoRecoverable ? "true" : "false")
+		<< " HUD表示弾薬=" << info.hudMagazineAmmo << "/" << info.hudReserveAmmo
+		<< " 満タン時もItemを消す=" << (consumeItemWhenFull_ ? "true" : "false")
 		<< "\n";
 	OutputDebugStringA(oss.str().c_str());
 }

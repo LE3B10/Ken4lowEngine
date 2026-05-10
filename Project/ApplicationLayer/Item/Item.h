@@ -22,6 +22,7 @@ public: /// ---------- メンバ関数 --------- ///
 	bool CheckCollisionWithPlayer(const K4E::Vector3& playerPos) const;
 	bool OnPickup(class Player& player);
 	void ApplyTo(class Player* player);
+	void MarkCollected() { active_ = false; }
 
 	bool IsCollected() const { return !active_; }
 	bool IsExpired() const { return lifetime_ >= maxLifetime_; }
