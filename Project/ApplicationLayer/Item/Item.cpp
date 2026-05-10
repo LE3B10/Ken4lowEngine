@@ -130,6 +130,7 @@ void Item::OnCollision(K4E::Collider* other)
 
 	if (other->GetTypeID() == static_cast<uint32_t>(CollisionTypeIdDef::kPlayer))
 	{
-		ApplyTo(static_cast<Player*>(other));
+		// アイテム効果は ItemManager::ApplyItemEffect に集約し、当たり判定コールバックでは消費しない。
+		return;
 	}
 }

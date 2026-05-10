@@ -180,6 +180,24 @@ PlayerWeaponComponent::AmmoView PlayerWeaponComponent::GetAmmoViewByHot_barIndex
 	return out;
 }
 
+
+bool PlayerWeaponComponent::CanCurrentWeaponRecoverAmmo() const
+{
+	if (!weaponLoaded_) return false;
+	if (weaponCategory_ == EWeaponCategory::Melee) return false;
+
+	return weaponSys_.Weapon().GetMaxReserveAmmo() > 0;
+}
+
+std::string PlayerWeaponComponent::GetCurrentWeaponName() const
+{
+	if (!weaponLoaded_) return "未ロード";
+
+	const FWeaponMasterData* data = weaponSys_.Database().FindByID(currentWeaponId_);
+	if (!data) return "不明";
+	return data->coreData.weaponName;
+}
+
 bool PlayerWeaponComponent::GetCurrentAdsViewTuning(float& outAdsFovDeg, float& outAdsTransitionSpeed) const
 {
 	if (!weaponLoaded_) return false;
@@ -434,10 +452,8 @@ int PlayerWeaponComponent::AddReserveAmmo(int amount)
 	if (weaponCategory_ == EWeaponCategory::Melee) return 0;
 
 	const int restored = weaponSys_.Weapon().AddReserveAmmo(amount);
-	if (restored > 0)
-	{
-		UpdateSelectedAmmoViewCache();
-	}
+	// 予備弾薬が満タンで増えない場合も、HUD診断用キャッシュを現在値へ同期する。
+	UpdateSelectedAmmoViewCache();
 	return restored;
 }
 

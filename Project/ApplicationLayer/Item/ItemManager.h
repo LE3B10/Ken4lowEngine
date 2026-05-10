@@ -1,6 +1,7 @@
 #pragma once
 #include <memory>
 #include <random>
+#include <string>
 #include <vector>
 #include "Item.h"
 
@@ -16,6 +17,26 @@ class ItemManager
 {
 public: /// ---------- メンバ関数 ---------- ///
 
+	struct ItemEffectDebugInfo
+	{
+		ItemType itemType = ItemType::None;
+		bool pickupDetected = false;
+		bool effectApplied = false;
+		bool noEffectBecauseFull = false;
+		std::string failReason = "未取得";
+		float hpBefore = 0.0f;
+		float hpAfter = 0.0f;
+		float maxHp = 0.0f;
+		int reserveBefore = 0;
+		int reserveAfter = 0;
+		int maxReserve = 0;
+		int magazineAmmo = 0;
+		int hudMagazineAmmo = 0;
+		int hudReserveAmmo = 0;
+		std::string currentWeaponName = "未取得";
+		bool currentWeaponAmmoRecoverable = false;
+	};
+
 	void Initialize();
 	void Update(float deltaTime);
 	void Update(Player* player, float deltaTime);
@@ -29,6 +50,7 @@ public: /// ---------- メンバ関数 ---------- ///
 	void TryDropEnemyItem(const K4E::Vector3& deathPosition);
 	ItemType RollEnemyDrop();
 	void CheckPickup(Player& player);
+	bool ApplyItemEffect(Item& item, Player& player);
 	void Clear();
 
 	bool ConsumeCollected(ItemType type);
@@ -46,6 +68,7 @@ public: /// ---------- メンバ関数 ---------- ///
 	ItemType GetLastPickedItemType() const { return lastPickedItemType_; }
 	ItemType GetLastDroppedItemType() const { return lastDroppedItemType_; }
 	const K4E::Vector3& GetLastDropPosition() const { return lastDropPosition_; }
+	const ItemEffectDebugInfo& GetLastItemEffectDebugInfo() const { return lastItemEffectDebugInfo_; }
 
 	void DrawImGui();
 
@@ -55,6 +78,7 @@ private: /// ---------- メンバ関数 ---------- ///
 	void SpawnDropItem(ItemType type, const K4E::Vector3& position);
 	void SpawnConfigured(ItemType type, const K4E::Vector3& position);
 	void LogDropRollResult(ItemType type, const K4E::Vector3& position) const;
+	void LogItemEffectResult() const;
 
 private: /// ---------- メンバ変数 ---------- ///
 
@@ -70,6 +94,8 @@ private: /// ---------- メンバ変数 ---------- ///
 	int lastKnownReserveAmmo_ = 0;
 	int lastKnownMaxReserveAmmo_ = 0;
 	int lastAmmoSmallReserveRestored_ = 0;
+	ItemEffectDebugInfo lastItemEffectDebugInfo_{};
+	bool consumeItemWhenFull_ = false;
 	ItemType lastPickedItemType_ = ItemType::None;
 	ItemType lastDroppedItemType_ = ItemType::None;
 	K4E::Vector3 lastDropPosition_ = {};
