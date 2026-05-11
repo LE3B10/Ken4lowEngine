@@ -832,16 +832,16 @@ void GamePlayScene::CollectEditorObjects(std::vector<Ken4lowEngine::EditorObject
 		object.inspectorHint = hint;
 		object.transformUnavailableReason = "Transform editing is not available for this GamePlayScene item.";
 	};
-	const auto addManagerObject = [&outObjects, this, &setCommonInspectorHint](uint64_t id, const char* displayName, const char* typeName)
+	const auto addManagerObject = [&outObjects, this, &setCommonInspectorHint](uint64_t id, const char* displayName, const char* typeName, Ken4lowEngine::EditorInspectorType inspectorType)
 	{
 		// Manager系はTransformを触らず、Detailsへ落ちない簡易情報だけを安定IDで公開する。
 		Ken4lowEngine::EditorObjectInfo object{ id, displayName, typeName, "GamePlayScene" };
-		object.inspectorType = Ken4lowEngine::EditorInspectorType::ManagerInfo;
+		object.inspectorType = inspectorType;
 		setCommonInspectorHint(object, "GamePlayScene Manager Info");
 		object.drawInspector = [this, displayName]()
 		{
 #ifdef USE_IMGUI
-			ImGui::TextUnformatted("ManagerInfo");
+			ImGui::TextUnformatted("GamePlayScene runtime summary");
 			ImGui::Separator();
 			if (std::string_view(displayName) == "Enemy Manager")
 			{
@@ -854,7 +854,8 @@ void GamePlayScene::CollectEditorObjects(std::vector<Ken4lowEngine::EditorObject
 				{
 					ImGui::TextUnformatted("Active Enemy Count: N/A");
 				}
-				ImGui::TextUnformatted("Use the Enemy Debug window for detailed spawn/AI tuning.");
+				ImGui::TextUnformatted("Total Enemy Count: N/A");
+				ImGui::TextUnformatted("Use Enemy Debug window for detailed tuning.");
 			}
 			else if (std::string_view(displayName) == "Bullet Manager")
 			{
@@ -867,7 +868,9 @@ void GamePlayScene::CollectEditorObjects(std::vector<Ken4lowEngine::EditorObject
 				{
 					ImGui::TextUnformatted("Active Bullet Count: N/A");
 				}
-				ImGui::TextUnformatted("Use Bullet/Weapon Debug windows for detailed weapon checks.");
+				ImGui::TextUnformatted("Player Bullet Count: N/A");
+				ImGui::TextUnformatted("Enemy Bullet Count: N/A");
+				ImGui::TextUnformatted("Use Weapon Debug / Bullet Debug for detailed tuning.");
 			}
 			else if (std::string_view(displayName) == "Wave Manager")
 			{
@@ -878,23 +881,25 @@ void GamePlayScene::CollectEditorObjects(std::vector<Ken4lowEngine::EditorObject
 					const char* waveState = waveManager->IsAllWavesCleared() ? "All Cleared" : (waveManager->IsWaveInProgress() ? "In Progress" : (waveManager->IsWaitingNextWave() ? "Waiting Next Wave" : (waveManager->HasStarted() ? "Started" : "Not Started")));
 					ImGui::Text("Wave State: %s", waveState);
 					ImGui::Text("Remaining Enemies: %d", world_->GetCharacters().GetEnemyCount());
+					ImGui::Text("Is Wave Active: %s", waveManager->IsWaveInProgress() ? "true" : "false");
 				}
 				else
 				{
 					ImGui::TextUnformatted("Current Wave: N/A");
 					ImGui::TextUnformatted("Wave State: N/A");
 					ImGui::TextUnformatted("Remaining Enemies: N/A");
+					ImGui::TextUnformatted("Is Wave Active: N/A");
 				}
 			}
 			else if (std::string_view(displayName) == "HUD")
 			{
 				auto* hud = world_ ? world_->GetHUDManager() : nullptr;
-				ImGui::Text("HUD Visible: %s", hud ? "Available" : "N/A");
-				ImGui::Text("Reticle: %s", (hud && hud->GetCrosshair()) ? (hud->GetCrosshair()->IsVisible() ? "Visible" : "Hidden") : "N/A");
+				ImGui::Text("Visible: %s", hud ? "Available" : "N/A");
 				ImGui::Text("HP UI: %s", (hud && hud->GetHPWidget()) ? (hud->GetHPWidget()->IsVisible() ? "Visible" : "Hidden") : "N/A");
 				ImGui::Text("Ammo UI: %s", (hud && hud->GetWeaponSlot()) ? "Available" : "N/A");
+				ImGui::Text("Reticle: %s", (hud && hud->GetCrosshair()) ? (hud->GetCrosshair()->IsVisible() ? "Visible" : "Hidden") : "N/A");
 				ImGui::Text("Damage Indicator: %s", hud ? "Managed by HUD" : "N/A");
-				ImGui::TextUnformatted("Use HUD Debug or a dedicated HUD UI for detailed layout editing.");
+				ImGui::TextUnformatted("Use HUD Debug window for detailed tuning.");
 			}
 			else if (std::string_view(displayName) == "Collision Manager")
 			{
@@ -907,7 +912,9 @@ void GamePlayScene::CollectEditorObjects(std::vector<Ken4lowEngine::EditorObject
 				{
 					ImGui::TextUnformatted("Collider Count: N/A");
 				}
-				ImGui::TextUnformatted("Use Collision Debug for detailed collision inspection.");
+				ImGui::TextUnformatted("Collision Pair Count: N/A");
+				ImGui::TextUnformatted("Debug Draw Enabled: N/A");
+				ImGui::TextUnformatted("Use Collision Debug window for detailed tuning.");
 			}
 			else
 			{
@@ -946,8 +953,11 @@ void GamePlayScene::CollectEditorObjects(std::vector<Ken4lowEngine::EditorObject
 			{
 				ImGui::TextUnformatted("HP: N/A");
 				ImGui::TextUnformatted("Position: N/A");
+				ImGui::TextUnformatted("Rotation: N/A");
+				ImGui::TextUnformatted("Scale: N/A");
 				ImGui::TextUnformatted("Alive/Dead: N/A");
 				ImGui::Text("Input Enabled: %s", input_ ? (input_->IsGameInputEnabled() ? "Enabled" : "Disabled") : "N/A");
+				ImGui::TextUnformatted("Player transform editing is not implemented yet.");
 				return;
 			}
 			ImGui::Text("HP: %.1f / %.1f", player->GetHP(), player->GetMaxHP());
@@ -961,9 +971,12 @@ void GamePlayScene::CollectEditorObjects(std::vector<Ken4lowEngine::EditorObject
 			else
 			{
 				ImGui::TextUnformatted("Position: N/A");
+				ImGui::TextUnformatted("Rotation: N/A");
+				ImGui::TextUnformatted("Scale: N/A");
 			}
 			ImGui::Text("Alive/Dead: %s", (player->GetHP() <= 0.0f || player->IsDeathActive()) ? "Dead" : "Alive");
 			ImGui::Text("Input Enabled: %s", input_ ? (input_->IsGameInputEnabled() ? "Enabled" : "Disabled") : "N/A");
+			ImGui::TextUnformatted("Player transform editing is not implemented yet.");
 #endif
 		};
 		outObjects.push_back(std::move(object));
@@ -1018,16 +1031,16 @@ void GamePlayScene::CollectEditorObjects(std::vector<Ken4lowEngine::EditorObject
 	};
 
 	// OutlinerはPlay/Edit中の生成状態に依存しすぎないよう、主要サブシステムを安定IDで列挙する。
-	addManagerObject(Ken4lowEngine::MakeStableEditorObjectId("GamePlayScene.Root"), "GamePlay Root", "Scene Root");
+	addManagerObject(Ken4lowEngine::MakeStableEditorObjectId("GamePlayScene.Root"), "GamePlay Root", "Scene Root", Ken4lowEngine::EditorInspectorType::ManagerInfo);
 	addPlayerObject(Ken4lowEngine::MakeStableEditorObjectId("GamePlayScene.Player"), "Player", "Player");
 	addCameraObject(Ken4lowEngine::MakeStableEditorObjectId("GamePlayScene.MainCamera"), "Main Camera", "Camera");
 	addLightObject(Ken4lowEngine::MakeStableEditorObjectId("GamePlayScene.PunctualLights"), "Punctual Lights", "Light Manager / Punctual Lights");
-	addManagerObject(Ken4lowEngine::MakeStableEditorObjectId("GamePlayScene.EnemyManager"), "Enemy Manager", "Enemy Manager");
-	addManagerObject(Ken4lowEngine::MakeStableEditorObjectId("GamePlayScene.BulletManager"), "Bullet Manager", "Bullet Manager");
-	addManagerObject(Ken4lowEngine::MakeStableEditorObjectId("GamePlayScene.WaveManager"), "Wave Manager", "Wave Manager");
+	addManagerObject(Ken4lowEngine::MakeStableEditorObjectId("GamePlayScene.EnemyManager"), "Enemy Manager", "Enemy Manager", Ken4lowEngine::EditorInspectorType::EnemyManagerInfo);
+	addManagerObject(Ken4lowEngine::MakeStableEditorObjectId("GamePlayScene.BulletManager"), "Bullet Manager", "Bullet Manager", Ken4lowEngine::EditorInspectorType::BulletManagerInfo);
+	addManagerObject(Ken4lowEngine::MakeStableEditorObjectId("GamePlayScene.WaveManager"), "Wave Manager", "Wave Manager", Ken4lowEngine::EditorInspectorType::WaveManagerInfo);
 	addStageObject(Ken4lowEngine::MakeStableEditorObjectId("GamePlayScene.Stage"), "Stage", "Stage");
-	addManagerObject(Ken4lowEngine::MakeStableEditorObjectId("GamePlayScene.HUD"), "HUD", "HUD");
-	addManagerObject(Ken4lowEngine::MakeStableEditorObjectId("GamePlayScene.CollisionManager"), "Collision Manager", "Collision Manager");
+	addManagerObject(Ken4lowEngine::MakeStableEditorObjectId("GamePlayScene.HUD"), "HUD", "HUD", Ken4lowEngine::EditorInspectorType::HudInfo);
+	addManagerObject(Ken4lowEngine::MakeStableEditorObjectId("GamePlayScene.CollisionManager"), "Collision Manager", "Collision Manager", Ken4lowEngine::EditorInspectorType::CollisionManagerInfo);
 	{
 		Ken4lowEngine::EditorObjectInfo fadeObject{ Ken4lowEngine::MakeStableEditorObjectId("GamePlayScene.FadeManager"), "FadeManager", "Fade Manager", "GamePlayScene" };
 		fadeObject.inspectorType = Ken4lowEngine::EditorInspectorType::FadeManager;
