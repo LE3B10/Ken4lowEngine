@@ -5,6 +5,7 @@
 #include "CameraManager.h"
 #include "Engine/Graphics/Culling/FrustumDebugRenderer.h"
 #include "Object3DCommon.h"
+#include "PostEffectManager.h"
 #include "WinApp.h"
 
 #ifdef _DEBUG
@@ -184,7 +185,7 @@ void FrustumCullingDebugController::CopyDebugCameraToMainCamera()
 	mainCamera->SetFovY(debugCamera->GetFovY());
 	mainCamera->SetNearClip(debugCamera->GetNearClip());
 	mainCamera->SetFarClip(debugCamera->GetFarClip());
-	mainCamera->SetAspectRatio(debugCamera->GetAspectRatio());
+	mainCamera->SetAspectRatio(GetCurrentWindowAspectRatio()); // Debug反映時も固定内部解像度の16:9を維持する。
 	mainCamera->Update();
 #endif
 }
@@ -258,6 +259,7 @@ void FrustumCullingDebugController::GetCullingCameraClipDistances(float& nearDis
 
 float FrustumCullingDebugController::GetCurrentWindowAspectRatio() const
 {
-	const float height = static_cast<float>(std::max(K4E::WinApp::GetInstance()->GetClientHeight(), 1u));
-	return static_cast<float>(K4E::WinApp::GetInstance()->GetClientWidth()) / height;
+	const auto* postEffectManager = K4E::PostEffectManager::GetInstance();
+	const float height = static_cast<float>(std::max(postEffectManager->GetGameRenderTargetHeight(), 1u));
+	return static_cast<float>(postEffectManager->GetGameRenderTargetWidth()) / height; // Camera AspectはMain Viewport表示サイズではなく固定内部解像度16:9にする。
 }
