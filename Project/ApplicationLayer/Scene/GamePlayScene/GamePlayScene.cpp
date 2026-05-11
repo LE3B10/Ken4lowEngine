@@ -912,15 +912,14 @@ void GamePlayScene::CollectEditorObjects(std::vector<Ken4lowEngine::EditorObject
 	};
 
 	// OutlinerはPlay/Edit中の生成状態に依存しすぎないよう、主要サブシステムを安定IDで列挙する。
-	addObject(0x3000000000000001ull, "GamePlay Root", "Scene Root");
-	addPlayerObject(0x3000000000000002ull, "Player", world_ ? "Player" : "Player (pending)");
-	addCameraObject(0x3000000000000003ull, "Main Camera", "Camera");
-	addLightObject(0x3000000000000004ull, "Light", "Directional Light");
-	addObject(0x3000000000000005ull, "Enemy Manager", world_ ? "Enemy Manager" : "Enemy Manager (pending)");
-	addObject(0x3000000000000006ull, "Bullet Manager", world_ ? "Bullet Manager" : "Bullet Manager (pending)");
-	addObject(0x3000000000000007ull, "Wave Manager", world_ ? "Wave Manager" : "Wave Manager (pending)");
-	addObject(0x3000000000000008ull, "Stage", stageContext_ ? "Stage" : "Stage (pending)");
-	addObject(0x3000000000000009ull, "HUD", world_ ? "HUD" : "HUD (pending)");
-	addObject(0x300000000000000aull, "Collision Manager", "Collision Manager");
-	addObject(0x300000000000000bull, "Fade Manager", fadeManager_ ? "Fade Manager" : "Fade Manager (pending)");
+	addObject(Ken4lowEngine::MakeStableEditorObjectId("GamePlayScene.Root"), "GamePlay Root", "Scene Root");
+	addPlayerObject(Ken4lowEngine::MakeStableEditorObjectId("GamePlayScene.Player"), "Player", world_ ? "Player" : "Player (pending)");
+	addCameraObject(Ken4lowEngine::MakeStableEditorObjectId("GamePlayScene.MainCamera"), "Main Camera", "Camera");
+	addLightObject(Ken4lowEngine::MakeStableEditorObjectId("GamePlayScene.DirectionalLight.0"), "Directional Light", "Directional Light");
+	addObject(Ken4lowEngine::MakeStableEditorObjectId("GamePlayScene.EnemyManager"), "Enemy Manager", world_ ? "Enemy Manager" : "Enemy Manager (pending)");
+	addObject(Ken4lowEngine::MakeStableEditorObjectId("GamePlayScene.BulletManager"), "Bullet Manager", world_ ? "Bullet Manager" : "Bullet Manager (pending)");
+	addObject(Ken4lowEngine::MakeStableEditorObjectId("GamePlayScene.WaveManager"), "Wave Manager", world_ ? "Wave Manager" : "Wave Manager (pending)");
+	addObject(Ken4lowEngine::MakeStableEditorObjectId("GamePlayScene.Stage"), "Stage", stageContext_ ? "Stage" : "Stage (pending)");
+	addObject(Ken4lowEngine::MakeStableEditorObjectId("GamePlayScene.HUD"), "HUD", world_ ? "HUD" : "HUD (pending)");
+	addObject(Ken4lowEngine::MakeStableEditorObjectId("GamePlayScene.CollisionManager"), "Collision Manager", "Collision Manager");
 }

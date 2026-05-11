@@ -16,6 +16,7 @@
 #include "TextSpriteDrawer.h"
 
 #include <algorithm>
+#include <utility>
 
 #ifdef USE_IMGUI
 #include <imgui.h>
@@ -753,11 +754,15 @@ void StageSelectScene::CollectEditorObjects(std::vector<Ken4lowEngine::EditorObj
 	};
 
 	// Outlinerはステージ選択画面の編集入口として、現在生成済みでなくても主要カテゴリを安定IDで列挙する。
-	addObject(0x2000000000000001ull, "StageSelect Root", "Scene Root");
-	addCameraObject(0x2000000000000002ull, "Camera", "Camera");
-	addLightObject(0x2000000000000003ull, "Light", "Directional Light");
-	addObject(0x2000000000000004ull, "Stage Panels", activeSelector_ ? "Stage Selector" : "Stage Selector (pending)");
-	addObject(0x2000000000000005ull, "Stage Text Layout", isTextReady_ ? "Text Layout" : "Text Layout (pending)");
-	addObject(0x2000000000000006ull, "Fade Manager", "Fade Manager");
-	addSpriteObject(0x2000000000000007ull, "Background UI", bg_ ? "Sprite UI" : "Sprite UI (pending)");
+	addObject(Ken4lowEngine::MakeStableEditorObjectId("StageSelectScene.Root"), "StageSelect Root", "Scene Root");
+	addCameraObject(Ken4lowEngine::MakeStableEditorObjectId("StageSelectScene.Camera"), "Camera", "Camera");
+	addLightObject(Ken4lowEngine::MakeStableEditorObjectId("StageSelectScene.DirectionalLight.0"), "Directional Light", "Directional Light");
+	addObject(Ken4lowEngine::MakeStableEditorObjectId("StageSelectScene.StagePanels"), "Stage Panels", activeSelector_ ? "Stage Selector" : "Stage Selector (pending)");
+	{
+		Ken4lowEngine::EditorObjectInfo textLayout{ Ken4lowEngine::MakeStableEditorObjectId("StageSelectScene.StageTextLayout"), "Stage Text Layout", "StageSelect Text Layout", "StageSelectScene" };
+		// 専用StageSelect Text Layoutウィンドウと競合しないよう、Detailsには編集先の案内だけを持たせる。
+		textLayout.inspectorHint = "Use StageSelect Text Layout tab for detailed editing.";
+		outObjects.push_back(std::move(textLayout));
+	}
+	addSpriteObject(Ken4lowEngine::MakeStableEditorObjectId("StageSelectScene.BackgroundUI"), "Background UI", bg_ ? "Sprite UI" : "Sprite UI (pending)");
 }

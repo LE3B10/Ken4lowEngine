@@ -3,11 +3,24 @@
 #include <cstdint>
 #include <functional>
 #include <string>
+#include <string_view>
 
 #include "Vector3.h"
 
 namespace Ken4lowEngine
 {
+
+	inline uint64_t MakeStableEditorObjectId(std::string_view path)
+	{
+		uint64_t hash = 14695981039346656037ull;
+		for (const char c : path)
+		{
+			// 固定パス文字列からFNV-1aでIDを作り、フレームごとのアドレス変化へ依存しないようにする。
+			hash ^= static_cast<unsigned char>(c);
+			hash *= 1099511628211ull;
+		}
+		return hash;
+	}
 
 	/// <summary>
 	/// Detailsで表示・編集するための汎用Transformスナップショットです。
@@ -33,6 +46,7 @@ namespace Ken4lowEngine
 		std::string sceneName;
 		bool canEditTransform = false;
 		std::string transformUnavailableReason = "Transform editing is not available for this object.";
+		std::string inspectorHint;
 		ReadTransformFunc readTransform;
 		WriteTransformFunc writeTransform;
 
