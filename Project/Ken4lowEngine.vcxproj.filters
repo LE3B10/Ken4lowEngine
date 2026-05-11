@@ -469,7 +469,7 @@
     <ClCompile Include="Engine\DebugTools\ImGui\ImGuiManager.cpp">
       <Filter>Engine\DebugTools\ImGui</Filter>
     </ClCompile>
-    <ClCompile Include="Engine\Editor\EditorInputCaptureController.cpp">
+    <ClCompile Include="Engine\Editor\EditorPlayController.cpp">
       <Filter>Engine\Editor</Filter>
     </ClCompile>
     <ClCompile Include="Engine\Editor\EditorWindowManager.cpp">
@@ -1278,7 +1278,7 @@
     <ClInclude Include="Engine\DebugTools\ImGui\ImGuiManager.h">
       <Filter>Engine\DebugTools\ImGui</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\Editor\EditorInputCaptureController.h">
+    <ClInclude Include="Engine\Editor\EditorPlayController.h">
       <Filter>Engine\Editor</Filter>
     </ClInclude>
     <ClInclude Include="Engine\Editor\EditorWindowManager.h">

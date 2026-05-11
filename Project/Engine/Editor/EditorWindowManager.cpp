@@ -1,7 +1,7 @@
 #define NOMINMAX
 #include "EditorWindowManager.h"
 
-#include "EditorInputCaptureController.h"
+#include "EditorPlayController.h"
 #include "ImGuiManager.h"
 #include "PostEffectManager.h"
 #include "GameViewportConstants.h"
@@ -26,11 +26,10 @@ namespace Ken4lowEngine
 	{
 #ifdef USE_IMGUI
 		auto* input = Input::GetInstance();
-		const bool shiftPressed = input->PushRawKey(DIK_LSHIFT) || input->PushRawKey(DIK_RSHIFT);
 		if (input->TriggerRawKey(DIK_F8))
 		{
 			// Escの既存挙動を避け、F8だけを入力キャプチャ切り替えに使う。
-			shiftPressed ? EditorInputCaptureController::GetInstance()->ForceReleaseToEditor() : EditorInputCaptureController::GetInstance()->ToggleInputCapture();
+			EditorPlayController::GetInstance()->ToggleInputCapture();
 		}
 
 		// UE5風エディタUIの描画順をManagerに集約する
@@ -144,47 +143,46 @@ namespace Ken4lowEngine
 	void EditorWindowManager::DrawToolbar()
 	{
 #ifdef USE_IMGUI
-		auto* inputCapture = EditorInputCaptureController::GetInstance();
+		auto* playController = EditorPlayController::GetInstance();
 
-		// ツールバーは将来のPlay/Build/保存などの操作を集約する固定パネルにする
-		const auto getInputModeText = [inputCapture]() -> const char*
-		{
-			switch (inputCapture->GetInputMode())
-			{
-			case EditorInputMode::GameCaptured:
-				return "GameCaptured";
-			case EditorInputMode::GameReleased:
-				return "GameReleased";
-			case EditorInputMode::Editor:
-			default:
-				return "Editor";
-			}
-		};
-
+		// ツールバーはPlay状態と入力キャプチャ状態を同じController経由で操作する。
 		ImGuiWindowFlags flags = ImGuiWindowFlags_NoCollapse;
 		if (ImGui::Begin("Toolbar", &windowState_.showToolbar, flags))
 		{
 			ImGui::Button("Save");
 			ImGui::SameLine();
-			ImGui::Button("Play");
+			if (ImGui::Button("Play"))
+			{
+				// PlayボタンはEditorPlayStateをPlayにし、入力をGameCapturedへ遷移させる。
+				playController->Play();
+			}
 			ImGui::SameLine();
-			ImGui::Button("Pause");
+			if (ImGui::Button("Pause"))
+			{
+				// Pauseボタンは入力状態を維持したままEditorPlayStateだけPauseへ遷移させる。
+				playController->Pause();
+			}
 			ImGui::SameLine();
-			ImGui::Button("Stop");
+			if (ImGui::Button("Stop"))
+			{
+				// Stopボタンは編集状態へ戻し、ゲーム入力をGameReleasedへ解放する。
+				playController->Stop();
+			}
 			ImGui::SameLine();
 			ImGui::Button("Build");
 			ImGui::SameLine();
 			ImGui::TextUnformatted("|");
 			ImGui::SameLine();
-			ImGui::TextUnformatted(inputCapture->GetInputStatusText());
+			ImGui::TextUnformatted(playController->GetInputStatusText());
 			ImGui::SameLine();
-			if (ImGui::Button(inputCapture->IsGameCaptured() ? "Release Input" : "Capture Input"))
+			if (ImGui::Button(playController->IsGameCaptured() ? "Release Input" : "Capture Input"))
 			{
 				// ToolbarボタンからもF8と同じキャプチャ切り替えを実行できるようにする。
-				inputCapture->ToggleInputCapture();
+				playController->ToggleInputCapture();
 			}
 			// F8やViewport hoverの状態をToolbar上で即確認できるようにする。
-			ImGui::Text("Input Mode: %s", getInputModeText());
+			ImGui::Text("Play State: %s", playController->GetPlayStateText());
+			ImGui::Text("Input Mode: %s", playController->GetInputModeText());
 			ImGui::Text("Main Viewport Hovered: %s", inputDebugInfo_.mainViewportHovered ? "true" : "false");
 			ImGui::Text("ImGui MouseClicked[0]: %s", inputDebugInfo_.imguiMouseClicked0 ? "true" : "false");
 			ImGui::Text("ImGui MouseDown[0]: %s", inputDebugInfo_.imguiMouseDown0 ? "true" : "false");
@@ -276,7 +274,7 @@ namespace Ken4lowEngine
 
 			Vector2 gameMouse = {};
 			const bool gameMouseValid = GetMousePositionInGameViewport(gameMouse);
-			const bool gameInputEnabled = EditorInputCaptureController::GetInstance()->IsGameCaptured() && mainViewportRect_.isHovered;
+			const bool gameInputEnabled = EditorPlayController::GetInstance()->IsGameCaptured() && mainViewportRect_.isHovered;
 			Input::GetInstance()->SetGameInputEnabled(gameInputEnabled);
 			Input::GetInstance()->SetEditorViewportMousePosition(gameMouse, gameMouseValid);
 			inputDebugInfo_.mainViewportHovered = mainViewportRect_.isHovered; // 入力許可条件のViewport hoverをToolbarに表示する。
@@ -310,7 +308,7 @@ namespace Ken4lowEngine
 	{
 #ifdef USE_IMGUI
 		outMouse = { 0.0f, 0.0f };
-		if (!EditorInputCaptureController::GetInstance()->IsGameCaptured())
+		if (!EditorPlayController::GetInstance()->IsGameCaptured())
 		{
 			// GameReleased/Editor状態ではゲーム側へマウス入力を渡さない。
 			return false;
