@@ -95,22 +95,22 @@ namespace Ken4lowEngine
 			// Commonは常時使うエディタ基本パネルをまとめて表示切替できるようにする
 			if (ImGui::BeginMenu("Common"))
 			{
-				ImGui::MenuItem("Toolbar", nullptr, &windowState_.showToolbar);
 				ImGui::MenuItem("Main Viewport", nullptr, &windowState_.showMainViewport);
-				ImGui::MenuItem("Content Browser", nullptr, &windowState_.showContentBrowser);
 				ImGui::MenuItem("World Outliner", nullptr, &windowState_.showWorldOutliner);
 				ImGui::MenuItem("Details", nullptr, &windowState_.showDetails);
+				ImGui::MenuItem("Content Browser", nullptr, &windowState_.showContentBrowser);
 				ImGui::MenuItem("Output Log", nullptr, &windowState_.showOutputLog);
+				ImGui::MenuItem("Toolbar", nullptr, &windowState_.showToolbar);
 				ImGui::EndMenu();
 			}
 
 			// Renderingは描画・画面・ライト調整系ウィンドウをまとめて表示切替できるようにする
 			if (ImGui::BeginMenu("Rendering"))
 			{
-				ImGui::MenuItem("Parameters", nullptr, &windowState_.showParameters);
-				ImGui::MenuItem("Display", nullptr, &windowState_.showDisplay);
-				ImGui::MenuItem("Post Effect Settings", nullptr, &windowState_.showPostEffectSettings);
 				ImGui::MenuItem("Light Editor", nullptr, &windowState_.showLightEditor);
+				ImGui::MenuItem("Post Effect Settings", nullptr, &windowState_.showPostEffectSettings);
+				ImGui::MenuItem("Display", nullptr, &windowState_.showDisplay);
+				ImGui::MenuItem("Parameters", nullptr, &windowState_.showParameters);
 				ImGui::EndMenu();
 			}
 
@@ -120,12 +120,41 @@ namespace Ken4lowEngine
 				ImGui::MenuItem("Title Debug", nullptr, &windowState_.showTitleDebug);
 				ImGui::MenuItem("Stage Select Debug", nullptr, &windowState_.showStageSelectDebug);
 				ImGui::MenuItem("Game Debug", nullptr, &windowState_.showGameDebug);
-				ImGui::MenuItem("Weapon Master Debug", nullptr, &windowState_.showWeaponMasterDebug);
-				ImGui::MenuItem("FadeManager - Tile Fade", nullptr, &windowState_.showTileFadeDebug);
+				ImGui::MenuItem("Culling Debug", nullptr, &windowState_.showCullingDebug);
+				ImGui::MenuItem("FadeManager", nullptr, &windowState_.showFadeManager);
 				ImGui::EndMenu();
 			}
 
-			// Reset Layoutは誤操作でDock配置を崩しやすいため一旦メニューから外す
+			// Layout操作はDock再構築と簡易Focusレイアウト入口を明示的に分ける。
+			if (ImGui::BeginMenu("Layout"))
+			{
+				if (ImGui::MenuItem("Rebuild Default Layout"))
+				{
+					// Rebuild Default Layoutは誤操作を避けるためPopupでOK確認してから実行する。
+					openRebuildDefaultLayoutPopup_ = true;
+				}
+				if (ImGui::MenuItem("Game Focus Layout"))
+				{
+					// Game Focus LayoutはDock再配置せず周辺ウィンドウだけ一時的に非表示にする。
+					windowState_.showMainViewport = true;
+					windowState_.showToolbar = false;
+					windowState_.showWorldOutliner = false;
+					windowState_.showDetails = false;
+					windowState_.showContentBrowser = false;
+					windowState_.showOutputLog = false;
+					windowState_.showLightEditor = false;
+					windowState_.showPostEffectSettings = false;
+					windowState_.showDisplay = false;
+					windowState_.showParameters = false;
+					windowState_.showTitleDebug = false;
+					windowState_.showStageSelectDebug = false;
+					windowState_.showGameDebug = false;
+					windowState_.showCullingDebug = false;
+					windowState_.showFadeManager = false;
+				}
+				ImGui::EndMenu();
+			}
+
 			ImGui::EndMenu();
 		}
 
@@ -162,6 +191,33 @@ namespace Ken4lowEngine
 		}
 
 		ImGui::EndMainMenuBar();
+
+		if (openRebuildDefaultLayoutPopup_)
+		{
+			// PopupをMainMenuBar終了後に開き、MenuItem押下だけでDockBuilderを走らせない。
+			ImGui::OpenPopup("Rebuild Default Layout?");
+			openRebuildDefaultLayoutPopup_ = false;
+		}
+
+		if (ImGui::BeginPopupModal("Rebuild Default Layout?", nullptr, ImGuiWindowFlags_AlwaysAutoResize))
+		{
+			ImGui::TextUnformatted("Rebuild the editor docking layout to the default placement?");
+			ImGui::TextUnformatted("Current dock positions will be overwritten when you press OK.");
+			ImGui::Separator();
+			if (ImGui::Button("OK", ImVec2(120.0f, 0.0f)))
+			{
+				// OK時だけDockBuilderによる初期配置再構築を次フレームへ要求する。
+				ImGuiManager::GetInstance()->RequestResetDockLayout();
+				ImGui::CloseCurrentPopup();
+			}
+			ImGui::SameLine();
+			if (ImGui::Button("Cancel", ImVec2(120.0f, 0.0f)))
+			{
+				// CancelではDockBuilder要求を発行せず現在の保存済みDocking配置を維持する。
+				ImGui::CloseCurrentPopup();
+			}
+			ImGui::EndPopup();
+		}
 #endif // USE_IMGUI
 	}
 

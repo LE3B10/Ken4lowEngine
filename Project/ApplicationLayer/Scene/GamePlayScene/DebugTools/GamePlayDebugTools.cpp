@@ -149,6 +149,11 @@ void GamePlayDebugTools::DrawImGui(GamePlayWorld* world)
 
 		characters.DrawImGui();
 		world->DrawImGui();
+	}
+
+	if (editorWindowState.showCullingDebug)
+	{
+		// WindowメニューのCulling Debug表示フラグでStageChunk/Occlusion系の周辺デバッグUIをまとめる。
 		stageChunkDebugController_.DrawImGui(world->GetStage());
 		occlusionDebugController_.DrawImGui(world->GetStage());
 	}

@@ -6,6 +6,7 @@
 #include <GameTimer.h>
 #include <PostEffectManager.h>
 #include <Player.h>
+#include <Editor/EditorWindowManager.h>
 
 #ifdef _DEBUG
 #include <DebugCamera.h>
@@ -594,8 +595,10 @@ void GamePlayScene::DrawImGui()
 		debugTools_->DrawImGui(world_.get());
 	}
 
-	if (frustumCullingDebug_)
+	auto& editorWindowState = K4E::EditorWindowManager::GetInstance()->GetWindowState();
+	if (frustumCullingDebug_ && editorWindowState.showCullingDebug)
 	{
+		// WindowメニューのCulling Debug表示フラグでFrustum Culling Debugも表示切替する。
 		frustumCullingDebug_->DrawImGui();
 	}
 

@@ -27,8 +27,9 @@ namespace Ken4lowEngine
 		bool showTitleDebug = true;
 		bool showStageSelectDebug = true;
 		bool showGameDebug = true;
+		bool showCullingDebug = true;
+		bool showFadeManager = true;
 		bool showWeaponMasterDebug = true;
-		bool showTileFadeDebug = true;
 
 		bool debugShowCollider = false;
 		bool debugShowEnemyInfo = false;
@@ -103,6 +104,7 @@ namespace Ken4lowEngine
 		Vector2 mainViewportScreenPosition_ = { 0.0f, 0.0f }; // マウス座標をMain Viewport基準へ変換するための左上座標
 		Vector2 mainViewportSize_ = { 0.0f, 0.0f }; // Main Viewport内でGameRenderTargetを表示しているサイズ
 		EditorInputDebugInfo inputDebugInfo_{}; // Toolbarへゲーム入力ゲートの状態を可視化する
+		bool openRebuildDefaultLayoutPopup_ = false; // Rebuild Default Layoutを即時実行せず確認Popupへ遅延する。
 	};
 
 } // namespace Ken4lowEngine
