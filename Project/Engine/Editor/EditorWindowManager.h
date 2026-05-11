@@ -52,8 +52,10 @@ namespace Ken4lowEngine
 	{
 		Vector2 gameMousePosition = { -1.0f, -1.0f };
 		bool mainViewportHovered = false;
+		bool imguiMouseClicked0 = false;
+		bool imguiMouseDown0 = false;
+		bool inputLeftTrigger = false;
 		bool gameMouseEnabled = false;
-		bool leftMouseTrigger = false;
 	};
 
 	/// <summary>

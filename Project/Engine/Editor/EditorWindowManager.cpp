@@ -186,9 +186,11 @@ namespace Ken4lowEngine
 			// F8やViewport hoverの状態をToolbar上で即確認できるようにする。
 			ImGui::Text("Input Mode: %s", getInputModeText());
 			ImGui::Text("Main Viewport Hovered: %s", inputDebugInfo_.mainViewportHovered ? "true" : "false");
+			ImGui::Text("ImGui MouseClicked[0]: %s", inputDebugInfo_.imguiMouseClicked0 ? "true" : "false");
+			ImGui::Text("ImGui MouseDown[0]: %s", inputDebugInfo_.imguiMouseDown0 ? "true" : "false");
+			ImGui::Text("Input Left Trigger: %s", inputDebugInfo_.inputLeftTrigger ? "true" : "false");
 			ImGui::Text("Game Mouse Enabled: %s", inputDebugInfo_.gameMouseEnabled ? "true" : "false");
 			ImGui::Text("Game Mouse Position: %.1f, %.1f", inputDebugInfo_.gameMousePosition.x, inputDebugInfo_.gameMousePosition.y);
-			ImGui::Text("Left Mouse Trigger: %s", inputDebugInfo_.leftMouseTrigger ? "true" : "false");
 		}
 		ImGui::End();
 #endif // USE_IMGUI
@@ -264,7 +266,8 @@ namespace Ken4lowEngine
 					mouseScreen.x >= imageScreenMin.x && mouseScreen.y >= imageScreenMin.y &&
 					mouseScreen.x <= imageScreenMax.x && mouseScreen.y <= imageScreenMax.y;
 				const bool otherItemActive = ImGui::IsAnyItemActive() && !ImGui::IsItemActive();
-				mainViewportRect_.isHovered = ImGui::IsWindowHovered() && mouseInsideImage && !otherItemActive; // WantCaptureMouse=trueでもViewport上のゲームクリックは許可する。
+				// WantCaptureMouseではなくGameCapturedかつMain Viewport画像上かどうかだけでゲームクリックを許可する。
+				mainViewportRect_.isHovered = ImGui::IsWindowHovered(ImGuiHoveredFlags_AllowWhenBlockedByActiveItem) && mouseInsideImage && !otherItemActive;
 			}
 			else
 			{
@@ -277,9 +280,11 @@ namespace Ken4lowEngine
 			Input::GetInstance()->SetGameInputEnabled(gameInputEnabled);
 			Input::GetInstance()->SetEditorViewportMousePosition(gameMouse, gameMouseValid);
 			inputDebugInfo_.mainViewportHovered = mainViewportRect_.isHovered; // 入力許可条件のViewport hoverをToolbarに表示する。
+			inputDebugInfo_.imguiMouseClicked0 = ImGui::IsMouseClicked(ImGuiMouseButton_Left);
+			inputDebugInfo_.imguiMouseDown0 = ImGui::IsMouseDown(ImGuiMouseButton_Left);
+			inputDebugInfo_.inputLeftTrigger = Input::GetInstance()->TriggerMouse(0);
 			inputDebugInfo_.gameMouseEnabled = gameInputEnabled && gameMouseValid;
 			inputDebugInfo_.gameMousePosition = inputDebugInfo_.gameMouseEnabled ? gameMouse : Vector2{ -1.0f, -1.0f };
-			inputDebugInfo_.leftMouseTrigger = Input::GetInstance()->TriggerMouse(0);
 		}
 		else
 		{
