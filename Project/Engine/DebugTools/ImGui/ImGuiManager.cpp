@@ -47,6 +47,9 @@ namespace Ken4lowEngine
 		// フォントの設定
 		io.Fonts->AddFontFromFileTTF("Resources/Fonts/NotoSansJP-VariableFont_wght.ttf", 18.0f, nullptr, io.Fonts->GetGlyphRangesJapanese()); // 日本語フォントの追加
 
+		// Dockingを有効にする
+		io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+
 		ImGui::StyleColorsDark();					  // ImGuiスタイルの設定
 		ImGui_ImplWin32_Init(winApp->GetHwnd());	  // Win32バックエンドの初期化
 		ImGui_ImplDX12_Init(dxCommon->GetDevice(),	  // DirectX 12バックエンドの初期化

@@ -1,3 +1,4 @@
+#define NOMINMAX
 #include "ItemVisualEffect.h"
 
 #include "Item.h"
