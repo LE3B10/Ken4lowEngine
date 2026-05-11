@@ -179,6 +179,11 @@ private: /// ---------- メンバ関数 ---------- ///
 	/// </summary>
 	void TransitionTo(RenderTarget& renderTarget, ID3D12GraphicsCommandList* commandList, D3D12_RESOURCE_STATES nextState);
 
+	/// <summary>
+	/// 既存のコピー用PSOで入力RTを出力RTへ描画します。
+	/// </summary>
+	void CopyRenderTarget(RenderTarget& srcRT, RenderTarget& dstRT, ID3D12GraphicsCommandList* commandList);
+
 private: /// ---------- メンバ関数 ---------- ///
 
 	/// <summary>
