@@ -573,7 +573,7 @@ namespace Ken4lowEngine
 				}
 				else
 				{
-					ImGui::TextUnformatted("Transform editing is not available for this object.");
+					ImGui::Text("%s", selected.transformUnavailableReason.c_str());
 				}
 			}
 		}

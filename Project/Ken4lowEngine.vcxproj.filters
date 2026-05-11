@@ -1284,6 +1284,9 @@
     <ClInclude Include="Engine\Editor\EditorObjectInfo.h">
       <Filter>Engine\Editor</Filter>
     </ClInclude>
+    <ClInclude Include="Engine\Editor\EditorTransformAccess.h">
+      <Filter>Engine\Editor</Filter>
+    </ClInclude>
     <ClInclude Include="Engine\Editor\EditorPlayController.h">
       <Filter>Engine\Editor</Filter>
     </ClInclude>

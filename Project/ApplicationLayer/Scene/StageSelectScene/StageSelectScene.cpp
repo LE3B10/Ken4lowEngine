@@ -10,6 +10,8 @@
 #include <StageSelectSelectingState.h>
 #include "StageSelectLoadState.h"
 #include <GameTimer.h>
+#include <CameraManager.h>
+#include <Editor/EditorTransformAccess.h>
 #include "FontAtlasLoader.h"
 #include "TextSpriteDrawer.h"
 
@@ -731,14 +733,31 @@ void StageSelectScene::CollectEditorObjects(std::vector<Ken4lowEngine::EditorObj
 {
 	const auto addObject = [&outObjects](uint64_t id, const char* displayName, const char* typeName)
 	{
+		// Transform未対応の管理項目はDetailsで理由だけを表示し、編集入口を持たせない。
 		outObjects.push_back({ id, displayName, typeName, "StageSelectScene" });
+	};
+	const auto addCameraObject = [&outObjects](uint64_t id, const char* displayName, const char* typeName)
+	{
+		// StageSelectSceneはCameraManagerのメインカメラを安全なTransform編集入口として公開する。
+		outObjects.push_back(Ken4lowEngine::MakeCameraEditorObject(id, displayName, typeName, "StageSelectScene", K4E::CameraManager::GetInstance()->GetMainCamera()));
+	};
+	const auto addLightObject = [&outObjects](uint64_t id, const char* displayName, const char* typeName)
+	{
+		// LightManagerの先頭ライトを安全なindex指定でDetails編集へ公開する。
+		outObjects.push_back(Ken4lowEngine::MakePunctualLightEditorObject(id, displayName, typeName, "StageSelectScene", 0));
+	};
+	const auto addSpriteObject = [&outObjects, this](uint64_t id, const char* displayName, const char* typeName)
+	{
+		// 背景Spriteは2D TransformとしてPosition/Rotation/Scale(Size)へ写像して編集する。
+		outObjects.push_back(Ken4lowEngine::MakeSpriteEditorObject(id, displayName, typeName, "StageSelectScene", bg_.get()));
 	};
 
 	// Outlinerはステージ選択画面の編集入口として、現在生成済みでなくても主要カテゴリを安定IDで列挙する。
 	addObject(0x2000000000000001ull, "StageSelect Root", "Scene Root");
-	addObject(0x2000000000000002ull, "Camera", "Camera");
-	addObject(0x2000000000000003ull, "Light", "Directional Light");
+	addCameraObject(0x2000000000000002ull, "Camera", "Camera");
+	addLightObject(0x2000000000000003ull, "Light", "Directional Light");
 	addObject(0x2000000000000004ull, "Stage Panels", activeSelector_ ? "Stage Selector" : "Stage Selector (pending)");
 	addObject(0x2000000000000005ull, "Stage Text Layout", isTextReady_ ? "Text Layout" : "Text Layout (pending)");
 	addObject(0x2000000000000006ull, "Fade Manager", "Fade Manager");
+	addSpriteObject(0x2000000000000007ull, "Background UI", bg_ ? "Sprite UI" : "Sprite UI (pending)");
 }
