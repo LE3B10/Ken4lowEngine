@@ -3,6 +3,7 @@
 #include <PostEffectPipelineBuilder.h>
 #include <ResourceManager.h>
 #include <UAVManager.h>
+#include <PostEffectManager.h>
 
 #ifdef USE_IMGUI
 #include <imgui.h>
@@ -77,9 +78,9 @@ namespace Ken4lowEngine
 		const uint32_t threadGroupSizeX = 8;
 		const uint32_t threadGroupSizeY = 8;
 
-		// Compute Dispatch範囲は固定GameViewportRenderTargetの1920x1080に合わせる
-		uint32_t width = 1920;
-		uint32_t height = 1080;
+		// Compute Dispatch範囲を現在のGameViewportRenderTargetサイズに合わせる。
+		uint32_t width = PostEffectManager::GetInstance()->GetGameRenderTargetWidth();
+		uint32_t height = PostEffectManager::GetInstance()->GetGameRenderTargetHeight();
 
 		// スレッドグループの数を計算
 		uint32_t groupCountX = (width + threadGroupSizeX - 1) / threadGroupSizeX;

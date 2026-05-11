@@ -112,7 +112,7 @@ public: /// ---------- 設定 ---------- ///
 	/// 例：画面幅 / 画面高さ。
 	/// </summary>
 	/// <param name="aspectRatio">アスペクト比。</param>
-	void SetAspectRatio(float aspectRatio) { aspectRatio_ = aspectRatio; }
+	void SetAspectRatio(float aspectRatio);
 
 	/// <summary>
 	/// ニアクリップ面までの距離を設定します。

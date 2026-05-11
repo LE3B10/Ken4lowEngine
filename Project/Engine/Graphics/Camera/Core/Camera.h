@@ -73,7 +73,7 @@ public: /// ---------- セッター ---------- ///
 	/// 通常は「画面幅 / 画面高さ」を指定します。
 	/// </summary>
 	/// <param name="aspectRatio">アスペクト比。</param>
-	void SetAspectRatio(const float aspectRatio) { aspectRatio_ = aspectRatio; }
+	void SetAspectRatio(const float aspectRatio);
 
 	/// <summary>
 	/// ニアクリップ距離を設定します。
