@@ -145,6 +145,35 @@ namespace Ken4lowEngine
 	}
 
 	/// -------------------------------------------------------------
+	///			ImGui描画前のバックバッファRTV設定
+	/// -------------------------------------------------------------
+	void DirectXCommon::PrepareBackBufferForImGui()
+	{
+		if (!mainRenderTarget_ || !commandManager_ || !swapChain_)
+		{
+			return;
+		}
+
+		backBufferIndex_ = swapChain_->GetSwapChain()->GetCurrentBackBufferIndex();
+		auto backBuffer = GetBackBuffer(backBufferIndex_);
+
+		// ImGui_ImplDX12_RenderDrawData() が直前にバインド済みの
+		// SceneRenderTarget_GameViewportRenderTargetへ描いてしまわないよう、
+		// GameRenderTargetはSRVのまま維持し、BackBufferだけをRTVへ戻してOMへ設定する。
+		const D3D12_RESOURCE_STATES beforeState = swapChain_->GetBackBufferState(backBufferIndex_);
+		ResourceTransition(
+			backBuffer.Get(),
+			beforeState,
+			D3D12_RESOURCE_STATE_RENDER_TARGET
+		);
+		swapChain_->SetBackBufferState(backBufferIndex_, D3D12_RESOURCE_STATE_RENDER_TARGET);
+
+		D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle = mainRenderTarget_->GetRtvHandleCPU(backBufferIndex_);
+		commandManager_->GetCommandList()->OMSetRenderTargets(1, &rtvHandle, false, nullptr);
+	}
+
+
+	/// -------------------------------------------------------------
 	///							描画終了処理
 	/// -------------------------------------------------------------
 	void DirectXCommon::EndDraw()

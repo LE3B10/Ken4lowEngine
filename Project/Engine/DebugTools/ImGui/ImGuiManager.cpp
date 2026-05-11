@@ -277,10 +277,14 @@ namespace Ken4lowEngine
 
 		ComPtr<ID3D12GraphicsCommandList> commandList = dxCommon->GetCommandManager()->GetCommandList();
 
+		// ImGui::Imageが読むGameRenderTargetはSRVのまま維持し、
+		// ImGui本体の描画先だけをBackBuffer RTVへ明示的に戻す。
+		dxCommon->PrepareBackBufferForImGui();
+
 		// ImGui描画に必要なSRVヒープ設定をManagerに集約する
 		SRVManager::GetInstance()->PreDraw();
 
-		// 実際のcommandListにImGuiの描画コマンドを積む処理をManagerに集約する
+		// 実際のcommandListにImGuiの描画コマンドをBackBufferへ積む処理をManagerに集約する
 		ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), commandList.Get());
 #endif // USE_IMGUI
 	}
