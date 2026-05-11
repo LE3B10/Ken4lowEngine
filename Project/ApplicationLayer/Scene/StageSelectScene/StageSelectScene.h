@@ -130,7 +130,7 @@ public: /// ---------- メンバ関数 ---------- ///
 	// Details Inspectorと専用StageSelect Text Layoutウィンドウで同じ調整UIを共有する。
 	void DrawStageSelectTextLayoutInspectorContent();
 
-	// 段階ロード
+	// SceneManager/FadeManagerのCover後ロードとUncover開始判定を担う既存override。
 	void StartLoad() override;
 
 	void UpdateLoad() override;
