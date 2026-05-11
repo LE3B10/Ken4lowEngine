@@ -147,6 +147,20 @@ namespace Ken4lowEngine
 		auto* inputCapture = EditorInputCaptureController::GetInstance();
 
 		// ツールバーは将来のPlay/Build/保存などの操作を集約する固定パネルにする
+		const auto getInputModeText = [inputCapture]() -> const char*
+		{
+			switch (inputCapture->GetInputMode())
+			{
+			case EditorInputMode::GameCaptured:
+				return "GameCaptured";
+			case EditorInputMode::GameReleased:
+				return "GameReleased";
+			case EditorInputMode::Editor:
+			default:
+				return "Editor";
+			}
+		};
+
 		ImGuiWindowFlags flags = ImGuiWindowFlags_NoCollapse;
 		if (ImGui::Begin("Toolbar", &windowState_.showToolbar, flags))
 		{
@@ -169,6 +183,12 @@ namespace Ken4lowEngine
 				// ToolbarボタンからもF8と同じキャプチャ切り替えを実行できるようにする。
 				inputCapture->ToggleInputCapture();
 			}
+			// F8やViewport hoverの状態をToolbar上で即確認できるようにする。
+			ImGui::Text("Input Mode: %s", getInputModeText());
+			ImGui::Text("Main Viewport Hovered: %s", inputDebugInfo_.mainViewportHovered ? "true" : "false");
+			ImGui::Text("Game Mouse Enabled: %s", inputDebugInfo_.gameMouseEnabled ? "true" : "false");
+			ImGui::Text("Game Mouse Position: %.1f, %.1f", inputDebugInfo_.gameMousePosition.x, inputDebugInfo_.gameMousePosition.y);
+			ImGui::Text("Left Mouse Trigger: %s", inputDebugInfo_.leftMouseTrigger ? "true" : "false");
 		}
 		ImGui::End();
 #endif // USE_IMGUI
@@ -182,6 +202,8 @@ namespace Ken4lowEngine
 			// Main Viewport非表示中はゲーム側へエディタマウス入力を渡さない
 			mainViewportRect_.valid = false;
 			mainViewportRect_.isHovered = false;
+			inputDebugInfo_ = {}; // Main Viewport非表示時もToolbarの入力診断を無効状態へ戻す。
+			inputDebugInfo_.gameMousePosition = { -1.0f, -1.0f };
 			Input::GetInstance()->SetGameInputEnabled(false);
 			Input::GetInstance()->SetEditorViewportMousePosition({ 0.0f, 0.0f }, false);
 			return;
@@ -235,12 +257,14 @@ namespace Ken4lowEngine
 
 			if (availableSize.x > 1.0f && availableSize.y > 1.0f)
 			{
-				// InvisibleButtonでMain Viewport全体をアイテム登録してhover判定と境界更新を担わせる。
+				// InvisibleButtonはMain ViewportのImGuiアイテム登録だけに使い、ゲーム入力判定は画像矩形で行う。
 				ImGui::InvisibleButton("MainViewportImageArea", availableSize);
-				const ImGuiIO& io = ImGui::GetIO();
-				const bool mouseCapturedByOther = io.WantCaptureMouse && !ImGui::IsItemHovered();
-				const bool imguiBlocking = (ImGui::IsAnyItemActive() && !ImGui::IsItemActive()) || mouseCapturedByOther || io.WantCaptureKeyboard;
-				mainViewportRect_.isHovered = ImGui::IsItemHovered() && !imguiBlocking; // 他ウィンドウ操作中はゲームクリック扱いにしない
+				const ImVec2 mouseScreen = ImGui::GetMousePos();
+				const bool mouseInsideImage = mainViewportRect_.valid &&
+					mouseScreen.x >= imageScreenMin.x && mouseScreen.y >= imageScreenMin.y &&
+					mouseScreen.x <= imageScreenMax.x && mouseScreen.y <= imageScreenMax.y;
+				const bool otherItemActive = ImGui::IsAnyItemActive() && !ImGui::IsItemActive();
+				mainViewportRect_.isHovered = ImGui::IsWindowHovered() && mouseInsideImage && !otherItemActive; // WantCaptureMouse=trueでもViewport上のゲームクリックは許可する。
 			}
 			else
 			{
@@ -249,15 +273,21 @@ namespace Ken4lowEngine
 
 			Vector2 gameMouse = {};
 			const bool gameMouseValid = GetMousePositionInGameViewport(gameMouse);
-			const bool gameInputEnabled = EditorInputCaptureController::GetInstance()->IsGameCaptured() && gameMouseValid;
+			const bool gameInputEnabled = EditorInputCaptureController::GetInstance()->IsGameCaptured() && mainViewportRect_.isHovered;
 			Input::GetInstance()->SetGameInputEnabled(gameInputEnabled);
 			Input::GetInstance()->SetEditorViewportMousePosition(gameMouse, gameMouseValid);
+			inputDebugInfo_.mainViewportHovered = mainViewportRect_.isHovered; // 入力許可条件のViewport hoverをToolbarに表示する。
+			inputDebugInfo_.gameMouseEnabled = gameInputEnabled && gameMouseValid;
+			inputDebugInfo_.gameMousePosition = inputDebugInfo_.gameMouseEnabled ? gameMouse : Vector2{ -1.0f, -1.0f };
+			inputDebugInfo_.leftMouseTrigger = Input::GetInstance()->TriggerMouse(0);
 		}
 		else
 		{
 			// Main Viewportウィンドウが折りたたまれた場合もゲーム側のマウス入力を無効化する
 			mainViewportRect_.valid = false;
 			mainViewportRect_.isHovered = false;
+			inputDebugInfo_ = {}; // Main Viewportが描けない時はゲームクリック診断も無効化する。
+			inputDebugInfo_.gameMousePosition = { -1.0f, -1.0f };
 			Input::GetInstance()->SetGameInputEnabled(false);
 			Input::GetInstance()->SetEditorViewportMousePosition({ 0.0f, 0.0f }, false);
 		}
@@ -281,10 +311,9 @@ namespace Ken4lowEngine
 			return false;
 		}
 
-		const ImGuiIO& io = ImGui::GetIO();
-		if (!mainViewportRect_.valid || !mainViewportRect_.isHovered || io.WantCaptureKeyboard)
+		if (!mainViewportRect_.valid || !mainViewportRect_.isHovered)
 		{
-			// Main Viewport外またはImGui操作中はゲーム側へマウス入力を渡さない。
+			// Main Viewport外ではImGuiのCapture状態に関係なくゲーム側へマウス入力を渡さない。
 			return false;
 		}
 
