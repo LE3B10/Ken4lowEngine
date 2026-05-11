@@ -8,6 +8,10 @@
 #include <unordered_set>
 #include <limits>
 
+#ifdef USE_IMGUI
+#include <imgui.h>
+#endif
+
 namespace K4E = ::Ken4lowEngine;
 
 /// -------------------------------------------------------------
@@ -43,6 +47,32 @@ void CollisionManager::Draw()
 
 	for (K4E::Collider* collider : all_)
 		collider->Draw();
+}
+
+
+void CollisionManager::DrawImGui()
+{
+#ifdef USE_IMGUI
+	// Collision DebugではCollider表示フラグと登録状況を通常Dockウィンドウ内に表示する。
+	bool showCollider = isCollider_;
+	if (ImGui::Checkbox("Show Collider", &showCollider))
+	{
+		isCollider_ = showCollider;
+		K4E::ParameterManager::GetInstance()->SetValue("K4E::Collider", "isCollider", isCollider_);
+	}
+	ImGui::Text("All Colliders: %d", static_cast<int>(all_.size()));
+	if (ImGui::TreeNode("Collider Buckets"))
+	{
+		for (uint32_t i = 0; i < kMaxTypes; ++i)
+		{
+			if (!buckets_[i].empty())
+			{
+				ImGui::Text("Type %u: %d", i, static_cast<int>(buckets_[i].size()));
+			}
+		}
+		ImGui::TreePop();
+	}
+#endif
 }
 
 /// -------------------------------------------------------------

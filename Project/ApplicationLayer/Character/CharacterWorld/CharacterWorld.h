@@ -43,6 +43,8 @@ public: /// ---------- メンバ関数 ---------- ///
 	void Update(float dt);
 	void Draw();
 	void DrawImGui();
+	void DrawPlayerDebugImGui();
+	void DrawEnemyDebugImGui();
 
 	void DrawShadow();
 

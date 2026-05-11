@@ -469,11 +469,29 @@ void Player::Draw()
 void Player::DrawImGui()
 {
 #ifdef USE_IMGUI
+	// 互換用の一括描画は新しい用途別Debugパネルの中身を再利用する。
+	DrawPlayerDebugImGui();
+	DrawWeaponDebugImGui();
+#endif
+}
+
+void Player::DrawPlayerDebugImGui()
+{
+#ifdef USE_IMGUI
+	// Player Debugには腕・照準・被弾判定・HP系の調整を集約する。
+	ImGui::Text("HP: %.1f", GetHP());
 	view_.DrawImGui();
-	weapon_.DrawImGui();
-	weaponVisual_.DrawImGui();
 	combat_.DrawImGui();
 	hurtbox_.DrawImGui();
+#endif
+}
+
+void Player::DrawWeaponDebugImGui()
+{
+#ifdef USE_IMGUI
+	// Weapon Debugには武器状態と見た目調整を集約する。
+	weapon_.DrawImGui();
+	weaponVisual_.DrawImGui();
 #endif
 }
 

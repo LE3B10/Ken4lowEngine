@@ -30,6 +30,7 @@ public: /// ---------- メンバ関数 ---------- ///
 
 	// world を受け取る
 	void DrawImGui(GamePlayWorld* world);
+	void DrawCullingDebugContent(GamePlayWorld* world);
 
 	bool IsDebugCamera() const { return isDebugCamera_; }
 

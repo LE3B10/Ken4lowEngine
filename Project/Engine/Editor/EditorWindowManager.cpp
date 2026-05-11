@@ -121,6 +121,10 @@ namespace Ken4lowEngine
 				ImGui::MenuItem("Title Debug", nullptr, &windowState_.showTitleDebug);
 				ImGui::MenuItem("Stage Select Debug", nullptr, &windowState_.showStageSelectDebug);
 				ImGui::MenuItem("Game Debug", nullptr, &windowState_.showGameDebug);
+				ImGui::MenuItem("Player Debug", nullptr, &windowState_.showPlayerDebug);
+				ImGui::MenuItem("Weapon Debug", nullptr, &windowState_.showWeaponDebug);
+				ImGui::MenuItem("Enemy Debug", nullptr, &windowState_.showEnemyDebug);
+				ImGui::MenuItem("Collision Debug", nullptr, &windowState_.showCollisionDebug);
 				ImGui::MenuItem("Culling Debug", nullptr, &windowState_.showCullingDebug);
 				ImGui::MenuItem("FadeManager", nullptr, &windowState_.showFadeManager);
 				ImGui::EndMenu();
@@ -150,6 +154,10 @@ namespace Ken4lowEngine
 					windowState_.showTitleDebug = false;
 					windowState_.showStageSelectDebug = false;
 					windowState_.showGameDebug = false;
+					windowState_.showPlayerDebug = false;
+					windowState_.showWeaponDebug = false;
+					windowState_.showEnemyDebug = false;
+					windowState_.showCollisionDebug = false;
 					windowState_.showCullingDebug = false;
 					windowState_.showFadeManager = false;
 				}

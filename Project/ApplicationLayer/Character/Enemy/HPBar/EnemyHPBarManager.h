@@ -29,6 +29,7 @@ public:
 		float deltaTime);
 
 	void Draw();
+	void DrawImGuiContent() const;
 
 private:
 	struct Entry

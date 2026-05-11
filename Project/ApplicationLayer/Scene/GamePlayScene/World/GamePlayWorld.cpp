@@ -13,6 +13,10 @@
 
 #include <cmath>
 
+#ifdef USE_IMGUI
+#include <imgui.h>
+#endif
+
 using namespace Ken4lowEngine;
 
 void GamePlayWorld::Initialize(GamePlayStageContext& stageContext)
@@ -341,7 +345,41 @@ void GamePlayWorld::DrawHUD(bool hideDuringIntro)
 
 void GamePlayWorld::DrawImGui()
 {
+	// 互換用の一括描画はGame Debugの補助項目として残す。
 	itemManager_.DrawImGui();
+}
+
+void GamePlayWorld::DrawGameDebugImGui()
+{
+#ifdef USE_IMGUI
+	// Game DebugにはGamePlayScene全体の簡易ステータスをまとめる。
+	ImGui::Text("Stage Time: %.2f sec", stageElapsedSec_);
+	ImGui::Text("Activated Devices: %d", activatedDeviceCount_);
+	ImGui::Text("Reached Goal: %s", reachedGoal_ ? "true" : "false");
+	ImGui::Text("Boss Defeated: %s", bossDefeated_ ? "true" : "false");
+	ImGui::Text("Defense Target Destroyed: %s", defenseTargetDestroyed_ ? "true" : "false");
+	ImGui::Text("Player Dead: %s", IsPlayerDead() ? "true" : "false");
+	ImGui::Text("Enemies: %d", characters_.GetEnemyCount());
+#endif
+}
+
+void GamePlayWorld::DrawEnemyDebugImGui()
+{
+#ifdef USE_IMGUI
+	// Enemy DebugにはEnemy HPBar Managerの軽量統計を追加する。
+	if (ImGui::CollapsingHeader("HPBar Debug", ImGuiTreeNodeFlags_DefaultOpen))
+	{
+		enemyHpBarManager_.DrawImGuiContent();
+	}
+#endif
+}
+
+void GamePlayWorld::DrawCollisionDebugImGui()
+{
+#ifdef USE_IMGUI
+	// Collision Debugには当たり判定関連の表示切替と補助情報を集約する。
+	if (collisionManager_) { collisionManager_->DrawImGui(); }
+#endif
 }
 
 void GamePlayWorld::SyncAfterPlayerSpawn()

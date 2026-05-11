@@ -1,6 +1,10 @@
 #include "EnemyHPBarManager.h"
 #include "EnemyBase.h"
 
+#ifdef USE_IMGUI
+#include <imgui.h>
+#endif
+
 void EnemyHPBarManager::Initialize()
 {
 	entries_.clear();
@@ -184,4 +188,21 @@ void EnemyHPBarManager::Draw()
 			entry.bar->Draw();
 		}
 	}
+}
+
+void EnemyHPBarManager::DrawImGuiContent() const
+{
+#ifdef USE_IMGUI
+	// Enemy Debug内でHPBar管理状態を確認できるよう軽量な統計だけ表示する。
+	ImGui::Text("HPBar Entries: %d", static_cast<int>(entries_.size()));
+	int visibleCount = 0;
+	int deathStartedCount = 0;
+	for (const auto& entry : entries_)
+	{
+		if (entry.visibleThisFrame) { ++visibleCount; }
+		if (entry.deathStarted) { ++deathStartedCount; }
+	}
+	ImGui::Text("Visible This Frame: %d", visibleCount);
+	ImGui::Text("Death Animations: %d", deathStartedCount);
+#endif
 }

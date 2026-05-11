@@ -61,6 +61,18 @@ void FrustumCullingDebugController::DrawDebug()
 void FrustumCullingDebugController::DrawImGui()
 {
 #ifdef USE_IMGUI
+	// 単体表示時もDocking可能な通常ウィンドウとして開く。
+	if (ImGui::Begin("Frustum Culling Debug"))
+	{
+		DrawImGuiContent();
+	}
+	ImGui::End();
+#endif
+}
+
+void FrustumCullingDebugController::DrawImGuiContent()
+{
+#ifdef USE_IMGUI
 	K4E::Object3DCommon* object3DCommon = K4E::Object3DCommon::GetInstance();
 	int cullingCameraIndex = static_cast<int>(object3DCommon->GetCullingCameraMode());
 	const char* cullingCameraItems[] = { "MainCamera", "DebugCamera", "ActiveCamera" };
@@ -71,7 +83,6 @@ void FrustumCullingDebugController::DrawImGui()
 	float farDistance = 0.0f;
 	GetCullingCameraClipDistances(nearDistance, farDistance);
 
-	ImGui::Begin("Frustum Culling Debug");
 	if (ImGui::Checkbox("Frustum Culling 有効", &frustumCullingEnabled))
 	{
 		object3DCommon->SetFrustumCullingEnabled(frustumCullingEnabled);
@@ -111,7 +122,6 @@ void FrustumCullingDebugController::DrawImGui()
 	ImGui::TextWrapped("StageChunk Cullingを有効にすると、静的ステージMeshをXZグリッドChunk単位で先に判定してからMesh単位カリングを行います。");
 
 	DrawMainCameraImGui();
-	ImGui::End();
 #endif
 }
 

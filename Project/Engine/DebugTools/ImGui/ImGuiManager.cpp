@@ -226,15 +226,23 @@ namespace Ken4lowEngine
 
 		ImGuiID rootNode = dockspaceId;
 		ImGuiID rightNode = 0;
+		ImGuiID bottomNode = 0;
 		ImGui::DockBuilderRemoveNodeChildNodes(rootNode);
 		ImGui::DockBuilderSetNodeSize(rootNode, viewport->Size);
 		ImGui::DockBuilderSplitNode(rootNode, ImGuiDir_Right, 0.28f, &rightNode, &rootNode);
+		ImGui::DockBuilderSplitNode(rootNode, ImGuiDir_Down, 0.28f, &bottomNode, &rootNode);
 
-		// Main Viewportを中央Dockに固定名で配置してゲーム画面と各Dockウィンドウの重なりを避ける
+		// Main Viewportを中央Dockに固定名で配置し、Debug系は右/下タブ候補として初期配置する。
 		ImGui::DockBuilderDockWindow("Main Viewport", rootNode);
 		ImGui::DockBuilderDockWindow("Details", rightNode);
 		ImGui::DockBuilderDockWindow("Post Effect Settings", rightNode);
 		ImGui::DockBuilderDockWindow("Light Editor", rightNode);
+		ImGui::DockBuilderDockWindow("Player Debug", rightNode);
+		ImGui::DockBuilderDockWindow("Weapon Debug", rightNode);
+		ImGui::DockBuilderDockWindow("Enemy Debug", rightNode);
+		ImGui::DockBuilderDockWindow("Game Debug", bottomNode);
+		ImGui::DockBuilderDockWindow("Collision Debug", bottomNode);
+		ImGui::DockBuilderDockWindow("Culling Debug", bottomNode);
 		ImGui::DockBuilderFinish(dockspaceId);
 	}
 #endif // USE_IMGUI

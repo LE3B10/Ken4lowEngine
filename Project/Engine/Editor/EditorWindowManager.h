@@ -28,9 +28,12 @@ namespace Ken4lowEngine
 		bool showTitleDebug = true;
 		bool showStageSelectDebug = true;
 		bool showGameDebug = true;
+		bool showPlayerDebug = true;
+		bool showWeaponDebug = true;
+		bool showEnemyDebug = true;
+		bool showCollisionDebug = true;
 		bool showCullingDebug = true;
 		bool showFadeManager = true;
-		bool showWeaponMasterDebug = true;
 
 		bool debugShowCollider = false;
 		bool debugShowEnemyInfo = false;

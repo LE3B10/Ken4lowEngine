@@ -230,10 +230,22 @@ namespace Ken4lowEngine
 
 	void FpsCamera::DrawImGui()
 	{
+#ifdef USE_IMGUI
+		// 単体表示時もDocking可能な通常ウィンドウとして開く。
+		if (ImGui::Begin("FPS Camera"))
+		{
+			DrawImGuiContent();
+		}
+		ImGui::End();
+#endif // USE_IMGUI
+	}
+
+	void FpsCamera::DrawImGuiContent()
+	{
 		if (!camera_) return;
 
 #ifdef USE_IMGUI
-		ImGui::Begin("FPS Camera");
+		// Player Debug内へFPS Camera調整を埋め込めるよう中身だけ分離する。
 
 		// 現在モード表示
 		const char* modeStr = "";
@@ -313,7 +325,6 @@ namespace Ken4lowEngine
 			aimAlpha_ = 0.0f;
 		}
 
-		ImGui::End();
 #endif // USE_IMGUI
 	}
 

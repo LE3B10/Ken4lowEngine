@@ -140,22 +140,51 @@ void GamePlayDebugTools::DrawImGui(GamePlayWorld* world)
 	K4E::LightManager::GetInstance()->DrawImGui(&editorWindowState.showLightEditor);
 	if (editorWindowState.showGameDebug)
 	{
+		ImGui::SetNextWindowSize(ImVec2(420.0f, 260.0f), ImGuiCond_FirstUseEver);
+		// Game DebugはScene全体の状態だけに絞り、Main Viewportへ固定配置しないDocking対象にする。
 		if (ImGui::Begin("Game Debug", &editorWindowState.showGameDebug))
 		{
 			ImGui::Text("Debug Camera: %s", isDebugCamera_ ? "ON" : "OFF");
 			ImGui::Text("Debug Freeze (F10): %s", isImGuiFreeze_ ? "ON" : "OFF");
+			ImGui::Text("FPS: %.1f", ImGui::GetIO().Framerate);
+			world->DrawGameDebugImGui();
 		}
 		ImGui::End();
-
-		characters.DrawImGui();
-		world->DrawImGui();
 	}
 
-	if (editorWindowState.showCullingDebug)
+	if (editorWindowState.showPlayerDebug)
 	{
-		// WindowメニューのCulling Debug表示フラグでStageChunk/Occlusion系の周辺デバッグUIをまとめる。
-		stageChunkDebugController_.DrawImGui(world->GetStage());
-		occlusionDebugController_.DrawImGui(world->GetStage());
+		ImGui::SetNextWindowSize(ImVec2(480.0f, 520.0f), ImGuiCond_FirstUseEver);
+		// Player Debugは腕・照準・被弾判定などPlayer関連調整だけを表示する。
+		if (ImGui::Begin("Player Debug", &editorWindowState.showPlayerDebug))
+		{
+			characters.DrawPlayerDebugImGui();
+		}
+		ImGui::End();
+	}
+
+
+	if (editorWindowState.showEnemyDebug)
+	{
+		ImGui::SetNextWindowSize(ImVec2(480.0f, 520.0f), ImGuiCond_FirstUseEver);
+		// Enemy DebugはEnemy Manager相当の一覧とEnemy AI/HPBar確認を分離表示する。
+		if (ImGui::Begin("Enemy Debug", &editorWindowState.showEnemyDebug))
+		{
+			characters.DrawEnemyDebugImGui();
+			world->DrawEnemyDebugImGui();
+		}
+		ImGui::End();
+	}
+
+	if (editorWindowState.showCollisionDebug)
+	{
+		ImGui::SetNextWindowSize(ImVec2(420.0f, 360.0f), ImGuiCond_FirstUseEver);
+		// Collision DebugはCollider表示とCollisionManager統計を通常Dockウィンドウへ分離する。
+		if (ImGui::Begin("Collision Debug", &editorWindowState.showCollisionDebug))
+		{
+			world->DrawCollisionDebugImGui();
+		}
+		ImGui::End();
 	}
 
 	/// ---------- 武器マスターデータエディタ ---------- ///
@@ -269,21 +298,44 @@ void GamePlayDebugTools::DrawImGui(GamePlayWorld* world)
 			return out;
 		};
 
-	// WindowメニューのWeapon Master Debug表示フラグを武器デバッグUIの×ボタン状態と共有する
-	if (editorWindowState.showWeaponMasterDebug)
+	// Weapon Debugは武器状態・見た目・マスターデータ補助を1つのDocking対象へまとめる。
+	if (editorWindowState.showWeaponDebug)
 	{
 		weaponEditor.DrawImGui(weaponDB, hooks);
 
-		ImGui::Begin("Weapon Master Debug", &editorWindowState.showWeaponMasterDebug);
-		ImGui::Text("Last Applied ID: %d", lastAppliedWeaponID_);
-
-		if (ImGui::Button("Reload Weapon Editor DB"))
+		ImGui::SetNextWindowSize(ImVec2(520.0f, 560.0f), ImGuiCond_FirstUseEver);
+		if (ImGui::Begin("Weapon Debug", &editorWindowState.showWeaponDebug))
 		{
-			std::string err;
-			weaponDB = WeaponMasterDataDatabase{};
-			weaponDB.LoadFromDirectory(kRoot, &err);
+			characters.GetPlayer() ? characters.GetPlayer()->DrawWeaponDebugImGui() : ImGui::TextUnformatted("Player is not available.");
+			ImGui::SeparatorText("Weapon Master Debug");
+			ImGui::Text("Last Applied ID: %d", lastAppliedWeaponID_);
+
+			if (ImGui::Button("Reload Weapon Editor DB"))
+			{
+				std::string err;
+				weaponDB = WeaponMasterDataDatabase{};
+				weaponDB.LoadFromDirectory(kRoot, &err);
+			}
 		}
 		ImGui::End();
+	}
+#else
+	(void)world;
+#endif
+}
+
+void GamePlayDebugTools::DrawCullingDebugContent(GamePlayWorld* world)
+{
+#ifdef USE_IMGUI
+	if (!world) { return; }
+	// Culling Debugの親ウィンドウ内へStageChunk/Occlusionの既存調整UIを埋め込む。
+	if (ImGui::CollapsingHeader("StageChunk Culling Debug", ImGuiTreeNodeFlags_DefaultOpen))
+	{
+		stageChunkDebugController_.DrawImGuiContent(world->GetStage());
+	}
+	if (ImGui::CollapsingHeader("Occlusion Culling Debug", ImGuiTreeNodeFlags_DefaultOpen))
+	{
+		occlusionDebugController_.DrawImGuiContent(world->GetStage());
 	}
 #else
 	(void)world;

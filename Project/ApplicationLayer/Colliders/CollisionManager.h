@@ -25,6 +25,9 @@ public: /// ---------- メンバ関数 ---------- ///
     // 描画処理
     void Draw();
 
+    // Collision Debugパネル用のImGui表示処理
+    void DrawImGui();
+
     // リセット処理
     void Reset();
 

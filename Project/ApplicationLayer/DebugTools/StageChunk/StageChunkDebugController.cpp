@@ -11,6 +11,20 @@
 void StageChunkDebugController::DrawImGui(K4E::Stage* stage)
 {
 #ifdef USE_IMGUI
+	// 単体表示時もDocking可能な通常ウィンドウとして開く。
+	if (ImGui::Begin("StageChunk Culling Debug"))
+	{
+		DrawImGuiContent(stage);
+	}
+	ImGui::End();
+#else
+	(void)stage;
+#endif
+}
+
+void StageChunkDebugController::DrawImGuiContent(K4E::Stage* stage)
+{
+#ifdef USE_IMGUI
 	if (!stage) { return; }
 
 	auto& chunkManager = stage->GetStageChunkManager();
@@ -22,7 +36,6 @@ void StageChunkDebugController::DrawImGui(K4E::Stage* stage)
 	float chunkSize = stage->GetStageChunkSize();
 	int selectedMeshIndex = static_cast<int>(chunkManager.GetDebugSelectedMeshIndex());
 
-	ImGui::Begin("StageChunk Culling Debug");
 	if (ImGui::Checkbox("StageChunk Culling 有効", &enabled))
 	{
 		stage->SetStageChunkCullingEnabled(enabled);
@@ -71,7 +84,6 @@ void StageChunkDebugController::DrawImGui(K4E::Stage* stage)
 	ImGui::Text("大きすぎてChunk Culling除外されたObject数: %d", stats.largeObjectExcludedCount);
 	ImGui::TextWrapped("可視Chunkは緑、カリングChunkは赤、Object Boundsは青、Chunk Culling対象外Boundsは黄で表示します。");
 	ImGui::TextWrapped("床や壁など大きいBoundsは複数Chunk登録または安全側でChunk Culling対象外にし、見えているObjectを消さないようにDraw側だけを制御します。");
-	ImGui::End();
 #else
 	(void)stage;
 #endif

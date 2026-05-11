@@ -98,6 +98,20 @@ namespace
 void OcclusionDebugController::DrawImGui(K4E::Stage* stage)
 {
 #ifdef USE_IMGUI
+	// 単体表示時もDocking可能な通常ウィンドウとして開く。
+	if (ImGui::Begin("Occlusion Culling Debug"))
+	{
+		DrawImGuiContent(stage);
+	}
+	ImGui::End();
+#else
+	(void)stage;
+#endif
+}
+
+void OcclusionDebugController::DrawImGuiContent(K4E::Stage* stage)
+{
+#ifdef USE_IMGUI
 	if (!stage) { return; }
 
 	auto& occlusionSystem = stage->GetOcclusionCullingSystem();
@@ -114,7 +128,6 @@ void OcclusionDebugController::DrawImGui(K4E::Stage* stage)
 
 	DrawDebugScreenRects(occlusionSystem);
 
-	ImGui::Begin("Occlusion Culling Debug");
 	if (ImGui::Checkbox("Occlusion Culling 有効", &enabled))
 	{
 		occlusionSystem.SetEnabled(enabled);
@@ -219,7 +232,6 @@ void OcclusionDebugController::DrawImGui(K4E::Stage* stage)
 	ImGui::Separator();
 	ImGui::TextWrapped("StageChunk Culling 後の Chunk Bounds をスクリーン矩形に投影し、Occluder に十分覆われ、かつ奥にある場合だけ Draw をスキップします。");
 	ImGui::TextWrapped("Frustum Culling のカリング Chunk は赤、Occlusion Culling のカリング Chunk は紫、depth条件不足は青、Occluderより手前は橙、Occluder は黄で表示します。Update / Collision は止めず Draw だけをスキップします。");
-	ImGui::End();
 #else
 	(void)stage;
 #endif
