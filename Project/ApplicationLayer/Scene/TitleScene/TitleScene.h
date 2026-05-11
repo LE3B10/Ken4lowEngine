@@ -148,6 +148,9 @@ public: /// ---------- メンバ関数 ---------- ///
 	// 更新処理
 	void Update() override;
 
+	// Editor中はScene遷移入力を止め、表示確認に必要な軽い更新だけ行う。
+	void UpdateEditor(float deltaTime) override;
+
 	// 3Dオブジェクトの描画
 	void Draw3DObjects() override;
 

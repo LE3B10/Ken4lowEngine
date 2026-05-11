@@ -167,6 +167,25 @@ void StageSelectScene::Update()
 	textAnim_.guidePulseTimer += deltaTime;
 }
 
+
+/// -------------------------------------------------------------
+///				 	Editor中の更新処理
+/// -------------------------------------------------------------
+void StageSelectScene::UpdateEditor(float deltaTime)
+{
+	// Edit/Pause中はステージ決定やTitleへの戻り入力を処理せず、表示確認用の軽い演出だけ進める。
+	if (bg_) { bg_->Update(); }
+
+	if (textAnim_.prevStageIndex != currentStageIndex_)
+	{
+		textAnim_.prevStageIndex = currentStageIndex_;
+		textAnim_.changeTimer = 0.0f;
+	}
+
+	textAnim_.changeTimer = std::min(textAnim_.changeTimer + deltaTime, textAnim_.changeDuration);
+	textAnim_.guidePulseTimer += deltaTime;
+}
+
 /// -------------------------------------------------------------
 ///				　		3Dオブジェクト描画処理
 /// -------------------------------------------------------------

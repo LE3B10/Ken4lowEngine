@@ -26,6 +26,9 @@ public: /// ---------- 純粋仮想関数 ---------- ///
 	// 仮想更新処理
 	virtual void Update() = 0;
 
+	// Editor Mode中にゲーム進行を止めたまま確認用更新だけ行う。
+	virtual void UpdateEditor(float /*deltaTime*/) {}
+
 	// 仮想3D描画処理
 	virtual void Draw3DObjects() = 0;
 

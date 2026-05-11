@@ -3,6 +3,7 @@
 
 #include <SpriteManager.h>
 #include <GameTimer.h>
+#include <Editor/EditorPlayController.h>
 
 #include <cassert>
 #include <algorithm>
@@ -137,12 +138,19 @@ void SceneManager::Update()
 		}
 	}
 
-	// 遷移中は旧シーンの通常 Update を止める
+	// Play中だけゲームUpdateを進め、Edit/Pause中はEditor確認用更新に切り替える。
 	if (scene_)
 	{
 		if (!isTransitioning_ || sceneSwapped_)
 		{
-			scene_->Update();
+			if (K4E::EditorPlayController::GetInstance()->IsPlaying())
+			{
+				scene_->Update();
+			}
+			else
+			{
+				scene_->UpdateEditor(dtRaw);
+			}
 		}
 	}
 }
