@@ -5,10 +5,7 @@
 #include <cstddef>
 
 #ifdef USE_IMGUI
-#include <imgui_impl_win32.h>
-
-/// ---------- ImGuiのウィンドウプロシージャ ---------- ///
-extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
+#include <ImGuiManager.h>
 #endif // USE_IMGUI
 
 namespace Ken4lowEngine
@@ -466,7 +463,8 @@ namespace Ken4lowEngine
 		}
 
 #ifdef USE_IMGUI
-		if (ImGui_ImplWin32_WndProcHandler(hwnd, msg, wparam, lparam))
+		// ImGuiのWin32メッセージ処理はImGuiManager経由に集約する
+		if (ImGuiManager::GetInstance()->ProcessWin32Message(hwnd, msg, wparam, lparam))
 		{
 			return true;
 		}

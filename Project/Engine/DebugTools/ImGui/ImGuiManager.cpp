@@ -4,6 +4,8 @@
 #include "DirectXCommon.h"
 #include "SRVManager.h"
 
+#include <stdexcept>
+
 namespace Ken4lowEngine
 {
 
@@ -47,8 +49,10 @@ namespace Ken4lowEngine
 		// フォントの設定
 		io.Fonts->AddFontFromFileTTF("Resources/Fonts/NotoSansJP-VariableFont_wght.ttf", 18.0f, nullptr, io.Fonts->GetGlyphRangesJapanese()); // 日本語フォントの追加
 
-		// Dockingを有効にする
+		// ImGuiウィンドウをエンジンのメインウィンドウ内でドッキングできるようにする
 		io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+		// 今回は別OSウィンドウ化を避けるため Multi-Viewport は明示的に無効のままにする
+		io.ConfigFlags &= ~ImGuiConfigFlags_ViewportsEnable;
 
 		ImGui::StyleColorsDark();					  // ImGuiスタイルの設定
 		ImGui_ImplWin32_Init(winApp->GetHwnd());	  // Win32バックエンドの初期化
@@ -70,13 +74,26 @@ namespace Ken4lowEngine
 	void ImGuiManager::BeginFrame()
 	{
 #ifdef USE_IMGUI
-		//ImGuiを使う
+		// ImGuiバックエンドとコンテキストのフレーム開始をManagerに集約する
 		ImGui_ImplDX12_NewFrame();
 		ImGui_ImplWin32_NewFrame();
 		ImGui::NewFrame();
+		DrawDockSpace();
 #endif // USE_IMGUI
 	}
 
+
+
+	/// -------------------------------------------------------------
+	///						DockSpace描画処理
+	/// -------------------------------------------------------------
+	void ImGuiManager::DrawDockSpace()
+	{
+#ifdef USE_IMGUI
+		// 既存描画の見た目を変えないよう中央ノードは透過したDockSpaceを毎フレーム用意する
+		ImGui::DockSpaceOverViewport(0, ImGui::GetMainViewport(), ImGuiDockNodeFlags_PassthruCentralNode);
+#endif // USE_IMGUI
+	}
 
 
 	/// -------------------------------------------------------------
@@ -85,7 +102,7 @@ namespace Ken4lowEngine
 	void ImGuiManager::EndFrame()
 	{
 #ifdef USE_IMGUI
-		//ImGuiの内部コマンドを生成する
+		// ImGuiの内部描画コマンド生成をManagerに集約する
 		ImGui::Render();
 #endif // USE_IMGUI
 	}
@@ -102,11 +119,10 @@ namespace Ken4lowEngine
 
 		ComPtr<ID3D12GraphicsCommandList> commandList = dxCommon->GetCommandManager()->GetCommandList();
 
-		/*-----ImGuiを描画する-----*/
+		// ImGui描画に必要なSRVヒープ設定をManagerに集約する
 		SRVManager::GetInstance()->PreDraw();
 
-		/*-----ImGuiを描画する-----*/
-		//実際のcommandListのImGuiの描画コマンドを積む
+		// 実際のcommandListにImGuiの描画コマンドを積む処理をManagerに集約する
 		ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), commandList.Get());
 #endif // USE_IMGUI
 	}
@@ -114,7 +130,25 @@ namespace Ken4lowEngine
 
 
 	/// -------------------------------------------------------------
-	///							終了処理
+	///					Win32メッセージ処理
+	/// -------------------------------------------------------------
+	bool ImGuiManager::ProcessWin32Message(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
+	{
+#ifdef USE_IMGUI
+		// Win32バックエンド固有のメッセージ処理をManagerに集約する
+		return ImGui_ImplWin32_WndProcHandler(hwnd, msg, wparam, lparam) != 0;
+#else
+		(void)hwnd;
+		(void)msg;
+		(void)wparam;
+		(void)lparam;
+		return false;
+#endif // USE_IMGUI
+	}
+
+
+	/// -------------------------------------------------------------
+	///						終了処理
 	/// -------------------------------------------------------------
 	void ImGuiManager::Finalize()
 	{
@@ -126,6 +160,7 @@ namespace Ken4lowEngine
 			srvIndex_ = UINT32_MAX; // 無効な状態にリセット
 		}
 
+		// ImGuiバックエンドとコンテキストの終了処理をManagerに集約する
 		ImGui_ImplDX12_Shutdown();
 		ImGui_ImplWin32_Shutdown();
 		ImGui::DestroyContext();

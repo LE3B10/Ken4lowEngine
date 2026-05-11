@@ -108,7 +108,7 @@ namespace Ken4lowEngine
 		/// ・WM_CLOSE：DestroyWindow を呼び出してウィンドウ破棄<br/>
 		/// ・WM_DESTROY：PostQuitMessage(0) を呼び出してアプリ終了を通知<br/>
 		/// ・それ以外：DefWindowProc に処理を委譲<br/>
-		/// ImGui 使用時は、先に ImGui_ImplWin32_WndProcHandler にメッセージを渡します。
+		/// ImGui 使用時は、先に ImGuiManager 経由でメッセージを渡します。
 		/// </summary>
 		/// <param name="hwnd">対象ウィンドウのハンドル。</param>
 		/// <param name="msg">メッセージ ID。</param>
