@@ -57,9 +57,9 @@ namespace Ken4lowEngine
 		renderTargets_[0].debugName = L"SceneRenderTarget_GameViewportRenderTarget";
 		renderTargets_[1].debugName = L"PostEffectRenderTarget";
 
-		// 初期GameRenderTargetはMain Viewport表示用に1280x720固定で確保する
-		renderTargetWidth_ = kInitialGameRenderTargetWidth_;
-		renderTargetHeight_ = kInitialGameRenderTargetHeight_;
+		// GameViewportRenderTargetはSprite/UI/Fontの基準解像度に合わせて1920x1080固定で確保する
+		renderTargetWidth_ = kFixedGameRenderTargetWidth_;
+		renderTargetHeight_ = kFixedGameRenderTargetHeight_;
 
 		// RTVとSRVの確保
 		AllocateRTV_DSV_SRV_UAV();
@@ -239,20 +239,26 @@ namespace Ken4lowEngine
 	/// -------------------------------------------------------------
 	void PostEffectManager::Resize(uint32_t width, uint32_t height)
 	{
-		if (width == 0 || height == 0) return;
+		(void)width;
+		(void)height;
 
-		// GameRenderTargetの現在サイズを記録してMain Viewport側の座標変換に使えるようにする
-		renderTargetWidth_ = width;
-		renderTargetHeight_ = height;
+		// Main Viewport実サイズ追従はまだ行わず、GameViewportRenderTargetを1920x1080固定で維持する。
+		const uint32_t fixedWidth = kFixedGameRenderTargetWidth_;
+		const uint32_t fixedHeight = kFixedGameRenderTargetHeight_;
+		if (renderTargetWidth_ == fixedWidth && renderTargetHeight_ == fixedHeight && depthResource_) return;
 
-		SetViewportAndScissorRect(width, height);
+		// GameRenderTargetの現在サイズを固定基準解像度として記録する
+		renderTargetWidth_ = fixedWidth;
+		renderTargetHeight_ = fixedHeight;
+
+		SetViewportAndScissorRect(fixedWidth, fixedHeight);
 
 		// RTを作り直して、同じdescriptor indexに上書き
 		for (uint32_t i = 0; i < static_cast<uint32_t>(renderTargets_.size()); ++i)
 		{
 			auto& rt = renderTargets_[i];
 			rt.resource.Reset();
-			rt.resource = CreateRenderTextureResource(width, height,
+			rt.resource = CreateRenderTextureResource(fixedWidth, fixedHeight,
 				DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, kRenderTextureClearColor_);
 			// Resize後もRenderTarget名を張り直し、Unnamed Resourceの再発を防ぐ。
 			rt.resource->SetName(rt.debugName);
@@ -274,7 +280,7 @@ namespace Ken4lowEngine
 
 		// depth作り直し
 		depthResource_.Reset();
-		depthResource_ = CreateDepthBufferResource(width, height);
+		depthResource_ = CreateDepthBufferResource(fixedWidth, fixedHeight);
 		// PostEffect用深度もResize後に名前を付け直してDebugLayerで追跡可能にする。
 		depthResource_->SetName(L"PostEffectManager DepthBuffer");
 		DSVManager::GetInstance()->CreateDSVForTexture2D(depthDsvIndex_, depthResource_.Get());
@@ -492,13 +498,11 @@ namespace Ken4lowEngine
 
 	void PostEffectManager::RequestGameRenderTargetResize(uint32_t width, uint32_t height)
 	{
-		if (width == 0 || height == 0 || (width == renderTargetWidth_ && height == renderTargetHeight_))
-		{
-			return;
-		}
+		(void)width;
+		(void)height;
 
-		// Main Viewport実サイズ追従を後で有効化しやすいよう既存Resizeへ集約する
-		Resize(width, height);
+		// Main Viewport実サイズ追従は未実装のため、外部からのリサイズ要求でも1920x1080固定を保つ
+		Resize(kFixedGameRenderTargetWidth_, kFixedGameRenderTargetHeight_);
 	}
 
 	/// -------------------------------------------------------------
@@ -649,10 +653,10 @@ namespace Ken4lowEngine
 	/// -------------------------------------------------------------
 	void PostEffectManager::SetViewportAndScissorRect(uint32_t width, uint32_t height)
 	{
-		// ビューポート矩形の設定
+		// Scene描画範囲をGameViewportRenderTargetの実ピクセルサイズと必ず一致させる
 		viewport = D3D12_VIEWPORT(0.0f, 0.0f, static_cast<float>(width), static_cast<float>(height), 0.0f, 1.0f);
 
-		// シザリング矩形の設定
+		// ScissorもGameViewportRenderTargetの実ピクセルサイズと必ず一致させる
 		scissorRect = { 0, 0, static_cast<LONG>(width), static_cast<LONG>(height) };
 	}
 

@@ -110,8 +110,9 @@ namespace Ken4lowEngine
 		const uint32_t threadGroupSizeX = 8;
 		const uint32_t threadGroupSizeY = 8;
 
-		const uint32_t width = dxCommon_->GetClientWidth();
-		const uint32_t height = dxCommon_->GetClientHeight();
+		// Compute Dispatch範囲は固定GameViewportRenderTargetの1920x1080に合わせる
+		const uint32_t width = 1920;
+		const uint32_t height = 1080;
 
 		const uint32_t groupCountX = (width + threadGroupSizeX - 1) / threadGroupSizeX;
 		const uint32_t groupCountY = (height + threadGroupSizeY - 1) / threadGroupSizeY;
