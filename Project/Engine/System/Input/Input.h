@@ -279,6 +279,7 @@ namespace Ken4lowEngine
 
 		bool CanUseGameKeyboardInput(BYTE keyNumber) const;
 		bool CanUseGameMouseInput() const;
+		bool CanUseGamepadInput() const;
 
 		// WindowsAPI
 		WinApp* winApp_ = nullptr;

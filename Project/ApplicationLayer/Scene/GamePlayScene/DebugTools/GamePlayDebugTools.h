@@ -19,8 +19,8 @@ class GamePlayDebugTools
 {
 public: /// ---------- メンバ関数 ---------- ///
 
-	void Initialize() {}
-	void Finalize() {}
+	void Initialize();
+	void Finalize();
 
 	bool HandleFreezeToggle(K4E::Input* input, GamePlayFlow* flow);
 	bool IsFrozen() const { return isImGuiFreeze_; }

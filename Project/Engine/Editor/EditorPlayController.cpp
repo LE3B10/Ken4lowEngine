@@ -34,11 +34,35 @@ namespace Ken4lowEngine
 		// F8はEscと独立したゲーム入力キャプチャ専用トグルにする。
 		if (IsGameCaptured())
 		{
-			inputMode_ = EditorInputMode::GameReleased;
+			ReleaseGameInput();
 			return;
 		}
 
+		CaptureGameInput();
+	}
+
+	void EditorPlayController::CaptureGameInput()
+	{
+		// GameCapturedはゲーム更新を止めずMain Viewport上の操作だけをゲームへ戻す。
 		inputMode_ = EditorInputMode::GameCaptured;
+	}
+
+	void EditorPlayController::ReleaseGameInput()
+	{
+		// GameReleasedはゲーム更新を継続したまま入力だけEditor/ImGuiへ解放する。
+		inputMode_ = EditorInputMode::GameReleased;
+	}
+
+	void EditorPlayController::ForceReleaseToEditor()
+	{
+		// Shift+F8は現在状態に関係なくEditor操作へ復帰できる非常口にする。
+		ReleaseGameInput();
+	}
+
+	void EditorPlayController::SetDebugFreezeEnabled(bool enabled)
+	{
+		// Debug Freezeは入力キャプチャとは別機能としてToolbar表示だけ同期する。
+		debugFreezeEnabled_ = enabled;
 	}
 
 	bool EditorPlayController::IsEditing() const
@@ -106,11 +130,16 @@ namespace Ken4lowEngine
 		case EditorInputMode::GameCaptured:
 			return "Input: Game Captured";
 		case EditorInputMode::GameReleased:
-			return "Input: Game Released";
+			return "Input: Editor Released";
 		case EditorInputMode::Editor:
 		default:
 			return "Input: Editor";
 		}
+	}
+
+	const char* EditorPlayController::GetDebugFreezeStatusText() const
+	{
+		return debugFreezeEnabled_ ? "Debug Freeze: ON" : "Debug Freeze: OFF";
 	}
 
 } // namespace Ken4lowEngine

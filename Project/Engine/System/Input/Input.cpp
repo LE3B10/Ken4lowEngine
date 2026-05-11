@@ -404,6 +404,12 @@ namespace Ken4lowEngine
 		return gameInputEnabled_ && (!editorViewportMouseOverrideEnabled_ || editorViewportMousePositionValid_);
 	}
 
+	bool Input::CanUseGamepadInput() const
+	{
+		// GameReleased中やMain Viewport外ではゲームパッド操作もゲームへ渡さない。
+		return gameInputEnabled_;
+	}
+
 	void Input::SetLockCursor(bool lock)
 	{
 		if (lockCursor_ == lock) { return; }
@@ -447,6 +453,11 @@ namespace Ken4lowEngine
 	/// -------------------------------------------------------------
 	bool Input::ReleaseButton(int button) const
 	{
+		if (!CanUseGamepadInput())
+		{
+			return false;
+		}
+
 		if (!buttonStates_[button] && prevButtonStates_[button])
 		{
 			return true;
@@ -461,6 +472,11 @@ namespace Ken4lowEngine
 	/// -------------------------------------------------------------
 	bool Input::PushButton(int button) const
 	{
+		if (!CanUseGamepadInput())
+		{
+			return false;
+		}
+
 		if (button == XButtons.L_Trigger)
 		{
 			return state_.Gamepad.bLeftTrigger > XINPUT_GAMEPAD_TRIGGER_THRESHOLD;
@@ -478,7 +494,8 @@ namespace Ken4lowEngine
 	/// -------------------------------------------------------------
 	bool Input::TriggerButton(int button) const
 	{
-		return buttonsTriger_[button];
+		// GameReleased中やMain Viewport外ではゲームパッドトリガーをゲームへ渡さない。
+		return CanUseGamepadInput() && buttonsTriger_[button];
 	}
 
 
@@ -535,6 +552,11 @@ namespace Ken4lowEngine
 	/// -------------------------------------------------------------
 	Vector2 Input::GetLeftStick()
 	{
+		if (!CanUseGamepadInput())
+		{
+			return { 0.0f, 0.0f };
+		}
+
 		// 左スティックの値を取得
 		short x = state_.Gamepad.sThumbLX;
 		short y = state_.Gamepad.sThumbLY;
@@ -548,6 +570,11 @@ namespace Ken4lowEngine
 	/// -------------------------------------------------------------
 	Vector2 Input::GetRightStick()
 	{
+		if (!CanUseGamepadInput())
+		{
+			return { 0.0f, 0.0f };
+		}
+
 		// 右スティックの値を取得
 		short x = state_.Gamepad.sThumbRX;
 		short y = state_.Gamepad.sThumbRY;
@@ -561,6 +588,11 @@ namespace Ken4lowEngine
 	/// -------------------------------------------------------------
 	float Input::GetLeftTrigger()
 	{
+		if (!CanUseGamepadInput())
+		{
+			return 0.0f;
+		}
+
 		// 左トリガーの値を取得
 		BYTE trigger = state_.Gamepad.bLeftTrigger;
 
@@ -578,6 +610,11 @@ namespace Ken4lowEngine
 	/// -------------------------------------------------------------
 	float Input::GetRightTrigger()
 	{
+		if (!CanUseGamepadInput())
+		{
+			return 0.0f;
+		}
+
 		// 左トリガーの値を取得
 		BYTE trigger = state_.Gamepad.bRightTrigger;
 
