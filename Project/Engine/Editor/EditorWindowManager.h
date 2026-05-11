@@ -48,6 +48,14 @@ namespace Ken4lowEngine
 		bool valid = false;
 	};
 
+	struct EditorInputDebugInfo
+	{
+		Vector2 gameMousePosition = { -1.0f, -1.0f };
+		bool mainViewportHovered = false;
+		bool gameMouseEnabled = false;
+		bool leftMouseTrigger = false;
+	};
+
 	/// <summary>
 	/// UE5風エディタUIのメニュー、ツールバー、各パネルをまとめて描画します。
 	/// </summary>
@@ -92,6 +100,7 @@ namespace Ken4lowEngine
 		EditorViewportRect mainViewportRect_{}; // Main Viewport内で実際にゲーム画面を表示している矩形
 		Vector2 mainViewportScreenPosition_ = { 0.0f, 0.0f }; // マウス座標をMain Viewport基準へ変換するための左上座標
 		Vector2 mainViewportSize_ = { 0.0f, 0.0f }; // Main Viewport内でGameRenderTargetを表示しているサイズ
+		EditorInputDebugInfo inputDebugInfo_{}; // Toolbarへゲーム入力ゲートの状態を可視化する
 	};
 
 } // namespace Ken4lowEngine
