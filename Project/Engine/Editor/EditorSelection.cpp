@@ -10,6 +10,13 @@ namespace Ken4lowEngine
 		hasSelection_ = true;
 	}
 
+	void EditorSelection::RefreshSelected(const EditorObjectInfo& objectInfo)
+	{
+		// 選択IDを維持したまま、毎フレーム再収集された編集入口へ差し替える。
+		selected_ = objectInfo;
+		hasSelection_ = true;
+	}
+
 	void EditorSelection::Clear()
 	{
 		// Scene切り替え時の古い選択を安全に破棄できる入口にする。

@@ -798,7 +798,7 @@ bool GamePlayScene::IsRetryFadeInFinished() const
 {
 	return fadeManager_ && fadeManager_->IsDropDone();
 }
-void GamePlayScene::CollectEditorObjects(std::vector<Ken4lowEngine::EditorObjectInfo>& outObjects) const
+void GamePlayScene::CollectEditorObjects(std::vector<Ken4lowEngine::EditorObjectInfo>& outObjects)
 {
 	const auto addObject = [&outObjects](uint64_t id, const char* displayName, const char* typeName)
 	{

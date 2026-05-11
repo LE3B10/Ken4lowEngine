@@ -52,7 +52,7 @@ public: /// ---------- 純粋仮想関数 ---------- ///
 	virtual EditorInputPolicy GetEditorInputPolicy() const { return EditorInputPolicy::UiMouse; }
 
 	// World Outliner用の安全な表示情報をScene側から収集する入口です。
-	virtual void CollectEditorObjects(std::vector<Ken4lowEngine::EditorObjectInfo>& /*outObjects*/) const {}
+	virtual void CollectEditorObjects(std::vector<Ken4lowEngine::EditorObjectInfo>& /*outObjects*/) {}
 
 	// シーンマネージャーをセット
 	virtual void SetSceneManager(SceneManager* sceneManager) { sceneManager_ = sceneManager; }
