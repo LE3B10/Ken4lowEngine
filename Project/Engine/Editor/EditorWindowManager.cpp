@@ -1,5 +1,7 @@
 #include "EditorWindowManager.h"
 
+#include "ImGuiManager.h"
+
 #ifdef USE_IMGUI
 #include <imgui.h>
 #endif // USE_IMGUI
@@ -58,6 +60,12 @@ namespace Ken4lowEngine
 			ImGui::MenuItem("Output Log", nullptr, &windowState_.showOutputLog);
 			ImGui::Separator();
 			ImGui::MenuItem("Toolbar", nullptr, &windowState_.showToolbar);
+			ImGui::Separator();
+			// ユーザーが崩れたDocking配置を明示的に初期状態へ戻せる入口にする
+			if (ImGui::MenuItem("Reset Layout"))
+			{
+				ImGuiManager::GetInstance()->RequestResetDockLayout();
+			}
 			ImGui::EndMenu();
 		}
 

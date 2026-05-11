@@ -78,6 +78,11 @@ namespace Ken4lowEngine
 		void Draw();
 
 		/// <summary>
+		/// 次フレームでDockBuilderの初期レイアウトを再適用します。
+		/// </summary>
+		void RequestResetDockLayout();
+
+		/// <summary>
 		/// Win32 メッセージを ImGui に渡します。<br/>
 		/// WinApp が ImGui バックエンドへ直接依存しないようにするための窓口です。
 		/// </summary>
@@ -107,6 +112,8 @@ namespace Ken4lowEngine
 #ifdef USE_IMGUI
 		std::unordered_map<SIZE_T, uint32_t> imguiSrvHandleToIndex_;
 		bool dockLayoutInitialized_ = false; // 初期DockBuilder配置を毎フレーム上書きしないためのフラグ
+		bool shouldApplyDefaultDockLayout_ = false; // 保存済みiniが無い場合だけ初期DockBuilder配置を適用するフラグ
+		bool resetDockLayoutRequested_ = false; // WindowメニューからのReset Layout要求を次フレームへ渡すフラグ
 #endif // USE_IMGUI
 
 	private: /// ---------- コンストラクタ・デストラクタ ---------- ///
