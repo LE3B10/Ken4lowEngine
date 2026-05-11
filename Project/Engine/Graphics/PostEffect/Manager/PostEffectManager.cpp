@@ -120,7 +120,7 @@ namespace Ken4lowEngine
 		for (auto& rt : renderTargets_) {
 			rt.resource.Reset();
 			rt.rtvHandle = {};
-			rt.currentState_ = D3D12_RESOURCE_STATE_COMMON;
+			rt.currentState_ = RenderTarget::kInitialState;
 			// srvIndex/uavIndex を Free できる設計ならここでFree（後述）
 		}
 		renderTargets_.clear();
@@ -184,6 +184,10 @@ namespace Ken4lowEngine
 	void PostEffectManager::BeginDraw()
 	{
 		auto commandList = dxCommon_->GetCommandManager()->GetCommandList();
+		auto& rt = renderTargets_[0];
+
+		// SceneRenderTarget_GameViewportRenderTargetを描画先にする直前でSRVからRTVへ戻す。
+		TransitionTo(rt, commandList, D3D12_RESOURCE_STATE_RENDER_TARGET);
 
 		// DEPTH_WRITE 状態に戻す → ClearDepthStencilView 用
 		if (depthResource_ && depthState_ != D3D12_RESOURCE_STATE_DEPTH_WRITE)
@@ -191,10 +195,6 @@ namespace Ken4lowEngine
 			dxCommon_->ResourceTransition(depthResource_.Get(), depthState_, D3D12_RESOURCE_STATE_DEPTH_WRITE);
 			depthState_ = D3D12_RESOURCE_STATE_DEPTH_WRITE;
 		}
-
-		// 前フレームのImGui表示でSRVのままでも、描画前に必ずRTVへ戻す
-		auto& rt = renderTargets_[0];
-		TransitionTo(rt, commandList, D3D12_RESOURCE_STATE_RENDER_TARGET);
 
 		// レンダーターゲットを設定
 		commandList->OMSetRenderTargets(1, &rt.rtvHandle, false, &dsvHandle);
@@ -227,6 +227,7 @@ namespace Ken4lowEngine
 
 		auto commandList = dxCommon_->GetCommandManager()->GetCommandList();
 		auto& rt = renderTargets_[0];
+		// Main ViewportのImGui::Imageで読めるよう描画後にSRVへ戻す。
 		TransitionTo(rt, commandList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 
 		// GPU が完了するのを待つ (デバッグ用)
@@ -268,7 +269,7 @@ namespace Ken4lowEngine
 			UAVManager::GetInstance()->CreateSRVForTexture2DOnThisHeap(rt.srvIndexOnUavHeap, rt.resource.Get(),
 				DXGI_FORMAT_R8G8B8A8_UNORM, 1);
 
-			rt.currentState_ = D3D12_RESOURCE_STATE_COMMON;
+			rt.currentState_ = RenderTarget::kInitialState;
 		}
 
 		// depth作り直し
@@ -391,7 +392,7 @@ namespace Ken4lowEngine
 		auto commandList = dxCommon_->GetCommandManager()->GetCommandList();
 		auto& gameRT = renderTargets_[0];
 
-		// 2Dスプライトはポストエフェクト後のGameRenderTargetへ重ねる
+		// SceneRenderTarget_GameViewportRenderTargetへ2Dを重ねる直前でSRVからRTVへ戻す。
 		TransitionTo(gameRT, commandList, D3D12_RESOURCE_STATE_RENDER_TARGET);
 		commandList->OMSetRenderTargets(1, &gameRT.rtvHandle, false, nullptr);
 		commandList->RSSetViewports(1, &viewport);
@@ -410,6 +411,10 @@ namespace Ken4lowEngine
 	void PostEffectManager::BindSceneRenderTarget()
 	{
 		auto commandList = dxCommon_->GetCommandManager()->GetCommandList();
+		auto& rt = renderTargets_[0];
+
+		// SceneRenderTarget_GameViewportRenderTargetを再バインドする直前でRTV状態を保証する。
+		TransitionTo(rt, commandList, D3D12_RESOURCE_STATE_RENDER_TARGET);
 
 		// 深度を描画可能状態へ戻す
 		if (depthResource_ && depthState_ != D3D12_RESOURCE_STATE_DEPTH_WRITE)
@@ -417,9 +422,6 @@ namespace Ken4lowEngine
 			dxCommon_->ResourceTransition(depthResource_.Get(), depthState_, D3D12_RESOURCE_STATE_DEPTH_WRITE);
 			depthState_ = D3D12_RESOURCE_STATE_DEPTH_WRITE;
 		}
-
-		auto& rt = renderTargets_[0];
-		TransitionTo(rt, commandList, D3D12_RESOURCE_STATE_RENDER_TARGET);
 
 		commandList->OMSetRenderTargets(1, &rt.rtvHandle, false, &dsvHandle);
 		commandList->RSSetViewports(1, &viewport);
@@ -539,7 +541,7 @@ namespace Ken4lowEngine
 			&heapProperties,					// ヒープの設定
 			D3D12_HEAP_FLAG_NONE,				// ヒープの特殊な設定
 			&resourceDesc,						// リソースの設定
-			D3D12_RESOURCE_STATE_COMMON,		// リソースの初期状態、レンダーターゲットとして使う
+			RenderTarget::kInitialState,		// currentState_ と同じ初期状態から管理を開始する
 			&clearValue,						// クリア値の設定
 			IID_PPV_ARGS(&resource));			// 生成したリソースのポインタへのポインタを取得
 
@@ -607,7 +609,7 @@ namespace Ken4lowEngine
 			rt.resource = CreateRenderTextureResource(renderTargetWidth_, renderTargetHeight_, DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, kRenderTextureClearColor_);
 			// Scene/Game/PostEffectの役割名を付け、D3D12 DebugLayerのUnnamed Resourceをなくす。
 			rt.resource->SetName(rt.debugName);
-			rt.currentState_ = D3D12_RESOURCE_STATE_COMMON;
+			rt.currentState_ = RenderTarget::kInitialState;
 
 			// RTVの生成
 			rt.rtvIndex = RTVManager::GetInstance()->Allocate();
