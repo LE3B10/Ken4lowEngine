@@ -3,6 +3,8 @@
 #include "RTVManager.h"
 #include "DSVManager.h"
 
+#include <cwchar>
+
 namespace Ken4lowEngine
 {
 
@@ -57,6 +59,8 @@ namespace Ken4lowEngine
 			settings_.depthFormat,
 			clearValue
 		);
+		// MainRenderTargetの深度も名前を付け、DSV関連のDebugLayer出力から識別できるようにする。
+		depthStencilResource_->SetName(L"MainRenderTargetDepth");
 	}
 
 	/// -------------------------------------------------------------
@@ -104,6 +108,10 @@ namespace Ken4lowEngine
 		for (uint32_t i = 0; i < bufferCount; ++i)
 		{
 			auto backBuffer = dxCommon_->GetBackBuffer(i);
+			wchar_t name[32]{};
+			swprintf_s(name, L"BackBuffer%u", i);
+			// MainRenderTarget側で取得したComPtrにもBackBuffer名を再設定し、RTVエラーをUnnamedにしない。
+			backBuffer->SetName(name);
 			rtvManager->CreateRTVForTexture2D(backBufferRtvIndices_[i], backBuffer.Get());
 		}
 	}

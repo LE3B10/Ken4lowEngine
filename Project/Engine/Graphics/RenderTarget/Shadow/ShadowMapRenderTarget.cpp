@@ -38,6 +38,8 @@ namespace Ken4lowEngine
 			settings_.width,
 			settings_.height
 		);
+		// ShadowMapRenderTargetにも名前を付け、深度RTのDebugLayer出力を特定しやすくする。
+		shadowMapResource_->SetName(L"ShadowMapRenderTarget");
 
 		// 新規生成直後は depth write 状態
 		resourceState_ = D3D12_RESOURCE_STATE_DEPTH_WRITE;
@@ -127,6 +129,7 @@ namespace Ken4lowEngine
 
 		if (resourceState_ != D3D12_RESOURCE_STATE_DEPTH_WRITE)
 		{
+			// ShadowMapを描画先として使う直前にDepthWriteへ戻し、SRV状態のまま描かない。
 			dxCommon_->ResourceTransition(
 				shadowMapResource_.Get(),
 				resourceState_,
@@ -164,6 +167,7 @@ namespace Ken4lowEngine
 
 		if (resourceState_ != D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE)
 		{
+			// ShadowMapを通常描画で読む前にPixelShaderResourceへ遷移する。
 			dxCommon_->ResourceTransition(
 				shadowMapResource_.Get(),
 				resourceState_,

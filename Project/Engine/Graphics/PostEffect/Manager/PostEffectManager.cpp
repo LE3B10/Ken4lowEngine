@@ -53,6 +53,9 @@ namespace Ken4lowEngine
 		pipelineBuilder_->BuildCopyPipeline(); // コピー用パイプラインのビルド
 
 		renderTargets_.resize(2); // ポストエフェクトのping-pongと最終GameRenderTargetに使う
+		// RT0はScene/GameViewport、RT1はPostEffect出力として名前を固定し、DebugLayerで対象を特定する。
+		renderTargets_[0].debugName = L"SceneRenderTarget_GameViewportRenderTarget";
+		renderTargets_[1].debugName = L"PostEffectRenderTarget";
 
 		// 初期GameRenderTargetはMain Viewport表示用に1280x720固定で確保する
 		renderTargetWidth_ = kInitialGameRenderTargetWidth_;
@@ -244,11 +247,14 @@ namespace Ken4lowEngine
 		SetViewportAndScissorRect(width, height);
 
 		// RTを作り直して、同じdescriptor indexに上書き
-		for (auto& rt : renderTargets_)
+		for (uint32_t i = 0; i < static_cast<uint32_t>(renderTargets_.size()); ++i)
 		{
+			auto& rt = renderTargets_[i];
 			rt.resource.Reset();
 			rt.resource = CreateRenderTextureResource(width, height,
 				DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, kRenderTextureClearColor_);
+			// Resize後もRenderTarget名を張り直し、Unnamed Resourceの再発を防ぐ。
+			rt.resource->SetName(rt.debugName);
 
 			RTVManager::GetInstance()->CreateRTVForTexture2D(rt.rtvIndex, rt.resource.Get());
 			rt.rtvHandle = RTVManager::GetInstance()->GetCPUDescriptorHandle(rt.rtvIndex);
@@ -268,6 +274,8 @@ namespace Ken4lowEngine
 		// depth作り直し
 		depthResource_.Reset();
 		depthResource_ = CreateDepthBufferResource(width, height);
+		// PostEffect用深度もResize後に名前を付け直してDebugLayerで追跡可能にする。
+		depthResource_->SetName(L"PostEffectManager DepthBuffer");
 		DSVManager::GetInstance()->CreateDSVForTexture2D(depthDsvIndex_, depthResource_.Get());
 		dsvHandle = DSVManager::GetInstance()->GetCPUDescriptorHandle(depthDsvIndex_);
 
@@ -316,6 +324,9 @@ namespace Ken4lowEngine
 			auto& inRT = renderTargets_[src]; // 入力レンダーテクスチャ
 			auto& outRT = renderTargets_[dst]; // 出力レンダーテクスチャ
 
+			// 入力SRVと出力RTV/UAVが同一Resourceにならないことを保証して自己参照描画を防ぐ。
+			assert(inRT.resource.Get() != outRT.resource.Get());
+
 			if (name == "GrayScaleEffect" || name == "RandomEffect" || name == "DissolveEffect" || name == "VignetteEffect" || name == "GaussianFilterEffect" || name == "RadialBlurEffect" || name == "LuminanceOutlineEffect" || name == "SmoothingEffect" || name == "PixelateEffect" || name == "PlayerHealthPostEffect")
 			{
 				TransitionTo(inRT, commandList, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
@@ -355,6 +366,9 @@ namespace Ken4lowEngine
 
 		if (src != 0)
 		{
+			// 最終PostEffect出力とGameRenderTargetが別Resourceであることを確認してSRV/RTV同時使用を避ける。
+			assert(finalRT.resource.Get() != gameRT.resource.Get());
+
 			// BackBufferではなくGameRenderTargetへコピーしてDockウィンドウとの重なりを避ける
 			SRVManager::GetInstance()->PreDraw();
 			TransitionTo(finalRT, commandList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
@@ -591,7 +605,9 @@ namespace Ken4lowEngine
 
 			// レンダーテクスチャリソースの生成
 			rt.resource = CreateRenderTextureResource(renderTargetWidth_, renderTargetHeight_, DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, kRenderTextureClearColor_);
-			rt.resource->SetName((L"PostEffectManager RenderTarget " + std::to_wstring(i)).c_str());
+			// Scene/Game/PostEffectの役割名を付け、D3D12 DebugLayerのUnnamed Resourceをなくす。
+			rt.resource->SetName(rt.debugName);
+			rt.currentState_ = D3D12_RESOURCE_STATE_COMMON;
 
 			// RTVの生成
 			rt.rtvIndex = RTVManager::GetInstance()->Allocate();

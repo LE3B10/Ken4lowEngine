@@ -46,6 +46,10 @@ public: /// ---------- メンバ関数 ---------- ///
 
 	void Resize(uint32_t width, uint32_t height);
 
+private:
+	/// バックバッファ名と初期ステートを揃えてDebugLayerで特定しやすくする。
+	void CacheBackBuffer(uint32_t index);
+
 public: /// ---------- ゲッター ---------- ///
 
 	/// <summary>
