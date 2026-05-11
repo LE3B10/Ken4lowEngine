@@ -34,10 +34,11 @@ namespace
 	ImVec2 ToScreenPoint(const K4E::OcclusionCullingSystem::ScreenRect& rect, float x, float y)
 	{
 		(void)rect; // rectは将来の拡張で使うかもなので一応引数に残す
-		const ImGuiViewport* viewport = ImGui::GetMainViewport();
+		// DirectX12のD3D12_VIEWPORTと区別するためImGui側のViewport名を明示する
+		const ImGuiViewport* imguiMainViewport = ImGui::GetMainViewport();
 		return ImVec2(
-			viewport->WorkPos.x + x * viewport->WorkSize.x,
-			viewport->WorkPos.y + y * viewport->WorkSize.y);
+			imguiMainViewport->WorkPos.x + x * imguiMainViewport->WorkSize.x,
+			imguiMainViewport->WorkPos.y + y * imguiMainViewport->WorkSize.y);
 	}
 
 	void DrawScreenRect(const K4E::OcclusionCullingSystem::ScreenRect& rect, ImU32 color, float thickness)

@@ -66,9 +66,16 @@ namespace Ken4lowEngine
 		/// ・ImGui_ImplDX12_NewFrame()<br/>
 		/// ・ImGui_ImplWin32_NewFrame()<br/>
 		/// ・ImGui::NewFrame()<br/>
+		/// ・DrawDockSpace()<br/>
 		/// を呼び出し、このあと ImGui ウィジェットの記述が行える状態にします。
 		/// </summary>
 		void BeginFrame();
+
+		/// <summary>
+		/// メイン ImGui Viewport 全体に DockSpace を描画します。<br/>
+		/// DirectX12 の D3D12_VIEWPORT と混同しないよう、ImGui 側の Viewport に限定した処理です。
+		/// </summary>
+		void DrawDockSpace();
 
 		/// <summary>
 		/// 1 フレーム分の ImGui の終了処理を行います。<br/>
@@ -85,6 +92,12 @@ namespace Ken4lowEngine
 		/// DirectX の通常の描画コマンドの後や、ポストエフェクトの後に呼び出す想定です。
 		/// </summary>
 		void Draw();
+
+		/// <summary>
+		/// Win32 メッセージを ImGui に渡します。<br/>
+		/// WinApp が ImGui バックエンドへ直接依存しないようにするための窓口です。
+		/// </summary>
+		bool ProcessWin32Message(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam);
 
 		/// <summary>
 		/// ImGui の終了処理を行います。<br/>
