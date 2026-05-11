@@ -318,6 +318,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClCompile Include="Engine\Core\Transform\WorldTransform.cpp" />
     <ClCompile Include="Engine\Core\Transform\WorldTransformEx.cpp" />
     <ClCompile Include="Engine\DebugTools\ImGui\ImGuiManager.cpp" />
+    <ClCompile Include="Engine\Editor\EditorWindowManager.cpp" />
     <ClCompile Include="Engine\DebugTools\LeakCheck\D3DResourceLeakChecker.cpp" />
     <ClCompile Include="Engine\Graphics\Camera\Core\Camera.cpp" />
     <ClCompile Include="Engine\Graphics\Camera\DebugCamera\DebugCamera.cpp" />
@@ -943,6 +944,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="Engine\Core\Transform\WorldTransform.h" />
     <ClInclude Include="Engine\Core\Transform\WorldTransformEx.h" />
     <ClInclude Include="Engine\DebugTools\ImGui\ImGuiManager.h" />
+    <ClInclude Include="Engine\Editor\EditorWindowManager.h" />
     <ClInclude Include="Engine\DebugTools\LeakCheck\D3DResourceLeakChecker.h" />
     <ClInclude Include="Engine\Graphics\Camera\Core\Camera.h" />
     <ClInclude Include="Engine\Graphics\Camera\DebugCamera\DebugCamera.h" />
