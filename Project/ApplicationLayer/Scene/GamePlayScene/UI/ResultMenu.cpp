@@ -1,13 +1,15 @@
 #include "ResultMenu.h"
 #include "DirectXCommon.h"
+#include "GameViewportConstants.h"
 #include "Input.h"
 
 using namespace Ken4lowEngine;
 
 void ResultMenu::Initialize()
 {
-	const float screenW = static_cast<float>(DirectXCommon::GetInstance()->GetClientWidth());
-	const float screenH = static_cast<float>(DirectXCommon::GetInstance()->GetClientHeight());
+	// Result UIは固定内部解像度1920x1080全体にレイアウトする。
+	const float screenW = static_cast<float>(GameViewportConstants::Width);
+	const float screenH = static_cast<float>(GameViewportConstants::Height);
 	const float centerX = screenW * 0.5f;
 	const float centerY = screenH * 0.5f;
 

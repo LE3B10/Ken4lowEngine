@@ -1,4 +1,5 @@
 #define NOMINMAX
+#include "GameViewportConstants.h"
 #include "DamageIndicatorManager.h"
 #include "DirectXCommon.h"
 #include "LinearInterpolation.h"
@@ -100,8 +101,9 @@ void DamageIndicatorManager::AddIndicator(
 
 void DamageIndicatorManager::Update(float deltaTime)
 {
-	uint32_t width = K4E::DirectXCommon::GetInstance()->GetClientWidth();
-	uint32_t height = K4E::DirectXCommon::GetInstance()->GetClientHeight();
+	// ダメージ方向UIは固定内部解像度1920x1080の中心を基準にする。
+	uint32_t width = K4E::GameViewportConstants::Width;
+	uint32_t height = K4E::GameViewportConstants::Height;
 
 	const K4E::Vector2 screenCenter =
 	{

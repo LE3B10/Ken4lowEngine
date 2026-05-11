@@ -6,6 +6,7 @@
 #include "DebugCamera.h"
 #include "ResourceManager.h"
 #include "WireframeShaderManifest.h"
+#include "GameViewportConstants.h"
 
 namespace Ken4lowEngine
 {
@@ -28,8 +29,8 @@ namespace Ken4lowEngine
 		dxCommon_ = dxCommon;
 		isDebugCamera_ = false;
 
-		projectionMatrix_ = Matrix4x4::MakeOrthographicMatrix(0.0f, 0.0f, float(dxCommon_->GetClientWidth()), float(dxCommon_->GetClientHeight()), 0.0f, 1.0f);
-		viewProjectionMatrix_ = Matrix4x4::MakeViewportMatrix(0.0f, 0.0f, float(dxCommon_->GetClientWidth()), float(dxCommon_->GetClientHeight()), 0.0f, 1.0f);
+		projectionMatrix_ = Matrix4x4::MakeOrthographicMatrix(0.0f, 0.0f, static_cast<float>(GameViewportConstants::Width), static_cast<float>(GameViewportConstants::Height), 0.0f, 1.0f);
+		viewProjectionMatrix_ = Matrix4x4::MakeViewportMatrix(0.0f, 0.0f, static_cast<float>(GameViewportConstants::Width), static_cast<float>(GameViewportConstants::Height), 0.0f, 1.0f); // Debug wireframeも固定GameViewport座標で重ねる。
 
 		// パイプラインステートの生成
 		// 三角形用のPSOを作成

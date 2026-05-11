@@ -3,6 +3,7 @@
 #include <SpriteManager.h>
 #include <Input.h>
 #include <DirectXCommon.h>
+#include "GameViewportConstants.h"
 
 using namespace Ken4lowEngine;
 
@@ -32,11 +33,9 @@ void PauseOverlay::Open(SceneManager* sceneManager)
 /// -------------------------------------------------------------
 void PauseOverlay::InitializeSprites()
 {
-	DirectXCommon* dxCommon = DirectXCommon::GetInstance();
-
-	// 今は 1280x720 前提でレイアウト
-	const float screenW = static_cast<float>(dxCommon->GetClientWidth());
-	const float screenH = static_cast<float>(dxCommon->GetClientHeight());
+	// Pause UIはWinAppサイズではなく固定内部解像度1920x1080基準で配置する。
+	const float screenW = static_cast<float>(GameViewportConstants::Width);
+	const float screenH = static_cast<float>(GameViewportConstants::Height);
 
 	// --- 背景暗転 ---
 	dim_ = std::make_unique<Sprite>();

@@ -1,4 +1,5 @@
 #define NOMINMAX
+#include "GameViewportConstants.h"
 #include "GridStageSelector.h"
 #include "DirectXCommon.h"
 #include <GameTimer.h>
@@ -59,8 +60,8 @@ void GridStageSelector::Initialize(const SelectorContext& context)
 	scroll_.scrollX = 0.0f;
 	scroll_.velocityX = 0.0f;
 
-	K4E::DirectXCommon* dxCommon = K4E::DirectXCommon::GetInstance();
-	layout_.center = { dxCommon->GetClientWidth() * 0.5f, dxCommon->GetClientHeight() * 0.5f };
+	// ステージグリッド中心は固定内部解像度1920x1080の中央に合わせる。
+	layout_.center = { K4E::GameViewportConstants::Width * 0.5f, K4E::GameViewportConstants::Height * 0.5f };
 
 	// 起動時の中央も通知
 	prevCenterIndex_ = GetCenterIndex();

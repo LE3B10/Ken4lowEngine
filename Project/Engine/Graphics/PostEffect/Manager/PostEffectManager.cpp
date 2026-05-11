@@ -319,7 +319,7 @@ namespace Ken4lowEngine
 	/// -------------------------------------------------------------
 	void PostEffectManager::UpdateCameraAspectRatio(uint32_t, uint32_t)
 	{
-		const float aspectRatio = static_cast<float>(kDefaultGameRenderTargetWidth_) / static_cast<float>(kDefaultGameRenderTargetHeight_);
+		const float aspectRatio = GameViewportConstants::Aspect;
 		auto* cameraManager = CameraManager::GetInstance();
 		if (Camera* mainCamera = cameraManager->GetMainCamera())
 		{

@@ -4,6 +4,7 @@
 #include "Vector3.h"
 #include "Vector4.h"
 #include "Matrix4x4.h"
+#include "GameViewportConstants.h"
 
 #include <algorithm>
 #include <string>
@@ -224,8 +225,8 @@ private: /// ---------- メンバ変数 ---------- ///
 	std::unordered_map<std::string, std::string> effectCategory_;
 
 	// GameViewportRenderTargetは既存UI/Sprite互換の1920x1080固定にする。
-	static constexpr uint32_t kDefaultGameRenderTargetWidth_ = 1920;
-	static constexpr uint32_t kDefaultGameRenderTargetHeight_ = 1080;
+	static constexpr uint32_t kDefaultGameRenderTargetWidth_ = GameViewportConstants::Width;
+	static constexpr uint32_t kDefaultGameRenderTargetHeight_ = GameViewportConstants::Height;
 
 	// レンダーテクスチャのクリアカラー
 	const Vector4 kRenderTextureClearColor_ = { 0.08f, 0.08f, 0.18f, 1.0f }; // 分かりやすいように一旦赤色にする

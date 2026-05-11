@@ -1,6 +1,7 @@
 #define NOMINMAX
 #include "Camera.h"
 #include <WinApp.h>
+#include "GameViewportConstants.h"
 #include <ParameterManager.h>
 #include "Matrix4x4.h"
 #include "Quaternion.h"
@@ -18,7 +19,7 @@ namespace Ken4lowEngine
 	/// -------------------------------------------------------------
 	Camera::Camera() :
 		fovY_(1.0f),
-		aspectRatio_(float(WinApp::GetInstance()->GetClientWidth()) / float(WinApp::GetInstance()->GetClientHeight())),
+		aspectRatio_(GameViewportConstants::Aspect),
 		nearClip_(0.1f), farClip_(1000.0f),
 		worldMatrix_(Matrix4x4::MakeAffineMatrix(worldTransform_.scale_, worldTransform_.rotate_, worldTransform_.translate_)),
 		viewMatrix_(Matrix4x4::Inverse(worldMatrix_)),
