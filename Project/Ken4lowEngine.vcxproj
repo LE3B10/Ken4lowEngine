@@ -948,6 +948,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="Engine\Core\Transform\WorldTransformEx.h" />
     <ClInclude Include="Engine\DebugTools\ImGui\ImGuiManager.h" />
     <ClInclude Include="Engine\Editor\EditorObjectInfo.h" />
+    <ClInclude Include="Engine\Editor\EditorTransformAccess.h" />
     <ClInclude Include="Engine\Editor\EditorPlayController.h" />
     <ClInclude Include="Engine\Editor\EditorSelection.h" />
     <ClInclude Include="Engine\Editor\EditorWindowManager.h" />

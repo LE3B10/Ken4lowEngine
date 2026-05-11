@@ -111,6 +111,9 @@ namespace Ken4lowEngine
 		/// <returns>PunctualLightGPU オブジェクトのベクトルへの const 参照。</returns>
 		const std::vector<PunctualLightGPU>& GetPunctualLights() const { return punctualLights_; }
 
+		// Editor Detailsから選択中ライトだけを書き換えるため、index検証付きヘルパー経由でのみ利用する。
+		std::vector<PunctualLightGPU>& GetMutablePunctualLightsForEditor() { return punctualLights_; }
+
 	private: /// ---------- メンバ関数 ---------- ///
 
 		/// <summary>

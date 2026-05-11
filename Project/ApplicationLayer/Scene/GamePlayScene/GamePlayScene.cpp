@@ -6,7 +6,10 @@
 #include <GameTimer.h>
 #include <PostEffectManager.h>
 #include <Player.h>
+#include <utility>
 #include <Editor/EditorWindowManager.h>
+#include <Editor/EditorTransformAccess.h>
+#include <CameraManager.h>
 
 #ifdef USE_IMGUI
 #include <imgui.h>
@@ -824,14 +827,95 @@ void GamePlayScene::CollectEditorObjects(std::vector<Ken4lowEngine::EditorObject
 {
 	const auto addObject = [&outObjects](uint64_t id, const char* displayName, const char* typeName)
 	{
+		// Transform未対応の管理項目はDetailsで理由だけを表示し、編集入口を持たせない。
 		outObjects.push_back({ id, displayName, typeName, "GamePlayScene" });
+	};
+	const auto addCameraObject = [&outObjects](uint64_t id, const char* displayName, const char* typeName)
+	{
+		// GamePlaySceneのMain CameraはCameraManagerから毎フレーム取り直して安全に編集する。
+		outObjects.push_back(Ken4lowEngine::MakeCameraEditorObject(id, displayName, typeName, "GamePlayScene", K4E::CameraManager::GetInstance()->GetMainCamera()));
+	};
+	const auto addLightObject = [&outObjects](uint64_t id, const char* displayName, const char* typeName)
+	{
+		// LightManagerの先頭ライトを安全なindex指定でDetails編集へ公開する。
+		outObjects.push_back(Ken4lowEngine::MakePunctualLightEditorObject(id, displayName, typeName, "GamePlayScene", 0));
+	};
+	const auto addPlayerObject = [&outObjects, this](uint64_t id, const char* displayName, const char* typeName)
+	{
+		Player* player = world_ ? world_->GetCharacters().GetPlayer() : nullptr;
+		Ken4lowEngine::EditorObjectInfo object{ id, displayName, typeName, "GamePlayScene" };
+		if (!player)
+		{
+			object.transformUnavailableReason = "Player is not created yet.";
+			outObjects.push_back(std::move(object));
+			return;
+		}
+
+		object.canEditTransform = true;
+		object.readTransform = [player](Ken4lowEngine::EditorTransform& transform)
+		{
+			auto* bodyTransform = player ? player->GetWorldTransform() : nullptr;
+			if (!bodyTransform)
+			{
+				return false;
+			}
+			transform.position = bodyTransform->translate_;
+			transform.rotation = bodyTransform->rotate_;
+			transform.scale = bodyTransform->scale_;
+			return true;
+		};
+		object.writeTransform = [player](const Ken4lowEngine::EditorTransform& transform)
+		{
+			auto* bodyTransform = player ? player->GetWorldTransform() : nullptr;
+			if (!player || !bodyTransform)
+			{
+				return;
+			}
+			bodyTransform->translate_ = transform.position;
+			bodyTransform->rotate_ = transform.rotation;
+			bodyTransform->scale_ = transform.scale;
+			bodyTransform->Update();
+			player->SetCenterPosition(bodyTransform->translate_);
+
+			// Playerの描画Object3Dにも即時反映し、次のゲーム更新を待たずDetails編集結果をViewportへ出す。
+			auto& body = player->GetBody();
+			if (body.object)
+			{
+				body.object->SetTranslate(bodyTransform->translate_);
+				body.object->SetRotate(bodyTransform->rotate_);
+				body.object->SetScale(bodyTransform->scale_);
+				body.object->Update();
+			}
+
+			// 子パーツも親Transformから更新し、Player全体の表示をDetails編集直後に同期する。
+			for (auto& part : player->GetBodyParts())
+			{
+				part.transform.worldRotate_ = bodyTransform->worldRotate_;
+				part.transform.Update();
+				if (!part.object)
+				{
+					continue;
+				}
+				if (part.transform.useQuaternionRotation_)
+				{
+					part.object->UpdateWithWorldMatrix(part.transform.worldMatrix_);
+				}
+				else
+				{
+					part.object->SetTranslate(part.transform.worldTranslate_);
+					part.object->SetRotate(part.transform.worldRotate_);
+					part.object->Update();
+				}
+			}
+		};
+		outObjects.push_back(std::move(object));
 	};
 
 	// OutlinerはPlay/Edit中の生成状態に依存しすぎないよう、主要サブシステムを安定IDで列挙する。
 	addObject(0x3000000000000001ull, "GamePlay Root", "Scene Root");
-	addObject(0x3000000000000002ull, "Player", world_ ? "Player" : "Player (pending)");
-	addObject(0x3000000000000003ull, "Main Camera", "Camera");
-	addObject(0x3000000000000004ull, "Light", "Directional Light");
+	addPlayerObject(0x3000000000000002ull, "Player", world_ ? "Player" : "Player (pending)");
+	addCameraObject(0x3000000000000003ull, "Main Camera", "Camera");
+	addLightObject(0x3000000000000004ull, "Light", "Directional Light");
 	addObject(0x3000000000000005ull, "Enemy Manager", world_ ? "Enemy Manager" : "Enemy Manager (pending)");
 	addObject(0x3000000000000006ull, "Bullet Manager", world_ ? "Bullet Manager" : "Bullet Manager (pending)");
 	addObject(0x3000000000000007ull, "Wave Manager", world_ ? "Wave Manager" : "Wave Manager (pending)");

@@ -13,6 +13,7 @@
 #include <AudioManager.h>
 #include <PostEffectManager.h>
 #include <LightManager.h>
+#include <Editor/EditorTransformAccess.h>
 #include <GameTimer.h>
 
 #include <utility>
@@ -491,7 +492,13 @@ void TitleScene::CollectEditorObjects(std::vector<Ken4lowEngine::EditorObjectInf
 {
 	const auto addObject = [&outObjects](uint64_t id, const char* displayName, const char* typeName)
 	{
+		// Transform未対応の管理項目はDetailsで理由だけを表示し、編集入口を持たせない。
 		outObjects.push_back({ id, displayName, typeName, "TitleScene" });
+	};
+	const auto addLightObject = [&outObjects](uint64_t id, const char* displayName, const char* typeName)
+	{
+		// LightManagerの先頭ライトを安全なindex指定でDetails編集へ公開する。
+		outObjects.push_back(Ken4lowEngine::MakePunctualLightEditorObject(id, displayName, typeName, "TitleScene", 0));
 	};
 	const auto addCameraObject = [&outObjects](uint64_t id, const char* displayName, const char* typeName, K4E::Camera* camera)
 	{
@@ -595,7 +602,7 @@ void TitleScene::CollectEditorObjects(std::vector<Ken4lowEngine::EditorObjectInf
 	// Outlinerは編集対象の入口として、TitleSceneを構成する主要カテゴリだけを安定IDで列挙する。
 	addObject(0x1000000000000001ull, "Title Root", "Scene Root");
 	addCameraObject(0x1000000000000002ull, "Camera", camera_ ? "Camera" : "Camera (pending)", camera_);
-	addObject(0x1000000000000003ull, "Light", "Directional Light");
+	addLightObject(0x1000000000000003ull, "Light", "Directional Light");
 	addLogoSpriteObject(0x1000000000000004ull, "UI Root", logoSprite_ ? "Sprite UI" : "Sprite UI (pending)");
 	addClickSpriteObject(0x1000000000000005ull, "Click Text / Click Sprite", clickHintUI_.hintSprite ? "Sprite UI" : "Sprite UI (pending)");
 	addObject(0x1000000000000006ull, "Fade Manager", "Fade Manager");

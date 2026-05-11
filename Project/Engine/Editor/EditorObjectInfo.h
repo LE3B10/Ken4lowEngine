@@ -32,6 +32,7 @@ namespace Ken4lowEngine
 		std::string typeName;
 		std::string sceneName;
 		bool canEditTransform = false;
+		std::string transformUnavailableReason = "Transform editing is not available for this object.";
 		ReadTransformFunc readTransform;
 		WriteTransformFunc writeTransform;
 
