@@ -558,6 +558,8 @@ namespace Ken4lowEngine
 				ImGui::Text("Type: %s", selected.typeName.c_str());
 				ImGui::Text("Scene: %s", selected.sceneName.c_str());
 				ImGui::Text("ID: %llu", static_cast<unsigned long long>(selected.id));
+				// 共通表示にInspector Type名を出し、Details側がどの描画分岐を使ったか確認しやすくする。
+				ImGui::Text("Inspector Type: %s", ToString(selected.inspectorType));
 				if (!selected.inspectorHint.empty())
 				{
 					ImGui::Text("Inspector: %s", selected.inspectorHint.c_str());
@@ -612,7 +614,12 @@ namespace Ken4lowEngine
 					}
 					break;
 				case EditorInspectorType::PlayerInfo:
+				case EditorInspectorType::EnemyManagerInfo:
+				case EditorInspectorType::BulletManagerInfo:
+				case EditorInspectorType::WaveManagerInfo:
 				case EditorInspectorType::StageInfo:
+				case EditorInspectorType::HudInfo:
+				case EditorInspectorType::CollisionManagerInfo:
 				case EditorInspectorType::ManagerInfo:
 					if (selected.drawInspector)
 					{

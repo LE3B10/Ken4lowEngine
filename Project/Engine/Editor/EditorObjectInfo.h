@@ -39,11 +39,38 @@ namespace Ken4lowEngine
 		PunctualLights,
 		FadeManager,
 		StageSelectTextLayout,
-		// GamePlaySceneの非Transform項目をDetailsへ必ず出すための簡易Inspector種別です。
+		// GamePlaySceneの主要項目をDetailsで見分け、安全な概要Inspectorへ振り分ける。
 		PlayerInfo,
+		EnemyManagerInfo,
+		BulletManagerInfo,
+		WaveManagerInfo,
 		StageInfo,
+		HudInfo,
+		CollisionManagerInfo,
 		ManagerInfo,
 	};
+
+	inline const char* ToString(EditorInspectorType type)
+	{
+		switch (type)
+		{
+		case EditorInspectorType::None: return "None";
+		case EditorInspectorType::Transform: return "Transform";
+		case EditorInspectorType::PunctualLights: return "PunctualLights";
+		case EditorInspectorType::FadeManager: return "FadeManager";
+		case EditorInspectorType::StageSelectTextLayout: return "StageSelectTextLayout";
+		case EditorInspectorType::PlayerInfo: return "PlayerInfo";
+		case EditorInspectorType::EnemyManagerInfo: return "EnemyManagerInfo";
+		case EditorInspectorType::BulletManagerInfo: return "BulletManagerInfo";
+		case EditorInspectorType::WaveManagerInfo: return "WaveManagerInfo";
+		case EditorInspectorType::StageInfo: return "StageInfo";
+		case EditorInspectorType::HudInfo: return "HudInfo";
+		case EditorInspectorType::CollisionManagerInfo: return "CollisionManagerInfo";
+		case EditorInspectorType::ManagerInfo: return "ManagerInfo";
+		default: return "Unknown";
+		}
+	}
+
 
 	/// <summary>
 	/// World OutlinerとDetailsへ安全に渡すための軽量なエディタ表示用オブジェクト情報です。
