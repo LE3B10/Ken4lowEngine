@@ -7,6 +7,12 @@ class SceneManager;
 /// -------------------------------------------------------------
 ///					　	シーンの基底クラス
 /// -------------------------------------------------------------
+enum class EditorInputPolicy
+{
+	UiMouse,
+	FpsCapture,
+};
+
 class BaseScene
 {
 public: /// ---------- 純粋仮想関数 ---------- ///
@@ -34,6 +40,9 @@ public: /// ---------- 純粋仮想関数 ---------- ///
 
 	// ImGui描画処理
 	virtual void DrawImGui() = 0;
+
+	// UI主体のSceneはデフォルトでカーソル表示のMain Viewportクリック入力にする。
+	virtual EditorInputPolicy GetEditorInputPolicy() const { return EditorInputPolicy::UiMouse; }
 
 	// シーンマネージャーをセット
 	virtual void SetSceneManager(SceneManager* sceneManager) { sceneManager_ = sceneManager; }

@@ -53,6 +53,9 @@ public: /// ---------- BaseScene override ---------- ///
 	// ImGui描画
 	void DrawImGui() override;
 
+	// FPS操作が必要なGamePlaySceneだけF8入力キャプチャを許可する。
+	EditorInputPolicy GetEditorInputPolicy() const override { return EditorInputPolicy::FpsCapture; }
+
 	// 段階ロード
 	void StartLoad() override;
 

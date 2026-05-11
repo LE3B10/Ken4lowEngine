@@ -53,6 +53,9 @@ public: /// ---------- セッタ ---------- ///
 
 	bool IsTransitioning() const { return isTransitioning_ || (fadeManager_ && fadeManager_->IsBusy()); }
 
+	// Editor入力制御が現在Sceneのポリシーを参照できるようにする。
+	const BaseScene* GetCurrentScene() const { return scene_.get(); }
+
 private: /// ---------- メンバ関数 ---------- ///
 
 	// 次シーン適用（Finalize→差し替え→Initialize）
