@@ -230,6 +230,8 @@ namespace Ken4lowEngine
 		ImGui::DockBuilderSetNodeSize(rootNode, viewport->Size);
 		ImGui::DockBuilderSplitNode(rootNode, ImGuiDir_Right, 0.28f, &rightNode, &rootNode);
 
+		// Main Viewportを中央Dockに固定名で配置してゲーム画面と各Dockウィンドウの重なりを避ける
+		ImGui::DockBuilderDockWindow("Main Viewport", rootNode);
 		ImGui::DockBuilderDockWindow("Details", rightNode);
 		ImGui::DockBuilderDockWindow("Post Effect Settings", rightNode);
 		ImGui::DockBuilderDockWindow("Light Editor", rightNode);

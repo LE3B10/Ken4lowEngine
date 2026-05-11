@@ -1,6 +1,7 @@
 #include "EditorWindowManager.h"
 
 #include "ImGuiManager.h"
+#include "PostEffectManager.h"
 
 #ifdef USE_IMGUI
 #include <imgui.h>
@@ -86,15 +87,7 @@ namespace Ken4lowEngine
 				ImGui::EndMenu();
 			}
 
-			// LayoutはDockBuilderの初期配置をユーザー操作時だけ再適用する入口にする
-			if (ImGui::BeginMenu("Layout"))
-			{
-				if (ImGui::MenuItem("Reset Layout"))
-				{
-					ImGuiManager::GetInstance()->RequestResetDockLayout();
-				}
-				ImGui::EndMenu();
-			}
+			// Reset Layoutは誤操作でDock配置を崩しやすいため一旦メニューから外す
 			ImGui::EndMenu();
 		}
 
@@ -163,18 +156,34 @@ namespace Ken4lowEngine
 			return;
 		}
 
-		// Main Viewportは既存の中央表示用プレースホルダーとしてWindowメニューの表示状態と同期する
-		if (ImGui::Begin("Main Viewport", &windowState_.showMainViewport))
+		// Main ViewportはGameRenderTargetをImGui::Imageで表示する固定名ウィンドウにする
+		if (ImGui::Begin("Main Viewport", &windowState_.showMainViewport, ImGuiWindowFlags_NoScrollbar))
 		{
 			const ImVec2 viewportSize = ImGui::GetContentRegionAvail();
-			ImGui::TextUnformatted("Main Viewport");
-			ImGui::Separator();
-			ImGui::Text("RenderTarget preview will be displayed here.");
-			ImGui::Text("Available Size: %.0f x %.0f", viewportSize.x, viewportSize.y);
-			ImGui::Dummy(ImVec2(viewportSize.x, viewportSize.y > 80.0f ? viewportSize.y - 80.0f : 0.0f));
+			const ImVec2 imageOrigin = ImGui::GetCursorScreenPos();
+			mainViewportScreenPosition_ = { imageOrigin.x, imageOrigin.y };
+			mainViewportSize_ = { viewportSize.x, viewportSize.y };
+
+			auto* postEffectManager = PostEffectManager::GetInstance();
+			const D3D12_GPU_DESCRIPTOR_HANDLE gameSrv = postEffectManager->GetGameRenderTargetSrvHandleGPU();
+			if (gameSrv.ptr != 0 && viewportSize.x > 1.0f && viewportSize.y > 1.0f)
+			{
+				// SRVManagerで作成したGameRenderTargetのGPU SRVをImTextureIDとして渡す
+				ImGui::Image(static_cast<ImTextureID>(gameSrv.ptr), viewportSize, ImVec2(0.0f, 0.0f), ImVec2(1.0f, 1.0f));
+			}
+			else
+			{
+				ImGui::TextUnformatted("GameRenderTarget SRV is not ready.");
+			}
 		}
 		ImGui::End();
 #endif // USE_IMGUI
+	}
+
+	Vector2 EditorWindowManager::ConvertScreenToMainViewportPosition(const Vector2& screenPosition) const
+	{
+		// 入力系はこの入口でスクリーン座標からMain Viewportローカル座標へ変換する
+		return { screenPosition.x - mainViewportScreenPosition_.x, screenPosition.y - mainViewportScreenPosition_.y };
 	}
 
 	void EditorWindowManager::DrawWorldOutliner()

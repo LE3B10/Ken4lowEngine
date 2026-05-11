@@ -63,13 +63,17 @@ namespace Ken4lowEngine
 		pipelineBuilder_->Initialize(dxCommon); // パイプラインビルダーの初期化
 		pipelineBuilder_->BuildCopyPipeline(); // コピー用パイプラインのビルド
 
-		renderTargets_.resize(2); // レンダーターゲットの数を1に設定
+		renderTargets_.resize(2); // ポストエフェクトのping-pongと最終GameRenderTargetに使う
+
+		// 初期GameRenderTargetはMain Viewport表示用に1280x720固定で確保する
+		renderTargetWidth_ = kInitialGameRenderTargetWidth_;
+		renderTargetHeight_ = kInitialGameRenderTargetHeight_;
 
 		// RTVとSRVの確保
 		AllocateRTV_DSV_SRV_UAV();
 
 		// ビューポート矩形とシザリング矩形の設定
-		SetViewportAndScissorRect(dxCommon_->GetClientWidth(), dxCommon_->GetClientHeight());
+		SetViewportAndScissorRect(renderTargetWidth_, renderTargetHeight_);
 
 		// エフェクトの初期化と生成
 		std::unordered_map<std::string, EffectEntry> effectTable = {
@@ -220,6 +224,10 @@ namespace Ken4lowEngine
 	{
 		if (width == 0 || height == 0) return;
 
+		// GameRenderTargetの現在サイズを記録してMain Viewport側の座標変換に使えるようにする
+		renderTargetWidth_ = width;
+		renderTargetHeight_ = height;
+
 		SetViewportAndScissorRect(width, height);
 
 		// RTを作り直して、同じdescriptor indexに上書き
@@ -271,29 +279,11 @@ namespace Ken4lowEngine
 		// レンダーテクスチャが1枚しかない場合
 		if (renderTargets_.size() < 2)
 		{
-			auto& rt = renderTargets_[0]; // A
+			auto& rt = renderTargets_[0];
 
-			// バックバッファRTV
-			uint32_t backBufferIndex = dxCommon_->GetSwapChain()->GetSwapChain()->GetCurrentBackBufferIndex();
-			ComPtr<ID3D12Resource> backBuffer = dxCommon_->GetBackBuffer(backBufferIndex);
-			D3D12_CPU_DESCRIPTOR_HANDLE backBufferRTV = dxCommon_->GetBackBufferRTV(backBufferIndex);
-
-			// PRESENT → RENDER_TARGET へ遷移
-			dxCommon_->ResourceTransition(backBuffer.Get(), D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
-
-			commandList->OMSetRenderTargets(1, &backBufferRTV, false, &dsvHandle);
-
-			// PSO / ルートシグネチャ
-			commandList->SetPipelineState(pipelineBuilder_->GetCopyPipelineState().Get());
-			commandList->SetGraphicsRootSignature(pipelineBuilder_->GetCopyRootSignature().Get());
-			SRVManager::GetInstance()->SetGraphicsRootDescriptorTable(0, rt.srvIndex);
-			commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-			commandList->DrawInstanced(3, 1, 0, 0); // フルスクリーンクアッドを描画
-
-			// RENDER_TARGET → PRESENT へ遷移
-			dxCommon_->ResourceTransition(backBuffer.Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
-
-			return; // これで終了
+			// GameRenderTargetはBackBufferへコピーせずMain ViewportのImGui::Imageから直接参照する
+			Transition(rt, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+			return;
 		}
 
 		// 複数枚がある場合
@@ -346,24 +336,47 @@ namespace Ken4lowEngine
 			std::swap(src, dst);
 		}
 
-		// 最後の出力レンダーテクスチャをバックバッファに描画する
-		auto& finalRT = renderTargets_[src]; // 最後の出力レンダーテクスチャ
+		// 最後の出力を固定のGameRenderTarget(renderTargets_[0])へ戻してImGuiへ渡すSRVを安定させる
+		auto& finalRT = renderTargets_[src];
+		auto& gameRT = renderTargets_[0];
 
-		// SRVヒープに戻す（コピーパスはGraphics）
-		SRVManager::GetInstance()->PreDraw();
+		if (src != 0)
+		{
+			// BackBufferではなくGameRenderTargetへコピーしてDockウィンドウとの重なりを避ける
+			SRVManager::GetInstance()->PreDraw();
+			Transition(finalRT, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+			Transition(gameRT, D3D12_RESOURCE_STATE_RENDER_TARGET);
+			commandList->OMSetRenderTargets(1, &gameRT.rtvHandle, false, nullptr);
+			commandList->SetPipelineState(pipelineBuilder_->GetCopyPipelineState().Get());
+			commandList->SetGraphicsRootSignature(pipelineBuilder_->GetCopyRootSignature().Get());
+			SRVManager::GetInstance()->SetGraphicsRootDescriptorTable(0, finalRT.srvIndex);
+			commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+			commandList->DrawInstanced(3, 1, 0, 0);
+		}
 
-		// バックバッファの取得
-		uint32_t backBufferIndex = dxCommon_->GetSwapChain()->GetSwapChain()->GetCurrentBackBufferIndex();
-		D3D12_CPU_DESCRIPTOR_HANDLE backBufferRTV = dxCommon_->GetBackBufferRTV(backBufferIndex);
+		// Main ViewportのImGui::Imageが読めるよう最終GameRenderTargetをSRV状態にしておく
+		Transition(gameRT, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 
-		commandList->OMSetRenderTargets(1, &backBufferRTV, false, &dsvHandle);
+	}
 
-		// コピー用 PSO / ルートシグネチャ
-		commandList->SetPipelineState(pipelineBuilder_->GetCopyPipelineState().Get());
-		commandList->SetGraphicsRootSignature(pipelineBuilder_->GetCopyRootSignature().Get());
-		SRVManager::GetInstance()->SetGraphicsRootDescriptorTable(0, finalRT.srvIndex);
-		commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-		commandList->DrawInstanced(3, 1, 0, 0);
+	void PostEffectManager::BeginGameRenderTargetOverlay()
+	{
+		auto commandList = dxCommon_->GetCommandManager()->GetCommandList();
+		auto& gameRT = renderTargets_[0];
+
+		// 2Dスプライトはポストエフェクト後のGameRenderTargetへ重ねる
+		Transition(gameRT, D3D12_RESOURCE_STATE_RENDER_TARGET);
+		commandList->OMSetRenderTargets(1, &gameRT.rtvHandle, false, nullptr);
+		commandList->RSSetViewports(1, &viewport);
+		commandList->RSSetScissorRects(1, &scissorRect);
+	}
+
+	void PostEffectManager::EndGameRenderTargetOverlay()
+	{
+		auto& gameRT = renderTargets_[0];
+
+		// ImGui::Imageがこの後SRVとして読むためGameRenderTargetを読み取り状態へ戻す
+		Transition(gameRT, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 	}
 
 	void PostEffectManager::BindSceneRenderTarget()
@@ -424,6 +437,38 @@ namespace Ken4lowEngine
 			return nullptr;
 		}
 		return it->second.get();
+	}
+
+	/// -------------------------------------------------------------
+	///				　GameRenderTargetのSRV取得
+	/// -------------------------------------------------------------
+	uint32_t PostEffectManager::GetGameRenderTargetSrvIndex() const
+	{
+		// Main Viewportへ渡すSRVは固定のGameRenderTarget(renderTargets_[0])に集約する
+		return renderTargets_.empty() ? UINT32_MAX : renderTargets_[0].srvIndex;
+	}
+
+	D3D12_GPU_DESCRIPTOR_HANDLE PostEffectManager::GetGameRenderTargetSrvHandleGPU() const
+	{
+		const uint32_t srvIndex = GetGameRenderTargetSrvIndex();
+		if (srvIndex == UINT32_MAX)
+		{
+			return {};
+		}
+
+		// ImGui::ImageにはSRVManagerのGPUハンドルをImTextureIDとして渡す
+		return SRVManager::GetInstance()->GetGPUDescriptorHandle(srvIndex);
+	}
+
+	void PostEffectManager::RequestGameRenderTargetResize(uint32_t width, uint32_t height)
+	{
+		if (width == 0 || height == 0 || (width == renderTargetWidth_ && height == renderTargetHeight_))
+		{
+			return;
+		}
+
+		// Main Viewport実サイズ追従を後で有効化しやすいよう既存Resizeへ集約する
+		Resize(width, height);
 	}
 
 	/// -------------------------------------------------------------
@@ -531,7 +576,7 @@ namespace Ken4lowEngine
 			auto& rt = renderTargets_[i];
 
 			// レンダーテクスチャリソースの生成
-			rt.resource = CreateRenderTextureResource(dxCommon_->GetClientWidth(), dxCommon_->GetClientHeight(), DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, kRenderTextureClearColor_);
+			rt.resource = CreateRenderTextureResource(renderTargetWidth_, renderTargetHeight_, DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, kRenderTextureClearColor_);
 			rt.resource->SetName((L"PostEffectManager RenderTarget " + std::to_wstring(i)).c_str());
 
 			// RTVの生成
@@ -553,7 +598,7 @@ namespace Ken4lowEngine
 		}
 
 		// 深度バッファの生成
-		depthResource_ = CreateDepthBufferResource(WinApp::kClientWidth, WinApp::kClientHeight);
+		depthResource_ = CreateDepthBufferResource(renderTargetWidth_, renderTargetHeight_);
 		depthResource_->SetName(L"PostEffectManager DepthBuffer");
 
 		// SRVの確保（深度用）

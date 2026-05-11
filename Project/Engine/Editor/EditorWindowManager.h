@@ -1,4 +1,5 @@
 #pragma once
+#include "Vector2.h"
 
 namespace Ken4lowEngine
 {
@@ -52,6 +53,14 @@ namespace Ken4lowEngine
 		void DrawContentBrowser();
 		void DrawOutputLog();
 
+		/// <summary>
+		/// スクリーン座標をMain Viewport左上基準へ変換する入口です。
+		/// </summary>
+		Vector2 ConvertScreenToMainViewportPosition(const Vector2& screenPosition) const;
+
+		const Vector2& GetMainViewportScreenPosition() const { return mainViewportScreenPosition_; }
+		const Vector2& GetMainViewportSize() const { return mainViewportSize_; }
+
 		EditorWindowState& GetWindowState() { return windowState_; }
 		const EditorWindowState& GetWindowState() const { return windowState_; }
 
@@ -62,6 +71,8 @@ namespace Ken4lowEngine
 		EditorWindowManager& operator=(const EditorWindowManager&) = delete;
 
 		EditorWindowState windowState_{};
+		Vector2 mainViewportScreenPosition_ = { 0.0f, 0.0f }; // マウス座標をMain Viewport基準へ変換するための左上座標
+		Vector2 mainViewportSize_ = { 0.0f, 0.0f }; // Main Viewport内でGameRenderTargetを表示しているサイズ
 	};
 
 } // namespace Ken4lowEngine
