@@ -217,8 +217,17 @@ namespace Ken4lowEngine
 			// Debug Freezeは入力キャプチャとは別状態としてToolbar上で確認できるようにする。
 			ImGui::TextUnformatted(playController->GetDebugFreezeStatusText());
 			// F8やViewport hoverの状態をToolbar上で即確認できるようにする。
-			ImGui::Text("Play State: %s", playController->GetPlayStateText());
-			ImGui::Text("Input Mode: %s", playController->GetInputModeText());
+			ImGui::Text("State: %s", playController->GetPlayStateText());
+			const char* toolbarInputText = fpsCapturePolicy
+				? (playController->IsGameCaptured() ? "FPS Captured" : "Editor Released")
+				: "UI Mouse";
+			// ToolbarにはPlay状態と入力ポリシーをUE5風に分けて表示する。
+			ImGui::Text("Input: %s", toolbarInputText);
+			if (!playController->IsPlaying())
+			{
+				// Edit/Pause中はSceneのゲーム進行がUpdateEditorへ分岐していることを明示する。
+				ImGui::TextUnformatted("Game update stopped");
+			}
 			ImGui::Text("Main Viewport Hovered: %s", inputDebugInfo_.mainViewportHovered ? "true" : "false");
 			ImGui::Text("ImGui MouseClicked[0]: %s", inputDebugInfo_.imguiMouseClicked0 ? "true" : "false");
 			ImGui::Text("ImGui MouseDown[0]: %s", inputDebugInfo_.imguiMouseDown0 ? "true" : "false");
@@ -313,7 +322,9 @@ namespace Ken4lowEngine
 			Vector2 gameMouse = {};
 			const bool gameMouseValid = GetMousePositionInGameViewport(gameMouse);
 			const EditorInputPolicy inputPolicy = GetCurrentEditorInputPolicy();
-			const bool gameInputEnabled = (inputPolicy == EditorInputPolicy::UiMouse || EditorPlayController::GetInstance()->IsGameCaptured()) && mainViewportRect_.isHovered;
+			const bool isPlaying = EditorPlayController::GetInstance()->IsPlaying();
+			// Edit/Pause中はMain ViewportクリックをゲームSceneへ渡さず、Play中だけ入力ポリシーを適用する。
+			const bool gameInputEnabled = isPlaying && (inputPolicy == EditorInputPolicy::UiMouse || EditorPlayController::GetInstance()->IsGameCaptured()) && mainViewportRect_.isHovered;
 			Input::GetInstance()->SetGameInputEnabled(gameInputEnabled);
 			Input::GetInstance()->SetEditorViewportMousePosition(gameMouse, gameMouseValid);
 			// UI Mouseは常にカーソル表示、FPS CaptureはGameCaptured中だけ中央固定にする。
@@ -354,9 +365,9 @@ namespace Ken4lowEngine
 #ifdef USE_IMGUI
 		outMouse = { 0.0f, 0.0f };
 		const EditorInputPolicy inputPolicy = GetCurrentEditorInputPolicy();
-		if (inputPolicy == EditorInputPolicy::FpsCapture && !EditorPlayController::GetInstance()->IsGameCaptured())
+		if (inputPolicy == EditorInputPolicy::FpsCapture && !(EditorPlayController::GetInstance()->IsPlaying() && EditorPlayController::GetInstance()->IsGameCaptured()))
 		{
-			// FPS Capture SceneのGameReleased中はゲーム側へマウス入力を渡さない。
+			// FPS Capture SceneはPlayかつGameCaptured中だけゲーム側へマウス入力を渡す。
 			return false;
 		}
 

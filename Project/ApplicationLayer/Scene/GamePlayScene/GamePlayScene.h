@@ -38,6 +38,9 @@ public: /// ---------- BaseScene override ---------- ///
 	// 更新
 	void Update() override;
 
+	// Editor中は敵/弾/Wave/Player操作を止め、描画確認に必要な軽い更新だけ行う。
+	void UpdateEditor(float deltaTime) override;
+
 	// 3D描画
 	void Draw3DObjects() override;
 

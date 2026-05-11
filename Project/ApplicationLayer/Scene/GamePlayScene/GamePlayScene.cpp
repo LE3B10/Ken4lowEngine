@@ -191,6 +191,21 @@ void GamePlayScene::Update()
 	CheckGameEnd();
 }
 
+
+/// -------------------------------------------------------------
+/// Editor中の更新
+///
+/// Edit/Pause中はゲーム進行を止め、フェードなど描画確認に必要な軽い更新だけ行う。
+/// -------------------------------------------------------------
+void GamePlayScene::UpdateEditor(float deltaTime)
+{
+	// Editor更新では敵/弾/Wave/Player操作/リザルト遷移を進めない。
+	if (fadeManager_)
+	{
+		fadeManager_->Update(deltaTime);
+	}
+}
+
 /// -------------------------------------------------------------
 /// デバッグ停止処理
 /// 

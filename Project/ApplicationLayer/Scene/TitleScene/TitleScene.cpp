@@ -140,6 +140,21 @@ void TitleScene::Update()
 
 
 /// -------------------------------------------------------------
+///				 	Editor中の更新処理
+/// -------------------------------------------------------------
+void TitleScene::UpdateEditor(float deltaTime)
+{
+	(void)deltaTime;
+
+	// Edit/Pause中はTitleのクリック遷移やEsc終了確認を処理せず、描画に必要な更新だけ行う。
+	if (terrain_) terrain_->Update();
+	if (skyBox_) skyBox_->Update();
+
+	UpdateLightViewProjection();
+	UpdateShadowMatrices();
+}
+
+/// -------------------------------------------------------------
 ///				　	3Dオブジェクトの描画
 /// -------------------------------------------------------------
 void TitleScene::Draw3DObjects()
