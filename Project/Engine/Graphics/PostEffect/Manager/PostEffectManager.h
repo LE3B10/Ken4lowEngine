@@ -99,6 +99,16 @@ public: /// ---------- メンバ関数 ---------- ///
 	/// </summary>
 	void RenderPostEffect();
 
+	/// <summary>
+	/// ポストエフェクト済みのゲーム画面へ2D描画を重ねるためのRTVをバインドします。
+	/// </summary>
+	void BeginGameRenderTargetOverlay();
+
+	/// <summary>
+	/// Main Viewport の ImGui::Image から読めるようゲーム画面をSRV状態へ戻します。
+	/// </summary>
+	void EndGameRenderTargetOverlay();
+
 	void BindSceneRenderTarget();
 
 	/// <summary>
@@ -122,6 +132,24 @@ public: /// ---------- メンバ関数 ---------- ///
 	/// 指定された名前のポストエフェクト(IPostEffect)を取得します。見つからなければ nullptr を返します。
 	/// </summary>
 	IPostEffect* GetEffect(const std::string& effectName);
+
+	/// <summary>
+	/// Main Viewport に表示する GameRenderTarget の SRV index を取得します。
+	/// </summary>
+	uint32_t GetGameRenderTargetSrvIndex() const;
+
+	/// <summary>
+	/// ImGui::Image に渡す GameRenderTarget の GPU SRV ハンドルを取得します。
+	/// </summary>
+	D3D12_GPU_DESCRIPTOR_HANDLE GetGameRenderTargetSrvHandleGPU() const;
+
+	uint32_t GetGameRenderTargetWidth() const { return renderTargetWidth_; }
+	uint32_t GetGameRenderTargetHeight() const { return renderTargetHeight_; }
+
+	/// <summary>
+	/// Main Viewport の表示サイズに合わせてリサイズしたい場合の入口です。
+	/// </summary>
+	void RequestGameRenderTargetResize(uint32_t width, uint32_t height);
 
 private: /// ---------- メンバ関数 ---------- ///
 
@@ -177,6 +205,10 @@ private: /// ---------- メンバ変数 ---------- ///
 	// ポストエフェクトのカテゴリ分類（名前 → カテゴリ名）
 	std::unordered_map<std::string, std::string> effectCategory_;
 
+	// GameRenderTargetの初期サイズはエディタ中央表示用に16:9固定から開始する
+	static constexpr uint32_t kInitialGameRenderTargetWidth_ = 1280;
+	static constexpr uint32_t kInitialGameRenderTargetHeight_ = 720;
+
 	// レンダーテクスチャのクリアカラー
 	const Vector4 kRenderTextureClearColor_ = { 0.08f, 0.08f, 0.18f, 1.0f }; // 分かりやすいように一旦赤色にする
 
@@ -196,6 +228,8 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	static constexpr int kPostRTCount = 1; // ポストエフェクト用のレンダーテクスチャ数
 	std::vector<RenderTarget> renderTargets_; // レンダーテクスチャのリスト
+	uint32_t renderTargetWidth_ = kInitialGameRenderTargetWidth_; // Main Viewportへ表示するGameRenderTarget幅
+	uint32_t renderTargetHeight_ = kInitialGameRenderTargetHeight_; // Main Viewportへ表示するGameRenderTarget高さ
 
 	// 深度ステンシルビューのインデックス
 	uint32_t depthDsvIndex_ = UINT32_MAX;

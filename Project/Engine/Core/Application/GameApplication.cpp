@@ -159,14 +159,16 @@ namespace Ken4lowEngine
 		PostEffectManager::GetInstance()->EndDraw();
 
 		//--------------------------------------------
-		// 4. ポストエフェクト適用（3Dの最終結果をフルスクリーンクアッドに描画）
+		// 4. ポストエフェクト適用（3Dの最終結果をGameRenderTargetへ集約）
 		//--------------------------------------------
-		PostEffectManager::GetInstance()->RenderPostEffect(); // swapChainのバックバッファに描画
+		PostEffectManager::GetInstance()->RenderPostEffect(); // BackBufferではなくMain Viewport用GameRenderTargetへ描画
 
 		//--------------------------------------------
-		// 5. 2Dスプライト（UIなど）をその上に直接描画
+		// 5. 2Dスプライト（UIなど）をGameRenderTarget上に直接描画
 		//--------------------------------------------
+		PostEffectManager::GetInstance()->BeginGameRenderTargetOverlay(); // 2DをMain Viewportに含めるためGameRenderTargetをRTVへ戻す
 		SceneManager::GetInstance()->Draw2DSprites();
+		PostEffectManager::GetInstance()->EndGameRenderTargetOverlay(); // ImGui::Imageで読むためGameRenderTargetをSRVへ戻す
 
 #ifdef USE_IMGUI
 		//--------------------------------------------
