@@ -59,15 +59,16 @@ namespace Ken4lowEngine
 		renderTargets_[0].debugName = L"SceneRenderTarget_GameViewportRenderTarget";
 		renderTargets_[1].debugName = L"PostEffectRenderTarget";
 
-		// 初期GameViewportRenderTargetは既存UI/Sprite互換の基準解像度から開始する。
+		// GameViewportRenderTargetはDebug/Editor時も既存UI/Sprite互換の1920x1080固定で開始する。
 		renderTargetWidth_ = kDefaultGameRenderTargetWidth_;
 		renderTargetHeight_ = kDefaultGameRenderTargetHeight_;
 
 		// RTVとSRVの確保
 		AllocateRTV_DSV_SRV_UAV();
 
-		// ビューポート矩形とシザリング矩形の設定
+		// ビューポート矩形とシザリング矩形は固定内部解像度1920x1080で初期化する。
 		SetViewportAndScissorRect(renderTargetWidth_, renderTargetHeight_);
+		UpdateCameraAspectRatio(renderTargetWidth_, renderTargetHeight_);
 
 		// エフェクトの初期化と生成
 		std::unordered_map<std::string, EffectEntry> effectTable = {
@@ -257,18 +258,16 @@ namespace Ken4lowEngine
 	/// -------------------------------------------------------------
 	void PostEffectManager::Resize(uint32_t width, uint32_t height)
 	{
-		if (width == 0 || height == 0)
-		{
-			// Main Viewportが折りたたまれている間は0サイズRenderTargetを作らない。
-			return;
-		}
+		// 可変解像度はUI/Input対応後に戻すため、外部リサイズ要求は1920x1080固定へ丸める。
+		width = kDefaultGameRenderTargetWidth_;
+		height = kDefaultGameRenderTargetHeight_;
 
 		if (renderTargetWidth_ == width && renderTargetHeight_ == height && depthResource_)
 		{
 			return;
 		}
 
-		// GameRenderTargetの現在サイズをMain Viewportの実ピクセルサイズとして記録する。
+		// GameRenderTargetの現在サイズはゲーム内部解像度として1920x1080固定で記録する。
 		renderTargetWidth_ = width;
 		renderTargetHeight_ = height;
 
@@ -318,23 +317,18 @@ namespace Ken4lowEngine
 	/// -------------------------------------------------------------
 	///				　	Camera Aspect比更新
 	/// -------------------------------------------------------------
-	void PostEffectManager::UpdateCameraAspectRatio(uint32_t width, uint32_t height)
+	void PostEffectManager::UpdateCameraAspectRatio(uint32_t, uint32_t)
 	{
-		if (height == 0)
-		{
-			return;
-		}
-
-		const float aspectRatio = static_cast<float>(width) / static_cast<float>(height);
+		const float aspectRatio = static_cast<float>(kDefaultGameRenderTargetWidth_) / static_cast<float>(kDefaultGameRenderTargetHeight_);
 		auto* cameraManager = CameraManager::GetInstance();
 		if (Camera* mainCamera = cameraManager->GetMainCamera())
 		{
-			// Main CameraのProjectionをGameViewportRenderTargetのAspect比へ追従させる。
+			// Main CameraのProjectionは固定内部解像度に合わせて16:9で維持する。
 			mainCamera->SetAspectRatio(aspectRatio);
 		}
 		if (DebugCamera* debugCamera = cameraManager->GetDebugCamera())
 		{
-			// Debug Camera使用時も同じ描画AspectでFrustumを更新する。
+			// Debug Camera使用時も固定内部解像度と同じ16:9でFrustumを更新する。
 			debugCamera->SetAspectRatio(aspectRatio);
 		}
 	}
@@ -539,10 +533,10 @@ namespace Ken4lowEngine
 		return SRVManager::GetInstance()->GetGPUDescriptorHandle(srvIndex);
 	}
 
-	void PostEffectManager::RequestGameRenderTargetResize(uint32_t width, uint32_t height)
+	void PostEffectManager::RequestGameRenderTargetResize(uint32_t, uint32_t)
 	{
-		// Main Viewportの表示可能サイズが変わった時だけGameViewportRenderTargetを作り直す。
-		Resize(width, height);
+		// Main Viewportサイズ変更ではGameViewportRenderTargetをリサイズしない。
+		Resize(kDefaultGameRenderTargetWidth_, kDefaultGameRenderTargetHeight_);
 	}
 
 	/// -------------------------------------------------------------
@@ -693,10 +687,10 @@ namespace Ken4lowEngine
 	/// -------------------------------------------------------------
 	void PostEffectManager::SetViewportAndScissorRect(uint32_t width, uint32_t height)
 	{
-		// Scene描画範囲をGameViewportRenderTargetの実ピクセルサイズと必ず一致させる
+		// Scene描画範囲は固定GameViewportRenderTargetの1920x1080に必ず一致させる
 		viewport = D3D12_VIEWPORT(0.0f, 0.0f, static_cast<float>(width), static_cast<float>(height), 0.0f, 1.0f);
 
-		// ScissorもGameViewportRenderTargetの実ピクセルサイズと必ず一致させる
+		// Scissorも固定GameViewportRenderTargetの1920x1080に必ず一致させる
 		scissorRect = { 0, 0, static_cast<LONG>(width), static_cast<LONG>(height) };
 	}
 

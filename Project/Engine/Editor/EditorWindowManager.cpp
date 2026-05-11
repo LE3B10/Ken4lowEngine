@@ -169,13 +169,31 @@ namespace Ken4lowEngine
 		{
 			const ImVec2 availableSize = ImGui::GetContentRegionAvail();
 			auto* postEffectManager = PostEffectManager::GetInstance();
+			const float renderTargetWidth = static_cast<float>(postEffectManager->GetGameRenderTargetWidth());
+			const float renderTargetHeight = static_cast<float>(postEffectManager->GetGameRenderTargetHeight());
 
-			// Main Viewportの表示可能領域をそのままゲーム描画サイズの基準として保存する。
-			const ImVec2 imageSize = ImVec2(std::max(0.0f, availableSize.x), std::max(0.0f, availableSize.y));
+			// Main Viewport内では固定解像度GameRenderTargetを16:9維持で最大表示する。
+			ImVec2 imageSize = ImVec2(0.0f, 0.0f);
+			if (availableSize.x > 1.0f && availableSize.y > 1.0f && renderTargetWidth > 0.0f && renderTargetHeight > 0.0f)
+			{
+				const float targetAspect = renderTargetWidth / renderTargetHeight;
+				imageSize = ImVec2(std::max(0.0f, availableSize.x), std::max(0.0f, availableSize.x / targetAspect));
+				if (imageSize.y > availableSize.y)
+				{
+					imageSize.y = std::max(0.0f, availableSize.y);
+					imageSize.x = std::max(0.0f, availableSize.y * targetAspect);
+				}
+			}
+
+			const ImVec2 cursorStart = ImGui::GetCursorPos();
+			const ImVec2 imageOffset = ImVec2(
+				std::max(0.0f, (availableSize.x - imageSize.x) * 0.5f),
+				std::max(0.0f, (availableSize.y - imageSize.y) * 0.5f));
+			ImGui::SetCursorPos(ImVec2(cursorStart.x + imageOffset.x, cursorStart.y + imageOffset.y));
 			const ImVec2 screenStart = ImGui::GetCursorScreenPos();
 			mainViewportScreenPosition_ = { screenStart.x, screenStart.y };
 			mainViewportSize_ = { imageSize.x, imageSize.y };
-			// ImGui::Imageで描くゲーム画面のスクリーン矩形を入力変換用に保存する
+			// 入力は中央表示されたImGui::Imageの矩形だけを1920x1080へ逆変換する。
 			mainViewportRect_.screenMin = mainViewportScreenPosition_;
 			mainViewportRect_.screenMax = { mainViewportScreenPosition_.x + imageSize.x, mainViewportScreenPosition_.y + imageSize.y };
 			mainViewportRect_.imageSize = mainViewportSize_;
@@ -184,15 +202,17 @@ namespace Ken4lowEngine
 			const D3D12_GPU_DESCRIPTOR_HANDLE gameSrv = postEffectManager->GetGameRenderTargetSrvHandleGPU();
 			if (gameSrv.ptr != 0 && imageSize.x > 1.0f && imageSize.y > 1.0f)
 			{
-				// SRVManagerで作成したGameRenderTargetのGPU SRVをMain Viewportの現在サイズで渡す
+				// SRVManagerで作成した固定GameRenderTargetのGPU SRVを16:9維持サイズで渡す。
 				ImGui::Image(static_cast<ImTextureID>(gameSrv.ptr), imageSize, ImVec2(0.0f, 0.0f), ImVec2(1.0f, 1.0f));
-				mainViewportRect_.hovered = ImGui::IsItemHovered(); // 他ウィンドウに覆われたMain Viewportはゲームクリック扱いにしない
+				const bool imguiBlocking = ImGui::IsAnyItemActive() && !ImGui::IsItemActive();
+				mainViewportRect_.hovered = ImGui::IsItemHovered() && !imguiBlocking; // 他ウィンドウ操作中はゲームクリック扱いにしない
 			}
 			else
 			{
 				ImGui::TextUnformatted("GameRenderTarget SRV is not ready.");
 				mainViewportRect_.hovered = false;
 			}
+			ImGui::SetCursorPos(ImVec2(cursorStart.x, cursorStart.y + availableSize.y));
 
 			Vector2 gameMouse = {};
 			const bool gameMouseValid = GetMousePositionInGameViewport(gameMouse);
@@ -242,7 +262,7 @@ namespace Ken4lowEngine
 			return false;
 		}
 
-		// 表示矩形内のローカル座標を現在のGameViewportRenderTargetピクセル座標へスケール変換する。
+		// 表示矩形内のローカル座標を固定GameViewportRenderTarget(1920x1080)へスケール変換する。
 		const Vector2 localMouse = { mouse.x - mainViewportRect_.screenMin.x, mouse.y - mainViewportRect_.screenMin.y };
 		outMouse = {
 			(localMouse.x / mainViewportRect_.imageSize.x) * renderTargetWidth,

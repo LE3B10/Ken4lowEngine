@@ -77,7 +77,7 @@ namespace Ken4lowEngine
 			if (winApp_->ConsumeResize(newWidth, newHeight))
 			{
 				dxCommon_->Resize(newWidth, newHeight);
-				PostEffectManager::GetInstance()->Resize(newWidth, newHeight);
+				// アプリ全体のウィンドウリサイズではGameViewportRenderTargetの1920x1080固定を維持する。
 			}
 
 			// 毎フレーム更新
