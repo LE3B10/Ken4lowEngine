@@ -727,7 +727,7 @@ void StageSelectScene::GoToGamePlay()
 	}
 }
 
-void StageSelectScene::CollectEditorObjects(std::vector<Ken4lowEngine::EditorObjectInfo>& outObjects) const
+void StageSelectScene::CollectEditorObjects(std::vector<Ken4lowEngine::EditorObjectInfo>& outObjects)
 {
 	const auto addObject = [&outObjects](uint64_t id, const char* displayName, const char* typeName)
 	{

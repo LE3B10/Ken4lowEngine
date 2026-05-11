@@ -13,6 +13,7 @@ namespace Ken4lowEngine
 	public:
 		void Select(const EditorObjectInfo& objectInfo);
 		void Clear();
+		void RefreshSelected(const EditorObjectInfo& objectInfo);
 		bool HasSelection() const;
 		const EditorObjectInfo& GetSelected() const;
 

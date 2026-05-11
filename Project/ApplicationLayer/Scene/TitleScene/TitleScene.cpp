@@ -15,6 +15,8 @@
 #include <LightManager.h>
 #include <GameTimer.h>
 
+#include <utility>
+
 #ifdef USE_IMGUI
 #include <Editor/EditorWindowManager.h>
 #endif // USE_IMGUI
@@ -485,18 +487,116 @@ void TitleScene::UpdateDebug()
 	}
 #endif // _DEBUG
 }
-void TitleScene::CollectEditorObjects(std::vector<Ken4lowEngine::EditorObjectInfo>& outObjects) const
+void TitleScene::CollectEditorObjects(std::vector<Ken4lowEngine::EditorObjectInfo>& outObjects)
 {
 	const auto addObject = [&outObjects](uint64_t id, const char* displayName, const char* typeName)
 	{
 		outObjects.push_back({ id, displayName, typeName, "TitleScene" });
 	};
+	const auto addCameraObject = [&outObjects](uint64_t id, const char* displayName, const char* typeName, K4E::Camera* camera)
+	{
+		Ken4lowEngine::EditorObjectInfo object{ id, displayName, typeName, "TitleScene" };
+		if (camera)
+		{
+			object.canEditTransform = true;
+			object.readTransform = [camera](Ken4lowEngine::EditorTransform& transform)
+			{
+				if (!camera)
+				{
+					return false;
+				}
+				transform.position = camera->GetTranslate();
+				transform.rotation = camera->GetRotate();
+				transform.scale = camera->GetScale();
+				return true;
+			};
+			object.writeTransform = [camera](const Ken4lowEngine::EditorTransform& transform)
+			{
+				if (!camera)
+				{
+					return;
+				}
+				camera->SetTranslate(transform.position);
+				camera->SetRotate(transform.rotation);
+				camera->SetScale(transform.scale);
+				camera->Update();
+			};
+		}
+		outObjects.push_back(std::move(object));
+	};
+	const auto fillSpriteTransform = [](K4E::Sprite* sprite, Ken4lowEngine::EditorTransform& transform)
+	{
+		if (!sprite)
+		{
+			return false;
+		}
+		const K4E::Vector2& position = sprite->GetPosition();
+		const K4E::Vector2& size = sprite->GetSize();
+		transform.position = { position.x, position.y, 0.0f };
+		transform.rotation = { 0.0f, 0.0f, sprite->GetRotation() };
+		transform.scale = { size.x, size.y, 1.0f };
+		return true;
+	};
+	const auto applySpriteTransform = [](K4E::Sprite* sprite, const Ken4lowEngine::EditorTransform& transform)
+	{
+		if (!sprite)
+		{
+			return;
+		}
+		sprite->SetPosition({ transform.position.x, transform.position.y });
+		sprite->SetRotation(transform.rotation.z);
+		sprite->SetSize({ transform.scale.x, transform.scale.y });
+		sprite->Update();
+	};
+	const auto addLogoSpriteObject = [&outObjects, this, fillSpriteTransform, applySpriteTransform](uint64_t id, const char* displayName, const char* typeName)
+	{
+		K4E::Sprite* sprite = logoSprite_.get();
+		Ken4lowEngine::EditorObjectInfo object{ id, displayName, typeName, "TitleScene" };
+		if (sprite)
+		{
+			object.canEditTransform = true;
+			object.readTransform = [sprite, fillSpriteTransform](Ken4lowEngine::EditorTransform& transform)
+			{
+				return fillSpriteTransform(sprite, transform);
+			};
+			object.writeTransform = [this, sprite, applySpriteTransform](const Ken4lowEngine::EditorTransform& transform)
+			{
+				applySpriteTransform(sprite, transform);
+				logoUI_.baseSize = { transform.scale.x, transform.scale.y };
+			};
+		}
+		outObjects.push_back(std::move(object));
+	};
+	const auto addClickSpriteObject = [&outObjects, this, fillSpriteTransform, applySpriteTransform](uint64_t id, const char* displayName, const char* typeName)
+	{
+		K4E::Sprite* sprite = clickHintUI_.hintSprite.get();
+		Ken4lowEngine::EditorObjectInfo object{ id, displayName, typeName, "TitleScene" };
+		if (sprite)
+		{
+			object.canEditTransform = true;
+			object.readTransform = [sprite, fillSpriteTransform](Ken4lowEngine::EditorTransform& transform)
+			{
+				return fillSpriteTransform(sprite, transform);
+			};
+			object.writeTransform = [this, sprite, applySpriteTransform](const Ken4lowEngine::EditorTransform& transform)
+			{
+				applySpriteTransform(sprite, transform);
+				clickHintUI_.baseSize = { transform.scale.x, transform.scale.y };
+				if (logoSprite_)
+				{
+					const K4E::Vector2& logoPosition = logoSprite_->GetPosition();
+					clickHintUI_.offset = { transform.position.x - logoPosition.x, transform.position.y - logoPosition.y };
+				}
+			};
+		}
+		outObjects.push_back(std::move(object));
+	};
 
 	// Outlinerは編集対象の入口として、TitleSceneを構成する主要カテゴリだけを安定IDで列挙する。
 	addObject(0x1000000000000001ull, "Title Root", "Scene Root");
-	addObject(0x1000000000000002ull, "Camera", camera_ ? "Camera" : "Camera (pending)");
+	addCameraObject(0x1000000000000002ull, "Camera", camera_ ? "Camera" : "Camera (pending)", camera_);
 	addObject(0x1000000000000003ull, "Light", "Directional Light");
-	addObject(0x1000000000000004ull, "UI Root", "UI Root");
-	addObject(0x1000000000000005ull, "Click Text / Click Sprite", clickHintUI_.hintSprite ? "Sprite UI" : "Sprite UI (pending)");
+	addLogoSpriteObject(0x1000000000000004ull, "UI Root", logoSprite_ ? "Sprite UI" : "Sprite UI (pending)");
+	addClickSpriteObject(0x1000000000000005ull, "Click Text / Click Sprite", clickHintUI_.hintSprite ? "Sprite UI" : "Sprite UI (pending)");
 	addObject(0x1000000000000006ull, "Fade Manager", "Fade Manager");
 }

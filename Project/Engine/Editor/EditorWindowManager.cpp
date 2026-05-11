@@ -22,7 +22,7 @@ namespace Ken4lowEngine
 	{
 		EditorInputPolicy GetCurrentEditorInputPolicy()
 		{
-			const BaseScene* scene = SceneManager::GetInstance()->GetCurrentScene();
+			BaseScene* scene = SceneManager::GetInstance()->GetCurrentScene();
 			// Scene未設定時はUI Mouse扱いにしてEditor操作を妨げない。
 			return scene ? scene->GetEditorInputPolicy() : EditorInputPolicy::UiMouse;
 		}
@@ -472,7 +472,7 @@ namespace Ken4lowEngine
 		}
 
 		std::vector<EditorObjectInfo> objects;
-		const BaseScene* scene = SceneManager::GetInstance()->GetCurrentScene();
+		BaseScene* scene = SceneManager::GetInstance()->GetCurrentScene();
 		if (scene)
 		{
 			// Scene側から軽量情報だけを収集し、Outlinerが実オブジェクト寿命へ依存しないようにする。
@@ -482,11 +482,16 @@ namespace Ken4lowEngine
 		if (selection_.HasSelection())
 		{
 			const EditorObjectInfo& selected = selection_.GetSelected();
-			const bool stillExists = std::any_of(objects.begin(), objects.end(), [&selected](const EditorObjectInfo& object)
+			auto selectedObject = std::find_if(objects.begin(), objects.end(), [&selected](const EditorObjectInfo& object)
 				{
 					return object.id == selected.id && object.sceneName == selected.sceneName;
 				});
-			if (!stillExists)
+			if (selectedObject != objects.end())
+			{
+				// Detailsが古いSceneオブジェクト入口を掴み続けないよう、現在フレームの情報へ更新する。
+				selection_.RefreshSelected(*selectedObject);
+			}
+			else
 			{
 				// Scene切り替えやロード状態変化で消えた選択はDetails表示前に破棄する。
 				selection_.Clear();
@@ -538,13 +543,30 @@ namespace Ken4lowEngine
 			else
 			{
 				const EditorObjectInfo& selected = selection_.GetSelected();
-				// DetailsはTransform編集の前段階として、選択中オブジェクトの識別情報だけを表示する。
+				// Detailsは識別情報と編集可能なTransformだけを表示し、未対応オブジェクトは安全に弾く。
 				ImGui::Text("Selected Name: %s", selected.displayName.c_str());
 				ImGui::Text("Type: %s", selected.typeName.c_str());
 				ImGui::Text("Scene: %s", selected.sceneName.c_str());
 				ImGui::Text("ID: %llu", static_cast<unsigned long long>(selected.id));
 				ImGui::Separator();
-				ImGui::TextUnformatted("Transform editing is not implemented yet.");
+
+				EditorTransform transform{};
+				if (selected.TryReadTransform(transform))
+				{
+					bool changed = false;
+					changed |= ImGui::DragFloat3("Position", &transform.position.x, 0.1f);
+					changed |= ImGui::DragFloat3("Rotation", &transform.rotation.x, 0.01f);
+					changed |= ImGui::DragFloat3("Scale", &transform.scale.x, 0.1f);
+					if (changed)
+					{
+						// ImGuiで編集した値はScene側が用意した書き戻し入口から即時反映する。
+						selected.WriteTransform(transform);
+					}
+				}
+				else
+				{
+					ImGui::TextUnformatted("Transform editing is not available for this object.");
+				}
 			}
 		}
 		ImGui::End();
