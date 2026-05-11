@@ -16,6 +16,7 @@
 
 #ifdef USE_IMGUI
 #include <imgui.h>
+#include <Editor/EditorWindowManager.h>
 #endif // USE_IMGUI
 
 namespace K4E = ::Ken4lowEngine;
@@ -344,9 +345,11 @@ void StageSelectScene::Finalize()
 void StageSelectScene::DrawImGui()
 {
 #ifdef USE_IMGUI
-	if (!textLayoutDebug_.enableImGui) { return; }
+	// WindowメニューのStage Select Debug表示フラグを×ボタン状態と共有する
+	auto& editorWindowState = K4E::EditorWindowManager::GetInstance()->GetWindowState();
+	if (!textLayoutDebug_.enableImGui || !editorWindowState.showStageSelectDebug) { return; }
 
-	if (ImGui::Begin("StageSelect Text Layout"))
+	if (ImGui::Begin("StageSelect Text Layout", &editorWindowState.showStageSelectDebug))
 	{
 		ImGui::Text("Current Stage Index : %d", currentStageIndex_);
 

@@ -14,6 +14,10 @@
 #include <LightManager.h>
 #include <GameTimer.h>
 
+#ifdef USE_IMGUI
+#include <Editor/EditorWindowManager.h>
+#endif // USE_IMGUI
+
 #include "TitleLoadState.h"
 #include "TitleAttractState.h"
 #include "TitleLobbyState.h"
@@ -240,19 +244,24 @@ void TitleScene::Finalize()
 void TitleScene::DrawImGui()
 {
 #ifdef USE_IMGUI
-	ImGui::Begin("Title Debug");
-	const char* stateNames =
-		state_ == State::TitleAttract ? "TitleAttract" :
-		state_ == State::TransitionToLobby ? "TransitionToLobby" :
-		state_ == State::LobbyIdle ? "LobbyIdle" :
-		state_ == State::Loading ? "Loading" : "";
-	ImGui::Text("State: %s", stateNames);
-	ImGui::Text("Idle: %.1fs / Return: %.0fs", timers_.idle, timers_.returnSeconds);
-	ImGui::End();
+	// WindowメニューのTitle Debug表示フラグを×ボタン状態と共有する
+	auto& editorWindowState = EditorWindowManager::GetInstance()->GetWindowState();
+	if (editorWindowState.showTitleDebug)
+	{
+		ImGui::Begin("Title Debug", &editorWindowState.showTitleDebug);
+		const char* stateNames =
+			state_ == State::TitleAttract ? "TitleAttract" :
+			state_ == State::TransitionToLobby ? "TransitionToLobby" :
+			state_ == State::LobbyIdle ? "LobbyIdle" :
+			state_ == State::Loading ? "Loading" : "";
+		ImGui::Text("State: %s", stateNames);
+		ImGui::Text("Idle: %.1fs / Return: %.0fs", timers_.idle, timers_.returnSeconds);
+		ImGui::End();
+	}
 
+	// WindowメニューのLight Editor表示フラグをTitleシーン側のライトUIにも共有する
+	LightManager::GetInstance()->DrawImGui(&editorWindowState.showLightEditor);
 #endif // USE_IMGUI
-
-	LightManager::GetInstance()->DrawImGui();
 }
 
 void TitleScene::StartLoad()

@@ -85,7 +85,7 @@ namespace Ken4lowEngine
 		/// ・ライトごとの削除<br/>
 		/// などを行います。
 		/// </summary>
-		void DrawImGui();
+		void DrawImGui(bool* pOpen = nullptr);
 
 		/// <summary>
 		/// パンクチュアルライト情報をシェーダにバインドします。<br/>

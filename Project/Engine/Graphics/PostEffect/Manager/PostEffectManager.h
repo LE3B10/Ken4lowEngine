@@ -104,7 +104,7 @@ public: /// ---------- メンバ関数 ---------- ///
 	/// <summary>
 	/// ImGui の描画をレンダリングします。
 	/// </summary>
-	void ImGuiRender();
+	void ImGuiRender(bool* pOpen = nullptr);
 
 	/// <summary>
 	/// 指定された名前のエフェクトを有効にします。内部の effectEnableFlags_ マップの該当エントリを true に設定します。

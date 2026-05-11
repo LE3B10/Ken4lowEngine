@@ -5,6 +5,7 @@
 
 #ifdef USE_IMGUI
 #include <imgui.h>
+#include <Editor/EditorWindowManager.h>
 #endif
 
 using namespace Ken4lowEngine;
@@ -131,7 +132,7 @@ void ShadowTestScene::Finalize()
 void ShadowTestScene::DrawImGui()
 {
 #ifdef USE_IMGUI
-	LightManager::GetInstance()->DrawImGui();
+	LightManager::GetInstance()->DrawImGui(&EditorWindowManager::GetInstance()->GetWindowState().showLightEditor);
 
 	box_->DrawImGui();
 	floor_->DrawImGui();

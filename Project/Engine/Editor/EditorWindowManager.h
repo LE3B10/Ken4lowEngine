@@ -8,12 +8,26 @@ namespace Ken4lowEngine
 	/// </summary>
 	struct EditorWindowState
 	{
+		// WindowメニューのCommonカテゴリで切り替える標準エディタウィンドウです。
 		bool showToolbar = true;
 		bool showMainViewport = true;
+		bool showContentBrowser = true;
 		bool showWorldOutliner = true;
 		bool showDetails = true;
-		bool showContentBrowser = true;
 		bool showOutputLog = true;
+
+		// WindowメニューのRenderingカテゴリで切り替える描画調整ウィンドウです。
+		bool showParameters = true;
+		bool showDisplay = true;
+		bool showPostEffectSettings = true;
+		bool showLightEditor = true;
+
+		// WindowメニューのScene Debugカテゴリで切り替えるシーン依存デバッグウィンドウです。
+		bool showTitleDebug = true;
+		bool showStageSelectDebug = true;
+		bool showGameDebug = true;
+		bool showWeaponMasterDebug = true;
+		bool showTileFadeDebug = true;
 
 		bool debugShowCollider = false;
 		bool debugShowEnemyInfo = false;

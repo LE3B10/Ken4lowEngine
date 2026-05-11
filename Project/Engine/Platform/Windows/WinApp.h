@@ -61,7 +61,7 @@ namespace Ken4lowEngine
 		bool ApplyDisplaySettings(const DisplaySettings& settings);
 
 		// ImGuiで表示する設定UI
-		void DrawDisplaySettingsImGui();
+		void DrawDisplaySettingsImGui(bool* pOpen = nullptr);
 
 		// Alt+Enter トグル要求
 		void RequestToggleFullscreen();

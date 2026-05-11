@@ -53,18 +53,47 @@ namespace Ken4lowEngine
 
 		if (ImGui::BeginMenu("Window"))
 		{
-			ImGui::MenuItem("Main Viewport", nullptr, &windowState_.showMainViewport);
-			ImGui::MenuItem("World Outliner", nullptr, &windowState_.showWorldOutliner);
-			ImGui::MenuItem("Details", nullptr, &windowState_.showDetails);
-			ImGui::MenuItem("Content Browser", nullptr, &windowState_.showContentBrowser);
-			ImGui::MenuItem("Output Log", nullptr, &windowState_.showOutputLog);
-			ImGui::Separator();
-			ImGui::MenuItem("Toolbar", nullptr, &windowState_.showToolbar);
-			ImGui::Separator();
-			// ユーザーが崩れたDocking配置を明示的に初期状態へ戻せる入口にする
-			if (ImGui::MenuItem("Reset Layout"))
+			// Commonは常時使うエディタ基本パネルをまとめて表示切替できるようにする
+			if (ImGui::BeginMenu("Common"))
 			{
-				ImGuiManager::GetInstance()->RequestResetDockLayout();
+				ImGui::MenuItem("Toolbar", nullptr, &windowState_.showToolbar);
+				ImGui::MenuItem("Main Viewport", nullptr, &windowState_.showMainViewport);
+				ImGui::MenuItem("Content Browser", nullptr, &windowState_.showContentBrowser);
+				ImGui::MenuItem("World Outliner", nullptr, &windowState_.showWorldOutliner);
+				ImGui::MenuItem("Details", nullptr, &windowState_.showDetails);
+				ImGui::MenuItem("Output Log", nullptr, &windowState_.showOutputLog);
+				ImGui::EndMenu();
+			}
+
+			// Renderingは描画・画面・ライト調整系ウィンドウをまとめて表示切替できるようにする
+			if (ImGui::BeginMenu("Rendering"))
+			{
+				ImGui::MenuItem("Parameters", nullptr, &windowState_.showParameters);
+				ImGui::MenuItem("Display", nullptr, &windowState_.showDisplay);
+				ImGui::MenuItem("Post Effect Settings", nullptr, &windowState_.showPostEffectSettings);
+				ImGui::MenuItem("Light Editor", nullptr, &windowState_.showLightEditor);
+				ImGui::EndMenu();
+			}
+
+			// Scene Debugは現在のシーンに応じて描かれるデバッグウィンドウをまとめて表示切替できるようにする
+			if (ImGui::BeginMenu("Scene Debug"))
+			{
+				ImGui::MenuItem("Title Debug", nullptr, &windowState_.showTitleDebug);
+				ImGui::MenuItem("Stage Select Debug", nullptr, &windowState_.showStageSelectDebug);
+				ImGui::MenuItem("Game Debug", nullptr, &windowState_.showGameDebug);
+				ImGui::MenuItem("Weapon Master Debug", nullptr, &windowState_.showWeaponMasterDebug);
+				ImGui::MenuItem("FadeManager - Tile Fade", nullptr, &windowState_.showTileFadeDebug);
+				ImGui::EndMenu();
+			}
+
+			// LayoutはDockBuilderの初期配置をユーザー操作時だけ再適用する入口にする
+			if (ImGui::BeginMenu("Layout"))
+			{
+				if (ImGui::MenuItem("Reset Layout"))
+				{
+					ImGuiManager::GetInstance()->RequestResetDockLayout();
+				}
+				ImGui::EndMenu();
 			}
 			ImGui::EndMenu();
 		}
@@ -134,7 +163,7 @@ namespace Ken4lowEngine
 			return;
 		}
 
-		// Main Viewportは後でRenderTarget Previewを差し込むための表示領域だけ先に確保する
+		// Main Viewportは既存の中央表示用プレースホルダーとしてWindowメニューの表示状態と同期する
 		if (ImGui::Begin("Main Viewport", &windowState_.showMainViewport))
 		{
 			const ImVec2 viewportSize = ImGui::GetContentRegionAvail();

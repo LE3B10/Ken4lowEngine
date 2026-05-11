@@ -348,9 +348,15 @@ namespace Ken4lowEngine
 			SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_FRAMECHANGED);
 	}
 
-	void WinApp::DrawDisplaySettingsImGui()
+	void WinApp::DrawDisplaySettingsImGui(bool* pOpen)
 	{
 #ifdef USE_IMGUI
+		// WindowメニューのDisplay表示フラグが閉じている間は画面設定UIを生成しない
+		if (pOpen != nullptr && !*pOpen)
+		{
+			return;
+		}
+
 		WinApp* win = WinApp::GetInstance();
 
 		// UI編集中の値を保持する。
@@ -371,7 +377,7 @@ namespace Ken4lowEngine
 			initialized = true;
 		}
 
-		if (ImGui::Begin("Display"))
+		if (ImGui::Begin("Display", pOpen))
 		{
 			const char* modeItems[] = { "Windowed", "Borderless" };
 			int mode = (edit.mode == WindowMode::Windowed) ? 0 : 1;
@@ -421,6 +427,8 @@ namespace Ken4lowEngine
 			ImGui::Text("Client: %u x %u", win->GetClientWidth(), win->GetClientHeight());
 		}
 		ImGui::End();
+#else
+		(void)pOpen;
 #endif // USE_IMGUI
 	}
 

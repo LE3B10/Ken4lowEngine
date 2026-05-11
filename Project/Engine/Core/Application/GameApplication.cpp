@@ -107,13 +107,15 @@ namespace Ken4lowEngine
 		ImGuiManager::GetInstance()->BeginFrame();
 
 		// UE5風エディタUI土台を既存のシーン別ImGuiの前に描画する
-		EditorWindowManager::GetInstance()->Draw();
+		auto* editorWindows = EditorWindowManager::GetInstance();
+		editorWindows->Draw();
+		auto& editorWindowState = editorWindows->GetWindowState();
 
-		// ウィンドウ表示用の画面設定の変更
-		winApp_->DrawDisplaySettingsImGui();
+		// WindowメニューのDisplay表示フラグをWinApp側の×ボタン状態と共有する
+		winApp_->DrawDisplaySettingsImGui(&editorWindowState.showDisplay);
 
-		// グローバル変数の更新
-		ParameterManager::GetInstance()->Update();
+		// WindowメニューのParameters表示フラグをParameterManager側の×ボタン状態と共有する
+		ParameterManager::GetInstance()->Update(&editorWindowState.showParameters);
 
 		//defaultCamera_->DrawImGui();
 
@@ -126,8 +128,8 @@ namespace Ken4lowEngine
 		// ParticleManagerのImGuiの描画処理
 		ParticleManager::GetInstance()->DrawImGui();
 
-		// PostEffectManagerのImGuiの描画処理
-		PostEffectManager::GetInstance()->ImGuiRender();
+		// WindowメニューのPost Effect Settings表示フラグをPostEffectManager側の×ボタン状態と共有する
+		PostEffectManager::GetInstance()->ImGuiRender(&editorWindowState.showPostEffectSettings);
 
 		/// ---------- ImGuiフレーム終了 ---------- ///
 		ImGuiManager::GetInstance()->EndFrame();

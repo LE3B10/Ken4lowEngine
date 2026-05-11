@@ -265,12 +265,18 @@ namespace Ken4lowEngine
 	/// -------------------------------------------------------------
 	///				　		　	ImGui
 	/// -------------------------------------------------------------
-	void LightManager::DrawImGui()
+	void LightManager::DrawImGui(bool* pOpen)
 	{
 #ifdef USE_IMGUI
+		// WindowメニューのLight Editor表示フラグが閉じている間はライト編集UIを生成しない
+		if (pOpen != nullptr && !*pOpen)
+		{
+			return;
+		}
+
 		// ライト調整UIを暗黙のDebugウィンドウではなくDocking可能な通常ウィンドウとして描画する
 		ImGui::SetNextWindowSize(ImVec2(360.0f, 480.0f), ImGuiCond_FirstUseEver);
-		if (ImGui::Begin("Light Editor"))
+		if (ImGui::Begin("Light Editor", pOpen))
 		{
 			if (ImGui::CollapsingHeader("Punctual Lights"))
 			{
@@ -368,6 +374,8 @@ namespace Ken4lowEngine
 			}
 		}
 		ImGui::End();
+#else
+		(void)pOpen;
 #endif // USE_IMGUI
 	}
 
