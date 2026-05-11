@@ -428,6 +428,54 @@ void StageSelectScene::DrawImGui()
 #endif // USE_IMGUI
 }
 
+// Scene遷移用ロードはEditor更新と分離し、Cover完了後に段階ロードを開始する。
+void StageSelectScene::StartLoad()
+{
+	loadStep_ = 0;
+	isLoadReady_ = false;
+	state_ = State::Loading;
+}
+
+void StageSelectScene::UpdateLoad()
+{
+	switch (loadStep_)
+	{
+	case 0:
+		// ステージ情報だけ先に作る
+		InitializeStages();
+		++loadStep_;
+		break;
+
+	case 1:
+		// セレクタのコンテキストだけ組む
+		InitializeSelectors();
+		++loadStep_;
+		break;
+
+	case 2:
+		// 背景と GridSelector の生成
+		InitializeBackground();
+		++loadStep_;
+		break;
+
+	case 3:
+		// 選択状態へ入る
+		ChangeState(std::make_unique<StageSelectSelectingState>());
+		state_ = State::Selecting;
+		isLoadReady_ = true;
+		++loadStep_;
+		break;
+
+	default:
+		break;
+	}
+}
+
+bool StageSelectScene::IsReadyToStartUncover() const
+{
+	return isLoadReady_;
+}
+
 /// -------------------------------------------------------------
 ///				　		　ステージ情報初期化
 /// -------------------------------------------------------------
