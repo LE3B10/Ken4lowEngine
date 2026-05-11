@@ -145,9 +145,6 @@ void GamePlayWorld::Finalize()
 
 void GamePlayWorld::Update(float deltaTime)
 {
-	uint32_t width = DirectXCommon::GetInstance()->GetClientWidth();
-	uint32_t height = DirectXCommon::GetInstance()->GetClientHeight();
-
 	if (stage_)
 	{
 		stage_->Update();

@@ -1,12 +1,13 @@
 #include "WaveUI.h"
+#include "GameViewportConstants.h"
 #include "DirectXCommon.h"
 
 using namespace Ken4lowEngine;
 
 void WaveUI::Initialize()
 {
-	const float screenW = static_cast<float>(DirectXCommon::GetInstance()->GetClientWidth());
-	const float screenH = static_cast<float>(DirectXCommon::GetInstance()->GetClientHeight());
+	const float screenW = static_cast<float>(GameViewportConstants::Width); // Wave UIは固定内部解像度1920x1080幅で中央揃えする。
+	const float screenH = static_cast<float>(GameViewportConstants::Height); // Wave UIは固定内部解像度1920x1080高さで配置する。
 
 	const float centerX = screenW * 0.5f;
 	const float centerY = screenH * 0.35f;
@@ -82,7 +83,7 @@ void WaveUI::Draw()
 {
 	if (!visible_) return;
 
-	const float screenW = static_cast<float>(DirectXCommon::GetInstance()->GetClientWidth());
+	const float screenW = static_cast<float>(GameViewportConstants::Width); // Wave UIは固定内部解像度1920x1080幅で中央揃えする。
 	const float centerX = screenW * 0.5f;
 
 	// 上部中央のWAVEラベル

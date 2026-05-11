@@ -4,6 +4,7 @@
 #include "TextureManager.h"
 #include "ResourceManager.h"
 #include "PostEffectManager.h"
+#include "GameViewportConstants.h"
 
 namespace Ken4lowEngine
 {
@@ -102,8 +103,7 @@ void Sprite::Update()
 
 	// スプライトUIは固定GameViewportRenderTarget(1920x1080)基準で射影する。
 	Matrix4x4 viewMatrixSprite = Matrix4x4::MakeIdentity();
-	const auto* postEffectManager = PostEffectManager::GetInstance();
-	Matrix4x4 projectionMatrixSprite = Matrix4x4::MakeOrthographicMatrix(0.0f, 0.0f, static_cast<float>(postEffectManager->GetGameRenderTargetWidth()), static_cast<float>(postEffectManager->GetGameRenderTargetHeight()), 0.0f, 100.0f);
+	Matrix4x4 projectionMatrixSprite = Matrix4x4::MakeOrthographicMatrix(0.0f, 0.0f, static_cast<float>(GameViewportConstants::Width), static_cast<float>(GameViewportConstants::Height), 0.0f, 100.0f);
 	Matrix4x4 worldViewProjectionMatrixSprite = Matrix4x4::Multiply(worldMatrixSprite, Matrix4x4::Multiply(viewMatrixSprite, projectionMatrixSprite));
 
 	// 座標変換行列を更新

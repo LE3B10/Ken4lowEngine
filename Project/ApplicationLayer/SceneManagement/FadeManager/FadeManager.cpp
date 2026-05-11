@@ -6,13 +6,13 @@
 #include <cstring>
 
 #include <DirectXCommon.h>
+#include "GameViewportConstants.h"
+
+namespace K4E = ::Ken4lowEngine;
 
 #ifdef USE_IMGUI
 #include <imgui.h>
 #include <Editor/EditorWindowManager.h>
-
-namespace K4E = ::Ken4lowEngine;
-
 #endif // USE_IMGUI
 
 // ------------------------------
@@ -61,9 +61,9 @@ float FadeManager::RandRange(std::mt19937& rng, float a, float b)
 // ------------------------------
 void FadeManager::Initialize()
 {
-	auto* dx = K4E::DirectXCommon::GetInstance();
-	screenW_ = dx->GetClientWidth();
-	screenH_ = dx->GetClientHeight();
+	// Fade演出はWinAppサイズではなく固定内部解像度1920x1080のタイルで構築する。
+	screenW_ = static_cast<int>(K4E::GameViewportConstants::Width);
+	screenH_ = static_cast<int>(K4E::GameViewportConstants::Height);
 
 	RebuildTiles(screenW_, screenH_);
 	InitDustPool();
@@ -241,10 +241,9 @@ void FadeManager::StartCover()
 	// 前の演出の粉塵を消す
 	ResetDust();
 
-	// 画面サイズが変わってたら作り直す
-	auto* dx = K4E::DirectXCommon::GetInstance();
-	int w = dx->GetClientWidth();
-	int h = dx->GetClientHeight();
+	// Main Viewportの拡縮ではFade内部座標を変えない。
+	int w = static_cast<int>(K4E::GameViewportConstants::Width);
+	int h = static_cast<int>(K4E::GameViewportConstants::Height);
 
 	if (w != screenW_ || h != screenH_)
 	{
@@ -433,9 +432,9 @@ void FadeManager::Update(float dt)
 
 	// 画面サイズの変化に追従（ウィンドウリサイズ対応）
 	{
-		auto* dx = K4E::DirectXCommon::GetInstance();
-		int w = dx->GetClientWidth();
-		int h = dx->GetClientHeight();
+		// Main Viewportの拡縮ではFade内部座標を変えない。
+		int w = static_cast<int>(K4E::GameViewportConstants::Width);
+		int h = static_cast<int>(K4E::GameViewportConstants::Height);
 		if (w != screenW_ || h != screenH_)
 		{
 			screenW_ = w;
@@ -864,9 +863,9 @@ void FadeManager::DrawImGui()
 
 	if (rebuild)
 	{
-		auto* dx = K4E::DirectXCommon::GetInstance();
-		screenW_ = dx->GetClientWidth();
-		screenH_ = dx->GetClientHeight();
+		// Debug再構築時も固定内部解像度1920x1080でタイルを作り直す。
+		screenW_ = static_cast<int>(K4E::GameViewportConstants::Width);
+		screenH_ = static_cast<int>(K4E::GameViewportConstants::Height);
 		RebuildTiles(screenW_, screenH_);
 	}
 

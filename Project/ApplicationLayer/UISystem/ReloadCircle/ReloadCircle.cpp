@@ -1,4 +1,5 @@
 #include "ReloadCircle.h"
+#include "GameViewportConstants.h"
 #include "winApp.h"
 #include <DirectXCommon.h>
 #include <numbers>
@@ -27,10 +28,9 @@ void ReloadCircle::Update()
 	// 武器とスプライトがセットされていない場合は処理しない
 	if (!sprite_) return;
 
-	auto* dxCommon = K4E::DirectXCommon::GetInstance();
-	// 画面中央に配置
-	sprite_->SetPosition({ static_cast<float>(dxCommon->GetClientWidth()) * 0.5f,
-						   static_cast<float>(dxCommon->GetClientHeight()) * 0.5f });
+	// リロード円は固定内部解像度1920x1080の中央に配置する。
+	sprite_->SetPosition({ static_cast<float>(K4E::GameViewportConstants::Width) * 0.5f,
+						   static_cast<float>(K4E::GameViewportConstants::Height) * 0.5f });
 
 	// 位置/サイズ反映
 	sprite_->Update();
