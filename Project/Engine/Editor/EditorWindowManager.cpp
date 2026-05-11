@@ -1,3 +1,4 @@
+#define NOMINMAX
 #include "EditorWindowManager.h"
 
 #include "ImGuiManager.h"

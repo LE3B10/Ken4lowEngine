@@ -175,6 +175,8 @@ DirectXGame/imgui.ini
 # ImGui
 imgui.ini
 ken4low_editor_layout.ini
+**/imgui.ini
+**/ken4low_editor_layout.ini
 
 # CMake
 CMakeFiles/
