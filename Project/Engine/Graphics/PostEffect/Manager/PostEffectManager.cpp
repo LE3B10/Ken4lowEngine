@@ -31,17 +31,6 @@
 namespace Ken4lowEngine
 {
 
-	/// <summary>
-	/// レンダーターゲットのリソース状態を指定した状態に遷移させるラムダ関数。二重バリアを防ぎ、内部状態を同期する。
-	/// </summary>
-	auto Transition = [](PostEffectManager::RenderTarget& rt, D3D12_RESOURCE_STATES newState)
-		{
-			auto dxCommon_ = DirectXCommon::GetInstance();
-			if (rt.state == newState) return;                    // 二重バリア防止
-			dxCommon_->ResourceTransition(rt.resource.Get(), rt.state, newState);
-			rt.state = newState;                                 // 状態を必ず同期
-		};
-
 	/// -------------------------------------------------------------
 	///				　	　シングルトンインスタンス
 	/// -------------------------------------------------------------
@@ -128,7 +117,7 @@ namespace Ken4lowEngine
 		for (auto& rt : renderTargets_) {
 			rt.resource.Reset();
 			rt.rtvHandle = {};
-			rt.state = D3D12_RESOURCE_STATE_COMMON;
+			rt.currentState_ = D3D12_RESOURCE_STATE_COMMON;
 			// srvIndex/uavIndex を Free できる設計ならここでFree（後述）
 		}
 		renderTargets_.clear();
@@ -144,6 +133,29 @@ namespace Ken4lowEngine
 
 		camera_ = nullptr;
 		dxCommon_ = nullptr;
+	}
+
+	/// -------------------------------------------------------------
+	///				　		ResourceState遷移
+	/// -------------------------------------------------------------
+	void PostEffectManager::TransitionTo(RenderTarget& renderTarget, ID3D12GraphicsCommandList* commandList, D3D12_RESOURCE_STATES nextState)
+	{
+		if (!commandList || !renderTarget.resource || renderTarget.currentState_ == nextState)
+		{
+			return;
+		}
+
+		D3D12_RESOURCE_BARRIER barrier{};
+		barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+		barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+		barrier.Transition.pResource = renderTarget.resource.Get();
+		barrier.Transition.StateBefore = renderTarget.currentState_;
+		barrier.Transition.StateAfter = nextState;
+		barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+
+		// GameRenderTarget自身の状態を元にBarrierを張り、BackBufferの状態遷移と混同しないようにする。
+		commandList->ResourceBarrier(1, &barrier);
+		renderTarget.currentState_ = nextState;
 	}
 
 
@@ -177,9 +189,9 @@ namespace Ken4lowEngine
 			depthState_ = D3D12_RESOURCE_STATE_DEPTH_WRITE;
 		}
 
-		// "A" を構造体経由に置換
+		// 前フレームのImGui表示でSRVのままでも、描画前に必ずRTVへ戻す
 		auto& rt = renderTargets_[0];
-		Transition(rt, D3D12_RESOURCE_STATE_RENDER_TARGET);
+		TransitionTo(rt, commandList, D3D12_RESOURCE_STATE_RENDER_TARGET);
 
 		// レンダーターゲットを設定
 		commandList->OMSetRenderTargets(1, &rt.rtvHandle, false, &dsvHandle);
@@ -210,8 +222,9 @@ namespace Ken4lowEngine
 			depthState_ = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
 		}
 
+		auto commandList = dxCommon_->GetCommandManager()->GetCommandList();
 		auto& rt = renderTargets_[0];
-		Transition(rt, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+		TransitionTo(rt, commandList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 
 		// GPU が完了するのを待つ (デバッグ用)
 		dxCommon_->GetCommandManager()->ExecuteAndWait();
@@ -249,7 +262,7 @@ namespace Ken4lowEngine
 			UAVManager::GetInstance()->CreateSRVForTexture2DOnThisHeap(rt.srvIndexOnUavHeap, rt.resource.Get(),
 				DXGI_FORMAT_R8G8B8A8_UNORM, 1);
 
-			rt.state = D3D12_RESOURCE_STATE_COMMON;
+			rt.currentState_ = D3D12_RESOURCE_STATE_COMMON;
 		}
 
 		// depth作り直し
@@ -282,7 +295,7 @@ namespace Ken4lowEngine
 			auto& rt = renderTargets_[0];
 
 			// GameRenderTargetはBackBufferへコピーせずMain ViewportのImGui::Imageから直接参照する
-			Transition(rt, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+			TransitionTo(rt, commandList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 			return;
 		}
 
@@ -305,15 +318,15 @@ namespace Ken4lowEngine
 
 			if (name == "GrayScaleEffect" || name == "RandomEffect" || name == "DissolveEffect" || name == "VignetteEffect" || name == "GaussianFilterEffect" || name == "RadialBlurEffect" || name == "LuminanceOutlineEffect" || name == "SmoothingEffect" || name == "PixelateEffect" || name == "PlayerHealthPostEffect")
 			{
-				Transition(inRT, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
-				Transition(outRT, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+				TransitionTo(inRT, commandList, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+				TransitionTo(outRT, commandList, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
 
 				// UAV ヒープをセット
 				UAVManager::GetInstance()->PreDispatch();
 
 				postEffects_[name]->Apply(commandList, inRT.srvIndexOnUavHeap, outRT.uavIndex, dsvSrvIndex_);
 
-				Transition(outRT, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+				TransitionTo(outRT, commandList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 			}
 			else
 			{
@@ -321,15 +334,15 @@ namespace Ken4lowEngine
 				SRVManager::GetInstance()->PreDraw();
 
 				// 書き込み
-				Transition(inRT, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-				Transition(outRT, D3D12_RESOURCE_STATE_RENDER_TARGET);
+				TransitionTo(inRT, commandList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+				TransitionTo(outRT, commandList, D3D12_RESOURCE_STATE_RENDER_TARGET);
 				commandList->OMSetRenderTargets(1, &outRT.rtvHandle, false, &dsvHandle);
 
 				// エフェクト適用
 				postEffects_[name]->Apply(commandList, inRT.srvIndex, outRT.uavIndex, dsvSrvIndex_);
 
 				commandList->OMSetRenderTargets(0, nullptr, false, nullptr); // 出力レンダーテクスチャを解除
-				Transition(outRT, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+				TransitionTo(outRT, commandList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 			}
 
 			// ping-pong するためにインデックスを入れ替え
@@ -344,8 +357,8 @@ namespace Ken4lowEngine
 		{
 			// BackBufferではなくGameRenderTargetへコピーしてDockウィンドウとの重なりを避ける
 			SRVManager::GetInstance()->PreDraw();
-			Transition(finalRT, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-			Transition(gameRT, D3D12_RESOURCE_STATE_RENDER_TARGET);
+			TransitionTo(finalRT, commandList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+			TransitionTo(gameRT, commandList, D3D12_RESOURCE_STATE_RENDER_TARGET);
 			commandList->OMSetRenderTargets(1, &gameRT.rtvHandle, false, nullptr);
 			commandList->SetPipelineState(pipelineBuilder_->GetCopyPipelineState().Get());
 			commandList->SetGraphicsRootSignature(pipelineBuilder_->GetCopyRootSignature().Get());
@@ -355,7 +368,7 @@ namespace Ken4lowEngine
 		}
 
 		// Main ViewportのImGui::Imageが読めるよう最終GameRenderTargetをSRV状態にしておく
-		Transition(gameRT, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+		TransitionTo(gameRT, commandList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 
 	}
 
@@ -365,7 +378,7 @@ namespace Ken4lowEngine
 		auto& gameRT = renderTargets_[0];
 
 		// 2Dスプライトはポストエフェクト後のGameRenderTargetへ重ねる
-		Transition(gameRT, D3D12_RESOURCE_STATE_RENDER_TARGET);
+		TransitionTo(gameRT, commandList, D3D12_RESOURCE_STATE_RENDER_TARGET);
 		commandList->OMSetRenderTargets(1, &gameRT.rtvHandle, false, nullptr);
 		commandList->RSSetViewports(1, &viewport);
 		commandList->RSSetScissorRects(1, &scissorRect);
@@ -373,10 +386,11 @@ namespace Ken4lowEngine
 
 	void PostEffectManager::EndGameRenderTargetOverlay()
 	{
+		auto commandList = dxCommon_->GetCommandManager()->GetCommandList();
 		auto& gameRT = renderTargets_[0];
 
 		// ImGui::Imageがこの後SRVとして読むためGameRenderTargetを読み取り状態へ戻す
-		Transition(gameRT, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+		TransitionTo(gameRT, commandList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 	}
 
 	void PostEffectManager::BindSceneRenderTarget()
@@ -391,7 +405,7 @@ namespace Ken4lowEngine
 		}
 
 		auto& rt = renderTargets_[0];
-		Transition(rt, D3D12_RESOURCE_STATE_RENDER_TARGET);
+		TransitionTo(rt, commandList, D3D12_RESOURCE_STATE_RENDER_TARGET);
 
 		commandList->OMSetRenderTargets(1, &rt.rtvHandle, false, &dsvHandle);
 		commandList->RSSetViewports(1, &viewport);
