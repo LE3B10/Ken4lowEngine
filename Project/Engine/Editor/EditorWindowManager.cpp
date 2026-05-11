@@ -2,6 +2,7 @@
 
 #include "ImGuiManager.h"
 #include "PostEffectManager.h"
+#include <Input.h>
 
 #include <algorithm>
 
@@ -155,6 +156,9 @@ namespace Ken4lowEngine
 #ifdef USE_IMGUI
 		if (!windowState_.showMainViewport)
 		{
+			// Main Viewport非表示中はゲーム側へエディタマウス入力を渡さない
+			mainViewportRect_.valid = false;
+			Input::GetInstance()->SetEditorViewportMousePosition({ 0.0f, 0.0f }, false);
 			return;
 		}
 
@@ -184,6 +188,15 @@ namespace Ken4lowEngine
 			ImGui::SetCursorPos(ImVec2(cursorStart.x + imageOffset.x, cursorStart.y + imageOffset.y));
 			mainViewportScreenPosition_ = { screenStart.x + imageOffset.x, screenStart.y + imageOffset.y };
 			mainViewportSize_ = { imageSize.x, imageSize.y };
+			// ImGui::Imageで描くゲーム画面のスクリーン矩形を入力変換用に保存する
+			mainViewportRect_.screenMin = mainViewportScreenPosition_;
+			mainViewportRect_.screenMax = { mainViewportScreenPosition_.x + imageSize.x, mainViewportScreenPosition_.y + imageSize.y };
+			mainViewportRect_.imageSize = mainViewportSize_;
+			mainViewportRect_.valid = imageSize.x > 1.0f && imageSize.y > 1.0f;
+
+			Vector2 gameMouse = {};
+			const bool gameMouseValid = GetMousePositionInGameViewport(gameMouse);
+			Input::GetInstance()->SetEditorViewportMousePosition(gameMouse, gameMouseValid);
 
 			const D3D12_GPU_DESCRIPTOR_HANDLE gameSrv = postEffectManager->GetGameRenderTargetSrvHandleGPU();
 			if (gameSrv.ptr != 0 && imageSize.x > 1.0f && imageSize.y > 1.0f)
@@ -196,6 +209,12 @@ namespace Ken4lowEngine
 				ImGui::TextUnformatted("GameRenderTarget SRV is not ready.");
 			}
 		}
+		else
+		{
+			// Main Viewportウィンドウが折りたたまれた場合もゲーム側のマウス入力を無効化する
+			mainViewportRect_.valid = false;
+			Input::GetInstance()->SetEditorViewportMousePosition({ 0.0f, 0.0f }, false);
+		}
 		ImGui::End();
 #endif // USE_IMGUI
 	}
@@ -204,6 +223,46 @@ namespace Ken4lowEngine
 	{
 		// 入力系はこの入口でスクリーン座標からMain Viewportローカル座標へ変換する
 		return { screenPosition.x - mainViewportScreenPosition_.x, screenPosition.y - mainViewportScreenPosition_.y };
+	}
+
+	bool EditorWindowManager::GetMousePositionInGameViewport(Vector2& outMouse) const
+	{
+#ifdef USE_IMGUI
+		constexpr float kGameBaseWidth = 1920.0f;
+		constexpr float kGameBaseHeight = 1080.0f;
+
+		outMouse = { 0.0f, 0.0f };
+		if (!mainViewportRect_.valid)
+		{
+			return false;
+		}
+
+		const ImGuiIO& io = ImGui::GetIO();
+		if (io.WantCaptureMouse)
+		{
+			// ImGui操作中はゲーム側へマウス入力を渡さない
+			return false;
+		}
+
+		const ImVec2 mouseScreen = ImGui::GetMousePos();
+		const Vector2 mouse = { mouseScreen.x, mouseScreen.y };
+		if (mouse.x < mainViewportRect_.screenMin.x || mouse.y < mainViewportRect_.screenMin.y ||
+			mouse.x > mainViewportRect_.screenMax.x || mouse.y > mainViewportRect_.screenMax.y)
+		{
+			return false;
+		}
+
+		// 16:9表示矩形内のローカル座標をゲーム内部の基準解像度へスケール変換する
+		const Vector2 localMouse = { mouse.x - mainViewportRect_.screenMin.x, mouse.y - mainViewportRect_.screenMin.y };
+		outMouse = {
+			(localMouse.x / mainViewportRect_.imageSize.x) * kGameBaseWidth,
+			(localMouse.y / mainViewportRect_.imageSize.y) * kGameBaseHeight
+		};
+		return true;
+#else
+		outMouse = { 0.0f, 0.0f };
+		return false;
+#endif // USE_IMGUI
 	}
 
 	void EditorWindowManager::DrawWorldOutliner()
