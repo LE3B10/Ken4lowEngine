@@ -268,100 +268,106 @@ namespace Ken4lowEngine
 	void LightManager::DrawImGui()
 	{
 #ifdef USE_IMGUI
-		if (ImGui::CollapsingHeader("Punctual Lights"))
+		// ライト調整UIを暗黙のDebugウィンドウではなくDocking可能な通常ウィンドウとして描画する
+		ImGui::SetNextWindowSize(ImVec2(360.0f, 480.0f), ImGuiCond_FirstUseEver);
+		if (ImGui::Begin("Light Editor"))
 		{
-
-			// 追加ボタン
-			if (ImGui::Button("+ Add Light"))
+			if (ImGui::CollapsingHeader("Punctual Lights"))
 			{
-				PunctualLightGPU L{};
-				L.lightType = 1;                 // 既定: Directional
-				L.color = { 1,1,1,1 };
-				L.intensity = 1.0f;
-				L.direction = { 0,-1,0 };          // 下向き
-				punctualLights_.push_back(L);
-			}
-			ImGui::SameLine();
-			if (ImGui::Button("Clear All"))
-			{
-				punctualLights_.clear();
-			}
 
-			// 一覧
-			for (size_t i = 0; i < punctualLights_.size(); ++i)
-			{
-				ImGui::PushID(static_cast<int>(i));
-				auto& L = punctualLights_[i];
-
-				ImGui::Separator();
-				ImGui::Text("Light #%zu", i);
-
-				// 種類
-				int type = static_cast<int>(L.lightType);
-				const char* types[] = { "None","Directional","Point","Spot" };
-				if (ImGui::Combo("Type", &type, types, IM_ARRAYSIZE(types)))
-					L.lightType = static_cast<uint32_t>(type);
-
-				// 共通
-				ImGui::ColorEdit4("Color", &L.color.x);
-				ImGui::SliderFloat("Intensity", &L.intensity, 0.0f, 20.0f);
-
-				// 種類別
-				if (L.lightType == 1)
+				// 追加ボタン
+				if (ImGui::Button("+ Add Light"))
 				{
-					Vector3 eulerDeg = DirectionToEulerDeg(L.direction);
+					PunctualLightGPU L{};
+					L.lightType = 1;                 // 既定: Directional
+					L.color = { 1,1,1,1 };
+					L.intensity = 1.0f;
+					L.direction = { 0,-1,0 };          // 下向き
+					punctualLights_.push_back(L);
+				}
+				ImGui::SameLine();
+				if (ImGui::Button("Clear All"))
+				{
+					punctualLights_.clear();
+				}
 
-					bool changed = false;
-					changed |= ImGui::DragFloat("Pitch (X)", &eulerDeg.x, 0.5f, -89.0f, 89.0f, "%.1f deg");
-					changed |= ImGui::DragFloat("Yaw (Y)", &eulerDeg.y, 0.5f, -180.0f, 180.0f, "%.1f deg");
+				// 一覧
+				for (size_t i = 0; i < punctualLights_.size(); ++i)
+				{
+					ImGui::PushID(static_cast<int>(i));
+					auto& L = punctualLights_[i];
 
-					// Roll は光の向き自体には効かないので表示だけにするか、隠す
-					ImGui::BeginDisabled();
-					ImGui::DragFloat("Roll (Z)", &eulerDeg.z, 0.5f, -180.0f, 180.0f, "%.1f deg");
-					ImGui::EndDisabled();
+					ImGui::Separator();
+					ImGui::Text("Light #%zu", i);
 
-					if (changed)
+					// 種類
+					int type = static_cast<int>(L.lightType);
+					const char* types[] = { "None","Directional","Point","Spot" };
+					if (ImGui::Combo("Type", &type, types, IM_ARRAYSIZE(types)))
+						L.lightType = static_cast<uint32_t>(type);
+
+					// 共通
+					ImGui::ColorEdit4("Color", &L.color.x);
+					ImGui::SliderFloat("Intensity", &L.intensity, 0.0f, 20.0f);
+
+					// 種類別
+					if (L.lightType == 1)
 					{
-						L.direction = EulerDegToDirection(eulerDeg);
+						Vector3 eulerDeg = DirectionToEulerDeg(L.direction);
+
+						bool changed = false;
+						changed |= ImGui::DragFloat("Pitch (X)", &eulerDeg.x, 0.5f, -89.0f, 89.0f, "%.1f deg");
+						changed |= ImGui::DragFloat("Yaw (Y)", &eulerDeg.y, 0.5f, -180.0f, 180.0f, "%.1f deg");
+
+						// Roll は光の向き自体には効かないので表示だけにするか、隠す
+						ImGui::BeginDisabled();
+						ImGui::DragFloat("Roll (Z)", &eulerDeg.z, 0.5f, -180.0f, 180.0f, "%.1f deg");
+						ImGui::EndDisabled();
+
+						if (changed)
+						{
+							L.direction = EulerDegToDirection(eulerDeg);
+						}
+
+						ImGui::Text("Dir = (%.3f, %.3f, %.3f)", L.direction.x, L.direction.y, L.direction.z);
+					}
+					else if (L.lightType == 2)
+					{
+						// Point
+						ImGui::SliderFloat3("Position", &L.position.x, -50.0f, 50.0f);
+						ImGui::SliderFloat("Radius", &L.radius, 0.0f, 200.0f);
+						ImGui::SliderFloat("Decay", &L.decay, 0.0f, 10.0f);
+					}
+					else if (L.lightType == 3)
+					{
+						// Spot
+						ImGui::SliderFloat3("Position", &L.position.x, -50.0f, 50.0f);
+						if (ImGui::SliderFloat3("Direction", &L.direction.x, -1.0f, 1.0f))
+						{
+							L.direction = Vector3::Normalize(L.direction);
+						}
+						ImGui::SliderFloat("Distance", &L.distance, 0.0f, 200.0f);
+						ImGui::SliderFloat("Decay", &L.decay, 0.0f, 10.0f);
+						ImGui::SliderFloat("cosInner", &L.cosFalloffStart, 0.0f, 1.0f);
+						ImGui::SliderFloat("cosOuter", &L.cosAngle, 0.0f, 1.0f);
+						if (L.cosFalloffStart < L.cosAngle) L.cosFalloffStart = L.cosAngle; // 内>=外
 					}
 
-					ImGui::Text("Dir = (%.3f, %.3f, %.3f)", L.direction.x, L.direction.y, L.direction.z);
-				}
-				else if (L.lightType == 2)
-				{
-					// Point
-					ImGui::SliderFloat3("Position", &L.position.x, -50.0f, 50.0f);
-					ImGui::SliderFloat("Radius", &L.radius, 0.0f, 200.0f);
-					ImGui::SliderFloat("Decay", &L.decay, 0.0f, 10.0f);
-				}
-				else if (L.lightType == 3)
-				{
-					// Spot
-					ImGui::SliderFloat3("Position", &L.position.x, -50.0f, 50.0f);
-					if (ImGui::SliderFloat3("Direction", &L.direction.x, -1.0f, 1.0f))
+					if (ImGui::Button("Remove"))
 					{
-						L.direction = Vector3::Normalize(L.direction);
+						punctualLights_.erase(punctualLights_.begin() + i);
+						ImGui::PopID();
+						--i; // 次の要素が詰まるのでインデックス調整
+						continue;
 					}
-					ImGui::SliderFloat("Distance", &L.distance, 0.0f, 200.0f);
-					ImGui::SliderFloat("Decay", &L.decay, 0.0f, 10.0f);
-					ImGui::SliderFloat("cosInner", &L.cosFalloffStart, 0.0f, 1.0f);
-					ImGui::SliderFloat("cosOuter", &L.cosAngle, 0.0f, 1.0f);
-					if (L.cosFalloffStart < L.cosAngle) L.cosFalloffStart = L.cosAngle; // 内>=外
-				}
-
-				if (ImGui::Button("Remove"))
-				{
-					punctualLights_.erase(punctualLights_.begin() + i);
 					ImGui::PopID();
-					--i; // 次の要素が詰まるのでインデックス調整
-					continue;
 				}
-				ImGui::PopID();
-			}
 
-			// 参考表示（GPUへは UpdatePunctualLight で同期）
-			ImGui::Text("Active Lights (type!=0): will be uploaded");
+				// 参考表示（GPUへは UpdatePunctualLight で同期）
+				ImGui::Text("Active Lights (type!=0): will be uploaded");
+			}
 		}
+		ImGui::End();
 #endif // USE_IMGUI
 	}
 
