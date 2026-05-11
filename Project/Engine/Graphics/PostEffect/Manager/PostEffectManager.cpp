@@ -3,6 +3,8 @@
 #include "WinApp.h"
 #include "DirectXCommon.h"
 #include <CameraManager.h>
+#include <Camera.h>
+#include <DebugCamera.h>
 #include "SRVManager.h"
 #include <UAVManager.h>
 #include <DSVManager.h>
@@ -57,9 +59,9 @@ namespace Ken4lowEngine
 		renderTargets_[0].debugName = L"SceneRenderTarget_GameViewportRenderTarget";
 		renderTargets_[1].debugName = L"PostEffectRenderTarget";
 
-		// GameViewportRenderTargetはSprite/UI/Fontの基準解像度に合わせて1920x1080固定で確保する
-		renderTargetWidth_ = kFixedGameRenderTargetWidth_;
-		renderTargetHeight_ = kFixedGameRenderTargetHeight_;
+		// 初期GameViewportRenderTargetは既存UI/Sprite互換の基準解像度から開始する。
+		renderTargetWidth_ = kDefaultGameRenderTargetWidth_;
+		renderTargetHeight_ = kDefaultGameRenderTargetHeight_;
 
 		// RTVとSRVの確保
 		AllocateRTV_DSV_SRV_UAV();
@@ -255,26 +257,30 @@ namespace Ken4lowEngine
 	/// -------------------------------------------------------------
 	void PostEffectManager::Resize(uint32_t width, uint32_t height)
 	{
-		(void)width;
-		(void)height;
+		if (width == 0 || height == 0)
+		{
+			// Main Viewportが折りたたまれている間は0サイズRenderTargetを作らない。
+			return;
+		}
 
-		// Main Viewport実サイズ追従はまだ行わず、GameViewportRenderTargetを1920x1080固定で維持する。
-		const uint32_t fixedWidth = kFixedGameRenderTargetWidth_;
-		const uint32_t fixedHeight = kFixedGameRenderTargetHeight_;
-		if (renderTargetWidth_ == fixedWidth && renderTargetHeight_ == fixedHeight && depthResource_) return;
+		if (renderTargetWidth_ == width && renderTargetHeight_ == height && depthResource_)
+		{
+			return;
+		}
 
-		// GameRenderTargetの現在サイズを固定基準解像度として記録する
-		renderTargetWidth_ = fixedWidth;
-		renderTargetHeight_ = fixedHeight;
+		// GameRenderTargetの現在サイズをMain Viewportの実ピクセルサイズとして記録する。
+		renderTargetWidth_ = width;
+		renderTargetHeight_ = height;
 
-		SetViewportAndScissorRect(fixedWidth, fixedHeight);
+		SetViewportAndScissorRect(width, height);
+		UpdateCameraAspectRatio(width, height);
 
 		// RTを作り直して、同じdescriptor indexに上書き
 		for (uint32_t i = 0; i < static_cast<uint32_t>(renderTargets_.size()); ++i)
 		{
 			auto& rt = renderTargets_[i];
 			rt.resource.Reset();
-			rt.resource = CreateRenderTextureResource(fixedWidth, fixedHeight,
+			rt.resource = CreateRenderTextureResource(width, height,
 				DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, kRenderTextureClearColor_);
 			// Resize後もRenderTarget名を張り直し、Unnamed Resourceの再発を防ぐ。
 			rt.resource->SetName(rt.debugName);
@@ -296,7 +302,7 @@ namespace Ken4lowEngine
 
 		// depth作り直し
 		depthResource_.Reset();
-		depthResource_ = CreateDepthBufferResource(fixedWidth, fixedHeight);
+		depthResource_ = CreateDepthBufferResource(width, height);
 		// PostEffect用深度もResize後に名前を付け直してDebugLayerで追跡可能にする。
 		depthResource_->SetName(L"PostEffectManager DepthBuffer");
 		DSVManager::GetInstance()->CreateDSVForTexture2D(depthDsvIndex_, depthResource_.Get());
@@ -310,7 +316,32 @@ namespace Ken4lowEngine
 
 
 	/// -------------------------------------------------------------
-	///				　	ポストエフェクトの描画適用処理
+	///				　	Camera Aspect比更新
+	/// -------------------------------------------------------------
+	void PostEffectManager::UpdateCameraAspectRatio(uint32_t width, uint32_t height)
+	{
+		if (height == 0)
+		{
+			return;
+		}
+
+		const float aspectRatio = static_cast<float>(width) / static_cast<float>(height);
+		auto* cameraManager = CameraManager::GetInstance();
+		if (Camera* mainCamera = cameraManager->GetMainCamera())
+		{
+			// Main CameraのProjectionをGameViewportRenderTargetのAspect比へ追従させる。
+			mainCamera->SetAspectRatio(aspectRatio);
+		}
+		if (DebugCamera* debugCamera = cameraManager->GetDebugCamera())
+		{
+			// Debug Camera使用時も同じ描画AspectでFrustumを更新する。
+			debugCamera->SetAspectRatio(aspectRatio);
+		}
+	}
+
+
+	/// -------------------------------------------------------------
+	///					　	ポストエフェクトの描画適用処理
 	/// -------------------------------------------------------------
 	void PostEffectManager::RenderPostEffect()
 	{
@@ -510,11 +541,8 @@ namespace Ken4lowEngine
 
 	void PostEffectManager::RequestGameRenderTargetResize(uint32_t width, uint32_t height)
 	{
-		(void)width;
-		(void)height;
-
-		// Main Viewport実サイズ追従は未実装のため、外部からのリサイズ要求でも1920x1080固定を保つ
-		Resize(kFixedGameRenderTargetWidth_, kFixedGameRenderTargetHeight_);
+		// Main Viewportの表示可能サイズが変わった時だけGameViewportRenderTargetを作り直す。
+		Resize(width, height);
 	}
 
 	/// -------------------------------------------------------------

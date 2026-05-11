@@ -4,6 +4,7 @@
 #include <ResourceManager.h>
 #include <UAVManager.h>
 #include <TextureManager.h>
+#include <PostEffectManager.h>
 
 #include <cassert>
 
@@ -105,9 +106,9 @@ namespace Ken4lowEngine
 		const uint32_t threadGroupSizeX = 8;
 		const uint32_t threadGroupSizeY = 8;
 
-		// Compute Dispatch範囲は固定GameViewportRenderTargetの1920x1080に合わせる
-		uint32_t width = 1920;
-		uint32_t height = 1080;
+		// Compute Dispatch範囲を現在のGameViewportRenderTargetサイズに合わせる。
+		uint32_t width = PostEffectManager::GetInstance()->GetGameRenderTargetWidth();
+		uint32_t height = PostEffectManager::GetInstance()->GetGameRenderTargetHeight();
 
 		uint32_t groupCountX = (width + threadGroupSizeX - 1) / threadGroupSizeX;
 		uint32_t groupCountY = (height + threadGroupSizeY - 1) / threadGroupSizeY;

@@ -4,6 +4,7 @@
 #include <ResourceManager.h>
 #include <UAVManager.h>
 #include <GameTimer.h>
+#include <PostEffectManager.h>
 
 #ifdef USE_IMGUI
 #include <imgui.h>
@@ -34,8 +35,10 @@ namespace Ken4lowEngine
 		// ランダムエフェクトの設定
 		randomSetting_->time = 0.0f; // 時間
 		randomSetting_->useMultiply = false; // 乗算を使用するかどうか
-		// ノイズ計算の基準サイズも固定GameViewportRenderTargetの1920x1080に合わせる
-		randomSetting_->textureSize = Vector2(1920.0f, 1080.0f);
+		// ノイズ計算の基準サイズも現在のGameViewportRenderTargetサイズに合わせる。
+		randomSetting_->textureSize = Vector2(
+			static_cast<float>(PostEffectManager::GetInstance()->GetGameRenderTargetWidth()),
+			static_cast<float>(PostEffectManager::GetInstance()->GetGameRenderTargetHeight()));
 
 		// 名前の設定
 		constantBuffer_->SetName(L"RandomEffect_ConstantBuffer");
@@ -94,9 +97,9 @@ namespace Ken4lowEngine
 		const uint32_t threadGroupSizeY = 8;
 
 		// いまの画面サイズを使う
-		// Compute Dispatch範囲は固定GameViewportRenderTargetの1920x1080に合わせる
-		uint32_t width = 1920;
-		uint32_t height = 1080;
+		// Compute Dispatch範囲を現在のGameViewportRenderTargetサイズに合わせる。
+		uint32_t width = PostEffectManager::GetInstance()->GetGameRenderTargetWidth();
+		uint32_t height = PostEffectManager::GetInstance()->GetGameRenderTargetHeight();
 
 		// （textureSize を残すなら毎回更新しておく）
 		randomSetting_->textureSize = Vector2((float)width, (float)height);

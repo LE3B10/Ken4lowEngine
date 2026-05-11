@@ -320,7 +320,7 @@ namespace Ken4lowEngine
 	{
 		if (editorViewportMouseOverrideEnabled_)
 		{
-			// Editor座標が有効な時だけゲーム内部1920x1080基準の座標を返す
+			// Editor座標が有効な時だけ現在のGameViewportRenderTarget基準の座標を返す
 			return editorViewportMousePositionValid_ ? editorViewportMousePosition_ : Vector2(-1.0f, -1.0f);
 		}
 

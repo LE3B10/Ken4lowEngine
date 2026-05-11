@@ -196,6 +196,11 @@ private: /// ---------- メンバ関数 ---------- ///
 	/// </summary>
 	void SetViewportAndScissorRect(uint32_t width, uint32_t height);
 
+	/// <summary>
+	/// GameViewportRenderTargetのAspect比をCameraへ反映します。
+	/// </summary>
+	void UpdateCameraAspectRatio(uint32_t width, uint32_t height);
+
 private: /// ---------- メンバ変数 ---------- ///
 
 	// DirectX共通クラス
@@ -218,9 +223,9 @@ private: /// ---------- メンバ変数 ---------- ///
 	// ポストエフェクトのカテゴリ分類（名前 → カテゴリ名）
 	std::unordered_map<std::string, std::string> effectCategory_;
 
-	// GameViewportRenderTargetはゲーム側の基準解像度に合わせて1920x1080固定にする
-	static constexpr uint32_t kFixedGameRenderTargetWidth_ = 1920;
-	static constexpr uint32_t kFixedGameRenderTargetHeight_ = 1080;
+	// 初期GameViewportRenderTargetは既存UI/Sprite互換の1920x1080から開始する。
+	static constexpr uint32_t kDefaultGameRenderTargetWidth_ = 1920;
+	static constexpr uint32_t kDefaultGameRenderTargetHeight_ = 1080;
 
 	// レンダーテクスチャのクリアカラー
 	const Vector4 kRenderTextureClearColor_ = { 0.08f, 0.08f, 0.18f, 1.0f }; // 分かりやすいように一旦赤色にする
@@ -241,8 +246,8 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	static constexpr int kPostRTCount = 1; // ポストエフェクト用のレンダーテクスチャ数
 	std::vector<RenderTarget> renderTargets_; // レンダーテクスチャのリスト
-	uint32_t renderTargetWidth_ = kFixedGameRenderTargetWidth_; // Main Viewportへ表示するGameRenderTarget幅
-	uint32_t renderTargetHeight_ = kFixedGameRenderTargetHeight_; // Main Viewportへ表示するGameRenderTarget高さ
+	uint32_t renderTargetWidth_ = kDefaultGameRenderTargetWidth_; // Main Viewportへ表示するGameRenderTarget幅
+	uint32_t renderTargetHeight_ = kDefaultGameRenderTargetHeight_; // Main Viewportへ表示するGameRenderTarget高さ
 
 	// 深度ステンシルビューのインデックス
 	uint32_t depthDsvIndex_ = UINT32_MAX;

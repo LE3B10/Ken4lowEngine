@@ -58,6 +58,22 @@ namespace Ken4lowEngine
 	}
 
 	/// -------------------------------------------------------------
+	///						Aspect比設定
+	/// -------------------------------------------------------------
+	void Camera::SetAspectRatio(const float aspectRatio)
+	{
+		if (aspectRatio <= 0.0f)
+		{
+			return;
+		}
+
+		// RenderTargetのAspect変更を次フレーム待ちにせずProjectionへ即時反映する。
+		aspectRatio_ = aspectRatio;
+		projectionMatrix_ = Matrix4x4::MakePerspectiveFovMatrix(fovY_, aspectRatio_, nearClip_, farClip_);
+		viewProjectionMatrix_ = Matrix4x4::Multiply(viewMatrix_, projectionMatrix_);
+	}
+
+	/// -------------------------------------------------------------
 	///						ImGuiの描画
 	/// -------------------------------------------------------------
 	void Camera::DrawImGui()

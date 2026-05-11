@@ -51,6 +51,22 @@ void DebugCamera::Finalize()
 }
 
 /// -------------------------------------------------------------
+///					Aspect比設定
+/// -------------------------------------------------------------
+void DebugCamera::SetAspectRatio(float aspectRatio)
+{
+	if (aspectRatio <= 0.0f)
+	{
+		return;
+	}
+
+	// RenderTargetのAspect変更をDebugCameraのProjectionへ即時反映する。
+	aspectRatio_ = aspectRatio;
+	UpdateViewProjection();
+}
+
+
+/// -------------------------------------------------------------
 ///							　更新処理
 /// -------------------------------------------------------------
 void DebugCamera::Update()

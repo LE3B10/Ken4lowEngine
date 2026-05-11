@@ -3,6 +3,7 @@
 #include <PostEffectPipelineBuilder.h>
 #include <ResourceManager.h>
 #include <UAVManager.h>
+#include <PostEffectManager.h>
 
 #ifdef USE_IMGUI
 #include <imgui.h>
@@ -55,9 +56,9 @@ void PlayerHealthPostEffect::Apply(ID3D12GraphicsCommandList* commandList, uint3
 
 	const uint32_t threadGroupSizeX = 8;
 	const uint32_t threadGroupSizeY = 8;
-	// Compute Dispatch範囲は固定GameViewportRenderTargetの1920x1080に合わせる
-	const uint32_t width = 1920;
-	const uint32_t height = 1080;
+	// Compute Dispatch範囲を現在のGameViewportRenderTargetサイズに合わせる。
+	const uint32_t width = PostEffectManager::GetInstance()->GetGameRenderTargetWidth();
+	const uint32_t height = PostEffectManager::GetInstance()->GetGameRenderTargetHeight();
 	const uint32_t groupCountX = (width + threadGroupSizeX - 1) / threadGroupSizeX;
 	const uint32_t groupCountY = (height + threadGroupSizeY - 1) / threadGroupSizeY;
 
