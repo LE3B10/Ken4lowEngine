@@ -760,14 +760,14 @@ void FadeManager::Draw2DSprites()
 void FadeManager::DrawImGui()
 {
 #ifdef USE_IMGUI
-	// WindowメニューのFadeManager - Tile Fade表示フラグを×ボタン状態と共有する
+	// WindowメニューのFadeManager表示フラグを×ボタン状態と共有する
 	auto& editorWindowState = K4E::EditorWindowManager::GetInstance()->GetWindowState();
-	if (!editorWindowState.showTileFadeDebug)
+	if (!editorWindowState.showFadeManager)
 	{
 		return;
 	}
 
-	ImGui::Begin("FadeManager - Tile Fade", &editorWindowState.showTileFadeDebug);
+	ImGui::Begin("FadeManager", &editorWindowState.showFadeManager);
 
 	const char* st =
 		(state_ == State::None) ? "演出していない待機状態" :
