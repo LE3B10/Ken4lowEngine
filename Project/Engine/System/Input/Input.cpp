@@ -188,7 +188,13 @@ namespace Ken4lowEngine
 	/// -------------------------------------------------------------
 	bool Input::PushKey(BYTE keyNumber) const
 	{
-		return key[keyNumber] != 0;
+		if (!CanUseGameKeyboardInput(keyNumber))
+		{
+			// Editor操作中でもEscだけは既存Scene処理へ通して終了確認/Pauseを壊さない。
+			return false;
+		}
+
+		return PushRawKey(keyNumber);
 	}
 
 
@@ -197,6 +203,24 @@ namespace Ken4lowEngine
 	/// -------------------------------------------------------------
 	bool Input::TriggerKey(BYTE keyNumber) const
 	{
+		if (!CanUseGameKeyboardInput(keyNumber))
+		{
+			// Editor操作中でもEscだけは既存Scene処理へ通して終了確認/Pauseを壊さない。
+			return false;
+		}
+
+		return TriggerRawKey(keyNumber);
+	}
+
+	bool Input::PushRawKey(BYTE keyNumber) const
+	{
+		// Editor専用ショートカットはゲーム入力抑制状態に影響されず取得する。
+		return key[keyNumber] != 0;
+	}
+
+	bool Input::TriggerRawKey(BYTE keyNumber) const
+	{
+		// Editor専用ショートカットはゲーム入力抑制状態に影響されず取得する。
 		return key[keyNumber] != 0 && keyPre[keyNumber] == 0;
 	}
 
@@ -220,9 +244,9 @@ namespace Ken4lowEngine
 	/// -------------------------------------------------------------
 	bool Input::PushMouse(int button) const
 	{
-		if (editorViewportMouseOverrideEnabled_ && !editorViewportMousePositionValid_)
+		if (!CanUseGameMouseInput())
 		{
-			// Main Viewport外またはImGui操作中のマウス押下はゲーム入力へ渡さない
+			// Editor側でゲーム入力が無効な間はマウス押下をゲームへ渡さない。
 			return false;
 		}
 
@@ -240,9 +264,9 @@ namespace Ken4lowEngine
 	/// -------------------------------------------------------------
 	bool Input::TriggerMouse(int button) const
 	{
-		if (editorViewportMouseOverrideEnabled_ && !editorViewportMousePositionValid_)
+		if (!CanUseGameMouseInput())
 		{
-			// Main Viewport外またはImGui操作中のマウストリガーはゲーム入力へ渡さない
+			// Editor側でゲーム入力が無効な間はマウストリガーをゲームへ渡さない。
 			return false;
 		}
 
@@ -260,9 +284,9 @@ namespace Ken4lowEngine
 	/// -------------------------------------------------------------
 	bool Input::ReleaseMouse(int button) const
 	{
-		if (editorViewportMouseOverrideEnabled_ && !editorViewportMousePositionValid_)
+		if (!CanUseGameMouseInput())
 		{
-			// Main Viewport外またはImGui操作中のマウスリリースはゲーム入力へ渡さない
+			// Editor側でゲーム入力が無効な間はマウスリリースをゲームへ渡さない。
 			return false;
 		}
 
@@ -320,8 +344,8 @@ namespace Ken4lowEngine
 	{
 		if (editorViewportMouseOverrideEnabled_)
 		{
-			// Editor座標が有効な時だけ現在のGameViewportRenderTarget基準の座標を返す
-			return editorViewportMousePositionValid_ ? editorViewportMousePosition_ : Vector2(-1.0f, -1.0f);
+			// Editor座標と入力許可が有効な時だけGameViewportRenderTarget基準の座標を返す。
+			return CanUseGameMouseInput() ? editorViewportMousePosition_ : Vector2(-1.0f, -1.0f);
 		}
 
 		return Vector2(float(mousePosition_.x), float(mousePosition_.y));
@@ -335,6 +359,41 @@ namespace Ken4lowEngine
 		editorViewportMouseOverrideEnabled_ = true;
 	}
 
+	void Input::SetGameInputEnabled(bool enabled)
+	{
+		// Editorのキャプチャ状態をInputへ渡し、ゲーム側マウス入力の入口を一元化する。
+		gameInputEnabled_ = enabled;
+	}
+
+	int Input::GetMouseMoveX() const
+	{
+		// Main Viewport外やEditor操作中はゲーム側へマウス移動量を渡さない。
+		return CanUseGameMouseInput() ? mouseState_.lX : 0;
+	}
+
+	int Input::GetMouseMoveY() const
+	{
+		// Main Viewport外やEditor操作中はゲーム側へマウス移動量を渡さない。
+		return CanUseGameMouseInput() ? mouseState_.lY : 0;
+	}
+
+	int Input::GetMouseWheel() const
+	{
+		// Main Viewport外やEditor操作中はゲーム側へホイール入力を渡さない。
+		return CanUseGameMouseInput() ? mouseState_.lZ : 0;
+	}
+
+	bool Input::CanUseGameKeyboardInput(BYTE keyNumber) const
+	{
+		// Escは既存Sceneの終了確認/戻る/Pause処理を守るためEditor抑制中でも通す。
+		return keyNumber == DIK_ESCAPE || gameInputEnabled_;
+	}
+
+	bool Input::CanUseGameMouseInput() const
+	{
+		// Editor経由ではキャプチャ許可とMain Viewport有効判定の両方を満たす時だけゲーム入力にする。
+		return gameInputEnabled_ && (!editorViewportMouseOverrideEnabled_ || editorViewportMousePositionValid_);
+	}
 
 	void Input::SetLockCursor(bool lock)
 	{

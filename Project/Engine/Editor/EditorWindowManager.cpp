@@ -1,6 +1,7 @@
 #define NOMINMAX
 #include "EditorWindowManager.h"
 
+#include "EditorInputCaptureController.h"
 #include "ImGuiManager.h"
 #include "PostEffectManager.h"
 #include "GameViewportConstants.h"
@@ -24,6 +25,14 @@ namespace Ken4lowEngine
 	void EditorWindowManager::Draw()
 	{
 #ifdef USE_IMGUI
+		auto* input = Input::GetInstance();
+		const bool shiftPressed = input->PushRawKey(DIK_LSHIFT) || input->PushRawKey(DIK_RSHIFT);
+		if (input->TriggerRawKey(DIK_F8))
+		{
+			// Escの既存挙動を避け、F8だけを入力キャプチャ切り替えに使う。
+			shiftPressed ? EditorInputCaptureController::GetInstance()->ForceReleaseToEditor() : EditorInputCaptureController::GetInstance()->ToggleInputCapture();
+		}
+
 		// UE5風エディタUIの描画順をManagerに集約する
 		DrawMenuBar();
 		if (windowState_.showToolbar)
@@ -135,6 +144,8 @@ namespace Ken4lowEngine
 	void EditorWindowManager::DrawToolbar()
 	{
 #ifdef USE_IMGUI
+		auto* inputCapture = EditorInputCaptureController::GetInstance();
+
 		// ツールバーは将来のPlay/Build/保存などの操作を集約する固定パネルにする
 		ImGuiWindowFlags flags = ImGuiWindowFlags_NoCollapse;
 		if (ImGui::Begin("Toolbar", &windowState_.showToolbar, flags))
@@ -148,6 +159,16 @@ namespace Ken4lowEngine
 			ImGui::Button("Stop");
 			ImGui::SameLine();
 			ImGui::Button("Build");
+			ImGui::SameLine();
+			ImGui::TextUnformatted("|");
+			ImGui::SameLine();
+			ImGui::TextUnformatted(inputCapture->GetInputStatusText());
+			ImGui::SameLine();
+			if (ImGui::Button(inputCapture->IsGameCaptured() ? "Release Input" : "Capture Input"))
+			{
+				// ToolbarボタンからもF8と同じキャプチャ切り替えを実行できるようにする。
+				inputCapture->ToggleInputCapture();
+			}
 		}
 		ImGui::End();
 #endif // USE_IMGUI
@@ -161,6 +182,7 @@ namespace Ken4lowEngine
 			// Main Viewport非表示中はゲーム側へエディタマウス入力を渡さない
 			mainViewportRect_.valid = false;
 			mainViewportRect_.isHovered = false;
+			Input::GetInstance()->SetGameInputEnabled(false);
 			Input::GetInstance()->SetEditorViewportMousePosition({ 0.0f, 0.0f }, false);
 			return;
 		}
@@ -215,7 +237,9 @@ namespace Ken4lowEngine
 			{
 				// InvisibleButtonでMain Viewport全体をアイテム登録してhover判定と境界更新を担わせる。
 				ImGui::InvisibleButton("MainViewportImageArea", availableSize);
-				const bool imguiBlocking = ImGui::IsAnyItemActive() && !ImGui::IsItemActive();
+				const ImGuiIO& io = ImGui::GetIO();
+				const bool mouseCapturedByOther = io.WantCaptureMouse && !ImGui::IsItemHovered();
+				const bool imguiBlocking = (ImGui::IsAnyItemActive() && !ImGui::IsItemActive()) || mouseCapturedByOther || io.WantCaptureKeyboard;
 				mainViewportRect_.isHovered = ImGui::IsItemHovered() && !imguiBlocking; // 他ウィンドウ操作中はゲームクリック扱いにしない
 			}
 			else
@@ -225,6 +249,8 @@ namespace Ken4lowEngine
 
 			Vector2 gameMouse = {};
 			const bool gameMouseValid = GetMousePositionInGameViewport(gameMouse);
+			const bool gameInputEnabled = EditorInputCaptureController::GetInstance()->IsGameCaptured() && gameMouseValid;
+			Input::GetInstance()->SetGameInputEnabled(gameInputEnabled);
 			Input::GetInstance()->SetEditorViewportMousePosition(gameMouse, gameMouseValid);
 		}
 		else
@@ -232,6 +258,7 @@ namespace Ken4lowEngine
 			// Main Viewportウィンドウが折りたたまれた場合もゲーム側のマウス入力を無効化する
 			mainViewportRect_.valid = false;
 			mainViewportRect_.isHovered = false;
+			Input::GetInstance()->SetGameInputEnabled(false);
 			Input::GetInstance()->SetEditorViewportMousePosition({ 0.0f, 0.0f }, false);
 		}
 		ImGui::End();
@@ -248,9 +275,16 @@ namespace Ken4lowEngine
 	{
 #ifdef USE_IMGUI
 		outMouse = { 0.0f, 0.0f };
-		if (!mainViewportRect_.valid || !mainViewportRect_.isHovered)
+		if (!EditorInputCaptureController::GetInstance()->IsGameCaptured())
 		{
-			// Main Viewport外または他のImGuiウィンドウ操作中はゲーム側へマウス入力を渡さない
+			// GameReleased/Editor状態ではゲーム側へマウス入力を渡さない。
+			return false;
+		}
+
+		const ImGuiIO& io = ImGui::GetIO();
+		if (!mainViewportRect_.valid || !mainViewportRect_.isHovered || io.WantCaptureKeyboard)
+		{
+			// Main Viewport外またはImGui操作中はゲーム側へマウス入力を渡さない。
 			return false;
 		}
 
