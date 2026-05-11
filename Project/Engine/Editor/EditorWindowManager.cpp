@@ -164,7 +164,7 @@ namespace Ken4lowEngine
 			return;
 		}
 
-		// Main ViewportはGameRenderTargetをImGui::Imageで表示する固定名ウィンドウにする
+		// Main ViewportはGameRenderTargetをDrawListで表示する固定名ウィンドウにする
 		if (ImGui::Begin("Main Viewport", &windowState_.showMainViewport, ImGuiWindowFlags_NoScrollbar))
 		{
 			const ImVec2 availableSize = ImGui::GetContentRegionAvail();
@@ -185,34 +185,42 @@ namespace Ken4lowEngine
 				}
 			}
 
-			const ImVec2 cursorStart = ImGui::GetCursorPos();
+			const ImVec2 contentScreenMin = ImGui::GetCursorScreenPos();
 			const ImVec2 imageOffset = ImVec2(
 				std::max(0.0f, (availableSize.x - imageSize.x) * 0.5f),
 				std::max(0.0f, (availableSize.y - imageSize.y) * 0.5f));
-			ImGui::SetCursorPos(ImVec2(cursorStart.x + imageOffset.x, cursorStart.y + imageOffset.y));
-			const ImVec2 screenStart = ImGui::GetCursorScreenPos();
-			mainViewportScreenPosition_ = { screenStart.x, screenStart.y };
+			const ImVec2 imageScreenMin = ImVec2(contentScreenMin.x + imageOffset.x, contentScreenMin.y + imageOffset.y);
+			const ImVec2 imageScreenMax = ImVec2(imageScreenMin.x + imageSize.x, imageScreenMin.y + imageSize.y);
+			mainViewportScreenPosition_ = { imageScreenMin.x, imageScreenMin.y };
 			mainViewportSize_ = { imageSize.x, imageSize.y };
-			// 入力は中央表示されたImGui::Imageの矩形だけを1920x1080へ逆変換する。
+			// 入力はAddImageで描画した中央表示矩形だけを1920x1080へ逆変換する。
 			mainViewportRect_.screenMin = mainViewportScreenPosition_;
-			mainViewportRect_.screenMax = { mainViewportScreenPosition_.x + imageSize.x, mainViewportScreenPosition_.y + imageSize.y };
+			mainViewportRect_.screenMax = { imageScreenMax.x, imageScreenMax.y };
 			mainViewportRect_.imageSize = mainViewportSize_;
 			mainViewportRect_.valid = imageSize.x > 1.0f && imageSize.y > 1.0f;
 
 			const D3D12_GPU_DESCRIPTOR_HANDLE gameSrv = postEffectManager->GetGameRenderTargetSrvHandleGPU();
 			if (gameSrv.ptr != 0 && imageSize.x > 1.0f && imageSize.y > 1.0f)
 			{
-				// SRVManagerで作成した固定GameRenderTargetのGPU SRVを16:9維持サイズで渡す。
-				ImGui::Image(static_cast<ImTextureID>(gameSrv.ptr), imageSize, ImVec2(0.0f, 0.0f), ImVec2(1.0f, 1.0f));
+				// SetCursorPosを使わずDrawListへ直接描画してImGuiの境界更新assertを避ける。
+				ImGui::GetWindowDrawList()->AddImage(static_cast<ImTextureID>(gameSrv.ptr), imageScreenMin, imageScreenMax, ImVec2(0.0f, 0.0f), ImVec2(1.0f, 1.0f));
+			}
+			else if (gameSrv.ptr == 0 && availableSize.x > 1.0f && availableSize.y > 1.0f)
+			{
+				ImGui::GetWindowDrawList()->AddText(contentScreenMin, ImGui::GetColorU32(ImGuiCol_Text), "GameRenderTarget SRV is not ready.");
+			}
+
+			if (availableSize.x > 1.0f && availableSize.y > 1.0f)
+			{
+				// InvisibleButtonでMain Viewport全体をアイテム登録してhover判定と境界更新を担わせる。
+				ImGui::InvisibleButton("MainViewportImageArea", availableSize);
 				const bool imguiBlocking = ImGui::IsAnyItemActive() && !ImGui::IsItemActive();
 				mainViewportRect_.hovered = ImGui::IsItemHovered() && !imguiBlocking; // 他ウィンドウ操作中はゲームクリック扱いにしない
 			}
 			else
 			{
-				ImGui::TextUnformatted("GameRenderTarget SRV is not ready.");
 				mainViewportRect_.hovered = false;
 			}
-			ImGui::SetCursorPos(ImVec2(cursorStart.x, cursorStart.y + availableSize.y));
 
 			Vector2 gameMouse = {};
 			const bool gameMouseValid = GetMousePositionInGameViewport(gameMouse);
