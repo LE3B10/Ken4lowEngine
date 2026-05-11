@@ -145,7 +145,16 @@ namespace Ken4lowEngine
 
 		// マウスの情報の所得
 		mouseDevice_->Acquire();
-		mouseDevice_->GetDeviceState(sizeof(DIMOUSESTATE), &mouseState_);
+		result = mouseDevice_->GetDeviceState(sizeof(DIMOUSESTATE), &mouseState_);
+		if (FAILED(result))
+		{
+			// DirectInputが一時的に取れない場合はWin32の実ボタン状態でクリック欠落を防ぐ。
+			memset(&mouseState_, 0, sizeof(mouseState_));
+		}
+		// ImGuiにMouseメッセージが捕捉されてもゲーム用クリック判定は物理ボタン状態を保持する。
+		mouseState_.rgbButtons[0] = (GetAsyncKeyState(VK_LBUTTON) & 0x8000) != 0 ? 0x80 : 0x00;
+		mouseState_.rgbButtons[1] = (GetAsyncKeyState(VK_RBUTTON) & 0x8000) != 0 ? 0x80 : 0x00;
+		mouseState_.rgbButtons[2] = (GetAsyncKeyState(VK_MBUTTON) & 0x8000) != 0 ? 0x80 : 0x00;
 
 		// マウスの座標を取得
 		UpdateMousePosition();
