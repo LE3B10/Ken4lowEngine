@@ -29,6 +29,9 @@ public: /// ---------- メンバ関数 ---------- ///
 	void DrawShadow(bool hideCharactersDuringIntro);
 	void DrawHUD(bool hideDuringIntro);
 	void DrawImGui();
+	void DrawGameDebugImGui();
+	void DrawCollisionDebugImGui();
+	void DrawEnemyDebugImGui();
 
 	void SyncAfterPlayerSpawn();
 	void StartWaves();
@@ -50,6 +53,7 @@ public: /// ---------- メンバ関数 ---------- ///
 	WaveManager* GetWaveManager() const { return waveManager_.get(); }
 	K4E::Stage* GetStage() const { return stage_.get(); }
 	K4E::SkyBox* GetSkyBox() const { return skyBox_.get(); }
+	CollisionManager* GetCollisionManager() const { return collisionManager_.get(); }
 
 	const K4E::Matrix4x4& GetShadowLightViewProjection() const
 	{

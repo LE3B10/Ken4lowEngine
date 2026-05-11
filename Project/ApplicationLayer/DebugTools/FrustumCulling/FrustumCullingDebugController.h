@@ -14,6 +14,7 @@ public:
 	void Update(float deltaTime);
 	void DrawDebug();
 	void DrawImGui();
+	void DrawImGuiContent();
 
 	void SetWireframeVisible(bool visible) { showFrustumWireframe_ = visible; }
 	bool IsWireframeVisible() const { return showFrustumWireframe_; }

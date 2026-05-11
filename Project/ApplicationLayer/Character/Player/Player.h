@@ -91,6 +91,8 @@ public: /// ---------- メンバ関数 ---------- ///
 	void Update(float deltaTime) override;
 	void Draw() override;
 	void DrawImGui() override;
+	void DrawPlayerDebugImGui();
+	void DrawWeaponDebugImGui();
 
 	void DrawShadow();
 	void UpdateShadowMatrix(const K4E::Matrix4x4& lightViewProjection);

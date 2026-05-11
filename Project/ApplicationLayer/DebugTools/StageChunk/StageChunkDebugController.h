@@ -10,4 +10,5 @@ class StageChunkDebugController
 {
 public:
 	void DrawImGui(K4E::Stage* stage);
+	void DrawImGuiContent(K4E::Stage* stage);
 };

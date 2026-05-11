@@ -3,6 +3,10 @@
 #include "BulletManager.h"
 #include <algorithm>
 
+#ifdef USE_IMGUI
+#include <imgui.h>
+#endif
+
 #include "WorldCollisionResolver.h"
 #include "AudioManager.h"
 
@@ -180,22 +184,35 @@ void CharacterWorld::Draw()
 void CharacterWorld::DrawImGui()
 {
 #ifdef USE_IMGUI
-	// --------------------------------------------------------
-	// 1) Player の ImGui
-	// --------------------------------------------------------
-	if (player_) { player_->DrawImGui(); }
+	// 互換用の一括描画は用途別Debugパネルの中身を再利用する。
+	DrawPlayerDebugImGui();
+	DrawEnemyDebugImGui();
+#endif
+}
 
-	// --------------------------------------------------------
-	// 2) Enemy個体ごとの ImGui
-	// - ここでは各敵の Object3D / Transform などだけ出す
-	// - EnemyTuningEditor は出さない
-	// --------------------------------------------------------
-	for (auto& e : enemies_) { e->DrawImGui(); }
+void CharacterWorld::DrawPlayerDebugImGui()
+{
+#ifdef USE_IMGUI
+	// Player Debugだけを開いた時にEnemy側の重い項目を描かないよう分離する。
+	if (player_) { player_->DrawPlayerDebugImGui(); }
+#endif
+}
 
-	// --------------------------------------------------------
-	// 3) EnemyTuningEditor は 1回だけ描画する
-	// - 保存 / 削除 / Reload 後に全Enemyへ再反映する
-	// --------------------------------------------------------
+void CharacterWorld::DrawEnemyDebugImGui()
+{
+#ifdef USE_IMGUI
+	// Enemy DebugにはEnemy Manager相当の一覧と各Enemy個体の詳細をまとめる。
+	ImGui::Text("Enemy Count: %d", static_cast<int>(enemies_.size()));
+	for (size_t i = 0; i < enemies_.size(); ++i)
+	{
+		ImGui::PushID(static_cast<int>(i));
+		if (ImGui::TreeNode("Enemy", "Enemy %zu", i))
+		{
+			if (enemies_[i]) { enemies_[i]->DrawImGui(); }
+			ImGui::TreePop();
+		}
+		ImGui::PopID();
+	}
 #endif
 }
 

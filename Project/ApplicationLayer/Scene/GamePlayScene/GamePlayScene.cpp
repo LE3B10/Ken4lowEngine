@@ -8,6 +8,10 @@
 #include <Player.h>
 #include <Editor/EditorWindowManager.h>
 
+#ifdef USE_IMGUI
+#include <imgui.h>
+#endif
+
 #ifdef _DEBUG
 #include <DebugCamera.h>
 #endif
@@ -596,15 +600,33 @@ void GamePlayScene::DrawImGui()
 	}
 
 	auto& editorWindowState = K4E::EditorWindowManager::GetInstance()->GetWindowState();
-	if (frustumCullingDebug_ && editorWindowState.showCullingDebug)
+	if (editorWindowState.showCullingDebug)
 	{
-		// WindowメニューのCulling Debug表示フラグでFrustum Culling Debugも表示切替する。
-		frustumCullingDebug_->DrawImGui();
+		ImGui::SetNextWindowSize(ImVec2(520.0f, 520.0f), ImGuiCond_FirstUseEver);
+		// Culling DebugはStageChunk/Occlusion/Frustumを1つのDocking対象ウィンドウへ集約する。
+		if (ImGui::Begin("Culling Debug", &editorWindowState.showCullingDebug))
+		{
+			if (debugTools_)
+			{
+				debugTools_->DrawCullingDebugContent(world_.get());
+			}
+			if (frustumCullingDebug_ && ImGui::CollapsingHeader("Frustum Culling Debug", ImGuiTreeNodeFlags_DefaultOpen))
+			{
+				frustumCullingDebug_->DrawImGuiContent();
+			}
+		}
+		ImGui::End();
 	}
 
-	if (hpPostEffectController_)
+	if (hpPostEffectController_ && editorWindowState.showPlayerDebug)
 	{
-		hpPostEffectController_->DrawImGui();
+		// Player DebugへHP/Damage系ポストエフェクト調整を追加し、単独浮遊ウィンドウを出さない。
+		if (ImGui::Begin("Player Debug", &editorWindowState.showPlayerDebug))
+		{
+			ImGui::SeparatorText("HP / Damage");
+			hpPostEffectController_->DrawImGuiContent();
+		}
+		ImGui::End();
 	}
 #endif // USE_IMGUI
 }

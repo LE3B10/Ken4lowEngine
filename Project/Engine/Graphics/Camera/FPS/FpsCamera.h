@@ -75,6 +75,7 @@ namespace Ken4lowEngine
 		/// などを操作できます。（USE_IMGUI 定義時のみ有効）
 		/// </summary>
 		void DrawImGui();
+		void DrawImGuiContent();
 
 		/// <summary>
 		/// カメラにリコイル（反動）を加えます。<br/>

@@ -54,12 +54,19 @@ void PlayerHealthPostEffectController::Update(float deltaTime, const Player* pla
 void PlayerHealthPostEffectController::DrawImGui()
 {
 #ifdef USE_IMGUI
-	if (!ImGui::Begin("HPポストエフェクト"))
+	// 単体表示時もDocking可能な通常ウィンドウとして開く。
+	if (ImGui::Begin("Player Health Post Effect"))
 	{
-		ImGui::End();
-		return;
+		DrawImGuiContent();
 	}
+	ImGui::End();
+#endif // USE_IMGUI
+}
 
+void PlayerHealthPostEffectController::DrawImGuiContent()
+{
+#ifdef USE_IMGUI
+	// Player Debug内にHP/Damage系の調整を埋め込めるよう中身だけ分離する。
 	ImGui::Checkbox("HPポストエフェクト有効", &enabled_);
 	ImGui::SliderFloat("HP率", &hpRate_, 0.0f, 1.0f);
 	ImGui::SliderFloat("赤ビネット強度", &redVignetteStrength_, 0.0f, 1.0f);
@@ -75,7 +82,6 @@ void PlayerHealthPostEffectController::DrawImGui()
 	strongHpThreshold_ = std::clamp(strongHpThreshold_, dangerHpThreshold_ + 0.01f, lowHpThreshold_);
 
 	ApplyToPostEffect();
-	ImGui::End();
 #endif // USE_IMGUI
 }
 

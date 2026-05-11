@@ -18,6 +18,7 @@ public:
 	void Finalize();
 	void Update(float deltaTime, const Player* player);
 	void DrawImGui();
+	void DrawImGuiContent();
 	void NotifyDamageTaken();
 
 	bool IsEnabled() const { return enabled_; }

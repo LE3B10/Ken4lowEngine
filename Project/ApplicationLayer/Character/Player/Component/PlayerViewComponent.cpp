@@ -397,9 +397,13 @@ void PlayerViewComponent::ClearDeathCamera()
 
 void PlayerViewComponent::DrawImGui()
 {
-	fpsCamera_.DrawImGui();
-
 #ifdef USE_IMGUI
+	// FPS Camera調整はPlayer Debug内の通常セクションとして表示する。
+	if (ImGui::CollapsingHeader("FPS Camera", ImGuiTreeNodeFlags_DefaultOpen))
+	{
+		fpsCamera_.DrawImGuiContent();
+	}
+
 	if (ImGui::CollapsingHeader("ViewModel Arms", ImGuiTreeNodeFlags_DefaultOpen))
 	{
 		ImGui::Text("Left Arm normal / ADS pose");
