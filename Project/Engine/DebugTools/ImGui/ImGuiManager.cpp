@@ -8,6 +8,9 @@
 #include <stdexcept>
 
 #ifdef USE_IMGUI
+// DockBuilder APIを使って初期Docking配置を組むため内部ヘッダーを参照する
+#include <imgui_internal.h>
+
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 #endif // USE_IMGUI
 
@@ -175,10 +178,39 @@ namespace Ken4lowEngine
 	void ImGuiManager::DrawDockSpace()
 	{
 #ifdef USE_IMGUI
+		const ImGuiViewport* viewport = ImGui::GetMainViewport();
 		// 既存描画の見た目を変えないよう中央ノードは透過したDockSpaceを毎フレーム用意する
-		ImGui::DockSpaceOverViewport(0, ImGui::GetMainViewport(), ImGuiDockNodeFlags_PassthruCentralNode);
+		const ImGuiID dockspaceId = ImGui::DockSpaceOverViewport(0, viewport, ImGuiDockNodeFlags_PassthruCentralNode);
+
+		if (!dockLayoutInitialized_)
+		{
+			// 初回だけDetails/Post Effect Settings側へライト編集ウィンドウを配置できるDockBuilderレイアウトを作る
+			SetupDefaultDockLayout(dockspaceId, viewport);
+			dockLayoutInitialized_ = true;
+		}
 #endif // USE_IMGUI
 	}
+
+#ifdef USE_IMGUI
+	void ImGuiManager::SetupDefaultDockLayout(ImGuiID dockspaceId, const ImGuiViewport* viewport)
+	{
+		if (dockspaceId == 0 || viewport == nullptr)
+		{
+			return;
+		}
+
+		ImGuiID rootNode = dockspaceId;
+		ImGuiID rightNode = 0;
+		ImGui::DockBuilderRemoveNodeChildNodes(rootNode);
+		ImGui::DockBuilderSetNodeSize(rootNode, viewport->Size);
+		ImGui::DockBuilderSplitNode(rootNode, ImGuiDir_Right, 0.28f, &rightNode, &rootNode);
+
+		ImGui::DockBuilderDockWindow("Details", rightNode);
+		ImGui::DockBuilderDockWindow("Post Effect Settings", rightNode);
+		ImGui::DockBuilderDockWindow("Light Editor", rightNode);
+		ImGui::DockBuilderFinish(dockspaceId);
+	}
+#endif // USE_IMGUI
 
 
 	/// -------------------------------------------------------------

@@ -98,12 +98,15 @@ namespace Ken4lowEngine
 		// ImGuiバックエンドが要求するSRVディスクリプタをSRVManager経由で確保する
 		static void AllocateImGuiSrvDescriptor(ImGui_ImplDX12_InitInfo* info, D3D12_CPU_DESCRIPTOR_HANDLE* outCpuHandle, D3D12_GPU_DESCRIPTOR_HANDLE* outGpuHandle);
 		static void FreeImGuiSrvDescriptor(ImGui_ImplDX12_InitInfo* info, D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle, D3D12_GPU_DESCRIPTOR_HANDLE gpuHandle);
+		// DockBuilderで初期配置するウィンドウ名を一箇所に集約する
+		void SetupDefaultDockLayout(ImGuiID dockspaceId, const ImGuiViewport* viewport);
 #endif // USE_IMGUI
 
 		bool initialized_ = false;
 
 #ifdef USE_IMGUI
 		std::unordered_map<SIZE_T, uint32_t> imguiSrvHandleToIndex_;
+		bool dockLayoutInitialized_ = false; // 初期DockBuilder配置を毎フレーム上書きしないためのフラグ
 #endif // USE_IMGUI
 
 	private: /// ---------- コンストラクタ・デストラクタ ---------- ///
