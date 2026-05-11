@@ -94,6 +94,12 @@ namespace Ken4lowEngine
 		/// <returns></returns>
 		bool TriggerKey(BYTE keyNumber) const;
 
+		/// <summary>
+		/// Editorショートカット用にゲーム入力抑制を通さずキー押下を取得します。
+		/// </summary>
+		bool PushRawKey(BYTE keyNumber) const;
+		bool TriggerRawKey(BYTE keyNumber) const;
+
 	public: /// ---------- マウスのメンバ関数 ---------- ///
 
 		/// <summary>
@@ -151,14 +157,20 @@ namespace Ken4lowEngine
 		/// </summary>
 		void SetEditorViewportMousePosition(const Vector2& position, bool valid);
 
+		/// <summary>
+		/// Editor側からゲーム入力を許可するか設定します。
+		/// </summary>
+		void SetGameInputEnabled(bool enabled);
+		bool IsGameInputEnabled() const { return gameInputEnabled_; }
+
 		// マウスのX座標を取得
-		int GetMouseMoveX() const { return mouseState_.lX; }
+		int GetMouseMoveX() const;
 
 		// マウスのY座標を取得
-		int GetMouseMoveY() const { return mouseState_.lY; }
+		int GetMouseMoveY() const;
 
 		// マウスのホイールの値を取得
-		int GetMouseWheel() const { return mouseState_.lZ; }
+		int GetMouseWheel() const;
 
 		// ドラッグ状態を取得
 		bool IsDragging(int button) const { return PushMouse(button); }
@@ -265,6 +277,9 @@ namespace Ken4lowEngine
 
 	private: /// ---------- メンバ変数 ---------- ///
 
+		bool CanUseGameKeyboardInput(BYTE keyNumber) const;
+		bool CanUseGameMouseInput() const;
+
 		// WindowsAPI
 		WinApp* winApp_ = nullptr;
 
@@ -284,6 +299,7 @@ namespace Ken4lowEngine
 		Vector2 editorViewportMousePosition_ = { 0.0f, 0.0f }; // Main Viewport基準へ変換済みのマウス座標
 		bool editorViewportMousePositionValid_ = false;	  // Main Viewport内かつImGui未操作中だけtrueにする
 		bool editorViewportMouseOverrideEnabled_ = false; // エディタ経由のマウス座標をゲーム入力へ反映するかどうか
+		bool gameInputEnabled_ = true; // Editorからゲーム入力を一括で許可/抑制するためのフラグ
 		bool lockCursor_ = false;				  // マウスカーソルをロックするかどうか
 		bool cursorVisible_ = true;				  // マウスカーソルの表示状態
 
