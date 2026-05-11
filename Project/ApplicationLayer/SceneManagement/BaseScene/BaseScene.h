@@ -1,5 +1,9 @@
 #pragma once
 
+#include <Editor/EditorObjectInfo.h>
+
+#include <vector>
+
 /// ---------- 前方宣言 ---------- ///
 class SceneManager;
 
@@ -46,6 +50,9 @@ public: /// ---------- 純粋仮想関数 ---------- ///
 
 	// UI主体のSceneはデフォルトでカーソル表示のMain Viewportクリック入力にする。
 	virtual EditorInputPolicy GetEditorInputPolicy() const { return EditorInputPolicy::UiMouse; }
+
+	// World Outliner用の安全な表示情報をScene側から収集する入口です。
+	virtual void CollectEditorObjects(std::vector<Ken4lowEngine::EditorObjectInfo>& /*outObjects*/) const {}
 
 	// シーンマネージャーをセット
 	virtual void SetSceneManager(SceneManager* sceneManager) { sceneManager_ = sceneManager; }

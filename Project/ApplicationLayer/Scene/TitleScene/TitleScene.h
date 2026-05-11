@@ -166,6 +166,9 @@ public: /// ---------- メンバ関数 ---------- ///
 	// ImGui描画処理
 	void DrawImGui() override;
 
+	// World OutlinerへTitleSceneの主要オブジェクトを公開する。
+	void CollectEditorObjects(std::vector<Ken4lowEngine::EditorObjectInfo>& outObjects) const override;
+
 	// 段階ロード
 	void StartLoad() override;
 
