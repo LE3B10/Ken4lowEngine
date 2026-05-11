@@ -5,6 +5,7 @@
 #include "SRVManager.h"
 
 #include <cassert>
+#include <fstream>
 #include <stdexcept>
 
 #ifdef USE_IMGUI
@@ -12,6 +13,22 @@
 #include <imgui_internal.h>
 
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
+
+namespace
+{
+	constexpr const char* kEditorLayoutIniFilename = "ken4low_editor_layout.ini";
+
+	bool FileExists(const char* path)
+	{
+		if (path == nullptr)
+		{
+			return false;
+		}
+
+		std::ifstream file(path, std::ios::binary);
+		return file.good();
+	}
+}
 #endif // USE_IMGUI
 
 
@@ -60,6 +77,12 @@ namespace Ken4lowEngine
 		ImGui::CreateContext();						  // ImGuiコンテキストの作成
 
 		ImGuiIO& io = ImGui::GetIO();				  // ImGuiIOへの参照を取得
+
+		// 手動Dockingレイアウトを次回起動時に復元するため、専用iniへ保存する
+		io.IniFilename = kEditorLayoutIniFilename;
+		shouldApplyDefaultDockLayout_ = !FileExists(io.IniFilename);
+		resetDockLayoutRequested_ = false;
+		dockLayoutInitialized_ = false;
 
 		// フォントの設定
 		io.Fonts->AddFontFromFileTTF("Resources/Fonts/NotoSansJP-VariableFont_wght.ttf", 18.0f, nullptr, io.Fonts->GetGlyphRangesJapanese()); // 日本語フォントの追加
@@ -182,11 +205,13 @@ namespace Ken4lowEngine
 		// 既存描画の見た目を変えないよう中央ノードは透過したDockSpaceを毎フレーム用意する
 		const ImGuiID dockspaceId = ImGui::DockSpaceOverViewport(0, viewport, ImGuiDockNodeFlags_PassthruCentralNode);
 
-		if (!dockLayoutInitialized_)
+		if (shouldApplyDefaultDockLayout_ || resetDockLayoutRequested_)
 		{
-			// 初回だけDetails/Post Effect Settings側へライト編集ウィンドウを配置できるDockBuilderレイアウトを作る
+			// 保存済みiniが無い初回起動、または明示リセット時だけDockBuilderで初期配置を作る
 			SetupDefaultDockLayout(dockspaceId, viewport);
 			dockLayoutInitialized_ = true;
+			shouldApplyDefaultDockLayout_ = false;
+			resetDockLayoutRequested_ = false;
 		}
 #endif // USE_IMGUI
 	}
@@ -211,6 +236,20 @@ namespace Ken4lowEngine
 		ImGui::DockBuilderFinish(dockspaceId);
 	}
 #endif // USE_IMGUI
+
+
+	/// -------------------------------------------------------------
+	///					Dockingレイアウトリセット要求
+	/// -------------------------------------------------------------
+	void ImGuiManager::RequestResetDockLayout()
+	{
+#ifdef USE_IMGUI
+		// Windowメニューからの操作で次フレームに初期DockBuilder配置を再適用する
+		resetDockLayoutRequested_ = true;
+		shouldApplyDefaultDockLayout_ = false;
+		dockLayoutInitialized_ = false;
+#endif // USE_IMGUI
+	}
 
 
 	/// -------------------------------------------------------------
@@ -275,6 +314,12 @@ namespace Ken4lowEngine
 			return;
 		}
 
+		// DestroyContext前にiniへ書き出して、終了直前のDockingレイアウトを確実に残す
+		if (ImGui::GetIO().IniFilename != nullptr)
+		{
+			ImGui::SaveIniSettingsToDisk(ImGui::GetIO().IniFilename);
+		}
+
 		// ImGuiバックエンドとコンテキストの終了処理をManagerに集約する
 		ImGui_ImplDX12_Shutdown();
 		// DX12バックエンドから返却されなかったSRVがあればFinalize時に回収する
@@ -286,6 +331,9 @@ namespace Ken4lowEngine
 		ImGui::DestroyContext();
 		imguiSrvHandleToIndex_.clear();
 		initialized_ = false;
+		dockLayoutInitialized_ = false;
+		shouldApplyDefaultDockLayout_ = false;
+		resetDockLayoutRequested_ = false;
 #endif // USE_IMGUI
 	}
 
