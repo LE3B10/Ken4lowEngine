@@ -22,11 +22,25 @@
 #include <imgui.h>
 #include <Editor/EditorWindowManager.h>
 #endif
+#include <Editor/EditorPlayController.h>
+
+
+void GamePlayDebugTools::Initialize()
+{
+	// Debug Freeze状態はGamePlay開始ごとにToolbar表示をOFFへ初期化する。
+	K4E::EditorPlayController::GetInstance()->SetDebugFreezeEnabled(false);
+}
+
+void GamePlayDebugTools::Finalize()
+{
+	// GamePlay終了時は完全停止デバッグ表示を残さない。
+	K4E::EditorPlayController::GetInstance()->SetDebugFreezeEnabled(false);
+}
 
 bool GamePlayDebugTools::HandleFreezeToggle(K4E::Input* input, GamePlayFlow* flow)
 {
 #ifdef _DEBUG
-	if (input && input->TriggerKey(DIK_F1))
+	if (input && input->TriggerRawKey(DIK_F10))
 	{
 		if (isImGuiFreeze_)
 		{
@@ -50,6 +64,8 @@ void GamePlayDebugTools::EnterImGuiFreeze(K4E::Input* input, GamePlayFlow* flow)
 	if (isImGuiFreeze_) { return; }
 
 	isImGuiFreeze_ = true;
+	// F10の完全停止はEditor入力キャプチャとは別のDebug Freezeとして表示する。
+	K4E::EditorPlayController::GetInstance()->SetDebugFreezeEnabled(true);
 
 	if (flow && flow->IsPaused())
 	{
@@ -68,6 +84,8 @@ void GamePlayDebugTools::ExitImGuiFreeze(K4E::Input* input)
 	if (!isImGuiFreeze_) { return; }
 
 	isImGuiFreeze_ = false;
+	// Debug Freeze解除時も入力キャプチャ状態は変更しない。
+	K4E::EditorPlayController::GetInstance()->SetDebugFreezeEnabled(false);
 
 	if (input)
 	{
@@ -125,7 +143,7 @@ void GamePlayDebugTools::DrawImGui(GamePlayWorld* world)
 		if (ImGui::Begin("Game Debug", &editorWindowState.showGameDebug))
 		{
 			ImGui::Text("Debug Camera: %s", isDebugCamera_ ? "ON" : "OFF");
-			ImGui::Text("ImGui Freeze: %s", isImGuiFreeze_ ? "ON" : "OFF");
+			ImGui::Text("Debug Freeze (F10): %s", isImGuiFreeze_ ? "ON" : "OFF");
 		}
 		ImGui::End();
 

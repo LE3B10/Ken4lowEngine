@@ -28,8 +28,16 @@ namespace Ken4lowEngine
 		auto* input = Input::GetInstance();
 		if (input->TriggerRawKey(DIK_F8))
 		{
-			// Escの既存挙動を避け、F8だけを入力キャプチャ切り替えに使う。
-			EditorPlayController::GetInstance()->ToggleInputCapture();
+			const bool forceRelease = input->PushRawKey(DIK_LSHIFT) || input->PushRawKey(DIK_RSHIFT);
+			// F8は入力キャプチャ切替、Shift+F8はFPS操作中でもEditor操作へ戻す非常口にする。
+			if (forceRelease)
+			{
+				EditorPlayController::GetInstance()->ForceReleaseToEditor();
+			}
+			else
+			{
+				EditorPlayController::GetInstance()->ToggleInputCapture();
+			}
 		}
 
 		// UE5風エディタUIの描画順をManagerに集約する
@@ -173,13 +181,15 @@ namespace Ken4lowEngine
 			ImGui::SameLine();
 			ImGui::TextUnformatted("|");
 			ImGui::SameLine();
-			ImGui::TextUnformatted(playController->GetInputStatusText());
+			ImGui::Text("%s  F8: %s", playController->GetInputStatusText(), playController->IsGameCaptured() ? "Release" : "Capture");
 			ImGui::SameLine();
 			if (ImGui::Button(playController->IsGameCaptured() ? "Release Input" : "Capture Input"))
 			{
 				// ToolbarボタンからもF8と同じキャプチャ切り替えを実行できるようにする。
 				playController->ToggleInputCapture();
 			}
+			// Debug Freezeは入力キャプチャとは別状態としてToolbar上で確認できるようにする。
+			ImGui::TextUnformatted(playController->GetDebugFreezeStatusText());
 			// F8やViewport hoverの状態をToolbar上で即確認できるようにする。
 			ImGui::Text("Play State: %s", playController->GetPlayStateText());
 			ImGui::Text("Input Mode: %s", playController->GetInputModeText());
@@ -206,6 +216,8 @@ namespace Ken4lowEngine
 			inputDebugInfo_.gameMousePosition = { -1.0f, -1.0f };
 			Input::GetInstance()->SetGameInputEnabled(false);
 			Input::GetInstance()->SetEditorViewportMousePosition({ 0.0f, 0.0f }, false);
+			Input::GetInstance()->SetLockCursor(false);
+			Input::GetInstance()->SetCursorVisible(true);
 			return;
 		}
 
@@ -277,6 +289,9 @@ namespace Ken4lowEngine
 			const bool gameInputEnabled = EditorPlayController::GetInstance()->IsGameCaptured() && mainViewportRect_.isHovered;
 			Input::GetInstance()->SetGameInputEnabled(gameInputEnabled);
 			Input::GetInstance()->SetEditorViewportMousePosition(gameMouse, gameMouseValid);
+			// GameReleased中やViewport外では中央固定を解除し、Editor/ImGui操作用にカーソルを表示する。
+			Input::GetInstance()->SetLockCursor(gameInputEnabled);
+			Input::GetInstance()->SetCursorVisible(!gameInputEnabled);
 			inputDebugInfo_.mainViewportHovered = mainViewportRect_.isHovered; // 入力許可条件のViewport hoverをToolbarに表示する。
 			inputDebugInfo_.imguiMouseClicked0 = ImGui::IsMouseClicked(ImGuiMouseButton_Left);
 			inputDebugInfo_.imguiMouseDown0 = ImGui::IsMouseDown(ImGuiMouseButton_Left);
@@ -293,6 +308,8 @@ namespace Ken4lowEngine
 			inputDebugInfo_.gameMousePosition = { -1.0f, -1.0f };
 			Input::GetInstance()->SetGameInputEnabled(false);
 			Input::GetInstance()->SetEditorViewportMousePosition({ 0.0f, 0.0f }, false);
+			Input::GetInstance()->SetLockCursor(false);
+			Input::GetInstance()->SetCursorVisible(true);
 		}
 		ImGui::End();
 #endif // USE_IMGUI
