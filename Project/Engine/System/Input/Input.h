@@ -142,6 +142,11 @@ namespace Ken4lowEngine
 		Vector2 GetMousePosition();
 
 		/// <summary>
+		/// ゲーム基準のカーソル座標を取得します。
+		/// </summary>
+		Vector2 GetCursorPosition();
+
+		/// <summary>
 		/// エディタMain Viewport基準へ変換済みのマウス座標を設定します。
 		/// </summary>
 		void SetEditorViewportMousePosition(const Vector2& position, bool valid);

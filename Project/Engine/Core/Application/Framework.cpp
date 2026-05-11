@@ -102,7 +102,11 @@ namespace Ken4lowEngine
 		winApp_ = WinApp::GetInstance();
 
 		DisplaySettings ds{};
-		ds.mode = WindowMode::BorderlessFullscreen; // 初期ウィンドウモード
+#ifdef USE_IMGUI
+		ds.mode = WindowMode::Windowed; // DebugのImGui EditorではOSウィンドウ内にMain Viewportを表示する
+#else
+		ds.mode = WindowMode::BorderlessFullscreen; // Releaseでは従来通りゲーム全体をボーダーレス表示する
+#endif // USE_IMGUI
 		ds.monitorIndex = 0;
 
 		winApp_->CreateMainWindow(ds);
