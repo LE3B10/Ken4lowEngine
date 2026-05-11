@@ -29,10 +29,16 @@ void ParameterManager::CreateGroup(const std::string& groupName)
 /// -------------------------------------------------------------
 ///			　				更新処理
 /// -------------------------------------------------------------
-void ParameterManager::Update()
+void ParameterManager::Update(bool* pOpen)
 {
 #ifdef USE_IMGUI
-	if (!ImGui::Begin("Parameters", nullptr, ImGuiWindowFlags_MenuBar))
+	// WindowメニューのParameters表示フラグが閉じている間は編集UIを生成しない
+	if (pOpen != nullptr && !*pOpen)
+	{
+		return;
+	}
+
+	if (!ImGui::Begin("Parameters", pOpen, ImGuiWindowFlags_MenuBar))
 	{
 		ImGui::End();
 		return;
@@ -116,6 +122,8 @@ void ParameterManager::Update()
 	ImGui::Columns(1);
 
 	ImGui::End();
+#else
+	(void)pOpen;
 #endif
 }
 

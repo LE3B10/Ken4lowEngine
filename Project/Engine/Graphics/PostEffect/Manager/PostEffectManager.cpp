@@ -389,10 +389,16 @@ namespace Ken4lowEngine
 	/// -------------------------------------------------------------
 	///				　	　		ImGui描画
 	/// -------------------------------------------------------------
-	void PostEffectManager::ImGuiRender()
+	void PostEffectManager::ImGuiRender(bool* pOpen)
 	{
 #ifdef USE_IMGUI
-		ImGui::Begin("Post Effect Settings");
+		// WindowメニューのPost Effect Settings表示フラグが閉じている間は後処理UIを生成しない
+		if (pOpen != nullptr && !*pOpen)
+		{
+			return;
+		}
+
+		ImGui::Begin("Post Effect Settings", pOpen);
 
 		for (const auto& [name, category] : effectCategory_)
 		{
@@ -403,6 +409,8 @@ namespace Ken4lowEngine
 			}
 		}
 		ImGui::End();
+#else
+		(void)pOpen;
 #endif // USE_IMGUI
 	}
 

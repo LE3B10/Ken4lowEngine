@@ -50,7 +50,7 @@ public: /// ---------- メンバ関数 ---------- ///
 	/// <summary>
 	/// 更新処理
 	/// </summary>
-	void Update();
+	void Update(bool* pOpen = nullptr);
 
 	/// <summary>
 	/// ファイルに書き出し

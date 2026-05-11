@@ -9,6 +9,7 @@
 
 #ifdef USE_IMGUI
 #include <imgui.h>
+#include <Editor/EditorWindowManager.h>
 
 namespace K4E = ::Ken4lowEngine;
 
@@ -760,7 +761,14 @@ void FadeManager::Draw2DSprites()
 void FadeManager::DrawImGui()
 {
 #ifdef USE_IMGUI
-	ImGui::Begin("FadeManager - Tile Fade");
+	// WindowメニューのFadeManager - Tile Fade表示フラグを×ボタン状態と共有する
+	auto& editorWindowState = K4E::EditorWindowManager::GetInstance()->GetWindowState();
+	if (!editorWindowState.showTileFadeDebug)
+	{
+		return;
+	}
+
+	ImGui::Begin("FadeManager - Tile Fade", &editorWindowState.showTileFadeDebug);
 
 	const char* st =
 		(state_ == State::None) ? "演出していない待機状態" :

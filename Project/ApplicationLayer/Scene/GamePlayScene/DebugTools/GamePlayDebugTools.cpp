@@ -20,6 +20,7 @@
 
 #ifdef USE_IMGUI
 #include <imgui.h>
+#include <Editor/EditorWindowManager.h>
 #endif
 
 bool GamePlayDebugTools::HandleFreezeToggle(K4E::Input* input, GamePlayFlow* flow)
@@ -115,12 +116,24 @@ void GamePlayDebugTools::DrawImGui(GamePlayWorld* world)
 	if (!world) { return; }
 
 	auto& characters = world->GetCharacters();
+	// WindowメニューのScene Debug/Rendering表示フラグをGamePlay系デバッグUIと共有する
+	auto& editorWindowState = K4E::EditorWindowManager::GetInstance()->GetWindowState();
 
-	K4E::LightManager::GetInstance()->DrawImGui();
-	characters.DrawImGui();
-	world->DrawImGui();
-	stageChunkDebugController_.DrawImGui(world->GetStage());
-	occlusionDebugController_.DrawImGui(world->GetStage());
+	K4E::LightManager::GetInstance()->DrawImGui(&editorWindowState.showLightEditor);
+	if (editorWindowState.showGameDebug)
+	{
+		if (ImGui::Begin("Game Debug", &editorWindowState.showGameDebug))
+		{
+			ImGui::Text("Debug Camera: %s", isDebugCamera_ ? "ON" : "OFF");
+			ImGui::Text("ImGui Freeze: %s", isImGuiFreeze_ ? "ON" : "OFF");
+		}
+		ImGui::End();
+
+		characters.DrawImGui();
+		world->DrawImGui();
+		stageChunkDebugController_.DrawImGui(world->GetStage());
+		occlusionDebugController_.DrawImGui(world->GetStage());
+	}
 
 	/// ---------- 武器マスターデータエディタ ---------- ///
 	static WeaponMasterDataDatabase weaponDB;
@@ -233,18 +246,22 @@ void GamePlayDebugTools::DrawImGui(GamePlayWorld* world)
 			return out;
 		};
 
-	weaponEditor.DrawImGui(weaponDB, hooks);
-
-	ImGui::Begin("Weapon Master Debug");
-	ImGui::Text("Last Applied ID: %d", lastAppliedWeaponID_);
-
-	if (ImGui::Button("Reload Weapon Editor DB"))
+	// WindowメニューのWeapon Master Debug表示フラグを武器デバッグUIの×ボタン状態と共有する
+	if (editorWindowState.showWeaponMasterDebug)
 	{
-		std::string err;
-		weaponDB = WeaponMasterDataDatabase{};
-		weaponDB.LoadFromDirectory(kRoot, &err);
+		weaponEditor.DrawImGui(weaponDB, hooks);
+
+		ImGui::Begin("Weapon Master Debug", &editorWindowState.showWeaponMasterDebug);
+		ImGui::Text("Last Applied ID: %d", lastAppliedWeaponID_);
+
+		if (ImGui::Button("Reload Weapon Editor DB"))
+		{
+			std::string err;
+			weaponDB = WeaponMasterDataDatabase{};
+			weaponDB.LoadFromDirectory(kRoot, &err);
+		}
+		ImGui::End();
 	}
-	ImGui::End();
 #else
 	(void)world;
 #endif
