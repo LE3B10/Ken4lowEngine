@@ -37,6 +37,17 @@ namespace Ken4lowEngine
 	};
 
 	/// <summary>
+	/// Main Viewport内で実際にゲーム画面を表示している矩形を保持します。
+	/// </summary>
+	struct EditorViewportRect
+	{
+		Vector2 screenMin = { 0.0f, 0.0f };
+		Vector2 screenMax = { 0.0f, 0.0f };
+		Vector2 imageSize = { 0.0f, 0.0f };
+		bool valid = false;
+	};
+
+	/// <summary>
 	/// UE5風エディタUIのメニュー、ツールバー、各パネルをまとめて描画します。
 	/// </summary>
 	class EditorWindowManager
@@ -58,6 +69,12 @@ namespace Ken4lowEngine
 		/// </summary>
 		Vector2 ConvertScreenToMainViewportPosition(const Vector2& screenPosition) const;
 
+		/// <summary>
+		/// ImGuiのMain Viewport内マウス座標をゲーム基準解像度へ変換します。
+		/// </summary>
+		bool GetMousePositionInGameViewport(Vector2& outMouse) const;
+
+		const EditorViewportRect& GetMainViewportRect() const { return mainViewportRect_; }
 		const Vector2& GetMainViewportScreenPosition() const { return mainViewportScreenPosition_; }
 		const Vector2& GetMainViewportSize() const { return mainViewportSize_; }
 
@@ -71,6 +88,7 @@ namespace Ken4lowEngine
 		EditorWindowManager& operator=(const EditorWindowManager&) = delete;
 
 		EditorWindowState windowState_{};
+		EditorViewportRect mainViewportRect_{}; // Main Viewport内で実際にゲーム画面を表示している矩形
 		Vector2 mainViewportScreenPosition_ = { 0.0f, 0.0f }; // マウス座標をMain Viewport基準へ変換するための左上座標
 		Vector2 mainViewportSize_ = { 0.0f, 0.0f }; // Main Viewport内でGameRenderTargetを表示しているサイズ
 	};

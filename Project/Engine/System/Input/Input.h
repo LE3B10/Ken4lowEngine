@@ -141,6 +141,11 @@ namespace Ken4lowEngine
 		/// <returns></returns>
 		Vector2 GetMousePosition();
 
+		/// <summary>
+		/// エディタMain Viewport基準へ変換済みのマウス座標を設定します。
+		/// </summary>
+		void SetEditorViewportMousePosition(const Vector2& position, bool valid);
+
 		// マウスのX座標を取得
 		int GetMouseMoveX() const { return mouseState_.lX; }
 
@@ -271,6 +276,9 @@ namespace Ken4lowEngine
 		DIMOUSESTATE mouseState_;				  // マウスの状態
 		DIMOUSESTATE prevMouseState_;			  // 前フレームのマウスの状態
 		POINT mousePosition_ = {};				  // マウスの座標
+		Vector2 editorViewportMousePosition_ = { 0.0f, 0.0f }; // Main Viewport基準へ変換済みのマウス座標
+		bool editorViewportMousePositionValid_ = false;	  // Main Viewport内かつImGui未操作中だけtrueにする
+		bool editorViewportMouseOverrideEnabled_ = false; // エディタ経由のマウス座標をゲーム入力へ反映するかどうか
 		bool lockCursor_ = false;				  // マウスカーソルをロックするかどうか
 		bool cursorVisible_ = true;				  // マウスカーソルの表示状態
 

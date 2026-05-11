@@ -220,6 +220,12 @@ namespace Ken4lowEngine
 	/// -------------------------------------------------------------
 	bool Input::PushMouse(int button) const
 	{
+		if (editorViewportMouseOverrideEnabled_ && !editorViewportMousePositionValid_)
+		{
+			// Main Viewport外またはImGui操作中のマウス押下はゲーム入力へ渡さない
+			return false;
+		}
+
 		if (mouseState_.rgbButtons[button])
 		{
 			return true;
@@ -234,6 +240,12 @@ namespace Ken4lowEngine
 	/// -------------------------------------------------------------
 	bool Input::TriggerMouse(int button) const
 	{
+		if (editorViewportMouseOverrideEnabled_ && !editorViewportMousePositionValid_)
+		{
+			// Main Viewport外またはImGui操作中のマウストリガーはゲーム入力へ渡さない
+			return false;
+		}
+
 		if (mouseState_.rgbButtons[button] && !prevMouseState_.rgbButtons[button])
 		{
 			return true;
@@ -248,6 +260,12 @@ namespace Ken4lowEngine
 	/// -------------------------------------------------------------
 	bool Input::ReleaseMouse(int button) const
 	{
+		if (editorViewportMouseOverrideEnabled_ && !editorViewportMousePositionValid_)
+		{
+			// Main Viewport外またはImGui操作中のマウスリリースはゲーム入力へ渡さない
+			return false;
+		}
+
 		if (!mouseState_.rgbButtons[button] && prevMouseState_.rgbButtons[button])
 		{
 			return true;
@@ -294,7 +312,21 @@ namespace Ken4lowEngine
 	/// -------------------------------------------------------------
 	Vector2 Input::GetMousePosition()
 	{
+		if (editorViewportMouseOverrideEnabled_)
+		{
+			// 既存のゲーム側呼び出しはMain Viewport基準の座標を優先して受け取る
+			return editorViewportMousePositionValid_ ? editorViewportMousePosition_ : Vector2(-1.0f, -1.0f);
+		}
+
 		return Vector2(float(mousePosition_.x), float(mousePosition_.y));
+	}
+
+	void Input::SetEditorViewportMousePosition(const Vector2& position, bool valid)
+	{
+		// EditorWindowManagerで変換済みの座標と有効状態をInput側へ集約する
+		editorViewportMousePosition_ = position;
+		editorViewportMousePositionValid_ = valid;
+		editorViewportMouseOverrideEnabled_ = true;
 	}
 
 
