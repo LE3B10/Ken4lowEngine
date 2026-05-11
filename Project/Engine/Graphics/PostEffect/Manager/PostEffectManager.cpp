@@ -161,6 +161,22 @@ namespace Ken4lowEngine
 		renderTarget.currentState_ = nextState;
 	}
 
+	void PostEffectManager::CopyRenderTarget(RenderTarget& srcRT, RenderTarget& dstRT, ID3D12GraphicsCommandList* commandList)
+	{
+		assert(srcRT.resource.Get() != dstRT.resource.Get());
+
+		// 最終表示先のSRVを固定するため、既存のフルスクリーンコピーPSOでRT間コピーを行う。
+		SRVManager::GetInstance()->PreDraw();
+		TransitionTo(srcRT, commandList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+		TransitionTo(dstRT, commandList, D3D12_RESOURCE_STATE_RENDER_TARGET);
+		commandList->OMSetRenderTargets(1, &dstRT.rtvHandle, false, nullptr);
+		commandList->SetPipelineState(pipelineBuilder_->GetCopyPipelineState().Get());
+		commandList->SetGraphicsRootSignature(pipelineBuilder_->GetCopyRootSignature().Get());
+		SRVManager::GetInstance()->SetGraphicsRootDescriptorTable(0, srcRT.srvIndex);
+		commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+		commandList->DrawInstanced(3, 1, 0, 0);
+	}
+
 
 	/// -------------------------------------------------------------
 	///				　	ポストエフェクトの更新処理
@@ -322,12 +338,14 @@ namespace Ken4lowEngine
 
 		uint32_t src = 0; // ソースのインデックス
 		uint32_t dst = 1; // デスティネーションのインデックス
+		bool appliedAnyEffect = false; // 最終alpha補正コピーが必要か判定するため適用有無を保持する
 
 		// ポストエフェクトの描画
 		for (const auto& [name, _] : effectOrder_)
 		{
 			if (!(effectEnabled_[name] || effectEnableFlags_[name])) continue;  // エフェクトが無効ならスキップ
 
+			appliedAnyEffect = true;
 			auto& inRT = renderTargets_[src]; // 入力レンダーテクスチャ
 			auto& outRT = renderTargets_[dst]; // 出力レンダーテクスチャ
 
@@ -373,19 +391,13 @@ namespace Ken4lowEngine
 
 		if (src != 0)
 		{
-			// 最終PostEffect出力とGameRenderTargetが別Resourceであることを確認してSRV/RTV同時使用を避ける。
-			assert(finalRT.resource.Get() != gameRT.resource.Get());
-
-			// BackBufferではなくGameRenderTargetへコピーしてDockウィンドウとの重なりを避ける
-			SRVManager::GetInstance()->PreDraw();
-			TransitionTo(finalRT, commandList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-			TransitionTo(gameRT, commandList, D3D12_RESOURCE_STATE_RENDER_TARGET);
-			commandList->OMSetRenderTargets(1, &gameRT.rtvHandle, false, nullptr);
-			commandList->SetPipelineState(pipelineBuilder_->GetCopyPipelineState().Get());
-			commandList->SetGraphicsRootSignature(pipelineBuilder_->GetCopyRootSignature().Get());
-			SRVManager::GetInstance()->SetGraphicsRootDescriptorTable(0, finalRT.srvIndex);
-			commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-			commandList->DrawInstanced(3, 1, 0, 0);
+			CopyRenderTarget(finalRT, gameRT, commandList);
+		}
+		else if (appliedAnyEffect && renderTargets_.size() >= 2)
+		{
+			// 偶数個のPostEffectでGameRenderTargetへ戻った場合もalpha=1のコピーPSOを通して最終合成を不透明化する。
+			CopyRenderTarget(gameRT, renderTargets_[1], commandList);
+			CopyRenderTarget(renderTargets_[1], gameRT, commandList);
 		}
 
 		// Main ViewportのImGui::Imageが読めるよう最終GameRenderTargetをSRV状態にしておく

@@ -12,5 +12,6 @@ PixelShaderOutput main(VertexShaderOutput input)
 {
     PixelShaderOutput output;
     output.color = gTexture.Sample(gSampler, input.texcoord);
+    output.color.a = 1.0f; // Main Viewport用の最終合成結果はImGui::Image上で透けないよう不透明にする
     return output;
 }
