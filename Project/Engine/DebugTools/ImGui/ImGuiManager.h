@@ -7,6 +7,7 @@
 #include <cstdint>
 #include <functional>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 #ifdef USE_IMGUI
@@ -52,8 +53,8 @@ namespace Ken4lowEngine
 
 		/// <summary>
 		/// ImGui の初期化処理を行います。<br/>
-		/// ・SRVManager から ImGui 用フォントテクスチャ用の SRV インデックスを確保<br/>
 		/// ・ImGui コンテキストの作成<br/>
+		/// ・SRVManager を使う DX12 用 SRV 確保コールバックの登録<br/>
 		/// ・Win32 / DX12 バックエンドの初期化<br/>
 		/// を行い、ImGui を使える状態にします。
 		/// </summary>
@@ -101,7 +102,7 @@ namespace Ken4lowEngine
 
 		/// <summary>
 		/// ImGui の終了処理を行います。<br/>
-		/// ・確保していた SRV インデックスの解放<br/>
+		/// ・DX12 バックエンド経由で確保した SRV の解放<br/>
 		/// ・DX12 / Win32 バックエンドのシャットダウン<br/>
 		/// ・ImGui コンテキストの破棄<br/>
 		/// を行います。
@@ -123,11 +124,17 @@ namespace Ken4lowEngine
 
 	private: /// ---------- メンバ関数 ---------- ///
 
-		// SRVIndex確保
-		uint32_t srvIndex_ = UINT32_MAX;
+#ifdef USE_IMGUI
+		// ImGuiバックエンドが要求するSRVディスクリプタをSRVManager経由で確保する
+		static void AllocateImGuiSrvDescriptor(ImGui_ImplDX12_InitInfo* info, D3D12_CPU_DESCRIPTOR_HANDLE* outCpuHandle, D3D12_GPU_DESCRIPTOR_HANDLE* outGpuHandle);
+		static void FreeImGuiSrvDescriptor(ImGui_ImplDX12_InitInfo* info, D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle, D3D12_GPU_DESCRIPTOR_HANDLE gpuHandle);
+#endif // USE_IMGUI
+
+		bool initialized_ = false;
 
 #ifdef USE_IMGUI
 		std::vector<DebugPanel> panels_;
+		std::unordered_map<SIZE_T, uint32_t> imguiSrvHandleToIndex_;
 #endif // USE_IMGUI
 
 		int selectedIndex_ = 0;
