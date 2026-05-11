@@ -278,11 +278,9 @@ void PauseMenu::RebuildLayout()
 
 void PauseMenu::RefreshScreenSizeIfNeeded()
 {
-	// Main Viewportの表示サイズ変更ではゲーム内部UI座標を変えない。
+	// 固定内部解像度は正値定数なので、定数条件チェックでC4127を出さない。
 	const float w = static_cast<float>(K4E::GameViewportConstants::Width);
 	const float h = static_cast<float>(K4E::GameViewportConstants::Height);
-
-	if (w <= 0.0f || h <= 0.0f) { return; }
 
 	if (w != screenWidth_ || h != screenHeight_)
 	{

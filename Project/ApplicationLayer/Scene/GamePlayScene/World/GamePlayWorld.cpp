@@ -3,6 +3,7 @@
 #include "GamePlayWorld.h"
 
 #include "GamePlayStageContext.h"
+#include "GameViewportConstants.h"
 
 #include "LightManager.h"
 #include "SkyBoxManager.h"
@@ -185,13 +186,16 @@ void GamePlayWorld::Update(float deltaTime)
 		if (auto* camera = player->GetCamera())
 		{
 			const std::vector<EnemyBase*> enemyList = characters_.GetEnemyRawList();
+			// 敵HPバー投影は固定内部解像度1920x1080を基準にする。
+			const float width = static_cast<float>(K4E::GameViewportConstants::Width);
+			const float height = static_cast<float>(K4E::GameViewportConstants::Height);
 
 			enemyHpBarManager_.Update(
 				enemyList,
 				camera->GetViewMatrix(),
 				camera->GetProjectionMatrix(),
-				static_cast<float>(width),
-				static_cast<float>(height),
+				width,
+				height,
 				deltaTime
 			);
 		}
