@@ -213,9 +213,9 @@ private: /// ---------- メンバ変数 ---------- ///
 	// ポストエフェクトのカテゴリ分類（名前 → カテゴリ名）
 	std::unordered_map<std::string, std::string> effectCategory_;
 
-	// GameRenderTargetの初期サイズはエディタ中央表示用に16:9固定から開始する
-	static constexpr uint32_t kInitialGameRenderTargetWidth_ = 1280;
-	static constexpr uint32_t kInitialGameRenderTargetHeight_ = 720;
+	// GameViewportRenderTargetはゲーム側の基準解像度に合わせて1920x1080固定にする
+	static constexpr uint32_t kFixedGameRenderTargetWidth_ = 1920;
+	static constexpr uint32_t kFixedGameRenderTargetHeight_ = 1080;
 
 	// レンダーテクスチャのクリアカラー
 	const Vector4 kRenderTextureClearColor_ = { 0.08f, 0.08f, 0.18f, 1.0f }; // 分かりやすいように一旦赤色にする
@@ -236,8 +236,8 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	static constexpr int kPostRTCount = 1; // ポストエフェクト用のレンダーテクスチャ数
 	std::vector<RenderTarget> renderTargets_; // レンダーテクスチャのリスト
-	uint32_t renderTargetWidth_ = kInitialGameRenderTargetWidth_; // Main Viewportへ表示するGameRenderTarget幅
-	uint32_t renderTargetHeight_ = kInitialGameRenderTargetHeight_; // Main Viewportへ表示するGameRenderTarget高さ
+	uint32_t renderTargetWidth_ = kFixedGameRenderTargetWidth_; // Main Viewportへ表示するGameRenderTarget幅
+	uint32_t renderTargetHeight_ = kFixedGameRenderTargetHeight_; // Main Viewportへ表示するGameRenderTarget高さ
 
 	// 深度ステンシルビューのインデックス
 	uint32_t depthDsvIndex_ = UINT32_MAX;

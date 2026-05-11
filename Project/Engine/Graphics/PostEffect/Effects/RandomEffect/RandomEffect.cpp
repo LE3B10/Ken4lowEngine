@@ -34,7 +34,8 @@ namespace Ken4lowEngine
 		// ランダムエフェクトの設定
 		randomSetting_->time = 0.0f; // 時間
 		randomSetting_->useMultiply = false; // 乗算を使用するかどうか
-		randomSetting_->textureSize = Vector2(static_cast<float>(dxCommon_->GetClientWidth()), static_cast<float>(dxCommon_->GetClientHeight())); // テクスチャのサイズ
+		// ノイズ計算の基準サイズも固定GameViewportRenderTargetの1920x1080に合わせる
+		randomSetting_->textureSize = Vector2(1920.0f, 1080.0f);
 
 		// 名前の設定
 		constantBuffer_->SetName(L"RandomEffect_ConstantBuffer");
@@ -93,8 +94,9 @@ namespace Ken4lowEngine
 		const uint32_t threadGroupSizeY = 8;
 
 		// いまの画面サイズを使う
-		uint32_t width = dxCommon_->GetClientWidth();
-		uint32_t height = dxCommon_->GetClientHeight();
+		// Compute Dispatch範囲は固定GameViewportRenderTargetの1920x1080に合わせる
+		uint32_t width = 1920;
+		uint32_t height = 1080;
 
 		// （textureSize を残すなら毎回更新しておく）
 		randomSetting_->textureSize = Vector2((float)width, (float)height);

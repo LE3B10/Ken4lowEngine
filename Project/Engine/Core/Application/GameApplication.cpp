@@ -92,7 +92,7 @@ namespace Ken4lowEngine
 		// Deaw計測開始
 		GameTimer::GetInstance()->BeginDraw();
 
-		// 描画開始（バックバッファのクリア）
+		// 描画開始（BackBufferはImGui直前までバインドせず、Scene描画をGameViewportRenderTargetに限定する）
 		dxCommon_->BeginDraw();
 
 		dxCommon_->BeginShadowMapPass(); // シャドウマップパス開始

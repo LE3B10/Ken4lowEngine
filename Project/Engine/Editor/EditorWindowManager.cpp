@@ -3,6 +3,8 @@
 #include "ImGuiManager.h"
 #include "PostEffectManager.h"
 
+#include <algorithm>
+
 #ifdef USE_IMGUI
 #include <imgui.h>
 #endif // USE_IMGUI
@@ -159,17 +161,35 @@ namespace Ken4lowEngine
 		// Main ViewportはGameRenderTargetをImGui::Imageで表示する固定名ウィンドウにする
 		if (ImGui::Begin("Main Viewport", &windowState_.showMainViewport, ImGuiWindowFlags_NoScrollbar))
 		{
-			const ImVec2 viewportSize = ImGui::GetContentRegionAvail();
-			const ImVec2 imageOrigin = ImGui::GetCursorScreenPos();
-			mainViewportScreenPosition_ = { imageOrigin.x, imageOrigin.y };
-			mainViewportSize_ = { viewportSize.x, viewportSize.y };
-
+			const ImVec2 availableSize = ImGui::GetContentRegionAvail();
 			auto* postEffectManager = PostEffectManager::GetInstance();
-			const D3D12_GPU_DESCRIPTOR_HANDLE gameSrv = postEffectManager->GetGameRenderTargetSrvHandleGPU();
-			if (gameSrv.ptr != 0 && viewportSize.x > 1.0f && viewportSize.y > 1.0f)
+			const float targetWidth = static_cast<float>(postEffectManager->GetGameRenderTargetWidth());
+			const float targetHeight = static_cast<float>(postEffectManager->GetGameRenderTargetHeight());
+			const float targetAspect = targetWidth / targetHeight;
+			float imageWidth = availableSize.x;
+			float imageHeight = imageWidth / targetAspect;
+			if (imageHeight > availableSize.y)
 			{
-				// SRVManagerで作成したGameRenderTargetのGPU SRVをImTextureIDとして渡す
-				ImGui::Image(static_cast<ImTextureID>(gameSrv.ptr), viewportSize, ImVec2(0.0f, 0.0f), ImVec2(1.0f, 1.0f));
+				imageHeight = availableSize.y;
+				imageWidth = imageHeight * targetAspect;
+			}
+
+			// Main Viewportの空き領域に引き伸ばさず、16:9を保った最大サイズで中央寄せする
+			const ImVec2 imageSize = ImVec2(std::max(0.0f, imageWidth), std::max(0.0f, imageHeight));
+			const ImVec2 cursorStart = ImGui::GetCursorPos();
+			const ImVec2 screenStart = ImGui::GetCursorScreenPos();
+			const ImVec2 imageOffset = ImVec2(
+				std::max(0.0f, (availableSize.x - imageSize.x) * 0.5f),
+				std::max(0.0f, (availableSize.y - imageSize.y) * 0.5f));
+			ImGui::SetCursorPos(ImVec2(cursorStart.x + imageOffset.x, cursorStart.y + imageOffset.y));
+			mainViewportScreenPosition_ = { screenStart.x + imageOffset.x, screenStart.y + imageOffset.y };
+			mainViewportSize_ = { imageSize.x, imageSize.y };
+
+			const D3D12_GPU_DESCRIPTOR_HANDLE gameSrv = postEffectManager->GetGameRenderTargetSrvHandleGPU();
+			if (gameSrv.ptr != 0 && imageSize.x > 1.0f && imageSize.y > 1.0f)
+			{
+				// SRVManagerで作成したGameRenderTargetのGPU SRVを16:9維持後の表示サイズで渡す
+				ImGui::Image(static_cast<ImTextureID>(gameSrv.ptr), imageSize, ImVec2(0.0f, 0.0f), ImVec2(1.0f, 1.0f));
 			}
 			else
 			{

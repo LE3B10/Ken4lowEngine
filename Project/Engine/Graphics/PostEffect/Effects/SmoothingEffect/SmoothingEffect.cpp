@@ -77,9 +77,9 @@ namespace Ken4lowEngine
 		const uint32_t threadGroupSizeX = 8;
 		const uint32_t threadGroupSizeY = 8;
 
-		// レンダーターゲットの解像度（仮に 1280x720）
-		uint32_t width = dxCommon_->GetClientWidth(); // ウィンドウの幅
-		uint32_t height = dxCommon_->GetClientHeight(); // ウィンドウの高さ
+		// Compute Dispatch範囲は固定GameViewportRenderTargetの1920x1080に合わせる
+		uint32_t width = 1920;
+		uint32_t height = 1080;
 
 		// スレッドグループの数を計算
 		uint32_t groupCountX = (width + threadGroupSizeX - 1) / threadGroupSizeX;
