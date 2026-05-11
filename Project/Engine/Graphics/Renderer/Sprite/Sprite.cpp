@@ -3,6 +3,7 @@
 #include "DirectXCommon.h"
 #include "TextureManager.h"
 #include "ResourceManager.h"
+#include "PostEffectManager.h"
 
 namespace Ken4lowEngine
 {
@@ -99,9 +100,10 @@ void Sprite::Update()
 	// ワールド行列の計算
 	Matrix4x4 worldMatrixSprite = Matrix4x4::MakeAffineMatrix(worldTransform.scale_, worldTransform.rotate_, worldTransform.translate_);
 
-	// ビュー行列とプロジェクション行列の計算(スプライト用)
+	// スプライトUIは固定GameViewportRenderTarget(1920x1080)基準で射影する。
 	Matrix4x4 viewMatrixSprite = Matrix4x4::MakeIdentity();
-	Matrix4x4 projectionMatrixSprite = Matrix4x4::MakeOrthographicMatrix(0.0f, 0.0f, (float)dxCommon_->GetClientWidth(), (float)dxCommon_->GetClientHeight(), 0.0f, 100.0f);
+	const auto* postEffectManager = PostEffectManager::GetInstance();
+	Matrix4x4 projectionMatrixSprite = Matrix4x4::MakeOrthographicMatrix(0.0f, 0.0f, static_cast<float>(postEffectManager->GetGameRenderTargetWidth()), static_cast<float>(postEffectManager->GetGameRenderTargetHeight()), 0.0f, 100.0f);
 	Matrix4x4 worldViewProjectionMatrixSprite = Matrix4x4::Multiply(worldMatrixSprite, Matrix4x4::Multiply(viewMatrixSprite, projectionMatrixSprite));
 
 	// 座標変換行列を更新

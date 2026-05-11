@@ -13,7 +13,6 @@
 #include <SceneManager.h>
 #include <Input.h>
 #include <GameTimer.h>
-#include <algorithm>
 
 #ifdef USE_IMGUI
 #include <ImGuiManager.h>
@@ -137,14 +136,8 @@ namespace Ken4lowEngine
 #endif // USE_IMGUI
 
 #ifdef USE_IMGUI
-		const Vector2 mainViewportSize = EditorWindowManager::GetInstance()->GetMainViewportSize();
-		if (mainViewportSize.x > 0.0f && mainViewportSize.y > 0.0f)
-		{
-			// Scene描画前にMain Viewportの表示可能サイズへGameViewportRenderTargetを追従させる。
-			PostEffectManager::GetInstance()->RequestGameRenderTargetResize(
-				static_cast<uint32_t>(std::max(1.0f, mainViewportSize.x)),
-				static_cast<uint32_t>(std::max(1.0f, mainViewportSize.y)));
-		}
+		// Debug/Editor時もゲーム内部解像度は固定し、Main Viewport側の表示だけを拡縮する。
+		(void)EditorWindowManager::GetInstance()->GetMainViewportSize();
 #endif // USE_IMGUI
 
 		//--------------------------------------------

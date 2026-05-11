@@ -150,7 +150,7 @@ public: /// ---------- メンバ関数 ---------- ///
 	uint32_t GetGameRenderTargetHeight() const { return renderTargetHeight_; }
 
 	/// <summary>
-	/// Main Viewport の表示サイズに合わせてリサイズしたい場合の入口です。
+	/// Main Viewport の表示サイズ変更を受けても固定内部解像度を維持する入口です。
 	/// </summary>
 	void RequestGameRenderTargetResize(uint32_t width, uint32_t height);
 
@@ -223,7 +223,7 @@ private: /// ---------- メンバ変数 ---------- ///
 	// ポストエフェクトのカテゴリ分類（名前 → カテゴリ名）
 	std::unordered_map<std::string, std::string> effectCategory_;
 
-	// 初期GameViewportRenderTargetは既存UI/Sprite互換の1920x1080から開始する。
+	// GameViewportRenderTargetは既存UI/Sprite互換の1920x1080固定にする。
 	static constexpr uint32_t kDefaultGameRenderTargetWidth_ = 1920;
 	static constexpr uint32_t kDefaultGameRenderTargetHeight_ = 1080;
 

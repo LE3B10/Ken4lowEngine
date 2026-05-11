@@ -360,7 +360,7 @@ void TitleScene::InitializeLogoUI()
 	logoUI_.baseSize = logoSprite_->GetSize();
 	logoUI_.baseSize *= 0.7f; // 元画像が大きい場合は適宜縮小
 	logoSprite_->SetAnchorPoint({ 0.5f, 0.5f });
-	logoSprite_->SetPosition({ dxCommon_->GetClientWidth() * 0.5f, dxCommon_->GetClientHeight() * 0.25f });
+	logoSprite_->SetPosition({ PostEffectManager::GetInstance()->GetGameRenderTargetWidth() * 0.5f, PostEffectManager::GetInstance()->GetGameRenderTargetHeight() * 0.25f }); // Title UIは固定内部解像度1920x1080基準にする。
 }
 
 /// -------------------------------------------------------------
@@ -373,7 +373,7 @@ void TitleScene::InitializeBattleButtonUI()
 	battleButtonUI_.btnSprite->Initialize("UI/Common/btn_battle.dds");
 	battleButtonUI_.btnSprite->SetAnchorPoint(battleButtonUI_.anchor);
 
-	battleButtonUI_.position = { dxCommon_->GetClientWidth() * 0.5f, dxCommon_->GetClientHeight() * 0.75f }; // 画面中央下
+	battleButtonUI_.position = { PostEffectManager::GetInstance()->GetGameRenderTargetWidth() * 0.5f, PostEffectManager::GetInstance()->GetGameRenderTargetHeight() * 0.75f }; // Title UIは固定内部解像度1920x1080基準にする。
 
 	battleButtonUI_.btnSprite->SetPosition(battleButtonUI_.position);
 	battleButtonUI_.btnSprite->SetSize(battleButtonUI_.size);
@@ -402,7 +402,7 @@ void TitleScene::InitializeClickHintUI()
 	clickHintUI_.hintSprite->Initialize("UI/Common/ui_click_hint.dds");
 	clickHintUI_.hintSprite->SetAnchorPoint({ 0.5f, 0.0f });      // 中央上
 	// ここは今の 1/10 スケール指定のままでOK
-	clickHintUI_.hintSprite->SetPosition({ dxCommon_->GetClientWidth() * 0.5f + clickHintUI_.offset.x, dxCommon_->GetClientHeight() * 0.25f + clickHintUI_.offset.y });
+	clickHintUI_.hintSprite->SetPosition({ PostEffectManager::GetInstance()->GetGameRenderTargetWidth() * 0.5f + clickHintUI_.offset.x, PostEffectManager::GetInstance()->GetGameRenderTargetHeight() * 0.25f + clickHintUI_.offset.y }); // Title UIは固定内部解像度1920x1080基準にする。
 	clickHintUI_.hintSprite->SetSize({ 153.6f, 102.4f });       // 元画像が1536x1024pxなので1/10スケール
 	clickHintUI_.baseSize = clickHintUI_.hintSprite->GetSize(); // 基準サイズを保存
 }

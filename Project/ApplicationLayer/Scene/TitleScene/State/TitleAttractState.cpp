@@ -4,6 +4,7 @@
 #include <Camera.h>
 #include "Input.h"
 #include <LinearInterpolation.h>
+#include <PostEffectManager.h>
 #include "TitleTransitionToLobby.h"
 
 using namespace Ken4lowEngine;
@@ -106,7 +107,7 @@ void TitleAttractState::Update(TitleScene* scene, float deltaTime)
 			(pulse + clickHintUI.scaleHover * clickHintUI.hoverAnim) -
 			(clickHintUI.scalePress * clickHintUI.pressAnim);
 		Vector2 posNow = { basePos.x, basePos.y + wobble + clickHintUI.offsetPressY * clickHintUI.pressAnim };
-		posNow.y = std::min(posNow.y, 720.0f - 60.0f); // 画面下クランプ（1280x720基準）
+		posNow.y = std::min(posNow.y, static_cast<float>(PostEffectManager::GetInstance()->GetGameRenderTargetHeight()) - 60.0f); // クリック判定も固定内部解像度1920x1080基準でクランプする。
 
 		const Vector2 sizeNow = { clickHintUI.baseSize.x * scaleNow, clickHintUI.baseSize.y * scaleNow };
 		const float minX = posNow.x - sizeNow.x * 0.5f; // アンカー(0.5,0.0)
