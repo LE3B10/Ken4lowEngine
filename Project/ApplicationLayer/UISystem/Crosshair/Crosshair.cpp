@@ -3,6 +3,7 @@
 #include <DirectXCommon.h>
 #include <TextureManager.h>
 #include <GameTimer.h>
+#include "GameViewportConstants.h"
 
 #include <algorithm>
 #include <cctype>
@@ -42,9 +43,9 @@ void Crosshair::Initialize(const std::string& texturePath)
 /// -------------------------------------------------------------
 void Crosshair::Update()
 {
-	auto* dxCommon = K4E::DirectXCommon::GetInstance();
-	const float clientWidth = static_cast<float>(dxCommon->GetClientWidth());
-	const float clientHeight = static_cast<float>(dxCommon->GetClientHeight());
+	// CrosshairはMain Viewportの拡縮ではなく固定内部解像度1920x1080中心を基準にする。
+	const float clientWidth = static_cast<float>(K4E::GameViewportConstants::Width);
+	const float clientHeight = static_cast<float>(K4E::GameViewportConstants::Height);
 	const float deltaTime = K4E::GameTimer::GetInstance()->GetDeltaTime();
 
 	// ADSブレンド更新
@@ -383,9 +384,9 @@ void Crosshair::NotifyLanded()
 
 void Crosshair::RebuildReticleSprites_()
 {
-	auto* dxCommon = K4E::DirectXCommon::GetInstance();
-	const float clientWidth = static_cast<float>(dxCommon->GetClientWidth());
-	const float clientHeight = static_cast<float>(dxCommon->GetClientHeight());
+	// CrosshairはMain Viewportの拡縮ではなく固定内部解像度1920x1080中心を基準にする。
+	const float clientWidth = static_cast<float>(K4E::GameViewportConstants::Width);
+	const float clientHeight = static_cast<float>(K4E::GameViewportConstants::Height);
 
 	const std::string tex = NormalizeReticlePath_(textureName_);
 	if (tex.empty())
@@ -413,9 +414,9 @@ void Crosshair::RebuildReticleSprites_()
 
 void Crosshair::RebuildAdsReticleSprites_()
 {
-	auto* dxCommon = K4E::DirectXCommon::GetInstance();
-	const float clientWidth = static_cast<float>(dxCommon->GetClientWidth());
-	const float clientHeight = static_cast<float>(dxCommon->GetClientHeight());
+	// CrosshairはMain Viewportの拡縮ではなく固定内部解像度1920x1080中心を基準にする。
+	const float clientWidth = static_cast<float>(K4E::GameViewportConstants::Width);
+	const float clientHeight = static_cast<float>(K4E::GameViewportConstants::Height);
 
 	const std::string tex = NormalizeReticlePath_(adsTextureName_);
 	if (tex.empty())
@@ -444,9 +445,9 @@ void Crosshair::RebuildAdsReticleSprites_()
 
 void Crosshair::RebuildAdsCenterDotSprites_()
 {
-	auto* dxCommon = K4E::DirectXCommon::GetInstance();
-	const float clientWidth = static_cast<float>(dxCommon->GetClientWidth());
-	const float clientHeight = static_cast<float>(dxCommon->GetClientHeight());
+	// CrosshairはMain Viewportの拡縮ではなく固定内部解像度1920x1080中心を基準にする。
+	const float clientWidth = static_cast<float>(K4E::GameViewportConstants::Width);
+	const float clientHeight = static_cast<float>(K4E::GameViewportConstants::Height);
 
 	const std::string tex = NormalizeReticlePath_(adsCenterDotTextureName_);
 	if (tex.empty())
@@ -475,9 +476,9 @@ void Crosshair::RebuildAdsCenterDotSprites_()
 
 void Crosshair::RebuildHitMarkerSprites_(const std::string& normalizedPath)
 {
-	auto* dxCommon = K4E::DirectXCommon::GetInstance();
-	const float clientWidth = static_cast<float>(dxCommon->GetClientWidth());
-	const float clientHeight = static_cast<float>(dxCommon->GetClientHeight());
+	// CrosshairはMain Viewportの拡縮ではなく固定内部解像度1920x1080中心を基準にする。
+	const float clientWidth = static_cast<float>(K4E::GameViewportConstants::Width);
+	const float clientHeight = static_cast<float>(K4E::GameViewportConstants::Height);
 
 	std::string tex = NormalizeReticlePath_(normalizedPath);
 	if (tex.empty()) tex = NormalizeReticlePath_(kDefaultHitTex);

@@ -3,6 +3,7 @@
 
 #include "ImGuiManager.h"
 #include "PostEffectManager.h"
+#include "GameViewportConstants.h"
 #include <Input.h>
 
 #include <algorithm>
@@ -159,7 +160,7 @@ namespace Ken4lowEngine
 		{
 			// Main Viewport非表示中はゲーム側へエディタマウス入力を渡さない
 			mainViewportRect_.valid = false;
-			mainViewportRect_.hovered = false;
+			mainViewportRect_.isHovered = false;
 			Input::GetInstance()->SetEditorViewportMousePosition({ 0.0f, 0.0f }, false);
 			return;
 		}
@@ -169,8 +170,8 @@ namespace Ken4lowEngine
 		{
 			const ImVec2 availableSize = ImGui::GetContentRegionAvail();
 			auto* postEffectManager = PostEffectManager::GetInstance();
-			const float renderTargetWidth = static_cast<float>(postEffectManager->GetGameRenderTargetWidth());
-			const float renderTargetHeight = static_cast<float>(postEffectManager->GetGameRenderTargetHeight());
+			const float renderTargetWidth = static_cast<float>(GameViewportConstants::Width);
+			const float renderTargetHeight = static_cast<float>(GameViewportConstants::Height);
 
 			// Main Viewport内では固定解像度GameRenderTargetを16:9維持で最大表示する。
 			ImVec2 imageSize = ImVec2(0.0f, 0.0f);
@@ -215,11 +216,11 @@ namespace Ken4lowEngine
 				// InvisibleButtonでMain Viewport全体をアイテム登録してhover判定と境界更新を担わせる。
 				ImGui::InvisibleButton("MainViewportImageArea", availableSize);
 				const bool imguiBlocking = ImGui::IsAnyItemActive() && !ImGui::IsItemActive();
-				mainViewportRect_.hovered = ImGui::IsItemHovered() && !imguiBlocking; // 他ウィンドウ操作中はゲームクリック扱いにしない
+				mainViewportRect_.isHovered = ImGui::IsItemHovered() && !imguiBlocking; // 他ウィンドウ操作中はゲームクリック扱いにしない
 			}
 			else
 			{
-				mainViewportRect_.hovered = false;
+				mainViewportRect_.isHovered = false;
 			}
 
 			Vector2 gameMouse = {};
@@ -230,7 +231,7 @@ namespace Ken4lowEngine
 		{
 			// Main Viewportウィンドウが折りたたまれた場合もゲーム側のマウス入力を無効化する
 			mainViewportRect_.valid = false;
-			mainViewportRect_.hovered = false;
+			mainViewportRect_.isHovered = false;
 			Input::GetInstance()->SetEditorViewportMousePosition({ 0.0f, 0.0f }, false);
 		}
 		ImGui::End();
@@ -247,7 +248,7 @@ namespace Ken4lowEngine
 	{
 #ifdef USE_IMGUI
 		outMouse = { 0.0f, 0.0f };
-		if (!mainViewportRect_.valid || !mainViewportRect_.hovered)
+		if (!mainViewportRect_.valid || !mainViewportRect_.isHovered)
 		{
 			// Main Viewport外または他のImGuiウィンドウ操作中はゲーム側へマウス入力を渡さない
 			return false;
@@ -261,9 +262,8 @@ namespace Ken4lowEngine
 			return false;
 		}
 
-		const auto* postEffectManager = PostEffectManager::GetInstance();
-		const float renderTargetWidth = static_cast<float>(postEffectManager->GetGameRenderTargetWidth());
-		const float renderTargetHeight = static_cast<float>(postEffectManager->GetGameRenderTargetHeight());
+		const float renderTargetWidth = static_cast<float>(GameViewportConstants::Width);
+		const float renderTargetHeight = static_cast<float>(GameViewportConstants::Height);
 		if (renderTargetWidth <= 0.0f || renderTargetHeight <= 0.0f ||
 			mainViewportRect_.imageSize.x <= 0.0f || mainViewportRect_.imageSize.y <= 0.0f)
 		{

@@ -3,6 +3,7 @@
 
 #include <DirectXCommon.h>
 #include <Input.h>
+#include "GameViewportConstants.h"
 
 #include <algorithm>
 
@@ -22,12 +23,9 @@ namespace
 
 void PauseMenu::Initialize()
 {
-	auto* dx = K4E::DirectXCommon::GetInstance();
-	if (dx)
-	{
-		screenWidth_ = static_cast<float>(dx->GetClientWidth());
-		screenHeight_ = static_cast<float>(dx->GetClientHeight());
-	}
+	// Pause menuはWinAppサイズに追従せず固定内部解像度1920x1080で構築する。
+	screenWidth_ = static_cast<float>(K4E::GameViewportConstants::Width);
+	screenHeight_ = static_cast<float>(K4E::GameViewportConstants::Height);
 
 	overlay_ = CreateWhiteSprite();
 	panel_ = CreateWhiteSprite();
@@ -280,11 +278,9 @@ void PauseMenu::RebuildLayout()
 
 void PauseMenu::RefreshScreenSizeIfNeeded()
 {
-	auto* dx = K4E::DirectXCommon::GetInstance();
-	if (!dx) { return; }
-
-	const float w = static_cast<float>(dx->GetClientWidth());
-	const float h = static_cast<float>(dx->GetClientHeight());
+	// Main Viewportの表示サイズ変更ではゲーム内部UI座標を変えない。
+	const float w = static_cast<float>(K4E::GameViewportConstants::Width);
+	const float h = static_cast<float>(K4E::GameViewportConstants::Height);
 
 	if (w <= 0.0f || h <= 0.0f) { return; }
 

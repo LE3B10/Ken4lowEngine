@@ -936,6 +936,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="ApplicationLayer\Character\Enemy\AI\EnemyEvadeController.h" />
     <ClInclude Include="ApplicationLayer\Character\Enemy\AI\EnemyTraitProfile.h" />
     <ClInclude Include="Engine\Graphics\Camera\Manager\CameraManager.h" />
+    <ClInclude Include="Engine\Graphics\GameViewportConstants.h" />
     <ClInclude Include="Engine\Core\Application\Framework.h" />
     <ClInclude Include="Engine\Core\Application\GameApplication.h" />
     <ClInclude Include="Engine\Core\Logging\LogString.h" />

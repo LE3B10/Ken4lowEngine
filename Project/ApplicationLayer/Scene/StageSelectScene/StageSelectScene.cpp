@@ -1,4 +1,5 @@
 #define NOMINMAX
+#include "GameViewportConstants.h"
 #include "StageSelectScene.h"
 #include <DirectXCommon.h>
 #include <Input.h>
@@ -581,8 +582,9 @@ void StageSelectScene::InitializeBackground()
 	bg_->Initialize("Effects/white.dds");
 	bg_->SetPosition({});
 
-	context_.screenWidth = static_cast<float>(dxCommon_->GetClientWidth());
-	context_.screenHeight = static_cast<float>(dxCommon_->GetClientHeight());
+	// StageSelect UIはMain Viewportの表示サイズに引っ張られない固定内部解像度で配置する。
+	context_.screenWidth = static_cast<float>(K4E::GameViewportConstants::Width);
+	context_.screenHeight = static_cast<float>(K4E::GameViewportConstants::Height);
 
 	bg_->SetSize({ context_.screenWidth, context_.screenHeight });
 	bg_->SetColor(bgNow_);

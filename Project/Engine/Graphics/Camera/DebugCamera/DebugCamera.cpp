@@ -1,5 +1,6 @@
 #include "DebugCamera.h"
 #include "WinApp.h"
+#include "GameViewportConstants.h"
 #include "Input.h"
 #include "ParameterManager.h"
 
@@ -24,7 +25,7 @@ void DebugCamera::Initialize()
 	worldTransform_.translate_ = { 0.0f,0.0f,-20.0f };
 
 	fovY_ = 1.0f;
-	aspectRatio_ = float(WinApp::GetInstance()->GetClientWidth()) / float(WinApp::GetInstance()->GetClientHeight());
+	aspectRatio_ = GameViewportConstants::Aspect; // Editor上のProjectionは固定内部解像度16:9へ統一する。
 	nearClip_ = 0.1f;
 	farClip_ = 1000.0f;
 

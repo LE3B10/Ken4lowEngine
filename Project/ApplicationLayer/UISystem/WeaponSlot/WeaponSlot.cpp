@@ -1,4 +1,5 @@
 #include "WeaponSlot.h"
+#include "GameViewportConstants.h"
 #include <DirectXCommon.h>
 
 #include <cstdlib> // std::abs
@@ -256,8 +257,9 @@ void WeaponSlot::RebuildLayout()
 	const float space = layout_.spacing;
 	const float totalW = kSlotCount * slot + (kSlotCount - 1) * space;
 
-	float screenW = static_cast<float>(DirectXCommon::GetInstance()->GetClientWidth());
-	float screenH = static_cast<float>(DirectXCommon::GetInstance()->GetClientHeight());
+	// Weapon slot HUDは固定内部解像度1920x1080の下端を基準にする。
+	float screenW = static_cast<float>(GameViewportConstants::Width);
+	float screenH = static_cast<float>(GameViewportConstants::Height);
 
 	const float startX = (screenW - totalW) * 0.5f;
 	const float y = screenH - layout_.marginBottom - slot;

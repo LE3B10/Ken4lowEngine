@@ -1,5 +1,6 @@
 #include "NoAmmoUI.h"
 #include <DirectXCommon.h>
+#include "GameViewportConstants.h"
 #include <FontAtlasLoader.h>
 #include <cmath>
 
@@ -26,9 +27,9 @@ void NoAmmoUI::Initialize()
 		isReady_ = false;
 	}
 
-	auto* dx = K4E::DirectXCommon::GetInstance();
-	const float w = static_cast<float>(dx->GetClientWidth());
-	const float h = static_cast<float>(dx->GetClientHeight());
+	// NoAmmo UIは固定内部解像度1920x1080の中央付近へ配置する。
+	const float w = static_cast<float>(K4E::GameViewportConstants::Width);
+	const float h = static_cast<float>(K4E::GameViewportConstants::Height);
 
 	position_ = { w * 0.5f, h * 0.55f };
 	scale_ = 0.90f;

@@ -1389,6 +1389,9 @@
     <ClInclude Include="Engine\Misc\Audio\MFAudioDecoder.h">
       <Filter>Engine\Misc\Audio</Filter>
     </ClInclude>
+    <ClInclude Include="Engine\Graphics\GameViewportConstants.h">
+      <Filter>Engine\Graphics</Filter>
+    </ClInclude>
     <ClInclude Include="Engine\Graphics\Camera\Core\Camera.h">
       <Filter>Engine\Graphics\Camera\Core</Filter>
     </ClInclude>
