@@ -45,7 +45,7 @@ public: /// ---------- テンプレート ---------- ///
 	{
 		ComPtr<ID3D12Resource> resource = nullptr;				   // レンダーテクスチャリソース
 		D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle = {};				   // RTVハンドル
-		D3D12_RESOURCE_STATES state = D3D12_RESOURCE_STATE_COMMON; // リソース状態
+		D3D12_RESOURCE_STATES currentState_ = D3D12_RESOURCE_STATE_COMMON; // 実リソースの現在状態を保持して固定beforeのBarrierを避ける
 		uint32_t rtvIndex = UINT32_MAX;							   // RTVインデックス
 		uint32_t srvIndex = UINT32_MAX;							   // SRVインデックス
 		uint32_t uavIndex = UINT32_MAX;							   // UAVインデックス
@@ -170,6 +170,11 @@ private: /// ---------- メンバ関数 ---------- ///
 	/// <param name="height">深度バッファーの高さ（ピクセル単位）。</param>
 	/// <returns>作成された深度バッファーを参照する ComPtr<ID3D12Resource>。作成に失敗した場合は空の ComPtr を返すことがあります。</returns>
 	ComPtr<ID3D12Resource> CreateDepthBufferResource(uint32_t width, uint32_t height);
+
+	/// <summary>
+	/// RenderTarget の現在状態を見て必要なときだけ ResourceBarrier を発行します。
+	/// </summary>
+	void TransitionTo(RenderTarget& renderTarget, ID3D12GraphicsCommandList* commandList, D3D12_RESOURCE_STATES nextState);
 
 private: /// ---------- メンバ関数 ---------- ///
 
