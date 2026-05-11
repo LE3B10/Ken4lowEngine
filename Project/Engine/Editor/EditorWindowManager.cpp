@@ -6,6 +6,7 @@
 #include "PostEffectManager.h"
 #include "GameViewportConstants.h"
 #include <Input.h>
+#include <SceneManager.h>
 
 #include <algorithm>
 
@@ -15,6 +16,22 @@
 
 namespace Ken4lowEngine
 {
+
+	namespace
+	{
+		EditorInputPolicy GetCurrentEditorInputPolicy()
+		{
+			const BaseScene* scene = SceneManager::GetInstance()->GetCurrentScene();
+			// Scene未設定時はUI Mouse扱いにしてEditor操作を妨げない。
+			return scene ? scene->GetEditorInputPolicy() : EditorInputPolicy::UiMouse;
+		}
+
+		bool IsFpsCapturePolicy()
+		{
+			// F8キャプチャはFPS操作Sceneだけで有効にする。
+			return GetCurrentEditorInputPolicy() == EditorInputPolicy::FpsCapture;
+		}
+	}
 
 	EditorWindowManager* EditorWindowManager::GetInstance()
 	{
@@ -26,10 +43,10 @@ namespace Ken4lowEngine
 	{
 #ifdef USE_IMGUI
 		auto* input = Input::GetInstance();
-		if (input->TriggerRawKey(DIK_F8))
+		if (input->TriggerRawKey(DIK_F8) && IsFpsCapturePolicy())
 		{
 			const bool forceRelease = input->PushRawKey(DIK_LSHIFT) || input->PushRawKey(DIK_RSHIFT);
-			// F8は入力キャプチャ切替、Shift+F8はFPS操作中でもEditor操作へ戻す非常口にする。
+			// F8はFPS操作Sceneだけ入力キャプチャ切替、Shift+F8は非常口にする。
 			if (forceRelease)
 			{
 				EditorPlayController::GetInstance()->ForceReleaseToEditor();
@@ -153,7 +170,8 @@ namespace Ken4lowEngine
 #ifdef USE_IMGUI
 		auto* playController = EditorPlayController::GetInstance();
 
-		// ツールバーはPlay状態と入力キャプチャ状態を同じController経由で操作する。
+		const bool fpsCapturePolicy = IsFpsCapturePolicy();
+		// ツールバーは現在Sceneの入力ポリシーに合わせて表示と操作可否を分ける。
 		ImGuiWindowFlags flags = ImGuiWindowFlags_NoCollapse;
 		if (ImGui::Begin("Toolbar", &windowState_.showToolbar, flags))
 		{
@@ -181,12 +199,20 @@ namespace Ken4lowEngine
 			ImGui::SameLine();
 			ImGui::TextUnformatted("|");
 			ImGui::SameLine();
-			ImGui::Text("%s  F8: %s", playController->GetInputStatusText(), playController->IsGameCaptured() ? "Release" : "Capture");
-			ImGui::SameLine();
-			if (ImGui::Button(playController->IsGameCaptured() ? "Release Input" : "Capture Input"))
+			if (fpsCapturePolicy)
 			{
-				// ToolbarボタンからもF8と同じキャプチャ切り替えを実行できるようにする。
-				playController->ToggleInputCapture();
+				ImGui::Text("%s  F8: %s", playController->IsGameCaptured() ? "Input: FPS Captured" : "Input: Editor Released", playController->IsGameCaptured() ? "Release" : "Capture");
+				ImGui::SameLine();
+				if (ImGui::Button(playController->IsGameCaptured() ? "Release Input" : "Capture Input"))
+				{
+					// ToolbarボタンもFPS操作SceneでだけF8と同じキャプチャ切り替えを実行する。
+					playController->ToggleInputCapture();
+				}
+			}
+			else
+			{
+				// UI Mouse Sceneではキャプチャ操作を出さず常にカーソルUI操作を示す。
+				ImGui::TextUnformatted("Input: UI Mouse Mode");
 			}
 			// Debug Freezeは入力キャプチャとは別状態としてToolbar上で確認できるようにする。
 			ImGui::TextUnformatted(playController->GetDebugFreezeStatusText());
@@ -276,7 +302,7 @@ namespace Ken4lowEngine
 					mouseScreen.x >= imageScreenMin.x && mouseScreen.y >= imageScreenMin.y &&
 					mouseScreen.x <= imageScreenMax.x && mouseScreen.y <= imageScreenMax.y;
 				const bool otherItemActive = ImGui::IsAnyItemActive() && !ImGui::IsItemActive();
-				// WantCaptureMouseではなくGameCapturedかつMain Viewport画像上かどうかだけでゲームクリックを許可する。
+				// WantCaptureMouseではなくSceneポリシーとMain Viewport画像上かどうかでゲームクリックを許可する。
 				mainViewportRect_.isHovered = ImGui::IsWindowHovered(ImGuiHoveredFlags_AllowWhenBlockedByActiveItem) && mouseInsideImage && !otherItemActive;
 			}
 			else
@@ -286,12 +312,14 @@ namespace Ken4lowEngine
 
 			Vector2 gameMouse = {};
 			const bool gameMouseValid = GetMousePositionInGameViewport(gameMouse);
-			const bool gameInputEnabled = EditorPlayController::GetInstance()->IsGameCaptured() && mainViewportRect_.isHovered;
+			const EditorInputPolicy inputPolicy = GetCurrentEditorInputPolicy();
+			const bool gameInputEnabled = (inputPolicy == EditorInputPolicy::UiMouse || EditorPlayController::GetInstance()->IsGameCaptured()) && mainViewportRect_.isHovered;
 			Input::GetInstance()->SetGameInputEnabled(gameInputEnabled);
 			Input::GetInstance()->SetEditorViewportMousePosition(gameMouse, gameMouseValid);
-			// GameReleased中やViewport外では中央固定を解除し、Editor/ImGui操作用にカーソルを表示する。
-			Input::GetInstance()->SetLockCursor(gameInputEnabled);
-			Input::GetInstance()->SetCursorVisible(!gameInputEnabled);
+			// UI Mouseは常にカーソル表示、FPS CaptureはGameCaptured中だけ中央固定にする。
+			const bool lockForFpsCapture = inputPolicy == EditorInputPolicy::FpsCapture && gameInputEnabled;
+			Input::GetInstance()->SetLockCursor(lockForFpsCapture);
+			Input::GetInstance()->SetCursorVisible(!lockForFpsCapture);
 			inputDebugInfo_.mainViewportHovered = mainViewportRect_.isHovered; // 入力許可条件のViewport hoverをToolbarに表示する。
 			inputDebugInfo_.imguiMouseClicked0 = ImGui::IsMouseClicked(ImGuiMouseButton_Left);
 			inputDebugInfo_.imguiMouseDown0 = ImGui::IsMouseDown(ImGuiMouseButton_Left);
@@ -325,9 +353,10 @@ namespace Ken4lowEngine
 	{
 #ifdef USE_IMGUI
 		outMouse = { 0.0f, 0.0f };
-		if (!EditorPlayController::GetInstance()->IsGameCaptured())
+		const EditorInputPolicy inputPolicy = GetCurrentEditorInputPolicy();
+		if (inputPolicy == EditorInputPolicy::FpsCapture && !EditorPlayController::GetInstance()->IsGameCaptured())
 		{
-			// GameReleased/Editor状態ではゲーム側へマウス入力を渡さない。
+			// FPS Capture SceneのGameReleased中はゲーム側へマウス入力を渡さない。
 			return false;
 		}
 
