@@ -132,12 +132,14 @@ namespace Ken4lowEngine
 		backBufferIndex_ = swapChain_->GetSwapChain()->GetCurrentBackBufferIndex();
 		auto backBuffer = GetBackBuffer(backBufferIndex_);
 
-		// Present -> RenderTarget
+		// BackBufferの記録状態を元にRTVへ戻し、固定beforeによる状態ズレを避ける
+		const D3D12_RESOURCE_STATES beforeState = swapChain_->GetBackBufferState(backBufferIndex_);
 		ResourceTransition(
 			backBuffer.Get(),
-			D3D12_RESOURCE_STATE_PRESENT,
+			beforeState,
 			D3D12_RESOURCE_STATE_RENDER_TARGET
 		);
+		swapChain_->SetBackBufferState(backBufferIndex_, D3D12_RESOURCE_STATE_RENDER_TARGET);
 
 		mainRenderTarget_->Begin(commandManager_->GetCommandList(), backBufferIndex_);
 	}
@@ -157,12 +159,14 @@ namespace Ken4lowEngine
 
 		mainRenderTarget_->End(commandManager_->GetCommandList());
 
-		// RenderTarget -> Present
+		// BackBufferの記録状態を元にPresentへ戻し、メインRTの状態管理を一箇所に寄せる
+		const D3D12_RESOURCE_STATES beforeState = swapChain_->GetBackBufferState(backBufferIndex_);
 		ResourceTransition(
 			backBuffer.Get(),
-			D3D12_RESOURCE_STATE_RENDER_TARGET,
+			beforeState,
 			D3D12_RESOURCE_STATE_PRESENT
 		);
+		swapChain_->SetBackBufferState(backBufferIndex_, D3D12_RESOURCE_STATE_PRESENT);
 
 		// コマンド実行と GPU 完了待ち
 		commandManager_->ExecuteAndWait();

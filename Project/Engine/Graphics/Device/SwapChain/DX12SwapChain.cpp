@@ -2,6 +2,7 @@
 #include "WinApp.h"
 
 #include <cassert>
+#include <cwchar>
 
 namespace Ken4lowEngine
 {
@@ -29,16 +30,9 @@ void DX12SwapChain::Initialize(WinApp* winApp, IDXGIFactory7* dxgiFactory, ID3D1
 	hr = dxgiFactory->CreateSwapChainForHwnd(commandQueue, winApp->GetHwnd(), &swapChainDesc, nullptr, nullptr, reinterpret_cast<IDXGISwapChain1**>(swapChain.GetAddressOf()));
 	assert(SUCCEEDED(hr));
 
-	//SwapChainからResourceを引っ張ってくる
-	hr = swapChain->GetBuffer(0, IID_PPV_ARGS(&swapChainResources[0]));
-	swapChainResources[0]->SetName(L"BackBuffer : 0");
-	//うまく取得できなければ起動できない
-	assert(SUCCEEDED(hr));
-
-	// 2つ目のバッファも同様に取得
-	hr = swapChain->GetBuffer(1, IID_PPV_ARGS(&swapChainResources[1]));
-	swapChainResources[1]->SetName(L"BackBuffer : 1");
-	assert(SUCCEEDED(hr));
+	// SwapChainからResourceを引っ張り、BackBuffer名と状態を一元管理する
+	CacheBackBuffer(0);
+	CacheBackBuffer(1);
 }
 
 void DX12SwapChain::Resize(uint32_t width, uint32_t height)
@@ -56,15 +50,28 @@ void DX12SwapChain::Resize(uint32_t width, uint32_t height)
 	);
 	assert(SUCCEEDED(hr));
 
-	// 再取得
-	hr = swapChain->GetBuffer(0, IID_PPV_ARGS(&swapChainResources[0]));
-	assert(SUCCEEDED(hr));
-	hr = swapChain->GetBuffer(1, IID_PPV_ARGS(&swapChainResources[1]));
-	assert(SUCCEEDED(hr));
+	// 再取得時もBackBuffer0/1の名前を付け直してUnnamed Resourceを避ける
+	CacheBackBuffer(0);
+	CacheBackBuffer(1);
 
 	// descも更新しておくと便利
 	swapChainDesc.Width = width;
 	swapChainDesc.Height = height;
+}
+
+
+void DX12SwapChain::CacheBackBuffer(uint32_t index)
+{
+	HRESULT hr = swapChain->GetBuffer(index, IID_PPV_ARGS(&swapChainResources[index]));
+	assert(SUCCEEDED(hr));
+
+	wchar_t name[32]{};
+	swprintf_s(name, L"BackBuffer%u", index);
+	// DebugLayerのResource名にBackBuffer番号を出し、RTV状態違反の対象を特定しやすくする。
+	swapChainResources[index]->SetName(name);
+
+	// SwapChainの取得直後はPRESENT(COMMON)として扱い、DirectXCommonのBarrier beforeと一致させる。
+	backBufferStates[index] = D3D12_RESOURCE_STATE_PRESENT;
 }
 
 } // namespace Ken4lowEngine

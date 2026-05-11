@@ -45,6 +45,7 @@ public: /// ---------- テンプレート ---------- ///
 	{
 		ComPtr<ID3D12Resource> resource = nullptr;				   // レンダーテクスチャリソース
 		D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle = {};				   // RTVハンドル
+		const wchar_t* debugName = L"PostEffectRenderTarget";		   // DebugLayerでUnnamed Resourceにしないための名前
 		D3D12_RESOURCE_STATES currentState_ = D3D12_RESOURCE_STATE_COMMON; // 実リソースの現在状態を保持して固定beforeのBarrierを避ける
 		uint32_t rtvIndex = UINT32_MAX;							   // RTVインデックス
 		uint32_t srvIndex = UINT32_MAX;							   // SRVインデックス
