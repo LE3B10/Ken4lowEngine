@@ -4,6 +4,7 @@
 #include "DirectXCommon.h"
 #include "SRVManager.h"
 
+#include <cassert>
 #include <stdexcept>
 
 #ifdef USE_IMGUI
@@ -35,14 +36,20 @@ namespace Ken4lowEngine
 	void ImGuiManager::Initialize(WinApp* winApp, DirectXCommon* dxCommon)
 	{
 #ifdef USE_IMGUI
-		// SRVの番号を取得
-		srvIndex_ = SRVManager::GetInstance()->Allocate();
-
-		if (srvIndex_ >= SRVManager::GetInstance()->GetkMaxSRVCount())
+		// 初期化順の不整合を起動時に明示的なエラーとして検出する
+		if (initialized_)
 		{
-			SRVManager::GetInstance()->Free(srvIndex_);
-			srvIndex_ = UINT32_MAX;
-			throw std::runtime_error("Failed to allocate SRV for ImGuiManager");
+			throw std::runtime_error("ImGuiManager is already initialized");
+		}
+		if (winApp == nullptr || dxCommon == nullptr || dxCommon->GetDevice() == nullptr || dxCommon->GetCommandManager() == nullptr || dxCommon->GetCommandManager()->GetCommandQueue() == nullptr)
+		{
+			throw std::runtime_error("Invalid arguments for ImGuiManager::Initialize");
+		}
+
+		auto* srvManager = SRVManager::GetInstance();
+		if (srvManager->GetDescriptorHeap() == nullptr)
+		{
+			throw std::runtime_error("SRV descriptor heap is not initialized for ImGuiManager");
 		}
 
 #pragma region ImGuiの初期化を行いDirectX12とWindowsAPIを使ってImGuiをセットアップする
@@ -60,16 +67,83 @@ namespace Ken4lowEngine
 		io.ConfigFlags &= ~ImGuiConfigFlags_ViewportsEnable;
 
 		ImGui::StyleColorsDark();					  // ImGuiスタイルの設定
-		ImGui_ImplWin32_Init(winApp->GetHwnd());	  // Win32バックエンドの初期化
-		ImGui_ImplDX12_Init(dxCommon->GetDevice(),	  // DirectX 12バックエンドの初期化
-			dxCommon->GetSwapChainDesc().BufferCount,
-			DXGI_FORMAT_R8G8B8A8_UNORM_SRGB,
-			SRVManager::GetInstance()->GetDescriptorHeap(),
-			SRVManager::GetInstance()->GetCPUDescriptorHandle(srvIndex_),
-			SRVManager::GetInstance()->GetGPUDescriptorHandle(srvIndex_));
+		const bool win32Initialized = ImGui_ImplWin32_Init(winApp->GetHwnd()); // Win32バックエンド初期化の失敗を起動時に検出する
+		assert(win32Initialized && "ImGui_ImplWin32_Init failed");
+		if (!win32Initialized)
+		{
+			ImGui::DestroyContext();
+			throw std::runtime_error("ImGui_ImplWin32_Init failed");
+		}
+
+		ImGui_ImplDX12_InitInfo dx12InitInfo{};
+		dx12InitInfo.Device = dxCommon->GetDevice();
+		dx12InitInfo.CommandQueue = dxCommon->GetCommandManager()->GetCommandQueue();
+		dx12InitInfo.NumFramesInFlight = static_cast<int>(dxCommon->GetSwapChainDesc().BufferCount);
+		dx12InitInfo.RTVFormat = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
+		dx12InitInfo.SrvDescriptorHeap = srvManager->GetDescriptorHeap();
+		dx12InitInfo.SrvDescriptorAllocFn = AllocateImGuiSrvDescriptor;
+		dx12InitInfo.SrvDescriptorFreeFn = FreeImGuiSrvDescriptor;
+		dx12InitInfo.UserData = this;
+
+		const bool dx12Initialized = ImGui_ImplDX12_Init(&dx12InitInfo); // 1.92以降の動的フォントテクスチャ更新に対応したDX12初期化を行う
+		assert(dx12Initialized && "ImGui_ImplDX12_Init failed");
+		if (!dx12Initialized)
+		{
+			ImGui_ImplWin32_Shutdown();
+			ImGui::DestroyContext();
+			throw std::runtime_error("ImGui_ImplDX12_Init failed");
+		}
+
+		initialized_ = true;
 #pragma endregion
 #endif // USE_IMGUI
 	}
+
+#ifdef USE_IMGUI
+	/// -------------------------------------------------------------
+	///					ImGui用SRVディスクリプタ確保
+	/// -------------------------------------------------------------
+	void ImGuiManager::AllocateImGuiSrvDescriptor(ImGui_ImplDX12_InitInfo* info, D3D12_CPU_DESCRIPTOR_HANDLE* outCpuHandle, D3D12_GPU_DESCRIPTOR_HANDLE* outGpuHandle)
+	{
+		if (info == nullptr || info->UserData == nullptr || outCpuHandle == nullptr || outGpuHandle == nullptr)
+		{
+			throw std::runtime_error("Invalid ImGui DX12 SRV allocation request");
+		}
+
+		auto* self = static_cast<ImGuiManager*>(info->UserData);
+		auto* srvManager = SRVManager::GetInstance();
+		const uint32_t srvIndex = srvManager->Allocate();
+		*outCpuHandle = srvManager->GetCPUDescriptorHandle(srvIndex);
+		*outGpuHandle = srvManager->GetGPUDescriptorHandle(srvIndex);
+
+		// フォントを含むImGuiテクスチャ用SRVが有効なヒープ上に確保されたことを記録する
+		assert(outCpuHandle->ptr != 0 && outGpuHandle->ptr != 0);
+		self->imguiSrvHandleToIndex_[outCpuHandle->ptr] = srvIndex;
+	}
+
+	/// -------------------------------------------------------------
+	///					ImGui用SRVディスクリプタ解放
+	/// -------------------------------------------------------------
+	void ImGuiManager::FreeImGuiSrvDescriptor(ImGui_ImplDX12_InitInfo* info, D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle, D3D12_GPU_DESCRIPTOR_HANDLE gpuHandle)
+	{
+		if (info == nullptr || info->UserData == nullptr || cpuHandle.ptr == 0 || gpuHandle.ptr == 0)
+		{
+			throw std::runtime_error("Invalid ImGui DX12 SRV free request");
+		}
+
+		auto* self = static_cast<ImGuiManager*>(info->UserData);
+		auto it = self->imguiSrvHandleToIndex_.find(cpuHandle.ptr);
+		if (it == self->imguiSrvHandleToIndex_.end())
+		{
+			throw std::runtime_error("Unknown ImGui DX12 SRV descriptor handle");
+		}
+
+		// ImGuiバックエンドから返却されたフォント/テクスチャ用SRVをSRVManagerへ戻す
+		SRVManager::GetInstance()->Free(it->second);
+		self->imguiSrvHandleToIndex_.erase(it);
+	}
+#endif // USE_IMGUI
+
 
 
 
@@ -79,6 +153,12 @@ namespace Ken4lowEngine
 	void ImGuiManager::BeginFrame()
 	{
 #ifdef USE_IMGUI
+		// DX12/Win32バックエンド初期化前のNewFrame呼び出しを防ぐ
+		if (!initialized_)
+		{
+			throw std::runtime_error("ImGuiManager::BeginFrame called before Initialize");
+		}
+
 		// ImGuiバックエンドとコンテキストのフレーム開始をManagerに集約する
 		ImGui_ImplDX12_NewFrame();
 		ImGui_ImplWin32_NewFrame();
@@ -158,17 +238,22 @@ namespace Ken4lowEngine
 	void ImGuiManager::Finalize()
 	{
 #ifdef USE_IMGUI
-		// SRVが有効であるかを確認
-		if (srvIndex_ != UINT32_MAX)
+		if (!initialized_)
 		{
-			SRVManager::GetInstance()->Free(srvIndex_);
-			srvIndex_ = UINT32_MAX; // 無効な状態にリセット
+			return;
 		}
 
 		// ImGuiバックエンドとコンテキストの終了処理をManagerに集約する
 		ImGui_ImplDX12_Shutdown();
+		// DX12バックエンドから返却されなかったSRVがあればFinalize時に回収する
+		for (const auto& srvEntry : imguiSrvHandleToIndex_)
+		{
+			SRVManager::GetInstance()->Free(srvEntry.second);
+		}
 		ImGui_ImplWin32_Shutdown();
 		ImGui::DestroyContext();
+		imguiSrvHandleToIndex_.clear();
+		initialized_ = false;
 #endif // USE_IMGUI
 	}
 
