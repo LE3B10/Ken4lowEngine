@@ -39,6 +39,9 @@ namespace Ken4lowEngine
 		PunctualLights,
 		FadeManager,
 		StageSelectTextLayout,
+		// GamePlaySceneの非Transform項目をDetailsへ必ず出すための簡易Inspector種別です。
+		PlayerInfo,
+		StageInfo,
 		ManagerInfo,
 	};
 

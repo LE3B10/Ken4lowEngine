@@ -611,9 +611,19 @@ namespace Ken4lowEngine
 						ImGui::TextUnformatted("StageSelect Text Layout Inspector is unavailable.");
 					}
 					break;
+				case EditorInspectorType::PlayerInfo:
+				case EditorInspectorType::StageInfo:
 				case EditorInspectorType::ManagerInfo:
-					ImGui::TextUnformatted("This manager has no Transform.");
-					ImGui::TextUnformatted("Use the dedicated Debug window for detailed editing when available.");
+					if (selected.drawInspector)
+					{
+						// Scene固有の安全な読み取りだけをDetails側から呼び、未取得値はScene側でN/A表示にする。
+						selected.drawInspector();
+					}
+					else
+					{
+						ImGui::TextUnformatted("This object has no editable Transform.");
+						ImGui::TextUnformatted("Use the dedicated Debug window for detailed editing when available.");
+					}
 					break;
 				case EditorInspectorType::None:
 				default:

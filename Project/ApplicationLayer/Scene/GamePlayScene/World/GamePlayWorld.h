@@ -50,6 +50,8 @@ public: /// ---------- メンバ関数 ---------- ///
 	const CharacterWorld& GetCharacters() const { return characters_; }
 
 	HUDManager* GetHUDManager() const { return hudManager_.get(); }
+	// Details用の弾数参照はWorld経由で安全にnullptr確認してから使う。
+	BulletManager* GetBulletManager() const { return bulletManager_.get(); }
 	WaveManager* GetWaveManager() const { return waveManager_.get(); }
 	K4E::Stage* GetStage() const { return stage_.get(); }
 	K4E::SkyBox* GetSkyBox() const { return skyBox_.get(); }
