@@ -17,6 +17,7 @@ namespace Ken4lowEngine
 	inline EditorObjectInfo MakeCameraEditorObject(uint64_t id, std::string displayName, std::string typeName, std::string sceneName, Camera* camera)
 	{
 		EditorObjectInfo object{ id, std::move(displayName), std::move(typeName), std::move(sceneName) };
+		object.inspectorType = EditorInspectorType::Transform;
 		if (!camera)
 		{
 			object.transformUnavailableReason = "Camera is not created yet.";
@@ -53,6 +54,7 @@ namespace Ken4lowEngine
 	inline EditorObjectInfo MakeSpriteEditorObject(uint64_t id, std::string displayName, std::string typeName, std::string sceneName, Sprite* sprite)
 	{
 		EditorObjectInfo object{ id, std::move(displayName), std::move(typeName), std::move(sceneName) };
+		object.inspectorType = EditorInspectorType::Transform;
 		if (!sprite)
 		{
 			object.transformUnavailableReason = "Sprite is not created yet.";
@@ -92,6 +94,7 @@ namespace Ken4lowEngine
 	{
 		EditorObjectInfo object{ id, std::move(displayName), std::move(typeName), std::move(sceneName) };
 		object.canEditTransform = lightIndex < LightManager::GetInstance()->GetPunctualLights().size();
+		object.inspectorType = EditorInspectorType::Transform;
 		object.transformUnavailableReason = "Light is not created yet.";
 		object.readTransform = [lightIndex](EditorTransform& transform)
 		{

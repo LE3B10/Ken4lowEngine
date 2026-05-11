@@ -94,6 +94,9 @@ public: /// ---------- メンバ関数 ---------- ///
 	// ImGuiデバッグ
 	void DrawImGui();
 
+	// Details Inspectorと専用FadeManagerウィンドウで同じDebug UIを共有する。
+	void DrawInspectorContent();
+
 	// 破棄
 	void Finalize();
 

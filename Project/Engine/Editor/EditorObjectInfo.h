@@ -32,6 +32,16 @@ namespace Ken4lowEngine
 		Vector3 scale = { 1.0f, 1.0f, 1.0f };
 	};
 
+	enum class EditorInspectorType
+	{
+		None,
+		Transform,
+		PunctualLights,
+		FadeManager,
+		StageSelectTextLayout,
+		ManagerInfo,
+	};
+
 	/// <summary>
 	/// World OutlinerとDetailsへ安全に渡すための軽量なエディタ表示用オブジェクト情報です。
 	/// </summary>
@@ -39,6 +49,7 @@ namespace Ken4lowEngine
 	{
 		using ReadTransformFunc = std::function<bool(EditorTransform&)>;
 		using WriteTransformFunc = std::function<void(const EditorTransform&)>;
+		using DrawInspectorFunc = std::function<void()>;
 
 		uint64_t id = 0;
 		std::string displayName;
@@ -46,8 +57,10 @@ namespace Ken4lowEngine
 		std::string sceneName;
 		bool canEditTransform = false;
 		std::string transformUnavailableReason = "Transform editing is not available for this object.";
+		EditorInspectorType inspectorType = EditorInspectorType::None;
 		std::string inspectorHint;
 		ReadTransformFunc readTransform;
+		DrawInspectorFunc drawInspector;
 		WriteTransformFunc writeTransform;
 
 		// Detailsは毎フレーム再収集された入口だけを使い、古いraw pointerへ直接触れないようにする。

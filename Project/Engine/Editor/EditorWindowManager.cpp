@@ -6,6 +6,7 @@
 #include "PostEffectManager.h"
 #include "GameViewportConstants.h"
 #include <Input.h>
+#include <LightManager.h>
 #include <SceneManager.h>
 
 #include <algorithm>
@@ -552,35 +553,76 @@ namespace Ken4lowEngine
 			else
 			{
 				const EditorObjectInfo& selected = selection_.GetSelected();
-				// Detailsは識別情報と編集可能なTransformだけを表示し、未対応オブジェクトは安全に弾く。
+				// DetailsはTransform専用ではなく、Outliner選択に対応するInspector種別で必ず表示内容を切り替える。
 				ImGui::Text("Selected Name: %s", selected.displayName.c_str());
 				ImGui::Text("Type: %s", selected.typeName.c_str());
 				ImGui::Text("Scene: %s", selected.sceneName.c_str());
 				ImGui::Text("ID: %llu", static_cast<unsigned long long>(selected.id));
-				ImGui::Text("Transform Editable: %s", selected.canEditTransform ? "Yes" : "No");
 				if (!selected.inspectorHint.empty())
 				{
-					// 専用Debugウィンドウを持つ項目でも、Detailsへ編集先の案内を表示する。
 					ImGui::Text("Inspector: %s", selected.inspectorHint.c_str());
 				}
 				ImGui::Separator();
 
-				EditorTransform transform{};
-				if (selected.TryReadTransform(transform))
+				switch (selected.inspectorType)
 				{
-					bool changed = false;
-					changed |= ImGui::DragFloat3("Position", &transform.position.x, 0.1f);
-					changed |= ImGui::DragFloat3("Rotation", &transform.rotation.x, 0.01f);
-					changed |= ImGui::DragFloat3("Scale", &transform.scale.x, 0.1f);
-					if (changed)
+				case EditorInspectorType::Transform:
+				{
+					EditorTransform transform{};
+					if (selected.TryReadTransform(transform))
 					{
-						// ImGuiで編集した値はScene側が用意した書き戻し入口から即時反映する。
-						selected.WriteTransform(transform);
+						bool changed = false;
+						changed |= ImGui::DragFloat3("Position", &transform.position.x, 0.1f);
+						changed |= ImGui::DragFloat3("Rotation", &transform.rotation.x, 0.01f);
+						changed |= ImGui::DragFloat3("Scale", &transform.scale.x, 0.1f);
+						if (changed)
+						{
+							// ImGuiで編集した値はScene側が用意した書き戻し入口から即時反映する。
+							selected.WriteTransform(transform);
+						}
 					}
+					else
+					{
+						ImGui::Text("%s", selected.transformUnavailableReason.c_str());
+					}
+					break;
 				}
-				else
-				{
-					ImGui::Text("%s", selected.transformUnavailableReason.c_str());
+				case EditorInspectorType::PunctualLights:
+					ImGui::TextUnformatted("Type: Light Manager / Punctual Lights");
+					LightManager::GetInstance()->DrawPunctualLightsInspector();
+					break;
+				case EditorInspectorType::FadeManager:
+					if (selected.drawInspector)
+					{
+						selected.drawInspector();
+					}
+					else
+					{
+						ImGui::TextUnformatted("FadeManager Inspector is unavailable.");
+					}
+					break;
+				case EditorInspectorType::StageSelectTextLayout:
+					if (selected.drawInspector)
+					{
+						selected.drawInspector();
+					}
+					else
+					{
+						ImGui::TextUnformatted("StageSelect Text Layout Inspector is unavailable.");
+					}
+					break;
+				case EditorInspectorType::ManagerInfo:
+					ImGui::TextUnformatted("This manager has no Transform.");
+					ImGui::TextUnformatted("Use the dedicated Debug window for detailed editing when available.");
+					break;
+				case EditorInspectorType::None:
+				default:
+					ImGui::TextUnformatted("この項目はDetails Inspector未実装です。");
+					if (!selected.transformUnavailableReason.empty())
+					{
+						ImGui::Text("%s", selected.transformUnavailableReason.c_str());
+					}
+					break;
 				}
 			}
 		}
