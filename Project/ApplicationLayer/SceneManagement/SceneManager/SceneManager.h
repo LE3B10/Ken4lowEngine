@@ -57,6 +57,10 @@ public: /// ---------- セッタ ---------- ///
 	BaseScene* GetCurrentScene() { return scene_.get(); }
 	const BaseScene* GetCurrentScene() const { return scene_.get(); }
 
+	// Details InspectorはSceneManager所有のFadeManagerを毎フレーム取り直して古い参照を避ける。
+	FadeManager* GetFadeManager() { return fadeManager_.get(); }
+	const FadeManager* GetFadeManager() const { return fadeManager_.get(); }
+
 private: /// ---------- メンバ関数 ---------- ///
 
 	// 次シーン適用（Finalize→差し替え→Initialize）

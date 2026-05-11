@@ -365,6 +365,54 @@ void StageSelectScene::Finalize()
 /// -------------------------------------------------------------
 ///				　			ImGui描画処理
 /// -------------------------------------------------------------
+void StageSelectScene::DrawStageSelectTextLayoutInspectorContent()
+{
+#ifdef USE_IMGUI
+	// Detailsと専用StageSelect Text Layoutウィンドウの表示差分をなくすため、調整UIを共有する。
+	ImGui::Text("Current Stage Index : %d", currentStageIndex_);
+
+	ImGui::SeparatorText("Global");
+	ImGui::DragFloat("Center X Offset", &textLayoutDebug_.centerXOffset, 1.0f, -400.0f, 400.0f);
+
+	ImGui::SeparatorText("Title");
+	ImGui::DragFloat("Title Y", &textLayoutDebug_.titleY, 1.0f, 0.0f, 300.0f);
+	ImGui::DragFloat("Title Scale", &textLayoutDebug_.titleScale, 0.01f, 0.2f, 3.0f);
+
+	ImGui::SeparatorText("Stage No");
+	ImGui::DragFloat("StageNo Y", &textLayoutDebug_.stageNoY, 1.0f, -1000.0f, 100.0f);
+	ImGui::DragFloat("StageNo Scale", &textLayoutDebug_.stageNoScale, 0.01f, 0.2f, 3.0f);
+
+	ImGui::SeparatorText("Stage Name");
+	ImGui::DragFloat("StageName Y", &textLayoutDebug_.stageNameY, 1.0f, -1000.0f, 100.0f);
+	ImGui::DragFloat("StageName Scale", &textLayoutDebug_.stageNameScale, 0.01f, 0.2f, 3.0f);
+
+	ImGui::SeparatorText("Category");
+	ImGui::DragFloat("Category Y", &textLayoutDebug_.categoryY, 1.0f, -1000.0f, 100.0f);
+	ImGui::DragFloat("Category Scale", &textLayoutDebug_.categoryScale, 0.01f, 0.2f, 3.0f);
+
+	ImGui::SeparatorText("Catch Copy");
+	ImGui::DragFloat("Catch Y", &textLayoutDebug_.catchY, 1.0f, -1000.0f, 100.0f);
+	ImGui::DragFloat("Catch Scale", &textLayoutDebug_.catchScale, 0.01f, 0.2f, 3.0f);
+
+	ImGui::SeparatorText("Description");
+	ImGui::DragFloat("Desc Y", &textLayoutDebug_.descY, 1.0f, -1000.0f, 100.0f);
+	ImGui::DragFloat("Desc Scale", &textLayoutDebug_.descScale, 0.01f, 0.2f, 3.0f);
+
+	ImGui::SeparatorText("Unlock");
+	ImGui::DragFloat("Unlock Y", &textLayoutDebug_.unlockY, 1.0f, -1000.0f, 100.0f);
+	ImGui::DragFloat("Unlock Scale", &textLayoutDebug_.unlockScale, 0.01f, 0.2f, 3.0f);
+
+	ImGui::SeparatorText("Guide");
+	ImGui::DragFloat("Guide Y", &textLayoutDebug_.guideY, 1.0f, -1000.0f, 100.0f);
+	ImGui::DragFloat("Guide Scale", &textLayoutDebug_.guideScale, 0.01f, 0.2f, 3.0f);
+
+	if (ImGui::Button("Reset Layout"))
+	{
+		textLayoutDebug_ = CreateDefaultTextLayoutDebug();
+	}
+#endif // USE_IMGUI
+}
+
 void StageSelectScene::DrawImGui()
 {
 #ifdef USE_IMGUI
@@ -374,98 +422,10 @@ void StageSelectScene::DrawImGui()
 
 	if (ImGui::Begin("StageSelect Text Layout", &editorWindowState.showStageSelectDebug))
 	{
-		ImGui::Text("Current Stage Index : %d", currentStageIndex_);
-
-		ImGui::SeparatorText("Global");
-		ImGui::DragFloat("Center X Offset", &textLayoutDebug_.centerXOffset, 1.0f, -400.0f, 400.0f);
-
-		ImGui::SeparatorText("Title");
-		ImGui::DragFloat("Title Y", &textLayoutDebug_.titleY, 1.0f, 0.0f, 300.0f);
-		ImGui::DragFloat("Title Scale", &textLayoutDebug_.titleScale, 0.01f, 0.2f, 3.0f);
-
-		ImGui::SeparatorText("Stage No");
-		ImGui::DragFloat("StageNo Y", &textLayoutDebug_.stageNoY, 1.0f, -1000.0f, 100.0f);
-		ImGui::DragFloat("StageNo Scale", &textLayoutDebug_.stageNoScale, 0.01f, 0.2f, 3.0f);
-
-		ImGui::SeparatorText("Stage Name");
-		ImGui::DragFloat("StageName Y", &textLayoutDebug_.stageNameY, 1.0f, -1000.0f, 100.0f);
-		ImGui::DragFloat("StageName Scale", &textLayoutDebug_.stageNameScale, 0.01f, 0.2f, 3.0f);
-
-		ImGui::SeparatorText("Category");
-		ImGui::DragFloat("Category Y", &textLayoutDebug_.categoryY, 1.0f, -1000.0f, 100.0f);
-		ImGui::DragFloat("Category Scale", &textLayoutDebug_.categoryScale, 0.01f, 0.2f, 3.0f);
-
-		ImGui::SeparatorText("Catch Copy");
-		ImGui::DragFloat("Catch Y", &textLayoutDebug_.catchY, 1.0f, -1000.0f, 100.0f);
-		ImGui::DragFloat("Catch Scale", &textLayoutDebug_.catchScale, 0.01f, 0.2f, 3.0f);
-
-		ImGui::SeparatorText("Description");
-		ImGui::DragFloat("Desc Y", &textLayoutDebug_.descY, 1.0f, -1000.0f, 100.0f);
-		ImGui::DragFloat("Desc Scale", &textLayoutDebug_.descScale, 0.01f, 0.2f, 3.0f);
-
-		ImGui::SeparatorText("Unlock");
-		ImGui::DragFloat("Unlock Y", &textLayoutDebug_.unlockY, 1.0f, -1000.0f, 100.0f);
-		ImGui::DragFloat("Unlock Scale", &textLayoutDebug_.unlockScale, 0.01f, 0.2f, 3.0f);
-
-		ImGui::SeparatorText("Guide");
-		ImGui::DragFloat("Guide Y", &textLayoutDebug_.guideY, 1.0f, -1000.0f, 100.0f);
-		ImGui::DragFloat("Guide Scale", &textLayoutDebug_.guideScale, 0.01f, 0.2f, 3.0f);
-
-		if (ImGui::Button("Reset Layout"))
-		{
-			textLayoutDebug_ = CreateDefaultTextLayoutDebug();
-		}
+		DrawStageSelectTextLayoutInspectorContent();
 	}
 	ImGui::End();
 #endif // USE_IMGUI
-
-}
-
-void StageSelectScene::StartLoad()
-{
-	loadStep_ = 0;
-	isLoadReady_ = false;
-	state_ = State::Loading;
-}
-
-void StageSelectScene::UpdateLoad()
-{
-	switch (loadStep_)
-	{
-	case 0:
-		// ステージ情報だけ先に作る
-		InitializeStages();
-		++loadStep_;
-		break;
-
-	case 1:
-		// セレクタのコンテキストだけ組む
-		InitializeSelectors();
-		++loadStep_;
-		break;
-
-	case 2:
-		// 背景と GridSelector の生成
-		InitializeBackground();
-		++loadStep_;
-		break;
-
-	case 3:
-		// 選択状態へ入る
-		ChangeState(std::make_unique<StageSelectSelectingState>());
-		state_ = State::Selecting;
-		isLoadReady_ = true;
-		++loadStep_;
-		break;
-
-	default:
-		break;
-	}
-}
-
-bool StageSelectScene::IsReadyToStartUncover() const
-{
-	return isLoadReady_;
 }
 
 /// -------------------------------------------------------------
@@ -735,7 +695,9 @@ void StageSelectScene::CollectEditorObjects(std::vector<Ken4lowEngine::EditorObj
 	const auto addObject = [&outObjects](uint64_t id, const char* displayName, const char* typeName)
 	{
 		// Transform未対応の管理項目はDetailsで理由だけを表示し、編集入口を持たせない。
-		outObjects.push_back({ id, displayName, typeName, "StageSelectScene" });
+		Ken4lowEngine::EditorObjectInfo object{ id, displayName, typeName, "StageSelectScene" };
+		object.inspectorType = Ken4lowEngine::EditorInspectorType::ManagerInfo;
+		outObjects.push_back(std::move(object));
 	};
 	const auto addCameraObject = [&outObjects](uint64_t id, const char* displayName, const char* typeName)
 	{
@@ -745,7 +707,9 @@ void StageSelectScene::CollectEditorObjects(std::vector<Ken4lowEngine::EditorObj
 	const auto addLightObject = [&outObjects](uint64_t id, const char* displayName, const char* typeName)
 	{
 		// LightManagerの先頭ライトを安全なindex指定でDetails編集へ公開する。
-		outObjects.push_back(Ken4lowEngine::MakePunctualLightEditorObject(id, displayName, typeName, "StageSelectScene", 0));
+		Ken4lowEngine::EditorObjectInfo object{ id, displayName, typeName, "StageSelectScene" };
+		object.inspectorType = Ken4lowEngine::EditorInspectorType::PunctualLights;
+		outObjects.push_back(std::move(object));
 	};
 	const auto addSpriteObject = [&outObjects, this](uint64_t id, const char* displayName, const char* typeName)
 	{
@@ -756,12 +720,16 @@ void StageSelectScene::CollectEditorObjects(std::vector<Ken4lowEngine::EditorObj
 	// Outlinerはステージ選択画面の編集入口として、現在生成済みでなくても主要カテゴリを安定IDで列挙する。
 	addObject(Ken4lowEngine::MakeStableEditorObjectId("StageSelectScene.Root"), "StageSelect Root", "Scene Root");
 	addCameraObject(Ken4lowEngine::MakeStableEditorObjectId("StageSelectScene.Camera"), "Camera", "Camera");
-	addLightObject(Ken4lowEngine::MakeStableEditorObjectId("StageSelectScene.DirectionalLight.0"), "Directional Light", "Directional Light");
+	addLightObject(Ken4lowEngine::MakeStableEditorObjectId("StageSelectScene.PunctualLights"), "Punctual Lights", "Light Manager / Punctual Lights");
 	addObject(Ken4lowEngine::MakeStableEditorObjectId("StageSelectScene.StagePanels"), "Stage Panels", activeSelector_ ? "Stage Selector" : "Stage Selector (pending)");
 	{
 		Ken4lowEngine::EditorObjectInfo textLayout{ Ken4lowEngine::MakeStableEditorObjectId("StageSelectScene.StageTextLayout"), "Stage Text Layout", "StageSelect Text Layout", "StageSelectScene" };
-		// 専用StageSelect Text Layoutウィンドウと競合しないよう、Detailsには編集先の案内だけを持たせる。
-		textLayout.inspectorHint = "Use StageSelect Text Layout tab for detailed editing.";
+		// Detailsからも専用StageSelect Text Layoutと同じ調整UIを開けるようにする。
+		textLayout.inspectorType = Ken4lowEngine::EditorInspectorType::StageSelectTextLayout;
+		textLayout.drawInspector = [this]()
+		{
+			DrawStageSelectTextLayoutInspectorContent();
+		};
 		outObjects.push_back(std::move(textLayout));
 	}
 	addSpriteObject(Ken4lowEngine::MakeStableEditorObjectId("StageSelectScene.BackgroundUI"), "Background UI", bg_ ? "Sprite UI" : "Sprite UI (pending)");

@@ -757,18 +757,10 @@ void FadeManager::Draw2DSprites()
 // ------------------------------
 // ImGui
 // ------------------------------
-void FadeManager::DrawImGui()
+void FadeManager::DrawInspectorContent()
 {
 #ifdef USE_IMGUI
-	// WindowメニューのFadeManager表示フラグを×ボタン状態と共有する
-	auto& editorWindowState = K4E::EditorWindowManager::GetInstance()->GetWindowState();
-	if (!editorWindowState.showFadeManager)
-	{
-		return;
-	}
-
-	ImGui::Begin("FadeManager", &editorWindowState.showFadeManager);
-
+	// Detailsと専用FadeManagerウィンドウの表示差分をなくすため、内部状態UIを共有する。
 	const char* st =
 		(state_ == State::None) ? "演出していない待機状態" :
 		(state_ == State::TileCover) ? "タイルが配置されて画面を覆う段階" :
@@ -776,7 +768,10 @@ void FadeManager::DrawImGui()
 		(state_ == State::Crack) ? "ひび割れアニメーション中" :
 		(state_ == State::TileUncover) ? "タイルを解除して画面が戻る段階" : "Unknown";
 
-	ImGui::Text("State: %s", st);
+	ImGui::Text("Current State: %s", st);
+	ImGui::Text("Fade Busy: %s", IsBusy() ? "Yes" : "No");
+	ImGui::Text("Timer: %.3f", stateTime_);
+	ImGui::Text("Cover Duration: %.3f / Crack Duration: %.3f / Drop Delay: %.3f", coverTileAnimTime_, crackTileAnimTime_, dropStartDelay_);
 	ImGui::Text("ひび割れ: %s", crackDone_ ? "完了" : "途中");
 	ImGui::Text("落下演出: %s", dropDone_ ? "落下完了" : "落下中");
 
@@ -869,6 +864,25 @@ void FadeManager::DrawImGui()
 		RebuildTiles(screenW_, screenH_);
 	}
 
+#else
+	// ImGui無効なら何もしない
+#endif
+}
+
+void FadeManager::DrawImGui()
+{
+#ifdef USE_IMGUI
+	// WindowメニューのFadeManager表示フラグを×ボタン状態と共有する
+	auto& editorWindowState = K4E::EditorWindowManager::GetInstance()->GetWindowState();
+	if (!editorWindowState.showFadeManager)
+	{
+		return;
+	}
+
+	if (ImGui::Begin("FadeManager", &editorWindowState.showFadeManager))
+	{
+		DrawInspectorContent();
+	}
 	ImGui::End();
 #else
 	// ImGui無効なら何もしない

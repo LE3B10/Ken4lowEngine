@@ -87,6 +87,9 @@ namespace Ken4lowEngine
 		/// </summary>
 		void DrawImGui(bool* pOpen = nullptr);
 
+		// Details Inspectorと専用Light Editorで同じPunctual Lights編集UIを共有する。
+		void DrawPunctualLightsInspector();
+
 		/// <summary>
 		/// パンクチュアルライト情報をシェーダにバインドします。<br/>
 		/// 内部で UpdatePunctualLight() を呼び出して GPU バッファと SRV を更新し、<br/>

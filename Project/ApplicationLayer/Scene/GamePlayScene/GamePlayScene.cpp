@@ -828,7 +828,9 @@ void GamePlayScene::CollectEditorObjects(std::vector<Ken4lowEngine::EditorObject
 	const auto addObject = [&outObjects](uint64_t id, const char* displayName, const char* typeName)
 	{
 		// Transform未対応の管理項目はDetailsで理由だけを表示し、編集入口を持たせない。
-		outObjects.push_back({ id, displayName, typeName, "GamePlayScene" });
+		Ken4lowEngine::EditorObjectInfo object{ id, displayName, typeName, "GamePlayScene" };
+		object.inspectorType = Ken4lowEngine::EditorInspectorType::ManagerInfo;
+		outObjects.push_back(std::move(object));
 	};
 	const auto addCameraObject = [&outObjects](uint64_t id, const char* displayName, const char* typeName)
 	{
@@ -838,12 +840,15 @@ void GamePlayScene::CollectEditorObjects(std::vector<Ken4lowEngine::EditorObject
 	const auto addLightObject = [&outObjects](uint64_t id, const char* displayName, const char* typeName)
 	{
 		// LightManagerの先頭ライトを安全なindex指定でDetails編集へ公開する。
-		outObjects.push_back(Ken4lowEngine::MakePunctualLightEditorObject(id, displayName, typeName, "GamePlayScene", 0));
+		Ken4lowEngine::EditorObjectInfo object{ id, displayName, typeName, "GamePlayScene" };
+		object.inspectorType = Ken4lowEngine::EditorInspectorType::PunctualLights;
+		outObjects.push_back(std::move(object));
 	};
 	const auto addPlayerObject = [&outObjects, this](uint64_t id, const char* displayName, const char* typeName)
 	{
 		Player* player = world_ ? world_->GetCharacters().GetPlayer() : nullptr;
 		Ken4lowEngine::EditorObjectInfo object{ id, displayName, typeName, "GamePlayScene" };
+		object.inspectorType = Ken4lowEngine::EditorInspectorType::Transform;
 		if (!player)
 		{
 			object.transformUnavailableReason = "Player is not created yet.";
@@ -915,11 +920,23 @@ void GamePlayScene::CollectEditorObjects(std::vector<Ken4lowEngine::EditorObject
 	addObject(Ken4lowEngine::MakeStableEditorObjectId("GamePlayScene.Root"), "GamePlay Root", "Scene Root");
 	addPlayerObject(Ken4lowEngine::MakeStableEditorObjectId("GamePlayScene.Player"), "Player", world_ ? "Player" : "Player (pending)");
 	addCameraObject(Ken4lowEngine::MakeStableEditorObjectId("GamePlayScene.MainCamera"), "Main Camera", "Camera");
-	addLightObject(Ken4lowEngine::MakeStableEditorObjectId("GamePlayScene.DirectionalLight.0"), "Directional Light", "Directional Light");
+	addLightObject(Ken4lowEngine::MakeStableEditorObjectId("GamePlayScene.PunctualLights"), "Punctual Lights", "Light Manager / Punctual Lights");
 	addObject(Ken4lowEngine::MakeStableEditorObjectId("GamePlayScene.EnemyManager"), "Enemy Manager", world_ ? "Enemy Manager" : "Enemy Manager (pending)");
 	addObject(Ken4lowEngine::MakeStableEditorObjectId("GamePlayScene.BulletManager"), "Bullet Manager", world_ ? "Bullet Manager" : "Bullet Manager (pending)");
 	addObject(Ken4lowEngine::MakeStableEditorObjectId("GamePlayScene.WaveManager"), "Wave Manager", world_ ? "Wave Manager" : "Wave Manager (pending)");
 	addObject(Ken4lowEngine::MakeStableEditorObjectId("GamePlayScene.Stage"), "Stage", stageContext_ ? "Stage" : "Stage (pending)");
 	addObject(Ken4lowEngine::MakeStableEditorObjectId("GamePlayScene.HUD"), "HUD", world_ ? "HUD" : "HUD (pending)");
 	addObject(Ken4lowEngine::MakeStableEditorObjectId("GamePlayScene.CollisionManager"), "Collision Manager", "Collision Manager");
+	{
+		Ken4lowEngine::EditorObjectInfo fadeObject{ Ken4lowEngine::MakeStableEditorObjectId("GamePlayScene.FadeManager"), "FadeManager", "Fade Manager", "GamePlayScene" };
+		fadeObject.inspectorType = Ken4lowEngine::EditorInspectorType::FadeManager;
+		fadeObject.drawInspector = [this]()
+		{
+			if (fadeManager_)
+			{
+				fadeManager_->DrawInspectorContent();
+			}
+		};
+		outObjects.push_back(std::move(fadeObject));
+	}
 }

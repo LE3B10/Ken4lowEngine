@@ -127,6 +127,9 @@ public: /// ---------- メンバ関数 ---------- ///
 	// World OutlinerへStageSelectSceneの主要オブジェクトを公開する。
 	void CollectEditorObjects(std::vector<Ken4lowEngine::EditorObjectInfo>& outObjects) override;
 
+	// Details Inspectorと専用StageSelect Text Layoutウィンドウで同じ調整UIを共有する。
+	void DrawStageSelectTextLayoutInspectorContent();
+
 	// 段階ロード
 	void StartLoad() override;
 
