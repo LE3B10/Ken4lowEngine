@@ -44,6 +44,7 @@ namespace Ken4lowEngine
 		Vector2 screenMin = { 0.0f, 0.0f };
 		Vector2 screenMax = { 0.0f, 0.0f };
 		Vector2 imageSize = { 0.0f, 0.0f };
+		bool hovered = false; // Main Viewportのゲーム画像上だけをゲーム入力の対象にする
 		bool valid = false;
 	};
 

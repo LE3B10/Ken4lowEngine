@@ -159,6 +159,7 @@ namespace Ken4lowEngine
 		{
 			// Main Viewport非表示中はゲーム側へエディタマウス入力を渡さない
 			mainViewportRect_.valid = false;
+			mainViewportRect_.hovered = false;
 			Input::GetInstance()->SetEditorViewportMousePosition({ 0.0f, 0.0f }, false);
 			return;
 		}
@@ -195,25 +196,28 @@ namespace Ken4lowEngine
 			mainViewportRect_.imageSize = mainViewportSize_;
 			mainViewportRect_.valid = imageSize.x > 1.0f && imageSize.y > 1.0f;
 
-			Vector2 gameMouse = {};
-			const bool gameMouseValid = GetMousePositionInGameViewport(gameMouse);
-			Input::GetInstance()->SetEditorViewportMousePosition(gameMouse, gameMouseValid);
-
 			const D3D12_GPU_DESCRIPTOR_HANDLE gameSrv = postEffectManager->GetGameRenderTargetSrvHandleGPU();
 			if (gameSrv.ptr != 0 && imageSize.x > 1.0f && imageSize.y > 1.0f)
 			{
 				// SRVManagerで作成したGameRenderTargetのGPU SRVを16:9維持後の表示サイズで渡す
 				ImGui::Image(static_cast<ImTextureID>(gameSrv.ptr), imageSize, ImVec2(0.0f, 0.0f), ImVec2(1.0f, 1.0f));
+				mainViewportRect_.hovered = ImGui::IsItemHovered(); // 他ウィンドウに覆われたMain Viewportはゲームクリック扱いにしない
 			}
 			else
 			{
 				ImGui::TextUnformatted("GameRenderTarget SRV is not ready.");
+				mainViewportRect_.hovered = false;
 			}
+
+			Vector2 gameMouse = {};
+			const bool gameMouseValid = GetMousePositionInGameViewport(gameMouse);
+			Input::GetInstance()->SetEditorViewportMousePosition(gameMouse, gameMouseValid);
 		}
 		else
 		{
 			// Main Viewportウィンドウが折りたたまれた場合もゲーム側のマウス入力を無効化する
 			mainViewportRect_.valid = false;
+			mainViewportRect_.hovered = false;
 			Input::GetInstance()->SetEditorViewportMousePosition({ 0.0f, 0.0f }, false);
 		}
 		ImGui::End();
@@ -233,15 +237,9 @@ namespace Ken4lowEngine
 		constexpr float kGameBaseHeight = 1080.0f;
 
 		outMouse = { 0.0f, 0.0f };
-		if (!mainViewportRect_.valid)
+		if (!mainViewportRect_.valid || !mainViewportRect_.hovered)
 		{
-			return false;
-		}
-
-		const ImGuiIO& io = ImGui::GetIO();
-		if (io.WantCaptureMouse)
-		{
-			// ImGui操作中はゲーム側へマウス入力を渡さない
+			// Main Viewport外または他のImGuiウィンドウ操作中はゲーム側へマウス入力を渡さない
 			return false;
 		}
 

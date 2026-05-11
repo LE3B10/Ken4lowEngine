@@ -312,9 +312,15 @@ namespace Ken4lowEngine
 	/// -------------------------------------------------------------
 	Vector2 Input::GetMousePosition()
 	{
+		// 既存のゲーム側呼び出しもGetCursorPositionと同じ補正済み座標を返す
+		return GetCursorPosition();
+	}
+
+	Vector2 Input::GetCursorPosition()
+	{
 		if (editorViewportMouseOverrideEnabled_)
 		{
-			// 既存のゲーム側呼び出しはMain Viewport基準の座標を優先して受け取る
+			// Editor座標が有効な時だけゲーム内部1920x1080基準の座標を返す
 			return editorViewportMousePositionValid_ ? editorViewportMousePosition_ : Vector2(-1.0f, -1.0f);
 		}
 
