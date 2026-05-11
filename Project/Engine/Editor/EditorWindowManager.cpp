@@ -474,11 +474,6 @@ namespace Ken4lowEngine
 	void EditorWindowManager::DrawWorldOutliner()
 	{
 #ifdef USE_IMGUI
-		if (!windowState_.showWorldOutliner)
-		{
-			return;
-		}
-
 		std::vector<EditorObjectInfo> objects;
 		BaseScene* scene = SceneManager::GetInstance()->GetCurrentScene();
 		if (scene)
@@ -504,6 +499,12 @@ namespace Ken4lowEngine
 				// Scene切り替えやロード状態変化で消えた選択はDetails表示前に破棄する。
 				selection_.Clear();
 			}
+		}
+
+		if (!windowState_.showWorldOutliner)
+		{
+			// Detailsだけ表示している場合も、現在Sceneの収集結果で古い選択を先に破棄する。
+			return;
 		}
 
 		if (ImGui::Begin("World Outliner", &windowState_.showWorldOutliner))
@@ -556,6 +557,12 @@ namespace Ken4lowEngine
 				ImGui::Text("Type: %s", selected.typeName.c_str());
 				ImGui::Text("Scene: %s", selected.sceneName.c_str());
 				ImGui::Text("ID: %llu", static_cast<unsigned long long>(selected.id));
+				ImGui::Text("Transform Editable: %s", selected.canEditTransform ? "Yes" : "No");
+				if (!selected.inspectorHint.empty())
+				{
+					// 専用Debugウィンドウを持つ項目でも、Detailsへ編集先の案内を表示する。
+					ImGui::Text("Inspector: %s", selected.inspectorHint.c_str());
+				}
 				ImGui::Separator();
 
 				EditorTransform transform{};
