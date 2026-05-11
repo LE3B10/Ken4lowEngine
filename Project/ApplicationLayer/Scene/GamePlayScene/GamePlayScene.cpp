@@ -798,3 +798,23 @@ bool GamePlayScene::IsRetryFadeInFinished() const
 {
 	return fadeManager_ && fadeManager_->IsDropDone();
 }
+void GamePlayScene::CollectEditorObjects(std::vector<Ken4lowEngine::EditorObjectInfo>& outObjects) const
+{
+	const auto addObject = [&outObjects](uint64_t id, const char* displayName, const char* typeName)
+	{
+		outObjects.push_back({ id, displayName, typeName, "GamePlayScene" });
+	};
+
+	// OutlinerはPlay/Edit中の生成状態に依存しすぎないよう、主要サブシステムを安定IDで列挙する。
+	addObject(0x3000000000000001ull, "GamePlay Root", "Scene Root");
+	addObject(0x3000000000000002ull, "Player", world_ ? "Player" : "Player (pending)");
+	addObject(0x3000000000000003ull, "Main Camera", "Camera");
+	addObject(0x3000000000000004ull, "Light", "Directional Light");
+	addObject(0x3000000000000005ull, "Enemy Manager", world_ ? "Enemy Manager" : "Enemy Manager (pending)");
+	addObject(0x3000000000000006ull, "Bullet Manager", world_ ? "Bullet Manager" : "Bullet Manager (pending)");
+	addObject(0x3000000000000007ull, "Wave Manager", world_ ? "Wave Manager" : "Wave Manager (pending)");
+	addObject(0x3000000000000008ull, "Stage", stageContext_ ? "Stage" : "Stage (pending)");
+	addObject(0x3000000000000009ull, "HUD", world_ ? "HUD" : "HUD (pending)");
+	addObject(0x300000000000000aull, "Collision Manager", "Collision Manager");
+	addObject(0x300000000000000bull, "Fade Manager", fadeManager_ ? "Fade Manager" : "Fade Manager (pending)");
+}

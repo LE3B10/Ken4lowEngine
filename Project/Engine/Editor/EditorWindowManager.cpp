@@ -9,6 +9,7 @@
 #include <SceneManager.h>
 
 #include <algorithm>
+#include <vector>
 
 #ifdef USE_IMGUI
 #include <imgui.h>
@@ -470,15 +471,49 @@ namespace Ken4lowEngine
 			return;
 		}
 
-		// World Outlinerは後で実オブジェクト一覧へ差し替えるため仮ノードだけ表示する
+		std::vector<EditorObjectInfo> objects;
+		const BaseScene* scene = SceneManager::GetInstance()->GetCurrentScene();
+		if (scene)
+		{
+			// Scene側から軽量情報だけを収集し、Outlinerが実オブジェクト寿命へ依存しないようにする。
+			scene->CollectEditorObjects(objects);
+		}
+
+		if (selection_.HasSelection())
+		{
+			const EditorObjectInfo& selected = selection_.GetSelected();
+			const bool stillExists = std::any_of(objects.begin(), objects.end(), [&selected](const EditorObjectInfo& object)
+				{
+					return object.id == selected.id && object.sceneName == selected.sceneName;
+				});
+			if (!stillExists)
+			{
+				// Scene切り替えやロード状態変化で消えた選択はDetails表示前に破棄する。
+				selection_.Clear();
+			}
+		}
+
 		if (ImGui::Begin("World Outliner", &windowState_.showWorldOutliner))
 		{
-			if (ImGui::TreeNodeEx("Current Scene", ImGuiTreeNodeFlags_DefaultOpen))
+			const char* sceneLabel = objects.empty() ? "Current Scene" : objects.front().sceneName.c_str();
+			if (ImGui::TreeNodeEx(sceneLabel, ImGuiTreeNodeFlags_DefaultOpen))
 			{
-				ImGui::Selectable("Player (placeholder)");
-				ImGui::Selectable("Main Camera (placeholder)");
-				ImGui::Selectable("Directional Light (placeholder)");
-				ImGui::Selectable("Stage Root (placeholder)");
+				if (objects.empty())
+				{
+					ImGui::TextUnformatted("No editor objects.");
+				}
+				for (const EditorObjectInfo& object : objects)
+				{
+					const bool selected = selection_.HasSelection() &&
+						selection_.GetSelected().id == object.id &&
+						selection_.GetSelected().sceneName == object.sceneName;
+					const std::string label = object.displayName + "##" + object.sceneName + std::to_string(object.id);
+					if (ImGui::Selectable(label.c_str(), selected))
+					{
+						// クリックしたOutliner項目の軽量情報を選択状態として保存する。
+						selection_.Select(object);
+					}
+				}
 				ImGui::TreePop();
 			}
 		}
@@ -494,16 +529,23 @@ namespace Ken4lowEngine
 			return;
 		}
 
-		// Detailsは後で選択中オブジェクトの編集UIへ接続するため仮プロパティを表示する
 		if (ImGui::Begin("Details", &windowState_.showDetails))
 		{
-			ImGui::TextUnformatted("Selection: None");
-			ImGui::Separator();
-			ImGui::TextUnformatted("Transform");
-			float zero3[3] = { 0.0f, 0.0f, 0.0f };
-			ImGui::InputFloat3("Location", zero3, "%.2f", ImGuiInputTextFlags_ReadOnly);
-			ImGui::InputFloat3("Rotation", zero3, "%.2f", ImGuiInputTextFlags_ReadOnly);
-			ImGui::InputFloat3("Scale", zero3, "%.2f", ImGuiInputTextFlags_ReadOnly);
+			if (!selection_.HasSelection())
+			{
+				ImGui::TextUnformatted("No object selected.");
+			}
+			else
+			{
+				const EditorObjectInfo& selected = selection_.GetSelected();
+				// DetailsはTransform編集の前段階として、選択中オブジェクトの識別情報だけを表示する。
+				ImGui::Text("Selected Name: %s", selected.displayName.c_str());
+				ImGui::Text("Type: %s", selected.typeName.c_str());
+				ImGui::Text("Scene: %s", selected.sceneName.c_str());
+				ImGui::Text("ID: %llu", static_cast<unsigned long long>(selected.id));
+				ImGui::Separator();
+				ImGui::TextUnformatted("Transform editing is not implemented yet.");
+			}
 		}
 		ImGui::End();
 #endif // USE_IMGUI

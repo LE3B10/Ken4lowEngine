@@ -485,3 +485,18 @@ void TitleScene::UpdateDebug()
 	}
 #endif // _DEBUG
 }
+void TitleScene::CollectEditorObjects(std::vector<Ken4lowEngine::EditorObjectInfo>& outObjects) const
+{
+	const auto addObject = [&outObjects](uint64_t id, const char* displayName, const char* typeName)
+	{
+		outObjects.push_back({ id, displayName, typeName, "TitleScene" });
+	};
+
+	// Outlinerは編集対象の入口として、TitleSceneを構成する主要カテゴリだけを安定IDで列挙する。
+	addObject(0x1000000000000001ull, "Title Root", "Scene Root");
+	addObject(0x1000000000000002ull, "Camera", camera_ ? "Camera" : "Camera (pending)");
+	addObject(0x1000000000000003ull, "Light", "Directional Light");
+	addObject(0x1000000000000004ull, "UI Root", "UI Root");
+	addObject(0x1000000000000005ull, "Click Text / Click Sprite", clickHintUI_.hintSprite ? "Sprite UI" : "Sprite UI (pending)");
+	addObject(0x1000000000000006ull, "Fade Manager", "Fade Manager");
+}

@@ -726,3 +726,19 @@ void StageSelectScene::GoToGamePlay()
 		sceneManager_->ChangeScene("GamePlayScene");
 	}
 }
+
+void StageSelectScene::CollectEditorObjects(std::vector<Ken4lowEngine::EditorObjectInfo>& outObjects) const
+{
+	const auto addObject = [&outObjects](uint64_t id, const char* displayName, const char* typeName)
+	{
+		outObjects.push_back({ id, displayName, typeName, "StageSelectScene" });
+	};
+
+	// Outlinerはステージ選択画面の編集入口として、現在生成済みでなくても主要カテゴリを安定IDで列挙する。
+	addObject(0x2000000000000001ull, "StageSelect Root", "Scene Root");
+	addObject(0x2000000000000002ull, "Camera", "Camera");
+	addObject(0x2000000000000003ull, "Light", "Directional Light");
+	addObject(0x2000000000000004ull, "Stage Panels", activeSelector_ ? "Stage Selector" : "Stage Selector (pending)");
+	addObject(0x2000000000000005ull, "Stage Text Layout", isTextReady_ ? "Text Layout" : "Text Layout (pending)");
+	addObject(0x2000000000000006ull, "Fade Manager", "Fade Manager");
+}

@@ -56,6 +56,9 @@ public: /// ---------- BaseScene override ---------- ///
 	// ImGui描画
 	void DrawImGui() override;
 
+	// World OutlinerへGamePlaySceneの主要オブジェクトを公開する。
+	void CollectEditorObjects(std::vector<Ken4lowEngine::EditorObjectInfo>& outObjects) const override;
+
 	// FPS操作が必要なGamePlaySceneだけF8入力キャプチャを許可する。
 	EditorInputPolicy GetEditorInputPolicy() const override { return EditorInputPolicy::FpsCapture; }
 

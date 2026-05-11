@@ -1,5 +1,6 @@
 #pragma once
 #include "Vector2.h"
+#include "EditorSelection.h"
 
 namespace Ken4lowEngine
 {
@@ -104,6 +105,7 @@ namespace Ken4lowEngine
 		Vector2 mainViewportScreenPosition_ = { 0.0f, 0.0f }; // マウス座標をMain Viewport基準へ変換するための左上座標
 		Vector2 mainViewportSize_ = { 0.0f, 0.0f }; // Main Viewport内でGameRenderTargetを表示しているサイズ
 		EditorInputDebugInfo inputDebugInfo_{}; // Toolbarへゲーム入力ゲートの状態を可視化する
+		EditorSelection selection_{}; // World OutlinerとDetailsで共有する軽量な選択状態
 		bool openRebuildDefaultLayoutPopup_ = false; // Rebuild Default Layoutを即時実行せず確認Popupへ遅延する。
 	};
 
