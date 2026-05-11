@@ -5,30 +5,13 @@
 #include <wrl.h>
 
 #include <cstdint>
-#include <functional>
-#include <string>
 #include <unordered_map>
-#include <vector>
 
 #ifdef USE_IMGUI
 #include <imgui.h>
 #include <imgui_impl_dx12.h>
 #include <imgui_impl_win32.h>
 
-/// -------------------------------------------------------------
-///					デバッグパネル構造体
-/// -------------------------------------------------------------
-struct DebugPanel
-{
-	std::string name;
-	bool open = true;        // 一覧に出すか/表示するか
-	bool popOut = false;     // 別ウィンドウ化（固定したい時）
-	bool pinned = false;     // ポップアウト時に位置固定
-	ImVec2 pinnedPos{ 20,20 };
-	ImVec2 pinnedSize{ 380,240 };
-
-	std::function<void()> drawContent; // ★ Begin/Endしない「中身だけ描く」関数
-};
 #endif // USE_IMGUI
 
 namespace Ken4lowEngine
@@ -109,19 +92,6 @@ namespace Ken4lowEngine
 		/// </summary>
 		void Finalize();
 
-#ifdef USE_IMGUI
-		/// <summary>
-		/// デバッグパネルを登録します。
-		/// </summary>
-		/// <param name="panel">登録するデバッグパネル。</param>
-		void RegisterPanel(const DebugPanel& panel);
-#endif // USE_IMGUI
-
-		/// <summary>
-		/// デバッグハブウィンドウの描画処理を行います。
-		/// </summary>
-		void DrawDebugHub(); // 親ウィンドウ（左メニュー＋右編集）
-
 	private: /// ---------- メンバ関数 ---------- ///
 
 #ifdef USE_IMGUI
@@ -133,11 +103,8 @@ namespace Ken4lowEngine
 		bool initialized_ = false;
 
 #ifdef USE_IMGUI
-		std::vector<DebugPanel> panels_;
 		std::unordered_map<SIZE_T, uint32_t> imguiSrvHandleToIndex_;
 #endif // USE_IMGUI
-
-		int selectedIndex_ = 0;
 
 	private: /// ---------- コンストラクタ・デストラクタ ---------- ///
 

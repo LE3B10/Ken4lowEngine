@@ -16,6 +16,7 @@
 
 #ifdef USE_IMGUI
 #include <ImGuiManager.h>
+#include "Editor/EditorWindowManager.h"
 #endif // USE_IMGUI
 #include <DisplaySettings.h>
 #include <WinApp.h>
@@ -104,6 +105,9 @@ namespace Ken4lowEngine
 #ifdef USE_IMGUI
 		/// ---------- ImGuiフレーム開始 ---------- ///
 		ImGuiManager::GetInstance()->BeginFrame();
+
+		// UE5風エディタUI土台を既存のシーン別ImGuiの前に描画する
+		EditorWindowManager::GetInstance()->Draw();
 
 		// ウィンドウ表示用の画面設定の変更
 		winApp_->DrawDisplaySettingsImGui();

@@ -469,6 +469,9 @@
     <ClCompile Include="Engine\DebugTools\ImGui\ImGuiManager.cpp">
       <Filter>Engine\DebugTools\ImGui</Filter>
     </ClCompile>
+    <ClCompile Include="Engine\Editor\EditorWindowManager.cpp">
+      <Filter>Engine\Editor</Filter>
+    </ClCompile>
     <ClCompile Include="Engine\DebugTools\LeakCheck\D3DResourceLeakChecker.cpp">
       <Filter>Engine\DebugTools\LeakCheck</Filter>
     </ClCompile>
@@ -1271,6 +1274,9 @@
     </ClInclude>
     <ClInclude Include="Engine\DebugTools\ImGui\ImGuiManager.h">
       <Filter>Engine\DebugTools\ImGui</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Editor\EditorWindowManager.h">
+      <Filter>Engine\Editor</Filter>
     </ClInclude>
     <ClInclude Include="Engine\DebugTools\LeakCheck\D3DResourceLeakChecker.h">
       <Filter>Engine\DebugTools\LeakCheck</Filter>
@@ -2079,6 +2085,9 @@
     </Filter>
     <Filter Include="Engine\DebugTools\ImGui">
       <UniqueIdentifier>{f5ace9fb-20e4-42ee-aa14-9e6669099c36}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Engine\Editor">
+      <UniqueIdentifier>{8d283a9d-42ce-4a41-a201-a2b6b8de52c1}</UniqueIdentifier>
     </Filter>
     <Filter Include="Engine\DebugTools\LeakCheck">
       <UniqueIdentifier>{bd073444-12ba-466e-a454-d34a895aedec}</UniqueIdentifier>
