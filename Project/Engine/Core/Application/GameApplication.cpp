@@ -1,3 +1,4 @@
+#define NOMINMAX
 #include "GameApplication.h"
 #include "SceneFactory.h"
 #include "ParameterManager.h"
