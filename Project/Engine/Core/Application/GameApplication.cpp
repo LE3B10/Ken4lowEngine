@@ -93,7 +93,7 @@ namespace Ken4lowEngine
 		// Deaw計測開始
 		GameTimer::GetInstance()->BeginDraw();
 
-		// 描画開始（BackBufferはImGui直前までバインドせず、Scene描画をGameViewportRenderTargetに限定する）
+		// 描画開始（DebugはGameViewportRenderTarget経由、Releaseは後段でBackBufferへ直接描画する）
 		dxCommon_->BeginDraw();
 
 		dxCommon_->BeginShadowMapPass(); // シャドウマップパス開始
@@ -134,12 +134,9 @@ namespace Ken4lowEngine
 
 		/// ---------- ImGuiフレーム終了 ---------- ///
 		ImGuiManager::GetInstance()->EndFrame();
-#endif // USE_IMGUI
 
-#ifdef USE_IMGUI
 		// Debug/Editor時もゲーム内部解像度は固定し、Main Viewport側の表示だけを拡縮する。
 		(void)EditorWindowManager::GetInstance()->GetMainViewportSize();
-#endif // USE_IMGUI
 
 		//--------------------------------------------
 		// 1. オフスクリーンレンダリングの開始（3D用）
@@ -176,11 +173,29 @@ namespace Ken4lowEngine
 		SceneManager::GetInstance()->Draw2DSprites();
 		PostEffectManager::GetInstance()->EndGameRenderTargetOverlay(); // ImGui::Imageで読むためGameRenderTargetをSRVへ戻す
 
-#ifdef USE_IMGUI
 		//--------------------------------------------
 		// 6. ImGui描画
 		//--------------------------------------------
 		ImGuiManager::GetInstance()->Draw();
+#else
+		// Release/GameではEditor用GameViewportRenderTargetを使わずBackBufferへ直接Sceneを描画する。
+		dxCommon_->PrepareBackBufferForGame();
+
+		// --- 1. 3Dオブジェクトの描画 ---
+		Object3DCommon::GetInstance()->BeginObject3DPass();
+		SceneManager::GetInstance()->Draw3DObjects();
+
+		// --- デバッグ描画（3D用） ---
+		Wireframe::GetInstance()->Draw();
+
+		// --- Gpuパーティクル ---
+		GpuParticleManager::GetInstance()->Draw();
+
+		// --- パーティクル（UIエフェクトなどあれば） ---
+		ParticleManager::GetInstance()->Draw();
+
+		// --- 2Dスプライト（UIなど） ---
+		SceneManager::GetInstance()->Draw2DSprites();
 #endif // USE_IMGUI
 
 		// Draw計測終了
