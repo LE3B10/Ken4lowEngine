@@ -37,6 +37,12 @@ void TitleScene::Initialize()
 
 	dxCommon_ = DirectXCommon::GetInstance();
 	input_ = Input::GetInstance();
+	if (input_)
+	{
+		// TitleSceneはReleaseでもDebug UIに依存しない操作画面なので、カーソルを通常表示へ戻す。
+		input_->SetLockCursor(false);
+		input_->SetCursorVisible(true);
+	}
 
 	skyBox_ = std::make_unique<SkyBox>();
 	skyBox_->Initialize("SkyBox/skybox.dds");
@@ -164,7 +170,7 @@ void TitleScene::Draw3DObjects()
 {
 #pragma region オブジェクト3Dの描画
 
-	skyBox_->Draw();
+	if (skyBox_) skyBox_->Draw();
 
 	if (terrain_) terrain_->Draw();
 
@@ -482,7 +488,7 @@ void TitleScene::UpdateDebug()
 		const bool next = !CameraManager::GetInstance()->IsUsingDebugCamera();
 
 		CameraManager::GetInstance()->SetUseDebugCamera(next);
-		skyBox_->SetDebugCamera(next);
+		if (skyBox_) skyBox_->SetDebugCamera(next);
 		Wireframe::GetInstance()->SetDebugCamera(next);
 		isDebugCamera_ = next;
 	}

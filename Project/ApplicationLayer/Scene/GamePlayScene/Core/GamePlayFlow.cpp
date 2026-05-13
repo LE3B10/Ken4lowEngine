@@ -8,6 +8,18 @@
 
 using namespace Ken4lowEngine;
 
+namespace
+{
+	void ApplyGameCursorMode(Ken4lowEngine::Input* input, bool fpsCapture)
+	{
+		if (!input) { return; }
+
+		// UI状態ではカーソルを表示し、通常プレイへ戻る時だけFPS用にロック/非表示へ戻す。
+		input->SetLockCursor(fpsCapture);
+		input->SetCursorVisible(!fpsCapture);
+	}
+}
+
 /// -------------------------------------------------------------
 ///				　			　初期化処理
 /// -------------------------------------------------------------
@@ -83,11 +95,7 @@ void GamePlayFlow::EnterPause(Ken4lowEngine::Input* input)
 	// ポーズメニューを開く
 	if (pauseMenu_)	pauseMenu_->Open();
 
-	if (input)
-	{
-		input->SetLockCursor(false);	// カーソルロック解除
-		input->SetCursorVisible(true);	// カーソル表示
-	}
+	ApplyGameCursorMode(input, false);
 }
 
 /// -------------------------------------------------------------
@@ -103,11 +111,7 @@ void GamePlayFlow::ExitPause(Ken4lowEngine::Input* input, bool lockCursorOnResum
 	// ポーズメニューを閉じる
 	if (pauseMenu_) pauseMenu_->Close();
 
-	if (input)
-	{
-		input->SetLockCursor(lockCursorOnResume);	  // カーソルロック
-		input->SetCursorVisible(!lockCursorOnResume); // カーソルはロックするなら非表示、ロックしないなら表示
-	}
+	ApplyGameCursorMode(input, lockCursorOnResume);
 }
 
 /// -------------------------------------------------------------
@@ -150,11 +154,7 @@ void GamePlayFlow::EnterGameClear(Ken4lowEngine::Input* input, const std::functi
 		resultMenu_->Open(ResultMenuMode::GameClear);
 	}
 
-	if (input)
-	{
-		input->SetLockCursor(false);	// カーソルロックを解除
-		input->SetCursorVisible(true);  // カーソルを表示
-	}
+	ApplyGameCursorMode(input, false);
 }
 
 /// -------------------------------------------------------------
@@ -172,11 +172,7 @@ void GamePlayFlow::EnterGameOver(Ken4lowEngine::Input* input)
 
 	if (resultMenu_) resultMenu_->Open(ResultMenuMode::GameOver);
 
-	if (input)
-	{
-		input->SetLockCursor(false);
-		input->SetCursorVisible(true);
-	}
+	ApplyGameCursorMode(input, false);
 }
 
 /// -------------------------------------------------------------
@@ -204,11 +200,7 @@ void GamePlayFlow::UpdatePaused(const PausedUpdateContext& ctx)
 		break;
 
 	case PauseMenuCommand::ToStageSelect:
-		if (ctx.input)
-		{
-			ctx.input->SetLockCursor(false);
-			ctx.input->SetCursorVisible(true);
-		}
+		ApplyGameCursorMode(ctx.input, false);
 		if (ctx.sceneManager)
 		{
 			ctx.sceneManager->ChangeScene("StageSelectScene");
@@ -216,11 +208,7 @@ void GamePlayFlow::UpdatePaused(const PausedUpdateContext& ctx)
 		break;
 
 	case PauseMenuCommand::ToTitle:
-		if (ctx.input)
-		{
-			ctx.input->SetLockCursor(false);
-			ctx.input->SetCursorVisible(true);
-		}
+		ApplyGameCursorMode(ctx.input, false);
 		if (ctx.sceneManager)
 		{
 			ctx.sceneManager->ChangeScene("TitleScene");

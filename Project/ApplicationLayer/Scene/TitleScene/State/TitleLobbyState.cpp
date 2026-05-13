@@ -76,6 +76,13 @@ void TitleLobbyState::Update(TitleScene* scene, float deltaTime)
 		battleButtonUI.isPressing = false;
 	}
 
+	// ReleaseでもImGuiボタンに依存せず、キーボード/ゲームパッドでBattleボタンを決定できるようにする。
+	if (input->TriggerKey(DIK_RETURN) || input->TriggerKey(DIK_SPACE) || input->TriggerButton(XButtons.A))
+	{
+		SceneManager::GetInstance()->ChangeScene("StageSelectScene");
+		return;
+	}
+
 	// ----- 視覚効果 -----
 	const float pressTarget = (battleButtonUI.isPressing && mouseHeld) ? 1.0f : 0.0f;
 	const float hoverTarget = (!pressTarget && inBtn) ? 1.0f : 0.0f;
