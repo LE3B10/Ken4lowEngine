@@ -144,9 +144,17 @@ void GamePlayScene::SetupNewGame(bool skipIntro)
 
 	flow_->ResetForNewGame(startIntro);
 
-	if (!startIntro && world_)
+	if (world_)
 	{
-		world_->StartWaves();
+		if (startIntro)
+		{
+			world_->WarmupStartGameplayForIntro();
+		}
+		else
+		{
+			world_->SetStartGameplayVisualsVisible(true);
+			world_->StartWaves();
+		}
 	}
 }
 

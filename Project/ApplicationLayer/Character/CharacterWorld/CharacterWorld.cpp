@@ -175,6 +175,30 @@ void CharacterWorld::Update(float dt)
 	}
 }
 
+void CharacterWorld::WarmupStartGameplayVisuals()
+{
+	if (player_)
+	{
+		player_->WarmupStartGameplayVisuals();
+	}
+
+	for (auto& e : enemies_)
+	{
+		if (e)
+		{
+			e->Update(0.0f);
+		}
+	}
+}
+
+void CharacterWorld::SetStartGameplayVisualsVisible(bool visible)
+{
+	if (player_)
+	{
+		player_->SetStartGameplayVisualsVisible(visible);
+	}
+}
+
 void CharacterWorld::Draw()
 {
 	if (player_) player_->Draw();

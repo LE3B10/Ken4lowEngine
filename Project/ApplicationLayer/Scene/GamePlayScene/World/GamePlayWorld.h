@@ -24,6 +24,8 @@ public: /// ---------- メンバ関数 ---------- ///
 	void Update(float deltaTime);
 
 	void UpdateIntroVisuals();
+	void WarmupStartGameplayForIntro();
+	void SetStartGameplayVisualsVisible(bool visible);
 
 	void Draw3D(bool hideCharactersDuringIntro);
 	void DrawShadow(bool hideCharactersDuringIntro);
