@@ -32,6 +32,7 @@ void GamePlayScene::Initialize()
 
 	loadStep_ = 0;
 	isLoadReady_ = false;
+	isStartSequenceStarted_ = false;
 
 	flow_.reset();
 	stageContext_.reset();
@@ -124,6 +125,27 @@ void GamePlayScene::InitializeHealthPostEffectController()
 }
 
 /// -------------------------------------------------------------
+/// ゲーム開始シーケンス開始
+///
+/// ImGui の Start ボタンと Release の自動開始で同じ処理を通す。
+/// -------------------------------------------------------------
+void GamePlayScene::BeginStartSequence(bool skipIntro)
+{
+	if (isStartSequenceStarted_)
+	{
+		return;
+	}
+
+	if (!introDirector_ || !stageContext_ || !flow_)
+	{
+		return;
+	}
+
+	isStartSequenceStarted_ = true;
+	SetupNewGame(skipIntro);
+}
+
+/// -------------------------------------------------------------
 /// 新規ゲーム開始準備
 /// 
 /// - イントロをリセット
@@ -175,8 +197,8 @@ void GamePlayScene::Update()
 		fadeManager_->Update(deltaTime);
 	}
 
-	// ロード中は通常ゲームプレイ更新をしない
-	if (!isLoadReady_)
+	// ロード中、またはStart待ち中は通常ゲームプレイ更新をしない
+	if (!isLoadReady_ || !isStartSequenceStarted_)
 	{
 		return;
 	}
@@ -572,6 +594,8 @@ void GamePlayScene::RestoreCursorState()
 /// -------------------------------------------------------------
 void GamePlayScene::ReleaseGameplayObjects()
 {
+	isStartSequenceStarted_ = false;
+
 	if (debugTools_)
 	{
 		debugTools_->Finalize();
@@ -613,6 +637,20 @@ void GamePlayScene::DrawImGui()
 		debugTools_->DrawImGui(world_.get());
 	}
 
+	if (isLoadReady_ && !isStartSequenceStarted_)
+	{
+		ImGui::SetNextWindowSize(ImVec2(260.0f, 110.0f), ImGuiCond_FirstUseEver);
+		if (ImGui::Begin("Game Start Debug"))
+		{
+			ImGui::TextUnformatted("Start sequence is waiting.");
+			if (ImGui::Button("Start"))
+			{
+				BeginStartSequence(false);
+			}
+		}
+		ImGui::End();
+	}
+
 	auto& editorWindowState = K4E::EditorWindowManager::GetInstance()->GetWindowState();
 	if (editorWindowState.showCullingDebug)
 	{
@@ -649,6 +687,7 @@ void GamePlayScene::StartLoad()
 {
 	loadStep_ = 0;
 	isLoadReady_ = false;
+	isStartSequenceStarted_ = false;
 }
 
 void GamePlayScene::UpdateLoad()
@@ -689,7 +728,10 @@ void GamePlayScene::UpdateLoad()
 		break;
 
 	case 5:
-		SetupNewGame(false); // 初回はイントロあり
+#if !defined(_DEBUG) || !defined(USE_IMGUI)
+		// ReleaseではImGuiが無いため開始処理を自動化し、Startボタン待ちで停止しないようにする。
+		BeginStartSequence(false); // 初回はイントロあり
+#endif
 		isLoadReady_ = true;
 		++loadStep_;
 		break;
@@ -806,7 +848,7 @@ void GamePlayScene::RestartGame(bool skipIntro)
 	// フェードは残したまま、ゲームプレイ構成だけ再生成
 	ReleaseGameplayObjects();
 	InitializeGameplayObjects();
-	SetupNewGame(skipIntro);
+	BeginStartSequence(skipIntro);
 }
 
 void GamePlayScene::StartRetryFadeOut()

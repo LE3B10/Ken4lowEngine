@@ -84,6 +84,9 @@ private: /// ---------- 初期化 / 終了系 ---------- ///
 	// ゲームプレイ構成オブジェクト生成
 	void InitializeGameplayObjects();
 
+	// ゲーム開始シーケンスを開始（ImGui Startボタン / Release自動開始の共通入口）
+	void BeginStartSequence(bool skipIntro = false);
+
 	// 新規ゲーム開始時のセットアップ
 	void SetupNewGame(bool skipIntro = false);
 
@@ -171,6 +174,7 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	int loadStep_ = 0; // ロード段階
 	bool isLoadReady_ = false; // ロード完了フラグ
+	bool isStartSequenceStarted_ = false; // 開始シーケンスの二重起動防止
 
 	int unloadStep_ = 0;
 	bool isUnloadReady_ = false;
