@@ -10,7 +10,11 @@
 #include "Wireframe.h"
 #include "Player.h"
 #include "EnemyBase.h"
+#include "GpuParticleManager.h"
+#include "ParticleManager.h"
+#include "CollisionTypeIdDef.h"
 
+#include <chrono>
 #include <cmath>
 
 #ifdef USE_IMGUI
@@ -175,10 +179,16 @@ void GamePlayWorld::Update(float deltaTime)
 
 	if (bulletManager_)
 	{
+		const auto begin = std::chrono::steady_clock::now();
 		bulletManager_->Update(deltaTime);
+		lastBulletUpdateMs_ = std::chrono::duration<float, std::milli>(std::chrono::steady_clock::now() - begin).count();
 	}
 
-	CollisionUpdate();
+	{
+		const auto begin = std::chrono::steady_clock::now();
+		CollisionUpdate();
+		lastCollisionUpdateMs_ = std::chrono::duration<float, std::milli>(std::chrono::steady_clock::now() - begin).count();
+	}
 
 	if (skyBox_)
 	{
@@ -360,6 +370,42 @@ void GamePlayWorld::DrawGameDebugImGui()
 	ImGui::Text("Defense Target Destroyed: %s", defenseTargetDestroyed_ ? "true" : "false");
 	ImGui::Text("Player Dead: %s", IsPlayerDead() ? "true" : "false");
 	ImGui::Text("Enemies: %d", characters_.GetEnemyCount());
+
+	const float fps = ImGui::GetIO().Framerate;
+	const auto* particleManager = K4E::ParticleManager::GetInstance();
+	const auto* gpuParticleManager = K4E::GpuParticleManager::GetInstance();
+
+	const size_t activeBulletCount = bulletManager_ ? bulletManager_->GetActiveCount() : 0;
+	const size_t totalBulletCount = bulletManager_ ? bulletManager_->GetCount() : 0;
+	const size_t activeParticleCount = particleManager ? particleManager->GetActiveParticleCount() : 0;
+	const size_t totalParticleCount = particleManager ? particleManager->GetTotalParticleCount() : 0;
+	const uint32_t gpuParticleActiveCount = gpuParticleManager ? gpuParticleManager->GetEstimatedActiveParticleCount() : 0;
+	const size_t particleEmitterCount = gpuParticleManager ? gpuParticleManager->GetEmitterCount() : 0;
+	const size_t activeParticleEmitterCount = gpuParticleManager ? gpuParticleManager->GetActiveEmitterCount() : 0;
+	const size_t colliderCount = collisionManager_ ? collisionManager_->GetColliderCount() : 0;
+	const size_t bulletColliderCount = collisionManager_
+		? collisionManager_->GetColliderCountByType(static_cast<uint32_t>(CollisionTypeIdDef::kBullet))
+		: 0;
+	const size_t enemyBulletColliderCount = collisionManager_
+		? collisionManager_->GetColliderCountByType(static_cast<uint32_t>(CollisionTypeIdDef::kEnemyBullet)) +
+		collisionManager_->GetColliderCountByType(static_cast<uint32_t>(CollisionTypeIdDef::kBossBullet))
+		: 0;
+	const uint32_t drawCallCount = gpuParticleManager ? gpuParticleManager->GetLastDrawCallCount() : 0;
+
+	ImGui::SeparatorText("Performance Counters");
+	ImGui::Text("FPS: %.1f", fps);
+	ImGui::Text("Active Bullet Count: %zu", activeBulletCount);
+	ImGui::Text("Total Bullet Count: %zu", totalBulletCount);
+	ImGui::Text("Active Particle Count: %zu", activeParticleCount);
+	ImGui::Text("Total Particle Count: %zu", totalParticleCount);
+	ImGui::Text("GPU Particle Active Count (estimated): %u", gpuParticleActiveCount);
+	ImGui::Text("Particle Emitter Count: %zu (active: %zu)", particleEmitterCount, activeParticleEmitterCount);
+	ImGui::Text("CollisionManager Collider Count: %zu", colliderCount);
+	ImGui::Text("Bullet Collider Count: %zu (enemy/boss: %zu)", bulletColliderCount, enemyBulletColliderCount);
+	ImGui::Text("Draw Call Count (GPU Particle): %u", drawCallCount);
+	ImGui::SeparatorText("Simple Profile");
+	ImGui::Text("BulletManager::Update: %.3f ms", lastBulletUpdateMs_);
+	ImGui::Text("CollisionManager::CheckAllCollisions: %.3f ms", lastCollisionUpdateMs_);
 #endif
 }
 

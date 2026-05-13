@@ -58,6 +58,13 @@ public: /// ---------- メンバ関数 ---------- ///
     // Detailsの簡易表示用に現在登録中のCollider総数だけを公開する。
     size_t GetColliderCount() const { return all_.size(); }
 
+    // Debug表示用にタイプ別Collider数を公開する。
+    size_t GetColliderCountByType(uint32_t typeId) const
+    {
+        if (typeId >= kMaxTypes) return 0;
+        return buckets_[typeId].size();
+    }
+
 private: /// ---------- メンバ関数 ---------- ///
 
     // コライダー2つの衝突判定（衝突したら両者へ接触を登録）

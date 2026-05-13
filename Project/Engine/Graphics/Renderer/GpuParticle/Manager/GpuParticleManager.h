@@ -12,6 +12,7 @@
 #include "GpuParticleEmitterAsset.h"
 
 #include <unordered_map>
+#include <cstddef>
 #include <memory>
 #include <ModelData.h>
 
@@ -346,6 +347,18 @@ namespace Ken4lowEngine
 		/// <param name="enabled">有効にする場合は true。</param>
 		void SetDebugCameraEnabled(bool enabled) { gpuParticleBuffers_->SetDebugCameraEnabled(enabled); }
 
+		/// デバッグ表示用：登録済みエミッター数を返す。
+		size_t GetEmitterCount() const { return emitters_.size(); }
+
+		/// デバッグ表示用：寿命推定上まだ描画対象のエミッター数を返す。
+		size_t GetActiveEmitterCount() const;
+
+		/// デバッグ表示用：GPU readback なしの推定生存パーティクル数を返す。
+		uint32_t GetEstimatedActiveParticleCount() const;
+
+		/// デバッグ表示用：直近フレームの GPU Particle draw call 数を返す。
+		uint32_t GetLastDrawCallCount() const { return lastDrawCallCount_; }
+
 	public:
 
 		bool RemoveEmitter(const std::string& name);
@@ -430,6 +443,8 @@ namespace Ken4lowEngine
 		/// 名前をキーにしたエミッター管理テーブルです。
 		/// </summary>
 		std::unordered_map<std::string, std::unique_ptr<GpuParticleEmitter>> emitters_;
+
+		uint32_t lastDrawCallCount_ = 0;
 
 	private: /// ---------- メッシュデータ ---------- ///
 

@@ -1,5 +1,6 @@
 #pragma once
 #include <string>
+#include <deque>
 #include <Vector3.h>
 #include <Vector4.h>
 
@@ -61,6 +62,9 @@ public: /// ---------- メンバ関数 ---------- ///
 	/// <param name="count">このフレームに追加で発生させたいパーティクル数</param>
 	void RequestEmit(uint32_t count);
 
+	/// 発生済み粒子が残っている間だけ描画するための軽量更新。
+	void UpdateActivity(float deltaTime);
+
 	/// <summary>
 	/// 定期発射（ループ）とバースト発生をまとめて処理し、<br/>
 	/// GPU に渡すエミッター用 CB データを構築します。<br/>
@@ -111,6 +115,10 @@ public: /// ---------- ゲッター ---------- ///
 	// 位置もUIで見たい
 	const Vector3 GetPosition() const { return position_; }
 
+	/// GPU readback を避けるため、発生要求数と寿命から推定した生存数を返す。
+	uint32_t GetEstimatedActiveParticleCount() const { return estimatedActiveParticleCount_; }
+	bool HasActiveParticles() const { return estimatedActiveParticleCount_ > 0 || pendingBurstCount_ > 0; }
+
 private: /// ---------- プライベート関数 ---------- ///
 
 	static constexpr uint32_t ToU32(BillboardMode m) { return static_cast<uint32_t>(m); }
@@ -150,6 +158,18 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	// このフレームに放出予定の累積数
 	uint32_t pendingBurstCount_ = 0;
+
+	struct ActiveBatch
+	{
+		float remainingSec = 0.0f;
+		uint32_t count = 0;
+	};
+
+	float EstimateParticleLifeTimeSec() const;
+	void RegisterActiveBatch(uint32_t count);
+
+	std::deque<ActiveBatch> activeBatches_;
+	uint32_t estimatedActiveParticleCount_ = 0;
 };
 
 
