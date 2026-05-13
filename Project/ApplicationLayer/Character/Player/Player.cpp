@@ -656,6 +656,20 @@ void Player::SyncViewToPlayer()
 	view_.SyncViewModeToFirstPersonFlag();
 }
 
+void Player::SetStartGameplayVisualsVisible(bool visible)
+{
+	weaponVisual_.SetVisible(visible);
+}
+
+void Player::WarmupStartGameplayVisuals()
+{
+	// カメラ切り替え時の一括初期化を避けるため、FPS腕表示と武器モデルを事前構築しておく。
+	view_.SetFirstPersonView(true);
+	weaponVisual_.SetVisible(false);
+	weaponVisual_.Update(0.0f, false);
+	SyncHurtboxes();
+}
+
 void Player::ApplyEditedWeaponDataFromEditor(int32_t weaponID, const FWeaponMasterData& data)
 {
 	auto& db = weapon_.GetWeaponMasterDatabase();

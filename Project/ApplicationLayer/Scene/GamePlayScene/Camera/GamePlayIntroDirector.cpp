@@ -414,6 +414,9 @@ void GamePlayIntroDirector::BeginGamePlayFromIntro(
 
 	world.SyncAfterPlayerSpawn();
 
+	// カメラ切り替え時の一括初期化を避けるため、ここでは事前生成済みビジュアルの表示だけ戻す。
+	world.SetStartGameplayVisualsVisible(true);
+
 	if (auto* player = world.GetCharacters().GetPlayer())
 	{
 		// 完了フレーム内でFPSカメラの初期向きを同期し、次フレーム待ちの停止感と向きの跳ねを防ぐ。

@@ -27,6 +27,9 @@ public: /// ---------- メンバ関数 ---------- ///
 	// 更新
 	void Update(float deltaTime, bool isADS);
 
+	void SetVisible(bool visible) { visible_ = visible; }
+	bool IsVisible() const { return visible_; }
+
 	// 描画
 	void Draw();
 

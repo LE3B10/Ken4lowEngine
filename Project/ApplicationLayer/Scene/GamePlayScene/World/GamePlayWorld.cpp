@@ -396,10 +396,30 @@ void GamePlayWorld::SyncAfterPlayerSpawn()
 
 void GamePlayWorld::StartWaves()
 {
-	if (waveManager_)
+	if (waveManager_ && !waveManager_->HasStarted())
 	{
 		waveManager_->Start();
 	}
+}
+
+void GamePlayWorld::WarmupStartGameplayForIntro()
+{
+	// カメラ切り替え時の一括初期化を避けるため、イントロ中に敵・武器・腕表示を事前生成して非表示で温める。
+	SetStartGameplayVisualsVisible(false);
+
+	StartWaves();
+	if (waveManager_)
+	{
+		waveManager_->Update(characters_, 0.0f);
+	}
+
+	characters_.WarmupStartGameplayVisuals();
+	CollisionUpdate();
+}
+
+void GamePlayWorld::SetStartGameplayVisualsVisible(bool visible)
+{
+	characters_.SetStartGameplayVisualsVisible(visible);
 }
 
 bool GamePlayWorld::IsPlayerDead()

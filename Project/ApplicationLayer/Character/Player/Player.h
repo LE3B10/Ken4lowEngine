@@ -166,6 +166,8 @@ public: /// ---------- メンバ関数 ---------- ///
 	void ApplyEditedWeaponDataFromEditor(int32_t weaponID, const FWeaponMasterData& data);
 
 	void ForceRefreshWeaponVisual() { weaponVisual_.ForceRefresh(); }
+	void SetStartGameplayVisualsVisible(bool visible);
+	void WarmupStartGameplayVisuals();
 
 	void SetOnHitSECallback(std::function<void()> cb) { audio_.onHit = std::move(cb); }
 	void SetOnFireSECallback(std::function<void()> cb) { audio_.onFire = std::move(cb); }
