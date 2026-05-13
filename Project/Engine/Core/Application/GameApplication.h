@@ -51,6 +51,14 @@ public: /// ---------- メンバ関数 ---------- ///
 	/// </summary>
 	void Draw() override;
 
+private:
+	// Debug/Releaseでゲーム本編の3D描画順を揃えるための共通ルート。
+	void DrawCurrentScene3DPass();
+
+	// Debug/ReleaseでHUD/UI/Sprite/Fontを必ず重ねるための共通ルート。
+	void DrawCurrentScene2DOverlay();
+
+public:
 	/// <summary>
 	/// ゲーム終了時の後始末処理。<br/>
 	/// まず Framework::Finalize() を呼び出して、WinApp / DirectXCommon など

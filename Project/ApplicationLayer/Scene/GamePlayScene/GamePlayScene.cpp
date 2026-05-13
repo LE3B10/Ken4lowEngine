@@ -510,6 +510,7 @@ void GamePlayScene::Draw2DSprites()
 
 	if (world_)
 	{
+		// ReleaseのBackBuffer直接描画でもHUDManager/Reticle/Ammo/HPをここで描画する。
 		world_->DrawHUD(ShouldHideCharactersDuringIntro());
 	}
 

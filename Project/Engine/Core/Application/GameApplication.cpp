@@ -143,18 +143,8 @@ namespace Ken4lowEngine
 		//--------------------------------------------
 		PostEffectManager::GetInstance()->BeginDraw(); // RTV/DSVの設定・Clear
 
-		// --- 2. 3Dオブジェクトの描画 ---
-		Object3DCommon::GetInstance()->BeginObject3DPass();
-		SceneManager::GetInstance()->Draw3DObjects();
-
-		// --- デバッグ描画（3D用） ---
-		Wireframe::GetInstance()->Draw();
-
-		// --- Gpuパーティクル ---
-		GpuParticleManager::GetInstance()->Draw();
-
-		// --- パーティクル（UIエフェクトなどあれば） ---
-		ParticleManager::GetInstance()->Draw();
+		// Debug/Releaseで3D本編の描画順を揃え、最終ゲーム画面の差分を防ぐ。
+		DrawCurrentScene3DPass();
 
 		//--------------------------------------------
 		// 3. オフスクリーン描画終了（SRVへ切り替え）
@@ -170,7 +160,8 @@ namespace Ken4lowEngine
 		// 5. 2Dスプライト（UIなど）をGameRenderTarget上に直接描画
 		//--------------------------------------------
 		PostEffectManager::GetInstance()->BeginGameRenderTargetOverlay(); // 2DをMain Viewportに含めるためGameRenderTargetをRTVへ戻す
-		SceneManager::GetInstance()->Draw2DSprites();
+		// Debug/ReleaseでGamePlaySceneのHUD/UI/Sprite/Font描画を必ず同じ入口から呼ぶ。
+		DrawCurrentScene2DOverlay();
 		PostEffectManager::GetInstance()->EndGameRenderTargetOverlay(); // ImGui::Imageで読むためGameRenderTargetをSRVへ戻す
 
 		//--------------------------------------------
@@ -181,21 +172,11 @@ namespace Ken4lowEngine
 		// Release/GameではEditor用GameViewportRenderTargetを使わずBackBufferへ直接Sceneを描画する。
 		dxCommon_->PrepareBackBufferForGame();
 
-		// --- 1. 3Dオブジェクトの描画 ---
-		Object3DCommon::GetInstance()->BeginObject3DPass();
-		SceneManager::GetInstance()->Draw3DObjects();
+		// Release/GameでもDebug Main Viewportと同じ3D本編の描画順を通す。
+		DrawCurrentScene3DPass();
 
-		// --- デバッグ描画（3D用） ---
-		Wireframe::GetInstance()->Draw();
-
-		// --- Gpuパーティクル ---
-		GpuParticleManager::GetInstance()->Draw();
-
-		// --- パーティクル（UIエフェクトなどあれば） ---
-		ParticleManager::GetInstance()->Draw();
-
-		// --- 2Dスプライト（UIなど） ---
-		SceneManager::GetInstance()->Draw2DSprites();
+		// Release/GameのBackBuffer直接描画でもHUD/UI/Sprite/Fontを必ず重ねる。
+		DrawCurrentScene2DOverlay();
 #endif // USE_IMGUI
 
 		// Draw計測終了
@@ -217,6 +198,30 @@ namespace Ken4lowEngine
 		// フレーム終了
 		GameTimer::GetInstance()->EndFrame();
 	}
+
+	/// -------------------------------------------------------------
+	///						ゲーム本編3D描画の共通処理
+	/// -------------------------------------------------------------
+	void GameApplication::DrawCurrentScene3DPass()
+	{
+		// Scene 3D -> Debug Wireframe -> GPU Particle -> Particleの順をDebug/Releaseで固定する。
+		Object3DCommon::GetInstance()->BeginObject3DPass();
+		SceneManager::GetInstance()->Draw3DObjects();
+
+		Wireframe::GetInstance()->Draw();
+		GpuParticleManager::GetInstance()->Draw();
+		ParticleManager::GetInstance()->Draw();
+	}
+
+	/// -------------------------------------------------------------
+	///						HUD/UI/Sprite描画の共通処理
+	/// -------------------------------------------------------------
+	void GameApplication::DrawCurrentScene2DOverlay()
+	{
+		// GamePlayScene::Draw2DSprites() 内で HUDManager/Reticle/Ammo/HP/Fade まで描画する。
+		SceneManager::GetInstance()->Draw2DSprites();
+	}
+
 
 
 	/// -------------------------------------------------------------
