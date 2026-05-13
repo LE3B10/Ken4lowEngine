@@ -58,6 +58,11 @@ private:
 	// Debug/ReleaseでHUD/UI/Sprite/Fontを必ず重ねるための共通ルート。
 	void DrawCurrentScene2DOverlay();
 
+	// ReleaseでもSceneRenderTarget起点の描画順に揃えるためのフェーズ分割。
+	void DrawGameWorldToSceneTarget();
+	void ApplyPostEffectToBackBuffer();
+	void DrawGameUIToBackBuffer();
+
 public:
 	/// <summary>
 	/// ゲーム終了時の後始末処理。<br/>

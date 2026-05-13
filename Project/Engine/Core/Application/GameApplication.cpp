@@ -139,17 +139,9 @@ namespace Ken4lowEngine
 		(void)EditorWindowManager::GetInstance()->GetMainViewportSize();
 
 		//--------------------------------------------
-		// 1. オフスクリーンレンダリングの開始（3D用）
+		// 1. オフスクリーンレンダリング（3D + Particle）
 		//--------------------------------------------
-		PostEffectManager::GetInstance()->BeginDraw(); // RTV/DSVの設定・Clear
-
-		// Debug/Releaseで3D本編の描画順を揃え、最終ゲーム画面の差分を防ぐ。
-		DrawCurrentScene3DPass();
-
-		//--------------------------------------------
-		// 3. オフスクリーン描画終了（SRVへ切り替え）
-		//--------------------------------------------
-		PostEffectManager::GetInstance()->EndDraw();
+		DrawGameWorldToSceneTarget();
 
 		//--------------------------------------------
 		// 4. ポストエフェクト適用（3Dの最終結果をGameRenderTargetへ集約）
@@ -169,17 +161,17 @@ namespace Ken4lowEngine
 		//--------------------------------------------
 		ImGuiManager::GetInstance()->Draw();
 #else
-		// Release/GameではEditor用GameViewportRenderTargetを使わずBackBufferへ直接Sceneを描画する。
-		dxCommon_->PrepareBackBufferForGame();
+		// Release/Gameでも中間SceneRenderTargetを使い、ParticleとPostEffectの入力をDebugと揃える。
+		DrawGameWorldToSceneTarget();
 
-		// Release/GameでもDebug Main Viewportと同じ3D本編の描画順を通す。
-		DrawCurrentScene3DPass();
+		// PostEffect後の結果だけをBackBufferへ出し、HUD/UIを後段で重ねられる状態にする。
+		ApplyPostEffectToBackBuffer();
 
-		// GPU Particle等でRTVが切り替わった後、HUD/UI/Sprite/FontだけはBackBufferへ戻して重ねる。
+		// GPU Particle/PostEffectでRTVが切り替わった後、HUD/UI/Sprite/FontだけはBackBufferへ戻して重ねる。
 		dxCommon_->RebindBackBufferForGameOverlay();
 
-		// Release/GameのBackBuffer直接描画でもHUD/UI/Sprite/Fontを必ず重ねる。
-		DrawCurrentScene2DOverlay();
+		// HUD/UIはPostEffect後のBackBufferへ描画し、画面効果に巻き込まない。
+		DrawGameUIToBackBuffer();
 #endif // USE_IMGUI
 
 		// Draw計測終了
@@ -223,6 +215,26 @@ namespace Ken4lowEngine
 	{
 		// GamePlayScene::Draw2DSprites() 内で HUDManager/Reticle/Ammo/HP/Fade まで描画する。
 		SceneManager::GetInstance()->Draw2DSprites();
+	}
+
+	void GameApplication::DrawGameWorldToSceneTarget()
+	{
+		// Debug/ReleaseともSceneRenderTargetへ3D World + Particleを描画し、PostEffect入力を必ず作る。
+		PostEffectManager::GetInstance()->BeginDraw();
+		DrawCurrentScene3DPass();
+		PostEffectManager::GetInstance()->EndDraw();
+	}
+
+	void GameApplication::ApplyPostEffectToBackBuffer()
+	{
+		// SceneRenderTargetを入力にしたPostEffect結果をBackBufferへ出力する。
+		PostEffectManager::GetInstance()->RenderPostEffectToBackBuffer();
+	}
+
+	void GameApplication::DrawGameUIToBackBuffer()
+	{
+		// HUD/UI/Sprite/FontはPostEffect後のBackBufferへ直接描画する。
+		DrawCurrentScene2DOverlay();
 	}
 
 
