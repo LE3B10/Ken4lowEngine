@@ -155,6 +155,8 @@ public: /// ---------- メンバ関数 ---------- ///
 
 	void SetSpawnPosition(const K4E::Vector3& worldPos);
 	void SetSpawnOffset(const K4E::Vector3& offset);
+	void SetViewLookAngles(float pitchRad, float yawRad);
+	void SyncViewToPlayer();
 
 	void SetStageWorldAABBs(const std::vector<K4E::AABB>* aabbs) { motor_.SetWorldAABBs(aabbs); }
 	void SetWorldCollisionSettings(const K4E::WorldCollisionSettings& s) { motor_.SetWorldCollisionSettings(s); }

@@ -372,6 +372,13 @@ namespace Ken4lowEngine
 		RebuildCachedEuler();
 	}
 
+	void FpsCamera::SetLookAngles(float pitchRad, float yawRad)
+	{
+		pitch_ = std::clamp(pitchRad, minPitch_, maxPitch_);
+		yaw_ = yawRad;
+		RebuildCachedEulerAfterExternalChange();
+	}
+
 	/// ----------------------------------------------
 	///				表示モードを切替
 	/// ----------------------------------------------

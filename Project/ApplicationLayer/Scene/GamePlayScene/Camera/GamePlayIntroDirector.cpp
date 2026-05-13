@@ -386,17 +386,17 @@ void GamePlayIntroDirector::BeginGamePlayFromIntro(
 		return;
 	}
 
+	K4E::Vector3 introCameraRotation{};
+	if (const auto* camera = K4E::CameraManager::GetInstance()->GetMainCamera())
+	{
+		introCameraRotation = camera->GetRotate();
+	}
+
 	flow.StartPlaying();
 
 	introTimer_ = 0.0f;
 	currentSegment_ = 0;
 	segmentTimer_ = 0.0f;
-
-	if (K4E::Camera* camera = K4E::CameraManager::GetInstance()->GetMainCamera())
-	{
-		camera->SetRotate({ 0.0f, 0.0f, 0.0f });
-		camera->Update();
-	}
 
 	if (auto* player = world.GetCharacters().GetPlayer())
 	{
@@ -413,6 +413,14 @@ void GamePlayIntroDirector::BeginGamePlayFromIntro(
 	}
 
 	world.SyncAfterPlayerSpawn();
+
+	if (auto* player = world.GetCharacters().GetPlayer())
+	{
+		// 完了フレーム内でFPSカメラの初期向きを同期し、次フレーム待ちの停止感と向きの跳ねを防ぐ。
+		player->SetViewLookAngles(introCameraRotation.x, introCameraRotation.y);
+		player->SyncViewToPlayer();
+	}
+
 	world.StartWaves();
 
 	if (input)

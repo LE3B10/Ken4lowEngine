@@ -47,6 +47,7 @@ public: /// ---------- メンバ関数 ---------- ///
 	void UpdateLook(float dt, const InputSnapshot& input);
 	void SyncToPlayer();
 	void SyncViewModeToFirstPersonFlag();
+	void SetLookAngles(float pitchRad, float yawRad);
 
 	void SetFirstPersonView(bool enabled);
 	bool IsFirstPersonView() const { return isFirstPersonView_; }

@@ -182,6 +182,11 @@ void PlayerViewComponent::SyncToPlayer()
 	fpsCamera_.SyncToPlayer();
 }
 
+void PlayerViewComponent::SetLookAngles(float pitchRad, float yawRad)
+{
+	fpsCamera_.SetLookAngles(pitchRad, yawRad);
+}
+
 void PlayerViewComponent::SyncViewModeToFirstPersonFlag()
 {
 	const bool fp = (fpsCamera_.GetViewMode() == K4E::FpsCamera::ViewMode::FirstPerson);
