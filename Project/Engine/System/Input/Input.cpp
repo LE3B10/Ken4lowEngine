@@ -351,27 +351,45 @@ namespace Ken4lowEngine
 
 	Vector2 Input::GetCursorPosition()
 	{
+#ifdef USE_IMGUI
 		if (editorViewportMouseOverrideEnabled_)
 		{
 			// Editor座標と入力許可が有効な時だけGameViewportRenderTarget基準の座標を返す。
 			return CanUseGameMouseInput() ? editorViewportMousePosition_ : Vector2(-1.0f, -1.0f);
 		}
+#else
+		// Release/GameではMain Viewport変換を使わずWin32クライアント座標をそのまま返す。
+#endif // USE_IMGUI
 
 		return Vector2(float(mousePosition_.x), float(mousePosition_.y));
 	}
 
 	void Input::SetEditorViewportMousePosition(const Vector2& position, bool valid)
 	{
-		// EditorWindowManagerで変換済みの座標と有効状態をInput側へ集約する
+#ifdef USE_IMGUI
+		// EditorWindowManagerで変換済みの座標と有効状態をInput側へ集約する。
 		editorViewportMousePosition_ = position;
 		editorViewportMousePositionValid_ = valid;
 		editorViewportMouseOverrideEnabled_ = true;
+#else
+		// Release/GameではEditor由来のViewport座標を使わず通常のクライアント座標入力に固定する。
+		(void)position;
+		(void)valid;
+		editorViewportMouseOverrideEnabled_ = false;
+		editorViewportMousePositionValid_ = false;
+#endif // USE_IMGUI
 	}
 
 	void Input::SetGameInputEnabled(bool enabled)
 	{
+#ifdef USE_IMGUI
 		// Editorのキャプチャ状態をInputへ渡し、ゲーム側マウス入力の入口を一元化する。
 		gameInputEnabled_ = enabled;
+#else
+		// Release/GameではEditorInputModeに依存させず、ゲーム入力を常に許可する。
+		(void)enabled;
+		gameInputEnabled_ = true;
+#endif // USE_IMGUI
 	}
 
 	int Input::GetMouseMoveX() const
@@ -394,20 +412,36 @@ namespace Ken4lowEngine
 
 	bool Input::CanUseGameKeyboardInput(BYTE keyNumber) const
 	{
+#ifdef USE_IMGUI
 		// Escは既存Sceneの終了確認/戻る/Pause処理を守るためEditor抑制中でも通す。
 		return keyNumber == DIK_ESCAPE || gameInputEnabled_;
+#else
+		// Release/GameではEditorInputModeを見ず、既存のキー入力を通常通り許可する。
+		(void)keyNumber;
+		return true;
+#endif // USE_IMGUI
 	}
 
 	bool Input::CanUseGameMouseInput() const
 	{
+#ifdef USE_IMGUI
 		// Editor経由ではキャプチャ許可とMain Viewport有効判定の両方を満たす時だけゲーム入力にする。
 		return gameInputEnabled_ && (!editorViewportMouseOverrideEnabled_ || editorViewportMousePositionValid_);
+#else
+		// Release/GameではMain Viewport Hoveredを見ず、マウス入力を通常通り許可する。
+		return true;
+#endif // USE_IMGUI
 	}
 
 	bool Input::CanUseGamepadInput() const
 	{
+#ifdef USE_IMGUI
 		// GameReleased中やMain Viewport外ではゲームパッド操作もゲームへ渡さない。
 		return gameInputEnabled_;
+#else
+		// Release/GameではEditorInputModeを見ず、ゲームパッド入力を通常通り許可する。
+		return true;
+#endif // USE_IMGUI
 	}
 
 	void Input::SetLockCursor(bool lock)

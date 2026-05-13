@@ -3,7 +3,10 @@
 
 #include <SpriteManager.h>
 #include <GameTimer.h>
+
+#ifdef USE_IMGUI
 #include <Editor/EditorPlayController.h>
+#endif // USE_IMGUI
 
 #include <cassert>
 #include <algorithm>
@@ -138,16 +141,19 @@ void SceneManager::Update()
 		}
 	}
 
-	// Play中だけゲームUpdateを進め、Edit/Pause中はEditor確認用更新に切り替える。
+	// DebugはPlay状態でUpdateを分離し、ReleaseはEditor状態を見ずに通常Updateする。
 	if (scene_)
 	{
 		if (!isTransitioning_ || sceneSwapped_)
 		{
 			bool shouldUpdateGame = true;
 #ifdef USE_IMGUI
+			// Debug/EditorではPlay中だけ通常Updateし、Edit/Pause中はEditor更新に分離する。
 			shouldUpdateGame = K4E::EditorPlayController::GetInstance()->IsPlaying();
+#else
+			// Release/GameではEditorPlayStateを参照せず、常に通常UpdateでTitleSceneを進行させる。
+			shouldUpdateGame = true;
 #endif // USE_IMGUI
-			// ReleaseではEditor/ImGuiのPlay状態に依存させず、TitleSceneを通常更新して暗転解除後も進行させる。
 			if (shouldUpdateGame)
 			{
 				scene_->Update();

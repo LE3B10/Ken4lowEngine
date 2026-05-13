@@ -129,7 +129,7 @@ namespace Ken4lowEngine
 			return;
 		}
 
-		// Scene描画はGameViewportRenderTargetだけへ行うため、フレーム開始時はBackBufferをまだRTVへバインドしない。
+		// DebugはGameViewportRenderTarget経由、Releaseは後段のPrepareBackBufferForGameでBackBufferへ直接バインドする。
 		backBufferIndex_ = swapChain_->GetSwapChain()->GetCurrentBackBufferIndex();
 	}
 
@@ -158,6 +158,32 @@ namespace Ken4lowEngine
 		swapChain_->SetBackBufferState(backBufferIndex_, D3D12_RESOURCE_STATE_RENDER_TARGET);
 
 		// BackBufferにはSceneを描かず、ImGui描画直前にだけRTV/Viewport/Scissorを設定してクリアする。
+		mainRenderTarget_->Begin(commandManager_->GetCommandList(), backBufferIndex_);
+	}
+
+
+	/// -------------------------------------------------------------
+	///			Release/Game描画前のバックバッファRTV設定
+	/// -------------------------------------------------------------
+	void DirectXCommon::PrepareBackBufferForGame()
+	{
+		if (!mainRenderTarget_ || !commandManager_ || !swapChain_)
+		{
+			return;
+		}
+
+		backBufferIndex_ = swapChain_->GetSwapChain()->GetCurrentBackBufferIndex();
+		auto backBuffer = GetBackBuffer(backBufferIndex_);
+
+		// Release/GameではImGuiを経由しないため、Scene描画前にBackBufferを直接RTVへ戻す。
+		const D3D12_RESOURCE_STATES beforeState = swapChain_->GetBackBufferState(backBufferIndex_);
+		ResourceTransition(
+			backBuffer.Get(),
+			beforeState,
+			D3D12_RESOURCE_STATE_RENDER_TARGET
+		);
+		swapChain_->SetBackBufferState(backBufferIndex_, D3D12_RESOURCE_STATE_RENDER_TARGET);
+
 		mainRenderTarget_->Begin(commandManager_->GetCommandList(), backBufferIndex_);
 	}
 
