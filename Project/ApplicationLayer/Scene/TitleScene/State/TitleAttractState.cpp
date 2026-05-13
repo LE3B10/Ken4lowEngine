@@ -153,12 +153,12 @@ void TitleAttractState::Update(TitleScene* scene, float deltaTime)
 	}
 
 	// === 入力受付 ===
-	if (canAcceptInput && (
-		clickHintCommit //||
-		//input->TriggerKey(DIK_RETURN) ||          // Enter
-		//input->TriggerKey(DIK_SPACE) ||          // Space
-		//input->TriggerButton(XButtons.A)		// Aが押されたら
-		)) {
+	const bool titleAdvanceInput = clickHintCommit ||
+		input->TriggerKey(DIK_RETURN) ||
+		input->TriggerKey(DIK_SPACE) ||
+		input->TriggerButton(XButtons.A);
+	// ReleaseでもImGuiボタンに依存せず、キーボード/マウス/ゲームパッドでTitleSceneを進行できるようにする。
+	if (canAcceptInput && titleAdvanceInput) {
 
 		// カメラ姿勢スナップショット
 		Camera* cam = camera ? camera : scene->GetCamera();
@@ -176,7 +176,7 @@ void TitleAttractState::Update(TitleScene* scene, float deltaTime)
 		logoUI.exitLeft = logoUI.exitFade;          // Exitフェード開始
 	}
 
-	logoSprite->Update();
+	if (logoSprite) logoSprite->Update();
 
 	// カメラ補間が終わると、UpdateTransitionToLobby で state_ が LobbyIdle に変わる
 	if (state == State::TransitionToLobby)

@@ -143,7 +143,12 @@ void SceneManager::Update()
 	{
 		if (!isTransitioning_ || sceneSwapped_)
 		{
-			if (K4E::EditorPlayController::GetInstance()->IsPlaying())
+			bool shouldUpdateGame = true;
+#ifdef USE_IMGUI
+			shouldUpdateGame = K4E::EditorPlayController::GetInstance()->IsPlaying();
+#endif // USE_IMGUI
+			// ReleaseではEditor/ImGuiのPlay状態に依存させず、TitleSceneを通常更新して暗転解除後も進行させる。
+			if (shouldUpdateGame)
 			{
 				scene_->Update();
 			}

@@ -60,7 +60,7 @@ public: /// ---------- BaseScene override ---------- ///
 	void CollectEditorObjects(std::vector<Ken4lowEngine::EditorObjectInfo>& outObjects) override;
 
 	// FPS操作が必要なGamePlaySceneだけF8入力キャプチャを許可する。
-	EditorInputPolicy GetEditorInputPolicy() const override { return EditorInputPolicy::FpsCapture; }
+	EditorInputPolicy GetEditorInputPolicy() const override;
 
 	// 段階ロード
 	void StartLoad() override;
