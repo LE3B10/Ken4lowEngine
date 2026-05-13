@@ -2,6 +2,8 @@
 #include "Bullet.h"
 #include "CollisionManager.h"
 
+#include <algorithm>
+
 using namespace Ken4lowEngine;
 
 void BulletManager::Initialize(CollisionManager* collisionManager)
@@ -41,18 +43,27 @@ void BulletManager::Update(float dt)
 {
 	for (auto& b : bullets_) b->Update(dt);
 
-	for (size_t i = 0; i < bullets_.size(); )
-	{
-		if (bullets_[i]->IsRemovable())
+	// 寿命切れ/衝突済みの弾はCollider解除後に管理対象から外し、Update/Draw負荷を残さない。
+	const auto removeBegin = std::remove_if(bullets_.begin(), bullets_.end(), [this](const std::unique_ptr<Bullet>& bullet)
 		{
-			if (collisionManager_) collisionManager_->RemoveCollider(bullets_[i].get());
-			bullets_.erase(bullets_.begin() + i);
-		}
-		else
+			if (!bullet || !bullet->IsRemovable())
+			{
+				return false;
+			}
+
+			if (collisionManager_) collisionManager_->RemoveCollider(bullet.get());
+			return true;
+		});
+
+	bullets_.erase(removeBegin, bullets_.end());
+}
+
+size_t BulletManager::GetActiveCount() const
+{
+	return static_cast<size_t>(std::count_if(bullets_.begin(), bullets_.end(), [](const std::unique_ptr<Bullet>& bullet)
 		{
-			++i;
-		}
-	}
+			return bullet && !bullet->IsDead() && !bullet->IsRemovable();
+		}));
 }
 
 void BulletManager::Draw()

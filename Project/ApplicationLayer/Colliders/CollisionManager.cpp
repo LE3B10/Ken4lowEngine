@@ -195,6 +195,10 @@ void CollisionManager::CheckAllCollisions()
 /// -------------------------------------------------------------
 void CollisionManager::AddCollider(K4E::Collider* other)
 {
+	if (!other) return;
+	if (std::find(all_.begin(), all_.end(), other) != all_.end()) return;
+
+	// 同一Colliderの二重登録を防ぎ、弾発射後にCollision負荷が増え続けないようにする。
 	all_.push_back(other);
 	const uint32_t id = other->GetTypeID();
 	if (id < kMaxTypes) buckets_[id].push_back(other);

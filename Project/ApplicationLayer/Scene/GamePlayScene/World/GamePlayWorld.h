@@ -116,4 +116,7 @@ private: /// ---------- メンバ変数 ---------- ///
 	bool reachedGoal_ = false;
 	bool bossDefeated_ = false;
 	bool defenseTargetDestroyed_ = false;
+
+	float lastBulletUpdateMs_ = 0.0f;
+	float lastCollisionUpdateMs_ = 0.0f;
 };

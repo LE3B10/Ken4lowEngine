@@ -20,6 +20,8 @@
 #include <imgui.h>
 #endif // USE_IMGUI
 #include <cstdint>
+#include <string>
+#include <unordered_set>
 
 namespace Ken4lowEngine
 {
@@ -99,6 +101,8 @@ namespace Ken4lowEngine
 
 		for (auto& [name, emitter] : emitters_)
 		{
+			emitter->UpdateActivity(deltaTime);
+
 			// slotの場所に書く
 			auto* cb = gpuParticleBuffers_->GetEmitterCBData(slot);
 
@@ -119,19 +123,33 @@ namespace Ken4lowEngine
 		const UINT instanceCount = GpuParticleBuffers::GetMaxParticles();
 
 		uint32_t drawSlot = 0;
+		lastDrawCallCount_ = 0;
+		std::unordered_set<std::string> drawnKeys;
 
 		for (auto& [name, emitter] : emitters_)
 		{
+			(void)name;
+			if (!emitter->HasActiveParticles())
+			{
+				continue;
+			}
+
 			const auto& info = emitter->GetInfo();
+			const uint32_t drawType = emitter->GetDrawType();
+			const std::string drawKey = info.textureFilePath + "#" + std::to_string(drawType);
+			if (!drawnKeys.insert(drawKey).second)
+			{
+				continue;
+			}
 
 			gpuParticleRenderer_->SetTextureFilePath(info.textureFilePath);
 
 			// emitter->GetDrawType() を使う（drawType=0ならtype）
-			gpuParticleRenderer_->SetDrawType(emitter->GetDrawType(), drawSlot);
+			gpuParticleRenderer_->SetDrawType(drawType, drawSlot);
 
-			// 通常のパーティクルとして描画
+			// 同じ描画タイプは1回だけ描画し、寿命切れ後のフルインスタンスDrawも抑える。
 			gpuParticleRenderer_->Draw(instanceCount, drawSlot);
-
+			++lastDrawCallCount_;
 			++drawSlot;
 		}
 	}
@@ -791,6 +809,34 @@ namespace Ken4lowEngine
 	/// -------------------------------------------------------------
 	///				　　　		名前指定でバースト
 	/// -------------------------------------------------------------
+	size_t GpuParticleManager::GetActiveEmitterCount() const
+	{
+		size_t count = 0;
+		for (const auto& [name, emitter] : emitters_)
+		{
+			(void)name;
+			if (emitter && emitter->HasActiveParticles())
+			{
+				++count;
+			}
+		}
+		return count;
+	}
+
+	uint32_t GpuParticleManager::GetEstimatedActiveParticleCount() const
+	{
+		uint32_t count = 0;
+		for (const auto& [name, emitter] : emitters_)
+		{
+			(void)name;
+			if (emitter)
+			{
+				count += emitter->GetEstimatedActiveParticleCount();
+			}
+		}
+		return count;
+	}
+
 	void GpuParticleManager::BurstEmitter(const std::string& name, uint32_t count)
 	{
 		// 指定された名前のエミッターを取得

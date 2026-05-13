@@ -8,6 +8,7 @@
 #include "ParticleFactory.h"
 
 #include <unordered_map>
+#include <cstddef>
 #include <list>
 #include <random>
 #include <numbers>
@@ -173,6 +174,21 @@ public: /// ---------- メンバ関数 ---------- ///
 	/// ※ 値コピーなので、更新は反映されません。
 	/// </summary>
 	std::unordered_map<std::string, ParticleManager::ParticleGroup> GetParticleGroups() { return particleGroups; }
+
+	/// Debug表示用：CPUパーティクルの現在数をコピーなしで集計する。
+	size_t GetTotalParticleCount() const
+	{
+		size_t count = 0;
+		for (const auto& [name, group] : particleGroups)
+		{
+			(void)name;
+			count += group.particles.size();
+		}
+		return count;
+	}
+
+	/// Debug表示用：現在の実装では list 内の粒子が active 対象。
+	size_t GetActiveParticleCount() const { return GetTotalParticleCount(); }
 
 	/// <summary>
 	/// パーティクルに関する ImGui デバッグ UI の描画処理。<br/>

@@ -48,6 +48,7 @@ public: /// ---------- メンバ関数 ---------- ///
 public: /// ---------- アクセサ ---------- ///
 
 	size_t GetCount() const { return bullets_.size(); }
+	size_t GetActiveCount() const;
 
 private: /// ---------- メンバ変数 ---------- ///
 
