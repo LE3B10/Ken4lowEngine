@@ -95,6 +95,9 @@ namespace Ken4lowEngine
 		// cachedEuler_ を即座に再構築する。
 		void RebuildCachedEulerAfterExternalChange();
 
+		// イントロ終了直後など、外部カメラの向きをFPSカメラの初期向きへ同期する。
+		void SetLookAngles(float pitchRad, float yawRad);
+
 		/// <summary>
 		/// ViewMode を一つずつ切り替えます。<br/>
 		/// FirstPerson → ThirdBack → ThirdFront → FirstPerson → …<br/>

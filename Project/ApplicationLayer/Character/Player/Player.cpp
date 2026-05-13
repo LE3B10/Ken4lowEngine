@@ -645,6 +645,17 @@ void Player::SetSpawnOffset(const K4E::Vector3& offset)
 	}
 }
 
+void Player::SetViewLookAngles(float pitchRad, float yawRad)
+{
+	view_.SetLookAngles(pitchRad, yawRad);
+}
+
+void Player::SyncViewToPlayer()
+{
+	view_.SyncToPlayer();
+	view_.SyncViewModeToFirstPersonFlag();
+}
+
 void Player::ApplyEditedWeaponDataFromEditor(int32_t weaponID, const FWeaponMasterData& data)
 {
 	auto& db = weapon_.GetWeaponMasterDatabase();

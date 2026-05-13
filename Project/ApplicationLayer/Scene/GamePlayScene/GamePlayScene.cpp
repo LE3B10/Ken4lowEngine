@@ -274,7 +274,7 @@ bool GamePlayScene::UpdateRetryTransition()
 /// -------------------------------------------------------------
 /// イントロ更新
 /// 
-/// イントロ中は通常ゲームプレイ更新を行わない。
+/// イントロ中は通常ゲームプレイ更新を止め、完了フレームだけ通常更新へ戻す。
 /// -------------------------------------------------------------
 bool GamePlayScene::UpdateIntro(float deltaTime)
 {
@@ -294,7 +294,8 @@ bool GamePlayScene::UpdateIntro(float deltaTime)
 			debugTools_ ? debugTools_->IsDebugCamera() : false);
 	}
 
-	return true;
+	// 完了フレーム内に通常更新へ進め、終点で1フレーム停止して見えるのを防ぐ。
+	return flow_ && flow_->IsIntro();
 }
 
 /// -------------------------------------------------------------
