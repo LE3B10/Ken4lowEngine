@@ -64,6 +64,14 @@ namespace Ken4lowEngine
 		void Begin(ID3D12GraphicsCommandList* commandList, uint32_t backBufferIndex);
 
 		/// ---------------------------------------------------------
+		///				バックバッファ再バインド
+		/// ---------------------------------------------------------
+		/// クリアせずに RTV / DSV / viewport / scissor だけを再設定する
+		/// <param name="commandList">コマンドリスト</param>
+		/// <param name="backBufferIndex">現在のバックバッファ index</param>
+		void Bind(ID3D12GraphicsCommandList* commandList, uint32_t backBufferIndex);
+
+		/// ---------------------------------------------------------
 		///					メイン描画終了
 		/// ---------------------------------------------------------
 		/// 後で必要なら後処理をここへ寄せる

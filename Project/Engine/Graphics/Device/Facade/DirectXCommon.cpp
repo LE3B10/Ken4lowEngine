@@ -189,6 +189,32 @@ namespace Ken4lowEngine
 
 
 	/// -------------------------------------------------------------
+	///		Release/GameのHUD描画前バックバッファ再バインド
+	/// -------------------------------------------------------------
+	void DirectXCommon::RebindBackBufferForGameOverlay()
+	{
+		if (!mainRenderTarget_ || !commandManager_ || !swapChain_)
+		{
+			return;
+		}
+
+		backBufferIndex_ = swapChain_->GetSwapChain()->GetCurrentBackBufferIndex();
+		auto backBuffer = GetBackBuffer(backBufferIndex_);
+
+		// GPU ParticleがGameViewportRenderTargetを再バインドしても、HUD/UIはReleaseのBackBufferへ重ねる。
+		const D3D12_RESOURCE_STATES beforeState = swapChain_->GetBackBufferState(backBufferIndex_);
+		ResourceTransition(
+			backBuffer.Get(),
+			beforeState,
+			D3D12_RESOURCE_STATE_RENDER_TARGET
+		);
+		swapChain_->SetBackBufferState(backBufferIndex_, D3D12_RESOURCE_STATE_RENDER_TARGET);
+
+		mainRenderTarget_->Bind(commandManager_->GetCommandList(), backBufferIndex_);
+	}
+
+
+	/// -------------------------------------------------------------
 	///							描画終了処理
 	/// -------------------------------------------------------------
 	void DirectXCommon::EndDraw()
