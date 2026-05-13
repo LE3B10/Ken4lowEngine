@@ -180,6 +180,29 @@ namespace Ken4lowEngine
 		commandList->DrawInstanced(3, 1, 0, 0);
 	}
 
+	void PostEffectManager::CopyRenderTargetToBackBuffer(RenderTarget& srcRT, ID3D12GraphicsCommandList* commandList)
+	{
+		const uint32_t backBufferIndex = dxCommon_->GetSwapChain()->GetSwapChain()->GetCurrentBackBufferIndex();
+		auto backBuffer = dxCommon_->GetBackBuffer(backBufferIndex);
+		auto* swapChain = dxCommon_->GetSwapChain();
+
+		// ReleaseでもSceneRenderTarget入力のPostEffect結果をBackBufferへ明示的にコピーする。
+		SRVManager::GetInstance()->PreDraw();
+		TransitionTo(srcRT, commandList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+		dxCommon_->ResourceTransition(backBuffer.Get(), swapChain->GetBackBufferState(backBufferIndex), D3D12_RESOURCE_STATE_RENDER_TARGET);
+		swapChain->SetBackBufferState(backBufferIndex, D3D12_RESOURCE_STATE_RENDER_TARGET);
+
+		D3D12_CPU_DESCRIPTOR_HANDLE backBufferRtv = dxCommon_->GetBackBufferRTV(backBufferIndex);
+		commandList->OMSetRenderTargets(1, &backBufferRtv, false, nullptr);
+		commandList->RSSetViewports(1, &dxCommon_->GetMainRenderTarget()->GetViewport());
+		commandList->RSSetScissorRects(1, &dxCommon_->GetMainRenderTarget()->GetScissorRect());
+		commandList->SetPipelineState(pipelineBuilder_->GetCopyPipelineState().Get());
+		commandList->SetGraphicsRootSignature(pipelineBuilder_->GetCopyRootSignature().Get());
+		SRVManager::GetInstance()->SetGraphicsRootDescriptorTable(0, srcRT.srvIndex);
+		commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+		commandList->DrawInstanced(3, 1, 0, 0);
+	}
+
 
 	/// -------------------------------------------------------------
 	///				　	ポストエフェクトの更新処理
@@ -429,6 +452,17 @@ namespace Ken4lowEngine
 		TransitionTo(gameRT, commandList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 
 	}
+
+	void PostEffectManager::RenderPostEffectToBackBuffer()
+	{
+		// Release/GameもDebugと同じSceneRenderTarget起点でPostEffectを通してからBackBufferへ出す。
+		RenderPostEffect();
+
+		auto commandList = dxCommon_->GetCommandManager()->GetCommandList();
+		auto& gameRT = renderTargets_[0];
+		CopyRenderTargetToBackBuffer(gameRT, commandList);
+	}
+
 
 	void PostEffectManager::BeginGameRenderTargetOverlay()
 	{

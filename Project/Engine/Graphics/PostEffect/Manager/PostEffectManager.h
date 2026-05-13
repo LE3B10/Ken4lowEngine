@@ -104,6 +104,11 @@ public: /// ---------- メンバ関数 ---------- ///
 	void RenderPostEffect();
 
 	/// <summary>
+	/// Release/Game用にPostEffect結果をBackBufferへ出力します。
+	/// </summary>
+	void RenderPostEffectToBackBuffer();
+
+	/// <summary>
 	/// ポストエフェクト済みのゲーム画面へ2D描画を重ねるためのRTVをバインドします。
 	/// </summary>
 	void BeginGameRenderTargetOverlay();
@@ -184,6 +189,7 @@ private: /// ---------- メンバ関数 ---------- ///
 	/// 既存のコピー用PSOで入力RTを出力RTへ描画します。
 	/// </summary>
 	void CopyRenderTarget(RenderTarget& srcRT, RenderTarget& dstRT, ID3D12GraphicsCommandList* commandList);
+	void CopyRenderTargetToBackBuffer(RenderTarget& srcRT, ID3D12GraphicsCommandList* commandList);
 
 private: /// ---------- メンバ関数 ---------- ///
 
