@@ -200,18 +200,24 @@ namespace Ken4lowEngine
 	/// -------------------------------------------------------------
 	void MainRenderTarget::Begin(ID3D12GraphicsCommandList* commandList, uint32_t backBufferIndex)
 	{
-		// viewport / scissor を画面サイズに設定
-		commandList->RSSetViewports(1, &viewport_);
-		commandList->RSSetScissorRects(1, &scissorRect_);
-
-		// 現在の backBuffer に対応した RTV と DSV をセット
-		D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle = GetRtvHandleCPU(backBufferIndex);
-		D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle = GetDsvHandleCPU();
-
-		commandList->OMSetRenderTargets(1, &rtvHandle, false, &dsvHandle);
+		Bind(commandList, backBufferIndex);
 
 		// 画面クリア
 		Clear(commandList, backBufferIndex);
+	}
+
+	/// -------------------------------------------------------------
+	///				バックバッファ再バインド
+	/// -------------------------------------------------------------
+	void MainRenderTarget::Bind(ID3D12GraphicsCommandList* commandList, uint32_t backBufferIndex)
+	{
+		// GPU Particle等がRTVを切り替えた後もHUDをBackBufferへ戻すため、Clearなしで描画先だけ復元する。
+		commandList->RSSetViewports(1, &viewport_);
+		commandList->RSSetScissorRects(1, &scissorRect_);
+
+		D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle = GetRtvHandleCPU(backBufferIndex);
+		D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle = GetDsvHandleCPU();
+		commandList->OMSetRenderTargets(1, &rtvHandle, false, &dsvHandle);
 	}
 
 	/// -------------------------------------------------------------

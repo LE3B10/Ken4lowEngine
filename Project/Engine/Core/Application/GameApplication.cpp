@@ -175,6 +175,9 @@ namespace Ken4lowEngine
 		// Release/GameでもDebug Main Viewportと同じ3D本編の描画順を通す。
 		DrawCurrentScene3DPass();
 
+		// GPU Particle等でRTVが切り替わった後、HUD/UI/Sprite/FontだけはBackBufferへ戻して重ねる。
+		dxCommon_->RebindBackBufferForGameOverlay();
+
 		// Release/GameのBackBuffer直接描画でもHUD/UI/Sprite/Fontを必ず重ねる。
 		DrawCurrentScene2DOverlay();
 #endif // USE_IMGUI
