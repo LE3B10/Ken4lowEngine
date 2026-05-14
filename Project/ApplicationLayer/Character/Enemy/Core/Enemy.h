@@ -12,6 +12,10 @@
 #include <EnemyStuckController.h>
 #include <EnemyTraitProfile.h>
 
+#if defined(_DEBUG) || defined(USE_IMGUI)
+#include <EnemyTacticalDebugPointBuilder.h>
+#endif
+
 #include <memory>
 
 /// ----------前方宣言 ---------- ///
@@ -334,6 +338,10 @@ private: /// ---------- 内部処理 ---------- ///
 	void RegisterDamageStimulus(const K4E::Vector3& hitPos, const K4E::Vector3& attackOrigin, const K4E::Vector3& hitDir);
 	void UpdateReloadTimer(float deltaTime);
 
+#if defined(_DEBUG) || defined(USE_IMGUI)
+	void DrawTacticalDebugPoints();
+#endif
+
 private: /// ---------- メンバ変数 ---------- ///
 
 	// 外部依存
@@ -354,6 +362,11 @@ private: /// ---------- メンバ変数 ---------- ///
 	EnemyMovementConfig movement_{};
 
 	EnemyWanderConfig wander_{};
+
+#if defined(_DEBUG) || defined(USE_IMGUI)
+	// 戦闘候補点の表示設定はDebug/ImGui有効時だけ保持します。
+	EnemyTacticalDebugPointBuilder::Config tacticalDebugPointConfig_{};
+#endif
 
 	EnemyMemory memory_{};
 

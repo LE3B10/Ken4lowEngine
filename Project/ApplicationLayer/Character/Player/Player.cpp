@@ -94,7 +94,7 @@ void Player::Initialize()
 
 	hurtbox_.Initialize(*this, refs_.collisionManager);
 
-	damage_.Initialize(100.0f);
+	damage_.Initialize(10000.0f);
 	if (refs_.hudManager)
 	{
 		refs_.hudManager->SetHP(damage_.GetHP(), damage_.GetMaxHP());

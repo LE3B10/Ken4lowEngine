@@ -7,6 +7,11 @@
 #include "EnemySearchState.h"
 #include "EnemyDeadState.h"
 
+#if defined(_DEBUG) || defined(USE_IMGUI)
+#include <EnemyTacticalDebugPointBuilder.h>
+#include <EnemyTacticalPointDebugDrawer.h>
+#endif
+
 #include <BulletManager.h>
 #include <Bullet.h>
 #include <CollisionManager.h>
@@ -18,6 +23,7 @@
 #include <limits>
 #include <numbers>
 #include <random>
+#include <vector>
 
 #ifdef USE_IMGUI
 #include <imgui.h>
@@ -232,8 +238,32 @@ void Enemy::Update(float deltaTime)
 
 	UpdateAnimation(deltaTime);
 	EnemyBase::Update(deltaTime);
+
+#if defined(_DEBUG) || defined(USE_IMGUI)
+	DrawTacticalDebugPoints();
+#endif
 }
 
+#if defined(_DEBUG) || defined(USE_IMGUI)
+void Enemy::DrawTacticalDebugPoints()
+{
+	if (!tacticalDebugPointConfig_.enabled || IsDead() || !HasTarget() || !IsTargetAware())
+	{
+		return;
+	}
+
+	EnemyTacticalDebugPointBuilder::Input input{};
+	input.enemyPosition = GetCenterPosition();
+	input.targetPosition = GetTargetPosition();
+	input.idealCombatRange = combat_.idealCombatRange;
+	input.minCombatRange = combat_.minCombatRange;
+	input.maxCombatRange = combat_.maxCombatRange;
+
+	// 現時点ではAIの移動先には反映せず、候補点の生成結果だけを描画します。
+	const std::vector<EnemyTacticalDebugPoint> points = EnemyTacticalDebugPointBuilder::Build(input, tacticalDebugPointConfig_);
+	EnemyTacticalPointDebugDrawer::Draw(points, input.enemyPosition, tacticalDebugPointConfig_.pointRadius);
+}
+#endif
 
 void Enemy::DrawImGui()
 {
@@ -260,6 +290,13 @@ void Enemy::DrawImGui()
 		ImGui::Text("最後に被弾した時間: %.2f sec", lastHitElapsed);
 		ImGui::Text("被弾後に敵対中: %s", IsHostileFromDamage() ? "true" : "false");
 		ImGui::Text("退避中: %s", IsRetreating() ? "true" : "false");
+		ImGui::Separator();
+		// EQS風の移動候補点を実行中に調整するためのデバッグ項目です。
+		ImGui::Checkbox("戦闘候補点デバッグ表示", &tacticalDebugPointConfig_.enabled);
+		ImGui::SliderFloat("候補点半径", &tacticalDebugPointConfig_.pointRadius, 0.05f, 2.0f);
+		ImGui::SliderFloat("横移動候補距離", &tacticalDebugPointConfig_.strafeDistance, 0.5f, 12.0f);
+		ImGui::SliderFloat("後退候補距離", &tacticalDebugPointConfig_.retreatDistance, 0.5f, 16.0f);
+		ImGui::SliderFloat("接近候補距離", &tacticalDebugPointConfig_.approachDistance, 0.5f, 12.0f);
 		ImGui::Separator();
 		// FPSらしい距離維持と弾速を実行中に調整するためのデバッグ項目です。
 		ImGui::SliderFloat("最小戦闘距離", &combat_.minCombatRange, 1.0f, 30.0f);

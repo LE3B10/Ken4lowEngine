@@ -118,6 +118,9 @@
     <FxCompile Include="Resources\Shaders\Object3D\ShadowMap.VS.hlsl">
       <Filter>Shader\VertexShader</Filter>
     </FxCompile>
+    <Filter Include="ApplicationLayer\DebugTools">
+      <UniqueIdentifier>{1dfe6894-ffe2-4b9d-8269-e0ab589e5f55}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="WinMain.cpp" />
@@ -865,9 +868,21 @@
     <ClCompile Include="ApplicationLayer\Character\Enemy\AI\EnemyEvadeController.cpp">
       <Filter>ApplicationLayer\Character\Enemy\AI</Filter>
     </ClCompile>
-    <ClCompile Include="ApplicationLayer\DebugTools\FrustumCulling\FrustumCullingDebugController.cpp" />
-    <ClCompile Include="ApplicationLayer\DebugTools\StageChunk\StageChunkDebugController.cpp" />
-    <ClCompile Include="ApplicationLayer\DebugTools\Occlusion\OcclusionDebugController.cpp" />
+    <ClCompile Include="ApplicationLayer\DebugTools\StageChunk\StageChunkDebugController.cpp">
+      <Filter>ApplicationLayer\DebugTools</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\DebugTools\Occlusion\OcclusionDebugController.cpp">
+      <Filter>ApplicationLayer\DebugTools</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\DebugTools\FrustumCulling\FrustumCullingDebugController.cpp">
+      <Filter>ApplicationLayer\DebugTools</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\Character\Enemy\AI\EnemyTacticalDebugPointBuilder.cpp">
+      <Filter>ApplicationLayer\Character\Enemy\AI</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\Character\Enemy\AI\EnemyTacticalPointDebugDrawer.cpp">
+      <Filter>ApplicationLayer\Character\Enemy\AI</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ApplicationLayer\UISystem\Crosshair\Crosshair.h">
@@ -1824,9 +1839,24 @@
     <ClInclude Include="Engine\Math\MathTypes.h">
       <Filter>Engine\Math</Filter>
     </ClInclude>
-    <ClInclude Include="ApplicationLayer\DebugTools\FrustumCulling\FrustumCullingDebugController.h" />
-    <ClInclude Include="ApplicationLayer\DebugTools\StageChunk\StageChunkDebugController.h" />
-    <ClInclude Include="ApplicationLayer\DebugTools\Occlusion\OcclusionDebugController.h" />
+    <ClInclude Include="ApplicationLayer\DebugTools\StageChunk\StageChunkDebugController.h">
+      <Filter>ApplicationLayer\DebugTools</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\DebugTools\Occlusion\OcclusionDebugController.h">
+      <Filter>ApplicationLayer\DebugTools</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\DebugTools\FrustumCulling\FrustumCullingDebugController.h">
+      <Filter>ApplicationLayer\DebugTools</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Character\Enemy\AI\EnemyTacticalDebugPoint.h">
+      <Filter>ApplicationLayer\Character\Enemy\AI</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Character\Enemy\AI\EnemyTacticalDebugPointBuilder.h">
+      <Filter>ApplicationLayer\Character\Enemy\AI</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Character\Enemy\AI\EnemyTacticalPointDebugDrawer.h">
+      <Filter>ApplicationLayer\Character\Enemy\AI</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="Resources\Shaders\PostEffect\FullScreen.hlsli">
