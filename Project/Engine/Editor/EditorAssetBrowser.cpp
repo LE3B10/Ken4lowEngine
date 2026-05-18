@@ -46,16 +46,33 @@ namespace Ken4lowEngine
 		std::string GetIcon(EditorAssetCategory category, const std::filesystem::path& extension)
 		{
 			const std::string ext = ToLower(extension.string());
+			if (ext == ".png")
+			{
+				return "[PNG]";
+			}
+			if (ext == ".jpg" || ext == ".jpeg")
+			{
+				return "[JPG]";
+			}
+			if (ext == ".dds")
+			{
+				return "[DDS]";
+			}
+
 			switch (category)
 			{
 			case EditorAssetCategory::Textures:
-				return (ext == ".dds") ? "[DDS]" : "[TEX]";
+				return "[TEX]";
 			case EditorAssetCategory::Models:
-				return (ext == ".gltf" || ext == ".glb") ? "[GLTF]" : "[MESH]";
+				if (ext == ".gltf" || ext == ".glb")
+				{
+					return "[GLTF]";
+				}
+				return "[KMESH]";
 			case EditorAssetCategory::Shaders:
 				return "[HLSL]";
 			case EditorAssetCategory::Fonts:
-				return (ext == ".ttf" || ext == ".otf") ? "[FONT]" : "[FNT]";
+				return (ext == ".ttf") ? "[TTF]" : "[FONT]";
 			default:
 				return "[FILE]";
 			}
@@ -105,6 +122,12 @@ namespace Ken4lowEngine
 			EditorAssetEntry asset{};
 			asset.label = ToUtf8Path(entry.path().filename());
 			asset.icon = GetIcon(category_, entry.path().extension());
+			asset.absolutePath = ToUtf8Path(std::filesystem::absolute(entry.path(), error));
+			if (error)
+			{
+				asset.absolutePath = ToUtf8Path(entry.path());
+				error.clear();
+			}
 			asset.relativePath = ToUtf8Path(std::filesystem::relative(entry.path(), projectDir_, error));
 			if (error)
 			{
@@ -127,8 +150,17 @@ namespace Ken4lowEngine
 			entries_.push_back(asset);
 		}
 
-		std::sort(entries_.begin(), entries_.end(), [](const EditorAssetEntry& lhs, const EditorAssetEntry& rhs)
+		std::sort(entries_.begin(), entries_.end(), [this](const EditorAssetEntry& lhs, const EditorAssetEntry& rhs)
 			{
+				if (category_ == EditorAssetCategory::Textures)
+				{
+					const bool lhsImage = IsImageExtension(lhs.extension);
+					const bool rhsImage = IsImageExtension(rhs.extension);
+					if (lhsImage != rhsImage)
+					{
+						return lhsImage;
+					}
+				}
 				return lhs.relativePath < rhs.relativePath;
 			});
 		RebuildFilteredEntries();
@@ -215,6 +247,12 @@ namespace Ken4lowEngine
 	const char* EditorAssetBrowser::GetViewModeName(EditorAssetViewMode mode)
 	{
 		return mode == EditorAssetViewMode::Sources ? "Sources" : "Compiled";
+	}
+
+	bool EditorAssetBrowser::IsImageExtension(const std::string& extension)
+	{
+		const std::string ext = ToLower(extension);
+		return ext == ".png" || ext == ".jpg" || ext == ".jpeg" || ext == ".dds" || ext == ".bmp";
 	}
 
 	void EditorAssetBrowser::RebuildFilteredEntries()

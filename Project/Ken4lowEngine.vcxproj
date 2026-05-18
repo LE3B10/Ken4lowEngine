@@ -327,6 +327,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClCompile Include="Engine\Editor\EditorPlayController.cpp" />
     <ClCompile Include="Engine\Editor\EditorProcessRunner.cpp" />
     <ClCompile Include="Engine\Editor\EditorSelection.cpp" />
+    <ClCompile Include="Engine\Editor\EditorTexturePreviewCache.cpp" />
     <ClCompile Include="Engine\Editor\EditorWindowManager.cpp" />
     <ClCompile Include="Engine\DebugTools\LeakCheck\D3DResourceLeakChecker.cpp" />
     <ClCompile Include="Engine\Graphics\Camera\Core\Camera.cpp" />
@@ -966,6 +967,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="Engine\Editor\EditorTransformAccess.h" />
     <ClInclude Include="Engine\Editor\EditorPlayController.h" />
     <ClInclude Include="Engine\Editor\EditorSelection.h" />
+    <ClInclude Include="Engine\Editor\EditorTexturePreviewCache.h" />
     <ClInclude Include="Engine\Editor\EditorWindowManager.h" />
     <ClInclude Include="Engine\DebugTools\LeakCheck\D3DResourceLeakChecker.h" />
     <ClInclude Include="Engine\Graphics\Camera\Core\Camera.h" />
