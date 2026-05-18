@@ -774,11 +774,15 @@ namespace Ken4lowEngine
 
 			char filterBuffer[256] = {};
 			const std::string& currentFilter = assetBrowser_.GetSearchFilter();
-			std::strncpy(filterBuffer, currentFilter.c_str(), sizeof(filterBuffer) - 1);
+
+			// snprintfで検索フィルタ文字列を安全に固定長バッファへコピーする。
+			std::snprintf(filterBuffer, sizeof(filterBuffer), "%s", currentFilter.c_str());
+
 			if (ImGui::InputText("Search", filterBuffer, sizeof(filterBuffer)))
 			{
 				assetBrowser_.SetSearchFilter(filterBuffer);
 			}
+
 			ImGui::Text("Root: %s", ToUtf8Path(assetBrowser_.GetCurrentRoot()).c_str());
 			ImGui::Separator();
 
