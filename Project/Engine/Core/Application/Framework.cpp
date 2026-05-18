@@ -22,8 +22,13 @@
 #include <GameTimer.h>
 
 #ifdef USE_IMGUI
+#include <Editor/EditorWindowManager.h>
 #include <ImGuiManager.h>
 #endif // USE_IMGUI
+
+#ifdef _DEBUG
+#include <D3DResourceLeakChecker.h>
+#endif // _DEBUG
 
 namespace Ken4lowEngine
 {
@@ -201,6 +206,11 @@ namespace Ken4lowEngine
 	/// -------------------------------------------------------------
 	void Framework::Finalize()
 	{
+#ifdef USE_IMGUI
+		// TextureManager/SRVManager/DirectXCommonより先にエディタ用プレビューキャッシュを解放する。
+		EditorWindowManager::GetInstance()->FinalizeEditorServices();
+#endif // USE_IMGUI
+
 		// GPUパーティクルマネージャーの終了処理
 		GpuParticleManager::GetInstance()->Finalize();
 
@@ -249,6 +259,11 @@ namespace Ken4lowEngine
 
 		// SRVManagerの終了処理
 		SRVManager::GetInstance()->Finalize();
+
+#ifdef _DEBUG
+		// DirectXCommon本体を破棄する前にManager解放後のD3D12ライブオブジェクトを報告する。
+		D3DResourceLeakChecker::ReportLiveObjects();
+#endif // _DEBUG
 
 		// DirectX共通クラスの終了処理
 		dxCommon_->Finalize();
