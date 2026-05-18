@@ -14,6 +14,14 @@ public: /// ---------- メンバ関数 ---------- ///
 	/// デストラクタ
 	/// </summary>
 	~D3DResourceLeakChecker();
+
+	/// <summary>
+	/// 現時点のD3D/DXGIライブオブジェクトを報告します。
+	/// </summary>
+	static void ReportLiveObjects();
+
+private:
+	static bool hasReported_;
 };
 
 

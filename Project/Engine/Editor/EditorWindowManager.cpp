@@ -1237,4 +1237,19 @@ namespace Ken4lowEngine
 #endif // USE_IMGUI
 	}
 
+	void EditorWindowManager::FinalizeEditorServices()
+	{
+#ifdef USE_IMGUI
+		if (!editorServicesInitialized_)
+		{
+			return;
+		}
+
+		// DirectXCommon/SRVManager破棄前にプレビュー用SRVとD3D12Resourceを明示解放する。
+		texturePreviewCache_.Clear();
+		outputLog_.Info("[Editor] Preview cache cleared.");
+		editorServicesInitialized_ = false;
+#endif // USE_IMGUI
+	}
+
 } // namespace Ken4lowEngine

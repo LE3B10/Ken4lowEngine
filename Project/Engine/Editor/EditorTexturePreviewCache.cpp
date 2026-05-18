@@ -52,6 +52,14 @@ namespace Ken4lowEngine
 
 	void EditorTexturePreviewCache::Clear()
 	{
+		const bool hasCachedResources = !cache_.empty();
+		DirectXCommon* dxCommon = DirectXCommon::GetInstance();
+		if (hasCachedResources && dxCommon && dxCommon->GetCommandManager())
+		{
+			// プレビュー画像を参照していたGPU処理を待ってからD3D12Resource/SRVを破棄する。
+			dxCommon->GetCommandManager()->ExecuteAndWait();
+		}
+
 		for (auto& [_, texture] : cache_)
 		{
 			if (texture.srvIndex != UINT32_MAX)
@@ -59,6 +67,7 @@ namespace Ken4lowEngine
 				SRVManager::GetInstance()->Free(texture.srvIndex);
 				texture.srvIndex = UINT32_MAX;
 			}
+			texture.preview = {};
 			texture.resource.Reset();
 		}
 		cache_.clear();

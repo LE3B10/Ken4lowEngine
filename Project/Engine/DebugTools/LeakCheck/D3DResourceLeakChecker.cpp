@@ -11,12 +11,22 @@ namespace Ken4lowEngine
 #pragma comment(lib, "dxgi.lib")
 #pragma comment(lib, "d3d12.lib")
 
+bool D3DResourceLeakChecker::hasReported_ = false;
+
 /// -------------------------------------------------------------
-///			　				デストラクタ
+///			 				デストラクタ
 /// -------------------------------------------------------------
 D3DResourceLeakChecker::~D3DResourceLeakChecker()
 {
-	// リソースリークチェック
+	if (!hasReported_)
+	{
+		ReportLiveObjects();
+	}
+}
+
+void D3DResourceLeakChecker::ReportLiveObjects()
+{
+	// DirectXCommon破棄前に呼べるよう、ライブオブジェクト報告処理を明示関数へ分離する。
 	Microsoft::WRL::ComPtr<IDXGIDebug> debug;
 
 	// デバッグインターフェースの取得
@@ -26,6 +36,7 @@ D3DResourceLeakChecker::~D3DResourceLeakChecker()
 		debug->ReportLiveObjects(DXGI_DEBUG_ALL, DXGI_DEBUG_RLO_ALL);   // 全てのライブオブジェクトを報告
 		debug->ReportLiveObjects(DXGI_DEBUG_APP, DXGI_DEBUG_RLO_ALL);   // アプリケーションのライブオブジェクトを報告
 		debug->ReportLiveObjects(DXGI_DEBUG_D3D12, DXGI_DEBUG_RLO_ALL); // D3D12のライブオブジェクトを報告
+		hasReported_ = true;
 	}
 }
 

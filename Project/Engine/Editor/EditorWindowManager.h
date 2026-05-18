@@ -84,6 +84,7 @@ namespace Ken4lowEngine
 		void DrawContentBrowser();
 		void DrawOutputLog();
 		void InitializeEditorServices();
+		void FinalizeEditorServices();
 
 		/// <summary>
 		/// スクリーン座標をMain Viewport左上基準へ変換する入口です。
