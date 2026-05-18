@@ -26,14 +26,6 @@ using namespace Ken4lowEngine;
 void GamePlayWorld::Initialize(GamePlayStageContext& stageContext)
 {
 	const auto stageAssets = stageContext.GetCurrentStageAssets();
-	stageRule_ = stageContext.GetCurrentStageRule();
-
-	activatedDeviceCount_ = 0;
-	defendElapsedSec_ = 0.0f;
-	stageElapsedSec_ = 0.0f;
-	reachedGoal_ = false;
-	bossDefeated_ = false;
-	defenseTargetDestroyed_ = false;
 
 	K4E::Vector3 dummy{};
 	if (!TryGetDirectionalLightFromManager(dummy))
@@ -89,6 +81,10 @@ void GamePlayWorld::Initialize(GamePlayStageContext& stageContext)
 
 	stageContext.LoadSpawnPointsFromLevel(stageAssets.jsonPath);
 
+	// ステージ目的の実行中状態は専用マネージャへ集約する。
+	stageObjectiveManager_ = std::make_unique<StageObjectiveManager>();
+	stageObjectiveManager_->Initialize(stageContext);
+
 	if (auto* player = characters_.GetPlayer())
 	{
 		player->SetSpawnOffset({ 0.0f, 0.0f, 0.0f });
@@ -114,7 +110,7 @@ void GamePlayWorld::Initialize(GamePlayStageContext& stageContext)
 
 	waveManager_ = std::make_unique<WaveManager>();
 
-	if (stageRule_.useWaveSystem)
+	if (stageObjectiveManager_ && stageObjectiveManager_->UsesWaveSystem())
 	{
 		stageContext.SetupWaves(waveManager_.get());
 	}
@@ -132,6 +128,7 @@ void GamePlayWorld::Initialize(GamePlayStageContext& stageContext)
 
 void GamePlayWorld::Finalize()
 {
+	stageObjectiveManager_.reset();
 	waveManager_.reset();
 	hudManager_.reset();
 
@@ -226,8 +223,9 @@ void GamePlayWorld::Update(float deltaTime)
 		hudManager_->Update(deltaTime);
 	}
 
-	if (waveManager_)
+	if (stageObjectiveManager_ && stageObjectiveManager_->UsesWaveSystem() && waveManager_)
 	{
+		// WaveManagerはウェーブ使用ステージだけで更新し、非ウェーブ目的と分離する。
 		waveManager_->Update(characters_, deltaTime);
 
 		const int currentWave = waveManager_->GetCurrentWaveNumber();
@@ -264,7 +262,10 @@ void GamePlayWorld::Update(float deltaTime)
 		prevAllWavesCleared_ = isAllWavesCleared;
 	}
 
-	UpdateStageObjective(deltaTime);
+	if (stageObjectiveManager_)
+	{
+		stageObjectiveManager_->Update(deltaTime);
+	}
 }
 
 void GamePlayWorld::UpdateIntroVisuals()
@@ -363,11 +364,18 @@ void GamePlayWorld::DrawGameDebugImGui()
 {
 #ifdef USE_IMGUI
 	// Game DebugにはGamePlayScene全体の簡易ステータスをまとめる。
-	ImGui::Text("Stage Time: %.2f sec", stageElapsedSec_);
-	ImGui::Text("Activated Devices: %d", activatedDeviceCount_);
-	ImGui::Text("Reached Goal: %s", reachedGoal_ ? "true" : "false");
-	ImGui::Text("Boss Defeated: %s", bossDefeated_ ? "true" : "false");
-	ImGui::Text("Defense Target Destroyed: %s", defenseTargetDestroyed_ ? "true" : "false");
+	// ステージ目的の進行状態はStageObjectiveManagerから参照して表示する。
+	if (stageObjectiveManager_)
+	{
+		ImGui::Text("Stage Time: %.2f sec", stageObjectiveManager_->GetStageElapsedSec());
+		ImGui::Text("Activated Devices: %d / %d", stageObjectiveManager_->GetActivatedDeviceCount(), stageObjectiveManager_->GetDevicePointCount());
+		ImGui::Text("Defense Targets: %d", stageObjectiveManager_->GetDefenseTargetPointCount());
+		ImGui::Text("Goal Points: %d", stageObjectiveManager_->GetGoalPointCount());
+		ImGui::Text("Boss Spawn Point: %s", stageObjectiveManager_->HasBossSpawnPoint() ? "true" : "false");
+		ImGui::Text("Reached Goal: %s", stageObjectiveManager_->HasReachedGoal() ? "true" : "false");
+		ImGui::Text("Boss Defeated: %s", stageObjectiveManager_->IsBossDefeated() ? "true" : "false");
+		ImGui::Text("Defense Target Destroyed: %s", stageObjectiveManager_->IsDefenseTargetDestroyed() ? "true" : "false");
+	}
 	ImGui::Text("Player Dead: %s", IsPlayerDead() ? "true" : "false");
 	ImGui::Text("Enemies: %d", characters_.GetEnemyCount());
 
@@ -442,7 +450,7 @@ void GamePlayWorld::SyncAfterPlayerSpawn()
 
 void GamePlayWorld::StartWaves()
 {
-	if (waveManager_ && !waveManager_->HasStarted())
+	if (stageObjectiveManager_ && stageObjectiveManager_->UsesWaveSystem() && waveManager_ && !waveManager_->HasStarted())
 	{
 		waveManager_->Start();
 	}
@@ -454,7 +462,7 @@ void GamePlayWorld::WarmupStartGameplayForIntro()
 	SetStartGameplayVisualsVisible(false);
 
 	StartWaves();
-	if (waveManager_)
+	if (stageObjectiveManager_ && stageObjectiveManager_->UsesWaveSystem() && waveManager_)
 	{
 		waveManager_->Update(characters_, 0.0f);
 	}
@@ -481,40 +489,12 @@ bool GamePlayWorld::IsAllWavesCleared() const
 
 bool GamePlayWorld::IsStageObjectiveCleared() const
 {
-	switch (stageRule_.objectiveType)
-	{
-	case GamePlayStageContext::StageObjectiveType::ClearAllWaves:
-		return IsAllWavesCleared();
-
-	case GamePlayStageContext::StageObjectiveType::ActivateDevices:
-		return activatedDeviceCount_ >= stageRule_.requiredDeviceCount;
-
-	case GamePlayStageContext::StageObjectiveType::DefendTarget:
-		return !defenseTargetDestroyed_ && defendElapsedSec_ >= stageRule_.defendTimeSec;
-
-	case GamePlayStageContext::StageObjectiveType::ReachGoal:
-		return reachedGoal_;
-
-	case GamePlayStageContext::StageObjectiveType::DefeatBoss:
-		return bossDefeated_;
-	}
-
-	return false;
+	return stageObjectiveManager_ && stageObjectiveManager_->IsStageObjectiveCleared(IsAllWavesCleared());
 }
 
 bool GamePlayWorld::IsStageObjectiveFailed() const
 {
-	switch (stageRule_.objectiveType)
-	{
-	case GamePlayStageContext::StageObjectiveType::DefendTarget:
-		return defenseTargetDestroyed_;
-
-	case GamePlayStageContext::StageObjectiveType::ReachGoal:
-		return (stageRule_.timeLimitSec > 0.0f) && (stageElapsedSec_ >= stageRule_.timeLimitSec) && !reachedGoal_;
-
-	default:
-		return false;
-	}
+	return stageObjectiveManager_ && stageObjectiveManager_->IsStageObjectiveFailed();
 }
 
 void GamePlayWorld::SetDebugCameraEnabled(bool enabled)
@@ -532,7 +512,10 @@ void GamePlayWorld::SetDebugCameraEnabled(bool enabled)
 
 void GamePlayWorld::SetDefenseTargetDestroyed(bool destroyed)
 {
-	defenseTargetDestroyed_ = destroyed;
+	if (stageObjectiveManager_)
+	{
+		stageObjectiveManager_->SetDefenseTargetDestroyed(destroyed);
+	}
 }
 
 bool GamePlayWorld::CheckCrosshairTargetingEnemy() const
@@ -562,21 +545,26 @@ bool GamePlayWorld::CheckCrosshairTargetingEnemy() const
 
 void GamePlayWorld::AddActivatedDeviceCount(int amount)
 {
-	activatedDeviceCount_ += amount;
-	if (activatedDeviceCount_ < 0)
+	if (stageObjectiveManager_)
 	{
-		activatedDeviceCount_ = 0;
+		stageObjectiveManager_->AddActivatedDeviceCount(amount);
 	}
 }
 
 void GamePlayWorld::SetReachedGoal(bool reached)
 {
-	reachedGoal_ = reached;
+	if (stageObjectiveManager_)
+	{
+		stageObjectiveManager_->SetReachedGoal(reached);
+	}
 }
 
 void GamePlayWorld::SetBossDefeated(bool defeated)
 {
-	bossDefeated_ = defeated;
+	if (stageObjectiveManager_)
+	{
+		stageObjectiveManager_->SetBossDefeated(defeated);
+	}
 }
 
 void GamePlayWorld::CollisionUpdate()
@@ -649,35 +637,4 @@ bool GamePlayWorld::IsSightBlocked(const K4E::Segment& seg) const
 {
 	(void)seg; // 未使用
 	return false;
-}
-
-void GamePlayWorld::UpdateStageObjective(float deltaTime)
-{
-	stageElapsedSec_ += deltaTime;
-
-	switch (stageRule_.objectiveType)
-	{
-	case GamePlayStageContext::StageObjectiveType::DefendTarget:
-		if (!defenseTargetDestroyed_)
-		{
-			defendElapsedSec_ += deltaTime;
-		}
-		break;
-
-	case GamePlayStageContext::StageObjectiveType::ReachGoal:
-		// 到達判定は外部から SetReachedGoal で入れる想定
-		break;
-
-	case GamePlayStageContext::StageObjectiveType::ActivateDevices:
-		// 装置起動数は外部から AddActivatedDeviceCount で入れる想定
-		break;
-
-	case GamePlayStageContext::StageObjectiveType::DefeatBoss:
-		// ボス撃破は外部から SetBossDefeated で入れる想定
-		break;
-
-	case GamePlayStageContext::StageObjectiveType::ClearAllWaves:
-	default:
-		break;
-	}
 }
