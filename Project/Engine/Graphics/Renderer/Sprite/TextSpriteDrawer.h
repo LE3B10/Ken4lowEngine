@@ -12,7 +12,8 @@ namespace Ken4lowEngine
 
 	class TextSpriteDrawer
 	{
-	private:
+	private: /// ---------- 列挙型 ---------- ///
+
 		enum class Align
 		{
 			Left,
@@ -20,12 +21,16 @@ namespace Ken4lowEngine
 			Right
 		};
 
-	public:
+	public: /// ---------- 構造体 ---------- ///
+
 		struct GlyphInfo
 		{
 			Vector2 uvLeftTop{};   // atlas上の左上(px)
 			Vector2 uvSize{};      // atlas上のサイズ(px)
 			float advanceX = 0.0f; // 次文字へ進む量(px)
+
+			float bearingX = 0.0f; // ベアリングX（グリフの左端から描画開始位置までの距離）
+			float bearingY = 0.0f; // ベアリングY（ベースラインから描画開始位置までの距離）
 		};
 
 		struct FontDefinition
@@ -38,6 +43,7 @@ namespace Ken4lowEngine
 		};
 
 	public:
+
 		void Initialize(const FontDefinition& fontDef);
 		void Finalize();
 

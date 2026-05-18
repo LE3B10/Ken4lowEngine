@@ -170,12 +170,7 @@ namespace Ken4lowEngine
 		return U'\0';
 	}
 
-	TextSpriteDrawer::FontDefinition FontAtlasLoader::LoadFromJson(
-		const std::string& texturePath,
-		const std::string& jsonPath,
-		float baseDrawWidth,
-		float baseDrawHeight,
-		char32_t fallbackCodepoint)
+	TextSpriteDrawer::FontDefinition FontAtlasLoader::LoadFromJson(const std::string& texturePath, const std::string& jsonPath, float baseDrawWidth, float baseDrawHeight, char32_t fallbackCodepoint)
 	{
 		TextSpriteDrawer::FontDefinition def{};
 		def.texturePath = texturePath;
@@ -267,6 +262,9 @@ namespace Ken4lowEngine
 
 				// 進み量: advance or advanceX
 				glyph.advanceX = item.value("advance", item.value("advanceX", glyph.uvSize.x));
+
+				glyph.bearingX = item.value("bearingX", 0.0f);
+				glyph.bearingY = item.value("bearingY", glyph.uvSize.y);
 
 				def.glyphs[codepoint] = glyph;
 			}

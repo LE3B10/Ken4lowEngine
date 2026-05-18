@@ -558,7 +558,7 @@ FontAtlas FontConverter::BuildSimpleHorizontalAtlas(std::vector<RasterizedGlyph>
 		return atlas;
 	}
 
-	constexpr int kPadding = 1;
+	constexpr int kPadding = 4;
 	const int maxAtlasWidth = atlasWidth_;
 
 	if (maxAtlasWidth <= 0)

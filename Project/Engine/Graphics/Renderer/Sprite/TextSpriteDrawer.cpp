@@ -301,7 +301,11 @@ namespace Ken4lowEngine
 				sp->SetColor(color_);
 				sp->SetUVRect(glyph->uvLeftTop, glyph->uvSize);
 				sp->SetSize({ glyph->uvSize.x * scale_, glyph->uvSize.y * scale_ });
-				sp->SetPosition({ x, y });
+
+				const float drawX = x + glyph->bearingX * scale_;
+				const float drawY = y + (baseDrawH_ - glyph->bearingY) * scale_; // ベースライン基準で縦位置を揃える
+				sp->SetPosition({ drawX, drawY });
+				
 				sp->Update();
 				sp->Draw();
 
