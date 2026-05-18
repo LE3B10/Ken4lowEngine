@@ -24,6 +24,7 @@ namespace Ken4lowEngine
 			kDissolveMaskSRV = 8,
 			kShadowParamCBV = 9,
 			kShadowMapSRV = 10,
+			kLightingSettingsCBV = 11,
 			kCount
 		};
 
@@ -143,8 +144,14 @@ namespace Ken4lowEngine
 			rootParameters[kShadowMapSRV].DescriptorTable.pDescriptorRanges = &ranges[4];
 			rootParameters[kShadowMapSRV].DescriptorTable.NumDescriptorRanges = 1;
 
+			rootParameters[kLightingSettingsCBV] = {};
+			// Ambient/Exposure/Contrast/Fog用CBVをObject3D PSのb5へ追加する。
+			rootParameters[kLightingSettingsCBV].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
+			rootParameters[kLightingSettingsCBV].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+			rootParameters[kLightingSettingsCBV].Descriptor.ShaderRegister = 5;
+
 			staticSamplers[0] = {};
-			staticSamplers[0].Filter = D3D12_FILTER_MIN_MAG_MIP_POINT;
+			staticSamplers[0].Filter = D3D12_FILTER_MIN_MAG_MIP_LINEAR;
 			// UV が 1 を超えるステージ/地面テクスチャを繰り返し表示できるようにする。
 			staticSamplers[0].AddressU = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
 			staticSamplers[0].AddressV = D3D12_TEXTURE_ADDRESS_MODE_WRAP;

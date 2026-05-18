@@ -72,6 +72,10 @@ namespace Ken4lowEngine
 
 		punctualBuffer_->SetName(L"PunctualLightBuffer");
 		lightInfoResource_->SetName(L"LightInfoConstantBuffer");
+		if (lightingSettingsResource_)
+		{
+			lightingSettingsResource_->SetName(L"LightingSettingsConstantBuffer");
+		}
 	}
 
 	void LightManager::Finalize()
@@ -91,10 +95,18 @@ namespace Ken4lowEngine
 			lightInfoData_ = nullptr;
 		}
 
+		if (lightingSettingsResource_)
+		{
+			lightingSettingsResource_->Unmap(0, nullptr);
+			lightingSettingsData_ = nullptr;
+		}
+
 		// GPU/COMリソース解放
 		punctualBuffer_.Reset();
 		punctualBufferBytes_ = 0;
 		lightInfoResource_.Reset();
+		lightingSettingsResource_.Reset();
+		lightingSettings_ = LightingSettingsGPU{};
 
 		// CPU側データ
 		punctualLights_.clear();
@@ -116,6 +128,14 @@ namespace Ken4lowEngine
 			lightInfoResource_ = ResourceManager::CreateBufferResource(dxCommon_->GetDevice(), sizeof(LightInfo));
 			lightInfoResource_->Map(0, nullptr, reinterpret_cast<void**>(&lightInfoData_));
 			lightInfoData_->lightCount = 0; // ライトの数
+		}
+
+		if (!lightingSettingsResource_)
+		{
+			// Ambient/ExposureをCPUから段階的に調整できるようにする。
+			lightingSettingsResource_ = ResourceManager::CreateBufferResource(dxCommon_->GetDevice(), sizeof(LightingSettingsGPU));
+			lightingSettingsResource_->Map(0, nullptr, reinterpret_cast<void**>(&lightingSettingsData_));
+			*lightingSettingsData_ = lightingSettings_;
 		}
 
 		/// ---------- SRVスロットの確保 ---------- ///
@@ -283,6 +303,23 @@ namespace Ken4lowEngine
 			ImGui::Text("Light #0 Direction: (%.3f, %.3f, %.3f)", first.direction.x, first.direction.y, first.direction.z);
 		}
 		ImGui::Separator();
+		if (ImGui::CollapsingHeader("Stage Lighting", ImGuiTreeNodeFlags_DefaultOpen))
+		{
+			// 白っぽさの原因切り分け用にAmbient/露出/コントラストを即時調整可能にする。
+			ImGui::ColorEdit3("Ambient Color", &lightingSettings_.ambientColor.x);
+			ImGui::SliderFloat("Ambient Strength", &lightingSettings_.ambientColor.w, 0.0f, 1.0f);
+			ImGui::SliderFloat("Exposure", &lightingSettings_.exposure, 0.25f, 2.0f);
+			ImGui::SliderFloat("Contrast", &lightingSettings_.contrast, 0.50f, 1.75f);
+			ImGui::SliderFloat("Specular Strength", &lightingSettings_.specularStrength, 0.0f, 0.5f);
+			bool enableFog = lightingSettings_.enableFog != 0;
+			if (ImGui::Checkbox("Enable Fog", &enableFog))
+			{
+				lightingSettings_.enableFog = enableFog ? 1u : 0u;
+			}
+			ImGui::ColorEdit3("Fog Color", &lightingSettings_.fogColor.x);
+			ImGui::SliderFloat("Fog Start", &lightingSettings_.fogStart, 0.0f, 250.0f);
+			ImGui::SliderFloat("Fog End", &lightingSettings_.fogEnd, lightingSettings_.fogStart + 1.0f, 500.0f);
+		}
 
 		if (ImGui::Button("+ Add Light"))
 		{
@@ -411,6 +448,19 @@ namespace Ken4lowEngine
 
 		// パンクチュアルライトSRVの設定（t2）
 		SRVManager::GetInstance()->SetGraphicsRootDescriptorTable(rootIndexSRV_t2, punctualSRVIndex_);
+	}
+
+	void LightManager::BindLightingSettings(uint32_t rootIndexCB_b5)
+	{
+		auto commandList = dxCommon_->GetCommandManager()->GetCommandList();
+
+		if (lightingSettingsData_)
+		{
+			// HLSLのLightingSettingsへ最新のAmbient/Exposure/Contrast/Fogを送る。
+			*lightingSettingsData_ = lightingSettings_;
+		}
+
+		commandList->SetGraphicsRootConstantBufferView(rootIndexCB_b5, lightingSettingsResource_->GetGPUVirtualAddress());
 	}
 
 	void LightManager::AddDefaultDirectionalLight()

@@ -42,6 +42,7 @@ ConstantBuffer<Camera> gCamera : register(b1);
 ConstantBuffer<LightInfo> gLightInfo : register(b2);
 ConstantBuffer<DissolveSetting> gDissolveSetting : register(b3);
 ConstantBuffer<ShadowParameter> gShadowParameter : register(b4);
+ConstantBuffer<LightingSettings> gLightingSettings : register(b5);
 
 Texture2D<float4> gTexture : register(t0);
 TextureCube<float4> gEnvironmentTexture : register(t1);
@@ -79,7 +80,8 @@ PixelShaderOutput main(VertexShaderOutput input)
         gShadowParameter,
         gMaterial.shininess,
         gShadowMap,
-        gShadowSampler);
+        gShadowSampler,
+        gLightingSettings);
         
     float3 baseColor = gMaterial.color.rgb * textureColor.rgb;
 
@@ -107,6 +109,11 @@ PixelShaderOutput main(VertexShaderOutput input)
 
     // 反射を最後に混ぜる
     shadedColor = lerp(shadedColor, reflectionColor, envBlend);
+
+    // Fog/ToneMap/Contrastを最後に適用して白飛びを抑える。
+    shadedColor = ApplyFog(shadedColor, worldPosition, gCamera.worldPosition, gLightingSettings);
+    shadedColor = ApplySimpleToneMapping(shadedColor, gLightingSettings);
+    shadedColor = ApplyContrast(shadedColor, gLightingSettings);
 
     output.color.rgb = shadedColor;
     output.color.a = gMaterial.color.a * textureColor.a;
