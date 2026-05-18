@@ -1,6 +1,9 @@
 #pragma once
 #include "Vector2.h"
 #include "EditorSelection.h"
+#include "EditorAssetBrowser.h"
+#include "EditorAssetBuildService.h"
+#include "EditorOutputLog.h"
 
 namespace Ken4lowEngine
 {
@@ -79,6 +82,7 @@ namespace Ken4lowEngine
 		void DrawDetails();
 		void DrawContentBrowser();
 		void DrawOutputLog();
+		void InitializeEditorServices();
 
 		/// <summary>
 		/// スクリーン座標をMain Viewport左上基準へ変換する入口です。
@@ -109,6 +113,11 @@ namespace Ken4lowEngine
 		Vector2 mainViewportSize_ = { 0.0f, 0.0f }; // Main Viewport内でGameRenderTargetを表示しているサイズ
 		EditorInputDebugInfo inputDebugInfo_{}; // Toolbarへゲーム入力ゲートの状態を可視化する
 		EditorSelection selection_{}; // World OutlinerとDetailsで共有する軽量な選択状態
+		EditorOutputLog outputLog_{}; // Content BrowserとBuild結果を表示するエディタ用ログバッファ
+		EditorAssetBrowser assetBrowser_{}; // Resources配下の実ファイル列挙を担当するContent Browserモデル
+		EditorAssetBuildService assetBuildService_{}; // Tools/Scriptsのアセットビルド実行を担当するサービス
+		bool editorServicesInitialized_ = false; // USE_IMGUI時だけEditorサービスを遅延初期化する。
+		bool outputLogAutoScroll_ = true; // Output Logの末尾追従設定をUI状態として保持する。
 		bool openRebuildDefaultLayoutPopup_ = false; // Rebuild Default Layoutを即時実行せず確認Popupへ遅延する。
 	};
 

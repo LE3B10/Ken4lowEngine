@@ -10,7 +10,11 @@
 #include <SceneManager.h>
 
 #include <algorithm>
+#include <array>
+#include <cstring>
 #include <vector>
+#include <filesystem>
+#include <string>
 
 #ifdef USE_IMGUI
 #include <imgui.h>
@@ -21,6 +25,11 @@ namespace Ken4lowEngine
 
 	namespace
 	{
+		std::string ToUtf8Path(const std::filesystem::path& path)
+		{
+			return path.generic_string();
+		}
+
 		EditorInputPolicy GetCurrentEditorInputPolicy()
 		{
 			BaseScene* scene = SceneManager::GetInstance()->GetCurrentScene();
@@ -44,6 +53,15 @@ namespace Ken4lowEngine
 	void EditorWindowManager::Draw()
 	{
 #ifdef USE_IMGUI
+		InitializeEditorServices();
+		const bool buildWasRunning = assetBuildService_.IsRunning();
+		assetBuildService_.Update();
+		if (buildWasRunning && !assetBuildService_.IsRunning() && assetBuildService_.WasLastBuildSuccessful())
+		{
+			// Build完了後はCompiled側の変換結果を確認しやすいようContent Browserを再スキャンする。
+			assetBrowser_.Refresh();
+		}
+
 		auto* input = Input::GetInstance();
 		if (input->TriggerRawKey(DIK_F8) && IsFpsCapturePolicy())
 		{
@@ -183,11 +201,34 @@ namespace Ken4lowEngine
 
 		if (ImGui::BeginMenu("Build"))
 		{
-			ImGui::MenuItem("Build Textures");
-			ImGui::MenuItem("Build Meshes");
-			ImGui::MenuItem("Build Fonts");
+			const bool buildRunning = assetBuildService_.IsRunning();
+			// BuildメニューはTools/Scriptsの既存batを実行する入口にする。
+			if (buildRunning)
+			{
+				ImGui::BeginDisabled();
+			}
+			if (ImGui::MenuItem("Build Textures"))
+			{
+				assetBuildService_.StartBuild(EditorAssetBuildKind::Textures);
+			}
+			if (ImGui::MenuItem("Build Meshes"))
+			{
+				assetBuildService_.StartBuild(EditorAssetBuildKind::Meshes);
+			}
+			if (ImGui::MenuItem("Build Fonts"))
+			{
+				assetBuildService_.StartBuild(EditorAssetBuildKind::Fonts);
+			}
 			ImGui::Separator();
-			ImGui::MenuItem("Build All Assets");
+			if (ImGui::MenuItem("Build All Assets"))
+			{
+				assetBuildService_.StartBuild(EditorAssetBuildKind::All);
+			}
+			if (buildRunning)
+			{
+				ImGui::EndDisabled();
+			}
+			ImGui::TextUnformatted(assetBuildService_.GetStatusText().c_str());
 			ImGui::EndMenu();
 		}
 
@@ -261,7 +302,19 @@ namespace Ken4lowEngine
 				playController->Stop();
 			}
 			ImGui::SameLine();
-			ImGui::Button("Build");
+			// ToolbarのBuildボタンから全アセット変換を実行する。
+			if (assetBuildService_.IsRunning())
+			{
+				ImGui::BeginDisabled();
+			}
+			if (ImGui::Button("Build"))
+			{
+				assetBuildService_.StartBuild(EditorAssetBuildKind::All);
+			}
+			if (assetBuildService_.IsRunning())
+			{
+				ImGui::EndDisabled();
+			}
 			ImGui::SameLine();
 			ImGui::TextUnformatted("|");
 			ImGui::SameLine();
@@ -655,18 +708,122 @@ namespace Ken4lowEngine
 			return;
 		}
 
-		// Content Browserは後でResources配下のアセット列挙へ接続するため仮フォルダを表示する
+		// Content BrowserはResources配下の実ファイル列挙と選択詳細を表示する。
 		if (ImGui::Begin("Content Browser", &windowState_.showContentBrowser))
 		{
-			ImGui::TextUnformatted("/Resources");
+			const std::array<EditorAssetCategory, 4> categories = {
+				EditorAssetCategory::Textures,
+				EditorAssetCategory::Models,
+				EditorAssetCategory::Shaders,
+				EditorAssetCategory::Fonts
+			};
+			for (EditorAssetCategory category : categories)
+			{
+				if (category != categories.front())
+				{
+					ImGui::SameLine();
+				}
+				const bool selected = assetBrowser_.GetCategory() == category;
+				if (selected)
+				{
+					ImGui::PushStyleColor(ImGuiCol_Button, ImGui::GetStyleColorVec4(ImGuiCol_ButtonActive));
+				}
+				if (ImGui::Button(EditorAssetBrowser::GetCategoryName(category)))
+				{
+					assetBrowser_.SetCategory(category);
+				}
+				if (selected)
+				{
+					ImGui::PopStyleColor();
+				}
+			}
+
 			ImGui::Separator();
-			ImGui::Button("Textures");
+			const bool sourceSelected = assetBrowser_.GetViewMode() == EditorAssetViewMode::Sources;
+			if (sourceSelected)
+			{
+				ImGui::PushStyleColor(ImGuiCol_Button, ImGui::GetStyleColorVec4(ImGuiCol_ButtonActive));
+			}
+			if (ImGui::Button("Sources"))
+			{
+				assetBrowser_.SetViewMode(EditorAssetViewMode::Sources);
+			}
+			if (sourceSelected)
+			{
+				ImGui::PopStyleColor();
+			}
 			ImGui::SameLine();
-			ImGui::Button("Models");
+			const bool compiledSelected = assetBrowser_.GetViewMode() == EditorAssetViewMode::Compiled;
+			if (compiledSelected)
+			{
+				ImGui::PushStyleColor(ImGuiCol_Button, ImGui::GetStyleColorVec4(ImGuiCol_ButtonActive));
+			}
+			if (ImGui::Button("Compiled"))
+			{
+				assetBrowser_.SetViewMode(EditorAssetViewMode::Compiled);
+			}
+			if (compiledSelected)
+			{
+				ImGui::PopStyleColor();
+			}
 			ImGui::SameLine();
-			ImGui::Button("Shaders");
+			if (ImGui::Button("Refresh"))
+			{
+				assetBrowser_.Refresh();
+			}
+
+			char filterBuffer[256] = {};
+			const std::string& currentFilter = assetBrowser_.GetSearchFilter();
+			std::strncpy(filterBuffer, currentFilter.c_str(), sizeof(filterBuffer) - 1);
+			if (ImGui::InputText("Search", filterBuffer, sizeof(filterBuffer)))
+			{
+				assetBrowser_.SetSearchFilter(filterBuffer);
+			}
+			ImGui::Text("Root: %s", ToUtf8Path(assetBrowser_.GetCurrentRoot()).c_str());
+			ImGui::Separator();
+
+			const float detailsWidth = 330.0f;
+			if (ImGui::BeginChild("AssetList", ImVec2(-detailsWidth, 0.0f), true))
+			{
+				const auto& entries = assetBrowser_.GetFilteredEntries();
+				if (entries.empty())
+				{
+					ImGui::TextUnformatted("No assets found.");
+				}
+				for (std::size_t index = 0; index < entries.size(); ++index)
+				{
+					const EditorAssetEntry& entry = entries[index];
+					const EditorAssetEntry* selectedEntry = assetBrowser_.GetSelectedEntry();
+					const bool isSelected = selectedEntry && selectedEntry->relativePath == entry.relativePath;
+					const std::string label = entry.icon + " " + entry.relativePath + "##asset" + std::to_string(index);
+					if (ImGui::Selectable(label.c_str(), isSelected))
+					{
+						assetBrowser_.Select(index);
+					}
+				}
+			}
+			ImGui::EndChild();
 			ImGui::SameLine();
-			ImGui::Button("Fonts");
+
+			if (ImGui::BeginChild("AssetDetails", ImVec2(0.0f, 0.0f), true))
+			{
+				ImGui::TextUnformatted("Selected Asset");
+				ImGui::Separator();
+				const EditorAssetEntry* selectedEntry = assetBrowser_.GetSelectedEntry();
+				if (!selectedEntry)
+				{
+					ImGui::TextUnformatted("No asset selected.");
+				}
+				else
+				{
+					ImGui::Text("Type: %s %s", selectedEntry->icon.c_str(), EditorAssetBrowser::GetCategoryName(assetBrowser_.GetCategory()));
+					ImGui::Text("Path: %s", selectedEntry->relativePath.c_str());
+					ImGui::Text("Extension: %s", selectedEntry->extension.empty() ? "(none)" : selectedEntry->extension.c_str());
+					ImGui::Text("Size: %.2f KB (%llu bytes)", static_cast<double>(selectedEntry->sizeBytes) / 1024.0, static_cast<unsigned long long>(selectedEntry->sizeBytes));
+					ImGui::Text("Modified: %s", selectedEntry->modifiedTime.c_str());
+				}
+			}
+			ImGui::EndChild();
 		}
 		ImGui::End();
 #endif // USE_IMGUI
@@ -680,17 +837,66 @@ namespace Ken4lowEngine
 			return;
 		}
 
-		// Output Logは後でエンジンログへ接続するため仮ログ行だけ表示する
+		// Output LogはEditorOutputLogのバッファを描画し、Build/Content Browserの結果を集約する。
 		if (ImGui::Begin("Output Log", &windowState_.showOutputLog))
 		{
-			ImGui::TextUnformatted("[Editor] UE5-style editor shell initialized.");
-			ImGui::TextUnformatted("[Editor] Dock panels from the Window menu.");
+			if (ImGui::Button("Clear"))
+			{
+				outputLog_.Clear();
+			}
+			ImGui::SameLine();
+			ImGui::Checkbox("Auto Scroll", &outputLogAutoScroll_);
+			ImGui::SameLine();
+			ImGui::Text("Build: %s", assetBuildService_.GetStatusText().c_str());
 			if (windowState_.debugShowFps)
 			{
+				ImGui::SameLine();
 				ImGui::Text("FPS: %.1f", ImGui::GetIO().Framerate);
 			}
+			ImGui::Separator();
+
+			if (ImGui::BeginChild("OutputLogScroll", ImVec2(0.0f, 0.0f), true, ImGuiWindowFlags_HorizontalScrollbar))
+			{
+				const std::vector<EditorLogEntry> entries = outputLog_.GetEntries();
+				for (const EditorLogEntry& entry : entries)
+				{
+					ImVec4 color = ImGui::GetStyleColorVec4(ImGuiCol_Text);
+					if (entry.level == EditorLogLevel::Warning)
+					{
+						color = ImVec4(1.0f, 0.82f, 0.2f, 1.0f);
+					}
+					else if (entry.level == EditorLogLevel::Error)
+					{
+						color = ImVec4(1.0f, 0.25f, 0.25f, 1.0f);
+					}
+					ImGui::PushStyleColor(ImGuiCol_Text, color);
+					ImGui::TextWrapped("[%s] %s", ToString(entry.level), entry.message.c_str());
+					ImGui::PopStyleColor();
+				}
+				if (outputLogAutoScroll_ && ImGui::GetScrollY() >= ImGui::GetScrollMaxY() - 4.0f)
+				{
+					ImGui::SetScrollHereY(1.0f);
+				}
+			}
+			ImGui::EndChild();
 		}
 		ImGui::End();
+#endif // USE_IMGUI
+	}
+
+	void EditorWindowManager::InitializeEditorServices()
+	{
+#ifdef USE_IMGUI
+		if (editorServicesInitialized_)
+		{
+			return;
+		}
+
+		// Editor専用サービスはImGui有効時だけ初期化し、通常ビルドの依存を増やさない。
+		outputLog_.Info("[Editor] UE5-style editor shell initialized.");
+		assetBrowser_.Initialize(&outputLog_);
+		assetBuildService_.Initialize(&outputLog_);
+		editorServicesInitialized_ = true;
 #endif // USE_IMGUI
 	}
 

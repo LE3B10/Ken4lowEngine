@@ -475,7 +475,19 @@
     <ClCompile Include="Engine\DebugTools\ImGui\ImGuiManager.cpp">
       <Filter>Engine\DebugTools\ImGui</Filter>
     </ClCompile>
+    <ClCompile Include="Engine\Editor\EditorAssetBrowser.cpp">
+      <Filter>Engine\Editor</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Editor\EditorAssetBuildService.cpp">
+      <Filter>Engine\Editor</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Editor\EditorOutputLog.cpp">
+      <Filter>Engine\Editor</Filter>
+    </ClCompile>
     <ClCompile Include="Engine\Editor\EditorPlayController.cpp">
+      <Filter>Engine\Editor</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Editor\EditorProcessRunner.cpp">
       <Filter>Engine\Editor</Filter>
     </ClCompile>
     <ClCompile Include="Engine\Editor\EditorSelection.cpp">
@@ -1302,7 +1314,19 @@
     <ClInclude Include="Engine\DebugTools\ImGui\ImGuiManager.h">
       <Filter>Engine\DebugTools\ImGui</Filter>
     </ClInclude>
+    <ClInclude Include="Engine\Editor\EditorAssetBrowser.h">
+      <Filter>Engine\Editor</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Editor\EditorAssetBuildService.h">
+      <Filter>Engine\Editor</Filter>
+    </ClInclude>
     <ClInclude Include="Engine\Editor\EditorObjectInfo.h">
+      <Filter>Engine\Editor</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Editor\EditorOutputLog.h">
+      <Filter>Engine\Editor</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Editor\EditorProcessRunner.h">
       <Filter>Engine\Editor</Filter>
     </ClInclude>
     <ClInclude Include="Engine\Editor\EditorTransformAccess.h">
