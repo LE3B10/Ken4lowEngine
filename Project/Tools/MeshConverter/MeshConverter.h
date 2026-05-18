@@ -69,6 +69,8 @@ private:
 	{
 		uint32_t indexOffset = 0;
 		uint32_t indexCount = 0;
+		uint32_t vertexOffset = 0;
+		uint32_t vertexCount = 0;
 		std::string textureRef;
 
 		float aabbMin[3] = { 0.0f, 0.0f, 0.0f };

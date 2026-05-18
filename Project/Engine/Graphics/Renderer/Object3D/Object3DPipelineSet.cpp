@@ -145,9 +145,10 @@ namespace Ken4lowEngine
 
 			staticSamplers[0] = {};
 			staticSamplers[0].Filter = D3D12_FILTER_MIN_MAG_MIP_POINT;
-			staticSamplers[0].AddressU = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
-			staticSamplers[0].AddressV = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
-			staticSamplers[0].AddressW = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
+			// UV が 1 を超えるステージ/地面テクスチャを繰り返し表示できるようにする。
+			staticSamplers[0].AddressU = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+			staticSamplers[0].AddressV = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+			staticSamplers[0].AddressW = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
 			staticSamplers[0].ComparisonFunc = D3D12_COMPARISON_FUNC_NEVER;
 			staticSamplers[0].ShaderRegister = 0;
 			staticSamplers[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;

@@ -3,88 +3,97 @@
 #include <windows.h>
 
 using namespace std;
-// DirectX–¼‘O‹óŠÔ‚ğg—p
+// DirectXåå‰ç©ºé–“ã‚’ä½¿ç”¨
 using namespace DirectX;
 
 /// -------------------------------------------------------------
-///			ƒeƒNƒXƒ`ƒƒ‚ğWICŒ`®‚©‚çDDSŒ`®‚É•ÏŠ·‚·‚éˆ—
+///			ãƒ†ã‚¯ã‚¹ãƒãƒ£ã‚’WICå½¢å¼ã‹ã‚‰DDSå½¢å¼ã«å¤‰æ›ã™ã‚‹å‡¦ç†
 /// -------------------------------------------------------------
 void TextureConverter::ConvertTextureWICToDDS(const std::string& filePath, int numOptions, char* options[])
 {
-	// WICŒ`®‚ÌƒeƒNƒXƒ`ƒƒ‚ğ“Ç‚İ‚Ş
+	// WICå½¢å¼ã®ãƒ†ã‚¯ã‚¹ãƒãƒ£ã‚’èª­ã¿è¾¼ã‚€
 	LoadWICTextureFromFile(filePath);
 
-	// DDSŒ`®‚É•ÏŠ·‚µ‚Ä•Û‘¶‚·‚éˆ—‚ğ‚±‚±‚É’Ç‰Á‚·‚é
+	// DDSå½¢å¼ã«å¤‰æ›ã—ã¦ä¿å­˜ã™ã‚‹å‡¦ç†ã‚’ã“ã“ã«è¿½åŠ ã™ã‚‹
 	SaveDDSTextureToFile(numOptions, options);
 }
 
 /// -------------------------------------------------------------
-///					g—p•û–@‚ğo—Í‚·‚éˆ—
+///					ä½¿ç”¨æ–¹æ³•ã‚’å‡ºåŠ›ã™ã‚‹å‡¦ç†
 /// -------------------------------------------------------------
 void TextureConverter::OoutputUsage()
 {
-	cout << "‰æ‘œƒtƒ@ƒCƒ‹‚ğWICŒ`®‚©‚çDDSŒ`®‚É•ÏŠ·‚µ‚Ü‚·B" << endl;
-	cout << endl; // ‹ós
-	cout << "TextureConverter [ƒhƒ‰ƒCƒu:][ƒpƒX][ƒtƒ@ƒCƒ‹–¼]" << endl;
-	cout << endl; // ‹ós
-	cout << " [ƒhƒ‰ƒCƒu:][ƒpƒX][ƒtƒ@ƒCƒ‹–¼]: •ÏŠ·‚·‚éWICŒ`®‚Ì‰æ‘œƒtƒ@ƒCƒ‹‚ÌƒpƒX‚ğw’è‚µ‚Ü‚·B" << endl;
-	cout << endl; // ‹ós
-	cout << " [-ml level]: ƒ~ƒbƒvƒŒƒxƒ‹‚ğw’è‚µ‚Ü‚·B0‚ğw’è‚·‚é‚Æ1x1‚Ü‚Å‚Ìƒtƒ‹ƒ~ƒbƒvƒ}ƒbƒvƒ`ƒF[ƒ“‚ğ¶¬‚µ‚Ü‚·B" << endl;
+
+#ifdef _DEBUG
+	std::wcout << L"[TextureConverter] Input PNG/WIC: " << wideFilePath
+		<< L" format=" << static_cast<int>(metadate_.format)
+		<< L" size=" << metadate_.width << L"x" << metadate_.height
+		<< L" mipLevels=" << metadate_.mipLevels
+		<< L" srgb=" << (DirectX::IsSRGB(metadate_.format) ? L"true" : L"false")
+		<< L" alphaMode=" << static_cast<int>(metadate_.GetAlphaMode()) << std::endl;
+#endif
+	cout << "ç”»åƒãƒ•ã‚¡ã‚¤ãƒ«ã‚’WICå½¢å¼ã‹ã‚‰DDSå½¢å¼ã«å¤‰æ›ã—ã¾ã™ã€‚" << endl;
+	cout << endl; // ç©ºè¡Œ
+	cout << "TextureConverter [ãƒ‰ãƒ©ã‚¤ãƒ–:][ãƒ‘ã‚¹][ãƒ•ã‚¡ã‚¤ãƒ«å]" << endl;
+	cout << endl; // ç©ºè¡Œ
+	cout << " [ãƒ‰ãƒ©ã‚¤ãƒ–:][ãƒ‘ã‚¹][ãƒ•ã‚¡ã‚¤ãƒ«å]: å¤‰æ›ã™ã‚‹WICå½¢å¼ã®ç”»åƒãƒ•ã‚¡ã‚¤ãƒ«ã®ãƒ‘ã‚¹ã‚’æŒ‡å®šã—ã¾ã™ã€‚" << endl;
+	cout << endl; // ç©ºè¡Œ
+	cout << " [-ml level]: ãƒŸãƒƒãƒ—ãƒ¬ãƒ™ãƒ«ã‚’æŒ‡å®šã—ã¾ã™ã€‚0ã‚’æŒ‡å®šã™ã‚‹ã¨1x1ã¾ã§ã®ãƒ•ãƒ«ãƒŸãƒƒãƒ—ãƒãƒƒãƒ—ãƒã‚§ãƒ¼ãƒ³ã‚’ç”Ÿæˆã—ã¾ã™ã€‚" << endl;
 }
 
 /// -------------------------------------------------------------
-///				ƒeƒNƒXƒ`ƒƒƒtƒ@ƒCƒ‹“Ç‚İ‚İ(WICŒ`®)
+///				ãƒ†ã‚¯ã‚¹ãƒãƒ£ãƒ•ã‚¡ã‚¤ãƒ«èª­ã¿è¾¼ã¿(WICå½¢å¼)
 /// -------------------------------------------------------------
 void TextureConverter::LoadWICTextureFromFile(const std::string& filePath)
 {
-	// ƒtƒ@ƒCƒ‹ƒpƒX‚ğƒƒCƒh•¶š—ñ‚É•ÏŠ·
+	// ãƒ•ã‚¡ã‚¤ãƒ«ãƒ‘ã‚¹ã‚’ãƒ¯ã‚¤ãƒ‰æ–‡å­—åˆ—ã«å¤‰æ›
 	std::wstring wideFilePath = ConcertMultiByteStringToWideString(filePath);
 
-	// WICŒ`®‚ÌƒeƒNƒXƒ`ƒƒ‚ğ“Ç‚İ‚Ş
+	// WICå½¢å¼ã®ãƒ†ã‚¯ã‚¹ãƒãƒ£ã‚’èª­ã¿è¾¼ã‚€
 	HRESULT hr = LoadFromWICFile(wideFilePath.c_str(), WIC_FLAGS_NONE, &metadate_, scrachImage_);
-	assert(SUCCEEDED(hr) && "WICŒ`®‚ÌƒeƒNƒXƒ`ƒƒ‚Ì“Ç‚İ‚İ‚É¸”s‚µ‚Ü‚µ‚½B");
+	assert(SUCCEEDED(hr) && "WICå½¢å¼ã®ãƒ†ã‚¯ã‚¹ãƒãƒ£ã®èª­ã¿è¾¼ã¿ã«å¤±æ•—ã—ã¾ã—ãŸã€‚");
 
-	// ƒtƒHƒ‹ƒ_ƒpƒX‚Æƒtƒ@ƒCƒ‹–¼‚ğ•ª—£‚·‚é
+	// ãƒ•ã‚©ãƒ«ãƒ€ãƒ‘ã‚¹ã¨ãƒ•ã‚¡ã‚¤ãƒ«åã‚’åˆ†é›¢ã™ã‚‹
 	SeparateFilePath(wideFilePath);
 }
 
 /// -------------------------------------------------------------
-///			@ƒ}ƒ‹ƒ`ƒoƒCƒg•¶š—ñ‚ğƒƒCƒh•¶š—ñ‚É•ÏŠ·
+///			ã€€ãƒãƒ«ãƒãƒã‚¤ãƒˆæ–‡å­—åˆ—ã‚’ãƒ¯ã‚¤ãƒ‰æ–‡å­—åˆ—ã«å¤‰æ›
 /// -------------------------------------------------------------
 std::wstring TextureConverter::ConcertMultiByteStringToWideString(const std::string& multiByteString)
 {
-	// ƒƒCƒh•¶š—ñ‚É•ÏŠ·‚µ‚½Û‚Ì•¶š”‚ğŒvZ
+	// ãƒ¯ã‚¤ãƒ‰æ–‡å­—åˆ—ã«å¤‰æ›ã—ãŸéš›ã®æ–‡å­—æ•°ã‚’è¨ˆç®—
 	int filePathBufferSize = MultiByteToWideChar(CP_ACP, 0, multiByteString.c_str(), -1, nullptr, 0);
 
-	// ƒƒCƒh•¶š—ñ—p‚Ìƒoƒbƒtƒ@‚ğŠm•Û
+	// ãƒ¯ã‚¤ãƒ‰æ–‡å­—åˆ—ç”¨ã®ãƒãƒƒãƒ•ã‚¡ã‚’ç¢ºä¿
 	std::wstring wideString;
 	wideString.resize(filePathBufferSize);
 
-	// ƒ}ƒ‹ƒ`ƒoƒCƒg•¶š—ñ‚ğƒƒCƒh•¶š—ñ‚É•ÏŠ·
+	// ãƒãƒ«ãƒãƒã‚¤ãƒˆæ–‡å­—åˆ—ã‚’ãƒ¯ã‚¤ãƒ‰æ–‡å­—åˆ—ã«å¤‰æ›
 	MultiByteToWideChar(CP_ACP, 0, multiByteString.c_str(), -1, wideString.data(), filePathBufferSize);
 
-	// ƒƒCƒh•¶š—ñ‚ğ•Ô‚·
+	// ãƒ¯ã‚¤ãƒ‰æ–‡å­—åˆ—ã‚’è¿”ã™
 	return wideString;
 }
 
 /// -------------------------------------------------------------
-///		@		ƒtƒHƒ‹ƒ_ƒpƒX‚Æƒtƒ@ƒCƒ‹–¼‚ğ•ª—£‚·‚é
+///		ã€€		ãƒ•ã‚©ãƒ«ãƒ€ãƒ‘ã‚¹ã¨ãƒ•ã‚¡ã‚¤ãƒ«åã‚’åˆ†é›¢ã™ã‚‹
 /// -------------------------------------------------------------
 void TextureConverter::SeparateFilePath(const std::wstring& filePath)
 {
 	size_t position1 = 0;
 	std::wstring exceptExit;
 
-	// ‹æØ‚è•¶š '.' ‚ªo‚Ä‚­‚éˆê”ÔÅŒã‚Ì•”•ª‚ğŒŸõ
+	// åŒºåˆ‡ã‚Šæ–‡å­— '.' ãŒå‡ºã¦ãã‚‹ä¸€ç•ªæœ€å¾Œã®éƒ¨åˆ†ã‚’æ¤œç´¢
 	position1 = filePath.rfind(L'.');
 
-	// ŒŸõ‚ªƒqƒbƒg‚µ‚½‚ç
+	// æ¤œç´¢ãŒãƒ’ãƒƒãƒˆã—ãŸã‚‰
 	if (position1 != std::wstring::npos)
 	{
-		// ‹æØ‚è•¶š‚ÌŒã‚ë‚ğƒtƒ@ƒCƒ‹Šg’£q‚Æ‚µ‚Ä•Û‘¶
+		// åŒºåˆ‡ã‚Šæ–‡å­—ã®å¾Œã‚ã‚’ãƒ•ã‚¡ã‚¤ãƒ«æ‹¡å¼µå­ã¨ã—ã¦ä¿å­˜
 		extension_ = filePath.substr(position1 + 1, filePath.size() - position1 - 1);
 
-		// ‹æØ‚è•¶š‚Ì‘O‚Ü‚Å‚ğ”²‚«o‚·
+		// åŒºåˆ‡ã‚Šæ–‡å­—ã®å‰ã¾ã§ã‚’æŠœãå‡ºã™
 		exceptExit = filePath.substr(0, position1);
 	}
 	else
@@ -93,42 +102,42 @@ void TextureConverter::SeparateFilePath(const std::wstring& filePath)
 		exceptExit = filePath;
 	}
 
-	// ‹æØ‚è•¶š '\\' ‚ªo‚Ä‚­‚éˆê”ÔÅŒã‚Ì•”•ª‚ğŒŸõ
+	// åŒºåˆ‡ã‚Šæ–‡å­— '\\' ãŒå‡ºã¦ãã‚‹ä¸€ç•ªæœ€å¾Œã®éƒ¨åˆ†ã‚’æ¤œç´¢
 	position1 = exceptExit.rfind(L'\\');
 
-	// ŒŸõ‚ªƒqƒbƒg‚µ‚½‚ç
+	// æ¤œç´¢ãŒãƒ’ãƒƒãƒˆã—ãŸã‚‰
 	if (position1 != std::wstring::npos)
 	{
-		// ‹æØ‚è•¶š‚Ì‘O‚Ü‚Å‚ğƒtƒHƒ‹ƒ_ƒpƒX‚Æ‚µ‚Ä•Û‘¶
+		// åŒºåˆ‡ã‚Šæ–‡å­—ã®å‰ã¾ã§ã‚’ãƒ•ã‚©ãƒ«ãƒ€ãƒ‘ã‚¹ã¨ã—ã¦ä¿å­˜
 		directoryPath_ = exceptExit.substr(0, position1);
 
-		// ‹æØ‚è•¶š‚ÌŒã‚ë‚ğƒtƒ@ƒCƒ‹–¼‚Æ‚µ‚Ä•Û‘¶
+		// åŒºåˆ‡ã‚Šæ–‡å­—ã®å¾Œã‚ã‚’ãƒ•ã‚¡ã‚¤ãƒ«åã¨ã—ã¦ä¿å­˜
 		fileName_ = exceptExit.substr(position1 + 1, exceptExit.size() - position1 - 1);
 
 		return;
 	}
 
-	// ‹æØ‚è•¶š '/' ‚ªo‚Ä‚­‚éˆê”ÔÅŒã‚Ì•”•ª‚ğŒŸõ
+	// åŒºåˆ‡ã‚Šæ–‡å­— '/' ãŒå‡ºã¦ãã‚‹ä¸€ç•ªæœ€å¾Œã®éƒ¨åˆ†ã‚’æ¤œç´¢
 	position1 = exceptExit.rfind(L'/');
 
-	// ŒŸõ‚ªƒqƒbƒg‚µ‚½‚ç
+	// æ¤œç´¢ãŒãƒ’ãƒƒãƒˆã—ãŸã‚‰
 	if (position1 != std::wstring::npos)
 	{
-		// ‹æØ‚è•¶š‚Ì‘O‚Ü‚Å‚ğƒtƒHƒ‹ƒ_ƒpƒX‚Æ‚µ‚Ä•Û‘¶
+		// åŒºåˆ‡ã‚Šæ–‡å­—ã®å‰ã¾ã§ã‚’ãƒ•ã‚©ãƒ«ãƒ€ãƒ‘ã‚¹ã¨ã—ã¦ä¿å­˜
 		directoryPath_ = exceptExit.substr(0, position1);
 
-		// ‹æØ‚è•¶š‚ÌŒã‚ë‚ğƒtƒ@ƒCƒ‹–¼‚Æ‚µ‚Ä•Û‘¶
+		// åŒºåˆ‡ã‚Šæ–‡å­—ã®å¾Œã‚ã‚’ãƒ•ã‚¡ã‚¤ãƒ«åã¨ã—ã¦ä¿å­˜
 		fileName_ = exceptExit.substr(position1 + 1, exceptExit.size() - position1 - 1);
 		return;
 	}
 
-	// ‹æØ‚è•¶š‚ªŒ©‚Â‚©‚ç‚È‚©‚Á‚½ê‡AƒtƒHƒ‹ƒ_ƒpƒX‚Í‹óAƒtƒ@ƒCƒ‹–¼‚Í‚»‚Ì‚Ü‚Ü•Û‘¶
+	// åŒºåˆ‡ã‚Šæ–‡å­—ãŒè¦‹ã¤ã‹ã‚‰ãªã‹ã£ãŸå ´åˆã€ãƒ•ã‚©ãƒ«ãƒ€ãƒ‘ã‚¹ã¯ç©ºã€ãƒ•ã‚¡ã‚¤ãƒ«åã¯ãã®ã¾ã¾ä¿å­˜
 	directoryPath_ = L"";
 	fileName_ = exceptExit;
 }
 
 /// -------------------------------------------------------------
-///			 	 DDSƒeƒNƒXƒ`ƒƒ‚Æ‚µ‚Äƒtƒ@ƒCƒ‹‘‚«o‚µ
+///			 	 DDSãƒ†ã‚¯ã‚¹ãƒãƒ£ã¨ã—ã¦ãƒ•ã‚¡ã‚¤ãƒ«æ›¸ãå‡ºã—
 /// -------------------------------------------------------------
 void TextureConverter::SaveDDSTextureToFile(int numOptions, char* options[])
 {
@@ -136,49 +145,58 @@ void TextureConverter::SaveDDSTextureToFile(int numOptions, char* options[])
 
 	size_t mipLevel = 0;
 
-	// ƒ~ƒbƒvƒ}ƒbƒvƒŒƒxƒ‹”‚ğŒvZ
+	// ãƒŸãƒƒãƒ—ãƒãƒƒãƒ—ãƒ¬ãƒ™ãƒ«æ•°ã‚’è¨ˆç®—
 	for (int i = 0; i < numOptions; i++)
 	{
 		if (std::string(options[i]) == "-ml")
 		{
-			// ƒ~ƒbƒvƒŒƒxƒ‹”‚ğæ“¾
+			// ãƒŸãƒƒãƒ—ãƒ¬ãƒ™ãƒ«æ•°ã‚’å–å¾—
 			mipLevel = stoi(options[i + 1]);
 			break;
 		}
 	}
 
 	ScratchImage mipChain;
-	// ƒ~ƒbƒvƒ}ƒbƒv‚Ì¶¬
+	// ãƒŸãƒƒãƒ—ãƒãƒƒãƒ—ã®ç”Ÿæˆ
 	hr = GenerateMipMaps(scrachImage_.GetImages(), scrachImage_.GetImageCount(), scrachImage_.GetMetadata(), TEX_FILTER_DEFAULT, mipLevel, mipChain);
 
-	// ƒ~ƒbƒvƒ}ƒbƒv¶¬‚É¬Œ÷‚µ‚½ê‡
+	// ãƒŸãƒƒãƒ—ãƒãƒƒãƒ—ç”Ÿæˆã«æˆåŠŸã—ãŸå ´åˆ
 	if (SUCCEEDED(hr))
 	{
-		// ƒCƒ[ƒW‚Æƒƒ^ƒf[ƒ^‚ğAƒ~ƒbƒvƒ}ƒbƒv¶¬Œã‚Ì‚à‚Ì‚É’u‚«Š·‚¦‚é
+#ifdef _DEBUG
+	std::wcout << L"[TextureConverter] Output DDS: " << filePath
+		<< L" format=" << static_cast<int>(metadate_.format)
+		<< L" size=" << metadate_.width << L"x" << metadate_.height
+		<< L" mipLevels=" << metadate_.mipLevels
+		<< L" srgb=" << (DirectX::IsSRGB(metadate_.format) ? L"true" : L"false")
+		<< L" alphaMode=" << static_cast<int>(metadate_.GetAlphaMode()) << std::endl;
+#endif
+
+	// ÏŠãƒ^f[^O DDS Æ‚Ä•Û‘APNGDDS ÇÕ‚B
 		scrachImage_ = std::move(mipChain);
 		metadate_ = scrachImage_.GetMetadata();
 	}
 
-	// ˆ³kŒ`® : BC7‚É•ÏŠ·
+	// åœ§ç¸®å½¢å¼ : BC7ã«å¤‰æ›
 	ScratchImage convertedImage;
 	hr = Compress(scrachImage_.GetImages(), scrachImage_.GetImageCount(), metadate_,
 		DXGI_FORMAT_BC7_UNORM_SRGB, TEX_COMPRESS_BC7_QUICK | TEX_COMPRESS_SRGB_OUT | TEX_COMPRESS_PARALLEL, 1.0f, convertedImage);
 
-	// ˆ³k•ÏŠ·‚É¬Œ÷‚µ‚½ê‡
+	// åœ§ç¸®å¤‰æ›ã«æˆåŠŸã—ãŸå ´åˆ
 	if (SUCCEEDED(hr))
 	{
-		// ƒCƒ[ƒW‚Æƒƒ^ƒf[ƒ^‚ğAˆ³kŒã‚Ì‚à‚Ì‚É’u‚«Š·‚¦‚é
+		// ã‚¤ãƒ¡ãƒ¼ã‚¸ã¨ãƒ¡ã‚¿ãƒ‡ãƒ¼ã‚¿ã‚’ã€åœ§ç¸®å¾Œã®ã‚‚ã®ã«ç½®ãæ›ãˆã‚‹
 		scrachImage_ = std::move(convertedImage);
 		metadate_ = scrachImage_.GetMetadata();
 	}
 
-	// “Ç‚İ‚ñ‚¾ƒeƒNƒXƒ`ƒƒ‚ğSRGBAŒ`®‚Å•Û‘¶‚·‚é
+	// èª­ã¿è¾¼ã‚“ã ãƒ†ã‚¯ã‚¹ãƒãƒ£ã‚’SRGBAå½¢å¼ã§ä¿å­˜ã™ã‚‹
 	metadate_.format = MakeSRGB(metadate_.format);
 
-	// o—Íƒtƒ@ƒCƒ‹–¼‚ğİ’è‚·‚é
+	// å‡ºåŠ›ãƒ•ã‚¡ã‚¤ãƒ«åã‚’è¨­å®šã™ã‚‹
 	std::wstring filePath = directoryPath_ + L"\\" + fileName_ + L".dds";
 
-	// DDSŒ`®‚Åƒtƒ@ƒCƒ‹‚É•Û‘¶‚·‚é
+	// DDSå½¢å¼ã§ãƒ•ã‚¡ã‚¤ãƒ«ã«ä¿å­˜ã™ã‚‹
 	hr = SaveToDDSFile(scrachImage_.GetImages(), scrachImage_.GetImageCount(), metadate_, DDS_FLAGS_NONE, filePath.c_str());
-	assert(SUCCEEDED(hr) && "DDSŒ`®‚Å‚ÌƒeƒNƒXƒ`ƒƒ‚Ì•Û‘¶‚É¸”s‚µ‚Ü‚µ‚½B");
+	assert(SUCCEEDED(hr) && "DDSå½¢å¼ã§ã®ãƒ†ã‚¯ã‚¹ãƒãƒ£ã®ä¿å­˜ã«å¤±æ•—ã—ã¾ã—ãŸã€‚");
 }

@@ -6,6 +6,9 @@
 #include <vector>
 #include <string>
 #include <filesystem>
+#include <algorithm>
+#include <format>
+#include "LogString.h"
 
 namespace Ken4lowEngine
 {
@@ -105,6 +108,17 @@ namespace Ken4lowEngine
 			}
 		}
 
+#ifdef _DEBUG
+		const bool hasUV0 = (header.flags & (1u << 1)) != 0;
+		Log(std::format("[KMeshLoader][UV] file={} vertices={} hasUV0={}\n",
+			filePath.generic_string(), header.vertexCount, hasUV0 ? "true" : "false"));
+		for (size_t i = 0; i < std::min<size_t>(fileVertices.size(), 5); ++i)
+		{
+			Log(std::format("[KMeshLoader][UV] file={} vertex={} uv=({:.6f}, {:.6f})\n",
+				filePath.generic_string(), i, fileVertices[i].u, fileVertices[i].v));
+		}
+#endif
+
 		// ---------------------------------------------------------
 		// 5. インデックス配列読込
 		// ---------------------------------------------------------
@@ -173,22 +187,26 @@ namespace Ken4lowEngine
 
 			SubMesh subMesh{};
 
-			// -------------------------------------------------
-			// 頂点は現段階では全体頂点配列をそのまま持たせる
-			// -------------------------------------------------
-			// 現在の kmesh 形式では submesh ごとの vertex range を保存していないため、
-			// ひとまず全頂点を各 SubMesh に入れる形にしている。
-			//
-			// これは最適ではないが、まず導入を進めるための安全策。
-			// 将来的には
-			//   - vertexOffset
-			//   - vertexCount
-			// を BinarySubmeshHeader に追加するとより綺麗になる。
-			subMesh.vertices.resize(fileVertices.size());
-			for (size_t i = 0; i < fileVertices.size(); ++i)
+			const bool hasStoredVertexRange = smHeader.vertexCount != 0;
+			const uint32_t vertexBegin = hasStoredVertexRange ? smHeader.vertexOffset : 0;
+			const uint32_t vertexCount = hasStoredVertexRange ? smHeader.vertexCount : static_cast<uint32_t>(fileVertices.size());
+			const uint32_t vertexEnd = vertexBegin + vertexCount;
+			if (vertexEnd > fileVertices.size())
 			{
-				subMesh.vertices[i] = ConvertVertex(fileVertices[i]);
+				throw std::runtime_error("Submesh vertex range out of bounds: " + filePath.generic_string());
 			}
+
+			// kmesh に保存されたサブメッシュ頂点範囲だけを読み戻し、UVを含む頂点レイアウトを維持する。
+			subMesh.vertices.resize(vertexCount);
+			for (uint32_t i = 0; i < vertexCount; ++i)
+			{
+				subMesh.vertices[i] = ConvertVertex(fileVertices[vertexBegin + i]);
+			}
+
+#ifdef _DEBUG
+			Log(std::format("[KMeshLoader][UV] submesh={} texture=\"{}\" vertexOffset={} vertexCount={} indexOffset={} indexCount={} rangeFallback={}\n",
+				smIndex, textureRef, vertexBegin, vertexCount, smHeader.indexOffset, smHeader.indexCount, hasStoredVertexRange ? "false" : "true"));
+#endif
 
 			// -------------------------------------------------
 			// インデックスはこのサブメッシュ範囲だけ抜き出す
@@ -204,7 +222,12 @@ namespace Ken4lowEngine
 			subMesh.indices.reserve(smHeader.indexCount);
 			for (uint32_t i = beginIndex; i < endIndex; ++i)
 			{
-				subMesh.indices.push_back(fileIndices[i]);
+				if (fileIndices[i] < vertexBegin || fileIndices[i] >= vertexEnd)
+				{
+					throw std::runtime_error("Submesh index references a vertex outside its range: " + filePath.generic_string());
+				}
+				// サブメッシュ内のローカル頂点配列に合わせてインデックスを再基準化する。
+				subMesh.indices.push_back(fileIndices[i] - vertexBegin);
 			}
 
 			// マテリアルのテクスチャ参照

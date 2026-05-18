@@ -8,6 +8,7 @@
 #include <algorithm>
 #include <cctype>
 #include <filesystem>
+#include <format>
 
 #include <d3dx12.h>
 
@@ -166,6 +167,12 @@ namespace Ken4lowEngine
 		}
 
 		const auto& meta0 = image.GetMetadata();
+#ifdef _DEBUG
+		Log(std::format("[TextureManager] Loaded texture={} source={} format={} size={}x{} mipLevels={} srgb={} alphaMode={}\n",
+			filePathStr, isDDS ? "DDS" : "WIC", static_cast<int>(meta0.format),
+			meta0.width, meta0.height, meta0.mipLevels,
+			DirectX::IsSRGB(meta0.format) ? "true" : "false", static_cast<int>(meta0.GetAlphaMode())));
+#endif
 		const bool isLegacyTall = (!isDDS) && (meta0.width == meta0.height * 2);
 
 		DirectX::ScratchImage normalized{};
@@ -209,6 +216,12 @@ namespace Ken4lowEngine
 
 		TextureData& textureData = textureDatas[filePathStr];
 		textureData.metaData = uploadImage->GetMetadata();
+#ifdef _DEBUG
+		// DDS 読み込み後の最終メタデータを出力し、sRGB/通常フォーマット取り違えを切り分ける。
+		Log(std::format("[TextureManager] Upload texture={} format={} mipLevels={} srgb={}\n",
+			filePathStr, static_cast<int>(textureData.metaData.format), textureData.metaData.mipLevels,
+			DirectX::IsSRGB(textureData.metaData.format) ? "true" : "false"));
+#endif
 		textureData.resource = CreateTextureResource(dxCommon_->GetDevice(), textureData.metaData);
 		textureData.resource->SetName(L"TextureResource");
 

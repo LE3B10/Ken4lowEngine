@@ -64,8 +64,8 @@ PixelShaderOutput main(VertexShaderOutput input)
     PixelShaderOutput output;
 
     float4 transformedUV = mul(float4(input.texcoord, 0.0f, 1.0f), gMaterial.uvTransform);
+    // SRGB SRV は Sample 時点で線形化されるため、手動の pow による二重変換を避ける。
     float4 textureColor = gTexture.Sample(gSampler, transformedUV.xy);
-    textureColor.rgb = pow(textureColor.rgb, 2.2f);
 
     float3 worldPosition = input.worldPosition;
     float3 normal = normalize(input.normal);

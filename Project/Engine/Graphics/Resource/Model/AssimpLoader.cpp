@@ -1,10 +1,13 @@
 #include "AssimpLoader.h"
 #include "TextureManager.h"
 #include "ModelPathResolver.h"
+#include "LogString.h"
 
 #include <cassert>
 #include <cctype>
 #include <stdexcept>
+#include <algorithm>
+#include <format>
 
 namespace Ken4lowEngine
 {
@@ -142,6 +145,11 @@ namespace Ken4lowEngine
 			const bool hasNormals = (mesh->HasNormals() && mesh->mNormals != nullptr);
 			const bool hasUV0 = (mesh->HasTextureCoords(0) && mesh->mTextureCoords[0] != nullptr);
 
+#ifdef _DEBUG
+			Log(std::format("[AssimpLoader][UV] model={} mesh=\"{}\" vertices={} hasUV0={}\n",
+				modelFilePath, mesh->mName.C_Str(), mesh->mNumVertices, hasUV0 ? "true" : "false"));
+#endif
+
 			// -------------------------------------------------
 			// 頂点情報の読み出し
 			// -------------------------------------------------
@@ -164,12 +172,23 @@ namespace Ken4lowEngine
 				if (hasUV0)
 				{
 					const aiVector3D& texcoord = mesh->mTextureCoords[0][vertexIndex];
+					// Assimp の UV0 をそのまま保持し、V反転は明示オプション側だけで行う。
 					sub.vertices[vertexIndex].texcoord = { texcoord.x, texcoord.y };
 				}
 				else
 				{
+					// UV が無い頂点だけ 0,0 にして、Debugログで UV 欠落を切り分けられるようにする。
 					sub.vertices[vertexIndex].texcoord = { 0.0f, 0.0f };
 				}
+
+#ifdef _DEBUG
+				if (vertexIndex < 5)
+				{
+					Log(std::format("[AssimpLoader][UV] model={} mesh=\"{}\" vertex={} uv=({:.6f}, {:.6f})\n",
+						modelFilePath, mesh->mName.C_Str(), vertexIndex,
+						sub.vertices[vertexIndex].texcoord.x, sub.vertices[vertexIndex].texcoord.y));
+				}
+#endif
 			}
 
 			// -------------------------------------------------
