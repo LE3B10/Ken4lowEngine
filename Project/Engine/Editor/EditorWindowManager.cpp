@@ -912,7 +912,9 @@ namespace Ken4lowEngine
 					if (isImage)
 					{
 						// 選択中の画像だけをロードし、同一パスはEditorTexturePreviewCacheで再利用する。
-						const EditorTexturePreview& preview = texturePreviewCache_.GetOrLoad(std::filesystem::u8path(selectedEntry->absolutePath));
+						const std::filesystem::path previewPath(selectedEntry->absolutePath);
+						const EditorTexturePreview& preview = texturePreviewCache_.GetOrLoad(previewPath);
+
 						if (preview.width > 0 && preview.height > 0)
 						{
 							DrawDetailRow("Resolution", std::to_string(preview.width) + " x " + std::to_string(preview.height));
