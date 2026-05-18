@@ -12,9 +12,12 @@
 #include <algorithm>
 #include <array>
 #include <cstring>
+#include <cstdio>
 #include <vector>
 #include <filesystem>
 #include <string>
+#include <sstream>
+#include <iomanip>
 
 #ifdef USE_IMGUI
 #include <imgui.h>
@@ -41,6 +44,40 @@ namespace Ken4lowEngine
 		{
 			// F8キャプチャはFPS操作Sceneだけで有効にする。
 			return GetCurrentEditorInputPolicy() == EditorInputPolicy::FpsCapture;
+		}
+
+		std::string FormatBytes(uintmax_t bytes)
+		{
+			std::ostringstream stream;
+			if (bytes >= 1024ull * 1024ull)
+			{
+				stream << std::fixed << std::setprecision(2) << (static_cast<double>(bytes) / (1024.0 * 1024.0)) << " MB";
+			}
+			else if (bytes >= 1024ull)
+			{
+				stream << std::fixed << std::setprecision(2) << (static_cast<double>(bytes) / 1024.0) << " KB";
+			}
+			else
+			{
+				stream << bytes << " bytes";
+			}
+			return stream.str();
+		}
+
+#ifdef USE_IMGUI
+		void DrawDetailRow(const char* label, const std::string& value)
+		{
+			ImGui::TextDisabled("%s", label);
+			ImGui::SameLine(115.0f);
+			ImGui::TextWrapped("%s", value.empty() ? "(none)" : value.c_str());
+		}
+#endif // USE_IMGUI
+
+		std::string GetParentPathText(const EditorAssetEntry& entry)
+		{
+			const std::filesystem::path relativePath(entry.relativePath);
+			const std::filesystem::path parent = relativePath.parent_path();
+			return parent.empty() ? "." : parent.generic_string();
 		}
 	}
 
@@ -730,6 +767,11 @@ namespace Ken4lowEngine
 				}
 				if (ImGui::Button(EditorAssetBrowser::GetCategoryName(category)))
 				{
+					if (assetBrowser_.GetCategory() != category)
+					{
+						// カテゴリ変更時は古いPreview SRVを解放して本編Texture管理と分離する。
+						texturePreviewCache_.Clear();
+					}
 					assetBrowser_.SetCategory(category);
 				}
 				if (selected)
@@ -746,6 +788,11 @@ namespace Ken4lowEngine
 			}
 			if (ImGui::Button("Sources"))
 			{
+				if (!sourceSelected)
+				{
+					// Sources/Compiled切替時は選択画像のPreviewキャッシュを破棄する。
+					texturePreviewCache_.Clear();
+				}
 				assetBrowser_.SetViewMode(EditorAssetViewMode::Sources);
 			}
 			if (sourceSelected)
@@ -760,6 +807,11 @@ namespace Ken4lowEngine
 			}
 			if (ImGui::Button("Compiled"))
 			{
+				if (!compiledSelected)
+				{
+					// Sources/Compiled切替時は選択画像のPreviewキャッシュを破棄する。
+					texturePreviewCache_.Clear();
+				}
 				assetBrowser_.SetViewMode(EditorAssetViewMode::Compiled);
 			}
 			if (compiledSelected)
@@ -769,6 +821,8 @@ namespace Ken4lowEngine
 			ImGui::SameLine();
 			if (ImGui::Button("Refresh"))
 			{
+				// Refreshではファイル変更後の画像を再ロードできるようPreviewキャッシュも消す。
+				texturePreviewCache_.Clear();
 				assetBrowser_.Refresh();
 			}
 
@@ -778,17 +832,27 @@ namespace Ken4lowEngine
 			// snprintfで検索フィルタ文字列を安全に固定長バッファへコピーする。
 			std::snprintf(filterBuffer, sizeof(filterBuffer), "%s", currentFilter.c_str());
 
-			if (ImGui::InputText("Search", filterBuffer, sizeof(filterBuffer)))
+			ImGui::SetNextItemWidth(std::max(160.0f, ImGui::GetContentRegionAvail().x * 0.45f));
+			if (ImGui::InputTextWithHint("##ContentBrowserSearch", "Search assets...", filterBuffer, sizeof(filterBuffer)))
 			{
 				assetBrowser_.SetSearchFilter(filterBuffer);
 			}
+			ImGui::SameLine();
+			ImGui::TextDisabled("%zu assets", assetBrowser_.GetFilteredEntries().size());
 
-			ImGui::Text("Root: %s", ToUtf8Path(assetBrowser_.GetCurrentRoot()).c_str());
+			if (ImGui::TreeNodeEx("Root", ImGuiTreeNodeFlags_DefaultOpen))
+			{
+				ImGui::TextDisabled("%s", ToUtf8Path(assetBrowser_.GetCurrentRoot()).c_str());
+				ImGui::TreePop();
+			}
 			ImGui::Separator();
 
-			const float detailsWidth = 330.0f;
-			if (ImGui::BeginChild("AssetList", ImVec2(-detailsWidth, 0.0f), true))
+			const float availableWidth = ImGui::GetContentRegionAvail().x;
+			const float detailsWidth = std::clamp(availableWidth * 0.38f, 300.0f, 460.0f);
+			if (ImGui::BeginChild("AssetList", ImVec2(-detailsWidth - ImGui::GetStyle().ItemSpacing.x, 0.0f), true, ImGuiWindowFlags_HorizontalScrollbar))
 			{
+				ImGui::TextDisabled("Assets");
+				ImGui::Separator();
 				const auto& entries = assetBrowser_.GetFilteredEntries();
 				if (entries.empty())
 				{
@@ -799,17 +863,31 @@ namespace Ken4lowEngine
 					const EditorAssetEntry& entry = entries[index];
 					const EditorAssetEntry* selectedEntry = assetBrowser_.GetSelectedEntry();
 					const bool isSelected = selectedEntry && selectedEntry->relativePath == entry.relativePath;
-					const std::string label = entry.icon + " " + entry.relativePath + "##asset" + std::to_string(index);
-					if (ImGui::Selectable(label.c_str(), isSelected))
+					const std::string rowId = "##asset" + std::to_string(index);
+					ImGui::PushID(static_cast<int>(index));
+					if (ImGui::Selectable(rowId.c_str(), isSelected, ImGuiSelectableFlags_SpanAllColumns, ImVec2(0.0f, 42.0f)))
 					{
 						assetBrowser_.Select(index);
 					}
+					const ImVec2 rowCursorAfter = ImGui::GetCursorScreenPos();
+					if (ImGui::IsItemVisible())
+					{
+						const ImVec2 rowMin = ImGui::GetItemRectMin();
+						ImGui::SetCursorScreenPos(ImVec2(rowMin.x + 8.0f, rowMin.y + 5.0f));
+						ImGui::TextColored(ImVec4(0.75f, 0.9f, 1.0f, 1.0f), "%s", entry.icon.c_str());
+						ImGui::SameLine(66.0f);
+						ImGui::TextUnformatted(entry.label.c_str());
+						ImGui::SetCursorScreenPos(ImVec2(rowMin.x + 66.0f, rowMin.y + 23.0f));
+						ImGui::TextDisabled("%s", GetParentPathText(entry).c_str());
+						ImGui::SetCursorScreenPos(rowCursorAfter);
+					}
+					ImGui::PopID();
 				}
 			}
 			ImGui::EndChild();
 			ImGui::SameLine();
 
-			if (ImGui::BeginChild("AssetDetails", ImVec2(0.0f, 0.0f), true))
+			if (ImGui::BeginChild("AssetDetails", ImVec2(0.0f, 0.0f), true, ImGuiWindowFlags_AlwaysVerticalScrollbar))
 			{
 				ImGui::TextUnformatted("Selected Asset");
 				ImGui::Separator();
@@ -820,11 +898,52 @@ namespace Ken4lowEngine
 				}
 				else
 				{
-					ImGui::Text("Type: %s %s", selectedEntry->icon.c_str(), EditorAssetBrowser::GetCategoryName(assetBrowser_.GetCategory()));
-					ImGui::Text("Path: %s", selectedEntry->relativePath.c_str());
-					ImGui::Text("Extension: %s", selectedEntry->extension.empty() ? "(none)" : selectedEntry->extension.c_str());
-					ImGui::Text("Size: %.2f KB (%llu bytes)", static_cast<double>(selectedEntry->sizeBytes) / 1024.0, static_cast<unsigned long long>(selectedEntry->sizeBytes));
-					ImGui::Text("Modified: %s", selectedEntry->modifiedTime.c_str());
+					const bool isImage = EditorAssetBrowser::IsImageExtension(selectedEntry->extension);
+					DrawDetailRow("File", selectedEntry->label);
+					DrawDetailRow("Category", std::string(EditorAssetBrowser::GetCategoryName(assetBrowser_.GetCategory())) + " / " + EditorAssetBrowser::GetViewModeName(assetBrowser_.GetViewMode()));
+					DrawDetailRow("Relative", selectedEntry->relativePath);
+					DrawDetailRow("Absolute", selectedEntry->absolutePath);
+					DrawDetailRow("Extension", selectedEntry->extension.empty() ? "(none)" : selectedEntry->extension);
+					DrawDetailRow("Size", FormatBytes(selectedEntry->sizeBytes) + " (" + std::to_string(static_cast<unsigned long long>(selectedEntry->sizeBytes)) + " bytes)");
+					DrawDetailRow("Modified", selectedEntry->modifiedTime);
+					DrawDetailRow("Source", EditorAssetBrowser::GetViewModeName(assetBrowser_.GetViewMode()));
+					ImGui::Separator();
+
+					if (isImage)
+					{
+						// 選択中の画像だけをロードし、同一パスはEditorTexturePreviewCacheで再利用する。
+						const EditorTexturePreview& preview = texturePreviewCache_.GetOrLoad(std::filesystem::u8path(selectedEntry->absolutePath));
+						if (preview.width > 0 && preview.height > 0)
+						{
+							DrawDetailRow("Resolution", std::to_string(preview.width) + " x " + std::to_string(preview.height));
+						}
+						ImGui::TextDisabled("Preview");
+						const float maxPreviewWidth = std::max(80.0f, ImGui::GetContentRegionAvail().x - 8.0f);
+						if (preview.loaded && preview.srvHandleGPU.ptr != 0 && preview.width > 0 && preview.height > 0)
+						{
+							const float aspect = static_cast<float>(preview.width) / static_cast<float>(preview.height);
+							ImVec2 previewSize(maxPreviewWidth, maxPreviewWidth / aspect);
+							const float maxPreviewHeight = std::max(120.0f, ImGui::GetContentRegionAvail().y * 0.55f);
+							if (previewSize.y > maxPreviewHeight)
+							{
+								previewSize.y = maxPreviewHeight;
+								previewSize.x = previewSize.y * aspect;
+							}
+							ImGui::Image(static_cast<ImTextureID>(preview.srvHandleGPU.ptr), previewSize);
+						}
+						else
+						{
+							ImGui::TextWrapped("%s", preview.message.empty() ? "Preview unavailable" : preview.message.c_str());
+						}
+					}
+					else
+					{
+						ImGui::TextDisabled("Preview");
+						ImGui::BeginDisabled();
+						ImGui::Button(selectedEntry->icon.c_str(), ImVec2(std::min(160.0f, ImGui::GetContentRegionAvail().x), 88.0f));
+						ImGui::EndDisabled();
+						ImGui::TextWrapped("%s preview is not implemented yet.", EditorAssetBrowser::GetCategoryName(assetBrowser_.GetCategory()));
+					}
 				}
 			}
 			ImGui::EndChild();

@@ -28,6 +28,7 @@ namespace Ken4lowEngine
 		std::string label;
 		std::string icon;
 		std::string relativePath;
+		std::string absolutePath;
 		std::string extension;
 		std::string modifiedTime;
 		uintmax_t sizeBytes = 0;
@@ -52,6 +53,7 @@ namespace Ken4lowEngine
 
 		static const char* GetCategoryName(EditorAssetCategory category);
 		static const char* GetViewModeName(EditorAssetViewMode mode);
+		static bool IsImageExtension(const std::string& extension);
 
 	private:
 		void RebuildFilteredEntries();

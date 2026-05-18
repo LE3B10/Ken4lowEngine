@@ -493,6 +493,9 @@
     <ClCompile Include="Engine\Editor\EditorSelection.cpp">
       <Filter>Engine\Editor</Filter>
     </ClCompile>
+    <ClCompile Include="Engine\Editor\EditorTexturePreviewCache.cpp">
+      <Filter>Engine\Editor</Filter>
+    </ClCompile>
     <ClCompile Include="Engine\Editor\EditorWindowManager.cpp">
       <Filter>Engine\Editor</Filter>
     </ClCompile>
@@ -1336,6 +1339,9 @@
       <Filter>Engine\Editor</Filter>
     </ClInclude>
     <ClInclude Include="Engine\Editor\EditorSelection.h">
+      <Filter>Engine\Editor</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Editor\EditorTexturePreviewCache.h">
       <Filter>Engine\Editor</Filter>
     </ClInclude>
     <ClInclude Include="Engine\Editor\EditorWindowManager.h">

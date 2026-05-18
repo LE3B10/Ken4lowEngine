@@ -4,6 +4,7 @@
 #include "EditorAssetBrowser.h"
 #include "EditorAssetBuildService.h"
 #include "EditorOutputLog.h"
+#include "EditorTexturePreviewCache.h"
 
 namespace Ken4lowEngine
 {
@@ -115,6 +116,7 @@ namespace Ken4lowEngine
 		EditorSelection selection_{}; // World OutlinerとDetailsで共有する軽量な選択状態
 		EditorOutputLog outputLog_{}; // Content BrowserとBuild結果を表示するエディタ用ログバッファ
 		EditorAssetBrowser assetBrowser_{}; // Resources配下の実ファイル列挙を担当するContent Browserモデル
+		EditorTexturePreviewCache texturePreviewCache_{}; // Content Browserの選択画像だけをSRV化してプレビューするキャッシュ
 		EditorAssetBuildService assetBuildService_{}; // Tools/Scriptsのアセットビルド実行を担当するサービス
 		bool editorServicesInitialized_ = false; // USE_IMGUI時だけEditorサービスを遅延初期化する。
 		bool outputLogAutoScroll_ = true; // Output Logの末尾追従設定をUI状態として保持する。
