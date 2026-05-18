@@ -12,16 +12,23 @@
 #include <algorithm>
 #include <array>
 #include <cstring>
+#include <cstdint>
 #include <cstdio>
 #include <vector>
 #include <filesystem>
 #include <string>
 #include <sstream>
 #include <iomanip>
+#include <cmath>
+#include <utility>
 
 #ifdef USE_IMGUI
 #include <imgui.h>
 #endif // USE_IMGUI
+
+#ifdef _WIN32
+#include <shellapi.h>
+#endif // _WIN32
 
 namespace Ken4lowEngine
 {
@@ -70,6 +77,53 @@ namespace Ken4lowEngine
 			ImGui::TextDisabled("%s", label);
 			ImGui::SameLine(115.0f);
 			ImGui::TextWrapped("%s", value.empty() ? "(none)" : value.c_str());
+		}
+
+		std::string TruncateTextToWidth(const std::string& text, float maxWidth)
+		{
+			if (maxWidth <= 0.0f || ImGui::CalcTextSize(text.c_str()).x <= maxWidth)
+			{
+				return text;
+			}
+
+			const char* ellipsis = "...";
+			const float ellipsisWidth = ImGui::CalcTextSize(ellipsis).x;
+			std::string result;
+			for (char c : text)
+			{
+				std::string candidate = result + c;
+				if (ImGui::CalcTextSize(candidate.c_str()).x + ellipsisWidth > maxWidth)
+				{
+					break;
+				}
+				result = std::move(candidate);
+			}
+			return result.empty() ? ellipsis : (result + ellipsis);
+		}
+
+		ImVec2 FitImageSize(uint32_t width, uint32_t height, const ImVec2& bounds)
+		{
+			if (width == 0 || height == 0 || bounds.x <= 0.0f || bounds.y <= 0.0f)
+			{
+				return ImVec2(0.0f, 0.0f);
+			}
+			const float scale = std::min(bounds.x / static_cast<float>(width), bounds.y / static_cast<float>(height));
+			return ImVec2(std::floor(static_cast<float>(width) * scale), std::floor(static_cast<float>(height) * scale));
+		}
+
+		void DrawCheckerBackground(ImDrawList* drawList, const ImVec2& min, const ImVec2& max)
+		{
+			const float square = 8.0f;
+			const ImU32 a = ImGui::GetColorU32(ImVec4(0.26f, 0.26f, 0.26f, 1.0f));
+			const ImU32 b = ImGui::GetColorU32(ImVec4(0.18f, 0.18f, 0.18f, 1.0f));
+			for (float y = min.y; y < max.y; y += square)
+			{
+				for (float x = min.x; x < max.x; x += square)
+				{
+					const bool even = (static_cast<int>((x - min.x) / square) + static_cast<int>((y - min.y) / square)) % 2 == 0;
+					drawList->AddRectFilled(ImVec2(x, y), ImVec2(std::min(x + square, max.x), std::min(y + square, max.y)), even ? a : b);
+				}
+			}
 		}
 #endif // USE_IMGUI
 
@@ -745,7 +799,7 @@ namespace Ken4lowEngine
 			return;
 		}
 
-		// Content BrowserはResources配下の実ファイル列挙と選択詳細を表示する。
+		// Content Browserは上部操作を固定し、リスト/グリッドとDetailsをカテゴリ別描画へ分離する。
 		if (ImGui::Begin("Content Browser", &windowState_.showContentBrowser))
 		{
 			const std::array<EditorAssetCategory, 4> categories = {
@@ -848,113 +902,267 @@ namespace Ken4lowEngine
 			ImGui::Separator();
 
 			const float availableWidth = ImGui::GetContentRegionAvail().x;
-			const float detailsWidth = std::clamp(availableWidth * 0.38f, 300.0f, 460.0f);
-			if (ImGui::BeginChild("AssetList", ImVec2(-detailsWidth - ImGui::GetStyle().ItemSpacing.x, 0.0f), true, ImGuiWindowFlags_HorizontalScrollbar))
+			const bool splitHorizontally = availableWidth >= 620.0f;
+
+			if (assetBrowser_.GetCategory() == EditorAssetCategory::Textures)
 			{
-				ImGui::TextDisabled("Assets");
-				ImGui::Separator();
-				const auto& entries = assetBrowser_.GetFilteredEntries();
-				if (entries.empty())
-				{
-					ImGui::TextUnformatted("No assets found.");
-				}
-				for (std::size_t index = 0; index < entries.size(); ++index)
-				{
-					const EditorAssetEntry& entry = entries[index];
-					const EditorAssetEntry* selectedEntry = assetBrowser_.GetSelectedEntry();
-					const bool isSelected = selectedEntry && selectedEntry->relativePath == entry.relativePath;
-					const std::string rowId = "##asset" + std::to_string(index);
-					ImGui::PushID(static_cast<int>(index));
-					if (ImGui::Selectable(rowId.c_str(), isSelected, ImGuiSelectableFlags_SpanAllColumns, ImVec2(0.0f, 42.0f)))
-					{
-						assetBrowser_.Select(index);
-					}
-					if (ImGui::IsItemVisible())
-					{
-						const ImVec2 rowMin = ImGui::GetItemRectMin();
-						ImDrawList* drawList = ImGui::GetWindowDrawList();
-
-						const ImU32 iconColor = ImGui::GetColorU32(ImVec4(0.75f, 0.9f, 1.0f, 1.0f));
-						const ImU32 textColor = ImGui::GetColorU32(ImGuiCol_Text);
-						const ImU32 disabledColor = ImGui::GetColorU32(ImGuiCol_TextDisabled);
-
-						// AssetListの行内テキストはDrawListで描画し、ImGuiのレイアウトカーソルを動かさない。
-						drawList->AddText(ImVec2(rowMin.x + 8.0f, rowMin.y + 5.0f), iconColor, entry.icon.c_str());
-						drawList->AddText(ImVec2(rowMin.x + 66.0f, rowMin.y + 5.0f), textColor, entry.label.c_str());
-
-						const std::string parentPath = GetParentPathText(entry);
-						drawList->AddText(ImVec2(rowMin.x + 66.0f, rowMin.y + 23.0f), disabledColor, parentPath.c_str());
-					}
-					ImGui::PopID();
-				}
+				DrawTextureGrid();
 			}
-			ImGui::EndChild();
-			ImGui::SameLine();
-
-			if (ImGui::BeginChild("AssetDetails", ImVec2(0.0f, 0.0f), true, ImGuiWindowFlags_AlwaysVerticalScrollbar))
+			else
 			{
-				ImGui::TextUnformatted("Selected Asset");
-				ImGui::Separator();
-				const EditorAssetEntry* selectedEntry = assetBrowser_.GetSelectedEntry();
-				if (!selectedEntry)
+				DrawAssetList();
+			}
+
+			if (splitHorizontally)
+			{
+				ImGui::SameLine();
+			}
+			DrawAssetDetails();
+		}
+		ImGui::End();
+#endif // USE_IMGUI
+	}
+
+	void EditorWindowManager::DrawAssetList()
+	{
+#ifdef USE_IMGUI
+		const float availableWidth = ImGui::GetContentRegionAvail().x;
+		const float detailsWidth = availableWidth >= 620.0f ? std::clamp(availableWidth * 0.36f, 300.0f, 460.0f) : 0.0f;
+		const bool splitHorizontally = availableWidth >= 620.0f;
+		const ImVec2 childSize = splitHorizontally ? ImVec2(-detailsWidth - ImGui::GetStyle().ItemSpacing.x, 0.0f) : ImVec2(0.0f, std::max(180.0f, ImGui::GetContentRegionAvail().y * 0.52f));
+		if (ImGui::BeginChild("AssetList", childSize, true, ImGuiWindowFlags_HorizontalScrollbar))
+		{
+			ImGui::TextDisabled("Assets");
+			ImGui::Separator();
+			const auto& entries = assetBrowser_.GetFilteredEntries();
+			if (entries.empty())
+			{
+				ImGui::TextUnformatted("No assets found.");
+			}
+			const EditorAssetEntry* selectedEntry = assetBrowser_.GetSelectedEntry();
+			for (std::size_t index = 0; index < entries.size(); ++index)
+			{
+				const EditorAssetEntry& entry = entries[index];
+				const bool isSelected = selectedEntry && selectedEntry->relativePath == entry.relativePath;
+				const std::string rowId = "##asset" + std::to_string(index);
+				ImGui::PushID(static_cast<int>(index));
+				if (ImGui::Selectable(rowId.c_str(), isSelected, ImGuiSelectableFlags_SpanAllColumns, ImVec2(0.0f, 42.0f)))
 				{
-					ImGui::TextUnformatted("No asset selected.");
+					assetBrowser_.Select(index);
 				}
-				else
+				if (ImGui::IsItemVisible())
 				{
-					const bool isImage = EditorAssetBrowser::IsImageExtension(selectedEntry->extension);
-					DrawDetailRow("File", selectedEntry->label);
-					DrawDetailRow("Category", std::string(EditorAssetBrowser::GetCategoryName(assetBrowser_.GetCategory())) + " / " + EditorAssetBrowser::GetViewModeName(assetBrowser_.GetViewMode()));
-					DrawDetailRow("Relative", selectedEntry->relativePath);
-					DrawDetailRow("Absolute", selectedEntry->absolutePath);
-					DrawDetailRow("Extension", selectedEntry->extension.empty() ? "(none)" : selectedEntry->extension);
-					DrawDetailRow("Size", FormatBytes(selectedEntry->sizeBytes) + " (" + std::to_string(static_cast<unsigned long long>(selectedEntry->sizeBytes)) + " bytes)");
-					DrawDetailRow("Modified", selectedEntry->modifiedTime);
-					DrawDetailRow("Source", EditorAssetBrowser::GetViewModeName(assetBrowser_.GetViewMode()));
-					ImGui::Separator();
+					const ImVec2 rowMin = ImGui::GetItemRectMin();
+					ImDrawList* drawList = ImGui::GetWindowDrawList();
 
-					if (isImage)
+					const ImU32 iconColor = ImGui::GetColorU32(ImVec4(0.75f, 0.9f, 1.0f, 1.0f));
+					const ImU32 textColor = ImGui::GetColorU32(ImGuiCol_Text);
+					const ImU32 disabledColor = ImGui::GetColorU32(ImGuiCol_TextDisabled);
+
+					// AssetListの行内テキストはDrawListで描画し、ImGuiのレイアウトカーソルを動かさない。
+					drawList->AddText(ImVec2(rowMin.x + 8.0f, rowMin.y + 5.0f), iconColor, entry.icon.c_str());
+					drawList->AddText(ImVec2(rowMin.x + 66.0f, rowMin.y + 5.0f), textColor, entry.label.c_str());
+
+					const std::string parentPath = GetParentPathText(entry);
+					drawList->AddText(ImVec2(rowMin.x + 66.0f, rowMin.y + 23.0f), disabledColor, parentPath.c_str());
+				}
+				ImGui::PopID();
+			}
+		}
+		ImGui::EndChild();
+#endif // USE_IMGUI
+	}
+
+	void EditorWindowManager::DrawTextureGrid()
+	{
+#ifdef USE_IMGUI
+		const float availableWidth = ImGui::GetContentRegionAvail().x;
+		const float detailsWidth = availableWidth >= 620.0f ? std::clamp(availableWidth * 0.36f, 300.0f, 460.0f) : 0.0f;
+		const bool splitHorizontally = availableWidth >= 620.0f;
+		const ImVec2 childSize = splitHorizontally ? ImVec2(-detailsWidth - ImGui::GetStyle().ItemSpacing.x, 0.0f) : ImVec2(0.0f, std::max(180.0f, ImGui::GetContentRegionAvail().y * 0.52f));
+		if (ImGui::BeginChild("TextureGrid", childSize, true, ImGuiWindowFlags_AlwaysVerticalScrollbar))
+		{
+			ImGui::TextDisabled("Textures");
+			ImGui::SameLine();
+			ImGui::TextDisabled("%s", EditorAssetBrowser::GetViewModeName(assetBrowser_.GetViewMode()));
+			ImGui::Separator();
+
+			const auto& entries = assetBrowser_.GetFilteredEntries();
+			if (entries.empty())
+			{
+				ImGui::TextUnformatted("No textures found.");
+				ImGui::EndChild();
+				return;
+			}
+
+			const float contentWidth = std::max(1.0f, ImGui::GetContentRegionAvail().x);
+			const float minCellWidth = 132.0f;
+			const int columnCount = std::max(1, static_cast<int>(contentWidth / minCellWidth));
+			const float spacing = ImGui::GetStyle().ItemSpacing.x;
+			const float cellWidth = std::floor((contentWidth - spacing * static_cast<float>(columnCount - 1)) / static_cast<float>(columnCount));
+			const float thumbnailSize = std::max(72.0f, cellWidth - 18.0f);
+			const float cellHeight = thumbnailSize + 54.0f;
+			const EditorAssetEntry* selectedEntry = assetBrowser_.GetSelectedEntry();
+
+			for (std::size_t index = 0; index < entries.size(); ++index)
+			{
+				const EditorAssetEntry& entry = entries[index];
+				const bool isSelected = selectedEntry && selectedEntry->relativePath == entry.relativePath;
+				ImGui::PushID(static_cast<int>(index));
+				// サムネイルセルはInvisibleButtonで領域を確保し、装飾だけDrawListへ任せてスクロール時assertを避ける。
+				ImGui::InvisibleButton("##TextureCell", ImVec2(cellWidth, cellHeight));
+				if (ImGui::IsItemClicked())
+				{
+					assetBrowser_.Select(index);
+				}
+				if (ImGui::IsItemVisible())
+				{
+					ImDrawList* drawList = ImGui::GetWindowDrawList();
+					const ImVec2 min = ImGui::GetItemRectMin();
+					const ImVec2 max = ImGui::GetItemRectMax();
+					const ImU32 backgroundColor = ImGui::GetColorU32(isSelected ? ImVec4(0.18f, 0.34f, 0.58f, 0.88f) : ImVec4(0.12f, 0.12f, 0.14f, 0.86f));
+					const ImU32 borderColor = ImGui::GetColorU32(isSelected ? ImVec4(0.45f, 0.72f, 1.0f, 1.0f) : ImVec4(0.28f, 0.28f, 0.32f, 1.0f));
+					drawList->AddRectFilled(min, max, backgroundColor, 7.0f);
+					drawList->AddRect(min, max, borderColor, 7.0f, 0, isSelected ? 2.5f : 1.0f);
+
+					const ImVec2 thumbMin(min.x + 9.0f, min.y + 9.0f);
+					const ImVec2 thumbMax(min.x + 9.0f + thumbnailSize, min.y + 9.0f + thumbnailSize);
+					DrawCheckerBackground(drawList, thumbMin, thumbMax);
+					drawList->AddRect(thumbMin, thumbMax, ImGui::GetColorU32(ImVec4(0.38f, 0.38f, 0.42f, 1.0f)), 4.0f);
+
+					if (EditorAssetBrowser::IsImageExtension(entry.extension))
 					{
-						// 選択中の画像だけをロードし、同一パスはEditorTexturePreviewCacheで再利用する。
-						const std::filesystem::path previewPath(selectedEntry->absolutePath);
-						const EditorTexturePreview& preview = texturePreviewCache_.GetOrLoad(previewPath);
-
-						if (preview.width > 0 && preview.height > 0)
-						{
-							DrawDetailRow("Resolution", std::to_string(preview.width) + " x " + std::to_string(preview.height));
-						}
-						ImGui::TextDisabled("Preview");
-						const float maxPreviewWidth = std::max(80.0f, ImGui::GetContentRegionAvail().x - 8.0f);
+						const EditorTexturePreview& preview = texturePreviewCache_.GetOrLoad(std::filesystem::path(entry.absolutePath));
 						if (preview.loaded && preview.srvHandleGPU.ptr != 0 && preview.width > 0 && preview.height > 0)
 						{
-							const float aspect = static_cast<float>(preview.width) / static_cast<float>(preview.height);
-							ImVec2 previewSize(maxPreviewWidth, maxPreviewWidth / aspect);
-							const float maxPreviewHeight = std::max(120.0f, ImGui::GetContentRegionAvail().y * 0.55f);
-							if (previewSize.y > maxPreviewHeight)
-							{
-								previewSize.y = maxPreviewHeight;
-								previewSize.x = previewSize.y * aspect;
-							}
-							ImGui::Image(static_cast<ImTextureID>(preview.srvHandleGPU.ptr), previewSize);
+							const ImVec2 imageSize = FitImageSize(preview.width, preview.height, ImVec2(thumbnailSize - 8.0f, thumbnailSize - 8.0f));
+							const ImVec2 imageMin(thumbMin.x + (thumbnailSize - imageSize.x) * 0.5f, thumbMin.y + (thumbnailSize - imageSize.y) * 0.5f);
+							const ImVec2 imageMax(imageMin.x + imageSize.x, imageMin.y + imageSize.y);
+							drawList->AddImage(static_cast<ImTextureID>(preview.srvHandleGPU.ptr), imageMin, imageMax);
 						}
 						else
 						{
-							ImGui::TextWrapped("%s", preview.message.empty() ? "Preview unavailable" : preview.message.c_str());
+							const char* text = preview.failed ? "No Preview" : "Loading";
+							const ImVec2 textSize = ImGui::CalcTextSize(text);
+							drawList->AddText(ImVec2(thumbMin.x + (thumbnailSize - textSize.x) * 0.5f, thumbMin.y + (thumbnailSize - textSize.y) * 0.5f), ImGui::GetColorU32(ImGuiCol_TextDisabled), text);
 						}
 					}
 					else
 					{
-						ImGui::TextDisabled("Preview");
-						ImGui::BeginDisabled();
-						ImGui::Button(selectedEntry->icon.c_str(), ImVec2(std::min(160.0f, ImGui::GetContentRegionAvail().x), 88.0f));
-						ImGui::EndDisabled();
-						ImGui::TextWrapped("%s preview is not implemented yet.", EditorAssetBrowser::GetCategoryName(assetBrowser_.GetCategory()));
+						const char* text = "No Preview";
+						const ImVec2 textSize = ImGui::CalcTextSize(text);
+						drawList->AddText(ImVec2(thumbMin.x + (thumbnailSize - textSize.x) * 0.5f, thumbMin.y + (thumbnailSize - textSize.y) * 0.5f), ImGui::GetColorU32(ImGuiCol_TextDisabled), text);
+					}
+
+					const std::string displayName = TruncateTextToWidth(entry.label, cellWidth - 18.0f);
+					drawList->AddText(ImVec2(min.x + 9.0f, thumbMax.y + 8.0f), ImGui::GetColorU32(ImGuiCol_Text), displayName.c_str());
+
+					const std::string badgeText = entry.extension.empty() ? "FILE" : entry.extension.substr(1);
+					const ImVec2 badgeSize = ImGui::CalcTextSize(badgeText.c_str());
+					const ImVec2 badgeMin(min.x + 9.0f, max.y - 22.0f);
+					const ImVec2 badgeMax(badgeMin.x + badgeSize.x + 12.0f, badgeMin.y + 17.0f);
+					drawList->AddRectFilled(badgeMin, badgeMax, ImGui::GetColorU32(ImVec4(0.10f, 0.44f, 0.68f, 1.0f)), 8.0f);
+					drawList->AddText(ImVec2(badgeMin.x + 6.0f, badgeMin.y + 1.0f), ImGui::GetColorU32(ImGuiCol_Text), badgeText.c_str());
+				}
+
+				if ((static_cast<int>(index) + 1) % columnCount != 0)
+				{
+					ImGui::SameLine();
+				}
+				ImGui::PopID();
+			}
+		}
+		ImGui::EndChild();
+#endif // USE_IMGUI
+	}
+
+	void EditorWindowManager::DrawAssetDetails()
+	{
+#ifdef USE_IMGUI
+		if (ImGui::BeginChild("AssetDetails", ImVec2(0.0f, 0.0f), true, ImGuiWindowFlags_AlwaysVerticalScrollbar))
+		{
+			ImGui::TextUnformatted("Selected Asset");
+			ImGui::Separator();
+			const EditorAssetEntry* selectedEntry = assetBrowser_.GetSelectedEntry();
+			if (!selectedEntry)
+			{
+				ImGui::TextUnformatted("No asset selected.");
+			}
+			else
+			{
+				const bool isImage = EditorAssetBrowser::IsImageExtension(selectedEntry->extension);
+				DrawDetailRow("File", selectedEntry->label);
+				DrawDetailRow("Category", std::string(EditorAssetBrowser::GetCategoryName(assetBrowser_.GetCategory())) + " / " + EditorAssetBrowser::GetViewModeName(assetBrowser_.GetViewMode()));
+				DrawDetailRow("Relative", selectedEntry->relativePath);
+				DrawDetailRow("Absolute", selectedEntry->absolutePath);
+				DrawDetailRow("Extension", selectedEntry->extension.empty() ? "(none)" : selectedEntry->extension);
+				DrawDetailRow("Size", FormatBytes(selectedEntry->sizeBytes) + " (" + std::to_string(static_cast<unsigned long long>(selectedEntry->sizeBytes)) + " bytes)");
+				DrawDetailRow("Modified", selectedEntry->modifiedTime);
+				DrawDetailRow("Source", EditorAssetBrowser::GetViewModeName(assetBrowser_.GetViewMode()));
+				if (ImGui::Button("Copy Path"))
+				{
+					ImGui::SetClipboardText(selectedEntry->absolutePath.c_str());
+					outputLog_.Info("Copied asset path: " + selectedEntry->absolutePath);
+				}
+				ImGui::SameLine();
+#ifdef _WIN32
+				if (ImGui::Button("Open Folder"))
+				{
+					const std::filesystem::path folder = std::filesystem::path(selectedEntry->absolutePath).parent_path();
+					const HINSTANCE result = ShellExecuteA(nullptr, "open", folder.string().c_str(), nullptr, nullptr, SW_SHOWNORMAL);
+					if (reinterpret_cast<intptr_t>(result) <= 32)
+					{
+						outputLog_.Warning("Failed to open asset folder: " + folder.string());
 					}
 				}
+#else
+				ImGui::BeginDisabled();
+				ImGui::Button("Open Folder");
+				ImGui::EndDisabled();
+#endif // _WIN32
+				ImGui::Separator();
+
+				if (isImage)
+				{
+					// Detailsの大きいPreviewもEditorTexturePreviewCache経由で同じSRVを再利用する。
+					const std::filesystem::path previewPath(selectedEntry->absolutePath);
+					const EditorTexturePreview& preview = texturePreviewCache_.GetOrLoad(previewPath);
+
+					if (preview.width > 0 && preview.height > 0)
+					{
+						DrawDetailRow("Resolution", std::to_string(preview.width) + " x " + std::to_string(preview.height));
+					}
+					ImGui::TextDisabled("Preview");
+					const float maxPreviewWidth = std::max(80.0f, ImGui::GetContentRegionAvail().x - 8.0f);
+					if (preview.loaded && preview.srvHandleGPU.ptr != 0 && preview.width > 0 && preview.height > 0)
+					{
+						const float maxPreviewHeight = std::max(120.0f, ImGui::GetContentRegionAvail().y * 0.58f);
+						const ImVec2 imageSize = FitImageSize(preview.width, preview.height, ImVec2(maxPreviewWidth, maxPreviewHeight));
+						const ImVec2 previewMin = ImGui::GetCursorScreenPos();
+						const ImVec2 previewBox(std::max(80.0f, imageSize.x), std::max(80.0f, imageSize.y));
+						// Details PreviewはDummyで領域を確保してからDrawListへ描画し、ImGuiカーソルを直接戻さない。
+						ImGui::Dummy(previewBox);
+						ImDrawList* drawList = ImGui::GetWindowDrawList();
+						DrawCheckerBackground(drawList, previewMin, ImVec2(previewMin.x + previewBox.x, previewMin.y + previewBox.y));
+						drawList->AddImage(static_cast<ImTextureID>(preview.srvHandleGPU.ptr), previewMin, ImVec2(previewMin.x + imageSize.x, previewMin.y + imageSize.y));
+						drawList->AddRect(previewMin, ImVec2(previewMin.x + previewBox.x, previewMin.y + previewBox.y), ImGui::GetColorU32(ImVec4(0.38f, 0.38f, 0.42f, 1.0f)), 4.0f);
+					}
+					else
+					{
+						ImGui::TextWrapped("%s", preview.message.empty() ? "Preview unavailable" : preview.message.c_str());
+					}
+				}
+				else
+				{
+					ImGui::TextDisabled("Preview");
+					ImGui::BeginDisabled();
+					ImGui::Button(selectedEntry->icon.c_str(), ImVec2(std::min(160.0f, ImGui::GetContentRegionAvail().x), 88.0f));
+					ImGui::EndDisabled();
+					ImGui::TextWrapped("%s preview is not implemented yet.", EditorAssetBrowser::GetCategoryName(assetBrowser_.GetCategory()));
+				}
 			}
-			ImGui::EndChild();
 		}
-		ImGui::End();
+		ImGui::EndChild();
 #endif // USE_IMGUI
 	}
 
