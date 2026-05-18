@@ -869,17 +869,21 @@ namespace Ken4lowEngine
 					{
 						assetBrowser_.Select(index);
 					}
-					const ImVec2 rowCursorAfter = ImGui::GetCursorScreenPos();
 					if (ImGui::IsItemVisible())
 					{
 						const ImVec2 rowMin = ImGui::GetItemRectMin();
-						ImGui::SetCursorScreenPos(ImVec2(rowMin.x + 8.0f, rowMin.y + 5.0f));
-						ImGui::TextColored(ImVec4(0.75f, 0.9f, 1.0f, 1.0f), "%s", entry.icon.c_str());
-						ImGui::SameLine(66.0f);
-						ImGui::TextUnformatted(entry.label.c_str());
-						ImGui::SetCursorScreenPos(ImVec2(rowMin.x + 66.0f, rowMin.y + 23.0f));
-						ImGui::TextDisabled("%s", GetParentPathText(entry).c_str());
-						ImGui::SetCursorScreenPos(rowCursorAfter);
+						ImDrawList* drawList = ImGui::GetWindowDrawList();
+
+						const ImU32 iconColor = ImGui::GetColorU32(ImVec4(0.75f, 0.9f, 1.0f, 1.0f));
+						const ImU32 textColor = ImGui::GetColorU32(ImGuiCol_Text);
+						const ImU32 disabledColor = ImGui::GetColorU32(ImGuiCol_TextDisabled);
+
+						// AssetListの行内テキストはDrawListで描画し、ImGuiのレイアウトカーソルを動かさない。
+						drawList->AddText(ImVec2(rowMin.x + 8.0f, rowMin.y + 5.0f), iconColor, entry.icon.c_str());
+						drawList->AddText(ImVec2(rowMin.x + 66.0f, rowMin.y + 5.0f), textColor, entry.label.c_str());
+
+						const std::string parentPath = GetParentPathText(entry);
+						drawList->AddText(ImVec2(rowMin.x + 66.0f, rowMin.y + 23.0f), disabledColor, parentPath.c_str());
 					}
 					ImGui::PopID();
 				}
