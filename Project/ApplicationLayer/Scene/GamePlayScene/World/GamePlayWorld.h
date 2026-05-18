@@ -5,7 +5,7 @@
 #include "HUDManager.h"
 #include "WaveManager.h"
 #include "Stage.h"
-#include "GamePlayStageContext.h"
+#include "StageObjectiveManager.h"
 #include <SkyBox.h>
 #include "EnemyHPBarManager.h"
 #include "ItemManager.h"
@@ -46,6 +46,7 @@ public: /// ---------- メンバ関数 ---------- ///
 
 	void SetDebugCameraEnabled(bool enabled);
 
+	// TODO: 実オブジェクト破壊判定が入るまでの仮API。
 	void SetDefenseTargetDestroyed(bool destroyed);
 
 	CharacterWorld& GetCharacters() { return characters_; }
@@ -66,9 +67,11 @@ public: /// ---------- メンバ関数 ---------- ///
 
 	bool CheckCrosshairTargetingEnemy() const;
 
-	// 仮の進捗更新API
+	// TODO: 実オブジェクト接触判定が入るまでの仮API。
 	void AddActivatedDeviceCount(int amount = 1);
+	// TODO: 実オブジェクト接触判定が入るまでの仮API。
 	void SetReachedGoal(bool reached);
+	// TODO: 実オブジェクト接触判定が入るまでの仮API。
 	void SetBossDefeated(bool defeated);
 
 private: /// ---------- メンバ関数 ---------- ///
@@ -78,7 +81,6 @@ private: /// ---------- メンバ関数 ---------- ///
 	bool TryGetDirectionalLightFromManager(K4E::Vector3& outDirection) const;
 	bool IsSightBlocked(const K4E::Segment& seg) const;
 
-	void UpdateStageObjective(float deltaTime);
 
 private: /// ---------- メンバ変数 ---------- ///
 
@@ -107,15 +109,7 @@ private: /// ---------- メンバ変数 ---------- ///
 	float shadowNearZ_ = 0.1f;
 	float shadowFarZ_ = 120.0f;
 
-	GamePlayStageContext::StageRule stageRule_{};
-
-	int activatedDeviceCount_ = 0;
-	float defendElapsedSec_ = 0.0f;
-	float stageElapsedSec_ = 0.0f;
-
-	bool reachedGoal_ = false;
-	bool bossDefeated_ = false;
-	bool defenseTargetDestroyed_ = false;
+	std::unique_ptr<StageObjectiveManager> stageObjectiveManager_ = nullptr;
 
 	float lastBulletUpdateMs_ = 0.0f;
 	float lastCollisionUpdateMs_ = 0.0f;
