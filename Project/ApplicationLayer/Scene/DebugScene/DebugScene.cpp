@@ -10,6 +10,7 @@
 #include "Object3D.h"
 #include "Camera.h"
 #include "WinApp.h"
+#include <LightManager.h>
 #include <GameTimer.h>
 #ifdef _DEBUG
 #include <DebugCamera.h>
@@ -276,6 +277,8 @@ void DebugScene::Finalize()
 void DebugScene::DrawImGui()
 {
 #ifdef USE_IMGUI
+
+	LightManager::GetInstance()->DrawImGui();
 
 	if (debugBoss_)
 	{
