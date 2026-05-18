@@ -108,6 +108,10 @@ namespace Ken4lowEngine
 		EditorWindowManager(const EditorWindowManager&) = delete;
 		EditorWindowManager& operator=(const EditorWindowManager&) = delete;
 
+		void DrawAssetList();
+		void DrawTextureGrid();
+		void DrawAssetDetails();
+
 		EditorWindowState windowState_{};
 		EditorViewportRect mainViewportRect_{}; // Main Viewport内で実際にゲーム画面を表示している矩形
 		Vector2 mainViewportScreenPosition_ = { 0.0f, 0.0f }; // マウス座標をMain Viewport基準へ変換するための左上座標
