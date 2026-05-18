@@ -68,6 +68,8 @@ namespace Ken4lowEngine
 			uint32_t indexOffset;
 			uint32_t indexCount;
 			uint32_t textureRefLength;
+			uint32_t vertexOffset;
+			uint32_t vertexCount;
 
 			float aabbMin[3];
 			float aabbMax[3];

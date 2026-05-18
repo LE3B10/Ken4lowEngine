@@ -179,7 +179,9 @@ foreach ($file in $sourceFiles) {
         Remove-Item $generatedDdsPath -Force
     }
 
+    # PNG→DDS の最終配置先も出し、Sources と Compiled の対応を追跡できるようにする。
     Write-Host "[BuildTextures] Convert: $relative"
+    Write-Host "[BuildTextures] Output : $finalOutputPath"
 
     $exitCode = Invoke-TextureConverter `
         -ExePath $textureConverterExe `

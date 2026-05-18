@@ -1,4 +1,4 @@
-﻿#define NOMINMAX
+#define NOMINMAX
 #include "MeshConverter.h"
 
 #include <iostream>
@@ -8,6 +8,7 @@
 #include <cfloat>
 #include <filesystem>
 #include <cstdlib>
+#include <iomanip>
 
 // Assimp
 #include <assimp/Importer.hpp>
@@ -222,6 +223,9 @@ bool MeshConverter::WriteBinary(
 		smHeader.indexOffset = sm.indexOffset;
 		smHeader.indexCount = sm.indexCount;
 		smHeader.textureRefLength = static_cast<uint32_t>(sm.textureRef.size());
+		// Runtime がサブメッシュ頂点範囲を復元できるよう、kmesh に頂点範囲も保存する。
+		smHeader.vertexOffset = sm.vertexOffset;
+		smHeader.vertexCount = sm.vertexCount;
 		smHeader.aabbMin[0] = sm.aabbMin[0];
 		smHeader.aabbMin[1] = sm.aabbMin[1];
 		smHeader.aabbMin[2] = sm.aabbMin[2];
@@ -320,8 +324,15 @@ bool MeshConverter::ConvertModelToBinary(const std::string& filePath, int numOpt
 			return false;
 		}
 
+		const bool meshHasUV0 = mesh->HasTextureCoords(0) && mesh->mTextureCoords[0] != nullptr;
 		hasNormal |= mesh->HasNormals();
-		hasUV |= mesh->HasTextureCoords(0);
+		hasUV |= meshHasUV0;
+
+#ifdef _DEBUG
+		std::cerr << "[MeshConverter][UV] mesh=\"" << mesh->mName.C_Str()
+			<< "\" vertices=" << mesh->mNumVertices
+			<< " hasUV0=" << (meshHasUV0 ? "true" : "false") << "\n";
+#endif
 
 		const uint32_t baseVertex = static_cast<uint32_t>(vertices.size());
 		const uint32_t baseIndex = static_cast<uint32_t>(indices.size());
@@ -373,6 +384,8 @@ bool MeshConverter::ConvertModelToBinary(const std::string& filePath, int numOpt
 
 		Submesh sm{};
 		sm.indexOffset = baseIndex;
+		sm.vertexOffset = baseVertex;
+		sm.vertexCount = mesh->mNumVertices;
 		sm.aabbMin[0] = sm.aabbMin[1] = sm.aabbMin[2] = +FLT_MAX;
 		sm.aabbMax[0] = sm.aabbMax[1] = sm.aabbMax[2] = -FLT_MAX;
 
@@ -388,10 +401,20 @@ bool MeshConverter::ConvertModelToBinary(const std::string& filePath, int numOpt
 			}
 
 			aiVector3D uv(0, 0, 0);
-			if (mesh->HasTextureCoords(0))
+			if (meshHasUV0)
 			{
 				uv = mesh->mTextureCoords[0][i];
 			}
+
+#ifdef _DEBUG
+			if (i < 5)
+			{
+				std::cerr << std::fixed << std::setprecision(6)
+					<< "[MeshConverter][UV] mesh=\"" << mesh->mName.C_Str()
+					<< "\" vertex=" << i
+					<< " uv=(" << uv.x << ", " << uv.y << ")\n";
+			}
+#endif
 
 			if (opt.leftHanded)
 			{
