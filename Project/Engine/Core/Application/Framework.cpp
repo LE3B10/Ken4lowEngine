@@ -260,11 +260,6 @@ namespace Ken4lowEngine
 		// SRVManagerの終了処理
 		SRVManager::GetInstance()->Finalize();
 
-#ifdef _DEBUG
-		// DirectXCommon本体を破棄する前にManager解放後のD3D12ライブオブジェクトを報告する。
-		D3DResourceLeakChecker::ReportLiveObjects();
-#endif // _DEBUG
-
 		// DirectX共通クラスの終了処理
 		dxCommon_->Finalize();
 
