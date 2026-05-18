@@ -138,6 +138,9 @@ void DebugScene::Initialize()
 	frustumCullingDebug_ = std::make_unique<FrustumCullingDebugController>();
 	frustumCullingDebug_->Initialize(true);
 	InitializeCullingTestObjects();
+
+	stageObject_ = std::make_unique<Object3D>();
+	stageObject_->Initialize("Stages/hajimarinoheigen.gltf");
 }
 
 void DebugScene::Update()
@@ -181,6 +184,8 @@ void DebugScene::Update()
 	collisionManager_->Update();
 	collisionManager_->CheckAllCollisions();
 
+	stageObject_->Update();
+
 }
 
 void DebugScene::Draw3DObjects()
@@ -200,6 +205,8 @@ void DebugScene::Draw3DObjects()
 	{
 		debugBoss_->Draw();
 	}
+
+	stageObject_->Draw();
 
 #ifdef _DEBUG
 	// ワイヤーフレームの描画
@@ -223,6 +230,10 @@ void DebugScene::DrawShadowObjects()
 	if (debugBoss_)
 	{
 		debugBoss_->DrawShadow();
+	}
+	if (stageObject_)
+	{
+		stageObject_->DrawShadow();
 	}
 }
 
@@ -256,6 +267,7 @@ void DebugScene::Finalize()
 	disintegrationDebug_.reset();
 	debugBoss_.reset();
 	collisionManager_.reset();
+	stageObject_.reset();
 
 	input_ = nullptr;
 	dxCommon_ = nullptr;

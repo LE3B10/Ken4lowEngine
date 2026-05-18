@@ -10,6 +10,8 @@
 #include "Vector3.h"
 #include "Vector4.h"
 
+#include <Object3D.h>
+
 #include <memory>
 #include <string>
 #include <vector>
@@ -17,7 +19,6 @@
 /// ---------- 前方宣言 ---------- ///
 namespace Ken4lowEngine { class DirectXCommon; }
 namespace Ken4lowEngine { class Input; }
-namespace Ken4lowEngine { class Object3D; }
 namespace K4E = ::Ken4lowEngine;
 
 /// -------------------------------------------------------------
@@ -83,6 +84,9 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	// 描画確認用ボス
 	std::unique_ptr<GuardianBoss> debugBoss_;
+
+	// ステージ確認用
+	std::unique_ptr<K4E::Object3D> stageObject_;
 
 	// --- 仮ヒット確認用パラメータ ---
 	bool debugBossHitTestEnabled_ = true; // 仮ヒット確認ON/OFF
