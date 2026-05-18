@@ -321,7 +321,11 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClCompile Include="Engine\Core\Transform\WorldTransform.cpp" />
     <ClCompile Include="Engine\Core\Transform\WorldTransformEx.cpp" />
     <ClCompile Include="Engine\DebugTools\ImGui\ImGuiManager.cpp" />
+    <ClCompile Include="Engine\Editor\EditorAssetBrowser.cpp" />
+    <ClCompile Include="Engine\Editor\EditorAssetBuildService.cpp" />
+    <ClCompile Include="Engine\Editor\EditorOutputLog.cpp" />
     <ClCompile Include="Engine\Editor\EditorPlayController.cpp" />
+    <ClCompile Include="Engine\Editor\EditorProcessRunner.cpp" />
     <ClCompile Include="Engine\Editor\EditorSelection.cpp" />
     <ClCompile Include="Engine\Editor\EditorWindowManager.cpp" />
     <ClCompile Include="Engine\DebugTools\LeakCheck\D3DResourceLeakChecker.cpp" />
@@ -954,7 +958,11 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="Engine\Core\Transform\WorldTransform.h" />
     <ClInclude Include="Engine\Core\Transform\WorldTransformEx.h" />
     <ClInclude Include="Engine\DebugTools\ImGui\ImGuiManager.h" />
+    <ClInclude Include="Engine\Editor\EditorAssetBrowser.h" />
+    <ClInclude Include="Engine\Editor\EditorAssetBuildService.h" />
     <ClInclude Include="Engine\Editor\EditorObjectInfo.h" />
+    <ClInclude Include="Engine\Editor\EditorOutputLog.h" />
+    <ClInclude Include="Engine\Editor\EditorProcessRunner.h" />
     <ClInclude Include="Engine\Editor\EditorTransformAccess.h" />
     <ClInclude Include="Engine\Editor\EditorPlayController.h" />
     <ClInclude Include="Engine\Editor\EditorSelection.h" />
