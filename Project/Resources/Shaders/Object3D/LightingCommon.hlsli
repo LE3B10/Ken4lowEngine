@@ -5,7 +5,6 @@
 
 static const float kMinLightLength = 1e-4f;
 static const float kMinRange = 1e-3f;
-static const float3 kAmbientColor = float3(0.10f, 0.10f, 0.10f);
 
 static const uint LIGHT_TYPE_NONE = 0;
 static const uint LIGHT_TYPE_DIRECTIONAL = 1;
@@ -24,6 +23,19 @@ struct PunctualLight
     float distance;
     float cosFalloffStart;
     float cosAngle;
+};
+
+struct LightingSettings
+{
+    float4 ambientColor;
+    float4 fogColor;
+    float exposure;
+    float contrast;
+    float fogStart;
+    float fogEnd;
+    uint enableFog;
+    float specularStrength;
+    float2 padding;
 };
 
 struct LightingTerms
@@ -65,6 +77,7 @@ LightingTerms EvaluateDirectionalLight(
     LightingTerms terms = MakeEmptyLightingTerms();
 
     float3 lightDir = normalize(-light.direction);
+    // 通常Lambertで面の向きによる明暗差を出す。
     float NdotL = saturate(dot(normal, lightDir));
     float3 lightColor = light.color.rgb * light.intensity;
 
@@ -97,6 +110,7 @@ LightingTerms EvaluatePointLight(
     float range = max(light.radius, kMinRange);
     float atten = pow(saturate(1.0f - d / range), max(light.decay, kMinRange));
 
+    // 点光源も通常Lambertで拡散光を計算する。
     float NdotL = saturate(dot(normal, lightDir));
     float3 lightColor = light.color.rgb * (light.intensity * atten);
 
@@ -125,6 +139,7 @@ LightingTerms EvaluateSpotLight(
     float ct = dot(-dir, lightDir);
     float spot = smoothstep(light.cosAngle, light.cosFalloffStart, ct);
 
+    // スポット光もHalf Lambertではなく通常Lambertを基本にする。
     float NdotL = saturate(dot(normal, lightDir));
     float3 lightColor = light.color.rgb * (light.intensity * atten * spot);
 
@@ -142,7 +157,8 @@ float3 AccumulateLighting(
     ShadowParameter shadowParam,
     float shininess,
     Texture2D<float> shadowMap,
-    SamplerComparisonState shadowSampler)
+    SamplerComparisonState shadowSampler,
+    LightingSettings lightingSettings)
 {
     float3 diffuseSum = 0.0.xxx;
     float3 specularSum = 0.0.xxx;
@@ -196,7 +212,39 @@ float3 AccumulateLighting(
         specularSum += terms.specular;
     }
 
-    return (activeLightCount == 0) ? 1.0.xxx : (kAmbientColor + diffuseSum + specularSum);
+    // CPUから渡したAmbientをそのまま使い、強すぎる環境光を調整できるようにする。
+    float3 ambient = lightingSettings.ambientColor.rgb * lightingSettings.ambientColor.a;
+
+    // ライト0本時だけ旧挙動に近い明るさを残し、ライトありではAmbientを明示値に抑える。
+    return (activeLightCount == 0) ? 1.0.xxx : (ambient + diffuseSum + specularSum * lightingSettings.specularStrength);
+}
+
+float3 ApplySimpleToneMapping(float3 color, LightingSettings lightingSettings)
+{
+    // 露出後に1.0を超えた成分だけReinhard風に圧縮して白飛びを抑える。
+    float3 exposed = max(color * lightingSettings.exposure, 0.0.xxx);
+    float3 overbright = max(exposed - 1.0.xxx, 0.0.xxx);
+    return exposed / (1.0.xxx + overbright);
+}
+
+float3 ApplyContrast(float3 color, LightingSettings lightingSettings)
+{
+    // 中間輝度0.5を基準にコントラストを調整する。
+    return saturate((color - 0.5.xxx) * lightingSettings.contrast + 0.5.xxx);
+}
+
+float3 ApplyFog(float3 color, float3 worldPosition, float3 cameraPosition, LightingSettings lightingSettings)
+{
+    if (lightingSettings.enableFog == 0)
+    {
+        return color;
+    }
+
+    // 距離フォグは任意機能として遠景の白飛び/奥行き調整に使う。
+    float distanceToCamera = distance(worldPosition, cameraPosition);
+    float fogRange = max(lightingSettings.fogEnd - lightingSettings.fogStart, 1e-3f);
+    float fogFactor = saturate((distanceToCamera - lightingSettings.fogStart) / fogRange);
+    return lerp(color, lightingSettings.fogColor.rgb, fogFactor * lightingSettings.fogColor.a);
 }
 
 #endif

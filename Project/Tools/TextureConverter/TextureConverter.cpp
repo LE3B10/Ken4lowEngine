@@ -11,7 +11,16 @@ using namespace DirectX;
 /// -------------------------------------------------------------
 void TextureConverter::ConvertTextureWICToDDS(const std::string& filePath, int numOptions, char* options[])
 {
-	// WIC形式のテクスチャを読み込む
+	outputSRGB_ = true;
+	for (int i = 0; i < numOptions; ++i)
+	{
+		if (std::string(options[i]) == "-linear")
+		{
+			outputSRGB_ = false;
+		}
+	}
+
+	// WIC形式のテクスチャを用途に応じた色空間で読み込む
 	LoadWICTextureFromFile(filePath);
 
 	// DDS形式に変換して保存する処理をここに追加する
@@ -23,15 +32,6 @@ void TextureConverter::ConvertTextureWICToDDS(const std::string& filePath, int n
 /// -------------------------------------------------------------
 void TextureConverter::OoutputUsage()
 {
-
-#ifdef _DEBUG
-	std::wcout << L"[TextureConverter] Input PNG/WIC: " << wideFilePath
-		<< L" format=" << static_cast<int>(metadate_.format)
-		<< L" size=" << metadate_.width << L"x" << metadate_.height
-		<< L" mipLevels=" << metadate_.mipLevels
-		<< L" srgb=" << (DirectX::IsSRGB(metadate_.format) ? L"true" : L"false")
-		<< L" alphaMode=" << static_cast<int>(metadate_.GetAlphaMode()) << std::endl;
-#endif
 	cout << "画像ファイルをWIC形式からDDS形式に変換します。" << endl;
 	cout << endl; // 空行
 	cout << "TextureConverter [ドライブ:][パス][ファイル名]" << endl;
@@ -39,6 +39,7 @@ void TextureConverter::OoutputUsage()
 	cout << " [ドライブ:][パス][ファイル名]: 変換するWIC形式の画像ファイルのパスを指定します。" << endl;
 	cout << endl; // 空行
 	cout << " [-ml level]: ミップレベルを指定します。0を指定すると1x1までのフルミップマップチェーンを生成します。" << endl;
+	cout << " [-linear]: 法線/Roughness等の非カラーテクスチャをUNORM DDSとして保存します。" << endl;
 }
 
 /// -------------------------------------------------------------
@@ -49,9 +50,20 @@ void TextureConverter::LoadWICTextureFromFile(const std::string& filePath)
 	// ファイルパスをワイド文字列に変換
 	std::wstring wideFilePath = ConcertMultiByteStringToWideString(filePath);
 
-	// WIC形式のテクスチャを読み込む
-	HRESULT hr = LoadFromWICFile(wideFilePath.c_str(), WIC_FLAGS_NONE, &metadate_, scrachImage_);
+	// アルベドPNGはsRGBとして読み込み、非カラーTextureは-linear指定で通常UNORMとして読む。
+	const WIC_FLAGS wicFlags = outputSRGB_ ? WIC_FLAGS_FORCE_SRGB : WIC_FLAGS_NONE;
+	HRESULT hr = LoadFromWICFile(wideFilePath.c_str(), wicFlags, &metadate_, scrachImage_);
 	assert(SUCCEEDED(hr) && "WIC形式のテクスチャの読み込みに失敗しました。");
+
+#ifdef _DEBUG
+	// 入力時点のsRGB判定を出してPNG→DDS変換の色空間を確認しやすくする。
+	std::wcout << L"[TextureConverter] Input PNG/WIC: " << wideFilePath
+		<< L" format=" << static_cast<int>(metadate_.format)
+		<< L" size=" << metadate_.width << L"x" << metadate_.height
+		<< L" mipLevels=" << metadate_.mipLevels
+		<< L" srgb=" << (DirectX::IsSRGB(metadate_.format) ? L"true" : L"false")
+		<< L" alphaMode=" << static_cast<int>(metadate_.GetAlphaMode()) << std::endl;
+#endif
 
 	// フォルダパスとファイル名を分離する
 	SeparateFilePath(wideFilePath);
@@ -145,16 +157,24 @@ void TextureConverter::SaveDDSTextureToFile(int numOptions, char* options[])
 
 	size_t mipLevel = 0;
 
-	// ミップマップレベル数を計算
+	// ミップ/色空間オプションを解析し、非カラーTextureは-linearでUNORM出力できるようにする。
 	for (int i = 0; i < numOptions; i++)
 	{
-		if (std::string(options[i]) == "-ml")
+		const std::string option = options[i];
+		if (option == "-ml" && i + 1 < numOptions)
 		{
 			// ミップレベル数を取得
 			mipLevel = stoi(options[i + 1]);
-			break;
+			++i;
+		}
+		else if (option == "-linear")
+		{
+			outputSRGB_ = false;
 		}
 	}
+
+	// 出力ファイル名を先に設定し、デバッグログでも同じパスを参照する。
+	std::wstring filePath = directoryPath_ + L"\\" + fileName_ + L".dds";
 
 	ScratchImage mipChain;
 	// ミップマップの生成
@@ -177,10 +197,16 @@ void TextureConverter::SaveDDSTextureToFile(int numOptions, char* options[])
 		metadate_ = scrachImage_.GetMetadata();
 	}
 
-	// 圧縮形式 : BC7に変換
+	// 圧縮形式 : アルベドはBC7_SRGB、非カラーはBC7_UNORMに変換する。
 	ScratchImage convertedImage;
+	const DXGI_FORMAT outputFormat = outputSRGB_ ? DXGI_FORMAT_BC7_UNORM_SRGB : DXGI_FORMAT_BC7_UNORM;
+	TEX_COMPRESS_FLAGS compressFlags = static_cast<TEX_COMPRESS_FLAGS>(TEX_COMPRESS_BC7_QUICK | TEX_COMPRESS_PARALLEL);
+	if (outputSRGB_)
+	{
+		compressFlags = static_cast<TEX_COMPRESS_FLAGS>(compressFlags | TEX_COMPRESS_SRGB_OUT);
+	}
 	hr = Compress(scrachImage_.GetImages(), scrachImage_.GetImageCount(), metadate_,
-		DXGI_FORMAT_BC7_UNORM_SRGB, TEX_COMPRESS_BC7_QUICK | TEX_COMPRESS_SRGB_OUT | TEX_COMPRESS_PARALLEL, 1.0f, convertedImage);
+		outputFormat, compressFlags, 1.0f, convertedImage);
 
 	// 圧縮変換に成功した場合
 	if (SUCCEEDED(hr))
@@ -190,11 +216,8 @@ void TextureConverter::SaveDDSTextureToFile(int numOptions, char* options[])
 		metadate_ = scrachImage_.GetMetadata();
 	}
 
-	// 読み込んだテクスチャをSRGBA形式で保存する
-	metadate_.format = MakeSRGB(metadate_.format);
-
-	// 出力ファイル名を設定する
-	std::wstring filePath = directoryPath_ + L"\\" + fileName_ + L".dds";
+	// 読み込んだテクスチャを用途に応じた形式で保存する
+	metadate_.format = outputSRGB_ ? MakeSRGB(metadate_.format) : MakeLinear(metadate_.format);
 
 	// DDS形式でファイルに保存する
 	hr = SaveToDDSFile(scrachImage_.GetImages(), scrachImage_.GetImageCount(), metadate_, DDS_FLAGS_NONE, filePath.c_str());

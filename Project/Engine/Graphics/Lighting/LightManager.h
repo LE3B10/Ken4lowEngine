@@ -53,6 +53,20 @@ namespace Ken4lowEngine
 			float pad[3]; 		 // パディング
 		};
 
+		// ステージを白飛びさせないためのライティング/露出調整CB。
+		struct LightingSettingsGPU
+		{
+			Vector4 ambientColor = { 0.10f, 0.10f, 0.10f, 1.0f };
+			Vector4 fogColor = { 0.58f, 0.64f, 0.70f, 1.0f };
+			float exposure = 1.0f;
+			float contrast = 1.0f;
+			float fogStart = 45.0f;
+			float fogEnd = 140.0f;
+			uint32_t enableFog = 0;
+			float specularStrength = 0.08f;
+			float pad[2] = {};
+		};
+
 	public: /// ---------- メンバ関数 ---------- ///
 
 		/// <summary>
@@ -101,6 +115,9 @@ namespace Ken4lowEngine
 		/// <param name="rootIndexSRV_t2">パンクチュアルライト SRV をバインドするルートインデックス（t2）。</param>
 		void BindPunctualLights(uint32_t rootIndexCB_b2, uint32_t rootIndexSRV_t2);
 
+		/// <summary>ライティング調整CBをシェーダにバインドします。</summary>
+		void BindLightingSettings(uint32_t rootIndexCB_b5);
+
 		/// <summary>
 		/// デフォルトの指向性ライトを追加します。
 		/// </summary>
@@ -113,6 +130,8 @@ namespace Ken4lowEngine
 		/// </summary>
 		/// <returns>PunctualLightGPU オブジェクトのベクトルへの const 参照。</returns>
 		const std::vector<PunctualLightGPU>& GetPunctualLights() const { return punctualLights_; }
+		const LightingSettingsGPU& GetLightingSettings() const { return lightingSettings_; }
+		LightingSettingsGPU& GetMutableLightingSettingsForEditor() { return lightingSettings_; }
 
 		// Editor Detailsから選択中ライトだけを書き換えるため、index検証付きヘルパー経由でのみ利用する。
 		std::vector<PunctualLightGPU>& GetMutablePunctualLightsForEditor() { return punctualLights_; }
@@ -164,6 +183,10 @@ namespace Ken4lowEngine
 
 		Microsoft::WRL::ComPtr<ID3D12Resource> lightInfoResource_;
 		LightInfo* lightInfoData_ = nullptr;
+
+		Microsoft::WRL::ComPtr<ID3D12Resource> lightingSettingsResource_;
+		LightingSettingsGPU* lightingSettingsData_ = nullptr;
+		LightingSettingsGPU lightingSettings_{};
 
 	private: /// ---------- コピー禁止 ---------- ///
 

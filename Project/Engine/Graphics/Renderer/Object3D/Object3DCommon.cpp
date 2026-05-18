@@ -81,6 +81,7 @@ namespace Ken4lowEngine
 		commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
 		LightManager::GetInstance()->BindPunctualLights(5, 6);
+		LightManager::GetInstance()->BindLightingSettings(11);
 	}
 
 	bool Object3DCommon::ShouldDrawObject(const BoundingSphere& worldBounds, bool objectCullingEnabled, bool hasBounds, bool isStageObject)

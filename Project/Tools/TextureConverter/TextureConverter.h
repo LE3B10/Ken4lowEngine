@@ -3,77 +3,80 @@
 #include <DirectXTex.h>
 
 /// -------------------------------------------------------------
-///					@	ƒeƒNƒXƒ`ƒƒƒRƒ“ƒo[ƒ^
+///					ã€€	ãƒ†ã‚¯ã‚¹ãƒãƒ£ã‚³ãƒ³ãƒãƒ¼ã‚¿
 /// -------------------------------------------------------------
 class TextureConverter
 {
-public: /// ---------- ƒƒ“ƒoŠÖ” ---------- ///
+public: /// ---------- ãƒ¡ãƒ³ãƒé–¢æ•° ---------- ///
 
-	// ƒRƒ“ƒXƒgƒ‰ƒNƒ^
+	// ã‚³ãƒ³ã‚¹ãƒˆãƒ©ã‚¯ã‚¿
 	TextureConverter() = default;
-	// ƒfƒXƒgƒ‰ƒNƒ^
+	// ãƒ‡ã‚¹ãƒˆãƒ©ã‚¯ã‚¿
 	~TextureConverter() = default;
 
 	/// <summary>
-	/// ƒeƒNƒXƒ`ƒƒ‚ğWICŒ`®‚©‚çDDSŒ`®‚É•ÏŠ·‚·‚é
+	/// ãƒ†ã‚¯ã‚¹ãƒãƒ£ã‚’WICå½¢å¼ã‹ã‚‰DDSå½¢å¼ã«å¤‰æ›ã™ã‚‹
 	/// </summary>
-	/// <param name="filePath">ƒtƒ@ƒCƒ‹ƒpƒX</param>
-	/// <param name="numOptions">ƒIƒvƒVƒ‡ƒ“‚Ì”</param>
-	/// <param name="options">ƒIƒvƒVƒ‡ƒ“‚Ì”z—ñ</param>
+	/// <param name="filePath">ãƒ•ã‚¡ã‚¤ãƒ«ãƒ‘ã‚¹</param>
+	/// <param name="numOptions">ã‚ªãƒ—ã‚·ãƒ§ãƒ³ã®æ•°</param>
+	/// <param name="options">ã‚ªãƒ—ã‚·ãƒ§ãƒ³ã®é…åˆ—</param>
 	void ConvertTextureWICToDDS(const std::string& filePath, int numOptions = 0, char* options[] = nullptr);
 
-public: /// ---------- Ã“Iƒƒ“ƒoŠÖ” ---------- ///
+public: /// ---------- é™çš„ãƒ¡ãƒ³ãƒé–¢æ•° ---------- ///
 
 	/// <summary>
-	/// g—p•û–@‚ğo—Í‚·‚é
+	/// ä½¿ç”¨æ–¹æ³•ã‚’å‡ºåŠ›ã™ã‚‹
 	/// </summary>
 	static void OoutputUsage();
 
-private: /// ---------- ƒƒ“ƒoŠÖ” ---------- ///
+private: /// ---------- ãƒ¡ãƒ³ãƒé–¢æ•° ---------- ///
 
 	/// <summary>
-	/// ƒeƒNƒXƒ`ƒƒƒtƒ@ƒCƒ‹“Ç‚İ‚İ(WICŒ`®)
+	/// ãƒ†ã‚¯ã‚¹ãƒãƒ£ãƒ•ã‚¡ã‚¤ãƒ«èª­ã¿è¾¼ã¿(WICå½¢å¼)
 	/// </summary>
 	/// <param name="filePath"></param>
 	void LoadWICTextureFromFile(const std::string& filePath);
 
 	/// <summary>
-	/// ƒ}ƒ‹ƒ`ƒoƒCƒg•¶š—ñ‚ğƒƒCƒh•¶š—ñ‚É•ÏŠ·
+	/// ãƒãƒ«ãƒãƒã‚¤ãƒˆæ–‡å­—åˆ—ã‚’ãƒ¯ã‚¤ãƒ‰æ–‡å­—åˆ—ã«å¤‰æ›
 	/// </summary>
-	/// <param name="multiByteString">ƒ}ƒ‹ƒ`ƒoƒCƒg•¶š—ñ</param>
+	// ã‚¢ãƒ«ãƒ™ãƒ‰ã¯sRGBã€éã‚«ãƒ©ãƒ¼ã¯-linearã§Linear/UNORMã¨ã—ã¦æ‰±ã†ã€‚
+	bool outputSRGB_ = true;
+
+	/// <param name="multiByteString">ãƒãƒ«ãƒãƒã‚¤ãƒˆæ–‡å­—åˆ—</param>
 	/// <returns></returns>
 	static std::wstring ConcertMultiByteStringToWideString(const std::string& multiByteString);
 
 	/// <summary>
-	/// ƒtƒHƒ‹ƒ_ƒpƒX‚Æƒtƒ@ƒCƒ‹–¼‚ğ•ª—£‚·‚é
+	/// ãƒ•ã‚©ãƒ«ãƒ€ãƒ‘ã‚¹ã¨ãƒ•ã‚¡ã‚¤ãƒ«åã‚’åˆ†é›¢ã™ã‚‹
 	/// </summary>
-	/// <param name="filePath">ƒtƒ@ƒCƒ‹ƒpƒX</param>
+	/// <param name="filePath">ãƒ•ã‚¡ã‚¤ãƒ«ãƒ‘ã‚¹</param>
 	void SeparateFilePath(const std::wstring& filePath);
 
 	/// <summary>
-	/// DDSƒeƒNƒXƒ`ƒƒ‚Æ‚µ‚Äƒtƒ@ƒCƒ‹‘‚«o‚µ
+	/// DDSãƒ†ã‚¯ã‚¹ãƒãƒ£ã¨ã—ã¦ãƒ•ã‚¡ã‚¤ãƒ«æ›¸ãå‡ºã—
 	/// </summary>
-	/// <param name="numOptions">ƒIƒvƒVƒ‡ƒ“‚Ì”</param>
-	/// <param name="options">ƒIƒvƒVƒ‡ƒ“‚Ì”z—ñ</param>
+	/// <param name="numOptions">ã‚ªãƒ—ã‚·ãƒ§ãƒ³ã®æ•°</param>
+	/// <param name="options">ã‚ªãƒ—ã‚·ãƒ§ãƒ³ã®é…åˆ—</param>
 	void SaveDDSTextureToFile(int numOptions, char* options[]);
 
-private: /// ---------- ƒƒ“ƒo•Ï” ---------- ///
+private: /// ---------- ãƒ¡ãƒ³ãƒå¤‰æ•° ---------- ///
 
-	// ‰æ‘œ‚Ìî•ñ
+	// ç”»åƒã®æƒ…å ±
 	DirectX::TexMetadata   metadate_;
 
-	// ‰æ‘œƒf[ƒ^–{‘Ì
+	// ç”»åƒãƒ‡ãƒ¼ã‚¿æœ¬ä½“
 	DirectX::ScratchImage scrachImage_;
 
-private: /// ---------- ƒtƒ@ƒCƒ‹ƒpƒX•ª‰ğ—p•Ï” ---------- ///
+private: /// ---------- ãƒ•ã‚¡ã‚¤ãƒ«ãƒ‘ã‚¹åˆ†è§£ç”¨å¤‰æ•° ---------- ///
 
-	// ƒfƒBƒŒƒNƒgƒŠ
+	// ãƒ‡ã‚£ãƒ¬ã‚¯ãƒˆãƒª
 	std::wstring directoryPath_;
 
-	// ƒtƒ@ƒCƒ‹–¼
+	// ãƒ•ã‚¡ã‚¤ãƒ«å
 	std::wstring fileName_;
 
-	// Šg’£q
+	// æ‹¡å¼µå­
 	std::wstring extension_;
 };
 
