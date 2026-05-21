@@ -85,33 +85,37 @@ namespace Ken4lowEngine
 		// カメラ用バッファ更新
 		cameraData->worldPosition = CameraManager::GetInstance()->GetActiveCameraPosition();
 
-		// 平行光源の向きからシャドウ行列を毎フレーム作り直す
-		Vector3 lightDir = { 0.3f, -1.0f, 0.2f }; // fallback
-
-		const auto& lights = LightManager::GetInstance()->GetPunctualLights();
+		// SpotLight優先でライト視点行列を作り、無ければDirectionalへフォールバックする。
+		Vector3 lightDir = { 0.3f, -1.0f, 0.2f };
+		Vector3 lightPos = cameraData->worldPosition - lightDir * 20.0f;
+		float spotDistance = 80.0f;
+		bool useSpotShadow = false;
+		const auto* lightMgr = LightManager::GetInstance();
+		const auto& lights = lightMgr->GetPunctualLights();
 		for (const auto& light : lights)
 		{
+			if (light.lightType == 3)
+			{
+				lightPos = light.position;
+				lightDir = Vector3::Normalize(light.direction);
+				spotDistance = std::max(light.distance, 5.0f);
+				useSpotShadow = true;
+				break;
+			}
 			if (light.lightType == 1)
 			{
 				lightDir = Vector3::Normalize(light.direction);
-				break;
 			}
 		}
 
-		// まずはカメラ中心で十分
 		const Vector3 focusPos = cameraData->worldPosition;
-
-		const Matrix4x4 lightViewProjection = Matrix4x4::MakeLightViewProjection(
-			lightDir,
-			focusPos,
-			60.0f,   // distanceFromTarget
-			35.0f,   // orthoHalfWidth
-			35.0f,   // orthoHalfHeight
-			0.1f,    // nearZ
-			120.0f   // farZ
-		);
+		const Matrix4x4 lightViewProjection = useSpotShadow
+			? Matrix4x4::MakePerspectiveFovMatrix(1.2f, 1.0f, 0.1f, spotDistance) * Matrix4x4::MakeLookAtMatrix(lightPos, lightPos + lightDir, {0.0f,1.0f,0.0f})
+			: Matrix4x4::MakeLightViewProjection(lightDir, focusPos, 60.0f, 35.0f, 35.0f, 0.1f, 120.0f);
 
 		UpdateShadowMatrix(lightViewProjection);
+		shadowParameterData_->shadowBias = lightMgr->GetShadowBias();
+		shadowParameterData_->normalBias = lightMgr->GetNormalBias();
 	}
 
 	void Object3D::UpdateWithWorldMatrix(const Matrix4x4& worldMatrix)
@@ -155,8 +159,7 @@ namespace Ken4lowEngine
 
 		// シャドウマップ用の行列を GPU に転送
 		shadowParameterData_->lightViewProjection = lightViewProjection;
-		shadowParameterData_->shadowBias = 0.00045f;
-		shadowParameterData_->normalBias = 0.025f;
+
 	}
 
 	/// -------------------------------------------------------------
