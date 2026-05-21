@@ -472,17 +472,6 @@ Camera* TitleScene::EnsureCamera()
 void TitleScene::UpdateDebug()
 {
 #ifdef _DEBUG
-	if (input_->TriggerKey(DIK_BACK))
-	{
-		// タイトルに来たら必ずピクセルエフェクトはOFFにしておく
-		PostEffectManager::GetInstance()->DisableEffect("PixelateEffect");
-
-		if (sceneManager_)
-		{
-			sceneManager_->ChangeScene("PhysicalScene"); // 戻るキーでゲームプレイシーンに戻る
-		}
-	}
-
 	if (input_->TriggerKey(DIK_F12))
 	{
 		const bool next = !CameraManager::GetInstance()->IsUsingDebugCamera();

@@ -179,6 +179,7 @@ namespace Ken4lowEngine
 		DrawDetails();
 		DrawContentBrowser();
 		DrawOutputLog();
+		DrawScene();
 #endif // USE_IMGUI
 	}
 
@@ -211,6 +212,7 @@ namespace Ken4lowEngine
 				ImGui::MenuItem("Details", nullptr, &windowState_.showDetails);
 				ImGui::MenuItem("Content Browser", nullptr, &windowState_.showContentBrowser);
 				ImGui::MenuItem("Output Log", nullptr, &windowState_.showOutputLog);
+				ImGui::MenuItem("Scene", nullptr, &windowState_.showScene);
 				ImGui::MenuItem("Toolbar", nullptr, &windowState_.showToolbar);
 				ImGui::EndMenu();
 			}
@@ -257,6 +259,7 @@ namespace Ken4lowEngine
 					windowState_.showDetails = false;
 					windowState_.showContentBrowser = false;
 					windowState_.showOutputLog = false;
+					windowState_.showScene = false;
 					windowState_.showLightEditor = false;
 					windowState_.showPostEffectSettings = false;
 					windowState_.showDisplay = false;
@@ -1221,7 +1224,35 @@ namespace Ken4lowEngine
 #endif // USE_IMGUI
 	}
 
-	void EditorWindowManager::InitializeEditorServices()
+	
+	void EditorWindowManager::DrawScene()
+	{
+#ifdef USE_IMGUI
+		if (!windowState_.showScene)
+		{
+			return;
+		}
+
+		if (ImGui::Begin("Scene", &windowState_.showScene))
+		{
+			BaseScene* currentScene = SceneManager::GetInstance()->GetCurrentScene();
+			std::vector<EditorObjectInfo> sceneObjects;
+			if (currentScene) { currentScene->CollectEditorObjects(sceneObjects); }
+			const char* currentSceneName = sceneObjects.empty() ? "(loading / none)" : sceneObjects.front().sceneName.c_str();
+			// Sceneウィンドウは現在シーン確認と通常シーン遷移の最小入口に限定する。
+			ImGui::Text("Current Scene: %s", currentSceneName);
+			ImGui::Separator();
+			if (ImGui::Button("TitleScene")) { SceneManager::GetInstance()->ChangeScene("TitleScene"); }
+			ImGui::SameLine();
+			if (ImGui::Button("StageSelectScene")) { SceneManager::GetInstance()->ChangeScene("StageSelectScene"); }
+			ImGui::SameLine();
+			if (ImGui::Button("GamePlayScene")) { SceneManager::GetInstance()->ChangeScene("GamePlayScene"); }
+		}
+		ImGui::End();
+#endif // USE_IMGUI
+	}
+
+void EditorWindowManager::InitializeEditorServices()
 	{
 #ifdef USE_IMGUI
 		if (editorServicesInitialized_)

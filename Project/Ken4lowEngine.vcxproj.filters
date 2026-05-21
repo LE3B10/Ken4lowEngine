@@ -154,9 +154,6 @@
     <ClCompile Include="ApplicationLayer\Scene\GamePlayScene\PostEffect\PlayerHealthPostEffectController.cpp">
       <Filter>ApplicationLayer\Scene\GamePlayScene</Filter>
     </ClCompile>
-    <ClCompile Include="ApplicationLayer\Scene\PhysicalScene\PhysicalScene.cpp">
-      <Filter>ApplicationLayer\Scene\PhysicalScene</Filter>
-    </ClCompile>
     <ClCompile Include="ApplicationLayer\Scene\TitleScene\TitleScene.cpp">
       <Filter>ApplicationLayer\Scene\TitleScene</Filter>
     </ClCompile>
@@ -306,9 +303,6 @@
     </ClCompile>
     <ClCompile Include="ApplicationLayer\UISystem\WeaponSlot\WeaponSlot.cpp">
       <Filter>ApplicationLayer\UISystem\WeaponSlot</Filter>
-    </ClCompile>
-    <ClCompile Include="ApplicationLayer\Scene\ShadowTestScene\ShadowTestScene.cpp">
-      <Filter>ApplicationLayer\Scene\ShadowTextScene</Filter>
     </ClCompile>
     <ClCompile Include="ApplicationLayer\UISystem\WaveUI\WaveUI.cpp">
       <Filter>ApplicationLayer\UISystem\WaveUI</Filter>
@@ -945,9 +939,6 @@
     <ClInclude Include="ApplicationLayer\Scene\GamePlayScene\PostEffect\PlayerHealthPostEffectController.h">
       <Filter>ApplicationLayer\Scene\GamePlayScene</Filter>
     </ClInclude>
-    <ClInclude Include="ApplicationLayer\Scene\PhysicalScene\PhysicalScene.h">
-      <Filter>ApplicationLayer\Scene\PhysicalScene</Filter>
-    </ClInclude>
     <ClInclude Include="ApplicationLayer\Scene\TitleScene\TitleScene.h">
       <Filter>ApplicationLayer\Scene\TitleScene</Filter>
     </ClInclude>
@@ -1139,9 +1130,6 @@
     </ClInclude>
     <ClInclude Include="ApplicationLayer\UISystem\WeaponSlot\WeaponSlot.h">
       <Filter>ApplicationLayer\UISystem\WeaponSlot</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Scene\ShadowTestScene\ShadowTestScene.h">
-      <Filter>ApplicationLayer\Scene\ShadowTextScene</Filter>
     </ClInclude>
     <ClInclude Include="ApplicationLayer\UISystem\WaveUI\WaveUI.h">
       <Filter>ApplicationLayer\UISystem\WaveUI</Filter>
@@ -1978,9 +1966,6 @@
     <Filter Include="ApplicationLayer\Scene\GamePlayScene">
       <UniqueIdentifier>{36d2b261-8641-463f-8c40-27d619c5859b}</UniqueIdentifier>
     </Filter>
-    <Filter Include="ApplicationLayer\Scene\PhysicalScene">
-      <UniqueIdentifier>{f8380660-e0e2-43be-a1fb-8d9f55002bd9}</UniqueIdentifier>
-    </Filter>
     <Filter Include="ApplicationLayer\Scene\TitleScene">
       <UniqueIdentifier>{b62786e7-bde9-43ba-9fbf-df52f72793c1}</UniqueIdentifier>
     </Filter>
@@ -2064,9 +2049,6 @@
     </Filter>
     <Filter Include="ApplicationLayer\UISystem\WeaponSlot">
       <UniqueIdentifier>{ec5ef303-d137-4ec3-98ac-c530db273a98}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="ApplicationLayer\Scene\ShadowTextScene">
-      <UniqueIdentifier>{c2dd6f73-a270-4cae-a8c8-76032f1b85b9}</UniqueIdentifier>
     </Filter>
     <Filter Include="ApplicationLayer\UISystem\WaveUI">
       <UniqueIdentifier>{0583b643-8b56-4379-84c4-e41564c7d5b2}</UniqueIdentifier>
