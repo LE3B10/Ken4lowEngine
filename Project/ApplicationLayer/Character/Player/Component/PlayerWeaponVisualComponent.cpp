@@ -141,6 +141,15 @@ void PlayerWeaponVisualComponent::Initialize()
 void PlayerWeaponVisualComponent::Update(float deltaTime, bool isADS)
 {
 	RebuildIfWeaponChanged();
+	if (equipAnimating_)
+	{
+		equipTimer_ += deltaTime;
+		if (equipTimer_ >= equipDuration_)
+		{
+			equipTimer_ = equipDuration_;
+			equipAnimating_ = false;
+		}
+	}
 
 	const float targetReloadAlpha = reloadViewActive_ ? 1.0f : 0.0f;
 	reloadPoseAlpha_ = Approach(reloadPoseAlpha_, targetReloadAlpha, reloadPoseBlendSpeed_, deltaTime);
@@ -214,6 +223,12 @@ void PlayerWeaponVisualComponent::DrawImGui()
 		ImGui::Text("Reload rotation is now controlled by the right arm.");
 		ImGui::DragFloat3("Reload Weapon Offset", &reloadWeaponOffset_.x, 0.01f, -3.0f, 3.0f, "%.2f");
 		ImGui::DragFloat("Reload Blend Speed", &reloadPoseBlendSpeed_, 0.1f, 1.0f, 40.0f, "%.1f");
+		ImGui::Separator();
+		ImGui::Checkbox("Enable Equip Animation", &enableEquipAnimation_);
+		ImGui::DragFloat("Equip Duration", &equipDuration_, 0.01f, 0.05f, 1.0f, "%.2f");
+		ImGui::DragFloat("Equip Start Offset Y", &equipStartOffsetY_, 0.01f, -2.0f, 0.0f, "%.2f");
+		ImGui::DragFloat("Equip Start Pitch Deg", &equipStartPitchDeg_, 0.5f, -45.0f, 0.0f, "%.1f");
+		ImGui::Text("Equip Animating: %s", equipAnimating_ ? "true" : "false");
 
 		if (ImGui::Button("Reset Weapon Size"))
 		{
@@ -229,6 +244,24 @@ void PlayerWeaponVisualComponent::SetReloadViewModelState(bool isReloading, floa
 	reloadViewActive_ = isReloading;
 	reloadViewTimer_ = reloadTimer;
 	reloadViewDuration_ = std::max(0.01f, reloadDuration);
+}
+
+void PlayerWeaponVisualComponent::StartEquipAnimation()
+{
+	// カメラ演出後や武器切り替え時に、下から構える装備アニメーションを再生する。
+	if (!enableEquipAnimation_)
+	{
+		equipAnimating_ = false;
+		equipTimer_ = equipDuration_;
+		return;
+	}
+	equipAnimating_ = true;
+	equipTimer_ = 0.0f;
+}
+
+bool PlayerWeaponVisualComponent::IsEquipAnimating() const
+{
+	return enableEquipAnimation_ && equipAnimating_;
 }
 
 void PlayerWeaponVisualComponent::ForceRefresh()
@@ -329,7 +362,12 @@ void PlayerWeaponVisualComponent::SyncToHand(bool isADS)
 	const K4E::Vector3 weaponWorldScale = modelScale_ * viewModelScaleMultiplier_;
 	const float reloadT = SmoothStep01(reloadPoseAlpha_);
 	const K4E::Vector3 reloadOffset = reloadWeaponOffset_ * reloadT;
-	const K4E::Vector3 totalLocalOffset = localPos + handSocketLocalOffset_ + reloadOffset;
+	const float equipT = Clamp01((equipDuration_ > 0.001f) ? (equipTimer_ / equipDuration_) : 1.0f);
+	const float equipEaseOut = 1.0f - (1.0f - equipT) * (1.0f - equipT);
+	const float equipPosY = (1.0f - equipEaseOut) * equipStartOffsetY_;
+	const float equipPitch = (1.0f - equipEaseOut) * ToRadians(equipStartPitchDeg_);
+	const K4E::Vector3 equipOffset = { 0.0f, equipPosY, 0.0f };
+	const K4E::Vector3 totalLocalOffset = localPos + handSocketLocalOffset_ + reloadOffset + equipOffset;
 
 	K4E::Matrix4x4 localMatrix{};
 	if (useQuaternionRotation_)
@@ -340,18 +378,21 @@ void PlayerWeaponVisualComponent::SyncToHand(bool isADS)
 		}
 
 		const K4E::Quaternion baseRotation = isADS ? adsLocalQuaternion_ : hipLocalQuaternion_;
+		const K4E::Quaternion equipPitchQ = K4E::Quaternion::MakeRotateAxisAngleQuaternion({ 1.0f, 0.0f, 0.0f }, equipPitch);
 		const K4E::Quaternion totalRotation = K4E::Quaternion::Normalize(
 			K4E::Quaternion::Multiply(baseRotation, handSocketLocalQuaternion_));
+		const K4E::Quaternion animatedRotation = K4E::Quaternion::Normalize(
+			K4E::Quaternion::Multiply(equipPitchQ, totalRotation));
 
 		localMatrix = K4E::Matrix4x4::MakeAffineMatrix(
 			weaponWorldScale,
-			totalRotation,
+			animatedRotation,
 			totalLocalOffset);
 	}
 	else
 	{
 		const K4E::Vector3 localRot = isADS ? adsLocalRotate_ : hipLocalRotate_;
-		const K4E::Vector3 totalLocalRotate = localRot + handSocketLocalRotate_;
+		const K4E::Vector3 totalLocalRotate = localRot + handSocketLocalRotate_ + K4E::Vector3{ equipPitch, 0.0f, 0.0f };
 
 		localMatrix = K4E::Matrix4x4::MakeAffineMatrix(
 			weaponWorldScale,

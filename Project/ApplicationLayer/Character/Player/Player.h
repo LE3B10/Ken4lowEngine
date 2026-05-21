@@ -166,6 +166,8 @@ public: /// ---------- メンバ関数 ---------- ///
 	void ApplyEditedWeaponDataFromEditor(int32_t weaponID, const FWeaponMasterData& data);
 
 	void ForceRefreshWeaponVisual() { weaponVisual_.ForceRefresh(); }
+	void StartWeaponEquipAnimation() { weaponVisual_.StartEquipAnimation(); }
+	bool IsWeaponEquipAnimating() const { return weaponVisual_.IsEquipAnimating(); }
 	void SetStartGameplayVisualsVisible(bool visible);
 	void WarmupStartGameplayVisuals();
 

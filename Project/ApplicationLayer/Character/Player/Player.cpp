@@ -263,6 +263,12 @@ void Player::UpdateWeaponBeforeMotor(float deltaTime, InputFrameContext& ctx)
 		ctx.reload.isReloading,
 		ctx.reload.reloadTimer,
 		ctx.reload.reloadSec);
+
+	if (weaponVisual_.IsEquipAnimating())
+	{
+		// 装備アニメーション中は攻撃入力を無効化する。
+		SuppressActionInputDuringReload(ctx.rawSnap);
+	}
 }
 
 void Player::FinalizeInputSnapshotForGameplay(float deltaTime, InputFrameContext& ctx)

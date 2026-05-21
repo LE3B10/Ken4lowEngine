@@ -293,6 +293,19 @@ void GamePlayIntroDirector::Update(
 	K4E::Input* input,
 	bool isDebugCamera)
 {
+	if (flow.GetState() == GamePlayFlow::State::EquipIntro)
+	{
+		if (auto* player = world.GetCharacters().GetPlayer())
+		{
+			if (!player->IsWeaponEquipAnimating())
+			{
+				flow.StartPlaying();
+				world.StartWaves();
+			}
+		}
+		return;
+	}
+
 	if (cameraPoints_.empty())
 	{
 		BeginGamePlayFromIntro(flow, stageContext, world, input, isDebugCamera);
@@ -392,7 +405,7 @@ void GamePlayIntroDirector::BeginGamePlayFromIntro(
 		introCameraRotation = camera->GetRotate();
 	}
 
-	flow.StartPlaying();
+	flow.SetState(GamePlayFlow::State::EquipIntro);
 
 	introTimer_ = 0.0f;
 	currentSegment_ = 0;
@@ -422,9 +435,8 @@ void GamePlayIntroDirector::BeginGamePlayFromIntro(
 		// 完了フレーム内でFPSカメラの初期向きを同期し、次フレーム待ちの停止感と向きの跳ねを防ぐ。
 		player->SetViewLookAngles(introCameraRotation.x, introCameraRotation.y);
 		player->SyncViewToPlayer();
+		player->StartWeaponEquipAnimation();
 	}
-
-	world.StartWaves();
 
 	if (input)
 	{

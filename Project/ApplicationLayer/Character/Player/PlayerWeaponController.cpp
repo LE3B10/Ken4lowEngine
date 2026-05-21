@@ -89,6 +89,7 @@ void PlayerWeaponController::HandleWheelSwitch(InputSnapshot& snap)
 	if (visual_)
 	{
 		visual_->ForceRefresh();
+		visual_->StartEquipAnimation();
 	}
 }
 

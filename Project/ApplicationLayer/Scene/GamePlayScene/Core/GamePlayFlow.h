@@ -23,6 +23,7 @@ public: /// ---------- 列挙型 ---------- ///
 	enum class State
 	{
 		Intro,		// ゲーム開始前のイントロ
+		EquipIntro, // イントロ直後の武器構えアニメーション中
 		Playing,	// 通常プレイ中
 		GameClear,	// ゲームクリア
 		GameOver,	// ゲームオーバー
@@ -95,6 +96,7 @@ public: /// ---------- アクセサ ---------- ///
 
 	// イントロを再生中かどうか
 	bool IsIntro() const { return state_ == State::Intro; }
+	bool IsEquipIntro() const { return state_ == State::EquipIntro; }
 
 	// 結果画面（ゲームクリア or ゲームオーバー）にいるかどうか
 	bool IsResultState() const { return state_ == State::GameClear || state_ == State::GameOver; }
@@ -122,4 +124,3 @@ private: /// ---------- メンバ変数 ---------- ///
 	// 現在のゲーム状態
 	State state_ = State::Playing;
 };
-
