@@ -34,7 +34,7 @@ namespace Ken4lowEngine
 		// パンクチュアルライトの構造体
 		struct PunctualLightGPU
 		{
-			uint32_t lightType;		// ライトの種類（0：ライトなし、1：平行光源、2：点光源、3：スポットライト）
+			uint32_t lightType;		// ライトの種類（0：None、1：Directional、2：Point、3：Spot、4：RectArea、5：SphereArea）
 			Vector4 color;			// ライトの色 （全ライト共通）
 			float intensity;		// 輝度 （全ライト共通）
 			Vector3 position;		// ライトの位置 （点光源、スポットライト用）
@@ -44,6 +44,8 @@ namespace Ken4lowEngine
 			float distance;			// ライトの届く最大距離 （スポットライト用）
 			float cosFalloffStart;	// 開始角度 （スポットライト用）
 			float cosAngle;			// スポットライトの余弦 （スポットライト用）
+			Vector3 areaSize;		// 疑似AreaLightサイズ (x=width, y=height, z=unused/radius)
+			uint32_t enabled;		// 0: disabled, 1: enabled
 		};
 
 		
