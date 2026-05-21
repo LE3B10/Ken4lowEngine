@@ -3,7 +3,6 @@
 
 static const float kEpsilon = 1e-5f;
 static const float kDefaultShadowStrength = 0.60f; // 真っ黒にしない
-static const float kShadowMinVisibility = 0.60f; // 影の最低明るさ
 static const int kPCFRadius = 1; // 3x3 PCF
 
 struct ShadowParameter
@@ -11,6 +10,8 @@ struct ShadowParameter
     float4x4 lightViewProjection;
     float shadowBias;
     float normalBias;
+    float shadowStrength;
+    uint shadowMode; // 0:Off 1:Directional 2:Spot
     float2 padding;
 };
 
@@ -72,8 +73,8 @@ float CalculateShadowPCF(
 
     visibility /= sampleCount;
 
-    // 真っ暗にせず、最低限の明るさを残す
-    return lerp(kShadowMinVisibility, 1.0f, visibility);
+    // ShadowStrengthでDirectLightにのみ掛かる可視度を調整する。
+    return lerp(1.0f - saturate(shadowParam.shadowStrength), 1.0f, visibility);
 }
 
 // 既存名を残したいならこれでラップ
