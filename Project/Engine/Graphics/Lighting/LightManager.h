@@ -64,7 +64,14 @@ namespace Ken4lowEngine
 			float fogEnd = 140.0f;
 			uint32_t enableFog = 0;
 			float specularStrength = 0.08f;
-			float pad[2] = {};
+			uint32_t debugEnableAmbient = 1;
+			uint32_t debugEnableDirectional = 1;
+			uint32_t debugEnablePoint = 1;
+			uint32_t debugEnableSpot = 1;
+			uint32_t debugEnableEmissive = 1;
+			uint32_t debugShowShadowFactor = 0;
+			uint32_t debugShowLightContribution = 0;
+			float pad[1] = {};
 		};
 
 	public: /// ---------- メンバ関数 ---------- ///
