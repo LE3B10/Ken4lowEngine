@@ -1247,11 +1247,9 @@ namespace Ken4lowEngine
 			if (ImGui::Button("StageSelectScene")) { SceneManager::GetInstance()->ChangeScene("StageSelectScene"); }
 			ImGui::SameLine();
 			if (ImGui::Button("GamePlayScene")) { SceneManager::GetInstance()->ChangeScene("GamePlayScene"); }
-#ifdef _DEBUG
 			ImGui::SameLine();
 			// DebugScene は開発用導線だけ残し、キー入力遷移は復活させない。
 			if (ImGui::Button("DebugScene")) { SceneManager::GetInstance()->ChangeScene("DebugScene"); }
-#endif
 		}
 		ImGui::End();
 #endif // USE_IMGUI

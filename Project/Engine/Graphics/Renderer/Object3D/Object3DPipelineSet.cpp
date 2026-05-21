@@ -151,7 +151,7 @@ namespace Ken4lowEngine
 			rootParameters[kLightingSettingsCBV].Descriptor.ShaderRegister = 5;
 
 			staticSamplers[0] = {};
-			staticSamplers[0].Filter = D3D12_FILTER_MIN_MAG_MIP_LINEAR;
+			staticSamplers[0].Filter = D3D12_FILTER_MIN_MAG_MIP_POINT;
 			// UV が 1 を超えるステージ/地面テクスチャを繰り返し表示できるようにする。
 			staticSamplers[0].AddressU = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
 			staticSamplers[0].AddressV = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
@@ -173,7 +173,7 @@ namespace Ken4lowEngine
 			staticSamplers[1].MaxLOD = D3D12_FLOAT32_MAX;
 
 			staticSamplers[2] = staticSamplers[0];
-			staticSamplers[2].Filter = D3D12_FILTER_MIN_MAG_MIP_POINT;
+			staticSamplers[2].Filter = D3D12_FILTER_MIN_MAG_MIP_LINEAR;
 			staticSamplers[2].ShaderRegister = 2;
 
 			D3D12_ROOT_SIGNATURE_DESC desc{};
