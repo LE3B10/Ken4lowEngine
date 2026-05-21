@@ -32,11 +32,28 @@ function Get-RelativePathSafe {
     return $relativePath.Replace('/', '\')
 }
 
+
+function Test-PixelArtTexture {
+    param(
+        [string]$RelativePath
+    )
+
+    $normalized = $RelativePath.Replace('/', '\').ToLowerInvariant()
+    $fileName = [System.IO.Path]::GetFileNameWithoutExtension($normalized)
+
+    # 命名規約 or PixelArt フォルダ配下を PixelArt/noMip 対象として扱う。
+    return $normalized.Contains('\pixelart\') -or
+           $fileName.EndsWith("_pixel") -or
+           $fileName.EndsWith("_nearest") -or
+           $fileName.EndsWith("_nomip")
+}
+
 function Invoke-TextureConverter {
     param(
         [string]$ExePath,
         [string]$InputPath,
-        [int]$MipLevel
+        [int]$MipLevel,
+        [bool]$DisableMipMap = $false
     )
 
     # TextureConverter の実装仕様:
@@ -45,9 +62,13 @@ function Invoke-TextureConverter {
         $InputPath
     )
 
-    if ($MipLevel -ge 0) {
+    if ($MipLevel -ge 0 -and -not $DisableMipMap) {
         $argList += "-ml"
         $argList += "$MipLevel"
+    }
+
+    if ($DisableMipMap) {
+        $argList += "-nomip"
     }
 
     Write-Host "[BuildTextures] EXE  : $ExePath"
@@ -183,10 +204,16 @@ foreach ($file in $sourceFiles) {
     Write-Host "[BuildTextures] Convert: $relative"
     Write-Host "[BuildTextures] Output : $finalOutputPath"
 
+    $isPixelArt = Test-PixelArtTexture -RelativePath $relative
+    if ($isPixelArt) {
+        Write-Host "[BuildTextures] PixelArt(no mip): $relative"
+    }
+
     $exitCode = Invoke-TextureConverter `
         -ExePath $textureConverterExe `
         -InputPath $file.FullName `
-        -MipLevel $MipLevel
+        -MipLevel $MipLevel `
+        -DisableMipMap $isPixelArt
 
     if ($exitCode -ne 0) {
         Write-Warning "Skip texture conversion failed file: $($file.FullName) ExitCode=$exitCode"

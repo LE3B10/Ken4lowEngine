@@ -40,6 +40,7 @@ void TextureConverter::OoutputUsage()
 	cout << endl; // 空行
 	cout << " [-ml level]: ミップレベルを指定します。0を指定すると1x1までのフルミップマップチェーンを生成します。" << endl;
 	cout << " [-linear]: 法線/Roughness等の非カラーテクスチャをUNORM DDSとして保存します。" << endl;
+	cout << " [-nomip]: PixelArt向けにミップマップを生成せずに保存します。" << endl;
 }
 
 /// -------------------------------------------------------------
@@ -156,6 +157,7 @@ void TextureConverter::SaveDDSTextureToFile(int numOptions, char* options[])
 	HRESULT hr = S_FALSE;
 
 	size_t mipLevel = 0;
+	bool disableMipMap = false;
 
 	// ミップ/色空間オプションを解析し、非カラーTextureは-linearでUNORM出力できるようにする。
 	for (int i = 0; i < numOptions; i++)
@@ -171,17 +173,28 @@ void TextureConverter::SaveDDSTextureToFile(int numOptions, char* options[])
 		{
 			outputSRGB_ = false;
 		}
+		else if (option == "-nomip")
+		{
+			disableMipMap = true;
+		}
 	}
 
 	// 出力ファイル名を先に設定し、デバッグログでも同じパスを参照する。
 	std::wstring filePath = directoryPath_ + L"\\" + fileName_ + L".dds";
 
 	ScratchImage mipChain;
-	// ミップマップの生成
-	hr = GenerateMipMaps(scrachImage_.GetImages(), scrachImage_.GetImageCount(), scrachImage_.GetMetadata(), TEX_FILTER_DEFAULT, mipLevel, mipChain);
+	if (!disableMipMap)
+	{
+		// PixelArt指定が無い通常テクスチャは従来どおりミップを生成する。
+		hr = GenerateMipMaps(scrachImage_.GetImages(), scrachImage_.GetImageCount(), scrachImage_.GetMetadata(), TEX_FILTER_DEFAULT, mipLevel, mipChain);
+	}
+	else
+	{
+		hr = E_FAIL;
+	}
 
 	// ミップマップ生成に成功した場合
-	if (SUCCEEDED(hr))
+	if (!disableMipMap && SUCCEEDED(hr))
 	{
 #ifdef _DEBUG
 	std::wcout << L"[TextureConverter] Output DDS: " << filePath

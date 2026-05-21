@@ -15,7 +15,13 @@ namespace Ken4lowEngine
 		{
 			std::string lowered = texturePath;
 			std::transform(lowered.begin(), lowered.end(), lowered.begin(), [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
-			return lowered.find("face") != std::string::npos || lowered.find("pixel") != std::string::npos || lowered.find("dot") != std::string::npos;
+			return lowered.find("face") != std::string::npos ||
+			lowered.find("pixel") != std::string::npos ||
+			lowered.find("dot") != std::string::npos ||
+			lowered.find("nearest") != std::string::npos ||
+			lowered.find("nomip") != std::string::npos ||
+			lowered.find("pixelart/") != std::string::npos ||
+			lowered.find("pixelart\\") != std::string::npos;
 		}
 	}
 
