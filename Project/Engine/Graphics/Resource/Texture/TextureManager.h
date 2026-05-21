@@ -27,6 +27,15 @@ namespace Ken4lowEngine
 		};
 
 	public:
+		struct TextureDebugInfo
+		{
+			std::string loadedPath;
+			std::string sourcePath;
+			std::string compiledDdsPath;
+			DirectX::TexMetadata metadata{};
+			bool isPixelArtOrNoMip = false;
+			std::string lastWriteTime;
+		};
 		static TextureManager* GetInstance();
 
 		void Initialize(DirectXCommon* dxCommon);
@@ -64,6 +73,7 @@ namespace Ken4lowEngine
 		// 追加
 		void BuildTexturePathIndex();
 		std::string FindCompiledTexturePath(const std::string& query) const;
+		std::vector<TextureDebugInfo> GetAllTextureDebugInfos() const;
 
 	private:
 		std::string NormalizeTexturePath(const std::string& filePath);

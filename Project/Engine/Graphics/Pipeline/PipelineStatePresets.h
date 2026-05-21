@@ -3,6 +3,12 @@
 
 namespace Ken4lowEngine::PipelineStatePresets
 {
+	enum class SamplerDebugMode
+	{
+		Default = 0,
+		ForcePoint,
+		ForceLinear
+	};
 
 	D3D12_BLEND_DESC MakeBlendAlpha();
 	D3D12_BLEND_DESC MakeBlendOpaque();
@@ -13,5 +19,8 @@ namespace Ken4lowEngine::PipelineStatePresets
 	D3D12_DEPTH_STENCIL_DESC MakeDepthDisable();
 	D3D12_DEPTH_STENCIL_DESC MakeDepthReadWrite();
 	D3D12_DEPTH_STENCIL_DESC MakeDepthReadOnly();
+	D3D12_FILTER ResolveSamplerFilter(D3D12_FILTER defaultFilter);
+	void SetSamplerDebugMode(SamplerDebugMode mode);
+	SamplerDebugMode GetSamplerDebugMode();
 
 }

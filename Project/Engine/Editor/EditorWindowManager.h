@@ -26,6 +26,8 @@ namespace Ken4lowEngine
 		// WindowメニューのRenderingカテゴリで切り替える描画調整ウィンドウです。
 		bool showParameters = true;
 		bool showDisplay = true;
+		bool showTextureDebug = true;
+		bool showViewportDebug = true;
 		bool showPostEffectSettings = true;
 		bool showLightEditor = true;
 
@@ -84,6 +86,8 @@ namespace Ken4lowEngine
 		void DrawDetails();
 		void DrawContentBrowser();
 		void DrawOutputLog();
+		void DrawTextureDebug();
+		void DrawViewportDebug();
 		void DrawScene();
 		void InitializeEditorServices();
 		void FinalizeEditorServices();
