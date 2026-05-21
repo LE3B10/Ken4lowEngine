@@ -1,6 +1,7 @@
 #include "StageChunkDebugController.h"
 
 #include "Stage.h"
+#include "CameraManager.h"
 
 #include <cstddef>
 
@@ -82,6 +83,10 @@ void StageChunkDebugController::DrawImGuiContent(K4E::Stage* stage)
 	ImGui::Text("Chunk外扱いで描画したObject数: %d", stats.chunkOutsideDrawObjectCount);
 	ImGui::Text("Chunk Culling対象外Object数: %d", stats.chunkCullingIgnoredObjectCount);
 	ImGui::Text("大きすぎてChunk Culling除外されたObject数: %d", stats.largeObjectExcludedCount);
+	if (const auto* mainCamera = K4E::CameraManager::GetInstance()->GetMainCamera())
+	{
+		ImGui::Text("MainCamera Near/Far: %.3f / %.1f", mainCamera->GetNearClip(), mainCamera->GetFarClip());
+	}
 	ImGui::TextWrapped("可視Chunkは緑、カリングChunkは赤、Object Boundsは青、Chunk Culling対象外Boundsは黄で表示します。");
 	ImGui::TextWrapped("床や壁など大きいBoundsは複数Chunk登録または安全側でChunk Culling対象外にし、見えているObjectを消さないようにDraw側だけを制御します。");
 #else

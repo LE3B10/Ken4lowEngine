@@ -87,6 +87,12 @@ void GamePlayWorld::Initialize(GamePlayStageContext& stageContext)
 
 	if (auto* player = characters_.GetPlayer())
 	{
+		if (auto* camera = player->GetCamera())
+		{
+			// 遠景のステージパーツが途中で消えないように、GamePlay中のみFarClipを安全側に広げる。
+			camera->SetFarClip(1600.0f);
+		}
+
 		player->SetSpawnOffset({ 0.0f, 0.0f, 0.0f });
 
 		if (stageContext.HasPlayerSpawnPoint())
@@ -99,6 +105,14 @@ void GamePlayWorld::Initialize(GamePlayStageContext& stageContext)
 		}
 
 		characters_.Update(0.0f);
+	}
+
+	{
+		// 空だけ明るく地面が沈む見え方を避けるため、LightEditor互換の設定値をGamePlay初期値として少しだけ持ち上げる。
+		auto& lighting = LightManager::GetInstance()->GetMutableLightingSettingsForEditor();
+		lighting.ambientColor.w = std::max(lighting.ambientColor.w, 0.22f);
+		lighting.exposure = std::max(lighting.exposure, 1.10f);
+		lighting.specularStrength = std::max(lighting.specularStrength, 0.08f);
 	}
 
 	if (stage_)
