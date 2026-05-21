@@ -9,7 +9,6 @@
 #include <cctype>
 #include <filesystem>
 #include <format>
-#include <chrono>
 
 #include <d3dx12.h>
 
@@ -24,39 +23,6 @@ namespace Ken4lowEngine
 	{
 		static TextureManager instance;
 		return &instance;
-	}
-	std::vector<TextureManager::TextureDebugInfo> TextureManager::GetAllTextureDebugInfos() const
-	{
-		std::vector<TextureDebugInfo> infos;
-		infos.reserve(textureDatas.size());
-		for (const auto& [path, data] : textureDatas)
-		{
-			TextureDebugInfo info{};
-			info.loadedPath = path;
-			info.compiledDdsPath = path;
-			info.metadata = data.metaData;
-			const std::string lower = ToLowerString(path);
-			info.isPixelArtOrNoMip = (lower.find("pixelart") != std::string::npos) || (lower.find("nomip") != std::string::npos);
-			if (lower.find("resources/textures/compiled/") != std::string::npos)
-			{
-				info.sourcePath = path;
-				const size_t p = ToLowerString(info.sourcePath).find("/compiled/");
-				if (p != std::string::npos) { info.sourcePath.replace(p, 10, "/Sources/"); }
-				if (info.sourcePath.ends_with(".dds")) { info.sourcePath.replace(info.sourcePath.size() - 4, 4, ".png"); }
-			}
-			try
-			{
-				if (std::filesystem::exists(path))
-				{
-					auto ftime = std::filesystem::last_write_time(path);
-					const auto sctp = std::chrono::time_point_cast<std::chrono::system_clock::duration>(ftime - decltype(ftime)::clock::now() + std::chrono::system_clock::now());
-					info.lastWriteTime = std::format("{:%F %T}", sctp);
-				}
-			}
-			catch (...) {}
-			infos.push_back(std::move(info));
-		}
-		return infos;
 	}
 
 	void TextureManager::Initialize(DirectXCommon* dxCommon)
