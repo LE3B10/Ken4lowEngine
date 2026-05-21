@@ -63,7 +63,7 @@ namespace Ken4lowEngine
 			rootParameters[2].DescriptorTable.NumDescriptorRanges = 1;
 
 			*staticSampler = {};
-			staticSampler->Filter = PipelineStatePresets::ResolveSamplerFilter(D3D12_FILTER_MIN_MAG_MIP_LINEAR);
+			staticSampler->Filter = D3D12_FILTER_MIN_MAG_MIP_LINEAR;
 			staticSampler->AddressU = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
 			staticSampler->AddressV = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
 			staticSampler->AddressW = D3D12_TEXTURE_ADDRESS_MODE_WRAP;

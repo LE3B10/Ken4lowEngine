@@ -5,8 +5,6 @@
 #include "ImGuiManager.h"
 #include "PostEffectManager.h"
 #include "GameViewportConstants.h"
-#include "TextureManager.h"
-#include "PipelineStatePresets.h"
 #include <Input.h>
 #include <LightManager.h>
 #include <SceneManager.h>
@@ -181,8 +179,6 @@ namespace Ken4lowEngine
 		DrawDetails();
 		DrawContentBrowser();
 		DrawOutputLog();
-		if (windowState_.showTextureDebug) { DrawTextureDebug(); }
-		if (windowState_.showViewportDebug) { DrawViewportDebug(); }
 		DrawScene();
 #endif // USE_IMGUI
 	}
@@ -228,8 +224,6 @@ namespace Ken4lowEngine
 				ImGui::MenuItem("Post Effect Settings", nullptr, &windowState_.showPostEffectSettings);
 				ImGui::MenuItem("Display", nullptr, &windowState_.showDisplay);
 				ImGui::MenuItem("Parameters", nullptr, &windowState_.showParameters);
-				ImGui::MenuItem("Texture Debug", nullptr, &windowState_.showTextureDebug);
-				ImGui::MenuItem("Viewport Debug", nullptr, &windowState_.showViewportDebug);
 				ImGui::EndMenu();
 			}
 
@@ -571,64 +565,6 @@ namespace Ken4lowEngine
 		}
 		ImGui::End();
 #endif // USE_IMGUI
-	}
-
-	void EditorWindowManager::DrawTextureDebug()
-	{
-#ifdef USE_IMGUI
-		if (!ImGui::Begin("Texture Debug", &windowState_.showTextureDebug))
-		{
-			ImGui::End();
-			return;
-		}
-		int mode = static_cast<int>(PipelineStatePresets::GetSamplerDebugMode());
-		if (ImGui::RadioButton("Default Sampler", mode == 0)) { mode = 0; }
-		ImGui::SameLine();
-		if (ImGui::RadioButton("Force Point Sampler", mode == 1)) { mode = 1; }
-		ImGui::SameLine();
-		if (ImGui::RadioButton("Force Linear Sampler", mode == 2)) { mode = 2; }
-		PipelineStatePresets::SetSamplerDebugMode(static_cast<PipelineStatePresets::SamplerDebugMode>(mode));
-		const auto infos = TextureManager::GetInstance()->GetAllTextureDebugInfos();
-		ImGui::Text("Loaded Texture Count: %d", static_cast<int>(infos.size()));
-		ImGui::Separator();
-		for (const auto& info : infos)
-		{
-			ImGui::Text("Loaded: %s", info.loadedPath.c_str());
-			ImGui::Text("Source: %s", info.sourcePath.c_str());
-			ImGui::Text("Compiled DDS: %s", info.compiledDdsPath.c_str());
-			ImGui::Text("Width/Height: %llu x %llu", info.metadata.width, info.metadata.height);
-			ImGui::Text("Format: %d", static_cast<int>(info.metadata.format));
-			ImGui::Text("MipCount: %llu", info.metadata.mipLevels);
-			ImGui::Text("PixelArt/noMip: %s", info.isPixelArtOrNoMip ? "true" : "false");
-			ImGui::Text("Sampler: %s", mode == 1 ? "Point(Forced)" : (mode == 2 ? "Linear(Forced)" : "Pipeline Default"));
-			ImGui::Text("LastUpdate: %s", info.lastWriteTime.empty() ? "(unknown)" : info.lastWriteTime.c_str());
-			ImGui::Separator();
-		}
-		ImGui::End();
-#endif
-	}
-
-	void EditorWindowManager::DrawViewportDebug()
-	{
-#ifdef USE_IMGUI
-		if (!ImGui::Begin("Viewport Debug", &windowState_.showViewportDebug))
-		{
-			ImGui::End();
-			return;
-		}
-		const float rtW = static_cast<float>(GameViewportConstants::Width);
-		const float rtH = static_cast<float>(GameViewportConstants::Height);
-		const ImVec2 client = ImGui::GetIO().DisplaySize;
-		const float sx = (rtW > 0.0f) ? (mainViewportSize_.x / rtW) : 0.0f;
-		const float sy = (rtH > 0.0f) ? (mainViewportSize_.y / rtH) : 0.0f;
-		ImGui::Text("RenderTexture Size: %.0f x %.0f", rtW, rtH);
-		ImGui::Text("Viewport Draw Size: %.1f x %.1f", mainViewportSize_.x, mainViewportSize_.y);
-		ImGui::Text("ScaleX/ScaleY: %.3f / %.3f", sx, sy);
-		ImGui::Text("Fit To Window: true");
-		ImGui::Text("1:1 Mode: %s", (std::abs(sx - 1.0f) < 0.01f && std::abs(sy - 1.0f) < 0.01f) ? "true" : "false");
-		ImGui::Text("Client Size: %.1f x %.1f", client.x, client.y);
-		ImGui::End();
-#endif
 	}
 
 	Vector2 EditorWindowManager::ConvertScreenToMainViewportPosition(const Vector2& screenPosition) const

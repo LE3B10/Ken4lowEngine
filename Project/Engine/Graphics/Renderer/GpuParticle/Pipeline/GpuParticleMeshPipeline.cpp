@@ -4,7 +4,6 @@
 
 #include "BlendStateFactory.h"
 #include "ShaderCompiler.h"
-#include "PipelineStatePresets.h"
 #include "GpuParticleShaderManifest.h"
 
 namespace Ken4lowEngine
@@ -67,7 +66,7 @@ void GpuParticleMeshPipeline::CreateRootSignature()
 
 	// Static Sampler（スプライトと同じで開始）
 	D3D12_STATIC_SAMPLER_DESC samplers[1]{};
-	samplers[0].Filter = PipelineStatePresets::ResolveSamplerFilter(D3D12_FILTER_MIN_MAG_MIP_LINEAR);
+	samplers[0].Filter = D3D12_FILTER_MIN_MAG_MIP_LINEAR;
 	samplers[0].AddressU = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
 	samplers[0].AddressV = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
 	samplers[0].AddressW = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
