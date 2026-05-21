@@ -10,6 +10,8 @@ static const uint LIGHT_TYPE_NONE = 0;
 static const uint LIGHT_TYPE_DIRECTIONAL = 1;
 static const uint LIGHT_TYPE_POINT = 2;
 static const uint LIGHT_TYPE_SPOT = 3;
+static const uint LIGHT_TYPE_RECT_AREA = 4;
+static const uint LIGHT_TYPE_SPHERE_AREA = 5;
 
 struct PunctualLight
 {
@@ -23,6 +25,8 @@ struct PunctualLight
     float distance;
     float cosFalloffStart;
     float cosAngle;
+    float3 areaSize;
+    uint enabled;
 };
 
 struct LightingSettings
@@ -154,6 +158,31 @@ LightingTerms EvaluateSpotLight(
     return terms;
 }
 
+LightingTerms EvaluateRectAreaLightApprox(PunctualLight light, float3 worldPosition, float3 normal, float3 viewDir, float shininess)
+{
+    LightingTerms terms = MakeEmptyLightingTerms();
+    float3 dir = normalize(light.direction);
+    float3 up = (abs(dir.y) > 0.95f) ? float3(1.0f, 0.0f, 0.0f) : float3(0.0f, 1.0f, 0.0f);
+    float3 right = normalize(cross(up, dir));
+    up = normalize(cross(dir, right));
+    float2 halfSize = max(light.areaSize.xy * 0.5f, 0.05f.xx);
+    float3 local = worldPosition - light.position;
+    float2 uv = float2(dot(local, right), dot(local, up));
+    float2 clamped = clamp(uv, -halfSize, halfSize);
+    // 面上最近点を仮想PointLightとして使う軽量近似AreaLight。
+    float3 virtualPoint = light.position + right * clamped.x + up * clamped.y;
+    float3 toL = virtualPoint - worldPosition;
+    float d = length(toL);
+    float3 lightDir = toL / max(d, kMinLightLength);
+    float range = max(light.distance, kMinRange);
+    float atten = pow(saturate(1.0f - d / range), max(light.decay, kMinRange)) * step(d, range);
+    float NdotL = saturate(dot(normal, lightDir));
+    float3 lightColor = light.color.rgb * (light.intensity * atten);
+    terms.diffuse = lightColor * NdotL;
+    terms.specular = lightColor * ComputeSpecular(normal, lightDir, viewDir, shininess) * NdotL;
+    return terms;
+}
+
 float3 AccumulateLighting(
     StructuredBuffer<PunctualLight> punctualLights,
     uint lightCount,
@@ -175,6 +204,7 @@ float3 AccumulateLighting(
     {
         PunctualLight light = punctualLights[i];
         LightingTerms terms = MakeEmptyLightingTerms();
+        if (light.enabled == 0) { continue; }
 
         if (light.lightType == LIGHT_TYPE_DIRECTIONAL)
         {
@@ -211,6 +241,11 @@ float3 AccumulateLighting(
                 shininess,
                 shadowMap,
                 shadowSampler);
+            activeLightCount++;
+        }
+        else if (light.lightType == LIGHT_TYPE_RECT_AREA || light.lightType == LIGHT_TYPE_SPHERE_AREA)
+        {
+            terms = EvaluateRectAreaLightApprox(light, worldPosition, normal, viewDir, shininess);
             activeLightCount++;
         }
         else

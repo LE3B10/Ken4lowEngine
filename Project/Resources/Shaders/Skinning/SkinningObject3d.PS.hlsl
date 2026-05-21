@@ -24,7 +24,7 @@ struct Camera
 // パンクチュアルライトの定数バッファ
 struct PunctualLight
 {
-    uint lightType; // ライトの種類（0：ライトなし、1：平行光源、2：点光源、3：スポットライト）
+    uint lightType; // ライトの種類（0：None、1：Directional、2：Point、3：Spot、4：RectArea、5：SphereArea）
     float4 color; // ライトの色 （全ライト共通）
     float intensity; // 輝度 （全ライト共通）
     float3 position; // ライトの位置 （点光源、スポットライト用）
@@ -34,6 +34,8 @@ struct PunctualLight
     float distance; // ライトの届く最大距離 （スポットライト用）
     float cosFalloffStart; // 開始角度 （スポットライト用）
     float cosAngle; // スポットライトの余弦 （スポットライト用）
+    float3 areaSize; // 疑似AreaLightサイズ (x=width, y=height, z=radius)
+    uint enabled; // 有効フラグ
 };
 
 struct LightInfo
@@ -88,6 +90,7 @@ PixelShaderOutput main(VertexShaderOutput input)
     for (uint i = 0; i < gLightInfo.gLightCount; ++i)
     {
         PunctualLight L = gPunctualLights[i]; // ★ gLights → gPunctualLights
+        if (L.enabled == 0) { continue; }
 
         float atten = 1.0;
         float3 Ldir = normalize(L.direction);
@@ -135,6 +138,26 @@ PixelShaderOutput main(VertexShaderOutput input)
             float NdotL = saturate(dot(normal, Ldir));
 
             lightSum += L.color.rgb * (L.intensity * atten * spot * NdotL);
+        }
+        else if (L.lightType == 4 || L.lightType == 5)
+        {
+            float3 dir = normalize(L.direction);
+            float3 up = (abs(dir.y) > 0.95f) ? float3(1, 0, 0) : float3(0, 1, 0);
+            float3 right = normalize(cross(up, dir));
+            up = normalize(cross(dir, right));
+            float2 halfSize = max(L.areaSize.xy * 0.5, 0.05.xx);
+            float3 local = position - L.position;
+            float2 uv = float2(dot(local, right), dot(local, up));
+            float2 clamped = clamp(uv, -halfSize, halfSize);
+            // 最近点を仮想PointLight化して広い面光源っぽい照明を作る。
+            float3 virtualPoint = L.position + right * clamped.x + up * clamped.y;
+            float3 toL = virtualPoint - position;
+            float d = length(toL);
+            Ldir = toL / max(d, 1e-4);
+            float range = max(L.distance, 1e-3);
+            atten = pow(saturate(1.0 - d / range), max(L.decay, 1e-3));
+            float NdotL = saturate(dot(normal, Ldir));
+            lightSum += L.color.rgb * (L.intensity * atten * NdotL);
         }
         else
         {

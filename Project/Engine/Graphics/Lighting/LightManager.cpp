@@ -171,9 +171,9 @@ namespace Ken4lowEngine
 		std::vector<PunctualLightGPU> gpuLights;
 		gpuLights.reserve(punctualLights_.size());
 		for (const auto& L : punctualLights_) {
-			if (L.lightType == 0) continue;           // 無効はスキップ
+			if (L.lightType == 0 || L.enabled == 0u) continue;           // 無効はスキップ
 			PunctualLightGPU C = L;
-			if (C.lightType == 1 || C.lightType == 3) // Dir/Spot は方向を正規化して安全に
+			if (C.lightType == 1 || C.lightType == 3 || C.lightType == 4 || C.lightType == 5) // Dir/Spot/Area は方向を正規化
 				C.direction = Vector3::Normalize(C.direction);
 			gpuLights.push_back(C);
 		}
@@ -225,6 +225,7 @@ namespace Ken4lowEngine
 		const float   dirLen = 1.5f;                      // 方向線の長さ
 
 		for (const auto& L : punctualLights_) {
+			if (L.enabled == 0u) { continue; }
 			switch (L.lightType) {
 			case 1: { // Directional
 				Vector3 base = { 0.0f, 3.0f, 0.0f };
@@ -275,6 +276,30 @@ namespace Ken4lowEngine
 				// 必要なら開き角をリングで表現する処理も追加可能
 				break;
 			}
+			case 4: { // RectArea (approx)
+				const Vector4 colArea = { 0.4f, 1.0f, 0.4f, 1.0f };
+				Vector3 d = Vector3::Normalize(L.direction);
+				Vector3 up = (std::fabs(d.y) > 0.95f) ? Vector3{ 1.0f,0.0f,0.0f } : Vector3{ 0.0f,1.0f,0.0f };
+				Vector3 right = Vector3::Normalize(Vector3::Cross(up, d));
+				up = Vector3::Normalize(Vector3::Cross(d, right));
+				float hw = std::max(L.areaSize.x * 0.5f, 0.05f);
+				float hh = std::max(L.areaSize.y * 0.5f, 0.05f);
+				Vector3 c = L.position;
+				Vector3 p0 = c + right * hw + up * hh;
+				Vector3 p1 = c - right * hw + up * hh;
+				Vector3 p2 = c - right * hw - up * hh;
+				Vector3 p3 = c + right * hw - up * hh;
+				wf->DrawLine(p0, p1, colArea); wf->DrawLine(p1, p2, colArea);
+				wf->DrawLine(p2, p3, colArea); wf->DrawLine(p3, p0, colArea);
+				wf->DrawLine(c, c + d * dirLen, colArea);
+				break;
+			}
+			case 5: { // SphereArea (approx)
+				const Vector4 colAreaSphere = { 0.6f, 1.0f, 0.4f, 1.0f };
+				wf->DrawSphere(L.position, std::max(L.areaSize.z, 0.1f), colAreaSphere);
+				if (L.distance > 0.0f) { wf->DrawSphere(L.position, L.distance, { colAreaSphere.x,colAreaSphere.y,colAreaSphere.z,0.45f }); }
+				break;
+			}
 			default:
 				break;
 			}
@@ -294,7 +319,7 @@ namespace Ken4lowEngine
 		if (!punctualLights_.empty())
 		{
 			const auto& first = punctualLights_.front();
-			const char* summaryTypes[] = { "None", "Directional", "Point", "Spot" };
+			const char* summaryTypes[] = { "None", "Directional", "Point", "Spot", "RectArea", "SphereArea" };
 			const uint32_t typeIndex = (first.lightType < static_cast<uint32_t>(IM_ARRAYSIZE(summaryTypes))) ? first.lightType : 0;
 			Vector3 eulerDeg = DirectionToEulerDeg(first.direction);
 			ImGui::Text("Light #0 Type: %s", summaryTypes[typeIndex]);
@@ -329,6 +354,10 @@ namespace Ken4lowEngine
 			L.color = { 1,1,1,1 };
 			L.intensity = 1.0f;
 			L.direction = { 0,-1,0 };
+			L.areaSize = { 2.0f, 2.0f, 1.0f };
+			L.distance = 10.0f;
+			L.decay = 1.0f;
+			L.enabled = 1u;
 			punctualLights_.push_back(L);
 		}
 		ImGui::SameLine();
@@ -346,7 +375,7 @@ namespace Ken4lowEngine
 			ImGui::Text("Light #%zu", i);
 
 			int type = static_cast<int>(L.lightType);
-			const char* types[] = { "None","Directional","Point","Spot" };
+			const char* types[] = { "None","Directional","Point","Spot","RectArea","SphereArea" };
 			if (ImGui::Combo("Type", &type, types, IM_ARRAYSIZE(types)))
 			{
 				L.lightType = static_cast<uint32_t>(type);
@@ -354,6 +383,8 @@ namespace Ken4lowEngine
 
 			ImGui::ColorEdit4("Color", &L.color.x);
 			ImGui::SliderFloat("Intensity", &L.intensity, 0.0f, 20.0f);
+			bool enabled = (L.enabled != 0u);
+			if (ImGui::Checkbox("Enabled", &enabled)) { L.enabled = enabled ? 1u : 0u; }
 
 			if (L.lightType == 1)
 			{
@@ -393,6 +424,34 @@ namespace Ken4lowEngine
 				ImGui::SliderFloat("cosOuter", &L.cosAngle, 0.0f, 1.0f);
 				if (L.cosFalloffStart < L.cosAngle) L.cosFalloffStart = L.cosAngle;
 			}
+			else if (L.lightType == 4)
+			{
+				// 疑似AreaLightは矩形面の最近点を仮想PointLightとして扱う近似モデル。
+				ImGui::SliderFloat3("Position", &L.position.x, -50.0f, 50.0f);
+				Vector3 eulerDeg = DirectionToEulerDeg(L.direction);
+				bool changed = false;
+				changed |= ImGui::DragFloat("Pitch (X)", &eulerDeg.x, 0.5f, -89.0f, 89.0f, "%.1f deg");
+				changed |= ImGui::DragFloat("Yaw (Y)", &eulerDeg.y, 0.5f, -180.0f, 180.0f, "%.1f deg");
+				if (changed) { L.direction = EulerDegToDirection(eulerDeg); }
+				ImGui::SliderFloat("Width", &L.areaSize.x, 0.1f, 50.0f);
+				ImGui::SliderFloat("Height", &L.areaSize.y, 0.1f, 50.0f);
+				ImGui::SliderFloat("Range", &L.distance, 0.1f, 200.0f);
+				ImGui::SliderFloat("Decay", &L.decay, 0.0f, 10.0f);
+			}
+			else if (L.lightType == 5)
+			{
+				ImGui::SliderFloat3("Position", &L.position.x, -50.0f, 50.0f);
+				if (ImGui::SliderFloat3("Direction", &L.direction.x, -1.0f, 1.0f)) { L.direction = Vector3::Normalize(L.direction); }
+				ImGui::SliderFloat("Radius", &L.areaSize.z, 0.1f, 50.0f);
+				ImGui::SliderFloat("Range", &L.distance, 0.1f, 200.0f);
+				ImGui::SliderFloat("Decay", &L.decay, 0.0f, 10.0f);
+			}
+			ImGui::Text("AreaLight active: %s", (L.enabled && (L.lightType == 4 || L.lightType == 5)) ? "true" : "false");
+			ImGui::Text("AreaLight type: %s", (L.lightType == 4) ? "RectArea" : ((L.lightType == 5) ? "SphereArea" : "N/A"));
+			ImGui::Text("area size: (%.2f, %.2f, %.2f)", L.areaSize.x, L.areaSize.y, L.areaSize.z);
+			ImGui::Text("range: %.2f  intensity: %.2f", L.distance, L.intensity);
+			ImGui::Text("light direction: (%.2f, %.2f, %.2f)", L.direction.x, L.direction.y, L.direction.z);
+			ImGui::Text("debug wire visible: %s", ((L.enabled != 0u) && (L.lightType == 4 || L.lightType == 5)) ? "true" : "false");
 
 			if (ImGui::Button("Remove"))
 			{
@@ -405,7 +464,8 @@ namespace Ken4lowEngine
 		}
 
 		ImGui::Separator();
-				const bool hasPointLight = std::any_of(punctualLights_.begin(), punctualLights_.end(), [](const PunctualLightGPU& light) { return light.lightType == 2 && light.intensity > 0.0f; });
+		const bool hasPointLight = std::any_of(punctualLights_.begin(), punctualLights_.end(), [](const PunctualLightGPU& light) { return light.lightType == 2 && light.intensity > 0.0f && light.enabled != 0u; });
+		const bool hasAreaLight = std::any_of(punctualLights_.begin(), punctualLights_.end(), [](const PunctualLightGPU& light) { return (light.lightType == 4 || light.lightType == 5) && light.intensity > 0.0f && light.enabled != 0u; });
 		const bool hasShadowCaster = (GetActiveShadowCasterType() != ShadowCasterType::None);
 		if (!hasShadowCaster && hasPointLight)
 		{
@@ -435,6 +495,11 @@ namespace Ken4lowEngine
 		else
 		{
 			ImGui::Text("PointLight Shadow: Not Implemented");
+		}
+		if (hasAreaLight)
+		{
+			ImGui::TextColored(ImVec4(0.75f, 1.0f, 0.75f, 1.0f), "AreaLight Shadow: Not Implemented");
+			ImGui::Text("AreaLight Model: Approximation");
 		}
 		for (const auto& L : punctualLights_)
 		{
@@ -472,7 +537,7 @@ namespace Ken4lowEngine
 	{
 		for (const auto& light : punctualLights_)
 		{
-			if (light.intensity <= 0.0f) { continue; }
+			if (light.intensity <= 0.0f || light.enabled == 0u) { continue; }
 			if (light.lightType == 3) { return ShadowCasterType::Spot; }
 			if (light.lightType == 1) { return ShadowCasterType::Directional; }
 		}
@@ -574,6 +639,7 @@ namespace Ken4lowEngine
 		light.color = { 1.0f, 1.0f, 1.0f, 1.0f };
 		light.intensity = 1.0f;
 		light.direction = Vector3::Normalize({ 0.3f, -1.0f, 0.2f });
+		light.enabled = 1u;
 
 		punctualLights_.clear();
 		punctualLights_.push_back(light);
