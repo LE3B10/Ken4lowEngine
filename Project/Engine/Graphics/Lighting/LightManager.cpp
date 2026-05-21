@@ -403,6 +403,17 @@ namespace Ken4lowEngine
 			ImGui::PopID();
 		}
 
+		ImGui::Separator();
+		ImGui::Checkbox("Enable Shadow", &enableShadow_);
+		ImGui::SliderFloat("Shadow Bias", &shadowBias_, 0.0f, 0.01f, "%.6f");
+		ImGui::SliderFloat("Normal Bias", &normalBias_, 0.0f, 0.1f, "%.4f");
+		ImGui::SliderFloat("Shadow Strength", &shadowStrength_, 0.0f, 1.0f);
+		int shadowMapSize = static_cast<int>(shadowMapSize_);
+		if (ImGui::InputInt("Shadow Map Size", &shadowMapSize)) {
+			shadowMapSize_ = static_cast<uint32_t>(std::clamp(shadowMapSize, 256, 4096));
+			dxCommon_->SetShadowMapSize(shadowMapSize_, shadowMapSize_);
+		}
+		ImGui::Checkbox("Show ShadowMap Debug", &showShadowMapDebug_);
 		ImGui::Text("Active Lights (type!=0): will be uploaded");
 #endif // USE_IMGUI
 	}

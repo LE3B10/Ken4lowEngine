@@ -131,6 +131,11 @@ namespace Ken4lowEngine
 		/// <returns>PunctualLightGPU オブジェクトのベクトルへの const 参照。</returns>
 		const std::vector<PunctualLightGPU>& GetPunctualLights() const { return punctualLights_; }
 		const LightingSettingsGPU& GetLightingSettings() const { return lightingSettings_; }
+		float GetShadowBias() const { return shadowBias_; }
+		float GetNormalBias() const { return normalBias_; }
+		float GetShadowStrength() const { return shadowStrength_; }
+		bool IsShadowEnabled() const { return enableShadow_; }
+		uint32_t GetShadowMapSize() const { return shadowMapSize_; }
 		LightingSettingsGPU& GetMutableLightingSettingsForEditor() { return lightingSettings_; }
 
 		// Editor Detailsから選択中ライトだけを書き換えるため、index検証付きヘルパー経由でのみ利用する。
@@ -187,6 +192,12 @@ namespace Ken4lowEngine
 		Microsoft::WRL::ComPtr<ID3D12Resource> lightingSettingsResource_;
 		LightingSettingsGPU* lightingSettingsData_ = nullptr;
 		LightingSettingsGPU lightingSettings_{};
+		bool enableShadow_ = true;
+		float shadowBias_ = 0.00045f;
+		float normalBias_ = 0.025f;
+		float shadowStrength_ = 0.6f;
+		uint32_t shadowMapSize_ = 2048;
+		bool showShadowMapDebug_ = false;
 
 	private: /// ---------- コピー禁止 ---------- ///
 

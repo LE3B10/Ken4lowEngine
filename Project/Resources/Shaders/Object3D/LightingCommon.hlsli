@@ -108,14 +108,15 @@ LightingTerms EvaluatePointLight(
     float3 lightDir = toL / max(d, kMinLightLength);
 
     float range = max(light.radius, kMinRange);
-    float atten = pow(saturate(1.0f - d / range), max(light.decay, kMinRange));
+    float rangeMask = step(d, range);
+    float atten = pow(saturate(1.0f - d / range), max(light.decay, kMinRange)) * rangeMask;
 
-    // 点光源も通常Lambertで拡散光を計算する。
+    // ライト範囲外はDirect Lightを0にしてAmbientだけ残す。
     float NdotL = saturate(dot(normal, lightDir));
     float3 lightColor = light.color.rgb * (light.intensity * atten);
 
     terms.diffuse = lightColor * NdotL;
-    terms.specular = lightColor * ComputeSpecular(normal, lightDir, viewDir, shininess);
+    terms.specular = lightColor * ComputeSpecular(normal, lightDir, viewDir, shininess) * NdotL;
     return terms;
 }
 
@@ -133,18 +134,19 @@ LightingTerms EvaluateSpotLight(
     float3 lightDir = toL / max(d, kMinLightLength);
 
     float range = max(light.distance, kMinRange);
-    float atten = pow(saturate(1.0f - d / range), max(light.decay, kMinRange));
+    float rangeMask = step(d, range);
+    float atten = pow(saturate(1.0f - d / range), max(light.decay, kMinRange)) * rangeMask;
 
     float3 dir = normalize(light.direction);
     float ct = dot(-dir, lightDir);
-    float spot = smoothstep(light.cosAngle, light.cosFalloffStart, ct);
+    float spot = smoothstep(light.cosAngle, light.cosFalloffStart, ct) * step(light.cosAngle, ct);
 
     // スポット光もHalf Lambertではなく通常Lambertを基本にする。
     float NdotL = saturate(dot(normal, lightDir));
     float3 lightColor = light.color.rgb * (light.intensity * atten * spot);
 
     terms.diffuse = lightColor * NdotL;
-    terms.specular = lightColor * ComputeSpecular(normal, lightDir, viewDir, shininess);
+    terms.specular = lightColor * ComputeSpecular(normal, lightDir, viewDir, shininess) * NdotL;
     return terms;
 }
 
