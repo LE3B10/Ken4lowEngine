@@ -1,3 +1,4 @@
+#define NOMINMAX
 #include "LightManager.h"
 #include "DirectXCommon.h"
 #include <ResourceManager.h>
