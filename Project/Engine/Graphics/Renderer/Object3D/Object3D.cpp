@@ -85,45 +85,15 @@ namespace Ken4lowEngine
 		// カメラ用バッファ更新
 		cameraData->worldPosition = CameraManager::GetInstance()->GetActiveCameraPosition();
 
-		// SpotLight優先でシャドウ用ライト行列を作る（無い場合はDirectionalにフォールバック）。
-		Vector3 lightDir = { 0.3f, -1.0f, 0.2f };
-		Vector3 lightPos = cameraData->worldPosition - lightDir * 20.0f;
-		float spotDistance = 80.0f;
-		float spotOuterCos = std::cos(35.0f * 3.14159265f / 180.0f);
-		bool useSpotShadow = false;
 		const auto* lightMgr = LightManager::GetInstance();
-		const auto& lights = lightMgr->GetPunctualLights();
-		for (const auto& light : lights)
-		{
-			if (light.lightType == 3 && light.intensity > 0.0f)
-			{
-				lightPos = light.position;
-				lightDir = Vector3::Normalize(light.direction);
-				spotDistance = std::max(light.distance, 5.0f);
-				spotOuterCos = std::clamp(light.cosAngle, 0.01f, 0.999f);
-				useSpotShadow = true;
-				break;
-			}
-			if (light.lightType == 1 && light.intensity > 0.0f)
-			{
-				lightDir = Vector3::Normalize(light.direction);
-			}
-		}
-
 		const Vector3 focusPos = cameraData->worldPosition;
-		Matrix4x4 lightViewProjection = Matrix4x4::MakeLightViewProjection(lightDir, focusPos, 60.0f, 35.0f, 35.0f, 0.1f, 120.0f);
-		if (useSpotShadow)
-		{
-			const float outerAngle = std::acos(spotOuterCos) * 2.0f;
-			const float fovY = std::clamp(outerAngle, 0.15f, 3.0f);
-			lightViewProjection = Matrix4x4::MakePerspectiveFovMatrix(fovY, 1.0f, 0.1f, spotDistance) * Matrix4x4::MakeLookAtMatrix(lightPos, lightPos + lightDir, { 0.0f,1.0f,0.0f });
-		}
-
+		const Matrix4x4 lightViewProjection = lightMgr->BuildShadowLightViewProjection(focusPos);
 		UpdateShadowMatrix(lightViewProjection);
 		shadowParameterData_->shadowBias = lightMgr->GetShadowBias();
 		shadowParameterData_->normalBias = lightMgr->GetNormalBias();
 		shadowParameterData_->shadowStrength = lightMgr->GetShadowStrength();
-		shadowParameterData_->shadowMode = lightMgr->IsShadowEnabled() ? (useSpotShadow ? 2u : 1u) : 0u;
+				const auto casterType = lightMgr->GetActiveShadowCasterType();
+		shadowParameterData_->shadowMode = lightMgr->IsShadowEnabled() ? (casterType == LightManager::ShadowCasterType::Spot ? 2u : (casterType == LightManager::ShadowCasterType::Directional ? 1u : 0u)) : 0u;
 	}
 
 	void Object3D::UpdateWithWorldMatrix(const Matrix4x4& worldMatrix)
@@ -132,33 +102,15 @@ namespace Ken4lowEngine
 		worldTransform_.UpdateWithWorldMatrix(worldMatrix);
 		cameraData->worldPosition = CameraManager::GetInstance()->GetActiveCameraPosition();
 
-		Vector3 lightDir = { 0.3f, -1.0f, 0.2f };
-		const auto& lights = LightManager::GetInstance()->GetPunctualLights();
-		for (const auto& light : lights)
-		{
-			if (light.lightType == 1)
-			{
-				lightDir = Vector3::Normalize(light.direction);
-				break;
-			}
-		}
-
-		const Vector3 focusPos = cameraData->worldPosition;
-		const Matrix4x4 lightViewProjection = Matrix4x4::MakeLightViewProjection(
-			lightDir,
-			focusPos,
-			60.0f,
-			35.0f,
-			35.0f,
-			0.1f,
-			120.0f);
-
-		UpdateShadowMatrix(lightViewProjection);
 		const auto* lightMgr = LightManager::GetInstance();
+		const Vector3 focusPos = cameraData->worldPosition;
+		const Matrix4x4 lightViewProjection = lightMgr->BuildShadowLightViewProjection(focusPos);
+		UpdateShadowMatrix(lightViewProjection);
 		shadowParameterData_->shadowBias = lightMgr->GetShadowBias();
 		shadowParameterData_->normalBias = lightMgr->GetNormalBias();
 		shadowParameterData_->shadowStrength = lightMgr->GetShadowStrength();
-		shadowParameterData_->shadowMode = lightMgr->IsShadowEnabled() ? 1u : 0u;
+				const auto casterType = lightMgr->GetActiveShadowCasterType();
+		shadowParameterData_->shadowMode = lightMgr->IsShadowEnabled() ? (casterType == LightManager::ShadowCasterType::Spot ? 2u : (casterType == LightManager::ShadowCasterType::Directional ? 1u : 0u)) : 0u;
 	}
 
 	void Object3D::UpdateShadowMatrix(const Matrix4x4& lightViewProjection)

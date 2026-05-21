@@ -404,7 +404,18 @@ namespace Ken4lowEngine
 		}
 
 		ImGui::Separator();
-		ImGui::Checkbox("Enable Shadow", &enableShadow_);
+				const bool hasPointLight = std::any_of(punctualLights_.begin(), punctualLights_.end(), [](const PunctualLightGPU& light) { return light.lightType == 2 && light.intensity > 0.0f; });
+		const bool hasShadowCaster = (GetActiveShadowCasterType() != ShadowCasterType::None);
+		if (!hasShadowCaster && hasPointLight)
+		{
+			ImGui::BeginDisabled();
+			ImGui::Checkbox("Enable Shadow", &enableShadow_);
+			ImGui::EndDisabled();
+		}
+		else
+		{
+			ImGui::Checkbox("Enable Shadow", &enableShadow_);
+		}
 		ImGui::SliderFloat("Shadow Bias", &shadowBias_, 0.0f, 0.01f, "%.6f");
 		ImGui::SliderFloat("Normal Bias", &normalBias_, 0.0f, 0.1f, "%.4f");
 		ImGui::SliderFloat("Shadow Strength", &shadowStrength_, 0.0f, 1.0f);
@@ -416,7 +427,15 @@ namespace Ken4lowEngine
 		ImGui::Checkbox("Show ShadowMap Debug", &showShadowMapDebug_);
 		bool showShadowFactor = false;
 		ImGui::Checkbox("Show Shadow Factor", &showShadowFactor);
-		ImGui::Text("PointLight Shadow: Not Implemented");
+				if (hasPointLight)
+		{
+			ImGui::TextColored(ImVec4(1.0f, 0.75f, 0.2f, 1.0f), "PointLight Shadow: Not Implemented (Cube ShadowMap required)");
+			ImGui::Text("Enable Shadow affects Directional/Spot only.");
+		}
+		else
+		{
+			ImGui::Text("PointLight Shadow: Not Implemented");
+		}
 		for (const auto& L : punctualLights_)
 		{
 			if (L.lightType == 3)
@@ -426,9 +445,58 @@ namespace Ken4lowEngine
 				break;
 			}
 		}
-		ImGui::Text("LightViewProjection: generated in Object3D::Update (spot-priority)");
+				const char* lvpOwner = "none";
+		switch (GetActiveShadowCasterType())
+		{
+		case ShadowCasterType::Directional: lvpOwner = "DirectionalLight"; break;
+		case ShadowCasterType::Spot: lvpOwner = "SpotLight"; break;
+		default: break;
+		}
+		ImGui::Text("LightViewProjection: generated in LightManager (%s)", lvpOwner);
 		ImGui::Text("Active Lights (type!=0): will be uploaded");
 #endif // USE_IMGUI
+	}
+
+
+	LightManager::ShadowCasterType LightManager::GetActiveShadowCasterType() const
+	{
+		for (const auto& light : punctualLights_)
+		{
+			if (light.intensity <= 0.0f) { continue; }
+			if (light.lightType == 3) { return ShadowCasterType::Spot; }
+			if (light.lightType == 1) { return ShadowCasterType::Directional; }
+		}
+		return ShadowCasterType::None;
+	}
+
+	Matrix4x4 LightManager::BuildShadowLightViewProjection(const Vector3& focusPosition) const
+	{
+		Vector3 lightDir = { 0.3f, -1.0f, 0.2f };
+		for (const auto& light : punctualLights_)
+		{
+			if (light.lightType == 1 && light.intensity > 0.0f)
+			{
+				lightDir = Vector3::Normalize(light.direction);
+				break;
+			}
+		}
+
+		if (GetActiveShadowCasterType() == ShadowCasterType::Spot)
+		{
+			for (const auto& light : punctualLights_)
+			{
+				if (light.lightType != 3 || light.intensity <= 0.0f) { continue; }
+				const float spotDistance = std::max(light.distance, 5.0f);
+				const float spotOuterCos = std::clamp(light.cosAngle, 0.01f, 0.999f);
+				const float outerAngle = std::acos(spotOuterCos) * 2.0f;
+				const float fovY = std::clamp(outerAngle, 0.15f, 3.0f);
+				// SpotLightの方向でShadowMap用ViewProjectionを生成する。
+				return Matrix4x4::MakePerspectiveFovMatrix(fovY, 1.0f, 0.1f, spotDistance) *
+					Matrix4x4::MakeLookAtMatrix(light.position, light.position + Vector3::Normalize(light.direction), { 0.0f,1.0f,0.0f });
+			}
+		}
+
+		return Matrix4x4::MakeLightViewProjection(lightDir, focusPosition, 60.0f, 35.0f, 35.0f, 0.1f, 120.0f);
 	}
 
 	void LightManager::DrawImGui(bool* pOpen)

@@ -46,7 +46,15 @@ namespace Ken4lowEngine
 			float cosAngle;			// スポットライトの余弦 （スポットライト用）
 		};
 
-		// ライト数CB
+		
+		// シャドウ行列の生成対象を明示するための種別。
+		enum class ShadowCasterType : uint32_t
+		{
+			None = 0,
+			Directional = 1,
+			Spot = 2,
+		};
+// ライト数CB
 		struct LightInfo
 		{
 			uint32_t lightCount; // ライトの数
@@ -137,6 +145,8 @@ namespace Ken4lowEngine
 		bool IsShadowEnabled() const { return enableShadow_; }
 		uint32_t GetShadowMapSize() const { return shadowMapSize_; }
 		LightingSettingsGPU& GetMutableLightingSettingsForEditor() { return lightingSettings_; }
+		ShadowCasterType GetActiveShadowCasterType() const;
+		Matrix4x4 BuildShadowLightViewProjection(const Vector3& focusPosition) const;
 
 		// Editor Detailsから選択中ライトだけを書き換えるため、index検証付きヘルパー経由でのみ利用する。
 		std::vector<PunctualLightGPU>& GetMutablePunctualLightsForEditor() { return punctualLights_; }
