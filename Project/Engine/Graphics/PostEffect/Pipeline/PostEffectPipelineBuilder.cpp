@@ -1,6 +1,7 @@
 #include "PostEffectPipelineBuilder.h"
 #include "DirectXCommon.h"
 #include "ShaderCompiler.h"
+#include "PipelineStatePresets.h"
 
 #include <cassert>
 #include <vector>
@@ -66,7 +67,7 @@ namespace Ken4lowEngine
 		D3D12_STATIC_SAMPLER_DESC samplers[2] = {};
 
 		// s0: バイリニア
-		samplers[0].Filter = D3D12_FILTER_MIN_MAG_MIP_LINEAR;
+		samplers[0].Filter = PipelineStatePresets::ResolveSamplerFilter(D3D12_FILTER_MIN_MAG_MIP_LINEAR);
 		samplers[0].AddressU = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
 		samplers[0].AddressV = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
 		samplers[0].AddressW = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
@@ -306,7 +307,7 @@ namespace Ken4lowEngine
 		rootParams[3].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
 
 		D3D12_STATIC_SAMPLER_DESC samplerDesc[2]{};
-		samplerDesc[0].Filter = D3D12_FILTER_MIN_MAG_MIP_LINEAR;
+		samplerDesc[0].Filter = PipelineStatePresets::ResolveSamplerFilter(D3D12_FILTER_MIN_MAG_MIP_LINEAR);
 		samplerDesc[0].AddressU = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
 		samplerDesc[0].AddressV = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
 		samplerDesc[0].AddressW = D3D12_TEXTURE_ADDRESS_MODE_WRAP;

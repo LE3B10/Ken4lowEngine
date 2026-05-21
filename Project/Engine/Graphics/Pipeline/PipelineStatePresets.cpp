@@ -2,6 +2,10 @@
 
 namespace Ken4lowEngine::PipelineStatePresets
 {
+	namespace
+	{
+		SamplerDebugMode gSamplerDebugMode = SamplerDebugMode::Default;
+	}
 
 	D3D12_BLEND_DESC MakeBlendAlpha()
 	{
@@ -69,5 +73,29 @@ namespace Ken4lowEngine::PipelineStatePresets
 		desc.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ZERO;
 		desc.DepthFunc = D3D12_COMPARISON_FUNC_LESS_EQUAL;
 		return desc;
+	}
+
+	D3D12_FILTER ResolveSamplerFilter(D3D12_FILTER defaultFilter)
+	{
+		// Sampler由来のぼやけ切り分け用に全Pipelineのフィルタを一括上書きできるようにする。
+		if (gSamplerDebugMode == SamplerDebugMode::ForcePoint)
+		{
+			return D3D12_FILTER_MIN_MAG_MIP_POINT;
+		}
+		if (gSamplerDebugMode == SamplerDebugMode::ForceLinear)
+		{
+			return D3D12_FILTER_MIN_MAG_MIP_LINEAR;
+		}
+		return defaultFilter;
+	}
+
+	void SetSamplerDebugMode(SamplerDebugMode mode)
+	{
+		gSamplerDebugMode = mode;
+	}
+
+	SamplerDebugMode GetSamplerDebugMode()
+	{
+		return gSamplerDebugMode;
 	}
 };
