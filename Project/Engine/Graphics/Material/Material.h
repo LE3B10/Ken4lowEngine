@@ -24,7 +24,8 @@ public: /// ---------- 構造体 ---------- ///
 		Matrix4x4 uvTransform;  // UV変換行列 : bytes 64
 		float reflection;		// 反射率 : bytes 4
 		float roughness;		// 粗さ : bytes 4
-		float padding2[2];		// パディング : bytes 8
+		float usePointSampling; // 1.0f で Point Sampler を使用 : bytes 4
+		float padding2;			// パディング : bytes 4
 	};
 
 public: /// ---------- メンバ変数 ---------- ///
@@ -120,6 +121,7 @@ public: /// ---------- セッタ ---------- ///
 	/// </summary>
 	/// <param name="uvTransform">UV 座標に適用する 4x4 行列。</param>
 	void SetUVTransform(const Matrix4x4& uvTransform) { materialData_->uvTransform = uvTransform; }
+	void SetUsePointSampling(bool enabled) { materialData_->usePointSampling = enabled ? 1.0f : 0.0f; }
 
 private: /// ---------- メンバ変数 ---------- ///
 

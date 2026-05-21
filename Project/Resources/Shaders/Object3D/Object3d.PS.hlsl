@@ -14,7 +14,8 @@ struct Material
     float4x4 uvTransform;
     float reflectionRate;
     float roughness;
-    float2 padding1;
+    float usePointSampling;
+    float padding1;
 };
 
 struct Camera
@@ -52,6 +53,7 @@ Texture2D<float> gShadowMap : register(t4);
 
 SamplerState gSampler : register(s0);
 SamplerComparisonState gShadowSampler : register(s1);
+SamplerState gPointSampler : register(s2);
 
 static const float kAlphaDiscardThreshold = 0.001f;
 
@@ -66,7 +68,10 @@ PixelShaderOutput main(VertexShaderOutput input)
 
     float4 transformedUV = mul(float4(input.texcoord, 0.0f, 1.0f), gMaterial.uvTransform);
     // SRGB SRV は Sample 時点で線形化されるため、手動の pow による二重変換を避ける。
-    float4 textureColor = gTexture.Sample(gSampler, transformedUV.xy);
+    // 低解像度テクスチャでは Point、通常モデルは Linear を使い分ける。
+    float4 textureColor = (gMaterial.usePointSampling > 0.5f)
+        ? gTexture.Sample(gPointSampler, transformedUV.xy)
+        : gTexture.Sample(gSampler, transformedUV.xy);
 
     float3 worldPosition = input.worldPosition;
     float3 normal = normalize(input.normal);

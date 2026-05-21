@@ -31,12 +31,14 @@ namespace Ken4lowEngine
 		
 		const std::vector<D3D12_GPU_DESCRIPTOR_HANDLE>& GetMaterialSRVs() const { return materialSRVs_; }
 		std::vector<D3D12_GPU_DESCRIPTOR_HANDLE>& GetMaterialSRVs() { return materialSRVs_; }
+		const std::vector<bool>& GetMaterialPointSamplingFlags() const { return materialUsePointSampling_; }
 
 	private:
 
 		ModelData modelData_;
 		std::vector<Mesh> meshes_;
 		std::vector<D3D12_GPU_DESCRIPTOR_HANDLE> materialSRVs_;
+		std::vector<bool> materialUsePointSampling_{};
 		BoundingSphere localBounds_{};
 		bool hasLocalBounds_ = false;
 		std::vector<BoundingSphere> meshLocalBounds_{};

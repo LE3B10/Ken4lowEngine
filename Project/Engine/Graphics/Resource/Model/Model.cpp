@@ -5,9 +5,19 @@
 
 #include <algorithm>
 #include <limits>
+#include <cctype>
 
 namespace Ken4lowEngine
 {
+	namespace
+	{
+		bool ShouldUsePointSampling(const std::string& texturePath)
+		{
+			std::string lowered = texturePath;
+			std::transform(lowered.begin(), lowered.end(), lowered.begin(), [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+			return lowered.find("face") != std::string::npos || lowered.find("pixel") != std::string::npos || lowered.find("dot") != std::string::npos;
+		}
+	}
 
 	void Model::Initialize(const std::string& filePath)
 	{
@@ -15,9 +25,11 @@ namespace Ken4lowEngine
 
 		meshes_.clear();
 		materialSRVs_.clear();
+		materialUsePointSampling_.clear();
 
 		meshes_.reserve(modelData_.subMeshes.size());
 		materialSRVs_.reserve(modelData_.subMeshes.size());
+		materialUsePointSampling_.reserve(modelData_.subMeshes.size());
 
 		static const std::string kDefaultTexturePath = "Effects/white.dds";
 
@@ -33,6 +45,8 @@ namespace Ken4lowEngine
 
 			TextureManager::GetInstance()->LoadTexture(texturePath);
 			materialSRVs_.push_back(TextureManager::GetInstance()->GetSrvHandleGPU(texturePath));
+			// face/pixel系はデフォルトで Point Sampling を有効化し、まず見た目のぼやけを防ぐ。
+			materialUsePointSampling_.push_back(ShouldUsePointSampling(texturePath));
 
 			Mesh mesh{};
 			mesh.Initialize(sub.vertices, sub.indices);

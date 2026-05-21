@@ -52,7 +52,7 @@ namespace Ken4lowEngine
 		D3D12_ROOT_SIGNATURE_DESC MakeObject3DRootSignatureDesc(
 			std::array<D3D12_DESCRIPTOR_RANGE, 5>& ranges,
 			std::array<D3D12_ROOT_PARAMETER, Object3DRootParameterIndex::kCount>& rootParameters,
-			std::array<D3D12_STATIC_SAMPLER_DESC, 2>& staticSamplers)
+			std::array<D3D12_STATIC_SAMPLER_DESC, 3>& staticSamplers)
 		{
 			ranges[0] = {};
 			ranges[0].BaseShaderRegister = 0;
@@ -172,6 +172,10 @@ namespace Ken4lowEngine
 			staticSamplers[1].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
 			staticSamplers[1].MaxLOD = D3D12_FLOAT32_MAX;
 
+			staticSamplers[2] = staticSamplers[0];
+			staticSamplers[2].Filter = D3D12_FILTER_MIN_MAG_MIP_POINT;
+			staticSamplers[2].ShaderRegister = 2;
+
 			D3D12_ROOT_SIGNATURE_DESC desc{};
 			desc.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
 			desc.NumParameters = static_cast<UINT>(rootParameters.size());
@@ -260,7 +264,7 @@ namespace Ken4lowEngine
 		{
 			std::array<D3D12_DESCRIPTOR_RANGE, 5> ranges{};
 			std::array<D3D12_ROOT_PARAMETER, Object3DRootParameterIndex::kCount> rootParameters{};
-			std::array<D3D12_STATIC_SAMPLER_DESC, 2> staticSamplers{};
+		std::array<D3D12_STATIC_SAMPLER_DESC, 3> staticSamplers{};
 
 			D3D12_ROOT_SIGNATURE_DESC rootSigDesc =
 				MakeObject3DRootSignatureDesc(ranges, rootParameters, staticSamplers);
