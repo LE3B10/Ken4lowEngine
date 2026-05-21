@@ -26,6 +26,7 @@ namespace Ken4lowEngine
 		materialData_->reflection = 0.0f;							 // 反射なし
 		materialData_->uvTransform = Matrix4x4::MakeIdentity();		 // UV はそのまま
 		materialData_->roughness = 0.5f;							 // 中程度の粗さ
+		materialData_->usePointSampling = 0.0f;					 // 既定は従来どおり Linear
 	}
 
 
@@ -41,6 +42,7 @@ namespace Ken4lowEngine
 			materialData_->reflection = this->materialData_->reflection;			 // シェーディングの強さ
 			materialData_->uvTransform = this->materialData_->uvTransform;		 // UV変換行列
 			materialData_->roughness = this->materialData_->roughness;			 // 粗さ
+			materialData_->usePointSampling = this->materialData_->usePointSampling;
 		}
 	}
 

@@ -140,6 +140,7 @@ namespace Ken4lowEngine
 		float alpha = 1.0f; // α値
 
 		std::vector<D3D12_GPU_DESCRIPTOR_HANDLE> materialSRVs_; // サブメッシュごとのテクスチャ SRV ハンドルを保存するベクター
+		std::vector<bool> materialUsePointSampling_;
 
 		// 環境マップのテクスチャ
 		D3D12_GPU_DESCRIPTOR_HANDLE environmentMapHandle_{};

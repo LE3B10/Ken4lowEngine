@@ -15,10 +15,20 @@
 #include "Wireframe.h"
 
 #include <algorithm>
+#include <cctype>
 #include <cmath>
 
 namespace Ken4lowEngine
 {
+	namespace
+	{
+		bool ShouldUsePointSamplingForTexture(const std::string& texturePath)
+		{
+			std::string lowered = texturePath;
+			std::transform(lowered.begin(), lowered.end(), lowered.begin(), [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+			return lowered.find("face") != std::string::npos || lowered.find("pixel") != std::string::npos || lowered.find("dot") != std::string::npos;
+		}
+	}
 
 
 	/// -------------------------------------------------------------
@@ -255,6 +265,8 @@ namespace Ken4lowEngine
 			if (i < materialSRVs_.size())
 			{
 				TextureManager::GetInstance()->SetGraphicsRootDescriptorTable(commandList, 2, materialSRVs_[i]);
+				material_.SetUsePointSampling(i < materialUsePointSampling_.size() ? materialUsePointSampling_[i] : false);
+				material_.Update();
 			}
 			meshes[i].Draw();
 		}
@@ -288,6 +300,7 @@ namespace Ken4lowEngine
 		if (model_)
 		{
 			materialSRVs_ = model_->GetMaterialSRVs(); // 共有モデルから初期値をコピー
+			materialUsePointSampling_ = model_->GetMaterialPointSamplingFlags();
 		}
 	}
 
@@ -303,6 +316,7 @@ namespace Ken4lowEngine
 		{
 			srv = h;
 		}
+		materialUsePointSampling_.assign(materialSRVs_.size(), ShouldUsePointSamplingForTexture(texturePath));
 	}
 
 	/// -------------------------------------------------------------
@@ -314,6 +328,8 @@ namespace Ken4lowEngine
 
 		TextureManager::GetInstance()->LoadTexture(texturePath);
 		materialSRVs_[index] = TextureManager::GetInstance()->GetSrvHandleGPU(texturePath);
+		if (index >= materialUsePointSampling_.size()) { materialUsePointSampling_.resize(materialSRVs_.size(), false); }
+		materialUsePointSampling_[index] = ShouldUsePointSamplingForTexture(texturePath);
 	}
 
 	size_t Object3D::GetSubmeshCount() const
