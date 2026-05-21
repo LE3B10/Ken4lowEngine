@@ -205,7 +205,7 @@ namespace Ken4lowEngine
 		LightingSettingsGPU* lightingSettingsData_ = nullptr;
 		LightingSettingsGPU lightingSettings_{};
 		bool enableShadow_ = true;
-		float shadowBias_ = 0.00045f;
+		float shadowBias_ = 0.0f;
 		float normalBias_ = 0.025f;
 		float shadowStrength_ = 0.6f;
 		uint32_t shadowMapSize_ = 2048;
