@@ -12,7 +12,8 @@ struct ShadowParameter
     float normalBias;
     float shadowStrength;
     uint shadowMode; // 0:Off 1:Directional 2:Spot
-    float2 padding;
+    uint shadowDebugMode; // 0:None 1:ShadowMap 2:ShadowFactor
+    float padding;
 };
 
 float CalculateShadowPCF(

@@ -92,8 +92,9 @@ namespace Ken4lowEngine
 		shadowParameterData_->shadowBias = lightMgr->GetShadowBias();
 		shadowParameterData_->normalBias = lightMgr->GetNormalBias();
 		shadowParameterData_->shadowStrength = lightMgr->GetShadowStrength();
-				const auto casterType = lightMgr->GetActiveShadowCasterType();
+		const auto casterType = lightMgr->GetActiveShadowCasterType();
 		shadowParameterData_->shadowMode = lightMgr->IsShadowEnabled() ? (casterType == LightManager::ShadowCasterType::Spot ? 2u : (casterType == LightManager::ShadowCasterType::Directional ? 1u : 0u)) : 0u;
+		shadowParameterData_->shadowDebugMode = lightMgr->IsShadowMapDebugEnabled() ? 1u : (lightMgr->IsShadowFactorDebugEnabled() ? 2u : 0u);
 	}
 
 	void Object3D::UpdateWithWorldMatrix(const Matrix4x4& worldMatrix)
@@ -109,8 +110,9 @@ namespace Ken4lowEngine
 		shadowParameterData_->shadowBias = lightMgr->GetShadowBias();
 		shadowParameterData_->normalBias = lightMgr->GetNormalBias();
 		shadowParameterData_->shadowStrength = lightMgr->GetShadowStrength();
-				const auto casterType = lightMgr->GetActiveShadowCasterType();
+		const auto casterType = lightMgr->GetActiveShadowCasterType();
 		shadowParameterData_->shadowMode = lightMgr->IsShadowEnabled() ? (casterType == LightManager::ShadowCasterType::Spot ? 2u : (casterType == LightManager::ShadowCasterType::Directional ? 1u : 0u)) : 0u;
+		shadowParameterData_->shadowDebugMode = lightMgr->IsShadowMapDebugEnabled() ? 1u : (lightMgr->IsShadowFactorDebugEnabled() ? 2u : 0u);
 	}
 
 	void Object3D::UpdateShadowMatrix(const Matrix4x4& lightViewProjection)
@@ -360,6 +362,9 @@ namespace Ken4lowEngine
 		shadowParameterData_->lightViewProjection = Matrix4x4::MakeIdentity();
 		shadowParameterData_->shadowBias = 0.015f;
 		shadowParameterData_->normalBias = 0.02f;
+		shadowParameterData_->shadowStrength = 0.6f;
+		shadowParameterData_->shadowMode = 0u;
+		shadowParameterData_->shadowDebugMode = 0u;
 	}
 
 	BoundingSphere Object3D::GetWorldBounds() const

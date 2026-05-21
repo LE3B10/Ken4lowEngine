@@ -77,6 +77,38 @@ PixelShaderOutput main(VertexShaderOutput input)
     float3 normal = normalize(input.normal);
     float3 viewDir = normalize(gCamera.worldPosition - worldPosition);
 
+    float spotShadowFactor = 1.0f;
+    if (gShadowParameter.shadowMode == 2)
+    {
+        // SpotLightのDirectLightに掛けるshadowFactorをデバッグ表示にも再利用する。
+        float3 dominantSpotDir = float3(0.0f, -1.0f, 0.0f);
+        [loop]
+        for (uint i = 0; i < gLightInfo.gLightCount; ++i)
+        {
+            if (gPunctualLights[i].lightType == 3)
+            {
+                dominantSpotDir = normalize(gPunctualLights[i].position - worldPosition);
+                break;
+            }
+        }
+        spotShadowFactor = CalculateShadow(worldPosition, normal, dominantSpotDir, gShadowParameter, gShadowMap, gShadowSampler);
+    }
+
+    if (gShadowParameter.shadowDebugMode == 1)
+    {
+        float4 shadowPosition = mul(float4(worldPosition, 1.0f), gShadowParameter.lightViewProjection);
+        float3 proj = shadowPosition.xyz / max(shadowPosition.w, 1e-5f);
+        float2 uv = float2(proj.x * 0.5f + 0.5f, -proj.y * 0.5f + 0.5f);
+        float depth = gShadowMap.SampleLevel(gSampler, saturate(uv), 0.0f);
+        output.color = float4(depth.xxx, 1.0f);
+        return output;
+    }
+    if (gShadowParameter.shadowDebugMode == 2)
+    {
+        output.color = float4(spotShadowFactor.xxx, 1.0f);
+        return output;
+    }
+
     float3 lighting = AccumulateLighting(gPunctualLights,
         gLightInfo.gLightCount,
         worldPosition,
