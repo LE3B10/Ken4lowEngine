@@ -240,6 +240,11 @@ void Player::UpdateWeaponBeforeMotor(float deltaTime, InputFrameContext& ctx)
 		SuppressActionInputDuringReload(ctx.rawSnap);
 	}
 
+	if (weaponVisual_.IsEquipAnimating())
+	{
+		SuppressActionInputDuringReload(ctx.rawSnap);
+	}
+
 	weaponController_.HandleWheelSwitch(ctx.rawSnap);
 
 	weapon_.UpdateAndHandleInput(deltaTime, ctx.rawSnap);

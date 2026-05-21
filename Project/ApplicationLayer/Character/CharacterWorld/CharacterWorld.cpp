@@ -175,6 +175,14 @@ void CharacterWorld::Update(float dt)
 	}
 }
 
+void CharacterWorld::UpdatePlayerOnly(float dt)
+{
+	if (player_)
+	{
+		player_->Update(dt);
+	}
+}
+
 void CharacterWorld::WarmupStartGameplayVisuals()
 {
 	if (player_)

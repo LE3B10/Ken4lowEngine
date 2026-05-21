@@ -304,6 +304,29 @@ void GamePlayWorld::UpdateIntroVisuals()
 	}
 }
 
+void GamePlayWorld::UpdateEquipIntro(float deltaTime)
+{
+	if (stage_)
+	{
+		stage_->Update();
+	}
+
+	// EquipIntro中でも武器構えアニメーションだけは更新する。
+	characters_.UpdatePlayerOnly(deltaTime);
+
+	UpdateShadowLightViewProjection();
+	if (stage_)
+	{
+		stage_->UpdateShadowMatrix(shadowLightViewProjection_);
+	}
+	characters_.UpdateShadowMatrix(shadowLightViewProjection_);
+
+	if (skyBox_)
+	{
+		skyBox_->Update();
+	}
+}
+
 void GamePlayWorld::Draw3D(bool hideCharactersDuringIntro)
 {
 	K4E::SkyBoxManager::GetInstance()->SetRenderSetting();

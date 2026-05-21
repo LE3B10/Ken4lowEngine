@@ -24,6 +24,7 @@ public: /// ---------- メンバ関数 ---------- ///
 	void Update(float deltaTime);
 
 	void UpdateIntroVisuals();
+	void UpdateEquipIntro(float deltaTime);
 	void WarmupStartGameplayForIntro();
 	void SetStartGameplayVisualsVisible(bool visible);
 

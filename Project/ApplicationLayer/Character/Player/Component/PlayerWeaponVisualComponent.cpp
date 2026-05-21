@@ -228,7 +228,19 @@ void PlayerWeaponVisualComponent::DrawImGui()
 		ImGui::DragFloat("Equip Duration", &equipDuration_, 0.01f, 0.05f, 1.0f, "%.2f");
 		ImGui::DragFloat("Equip Start Offset Y", &equipStartOffsetY_, 0.01f, -2.0f, 0.0f, "%.2f");
 		ImGui::DragFloat("Equip Start Pitch Deg", &equipStartPitchDeg_, 0.5f, -45.0f, 0.0f, "%.1f");
-		ImGui::Text("Equip Animating: %s", equipAnimating_ ? "true" : "false");
+		const float equipNormalizedT = Clamp01((equipDuration_ > 0.001f) ? (equipTimer_ / equipDuration_) : 1.0f);
+		const float equipEaseOut = 1.0f - (1.0f - equipNormalizedT) * (1.0f - equipNormalizedT);
+		const K4E::Vector3 equipCurrentOffset = { 0.0f, (1.0f - equipEaseOut) * equipStartOffsetY_, 0.0f };
+		ImGui::Text("Equip animation enabled: %s", enableEquipAnimation_ ? "true" : "false");
+		ImGui::Text("IsEquipAnimating: %s", IsEquipAnimating() ? "true" : "false");
+		ImGui::Text("Equip elapsed time: %.3f", equipTimer_);
+		ImGui::Text("Equip duration: %.3f", equipDuration_);
+		ImGui::Text("Equip normalized t: %.3f", equipNormalizedT);
+		ImGui::Text("Equip current offset: (%.3f, %.3f, %.3f)", equipCurrentOffset.x, equipCurrentOffset.y, equipCurrentOffset.z);
+		if (ImGui::Button("Play Equip Animation"))
+		{
+			StartEquipAnimation();
+		}
 
 		if (ImGui::Button("Reset Weapon Size"))
 		{

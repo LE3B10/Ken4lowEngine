@@ -295,6 +295,7 @@ void GamePlayIntroDirector::Update(
 {
 	if (flow.GetState() == GamePlayFlow::State::EquipIntro)
 	{
+		world.UpdateEquipIntro(deltaTime);
 		if (auto* player = world.GetCharacters().GetPlayer())
 		{
 			if (!player->IsWeaponEquipAnimating())
