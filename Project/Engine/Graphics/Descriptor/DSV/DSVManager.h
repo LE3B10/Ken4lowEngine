@@ -56,7 +56,6 @@ public: /// ---------- メンバ関数 ---------- ///
 	ComPtr<ID3D12Resource> CreateDepthStencilBuffer(uint32_t width, uint32_t height, DXGI_FORMAT format, D3D12_CLEAR_VALUE& outClearValue);
 
 	ComPtr<ID3D12Resource> CreateShadowMapResource(uint32_t width, uint32_t height);
-	ComPtr<ID3D12Resource> CreateShadowMapArrayResource(uint32_t width, uint32_t height, uint16_t arraySize);
 
 	/// <summary>
 	/// 空いている DSV インデックスを 1 つ確保して返します。<br/>
@@ -94,7 +93,6 @@ public: /// ---------- メンバ関数 ---------- ///
 	void CreateDSVForTexture2D(uint32_t dsvIndex, ID3D12Resource* resource);
 
 	void CreateDSVForShadowMap(uint32_t dsvIndex, ID3D12Resource* resource);
-	void CreateDSVForShadowMapArraySlice(uint32_t dsvIndex, ID3D12Resource* resource, uint32_t arraySlice);
 
 public: /// ---------- ゲッター ---------- ///
 

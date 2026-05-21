@@ -114,31 +114,6 @@ namespace Ken4lowEngine
 		return depthBuffer;
 	}
 
-	ComPtr<ID3D12Resource> DSVManager::CreateShadowMapArrayResource(uint32_t width, uint32_t height, uint16_t arraySize)
-	{
-		D3D12_RESOURCE_DESC depthDesc{};
-		depthDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
-		depthDesc.Width = width;
-		depthDesc.Height = height;
-		depthDesc.DepthOrArraySize = arraySize;
-		depthDesc.MipLevels = 1;
-		depthDesc.Format = DXGI_FORMAT_R32_TYPELESS;
-		depthDesc.SampleDesc.Count = 1;
-		depthDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
-		depthDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
-
-		D3D12_CLEAR_VALUE clearValue{};
-		clearValue.Format = DXGI_FORMAT_D32_FLOAT;
-		clearValue.DepthStencil.Depth = 1.0f;
-		clearValue.DepthStencil.Stencil = 0;
-
-		CD3DX12_HEAP_PROPERTIES heapProps(D3D12_HEAP_TYPE_DEFAULT);
-		ComPtr<ID3D12Resource> depthBuffer;
-		HRESULT hr = dxCommon_->GetDevice()->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &depthDesc, D3D12_RESOURCE_STATE_DEPTH_WRITE, &clearValue, IID_PPV_ARGS(&depthBuffer));
-		assert(SUCCEEDED(hr) && "Failed to create Shadow Map Array Resource!");
-		return depthBuffer;
-	}
-
 
 	/// -------------------------------------------------------------
 	///				DSVを確保（未使用のインデックスを取得）
@@ -221,21 +196,6 @@ namespace Ken4lowEngine
 		dsvDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
 		dsvDesc.Flags = D3D12_DSV_FLAG_NONE;
 		dsvDesc.Texture2D.MipSlice = 0;
-
-		dxCommon_->GetDevice()->CreateDepthStencilView(resource, &dsvDesc, GetCPUDescriptorHandle(dsvIndex));
-	}
-
-	void DSVManager::CreateDSVForShadowMapArraySlice(uint32_t dsvIndex, ID3D12Resource* resource, uint32_t arraySlice)
-	{
-		assert(resource && "ShadowMap array resource is null!");
-
-		D3D12_DEPTH_STENCIL_VIEW_DESC dsvDesc{};
-		dsvDesc.Format = DXGI_FORMAT_D32_FLOAT;
-		dsvDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2DARRAY;
-		dsvDesc.Flags = D3D12_DSV_FLAG_NONE;
-		dsvDesc.Texture2DArray.MipSlice = 0;
-		dsvDesc.Texture2DArray.FirstArraySlice = arraySlice;
-		dsvDesc.Texture2DArray.ArraySize = 1;
 
 		dxCommon_->GetDevice()->CreateDepthStencilView(resource, &dsvDesc, GetCPUDescriptorHandle(dsvIndex));
 	}

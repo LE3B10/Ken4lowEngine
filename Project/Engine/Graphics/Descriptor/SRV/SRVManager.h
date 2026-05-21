@@ -61,7 +61,6 @@ namespace Ken4lowEngine
 		void CreateSRVForStructureBuffer(uint32_t srvIndex, ID3D12Resource* pResource, UINT numElements, UINT structureByteStride);
 
 		void CreateSRVForShadowMap(uint32_t srvIndex, ID3D12Resource* shadowMap);
-		void CreateSRVForShadowMapArray(uint32_t srvIndex, ID3D12Resource* shadowMap, uint32_t arraySize);
 
 		/// <summary>
 		/// 描画前に、この SRV ヒープをコマンドリストへセットします。<br/>
