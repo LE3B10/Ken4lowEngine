@@ -66,7 +66,7 @@ namespace Ken4lowEngine
 		// ステージを白飛びさせないためのライティング/露出調整CB。
 		struct LightingSettingsGPU
 		{
-			Vector4 ambientColor = { 0.10f, 0.10f, 0.10f, 1.0f };
+			Vector4 ambientColor = { 0.10f, 0.10f, 0.10f, 0.15f };
 			Vector4 fogColor = { 0.58f, 0.64f, 0.70f, 1.0f };
 			float exposure = 1.0f;
 			float contrast = 1.0f;
