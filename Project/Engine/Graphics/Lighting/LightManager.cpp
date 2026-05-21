@@ -321,47 +321,7 @@ namespace Ken4lowEngine
 			ImGui::SliderFloat("Fog End", &lightingSettings_.fogEnd, lightingSettings_.fogStart + 1.0f, 500.0f);
 		}
 
-		
-		if (ImGui::CollapsingHeader("Light Debug", ImGuiTreeNodeFlags_DefaultOpen))
-		{
-			// ライティングの残留成分を切り分けるため各要素を個別に有効/無効化できるようにする。
-			bool showLightingDebug = true;
-			ImGui::Checkbox("Show Lighting Debug", &showLightingDebug);
-			bool ambientOn = lightingSettings_.debugEnableAmbient != 0;
-			if (ImGui::Checkbox("Ambient ON/OFF", &ambientOn)) lightingSettings_.debugEnableAmbient = ambientOn ? 1u : 0u;
-			bool directionalOn = lightingSettings_.debugEnableDirectional != 0;
-			if (ImGui::Checkbox("Directional ON/OFF", &directionalOn)) lightingSettings_.debugEnableDirectional = directionalOn ? 1u : 0u;
-			bool pointOn = lightingSettings_.debugEnablePoint != 0;
-			if (ImGui::Checkbox("Point ON/OFF", &pointOn)) lightingSettings_.debugEnablePoint = pointOn ? 1u : 0u;
-			bool spotOn = lightingSettings_.debugEnableSpot != 0;
-			if (ImGui::Checkbox("Spot ON/OFF", &spotOn)) lightingSettings_.debugEnableSpot = spotOn ? 1u : 0u;
-			bool fogOn = lightingSettings_.enableFog != 0;
-			if (ImGui::Checkbox("Fog ON/OFF", &fogOn)) lightingSettings_.enableFog = fogOn ? 1u : 0u;
-			bool emissiveOn = lightingSettings_.debugEnableEmissive != 0;
-			if (ImGui::Checkbox("Emissive ON/OFF", &emissiveOn)) lightingSettings_.debugEnableEmissive = emissiveOn ? 1u : 0u;
-			bool showShadowFactor = lightingSettings_.debugShowShadowFactor != 0;
-			if (ImGui::Checkbox("Show Shadow Factor", &showShadowFactor)) lightingSettings_.debugShowShadowFactor = showShadowFactor ? 1u : 0u;
-			bool showContribution = lightingSettings_.debugShowLightContribution != 0;
-			if (ImGui::Checkbox("Show Light Contribution", &showContribution)) lightingSettings_.debugShowLightContribution = showContribution ? 1u : 0u;
-
-			int directionalCount = 0, pointCount = 0, spotCount = 0;
-			for (const auto& l : punctualLights_) {
-				if (l.lightType == 1) ++directionalCount;
-				else if (l.lightType == 2) ++pointCount;
-				else if (l.lightType == 3) ++spotCount;
-			}
-			const float ambientScalar = ((lightingSettings_.debugEnableAmbient != 0) ? lightingSettings_.ambientColor.a : 0.0f);
-			ImGui::Text("Ambient      : %.3f", ambientScalar);
-			ImGui::Text("Directional  : %d active", directionalCount);
-			ImGui::Text("Point        : %d active", pointCount);
-			ImGui::Text("Spot         : %d active", spotCount);
-			ImGui::Text("Emissive     : %s (material emissive input is not implemented)", (lightingSettings_.debugEnableEmissive != 0) ? "ON" : "OFF");
-			ImGui::Text("Fog          : %s", (lightingSettings_.enableFog != 0) ? "ON" : "OFF");
-			ImGui::Text("Exposure     : %.3f", lightingSettings_.exposure);
-			ImGui::Text("PointLight Shadow Status: Not Implemented");
-			ImGui::Text("SpotLight ShadowMap Debug View: Not Implemented");
-		}
-if (ImGui::Button("+ Add Light"))
+		if (ImGui::Button("+ Add Light"))
 		{
 			PunctualLightGPU L{};
 			L.lightType = 1;

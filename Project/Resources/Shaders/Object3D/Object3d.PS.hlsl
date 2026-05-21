@@ -112,10 +112,6 @@ PixelShaderOutput main(VertexShaderOutput input)
     float3 shadedColor = lerp(baseColor, edgeColor.rgb, dissolveBlend);
     shadedColor *= lighting;
 
-    // Emissive切り分け用: 今は専用emissive入力が無いため、debug OFF時は寄与を0に固定する。
-    float3 emissiveColor = (gLightingSettings.debugEnableEmissive != 0) ? edgeColor.rgb * (1.0f - edge) : 0.0.xxx;
-    shadedColor += emissiveColor;
-
     // 反射を最後に混ぜる
     shadedColor = lerp(shadedColor, reflectionColor, envBlend);
 
@@ -123,11 +119,6 @@ PixelShaderOutput main(VertexShaderOutput input)
     shadedColor = ApplyFog(shadedColor, worldPosition, gCamera.worldPosition, gLightingSettings);
     shadedColor = ApplySimpleToneMapping(shadedColor, gLightingSettings);
     shadedColor = ApplyContrast(shadedColor, gLightingSettings);
-
-    if (gLightingSettings.debugShowLightContribution != 0)
-    {
-        shadedColor = saturate(lighting);
-    }
 
     output.color.rgb = shadedColor;
     output.color.a = gMaterial.color.a * textureColor.a;

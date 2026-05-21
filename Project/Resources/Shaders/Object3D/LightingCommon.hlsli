@@ -35,14 +35,7 @@ struct LightingSettings
     float fogEnd;
     uint enableFog;
     float specularStrength;
-    uint debugEnableAmbient;
-    uint debugEnableDirectional;
-    uint debugEnablePoint;
-    uint debugEnableSpot;
-    uint debugEnableEmissive;
-    uint debugShowShadowFactor;
-    uint debugShowLightContribution;
-    float padding;
+    float2 padding;
 };
 
 struct LightingTerms
@@ -181,7 +174,6 @@ float3 AccumulateLighting(
 
         if (light.lightType == LIGHT_TYPE_DIRECTIONAL)
         {
-            if (lightingSettings.debugEnableDirectional == 0) { continue; }
             terms = EvaluateDirectionalLight(
                 light,
                 worldPosition,
@@ -195,7 +187,6 @@ float3 AccumulateLighting(
         }
         else if (light.lightType == LIGHT_TYPE_POINT)
         {
-            if (lightingSettings.debugEnablePoint == 0) { continue; }
             terms = EvaluatePointLight(
                 light,
                 worldPosition,
@@ -206,7 +197,6 @@ float3 AccumulateLighting(
         }
         else if (light.lightType == LIGHT_TYPE_SPOT)
         {
-            if (lightingSettings.debugEnableSpot == 0) { continue; }
             terms = EvaluateSpotLight(
                 light,
                 worldPosition,
@@ -225,10 +215,10 @@ float3 AccumulateLighting(
     }
 
     // CPUから渡したAmbientをそのまま使い、強すぎる環境光を調整できるようにする。
-    float3 ambient = (lightingSettings.debugEnableAmbient != 0) ? (lightingSettings.ambientColor.rgb * lightingSettings.ambientColor.a) : 0.0.xxx;
+    float3 ambient = lightingSettings.ambientColor.rgb * lightingSettings.ambientColor.a;
 
-    // 旧挙動の最低明度(1.0)を撤廃し、ライト0本なら真っ暗(=0)になるようにする。
-    return (ambient + diffuseSum + specularSum * lightingSettings.specularStrength);
+    // ライト0本時だけ旧挙動に近い明るさを残し、ライトありではAmbientを明示値に抑える。
+    return (activeLightCount == 0) ? 1.0.xxx : (ambient + diffuseSum + specularSum * lightingSettings.specularStrength);
 }
 
 float3 ApplySimpleToneMapping(float3 color, LightingSettings lightingSettings)
