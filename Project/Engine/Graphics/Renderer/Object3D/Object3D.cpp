@@ -212,7 +212,7 @@ namespace Ken4lowEngine
 		commandList->SetGraphicsRootConstantBufferView(9, shadowParameterResource_->GetGPUVirtualAddress()); // シャドウマップ用行列
 		commandList->SetGraphicsRootDescriptorTable(10, shadowMapHandle_); // シャドウマップのSRV
 
-		// StageChunk 経由でも Mesh 単位の既存カリングを残し、Chunk 内の不可視 Mesh はさらに Draw を抑制する。
+		// StageChunk で可視判定済みのメッシュは二重カリングで欠けないよう、Stage専用ObjectはMesh単位Frustum判定をスキップする。
 		auto& meshes = model_->GetMeshes();
 		const size_t drawCount = meshIndices ? meshIndices->size() : meshes.size();
 		for (size_t drawIndex = 0; drawIndex < drawCount; ++drawIndex)
@@ -225,7 +225,10 @@ namespace Ken4lowEngine
 
 			const BoundingSphere meshBounds = GetMeshWorldBounds(i);
 			const bool hasMeshBounds = HasMeshWorldBounds(i);
-			const bool meshVisible = object3DCommon->ShouldDrawMesh(meshBounds, frustumCullingEnabled_, hasMeshBounds);
+			const bool skipMeshFrustumForStageChunk = (meshIndices != nullptr) && isStageObjectCullingUnit_;
+			const bool meshVisible = skipMeshFrustumForStageChunk
+				? true
+				: object3DCommon->ShouldDrawMesh(meshBounds, frustumCullingEnabled_, hasMeshBounds);
 			DrawBoundsDebug(meshBounds, meshVisible);
 			if (!meshVisible)
 			{
