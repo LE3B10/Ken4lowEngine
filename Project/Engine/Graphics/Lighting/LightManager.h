@@ -144,6 +144,8 @@ namespace Ken4lowEngine
 		float GetShadowStrength() const { return shadowStrength_; }
 		bool IsShadowEnabled() const { return enableShadow_; }
 		uint32_t GetShadowMapSize() const { return shadowMapSize_; }
+		bool IsShadowMapDebugEnabled() const { return showShadowMapDebug_; }
+		bool IsShadowFactorDebugEnabled() const { return showShadowFactorDebug_; }
 		LightingSettingsGPU& GetMutableLightingSettingsForEditor() { return lightingSettings_; }
 		ShadowCasterType GetActiveShadowCasterType() const;
 		Matrix4x4 BuildShadowLightViewProjection(const Vector3& focusPosition) const;
@@ -208,6 +210,7 @@ namespace Ken4lowEngine
 		float shadowStrength_ = 0.6f;
 		uint32_t shadowMapSize_ = 2048;
 		bool showShadowMapDebug_ = false;
+		bool showShadowFactorDebug_ = false;
 
 	private: /// ---------- コピー禁止 ---------- ///
 

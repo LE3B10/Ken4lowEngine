@@ -426,8 +426,7 @@ namespace Ken4lowEngine
 			dxCommon_->SetShadowMapSize(shadowMapSize_, shadowMapSize_);
 		}
 		ImGui::Checkbox("Show ShadowMap Debug", &showShadowMapDebug_);
-		bool showShadowFactor = false;
-		ImGui::Checkbox("Show Shadow Factor", &showShadowFactor);
+		ImGui::Checkbox("Show Shadow Factor", &showShadowFactorDebug_);
 				if (hasPointLight)
 		{
 			ImGui::TextColored(ImVec4(1.0f, 0.75f, 0.2f, 1.0f), "PointLight Shadow: Not Implemented (Cube ShadowMap required)");
@@ -446,14 +445,24 @@ namespace Ken4lowEngine
 				break;
 			}
 		}
-				const char* lvpOwner = "none";
-		switch (GetActiveShadowCasterType())
+		const ShadowCasterType casterType = GetActiveShadowCasterType();
+		if (casterType == ShadowCasterType::Directional)
 		{
-		case ShadowCasterType::Directional: lvpOwner = "DirectionalLight"; break;
-		case ShadowCasterType::Spot: lvpOwner = "SpotLight"; break;
-		default: break;
+			ImGui::Text("Directional: LightViewProjection active");
 		}
-		ImGui::Text("LightViewProjection: generated in LightManager (%s)", lvpOwner);
+		else if (casterType == ShadowCasterType::Spot)
+		{
+			ImGui::Text("Spot: LightViewProjection active");
+			ImGui::Text("LightViewProjection: generated in LightManager (spot)");
+		}
+		else if (hasPointLight)
+		{
+			ImGui::Text("Point: Not used, Cube ShadowMap required");
+		}
+		else
+		{
+			ImGui::Text("None: no shadow-casting light selected");
+		}
 		ImGui::Text("Active Lights (type!=0): will be uploaded");
 #endif // USE_IMGUI
 	}
@@ -492,8 +501,10 @@ namespace Ken4lowEngine
 				const float outerAngle = std::acos(spotOuterCos) * 2.0f;
 				const float fovY = std::clamp(outerAngle, 0.15f, 3.0f);
 				// SpotLightの方向でShadowMap用ViewProjectionを生成する。
-				return Matrix4x4::MakePerspectiveFovMatrix(fovY, 1.0f, 0.1f, spotDistance) *
-					Matrix4x4::MakeLookAtMatrix(light.position, light.position + Vector3::Normalize(light.direction), { 0.0f,1.0f,0.0f });
+				const Matrix4x4 view = Matrix4x4::MakeLookAtMatrix(light.position, light.position + Vector3::Normalize(light.direction), { 0.0f,1.0f,0.0f });
+				const Matrix4x4 proj = Matrix4x4::MakePerspectiveFovMatrix(fovY, 1.0f, 0.1f, spotDistance);
+				// SpotLight Shadow は world * view * projection の順で評価できる行列を返す。
+				return Matrix4x4::Multiply(view, proj);
 			}
 		}
 
