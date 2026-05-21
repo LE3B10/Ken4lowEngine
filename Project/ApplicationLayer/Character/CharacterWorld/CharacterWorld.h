@@ -41,6 +41,7 @@ public: /// ---------- メンバ関数 ---------- ///
 	void Finalize();
 
 	void Update(float dt);
+	void UpdatePlayerOnly(float dt);
 	void WarmupStartGameplayVisuals();
 	void SetStartGameplayVisualsVisible(bool visible);
 	void Draw();
