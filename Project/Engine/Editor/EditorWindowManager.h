@@ -21,6 +21,7 @@ namespace Ken4lowEngine
 		bool showWorldOutliner = true;
 		bool showDetails = true;
 		bool showOutputLog = true;
+		bool showScene = true;
 
 		// WindowメニューのRenderingカテゴリで切り替える描画調整ウィンドウです。
 		bool showParameters = true;
@@ -83,6 +84,7 @@ namespace Ken4lowEngine
 		void DrawDetails();
 		void DrawContentBrowser();
 		void DrawOutputLog();
+		void DrawScene();
 		void InitializeEditorServices();
 		void FinalizeEditorServices();
 
