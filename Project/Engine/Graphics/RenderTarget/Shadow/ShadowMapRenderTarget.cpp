@@ -26,6 +26,7 @@ namespace Ken4lowEngine
 	{
 		ReleaseDescriptors();
 		shadowMapResource_.Reset();
+		pointShadowArrayResource_.Reset();
 		dxCommon_ = nullptr;
 	}
 
@@ -40,6 +41,12 @@ namespace Ken4lowEngine
 		);
 		// ShadowMapRenderTargetにも名前を付け、深度RTのDebugLayer出力を特定しやすくする。
 		shadowMapResource_->SetName(L"ShadowMapRenderTarget");
+		pointShadowArrayResource_ = DSVManager::GetInstance()->CreateShadowMapArrayResource(
+			settings_.width,
+			settings_.height,
+			6
+		);
+		pointShadowArrayResource_->SetName(L"PointShadowMapArrayRenderTarget");
 
 		// 新規生成直後は depth write 状態
 		resourceState_ = D3D12_RESOURCE_STATE_DEPTH_WRITE;
@@ -74,6 +81,23 @@ namespace Ken4lowEngine
 		{
 			srvManager->CreateSRVForShadowMap(shadowMapSrvIndex_, shadowMapResource_.Get());
 		}
+
+		for (uint32_t face = 0; face < 6; ++face)
+		{
+			if (!hasCreatedPointShadowArrayDSV_[face])
+			{
+				pointShadowArrayDsvIndices_[face] = dsvManager->Allocate();
+				hasCreatedPointShadowArrayDSV_[face] = true;
+			}
+			dsvManager->CreateDSVForShadowMapArraySlice(pointShadowArrayDsvIndices_[face], pointShadowArrayResource_.Get(), face);
+		}
+		if (!hasCreatedPointShadowArraySRV_)
+		{
+			pointShadowArraySrvIndex_ = srvManager->Allocate();
+			hasCreatedPointShadowArraySRV_ = true;
+		}
+		// PointLightの6方向深度を1つのTexture2DArray SRVで参照できるようにする。
+		srvManager->CreateSRVForShadowMapArray(pointShadowArraySrvIndex_, pointShadowArrayResource_.Get(), 6);
 	}
 
 	/// -------------------------------------------------------------
@@ -96,6 +120,21 @@ namespace Ken4lowEngine
 			srvManager->Free(shadowMapSrvIndex_);
 			shadowMapSrvIndex_ = UINT32_MAX;
 			hasCreatedSRV_ = false;
+		}
+		for (uint32_t face = 0; face < 6; ++face)
+		{
+			if (hasCreatedPointShadowArrayDSV_[face])
+			{
+				dsvManager->Free(pointShadowArrayDsvIndices_[face]);
+				pointShadowArrayDsvIndices_[face] = UINT32_MAX;
+				hasCreatedPointShadowArrayDSV_[face] = false;
+			}
+		}
+		if (hasCreatedPointShadowArraySRV_)
+		{
+			srvManager->Free(pointShadowArraySrvIndex_);
+			pointShadowArraySrvIndex_ = UINT32_MAX;
+			hasCreatedPointShadowArraySRV_ = false;
 		}
 	}
 

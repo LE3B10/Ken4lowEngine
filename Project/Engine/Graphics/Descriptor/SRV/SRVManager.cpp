@@ -130,6 +130,25 @@ namespace Ken4lowEngine
 		dxCommon_->GetDevice()->CreateShaderResourceView(shadowMap, &srvDesc, GetCPUDescriptorHandle(srvIndex));
 	}
 
+	void SRVManager::CreateSRVForShadowMapArray(uint32_t srvIndex, ID3D12Resource* shadowMap, uint32_t arraySize)
+	{
+		assert(shadowMap && "shadowMap array resource is null in CreateSRVForShadowMapArray");
+
+		D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc{};
+		srvDesc.Format = DXGI_FORMAT_R32_FLOAT;
+		srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+		srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2DARRAY;
+		srvDesc.Texture2DArray.MostDetailedMip = 0;
+		srvDesc.Texture2DArray.MipLevels = 1;
+		srvDesc.Texture2DArray.FirstArraySlice = 0;
+		srvDesc.Texture2DArray.ArraySize = arraySize;
+		srvDesc.Texture2DArray.PlaneSlice = 0;
+		srvDesc.Texture2DArray.ResourceMinLODClamp = 0.0f;
+
+		// PointLight向けの6面深度配列をまとめて参照できるSRVを作成する。
+		dxCommon_->GetDevice()->CreateShaderResourceView(shadowMap, &srvDesc, GetCPUDescriptorHandle(srvIndex));
+	}
+
 
 	/// -------------------------------------------------------------
 	///						ヒープセットコマンド

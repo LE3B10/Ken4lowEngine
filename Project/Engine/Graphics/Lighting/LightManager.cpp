@@ -427,6 +427,10 @@ namespace Ken4lowEngine
 		}
 		ImGui::Checkbox("Show ShadowMap Debug", &showShadowMapDebug_);
 		ImGui::Checkbox("Show Shadow Factor", &showShadowFactorDebug_);
+		const bool pointShadowReady = (dxCommon_ && dxCommon_->GetShadowMapRenderTarget()) ? dxCommon_->GetShadowMapRenderTarget()->IsPointShadowArrayReady() : false;
+		ImGui::Text("PointLight Shadow Resource: %s", pointShadowReady ? "Ready" : "Not Ready");
+		ImGui::Text("PointLight Shadow Type: Texture2DArray(6)");
+		ImGui::Text("PointLight Shadow is not applied yet");
 				if (hasPointLight)
 		{
 			ImGui::TextColored(ImVec4(1.0f, 0.75f, 0.2f, 1.0f), "PointLight Shadow: Not Implemented (Cube ShadowMap required)");

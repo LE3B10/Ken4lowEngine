@@ -52,6 +52,9 @@ namespace Ken4lowEngine
 
 		uint32_t GetWidth() const { return settings_.width; }
 		uint32_t GetHeight() const { return settings_.height; }
+		ID3D12Resource* GetPointShadowArrayResource() const { return pointShadowArrayResource_.Get(); }
+		uint32_t GetPointShadowArraySrvIndex() const { return pointShadowArraySrvIndex_; }
+		bool IsPointShadowArrayReady() const { return pointShadowArrayResource_ != nullptr && hasCreatedPointShadowArraySRV_; }
 
 	private:
 		void CreateResource();
@@ -68,14 +71,19 @@ namespace Ken4lowEngine
 
 		// シャドウマップ用深度テクスチャ
 		Microsoft::WRL::ComPtr<ID3D12Resource> shadowMapResource_;
+		Microsoft::WRL::ComPtr<ID3D12Resource> pointShadowArrayResource_;
 
 		// DSV / SRV のヒープ上インデックス
 		uint32_t shadowMapDsvIndex_ = UINT32_MAX;
 		uint32_t shadowMapSrvIndex_ = UINT32_MAX;
+		uint32_t pointShadowArrayDsvIndices_[6] = { UINT32_MAX, UINT32_MAX, UINT32_MAX, UINT32_MAX, UINT32_MAX, UINT32_MAX };
+		uint32_t pointShadowArraySrvIndex_ = UINT32_MAX;
 
 		// 二重確保防止用
 		bool hasCreatedDSV_ = false;
 		bool hasCreatedSRV_ = false;
+		bool hasCreatedPointShadowArrayDSV_[6] = { false, false, false, false, false, false };
+		bool hasCreatedPointShadowArraySRV_ = false;
 
 		// viewport / scissor
 		D3D12_VIEWPORT viewport_{};
