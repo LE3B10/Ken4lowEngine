@@ -414,6 +414,19 @@ namespace Ken4lowEngine
 			dxCommon_->SetShadowMapSize(shadowMapSize_, shadowMapSize_);
 		}
 		ImGui::Checkbox("Show ShadowMap Debug", &showShadowMapDebug_);
+		bool showShadowFactor = false;
+		ImGui::Checkbox("Show Shadow Factor", &showShadowFactor);
+		ImGui::Text("PointLight Shadow: Not Implemented");
+		for (const auto& L : punctualLights_)
+		{
+			if (L.lightType == 3)
+			{
+				ImGui::Text("Spot cone cosOuter/cosInner: %.3f / %.3f", L.cosAngle, L.cosFalloffStart);
+				ImGui::Text("Spot range: %.2f", L.distance);
+				break;
+			}
+		}
+		ImGui::Text("LightViewProjection: generated in Object3D::Update (spot-priority)");
 		ImGui::Text("Active Lights (type!=0): will be uploaded");
 #endif // USE_IMGUI
 	}

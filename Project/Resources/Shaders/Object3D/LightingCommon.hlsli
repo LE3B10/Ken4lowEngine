@@ -125,7 +125,10 @@ LightingTerms EvaluateSpotLight(
     float3 worldPosition,
     float3 normal,
     float3 viewDir,
-    float shininess)
+    ShadowParameter shadowParam,
+    float shininess,
+    Texture2D<float> shadowMap,
+    SamplerComparisonState shadowSampler)
 {
     LightingTerms terms = MakeEmptyLightingTerms();
 
@@ -145,8 +148,9 @@ LightingTerms EvaluateSpotLight(
     float NdotL = saturate(dot(normal, lightDir));
     float3 lightColor = light.color.rgb * (light.intensity * atten * spot);
 
-    terms.diffuse = lightColor * NdotL;
-    terms.specular = lightColor * ComputeSpecular(normal, lightDir, viewDir, shininess) * NdotL;
+    float shadow = (shadowParam.shadowMode == 2) ? CalculateShadow(worldPosition, normal, lightDir, shadowParam, shadowMap, shadowSampler) : 1.0f;
+    terms.diffuse = lightColor * NdotL * shadow;
+    terms.specular = lightColor * ComputeSpecular(normal, lightDir, viewDir, shininess) * NdotL * shadow;
     return terms;
 }
 
@@ -187,6 +191,7 @@ float3 AccumulateLighting(
         }
         else if (light.lightType == LIGHT_TYPE_POINT)
         {
+            // PointLight shadow is currently not implemented (requires cube/6-face shadow map).
             terms = EvaluatePointLight(
                 light,
                 worldPosition,
@@ -202,7 +207,10 @@ float3 AccumulateLighting(
                 worldPosition,
                 normal,
                 viewDir,
-                shininess);
+                shadowParam,
+                shininess,
+                shadowMap,
+                shadowSampler);
             activeLightCount++;
         }
         else

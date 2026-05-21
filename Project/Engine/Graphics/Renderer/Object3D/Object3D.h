@@ -50,7 +50,9 @@ namespace Ken4lowEngine
 			Matrix4x4 lightViewProjection; // ライトのビュー射影行列
 			float shadowBias;              // シャドウバイアス
 			float normalBias;              // 法線方向オフセット量
-			float padding[3];              // パディング
+			float shadowStrength;          // 影の濃さ（DirectLight のみへ適用）
+			uint32_t shadowMode;           // 0:Off 1:Directional 2:Spot
+			float padding[2];              // パディング
 		};
 
 	public: /// ---------- メンバ関数 ---------- ///
