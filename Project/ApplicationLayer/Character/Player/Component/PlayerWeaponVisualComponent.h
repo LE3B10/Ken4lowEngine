@@ -41,6 +41,8 @@ public: /// ---------- メンバ関数 ---------- ///
 
 	// リロード中の武器表示補正を更新する
 	void SetReloadViewModelState(bool isReloading, float reloadTimer, float reloadDuration);
+	void StartEquipAnimation();
+	bool IsEquipAnimating() const;
 
 	// 現在の見た目を強制再構築したいときに使う
 	void ForceRefresh();
@@ -114,6 +116,12 @@ private: /// ---------- メンバ変数 ---------- ///
 	float reloadPoseBlendSpeed_ = 14.0f;
 	K4E::Vector3 reloadWeaponOffset_{ 0.0f, 0.0f, 0.0f };
 	K4E::Vector3 reloadWeaponRotDeg_{ 0.0f, 0.0f, 0.0f };
+	bool enableEquipAnimation_ = true;
+	bool equipAnimating_ = false;
+	float equipTimer_ = 0.0f;
+	float equipDuration_ = 0.32f;
+	float equipStartOffsetY_ = -0.75f;
+	float equipStartPitchDeg_ = -10.0f;
 
 	// 銃口のローカル位置。モデルによってずれる場合はここを調整する
 	K4E::Vector3 muzzleLocalOffset_{ 0.0f, -0.02f, 0.85f };
@@ -129,4 +137,3 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	bool refreshRequested_ = false;	std::string appliedModelPath_;
 };
-

@@ -297,7 +297,7 @@ bool GamePlayScene::UpdateRetryTransition()
 /// -------------------------------------------------------------
 bool GamePlayScene::UpdateIntro(float deltaTime)
 {
-	if (!(flow_ && flow_->IsIntro()))
+	if (!(flow_ && (flow_->IsIntro() || flow_->IsEquipIntro())))
 	{
 		return false;
 	}
@@ -314,7 +314,7 @@ bool GamePlayScene::UpdateIntro(float deltaTime)
 	}
 
 	// 完了フレーム内に通常更新へ進め、終点で1フレーム停止して見えるのを防ぐ。
-	return flow_ && flow_->IsIntro();
+	return flow_ && (flow_->IsIntro() || flow_->IsEquipIntro());
 }
 
 /// -------------------------------------------------------------
