@@ -268,6 +268,10 @@ void Player::UpdateWeaponBeforeMotor(float deltaTime, InputFrameContext& ctx)
 		ctx.reload.isReloading,
 		ctx.reload.reloadTimer,
 		ctx.reload.reloadSec);
+	view_.SetEquipViewModelState(
+		weaponVisual_.IsEquipAnimating(),
+		weaponVisual_.GetCurrentEquipOffset(),
+		weaponVisual_.GetCurrentEquipPitchRad());
 
 	if (weaponVisual_.IsEquipAnimating())
 	{

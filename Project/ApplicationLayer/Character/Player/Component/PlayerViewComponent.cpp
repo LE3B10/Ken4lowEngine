@@ -162,6 +162,13 @@ void PlayerViewComponent::SetReloadViewModelState(bool isReloading, float reload
 	}
 }
 
+void PlayerViewComponent::SetEquipViewModelState(bool isAnimating, const K4E::Vector3& offset, float pitchRad)
+{
+	equipViewActive_ = isAnimating;
+	equipViewOffset_ = offset;
+	equipViewPitchRad_ = pitchRad;
+}
+
 void PlayerViewComponent::UpdateLook(float dt, const InputSnapshot& input)
 {
 	fpsCamera_.SetDeltaTime(dt);
@@ -577,6 +584,13 @@ void PlayerViewComponent::UpdateFirstPersonArmPose(float dt)
 	leftArmTr_->translate_ = Lerp(leftHipPos, aimLeftPos_ + pitchLeftOffset, t);
 	rightArmTr_->translate_ = Lerp(rightHipPos, aimRightPos_ + pitchRightOffset, t);
 
+	// 腕と武器をまとめて構えさせるため、EquipオフセットはViewModel全体に適用する。
+	if (equipViewActive_)
+	{
+		leftArmTr_->translate_ += equipViewOffset_;
+		rightArmTr_->translate_ += equipViewOffset_;
+	}
+
 	// 位置はPitch回転で回さない。
 	// 上下視点時の画面内維持は pitchLeftOffset / pitchRightOffset で行う。
 	//const float viewPitch = camPitch_ * armPitchFollow_;
@@ -603,6 +617,12 @@ void PlayerViewComponent::UpdateFirstPersonArmPose(float dt)
 	rrot.x += vmKickPitch_;
 	rrot.y += vmKickYaw_;
 	rrot.z += vmKickRoll_;
+
+	if (equipViewActive_)
+	{
+		lrot.x += equipViewPitchRad_;
+		rrot.x += equipViewPitchRad_;
+	}
 
 	// リロード姿勢へ入る → 装填する押し込み → 戻る。
 	if (reloadT > 0.0f)

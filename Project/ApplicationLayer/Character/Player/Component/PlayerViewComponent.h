@@ -54,6 +54,7 @@ public: /// ---------- メンバ関数 ---------- ///
 
 	void SetAiming(bool on);
 	void SetReloadViewModelState(bool isReloading, float reloadTimer, float reloadDuration);
+	void SetEquipViewModelState(bool isAnimating, const K4E::Vector3& offset, float pitchRad);
 
 	float GetYaw() const { return fpsCamera_.GetYaw(); }
 	K4E::Camera* GetCamera() { return fpsCamera_.GetCamera(); }
@@ -229,6 +230,9 @@ private: /// ---------- メンバ変数 ---------- ///
 	K4E::Vector3 reloadLeftArmRotDeg_{ -4.0f, -8.0f, 10.0f };
 	K4E::Vector3 reloadLoadLeftArmOffset_{ -0.04f, 0.01f, -0.16f };
 	K4E::Vector3 reloadLoadLeftArmRotDeg_{ 3.0f, 4.0f, -6.0f };
+	bool equipViewActive_ = false;
+	K4E::Vector3 equipViewOffset_{ 0.0f, 0.0f, 0.0f };
+	float equipViewPitchRad_ = 0.0f;
 
 	// ---- Melee view animation ----
 	bool meleeSwingActive_ = false;
