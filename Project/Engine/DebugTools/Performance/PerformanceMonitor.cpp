@@ -20,7 +20,7 @@ namespace
 void PerformanceMonitor::Update(float deltaSeconds, float fps)
 {
 	stats_.fps = fps;
-	stats_.frameTimeMs = (fps > 0.0f) ? (1000.0f / fps) : 0.0f;
+	stats_.frameTimeMs = (deltaSeconds > 0.0f) ? (deltaSeconds * 1000.0f) : 0.0f;
 
 	fpsHistory_[historyWriteIndex_] = stats_.fps;
 	frameTimeHistory_[historyWriteIndex_] = stats_.frameTimeMs;

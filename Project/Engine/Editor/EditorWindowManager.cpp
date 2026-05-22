@@ -28,6 +28,7 @@
 
 #ifdef _WIN32
 #include <shellapi.h>
+#include <GameTimer.h>
 #endif // _WIN32
 
 namespace Ken4lowEngine
@@ -1180,8 +1181,10 @@ namespace Ken4lowEngine
 		// Output LogはEditorOutputLogのバッファを描画し、Build/Content Browserの結果を集約する。
 		if (ImGui::Begin("Output Log", &windowState_.showOutputLog))
 		{
-			const float fps = ImGui::GetIO().Framerate;
-			const float deltaSeconds = (fps > 0.0f) ? (1.0f / fps) : 0.0f;
+						const auto* gameTimer = K4E::GameTimer::GetInstance();
+			const float fps = gameTimer->GetFPS();
+			const float deltaSeconds = gameTimer->GetDeltaTime();
+			// FPS表示はImGuiの内部値ではなく、エンジン側の計測値に統一する。
 			outputLogPerformanceMonitor_.Update(deltaSeconds, fps);
 			const PerformanceStats& performanceStats = outputLogPerformanceMonitor_.GetStats();
 
@@ -1196,7 +1199,7 @@ namespace Ken4lowEngine
 			if (windowState_.debugShowFps)
 			{
 				ImGui::SameLine();
-				ImGui::Text("FPS: %.1f", ImGui::GetIO().Framerate);
+				ImGui::Text("FPS: %.1f", performanceStats.fps);
 			}
 			ImGui::Separator();
 			// OutLogから実行時負荷を確認できるようにPerformance情報を描画する。
