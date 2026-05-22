@@ -1180,6 +1180,11 @@ namespace Ken4lowEngine
 		// Output LogはEditorOutputLogのバッファを描画し、Build/Content Browserの結果を集約する。
 		if (ImGui::Begin("Output Log", &windowState_.showOutputLog))
 		{
+			const float fps = ImGui::GetIO().Framerate;
+			const float deltaSeconds = (fps > 0.0f) ? (1.0f / fps) : 0.0f;
+			outputLogPerformanceMonitor_.Update(deltaSeconds, fps);
+			const PerformanceStats& performanceStats = outputLogPerformanceMonitor_.GetStats();
+
 			if (ImGui::Button("Clear"))
 			{
 				outputLog_.Clear();
@@ -1194,6 +1199,30 @@ namespace Ken4lowEngine
 				ImGui::Text("FPS: %.1f", ImGui::GetIO().Framerate);
 			}
 			ImGui::Separator();
+			// OutLogから実行時負荷を確認できるようにPerformance情報を描画する。
+			if (ImGui::CollapsingHeader("Performance", ImGuiTreeNodeFlags_DefaultOpen))
+			{
+				const char* displayModeLabels[] = { "FPS", "FrameTime(ms)" };
+				int displayMode = static_cast<int>(outputLogPerformanceDisplayMode_);
+				if (ImGui::Combo("Display Mode", &displayMode, displayModeLabels, IM_ARRAYSIZE(displayModeLabels)))
+				{
+					outputLogPerformanceDisplayMode_ = static_cast<OutputLogPerformanceDisplayMode>(displayMode);
+				}
+
+				if (outputLogPerformanceDisplayMode_ == OutputLogPerformanceDisplayMode::FPS)
+				{
+					ImGui::Text("FPS: %.1f", performanceStats.fps);
+				}
+				else
+				{
+					ImGui::Text("FrameTime(ms): %.2f", performanceStats.frameTimeMs);
+				}
+				ImGui::Text("FrameTime(ms): %.2f", performanceStats.frameTimeMs);
+				ImGui::Text("CPU Usage: %.1f%%", performanceStats.cpuUsagePercent);
+				ImGui::Text("Process CPU Usage: %.1f%%", performanceStats.processCpuUsagePercent);
+				ImGui::Text("Memory Usage MB: %.1f", performanceStats.memoryUsageMB);
+				ImGui::Separator();
+			}
 
 			if (ImGui::BeginChild("OutputLogScroll", ImVec2(0.0f, 0.0f), true, ImGuiWindowFlags_HorizontalScrollbar))
 			{

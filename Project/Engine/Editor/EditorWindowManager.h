@@ -5,6 +5,7 @@
 #include "EditorAssetBuildService.h"
 #include "EditorOutputLog.h"
 #include "EditorTexturePreviewCache.h"
+#include "PerformanceMonitor.h"
 
 namespace Ken4lowEngine
 {
@@ -74,6 +75,12 @@ namespace Ken4lowEngine
 	class EditorWindowManager
 	{
 	public:
+		enum class OutputLogPerformanceDisplayMode
+		{
+			FPS = 0,
+			FrameTimeMs = 1
+		};
+
 		static EditorWindowManager* GetInstance();
 
 		void Draw();
@@ -128,6 +135,8 @@ namespace Ken4lowEngine
 		bool editorServicesInitialized_ = false; // USE_IMGUI時だけEditorサービスを遅延初期化する。
 		bool outputLogAutoScroll_ = true; // Output Logの末尾追従設定をUI状態として保持する。
 		bool openRebuildDefaultLayoutPopup_ = false; // Rebuild Default Layoutを即時実行せず確認Popupへ遅延する。
+		PerformanceMonitor outputLogPerformanceMonitor_{}; // Output Logで表示するパフォーマンス計測状態を保持する。
+		OutputLogPerformanceDisplayMode outputLogPerformanceDisplayMode_ = OutputLogPerformanceDisplayMode::FPS; // Output Log内のFPS/ms切り替え状態を保持する。
 	};
 
 } // namespace Ken4lowEngine
