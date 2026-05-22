@@ -45,8 +45,15 @@ namespace Ken4lowEngine
 		auto sceneFactory = std::make_unique<SceneFactory>();
 		SceneManager::GetInstance()->SetAbstractSceneFactory(std::move(sceneFactory));
 
+#ifdef _DEBUG
+		// Debugビルドでは最初からDebugSceneを起動して、ゲームプレイ中もすぐ切り替えられるようにする。
+		const std::string startSceneName = "DebugScene";
+#else
+		// Releaseビルドでは最初のシーンをTitleSceneにする。
+		const std::string startSceneName = "TitleScene";
+#endif
 		// 最初のシーンを設定
-		SceneManager::GetInstance()->ChangeScene("DebugScene");
+		SceneManager::GetInstance()->ChangeScene(startSceneName);
 	}
 
 

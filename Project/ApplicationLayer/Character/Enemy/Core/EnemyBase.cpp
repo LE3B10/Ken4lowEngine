@@ -9,6 +9,11 @@
 
 #include "CollisionTypeIdDef.h"
 
+#ifdef USE_IMGUI
+#include "imgui.h"
+#endif // USE_IMGUI
+
+
 using namespace Ken4lowEngine;
 
 const std::vector<Ken4lowEngine::AABB>* EnemyBase::g_worldAABBs_ = nullptr;
@@ -302,6 +307,7 @@ void EnemyBase::Draw()
 /// -------------------------------------------------------------
 void EnemyBase::DrawImGui()
 {
+#ifdef USE_IMGUI
 	ImGui::Text("DeathHitPower: %.2f Up: %.2f", lastHitPower_, lastHitUpPower_);
 	if (body_.object) body_.object->DrawImGui();
 
@@ -309,6 +315,7 @@ void EnemyBase::DrawImGui()
 	{
 		if (part.object) part.object->DrawImGui();
 	}
+#endif // USE_IMGUI
 }
 
 void EnemyBase::UpdateShadowMatrix(const K4E::Matrix4x4& lightViewProjection)
@@ -627,7 +634,7 @@ void EnemyBase::OnBulletHit(Collider* bulletCollider)
 	if (bulletCollider)
 	{
 		hitPos = bulletCollider->GetCenterPosition();
-		
+
 		const Segment bulletSegment = bulletCollider->GetSegment();
 		if (Length(bulletSegment.diff) > 1e-4f)
 		{
@@ -648,15 +655,15 @@ void EnemyBase::OnBulletHit(Collider* bulletCollider)
 			switch (kbType)
 			{
 			case EDeathKnockbackType::Sniper:
-				hitDir = bulletDir;
-				hitPower = bullet->GetDeathKnockbackPower() * bullet->GetDeathImpulseScale();
-				lastHitUpPower_ = std::max(0.3f, bullet->GetDeathKnockbackUpPower());
-				break;
+			hitDir = bulletDir;
+			hitPower = bullet->GetDeathKnockbackPower() * bullet->GetDeathImpulseScale();
+			lastHitUpPower_ = std::max(0.3f, bullet->GetDeathKnockbackUpPower());
+			break;
 			case EDeathKnockbackType::Heavy:
-				hitDir = NormalizeSafe(bulletDir + Vector3{ 0.0f, 0.35f, 0.0f }, attackerDir);
-				hitPower = bullet->GetDeathKnockbackPower() * bullet->GetDeathImpulseScale();
-				lastHitUpPower_ = bullet->GetDeathKnockbackUpPower();
-				break;
+			hitDir = NormalizeSafe(bulletDir + Vector3{ 0.0f, 0.35f, 0.0f }, attackerDir);
+			hitPower = bullet->GetDeathKnockbackPower() * bullet->GetDeathImpulseScale();
+			lastHitUpPower_ = bullet->GetDeathKnockbackUpPower();
+			break;
 			case EDeathKnockbackType::Explosion:
 			{
 				Vector3 outDir = NormalizeSafe(GetCenterPosition() - bulletCollider->GetCenterPosition(), attackerDir);
@@ -668,10 +675,10 @@ void EnemyBase::OnBulletHit(Collider* bulletCollider)
 			case EDeathKnockbackType::Light:
 			case EDeathKnockbackType::Default:
 			default:
-				hitDir = attackerDir;
-				hitPower = bullet->GetDeathKnockbackPower() * bullet->GetDeathImpulseScale();
-				lastHitUpPower_ = bullet->GetDeathKnockbackUpPower();
-				break;
+			hitDir = attackerDir;
+			hitPower = bullet->GetDeathKnockbackPower() * bullet->GetDeathImpulseScale();
+			lastHitUpPower_ = bullet->GetDeathKnockbackUpPower();
+			break;
 			}
 		}
 	}
