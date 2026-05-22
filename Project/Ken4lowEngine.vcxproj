@@ -275,6 +275,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClCompile Include="ApplicationLayer\UISystem\WaveUI\WaveUI.cpp" />
     <ClCompile Include="ApplicationLayer\Character\Player\Component\PlayerWeaponVisualComponent.cpp" />
     <ClCompile Include="ApplicationLayer\Scene\GamePlayScene\DebugTools\GamePlayDebugTools.cpp" />
+    <ClCompile Include="Engine\DebugTools\Performance\PerformanceMonitor.cpp" />
     <ClCompile Include="ApplicationLayer\Scene\GamePlayScene\Core\GamePlayFlow.cpp" />
     <ClCompile Include="ApplicationLayer\Scene\GamePlayScene\Camera\GamePlayIntroDirector.cpp" />
     <ClCompile Include="ApplicationLayer\Scene\GamePlayScene\Core\GamePlayStageContext.cpp" />
@@ -904,6 +905,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="ApplicationLayer\UISystem\WaveUI\WaveUI.h" />
     <ClInclude Include="ApplicationLayer\Character\Player\Component\PlayerWeaponVisualComponent.h" />
     <ClInclude Include="ApplicationLayer\Scene\GamePlayScene\DebugTools\GamePlayDebugTools.h" />
+    <ClInclude Include="Engine\DebugTools\Performance\PerformanceMonitor.h" />
     <ClInclude Include="ApplicationLayer\Scene\GamePlayScene\Core\GamePlayFlow.h" />
     <ClInclude Include="ApplicationLayer\Scene\GamePlayScene\Camera\GamePlayIntroDirector.h" />
     <ClInclude Include="ApplicationLayer\Scene\GamePlayScene\Core\GamePlayStageContext.h" />
