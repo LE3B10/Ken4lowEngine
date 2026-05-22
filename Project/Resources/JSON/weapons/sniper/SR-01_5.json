@@ -160,5 +160,12 @@
         "shellEjectVfxPath": "",
         "tracerScale": 1.0,
         "tracerVfxPath": ""
+    },
+    "deathReaction": {
+        "type": "sniper",
+        "power": 20.0,
+        "upPower": 2.0,
+        "explosionRadius": 0.0,
+        "impulseScale": 1.0
     }
 }

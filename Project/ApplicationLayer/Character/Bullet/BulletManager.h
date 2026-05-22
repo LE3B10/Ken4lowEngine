@@ -30,7 +30,14 @@ public: /// ---------- メンバ関数 ---------- ///
 		float splashRadius = 0.0f,
 		int splashDamage = 0,
 		bool splashCanDamageSelf = false,
-		bool drawModel = true
+		bool drawModel = true,
+		int32_t weaponID = 0,
+		EWeaponCategory weaponCategory = EWeaponCategory::Primary,
+		EDeathKnockbackType deathType = EDeathKnockbackType::Default,
+		float deathPower = 8.0f,
+		float deathUpPower = 2.0f,
+		float deathExplosionRadius = 0.0f,
+		float deathImpulseScale = 1.0f
 		);
 
 	// 更新処理
@@ -58,4 +65,3 @@ private: /// ---------- メンバ変数 ---------- ///
 	// 弾リスト
 	std::vector<std::unique_ptr<Bullet>> bullets_;
 };
-

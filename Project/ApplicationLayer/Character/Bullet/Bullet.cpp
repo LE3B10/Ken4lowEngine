@@ -227,6 +227,17 @@ void Bullet::ConfigureSplashDamage(float radius, int damage, bool canDamageSelf)
 	}
 }
 
+void Bullet::SetWeaponMetadata(int32_t weaponID, EWeaponCategory category, EDeathKnockbackType deathType, float deathPower, float deathUpPower, float deathExplosionRadius, float deathImpulseScale)
+{
+	weaponID_ = weaponID;
+	weaponCategory_ = category;
+	deathKnockbackType_ = deathType;
+	deathKnockbackPower_ = std::max(0.0f, deathPower);
+	deathKnockbackUpPower_ = std::max(0.0f, deathUpPower);
+	deathExplosionRadius_ = std::max(0.0f, deathExplosionRadius);
+	deathImpulseScale_ = std::max(0.01f, deathImpulseScale);
+}
+
 void Bullet::KillAndMoveFar()
 {
 	// Exit 解決用に 1フレーム残す

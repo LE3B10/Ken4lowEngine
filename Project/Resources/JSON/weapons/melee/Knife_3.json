@@ -163,5 +163,12 @@
         "shellEjectVfxPath": "",
         "tracerScale": 1.0,
         "tracerVfxPath": ""
+    },
+    "deathReaction": {
+        "type": "light",
+        "power": 6.0,
+        "upPower": 1.5,
+        "explosionRadius": 0.0,
+        "impulseScale": 1.0
     }
 }

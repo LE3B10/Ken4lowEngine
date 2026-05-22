@@ -207,6 +207,12 @@ WeaponParams WeaponSystem::BuildParams(const FWeaponMasterData& md)
 	WeaponParams p{};
 
 	p.weaponID = md.coreData.weaponID;
+	p.weaponCategory = md.coreData.category;
+	p.deathKnockbackType = md.deathReaction.type;
+	p.deathKnockbackPower = md.deathReaction.power;
+	p.deathKnockbackUpPower = md.deathReaction.upPower;
+	p.deathExplosionRadius = md.deathReaction.explosionRadius;
+	p.deathImpulseScale = md.deathReaction.impulseScale;
 	p.isAutomatic = md.bIsAutomatic;
 	p.canToggleFireMode = md.bCanToggleFireMode;
 	p.drawProjectileModel = (md.coreData.category == EWeaponCategory::Heavy);

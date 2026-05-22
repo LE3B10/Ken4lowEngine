@@ -302,6 +302,7 @@ void EnemyBase::Draw()
 /// -------------------------------------------------------------
 void EnemyBase::DrawImGui()
 {
+	ImGui::Text("DeathHitPower: %.2f Up: %.2f", lastHitPower_, lastHitUpPower_);
 	if (body_.object) body_.object->DrawImGui();
 
 	for (auto& part : parts_)
@@ -500,6 +501,7 @@ void EnemyBase::StartBreakApartDeath()
 	const Vector3 center = GetCenterPosition();
 	const Vector3 hitDir = NormalizeSafe(lastHitDir_, { 0, 0, 1 });
 	const float power = (lastHitPower_ > 0.0f) ? lastHitPower_ : 1.0f;
+	const float upPower = std::max(0.0f, lastHitUpPower_);
 
 	// 体（重め）
 	{
@@ -509,7 +511,7 @@ void EnemyBase::StartBreakApartDeath()
 		const Vector3 fromCenter = NormalizeSafe(body_.transform.translate_ - center);
 		const Vector3 dir = NormalizeSafe(fromCenter + RandomUnit() * 0.35f + hitDir * p.hitBias);
 		const float speed = RandRange(2.0f, 4.5f) * power;
-		p.velocity = dir * speed + Vector3{ 0.0f, RandRange(1.0f, 3.0f) * power, 0.0f };
+		p.velocity = dir * speed + Vector3{ 0.0f, RandRange(1.0f, 3.0f) * upPower, 0.0f };
 		p.angularVel = Vector3{ RandRange(-5.0f, 5.0f), RandRange(-7.0f, 7.0f), RandRange(-5.0f, 5.0f) };
 		deathPieces_.push_back(p);
 	}
@@ -529,7 +531,7 @@ void EnemyBase::StartBreakApartDeath()
 		const float speed = RandRange(3.0f, 6.5f) * power;
 		const float up = (i == partIndices_.head) ? RandRange(2.0f, 4.0f) : RandRange(1.2f, 3.2f);
 
-		p.velocity = dir * speed + Vector3{ 0.0f, up * power, 0.0f };
+		p.velocity = dir * speed + Vector3{ 0.0f, up * upPower, 0.0f };
 		p.angularVel = Vector3{ RandRange(-10.0f, 10.0f), RandRange(-14.0f, 14.0f), RandRange(-10.0f, 10.0f) };
 		deathPieces_.push_back(p);
 	}
@@ -639,6 +641,38 @@ void EnemyBase::OnBulletHit(Collider* bulletCollider)
 		if (auto* bullet = bulletCollider->GetOwner<Bullet>())
 		{
 			damage = std::max(1, bullet->GetDamage());
+			const Vector3 bulletDir = NormalizeSafe(bullet->GetMoveVelocity(), NormalizeSafe(hitDir, { 0.0f, 0.0f, 1.0f }));
+			const Vector3 attackerDir = NormalizeSafe(GetCenterPosition() - bullet->GetShooterPosition(), bulletDir);
+			const EDeathKnockbackType kbType = bullet->GetDeathKnockbackType();
+			// 最後に受けた武器情報から死亡時の吹っ飛び方向と強さを決める
+			switch (kbType)
+			{
+			case EDeathKnockbackType::Sniper:
+				hitDir = bulletDir;
+				hitPower = bullet->GetDeathKnockbackPower() * bullet->GetDeathImpulseScale();
+				lastHitUpPower_ = std::max(0.3f, bullet->GetDeathKnockbackUpPower());
+				break;
+			case EDeathKnockbackType::Heavy:
+				hitDir = NormalizeSafe(bulletDir + Vector3{ 0.0f, 0.35f, 0.0f }, attackerDir);
+				hitPower = bullet->GetDeathKnockbackPower() * bullet->GetDeathImpulseScale();
+				lastHitUpPower_ = bullet->GetDeathKnockbackUpPower();
+				break;
+			case EDeathKnockbackType::Explosion:
+			{
+				Vector3 outDir = NormalizeSafe(GetCenterPosition() - bulletCollider->GetCenterPosition(), attackerDir);
+				hitDir = NormalizeSafe(outDir + Vector3{ 0.0f, 0.55f, 0.0f }, attackerDir);
+				hitPower = bullet->GetDeathKnockbackPower() * bullet->GetDeathImpulseScale();
+				lastHitUpPower_ = std::max(2.0f, bullet->GetDeathKnockbackUpPower());
+				break;
+			}
+			case EDeathKnockbackType::Light:
+			case EDeathKnockbackType::Default:
+			default:
+				hitDir = attackerDir;
+				hitPower = bullet->GetDeathKnockbackPower() * bullet->GetDeathImpulseScale();
+				lastHitUpPower_ = bullet->GetDeathKnockbackUpPower();
+				break;
+			}
 		}
 	}
 

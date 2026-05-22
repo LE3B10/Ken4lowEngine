@@ -23,7 +23,14 @@ Bullet* BulletManager::Spawn(const Vector3& startPos,
 	float splashRadius,
 	int splashDamage,
 	bool splashCanDamageSelf,
-	bool drawModel
+	bool drawModel,
+	int32_t weaponID,
+	EWeaponCategory weaponCategory,
+	EDeathKnockbackType deathType,
+	float deathPower,
+	float deathUpPower,
+	float deathExplosionRadius,
+	float deathImpulseScale
 )
 {
 	auto b = std::make_unique<Bullet>();
@@ -31,6 +38,7 @@ Bullet* BulletManager::Spawn(const Vector3& startPos,
 	b->SetModelDrawEnabled(drawModel);
 	b->SetCollisionManager(collisionManager_);
 	b->ConfigureSplashDamage(splashRadius, splashDamage, splashCanDamageSelf);
+	b->SetWeaponMetadata(weaponID, weaponCategory, deathType, deathPower, deathUpPower, deathExplosionRadius, deathImpulseScale);
 
 	if (collisionManager_) collisionManager_->AddCollider(b.get());
 
