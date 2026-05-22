@@ -214,6 +214,15 @@ namespace Ken4lowEngine
 		bool showShadowMapDebug_ = false;
 		bool showShadowFactorDebug_ = false;
 
+		// ステージに合わせてDirectionalLightの影有効範囲を調整するための設定値。
+		float directionalShadowDistance_ = 60.0f;
+		float directionalShadowWidth_ = 35.0f;
+		float directionalShadowHeight_ = 35.0f;
+		float directionalShadowNearZ_ = 0.1f;
+		float directionalShadowFarZ_ = 120.0f;
+		float directionalShadowFocusOffset_ = 0.0f;
+		float spotShadowNearZ_ = 0.1f;
+
 	private: /// ---------- コピー禁止 ---------- ///
 
 		/// <summary>
