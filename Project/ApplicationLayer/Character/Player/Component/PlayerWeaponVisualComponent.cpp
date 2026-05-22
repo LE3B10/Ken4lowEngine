@@ -227,10 +227,10 @@ void PlayerWeaponVisualComponent::DrawImGui()
 		ImGui::Checkbox("Enable Equip Animation", &enableEquipAnimation_);
 		ImGui::DragFloat("Equip Duration", &equipDuration_, 0.01f, 0.05f, 1.0f, "%.2f");
 		ImGui::DragFloat("Equip Start Offset Y", &equipStartOffsetY_, 0.01f, -2.0f, 0.0f, "%.2f");
+		ImGui::DragFloat("Equip Start Offset Z", &equipStartOffsetZ_, 0.01f, -0.5f, 0.5f, "%.2f");
 		ImGui::DragFloat("Equip Start Pitch Deg", &equipStartPitchDeg_, 0.5f, -45.0f, 0.0f, "%.1f");
 		const float equipNormalizedT = Clamp01((equipDuration_ > 0.001f) ? (equipTimer_ / equipDuration_) : 1.0f);
-		const float equipEaseOut = 1.0f - (1.0f - equipNormalizedT) * (1.0f - equipNormalizedT);
-		const K4E::Vector3 equipCurrentOffset = { 0.0f, (1.0f - equipEaseOut) * equipStartOffsetY_, 0.0f };
+		const K4E::Vector3 equipCurrentOffset = GetCurrentEquipOffset();
 		ImGui::Text("Equip animation enabled: %s", enableEquipAnimation_ ? "true" : "false");
 		ImGui::Text("IsEquipAnimating: %s", IsEquipAnimating() ? "true" : "false");
 		ImGui::Text("Equip elapsed time: %.3f", equipTimer_);
@@ -374,11 +374,8 @@ void PlayerWeaponVisualComponent::SyncToHand(bool isADS)
 	const K4E::Vector3 weaponWorldScale = modelScale_ * viewModelScaleMultiplier_;
 	const float reloadT = SmoothStep01(reloadPoseAlpha_);
 	const K4E::Vector3 reloadOffset = reloadWeaponOffset_ * reloadT;
-	const float equipT = Clamp01((equipDuration_ > 0.001f) ? (equipTimer_ / equipDuration_) : 1.0f);
-	const float equipEaseOut = 1.0f - (1.0f - equipT) * (1.0f - equipT);
-	const float equipPosY = (1.0f - equipEaseOut) * equipStartOffsetY_;
-	const float equipPitch = (1.0f - equipEaseOut) * ToRadians(equipStartPitchDeg_);
-	const K4E::Vector3 equipOffset = { 0.0f, equipPosY, 0.0f };
+	const K4E::Vector3 equipOffset = GetCurrentEquipOffset();
+	const float equipPitch = GetCurrentEquipPitchRad();
 	const K4E::Vector3 totalLocalOffset = localPos + handSocketLocalOffset_ + reloadOffset + equipOffset;
 
 	K4E::Matrix4x4 localMatrix{};
@@ -438,6 +435,20 @@ bool PlayerWeaponVisualComponent::LoadWeaponModel(const std::string& modelPath)
 K4E::Vector3 PlayerWeaponVisualComponent::TransformWeaponLocalPoint(const K4E::Vector3& localPoint) const
 {
 	return K4E::Matrix4x4::Transform(localPoint, weaponWorldMatrix_);
+}
+
+K4E::Vector3 PlayerWeaponVisualComponent::GetCurrentEquipOffset() const
+{
+	const float equipT = Clamp01((equipDuration_ > 0.001f) ? (equipTimer_ / equipDuration_) : 1.0f);
+	const float equipEaseOut = 1.0f - (1.0f - equipT) * (1.0f - equipT);
+	return { 0.0f, (1.0f - equipEaseOut) * equipStartOffsetY_, (1.0f - equipEaseOut) * equipStartOffsetZ_ };
+}
+
+float PlayerWeaponVisualComponent::GetCurrentEquipPitchRad() const
+{
+	const float equipT = Clamp01((equipDuration_ > 0.001f) ? (equipTimer_ / equipDuration_) : 1.0f);
+	const float equipEaseOut = 1.0f - (1.0f - equipT) * (1.0f - equipT);
+	return (1.0f - equipEaseOut) * ToRadians(equipStartPitchDeg_);
 }
 
 void PlayerWeaponVisualComponent::InitializeRotationQuaternionsFromEuler()

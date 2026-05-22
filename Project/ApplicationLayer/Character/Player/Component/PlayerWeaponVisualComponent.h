@@ -43,6 +43,8 @@ public: /// ---------- メンバ関数 ---------- ///
 	void SetReloadViewModelState(bool isReloading, float reloadTimer, float reloadDuration);
 	void StartEquipAnimation();
 	bool IsEquipAnimating() const;
+	K4E::Vector3 GetCurrentEquipOffset() const;
+	float GetCurrentEquipPitchRad() const;
 
 	// 現在の見た目を強制再構築したいときに使う
 	void ForceRefresh();
@@ -121,6 +123,7 @@ private: /// ---------- メンバ変数 ---------- ///
 	float equipTimer_ = 0.0f;
 	float equipDuration_ = 0.32f;
 	float equipStartOffsetY_ = -0.75f;
+	float equipStartOffsetZ_ = 0.0f;
 	float equipStartPitchDeg_ = -10.0f;
 
 	// 銃口のローカル位置。モデルによってずれる場合はここを調整する
