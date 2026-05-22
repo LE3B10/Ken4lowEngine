@@ -487,6 +487,23 @@ namespace Ken4lowEngine
 		}
 		ImGui::Checkbox("Show ShadowMap Debug", &showShadowMapDebug_);
 		ImGui::Checkbox("Show Shadow Factor", &showShadowFactorDebug_);
+
+		// ステージに合わせて影の有効範囲を調整できるよう、固定値ではなく設定値を使用する。
+		ImGui::SeparatorText("Shadow Frustum");
+		ImGui::SliderFloat("Directional Shadow Distance", &directionalShadowDistance_, 1.0f, 500.0f, "%.2f");
+		ImGui::SliderFloat("Directional Shadow Width", &directionalShadowWidth_, 5.0f, 300.0f, "%.2f");
+		ImGui::SliderFloat("Directional Shadow Height", &directionalShadowHeight_, 5.0f, 300.0f, "%.2f");
+		ImGui::SliderFloat("Directional Shadow NearZ", &directionalShadowNearZ_, 0.01f, 50.0f, "%.3f");
+		ImGui::SliderFloat("Directional Shadow FarZ", &directionalShadowFarZ_, 1.01f, 1000.0f, "%.2f");
+		ImGui::SliderFloat("Directional Shadow Focus Offset", &directionalShadowFocusOffset_, -200.0f, 200.0f, "%.2f");
+		ImGui::SliderFloat("Spot Shadow NearZ", &spotShadowNearZ_, 0.01f, 50.0f, "%.3f");
+
+		directionalShadowDistance_ = std::clamp(directionalShadowDistance_, 1.0f, 500.0f);
+		directionalShadowWidth_ = std::clamp(directionalShadowWidth_, 5.0f, 300.0f);
+		directionalShadowHeight_ = std::clamp(directionalShadowHeight_, 5.0f, 300.0f);
+		directionalShadowNearZ_ = std::clamp(directionalShadowNearZ_, 0.01f, 50.0f);
+		directionalShadowFarZ_ = std::clamp(directionalShadowFarZ_, directionalShadowNearZ_ + 1.0f, 1000.0f);
+		spotShadowNearZ_ = std::clamp(spotShadowNearZ_, 0.01f, 50.0f);
 				if (hasPointLight)
 		{
 			ImGui::TextColored(ImVec4(1.0f, 0.75f, 0.2f, 1.0f), "PointLight Shadow: Not Implemented (Cube ShadowMap required)");
@@ -528,6 +545,13 @@ namespace Ken4lowEngine
 		{
 			ImGui::Text("None: no shadow-casting light selected");
 		}
+		const char* activeCasterName = (casterType == ShadowCasterType::Directional) ? "Directional" : (casterType == ShadowCasterType::Spot) ? "Spot" : "None";
+		ImGui::SeparatorText("Shadow Debug");
+		ImGui::Text("Active Shadow Caster: %s", activeCasterName);
+		ImGui::Text("Shadow Width / Height: %.2f / %.2f", directionalShadowWidth_, directionalShadowHeight_);
+		ImGui::Text("Shadow Near / Far: %.3f / %.2f", directionalShadowNearZ_, directionalShadowFarZ_);
+		ImGui::Text("Shadow Map Size: %u", shadowMapSize_);
+		ImGui::Text("Shadow Bias / Normal Bias: %.6f / %.4f", shadowBias_, normalBias_);
 		ImGui::Text("Active Lights (type!=0): will be uploaded");
 #endif // USE_IMGUI
 	}
@@ -567,13 +591,14 @@ namespace Ken4lowEngine
 				const float fovY = std::clamp(outerAngle, 0.15f, 3.0f);
 				// SpotLightの方向でShadowMap用ViewProjectionを生成する。
 				const Matrix4x4 view = Matrix4x4::MakeLookAtMatrix(light.position, light.position + Vector3::Normalize(light.direction), { 0.0f,1.0f,0.0f });
-				const Matrix4x4 proj = Matrix4x4::MakePerspectiveFovMatrix(fovY, 1.0f, 0.1f, spotDistance);
+				const Matrix4x4 proj = Matrix4x4::MakePerspectiveFovMatrix(fovY, 1.0f, spotShadowNearZ_, spotDistance);
 				// SpotLight Shadow は world * view * projection の順で評価できる行列を返す。
 				return Matrix4x4::Multiply(view, proj);
 			}
 		}
 
-		return Matrix4x4::MakeLightViewProjection(lightDir, focusPosition, 60.0f, 35.0f, 35.0f, 0.1f, 120.0f);
+		const Vector3 directionalFocusPosition = focusPosition + Vector3{ 0.0f, directionalShadowFocusOffset_, 0.0f };
+		return Matrix4x4::MakeLightViewProjection(lightDir, directionalFocusPosition, directionalShadowDistance_, directionalShadowWidth_, directionalShadowHeight_, directionalShadowNearZ_, directionalShadowFarZ_);
 	}
 
 	void LightManager::DrawImGui(bool* pOpen)
