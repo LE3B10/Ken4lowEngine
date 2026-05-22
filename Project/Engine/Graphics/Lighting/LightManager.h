@@ -159,6 +159,13 @@ namespace Ken4lowEngine
 		LightingSettingsGPU& GetMutableLightingSettingsForEditor() { return lightingSettings_; }
 		ShadowCasterType GetActiveShadowCasterType() const;
 		Matrix4x4 BuildShadowLightViewProjection(const Vector3& focusPosition) const;
+		bool TryGetActiveShadowCasterLightInfo(int32_t& outIndex, PunctualLightGPU& outLight, ShadowCasterType& outType) const;
+		void SetShadowCasterLightIndex(int32_t index) { shadowCasterLightIndex_ = index; }
+		int32_t GetShadowCasterLightIndex() const { return shadowCasterLightIndex_; }
+		void SetShadowFocusMode(ShadowFocusMode mode) { shadowFocusMode_ = mode; }
+		void SetManualShadowFocusPosition(const Vector3& pos) { manualShadowFocusPosition_ = pos; }
+		void SetDirectionalShadowFrustum(float width, float height, float nearZ, float farZ) { directionalShadowWidth_ = width; directionalShadowHeight_ = height; directionalShadowNearZ_ = nearZ; directionalShadowFarZ_ = farZ; }
+		void SetShadowMapSize(uint32_t size) { shadowMapSize_ = size; }
 
 		// Editor Detailsから選択中ライトだけを書き換えるため、index検証付きヘルパー経由でのみ利用する。
 		std::vector<PunctualLightGPU>& GetMutablePunctualLightsForEditor() { return punctualLights_; }
@@ -235,6 +242,7 @@ namespace Ken4lowEngine
 		mutable Vector3 currentShadowDirection_ = { 0.0f, -1.0f, 0.0f };
 		mutable Matrix4x4 currentShadowLightViewProjection_ = Matrix4x4::MakeIdentity();
 		float spotShadowNearZ_ = 0.1f;
+		int32_t shadowCasterLightIndex_ = -1;
 
 	private: /// ---------- コピー禁止 ---------- ///
 
