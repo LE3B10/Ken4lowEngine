@@ -487,7 +487,7 @@ void StageSelectScene::InitializeStages()
 		0u,
 		"始まりの平原",
 		"WAVE",
-		"UI/StageSelect/stage01.dds",
+		"UI/StageSelect/stage01_preview.dds",
 		"基本戦闘を学ぶウェーブ制ステージ",
 		"",
 		false,
