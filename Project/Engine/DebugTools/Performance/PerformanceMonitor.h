@@ -3,7 +3,7 @@
 #include <array>
 #include <cstddef>
 
-namespace K4E
+namespace Ken4lowEngine
 {
 	struct PerformanceStats
 	{

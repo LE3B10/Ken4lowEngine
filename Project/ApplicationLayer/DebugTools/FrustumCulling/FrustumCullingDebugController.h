@@ -1,7 +1,6 @@
 #pragma once
 #include "Vector4.h"
 
-namespace Ken4lowEngine { class Camera; }
 namespace K4E = ::Ken4lowEngine;
 
 /// <summary>

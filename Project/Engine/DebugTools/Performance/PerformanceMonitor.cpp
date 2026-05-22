@@ -4,6 +4,8 @@
 #include <Windows.h>
 #include <psapi.h>
 
+using namespace Ken4lowEngine;
+
 namespace
 {
 	unsigned long long ToUInt64(const FILETIME& fileTime)
@@ -15,7 +17,7 @@ namespace
 	}
 }
 
-void K4E::PerformanceMonitor::Update(float deltaSeconds, float fps)
+void PerformanceMonitor::Update(float deltaSeconds, float fps)
 {
 	stats_.fps = fps;
 	stats_.frameTimeMs = (fps > 0.0f) ? (1000.0f / fps) : 0.0f;
@@ -33,7 +35,7 @@ void K4E::PerformanceMonitor::Update(float deltaSeconds, float fps)
 	}
 }
 
-void K4E::PerformanceMonitor::UpdateSystemStats()
+void PerformanceMonitor::UpdateSystemStats()
 {
 	stats_.cpuUsagePercent = ComputeCpuUsagePercent();
 	stats_.processCpuUsagePercent = ComputeProcessCpuUsagePercent();
@@ -45,7 +47,7 @@ void K4E::PerformanceMonitor::UpdateSystemStats()
 	}
 }
 
-float K4E::PerformanceMonitor::ComputeCpuUsagePercent()
+float PerformanceMonitor::ComputeCpuUsagePercent()
 {
 	FILETIME idleTime{}, kernelTime{}, userTime{};
 	if (!GetSystemTimes(&idleTime, &kernelTime, &userTime))
@@ -83,7 +85,7 @@ float K4E::PerformanceMonitor::ComputeCpuUsagePercent()
 	return static_cast<float>((usage < 0.0) ? 0.0 : usage);
 }
 
-float K4E::PerformanceMonitor::ComputeProcessCpuUsagePercent()
+float PerformanceMonitor::ComputeProcessCpuUsagePercent()
 {
 	FILETIME createTime{}, exitTime{}, kernelTime{}, userTime{};
 	if (!GetProcessTimes(GetCurrentProcess(), &createTime, &exitTime, &kernelTime, &userTime))
