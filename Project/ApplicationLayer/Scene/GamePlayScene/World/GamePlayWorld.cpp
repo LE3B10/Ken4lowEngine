@@ -19,6 +19,7 @@
 
 #ifdef USE_IMGUI
 #include <imgui.h>
+#include <GameTimer.h>
 #endif
 
 using namespace Ken4lowEngine;
@@ -416,7 +417,7 @@ void GamePlayWorld::DrawGameDebugImGui()
 	ImGui::Text("Player Dead: %s", IsPlayerDead() ? "true" : "false");
 	ImGui::Text("Enemies: %d", characters_.GetEnemyCount());
 
-	const float fps = ImGui::GetIO().Framerate;
+	const float fps = K4E::GameTimer::GetInstance()->GetFPS();
 	const auto* particleManager = K4E::ParticleManager::GetInstance();
 	const auto* gpuParticleManager = K4E::GpuParticleManager::GetInstance();
 

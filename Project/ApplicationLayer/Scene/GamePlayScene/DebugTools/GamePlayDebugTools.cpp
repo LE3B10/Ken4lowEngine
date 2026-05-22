@@ -23,6 +23,7 @@
 #include <Editor/EditorWindowManager.h>
 #endif
 #include <Editor/EditorPlayController.h>
+#include <GameTimer.h>
 
 
 void GamePlayDebugTools::Initialize()
@@ -135,8 +136,10 @@ void GamePlayDebugTools::DrawImGui(GamePlayWorld* world)
 
 	auto& characters = world->GetCharacters();
 
-	const float fps = ImGui::GetIO().Framerate;
-	const float deltaSeconds = (fps > 0.0f) ? (1.0f / fps) : 0.0f;
+		const auto* gameTimer = K4E::GameTimer::GetInstance();
+	const float fps = gameTimer->GetFPS();
+	const float deltaSeconds = gameTimer->GetDeltaTime();
+	// FPS表示はImGuiの内部値ではなく、エンジン側の計測値に統一する。
 	performanceMonitor_.Update(deltaSeconds, fps);
 	const auto& perfStats = performanceMonitor_.GetStats();
 	// WindowメニューのScene Debug/Rendering表示フラグをGamePlay系デバッグUIと共有する
