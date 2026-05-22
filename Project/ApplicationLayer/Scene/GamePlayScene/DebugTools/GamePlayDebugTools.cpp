@@ -134,6 +134,11 @@ void GamePlayDebugTools::DrawImGui(GamePlayWorld* world)
 	if (!world) { return; }
 
 	auto& characters = world->GetCharacters();
+
+	const float fps = ImGui::GetIO().Framerate;
+	const float deltaSeconds = (fps > 0.0f) ? (1.0f / fps) : 0.0f;
+	performanceMonitor_.Update(deltaSeconds, fps);
+	const auto& perfStats = performanceMonitor_.GetStats();
 	// WindowメニューのScene Debug/Rendering表示フラグをGamePlay系デバッグUIと共有する
 	auto& editorWindowState = K4E::EditorWindowManager::GetInstance()->GetWindowState();
 
@@ -146,11 +151,61 @@ void GamePlayDebugTools::DrawImGui(GamePlayWorld* world)
 		{
 			ImGui::Text("Debug Camera: %s", isDebugCamera_ ? "ON" : "OFF");
 			ImGui::Text("Debug Freeze (F10): %s", isImGuiFreeze_ ? "ON" : "OFF");
-			ImGui::Text("FPS: %.1f", ImGui::GetIO().Framerate);
+			if (performanceDisplayMode_ == PerformanceDisplayMode::FPS)
+			{
+				ImGui::Text("FPS: %.1f", perfStats.fps);
+			}
+			else
+			{
+				ImGui::Text("Frame: %.2f ms", perfStats.frameTimeMs);
+			}
 			world->DrawGameDebugImGui();
 		}
 		ImGui::End();
 	}
+	if (showPerformanceMonitor_)
+	{
+		if (ImGui::Begin("Performance Monitor", &showPerformanceMonitor_))
+		{
+			ImGui::Checkbox("Show Graph", &showPerformanceGraph_);
+			const char* displayModeLabels[] = { "FPS", "FrameTime(ms)" };
+			int displayMode = static_cast<int>(performanceDisplayMode_);
+			if (ImGui::Combo("Display Mode", &displayMode, displayModeLabels, IM_ARRAYSIZE(displayModeLabels)))
+			{
+				performanceDisplayMode_ = static_cast<PerformanceDisplayMode>(displayMode);
+			}
+
+			if (performanceDisplayMode_ == PerformanceDisplayMode::FPS)
+			{
+				ImGui::Text("FPS: %.1f", perfStats.fps);
+			}
+			else
+			{
+				ImGui::Text("Frame: %.2f ms", perfStats.frameTimeMs);
+			}
+
+			ImGui::Text("FrameTime: %.2f ms", perfStats.frameTimeMs);
+			ImGui::Text("CPU Usage: %.1f%%", perfStats.cpuUsagePercent);
+			ImGui::Text("Process CPU Usage: %.1f%%", perfStats.processCpuUsagePercent);
+			ImGui::Text("Memory Usage: %.1f MB", perfStats.memoryUsageMB);
+
+			if (showPerformanceGraph_)
+			{
+				if (performanceDisplayMode_ == PerformanceDisplayMode::FPS)
+				{
+					const auto& history = performanceMonitor_.GetFpsHistory();
+					ImGui::PlotLines("FPS History", history.data(), static_cast<int>(history.size()), 0, nullptr, 0.0f, 240.0f, ImVec2(0.0f, 90.0f));
+				}
+				else
+				{
+					const auto& history = performanceMonitor_.GetFrameTimeHistory();
+					ImGui::PlotLines("FrameTime History", history.data(), static_cast<int>(history.size()), 0, nullptr, 0.0f, 50.0f, ImVec2(0.0f, 90.0f));
+				}
+			}
+		}
+		ImGui::End();
+	}
+
 
 	if (editorWindowState.showPlayerDebug)
 	{

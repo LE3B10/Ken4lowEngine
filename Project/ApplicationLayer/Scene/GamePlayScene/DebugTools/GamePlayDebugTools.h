@@ -2,6 +2,7 @@
 #include <cstdint>
 #include "ApplicationLayer/DebugTools/StageChunk/StageChunkDebugController.h"
 #include "ApplicationLayer/DebugTools/Occlusion/OcclusionDebugController.h"
+#include "PerformanceMonitor.h"
 
 /// ---------- 前方宣言 ---------- ///
 namespace Ken4lowEngine { class Input; }
@@ -46,6 +47,16 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	bool weaponEditorInitialized_ = false;
 	int32_t lastAppliedWeaponID_ = 0;
+	enum class PerformanceDisplayMode
+	{
+		FPS = 0,
+		FrameTimeMs = 1
+	};
+
+	K4E::PerformanceMonitor performanceMonitor_{};
+	PerformanceDisplayMode performanceDisplayMode_ = PerformanceDisplayMode::FPS;
+	bool showPerformanceMonitor_ = true;
+	bool showPerformanceGraph_ = true;
 	StageChunkDebugController stageChunkDebugController_{};
 	OcclusionDebugController occlusionDebugController_{};
 };
