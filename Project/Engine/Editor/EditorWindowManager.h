@@ -137,6 +137,9 @@ namespace Ken4lowEngine
 		bool openRebuildDefaultLayoutPopup_ = false; // Rebuild Default Layoutを即時実行せず確認Popupへ遅延する。
 		PerformanceMonitor outputLogPerformanceMonitor_{}; // Output Logで表示するパフォーマンス計測状態を保持する。
 		OutputLogPerformanceDisplayMode outputLogPerformanceDisplayMode_ = OutputLogPerformanceDisplayMode::FPS; // Output Log内のFPS/ms切り替え状態を保持する。
+		bool showPerformanceInOutputLog_ = true;
+		bool showPerformanceOverlay_ = true;
+		bool performanceOverlayCompactMode_ = false;
 	};
 
 } // namespace Ken4lowEngine

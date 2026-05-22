@@ -102,6 +102,20 @@ namespace Ken4lowEngine
 			return result.empty() ? ellipsis : (result + ellipsis);
 		}
 
+		void DrawPerformanceCompactLine(const PerformanceStats& stats, EditorWindowManager::OutputLogPerformanceDisplayMode mode)
+		{
+			if (mode == EditorWindowManager::OutputLogPerformanceDisplayMode::FPS)
+			{
+				ImGui::Text("FPS: %.1f | Frame: %.2fms | CPU: %.1f%% | Proc: %.1f%% | Mem: %.1fMB",
+					stats.fps, stats.frameTimeMs, stats.cpuUsagePercent, stats.processCpuUsagePercent, stats.memoryUsageMB);
+			}
+			else
+			{
+				ImGui::Text("Frame: %.2fms | FPS: %.1f | CPU: %.1f%% | Proc: %.1f%% | Mem: %.1fMB",
+					stats.frameTimeMs, stats.fps, stats.cpuUsagePercent, stats.processCpuUsagePercent, stats.memoryUsageMB);
+			}
+		}
+
 		ImVec2 FitImageSize(uint32_t width, uint32_t height, const ImVec2& bounds)
 		{
 			if (width == 0 || height == 0 || bounds.x <= 0.0f || bounds.y <= 0.0f)
@@ -153,6 +167,10 @@ namespace Ken4lowEngine
 			// Build完了後はCompiled側の変換結果を確認しやすいようContent Browserを再スキャンする。
 			assetBrowser_.Refresh();
 		}
+#ifdef _WIN32
+		const auto* gameTimer = K4E::GameTimer::GetInstance();
+		outputLogPerformanceMonitor_.Update(gameTimer->GetDeltaTime(), gameTimer->GetFPS());
+#endif // _WIN32
 
 		auto* input = Input::GetInstance();
 		if (input->TriggerRawKey(DIK_F8) && IsFpsCapturePolicy())
@@ -515,6 +533,33 @@ namespace Ken4lowEngine
 			{
 				ImGui::GetWindowDrawList()->AddText(contentScreenMin, ImGui::GetColorU32(ImGuiCol_Text), "GameRenderTarget SRV is not ready.");
 			}
+
+#ifdef _DEBUG
+			if (showPerformanceOverlay_ && mainViewportRect_.valid)
+			{
+				// デバッグ中にゲーム画面上で負荷を確認できるよう左上Overlayを描画する。
+				ImGui::SetNextWindowBgAlpha(0.45f);
+				ImGui::SetNextWindowPos(ImVec2(imageScreenMin.x + 8.0f, imageScreenMin.y + 8.0f), ImGuiCond_Always);
+				const ImGuiWindowFlags overlayFlags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_AlwaysAutoResize |
+					ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav;
+				if (ImGui::Begin("Performance Overlay", nullptr, overlayFlags))
+				{
+					const PerformanceStats& stats = outputLogPerformanceMonitor_.GetStats();
+					if (performanceOverlayCompactMode_)
+					{
+						DrawPerformanceCompactLine(stats, outputLogPerformanceDisplayMode_);
+					}
+					else
+					{
+						ImGui::Text("FPS: %.1f", stats.fps);
+						ImGui::Text("Frame: %.2f ms", stats.frameTimeMs);
+						ImGui::Text("CPU: %.1f%%", stats.cpuUsagePercent);
+						ImGui::Text("Mem: %.1f MB", stats.memoryUsageMB);
+					}
+				}
+				ImGui::End();
+			}
+#endif // _DEBUG
 
 			if (availableSize.x > 1.0f && availableSize.y > 1.0f)
 			{
@@ -1181,11 +1226,6 @@ namespace Ken4lowEngine
 		// Output LogはEditorOutputLogのバッファを描画し、Build/Content Browserの結果を集約する。
 		if (ImGui::Begin("Output Log", &windowState_.showOutputLog))
 		{
-						const auto* gameTimer = K4E::GameTimer::GetInstance();
-			const float fps = gameTimer->GetFPS();
-			const float deltaSeconds = gameTimer->GetDeltaTime();
-			// FPS表示はImGuiの内部値ではなく、エンジン側の計測値に統一する。
-			outputLogPerformanceMonitor_.Update(deltaSeconds, fps);
 			const PerformanceStats& performanceStats = outputLogPerformanceMonitor_.GetStats();
 
 			if (ImGui::Button("Clear"))
@@ -1202,9 +1242,20 @@ namespace Ken4lowEngine
 				ImGui::Text("FPS: %.1f", performanceStats.fps);
 			}
 			ImGui::Separator();
-			// OutLogから実行時負荷を確認できるようにPerformance情報を描画する。
+			// ログ表示を邪魔しないようにPerformance情報は通常1行で表示する。
 			if (ImGui::CollapsingHeader("Performance", ImGuiTreeNodeFlags_DefaultOpen))
 			{
+				ImGui::Checkbox("Show Performance In OutputLog", &showPerformanceInOutputLog_);
+#ifdef _DEBUG
+				ImGui::Checkbox("Show Performance Overlay", &showPerformanceOverlay_);
+				ImGui::Checkbox("Overlay Compact Mode", &performanceOverlayCompactMode_);
+#else
+				bool disabledOverlay = false;
+				ImGui::BeginDisabled();
+				ImGui::Checkbox("Show Performance Overlay", &disabledOverlay);
+				ImGui::Checkbox("Overlay Compact Mode", &disabledOverlay);
+				ImGui::EndDisabled();
+#endif
 				const char* displayModeLabels[] = { "FPS", "FrameTime(ms)" };
 				int displayMode = static_cast<int>(outputLogPerformanceDisplayMode_);
 				if (ImGui::Combo("Display Mode", &displayMode, displayModeLabels, IM_ARRAYSIZE(displayModeLabels)))
@@ -1212,18 +1263,18 @@ namespace Ken4lowEngine
 					outputLogPerformanceDisplayMode_ = static_cast<OutputLogPerformanceDisplayMode>(displayMode);
 				}
 
-				if (outputLogPerformanceDisplayMode_ == OutputLogPerformanceDisplayMode::FPS)
+				if (showPerformanceInOutputLog_)
 				{
-					ImGui::Text("FPS: %.1f", performanceStats.fps);
+					DrawPerformanceCompactLine(performanceStats, outputLogPerformanceDisplayMode_);
+					if (ImGui::CollapsingHeader("Performance Details"))
+					{
+						ImGui::Text("FPS: %.1f", performanceStats.fps);
+						ImGui::Text("FrameTime: %.2f ms", performanceStats.frameTimeMs);
+						ImGui::Text("CPU Usage: %.1f %%", performanceStats.cpuUsagePercent);
+						ImGui::Text("Process CPU Usage: %.1f %%", performanceStats.processCpuUsagePercent);
+						ImGui::Text("Memory Usage: %.1f MB", performanceStats.memoryUsageMB);
+					}
 				}
-				else
-				{
-					ImGui::Text("FrameTime(ms): %.2f", performanceStats.frameTimeMs);
-				}
-				ImGui::Text("FrameTime(ms): %.2f", performanceStats.frameTimeMs);
-				ImGui::Text("CPU Usage: %.1f%%", performanceStats.cpuUsagePercent);
-				ImGui::Text("Process CPU Usage: %.1f%%", performanceStats.processCpuUsagePercent);
-				ImGui::Text("Memory Usage MB: %.1f", performanceStats.memoryUsageMB);
 				ImGui::Separator();
 			}
 
