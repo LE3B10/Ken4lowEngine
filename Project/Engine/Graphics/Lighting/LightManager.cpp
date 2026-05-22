@@ -525,6 +525,8 @@ namespace Ken4lowEngine
 		ImGui::DragFloat3("Manual Shadow Focus Position", &manualShadowFocusPosition_.x, 0.1f);
 		ImGui::SliderFloat("Shadow Focus Offset", &directionalShadowFocusOffset_, -200.0f, 200.0f, "%.2f");
 		ImGui::SliderFloat("Spot Shadow NearZ", &spotShadowNearZ_, 0.01f, 50.0f, "%.3f");
+		ImGui::InputInt("Shadow Caster Light Index", &shadowCasterLightIndex_);
+		shadowCasterLightIndex_ = std::clamp(shadowCasterLightIndex_, -1, static_cast<int32_t>(punctualLights_.size()) - 1);
 
 		directionalShadowDistance_ = std::clamp(directionalShadowDistance_, 1.0f, 500.0f);
 		directionalShadowWidth_ = std::clamp(directionalShadowWidth_, 5.0f, 300.0f);
@@ -575,7 +577,15 @@ namespace Ken4lowEngine
 		}
 		const char* activeCasterName = (casterType == ShadowCasterType::Directional) ? "Directional" : (casterType == ShadowCasterType::Spot) ? "Spot" : "None";
 		ImGui::SeparatorText("Shadow Debug");
-		ImGui::Text("Active Shadow Caster: %s", activeCasterName);
+		ImGui::Text("Active Shadow Caster Type: %s", activeCasterName);
+		int32_t activeLightIndex = -1;
+		PunctualLightGPU activeLight{};
+		ShadowCasterType activeType = ShadowCasterType::None;
+		const bool hasActiveLight = TryGetActiveShadowCasterLightInfo(activeLightIndex, activeLight, activeType);
+		ImGui::Text("Active Shadow Light Index: %d", hasActiveLight ? activeLightIndex : -1);
+		ImGui::Text("Active Shadow Light Direction: (%.3f, %.3f, %.3f)", hasActiveLight ? activeLight.direction.x : 0.0f, hasActiveLight ? activeLight.direction.y : 0.0f, hasActiveLight ? activeLight.direction.z : 0.0f);
+		ImGui::Text("Active Shadow Light Enabled: %s", (hasActiveLight && activeLight.enabled != 0u) ? "true" : "false");
+		ImGui::Text("Active Shadow Light Intensity: %.3f", hasActiveLight ? activeLight.intensity : 0.0f);
 		ImGui::Text("Shadow Focus Position: (%.2f, %.2f, %.2f)", currentShadowFocusPosition_.x, currentShadowFocusPosition_.y, currentShadowFocusPosition_.z);
 		ImGui::Text("Shadow Direction: (%.3f, %.3f, %.3f)", currentShadowDirection_.x, currentShadowDirection_.y, currentShadowDirection_.z);
 		ImGui::Text("Shadow Distance: %.2f", directionalShadowDistance_);
@@ -590,42 +600,70 @@ namespace Ken4lowEngine
 
 	LightManager::ShadowCasterType LightManager::GetActiveShadowCasterType() const
 	{
-		for (const auto& light : punctualLights_)
+		int32_t activeIndex = -1;
+		PunctualLightGPU activeLight{};
+		ShadowCasterType activeType = ShadowCasterType::None;
+		if (TryGetActiveShadowCasterLightInfo(activeIndex, activeLight, activeType))
 		{
-			if (light.intensity <= 0.0f || light.enabled == 0u) { continue; }
-			if (light.lightType == 3) { return ShadowCasterType::Spot; }
-			if (light.lightType == 1) { return ShadowCasterType::Directional; }
+			return activeType;
 		}
 		return ShadowCasterType::None;
+	}
+
+	bool LightManager::TryGetActiveShadowCasterLightInfo(int32_t& outIndex, PunctualLightGPU& outLight, ShadowCasterType& outType) const
+	{
+		const auto isCandidate = [](const PunctualLightGPU& light)
+			{
+				return light.intensity > 0.0f && light.enabled != 0u && (light.lightType == 1 || light.lightType == 3);
+			};
+		if (shadowCasterLightIndex_ >= 0 && shadowCasterLightIndex_ < static_cast<int32_t>(punctualLights_.size()))
+		{
+			const auto& selected = punctualLights_[shadowCasterLightIndex_];
+			if (isCandidate(selected))
+			{
+				outIndex = shadowCasterLightIndex_;
+				outLight = selected;
+				outType = (selected.lightType == 3) ? ShadowCasterType::Spot : ShadowCasterType::Directional;
+				return true;
+			}
+		}
+		for (int32_t i = 0; i < static_cast<int32_t>(punctualLights_.size()); ++i)
+		{
+			const auto& light = punctualLights_[i];
+			// Shadowに使うライト選択条件を統一して、無効ライトが影行列に使われないようにする
+			if (!isCandidate(light)) { continue; }
+			outIndex = i;
+			outLight = light;
+			outType = (light.lightType == 3) ? ShadowCasterType::Spot : ShadowCasterType::Directional;
+			return true;
+		}
+		return false;
 	}
 
 	Matrix4x4 LightManager::BuildShadowLightViewProjection(const Vector3& focusPosition) const
 	{
 		Vector3 lightDir = { 0.3f, -1.0f, 0.2f };
-		for (const auto& light : punctualLights_)
+		int32_t activeIndex = -1;
+		PunctualLightGPU activeLight{};
+		ShadowCasterType casterType = ShadowCasterType::None;
+		if (TryGetActiveShadowCasterLightInfo(activeIndex, activeLight, casterType))
 		{
-			if (light.lightType == 1 && light.intensity > 0.0f)
+			if (casterType == ShadowCasterType::Directional)
 			{
-				lightDir = Vector3::Normalize(light.direction);
-				break;
+				lightDir = Vector3::Normalize(activeLight.direction);
 			}
 		}
 
-		if (GetActiveShadowCasterType() == ShadowCasterType::Spot)
+		if (casterType == ShadowCasterType::Spot)
 		{
-			for (const auto& light : punctualLights_)
-			{
-				if (light.lightType != 3 || light.intensity <= 0.0f) { continue; }
-				const float spotDistance = std::max(light.distance, 5.0f);
-				const float spotOuterCos = std::clamp(light.cosAngle, 0.01f, 0.999f);
-				const float outerAngle = std::acos(spotOuterCos) * 2.0f;
-				const float fovY = std::clamp(outerAngle, 0.15f, 3.0f);
-				// SpotLightの方向でShadowMap用ViewProjectionを生成する。
-				const Matrix4x4 view = Matrix4x4::MakeLookAtMatrix(light.position, light.position + Vector3::Normalize(light.direction), { 0.0f,1.0f,0.0f });
-				const Matrix4x4 proj = Matrix4x4::MakePerspectiveFovMatrix(fovY, 1.0f, spotShadowNearZ_, spotDistance);
-				// SpotLight Shadow は world * view * projection の順で評価できる行列を返す。
-				return Matrix4x4::Multiply(view, proj);
-			}
+			const auto& light = activeLight;
+			const float spotDistance = std::max(light.distance, 5.0f);
+			const float spotOuterCos = std::clamp(light.cosAngle, 0.01f, 0.999f);
+			const float outerAngle = std::acos(spotOuterCos) * 2.0f;
+			const float fovY = std::clamp(outerAngle, 0.15f, 3.0f);
+			const Matrix4x4 view = Matrix4x4::MakeLookAtMatrix(light.position, light.position + Vector3::Normalize(light.direction), { 0.0f,1.0f,0.0f });
+			const Matrix4x4 proj = Matrix4x4::MakePerspectiveFovMatrix(fovY, 1.0f, spotShadowNearZ_, spotDistance);
+			return Matrix4x4::Multiply(view, proj);
 		}
 
 		Vector3 directionalFocusPosition = focusPosition;

@@ -27,11 +27,22 @@ using namespace Ken4lowEngine;
 void GamePlayWorld::Initialize(GamePlayStageContext& stageContext)
 {
 	const auto stageAssets = stageContext.GetCurrentStageAssets();
+	auto* lightManager = LightManager::GetInstance();
+
+	// GamePlayScene開始時に前シーンのライト状態が残らないよう、基本ライトを明示的に再構成する。
+	auto& gameplayLights = lightManager->GetMutablePunctualLightsForEditor();
+	gameplayLights.clear();
+	lightManager->AddDefaultDirectionalLight();
+	lightManager->SetShadowCasterLightIndex(-1);
+	lightManager->SetShadowFocusMode(K4E::LightManager::ShadowFocusMode::StageCenter);
+	lightManager->SetManualShadowFocusPosition({ 0.0f, 0.0f, 0.0f });
+	lightManager->SetDirectionalShadowFrustum(120.0f, 120.0f, 0.1f, 180.0f);
+	lightManager->SetShadowMapSize(2048);
 
 	K4E::Vector3 dummy{};
 	if (!TryGetDirectionalLightFromManager(dummy))
 	{
-		LightManager::GetInstance()->AddDefaultDirectionalLight();
+		lightManager->AddDefaultDirectionalLight();
 	}
 
 	skyBox_ = std::make_unique<K4E::SkyBox>();
@@ -615,16 +626,6 @@ void GamePlayWorld::CollisionUpdate()
 
 void GamePlayWorld::UpdateShadowLightViewProjection()
 {
-	K4E::Vector3 lightDir = shadowLightDirection_;
-
-	K4E::Vector3 managerDir{};
-	if (TryGetDirectionalLightFromManager(managerDir))
-	{
-		lightDir = managerDir;
-	}
-
-	lightDir = K4E::Vector3::Normalize(lightDir);
-
 	K4E::Vector3 center = { 0.0f, 0.0f, 0.0f };
 	if (auto* player = characters_.GetPlayer())
 	{
@@ -634,25 +635,7 @@ void GamePlayWorld::UpdateShadowLightViewProjection()
 		}
 	}
 
-	K4E::Vector3 eye = center - lightDir * shadowDistance_;
-	K4E::Vector3 up = { 0.0f, 1.0f, 0.0f };
-
-	if (std::abs(K4E::Vector3::Dot(lightDir, up)) > 0.99f)
-	{
-		up = { 0.0f, 0.0f, 1.0f };
-	}
-
-	K4E::Matrix4x4 view = K4E::Matrix4x4::MakeLookAtMatrix(eye, center, up);
-
-	K4E::Matrix4x4 proj = K4E::Matrix4x4::MakeOrthographicMatrix(
-		-shadowOrthoHalfWidth_,
-		shadowOrthoHalfHeight_,
-		shadowOrthoHalfWidth_,
-		-shadowOrthoHalfHeight_,
-		shadowNearZ_,
-		shadowFarZ_);
-
-	shadowLightViewProjection_ = K4E::Matrix4x4::Multiply(view, proj);
+	shadowLightViewProjection_ = K4E::LightManager::GetInstance()->BuildShadowLightViewProjection(center);
 }
 
 bool GamePlayWorld::TryGetDirectionalLightFromManager(K4E::Vector3& outDirection) const
