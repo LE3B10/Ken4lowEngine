@@ -291,9 +291,13 @@ namespace Ken4lowEngine
 		Vector3 dir = Vector3::Normalize(lightDirection);
 		Vector3 eye = target - dir * distanceFromTarget;
 		Vector3 up = { 0.0f, 1.0f, 0.0f };
+		const float width = std::max(std::fabs(orthoHalfWidth), 0.01f);
+		const float height = std::max(std::fabs(orthoHalfHeight), 0.01f);
+		const float shadowNear = std::max(nearZ, 0.001f);
+		const float shadowFar = std::max(farZ, shadowNear + 0.001f);
 
 		Matrix4x4 view = Matrix4x4::MakeLookAtMatrix(eye, target, up);
-		Matrix4x4 proj = Matrix4x4::MakeOrthographicMatrix(-orthoHalfWidth, orthoHalfHeight, orthoHalfWidth, -orthoHalfHeight, nearZ, farZ);
+		Matrix4x4 proj = Matrix4x4::MakeOrthographicMatrix(-width, height, width, -height, shadowNear, shadowFar);
 
 		return Matrix4x4::Multiply(view, proj);
 	}
