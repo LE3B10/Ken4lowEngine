@@ -7,6 +7,7 @@
 #include <Vector4.h>
 
 #include <memory>
+#include "WeaponMasterData.h"
 
 namespace K4E = ::Ken4lowEngine;
 
@@ -42,6 +43,7 @@ public: /// ---------- メンバ関数 ---------- ///
 	bool IsDead() const { return isDead_; }
 	bool IsRemovable() const { return removable_; }
 	int GetDamage() const { return damage_; }
+	const K4E::Vector3& GetMoveVelocity() const { return moveVelocity_; }
 
 	void SetShooterPosition(const K4E::Vector3& pos) { shooterPosition_ = pos; }
 	const K4E::Vector3& GetShooterPosition() const { return shooterPosition_; }
@@ -60,6 +62,14 @@ public: /// ---------- メンバ関数 ---------- ///
 	bool HasSplashDamage() const { return splashRadius_ > 0.0f && splashDamage_ > 0; }
 	float GetSplashRadius() const { return splashRadius_; }
 	int GetSplashDamage() const { return splashDamage_; }
+	void SetWeaponMetadata(int32_t weaponID, EWeaponCategory category, EDeathKnockbackType deathType, float deathPower, float deathUpPower, float deathExplosionRadius, float deathImpulseScale);
+	int32_t GetWeaponID() const { return weaponID_; }
+	EWeaponCategory GetWeaponCategory() const { return weaponCategory_; }
+	EDeathKnockbackType GetDeathKnockbackType() const { return deathKnockbackType_; }
+	float GetDeathKnockbackPower() const { return deathKnockbackPower_; }
+	float GetDeathKnockbackUpPower() const { return deathKnockbackUpPower_; }
+	float GetDeathExplosionRadius() const { return deathExplosionRadius_; }
+	float GetDeathImpulseScale() const { return deathImpulseScale_; }
 
 private: /// ---------- メンバ関数 ---------- ///
 
@@ -81,6 +91,13 @@ private: /// ---------- メンバ変数 ---------- ///
 	int splashDamage_ = 0;
 	bool splashCanDamageSelf_ = false;
 	bool splashTriggered_ = false;
+	int32_t weaponID_ = 0;
+	EWeaponCategory weaponCategory_ = EWeaponCategory::Primary;
+	EDeathKnockbackType deathKnockbackType_ = EDeathKnockbackType::Default;
+	float deathKnockbackPower_ = 8.0f;
+	float deathKnockbackUpPower_ = 2.0f;
+	float deathExplosionRadius_ = 0.0f;
+	float deathImpulseScale_ = 1.0f;
 
 	std::unique_ptr<K4E::Object3D> model_ = nullptr;
 	bool drawModel_ = true;
@@ -100,4 +117,3 @@ private: /// ---------- メンバ変数 ---------- ///
 	K4E::Vector3 prevPos_ = { 0.0f, 0.0f, 0.0f };
 	K4E::Vector3 scale_ = { 0.1f, 0.1f, 0.1f };
 };
-

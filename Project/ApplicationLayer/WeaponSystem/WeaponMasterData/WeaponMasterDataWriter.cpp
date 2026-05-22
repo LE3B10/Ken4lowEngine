@@ -93,6 +93,18 @@ namespace
 		default: return "none";
 		}
 	}
+	static std::string DeathKnockbackTypeToStr(EDeathKnockbackType t)
+	{
+		switch (t)
+		{
+		case EDeathKnockbackType::Default: return "default";
+		case EDeathKnockbackType::Light: return "light";
+		case EDeathKnockbackType::Sniper: return "sniper";
+		case EDeathKnockbackType::Heavy: return "heavy";
+		case EDeathKnockbackType::Explosion: return "explosion";
+		default: return "default";
+		}
+	}
 
 	static bool EndsWith(const std::string& str, const std::string& suffix)
 	{
@@ -275,6 +287,13 @@ bool WeaponMasterDataWriter::SaveOne(const std::filesystem::path& filePath, cons
 		{"impactScale", data.vfxData.impactScale},
 		{"meleeSwingScale", data.vfxData.meleeSwingScale},
 		{"meleeHitScale", data.vfxData.meleeHitScale},
+	};
+	j["deathReaction"] = {
+		{"type", DeathKnockbackTypeToStr(data.deathReaction.type)},
+		{"power", data.deathReaction.power},
+		{"upPower", data.deathReaction.upPower},
+		{"explosionRadius", data.deathReaction.explosionRadius},
+		{"impulseScale", data.deathReaction.impulseScale},
 	};
 
 	// ---------- socketData ----------

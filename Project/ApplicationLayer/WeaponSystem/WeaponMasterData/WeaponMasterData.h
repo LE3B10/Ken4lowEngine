@@ -34,6 +34,15 @@ enum class EWeaponCategory : uint8_t
 	Heavy      // ヘビー
 };
 
+enum class EDeathKnockbackType : uint8_t
+{
+	Default,
+	Light,
+	Sniper,
+	Heavy,
+	Explosion,
+};
+
 /// ---------- 射撃モード定義 ---------- ///
 enum class EFireMode : uint8_t
 {
@@ -365,6 +374,15 @@ struct FWeaponSounds
 	std::string impactSoundPath = "";				// ヒット音のパス
 };
 
+struct FWeaponDeathReaction
+{
+	EDeathKnockbackType type = EDeathKnockbackType::Default;
+	float power = 8.0f;
+	float upPower = 2.0f;
+	float explosionRadius = 0.0f;
+	float impulseScale = 1.0f;
+};
+
 /// ---------- メイン構造体 ---------- ///
 struct FWeaponMasterData
 {
@@ -391,6 +409,9 @@ struct FWeaponMasterData
 
 	/// ---------- VFXデータ ---------- ///
 	FWeaponVfx vfxData;
+
+	/// ---------- 敵死亡時の吹っ飛び設定 ---------- ///
+	FWeaponDeathReaction deathReaction;
 
 	/// ---------- ソケットデータ ---------- ///
 	FWeaponSockets socketData;

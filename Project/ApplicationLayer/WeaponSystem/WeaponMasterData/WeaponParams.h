@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include "WeaponMasterData.h"
 
 /// -------------------------------------------------------------
 ///  WeaponParams
@@ -11,6 +12,12 @@ struct WeaponParams
 {
 	// --- Identity ---
 	int32_t weaponID = 0;
+	EWeaponCategory weaponCategory = EWeaponCategory::Primary;
+	EDeathKnockbackType deathKnockbackType = EDeathKnockbackType::Default;
+	float deathKnockbackPower = 8.0f;
+	float deathKnockbackUpPower = 2.0f;
+	float deathExplosionRadius = 0.0f;
+	float deathImpulseScale = 1.0f;
 
 	// --- Basic ---
 	bool    isAutomatic = false;

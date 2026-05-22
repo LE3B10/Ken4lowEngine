@@ -318,7 +318,14 @@ void WeaponInstance::FireShot(K4E::Camera* cam, BulletManager* bulletMgr, Collis
 			params_.splashRadius,
 			params_.splashDamage,
 			params_.splashCanDamageSelf,
-			params_.drawProjectileModel);
+			params_.drawProjectileModel,
+			params_.weaponID,
+			params_.weaponCategory,
+			params_.deathKnockbackType,
+			params_.deathKnockbackPower,
+			params_.deathKnockbackUpPower,
+			params_.deathExplosionRadius,
+			params_.deathImpulseScale);
 	}
 }
 

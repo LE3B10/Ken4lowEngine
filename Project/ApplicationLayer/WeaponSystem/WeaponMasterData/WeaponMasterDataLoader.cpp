@@ -179,6 +179,18 @@ static bool ParseEnum_EReticleType(const json& v, EReticleType& out)
 	if (s == "scope") { out = EReticleType::Scope; return true; }
 	return false;
 }
+static bool ParseEnum_EDeathKnockbackType(const json& v, EDeathKnockbackType& out)
+{
+	if (v.is_number_integer()) { out = static_cast<EDeathKnockbackType>(v.get<int>()); return true; }
+	if (!v.is_string()) return false;
+	const std::string s = ToLower(v.get<std::string>());
+	if (s == "default") { out = EDeathKnockbackType::Default; return true; }
+	if (s == "light") { out = EDeathKnockbackType::Light; return true; }
+	if (s == "sniper") { out = EDeathKnockbackType::Sniper; return true; }
+	if (s == "heavy") { out = EDeathKnockbackType::Heavy; return true; }
+	if (s == "explosion") { out = EDeathKnockbackType::Explosion; return true; }
+	return false;
+}
 
 template<typename TEnum, typename TParser>
 static void ReadEnumIfExists(const json& j, const char* key, TEnum& outValue, TParser& parser)
@@ -459,6 +471,14 @@ static void from_json(const json& j, FWeaponSounds& v)
 	ReadIfExists(j, "equipSoundPath", v.equipSoundPath);
 	ReadIfExists(j, "impactSoundPath", v.impactSoundPath);
 }
+static void from_json(const json& j, FWeaponDeathReaction& v)
+{
+	ReadEnumIfExists(j, "type", v.type, ParseEnum_EDeathKnockbackType);
+	ReadIfExists(j, "power", v.power);
+	ReadIfExists(j, "upPower", v.upPower);
+	ReadIfExists(j, "explosionRadius", v.explosionRadius);
+	ReadIfExists(j, "impulseScale", v.impulseScale);
+}
 
 static void from_json(const json& j, FWeaponMasterData& v)
 {
@@ -473,6 +493,7 @@ static void from_json(const json& j, FWeaponMasterData& v)
 	if (j.contains("assetData"))    v.assetData = j.at("assetData").get<FWeaponAssets>();
 	if (j.contains("soundData"))    v.soundData = j.at("soundData").get<FWeaponSounds>();
 	if (j.contains("vfxData"))      v.vfxData = j.at("vfxData").get<FWeaponVfx>();
+	if (j.contains("deathReaction")) v.deathReaction = j.at("deathReaction").get<FWeaponDeathReaction>();
 	if (j.contains("socketData"))   v.socketData = j.at("socketData").get<FWeaponSockets>();
 
 	ReadOptionalIfExists(j, "meleeData", v.meleeData);

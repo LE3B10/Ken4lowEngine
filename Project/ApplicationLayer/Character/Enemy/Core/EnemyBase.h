@@ -207,6 +207,7 @@ protected:
 	// ---- last hit info (for death impulse) ----
 	K4E::Vector3 lastHitDir_{ 0.0f, 0.0f, 0.0f };
 	float lastHitPower_ = 1.0f;
+	float lastHitUpPower_ = 2.0f;
 
 	// ---- break apart sim ----
 	bool deathBreakActive_ = false;
