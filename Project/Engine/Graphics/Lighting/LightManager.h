@@ -56,6 +56,14 @@ namespace Ken4lowEngine
 			Directional = 1,
 			Spot = 2,
 		};
+
+		enum class ShadowFocusMode : uint32_t
+		{
+			Camera = 0,
+			Player = 1,
+			StageCenter = 2,
+			Manual = 3,
+		};
 // ライト数CB
 		struct LightInfo
 		{
@@ -221,6 +229,11 @@ namespace Ken4lowEngine
 		float directionalShadowNearZ_ = 0.1f;
 		float directionalShadowFarZ_ = 120.0f;
 		float directionalShadowFocusOffset_ = 0.0f;
+		ShadowFocusMode shadowFocusMode_ = ShadowFocusMode::Camera;
+		Vector3 manualShadowFocusPosition_ = { 0.0f, 0.0f, 0.0f };
+		mutable Vector3 currentShadowFocusPosition_ = { 0.0f, 0.0f, 0.0f };
+		mutable Vector3 currentShadowDirection_ = { 0.0f, -1.0f, 0.0f };
+		mutable Matrix4x4 currentShadowLightViewProjection_ = Matrix4x4::MakeIdentity();
 		float spotShadowNearZ_ = 0.1f;
 
 	private: /// ---------- コピー禁止 ---------- ///

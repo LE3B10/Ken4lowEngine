@@ -54,6 +54,29 @@ namespace Ken4lowEngine
 
 			return Vector3::Normalize(dir);
 		}
+
+		Vector3 TransformHomogeneousPoint(const Matrix4x4& m, const Vector3& p)
+		{
+			const float x = p.x * m.m[0][0] + p.y * m.m[1][0] + p.z * m.m[2][0] + m.m[3][0];
+			const float y = p.x * m.m[0][1] + p.y * m.m[1][1] + p.z * m.m[2][1] + m.m[3][1];
+			const float z = p.x * m.m[0][2] + p.y * m.m[1][2] + p.z * m.m[2][2] + m.m[3][2];
+			const float w = p.x * m.m[0][3] + p.y * m.m[1][3] + p.z * m.m[2][3] + m.m[3][3];
+			if (std::fabs(w) < 1e-6f) { return { x, y, z }; }
+			return { x / w, y / w, z / w };
+		}
+
+		void DrawFrustumWireframeFromLightVP(Wireframe* wf, const Matrix4x4& lightViewProjection, const Vector4& color)
+		{
+			Matrix4x4 inv = Matrix4x4::Inverse(lightViewProjection);
+			const Vector3 ndcCorners[8] = {
+				{-1.0f,-1.0f,0.0f},{1.0f,-1.0f,0.0f},{1.0f,1.0f,0.0f},{-1.0f,1.0f,0.0f},
+				{-1.0f,-1.0f,1.0f},{1.0f,-1.0f,1.0f},{1.0f,1.0f,1.0f},{-1.0f,1.0f,1.0f}
+			};
+			Vector3 wpos[8];
+			for (int i = 0; i < 8; ++i) { wpos[i] = TransformHomogeneousPoint(inv, ndcCorners[i]); }
+			const int e[12][2] = { {0,1},{1,2},{2,3},{3,0},{4,5},{5,6},{6,7},{7,4},{0,4},{1,5},{2,6},{3,7} };
+			for (auto& edge : e) { wf->DrawLine(wpos[edge[0]], wpos[edge[1]], color); }
+		}
 	}
 
 	LightManager* LightManager::GetInstance()
@@ -258,6 +281,7 @@ namespace Ken4lowEngine
 				const float crossSize = 0.15f;
 				wf->DrawLine(base - right * crossSize, base + right * crossSize, colDir);
 				wf->DrawLine(base - sideUp * crossSize, base + sideUp * crossSize, colDir);
+				DrawFrustumWireframeFromLightVP(wf, currentShadowLightViewProjection_, { 0.1f, 0.9f, 1.0f, 1.0f });
 				break;
 			}
 			case 2: { // Point
@@ -495,7 +519,11 @@ namespace Ken4lowEngine
 		ImGui::SliderFloat("Directional Shadow Height", &directionalShadowHeight_, 5.0f, 300.0f, "%.2f");
 		ImGui::SliderFloat("Directional Shadow NearZ", &directionalShadowNearZ_, 0.01f, 50.0f, "%.3f");
 		ImGui::SliderFloat("Directional Shadow FarZ", &directionalShadowFarZ_, 1.01f, 1000.0f, "%.2f");
-		ImGui::SliderFloat("Directional Shadow Focus Offset", &directionalShadowFocusOffset_, -200.0f, 200.0f, "%.2f");
+		const char* focusModeItems[] = { "Camera", "Player", "StageCenter", "Manual" };
+		int focusMode = static_cast<int>(shadowFocusMode_);
+		if (ImGui::Combo("Shadow Focus Mode", &focusMode, focusModeItems, IM_ARRAYSIZE(focusModeItems))) { shadowFocusMode_ = static_cast<ShadowFocusMode>(focusMode); }
+		ImGui::DragFloat3("Manual Shadow Focus Position", &manualShadowFocusPosition_.x, 0.1f);
+		ImGui::SliderFloat("Shadow Focus Offset", &directionalShadowFocusOffset_, -200.0f, 200.0f, "%.2f");
 		ImGui::SliderFloat("Spot Shadow NearZ", &spotShadowNearZ_, 0.01f, 50.0f, "%.3f");
 
 		directionalShadowDistance_ = std::clamp(directionalShadowDistance_, 1.0f, 500.0f);
@@ -548,6 +576,9 @@ namespace Ken4lowEngine
 		const char* activeCasterName = (casterType == ShadowCasterType::Directional) ? "Directional" : (casterType == ShadowCasterType::Spot) ? "Spot" : "None";
 		ImGui::SeparatorText("Shadow Debug");
 		ImGui::Text("Active Shadow Caster: %s", activeCasterName);
+		ImGui::Text("Shadow Focus Position: (%.2f, %.2f, %.2f)", currentShadowFocusPosition_.x, currentShadowFocusPosition_.y, currentShadowFocusPosition_.z);
+		ImGui::Text("Shadow Direction: (%.3f, %.3f, %.3f)", currentShadowDirection_.x, currentShadowDirection_.y, currentShadowDirection_.z);
+		ImGui::Text("Shadow Distance: %.2f", directionalShadowDistance_);
 		ImGui::Text("Shadow Width / Height: %.2f / %.2f", directionalShadowWidth_, directionalShadowHeight_);
 		ImGui::Text("Shadow Near / Far: %.3f / %.2f", directionalShadowNearZ_, directionalShadowFarZ_);
 		ImGui::Text("Shadow Map Size: %u", shadowMapSize_);
@@ -597,8 +628,21 @@ namespace Ken4lowEngine
 			}
 		}
 
-		const Vector3 directionalFocusPosition = focusPosition + Vector3{ 0.0f, directionalShadowFocusOffset_, 0.0f };
-		return Matrix4x4::MakeLightViewProjection(lightDir, directionalFocusPosition, directionalShadowDistance_, directionalShadowWidth_, directionalShadowHeight_, directionalShadowNearZ_, directionalShadowFarZ_);
+		Vector3 directionalFocusPosition = focusPosition;
+		if (shadowFocusMode_ == ShadowFocusMode::Manual || shadowFocusMode_ == ShadowFocusMode::StageCenter)
+		{
+			// Shadow Frustumの中心を調整できるようにして、ステージ全体を影範囲に収めやすくする
+			directionalFocusPosition = manualShadowFocusPosition_;
+		}
+		directionalFocusPosition += Vector3{ 0.0f, directionalShadowFocusOffset_, 0.0f };
+		const float shadowNear = std::clamp(directionalShadowNearZ_, 0.01f, 500.0f);
+		const float shadowFar = std::max(directionalShadowFarZ_, shadowNear + 1.0f);
+		const Matrix4x4 lightViewProjection = Matrix4x4::MakeLightViewProjection(
+			lightDir, directionalFocusPosition, directionalShadowDistance_, directionalShadowWidth_, directionalShadowHeight_, shadowNear, shadowFar);
+		currentShadowFocusPosition_ = directionalFocusPosition;
+		currentShadowDirection_ = lightDir;
+		currentShadowLightViewProjection_ = lightViewProjection;
+		return lightViewProjection;
 	}
 
 	void LightManager::DrawImGui(bool* pOpen)
