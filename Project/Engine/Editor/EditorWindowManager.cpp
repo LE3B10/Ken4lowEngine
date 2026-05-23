@@ -494,6 +494,8 @@ namespace Ken4lowEngine
 		if (ImGui::Begin("Main Viewport", &windowState_.showMainViewport, ImGuiWindowFlags_NoScrollbar))
 		{
 			ImGui::Checkbox("Draw Debug Wire In Game View", &windowState_.drawDebugWireInGameView);
+			ImGui::Checkbox("Draw HUD In Game View", &windowState_.drawHudInGameView);
+			ImGui::TextUnformatted("Game Viewport Camera: MainCamera / PlayerCamera");
 			const ImVec2 availableSize = ImGui::GetContentRegionAvail();
 			auto* postEffectManager = PostEffectManager::GetInstance();
 			const float renderTargetWidth = static_cast<float>(GameViewportConstants::Width);
@@ -624,6 +626,8 @@ namespace Ken4lowEngine
 		if (ImGui::Begin("Debug Viewport", &windowState_.showDebugViewport, ImGuiWindowFlags_NoScrollbar))
 		{
 			ImGui::Checkbox("Draw Debug Wire In Debug View", &windowState_.drawDebugWireInDebugView);
+			ImGui::Checkbox("Draw HUD In Debug View", &windowState_.drawHudInDebugView);
+			ImGui::TextUnformatted("Debug Viewport Camera: DebugCamera");
 			const ImVec2 availableSize = ImGui::GetContentRegionAvail();
 			const ImVec2 imageSize = FitImageSize(GameViewportConstants::Width, GameViewportConstants::Height, availableSize);
 			const ImVec2 cursor = ImGui::GetCursorScreenPos();

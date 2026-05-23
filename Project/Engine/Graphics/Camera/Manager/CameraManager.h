@@ -25,11 +25,16 @@ namespace Ken4lowEngine
 
 		// 登録
 		void SetMainCamera(Camera* camera);
+		void SetRenderCamera(Camera* camera);
+		void SetGameCamera(Camera* camera);
+		void SetDebugCamera(DebugCamera* camera);
 		void SetUseDebugCamera(bool useDebugCamera);
 
 	public: /// ---------- ゲッタ ---------- ///
 
 		Camera* GetMainCamera() const { return mainCamera_; }
+		Camera* GetRenderCamera() const { return renderCamera_ ? renderCamera_ : gameCamera_; }
+		Camera* GetGameCamera() const { return gameCamera_; }
 		DebugCamera* GetDebugCamera() const { return debugCamera_; }
 
 		bool IsUsingDebugCamera() const { return useDebugCamera_; }
@@ -39,10 +44,7 @@ namespace Ken4lowEngine
 		Matrix4x4 GetActiveViewProjectionMatrix() const;
 		Vector3 GetActiveCameraPosition() const;
 
-		// Object3D や FPS など「Camera* が欲しい側」用
-		// DebugCamera は型が違うので、通常カメラが必要な場所では main を返す
-		Camera* GetRenderCamera() const { return mainCamera_; }
-
+		
 	private: /// ---------- コピー禁止 ---------- ///
 
 		CameraManager() = default;
@@ -53,6 +55,8 @@ namespace Ken4lowEngine
 	private: /// ---------- メンバ変数 ---------- ///
 
 		Camera* mainCamera_ = nullptr;
+		Camera* gameCamera_ = nullptr;
+		Camera* renderCamera_ = nullptr;
 		DebugCamera* debugCamera_ = nullptr;
 		bool useDebugCamera_ = false;
 	};

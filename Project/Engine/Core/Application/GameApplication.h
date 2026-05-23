@@ -56,7 +56,7 @@ private:
 	void DrawCurrentScene3DPass(bool drawDebugWire = true);
 
 	// Debug/ReleaseでHUD/UI/Sprite/Fontを必ず重ねるための共通ルート。
-	void DrawCurrentScene2DOverlay();
+	void DrawCurrentScene2DOverlay(bool drawHud = true);
 
 	// ReleaseでもSceneRenderTarget起点の描画順に揃えるためのフェーズ分割。
 	void DrawGameWorldToSceneTarget();

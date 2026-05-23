@@ -160,7 +160,7 @@ namespace Ken4lowEngine
 		//--------------------------------------------
 		PostEffectManager::GetInstance()->BeginGameRenderTargetOverlay(); // 2DをMain Viewportに含めるためGameRenderTargetをRTVへ戻す
 		// Debug/ReleaseでGamePlaySceneのHUD/UI/Sprite/Font描画を必ず同じ入口から呼ぶ。
-		DrawCurrentScene2DOverlay();
+		DrawCurrentScene2DOverlay(EditorWindowManager::GetInstance()->GetWindowState().drawHudInGameView);
 		PostEffectManager::GetInstance()->EndGameRenderTargetOverlay(); // ImGui::Imageで読むためGameRenderTargetをSRVへ戻す
 
 #ifdef _DEBUG
@@ -225,8 +225,12 @@ namespace Ken4lowEngine
 	/// -------------------------------------------------------------
 	///						HUD/UI/Sprite描画の共通処理
 	/// -------------------------------------------------------------
-	void GameApplication::DrawCurrentScene2DOverlay()
+	void GameApplication::DrawCurrentScene2DOverlay(bool drawHud)
 	{
+		if (!drawHud)
+		{
+			return;
+		}
 		// GamePlayScene::Draw2DSprites() 内で HUDManager/Reticle/Ammo/HP/Fade まで描画する。
 		SceneManager::GetInstance()->Draw2DSprites();
 	}
@@ -256,8 +260,10 @@ namespace Ken4lowEngine
 
 		auto* cameraManager = CameraManager::GetInstance();
 		const bool useDebugBefore = cameraManager->IsUsingDebugCamera();
-		// ゲーム画面を維持したままデバッグ確認できるよう、DebugCamera用Viewportを別RenderTargetに描画する。
+		Camera* previousRenderCamera = cameraManager->GetRenderCamera();
+		// Game ViewとDebug Viewで使用カメラとデバッグ描画を分離する
 		cameraManager->SetUseDebugCamera(true);
+		cameraManager->SetRenderCamera(cameraManager->GetGameCamera());
 		Wireframe::GetInstance()->SetDebugCamera(true);
 
 		PostEffectManager::GetInstance()->BeginDebugViewportDraw();
@@ -266,10 +272,15 @@ namespace Ken4lowEngine
 		drawDebugWire = EditorWindowManager::GetInstance()->GetWindowState().drawDebugWireInDebugView;
 #endif
 		DrawCurrentScene3DPass(drawDebugWire);
+		if (editorWindowState.drawHudInDebugView)
+		{
+			DrawCurrentScene2DOverlay(true);
+		}
 		PostEffectManager::GetInstance()->EndDebugViewportDraw();
 
 		Wireframe::GetInstance()->SetDebugCamera(useDebugBefore);
 		cameraManager->SetUseDebugCamera(useDebugBefore);
+		cameraManager->SetRenderCamera(previousRenderCamera ? previousRenderCamera : cameraManager->GetGameCamera());
 	}
 
 	void GameApplication::ApplyPostEffectToBackBuffer()
@@ -281,7 +292,7 @@ namespace Ken4lowEngine
 	void GameApplication::DrawGameUIToBackBuffer()
 	{
 		// HUD/UI/Sprite/FontはPostEffect後のBackBufferへ直接描画する。
-		DrawCurrentScene2DOverlay();
+		DrawCurrentScene2DOverlay(EditorWindowManager::GetInstance()->GetWindowState().drawHudInGameView);
 	}
 
 

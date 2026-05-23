@@ -48,6 +48,8 @@ namespace Ken4lowEngine
 		bool debugShowFps = true;
 		bool drawDebugWireInGameView = false;
 		bool drawDebugWireInDebugView = true;
+		bool drawHudInGameView = true;
+		bool drawHudInDebugView = false;
 	};
 
 	/// <summary>
