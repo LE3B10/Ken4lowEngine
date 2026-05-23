@@ -1,0 +1,30 @@
+{
+  "data": {
+    "color": [
+      1.0,
+      1.0,
+      1.0,
+      1.0
+    ],
+    "directionalDirection": [
+      0.0,
+      -0.866025447845459,
+      0.4999999701976776
+    ],
+    "enableShadow": true,
+    "intensity": 1.0,
+    "normalBias": 0.02500000037252903,
+    "shadowBias": 0.0,
+    "shadowFarZ": 120.0,
+    "shadowFocusMode": 2,
+    "shadowHeight": 150.0,
+    "shadowMapSize": 2048,
+    "shadowNearZ": 0.10000000149011612,
+    "shadowStrength": 0.6000000238418579,
+    "shadowWidth": 150.0
+  },
+  "displayName": "default_light",
+  "id": "default_light",
+  "type": "LightPreset",
+  "version": 1
+}

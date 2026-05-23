@@ -898,6 +898,11 @@
     <ClCompile Include="ApplicationLayer\Character\Enemy\AI\EnemyTacticalPointDebugDrawer.cpp">
       <Filter>ApplicationLayer\Character\Enemy\AI</Filter>
     </ClCompile>
+    <ClCompile Include="Engine\System\JsonAssets\DataAssetPresets.cpp" />
+    <ClCompile Include="Engine\System\JsonAssets\ExampleJsonAsset.cpp" />
+    <ClCompile Include="Engine\System\JsonAssets\JsonAssetRegistry.cpp" />
+    <ClCompile Include="Engine\System\JsonAssets\JsonDataManager.cpp" />
+    <ClCompile Include="Engine\System\JsonAssets\JsonEditorWindow.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ApplicationLayer\UISystem\Crosshair\Crosshair.h">
@@ -1887,47 +1892,13 @@
     <ClInclude Include="ApplicationLayer\Character\Enemy\AI\EnemyTacticalPointDebugDrawer.h">
       <Filter>ApplicationLayer\Character\Enemy\AI</Filter>
     </ClInclude>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="Resources\Shaders\PostEffect\FullScreen.hlsli">
-      <Filter>Shader\Hlsli</Filter>
-    </None>
-    <None Include="Resources\Shaders\Object3D\Object3d.hlsli">
-      <Filter>Shader\Hlsli</Filter>
-    </None>
-    <None Include="Resources\Shaders\Particle\Particle.hlsli">
-      <Filter>Shader\Hlsli</Filter>
-    </None>
-    <None Include="Resources\Shaders\Skinning\SkinningObject3d.hlsli">
-      <Filter>Shader\Hlsli</Filter>
-    </None>
-    <None Include="Resources\Shaders\SkyBox\SkyBox.hlsli">
-      <Filter>Shader\Hlsli</Filter>
-    </None>
-    <None Include="Resources\Shaders\Sprite\Sprite.hlsli">
-      <Filter>Shader\Hlsli</Filter>
-    </None>
-    <None Include="Resources\Shaders\Wireframe\Wireframe.hlsli">
-      <Filter>Shader\Hlsli</Filter>
-    </None>
-    <None Include="Resources\Shaders\GpuParticle\GpuParticle.hlsli">
-      <Filter>Shader\Hlsli</Filter>
-    </None>
-    <None Include="Resources\Shaders\GpuParticle\GpuParticleData.hlsli">
-      <Filter>Shader\Hlsli</Filter>
-    </None>
-    <None Include="Resources\Shaders\GpuParticle\GpuParticleTypeParams.hlsli">
-      <Filter>Shader\Hlsli</Filter>
-    </None>
-    <None Include="Resources\Shaders\GpuParticle\GpuParticleSpawnParams.hlsli">
-      <Filter>Shader\Hlsli</Filter>
-    </None>
-    <None Include="Resources\Shaders\Object3D\LightingCommon.hlsli">
-      <Filter>Shader\Hlsli</Filter>
-    </None>
-    <None Include="Resources\Shaders\Object3D\ShadowCommon.hlsli">
-      <Filter>Shader\Hlsli</Filter>
-    </None>
+    <ClInclude Include="Engine\System\JsonAssets\DataAssetPresets.h" />
+    <ClInclude Include="Engine\System\JsonAssets\ExampleJsonAsset.h" />
+    <ClInclude Include="Engine\System\JsonAssets\JsonAssetEntry.h" />
+    <ClInclude Include="Engine\System\JsonAssets\JsonAssetRegistry.h" />
+    <ClInclude Include="Engine\System\JsonAssets\JsonDataManager.h" />
+    <ClInclude Include="Engine\System\JsonAssets\JsonEditorWindow.h" />
+    <ClInclude Include="Engine\System\JsonAssets\JsonSerializable.h" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Shader">
