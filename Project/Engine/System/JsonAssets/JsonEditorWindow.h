@@ -22,9 +22,9 @@ namespace Ken4lowEngine
 		float autoSaveIntervalSec_ = 2.0f;
 		float autoSaveElapsedSec_ = 0.0f;
 		char typeFilter_[64] = "All";
-		char newType_[64] = "ExampleType";
+		int newTypeIndex_ = 0;
 		char newId_[64] = "example_asset";
 		char newDisplayName_[64] = "Example Asset";
-		char basePath_[256] = "Resources/JSON/JsonAssets";
+		char basePath_[256] = "Resources/DataAssets";
 	};
 }

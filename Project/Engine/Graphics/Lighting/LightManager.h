@@ -3,6 +3,7 @@
 #include "Vector3.h" 
 #include "Vector4.h"
 #include "Matrix4x4.h"
+#include <string>
 
 namespace Ken4lowEngine
 {
@@ -140,6 +141,9 @@ namespace Ken4lowEngine
 		/// デフォルトの指向性ライトを追加します。
 		/// </summary>
 		void AddDefaultDirectionalLight();
+		bool SaveLightPreset(const std::string& assetId);
+		bool ApplyLightPresetByPath(const std::string& filePath);
+
 
 	public: /// ---------- ゲッター ---------- ///
 

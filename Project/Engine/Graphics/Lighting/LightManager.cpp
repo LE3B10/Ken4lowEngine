@@ -6,6 +6,8 @@
 #include "ParameterManager.h"
 #include <SRVManager.h>
 #include "Wireframe.h"
+#include "JsonDataManager.h"
+#include "DataAssetPresets.h"
 
 #include <numbers>    // 円周率（C++20）
 #include <algorithm>  // std::clamp
@@ -721,6 +723,10 @@ namespace Ken4lowEngine
 			{
 				DrawPunctualLightsInspector();
 			}
+			static char presetId[64] = "default_light";
+			ImGui::InputText("LightPreset Id", presetId, IM_ARRAYSIZE(presetId));
+			if (ImGui::Button("Save Current LightPreset")) { SaveLightPreset(presetId); }
+			if (ImGui::Button("Apply Selected LightPreset")) { ApplyLightPresetByPath(std::string("Resources/DataAssets/LightPresets/") + presetId + ".json"); }
 		}
 		ImGui::End();
 #else
@@ -773,4 +779,65 @@ namespace Ken4lowEngine
 		punctualLights_.push_back(light);
 	}
 
+
+	bool LightManager::SaveLightPreset(const std::string& assetId)
+	{
+		JsonAssetEntry entry{};
+		entry.type = "LightPreset";
+		entry.id = assetId;
+		entry.displayName = assetId;
+		entry.path = "Resources/DataAssets/LightPresets/" + assetId + ".json";
+		LightPreset preset{};
+		if (!punctualLights_.empty())
+		{
+			const auto& light = punctualLights_.front();
+			preset.directionalDirection = light.direction;
+			preset.color = light.color;
+			preset.intensity = light.intensity;
+		}
+		preset.enableShadow = enableShadow_;
+		preset.shadowBias = shadowBias_;
+		preset.normalBias = normalBias_;
+		preset.shadowStrength = shadowStrength_;
+		preset.shadowMapSize = shadowMapSize_;
+		preset.shadowWidth = directionalShadowWidth_;
+		preset.shadowHeight = directionalShadowHeight_;
+		preset.shadowNearZ = directionalShadowNearZ_;
+		preset.shadowFarZ = directionalShadowFarZ_;
+		preset.shadowFocusMode = static_cast<uint32_t>(shadowFocusMode_);
+		preset.ToJson(entry.data);
+		return JsonDataManager::SafeSave(entry);
+	}
+
+	bool LightManager::ApplyLightPresetByPath(const std::string& filePath)
+	{
+		JsonAssetEntry entry{};
+		if (!JsonDataManager::SafeLoad(filePath, entry))
+		{
+			return false;
+		}
+		LightPreset preset{};
+		preset.FromJson(entry.data);
+		if (punctualLights_.empty())
+		{
+			AddDefaultDirectionalLight();
+		}
+		auto& light = punctualLights_.front();
+		light.lightType = 1;
+		light.enabled = 1;
+		light.direction = preset.directionalDirection;
+		light.color = preset.color;
+		light.intensity = preset.intensity;
+		enableShadow_ = preset.enableShadow;
+		shadowBias_ = preset.shadowBias;
+		normalBias_ = preset.normalBias;
+		shadowStrength_ = preset.shadowStrength;
+		shadowMapSize_ = preset.shadowMapSize;
+		directionalShadowWidth_ = preset.shadowWidth;
+		directionalShadowHeight_ = preset.shadowHeight;
+		directionalShadowNearZ_ = preset.shadowNearZ;
+		directionalShadowFarZ_ = preset.shadowFarZ;
+		shadowFocusMode_ = static_cast<ShadowFocusMode>(preset.shadowFocusMode);
+		return true;
+	}
 } // namespace Ken4lowEngine

@@ -1,6 +1,7 @@
 #include "JsonEditorWindow.h"
 #include "JsonDataManager.h"
 #include "ExampleJsonAsset.h"
+#include "DataAssetPresets.h"
 
 #ifdef USE_IMGUI
 #include <imgui.h>
@@ -56,11 +57,23 @@ namespace Ken4lowEngine
 	void JsonEditorWindow::CreateNewAsset()
 	{
 		JsonAssetEntry entry;
-		entry.type = newType_;
+		const char* kTypes[] = { "ExampleType", "LightPreset", "PostEffectPreset", "Object3DPreset", "SpritePreset", "ParticlePreset", "ModelPreset" };
+		entry.type = kTypes[newTypeIndex_];
 		entry.id = registry_.MakeUniqueId(newId_);
 		entry.displayName = newDisplayName_;
-		entry.path = std::string(basePath_) + "/" + entry.id + ".json";
-		entry.data = nlohmann::json::object();
+		std::string folder = std::string(basePath_) + "/";
+		if (entry.type == "LightPreset") { folder += "LightPresets/"; }
+		else if (entry.type == "PostEffectPreset") { folder += "PostEffectPresets/"; }
+		else if (entry.type == "Object3DPreset") { folder += "Object3DPresets/"; }
+		else if (entry.type == "SpritePreset") { folder += "SpritePresets/"; }
+		else if (entry.type == "ParticlePreset") { folder += "ParticlePresets/"; }
+		entry.path = folder + entry.id + ".json";
+				if (entry.type == "LightPreset") { LightPreset preset; preset.ToJson(entry.data); }
+		else if (entry.type == "PostEffectPreset") { PostEffectPreset preset; preset.ToJson(entry.data); }
+		else if (entry.type == "Object3DPreset") { Object3DPreset preset; preset.ToJson(entry.data); }
+		else if (entry.type == "SpritePreset") { SpritePreset preset; preset.ToJson(entry.data); }
+		else if (entry.type == "ParticlePreset") { ParticlePreset preset; preset.ToJson(entry.data); }
+		else { entry.data = nlohmann::json::object(); }
 		entry.dirty = true;
 		registry_.Register(entry);
 	}
@@ -112,7 +125,8 @@ namespace Ken4lowEngine
 			}
 		}
 
-		ImGui::InputText("New Type", newType_, IM_ARRAYSIZE(newType_));
+		const char* kTypes[] = { "ExampleType", "LightPreset", "PostEffectPreset", "Object3DPreset", "SpritePreset", "ParticlePreset", "ModelPreset" };
+		ImGui::Combo("New Type", &newTypeIndex_, kTypes, IM_ARRAYSIZE(kTypes));
 		ImGui::InputText("New Id", newId_, IM_ARRAYSIZE(newId_));
 		ImGui::InputText("New DisplayName", newDisplayName_, IM_ARRAYSIZE(newDisplayName_));
 

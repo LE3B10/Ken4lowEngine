@@ -1130,12 +1130,14 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Engine\System\JsonAssets\DataAssetPresets.cpp" />
     <ClCompile Include="Engine\System\JsonAssets\ExampleJsonAsset.cpp" />
     <ClCompile Include="Engine\System\JsonAssets\JsonAssetRegistry.cpp" />
     <ClCompile Include="Engine\System\JsonAssets\JsonDataManager.cpp" />
     <ClCompile Include="Engine\System\JsonAssets\JsonEditorWindow.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Engine\System\JsonAssets\DataAssetPresets.h" />
     <ClInclude Include="Engine\System\JsonAssets\ExampleJsonAsset.h" />
     <ClInclude Include="Engine\System\JsonAssets\JsonAssetEntry.h" />
     <ClInclude Include="Engine\System\JsonAssets\JsonAssetRegistry.h" />
