@@ -10,6 +10,7 @@
 #include <numbers>    // 円周率（C++20）
 #include <algorithm>  // std::clamp
 #include <cmath>      // sin/cos/atan2/asin/acos
+#include <array>
 
 namespace Ken4lowEngine
 {
@@ -67,13 +68,24 @@ namespace Ken4lowEngine
 
 		void DrawFrustumWireframeFromLightVP(Wireframe* wf, const Matrix4x4& lightViewProjection, const Vector4& color)
 		{
-			Matrix4x4 inv = Matrix4x4::Inverse(lightViewProjection);
+			Matrix4x4 inv{};
+			if (!Matrix4x4::TryInverse(lightViewProjection, inv))
+			{
+				return;
+			}
 			const Vector3 ndcCorners[8] = {
 				{-1.0f,-1.0f,0.0f},{1.0f,-1.0f,0.0f},{1.0f,1.0f,0.0f},{-1.0f,1.0f,0.0f},
 				{-1.0f,-1.0f,1.0f},{1.0f,-1.0f,1.0f},{1.0f,1.0f,1.0f},{-1.0f,1.0f,1.0f}
 			};
 			Vector3 wpos[8];
-			for (int i = 0; i < 8; ++i) { wpos[i] = TransformHomogeneousPoint(inv, ndcCorners[i]); }
+			for (int i = 0; i < 8; ++i)
+			{
+				wpos[i] = TransformHomogeneousPoint(inv, ndcCorners[i]);
+				if (!std::isfinite(wpos[i].x) || !std::isfinite(wpos[i].y) || !std::isfinite(wpos[i].z))
+				{
+					return;
+				}
+			}
 			const int e[12][2] = { {0,1},{1,2},{2,3},{3,0},{4,5},{5,6},{6,7},{7,4},{0,4},{1,5},{2,6},{3,7} };
 			for (auto& edge : e) { wf->DrawLine(wpos[edge[0]], wpos[edge[1]], color); }
 		}
@@ -591,6 +603,8 @@ namespace Ken4lowEngine
 		ImGui::Text("Shadow Distance: %.2f", directionalShadowDistance_);
 		ImGui::Text("Shadow Width / Height: %.2f / %.2f", directionalShadowWidth_, directionalShadowHeight_);
 		ImGui::Text("Shadow Near / Far: %.3f / %.2f", directionalShadowNearZ_, directionalShadowFarZ_);
+		ImGui::Text("Applied Shadow Width / Height: %.2f / %.2f", currentShadowFrustumWidth_, currentShadowFrustumHeight_);
+		ImGui::Text("Applied Shadow Near / Far: %.3f / %.2f", currentShadowFrustumNearZ_, currentShadowFrustumFarZ_);
 		ImGui::Text("Shadow Map Size: %u", shadowMapSize_);
 		ImGui::Text("Shadow Bias / Normal Bias: %.6f / %.4f", shadowBias_, normalBias_);
 		ImGui::Text("Active Lights (type!=0): will be uploaded");
@@ -673,13 +687,20 @@ namespace Ken4lowEngine
 			directionalFocusPosition = manualShadowFocusPosition_;
 		}
 		directionalFocusPosition += Vector3{ 0.0f, directionalShadowFocusOffset_, 0.0f };
+		const float shadowWidth = std::max(std::fabs(directionalShadowWidth_), 0.01f);
+		const float shadowHeight = std::max(std::fabs(directionalShadowHeight_), 0.01f);
 		const float shadowNear = std::clamp(directionalShadowNearZ_, 0.01f, 500.0f);
 		const float shadowFar = std::max(directionalShadowFarZ_, shadowNear + 1.0f);
+		// Shadow Frustum debugは実際のLightViewProjectionから復元し、サイズに関係なく描画する
 		const Matrix4x4 lightViewProjection = Matrix4x4::MakeLightViewProjection(
-			lightDir, directionalFocusPosition, directionalShadowDistance_, directionalShadowWidth_, directionalShadowHeight_, shadowNear, shadowFar);
+			lightDir, directionalFocusPosition, directionalShadowDistance_, shadowWidth, shadowHeight, shadowNear, shadowFar);
 		currentShadowFocusPosition_ = directionalFocusPosition;
 		currentShadowDirection_ = lightDir;
 		currentShadowLightViewProjection_ = lightViewProjection;
+		currentShadowFrustumWidth_ = shadowWidth;
+		currentShadowFrustumHeight_ = shadowHeight;
+		currentShadowFrustumNearZ_ = shadowNear;
+		currentShadowFrustumFarZ_ = shadowFar;
 		return lightViewProjection;
 	}
 

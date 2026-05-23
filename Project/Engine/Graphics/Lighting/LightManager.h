@@ -241,6 +241,10 @@ namespace Ken4lowEngine
 		mutable Vector3 currentShadowFocusPosition_ = { 0.0f, 0.0f, 0.0f };
 		mutable Vector3 currentShadowDirection_ = { 0.0f, -1.0f, 0.0f };
 		mutable Matrix4x4 currentShadowLightViewProjection_ = Matrix4x4::MakeIdentity();
+		mutable float currentShadowFrustumWidth_ = 35.0f;
+		mutable float currentShadowFrustumHeight_ = 35.0f;
+		mutable float currentShadowFrustumNearZ_ = 0.1f;
+		mutable float currentShadowFrustumFarZ_ = 120.0f;
 		float spotShadowNearZ_ = 0.1f;
 		int32_t shadowCasterLightIndex_ = -1;
 

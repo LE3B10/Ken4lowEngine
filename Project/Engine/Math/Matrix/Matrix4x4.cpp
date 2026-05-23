@@ -1,6 +1,7 @@
 #include "Matrix4x4.h"
 #include "Vector3.h"
 #include "Quaternion.h"
+#include <limits>
 
 namespace Ken4lowEngine
 {
@@ -178,7 +179,7 @@ namespace Ken4lowEngine
 			+ matrix.m[0][2] * (matrix.m[1][0] * matrix.m[2][1] * matrix.m[3][3] + matrix.m[1][1] * matrix.m[2][3] * matrix.m[3][0] + matrix.m[1][3] * matrix.m[2][0] * matrix.m[3][1] - matrix.m[1][3] * matrix.m[2][1] * matrix.m[3][0] - matrix.m[1][1] * matrix.m[2][0] * matrix.m[3][3] - matrix.m[1][0] * matrix.m[2][3] * matrix.m[3][1])
 			- matrix.m[0][3] * (matrix.m[1][0] * matrix.m[2][1] * matrix.m[3][2] + matrix.m[1][1] * matrix.m[2][2] * matrix.m[3][0] + matrix.m[1][2] * matrix.m[2][0] * matrix.m[3][1] - matrix.m[1][2] * matrix.m[2][1] * matrix.m[3][0] - matrix.m[1][1] * matrix.m[2][0] * matrix.m[3][2] - matrix.m[1][0] * matrix.m[2][2] * matrix.m[3][1]);
 
-		constexpr float kEpsilon = 1.0e-6f;
+		constexpr float kEpsilon = 1.0e-12f;
 
 		if (std::fabs(det) <= kEpsilon)
 		{
