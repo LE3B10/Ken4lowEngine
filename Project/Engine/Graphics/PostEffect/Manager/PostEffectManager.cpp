@@ -58,6 +58,7 @@ namespace Ken4lowEngine
 		// RT0はScene/GameViewport、RT1はPostEffect出力として名前を固定し、DebugLayerで対象を特定する。
 		renderTargets_[0].debugName = L"SceneRenderTarget_GameViewportRenderTarget";
 		renderTargets_[1].debugName = L"PostEffectRenderTarget";
+		debugViewportRenderTarget_.debugName = L"DebugViewportRenderTarget";
 
 		// GameViewportRenderTargetはDebug/Editor時も既存UI/Sprite互換の1920x1080固定で開始する。
 		renderTargetWidth_ = kDefaultGameRenderTargetWidth_;
@@ -126,6 +127,7 @@ namespace Ken4lowEngine
 			rt.currentState_ = RenderTarget::kInitialState;
 			// srvIndex/uavIndex を Free できる設計ならここでFree（後述）
 		}
+		debugViewportRenderTarget_.resource.Reset();
 		renderTargets_.clear();
 
 		// 深度破棄
@@ -321,6 +323,13 @@ namespace Ken4lowEngine
 
 			rt.currentState_ = RenderTarget::kInitialState;
 		}
+		debugViewportRenderTarget_.resource.Reset();
+		debugViewportRenderTarget_.resource = CreateRenderTextureResource(width, height, DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, kRenderTextureClearColor_);
+		debugViewportRenderTarget_.resource->SetName(debugViewportRenderTarget_.debugName);
+		RTVManager::GetInstance()->CreateRTVForTexture2D(debugViewportRenderTarget_.rtvIndex, debugViewportRenderTarget_.resource.Get());
+		debugViewportRenderTarget_.rtvHandle = RTVManager::GetInstance()->GetCPUDescriptorHandle(debugViewportRenderTarget_.rtvIndex);
+		SRVManager::GetInstance()->CreateSRVForTexture2D(debugViewportRenderTarget_.srvIndex, debugViewportRenderTarget_.resource.Get(), DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, 1);
+		debugViewportRenderTarget_.currentState_ = RenderTarget::kInitialState;
 
 		// depth作り直し
 		depthResource_.Reset();
@@ -461,6 +470,35 @@ namespace Ken4lowEngine
 		auto commandList = dxCommon_->GetCommandManager()->GetCommandList();
 		auto& gameRT = renderTargets_[0];
 		CopyRenderTargetToBackBuffer(gameRT, commandList);
+	}
+
+	void PostEffectManager::BeginDebugViewportDraw()
+	{
+		auto commandList = dxCommon_->GetCommandManager()->GetCommandList();
+		TransitionTo(debugViewportRenderTarget_, commandList, D3D12_RESOURCE_STATE_RENDER_TARGET);
+		if (depthResource_ && depthState_ != D3D12_RESOURCE_STATE_DEPTH_WRITE)
+		{
+			dxCommon_->ResourceTransition(depthResource_.Get(), depthState_, D3D12_RESOURCE_STATE_DEPTH_WRITE);
+			depthState_ = D3D12_RESOURCE_STATE_DEPTH_WRITE;
+		}
+		commandList->OMSetRenderTargets(1, &debugViewportRenderTarget_.rtvHandle, false, &dsvHandle);
+		float clearColor[] = { kRenderTextureClearColor_.x, kRenderTextureClearColor_.y, kRenderTextureClearColor_.z, kRenderTextureClearColor_.w };
+		commandList->ClearRenderTargetView(debugViewportRenderTarget_.rtvHandle, clearColor, 0, nullptr);
+		commandList->ClearDepthStencilView(dsvHandle, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
+		commandList->RSSetViewports(1, &viewport);
+		commandList->RSSetScissorRects(1, &scissorRect);
+	}
+
+	void PostEffectManager::EndDebugViewportDraw()
+	{
+		auto commandList = dxCommon_->GetCommandManager()->GetCommandList();
+		TransitionTo(debugViewportRenderTarget_, commandList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+	}
+
+	D3D12_GPU_DESCRIPTOR_HANDLE PostEffectManager::GetDebugRenderTargetSrvHandleGPU() const
+	{
+		if (debugViewportRenderTarget_.srvIndex == UINT32_MAX) { return {}; }
+		return SRVManager::GetInstance()->GetGPUDescriptorHandle(debugViewportRenderTarget_.srvIndex);
 	}
 
 
@@ -701,6 +739,15 @@ namespace Ken4lowEngine
 			UAVManager::GetInstance()->CreateSRVForTexture2DOnThisHeap(rt.srvIndexOnUavHeap, rt.resource.Get(), DXGI_FORMAT_R8G8B8A8_UNORM, 1);
 		}
 
+		debugViewportRenderTarget_.resource = CreateRenderTextureResource(renderTargetWidth_, renderTargetHeight_, DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, kRenderTextureClearColor_);
+		debugViewportRenderTarget_.resource->SetName(debugViewportRenderTarget_.debugName);
+		debugViewportRenderTarget_.currentState_ = RenderTarget::kInitialState;
+		debugViewportRenderTarget_.rtvIndex = RTVManager::GetInstance()->Allocate();
+		RTVManager::GetInstance()->CreateRTVForTexture2D(debugViewportRenderTarget_.rtvIndex, debugViewportRenderTarget_.resource.Get());
+		debugViewportRenderTarget_.rtvHandle = RTVManager::GetInstance()->GetCPUDescriptorHandle(debugViewportRenderTarget_.rtvIndex);
+		debugViewportRenderTarget_.srvIndex = SRVManager::GetInstance()->Allocate();
+		SRVManager::GetInstance()->CreateSRVForTexture2D(debugViewportRenderTarget_.srvIndex, debugViewportRenderTarget_.resource.Get(), DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, 1);
+		
 		// 深度バッファの生成
 		depthResource_ = CreateDepthBufferResource(renderTargetWidth_, renderTargetHeight_);
 		depthResource_->SetName(L"PostEffectManager DepthBuffer");

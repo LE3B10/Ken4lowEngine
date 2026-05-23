@@ -18,6 +18,7 @@ namespace Ken4lowEngine
 		// WindowメニューのCommonカテゴリで切り替える標準エディタウィンドウです。
 		bool showToolbar = true;
 		bool showMainViewport = true;
+		bool showDebugViewport = true;
 		bool showContentBrowser = true;
 		bool showWorldOutliner = true;
 		bool showDetails = true;
@@ -45,6 +46,8 @@ namespace Ken4lowEngine
 		bool debugShowEnemyInfo = false;
 		bool debugShowWaveInfo = false;
 		bool debugShowFps = true;
+		bool drawDebugWireInGameView = false;
+		bool drawDebugWireInDebugView = true;
 	};
 
 	/// <summary>
@@ -87,6 +90,7 @@ namespace Ken4lowEngine
 		void DrawMenuBar();
 		void DrawToolbar();
 		void DrawMainViewport();
+		void DrawDebugViewport();
 		void DrawWorldOutliner();
 		void DrawDetails();
 		void DrawContentBrowser();

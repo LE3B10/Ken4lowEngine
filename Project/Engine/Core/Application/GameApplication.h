@@ -53,13 +53,14 @@ public: /// ---------- メンバ関数 ---------- ///
 
 private:
 	// Debug/Releaseでゲーム本編の3D描画順を揃えるための共通ルート。
-	void DrawCurrentScene3DPass();
+	void DrawCurrentScene3DPass(bool drawDebugWire = true);
 
 	// Debug/ReleaseでHUD/UI/Sprite/Fontを必ず重ねるための共通ルート。
 	void DrawCurrentScene2DOverlay();
 
 	// ReleaseでもSceneRenderTarget起点の描画順に揃えるためのフェーズ分割。
 	void DrawGameWorldToSceneTarget();
+	void DrawDebugViewportWorld();
 	void ApplyPostEffectToBackBuffer();
 	void DrawGameUIToBackBuffer();
 

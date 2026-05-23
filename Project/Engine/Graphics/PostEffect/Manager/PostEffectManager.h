@@ -151,6 +151,7 @@ public: /// ---------- メンバ関数 ---------- ///
 	/// ImGui::Image に渡す GameRenderTarget の GPU SRV ハンドルを取得します。
 	/// </summary>
 	D3D12_GPU_DESCRIPTOR_HANDLE GetGameRenderTargetSrvHandleGPU() const;
+	D3D12_GPU_DESCRIPTOR_HANDLE GetDebugRenderTargetSrvHandleGPU() const;
 
 	uint32_t GetGameRenderTargetWidth() const { return renderTargetWidth_; }
 	uint32_t GetGameRenderTargetHeight() const { return renderTargetHeight_; }
@@ -159,6 +160,8 @@ public: /// ---------- メンバ関数 ---------- ///
 	/// Main Viewport の表示サイズ変更を受けても固定内部解像度を維持する入口です。
 	/// </summary>
 	void RequestGameRenderTargetResize(uint32_t width, uint32_t height);
+	void BeginDebugViewportDraw();
+	void EndDebugViewportDraw();
 
 private: /// ---------- メンバ関数 ---------- ///
 
@@ -253,6 +256,7 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	static constexpr int kPostRTCount = 1; // ポストエフェクト用のレンダーテクスチャ数
 	std::vector<RenderTarget> renderTargets_; // レンダーテクスチャのリスト
+	RenderTarget debugViewportRenderTarget_{}; // Debug Viewport専用RT
 	uint32_t renderTargetWidth_ = kDefaultGameRenderTargetWidth_; // Main Viewportへ表示するGameRenderTarget幅
 	uint32_t renderTargetHeight_ = kDefaultGameRenderTargetHeight_; // Main Viewportへ表示するGameRenderTarget高さ
 
