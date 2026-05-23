@@ -18,6 +18,7 @@
 #ifdef USE_IMGUI
 #include <ImGuiManager.h>
 #include "Editor/EditorWindowManager.h"
+#include "JsonAssets/JsonEditorWindow.h"
 #endif // USE_IMGUI
 #include <DisplaySettings.h>
 #include <WinApp.h>
@@ -37,6 +38,7 @@ namespace Ken4lowEngine
 
 		// グローバル変数の読み込み
 		ParameterManager::GetInstance()->LoadFiles();
+		JsonEditorWindow::GetInstance()->Initialize();
 
 		// シーンマネージャーの初期化
 		SceneManager::GetInstance()->Initialize();
@@ -86,6 +88,7 @@ namespace Ken4lowEngine
 
 		// ポストエフェクトの更新
 		PostEffectManager::GetInstance()->Update();
+		JsonEditorWindow::GetInstance()->Update(GameTimer::GetInstance()->GetDeltaTime());
 
 		// 時間の更新処理終了
 		GameTimer::GetInstance()->EndFrame();
@@ -118,6 +121,7 @@ namespace Ken4lowEngine
 		auto* editorWindows = EditorWindowManager::GetInstance();
 		editorWindows->Draw();
 		auto& editorWindowState = editorWindows->GetWindowState();
+		JsonEditorWindow::GetInstance()->Draw(&editorWindowState.showJsonAssetManager);
 
 		// WindowメニューのDisplay表示フラグをWinApp側の×ボタン状態と共有する
 		winApp_->DrawDisplaySettingsImGui(&editorWindowState.showDisplay);
