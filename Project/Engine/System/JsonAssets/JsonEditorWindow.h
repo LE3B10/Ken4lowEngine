@@ -2,6 +2,10 @@
 
 #include "JsonAssetRegistry.h"
 
+#include <memory>
+
+namespace Ken4lowEngine { class Sprite; }
+
 namespace Ken4lowEngine
 {
 	class JsonEditorWindow
@@ -15,6 +19,8 @@ namespace Ken4lowEngine
 	private:
 		void CreateNewAsset();
 		void TryAutoSave(float deltaTime);
+		void LoadAssetsFromDirectory(const std::string& rootDirectory);
+		void ApplySelectedSpritePresetToPreview();
 
 		JsonAssetRegistry registry_{};
 		int selectedIndex_ = -1;
@@ -25,6 +31,8 @@ namespace Ken4lowEngine
 		int newTypeIndex_ = 0;
 		char newId_[64] = "example_asset";
 		char newDisplayName_[64] = "Example Asset";
-		char basePath_[256] = "Resources/DataAssets";
+		char basePath_[256] = "Project/Resources/DataAssets";
+		std::unique_ptr<Sprite> spritePreview_{};
+		std::string lastPreviewPresetId_{};
 	};
 }
