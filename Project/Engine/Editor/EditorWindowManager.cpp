@@ -194,6 +194,7 @@ namespace Ken4lowEngine
 			DrawToolbar();
 		}
 		DrawMainViewport();
+		DrawDebugViewport();
 		DrawWorldOutliner();
 		DrawDetails();
 		DrawContentBrowser();
@@ -227,6 +228,7 @@ namespace Ken4lowEngine
 			if (ImGui::BeginMenu("Common"))
 			{
 				ImGui::MenuItem("Main Viewport", nullptr, &windowState_.showMainViewport);
+				ImGui::MenuItem("Debug Viewport", nullptr, &windowState_.showDebugViewport);
 				ImGui::MenuItem("World Outliner", nullptr, &windowState_.showWorldOutliner);
 				ImGui::MenuItem("Details", nullptr, &windowState_.showDetails);
 				ImGui::MenuItem("Content Browser", nullptr, &windowState_.showContentBrowser);
@@ -491,6 +493,7 @@ namespace Ken4lowEngine
 		// Main ViewportはGameRenderTargetをDrawListで表示する固定名ウィンドウにする
 		if (ImGui::Begin("Main Viewport", &windowState_.showMainViewport, ImGuiWindowFlags_NoScrollbar))
 		{
+			ImGui::Checkbox("Draw Debug Wire In Game View", &windowState_.drawDebugWireInGameView);
 			const ImVec2 availableSize = ImGui::GetContentRegionAvail();
 			auto* postEffectManager = PostEffectManager::GetInstance();
 			const float renderTargetWidth = static_cast<float>(GameViewportConstants::Width);
@@ -611,6 +614,32 @@ namespace Ken4lowEngine
 		}
 		ImGui::End();
 #endif // USE_IMGUI
+	}
+
+	void EditorWindowManager::DrawDebugViewport()
+	{
+#ifdef USE_IMGUI
+#ifdef _DEBUG
+		if (!windowState_.showDebugViewport) { return; }
+		if (ImGui::Begin("Debug Viewport", &windowState_.showDebugViewport, ImGuiWindowFlags_NoScrollbar))
+		{
+			ImGui::Checkbox("Draw Debug Wire In Debug View", &windowState_.drawDebugWireInDebugView);
+			const ImVec2 availableSize = ImGui::GetContentRegionAvail();
+			const ImVec2 imageSize = FitImageSize(GameViewportConstants::Width, GameViewportConstants::Height, availableSize);
+			const ImVec2 cursor = ImGui::GetCursorScreenPos();
+			const ImVec2 offset((availableSize.x - imageSize.x) * 0.5f, (availableSize.y - imageSize.y) * 0.5f);
+			const ImVec2 min(cursor.x + std::max(0.0f, offset.x), cursor.y + std::max(0.0f, offset.y));
+			const ImVec2 max(min.x + imageSize.x, min.y + imageSize.y);
+			const auto debugSrv = PostEffectManager::GetInstance()->GetDebugRenderTargetSrvHandleGPU();
+			if (debugSrv.ptr != 0 && imageSize.x > 1.0f && imageSize.y > 1.0f)
+			{
+				ImGui::GetWindowDrawList()->AddImage(static_cast<ImTextureID>(debugSrv.ptr), min, max, ImVec2(0, 0), ImVec2(1, 1));
+			}
+			ImGui::InvisibleButton("DebugViewportImageArea", availableSize);
+		}
+		ImGui::End();
+#endif
+#endif
 	}
 
 	Vector2 EditorWindowManager::ConvertScreenToMainViewportPosition(const Vector2& screenPosition) const

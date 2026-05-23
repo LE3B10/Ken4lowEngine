@@ -163,6 +163,10 @@ namespace Ken4lowEngine
 		DrawCurrentScene2DOverlay();
 		PostEffectManager::GetInstance()->EndGameRenderTargetOverlay(); // ImGui::Imageで読むためGameRenderTargetをSRVへ戻す
 
+#ifdef _DEBUG
+		DrawDebugViewportWorld();
+#endif // _DEBUG
+
 		//--------------------------------------------
 		// 6. ImGui描画
 		//--------------------------------------------
@@ -204,13 +208,16 @@ namespace Ken4lowEngine
 	/// -------------------------------------------------------------
 	///						ゲーム本編3D描画の共通処理
 	/// -------------------------------------------------------------
-	void GameApplication::DrawCurrentScene3DPass()
+	void GameApplication::DrawCurrentScene3DPass(bool drawDebugWire)
 	{
 		// Scene 3D -> Debug Wireframe -> GPU Particle -> Particleの順をDebug/Releaseで固定する。
 		Object3DCommon::GetInstance()->BeginObject3DPass();
 		SceneManager::GetInstance()->Draw3DObjects();
 
-		Wireframe::GetInstance()->Draw();
+		if (drawDebugWire)
+		{
+			Wireframe::GetInstance()->Draw();
+		}
 		GpuParticleManager::GetInstance()->Draw();
 		ParticleManager::GetInstance()->Draw();
 	}
@@ -228,8 +235,41 @@ namespace Ken4lowEngine
 	{
 		// Debug/ReleaseともSceneRenderTargetへ3D World + Particleを描画し、PostEffect入力を必ず作る。
 		PostEffectManager::GetInstance()->BeginDraw();
-		DrawCurrentScene3DPass();
+		bool drawDebugWire = true;
+#ifdef USE_IMGUI
+#ifdef _DEBUG
+		drawDebugWire = EditorWindowManager::GetInstance()->GetWindowState().drawDebugWireInGameView;
+#endif
+#endif
+		DrawCurrentScene3DPass(drawDebugWire);
 		PostEffectManager::GetInstance()->EndDraw();
+	}
+
+	void GameApplication::DrawDebugViewportWorld()
+	{
+		auto* editorWindows = EditorWindowManager::GetInstance();
+		const auto& editorWindowState = editorWindows->GetWindowState();
+		if (!editorWindowState.showDebugViewport)
+		{
+			return;
+		}
+
+		auto* cameraManager = CameraManager::GetInstance();
+		const bool useDebugBefore = cameraManager->IsUsingDebugCamera();
+		// ゲーム画面を維持したままデバッグ確認できるよう、DebugCamera用Viewportを別RenderTargetに描画する。
+		cameraManager->SetUseDebugCamera(true);
+		Wireframe::GetInstance()->SetDebugCamera(true);
+
+		PostEffectManager::GetInstance()->BeginDebugViewportDraw();
+		bool drawDebugWire = true;
+#ifdef USE_IMGUI
+		drawDebugWire = EditorWindowManager::GetInstance()->GetWindowState().drawDebugWireInDebugView;
+#endif
+		DrawCurrentScene3DPass(drawDebugWire);
+		PostEffectManager::GetInstance()->EndDebugViewportDraw();
+
+		Wireframe::GetInstance()->SetDebugCamera(useDebugBefore);
+		cameraManager->SetUseDebugCamera(useDebugBefore);
 	}
 
 	void GameApplication::ApplyPostEffectToBackBuffer()
