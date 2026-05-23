@@ -69,8 +69,8 @@ namespace Ken4lowEngine
 		bool visible = true;
 		int layer = 0;
 		Vector2 pivot = { 0.5f, 0.5f };
-		Vector2 uvPosition = { 0.0f, 0.0f };
-		Vector2 uvSize = { 1.0f, 1.0f };
+		Vector2 textureLeftTop = { 0.0f, 0.0f };
+		Vector2 textureSize = { 0.0f, 0.0f };
 		bool enableAlpha = true;
 		int drawOrder = 0;
 		void ToJson(nlohmann::json& outJson) const override;

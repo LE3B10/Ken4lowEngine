@@ -2,12 +2,14 @@
 #include "JsonDataManager.h"
 #include "ExampleJsonAsset.h"
 #include "DataAssetPresets.h"
+#include "Sprite.h"
 
 #ifdef USE_IMGUI
 #include <imgui.h>
 #endif
 
 #include <algorithm>
+#include <filesystem>
 
 namespace
 {
@@ -33,15 +35,40 @@ namespace Ken4lowEngine
 
 	void JsonEditorWindow::Initialize()
 	{
-		JsonAssetEntry example;
-		example.type = "ExampleType";
-		example.id = "example_asset";
-		example.displayName = "Example Asset";
-		example.path = std::string(basePath_) + "/example_asset.json";
-		ExampleJsonAsset exampleData;
-		exampleData.ToJson(example.data);
-		JsonDataManager::SafeLoad(example.path, example);
-		registry_.Register(example);
+		LoadAssetsFromDirectory(basePath_);
+	}
+
+	void JsonEditorWindow::LoadAssetsFromDirectory(const std::string& rootDirectory)
+	{
+		namespace fs = std::filesystem;
+		if (!fs::exists(rootDirectory)) { return; }
+		for (const auto& entry : fs::recursive_directory_iterator(rootDirectory))
+		{
+			if (!entry.is_regular_file() || entry.path().extension() != ".json") { continue; }
+			JsonAssetEntry loaded{};
+			if (!JsonDataManager::SafeLoad(entry.path().string(), loaded)) { continue; }
+			if (loaded.id.empty()) { loaded.id = entry.path().stem().string(); }
+			if (loaded.displayName.empty()) { loaded.displayName = loaded.id; }
+			registry_.Register(loaded);
+		}
+	}
+
+	void JsonEditorWindow::ApplySelectedSpritePresetToPreview()
+	{
+		if (selectedIndex_ < 0) { return; }
+		auto& asset = const_cast<std::vector<JsonAssetEntry>&>(registry_.GetAssets())[selectedIndex_];
+		if (asset.type != "SpritePreset") { return; }
+		SpritePreset preset{};
+		preset.FromJson(asset.data);
+		if (preset.texturePath.empty()) { return; }
+		if (!spritePreview_)
+		{
+			spritePreview_ = std::make_unique<Sprite>();
+			spritePreview_->Initialize(preset.texturePath);
+		}
+		// SpritePresetをPreview用Spriteに適用して、JSON設定が実際の描画へ反映されることを確認できるようにする
+		ApplySpritePreset(*spritePreview_, preset);
+		lastPreviewPresetId_ = asset.id;
 	}
 
 	void JsonEditorWindow::Update(float deltaTime)
@@ -180,14 +207,29 @@ namespace Ken4lowEngine
 				if (ImGui::ColorEdit4("Color", &preset.color.x)) { asset.dirty = true; }
 				if (ImGui::Checkbox("Visible", &preset.visible)) { asset.dirty = true; }
 				if (ImGui::InputInt("DrawOrder", &preset.drawOrder)) { asset.dirty = true; }
-				if (ImGui::InputFloat2("UV Position", &preset.uvPosition.x)) { asset.dirty = true; }
-				if (ImGui::InputFloat2("UV Size", &preset.uvSize.x)) { asset.dirty = true; }
+				if (ImGui::InputFloat2("Texture LeftTop(px)", &preset.textureLeftTop.x)) { asset.dirty = true; }
+				if (ImGui::InputFloat2("Texture Size(px, 0=full)", &preset.textureSize.x)) { asset.dirty = true; }
+				ImGui::TextDisabled("Not applied yet: layer / pivot / enableAlpha / drawOrder");
+				if (ImGui::Button("Apply Selected SpritePreset to Test Sprite"))
+				{
+					ApplySelectedSpritePresetToPreview();
+				}
+				if (!lastPreviewPresetId_.empty())
+				{
+					ImGui::Text("Preview Applied: %s", lastPreviewPresetId_.c_str());
+				}
 
 				if (asset.dirty)
 				{
 					preset.ToJson(asset.data);
 				}
 			}
+		}
+
+		if (spritePreview_)
+		{
+			spritePreview_->Update();
+			spritePreview_->Draw();
 		}
 
 		ImGui::End();

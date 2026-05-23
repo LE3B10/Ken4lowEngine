@@ -5,14 +5,34 @@
   "type": "SpritePreset",
   "data": {
     "texturePath": "UI/hp_heart.dds",
-    "position": [100.0, 100.0],
-    "size": [32.0, 32.0],
+    "position": [
+      100.0,
+      100.0
+    ],
+    "size": [
+      32.0,
+      32.0
+    ],
     "rotation": 0.0,
-    "anchor": [0.5, 0.5],
-    "color": [1.0, 1.0, 1.0, 1.0],
+    "anchor": [
+      0.5,
+      0.5
+    ],
+    "color": [
+      1.0,
+      1.0,
+      1.0,
+      1.0
+    ],
     "visible": true,
     "drawOrder": 0,
-    "uvPosition": [0.0, 0.0],
-    "uvSize": [1.0, 1.0]
+    "textureLeftTop": [
+      0.0,
+      0.0
+    ],
+    "textureSize": [
+      1.0,
+      1.0
+    ]
   }
 }
