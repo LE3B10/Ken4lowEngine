@@ -29,6 +29,7 @@ namespace Ken4lowEngine
 		bool showDisplay = true;
 		bool showPostEffectSettings = true;
 		bool showLightEditor = true;
+		bool showJsonAssetManager = true;
 
 		// WindowメニューのScene Debugカテゴリで切り替えるシーン依存デバッグウィンドウです。
 		bool showTitleDebug = true;

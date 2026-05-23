@@ -243,6 +243,7 @@ namespace Ken4lowEngine
 				ImGui::MenuItem("Post Effect Settings", nullptr, &windowState_.showPostEffectSettings);
 				ImGui::MenuItem("Display", nullptr, &windowState_.showDisplay);
 				ImGui::MenuItem("Parameters", nullptr, &windowState_.showParameters);
+				ImGui::MenuItem("Json Asset Manager", nullptr, &windowState_.showJsonAssetManager);
 				ImGui::EndMenu();
 			}
 
@@ -283,6 +284,7 @@ namespace Ken4lowEngine
 					windowState_.showPostEffectSettings = false;
 					windowState_.showDisplay = false;
 					windowState_.showParameters = false;
+					windowState_.showJsonAssetManager = false;
 					windowState_.showTitleDebug = false;
 					windowState_.showStageSelectDebug = false;
 					windowState_.showGameDebug = false;
