@@ -7,6 +7,7 @@
 #include "ResourceManager.h"
 #include "WireframeShaderManifest.h"
 #include "GameViewportConstants.h"
+#include <cmath>
 
 namespace Ken4lowEngine
 {
@@ -199,9 +200,14 @@ namespace Ken4lowEngine
 	/// -------------------------------------------------------------
 	///				　	      線を描画する処理
 	/// -------------------------------------------------------------
-	void Wireframe::DrawLine(const Vector3& start, const Vector3& end, const Vector4& color)
+void Wireframe::DrawLine(const Vector3& start, const Vector3& end, const Vector4& color)
 	{
 		if (!lineData_ || !lineData_->vertexData || lineIndex_ + 1 >= kLineMaxCount_ * kLineVertexCount)
+		{
+			return;
+		}
+		if (!std::isfinite(start.x) || !std::isfinite(start.y) || !std::isfinite(start.z) ||
+			!std::isfinite(end.x) || !std::isfinite(end.y) || !std::isfinite(end.z))
 		{
 			return;
 		}
