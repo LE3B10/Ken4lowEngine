@@ -9,6 +9,20 @@
 
 #include <algorithm>
 
+namespace
+{
+	std::string GetDataAssetFolder(const std::string& basePath, const std::string& type)
+	{
+		std::string folder = basePath + "/";
+		if (type == "LightPreset") { folder += "LightPresets/"; }
+		else if (type == "PostEffectPreset") { folder += "PostEffectPresets/"; }
+		else if (type == "Object3DPreset") { folder += "Object3DPresets/"; }
+		else if (type == "SpritePreset") { folder += "SpritePresets/"; }
+		else if (type == "ParticlePreset") { folder += "ParticlePresets/"; }
+		return folder;
+	}
+}
+
 namespace Ken4lowEngine
 {
 	JsonEditorWindow* JsonEditorWindow::GetInstance()
@@ -61,12 +75,7 @@ namespace Ken4lowEngine
 		entry.type = kTypes[newTypeIndex_];
 		entry.id = registry_.MakeUniqueId(newId_);
 		entry.displayName = newDisplayName_;
-		std::string folder = std::string(basePath_) + "/";
-		if (entry.type == "LightPreset") { folder += "LightPresets/"; }
-		else if (entry.type == "PostEffectPreset") { folder += "PostEffectPresets/"; }
-		else if (entry.type == "Object3DPreset") { folder += "Object3DPresets/"; }
-		else if (entry.type == "SpritePreset") { folder += "SpritePresets/"; }
-		else if (entry.type == "ParticlePreset") { folder += "ParticlePresets/"; }
+		std::string folder = GetDataAssetFolder(basePath_, entry.type);
 		entry.path = folder + entry.id + ".json";
 				if (entry.type == "LightPreset") { LightPreset preset; preset.ToJson(entry.data); }
 		else if (entry.type == "PostEffectPreset") { PostEffectPreset preset; preset.ToJson(entry.data); }
@@ -111,7 +120,7 @@ namespace Ken4lowEngine
 			auto& src = const_cast<std::vector<JsonAssetEntry>&>(registry_.GetAssets())[selectedIndex_];
 			JsonAssetEntry dup;
 			const std::string newId = registry_.MakeUniqueId(src.id + "_copy");
-			const std::string dstPath = std::string(basePath_) + "/" + newId + ".json";
+			const std::string dstPath = GetDataAssetFolder(basePath_, src.type) + newId + ".json";
 			if (JsonDataManager::Duplicate(src, dstPath, newId, dup)) { registry_.Register(dup); }
 		}
 		ImGui::SameLine();
@@ -154,6 +163,30 @@ namespace Ken4lowEngine
 			{
 				asset.displayName = displayNameBuffer;
 				asset.dirty = true;
+			}
+
+			if (asset.type == "SpritePreset")
+			{
+				SpritePreset preset{};
+				preset.FromJson(asset.data);
+
+				char texturePathBuffer[256]{};
+				std::snprintf(texturePathBuffer, sizeof(texturePathBuffer), "%s", preset.texturePath.c_str());
+				if (ImGui::InputText("Texture Path", texturePathBuffer, IM_ARRAYSIZE(texturePathBuffer))) { preset.texturePath = texturePathBuffer; asset.dirty = true; }
+				if (ImGui::InputFloat2("Position", &preset.position.x)) { asset.dirty = true; }
+				if (ImGui::InputFloat2("Size", &preset.size.x)) { asset.dirty = true; }
+				if (ImGui::InputFloat("Rotation", &preset.rotation)) { asset.dirty = true; }
+				if (ImGui::InputFloat2("Anchor", &preset.anchor.x)) { asset.dirty = true; }
+				if (ImGui::ColorEdit4("Color", &preset.color.x)) { asset.dirty = true; }
+				if (ImGui::Checkbox("Visible", &preset.visible)) { asset.dirty = true; }
+				if (ImGui::InputInt("DrawOrder", &preset.drawOrder)) { asset.dirty = true; }
+				if (ImGui::InputFloat2("UV Position", &preset.uvPosition.x)) { asset.dirty = true; }
+				if (ImGui::InputFloat2("UV Size", &preset.uvSize.x)) { asset.dirty = true; }
+
+				if (asset.dirty)
+				{
+					preset.ToJson(asset.data);
+				}
 			}
 		}
 

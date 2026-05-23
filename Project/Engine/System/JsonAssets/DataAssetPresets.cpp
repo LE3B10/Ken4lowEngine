@@ -1,5 +1,7 @@
 #include "DataAssetPresets.h"
 
+#include "Sprite.h"
+
 namespace Ken4lowEngine
 {
 	namespace
@@ -18,8 +20,26 @@ namespace Ken4lowEngine
 	void PostEffectPreset::FromJson(const nlohmann::json& inJson) { READ_NUM(enabled); if(inJson.contains("activeEffect")) activeEffect=inJson["activeEffect"].get<std::string>(); READ_NUM(bloomIntensity); READ_NUM(vignetteIntensity); READ_NUM(grayscale); READ_NUM(sepia); READ_NUM(fade); }
 	void Object3DPreset::ToJson(nlohmann::json& outJson) const { outJson={{"modelPath",modelPath},{"texturePath",texturePath},{"position",ToJ(position)},{"rotation",ToJ(rotation)},{"scale",ToJ(scale)},{"visible",visible},{"castShadow",castShadow},{"receiveShadow",receiveShadow}}; }
 	void Object3DPreset::FromJson(const nlohmann::json& inJson) { if(inJson.contains("modelPath"))modelPath=inJson["modelPath"].get<std::string>(); if(inJson.contains("texturePath"))texturePath=inJson["texturePath"].get<std::string>(); FromJ(inJson.value("position",nlohmann::json::array()),position); FromJ(inJson.value("rotation",nlohmann::json::array()),rotation); FromJ(inJson.value("scale",nlohmann::json::array()),scale); READ_NUM(visible); READ_NUM(castShadow); READ_NUM(receiveShadow); }
-	void SpritePreset::ToJson(nlohmann::json& outJson) const { outJson={{"texturePath",texturePath},{"position",ToJ(position)},{"size",ToJ(size)},{"color",ToJ(color)},{"anchor",ToJ(anchor)},{"visible",visible}}; }
-	void SpritePreset::FromJson(const nlohmann::json& inJson) { if(inJson.contains("texturePath"))texturePath=inJson["texturePath"].get<std::string>(); FromJ(inJson.value("position",nlohmann::json::array()),position); FromJ(inJson.value("size",nlohmann::json::array()),size); FromJ(inJson.value("color",nlohmann::json::array()),color); FromJ(inJson.value("anchor",nlohmann::json::array()),anchor); READ_NUM(visible); }
+	void SpritePreset::ToJson(nlohmann::json& outJson) const { outJson={{"texturePath",texturePath},{"position",ToJ(position)},{"size",ToJ(size)},{"rotation",rotation},{"anchor",ToJ(anchor)},{"color",ToJ(color)},{"visible",visible},{"layer",layer},{"pivot",ToJ(pivot)},{"uvPosition",ToJ(uvPosition)},{"uvSize",ToJ(uvSize)},{"enableAlpha",enableAlpha},{"drawOrder",drawOrder}}; }
+	void SpritePreset::FromJson(const nlohmann::json& inJson) { if(inJson.contains("texturePath"))texturePath=inJson["texturePath"].get<std::string>(); FromJ(inJson.value("position",nlohmann::json::array()),position); FromJ(inJson.value("size",nlohmann::json::array()),size); READ_NUM(rotation); FromJ(inJson.value("anchor",nlohmann::json::array()),anchor); FromJ(inJson.value("color",nlohmann::json::array()),color); READ_NUM(visible); READ_NUM(layer); FromJ(inJson.value("pivot",nlohmann::json::array()),pivot); FromJ(inJson.value("uvPosition",nlohmann::json::array()),uvPosition); FromJ(inJson.value("uvSize",nlohmann::json::array()),uvSize); READ_NUM(enableAlpha); READ_NUM(drawOrder); }
+
+	void ApplySpritePreset(Sprite& sprite, const SpritePreset& preset)
+	{
+		if (!preset.texturePath.empty()) { sprite.SetTexture(preset.texturePath); }
+		sprite.SetPosition(preset.position);
+		sprite.SetSize(preset.size);
+		sprite.SetRotation(preset.rotation);
+		sprite.SetAnchorPoint(preset.anchor);
+		sprite.SetColor(preset.color);
+		// SpritePresetから2D表示設定を復元できるようにする
+		sprite.SetUVRect(preset.uvPosition, preset.uvSize);
+		if (!preset.visible)
+		{
+			Vector4 hidden = preset.color;
+			hidden.w = 0.0f;
+			sprite.SetColor(hidden);
+		}
+	}
 	void ParticlePreset::ToJson(nlohmann::json& outJson) const { outJson={{"emitterType",emitterType},{"position",ToJ(position)},{"spawnRate",spawnRate},{"lifetime",lifetime},{"speed",speed},{"color",ToJ(color)},{"size",size},{"loop",loop}}; }
 	void ParticlePreset::FromJson(const nlohmann::json& inJson) { if(inJson.contains("emitterType"))emitterType=inJson["emitterType"].get<std::string>(); FromJ(inJson.value("position",nlohmann::json::array()),position); READ_NUM(spawnRate); READ_NUM(lifetime); READ_NUM(speed); FromJ(inJson.value("color",nlohmann::json::array()),color); READ_NUM(size); READ_NUM(loop); }
 }

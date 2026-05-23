@@ -9,6 +9,8 @@
 
 namespace Ken4lowEngine
 {
+	class Sprite;
+
 	struct LightPreset : public JsonSerializable
 	{
 		Vector3 directionalDirection = { 0.3f, -1.0f, 0.2f };
@@ -61,12 +63,21 @@ namespace Ken4lowEngine
 		std::string texturePath;
 		Vector2 position{};
 		Vector2 size = { 128.0f, 128.0f };
-		Vector4 color = { 1,1,1,1 };
+		float rotation = 0.0f;
 		Vector2 anchor = { 0.5f, 0.5f };
+		Vector4 color = { 1,1,1,1 };
 		bool visible = true;
+		int layer = 0;
+		Vector2 pivot = { 0.5f, 0.5f };
+		Vector2 uvPosition = { 0.0f, 0.0f };
+		Vector2 uvSize = { 1.0f, 1.0f };
+		bool enableAlpha = true;
+		int drawOrder = 0;
 		void ToJson(nlohmann::json& outJson) const override;
 		void FromJson(const nlohmann::json& inJson) override;
 	};
+
+	void ApplySpritePreset(Sprite& sprite, const SpritePreset& preset);
 
 	struct ParticlePreset : public JsonSerializable
 	{
