@@ -55,6 +55,8 @@ private:
 	void StopMove();
 	bool IsMoveResumeDistanceReached() const;
 	bool MoveAlongPath(float deltaTime);
+
+	bool ResolveObstaclePenetrationXZ(float deltaTime);
 	void UpdateStuckState(float deltaTime);
 
 	void DeadAction();
@@ -92,6 +94,14 @@ private:
 	bool hasStageBounds_ = false;
 	bool isOutsideStage_ = false;
 	K4E::Vector3 lastResolvePush_{};
+	bool isCollidingWithStage_ = false;
+	std::string lastStageCollisionType_ = "None";
+	std::string lastStageCollisionName_ = "None";
+	bool blockedByObstacle_ = false;
+	std::string lastBlockedObstacleName_ = "None";
+	int usingWorldAABBCount_ = 0;
+	int usingObstacleAABBCount_ = 0;
+	bool collisionManagerRegistered_ = false;
 	float maxResolvePushPerFrame_ = 0.75f;
 	float maxHorizontalPushPerFrame_ = 0.45f;
 	float stuckCheckTime_ = 0.8f;

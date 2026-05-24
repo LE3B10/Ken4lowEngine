@@ -64,6 +64,9 @@ void MeleeEnemy::Update(float deltaTime)
 	EvaluateBehavior(deltaTime);
 	EnemyBase::Update(deltaTime);
 
+	usingWorldAABBCount_ = GetResolvedWorldAABBs() ? static_cast<int>(GetResolvedWorldAABBs()->size()) : 0;
+	usingObstacleAABBCount_ = GetResolvedNavigationObstacleAABBs() ? static_cast<int>(GetResolvedNavigationObstacleAABBs()->size()) : 0;
+	collisionManagerRegistered_ = true;
 	Vector3 afterPos = GetCenterPosition();
 	Vector3 push = afterPos - (beforePos + GetVelocity() * deltaTime);
 	// 押し出し補正の暴発でステージ外へ飛ばされるのを防ぐため、フレーム補正量を制限する
@@ -76,6 +79,13 @@ void MeleeEnemy::Update(float deltaTime)
 		SetCenterPosition(afterPos);
 	}
 	lastResolvePush_ = afterPos - beforePos;
+	if (ResolveObstaclePenetrationXZ(deltaTime))
+	{
+		afterPos = GetCenterPosition();
+		lineBlocked_ = true;
+		blockedObstacleName_ = lastBlockedObstacleName_;
+	}
+
 
 	if (const auto* aabbs = GetResolvedWorldAABBs(); aabbs && !aabbs->empty())
 	{
@@ -116,6 +126,59 @@ void MeleeEnemy::Update(float deltaTime)
 	}
 
 	UpdateVisualAnimation(deltaTime);
+}
+
+
+
+bool MeleeEnemy::ResolveObstaclePenetrationXZ(float deltaTime)
+{
+	(void)deltaTime;
+	const auto* obstacleAabbs = GetResolvedNavigationObstacleAABBs();
+	usingObstacleAABBCount_ = obstacleAabbs ? static_cast<int>(obstacleAabbs->size()) : 0;
+	isCollidingWithStage_ = false;
+	blockedByObstacle_ = false;
+	lastStageCollisionType_ = "None";
+	lastStageCollisionName_ = "None";
+	lastBlockedObstacleName_ = "None";
+	if (!obstacleAabbs || obstacleAabbs->empty()) { return false; }
+
+	Vector3 pos = GetCenterPosition();
+	const Vector3 half = { 1.0f, 2.0f, 1.0f };
+	const float maxPush = std::max(0.05f, maxHorizontalPushPerFrame_);
+	bool resolved = false;
+	for (size_t i = 0; i < obstacleAabbs->size(); ++i)
+	{
+		const auto& o = (*obstacleAabbs)[i];
+		if (pos.y + half.y < o.min.y || pos.y - half.y > o.max.y) { continue; }
+		const float overlapX = std::min(pos.x + half.x, o.max.x) - std::max(pos.x - half.x, o.min.x);
+		const float overlapZ = std::min(pos.z + half.z, o.max.z) - std::max(pos.z - half.z, o.min.z);
+		if (overlapX <= 0.0f || overlapZ <= 0.0f) { continue; }
+		isCollidingWithStage_ = true;
+		blockedByObstacle_ = true;
+		lastStageCollisionType_ = "Obstacle";
+		lastStageCollisionName_ = "Obstacle[" + std::to_string(i) + "]";
+		lastBlockedObstacleName_ = lastStageCollisionName_;
+		float pushX = 0.0f, pushZ = 0.0f;
+		if (overlapX < overlapZ) { pushX = (pos.x < (o.min.x + o.max.x) * 0.5f ? -overlapX : overlapX); }
+		else { pushZ = (pos.z < (o.min.z + o.max.z) * 0.5f ? -overlapZ : overlapZ); }
+		pushX = std::clamp(pushX, -maxPush, maxPush);
+		pushZ = std::clamp(pushZ, -maxPush, maxPush);
+		pos.x += pushX;
+		pos.z += pushZ;
+		auto vel = GetVelocity();
+		if ((pushX < 0.0f && vel.x > 0.0f) || (pushX > 0.0f && vel.x < 0.0f)) vel.x = 0.0f;
+		if ((pushZ < 0.0f && vel.z > 0.0f) || (pushZ > 0.0f && vel.z < 0.0f)) vel.z = 0.0f;
+		SetVelocity(vel);
+		resolved = true;
+	}
+	if (resolved)
+	{
+		// Floorは接地用、Obstacle系は横押し出し用として分け、MeleeEnemyが壁へ埋まらないようにする
+		SetCenterPosition(pos);
+		navigator_.Reset();
+		lastRepathReason_ = "ObstaclePushResolve";
+	}
+	return resolved;
 }
 
 void MeleeEnemy::Draw()
@@ -201,6 +264,14 @@ void MeleeEnemy::DrawImGui()
 		ImGui::Text("Last Hit: %s", attackController_.WasLastHitSuccess() ? "Hit" : "Miss");
 		ImGui::Text("Path Found: %s", pathFound_ ? "true" : "false");
 		ImGui::Text("Obstacle Count: %zu", GetResolvedWorldAABBs() ? GetResolvedWorldAABBs()->size() : 0);
+		ImGui::Text("isCollidingWithStage: %s", isCollidingWithStage_ ? "true" : "false");
+		ImGui::Text("lastStageCollisionType: %s", lastStageCollisionType_.c_str());
+		ImGui::Text("lastStageCollisionName: %s", lastStageCollisionName_.c_str());
+		ImGui::Text("usingWorldAABBCount: %d", usingWorldAABBCount_);
+		ImGui::Text("usingObstacleAABBCount: %d", usingObstacleAABBCount_);
+		ImGui::Text("collisionManagerRegistered: %s", collisionManagerRegistered_ ? "true" : "false");
+		ImGui::Text("blockedByObstacle: %s", blockedByObstacle_ ? "true" : "false");
+		ImGui::Text("lastBlockedObstacleName: %s", lastBlockedObstacleName_.c_str());
 		ImGui::Text("Path Node Count: %d", static_cast<int>(navigator_.GetCurrentPath().size()));
 		ImGui::Text("Current Waypoint Index: %d", navigator_.GetCurrentPathIndex());
 		ImGui::Text("Current Waypoint: (%.2f, %.2f, %.2f)", currentPathWaypoint_.x, currentPathWaypoint_.y, currentPathWaypoint_.z);

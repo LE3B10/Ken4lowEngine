@@ -423,6 +423,12 @@ void DebugScene::DrawImGui()
 			sampleConvertedRotationDeg.x, sampleConvertedRotationDeg.y, sampleConvertedRotationDeg.z);
 		ImGui::Text("converted yaw sample: %.2f deg", sampleConvertedRotationDeg.y);
 		ImGui::Text("final collider yaw degree: %.2f deg", sampleFinalYawDeg);
+		const int floorCount = colliderTypeCounts["Floor"];
+		const int wallObstacleCount = colliderTypeCounts["Obstacle"] + colliderTypeCounts["Pillar"] + colliderTypeCounts["Fence"] + colliderTypeCounts["Tree"];
+		ImGui::Text("Floor AABB count: %d", floorCount);
+		ImGui::Text("Wall/Obstacle AABB count: %d", wallObstacleCount);
+		ImGui::Text("Navigation obstacle count: %zu", navObstacles.size());
+		ImGui::Text("Collision obstacle count: %d", wallObstacleCount);
 		ImGui::Text("Floor: %d", colliderTypeCounts["Floor"]);
 		ImGui::Text("Obstacle: %d", colliderTypeCounts["Obstacle"]);
 		ImGui::Text("Pillar: %d", colliderTypeCounts["Pillar"]);
