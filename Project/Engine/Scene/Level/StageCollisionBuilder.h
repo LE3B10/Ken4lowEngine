@@ -13,7 +13,8 @@ namespace Ken4lowEngine
 	{
 			std::string name;
 			std::string collisionTypeName;
-			int collisionTypeId = -1;
+			int rawCollisionTypeId = -1;
+			StageCollisionType stageCollisionType = StageCollisionType::Unknown;
 			Vector3 center{};
 			Vector3 halfSize{};
 			Vector3 axisX{ 1.0f, 0.0f, 0.0f };
@@ -31,6 +32,11 @@ namespace Ken4lowEngine
 		std::vector<Ken4lowEngine::AABB> wallObstacleAABBs;
 		std::vector<Ken4lowEngine::AABB> navigationObstacleAABBs;
 		std::vector<StageObstacleBox> obstacleBoxes;
+		uint32_t floorCount = 0;
+		uint32_t obstacleCount = 0;
+		uint32_t pillarCount = 0;
+		uint32_t fenceCount = 0;
+		uint32_t treeCount = 0;
 		std::vector<std::unique_ptr<Collider>> worldColliders;
 	};
 

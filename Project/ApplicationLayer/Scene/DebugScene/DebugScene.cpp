@@ -418,6 +418,28 @@ void DebugScene::DrawImGui()
 		ImGui::Separator();
 		ImGui::Text("True Collider Source: StageCollisionBuilder(LevelData collider.center/size/rotation)");
 		ImGui::Text("True Collider Count: %zu", stage_->GetWorldColliders().size());
+		size_t floorCount = 0;
+		size_t obstacleCount = 0;
+		size_t pillarCount = 0;
+		size_t fenceCount = 0;
+		size_t treeCount = 0;
+		for (const auto& box : stage_->GetObstacleBoxes())
+		{
+			switch (box.stageCollisionType)
+			{
+			case Ken4lowEngine::StageCollisionType::Floor: ++floorCount; break;
+			case Ken4lowEngine::StageCollisionType::Obstacle: ++obstacleCount; break;
+			case Ken4lowEngine::StageCollisionType::Pillar: ++pillarCount; break;
+			case Ken4lowEngine::StageCollisionType::Fence: ++fenceCount; break;
+			case Ken4lowEngine::StageCollisionType::Tree: ++treeCount; break;
+			default: break;
+			}
+		}
+		ImGui::Text("Stage Type Count - Floor: %zu", floorCount);
+		ImGui::Text("Stage Type Count - Obstacle: %zu", obstacleCount);
+		ImGui::Text("Stage Type Count - Pillar: %zu", pillarCount);
+		ImGui::Text("Stage Type Count - Fence: %zu", fenceCount);
+		ImGui::Text("Stage Type Count - Tree: %zu", treeCount);
 		if (!stage_->GetObstacleBoxes().empty())
 		{
 			const auto& sample = stage_->GetObstacleBoxes().front();
@@ -431,7 +453,10 @@ void DebugScene::DrawImGui()
 			ImGui::Separator();
 			ImGui::Text("Sample Obstacle Compare");
 			ImGui::Text("object name: %s", sample.name.c_str());
-			ImGui::Text("collision type: %s", sample.collisionTypeName.c_str());
+			ImGui::Text("raw collision_type: %s", sample.collisionTypeName.c_str());
+			ImGui::Text("raw collision_type_id: %d", sample.rawCollisionTypeId);
+			ImGui::Text("parsed StageCollisionType: %d", static_cast<int>(sample.stageCollisionType));
+			ImGui::Text("CollisionTypeIdDef direct cast used: NO");
 			ImGui::Text("true collider center: (%.3f, %.3f, %.3f)", sample.center.x, sample.center.y, sample.center.z);
 			ImGui::Text("nav/wall center: (%.3f, %.3f, %.3f)", sample.center.x, sample.center.y, sample.center.z);
 			ImGui::Text("center delta: (0.000, 0.000, 0.000)");

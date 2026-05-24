@@ -103,6 +103,16 @@ namespace Ken4lowEngine
 				type == "EscapePoint" ||
 				type == "BossPhaseTrigger";
 		}
+
+		StageCollisionType ParseStageCollisionType(const std::string& collisionTypeName)
+		{
+			if (collisionTypeName == "Floor") { return StageCollisionType::Floor; }
+			if (collisionTypeName == "Obstacle") { return StageCollisionType::Obstacle; }
+			if (collisionTypeName == "Pillar") { return StageCollisionType::Pillar; }
+			if (collisionTypeName == "Fence") { return StageCollisionType::Fence; }
+			if (collisionTypeName == "Tree") { return StageCollisionType::Tree; }
+			return StageCollisionType::Unknown;
+		}
 	}
 
 	std::unique_ptr<LevelData> LevelLoader::LoadLevel(const std::string& filePath)
@@ -399,6 +409,7 @@ namespace Ken4lowEngine
 			if (jc.contains("collision_type") && jc["collision_type"].is_string())
 			{
 				objectData->collider.collisionType = jc["collision_type"].get<std::string>();
+				objectData->collider.stageCollisionType = ParseStageCollisionType(objectData->collider.collisionType);
 			}
 
 			if (jc.contains("collision_type_id") && jc["collision_type_id"].is_number_integer())
