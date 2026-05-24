@@ -361,6 +361,10 @@ void DebugScene::DrawImGui()
 		size_t loadedColliders = 0;
 		size_t rotatedColliderCount = 0;
 		size_t colliderRotationReadCount = 0;
+		std::string sampleColliderName = "(none)";
+		Vector3 sampleSourceRotationDeg{};
+		Vector3 sampleConvertedRotationDeg{};
+		float sampleFinalYawDeg = 0.0f;
 		std::unordered_map<std::string, int> colliderTypeCounts{};
 		if (levelData)
 		{
@@ -382,6 +386,14 @@ void DebugScene::DrawImGui()
 				{
 					++rotatedColliderCount;
 				}
+				if (sampleColliderName == "(none)" && object.collider.hasRotation)
+				{
+					sampleColliderName = object.name;
+					sampleSourceRotationDeg = object.collider.sourceRotationDeg;
+					sampleConvertedRotationDeg = object.collider.convertedRotationDeg;
+					constexpr float kRadToDeg = 180.0f / 3.14159265358979323846f;
+					sampleFinalYawDeg = (object.rotation.y + object.collider.rotation.y) * kRadToDeg;
+				}
 			}
 		}
 		const size_t aabbFallbackCount = loadedColliders > worldColliders.size() ? loadedColliders - worldColliders.size() : 0;
@@ -391,6 +403,13 @@ void DebugScene::DrawImGui()
 		ImGui::Text("Rotated collider count: %zu", rotatedColliderCount);
 		ImGui::Text("AABB fallback count: %zu", aabbFallbackCount);
 		ImGui::Text("collider_rotation read count: %zu", colliderRotationReadCount);
+		ImGui::Text("sample collider name: %s", sampleColliderName.c_str());
+		ImGui::Text("source rotation degree: (%.2f, %.2f, %.2f)",
+			sampleSourceRotationDeg.x, sampleSourceRotationDeg.y, sampleSourceRotationDeg.z);
+		ImGui::Text("converted rotation degree: (%.2f, %.2f, %.2f)",
+			sampleConvertedRotationDeg.x, sampleConvertedRotationDeg.y, sampleConvertedRotationDeg.z);
+		ImGui::Text("converted yaw sample: %.2f deg", sampleConvertedRotationDeg.y);
+		ImGui::Text("final collider yaw degree: %.2f deg", sampleFinalYawDeg);
 		ImGui::Text("Floor: %d", colliderTypeCounts["Floor"]);
 		ImGui::Text("Obstacle: %d", colliderTypeCounts["Obstacle"]);
 		ImGui::Text("Pillar: %d", colliderTypeCounts["Pillar"]);

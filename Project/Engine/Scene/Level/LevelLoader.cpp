@@ -41,6 +41,16 @@ namespace Ken4lowEngine
 			return { deg.x * kDegToRad, deg.y * kDegToRad, deg.z * kDegToRad };
 		}
 
+		Vector3 ConvertSourceColliderRotationToGameRotationDeg(const Vector3& sourceRotationDeg)
+		{
+			// BlenderのZ軸回転をゲーム座標のY軸Yawへ変換して、ステージコライダーの向きを合わせる
+			return {
+				-sourceRotationDeg.x,
+				-sourceRotationDeg.z,
+				-sourceRotationDeg.y,
+			};
+		}
+
 		Vector3 ReadScaleToGameAxes(const json& transform)
 		{
 			Vector3 result{ 1.0f, 1.0f, 1.0f };
@@ -402,12 +412,15 @@ namespace Ken4lowEngine
 			if (hasColliderRotation || hasRotation)
 			{
 				const json& rotationJson = hasColliderRotation ? jc["collider_rotation"] : jc["rotation"];
-				Vector3 colliderRotationDeg{};
-				colliderRotationDeg.x = -static_cast<float>(rotationJson[0]);
-				colliderRotationDeg.y = -static_cast<float>(rotationJson[2]);
-				colliderRotationDeg.z = -static_cast<float>(rotationJson[1]);
+				Vector3 sourceColliderRotationDeg{};
+				sourceColliderRotationDeg.x = static_cast<float>(rotationJson[0]);
+				sourceColliderRotationDeg.y = static_cast<float>(rotationJson[1]);
+				sourceColliderRotationDeg.z = static_cast<float>(rotationJson[2]);
 
-				objectData->collider.rotation = DegToRad(colliderRotationDeg);
+				const Vector3 gameColliderRotationDeg = ConvertSourceColliderRotationToGameRotationDeg(sourceColliderRotationDeg);
+				objectData->collider.sourceRotationDeg = sourceColliderRotationDeg;
+				objectData->collider.convertedRotationDeg = gameColliderRotationDeg;
+				objectData->collider.rotation = DegToRad(gameColliderRotationDeg);
 				objectData->collider.hasRotation = true;
 				objectData->collider.fromColliderRotation = hasColliderRotation;
 			}
