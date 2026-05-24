@@ -185,6 +185,26 @@ namespace Ken4lowEngine
 			parentPosition.z + localPosition.z,
 		};
 
+		Vector3 localSourcePosition{};
+		Vector3 localSourceRotationDeg{};
+		Vector3 localSourceScale{ 1.0f, 1.0f, 1.0f };
+		if (object.contains("transform") && object["transform"].is_object())
+		{
+			const json& transform = object["transform"];
+			if (transform.contains("translation") && transform["translation"].is_array() && transform["translation"].size() >= 3)
+			{
+				localSourcePosition = { static_cast<float>(transform["translation"][0]), static_cast<float>(transform["translation"][1]), static_cast<float>(transform["translation"][2]) };
+			}
+			if (transform.contains("rotation") && transform["rotation"].is_array() && transform["rotation"].size() >= 3)
+			{
+				localSourceRotationDeg = { static_cast<float>(transform["rotation"][0]), static_cast<float>(transform["rotation"][1]), static_cast<float>(transform["rotation"][2]) };
+			}
+			if (transform.contains("scaling") && transform["scaling"].is_array() && transform["scaling"].size() >= 3)
+			{
+				localSourceScale = { static_cast<float>(transform["scaling"][0]), static_cast<float>(transform["scaling"][1]), static_cast<float>(transform["scaling"][2]) };
+			}
+		}
+
 		const Vector3 combinedRotation = {
 			parentRotation.x + localRotation.x,
 			parentRotation.y + localRotation.y,
@@ -226,6 +246,9 @@ namespace Ken4lowEngine
 			objectData->position = combinedPosition;
 			objectData->rotation = combinedRotation;
 			objectData->scale = combinedScale;
+			objectData->sourcePosition = localSourcePosition;
+			objectData->sourceRotationDeg = localSourceRotationDeg;
+			objectData->sourceScale = localSourceScale;
 
 			if (HasSpawnProps(object))
 			{
@@ -384,13 +407,15 @@ namespace Ken4lowEngine
 
 			if (jc.contains("center") && jc["center"].is_array() && jc["center"].size() >= 3)
 			{
-				objectData->collider.center.x = -static_cast<float>(jc["center"][0]);
+				objectData->collider.sourceCenter = { static_cast<float>(jc["center"][0]), static_cast<float>(jc["center"][1]), static_cast<float>(jc["center"][2]) };
+				objectData->collider.center.x = static_cast<float>(jc["center"][0]);
 				objectData->collider.center.y = static_cast<float>(jc["center"][2]);
-				objectData->collider.center.z = -static_cast<float>(jc["center"][1]);
+				objectData->collider.center.z = static_cast<float>(jc["center"][1]);
 			}
 
 			if (jc.contains("size") && jc["size"].is_array() && jc["size"].size() >= 3)
 			{
+				objectData->collider.sourceSize = { static_cast<float>(jc["size"][0]), static_cast<float>(jc["size"][1]), static_cast<float>(jc["size"][2]) };
 				objectData->collider.size.x = static_cast<float>(jc["size"][0]);
 				objectData->collider.size.y = static_cast<float>(jc["size"][2]);
 				objectData->collider.size.z = static_cast<float>(jc["size"][1]);
