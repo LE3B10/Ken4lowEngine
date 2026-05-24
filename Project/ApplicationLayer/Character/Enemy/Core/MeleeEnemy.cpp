@@ -30,7 +30,7 @@ namespace
 		return { v.x / len, 0.0f, v.z / len };
 	}
 
-	float WrapPi(float v)
+	float NormalizeAngleRad(float v)
 	{
 		while (v > kPi) { v -= kTwoPi; }
 		while (v < -kPi) { v += kTwoPi; }
@@ -50,7 +50,8 @@ void MeleeEnemy::Initialize()
 	spawnPosition_ = GetCenterPosition();
 	lastStuckCheckPosition_ = spawnPosition_;
 	lastSafePosition_ = spawnPosition_;
-	visualYawOffsetDeg_ = visualYawOffset_ * (180.0f / kPi);
+	visualYawOffset_ = 0.0f;
+	visualYawOffsetDeg_ = 0.0f;
 }
 
 void MeleeEnemy::Update(float deltaTime)
@@ -141,18 +142,7 @@ void MeleeEnemy::DrawImGui()
 		ImGui::SliderFloat("resumeChaseDistance", &resumeChaseDistance_, 0.5f, 10.0f);
 		ImGui::SliderFloat("attackLockTime", &attackLockTime_, 0.0f, 1.0f);
 		ImGui::SliderFloat("rotateSpeed", &rotateSpeed_, 0.1f, 20.0f);
-		if (ImGui::DragFloat("visualYawOffsetDeg", &visualYawOffsetDeg_, 1.0f, -360.0f, 360.0f))
-		{
-			visualYawOffset_ = visualYawOffsetDeg_ * (kPi / 180.0f);
-		}
-		ImGui::Text("visualYawOffset(rad): %.3f", visualYawOffset_);
-		if (ImGui::Button("Face Offset 0")) { visualYawOffsetDeg_ = 0.0f; visualYawOffset_ = 0.0f; }
-		ImGui::SameLine();
-		if (ImGui::Button("Face Offset 90")) { visualYawOffsetDeg_ = 90.0f; visualYawOffset_ = 90.0f * (kPi / 180.0f); }
-		ImGui::SameLine();
-		if (ImGui::Button("Face Offset 180")) { visualYawOffsetDeg_ = 180.0f; visualYawOffset_ = 180.0f * (kPi / 180.0f); }
-		ImGui::SameLine();
-		if (ImGui::Button("Face Offset -90")) { visualYawOffsetDeg_ = -90.0f; visualYawOffset_ = -90.0f * (kPi / 180.0f); }
+		ImGui::Text("visualYawOffset(rad): %.3f (fixed)", visualYawOffset_);
 		ImGui::SliderFloat("walkAnimSpeed", &walkAnimSpeed_, 1.0f, 18.0f);
 		ImGui::SliderFloat("walkArmSwing", &walkArmSwing_, 0.0f, 1.5f);
 		ImGui::SliderFloat("walkLegSwing", &walkLegSwing_, 0.0f, 1.5f);
@@ -205,6 +195,11 @@ void MeleeEnemy::DrawImGui()
 		ImGui::Text("finalVisualYaw(rad): %.3f", finalVisualYaw_);
 		ImGui::Text("rawYaw(deg): %.1f", rawYaw_ * (180.0f / kPi));
 		ImGui::Text("finalVisualYaw(deg): %.1f", finalVisualYaw_ * (180.0f / kPi));
+		ImGui::Text("currentYaw(deg): %.1f", debugCurrentYaw_ * (180.0f / kPi));
+		ImGui::Text("targetYaw(deg): %.1f", debugTargetYaw_ * (180.0f / kPi));
+		ImGui::Text("deltaYaw(deg): %.1f", debugDeltaYaw_ * (180.0f / kPi));
+		ImGui::Text("normalizedDeltaYaw(deg): %.1f", debugNormalizedDeltaYaw_ * (180.0f / kPi));
+		ImGui::Text("rotateSpeed: %.2f", rotateSpeed_);
 		ImGui::Text("facingDirection: (%.2f, %.2f, %.2f)", facingDirection_.x, facingDirection_.y, facingDirection_.z);
 		ImGui::Text("movementDir: (%.2f, %.2f, %.2f)", movementDirection_.x, movementDirection_.y, movementDirection_.z);
 		ImGui::Text("targetDirection: (%.2f, %.2f, %.2f)", targetDirection_.x, targetDirection_.y, targetDirection_.z);
@@ -297,30 +292,39 @@ bool MeleeEnemy::IsTargetInAttackHoldRange() const { return GetDistanceToTarget(
 bool MeleeEnemy::IsAttackCooldownReady() const { return attackController_.CanStartAttack(); }
 bool MeleeEnemy::IsMoveResumeDistanceReached() const { return GetDistanceToTarget() >= resumeChaseDistance_; }
 
-void MeleeEnemy::FaceToTarget()
+void MeleeEnemy::FaceToTarget(float deltaTime)
 {
 	if (!target_) { return; }
 	targetDirection_ = NormalizeXZ(GetTargetPosition() - GetCenterPosition());
-	ApplyVisualYawFromDirection(targetDirection_);
+	ApplyVisualYawFromDirection(targetDirection_, deltaTime);
 }
 
-void MeleeEnemy::FaceToMoveDirection()
+void MeleeEnemy::FaceToMoveDirection(float deltaTime)
 {
 	const Vector3 moveDir = NormalizeXZ(GetVelocity());
 	movementDirection_ = moveDir;
-	ApplyVisualYawFromDirection(moveDir);
+	ApplyVisualYawFromDirection(moveDir, deltaTime);
 }
 
-void MeleeEnemy::ApplyVisualYawFromDirection(const Vector3& direction)
+void MeleeEnemy::ApplyVisualYawFromDirection(const Vector3& direction, float deltaTime)
 {
 	if (LengthXZ(direction) <= kEpsilon) { return; }
 	rawYaw_ = std::atan2(direction.x, direction.z);
-	const float targetVisualYaw = rawYaw_ + visualYawOffset_;
-	float currentYaw = orientation_.y;
-	const float maxStep = rotateSpeed_ * (1.0f / 60.0f);
-	const float delta = WrapPi(targetVisualYaw - currentYaw);
-	currentYaw += std::clamp(delta, -maxStep, maxStep);
-	currentYaw = WrapPi(currentYaw);
+	const float targetVisualYaw = rawYaw_;
+	float currentYaw = NormalizeAngleRad(orientation_.y);
+	const float maxStep = rotateSpeed_ * std::max(deltaTime, 0.0f);
+	float deltaYaw = NormalizeAngleRad(targetVisualYaw - currentYaw);
+	if (std::abs(deltaYaw) > (kPi - 0.001f))
+	{
+		deltaYaw = (deltaYaw >= 0.0f) ? (kPi - 0.001f) : (-kPi + 0.001f);
+	}
+	// Yaw差分を-π～+πに正規化し、左右ターゲット移動時の逆回転を防ぐ
+	deltaYaw = std::clamp(deltaYaw, -maxStep, maxStep);
+	currentYaw = NormalizeAngleRad(currentYaw + deltaYaw);
+	debugCurrentYaw_ = currentYaw;
+	debugTargetYaw_ = targetVisualYaw;
+	debugDeltaYaw_ = targetVisualYaw - orientation_.y;
+	debugNormalizedDeltaYaw_ = NormalizeAngleRad(targetVisualYaw - orientation_.y);
 	finalVisualYaw_ = currentYaw;
 	facingDirection_ = { std::sin(rawYaw_), 0.0f, std::cos(rawYaw_) };
 	visualForward_ = NormalizeXZ({ std::sin(finalVisualYaw_), 0.0f, std::cos(finalVisualYaw_) });
@@ -338,7 +342,7 @@ void MeleeEnemy::DeadAction()
 
 void MeleeEnemy::MeleeAttackAction()
 {
-	FaceToTarget();
+	FaceToTarget(1.0f / 60.0f);
 	StopMove();
 	if (!attackController_.IsAttacking() && attackController_.CanStartAttack())
 	{
@@ -354,7 +358,7 @@ void MeleeEnemy::CombatIdleAction()
 {
 	// 攻撃範囲内では追跡を止め、AttackとChaseの細かい切り替わりによる震えを防ぐ
 	StopMove();
-	FaceToTarget();
+	FaceToTarget(1.0f / 60.0f);
 	animState_ = AnimState::Idle;
 	currentBehaviorName_ = "CombatIdle";
 }
@@ -366,14 +370,14 @@ void MeleeEnemy::ChaseTargetAction()
 	if (distance <= stopDistance_)
 	{
 		StopMove();
-		FaceToTarget();
+		FaceToTarget(1.0f / 60.0f);
 		animState_ = AnimState::Idle;
 		currentBehaviorName_ = "ChaseStopNearTarget";
 		return;
 	}
 	if (pathFindEnabled_ && MoveAlongPath(1.0f / 60.0f))
 	{
-		FaceToMoveDirection();
+		FaceToMoveDirection(1.0f / 60.0f);
 		animState_ = AnimState::Walk;
 		currentBehaviorName_ = "ChasePathMove";
 		return;
@@ -386,7 +390,7 @@ void MeleeEnemy::ChaseTargetAction()
 		return;
 	}
 	SetVelocity({ moveDir.x * moveSpeed_, GetVelocity().y, moveDir.z * moveSpeed_ });
-	FaceToMoveDirection();
+	FaceToMoveDirection(1.0f / 60.0f);
 	animState_ = AnimState::Walk;
 	currentBehaviorName_ = "ChaseTargetAction";
 }
@@ -444,7 +448,7 @@ void MeleeEnemy::WanderAction(float deltaTime)
 		wanderDirection_ = { std::sin(angle), 0.0f, std::cos(angle) };
 	}
 	SetVelocity({ wanderDirection_.x * (moveSpeed_ * 0.45f), GetVelocity().y, wanderDirection_.z * (moveSpeed_ * 0.45f) });
-	FaceToMoveDirection();
+	FaceToMoveDirection(1.0f / 60.0f);
 	currentBehaviorName_ = "WanderAction";
 	animState_ = AnimState::Walk;
 }
