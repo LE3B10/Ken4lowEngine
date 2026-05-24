@@ -7,15 +7,6 @@ namespace Ken4lowEngine
 {
 	namespace
 	{
-		StageCollisionType ParseStageCollisionType(const std::string& collisionTypeName)
-		{
-			if (collisionTypeName == "Floor") { return StageCollisionType::Floor; }
-			if (collisionTypeName == "Obstacle") { return StageCollisionType::Obstacle; }
-			if (collisionTypeName == "Pillar") { return StageCollisionType::Pillar; }
-			if (collisionTypeName == "Fence") { return StageCollisionType::Fence; }
-			if (collisionTypeName == "Tree") { return StageCollisionType::Tree; }
-			return StageCollisionType::Unknown;
-		}
 
 		Vector3 TransformDirection(const Vector3& v, const Matrix4x4& m)
 		{
@@ -25,6 +16,29 @@ namespace Ken4lowEngine
 				v.x * m.m[0][1] + v.y * m.m[1][1] + v.z * m.m[2][1],
 				v.x * m.m[0][2] + v.y * m.m[1][2] + v.z * m.m[2][2],
 			};
+		}
+
+		std::array<Vector3, 8> BuildCornersFromOBB(const OBB& obb)
+		{
+			const std::array<Vector3, 8> localVertices = {
+				Vector3{-obb.size.x, -obb.size.y, -obb.size.z},
+				Vector3{ obb.size.x, -obb.size.y, -obb.size.z},
+				Vector3{ obb.size.x, -obb.size.y,  obb.size.z},
+				Vector3{-obb.size.x, -obb.size.y,  obb.size.z},
+				Vector3{-obb.size.x,  obb.size.y, -obb.size.z},
+				Vector3{ obb.size.x,  obb.size.y, -obb.size.z},
+				Vector3{ obb.size.x,  obb.size.y,  obb.size.z},
+				Vector3{-obb.size.x,  obb.size.y,  obb.size.z},
+			};
+			std::array<Vector3, 8> corners{};
+			for (size_t i = 0; i < localVertices.size(); ++i)
+			{
+				corners[i] = obb.center
+					+ obb.orientations[0] * localVertices[i].x
+					+ obb.orientations[1] * localVertices[i].y
+					+ obb.orientations[2] * localVertices[i].z;
+			}
+			return corners;
 		}
 
 		AABB BuildAABBFromCorners(const std::array<Vector3, 8>& corners)
@@ -44,30 +58,7 @@ namespace Ken4lowEngine
 			return aabb;
 		}
 
-		std::array<Vector3, 8> BuildColliderObbCorners(const Vector3& center, const Vector3& half, const Vector3& rotationRad)
-		{
-			const Matrix4x4 rotation = Matrix4x4::MakeRotateMatrix(rotationRad);
-			std::array<Vector3, 8> corners = {
-				Vector3{ -half.x, -half.y, -half.z }, // 0 bottom
-				Vector3{  half.x, -half.y, -half.z }, // 1
-				Vector3{  half.x, -half.y,  half.z }, // 2
-				Vector3{ -half.x, -half.y,  half.z }, // 3
-				Vector3{ -half.x,  half.y, -half.z }, // 4 top
-				Vector3{  half.x,  half.y, -half.z }, // 5
-				Vector3{  half.x,  half.y,  half.z }, // 6
-				Vector3{ -half.x,  half.y,  half.z }, // 7
-			};
-			for (Vector3& cornerLocal : corners)
-			{
-				cornerLocal = Vector3::Transform(cornerLocal, rotation) + center;
-			}
-			return corners;
-		}
 
-		AABB BuildAABBFromRotatedOBB(const Vector3& center, const Vector3& half, const Vector3& rotationRad)
-		{
-			return BuildAABBFromCorners(BuildColliderObbCorners(center, half, rotationRad));
-		}
 	}
 
 	StageCollisionBuildResult StageCollisionBuilder::Build(const LevelData& levelData, const Vector3& offset)
@@ -92,11 +83,15 @@ namespace Ken4lowEngine
 				continue;
 			}
 
-			const Vector3 centerW = {
-				data.position.x + data.collider.center.x * data.scale.x + offset.x,
-				data.position.y + data.collider.center.y * data.scale.y + offset.y,
-				data.position.z + data.collider.center.z * data.scale.z + offset.z
+			const Vector3 scaledLocalCenter = {
+				data.collider.center.x * data.scale.x,
+				data.collider.center.y * data.scale.y,
+				data.collider.center.z * data.scale.z,
 			};
+			const Matrix4x4 objectRotationM = Matrix4x4::MakeRotateMatrix(data.rotation);
+			// collider.center はローカルオフセットなので、オブジェクト回転を適用してワールド中心へ変換する
+			const Vector3 rotatedLocalCenter = TransformDirection(scaledLocalCenter, objectRotationM);
+			const Vector3 centerW = data.position + rotatedLocalCenter + offset;
 
 			const Vector3 halfW = {
 				0.5f * data.collider.size.x * data.scale.x,
@@ -120,7 +115,9 @@ namespace Ken4lowEngine
 				centerW - halfW,
 				centerW + halfW,
 			};
-			const std::array<Vector3, 8> corners = BuildColliderObbCorners(centerW, halfW, colliderRotation);
+			const OBB colliderObb = collider->GetOBB();
+			// Debug表示とNavigation/Wall判定を実ColliderのOBBから同一生成し、差分をなくす
+			const std::array<Vector3, 8> corners = BuildCornersFromOBB(colliderObb);
 			const AABB aabb = BuildAABBFromCorners(corners);
 			result.worldAABBsLegacy.push_back(legacyAabb);
 			result.worldAABBs.push_back(aabb);
@@ -131,13 +128,11 @@ namespace Ken4lowEngine
 			box.stageCollisionType = data.collider.stageCollisionType;
 			box.corners = corners;
 			box.enclosingAABB = aabb;
-			box.center = centerW;
-			box.halfSize = halfW;
-			const Matrix4x4 rotationM = Matrix4x4::MakeRotateMatrix(colliderRotation);
-			// 回転行列でローカル軸を変換し、StageObstacleBoxのOBB軸として保持する
-			box.axisX = Vector3::Normalize(TransformDirection({ 1.0f, 0.0f, 0.0f }, rotationM));
-			box.axisY = Vector3::Normalize(TransformDirection({ 0.0f, 1.0f, 0.0f }, rotationM));
-			box.axisZ = Vector3::Normalize(TransformDirection({ 0.0f, 0.0f, 1.0f }, rotationM));
+			box.center = colliderObb.center;
+			box.halfSize = colliderObb.size;
+			box.axisX = colliderObb.orientations[0];
+			box.axisY = colliderObb.orientations[1];
+			box.axisZ = colliderObb.orientations[2];
 			result.obstacleBoxes.push_back(box);
 			const StageCollisionType stageCollisionType = data.collider.stageCollisionType;
 			if (stageCollisionType == StageCollisionType::Floor)
