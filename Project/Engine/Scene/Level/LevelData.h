@@ -17,6 +17,8 @@ namespace Ken4lowEngine
 		Vector3 center;			// 中心位置
 		Vector3 size;			// サイズ
 		Vector3 rotation;		// 回転（ラジアン）
+		Vector3 sourceRotationDeg; // 元JSON(Blender座標)の回転（度）
+		Vector3 convertedRotationDeg; // ゲーム座標へ変換後の回転（度）
 		bool hasRotation = false; // JSONの回転情報が存在したか
 		bool fromColliderRotation = false; // collider_rotation を読んだか（rotation より優先）
 		bool enabled = false;	// 有効フラグ
