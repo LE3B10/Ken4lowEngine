@@ -9,10 +9,8 @@
 
 namespace Ken4lowEngine
 {
-	struct StageCollisionBuildResult
+	struct StageObstacleBox
 	{
-		struct StageObstacleBox
-		{
 			std::string name;
 			std::string collisionTypeName;
 			int collisionTypeId = -1;
@@ -23,8 +21,10 @@ namespace Ken4lowEngine
 			Vector3 axisZ{ 0.0f, 0.0f, 1.0f };
 			std::array<Vector3, 8> corners{};
 			AABB enclosingAABB{};
-		};
+	};
 
+	struct StageCollisionBuildResult
+	{
 		std::vector<AABB> worldAABBs;
 		std::vector<AABB> worldAABBsLegacy;
 		std::vector<AABB> floorAABBs;
