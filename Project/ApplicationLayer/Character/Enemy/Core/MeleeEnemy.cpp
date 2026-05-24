@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <cstdlib>
 #include "Wireframe.h"
+#include "CollisionTypeIdDef.h"
 
 #ifdef USE_IMGUI
 #include <imgui.h>
@@ -67,6 +68,8 @@ void MeleeEnemy::Update(float deltaTime)
 	usingWorldAABBCount_ = GetResolvedWorldAABBs() ? static_cast<int>(GetResolvedWorldAABBs()->size()) : 0;
 	usingObstacleAABBCount_ = GetResolvedNavigationObstacleAABBs() ? static_cast<int>(GetResolvedNavigationObstacleAABBs()->size()) : 0;
 	collisionManagerRegistered_ = true;
+	lastCollisionCount_ = 0;
+	pushedThisFrame_ = false;
 	Vector3 afterPos = GetCenterPosition();
 	Vector3 push = afterPos - (beforePos + GetVelocity() * deltaTime);
 	// 押し出し補正の暴発でステージ外へ飛ばされるのを防ぐため、フレーム補正量を制限する
@@ -84,6 +87,7 @@ void MeleeEnemy::Update(float deltaTime)
 		afterPos = GetCenterPosition();
 		lineBlocked_ = true;
 		blockedObstacleName_ = lastBlockedObstacleName_;
+		pushedThisFrame_ = true;
 	}
 
 
@@ -181,6 +185,25 @@ bool MeleeEnemy::ResolveObstaclePenetrationXZ(float deltaTime)
 	return resolved;
 }
 
+
+
+void MeleeEnemy::OnCollisionEnter(K4E::Collider* other)
+{
+	EnemyBase::OnCollisionEnter(other);
+	if (!other) { return; }
+	if (other->GetTypeID() == static_cast<uint32_t>(CollisionTypeIdDef::kWorld))
+	{
+		isCollidingWithStage_ = true;
+		lastStageCollisionType_ = "World";
+		lastStageCollisionName_ = "StageCollider";
+		++lastCollisionCount_;
+	}
+}
+
+void MeleeEnemy::OnCollisionStay(K4E::Collider* other)
+{
+	OnCollisionEnter(other);
+}
 void MeleeEnemy::Draw()
 {
 	EnemyBase::Draw();
@@ -270,6 +293,7 @@ void MeleeEnemy::DrawImGui()
 		ImGui::Text("usingWorldAABBCount: %d", usingWorldAABBCount_);
 		ImGui::Text("usingObstacleAABBCount: %d", usingObstacleAABBCount_);
 		ImGui::Text("collisionManagerRegistered: %s", collisionManagerRegistered_ ? "true" : "false");
+		ImGui::Text("lastCollisionCount: %d", lastCollisionCount_);
 		ImGui::Text("blockedByObstacle: %s", blockedByObstacle_ ? "true" : "false");
 		ImGui::Text("lastBlockedObstacleName: %s", lastBlockedObstacleName_.c_str());
 		ImGui::Text("Path Node Count: %d", static_cast<int>(navigator_.GetCurrentPath().size()));
@@ -290,6 +314,7 @@ void MeleeEnemy::DrawImGui()
 		ImGui::Text("lastSafePosition: (%.2f, %.2f, %.2f)", lastSafePosition_.x, lastSafePosition_.y, lastSafePosition_.z);
 		ImGui::Text("isOutsideStage: %s", isOutsideStage_ ? "true" : "false");
 		ImGui::Text("lastResolvePush: (%.2f, %.2f, %.2f)", lastResolvePush_.x, lastResolvePush_.y, lastResolvePush_.z);
+		ImGui::Text("pushedThisFrame: %s", pushedThisFrame_ ? "true" : "false");
 		const Vector3 tgt = GetTargetPosition();
 		ImGui::Text("Target: (%.2f, %.2f, %.2f)", tgt.x, tgt.y, tgt.z);
 		ImGui::Text("rawYaw(rad): %.3f", rawYaw_);

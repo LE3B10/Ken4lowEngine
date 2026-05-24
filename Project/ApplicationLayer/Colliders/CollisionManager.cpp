@@ -144,6 +144,8 @@ void CollisionManager::CheckAllCollisions()
 	pairLoop(kPlayer, kBossBullet);
 	pairLoop(kPlayer, kItem);
 	pairLoop(kPlayer, kWorld);
+	pairLoop(kEnemy, kWorld);
+	pairLoop(kBoss, kWorld);
 	// Bullet vs World（壁に当てて消す）
 	pairLoop(kBullet, kWorld);
 	pairLoop(kEnemyBullet, kWorld);
