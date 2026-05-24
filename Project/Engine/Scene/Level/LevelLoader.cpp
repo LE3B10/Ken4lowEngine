@@ -413,9 +413,9 @@ namespace Ken4lowEngine
 			{
 				const json& rotationJson = hasColliderRotation ? jc["collider_rotation"] : jc["rotation"];
 				Vector3 sourceColliderRotationDeg{};
-				sourceColliderRotationDeg.x = static_cast<float>(rotationJson[0]);
+				sourceColliderRotationDeg.x = -static_cast<float>(rotationJson[0]);
 				sourceColliderRotationDeg.y = static_cast<float>(rotationJson[1]);
-				sourceColliderRotationDeg.z = static_cast<float>(rotationJson[2]);
+				sourceColliderRotationDeg.z = -static_cast<float>(rotationJson[2]);
 
 				const Vector3 gameColliderRotationDeg = ConvertSourceColliderRotationToGameRotationDeg(sourceColliderRotationDeg);
 				objectData->collider.sourceRotationDeg = sourceColliderRotationDeg;
