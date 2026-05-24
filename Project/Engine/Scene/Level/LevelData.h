@@ -5,6 +5,15 @@
 
 namespace Ken4lowEngine
 {
+	enum class StageCollisionType : uint32_t
+	{
+		Unknown = 0,
+		Floor,
+		Obstacle,
+		Pillar,
+		Fence,
+		Tree,
+	};
 
 	/// -------------------------------------------------------------
 	///				　	ボックスコライダーデータ構造体
@@ -14,6 +23,7 @@ namespace Ken4lowEngine
 		std::string type;		// コライダーの名前
 		std::string collisionType; // 衝突種別名（Floor / Obstacle など）
 		int collisionTypeId = -1; // 衝突種別ID（未指定時は-1）
+		StageCollisionType stageCollisionType = StageCollisionType::Unknown; // ステージ衝突分類
 		Vector3 center;			// 中心位置
 		Vector3 size;			// サイズ
 		Vector3 rotation;		// 回転（ラジアン）

@@ -7,6 +7,16 @@ namespace Ken4lowEngine
 {
 	namespace
 	{
+		StageCollisionType ParseStageCollisionType(const std::string& collisionTypeName)
+		{
+			if (collisionTypeName == "Floor") { return StageCollisionType::Floor; }
+			if (collisionTypeName == "Obstacle") { return StageCollisionType::Obstacle; }
+			if (collisionTypeName == "Pillar") { return StageCollisionType::Pillar; }
+			if (collisionTypeName == "Fence") { return StageCollisionType::Fence; }
+			if (collisionTypeName == "Tree") { return StageCollisionType::Tree; }
+			return StageCollisionType::Unknown;
+		}
+
 		Vector3 TransformDirection(const Vector3& v, const Matrix4x4& m)
 		{
 			// 回転方向だけを変換するため、平行移動成分は使わない
@@ -95,6 +105,7 @@ namespace Ken4lowEngine
 			};
 
 			auto collider = std::make_unique<Collider>();
+			// JSONのcollision_type_idはステージ分類IDなので、CollisionTypeIdDefへ直接変換せずStageCollisionTypeとして扱う
 			collider->SetTypeID(static_cast<uint32_t>(CollisionTypeIdDef::kWorld));
 			collider->SetCenterPosition(centerW);
 			collider->SetOBBHalfSize(halfW);
@@ -116,7 +127,8 @@ namespace Ken4lowEngine
 			StageObstacleBox box{};
 			box.name = data.name;
 			box.collisionTypeName = data.collider.collisionType;
-			box.collisionTypeId = data.collider.collisionTypeId;
+			box.rawCollisionTypeId = data.collider.collisionTypeId;
+			box.stageCollisionType = data.collider.stageCollisionType;
 			box.corners = corners;
 			box.enclosingAABB = aabb;
 			box.center = centerW;
@@ -127,15 +139,23 @@ namespace Ken4lowEngine
 			box.axisY = Vector3::Normalize(TransformDirection({ 0.0f, 1.0f, 0.0f }, rotationM));
 			box.axisZ = Vector3::Normalize(TransformDirection({ 0.0f, 0.0f, 1.0f }, rotationM));
 			result.obstacleBoxes.push_back(box);
-			const std::string& collisionType = data.collider.collisionType;
-			if (collisionType == "Floor")
+			const StageCollisionType stageCollisionType = data.collider.stageCollisionType;
+			if (stageCollisionType == StageCollisionType::Floor)
 			{
 				result.floorAABBs.push_back(aabb);
+				++result.floorCount;
 			}
-			else if (collisionType == "Obstacle" || collisionType == "Pillar" || collisionType == "Fence" || collisionType == "Tree")
+			else if (stageCollisionType == StageCollisionType::Obstacle ||
+				stageCollisionType == StageCollisionType::Pillar ||
+				stageCollisionType == StageCollisionType::Fence ||
+				stageCollisionType == StageCollisionType::Tree)
 			{
 				result.wallObstacleAABBs.push_back(aabb);
 				result.navigationObstacleAABBs.push_back(aabb);
+				if (stageCollisionType == StageCollisionType::Obstacle) { ++result.obstacleCount; }
+				else if (stageCollisionType == StageCollisionType::Pillar) { ++result.pillarCount; }
+				else if (stageCollisionType == StageCollisionType::Fence) { ++result.fenceCount; }
+				else if (stageCollisionType == StageCollisionType::Tree) { ++result.treeCount; }
 			}
 
 			result.worldColliders.push_back(std::move(collider));
