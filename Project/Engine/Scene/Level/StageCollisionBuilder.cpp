@@ -34,28 +34,29 @@ namespace Ken4lowEngine
 			return aabb;
 		}
 
-		std::array<Vector3, 8> BuildObbCorners(const Vector3& center, const Vector3& half, const Vector3& rotationRad)
+		std::array<Vector3, 8> BuildColliderObbCorners(const Vector3& center, const Vector3& half, const Vector3& rotationRad)
 		{
 			const Matrix4x4 rotation = Matrix4x4::MakeRotateMatrix(rotationRad);
-			std::array<Vector3, 8> corners{};
-			int index = 0;
-			for (int ix = -1; ix <= 1; ix += 2)
+			std::array<Vector3, 8> corners = {
+				Vector3{ -half.x, -half.y, -half.z }, // 0 bottom
+				Vector3{  half.x, -half.y, -half.z }, // 1
+				Vector3{  half.x, -half.y,  half.z }, // 2
+				Vector3{ -half.x, -half.y,  half.z }, // 3
+				Vector3{ -half.x,  half.y, -half.z }, // 4 top
+				Vector3{  half.x,  half.y, -half.z }, // 5
+				Vector3{  half.x,  half.y,  half.z }, // 6
+				Vector3{ -half.x,  half.y,  half.z }, // 7
+			};
+			for (Vector3& cornerLocal : corners)
 			{
-				for (int iy = -1; iy <= 1; iy += 2)
-				{
-					for (int iz = -1; iz <= 1; iz += 2)
-					{
-						Vector3 cornerLocal = { half.x * static_cast<float>(ix), half.y * static_cast<float>(iy), half.z * static_cast<float>(iz) };
-						corners[static_cast<size_t>(index++)] = Vector3::Transform(cornerLocal, rotation) + center;
-					}
-				}
+				cornerLocal = Vector3::Transform(cornerLocal, rotation) + center;
 			}
 			return corners;
 		}
 
 		AABB BuildAABBFromRotatedOBB(const Vector3& center, const Vector3& half, const Vector3& rotationRad)
 		{
-			return BuildAABBFromCorners(BuildObbCorners(center, half, rotationRad));
+			return BuildAABBFromCorners(BuildColliderObbCorners(center, half, rotationRad));
 		}
 	}
 
@@ -108,7 +109,7 @@ namespace Ken4lowEngine
 				centerW - halfW,
 				centerW + halfW,
 			};
-			const std::array<Vector3, 8> corners = BuildObbCorners(centerW, halfW, colliderRotation);
+			const std::array<Vector3, 8> corners = BuildColliderObbCorners(centerW, halfW, colliderRotation);
 			const AABB aabb = BuildAABBFromCorners(corners);
 			result.worldAABBsLegacy.push_back(legacyAabb);
 			result.worldAABBs.push_back(aabb);
