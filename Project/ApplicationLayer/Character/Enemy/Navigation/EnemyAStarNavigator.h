@@ -5,6 +5,7 @@
 
 #include <vector>
 #include <cstdint>
+#include <string>
 
 namespace K4E = ::Ken4lowEngine;
 
@@ -19,6 +20,14 @@ public:
 		int maxExpandedNodes = 1200;
 		float waypointReachDistance = 0.6f;
 		float repathIntervalSec = 0.25f;
+		bool disableCornerCutting = true;
+	};
+	struct TemporaryBlockedArea
+	{
+		K4E::Vector3 center{};
+		float radius = 1.0f;
+		float remainingSec = 0.0f;
+		std::string reason{};
 	};
 
 public:
@@ -38,8 +47,12 @@ public:
 		const K4E::Vector3& to,
 		float sampleY,
 		int* outBlockedObstacleIndex = nullptr) const;
+	void TickTemporaryBlocks(float deltaTime);
+	void AddTemporaryBlockedArea(const K4E::Vector3& center, float radius, float durationSec, const char* reason);
+	void ClearTemporaryBlockedAreas();
 	const std::vector<K4E::AABB>& GetInflatedObstacleAABBs() const { return inflatedObstacleAABBs_; }
 	const std::vector<K4E::Vector3>& GetCurrentPath() const { return path_; }
+	const std::vector<TemporaryBlockedArea>& GetTemporaryBlockedAreas() const { return temporaryBlockedAreas_; }
 	int GetCurrentPathIndex() const { return currentPathIndex_; }
 	float GetRepathTimer() const { return repathTimer_; }
 
@@ -70,6 +83,7 @@ private:
 	mutable std::vector<K4E::AABB> inflatedObstacleAABBs_{};
 	mutable size_t obstacleCacheSourceCount_ = 0;
 	mutable float obstacleCacheAgentRadius_ = -1.0f;
+	std::vector<TemporaryBlockedArea> temporaryBlockedAreas_{};
 	int currentPathIndex_ = 0;
 	float repathTimer_ = 0.0f;
 	int lastGoalX_ = 0;

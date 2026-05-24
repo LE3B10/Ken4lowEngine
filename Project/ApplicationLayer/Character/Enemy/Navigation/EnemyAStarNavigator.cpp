@@ -67,6 +67,26 @@ void EnemyAStarNavigator::Reset()
 	repathTimer_ = 0.0f;
 	hasLastGoal_ = false;
 }
+void EnemyAStarNavigator::TickTemporaryBlocks(float deltaTime)
+{
+	for (auto& b : temporaryBlockedAreas_) { b.remainingSec -= deltaTime; }
+	temporaryBlockedAreas_.erase(std::remove_if(temporaryBlockedAreas_.begin(), temporaryBlockedAreas_.end(), [](const TemporaryBlockedArea& b) { return b.remainingSec <= 0.0f; }), temporaryBlockedAreas_.end());
+}
+
+void EnemyAStarNavigator::AddTemporaryBlockedArea(const K4E::Vector3& center, float radius, float durationSec, const char* reason)
+{
+	TemporaryBlockedArea b{};
+	b.center = center;
+	b.radius = std::max(0.1f, radius);
+	b.remainingSec = std::max(0.1f, durationSec);
+	b.reason = reason ? reason : "Unknown";
+	temporaryBlockedAreas_.push_back(b);
+}
+
+void EnemyAStarNavigator::ClearTemporaryBlockedAreas()
+{
+	temporaryBlockedAreas_.clear();
+}
 
 bool EnemyAStarNavigator::GetNextWaypoint(
 	const K4E::Vector3& current,
@@ -225,7 +245,7 @@ bool EnemyAStarNavigator::RebuildPath(const K4E::Vector3& current, const K4E::Ve
 			if (nx < minX || nx > maxX || nz < minZ || nz > maxZ) continue;
 			if (!IsWalkableCell(nx, nz, sampleY)) continue;
 
-			if (i >= 4)
+			if (settings_.disableCornerCutting && i >= 4)
 			{
 				if (!IsWalkableCell(node.x, nz, sampleY) || !IsWalkableCell(nx, node.z, sampleY))
 				{
@@ -292,6 +312,15 @@ bool EnemyAStarNavigator::IsWalkableCell(int x, int z, float sampleY) const
 			p.x <= aabb.max.x &&
 			p.z >= aabb.min.z &&
 			p.z <= aabb.max.z)
+		{
+			return false;
+		}
+	}
+	for (const auto& blocked : temporaryBlockedAreas_)
+	{
+		const float dx = p.x - blocked.center.x;
+		const float dz = p.z - blocked.center.z;
+		if ((dx * dx + dz * dz) <= blocked.radius * blocked.radius)
 		{
 			return false;
 		}

@@ -242,6 +242,10 @@ void MeleeEnemy::Draw()
 	{
 		Wireframe::GetInstance()->DrawAABB(inflated, { 1.0f, 0.7f, 0.2f, 0.35f });
 	}
+	for (const auto& blocked : navigator_.GetTemporaryBlockedAreas())
+	{
+		Wireframe::GetInstance()->DrawSphere(blocked.center + Vector3{ 0.0f, 0.2f, 0.0f }, blocked.radius, { 1.0f, 0.2f, 0.8f, 0.35f });
+	}
 }
 
 void MeleeEnemy::DrawImGui()
@@ -268,6 +272,7 @@ void MeleeEnemy::DrawImGui()
 		ImGui::SliderFloat("maxResolvePushPerFrame", &maxResolvePushPerFrame_, 0.05f, 2.0f);
 		ImGui::SliderFloat("stuckCheckTime", &stuckCheckTime_, 0.1f, 3.0f);
 		ImGui::SliderFloat("stuckDistance", &stuckDistance_, 0.01f, 2.0f);
+		ImGui::SliderFloat("stuckMoveThreshold", &stuckMoveThreshold_, 0.03f, 1.2f);
 		ImGui::SliderFloat("repathInterval", &repathInterval_, 0.05f, 2.0f);
 		ImGui::SliderFloat("waypointReachDistance", &waypointReachDistance_, 0.5f, 1.5f);
 		ImGui::Checkbox("pathFindEnabled", &pathFindEnabled_);
@@ -275,7 +280,10 @@ void MeleeEnemy::DrawImGui()
 		ImGui::SliderFloat("pathGridSize", &pathGridSize_, 0.5f, 1.0f);
 		if (std::abs(prevGridSize - pathGridSize_) > kEpsilon) { navigator_.Reset(); lastRepathReason_ = "GridSizeChanged"; }
 		ImGui::SliderFloat("pathSearchRadius", &pathSearchRadius_, 6.0f, 80.0f);
-		ImGui::SliderFloat("obstacleExpandRadius", &obstacleExpandRadius_, 0.6f, 1.2f);
+		ImGui::SliderFloat("obstacleExpandRadius", &obstacleExpandRadius_, 0.7f, 1.6f);
+		ImGui::SliderFloat("temporaryBlockDuration", &temporaryBlockDuration_, 0.3f, 4.0f);
+		ImGui::SliderFloat("temporaryBlockRadius", &temporaryBlockRadius_, 0.4f, 2.2f);
+		ImGui::Checkbox("cornerCuttingDisabled", &cornerCuttingDisabled_);
 
 		int attackSelect = static_cast<int>(selectedAttackType_);
 		const char* attackItems[] = { "Scratch", "OneTwo" };
@@ -327,6 +335,8 @@ void MeleeEnemy::DrawImGui()
 		ImGui::Text("blockedWaypointIndex: %d", blockedWaypointIndex_);
 		ImGui::Text("stuckTimer: %.2f", stuckTimer_);
 		ImGui::Text("lastMovedDistance: %.3f", lastMovedDistance_);
+		ImGui::Text("temporaryBlockedCellCount: %d", static_cast<int>(navigator_.GetTemporaryBlockedAreas().size()));
+		ImGui::Text("cornerCuttingDisabled: %s", cornerCuttingDisabled_ ? "true" : "false");
 		ImGui::Text("Grounded: %s", grounded_ ? "true" : "false");
 		ImGui::Text("AnimState: %s", GetAnimStateName());
 		ImGui::Text("lastSafePosition: (%.2f, %.2f, %.2f)", lastSafePosition_.x, lastSafePosition_.y, lastSafePosition_.z);
@@ -529,8 +539,9 @@ void MeleeEnemy::ChaseTargetAction()
 	}
 	if (pathFindEnabled_)
 	{
+		pathFailedWaitTimer_ = std::max(pathFailedWaitTimer_, repathInterval_);
 		StopMove();
-		currentBehaviorName_ = "PathFailed";
+		currentBehaviorName_ = "PathFailedWait";
 		return;
 	}
 	const Vector3 moveDir = NormalizeXZ(GetTargetPosition() - GetCenterPosition());
@@ -554,10 +565,12 @@ bool MeleeEnemy::MoveAlongPath(float deltaTime)
 	s.searchRangeCells = static_cast<int>(pathSearchRadius_);
 	s.repathIntervalSec = repathInterval_;
 	s.waypointReachDistance = waypointReachDistance_;
+	s.disableCornerCutting = cornerCuttingDisabled_;
 	navigator_.SetSettings(s);
 	// 敵半径ぶん障害物を膨張して経路探索し、見た目上通れない隙間へ進まないようにする
 	navigator_.SetWorldAABBs(GetResolvedNavigationObstacleAABBs());
 	lastRepathTimer_ += deltaTime;
+	navigator_.TickTemporaryBlocks(deltaTime);
 	const Vector3 targetPos = GetTargetPosition();
 	targetMovedDistanceForRepath_ = LengthXZ(targetPos - lastPathTargetPos_);
 	if (targetMovedDistanceForRepath_ >= targetRepathThreshold_ || isStuck_)
@@ -585,6 +598,7 @@ bool MeleeEnemy::MoveAlongPath(float deltaTime)
 			blockedSegmentFrom_ = GetCenterPosition();
 			blockedSegmentTo_ = currentPathWaypoint_;
 			navigator_.Reset();
+			navigator_.AddTemporaryBlockedArea(currentPathWaypoint_, temporaryBlockRadius_, temporaryBlockDuration_, "WaypointSegmentBlocked");
 			lastRepathReason_ = "WaypointSegmentBlocked";
 			StopMove();
 			return false;
@@ -596,6 +610,13 @@ bool MeleeEnemy::MoveAlongPath(float deltaTime)
 	pathFound_ = false;
 	pathFailureReason_ = "PathNotFound";
 	pathRetryTimer_ += deltaTime;
+	pathFailedWaitTimer_ = std::max(0.0f, pathFailedWaitTimer_ - deltaTime);
+	if (pathFailedWaitTimer_ > 0.0f)
+	{
+		lastRepathReason_ = "PathFailedWait";
+		StopMove();
+		return false;
+	}
 	if (pathRetryTimer_ >= repathInterval_)
 	{
 		navigator_.Reset();
@@ -611,16 +632,34 @@ void MeleeEnemy::UpdateStuckState(float deltaTime)
 	stuckTimer_ += deltaTime;
 	if (stuckTimer_ < stuckCheckTime_) { return; }
 	const float moved = LengthXZ(GetCenterPosition() - lastStuckCheckPosition_);
-	isStuck_ = moved <= stuckDistance_ && GetDistanceToTarget() > stopDistance_;
+	const bool attackingOrInRange = attackController_.IsAttacking() || GetDistanceToTarget() <= attackStartRange_;
+	const bool tryingToMove = LengthXZ(GetVelocity()) > 0.05f || std::string(currentBehaviorName_).find("Chase") != std::string::npos;
+	isStuck_ = !attackingOrInRange && tryingToMove && moved <= stuckMoveThreshold_ && GetDistanceToTarget() > stopDistance_;
 	lastMovedDistance_ = moved;
 	if (isStuck_)
 	{
+		// 詰まった地点を一時的に通行不可へ追加し、再探索時に同じ障害物へ押し込み続けないようにする
+		navigator_.AddTemporaryBlockedArea(GetCenterPosition(), temporaryBlockRadius_, temporaryBlockDuration_, "StuckPosition");
 		navigator_.Reset();
 		stuckRepathExpandBonus_ = std::min(stuckRepathExpandBonus_ + 0.1f, maxStuckRepathExpandBonus_);
-		lastRepathReason_ = "StuckForceRepath";
-		const Vector3 toTarget = NormalizeXZ(GetTargetPosition() - GetCenterPosition());
-		const Vector3 side = { -toTarget.z, 0.0f, toTarget.x };
-		SetVelocity({ side.x * (moveSpeed_ * 0.4f), GetVelocity().y, side.z * (moveSpeed_ * 0.4f) });
+		lastRepathReason_ = "RepathFromStuck";
+		if (blockedByObstacle_ || lineBlocked_)
+		{
+			const Vector3 tangent = NormalizeXZ(Vector3{ -lastWallResolvePush_.z, 0.0f, lastWallResolvePush_.x });
+			if (LengthXZ(tangent) > kEpsilon)
+			{
+				const Vector3 toTarget = NormalizeXZ(GetTargetPosition() - GetCenterPosition());
+				const Vector3 invTangent = tangent * -1.0f;
+				const float dotA = tangent.x * toTarget.x + tangent.z * toTarget.z;
+				const float dotB = invTangent.x * toTarget.x + invTangent.z * toTarget.z;
+				const Vector3 sideEscape = (dotA >= dotB) ? tangent : invTangent;
+				SetVelocity({ sideEscape.x * (moveSpeed_ * 0.45f), GetVelocity().y, sideEscape.z * (moveSpeed_ * 0.45f) });
+			}
+		}
+		else
+		{
+			StopMove();
+		}
 	}
 	else
 	{
