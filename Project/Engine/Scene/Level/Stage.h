@@ -87,9 +87,11 @@ namespace Ken4lowEngine
 	public: /// ---------- アクセサ ---------- ///
 
 		const std::vector<AABB>& GetWorldAABBs() const { return worldAABBs_; }
+		const std::vector<AABB>& GetWorldAABBsLegacy() const { return worldAABBsLegacy_; }
 		const std::vector<AABB>& GetFloorAABBs() const { return floorAABBs_; }
 		const std::vector<AABB>& GetWallObstacleAABBs() const { return wallObstacleAABBs_; }
 		const std::vector<AABB>& GetNavigationObstacleAABBs() const { return navigationObstacleAABBs_; }
+		const std::vector<StageCollisionBuildResult::StageObstacleBox>& GetObstacleBoxes() const { return obstacleBoxes_; }
 		const std::vector<std::unique_ptr<Collider>>& GetWorldColliders() const { return worldColliders_; }
 
 		/// <summary>
@@ -106,9 +108,11 @@ namespace Ken4lowEngine
 		StageChunkManager stageChunkManager_;                 // 静的ステージを Chunk 単位で Draw スキップする管理クラス
 		OcclusionCullingSystem occlusionCullingSystem_;          // Lv4: 遮蔽物裏の StageChunk Draw を安全側で止める管理クラス
 		std::vector<AABB> worldAABBs_;                         // ワールド衝突AABB
+		std::vector<AABB> worldAABBsLegacy_;                   // ワールド衝突AABB（旧・未回転）
 		std::vector<AABB> floorAABBs_;                         // 接地用Floor AABB
 		std::vector<AABB> wallObstacleAABBs_;                  // 横押し出し用Obstacle AABB
 		std::vector<AABB> navigationObstacleAABBs_;            // Navigation向け障害物AABB(Floor除外)
+		std::vector<StageCollisionBuildResult::StageObstacleBox> obstacleBoxes_; // 回転付き障害物OBB情報
 		std::vector<std::unique_ptr<Collider>> worldColliders_; // ワールド衝突Collider
 		Vector3 offset_ = { 0.0f, 0.0f, 0.0f };               // ステージ全体オフセット
 	};

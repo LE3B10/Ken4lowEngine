@@ -4,16 +4,33 @@
 #include "LevelData.h"
 
 #include <memory>
+#include <array>
 #include <vector>
 
 namespace Ken4lowEngine
 {
 	struct StageCollisionBuildResult
 	{
+		struct StageObstacleBox
+		{
+			std::string name;
+			std::string collisionTypeName;
+			int collisionTypeId = -1;
+			Vector3 center{};
+			Vector3 halfSize{};
+			Vector3 axisX{ 1.0f, 0.0f, 0.0f };
+			Vector3 axisY{ 0.0f, 1.0f, 0.0f };
+			Vector3 axisZ{ 0.0f, 0.0f, 1.0f };
+			std::array<Vector3, 8> corners{};
+			AABB enclosingAABB{};
+		};
+
 		std::vector<AABB> worldAABBs;
+		std::vector<AABB> worldAABBsLegacy;
 		std::vector<AABB> floorAABBs;
 		std::vector<AABB> wallObstacleAABBs;
 		std::vector<AABB> navigationObstacleAABBs;
+		std::vector<StageObstacleBox> obstacleBoxes;
 		std::vector<std::unique_ptr<Collider>> worldColliders;
 	};
 
