@@ -7,6 +7,16 @@ namespace Ken4lowEngine
 {
 	namespace
 	{
+		Vector3 TransformDirection(const Vector3& v, const Matrix4x4& m)
+		{
+			// 回転方向だけを変換するため、平行移動成分は使わない
+			return {
+				v.x * m.m[0][0] + v.y * m.m[1][0] + v.z * m.m[2][0],
+				v.x * m.m[0][1] + v.y * m.m[1][1] + v.z * m.m[2][1],
+				v.x * m.m[0][2] + v.y * m.m[1][2] + v.z * m.m[2][2],
+			};
+		}
+
 		AABB BuildAABBFromCorners(const std::array<Vector3, 8>& corners)
 		{
 			AABB aabb{};
@@ -102,7 +112,7 @@ namespace Ken4lowEngine
 			const AABB aabb = BuildAABBFromCorners(corners);
 			result.worldAABBsLegacy.push_back(legacyAabb);
 			result.worldAABBs.push_back(aabb);
-			StageCollisionBuildResult::StageObstacleBox box{};
+			StageObstacleBox box{};
 			box.name = data.name;
 			box.collisionTypeName = data.collider.collisionType;
 			box.collisionTypeId = data.collider.collisionTypeId;
@@ -111,9 +121,10 @@ namespace Ken4lowEngine
 			box.center = centerW;
 			box.halfSize = halfW;
 			const Matrix4x4 rotationM = Matrix4x4::MakeRotateMatrix(colliderRotation);
-			box.axisX = Vector3::Normalize(Vector3::TransformNormal({ 1.0f, 0.0f, 0.0f }, rotationM));
-			box.axisY = Vector3::Normalize(Vector3::TransformNormal({ 0.0f, 1.0f, 0.0f }, rotationM));
-			box.axisZ = Vector3::Normalize(Vector3::TransformNormal({ 0.0f, 0.0f, 1.0f }, rotationM));
+			// 回転行列でローカル軸を変換し、StageObstacleBoxのOBB軸として保持する
+			box.axisX = Vector3::Normalize(TransformDirection({ 1.0f, 0.0f, 0.0f }, rotationM));
+			box.axisY = Vector3::Normalize(TransformDirection({ 0.0f, 1.0f, 0.0f }, rotationM));
+			box.axisZ = Vector3::Normalize(TransformDirection({ 0.0f, 0.0f, 1.0f }, rotationM));
 			result.obstacleBoxes.push_back(box);
 			const std::string& collisionType = data.collider.collisionType;
 			if (collisionType == "Floor")
