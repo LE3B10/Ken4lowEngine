@@ -49,9 +49,9 @@ private:
 	bool IsDeadCondition() const;
 	float GetDistanceToTarget() const;
 	K4E::Vector3 GetTargetPosition() const;
-	void FaceToTarget();
-	void FaceToMoveDirection();
-	void ApplyVisualYawFromDirection(const K4E::Vector3& direction);
+	void FaceToTarget(float deltaTime);
+	void FaceToMoveDirection(float deltaTime);
+	void ApplyVisualYawFromDirection(const K4E::Vector3& direction, float deltaTime);
 	void StopMove();
 	bool IsMoveResumeDistanceReached() const;
 	bool MoveAlongPath(float deltaTime);
@@ -120,7 +120,11 @@ private:
 	K4E::Vector3 wanderDirection_{ 1.0f, 0.0f, 0.0f };
 	float rawYaw_ = 0.0f;
 	float finalVisualYaw_ = 0.0f;
-	float visualYawOffsetDeg_ = 180.0f;
+	float visualYawOffsetDeg_ = 0.0f;
+	float debugCurrentYaw_ = 0.0f;
+	float debugTargetYaw_ = 0.0f;
+	float debugDeltaYaw_ = 0.0f;
+	float debugNormalizedDeltaYaw_ = 0.0f;
 	K4E::Vector3 facingDirection_{ 0.0f, 0.0f, 1.0f };
 	K4E::Vector3 movementDirection_{ 0.0f, 0.0f, 1.0f };
 	K4E::Vector3 targetDirection_{ 0.0f, 0.0f, 1.0f };
