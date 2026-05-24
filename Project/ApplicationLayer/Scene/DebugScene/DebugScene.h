@@ -108,7 +108,9 @@ private: /// ---------- メンバ変数 ---------- ///
 	K4E::Collider meleeDummyTarget_{};
 	bool meleeDummyWireVisible_ = true;
 	float meleeDummyWireRadius_ = 0.5f;
-	bool showStageColliderWire_ = true;
+	bool showTrueColliderWire_ = true;
+	bool showNavigationWallObstacleWire_ = true;
+	bool showStageChunkObjectBounds_ = false;
 	bool showNavigationPath_ = true;
 
 };

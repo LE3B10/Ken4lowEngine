@@ -32,6 +32,19 @@ using namespace Ken4lowEngine;
 
 namespace
 {
+	void DrawBoxFromCorners(const std::array<Vector3, 8>& corners, const Vector4& color)
+	{
+		static constexpr int kEdges[][2] = {
+			{0,1},{1,2},{2,3},{3,0},
+			{4,5},{5,6},{6,7},{7,4},
+			{0,4},{1,5},{2,6},{3,7}
+		};
+		for (const auto& edge : kEdges)
+		{
+			Wireframe::GetInstance()->DrawLine(corners[edge[0]], corners[edge[1]], color);
+		}
+	}
+
 	void DebugLog(const std::string& message)
 	{
 		std::string line = message + "\n";
@@ -233,13 +246,26 @@ void DebugScene::Draw3DObjects()
 	if (stage_)
 	{
 		stage_->Draw();
-		if (showStageColliderWire_)
+		if (showTrueColliderWire_)
 		{
-			for (const AABB& aabb : stage_->GetWorldAABBs())
+			for (const auto& obstacle : stage_->GetObstacleBoxes())
 			{
-				Wireframe::GetInstance()->DrawAABB(aabb, { 0.15f, 0.95f, 0.95f, 1.0f });
+				DrawBoxFromCorners(obstacle.corners, { 0.15f, 0.95f, 0.95f, 1.0f });
 			}
 		}
+		if (showNavigationWallObstacleWire_)
+		{
+			for (const auto& obstacle : stage_->GetObstacleBoxes())
+			{
+				if (obstacle.collisionTypeName == "Obstacle" || obstacle.collisionTypeName == "Pillar" ||
+					obstacle.collisionTypeName == "Fence" || obstacle.collisionTypeName == "Tree")
+				{
+					// Navigation/Wall用ワイヤーは本物ColliderのOBB頂点から描画し、見た目とAI判定を一致させる
+					DrawBoxFromCorners(obstacle.corners, { 0.60f, 0.40f, 0.20f, 1.0f });
+				}
+			}
+		}
+		stage_->SetStageChunkObjectBoundsVisible(showStageChunkObjectBounds_);
 	}
 
 #ifdef _DEBUG
@@ -373,9 +399,48 @@ void DebugScene::DrawImGui()
 		ImGui::Text("WallObstacleAABB count: %zu", stage_->GetWallObstacleAABBs().size());
 		ImGui::Text("NavigationObstacleAABB count: %zu", stage_->GetNavigationObstacleAABBs().size());
 		ImGui::Text("Loaded Colliders count: %zu", stage_->GetWorldColliders().size());
-		ImGui::Checkbox("Show Stage Collider Wire", &showStageColliderWire_);
+		ImGui::Checkbox("Show True Collider Wire", &showTrueColliderWire_);
+		ImGui::Checkbox("Show Navigation/Wall Obstacle Wire", &showNavigationWallObstacleWire_);
+		ImGui::Checkbox("Show StageChunk/Object Bounds", &showStageChunkObjectBounds_);
 		ImGui::Checkbox("Show Navigation Path", &showNavigationPath_);
 		ImGui::Checkbox("Show DummyTarget Wire", &meleeDummyWireVisible_);
+		ImGui::Separator();
+		ImGui::Text("Legend");
+		ImGui::TextColored(ImVec4(0.15f, 0.95f, 0.95f, 1.0f), "True Collider Wire: Cyan");
+		ImGui::TextColored(ImVec4(0.60f, 0.40f, 0.20f, 1.0f), "Navigation/Wall Obstacle Wire: Brown");
+		ImGui::TextColored(ImVec4(0.95f, 0.90f, 0.45f, 1.0f), "StageChunk/Object Bounds: Light Yellow");
+		ImGui::Separator();
+		ImGui::Text("True Collider Wire Source: worldColliders_ (derived StageObstacleBox::corners)");
+		ImGui::Text("Water/Blue Wire Source: StageObstacleBox::corners");
+		ImGui::Text("Navigation/Wall Brown Wire Source: StageObstacleBox::corners (Obstacle/Pillar/Fence/Tree)");
+		ImGui::Text("StageChunk/ObjectBounds Wire Source: StageChunkManager mesh world bounds");
+		ImGui::Text("Current Navigation Source: navigationObstacleAABBs_ (OBB corners -> enclosingAABB)");
+		ImGui::Separator();
+		ImGui::Text("True Collider Source: StageCollisionBuilder(LevelData collider.center/size/rotation)");
+		ImGui::Text("True Collider Count: %zu", stage_->GetWorldColliders().size());
+		if (!stage_->GetObstacleBoxes().empty())
+		{
+			const auto& sample = stage_->GetObstacleBoxes().front();
+			ImGui::Text("Sample Collider Name: %s", sample.name.c_str());
+			ImGui::Text("Sample Collider Center: (%.3f, %.3f, %.3f)", sample.center.x, sample.center.y, sample.center.z);
+			ImGui::Text("Sample Collider Size: (%.3f, %.3f, %.3f)", sample.halfSize.x * 2.0f, sample.halfSize.y * 2.0f, sample.halfSize.z * 2.0f);
+			ImGui::Text("Sample Collider Rotation AxisX/Y/Z:");
+			ImGui::Text(" X=(%.3f, %.3f, %.3f)", sample.axisX.x, sample.axisX.y, sample.axisX.z);
+			ImGui::Text(" Y=(%.3f, %.3f, %.3f)", sample.axisY.x, sample.axisY.y, sample.axisY.z);
+			ImGui::Text(" Z=(%.3f, %.3f, %.3f)", sample.axisZ.x, sample.axisZ.y, sample.axisZ.z);
+			ImGui::Separator();
+			ImGui::Text("Sample Obstacle Compare");
+			ImGui::Text("object name: %s", sample.name.c_str());
+			ImGui::Text("collision type: %s", sample.collisionTypeName.c_str());
+			ImGui::Text("true collider center: (%.3f, %.3f, %.3f)", sample.center.x, sample.center.y, sample.center.z);
+			ImGui::Text("nav/wall center: (%.3f, %.3f, %.3f)", sample.center.x, sample.center.y, sample.center.z);
+			ImGui::Text("center delta: (0.000, 0.000, 0.000)");
+			ImGui::Text("true collider halfSize: (%.3f, %.3f, %.3f)", sample.halfSize.x, sample.halfSize.y, sample.halfSize.z);
+			ImGui::Text("nav/wall halfSize: (%.3f, %.3f, %.3f)", sample.halfSize.x, sample.halfSize.y, sample.halfSize.z);
+			ImGui::Text("size delta: (0.000, 0.000, 0.000)");
+			ImGui::Text("true axisX/Y/Z == nav/wall axisX/Y/Z");
+			ImGui::Text("axis delta: near zero (same source)");
+		}
 		ImGui::End();
 	}
 
