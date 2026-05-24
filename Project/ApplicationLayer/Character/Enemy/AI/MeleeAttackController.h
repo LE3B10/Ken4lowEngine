@@ -12,6 +12,8 @@ class MeleeAttackController
 public:
 	void Initialize();
 	void StartAttack(MeleeAttackType type);
+	void StopAttack();
+	void ResetCooldown();
 	void Update(MeleeEnemy& owner, float deltaTime);
 
 	bool IsAttacking() const { return isAttacking_; }
@@ -22,6 +24,7 @@ public:
 	float GetCooldownRemaining() const { return cooldownRemaining_; }
 	bool IsCurrentStepActive() const { return isCurrentStepActive_; }
 	bool WasLastHitSuccess() const { return lastHitSuccess_; }
+	MeleeAttackType GetCurrentAttackType() const { return currentType_; }
 
 	MeleeAttackPattern* FindPattern(MeleeAttackType type);
 	const MeleeAttackPattern* FindPattern(MeleeAttackType type) const;
