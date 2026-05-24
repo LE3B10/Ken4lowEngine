@@ -33,8 +33,9 @@ private:
 	enum class AnimState
 	{
 		Idle,
-		Move,
-		Attack,
+		Walk,
+		Scratch,
+		OneTwo,
 		Dead,
 	};
 
@@ -59,6 +60,9 @@ private:
 	void ChaseTargetAction();
 	void WanderAction(float deltaTime);
 	void EvaluateBehavior(float deltaTime);
+	void UpdateVisualAnimation(float deltaTime);
+	bool IsInsideStageBounds(const K4E::Vector3& position) const;
+	const char* GetAnimStateName() const;
 
 private:
 	K4E::Collider* target_ = nullptr;
@@ -71,6 +75,22 @@ private:
 	float resumeChaseDistance_ = 2.8f;
 	float minOneTwoForwardDistance_ = 1.6f;
 	float rotateSpeed_ = 8.0f;
+	float visualYawOffset_ = 3.141592f;
+	float walkAnimSpeed_ = 8.0f;
+	float walkArmSwing_ = 0.55f;
+	float walkLegSwing_ = 0.45f;
+	float attackArmSwing_ = 1.25f;
+	float attackReturnSpeed_ = 12.0f;
+	float attackBodyLean_ = 0.15f;
+	float walkAnimTime_ = 0.0f;
+	K4E::Vector3 lastSafePosition_{};
+	K4E::Vector3 stageBoundsMin_{ -1000.0f, -1000.0f, -1000.0f };
+	K4E::Vector3 stageBoundsMax_{ 1000.0f, 1000.0f, 1000.0f };
+	bool hasStageBounds_ = false;
+	bool isOutsideStage_ = false;
+	K4E::Vector3 lastResolvePush_{};
+	float maxResolvePushPerFrame_ = 0.75f;
+	float maxHorizontalPushPerFrame_ = 0.45f;
 	float stuckCheckTime_ = 0.8f;
 	float stuckDistance_ = 0.2f;
 	bool pathFindEnabled_ = true;

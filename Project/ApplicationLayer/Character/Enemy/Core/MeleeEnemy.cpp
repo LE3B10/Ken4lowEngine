@@ -40,16 +40,71 @@ void MeleeEnemy::Initialize()
 	attackController_.Initialize();
 	spawnPosition_ = GetCenterPosition();
 	lastStuckCheckPosition_ = spawnPosition_;
+	lastSafePosition_ = spawnPosition_;
 }
 
 void MeleeEnemy::Update(float deltaTime)
 {
+	const Vector3 beforePos = GetCenterPosition();
 	attackController_.Update(*this, deltaTime);
 	attackLockTimer_ = std::max(0.0f, attackLockTimer_ - deltaTime);
 
 	// 優先度の高い行動から順に評価して近接敵の行動を決定する
 	EvaluateBehavior(deltaTime);
 	EnemyBase::Update(deltaTime);
+
+	Vector3 afterPos = GetCenterPosition();
+	Vector3 push = afterPos - (beforePos + GetVelocity() * deltaTime);
+	// 押し出し補正の暴発でステージ外へ飛ばされるのを防ぐため、フレーム補正量を制限する
+	const float pushLen = std::sqrt(push.x * push.x + push.y * push.y + push.z * push.z);
+	const float horizontalPushLen = LengthXZ(push);
+	if (pushLen > maxResolvePushPerFrame_ || horizontalPushLen > maxHorizontalPushPerFrame_)
+	{
+		const float clampScale = std::min(maxResolvePushPerFrame_ / std::max(pushLen, kEpsilon), maxHorizontalPushPerFrame_ / std::max(horizontalPushLen, kEpsilon));
+		afterPos = beforePos + (afterPos - beforePos) * std::max(0.0f, std::min(1.0f, clampScale));
+		SetCenterPosition(afterPos);
+	}
+	lastResolvePush_ = afterPos - beforePos;
+
+	if (const auto* aabbs = GetResolvedWorldAABBs(); aabbs && !aabbs->empty())
+	{
+		for (const auto& aabb : *aabbs)
+		{
+			const float sizeX = aabb.max.x - aabb.min.x;
+			const float sizeZ = aabb.max.z - aabb.min.z;
+			const float sizeY = aabb.max.y - aabb.min.y;
+			if (sizeX > 2.0f && sizeZ > 2.0f && sizeY <= 3.5f)
+			{
+				if (!hasStageBounds_)
+				{
+					stageBoundsMin_ = aabb.min;
+					stageBoundsMax_ = aabb.max;
+					hasStageBounds_ = true;
+				}
+				else
+				{
+					stageBoundsMin_.x = std::min(stageBoundsMin_.x, aabb.min.x);
+					stageBoundsMin_.z = std::min(stageBoundsMin_.z, aabb.min.z);
+					stageBoundsMax_.x = std::max(stageBoundsMax_.x, aabb.max.x);
+					stageBoundsMax_.z = std::max(stageBoundsMax_.z, aabb.max.z);
+				}
+			}
+		}
+	}
+
+	isOutsideStage_ = hasStageBounds_ && !IsInsideStageBounds(GetCenterPosition());
+	if (grounded_ && !isOutsideStage_)
+	{
+		lastSafePosition_ = GetCenterPosition();
+	}
+	else if (isOutsideStage_)
+	{
+		// 押し出し補正が大きすぎる場合は安全位置へ戻し、ステージ外へ弾き出されるのを防ぐ
+		SetCenterPosition(lastSafePosition_);
+		SetVelocity({ 0.0f, GetVelocity().y, 0.0f });
+	}
+
+	UpdateVisualAnimation(deltaTime);
 }
 
 void MeleeEnemy::Draw()
@@ -71,6 +126,14 @@ void MeleeEnemy::DrawImGui()
 		ImGui::SliderFloat("resumeChaseDistance", &resumeChaseDistance_, 0.5f, 10.0f);
 		ImGui::SliderFloat("attackLockTime", &attackLockTime_, 0.0f, 1.0f);
 		ImGui::SliderFloat("rotateSpeed", &rotateSpeed_, 0.1f, 20.0f);
+		ImGui::SliderFloat("visualYawOffset", &visualYawOffset_, -kPi, kPi);
+		ImGui::SliderFloat("walkAnimSpeed", &walkAnimSpeed_, 1.0f, 18.0f);
+		ImGui::SliderFloat("walkArmSwing", &walkArmSwing_, 0.0f, 1.5f);
+		ImGui::SliderFloat("walkLegSwing", &walkLegSwing_, 0.0f, 1.5f);
+		ImGui::SliderFloat("attackArmSwing", &attackArmSwing_, 0.0f, 2.0f);
+		ImGui::SliderFloat("attackReturnSpeed", &attackReturnSpeed_, 1.0f, 24.0f);
+		ImGui::SliderFloat("attackBodyLean", &attackBodyLean_, 0.0f, 0.4f);
+		ImGui::SliderFloat("maxResolvePushPerFrame", &maxResolvePushPerFrame_, 0.05f, 2.0f);
 		ImGui::SliderFloat("stuckCheckTime", &stuckCheckTime_, 0.1f, 3.0f);
 		ImGui::SliderFloat("stuckDistance", &stuckDistance_, 0.01f, 2.0f);
 		ImGui::SliderFloat("repathInterval", &repathInterval_, 0.05f, 2.0f);
@@ -106,6 +169,10 @@ void MeleeEnemy::DrawImGui()
 		ImGui::Text("Last Repath Timer: %.2f", lastRepathTimer_);
 		ImGui::Text("Path Failure Reason: %s", pathFailureReason_.c_str());
 		ImGui::Text("Grounded: %s", grounded_ ? "true" : "false");
+		ImGui::Text("AnimState: %s", GetAnimStateName());
+		ImGui::Text("lastSafePosition: (%.2f, %.2f, %.2f)", lastSafePosition_.x, lastSafePosition_.y, lastSafePosition_.z);
+		ImGui::Text("isOutsideStage: %s", isOutsideStage_ ? "true" : "false");
+		ImGui::Text("lastResolvePush: (%.2f, %.2f, %.2f)", lastResolvePush_.x, lastResolvePush_.y, lastResolvePush_.z);
 		const Vector3 tgt = GetTargetPosition();
 		ImGui::Text("Target: (%.2f, %.2f, %.2f)", tgt.x, tgt.y, tgt.z);
 		if (ImGui::Button("Force Scratch Attack")) { ForceAttack(MeleeAttackType::Scratch); }
@@ -201,7 +268,7 @@ void MeleeEnemy::FaceToTarget()
 	Vector3 dir = NormalizeXZ(GetTargetPosition() - GetCenterPosition());
 	if (LengthXZ(dir) <= kEpsilon) { return; }
 	const float yaw = std::atan2(dir.x, dir.z);
-	SetOrientation({ 0.0f, yaw, 0.0f });
+	SetOrientation({ 0.0f, yaw + visualYawOffset_, 0.0f });
 }
 
 void MeleeEnemy::DeadAction()
@@ -220,7 +287,7 @@ void MeleeEnemy::MeleeAttackAction()
 		// 攻撃パターンをデータとして扱い、ScratchとOneTwoを同じ制御経路で実行する
 		attackController_.StartAttack(selectedAttackType_);
 		attackLockTimer_ = attackLockTime_;
-		animState_ = AnimState::Attack;
+	animState_ = (selectedAttackType_ == MeleeAttackType::OneTwo) ? AnimState::OneTwo : AnimState::Scratch;
 	}
 	currentBehaviorName_ = (selectedAttackType_ == MeleeAttackType::OneTwo) ? "OneTwoAttack" : "ScratchAttack";
 }
@@ -249,7 +316,7 @@ void MeleeEnemy::ChaseTargetAction()
 	if (pathFindEnabled_ && MoveAlongPath(1.0f / 60.0f))
 	{
 		FaceToTarget();
-		animState_ = AnimState::Move;
+		animState_ = AnimState::Walk;
 		currentBehaviorName_ = "ChasePathMove";
 		return;
 	}
@@ -262,7 +329,7 @@ void MeleeEnemy::ChaseTargetAction()
 	}
 	SetVelocity({ moveDir.x * moveSpeed_, GetVelocity().y, moveDir.z * moveSpeed_ });
 	FaceToTarget();
-	animState_ = AnimState::Move;
+	animState_ = AnimState::Walk;
 	currentBehaviorName_ = "ChaseTargetAction";
 }
 
@@ -320,7 +387,7 @@ void MeleeEnemy::WanderAction(float deltaTime)
 	}
 	SetVelocity({ wanderDirection_.x * (moveSpeed_ * 0.45f), GetVelocity().y, wanderDirection_.z * (moveSpeed_ * 0.45f) });
 	currentBehaviorName_ = "WanderAction";
-	animState_ = AnimState::Move;
+	animState_ = AnimState::Walk;
 }
 
 void MeleeEnemy::ApplyAttackMove(const Vector3& horizontalVelocity)
@@ -406,4 +473,55 @@ void MeleeEnemy::StopAttack()
 void MeleeEnemy::ResetAttackCooldown()
 {
 	attackController_.ResetCooldown();
+}
+
+void MeleeEnemy::UpdateVisualAnimation(float deltaTime)
+{
+	if (parts_.size() < 5 || !body_.object) { return; }
+	const uint32_t lArm = partIndices_.leftArm;
+	const uint32_t rArm = partIndices_.rightArm;
+	const uint32_t lLeg = partIndices_.leftLeg;
+	const uint32_t rLeg = partIndices_.rightLeg;
+	const float speedRate = std::min(1.5f, LengthXZ(GetVelocity()) / std::max(moveSpeed_, kEpsilon));
+	walkAnimTime_ += deltaTime * (walkAnimSpeed_ * std::max(0.2f, speedRate));
+	float armTarget = 0.0f;
+	float legTarget = 0.0f;
+	float lAttack = 0.0f;
+	float rAttack = 0.0f;
+	if (attackController_.IsAttacking())
+	{
+		if (attackController_.GetCurrentAttackType() == MeleeAttackType::Scratch || attackController_.GetCurrentStepIndex() == 0) { lAttack = attackArmSwing_; }
+		if (attackController_.GetCurrentAttackType() == MeleeAttackType::OneTwo && attackController_.GetCurrentStepIndex() == 1) { rAttack = attackArmSwing_; }
+	}
+	else if (animState_ == AnimState::Walk)
+	{
+		armTarget = std::sin(walkAnimTime_) * walkArmSwing_ * speedRate;
+		legTarget = std::sin(walkAnimTime_) * walkLegSwing_ * speedRate;
+	}
+	const float ret = std::min(1.0f, attackReturnSpeed_ * deltaTime);
+	parts_[lArm].transform.rotate_.x += ((armTarget - lAttack) - parts_[lArm].transform.rotate_.x) * ret;
+	parts_[rArm].transform.rotate_.x += ((-armTarget - rAttack) - parts_[rArm].transform.rotate_.x) * ret;
+	parts_[lLeg].transform.rotate_.x += ((-legTarget) - parts_[lLeg].transform.rotate_.x) * ret;
+	parts_[rLeg].transform.rotate_.x += ((legTarget) - parts_[rLeg].transform.rotate_.x) * ret;
+	body_.transform.rotate_.x = (lAttack + rAttack) * attackBodyLean_;
+	UpdateVisualHierarchy();
+}
+
+bool MeleeEnemy::IsInsideStageBounds(const Vector3& position) const
+{
+	if (!hasStageBounds_) { return true; }
+	return position.x >= stageBoundsMin_.x && position.x <= stageBoundsMax_.x && position.z >= stageBoundsMin_.z && position.z <= stageBoundsMax_.z;
+}
+
+const char* MeleeEnemy::GetAnimStateName() const
+{
+	switch (animState_)
+	{
+	case AnimState::Idle: return "Idle";
+	case AnimState::Walk: return "Walk";
+	case AnimState::Scratch: return "Scratch";
+	case AnimState::OneTwo: return "OneTwo";
+	case AnimState::Dead: return "Dead";
+	default: return "Unknown";
+	}
 }
