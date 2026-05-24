@@ -27,6 +27,13 @@ namespace K4E = ::Ken4lowEngine;
 class DebugScene : public BaseScene
 {
 public: /// ---------- メンバ関数 ---------- ///
+	struct ColliderDebugAdjust
+	{
+		Vector3 positionOffset{ 0.0f, 0.0f, 0.0f };
+		Vector3 rotationOffsetRad{ 0.0f, 0.0f, 0.0f };
+		Vector3 scaleMultiplier{ 1.0f, 1.0f, 1.0f };
+		bool enabled = true;
+	};
 
 	~DebugScene() override;
 
@@ -110,11 +117,22 @@ private: /// ---------- メンバ変数 ---------- ///
 	bool meleeDummyWireVisible_ = true;
 	float meleeDummyWireRadius_ = 0.5f;
 	bool showColliderObbWire_ = true;
+	bool showEnclosingAabbWire_ = false;
 	bool showNavigationAabbWire_ = false;
 	bool showWallAabbWire_ = false;
 	bool showOldBoundsWire_ = false;
 	bool showStageChunkBoundsWire_ = false;
 	bool showStageChunkObjectBoundsWire_ = false;
 	std::string brownWireframeSource_ = "StageObstacleBox OBB";
+	ColliderDebugAdjust commonColliderAdjust_{};
+	ColliderDebugAdjust selectedColliderAdjust_{ {0.0f,0.0f,0.0f}, {0.0f,0.0f,0.0f}, {1.0f,1.0f,1.0f}, false };
+	bool drawSelectedColliderOnly_ = false;
+	bool applyDebugAdjustToNavigation_ = false;
+	bool applyDebugAdjustToWallCollision_ = false;
+	size_t selectedColliderIndex_ = 0;
+	std::string lastAdjustPresetAction_ = "None";
+	std::vector<K4E::AABB> debugAdjustedNavigationAABBs_{};
+	std::vector<K4E::AABB> debugAdjustedWallAABBs_{};
+	std::vector<K4E::AABB> debugAdjustedWorldAABBs_{};
 
 };
