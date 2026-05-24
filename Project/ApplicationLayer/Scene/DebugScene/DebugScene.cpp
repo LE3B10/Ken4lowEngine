@@ -132,6 +132,15 @@ void DebugScene::Initialize()
 	debugBoss_->SetPosition({ 0.0f, 2.25f, 30.0f });
 	debugBoss_->SetYaw(3.141592f); // 必要ならプレイヤー側へ向ける
 
+	debugMeleeEnemy_ = std::make_unique<MeleeEnemy>();
+	debugMeleeEnemy_->Initialize();
+	debugMeleeEnemy_->SetCenterPosition({ -8.0f, 2.0f, 18.0f });
+
+	meleeDummyTarget_.SetCenterPosition({ 0.0f, 2.0f, 18.0f });
+	meleeDummyTarget_.SetOBBHalfSize({ 0.8f, 1.0f, 0.8f });
+	debugMeleeEnemy_->SetTarget(&meleeDummyTarget_);
+	collisionManager_->AddCollider(debugMeleeEnemy_.get());
+
 	disintegrationDebug_ = std::make_unique<DisintegrationDebugController>();
 	// Disintegration系の確認処理は専用コントローラへ委譲し、DebugScene本体の責務を絞る。
 	disintegrationDebug_->Initialize();
@@ -161,6 +170,11 @@ void DebugScene::Update()
 		// とりあえずプレイヤー位置をターゲットに渡す
 		debugBoss_->SetTargetPosition({});
 		debugBoss_->Update(deltaTime);
+	}
+
+	if (debugMeleeEnemy_)
+	{
+		debugMeleeEnemy_->Update(deltaTime);
 	}
 
 	UpdateDebugBossHitTest();
@@ -206,6 +220,10 @@ void DebugScene::Draw3DObjects()
 	{
 		debugBoss_->Draw();
 	}
+	if (debugMeleeEnemy_)
+	{
+		debugMeleeEnemy_->Draw();
+	}
 
 	stageObject_->Draw();
 
@@ -231,6 +249,10 @@ void DebugScene::DrawShadowObjects()
 	if (debugBoss_)
 	{
 		debugBoss_->DrawShadow();
+	}
+	if (debugMeleeEnemy_)
+	{
+		debugMeleeEnemy_->DrawShadow();
 	}
 	if (stageObject_)
 	{
@@ -267,6 +289,7 @@ void DebugScene::Finalize()
 	frustumCullingDebug_.reset();
 	disintegrationDebug_.reset();
 	debugBoss_.reset();
+	debugMeleeEnemy_.reset();
 	collisionManager_.reset();
 	stageObject_.reset();
 
@@ -284,6 +307,10 @@ void DebugScene::DrawImGui()
 	{
 		debugBoss_->DrawImGui();
 	}
+	if (debugMeleeEnemy_)
+	{
+		debugMeleeEnemy_->DrawImGui();
+	}
 
 	if (frustumCullingDebug_)
 	{
@@ -300,6 +327,16 @@ void DebugScene::DrawImGui()
 	ImGui::Text("Press H to test hit.");
 	ImGui::TextWrapped("%s", debugHitLog_.c_str());
 
+	ImGui::End();
+
+	ImGui::Begin("MeleeEnemy Debug Target");
+	Vector3 targetPos = meleeDummyTarget_.GetCenterPosition();
+	float targetPosArray[3] = { targetPos.x, targetPos.y, targetPos.z };
+	if (ImGui::DragFloat3("Dummy Target Position", targetPosArray, 0.05f))
+	{
+		meleeDummyTarget_.SetCenterPosition({ targetPosArray[0], targetPosArray[1], targetPosArray[2] });
+	}
+	ImGui::Text("MeleeEnemy and dummy target are for BT behavior verification.");
 	ImGui::End();
 
 	/// ---------- GPUパーティクルデバッグ ---------- ///

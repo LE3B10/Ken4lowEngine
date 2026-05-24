@@ -427,6 +427,9 @@
     <ClCompile Include="ApplicationLayer\Character\Enemy\Core\Enemy.cpp">
       <Filter>ApplicationLayer\Character\Enemy\Core</Filter>
     </ClCompile>
+    <ClCompile Include="ApplicationLayer\Character\Enemy\Core\MeleeEnemy.cpp">
+      <Filter>ApplicationLayer\Character\Enemy\Core</Filter>
+    </ClCompile>
     <ClCompile Include="ApplicationLayer\Character\Enemy\Core\EnemyBase.cpp">
       <Filter>ApplicationLayer\Character\Enemy\Core</Filter>
     </ClCompile>
@@ -1269,6 +1272,9 @@
       <Filter>ApplicationLayer\Character\Player</Filter>
     </ClInclude>
     <ClInclude Include="ApplicationLayer\Character\Enemy\Core\Enemy.h">
+      <Filter>ApplicationLayer\Character\Enemy\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Character\Enemy\Core\MeleeEnemy.h">
       <Filter>ApplicationLayer\Character\Enemy\Core</Filter>
     </ClInclude>
     <ClInclude Include="ApplicationLayer\Character\Enemy\Core\EnemyBase.h">

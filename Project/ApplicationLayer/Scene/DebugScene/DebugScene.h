@@ -3,6 +3,7 @@
 #include "CollisionManager.h"
 #include "BulletManager.h"
 #include "Enemy.h"
+#include "MeleeEnemy.h"
 #include "Player.h"
 #include "Derived/GuardianBoss/GuardianBoss.h"
 #include "DisintegrationDebugController.h"
@@ -84,6 +85,7 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	// 描画確認用ボス
 	std::unique_ptr<GuardianBoss> debugBoss_;
+	std::unique_ptr<MeleeEnemy> debugMeleeEnemy_;
 
 	// ステージ確認用
 	std::unique_ptr<K4E::Object3D> stageObject_;
@@ -104,6 +106,8 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	// Frustum Culling の挙動確認用 Object3D 群
 	std::vector<std::unique_ptr<K4E::Object3D>> cullingTestObjects_;
+
+	K4E::Collider meleeDummyTarget_{};
 
 };
 
