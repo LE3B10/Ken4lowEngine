@@ -146,7 +146,7 @@ void MeleeAttackController::ProcessStepHit(MeleeEnemy& owner, const MeleeAttackS
 	if (!target) { return; }
 
 	const K4E::Vector3 ownerPos = owner.GetCenterPosition();
-	const K4E::Vector3 forward = NormalizeXZ(owner.GetTargetPositionForAttack() - ownerPos);
+	const K4E::Vector3 forward = NormalizeXZ(owner.GetAttackForward());
 	const K4E::Vector3 attackCenter = ownerPos + (forward * step.range);
 	const K4E::Vector3 delta = target->GetCenterPosition() - attackCenter;
 	const float hitDist = LengthXZ(delta);
@@ -162,6 +162,6 @@ void MeleeAttackController::ApplyForwardMove(MeleeEnemy& owner, float) const
 	const MeleeAttackPattern* pattern = FindPattern(currentType_);
 	if (!pattern) { return; }
 	if (pattern->forwardMoveSpeed <= 0.0f || attackElapsed_ > pattern->forwardMoveDuration) { return; }
-	const K4E::Vector3 moveForward = NormalizeXZ(owner.GetTargetPositionForAttack() - owner.GetCenterPosition());
+	const K4E::Vector3 moveForward = NormalizeXZ(owner.GetAttackForward());
 	owner.ApplyAttackMove(moveForward * pattern->forwardMoveSpeed);
 }
