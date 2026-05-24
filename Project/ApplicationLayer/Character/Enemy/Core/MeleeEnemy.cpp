@@ -38,6 +38,8 @@ void MeleeEnemy::Initialize()
 	currentBehaviorName_ = "Wander";
 	animState_ = AnimState::Idle;
 	attackController_.Initialize();
+	spawnPosition_ = GetCenterPosition();
+	lastStuckCheckPosition_ = spawnPosition_;
 }
 
 void MeleeEnemy::Update(float deltaTime)
@@ -68,6 +70,15 @@ void MeleeEnemy::DrawImGui()
 		ImGui::SliderFloat("attackStartRange", &attackStartRange_, 0.5f, 8.0f);
 		ImGui::SliderFloat("resumeChaseDistance", &resumeChaseDistance_, 0.5f, 10.0f);
 		ImGui::SliderFloat("attackLockTime", &attackLockTime_, 0.0f, 1.0f);
+		ImGui::SliderFloat("rotateSpeed", &rotateSpeed_, 0.1f, 20.0f);
+		ImGui::SliderFloat("stuckCheckTime", &stuckCheckTime_, 0.1f, 3.0f);
+		ImGui::SliderFloat("stuckDistance", &stuckDistance_, 0.01f, 2.0f);
+		ImGui::SliderFloat("repathInterval", &repathInterval_, 0.05f, 2.0f);
+		ImGui::SliderFloat("waypointReachDistance", &waypointReachDistance_, 0.1f, 3.0f);
+		ImGui::Checkbox("pathFindEnabled", &pathFindEnabled_);
+		ImGui::SliderFloat("pathGridSize", &pathGridSize_, 0.3f, 4.0f);
+		ImGui::SliderFloat("pathSearchRadius", &pathSearchRadius_, 6.0f, 80.0f);
+		ImGui::SliderFloat("obstacleExpandRadius", &obstacleExpandRadius_, 0.1f, 2.0f);
 
 		int attackSelect = static_cast<int>(selectedAttackType_);
 		const char* attackItems[] = { "Scratch", "OneTwo" };
@@ -89,6 +100,28 @@ void MeleeEnemy::DrawImGui()
 		ImGui::Text("attackLockTimer: %.2f", attackLockTimer_);
 		ImGui::Text("Attack Active: %s", attackController_.IsCurrentStepActive() ? "true" : "false");
 		ImGui::Text("Last Hit: %s", attackController_.WasLastHitSuccess() ? "Hit" : "Miss");
+		ImGui::Text("Path Found: %s", pathFound_ ? "true" : "false");
+		ImGui::Text("Path Node Count: %d", pathFound_ ? 1 : 0);
+		ImGui::Text("Current Waypoint Index: %d", pathFound_ ? 0 : -1);
+		ImGui::Text("Last Repath Timer: %.2f", lastRepathTimer_);
+		ImGui::Text("Path Failure Reason: %s", pathFailureReason_.c_str());
+		ImGui::Text("Grounded: %s", grounded_ ? "true" : "false");
+		const Vector3 tgt = GetTargetPosition();
+		ImGui::Text("Target: (%.2f, %.2f, %.2f)", tgt.x, tgt.y, tgt.z);
+		if (ImGui::Button("Force Scratch Attack")) { ForceAttack(MeleeAttackType::Scratch); }
+		ImGui::SameLine();
+		if (ImGui::Button("Force OneTwo Attack")) { ForceAttack(MeleeAttackType::OneTwo); }
+		if (ImGui::Button("Stop Attack")) { StopAttack(); }
+		ImGui::SameLine();
+		if (ImGui::Button("Reset Cooldown")) { ResetAttackCooldown(); }
+		if (ImGui::Button("Teleport Near Target"))
+		{
+			Vector3 p = GetTargetPosition();
+			p.z -= 1.2f;
+			SetCenterPosition(p);
+		}
+		ImGui::SameLine();
+		if (ImGui::Button("Reset Position")) { SetCenterPosition(spawnPosition_); }
 
 		if (MeleeAttackPattern* scratch = attackController_.FindPattern(MeleeAttackType::Scratch))
 		{
@@ -203,6 +236,7 @@ void MeleeEnemy::CombatIdleAction()
 
 void MeleeEnemy::ChaseTargetAction()
 {
+	UpdateStuckState(1.0f / 60.0f);
 	const float distance = GetDistanceToTarget();
 	if (distance <= stopDistance_)
 	{
@@ -212,8 +246,14 @@ void MeleeEnemy::ChaseTargetAction()
 		currentBehaviorName_ = "ChaseStopNearTarget";
 		return;
 	}
-	const Vector3 toTarget = GetTargetPosition() - GetCenterPosition();
-	const Vector3 moveDir = NormalizeXZ(toTarget);
+	if (pathFindEnabled_ && MoveAlongPath(1.0f / 60.0f))
+	{
+		FaceToTarget();
+		animState_ = AnimState::Move;
+		currentBehaviorName_ = "ChasePathMove";
+		return;
+	}
+	const Vector3 moveDir = NormalizeXZ(GetTargetPosition() - GetCenterPosition());
 	if (LengthXZ(moveDir) <= kEpsilon)
 	{
 		StopMove();
@@ -224,6 +264,49 @@ void MeleeEnemy::ChaseTargetAction()
 	FaceToTarget();
 	animState_ = AnimState::Move;
 	currentBehaviorName_ = "ChaseTargetAction";
+}
+
+bool MeleeEnemy::MoveAlongPath(float deltaTime)
+{
+	EnemyAStarNavigator::Settings s = navigator_.GetSettings();
+	s.cellSize = pathGridSize_;
+	s.agentRadius = obstacleExpandRadius_;
+	s.searchRangeCells = static_cast<int>(pathSearchRadius_);
+	s.repathIntervalSec = repathInterval_;
+	s.waypointReachDistance = waypointReachDistance_;
+	navigator_.SetSettings(s);
+	navigator_.SetWorldAABBs(GetResolvedWorldAABBs());
+	lastRepathTimer_ += deltaTime;
+	// 障害物を考慮した経路を使い、MeleeEnemyが直線移動で引っかからないようにする
+	if (navigator_.GetNextWaypoint(GetCenterPosition(), GetTargetPosition(), GetCenterPosition().y, deltaTime, currentPathWaypoint_))
+	{
+		pathFound_ = true;
+		pathFailureReason_ = "None";
+		const Vector3 dir = NormalizeXZ(currentPathWaypoint_ - GetCenterPosition());
+		SetVelocity({ dir.x * moveSpeed_, GetVelocity().y, dir.z * moveSpeed_ });
+		return true;
+	}
+	pathFound_ = false;
+	pathFailureReason_ = "PathNotFound";
+	StopMove();
+	return false;
+}
+
+void MeleeEnemy::UpdateStuckState(float deltaTime)
+{
+	stuckTimer_ += deltaTime;
+	if (stuckTimer_ < stuckCheckTime_) { return; }
+	const float moved = LengthXZ(GetCenterPosition() - lastStuckCheckPosition_);
+	isStuck_ = moved <= stuckDistance_ && GetDistanceToTarget() > stopDistance_;
+	if (isStuck_)
+	{
+		navigator_.Reset();
+		const Vector3 toTarget = NormalizeXZ(GetTargetPosition() - GetCenterPosition());
+		const Vector3 side = { -toTarget.z, 0.0f, toTarget.x };
+		SetVelocity({ side.x * (moveSpeed_ * 0.4f), GetVelocity().y, side.z * (moveSpeed_ * 0.4f) });
+	}
+	lastStuckCheckPosition_ = GetCenterPosition();
+	stuckTimer_ = 0.0f;
 }
 
 void MeleeEnemy::WanderAction(float deltaTime)
@@ -303,4 +386,24 @@ void MeleeEnemy::EvaluateBehavior(float deltaTime)
 void MeleeEnemy::StopMove()
 {
 	SetVelocity({ 0.0f, GetVelocity().y, 0.0f });
+}
+
+void MeleeEnemy::ForceAttack(MeleeAttackType type)
+{
+	selectedAttackType_ = type;
+	attackController_.ResetCooldown();
+	attackController_.StopAttack();
+	attackController_.StartAttack(type);
+	attackLockTimer_ = attackLockTime_;
+}
+
+void MeleeEnemy::StopAttack()
+{
+	attackController_.StopAttack();
+	attackLockTimer_ = 0.0f;
+}
+
+void MeleeEnemy::ResetAttackCooldown()
+{
+	attackController_.ResetCooldown();
 }

@@ -2,6 +2,8 @@
 
 #include "EnemyBase.h"
 #include "../AI/MeleeAttackController.h"
+#include "../Navigation/EnemyAStarNavigator.h"
+#include <string>
 
 namespace K4E = ::Ken4lowEngine;
 
@@ -19,6 +21,13 @@ public:
 	K4E::Vector3 GetTargetPositionForAttack() const;
 	void ApplyAttackMove(const K4E::Vector3& horizontalVelocity);
 	void NotifyAttackHit(int damage, const K4E::Vector3& forward);
+	void ForceAttack(MeleeAttackType type);
+	void StopAttack();
+	void ResetAttackCooldown();
+	void SetSelectedAttackType(MeleeAttackType type) { selectedAttackType_ = type; }
+	MeleeAttackType GetSelectedAttackType() const { return selectedAttackType_; }
+	bool IsAttacking() const { return attackController_.IsAttacking(); }
+	const char* GetCurrentAttackName() const { return attackController_.GetCurrentAttackName(); }
 
 private:
 	enum class AnimState
@@ -41,6 +50,8 @@ private:
 	void FaceToTarget();
 	void StopMove();
 	bool IsMoveResumeDistanceReached() const;
+	bool MoveAlongPath(float deltaTime);
+	void UpdateStuckState(float deltaTime);
 
 	void DeadAction();
 	void MeleeAttackAction();
@@ -59,12 +70,29 @@ private:
 	float attackStartRange_ = 2.4f;
 	float resumeChaseDistance_ = 2.8f;
 	float minOneTwoForwardDistance_ = 1.6f;
+	float rotateSpeed_ = 8.0f;
+	float stuckCheckTime_ = 0.8f;
+	float stuckDistance_ = 0.2f;
+	bool pathFindEnabled_ = true;
+	float repathInterval_ = 0.25f;
+	float waypointReachDistance_ = 0.6f;
+	float pathGridSize_ = 1.5f;
+	float pathSearchRadius_ = 28.0f;
+	float obstacleExpandRadius_ = 0.6f;
 	MeleeAttackType selectedAttackType_ = MeleeAttackType::Scratch;
 	MeleeAttackController attackController_{};
 	float attackLockTimer_ = 0.0f;
 	float attackLockTime_ = 0.18f;
 	bool isStuck_ = false;
 	bool shouldChase_ = true;
+	bool pathFound_ = false;
+	std::string pathFailureReason_ = "None";
+	float stuckTimer_ = 0.0f;
+	float lastRepathTimer_ = 0.0f;
+	K4E::Vector3 lastStuckCheckPosition_{};
+	K4E::Vector3 spawnPosition_{};
+	K4E::Vector3 currentPathWaypoint_{};
+	EnemyAStarNavigator navigator_{};
 	float wanderTimer_ = 0.0f;
 	K4E::Vector3 wanderDirection_{ 1.0f, 0.0f, 0.0f };
 

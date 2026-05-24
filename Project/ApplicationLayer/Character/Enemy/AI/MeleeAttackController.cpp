@@ -63,6 +63,19 @@ void MeleeAttackController::StartAttack(MeleeAttackType type)
 	stepHitDone_.assign(pattern->steps.size(), false);
 }
 
+void MeleeAttackController::StopAttack()
+{
+	isAttacking_ = false;
+	attackElapsed_ = 0.0f;
+	currentStepIndex_ = -1;
+	isCurrentStepActive_ = false;
+}
+
+void MeleeAttackController::ResetCooldown()
+{
+	cooldownRemaining_ = 0.0f;
+}
+
 void MeleeAttackController::Update(MeleeEnemy& owner, float deltaTime)
 {
 	if (cooldownRemaining_ > 0.0f) { cooldownRemaining_ = std::max(0.0f, cooldownRemaining_ - deltaTime); }
