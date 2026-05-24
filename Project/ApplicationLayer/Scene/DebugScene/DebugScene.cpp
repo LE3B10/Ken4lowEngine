@@ -30,6 +30,7 @@
 #include <array>
 #include <numbers>
 #include <unordered_map>
+#include <format>
 
 using namespace Ken4lowEngine;
 
@@ -68,6 +69,29 @@ namespace
 		{
 			Wireframe::GetInstance()->DrawLine(corners[static_cast<size_t>(e[0])], corners[static_cast<size_t>(e[1])], color);
 		}
+	}
+
+	std::array<Vector3, 8> ApplyColliderAdjustToCorners(
+		const std::array<Vector3, 8>& sourceCorners,
+		const Vector3& center,
+		const DebugScene::ColliderDebugAdjust& adjust)
+	{
+		if (!adjust.enabled)
+		{
+			return sourceCorners;
+		}
+		std::array<Vector3, 8> adjusted = sourceCorners;
+		const Matrix4x4 rotation = Matrix4x4::MakeRotateMatrix(adjust.rotationOffsetRad);
+		for (Vector3& c : adjusted)
+		{
+			Vector3 local = c - center;
+			local.x *= adjust.scaleMultiplier.x;
+			local.y *= adjust.scaleMultiplier.y;
+			local.z *= adjust.scaleMultiplier.z;
+			local = Vector3::Transform(local, rotation);
+			c = center + local + adjust.positionOffset;
+		}
+		return adjusted;
 	}
 
 	/// -------------------------------------------------------------
@@ -278,10 +302,22 @@ void DebugScene::Draw3DObjects()
 		if (showColliderObbWire_)
 		{
 			const Vector4 colliderObbColor = { 0.15f, 0.95f, 0.95f, 1.0f };
-			// Collider OBBの8頂点だけを描画し、古いObjectBoundsと混同しないようにする
-			for (const StageObstacleBox& box : stage_->GetObstacleBoxes())
+			// Collider OBBの位置・回転・スケールをImGuiから補正し、水色コライダーとのズレを手動で確認できるようにする
+			const auto& boxes = stage_->GetObstacleBoxes();
+			for (size_t i = 0; i < boxes.size(); ++i)
 			{
-				DrawObbCornersWire(box.corners, colliderObbColor);
+				if (drawSelectedColliderOnly_ && i != selectedColliderIndex_) { continue; }
+				const StageObstacleBox& box = boxes[i];
+				auto corners = ApplyColliderAdjustToCorners(box.corners, box.center, commonColliderAdjust_);
+				if (i == selectedColliderIndex_ && selectedColliderAdjust_.enabled)
+				{
+					corners = ApplyColliderAdjustToCorners(corners, box.center + commonColliderAdjust_.positionOffset, selectedColliderAdjust_);
+				}
+				DrawObbCornersWire(corners, colliderObbColor);
+				if (showEnclosingAabbWire_)
+				{
+					Wireframe::GetInstance()->DrawAABB(BuildAABBFromCorners(corners), { 0.95f, 0.85f, 0.20f, 1.0f });
+				}
 			}
 		}
 		if (showNavigationAabbWire_)
@@ -439,6 +475,33 @@ void DebugScene::DrawImGui()
 
 	if (stage_)
 	{
+		selectedColliderIndex_ = std::min(selectedColliderIndex_, stage_->GetObstacleBoxes().empty() ? size_t{ 0 } : stage_->GetObstacleBoxes().size() - 1);
+		debugAdjustedNavigationAABBs_.clear();
+		debugAdjustedWallAABBs_.clear();
+		debugAdjustedWorldAABBs_.clear();
+		for (size_t i = 0; i < stage_->GetObstacleBoxes().size(); ++i)
+		{
+			const auto& box = stage_->GetObstacleBoxes()[i];
+			auto corners = ApplyColliderAdjustToCorners(box.corners, box.center, commonColliderAdjust_);
+			if (i == selectedColliderIndex_ && selectedColliderAdjust_.enabled)
+			{
+				corners = ApplyColliderAdjustToCorners(corners, box.center + commonColliderAdjust_.positionOffset, selectedColliderAdjust_);
+			}
+			const AABB aabb = BuildAABBFromCorners(corners);
+			debugAdjustedWorldAABBs_.push_back(aabb);
+			const std::string& t = box.collisionTypeName;
+			if (t == "Obstacle" || t == "Pillar" || t == "Fence" || t == "Tree")
+			{
+				debugAdjustedNavigationAABBs_.push_back(aabb);
+				debugAdjustedWallAABBs_.push_back(aabb);
+			}
+		}
+		EnemyBase::SetGlobalStageWorldAABBs((commonColliderAdjust_.enabled || selectedColliderAdjust_.enabled) ? &debugAdjustedWorldAABBs_ : &stage_->GetWorldAABBs());
+		EnemyBase::SetGlobalStageNavigationObstacleAABBs(applyDebugAdjustToNavigation_ ? &debugAdjustedNavigationAABBs_ : &stage_->GetNavigationObstacleAABBs());
+		if (debugMeleeEnemy_)
+		{
+			debugMeleeEnemy_->SetWallObstacleAABBs(applyDebugAdjustToWallCollision_ ? &debugAdjustedWallAABBs_ : &stage_->GetWallObstacleAABBs());
+		}
 		ImGui::Begin("Stage Debug");
 		const std::vector<AABB>& worldAABBs = stage_->GetWorldAABBs();
 		const std::vector<AABB>& floorAABBs = stage_->GetFloorAABBs();
@@ -579,6 +642,7 @@ void DebugScene::DrawImGui()
 		ImGui::Text("Old Bounds source: StageChunkBounds/ObjectBounds/worldAABBsLegacy");
 		ImGui::Text("Using OBB-derived AABB: %s", usingObbDerivedAabb ? "true" : "false");
 		ImGui::Checkbox("Show Collider OBB Wire", &showColliderObbWire_);
+		ImGui::Checkbox("Show Enclosing AABB Wire", &showEnclosingAabbWire_);
 		ImGui::Checkbox("Show Navigation AABB Wire", &showNavigationAabbWire_);
 		ImGui::Checkbox("Show Wall AABB Wire", &showWallAabbWire_);
 		ImGui::Checkbox("Show Old Bounds Wire", &showOldBoundsWire_);
@@ -597,6 +661,54 @@ void DebugScene::DrawImGui()
 		ImGui::Text("Pillar: %d", colliderTypeCounts["Pillar"]);
 		ImGui::Text("Fence: %d", colliderTypeCounts["Fence"]);
 		ImGui::Text("Tree: %d", colliderTypeCounts["Tree"]);
+		ImGui::SeparatorText("Collider Debug Adjust");
+		ImGui::Checkbox("Enable Collider Debug Adjust", &commonColliderAdjust_.enabled);
+		ImGui::DragFloat3("Collider Position Offset", &commonColliderAdjust_.positionOffset.x, 0.01f);
+		float commonDeg[3] = { commonColliderAdjust_.rotationOffsetRad.x * 180.0f / std::numbers::pi_v<float>, commonColliderAdjust_.rotationOffsetRad.y * 180.0f / std::numbers::pi_v<float>, commonColliderAdjust_.rotationOffsetRad.z * 180.0f / std::numbers::pi_v<float> };
+		if (ImGui::DragFloat3("Collider Rotation Offset Deg", commonDeg, 0.1f)) { commonColliderAdjust_.rotationOffsetRad = { commonDeg[0] * std::numbers::pi_v<float> / 180.0f, commonDeg[1] * std::numbers::pi_v<float> / 180.0f, commonDeg[2] * std::numbers::pi_v<float> / 180.0f }; }
+		ImGui::DragFloat3("Collider Scale Multiplier", &commonColliderAdjust_.scaleMultiplier.x, 0.01f);
+		if (!obstacleBoxes.empty())
+		{
+			ImGui::Text("Collider index: %zu / %zu", selectedColliderIndex_, obstacleBoxes.size() - 1);
+			ImGui::Text("Collider name: %s", obstacleBoxes[selectedColliderIndex_].name.c_str());
+			ImGui::Text("Collision type: %s", obstacleBoxes[selectedColliderIndex_].collisionTypeName.c_str());
+		}
+		if (ImGui::Button("Previous Collider") && selectedColliderIndex_ > 0) { --selectedColliderIndex_; }
+		ImGui::SameLine();
+		if (ImGui::Button("Next Collider") && (selectedColliderIndex_ + 1) < obstacleBoxes.size()) { ++selectedColliderIndex_; }
+		ImGui::Checkbox("Draw Selected Collider Only", &drawSelectedColliderOnly_);
+		ImGui::Checkbox("Enable Selected Collider Adjust", &selectedColliderAdjust_.enabled);
+		ImGui::DragFloat3("Selected Position Offset", &selectedColliderAdjust_.positionOffset.x, 0.01f);
+		float selectedDeg[3] = { selectedColliderAdjust_.rotationOffsetRad.x * 180.0f / std::numbers::pi_v<float>, selectedColliderAdjust_.rotationOffsetRad.y * 180.0f / std::numbers::pi_v<float>, selectedColliderAdjust_.rotationOffsetRad.z * 180.0f / std::numbers::pi_v<float> };
+		if (ImGui::DragFloat3("Selected Rotation Offset Deg", selectedDeg, 0.1f)) { selectedColliderAdjust_.rotationOffsetRad = { selectedDeg[0] * std::numbers::pi_v<float> / 180.0f, selectedDeg[1] * std::numbers::pi_v<float> / 180.0f, selectedDeg[2] * std::numbers::pi_v<float> / 180.0f }; }
+		ImGui::DragFloat3("Selected Scale Multiplier", &selectedColliderAdjust_.scaleMultiplier.x, 0.01f);
+		ImGui::Checkbox("Apply Debug Adjust To Navigation", &applyDebugAdjustToNavigation_);
+		ImGui::Checkbox("Apply Debug Adjust To WallCollision", &applyDebugAdjustToWallCollision_);
+		if (ImGui::Button("Reset Common Adjust")) { commonColliderAdjust_ = {}; }
+		ImGui::SameLine();
+		if (ImGui::Button("Reset Selected Adjust")) { selectedColliderAdjust_.positionOffset = {}; selectedColliderAdjust_.rotationOffsetRad = {}; selectedColliderAdjust_.scaleMultiplier = { 1.0f,1.0f,1.0f }; selectedColliderAdjust_.enabled = false; }
+		if (ImGui::Button("Reset All Collider Adjust")) { commonColliderAdjust_ = {}; selectedColliderAdjust_.positionOffset = {}; selectedColliderAdjust_.rotationOffsetRad = {}; selectedColliderAdjust_.scaleMultiplier = { 1.0f,1.0f,1.0f }; selectedColliderAdjust_.enabled = false; }
+		ImGui::SameLine();
+		if (ImGui::Button("Apply Common To Selected")) { selectedColliderAdjust_ = commonColliderAdjust_; selectedColliderAdjust_.enabled = true; }
+		if (ImGui::Button("Rotation X +90")) { commonColliderAdjust_.rotationOffsetRad.x += std::numbers::pi_v<float> * 0.5f; lastAdjustPresetAction_ = "Rotation X +90"; } ImGui::SameLine();
+		if (ImGui::Button("Rotation X -90")) { commonColliderAdjust_.rotationOffsetRad.x -= std::numbers::pi_v<float> * 0.5f; lastAdjustPresetAction_ = "Rotation X -90"; }
+		if (ImGui::Button("Rotation Y +90")) { commonColliderAdjust_.rotationOffsetRad.y += std::numbers::pi_v<float> * 0.5f; lastAdjustPresetAction_ = "Rotation Y +90"; } ImGui::SameLine();
+		if (ImGui::Button("Rotation Y -90")) { commonColliderAdjust_.rotationOffsetRad.y -= std::numbers::pi_v<float> * 0.5f; lastAdjustPresetAction_ = "Rotation Y -90"; }
+		if (ImGui::Button("Rotation Z +90")) { commonColliderAdjust_.rotationOffsetRad.z += std::numbers::pi_v<float> * 0.5f; lastAdjustPresetAction_ = "Rotation Z +90"; } ImGui::SameLine();
+		if (ImGui::Button("Rotation Z -90")) { commonColliderAdjust_.rotationOffsetRad.z -= std::numbers::pi_v<float> * 0.5f; lastAdjustPresetAction_ = "Rotation Z -90"; }
+		if (ImGui::Button("Flip X Scale")) { commonColliderAdjust_.scaleMultiplier.x *= -1.0f; lastAdjustPresetAction_ = "Flip X Scale"; } ImGui::SameLine();
+		if (ImGui::Button("Flip Y Scale")) { commonColliderAdjust_.scaleMultiplier.y *= -1.0f; lastAdjustPresetAction_ = "Flip Y Scale"; } ImGui::SameLine();
+		if (ImGui::Button("Flip Z Scale")) { commonColliderAdjust_.scaleMultiplier.z *= -1.0f; lastAdjustPresetAction_ = "Flip Z Scale"; }
+		if (ImGui::Button("Swap X/Z Size")) { std::swap(commonColliderAdjust_.scaleMultiplier.x, commonColliderAdjust_.scaleMultiplier.z); lastAdjustPresetAction_ = "Swap X/Z Size"; } ImGui::SameLine();
+		if (ImGui::Button("Swap Y/Z Size")) { std::swap(commonColliderAdjust_.scaleMultiplier.y, commonColliderAdjust_.scaleMultiplier.z); lastAdjustPresetAction_ = "Swap Y/Z Size"; } ImGui::SameLine();
+		if (ImGui::Button("Swap X/Y Size")) { std::swap(commonColliderAdjust_.scaleMultiplier.x, commonColliderAdjust_.scaleMultiplier.y); lastAdjustPresetAction_ = "Swap X/Y Size"; }
+		ImGui::Text("Last preset action: %s", lastAdjustPresetAction_.c_str());
+		const std::string copyText = std::format("ColliderDebugAdjust:\npositionOffset = {{ {:.3f}, {:.3f}, {:.3f} }}\nrotationOffsetDeg = {{ {:.3f}, {:.3f}, {:.3f} }}\nscaleMultiplier = {{ {:.3f}, {:.3f}, {:.3f} }}",
+			commonColliderAdjust_.positionOffset.x, commonColliderAdjust_.positionOffset.y, commonColliderAdjust_.positionOffset.z,
+			commonDeg[0], commonDeg[1], commonDeg[2],
+			commonColliderAdjust_.scaleMultiplier.x, commonColliderAdjust_.scaleMultiplier.y, commonColliderAdjust_.scaleMultiplier.z);
+		ImGui::TextUnformatted(copyText.c_str());
+		if (ImGui::Button("Print Current Adjust To OutputLog")) { DebugLog(copyText); }
 
 		if (debugMeleeEnemy_)
 		{
