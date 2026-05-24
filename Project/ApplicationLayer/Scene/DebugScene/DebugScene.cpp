@@ -364,6 +364,11 @@ void DebugScene::DrawImGui()
 		std::string sampleColliderName = "(none)";
 		Vector3 sampleSourceRotationDeg{};
 		Vector3 sampleConvertedRotationDeg{};
+		Vector3 sampleRawSourceCenter{};
+		Vector3 sampleConvertedGameCenter{};
+		Vector3 sampleAxisX{1,0,0};
+		Vector3 sampleAxisY{0,1,0};
+		Vector3 sampleAxisZ{0,0,1};
 		float sampleFinalYawDeg = 0.0f;
 		std::unordered_map<std::string, int> colliderTypeCounts{};
 		if (levelData)
@@ -386,11 +391,13 @@ void DebugScene::DrawImGui()
 				{
 					++rotatedColliderCount;
 				}
-				if (sampleColliderName == "(none)" && object.collider.hasRotation)
+				if (sampleColliderName == "(none)" && (object.name.find("StoneCover_01_LargeBlock") != std::string::npos || object.collider.hasRotation))
 				{
 					sampleColliderName = object.name;
 					sampleSourceRotationDeg = object.collider.sourceRotationDeg;
 					sampleConvertedRotationDeg = object.collider.convertedRotationDeg;
+					sampleRawSourceCenter = object.collider.sourceCenter;
+					sampleConvertedGameCenter = object.position + object.collider.center;
 					constexpr float kRadToDeg = 180.0f / 3.14159265358979323846f;
 					sampleFinalYawDeg = (object.rotation.y + object.collider.rotation.y) * kRadToDeg;
 				}
@@ -408,6 +415,18 @@ void DebugScene::DrawImGui()
 			sampleSourceRotationDeg.x, sampleSourceRotationDeg.y, sampleSourceRotationDeg.z);
 		ImGui::Text("converted rotation degree: (%.2f, %.2f, %.2f)",
 			sampleConvertedRotationDeg.x, sampleConvertedRotationDeg.y, sampleConvertedRotationDeg.z);
+		ImGui::Text("raw source center: (%.2f, %.2f, %.2f)", sampleRawSourceCenter.x, sampleRawSourceCenter.y, sampleRawSourceCenter.z);
+		ImGui::Text("converted game center: (%.2f, %.2f, %.2f)", sampleConvertedGameCenter.x, sampleConvertedGameCenter.y, sampleConvertedGameCenter.z);
+		if (!worldColliders.empty() && worldColliders.front()->HasOBBBasis())
+		{
+			const OBB sampleObb = worldColliders.front()->GetOBB();
+			sampleAxisX = sampleObb.orientations[0];
+			sampleAxisY = sampleObb.orientations[1];
+			sampleAxisZ = sampleObb.orientations[2];
+		}
+		ImGui::Text("converted collider axisX: (%.2f, %.2f, %.2f)", sampleAxisX.x, sampleAxisX.y, sampleAxisX.z);
+		ImGui::Text("converted collider axisY: (%.2f, %.2f, %.2f)", sampleAxisY.x, sampleAxisY.y, sampleAxisY.z);
+		ImGui::Text("converted collider axisZ: (%.2f, %.2f, %.2f)", sampleAxisZ.x, sampleAxisZ.y, sampleAxisZ.z);
 		ImGui::Text("converted yaw sample: %.2f deg", sampleConvertedRotationDeg.y);
 		ImGui::Text("final collider yaw degree: %.2f deg", sampleFinalYawDeg);
 		ImGui::Text("Floor: %d", colliderTypeCounts["Floor"]);

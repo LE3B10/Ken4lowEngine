@@ -22,6 +22,13 @@ namespace Ken4lowEngine
 		bool hasRotation = false; // JSONの回転情報が存在したか
 		bool fromColliderRotation = false; // collider_rotation を読んだか（rotation より優先）
 		bool enabled = false;	// 有効フラグ
+
+		// Debug/変換検証用
+		Vector3 sourceCenter{};
+		Vector3 sourceSize{};
+		Vector3 finalAxisX{1.0f,0.0f,0.0f};
+		Vector3 finalAxisY{0.0f,1.0f,0.0f};
+		Vector3 finalAxisZ{0.0f,0.0f,1.0f};
 	};
 
 	/// -------------------------------------------------------------
@@ -91,6 +98,10 @@ namespace Ken4lowEngine
 		Vector3 position;                 // 位置
 		Vector3 rotation;                 // 回転
 		Vector3 scale{ 1.0f,1.0f,1.0f };  // スケール
+
+		Vector3 sourcePosition{};
+		Vector3 sourceRotationDeg{};
+		Vector3 sourceScale{ 1.0f,1.0f,1.0f };
 		ObjectColliderData collider;      // コライダーデータ
 
 		// SpawnPoint用
