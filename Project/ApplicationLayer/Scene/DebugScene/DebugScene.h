@@ -109,5 +109,11 @@ private: /// ---------- メンバ変数 ---------- ///
 	K4E::Collider meleeDummyTarget_{};
 	bool meleeDummyWireVisible_ = true;
 	float meleeDummyWireRadius_ = 0.5f;
+	bool showColliderObbWire_ = true;
+	bool showNavigationAabbWire_ = false;
+	bool showWallAabbWire_ = false;
+	bool showOldBoundsWire_ = false;
+	bool showStageChunkBoundsWire_ = false;
+	std::string brownWireframeSource_ = "StageObstacleBox OBB";
 
 };
