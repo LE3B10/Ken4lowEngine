@@ -158,6 +158,8 @@ void DebugScene::Initialize()
 	// DebugSceneでもステージAABBを共有し、EnemyBase系の敵が床と障害物に衝突できるようにする。
 	EnemyBase::SetGlobalStageWorldAABBs(&stage_->GetWorldAABBs());
 	EnemyBase::SetGlobalStageNavigationObstacleAABBs(&stage_->GetNavigationObstacleAABBs());
+	debugMeleeEnemy_->SetFloorAABBs(&stage_->GetFloorAABBs());
+	debugMeleeEnemy_->SetWallObstacleAABBs(&stage_->GetWallObstacleAABBs());
 }
 
 void DebugScene::Update()
@@ -367,6 +369,8 @@ void DebugScene::DrawImGui()
 	{
 		ImGui::Begin("Stage Debug");
 		const std::vector<AABB>& worldAABBs = stage_->GetWorldAABBs();
+		const std::vector<AABB>& floorAABBs = stage_->GetFloorAABBs();
+		const std::vector<AABB>& wallObstacles = stage_->GetWallObstacleAABBs();
 		const std::vector<AABB>& navObstacles = stage_->GetNavigationObstacleAABBs();
 		const auto& worldColliders = stage_->GetWorldColliders();
 		const LevelData* levelData = stage_->GetLevelData();
@@ -411,7 +415,9 @@ void DebugScene::DrawImGui()
 		const size_t aabbFallbackCount = loadedColliders > worldColliders.size() ? loadedColliders - worldColliders.size() : 0;
 
 		ImGui::Text("WorldAABBs: %zu", worldAABBs.size());
-		ImGui::Text("Navigation Obstacles: %zu", navObstacles.size());
+		ImGui::Text("FloorAABB count: %zu", floorAABBs.size());
+		ImGui::Text("WallObstacleAABB count: %zu", wallObstacles.size());
+		ImGui::Text("NavigationObstacleAABB count: %zu", navObstacles.size());
 		ImGui::Text("Loaded Colliders: %zu", loadedColliders);
 		ImGui::Text("Rotated collider count: %zu", rotatedColliderCount);
 		ImGui::Text("AABB fallback count: %zu", aabbFallbackCount);
