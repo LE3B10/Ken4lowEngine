@@ -35,6 +35,19 @@ using namespace Ken4lowEngine;
 
 namespace
 {
+	void DrawObbCornersWire(const std::array<Vector3, 8>& corners, const Vector4& color)
+	{
+		static constexpr int kEdges[12][2] = {
+			{0,1},{1,3},{3,2},{2,0}, // bottom 4
+			{4,5},{5,7},{7,6},{6,4}, // top 4
+			{0,4},{1,5},{2,6},{3,7}, // vertical 4
+		};
+		for (const auto& e : kEdges)
+		{
+			Wireframe::GetInstance()->DrawLine(corners[static_cast<size_t>(e[0])], corners[static_cast<size_t>(e[1])], color);
+		}
+	}
+
 	/// -------------------------------------------------------------
 	/// Visual Studio の「出力」ウィンドウへ文字列を出す
 	/// 改行付きで送るための簡易ヘルパー
@@ -240,6 +253,37 @@ void DebugScene::Draw3DObjects()
 	if (stage_)
 	{
 		stage_->Draw();
+		if (showColliderObbWire_)
+		{
+			const Vector4 colliderObbColor = { 0.55f, 0.32f, 0.12f, 1.0f };
+			// Collider由来のOBB 8頂点を茶色ワイヤーフレームとして描画し、見た目・判定・ナビゲーションのズレをなくす
+			for (const StageObstacleBox& box : stage_->GetObstacleBoxes())
+			{
+				DrawObbCornersWire(box.corners, colliderObbColor);
+			}
+		}
+		if (showNavigationAabbWire_)
+		{
+			for (const AABB& aabb : stage_->GetNavigationObstacleAABBs())
+			{
+				Wireframe::GetInstance()->DrawAABB(aabb, { 0.90f, 0.45f, 0.12f, 1.0f });
+			}
+		}
+		if (showWallAabbWire_)
+		{
+			for (const AABB& aabb : stage_->GetWallObstacleAABBs())
+			{
+				Wireframe::GetInstance()->DrawAABB(aabb, { 0.70f, 0.25f, 0.12f, 1.0f });
+			}
+		}
+		if (showOldBoundsWire_)
+		{
+			for (const AABB& aabb : stage_->GetWorldAABBsLegacy())
+			{
+				Wireframe::GetInstance()->DrawAABB(aabb, { 0.50f, 0.50f, 0.50f, 1.0f });
+			}
+		}
+		stage_->SetStageChunkBoundsVisible(showStageChunkBoundsWire_);
 	}
 
 #ifdef _DEBUG
@@ -372,6 +416,8 @@ void DebugScene::DrawImGui()
 		const std::vector<AABB>& floorAABBs = stage_->GetFloorAABBs();
 		const std::vector<AABB>& wallObstacles = stage_->GetWallObstacleAABBs();
 		const std::vector<AABB>& navObstacles = stage_->GetNavigationObstacleAABBs();
+		const std::vector<AABB>& legacyWorldAABBs = stage_->GetWorldAABBsLegacy();
+		const auto& obstacleBoxes = stage_->GetObstacleBoxes();
 		const auto& worldColliders = stage_->GetWorldColliders();
 		const LevelData* levelData = stage_->GetLevelData();
 		size_t loadedColliders = 0;
@@ -383,6 +429,12 @@ void DebugScene::DrawImGui()
 		Vector3 sampleSourceRotationDeg{};
 		Vector3 sampleConvertedRotationDeg{};
 		Vector3 sampleOBBCenter{};
+		Vector3 sampleOBBHalfSize{};
+		Vector3 sampleOBBAxisX{ 1.0f, 0.0f, 0.0f };
+		Vector3 sampleOBBAxisY{ 0.0f, 1.0f, 0.0f };
+		Vector3 sampleOBBAxisZ{ 0.0f, 0.0f, 1.0f };
+		Vector3 sampleRawSize{};
+		Vector3 sampleRawColliderRotation{};
 		Vector3 sampleAABBMin{};
 		Vector3 sampleAABBMax{};
 		float sampleFinalYawDeg = 0.0f;
@@ -419,6 +471,8 @@ void DebugScene::DrawImGui()
 						object.position.y + object.collider.center.y * object.scale.y,
 						object.position.z + object.collider.center.z * object.scale.z,
 					};
+					sampleRawSize = object.collider.size;
+					sampleRawColliderRotation = object.collider.rotation;
 					sampleSourceRotationDeg = object.collider.sourceRotationDeg;
 					sampleConvertedRotationDeg = object.collider.convertedRotationDeg;
 					constexpr float kRadToDeg = 180.0f / 3.14159265358979323846f;
@@ -439,18 +493,35 @@ void DebugScene::DrawImGui()
 				}
 			}
 		}
+		if (!obstacleBoxes.empty())
+		{
+			const StageObstacleBox& sampleObb = obstacleBoxes.front();
+			sampleColliderName = sampleObb.name.empty() ? sampleColliderName : sampleObb.name;
+			sampleOBBCenter = sampleObb.center;
+			sampleOBBHalfSize = sampleObb.halfSize;
+			sampleOBBAxisX = sampleObb.axisX;
+			sampleOBBAxisY = sampleObb.axisY;
+			sampleOBBAxisZ = sampleObb.axisZ;
+			sampleAABBMin = sampleObb.enclosingAABB.min;
+			sampleAABBMax = sampleObb.enclosingAABB.max;
+		}
 		const size_t aabbFallbackCount = loadedColliders > worldColliders.size() ? loadedColliders - worldColliders.size() : 0;
 
 		ImGui::Text("WorldAABBs: %zu", worldAABBs.size());
 		ImGui::Text("FloorAABB count: %zu", floorAABBs.size());
 		ImGui::Text("WallObstacleAABB count: %zu", wallObstacles.size());
 		ImGui::Text("NavigationObstacleAABB count: %zu", navObstacles.size());
+		ImGui::Text("Collider OBB count: %zu", obstacleBoxes.size());
+		ImGui::Text("CollisionObstacle count: %zu", obstacleBoxes.size());
 		ImGui::Text("Loaded Colliders: %zu", loadedColliders);
 		ImGui::Text("Rotated collider count: %zu", rotatedColliderCount);
 		ImGui::Text("AABB fallback count: %zu", aabbFallbackCount);
 		ImGui::Text("collider_rotation read count: %zu", colliderRotationReadCount);
 		ImGui::Text("sample collider name: %s", sampleColliderName.c_str());
 		ImGui::Text("raw center: (%.2f, %.2f, %.2f)", sampleRawCenter.x, sampleRawCenter.y, sampleRawCenter.z);
+		ImGui::Text("raw size: (%.2f, %.2f, %.2f)", sampleRawSize.x, sampleRawSize.y, sampleRawSize.z);
+		ImGui::Text("raw collider_rotation(rad): (%.3f, %.3f, %.3f)",
+			sampleRawColliderRotation.x, sampleRawColliderRotation.y, sampleRawColliderRotation.z);
 		ImGui::Text("converted center: (%.2f, %.2f, %.2f)", sampleConvertedCenter.x, sampleConvertedCenter.y, sampleConvertedCenter.z);
 		ImGui::Text("source rotation degree: (%.2f, %.2f, %.2f)",
 			sampleSourceRotationDeg.x, sampleSourceRotationDeg.y, sampleSourceRotationDeg.z);
@@ -459,6 +530,10 @@ void DebugScene::DrawImGui()
 		ImGui::Text("converted yaw sample: %.2f deg", sampleConvertedRotationDeg.y);
 		ImGui::Text("final collider yaw degree: %.2f deg", sampleFinalYawDeg);
 		ImGui::Text("OBB center: (%.2f, %.2f, %.2f)", sampleOBBCenter.x, sampleOBBCenter.y, sampleOBBCenter.z);
+		ImGui::Text("OBB halfSize: (%.2f, %.2f, %.2f)", sampleOBBHalfSize.x, sampleOBBHalfSize.y, sampleOBBHalfSize.z);
+		ImGui::Text("OBB axisX: (%.3f, %.3f, %.3f)", sampleOBBAxisX.x, sampleOBBAxisX.y, sampleOBBAxisX.z);
+		ImGui::Text("OBB axisY: (%.3f, %.3f, %.3f)", sampleOBBAxisY.x, sampleOBBAxisY.y, sampleOBBAxisY.z);
+		ImGui::Text("OBB axisZ: (%.3f, %.3f, %.3f)", sampleOBBAxisZ.x, sampleOBBAxisZ.y, sampleOBBAxisZ.z);
 		ImGui::Text("AABB min: (%.2f, %.2f, %.2f)", sampleAABBMin.x, sampleAABBMin.y, sampleAABBMin.z);
 		ImGui::Text("AABB max: (%.2f, %.2f, %.2f)", sampleAABBMax.x, sampleAABBMax.y, sampleAABBMax.z);
 		ImGui::Text("used by NavigationObstacle: %s", sampleUsedByNavigationObstacle ? "true" : "false");
@@ -470,6 +545,15 @@ void DebugScene::DrawImGui()
 		ImGui::Text("Wall/Obstacle AABB count: %d", wallObstacleCount);
 		ImGui::Text("Navigation obstacle count: %zu", navObstacles.size());
 		ImGui::Text("Collision obstacle count: %d", wallObstacleCount);
+		ImGui::Text("brown wireframe source: %s", brownWireframeSource_.c_str());
+		ImGui::Text("Draw Source: StageObstacleBox OBB");
+		ImGui::Text("Old Bounds source: StageChunkBounds/ObjectBounds/worldAABBsLegacy");
+		ImGui::Checkbox("Show Collider OBB Wire", &showColliderObbWire_);
+		ImGui::Checkbox("Show Navigation AABB Wire", &showNavigationAabbWire_);
+		ImGui::Checkbox("Show Wall AABB Wire", &showWallAabbWire_);
+		ImGui::Checkbox("Show Old Bounds Wire", &showOldBoundsWire_);
+		ImGui::Checkbox("Show StageChunk Bounds", &showStageChunkBoundsWire_);
+		ImGui::Text("Legacy WorldAABB count: %zu", legacyWorldAABBs.size());
 		ImGui::Text("Floor: %d", colliderTypeCounts["Floor"]);
 		ImGui::Text("Obstacle: %d", colliderTypeCounts["Obstacle"]);
 		ImGui::Text("Pillar: %d", colliderTypeCounts["Pillar"]);
