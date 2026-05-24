@@ -43,6 +43,7 @@ void MeleeEnemy::Initialize()
 void MeleeEnemy::Update(float deltaTime)
 {
 	attackController_.Update(*this, deltaTime);
+	attackLockTimer_ = std::max(0.0f, attackLockTimer_ - deltaTime);
 
 	// 優先度の高い行動から順に評価して近接敵の行動を決定する
 	EvaluateBehavior(deltaTime);
@@ -56,13 +57,17 @@ void MeleeEnemy::Draw()
 
 void MeleeEnemy::DrawImGui()
 {
-	EnemyBase::DrawImGui();
 #ifdef USE_IMGUI
-	if (ImGui::TreeNode("MeleeEnemy"))
+	if (ImGui::Begin("MeleeEnemy Debug"))
 	{
+		EnemyBase::DrawImGui();
 		ImGui::SliderFloat("detectRange", &detectRange_, 1.0f, 50.0f);
 		ImGui::SliderFloat("meleeAttackRange", &meleeAttackRange_, 0.5f, 10.0f);
 		ImGui::SliderFloat("moveSpeed", &moveSpeed_, 0.1f, 10.0f);
+		ImGui::SliderFloat("stopDistance", &stopDistance_, 0.5f, 6.0f);
+		ImGui::SliderFloat("attackStartRange", &attackStartRange_, 0.5f, 8.0f);
+		ImGui::SliderFloat("resumeChaseDistance", &resumeChaseDistance_, 0.5f, 10.0f);
+		ImGui::SliderFloat("attackLockTime", &attackLockTime_, 0.0f, 1.0f);
 
 		int attackSelect = static_cast<int>(selectedAttackType_);
 		const char* attackItems[] = { "Scratch", "OneTwo" };
@@ -72,12 +77,16 @@ void MeleeEnemy::DrawImGui()
 		}
 		ImGui::Text("Selected Attack: %s", attackItems[attackSelect]);
 		ImGui::Text("Current BT: %s", currentBehaviorName_);
+		ImGui::Text("Current Attack Name: %s", attackController_.GetCurrentAttackName());
 		ImGui::Text("Distance To Target: %.2f", GetDistanceToTarget());
 		ImGui::Text("Is Attacking: %s", attackController_.IsAttacking() ? "true" : "false");
-		ImGui::Text("Current Attack: %s", attackController_.GetCurrentAttackName());
+		ImGui::Text("Stuck: %s", isStuck_ ? "true" : "false");
+		ImGui::Text("Position: (%.2f, %.2f, %.2f)", GetCenterPosition().x, GetCenterPosition().y, GetCenterPosition().z);
+		ImGui::Text("Velocity: (%.2f, %.2f, %.2f)", GetVelocity().x, GetVelocity().y, GetVelocity().z);
 		ImGui::Text("Attack Elapsed: %.2f", attackController_.GetAttackElapsed());
-		ImGui::Text("Current Step: %d", attackController_.GetCurrentStepIndex());
+		ImGui::Text("Attack Step Index: %d", attackController_.GetCurrentStepIndex());
 		ImGui::Text("Cooldown Remaining: %.2f", attackController_.GetCooldownRemaining());
+		ImGui::Text("attackLockTimer: %.2f", attackLockTimer_);
 		ImGui::Text("Attack Active: %s", attackController_.IsCurrentStepActive() ? "true" : "false");
 		ImGui::Text("Last Hit: %s", attackController_.WasLastHitSuccess() ? "Hit" : "Miss");
 
@@ -115,13 +124,14 @@ void MeleeEnemy::DrawImGui()
 				ImGui::SliderFloat("OneTwo Right Radius", &right.radius, 0.1f, 3.0f);
 				ImGui::SliderFloat("OneTwo Forward Speed", &oneTwo->forwardMoveSpeed, 0.0f, 5.0f);
 				ImGui::SliderFloat("OneTwo Forward Duration", &oneTwo->forwardMoveDuration, 0.0f, 2.0f);
+				ImGui::SliderFloat("OneTwo MinForwardDistance", &minOneTwoForwardDistance_, 0.1f, 5.0f);
 				ImGui::SliderFloat("OneTwo Recovery", &oneTwo->recoveryTime, 0.01f, 2.0f);
 				ImGui::SliderFloat("OneTwo Cooldown", &oneTwo->cooldown, 0.01f, 3.0f);
 				ImGui::TreePop();
 			}
 		}
-		ImGui::TreePop();
 	}
+	ImGui::End();
 #endif
 }
 
@@ -147,7 +157,10 @@ Vector3 MeleeEnemy::GetTargetPositionForAttack() const
 
 bool MeleeEnemy::IsTargetInDetectRange() const { return GetDistanceToTarget() <= detectRange_; }
 bool MeleeEnemy::IsTargetInMeleeRange() const { return GetDistanceToTarget() <= meleeAttackRange_; }
+bool MeleeEnemy::IsTargetInAttackStartRange() const { return GetDistanceToTarget() <= attackStartRange_; }
+bool MeleeEnemy::IsTargetInAttackHoldRange() const { return GetDistanceToTarget() <= resumeChaseDistance_; }
 bool MeleeEnemy::IsAttackCooldownReady() const { return attackController_.CanStartAttack(); }
+bool MeleeEnemy::IsMoveResumeDistanceReached() const { return GetDistanceToTarget() >= resumeChaseDistance_; }
 
 void MeleeEnemy::FaceToTarget()
 {
@@ -160,7 +173,7 @@ void MeleeEnemy::FaceToTarget()
 
 void MeleeEnemy::DeadAction()
 {
-	SetVelocity({ 0.0f, GetVelocity().y, 0.0f });
+	StopMove();
 	animState_ = AnimState::Dead;
 	currentBehaviorName_ = "DeadAction";
 }
@@ -168,20 +181,45 @@ void MeleeEnemy::DeadAction()
 void MeleeEnemy::MeleeAttackAction()
 {
 	FaceToTarget();
-	SetVelocity({ 0.0f, GetVelocity().y, 0.0f });
+	StopMove();
 	if (!attackController_.IsAttacking() && attackController_.CanStartAttack())
 	{
 		// 攻撃パターンをデータとして扱い、ScratchとOneTwoを同じ制御経路で実行する
 		attackController_.StartAttack(selectedAttackType_);
+		attackLockTimer_ = attackLockTime_;
 		animState_ = AnimState::Attack;
 	}
 	currentBehaviorName_ = (selectedAttackType_ == MeleeAttackType::OneTwo) ? "OneTwoAttack" : "ScratchAttack";
 }
 
+void MeleeEnemy::CombatIdleAction()
+{
+	// 攻撃範囲内では追跡を止め、AttackとChaseの細かい切り替わりによる震えを防ぐ
+	StopMove();
+	FaceToTarget();
+	animState_ = AnimState::Idle;
+	currentBehaviorName_ = "CombatIdle";
+}
+
 void MeleeEnemy::ChaseTargetAction()
 {
+	const float distance = GetDistanceToTarget();
+	if (distance <= stopDistance_)
+	{
+		StopMove();
+		FaceToTarget();
+		animState_ = AnimState::Idle;
+		currentBehaviorName_ = "ChaseStopNearTarget";
+		return;
+	}
 	const Vector3 toTarget = GetTargetPosition() - GetCenterPosition();
 	const Vector3 moveDir = NormalizeXZ(toTarget);
+	if (LengthXZ(moveDir) <= kEpsilon)
+	{
+		StopMove();
+		currentBehaviorName_ = "ChaseNoMove";
+		return;
+	}
 	SetVelocity({ moveDir.x * moveSpeed_, GetVelocity().y, moveDir.z * moveSpeed_ });
 	FaceToTarget();
 	animState_ = AnimState::Move;
@@ -204,7 +242,14 @@ void MeleeEnemy::WanderAction(float deltaTime)
 
 void MeleeEnemy::ApplyAttackMove(const Vector3& horizontalVelocity)
 {
-	SetVelocity({ horizontalVelocity.x, GetVelocity().y, horizontalVelocity.z });
+	if (selectedAttackType_ == MeleeAttackType::OneTwo && GetDistanceToTarget() > minOneTwoForwardDistance_)
+	{
+		SetVelocity({ horizontalVelocity.x, GetVelocity().y, horizontalVelocity.z });
+	}
+	else
+	{
+		StopMove();
+	}
 }
 
 void MeleeEnemy::NotifyAttackHit(int, const Vector3&)
@@ -215,11 +260,47 @@ void MeleeEnemy::NotifyAttackHit(int, const Vector3&)
 void MeleeEnemy::EvaluateBehavior(float deltaTime)
 {
 	if (IsDeadCondition()) { DeadAction(); return; }
-	if (attackController_.IsAttacking()) { MeleeAttackAction(); return; }
-	if (HasTarget() && IsTargetInMeleeRange())
+	if (!HasTarget()) { WanderAction(deltaTime); return; }
+
+	if (attackController_.IsAttacking() || attackLockTimer_ > 0.0f)
+	{
+		MeleeAttackAction();
+		return;
+	}
+
+	const float distance = GetDistanceToTarget();
+	isStuck_ = (distance <= stopDistance_ && LengthXZ(GetVelocity()) < 0.05f);
+
+	if (distance <= attackStartRange_)
 	{
 		if (IsAttackCooldownReady()) { MeleeAttackAction(); return; }
+		CombatIdleAction();
+		return;
 	}
-	if (HasTarget() && IsTargetInDetectRange()) { ChaseTargetAction(); return; }
+
+	if (IsTargetInAttackHoldRange() && !IsAttackCooldownReady())
+	{
+		CombatIdleAction();
+		return;
+	}
+
+	if (distance <= meleeAttackRange_)
+	{
+		// 攻撃射程内では押し込みを止める
+		CombatIdleAction();
+		return;
+	}
+
+	shouldChase_ = shouldChase_ ? !IsTargetInAttackHoldRange() : IsMoveResumeDistanceReached();
+	if (HasTarget() && IsTargetInDetectRange() && (shouldChase_ || distance > resumeChaseDistance_))
+	{
+		ChaseTargetAction();
+		return;
+	}
 	WanderAction(deltaTime);
+}
+
+void MeleeEnemy::StopMove()
+{
+	SetVelocity({ 0.0f, GetVelocity().y, 0.0f });
 }

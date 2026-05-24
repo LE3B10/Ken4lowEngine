@@ -32,14 +32,19 @@ private:
 	bool HasTarget() const;
 	bool IsTargetInDetectRange() const;
 	bool IsTargetInMeleeRange() const;
+	bool IsTargetInAttackStartRange() const;
+	bool IsTargetInAttackHoldRange() const;
 	bool IsAttackCooldownReady() const;
 	bool IsDeadCondition() const;
 	float GetDistanceToTarget() const;
 	K4E::Vector3 GetTargetPosition() const;
 	void FaceToTarget();
+	void StopMove();
+	bool IsMoveResumeDistanceReached() const;
 
 	void DeadAction();
 	void MeleeAttackAction();
+	void CombatIdleAction();
 	void ChaseTargetAction();
 	void WanderAction(float deltaTime);
 	void EvaluateBehavior(float deltaTime);
@@ -50,8 +55,16 @@ private:
 	float detectRange_ = 18.0f;
 	float meleeAttackRange_ = 2.8f;
 	float moveSpeed_ = 3.2f;
+	float stopDistance_ = 1.8f;
+	float attackStartRange_ = 2.4f;
+	float resumeChaseDistance_ = 2.8f;
+	float minOneTwoForwardDistance_ = 1.6f;
 	MeleeAttackType selectedAttackType_ = MeleeAttackType::Scratch;
 	MeleeAttackController attackController_{};
+	float attackLockTimer_ = 0.0f;
+	float attackLockTime_ = 0.18f;
+	bool isStuck_ = false;
+	bool shouldChase_ = true;
 	float wanderTimer_ = 0.0f;
 	K4E::Vector3 wanderDirection_{ 1.0f, 0.0f, 0.0f };
 

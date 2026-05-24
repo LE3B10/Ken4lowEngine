@@ -136,9 +136,9 @@ void DebugScene::Initialize()
 	debugMeleeEnemy_ = std::make_unique<MeleeEnemy>();
 	debugMeleeEnemy_->Initialize();
 	// ステージ床に確実に着地できるよう、初期位置は少し高めから開始する。
-	debugMeleeEnemy_->SetCenterPosition({ -8.0f, 4.0f, 18.0f });
+	debugMeleeEnemy_->SetCenterPosition({ 0.0f, 2.0f, 18.0f });
 
-	meleeDummyTarget_.SetCenterPosition({ 0.0f, 2.0f, 18.0f });
+	meleeDummyTarget_.SetCenterPosition({ 0.0f, 2.0f, 24.0f });
 	meleeDummyTarget_.SetOBBHalfSize({ 0.8f, 1.0f, 0.8f });
 	debugMeleeEnemy_->SetTarget(&meleeDummyTarget_);
 	collisionManager_->AddCollider(debugMeleeEnemy_.get());
