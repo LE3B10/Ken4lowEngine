@@ -33,6 +33,9 @@ public:
 		float sampleY,
 		float deltaTime,
 		K4E::Vector3& outWaypoint);
+	const std::vector<K4E::Vector3>& GetCurrentPath() const { return path_; }
+	int GetCurrentPathIndex() const { return currentPathIndex_; }
+	float GetRepathTimer() const { return repathTimer_; }
 
 private:
 	struct GridNode

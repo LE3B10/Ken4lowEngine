@@ -63,8 +63,7 @@ bool EnemyAStarNavigator::GetNextWaypoint(
 	{
 		if (!RebuildPath(current, goal, sampleY))
 		{
-			// パスが引けないときは直進フォールバック
-			outWaypoint = goal;
+			outWaypoint = current;
 			repathTimer_ = settings_.repathIntervalSec;
 			return false;
 		}
@@ -77,7 +76,7 @@ bool EnemyAStarNavigator::GetNextWaypoint(
 
 	if (path_.empty())
 	{
-		outWaypoint = goal;
+		outWaypoint = current;
 		return false;
 	}
 

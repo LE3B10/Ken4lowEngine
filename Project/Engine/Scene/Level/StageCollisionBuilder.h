@@ -11,6 +11,7 @@ namespace Ken4lowEngine
 	struct StageCollisionBuildResult
 	{
 		std::vector<AABB> worldAABBs;
+		std::vector<AABB> navigationObstacleAABBs;
 		std::vector<std::unique_ptr<Collider>> worldColliders;
 	};
 

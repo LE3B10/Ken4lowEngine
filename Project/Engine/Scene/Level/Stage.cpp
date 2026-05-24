@@ -26,6 +26,7 @@ namespace Ken4lowEngine
 			StageCollisionBuilder::Build(*levelData_, offset_);
 
 		worldAABBs_ = std::move(collisionResult.worldAABBs);
+		navigationObstacleAABBs_ = std::move(collisionResult.navigationObstacleAABBs);
 		worldColliders_ = std::move(collisionResult.worldColliders);
 		occlusionCullingSystem_.BuildAutoOccludersFromWorldAABBs(worldAABBs_);
 	}
@@ -37,6 +38,7 @@ namespace Ken4lowEngine
 		stageChunkManager_.Clear();
 		occlusionCullingSystem_.ClearOccluders();
 		worldAABBs_.clear();
+		navigationObstacleAABBs_.clear();
 		worldColliders_.clear();
 	}
 

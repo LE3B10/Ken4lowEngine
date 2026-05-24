@@ -112,7 +112,12 @@ private:
 	std::string pathFailureReason_ = "None";
 	float stuckTimer_ = 0.0f;
 	float lastRepathTimer_ = 0.0f;
+	float pathRetryTimer_ = 0.0f;
+	float targetMovedDistanceForRepath_ = 0.0f;
+	float targetRepathThreshold_ = 1.2f;
+	std::string lastRepathReason_ = "None";
 	K4E::Vector3 lastStuckCheckPosition_{};
+	K4E::Vector3 lastPathTargetPos_{};
 	K4E::Vector3 spawnPosition_{};
 	K4E::Vector3 currentPathWaypoint_{};
 	EnemyAStarNavigator navigator_{};

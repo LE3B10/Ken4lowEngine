@@ -17,6 +17,7 @@
 using namespace Ken4lowEngine;
 
 const std::vector<Ken4lowEngine::AABB>* EnemyBase::g_worldAABBs_ = nullptr;
+const std::vector<Ken4lowEngine::AABB>* EnemyBase::g_navigationObstacleAABBs_ = nullptr;
 
 namespace
 {
@@ -390,6 +391,11 @@ void EnemyBase::TakeDamage(int amount, const Vector3& hitDir, float hitPower)
 void EnemyBase::SetGlobalStageWorldAABBs(const std::vector<K4E::AABB>* aabbs)
 {
 	g_worldAABBs_ = aabbs;
+}
+
+void EnemyBase::SetGlobalStageNavigationObstacleAABBs(const std::vector<K4E::AABB>* aabbs)
+{
+	g_navigationObstacleAABBs_ = aabbs;
 }
 
 void EnemyBase::SpawnHitEffectAt(const K4E::Vector3& worldPos)
