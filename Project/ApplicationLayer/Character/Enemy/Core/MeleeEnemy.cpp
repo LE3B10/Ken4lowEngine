@@ -253,129 +253,31 @@ void MeleeEnemy::DrawImGui()
 #ifdef USE_IMGUI
 	if (ImGui::Begin("MeleeEnemy Debug"))
 	{
-		EnemyBase::DrawImGui();
 		ImGui::SliderFloat("detectRange", &detectRange_, 1.0f, 50.0f);
 		ImGui::SliderFloat("meleeAttackRange", &meleeAttackRange_, 0.5f, 10.0f);
 		ImGui::SliderFloat("moveSpeed", &moveSpeed_, 0.1f, 10.0f);
 		ImGui::SliderFloat("stopDistance", &stopDistance_, 0.5f, 6.0f);
 		ImGui::SliderFloat("attackStartRange", &attackStartRange_, 0.5f, 8.0f);
 		ImGui::SliderFloat("resumeChaseDistance", &resumeChaseDistance_, 0.5f, 10.0f);
-		ImGui::SliderFloat("attackLockTime", &attackLockTime_, 0.0f, 1.0f);
-		ImGui::SliderFloat("rotateSpeed", &rotateSpeed_, 0.1f, 20.0f);
-		ImGui::Text("visualYawOffset(rad): %.3f (fixed)", visualYawOffset_);
-		ImGui::SliderFloat("walkAnimSpeed", &walkAnimSpeed_, 1.0f, 18.0f);
-		ImGui::SliderFloat("walkArmSwing", &walkArmSwing_, 0.0f, 1.5f);
-		ImGui::SliderFloat("walkLegSwing", &walkLegSwing_, 0.0f, 1.5f);
-		ImGui::SliderFloat("attackArmSwing", &attackArmSwing_, 0.0f, 2.0f);
-		ImGui::SliderFloat("attackReturnSpeed", &attackReturnSpeed_, 1.0f, 24.0f);
-		ImGui::SliderFloat("attackBodyLean", &attackBodyLean_, 0.0f, 0.4f);
-		ImGui::SliderFloat("maxResolvePushPerFrame", &maxResolvePushPerFrame_, 0.05f, 2.0f);
-		ImGui::SliderFloat("stuckCheckTime", &stuckCheckTime_, 0.1f, 3.0f);
-		ImGui::SliderFloat("stuckDistance", &stuckDistance_, 0.01f, 2.0f);
-		ImGui::SliderFloat("stuckMoveThreshold", &stuckMoveThreshold_, 0.03f, 1.2f);
-		ImGui::SliderFloat("repathInterval", &repathInterval_, 0.05f, 2.0f);
-		ImGui::SliderFloat("waypointReachDistance", &waypointReachDistance_, 0.5f, 1.5f);
 		ImGui::Checkbox("pathFindEnabled", &pathFindEnabled_);
-		const float prevGridSize = pathGridSize_;
-		ImGui::SliderFloat("pathGridSize", &pathGridSize_, 0.5f, 1.0f);
-		if (std::abs(prevGridSize - pathGridSize_) > kEpsilon) { navigator_.Reset(); lastRepathReason_ = "GridSizeChanged"; }
-		ImGui::SliderFloat("pathSearchRadius", &pathSearchRadius_, 6.0f, 80.0f);
-		ImGui::SliderFloat("obstacleExpandRadius", &obstacleExpandRadius_, 0.7f, 1.6f);
-		ImGui::SliderFloat("temporaryBlockDuration", &temporaryBlockDuration_, 0.3f, 4.0f);
-		ImGui::SliderFloat("temporaryBlockRadius", &temporaryBlockRadius_, 0.4f, 2.2f);
-		ImGui::Checkbox("cornerCuttingDisabled", &cornerCuttingDisabled_);
-
 		int attackSelect = static_cast<int>(selectedAttackType_);
 		const char* attackItems[] = { "Scratch", "OneTwo" };
-		if (ImGui::Combo("AttackPattern", &attackSelect, attackItems, IM_ARRAYSIZE(attackItems)))
-		{
-			selectedAttackType_ = static_cast<MeleeAttackType>(attackSelect);
-		}
-		ImGui::Text("Selected Attack: %s", attackItems[attackSelect]);
-		ImGui::Text("Current BT: %s", currentBehaviorName_);
-		ImGui::Text("Current Attack Name: %s", attackController_.GetCurrentAttackName());
-		ImGui::Text("Distance To Target: %.2f", GetDistanceToTarget());
-		ImGui::Text("Is Attacking: %s", attackController_.IsAttacking() ? "true" : "false");
-		ImGui::Text("Stuck: %s", isStuck_ ? "true" : "false");
-		ImGui::Text("Position: (%.2f, %.2f, %.2f)", GetCenterPosition().x, GetCenterPosition().y, GetCenterPosition().z);
-		ImGui::Text("Velocity: (%.2f, %.2f, %.2f)", GetVelocity().x, GetVelocity().y, GetVelocity().z);
-		ImGui::Text("Attack Elapsed: %.2f", attackController_.GetAttackElapsed());
-		ImGui::Text("Attack Step Index: %d", attackController_.GetCurrentStepIndex());
-		ImGui::Text("Cooldown Remaining: %.2f", attackController_.GetCooldownRemaining());
-		ImGui::Text("attackLockTimer: %.2f", attackLockTimer_);
-		ImGui::Text("Attack Active: %s", attackController_.IsCurrentStepActive() ? "true" : "false");
-		ImGui::Text("Last Hit: %s", attackController_.WasLastHitSuccess() ? "Hit" : "Miss");
-		ImGui::Text("Path Found: %s", pathFound_ ? "true" : "false");
-		ImGui::Text("Obstacle Count: %zu", GetResolvedWorldAABBs() ? GetResolvedWorldAABBs()->size() : 0);
-		ImGui::Text("isCollidingWithStage: %s", isCollidingWithStage_ ? "true" : "false");
-		ImGui::Text("lastStageCollisionType: %s", lastStageCollisionType_.c_str());
-		ImGui::Text("lastStageCollisionName: %s", lastStageCollisionName_.c_str());
-		ImGui::Text("usingWorldAABBCount: %d", usingWorldAABBCount_);
-		ImGui::Text("floorAABBCount: %d", floorAABBs_ ? static_cast<int>(floorAABBs_->size()) : usingWorldAABBCount_);
-		ImGui::Text("wallObstacleAABBCount: %d", wallObstacleAABBs_ ? static_cast<int>(wallObstacleAABBs_->size()) : usingObstacleAABBCount_);
-		ImGui::Text("usingObstacleAABBCount: %d", usingObstacleAABBCount_);
-		ImGui::Text("collisionManagerRegistered: %s", collisionManagerRegistered_ ? "true" : "false");
-		ImGui::Text("lastCollisionCount: %d", lastCollisionCount_);
-		ImGui::Text("blockedByObstacle: %s", blockedByObstacle_ ? "true" : "false");
-		ImGui::Text("isOnFloor: %s", isOnFloor_ ? "true" : "false");
-		ImGui::Text("isOverlappingWallObstacle: %s", isOverlappingWallObstacle_ ? "true" : "false");
-		ImGui::Text("lastWallObstacleName: %s", lastWallObstacleName_.c_str());
-		ImGui::Text("lastWallResolvePush: (%.2f, %.2f, %.2f)", lastWallResolvePush_.x, lastWallResolvePush_.y, lastWallResolvePush_.z);
-		ImGui::Text("lastBlockedObstacleName: %s", lastBlockedObstacleName_.c_str());
-		ImGui::Text("Path Node Count: %d", static_cast<int>(navigator_.GetCurrentPath().size()));
-		ImGui::Text("Current Waypoint Index: %d", navigator_.GetCurrentPathIndex());
-		ImGui::Text("Current Waypoint: (%.2f, %.2f, %.2f)", currentPathWaypoint_.x, currentPathWaypoint_.y, currentPathWaypoint_.z);
-		ImGui::Text("Last Repath Timer: %.2f", lastRepathTimer_);
-		ImGui::Text("Repath Timer: %.2f", navigator_.GetRepathTimer());
-		ImGui::Text("TargetMovedDistanceForRepath: %.2f", targetMovedDistanceForRepath_);
-		ImGui::Text("Path Failure Reason: %s", pathFailureReason_.c_str());
-		ImGui::Text("Last Repath Reason: %s", lastRepathReason_.c_str());
-		ImGui::Text("lineBlocked: %s", lineBlocked_ ? "true" : "false");
-		ImGui::Text("blockedObstacleName: %s", blockedObstacleName_.c_str());
-		ImGui::Text("blockedWaypointIndex: %d", blockedWaypointIndex_);
-		ImGui::Text("stuckTimer: %.2f", stuckTimer_);
-		ImGui::Text("lastMovedDistance: %.3f", lastMovedDistance_);
-		ImGui::Text("temporaryBlockedCellCount: %d", static_cast<int>(navigator_.GetTemporaryBlockedAreas().size()));
-		ImGui::Text("cornerCuttingDisabled: %s", cornerCuttingDisabled_ ? "true" : "false");
-		ImGui::Text("Grounded: %s", grounded_ ? "true" : "false");
-		ImGui::Text("AnimState: %s", GetAnimStateName());
-		ImGui::Text("lastSafePosition: (%.2f, %.2f, %.2f)", lastSafePosition_.x, lastSafePosition_.y, lastSafePosition_.z);
-		ImGui::Text("isOutsideStage: %s", isOutsideStage_ ? "true" : "false");
-		ImGui::Text("lastResolvePush: (%.2f, %.2f, %.2f)", lastResolvePush_.x, lastResolvePush_.y, lastResolvePush_.z);
-		ImGui::Text("pushedByWallThisFrame: %s", pushedThisFrame_ ? "true" : "false");
-		ImGui::Text("restoredToSafePosition: %s", restoredToSafePosition_ ? "true" : "false");
-		const Vector3 tgt = GetTargetPosition();
-		ImGui::Text("Target: (%.2f, %.2f, %.2f)", tgt.x, tgt.y, tgt.z);
-		ImGui::Text("rawYaw(rad): %.3f", rawYaw_);
-		ImGui::Text("finalVisualYaw(rad): %.3f", finalVisualYaw_);
-		ImGui::Text("rawYaw(deg): %.1f", rawYaw_ * (180.0f / kPi));
-		ImGui::Text("finalVisualYaw(deg): %.1f", finalVisualYaw_ * (180.0f / kPi));
-		ImGui::Text("currentYaw(deg): %.1f", debugCurrentYaw_ * (180.0f / kPi));
-		ImGui::Text("targetYaw(deg): %.1f", debugTargetYaw_ * (180.0f / kPi));
-		ImGui::Text("deltaYaw(deg): %.1f", debugDeltaYaw_ * (180.0f / kPi));
-		ImGui::Text("normalizedDeltaYaw(deg): %.1f", debugNormalizedDeltaYaw_ * (180.0f / kPi));
-		ImGui::Text("rotateSpeed: %.2f", rotateSpeed_);
-		ImGui::Text("facingDirection: (%.2f, %.2f, %.2f)", facingDirection_.x, facingDirection_.y, facingDirection_.z);
-		ImGui::Text("movementDir: (%.2f, %.2f, %.2f)", movementDirection_.x, movementDirection_.y, movementDirection_.z);
-		ImGui::Text("targetDirection: (%.2f, %.2f, %.2f)", targetDirection_.x, targetDirection_.y, targetDirection_.z);
-		ImGui::Text("visualForward: (%.2f, %.2f, %.2f)", visualForward_.x, visualForward_.y, visualForward_.z);
-		ImGui::Text("attackForward: (%.2f, %.2f, %.2f)", attackForward_.x, attackForward_.y, attackForward_.z);
+		if (ImGui::Combo("selectedAttackType", &attackSelect, attackItems, IM_ARRAYSIZE(attackItems))) { selectedAttackType_ = static_cast<MeleeAttackType>(attackSelect); }
 		if (ImGui::Button("Force Scratch Attack")) { ForceAttack(MeleeAttackType::Scratch); }
 		ImGui::SameLine();
 		if (ImGui::Button("Force OneTwo Attack")) { ForceAttack(MeleeAttackType::OneTwo); }
 		if (ImGui::Button("Stop Attack")) { StopAttack(); }
 		ImGui::SameLine();
 		if (ImGui::Button("Reset Cooldown")) { ResetAttackCooldown(); }
-		if (ImGui::Button("Teleport Near Target"))
-		{
-			Vector3 p = GetTargetPosition();
-			p.z -= 1.2f;
-			SetCenterPosition(p);
-		}
-		ImGui::SameLine();
-		if (ImGui::Button("Reset Position")) { SetCenterPosition(spawnPosition_); }
-
-		if (MeleeAttackPattern* scratch = attackController_.FindPattern(MeleeAttackType::Scratch))
+		ImGui::Text("currentBTActionName: %s", currentBehaviorName_);
+		ImGui::Text("currentAttackName: %s", attackController_.GetCurrentAttackName());
+		ImGui::Text("isAttacking: %s", attackController_.IsAttacking() ? "true" : "false");
+		ImGui::Text("distanceToTarget: %.2f", GetDistanceToTarget());
+		ImGui::Text("pathFound: %s", pathFound_ ? "true" : "false");
+		ImGui::Text("currentWaypointIndex: %d", navigator_.GetCurrentPathIndex());
+		ImGui::Text("stuck: %s", isStuck_ ? "true" : "false");
+		ImGui::Text("lastRepathReason: %s", lastRepathReason_.c_str());
+if (MeleeAttackPattern* scratch = attackController_.FindPattern(MeleeAttackType::Scratch))
 		{
 			if (ImGui::TreeNode("Scratch Params"))
 			{
