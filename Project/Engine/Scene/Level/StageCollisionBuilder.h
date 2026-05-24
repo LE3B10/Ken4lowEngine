@@ -25,11 +25,11 @@ namespace Ken4lowEngine
 
 	struct StageCollisionBuildResult
 	{
-		std::vector<AABB> worldAABBs;
-		std::vector<AABB> worldAABBsLegacy;
-		std::vector<AABB> floorAABBs;
-		std::vector<AABB> wallObstacleAABBs;
-		std::vector<AABB> navigationObstacleAABBs;
+		std::vector<Ken4lowEngine::AABB> worldAABBs;
+		std::vector<Ken4lowEngine::AABB> worldAABBsLegacy;
+		std::vector<Ken4lowEngine::AABB> floorAABBs;
+		std::vector<Ken4lowEngine::AABB> wallObstacleAABBs;
+		std::vector<Ken4lowEngine::AABB> navigationObstacleAABBs;
 		std::vector<StageObstacleBox> obstacleBoxes;
 		std::vector<std::unique_ptr<Collider>> worldColliders;
 	};
