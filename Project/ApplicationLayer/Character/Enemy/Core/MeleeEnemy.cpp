@@ -126,6 +126,16 @@ void MeleeEnemy::Draw()
 	Wireframe::GetInstance()->DrawLine(origin, origin + targetDirection_ * 2.0f, { 1.0f, 1.0f, 0.2f, 1.0f });
 	Wireframe::GetInstance()->DrawLine(origin, origin + visualForward_ * 2.2f, { 1.0f, 0.4f, 1.0f, 1.0f });
 	Wireframe::GetInstance()->DrawLine(origin, origin + attackForward_ * 2.4f, { 1.0f, 0.2f, 0.2f, 1.0f });
+	const auto& path = navigator_.GetCurrentPath();
+	for (size_t i = 1; i < path.size(); ++i)
+	{
+		Wireframe::GetInstance()->DrawLine(path[i - 1] + Vector3{ 0.0f, 0.15f, 0.0f }, path[i] + Vector3{ 0.0f, 0.15f, 0.0f }, { 0.1f, 1.0f, 0.6f, 1.0f });
+	}
+	for (size_t i = 0; i < path.size(); ++i)
+	{
+		const Vector4 c = (static_cast<int>(i) == navigator_.GetCurrentPathIndex()) ? Vector4{ 1.0f, 0.3f, 0.1f, 1.0f } : Vector4{ 0.1f, 0.9f, 1.0f, 1.0f };
+		Wireframe::GetInstance()->DrawSphere(path[i] + Vector3{ 0.0f, 0.2f, 0.0f }, (static_cast<int>(i) == navigator_.GetCurrentPathIndex()) ? 0.26f : 0.16f, c);
+	}
 }
 
 void MeleeEnemy::DrawImGui()
@@ -180,10 +190,15 @@ void MeleeEnemy::DrawImGui()
 		ImGui::Text("Attack Active: %s", attackController_.IsCurrentStepActive() ? "true" : "false");
 		ImGui::Text("Last Hit: %s", attackController_.WasLastHitSuccess() ? "Hit" : "Miss");
 		ImGui::Text("Path Found: %s", pathFound_ ? "true" : "false");
-		ImGui::Text("Path Node Count: %d", pathFound_ ? 1 : 0);
-		ImGui::Text("Current Waypoint Index: %d", pathFound_ ? 0 : -1);
+		ImGui::Text("Obstacle Count: %zu", GetResolvedWorldAABBs() ? GetResolvedWorldAABBs()->size() : 0);
+		ImGui::Text("Path Node Count: %d", static_cast<int>(navigator_.GetCurrentPath().size()));
+		ImGui::Text("Current Waypoint Index: %d", navigator_.GetCurrentPathIndex());
+		ImGui::Text("Current Waypoint: (%.2f, %.2f, %.2f)", currentPathWaypoint_.x, currentPathWaypoint_.y, currentPathWaypoint_.z);
 		ImGui::Text("Last Repath Timer: %.2f", lastRepathTimer_);
+		ImGui::Text("Repath Timer: %.2f", navigator_.GetRepathTimer());
+		ImGui::Text("TargetMovedDistanceForRepath: %.2f", targetMovedDistanceForRepath_);
 		ImGui::Text("Path Failure Reason: %s", pathFailureReason_.c_str());
+		ImGui::Text("Last Repath Reason: %s", lastRepathReason_.c_str());
 		ImGui::Text("Grounded: %s", grounded_ ? "true" : "false");
 		ImGui::Text("AnimState: %s", GetAnimStateName());
 		ImGui::Text("lastSafePosition: (%.2f, %.2f, %.2f)", lastSafePosition_.x, lastSafePosition_.y, lastSafePosition_.z);
@@ -375,11 +390,17 @@ void MeleeEnemy::ChaseTargetAction()
 		currentBehaviorName_ = "ChaseStopNearTarget";
 		return;
 	}
-	if (pathFindEnabled_ && MoveAlongPath(1.0f / 60.0f))
+	if (pathFindEnabled_ && !attackController_.IsAttacking() && distance > attackStartRange_ && MoveAlongPath(1.0f / 60.0f))
 	{
 		FaceToMoveDirection(1.0f / 60.0f);
 		animState_ = AnimState::Walk;
 		currentBehaviorName_ = "ChasePathMove";
+		return;
+	}
+	if (pathFindEnabled_)
+	{
+		StopMove();
+		currentBehaviorName_ = "PathFailed";
 		return;
 	}
 	const Vector3 moveDir = NormalizeXZ(GetTargetPosition() - GetCenterPosition());
@@ -404,19 +425,37 @@ bool MeleeEnemy::MoveAlongPath(float deltaTime)
 	s.repathIntervalSec = repathInterval_;
 	s.waypointReachDistance = waypointReachDistance_;
 	navigator_.SetSettings(s);
-	navigator_.SetWorldAABBs(GetResolvedWorldAABBs());
+	// 障害物AABBを避ける経路を使い、近接敵がプレイヤーへ最短経路で詰めるようにする
+	navigator_.SetWorldAABBs(GetResolvedNavigationObstacleAABBs());
 	lastRepathTimer_ += deltaTime;
+	const Vector3 targetPos = GetTargetPosition();
+	targetMovedDistanceForRepath_ = LengthXZ(targetPos - lastPathTargetPos_);
+	if (targetMovedDistanceForRepath_ >= targetRepathThreshold_ || isStuck_)
+	{
+		navigator_.Reset();
+		lastRepathReason_ = isStuck_ ? "StuckForceRepath" : "TargetMoved";
+	}
 	// 障害物を考慮した経路を使い、MeleeEnemyが直線移動で引っかからないようにする
-	if (navigator_.GetNextWaypoint(GetCenterPosition(), GetTargetPosition(), GetCenterPosition().y, deltaTime, currentPathWaypoint_))
+	if (navigator_.GetNextWaypoint(GetCenterPosition(), targetPos, GetCenterPosition().y, deltaTime, currentPathWaypoint_))
 	{
 		pathFound_ = true;
 		pathFailureReason_ = "None";
+		lastRepathReason_ = "Periodic";
+		lastPathTargetPos_ = targetPos;
+		pathRetryTimer_ = 0.0f;
 		const Vector3 dir = NormalizeXZ(currentPathWaypoint_ - GetCenterPosition());
 		SetVelocity({ dir.x * moveSpeed_, GetVelocity().y, dir.z * moveSpeed_ });
 		return true;
 	}
 	pathFound_ = false;
 	pathFailureReason_ = "PathNotFound";
+	pathRetryTimer_ += deltaTime;
+	if (pathRetryTimer_ >= repathInterval_)
+	{
+		navigator_.Reset();
+		pathRetryTimer_ = 0.0f;
+		lastRepathReason_ = "RetryAfterFailure";
+	}
 	StopMove();
 	return false;
 }

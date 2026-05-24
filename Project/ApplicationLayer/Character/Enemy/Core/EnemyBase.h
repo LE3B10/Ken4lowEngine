@@ -123,6 +123,7 @@ public:
 	void OnCollisionExit(K4E::Collider* other) override { (void)other; }
 
 	static void SetGlobalStageWorldAABBs(const std::vector<K4E::AABB>* aabbs);
+	static void SetGlobalStageNavigationObstacleAABBs(const std::vector<K4E::AABB>* aabbs);
 
 	// 参照用
 	BodyPart& GetBody() { return body_; }
@@ -134,6 +135,7 @@ public:
 	void SpawnHitEffectAt(const K4E::Vector3& worldPos);
 
 	const std::vector<K4E::AABB>* GetResolvedWorldAABBs() const { return worldAABBs_ ? worldAABBs_ : g_worldAABBs_; }
+	const std::vector<K4E::AABB>* GetResolvedNavigationObstacleAABBs() const { return g_navigationObstacleAABBs_ ? g_navigationObstacleAABBs_ : GetResolvedWorldAABBs(); }
 
 protected:
 	// 派生で差し替え可（デフォルトはバラバラ崩壊開始）
@@ -225,4 +227,5 @@ protected:
 
 private:
 	static const std::vector<K4E::AABB>* g_worldAABBs_;
+	static const std::vector<K4E::AABB>* g_navigationObstacleAABBs_;
 };
