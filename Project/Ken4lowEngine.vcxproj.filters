@@ -430,6 +430,9 @@
     <ClCompile Include="ApplicationLayer\Character\Enemy\Core\MeleeEnemy.cpp">
       <Filter>ApplicationLayer\Character\Enemy\Core</Filter>
     </ClCompile>
+    <ClCompile Include="ApplicationLayer\Character\Enemy\AI\MeleeAttackController.cpp">
+      <Filter>ApplicationLayer\Character\Enemy\AI</Filter>
+    </ClCompile>
     <ClCompile Include="ApplicationLayer\Character\Enemy\Core\EnemyBase.cpp">
       <Filter>ApplicationLayer\Character\Enemy\Core</Filter>
     </ClCompile>
@@ -1276,6 +1279,12 @@
     </ClInclude>
     <ClInclude Include="ApplicationLayer\Character\Enemy\Core\MeleeEnemy.h">
       <Filter>ApplicationLayer\Character\Enemy\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Character\Enemy\AI\MeleeAttackController.h">
+      <Filter>ApplicationLayer\Character\Enemy\AI</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Character\Enemy\AI\MeleeAttackPattern.h">
+      <Filter>ApplicationLayer\Character\Enemy\AI</Filter>
     </ClInclude>
     <ClInclude Include="ApplicationLayer\Character\Enemy\Core\EnemyBase.h">
       <Filter>ApplicationLayer\Character\Enemy\Core</Filter>
