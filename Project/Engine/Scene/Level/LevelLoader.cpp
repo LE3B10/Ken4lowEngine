@@ -378,6 +378,16 @@ namespace Ken4lowEngine
 				objectData->collider.size.y = static_cast<float>(jc["size"][2]);
 				objectData->collider.size.z = static_cast<float>(jc["size"][1]);
 			}
+
+			if (jc.contains("collision_type") && jc["collision_type"].is_string())
+			{
+				objectData->collider.collisionType = jc["collision_type"].get<std::string>();
+			}
+
+			if (jc.contains("collision_type_id") && jc["collision_type_id"].is_number_integer())
+			{
+				objectData->collider.collisionTypeId = jc["collision_type_id"].get<int>();
+			}
 		}
 
 		if (object.contains("children") && object["children"].is_array())
