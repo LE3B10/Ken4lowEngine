@@ -78,7 +78,7 @@ private:
 	float resumeChaseDistance_ = 2.8f;
 	float minOneTwoForwardDistance_ = 1.6f;
 	float rotateSpeed_ = 8.0f;
-	float visualYawOffset_ = 3.141592f;
+	float visualYawOffset_ = 0.0f;
 	float walkAnimSpeed_ = 8.0f;
 	float walkArmSwing_ = 0.55f;
 	float walkLegSwing_ = 0.45f;
