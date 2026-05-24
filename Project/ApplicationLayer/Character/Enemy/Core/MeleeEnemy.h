@@ -19,6 +19,7 @@ public:
 
 	K4E::Collider* GetTargetCollider() const { return target_; }
 	K4E::Vector3 GetTargetPositionForAttack() const;
+	K4E::Vector3 GetAttackForward() const { return attackForward_; }
 	void ApplyAttackMove(const K4E::Vector3& horizontalVelocity);
 	void NotifyAttackHit(int damage, const K4E::Vector3& forward);
 	void ForceAttack(MeleeAttackType type);
@@ -119,8 +120,12 @@ private:
 	K4E::Vector3 wanderDirection_{ 1.0f, 0.0f, 0.0f };
 	float rawYaw_ = 0.0f;
 	float finalVisualYaw_ = 0.0f;
+	float visualYawOffsetDeg_ = 180.0f;
 	K4E::Vector3 facingDirection_{ 0.0f, 0.0f, 1.0f };
+	K4E::Vector3 movementDirection_{ 0.0f, 0.0f, 1.0f };
 	K4E::Vector3 targetDirection_{ 0.0f, 0.0f, 1.0f };
+	K4E::Vector3 visualForward_{ 0.0f, 0.0f, 1.0f };
+	K4E::Vector3 attackForward_{ 0.0f, 0.0f, 1.0f };
 
 	AnimState animState_ = AnimState::Idle;
 	const char* currentBehaviorName_ = "None";

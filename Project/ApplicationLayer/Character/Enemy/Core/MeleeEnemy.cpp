@@ -4,6 +4,7 @@
 #include <cmath>
 #include <algorithm>
 #include <cstdlib>
+#include "Wireframe.h"
 
 #ifdef USE_IMGUI
 #include <imgui.h>
@@ -49,6 +50,7 @@ void MeleeEnemy::Initialize()
 	spawnPosition_ = GetCenterPosition();
 	lastStuckCheckPosition_ = spawnPosition_;
 	lastSafePosition_ = spawnPosition_;
+	visualYawOffsetDeg_ = visualYawOffset_ * (180.0f / kPi);
 }
 
 void MeleeEnemy::Update(float deltaTime)
@@ -118,6 +120,11 @@ void MeleeEnemy::Update(float deltaTime)
 void MeleeEnemy::Draw()
 {
 	EnemyBase::Draw();
+	const Vector3 origin = GetCenterPosition() + Vector3{ 0.0f, 1.0f, 0.0f };
+	Wireframe::GetInstance()->DrawLine(origin, origin + movementDirection_ * 1.8f, { 0.2f, 0.8f, 1.0f, 1.0f });
+	Wireframe::GetInstance()->DrawLine(origin, origin + targetDirection_ * 2.0f, { 1.0f, 1.0f, 0.2f, 1.0f });
+	Wireframe::GetInstance()->DrawLine(origin, origin + visualForward_ * 2.2f, { 1.0f, 0.4f, 1.0f, 1.0f });
+	Wireframe::GetInstance()->DrawLine(origin, origin + attackForward_ * 2.4f, { 1.0f, 0.2f, 0.2f, 1.0f });
 }
 
 void MeleeEnemy::DrawImGui()
@@ -134,8 +141,18 @@ void MeleeEnemy::DrawImGui()
 		ImGui::SliderFloat("resumeChaseDistance", &resumeChaseDistance_, 0.5f, 10.0f);
 		ImGui::SliderFloat("attackLockTime", &attackLockTime_, 0.0f, 1.0f);
 		ImGui::SliderFloat("rotateSpeed", &rotateSpeed_, 0.1f, 20.0f);
-		ImGui::DragFloat("visualYawOffset(rad)", &visualYawOffset_, 0.01f, -kTwoPi, kTwoPi);
-		ImGui::Text("visualYawOffset(deg): %.1f", visualYawOffset_ * (180.0f / kPi));
+		if (ImGui::DragFloat("visualYawOffsetDeg", &visualYawOffsetDeg_, 1.0f, -360.0f, 360.0f))
+		{
+			visualYawOffset_ = visualYawOffsetDeg_ * (kPi / 180.0f);
+		}
+		ImGui::Text("visualYawOffset(rad): %.3f", visualYawOffset_);
+		if (ImGui::Button("Face Offset 0")) { visualYawOffsetDeg_ = 0.0f; visualYawOffset_ = 0.0f; }
+		ImGui::SameLine();
+		if (ImGui::Button("Face Offset 90")) { visualYawOffsetDeg_ = 90.0f; visualYawOffset_ = 90.0f * (kPi / 180.0f); }
+		ImGui::SameLine();
+		if (ImGui::Button("Face Offset 180")) { visualYawOffsetDeg_ = 180.0f; visualYawOffset_ = 180.0f * (kPi / 180.0f); }
+		ImGui::SameLine();
+		if (ImGui::Button("Face Offset -90")) { visualYawOffsetDeg_ = -90.0f; visualYawOffset_ = -90.0f * (kPi / 180.0f); }
 		ImGui::SliderFloat("walkAnimSpeed", &walkAnimSpeed_, 1.0f, 18.0f);
 		ImGui::SliderFloat("walkArmSwing", &walkArmSwing_, 0.0f, 1.5f);
 		ImGui::SliderFloat("walkLegSwing", &walkLegSwing_, 0.0f, 1.5f);
@@ -189,7 +206,10 @@ void MeleeEnemy::DrawImGui()
 		ImGui::Text("rawYaw(deg): %.1f", rawYaw_ * (180.0f / kPi));
 		ImGui::Text("finalVisualYaw(deg): %.1f", finalVisualYaw_ * (180.0f / kPi));
 		ImGui::Text("facingDirection: (%.2f, %.2f, %.2f)", facingDirection_.x, facingDirection_.y, facingDirection_.z);
+		ImGui::Text("movementDir: (%.2f, %.2f, %.2f)", movementDirection_.x, movementDirection_.y, movementDirection_.z);
 		ImGui::Text("targetDirection: (%.2f, %.2f, %.2f)", targetDirection_.x, targetDirection_.y, targetDirection_.z);
+		ImGui::Text("visualForward: (%.2f, %.2f, %.2f)", visualForward_.x, visualForward_.y, visualForward_.z);
+		ImGui::Text("attackForward: (%.2f, %.2f, %.2f)", attackForward_.x, attackForward_.y, attackForward_.z);
 		if (ImGui::Button("Force Scratch Attack")) { ForceAttack(MeleeAttackType::Scratch); }
 		ImGui::SameLine();
 		if (ImGui::Button("Force OneTwo Attack")) { ForceAttack(MeleeAttackType::OneTwo); }
@@ -287,6 +307,7 @@ void MeleeEnemy::FaceToTarget()
 void MeleeEnemy::FaceToMoveDirection()
 {
 	const Vector3 moveDir = NormalizeXZ(GetVelocity());
+	movementDirection_ = moveDir;
 	ApplyVisualYawFromDirection(moveDir);
 }
 
@@ -294,7 +315,6 @@ void MeleeEnemy::ApplyVisualYawFromDirection(const Vector3& direction)
 {
 	if (LengthXZ(direction) <= kEpsilon) { return; }
 	rawYaw_ = std::atan2(direction.x, direction.z);
-	// モデルの正面が移動方向と逆のため、表示Yawだけ180度補正する
 	const float targetVisualYaw = rawYaw_ + visualYawOffset_;
 	float currentYaw = orientation_.y;
 	const float maxStep = rotateSpeed_ * (1.0f / 60.0f);
@@ -303,6 +323,9 @@ void MeleeEnemy::ApplyVisualYawFromDirection(const Vector3& direction)
 	currentYaw = WrapPi(currentYaw);
 	finalVisualYaw_ = currentYaw;
 	facingDirection_ = { std::sin(rawYaw_), 0.0f, std::cos(rawYaw_) };
+	visualForward_ = NormalizeXZ({ std::sin(finalVisualYaw_), 0.0f, std::cos(finalVisualYaw_) });
+	attackForward_ = visualForward_;
+	// 最終的な人型パーツのYawへ正面補正を加え、移動方向と見た目の向きを一致させる
 	SetOrientation({ 0.0f, currentYaw, 0.0f });
 }
 
