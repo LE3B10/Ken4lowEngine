@@ -136,6 +136,14 @@ void MeleeEnemy::Draw()
 		const Vector4 c = (static_cast<int>(i) == navigator_.GetCurrentPathIndex()) ? Vector4{ 1.0f, 0.3f, 0.1f, 1.0f } : Vector4{ 0.1f, 0.9f, 1.0f, 1.0f };
 		Wireframe::GetInstance()->DrawSphere(path[i] + Vector3{ 0.0f, 0.2f, 0.0f }, (static_cast<int>(i) == navigator_.GetCurrentPathIndex()) ? 0.26f : 0.16f, c);
 	}
+	if (lineBlocked_)
+	{
+		Wireframe::GetInstance()->DrawLine(blockedSegmentFrom_ + Vector3{ 0.0f, 0.2f, 0.0f }, blockedSegmentTo_ + Vector3{ 0.0f, 0.2f, 0.0f }, { 1.0f, 0.15f, 0.1f, 1.0f });
+	}
+	for (const auto& inflated : navigator_.GetInflatedObstacleAABBs())
+	{
+		Wireframe::GetInstance()->DrawAABB(inflated, { 1.0f, 0.7f, 0.2f, 0.35f });
+	}
 }
 
 void MeleeEnemy::DrawImGui()
@@ -163,11 +171,13 @@ void MeleeEnemy::DrawImGui()
 		ImGui::SliderFloat("stuckCheckTime", &stuckCheckTime_, 0.1f, 3.0f);
 		ImGui::SliderFloat("stuckDistance", &stuckDistance_, 0.01f, 2.0f);
 		ImGui::SliderFloat("repathInterval", &repathInterval_, 0.05f, 2.0f);
-		ImGui::SliderFloat("waypointReachDistance", &waypointReachDistance_, 0.1f, 3.0f);
+		ImGui::SliderFloat("waypointReachDistance", &waypointReachDistance_, 0.5f, 1.5f);
 		ImGui::Checkbox("pathFindEnabled", &pathFindEnabled_);
-		ImGui::SliderFloat("pathGridSize", &pathGridSize_, 0.3f, 4.0f);
+		const float prevGridSize = pathGridSize_;
+		ImGui::SliderFloat("pathGridSize", &pathGridSize_, 0.5f, 1.0f);
+		if (std::abs(prevGridSize - pathGridSize_) > kEpsilon) { navigator_.Reset(); lastRepathReason_ = "GridSizeChanged"; }
 		ImGui::SliderFloat("pathSearchRadius", &pathSearchRadius_, 6.0f, 80.0f);
-		ImGui::SliderFloat("obstacleExpandRadius", &obstacleExpandRadius_, 0.1f, 2.0f);
+		ImGui::SliderFloat("obstacleExpandRadius", &obstacleExpandRadius_, 0.6f, 1.2f);
 
 		int attackSelect = static_cast<int>(selectedAttackType_);
 		const char* attackItems[] = { "Scratch", "OneTwo" };
@@ -199,6 +209,11 @@ void MeleeEnemy::DrawImGui()
 		ImGui::Text("TargetMovedDistanceForRepath: %.2f", targetMovedDistanceForRepath_);
 		ImGui::Text("Path Failure Reason: %s", pathFailureReason_.c_str());
 		ImGui::Text("Last Repath Reason: %s", lastRepathReason_.c_str());
+		ImGui::Text("lineBlocked: %s", lineBlocked_ ? "true" : "false");
+		ImGui::Text("blockedObstacleName: %s", blockedObstacleName_.c_str());
+		ImGui::Text("blockedWaypointIndex: %d", blockedWaypointIndex_);
+		ImGui::Text("stuckTimer: %.2f", stuckTimer_);
+		ImGui::Text("lastMovedDistance: %.3f", lastMovedDistance_);
 		ImGui::Text("Grounded: %s", grounded_ ? "true" : "false");
 		ImGui::Text("AnimState: %s", GetAnimStateName());
 		ImGui::Text("lastSafePosition: (%.2f, %.2f, %.2f)", lastSafePosition_.x, lastSafePosition_.y, lastSafePosition_.z);
@@ -420,12 +435,12 @@ bool MeleeEnemy::MoveAlongPath(float deltaTime)
 {
 	EnemyAStarNavigator::Settings s = navigator_.GetSettings();
 	s.cellSize = pathGridSize_;
-	s.agentRadius = obstacleExpandRadius_;
+	s.agentRadius = obstacleExpandRadius_ + stuckRepathExpandBonus_;
 	s.searchRangeCells = static_cast<int>(pathSearchRadius_);
 	s.repathIntervalSec = repathInterval_;
 	s.waypointReachDistance = waypointReachDistance_;
 	navigator_.SetSettings(s);
-	// 障害物AABBを避ける経路を使い、近接敵がプレイヤーへ最短経路で詰めるようにする
+	// 敵半径ぶん障害物を膨張して経路探索し、見た目上通れない隙間へ進まないようにする
 	navigator_.SetWorldAABBs(GetResolvedNavigationObstacleAABBs());
 	lastRepathTimer_ += deltaTime;
 	const Vector3 targetPos = GetTargetPosition();
@@ -443,6 +458,22 @@ bool MeleeEnemy::MoveAlongPath(float deltaTime)
 		lastRepathReason_ = "Periodic";
 		lastPathTargetPos_ = targetPos;
 		pathRetryTimer_ = 0.0f;
+		lineBlocked_ = false;
+		blockedWaypointIndex_ = navigator_.GetCurrentPathIndex();
+		blockedObstacleName_ = "None";
+		int blockedIdx = -1;
+		if (navigator_.IsSegmentBlockedByObstacle(GetCenterPosition(), currentPathWaypoint_, GetCenterPosition().y, &blockedIdx))
+		{
+			lineBlocked_ = true;
+			blockedWaypointIndex_ = navigator_.GetCurrentPathIndex();
+			blockedObstacleName_ = (blockedIdx >= 0) ? ("Obstacle[" + std::to_string(blockedIdx) + "]") : "Unknown";
+			blockedSegmentFrom_ = GetCenterPosition();
+			blockedSegmentTo_ = currentPathWaypoint_;
+			navigator_.Reset();
+			lastRepathReason_ = "WaypointSegmentBlocked";
+			StopMove();
+			return false;
+		}
 		const Vector3 dir = NormalizeXZ(currentPathWaypoint_ - GetCenterPosition());
 		SetVelocity({ dir.x * moveSpeed_, GetVelocity().y, dir.z * moveSpeed_ });
 		return true;
@@ -466,12 +497,19 @@ void MeleeEnemy::UpdateStuckState(float deltaTime)
 	if (stuckTimer_ < stuckCheckTime_) { return; }
 	const float moved = LengthXZ(GetCenterPosition() - lastStuckCheckPosition_);
 	isStuck_ = moved <= stuckDistance_ && GetDistanceToTarget() > stopDistance_;
+	lastMovedDistance_ = moved;
 	if (isStuck_)
 	{
 		navigator_.Reset();
+		stuckRepathExpandBonus_ = std::min(stuckRepathExpandBonus_ + 0.1f, maxStuckRepathExpandBonus_);
+		lastRepathReason_ = "StuckForceRepath";
 		const Vector3 toTarget = NormalizeXZ(GetTargetPosition() - GetCenterPosition());
 		const Vector3 side = { -toTarget.z, 0.0f, toTarget.x };
 		SetVelocity({ side.x * (moveSpeed_ * 0.4f), GetVelocity().y, side.z * (moveSpeed_ * 0.4f) });
+	}
+	else
+	{
+		stuckRepathExpandBonus_ = std::max(0.0f, stuckRepathExpandBonus_ - 0.05f);
 	}
 	lastStuckCheckPosition_ = GetCenterPosition();
 	stuckTimer_ = 0.0f;

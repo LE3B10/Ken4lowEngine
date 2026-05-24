@@ -33,6 +33,31 @@ namespace
 		const float dz = static_cast<float>(z1 - z0);
 		return std::sqrt(dx * dx + dz * dz);
 	}
+
+	bool SegmentIntersectsAABBXZ(const K4E::Vector3& from, const K4E::Vector3& to, const K4E::AABB& aabb)
+	{
+		const K4E::Vector3 d = to - from;
+		float tMin = 0.0f;
+		float tMax = 1.0f;
+		constexpr float kEps = 1.0e-6f;
+		const auto updateAxis = [&](float p, float dp, float minV, float maxV, float& inOutTMin, float& inOutTMax) -> bool
+			{
+				if (std::abs(dp) <= kEps)
+				{
+					return p >= minV && p <= maxV;
+				}
+				const float inv = 1.0f / dp;
+				float t0 = (minV - p) * inv;
+				float t1 = (maxV - p) * inv;
+				if (t0 > t1) { std::swap(t0, t1); }
+				inOutTMin = std::max(inOutTMin, t0);
+				inOutTMax = std::min(inOutTMax, t1);
+				return inOutTMin <= inOutTMax;
+			};
+		if (!updateAxis(from.x, d.x, aabb.min.x, aabb.max.x, tMin, tMax)) { return false; }
+		if (!updateAxis(from.z, d.z, aabb.min.z, aabb.max.z, tMin, tMax)) { return false; }
+		return tMax >= 0.0f && tMin <= 1.0f;
+	}
 }
 
 void EnemyAStarNavigator::Reset()
@@ -258,21 +283,65 @@ bool EnemyAStarNavigator::IsWalkableCell(int x, int z, float sampleY) const
 	}
 
 	const K4E::Vector3 p = CellToWorld(x, z, sampleY);
+	UpdateInflatedObstacleCache();
 
-	for (const auto& aabb : *worldAABBs_)
+	for (const auto& aabb : inflatedObstacleAABBs_)
 	{
 		if (sampleY < aabb.min.y || sampleY > aabb.max.y) continue;
-
-		if (p.x >= (aabb.min.x - settings_.agentRadius) &&
-			p.x <= (aabb.max.x + settings_.agentRadius) &&
-			p.z >= (aabb.min.z - settings_.agentRadius) &&
-			p.z <= (aabb.max.z + settings_.agentRadius))
+		if (p.x >= aabb.min.x &&
+			p.x <= aabb.max.x &&
+			p.z >= aabb.min.z &&
+			p.z <= aabb.max.z)
 		{
 			return false;
 		}
 	}
 
 	return true;
+}
+
+void EnemyAStarNavigator::UpdateInflatedObstacleCache() const
+{
+	if (!worldAABBs_) { inflatedObstacleAABBs_.clear(); return; }
+	if (obstacleCacheSourceCount_ == worldAABBs_->size() &&
+		std::abs(obstacleCacheAgentRadius_ - settings_.agentRadius) <= 1.0e-5f)
+	{
+		return;
+	}
+
+	inflatedObstacleAABBs_.clear();
+	inflatedObstacleAABBs_.reserve(worldAABBs_->size());
+	for (const auto& aabb : *worldAABBs_)
+	{
+		K4E::AABB inflated = aabb;
+		inflated.min.x -= settings_.agentRadius;
+		inflated.max.x += settings_.agentRadius;
+		inflated.min.z -= settings_.agentRadius;
+		inflated.max.z += settings_.agentRadius;
+		inflatedObstacleAABBs_.push_back(inflated);
+	}
+	obstacleCacheSourceCount_ = worldAABBs_->size();
+	obstacleCacheAgentRadius_ = settings_.agentRadius;
+}
+
+bool EnemyAStarNavigator::IsSegmentBlockedByObstacle(
+	const K4E::Vector3& from,
+	const K4E::Vector3& to,
+	float sampleY,
+	int* outBlockedObstacleIndex) const
+{
+	UpdateInflatedObstacleCache();
+	for (size_t i = 0; i < inflatedObstacleAABBs_.size(); ++i)
+	{
+		const auto& aabb = inflatedObstacleAABBs_[i];
+		if (sampleY < aabb.min.y || sampleY > aabb.max.y) { continue; }
+		if (SegmentIntersectsAABBXZ(from, to, aabb))
+		{
+			if (outBlockedObstacleIndex) { *outBlockedObstacleIndex = static_cast<int>(i); }
+			return true;
+		}
+	}
+	return false;
 }
 
 bool EnemyAStarNavigator::FindNearestWalkableCell(int centerX, int centerZ, float sampleY, int maxRadius, int& outX, int& outZ) const
