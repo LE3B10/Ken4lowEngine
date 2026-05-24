@@ -16,6 +16,9 @@ namespace Ken4lowEngine
 		int collisionTypeId = -1; // 衝突種別ID（未指定時は-1）
 		Vector3 center;			// 中心位置
 		Vector3 size;			// サイズ
+		Vector3 rotation;		// 回転（ラジアン）
+		bool hasRotation = false; // JSONの回転情報が存在したか
+		bool fromColliderRotation = false; // collider_rotation を読んだか（rotation より優先）
 		bool enabled = false;	// 有効フラグ
 	};
 
