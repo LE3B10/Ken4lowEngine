@@ -10,8 +10,7 @@
 #include "ApplicationLayer/DebugTools/FrustumCulling/FrustumCullingDebugController.h"
 #include "Vector3.h"
 #include "Vector4.h"
-
-#include <Object3D.h>
+#include "Stage.h"
 
 #include <memory>
 #include <string>
@@ -87,8 +86,8 @@ private: /// ---------- メンバ変数 ---------- ///
 	std::unique_ptr<GuardianBoss> debugBoss_;
 	std::unique_ptr<MeleeEnemy> debugMeleeEnemy_;
 
-	// ステージ確認用
-	std::unique_ptr<K4E::Object3D> stageObject_;
+	// ステージ確認用（見た目＋衝突）
+	std::unique_ptr<K4E::Stage> stage_;
 
 	// --- 仮ヒット確認用パラメータ ---
 	bool debugBossHitTestEnabled_ = true; // 仮ヒット確認ON/OFF
@@ -110,4 +109,3 @@ private: /// ---------- メンバ変数 ---------- ///
 	K4E::Collider meleeDummyTarget_{};
 
 };
-

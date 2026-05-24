@@ -12,6 +12,8 @@ namespace Ken4lowEngine
 	struct ObjectColliderData
 	{
 		std::string type;		// コライダーの名前
+		std::string collisionType; // 衝突種別名（Floor / Obstacle など）
+		int collisionTypeId = -1; // 衝突種別ID（未指定時は-1）
 		Vector3 center;			// 中心位置
 		Vector3 size;			// サイズ
 		bool enabled = false;	// 有効フラグ

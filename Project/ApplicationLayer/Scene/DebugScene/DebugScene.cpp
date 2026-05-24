@@ -29,6 +29,7 @@
 #include <cstdio>
 #include <array>
 #include <numbers>
+#include <unordered_map>
 
 using namespace Ken4lowEngine;
 
@@ -134,7 +135,8 @@ void DebugScene::Initialize()
 
 	debugMeleeEnemy_ = std::make_unique<MeleeEnemy>();
 	debugMeleeEnemy_->Initialize();
-	debugMeleeEnemy_->SetCenterPosition({ -8.0f, 2.0f, 18.0f });
+	// ステージ床に確実に着地できるよう、初期位置は少し高めから開始する。
+	debugMeleeEnemy_->SetCenterPosition({ -8.0f, 4.0f, 18.0f });
 
 	meleeDummyTarget_.SetCenterPosition({ 0.0f, 2.0f, 18.0f });
 	meleeDummyTarget_.SetOBBHalfSize({ 0.8f, 1.0f, 0.8f });
@@ -149,8 +151,12 @@ void DebugScene::Initialize()
 	frustumCullingDebug_->Initialize(true);
 	InitializeCullingTestObjects();
 
-	stageObject_ = std::make_unique<Object3D>();
-	stageObject_->Initialize("Stages/hajimarinoheigen.gltf");
+	stage_ = std::make_unique<K4E::Stage>();
+	stage_->Initialize("Stages/hajimarinoheigen.json", "Stages/hajimarinoheigen.gltf");
+	stage_->RegisterColliders(collisionManager_.get());
+	stage_->Update();
+	// DebugSceneでもステージAABBを共有し、EnemyBase系の敵が床と障害物に衝突できるようにする。
+	EnemyBase::SetGlobalStageWorldAABBs(&stage_->GetWorldAABBs());
 }
 
 void DebugScene::Update()
@@ -199,7 +205,10 @@ void DebugScene::Update()
 	collisionManager_->Update();
 	collisionManager_->CheckAllCollisions();
 
-	stageObject_->Update();
+	if (stage_)
+	{
+		stage_->Update();
+	}
 
 }
 
@@ -225,7 +234,10 @@ void DebugScene::Draw3DObjects()
 		debugMeleeEnemy_->Draw();
 	}
 
-	stageObject_->Draw();
+	if (stage_)
+	{
+		stage_->Draw();
+	}
 
 #ifdef _DEBUG
 	// ワイヤーフレームの描画
@@ -254,9 +266,9 @@ void DebugScene::DrawShadowObjects()
 	{
 		debugMeleeEnemy_->DrawShadow();
 	}
-	if (stageObject_)
+	if (stage_)
 	{
-		stageObject_->DrawShadow();
+		stage_->DrawShadow();
 	}
 }
 
@@ -288,10 +300,11 @@ void DebugScene::Finalize()
 	cullingTestObjects_.clear();
 	frustumCullingDebug_.reset();
 	disintegrationDebug_.reset();
+	EnemyBase::SetGlobalStageWorldAABBs(nullptr);
 	debugBoss_.reset();
 	debugMeleeEnemy_.reset();
 	collisionManager_.reset();
-	stageObject_.reset();
+	stage_.reset();
 
 	input_ = nullptr;
 	dxCommon_ = nullptr;
@@ -338,6 +351,45 @@ void DebugScene::DrawImGui()
 	}
 	ImGui::Text("MeleeEnemy and dummy target are for BT behavior verification.");
 	ImGui::End();
+
+	if (stage_)
+	{
+		ImGui::Begin("Stage Debug");
+		const std::vector<AABB>& worldAABBs = stage_->GetWorldAABBs();
+		const LevelData* levelData = stage_->GetLevelData();
+		size_t loadedColliders = 0;
+		std::unordered_map<std::string, int> colliderTypeCounts{};
+		if (levelData)
+		{
+			for (const auto& object : levelData->objects)
+			{
+				if (!object.collider.enabled)
+				{
+					continue;
+				}
+				++loadedColliders;
+				const std::string typeName = object.collider.collisionType.empty() ? "Unspecified" : object.collider.collisionType;
+				++colliderTypeCounts[typeName];
+			}
+		}
+
+		ImGui::Text("WorldAABBs: %zu", worldAABBs.size());
+		ImGui::Text("Loaded Colliders: %zu", loadedColliders);
+		ImGui::Text("Floor: %d", colliderTypeCounts["Floor"]);
+		ImGui::Text("Obstacle: %d", colliderTypeCounts["Obstacle"]);
+		ImGui::Text("Pillar: %d", colliderTypeCounts["Pillar"]);
+		ImGui::Text("Fence: %d", colliderTypeCounts["Fence"]);
+		ImGui::Text("Tree: %d", colliderTypeCounts["Tree"]);
+
+		if (debugMeleeEnemy_)
+		{
+			const Vector3 enemyPos = debugMeleeEnemy_->GetCenterPosition();
+			ImGui::Text("MeleeEnemy Pos: (%.2f, %.2f, %.2f)", enemyPos.x, enemyPos.y, enemyPos.z);
+			ImGui::Text("Grounded: %s", debugMeleeEnemy_->GetVelocity().y == 0.0f ? "Likely grounded" : "Falling/Moving");
+		}
+
+		ImGui::End();
+	}
 
 	/// ---------- GPUパーティクルデバッグ ---------- ///
 	GpuParticleManager::GetInstance()->DrawImGui();
