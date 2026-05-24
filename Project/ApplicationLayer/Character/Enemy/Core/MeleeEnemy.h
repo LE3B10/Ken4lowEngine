@@ -18,6 +18,8 @@ public:
 	void OnCollisionStay(K4E::Collider* other) override;
 
 	void SetTarget(K4E::Collider* target) { target_ = target; }
+	void SetFloorAABBs(const std::vector<K4E::AABB>* aabbs) { floorAABBs_ = aabbs; }
+	void SetWallObstacleAABBs(const std::vector<K4E::AABB>* aabbs) { wallObstacleAABBs_ = aabbs; }
 
 	K4E::Collider* GetTargetCollider() const { return target_; }
 	K4E::Vector3 GetTargetPositionForAttack() const;
@@ -106,6 +108,11 @@ private:
 	bool collisionManagerRegistered_ = false;
 	int lastCollisionCount_ = 0;
 	bool pushedThisFrame_ = false;
+	bool restoredToSafePosition_ = false;
+	bool isOverlappingWallObstacle_ = false;
+	bool isOnFloor_ = false;
+	std::string lastWallObstacleName_ = "None";
+	K4E::Vector3 lastWallResolvePush_{};
 	float maxResolvePushPerFrame_ = 0.75f;
 	float maxHorizontalPushPerFrame_ = 0.45f;
 	float stuckCheckTime_ = 0.8f;
@@ -159,5 +166,7 @@ private:
 	K4E::Vector3 attackForward_{ 0.0f, 0.0f, 1.0f };
 
 	AnimState animState_ = AnimState::Idle;
+	const std::vector<K4E::AABB>* floorAABBs_ = nullptr;
+	const std::vector<K4E::AABB>* wallObstacleAABBs_ = nullptr;
 	const char* currentBehaviorName_ = "None";
 };

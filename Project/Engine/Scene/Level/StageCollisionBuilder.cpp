@@ -7,6 +7,8 @@ namespace Ken4lowEngine
 	{
 		StageCollisionBuildResult result{};
 		result.worldAABBs.reserve(levelData.objects.size());
+		result.floorAABBs.reserve(levelData.objects.size());
+		result.wallObstacleAABBs.reserve(levelData.objects.size());
 		result.navigationObstacleAABBs.reserve(levelData.objects.size());
 		result.worldColliders.reserve(levelData.objects.size());
 
@@ -39,8 +41,13 @@ namespace Ken4lowEngine
 			aabb.max = centerW + halfW;
 			result.worldAABBs.push_back(aabb);
 			const std::string& collisionType = data.collider.collisionType;
-			if (collisionType == "Obstacle" || collisionType == "Pillar" || collisionType == "Fence" || collisionType == "Tree")
+			if (collisionType == "Floor")
 			{
+				result.floorAABBs.push_back(aabb);
+			}
+			else if (collisionType == "Obstacle" || collisionType == "Pillar" || collisionType == "Fence" || collisionType == "Tree")
+			{
+				result.wallObstacleAABBs.push_back(aabb);
 				result.navigationObstacleAABBs.push_back(aabb);
 			}
 

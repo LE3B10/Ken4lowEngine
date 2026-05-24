@@ -70,6 +70,9 @@ void MeleeEnemy::Update(float deltaTime)
 	collisionManagerRegistered_ = true;
 	lastCollisionCount_ = 0;
 	pushedThisFrame_ = false;
+	restoredToSafePosition_ = false;
+	const auto* floorAabbs = floorAABBs_ ? floorAABBs_ : GetResolvedWorldAABBs();
+	worldAABBs_ = floorAabbs;
 	Vector3 afterPos = GetCenterPosition();
 	Vector3 push = afterPos - (beforePos + GetVelocity() * deltaTime);
 	// 押し出し補正の暴発でステージ外へ飛ばされるのを防ぐため、フレーム補正量を制限する
@@ -118,7 +121,8 @@ void MeleeEnemy::Update(float deltaTime)
 	}
 
 	isOutsideStage_ = hasStageBounds_ && !IsInsideStageBounds(GetCenterPosition());
-	if (grounded_ && !isOutsideStage_)
+	isOnFloor_ = grounded_;
+	if (grounded_ && !isOutsideStage_ && !isOverlappingWallObstacle_)
 	{
 		lastSafePosition_ = GetCenterPosition();
 	}
@@ -126,6 +130,7 @@ void MeleeEnemy::Update(float deltaTime)
 	{
 		// 押し出し補正が大きすぎる場合は安全位置へ戻し、ステージ外へ弾き出されるのを防ぐ
 		SetCenterPosition(lastSafePosition_);
+		restoredToSafePosition_ = true;
 		SetVelocity({ 0.0f, GetVelocity().y, 0.0f });
 	}
 
@@ -137,13 +142,15 @@ void MeleeEnemy::Update(float deltaTime)
 bool MeleeEnemy::ResolveObstaclePenetrationXZ(float deltaTime)
 {
 	(void)deltaTime;
-	const auto* obstacleAabbs = GetResolvedNavigationObstacleAABBs();
+	const auto* obstacleAabbs = wallObstacleAABBs_ ? wallObstacleAABBs_ : GetResolvedNavigationObstacleAABBs();
 	usingObstacleAABBCount_ = obstacleAabbs ? static_cast<int>(obstacleAabbs->size()) : 0;
 	isCollidingWithStage_ = false;
 	blockedByObstacle_ = false;
 	lastStageCollisionType_ = "None";
 	lastStageCollisionName_ = "None";
 	lastBlockedObstacleName_ = "None";
+	isOverlappingWallObstacle_ = false;
+	lastWallResolvePush_ = { 0.0f, 0.0f, 0.0f };
 	if (!obstacleAabbs || obstacleAabbs->empty()) { return false; }
 
 	Vector3 pos = GetCenterPosition();
@@ -158,9 +165,11 @@ bool MeleeEnemy::ResolveObstaclePenetrationXZ(float deltaTime)
 		const float overlapZ = std::min(pos.z + half.z, o.max.z) - std::max(pos.z - half.z, o.min.z);
 		if (overlapX <= 0.0f || overlapZ <= 0.0f) { continue; }
 		isCollidingWithStage_ = true;
+		isOverlappingWallObstacle_ = true;
 		blockedByObstacle_ = true;
 		lastStageCollisionType_ = "Obstacle";
 		lastStageCollisionName_ = "Obstacle[" + std::to_string(i) + "]";
+		lastWallObstacleName_ = lastStageCollisionName_;
 		lastBlockedObstacleName_ = lastStageCollisionName_;
 		float pushX = 0.0f, pushZ = 0.0f;
 		if (overlapX < overlapZ) { pushX = (pos.x < (o.min.x + o.max.x) * 0.5f ? -overlapX : overlapX); }
@@ -169,6 +178,8 @@ bool MeleeEnemy::ResolveObstaclePenetrationXZ(float deltaTime)
 		pushZ = std::clamp(pushZ, -maxPush, maxPush);
 		pos.x += pushX;
 		pos.z += pushZ;
+		lastWallResolvePush_.x += pushX;
+		lastWallResolvePush_.z += pushZ;
 		auto vel = GetVelocity();
 		if ((pushX < 0.0f && vel.x > 0.0f) || (pushX > 0.0f && vel.x < 0.0f)) vel.x = 0.0f;
 		if ((pushZ < 0.0f && vel.z > 0.0f) || (pushZ > 0.0f && vel.z < 0.0f)) vel.z = 0.0f;
@@ -194,6 +205,7 @@ void MeleeEnemy::OnCollisionEnter(K4E::Collider* other)
 	if (other->GetTypeID() == static_cast<uint32_t>(CollisionTypeIdDef::kWorld))
 	{
 		isCollidingWithStage_ = true;
+		isOverlappingWallObstacle_ = true;
 		lastStageCollisionType_ = "World";
 		lastStageCollisionName_ = "StageCollider";
 		++lastCollisionCount_;
@@ -291,10 +303,16 @@ void MeleeEnemy::DrawImGui()
 		ImGui::Text("lastStageCollisionType: %s", lastStageCollisionType_.c_str());
 		ImGui::Text("lastStageCollisionName: %s", lastStageCollisionName_.c_str());
 		ImGui::Text("usingWorldAABBCount: %d", usingWorldAABBCount_);
+		ImGui::Text("floorAABBCount: %d", floorAABBs_ ? static_cast<int>(floorAABBs_->size()) : usingWorldAABBCount_);
+		ImGui::Text("wallObstacleAABBCount: %d", wallObstacleAABBs_ ? static_cast<int>(wallObstacleAABBs_->size()) : usingObstacleAABBCount_);
 		ImGui::Text("usingObstacleAABBCount: %d", usingObstacleAABBCount_);
 		ImGui::Text("collisionManagerRegistered: %s", collisionManagerRegistered_ ? "true" : "false");
 		ImGui::Text("lastCollisionCount: %d", lastCollisionCount_);
 		ImGui::Text("blockedByObstacle: %s", blockedByObstacle_ ? "true" : "false");
+		ImGui::Text("isOnFloor: %s", isOnFloor_ ? "true" : "false");
+		ImGui::Text("isOverlappingWallObstacle: %s", isOverlappingWallObstacle_ ? "true" : "false");
+		ImGui::Text("lastWallObstacleName: %s", lastWallObstacleName_.c_str());
+		ImGui::Text("lastWallResolvePush: (%.2f, %.2f, %.2f)", lastWallResolvePush_.x, lastWallResolvePush_.y, lastWallResolvePush_.z);
 		ImGui::Text("lastBlockedObstacleName: %s", lastBlockedObstacleName_.c_str());
 		ImGui::Text("Path Node Count: %d", static_cast<int>(navigator_.GetCurrentPath().size()));
 		ImGui::Text("Current Waypoint Index: %d", navigator_.GetCurrentPathIndex());
@@ -314,7 +332,8 @@ void MeleeEnemy::DrawImGui()
 		ImGui::Text("lastSafePosition: (%.2f, %.2f, %.2f)", lastSafePosition_.x, lastSafePosition_.y, lastSafePosition_.z);
 		ImGui::Text("isOutsideStage: %s", isOutsideStage_ ? "true" : "false");
 		ImGui::Text("lastResolvePush: (%.2f, %.2f, %.2f)", lastResolvePush_.x, lastResolvePush_.y, lastResolvePush_.z);
-		ImGui::Text("pushedThisFrame: %s", pushedThisFrame_ ? "true" : "false");
+		ImGui::Text("pushedByWallThisFrame: %s", pushedThisFrame_ ? "true" : "false");
+		ImGui::Text("restoredToSafePosition: %s", restoredToSafePosition_ ? "true" : "false");
 		const Vector3 tgt = GetTargetPosition();
 		ImGui::Text("Target: (%.2f, %.2f, %.2f)", tgt.x, tgt.y, tgt.z);
 		ImGui::Text("rawYaw(rad): %.3f", rawYaw_);
