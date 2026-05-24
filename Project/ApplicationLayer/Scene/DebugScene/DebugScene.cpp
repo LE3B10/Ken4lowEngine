@@ -242,6 +242,14 @@ void DebugScene::Draw3DObjects()
 #ifdef _DEBUG
 	// ワイヤーフレームの描画
 	Wireframe::GetInstance()->DrawGrid(100.0f, 50.0f, { 0.25f, 0.25f, 0.25f,1.0f });
+	if (meleeDummyWireVisible_)
+	{
+		const Vector3 c = meleeDummyTarget_.GetCenterPosition();
+		Wireframe::GetInstance()->DrawSphere(c, meleeDummyWireRadius_, { 0.1f, 1.0f, 0.2f, 1.0f });
+		Wireframe::GetInstance()->DrawLine(c + Vector3{ -0.2f, 0.0f, 0.0f }, c + Vector3{ 0.2f, 0.0f, 0.0f }, { 0.8f, 1.0f, 0.2f, 1.0f });
+		Wireframe::GetInstance()->DrawLine(c + Vector3{ 0.0f, -0.2f, 0.0f }, c + Vector3{ 0.0f, 0.2f, 0.0f }, { 0.8f, 1.0f, 0.2f, 1.0f });
+		Wireframe::GetInstance()->DrawLine(c + Vector3{ 0.0f, 0.0f, -0.2f }, c + Vector3{ 0.0f, 0.0f, 0.2f }, { 0.8f, 1.0f, 0.2f, 1.0f });
+	}
 	if (frustumCullingDebug_)
 	{
 		frustumCullingDebug_->DrawDebug();
@@ -349,6 +357,8 @@ void DebugScene::DrawImGui()
 	{
 		meleeDummyTarget_.SetCenterPosition({ targetPosArray[0], targetPosArray[1], targetPosArray[2] });
 	}
+	ImGui::Checkbox("DummyTarget wire visible", &meleeDummyWireVisible_);
+	ImGui::SliderFloat("DummyTarget wire radius", &meleeDummyWireRadius_, 0.1f, 2.0f);
 	ImGui::Text("MeleeEnemy and dummy target are for BT behavior verification.");
 	ImGui::End();
 
