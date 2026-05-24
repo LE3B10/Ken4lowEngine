@@ -14,6 +14,8 @@ public:
 	void Update(float deltaTime) override;
 	void Draw() override;
 	void DrawImGui() override;
+	void OnCollisionEnter(K4E::Collider* other) override;
+	void OnCollisionStay(K4E::Collider* other) override;
 
 	void SetTarget(K4E::Collider* target) { target_ = target; }
 
@@ -102,6 +104,8 @@ private:
 	int usingWorldAABBCount_ = 0;
 	int usingObstacleAABBCount_ = 0;
 	bool collisionManagerRegistered_ = false;
+	int lastCollisionCount_ = 0;
+	bool pushedThisFrame_ = false;
 	float maxResolvePushPerFrame_ = 0.75f;
 	float maxHorizontalPushPerFrame_ = 0.45f;
 	float stuckCheckTime_ = 0.8f;
