@@ -309,7 +309,7 @@ void MeleeEnemy::FaceToMoveDirection(float deltaTime)
 void MeleeEnemy::ApplyVisualYawFromDirection(const Vector3& direction, float deltaTime)
 {
 	if (LengthXZ(direction) <= kEpsilon) { return; }
-	rawYaw_ = std::atan2(direction.x, direction.z);
+	rawYaw_ = std::atan2(-direction.x, direction.z);
 	const float targetVisualYaw = rawYaw_;
 	float currentYaw = NormalizeAngleRad(orientation_.y);
 	const float maxStep = rotateSpeed_ * std::max(deltaTime, 0.0f);
@@ -326,8 +326,8 @@ void MeleeEnemy::ApplyVisualYawFromDirection(const Vector3& direction, float del
 	debugDeltaYaw_ = targetVisualYaw - orientation_.y;
 	debugNormalizedDeltaYaw_ = NormalizeAngleRad(targetVisualYaw - orientation_.y);
 	finalVisualYaw_ = currentYaw;
-	facingDirection_ = { std::sin(rawYaw_), 0.0f, std::cos(rawYaw_) };
-	visualForward_ = NormalizeXZ({ std::sin(finalVisualYaw_), 0.0f, std::cos(finalVisualYaw_) });
+	facingDirection_ = { -std::sin(rawYaw_), 0.0f, std::cos(rawYaw_) };
+	visualForward_ = NormalizeXZ({ -std::sin(finalVisualYaw_), 0.0f, std::cos(finalVisualYaw_) });
 	attackForward_ = visualForward_;
 	// 最終的な人型パーツのYawへ正面補正を加え、移動方向と見た目の向きを一致させる
 	SetOrientation({ 0.0f, currentYaw, 0.0f });
