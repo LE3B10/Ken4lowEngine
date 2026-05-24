@@ -378,9 +378,17 @@ void DebugScene::DrawImGui()
 		size_t rotatedColliderCount = 0;
 		size_t colliderRotationReadCount = 0;
 		std::string sampleColliderName = "(none)";
+		Vector3 sampleRawCenter{};
+		Vector3 sampleConvertedCenter{};
 		Vector3 sampleSourceRotationDeg{};
 		Vector3 sampleConvertedRotationDeg{};
+		Vector3 sampleOBBCenter{};
+		Vector3 sampleAABBMin{};
+		Vector3 sampleAABBMax{};
 		float sampleFinalYawDeg = 0.0f;
+		bool sampleUsedByNavigationObstacle = false;
+		bool sampleUsedByWallObstacle = false;
+		bool sampleUsedByCollisionObstacle = false;
 		std::unordered_map<std::string, int> colliderTypeCounts{};
 		if (levelData)
 		{
@@ -405,10 +413,29 @@ void DebugScene::DrawImGui()
 				if (sampleColliderName == "(none)" && object.collider.hasRotation)
 				{
 					sampleColliderName = object.name;
+					sampleRawCenter = object.collider.center;
+					sampleConvertedCenter = {
+						object.position.x + object.collider.center.x * object.scale.x,
+						object.position.y + object.collider.center.y * object.scale.y,
+						object.position.z + object.collider.center.z * object.scale.z,
+					};
 					sampleSourceRotationDeg = object.collider.sourceRotationDeg;
 					sampleConvertedRotationDeg = object.collider.convertedRotationDeg;
 					constexpr float kRadToDeg = 180.0f / 3.14159265358979323846f;
 					sampleFinalYawDeg = (object.rotation.y + object.collider.rotation.y) * kRadToDeg;
+					sampleOBBCenter = sampleConvertedCenter;
+					const Vector3 half = {
+						0.5f * object.collider.size.x * object.scale.x,
+						0.5f * object.collider.size.y * object.scale.y,
+						0.5f * object.collider.size.z * object.scale.z
+					};
+					sampleAABBMin = sampleConvertedCenter - half;
+					sampleAABBMax = sampleConvertedCenter + half;
+					sampleUsedByNavigationObstacle =
+						(object.collider.collisionType == "Obstacle" || object.collider.collisionType == "Pillar" ||
+							object.collider.collisionType == "Fence" || object.collider.collisionType == "Tree");
+					sampleUsedByWallObstacle = sampleUsedByNavigationObstacle;
+					sampleUsedByCollisionObstacle = sampleUsedByNavigationObstacle;
 				}
 			}
 		}
@@ -423,12 +450,20 @@ void DebugScene::DrawImGui()
 		ImGui::Text("AABB fallback count: %zu", aabbFallbackCount);
 		ImGui::Text("collider_rotation read count: %zu", colliderRotationReadCount);
 		ImGui::Text("sample collider name: %s", sampleColliderName.c_str());
+		ImGui::Text("raw center: (%.2f, %.2f, %.2f)", sampleRawCenter.x, sampleRawCenter.y, sampleRawCenter.z);
+		ImGui::Text("converted center: (%.2f, %.2f, %.2f)", sampleConvertedCenter.x, sampleConvertedCenter.y, sampleConvertedCenter.z);
 		ImGui::Text("source rotation degree: (%.2f, %.2f, %.2f)",
 			sampleSourceRotationDeg.x, sampleSourceRotationDeg.y, sampleSourceRotationDeg.z);
 		ImGui::Text("converted rotation degree: (%.2f, %.2f, %.2f)",
 			sampleConvertedRotationDeg.x, sampleConvertedRotationDeg.y, sampleConvertedRotationDeg.z);
 		ImGui::Text("converted yaw sample: %.2f deg", sampleConvertedRotationDeg.y);
 		ImGui::Text("final collider yaw degree: %.2f deg", sampleFinalYawDeg);
+		ImGui::Text("OBB center: (%.2f, %.2f, %.2f)", sampleOBBCenter.x, sampleOBBCenter.y, sampleOBBCenter.z);
+		ImGui::Text("AABB min: (%.2f, %.2f, %.2f)", sampleAABBMin.x, sampleAABBMin.y, sampleAABBMin.z);
+		ImGui::Text("AABB max: (%.2f, %.2f, %.2f)", sampleAABBMax.x, sampleAABBMax.y, sampleAABBMax.z);
+		ImGui::Text("used by NavigationObstacle: %s", sampleUsedByNavigationObstacle ? "true" : "false");
+		ImGui::Text("used by WallObstacle: %s", sampleUsedByWallObstacle ? "true" : "false");
+		ImGui::Text("used by CollisionObstacle: %s", sampleUsedByCollisionObstacle ? "true" : "false");
 		const int floorCount = colliderTypeCounts["Floor"];
 		const int wallObstacleCount = colliderTypeCounts["Obstacle"] + colliderTypeCounts["Pillar"] + colliderTypeCounts["Fence"] + colliderTypeCounts["Tree"];
 		ImGui::Text("Floor AABB count: %d", floorCount);
