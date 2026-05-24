@@ -42,6 +42,12 @@ namespace Ken4lowEngine
 			collider->SetTypeID(static_cast<uint32_t>(CollisionTypeIdDef::kWorld));
 			collider->SetCenterPosition(centerW);
 			collider->SetOBBHalfSize(halfW);
+			const Vector3 colliderRotation = {
+				data.rotation.x + data.collider.rotation.x,
+				data.rotation.y + data.collider.rotation.y,
+				data.rotation.z + data.collider.rotation.z,
+			};
+			collider->SetOrientation(colliderRotation);
 
 			result.worldColliders.push_back(std::move(collider));
 		}

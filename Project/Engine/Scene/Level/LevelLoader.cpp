@@ -3,6 +3,7 @@
 #include <json.hpp>
 #include <cassert>
 #include <iostream>
+#include <cmath>
 
 namespace Ken4lowEngine
 {
@@ -32,6 +33,12 @@ namespace Ken4lowEngine
 				result.z = -static_cast<float>(transform["rotation"][1]);
 			}
 			return result;
+		}
+
+		Vector3 DegToRad(const Vector3& deg)
+		{
+			constexpr float kDegToRad = 3.14159265358979323846f / 180.0f;
+			return { deg.x * kDegToRad, deg.y * kDegToRad, deg.z * kDegToRad };
 		}
 
 		Vector3 ReadScaleToGameAxes(const json& transform)
@@ -387,6 +394,22 @@ namespace Ken4lowEngine
 			if (jc.contains("collision_type_id") && jc["collision_type_id"].is_number_integer())
 			{
 				objectData->collider.collisionTypeId = jc["collision_type_id"].get<int>();
+			}
+
+			// JSONのcollider_rotationを保持し、回転付きステージコライダーとして生成する
+			const bool hasColliderRotation = jc.contains("collider_rotation") && jc["collider_rotation"].is_array() && jc["collider_rotation"].size() >= 3;
+			const bool hasRotation = jc.contains("rotation") && jc["rotation"].is_array() && jc["rotation"].size() >= 3;
+			if (hasColliderRotation || hasRotation)
+			{
+				const json& rotationJson = hasColliderRotation ? jc["collider_rotation"] : jc["rotation"];
+				Vector3 colliderRotationDeg{};
+				colliderRotationDeg.x = -static_cast<float>(rotationJson[0]);
+				colliderRotationDeg.y = -static_cast<float>(rotationJson[2]);
+				colliderRotationDeg.z = -static_cast<float>(rotationJson[1]);
+
+				objectData->collider.rotation = DegToRad(colliderRotationDeg);
+				objectData->collider.hasRotation = true;
+				objectData->collider.fromColliderRotation = hasColliderRotation;
 			}
 		}
 

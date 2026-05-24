@@ -356,8 +356,11 @@ void DebugScene::DrawImGui()
 	{
 		ImGui::Begin("Stage Debug");
 		const std::vector<AABB>& worldAABBs = stage_->GetWorldAABBs();
+		const auto& worldColliders = stage_->GetWorldColliders();
 		const LevelData* levelData = stage_->GetLevelData();
 		size_t loadedColliders = 0;
+		size_t rotatedColliderCount = 0;
+		size_t colliderRotationReadCount = 0;
 		std::unordered_map<std::string, int> colliderTypeCounts{};
 		if (levelData)
 		{
@@ -370,11 +373,24 @@ void DebugScene::DrawImGui()
 				++loadedColliders;
 				const std::string typeName = object.collider.collisionType.empty() ? "Unspecified" : object.collider.collisionType;
 				++colliderTypeCounts[typeName];
+				if (object.collider.hasRotation)
+				{
+					++colliderRotationReadCount;
+				}
+				if ((object.collider.hasRotation && Vector3::Length(object.collider.rotation) > 0.0001f) ||
+					Vector3::Length(object.rotation) > 0.0001f)
+				{
+					++rotatedColliderCount;
+				}
 			}
 		}
+		const size_t aabbFallbackCount = loadedColliders > worldColliders.size() ? loadedColliders - worldColliders.size() : 0;
 
 		ImGui::Text("WorldAABBs: %zu", worldAABBs.size());
 		ImGui::Text("Loaded Colliders: %zu", loadedColliders);
+		ImGui::Text("Rotated collider count: %zu", rotatedColliderCount);
+		ImGui::Text("AABB fallback count: %zu", aabbFallbackCount);
+		ImGui::Text("collider_rotation read count: %zu", colliderRotationReadCount);
 		ImGui::Text("Floor: %d", colliderTypeCounts["Floor"]);
 		ImGui::Text("Obstacle: %d", colliderTypeCounts["Obstacle"]);
 		ImGui::Text("Pillar: %d", colliderTypeCounts["Pillar"]);
