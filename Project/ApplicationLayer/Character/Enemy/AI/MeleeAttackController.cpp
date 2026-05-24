@@ -1,3 +1,4 @@
+#define NOMINMAX
 #include "MeleeAttackController.h"
 
 #include "../Core/MeleeEnemy.h"
