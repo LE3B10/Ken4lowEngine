@@ -394,10 +394,9 @@ namespace Ken4lowEngine
 
 			if (jc.contains("center") && jc["center"].is_array() && jc["center"].size() >= 3)
 			{
-				// collider.center も translation と同じ軸変換規約（x,z,y）で読み取り、符号不一致を防ぐ
-				objectData->collider.center.x = static_cast<float>(jc["center"][0]);
+				objectData->collider.center.x = -static_cast<float>(jc["center"][0]);
 				objectData->collider.center.y = static_cast<float>(jc["center"][2]);
-				objectData->collider.center.z = static_cast<float>(jc["center"][1]);
+				objectData->collider.center.z = -static_cast<float>(jc["center"][1]);
 			}
 
 			if (jc.contains("size") && jc["size"].is_array() && jc["size"].size() >= 3)
