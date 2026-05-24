@@ -7,35 +7,45 @@ namespace Ken4lowEngine
 {
 	namespace
 	{
-		AABB BuildAABBFromRotatedOBB(const Vector3& center, const Vector3& half, const Vector3& rotationRad)
+		AABB BuildAABBFromCorners(const std::array<Vector3, 8>& corners)
 		{
-			const Matrix4x4 rotation = Matrix4x4::MakeRotateMatrix(rotationRad);
 			AABB aabb{};
 			aabb.min = { std::numeric_limits<float>::max(), std::numeric_limits<float>::max(), std::numeric_limits<float>::max() };
 			aabb.max = { std::numeric_limits<float>::lowest(), std::numeric_limits<float>::lowest(), std::numeric_limits<float>::lowest() };
+			for (const auto& c : corners)
+			{
+				aabb.min.x = (std::min)(aabb.min.x, c.x);
+				aabb.min.y = (std::min)(aabb.min.y, c.y);
+				aabb.min.z = (std::min)(aabb.min.z, c.z);
+				aabb.max.x = (std::max)(aabb.max.x, c.x);
+				aabb.max.y = (std::max)(aabb.max.y, c.y);
+				aabb.max.z = (std::max)(aabb.max.z, c.z);
+			}
+			return aabb;
+		}
 
+		std::array<Vector3, 8> BuildObbCorners(const Vector3& center, const Vector3& half, const Vector3& rotationRad)
+		{
+			const Matrix4x4 rotation = Matrix4x4::MakeRotateMatrix(rotationRad);
+			std::array<Vector3, 8> corners{};
+			int index = 0;
 			for (int ix = -1; ix <= 1; ix += 2)
 			{
 				for (int iy = -1; iy <= 1; iy += 2)
 				{
 					for (int iz = -1; iz <= 1; iz += 2)
 					{
-						Vector3 cornerLocal = {
-							half.x * static_cast<float>(ix),
-							half.y * static_cast<float>(iy),
-							half.z * static_cast<float>(iz),
-						};
-						const Vector3 cornerWorld = Vector3::Transform(cornerLocal, rotation) + center;
-						aabb.min.x = (std::min)(aabb.min.x, cornerWorld.x);
-						aabb.min.y = (std::min)(aabb.min.y, cornerWorld.y);
-						aabb.min.z = (std::min)(aabb.min.z, cornerWorld.z);
-						aabb.max.x = (std::max)(aabb.max.x, cornerWorld.x);
-						aabb.max.y = (std::max)(aabb.max.y, cornerWorld.y);
-						aabb.max.z = (std::max)(aabb.max.z, cornerWorld.z);
+						Vector3 cornerLocal = { half.x * static_cast<float>(ix), half.y * static_cast<float>(iy), half.z * static_cast<float>(iz) };
+						corners[static_cast<size_t>(index++)] = Vector3::Transform(cornerLocal, rotation) + center;
 					}
 				}
 			}
-			return aabb;
+			return corners;
+		}
+
+		AABB BuildAABBFromRotatedOBB(const Vector3& center, const Vector3& half, const Vector3& rotationRad)
+		{
+			return BuildAABBFromCorners(BuildObbCorners(center, half, rotationRad));
 		}
 	}
 
@@ -46,6 +56,7 @@ namespace Ken4lowEngine
 		result.floorAABBs.reserve(levelData.objects.size());
 		result.wallObstacleAABBs.reserve(levelData.objects.size());
 		result.navigationObstacleAABBs.reserve(levelData.objects.size());
+		result.obstacleBoxes.reserve(levelData.objects.size());
 		result.worldColliders.reserve(levelData.objects.size());
 
 		for (const ObjectData& data : levelData.objects)
@@ -83,8 +94,27 @@ namespace Ken4lowEngine
 			};
 			collider->SetOrientation(colliderRotation);
 			// OBB表示とNavigation/Wall用AABBの生成元を揃え、見た目と判定の向き不一致を解消する
-			const AABB aabb = BuildAABBFromRotatedOBB(centerW, halfW, colliderRotation);
+			const AABB legacyAabb = {
+				centerW - halfW,
+				centerW + halfW,
+			};
+			const std::array<Vector3, 8> corners = BuildObbCorners(centerW, halfW, colliderRotation);
+			const AABB aabb = BuildAABBFromCorners(corners);
+			result.worldAABBsLegacy.push_back(legacyAabb);
 			result.worldAABBs.push_back(aabb);
+			StageCollisionBuildResult::StageObstacleBox box{};
+			box.name = data.name;
+			box.collisionTypeName = data.collider.collisionType;
+			box.collisionTypeId = data.collider.collisionTypeId;
+			box.corners = corners;
+			box.enclosingAABB = aabb;
+			box.center = centerW;
+			box.halfSize = halfW;
+			const Matrix4x4 rotationM = Matrix4x4::MakeRotateMatrix(colliderRotation);
+			box.axisX = Vector3::Normalize(Vector3::TransformNormal({ 1.0f, 0.0f, 0.0f }, rotationM));
+			box.axisY = Vector3::Normalize(Vector3::TransformNormal({ 0.0f, 1.0f, 0.0f }, rotationM));
+			box.axisZ = Vector3::Normalize(Vector3::TransformNormal({ 0.0f, 0.0f, 1.0f }, rotationM));
+			result.obstacleBoxes.push_back(box);
 			const std::string& collisionType = data.collider.collisionType;
 			if (collisionType == "Floor")
 			{
