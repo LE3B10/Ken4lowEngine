@@ -35,6 +35,28 @@ using namespace Ken4lowEngine;
 
 namespace
 {
+	std::string BuildBrownWireSourceLabel(
+		bool showStageChunkBounds,
+		bool showObjectBounds,
+		bool showOldBounds,
+		bool showColliderObb)
+	{
+		std::vector<std::string> sources{};
+		if (showStageChunkBounds) { sources.emplace_back("StageChunkBounds"); }
+		if (showObjectBounds) { sources.emplace_back("ObjectBounds"); }
+		if (showOldBounds) { sources.emplace_back("Old AABB"); }
+		if (showColliderObb) { sources.emplace_back("Collider OBB"); }
+		if (sources.empty()) { return "None"; }
+
+		std::string label{};
+		for (size_t i = 0; i < sources.size(); ++i)
+		{
+			if (i > 0) { label += " + "; }
+			label += sources[i];
+		}
+		return label;
+	}
+
 	void DrawObbCornersWire(const std::array<Vector3, 8>& corners, const Vector4& color)
 	{
 		static constexpr int kEdges[12][2] = {
@@ -255,8 +277,8 @@ void DebugScene::Draw3DObjects()
 		stage_->Draw();
 		if (showColliderObbWire_)
 		{
-			const Vector4 colliderObbColor = { 0.55f, 0.32f, 0.12f, 1.0f };
-			// Collider由来のOBB 8頂点を茶色ワイヤーフレームとして描画し、見た目・判定・ナビゲーションのズレをなくす
+			const Vector4 colliderObbColor = { 0.15f, 0.95f, 0.95f, 1.0f };
+			// Collider OBBの8頂点だけを描画し、古いObjectBoundsと混同しないようにする
 			for (const StageObstacleBox& box : stage_->GetObstacleBoxes())
 			{
 				DrawObbCornersWire(box.corners, colliderObbColor);
@@ -280,11 +302,16 @@ void DebugScene::Draw3DObjects()
 		{
 			for (const AABB& aabb : stage_->GetWorldAABBsLegacy())
 			{
-				Wireframe::GetInstance()->DrawAABB(aabb, { 0.50f, 0.50f, 0.50f, 1.0f });
+				Wireframe::GetInstance()->DrawAABB(aabb, { 0.55f, 0.35f, 0.20f, 1.0f });
 			}
 		}
 		stage_->SetStageChunkBoundsVisible(showStageChunkBoundsWire_);
 		stage_->SetStageChunkObjectBoundsVisible(showStageChunkObjectBoundsWire_);
+		brownWireframeSource_ = BuildBrownWireSourceLabel(
+			showStageChunkBoundsWire_,
+			showStageChunkObjectBoundsWire_,
+			showOldBoundsWire_,
+			showColliderObbWire_);
 	}
 
 #ifdef _DEBUG
@@ -558,6 +585,13 @@ void DebugScene::DrawImGui()
 		ImGui::Checkbox("Show StageChunk Bounds", &showStageChunkBoundsWire_);
 		ImGui::Checkbox("Show Object Bounds", &showStageChunkObjectBoundsWire_);
 		ImGui::Text("Legacy WorldAABB count: %zu", legacyWorldAABBs.size());
+		if (!obstacleBoxes.empty())
+		{
+			ImGui::Text("corners[0]: (%.2f, %.2f, %.2f)", obstacleBoxes.front().corners[0].x, obstacleBoxes.front().corners[0].y, obstacleBoxes.front().corners[0].z);
+			ImGui::Text("corners[1]: (%.2f, %.2f, %.2f)", obstacleBoxes.front().corners[1].x, obstacleBoxes.front().corners[1].y, obstacleBoxes.front().corners[1].z);
+			ImGui::Text("corners[2]: (%.2f, %.2f, %.2f)", obstacleBoxes.front().corners[2].x, obstacleBoxes.front().corners[2].y, obstacleBoxes.front().corners[2].z);
+			ImGui::Text("corners[3]: (%.2f, %.2f, %.2f)", obstacleBoxes.front().corners[3].x, obstacleBoxes.front().corners[3].y, obstacleBoxes.front().corners[3].z);
+		}
 		ImGui::Text("Floor: %d", colliderTypeCounts["Floor"]);
 		ImGui::Text("Obstacle: %d", colliderTypeCounts["Obstacle"]);
 		ImGui::Text("Pillar: %d", colliderTypeCounts["Pillar"]);
