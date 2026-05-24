@@ -49,6 +49,8 @@ private:
 	float GetDistanceToTarget() const;
 	K4E::Vector3 GetTargetPosition() const;
 	void FaceToTarget();
+	void FaceToMoveDirection();
+	void ApplyVisualYawFromDirection(const K4E::Vector3& direction);
 	void StopMove();
 	bool IsMoveResumeDistanceReached() const;
 	bool MoveAlongPath(float deltaTime);
@@ -115,6 +117,10 @@ private:
 	EnemyAStarNavigator navigator_{};
 	float wanderTimer_ = 0.0f;
 	K4E::Vector3 wanderDirection_{ 1.0f, 0.0f, 0.0f };
+	float rawYaw_ = 0.0f;
+	float finalVisualYaw_ = 0.0f;
+	K4E::Vector3 facingDirection_{ 0.0f, 0.0f, 1.0f };
+	K4E::Vector3 targetDirection_{ 0.0f, 0.0f, 1.0f };
 
 	AnimState animState_ = AnimState::Idle;
 	const char* currentBehaviorName_ = "None";

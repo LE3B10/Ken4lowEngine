@@ -15,6 +15,7 @@ namespace
 {
 	constexpr float kEpsilon = 0.0001f;
 	constexpr float kPi = 3.1415926535f;
+	constexpr float kTwoPi = kPi * 2.0f;
 
 	float LengthXZ(const Vector3& v)
 	{
@@ -26,6 +27,13 @@ namespace
 		const float len = LengthXZ(v);
 		if (len < kEpsilon) { return { 0.0f, 0.0f, 0.0f }; }
 		return { v.x / len, 0.0f, v.z / len };
+	}
+
+	float WrapPi(float v)
+	{
+		while (v > kPi) { v -= kTwoPi; }
+		while (v < -kPi) { v += kTwoPi; }
+		return v;
 	}
 }
 
@@ -126,7 +134,8 @@ void MeleeEnemy::DrawImGui()
 		ImGui::SliderFloat("resumeChaseDistance", &resumeChaseDistance_, 0.5f, 10.0f);
 		ImGui::SliderFloat("attackLockTime", &attackLockTime_, 0.0f, 1.0f);
 		ImGui::SliderFloat("rotateSpeed", &rotateSpeed_, 0.1f, 20.0f);
-		ImGui::SliderFloat("visualYawOffset", &visualYawOffset_, -kPi, kPi);
+		ImGui::DragFloat("visualYawOffset(rad)", &visualYawOffset_, 0.01f, -kTwoPi, kTwoPi);
+		ImGui::Text("visualYawOffset(deg): %.1f", visualYawOffset_ * (180.0f / kPi));
 		ImGui::SliderFloat("walkAnimSpeed", &walkAnimSpeed_, 1.0f, 18.0f);
 		ImGui::SliderFloat("walkArmSwing", &walkArmSwing_, 0.0f, 1.5f);
 		ImGui::SliderFloat("walkLegSwing", &walkLegSwing_, 0.0f, 1.5f);
@@ -175,6 +184,12 @@ void MeleeEnemy::DrawImGui()
 		ImGui::Text("lastResolvePush: (%.2f, %.2f, %.2f)", lastResolvePush_.x, lastResolvePush_.y, lastResolvePush_.z);
 		const Vector3 tgt = GetTargetPosition();
 		ImGui::Text("Target: (%.2f, %.2f, %.2f)", tgt.x, tgt.y, tgt.z);
+		ImGui::Text("rawYaw(rad): %.3f", rawYaw_);
+		ImGui::Text("finalVisualYaw(rad): %.3f", finalVisualYaw_);
+		ImGui::Text("rawYaw(deg): %.1f", rawYaw_ * (180.0f / kPi));
+		ImGui::Text("finalVisualYaw(deg): %.1f", finalVisualYaw_ * (180.0f / kPi));
+		ImGui::Text("facingDirection: (%.2f, %.2f, %.2f)", facingDirection_.x, facingDirection_.y, facingDirection_.z);
+		ImGui::Text("targetDirection: (%.2f, %.2f, %.2f)", targetDirection_.x, targetDirection_.y, targetDirection_.z);
 		if (ImGui::Button("Force Scratch Attack")) { ForceAttack(MeleeAttackType::Scratch); }
 		ImGui::SameLine();
 		if (ImGui::Button("Force OneTwo Attack")) { ForceAttack(MeleeAttackType::OneTwo); }
@@ -265,10 +280,30 @@ bool MeleeEnemy::IsMoveResumeDistanceReached() const { return GetDistanceToTarge
 void MeleeEnemy::FaceToTarget()
 {
 	if (!target_) { return; }
-	Vector3 dir = NormalizeXZ(GetTargetPosition() - GetCenterPosition());
-	if (LengthXZ(dir) <= kEpsilon) { return; }
-	const float yaw = std::atan2(dir.x, dir.z);
-	SetOrientation({ 0.0f, yaw + visualYawOffset_, 0.0f });
+	targetDirection_ = NormalizeXZ(GetTargetPosition() - GetCenterPosition());
+	ApplyVisualYawFromDirection(targetDirection_);
+}
+
+void MeleeEnemy::FaceToMoveDirection()
+{
+	const Vector3 moveDir = NormalizeXZ(GetVelocity());
+	ApplyVisualYawFromDirection(moveDir);
+}
+
+void MeleeEnemy::ApplyVisualYawFromDirection(const Vector3& direction)
+{
+	if (LengthXZ(direction) <= kEpsilon) { return; }
+	rawYaw_ = std::atan2(direction.x, direction.z);
+	// モデルの正面が移動方向と逆のため、表示Yawだけ180度補正する
+	const float targetVisualYaw = rawYaw_ + visualYawOffset_;
+	float currentYaw = orientation_.y;
+	const float maxStep = rotateSpeed_ * (1.0f / 60.0f);
+	const float delta = WrapPi(targetVisualYaw - currentYaw);
+	currentYaw += std::clamp(delta, -maxStep, maxStep);
+	currentYaw = WrapPi(currentYaw);
+	finalVisualYaw_ = currentYaw;
+	facingDirection_ = { std::sin(rawYaw_), 0.0f, std::cos(rawYaw_) };
+	SetOrientation({ 0.0f, currentYaw, 0.0f });
 }
 
 void MeleeEnemy::DeadAction()
@@ -315,7 +350,7 @@ void MeleeEnemy::ChaseTargetAction()
 	}
 	if (pathFindEnabled_ && MoveAlongPath(1.0f / 60.0f))
 	{
-		FaceToTarget();
+		FaceToMoveDirection();
 		animState_ = AnimState::Walk;
 		currentBehaviorName_ = "ChasePathMove";
 		return;
@@ -328,7 +363,7 @@ void MeleeEnemy::ChaseTargetAction()
 		return;
 	}
 	SetVelocity({ moveDir.x * moveSpeed_, GetVelocity().y, moveDir.z * moveSpeed_ });
-	FaceToTarget();
+	FaceToMoveDirection();
 	animState_ = AnimState::Walk;
 	currentBehaviorName_ = "ChaseTargetAction";
 }
@@ -386,6 +421,7 @@ void MeleeEnemy::WanderAction(float deltaTime)
 		wanderDirection_ = { std::sin(angle), 0.0f, std::cos(angle) };
 	}
 	SetVelocity({ wanderDirection_.x * (moveSpeed_ * 0.45f), GetVelocity().y, wanderDirection_.z * (moveSpeed_ * 0.45f) });
+	FaceToMoveDirection();
 	currentBehaviorName_ = "WanderAction";
 	animState_ = AnimState::Walk;
 }
