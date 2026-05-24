@@ -114,6 +114,7 @@ private: /// ---------- メンバ変数 ---------- ///
 	bool showWallAabbWire_ = false;
 	bool showOldBoundsWire_ = false;
 	bool showStageChunkBoundsWire_ = false;
+	bool showStageChunkObjectBoundsWire_ = false;
 	std::string brownWireframeSource_ = "StageObstacleBox OBB";
 
 };

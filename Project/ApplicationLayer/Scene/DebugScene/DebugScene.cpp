@@ -38,8 +38,8 @@ namespace
 	void DrawObbCornersWire(const std::array<Vector3, 8>& corners, const Vector4& color)
 	{
 		static constexpr int kEdges[12][2] = {
-			{0,1},{1,3},{3,2},{2,0}, // bottom 4
-			{4,5},{5,7},{7,6},{6,4}, // top 4
+			{0,1},{1,2},{2,3},{3,0}, // bottom 4
+			{4,5},{5,6},{6,7},{7,4}, // top 4
 			{0,4},{1,5},{2,6},{3,7}, // vertical 4
 		};
 		for (const auto& e : kEdges)
@@ -284,6 +284,7 @@ void DebugScene::Draw3DObjects()
 			}
 		}
 		stage_->SetStageChunkBoundsVisible(showStageChunkBoundsWire_);
+		stage_->SetStageChunkObjectBoundsVisible(showStageChunkObjectBoundsWire_);
 	}
 
 #ifdef _DEBUG
@@ -545,14 +546,17 @@ void DebugScene::DrawImGui()
 		ImGui::Text("Wall/Obstacle AABB count: %d", wallObstacleCount);
 		ImGui::Text("Navigation obstacle count: %zu", navObstacles.size());
 		ImGui::Text("Collision obstacle count: %d", wallObstacleCount);
-		ImGui::Text("brown wireframe source: %s", brownWireframeSource_.c_str());
+		const bool usingObbDerivedAabb = worldAABBs.size() == obstacleBoxes.size();
+		ImGui::Text("Brown Wire Source: %s", brownWireframeSource_.c_str());
 		ImGui::Text("Draw Source: StageObstacleBox OBB");
 		ImGui::Text("Old Bounds source: StageChunkBounds/ObjectBounds/worldAABBsLegacy");
+		ImGui::Text("Using OBB-derived AABB: %s", usingObbDerivedAabb ? "true" : "false");
 		ImGui::Checkbox("Show Collider OBB Wire", &showColliderObbWire_);
 		ImGui::Checkbox("Show Navigation AABB Wire", &showNavigationAabbWire_);
 		ImGui::Checkbox("Show Wall AABB Wire", &showWallAabbWire_);
 		ImGui::Checkbox("Show Old Bounds Wire", &showOldBoundsWire_);
 		ImGui::Checkbox("Show StageChunk Bounds", &showStageChunkBoundsWire_);
+		ImGui::Checkbox("Show Object Bounds", &showStageChunkObjectBoundsWire_);
 		ImGui::Text("Legacy WorldAABB count: %zu", legacyWorldAABBs.size());
 		ImGui::Text("Floor: %d", colliderTypeCounts["Floor"]);
 		ImGui::Text("Obstacle: %d", colliderTypeCounts["Obstacle"]);
