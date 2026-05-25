@@ -30,6 +30,8 @@ namespace Ken4lowEngine
 		wallObstacleAABBs_ = std::move(collisionResult.wallObstacleAABBs);
 		navigationObstacleAABBs_ = std::move(collisionResult.navigationObstacleAABBs);
 		worldColliders_ = std::move(collisionResult.worldColliders);
+		wallObstacleOBBs_ = std::move(collisionResult.wallObstacleOBBs);
+		navigationObstacleOBBs_ = std::move(collisionResult.navigationObstacleOBBs);
 		occlusionCullingSystem_.BuildAutoOccludersFromWorldAABBs(worldAABBs_);
 	}
 
@@ -44,6 +46,8 @@ namespace Ken4lowEngine
 		wallObstacleAABBs_.clear();
 		navigationObstacleAABBs_.clear();
 		worldColliders_.clear();
+		wallObstacleOBBs_.clear();
+		navigationObstacleOBBs_.clear();
 	}
 
 	void Stage::Update()

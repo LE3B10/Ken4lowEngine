@@ -47,6 +47,8 @@ namespace Ken4lowEngine
 		result.wallObstacleAABBs.reserve(levelData.objects.size());
 		result.navigationObstacleAABBs.reserve(levelData.objects.size());
 		result.worldColliders.reserve(levelData.objects.size());
+		result.wallObstacleOBBs.reserve(levelData.objects.size());
+		result.navigationObstacleOBBs.reserve(levelData.objects.size());
 
 		for (const ObjectData& data : levelData.objects)
 		{
@@ -85,6 +87,7 @@ namespace Ken4lowEngine
 			// OBB表示とNavigation/Wall用AABBの生成元を揃え、見た目と判定の向き不一致を解消する
 			const AABB aabb = BuildAABBFromRotatedOBB(centerW, halfW, colliderRotation);
 			result.worldAABBs.push_back(aabb);
+			const OBB colliderObb = collider->GetOBB();
 			const std::string& collisionType = data.collider.collisionType;
 			if (collisionType == "Floor")
 			{
@@ -94,6 +97,9 @@ namespace Ken4lowEngine
 			{
 				result.wallObstacleAABBs.push_back(aabb);
 				result.navigationObstacleAABBs.push_back(aabb);
+				// 表示用ワイヤーはAABBではなくCollider::GetOBB()由来の姿勢をそのまま使う。
+				result.wallObstacleOBBs.push_back(colliderObb);
+				result.navigationObstacleOBBs.push_back(colliderObb);
 			}
 
 			result.worldColliders.push_back(std::move(collider));

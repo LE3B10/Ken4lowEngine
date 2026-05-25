@@ -1,6 +1,7 @@
 #pragma once
 #include "AABB.h"
 #include "Collider.h"
+#include "OBB.h"
 #include "LevelData.h"
 
 #include <memory>
@@ -15,6 +16,8 @@ namespace Ken4lowEngine
 		std::vector<AABB> wallObstacleAABBs;
 		std::vector<AABB> navigationObstacleAABBs;
 		std::vector<std::unique_ptr<Collider>> worldColliders;
+		std::vector<OBB> wallObstacleOBBs;
+		std::vector<OBB> navigationObstacleOBBs;
 	};
 
 	/// -------------------------------------------------------------

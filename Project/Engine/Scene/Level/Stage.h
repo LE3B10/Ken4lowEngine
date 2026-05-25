@@ -1,6 +1,7 @@
 #pragma once
 #include "AABB.h"
 #include "Collider.h"
+#include "OBB.h"
 #include "Object3D.h"
 #include "LevelData.h"
 #include "OcclusionCullingSystem.h"
@@ -91,6 +92,8 @@ namespace Ken4lowEngine
 		const std::vector<AABB>& GetWallObstacleAABBs() const { return wallObstacleAABBs_; }
 		const std::vector<AABB>& GetNavigationObstacleAABBs() const { return navigationObstacleAABBs_; }
 		const std::vector<std::unique_ptr<Collider>>& GetWorldColliders() const { return worldColliders_; }
+		const std::vector<OBB>& GetWallObstacleOBBs() const { return wallObstacleOBBs_; }
+		const std::vector<OBB>& GetNavigationObstacleOBBs() const { return navigationObstacleOBBs_; }
 
 		/// <summary>
 		/// 保持しているワールドコライダーを CollisionManager に登録する
@@ -110,6 +113,8 @@ namespace Ken4lowEngine
 		std::vector<AABB> wallObstacleAABBs_;                  // 横押し出し用Obstacle AABB
 		std::vector<AABB> navigationObstacleAABBs_;            // Navigation向け障害物AABB(Floor除外)
 		std::vector<std::unique_ptr<Collider>> worldColliders_; // ワールド衝突Collider
+		std::vector<OBB> wallObstacleOBBs_;                  // デバッグ表示用の壁/障害物OBB
+		std::vector<OBB> navigationObstacleOBBs_;            // デバッグ表示用のNavigation障害物OBB
 		Vector3 offset_ = { 0.0f, 0.0f, 0.0f };               // ステージ全体オフセット
 	};
 } // namespace Ken4lowEngine
