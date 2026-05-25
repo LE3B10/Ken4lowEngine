@@ -232,7 +232,8 @@ private: /// ---------- 構造体 ---------- ///
 	// 調整データの保存・読み込み結果表示
 	struct TuningIoState
 	{
-		std::filesystem::path jsonPath = "Resources/Data/Enemy/MeleeEnemy_Normal.json";
+		// MeleeEnemyのJSONはProject配下のResourcesに固定して、Project外のResources生成を防ぐ。
+		std::filesystem::path jsonPath = "Project/Resources/DataAssets/Enemy/MeleeEnemy/MeleeEnemy_Normal.json";
 		std::string lastLoadResult = "未実行";
 		std::string lastSaveResult = "未実行";
 	};
