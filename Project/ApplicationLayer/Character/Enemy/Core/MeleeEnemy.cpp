@@ -887,6 +887,8 @@ bool MeleeEnemy::LoadTuningFromJson(const std::filesystem::path& path, std::stri
 {
 	try
 	{
+		// 読み込み前に保存先ディレクトリを作成して、Project外へResourcesが作られる経路を使わないようにする。
+		std::filesystem::create_directories(path.parent_path());
 		std::ifstream ifs(path);
 		if (!ifs.is_open())
 		{
@@ -1018,6 +1020,7 @@ bool MeleeEnemy::SaveTuningToJson(const std::filesystem::path& path, std::string
 		j["headLookLerpSpeed"] = headLookSettings_.lerpSpeed;
 		if (const auto* s = attackController_.FindPattern(MeleeAttackType::Scratch)) { const auto& st = s->steps[0]; j["scratchDamage"] = st.damage; j["scratchRange"] = st.range; j["scratchRadius"] = st.radius; j["scratchStartTime"] = st.startTime; j["scratchActiveTime"] = st.activeTime; j["scratchRecoveryTime"] = s->recoveryTime; j["scratchCooldown"] = s->cooldown; }
 		if (const auto* o = attackController_.FindPattern(MeleeAttackType::OneTwo)) { const auto& l = o->steps[0]; const auto& r = o->steps[1]; j["oneTwoLeftDamage"] = l.damage; j["oneTwoRightDamage"] = r.damage; j["oneTwoLeftRange"] = l.range; j["oneTwoRightRange"] = r.range; j["oneTwoLeftRadius"] = l.radius; j["oneTwoRightRadius"] = r.radius; j["oneTwoLeftStartTime"] = l.startTime; j["oneTwoRightStartTime"] = r.startTime; j["oneTwoLeftActiveTime"] = l.activeTime; j["oneTwoRightActiveTime"] = r.activeTime; j["oneTwoForwardMoveSpeed"] = o->forwardMoveSpeed; j["oneTwoForwardMoveDuration"] = o->forwardMoveDuration; j["oneTwoRecoveryTime"] = o->recoveryTime; j["oneTwoCooldown"] = o->cooldown; }
+		// 保存先ディレクトリはProject/Resources/DataAssets/Enemy/MeleeEnemy配下に限定して作成する。
 		std::filesystem::create_directories(path.parent_path());
 		std::ofstream ofs(path);
 		ofs << j.dump(4);
