@@ -60,6 +60,8 @@ void MeleeEnemy::Update(float deltaTime)
 	const Vector3 beforePos = GetCenterPosition();
 	attackController_.Update(*this, deltaTime);
 	attackLockTimer_ = std::max(0.0f, attackLockTimer_ - deltaTime);
+	// 連続ジャンプを防ぐため、追跡ジャンプのクールダウンタイマーを更新する
+	jumpCooldownTimer_ = std::max(0.0f, jumpCooldownTimer_ - deltaTime);
 
 	// 優先度の高い行動から順に評価して近接敵の行動を決定する
 	EvaluateBehavior(deltaTime);
@@ -238,6 +240,11 @@ void MeleeEnemy::Draw()
 	{
 		Wireframe::GetInstance()->DrawLine(blockedSegmentFrom_ + Vector3{ 0.0f, 0.2f, 0.0f }, blockedSegmentTo_ + Vector3{ 0.0f, 0.2f, 0.0f }, { 1.0f, 0.15f, 0.1f, 1.0f });
 	}
+	if (HasTarget())
+	{
+		// ジャンプ追跡判定の可視化として、敵からターゲットへの線を専用色で表示する
+		Wireframe::GetInstance()->DrawLine(origin + Vector3{ 0.0f, 0.2f, 0.0f }, GetTargetPosition() + Vector3{ 0.0f, 0.2f, 0.0f }, { 0.5f, 1.0f, 0.1f, 1.0f });
+	}
 	for (const auto& inflated : navigator_.GetInflatedObstacleAABBs())
 	{
 		Wireframe::GetInstance()->DrawAABB(inflated, { 1.0f, 0.7f, 0.2f, 0.35f });
@@ -276,6 +283,11 @@ void MeleeEnemy::DrawImGui()
 		ImGui::SliderFloat("repathInterval", &repathInterval_, 0.05f, 2.0f);
 		ImGui::SliderFloat("waypointReachDistance", &waypointReachDistance_, 0.5f, 1.5f);
 		ImGui::Checkbox("pathFindEnabled", &pathFindEnabled_);
+		ImGui::Checkbox("jumpEnabled", &jumpEnabled_);
+		ImGui::SliderFloat("jumpVelocity", &jumpVelocity_, 2.0f, 18.0f);
+		ImGui::SliderFloat("jumpTargetHeightThreshold", &jumpTargetHeightThreshold_, 0.1f, 5.0f);
+		ImGui::SliderFloat("jumpHorizontalDistanceMax", &jumpHorizontalDistanceMax_, 0.5f, 20.0f);
+		ImGui::SliderFloat("jumpCooldown", &jumpCooldown_, 0.0f, 3.0f);
 		const float prevGridSize = pathGridSize_;
 		ImGui::SliderFloat("pathGridSize", &pathGridSize_, 0.5f, 1.0f);
 		if (std::abs(prevGridSize - pathGridSize_) > kEpsilon) { navigator_.Reset(); lastRepathReason_ = "GridSizeChanged"; }
@@ -338,6 +350,8 @@ void MeleeEnemy::DrawImGui()
 		ImGui::Text("temporaryBlockedCellCount: %d", static_cast<int>(navigator_.GetTemporaryBlockedAreas().size()));
 		ImGui::Text("cornerCuttingDisabled: %s", cornerCuttingDisabled_ ? "true" : "false");
 		ImGui::Text("Grounded: %s", grounded_ ? "true" : "false");
+		ImGui::Text("jumpCooldownTimer: %.2f", jumpCooldownTimer_);
+		ImGui::Text("lastJumpReason: %s", lastJumpReason_.c_str());
 		ImGui::Text("AnimState: %s", GetAnimStateName());
 		ImGui::Text("lastSafePosition: (%.2f, %.2f, %.2f)", lastSafePosition_.x, lastSafePosition_.y, lastSafePosition_.z);
 		ImGui::Text("isOutsideStage: %s", isOutsideStage_ ? "true" : "false");
@@ -521,6 +535,7 @@ void MeleeEnemy::CombatIdleAction()
 void MeleeEnemy::ChaseTargetAction()
 {
 	UpdateStuckState(1.0f / 60.0f);
+	TryJumpToTarget(1.0f / 60.0f);
 	const float distance = GetDistanceToTarget();
 	if (distance <= stopDistance_)
 	{
@@ -605,6 +620,8 @@ bool MeleeEnemy::MoveAlongPath(float deltaTime)
 		}
 		const Vector3 dir = NormalizeXZ(currentPathWaypoint_ - GetCenterPosition());
 		SetVelocity({ dir.x * moveSpeed_, GetVelocity().y, dir.z * moveSpeed_ });
+		// 経路追跡中でも段差追従のためにジャンプ可否を判定する
+		TryJumpToTarget(deltaTime);
 		return true;
 	}
 	pathFound_ = false;
@@ -625,6 +642,40 @@ bool MeleeEnemy::MoveAlongPath(float deltaTime)
 	}
 	StopMove();
 	return false;
+}
+
+void MeleeEnemy::TryJumpToTarget(float)
+{
+	if (!jumpEnabled_) { lastJumpReason_ = "Disabled"; return; }
+	if (!HasTarget()) { lastJumpReason_ = "NoTarget"; return; }
+	if (IsDeadCondition()) { lastJumpReason_ = "Dead"; return; }
+	if (attackController_.IsAttacking() || attackLockTimer_ > 0.0f) { lastJumpReason_ = "Attack"; return; }
+	if (!grounded_) { lastJumpReason_ = "Airborne"; return; }
+	if (jumpCooldownTimer_ > 0.0f) { lastJumpReason_ = "Cooldown"; return; }
+
+	const Vector3 selfPos = GetCenterPosition();
+	const Vector3 targetPos = GetTargetPosition();
+	const Vector3 toTarget = targetPos - selfPos;
+	const float heightDelta = toTarget.y;
+	const float horizontalDistance = LengthXZ(toTarget);
+
+	if (heightDelta < jumpTargetHeightThreshold_) { lastJumpReason_ = "TargetNotHigher"; return; }
+	if (horizontalDistance > jumpHorizontalDistanceMax_) { lastJumpReason_ = "TooFar"; return; }
+
+	const bool obstacleJumpCandidate = blockedByObstacle_ || lineBlocked_ || isStuck_ || isOverlappingWallObstacle_;
+	if (obstacleJumpCandidate)
+	{
+		lastJumpReason_ = "TargetHigherBlocked";
+	}
+	else
+	{
+		lastJumpReason_ = "TargetHigher";
+	}
+	// 水平速度は維持しつつY速度だけを上書きし、段差追跡ジャンプを行う
+	Vector3 v = GetVelocity();
+	v.y = jumpVelocity_;
+	SetVelocity(v);
+	jumpCooldownTimer_ = jumpCooldown_;
 }
 
 void MeleeEnemy::UpdateStuckState(float deltaTime)
