@@ -102,6 +102,19 @@ private: /// ---------- 構造体 ---------- ///
 		bool selectedObstacleClimbResult = false;
 	};
 
+
+	// 接触した障害物の状態
+	struct ContactObstacleState
+	{
+		bool hasContact = false;
+		bool climbable = false;
+		int obstacleIndex = -1;
+		K4E::AABB obstacleAABB{};
+		float obstacleTopY = 0.0f;
+		float obstacleHeightFromFoot = 0.0f;
+		std::string reason = "None";
+	};
+
 	// 経路探索の設定
 	struct PathSettings
 	{
@@ -396,6 +409,7 @@ private: /// ---------- 内部処理 ---------- ///
 
 		// ジャンプを試みる処理（ターゲットの高さや距離、ジャンプのクールダウンなどを考慮してジャンプするかどうかを判断し、実際にジャンプする）
 	bool TryJumpOverClimbableObstacle(float deltaTime);
+	bool TryJumpOverContactObstacle();
 	bool TryDirectClimbOverObstacleToTarget(float deltaTime);
 
 	// 乗り越え可能な障害物と回避対象障害物を分類する
@@ -470,6 +484,9 @@ private: /// ---------- メンバ変数 ---------- //
 
 	// 乗り越え状態
 	TraversalState traversalState_{};
+
+	// 接触障害物状態
+	ContactObstacleState contactObstacleState_{};
 
 	// 経路探索の設定
 	PathSettings pathSettings_{};
