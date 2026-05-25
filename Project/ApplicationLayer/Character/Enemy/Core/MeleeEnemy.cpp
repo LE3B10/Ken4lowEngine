@@ -368,6 +368,45 @@ void MeleeEnemy::OnCollisionStay(K4E::Collider* other)
 {
 	OnCollisionEnter(other);
 }
+
+void MeleeEnemy::BeginSeparationFrame()
+{
+	// 毎フレームの個体間分離デバッグ状態を初期化する。
+	separationState_.overlappingEnemyCount = 0;
+	separationState_.lastSeparationPush = { 0.0f, 0.0f, 0.0f };
+}
+
+Vector3 MeleeEnemy::ApplySeparationPushXZ(const Vector3& desiredPush, float pushScale)
+{
+	// 個体間分離はXZ平面のみ反映し、Y方向の速度と位置は変更しない。
+	if (!separationSettings_.enabled) { return { 0.0f, 0.0f, 0.0f }; }
+	const float maxPush = std::max(0.0f, separationSettings_.maxPushPerFrame);
+	Vector3 push = { desiredPush.x * pushScale, 0.0f, desiredPush.z * pushScale };
+	const float pushLen = LengthXZ(push);
+	if (pushLen > maxPush && pushLen > kEpsilon)
+	{
+		const float s = maxPush / pushLen;
+		push.x *= s;
+		push.z *= s;
+	}
+	Vector3 pos = GetCenterPosition();
+	Vector3 nextPos = pos + push;
+	nextPos.y = pos.y;
+	if (collision_.hasStageBounds && !IsInsideStageBounds(nextPos))
+	{
+		// ステージ外へ出る方向の押し出しは破棄して、暴発を防ぐ。
+		return { 0.0f, 0.0f, 0.0f };
+	}
+	SetCenterPosition(nextPos);
+	separationState_.lastSeparationPush = push;
+	return push;
+}
+
+void MeleeEnemy::AddSeparationOverlapCount(int count)
+{
+	// 個体間分離で重なり相手が何体いたかをImGui表示用に蓄積する。
+	separationState_.overlappingEnemyCount += std::max(0, count);
+}
 void MeleeEnemy::Draw()
 {
 	EnemyBase::Draw();
@@ -429,6 +468,14 @@ void MeleeEnemy::Draw()
 	{
 		Wireframe::GetInstance()->DrawSphere(blocked.center + Vector3{ 0.0f, 0.2f, 0.0f }, blocked.radius, { 1.0f, 0.2f, 0.8f, 0.35f });
 	}
+	// 選択中個体の分離半径と押し出し方向を可視化して、重なり解消の挙動を確認しやすくする。
+	Wireframe::GetInstance()->DrawSphere(GetCenterPosition() + Vector3{ 0.0f, 0.15f, 0.0f }, separationSettings_.radius, { 0.2f, 0.8f, 1.0f, 0.35f });
+	if (separationState_.overlappingEnemyCount > 0)
+	{
+		const Vector3 lineStart = GetCenterPosition() + Vector3{ 0.0f, 1.1f, 0.0f };
+		const Vector3 lineEnd = lineStart + separationState_.lastSeparationPush * 12.0f;
+		Wireframe::GetInstance()->DrawLine(lineStart, lineEnd, { 0.0f, 1.0f, 0.35f, 1.0f });
+	}
 }
 
 void MeleeEnemy::DrawImGui()
@@ -468,6 +515,15 @@ void MeleeEnemy::DrawImGui()
 			ImGui::SliderFloat("上面着地高さ許容", &move_.obstacleTopLandingTolerance, 0.01f, 1.5f);
 			ImGui::SliderFloat("上面着地最大高さ", &move_.obstacleTopLandingMaxHeight, 0.1f, 8.0f);
 			ImGui::SliderFloat("上面着地最小重なり", &move_.obstacleTopLandingMinHorizontalOverlap, 0.01f, 1.0f);
+		}
+		if (ImGui::CollapsingHeader("個体間分離", ImGuiTreeNodeFlags_DefaultOpen)) {
+			ImGui::Checkbox("個体間分離を使う", &separationSettings_.enabled);
+			ImGui::SliderFloat("分離半径", &separationSettings_.radius, 0.2f, 4.0f);
+			ImGui::SliderFloat("分離強度", &separationSettings_.strength, 0.0f, 2.0f);
+			ImGui::SliderFloat("1フレーム最大押し出し", &separationSettings_.maxPushPerFrame, 0.01f, 0.6f);
+			ImGui::SliderFloat("攻撃中の押し出し倍率", &separationSettings_.attackPushScale, 0.0f, 1.0f);
+			ImGui::Text("重なっている敵数: %d", separationState_.overlappingEnemyCount);
+			ImGui::Text("最後の分離押し出し量: (%.3f, %.3f, %.3f)", separationState_.lastSeparationPush.x, separationState_.lastSeparationPush.y, separationState_.lastSeparationPush.z);
 		}
 		if (ImGui::CollapsingHeader("ジャンプ", ImGuiTreeNodeFlags_DefaultOpen)) {
 			ImGui::Checkbox("ジャンプを使う", &jump_.enabled);
@@ -1282,6 +1338,7 @@ bool MeleeEnemy::LoadTuningFromJson(const std::filesystem::path& path, std::stri
 		const nlohmann::json& attackJ = j.contains("attack") ? j["attack"] : j;
 		const nlohmann::json& animationJ = j.contains("animation") ? j["animation"] : j;
 		const nlohmann::json& headLookJ = j.contains("headLook") ? j["headLook"] : j;
+		const nlohmann::json& separationJ = j.contains("separation") ? j["separation"] : j;
 		const nlohmann::json& attackPatternsJ = j.contains("attackPatterns") ? j["attackPatterns"] : j;
 		const nlohmann::json& scratchJ = attackPatternsJ.contains("scratch") ? attackPatternsJ["scratch"] : j;
 		const nlohmann::json& oneTwoJ = attackPatternsJ.contains("oneTwo") ? attackPatternsJ["oneTwo"] : j;
@@ -1344,6 +1401,11 @@ bool MeleeEnemy::LoadTuningFromJson(const std::filesystem::path& path, std::stri
 		headLookSettings_.pitchMinDeg = headLookJ.value("pitchMinDeg", headLookJ.value("headPitchMinDeg", headLookSettings_.pitchMinDeg));
 		headLookSettings_.pitchMaxDeg = headLookJ.value("pitchMaxDeg", headLookJ.value("headPitchMaxDeg", headLookSettings_.pitchMaxDeg));
 		headLookSettings_.lerpSpeed = headLookJ.value("lerpSpeed", headLookJ.value("headLookLerpSpeed", headLookSettings_.lerpSpeed));
+		separationSettings_.enabled = separationJ.value("enabled", separationSettings_.enabled);
+		separationSettings_.radius = separationJ.value("radius", separationSettings_.radius);
+		separationSettings_.strength = separationJ.value("strength", separationSettings_.strength);
+		separationSettings_.maxPushPerFrame = separationJ.value("maxPushPerFrame", separationSettings_.maxPushPerFrame);
+		separationSettings_.attackPushScale = separationJ.value("attackPushScale", separationSettings_.attackPushScale);
 		if (auto* s = attackController_.FindPattern(MeleeAttackType::Scratch))
 		{
 			auto& st = s->steps[0];
@@ -1416,6 +1478,7 @@ bool MeleeEnemy::SaveTuningToJson(const std::filesystem::path& path, std::string
 		j["attack"] = { { "selectedAttackType", static_cast<int>(attackSettings_.selectedAttackType) }, { "lockTime", attackSettings_.lockTime } };
 		j["animation"] = { { "visualYawOffset", animation_.visualYawOffset }, { "walkAnimSpeed", animation_.walkAnimSpeed }, { "walkArmSwing", animation_.walkArmSwing }, { "walkLegSwing", animation_.walkLegSwing }, { "attackArmSwing", animation_.attackArmSwing }, { "attackReturnSpeed", animation_.attackReturnSpeed }, { "attackBodyLean", animation_.attackBodyLean } };
 		j["headLook"] = { { "enabled", headLookSettings_.enabled }, { "yawLimitDeg", headLookSettings_.yawLimitDeg }, { "pitchMinDeg", headLookSettings_.pitchMinDeg }, { "pitchMaxDeg", headLookSettings_.pitchMaxDeg }, { "lerpSpeed", headLookSettings_.lerpSpeed } };
+		j["separation"] = { { "enabled", separationSettings_.enabled }, { "radius", separationSettings_.radius }, { "strength", separationSettings_.strength }, { "maxPushPerFrame", separationSettings_.maxPushPerFrame }, { "attackPushScale", separationSettings_.attackPushScale } };
 		// 保存対象は設定値のみで、ランタイム状態は書き出さない。
 		if (const auto* s = attackController_.FindPattern(MeleeAttackType::Scratch)) { const auto& st = s->steps[0]; j["attackPatterns"]["scratch"] = { {"damage", st.damage}, {"range", st.range}, {"radius", st.radius}, {"startTime", st.startTime}, {"activeTime", st.activeTime}, {"recoveryTime", s->recoveryTime}, {"cooldown", s->cooldown} }; }
 		if (const auto* o = attackController_.FindPattern(MeleeAttackType::OneTwo)) { const auto& l = o->steps[0]; const auto& r = o->steps[1]; j["attackPatterns"]["oneTwo"] = { {"leftDamage", l.damage}, {"rightDamage", r.damage}, {"leftRange", l.range}, {"rightRange", r.range}, {"leftRadius", l.radius}, {"rightRadius", r.radius}, {"leftStartTime", l.startTime}, {"rightStartTime", r.startTime}, {"leftActiveTime", l.activeTime}, {"rightActiveTime", r.activeTime}, {"forwardMoveSpeed", o->forwardMoveSpeed}, {"forwardMoveDuration", o->forwardMoveDuration}, {"recoveryTime", o->recoveryTime}, {"cooldown", o->cooldown} }; }
@@ -1445,6 +1508,7 @@ void MeleeEnemy::ResetTuningToDefault()
 	attackSettings_ = AttackSettings{};
 	animation_ = AnimationSettings{};
 	headLookSettings_ = HeadLookSettings{};
+	separationSettings_ = SeparationSettings{};
 	attackController_.Initialize();
 	navigator_.Reset();
 }

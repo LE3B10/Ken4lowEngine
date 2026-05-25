@@ -30,6 +30,7 @@
 #include <array>
 #include <numbers>
 #include <unordered_map>
+#include <cmath>
 
 using namespace Ken4lowEngine;
 
@@ -192,6 +193,8 @@ void DebugScene::Update()
 	{
 		enemy->Update(deltaTime);
 	}
+	// 通常更新の後段で個体間分離を適用し、移動やジャンプの挙動を壊しにくくする。
+	ResolveMeleeEnemySeparation(deltaTime);
 
 	UpdateDebugBossHitTest();
 
@@ -220,6 +223,53 @@ void DebugScene::Update()
 		stage_->Update();
 	}
 
+}
+
+void DebugScene::ResolveMeleeEnemySeparation(float deltaTime)
+{
+	(void)deltaTime;
+	for (auto& enemy : debugMeleeEnemies_)
+	{
+		enemy->BeginSeparationFrame();
+	}
+	for (size_t i = 0; i < debugMeleeEnemies_.size(); ++i)
+	{
+		MeleeEnemy* enemyA = debugMeleeEnemies_[i].get();
+		if (!enemyA) { continue; }
+		const auto& separationA = enemyA->GetSeparationSettings();
+		if (!separationA.enabled) { continue; }
+		for (size_t j = i + 1; j < debugMeleeEnemies_.size(); ++j)
+		{
+			MeleeEnemy* enemyB = debugMeleeEnemies_[j].get();
+			if (!enemyB) { continue; }
+			const auto& separationB = enemyB->GetSeparationSettings();
+			if (!separationB.enabled) { continue; }
+			const Vector3 posA = enemyA->GetCenterPosition();
+			const Vector3 posB = enemyB->GetCenterPosition();
+			Vector3 delta = posA - posB;
+			delta.y = 0.0f;
+			const float distance = std::sqrt(delta.x * delta.x + delta.z * delta.z);
+			const float minDistance = std::min(separationA.radius, separationB.radius);
+			if (distance >= minDistance) { continue; }
+			Vector3 pushDir = { 1.0f, 0.0f, 0.0f };
+			if (distance > 0.0001f)
+			{
+				pushDir = { delta.x / distance, 0.0f, delta.z / distance };
+			}
+			const float overlap = minDistance - distance;
+			const float strength = std::min(separationA.strength, separationB.strength);
+			const Vector3 basePush = pushDir * (overlap * strength);
+			const float attackScaleA = enemyA->IsAttacking() ? separationA.attackPushScale : 1.0f;
+			const float attackScaleB = enemyB->IsAttacking() ? separationB.attackPushScale : 1.0f;
+			const float deadScaleA = enemyA->IsDeadEnemy() ? 0.10f : 1.0f;
+			const float deadScaleB = enemyB->IsDeadEnemy() ? 0.10f : 1.0f;
+			// 片寄らないようにA/Bへ半分ずつ押し出し、攻撃中や死亡中は弱める。
+			enemyA->ApplySeparationPushXZ(basePush * 0.5f, attackScaleA * deadScaleA);
+			enemyB->ApplySeparationPushXZ(basePush * -0.5f, attackScaleB * deadScaleB);
+			enemyA->AddSeparationOverlapCount(1);
+			enemyB->AddSeparationOverlapCount(1);
+		}
+	}
 }
 
 void DebugScene::Draw3DObjects()

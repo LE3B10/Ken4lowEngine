@@ -65,6 +65,9 @@ private: /// ---------- メンバ関数 ---------- ///
 	/// テスト用GPUパーティクル発火
 	void UpdateDebugParticleTest();
 
+	// 近接敵同士のXZ分離をまとめて解決する
+	void ResolveMeleeEnemySeparation(float deltaTime);
+
 	// カリング確認用 Object3D を初期化
 	void InitializeCullingTestObjects();
 
