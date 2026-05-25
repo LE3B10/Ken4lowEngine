@@ -1,0 +1,17 @@
+{
+    "detectRange": 18.0,
+    "meleeAttackRange": 2.8,
+    "stopDistance": 1.8,
+    "attackStartRange": 2.4,
+    "resumeChaseDistance": 2.8,
+    "minOneTwoForwardDistance": 1.6,
+    "moveSpeed": 3.2,
+    "rotateSpeed": 8.0,
+    "maxResolvePushPerFrame": 0.75,
+    "maxHorizontalPushPerFrame": 0.45,
+    "jumpEnabled": true,
+    "jumpBaseVelocity": 12.0,
+    "jumpTargetHeightThreshold": 1.0,
+    "jumpHorizontalDistanceMax": 8.0,
+    "jumpCooldown": 0.9
+}

@@ -4,6 +4,7 @@
 #include "../AI/MeleeAttackController.h"
 #include "../Navigation/EnemyAStarNavigator.h"
 #include <string>
+#include <filesystem>
 
 namespace K4E = ::Ken4lowEngine;
 
@@ -227,6 +228,15 @@ private: /// ---------- 構造体 ---------- ///
 		std::string lastObstacleTopLandingName = "None";			 // 最後に上面着地した障害物名（デバッグ用）
 	};
 
+
+	// 調整データの保存・読み込み結果表示
+	struct TuningIoState
+	{
+		std::filesystem::path jsonPath = "Resources/Data/Enemy/MeleeEnemy_Normal.json";
+		std::string lastLoadResult = "未実行";
+		std::string lastSaveResult = "未実行";
+	};
+
 	// 徘徊の状態管理
 	struct WanderState
 	{
@@ -394,6 +404,15 @@ private: /// ---------- 内部処理 ---------- ///
 	// ステージの衝突を解決する処理（AABBとの衝突を解決して押し戻す）
 	const char* GetAnimStateName() const;
 
+	// 調整用パラメータのJSON読み込み処理
+	bool LoadTuningFromJson(const std::filesystem::path& path, std::string* outMessage = nullptr);
+
+	// 調整用パラメータのJSON保存処理
+	bool SaveTuningToJson(const std::filesystem::path& path, std::string* outMessage = nullptr) const;
+
+	// 調整用パラメータをデフォルト値に戻す処理
+	void ResetTuningToDefault();
+
 private: /// ---------- メンバ変数 ---------- //
 
 	// ターゲットのコライダーへのポインタ（プレイヤーなど）
@@ -467,4 +486,7 @@ private: /// ---------- メンバ変数 ---------- //
 
 	// デバッグ用の現在のアニメーション状態の名前
 	const char* currentBehaviorName_ = "None";
+
+	// 調整データのI/O状態
+	TuningIoState tuningIo_{};
 };

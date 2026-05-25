@@ -6,6 +6,8 @@
 #include <cstdlib>
 #include "Wireframe.h"
 #include "CollisionTypeIdDef.h"
+#include <fstream>
+#include <nlohmann/json.hpp>
 
 #ifdef USE_IMGUI
 #include <imgui.h>
@@ -58,6 +60,8 @@ void MeleeEnemy::Initialize()
 	collision_.lastSafePosition = spawnPosition_;
 	animation_.visualYawOffset = 0.0f;
 	animationState_.visualYawOffsetDeg = 0.0f;
+	// 初期化時に近接敵の調整データをJSONから読み込む
+	LoadTuningFromJson(tuningIo_.jsonPath, &tuningIo_.lastLoadResult);
 }
 
 void MeleeEnemy::Update(float deltaTime)
@@ -308,198 +312,65 @@ void MeleeEnemy::DrawImGui()
 	if (ImGui::Begin("MeleeEnemy Debug"))
 	{
 		EnemyBase::DrawImGui();
-		ImGui::SliderFloat("detectRange", &detection_.detectRange, 1.0f, 50.0f);
-		ImGui::SliderFloat("meleeAttackRange", &detection_.meleeAttackRange, 0.5f, 10.0f);
-		ImGui::SliderFloat("moveSpeed", &move_.moveSpeed, 0.1f, 10.0f);
-		ImGui::SliderFloat("stopDistance", &detection_.stopDistance, 0.5f, 6.0f);
-		ImGui::SliderFloat("attackStartRange", &detection_.attackStartRange, 0.5f, 8.0f);
-		ImGui::SliderFloat("resumeChaseDistance", &detection_.resumeChaseDistance, 0.5f, 10.0f);
-		ImGui::SliderFloat("attackLockTime", &attackSettings_.lockTime, 0.0f, 1.0f);
-		ImGui::SliderFloat("rotateSpeed", &move_.rotateSpeed, 0.1f, 20.0f);
-		ImGui::Text("visualYawOffset(rad): %.3f (fixed)", animation_.visualYawOffset);
-		ImGui::SliderFloat("walkAnimSpeed", &animation_.walkAnimSpeed, 1.0f, 18.0f);
-		ImGui::SliderFloat("walkArmSwing", &animation_.walkArmSwing, 0.0f, 1.5f);
-		ImGui::SliderFloat("walkLegSwing", &animation_.walkLegSwing, 0.0f, 1.5f);
-		ImGui::SliderFloat("attackArmSwing", &animation_.attackArmSwing, 0.0f, 2.0f);
-		ImGui::SliderFloat("attackReturnSpeed", &animation_.attackReturnSpeed, 1.0f, 24.0f);
-		ImGui::SliderFloat("attackBodyLean", &animation_.attackBodyLean, 0.0f, 0.4f);
-		ImGui::Checkbox("headLookEnabled", &headLookSettings_.enabled);
-		ImGui::SliderFloat("headYawLimitDeg", &headLookSettings_.yawLimitDeg, 10.0f, 120.0f);
-		ImGui::SliderFloat("headPitchMinDeg", &headLookSettings_.pitchMinDeg, -80.0f, 0.0f);
-		ImGui::SliderFloat("headPitchMaxDeg", &headLookSettings_.pitchMaxDeg, 0.0f, 80.0f);
-		ImGui::SliderFloat("headLookLerpSpeed", &headLookSettings_.lerpSpeed, 1.0f, 30.0f);
-		ImGui::SliderFloat("maxResolvePushPerFrame", &move_.maxResolvePushPerFrame, 0.05f, 2.0f);
-		ImGui::Checkbox("obstacleTopLandingEnabled", &move_.obstacleTopLandingEnabled);
-		ImGui::SliderFloat("obstacleTopLandingTolerance", &move_.obstacleTopLandingTolerance, 0.01f, 1.0f);
-		ImGui::SliderFloat("obstacleTopLandingMaxHeight", &move_.obstacleTopLandingMaxHeight, 0.3f, 8.0f);
-		ImGui::SliderFloat("obstacleTopLandingMinHorizontalOverlap", &move_.obstacleTopLandingMinHorizontalOverlap, 0.01f, 1.5f);
-		ImGui::SliderFloat("stuckCheckTime", &stuckSettings_.checkTime, 0.1f, 3.0f);
-		ImGui::SliderFloat("stuckDistance", &stuckSettings_.distance, 0.01f, 2.0f);
-		ImGui::SliderFloat("stuckMoveThreshold", &stuckSettings_.moveThreshold, 0.03f, 1.2f);
-		ImGui::SliderFloat("repathInterval", &pathSettings_.repathInterval, 0.05f, 2.0f);
-		ImGui::SliderFloat("waypointReachDistance", &pathSettings_.waypointReachDistance, 0.5f, 1.5f);
-		ImGui::Checkbox("pathFindEnabled", &pathSettings_.enabled);
-		ImGui::Checkbox("jumpEnabled", &jump_.enabled);
-		ImGui::SliderFloat("baseJumpVelocity", &jump_.baseVelocity, 2.0f, 18.0f);
-		ImGui::SliderFloat("jumpExtraBoost", &jump_.extraBoost, 0.0f, 8.0f);
-		ImGui::SliderFloat("jumpGravityEstimate", &jump_.gravityEstimate, 1.0f, 40.0f);
-		ImGui::SliderFloat("maxJumpVelocity", &jump_.maxVelocity, 1.0f, 30.0f);
-		ImGui::SliderFloat("jumpTargetHeightThreshold", &jump_.targetHeightThreshold, 0.1f, 5.0f);
-		ImGui::SliderFloat("jumpHorizontalDistanceMax", &jump_.horizontalDistanceMax, 0.5f, 20.0f);
-		ImGui::SliderFloat("jumpCooldown", &jump_.cooldown, 0.0f, 3.0f);
-		const float prevGridSize = pathSettings_.gridSize;
-		ImGui::SliderFloat("pathGridSize", &pathSettings_.gridSize, 0.5f, 1.0f);
-		if (std::abs(prevGridSize - pathSettings_.gridSize) > kEpsilon) { navigator_.Reset(); pathState_.lastRepathReason = "GridSizeChanged"; }
-		ImGui::SliderFloat("pathSearchRadius", &pathSettings_.searchRadius, 6.0f, 80.0f);
-		ImGui::SliderFloat("obstacleExpandRadius", &pathSettings_.obstacleExpandRadius, 0.7f, 1.6f);
-		ImGui::SliderFloat("temporaryBlockDuration", &pathSettings_.temporaryBlockDuration, 0.3f, 4.0f);
-		ImGui::SliderFloat("temporaryBlockRadius", &pathSettings_.temporaryBlockRadius, 0.4f, 2.2f);
-		ImGui::Checkbox("cornerCuttingDisabled", &pathSettings_.cornerCuttingDisabled);
-
-		int attackSelect = static_cast<int>(attackSettings_.selectedAttackType);
-		const char* attackItems[] = { "Scratch", "OneTwo" };
-		if (ImGui::Combo("AttackPattern", &attackSelect, attackItems, IM_ARRAYSIZE(attackItems)))
+		if (ImGui::CollapsingHeader("データ保存/読み込み", ImGuiTreeNodeFlags_DefaultOpen))
 		{
-			attackSettings_.selectedAttackType = static_cast<MeleeAttackType>(attackSelect);
+			if (ImGui::Button("読み込み")) { LoadTuningFromJson(tuningIo_.jsonPath, &tuningIo_.lastLoadResult); }
+			ImGui::SameLine();
+			if (ImGui::Button("保存")) { SaveTuningToJson(tuningIo_.jsonPath, &tuningIo_.lastSaveResult); }
+			ImGui::SameLine();
+			if (ImGui::Button("デフォルトに戻す")) { ResetTuningToDefault(); tuningIo_.lastLoadResult = "デフォルト値へ復帰"; }
+			ImGui::Text("保存先: %s", tuningIo_.jsonPath.string().c_str());
+			ImGui::Text("読み込み結果: %s", tuningIo_.lastLoadResult.c_str());
+			ImGui::Text("保存結果: %s", tuningIo_.lastSaveResult.c_str());
 		}
-		ImGui::Text("Selected Attack: %s", attackItems[attackSelect]);
-		ImGui::Text("Current BT: %s", currentBehaviorName_);
-		ImGui::Text("Current Attack Name: %s", attackController_.GetCurrentAttackName());
-		ImGui::Text("Distance To Target: %.2f", GetDistanceToTarget());
-		ImGui::Text("Is Attacking: %s", attackController_.IsAttacking() ? "true" : "false");
-		ImGui::Text("Stuck: %s", stuck_.isStuck ? "true" : "false");
-		ImGui::Text("Position: (%.2f, %.2f, %.2f)", GetCenterPosition().x, GetCenterPosition().y, GetCenterPosition().z);
-		ImGui::Text("Velocity: (%.2f, %.2f, %.2f)", GetVelocity().x, GetVelocity().y, GetVelocity().z);
-		ImGui::Text("Attack Elapsed: %.2f", attackController_.GetAttackElapsed());
-		ImGui::Text("Attack Step Index: %d", attackController_.GetCurrentStepIndex());
-		ImGui::Text("Cooldown Remaining: %.2f", attackController_.GetCooldownRemaining());
-		ImGui::Text("attackLockTimer: %.2f", attackState_.lockTimer);
-		ImGui::Text("Attack Active: %s", attackController_.IsCurrentStepActive() ? "true" : "false");
-		ImGui::Text("Last Hit: %s", attackController_.WasLastHitSuccess() ? "Hit" : "Miss");
-		ImGui::Text("Scratch Arm: %s", scratchArmState_.useLeftArm ? "Left" : "Right");
-		ImGui::Text("Path Found: %s", pathState_.found ? "true" : "false");
-		ImGui::Text("Obstacle Count: %zu", GetResolvedWorldAABBs() ? GetResolvedWorldAABBs()->size() : 0);
-		ImGui::Text("isCollidingWithStage: %s", collision_.isCollidingWithStage ? "true" : "false");
-		ImGui::Text("lastStageCollisionType: %s", collision_.lastStageCollisionType.c_str());
-		ImGui::Text("lastStageCollisionName: %s", collision_.lastStageCollisionName.c_str());
-		ImGui::Text("usingWorldAABBCount: %d", collision_.usingWorldAABBCount);
-		ImGui::Text("floorAABBCount: %d", floorAABBs_ ? static_cast<int>(floorAABBs_->size()) : collision_.usingWorldAABBCount);
-		ImGui::Text("wallObstacleAABBCount: %d", wallObstacleAABBs_ ? static_cast<int>(wallObstacleAABBs_->size()) : collision_.usingObstacleAABBCount);
-		ImGui::Text("usingObstacleAABBCount: %d", collision_.usingObstacleAABBCount);
-		ImGui::Text("collisionManagerRegistered: %s", collision_.collisionManagerRegistered ? "true" : "false");
-		ImGui::Text("lastCollisionCount: %d", collision_.lastCollisionCount);
-		ImGui::Text("blockedByObstacle: %s", collision_.blockedByObstacle ? "true" : "false");
-		ImGui::Text("isOnFloor: %s", collision_.isOnFloor ? "true" : "false");
-		ImGui::Text("isOverlappingWallObstacle: %s", collision_.isOverlappingWallObstacle ? "true" : "false");
-		ImGui::Text("lastWallObstacleName: %s", collision_.lastWallObstacleName.c_str());
-		ImGui::Text("lastObstacleTopLandingName: %s", collision_.lastObstacleTopLandingName.c_str());
-		ImGui::Text("landedOnObstacleTop: %s", collision_.landedOnObstacleTop ? "true" : "false");
-		ImGui::Text("lastWallResolvePush: (%.2f, %.2f, %.2f)", collision_.lastWallResolvePush.x, collision_.lastWallResolvePush.y, collision_.lastWallResolvePush.z);
-		ImGui::Text("lastBlockedObstacleName: %s", collision_.lastBlockedObstacleName.c_str());
-		ImGui::Text("Path Node Count: %d", static_cast<int>(navigator_.GetCurrentPath().size()));
-		ImGui::Text("Current Waypoint Index: %d", navigator_.GetCurrentPathIndex());
-		ImGui::Text("Current Waypoint: (%.2f, %.2f, %.2f)", pathState_.currentWaypoint.x, pathState_.currentWaypoint.y, pathState_.currentWaypoint.z);
-		ImGui::Text("Last Repath Timer: %.2f", pathState_.lastRepathTimer);
-		ImGui::Text("Repath Timer: %.2f", navigator_.GetRepathTimer());
-		ImGui::Text("TargetMovedDistanceForRepath: %.2f", pathState_.targetMovedDistanceForRepath);
-		ImGui::Text("Path Failure Reason: %s", pathState_.failureReason.c_str());
-		ImGui::Text("Last Repath Reason: %s", pathState_.lastRepathReason.c_str());
-		ImGui::Text("lineBlocked: %s", pathState_.lineBlocked ? "true" : "false");
-		ImGui::Text("blockedObstacleName: %s", pathState_.blockedObstacleName.c_str());
-		ImGui::Text("blockedWaypointIndex: %d", pathState_.blockedWaypointIndex);
-		ImGui::Text("stuckTimer: %.2f", stuck_.timer);
-		ImGui::Text("lastMovedDistance: %.3f", pathState_.lastMovedDistance);
-		ImGui::Text("temporaryBlockedCellCount: %d", static_cast<int>(navigator_.GetTemporaryBlockedAreas().size()));
-		ImGui::Text("cornerCuttingDisabled: %s", pathSettings_.cornerCuttingDisabled ? "true" : "false");
-		ImGui::Text("Grounded: %s", grounded_ ? "true" : "false");
-		ImGui::Text("jumpCooldownTimer: %.2f", jumpState_.cooldownTimer);
-		ImGui::Text("targetHeightDelta: %.2f", jumpState_.targetHeightDelta);
-		ImGui::Text("calculatedJumpVelocity: %.2f", jumpState_.calculatedVelocity);
-		ImGui::Text("appliedJumpVelocity: %.2f", jumpState_.appliedVelocity);
-		ImGui::Text("lastJumpReason: %s", jumpState_.lastReason.c_str());
-		ImGui::Text("AnimState: %s", GetAnimStateName());
-		ImGui::Text("lastSafePosition: (%.2f, %.2f, %.2f)", collision_.lastSafePosition.x, collision_.lastSafePosition.y, collision_.lastSafePosition.z);
-		ImGui::Text("isOutsideStage: %s", collision_.isOutsideStage ? "true" : "false");
-		ImGui::Text("lastResolvePush: (%.2f, %.2f, %.2f)", collision_.lastResolvePush.x, collision_.lastResolvePush.y, collision_.lastResolvePush.z);
-		ImGui::Text("pushedByWallThisFrame: %s", collision_.pushedThisFrame ? "true" : "false");
-		ImGui::Text("restoredToSafePosition: %s", collision_.restoredToSafePosition ? "true" : "false");
-		const Vector3 tgt = GetTargetPosition();
-		ImGui::Text("Target: (%.2f, %.2f, %.2f)", tgt.x, tgt.y, tgt.z);
-		ImGui::Text("rawYaw(rad): %.3f", animationState_.rawYaw);
-		ImGui::Text("finalVisualYaw(rad): %.3f", animationState_.finalVisualYaw);
-		ImGui::Text("rawYaw(deg): %.1f", animationState_.rawYaw * (180.0f / kPi));
-		ImGui::Text("finalVisualYaw(deg): %.1f", animationState_.finalVisualYaw * (180.0f / kPi));
-		ImGui::Text("currentYaw(deg): %.1f", animationState_.debugCurrentYaw * (180.0f / kPi));
-		ImGui::Text("targetYaw(deg): %.1f", animationState_.debugTargetYaw * (180.0f / kPi));
-		ImGui::Text("deltaYaw(deg): %.1f", animationState_.debugDeltaYaw * (180.0f / kPi));
-		ImGui::Text("normalizedDeltaYaw(deg): %.1f", animationState_.debugNormalizedDeltaYaw * (180.0f / kPi));
-		ImGui::Text("rotateSpeed: %.2f", move_.rotateSpeed);
-		ImGui::Text("facingDirection: (%.2f, %.2f, %.2f)", animationState_.facingDirection.x, animationState_.facingDirection.y, animationState_.facingDirection.z);
-		ImGui::Text("movementDir: (%.2f, %.2f, %.2f)", animationState_.movementDirection.x, animationState_.movementDirection.y, animationState_.movementDirection.z);
-		ImGui::Text("targetDirection: (%.2f, %.2f, %.2f)", animationState_.targetDirection.x, animationState_.targetDirection.y, animationState_.targetDirection.z);
-		ImGui::Text("visualForward: (%.2f, %.2f, %.2f)", animationState_.visualForward.x, animationState_.visualForward.y, animationState_.visualForward.z);
-		ImGui::Text("attackForward: (%.2f, %.2f, %.2f)", animationState_.attackForward.x, animationState_.attackForward.y, animationState_.attackForward.z);
-		ImGui::Text("headCurrentYaw(deg): %.1f", headLookState_.currentYaw);
-		ImGui::Text("headCurrentPitch(deg): %.1f", headLookState_.currentPitch);
-		ImGui::Text("headTargetYaw(deg): %.1f", headLookState_.targetYaw);
-		ImGui::Text("headTargetPitch(deg): %.1f", headLookState_.targetPitch);
-		ImGui::Text("headLookTargetVisible: %s", headLookState_.targetVisible ? "true" : "false");
-		ImGui::Text("headLookReason: %s", headLookState_.reason.c_str());
-		if (ImGui::Button("Force Scratch Attack")) { ForceAttack(MeleeAttackType::Scratch); }
-		ImGui::SameLine();
-		if (ImGui::Button("Force OneTwo Attack")) { ForceAttack(MeleeAttackType::OneTwo); }
-		if (ImGui::Button("Stop Attack")) { StopAttack(); }
-		ImGui::SameLine();
-		if (ImGui::Button("Reset Cooldown")) { ResetAttackCooldown(); }
-		if (ImGui::Button("Teleport Near Target"))
-		{
-			Vector3 p = GetTargetPosition();
-			p.z -= 1.2f;
-			SetCenterPosition(p);
+		if (ImGui::CollapsingHeader("検知・攻撃距離", ImGuiTreeNodeFlags_DefaultOpen)) {
+			ImGui::SliderFloat("検知範囲", &detection_.detectRange, 1.0f, 50.0f);
+			ImGui::SliderFloat("近接攻撃距離", &detection_.meleeAttackRange, 0.5f, 10.0f);
+			ImGui::SliderFloat("停止距離", &detection_.stopDistance, 0.5f, 6.0f);
+			ImGui::SliderFloat("攻撃開始距離", &detection_.attackStartRange, 0.5f, 8.0f);
+			ImGui::SliderFloat("追跡再開距離", &detection_.resumeChaseDistance, 0.5f, 10.0f);
+			ImGui::SliderFloat("OneTwo前進最小距離", &detection_.minOneTwoForwardDistance, 0.1f, 5.0f);
 		}
-		ImGui::SameLine();
-		if (ImGui::Button("Reset Position")) { SetCenterPosition(spawnPosition_); }
-
-		if (MeleeAttackPattern* scratch = attackController_.FindPattern(MeleeAttackType::Scratch))
-		{
-			if (ImGui::TreeNode("Scratch Params"))
-			{
-				MeleeAttackStep& step = scratch->steps[0];
-				ImGui::SliderInt("Scratch Damage", &step.damage, 1, 50);
-				ImGui::SliderFloat("Scratch Range", &step.range, 0.5f, 6.0f);
-				ImGui::SliderFloat("Scratch Radius", &step.radius, 0.1f, 3.0f);
-				ImGui::SliderFloat("Scratch Startup", &step.startTime, 0.01f, 1.5f);
-				ImGui::SliderFloat("Scratch Active", &step.activeTime, 0.01f, 1.0f);
-				ImGui::SliderFloat("Scratch Recovery", &scratch->recoveryTime, 0.01f, 2.0f);
-				ImGui::SliderFloat("Scratch Cooldown", &scratch->cooldown, 0.01f, 3.0f);
-				ImGui::TreePop();
-			}
+		if (ImGui::CollapsingHeader("移動", ImGuiTreeNodeFlags_DefaultOpen)) {
+			ImGui::SliderFloat("移動速度", &move_.moveSpeed, 0.1f, 10.0f);
+			ImGui::SliderFloat("回転速度", &move_.rotateSpeed, 0.1f, 20.0f);
+			ImGui::SliderFloat("最大押し戻し量", &move_.maxResolvePushPerFrame, 0.05f, 2.0f);
+			ImGui::SliderFloat("水平押し戻し量", &move_.maxHorizontalPushPerFrame, 0.05f, 2.0f);
 		}
-
-		if (MeleeAttackPattern* oneTwo = attackController_.FindPattern(MeleeAttackType::OneTwo))
-		{
-			if (ImGui::TreeNode("OneTwo Params"))
-			{
-				MeleeAttackStep& left = oneTwo->steps[0];
-				MeleeAttackStep& right = oneTwo->steps[1];
-				ImGui::SliderInt("OneTwo Left Damage", &left.damage, 1, 50);
-				ImGui::SliderFloat("OneTwo Left Start", &left.startTime, 0.01f, 1.5f);
-				ImGui::SliderFloat("OneTwo Left Active", &left.activeTime, 0.01f, 1.0f);
-				ImGui::SliderFloat("OneTwo Left Range", &left.range, 0.5f, 6.0f);
-				ImGui::SliderFloat("OneTwo Left Radius", &left.radius, 0.1f, 3.0f);
-				ImGui::SliderInt("OneTwo Right Damage", &right.damage, 1, 50);
-				ImGui::SliderFloat("OneTwo Right Start", &right.startTime, 0.01f, 2.0f);
-				ImGui::SliderFloat("OneTwo Right Active", &right.activeTime, 0.01f, 1.0f);
-				ImGui::SliderFloat("OneTwo Right Range", &right.range, 0.5f, 6.0f);
-				ImGui::SliderFloat("OneTwo Right Radius", &right.radius, 0.1f, 3.0f);
-				ImGui::SliderFloat("OneTwo Forward Speed", &oneTwo->forwardMoveSpeed, 0.0f, 5.0f);
-				ImGui::SliderFloat("OneTwo Forward Duration", &oneTwo->forwardMoveDuration, 0.0f, 2.0f);
-				ImGui::SliderFloat("OneTwo MinForwardDistance", &detection_.minOneTwoForwardDistance, 0.1f, 5.0f);
-				ImGui::SliderFloat("OneTwo Recovery", &oneTwo->recoveryTime, 0.01f, 2.0f);
-				ImGui::SliderFloat("OneTwo Cooldown", &oneTwo->cooldown, 0.01f, 3.0f);
-				ImGui::TreePop();
-			}
+		if (ImGui::CollapsingHeader("ジャンプ", ImGuiTreeNodeFlags_DefaultOpen)) {
+			ImGui::Checkbox("ジャンプ有効", &jump_.enabled);
+			ImGui::SliderFloat("ジャンプ基礎速度", &jump_.baseVelocity, 2.0f, 18.0f);
+			ImGui::SliderFloat("高さ閾値", &jump_.targetHeightThreshold, 0.1f, 5.0f);
+			ImGui::SliderFloat("水平距離上限", &jump_.horizontalDistanceMax, 0.5f, 20.0f);
+			ImGui::SliderFloat("ジャンプクールダウン", &jump_.cooldown, 0.0f, 3.0f);
 		}
+		if (ImGui::CollapsingHeader("経路探索", ImGuiTreeNodeFlags_DefaultOpen)) {
+			ImGui::Checkbox("経路探索を使う", &pathSettings_.enabled);
+			ImGui::SliderFloat("再探索間隔", &pathSettings_.repathInterval, 0.05f, 2.0f);
+			ImGui::SliderFloat("到達判定距離", &pathSettings_.waypointReachDistance, 0.5f, 1.5f);
+			ImGui::SliderFloat("グリッドサイズ", &pathSettings_.gridSize, 0.5f, 2.0f);
+			ImGui::SliderFloat("探索半径", &pathSettings_.searchRadius, 6.0f, 80.0f);
+			ImGui::SliderFloat("障害物拡張半径", &pathSettings_.obstacleExpandRadius, 0.7f, 1.6f);
+			ImGui::SliderFloat("一時ブロック時間", &pathSettings_.temporaryBlockDuration, 0.3f, 4.0f);
+			ImGui::SliderFloat("一時ブロック半径", &pathSettings_.temporaryBlockRadius, 0.4f, 2.2f);
+			ImGui::Checkbox("角抜け無効", &pathSettings_.cornerCuttingDisabled);
+		}
+		if (ImGui::CollapsingHeader("スタック", ImGuiTreeNodeFlags_DefaultOpen)) {
+			ImGui::SliderFloat("判定時間", &stuckSettings_.checkTime, 0.1f, 3.0f);
+			ImGui::SliderFloat("判定距離", &stuckSettings_.distance, 0.01f, 2.0f);
+			ImGui::SliderFloat("移動閾値", &stuckSettings_.moveThreshold, 0.03f, 1.2f);
+		}
+		if (ImGui::CollapsingHeader("攻撃パターン", ImGuiTreeNodeFlags_DefaultOpen)) {
+			ImGui::SliderFloat("攻撃ロック時間", &attackSettings_.lockTime, 0.0f, 1.0f);
+			int attackSelect = static_cast<int>(attackSettings_.selectedAttackType);
+			const char* items[] = { "ひっかき", "ワンツー" };
+			if (ImGui::Combo("選択攻撃", &attackSelect, items, IM_ARRAYSIZE(items))) { attackSettings_.selectedAttackType = static_cast<MeleeAttackType>(attackSelect); }
+			if (MeleeAttackPattern* scratch = attackController_.FindPattern(MeleeAttackType::Scratch)) { MeleeAttackStep& st = scratch->steps[0]; ImGui::SliderInt("ひっかき ダメージ", &st.damage, 1, 50); ImGui::SliderFloat("ひっかき 射程", &st.range, 0.5f, 6.0f); ImGui::SliderFloat("ひっかき 半径", &st.radius, 0.1f, 3.0f); ImGui::SliderFloat("ひっかき 開始", &st.startTime, 0.01f, 1.5f); ImGui::SliderFloat("ひっかき 有効", &st.activeTime, 0.01f, 1.0f); ImGui::SliderFloat("ひっかき 硬直", &scratch->recoveryTime, 0.01f, 2.0f); ImGui::SliderFloat("ひっかき CT", &scratch->cooldown, 0.01f, 3.0f); }
+			if (MeleeAttackPattern* oneTwo = attackController_.FindPattern(MeleeAttackType::OneTwo)) { MeleeAttackStep& l = oneTwo->steps[0]; MeleeAttackStep& r = oneTwo->steps[1]; ImGui::SliderInt("ワンツー左 ダメージ", &l.damage, 1, 50); ImGui::SliderFloat("ワンツー左 射程", &l.range, 0.5f, 6.0f); ImGui::SliderFloat("ワンツー左 半径", &l.radius, 0.1f, 3.0f); ImGui::SliderFloat("ワンツー左 開始", &l.startTime, 0.01f, 1.5f); ImGui::SliderFloat("ワンツー左 有効", &l.activeTime, 0.01f, 1.0f); ImGui::SliderInt("ワンツー右 ダメージ", &r.damage, 1, 50); ImGui::SliderFloat("ワンツー右 射程", &r.range, 0.5f, 6.0f); ImGui::SliderFloat("ワンツー右 半径", &r.radius, 0.1f, 3.0f); ImGui::SliderFloat("ワンツー右 開始", &r.startTime, 0.01f, 2.0f); ImGui::SliderFloat("ワンツー右 有効", &r.activeTime, 0.01f, 1.0f); ImGui::SliderFloat("ワンツー 前進速度", &oneTwo->forwardMoveSpeed, 0.0f, 5.0f); ImGui::SliderFloat("ワンツー 前進時間", &oneTwo->forwardMoveDuration, 0.0f, 2.0f); ImGui::SliderFloat("ワンツー 硬直", &oneTwo->recoveryTime, 0.01f, 2.0f); ImGui::SliderFloat("ワンツー CT", &oneTwo->cooldown, 0.01f, 3.0f); }
+		}
+		if (ImGui::CollapsingHeader("アニメーション", ImGuiTreeNodeFlags_DefaultOpen)) { ImGui::SliderFloat("歩行速度", &animation_.walkAnimSpeed, 1.0f, 18.0f); ImGui::SliderFloat("腕振り", &animation_.walkArmSwing, 0.0f, 1.5f); ImGui::SliderFloat("脚振り", &animation_.walkLegSwing, 0.0f, 1.5f); ImGui::SliderFloat("攻撃腕振り", &animation_.attackArmSwing, 0.0f, 2.0f); ImGui::SliderFloat("攻撃復帰速度", &animation_.attackReturnSpeed, 1.0f, 24.0f); ImGui::SliderFloat("攻撃体傾き", &animation_.attackBodyLean, 0.0f, 0.4f); }
+		if (ImGui::CollapsingHeader("頭向き", ImGuiTreeNodeFlags_DefaultOpen)) { ImGui::Checkbox("頭をターゲットへ向ける", &headLookSettings_.enabled); ImGui::SliderFloat("ヨー制限", &headLookSettings_.yawLimitDeg, 10.0f, 120.0f); ImGui::SliderFloat("ピッチ最小", &headLookSettings_.pitchMinDeg, -80.0f, 0.0f); ImGui::SliderFloat("ピッチ最大", &headLookSettings_.pitchMaxDeg, 0.0f, 80.0f); ImGui::SliderFloat("補間速度", &headLookSettings_.lerpSpeed, 1.0f, 30.0f); }
+		if (ImGui::CollapsingHeader("状態表示", ImGuiTreeNodeFlags_DefaultOpen)) { ImGui::Text("現在行動: %s", currentBehaviorName_); ImGui::Text("攻撃中: %s", attackController_.IsAttacking() ? "はい" : "いいえ"); ImGui::Text("ターゲット距離: %.2f", GetDistanceToTarget()); }
 	}
 	ImGui::End();
 #endif
@@ -1010,4 +881,167 @@ const char* MeleeEnemy::GetAnimStateName() const
 	case AnimState::Dead: return "Dead";
 	default: return "Unknown";
 	}
+}
+
+bool MeleeEnemy::LoadTuningFromJson(const std::filesystem::path& path, std::string* outMessage)
+{
+	try
+	{
+		std::ifstream ifs(path);
+		if (!ifs.is_open())
+		{
+			if (outMessage) { *outMessage = "ファイルなし: デフォルト値を使用"; }
+			return false;
+		}
+		nlohmann::json j;
+		ifs >> j;
+		// JSONの値を調整パラメータへ反映する
+		detection_.detectRange = j.value("detectRange", detection_.detectRange);
+		detection_.meleeAttackRange = j.value("meleeAttackRange", detection_.meleeAttackRange);
+		detection_.stopDistance = j.value("stopDistance", detection_.stopDistance);
+		detection_.attackStartRange = j.value("attackStartRange", detection_.attackStartRange);
+		detection_.resumeChaseDistance = j.value("resumeChaseDistance", detection_.resumeChaseDistance);
+		detection_.minOneTwoForwardDistance = j.value("minOneTwoForwardDistance", detection_.minOneTwoForwardDistance);
+		move_.moveSpeed = j.value("moveSpeed", move_.moveSpeed);
+		move_.rotateSpeed = j.value("rotateSpeed", move_.rotateSpeed);
+		move_.maxResolvePushPerFrame = j.value("maxResolvePushPerFrame", move_.maxResolvePushPerFrame);
+		move_.maxHorizontalPushPerFrame = j.value("maxHorizontalPushPerFrame", move_.maxHorizontalPushPerFrame);
+		jump_.enabled = j.value("jumpEnabled", jump_.enabled);
+		jump_.baseVelocity = j.value("jumpBaseVelocity", jump_.baseVelocity);
+		jump_.targetHeightThreshold = j.value("jumpTargetHeightThreshold", jump_.targetHeightThreshold);
+		jump_.horizontalDistanceMax = j.value("jumpHorizontalDistanceMax", jump_.horizontalDistanceMax);
+		jump_.cooldown = j.value("jumpCooldown", jump_.cooldown);
+		pathSettings_.enabled = j.value("pathFindEnabled", pathSettings_.enabled);
+		pathSettings_.repathInterval = j.value("repathInterval", pathSettings_.repathInterval);
+		pathSettings_.waypointReachDistance = j.value("waypointReachDistance", pathSettings_.waypointReachDistance);
+		pathSettings_.gridSize = j.value("pathGridSize", pathSettings_.gridSize);
+		pathSettings_.searchRadius = j.value("pathSearchRadius", pathSettings_.searchRadius);
+		pathSettings_.obstacleExpandRadius = j.value("obstacleExpandRadius", pathSettings_.obstacleExpandRadius);
+		pathSettings_.temporaryBlockDuration = j.value("temporaryBlockDuration", pathSettings_.temporaryBlockDuration);
+		pathSettings_.temporaryBlockRadius = j.value("temporaryBlockRadius", pathSettings_.temporaryBlockRadius);
+		pathSettings_.cornerCuttingDisabled = j.value("cornerCuttingDisabled", pathSettings_.cornerCuttingDisabled);
+		stuckSettings_.checkTime = j.value("stuckCheckTime", stuckSettings_.checkTime);
+		stuckSettings_.distance = j.value("stuckDistance", stuckSettings_.distance);
+		stuckSettings_.moveThreshold = j.value("stuckMoveThreshold", stuckSettings_.moveThreshold);
+		attackSettings_.lockTime = j.value("attackLockTime", attackSettings_.lockTime);
+		attackSettings_.selectedAttackType = static_cast<MeleeAttackType>(j.value("selectedAttackType", static_cast<int>(attackSettings_.selectedAttackType)));
+		animation_.walkAnimSpeed = j.value("walkAnimSpeed", animation_.walkAnimSpeed);
+		animation_.walkArmSwing = j.value("walkArmSwing", animation_.walkArmSwing);
+		animation_.walkLegSwing = j.value("walkLegSwing", animation_.walkLegSwing);
+		animation_.attackArmSwing = j.value("attackArmSwing", animation_.attackArmSwing);
+		animation_.attackReturnSpeed = j.value("attackReturnSpeed", animation_.attackReturnSpeed);
+		animation_.attackBodyLean = j.value("attackBodyLean", animation_.attackBodyLean);
+		headLookSettings_.enabled = j.value("headLookEnabled", headLookSettings_.enabled);
+		headLookSettings_.yawLimitDeg = j.value("headYawLimitDeg", headLookSettings_.yawLimitDeg);
+		headLookSettings_.pitchMinDeg = j.value("headPitchMinDeg", headLookSettings_.pitchMinDeg);
+		headLookSettings_.pitchMaxDeg = j.value("headPitchMaxDeg", headLookSettings_.pitchMaxDeg);
+		headLookSettings_.lerpSpeed = j.value("headLookLerpSpeed", headLookSettings_.lerpSpeed);
+		if (auto* s = attackController_.FindPattern(MeleeAttackType::Scratch))
+		{
+			auto& st = s->steps[0];
+			st.damage = j.value("scratchDamage", st.damage);
+			st.range = j.value("scratchRange", st.range);
+			st.radius = j.value("scratchRadius", st.radius);
+			st.startTime = j.value("scratchStartTime", st.startTime);
+			st.activeTime = j.value("scratchActiveTime", st.activeTime);
+			s->recoveryTime = j.value("scratchRecoveryTime", s->recoveryTime);
+			s->cooldown = j.value("scratchCooldown", s->cooldown);
+		}
+		if (auto* o = attackController_.FindPattern(MeleeAttackType::OneTwo))
+		{
+			auto& l = o->steps[0]; auto& r = o->steps[1];
+			l.damage = j.value("oneTwoLeftDamage", l.damage); r.damage = j.value("oneTwoRightDamage", r.damage);
+			l.range = j.value("oneTwoLeftRange", l.range); r.range = j.value("oneTwoRightRange", r.range);
+			l.radius = j.value("oneTwoLeftRadius", l.radius); r.radius = j.value("oneTwoRightRadius", r.radius);
+			l.startTime = j.value("oneTwoLeftStartTime", l.startTime); r.startTime = j.value("oneTwoRightStartTime", r.startTime);
+			l.activeTime = j.value("oneTwoLeftActiveTime", l.activeTime); r.activeTime = j.value("oneTwoRightActiveTime", r.activeTime);
+			o->forwardMoveSpeed = j.value("oneTwoForwardMoveSpeed", o->forwardMoveSpeed);
+			o->forwardMoveDuration = j.value("oneTwoForwardMoveDuration", o->forwardMoveDuration);
+			o->recoveryTime = j.value("oneTwoRecoveryTime", o->recoveryTime);
+			o->cooldown = j.value("oneTwoCooldown", o->cooldown);
+		}
+		navigator_.Reset();
+		if (outMessage) { *outMessage = "読み込み成功"; }
+		return true;
+	}
+	catch (const std::exception& e)
+	{
+		if (outMessage) { *outMessage = std::string("読み込み失敗: ") + e.what(); }
+		return false;
+	}
+}
+
+bool MeleeEnemy::SaveTuningToJson(const std::filesystem::path& path, std::string* outMessage) const
+{
+	try
+	{
+		nlohmann::json j;
+		j["detectRange"] = detection_.detectRange;
+		j["meleeAttackRange"] = detection_.meleeAttackRange;
+		j["stopDistance"] = detection_.stopDistance;
+		j["attackStartRange"] = detection_.attackStartRange;
+		j["resumeChaseDistance"] = detection_.resumeChaseDistance;
+		j["minOneTwoForwardDistance"] = detection_.minOneTwoForwardDistance;
+		j["moveSpeed"] = move_.moveSpeed;
+		j["rotateSpeed"] = move_.rotateSpeed;
+		j["maxResolvePushPerFrame"] = move_.maxResolvePushPerFrame;
+		j["maxHorizontalPushPerFrame"] = move_.maxHorizontalPushPerFrame;
+		j["jumpEnabled"] = jump_.enabled;
+		j["jumpBaseVelocity"] = jump_.baseVelocity;
+		j["jumpTargetHeightThreshold"] = jump_.targetHeightThreshold;
+		j["jumpHorizontalDistanceMax"] = jump_.horizontalDistanceMax;
+		j["jumpCooldown"] = jump_.cooldown;
+		j["pathFindEnabled"] = pathSettings_.enabled;
+		j["repathInterval"] = pathSettings_.repathInterval;
+		j["waypointReachDistance"] = pathSettings_.waypointReachDistance;
+		j["pathGridSize"] = pathSettings_.gridSize;
+		j["pathSearchRadius"] = pathSettings_.searchRadius;
+		j["obstacleExpandRadius"] = pathSettings_.obstacleExpandRadius;
+		j["temporaryBlockDuration"] = pathSettings_.temporaryBlockDuration;
+		j["temporaryBlockRadius"] = pathSettings_.temporaryBlockRadius;
+		j["cornerCuttingDisabled"] = pathSettings_.cornerCuttingDisabled;
+		j["stuckCheckTime"] = stuckSettings_.checkTime;
+		j["stuckDistance"] = stuckSettings_.distance;
+		j["stuckMoveThreshold"] = stuckSettings_.moveThreshold;
+		j["attackLockTime"] = attackSettings_.lockTime;
+		j["selectedAttackType"] = static_cast<int>(attackSettings_.selectedAttackType);
+		j["walkAnimSpeed"] = animation_.walkAnimSpeed;
+		j["walkArmSwing"] = animation_.walkArmSwing;
+		j["walkLegSwing"] = animation_.walkLegSwing;
+		j["attackArmSwing"] = animation_.attackArmSwing;
+		j["attackReturnSpeed"] = animation_.attackReturnSpeed;
+		j["attackBodyLean"] = animation_.attackBodyLean;
+		j["headLookEnabled"] = headLookSettings_.enabled;
+		j["headYawLimitDeg"] = headLookSettings_.yawLimitDeg;
+		j["headPitchMinDeg"] = headLookSettings_.pitchMinDeg;
+		j["headPitchMaxDeg"] = headLookSettings_.pitchMaxDeg;
+		j["headLookLerpSpeed"] = headLookSettings_.lerpSpeed;
+		if (const auto* s = attackController_.FindPattern(MeleeAttackType::Scratch)) { const auto& st = s->steps[0]; j["scratchDamage"] = st.damage; j["scratchRange"] = st.range; j["scratchRadius"] = st.radius; j["scratchStartTime"] = st.startTime; j["scratchActiveTime"] = st.activeTime; j["scratchRecoveryTime"] = s->recoveryTime; j["scratchCooldown"] = s->cooldown; }
+		if (const auto* o = attackController_.FindPattern(MeleeAttackType::OneTwo)) { const auto& l = o->steps[0]; const auto& r = o->steps[1]; j["oneTwoLeftDamage"] = l.damage; j["oneTwoRightDamage"] = r.damage; j["oneTwoLeftRange"] = l.range; j["oneTwoRightRange"] = r.range; j["oneTwoLeftRadius"] = l.radius; j["oneTwoRightRadius"] = r.radius; j["oneTwoLeftStartTime"] = l.startTime; j["oneTwoRightStartTime"] = r.startTime; j["oneTwoLeftActiveTime"] = l.activeTime; j["oneTwoRightActiveTime"] = r.activeTime; j["oneTwoForwardMoveSpeed"] = o->forwardMoveSpeed; j["oneTwoForwardMoveDuration"] = o->forwardMoveDuration; j["oneTwoRecoveryTime"] = o->recoveryTime; j["oneTwoCooldown"] = o->cooldown; }
+		std::filesystem::create_directories(path.parent_path());
+		std::ofstream ofs(path);
+		ofs << j.dump(4);
+		if (outMessage) { *outMessage = "保存成功"; }
+		return true;
+	}
+	catch (const std::exception& e)
+	{
+		if (outMessage) { *outMessage = std::string("保存失敗: ") + e.what(); }
+		return false;
+	}
+}
+
+void MeleeEnemy::ResetTuningToDefault()
+{
+	// 調整値を既定値へ戻すために設定構造体を再初期化する
+	detection_ = DetectionSettings{};
+	move_ = MoveSettings{};
+	jump_ = JumpSettings{};
+	pathSettings_ = PathSettings{};
+	stuckSettings_ = StuckSettings{};
+	attackSettings_ = AttackSettings{};
+	animation_ = AnimationSettings{};
+	headLookSettings_ = HeadLookSettings{};
+	attackController_.Initialize();
+	navigator_.Reset();
 }
