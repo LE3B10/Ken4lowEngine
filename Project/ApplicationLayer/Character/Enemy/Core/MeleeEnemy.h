@@ -267,6 +267,23 @@ private: /// ---------- 構造体 ---------- ///
 		std::string reason = "Disabled";
 	};
 
+	// 個体間分離の設定
+	struct SeparationSettings
+	{
+		bool enabled = true;
+		float radius = 1.1f;
+		float strength = 0.6f;
+		float maxPushPerFrame = 0.15f;
+		float attackPushScale = 0.35f;
+	};
+
+	// 個体間分離の状態管理
+	struct SeparationState
+	{
+		int overlappingEnemyCount = 0;
+		K4E::Vector3 lastSeparationPush{};
+	};
+
 	// 衝突の状態管理
 	struct CollisionState
 	{
@@ -304,7 +321,7 @@ private: /// ---------- 構造体 ---------- ///
 		std::string lastLoadResult = "未実行";
 		std::string lastSaveResult = "未実行";
 		int jsonFormatVersion = 2;
-		int savedCategoryCount = 10;
+		int savedCategoryCount = 11;
 	};
 
 	// 徘徊の状態管理
@@ -381,6 +398,24 @@ public: /// ---------- アクセッサ ---------- ///
 
 	// 選択中個体のみ詳細デバッグ描画するための表示切り替えを設定する
 	void SetDetailDebugDrawEnabled(bool enabled) { detailDebugDrawEnabled_ = enabled; }
+
+	// 分離設定を取得する
+	const SeparationSettings& GetSeparationSettings() const { return separationSettings_; }
+
+	// 分離状態を取得する
+	const SeparationState& GetSeparationState() const { return separationState_; }
+
+	// 死亡状態かを取得する
+	bool IsDeadEnemy() const { return IsDead(); }
+
+	// 現フレームの分離状態をリセットする
+	void BeginSeparationFrame();
+
+	// 個体間分離の押し出しをXZ平面へ適用する
+	K4E::Vector3 ApplySeparationPushXZ(const K4E::Vector3& desiredPush, float pushScale);
+
+	// 個体間分離で重なり相手を検出した回数を加算する
+	void AddSeparationOverlapCount(int count);
 
 	// 複数体の行動状態確認用に現在行動名を返す
 	const char* GetCurrentBehaviorName() const { return currentBehaviorName_; }
@@ -558,6 +593,12 @@ private: /// ---------- メンバ変数 ---------- //
 
 	// 頭の注視状態
 	HeadLookState headLookState_{};
+
+	// 個体間分離の設定
+	SeparationSettings separationSettings_{};
+
+	// 個体間分離の状態
+	SeparationState separationState_{};
 
 	// 衝突の状態管理
 	CollisionState collision_{};
