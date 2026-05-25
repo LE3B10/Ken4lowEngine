@@ -271,10 +271,13 @@ private: /// ---------- 構造体 ---------- ///
 	struct SeparationSettings
 	{
 		bool enabled = true;
-		float radius = 1.1f;
-		float strength = 0.6f;
-		float maxPushPerFrame = 0.15f;
-		float attackPushScale = 0.35f;
+		float radius = 1.6f;
+		float strength = 1.1f;
+		float maxPushPerFrame = 0.28f;
+		float attackPushScale = 0.5f;
+		bool targetNearLateralEnabled = true;
+		float targetNearLateralOffset = 0.25f;
+		float targetNearLateralStrength = 0.65f;
 	};
 
 	// 個体間分離の状態管理
@@ -398,6 +401,18 @@ public: /// ---------- アクセッサ ---------- ///
 
 	// 選択中個体のみ詳細デバッグ描画するための表示切り替えを設定する
 	void SetDetailDebugDrawEnabled(bool enabled) { detailDebugDrawEnabled_ = enabled; }
+
+	// 全体/選択のみの経路描画を切り替えるため、個体ごとに表示モードを受け取る。
+	void SetPathDebugDrawEnabled(bool enabled) { pathDebugDrawEnabled_ = enabled; }
+
+	// 全体表示時の軽量化のため、詳細デバッグ要素の描画を切り替える。
+	void SetPathDetailDebugDrawEnabled(bool enabled) { pathDetailDebugDrawEnabled_ = enabled; }
+
+	// 個体識別しやすいように経路色オフセットを設定する。
+	void SetPathDebugColorOffset(float offset) { pathDebugColorOffset_ = offset; }
+
+	// 選択中個体の強調表示を切り替える。
+	void SetPathDebugSelected(bool selected) { pathDebugSelected_ = selected; }
 
 	// 分離設定を取得する
 	const SeparationSettings& GetSeparationSettings() const { return separationSettings_; }
@@ -630,6 +645,10 @@ private: /// ---------- メンバ変数 ---------- //
 	// デバッグ用の現在のアニメーション状態の名前
 	const char* currentBehaviorName_ = "None";
 	bool detailDebugDrawEnabled_ = true;
+	bool pathDebugDrawEnabled_ = true;
+	bool pathDetailDebugDrawEnabled_ = true;
+	bool pathDebugSelected_ = false;
+	float pathDebugColorOffset_ = 0.0f;
 
 	// 調整データのI/O状態
 	TuningIoState tuningIo_{};

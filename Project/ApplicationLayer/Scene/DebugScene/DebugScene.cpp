@@ -249,7 +249,8 @@ void DebugScene::ResolveMeleeEnemySeparation(float deltaTime)
 			Vector3 delta = posA - posB;
 			delta.y = 0.0f;
 			const float distance = std::sqrt(delta.x * delta.x + delta.z * delta.z);
-			const float minDistance = std::min(separationA.radius, separationB.radius);
+			// 当たりサイズに近い分離距離を取るため、半径は平均で扱う。
+			const float minDistance = std::max(0.1f, (separationA.radius + separationB.radius) * 0.5f);
 			if (distance >= minDistance) { continue; }
 			Vector3 pushDir = { 1.0f, 0.0f, 0.0f };
 			if (distance > 0.0001f)
@@ -258,7 +259,17 @@ void DebugScene::ResolveMeleeEnemySeparation(float deltaTime)
 			}
 			const float overlap = minDistance - distance;
 			const float strength = std::min(separationA.strength, separationB.strength);
-			const Vector3 basePush = pushDir * (overlap * strength);
+			Vector3 basePush = pushDir * (overlap * strength);
+			// ターゲット付近で同一点へ戻りにくくするため、左右タンジェントへ少し散らす。
+			const Vector3 toTarget = enemyA->GetTargetPositionForAttack() - enemyA->GetCenterPosition();
+			const float targetDistXZ = std::sqrt(toTarget.x * toTarget.x + toTarget.z * toTarget.z);
+			if (targetDistXZ < 4.0f)
+			{
+				const Vector3 forward = (targetDistXZ > 0.0001f) ? Vector3{ toTarget.x / targetDistXZ, 0.0f, toTarget.z / targetDistXZ } : Vector3{ 0.0f, 0.0f, 1.0f };
+				const Vector3 tangent{ -forward.z, 0.0f, forward.x };
+				const float laneSign = ((static_cast<int>(i + j) & 1) == 0) ? 1.0f : -1.0f;
+				basePush = basePush + tangent * (separationA.targetNearLateralOffset * separationA.targetNearLateralStrength * laneSign);
+			}
 			const float attackScaleA = enemyA->IsAttacking() ? separationA.attackPushScale : 1.0f;
 			const float attackScaleB = enemyB->IsAttacking() ? separationB.attackPushScale : 1.0f;
 			const float deadScaleA = enemyA->IsDeadEnemy() ? 0.10f : 1.0f;
@@ -291,9 +302,15 @@ void DebugScene::Draw3DObjects()
 	}
 	for (size_t i = 0; i < debugMeleeEnemies_.size(); ++i)
 	{
-		// 個体ごとのデバッグ描画過多を避けるため、選択中個体のみ詳細表示する。
+		// 経路表示モードに応じて、選択中のみ/全体/オフを個体へ反映する。
 		const bool isSelected = static_cast<int>(i) == selectedMeleeEnemyIndex_;
-		debugMeleeEnemies_[i]->SetDetailDebugDrawEnabled(!meleeEnemyDetailDebugDrawOnlySelected_ || isSelected);
+		const bool drawPath = (meleeEnemyPathDrawMode_ == 1) || (meleeEnemyPathDrawMode_ == 0 && isSelected);
+		const bool drawDetailPath = (meleeEnemyPathDrawMode_ == 0 && isSelected) || (meleeEnemyPathDrawMode_ == 1 && meleeEnemyPathDetailAll_);
+		debugMeleeEnemies_[i]->SetDetailDebugDrawEnabled(!meleeEnemyDetailDebugDrawOnlySelected_ || isSelected || drawPath);
+		debugMeleeEnemies_[i]->SetPathDebugDrawEnabled(drawPath);
+		debugMeleeEnemies_[i]->SetPathDetailDebugDrawEnabled(drawDetailPath);
+		debugMeleeEnemies_[i]->SetPathDebugSelected(isSelected);
+		debugMeleeEnemies_[i]->SetPathDebugColorOffset(static_cast<float>(i) * 0.85f);
 		debugMeleeEnemies_[i]->Draw();
 	}
 
@@ -555,6 +572,11 @@ void DebugScene::DrawImGui()
 			ImGui::Text("MeleeEnemy Count: %zu", debugMeleeEnemies_.size());
 			ImGui::SliderInt("MeleeEnemy Display Index", &selectedMeleeEnemyIndex_, 0, static_cast<int>(debugMeleeEnemies_.size()) - 1);
 			ImGui::Checkbox("Detail Debug Draw Only Selected", &meleeEnemyDetailDebugDrawOnlySelected_);
+			const char* pathModes[] = { "選択中の敵だけ経路表示", "全ての敵の経路表示", "経路表示OFF" };
+			ImGui::Combo("経路表示モード", &meleeEnemyPathDrawMode_, pathModes, IM_ARRAYSIZE(pathModes));
+			ImGui::Checkbox("全体経路表示時に詳細も表示", &meleeEnemyPathDetailAll_);
+			ImGui::Text("選択中の敵Index: %d", selectedMeleeEnemyIndex_);
+			ImGui::Text("全体経路表示ON/OFF: %s", meleeEnemyPathDrawMode_ == 1 ? "ON" : "OFF");
 			ImGui::Text("Selected Pos: (%.2f, %.2f, %.2f)", enemyPos.x, enemyPos.y, enemyPos.z);
 			ImGui::Text("Selected Action: %s", selectedEnemy->GetCurrentBehaviorName());
 			ImGui::Text("Grounded: %s", selectedEnemy->GetVelocity().y == 0.0f ? "Likely grounded" : "Falling/Moving");

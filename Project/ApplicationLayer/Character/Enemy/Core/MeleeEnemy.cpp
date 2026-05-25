@@ -411,6 +411,8 @@ void MeleeEnemy::Draw()
 {
 	EnemyBase::Draw();
 	if (!detailDebugDrawEnabled_) { return; }
+	const float colorPhase = pathDebugColorOffset_;
+	const Vector4 pathLineColor = pathDebugSelected_ ? Vector4{ 0.15f, 1.0f, 0.75f, 1.0f } : Vector4{ 0.2f + 0.25f * std::sin(colorPhase), 0.75f, 0.7f + 0.2f * std::cos(colorPhase), 0.9f };
 	const Vector3 origin = GetCenterPosition() + Vector3{ 0.0f, 1.0f, 0.0f };
 	Wireframe::GetInstance()->DrawLine(origin, origin + animationState_.movementDirection * 1.8f, { 0.2f, 0.8f, 1.0f, 1.0f });
 	Wireframe::GetInstance()->DrawLine(origin, origin + animationState_.targetDirection * 2.0f, { 1.0f, 1.0f, 0.2f, 1.0f });
@@ -419,22 +421,24 @@ void MeleeEnemy::Draw()
 	const auto& path = navigator_.GetCurrentPath();
 	for (size_t i = 1; i < path.size(); ++i)
 	{
-		Wireframe::GetInstance()->DrawLine(path[i - 1] + Vector3{ 0.0f, 0.15f, 0.0f }, path[i] + Vector3{ 0.0f, 0.15f, 0.0f }, { 0.1f, 1.0f, 0.6f, 1.0f });
+		Wireframe::GetInstance()->DrawLine(path[i - 1] + Vector3{ 0.0f, 0.15f, 0.0f }, path[i] + Vector3{ 0.0f, 0.15f, 0.0f }, pathLineColor);
 	}
+	if (pathDebugDrawEnabled_)
 	for (size_t i = 0; i < path.size(); ++i)
 	{
 		const Vector4 c = (static_cast<int>(i) == navigator_.GetCurrentPathIndex()) ? Vector4{ 1.0f, 0.3f, 0.1f, 1.0f } : Vector4{ 0.1f, 0.9f, 1.0f, 1.0f };
 		Wireframe::GetInstance()->DrawSphere(path[i] + Vector3{ 0.0f, 0.2f, 0.0f }, (static_cast<int>(i) == navigator_.GetCurrentPathIndex()) ? 0.26f : 0.16f, c);
 	}
-	if (pathState_.lineBlocked)
+	if (pathDetailDebugDrawEnabled_ && pathState_.lineBlocked)
 	{
 		Wireframe::GetInstance()->DrawLine(pathState_.blockedSegmentFrom + Vector3{ 0.0f, 0.2f, 0.0f }, pathState_.blockedSegmentTo + Vector3{ 0.0f, 0.2f, 0.0f }, { 1.0f, 0.15f, 0.1f, 1.0f });
 	}
-	if (HasTarget())
+	if (pathDetailDebugDrawEnabled_ && HasTarget())
 	{
 		// ジャンプ追跡判定の可視化として、敵からターゲットへの線を専用色で表示する
 		Wireframe::GetInstance()->DrawLine(origin + Vector3{ 0.0f, 0.2f, 0.0f }, GetTargetPosition() + Vector3{ 0.0f, 0.2f, 0.0f }, { 0.5f, 1.0f, 0.1f, 1.0f });
 	}
+	if (pathDetailDebugDrawEnabled_)
 	for (const auto& inflated : navigator_.GetInflatedObstacleAABBs())
 	{
 		Wireframe::GetInstance()->DrawAABB(inflated, { 1.0f, 0.7f, 0.2f, 0.35f });
@@ -522,6 +526,9 @@ void MeleeEnemy::DrawImGui()
 			ImGui::SliderFloat("分離強度", &separationSettings_.strength, 0.0f, 2.0f);
 			ImGui::SliderFloat("1フレーム最大押し出し", &separationSettings_.maxPushPerFrame, 0.01f, 0.6f);
 			ImGui::SliderFloat("攻撃中の押し出し倍率", &separationSettings_.attackPushScale, 0.0f, 1.0f);
+			ImGui::Checkbox("ターゲット付近の横ずれ補正", &separationSettings_.targetNearLateralEnabled);
+			ImGui::SliderFloat("横ずれ補正の強さ", &separationSettings_.targetNearLateralStrength, 0.0f, 1.5f);
+			ImGui::SliderFloat("横ずれ補正距離", &separationSettings_.targetNearLateralOffset, 0.0f, 1.0f);
 			ImGui::Text("重なっている敵数: %d", separationState_.overlappingEnemyCount);
 			ImGui::Text("最後の分離押し出し量: (%.3f, %.3f, %.3f)", separationState_.lastSeparationPush.x, separationState_.lastSeparationPush.y, separationState_.lastSeparationPush.z);
 		}
@@ -1261,7 +1268,7 @@ void MeleeEnemy::UpdateVisualAnimation(float deltaTime)
 		if (headLookSettings_.enabled)
 		{
 			headLookState_.reason = "NoTarget";
-			if (HasTarget())
+			if (pathDetailDebugDrawEnabled_ && HasTarget())
 			{
 				const Vector3 toTarget = GetTargetPosition() - GetCenterPosition();
 				const float targetDistance = std::sqrt(toTarget.x * toTarget.x + toTarget.y * toTarget.y + toTarget.z * toTarget.z);
@@ -1406,6 +1413,9 @@ bool MeleeEnemy::LoadTuningFromJson(const std::filesystem::path& path, std::stri
 		separationSettings_.strength = separationJ.value("strength", separationSettings_.strength);
 		separationSettings_.maxPushPerFrame = separationJ.value("maxPushPerFrame", separationSettings_.maxPushPerFrame);
 		separationSettings_.attackPushScale = separationJ.value("attackPushScale", separationSettings_.attackPushScale);
+		separationSettings_.targetNearLateralEnabled = separationJ.value("targetNearLateralEnabled", separationSettings_.targetNearLateralEnabled);
+		separationSettings_.targetNearLateralOffset = separationJ.value("targetNearLateralOffset", separationSettings_.targetNearLateralOffset);
+		separationSettings_.targetNearLateralStrength = separationJ.value("targetNearLateralStrength", separationSettings_.targetNearLateralStrength);
 		if (auto* s = attackController_.FindPattern(MeleeAttackType::Scratch))
 		{
 			auto& st = s->steps[0];
@@ -1478,7 +1488,7 @@ bool MeleeEnemy::SaveTuningToJson(const std::filesystem::path& path, std::string
 		j["attack"] = { { "selectedAttackType", static_cast<int>(attackSettings_.selectedAttackType) }, { "lockTime", attackSettings_.lockTime } };
 		j["animation"] = { { "visualYawOffset", animation_.visualYawOffset }, { "walkAnimSpeed", animation_.walkAnimSpeed }, { "walkArmSwing", animation_.walkArmSwing }, { "walkLegSwing", animation_.walkLegSwing }, { "attackArmSwing", animation_.attackArmSwing }, { "attackReturnSpeed", animation_.attackReturnSpeed }, { "attackBodyLean", animation_.attackBodyLean } };
 		j["headLook"] = { { "enabled", headLookSettings_.enabled }, { "yawLimitDeg", headLookSettings_.yawLimitDeg }, { "pitchMinDeg", headLookSettings_.pitchMinDeg }, { "pitchMaxDeg", headLookSettings_.pitchMaxDeg }, { "lerpSpeed", headLookSettings_.lerpSpeed } };
-		j["separation"] = { { "enabled", separationSettings_.enabled }, { "radius", separationSettings_.radius }, { "strength", separationSettings_.strength }, { "maxPushPerFrame", separationSettings_.maxPushPerFrame }, { "attackPushScale", separationSettings_.attackPushScale } };
+		j["separation"] = { { "enabled", separationSettings_.enabled }, { "radius", separationSettings_.radius }, { "strength", separationSettings_.strength }, { "maxPushPerFrame", separationSettings_.maxPushPerFrame }, { "attackPushScale", separationSettings_.attackPushScale }, { "targetNearLateralEnabled", separationSettings_.targetNearLateralEnabled }, { "targetNearLateralOffset", separationSettings_.targetNearLateralOffset }, { "targetNearLateralStrength", separationSettings_.targetNearLateralStrength } };
 		// 保存対象は設定値のみで、ランタイム状態は書き出さない。
 		if (const auto* s = attackController_.FindPattern(MeleeAttackType::Scratch)) { const auto& st = s->steps[0]; j["attackPatterns"]["scratch"] = { {"damage", st.damage}, {"range", st.range}, {"radius", st.radius}, {"startTime", st.startTime}, {"activeTime", st.activeTime}, {"recoveryTime", s->recoveryTime}, {"cooldown", s->cooldown} }; }
 		if (const auto* o = attackController_.FindPattern(MeleeAttackType::OneTwo)) { const auto& l = o->steps[0]; const auto& r = o->steps[1]; j["attackPatterns"]["oneTwo"] = { {"leftDamage", l.damage}, {"rightDamage", r.damage}, {"leftRange", l.range}, {"rightRange", r.range}, {"leftRadius", l.radius}, {"rightRadius", r.radius}, {"leftStartTime", l.startTime}, {"rightStartTime", r.startTime}, {"leftActiveTime", l.activeTime}, {"rightActiveTime", r.activeTime}, {"forwardMoveSpeed", o->forwardMoveSpeed}, {"forwardMoveDuration", o->forwardMoveDuration}, {"recoveryTime", o->recoveryTime}, {"cooldown", o->cooldown} }; }
