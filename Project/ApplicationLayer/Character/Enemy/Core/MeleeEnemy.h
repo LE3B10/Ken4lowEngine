@@ -56,11 +56,7 @@ private: /// ---------- 構造体 ---------- ///
 	{
 		bool enabled = true;				// ジャンプを有効にするかどうか
 		float baseVelocity = 12.0f;			// ジャンプの基本垂直速度
-		float extraBoost = 0.8f;			// 攻撃の種類や状況に応じた追加の垂直速度の倍率
-		float gravityEstimate = 20.0f;		// ジャンプの軌道計算に使用する重力の推定値（実際の重力とは異なる場合がある）
 		float maxVelocity = 18.0f;			// ジャンプの最大垂直速度
-		float targetHeightThreshold = 1.0f;	// ターゲットの高さとの差がこの値以上ある場合にジャンプを試みる
-		float horizontalDistanceMax = 8.0f;	// ジャンプを試みる最大水平距離
 		float cooldown = 0.9f;				// ジャンプのクールダウン時間
 	};
 
@@ -68,8 +64,6 @@ private: /// ---------- 構造体 ---------- ///
 	struct JumpState
 	{
 		float cooldownTimer = 0.0f;		 // ジャンプのクールダウンタイマー
-		float targetHeightDelta = 0.0f;	 // ジャンプ開始時のターゲットの高さとの差
-		float calculatedVelocity = 0.0f; // ジャンプの軌道計算から得られる垂直速度
 		float appliedVelocity = 0.0f;	 // 実際に適用された垂直速度
 		std::string lastReason = "None"; // ジャンプを試みた最後の理由（デバッグ用）
 	};
@@ -398,12 +392,9 @@ private: /// ---------- 内部処理 ---------- ///
 	bool MoveAlongPath(float deltaTime);
 
 	// 障害物を避ける処理（壁の障害物やステージの衝突を解決する）
-	void TryJumpToTarget(float deltaTime);
+	void TryJumpForTraversal(float deltaTime);
 
-	// ジャンプの軌道計算を行い、ターゲットの高さに合わせた垂直速度を計算する処理
-	float CalculateJumpVelocityForHeight(float heightDelta) const;
-
-	// ジャンプを試みる処理（ターゲットの高さや距離、ジャンプのクールダウンなどを考慮してジャンプするかどうかを判断し、実際にジャンプする）
+		// ジャンプを試みる処理（ターゲットの高さや距離、ジャンプのクールダウンなどを考慮してジャンプするかどうかを判断し、実際にジャンプする）
 	bool TryJumpOverClimbableObstacle(float deltaTime);
 	bool TryDirectClimbOverObstacleToTarget(float deltaTime);
 
