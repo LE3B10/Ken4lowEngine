@@ -329,14 +329,14 @@ void MeleeEnemy::DrawImGui()
 		ImGui::SliderFloat("repathInterval", &pathSettings_.repathInterval, 0.05f, 2.0f);
 		ImGui::SliderFloat("waypointReachDistance", &pathSettings_.waypointReachDistance, 0.5f, 1.5f);
 		ImGui::Checkbox("pathFindEnabled", &pathSettings_.enabled);
-		ImGui::Checkbox("jumpEnabled", &jump_.enabled);
-		ImGui::SliderFloat("baseJumpVelocity", &jump_.baseVelocity, 2.0f, 18.0f);
-		ImGui::SliderFloat("jumpExtraBoost", &jump_.extraBoost, 0.0f, 8.0f);
-		ImGui::SliderFloat("jumpGravityEstimate", &jump_.gravityEstimate, 1.0f, 40.0f);
-		ImGui::SliderFloat("maxJumpVelocity", &jump_.maxVelocity, 1.0f, 30.0f);
-		ImGui::SliderFloat("jumpTargetHeightThreshold", &jump_.targetHeightThreshold, 0.1f, 5.0f);
-		ImGui::SliderFloat("jumpHorizontalDistanceMax", &jump_.horizontalDistanceMax, 0.5f, 20.0f);
-		ImGui::SliderFloat("jumpCooldown", &jump_.cooldown, 0.0f, 3.0f);
+		ImGui::Checkbox("jump.enabled", &jump_.enabled);
+		ImGui::SliderFloat("jump.baseVelocity", &jump_.baseVelocity, 2.0f, 18.0f);
+		ImGui::SliderFloat("jump.minTargetHeight", &jump_.minTargetHeight, 0.1f, 5.0f);
+		ImGui::SliderFloat("jump.maxTargetHeight", &jump_.maxTargetHeight, 0.5f, 8.0f);
+		ImGui::SliderFloat("jump.horizontalDistanceMax", &jump_.horizontalDistanceMax, 0.5f, 20.0f);
+		ImGui::Checkbox("jump.requireNearOrBlocked", &jump_.requireNearOrBlocked);
+		ImGui::SliderFloat("jump.nearTargetDistance", &jump_.nearTargetDistance, 0.5f, 8.0f);
+		ImGui::SliderFloat("jump.cooldown", &jump_.cooldown, 0.0f, 3.0f);
 		const float prevGridSize = pathSettings_.gridSize;
 		ImGui::SliderFloat("pathGridSize", &pathSettings_.gridSize, 0.5f, 1.0f);
 		if (std::abs(prevGridSize - pathSettings_.gridSize) > kEpsilon) { navigator_.Reset(); pathState_.lastRepathReason = "GridSizeChanged"; }
@@ -401,11 +401,11 @@ void MeleeEnemy::DrawImGui()
 		ImGui::Text("temporaryBlockedCellCount: %d", static_cast<int>(navigator_.GetTemporaryBlockedAreas().size()));
 		ImGui::Text("cornerCuttingDisabled: %s", pathSettings_.cornerCuttingDisabled ? "true" : "false");
 		ImGui::Text("Grounded: %s", grounded_ ? "true" : "false");
-		ImGui::Text("jumpCooldownTimer: %.2f", jumpState_.cooldownTimer);
-		ImGui::Text("targetHeightDelta: %.2f", jumpState_.targetHeightDelta);
-		ImGui::Text("calculatedJumpVelocity: %.2f", jumpState_.calculatedVelocity);
-		ImGui::Text("appliedJumpVelocity: %.2f", jumpState_.appliedVelocity);
-		ImGui::Text("lastJumpReason: %s", jumpState_.lastReason.c_str());
+		ImGui::Text("jumpState.cooldownTimer: %.2f", jumpState_.cooldownTimer);
+		ImGui::Text("jumpState.targetHeightDelta: %.2f", jumpState_.targetHeightDelta);
+		ImGui::Text("jumpState.horizontalDistance: %.2f", jumpState_.horizontalDistance);
+		ImGui::Text("jumpState.appliedVelocity: %.2f", jumpState_.appliedVelocity);
+		ImGui::Text("jumpState.lastReason: %s", jumpState_.lastReason.c_str());
 		ImGui::Text("AnimState: %s", GetAnimStateName());
 		ImGui::Text("lastSafePosition: (%.2f, %.2f, %.2f)", collision_.lastSafePosition.x, collision_.lastSafePosition.y, collision_.lastSafePosition.z);
 		ImGui::Text("isOutsideStage: %s", collision_.isOutsideStage ? "true" : "false");
@@ -698,13 +698,6 @@ bool MeleeEnemy::MoveAlongPath(float deltaTime)
 	return false;
 }
 
-float MeleeEnemy::CalculateJumpVelocityForHeight(float heightDelta) const
-{
-	// 高さ差に必要な初速を重力推定値から算出し、段差追従ジャンプの不足を防ぐ
-	const float clampedHeight = std::max(0.0f, heightDelta);
-	return std::sqrt(2.0f * std::max(jump_.gravityEstimate, 0.0f) * clampedHeight);
-}
-
 void MeleeEnemy::TryJumpToTarget(float)
 {
 	if (!jump_.enabled) { jumpState_.lastReason = "Disabled"; return; }
@@ -720,27 +713,28 @@ void MeleeEnemy::TryJumpToTarget(float)
 	const float heightDelta = toTarget.y;
 	const float horizontalDistance = LengthXZ(toTarget);
 	jumpState_.targetHeightDelta = heightDelta;
-	jumpState_.calculatedVelocity = CalculateJumpVelocityForHeight(heightDelta);
+	jumpState_.horizontalDistance = horizontalDistance;
+	jumpState_.appliedVelocity = 0.0f;
 
-	if (heightDelta < jump_.targetHeightThreshold) { jumpState_.lastReason = "TargetNotHigher"; jumpState_.appliedVelocity = 0.0f; return; }
+	if (heightDelta < jump_.minTargetHeight) { jumpState_.lastReason = "TooLow"; return; }
+	if (heightDelta > jump_.maxTargetHeight) { jumpState_.lastReason = "TooHigh"; return; }
 	if (horizontalDistance > jump_.horizontalDistanceMax) { jumpState_.lastReason = "TooFar"; return; }
 
-	const bool obstacleJumpCandidate = collision_.blockedByObstacle || pathState_.lineBlocked || stuck_.isStuck || collision_.isOverlappingWallObstacle;
-	if (obstacleJumpCandidate)
+	const bool isNearTarget = horizontalDistance <= jump_.nearTargetDistance;
+	const bool blockedByObstacle = collision_.blockedByObstacle || collision_.isOverlappingWallObstacle;
+	const bool lineBlocked = pathState_.lineBlocked;
+	if (jump_.requireNearOrBlocked && !isNearTarget && !blockedByObstacle && !lineBlocked && !stuck_.isStuck)
 	{
-		jumpState_.lastReason = "TargetHigherBlocked";
+		jumpState_.lastReason = "NotNearOrBlocked";
+		return;
 	}
-	else
-	{
-		jumpState_.lastReason = "TargetHigher";
-	}
-	// 水平速度は維持しつつY速度だけを上書きし、段差追跡ジャンプを行う
+	// 通常近接雑魚は高さに応じた加速を使わず、固定ジャンプ力だけを適用する
 	Vector3 v = GetVelocity();
-	const float requested = std::max(jump_.baseVelocity, jumpState_.calculatedVelocity + jump_.extraBoost);
-	jumpState_.appliedVelocity = std::clamp(requested, 0.0f, jump_.maxVelocity);
-	v.y = jumpState_.appliedVelocity;
+	jumpState_.appliedVelocity = jump_.baseVelocity;
+	v.y = jump_.baseVelocity;
 	SetVelocity(v);
 	jumpState_.cooldownTimer = jump_.cooldown;
+	jumpState_.lastReason = "Jump";
 }
 
 void MeleeEnemy::UpdateStuckState(float deltaTime)
