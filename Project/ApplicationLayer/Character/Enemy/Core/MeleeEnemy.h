@@ -108,13 +108,20 @@ private: /// ---------- 構造体 ---------- ///
 	{
 		bool hasContact = false;
 		bool climbable = false;
+		bool climbableByHeight = false;
+		bool rejectedByWidthDepth = false;
+		bool rejectedByAABBSize = false;
+		bool judgedByContactFace = false;
 		int obstacleIndex = -1;
 		K4E::AABB obstacleAABB{};
 		float obstacleTopY = 0.0f;
 		float obstacleHeightFromFoot = 0.0f;
 		float obstacleWidth = 0.0f;
 		float obstacleDepth = 0.0f;
+		float obstacleForwardThickness = 0.0f;
+		float contactFaceDistance = 0.0f;
 		std::string reason = "None";
+		std::string possibleReason = "None";
 	};
 
 	// 接触ジャンプのデバッグ状態
