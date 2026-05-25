@@ -112,7 +112,21 @@ private: /// ---------- 構造体 ---------- ///
 		K4E::AABB obstacleAABB{};
 		float obstacleTopY = 0.0f;
 		float obstacleHeightFromFoot = 0.0f;
+		float obstacleWidth = 0.0f;
+		float obstacleDepth = 0.0f;
 		std::string reason = "None";
+	};
+
+	// 接触ジャンプのデバッグ状態
+	struct ContactJumpDebugState
+	{
+		bool calledThisFrame = false;
+		bool everCalled = false;
+		std::string lastReason = "NotCalled";
+		float footY = 0.0f;
+		float obstacleTopY = 0.0f;
+		float obstacleHeightFromFoot = 0.0f;
+		float plannedJumpVelocity = 0.0f;
 	};
 
 	// 経路探索の設定
@@ -487,6 +501,9 @@ private: /// ---------- メンバ変数 ---------- //
 
 	// 接触障害物状態
 	ContactObstacleState contactObstacleState_{};
+
+	// 接触ジャンプのデバッグ状態
+	ContactJumpDebugState contactJumpDebugState_{};
 
 	// 経路探索の設定
 	PathSettings pathSettings_{};
