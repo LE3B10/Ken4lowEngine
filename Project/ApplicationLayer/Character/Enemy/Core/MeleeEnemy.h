@@ -74,6 +74,28 @@ private: /// ---------- 構造体 ---------- ///
 		std::string lastReason = "None"; // ジャンプを試みた最後の理由（デバッグ用）
 	};
 
+	// 乗り越えの設定
+	struct TraversalSettings
+	{
+		bool enabled = true;
+		float maxClimbHeight = 2.0f;
+		float maxClimbObstacleWidth = 3.0f;
+		float maxClimbObstacleDepth = 3.0f;
+		float climbJumpTriggerDistance = 2.0f;
+		float climbHorizontalDistanceMax = 4.0f;
+		bool allowJumpOverLowObstacles = true;
+	};
+
+	// 乗り越えの状態
+	struct TraversalState
+	{
+		int climbableObstacleCount = 0;
+		int blockedObstacleCount = 0;
+		bool nearClimbableObstacle = false;
+		std::string lastTraversalReason = "None";
+		int selectedClimbableObstacleIndex = -1;
+	};
+
 	// 経路探索の設定
 	struct PathSettings
 	{
@@ -370,6 +392,14 @@ private: /// ---------- 内部処理 ---------- ///
 	float CalculateJumpVelocityForHeight(float heightDelta) const;
 
 	// ジャンプを試みる処理（ターゲットの高さや距離、ジャンプのクールダウンなどを考慮してジャンプするかどうかを判断し、実際にジャンプする）
+	bool TryJumpOverClimbableObstacle(float deltaTime);
+
+	// 乗り越え可能な障害物と回避対象障害物を分類する
+	void UpdateTraversalObstacleClassification();
+
+	// 障害物1個が乗り越え可能かを判定する
+	bool IsObstacleClimbable(const K4E::AABB& obstacle, const K4E::Vector3& selfPos, const K4E::Vector3& moveOrTargetDir) const;
+
 	bool ResolveObstaclePenetrationXZ(float deltaTime);
 
 	// 障害物の上面へ着地できる場合にY位置を補正して横押し出しより優先する
@@ -431,6 +461,12 @@ private: /// ---------- メンバ変数 ---------- //
 	// ジャンプの状態管理
 	JumpState jumpState_{};
 
+	// 乗り越え設定
+	TraversalSettings traversal_{};
+
+	// 乗り越え状態
+	TraversalState traversalState_{};
+
 	// 経路探索の設定
 	PathSettings pathSettings_{};
 
@@ -484,6 +520,12 @@ private: /// ---------- メンバ変数 ---------- //
 
 	// 壁の障害物のAABBのリストへのポインタ（外部で管理されているものを参照する形）
 	const std::vector<K4E::AABB>* wallObstacleAABBs_ = nullptr;
+
+	// 経路探索へ渡す回避対象AABB（乗り越え不可のみ）
+	std::vector<K4E::AABB> pathBlockingObstacleAABBs_{};
+
+	// 乗り越え候補AABB（上面着地・ジャンプ判定用）
+	std::vector<K4E::AABB> climbableObstacleAABBs_{};
 
 	// デバッグ用の現在のアニメーション状態の名前
 	const char* currentBehaviorName_ = "None";
