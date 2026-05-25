@@ -133,15 +133,19 @@ void DebugScene::Initialize()
 	debugBoss_->SetPosition({ 0.0f, 2.25f, 30.0f });
 	debugBoss_->SetYaw(3.141592f); // 必要ならプレイヤー側へ向ける
 
-	debugMeleeEnemy_ = std::make_unique<MeleeEnemy>();
-	debugMeleeEnemy_->Initialize();
-	// ステージ床に確実に着地できるよう、初期位置は少し高めから開始する。
-	debugMeleeEnemy_->SetCenterPosition({ 0.0f, 2.0f, 18.0f });
-
 	meleeDummyTarget_.SetCenterPosition({ 0.0f, 2.0f, 24.0f });
 	meleeDummyTarget_.SetOBBHalfSize({ 0.8f, 1.0f, 0.8f });
-	debugMeleeEnemy_->SetTarget(&meleeDummyTarget_);
-	collisionManager_->AddCollider(debugMeleeEnemy_.get());
+	// 複数体同時検証のため、DebugScene起動時に近接敵を2〜3体まとめて生成する。
+	debugMeleeEnemies_.clear();
+	for (int i = 0; i < meleeEnemyCount_; ++i)
+	{
+		auto enemy = std::make_unique<MeleeEnemy>();
+		enemy->Initialize();
+		enemy->SetCenterPosition({ -2.5f + (2.5f * static_cast<float>(i)), 2.0f, 18.0f });
+		enemy->SetTarget(&meleeDummyTarget_);
+		collisionManager_->AddCollider(enemy.get());
+		debugMeleeEnemies_.push_back(std::move(enemy));
+	}
 
 	disintegrationDebug_ = std::make_unique<DisintegrationDebugController>();
 	// Disintegration系の確認処理は専用コントローラへ委譲し、DebugScene本体の責務を絞る。
@@ -158,8 +162,11 @@ void DebugScene::Initialize()
 	// DebugSceneでもステージAABBを共有し、EnemyBase系の敵が床と障害物に衝突できるようにする。
 	EnemyBase::SetGlobalStageWorldAABBs(&stage_->GetWorldAABBs());
 	EnemyBase::SetGlobalStageNavigationObstacleAABBs(&stage_->GetNavigationObstacleAABBs());
-	debugMeleeEnemy_->SetFloorAABBs(&stage_->GetFloorAABBs());
-	debugMeleeEnemy_->SetWallObstacleAABBs(&stage_->GetWallObstacleAABBs());
+	for (auto& enemy : debugMeleeEnemies_)
+	{
+		enemy->SetFloorAABBs(&stage_->GetFloorAABBs());
+		enemy->SetWallObstacleAABBs(&stage_->GetWallObstacleAABBs());
+	}
 }
 
 void DebugScene::Update()
@@ -181,9 +188,9 @@ void DebugScene::Update()
 		debugBoss_->Update(deltaTime);
 	}
 
-	if (debugMeleeEnemy_)
+	for (auto& enemy : debugMeleeEnemies_)
 	{
-		debugMeleeEnemy_->Update(deltaTime);
+		enemy->Update(deltaTime);
 	}
 
 	UpdateDebugBossHitTest();
@@ -232,9 +239,12 @@ void DebugScene::Draw3DObjects()
 	{
 		debugBoss_->Draw();
 	}
-	if (debugMeleeEnemy_)
+	for (size_t i = 0; i < debugMeleeEnemies_.size(); ++i)
 	{
-		debugMeleeEnemy_->Draw();
+		// 個体ごとのデバッグ描画過多を避けるため、選択中個体のみ詳細表示する。
+		const bool isSelected = static_cast<int>(i) == selectedMeleeEnemyIndex_;
+		debugMeleeEnemies_[i]->SetDetailDebugDrawEnabled(!meleeEnemyDetailDebugDrawOnlySelected_ || isSelected);
+		debugMeleeEnemies_[i]->Draw();
 	}
 
 	if (stage_)
@@ -278,9 +288,9 @@ void DebugScene::DrawShadowObjects()
 	{
 		debugBoss_->DrawShadow();
 	}
-	if (debugMeleeEnemy_)
+	for (auto& enemy : debugMeleeEnemies_)
 	{
-		debugMeleeEnemy_->DrawShadow();
+		enemy->DrawShadow();
 	}
 	if (stage_)
 	{
@@ -318,7 +328,7 @@ void DebugScene::Finalize()
 	disintegrationDebug_.reset();
 	EnemyBase::SetGlobalStageWorldAABBs(nullptr);
 	debugBoss_.reset();
-	debugMeleeEnemy_.reset();
+	debugMeleeEnemies_.clear();
 	collisionManager_.reset();
 	stage_.reset();
 
@@ -336,9 +346,10 @@ void DebugScene::DrawImGui()
 	{
 		debugBoss_->DrawImGui();
 	}
-	if (debugMeleeEnemy_)
+	if (!debugMeleeEnemies_.empty())
 	{
-		debugMeleeEnemy_->DrawImGui();
+		selectedMeleeEnemyIndex_ = std::clamp(selectedMeleeEnemyIndex_, 0, static_cast<int>(debugMeleeEnemies_.size()) - 1);
+		debugMeleeEnemies_[selectedMeleeEnemyIndex_]->DrawImGui();
 	}
 
 	if (frustumCullingDebug_)
@@ -486,11 +497,17 @@ void DebugScene::DrawImGui()
 		ImGui::Text("Fence: %d", colliderTypeCounts["Fence"]);
 		ImGui::Text("Tree: %d", colliderTypeCounts["Tree"]);
 
-		if (debugMeleeEnemy_)
+		if (!debugMeleeEnemies_.empty())
 		{
-			const Vector3 enemyPos = debugMeleeEnemy_->GetCenterPosition();
-			ImGui::Text("MeleeEnemy Pos: (%.2f, %.2f, %.2f)", enemyPos.x, enemyPos.y, enemyPos.z);
-			ImGui::Text("Grounded: %s", debugMeleeEnemy_->GetVelocity().y == 0.0f ? "Likely grounded" : "Falling/Moving");
+			selectedMeleeEnemyIndex_ = std::clamp(selectedMeleeEnemyIndex_, 0, static_cast<int>(debugMeleeEnemies_.size()) - 1);
+			const MeleeEnemy* selectedEnemy = debugMeleeEnemies_[selectedMeleeEnemyIndex_].get();
+			const Vector3 enemyPos = selectedEnemy->GetCenterPosition();
+			ImGui::Text("MeleeEnemy Count: %zu", debugMeleeEnemies_.size());
+			ImGui::SliderInt("MeleeEnemy Display Index", &selectedMeleeEnemyIndex_, 0, static_cast<int>(debugMeleeEnemies_.size()) - 1);
+			ImGui::Checkbox("Detail Debug Draw Only Selected", &meleeEnemyDetailDebugDrawOnlySelected_);
+			ImGui::Text("Selected Pos: (%.2f, %.2f, %.2f)", enemyPos.x, enemyPos.y, enemyPos.z);
+			ImGui::Text("Selected Action: %s", selectedEnemy->GetCurrentBehaviorName());
+			ImGui::Text("Grounded: %s", selectedEnemy->GetVelocity().y == 0.0f ? "Likely grounded" : "Falling/Moving");
 		}
 
 		ImGui::End();

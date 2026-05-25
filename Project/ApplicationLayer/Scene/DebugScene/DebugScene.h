@@ -84,7 +84,10 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	// 描画確認用ボス
 	std::unique_ptr<GuardianBoss> debugBoss_;
-	std::unique_ptr<MeleeEnemy> debugMeleeEnemy_;
+	std::vector<std::unique_ptr<MeleeEnemy>> debugMeleeEnemies_;
+	int meleeEnemyCount_ = 3;
+	int selectedMeleeEnemyIndex_ = 0;
+	bool meleeEnemyDetailDebugDrawOnlySelected_ = true;
 
 	// ステージ確認用（見た目＋衝突）
 	std::unique_ptr<K4E::Stage> stage_;

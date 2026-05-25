@@ -379,6 +379,12 @@ public: /// ---------- アクセッサ ---------- ///
 	// 選択されている攻撃の種類を取得
 	MeleeAttackType GetSelectedAttackType() const { return attackSettings_.selectedAttackType; }
 
+	// 選択中個体のみ詳細デバッグ描画するための表示切り替えを設定する
+	void SetDetailDebugDrawEnabled(bool enabled) { detailDebugDrawEnabled_ = enabled; }
+
+	// 複数体の行動状態確認用に現在行動名を返す
+	const char* GetCurrentBehaviorName() const { return currentBehaviorName_; }
+
 	// 攻撃中かどうかを取得
 	bool IsAttacking() const { return attackController_.IsAttacking(); }
 
@@ -582,6 +588,7 @@ private: /// ---------- メンバ変数 ---------- //
 
 	// デバッグ用の現在のアニメーション状態の名前
 	const char* currentBehaviorName_ = "None";
+	bool detailDebugDrawEnabled_ = true;
 
 	// 調整データのI/O状態
 	TuningIoState tuningIo_{};
