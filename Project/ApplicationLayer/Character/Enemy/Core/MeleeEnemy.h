@@ -78,11 +78,14 @@ private: /// ---------- 構造体 ---------- ///
 	struct TraversalSettings
 	{
 		bool enabled = true;
+		bool prioritizeDirectClimb = true;
 		float maxClimbHeight = 2.0f;
 		float maxClimbObstacleWidth = 3.0f;
 		float maxClimbObstacleDepth = 3.0f;
 		float climbJumpTriggerDistance = 2.0f;
 		float climbHorizontalDistanceMax = 4.0f;
+		float directClimbMaxTargetDistance = 14.0f;
+		float directClimbLineWidth = 1.4f;
 		bool allowJumpOverLowObstacles = true;
 	};
 
@@ -92,8 +95,17 @@ private: /// ---------- 構造体 ---------- ///
 		int climbableObstacleCount = 0;
 		int blockedObstacleCount = 0;
 		bool nearClimbableObstacle = false;
+		bool hasDirectLineClimbCandidate = false;
 		std::string lastTraversalReason = "None";
+		std::string selectedObstacleJudgeReason = "None";
+		std::string selectedObstacleRejectReason = "None";
 		int selectedClimbableObstacleIndex = -1;
+		float selectedObstacleHeight = 0.0f;
+		float selectedObstacleWidth = 0.0f;
+		float selectedObstacleDepth = 0.0f;
+		float selectedEnemyFootY = 0.0f;
+		float selectedObstacleTopY = 0.0f;
+		bool selectedObstacleClimbResult = false;
 	};
 
 	// 経路探索の設定
@@ -393,6 +405,7 @@ private: /// ---------- 内部処理 ---------- ///
 
 	// ジャンプを試みる処理（ターゲットの高さや距離、ジャンプのクールダウンなどを考慮してジャンプするかどうかを判断し、実際にジャンプする）
 	bool TryJumpOverClimbableObstacle(float deltaTime);
+	bool TryDirectClimbOverObstacleToTarget(float deltaTime);
 
 	// 乗り越え可能な障害物と回避対象障害物を分類する
 	void UpdateTraversalObstacleClassification();
