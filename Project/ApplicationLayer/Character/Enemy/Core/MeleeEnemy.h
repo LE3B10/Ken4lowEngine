@@ -74,6 +74,7 @@ private: /// ---------- 構造体 ---------- ///
 		bool enabled = true;
 		bool preferDirectClimb = true;
 		float maxClimbHeight = 2.0f;
+		float minClimbHeight = 0.15f;
 		float maxClimbObstacleWidth = 3.0f;
 		float maxClimbObstacleDepth = 3.0f;
 		float climbJumpTriggerDistance = 2.0f;
@@ -120,8 +121,12 @@ private: /// ---------- 構造体 ---------- ///
 		float obstacleDepth = 0.0f;
 		float obstacleForwardThickness = 0.0f;
 		float contactFaceDistance = 0.0f;
+		float enemyFootY = 0.0f;
+		bool xzOverlapping = false;
+		bool facingObstacle = false;
 		std::string reason = "None";
 		std::string possibleReason = "None";
+		std::string notClimbableReason = "None";
 	};
 
 	// 接触ジャンプのデバッグ状態
@@ -431,6 +436,7 @@ private: /// ---------- 内部処理 ---------- ///
 		// ジャンプを試みる処理（ターゲットの高さや距離、ジャンプのクールダウンなどを考慮してジャンプするかどうかを判断し、実際にジャンプする）
 	bool TryJumpOverClimbableObstacle(float deltaTime);
 	bool TryJumpOverContactObstacle();
+	bool EvaluateContactObstacleClimbable(const K4E::AABB& obstacle, int index);
 	bool TryDirectClimbOverObstacleToTarget(float deltaTime);
 
 	// 乗り越え可能な障害物と回避対象障害物を分類する
