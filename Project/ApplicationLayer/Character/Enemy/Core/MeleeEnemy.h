@@ -171,6 +171,32 @@ private: /// ---------- 構造体 ---------- ///
 		AnimState animState = AnimState::Idle;				// 現在のアニメーション状態
 	};
 
+	// Scratch攻撃の左右交互制御
+	struct ScratchArmState
+	{
+		bool useLeftArm = true;			 // 今回のScratchで使う腕
+		bool wasScratchAttacking = false; // Scratch開始検知用の前フレーム状態
+	};
+
+	// 頭の注視制御の設定
+	struct HeadLookSettings
+	{
+		bool enabled = true;
+		float yawLimitDeg = 90.0f;
+		float pitchMinDeg = -35.0f;
+		float pitchMaxDeg = 45.0f;
+		float lerpSpeed = 12.0f;
+	};
+
+	// 頭の注視制御の状態
+	struct HeadLookState
+	{
+		float currentYaw = 0.0f;
+		float currentPitch = 0.0f;
+		float targetYaw = 0.0f;
+		float targetPitch = 0.0f;
+	};
+
 	// 衝突の状態管理
 	struct CollisionState
 	{
@@ -406,6 +432,15 @@ private: /// ---------- メンバ変数 ---------- //
 
 	// アニメーションの状態管理
 	AnimationStateData animationState_{};
+
+	// Scratch攻撃の左右交互制御状態
+	ScratchArmState scratchArmState_{};
+
+	// 頭の注視設定
+	HeadLookSettings headLookSettings_{};
+
+	// 頭の注視状態
+	HeadLookState headLookState_{};
 
 	// 衝突の状態管理
 	CollisionState collision_{};
