@@ -59,6 +59,7 @@ private:
 	void StopMove();
 	bool IsMoveResumeDistanceReached() const;
 	bool MoveAlongPath(float deltaTime);
+	void TryJumpToTarget(float deltaTime);
 
 	bool ResolveObstaclePenetrationXZ(float deltaTime);
 	void UpdateStuckState(float deltaTime);
@@ -119,6 +120,13 @@ private:
 	float stuckDistance_ = 0.2f;
 	float stuckMoveThreshold_ = 0.18f;
 	bool pathFindEnabled_ = true;
+	bool jumpEnabled_ = true;
+	float jumpVelocity_ = 8.2f;
+	float jumpTargetHeightThreshold_ = 1.0f;
+	float jumpHorizontalDistanceMax_ = 8.0f;
+	float jumpCooldown_ = 0.9f;
+	float jumpCooldownTimer_ = 0.0f;
+	std::string lastJumpReason_ = "None";
 	float repathInterval_ = 0.25f;
 	float waypointReachDistance_ = 0.85f;
 	float pathGridSize_ = 1.5f;
