@@ -303,6 +303,8 @@ private: /// ---------- 構造体 ---------- ///
 		std::filesystem::path jsonPath = "Resources/DataAssets/Enemy/MeleeEnemy/MeleeEnemy_Normal.json";
 		std::string lastLoadResult = "未実行";
 		std::string lastSaveResult = "未実行";
+		int jsonFormatVersion = 2;
+		int savedCategoryCount = 10;
 	};
 
 	// 徘徊の状態管理
