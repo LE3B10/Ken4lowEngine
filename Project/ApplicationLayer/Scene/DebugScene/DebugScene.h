@@ -91,6 +91,8 @@ private: /// ---------- メンバ変数 ---------- ///
 	int meleeEnemyCount_ = 3;
 	int selectedMeleeEnemyIndex_ = 0;
 	bool meleeEnemyDetailDebugDrawOnlySelected_ = true;
+	int meleeEnemyPathDrawMode_ = 0; // 0:選択のみ 1:全体 2:OFF
+	bool meleeEnemyPathDetailAll_ = false;
 
 	// ステージ確認用（見た目＋衝突）
 	std::unique_ptr<K4E::Stage> stage_;
