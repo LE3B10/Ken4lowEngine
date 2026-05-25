@@ -446,6 +446,9 @@ void MeleeEnemy::DrawImGui()
 			ImGui::Text("保存先: %s", tuningIo_.jsonPath.string().c_str());
 			ImGui::Text("読み込み結果: %s", tuningIo_.lastLoadResult.c_str());
 			ImGui::Text("保存結果: %s", tuningIo_.lastSaveResult.c_str());
+			// 調整JSONの運用情報をデバッグ表示する。
+			ImGui::Text("現在のJSON形式バージョン: v%d", tuningIo_.jsonFormatVersion);
+			ImGui::Text("保存対象カテゴリ数: %d", tuningIo_.savedCategoryCount);
 		}
 		if (ImGui::CollapsingHeader("検知・攻撃距離", ImGuiTreeNodeFlags_DefaultOpen)) {
 			ImGui::SliderFloat("検知範囲", &detection_.detectRange, 1.0f, 50.0f);
@@ -460,10 +463,15 @@ void MeleeEnemy::DrawImGui()
 			ImGui::SliderFloat("回転速度", &move_.rotateSpeed, 0.1f, 20.0f);
 			ImGui::SliderFloat("最大押し戻し量", &move_.maxResolvePushPerFrame, 0.05f, 2.0f);
 			ImGui::SliderFloat("水平押し戻し量", &move_.maxHorizontalPushPerFrame, 0.05f, 2.0f);
+			ImGui::Checkbox("上面着地を有効", &move_.obstacleTopLandingEnabled);
+			ImGui::SliderFloat("上面着地高さ許容", &move_.obstacleTopLandingTolerance, 0.01f, 1.5f);
+			ImGui::SliderFloat("上面着地最大高さ", &move_.obstacleTopLandingMaxHeight, 0.1f, 8.0f);
+			ImGui::SliderFloat("上面着地最小重なり", &move_.obstacleTopLandingMinHorizontalOverlap, 0.01f, 1.0f);
 		}
 		if (ImGui::CollapsingHeader("ジャンプ", ImGuiTreeNodeFlags_DefaultOpen)) {
 			ImGui::Checkbox("ジャンプを使う", &jump_.enabled);
 			ImGui::SliderFloat("ジャンプ力", &jump_.baseVelocity, 2.0f, 18.0f);
+			ImGui::SliderFloat("ジャンプ最大速度", &jump_.maxVelocity, 2.0f, 28.0f);
 			ImGui::SliderFloat("ジャンプクールダウン", &jump_.cooldown, 0.0f, 3.0f);
 			// 接触ジャンプの強制実行でジャンプ力そのものの効きだけを確認できるようにする
 			if (ImGui::Button("接触ジャンプを強制"))
@@ -489,6 +497,9 @@ void MeleeEnemy::DrawImGui()
 			ImGui::SliderFloat("一時ブロック時間", &pathSettings_.temporaryBlockDuration, 0.3f, 4.0f);
 			ImGui::SliderFloat("一時ブロック半径", &pathSettings_.temporaryBlockRadius, 0.4f, 2.2f);
 			ImGui::Checkbox("角抜け無効", &pathSettings_.cornerCuttingDisabled);
+			ImGui::SliderFloat("再探索ターゲット閾値", &pathSettings_.targetRepathThreshold, 0.1f, 8.0f);
+			ImGui::SliderFloat("スタック再探索拡張", &pathSettings_.stuckRepathExpandBonus, 0.0f, 3.0f);
+			ImGui::SliderFloat("スタック再探索拡張最大", &pathSettings_.maxStuckRepathExpandBonus, 0.0f, 6.0f);
 			const int sourceObstacleCount = wallObstacleAABBs_ ? static_cast<int>(wallObstacleAABBs_->size()) : (GetResolvedNavigationObstacleAABBs() ? static_cast<int>(GetResolvedNavigationObstacleAABBs()->size()) : 0);
 			ImGui::Text("navigatorに渡している障害物数: %d", static_cast<int>(pathBlockingObstacleAABBs_.size()));
 			ImGui::Text("元の障害物数: %d", sourceObstacleCount);
@@ -505,6 +516,7 @@ void MeleeEnemy::DrawImGui()
 			ImGui::SliderFloat("最大乗り越え奥行き", &traversal_.maxClimbObstacleDepth, 0.2f, 8.0f);
 			ImGui::SliderFloat("直線乗り越え最大距離", &traversal_.directClimbDistanceMax, 1.0f, 20.0f);
 			ImGui::SliderFloat("乗り越え開始距離", &traversal_.climbJumpTriggerDistance, 0.3f, 6.0f);
+			ImGui::SliderFloat("乗り越え水平距離上限", &traversal_.climbHorizontalDistanceMax, 0.5f, 10.0f);
 			ImGui::SliderFloat("直線判定幅", &traversal_.directLineWidth, 0.2f, 4.0f);
 			ImGui::Text("乗り越え可能障害物数: %d", traversalState_.climbableObstacleCount);
 			ImGui::Text("回避対象障害物数: %d", traversalState_.blockingObstacleCount);
@@ -1259,79 +1271,106 @@ bool MeleeEnemy::LoadTuningFromJson(const std::filesystem::path& path, std::stri
 		}
 		nlohmann::json j;
 		ifs >> j;
-		// JSONの値を調整パラメータへ反映する
-		detection_.detectRange = j.value("detectRange", detection_.detectRange);
-		detection_.meleeAttackRange = j.value("meleeAttackRange", detection_.meleeAttackRange);
-		detection_.stopDistance = j.value("stopDistance", detection_.stopDistance);
-		detection_.attackStartRange = j.value("attackStartRange", detection_.attackStartRange);
-		detection_.resumeChaseDistance = j.value("resumeChaseDistance", detection_.resumeChaseDistance);
-		detection_.minOneTwoForwardDistance = j.value("minOneTwoForwardDistance", detection_.minOneTwoForwardDistance);
-		move_.moveSpeed = j.value("moveSpeed", move_.moveSpeed);
-		move_.rotateSpeed = j.value("rotateSpeed", move_.rotateSpeed);
-		move_.maxResolvePushPerFrame = j.value("maxResolvePushPerFrame", move_.maxResolvePushPerFrame);
-		move_.maxHorizontalPushPerFrame = j.value("maxHorizontalPushPerFrame", move_.maxHorizontalPushPerFrame);
-		jump_.enabled = j.value("jumpEnabled", jump_.enabled);
-		jump_.baseVelocity = j.value("jumpBaseVelocity", jump_.baseVelocity);
-		jump_.cooldown = j.value("jumpCooldown", jump_.cooldown);
-		traversal_.enabled = j.value("traversalEnabled", traversal_.enabled);
-		traversal_.preferDirectClimb = j.value("traversalPrioritizeDirectClimb", traversal_.preferDirectClimb);
-		traversal_.maxClimbHeight = j.value("traversalMaxClimbHeight", traversal_.maxClimbHeight);
-		traversal_.minClimbHeight = j.value("traversalMinClimbHeight", traversal_.minClimbHeight);
-		traversal_.maxClimbObstacleWidth = j.value("traversalMaxClimbObstacleWidth", traversal_.maxClimbObstacleWidth);
-		traversal_.maxClimbObstacleDepth = j.value("traversalMaxClimbObstacleDepth", traversal_.maxClimbObstacleDepth);
-		traversal_.climbJumpTriggerDistance = j.value("traversalClimbJumpTriggerDistance", traversal_.climbJumpTriggerDistance);
-		traversal_.climbHorizontalDistanceMax = j.value("traversalClimbHorizontalDistanceMax", traversal_.climbHorizontalDistanceMax);
-		traversal_.directClimbDistanceMax = j.value("traversalDirectClimbMaxTargetDistance", traversal_.directClimbDistanceMax);
-		traversal_.directLineWidth = j.value("traversalDirectClimbLineWidth", traversal_.directLineWidth);
-		traversal_.allowJumpOverLowObstacles = j.value("traversalAllowJumpOverLowObstacles", traversal_.allowJumpOverLowObstacles);
-		pathSettings_.enabled = j.value("pathFindEnabled", pathSettings_.enabled);
-		pathSettings_.repathInterval = j.value("repathInterval", pathSettings_.repathInterval);
-		pathSettings_.waypointReachDistance = j.value("waypointReachDistance", pathSettings_.waypointReachDistance);
-		pathSettings_.gridSize = j.value("pathGridSize", pathSettings_.gridSize);
-		pathSettings_.searchRadius = j.value("pathSearchRadius", pathSettings_.searchRadius);
-		pathSettings_.obstacleExpandRadius = j.value("obstacleExpandRadius", pathSettings_.obstacleExpandRadius);
-		pathSettings_.temporaryBlockDuration = j.value("temporaryBlockDuration", pathSettings_.temporaryBlockDuration);
-		pathSettings_.temporaryBlockRadius = j.value("temporaryBlockRadius", pathSettings_.temporaryBlockRadius);
-		pathSettings_.cornerCuttingDisabled = j.value("cornerCuttingDisabled", pathSettings_.cornerCuttingDisabled);
-		stuckSettings_.checkTime = j.value("stuckCheckTime", stuckSettings_.checkTime);
-		stuckSettings_.distance = j.value("stuckDistance", stuckSettings_.distance);
-		stuckSettings_.moveThreshold = j.value("stuckMoveThreshold", stuckSettings_.moveThreshold);
-		attackSettings_.lockTime = j.value("attackLockTime", attackSettings_.lockTime);
-		attackSettings_.selectedAttackType = static_cast<MeleeAttackType>(j.value("selectedAttackType", static_cast<int>(attackSettings_.selectedAttackType)));
-		animation_.walkAnimSpeed = j.value("walkAnimSpeed", animation_.walkAnimSpeed);
-		animation_.walkArmSwing = j.value("walkArmSwing", animation_.walkArmSwing);
-		animation_.walkLegSwing = j.value("walkLegSwing", animation_.walkLegSwing);
-		animation_.attackArmSwing = j.value("attackArmSwing", animation_.attackArmSwing);
-		animation_.attackReturnSpeed = j.value("attackReturnSpeed", animation_.attackReturnSpeed);
-		animation_.attackBodyLean = j.value("attackBodyLean", animation_.attackBodyLean);
-		headLookSettings_.enabled = j.value("headLookEnabled", headLookSettings_.enabled);
-		headLookSettings_.yawLimitDeg = j.value("headYawLimitDeg", headLookSettings_.yawLimitDeg);
-		headLookSettings_.pitchMinDeg = j.value("headPitchMinDeg", headLookSettings_.pitchMinDeg);
-		headLookSettings_.pitchMaxDeg = j.value("headPitchMaxDeg", headLookSettings_.pitchMaxDeg);
-		headLookSettings_.lerpSpeed = j.value("headLookLerpSpeed", headLookSettings_.lerpSpeed);
+		// 新形式カテゴリJSONを優先し、旧flat形式も後方互換で読む。
+		const nlohmann::json& detectionJ = j.contains("detection") ? j["detection"] : j;
+		const nlohmann::json& moveJ = j.contains("move") ? j["move"] : j;
+		const nlohmann::json& jumpJ = j.contains("jump") ? j["jump"] : j;
+		const nlohmann::json& traversalJ = j.contains("traversal") ? j["traversal"] : j;
+		const nlohmann::json& pathJ = j.contains("path") ? j["path"] : j;
+		const nlohmann::json& stuckJ = j.contains("stuck") ? j["stuck"] : j;
+		const nlohmann::json& attackJ = j.contains("attack") ? j["attack"] : j;
+		const nlohmann::json& animationJ = j.contains("animation") ? j["animation"] : j;
+		const nlohmann::json& headLookJ = j.contains("headLook") ? j["headLook"] : j;
+		const nlohmann::json& attackPatternsJ = j.contains("attackPatterns") ? j["attackPatterns"] : j;
+		const nlohmann::json& scratchJ = attackPatternsJ.contains("scratch") ? attackPatternsJ["scratch"] : j;
+		const nlohmann::json& oneTwoJ = attackPatternsJ.contains("oneTwo") ? attackPatternsJ["oneTwo"] : j;
+
+		detection_.detectRange = detectionJ.value("detectRange", detection_.detectRange);
+		detection_.meleeAttackRange = detectionJ.value("meleeAttackRange", detection_.meleeAttackRange);
+		detection_.stopDistance = detectionJ.value("stopDistance", detection_.stopDistance);
+		detection_.attackStartRange = detectionJ.value("attackStartRange", detection_.attackStartRange);
+		detection_.resumeChaseDistance = detectionJ.value("resumeChaseDistance", detection_.resumeChaseDistance);
+		detection_.minOneTwoForwardDistance = detectionJ.value("minOneTwoForwardDistance", detection_.minOneTwoForwardDistance);
+		move_.moveSpeed = moveJ.value("moveSpeed", move_.moveSpeed);
+		move_.rotateSpeed = moveJ.value("rotateSpeed", move_.rotateSpeed);
+		move_.maxResolvePushPerFrame = moveJ.value("maxResolvePushPerFrame", move_.maxResolvePushPerFrame);
+		move_.maxHorizontalPushPerFrame = moveJ.value("maxHorizontalPushPerFrame", move_.maxHorizontalPushPerFrame);
+		move_.obstacleTopLandingEnabled = moveJ.value("obstacleTopLandingEnabled", move_.obstacleTopLandingEnabled);
+		move_.obstacleTopLandingTolerance = moveJ.value("obstacleTopLandingTolerance", move_.obstacleTopLandingTolerance);
+		move_.obstacleTopLandingMaxHeight = moveJ.value("obstacleTopLandingMaxHeight", move_.obstacleTopLandingMaxHeight);
+		move_.obstacleTopLandingMinHorizontalOverlap = moveJ.value("obstacleTopLandingMinHorizontalOverlap", move_.obstacleTopLandingMinHorizontalOverlap);
+		jump_.enabled = jumpJ.value("enabled", jumpJ.value("jumpEnabled", jump_.enabled));
+		jump_.baseVelocity = jumpJ.value("baseVelocity", jumpJ.value("jumpBaseVelocity", jump_.baseVelocity));
+		jump_.maxVelocity = jumpJ.value("maxVelocity", jump_.maxVelocity);
+		jump_.cooldown = jumpJ.value("cooldown", jumpJ.value("jumpCooldown", jump_.cooldown));
+		traversal_.enabled = traversalJ.value("enabled", traversalJ.value("traversalEnabled", traversal_.enabled));
+		traversal_.preferDirectClimb = traversalJ.value("preferDirectClimb", traversalJ.value("traversalPrioritizeDirectClimb", traversal_.preferDirectClimb));
+		traversal_.maxClimbHeight = traversalJ.value("maxClimbHeight", traversalJ.value("traversalMaxClimbHeight", traversal_.maxClimbHeight));
+		traversal_.minClimbHeight = traversalJ.value("minClimbHeight", traversalJ.value("traversalMinClimbHeight", traversal_.minClimbHeight));
+		traversal_.maxClimbObstacleWidth = traversalJ.value("maxClimbObstacleWidth", traversalJ.value("traversalMaxClimbObstacleWidth", traversal_.maxClimbObstacleWidth));
+		traversal_.maxClimbObstacleDepth = traversalJ.value("maxClimbObstacleDepth", traversalJ.value("traversalMaxClimbObstacleDepth", traversal_.maxClimbObstacleDepth));
+		traversal_.climbJumpTriggerDistance = traversalJ.value("climbJumpTriggerDistance", traversalJ.value("traversalClimbJumpTriggerDistance", traversal_.climbJumpTriggerDistance));
+		traversal_.climbHorizontalDistanceMax = traversalJ.value("climbHorizontalDistanceMax", traversalJ.value("traversalClimbHorizontalDistanceMax", traversal_.climbHorizontalDistanceMax));
+		traversal_.directClimbDistanceMax = traversalJ.value("directClimbDistanceMax", traversalJ.value("traversalDirectClimbMaxTargetDistance", traversal_.directClimbDistanceMax));
+		traversal_.directLineWidth = traversalJ.value("directLineWidth", traversalJ.value("traversalDirectClimbLineWidth", traversal_.directLineWidth));
+		traversal_.allowJumpOverLowObstacles = traversalJ.value("allowJumpOverLowObstacles", traversalJ.value("traversalAllowJumpOverLowObstacles", traversal_.allowJumpOverLowObstacles));
+		pathSettings_.enabled = pathJ.value("enabled", pathJ.value("pathFindEnabled", pathSettings_.enabled));
+		pathSettings_.repathInterval = pathJ.value("repathInterval", pathSettings_.repathInterval);
+		pathSettings_.waypointReachDistance = pathJ.value("waypointReachDistance", pathSettings_.waypointReachDistance);
+		pathSettings_.gridSize = pathJ.value("gridSize", pathJ.value("pathGridSize", pathSettings_.gridSize));
+		pathSettings_.searchRadius = pathJ.value("searchRadius", pathJ.value("pathSearchRadius", pathSettings_.searchRadius));
+		pathSettings_.obstacleExpandRadius = pathJ.value("obstacleExpandRadius", pathSettings_.obstacleExpandRadius);
+		pathSettings_.temporaryBlockDuration = pathJ.value("temporaryBlockDuration", pathSettings_.temporaryBlockDuration);
+		pathSettings_.temporaryBlockRadius = pathJ.value("temporaryBlockRadius", pathSettings_.temporaryBlockRadius);
+		pathSettings_.cornerCuttingDisabled = pathJ.value("cornerCuttingDisabled", pathSettings_.cornerCuttingDisabled);
+		pathSettings_.targetRepathThreshold = pathJ.value("targetRepathThreshold", pathSettings_.targetRepathThreshold);
+		pathSettings_.stuckRepathExpandBonus = pathJ.value("stuckRepathExpandBonus", pathSettings_.stuckRepathExpandBonus);
+		pathSettings_.maxStuckRepathExpandBonus = pathJ.value("maxStuckRepathExpandBonus", pathSettings_.maxStuckRepathExpandBonus);
+		stuckSettings_.checkTime = stuckJ.value("checkTime", stuckJ.value("stuckCheckTime", stuckSettings_.checkTime));
+		stuckSettings_.distance = stuckJ.value("distance", stuckJ.value("stuckDistance", stuckSettings_.distance));
+		stuckSettings_.moveThreshold = stuckJ.value("moveThreshold", stuckJ.value("stuckMoveThreshold", stuckSettings_.moveThreshold));
+		attackSettings_.lockTime = attackJ.value("lockTime", attackJ.value("attackLockTime", attackSettings_.lockTime));
+		attackSettings_.selectedAttackType = static_cast<MeleeAttackType>(attackJ.value("selectedAttackType", static_cast<int>(attackSettings_.selectedAttackType)));
+		animation_.visualYawOffset = animationJ.value("visualYawOffset", animation_.visualYawOffset);
+		animation_.walkAnimSpeed = animationJ.value("walkAnimSpeed", animation_.walkAnimSpeed);
+		animation_.walkArmSwing = animationJ.value("walkArmSwing", animation_.walkArmSwing);
+		animation_.walkLegSwing = animationJ.value("walkLegSwing", animation_.walkLegSwing);
+		animation_.attackArmSwing = animationJ.value("attackArmSwing", animation_.attackArmSwing);
+		animation_.attackReturnSpeed = animationJ.value("attackReturnSpeed", animation_.attackReturnSpeed);
+		animation_.attackBodyLean = animationJ.value("attackBodyLean", animation_.attackBodyLean);
+		headLookSettings_.enabled = headLookJ.value("enabled", headLookJ.value("headLookEnabled", headLookSettings_.enabled));
+		headLookSettings_.yawLimitDeg = headLookJ.value("yawLimitDeg", headLookJ.value("headYawLimitDeg", headLookSettings_.yawLimitDeg));
+		headLookSettings_.pitchMinDeg = headLookJ.value("pitchMinDeg", headLookJ.value("headPitchMinDeg", headLookSettings_.pitchMinDeg));
+		headLookSettings_.pitchMaxDeg = headLookJ.value("pitchMaxDeg", headLookJ.value("headPitchMaxDeg", headLookSettings_.pitchMaxDeg));
+		headLookSettings_.lerpSpeed = headLookJ.value("lerpSpeed", headLookJ.value("headLookLerpSpeed", headLookSettings_.lerpSpeed));
 		if (auto* s = attackController_.FindPattern(MeleeAttackType::Scratch))
 		{
 			auto& st = s->steps[0];
-			st.damage = j.value("scratchDamage", st.damage);
-			st.range = j.value("scratchRange", st.range);
-			st.radius = j.value("scratchRadius", st.radius);
-			st.startTime = j.value("scratchStartTime", st.startTime);
-			st.activeTime = j.value("scratchActiveTime", st.activeTime);
-			s->recoveryTime = j.value("scratchRecoveryTime", s->recoveryTime);
-			s->cooldown = j.value("scratchCooldown", s->cooldown);
+			st.damage = scratchJ.value("damage", scratchJ.value("scratchDamage", st.damage));
+			st.range = scratchJ.value("range", scratchJ.value("scratchRange", st.range));
+			st.radius = scratchJ.value("radius", scratchJ.value("scratchRadius", st.radius));
+			st.startTime = scratchJ.value("startTime", scratchJ.value("scratchStartTime", st.startTime));
+			st.activeTime = scratchJ.value("activeTime", scratchJ.value("scratchActiveTime", st.activeTime));
+			s->recoveryTime = scratchJ.value("recoveryTime", scratchJ.value("scratchRecoveryTime", s->recoveryTime));
+			s->cooldown = scratchJ.value("cooldown", scratchJ.value("scratchCooldown", s->cooldown));
 		}
 		if (auto* o = attackController_.FindPattern(MeleeAttackType::OneTwo))
 		{
 			auto& l = o->steps[0]; auto& r = o->steps[1];
-			l.damage = j.value("oneTwoLeftDamage", l.damage); r.damage = j.value("oneTwoRightDamage", r.damage);
-			l.range = j.value("oneTwoLeftRange", l.range); r.range = j.value("oneTwoRightRange", r.range);
-			l.radius = j.value("oneTwoLeftRadius", l.radius); r.radius = j.value("oneTwoRightRadius", r.radius);
-			l.startTime = j.value("oneTwoLeftStartTime", l.startTime); r.startTime = j.value("oneTwoRightStartTime", r.startTime);
-			l.activeTime = j.value("oneTwoLeftActiveTime", l.activeTime); r.activeTime = j.value("oneTwoRightActiveTime", r.activeTime);
-			o->forwardMoveSpeed = j.value("oneTwoForwardMoveSpeed", o->forwardMoveSpeed);
-			o->forwardMoveDuration = j.value("oneTwoForwardMoveDuration", o->forwardMoveDuration);
-			o->recoveryTime = j.value("oneTwoRecoveryTime", o->recoveryTime);
-			o->cooldown = j.value("oneTwoCooldown", o->cooldown);
+			l.damage = oneTwoJ.value("leftDamage", oneTwoJ.value("oneTwoLeftDamage", l.damage));
+			r.damage = oneTwoJ.value("rightDamage", oneTwoJ.value("oneTwoRightDamage", r.damage));
+			l.range = oneTwoJ.value("leftRange", oneTwoJ.value("oneTwoLeftRange", l.range));
+			r.range = oneTwoJ.value("rightRange", oneTwoJ.value("oneTwoRightRange", r.range));
+			l.radius = oneTwoJ.value("leftRadius", oneTwoJ.value("oneTwoLeftRadius", l.radius));
+			r.radius = oneTwoJ.value("rightRadius", oneTwoJ.value("oneTwoRightRadius", r.radius));
+			l.startTime = oneTwoJ.value("leftStartTime", oneTwoJ.value("oneTwoLeftStartTime", l.startTime));
+			r.startTime = oneTwoJ.value("rightStartTime", oneTwoJ.value("oneTwoRightStartTime", r.startTime));
+			l.activeTime = oneTwoJ.value("leftActiveTime", oneTwoJ.value("oneTwoLeftActiveTime", l.activeTime));
+			r.activeTime = oneTwoJ.value("rightActiveTime", oneTwoJ.value("oneTwoRightActiveTime", r.activeTime));
+			o->forwardMoveSpeed = oneTwoJ.value("forwardMoveSpeed", oneTwoJ.value("oneTwoForwardMoveSpeed", o->forwardMoveSpeed));
+			o->forwardMoveDuration = oneTwoJ.value("forwardMoveDuration", oneTwoJ.value("oneTwoForwardMoveDuration", o->forwardMoveDuration));
+			o->recoveryTime = oneTwoJ.value("recoveryTime", oneTwoJ.value("oneTwoRecoveryTime", o->recoveryTime));
+			o->cooldown = oneTwoJ.value("cooldown", oneTwoJ.value("oneTwoCooldown", o->cooldown));
 		}
 		navigator_.Reset();
 		if (outMessage) { *outMessage = "読み込み成功"; }
@@ -1349,57 +1388,36 @@ bool MeleeEnemy::SaveTuningToJson(const std::filesystem::path& path, std::string
 	try
 	{
 		nlohmann::json j;
-		j["detectRange"] = detection_.detectRange;
-		j["meleeAttackRange"] = detection_.meleeAttackRange;
-		j["stopDistance"] = detection_.stopDistance;
-		j["attackStartRange"] = detection_.attackStartRange;
-		j["resumeChaseDistance"] = detection_.resumeChaseDistance;
-		j["minOneTwoForwardDistance"] = detection_.minOneTwoForwardDistance;
-		j["moveSpeed"] = move_.moveSpeed;
-		j["rotateSpeed"] = move_.rotateSpeed;
-		j["maxResolvePushPerFrame"] = move_.maxResolvePushPerFrame;
-		j["maxHorizontalPushPerFrame"] = move_.maxHorizontalPushPerFrame;
-		j["jumpEnabled"] = jump_.enabled;
-		j["jumpBaseVelocity"] = jump_.baseVelocity;
-		j["jumpCooldown"] = jump_.cooldown;
-		j["traversalEnabled"] = traversal_.enabled;
-		j["traversalPrioritizeDirectClimb"] = traversal_.preferDirectClimb;
-		j["traversalMaxClimbHeight"] = traversal_.maxClimbHeight;
-		j["traversalMinClimbHeight"] = traversal_.minClimbHeight;
-		j["traversalMaxClimbObstacleWidth"] = traversal_.maxClimbObstacleWidth;
-		j["traversalMaxClimbObstacleDepth"] = traversal_.maxClimbObstacleDepth;
-		j["traversalClimbJumpTriggerDistance"] = traversal_.climbJumpTriggerDistance;
-		j["traversalClimbHorizontalDistanceMax"] = traversal_.climbHorizontalDistanceMax;
-		j["traversalDirectClimbMaxTargetDistance"] = traversal_.directClimbDistanceMax;
-		j["traversalDirectClimbLineWidth"] = traversal_.directLineWidth;
-		j["traversalAllowJumpOverLowObstacles"] = traversal_.allowJumpOverLowObstacles;
-		j["pathFindEnabled"] = pathSettings_.enabled;
-		j["repathInterval"] = pathSettings_.repathInterval;
-		j["waypointReachDistance"] = pathSettings_.waypointReachDistance;
-		j["pathGridSize"] = pathSettings_.gridSize;
-		j["pathSearchRadius"] = pathSettings_.searchRadius;
-		j["obstacleExpandRadius"] = pathSettings_.obstacleExpandRadius;
-		j["temporaryBlockDuration"] = pathSettings_.temporaryBlockDuration;
-		j["temporaryBlockRadius"] = pathSettings_.temporaryBlockRadius;
-		j["cornerCuttingDisabled"] = pathSettings_.cornerCuttingDisabled;
-		j["stuckCheckTime"] = stuckSettings_.checkTime;
-		j["stuckDistance"] = stuckSettings_.distance;
-		j["stuckMoveThreshold"] = stuckSettings_.moveThreshold;
-		j["attackLockTime"] = attackSettings_.lockTime;
-		j["selectedAttackType"] = static_cast<int>(attackSettings_.selectedAttackType);
-		j["walkAnimSpeed"] = animation_.walkAnimSpeed;
-		j["walkArmSwing"] = animation_.walkArmSwing;
-		j["walkLegSwing"] = animation_.walkLegSwing;
-		j["attackArmSwing"] = animation_.attackArmSwing;
-		j["attackReturnSpeed"] = animation_.attackReturnSpeed;
-		j["attackBodyLean"] = animation_.attackBodyLean;
-		j["headLookEnabled"] = headLookSettings_.enabled;
-		j["headYawLimitDeg"] = headLookSettings_.yawLimitDeg;
-		j["headPitchMinDeg"] = headLookSettings_.pitchMinDeg;
-		j["headPitchMaxDeg"] = headLookSettings_.pitchMaxDeg;
-		j["headLookLerpSpeed"] = headLookSettings_.lerpSpeed;
-		if (const auto* s = attackController_.FindPattern(MeleeAttackType::Scratch)) { const auto& st = s->steps[0]; j["scratchDamage"] = st.damage; j["scratchRange"] = st.range; j["scratchRadius"] = st.radius; j["scratchStartTime"] = st.startTime; j["scratchActiveTime"] = st.activeTime; j["scratchRecoveryTime"] = s->recoveryTime; j["scratchCooldown"] = s->cooldown; }
-		if (const auto* o = attackController_.FindPattern(MeleeAttackType::OneTwo)) { const auto& l = o->steps[0]; const auto& r = o->steps[1]; j["oneTwoLeftDamage"] = l.damage; j["oneTwoRightDamage"] = r.damage; j["oneTwoLeftRange"] = l.range; j["oneTwoRightRange"] = r.range; j["oneTwoLeftRadius"] = l.radius; j["oneTwoRightRadius"] = r.radius; j["oneTwoLeftStartTime"] = l.startTime; j["oneTwoRightStartTime"] = r.startTime; j["oneTwoLeftActiveTime"] = l.activeTime; j["oneTwoRightActiveTime"] = r.activeTime; j["oneTwoForwardMoveSpeed"] = o->forwardMoveSpeed; j["oneTwoForwardMoveDuration"] = o->forwardMoveDuration; j["oneTwoRecoveryTime"] = o->recoveryTime; j["oneTwoCooldown"] = o->cooldown; }
+		j["jsonVersion"] = tuningIo_.jsonFormatVersion;
+		j["detection"] = {
+			{ "detectRange", detection_.detectRange }, { "meleeAttackRange", detection_.meleeAttackRange }, { "stopDistance", detection_.stopDistance },
+			{ "attackStartRange", detection_.attackStartRange }, { "resumeChaseDistance", detection_.resumeChaseDistance }, { "minOneTwoForwardDistance", detection_.minOneTwoForwardDistance }
+		};
+		j["move"] = {
+			{ "moveSpeed", move_.moveSpeed }, { "rotateSpeed", move_.rotateSpeed }, { "maxResolvePushPerFrame", move_.maxResolvePushPerFrame }, { "maxHorizontalPushPerFrame", move_.maxHorizontalPushPerFrame },
+			{ "obstacleTopLandingEnabled", move_.obstacleTopLandingEnabled }, { "obstacleTopLandingTolerance", move_.obstacleTopLandingTolerance }, { "obstacleTopLandingMaxHeight", move_.obstacleTopLandingMaxHeight },
+			{ "obstacleTopLandingMinHorizontalOverlap", move_.obstacleTopLandingMinHorizontalOverlap }
+		};
+		j["jump"] = { { "enabled", jump_.enabled }, { "baseVelocity", jump_.baseVelocity }, { "maxVelocity", jump_.maxVelocity }, { "cooldown", jump_.cooldown } };
+		j["traversal"] = {
+			{ "enabled", traversal_.enabled }, { "preferDirectClimb", traversal_.preferDirectClimb }, { "maxClimbHeight", traversal_.maxClimbHeight }, { "minClimbHeight", traversal_.minClimbHeight },
+			{ "maxClimbObstacleWidth", traversal_.maxClimbObstacleWidth }, { "maxClimbObstacleDepth", traversal_.maxClimbObstacleDepth }, { "climbJumpTriggerDistance", traversal_.climbJumpTriggerDistance },
+			{ "climbHorizontalDistanceMax", traversal_.climbHorizontalDistanceMax }, { "directClimbDistanceMax", traversal_.directClimbDistanceMax }, { "directLineWidth", traversal_.directLineWidth },
+			{ "allowJumpOverLowObstacles", traversal_.allowJumpOverLowObstacles }
+		};
+		j["path"] = {
+			{ "enabled", pathSettings_.enabled }, { "repathInterval", pathSettings_.repathInterval }, { "waypointReachDistance", pathSettings_.waypointReachDistance }, { "gridSize", pathSettings_.gridSize },
+			{ "searchRadius", pathSettings_.searchRadius }, { "obstacleExpandRadius", pathSettings_.obstacleExpandRadius }, { "temporaryBlockDuration", pathSettings_.temporaryBlockDuration },
+			{ "temporaryBlockRadius", pathSettings_.temporaryBlockRadius }, { "cornerCuttingDisabled", pathSettings_.cornerCuttingDisabled }, { "targetRepathThreshold", pathSettings_.targetRepathThreshold },
+			{ "stuckRepathExpandBonus", pathSettings_.stuckRepathExpandBonus }, { "maxStuckRepathExpandBonus", pathSettings_.maxStuckRepathExpandBonus }
+		};
+		j["stuck"] = { { "checkTime", stuckSettings_.checkTime }, { "distance", stuckSettings_.distance }, { "moveThreshold", stuckSettings_.moveThreshold } };
+		j["attack"] = { { "selectedAttackType", static_cast<int>(attackSettings_.selectedAttackType) }, { "lockTime", attackSettings_.lockTime } };
+		j["animation"] = { { "visualYawOffset", animation_.visualYawOffset }, { "walkAnimSpeed", animation_.walkAnimSpeed }, { "walkArmSwing", animation_.walkArmSwing }, { "walkLegSwing", animation_.walkLegSwing }, { "attackArmSwing", animation_.attackArmSwing }, { "attackReturnSpeed", animation_.attackReturnSpeed }, { "attackBodyLean", animation_.attackBodyLean } };
+		j["headLook"] = { { "enabled", headLookSettings_.enabled }, { "yawLimitDeg", headLookSettings_.yawLimitDeg }, { "pitchMinDeg", headLookSettings_.pitchMinDeg }, { "pitchMaxDeg", headLookSettings_.pitchMaxDeg }, { "lerpSpeed", headLookSettings_.lerpSpeed } };
+		// 保存対象は設定値のみで、ランタイム状態は書き出さない。
+		if (const auto* s = attackController_.FindPattern(MeleeAttackType::Scratch)) { const auto& st = s->steps[0]; j["attackPatterns"]["scratch"] = { {"damage", st.damage}, {"range", st.range}, {"radius", st.radius}, {"startTime", st.startTime}, {"activeTime", st.activeTime}, {"recoveryTime", s->recoveryTime}, {"cooldown", s->cooldown} }; }
+		if (const auto* o = attackController_.FindPattern(MeleeAttackType::OneTwo)) { const auto& l = o->steps[0]; const auto& r = o->steps[1]; j["attackPatterns"]["oneTwo"] = { {"leftDamage", l.damage}, {"rightDamage", r.damage}, {"leftRange", l.range}, {"rightRange", r.range}, {"leftRadius", l.radius}, {"rightRadius", r.radius}, {"leftStartTime", l.startTime}, {"rightStartTime", r.startTime}, {"leftActiveTime", l.activeTime}, {"rightActiveTime", r.activeTime}, {"forwardMoveSpeed", o->forwardMoveSpeed}, {"forwardMoveDuration", o->forwardMoveDuration}, {"recoveryTime", o->recoveryTime}, {"cooldown", o->cooldown} }; }
 		// 保存先ディレクトリはResources/DataAssets/Enemy/MeleeEnemy配下に限定して作成する。
 		std::filesystem::create_directories(path.parent_path());
 		std::ofstream ofs(path);
