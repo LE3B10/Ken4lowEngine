@@ -661,9 +661,13 @@ bool MeleeEnemy::IsObstacleClimbable(const K4E::AABB& obstacle, const K4E::Vecto
 	const float footY = selfPos.y - 2.0f;
 	const float obstacleHeight = obstacle.max.y - footY;
 	if (obstacleHeight <= 0.0f || obstacleHeight > traversal_.maxClimbHeight) { return false; }
+	// 床面付近に張り付いたAABBは床扱いとして除外する
+	if (std::abs(obstacle.max.y - obstacle.min.y) <= 0.05f) { return false; }
 	const float width = obstacle.max.x - obstacle.min.x;
 	const float depth = obstacle.max.z - obstacle.min.z;
 	if (width > traversal_.maxClimbObstacleWidth || depth > traversal_.maxClimbObstacleDepth) { return false; }
+	// 広すぎるステージ本体AABBは乗り越え候補から外す
+	if (width > traversal_.maxClimbObstacleWidth * 4.0f || depth > traversal_.maxClimbObstacleDepth * 4.0f) { return false; }
 	const K4E::Vector3 center = (obstacle.min + obstacle.max) * 0.5f;
 	const K4E::Vector3 toObs = center - selfPos;
 	const float horizontalDistance = LengthXZ(toObs);
@@ -681,17 +685,20 @@ void MeleeEnemy::UpdateTraversalObstacleClassification()
 	traversalState_.directClimbCandidateFound = false;
 	traversalState_.selectedObstacleJudgeReason = "None";
 	traversalState_.selectedObstacleRejectReason = "None";
-	const auto* src = wallObstacleAABBs_ ? wallObstacleAABBs_ : GetResolvedNavigationObstacleAABBs();
-	if (!src) { traversalState_.climbableObstacleCount = 0; traversalState_.blockingObstacleCount = 0; return; }
+	const auto* wallSrc = wallObstacleAABBs_;
+	const auto* navSrc = GetResolvedNavigationObstacleAABBs();
+	if (!wallSrc && !navSrc) { traversalState_.climbableObstacleCount = 0; traversalState_.blockingObstacleCount = 0; return; }
 	const K4E::Vector3 selfPos = GetCenterPosition();
 	K4E::Vector3 moveOrTargetDir = NormalizeXZ(GetVelocity());
 	if (LengthXZ(moveOrTargetDir) <= kEpsilon) { moveOrTargetDir = NormalizeXZ(GetTargetPosition() - selfPos); }
-	for (const auto& obstacle : *src)
+	auto classify = [&](const K4E::AABB& obstacle)
 	{
 		// 低くて小さい障害物は乗り越え候補、それ以外は経路探索の回避対象に分類する
 		if (IsObstacleClimbable(obstacle, selfPos, moveOrTargetDir)) { climbableObstacleAABBs_.push_back(obstacle); }
 		else { pathBlockingObstacleAABBs_.push_back(obstacle); }
-	}
+	};
+	if (wallSrc) { for (const auto& obstacle : *wallSrc) { classify(obstacle); } }
+	if (navSrc) { for (const auto& obstacle : *navSrc) { classify(obstacle); } }
 	traversalState_.climbableObstacleCount = static_cast<int>(climbableObstacleAABBs_.size());
 	traversalState_.blockingObstacleCount = static_cast<int>(pathBlockingObstacleAABBs_.size());
 }
@@ -748,9 +755,11 @@ bool MeleeEnemy::TryJumpOverClimbableObstacle(float)
 	if (jumpState_.cooldownTimer > 0.0f) { traversalState_.lastReason = "Cooldown"; jumpState_.lastReason = "Cooldown"; return false; }
 	if (climbableObstacleAABBs_.empty()) { traversalState_.nearClimbableObstacle = false; traversalState_.lastReason = "NoClimbable"; return false; }
 	const K4E::Vector3 selfPos = GetCenterPosition();
+	const K4E::Vector3 targetPos = GetTargetPosition();
 	K4E::Vector3 moveOrTargetDir = NormalizeXZ(GetVelocity());
 	if (LengthXZ(moveOrTargetDir) <= kEpsilon) { moveOrTargetDir = NormalizeXZ(GetTargetPosition() - selfPos); }
 	float bestDist = 9999.0f;
+	int selected = -1;
 	for (size_t i = 0; i < climbableObstacleAABBs_.size(); ++i)
 	{
 		const auto& obstacle = climbableObstacleAABBs_[i];
@@ -760,10 +769,15 @@ bool MeleeEnemy::TryJumpOverClimbableObstacle(float)
 		if (horizontalDistance > traversal_.climbJumpTriggerDistance) { traversalState_.lastReason = "TooFarFromObstacle"; continue; }
 		const K4E::Vector3 dirToObs = NormalizeXZ(toObs);
 		const float dirDot = dirToObs.x * moveOrTargetDir.x + dirToObs.z * moveOrTargetDir.z;
-		if (dirDot < 0.1f) { continue; }
-		if (horizontalDistance < bestDist) { bestDist = horizontalDistance; traversalState_.selectedClimbObstacleIndex = static_cast<int>(i); }
+		const bool inMoveDirection = dirDot >= 0.1f;
+		const float toTargetLineDistance = DistancePointToSegmentXZ(center, selfPos, targetPos);
+		const bool betweenSelfAndTarget = toTargetLineDistance <= traversal_.directLineWidth;
+		// 進行方向上か、敵-ターゲット間の障害物のみジャンプ対象とする
+		if (!inMoveDirection && !betweenSelfAndTarget) { continue; }
+		if (horizontalDistance < bestDist) { bestDist = horizontalDistance; selected = static_cast<int>(i); }
 	}
-	traversalState_.nearClimbableObstacle = traversalState_.selectedClimbObstacleIndex >= 0;
+	traversalState_.selectedClimbObstacleIndex = selected;
+	traversalState_.nearClimbableObstacle = selected >= 0;
 	if (!traversalState_.nearClimbableObstacle) { traversalState_.lastReason = "NoNearObstacle"; return false; }
 	const auto& selectedObstacle = climbableObstacleAABBs_[traversalState_.selectedClimbObstacleIndex];
 	// 近接乗り越えジャンプで選ばれた障害物の値を保持する
