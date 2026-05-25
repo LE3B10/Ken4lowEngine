@@ -508,7 +508,7 @@ void MeleeEnemy::DrawImGui()
 			ImGui::SliderFloat("停止距離", &detection_.stopDistance, 0.5f, 6.0f);
 			ImGui::SliderFloat("攻撃開始距離", &detection_.attackStartRange, 0.5f, 8.0f);
 			ImGui::SliderFloat("追跡再開距離", &detection_.resumeChaseDistance, 0.5f, 10.0f);
-			ImGui::SliderFloat("OneTwo前進最小距離", &detection_.minOneTwoForwardDistance, 0.1f, 5.0f);
+			ImGui::SliderFloat("踏み込み前進最小距離", &detection_.minLungeForwardDistance, 0.1f, 5.0f);
 		}
 		if (ImGui::CollapsingHeader("移動", ImGuiTreeNodeFlags_DefaultOpen)) {
 			ImGui::SliderFloat("移動速度", &move_.moveSpeed, 0.1f, 10.0f);
@@ -629,13 +629,24 @@ if (ImGui::CollapsingHeader("スタック", ImGuiTreeNodeFlags_DefaultOpen)) {
 			ImGui::SliderFloat("判定距離", &stuckSettings_.distance, 0.01f, 2.0f);
 			ImGui::SliderFloat("移動閾値", &stuckSettings_.moveThreshold, 0.03f, 1.2f);
 		}
+		if (ImGui::CollapsingHeader("攻撃選択", ImGuiTreeNodeFlags_DefaultOpen)) {
+			ImGui::Checkbox("ランダム攻撃選択を使う", &attackSelectSettings_.randomSelectEnabled);
+			ImGui::SliderFloat("踏み込みひっかき基本確率", &attackSelectSettings_.lungeBaseChance, 0.0f, 1.0f);
+			ImGui::SliderFloat("踏み込みひっかき優先確率", &attackSelectSettings_.lungePreferredChance, 0.0f, 1.0f);
+			ImGui::SliderFloat("踏み込み優先最小距離", &attackSelectSettings_.lungePreferredMinDistance, 0.1f, 8.0f);
+			ImGui::SliderFloat("踏み込み優先最大距離", &attackSelectSettings_.lungePreferredMaxDistance, 0.1f, 10.0f);
+			ImGui::Text("最後の乱数: %.3f", attackSelectState_.lastRoll);
+			ImGui::Text("最後の踏み込み確率: %.3f", attackSelectState_.lastLungeChance);
+			ImGui::Text("最後の攻撃選択理由: %s", attackSelectState_.lastReason.c_str());
+			ImGui::Text("現在の攻撃: %s", attackController_.GetCurrentAttackName());
+		}
 		if (ImGui::CollapsingHeader("攻撃パターン", ImGuiTreeNodeFlags_DefaultOpen)) {
 			ImGui::SliderFloat("攻撃ロック時間", &attackSettings_.lockTime, 0.0f, 1.0f);
 			int attackSelect = static_cast<int>(attackSettings_.selectedAttackType);
-			const char* items[] = { "ひっかき", "ワンツー" };
+			const char* items[] = { "ひっかき", "踏み込みひっかき" };
 			if (ImGui::Combo("選択攻撃", &attackSelect, items, IM_ARRAYSIZE(items))) { attackSettings_.selectedAttackType = static_cast<MeleeAttackType>(attackSelect); }
 			if (MeleeAttackPattern* scratch = attackController_.FindPattern(MeleeAttackType::Scratch)) { MeleeAttackStep& st = scratch->steps[0]; ImGui::SliderInt("ひっかき ダメージ", &st.damage, 1, 50); ImGui::SliderFloat("ひっかき 射程", &st.range, 0.5f, 6.0f); ImGui::SliderFloat("ひっかき 半径", &st.radius, 0.1f, 3.0f); ImGui::SliderFloat("ひっかき 開始", &st.startTime, 0.01f, 1.5f); ImGui::SliderFloat("ひっかき 有効", &st.activeTime, 0.01f, 1.0f); ImGui::SliderFloat("ひっかき 硬直", &scratch->recoveryTime, 0.01f, 2.0f); ImGui::SliderFloat("ひっかき CT", &scratch->cooldown, 0.01f, 3.0f); }
-			if (MeleeAttackPattern* oneTwo = attackController_.FindPattern(MeleeAttackType::OneTwo)) { MeleeAttackStep& l = oneTwo->steps[0]; MeleeAttackStep& r = oneTwo->steps[1]; ImGui::SliderInt("ワンツー左 ダメージ", &l.damage, 1, 50); ImGui::SliderFloat("ワンツー左 射程", &l.range, 0.5f, 6.0f); ImGui::SliderFloat("ワンツー左 半径", &l.radius, 0.1f, 3.0f); ImGui::SliderFloat("ワンツー左 開始", &l.startTime, 0.01f, 1.5f); ImGui::SliderFloat("ワンツー左 有効", &l.activeTime, 0.01f, 1.0f); ImGui::SliderInt("ワンツー右 ダメージ", &r.damage, 1, 50); ImGui::SliderFloat("ワンツー右 射程", &r.range, 0.5f, 6.0f); ImGui::SliderFloat("ワンツー右 半径", &r.radius, 0.1f, 3.0f); ImGui::SliderFloat("ワンツー右 開始", &r.startTime, 0.01f, 2.0f); ImGui::SliderFloat("ワンツー右 有効", &r.activeTime, 0.01f, 1.0f); ImGui::SliderFloat("ワンツー 前進速度", &oneTwo->forwardMoveSpeed, 0.0f, 5.0f); ImGui::SliderFloat("ワンツー 前進時間", &oneTwo->forwardMoveDuration, 0.0f, 2.0f); ImGui::SliderFloat("ワンツー 硬直", &oneTwo->recoveryTime, 0.01f, 2.0f); ImGui::SliderFloat("ワンツー CT", &oneTwo->cooldown, 0.01f, 3.0f); }
+			if (MeleeAttackPattern* lunge = attackController_.FindPattern(MeleeAttackType::LungeScratch)) { MeleeAttackStep& st = lunge->steps[0]; ImGui::SliderInt("踏み込みひっかき ダメージ", &st.damage, 1, 50); ImGui::SliderFloat("踏み込みひっかき 射程", &st.range, 0.5f, 8.0f); ImGui::SliderFloat("踏み込みひっかき 半径", &st.radius, 0.1f, 3.0f); ImGui::SliderFloat("踏み込みひっかき 開始", &st.startTime, 0.01f, 2.0f); ImGui::SliderFloat("踏み込みひっかき 有効", &st.activeTime, 0.01f, 1.2f); ImGui::SliderFloat("踏み込みひっかき 前進速度", &lunge->forwardMoveSpeed, 0.0f, 8.0f); ImGui::SliderFloat("踏み込みひっかき 前進時間", &lunge->forwardMoveDuration, 0.0f, 2.0f); ImGui::SliderFloat("踏み込みひっかき 硬直", &lunge->recoveryTime, 0.01f, 3.0f); ImGui::SliderFloat("踏み込みひっかき CT", &lunge->cooldown, 0.01f, 4.0f); }
 		}
 		if (ImGui::CollapsingHeader("アニメーション", ImGuiTreeNodeFlags_DefaultOpen)) { ImGui::SliderFloat("歩行速度", &animation_.walkAnimSpeed, 1.0f, 18.0f); ImGui::SliderFloat("腕振り", &animation_.walkArmSwing, 0.0f, 1.5f); ImGui::SliderFloat("脚振り", &animation_.walkLegSwing, 0.0f, 1.5f); ImGui::SliderFloat("攻撃腕振り", &animation_.attackArmSwing, 0.0f, 2.0f); ImGui::SliderFloat("攻撃復帰速度", &animation_.attackReturnSpeed, 1.0f, 24.0f); ImGui::SliderFloat("攻撃体傾き", &animation_.attackBodyLean, 0.0f, 0.4f); }
 		if (ImGui::CollapsingHeader("頭向き", ImGuiTreeNodeFlags_DefaultOpen)) { ImGui::Checkbox("頭をターゲットへ向ける", &headLookSettings_.enabled); ImGui::SliderFloat("ヨー制限", &headLookSettings_.yawLimitDeg, 10.0f, 120.0f); ImGui::SliderFloat("ピッチ最小", &headLookSettings_.pitchMinDeg, -80.0f, 0.0f); ImGui::SliderFloat("ピッチ最大", &headLookSettings_.pitchMaxDeg, 0.0f, 80.0f); ImGui::SliderFloat("補間速度", &headLookSettings_.lerpSpeed, 1.0f, 30.0f); }
@@ -726,12 +737,39 @@ void MeleeEnemy::MeleeAttackAction()
 	StopMove();
 	if (!attackController_.IsAttacking() && attackController_.CanStartAttack())
 	{
-		// 攻撃パターンをデータとして扱い、ScratchとOneTwoを同じ制御経路で実行する
-		attackController_.StartAttack(attackSettings_.selectedAttackType);
+		// 距離と確率に応じて攻撃を選び、通常ひっかきと踏み込みひっかきを使い分ける
+		const MeleeAttackType selectedType = SelectAttackTypeByDistanceAndChance(GetDistanceToTarget());
+		attackSettings_.selectedAttackType = selectedType;
+		attackController_.StartAttack(selectedType);
 		attackState_.lockTimer = attackSettings_.lockTime;
-		animationState_.animState = (attackSettings_.selectedAttackType == MeleeAttackType::OneTwo) ? AnimState::OneTwo : AnimState::Scratch;
+		animationState_.animState = (selectedType == MeleeAttackType::LungeScratch) ? AnimState::LungeScratch : AnimState::Scratch;
 	}
-	currentBehaviorName_ = (attackSettings_.selectedAttackType == MeleeAttackType::OneTwo) ? "OneTwoAttack" : "ScratchAttack";
+	currentBehaviorName_ = (attackSettings_.selectedAttackType == MeleeAttackType::LungeScratch) ? "LungeScratchAttack" : "ScratchAttack";
+}
+
+MeleeAttackType MeleeEnemy::SelectAttackTypeByDistanceAndChance(float distance)
+{
+	const auto* lungePattern = attackController_.FindPattern(MeleeAttackType::LungeScratch);
+	if (!lungePattern || !attackController_.CanStartAttack())
+	{
+		attackSelectState_.lastReason = "踏み込み不可";
+		return MeleeAttackType::Scratch;
+	}
+	float lungeChance = attackSelectSettings_.lungeBaseChance;
+	const bool preferredDistance = distance >= attackSelectSettings_.lungePreferredMinDistance && distance <= attackSelectSettings_.lungePreferredMaxDistance;
+	if (preferredDistance) { lungeChance = attackSelectSettings_.lungePreferredChance; }
+	lungeChance = Clamp(lungeChance, 0.0f, 1.0f);
+	attackSelectState_.lastLungeChance = lungeChance;
+	if (!attackSelectSettings_.randomSelectEnabled)
+	{
+		attackSelectState_.lastRoll = 0.0f;
+		attackSelectState_.lastReason = preferredDistance ? "距離優先で踏み込み" : "近距離でひっかき";
+		return preferredDistance ? MeleeAttackType::LungeScratch : MeleeAttackType::Scratch;
+	}
+	attackSelectState_.lastRoll = static_cast<float>(std::rand()) / static_cast<float>(RAND_MAX);
+	const bool chooseLunge = preferredDistance ? (attackSelectState_.lastRoll < lungeChance) : (attackSelectState_.lastRoll < attackSelectSettings_.lungeBaseChance);
+	attackSelectState_.lastReason = chooseLunge ? "乱数で踏み込みひっかき" : "乱数でひっかき";
+	return chooseLunge ? MeleeAttackType::LungeScratch : MeleeAttackType::Scratch;
 }
 
 void MeleeEnemy::CombatIdleAction()
@@ -1128,7 +1166,7 @@ void MeleeEnemy::WanderAction(float deltaTime)
 
 void MeleeEnemy::ApplyAttackMove(const Vector3& horizontalVelocity)
 {
-	if (attackSettings_.selectedAttackType == MeleeAttackType::OneTwo && GetDistanceToTarget() > detection_.minOneTwoForwardDistance)
+	if (attackController_.GetCurrentAttackType() == MeleeAttackType::LungeScratch && GetDistanceToTarget() > detection_.minLungeForwardDistance)
 	{
 		SetVelocity({ horizontalVelocity.x, GetVelocity().y, horizontalVelocity.z });
 	}
@@ -1240,8 +1278,12 @@ void MeleeEnemy::UpdateVisualAnimation(float deltaTime)
 			if (scratchArmState_.useLeftArm) { lAttack = animation_.attackArmSwing; }
 			else { rAttack = animation_.attackArmSwing; }
 		}
-		if (attackController_.GetCurrentAttackType() == MeleeAttackType::OneTwo && attackController_.GetCurrentStepIndex() == 0) { lAttack = animation_.attackArmSwing; }
-		if (attackController_.GetCurrentAttackType() == MeleeAttackType::OneTwo && attackController_.GetCurrentStepIndex() == 1) { rAttack = animation_.attackArmSwing; }
+		if (attackController_.GetCurrentAttackType() == MeleeAttackType::LungeScratch && attackController_.GetCurrentStepIndex() == 0)
+		{
+			// 踏み込みひっかきは片腕を大きく振って通常ひっかきと見た目を差別化する
+			rAttack = animation_.attackArmSwing * 1.35f;
+			legTarget = 0.22f;
+		}
 	}
 	else
 	{
@@ -1298,7 +1340,9 @@ void MeleeEnemy::UpdateVisualAnimation(float deltaTime)
 		parts_[head].transform.rotate_.y = headLookState_.currentYaw * (kPi / 180.0f);
 		parts_[head].transform.rotate_.x = headLookState_.currentPitch * (kPi / 180.0f);
 	}
-	body_.transform.rotate_.x = (lAttack + rAttack) * animation_.attackBodyLean;
+	const bool isLungeAttacking = attackController_.IsAttacking() && attackController_.GetCurrentAttackType() == MeleeAttackType::LungeScratch;
+	// 踏み込みひっかき中は体を前傾させて踏み込み感を出す
+	body_.transform.rotate_.x = (lAttack + rAttack) * animation_.attackBodyLean + (isLungeAttacking ? animation_.attackBodyLean * 0.9f : 0.0f);
 	UpdateVisualHierarchy();
 }
 
@@ -1315,7 +1359,7 @@ const char* MeleeEnemy::GetAnimStateName() const
 	case AnimState::Idle: return "Idle";
 	case AnimState::Walk: return "Walk";
 	case AnimState::Scratch: return "Scratch";
-	case AnimState::OneTwo: return "OneTwo";
+	case AnimState::LungeScratch: return "LungeScratch";
 	case AnimState::Dead: return "Dead";
 	default: return "Unknown";
 	}
@@ -1348,14 +1392,14 @@ bool MeleeEnemy::LoadTuningFromJson(const std::filesystem::path& path, std::stri
 		const nlohmann::json& separationJ = j.contains("separation") ? j["separation"] : j;
 		const nlohmann::json& attackPatternsJ = j.contains("attackPatterns") ? j["attackPatterns"] : j;
 		const nlohmann::json& scratchJ = attackPatternsJ.contains("scratch") ? attackPatternsJ["scratch"] : j;
-		const nlohmann::json& oneTwoJ = attackPatternsJ.contains("oneTwo") ? attackPatternsJ["oneTwo"] : j;
+		const nlohmann::json& lungeScratchJ = attackPatternsJ.contains("lungeScratch") ? attackPatternsJ["lungeScratch"] : (attackPatternsJ.contains("oneTwo") ? attackPatternsJ["oneTwo"] : j);
 
 		detection_.detectRange = detectionJ.value("detectRange", detection_.detectRange);
 		detection_.meleeAttackRange = detectionJ.value("meleeAttackRange", detection_.meleeAttackRange);
 		detection_.stopDistance = detectionJ.value("stopDistance", detection_.stopDistance);
 		detection_.attackStartRange = detectionJ.value("attackStartRange", detection_.attackStartRange);
 		detection_.resumeChaseDistance = detectionJ.value("resumeChaseDistance", detection_.resumeChaseDistance);
-		detection_.minOneTwoForwardDistance = detectionJ.value("minOneTwoForwardDistance", detection_.minOneTwoForwardDistance);
+		detection_.minLungeForwardDistance = detectionJ.value("minLungeForwardDistance", detection_.minLungeForwardDistance);
 		move_.moveSpeed = moveJ.value("moveSpeed", move_.moveSpeed);
 		move_.rotateSpeed = moveJ.value("rotateSpeed", move_.rotateSpeed);
 		move_.maxResolvePushPerFrame = moveJ.value("maxResolvePushPerFrame", move_.maxResolvePushPerFrame);
@@ -1396,6 +1440,11 @@ bool MeleeEnemy::LoadTuningFromJson(const std::filesystem::path& path, std::stri
 		stuckSettings_.moveThreshold = stuckJ.value("moveThreshold", stuckJ.value("stuckMoveThreshold", stuckSettings_.moveThreshold));
 		attackSettings_.lockTime = attackJ.value("lockTime", attackJ.value("attackLockTime", attackSettings_.lockTime));
 		attackSettings_.selectedAttackType = static_cast<MeleeAttackType>(attackJ.value("selectedAttackType", static_cast<int>(attackSettings_.selectedAttackType)));
+		attackSelectSettings_.randomSelectEnabled = attackJ.value("randomSelectEnabled", attackSelectSettings_.randomSelectEnabled);
+		attackSelectSettings_.lungeBaseChance = attackJ.value("lungeBaseChance", attackSelectSettings_.lungeBaseChance);
+		attackSelectSettings_.lungePreferredChance = attackJ.value("lungePreferredChance", attackSelectSettings_.lungePreferredChance);
+		attackSelectSettings_.lungePreferredMinDistance = attackJ.value("lungePreferredMinDistance", attackSelectSettings_.lungePreferredMinDistance);
+		attackSelectSettings_.lungePreferredMaxDistance = attackJ.value("lungePreferredMaxDistance", attackSelectSettings_.lungePreferredMaxDistance);
 		animation_.visualYawOffset = animationJ.value("visualYawOffset", animation_.visualYawOffset);
 		animation_.walkAnimSpeed = animationJ.value("walkAnimSpeed", animation_.walkAnimSpeed);
 		animation_.walkArmSwing = animationJ.value("walkArmSwing", animation_.walkArmSwing);
@@ -1427,23 +1476,18 @@ bool MeleeEnemy::LoadTuningFromJson(const std::filesystem::path& path, std::stri
 			s->recoveryTime = scratchJ.value("recoveryTime", scratchJ.value("scratchRecoveryTime", s->recoveryTime));
 			s->cooldown = scratchJ.value("cooldown", scratchJ.value("scratchCooldown", s->cooldown));
 		}
-		if (auto* o = attackController_.FindPattern(MeleeAttackType::OneTwo))
+		if (auto* o = attackController_.FindPattern(MeleeAttackType::LungeScratch))
 		{
-			auto& l = o->steps[0]; auto& r = o->steps[1];
-			l.damage = oneTwoJ.value("leftDamage", oneTwoJ.value("oneTwoLeftDamage", l.damage));
-			r.damage = oneTwoJ.value("rightDamage", oneTwoJ.value("oneTwoRightDamage", r.damage));
-			l.range = oneTwoJ.value("leftRange", oneTwoJ.value("oneTwoLeftRange", l.range));
-			r.range = oneTwoJ.value("rightRange", oneTwoJ.value("oneTwoRightRange", r.range));
-			l.radius = oneTwoJ.value("leftRadius", oneTwoJ.value("oneTwoLeftRadius", l.radius));
-			r.radius = oneTwoJ.value("rightRadius", oneTwoJ.value("oneTwoRightRadius", r.radius));
-			l.startTime = oneTwoJ.value("leftStartTime", oneTwoJ.value("oneTwoLeftStartTime", l.startTime));
-			r.startTime = oneTwoJ.value("rightStartTime", oneTwoJ.value("oneTwoRightStartTime", r.startTime));
-			l.activeTime = oneTwoJ.value("leftActiveTime", oneTwoJ.value("oneTwoLeftActiveTime", l.activeTime));
-			r.activeTime = oneTwoJ.value("rightActiveTime", oneTwoJ.value("oneTwoRightActiveTime", r.activeTime));
-			o->forwardMoveSpeed = oneTwoJ.value("forwardMoveSpeed", oneTwoJ.value("oneTwoForwardMoveSpeed", o->forwardMoveSpeed));
-			o->forwardMoveDuration = oneTwoJ.value("forwardMoveDuration", oneTwoJ.value("oneTwoForwardMoveDuration", o->forwardMoveDuration));
-			o->recoveryTime = oneTwoJ.value("recoveryTime", oneTwoJ.value("oneTwoRecoveryTime", o->recoveryTime));
-			o->cooldown = oneTwoJ.value("cooldown", oneTwoJ.value("oneTwoCooldown", o->cooldown));
+			auto& st = o->steps[0];
+			st.damage = lungeScratchJ.value("damage", lungeScratchJ.value("leftDamage", lungeScratchJ.value("oneTwoLeftDamage", st.damage)));
+			st.range = lungeScratchJ.value("range", lungeScratchJ.value("leftRange", lungeScratchJ.value("oneTwoLeftRange", st.range)));
+			st.radius = lungeScratchJ.value("radius", lungeScratchJ.value("leftRadius", lungeScratchJ.value("oneTwoLeftRadius", st.radius)));
+			st.startTime = lungeScratchJ.value("startTime", lungeScratchJ.value("leftStartTime", lungeScratchJ.value("oneTwoLeftStartTime", st.startTime)));
+			st.activeTime = lungeScratchJ.value("activeTime", lungeScratchJ.value("leftActiveTime", lungeScratchJ.value("oneTwoLeftActiveTime", st.activeTime)));
+			o->forwardMoveSpeed = lungeScratchJ.value("forwardMoveSpeed", lungeScratchJ.value("oneTwoForwardMoveSpeed", o->forwardMoveSpeed));
+			o->forwardMoveDuration = lungeScratchJ.value("forwardMoveDuration", lungeScratchJ.value("oneTwoForwardMoveDuration", o->forwardMoveDuration));
+			o->recoveryTime = lungeScratchJ.value("recoveryTime", lungeScratchJ.value("oneTwoRecoveryTime", o->recoveryTime));
+			o->cooldown = lungeScratchJ.value("cooldown", lungeScratchJ.value("oneTwoCooldown", o->cooldown));
 		}
 		navigator_.Reset();
 		if (outMessage) { *outMessage = "読み込み成功"; }
@@ -1464,7 +1508,7 @@ bool MeleeEnemy::SaveTuningToJson(const std::filesystem::path& path, std::string
 		j["jsonVersion"] = tuningIo_.jsonFormatVersion;
 		j["detection"] = {
 			{ "detectRange", detection_.detectRange }, { "meleeAttackRange", detection_.meleeAttackRange }, { "stopDistance", detection_.stopDistance },
-			{ "attackStartRange", detection_.attackStartRange }, { "resumeChaseDistance", detection_.resumeChaseDistance }, { "minOneTwoForwardDistance", detection_.minOneTwoForwardDistance }
+			{ "attackStartRange", detection_.attackStartRange }, { "resumeChaseDistance", detection_.resumeChaseDistance }, { "minLungeForwardDistance", detection_.minLungeForwardDistance }
 		};
 		j["move"] = {
 			{ "moveSpeed", move_.moveSpeed }, { "rotateSpeed", move_.rotateSpeed }, { "maxResolvePushPerFrame", move_.maxResolvePushPerFrame }, { "maxHorizontalPushPerFrame", move_.maxHorizontalPushPerFrame },
@@ -1485,13 +1529,13 @@ bool MeleeEnemy::SaveTuningToJson(const std::filesystem::path& path, std::string
 			{ "stuckRepathExpandBonus", pathSettings_.stuckRepathExpandBonus }, { "maxStuckRepathExpandBonus", pathSettings_.maxStuckRepathExpandBonus }
 		};
 		j["stuck"] = { { "checkTime", stuckSettings_.checkTime }, { "distance", stuckSettings_.distance }, { "moveThreshold", stuckSettings_.moveThreshold } };
-		j["attack"] = { { "selectedAttackType", static_cast<int>(attackSettings_.selectedAttackType) }, { "lockTime", attackSettings_.lockTime } };
+		j["attack"] = { { "selectedAttackType", static_cast<int>(attackSettings_.selectedAttackType) }, { "lockTime", attackSettings_.lockTime }, { "randomSelectEnabled", attackSelectSettings_.randomSelectEnabled }, { "lungeBaseChance", attackSelectSettings_.lungeBaseChance }, { "lungePreferredChance", attackSelectSettings_.lungePreferredChance }, { "lungePreferredMinDistance", attackSelectSettings_.lungePreferredMinDistance }, { "lungePreferredMaxDistance", attackSelectSettings_.lungePreferredMaxDistance } };
 		j["animation"] = { { "visualYawOffset", animation_.visualYawOffset }, { "walkAnimSpeed", animation_.walkAnimSpeed }, { "walkArmSwing", animation_.walkArmSwing }, { "walkLegSwing", animation_.walkLegSwing }, { "attackArmSwing", animation_.attackArmSwing }, { "attackReturnSpeed", animation_.attackReturnSpeed }, { "attackBodyLean", animation_.attackBodyLean } };
 		j["headLook"] = { { "enabled", headLookSettings_.enabled }, { "yawLimitDeg", headLookSettings_.yawLimitDeg }, { "pitchMinDeg", headLookSettings_.pitchMinDeg }, { "pitchMaxDeg", headLookSettings_.pitchMaxDeg }, { "lerpSpeed", headLookSettings_.lerpSpeed } };
 		j["separation"] = { { "enabled", separationSettings_.enabled }, { "radius", separationSettings_.radius }, { "strength", separationSettings_.strength }, { "maxPushPerFrame", separationSettings_.maxPushPerFrame }, { "attackPushScale", separationSettings_.attackPushScale }, { "targetNearLateralEnabled", separationSettings_.targetNearLateralEnabled }, { "targetNearLateralOffset", separationSettings_.targetNearLateralOffset }, { "targetNearLateralStrength", separationSettings_.targetNearLateralStrength } };
 		// 保存対象は設定値のみで、ランタイム状態は書き出さない。
 		if (const auto* s = attackController_.FindPattern(MeleeAttackType::Scratch)) { const auto& st = s->steps[0]; j["attackPatterns"]["scratch"] = { {"damage", st.damage}, {"range", st.range}, {"radius", st.radius}, {"startTime", st.startTime}, {"activeTime", st.activeTime}, {"recoveryTime", s->recoveryTime}, {"cooldown", s->cooldown} }; }
-		if (const auto* o = attackController_.FindPattern(MeleeAttackType::OneTwo)) { const auto& l = o->steps[0]; const auto& r = o->steps[1]; j["attackPatterns"]["oneTwo"] = { {"leftDamage", l.damage}, {"rightDamage", r.damage}, {"leftRange", l.range}, {"rightRange", r.range}, {"leftRadius", l.radius}, {"rightRadius", r.radius}, {"leftStartTime", l.startTime}, {"rightStartTime", r.startTime}, {"leftActiveTime", l.activeTime}, {"rightActiveTime", r.activeTime}, {"forwardMoveSpeed", o->forwardMoveSpeed}, {"forwardMoveDuration", o->forwardMoveDuration}, {"recoveryTime", o->recoveryTime}, {"cooldown", o->cooldown} }; }
+		if (const auto* o = attackController_.FindPattern(MeleeAttackType::LungeScratch)) { const auto& st = o->steps[0]; j["attackPatterns"]["lungeScratch"] = { {"damage", st.damage}, {"range", st.range}, {"radius", st.radius}, {"startTime", st.startTime}, {"activeTime", st.activeTime}, {"forwardMoveSpeed", o->forwardMoveSpeed}, {"forwardMoveDuration", o->forwardMoveDuration}, {"recoveryTime", o->recoveryTime}, {"cooldown", o->cooldown} }; }
 		// 保存先ディレクトリはResources/DataAssets/Enemy/MeleeEnemy配下に限定して作成する。
 		std::filesystem::create_directories(path.parent_path());
 		std::ofstream ofs(path);

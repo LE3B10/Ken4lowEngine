@@ -32,22 +32,21 @@ void MeleeAttackController::Initialize()
 	scratch.type = MeleeAttackType::Scratch;
 	scratch.name = "Scratch";
 	scratch.recoveryTime = 0.35f;
-	scratch.cooldown = 0.8f;
-	scratch.steps = { { "Scratch", 8, 0.18f, 0.12f, 2.2f, 0.8f, 0.0f, 0.0f } };
+	scratch.cooldown = 0.55f;
+	scratch.steps = { { "Scratch", 8, 0.12f, 0.10f, 2.2f, 0.8f, 0.0f, 0.0f } };
 	patterns_[static_cast<int>(scratch.type)] = scratch;
 
-	MeleeAttackPattern oneTwo{};
-	oneTwo.type = MeleeAttackType::OneTwo;
-	oneTwo.name = "OneTwo";
-	oneTwo.recoveryTime = 0.45f;
-	oneTwo.cooldown = 1.15f;
-	oneTwo.forwardMoveSpeed = 1.8f;
-	oneTwo.forwardMoveDuration = 0.45f;
-	oneTwo.steps = {
-		{ "LeftScratch", 5, 0.16f, 0.10f, 2.0f, 0.75f, 0.0f, 0.0f },
-		{ "RightScratch", 7, 0.42f, 0.12f, 2.1f, 0.8f, 0.0f, 0.0f },
+	MeleeAttackPattern lungeScratch{};
+	lungeScratch.type = MeleeAttackType::LungeScratch;
+	lungeScratch.name = "LungeScratch";
+	lungeScratch.recoveryTime = 0.75f;
+	lungeScratch.cooldown = 1.25f;
+	lungeScratch.forwardMoveSpeed = 3.0f;
+	lungeScratch.forwardMoveDuration = 0.35f;
+	lungeScratch.steps = {
+		{ "LungeScratch", 14, 0.24f, 0.14f, 3.2f, 1.0f, 0.0f, 0.0f },
 	};
-	patterns_[static_cast<int>(oneTwo.type)] = oneTwo;
+	patterns_[static_cast<int>(lungeScratch.type)] = lungeScratch;
 }
 
 void MeleeAttackController::StartAttack(MeleeAttackType type)
