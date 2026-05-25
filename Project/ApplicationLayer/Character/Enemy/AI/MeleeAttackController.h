@@ -20,6 +20,9 @@ public:
 	bool CanStartAttack() const { return !isAttacking_ && cooldownRemaining_ <= 0.0f; }
 	const char* GetCurrentAttackName() const;
 	float GetAttackElapsed() const { return attackElapsed_; }
+	float GetCurrentAttackElapsed() const { return attackElapsed_; }
+	float GetCurrentAttackNormalizedTime() const;
+	float GetCurrentStepNormalizedTime() const;
 	int GetCurrentStepIndex() const { return currentStepIndex_; }
 	float GetCooldownRemaining() const { return cooldownRemaining_; }
 	bool IsCurrentStepActive() const { return isCurrentStepActive_; }

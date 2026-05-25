@@ -233,9 +233,14 @@ private: /// ---------- 構造体 ---------- ///
 		float walkAnimSpeed = 8.0f;		 // 歩行アニメーションの速度
 		float walkArmSwing = 0.55f;		 // 歩行中の腕の振り幅
 		float walkLegSwing = 0.45f;		 // 歩行中の脚の振り幅
-		float attackArmSwing = 1.25f;	 // 攻撃中の腕の振り幅
-		float attackReturnSpeed = 12.0f; // 攻撃後に腕を戻す速度
-		float attackBodyLean = 0.15f;	 // 攻撃中の体の傾きの強さ
+		float scratchArmSwing = 1.15f;	 // 通常ひっかきの腕振り幅
+		float scratchBodyLean = 0.08f;	 // 通常ひっかきの体前傾
+		float scratchReturnSpeed = 14.0f; // 通常ひっかきの復帰速度
+		float lungeRaiseArmAngle = -0.85f; // 踏み込みひっかきの溜め腕角度
+		float lungeSwingDownAngle = 1.45f; // 踏み込みひっかきの振り下ろし角度
+		float lungeBodyLean = 0.28f;		 // 踏み込みひっかきの体前傾
+		float lungeLegStepAmount = 0.25f;	 // 踏み込みひっかきの脚踏み込み量
+		float lungeReturnSpeed = 10.0f;	 // 踏み込みひっかきの復帰速度
 	};
 
 	// アニメーションの状態管理
@@ -255,6 +260,7 @@ private: /// ---------- 構造体 ---------- ///
 		K4E::Vector3 visualForward{ 0.0f, 0.0f, 1.0f };		// 見た目の前方向（visualYawOffset を加味したもの）
 		K4E::Vector3 attackForward{ 0.0f, 0.0f, 1.0f };		// 攻撃の前方向（攻撃の種類や状況に応じて変わる）
 		AnimState animState = AnimState::Idle;				// 現在のアニメーション状態
+		float attackAnimProgress = 0.0f;						// 現在攻撃の正規化進行度（デバッグ表示用）
 	};
 
 	// Scratch攻撃の左右交互制御
@@ -476,7 +482,7 @@ private: /// ---------- 内部処理 ---------- ///
 	// 攻撃後に追いかけを再開する距離内にターゲットがいるかどうかを判定
 	bool IsTargetInAttackHoldRange() const;
 
-	// OneTwo攻撃の前進距離が有効になる最小距離内にターゲットがいるかどうかを判定
+	// 踏み込みひっかきの前進距離が有効になる最小距離内にターゲットがいるかどうかを判定
 	bool IsAttackCooldownReady() const;
 
 	// ターゲットの高さとの差がジャンプを試みるための閾値以上あるかどうかを判定

@@ -638,7 +638,13 @@ if (ImGui::CollapsingHeader("スタック", ImGuiTreeNodeFlags_DefaultOpen)) {
 			ImGui::Text("最後の乱数: %.3f", attackSelectState_.lastRoll);
 			ImGui::Text("最後の踏み込み確率: %.3f", attackSelectState_.lastLungeChance);
 			ImGui::Text("最後の攻撃選択理由: %s", attackSelectState_.lastReason.c_str());
-			ImGui::Text("現在の攻撃: %s", attackController_.GetCurrentAttackName());
+			const char* attackAnimName = "なし";
+			if (attackController_.IsAttacking())
+			{
+				attackAnimName = (attackController_.GetCurrentAttackType() == MeleeAttackType::LungeScratch) ? "踏み込みひっかき" : "ひっかき";
+			}
+			ImGui::Text("現在攻撃アニメーション: %s", attackAnimName);
+			ImGui::Text("攻撃進行度: %.2f", attackController_.GetCurrentAttackNormalizedTime());
 		}
 		if (ImGui::CollapsingHeader("攻撃パターン", ImGuiTreeNodeFlags_DefaultOpen)) {
 			ImGui::SliderFloat("攻撃ロック時間", &attackSettings_.lockTime, 0.0f, 1.0f);
@@ -648,7 +654,20 @@ if (ImGui::CollapsingHeader("スタック", ImGuiTreeNodeFlags_DefaultOpen)) {
 			if (MeleeAttackPattern* scratch = attackController_.FindPattern(MeleeAttackType::Scratch)) { MeleeAttackStep& st = scratch->steps[0]; ImGui::SliderInt("ひっかき ダメージ", &st.damage, 1, 50); ImGui::SliderFloat("ひっかき 射程", &st.range, 0.5f, 6.0f); ImGui::SliderFloat("ひっかき 半径", &st.radius, 0.1f, 3.0f); ImGui::SliderFloat("ひっかき 開始", &st.startTime, 0.01f, 1.5f); ImGui::SliderFloat("ひっかき 有効", &st.activeTime, 0.01f, 1.0f); ImGui::SliderFloat("ひっかき 硬直", &scratch->recoveryTime, 0.01f, 2.0f); ImGui::SliderFloat("ひっかき CT", &scratch->cooldown, 0.01f, 3.0f); }
 			if (MeleeAttackPattern* lunge = attackController_.FindPattern(MeleeAttackType::LungeScratch)) { MeleeAttackStep& st = lunge->steps[0]; ImGui::SliderInt("踏み込みひっかき ダメージ", &st.damage, 1, 50); ImGui::SliderFloat("踏み込みひっかき 射程", &st.range, 0.5f, 8.0f); ImGui::SliderFloat("踏み込みひっかき 半径", &st.radius, 0.1f, 3.0f); ImGui::SliderFloat("踏み込みひっかき 開始", &st.startTime, 0.01f, 2.0f); ImGui::SliderFloat("踏み込みひっかき 有効", &st.activeTime, 0.01f, 1.2f); ImGui::SliderFloat("踏み込みひっかき 前進速度", &lunge->forwardMoveSpeed, 0.0f, 8.0f); ImGui::SliderFloat("踏み込みひっかき 前進時間", &lunge->forwardMoveDuration, 0.0f, 2.0f); ImGui::SliderFloat("踏み込みひっかき 硬直", &lunge->recoveryTime, 0.01f, 3.0f); ImGui::SliderFloat("踏み込みひっかき CT", &lunge->cooldown, 0.01f, 4.0f); }
 		}
-		if (ImGui::CollapsingHeader("アニメーション", ImGuiTreeNodeFlags_DefaultOpen)) { ImGui::SliderFloat("歩行速度", &animation_.walkAnimSpeed, 1.0f, 18.0f); ImGui::SliderFloat("腕振り", &animation_.walkArmSwing, 0.0f, 1.5f); ImGui::SliderFloat("脚振り", &animation_.walkLegSwing, 0.0f, 1.5f); ImGui::SliderFloat("攻撃腕振り", &animation_.attackArmSwing, 0.0f, 2.0f); ImGui::SliderFloat("攻撃復帰速度", &animation_.attackReturnSpeed, 1.0f, 24.0f); ImGui::SliderFloat("攻撃体傾き", &animation_.attackBodyLean, 0.0f, 0.4f); }
+		if (ImGui::CollapsingHeader("アニメーション", ImGuiTreeNodeFlags_DefaultOpen))
+		{
+			ImGui::SliderFloat("歩行速度", &animation_.walkAnimSpeed, 1.0f, 18.0f);
+			ImGui::SliderFloat("腕振り", &animation_.walkArmSwing, 0.0f, 1.5f);
+			ImGui::SliderFloat("脚振り", &animation_.walkLegSwing, 0.0f, 1.5f);
+			ImGui::SliderFloat("通常ひっかき腕振り", &animation_.scratchArmSwing, 0.0f, 2.5f);
+			ImGui::SliderFloat("通常ひっかき体傾き", &animation_.scratchBodyLean, 0.0f, 0.4f);
+			ImGui::SliderFloat("通常ひっかき戻り速度", &animation_.scratchReturnSpeed, 1.0f, 30.0f);
+			ImGui::SliderFloat("踏み込み腕上げ角度", &animation_.lungeRaiseArmAngle, -2.0f, 0.0f);
+			ImGui::SliderFloat("踏み込み振り下ろし角度", &animation_.lungeSwingDownAngle, 0.0f, 2.5f);
+			ImGui::SliderFloat("踏み込み体傾き", &animation_.lungeBodyLean, 0.0f, 0.6f);
+			ImGui::SliderFloat("踏み込み脚の踏み込み量", &animation_.lungeLegStepAmount, 0.0f, 0.8f);
+			ImGui::SliderFloat("踏み込み戻り速度", &animation_.lungeReturnSpeed, 1.0f, 24.0f);
+		}
 		if (ImGui::CollapsingHeader("頭向き", ImGuiTreeNodeFlags_DefaultOpen)) { ImGui::Checkbox("頭をターゲットへ向ける", &headLookSettings_.enabled); ImGui::SliderFloat("ヨー制限", &headLookSettings_.yawLimitDeg, 10.0f, 120.0f); ImGui::SliderFloat("ピッチ最小", &headLookSettings_.pitchMinDeg, -80.0f, 0.0f); ImGui::SliderFloat("ピッチ最大", &headLookSettings_.pitchMaxDeg, 0.0f, 80.0f); ImGui::SliderFloat("補間速度", &headLookSettings_.lerpSpeed, 1.0f, 30.0f); }
 		if (ImGui::CollapsingHeader("状態表示", ImGuiTreeNodeFlags_DefaultOpen)) { ImGui::Text("現在行動: %s", currentBehaviorName_); ImGui::Text("攻撃中: %s", attackController_.IsAttacking() ? "はい" : "いいえ"); ImGui::Text("ターゲット距離: %.2f", GetDistanceToTarget()); }
 	}
@@ -1264,8 +1283,11 @@ void MeleeEnemy::UpdateVisualAnimation(float deltaTime)
 	float legTarget = 0.0f;
 	float lAttack = 0.0f;
 	float rAttack = 0.0f;
+	float bodyLean = 0.0f;
+	animationState_.attackAnimProgress = 0.0f;
 	if (attackController_.IsAttacking())
 	{
+		animationState_.attackAnimProgress = attackController_.GetCurrentAttackNormalizedTime();
 		const bool isScratch = attackController_.GetCurrentAttackType() == MeleeAttackType::Scratch;
 		// Scratch攻撃の開始フレームでだけ使用腕を切り替えて固定する
 		if (isScratch && !scratchArmState_.wasScratchAttacking)
@@ -1275,14 +1297,37 @@ void MeleeEnemy::UpdateVisualAnimation(float deltaTime)
 		scratchArmState_.wasScratchAttacking = isScratch;
 		if (isScratch)
 		{
-			if (scratchArmState_.useLeftArm) { lAttack = animation_.attackArmSwing; }
-			else { rAttack = animation_.attackArmSwing; }
+			// 通常ひっかきは片腕だけを素早く前へ出して戻す。
+			const float scratchProgress = attackController_.GetCurrentStepNormalizedTime();
+			const float scratchSwing = std::sin(scratchProgress * kPi) * animation_.scratchArmSwing;
+			if (scratchArmState_.useLeftArm) { lAttack = scratchSwing; }
+			else { rAttack = scratchSwing; }
+			bodyLean = scratchSwing * animation_.scratchBodyLean;
 		}
-		if (attackController_.GetCurrentAttackType() == MeleeAttackType::LungeScratch && attackController_.GetCurrentStepIndex() == 0)
+		if (attackController_.GetCurrentAttackType() == MeleeAttackType::LungeScratch)
 		{
-			// 踏み込みひっかきは片腕を大きく振って通常ひっかきと見た目を差別化する
-			rAttack = animation_.attackArmSwing * 1.35f;
-			legTarget = 0.22f;
+			// 踏み込みひっかきは両腕で溜め→振り下ろし→復帰を進行度で表現する。
+			const float p = attackController_.GetCurrentAttackNormalizedTime();
+			float armAngle = 0.0f;
+			if (p < 0.3f)
+			{
+				const float t = p / 0.3f;
+				armAngle = animation_.lungeRaiseArmAngle * t;
+			}
+			else if (p < 0.6f)
+			{
+				const float t = (p - 0.3f) / 0.3f;
+				armAngle = animation_.lungeRaiseArmAngle + (animation_.lungeSwingDownAngle - animation_.lungeRaiseArmAngle) * t;
+			}
+			else
+			{
+				const float t = (p - 0.6f) / 0.4f;
+				armAngle = animation_.lungeSwingDownAngle * (1.0f - t);
+			}
+			lAttack = armAngle;
+			rAttack = armAngle;
+			bodyLean = std::max(0.0f, armAngle) * animation_.lungeBodyLean;
+			legTarget = animation_.lungeLegStepAmount * std::sin(std::clamp(p, 0.0f, 1.0f) * kPi);
 		}
 	}
 	else
@@ -1294,7 +1339,10 @@ void MeleeEnemy::UpdateVisualAnimation(float deltaTime)
 			legTarget = std::sin(animationState_.walkAnimTime) * animation_.walkLegSwing * speedRate;
 		}
 	}
-	const float ret = std::min(1.0f, animation_.attackReturnSpeed * deltaTime);
+	const bool isLungeAttacking = attackController_.IsAttacking() && attackController_.GetCurrentAttackType() == MeleeAttackType::LungeScratch;
+	// 攻撃種類ごとに復帰速度を切り替える。
+	const float returnSpeed = isLungeAttacking ? animation_.lungeReturnSpeed : animation_.scratchReturnSpeed;
+	const float ret = std::min(1.0f, returnSpeed * deltaTime);
 	parts_[lArm].transform.rotate_.x += ((armTarget - lAttack) - parts_[lArm].transform.rotate_.x) * ret;
 	parts_[rArm].transform.rotate_.x += ((-armTarget - rAttack) - parts_[rArm].transform.rotate_.x) * ret;
 	parts_[lLeg].transform.rotate_.x += ((-legTarget) - parts_[lLeg].transform.rotate_.x) * ret;
@@ -1340,9 +1388,8 @@ void MeleeEnemy::UpdateVisualAnimation(float deltaTime)
 		parts_[head].transform.rotate_.y = headLookState_.currentYaw * (kPi / 180.0f);
 		parts_[head].transform.rotate_.x = headLookState_.currentPitch * (kPi / 180.0f);
 	}
-	const bool isLungeAttacking = attackController_.IsAttacking() && attackController_.GetCurrentAttackType() == MeleeAttackType::LungeScratch;
-	// 踏み込みひっかき中は体を前傾させて踏み込み感を出す
-	body_.transform.rotate_.x = (lAttack + rAttack) * animation_.attackBodyLean + (isLungeAttacking ? animation_.attackBodyLean * 0.9f : 0.0f);
+	// 攻撃の種類に応じた体傾きを適用する。
+	body_.transform.rotate_.x = bodyLean;
 	UpdateVisualHierarchy();
 }
 
@@ -1449,9 +1496,14 @@ bool MeleeEnemy::LoadTuningFromJson(const std::filesystem::path& path, std::stri
 		animation_.walkAnimSpeed = animationJ.value("walkAnimSpeed", animation_.walkAnimSpeed);
 		animation_.walkArmSwing = animationJ.value("walkArmSwing", animation_.walkArmSwing);
 		animation_.walkLegSwing = animationJ.value("walkLegSwing", animation_.walkLegSwing);
-		animation_.attackArmSwing = animationJ.value("attackArmSwing", animation_.attackArmSwing);
-		animation_.attackReturnSpeed = animationJ.value("attackReturnSpeed", animation_.attackReturnSpeed);
-		animation_.attackBodyLean = animationJ.value("attackBodyLean", animation_.attackBodyLean);
+		animation_.scratchArmSwing = animationJ.value("scratchArmSwing", animation_.scratchArmSwing);
+		animation_.scratchBodyLean = animationJ.value("scratchBodyLean", animation_.scratchBodyLean);
+		animation_.scratchReturnSpeed = animationJ.value("scratchReturnSpeed", animation_.scratchReturnSpeed);
+		animation_.lungeRaiseArmAngle = animationJ.value("lungeRaiseArmAngle", animation_.lungeRaiseArmAngle);
+		animation_.lungeSwingDownAngle = animationJ.value("lungeSwingDownAngle", animation_.lungeSwingDownAngle);
+		animation_.lungeBodyLean = animationJ.value("lungeBodyLean", animation_.lungeBodyLean);
+		animation_.lungeLegStepAmount = animationJ.value("lungeLegStepAmount", animation_.lungeLegStepAmount);
+		animation_.lungeReturnSpeed = animationJ.value("lungeReturnSpeed", animation_.lungeReturnSpeed);
 		headLookSettings_.enabled = headLookJ.value("enabled", headLookJ.value("headLookEnabled", headLookSettings_.enabled));
 		headLookSettings_.yawLimitDeg = headLookJ.value("yawLimitDeg", headLookJ.value("headYawLimitDeg", headLookSettings_.yawLimitDeg));
 		headLookSettings_.pitchMinDeg = headLookJ.value("pitchMinDeg", headLookJ.value("headPitchMinDeg", headLookSettings_.pitchMinDeg));
@@ -1530,7 +1582,7 @@ bool MeleeEnemy::SaveTuningToJson(const std::filesystem::path& path, std::string
 		};
 		j["stuck"] = { { "checkTime", stuckSettings_.checkTime }, { "distance", stuckSettings_.distance }, { "moveThreshold", stuckSettings_.moveThreshold } };
 		j["attack"] = { { "selectedAttackType", static_cast<int>(attackSettings_.selectedAttackType) }, { "lockTime", attackSettings_.lockTime }, { "randomSelectEnabled", attackSelectSettings_.randomSelectEnabled }, { "lungeBaseChance", attackSelectSettings_.lungeBaseChance }, { "lungePreferredChance", attackSelectSettings_.lungePreferredChance }, { "lungePreferredMinDistance", attackSelectSettings_.lungePreferredMinDistance }, { "lungePreferredMaxDistance", attackSelectSettings_.lungePreferredMaxDistance } };
-		j["animation"] = { { "visualYawOffset", animation_.visualYawOffset }, { "walkAnimSpeed", animation_.walkAnimSpeed }, { "walkArmSwing", animation_.walkArmSwing }, { "walkLegSwing", animation_.walkLegSwing }, { "attackArmSwing", animation_.attackArmSwing }, { "attackReturnSpeed", animation_.attackReturnSpeed }, { "attackBodyLean", animation_.attackBodyLean } };
+		j["animation"] = { { "visualYawOffset", animation_.visualYawOffset }, { "walkAnimSpeed", animation_.walkAnimSpeed }, { "walkArmSwing", animation_.walkArmSwing }, { "walkLegSwing", animation_.walkLegSwing }, { "scratchArmSwing", animation_.scratchArmSwing }, { "scratchBodyLean", animation_.scratchBodyLean }, { "scratchReturnSpeed", animation_.scratchReturnSpeed }, { "lungeRaiseArmAngle", animation_.lungeRaiseArmAngle }, { "lungeSwingDownAngle", animation_.lungeSwingDownAngle }, { "lungeBodyLean", animation_.lungeBodyLean }, { "lungeLegStepAmount", animation_.lungeLegStepAmount }, { "lungeReturnSpeed", animation_.lungeReturnSpeed } };
 		j["headLook"] = { { "enabled", headLookSettings_.enabled }, { "yawLimitDeg", headLookSettings_.yawLimitDeg }, { "pitchMinDeg", headLookSettings_.pitchMinDeg }, { "pitchMaxDeg", headLookSettings_.pitchMaxDeg }, { "lerpSpeed", headLookSettings_.lerpSpeed } };
 		j["separation"] = { { "enabled", separationSettings_.enabled }, { "radius", separationSettings_.radius }, { "strength", separationSettings_.strength }, { "maxPushPerFrame", separationSettings_.maxPushPerFrame }, { "attackPushScale", separationSettings_.attackPushScale }, { "targetNearLateralEnabled", separationSettings_.targetNearLateralEnabled }, { "targetNearLateralOffset", separationSettings_.targetNearLateralOffset }, { "targetNearLateralStrength", separationSettings_.targetNearLateralStrength } };
 		// 保存対象は設定値のみで、ランタイム状態は書き出さない。

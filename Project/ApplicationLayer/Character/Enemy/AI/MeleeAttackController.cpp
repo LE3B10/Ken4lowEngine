@@ -126,6 +126,25 @@ const char* MeleeAttackController::GetCurrentAttackName() const
 	return pattern ? pattern->name.c_str() : "None";
 }
 
+float MeleeAttackController::GetCurrentAttackNormalizedTime() const
+{
+	const MeleeAttackPattern* pattern = FindPattern(currentType_);
+	if (!pattern || pattern->steps.empty()) { return 0.0f; }
+	const MeleeAttackStep& lastStep = pattern->steps.back();
+	const float attackEnd = lastStep.startTime + lastStep.activeTime + pattern->recoveryTime;
+	if (attackEnd <= kEpsilon) { return 0.0f; }
+	return std::clamp(attackElapsed_ / attackEnd, 0.0f, 1.0f);
+}
+
+float MeleeAttackController::GetCurrentStepNormalizedTime() const
+{
+	const MeleeAttackPattern* pattern = FindPattern(currentType_);
+	if (!pattern || currentStepIndex_ < 0 || static_cast<size_t>(currentStepIndex_) >= pattern->steps.size()) { return 0.0f; }
+	const MeleeAttackStep& step = pattern->steps[static_cast<size_t>(currentStepIndex_)];
+	if (step.activeTime <= kEpsilon) { return 0.0f; }
+	return std::clamp((attackElapsed_ - step.startTime) / step.activeTime, 0.0f, 1.0f);
+}
+
 MeleeAttackPattern* MeleeAttackController::FindPattern(MeleeAttackType type)
 {
 	auto it = patterns_.find(static_cast<int>(type));
