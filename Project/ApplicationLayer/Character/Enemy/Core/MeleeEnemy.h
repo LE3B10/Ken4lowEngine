@@ -21,7 +21,7 @@ private: /// ---------- 列挙型 ---------- ///
 		Idle,	 // 待機
 		Walk,	 // 歩行
 		Scratch, // 引っ掻き
-		OneTwo,	 // 連続攻撃
+		LungeScratch,	 // 踏み込みひっかき
 		Dead,	 // 死亡
 	};
 
@@ -35,7 +35,7 @@ private: /// ---------- 構造体 ---------- ///
 		float stopDistance = 1.8f;			   // プレイヤーに近づきすぎない距離
 		float attackStartRange = 2.4f;		   // 攻撃開始と歩行の切り替え距離
 		float resumeChaseDistance = 2.8f;	   // 攻撃後に追いかけを再開する距離
-		float minOneTwoForwardDistance = 1.6f; // OneTwo攻撃の前進距離が有効になる最小距離
+		float minLungeForwardDistance = 1.6f; // 踏み込みひっかきの前進距離が有効になる最小距離
 	};
 
 	// 移動と回転の設定
@@ -206,6 +206,24 @@ private: /// ---------- 構造体 ---------- ///
 	{
 		float lockTimer = 0.0f;	 // 攻撃開始後の向きロックタイマー
 		bool shouldChase = true; // 攻撃中に追いかけるかどうか
+	};
+
+	// 攻撃選択の設定
+	struct AttackSelectSettings
+	{
+		bool randomSelectEnabled = true;
+		float lungeBaseChance = 0.30f;
+		float lungePreferredChance = 0.65f;
+		float lungePreferredMinDistance = 2.0f;
+		float lungePreferredMaxDistance = 3.6f;
+	};
+
+	// 攻撃選択のデバッグ状態
+	struct AttackSelectState
+	{
+		float lastRoll = 0.0f;
+		float lastLungeChance = 0.0f;
+		std::string lastReason = "None";
 	};
 
 	// アニメーションの設定
@@ -546,6 +564,7 @@ private: /// ---------- 内部処理 ---------- ///
 
 	// 調整用パラメータをデフォルト値に戻す処理
 	void ResetTuningToDefault();
+	MeleeAttackType SelectAttackTypeByDistanceAndChance(float distance);
 
 private: /// ---------- メンバ変数 ---------- //
 
@@ -593,6 +612,12 @@ private: /// ---------- メンバ変数 ---------- //
 
 	// 攻撃の状態管理
 	AttackState attackState_{};
+
+	// 攻撃選択の設定
+	AttackSelectSettings attackSelectSettings_{};
+
+	// 攻撃選択のデバッグ状態
+	AttackSelectState attackSelectState_{};
 
 	// アニメーションの設定
 	AnimationSettings animation_{};

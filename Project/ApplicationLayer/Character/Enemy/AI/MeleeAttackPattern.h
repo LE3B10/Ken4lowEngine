@@ -3,12 +3,12 @@
 #include <string>
 #include <vector>
 
-// 攻撃ステップを分離して、Scratch/OneTwoを共通データで扱えるようにする
+// 攻撃ステップを分離して、Scratch/LungeScratchを共通データで扱えるようにする
 
 enum class MeleeAttackType
 {
 	Scratch = 0,
-	OneTwo,
+	LungeScratch,
 };
 
 struct MeleeAttackStep
