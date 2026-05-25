@@ -37,6 +37,11 @@ namespace
 		while (v < -kPi) { v += kTwoPi; }
 		return v;
 	}
+
+	float Clamp(float v, float minValue, float maxValue)
+	{
+		return std::max(minValue, std::min(maxValue, v));
+	}
 }
 
 void MeleeEnemy::Initialize()
@@ -318,6 +323,11 @@ void MeleeEnemy::DrawImGui()
 		ImGui::SliderFloat("attackArmSwing", &animation_.attackArmSwing, 0.0f, 2.0f);
 		ImGui::SliderFloat("attackReturnSpeed", &animation_.attackReturnSpeed, 1.0f, 24.0f);
 		ImGui::SliderFloat("attackBodyLean", &animation_.attackBodyLean, 0.0f, 0.4f);
+		ImGui::Checkbox("headLookEnabled", &headLookSettings_.enabled);
+		ImGui::SliderFloat("headYawLimitDeg", &headLookSettings_.yawLimitDeg, 10.0f, 120.0f);
+		ImGui::SliderFloat("headPitchMinDeg", &headLookSettings_.pitchMinDeg, -80.0f, 0.0f);
+		ImGui::SliderFloat("headPitchMaxDeg", &headLookSettings_.pitchMaxDeg, 0.0f, 80.0f);
+		ImGui::SliderFloat("headLookLerpSpeed", &headLookSettings_.lerpSpeed, 1.0f, 30.0f);
 		ImGui::SliderFloat("maxResolvePushPerFrame", &move_.maxResolvePushPerFrame, 0.05f, 2.0f);
 		ImGui::Checkbox("obstacleTopLandingEnabled", &move_.obstacleTopLandingEnabled);
 		ImGui::SliderFloat("obstacleTopLandingTolerance", &move_.obstacleTopLandingTolerance, 0.01f, 1.0f);
@@ -366,6 +376,7 @@ void MeleeEnemy::DrawImGui()
 		ImGui::Text("attackLockTimer: %.2f", attackState_.lockTimer);
 		ImGui::Text("Attack Active: %s", attackController_.IsCurrentStepActive() ? "true" : "false");
 		ImGui::Text("Last Hit: %s", attackController_.WasLastHitSuccess() ? "Hit" : "Miss");
+		ImGui::Text("Scratch Arm: %s", scratchArmState_.useLeftArm ? "Left" : "Right");
 		ImGui::Text("Path Found: %s", pathState_.found ? "true" : "false");
 		ImGui::Text("Obstacle Count: %zu", GetResolvedWorldAABBs() ? GetResolvedWorldAABBs()->size() : 0);
 		ImGui::Text("isCollidingWithStage: %s", collision_.isCollidingWithStage ? "true" : "false");
@@ -428,6 +439,10 @@ void MeleeEnemy::DrawImGui()
 		ImGui::Text("targetDirection: (%.2f, %.2f, %.2f)", animationState_.targetDirection.x, animationState_.targetDirection.y, animationState_.targetDirection.z);
 		ImGui::Text("visualForward: (%.2f, %.2f, %.2f)", animationState_.visualForward.x, animationState_.visualForward.y, animationState_.visualForward.z);
 		ImGui::Text("attackForward: (%.2f, %.2f, %.2f)", animationState_.attackForward.x, animationState_.attackForward.y, animationState_.attackForward.z);
+		ImGui::Text("headCurrentYaw(deg): %.1f", headLookState_.currentYaw);
+		ImGui::Text("headCurrentPitch(deg): %.1f", headLookState_.currentPitch);
+		ImGui::Text("headTargetYaw(deg): %.1f", headLookState_.targetYaw);
+		ImGui::Text("headTargetPitch(deg): %.1f", headLookState_.targetPitch);
 		if (ImGui::Button("Force Scratch Attack")) { ForceAttack(MeleeAttackType::Scratch); }
 		ImGui::SameLine();
 		if (ImGui::Button("Force OneTwo Attack")) { ForceAttack(MeleeAttackType::OneTwo); }
@@ -867,6 +882,7 @@ void MeleeEnemy::StopMove()
 
 void MeleeEnemy::ForceAttack(MeleeAttackType type)
 {
+	if (type == MeleeAttackType::Scratch) { scratchArmState_.wasScratchAttacking = false; }
 	attackSettings_.selectedAttackType = type;
 	attackController_.ResetCooldown();
 	attackController_.StopAttack();
@@ -892,6 +908,7 @@ void MeleeEnemy::UpdateVisualAnimation(float deltaTime)
 	const uint32_t rArm = partIndices_.rightArm;
 	const uint32_t lLeg = partIndices_.leftLeg;
 	const uint32_t rLeg = partIndices_.rightLeg;
+	const uint32_t head = partIndices_.head;
 	const float speedRate = std::min(1.5f, LengthXZ(GetVelocity()) / std::max(move_.moveSpeed, kEpsilon));
 	animationState_.walkAnimTime += deltaTime * (animation_.walkAnimSpeed * std::max(0.2f, speedRate));
 	float armTarget = 0.0f;
@@ -900,19 +917,57 @@ void MeleeEnemy::UpdateVisualAnimation(float deltaTime)
 	float rAttack = 0.0f;
 	if (attackController_.IsAttacking())
 	{
-		if (attackController_.GetCurrentAttackType() == MeleeAttackType::Scratch || attackController_.GetCurrentStepIndex() == 0) { lAttack = animation_.attackArmSwing; }
+		const bool isScratch = attackController_.GetCurrentAttackType() == MeleeAttackType::Scratch;
+		// Scratch攻撃の開始フレームでだけ使用腕を切り替えて固定する
+		if (isScratch && !scratchArmState_.wasScratchAttacking)
+		{
+			scratchArmState_.useLeftArm = !scratchArmState_.useLeftArm;
+		}
+		scratchArmState_.wasScratchAttacking = isScratch;
+		if (isScratch)
+		{
+			if (scratchArmState_.useLeftArm) { lAttack = animation_.attackArmSwing; }
+			else { rAttack = animation_.attackArmSwing; }
+		}
+		if (attackController_.GetCurrentAttackType() == MeleeAttackType::OneTwo && attackController_.GetCurrentStepIndex() == 0) { lAttack = animation_.attackArmSwing; }
 		if (attackController_.GetCurrentAttackType() == MeleeAttackType::OneTwo && attackController_.GetCurrentStepIndex() == 1) { rAttack = animation_.attackArmSwing; }
 	}
-	else if (animationState_.animState == AnimState::Walk)
+	else
 	{
-		armTarget = std::sin(animationState_.walkAnimTime) * animation_.walkArmSwing * speedRate;
-		legTarget = std::sin(animationState_.walkAnimTime) * animation_.walkLegSwing * speedRate;
+		scratchArmState_.wasScratchAttacking = false;
+		if (animationState_.animState == AnimState::Walk)
+		{
+			armTarget = std::sin(animationState_.walkAnimTime) * animation_.walkArmSwing * speedRate;
+			legTarget = std::sin(animationState_.walkAnimTime) * animation_.walkLegSwing * speedRate;
+		}
 	}
 	const float ret = std::min(1.0f, animation_.attackReturnSpeed * deltaTime);
 	parts_[lArm].transform.rotate_.x += ((armTarget - lAttack) - parts_[lArm].transform.rotate_.x) * ret;
 	parts_[rArm].transform.rotate_.x += ((-armTarget - rAttack) - parts_[rArm].transform.rotate_.x) * ret;
 	parts_[lLeg].transform.rotate_.x += ((-legTarget) - parts_[lLeg].transform.rotate_.x) * ret;
 	parts_[rLeg].transform.rotate_.x += ((legTarget)-parts_[rLeg].transform.rotate_.x) * ret;
+	// 頭だけをターゲット方向に向ける（bodyに対する相対Yaw/Pitch）
+	if (head < parts_.size())
+	{
+		headLookState_.targetYaw = 0.0f;
+		headLookState_.targetPitch = 0.0f;
+		if (headLookSettings_.enabled && HasTarget())
+		{
+			const Vector3 toTarget = GetTargetPosition() - GetCenterPosition();
+			const float desiredYaw = std::atan2(toTarget.x, toTarget.z);
+			const float bodyYaw = orientation_.y;
+			const float yawDelta = NormalizeAngleRad(desiredYaw - bodyYaw);
+			headLookState_.targetYaw = Clamp(yawDelta * (180.0f / kPi), -headLookSettings_.yawLimitDeg, headLookSettings_.yawLimitDeg);
+			const float horizontalDistance = std::max(LengthXZ(toTarget), kEpsilon);
+			const float pitchDeg = -std::atan2(toTarget.y, horizontalDistance) * (180.0f / kPi);
+			headLookState_.targetPitch = Clamp(pitchDeg, headLookSettings_.pitchMinDeg, headLookSettings_.pitchMaxDeg);
+		}
+		const float headLerp = std::min(1.0f, headLookSettings_.lerpSpeed * deltaTime);
+		headLookState_.currentYaw += (headLookState_.targetYaw - headLookState_.currentYaw) * headLerp;
+		headLookState_.currentPitch += (headLookState_.targetPitch - headLookState_.currentPitch) * headLerp;
+		parts_[head].transform.rotate_.y = headLookState_.currentYaw * (kPi / 180.0f);
+		parts_[head].transform.rotate_.x = headLookState_.currentPitch * (kPi / 180.0f);
+	}
 	body_.transform.rotate_.x = (lAttack + rAttack) * animation_.attackBodyLean;
 	UpdateVisualHierarchy();
 }
