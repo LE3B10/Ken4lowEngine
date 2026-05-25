@@ -53,14 +53,14 @@ private: /// ---------- 構造体 ---------- ///
 	// 落下と重力の設定
 	struct JumpSettings
 	{
-		bool enabled = true;				 // ジャンプを有効にするかどうか
-		float baseVelocity = 11.0f;			 // 通常近接雑魚は高さ依存ではなく固定のY速度で跳ぶ
-		float minTargetHeight = 1.0f;		 // ジャンプを検討する最小高さ差
-		float maxTargetHeight = 3.8f;		 // 通常敵が登ろうとする高さ差の上限
-		float horizontalDistanceMax = 5.0f;	 // ジャンプを検討する最大水平距離
-		bool requireNearOrBlocked = true;	 // 近距離または障害物で詰まっている時だけジャンプする
-		float nearTargetDistance = 2.8f;	 // 近距離判定の閾値
-		float cooldown = 0.9f;				 // ジャンプのクールダウン時間
+		bool enabled = true;				// ジャンプを有効にするかどうか
+		float baseVelocity = 12.0f;			// ジャンプの基本垂直速度
+		float extraBoost = 0.8f;			// 攻撃の種類や状況に応じた追加の垂直速度の倍率
+		float gravityEstimate = 20.0f;		// ジャンプの軌道計算に使用する重力の推定値（実際の重力とは異なる場合がある）
+		float maxVelocity = 18.0f;			// ジャンプの最大垂直速度
+		float targetHeightThreshold = 1.0f;	// ターゲットの高さとの差がこの値以上ある場合にジャンプを試みる
+		float horizontalDistanceMax = 8.0f;	// ジャンプを試みる最大水平距離
+		float cooldown = 0.9f;				// ジャンプのクールダウン時間
 	};
 
 	// ジャンプの状態管理
@@ -68,7 +68,7 @@ private: /// ---------- 構造体 ---------- ///
 	{
 		float cooldownTimer = 0.0f;		 // ジャンプのクールダウンタイマー
 		float targetHeightDelta = 0.0f;	 // ジャンプ開始時のターゲットの高さとの差
-		float horizontalDistance = 0.0f; // ジャンプ判定時のターゲットとの水平距離
+		float calculatedVelocity = 0.0f; // ジャンプの軌道計算から得られる垂直速度
 		float appliedVelocity = 0.0f;	 // 実際に適用された垂直速度
 		std::string lastReason = "None"; // ジャンプを試みた最後の理由（デバッグ用）
 	};
@@ -326,6 +326,9 @@ private: /// ---------- 内部処理 ---------- ///
 
 	// 障害物を避ける処理（壁の障害物やステージの衝突を解決する）
 	void TryJumpToTarget(float deltaTime);
+
+	// ジャンプの軌道計算を行い、ターゲットの高さに合わせた垂直速度を計算する処理
+	float CalculateJumpVelocityForHeight(float heightDelta) const;
 
 	// ジャンプを試みる処理（ターゲットの高さや距離、ジャンプのクールダウンなどを考慮してジャンプするかどうかを判断し、実際にジャンプする）
 	bool ResolveObstaclePenetrationXZ(float deltaTime);
