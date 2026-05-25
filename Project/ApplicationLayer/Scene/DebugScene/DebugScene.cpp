@@ -142,7 +142,7 @@ void DebugScene::Initialize()
 	{
 		auto enemy = std::make_unique<MeleeEnemy>();
 		enemy->Initialize();
-		enemy->SetCenterPosition({ -2.5f + (2.5f * static_cast<float>(i)), 2.0f, 18.0f });
+		enemy->SetCenterPosition({ -3.0f + (3.0f * static_cast<float>(i)), 2.5f, 18.0f });
 		enemy->SetTarget(&meleeDummyTarget_);
 		collisionManager_->AddCollider(enemy.get());
 		debugMeleeEnemies_.push_back(std::move(enemy));
