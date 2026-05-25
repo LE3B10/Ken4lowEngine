@@ -7,7 +7,7 @@
 #include "Wireframe.h"
 #include "CollisionTypeIdDef.h"
 #include <fstream>
-#include <nlohmann/json.hpp>
+#include <json.hpp>
 
 #ifdef USE_IMGUI
 #include <imgui.h>
