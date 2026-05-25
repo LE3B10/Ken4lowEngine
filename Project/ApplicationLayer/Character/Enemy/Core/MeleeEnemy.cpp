@@ -371,6 +371,7 @@ void MeleeEnemy::OnCollisionStay(K4E::Collider* other)
 void MeleeEnemy::Draw()
 {
 	EnemyBase::Draw();
+	if (!detailDebugDrawEnabled_) { return; }
 	const Vector3 origin = GetCenterPosition() + Vector3{ 0.0f, 1.0f, 0.0f };
 	Wireframe::GetInstance()->DrawLine(origin, origin + animationState_.movementDirection * 1.8f, { 0.2f, 0.8f, 1.0f, 1.0f });
 	Wireframe::GetInstance()->DrawLine(origin, origin + animationState_.targetDirection * 2.0f, { 1.0f, 1.0f, 0.2f, 1.0f });
