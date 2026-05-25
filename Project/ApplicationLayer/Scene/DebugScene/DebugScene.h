@@ -109,5 +109,12 @@ private: /// ---------- メンバ変数 ---------- ///
 	K4E::Collider meleeDummyTarget_{};
 	bool meleeDummyWireVisible_ = true;
 	float meleeDummyWireRadius_ = 0.5f;
+	bool showWallObstacleObbWire_ = true;             // Stage Debug茶色ワイヤーのWall OBB表示切り替え
+	bool showNavigationObstacleObbWire_ = true;       // Stage Debug茶色ワイヤーのNavigation OBB表示切り替え
+	bool showWallNavigationAabbWire_ = false;         // Stage DebugのWall/Navigation AABB比較表示切り替え
+	bool showStageChunkObjectBoundsAabbWire_ = false; // StageChunk/ObjectBounds AABB表示切り替え
+	bool showOnlySelectedObstacleObb_ = false;        // 選択中OBBのみ表示する切り替え
+	int selectedWallObstacleObbIndex_ = 0;            // 表示/詳細確認するWall OBBインデックス
+	int selectedNavigationObstacleObbIndex_ = 0;      // 表示/詳細確認するNavigation OBBインデックス
 
 };
