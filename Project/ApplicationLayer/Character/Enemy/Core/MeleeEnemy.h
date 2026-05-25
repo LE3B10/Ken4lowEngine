@@ -195,6 +195,8 @@ private: /// ---------- 構造体 ---------- ///
 		float currentPitch = 0.0f;
 		float targetYaw = 0.0f;
 		float targetPitch = 0.0f;
+		bool targetVisible = false;
+		std::string reason = "Disabled";
 	};
 
 	// 衝突の状態管理

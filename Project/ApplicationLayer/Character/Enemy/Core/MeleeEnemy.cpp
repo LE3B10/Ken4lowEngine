@@ -443,6 +443,8 @@ void MeleeEnemy::DrawImGui()
 		ImGui::Text("headCurrentPitch(deg): %.1f", headLookState_.currentPitch);
 		ImGui::Text("headTargetYaw(deg): %.1f", headLookState_.targetYaw);
 		ImGui::Text("headTargetPitch(deg): %.1f", headLookState_.targetPitch);
+		ImGui::Text("headLookTargetVisible: %s", headLookState_.targetVisible ? "true" : "false");
+		ImGui::Text("headLookReason: %s", headLookState_.reason.c_str());
 		if (ImGui::Button("Force Scratch Attack")) { ForceAttack(MeleeAttackType::Scratch); }
 		ImGui::SameLine();
 		if (ImGui::Button("Force OneTwo Attack")) { ForceAttack(MeleeAttackType::OneTwo); }
@@ -949,19 +951,38 @@ void MeleeEnemy::UpdateVisualAnimation(float deltaTime)
 	// 頭だけをターゲット方向に向ける（bodyに対する相対Yaw/Pitch）
 	if (head < parts_.size())
 	{
+		// 頭向き制御のデフォルトは「正面へ戻す」にして、必要時だけ注視を有効化する
 		headLookState_.targetYaw = 0.0f;
 		headLookState_.targetPitch = 0.0f;
-		if (headLookSettings_.enabled && HasTarget())
+		headLookState_.targetVisible = false;
+		headLookState_.reason = "Disabled";
+		if (headLookSettings_.enabled)
 		{
-			const Vector3 toTarget = GetTargetPosition() - GetCenterPosition();
-			const float desiredYaw = std::atan2(-toTarget.x, toTarget.z);
-			const float bodyYaw = orientation_.y;
-			const float yawDelta = NormalizeAngleRad(desiredYaw - bodyYaw);
-			headLookState_.targetYaw = Clamp(yawDelta * (180.0f / kPi), -headLookSettings_.yawLimitDeg, headLookSettings_.yawLimitDeg);
-			const float horizontalDistance = std::max(LengthXZ(toTarget), kEpsilon);
-			const float pitchDeg = -std::atan2(toTarget.y, horizontalDistance) * (180.0f / kPi);
-			headLookState_.targetPitch = Clamp(pitchDeg, headLookSettings_.pitchMinDeg, headLookSettings_.pitchMaxDeg);
+			headLookState_.reason = "NoTarget";
+			if (HasTarget())
+			{
+				const Vector3 toTarget = GetTargetPosition() - GetCenterPosition();
+				const float targetDistance = std::sqrt(toTarget.x * toTarget.x + toTarget.y * toTarget.y + toTarget.z * toTarget.z);
+				if (targetDistance <= detection_.detectRange)
+				{
+					// detectRange内でのみ頭の注視ターゲットを有効化し、範囲外では正面へ戻す
+					headLookState_.targetVisible = true;
+					headLookState_.reason = "InRange";
+					const float desiredYaw = std::atan2(-toTarget.x, toTarget.z);
+					const float bodyYaw = orientation_.y;
+					const float yawDelta = NormalizeAngleRad(desiredYaw - bodyYaw);
+					headLookState_.targetYaw = Clamp(yawDelta * (180.0f / kPi), -headLookSettings_.yawLimitDeg, headLookSettings_.yawLimitDeg);
+					const float horizontalDistance = std::max(LengthXZ(toTarget), kEpsilon);
+					const float pitchDeg = -std::atan2(toTarget.y, horizontalDistance) * (180.0f / kPi);
+					headLookState_.targetPitch = Clamp(pitchDeg, headLookSettings_.pitchMinDeg, headLookSettings_.pitchMaxDeg);
+				}
+				else
+				{
+					headLookState_.reason = "OutOfRange";
+				}
+			}
 		}
+		// 体の向きは既存処理に任せ、頭だけを補間で自然に回頭/復帰させる
 		const float headLerp = std::min(1.0f, headLookSettings_.lerpSpeed * deltaTime);
 		headLookState_.currentYaw += (headLookState_.targetYaw - headLookState_.currentYaw) * headLerp;
 		headLookState_.currentPitch += (headLookState_.targetPitch - headLookState_.currentPitch) * headLerp;
