@@ -524,7 +524,7 @@ void MeleeEnemy::MeleeAttackAction()
 		// 攻撃パターンをデータとして扱い、ScratchとOneTwoを同じ制御経路で実行する
 		attackController_.StartAttack(attackSettings_.selectedAttackType);
 		attackState_.lockTimer = attackSettings_.lockTime;
-	animationState_.animState = (attackSettings_.selectedAttackType == MeleeAttackType::OneTwo) ? AnimState::OneTwo : AnimState::Scratch;
+		animationState_.animState = (attackSettings_.selectedAttackType == MeleeAttackType::OneTwo) ? AnimState::OneTwo : AnimState::Scratch;
 	}
 	currentBehaviorName_ = (attackSettings_.selectedAttackType == MeleeAttackType::OneTwo) ? "OneTwoAttack" : "ScratchAttack";
 }
@@ -864,7 +864,7 @@ void MeleeEnemy::UpdateVisualAnimation(float deltaTime)
 	parts_[lArm].transform.rotate_.x += ((armTarget - lAttack) - parts_[lArm].transform.rotate_.x) * ret;
 	parts_[rArm].transform.rotate_.x += ((-armTarget - rAttack) - parts_[rArm].transform.rotate_.x) * ret;
 	parts_[lLeg].transform.rotate_.x += ((-legTarget) - parts_[lLeg].transform.rotate_.x) * ret;
-	parts_[rLeg].transform.rotate_.x += ((legTarget) - parts_[rLeg].transform.rotate_.x) * ret;
+	parts_[rLeg].transform.rotate_.x += ((legTarget)-parts_[rLeg].transform.rotate_.x) * ret;
 	body_.transform.rotate_.x = (lAttack + rAttack) * animation_.attackBodyLean;
 	UpdateVisualHierarchy();
 }
