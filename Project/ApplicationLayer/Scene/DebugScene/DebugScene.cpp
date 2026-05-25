@@ -240,10 +240,57 @@ void DebugScene::Draw3DObjects()
 	if (stage_)
 	{
 		stage_->Draw();
-		// Stage Debugの茶色ワイヤーはNavigation/Wall用AABBではなくCollider由来OBBで描画する。
-		for (const auto& obstacleObb : stage_->GetWallObstacleOBBs())
+		// Stage Debugの茶色ワイヤーはAABB/OBB切り替え可能にし、既定はOBB優先表示にする。
+		const std::vector<OBB>& wallObstacleOBBs = stage_->GetWallObstacleOBBs();
+		const std::vector<OBB>& navObstacleOBBs = stage_->GetNavigationObstacleOBBs();
+		const std::vector<AABB>& wallObstacleAABBs = stage_->GetWallObstacleAABBs();
+		const std::vector<AABB>& navObstacleAABBs = stage_->GetNavigationObstacleAABBs();
+		if (showWallObstacleObbWire_)
 		{
-			Wireframe::GetInstance()->DrawOBB(obstacleObb, { 0.60f, 0.35f, 0.12f, 0.90f });
+			if (showOnlySelectedObstacleObb_ && !wallObstacleOBBs.empty())
+			{
+				const int clampedIndex = std::clamp(selectedWallObstacleObbIndex_, 0, static_cast<int>(wallObstacleOBBs.size()) - 1);
+				Wireframe::GetInstance()->DrawOBB(wallObstacleOBBs[clampedIndex], { 0.60f, 0.35f, 0.12f, 0.90f });
+			}
+			else
+			{
+				for (const auto& obstacleObb : wallObstacleOBBs)
+				{
+					Wireframe::GetInstance()->DrawOBB(obstacleObb, { 0.60f, 0.35f, 0.12f, 0.90f });
+				}
+			}
+		}
+		if (showNavigationObstacleObbWire_)
+		{
+			if (showOnlySelectedObstacleObb_ && !navObstacleOBBs.empty())
+			{
+				const int clampedIndex = std::clamp(selectedNavigationObstacleObbIndex_, 0, static_cast<int>(navObstacleOBBs.size()) - 1);
+				Wireframe::GetInstance()->DrawOBB(navObstacleOBBs[clampedIndex], { 0.50f, 0.28f, 0.08f, 0.90f });
+			}
+			else
+			{
+				for (const auto& obstacleObb : navObstacleOBBs)
+				{
+					Wireframe::GetInstance()->DrawOBB(obstacleObb, { 0.50f, 0.28f, 0.08f, 0.90f });
+				}
+			}
+		}
+		if (showWallNavigationAabbWire_)
+		{
+			for (const auto& wallAabb : wallObstacleAABBs)
+			{
+				Wireframe::GetInstance()->DrawAABB(wallAabb, { 0.95f, 0.75f, 0.20f, 0.90f });
+			}
+			for (const auto& navAabb : navObstacleAABBs)
+			{
+				Wireframe::GetInstance()->DrawAABB(navAabb, { 1.00f, 0.55f, 0.10f, 0.90f });
+			}
+		}
+		// StageChunk/ObjectBounds AABBの茶色系ワイヤーは比較用に個別切り替え可能にする。
+		stage_->SetStageChunkObjectBoundsVisible(showStageChunkObjectBoundsAabbWire_);
+		if (showStageChunkObjectBoundsAabbWire_)
+		{
+			stage_->DrawChunkDebug();
 		}
 	}
 
@@ -454,7 +501,46 @@ void DebugScene::DrawImGui()
 		ImGui::Text("NavigationObstacleAABB count: %zu", navObstacles.size());
 		ImGui::Text("WallObstacleOBB count: %zu", wallObstacleOBBs.size());
 		ImGui::Text("NavigationObstacleOBB count: %zu", navObstacleOBBs.size());
-		ImGui::Text("Brown wire source: OBB");
+		ImGui::Separator();
+		ImGui::Checkbox("Show Wall Obstacle OBB Wire", &showWallObstacleObbWire_);
+		ImGui::Checkbox("Show Navigation Obstacle OBB Wire", &showNavigationObstacleObbWire_);
+		ImGui::Checkbox("Show Wall/Navigation AABB Wire", &showWallNavigationAabbWire_);
+		ImGui::Checkbox("Show StageChunk/ObjectBounds AABB Wire", &showStageChunkObjectBoundsAabbWire_);
+		ImGui::Checkbox("Show Only Selected OBB", &showOnlySelectedObstacleObb_);
+		if (!wallObstacleOBBs.empty())
+		{
+			ImGui::SliderInt("Selected Wall OBB", &selectedWallObstacleObbIndex_, 0, static_cast<int>(wallObstacleOBBs.size()) - 1);
+		}
+		if (!navObstacleOBBs.empty())
+		{
+			ImGui::SliderInt("Selected Navigation OBB", &selectedNavigationObstacleObbIndex_, 0, static_cast<int>(navObstacleOBBs.size()) - 1);
+		}
+		const bool obbWireEnabled = showWallObstacleObbWire_ || showNavigationObstacleObbWire_;
+		const bool aabbWireEnabled = showWallNavigationAabbWire_ || showStageChunkObjectBoundsAabbWire_;
+		const char* brownWireSourceLabel = obbWireEnabled && !aabbWireEnabled ? "OBB"
+			: (!obbWireEnabled && aabbWireEnabled ? "AABB" : (obbWireEnabled && aabbWireEnabled ? "OBB + AABB" : "OFF"));
+		ImGui::Text("Brown wire source: %s", brownWireSourceLabel);
+		if (!wallObstacleOBBs.empty())
+		{
+			const int clampedIndex = std::clamp(selectedWallObstacleObbIndex_, 0, static_cast<int>(wallObstacleOBBs.size()) - 1);
+			const OBB& selected = wallObstacleOBBs[clampedIndex];
+			// 選択中OBBの軸情報をImGui表示して回転追従を確認しやすくする。
+			ImGui::Text("Selected Wall OBB[%d] center: (%.2f, %.2f, %.2f)", clampedIndex, selected.center.x, selected.center.y, selected.center.z);
+			ImGui::Text("Selected Wall OBB[%d] size: (%.2f, %.2f, %.2f)", clampedIndex, selected.size.x, selected.size.y, selected.size.z);
+			ImGui::Text("Selected Wall OBB[%d] axisX: (%.2f, %.2f, %.2f)", clampedIndex, selected.orientations[0].x, selected.orientations[0].y, selected.orientations[0].z);
+			ImGui::Text("Selected Wall OBB[%d] axisY: (%.2f, %.2f, %.2f)", clampedIndex, selected.orientations[1].x, selected.orientations[1].y, selected.orientations[1].z);
+			ImGui::Text("Selected Wall OBB[%d] axisZ: (%.2f, %.2f, %.2f)", clampedIndex, selected.orientations[2].x, selected.orientations[2].y, selected.orientations[2].z);
+		}
+		if (!navObstacleOBBs.empty())
+		{
+			const int clampedIndex = std::clamp(selectedNavigationObstacleObbIndex_, 0, static_cast<int>(navObstacleOBBs.size()) - 1);
+			const OBB& selected = navObstacleOBBs[clampedIndex];
+			ImGui::Text("Selected Navigation OBB[%d] center: (%.2f, %.2f, %.2f)", clampedIndex, selected.center.x, selected.center.y, selected.center.z);
+			ImGui::Text("Selected Navigation OBB[%d] size: (%.2f, %.2f, %.2f)", clampedIndex, selected.size.x, selected.size.y, selected.size.z);
+			ImGui::Text("Selected Navigation OBB[%d] axisX: (%.2f, %.2f, %.2f)", clampedIndex, selected.orientations[0].x, selected.orientations[0].y, selected.orientations[0].z);
+			ImGui::Text("Selected Navigation OBB[%d] axisY: (%.2f, %.2f, %.2f)", clampedIndex, selected.orientations[1].x, selected.orientations[1].y, selected.orientations[1].z);
+			ImGui::Text("Selected Navigation OBB[%d] axisZ: (%.2f, %.2f, %.2f)", clampedIndex, selected.orientations[2].x, selected.orientations[2].y, selected.orientations[2].z);
+		}
 		ImGui::Text("Loaded Colliders: %zu", loadedColliders);
 		ImGui::Text("Rotated collider count: %zu", rotatedColliderCount);
 		ImGui::Text("AABB fallback count: %zu", aabbFallbackCount);
