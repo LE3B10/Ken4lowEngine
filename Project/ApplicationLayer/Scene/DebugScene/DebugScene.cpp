@@ -240,6 +240,11 @@ void DebugScene::Draw3DObjects()
 	if (stage_)
 	{
 		stage_->Draw();
+		// Stage Debugの茶色ワイヤーはNavigation/Wall用AABBではなくCollider由来OBBで描画する。
+		for (const auto& obstacleObb : stage_->GetWallObstacleOBBs())
+		{
+			Wireframe::GetInstance()->DrawOBB(obstacleObb, { 0.60f, 0.35f, 0.12f, 0.90f });
+		}
 	}
 
 #ifdef _DEBUG
@@ -372,6 +377,8 @@ void DebugScene::DrawImGui()
 		const std::vector<AABB>& floorAABBs = stage_->GetFloorAABBs();
 		const std::vector<AABB>& wallObstacles = stage_->GetWallObstacleAABBs();
 		const std::vector<AABB>& navObstacles = stage_->GetNavigationObstacleAABBs();
+		const std::vector<OBB>& wallObstacleOBBs = stage_->GetWallObstacleOBBs();
+		const std::vector<OBB>& navObstacleOBBs = stage_->GetNavigationObstacleOBBs();
 		const auto& worldColliders = stage_->GetWorldColliders();
 		const LevelData* levelData = stage_->GetLevelData();
 		size_t loadedColliders = 0;
@@ -445,6 +452,9 @@ void DebugScene::DrawImGui()
 		ImGui::Text("FloorAABB count: %zu", floorAABBs.size());
 		ImGui::Text("WallObstacleAABB count: %zu", wallObstacles.size());
 		ImGui::Text("NavigationObstacleAABB count: %zu", navObstacles.size());
+		ImGui::Text("WallObstacleOBB count: %zu", wallObstacleOBBs.size());
+		ImGui::Text("NavigationObstacleOBB count: %zu", navObstacleOBBs.size());
+		ImGui::Text("Brown wire source: OBB");
 		ImGui::Text("Loaded Colliders: %zu", loadedColliders);
 		ImGui::Text("Rotated collider count: %zu", rotatedColliderCount);
 		ImGui::Text("AABB fallback count: %zu", aabbFallbackCount);
