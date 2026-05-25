@@ -78,14 +78,14 @@ private: /// ---------- 構造体 ---------- ///
 	struct TraversalSettings
 	{
 		bool enabled = true;
-		bool prioritizeDirectClimb = true;
+		bool preferDirectClimb = true;
 		float maxClimbHeight = 2.0f;
 		float maxClimbObstacleWidth = 3.0f;
 		float maxClimbObstacleDepth = 3.0f;
 		float climbJumpTriggerDistance = 2.0f;
 		float climbHorizontalDistanceMax = 4.0f;
-		float directClimbMaxTargetDistance = 14.0f;
-		float directClimbLineWidth = 1.4f;
+		float directClimbDistanceMax = 8.0f;
+		float directLineWidth = 1.2f;
 		bool allowJumpOverLowObstacles = true;
 	};
 
@@ -93,13 +93,13 @@ private: /// ---------- 構造体 ---------- ///
 	struct TraversalState
 	{
 		int climbableObstacleCount = 0;
-		int blockedObstacleCount = 0;
+		int blockingObstacleCount = 0;
 		bool nearClimbableObstacle = false;
-		bool hasDirectLineClimbCandidate = false;
-		std::string lastTraversalReason = "None";
+		bool directClimbCandidateFound = false;
+		std::string lastReason = "None";
 		std::string selectedObstacleJudgeReason = "None";
 		std::string selectedObstacleRejectReason = "None";
-		int selectedClimbableObstacleIndex = -1;
+		int selectedClimbObstacleIndex = -1;
 		float selectedObstacleHeight = 0.0f;
 		float selectedObstacleWidth = 0.0f;
 		float selectedObstacleDepth = 0.0f;

@@ -319,7 +319,7 @@ void MeleeEnemy::Draw()
 	for (size_t i = 0; i < climbableObstacleAABBs_.size(); ++i)
 	{
 		// 乗り越え候補AABBを色分けし、直線乗り越え選択中の障害物は強調する
-		const bool isSelected = traversalState_.selectedClimbableObstacleIndex == static_cast<int>(i);
+		const bool isSelected = traversalState_.selectedClimbObstacleIndex == static_cast<int>(i);
 		const Vector4 c = isSelected ? Vector4{ 0.0f, 1.0f, 0.2f, 0.75f } : Vector4{ 0.2f, 0.4f, 1.0f, 0.35f };
 		Wireframe::GetInstance()->DrawAABB(climbableObstacleAABBs_[i], c);
 	}
@@ -390,18 +390,20 @@ void MeleeEnemy::DrawImGui()
 		
 		if (ImGui::CollapsingHeader("乗り越え", ImGuiTreeNodeFlags_DefaultOpen)) {
 			ImGui::Checkbox("乗り越えを使う", &traversal_.enabled);
-			ImGui::Checkbox("直線乗り越えを優先", &traversal_.prioritizeDirectClimb);
+			ImGui::Checkbox("直線乗り越えを優先", &traversal_.preferDirectClimb);
 			ImGui::Checkbox("低障害物ジャンプを許可", &traversal_.allowJumpOverLowObstacles);
 			ImGui::SliderFloat("最大乗り越え高さ", &traversal_.maxClimbHeight, 0.2f, 5.0f);
 			ImGui::SliderFloat("最大乗り越え幅", &traversal_.maxClimbObstacleWidth, 0.2f, 8.0f);
 			ImGui::SliderFloat("最大乗り越え奥行き", &traversal_.maxClimbObstacleDepth, 0.2f, 8.0f);
+			ImGui::SliderFloat("直線乗り越え最大距離", &traversal_.directClimbDistanceMax, 1.0f, 20.0f);
 			ImGui::SliderFloat("乗り越え開始距離", &traversal_.climbJumpTriggerDistance, 0.3f, 6.0f);
-			ImGui::SliderFloat("直線判定幅", &traversal_.directClimbLineWidth, 0.2f, 4.0f);
+			ImGui::SliderFloat("直線判定幅", &traversal_.directLineWidth, 0.2f, 4.0f);
 			ImGui::Text("乗り越え可能障害物数: %d", traversalState_.climbableObstacleCount);
-			ImGui::Text("回避対象障害物数: %d", traversalState_.blockedObstacleCount);
+			ImGui::Text("回避対象障害物数: %d", traversalState_.blockingObstacleCount);
 			ImGui::Text("近くに乗り越え可能障害物あり: %s", traversalState_.nearClimbableObstacle ? "はい" : "いいえ");
-			ImGui::Text("直線上の乗り越え候補あり: %s", traversalState_.hasDirectLineClimbCandidate ? "はい" : "いいえ");
-			ImGui::Text("最後の乗り越え理由: %s", traversalState_.lastTraversalReason.c_str());
+			ImGui::Text("直線上の乗り越え候補あり: %s", traversalState_.directClimbCandidateFound ? "はい" : "いいえ");
+			ImGui::Text("最後の乗り越え理由: %s", traversalState_.lastReason.c_str());
+			ImGui::Text("選択中の乗り越え障害物Index: %d", traversalState_.selectedClimbObstacleIndex);
 			ImGui::Text("選択中障害物の高さ: %.2f", traversalState_.selectedObstacleHeight);
 			ImGui::Text("選択中障害物の判定理由: %s", traversalState_.selectedObstacleJudgeReason.c_str());
 			ImGui::Text("climb不可理由: %s", traversalState_.selectedObstacleRejectReason.c_str());
@@ -675,12 +677,12 @@ void MeleeEnemy::UpdateTraversalObstacleClassification()
 {
 	pathBlockingObstacleAABBs_.clear();
 	climbableObstacleAABBs_.clear();
-	traversalState_.selectedClimbableObstacleIndex = -1;
-	traversalState_.hasDirectLineClimbCandidate = false;
+	traversalState_.selectedClimbObstacleIndex = -1;
+	traversalState_.directClimbCandidateFound = false;
 	traversalState_.selectedObstacleJudgeReason = "None";
 	traversalState_.selectedObstacleRejectReason = "None";
 	const auto* src = wallObstacleAABBs_ ? wallObstacleAABBs_ : GetResolvedNavigationObstacleAABBs();
-	if (!src) { traversalState_.climbableObstacleCount = 0; traversalState_.blockedObstacleCount = 0; return; }
+	if (!src) { traversalState_.climbableObstacleCount = 0; traversalState_.blockingObstacleCount = 0; return; }
 	const K4E::Vector3 selfPos = GetCenterPosition();
 	K4E::Vector3 moveOrTargetDir = NormalizeXZ(GetVelocity());
 	if (LengthXZ(moveOrTargetDir) <= kEpsilon) { moveOrTargetDir = NormalizeXZ(GetTargetPosition() - selfPos); }
@@ -691,20 +693,20 @@ void MeleeEnemy::UpdateTraversalObstacleClassification()
 		else { pathBlockingObstacleAABBs_.push_back(obstacle); }
 	}
 	traversalState_.climbableObstacleCount = static_cast<int>(climbableObstacleAABBs_.size());
-	traversalState_.blockedObstacleCount = static_cast<int>(pathBlockingObstacleAABBs_.size());
+	traversalState_.blockingObstacleCount = static_cast<int>(pathBlockingObstacleAABBs_.size());
 }
 
 bool MeleeEnemy::TryDirectClimbOverObstacleToTarget(float deltaTime)
 {
 	(void)deltaTime;
-	if (!traversal_.enabled || !traversal_.prioritizeDirectClimb) { traversalState_.lastTraversalReason = "DirectDisabled"; return false; }
-	if (!jump_.enabled || !grounded_) { traversalState_.lastTraversalReason = "DirectNeedGrounded"; return false; }
-	if (!HasTarget() || !IsTargetInDetectRange()) { traversalState_.lastTraversalReason = "DirectNoTarget"; return false; }
+	if (!traversal_.enabled || !traversal_.preferDirectClimb) { traversalState_.lastReason = "DirectDisabled"; return false; }
+	if (!jump_.enabled || !grounded_) { traversalState_.lastReason = "DirectNeedGrounded"; return false; }
+	if (!HasTarget() || !IsTargetInDetectRange()) { traversalState_.lastReason = "DirectNoTarget"; return false; }
 	const Vector3 selfPos = GetCenterPosition();
 	const Vector3 targetPos = GetTargetPosition();
 	const float distance = LengthXZ(targetPos - selfPos);
-	if (distance > traversal_.directClimbMaxTargetDistance) { traversalState_.lastTraversalReason = "DirectTargetFar"; return false; }
-	if (climbableObstacleAABBs_.empty()) { traversalState_.lastTraversalReason = "DirectNoClimbable"; return false; }
+	if (distance > traversal_.directClimbDistanceMax) { traversalState_.lastReason = "DirectTargetFar"; return false; }
+	if (climbableObstacleAABBs_.empty()) { traversalState_.lastReason = "DirectNoClimbable"; return false; }
 	int best = -1;
 	float bestDist = 9999.0f;
 	for (size_t i = 0; i < climbableObstacleAABBs_.size(); ++i)
@@ -712,13 +714,13 @@ bool MeleeEnemy::TryDirectClimbOverObstacleToTarget(float deltaTime)
 		const auto& o = climbableObstacleAABBs_[i];
 		const Vector3 center = (o.min + o.max) * 0.5f;
 		const float lineDist = DistancePointToSegmentXZ(center, selfPos, targetPos);
-		if (lineDist > traversal_.directClimbLineWidth) { continue; }
+		if (lineDist > traversal_.directLineWidth) { continue; }
 		const float d = LengthXZ(center - selfPos);
 		if (d < bestDist) { bestDist = d; best = static_cast<int>(i); }
 	}
-	if (best < 0) { traversalState_.hasDirectLineClimbCandidate = false; traversalState_.lastTraversalReason = "DirectNoLineCandidate"; return false; }
-	traversalState_.hasDirectLineClimbCandidate = true;
-	traversalState_.selectedClimbableObstacleIndex = best;
+	if (best < 0) { traversalState_.directClimbCandidateFound = false; traversalState_.lastReason = "DirectNoLineCandidate"; return false; }
+	traversalState_.directClimbCandidateFound = true;
+	traversalState_.selectedClimbObstacleIndex = best;
 	const auto& obstacle = climbableObstacleAABBs_[best];
 	// 直線乗り越えで選ばれた障害物の判定値をImGuiへ出す
 	traversalState_.selectedEnemyFootY = selfPos.y - 2.0f;
@@ -732,7 +734,7 @@ bool MeleeEnemy::TryDirectClimbOverObstacleToTarget(float deltaTime)
 	const Vector3 center = (obstacle.min + obstacle.max) * 0.5f;
 	const Vector3 dir = NormalizeXZ(center - selfPos);
 	SetVelocity({ dir.x * move_.moveSpeed, GetVelocity().y, dir.z * move_.moveSpeed });
-	traversalState_.lastTraversalReason = "DirectClimbOverObstacle";
+	traversalState_.lastReason = "DirectClimbOverObstacle";
 	// 直線乗り越え中のジャンプ遷移は既存処理を使って高さ挙動を統一する
 	TryJumpOverClimbableObstacle(deltaTime);
 	return true;
@@ -740,11 +742,11 @@ bool MeleeEnemy::TryDirectClimbOverObstacleToTarget(float deltaTime)
 
 bool MeleeEnemy::TryJumpOverClimbableObstacle(float)
 {
-	if (!traversal_.enabled || !traversal_.allowJumpOverLowObstacles) { traversalState_.lastTraversalReason = "Disabled"; return false; }
-	if (!jump_.enabled) { traversalState_.lastTraversalReason = "JumpDisabled"; return false; }
-	if (!grounded_) { traversalState_.lastTraversalReason = "Airborne"; return false; }
-	if (jumpState_.cooldownTimer > 0.0f) { traversalState_.lastTraversalReason = "Cooldown"; return false; }
-	if (climbableObstacleAABBs_.empty()) { traversalState_.nearClimbableObstacle = false; traversalState_.lastTraversalReason = "NoClimbable"; return false; }
+	if (!traversal_.enabled || !traversal_.allowJumpOverLowObstacles) { traversalState_.lastReason = "Disabled"; return false; }
+	if (!jump_.enabled) { traversalState_.lastReason = "JumpDisabled"; return false; }
+	if (!grounded_) { traversalState_.lastReason = "Airborne"; return false; }
+	if (jumpState_.cooldownTimer > 0.0f) { traversalState_.lastReason = "Cooldown"; return false; }
+	if (climbableObstacleAABBs_.empty()) { traversalState_.nearClimbableObstacle = false; traversalState_.lastReason = "NoClimbable"; return false; }
 	const K4E::Vector3 selfPos = GetCenterPosition();
 	K4E::Vector3 moveOrTargetDir = NormalizeXZ(GetVelocity());
 	if (LengthXZ(moveOrTargetDir) <= kEpsilon) { moveOrTargetDir = NormalizeXZ(GetTargetPosition() - selfPos); }
@@ -759,11 +761,11 @@ bool MeleeEnemy::TryJumpOverClimbableObstacle(float)
 		const K4E::Vector3 dirToObs = NormalizeXZ(toObs);
 		const float dirDot = dirToObs.x * moveOrTargetDir.x + dirToObs.z * moveOrTargetDir.z;
 		if (dirDot < 0.1f) { continue; }
-		if (horizontalDistance < bestDist) { bestDist = horizontalDistance; traversalState_.selectedClimbableObstacleIndex = static_cast<int>(i); }
+		if (horizontalDistance < bestDist) { bestDist = horizontalDistance; traversalState_.selectedClimbObstacleIndex = static_cast<int>(i); }
 	}
-	traversalState_.nearClimbableObstacle = traversalState_.selectedClimbableObstacleIndex >= 0;
-	if (!traversalState_.nearClimbableObstacle) { traversalState_.lastTraversalReason = "NoNearObstacle"; return false; }
-	const auto& selectedObstacle = climbableObstacleAABBs_[traversalState_.selectedClimbableObstacleIndex];
+	traversalState_.nearClimbableObstacle = traversalState_.selectedClimbObstacleIndex >= 0;
+	if (!traversalState_.nearClimbableObstacle) { traversalState_.lastReason = "NoNearObstacle"; return false; }
+	const auto& selectedObstacle = climbableObstacleAABBs_[traversalState_.selectedClimbObstacleIndex];
 	// 近接乗り越えジャンプで選ばれた障害物の値を保持する
 	traversalState_.selectedEnemyFootY = selfPos.y - 2.0f;
 	traversalState_.selectedObstacleTopY = selectedObstacle.max.y;
@@ -777,7 +779,7 @@ bool MeleeEnemy::TryJumpOverClimbableObstacle(float)
 	v.y = std::clamp(jump_.baseVelocity, 0.0f, jump_.maxVelocity);
 	SetVelocity(v);
 	jumpState_.cooldownTimer = jump_.cooldown;
-	traversalState_.lastTraversalReason = "JumpOverLowObstacle";
+	traversalState_.lastReason = "JumpOverLowObstacle";
 	return true;
 }
 float MeleeEnemy::CalculateJumpVelocityForHeight(float heightDelta) const
@@ -1108,14 +1110,14 @@ bool MeleeEnemy::LoadTuningFromJson(const std::filesystem::path& path, std::stri
 		jump_.horizontalDistanceMax = j.value("jumpHorizontalDistanceMax", jump_.horizontalDistanceMax);
 		jump_.cooldown = j.value("jumpCooldown", jump_.cooldown);
 		traversal_.enabled = j.value("traversalEnabled", traversal_.enabled);
-		traversal_.prioritizeDirectClimb = j.value("traversalPrioritizeDirectClimb", traversal_.prioritizeDirectClimb);
+		traversal_.preferDirectClimb = j.value("traversalPrioritizeDirectClimb", traversal_.preferDirectClimb);
 		traversal_.maxClimbHeight = j.value("traversalMaxClimbHeight", traversal_.maxClimbHeight);
 		traversal_.maxClimbObstacleWidth = j.value("traversalMaxClimbObstacleWidth", traversal_.maxClimbObstacleWidth);
 		traversal_.maxClimbObstacleDepth = j.value("traversalMaxClimbObstacleDepth", traversal_.maxClimbObstacleDepth);
 		traversal_.climbJumpTriggerDistance = j.value("traversalClimbJumpTriggerDistance", traversal_.climbJumpTriggerDistance);
 		traversal_.climbHorizontalDistanceMax = j.value("traversalClimbHorizontalDistanceMax", traversal_.climbHorizontalDistanceMax);
-		traversal_.directClimbMaxTargetDistance = j.value("traversalDirectClimbMaxTargetDistance", traversal_.directClimbMaxTargetDistance);
-		traversal_.directClimbLineWidth = j.value("traversalDirectClimbLineWidth", traversal_.directClimbLineWidth);
+		traversal_.directClimbDistanceMax = j.value("traversalDirectClimbMaxTargetDistance", traversal_.directClimbDistanceMax);
+		traversal_.directLineWidth = j.value("traversalDirectClimbLineWidth", traversal_.directLineWidth);
 		traversal_.allowJumpOverLowObstacles = j.value("traversalAllowJumpOverLowObstacles", traversal_.allowJumpOverLowObstacles);
 		pathSettings_.enabled = j.value("pathFindEnabled", pathSettings_.enabled);
 		pathSettings_.repathInterval = j.value("repathInterval", pathSettings_.repathInterval);
@@ -1198,14 +1200,14 @@ bool MeleeEnemy::SaveTuningToJson(const std::filesystem::path& path, std::string
 		j["jumpHorizontalDistanceMax"] = jump_.horizontalDistanceMax;
 		j["jumpCooldown"] = jump_.cooldown;
 		j["traversalEnabled"] = traversal_.enabled;
-		j["traversalPrioritizeDirectClimb"] = traversal_.prioritizeDirectClimb;
+		j["traversalPrioritizeDirectClimb"] = traversal_.preferDirectClimb;
 		j["traversalMaxClimbHeight"] = traversal_.maxClimbHeight;
 		j["traversalMaxClimbObstacleWidth"] = traversal_.maxClimbObstacleWidth;
 		j["traversalMaxClimbObstacleDepth"] = traversal_.maxClimbObstacleDepth;
 		j["traversalClimbJumpTriggerDistance"] = traversal_.climbJumpTriggerDistance;
 		j["traversalClimbHorizontalDistanceMax"] = traversal_.climbHorizontalDistanceMax;
-		j["traversalDirectClimbMaxTargetDistance"] = traversal_.directClimbMaxTargetDistance;
-		j["traversalDirectClimbLineWidth"] = traversal_.directClimbLineWidth;
+		j["traversalDirectClimbMaxTargetDistance"] = traversal_.directClimbDistanceMax;
+		j["traversalDirectClimbLineWidth"] = traversal_.directLineWidth;
 		j["traversalAllowJumpOverLowObstacles"] = traversal_.allowJumpOverLowObstacles;
 		j["pathFindEnabled"] = pathSettings_.enabled;
 		j["repathInterval"] = pathSettings_.repathInterval;
