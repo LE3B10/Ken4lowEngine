@@ -40,13 +40,13 @@ private: /// ---------- 構造体 ---------- ///
 	// 移動と回転の設定
 	struct MoveSettings
 	{
-		float moveSpeed = 3.2f;					 // 基本移動速度
-		float rotateSpeed = 8.0f;				 // 回転速度
-		float maxResolvePushPerFrame = 0.75f;	 // ステージ衝突解決の最大押し戻し距離
-		float maxHorizontalPushPerFrame = 0.45f; // 水平方向の衝突解決の最大押し戻し距離
-		bool obstacleTopLandingEnabled = true;	 // 障害物上面への着地判定を有効にする
-		float obstacleTopLandingTolerance = 0.35f; // 障害物上面への着地を許容する足元の高さ誤差
-		float obstacleTopLandingMaxHeight = 3.5f; // 障害物上面へ着地可能な最大段差
+		float moveSpeed = 3.2f;								 // 基本移動速度
+		float rotateSpeed = 8.0f;							 // 回転速度
+		float maxResolvePushPerFrame = 0.75f;				 // ステージ衝突解決の最大押し戻し距離
+		float maxHorizontalPushPerFrame = 0.45f;			 // 水平方向の衝突解決の最大押し戻し距離
+		bool obstacleTopLandingEnabled = true;				 // 障害物上面への着地判定を有効にする
+		float obstacleTopLandingTolerance = 0.35f;			 // 障害物上面への着地を許容する足元の高さ誤差
+		float obstacleTopLandingMaxHeight = 3.5f;			 // 障害物上面へ着地可能な最大段差
 		float obstacleTopLandingMinHorizontalOverlap = 0.2f; // 上面着地に必要なXZ最小重なり量
 	};
 
@@ -195,8 +195,8 @@ private: /// ---------- 構造体 ---------- ///
 		bool isOnFloor = false;										 // 床の上にいるかどうか
 		std::string lastWallObstacleName = "None";					 // 最後に重なった壁の障害物の名前（デバッグ用）
 		K4E::Vector3 lastWallResolvePush{};							 // 壁の障害物と重なっているときの最後の衝突解決の押し戻しベクトル（デバッグ用）
-		bool landedOnObstacleTop = false;								 // 障害物上面への着地が成立したかどうか
-		std::string lastObstacleTopLandingName = "None";				 // 最後に上面着地した障害物名（デバッグ用）
+		bool landedOnObstacleTop = false;							 // 障害物上面への着地が成立したかどうか
+		std::string lastObstacleTopLandingName = "None";			 // 最後に上面着地した障害物名（デバッグ用）
 	};
 
 	// 徘徊の状態管理
@@ -332,6 +332,7 @@ private: /// ---------- 内部処理 ---------- ///
 
 	// ジャンプを試みる処理（ターゲットの高さや距離、ジャンプのクールダウンなどを考慮してジャンプするかどうかを判断し、実際にジャンプする）
 	bool ResolveObstaclePenetrationXZ(float deltaTime);
+
 	// 障害物の上面へ着地できる場合にY位置を補正して横押し出しより優先する
 	bool TryLandOnObstacleTop(float deltaTime);
 
