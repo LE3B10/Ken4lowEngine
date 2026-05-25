@@ -237,6 +237,8 @@ bool MeleeEnemy::ResolveObstaclePenetrationXZ(float deltaTime)
 	collision_.lastBlockedObstacleName = "None";
 	collision_.isOverlappingWallObstacle = false;
 	collision_.lastWallResolvePush = { 0.0f, 0.0f, 0.0f };
+	// 接触中障害物を毎フレーム初期化し、押し出し発生時に必ず再記録する
+	contactObstacleState_ = ContactObstacleState{};
 	if (!obstacleAabbs || obstacleAabbs->empty()) { return false; }
 
 	Vector3 pos = GetCenterPosition();
@@ -257,46 +259,12 @@ bool MeleeEnemy::ResolveObstaclePenetrationXZ(float deltaTime)
 		collision_.lastStageCollisionName = "Obstacle[" + std::to_string(i) + "]";
 		collision_.lastWallObstacleName = collision_.lastStageCollisionName;
 		collision_.lastBlockedObstacleName = collision_.lastStageCollisionName;
-		// 接触面基準の厚みと高さを優先し、大型AABBでも段差が低ければ乗り越え候補にする
-		const float enemyFootY = pos.y - half.y;
-		const float obstacleTopY = o.max.y;
-		const float obstacleHeightFromFoot = obstacleTopY - enemyFootY;
-		const float obstacleSizeX = o.max.x - o.min.x;
-		const float obstacleSizeZ = o.max.z - o.min.z;
-		const Vector3 moveDir = LengthXZ(GetVelocity()) > kEpsilon ? NormalizeXZ(GetVelocity()) : NormalizeXZ(GetTargetPosition() - pos);
-		const float forwardThickness = std::abs(moveDir.x) >= std::abs(moveDir.z) ? obstacleSizeX : obstacleSizeZ;
-		const float contactFaceDistance = std::min(std::abs((pos.x + half.x) - o.min.x), std::abs((pos.x - half.x) - o.max.x));
-		const float contactFaceDistanceZ = std::min(std::abs((pos.z + half.z) - o.min.z), std::abs((pos.z - half.z) - o.max.z));
-		const float nearestFaceDistance = std::min(contactFaceDistance, contactFaceDistanceZ);
-		const bool topAboveFoot = obstacleHeightFromFoot > 0.0f;
-		const bool lowEnough = obstacleHeightFromFoot <= traversal_.maxClimbHeight;
-		const bool climbableByTopHeight = topAboveFoot && lowEnough;
-		const bool tooFarFromFace = nearestFaceDistance > 2.0f;
-		const bool tooThickForTraversal = forwardThickness > traversal_.maxClimbObstacleDepth * 4.0f;
-		const bool canLandOnTop = climbableByTopHeight && !tooFarFromFace && !tooThickForTraversal;
-		const bool isCandidateBetter = !contactObstacleState_.hasContact || (canLandOnTop && !contactObstacleState_.climbable) || (std::abs(obstacleHeightFromFoot) < std::abs(contactObstacleState_.obstacleHeightFromFoot));
+		// 横押し出しが発生した障害物を接触候補として記録し、高さ最優先で乗り越え判定する
+		const bool canLandOnTop = EvaluateContactObstacleClimbable(o, static_cast<int>(i));
+		const bool isCandidateBetter = !contactObstacleState_.hasContact || (canLandOnTop && !contactObstacleState_.climbable) || (contactObstacleState_.obstacleIndex < 0);
 		if (isCandidateBetter)
 		{
-			contactObstacleState_.hasContact = true;
-			contactObstacleState_.climbable = canLandOnTop;
-			contactObstacleState_.climbableByHeight = climbableByTopHeight;
-			contactObstacleState_.rejectedByWidthDepth = tooThickForTraversal;
-			contactObstacleState_.rejectedByAABBSize = false;
-			contactObstacleState_.judgedByContactFace = true;
-			contactObstacleState_.obstacleIndex = static_cast<int>(i);
-			contactObstacleState_.obstacleAABB = o;
-			contactObstacleState_.obstacleTopY = obstacleTopY;
-			contactObstacleState_.obstacleHeightFromFoot = obstacleHeightFromFoot;
-			contactObstacleState_.obstacleWidth = obstacleSizeX;
-			contactObstacleState_.obstacleDepth = obstacleSizeZ;
-			contactObstacleState_.obstacleForwardThickness = forwardThickness;
-			contactObstacleState_.contactFaceDistance = nearestFaceDistance;
-			contactObstacleState_.possibleReason = climbableByTopHeight ? "ClimbableByTopHeight" : "None";
-			if (!topAboveFoot) { contactObstacleState_.reason = "TopBelowFoot"; }
-			else if (!lowEnough) { contactObstacleState_.reason = "TooHigh"; }
-			else if (tooFarFromFace) { contactObstacleState_.reason = "TooFarFromContactFace"; }
-			else if (tooThickForTraversal) { contactObstacleState_.reason = "NoForwardContact"; }
-			else { contactObstacleState_.reason = "LargeButClimbableByHeight"; }
+			(void)EvaluateContactObstacleClimbable(o, static_cast<int>(i));
 		}
 		float pushX = 0.0f, pushZ = 0.0f;
 		if (overlapX < overlapZ) { pushX = (pos.x < (o.min.x + o.max.x) * 0.5f ? -overlapX : overlapX); }
@@ -323,6 +291,61 @@ bool MeleeEnemy::ResolveObstaclePenetrationXZ(float deltaTime)
 		pathState_.lastRepathReason = "ObstaclePushResolve";
 	}
 	return resolved;
+}
+
+bool MeleeEnemy::EvaluateContactObstacleClimbable(const K4E::AABB& obstacle, int index)
+{
+	// 接触障害物の判定を1つに集約して毎フレーム同じ基準で評価する
+	const Vector3 pos = GetCenterPosition();
+	const Vector3 half = { 1.0f, 2.0f, 1.0f };
+	const float footY = pos.y - half.y;
+	const float topY = obstacle.max.y;
+	const float heightFromFoot = topY - footY;
+	const float overlapX = std::min(pos.x + half.x, obstacle.max.x) - std::max(pos.x - half.x, obstacle.min.x);
+	const float overlapZ = std::min(pos.z + half.z, obstacle.max.z) - std::max(pos.z - half.z, obstacle.min.z);
+	const bool xzOverlap = overlapX > 0.0f && overlapZ > 0.0f;
+	Vector3 forward = LengthXZ(GetVelocity()) > kEpsilon ? NormalizeXZ(GetVelocity()) : NormalizeXZ(GetTargetPosition() - pos);
+	if (LengthXZ(forward) <= kEpsilon) { forward = { 0.0f, 0.0f, 1.0f }; }
+	const Vector3 obstacleCenter = (obstacle.min + obstacle.max) * 0.5f;
+	const Vector3 toObstacle = NormalizeXZ(obstacleCenter - pos);
+	const float facingDot = toObstacle.x * forward.x + toObstacle.z * forward.z;
+	const bool facingObstacle = facingDot >= 0.1f;
+	const float nearFaceDistanceX = std::min(std::abs((pos.x + half.x) - obstacle.min.x), std::abs((pos.x - half.x) - obstacle.max.x));
+	const float nearFaceDistanceZ = std::min(std::abs((pos.z + half.z) - obstacle.min.z), std::abs((pos.z - half.z) - obstacle.max.z));
+	const float nearFaceDistance = std::min(nearFaceDistanceX, nearFaceDistanceZ);
+	const float width = obstacle.max.x - obstacle.min.x;
+	const float depth = obstacle.max.z - obstacle.min.z;
+	const bool topTooLow = heightFromFoot <= traversal_.minClimbHeight;
+	const bool tooHigh = heightFromFoot > traversal_.maxClimbHeight;
+	const bool isFloorLike = std::abs(obstacle.max.y - obstacle.min.y) <= 0.05f;
+	const bool sideNearEnough = nearFaceDistance <= 1.75f;
+	const bool climbable = traversal_.enabled && traversal_.allowJumpOverLowObstacles && xzOverlap && facingObstacle && sideNearEnough && !isFloorLike && !topTooLow && !tooHigh;
+	contactObstacleState_.hasContact = true;
+	contactObstacleState_.climbable = climbable;
+	contactObstacleState_.climbableByHeight = !topTooLow && !tooHigh;
+	contactObstacleState_.rejectedByWidthDepth = false;
+	contactObstacleState_.rejectedByAABBSize = false;
+	contactObstacleState_.judgedByContactFace = true;
+	contactObstacleState_.obstacleIndex = index;
+	contactObstacleState_.obstacleAABB = obstacle;
+	contactObstacleState_.obstacleTopY = topY;
+	contactObstacleState_.obstacleHeightFromFoot = heightFromFoot;
+	contactObstacleState_.obstacleWidth = width;
+	contactObstacleState_.obstacleDepth = depth;
+	contactObstacleState_.obstacleForwardThickness = std::abs(forward.x) >= std::abs(forward.z) ? width : depth;
+	contactObstacleState_.contactFaceDistance = nearFaceDistance;
+	contactObstacleState_.enemyFootY = footY;
+	contactObstacleState_.xzOverlapping = xzOverlap;
+	contactObstacleState_.facingObstacle = facingObstacle;
+	contactObstacleState_.reason = climbable ? "ContactClimbableObstacle" : "ContactNotClimbable";
+	if (isFloorLike) { contactObstacleState_.notClimbableReason = "FloorOrStageAABB"; }
+	else if (!xzOverlap) { contactObstacleState_.notClimbableReason = "NoXZOverlap"; }
+	else if (!facingObstacle) { contactObstacleState_.notClimbableReason = "NotFacingObstacle"; }
+	else if (!sideNearEnough) { contactObstacleState_.notClimbableReason = "NotSideContact"; }
+	else if (topTooLow) { contactObstacleState_.notClimbableReason = "ObstacleTopTooLow"; }
+	else if (tooHigh) { contactObstacleState_.notClimbableReason = "ObstacleTooHigh"; }
+	else { contactObstacleState_.notClimbableReason = "None"; }
+	return climbable;
 }
 
 
@@ -390,12 +413,16 @@ void MeleeEnemy::Draw()
 	}
 	if (contactObstacleState_.hasContact)
 	{
-		// 実際に接触した障害物を強調表示し、接触フォールバックの対象判定を確認できるようにする
-		const Vector4 c = contactObstacleState_.climbable ? Vector4{ 0.0f, 1.0f, 0.9f, 0.85f } : Vector4{ 1.0f, 0.0f, 0.7f, 0.85f };
+		// 実際に接触した障害物を緑/赤で強調表示し、接触フォールバックの対象判定を確認できるようにする
+		const Vector4 c = contactObstacleState_.climbable ? Vector4{ 0.1f, 1.0f, 0.2f, 0.9f } : Vector4{ 1.0f, 0.2f, 0.2f, 0.9f };
 		Wireframe::GetInstance()->DrawAABB(contactObstacleState_.obstacleAABB, c);
+		if (contactObstacleState_.climbable)
+		{
+			Wireframe::GetInstance()->DrawAABB(contactObstacleState_.obstacleAABB.min - Vector3{ 0.03f, 0.03f, 0.03f }, contactObstacleState_.obstacleAABB.max + Vector3{ 0.03f, 0.03f, 0.03f }, { 0.6f, 1.0f, 0.6f, 0.95f });
+		}
 		const Vector3 foot = GetCenterPosition() + Vector3{ 0.0f, -2.0f, 0.0f };
 		const Vector3 top = Vector3{ foot.x, contactObstacleState_.obstacleTopY, foot.z };
-		Wireframe::GetInstance()->DrawLine(foot, top, { 1.0f, 1.0f, 1.0f, 0.8f });
+		Wireframe::GetInstance()->DrawLine(foot, top, { 1.0f, 1.0f, 0.2f, 0.9f });
 	}
 	for (const auto& blocked : navigator_.GetTemporaryBlockedAreas())
 	{
@@ -473,6 +500,7 @@ void MeleeEnemy::DrawImGui()
 			ImGui::Checkbox("直線乗り越えを優先", &traversal_.preferDirectClimb);
 			ImGui::Checkbox("低障害物ジャンプを許可", &traversal_.allowJumpOverLowObstacles);
 			ImGui::SliderFloat("最大乗り越え高さ", &traversal_.maxClimbHeight, 0.2f, 5.0f);
+			ImGui::SliderFloat("最小乗り越え高さ", &traversal_.minClimbHeight, 0.0f, 1.0f);
 			ImGui::SliderFloat("最大乗り越え幅", &traversal_.maxClimbObstacleWidth, 0.2f, 8.0f);
 			ImGui::SliderFloat("最大乗り越え奥行き", &traversal_.maxClimbObstacleDepth, 0.2f, 8.0f);
 			ImGui::SliderFloat("直線乗り越え最大距離", &traversal_.directClimbDistanceMax, 1.0f, 20.0f);
@@ -498,7 +526,8 @@ void MeleeEnemy::DrawImGui()
 			ImGui::Text("最終的な乗り越え可否: %s", contactObstacleState_.climbable ? "可能" : "不可");
 			ImGui::Text("接触ジャンプ関数が呼ばれたか: %s", contactJumpDebugState_.calledThisFrame ? "はい(このフレーム)" : (contactJumpDebugState_.everCalled ? "過去に呼ばれた" : "いいえ"));
 			ImGui::Text("最後にジャンプしなかった理由: %s", contactJumpDebugState_.lastReason.c_str());
-			ImGui::Text("grounded の状態: %s", grounded_ ? "true" : "false");
+			ImGui::Text("grounded: %s", grounded_ ? "true" : "false");
+			ImGui::Text("isOverlappingWallObstacle: %s", collision_.isOverlappingWallObstacle ? "true" : "false");
 			ImGui::Text("velocity.y: %.2f", GetVelocity().y);
 			ImGui::Text("接触障害物Index: %d", contactObstacleState_.obstacleIndex);
 			ImGui::Text("接触障害物の高さ: %.2f", contactObstacleState_.obstacleHeightFromFoot);
@@ -506,14 +535,15 @@ void MeleeEnemy::DrawImGui()
 			ImGui::Text("接触障害物の奥行き: %.2f", contactObstacleState_.obstacleDepth);
 			ImGui::Text("接触方向厚み: %.2f", contactObstacleState_.obstacleForwardThickness);
 			ImGui::Text("接触面までの距離: %.2f", contactObstacleState_.contactFaceDistance);
-			ImGui::Text("足元Y: %.2f", contactJumpDebugState_.footY);
+			ImGui::Text("足元Y: %.2f", contactObstacleState_.enemyFootY);
 			ImGui::Text("接触障害物の上面Y: %.2f", contactObstacleState_.obstacleTopY);
-			ImGui::Text("障害物上面Y: %.2f", contactJumpDebugState_.obstacleTopY);
-			ImGui::Text("足元から見た障害物上面の高さ: %.2f", contactJumpDebugState_.obstacleHeightFromFoot);
+			ImGui::Text("障害物上面Y: %.2f", contactObstacleState_.obstacleTopY);
+			ImGui::Text("足元から見た上面高さ: %.2f", contactObstacleState_.obstacleHeightFromFoot);
+			ImGui::Text("最大乗り越え高さ: %.2f", traversal_.maxClimbHeight);
 			ImGui::Text("ジャンプクールダウン残り: %.2f", jumpState_.cooldownTimer);
 			ImGui::Text("適用予定ジャンプ力: %.2f", contactJumpDebugState_.plannedJumpVelocity);
 			ImGui::Text("接触障害物の判定理由: %s", contactObstacleState_.reason.c_str());
-			ImGui::Text("最後の不可理由: %s", contactObstacleState_.reason.c_str());
+			ImGui::Text("乗り越え不可理由: %s", contactObstacleState_.notClimbableReason.c_str());
 			ImGui::Text("最後の可能理由: %s", contactObstacleState_.possibleReason.c_str());
 			ImGui::Text("最後のジャンプ理由: %s", jumpState_.lastReason.c_str());
 			ImGui::Text("最後の乗り越え理由: %s", traversalState_.lastReason.c_str());
@@ -915,23 +945,17 @@ bool MeleeEnemy::TryJumpOverContactObstacle()
 	contactJumpDebugState_.obstacleTopY = contactObstacleState_.obstacleTopY;
 	contactJumpDebugState_.obstacleHeightFromFoot = contactObstacleState_.obstacleTopY - footY;
 	contactJumpDebugState_.plannedJumpVelocity = jump_.baseVelocity;
-	if (!traversal_.enabled || !traversal_.allowJumpOverLowObstacles) { contactJumpDebugState_.lastReason = "Disabled"; return false; }
-	if (!jump_.enabled) { contactJumpDebugState_.lastReason = "Disabled"; return false; }
-	if (IsDeadCondition()) { contactJumpDebugState_.lastReason = "Dead"; return false; }
+	if (!traversal_.enabled || !traversal_.allowJumpOverLowObstacles) { contactJumpDebugState_.lastReason = "Disabled"; jumpState_.lastReason = "Disabled"; return false; }
+	if (!jump_.enabled) { contactJumpDebugState_.lastReason = "Disabled"; jumpState_.lastReason = "Disabled"; return false; }
+	if (IsDeadCondition()) { contactJumpDebugState_.lastReason = "Dead"; jumpState_.lastReason = "Dead"; return false; }
 	if (attackController_.IsAttacking() || attackState_.lockTimer > 0.0f) { contactJumpDebugState_.lastReason = "Attack"; return false; }
-	if (jumpState_.cooldownTimer > 0.0f) { contactJumpDebugState_.lastReason = "Cooldown"; return false; }
+	if (jumpState_.cooldownTimer > 0.0f) { contactJumpDebugState_.lastReason = "Cooldown"; jumpState_.lastReason = "Cooldown"; return false; }
 	if (!contactObstacleState_.hasContact) { contactJumpDebugState_.lastReason = "NoContactObstacle"; return false; }
-	if (!contactObstacleState_.climbable) { contactJumpDebugState_.lastReason = "ContactNotClimbable"; return false; }
-	const bool nearlyGroundedWithContact = (GetVelocity().y <= 0.5f) && contactObstacleState_.hasContact;
-	const bool overlapClimbable = collision_.isOverlappingWallObstacle && contactObstacleState_.climbable;
-	const bool canContactJump = grounded_ || nearlyGroundedWithContact || overlapClimbable;
-	if (!canContactJump) { contactJumpDebugState_.lastReason = "Airborne"; return false; }
-	if (!grounded_ && (nearlyGroundedWithContact || overlapClimbable)) { contactJumpDebugState_.lastReason = "NotGroundedButAllowContactJump"; }
-	const Vector3 obstacleCenter = (contactObstacleState_.obstacleAABB.min + contactObstacleState_.obstacleAABB.max) * 0.5f;
-	const float distanceToObstacle = LengthXZ(obstacleCenter - pos);
-	if (distanceToObstacle > traversal_.climbJumpTriggerDistance + 1.5f) { contactJumpDebugState_.lastReason = "TooFarFromObstacle"; return false; }
-	if (contactObstacleState_.obstacleTopY <= footY) { contactJumpDebugState_.lastReason = "TopBelowFoot"; return false; }
-	if (contactObstacleState_.obstacleHeightFromFoot > traversal_.maxClimbHeight) { contactJumpDebugState_.lastReason = "ObstacleTooHigh"; return false; }
+	if (!contactObstacleState_.climbable) { contactJumpDebugState_.lastReason = "ContactNotClimbable"; jumpState_.lastReason = contactObstacleState_.notClimbableReason; return false; }
+	const bool canContactJump = grounded_ || collision_.isOverlappingWallObstacle;
+	if (!canContactJump) { contactJumpDebugState_.lastReason = "Airborne"; jumpState_.lastReason = "Airborne"; return false; }
+	if (contactObstacleState_.obstacleTopY <= footY + traversal_.minClimbHeight) { contactJumpDebugState_.lastReason = "ObstacleTopTooLow"; jumpState_.lastReason = "ObstacleTopTooLow"; return false; }
+	if (contactObstacleState_.obstacleHeightFromFoot > traversal_.maxClimbHeight) { contactJumpDebugState_.lastReason = "ObstacleTooHigh"; jumpState_.lastReason = "ObstacleTooHigh"; return false; }
 	// 接触フォールバックは障害物高さで増減させず、固定ジャンプ力で発火する
 	Vector3 v = GetVelocity();
 	v.y = jump_.baseVelocity;
@@ -941,7 +965,7 @@ bool MeleeEnemy::TryJumpOverContactObstacle()
 	jumpState_.lastReason = "ContactObstacleJump";
 	traversalState_.lastReason = "ContactClimbableObstacle";
 	contactObstacleState_.reason = "ClimbableByTopHeight";
-	contactObstacleState_.possibleReason = "ClimbableByTopHeight";
+	contactObstacleState_.possibleReason = "ContactClimbableObstacle";
 	contactJumpDebugState_.lastReason = "Jump";
 	grounded_ = false;
 	currentBehaviorName_ = "ContactObstacleJump";
@@ -1252,6 +1276,7 @@ bool MeleeEnemy::LoadTuningFromJson(const std::filesystem::path& path, std::stri
 		traversal_.enabled = j.value("traversalEnabled", traversal_.enabled);
 		traversal_.preferDirectClimb = j.value("traversalPrioritizeDirectClimb", traversal_.preferDirectClimb);
 		traversal_.maxClimbHeight = j.value("traversalMaxClimbHeight", traversal_.maxClimbHeight);
+		traversal_.minClimbHeight = j.value("traversalMinClimbHeight", traversal_.minClimbHeight);
 		traversal_.maxClimbObstacleWidth = j.value("traversalMaxClimbObstacleWidth", traversal_.maxClimbObstacleWidth);
 		traversal_.maxClimbObstacleDepth = j.value("traversalMaxClimbObstacleDepth", traversal_.maxClimbObstacleDepth);
 		traversal_.climbJumpTriggerDistance = j.value("traversalClimbJumpTriggerDistance", traversal_.climbJumpTriggerDistance);
@@ -1340,6 +1365,7 @@ bool MeleeEnemy::SaveTuningToJson(const std::filesystem::path& path, std::string
 		j["traversalEnabled"] = traversal_.enabled;
 		j["traversalPrioritizeDirectClimb"] = traversal_.preferDirectClimb;
 		j["traversalMaxClimbHeight"] = traversal_.maxClimbHeight;
+		j["traversalMinClimbHeight"] = traversal_.minClimbHeight;
 		j["traversalMaxClimbObstacleWidth"] = traversal_.maxClimbObstacleWidth;
 		j["traversalMaxClimbObstacleDepth"] = traversal_.maxClimbObstacleDepth;
 		j["traversalClimbJumpTriggerDistance"] = traversal_.climbJumpTriggerDistance;
