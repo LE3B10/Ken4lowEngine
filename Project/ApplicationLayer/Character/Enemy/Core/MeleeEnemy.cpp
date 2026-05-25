@@ -954,7 +954,7 @@ void MeleeEnemy::UpdateVisualAnimation(float deltaTime)
 		if (headLookSettings_.enabled && HasTarget())
 		{
 			const Vector3 toTarget = GetTargetPosition() - GetCenterPosition();
-			const float desiredYaw = std::atan2(toTarget.x, toTarget.z);
+			const float desiredYaw = std::atan2(-toTarget.x, toTarget.z);
 			const float bodyYaw = orientation_.y;
 			const float yawDelta = NormalizeAngleRad(desiredYaw - bodyYaw);
 			headLookState_.targetYaw = Clamp(yawDelta * (180.0f / kPi), -headLookSettings_.yawLimitDeg, headLookSettings_.yawLimitDeg);
