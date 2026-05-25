@@ -418,7 +418,7 @@ void MeleeEnemy::Draw()
 		Wireframe::GetInstance()->DrawAABB(contactObstacleState_.obstacleAABB, c);
 		if (contactObstacleState_.climbable)
 		{
-			Wireframe::GetInstance()->DrawAABB(contactObstacleState_.obstacleAABB.min - Vector3{ 0.03f, 0.03f, 0.03f }, contactObstacleState_.obstacleAABB.max + Vector3{ 0.03f, 0.03f, 0.03f }, { 0.6f, 1.0f, 0.6f, 0.95f });
+			Wireframe::GetInstance()->DrawAABB({ contactObstacleState_.obstacleAABB.min - Vector3{ 0.03f, 0.03f, 0.03f }, contactObstacleState_.obstacleAABB.max + Vector3{ 0.03f, 0.03f, 0.03f } }, { 0.6f, 1.0f, 0.6f, 0.95f });
 		}
 		const Vector3 foot = GetCenterPosition() + Vector3{ 0.0f, -2.0f, 0.0f };
 		const Vector3 top = Vector3{ foot.x, contactObstacleState_.obstacleTopY, foot.z };
