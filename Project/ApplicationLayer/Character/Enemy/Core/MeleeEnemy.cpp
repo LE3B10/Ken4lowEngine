@@ -73,6 +73,8 @@ void MeleeEnemy::Update(float deltaTime)
 	collision_.lastCollisionCount = 0;
 	collision_.pushedThisFrame = false;
 	collision_.restoredToSafePosition = false;
+	collision_.landedOnObstacleTop = false;
+	collision_.lastObstacleTopLandingName = "None";
 	const auto* floorAabbs = floorAABBs_ ? floorAABBs_ : GetResolvedWorldAABBs();
 	worldAABBs_ = floorAabbs;
 	Vector3 afterPos = GetCenterPosition();
@@ -87,7 +89,9 @@ void MeleeEnemy::Update(float deltaTime)
 		SetCenterPosition(afterPos);
 	}
 	collision_.lastResolvePush = afterPos - beforePos;
-	if (ResolveObstaclePenetrationXZ(deltaTime))
+	// 障害物上面に着地できるフレームは横押し出しより上面接地を優先する
+	const bool landedOnObstacleTop = TryLandOnObstacleTop(deltaTime);
+	if (!landedOnObstacleTop && ResolveObstaclePenetrationXZ(deltaTime))
 	{
 		afterPos = GetCenterPosition();
 		pathState_.lineBlocked = true;
@@ -139,7 +143,45 @@ void MeleeEnemy::Update(float deltaTime)
 	UpdateVisualAnimation(deltaTime);
 }
 
+bool MeleeEnemy::TryLandOnObstacleTop(float deltaTime)
+{
+	(void)deltaTime;
+	if (!move_.obstacleTopLandingEnabled) { return false; }
+	const auto* obstacleAabbs = wallObstacleAABBs_ ? wallObstacleAABBs_ : GetResolvedNavigationObstacleAABBs();
+	if (!obstacleAabbs || obstacleAabbs->empty()) { return false; }
+	const auto vel = GetVelocity();
+	if (vel.y > 0.0f) { return false; }
 
+	Vector3 pos = GetCenterPosition();
+	const Vector3 half = { 1.0f, 2.0f, 1.0f };
+	const float footY = pos.y - half.y;
+	const float prevFootY = footY - vel.y * deltaTime;
+	for (size_t i = 0; i < obstacleAabbs->size(); ++i)
+	{
+		const auto& o = (*obstacleAabbs)[i];
+		const float overlapX = std::min(pos.x + half.x, o.max.x) - std::max(pos.x - half.x, o.min.x);
+		const float overlapZ = std::min(pos.z + half.z, o.max.z) - std::max(pos.z - half.z, o.min.z);
+		if (overlapX < move_.obstacleTopLandingMinHorizontalOverlap || overlapZ < move_.obstacleTopLandingMinHorizontalOverlap) { continue; }
+		const float topY = o.max.y;
+		if (topY - footY > move_.obstacleTopLandingMaxHeight) { continue; }
+		const bool nearTop = std::abs(footY - topY) <= move_.obstacleTopLandingTolerance;
+		const bool crossedFromAbove = prevFootY >= topY - kEpsilon;
+		if (!nearTop || !crossedFromAbove) { continue; }
+		// 上から接触した障害物だけを床として扱い、ジャンプ着地を成立させる
+		pos.y = topY + half.y;
+		SetCenterPosition(pos);
+		auto nextVel = vel;
+		nextVel.y = 0.0f;
+		SetVelocity(nextVel);
+		grounded_ = true;
+		collision_.isOnFloor = true;
+		collision_.landedOnObstacleTop = true;
+		collision_.lastObstacleTopLandingName = "Obstacle[" + std::to_string(i) + "]";
+		collision_.lastWallObstacleName = collision_.lastObstacleTopLandingName;
+		return true;
+	}
+	return false;
+}
 
 bool MeleeEnemy::ResolveObstaclePenetrationXZ(float deltaTime)
 {
@@ -277,6 +319,10 @@ void MeleeEnemy::DrawImGui()
 		ImGui::SliderFloat("attackReturnSpeed", &animation_.attackReturnSpeed, 1.0f, 24.0f);
 		ImGui::SliderFloat("attackBodyLean", &animation_.attackBodyLean, 0.0f, 0.4f);
 		ImGui::SliderFloat("maxResolvePushPerFrame", &move_.maxResolvePushPerFrame, 0.05f, 2.0f);
+		ImGui::Checkbox("obstacleTopLandingEnabled", &move_.obstacleTopLandingEnabled);
+		ImGui::SliderFloat("obstacleTopLandingTolerance", &move_.obstacleTopLandingTolerance, 0.01f, 1.0f);
+		ImGui::SliderFloat("obstacleTopLandingMaxHeight", &move_.obstacleTopLandingMaxHeight, 0.3f, 8.0f);
+		ImGui::SliderFloat("obstacleTopLandingMinHorizontalOverlap", &move_.obstacleTopLandingMinHorizontalOverlap, 0.01f, 1.5f);
 		ImGui::SliderFloat("stuckCheckTime", &stuckSettings_.checkTime, 0.1f, 3.0f);
 		ImGui::SliderFloat("stuckDistance", &stuckSettings_.distance, 0.01f, 2.0f);
 		ImGui::SliderFloat("stuckMoveThreshold", &stuckSettings_.moveThreshold, 0.03f, 1.2f);
@@ -335,6 +381,8 @@ void MeleeEnemy::DrawImGui()
 		ImGui::Text("isOnFloor: %s", collision_.isOnFloor ? "true" : "false");
 		ImGui::Text("isOverlappingWallObstacle: %s", collision_.isOverlappingWallObstacle ? "true" : "false");
 		ImGui::Text("lastWallObstacleName: %s", collision_.lastWallObstacleName.c_str());
+		ImGui::Text("lastObstacleTopLandingName: %s", collision_.lastObstacleTopLandingName.c_str());
+		ImGui::Text("landedOnObstacleTop: %s", collision_.landedOnObstacleTop ? "true" : "false");
 		ImGui::Text("lastWallResolvePush: (%.2f, %.2f, %.2f)", collision_.lastWallResolvePush.x, collision_.lastWallResolvePush.y, collision_.lastWallResolvePush.z);
 		ImGui::Text("lastBlockedObstacleName: %s", collision_.lastBlockedObstacleName.c_str());
 		ImGui::Text("Path Node Count: %d", static_cast<int>(navigator_.GetCurrentPath().size()));
