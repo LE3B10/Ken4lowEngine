@@ -324,6 +324,50 @@ private: /// ---------- 構造体 ---------- ///
 		std::string reason = "Disabled";
 	};
 
+	// 被ダメージリアクションの設定
+	struct HitReactionSettings
+	{
+		bool enabled = true;
+		float duration = 0.18f;
+		float knockbackPower = 2.0f;
+		float knockbackUpPower = 0.5f;
+		float bodyLean = -0.18f;
+		float flashDuration = 0.12f;
+		bool interruptAttack = false;
+		bool stopBehaviorWhileActive = true;
+	};
+
+	// 被ダメージリアクションの状態
+	struct HitReactionState
+	{
+		bool active = false;
+		float timer = 0.0f;
+		K4E::Vector3 knockbackDirection{};
+		std::string lastReason = "None";
+	};
+
+	// 死亡演出の設定
+	struct DeathAnimationSettings
+	{
+		bool enabled = true;
+		float duration = 1.2f;
+		float fallRotateX = 1.35f;
+		float sinkDistance = 0.4f;
+		float fadeDelay = 0.4f;
+		float fadeDuration = 0.6f;
+		bool disableCollisionOnDeath = true;
+		bool stopMoveOnDeath = true;
+	};
+
+	// 死亡演出の状態
+	struct DeathAnimationState
+	{
+		bool active = false;
+		float timer = 0.0f;
+		K4E::Vector3 startPosition{};
+		K4E::Vector3 startRotation{};
+		std::string lastReason = "None";
+	};
 
 	// 基本ステータスの設定
 	struct BasicStatsSettings
@@ -418,6 +462,7 @@ public: /// ---------- メンバ関数 ---------- ///
 
 	// 衝突中の処理（ステージの衝突解決やスタック判定など）
 	void OnCollisionStay(K4E::Collider* other) override;
+	void TakeDamage(int amount, const K4E::Vector3& hitDir, float hitPower) override;
 
 public: /// ---------- アクセッサ ---------- ///
 
@@ -457,6 +502,7 @@ public: /// ---------- アクセッサ ---------- ///
 
 	// 攻撃のクールダウンをリセット
 	void ResetAttackCooldown();
+	void StartHitReaction(const K4E::Vector3& hitDirection);
 
 	// 現在選択されている攻撃の種類を設定・取得
 	void SetSelectedAttackType(MeleeAttackType type) { attackSettings_.selectedAttackType = type; }
@@ -593,6 +639,9 @@ private: /// ---------- 内部処理 ---------- ///
 
 	// アニメーションの処理（現在の状態に応じたアニメーションの更新や見た目の向きの調整など）
 	void EvaluateBehavior(float deltaTime);
+	void UpdateHitReaction(float deltaTime);
+	void UpdateDeathAnimation(float deltaTime);
+	void StartDeathAnimation();
 
 	// アニメーションの処理（現在の状態に応じたアニメーションの更新や見た目の向きの調整など）
 	void UpdateVisualAnimation(float deltaTime);
@@ -682,14 +731,10 @@ private: /// ---------- メンバ変数 ---------- //
 
 	// 頭の注視状態
 	HeadLookState headLookState_{};
-
-
-	// 基本ステータスの設定
-	struct BasicStatsSettings
-	{
-		int maxHp = 160;
-		bool resetHpOnLoad = true;
-	};
+	HitReactionSettings hitReactionSettings_{};
+	HitReactionState hitReactionState_{};
+	DeathAnimationSettings deathAnimationSettings_{};
+	DeathAnimationState deathAnimationState_{};
 
 	// 個体間分離の設定
 	SeparationSettings separationSettings_{};
