@@ -3,7 +3,6 @@
 #include <cstdint>
 #include <string>
 #include <vector>
-#include <algorithm>
 
 #include "Collider.h"
 #include "Object3D.h"
@@ -59,10 +58,7 @@ public:
 	// HP
 	void SetMaxHp(int v) { maxHp_ = v; hp_ = v; }
 	// 現在HPを安全な範囲へ補正して設定する
-	void SetCurrentHp(int v)
-	{
-		hp_ = std::max(0, std::min(v, maxHp_));
-	}
+	void SetCurrentHp(int v);
 	// 現在HPを返す
 	int GetHp() const { return hp_; }
 

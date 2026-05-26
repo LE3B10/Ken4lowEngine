@@ -21,27 +21,31 @@
         "scratchReturnSpeed": 14.0,
         "scratchStrikeArmX": 0.0,
         "scratchStrikeArmY": 0.0,
-        "scratchStrikeArmZ": -0.25,
-        "scratchStrikeEndRate": 0.550000011920929,
+        "scratchStrikeArmZ": 0.0,
+        "scratchStrikeEndRate": 0.5009999871253967,
         "visualYawOffset": 0.0,
         "walkAnimSpeed": 8.0,
-        "walkArmSwing": 0.597000002861023,
-        "walkLegSwing": 0.44999998807907104
+        "walkArmSwing": 0.7540000081062317,
+        "walkLegSwing": 0.7540000081062317
     },
     "attack": {
+        "attackSelectEnabled": true,
+        "attackSelectUseProbability": true,
+        "forceScratchAfterLunge": true,
         "lockTime": 0.18000000715255737,
-        "lungeBaseChance": 0.30000001192092896,
-        "lungePreferredChance": 0.6499999761581421,
-        "lungePreferredMaxDistance": 3.5999999046325684,
-        "lungePreferredMinDistance": 2.0,
-        "randomSelectEnabled": true,
+        "lungeChance": 0.35100001096725464,
+        "lungeMaxDistance": 3.5999999046325684,
+        "lungeMinDistance": 2.0,
+        "lungeSelectCooldown": 2.0,
+        "maxConsecutiveLunge": 2,
+        "maxConsecutiveScratch": 3,
         "selectedAttackType": 1
     },
     "attackPatterns": {
         "lungeScratch": {
             "activeTime": 0.10000000149011612,
-            "cooldown": 1.149999976158142,
-            "damage": 5,
+            "cooldown": 0.550000011920929,
+            "damage": 16,
             "forwardMoveDuration": 0.44999998807907104,
             "forwardMoveSpeed": 1.7999999523162842,
             "radius": 0.75,
@@ -51,13 +55,27 @@
         },
         "scratch": {
             "activeTime": 0.11999999731779099,
-            "cooldown": 0.800000011920929,
+            "cooldown": 0.25,
             "damage": 8,
             "radius": 0.800000011920929,
             "range": 2.200000047683716,
             "recoveryTime": 0.3499999940395355,
             "startTime": 0.18000000715255737
         }
+    },
+    "basicStats": {
+        "maxHp": 160,
+        "resetHpOnLoad": true
+    },
+    "deathAnimation": {
+        "deathAnimationDisableCollisionOnDeath": true,
+        "deathAnimationDuration": 1.2000000476837158,
+        "deathAnimationEnabled": true,
+        "deathAnimationFadeDelay": 0.4000000059604645,
+        "deathAnimationFadeDuration": 0.6000000238418579,
+        "deathAnimationFallRotateX": 1.350000023841858,
+        "deathAnimationSinkDistance": 0.4000000059604645,
+        "deathAnimationStopMoveOnDeath": true
     },
     "detection": {
         "attackStartRange": 3.503999948501587,
@@ -73,6 +91,15 @@
         "pitchMaxDeg": 45.0,
         "pitchMinDeg": -35.0,
         "yawLimitDeg": 90.0
+    },
+    "hitReaction": {
+        "hitReactionBodyLean": -0.18000000715255737,
+        "hitReactionDuration": 0.18000000715255737,
+        "hitReactionEnabled": true,
+        "hitReactionFlashDuration": 0.11999999731779099,
+        "hitReactionInterruptAttack": false,
+        "hitReactionKnockbackPower": 2.0,
+        "hitReactionKnockbackUpPower": 0.5
     },
     "jsonVersion": 2,
     "jump": {
@@ -99,7 +126,7 @@
         "obstacleExpandRadius": 0.8999999761581421,
         "repathInterval": 0.25,
         "searchRadius": 28.0,
-        "stuckRepathExpandBonus": 0.25,
+        "stuckRepathExpandBonus": 0.0,
         "targetRepathThreshold": 1.2000000476837158,
         "temporaryBlockDuration": 1.5,
         "temporaryBlockRadius": 1.0,
