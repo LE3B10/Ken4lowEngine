@@ -659,26 +659,40 @@ if (ImGui::CollapsingHeader("スタック", ImGuiTreeNodeFlags_DefaultOpen)) {
 			ImGui::SliderFloat("歩行速度", &animation_.walkAnimSpeed, 1.0f, 18.0f);
 			ImGui::SliderFloat("腕振り", &animation_.walkArmSwing, 0.0f, 1.5f);
 			ImGui::SliderFloat("脚振り", &animation_.walkLegSwing, 0.0f, 1.5f);
-			// 通常ひっかき調整をXYZ軸で細かく確認できるようにする。
-			ImGui::SliderFloat("通常ひっかき腕X", &animation_.scratch.armX, -2.5f, 2.5f);
-			ImGui::SliderFloat("通常ひっかき腕Y", &animation_.scratch.armY, -2.5f, 2.5f);
-			ImGui::SliderFloat("通常ひっかき腕Z", &animation_.scratch.armZ, -2.5f, 2.5f);
-			ImGui::SliderFloat("通常ひっかき体傾き", &animation_.scratch.bodyLean, -0.6f, 0.6f);
+			// 通常ひっかきは 構え→振り下ろし→戻り の3段階パラメータを個別調整する。
+			ImGui::SliderFloat("通常ひっかき 構え腕X", &animation_.scratch.prepareArmX, -2.5f, 2.5f);
+			ImGui::SliderFloat("通常ひっかき 構え腕Y", &animation_.scratch.prepareArmY, -2.5f, 2.5f);
+			ImGui::SliderFloat("通常ひっかき 構え腕Z", &animation_.scratch.prepareArmZ, -2.5f, 2.5f);
+			ImGui::SliderFloat("通常ひっかき 振り下ろし腕X", &animation_.scratch.strikeArmX, -2.5f, 2.5f);
+			ImGui::SliderFloat("通常ひっかき 振り下ろし腕Y", &animation_.scratch.strikeArmY, -2.5f, 2.5f);
+			ImGui::SliderFloat("通常ひっかき 振り下ろし腕Z", &animation_.scratch.strikeArmZ, -2.5f, 2.5f);
+			ImGui::SliderFloat("通常ひっかき 構え終了割合", &animation_.scratch.prepareEndRate, 0.05f, 0.9f);
+			ImGui::SliderFloat("通常ひっかき 振り終了割合", &animation_.scratch.strikeEndRate, 0.1f, 0.98f);
+			ImGui::SliderFloat("通常ひっかき 構え体傾き", &animation_.scratch.bodyPrepareLean, -0.6f, 0.6f);
+			ImGui::SliderFloat("通常ひっかき 振り体傾き", &animation_.scratch.bodyStrikeLean, -0.6f, 0.6f);
 			ImGui::SliderFloat("通常ひっかき戻り速度", &animation_.scratch.returnSpeed, 1.0f, 30.0f);
 			// 踏み込みひっかきは振りかぶり/振り下ろしを段階的に調整できるようにする。
-			ImGui::SliderFloat("踏み込み 振りかぶり腕X", &animation_.lunge.prepareArmX, -2.5f, 2.5f);
-			ImGui::SliderFloat("踏み込み 振りかぶり腕Y", &animation_.lunge.prepareArmY, -2.5f, 2.5f);
-			ImGui::SliderFloat("踏み込み 振りかぶり腕Z", &animation_.lunge.prepareArmZ, -2.5f, 2.5f);
-			ImGui::SliderFloat("踏み込み 振り下ろし腕X", &animation_.lunge.swingArmX, -2.5f, 2.5f);
-			ImGui::SliderFloat("踏み込み 振り下ろし腕Y", &animation_.lunge.swingArmY, -2.5f, 2.5f);
-			ImGui::SliderFloat("踏み込み 振り下ろし腕Z", &animation_.lunge.swingArmZ, -2.5f, 2.5f);
-			ImGui::SliderFloat("踏み込み 溜め時の体傾き", &animation_.lunge.bodyPrepareLean, -0.8f, 0.8f);
-			ImGui::SliderFloat("踏み込み 振り下ろし体傾き", &animation_.lunge.bodySwingLean, -0.8f, 0.8f);
-			ImGui::SliderFloat("踏み込み 溜め終了割合", &animation_.lunge.prepareEndRate, 0.05f, 0.9f);
-			ImGui::SliderFloat("踏み込み 振り下ろし終了割合", &animation_.lunge.swingEndRate, 0.1f, 0.98f);
+			ImGui::SliderFloat("踏み込み 構え腕X", &animation_.lunge.prepareArmX, -2.5f, 2.5f);
+			ImGui::SliderFloat("踏み込み 構え腕Y", &animation_.lunge.prepareArmY, -2.5f, 2.5f);
+			ImGui::SliderFloat("踏み込み 構え腕Z", &animation_.lunge.prepareArmZ, -2.5f, 2.5f);
+			ImGui::SliderFloat("踏み込み 振り下ろし腕X", &animation_.lunge.strikeArmX, -2.5f, 2.5f);
+			ImGui::SliderFloat("踏み込み 振り下ろし腕Y", &animation_.lunge.strikeArmY, -2.5f, 2.5f);
+			ImGui::SliderFloat("踏み込み 振り下ろし腕Z", &animation_.lunge.strikeArmZ, -2.5f, 2.5f);
+			ImGui::SliderFloat("踏み込み 構え体傾き", &animation_.lunge.bodyPrepareLean, -0.8f, 0.8f);
+			ImGui::SliderFloat("踏み込み 振り体傾き", &animation_.lunge.bodyStrikeLean, -0.8f, 0.8f);
+			ImGui::SliderFloat("踏み込み 構え終了割合", &animation_.lunge.prepareEndRate, 0.05f, 0.9f);
+			ImGui::SliderFloat("踏み込み 振り終了割合", &animation_.lunge.strikeEndRate, 0.1f, 0.98f);
 			ImGui::SliderFloat("踏み込み 戻り速度", &animation_.lunge.returnSpeed, 1.0f, 24.0f);
 			ImGui::SliderFloat("踏み込み 脚の踏み込み量", &animation_.lunge.legStepAmount, 0.0f, 0.8f);
-			ImGui::Text("現在の攻撃進行度: %.2f", animationState_.attackAnimProgress);
+			const float p = attackController_.GetCurrentAttackNormalizedTime();
+			const bool isScratchAttack = attackController_.IsAttacking() && attackController_.GetCurrentAttackType() == MeleeAttackType::Scratch;
+			const float prepareEnd = isScratchAttack ? animation_.scratch.prepareEndRate : animation_.lunge.prepareEndRate;
+			const float strikeEnd = isScratchAttack ? animation_.scratch.strikeEndRate : animation_.lunge.strikeEndRate;
+			const char* phase = !attackController_.IsAttacking() ? "なし" : (p < prepareEnd ? "構え" : (p < strikeEnd ? "振り下ろし" : "戻り"));
+			ImGui::Text("現在攻撃: %s", attackController_.IsAttacking() ? ((attackController_.GetCurrentAttackType() == MeleeAttackType::LungeScratch) ? "踏み込みひっかき" : "通常ひっかき") : "なし");
+			ImGui::Text("攻撃進行度: %.2f", animationState_.attackAnimProgress);
+			ImGui::Text("現在フェーズ: %s", phase);
+			ImGui::Text("Scratch使用腕: %s", scratchArmState_.useLeftArm ? "左" : "右");
 		}
 		if (ImGui::CollapsingHeader("頭向き", ImGuiTreeNodeFlags_DefaultOpen)) { ImGui::Checkbox("頭をターゲットへ向ける", &headLookSettings_.enabled); ImGui::SliderFloat("ヨー制限", &headLookSettings_.yawLimitDeg, 10.0f, 120.0f); ImGui::SliderFloat("ピッチ最小", &headLookSettings_.pitchMinDeg, -80.0f, 0.0f); ImGui::SliderFloat("ピッチ最大", &headLookSettings_.pitchMaxDeg, 0.0f, 80.0f); ImGui::SliderFloat("補間速度", &headLookSettings_.lerpSpeed, 1.0f, 30.0f); }
 		if (ImGui::CollapsingHeader("状態表示", ImGuiTreeNodeFlags_DefaultOpen)) { ImGui::Text("現在行動: %s", currentBehaviorName_); ImGui::Text("攻撃中: %s", attackController_.IsAttacking() ? "はい" : "いいえ"); ImGui::Text("ターゲット距離: %.2f", GetDistanceToTarget()); }
@@ -1309,24 +1323,46 @@ void MeleeEnemy::UpdateVisualAnimation(float deltaTime)
 		scratchArmState_.wasScratchAttacking = isScratch;
 		if (isScratch)
 		{
-			// 通常ひっかきは片腕だけを素早く前へ出して戻す。
-			const float scratchProgress = attackController_.GetCurrentStepNormalizedTime();
-			const float scratchSwing = std::sin(scratchProgress * kPi);
-			const Vector3 scratchAngles = {
-				animation_.scratch.armX * scratchSwing,
-				animation_.scratch.armY * scratchSwing,
-				animation_.scratch.armZ * scratchSwing
-			};
+			// 通常ひっかきは 構え→振り下ろし→戻り の3段階で片腕だけを動かす。
+			const float p = attackController_.GetCurrentAttackNormalizedTime();
+			const float prepareEnd = std::clamp(animation_.scratch.prepareEndRate, 0.05f, 0.95f);
+			const float strikeEnd = std::clamp(std::max(animation_.scratch.strikeEndRate, prepareEnd + 0.01f), prepareEnd + 0.01f, 0.99f);
+			Vector3 scratchAngles{};
+			if (p < prepareEnd)
+			{
+				const float t = p / std::max(prepareEnd, 0.0001f);
+				scratchAngles = { animation_.scratch.prepareArmX * t, animation_.scratch.prepareArmY * t, animation_.scratch.prepareArmZ * t };
+				bodyLean = animation_.scratch.bodyPrepareLean * t;
+			}
+			else if (p < strikeEnd)
+			{
+				const float t = (p - prepareEnd) / std::max(strikeEnd - prepareEnd, 0.0001f);
+				scratchAngles = {
+					animation_.scratch.prepareArmX + (animation_.scratch.strikeArmX - animation_.scratch.prepareArmX) * t,
+					animation_.scratch.prepareArmY + (animation_.scratch.strikeArmY - animation_.scratch.prepareArmY) * t,
+					animation_.scratch.prepareArmZ + (animation_.scratch.strikeArmZ - animation_.scratch.prepareArmZ) * t
+				};
+				bodyLean = animation_.scratch.bodyPrepareLean + (animation_.scratch.bodyStrikeLean - animation_.scratch.bodyPrepareLean) * t;
+			}
+			else
+			{
+				const float t = (p - strikeEnd) / std::max(1.0f - strikeEnd, 0.0001f);
+				scratchAngles = {
+					animation_.scratch.strikeArmX * (1.0f - t),
+					animation_.scratch.strikeArmY * (1.0f - t),
+					animation_.scratch.strikeArmZ * (1.0f - t)
+				};
+				bodyLean = animation_.scratch.bodyStrikeLean * (1.0f - t);
+			}
 			if (scratchArmState_.useLeftArm) { lAttack = scratchAngles; }
 			else { rAttack = scratchAngles; }
-			bodyLean = scratchSwing * animation_.scratch.bodyLean;
 		}
 		if (attackController_.GetCurrentAttackType() == MeleeAttackType::LungeScratch)
 		{
 			// 踏み込みひっかきは両腕で溜め→振り下ろし→復帰を進行度で表現する。
 			const float p = attackController_.GetCurrentAttackNormalizedTime();
 			const float prepareEnd = std::clamp(animation_.lunge.prepareEndRate, 0.05f, 0.95f);
-			const float swingEnd = std::clamp(std::max(animation_.lunge.swingEndRate, prepareEnd + 0.01f), prepareEnd + 0.01f, 0.99f);
+			const float strikeEnd = std::clamp(std::max(animation_.lunge.strikeEndRate, prepareEnd + 0.01f), prepareEnd + 0.01f, 0.99f);
 			Vector3 lungeAngles{};
 			if (p < prepareEnd)
 			{
@@ -1338,25 +1374,25 @@ void MeleeEnemy::UpdateVisualAnimation(float deltaTime)
 				};
 				bodyLean = animation_.lunge.bodyPrepareLean * t;
 			}
-			else if (p < swingEnd)
+			else if (p < strikeEnd)
 			{
-				const float t = (p - prepareEnd) / std::max(swingEnd - prepareEnd, 0.0001f);
+				const float t = (p - prepareEnd) / std::max(strikeEnd - prepareEnd, 0.0001f);
 				lungeAngles = {
-					animation_.lunge.prepareArmX + (animation_.lunge.swingArmX - animation_.lunge.prepareArmX) * t,
-					animation_.lunge.prepareArmY + (animation_.lunge.swingArmY - animation_.lunge.prepareArmY) * t,
-					animation_.lunge.prepareArmZ + (animation_.lunge.swingArmZ - animation_.lunge.prepareArmZ) * t
+					animation_.lunge.prepareArmX + (animation_.lunge.strikeArmX - animation_.lunge.prepareArmX) * t,
+					animation_.lunge.prepareArmY + (animation_.lunge.strikeArmY - animation_.lunge.prepareArmY) * t,
+					animation_.lunge.prepareArmZ + (animation_.lunge.strikeArmZ - animation_.lunge.prepareArmZ) * t
 				};
-				bodyLean = animation_.lunge.bodyPrepareLean + (animation_.lunge.bodySwingLean - animation_.lunge.bodyPrepareLean) * t;
+				bodyLean = animation_.lunge.bodyPrepareLean + (animation_.lunge.bodyStrikeLean - animation_.lunge.bodyPrepareLean) * t;
 			}
 			else
 			{
-				const float t = (p - swingEnd) / std::max(1.0f - swingEnd, 0.0001f);
+				const float t = (p - strikeEnd) / std::max(1.0f - strikeEnd, 0.0001f);
 				lungeAngles = {
-					animation_.lunge.swingArmX * (1.0f - t),
-					animation_.lunge.swingArmY * (1.0f - t),
-					animation_.lunge.swingArmZ * (1.0f - t)
+					animation_.lunge.strikeArmX * (1.0f - t),
+					animation_.lunge.strikeArmY * (1.0f - t),
+					animation_.lunge.strikeArmZ * (1.0f - t)
 				};
-				bodyLean = animation_.lunge.bodySwingLean * (1.0f - t);
+				bodyLean = animation_.lunge.bodyStrikeLean * (1.0f - t);
 			}
 			lAttack = lungeAngles;
 			rAttack = lungeAngles;
@@ -1534,21 +1570,27 @@ bool MeleeEnemy::LoadTuningFromJson(const std::filesystem::path& path, std::stri
 		animation_.walkArmSwing = animationJ.value("walkArmSwing", animation_.walkArmSwing);
 		animation_.walkLegSwing = animationJ.value("walkLegSwing", animation_.walkLegSwing);
 		// 旧キー互換を維持しつつ、通常ひっかきと踏み込みひっかきの詳細設定を読み込む。
-		animation_.scratch.armX = animationJ.value("scratchArmX", animationJ.value("scratchArmSwing", animation_.scratch.armX));
-		animation_.scratch.armY = animationJ.value("scratchArmY", animation_.scratch.armY);
-		animation_.scratch.armZ = animationJ.value("scratchArmZ", animation_.scratch.armZ);
-		animation_.scratch.bodyLean = animationJ.value("scratchBodyLean", animation_.scratch.bodyLean);
+		animation_.scratch.prepareArmX = animationJ.value("scratchPrepareArmX", animationJ.value("scratchArmX", animation_.scratch.prepareArmX));
+		animation_.scratch.prepareArmY = animationJ.value("scratchPrepareArmY", animationJ.value("scratchArmY", animation_.scratch.prepareArmY));
+		animation_.scratch.prepareArmZ = animationJ.value("scratchPrepareArmZ", animationJ.value("scratchArmZ", animation_.scratch.prepareArmZ));
+		animation_.scratch.strikeArmX = animationJ.value("scratchStrikeArmX", animationJ.value("scratchArmSwing", animation_.scratch.strikeArmX));
+		animation_.scratch.strikeArmY = animationJ.value("scratchStrikeArmY", animation_.scratch.strikeArmY);
+		animation_.scratch.strikeArmZ = animationJ.value("scratchStrikeArmZ", animation_.scratch.strikeArmZ);
+		animation_.scratch.prepareEndRate = animationJ.value("scratchPrepareEndRate", animation_.scratch.prepareEndRate);
+		animation_.scratch.strikeEndRate = animationJ.value("scratchStrikeEndRate", animation_.scratch.strikeEndRate);
+		animation_.scratch.bodyPrepareLean = animationJ.value("scratchBodyPrepareLean", animationJ.value("scratchBodyLean", animation_.scratch.bodyPrepareLean));
+		animation_.scratch.bodyStrikeLean = animationJ.value("scratchBodyStrikeLean", animation_.scratch.bodyStrikeLean);
 		animation_.scratch.returnSpeed = animationJ.value("scratchReturnSpeed", animation_.scratch.returnSpeed);
 		animation_.lunge.prepareArmX = animationJ.value("lungePrepareArmX", animationJ.value("lungeRaiseArmAngle", animation_.lunge.prepareArmX));
 		animation_.lunge.prepareArmY = animationJ.value("lungePrepareArmY", animation_.lunge.prepareArmY);
 		animation_.lunge.prepareArmZ = animationJ.value("lungePrepareArmZ", animation_.lunge.prepareArmZ);
-		animation_.lunge.swingArmX = animationJ.value("lungeSwingArmX", animationJ.value("lungeSwingDownAngle", animation_.lunge.swingArmX));
-		animation_.lunge.swingArmY = animationJ.value("lungeSwingArmY", animation_.lunge.swingArmY);
-		animation_.lunge.swingArmZ = animationJ.value("lungeSwingArmZ", animation_.lunge.swingArmZ);
+		animation_.lunge.strikeArmX = animationJ.value("lungeStrikeArmX", animationJ.value("lungeSwingArmX", animationJ.value("lungeSwingDownAngle", animation_.lunge.strikeArmX)));
+		animation_.lunge.strikeArmY = animationJ.value("lungeStrikeArmY", animationJ.value("lungeSwingArmY", animation_.lunge.strikeArmY));
+		animation_.lunge.strikeArmZ = animationJ.value("lungeStrikeArmZ", animationJ.value("lungeSwingArmZ", animation_.lunge.strikeArmZ));
 		animation_.lunge.bodyPrepareLean = animationJ.value("lungeBodyPrepareLean", animation_.lunge.bodyPrepareLean);
-		animation_.lunge.bodySwingLean = animationJ.value("lungeBodySwingLean", animationJ.value("lungeBodyLean", animation_.lunge.bodySwingLean));
+		animation_.lunge.bodyStrikeLean = animationJ.value("lungeBodyStrikeLean", animationJ.value("lungeBodySwingLean", animationJ.value("lungeBodyLean", animation_.lunge.bodyStrikeLean)));
 		animation_.lunge.prepareEndRate = animationJ.value("lungePrepareEndRate", animation_.lunge.prepareEndRate);
-		animation_.lunge.swingEndRate = animationJ.value("lungeSwingEndRate", animation_.lunge.swingEndRate);
+		animation_.lunge.strikeEndRate = animationJ.value("lungeStrikeEndRate", animationJ.value("lungeSwingEndRate", animation_.lunge.strikeEndRate));
 		animation_.lunge.returnSpeed = animationJ.value("lungeReturnSpeed", animation_.lunge.returnSpeed);
 		animation_.lunge.legStepAmount = animationJ.value("lungeLegStepAmount", animation_.lunge.legStepAmount);
 		headLookSettings_.enabled = headLookJ.value("enabled", headLookJ.value("headLookEnabled", headLookSettings_.enabled));
@@ -1634,21 +1676,27 @@ bool MeleeEnemy::SaveTuningToJson(const std::filesystem::path& path, std::string
 			{ "walkAnimSpeed", animation_.walkAnimSpeed },
 			{ "walkArmSwing", animation_.walkArmSwing },
 			{ "walkLegSwing", animation_.walkLegSwing },
-			{ "scratchArmX", animation_.scratch.armX },
-			{ "scratchArmY", animation_.scratch.armY },
-			{ "scratchArmZ", animation_.scratch.armZ },
-			{ "scratchBodyLean", animation_.scratch.bodyLean },
+			{ "scratchPrepareArmX", animation_.scratch.prepareArmX },
+			{ "scratchPrepareArmY", animation_.scratch.prepareArmY },
+			{ "scratchPrepareArmZ", animation_.scratch.prepareArmZ },
+			{ "scratchStrikeArmX", animation_.scratch.strikeArmX },
+			{ "scratchStrikeArmY", animation_.scratch.strikeArmY },
+			{ "scratchStrikeArmZ", animation_.scratch.strikeArmZ },
+			{ "scratchPrepareEndRate", animation_.scratch.prepareEndRate },
+			{ "scratchStrikeEndRate", animation_.scratch.strikeEndRate },
+			{ "scratchBodyPrepareLean", animation_.scratch.bodyPrepareLean },
+			{ "scratchBodyStrikeLean", animation_.scratch.bodyStrikeLean },
 			{ "scratchReturnSpeed", animation_.scratch.returnSpeed },
 			{ "lungePrepareArmX", animation_.lunge.prepareArmX },
 			{ "lungePrepareArmY", animation_.lunge.prepareArmY },
 			{ "lungePrepareArmZ", animation_.lunge.prepareArmZ },
-			{ "lungeSwingArmX", animation_.lunge.swingArmX },
-			{ "lungeSwingArmY", animation_.lunge.swingArmY },
-			{ "lungeSwingArmZ", animation_.lunge.swingArmZ },
+			{ "lungeStrikeArmX", animation_.lunge.strikeArmX },
+			{ "lungeStrikeArmY", animation_.lunge.strikeArmY },
+			{ "lungeStrikeArmZ", animation_.lunge.strikeArmZ },
 			{ "lungeBodyPrepareLean", animation_.lunge.bodyPrepareLean },
-			{ "lungeBodySwingLean", animation_.lunge.bodySwingLean },
+			{ "lungeBodyStrikeLean", animation_.lunge.bodyStrikeLean },
 			{ "lungePrepareEndRate", animation_.lunge.prepareEndRate },
-			{ "lungeSwingEndRate", animation_.lunge.swingEndRate },
+			{ "lungeStrikeEndRate", animation_.lunge.strikeEndRate },
 			{ "lungeReturnSpeed", animation_.lunge.returnSpeed },
 			{ "lungeLegStepAmount", animation_.lunge.legStepAmount }
 		};

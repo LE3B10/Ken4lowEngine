@@ -229,10 +229,16 @@ private: /// ---------- 構造体 ---------- ///
 	// アニメーションの設定
 	struct ScratchAnimationSettings
 	{
-		float armX = 1.15f;
-		float armY = 0.0f;
-		float armZ = 0.0f;
-		float bodyLean = 0.08f;
+		float prepareArmX = -0.55f;
+		float prepareArmY = 0.0f;
+		float prepareArmZ = 0.25f;
+		float strikeArmX = 1.10f;
+		float strikeArmY = 0.0f;
+		float strikeArmZ = -0.25f;
+		float prepareEndRate = 0.25f;
+		float strikeEndRate = 0.55f;
+		float bodyPrepareLean = -0.03f;
+		float bodyStrikeLean = 0.10f;
 		float returnSpeed = 14.0f;
 	};
 
@@ -241,13 +247,13 @@ private: /// ---------- 構造体 ---------- ///
 		float prepareArmX = -1.1f;
 		float prepareArmY = 0.0f;
 		float prepareArmZ = 0.0f;
-		float swingArmX = 1.25f;
-		float swingArmY = 0.0f;
-		float swingArmZ = 0.0f;
+		float strikeArmX = 1.35f;
+		float strikeArmY = 0.0f;
+		float strikeArmZ = -0.35f;
 		float bodyPrepareLean = -0.08f;
-		float bodySwingLean = 0.28f;
-		float prepareEndRate = 0.30f;
-		float swingEndRate = 0.62f;
+		float bodyStrikeLean = 0.30f;
+		float prepareEndRate = 0.35f;
+		float strikeEndRate = 0.65f;
 		float returnSpeed = 10.0f;
 		float legStepAmount = 0.20f;
 	};
