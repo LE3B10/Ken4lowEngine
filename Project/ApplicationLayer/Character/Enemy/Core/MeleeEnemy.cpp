@@ -83,6 +83,9 @@ void MeleeEnemy::Update(float deltaTime)
 {
 	const Vector3 beforePos = GetCenterPosition();
 	attackController_.Update(*this, deltaTime);
+	// 被ダメージリアクションと死亡演出のタイマー更新を先に行う。
+	UpdateHitReaction(deltaTime);
+	UpdateDeathAnimation(deltaTime);
 	attackState_.lockTimer = std::max(0.0f, attackState_.lockTimer - deltaTime);
 	// 連続ジャンプを防ぐため、追跡ジャンプのクールダウンタイマーを更新する
 	jumpState_.cooldownTimer = std::max(0.0f, jumpState_.cooldownTimer - deltaTime);
@@ -510,6 +513,37 @@ void MeleeEnemy::DrawImGui()
 			ImGui::Checkbox("読み込み時にHPを最大に戻す", &basicStats_.resetHpOnLoad);
 			ImGui::Text("現在HP: %d", GetHp());
 			ImGui::Text("最大HP(現在適用): %d", GetMaxHp());
+			if (ImGui::Button("10ダメージを与える")) { TakeDamage(10, animationState_.visualForward, 1.0f); }
+			ImGui::SameLine();
+			if (ImGui::Button("死亡演出を再生")) { SetCurrentHp(0); StartDeathAnimation(); }
+		}
+		if (ImGui::CollapsingHeader("被ダメージリアクション", ImGuiTreeNodeFlags_DefaultOpen))
+		{
+			ImGui::Checkbox("被ダメージリアクションを使う", &hitReactionSettings_.enabled);
+			ImGui::SliderFloat("ひるみ時間", &hitReactionSettings_.duration, 0.01f, 1.0f);
+			ImGui::SliderFloat("ノックバック力", &hitReactionSettings_.knockbackPower, 0.0f, 8.0f);
+			ImGui::SliderFloat("上方向ノックバック", &hitReactionSettings_.knockbackUpPower, 0.0f, 5.0f);
+			ImGui::SliderFloat("のけぞり量", &hitReactionSettings_.bodyLean, -1.2f, 1.2f);
+			ImGui::SliderFloat("フラッシュ時間", &hitReactionSettings_.flashDuration, 0.01f, 0.8f);
+			ImGui::Checkbox("攻撃を中断する", &hitReactionSettings_.interruptAttack);
+			ImGui::Checkbox("リアクション中は行動停止", &hitReactionSettings_.stopBehaviorWhileActive);
+			ImGui::Text("リアクション中: %s", hitReactionState_.active ? "はい" : "いいえ");
+			ImGui::Text("リアクション残り時間: %.2f", hitReactionState_.timer);
+			ImGui::Text("最後のリアクション理由: %s", hitReactionState_.lastReason.c_str());
+		}
+		if (ImGui::CollapsingHeader("死亡演出", ImGuiTreeNodeFlags_DefaultOpen))
+		{
+			ImGui::Checkbox("死亡演出を使う", &deathAnimationSettings_.enabled);
+			ImGui::SliderFloat("死亡演出時間", &deathAnimationSettings_.duration, 0.1f, 4.0f);
+			ImGui::SliderFloat("倒れる角度X", &deathAnimationSettings_.fallRotateX, -3.14f, 3.14f);
+			ImGui::SliderFloat("沈む距離", &deathAnimationSettings_.sinkDistance, 0.0f, 2.0f);
+			ImGui::SliderFloat("フェード開始時間", &deathAnimationSettings_.fadeDelay, 0.0f, 3.0f);
+			ImGui::SliderFloat("フェード時間", &deathAnimationSettings_.fadeDuration, 0.0f, 3.0f);
+			ImGui::Checkbox("死亡時にコリジョン無効", &deathAnimationSettings_.disableCollisionOnDeath);
+			ImGui::Checkbox("死亡時に移動停止", &deathAnimationSettings_.stopMoveOnDeath);
+			ImGui::Text("死亡演出中: %s", deathAnimationState_.active ? "はい" : "いいえ");
+			ImGui::Text("死亡演出時間: %.2f", deathAnimationState_.timer);
+			ImGui::Text("最後の死亡理由: %s", deathAnimationState_.lastReason.c_str());
 		}
 		if (ImGui::CollapsingHeader("検知・攻撃距離", ImGuiTreeNodeFlags_DefaultOpen)) {
 			ImGui::SliderFloat("検知範囲", &detection_.detectRange, 1.0f, 50.0f);
@@ -788,9 +822,60 @@ void MeleeEnemy::ApplyVisualYawFromDirection(const Vector3& direction, float del
 
 void MeleeEnemy::DeadAction()
 {
-	StopMove();
+	// 死亡中は移動停止設定に従って速度を止める。
+	if (deathAnimationSettings_.stopMoveOnDeath) { StopMove(); }
 	animationState_.animState = AnimState::Dead;
 	currentBehaviorName_ = "DeadAction";
+}
+
+void MeleeEnemy::TakeDamage(int amount, const Vector3& hitDir, float hitPower)
+{
+	// 既存ダメージ処理を壊さないため、基底の処理を先に呼ぶ。
+	const bool wasDead = IsDead();
+	EnemyBase::TakeDamage(amount, hitDir, hitPower);
+	if (!wasDead && IsDead())
+	{
+		StartDeathAnimation();
+		return;
+	}
+	StartHitReaction(hitDir);
+}
+
+void MeleeEnemy::StartHitReaction(const Vector3& hitDirection)
+{
+	// 被ダメージ時にのけぞり状態を開始する。
+	if (!hitReactionSettings_.enabled || IsDead()) { return; }
+	Vector3 dir = NormalizeXZ(hitDirection * -1.0f);
+	if (LengthXZ(dir) <= kEpsilon)
+	{
+		const Vector3 fallback = NormalizeXZ(GetCenterPosition() - GetTargetPosition());
+		dir = (LengthXZ(fallback) > kEpsilon) ? fallback : Vector3{ 0.0f, 0.0f, -1.0f };
+	}
+	hitReactionState_.active = true;
+	hitReactionState_.timer = hitReactionSettings_.duration;
+	hitReactionState_.knockbackDirection = dir;
+	hitReactionState_.lastReason = attackController_.IsAttacking() ? "Attacking" : "Damaged";
+	SetHitFlashDuration(hitReactionSettings_.flashDuration);
+	StartHitFlash();
+	if (hitReactionSettings_.interruptAttack && attackController_.IsAttacking())
+	{
+		StopAttack();
+		hitReactionState_.lastReason = "InterruptAttack";
+	}
+}
+
+void MeleeEnemy::StartDeathAnimation()
+{
+	// HP0到達時の簡易死亡演出を開始する。
+	deathAnimationState_.active = deathAnimationSettings_.enabled;
+	deathAnimationState_.timer = 0.0f;
+	deathAnimationState_.startPosition = GetCenterPosition();
+	deathAnimationState_.startRotation = orientation_;
+	deathAnimationState_.lastReason = "HpZero";
+	if (deathAnimationSettings_.stopMoveOnDeath)
+	{
+		SetVelocity({ 0.0f, 0.0f, 0.0f });
+	}
 }
 
 void MeleeEnemy::MeleeAttackAction()
@@ -1296,6 +1381,18 @@ void MeleeEnemy::NotifyAttackHit(int, const Vector3&)
 
 void MeleeEnemy::EvaluateBehavior(float deltaTime)
 {
+	if (deathAnimationState_.active)
+	{
+		DeadAction();
+		return;
+	}
+	if (hitReactionState_.active && hitReactionSettings_.stopBehaviorWhileActive)
+	{
+		StopMove();
+		animationState_.animState = AnimState::Idle;
+		currentBehaviorName_ = "HitReaction";
+		return;
+	}
 	if (IsDeadCondition()) { DeadAction(); return; }
 	if (!HasTarget()) { WanderAction(deltaTime); return; }
 
@@ -1335,6 +1432,36 @@ void MeleeEnemy::EvaluateBehavior(float deltaTime)
 		return;
 	}
 	WanderAction(deltaTime);
+}
+
+void MeleeEnemy::UpdateHitReaction(float deltaTime)
+{
+	// 被ダメージリアクション中はノックバックを与える。
+	if (!hitReactionState_.active) { return; }
+	hitReactionState_.timer = std::max(0.0f, hitReactionState_.timer - deltaTime);
+	const bool attacking = attackController_.IsAttacking();
+	const float scale = (!hitReactionSettings_.interruptAttack && attacking) ? 0.35f : 1.0f;
+	Vector3 v = GetVelocity();
+	v.x = hitReactionState_.knockbackDirection.x * hitReactionSettings_.knockbackPower * scale;
+	v.z = hitReactionState_.knockbackDirection.z * hitReactionSettings_.knockbackPower * scale;
+	v.y = std::max(v.y, hitReactionSettings_.knockbackUpPower * scale);
+	SetVelocity(v);
+	if (hitReactionState_.timer <= 0.0f)
+	{
+		hitReactionState_.active = false;
+		hitReactionState_.lastReason = "Finished";
+	}
+}
+
+void MeleeEnemy::UpdateDeathAnimation(float deltaTime)
+{
+	// 死亡演出中は経過時間のみ更新し、挙動はUpdateVisualAnimationで反映する。
+	if (!deathAnimationState_.active) { return; }
+	deathAnimationState_.timer += deltaTime;
+	if (deathAnimationSettings_.stopMoveOnDeath)
+	{
+		SetVelocity({ 0.0f, 0.0f, 0.0f });
+	}
 }
 
 void MeleeEnemy::StopMove()
@@ -1530,6 +1657,20 @@ void MeleeEnemy::UpdateVisualAnimation(float deltaTime)
 		parts_[head].transform.rotate_.x = headLookState_.currentPitch * (kPi / 180.0f);
 	}
 	// 攻撃の種類に応じた体傾きを適用する。
+	if (hitReactionState_.active)
+	{
+		const float t = std::clamp(hitReactionState_.timer / std::max(hitReactionSettings_.duration, kEpsilon), 0.0f, 1.0f);
+		bodyLean += hitReactionSettings_.bodyLean * t;
+	}
+	if (deathAnimationState_.active)
+	{
+		const float deathT = std::clamp(deathAnimationState_.timer / std::max(deathAnimationSettings_.duration, kEpsilon), 0.0f, 1.0f);
+		body_.transform.translate_.y = deathAnimationState_.startPosition.y - (deathAnimationSettings_.sinkDistance * deathT);
+		bodyLean = deathAnimationSettings_.fallRotateX * deathT;
+		headLookState_.targetYaw = 0.0f;
+		headLookState_.targetPitch = 0.0f;
+		headLookState_.reason = "Dead";
+	}
 	body_.transform.rotate_.x = bodyLean;
 	UpdateVisualHierarchy();
 }
@@ -1579,6 +1720,8 @@ bool MeleeEnemy::LoadTuningFromJson(const std::filesystem::path& path, std::stri
 		const nlohmann::json& animationJ = j.contains("animation") ? j["animation"] : j;
 		const nlohmann::json& headLookJ = j.contains("headLook") ? j["headLook"] : j;
 		const nlohmann::json& separationJ = j.contains("separation") ? j["separation"] : j;
+		const nlohmann::json& hitReactionJ = j.contains("hitReaction") ? j["hitReaction"] : j;
+		const nlohmann::json& deathAnimationJ = j.contains("deathAnimation") ? j["deathAnimation"] : j;
 		const nlohmann::json& attackPatternsJ = j.contains("attackPatterns") ? j["attackPatterns"] : j;
 		const nlohmann::json& scratchJ = attackPatternsJ.contains("scratch") ? attackPatternsJ["scratch"] : j;
 		const nlohmann::json& lungeScratchJ = attackPatternsJ.contains("lungeScratch") ? attackPatternsJ["lungeScratch"] : (attackPatternsJ.contains("oneTwo") ? attackPatternsJ["oneTwo"] : j);
@@ -1688,6 +1831,21 @@ bool MeleeEnemy::LoadTuningFromJson(const std::filesystem::path& path, std::stri
 		separationSettings_.targetNearLateralEnabled = separationJ.value("targetNearLateralEnabled", separationSettings_.targetNearLateralEnabled);
 		separationSettings_.targetNearLateralOffset = separationJ.value("targetNearLateralOffset", separationSettings_.targetNearLateralOffset);
 		separationSettings_.targetNearLateralStrength = separationJ.value("targetNearLateralStrength", separationSettings_.targetNearLateralStrength);
+		hitReactionSettings_.enabled = hitReactionJ.value("hitReactionEnabled", hitReactionSettings_.enabled);
+		hitReactionSettings_.duration = hitReactionJ.value("hitReactionDuration", hitReactionSettings_.duration);
+		hitReactionSettings_.knockbackPower = hitReactionJ.value("hitReactionKnockbackPower", hitReactionSettings_.knockbackPower);
+		hitReactionSettings_.knockbackUpPower = hitReactionJ.value("hitReactionKnockbackUpPower", hitReactionSettings_.knockbackUpPower);
+		hitReactionSettings_.bodyLean = hitReactionJ.value("hitReactionBodyLean", hitReactionSettings_.bodyLean);
+		hitReactionSettings_.flashDuration = hitReactionJ.value("hitReactionFlashDuration", hitReactionSettings_.flashDuration);
+		hitReactionSettings_.interruptAttack = hitReactionJ.value("hitReactionInterruptAttack", hitReactionSettings_.interruptAttack);
+		deathAnimationSettings_.enabled = deathAnimationJ.value("deathAnimationEnabled", deathAnimationSettings_.enabled);
+		deathAnimationSettings_.duration = deathAnimationJ.value("deathAnimationDuration", deathAnimationSettings_.duration);
+		deathAnimationSettings_.fallRotateX = deathAnimationJ.value("deathAnimationFallRotateX", deathAnimationSettings_.fallRotateX);
+		deathAnimationSettings_.sinkDistance = deathAnimationJ.value("deathAnimationSinkDistance", deathAnimationSettings_.sinkDistance);
+		deathAnimationSettings_.fadeDelay = deathAnimationJ.value("deathAnimationFadeDelay", deathAnimationSettings_.fadeDelay);
+		deathAnimationSettings_.fadeDuration = deathAnimationJ.value("deathAnimationFadeDuration", deathAnimationSettings_.fadeDuration);
+		deathAnimationSettings_.disableCollisionOnDeath = deathAnimationJ.value("deathAnimationDisableCollisionOnDeath", deathAnimationSettings_.disableCollisionOnDeath);
+		deathAnimationSettings_.stopMoveOnDeath = deathAnimationJ.value("deathAnimationStopMoveOnDeath", deathAnimationSettings_.stopMoveOnDeath);
 		if (auto* s = attackController_.FindPattern(MeleeAttackType::Scratch))
 		{
 			auto& st = s->steps[0];
@@ -1788,6 +1946,8 @@ bool MeleeEnemy::SaveTuningToJson(const std::filesystem::path& path, std::string
 		};
 		j["headLook"] = { { "enabled", headLookSettings_.enabled }, { "yawLimitDeg", headLookSettings_.yawLimitDeg }, { "pitchMinDeg", headLookSettings_.pitchMinDeg }, { "pitchMaxDeg", headLookSettings_.pitchMaxDeg }, { "lerpSpeed", headLookSettings_.lerpSpeed } };
 		j["separation"] = { { "enabled", separationSettings_.enabled }, { "radius", separationSettings_.radius }, { "strength", separationSettings_.strength }, { "maxPushPerFrame", separationSettings_.maxPushPerFrame }, { "attackPushScale", separationSettings_.attackPushScale }, { "targetNearLateralEnabled", separationSettings_.targetNearLateralEnabled }, { "targetNearLateralOffset", separationSettings_.targetNearLateralOffset }, { "targetNearLateralStrength", separationSettings_.targetNearLateralStrength } };
+		j["hitReaction"] = { { "hitReactionEnabled", hitReactionSettings_.enabled }, { "hitReactionDuration", hitReactionSettings_.duration }, { "hitReactionKnockbackPower", hitReactionSettings_.knockbackPower }, { "hitReactionKnockbackUpPower", hitReactionSettings_.knockbackUpPower }, { "hitReactionBodyLean", hitReactionSettings_.bodyLean }, { "hitReactionFlashDuration", hitReactionSettings_.flashDuration }, { "hitReactionInterruptAttack", hitReactionSettings_.interruptAttack } };
+		j["deathAnimation"] = { { "deathAnimationEnabled", deathAnimationSettings_.enabled }, { "deathAnimationDuration", deathAnimationSettings_.duration }, { "deathAnimationFallRotateX", deathAnimationSettings_.fallRotateX }, { "deathAnimationSinkDistance", deathAnimationSettings_.sinkDistance }, { "deathAnimationFadeDelay", deathAnimationSettings_.fadeDelay }, { "deathAnimationFadeDuration", deathAnimationSettings_.fadeDuration }, { "deathAnimationDisableCollisionOnDeath", deathAnimationSettings_.disableCollisionOnDeath }, { "deathAnimationStopMoveOnDeath", deathAnimationSettings_.stopMoveOnDeath } };
 		// 保存対象は設定値のみで、ランタイム状態は書き出さない。
 		if (const auto* s = attackController_.FindPattern(MeleeAttackType::Scratch)) { const auto& st = s->steps[0]; j["attackPatterns"]["scratch"] = { {"damage", st.damage}, {"range", st.range}, {"radius", st.radius}, {"startTime", st.startTime}, {"activeTime", st.activeTime}, {"recoveryTime", s->recoveryTime}, {"cooldown", s->cooldown} }; }
 		if (const auto* o = attackController_.FindPattern(MeleeAttackType::LungeScratch)) { const auto& st = o->steps[0]; j["attackPatterns"]["lungeScratch"] = { {"damage", st.damage}, {"range", st.range}, {"radius", st.radius}, {"startTime", st.startTime}, {"activeTime", st.activeTime}, {"forwardMoveSpeed", o->forwardMoveSpeed}, {"forwardMoveDuration", o->forwardMoveDuration}, {"recoveryTime", o->recoveryTime}, {"cooldown", o->cooldown} }; }
@@ -1819,6 +1979,8 @@ void MeleeEnemy::ResetTuningToDefault()
 	animation_ = AnimationSettings{};
 	headLookSettings_ = HeadLookSettings{};
 	separationSettings_ = SeparationSettings{};
+	hitReactionSettings_ = HitReactionSettings{};
+	deathAnimationSettings_ = DeathAnimationSettings{};
 	// デフォルト復帰直後に基本ステータスを実HPへ反映する。
 	SetMaxHp(basicStats_.maxHp);
 	if (basicStats_.resetHpOnLoad)
