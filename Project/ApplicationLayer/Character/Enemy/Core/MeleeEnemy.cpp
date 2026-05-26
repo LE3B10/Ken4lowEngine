@@ -659,14 +659,26 @@ if (ImGui::CollapsingHeader("スタック", ImGuiTreeNodeFlags_DefaultOpen)) {
 			ImGui::SliderFloat("歩行速度", &animation_.walkAnimSpeed, 1.0f, 18.0f);
 			ImGui::SliderFloat("腕振り", &animation_.walkArmSwing, 0.0f, 1.5f);
 			ImGui::SliderFloat("脚振り", &animation_.walkLegSwing, 0.0f, 1.5f);
-			ImGui::SliderFloat("通常ひっかき腕振り", &animation_.scratchArmSwing, 0.0f, 2.5f);
-			ImGui::SliderFloat("通常ひっかき体傾き", &animation_.scratchBodyLean, 0.0f, 0.4f);
-			ImGui::SliderFloat("通常ひっかき戻り速度", &animation_.scratchReturnSpeed, 1.0f, 30.0f);
-			ImGui::SliderFloat("踏み込み腕上げ角度", &animation_.lungeRaiseArmAngle, -2.0f, 0.0f);
-			ImGui::SliderFloat("踏み込み振り下ろし角度", &animation_.lungeSwingDownAngle, 0.0f, 2.5f);
-			ImGui::SliderFloat("踏み込み体傾き", &animation_.lungeBodyLean, 0.0f, 0.6f);
-			ImGui::SliderFloat("踏み込み脚の踏み込み量", &animation_.lungeLegStepAmount, 0.0f, 0.8f);
-			ImGui::SliderFloat("踏み込み戻り速度", &animation_.lungeReturnSpeed, 1.0f, 24.0f);
+			// 通常ひっかき調整をXYZ軸で細かく確認できるようにする。
+			ImGui::SliderFloat("通常ひっかき腕X", &animation_.scratch.armX, -2.5f, 2.5f);
+			ImGui::SliderFloat("通常ひっかき腕Y", &animation_.scratch.armY, -2.5f, 2.5f);
+			ImGui::SliderFloat("通常ひっかき腕Z", &animation_.scratch.armZ, -2.5f, 2.5f);
+			ImGui::SliderFloat("通常ひっかき体傾き", &animation_.scratch.bodyLean, -0.6f, 0.6f);
+			ImGui::SliderFloat("通常ひっかき戻り速度", &animation_.scratch.returnSpeed, 1.0f, 30.0f);
+			// 踏み込みひっかきは振りかぶり/振り下ろしを段階的に調整できるようにする。
+			ImGui::SliderFloat("踏み込み 振りかぶり腕X", &animation_.lunge.prepareArmX, -2.5f, 2.5f);
+			ImGui::SliderFloat("踏み込み 振りかぶり腕Y", &animation_.lunge.prepareArmY, -2.5f, 2.5f);
+			ImGui::SliderFloat("踏み込み 振りかぶり腕Z", &animation_.lunge.prepareArmZ, -2.5f, 2.5f);
+			ImGui::SliderFloat("踏み込み 振り下ろし腕X", &animation_.lunge.swingArmX, -2.5f, 2.5f);
+			ImGui::SliderFloat("踏み込み 振り下ろし腕Y", &animation_.lunge.swingArmY, -2.5f, 2.5f);
+			ImGui::SliderFloat("踏み込み 振り下ろし腕Z", &animation_.lunge.swingArmZ, -2.5f, 2.5f);
+			ImGui::SliderFloat("踏み込み 溜め時の体傾き", &animation_.lunge.bodyPrepareLean, -0.8f, 0.8f);
+			ImGui::SliderFloat("踏み込み 振り下ろし体傾き", &animation_.lunge.bodySwingLean, -0.8f, 0.8f);
+			ImGui::SliderFloat("踏み込み 溜め終了割合", &animation_.lunge.prepareEndRate, 0.05f, 0.9f);
+			ImGui::SliderFloat("踏み込み 振り下ろし終了割合", &animation_.lunge.swingEndRate, 0.1f, 0.98f);
+			ImGui::SliderFloat("踏み込み 戻り速度", &animation_.lunge.returnSpeed, 1.0f, 24.0f);
+			ImGui::SliderFloat("踏み込み 脚の踏み込み量", &animation_.lunge.legStepAmount, 0.0f, 0.8f);
+			ImGui::Text("現在の攻撃進行度: %.2f", animationState_.attackAnimProgress);
 		}
 		if (ImGui::CollapsingHeader("頭向き", ImGuiTreeNodeFlags_DefaultOpen)) { ImGui::Checkbox("頭をターゲットへ向ける", &headLookSettings_.enabled); ImGui::SliderFloat("ヨー制限", &headLookSettings_.yawLimitDeg, 10.0f, 120.0f); ImGui::SliderFloat("ピッチ最小", &headLookSettings_.pitchMinDeg, -80.0f, 0.0f); ImGui::SliderFloat("ピッチ最大", &headLookSettings_.pitchMaxDeg, 0.0f, 80.0f); ImGui::SliderFloat("補間速度", &headLookSettings_.lerpSpeed, 1.0f, 30.0f); }
 		if (ImGui::CollapsingHeader("状態表示", ImGuiTreeNodeFlags_DefaultOpen)) { ImGui::Text("現在行動: %s", currentBehaviorName_); ImGui::Text("攻撃中: %s", attackController_.IsAttacking() ? "はい" : "いいえ"); ImGui::Text("ターゲット距離: %.2f", GetDistanceToTarget()); }
@@ -1281,8 +1293,8 @@ void MeleeEnemy::UpdateVisualAnimation(float deltaTime)
 	animationState_.walkAnimTime += deltaTime * (animation_.walkAnimSpeed * std::max(0.2f, speedRate));
 	float armTarget = 0.0f;
 	float legTarget = 0.0f;
-	float lAttack = 0.0f;
-	float rAttack = 0.0f;
+	Vector3 lAttack{};
+	Vector3 rAttack{};
 	float bodyLean = 0.0f;
 	animationState_.attackAnimProgress = 0.0f;
 	if (attackController_.IsAttacking())
@@ -1299,35 +1311,56 @@ void MeleeEnemy::UpdateVisualAnimation(float deltaTime)
 		{
 			// 通常ひっかきは片腕だけを素早く前へ出して戻す。
 			const float scratchProgress = attackController_.GetCurrentStepNormalizedTime();
-			const float scratchSwing = std::sin(scratchProgress * kPi) * animation_.scratchArmSwing;
-			if (scratchArmState_.useLeftArm) { lAttack = scratchSwing; }
-			else { rAttack = scratchSwing; }
-			bodyLean = scratchSwing * animation_.scratchBodyLean;
+			const float scratchSwing = std::sin(scratchProgress * kPi);
+			const Vector3 scratchAngles = {
+				animation_.scratch.armX * scratchSwing,
+				animation_.scratch.armY * scratchSwing,
+				animation_.scratch.armZ * scratchSwing
+			};
+			if (scratchArmState_.useLeftArm) { lAttack = scratchAngles; }
+			else { rAttack = scratchAngles; }
+			bodyLean = scratchSwing * animation_.scratch.bodyLean;
 		}
 		if (attackController_.GetCurrentAttackType() == MeleeAttackType::LungeScratch)
 		{
 			// 踏み込みひっかきは両腕で溜め→振り下ろし→復帰を進行度で表現する。
 			const float p = attackController_.GetCurrentAttackNormalizedTime();
-			float armAngle = 0.0f;
-			if (p < 0.3f)
+			const float prepareEnd = std::clamp(animation_.lunge.prepareEndRate, 0.05f, 0.95f);
+			const float swingEnd = std::clamp(std::max(animation_.lunge.swingEndRate, prepareEnd + 0.01f), prepareEnd + 0.01f, 0.99f);
+			Vector3 lungeAngles{};
+			if (p < prepareEnd)
 			{
-				const float t = p / 0.3f;
-				armAngle = animation_.lungeRaiseArmAngle * t;
+				const float t = p / std::max(prepareEnd, 0.0001f);
+				lungeAngles = {
+					animation_.lunge.prepareArmX * t,
+					animation_.lunge.prepareArmY * t,
+					animation_.lunge.prepareArmZ * t
+				};
+				bodyLean = animation_.lunge.bodyPrepareLean * t;
 			}
-			else if (p < 0.6f)
+			else if (p < swingEnd)
 			{
-				const float t = (p - 0.3f) / 0.3f;
-				armAngle = animation_.lungeRaiseArmAngle + (animation_.lungeSwingDownAngle - animation_.lungeRaiseArmAngle) * t;
+				const float t = (p - prepareEnd) / std::max(swingEnd - prepareEnd, 0.0001f);
+				lungeAngles = {
+					animation_.lunge.prepareArmX + (animation_.lunge.swingArmX - animation_.lunge.prepareArmX) * t,
+					animation_.lunge.prepareArmY + (animation_.lunge.swingArmY - animation_.lunge.prepareArmY) * t,
+					animation_.lunge.prepareArmZ + (animation_.lunge.swingArmZ - animation_.lunge.prepareArmZ) * t
+				};
+				bodyLean = animation_.lunge.bodyPrepareLean + (animation_.lunge.bodySwingLean - animation_.lunge.bodyPrepareLean) * t;
 			}
 			else
 			{
-				const float t = (p - 0.6f) / 0.4f;
-				armAngle = animation_.lungeSwingDownAngle * (1.0f - t);
+				const float t = (p - swingEnd) / std::max(1.0f - swingEnd, 0.0001f);
+				lungeAngles = {
+					animation_.lunge.swingArmX * (1.0f - t),
+					animation_.lunge.swingArmY * (1.0f - t),
+					animation_.lunge.swingArmZ * (1.0f - t)
+				};
+				bodyLean = animation_.lunge.bodySwingLean * (1.0f - t);
 			}
-			lAttack = armAngle;
-			rAttack = armAngle;
-			bodyLean = std::max(0.0f, armAngle) * animation_.lungeBodyLean;
-			legTarget = animation_.lungeLegStepAmount * std::sin(std::clamp(p, 0.0f, 1.0f) * kPi);
+			lAttack = lungeAngles;
+			rAttack = lungeAngles;
+			legTarget = animation_.lunge.legStepAmount * std::sin(std::clamp(p, 0.0f, 1.0f) * kPi);
 		}
 	}
 	else
@@ -1341,10 +1374,14 @@ void MeleeEnemy::UpdateVisualAnimation(float deltaTime)
 	}
 	const bool isLungeAttacking = attackController_.IsAttacking() && attackController_.GetCurrentAttackType() == MeleeAttackType::LungeScratch;
 	// 攻撃種類ごとに復帰速度を切り替える。
-	const float returnSpeed = isLungeAttacking ? animation_.lungeReturnSpeed : animation_.scratchReturnSpeed;
+	const float returnSpeed = isLungeAttacking ? animation_.lunge.returnSpeed : animation_.scratch.returnSpeed;
 	const float ret = std::min(1.0f, returnSpeed * deltaTime);
-	parts_[lArm].transform.rotate_.x += ((armTarget - lAttack) - parts_[lArm].transform.rotate_.x) * ret;
-	parts_[rArm].transform.rotate_.x += ((-armTarget - rAttack) - parts_[rArm].transform.rotate_.x) * ret;
+	parts_[lArm].transform.rotate_.x += ((armTarget - lAttack.x) - parts_[lArm].transform.rotate_.x) * ret;
+	parts_[lArm].transform.rotate_.y += ((-lAttack.y) - parts_[lArm].transform.rotate_.y) * ret;
+	parts_[lArm].transform.rotate_.z += ((-lAttack.z) - parts_[lArm].transform.rotate_.z) * ret;
+	parts_[rArm].transform.rotate_.x += ((-armTarget - rAttack.x) - parts_[rArm].transform.rotate_.x) * ret;
+	parts_[rArm].transform.rotate_.y += ((rAttack.y) - parts_[rArm].transform.rotate_.y) * ret;
+	parts_[rArm].transform.rotate_.z += ((rAttack.z) - parts_[rArm].transform.rotate_.z) * ret;
 	parts_[lLeg].transform.rotate_.x += ((-legTarget) - parts_[lLeg].transform.rotate_.x) * ret;
 	parts_[rLeg].transform.rotate_.x += ((legTarget)-parts_[rLeg].transform.rotate_.x) * ret;
 	// 頭だけをターゲット方向に向ける（bodyに対する相対Yaw/Pitch）
@@ -1496,14 +1533,24 @@ bool MeleeEnemy::LoadTuningFromJson(const std::filesystem::path& path, std::stri
 		animation_.walkAnimSpeed = animationJ.value("walkAnimSpeed", animation_.walkAnimSpeed);
 		animation_.walkArmSwing = animationJ.value("walkArmSwing", animation_.walkArmSwing);
 		animation_.walkLegSwing = animationJ.value("walkLegSwing", animation_.walkLegSwing);
-		animation_.scratchArmSwing = animationJ.value("scratchArmSwing", animation_.scratchArmSwing);
-		animation_.scratchBodyLean = animationJ.value("scratchBodyLean", animation_.scratchBodyLean);
-		animation_.scratchReturnSpeed = animationJ.value("scratchReturnSpeed", animation_.scratchReturnSpeed);
-		animation_.lungeRaiseArmAngle = animationJ.value("lungeRaiseArmAngle", animation_.lungeRaiseArmAngle);
-		animation_.lungeSwingDownAngle = animationJ.value("lungeSwingDownAngle", animation_.lungeSwingDownAngle);
-		animation_.lungeBodyLean = animationJ.value("lungeBodyLean", animation_.lungeBodyLean);
-		animation_.lungeLegStepAmount = animationJ.value("lungeLegStepAmount", animation_.lungeLegStepAmount);
-		animation_.lungeReturnSpeed = animationJ.value("lungeReturnSpeed", animation_.lungeReturnSpeed);
+		// 旧キー互換を維持しつつ、通常ひっかきと踏み込みひっかきの詳細設定を読み込む。
+		animation_.scratch.armX = animationJ.value("scratchArmX", animationJ.value("scratchArmSwing", animation_.scratch.armX));
+		animation_.scratch.armY = animationJ.value("scratchArmY", animation_.scratch.armY);
+		animation_.scratch.armZ = animationJ.value("scratchArmZ", animation_.scratch.armZ);
+		animation_.scratch.bodyLean = animationJ.value("scratchBodyLean", animation_.scratch.bodyLean);
+		animation_.scratch.returnSpeed = animationJ.value("scratchReturnSpeed", animation_.scratch.returnSpeed);
+		animation_.lunge.prepareArmX = animationJ.value("lungePrepareArmX", animationJ.value("lungeRaiseArmAngle", animation_.lunge.prepareArmX));
+		animation_.lunge.prepareArmY = animationJ.value("lungePrepareArmY", animation_.lunge.prepareArmY);
+		animation_.lunge.prepareArmZ = animationJ.value("lungePrepareArmZ", animation_.lunge.prepareArmZ);
+		animation_.lunge.swingArmX = animationJ.value("lungeSwingArmX", animationJ.value("lungeSwingDownAngle", animation_.lunge.swingArmX));
+		animation_.lunge.swingArmY = animationJ.value("lungeSwingArmY", animation_.lunge.swingArmY);
+		animation_.lunge.swingArmZ = animationJ.value("lungeSwingArmZ", animation_.lunge.swingArmZ);
+		animation_.lunge.bodyPrepareLean = animationJ.value("lungeBodyPrepareLean", animation_.lunge.bodyPrepareLean);
+		animation_.lunge.bodySwingLean = animationJ.value("lungeBodySwingLean", animationJ.value("lungeBodyLean", animation_.lunge.bodySwingLean));
+		animation_.lunge.prepareEndRate = animationJ.value("lungePrepareEndRate", animation_.lunge.prepareEndRate);
+		animation_.lunge.swingEndRate = animationJ.value("lungeSwingEndRate", animation_.lunge.swingEndRate);
+		animation_.lunge.returnSpeed = animationJ.value("lungeReturnSpeed", animation_.lunge.returnSpeed);
+		animation_.lunge.legStepAmount = animationJ.value("lungeLegStepAmount", animation_.lunge.legStepAmount);
 		headLookSettings_.enabled = headLookJ.value("enabled", headLookJ.value("headLookEnabled", headLookSettings_.enabled));
 		headLookSettings_.yawLimitDeg = headLookJ.value("yawLimitDeg", headLookJ.value("headYawLimitDeg", headLookSettings_.yawLimitDeg));
 		headLookSettings_.pitchMinDeg = headLookJ.value("pitchMinDeg", headLookJ.value("headPitchMinDeg", headLookSettings_.pitchMinDeg));
@@ -1582,7 +1629,29 @@ bool MeleeEnemy::SaveTuningToJson(const std::filesystem::path& path, std::string
 		};
 		j["stuck"] = { { "checkTime", stuckSettings_.checkTime }, { "distance", stuckSettings_.distance }, { "moveThreshold", stuckSettings_.moveThreshold } };
 		j["attack"] = { { "selectedAttackType", static_cast<int>(attackSettings_.selectedAttackType) }, { "lockTime", attackSettings_.lockTime }, { "randomSelectEnabled", attackSelectSettings_.randomSelectEnabled }, { "lungeBaseChance", attackSelectSettings_.lungeBaseChance }, { "lungePreferredChance", attackSelectSettings_.lungePreferredChance }, { "lungePreferredMinDistance", attackSelectSettings_.lungePreferredMinDistance }, { "lungePreferredMaxDistance", attackSelectSettings_.lungePreferredMaxDistance } };
-		j["animation"] = { { "visualYawOffset", animation_.visualYawOffset }, { "walkAnimSpeed", animation_.walkAnimSpeed }, { "walkArmSwing", animation_.walkArmSwing }, { "walkLegSwing", animation_.walkLegSwing }, { "scratchArmSwing", animation_.scratchArmSwing }, { "scratchBodyLean", animation_.scratchBodyLean }, { "scratchReturnSpeed", animation_.scratchReturnSpeed }, { "lungeRaiseArmAngle", animation_.lungeRaiseArmAngle }, { "lungeSwingDownAngle", animation_.lungeSwingDownAngle }, { "lungeBodyLean", animation_.lungeBodyLean }, { "lungeLegStepAmount", animation_.lungeLegStepAmount }, { "lungeReturnSpeed", animation_.lungeReturnSpeed } };
+		j["animation"] = {
+			{ "visualYawOffset", animation_.visualYawOffset },
+			{ "walkAnimSpeed", animation_.walkAnimSpeed },
+			{ "walkArmSwing", animation_.walkArmSwing },
+			{ "walkLegSwing", animation_.walkLegSwing },
+			{ "scratchArmX", animation_.scratch.armX },
+			{ "scratchArmY", animation_.scratch.armY },
+			{ "scratchArmZ", animation_.scratch.armZ },
+			{ "scratchBodyLean", animation_.scratch.bodyLean },
+			{ "scratchReturnSpeed", animation_.scratch.returnSpeed },
+			{ "lungePrepareArmX", animation_.lunge.prepareArmX },
+			{ "lungePrepareArmY", animation_.lunge.prepareArmY },
+			{ "lungePrepareArmZ", animation_.lunge.prepareArmZ },
+			{ "lungeSwingArmX", animation_.lunge.swingArmX },
+			{ "lungeSwingArmY", animation_.lunge.swingArmY },
+			{ "lungeSwingArmZ", animation_.lunge.swingArmZ },
+			{ "lungeBodyPrepareLean", animation_.lunge.bodyPrepareLean },
+			{ "lungeBodySwingLean", animation_.lunge.bodySwingLean },
+			{ "lungePrepareEndRate", animation_.lunge.prepareEndRate },
+			{ "lungeSwingEndRate", animation_.lunge.swingEndRate },
+			{ "lungeReturnSpeed", animation_.lunge.returnSpeed },
+			{ "lungeLegStepAmount", animation_.lunge.legStepAmount }
+		};
 		j["headLook"] = { { "enabled", headLookSettings_.enabled }, { "yawLimitDeg", headLookSettings_.yawLimitDeg }, { "pitchMinDeg", headLookSettings_.pitchMinDeg }, { "pitchMaxDeg", headLookSettings_.pitchMaxDeg }, { "lerpSpeed", headLookSettings_.lerpSpeed } };
 		j["separation"] = { { "enabled", separationSettings_.enabled }, { "radius", separationSettings_.radius }, { "strength", separationSettings_.strength }, { "maxPushPerFrame", separationSettings_.maxPushPerFrame }, { "attackPushScale", separationSettings_.attackPushScale }, { "targetNearLateralEnabled", separationSettings_.targetNearLateralEnabled }, { "targetNearLateralOffset", separationSettings_.targetNearLateralOffset }, { "targetNearLateralStrength", separationSettings_.targetNearLateralStrength } };
 		// 保存対象は設定値のみで、ランタイム状態は書き出さない。
