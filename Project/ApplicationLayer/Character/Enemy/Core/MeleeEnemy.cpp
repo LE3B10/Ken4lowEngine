@@ -87,6 +87,8 @@ void MeleeEnemy::Update(float deltaTime)
 	attackState_.lockTimer = std::max(0.0f, attackState_.lockTimer - deltaTime);
 	// 連続ジャンプを防ぐため、追跡ジャンプのクールダウンタイマーを更新する
 	jumpState_.cooldownTimer = std::max(0.0f, jumpState_.cooldownTimer - deltaTime);
+	// 攻撃選択用の踏み込みクールダウンを毎フレーム減算する。
+	attackSelectState_.lungeSelectCooldownTimer = std::max(0.0f, attackSelectState_.lungeSelectCooldownTimer - deltaTime);
 
 	// 優先度の高い行動から順に評価して近接敵の行動を決定する
 	EvaluateBehavior(deltaTime);
@@ -630,13 +632,21 @@ if (ImGui::CollapsingHeader("スタック", ImGuiTreeNodeFlags_DefaultOpen)) {
 			ImGui::SliderFloat("移動閾値", &stuckSettings_.moveThreshold, 0.03f, 1.2f);
 		}
 		if (ImGui::CollapsingHeader("攻撃選択", ImGuiTreeNodeFlags_DefaultOpen)) {
-			ImGui::Checkbox("ランダム攻撃選択を使う", &attackSelectSettings_.randomSelectEnabled);
-			ImGui::SliderFloat("踏み込みひっかき基本確率", &attackSelectSettings_.lungeBaseChance, 0.0f, 1.0f);
-			ImGui::SliderFloat("踏み込みひっかき優先確率", &attackSelectSettings_.lungePreferredChance, 0.0f, 1.0f);
-			ImGui::SliderFloat("踏み込み優先最小距離", &attackSelectSettings_.lungePreferredMinDistance, 0.1f, 8.0f);
-			ImGui::SliderFloat("踏み込み優先最大距離", &attackSelectSettings_.lungePreferredMaxDistance, 0.1f, 10.0f);
+			ImGui::Checkbox("攻撃選択を使う", &attackSelectSettings_.enabled);
+			ImGui::Checkbox("確率選択を使う", &attackSelectSettings_.useProbability);
+			ImGui::SliderFloat("踏み込みひっかき確率", &attackSelectSettings_.lungeChance, 0.0f, 1.0f);
+			ImGui::SliderFloat("踏み込み最小距離", &attackSelectSettings_.lungeMinDistance, 0.1f, 8.0f);
+			ImGui::SliderFloat("踏み込み最大距離", &attackSelectSettings_.lungeMaxDistance, 0.1f, 10.0f);
+			ImGui::SliderFloat("踏み込み選択クールダウン", &attackSelectSettings_.lungeSelectCooldown, 0.0f, 6.0f);
+			ImGui::Text("踏み込み選択クールダウン残り: %.2f", attackSelectState_.lungeSelectCooldownTimer);
+			ImGui::SliderInt("踏み込み最大連続回数", &attackSelectSettings_.maxConsecutiveLunge, 1, 4);
+			ImGui::SliderInt("通常ひっかき最大連続回数", &attackSelectSettings_.maxConsecutiveScratch, 1, 8);
+			ImGui::Checkbox("踏み込み後は通常ひっかきを優先", &attackSelectSettings_.forceScratchAfterLunge);
 			ImGui::Text("最後の乱数: %.3f", attackSelectState_.lastRoll);
 			ImGui::Text("最後の踏み込み確率: %.3f", attackSelectState_.lastLungeChance);
+			ImGui::Text("連続通常ひっかき回数: %d", attackSelectState_.consecutiveScratchCount);
+			ImGui::Text("連続踏み込み回数: %d", attackSelectState_.consecutiveLungeCount);
+			ImGui::Text("最後に選ばれた攻撃: %s", attackSelectState_.lastSelectedAttack == MeleeAttackType::LungeScratch ? "踏み込みひっかき" : "ひっかき");
 			ImGui::Text("最後の攻撃選択理由: %s", attackSelectState_.lastReason.c_str());
 			const char* attackAnimName = "なし";
 			if (attackController_.IsAttacking())
@@ -783,38 +793,89 @@ void MeleeEnemy::MeleeAttackAction()
 	if (!attackController_.IsAttacking() && attackController_.CanStartAttack())
 	{
 		// 距離と確率に応じて攻撃を選び、通常ひっかきと踏み込みひっかきを使い分ける
-		const MeleeAttackType selectedType = SelectAttackTypeByDistanceAndChance(GetDistanceToTarget());
+		const MeleeAttackType selectedType = SelectAttackType(GetDistanceToTarget());
 		attackSettings_.selectedAttackType = selectedType;
 		attackController_.StartAttack(selectedType);
 		attackState_.lockTimer = attackSettings_.lockTime;
 		animationState_.animState = (selectedType == MeleeAttackType::LungeScratch) ? AnimState::LungeScratch : AnimState::Scratch;
+		// 選択結果に応じて連続回数と踏み込み専用CTを更新する。
+		if (selectedType == MeleeAttackType::LungeScratch)
+		{
+			attackSelectState_.consecutiveLungeCount += 1;
+			attackSelectState_.consecutiveScratchCount = 0;
+			attackSelectState_.lungeSelectCooldownTimer = std::max(0.0f, attackSelectSettings_.lungeSelectCooldown);
+		}
+		else
+		{
+			attackSelectState_.consecutiveScratchCount += 1;
+			attackSelectState_.consecutiveLungeCount = 0;
+		}
+		attackSelectState_.lastSelectedAttack = selectedType;
 	}
 	currentBehaviorName_ = (attackSettings_.selectedAttackType == MeleeAttackType::LungeScratch) ? "LungeScratchAttack" : "ScratchAttack";
 }
 
-MeleeAttackType MeleeEnemy::SelectAttackTypeByDistanceAndChance(float distance)
+MeleeAttackType MeleeEnemy::SelectAttackType(float distance)
 {
-	const auto* lungePattern = attackController_.FindPattern(MeleeAttackType::LungeScratch);
-	if (!lungePattern || !attackController_.CanStartAttack())
+	// 攻撃開始可能時のみ、距離・連続回数・専用CT・確率で候補を絞って攻撃を選択する。
+	const bool canAttackByDistance = distance <= detection_.attackStartRange;
+	if (!canAttackByDistance)
 	{
-		attackSelectState_.lastReason = "踏み込み不可";
+		attackSelectState_.lastSelectedAttack = MeleeAttackType::Scratch;
+		attackSelectState_.lastLungeChance = 0.0f;
+		attackSelectState_.lastRoll = 0.0f;
+		attackSelectState_.lastReason = "攻撃距離外のため通常ひっかき";
 		return MeleeAttackType::Scratch;
 	}
-	float lungeChance = attackSelectSettings_.lungeBaseChance;
-	const bool preferredDistance = distance >= attackSelectSettings_.lungePreferredMinDistance && distance <= attackSelectSettings_.lungePreferredMaxDistance;
-	if (preferredDistance) { lungeChance = attackSelectSettings_.lungePreferredChance; }
-	lungeChance = Clamp(lungeChance, 0.0f, 1.0f);
-	attackSelectState_.lastLungeChance = lungeChance;
-	if (!attackSelectSettings_.randomSelectEnabled)
+	if (!attackSelectSettings_.enabled)
 	{
+		attackSelectState_.lastSelectedAttack = MeleeAttackType::Scratch;
+		attackSelectState_.lastLungeChance = 0.0f;
 		attackSelectState_.lastRoll = 0.0f;
-		attackSelectState_.lastReason = preferredDistance ? "距離優先で踏み込み" : "近距離でひっかき";
-		return preferredDistance ? MeleeAttackType::LungeScratch : MeleeAttackType::Scratch;
+		attackSelectState_.lastReason = "攻撃選択無効のため通常ひっかき";
+		return MeleeAttackType::Scratch;
+	}
+	const bool distanceInLungeRange = distance >= attackSelectSettings_.lungeMinDistance && distance <= attackSelectSettings_.lungeMaxDistance;
+	const bool lungeCooldownReady = attackSelectState_.lungeSelectCooldownTimer <= 0.0f;
+	const bool lungeConsecutiveAllowed = attackSelectState_.consecutiveLungeCount < std::max(1, attackSelectSettings_.maxConsecutiveLunge);
+	const bool lungeCandidate = distanceInLungeRange && lungeCooldownReady && lungeConsecutiveAllowed;
+	if (!lungeCandidate)
+	{
+		attackSelectState_.lastSelectedAttack = MeleeAttackType::Scratch;
+		attackSelectState_.lastRoll = 0.0f;
+		attackSelectState_.lastLungeChance = 0.0f;
+		attackSelectState_.lastReason = "踏み込み候補条件外のため通常ひっかき";
+		return MeleeAttackType::Scratch;
+	}
+	if (attackSelectSettings_.forceScratchAfterLunge && attackSelectState_.lastSelectedAttack == MeleeAttackType::LungeScratch)
+	{
+		attackSelectState_.lastSelectedAttack = MeleeAttackType::Scratch;
+		attackSelectState_.lastRoll = 0.0f;
+		attackSelectState_.lastLungeChance = 0.0f;
+		attackSelectState_.lastReason = "踏み込み直後制限のため通常ひっかき";
+		return MeleeAttackType::Scratch;
+	}
+	if (attackSelectState_.consecutiveScratchCount >= std::max(1, attackSelectSettings_.maxConsecutiveScratch))
+	{
+		attackSelectState_.lastSelectedAttack = MeleeAttackType::LungeScratch;
+		attackSelectState_.lastRoll = 0.0f;
+		attackSelectState_.lastLungeChance = 1.0f;
+		attackSelectState_.lastReason = "通常ひっかき連続上限のため踏み込みひっかき";
+		return MeleeAttackType::LungeScratch;
+	}
+	attackSelectState_.lastLungeChance = Clamp(attackSelectSettings_.lungeChance, 0.0f, 1.0f);
+	if (!attackSelectSettings_.useProbability)
+	{
+		attackSelectState_.lastSelectedAttack = MeleeAttackType::LungeScratch;
+		attackSelectState_.lastRoll = 0.0f;
+		attackSelectState_.lastReason = "確率無効のため踏み込みひっかき";
+		return MeleeAttackType::LungeScratch;
 	}
 	attackSelectState_.lastRoll = static_cast<float>(std::rand()) / static_cast<float>(RAND_MAX);
-	const bool chooseLunge = preferredDistance ? (attackSelectState_.lastRoll < lungeChance) : (attackSelectState_.lastRoll < attackSelectSettings_.lungeBaseChance);
-	attackSelectState_.lastReason = chooseLunge ? "乱数で踏み込みひっかき" : "乱数でひっかき";
-	return chooseLunge ? MeleeAttackType::LungeScratch : MeleeAttackType::Scratch;
+	const bool chooseLunge = attackSelectState_.lastRoll < attackSelectState_.lastLungeChance;
+	attackSelectState_.lastSelectedAttack = chooseLunge ? MeleeAttackType::LungeScratch : MeleeAttackType::Scratch;
+	attackSelectState_.lastReason = chooseLunge ? "確率成功で踏み込みひっかき" : "確率失敗で通常ひっかき";
+	return attackSelectState_.lastSelectedAttack;
 }
 
 void MeleeEnemy::CombatIdleAction()
@@ -1560,11 +1621,15 @@ bool MeleeEnemy::LoadTuningFromJson(const std::filesystem::path& path, std::stri
 		stuckSettings_.moveThreshold = stuckJ.value("moveThreshold", stuckJ.value("stuckMoveThreshold", stuckSettings_.moveThreshold));
 		attackSettings_.lockTime = attackJ.value("lockTime", attackJ.value("attackLockTime", attackSettings_.lockTime));
 		attackSettings_.selectedAttackType = static_cast<MeleeAttackType>(attackJ.value("selectedAttackType", static_cast<int>(attackSettings_.selectedAttackType)));
-		attackSelectSettings_.randomSelectEnabled = attackJ.value("randomSelectEnabled", attackSelectSettings_.randomSelectEnabled);
-		attackSelectSettings_.lungeBaseChance = attackJ.value("lungeBaseChance", attackSelectSettings_.lungeBaseChance);
-		attackSelectSettings_.lungePreferredChance = attackJ.value("lungePreferredChance", attackSelectSettings_.lungePreferredChance);
-		attackSelectSettings_.lungePreferredMinDistance = attackJ.value("lungePreferredMinDistance", attackSelectSettings_.lungePreferredMinDistance);
-		attackSelectSettings_.lungePreferredMaxDistance = attackJ.value("lungePreferredMaxDistance", attackSelectSettings_.lungePreferredMaxDistance);
+		attackSelectSettings_.enabled = attackJ.value("attackSelectEnabled", attackSelectSettings_.enabled);
+		attackSelectSettings_.useProbability = attackJ.value("attackSelectUseProbability", attackSelectSettings_.useProbability);
+		attackSelectSettings_.lungeChance = attackJ.value("lungeChance", attackSelectSettings_.lungeChance);
+		attackSelectSettings_.lungeMinDistance = attackJ.value("lungeMinDistance", attackSelectSettings_.lungeMinDistance);
+		attackSelectSettings_.lungeMaxDistance = attackJ.value("lungeMaxDistance", attackSelectSettings_.lungeMaxDistance);
+		attackSelectSettings_.lungeSelectCooldown = attackJ.value("lungeSelectCooldown", attackSelectSettings_.lungeSelectCooldown);
+		attackSelectSettings_.maxConsecutiveLunge = attackJ.value("maxConsecutiveLunge", attackSelectSettings_.maxConsecutiveLunge);
+		attackSelectSettings_.maxConsecutiveScratch = attackJ.value("maxConsecutiveScratch", attackSelectSettings_.maxConsecutiveScratch);
+		attackSelectSettings_.forceScratchAfterLunge = attackJ.value("forceScratchAfterLunge", attackSelectSettings_.forceScratchAfterLunge);
 		animation_.visualYawOffset = animationJ.value("visualYawOffset", animation_.visualYawOffset);
 		animation_.walkAnimSpeed = animationJ.value("walkAnimSpeed", animation_.walkAnimSpeed);
 		animation_.walkArmSwing = animationJ.value("walkArmSwing", animation_.walkArmSwing);
@@ -1670,7 +1735,7 @@ bool MeleeEnemy::SaveTuningToJson(const std::filesystem::path& path, std::string
 			{ "stuckRepathExpandBonus", pathSettings_.stuckRepathExpandBonus }, { "maxStuckRepathExpandBonus", pathSettings_.maxStuckRepathExpandBonus }
 		};
 		j["stuck"] = { { "checkTime", stuckSettings_.checkTime }, { "distance", stuckSettings_.distance }, { "moveThreshold", stuckSettings_.moveThreshold } };
-		j["attack"] = { { "selectedAttackType", static_cast<int>(attackSettings_.selectedAttackType) }, { "lockTime", attackSettings_.lockTime }, { "randomSelectEnabled", attackSelectSettings_.randomSelectEnabled }, { "lungeBaseChance", attackSelectSettings_.lungeBaseChance }, { "lungePreferredChance", attackSelectSettings_.lungePreferredChance }, { "lungePreferredMinDistance", attackSelectSettings_.lungePreferredMinDistance }, { "lungePreferredMaxDistance", attackSelectSettings_.lungePreferredMaxDistance } };
+		j["attack"] = { { "selectedAttackType", static_cast<int>(attackSettings_.selectedAttackType) }, { "lockTime", attackSettings_.lockTime }, { "attackSelectEnabled", attackSelectSettings_.enabled }, { "attackSelectUseProbability", attackSelectSettings_.useProbability }, { "lungeChance", attackSelectSettings_.lungeChance }, { "lungeMinDistance", attackSelectSettings_.lungeMinDistance }, { "lungeMaxDistance", attackSelectSettings_.lungeMaxDistance }, { "lungeSelectCooldown", attackSelectSettings_.lungeSelectCooldown }, { "maxConsecutiveLunge", attackSelectSettings_.maxConsecutiveLunge }, { "maxConsecutiveScratch", attackSelectSettings_.maxConsecutiveScratch }, { "forceScratchAfterLunge", attackSelectSettings_.forceScratchAfterLunge } };
 		j["animation"] = {
 			{ "visualYawOffset", animation_.visualYawOffset },
 			{ "walkAnimSpeed", animation_.walkAnimSpeed },

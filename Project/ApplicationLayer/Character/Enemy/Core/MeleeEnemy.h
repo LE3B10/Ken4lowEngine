@@ -211,18 +211,26 @@ private: /// ---------- 構造体 ---------- ///
 	// 攻撃選択の設定
 	struct AttackSelectSettings
 	{
-		bool randomSelectEnabled = true;
-		float lungeBaseChance = 0.30f;
-		float lungePreferredChance = 0.65f;
-		float lungePreferredMinDistance = 2.0f;
-		float lungePreferredMaxDistance = 3.6f;
+		bool enabled = true;
+		bool useProbability = true;
+		float lungeChance = 0.35f;
+		float lungeMinDistance = 2.0f;
+		float lungeMaxDistance = 3.6f;
+		float lungeSelectCooldown = 2.0f;
+		int maxConsecutiveLunge = 1;
+		int maxConsecutiveScratch = 3;
+		bool forceScratchAfterLunge = true;
 	};
 
 	// 攻撃選択のデバッグ状態
 	struct AttackSelectState
 	{
+		float lungeSelectCooldownTimer = 0.0f;
+		int consecutiveScratchCount = 0;
+		int consecutiveLungeCount = 0;
 		float lastRoll = 0.0f;
 		float lastLungeChance = 0.0f;
+		MeleeAttackType lastSelectedAttack = MeleeAttackType::Scratch;
 		std::string lastReason = "None";
 	};
 
@@ -595,7 +603,7 @@ private: /// ---------- 内部処理 ---------- ///
 
 	// 調整用パラメータをデフォルト値に戻す処理
 	void ResetTuningToDefault();
-	MeleeAttackType SelectAttackTypeByDistanceAndChance(float distance);
+	MeleeAttackType SelectAttackType(float distance);
 
 private: /// ---------- メンバ変数 ---------- //
 
