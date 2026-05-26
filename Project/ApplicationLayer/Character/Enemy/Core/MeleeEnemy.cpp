@@ -65,7 +65,6 @@ namespace
 void MeleeEnemy::Initialize()
 {
 	EnemyBase::Initialize();
-	SetMaxHp(160);
 	SetCenterPosition({ 0.0f, 2.0f, 10.0f });
 	wander_.timer = 0.0f;
 	currentBehaviorName_ = "Wander";
@@ -503,6 +502,14 @@ void MeleeEnemy::DrawImGui()
 			// 調整JSONの運用情報をデバッグ表示する。
 			ImGui::Text("現在のJSON形式バージョン: v%d", tuningIo_.jsonFormatVersion);
 			ImGui::Text("保存対象カテゴリ数: %d", tuningIo_.savedCategoryCount);
+		}
+		if (ImGui::CollapsingHeader("基本ステータス", ImGuiTreeNodeFlags_DefaultOpen))
+		{
+			// 近接敵の最大HPを調整しやすいよう、基本ステータスを専用カテゴリで編集できるようにする。
+			ImGui::SliderInt("最大HP", &basicStats_.maxHp, 1, 1000);
+			ImGui::Checkbox("読み込み時にHPを最大に戻す", &basicStats_.resetHpOnLoad);
+			ImGui::Text("現在HP: %d", GetHp());
+			ImGui::Text("最大HP(現在適用): %d", GetMaxHp());
 		}
 		if (ImGui::CollapsingHeader("検知・攻撃距離", ImGuiTreeNodeFlags_DefaultOpen)) {
 			ImGui::SliderFloat("検知範囲", &detection_.detectRange, 1.0f, 50.0f);
@@ -1562,6 +1569,7 @@ bool MeleeEnemy::LoadTuningFromJson(const std::filesystem::path& path, std::stri
 		ifs >> j;
 		// 新形式カテゴリJSONを優先し、旧flat形式も後方互換で読む。
 		const nlohmann::json& detectionJ = j.contains("detection") ? j["detection"] : j;
+		const nlohmann::json& basicStatsJ = j.contains("basicStats") ? j["basicStats"] : j;
 		const nlohmann::json& moveJ = j.contains("move") ? j["move"] : j;
 		const nlohmann::json& jumpJ = j.contains("jump") ? j["jump"] : j;
 		const nlohmann::json& traversalJ = j.contains("traversal") ? j["traversal"] : j;
@@ -1574,6 +1582,15 @@ bool MeleeEnemy::LoadTuningFromJson(const std::filesystem::path& path, std::stri
 		const nlohmann::json& attackPatternsJ = j.contains("attackPatterns") ? j["attackPatterns"] : j;
 		const nlohmann::json& scratchJ = attackPatternsJ.contains("scratch") ? attackPatternsJ["scratch"] : j;
 		const nlohmann::json& lungeScratchJ = attackPatternsJ.contains("lungeScratch") ? attackPatternsJ["lungeScratch"] : (attackPatternsJ.contains("oneTwo") ? attackPatternsJ["oneTwo"] : j);
+		const int previousHp = GetHp();
+		basicStats_.maxHp = basicStatsJ.value("maxHp", basicStats_.maxHp);
+		basicStats_.resetHpOnLoad = basicStatsJ.value("resetHpOnLoad", basicStats_.resetHpOnLoad);
+		// JSON読み込み後に基本ステータスを本体HPへ反映する。
+		SetMaxHp(basicStats_.maxHp);
+		if (!basicStats_.resetHpOnLoad)
+		{
+			SetCurrentHp(previousHp);
+		}
 
 		detection_.detectRange = detectionJ.value("detectRange", detection_.detectRange);
 		detection_.meleeAttackRange = detectionJ.value("meleeAttackRange", detection_.meleeAttackRange);
@@ -1712,6 +1729,10 @@ bool MeleeEnemy::SaveTuningToJson(const std::filesystem::path& path, std::string
 	{
 		nlohmann::json j;
 		j["jsonVersion"] = tuningIo_.jsonFormatVersion;
+		j["basicStats"] = {
+			{ "maxHp", basicStats_.maxHp },
+			{ "resetHpOnLoad", basicStats_.resetHpOnLoad }
+		};
 		j["detection"] = {
 			{ "detectRange", detection_.detectRange }, { "meleeAttackRange", detection_.meleeAttackRange }, { "stopDistance", detection_.stopDistance },
 			{ "attackStartRange", detection_.attackStartRange }, { "resumeChaseDistance", detection_.resumeChaseDistance }, { "minLungeForwardDistance", detection_.minLungeForwardDistance }
@@ -1787,6 +1808,7 @@ bool MeleeEnemy::SaveTuningToJson(const std::filesystem::path& path, std::string
 void MeleeEnemy::ResetTuningToDefault()
 {
 	// 調整値を既定値へ戻すために設定構造体を再初期化する
+	basicStats_ = BasicStatsSettings{};
 	detection_ = DetectionSettings{};
 	move_ = MoveSettings{};
 	jump_ = JumpSettings{};
@@ -1797,6 +1819,12 @@ void MeleeEnemy::ResetTuningToDefault()
 	animation_ = AnimationSettings{};
 	headLookSettings_ = HeadLookSettings{};
 	separationSettings_ = SeparationSettings{};
+	// デフォルト復帰直後に基本ステータスを実HPへ反映する。
+	SetMaxHp(basicStats_.maxHp);
+	if (basicStats_.resetHpOnLoad)
+	{
+		SetCurrentHp(GetMaxHp());
+	}
 	attackController_.Initialize();
 	navigator_.Reset();
 }

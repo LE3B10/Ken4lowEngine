@@ -324,6 +324,14 @@ private: /// ---------- 構造体 ---------- ///
 		std::string reason = "Disabled";
 	};
 
+
+	// 基本ステータスの設定
+	struct BasicStatsSettings
+	{
+		int maxHp = 160;
+		bool resetHpOnLoad = true;
+	};
+
 	// 個体間分離の設定
 	struct SeparationSettings
 	{
@@ -381,7 +389,7 @@ private: /// ---------- 構造体 ---------- ///
 		std::string lastLoadResult = "未実行";
 		std::string lastSaveResult = "未実行";
 		int jsonFormatVersion = 2;
-		int savedCategoryCount = 11;
+		int savedCategoryCount = 12;
 	};
 
 	// 徘徊の状態管理
@@ -611,6 +619,8 @@ private: /// ---------- メンバ変数 ---------- //
 	K4E::Collider* target_ = nullptr;
 
 	// 各種設定と状態管理の構造体
+	BasicStatsSettings basicStats_{};
+
 	DetectionSettings detection_{};
 
 	// 移動と回転の設定
@@ -672,6 +682,14 @@ private: /// ---------- メンバ変数 ---------- //
 
 	// 頭の注視状態
 	HeadLookState headLookState_{};
+
+
+	// 基本ステータスの設定
+	struct BasicStatsSettings
+	{
+		int maxHp = 160;
+		bool resetHpOnLoad = true;
+	};
 
 	// 個体間分離の設定
 	SeparationSettings separationSettings_{};
