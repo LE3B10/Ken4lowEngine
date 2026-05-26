@@ -227,20 +227,39 @@ private: /// ---------- 構造体 ---------- ///
 	};
 
 	// アニメーションの設定
+	struct ScratchAnimationSettings
+	{
+		float armX = 1.15f;
+		float armY = 0.0f;
+		float armZ = 0.0f;
+		float bodyLean = 0.08f;
+		float returnSpeed = 14.0f;
+	};
+
+	struct LungeAnimationSettings
+	{
+		float prepareArmX = -1.1f;
+		float prepareArmY = 0.0f;
+		float prepareArmZ = 0.0f;
+		float swingArmX = 1.25f;
+		float swingArmY = 0.0f;
+		float swingArmZ = 0.0f;
+		float bodyPrepareLean = -0.08f;
+		float bodySwingLean = 0.28f;
+		float prepareEndRate = 0.30f;
+		float swingEndRate = 0.62f;
+		float returnSpeed = 10.0f;
+		float legStepAmount = 0.20f;
+	};
+
 	struct AnimationSettings
 	{
 		float visualYawOffset = 0.0f;	 // 見た目の向きのオフセット（攻撃中などに体を傾けるため）
 		float walkAnimSpeed = 8.0f;		 // 歩行アニメーションの速度
 		float walkArmSwing = 0.55f;		 // 歩行中の腕の振り幅
 		float walkLegSwing = 0.45f;		 // 歩行中の脚の振り幅
-		float scratchArmSwing = 1.15f;	 // 通常ひっかきの腕振り幅
-		float scratchBodyLean = 0.08f;	 // 通常ひっかきの体前傾
-		float scratchReturnSpeed = 14.0f; // 通常ひっかきの復帰速度
-		float lungeRaiseArmAngle = -0.85f; // 踏み込みひっかきの溜め腕角度
-		float lungeSwingDownAngle = 1.45f; // 踏み込みひっかきの振り下ろし角度
-		float lungeBodyLean = 0.28f;		 // 踏み込みひっかきの体前傾
-		float lungeLegStepAmount = 0.25f;	 // 踏み込みひっかきの脚踏み込み量
-		float lungeReturnSpeed = 10.0f;	 // 踏み込みひっかきの復帰速度
+		ScratchAnimationSettings scratch;
+		LungeAnimationSettings lunge;
 	};
 
 	// アニメーションの状態管理

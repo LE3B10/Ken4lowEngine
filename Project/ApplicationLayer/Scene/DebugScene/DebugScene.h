@@ -88,7 +88,7 @@ private: /// ---------- メンバ変数 ---------- ///
 	// 描画確認用ボス
 	std::unique_ptr<GuardianBoss> debugBoss_;
 	std::vector<std::unique_ptr<MeleeEnemy>> debugMeleeEnemies_;
-	int meleeEnemyCount_ = 3;
+	int meleeEnemyCount_ = 1;
 	int selectedMeleeEnemyIndex_ = 0;
 	bool meleeEnemyDetailDebugDrawOnlySelected_ = true;
 	int meleeEnemyPathDrawMode_ = 0; // 0:選択のみ 1:全体 2:OFF
