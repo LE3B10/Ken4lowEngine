@@ -209,7 +209,7 @@ void FrustumCullingDebugController::ResetMainCamera()
 	mainCamera->SetRotate(GetDefaultMainCameraRotation());
 	mainCamera->SetFovY(60.0f * kDegToRad);
 	mainCamera->SetNearClip(0.1f);
-	mainCamera->SetFarClip(80.0f);
+	mainCamera->SetFarClip(240.0f);
 	mainCamera->SetAspectRatio(GetCurrentWindowAspectRatio());
 	mainCamera->Update();
 }

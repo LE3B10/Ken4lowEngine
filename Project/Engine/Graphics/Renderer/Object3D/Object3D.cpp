@@ -145,17 +145,6 @@ namespace Ken4lowEngine
 			ImGui::DragFloat3("Rotation##rot", &worldTransform_.rotate_.x, 0.01f);
 			ImGui::DragFloat3("Scale##scl", &worldTransform_.scale_.x, 0.01f);
 			ImGui::Checkbox("Object Frustum Culling", &frustumCullingEnabled_);
-
-			// カメラ（必要ならスコープを分ける）
-			if (ImGui::CollapsingHeader("Camera Settings"))
-			{
-				Vector3 tmp = camera_->GetTranslate();
-				if (ImGui::SliderFloat3("Camera Position##cam", &tmp.x, -20.0f, 20.0f))
-				{
-					camera_->SetTranslate(tmp);              // CBではなくカメラを更新
-				}
-			}
-
 			material_.DrawImGui(); // マテリアル側も PushID していなければ内部で同様に対応
 		}
 

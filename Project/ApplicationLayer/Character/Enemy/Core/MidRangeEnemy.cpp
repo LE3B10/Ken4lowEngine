@@ -414,42 +414,43 @@ bool MidRangeEnemy::RequestPathTo(const Vector3& destination, const std::string&
 bool MidRangeEnemy::TrySelectWanderPoint(const std::string& reason)
 {
     const Vector3 currentPos = GetCenterPosition();
-    if (wander_.returnToSpawnWhenFar && LengthXZ(currentPos - wanderState_.spawnPosition) > wander_.maxDistanceFromSpawn)
+    const float distanceFromSpawn = LengthXZ(currentPos - wanderState_.spawnPosition);
+
+    if (wander_.returnToSpawnWhenFar && distanceFromSpawn > wander_.maxDistanceFromSpawn)
     {
         RequestPathTo(wanderState_.spawnPosition, "Spawnから離れすぎたため帰還");
+
         wanderState_.currentPoint = wanderState_.spawnPosition;
         wanderState_.hasPoint = true;
-        wanderState_.lastReason = "Spawnから離れすぎたため帰還";
-        return true;
-    }
-    bool selectedWanderPoint = false;
-    for (int i = 0; i < wander_.maxRetryCount; ++i)
-    {
-        const float angle = static_cast<float>(std::rand()) / static_cast<float>(RAND_MAX) * kTwoPi;
-        const float dist = static_cast<float>(std::rand()) / static_cast<float>(RAND_MAX) * wander_.radius;
-        Vector3 candidate = wanderState_.spawnPosition;
-        candidate.x += std::cos(angle) * dist;
-        candidate.z += std::sin(angle) * dist;
-        candidate.y = currentPos.y;
-        // 追加: return後の到達不能警告を避けるため、先に候補確定してループを抜ける。
-        RequestPathTo(candidate, reason);
-        wanderState_.currentPoint = candidate;
-        wanderState_.hasPoint = true;
+        wanderState_.waiting = false;
         wanderState_.timer = wander_.interval;
-        wanderState_.retryCount = i + 1;
-        wanderState_.lastReason = reason;
-        selectedWanderPoint = true;
-        break;
-    }
-    if (selectedWanderPoint)
-    {
+        wanderState_.retryCount = 0;
+        wanderState_.lastReason = "Spawnから離れすぎたため帰還";
+
         return true;
     }
-    wanderState_.waiting = true;
-    wanderState_.waitTimer = wander_.waitTime;
-    wanderState_.retryCount = wander_.maxRetryCount;
-    wanderState_.lastReason = "徘徊地点探索失敗";
-    return false;
+
+    const int retryCount = std::max(1, wander_.maxRetryCount);
+    const int selectedIndex = std::rand() % retryCount;
+    const float angle = static_cast<float>(std::rand()) / static_cast<float>(RAND_MAX) * kTwoPi;
+    const float dist = static_cast<float>(std::rand()) / static_cast<float>(RAND_MAX) * wander_.radius;
+
+    Vector3 candidate = wanderState_.spawnPosition;
+    candidate.x += std::cos(angle) * dist;
+    candidate.z += std::sin(angle) * dist;
+    candidate.y = currentPos.y;
+
+    // 追加: RequestPathToは現在失敗判定を持たないため、到達不能分岐を作らず候補を採用する。
+    RequestPathTo(candidate, reason);
+
+    wanderState_.currentPoint = candidate;
+    wanderState_.hasPoint = true;
+    wanderState_.waiting = false;
+    wanderState_.timer = wander_.interval;
+    wanderState_.retryCount = selectedIndex + 1;
+    wanderState_.lastReason = reason;
+
+    return true;
 }
 
 void MidRangeEnemy::TakeDamage(int amount)
