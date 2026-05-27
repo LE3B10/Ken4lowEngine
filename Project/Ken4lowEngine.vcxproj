@@ -145,6 +145,8 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClCompile Include="ApplicationLayer\Character\Bullet\BulletManager.cpp" />
     <ClCompile Include="ApplicationLayer\Character\Enemy\Core\Enemy.cpp" />
     <ClCompile Include="ApplicationLayer\Character\Enemy\Core\MeleeEnemy.cpp" />
+    <ClCompile Include="ApplicationLayer\Character\Enemy\Core\MidRangeEnemy.cpp" />
+    <ClCompile Include="ApplicationLayer\Character\Enemy\Projectile\MidRangeBombProjectile.cpp" />
     <ClCompile Include="ApplicationLayer\Character\Enemy\AI\MeleeAttackController.cpp" />
     <ClCompile Include="ApplicationLayer\Character\Enemy\Core\EnemyBase.cpp" />
     <ClCompile Include="ApplicationLayer\Character\CharacterWorld\CharacterWorld.cpp" />
@@ -729,6 +731,8 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="ApplicationLayer\Character\Bullet\BulletManager.h" />
     <ClInclude Include="ApplicationLayer\Character\Enemy\Core\Enemy.h" />
     <ClInclude Include="ApplicationLayer\Character\Enemy\Core\MeleeEnemy.h" />
+    <ClInclude Include="ApplicationLayer\Character\Enemy\Core\MidRangeEnemy.h" />
+    <ClInclude Include="ApplicationLayer\Character\Enemy\Projectile\MidRangeBombProjectile.h" />
     <ClInclude Include="ApplicationLayer\Character\Enemy\AI\MeleeAttackController.h" />
     <ClInclude Include="ApplicationLayer\Character\Enemy\AI\MeleeAttackPattern.h" />
     <ClInclude Include="ApplicationLayer\Character\Enemy\Core\EnemyBase.h" />

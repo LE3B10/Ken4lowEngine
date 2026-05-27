@@ -4,6 +4,7 @@
 #include "BulletManager.h"
 #include "Enemy.h"
 #include "MeleeEnemy.h"
+#include "MidRangeEnemy.h"
 #include "Player.h"
 #include "Derived/GuardianBoss/GuardianBoss.h"
 #include "DisintegrationDebugController.h"
@@ -87,12 +88,8 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	// 描画確認用ボス
 	std::unique_ptr<GuardianBoss> debugBoss_;
-	std::vector<std::unique_ptr<MeleeEnemy>> debugMeleeEnemies_;
-	int meleeEnemyCount_ = 1;
-	int selectedMeleeEnemyIndex_ = 0;
-	bool meleeEnemyDetailDebugDrawOnlySelected_ = true;
-	int meleeEnemyPathDrawMode_ = 0; // 0:選択のみ 1:全体 2:OFF
-	bool meleeEnemyPathDetailAll_ = false;
+	std::unique_ptr<MeleeEnemy> debugMeleeEnemy_;
+	std::unique_ptr<MidRangeEnemy> debugMidRangeEnemy_;
 
 	// ステージ確認用（見た目＋衝突）
 	std::unique_ptr<K4E::Stage> stage_;
