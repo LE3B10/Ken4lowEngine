@@ -55,6 +55,19 @@ namespace
     {
         return deg * (kPi / 180.0f);
     }
+
+    float ClampWithSortedRange(
+        float value,
+        float minValue,
+        float maxValue
+    )
+    {
+        if (minValue > maxValue)
+        {
+            std::swap(minValue, maxValue);
+        }
+        return std::clamp(value, minValue, maxValue);
+    }
 }
 
 void MidRangeEnemy::Initialize()
@@ -418,12 +431,21 @@ void MidRangeEnemy::UpdateVisualAnimation(float deltaTime)
         const float desiredYaw = std::atan2(-toTarget.x, toTarget.z);
         const float bodyYaw = orientation_.y;
         const float yawDelta = NormalizeAngleRad(desiredYaw - bodyYaw);
-        headLookState_.targetYaw = std::clamp(ToDeg(yawDelta), -headLook_.yawLimitDeg, headLook_.yawLimitDeg);
+        headLookState_.targetYaw = ClampWithSortedRange(
+            ToDeg(yawDelta),
+            -headLook_.yawLimitDeg,
+            headLook_.yawLimitDeg
+        );
 
         // 追加: 生の水平距離を使ってPitchを計算し、上下追従を正しく反映する。
         const float rawPitchDeg = -ToDeg(std::atan2(toTarget.y, headLookState_.horizontalDistance));
         const float signedPitchDeg = rawPitchDeg * headLook_.pitchSign;
-        headLookState_.targetPitch = std::clamp(signedPitchDeg, headLook_.pitchMinDeg, headLook_.pitchMaxDeg);
+        // 追加: Pitch範囲が逆転していても安全にClampできるようにする。
+        headLookState_.targetPitch = ClampWithSortedRange(
+            signedPitchDeg,
+            headLook_.pitchMinDeg,
+            headLook_.pitchMaxDeg
+        );
         headLookState_.reason = "TargetInRange";
     }
     else
@@ -699,7 +721,34 @@ void MidRangeEnemy::DrawImGui()
         ImGui::SliderFloat("Yaw制限", &headLook_.yawLimitDeg, 0.0f, 180.0f);
         ImGui::SliderFloat("Pitch最小", &headLook_.pitchMinDeg, -180.0f, 180.0f);
         ImGui::SliderFloat("Pitch最大", &headLook_.pitchMaxDeg, -180.0f, 180.0f);
-        ImGui::SliderFloat("Pitch符号", &headLook_.pitchSign, -1.0f, 1.0f);
+        // 追加: Pitch符号を2択化して0.0fを防ぐ。
+        const char* pitchSignItems[] = { "通常", "反転" };
+        int pitchSignIndex = headLook_.pitchSign < 0.0f ? 1 : 0;
+        if (ImGui::Combo("Pitch向き", &pitchSignIndex, pitchSignItems, IM_ARRAYSIZE(pitchSignItems)))
+        {
+            if (pitchSignIndex == 0)
+            {
+                headLook_.pitchSign = 1.0f;
+            }
+            else
+            {
+                headLook_.pitchSign = -1.0f;
+            }
+        }
+        const bool pitchRangeReversed = headLook_.pitchMinDeg > headLook_.pitchMaxDeg;
+        const float effectivePitchMin = std::min(headLook_.pitchMinDeg, headLook_.pitchMaxDeg);
+        const float effectivePitchMax = std::max(headLook_.pitchMinDeg, headLook_.pitchMaxDeg);
+        ImGui::Text("Pitch範囲が逆転中: %s", pitchRangeReversed ? "はい" : "いいえ");
+        ImGui::Text("実際に使うPitch最小: %.2f", effectivePitchMin);
+        ImGui::Text("実際に使うPitch最大: %.2f", effectivePitchMax);
+        if (ImGui::Button("Pitch範囲を整列"))
+        {
+            // 追加: 逆転したPitch範囲を明示的に整列できるようにする。
+            if (headLook_.pitchMinDeg > headLook_.pitchMaxDeg)
+            {
+                std::swap(headLook_.pitchMinDeg, headLook_.pitchMaxDeg);
+            }
+        }
         ImGui::SliderFloat("補間速度", &headLook_.lerpSpeed, 0.1f, 30.0f);
         ImGui::Text("現在Yaw: %.2f", headLookState_.currentYaw);
         ImGui::Text("現在Pitch: %.2f", headLookState_.currentPitch);
@@ -761,6 +810,24 @@ void MidRangeEnemy::ApplyBasicStatsToEnemyBase()
     if (basicStats_.resetHpOnLoad)
     {
         SetCurrentHp(basicStats_.maxHp);
+    }
+}
+
+void MidRangeEnemy::ValidateTuningValues()
+{
+    // 追加: 頭向き設定の範囲・符号を安全な値へ補正する。
+    headLook_.yawLimitDeg = std::clamp(headLook_.yawLimitDeg, 0.0f, 180.0f);
+    if (std::abs(headLook_.pitchSign) < 0.001f)
+    {
+        headLook_.pitchSign = 1.0f;
+    }
+    else if (headLook_.pitchSign < 0.0f)
+    {
+        headLook_.pitchSign = -1.0f;
+    }
+    else
+    {
+        headLook_.pitchSign = 1.0f;
     }
 }
 
@@ -947,6 +1014,8 @@ bool MidRangeEnemy::LoadTuningFromJson(const std::filesystem::path& path, std::s
         headLook_.pitchMaxDeg = headLookJson.value("pitchMaxDeg", headLook_.pitchMaxDeg);
         headLook_.pitchSign = headLookJson.value("pitchSign", headLook_.pitchSign);
         headLook_.lerpSpeed = headLookJson.value("lerpSpeed", headLook_.lerpSpeed);
+        // 追加: JSON読み込み後に危険値を補正する。
+        ValidateTuningValues();
         // 追加: 読み込んだ最大HP設定をEnemyBaseへ反映する。
         ApplyBasicStatsToEnemyBase();
 

@@ -231,6 +231,7 @@ private:
     bool SaveTuningToJson(const std::filesystem::path& path, std::string* outMessage = nullptr) const;
     bool LoadTuningFromJson(const std::filesystem::path& path, std::string* outMessage = nullptr);
     void ApplyBasicStatsToEnemyBase();
+    void ValidateTuningValues();
     void TakeDamage(int amount) override;
     void TakeDamage(int amount, const K4E::Vector3& hitDir, float hitPower) override;
 
