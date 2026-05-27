@@ -422,6 +422,7 @@ bool MidRangeEnemy::TrySelectWanderPoint(const std::string& reason)
         wanderState_.lastReason = "Spawnから離れすぎたため帰還";
         return true;
     }
+    bool selectedWanderPoint = false;
     for (int i = 0; i < wander_.maxRetryCount; ++i)
     {
         const float angle = static_cast<float>(std::rand()) / static_cast<float>(RAND_MAX) * kTwoPi;
@@ -430,12 +431,18 @@ bool MidRangeEnemy::TrySelectWanderPoint(const std::string& reason)
         candidate.x += std::cos(angle) * dist;
         candidate.z += std::sin(angle) * dist;
         candidate.y = currentPos.y;
+        // 追加: return後の到達不能警告を避けるため、先に候補確定してループを抜ける。
         RequestPathTo(candidate, reason);
         wanderState_.currentPoint = candidate;
         wanderState_.hasPoint = true;
         wanderState_.timer = wander_.interval;
         wanderState_.retryCount = i + 1;
         wanderState_.lastReason = reason;
+        selectedWanderPoint = true;
+        break;
+    }
+    if (selectedWanderPoint)
+    {
         return true;
     }
     wanderState_.waiting = true;
