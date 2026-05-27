@@ -56,26 +56,34 @@ public:
         // 追加: 中心フラッシュ設定を管理する。
         bool flashEnabled = true;
         float flashDuration = 0.12f;
-        float flashScale = 1.2f;
-        float suicideFlashScale = 1.8f;
-        K4E::Vector4 flashColor{ 1.0f, 0.75f, 0.15f, 1.0f };
+        float flashNormalRadiusRate = 0.35f;
+        float flashSuicideRadiusRate = 0.65f;
+        float flashMaxScale = 4.0f;
+        float flashAlpha = 0.8f;
+        K4E::Vector4 flashColor{ 1.0f, 0.65f, 0.15f, 0.8f };
         // 追加: 衝撃波設定を管理する。
         bool shockwaveEnabled = true;
         float shockwaveDuration = 0.25f;
         float shockwaveStartRadiusRate = 0.2f;
         float shockwaveEndRadiusRate = 1.0f;
         float shockwaveHeightOffset = 0.05f;
+        float shockwaveAlpha = 0.55f;
         K4E::Vector4 shockwaveColor{ 1.0f, 0.55f, 0.1f, 0.8f };
         // 追加: 煙設定を管理する。
         bool smokeEnabled = true;
         float smokeScale = 0.8f;
-        float smokeLifeTime = 0.9f;
-        float smokeUpPower = 3.8f;
-        float smokeSpreadRadius = 0.25f;
+        float smokeLifeTime = 0.7f;
+        float smokeUpPower = 1.5f;
+        float smokeSpreadRadius = 0.6f;
+        float smokeHorizontalPower = 0.4f;
         K4E::Vector4 smokeColor{ 0.25f, 0.25f, 0.25f, 0.9f };
         // 追加: 通常爆弾と自爆のスケール差を管理する。
         float normalExplosionScale = 1.0f;
         float suicideExplosionScale = 1.35f;
+        float meshDebrisMaxScale = 0.45f;
+        bool enableProductionExplosionEffect = true;
+        bool showExplosionRadius = true;
+        bool showSuicideRadius = true;
     };
 
 public:
@@ -109,6 +117,8 @@ private:
     K4E::Vector3 SanitizeEffectPosition(const K4E::Vector3& position) const;
     void ApplyModelParticleTuning(float speed, float scale, float lifeTime);
     uint32_t GetActiveDebrisCount() const;
+    void ValidateSettings();
+    void ApplySafeExplosionDefaults();
 
 private:
     BombEffectSettings settings_{};
@@ -121,4 +131,9 @@ private:
     bool lastBombExplosionPlayed_ = false;
     bool lastSuicideExplosionPlayed_ = false;
     bool initialized_ = false;
+    uint32_t normalExplosionPlayCount_ = 0;
+    uint32_t suicideExplosionPlayCount_ = 0;
+    float lastExplosionPlayTime_ = 0.0f;
+    uint64_t lastExplosionPlayFrame_ = 0;
+    uint64_t frameCounter_ = 0;
 };

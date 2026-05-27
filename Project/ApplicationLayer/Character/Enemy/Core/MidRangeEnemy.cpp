@@ -811,20 +811,28 @@ void MidRangeEnemy::Draw()
     }
     if (suicideBombState_.active)
     {
-        // 追加: 時限爆弾モード中の爆発範囲と追跡線を描画する。
-        Wireframe::GetInstance()->DrawSphere(GetCenterPosition(), suicideBomb_.explosionRadius, { 1.0f, 0.1f, 0.1f, 0.35f });
-        Wireframe::GetInstance()->DrawLine(GetCenterPosition(), targetState_.position, { 1.0f, 0.1f, 0.1f, 1.0f });
+        const auto& effectSettings = bombEffectController_.GetSettings();
+        if (effectSettings.showSuicideRadius)
+        {
+            // 追加: 時限爆弾モード中の爆発範囲と追跡線を描画する。
+            Wireframe::GetInstance()->DrawSphere(GetCenterPosition(), suicideBomb_.explosionRadius, { 1.0f, 0.1f, 0.1f, 0.35f });
+            Wireframe::GetInstance()->DrawLine(GetCenterPosition(), targetState_.position, { 1.0f, 0.1f, 0.1f, 1.0f });
+        }
     }
     if (suicideBombState_.explosionDrawTimer > 0.0f)
     {
-        // 追加: 自爆直後は爆発地点に範囲表示を残す。
-        Vector3 drawPos = suicideBombState_.explosionPosition;
-        if (drawPos.y < suicideBomb_.explosionPositionMinY)
+        const auto& effectSettings = bombEffectController_.GetSettings();
+        if (effectSettings.showExplosionRadius)
         {
-            drawPos.y = suicideBomb_.explosionPositionMinY;
+            // 追加: 自爆直後は爆発地点に範囲表示を残す。
+            Vector3 drawPos = suicideBombState_.explosionPosition;
+            if (drawPos.y < suicideBomb_.explosionPositionMinY)
+            {
+                drawPos.y = suicideBomb_.explosionPositionMinY;
+            }
+            Wireframe::GetInstance()->DrawSphere(drawPos, suicideBomb_.explosionRadius, { 1.0f, 0.0f, 0.0f, 0.9f });
+            Wireframe::GetInstance()->DrawSphere(drawPos, suicideBomb_.explosionRadius * 0.5f, { 1.0f, 0.8f, 0.0f, 0.9f });
         }
-        Wireframe::GetInstance()->DrawSphere(drawPos, suicideBomb_.explosionRadius, { 1.0f, 0.0f, 0.0f, 0.9f });
-        Wireframe::GetInstance()->DrawSphere(drawPos, suicideBomb_.explosionRadius * 0.5f, { 1.0f, 0.8f, 0.0f, 0.9f });
     }
 
     const Vector3 faceEnd = GetCenterPosition() + animationState_.faceDirection * 2.0f;
