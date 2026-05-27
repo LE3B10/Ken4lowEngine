@@ -78,6 +78,8 @@ void MidRangeEnemy::Initialize()
     // 追加: 爆弾専用パーティクル制御を初期化する。
     bombEffectController_.Initialize();
     LoadTuningFromJson(tuningIo_.jsonPath, &tuningIo_.lastLoadResult);
+    // 追加: 初期配置を徘徊基準地点として保存する。
+    wanderState_.spawnPosition = GetCenterPosition();
 }
 
 void MidRangeEnemy::SetTarget(const Vector3& target)
@@ -144,9 +146,9 @@ void MidRangeEnemy::MoveAlongPath(float deltaTime, float moveSpeed)
     const auto* obstacleAabbs = wallObstacleAABBs_ ? wallObstacleAABBs_ : GetResolvedNavigationObstacleAABBs();
     navigator_.SetWorldAABBs(obstacleAabbs);
 
-    Vector3 waypoint = targetState_.position;
+    Vector3 waypoint = pathState_.destination;
     const Vector3 pos = GetCenterPosition();
-    const bool hasWaypoint = navigator_.GetNextWaypoint(pos, targetState_.position, pos.y, deltaTime, waypoint);
+    const bool hasWaypoint = navigator_.GetNextWaypoint(pos, pathState_.destination, pos.y, deltaTime, waypoint);
 
     pathState_.pathFound = hasWaypoint;
     pathState_.currentWaypoint = waypoint;
@@ -257,86 +259,46 @@ void MidRangeEnemy::Update(float deltaTime)
 
     // 追加: 通常行動用にターゲット状態を共通関数で更新する。
     UpdateTargetState();
-    if (!HasTarget())
+    if (targetState_.inDetectRange)
     {
-        behaviorState_.currentBehaviorName = "Idle";
-        behaviorState_.lastReason = "ターゲットなし";
-        animationState_.animState = AnimState::Idle;
-        UpdateVisualAnimation(deltaTime);
-        return;
-    }
-
-    if (!targetState_.inDetectRange)
-    {
-        behaviorState_.currentBehaviorName = "Idle";
-        behaviorState_.lastReason = "検知範囲外";
-        animationState_.animState = AnimState::Idle;
-        UpdateVisualAnimation(deltaTime);
-        return;
-    }
-
-    if (!targetState_.inAttackRange)
-    {
-        MoveAlongPath(deltaTime, move_.moveSpeed);
-        FaceToMoveDirection(animationState_.moveDirection, deltaTime);
-        animationState_.animState = AnimState::Walk;
-        behaviorState_.currentBehaviorName = "Approach";
-        behaviorState_.lastReason = "経路接近";
-    }
-    else if (targetState_.tooClose)
-    {
-        const Vector3 retreat = Vector3{ -targetState_.direction.x, 0.0f, -targetState_.direction.z };
-        animationState_.moveDirection = retreat;
-        SetCenterPosition(GetCenterPosition() + retreat * move_.retreatSpeed * deltaTime);
-        FaceToMoveDirection(retreat, deltaTime);
-        animationState_.animState = AnimState::Walk;
-        behaviorState_.currentBehaviorName = "Retreat";
-        behaviorState_.lastReason = "後退";
+        // 追加: 検知復帰時は徘徊状態を即座に中断する。
+        wanderState_.active = false;
+        wanderState_.waiting = false;
+        wanderState_.hasPoint = false;
+        UpdateCombatBehavior(deltaTime);
     }
     else
     {
-        FaceToTarget(deltaTime);
-        animationState_.animState = AnimState::Idle;
-        behaviorState_.currentBehaviorName = "AttackReady";
-        behaviorState_.lastReason = "攻撃距離内";
+        // 追加: 検知範囲外では徘徊行動へ遷移する。
+        UpdateWanderBehavior(deltaTime);
+    }
 
-        if (!bombAttackState_.casting && bombAttackState_.cooldownTimer <= 0.0f)
+    if (bombAttackState_.casting && targetState_.inDetectRange)
+    {
+        animationState_.animState = AnimState::Cast;
+        if (bombAttackState_.castTimer >= bombAttack_.castTime && !bombAttackState_.thrownThisCast)
         {
-            bombAttackState_.casting = true;
+            auto bomb = std::make_unique<MidRangeBombProjectile>();
+            bomb->Initialize();
+            Vector3 start = GetCenterPosition();
+            start.y += bombAttack_.throwHeightOffset;
+            // 追加: 発射時だけ距離に応じた初速を反映する。
+            BombProjectileSettings launchSettings = bombProjectile_;
+            launchSettings.initialSpeed = CalculateBombInitialSpeed(targetState_.distance);
+            bomb->SetEffectController(&bombEffectController_);
+            bomb->Launch(start, targetState_.position, launchSettings);
+            // 追加: 投擲直後に手元で投げ演出を再生する。
+            bombEffectController_.PlayThrowEffect(start, targetState_.direction);
+            bombs_.push_back(std::move(bomb));
+
+            bombAttackState_.thrownThisCast = true;
+            bombAttackState_.casting = false;
             bombAttackState_.castTimer = 0.0f;
-            bombAttackState_.thrownThisCast = false;
-            animationState_.animState = AnimState::Cast;
-            behaviorState_.lastReason = "構え開始";
-            bombAttackState_.lastReason = "CastStart";
-        }
-
-        if (bombAttackState_.casting)
-        {
-            animationState_.animState = AnimState::Cast;
-            if (bombAttackState_.castTimer >= bombAttack_.castTime && !bombAttackState_.thrownThisCast)
-            {
-                auto bomb = std::make_unique<MidRangeBombProjectile>();
-                bomb->Initialize();
-                Vector3 start = GetCenterPosition();
-                start.y += bombAttack_.throwHeightOffset;
-                // 追加: 発射時だけ距離に応じた初速を反映する。
-                BombProjectileSettings launchSettings = bombProjectile_;
-                launchSettings.initialSpeed = CalculateBombInitialSpeed(targetState_.distance);
-                bomb->SetEffectController(&bombEffectController_);
-                bomb->Launch(start, targetState_.position, launchSettings);
-                // 追加: 投擲直後に手元で投げ演出を再生する。
-                bombEffectController_.PlayThrowEffect(start, targetState_.direction);
-                bombs_.push_back(std::move(bomb));
-
-                bombAttackState_.thrownThisCast = true;
-                bombAttackState_.casting = false;
-                bombAttackState_.castTimer = 0.0f;
-                bombAttackState_.cooldownTimer = bombAttack_.cooldown;
-                bombAttackState_.throwAnimTimer = bombAttackState_.throwAnimDuration;
-                animationState_.animState = AnimState::Throw;
-                behaviorState_.lastReason = "爆弾投擲";
-                bombAttackState_.lastReason = "Thrown";
-            }
+            bombAttackState_.cooldownTimer = bombAttack_.cooldown;
+            bombAttackState_.throwAnimTimer = bombAttackState_.throwAnimDuration;
+            animationState_.animState = AnimState::Throw;
+            behaviorState_.lastReason = "爆弾投擲";
+            bombAttackState_.lastReason = "Thrown";
         }
     }
 
@@ -346,6 +308,141 @@ void MidRangeEnemy::Update(float deltaTime)
     }
 
     UpdateVisualAnimation(deltaTime);
+}
+
+void MidRangeEnemy::UpdateCombatBehavior(float deltaTime)
+{
+    if (!HasTarget())
+    {
+        behaviorState_.currentBehaviorName = "Idle";
+        behaviorState_.lastReason = "ターゲットなし";
+        animationState_.animState = AnimState::Idle;
+        return;
+    }
+    pathState_.destination = targetState_.position;
+    if (!targetState_.inAttackRange)
+    {
+        MoveAlongPath(deltaTime, move_.moveSpeed);
+        FaceToMoveDirection(animationState_.moveDirection, deltaTime);
+        animationState_.animState = AnimState::Walk;
+        behaviorState_.currentBehaviorName = "Approach";
+        behaviorState_.lastReason = "経路接近";
+        return;
+    }
+    if (targetState_.tooClose)
+    {
+        const Vector3 retreat = Vector3{ -targetState_.direction.x, 0.0f, -targetState_.direction.z };
+        animationState_.moveDirection = retreat;
+        SetCenterPosition(GetCenterPosition() + retreat * move_.retreatSpeed * deltaTime);
+        FaceToMoveDirection(retreat, deltaTime);
+        animationState_.animState = AnimState::Walk;
+        behaviorState_.currentBehaviorName = "Retreat";
+        behaviorState_.lastReason = "後退";
+        return;
+    }
+    FaceToTarget(deltaTime);
+    animationState_.animState = AnimState::Idle;
+    behaviorState_.currentBehaviorName = "AttackReady";
+    behaviorState_.lastReason = "攻撃距離内";
+    if (!bombAttackState_.casting && bombAttackState_.cooldownTimer <= 0.0f)
+    {
+        // 追加: 通常戦闘でのみ爆弾構えを開始する。
+        bombAttackState_.casting = true;
+        bombAttackState_.castTimer = 0.0f;
+        bombAttackState_.thrownThisCast = false;
+        animationState_.animState = AnimState::Cast;
+        behaviorState_.lastReason = "構え開始";
+        bombAttackState_.lastReason = "CastStart";
+    }
+}
+
+void MidRangeEnemy::UpdateWanderBehavior(float deltaTime)
+{
+    if (!wander_.enabled)
+    {
+        behaviorState_.currentBehaviorName = "Idle";
+        behaviorState_.lastReason = "徘徊無効";
+        animationState_.animState = AnimState::Idle;
+        return;
+    }
+    wanderState_.active = true;
+    wanderState_.timer -= deltaTime;
+    if (wanderState_.waiting)
+    {
+        wanderState_.waitTimer = std::max(0.0f, wanderState_.waitTimer - deltaTime);
+        behaviorState_.currentBehaviorName = "WanderWait";
+        behaviorState_.lastReason = "徘徊待機";
+        animationState_.animState = AnimState::Idle;
+        if (wanderState_.waitTimer <= 0.0f)
+        {
+            wanderState_.waiting = false;
+        }
+        return;
+    }
+    if (!wanderState_.hasPoint && wanderState_.timer <= 0.0f)
+    {
+        TrySelectWanderPoint("徘徊地点選択");
+    }
+    if (!wanderState_.hasPoint)
+    {
+        animationState_.animState = AnimState::Idle;
+        return;
+    }
+    MoveAlongPath(deltaTime, wander_.moveSpeed);
+    FaceToMoveDirection(animationState_.moveDirection, deltaTime);
+    animationState_.animState = AnimState::Walk;
+    behaviorState_.currentBehaviorName = "WanderMove";
+    behaviorState_.lastReason = wanderState_.lastReason;
+    if (LengthXZ(GetCenterPosition() - wanderState_.currentPoint) <= wander_.pointReachDistance)
+    {
+        // 追加: 徘徊地点に到達したら待機に切り替える。
+        wanderState_.waiting = true;
+        wanderState_.waitTimer = wander_.waitTime;
+        wanderState_.hasPoint = false;
+        behaviorState_.currentBehaviorName = "WanderWait";
+    }
+}
+
+bool MidRangeEnemy::RequestPathTo(const Vector3& destination, const std::string& reason)
+{
+    // 追加: 経路探索先をターゲット以外にも切り替えられるようにする。
+    pathState_.destination = destination;
+    pathState_.lastRepathReason = reason;
+    return true;
+}
+
+bool MidRangeEnemy::TrySelectWanderPoint(const std::string& reason)
+{
+    const Vector3 currentPos = GetCenterPosition();
+    if (wander_.returnToSpawnWhenFar && LengthXZ(currentPos - wanderState_.spawnPosition) > wander_.maxDistanceFromSpawn)
+    {
+        RequestPathTo(wanderState_.spawnPosition, "Spawnから離れすぎたため帰還");
+        wanderState_.currentPoint = wanderState_.spawnPosition;
+        wanderState_.hasPoint = true;
+        wanderState_.lastReason = "Spawnから離れすぎたため帰還";
+        return true;
+    }
+    for (int i = 0; i < wander_.maxRetryCount; ++i)
+    {
+        const float angle = static_cast<float>(std::rand()) / static_cast<float>(RAND_MAX) * kTwoPi;
+        const float dist = static_cast<float>(std::rand()) / static_cast<float>(RAND_MAX) * wander_.radius;
+        Vector3 candidate = wanderState_.spawnPosition;
+        candidate.x += std::cos(angle) * dist;
+        candidate.z += std::sin(angle) * dist;
+        candidate.y = currentPos.y;
+        RequestPathTo(candidate, reason);
+        wanderState_.currentPoint = candidate;
+        wanderState_.hasPoint = true;
+        wanderState_.timer = wander_.interval;
+        wanderState_.retryCount = i + 1;
+        wanderState_.lastReason = reason;
+        return true;
+    }
+    wanderState_.waiting = true;
+    wanderState_.waitTimer = wander_.waitTime;
+    wanderState_.retryCount = wander_.maxRetryCount;
+    wanderState_.lastReason = "徘徊地点探索失敗";
+    return false;
 }
 
 void MidRangeEnemy::TakeDamage(int amount)
@@ -804,6 +901,13 @@ void MidRangeEnemy::Draw()
         Wireframe::GetInstance()->DrawLine(GetCenterPosition(), pathState_.currentWaypoint, { 0.2f, 0.8f, 1.0f, 1.0f });
         Wireframe::GetInstance()->DrawSphere(pathState_.currentWaypoint, 0.25f, { 0.2f, 0.8f, 1.0f, 1.0f });
     }
+    if (wander_.debugDrawEnabled)
+    {
+        // 追加: 徘徊デバッグとして初期位置と目的地を表示する。
+        Wireframe::GetInstance()->DrawSphere(wanderState_.spawnPosition, 0.3f, { 0.1f, 1.0f, 0.1f, 1.0f });
+        Wireframe::GetInstance()->DrawSphere(wanderState_.currentPoint, 0.3f, { 1.0f, 0.4f, 0.1f, 1.0f });
+        Wireframe::GetInstance()->DrawLine(wanderState_.spawnPosition, wanderState_.currentPoint, { 0.3f, 1.0f, 0.3f, 1.0f });
+    }
 
     if (targetState_.hasTarget)
     {
@@ -896,6 +1000,19 @@ void MidRangeEnemy::DrawImGui()
         ImGui::SliderFloat("移動速度", &move_.moveSpeed, 0.0f, 10.0f);
         ImGui::SliderFloat("後退速度", &move_.retreatSpeed, 0.0f, 10.0f);
         ImGui::SliderFloat("回転速度", &move_.rotateSpeed, 0.0f, 20.0f);
+    }
+    if (ImGui::CollapsingHeader("徘徊"))
+    {
+        ImGui::Checkbox("徘徊を使う", &wander_.enabled);
+        ImGui::SliderFloat("徘徊半径", &wander_.radius, 0.1f, 40.0f);
+        ImGui::SliderFloat("徘徊間隔", &wander_.interval, 0.1f, 10.0f);
+        ImGui::SliderFloat("徘徊移動速度", &wander_.moveSpeed, 0.0f, 10.0f);
+        ImGui::SliderFloat("徘徊待機時間", &wander_.waitTime, 0.0f, 10.0f);
+        ImGui::SliderFloat("徘徊地点到達距離", &wander_.pointReachDistance, 0.1f, 5.0f);
+        ImGui::SliderInt("徘徊地点再試行回数", &wander_.maxRetryCount, 1, 32);
+        ImGui::Checkbox("離れすぎたら初期位置へ戻る", &wander_.returnToSpawnWhenFar);
+        ImGui::SliderFloat("初期位置からの最大距離", &wander_.maxDistanceFromSpawn, 1.0f, 60.0f);
+        ImGui::Checkbox("徘徊デバッグ描画", &wander_.debugDrawEnabled);
     }
     if (ImGui::CollapsingHeader("爆弾攻撃"))
     {
@@ -1137,6 +1254,8 @@ void MidRangeEnemy::ResetTuningToDefault()
     bombAttack_ = BombAttackSettings{};
     bombProjectile_ = BombProjectileSettings{};
     path_ = PathSettings{};
+    // 追加: 徘徊設定のデフォルト復元を追加する。
+    wander_ = WanderSettings{};
     animation_ = AnimationSettings{};
     headLook_ = HeadLookSettings{};
     hitReaction_ = HitReactionSettings{};
@@ -1239,6 +1358,16 @@ bool MidRangeEnemy::SaveTuningToJson(const std::filesystem::path& path, std::str
         j["path"]["pathSearchRadius"] = path_.pathSearchRadius;
         j["path"]["obstacleExpandRadius"] = path_.obstacleExpandRadius;
         j["path"]["cornerCuttingDisabled"] = path_.cornerCuttingDisabled;
+        // 追加: 徘徊設定をJSONへ保存する。
+        j["wander"]["enabled"] = wander_.enabled;
+        j["wander"]["radius"] = wander_.radius;
+        j["wander"]["interval"] = wander_.interval;
+        j["wander"]["moveSpeed"] = wander_.moveSpeed;
+        j["wander"]["waitTime"] = wander_.waitTime;
+        j["wander"]["pointReachDistance"] = wander_.pointReachDistance;
+        j["wander"]["maxRetryCount"] = wander_.maxRetryCount;
+        j["wander"]["returnToSpawnWhenFar"] = wander_.returnToSpawnWhenFar;
+        j["wander"]["maxDistanceFromSpawn"] = wander_.maxDistanceFromSpawn;
         j["animation"]["walkSwingSpeed"] = animation_.walkSwingSpeed;
         j["animation"]["walkArmAmplitude"] = animation_.walkArmAmplitude;
         j["animation"]["walkLegAmplitude"] = animation_.walkLegAmplitude;
@@ -1324,6 +1453,7 @@ bool MidRangeEnemy::LoadTuningFromJson(const std::filesystem::path& path, std::s
         const auto hitReactionJson = j.value("hitReaction", nlohmann::json::object());
         const auto deathAnimationJson = j.value("deathAnimation", nlohmann::json::object());
         const auto pathJson = j.value("path", nlohmann::json::object());
+        const auto wanderJson = j.value("wander", nlohmann::json::object());
         const auto animationJson = j.value("animation", nlohmann::json::object());
         const auto headLookJson = j.value("headLook", nlohmann::json::object());
         const auto suicideBombJson = j.value("suicideBomb", nlohmann::json::object());
@@ -1379,6 +1509,16 @@ bool MidRangeEnemy::LoadTuningFromJson(const std::filesystem::path& path, std::s
         path_.pathSearchRadius = pathJson.value("pathSearchRadius", path_.pathSearchRadius);
         path_.obstacleExpandRadius = pathJson.value("obstacleExpandRadius", path_.obstacleExpandRadius);
         path_.cornerCuttingDisabled = pathJson.value("cornerCuttingDisabled", path_.cornerCuttingDisabled);
+        // 追加: wanderカテゴリが無い古いJSONでは既定値を維持する。
+        wander_.enabled = wanderJson.value("enabled", wander_.enabled);
+        wander_.radius = wanderJson.value("radius", wander_.radius);
+        wander_.interval = wanderJson.value("interval", wander_.interval);
+        wander_.moveSpeed = wanderJson.value("moveSpeed", wander_.moveSpeed);
+        wander_.waitTime = wanderJson.value("waitTime", wander_.waitTime);
+        wander_.pointReachDistance = wanderJson.value("pointReachDistance", wander_.pointReachDistance);
+        wander_.maxRetryCount = wanderJson.value("maxRetryCount", wander_.maxRetryCount);
+        wander_.returnToSpawnWhenFar = wanderJson.value("returnToSpawnWhenFar", wander_.returnToSpawnWhenFar);
+        wander_.maxDistanceFromSpawn = wanderJson.value("maxDistanceFromSpawn", wander_.maxDistanceFromSpawn);
         animation_.walkSwingSpeed = animationJson.value("walkSwingSpeed", animation_.walkSwingSpeed);
         animation_.walkArmAmplitude = animationJson.value("walkArmAmplitude", animation_.walkArmAmplitude);
         animation_.walkLegAmplitude = animationJson.value("walkLegAmplitude", animation_.walkLegAmplitude);

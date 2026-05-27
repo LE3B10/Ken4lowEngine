@@ -68,9 +68,35 @@ private:
     {
         bool pathFound = false;
         K4E::Vector3 currentWaypoint{};
+        K4E::Vector3 destination{};
         std::string lastRepathReason = "None";
         std::string failureReason = "None";
         bool lineBlocked = false;
+    };
+    struct WanderSettings
+    {
+        bool enabled = true;
+        float radius = 8.0f;
+        float interval = 3.0f;
+        float moveSpeed = 1.8f;
+        float waitTime = 1.2f;
+        float pointReachDistance = 1.0f;
+        int maxRetryCount = 8;
+        bool returnToSpawnWhenFar = true;
+        float maxDistanceFromSpawn = 18.0f;
+        bool debugDrawEnabled = true;
+    };
+    struct WanderState
+    {
+        bool active = false;
+        bool hasPoint = false;
+        bool waiting = false;
+        float timer = 0.0f;
+        float waitTimer = 0.0f;
+        int retryCount = 0;
+        K4E::Vector3 spawnPosition{};
+        K4E::Vector3 currentPoint{};
+        std::string lastReason = "None";
     };
 
     struct AnimationSettings
@@ -270,6 +296,10 @@ private:
     void ValidateTuningValues();
     void StartSuicideBombMode();
     void UpdateSuicideBombMode(float deltaTime);
+    void UpdateCombatBehavior(float deltaTime);
+    void UpdateWanderBehavior(float deltaTime);
+    bool RequestPathTo(const K4E::Vector3& destination, const std::string& reason);
+    bool TrySelectWanderPoint(const std::string& reason);
     void ExplodeSuicideBomb(const std::string& reason);
     K4E::Vector3 CalculateSuicideBreakApartDirection() const;
     void KillBySuicideExplosion();
@@ -286,6 +316,7 @@ private:
     BombProjectileSettings bombProjectile_{};
     PathSettings path_{};
     PathState pathState_{};
+    WanderSettings wander_{};
     AnimationSettings animation_{};
     HeadLookSettings headLook_{};
     HitReactionSettings hitReaction_{};
@@ -293,6 +324,7 @@ private:
     EnemyAStarNavigator navigator_{};
     BombAttackState bombAttackState_{};
     SuicideBombState suicideBombState_{};
+    WanderState wanderState_{};
     float suicideChargeEffectTimer_ = 0.0f;
     TargetState targetState_{};
     AnimationStateData animationState_{};
