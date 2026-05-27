@@ -157,6 +157,8 @@ private:
         bool stopNormalBombAttack = true;
         bool blinkEnabled = true;
         float blinkSpeed = 10.0f;
+        bool delayDeathAnimationUntilExplosion = true;
+        float explosionPositionMinY = 0.5f;
         K4E::Vector4 blinkColorA{ 1.0f, 0.1f, 0.1f, 1.0f };
         K4E::Vector4 blinkColorB{ 1.0f, 1.0f, 0.1f, 1.0f };
     };
