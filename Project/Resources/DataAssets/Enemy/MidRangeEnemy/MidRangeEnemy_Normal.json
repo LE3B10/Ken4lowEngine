@@ -1,43 +1,120 @@
 {
+    "animation": {
+        "bodyCastLean": -0.04399999976158142,
+        "castArmPitch": -2.0,
+        "castArmYaw": 0.20000000298023224,
+        "returnSpeed": 11.074000358581543,
+        "throwArmPitch": 1.0,
+        "throwBodyLean": 0.25,
+        "walkArmAmplitude": 0.7870000004768372,
+        "walkLegAmplitude": 0.7960000038146973,
+        "walkSwingSpeed": 7.0
+    },
+    "basicStats": {
+        "maxHp": 120,
+        "resetHpOnLoad": true
+    },
+    "bombAttack": {
+        "castTime": 0.44999998807907104,
+        "cooldown": 2.0,
+        "throwHeightOffset": 1.600000023841858
+    },
+    "bombProjectile": {
+        "directHitAlsoExplosionDamage": true,
+        "directHitDamage": 25,
+        "explosionDamage": 12,
+        "explosionRadius": 6.0920000076293945,
+        "gravity": 18.0,
+        "hitRadius": 0.5450000166893005,
+        "initialSpeed": 10.0,
+        "lifeTime": 4.0,
+        "maxInitialSpeed": 16.0,
+        "minInitialSpeed": 7.0,
+        "speedBaseDistance": 6.0,
+        "speedPerDistance": 0.4059999883174896,
+        "upwardVelocity": 7.0,
+        "useDistanceBasedSpeed": true
+    },
+    "deathAnimation": {
+        "deathAnimationDisableCollisionOnDeath": true,
+        "deathAnimationDuration": 1.2000000476837158,
+        "deathAnimationEnabled": true,
+        "deathAnimationFadeDelay": 0.4000000059604645,
+        "deathAnimationFadeDuration": 0.6000000238418579,
+        "deathAnimationFallRotateX": 1.350000023841858,
+        "deathAnimationSinkDistance": 0.4000000059604645,
+        "deathAnimationStopMoveOnDeath": true
+    },
     "distance": {
-        "detectRange": 24.0,
-        "attackMinRange": 5.0,
         "attackMaxRange": 14.0,
+        "attackMinRange": 5.0,
+        "detectRange": 24.0,
         "idealRange": 9.0,
         "tooCloseRange": 4.0
     },
+    "headLook": {
+        "enabled": true,
+        "lerpSpeed": 12.0,
+        "pitchMaxDeg": 80.0,
+        "pitchMinDeg": -80.0,
+        "pitchSign": 1.0,
+        "yawLimitDeg": 120.0
+    },
+    "hitReaction": {
+        "hitReactionBodyLean": -0.18000000715255737,
+        "hitReactionDuration": 0.18000000715255737,
+        "hitReactionEnabled": true,
+        "hitReactionFlashDuration": 0.11999999731779099,
+        "hitReactionInterruptAttack": false,
+        "hitReactionKnockbackPower": 2.0,
+        "hitReactionKnockbackUpPower": 0.4000000059604645,
+        "hitReactionStopBehaviorWhileActive": true
+    },
     "move": {
-        "moveSpeed": 2.6,
-        "retreatSpeed": 2.8,
+        "moveSpeed": 2.5999999046325684,
+        "retreatSpeed": 2.799999952316284,
         "rotateSpeed": 8.0
     },
-    "bombAttack": {
-        "cooldown": 2.0,
-        "castTime": 0.45,
-        "throwHeightOffset": 1.6
-    },
-    "bombProjectile": {
-        "initialSpeed": 10.0,
-        "upwardVelocity": 7.0,
-        "gravity": 18.0,
-        "lifeTime": 4.0,
-        "hitRadius": 0.45,
-        "explosionRadius": 3.0,
-        "directHitDamage": 25,
-        "explosionDamage": 12,
-        "directHitAlsoExplosionDamage": false
+    "path": {
+        "cornerCuttingDisabled": true,
+        "obstacleExpandRadius": 0.8999999761581421,
+        "pathFindEnabled": true,
+        "pathGridSize": 1.5,
+        "pathSearchRadius": 28.0,
+        "repathInterval": 0.25,
+        "waypointReachDistance": 0.8500000238418579
     },
     "suicideBomb": {
-        "enabled": true,
-        "triggerHpRate": 0.3,
-        "invincibleWhileActive": true,
-        "timeLimit": 5.0,
+        "blinkColorA": [
+            1.0,
+            0.10000000149011612,
+            0.10000000149011612,
+            1.0
+        ],
+        "blinkColorB": [
+            1.0,
+            1.0,
+            0.10000000149011612,
+            1.0
+        ],
+        "blinkEnabled": true,
+        "blinkSpeed": 25.027999877929688,
+        "breakApartPower": 2.5,
+        "breakApartUpPower": 3.0,
         "chaseSpeed": 5.0,
-        "rotateSpeed": 12.0,
-        "explodeDistance": 1.8,
-        "explosionRadius": 4.0,
+        "deathDelayAfterExplosion": 0.05000000074505806,
+        "delayDeathAnimationUntilExplosion": true,
+        "enabled": true,
+        "explodeDistance": 1.7999999523162842,
         "explosionDamage": 60,
-        "explosionDebugDrawTime": 0.35,
-        "stopNormalBombAttack": true
+        "explosionDebugDrawTime": 0.3499999940395355,
+        "explosionPositionMinY": 0.5,
+        "explosionRadius": 4.0,
+        "invincibleWhileActive": true,
+        "rotateSpeed": 12.0,
+        "stopNormalBombAttack": true,
+        "timeLimit": 5.0,
+        "triggerHpRate": 0.30000001192092896,
+        "useTargetDirectionForBreakApart": true
     }
 }

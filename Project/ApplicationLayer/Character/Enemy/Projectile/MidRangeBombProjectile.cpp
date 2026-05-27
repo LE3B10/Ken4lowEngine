@@ -1,3 +1,4 @@
+#define NOMINMAX
 #include "MidRangeBombProjectile.h"
 #include "ApplicationLayer/Character/Enemy/Effects/MidRangeBombEffectController.h"
 
