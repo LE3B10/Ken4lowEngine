@@ -88,9 +88,10 @@ private:
     struct HeadLookSettings
     {
         bool enabled = true;
-        float yawLimitDeg = 90.0f;
-        float pitchMinDeg = -35.0f;
-        float pitchMaxDeg = 45.0f;
+        float yawLimitDeg = 120.0f;
+        float pitchMinDeg = -80.0f;
+        float pitchMaxDeg = 80.0f;
+        float pitchSign = -1.0f;
         float lerpSpeed = 12.0f;
     };
     struct HitReactionSettings
@@ -223,6 +224,7 @@ private:
     void ResetTuningToDefault();
     bool SaveTuningToJson(const std::filesystem::path& path, std::string* outMessage = nullptr) const;
     bool LoadTuningFromJson(const std::filesystem::path& path, std::string* outMessage = nullptr);
+    void ApplyBasicStatsToEnemyBase();
     void TakeDamage(int amount) override;
     void TakeDamage(int amount, const K4E::Vector3& hitDir, float hitPower) override;
 
