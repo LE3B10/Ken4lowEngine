@@ -15,7 +15,7 @@ void ModelParticle::Initialize()
 	input_ = K4E::Input::GetInstance();
 
 	object3D_ = std::make_unique<K4E::Object3D>();
-	object3D_->Initialize("cube.gltf");
+	object3D_->Initialize("Test/cube.gltf");
 
 	// パーティクルプールの確保
 	pool_.resize(poolMax_);
@@ -123,7 +123,7 @@ void ModelParticle::SpawnBurst(const K4E::Vector3& pos, const K4E::Vector3& norm
 
 		// 新規オブジェクト
 		p->obj = std::make_unique<K4E::Object3D>();
-		p->obj->Initialize("cube.gltf");
+		p->obj->Initialize("Test/cube.gltf");
 
 		// 拡散方向（法線nを中心に円錐分布）
 		float r1 = urand_(rng_);
