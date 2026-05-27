@@ -1,3 +1,4 @@
+#define NOMINMAX
 #include "MidRangeBombEffectController.h"
 
 #include "GpuParticleEmitter.h"
@@ -58,7 +59,7 @@ void MidRangeBombEffectController::CreateEmitters()
     };
     // 追加: 各演出別に使い分けるエミッターを作成する。
     createIfNeeded("MidRangeBombThrow", 0.12f, GpuParticleType::Spark);
-    createIfNeeded("MidRangeBombTrail", 0.08f, GpuParticleType::SmokeSoft);
+    createIfNeeded("MidRangeBombTrail", 0.08f, GpuParticleType::Smoke);
     createIfNeeded("MidRangeBombExplosion", 0.35f, GpuParticleType::DeathBurstCore);
     createIfNeeded("MidRangeBombSuicideCharge", 0.16f, GpuParticleType::Spark);
     createIfNeeded("MidRangeBombSuicideExplosion", 0.55f, GpuParticleType::Shockwave);

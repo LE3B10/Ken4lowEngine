@@ -909,6 +909,9 @@
     <ClCompile Include="Engine\System\JsonAssets\JsonAssetRegistry.cpp" />
     <ClCompile Include="Engine\System\JsonAssets\JsonDataManager.cpp" />
     <ClCompile Include="Engine\System\JsonAssets\JsonEditorWindow.cpp" />
+    <ClCompile Include="ApplicationLayer\Character\Enemy\Core\MidRangeEnemy.cpp" />
+    <ClCompile Include="ApplicationLayer\Character\Enemy\Projectile\MidRangeBombProjectile.cpp" />
+    <ClCompile Include="ApplicationLayer\Character\Enemy\Effects\MidRangeBombEffectController.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ApplicationLayer\UISystem\Crosshair\Crosshair.h">
@@ -1914,6 +1917,9 @@
     <ClInclude Include="Engine\System\JsonAssets\JsonDataManager.h" />
     <ClInclude Include="Engine\System\JsonAssets\JsonEditorWindow.h" />
     <ClInclude Include="Engine\System\JsonAssets\JsonSerializable.h" />
+    <ClInclude Include="ApplicationLayer\Character\Enemy\Core\MidRangeEnemy.h" />
+    <ClInclude Include="ApplicationLayer\Character\Enemy\Projectile\MidRangeBombProjectile.h" />
+    <ClInclude Include="ApplicationLayer\Character\Enemy\Effects\MidRangeBombEffectController.h" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Shader">
