@@ -139,7 +139,7 @@ void ModelParticle::SpawnBurst(const K4E::Vector3& pos, const K4E::Vector3& norm
 		// 寿命・サイズ・色
 		p->ttl = lifeMin_ + (lifeMax_ - lifeMin_) * urand_(rng_);
 		p->scale = startScale_;
-		p->obj->SetColor({ 1.0f, 0.5f, 0.0f, 1.0f });
+		p->obj->SetColor(particleColor_);
 
 		// 位置・姿勢
 		p->pos = pos;
@@ -160,4 +160,31 @@ void ModelParticle::SpawnBurst(const K4E::Vector3& pos, const K4E::Vector3& norm
 void ModelParticle::OnHit(const K4E::Vector3& hitPos, const K4E::Vector3& hitNormal)
 {
 	SpawnBurst(hitPos, hitNormal, defaultCount_);
+}
+
+void ModelParticle::SetBurstTuning(float baseSpeed, float gravityY, float lifeMin, float lifeMax, float startScale)
+{
+	baseSpeed_ = baseSpeed;
+	gravityY_ = gravityY;
+	lifeMin_ = lifeMin;
+	lifeMax_ = lifeMax;
+	startScale_ = startScale;
+}
+
+void ModelParticle::SetParticleColor(const K4E::Vector4& color)
+{
+	particleColor_ = color;
+}
+
+uint32_t ModelParticle::GetActiveCount() const
+{
+	uint32_t count = 0;
+	for (const auto& p : pool_)
+	{
+		if (p.alive)
+		{
+			++count;
+		}
+	}
+	return count;
 }

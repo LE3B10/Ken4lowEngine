@@ -472,6 +472,8 @@ void MidRangeEnemy::ExplodeSuicideBomb(const std::string& reason)
     suicideBombState_.explosionPosition = explosionPos;
     // 追加: 自爆成立時に大規模爆発演出を再生する。
     bombEffectController_.PlaySuicideExplosionEffect(suicideBombState_.explosionPosition, suicideBomb_.explosionRadius);
+    // 追加: 自爆時はメッシュ破片も同時再生して爆発感を強化する。
+    bombEffectController_.PlaySuicideMeshExplosionEffect(suicideBombState_.explosionPosition, suicideBomb_.explosionRadius);
     suicideBombState_.explosionDrawTimer = drawTime;
     suicideBombState_.deathDelayTimer = 0.0f;
     suicideBombState_.active = false;
@@ -1134,6 +1136,8 @@ void MidRangeEnemy::ResetTuningToDefault()
     hitReaction_ = HitReactionSettings{};
     deathAnimation_ = DeathAnimationSettings{};
     suicideBomb_ = SuicideBombSettings{};
+    // 追加: 爆弾エフェクト調整値もデフォルトへ戻す。
+    bombEffectController_.ResetToDefault();
     // 追加: デフォルト復帰後も最大HPをEnemyBaseへ反映する。
     ApplyBasicStatsToEnemyBase();
     // 追加: デフォルト復帰後に各値を再検証して破綻を防ぐ。
@@ -1265,6 +1269,10 @@ bool MidRangeEnemy::SaveTuningToJson(const std::filesystem::path& path, std::str
         j["suicideBomb"]["useTargetDirectionForBreakApart"] = suicideBomb_.useTargetDirectionForBreakApart;
         j["suicideBomb"]["blinkColorA"] = { suicideBomb_.blinkColorA.x, suicideBomb_.blinkColorA.y, suicideBomb_.blinkColorA.z, suicideBomb_.blinkColorA.w };
         j["suicideBomb"]["blinkColorB"] = { suicideBomb_.blinkColorB.x, suicideBomb_.blinkColorB.y, suicideBomb_.blinkColorB.z, suicideBomb_.blinkColorB.w };
+        nlohmann::json bombEffectJson = nlohmann::json::object();
+        // 追加: bombEffectカテゴリへGPU/メッシュ爆発設定を保存する。
+        bombEffectController_.SaveToJson(bombEffectJson);
+        j["bombEffect"] = bombEffectJson;
 
         std::filesystem::create_directories(path.parent_path());
         std::ofstream ofs(path);

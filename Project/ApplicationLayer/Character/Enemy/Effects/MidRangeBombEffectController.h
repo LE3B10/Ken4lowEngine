@@ -7,6 +7,7 @@
 
 #include "Vector3.h"
 #include "Vector4.h"
+#include "ModelParticle.h"
 
 namespace K4E = ::Ken4lowEngine;
 
@@ -38,6 +39,17 @@ public:
         K4E::Vector4 explosionColor{ 1.0f, 0.25f, 0.05f, 1.0f };
         K4E::Vector4 suicideChargeColor{ 1.0f, 0.0f, 0.0f, 1.0f };
         K4E::Vector4 suicideExplosionColor{ 1.0f, 0.0f, 0.0f, 1.0f };
+        bool meshExplosionEnabled = true;
+        int meshDebrisCount = 18;
+        int suicideMeshDebrisCount = 36;
+        float meshDebrisSpeed = 8.0f;
+        float suicideMeshDebrisSpeed = 13.0f;
+        float meshDebrisUpPower = 7.0f;
+        float meshDebrisGravity = 18.0f;
+        float meshDebrisLifeTime = 0.8f;
+        float meshDebrisScale = 0.25f;
+        float suicideMeshDebrisScale = 0.35f;
+        K4E::Vector4 meshDebrisColor{ 0.9f, 0.45f, 0.1f, 1.0f };
     };
 
 public:
@@ -48,20 +60,30 @@ public:
     void PlayThrowEffect(const K4E::Vector3& position, const K4E::Vector3& direction);
     void PlayBombTrailEffect(const K4E::Vector3& position);
     void PlayBombExplosionEffect(const K4E::Vector3& position, float radius);
+    void PlayBombMeshExplosionEffect(const K4E::Vector3& position, float radius);
     void PlaySuicideChargeEffect(const K4E::Vector3& position);
     void PlaySuicideExplosionEffect(const K4E::Vector3& position, float radius);
+    void PlaySuicideMeshExplosionEffect(const K4E::Vector3& position, float radius);
 
     void DrawImGui();
     void LoadFromJson(const nlohmann::json& j);
     void SaveToJson(nlohmann::json& j) const;
+    void ResetToDefault();
 
     const BombEffectSettings& GetSettings() const;
 
 private:
     void CreateEmitters();
     void RequestEffect(const std::string& name, const K4E::Vector3& position, uint32_t count, float radiusScale);
+    void ApplyModelParticleTuning(float speed, float scale, float lifeTime);
+    uint32_t GetActiveDebrisCount() const;
 
 private:
     BombEffectSettings settings_{};
+    ModelParticle meshDebrisEffect_{};
+    K4E::Vector3 lastBombExplosionPosition_{};
+    K4E::Vector3 lastSuicideExplosionPosition_{};
+    bool lastBombExplosionPlayed_ = false;
+    bool lastSuicideExplosionPlayed_ = false;
     bool initialized_ = false;
 };

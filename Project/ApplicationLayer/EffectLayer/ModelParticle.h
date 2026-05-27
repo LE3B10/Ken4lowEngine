@@ -44,6 +44,9 @@ public: /// ---------- メンバ関数 ---------- ///
 	void SpawnBurst(const K4E::Vector3& pos, const K4E::Vector3& normal, uint32_t count);
 
 	void OnHit(const K4E::Vector3& hitPos, const K4E::Vector3& hitNormal);
+	void SetBurstTuning(float baseSpeed, float gravityY, float lifeMin, float lifeMax, float startScale);
+	void SetParticleColor(const K4E::Vector4& color);
+	uint32_t GetActiveCount() const;
 
 private: /// ---------- メンバ変数 ---------- ///
 
@@ -71,5 +74,5 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	// 表示フラグ（従来の単体表示用）
 	bool isActive_ = false;
+	K4E::Vector4 particleColor_{ 1.0f, 0.5f, 0.0f, 1.0f };
 };
-
