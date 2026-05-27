@@ -142,6 +142,29 @@ private:
         bool thrownThisCast = false;
         std::string lastReason = "None";
     };
+    struct SuicideBombSettings
+    {
+        bool enabled = true;
+        float triggerHpRate = 0.30f;
+        bool invincibleWhileActive = true;
+        float timeLimit = 5.0f;
+        float chaseSpeed = 5.0f;
+        float rotateSpeed = 12.0f;
+        float explodeDistance = 1.8f;
+        float explosionRadius = 4.0f;
+        int explosionDamage = 60;
+        float explosionDebugDrawTime = 0.35f;
+        bool stopNormalBombAttack = true;
+    };
+    struct SuicideBombState
+    {
+        bool active = false;
+        bool exploded = false;
+        float timer = 0.0f;
+        float explosionDrawTimer = 0.0f;
+        K4E::Vector3 explosionPosition{};
+        std::string lastReason = "None";
+    };
 
     struct TargetState
     {
@@ -232,6 +255,9 @@ private:
     bool LoadTuningFromJson(const std::filesystem::path& path, std::string* outMessage = nullptr);
     void ApplyBasicStatsToEnemyBase();
     void ValidateTuningValues();
+    void StartSuicideBombMode();
+    void UpdateSuicideBombMode(float deltaTime);
+    void ExplodeSuicideBomb(const std::string& reason);
     void TakeDamage(int amount) override;
     void TakeDamage(int amount, const K4E::Vector3& hitDir, float hitPower) override;
 
@@ -240,6 +266,7 @@ private:
     DistanceSettings distance_{};
     MoveSettings move_{};
     BombAttackSettings bombAttack_{};
+    SuicideBombSettings suicideBomb_{};
     BombProjectileSettings bombProjectile_{};
     PathSettings path_{};
     PathState pathState_{};
@@ -249,6 +276,7 @@ private:
     DeathAnimationSettings deathAnimation_{};
     EnemyAStarNavigator navigator_{};
     BombAttackState bombAttackState_{};
+    SuicideBombState suicideBombState_{};
     TargetState targetState_{};
     AnimationStateData animationState_{};
     HeadLookState headLookState_{};
