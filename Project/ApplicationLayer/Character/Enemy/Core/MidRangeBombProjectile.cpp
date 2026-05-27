@@ -1,5 +1,4 @@
 #include "MidRangeBombProjectile.h"
-#include "Collider.h"
 #include "Wireframe.h"
 #include <algorithm>
 #include <cmath>
@@ -14,13 +13,12 @@ namespace
 	}
 }
 
-void MidRangeBombProjectile::Launch(const Vector3& startPosition, const Vector3& targetPosition, const BombProjectileSettings& settings, Collider* target)
+void MidRangeBombProjectile::Launch(const Vector3& startPosition, const Vector3& targetPosition, const BombProjectileSettings& settings)
 {
 	// 追加: 投擲開始時に弾の初期状態をリセットする。
 	position_ = startPosition;
 	settings_ = settings;
-	// ビルド優先: owner参照は一旦持たない。
-	target_ = target;
+	// 修正: owner Colliderを使わない設計に統一。
 	lifeTimer_ = 0.0f;
 	exploded_ = false;
 	alive_ = true;
@@ -54,17 +52,6 @@ void MidRangeBombProjectile::Update(float deltaTime, const std::vector<AABB>* fl
 	velocity_.y -= settings_.gravity * deltaTime;
 	position_ += velocity_ * deltaTime;
 
-	if (target_)
-	{
-		const Vector3 toTarget = target_->GetCenterPosition() - position_;
-		const float sqDist = toTarget.x * toTarget.x + toTarget.y * toTarget.y + toTarget.z * toTarget.z;
-		if (sqDist <= settings_.hitRadius * settings_.hitRadius)
-		{
-			directHitEvent_ = true;
-			Explode("プレイヤー直撃");
-			return;
-		}
-	}
 
 	if (CheckAabbHit(floorAabbs) || CheckAabbHit(obstacleAabbs))
 	{
