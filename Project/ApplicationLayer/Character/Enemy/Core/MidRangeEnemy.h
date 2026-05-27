@@ -247,7 +247,7 @@ private:
     bool IsTargetInDetectRange() const;
     void FaceToTarget(float deltaTime);
     void FaceToMoveDirection(const K4E::Vector3& moveDirection, float deltaTime);
-    void MoveAlongPath(float deltaTime);
+    void MoveAlongPath(float deltaTime, float moveSpeed);
     void StartHitReaction(const K4E::Vector3& hitDirection);
     void UpdateHitReaction(float deltaTime);
     void StartDeathAnimation(const std::string& reason);
