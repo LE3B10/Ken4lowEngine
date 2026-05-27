@@ -176,8 +176,7 @@ void DebugScene::Initialize()
 	debugMidRangeEnemy_->Initialize();
 	debugMidRangeEnemy_->SetCenterPosition({ 2.0f, 2.5f, 18.0f });
 	debugMidRangeEnemy_->SetTarget(&meleeDummyTarget_);
-	debugMidRangeEnemy_->SetBulletManager(bulletManager_.get());
-	debugMidRangeEnemy_->SetFloorAABBs(&stage_->GetFloorAABBs());
+		debugMidRangeEnemy_->SetFloorAABBs(&stage_->GetFloorAABBs());
 	debugMidRangeEnemy_->SetWallObstacleAABBs(&stage_->GetWallObstacleAABBs());
 	collisionManager_->AddCollider(debugMidRangeEnemy_.get());
 }
