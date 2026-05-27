@@ -160,6 +160,9 @@ private:
         bool delayDeathAnimationUntilExplosion = true;
         float explosionPositionMinY = 0.5f;
         float deathDelayAfterExplosion = 0.05f;
+        float breakApartPower = 2.5f;
+        float breakApartUpPower = 3.0f;
+        bool useTargetDirectionForBreakApart = true;
         K4E::Vector4 blinkColorA{ 1.0f, 0.1f, 0.1f, 1.0f };
         K4E::Vector4 blinkColorB{ 1.0f, 1.0f, 0.1f, 1.0f };
     };
@@ -267,6 +270,8 @@ private:
     void StartSuicideBombMode();
     void UpdateSuicideBombMode(float deltaTime);
     void ExplodeSuicideBomb(const std::string& reason);
+    K4E::Vector3 CalculateSuicideBreakApartDirection() const;
+    void KillBySuicideExplosion();
     void UpdateTargetState();
     void TakeDamage(int amount) override;
     void TakeDamage(int amount, const K4E::Vector3& hitDir, float hitPower) override;
@@ -294,6 +299,8 @@ private:
     DeathAnimationState deathAnimationState_{};
     TuningIoState tuningIo_{};
     BehaviorState behaviorState_{};
+    bool usedEnemyBaseDeathForSuicide_ = false;
+    K4E::Vector3 lastSuicideBreakApartDirection_{ 0.0f, 0.0f, 1.0f };
     std::vector<std::unique_ptr<MidRangeBombProjectile>> bombs_{};
     const std::vector<K4E::AABB>* floorAABBs_ = nullptr;
     const std::vector<K4E::AABB>* wallObstacleAABBs_ = nullptr;
