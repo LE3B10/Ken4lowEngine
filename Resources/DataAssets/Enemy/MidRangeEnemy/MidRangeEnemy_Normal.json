@@ -1,0 +1,26 @@
+{
+  "basicStats": {
+    "maxHp": 120
+  },
+  "distance": {
+    "detectRange": 22.0,
+    "attackMinRange": 5.0,
+    "attackMaxRange": 12.0,
+    "keepDistance": 8.0,
+    "tooCloseDistance": 4.0,
+    "resumeChaseDistance": 13.0
+  },
+  "move": {
+    "moveSpeed": 3.0,
+    "retreatSpeed": 2.6,
+    "rotateSpeed": 7.0
+  },
+  "attack": {
+    "cooldown": 1.5,
+    "castTime": 0.35,
+    "projectileSpeed": 12.0,
+    "projectileLifeTime": 3.0,
+    "damage": 10,
+    "attackRadius": 0.6
+  }
+}

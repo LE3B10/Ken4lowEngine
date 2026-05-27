@@ -168,6 +168,14 @@ void DebugScene::Initialize()
 		enemy->SetFloorAABBs(&stage_->GetFloorAABBs());
 		enemy->SetWallObstacleAABBs(&stage_->GetWallObstacleAABBs());
 	}
+	// 追加: 中距離敵の生成
+	debugMidRangeEnemy_ = std::make_unique<MidRangeEnemy>();
+	debugMidRangeEnemy_->Initialize();
+	debugMidRangeEnemy_->SetCenterPosition({ 2.0f, 2.5f, 18.0f });
+	debugMidRangeEnemy_->SetTarget(&meleeDummyTarget_);
+	debugMidRangeEnemy_->SetFloorAABBs(&stage_->GetFloorAABBs());
+	debugMidRangeEnemy_->SetWallObstacleAABBs(&stage_->GetWallObstacleAABBs());
+	collisionManager_->AddCollider(debugMidRangeEnemy_.get());
 }
 
 void DebugScene::Update()
@@ -189,12 +197,19 @@ void DebugScene::Update()
 		debugBoss_->Update(deltaTime);
 	}
 
-	for (auto& enemy : debugMeleeEnemies_)
+	if (useMidRangeEnemy_)
 	{
-		enemy->Update(deltaTime);
+		if (debugMidRangeEnemy_) { debugMidRangeEnemy_->Update(deltaTime); }
+	}
+	else
+	{
+		for (auto& enemy : debugMeleeEnemies_)
+		{
+			enemy->Update(deltaTime);
+		}
 	}
 	// 通常更新の後段で個体間分離を適用し、移動やジャンプの挙動を壊しにくくする。
-	ResolveMeleeEnemySeparation(deltaTime);
+	if (!useMidRangeEnemy_) { ResolveMeleeEnemySeparation(deltaTime); }
 
 	UpdateDebugBossHitTest();
 
@@ -416,7 +431,7 @@ void DebugScene::DrawImGui()
 	if (!debugMeleeEnemies_.empty())
 	{
 		selectedMeleeEnemyIndex_ = std::clamp(selectedMeleeEnemyIndex_, 0, static_cast<int>(debugMeleeEnemies_.size()) - 1);
-		debugMeleeEnemies_[selectedMeleeEnemyIndex_]->DrawImGui();
+		if (useMidRangeEnemy_) { if (debugMidRangeEnemy_) { debugMidRangeEnemy_->DrawImGui(); } } else { debugMeleeEnemies_[selectedMeleeEnemyIndex_]->DrawImGui(); }
 	}
 
 	if (frustumCullingDebug_)
@@ -436,7 +451,8 @@ void DebugScene::DrawImGui()
 
 	ImGui::End();
 
-	ImGui::Begin("MeleeEnemy Debug Target");
+	ImGui::Begin("Enemy Debug Target");
+	ImGui::Checkbox("MidRangeEnemyを使用", &useMidRangeEnemy_);
 	Vector3 targetPos = meleeDummyTarget_.GetCenterPosition();
 	float targetPosArray[3] = { targetPos.x, targetPos.y, targetPos.z };
 	if (ImGui::DragFloat3("Dummy Target Position", targetPosArray, 0.05f))
