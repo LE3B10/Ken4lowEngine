@@ -271,6 +271,7 @@ void MidRangeBombEffectController::PlaySuicideExplosionFullEffect(const Vector3&
 }
 void MidRangeBombEffectController::DrawImGui()
 {
+#ifdef USE_IMGUI
     ImGui::Checkbox("投げ演出を使う", &settings_.throwEffectEnabled);
     ImGui::Checkbox("飛行トレイルを使う", &settings_.trailEffectEnabled);
     ImGui::Checkbox("通常爆発演出を使う", &settings_.explosionEffectEnabled);
@@ -381,6 +382,8 @@ void MidRangeBombEffectController::DrawImGui()
         PlaySuicideExplosionFullEffect({ 0.0f, 0.2f, 0.0f }, 4.0f);
     }
     ValidateSettings();
+
+#endif // USE_IMGUI
 }
 
 void MidRangeBombEffectController::LoadFromJson(const nlohmann::json& j)

@@ -104,7 +104,7 @@ namespace Ken4lowEngine
 		entry.displayName = newDisplayName_;
 		std::string folder = GetDataAssetFolder(basePath_, entry.type);
 		entry.path = folder + entry.id + ".json";
-				if (entry.type == "LightPreset") { LightPreset preset; preset.ToJson(entry.data); }
+		if (entry.type == "LightPreset") { LightPreset preset; preset.ToJson(entry.data); }
 		else if (entry.type == "PostEffectPreset") { PostEffectPreset preset; preset.ToJson(entry.data); }
 		else if (entry.type == "Object3DPreset") { Object3DPreset preset; preset.ToJson(entry.data); }
 		else if (entry.type == "SpritePreset") { SpritePreset preset; preset.ToJson(entry.data); }
@@ -233,6 +233,8 @@ namespace Ken4lowEngine
 		}
 
 		ImGui::End();
+#else
+		(void)pOpen; // 未使用警告回避
 #endif
 	}
 }

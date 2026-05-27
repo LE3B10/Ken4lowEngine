@@ -953,6 +953,7 @@ void MidRangeEnemy::Draw()
 
 void MidRangeEnemy::DrawImGui()
 {
+#ifdef USE_IMGUI
     if (!ImGui::Begin("MidRangeEnemy Debug"))
     {
         ImGui::End();
@@ -1252,6 +1253,8 @@ void MidRangeEnemy::DrawImGui()
     }
 
     ImGui::End();
+
+#endif // USE_IMGUI
 }
 
 void MidRangeEnemy::ResetTuningToDefault()

@@ -4,10 +4,10 @@
 
 #include <memory>
 
-namespace Ken4lowEngine { class Sprite; }
-
 namespace Ken4lowEngine
 {
+	class Sprite;
+
 	class JsonEditorWindow
 	{
 	public:

@@ -18,8 +18,8 @@
 #ifdef USE_IMGUI
 #include <ImGuiManager.h>
 #include "Editor/EditorWindowManager.h"
-#include "JsonAssets/JsonEditorWindow.h"
 #endif // USE_IMGUI
+#include "JsonAssets/JsonEditorWindow.h"
 #include <DisplaySettings.h>
 #include <WinApp.h>
 
