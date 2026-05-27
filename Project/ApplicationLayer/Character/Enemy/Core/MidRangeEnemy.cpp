@@ -1,5 +1,4 @@
 #include "MidRangeEnemy.h"
-#include <Collider.h>
 #include <Wireframe.h>
 #include <fstream>
 #include <cmath>
@@ -86,7 +85,8 @@ void MidRangeEnemy::ThrowBomb(const Vector3& toTarget)
 	Vector3 startPos = GetCenterPosition();
 	startPos.y += bombAttackSettings_.throwHeightOffset;
 	// ビルド優先: MidRangeEnemy* を渡さず Launch の引数数を合わせる。
-	activeBomb_.Launch(startPos, startPos + toTarget, bombProjectileSettings_, target_);
+	// 修正: Launchの第4引数(owner Collider)を削除。
+	activeBomb_.Launch(startPos, startPos + toTarget, bombProjectileSettings_);
 	lastThrowReason_ = "通常投擲";
 }
 

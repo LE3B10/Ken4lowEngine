@@ -8,7 +8,6 @@
 
 namespace K4E = ::Ken4lowEngine;
 
-class Collider;
 
 struct BombProjectileSettings
 {
@@ -26,11 +25,11 @@ struct BombProjectileSettings
 class MidRangeBombProjectile
 {
 public:
+	// 修正: Collider依存を外すためLaunchのowner引数を削除。
 	void Launch(
 		const K4E::Vector3& startPosition,
 		const K4E::Vector3& targetPosition,
-		const BombProjectileSettings& settings,
-		Collider* target); // ビルド優先: owner引数を廃止して型不一致を解消。
+		const BombProjectileSettings& settings);
 
 	void Update(float deltaTime, const std::vector<K4E::AABB>* floorAabbs, const std::vector<K4E::AABB>* obstacleAabbs);
 	void DrawDebug() const;
@@ -52,8 +51,6 @@ private:
 	float lifeTimer_ = 0.0f;
 	bool exploded_ = false;
 	bool alive_ = false;
-	// ビルド優先: owner保持を廃止し、将来はownerId等で再設計する。
-	Collider* target_ = nullptr;
 	std::string debugLastReason_ = "未発射";
 	BombProjectileSettings settings_{};
 	bool directHitEvent_ = false;
