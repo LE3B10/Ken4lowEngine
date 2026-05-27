@@ -85,6 +85,7 @@ private: /// ---------- メンバ変数 ---------- ///
 	bool isDebugCamera_ = false; // デバッグカメラ使用フラグ
 
 	std::unique_ptr<CollisionManager> collisionManager_; // 衝突管理マネージャー
+	std::unique_ptr<BulletManager> bulletManager_; // 中距離敵の発射弾を管理する
 
 	// 描画確認用ボス
 	std::unique_ptr<GuardianBoss> debugBoss_;

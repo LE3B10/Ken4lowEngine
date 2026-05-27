@@ -4,6 +4,7 @@
 #include "../Navigation/EnemyAStarNavigator.h"
 #include <filesystem>
 #include <string>
+#include <vector>
 
 class BulletManager;
 
@@ -71,6 +72,10 @@ public:
 
 	void SetTarget(K4E::Collider* target) { target_ = target; }
 	void SetBulletManager(BulletManager* bm) { bulletManager_ = bm; }
+	// 追加: DebugSceneから床AABBを受け取り、移動/接地判定に使えるようにする。
+	void SetFloorAABBs(const std::vector<K4E::AABB>* aabbs) { floorAABBs_ = aabbs; }
+	// 追加: DebugSceneから壁障害物AABBを受け取り、将来の障害物回避に備える。
+	void SetWallObstacleAABBs(const std::vector<K4E::AABB>* aabbs) { wallObstacleAABBs_ = aabbs; }
 	const char* GetCurrentBehaviorName() const;
 
 private:
@@ -93,6 +98,8 @@ private:
 	MidRangeAttackSettings attackSettings_{};
 	HeadLookSettings headLookSettings_{};
 	TuningIo tuningIo_{};
+	const std::vector<K4E::AABB>* floorAABBs_ = nullptr;
+	const std::vector<K4E::AABB>* wallObstacleAABBs_ = nullptr;
 	float cooldownTimer_ = 0.0f;
 	float castTimer_ = 0.0f;
 	float yaw_ = 0.0f;

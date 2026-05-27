@@ -125,6 +125,9 @@ void DebugScene::Initialize()
 
 	collisionManager_ = std::make_unique<CollisionManager>();
 	collisionManager_->Initialize();
+	// 追加: DebugSceneでもBulletManagerを初期化し、中距離敵の弾生成先を用意する。
+	bulletManager_ = std::make_unique<BulletManager>();
+	bulletManager_->Initialize(collisionManager_.get());
 
 	debugBoss_ = std::make_unique<GuardianBoss>();
 	debugBoss_->Initialize();
@@ -173,6 +176,7 @@ void DebugScene::Initialize()
 	debugMidRangeEnemy_->Initialize();
 	debugMidRangeEnemy_->SetCenterPosition({ 2.0f, 2.5f, 18.0f });
 	debugMidRangeEnemy_->SetTarget(&meleeDummyTarget_);
+	debugMidRangeEnemy_->SetBulletManager(bulletManager_.get());
 	debugMidRangeEnemy_->SetFloorAABBs(&stage_->GetFloorAABBs());
 	debugMidRangeEnemy_->SetWallObstacleAABBs(&stage_->GetWallObstacleAABBs());
 	collisionManager_->AddCollider(debugMidRangeEnemy_.get());
@@ -228,6 +232,10 @@ void DebugScene::Update()
 	for (auto& object : cullingTestObjects_)
 	{
 		object->Update();
+	}
+	if (bulletManager_)
+	{
+		bulletManager_->Update(deltaTime);
 	}
 
 	collisionManager_->Update();
@@ -328,6 +336,14 @@ void DebugScene::Draw3DObjects()
 		debugMeleeEnemies_[i]->SetPathDebugColorOffset(static_cast<float>(i) * 0.85f);
 		debugMeleeEnemies_[i]->Draw();
 	}
+	if (debugMidRangeEnemy_)
+	{
+		debugMidRangeEnemy_->Draw();
+	}
+	if (bulletManager_)
+	{
+		bulletManager_->Draw();
+	}
 
 	if (stage_)
 	{
@@ -411,6 +427,7 @@ void DebugScene::Finalize()
 	EnemyBase::SetGlobalStageWorldAABBs(nullptr);
 	debugBoss_.reset();
 	debugMeleeEnemies_.clear();
+	bulletManager_.reset();
 	collisionManager_.reset();
 	stage_.reset();
 

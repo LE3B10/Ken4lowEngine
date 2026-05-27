@@ -80,15 +80,18 @@ void MidRangeEnemy::FireProjectile(const Vector3& toTarget)
 {
 	if (!bulletManager_) return;
 	const Vector3 dir = NormalizeXZ(toTarget);
-	auto bullet = std::make_unique<Bullet>();
-	bullet->SetCenterPosition(GetCenterPosition() + Vector3{ 0.0f, 1.2f, 0.0f });
-	bullet->SetVelocity({ dir.x * attackSettings_.projectileSpeed, 0.0f, dir.z * attackSettings_.projectileSpeed });
-	bullet->SetRadius(attackSettings_.attackRadius);
-	bullet->SetDamage(attackSettings_.damage);
-	bullet->SetLifeTime(attackSettings_.projectileLifeTime);
-	bullet->SetCollisionAttribute(CollisionTypeIdDef::kCollisionAttributeEnemyBullet);
-	bullet->SetCollisionMask(CollisionTypeIdDef::kCollisionMaskEnemyBullet);
-	bulletManager_->AddBullet(std::move(bullet));
+	// 既存のBulletManager::Spawn APIに合わせて中距離敵弾を生成する。
+	Vector3 muzzle = GetCenterPosition() + Vector3{ 0.0f, 1.2f, 0.0f };
+	muzzle = muzzle + dir * 1.0f;
+	bulletManager_->Spawn(
+		muzzle,
+		dir,
+		attackSettings_.projectileSpeed,
+		attackSettings_.damage,
+		attackSettings_.projectileLifeTime,
+		GetCenterPosition(),
+		GetUniqueID(),
+		static_cast<uint32_t>(CollisionTypeIdDef::kEnemyBullet));
 }
 
 void MidRangeEnemy::DrawImGui()
