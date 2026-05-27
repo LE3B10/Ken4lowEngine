@@ -321,6 +321,35 @@ void GamePlayIntroDirector::Update(
 		return;
 	}
 
+	if (input && input->TriggerKey(DIK_SPACE))
+	{
+		// Space入力時は最終カメラ位置へ合わせてからイントロを終了する。
+		const auto& p = cameraPoints_.back();
+
+		K4E::Vector3 camRot{};
+		if (p.aimMode == "Euler")
+		{
+			camRot = DegToRadVec(p.rotation);
+		}
+		else
+		{
+			const K4E::Vector3 target = FindLookAtPosition(
+				lookAtPoints_,
+				p.targetName,
+				p.position + K4E::Vector3{ 0.0f, 0.0f, 1.0f });
+
+			camRot = LookAtToEulerRad(p.position, target);
+		}
+
+		camera->SetTranslate(p.position);
+		camera->SetRotate(camRot);
+		camera->SetFovY(p.fov * kDegToRad);
+		camera->Update();
+
+		BeginGamePlayFromIntro(flow, stageContext, world, input, isDebugCamera);
+		return;
+	}
+
 	if (cameraPoints_.size() == 1)
 	{
 		const auto& p = cameraPoints_[0];
