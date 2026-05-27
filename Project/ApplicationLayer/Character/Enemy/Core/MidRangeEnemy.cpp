@@ -471,9 +471,7 @@ void MidRangeEnemy::ExplodeSuicideBomb(const std::string& reason)
     const float drawTime = std::max(suicideBomb_.explosionDebugDrawTime, 0.35f);
     suicideBombState_.explosionPosition = explosionPos;
     // 追加: 自爆成立時に大規模爆発演出を再生する。
-    bombEffectController_.PlaySuicideExplosionEffect(suicideBombState_.explosionPosition, suicideBomb_.explosionRadius);
-    // 追加: 自爆時はメッシュ破片も同時再生して爆発感を強化する。
-    bombEffectController_.PlaySuicideMeshExplosionEffect(suicideBombState_.explosionPosition, suicideBomb_.explosionRadius);
+    bombEffectController_.PlaySuicideExplosionFullEffect(suicideBombState_.explosionPosition, suicideBomb_.explosionRadius);
     suicideBombState_.explosionDrawTimer = drawTime;
     suicideBombState_.deathDelayTimer = 0.0f;
     suicideBombState_.active = false;

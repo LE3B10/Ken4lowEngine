@@ -119,16 +119,15 @@ void MidRangeBombProjectile::Explode()
 {
     // 追加: 爆発位置を記録して範囲表示タイマーを開始。
     explosionPosition_ = position_;
-    if (explosionPosition_.y < 0.05f)
+    if (explosionPosition_.y < 0.2f)
     {
         // 追加: 爆発演出が地面下に埋まらないよう高さを補正する。
-        explosionPosition_.y = 0.05f;
+        explosionPosition_.y = 0.2f;
     }
     if (effectController_)
     {
         // 追加: 通常爆弾はGPU爆発とメッシュ破片を同時再生する。
-        effectController_->PlayBombExplosionEffect(explosionPosition_, settings_.explosionRadius);
-        effectController_->PlayBombMeshExplosionEffect(explosionPosition_, settings_.explosionRadius);
+        effectController_->PlayBombExplosionFullEffect(explosionPosition_, settings_.explosionRadius);
     }
     exploded_ = true;
     alive_ = false;
