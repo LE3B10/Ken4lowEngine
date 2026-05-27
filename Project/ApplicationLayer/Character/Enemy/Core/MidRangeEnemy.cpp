@@ -75,6 +75,8 @@ void MidRangeEnemy::Initialize()
     EnemyBase::Initialize();
     // 追加: 初期設定の最大HPをEnemyBaseへ反映する。
     ApplyBasicStatsToEnemyBase();
+    // 追加: 爆弾専用パーティクル制御を初期化する。
+    bombEffectController_.Initialize();
     LoadTuningFromJson(tuningIo_.jsonPath, &tuningIo_.lastLoadResult);
 }
 
@@ -166,6 +168,8 @@ void MidRangeEnemy::Update(float deltaTime)
 {
     // 追加: まず基礎更新を行う。
     EnemyBase::Update(deltaTime);
+    // 追加: 早期returnがあっても演出更新が止まらないよう最初に更新する。
+    bombEffectController_.Update(deltaTime);
     // 追加: 時限爆弾モード中のHP0は通常死亡より自爆を優先する。
     if (!IsDead() && !IsDeathActive() && GetHp() <= 0)
     {
@@ -318,7 +322,10 @@ void MidRangeEnemy::Update(float deltaTime)
                 // 追加: 発射時だけ距離に応じた初速を反映する。
                 BombProjectileSettings launchSettings = bombProjectile_;
                 launchSettings.initialSpeed = CalculateBombInitialSpeed(targetState_.distance);
+                bomb->SetEffectController(&bombEffectController_);
                 bomb->Launch(start, targetState_.position, launchSettings);
+                // 追加: 投擲直後に手元で投げ演出を再生する。
+                bombEffectController_.PlayThrowEffect(start, targetState_.direction);
                 bombs_.push_back(std::move(bomb));
 
                 bombAttackState_.thrownThisCast = true;
@@ -389,6 +396,7 @@ void MidRangeEnemy::StartSuicideBombMode()
     suicideBombState_.deathDelayTimer = 0.0f;
     suicideBombState_.blinkTimer = 0.0f;
     suicideBombState_.lastReason = "HP低下で時限爆弾モード";
+    suicideChargeEffectTimer_ = 0.0f;
     behaviorState_.currentBehaviorName = "SuicideBomb";
     behaviorState_.lastReason = "HP低下で時限爆弾モード";
     bombAttackState_.casting = false;
@@ -432,6 +440,16 @@ void MidRangeEnemy::UpdateSuicideBombMode(float deltaTime)
     FaceToMoveDirection(animationState_.moveDirection, deltaTime);
     move_.rotateSpeed = originalRotateSpeed;
     animationState_.animState = AnimState::Walk;
+    suicideChargeEffectTimer_ -= deltaTime;
+    if (suicideChargeEffectTimer_ <= 0.0f)
+    {
+        // 追加: 自爆準備中の危険パーティクルを再生する。
+        bombEffectController_.PlaySuicideChargeEffect(GetCenterPosition());
+        const float timeRate = suicideBombState_.timer / std::max(suicideBomb_.timeLimit, 0.01f);
+        const auto& effectSettings = bombEffectController_.GetSettings();
+        const float interval = std::lerp(0.02f, effectSettings.suicideChargeEmitInterval, std::clamp(timeRate, 0.0f, 1.0f));
+        suicideChargeEffectTimer_ = std::max(0.01f, interval);
+    }
     behaviorState_.currentBehaviorName = "SuicideBomb";
     behaviorState_.lastReason = "時限爆弾追跡中";
 }
@@ -452,6 +470,8 @@ void MidRangeEnemy::ExplodeSuicideBomb(const std::string& reason)
     // 追加: 設定値が0でも爆発描画が見えるよう最短表示時間を保証する。
     const float drawTime = std::max(suicideBomb_.explosionDebugDrawTime, 0.35f);
     suicideBombState_.explosionPosition = explosionPos;
+    // 追加: 自爆成立時に大規模爆発演出を再生する。
+    bombEffectController_.PlaySuicideExplosionEffect(suicideBombState_.explosionPosition, suicideBomb_.explosionRadius);
     suicideBombState_.explosionDrawTimer = drawTime;
     suicideBombState_.deathDelayTimer = 0.0f;
     suicideBombState_.active = false;
@@ -771,6 +791,8 @@ float MidRangeEnemy::CalculateBombInitialSpeed(float distance) const
 void MidRangeEnemy::Draw()
 {
     EnemyBase::Draw();
+    // 追加: 死亡中でも爆発演出が残るように描画する。
+    bombEffectController_.Draw();
 
     for (const auto& bomb : bombs_)
     {
@@ -974,6 +996,11 @@ void MidRangeEnemy::DrawImGui()
         ImGui::SliderInt("爆発ダメージ", &bombProjectile_.explosionDamage, 1, 999);
         ImGui::Checkbox("直撃時に爆発ダメージも入れる", &bombProjectile_.directHitAlsoExplosionDamage);
         ImGui::Text("現在距離から計算した初速: %.2f", CalculateBombInitialSpeed(targetState_.distance));
+    }
+    if (ImGui::CollapsingHeader("爆弾エフェクト"))
+    {
+        // 追加: 爆弾エフェクト設定のデバッグUIを表示する。
+        bombEffectController_.DrawImGui();
     }
     if (ImGui::CollapsingHeader("被ダメージリアクション"))
     {
@@ -1286,6 +1313,7 @@ bool MidRangeEnemy::LoadTuningFromJson(const std::filesystem::path& path, std::s
         const auto animationJson = j.value("animation", nlohmann::json::object());
         const auto headLookJson = j.value("headLook", nlohmann::json::object());
         const auto suicideBombJson = j.value("suicideBomb", nlohmann::json::object());
+        const auto bombEffectJson = j.value("bombEffect", nlohmann::json::object());
 
         basicStats_.maxHp = basicStatsJson.value("maxHp", basicStats_.maxHp);
         basicStats_.resetHpOnLoad = basicStatsJson.value("resetHpOnLoad", basicStats_.resetHpOnLoad);
@@ -1371,6 +1399,7 @@ bool MidRangeEnemy::LoadTuningFromJson(const std::filesystem::path& path, std::s
         suicideBomb_.breakApartPower = suicideBombJson.value("breakApartPower", suicideBomb_.breakApartPower);
         suicideBomb_.breakApartUpPower = suicideBombJson.value("breakApartUpPower", suicideBomb_.breakApartUpPower);
         suicideBomb_.useTargetDirectionForBreakApart = suicideBombJson.value("useTargetDirectionForBreakApart", suicideBomb_.useTargetDirectionForBreakApart);
+        bombEffectController_.LoadFromJson(bombEffectJson);
         if (suicideBombJson.contains("blinkColorA"))
         {
             const auto& color = suicideBombJson["blinkColorA"];

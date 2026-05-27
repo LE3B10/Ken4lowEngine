@@ -1,4 +1,5 @@
 #include "MidRangeBombProjectile.h"
+#include "ApplicationLayer/Character/Enemy/Effects/MidRangeBombEffectController.h"
 
 #include "Wireframe.h"
 
@@ -16,6 +17,8 @@ void MidRangeBombProjectile::Initialize()
     explosionDrawTimer_ = 0.0f;
     exploded_ = false;
     alive_ = false;
+    trailEffectTimer_ = 0.0f;
+    effectController_ = nullptr;
 }
 
 void MidRangeBombProjectile::Launch(
@@ -32,6 +35,7 @@ void MidRangeBombProjectile::Launch(
     explosionDrawTimer_ = 0.0f;
     exploded_ = false;
     alive_ = true;
+    trailEffectTimer_ = 0.0f;
 
     Vector3 directionXZ = target - start;
     directionXZ.y = 0.0f;
@@ -75,6 +79,17 @@ void MidRangeBombProjectile::Update(float deltaTime)
         {
             Explode();
         }
+        if (effectController_)
+        {
+            // 追加: 飛行中は一定間隔でトレイル演出を出す。
+            trailEffectTimer_ -= deltaTime;
+            if (trailEffectTimer_ <= 0.0f)
+            {
+                effectController_->PlayBombTrailEffect(position_);
+                const auto& settings = effectController_->GetSettings();
+                trailEffectTimer_ = std::max(settings.trailEmitInterval, 0.01f);
+            }
+        }
     }
     else if (exploded_)
     {
@@ -103,9 +118,19 @@ void MidRangeBombProjectile::Explode()
 {
     // 追加: 爆発位置を記録して範囲表示タイマーを開始。
     explosionPosition_ = position_;
+    if (effectController_)
+    {
+        // 追加: 通常爆弾の爆発演出を再生する。
+        effectController_->PlayBombExplosionEffect(explosionPosition_, settings_.explosionRadius);
+    }
     exploded_ = true;
     alive_ = false;
     explosionDrawTimer_ = 0.2f;
+}
+void MidRangeBombProjectile::SetEffectController(MidRangeBombEffectController* effectController)
+{
+    // 追加: 所有しない演出コントローラー参照を設定する。
+    effectController_ = effectController;
 }
 
 bool MidRangeBombProjectile::IsAlive() const

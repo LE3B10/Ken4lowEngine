@@ -3,6 +3,7 @@
 #include "EnemyBase.h"
 #include "ApplicationLayer/Character/Enemy/Navigation/EnemyAStarNavigator.h"
 #include "ApplicationLayer/Character/Enemy/Projectile/MidRangeBombProjectile.h"
+#include "ApplicationLayer/Character/Enemy/Effects/MidRangeBombEffectController.h"
 
 #include <filesystem>
 #include <memory>
@@ -292,6 +293,7 @@ private:
     EnemyAStarNavigator navigator_{};
     BombAttackState bombAttackState_{};
     SuicideBombState suicideBombState_{};
+    float suicideChargeEffectTimer_ = 0.0f;
     TargetState targetState_{};
     AnimationStateData animationState_{};
     HeadLookState headLookState_{};
@@ -302,6 +304,7 @@ private:
     bool usedEnemyBaseDeathForSuicide_ = false;
     K4E::Vector3 lastSuicideBreakApartDirection_{ 0.0f, 0.0f, 1.0f };
     std::vector<std::unique_ptr<MidRangeBombProjectile>> bombs_{};
+    MidRangeBombEffectController bombEffectController_{};
     const std::vector<K4E::AABB>* floorAABBs_ = nullptr;
     const std::vector<K4E::AABB>* wallObstacleAABBs_ = nullptr;
 };
