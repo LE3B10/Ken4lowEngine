@@ -119,8 +119,8 @@ private:
     void MoveAlongPath(float deltaTime);
     void UpdateVisualAnimation(float deltaTime);
     void ResetTuningToDefault();
-    void SaveTuningToJson(const std::filesystem::path& path) const;
-    void LoadTuningFromJson(const std::filesystem::path& path);
+    bool SaveTuningToJson(const std::filesystem::path& path, std::string* outMessage = nullptr) const;
+    bool LoadTuningFromJson(const std::filesystem::path& path, std::string* outMessage = nullptr);
 
 private:
     BasicStatsSettings basicStats_{};
@@ -148,6 +148,8 @@ private:
     std::string lastReason_ = "初期化";
     std::vector<std::unique_ptr<MidRangeBombProjectile>> bombs_{};
     std::filesystem::path jsonPath_ = "Resources/DataAssets/Enemy/MidRangeEnemy/MidRangeEnemy_Normal.json";
+    std::string lastLoadResult_ = "未読み込み";
+    std::string lastSaveResult_ = "未保存";
     const std::vector<K4E::AABB>* floorAABBs_ = nullptr;
     const std::vector<K4E::AABB>* wallObstacleAABBs_ = nullptr;
 };

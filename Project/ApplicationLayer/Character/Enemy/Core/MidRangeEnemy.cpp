@@ -35,7 +35,7 @@ namespace
 void MidRangeEnemy::Initialize()
 {
     EnemyBase::Initialize();
-    LoadTuningFromJson(jsonPath_);
+    LoadTuningFromJson(jsonPath_, &lastLoadResult_);
 }
 
 void MidRangeEnemy::SetTarget(const Vector3& target)
@@ -217,16 +217,18 @@ void MidRangeEnemy::DrawImGui()
     {
         if (ImGui::Button("保存"))
         {
-            SaveTuningToJson(jsonPath_);
+            SaveTuningToJson(jsonPath_, &lastSaveResult_);
         }
         if (ImGui::Button("読み込み"))
         {
-            LoadTuningFromJson(jsonPath_);
+            LoadTuningFromJson(jsonPath_, &lastLoadResult_);
         }
         if (ImGui::Button("デフォルトに戻す"))
         {
             ResetTuningToDefault();
         }
+        ImGui::Text("読み込み結果: %s", lastLoadResult_.c_str());
+        ImGui::Text("保存結果: %s", lastSaveResult_.c_str());
     }
     if (ImGui::CollapsingHeader("基本ステータス"))
     {
@@ -293,70 +295,94 @@ void MidRangeEnemy::ResetTuningToDefault()
     headLook_ = HeadLookSettings{};
 }
 
-void MidRangeEnemy::SaveTuningToJson(const std::filesystem::path& path) const
+bool MidRangeEnemy::SaveTuningToJson(const std::filesystem::path& path, std::string* outMessage) const
 {
-    nlohmann::json j{};
-    j["basicStats"]["maxHp"] = basicStats_.maxHp;
-    j["basicStats"]["resetHpOnLoad"] = basicStats_.resetHpOnLoad;
-    j["distance"]["detectRange"] = distance_.detectRange;
-    j["distance"]["attackMinRange"] = distance_.attackMinRange;
-    j["distance"]["attackMaxRange"] = distance_.attackMaxRange;
-    j["distance"]["idealRange"] = distance_.idealRange;
-    j["distance"]["tooCloseRange"] = distance_.tooCloseRange;
-    j["move"]["moveSpeed"] = move_.moveSpeed;
-    j["move"]["retreatSpeed"] = move_.retreatSpeed;
-    j["move"]["rotateSpeed"] = move_.rotateSpeed;
-    j["bombAttack"]["cooldown"] = bombAttack_.cooldown;
-    j["bombAttack"]["castTime"] = bombAttack_.castTime;
-    j["bombAttack"]["throwHeightOffset"] = bombAttack_.throwHeightOffset;
-    j["bombProjectile"]["initialSpeed"] = bombProjectile_.initialSpeed;
-    j["path"]["pathFindEnabled"] = path_.pathFindEnabled;
-    j["path"]["repathInterval"] = path_.repathInterval;
-    j["path"]["waypointReachDistance"] = path_.waypointReachDistance;
-    j["path"]["pathGridSize"] = path_.pathGridSize;
-    j["path"]["pathSearchRadius"] = path_.pathSearchRadius;
-    j["path"]["obstacleExpandRadius"] = path_.obstacleExpandRadius;
-    j["path"]["cornerCuttingDisabled"] = path_.cornerCuttingDisabled;
-    j["animation"]["walkSwingSpeed"] = animation_.walkSwingSpeed;
-    j["animation"]["walkArmAmplitude"] = animation_.walkArmAmplitude;
-    j["animation"]["walkLegAmplitude"] = animation_.walkLegAmplitude;
-    j["headLook"]["enabled"] = headLook_.enabled;
-    j["headLook"]["maxYaw"] = headLook_.maxYaw;
-    j["headLook"]["maxPitch"] = headLook_.maxPitch;
-    j["headLook"]["followSpeed"] = headLook_.followSpeed;
-    std::filesystem::create_directories(path.parent_path());
-    std::ofstream ofs(path);
-    ofs << j.dump(4);
+    try
+    {
+        nlohmann::json j{};
+        j["basicStats"]["maxHp"] = basicStats_.maxHp;
+        j["basicStats"]["resetHpOnLoad"] = basicStats_.resetHpOnLoad;
+        j["distance"]["detectRange"] = distance_.detectRange;
+        j["distance"]["attackMinRange"] = distance_.attackMinRange;
+        j["distance"]["attackMaxRange"] = distance_.attackMaxRange;
+        j["distance"]["idealRange"] = distance_.idealRange;
+        j["distance"]["tooCloseRange"] = distance_.tooCloseRange;
+        j["move"]["moveSpeed"] = move_.moveSpeed;
+        j["move"]["retreatSpeed"] = move_.retreatSpeed;
+        j["move"]["rotateSpeed"] = move_.rotateSpeed;
+        j["bombAttack"]["cooldown"] = bombAttack_.cooldown;
+        j["bombAttack"]["castTime"] = bombAttack_.castTime;
+        j["bombAttack"]["throwHeightOffset"] = bombAttack_.throwHeightOffset;
+        j["bombProjectile"]["initialSpeed"] = bombProjectile_.initialSpeed;
+        j["path"]["pathFindEnabled"] = path_.pathFindEnabled;
+        j["path"]["repathInterval"] = path_.repathInterval;
+        j["path"]["waypointReachDistance"] = path_.waypointReachDistance;
+        j["path"]["pathGridSize"] = path_.pathGridSize;
+        j["path"]["pathSearchRadius"] = path_.pathSearchRadius;
+        j["path"]["obstacleExpandRadius"] = path_.obstacleExpandRadius;
+        j["path"]["cornerCuttingDisabled"] = path_.cornerCuttingDisabled;
+        j["animation"]["walkSwingSpeed"] = animation_.walkSwingSpeed;
+        j["animation"]["walkArmAmplitude"] = animation_.walkArmAmplitude;
+        j["animation"]["walkLegAmplitude"] = animation_.walkLegAmplitude;
+        j["headLook"]["enabled"] = headLook_.enabled;
+        j["headLook"]["maxYaw"] = headLook_.maxYaw;
+        j["headLook"]["maxPitch"] = headLook_.maxPitch;
+        j["headLook"]["followSpeed"] = headLook_.followSpeed;
+        // 保存時のみ必要ディレクトリを作成してProject配下のJSONへ書き出す。
+        std::filesystem::create_directories(path.parent_path());
+        std::ofstream ofs(path);
+        ofs << j.dump(4);
+        if (outMessage) { *outMessage = "保存成功"; }
+        return true;
+    }
+    catch (const std::exception& e)
+    {
+        if (outMessage) { *outMessage = std::string("保存失敗: ") + e.what(); }
+        return false;
+    }
 }
 
-void MidRangeEnemy::LoadTuningFromJson(const std::filesystem::path& path)
+bool MidRangeEnemy::LoadTuningFromJson(const std::filesystem::path& path, std::string* outMessage)
 {
-    std::ifstream ifs(path);
-    if (!ifs.is_open())
+    try
     {
-        return;
+        std::ifstream ifs(path);
+        if (!ifs.is_open())
+        {
+            // JSON未作成は正常ケースとしてデフォルト値で続行する。
+            if (outMessage) { *outMessage = "ファイルなし: デフォルト値を使用"; }
+            return false;
+        }
+        nlohmann::json j{};
+        ifs >> j;
+        basicStats_.maxHp = j["basicStats"].value("maxHp", basicStats_.maxHp);
+        basicStats_.resetHpOnLoad = j["basicStats"].value("resetHpOnLoad", basicStats_.resetHpOnLoad);
+        distance_.detectRange = j["distance"].value("detectRange", distance_.detectRange);
+        distance_.attackMinRange = j["distance"].value("attackMinRange", distance_.attackMinRange);
+        distance_.attackMaxRange = j["distance"].value("attackMaxRange", distance_.attackMaxRange);
+        distance_.idealRange = j["distance"].value("idealRange", distance_.idealRange);
+        distance_.tooCloseRange = j["distance"].value("tooCloseRange", distance_.tooCloseRange);
+        path_.pathFindEnabled = j["path"].value("pathFindEnabled", path_.pathFindEnabled);
+        path_.repathInterval = j["path"].value("repathInterval", path_.repathInterval);
+        path_.waypointReachDistance = j["path"].value("waypointReachDistance", path_.waypointReachDistance);
+        path_.pathGridSize = j["path"].value("pathGridSize", path_.pathGridSize);
+        path_.pathSearchRadius = j["path"].value("pathSearchRadius", path_.pathSearchRadius);
+        path_.obstacleExpandRadius = j["path"].value("obstacleExpandRadius", path_.obstacleExpandRadius);
+        path_.cornerCuttingDisabled = j["path"].value("cornerCuttingDisabled", path_.cornerCuttingDisabled);
+        animation_.walkSwingSpeed = j["animation"].value("walkSwingSpeed", animation_.walkSwingSpeed);
+        animation_.walkArmAmplitude = j["animation"].value("walkArmAmplitude", animation_.walkArmAmplitude);
+        animation_.walkLegAmplitude = j["animation"].value("walkLegAmplitude", animation_.walkLegAmplitude);
+        headLook_.enabled = j["headLook"].value("enabled", headLook_.enabled);
+        headLook_.maxYaw = j["headLook"].value("maxYaw", headLook_.maxYaw);
+        headLook_.maxPitch = j["headLook"].value("maxPitch", headLook_.maxPitch);
+        headLook_.followSpeed = j["headLook"].value("followSpeed", headLook_.followSpeed);
+        if (outMessage) { *outMessage = "読み込み成功"; }
+        return true;
     }
-    nlohmann::json j{};
-    ifs >> j;
-    basicStats_.maxHp = j["basicStats"].value("maxHp", basicStats_.maxHp);
-    basicStats_.resetHpOnLoad = j["basicStats"].value("resetHpOnLoad", basicStats_.resetHpOnLoad);
-    distance_.detectRange = j["distance"].value("detectRange", distance_.detectRange);
-    distance_.attackMinRange = j["distance"].value("attackMinRange", distance_.attackMinRange);
-    distance_.attackMaxRange = j["distance"].value("attackMaxRange", distance_.attackMaxRange);
-    distance_.idealRange = j["distance"].value("idealRange", distance_.idealRange);
-    distance_.tooCloseRange = j["distance"].value("tooCloseRange", distance_.tooCloseRange);
-    path_.pathFindEnabled = j["path"].value("pathFindEnabled", path_.pathFindEnabled);
-    path_.repathInterval = j["path"].value("repathInterval", path_.repathInterval);
-    path_.waypointReachDistance = j["path"].value("waypointReachDistance", path_.waypointReachDistance);
-    path_.pathGridSize = j["path"].value("pathGridSize", path_.pathGridSize);
-    path_.pathSearchRadius = j["path"].value("pathSearchRadius", path_.pathSearchRadius);
-    path_.obstacleExpandRadius = j["path"].value("obstacleExpandRadius", path_.obstacleExpandRadius);
-    path_.cornerCuttingDisabled = j["path"].value("cornerCuttingDisabled", path_.cornerCuttingDisabled);
-    animation_.walkSwingSpeed = j["animation"].value("walkSwingSpeed", animation_.walkSwingSpeed);
-    animation_.walkArmAmplitude = j["animation"].value("walkArmAmplitude", animation_.walkArmAmplitude);
-    animation_.walkLegAmplitude = j["animation"].value("walkLegAmplitude", animation_.walkLegAmplitude);
-    headLook_.enabled = j["headLook"].value("enabled", headLook_.enabled);
-    headLook_.maxYaw = j["headLook"].value("maxYaw", headLook_.maxYaw);
-    headLook_.maxPitch = j["headLook"].value("maxPitch", headLook_.maxPitch);
-    headLook_.followSpeed = j["headLook"].value("followSpeed", headLook_.followSpeed);
+    catch (const std::exception& e)
+    {
+        if (outMessage) { *outMessage = std::string("読み込み失敗: ") + e.what(); }
+        return false;
+    }
 }
+
