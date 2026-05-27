@@ -93,6 +93,43 @@ private:
         float pitchMaxDeg = 45.0f;
         float lerpSpeed = 12.0f;
     };
+    struct HitReactionSettings
+    {
+        bool enabled = true;
+        float duration = 0.18f;
+        float knockbackPower = 2.0f;
+        float knockbackUpPower = 0.4f;
+        float bodyLean = -0.18f;
+        float flashDuration = 0.12f;
+        bool interruptAttack = false;
+        bool stopBehaviorWhileActive = true;
+    };
+    struct HitReactionState
+    {
+        bool active = false;
+        float timer = 0.0f;
+        K4E::Vector3 knockbackDirection{};
+        std::string lastReason = "None";
+    };
+    struct DeathAnimationSettings
+    {
+        bool enabled = true;
+        float duration = 1.2f;
+        float fallRotateX = 1.35f;
+        float sinkDistance = 0.4f;
+        float fadeDelay = 0.4f;
+        float fadeDuration = 0.6f;
+        bool disableCollisionOnDeath = true;
+        bool stopMoveOnDeath = true;
+    };
+    struct DeathAnimationState
+    {
+        bool active = false;
+        float timer = 0.0f;
+        K4E::Vector3 startPosition{};
+        K4E::Vector3 startRotation{};
+        std::string lastReason = "None";
+    };
 
     struct BombAttackState
     {
@@ -176,10 +213,18 @@ private:
     void FaceToTarget(float deltaTime);
     void FaceToMoveDirection(const K4E::Vector3& moveDirection, float deltaTime);
     void MoveAlongPath(float deltaTime);
+    void StartHitReaction(const K4E::Vector3& hitDirection);
+    void UpdateHitReaction(float deltaTime);
+    void StartDeathAnimation(const std::string& reason);
+    void UpdateDeathAnimation(float deltaTime);
+    float CalculateBombInitialSpeed(float distance) const;
+    bool IsDeathActive() const;
     void UpdateVisualAnimation(float deltaTime);
     void ResetTuningToDefault();
     bool SaveTuningToJson(const std::filesystem::path& path, std::string* outMessage = nullptr) const;
     bool LoadTuningFromJson(const std::filesystem::path& path, std::string* outMessage = nullptr);
+    void TakeDamage(int amount) override;
+    void TakeDamage(int amount, const K4E::Vector3& hitDir, float hitPower) override;
 
 private:
     BasicStatsSettings basicStats_{};
@@ -191,11 +236,15 @@ private:
     PathState pathState_{};
     AnimationSettings animation_{};
     HeadLookSettings headLook_{};
+    HitReactionSettings hitReaction_{};
+    DeathAnimationSettings deathAnimation_{};
     EnemyAStarNavigator navigator_{};
     BombAttackState bombAttackState_{};
     TargetState targetState_{};
     AnimationStateData animationState_{};
     HeadLookState headLookState_{};
+    HitReactionState hitReactionState_{};
+    DeathAnimationState deathAnimationState_{};
     TuningIoState tuningIo_{};
     BehaviorState behaviorState_{};
     std::vector<std::unique_ptr<MidRangeBombProjectile>> bombs_{};

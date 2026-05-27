@@ -4,7 +4,18 @@
 
 struct BombProjectileSettings
 {
+    // 追加: 距離に応じた初速調整の基本値。
     float initialSpeed = 10.0f;
+    // 追加: 距離に応じて初速を変えるかどうか。
+    bool useDistanceBasedSpeed = true;
+    // 追加: 距離可変時の最小初速。
+    float minInitialSpeed = 7.0f;
+    // 追加: 距離可変時の最大初速。
+    float maxInitialSpeed = 16.0f;
+    // 追加: 基準距離を超えた分の距離1mあたり初速加算量。
+    float speedPerDistance = 0.55f;
+    // 追加: 初速加算を始める基準距離。
+    float speedBaseDistance = 6.0f;
     float upwardVelocity = 7.0f;
     float gravity = 18.0f;
     float lifeTime = 4.0f;

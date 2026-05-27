@@ -143,7 +143,13 @@ void MidRangeEnemy::MoveAlongPath(float deltaTime)
 
 void MidRangeEnemy::Update(float deltaTime)
 {
+    // 追加: まず基礎更新を行う。
     EnemyBase::Update(deltaTime);
+    // 追加: 死亡演出開始前はHP0到達を検知する。
+    if (!IsDeathActive() && GetHp() <= 0)
+    {
+        StartDeathAnimation("HpZero");
+    }
 
     bombAttackState_.cooldownTimer = std::max(0.0f, bombAttackState_.cooldownTimer - deltaTime);
     if (bombAttackState_.casting)
@@ -169,6 +175,23 @@ void MidRangeEnemy::Update(float deltaTime)
                 return !bomb->IsAlive();
             }),
         bombs_.end());
+    // 追加: 死亡中は死亡演出と既存爆弾更新のみ行う。
+    if (IsDeathActive())
+    {
+        UpdateDeathAnimation(deltaTime);
+        UpdateVisualAnimation(deltaTime);
+        return;
+    }
+    // 追加: 被ダメージリアクション中は専用更新を行う。
+    UpdateHitReaction(deltaTime);
+    if (hitReactionState_.active && hitReaction_.stopBehaviorWhileActive)
+    {
+        behaviorState_.currentBehaviorName = "HitReaction";
+        behaviorState_.lastReason = "被ダメージ行動停止";
+        animationState_.animState = AnimState::Idle;
+        UpdateVisualAnimation(deltaTime);
+        return;
+    }
 
     if (!HasTarget())
     {
@@ -241,7 +264,10 @@ void MidRangeEnemy::Update(float deltaTime)
                 bomb->Initialize();
                 Vector3 start = GetCenterPosition();
                 start.y += bombAttack_.throwHeightOffset;
-                bomb->Launch(start, targetState_.position, bombProjectile_);
+                // 追加: 発射時だけ距離に応じた初速を反映する。
+                BombProjectileSettings launchSettings = bombProjectile_;
+                launchSettings.initialSpeed = CalculateBombInitialSpeed(targetState_.distance);
+                bomb->Launch(start, targetState_.position, launchSettings);
                 bombs_.push_back(std::move(bomb));
 
                 bombAttackState_.thrownThisCast = true;
@@ -262,6 +288,33 @@ void MidRangeEnemy::Update(float deltaTime)
     }
 
     UpdateVisualAnimation(deltaTime);
+}
+
+void MidRangeEnemy::TakeDamage(int amount)
+{
+    // 追加: 方向不明時はターゲット逆方向でリアクションする。
+    EnemyBase::TakeDamage(amount);
+    Vector3 fallbackDir = { 0.0f, 0.0f, -1.0f };
+    if (targetState_.hasTarget)
+    {
+        fallbackDir = NormalizeXZ(GetCenterPosition() - targetState_.position);
+    }
+    StartHitReaction(fallbackDir);
+    if (GetHp() <= 0)
+    {
+        StartDeathAnimation("DamagedNoDir");
+    }
+}
+
+void MidRangeEnemy::TakeDamage(int amount, const Vector3& hitDir, float hitPower)
+{
+    // 追加: 被弾方向がある場合は逆方向へノックバックする。
+    EnemyBase::TakeDamage(amount, hitDir, hitPower);
+    StartHitReaction(hitDir * -1.0f);
+    if (GetHp() <= 0)
+    {
+        StartDeathAnimation("DamagedWithDir");
+    }
 }
 
 void MidRangeEnemy::UpdateVisualAnimation(float deltaTime)
@@ -331,9 +384,21 @@ void MidRangeEnemy::UpdateVisualAnimation(float deltaTime)
     parts_[rArm].transform.rotate_.y += ((rightArmYaw) - parts_[rArm].transform.rotate_.y) * ret;
     parts_[lLeg].transform.rotate_.x += ((-legSwing) - parts_[lLeg].transform.rotate_.x) * ret;
     parts_[rLeg].transform.rotate_.x += ((legSwing) - parts_[rLeg].transform.rotate_.x) * ret;
+    // 追加: 被ダメージ中はのけぞり量を加算する。
+    if (hitReactionState_.active)
+    {
+        bodyLean += hitReaction_.bodyLean;
+    }
+    // 追加: 死亡演出中は倒れ角を優先する。
+    if (IsDeathActive())
+    {
+        const float t = std::clamp(deathAnimationState_.timer / std::max(deathAnimation_.duration, kEpsilon), 0.0f, 1.0f);
+        bodyLean = deathAnimation_.fallRotateX * t;
+    }
     body_.transform.rotate_.x += (bodyLean - body_.transform.rotate_.x) * ret;
 
-    const bool canLook = headLook_.enabled && targetState_.hasTarget && targetState_.inDetectRange;
+    // 追加: 死亡中は頭向き制御を止める。
+    const bool canLook = headLook_.enabled && targetState_.hasTarget && targetState_.inDetectRange && !IsDeathActive();
     headLookState_.targetVisible = canLook;
     if (canLook)
     {
@@ -361,6 +426,94 @@ void MidRangeEnemy::UpdateVisualAnimation(float deltaTime)
     headLookState_.currentPitch += (headLookState_.targetPitch - headLookState_.currentPitch) * headRet;
     parts_[head].transform.rotate_.y = ToRad(headLookState_.currentYaw);
     parts_[head].transform.rotate_.x = ToRad(headLookState_.currentPitch);
+}
+
+void MidRangeEnemy::StartHitReaction(const Vector3& hitDirection)
+{
+    // 追加: 被ダメージリアクション開始。
+    if (!hitReaction_.enabled)
+    {
+        hitReactionState_.lastReason = "Disabled";
+        return;
+    }
+    hitReactionState_.active = true;
+    hitReactionState_.timer = hitReaction_.duration;
+    hitReactionState_.knockbackDirection = NormalizeXZ(hitDirection);
+    hitReactionState_.lastReason = "Damaged";
+    SetHitFlashDuration(hitReaction_.flashDuration);
+    StartHitFlash();
+    if (hitReaction_.interruptAttack)
+    {
+        bombAttackState_.casting = false;
+        bombAttackState_.castTimer = 0.0f;
+        bombAttackState_.thrownThisCast = false;
+        bombAttackState_.lastReason = "InterruptedByHitReaction";
+    }
+}
+
+void MidRangeEnemy::UpdateHitReaction(float deltaTime)
+{
+    if (!hitReactionState_.active)
+    {
+        return;
+    }
+    hitReactionState_.timer -= deltaTime;
+    Vector3 move = hitReactionState_.knockbackDirection * hitReaction_.knockbackPower * deltaTime;
+    move.y += hitReaction_.knockbackUpPower * deltaTime;
+    SetCenterPosition(GetCenterPosition() + move);
+    if (hitReactionState_.timer <= 0.0f)
+    {
+        hitReactionState_.active = false;
+        hitReactionState_.timer = 0.0f;
+        hitReactionState_.lastReason = "Finished";
+    }
+}
+
+void MidRangeEnemy::StartDeathAnimation(const std::string& reason)
+{
+    if (deathAnimationState_.active)
+    {
+        return;
+    }
+    deathAnimationState_.active = true;
+    deathAnimationState_.timer = 0.0f;
+    deathAnimationState_.startPosition = GetCenterPosition();
+    deathAnimationState_.startRotation = body_.transform.rotate_;
+    deathAnimationState_.lastReason = reason;
+    animationState_.animState = AnimState::Dead;
+    if (deathAnimation_.stopMoveOnDeath)
+    {
+        SetVelocity({ 0.0f, 0.0f, 0.0f });
+    }
+}
+
+void MidRangeEnemy::UpdateDeathAnimation(float deltaTime)
+{
+    if (!deathAnimationState_.active)
+    {
+        return;
+    }
+    deathAnimationState_.timer += deltaTime;
+    const float t = std::clamp(deathAnimationState_.timer / std::max(deathAnimation_.duration, kEpsilon), 0.0f, 1.0f);
+    Vector3 pos = deathAnimationState_.startPosition;
+    pos.y -= deathAnimation_.sinkDistance * t;
+    SetCenterPosition(pos);
+}
+
+bool MidRangeEnemy::IsDeathActive() const
+{
+    return deathAnimationState_.active;
+}
+
+float MidRangeEnemy::CalculateBombInitialSpeed(float distance) const
+{
+    if (!bombProjectile_.useDistanceBasedSpeed)
+    {
+        return bombProjectile_.initialSpeed;
+    }
+    const float distanceOverBase = std::max(0.0f, distance - bombProjectile_.speedBaseDistance);
+    const float speed = bombProjectile_.initialSpeed + distanceOverBase * bombProjectile_.speedPerDistance;
+    return std::clamp(speed, bombProjectile_.minInitialSpeed, bombProjectile_.maxInitialSpeed);
 }
 
 void MidRangeEnemy::Draw()
@@ -415,6 +568,19 @@ void MidRangeEnemy::DrawImGui()
     if (ImGui::CollapsingHeader("基本ステータス"))
     {
         ImGui::DragInt("最大HP", &basicStats_.maxHp, 1, 1, 9999);
+        ImGui::Checkbox("読み込み時にHPを最大に戻す", &basicStats_.resetHpOnLoad);
+        ImGui::Text("現在HP: %d", GetHp());
+        ImGui::Text("最大HP: %d", GetMaxHp());
+        if (ImGui::Button("10ダメージを与える"))
+        {
+            // 追加: デバッグ用ダメージボタン。
+            TakeDamage(10);
+        }
+        if (ImGui::Button("死亡演出を再生"))
+        {
+            // 追加: デバッグ用死亡演出ボタン。
+            StartDeathAnimation("DebugButton");
+        }
     }
     if (ImGui::CollapsingHeader("検知・距離"))
     {
@@ -439,6 +605,40 @@ void MidRangeEnemy::DrawImGui()
     if (ImGui::CollapsingHeader("爆弾Projectile"))
     {
         ImGui::SliderFloat("初速", &bombProjectile_.initialSpeed, 0.0f, 60.0f);
+        ImGui::Checkbox("距離で初速を変える", &bombProjectile_.useDistanceBasedSpeed);
+        ImGui::SliderFloat("最小初速", &bombProjectile_.minInitialSpeed, 0.0f, 60.0f);
+        ImGui::SliderFloat("最大初速", &bombProjectile_.maxInitialSpeed, 0.0f, 60.0f);
+        ImGui::SliderFloat("距離ごとの初速加算", &bombProjectile_.speedPerDistance, 0.0f, 4.0f);
+        ImGui::SliderFloat("基準距離", &bombProjectile_.speedBaseDistance, 0.0f, 30.0f);
+        ImGui::Text("現在距離から計算した初速: %.2f", CalculateBombInitialSpeed(targetState_.distance));
+    }
+    if (ImGui::CollapsingHeader("被ダメージリアクション"))
+    {
+        ImGui::Checkbox("被ダメージリアクションを使う", &hitReaction_.enabled);
+        ImGui::SliderFloat("ひるみ時間", &hitReaction_.duration, 0.01f, 2.0f);
+        ImGui::SliderFloat("ノックバック力", &hitReaction_.knockbackPower, 0.0f, 8.0f);
+        ImGui::SliderFloat("上方向ノックバック", &hitReaction_.knockbackUpPower, 0.0f, 3.0f);
+        ImGui::SliderFloat("のけぞり量", &hitReaction_.bodyLean, -1.0f, 1.0f);
+        ImGui::SliderFloat("フラッシュ時間", &hitReaction_.flashDuration, 0.01f, 1.0f);
+        ImGui::Checkbox("攻撃を中断する", &hitReaction_.interruptAttack);
+        ImGui::Checkbox("リアクション中は行動停止", &hitReaction_.stopBehaviorWhileActive);
+        ImGui::Text("リアクション中: %s", hitReactionState_.active ? "はい" : "いいえ");
+        ImGui::Text("リアクション残り時間: %.2f", hitReactionState_.timer);
+        ImGui::Text("最後のリアクション理由: %s", hitReactionState_.lastReason.c_str());
+    }
+    if (ImGui::CollapsingHeader("死亡演出"))
+    {
+        ImGui::Checkbox("死亡演出を使う", &deathAnimation_.enabled);
+        ImGui::SliderFloat("死亡演出時間", &deathAnimation_.duration, 0.1f, 4.0f);
+        ImGui::SliderFloat("倒れる角度X", &deathAnimation_.fallRotateX, -3.14f, 3.14f);
+        ImGui::SliderFloat("沈む距離", &deathAnimation_.sinkDistance, 0.0f, 2.0f);
+        ImGui::SliderFloat("フェード開始時間", &deathAnimation_.fadeDelay, 0.0f, 3.0f);
+        ImGui::SliderFloat("フェード時間", &deathAnimation_.fadeDuration, 0.0f, 3.0f);
+        ImGui::Checkbox("死亡時にコリジョン無効", &deathAnimation_.disableCollisionOnDeath);
+        ImGui::Checkbox("死亡時に移動停止", &deathAnimation_.stopMoveOnDeath);
+        ImGui::Text("死亡演出中: %s", deathAnimationState_.active ? "はい" : "いいえ");
+        ImGui::Text("死亡演出時間: %.2f", deathAnimationState_.timer);
+        ImGui::Text("最後の死亡理由: %s", deathAnimationState_.lastReason.c_str());
     }
     if (ImGui::CollapsingHeader("経路探索"))
     {
@@ -474,6 +674,9 @@ void MidRangeEnemy::DrawImGui()
         ImGui::Text("現在行動: %s", behaviorState_.currentBehaviorName.c_str());
         ImGui::Text("最後の理由: %s", behaviorState_.lastReason.c_str());
         ImGui::Text("ターゲット距離: %.2f", targetState_.distance);
+        ImGui::Text("現在計算された爆弾初速: %.2f", CalculateBombInitialSpeed(targetState_.distance));
+        ImGui::Text("死亡中か: %s", IsDeathActive() ? "はい" : "いいえ");
+        ImGui::Text("被ダメージリアクション中か: %s", hitReactionState_.active ? "はい" : "いいえ");
         ImGui::Text("検知中: %s", targetState_.inDetectRange ? "はい" : "いいえ");
         ImGui::Text("攻撃範囲内: %s", targetState_.inAttackRange ? "はい" : "いいえ");
         ImGui::Text("近すぎる: %s", targetState_.tooClose ? "はい" : "いいえ");
@@ -497,6 +700,8 @@ void MidRangeEnemy::ResetTuningToDefault()
     path_ = PathSettings{};
     animation_ = AnimationSettings{};
     headLook_ = HeadLookSettings{};
+    hitReaction_ = HitReactionSettings{};
+    deathAnimation_ = DeathAnimationSettings{};
 }
 
 bool MidRangeEnemy::SaveTuningToJson(const std::filesystem::path& path, std::string* outMessage) const
@@ -518,6 +723,35 @@ bool MidRangeEnemy::SaveTuningToJson(const std::filesystem::path& path, std::str
         j["bombAttack"]["castTime"] = bombAttack_.castTime;
         j["bombAttack"]["throwHeightOffset"] = bombAttack_.throwHeightOffset;
         j["bombProjectile"]["initialSpeed"] = bombProjectile_.initialSpeed;
+        j["bombProjectile"]["useDistanceBasedSpeed"] = bombProjectile_.useDistanceBasedSpeed;
+        j["bombProjectile"]["minInitialSpeed"] = bombProjectile_.minInitialSpeed;
+        j["bombProjectile"]["maxInitialSpeed"] = bombProjectile_.maxInitialSpeed;
+        j["bombProjectile"]["speedPerDistance"] = bombProjectile_.speedPerDistance;
+        j["bombProjectile"]["speedBaseDistance"] = bombProjectile_.speedBaseDistance;
+        j["bombProjectile"]["upwardVelocity"] = bombProjectile_.upwardVelocity;
+        j["bombProjectile"]["gravity"] = bombProjectile_.gravity;
+        j["bombProjectile"]["lifeTime"] = bombProjectile_.lifeTime;
+        j["bombProjectile"]["hitRadius"] = bombProjectile_.hitRadius;
+        j["bombProjectile"]["explosionRadius"] = bombProjectile_.explosionRadius;
+        j["bombProjectile"]["directHitDamage"] = bombProjectile_.directHitDamage;
+        j["bombProjectile"]["explosionDamage"] = bombProjectile_.explosionDamage;
+        j["bombProjectile"]["directHitAlsoExplosionDamage"] = bombProjectile_.directHitAlsoExplosionDamage;
+        j["hitReaction"]["hitReactionEnabled"] = hitReaction_.enabled;
+        j["hitReaction"]["hitReactionDuration"] = hitReaction_.duration;
+        j["hitReaction"]["hitReactionKnockbackPower"] = hitReaction_.knockbackPower;
+        j["hitReaction"]["hitReactionKnockbackUpPower"] = hitReaction_.knockbackUpPower;
+        j["hitReaction"]["hitReactionBodyLean"] = hitReaction_.bodyLean;
+        j["hitReaction"]["hitReactionFlashDuration"] = hitReaction_.flashDuration;
+        j["hitReaction"]["hitReactionInterruptAttack"] = hitReaction_.interruptAttack;
+        j["hitReaction"]["hitReactionStopBehaviorWhileActive"] = hitReaction_.stopBehaviorWhileActive;
+        j["deathAnimation"]["deathAnimationEnabled"] = deathAnimation_.enabled;
+        j["deathAnimation"]["deathAnimationDuration"] = deathAnimation_.duration;
+        j["deathAnimation"]["deathAnimationFallRotateX"] = deathAnimation_.fallRotateX;
+        j["deathAnimation"]["deathAnimationSinkDistance"] = deathAnimation_.sinkDistance;
+        j["deathAnimation"]["deathAnimationFadeDelay"] = deathAnimation_.fadeDelay;
+        j["deathAnimation"]["deathAnimationFadeDuration"] = deathAnimation_.fadeDuration;
+        j["deathAnimation"]["deathAnimationDisableCollisionOnDeath"] = deathAnimation_.disableCollisionOnDeath;
+        j["deathAnimation"]["deathAnimationStopMoveOnDeath"] = deathAnimation_.stopMoveOnDeath;
         j["path"]["pathFindEnabled"] = path_.pathFindEnabled;
         j["path"]["repathInterval"] = path_.repathInterval;
         j["path"]["waypointReachDistance"] = path_.waypointReachDistance;
@@ -589,6 +823,35 @@ bool MidRangeEnemy::LoadTuningFromJson(const std::filesystem::path& path, std::s
         bombAttack_.castTime = j["bombAttack"].value("castTime", bombAttack_.castTime);
         bombAttack_.throwHeightOffset = j["bombAttack"].value("throwHeightOffset", bombAttack_.throwHeightOffset);
         bombProjectile_.initialSpeed = j["bombProjectile"].value("initialSpeed", bombProjectile_.initialSpeed);
+        bombProjectile_.useDistanceBasedSpeed = j["bombProjectile"].value("useDistanceBasedSpeed", bombProjectile_.useDistanceBasedSpeed);
+        bombProjectile_.minInitialSpeed = j["bombProjectile"].value("minInitialSpeed", bombProjectile_.minInitialSpeed);
+        bombProjectile_.maxInitialSpeed = j["bombProjectile"].value("maxInitialSpeed", bombProjectile_.maxInitialSpeed);
+        bombProjectile_.speedPerDistance = j["bombProjectile"].value("speedPerDistance", bombProjectile_.speedPerDistance);
+        bombProjectile_.speedBaseDistance = j["bombProjectile"].value("speedBaseDistance", bombProjectile_.speedBaseDistance);
+        bombProjectile_.upwardVelocity = j["bombProjectile"].value("upwardVelocity", bombProjectile_.upwardVelocity);
+        bombProjectile_.gravity = j["bombProjectile"].value("gravity", bombProjectile_.gravity);
+        bombProjectile_.lifeTime = j["bombProjectile"].value("lifeTime", bombProjectile_.lifeTime);
+        bombProjectile_.hitRadius = j["bombProjectile"].value("hitRadius", bombProjectile_.hitRadius);
+        bombProjectile_.explosionRadius = j["bombProjectile"].value("explosionRadius", bombProjectile_.explosionRadius);
+        bombProjectile_.directHitDamage = j["bombProjectile"].value("directHitDamage", bombProjectile_.directHitDamage);
+        bombProjectile_.explosionDamage = j["bombProjectile"].value("explosionDamage", bombProjectile_.explosionDamage);
+        bombProjectile_.directHitAlsoExplosionDamage = j["bombProjectile"].value("directHitAlsoExplosionDamage", bombProjectile_.directHitAlsoExplosionDamage);
+        hitReaction_.enabled = j["hitReaction"].value("hitReactionEnabled", hitReaction_.enabled);
+        hitReaction_.duration = j["hitReaction"].value("hitReactionDuration", hitReaction_.duration);
+        hitReaction_.knockbackPower = j["hitReaction"].value("hitReactionKnockbackPower", hitReaction_.knockbackPower);
+        hitReaction_.knockbackUpPower = j["hitReaction"].value("hitReactionKnockbackUpPower", hitReaction_.knockbackUpPower);
+        hitReaction_.bodyLean = j["hitReaction"].value("hitReactionBodyLean", hitReaction_.bodyLean);
+        hitReaction_.flashDuration = j["hitReaction"].value("hitReactionFlashDuration", hitReaction_.flashDuration);
+        hitReaction_.interruptAttack = j["hitReaction"].value("hitReactionInterruptAttack", hitReaction_.interruptAttack);
+        hitReaction_.stopBehaviorWhileActive = j["hitReaction"].value("hitReactionStopBehaviorWhileActive", hitReaction_.stopBehaviorWhileActive);
+        deathAnimation_.enabled = j["deathAnimation"].value("deathAnimationEnabled", deathAnimation_.enabled);
+        deathAnimation_.duration = j["deathAnimation"].value("deathAnimationDuration", deathAnimation_.duration);
+        deathAnimation_.fallRotateX = j["deathAnimation"].value("deathAnimationFallRotateX", deathAnimation_.fallRotateX);
+        deathAnimation_.sinkDistance = j["deathAnimation"].value("deathAnimationSinkDistance", deathAnimation_.sinkDistance);
+        deathAnimation_.fadeDelay = j["deathAnimation"].value("deathAnimationFadeDelay", deathAnimation_.fadeDelay);
+        deathAnimation_.fadeDuration = j["deathAnimation"].value("deathAnimationFadeDuration", deathAnimation_.fadeDuration);
+        deathAnimation_.disableCollisionOnDeath = j["deathAnimation"].value("deathAnimationDisableCollisionOnDeath", deathAnimation_.disableCollisionOnDeath);
+        deathAnimation_.stopMoveOnDeath = j["deathAnimation"].value("deathAnimationStopMoveOnDeath", deathAnimation_.stopMoveOnDeath);
         path_.pathFindEnabled = j["path"].value("pathFindEnabled", path_.pathFindEnabled);
         path_.repathInterval = j["path"].value("repathInterval", path_.repathInterval);
         path_.waypointReachDistance = j["path"].value("waypointReachDistance", path_.waypointReachDistance);
