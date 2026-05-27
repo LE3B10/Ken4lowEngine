@@ -60,6 +60,8 @@ namespace
 void MidRangeEnemy::Initialize()
 {
     EnemyBase::Initialize();
+    // 追加: 初期設定の最大HPをEnemyBaseへ反映する。
+    ApplyBasicStatsToEnemyBase();
     LoadTuningFromJson(tuningIo_.jsonPath, &tuningIo_.lastLoadResult);
 }
 
@@ -410,8 +412,10 @@ void MidRangeEnemy::UpdateVisualAnimation(float deltaTime)
 
         const float dy = targetState_.position.y - (GetCenterPosition().y + 2.0f);
         const float flat = std::max(LengthXZ(dir), kEpsilon);
-        const float pitchDeg = ToDeg(std::atan2(dy, flat));
-        headLookState_.targetPitch = std::clamp(pitchDeg, headLook_.pitchMinDeg, headLook_.pitchMaxDeg);
+        // 追加: Pitch符号を調整して頭向きの上下反転を補正する。
+        const float rawPitchDeg = ToDeg(std::atan2(dy, flat));
+        const float signedPitchDeg = rawPitchDeg * headLook_.pitchSign;
+        headLookState_.targetPitch = std::clamp(signedPitchDeg, headLook_.pitchMinDeg, headLook_.pitchMaxDeg);
         headLookState_.reason = "TargetInRange";
     }
     else
@@ -663,9 +667,14 @@ void MidRangeEnemy::DrawImGui()
     {
         ImGui::Checkbox("頭をターゲットへ向ける", &headLook_.enabled);
         ImGui::SliderFloat("Yaw制限", &headLook_.yawLimitDeg, 0.0f, 180.0f);
-        ImGui::SliderFloat("Pitch最小", &headLook_.pitchMinDeg, -89.0f, 0.0f);
-        ImGui::SliderFloat("Pitch最大", &headLook_.pitchMaxDeg, 0.0f, 89.0f);
+        ImGui::SliderFloat("Pitch最小", &headLook_.pitchMinDeg, -180.0f, 180.0f);
+        ImGui::SliderFloat("Pitch最大", &headLook_.pitchMaxDeg, -180.0f, 180.0f);
+        ImGui::SliderFloat("Pitch符号", &headLook_.pitchSign, -1.0f, 1.0f);
         ImGui::SliderFloat("補間速度", &headLook_.lerpSpeed, 0.1f, 30.0f);
+        ImGui::Text("現在Yaw: %.2f", headLookState_.currentYaw);
+        ImGui::Text("現在Pitch: %.2f", headLookState_.currentPitch);
+        ImGui::Text("目標Yaw: %.2f", headLookState_.targetYaw);
+        ImGui::Text("目標Pitch: %.2f", headLookState_.targetPitch);
         ImGui::Text("頭がターゲットを見ているか: %s", headLookState_.targetVisible ? "はい" : "いいえ");
         ImGui::Text("頭向き理由: %s", headLookState_.reason.c_str());
     }
@@ -702,6 +711,18 @@ void MidRangeEnemy::ResetTuningToDefault()
     headLook_ = HeadLookSettings{};
     hitReaction_ = HitReactionSettings{};
     deathAnimation_ = DeathAnimationSettings{};
+    // 追加: デフォルト復帰後も最大HPをEnemyBaseへ反映する。
+    ApplyBasicStatsToEnemyBase();
+}
+
+void MidRangeEnemy::ApplyBasicStatsToEnemyBase()
+{
+    // 追加: JSON/デフォルト反映時に最大HPをEnemyBaseへ同期する。
+    SetMaxHp(basicStats_.maxHp);
+    if (basicStats_.resetHpOnLoad)
+    {
+        SetCurrentHp(basicStats_.maxHp);
+    }
 }
 
 bool MidRangeEnemy::SaveTuningToJson(const std::filesystem::path& path, std::string* outMessage) const
@@ -772,6 +793,7 @@ bool MidRangeEnemy::SaveTuningToJson(const std::filesystem::path& path, std::str
         j["headLook"]["yawLimitDeg"] = headLook_.yawLimitDeg;
         j["headLook"]["pitchMinDeg"] = headLook_.pitchMinDeg;
         j["headLook"]["pitchMaxDeg"] = headLook_.pitchMaxDeg;
+        j["headLook"]["pitchSign"] = headLook_.pitchSign;
         j["headLook"]["lerpSpeed"] = headLook_.lerpSpeed;
 
         std::filesystem::create_directories(path.parent_path());
@@ -809,70 +831,85 @@ bool MidRangeEnemy::LoadTuningFromJson(const std::filesystem::path& path, std::s
 
         nlohmann::json j{};
         ifs >> j;
-        basicStats_.maxHp = j["basicStats"].value("maxHp", basicStats_.maxHp);
-        basicStats_.resetHpOnLoad = j["basicStats"].value("resetHpOnLoad", basicStats_.resetHpOnLoad);
-        distance_.detectRange = j["distance"].value("detectRange", distance_.detectRange);
-        distance_.attackMinRange = j["distance"].value("attackMinRange", distance_.attackMinRange);
-        distance_.attackMaxRange = j["distance"].value("attackMaxRange", distance_.attackMaxRange);
-        distance_.idealRange = j["distance"].value("idealRange", distance_.idealRange);
-        distance_.tooCloseRange = j["distance"].value("tooCloseRange", distance_.tooCloseRange);
-        move_.moveSpeed = j["move"].value("moveSpeed", move_.moveSpeed);
-        move_.retreatSpeed = j["move"].value("retreatSpeed", move_.retreatSpeed);
-        move_.rotateSpeed = j["move"].value("rotateSpeed", move_.rotateSpeed);
-        bombAttack_.cooldown = j["bombAttack"].value("cooldown", bombAttack_.cooldown);
-        bombAttack_.castTime = j["bombAttack"].value("castTime", bombAttack_.castTime);
-        bombAttack_.throwHeightOffset = j["bombAttack"].value("throwHeightOffset", bombAttack_.throwHeightOffset);
-        bombProjectile_.initialSpeed = j["bombProjectile"].value("initialSpeed", bombProjectile_.initialSpeed);
-        bombProjectile_.useDistanceBasedSpeed = j["bombProjectile"].value("useDistanceBasedSpeed", bombProjectile_.useDistanceBasedSpeed);
-        bombProjectile_.minInitialSpeed = j["bombProjectile"].value("minInitialSpeed", bombProjectile_.minInitialSpeed);
-        bombProjectile_.maxInitialSpeed = j["bombProjectile"].value("maxInitialSpeed", bombProjectile_.maxInitialSpeed);
-        bombProjectile_.speedPerDistance = j["bombProjectile"].value("speedPerDistance", bombProjectile_.speedPerDistance);
-        bombProjectile_.speedBaseDistance = j["bombProjectile"].value("speedBaseDistance", bombProjectile_.speedBaseDistance);
-        bombProjectile_.upwardVelocity = j["bombProjectile"].value("upwardVelocity", bombProjectile_.upwardVelocity);
-        bombProjectile_.gravity = j["bombProjectile"].value("gravity", bombProjectile_.gravity);
-        bombProjectile_.lifeTime = j["bombProjectile"].value("lifeTime", bombProjectile_.lifeTime);
-        bombProjectile_.hitRadius = j["bombProjectile"].value("hitRadius", bombProjectile_.hitRadius);
-        bombProjectile_.explosionRadius = j["bombProjectile"].value("explosionRadius", bombProjectile_.explosionRadius);
-        bombProjectile_.directHitDamage = j["bombProjectile"].value("directHitDamage", bombProjectile_.directHitDamage);
-        bombProjectile_.explosionDamage = j["bombProjectile"].value("explosionDamage", bombProjectile_.explosionDamage);
-        bombProjectile_.directHitAlsoExplosionDamage = j["bombProjectile"].value("directHitAlsoExplosionDamage", bombProjectile_.directHitAlsoExplosionDamage);
-        hitReaction_.enabled = j["hitReaction"].value("hitReactionEnabled", hitReaction_.enabled);
-        hitReaction_.duration = j["hitReaction"].value("hitReactionDuration", hitReaction_.duration);
-        hitReaction_.knockbackPower = j["hitReaction"].value("hitReactionKnockbackPower", hitReaction_.knockbackPower);
-        hitReaction_.knockbackUpPower = j["hitReaction"].value("hitReactionKnockbackUpPower", hitReaction_.knockbackUpPower);
-        hitReaction_.bodyLean = j["hitReaction"].value("hitReactionBodyLean", hitReaction_.bodyLean);
-        hitReaction_.flashDuration = j["hitReaction"].value("hitReactionFlashDuration", hitReaction_.flashDuration);
-        hitReaction_.interruptAttack = j["hitReaction"].value("hitReactionInterruptAttack", hitReaction_.interruptAttack);
-        hitReaction_.stopBehaviorWhileActive = j["hitReaction"].value("hitReactionStopBehaviorWhileActive", hitReaction_.stopBehaviorWhileActive);
-        deathAnimation_.enabled = j["deathAnimation"].value("deathAnimationEnabled", deathAnimation_.enabled);
-        deathAnimation_.duration = j["deathAnimation"].value("deathAnimationDuration", deathAnimation_.duration);
-        deathAnimation_.fallRotateX = j["deathAnimation"].value("deathAnimationFallRotateX", deathAnimation_.fallRotateX);
-        deathAnimation_.sinkDistance = j["deathAnimation"].value("deathAnimationSinkDistance", deathAnimation_.sinkDistance);
-        deathAnimation_.fadeDelay = j["deathAnimation"].value("deathAnimationFadeDelay", deathAnimation_.fadeDelay);
-        deathAnimation_.fadeDuration = j["deathAnimation"].value("deathAnimationFadeDuration", deathAnimation_.fadeDuration);
-        deathAnimation_.disableCollisionOnDeath = j["deathAnimation"].value("deathAnimationDisableCollisionOnDeath", deathAnimation_.disableCollisionOnDeath);
-        deathAnimation_.stopMoveOnDeath = j["deathAnimation"].value("deathAnimationStopMoveOnDeath", deathAnimation_.stopMoveOnDeath);
-        path_.pathFindEnabled = j["path"].value("pathFindEnabled", path_.pathFindEnabled);
-        path_.repathInterval = j["path"].value("repathInterval", path_.repathInterval);
-        path_.waypointReachDistance = j["path"].value("waypointReachDistance", path_.waypointReachDistance);
-        path_.pathGridSize = j["path"].value("pathGridSize", path_.pathGridSize);
-        path_.pathSearchRadius = j["path"].value("pathSearchRadius", path_.pathSearchRadius);
-        path_.obstacleExpandRadius = j["path"].value("obstacleExpandRadius", path_.obstacleExpandRadius);
-        path_.cornerCuttingDisabled = j["path"].value("cornerCuttingDisabled", path_.cornerCuttingDisabled);
-        animation_.walkSwingSpeed = j["animation"].value("walkSwingSpeed", animation_.walkSwingSpeed);
-        animation_.walkArmAmplitude = j["animation"].value("walkArmAmplitude", animation_.walkArmAmplitude);
-        animation_.walkLegAmplitude = j["animation"].value("walkLegAmplitude", animation_.walkLegAmplitude);
-        animation_.castArmPitch = j["animation"].value("castArmPitch", animation_.castArmPitch);
-        animation_.castArmYaw = j["animation"].value("castArmYaw", animation_.castArmYaw);
-        animation_.throwArmPitch = j["animation"].value("throwArmPitch", animation_.throwArmPitch);
-        animation_.bodyCastLean = j["animation"].value("bodyCastLean", animation_.bodyCastLean);
-        animation_.throwBodyLean = j["animation"].value("throwBodyLean", animation_.throwBodyLean);
-        animation_.returnSpeed = j["animation"].value("returnSpeed", animation_.returnSpeed);
-        headLook_.enabled = j["headLook"].value("enabled", headLook_.enabled);
-        headLook_.yawLimitDeg = j["headLook"].value("yawLimitDeg", headLook_.yawLimitDeg);
-        headLook_.pitchMinDeg = j["headLook"].value("pitchMinDeg", headLook_.pitchMinDeg);
-        headLook_.pitchMaxDeg = j["headLook"].value("pitchMaxDeg", headLook_.pitchMaxDeg);
-        headLook_.lerpSpeed = j["headLook"].value("lerpSpeed", headLook_.lerpSpeed);
+        // 追加: JSONカテゴリ欠損時も既定値で安全に読み込む。
+        const auto basicStatsJson = j.value("basicStats", nlohmann::json::object());
+        const auto distanceJson = j.value("distance", nlohmann::json::object());
+        const auto moveJson = j.value("move", nlohmann::json::object());
+        const auto bombAttackJson = j.value("bombAttack", nlohmann::json::object());
+        const auto bombProjectileJson = j.value("bombProjectile", nlohmann::json::object());
+        const auto hitReactionJson = j.value("hitReaction", nlohmann::json::object());
+        const auto deathAnimationJson = j.value("deathAnimation", nlohmann::json::object());
+        const auto pathJson = j.value("path", nlohmann::json::object());
+        const auto animationJson = j.value("animation", nlohmann::json::object());
+        const auto headLookJson = j.value("headLook", nlohmann::json::object());
+
+        basicStats_.maxHp = basicStatsJson.value("maxHp", basicStats_.maxHp);
+        basicStats_.resetHpOnLoad = basicStatsJson.value("resetHpOnLoad", basicStats_.resetHpOnLoad);
+        distance_.detectRange = distanceJson.value("detectRange", distance_.detectRange);
+        distance_.attackMinRange = distanceJson.value("attackMinRange", distance_.attackMinRange);
+        distance_.attackMaxRange = distanceJson.value("attackMaxRange", distance_.attackMaxRange);
+        distance_.idealRange = distanceJson.value("idealRange", distance_.idealRange);
+        distance_.tooCloseRange = distanceJson.value("tooCloseRange", distance_.tooCloseRange);
+        move_.moveSpeed = moveJson.value("moveSpeed", move_.moveSpeed);
+        move_.retreatSpeed = moveJson.value("retreatSpeed", move_.retreatSpeed);
+        move_.rotateSpeed = moveJson.value("rotateSpeed", move_.rotateSpeed);
+        bombAttack_.cooldown = bombAttackJson.value("cooldown", bombAttack_.cooldown);
+        bombAttack_.castTime = bombAttackJson.value("castTime", bombAttack_.castTime);
+        bombAttack_.throwHeightOffset = bombAttackJson.value("throwHeightOffset", bombAttack_.throwHeightOffset);
+        bombProjectile_.initialSpeed = bombProjectileJson.value("initialSpeed", bombProjectile_.initialSpeed);
+        bombProjectile_.useDistanceBasedSpeed = bombProjectileJson.value("useDistanceBasedSpeed", bombProjectile_.useDistanceBasedSpeed);
+        bombProjectile_.minInitialSpeed = bombProjectileJson.value("minInitialSpeed", bombProjectile_.minInitialSpeed);
+        bombProjectile_.maxInitialSpeed = bombProjectileJson.value("maxInitialSpeed", bombProjectile_.maxInitialSpeed);
+        bombProjectile_.speedPerDistance = bombProjectileJson.value("speedPerDistance", bombProjectile_.speedPerDistance);
+        bombProjectile_.speedBaseDistance = bombProjectileJson.value("speedBaseDistance", bombProjectile_.speedBaseDistance);
+        bombProjectile_.upwardVelocity = bombProjectileJson.value("upwardVelocity", bombProjectile_.upwardVelocity);
+        bombProjectile_.gravity = bombProjectileJson.value("gravity", bombProjectile_.gravity);
+        bombProjectile_.lifeTime = bombProjectileJson.value("lifeTime", bombProjectile_.lifeTime);
+        bombProjectile_.hitRadius = bombProjectileJson.value("hitRadius", bombProjectile_.hitRadius);
+        bombProjectile_.explosionRadius = bombProjectileJson.value("explosionRadius", bombProjectile_.explosionRadius);
+        bombProjectile_.directHitDamage = bombProjectileJson.value("directHitDamage", bombProjectile_.directHitDamage);
+        bombProjectile_.explosionDamage = bombProjectileJson.value("explosionDamage", bombProjectile_.explosionDamage);
+        bombProjectile_.directHitAlsoExplosionDamage = bombProjectileJson.value("directHitAlsoExplosionDamage", bombProjectile_.directHitAlsoExplosionDamage);
+        hitReaction_.enabled = hitReactionJson.value("hitReactionEnabled", hitReaction_.enabled);
+        hitReaction_.duration = hitReactionJson.value("hitReactionDuration", hitReaction_.duration);
+        hitReaction_.knockbackPower = hitReactionJson.value("hitReactionKnockbackPower", hitReaction_.knockbackPower);
+        hitReaction_.knockbackUpPower = hitReactionJson.value("hitReactionKnockbackUpPower", hitReaction_.knockbackUpPower);
+        hitReaction_.bodyLean = hitReactionJson.value("hitReactionBodyLean", hitReaction_.bodyLean);
+        hitReaction_.flashDuration = hitReactionJson.value("hitReactionFlashDuration", hitReaction_.flashDuration);
+        hitReaction_.interruptAttack = hitReactionJson.value("hitReactionInterruptAttack", hitReaction_.interruptAttack);
+        hitReaction_.stopBehaviorWhileActive = hitReactionJson.value("hitReactionStopBehaviorWhileActive", hitReaction_.stopBehaviorWhileActive);
+        deathAnimation_.enabled = deathAnimationJson.value("deathAnimationEnabled", deathAnimation_.enabled);
+        deathAnimation_.duration = deathAnimationJson.value("deathAnimationDuration", deathAnimation_.duration);
+        deathAnimation_.fallRotateX = deathAnimationJson.value("deathAnimationFallRotateX", deathAnimation_.fallRotateX);
+        deathAnimation_.sinkDistance = deathAnimationJson.value("deathAnimationSinkDistance", deathAnimation_.sinkDistance);
+        deathAnimation_.fadeDelay = deathAnimationJson.value("deathAnimationFadeDelay", deathAnimation_.fadeDelay);
+        deathAnimation_.fadeDuration = deathAnimationJson.value("deathAnimationFadeDuration", deathAnimation_.fadeDuration);
+        deathAnimation_.disableCollisionOnDeath = deathAnimationJson.value("deathAnimationDisableCollisionOnDeath", deathAnimation_.disableCollisionOnDeath);
+        deathAnimation_.stopMoveOnDeath = deathAnimationJson.value("deathAnimationStopMoveOnDeath", deathAnimation_.stopMoveOnDeath);
+        path_.pathFindEnabled = pathJson.value("pathFindEnabled", path_.pathFindEnabled);
+        path_.repathInterval = pathJson.value("repathInterval", path_.repathInterval);
+        path_.waypointReachDistance = pathJson.value("waypointReachDistance", path_.waypointReachDistance);
+        path_.pathGridSize = pathJson.value("pathGridSize", path_.pathGridSize);
+        path_.pathSearchRadius = pathJson.value("pathSearchRadius", path_.pathSearchRadius);
+        path_.obstacleExpandRadius = pathJson.value("obstacleExpandRadius", path_.obstacleExpandRadius);
+        path_.cornerCuttingDisabled = pathJson.value("cornerCuttingDisabled", path_.cornerCuttingDisabled);
+        animation_.walkSwingSpeed = animationJson.value("walkSwingSpeed", animation_.walkSwingSpeed);
+        animation_.walkArmAmplitude = animationJson.value("walkArmAmplitude", animation_.walkArmAmplitude);
+        animation_.walkLegAmplitude = animationJson.value("walkLegAmplitude", animation_.walkLegAmplitude);
+        animation_.castArmPitch = animationJson.value("castArmPitch", animation_.castArmPitch);
+        animation_.castArmYaw = animationJson.value("castArmYaw", animation_.castArmYaw);
+        animation_.throwArmPitch = animationJson.value("throwArmPitch", animation_.throwArmPitch);
+        animation_.bodyCastLean = animationJson.value("bodyCastLean", animation_.bodyCastLean);
+        animation_.throwBodyLean = animationJson.value("throwBodyLean", animation_.throwBodyLean);
+        animation_.returnSpeed = animationJson.value("returnSpeed", animation_.returnSpeed);
+        headLook_.enabled = headLookJson.value("enabled", headLook_.enabled);
+        headLook_.yawLimitDeg = headLookJson.value("yawLimitDeg", headLook_.yawLimitDeg);
+        headLook_.pitchMinDeg = headLookJson.value("pitchMinDeg", headLook_.pitchMinDeg);
+        headLook_.pitchMaxDeg = headLookJson.value("pitchMaxDeg", headLook_.pitchMaxDeg);
+        headLook_.pitchSign = headLookJson.value("pitchSign", headLook_.pitchSign);
+        headLook_.lerpSpeed = headLookJson.value("lerpSpeed", headLook_.lerpSpeed);
+        // 追加: 読み込んだ最大HP設定をEnemyBaseへ反映する。
+        ApplyBasicStatsToEnemyBase();
 
         if (outMessage)
         {
