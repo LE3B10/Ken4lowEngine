@@ -80,6 +80,7 @@ private:
         float castArmPitch = -0.8f;
         float castArmYaw = 0.2f;
         float throwArmPitch = 1.0f;
+        float bodyCastLean = -0.08f;
         float throwBodyLean = 0.12f;
         float returnSpeed = 10.0f;
     };
@@ -87,9 +88,67 @@ private:
     struct HeadLookSettings
     {
         bool enabled = true;
-        float maxYaw = 1.0f;
-        float maxPitch = 0.6f;
-        float followSpeed = 8.0f;
+        float yawLimitDeg = 90.0f;
+        float pitchMinDeg = -35.0f;
+        float pitchMaxDeg = 45.0f;
+        float lerpSpeed = 12.0f;
+    };
+
+    struct BombAttackState
+    {
+        float cooldownTimer = 0.0f;
+        float castTimer = 0.0f;
+        float throwAnimTimer = 0.0f;
+        float throwAnimDuration = 0.25f;
+        bool casting = false;
+        bool thrownThisCast = false;
+        std::string lastReason = "None";
+    };
+
+    struct TargetState
+    {
+        bool hasTarget = false;
+        bool inDetectRange = false;
+        bool inAttackRange = false;
+        bool tooClose = false;
+        float distance = 0.0f;
+        K4E::Vector3 position{};
+        K4E::Vector3 direction{};
+    };
+
+    struct AnimationStateData
+    {
+        float walkAnimTime = 0.0f;
+        float attackAnimTime = 0.0f;
+        float attackProgress = 0.0f;
+        float currentYaw = 0.0f;
+        float targetYaw = 0.0f;
+        K4E::Vector3 moveDirection{ 0.0f, 0.0f, 1.0f };
+        K4E::Vector3 faceDirection{ 0.0f, 0.0f, 1.0f };
+        AnimState animState = AnimState::Idle;
+    };
+
+    struct HeadLookState
+    {
+        float currentYaw = 0.0f;
+        float currentPitch = 0.0f;
+        float targetYaw = 0.0f;
+        float targetPitch = 0.0f;
+        bool targetVisible = false;
+        std::string reason = "Disabled";
+    };
+
+    struct TuningIoState
+    {
+        std::filesystem::path jsonPath = "Resources/DataAssets/Enemy/MidRangeEnemy/MidRangeEnemy_Normal.json";
+        std::string lastLoadResult = "未読み込み";
+        std::string lastSaveResult = "未保存";
+    };
+
+    struct BehaviorState
+    {
+        std::string currentBehaviorName = "None";
+        std::string lastReason = "None";
     };
 
 public:
@@ -133,23 +192,13 @@ private:
     AnimationSettings animation_{};
     HeadLookSettings headLook_{};
     EnemyAStarNavigator navigator_{};
-    K4E::Vector3 targetPosition_{};
-    K4E::Vector3 lastMoveDirection_{};
-    float cooldownTimer_ = 0.0f;
-    float castTimer_ = 0.0f;
-    float targetDistance_ = 0.0f;
-    float visualAnimTimer_ = 0.0f;
-    float headYaw_ = 0.0f;
-    float headPitch_ = 0.0f;
-    bool hasTarget_ = false;
-    bool casting_ = false;
-    bool inDetect_ = false;
-    AnimState animState_ = AnimState::Idle;
-    std::string lastReason_ = "初期化";
+    BombAttackState bombAttackState_{};
+    TargetState targetState_{};
+    AnimationStateData animationState_{};
+    HeadLookState headLookState_{};
+    TuningIoState tuningIo_{};
+    BehaviorState behaviorState_{};
     std::vector<std::unique_ptr<MidRangeBombProjectile>> bombs_{};
-    std::filesystem::path jsonPath_ = "Resources/DataAssets/Enemy/MidRangeEnemy/MidRangeEnemy_Normal.json";
-    std::string lastLoadResult_ = "未読み込み";
-    std::string lastSaveResult_ = "未保存";
     const std::vector<K4E::AABB>* floorAABBs_ = nullptr;
     const std::vector<K4E::AABB>* wallObstacleAABBs_ = nullptr;
 };
