@@ -1,159 +1,72 @@
 #pragma once
 #include "BaseTypes/HumanoidBossBase.h"
+#include "BehaviorTree/IBTNode.h"
 
-/// -------------------------------------------------------------
-/// GuardianBoss
-///
-/// 最初の人型近接ボス
-///
-/// 役割:
-/// - HumanoidBossBase の見た目土台を利用
-/// - 個別の数値設定
-/// - 状態遷移
-/// - 接近
-/// - 被弾時のひるみ
-///
-/// ポイント:
-/// - 歩行 / 攻撃の見た目アニメは BossAnimationComponent に任せる
-/// - このクラスでは「いつ動くか」「いつ殴るか」を決める
-/// - 状態変更は SetState 直書きではなく StateMachine 経由に統一する
-/// -------------------------------------------------------------
+#include <memory>
+#include <string>
+
+struct PlainsBossPhaseSettings
+{
+	float phase2HpRate = 0.5f;
+	float phase2MoveSpeedMultiplier = 1.25f;
+	float phase2CooldownMultiplier = 0.65f;
+};
+
+struct PlainsBossAttackSettings
+{
+	float meleeRange = 4.5f;
+	float chargeRange = 11.5f;
+	float shockwaveRange = 21.0f;
+	float moveStartDistance = 6.0f;
+	float moveStopDistance = 3.5f;
+	float attackCooldown = 1.8f;
+	float chargeCooldown = 2.8f;
+	float shockwaveCooldown = 3.4f;
+};
+
+struct PlainsBossRuntimeState
+{
+	bool isPhase2 = false;
+	float attackCooldownTimer = 0.0f;
+	float stateTimer = 0.0f;
+	std::string currentActionName = "Idle";
+};
+
 class GuardianBoss : public HumanoidBossBase
 {
 public:
-
-	GuardianBoss() = default;
-	~GuardianBoss() override = default;
-
-public: /// ---------- Boss固有初期化 ---------- ///
-
 	void SetupBoss() override;
 	void OnDamaged(float damage) override;
 	void OnDead() override;
 	void OnCollision(K4E::Collider* other) override;
 	void DrawImGui() override;
 
-protected: /// ---------- BossBase override ---------- ///
-
+protected:
 	void UpdateState(float deltaTime) override;
 	void UpdateMovement(float deltaTime) override;
 	void UpdateAttack(float deltaTime) override;
 	void CheckDeath() override;
-
 	void SetupAttacks() override;
 	void SetupPhaseData() override;
 	void SetupWeakPoints() override;
 
-protected: /// ---------- Guardian専用補助 ---------- ///
-
-	/// <summary>
-	/// ターゲットの方向へ回転する
-	/// </summary>
+private:
 	void FaceTarget(float deltaTime);
-
-	/// <summary>
-	/// ターゲットまでのXZ距離
-	/// </summary>
-	float GetDistanceToTargetXZ() const;
-
-	/// <summary>
-	/// 状態変更ヘルパー
-	/// 必ず StateMachine 経由で状態を切り替える
-	/// </summary>
 	void ChangeBossState(BossState newState);
+	void EnterIdle();
+	void EnterMove();
+	void EnterAttack(const char* actionName);
+	void UpdatePhaseTransition();
+	bool StartAttackByDistance();
+	BTNodeResult TickBehaviorTree(float deltaTime);
+	void BuildBehaviorTree();
+	float GetCurrentMoveSpeed() const;
 
-	/// <summary>
-	/// 攻撃開始時の共通処理
-	/// </summary>
-	void BeginAttackState();
+	PlainsBossPhaseSettings phaseSettings_{};
+	PlainsBossAttackSettings attackSettings_{};
+	PlainsBossRuntimeState runtime_{};
+	float rotateSpeed_ = 5.5f;
+	float chargeTimer_ = 0.0f;
 
-	/// <summary>
-	/// Move 開始時の共通処理
-	/// </summary>
-	void BeginMoveState();
-
-	/// <summary>
-	/// Idle 開始時の共通処理
-	/// </summary>
-	void BeginIdleState();
-
-	/// <summary>
-	/// Stagger 開始時の共通処理
-	/// </summary>
-	void BeginStaggerState();
-
-	/// <summary>
-	/// 攻撃ヒットタイミング
-	/// 後で本物の近接判定に差し替える
-	/// </summary>
-	void TryAttackHit();
-
-	/// <summary>
-	/// 現在の状況で最適な攻撃を開始する
-	/// 実際の攻撃候補選択は BossBrain に任せる
-	/// </summary>
-	bool TryStartBestAttack();
-
-	/// <summary>
-	/// 指定名の攻撃を安全に開始する
-	/// </summary>
-	bool StartAttackByNameSafe(const char* attackName);
-
-protected: /// ---------- Guardian固有パラメータ ---------- ///
-
-	float moveSpeed_ = 2.0f;          // 接近速度
-	float rotateSpeed_ = 4.0f;        // 旋回速度
-
-	float attackRange_ = 5.75f;       // この距離以下で攻撃開始
-	float moveStartDistance_ = 4.8f;  // この距離より離れたら移動開始
-	float moveStopDistance_ = 4.2f;   // この距離より近づいたら移動停止
-
-	float attackDuration_ = 0.85f;    // 攻撃アニメ全体時間
-	float attackCooldown_ = 1.20f;    // 攻撃後クールダウン
-	float staggerDuration_ = 0.30f;   // ひるみ時間
-
-	float stateTimer_ = 0.0f;         // 状態滞在時間
-	float attackCooldownTimer_ = 0.0f;// クールダウン残り
-
-	bool hasAppliedAttackHit_ = false;
-
-	/// <summary>
-	/// 最後に選ばれた攻撃名
-	/// HeavyPunch 連打抑制にも使う
-	/// </summary>
-	std::string lastSelectedAttack_ = "None";
-
-	/// <summary>
-	/// HeavyPunch を再使用できるまでの待ち時間
-	/// </summary>
-	float heavyPunchReuseDelay_ = 1.0f;
-
-	/// <summary>
-	/// HeavyPunch 連打防止タイマー
-	/// </summary>
-	float heavyPunchReuseTimer_ = 0.0f;
-
-	bool useManualAttackDebug_ = false;   // true の間は自動攻撃選択を止める
-	int manualAttackIndex_ = 0;           // 0: Punch / 1: HeavyPunch
-
-protected: /// ---------- モデルや体格差分 ---------- ///
-
-	K4E::Vector3 GetInitialBodyScale() const override { return { 1.0f, 1.0f, 1.0f }; }
-	K4E::Vector3 GetHeadScale() const override { return { 1.0f, 1.0f, 1.0f }; }
-	K4E::Vector3 GetArmScale() const override { return { 1.0f, 1.0f, 1.0f }; }
-	K4E::Vector3 GetLegScale() const override { return { 1.0f, 1.0f, 1.0f }; }
-
-protected: /// ---------- Guardian 専用モデル ---------- ///
-
-	/*std::string GetBodyModelPath() const override { return "Boss/Guardian/body.gltf"; }
-	std::string GetHeadModelPath() const override { return "Boss/Guardian/head.gltf"; }
-	std::string GetLeftArmModelPath() const override { return "Boss/Guardian/left_arm.gltf"; }
-	std::string GetRightArmModelPath() const override { return "Boss/Guardian/right_arm.gltf"; }
-	std::string GetLeftLegModelPath() const override { return "Boss/Guardian/left_leg.gltf"; }
-	std::string GetRightLegModelPath() const override { return "Boss/Guardian/right_leg.gltf"; }*/
-
-	/// <summary>
-	/// Guardian 用スキン
-	/// </summary>
-	virtual std::string GetGuardianSkinPath() const { return "Characters/zombie.dds"; }
+	std::unique_ptr<IBTNode> behaviorRoot_;
 };
