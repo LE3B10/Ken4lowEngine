@@ -230,23 +230,16 @@ void MidRangeEnemy::Update(float deltaTime)
         return;
     }
 
+    // 追加: 通常行動用にターゲット状態を共通関数で更新する。
+    UpdateTargetState();
     if (!HasTarget())
     {
-        targetState_.inDetectRange = false;
         behaviorState_.currentBehaviorName = "Idle";
         behaviorState_.lastReason = "ターゲットなし";
         animationState_.animState = AnimState::Idle;
         UpdateVisualAnimation(deltaTime);
         return;
     }
-
-    Vector3 toTarget = targetState_.position - GetCenterPosition();
-    toTarget.y = 0.0f;
-    targetState_.distance = LengthXZ(toTarget);
-    targetState_.direction = NormalizeXZ(toTarget);
-    targetState_.inDetectRange = IsTargetInDetectRange();
-    targetState_.inAttackRange = targetState_.distance <= distance_.attackMaxRange;
-    targetState_.tooClose = targetState_.distance < distance_.tooCloseRange;
 
     if (!targetState_.inDetectRange)
     {
@@ -370,7 +363,9 @@ void MidRangeEnemy::StartSuicideBombMode()
 {
     // 追加: 時限爆弾モードの開始状態を設定する。
     suicideBombState_.active = true;
+    suicideBombState_.exploded = false;
     suicideBombState_.timer = suicideBomb_.timeLimit;
+    suicideBombState_.blinkTimer = 0.0f;
     suicideBombState_.lastReason = "HP低下で時限爆弾モード";
     behaviorState_.currentBehaviorName = "SuicideBomb";
     behaviorState_.lastReason = "HP低下で時限爆弾モード";
@@ -382,41 +377,42 @@ void MidRangeEnemy::StartSuicideBombMode()
 
 void MidRangeEnemy::UpdateSuicideBombMode(float deltaTime)
 {
-    if (!targetState_.hasTarget)
+    if (!suicideBombState_.active)
     {
-        // 追加: ターゲットがない場合もタイマーで自爆判定できるようにする。
-        suicideBombState_.timer -= deltaTime;
-        if (suicideBombState_.timer <= 0.0f)
-        {
-            ExplodeSuicideBomb("TimeLimitNoTarget");
-        }
         return;
     }
-    Vector3 toTarget = targetState_.position - GetCenterPosition();
-    toTarget.y = 0.0f;
-    const Vector3 dir = NormalizeXZ(toTarget);
-    const float distanceToTarget = LengthXZ(toTarget);
-    animationState_.moveDirection = dir;
-    const Vector3 nextPos = GetCenterPosition() + dir * suicideBomb_.chaseSpeed * deltaTime;
-    SetCenterPosition(nextPos);
+    // 追加: 時限爆弾モードのタイマーを毎フレーム更新する。
+    suicideBombState_.timer = std::max(0.0f, suicideBombState_.timer - deltaTime);
+    // 追加: 時限爆弾モード中の点滅タイマーを進める。
+    suicideBombState_.blinkTimer += deltaTime;
+    // 追加: 通常行動と共通のターゲット状態更新を使用する。
+    UpdateTargetState();
+    if (HasTarget())
+    {
+        const Vector3 dir = targetState_.direction;
+        const float distanceToTarget = targetState_.distance;
+        if (distanceToTarget <= suicideBomb_.explodeDistance)
+        {
+            ExplodeSuicideBomb("NearTarget");
+            return;
+        }
+        animationState_.moveDirection = dir;
+        const Vector3 nextPos = GetCenterPosition() + dir * suicideBomb_.chaseSpeed * deltaTime;
+        SetCenterPosition(nextPos);
+    }
     const float originalRotateSpeed = move_.rotateSpeed;
     move_.rotateSpeed = suicideBomb_.rotateSpeed;
-    FaceToMoveDirection(dir, deltaTime);
+    FaceToMoveDirection(animationState_.moveDirection, deltaTime);
     move_.rotateSpeed = originalRotateSpeed;
-    animationState_.animState = AnimState::Walk;
-    behaviorState_.currentBehaviorName = "SuicideBomb";
-    behaviorState_.lastReason = "自爆追跡中";
-    suicideBombState_.timer -= deltaTime;
-    if (distanceToTarget <= suicideBomb_.explodeDistance)
-    {
-        ExplodeSuicideBomb("ReachTargetDistance");
-        return;
-    }
     if (suicideBombState_.timer <= 0.0f)
     {
+        // 追加: 制限時間到達時は必ず自爆へ遷移する。
         ExplodeSuicideBomb("TimeLimit");
         return;
     }
+    animationState_.animState = AnimState::Walk;
+    behaviorState_.currentBehaviorName = "SuicideBomb";
+    behaviorState_.lastReason = "時限爆弾追跡中";
 }
 
 void MidRangeEnemy::ExplodeSuicideBomb(const std::string& reason)
@@ -431,11 +427,18 @@ void MidRangeEnemy::ExplodeSuicideBomb(const std::string& reason)
     suicideBombState_.explosionPosition = GetCenterPosition();
     suicideBombState_.explosionDrawTimer = suicideBomb_.explosionDebugDrawTime;
     suicideBombState_.lastReason = reason;
+    behaviorState_.currentBehaviorName = "SuicideBombExploded";
     behaviorState_.lastReason = reason;
-    const float distanceToTarget = LengthXZ(targetState_.position - GetCenterPosition());
-    if (distanceToTarget <= suicideBomb_.explosionRadius)
+    // 追加: 自爆時点のターゲット情報を共通関数で更新する。
+    UpdateTargetState();
+    if (HasTarget())
     {
-        // 追加: TODO 既存のプレイヤーダメージ接続先が確定したら範囲ダメージを適用する。
+        const float distanceToTarget = LengthXZ(targetState_.position - suicideBombState_.explosionPosition);
+        if (distanceToTarget <= suicideBomb_.explosionRadius)
+        {
+            // 追加: TODO 既存のプレイヤーダメージ接続先が確定したら範囲ダメージを適用する。
+            behaviorState_.lastReason = "自爆範囲内";
+        }
     }
     // 追加: 自爆後は自身を死亡扱いにする。
     SetCurrentHp(0);
@@ -521,6 +524,24 @@ void MidRangeEnemy::UpdateVisualAnimation(float deltaTime)
         bodyLean = deathAnimation_.fallRotateX * t;
     }
     body_.transform.rotate_.x += (bodyLean - body_.transform.rotate_.x) * ret;
+    if (suicideBombState_.active && suicideBomb_.blinkEnabled)
+    {
+        // 追加: 時限爆弾モード中は本体色を点滅させる。
+        const float blink = std::sin(suicideBombState_.blinkTimer * suicideBomb_.blinkSpeed);
+        if (blink >= 0.0f)
+        {
+            SetColor(suicideBomb_.blinkColorA);
+        }
+        else
+        {
+            SetColor(suicideBomb_.blinkColorB);
+        }
+    }
+    else if (!hitReactionState_.active)
+    {
+        // 追加: 非点滅時は通常色へ戻す。
+        SetColor({ 1.0f, 1.0f, 1.0f, 1.0f });
+    }
 
     // 追加: 頭向き可否の各条件をデバッグ表示用に個別保存する。
     headLookState_.enabledCondition = headLook_.enabled;
@@ -792,12 +813,20 @@ void MidRangeEnemy::DrawImGui()
         ImGui::SliderInt("自爆ダメージ", &suicideBomb_.explosionDamage, 1, 999);
         ImGui::SliderFloat("爆発範囲表示時間", &suicideBomb_.explosionDebugDrawTime, 0.0f, 3.0f);
         ImGui::Checkbox("発動中は通常爆弾攻撃を止める", &suicideBomb_.stopNormalBombAttack);
+        ImGui::Checkbox("点滅を使う", &suicideBomb_.blinkEnabled);
+        ImGui::SliderFloat("点滅速度", &suicideBomb_.blinkSpeed, 0.0f, 40.0f);
+        ImGui::ColorEdit4("点滅色A", &suicideBomb_.blinkColorA.x);
+        ImGui::ColorEdit4("点滅色B", &suicideBomb_.blinkColorB.x);
         ImGui::Text("時限爆弾モード中: %s", suicideBombState_.active ? "はい" : "いいえ");
         ImGui::Text("自爆済み: %s", suicideBombState_.exploded ? "はい" : "いいえ");
         ImGui::Text("残り時間: %.2f", suicideBombState_.timer);
+        ImGui::Text("自爆距離: %.2f", suicideBomb_.explodeDistance);
+        ImGui::Text("自爆爆発範囲: %.2f", suicideBomb_.explosionRadius);
         ImGui::Text("最後の理由: %s", suicideBombState_.lastReason.c_str());
         ImGui::Text("爆発範囲表示残り: %.2f", suicideBombState_.explosionDrawTimer);
+        ImGui::Text("点滅タイマー: %.2f", suicideBombState_.blinkTimer);
         ImGui::Text("現在HP割合: %.2f", GetHpRate());
+        ImGui::Text("ターゲット距離: %.2f", targetState_.distance);
         if (ImGui::Button("時限爆弾モードを強制開始"))
         {
             StartSuicideBombMode();
@@ -809,12 +838,20 @@ void MidRangeEnemy::DrawImGui()
     }
     if (ImGui::CollapsingHeader("爆弾Projectile"))
     {
-        ImGui::SliderFloat("初速", &bombProjectile_.initialSpeed, 0.0f, 60.0f);
+        ImGui::SliderFloat("爆弾初速", &bombProjectile_.initialSpeed, 0.0f, 60.0f);
         ImGui::Checkbox("距離で初速を変える", &bombProjectile_.useDistanceBasedSpeed);
         ImGui::SliderFloat("最小初速", &bombProjectile_.minInitialSpeed, 0.0f, 60.0f);
         ImGui::SliderFloat("最大初速", &bombProjectile_.maxInitialSpeed, 0.0f, 60.0f);
         ImGui::SliderFloat("距離ごとの初速加算", &bombProjectile_.speedPerDistance, 0.0f, 4.0f);
         ImGui::SliderFloat("基準距離", &bombProjectile_.speedBaseDistance, 0.0f, 30.0f);
+        ImGui::SliderFloat("上方向速度", &bombProjectile_.upwardVelocity, 0.0f, 30.0f);
+        ImGui::SliderFloat("重力", &bombProjectile_.gravity, 0.0f, 40.0f);
+        ImGui::SliderFloat("寿命", &bombProjectile_.lifeTime, 0.1f, 15.0f);
+        ImGui::SliderFloat("直撃判定半径", &bombProjectile_.hitRadius, 0.1f, 5.0f);
+        ImGui::SliderFloat("爆発半径", &bombProjectile_.explosionRadius, 0.1f, 20.0f);
+        ImGui::SliderInt("直撃ダメージ", &bombProjectile_.directHitDamage, 1, 999);
+        ImGui::SliderInt("爆発ダメージ", &bombProjectile_.explosionDamage, 1, 999);
+        ImGui::Checkbox("直撃時に爆発ダメージも入れる", &bombProjectile_.directHitAlsoExplosionDamage);
         ImGui::Text("現在距離から計算した初速: %.2f", CalculateBombInitialSpeed(targetState_.distance));
     }
     if (ImGui::CollapsingHeader("被ダメージリアクション"))
@@ -1066,6 +1103,10 @@ bool MidRangeEnemy::SaveTuningToJson(const std::filesystem::path& path, std::str
         j["suicideBomb"]["explosionDamage"] = suicideBomb_.explosionDamage;
         j["suicideBomb"]["explosionDebugDrawTime"] = suicideBomb_.explosionDebugDrawTime;
         j["suicideBomb"]["stopNormalBombAttack"] = suicideBomb_.stopNormalBombAttack;
+        j["suicideBomb"]["blinkEnabled"] = suicideBomb_.blinkEnabled;
+        j["suicideBomb"]["blinkSpeed"] = suicideBomb_.blinkSpeed;
+        j["suicideBomb"]["blinkColorA"] = { suicideBomb_.blinkColorA.x, suicideBomb_.blinkColorA.y, suicideBomb_.blinkColorA.z, suicideBomb_.blinkColorA.w };
+        j["suicideBomb"]["blinkColorB"] = { suicideBomb_.blinkColorB.x, suicideBomb_.blinkColorB.y, suicideBomb_.blinkColorB.z, suicideBomb_.blinkColorB.w };
 
         std::filesystem::create_directories(path.parent_path());
         std::ofstream ofs(path);
@@ -1191,6 +1232,24 @@ bool MidRangeEnemy::LoadTuningFromJson(const std::filesystem::path& path, std::s
         suicideBomb_.explosionDamage = suicideBombJson.value("explosionDamage", suicideBomb_.explosionDamage);
         suicideBomb_.explosionDebugDrawTime = suicideBombJson.value("explosionDebugDrawTime", suicideBomb_.explosionDebugDrawTime);
         suicideBomb_.stopNormalBombAttack = suicideBombJson.value("stopNormalBombAttack", suicideBomb_.stopNormalBombAttack);
+        suicideBomb_.blinkEnabled = suicideBombJson.value("blinkEnabled", suicideBomb_.blinkEnabled);
+        suicideBomb_.blinkSpeed = suicideBombJson.value("blinkSpeed", suicideBomb_.blinkSpeed);
+        if (suicideBombJson.contains("blinkColorA"))
+        {
+            const auto& color = suicideBombJson["blinkColorA"];
+            if (color.is_array() && color.size() == 4)
+            {
+                suicideBomb_.blinkColorA = { color[0].get<float>(), color[1].get<float>(), color[2].get<float>(), color[3].get<float>() };
+            }
+        }
+        if (suicideBombJson.contains("blinkColorB"))
+        {
+            const auto& color = suicideBombJson["blinkColorB"];
+            if (color.is_array() && color.size() == 4)
+            {
+                suicideBomb_.blinkColorB = { color[0].get<float>(), color[1].get<float>(), color[2].get<float>(), color[3].get<float>() };
+            }
+        }
         // 追加: JSON読み込み後に危険値を補正する。
         ValidateTuningValues();
         // 追加: 読み込んだ最大HP設定をEnemyBaseへ反映する。
@@ -1210,4 +1269,25 @@ bool MidRangeEnemy::LoadTuningFromJson(const std::filesystem::path& path, std::s
         }
         return false;
     }
+}
+
+void MidRangeEnemy::UpdateTargetState()
+{
+    // 追加: ターゲット情報更新を通常行動と時限爆弾で共通化する。
+    if (!targetState_.hasTarget)
+    {
+        targetState_.inDetectRange = false;
+        targetState_.inAttackRange = false;
+        targetState_.tooClose = false;
+        targetState_.distance = 0.0f;
+        targetState_.direction = { 0.0f, 0.0f, 0.0f };
+        return;
+    }
+    Vector3 toTarget = targetState_.position - GetCenterPosition();
+    toTarget.y = 0.0f;
+    targetState_.distance = LengthXZ(toTarget);
+    targetState_.direction = NormalizeXZ(toTarget);
+    targetState_.inDetectRange = IsTargetInDetectRange();
+    targetState_.inAttackRange = targetState_.distance <= distance_.attackMaxRange;
+    targetState_.tooClose = targetState_.distance < distance_.tooCloseRange;
 }
