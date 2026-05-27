@@ -159,6 +159,7 @@ private:
         float blinkSpeed = 10.0f;
         bool delayDeathAnimationUntilExplosion = true;
         float explosionPositionMinY = 0.5f;
+        float deathDelayAfterExplosion = 0.05f;
         K4E::Vector4 blinkColorA{ 1.0f, 0.1f, 0.1f, 1.0f };
         K4E::Vector4 blinkColorB{ 1.0f, 1.0f, 0.1f, 1.0f };
     };
@@ -168,6 +169,7 @@ private:
         bool exploded = false;
         float timer = 0.0f;
         float explosionDrawTimer = 0.0f;
+        float deathDelayTimer = 0.0f;
         float blinkTimer = 0.0f;
         K4E::Vector3 explosionPosition{};
         std::string lastReason = "None";
