@@ -147,6 +147,9 @@ void DebugScene::Initialize()
 	debugMidRangeEnemy_->Initialize();
 	debugMidRangeEnemy_->SetCenterPosition({ 3.0f, 2.5f, 18.0f });
 	debugMidRangeEnemy_->SetTarget(meleeDummyTarget_.GetCenterPosition());
+	// 追加: 中距離敵にも床/障害物AABBを近接敵と同じ参照元で渡す。
+	debugMidRangeEnemy_->SetFloorAABBs(&stage_->GetFloorAABBs());
+	debugMidRangeEnemy_->SetWallObstacleAABBs(&stage_->GetWallObstacleAABBs());
 
 	disintegrationDebug_ = std::make_unique<DisintegrationDebugController>();
 	// Disintegration系の確認処理は専用コントローラへ委譲し、DebugScene本体の責務を絞る。
@@ -196,6 +199,9 @@ void DebugScene::Update()
 	if (debugMidRangeEnemy_)
 	{
 		debugMidRangeEnemy_->SetTarget(meleeDummyTarget_.GetCenterPosition());
+	// 追加: 中距離敵にも床/障害物AABBを近接敵と同じ参照元で渡す。
+	debugMidRangeEnemy_->SetFloorAABBs(&stage_->GetFloorAABBs());
+	debugMidRangeEnemy_->SetWallObstacleAABBs(&stage_->GetWallObstacleAABBs());
 		debugMidRangeEnemy_->Update(deltaTime);
 	}
 
