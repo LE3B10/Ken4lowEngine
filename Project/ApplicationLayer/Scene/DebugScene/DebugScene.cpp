@@ -139,17 +139,12 @@ void DebugScene::Initialize()
 
 	meleeDummyTarget_.SetCenterPosition({ 0.0f, 2.0f, 24.0f });
 	meleeDummyTarget_.SetOBBHalfSize({ 0.8f, 1.0f, 0.8f });
-	// 複数体同時検証のため、DebugScene起動時に近接敵を2〜3体まとめて生成する。
-	debugMeleeEnemies_.clear();
-	for (int i = 0; i < meleeEnemyCount_; ++i)
-	{
-		auto enemy = std::make_unique<MeleeEnemy>();
-		enemy->Initialize();
-		enemy->SetCenterPosition({ -3.0f + (3.0f * static_cast<float>(i)), 2.5f, 18.0f });
-		enemy->SetTarget(&meleeDummyTarget_);
-		collisionManager_->AddCollider(enemy.get());
-		debugMeleeEnemies_.push_back(std::move(enemy));
-	}
+		// 近接敵はDebugSceneで1体だけ管理する。
+	debugMeleeEnemy_ = std::make_unique<MeleeEnemy>();
+	debugMeleeEnemy_->Initialize();
+	debugMeleeEnemy_->SetCenterPosition({ -3.0f, 2.5f, 18.0f });
+	debugMeleeEnemy_->SetTarget(&meleeDummyTarget_);
+	collisionManager_->AddCollider(debugMeleeEnemy_.get());
 
 	disintegrationDebug_ = std::make_unique<DisintegrationDebugController>();
 	// Disintegration系の確認処理は専用コントローラへ委譲し、DebugScene本体の責務を絞る。
@@ -166,10 +161,11 @@ void DebugScene::Initialize()
 	// DebugSceneでもステージAABBを共有し、EnemyBase系の敵が床と障害物に衝突できるようにする。
 	EnemyBase::SetGlobalStageWorldAABBs(&stage_->GetWorldAABBs());
 	EnemyBase::SetGlobalStageNavigationObstacleAABBs(&stage_->GetNavigationObstacleAABBs());
-	for (auto& enemy : debugMeleeEnemies_)
+	// 近接敵単体へ床/壁AABB設定を確実に渡す。
+	if (debugMeleeEnemy_)
 	{
-		enemy->SetFloorAABBs(&stage_->GetFloorAABBs());
-		enemy->SetWallObstacleAABBs(&stage_->GetWallObstacleAABBs());
+		debugMeleeEnemy_->SetFloorAABBs(&stage_->GetFloorAABBs());
+		debugMeleeEnemy_->SetWallObstacleAABBs(&stage_->GetWallObstacleAABBs());
 	}
 	// 追加: 中距離敵の生成
 	debugMidRangeEnemy_ = std::make_unique<MidRangeEnemy>();
@@ -206,13 +202,9 @@ void DebugScene::Update()
 	}
 	else
 	{
-		for (auto& enemy : debugMeleeEnemies_)
-		{
-			enemy->Update(deltaTime);
-		}
+		// MidRangeEnemy未使用時は近接敵1体の更新を必ず通す。
+		if (debugMeleeEnemy_) { debugMeleeEnemy_->Update(deltaTime); }
 	}
-	// 通常更新の後段で個体間分離を適用し、移動やジャンプの挙動を壊しにくくする。
-	if (!useMidRangeEnemy_) { ResolveMeleeEnemySeparation(deltaTime); }
 
 	UpdateDebugBossHitTest();
 
@@ -250,59 +242,6 @@ void DebugScene::Update()
 void DebugScene::ResolveMeleeEnemySeparation(float deltaTime)
 {
 	(void)deltaTime;
-	for (auto& enemy : debugMeleeEnemies_)
-	{
-		enemy->BeginSeparationFrame();
-	}
-	for (size_t i = 0; i < debugMeleeEnemies_.size(); ++i)
-	{
-		MeleeEnemy* enemyA = debugMeleeEnemies_[i].get();
-		if (!enemyA) { continue; }
-		const auto& separationA = enemyA->GetSeparationSettings();
-		if (!separationA.enabled) { continue; }
-		for (size_t j = i + 1; j < debugMeleeEnemies_.size(); ++j)
-		{
-			MeleeEnemy* enemyB = debugMeleeEnemies_[j].get();
-			if (!enemyB) { continue; }
-			const auto& separationB = enemyB->GetSeparationSettings();
-			if (!separationB.enabled) { continue; }
-			const Vector3 posA = enemyA->GetCenterPosition();
-			const Vector3 posB = enemyB->GetCenterPosition();
-			Vector3 delta = posA - posB;
-			delta.y = 0.0f;
-			const float distance = std::sqrt(delta.x * delta.x + delta.z * delta.z);
-			// 当たりサイズに近い分離距離を取るため、半径は平均で扱う。
-			const float minDistance = std::max(0.1f, (separationA.radius + separationB.radius) * 0.5f);
-			if (distance >= minDistance) { continue; }
-			Vector3 pushDir = { 1.0f, 0.0f, 0.0f };
-			if (distance > 0.0001f)
-			{
-				pushDir = { delta.x / distance, 0.0f, delta.z / distance };
-			}
-			const float overlap = minDistance - distance;
-			const float strength = std::min(separationA.strength, separationB.strength);
-			Vector3 basePush = pushDir * (overlap * strength);
-			// ターゲット付近で同一点へ戻りにくくするため、左右タンジェントへ少し散らす。
-			const Vector3 toTarget = enemyA->GetTargetPositionForAttack() - enemyA->GetCenterPosition();
-			const float targetDistXZ = std::sqrt(toTarget.x * toTarget.x + toTarget.z * toTarget.z);
-			if (targetDistXZ < 4.0f)
-			{
-				const Vector3 forward = (targetDistXZ > 0.0001f) ? Vector3{ toTarget.x / targetDistXZ, 0.0f, toTarget.z / targetDistXZ } : Vector3{ 0.0f, 0.0f, 1.0f };
-				const Vector3 tangent{ -forward.z, 0.0f, forward.x };
-				const float laneSign = ((static_cast<int>(i + j) & 1) == 0) ? 1.0f : -1.0f;
-				basePush = basePush + tangent * (separationA.targetNearLateralOffset * separationA.targetNearLateralStrength * laneSign);
-			}
-			const float attackScaleA = enemyA->IsAttacking() ? separationA.attackPushScale : 1.0f;
-			const float attackScaleB = enemyB->IsAttacking() ? separationB.attackPushScale : 1.0f;
-			const float deadScaleA = enemyA->IsDeadEnemy() ? 0.10f : 1.0f;
-			const float deadScaleB = enemyB->IsDeadEnemy() ? 0.10f : 1.0f;
-			// 片寄らないようにA/Bへ半分ずつ押し出し、攻撃中や死亡中は弱める。
-			enemyA->ApplySeparationPushXZ(basePush * 0.5f, attackScaleA * deadScaleA);
-			enemyB->ApplySeparationPushXZ(basePush * -0.5f, attackScaleB * deadScaleB);
-			enemyA->AddSeparationOverlapCount(1);
-			enemyB->AddSeparationOverlapCount(1);
-		}
-	}
 }
 
 void DebugScene::Draw3DObjects()
@@ -322,18 +261,10 @@ void DebugScene::Draw3DObjects()
 	{
 		debugBoss_->Draw();
 	}
-	for (size_t i = 0; i < debugMeleeEnemies_.size(); ++i)
+	if (debugMeleeEnemy_)
 	{
-		// 経路表示モードに応じて、選択中のみ/全体/オフを個体へ反映する。
-		const bool isSelected = static_cast<int>(i) == selectedMeleeEnemyIndex_;
-		const bool drawPath = (meleeEnemyPathDrawMode_ == 1) || (meleeEnemyPathDrawMode_ == 0 && isSelected);
-		const bool drawDetailPath = (meleeEnemyPathDrawMode_ == 0 && isSelected) || (meleeEnemyPathDrawMode_ == 1 && meleeEnemyPathDetailAll_);
-		debugMeleeEnemies_[i]->SetDetailDebugDrawEnabled(!meleeEnemyDetailDebugDrawOnlySelected_ || isSelected || drawPath);
-		debugMeleeEnemies_[i]->SetPathDebugDrawEnabled(drawPath);
-		debugMeleeEnemies_[i]->SetPathDetailDebugDrawEnabled(drawDetailPath);
-		debugMeleeEnemies_[i]->SetPathDebugSelected(isSelected);
-		debugMeleeEnemies_[i]->SetPathDebugColorOffset(static_cast<float>(i) * 0.85f);
-		debugMeleeEnemies_[i]->Draw();
+		// 近接敵単体の描画のみ行う。
+		debugMeleeEnemy_->Draw();
 	}
 	if (debugMidRangeEnemy_)
 	{
@@ -385,9 +316,9 @@ void DebugScene::DrawShadowObjects()
 	{
 		debugBoss_->DrawShadow();
 	}
-	for (auto& enemy : debugMeleeEnemies_)
+	if (debugMeleeEnemy_)
 	{
-		enemy->DrawShadow();
+		debugMeleeEnemy_->DrawShadow();
 	}
 	if (stage_)
 	{
@@ -425,7 +356,7 @@ void DebugScene::Finalize()
 	disintegrationDebug_.reset();
 	EnemyBase::SetGlobalStageWorldAABBs(nullptr);
 	debugBoss_.reset();
-	debugMeleeEnemies_.clear();
+	debugMeleeEnemy_.reset();
 	bulletManager_.reset();
 	collisionManager_.reset();
 	stage_.reset();
@@ -444,10 +375,14 @@ void DebugScene::DrawImGui()
 	{
 		debugBoss_->DrawImGui();
 	}
-	if (!debugMeleeEnemies_.empty())
+	if (useMidRangeEnemy_)
 	{
-		selectedMeleeEnemyIndex_ = std::clamp(selectedMeleeEnemyIndex_, 0, static_cast<int>(debugMeleeEnemies_.size()) - 1);
-		if (useMidRangeEnemy_) { if (debugMidRangeEnemy_) { debugMidRangeEnemy_->DrawImGui(); } } else { debugMeleeEnemies_[selectedMeleeEnemyIndex_]->DrawImGui(); }
+		if (debugMidRangeEnemy_) { debugMidRangeEnemy_->DrawImGui(); }
+	}
+	else
+	{
+		// MidRangeEnemy切替中でも近接敵選択時は単体ImGuiを表示する。
+		if (debugMeleeEnemy_) { debugMeleeEnemy_->DrawImGui(); }
 	}
 
 	if (frustumCullingDebug_)
@@ -596,22 +531,13 @@ void DebugScene::DrawImGui()
 		ImGui::Text("Fence: %d", colliderTypeCounts["Fence"]);
 		ImGui::Text("Tree: %d", colliderTypeCounts["Tree"]);
 
-		if (!debugMeleeEnemies_.empty())
+		if (debugMeleeEnemy_)
 		{
-			selectedMeleeEnemyIndex_ = std::clamp(selectedMeleeEnemyIndex_, 0, static_cast<int>(debugMeleeEnemies_.size()) - 1);
-			const MeleeEnemy* selectedEnemy = debugMeleeEnemies_[selectedMeleeEnemyIndex_].get();
-			const Vector3 enemyPos = selectedEnemy->GetCenterPosition();
-			ImGui::Text("MeleeEnemy Count: %zu", debugMeleeEnemies_.size());
-			ImGui::SliderInt("MeleeEnemy Display Index", &selectedMeleeEnemyIndex_, 0, static_cast<int>(debugMeleeEnemies_.size()) - 1);
-			ImGui::Checkbox("Detail Debug Draw Only Selected", &meleeEnemyDetailDebugDrawOnlySelected_);
-			const char* pathModes[] = { "選択中の敵だけ経路表示", "全ての敵の経路表示", "経路表示OFF" };
-			ImGui::Combo("経路表示モード", &meleeEnemyPathDrawMode_, pathModes, IM_ARRAYSIZE(pathModes));
-			ImGui::Checkbox("全体経路表示時に詳細も表示", &meleeEnemyPathDetailAll_);
-			ImGui::Text("選択中の敵Index: %d", selectedMeleeEnemyIndex_);
-			ImGui::Text("全体経路表示ON/OFF: %s", meleeEnemyPathDrawMode_ == 1 ? "ON" : "OFF");
+			const Vector3 enemyPos = debugMeleeEnemy_->GetCenterPosition();
+			ImGui::Text("MeleeEnemy Count: 1");
 			ImGui::Text("Selected Pos: (%.2f, %.2f, %.2f)", enemyPos.x, enemyPos.y, enemyPos.z);
-			ImGui::Text("Selected Action: %s", selectedEnemy->GetCurrentBehaviorName());
-			ImGui::Text("Grounded: %s", selectedEnemy->GetVelocity().y == 0.0f ? "Likely grounded" : "Falling/Moving");
+			ImGui::Text("Selected Action: %s", debugMeleeEnemy_->GetCurrentBehaviorName());
+			ImGui::Text("Grounded: %s", debugMeleeEnemy_->GetVelocity().y == 0.0f ? "Likely grounded" : "Falling/Moving");
 		}
 
 		ImGui::End();
