@@ -30,8 +30,7 @@ public:
 		const K4E::Vector3& startPosition,
 		const K4E::Vector3& targetPosition,
 		const BombProjectileSettings& settings,
-		Collider* owner,
-		Collider* target);
+		Collider* target); // ビルド優先: owner引数を廃止して型不一致を解消。
 
 	void Update(float deltaTime, const std::vector<K4E::AABB>* floorAabbs, const std::vector<K4E::AABB>* obstacleAabbs);
 	void DrawDebug() const;
@@ -53,7 +52,7 @@ private:
 	float lifeTimer_ = 0.0f;
 	bool exploded_ = false;
 	bool alive_ = false;
-	Collider* owner_ = nullptr;
+	// ビルド優先: owner保持を廃止し、将来はownerId等で再設計する。
 	Collider* target_ = nullptr;
 	std::string debugLastReason_ = "未発射";
 	BombProjectileSettings settings_{};

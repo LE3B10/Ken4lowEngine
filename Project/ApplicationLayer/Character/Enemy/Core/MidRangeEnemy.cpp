@@ -85,7 +85,8 @@ void MidRangeEnemy::ThrowBomb(const Vector3& toTarget)
 	// 追加: MidRangeEnemy専用の爆弾投擲を行う。
 	Vector3 startPos = GetCenterPosition();
 	startPos.y += bombAttackSettings_.throwHeightOffset;
-	activeBomb_.Launch(startPos, startPos + toTarget, bombProjectileSettings_, this, target_);
+	// ビルド優先: MidRangeEnemy* を渡さず Launch の引数数を合わせる。
+	activeBomb_.Launch(startPos, startPos + toTarget, bombProjectileSettings_, target_);
 	lastThrowReason_ = "通常投擲";
 }
 

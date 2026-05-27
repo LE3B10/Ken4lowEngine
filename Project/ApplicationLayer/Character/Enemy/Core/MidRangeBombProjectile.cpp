@@ -14,12 +14,12 @@ namespace
 	}
 }
 
-void MidRangeBombProjectile::Launch(const Vector3& startPosition, const Vector3& targetPosition, const BombProjectileSettings& settings, Collider* owner, Collider* target)
+void MidRangeBombProjectile::Launch(const Vector3& startPosition, const Vector3& targetPosition, const BombProjectileSettings& settings, Collider* target)
 {
 	// 追加: 投擲開始時に弾の初期状態をリセットする。
 	position_ = startPosition;
 	settings_ = settings;
-	owner_ = owner;
+	// ビルド優先: owner参照は一旦持たない。
 	target_ = target;
 	lifeTimer_ = 0.0f;
 	exploded_ = false;
