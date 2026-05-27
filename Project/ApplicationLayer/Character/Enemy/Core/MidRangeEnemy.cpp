@@ -120,12 +120,13 @@ void MidRangeEnemy::FaceToMoveDirection(const Vector3& moveDirection, float delt
     SetOrientation({ 0.0f, animationState_.currentYaw, 0.0f });
 }
 
-void MidRangeEnemy::MoveAlongPath(float deltaTime)
+void MidRangeEnemy::MoveAlongPath(float deltaTime, float moveSpeed)
 {
     if (!path_.pathFindEnabled)
     {
         pathState_.pathFound = false;
         pathState_.lastRepathReason = "PathDisabled";
+        pathState_.failureReason = "PathFindDisabled";
         return;
     }
 
@@ -148,12 +149,17 @@ void MidRangeEnemy::MoveAlongPath(float deltaTime)
     pathState_.pathFound = hasWaypoint;
     pathState_.currentWaypoint = waypoint;
     pathState_.lineBlocked = !hasWaypoint;
-    pathState_.lastRepathReason = hasWaypoint ? "WaypointAcquired" : "FallbackDirect";
-
-    const Vector3 navTarget = hasWaypoint ? waypoint : targetState_.position;
-    const Vector3 moveDir = NormalizeXZ(navTarget - pos);
+    // 追加: 経路未取得時は壁抜け防止のため直進フォールバックを無効化する。
+    pathState_.lastRepathReason = hasWaypoint ? "WaypointAcquired" : "NoWaypointStop";
+    pathState_.failureReason = hasWaypoint ? "None" : "PathNotFound";
+    if (!hasWaypoint)
+    {
+        animationState_.moveDirection = { 0.0f, 0.0f, 0.0f };
+        return;
+    }
+    const Vector3 moveDir = NormalizeXZ(waypoint - pos);
     animationState_.moveDirection = moveDir;
-    SetCenterPosition(pos + moveDir * move_.moveSpeed * deltaTime);
+    SetCenterPosition(pos + moveDir * moveSpeed * deltaTime);
 }
 
 void MidRangeEnemy::Update(float deltaTime)
@@ -252,7 +258,7 @@ void MidRangeEnemy::Update(float deltaTime)
 
     if (!targetState_.inAttackRange)
     {
-        MoveAlongPath(deltaTime);
+        MoveAlongPath(deltaTime, move_.moveSpeed);
         FaceToMoveDirection(animationState_.moveDirection, deltaTime);
         animationState_.animState = AnimState::Walk;
         behaviorState_.currentBehaviorName = "Approach";
@@ -396,9 +402,8 @@ void MidRangeEnemy::UpdateSuicideBombMode(float deltaTime)
             ExplodeSuicideBomb("NearTarget");
             return;
         }
-        animationState_.moveDirection = dir;
-        const Vector3 nextPos = GetCenterPosition() + dir * suicideBomb_.chaseSpeed * deltaTime;
-        SetCenterPosition(nextPos);
+        // 追加: 時限爆弾モード中も経路探索移動を使って壁抜けを防止する。
+        MoveAlongPath(deltaTime, suicideBomb_.chaseSpeed);
     }
     const float originalRotateSpeed = move_.rotateSpeed;
     move_.rotateSpeed = suicideBomb_.rotateSpeed;
@@ -760,6 +765,8 @@ void MidRangeEnemy::DrawImGui()
         {
             ResetTuningToDefault();
         }
+        // 追加: 保存先パスを常時表示してI/O不整合を可視化する。
+        ImGui::Text("保存先: %s", tuningIo_.jsonPath.string().c_str());
         ImGui::Text("読み込み結果: %s", tuningIo_.lastLoadResult.c_str());
         ImGui::Text("保存結果: %s", tuningIo_.lastSaveResult.c_str());
     }
@@ -824,9 +831,15 @@ void MidRangeEnemy::DrawImGui()
         ImGui::Text("自爆爆発範囲: %.2f", suicideBomb_.explosionRadius);
         ImGui::Text("最後の理由: %s", suicideBombState_.lastReason.c_str());
         ImGui::Text("爆発範囲表示残り: %.2f", suicideBombState_.explosionDrawTimer);
+        ImGui::Text("点滅中か: %s", (suicideBombState_.active && suicideBomb_.blinkEnabled) ? "はい" : "いいえ");
         ImGui::Text("点滅タイマー: %.2f", suicideBombState_.blinkTimer);
         ImGui::Text("現在HP割合: %.2f", GetHpRate());
         ImGui::Text("ターゲット距離: %.2f", targetState_.distance);
+        ImGui::Text("自爆条件: 距離以内か: %s", targetState_.distance <= suicideBomb_.explodeDistance ? "はい" : "いいえ");
+        ImGui::Text("自爆条件: 時間切れか: %s", suicideBombState_.timer <= 0.0f ? "はい" : "いいえ");
+        ImGui::Text("経路が見つかったか: %s", pathState_.pathFound ? "はい" : "いいえ");
+        ImGui::Text("経路失敗理由: %s", pathState_.failureReason.c_str());
+        ImGui::Text("現在ウェイポイント: (%.2f, %.2f, %.2f)", pathState_.currentWaypoint.x, pathState_.currentWaypoint.y, pathState_.currentWaypoint.z);
         if (ImGui::Button("時限爆弾モードを強制開始"))
         {
             StartSuicideBombMode();
@@ -848,7 +861,8 @@ void MidRangeEnemy::DrawImGui()
         ImGui::SliderFloat("重力", &bombProjectile_.gravity, 0.0f, 40.0f);
         ImGui::SliderFloat("寿命", &bombProjectile_.lifeTime, 0.1f, 15.0f);
         ImGui::SliderFloat("直撃判定半径", &bombProjectile_.hitRadius, 0.1f, 5.0f);
-        ImGui::SliderFloat("爆発半径", &bombProjectile_.explosionRadius, 0.1f, 20.0f);
+        // 追加: 通常爆弾の爆発半径の調整上限を拡張する。
+        ImGui::SliderFloat("爆発半径", &bombProjectile_.explosionRadius, 0.1f, 30.0f);
         ImGui::SliderInt("直撃ダメージ", &bombProjectile_.directHitDamage, 1, 999);
         ImGui::SliderInt("爆発ダメージ", &bombProjectile_.explosionDamage, 1, 999);
         ImGui::Checkbox("直撃時に爆発ダメージも入れる", &bombProjectile_.directHitAlsoExplosionDamage);
@@ -988,6 +1002,8 @@ void MidRangeEnemy::ResetTuningToDefault()
     suicideBomb_ = SuicideBombSettings{};
     // 追加: デフォルト復帰後も最大HPをEnemyBaseへ反映する。
     ApplyBasicStatsToEnemyBase();
+    // 追加: デフォルト復帰後に各値を再検証して破綻を防ぐ。
+    ValidateTuningValues();
 }
 
 void MidRangeEnemy::ApplyBasicStatsToEnemyBase()
