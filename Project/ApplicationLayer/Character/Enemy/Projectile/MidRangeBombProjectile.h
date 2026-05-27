@@ -1,5 +1,7 @@
 #pragma once
+
 #include "Vector3.h"
+
 struct BombProjectileSettings
 {
     float initialSpeed = 10.0f;
@@ -12,22 +14,30 @@ struct BombProjectileSettings
     int explosionDamage = 12;
     bool directHitAlsoExplosionDamage = false;
 };
+
 class MidRangeBombProjectile
 {
 public:
     void Initialize();
-    void Launch(const Ken4lowEngine::Vector3& start, const Ken4lowEngine::Vector3& target, const BombProjectileSettings& settings);
-    void Update(float deltaTime, float floorY);
+
+    void Launch(
+        const Ken4lowEngine::Vector3& start,
+        const Ken4lowEngine::Vector3& target,
+        const BombProjectileSettings& settings
+    );
+
+    void Update(float deltaTime);
     void Draw() const;
     void Explode();
     bool IsAlive() const;
+
 private:
     Ken4lowEngine::Vector3 position_{};
     Ken4lowEngine::Vector3 velocity_{};
+    Ken4lowEngine::Vector3 explosionPosition_{};
     BombProjectileSettings settings_{};
     float lifeTimer_ = 0.0f;
     float explosionDrawTimer_ = 0.0f;
-    Ken4lowEngine::Vector3 explosionPosition_{};
     bool exploded_ = false;
     bool alive_ = false;
 };
