@@ -399,21 +399,29 @@ void MidRangeEnemy::UpdateVisualAnimation(float deltaTime)
     }
     body_.transform.rotate_.x += (bodyLean - body_.transform.rotate_.x) * ret;
 
-    // 追加: 死亡中は頭向き制御を止める。
-    const bool canLook = headLook_.enabled && targetState_.hasTarget && targetState_.inDetectRange && !IsDeathActive();
+    // 追加: 頭向き可否の各条件をデバッグ表示用に個別保存する。
+    headLookState_.enabledCondition = headLook_.enabled;
+    headLookState_.hasTargetCondition = targetState_.hasTarget;
+    headLookState_.inDetectCondition = targetState_.inDetectRange;
+    headLookState_.deathCondition = !IsDeathActive();
+    const bool canLook = headLookState_.enabledCondition
+        && headLookState_.hasTargetCondition
+        && headLookState_.inDetectCondition
+        && headLookState_.deathCondition;
     headLookState_.targetVisible = canLook;
+    headLookState_.toTarget = targetState_.position - GetCenterPosition();
+    headLookState_.horizontalDistance = std::max(LengthXZ(headLookState_.toTarget), kEpsilon);
     if (canLook)
     {
-        const Vector3 dir = NormalizeXZ(targetState_.position - GetCenterPosition());
+        // 追加: MeleeEnemy同様にターゲットへの生ベクトルから頭向きを算出する。
+        const Vector3 toTarget = headLookState_.toTarget;
+        const float desiredYaw = std::atan2(-toTarget.x, toTarget.z);
         const float bodyYaw = orientation_.y;
-        const float worldYaw = std::atan2(-dir.x, dir.z);
-        const float localYaw = NormalizeAngleRad(worldYaw - bodyYaw);
-        headLookState_.targetYaw = std::clamp(ToDeg(localYaw), -headLook_.yawLimitDeg, headLook_.yawLimitDeg);
+        const float yawDelta = NormalizeAngleRad(desiredYaw - bodyYaw);
+        headLookState_.targetYaw = std::clamp(ToDeg(yawDelta), -headLook_.yawLimitDeg, headLook_.yawLimitDeg);
 
-        const float dy = targetState_.position.y - (GetCenterPosition().y + 2.0f);
-        const float flat = std::max(LengthXZ(dir), kEpsilon);
-        // 追加: Pitch符号を調整して頭向きの上下反転を補正する。
-        const float rawPitchDeg = ToDeg(std::atan2(dy, flat));
+        // 追加: 生の水平距離を使ってPitchを計算し、上下追従を正しく反映する。
+        const float rawPitchDeg = -ToDeg(std::atan2(toTarget.y, headLookState_.horizontalDistance));
         const float signedPitchDeg = rawPitchDeg * headLook_.pitchSign;
         headLookState_.targetPitch = std::clamp(signedPitchDeg, headLook_.pitchMinDeg, headLook_.pitchMaxDeg);
         headLookState_.reason = "TargetInRange";
@@ -422,7 +430,27 @@ void MidRangeEnemy::UpdateVisualAnimation(float deltaTime)
     {
         headLookState_.targetYaw = 0.0f;
         headLookState_.targetPitch = 0.0f;
-        headLookState_.reason = headLook_.enabled ? "OutOfRange" : "Disabled";
+        // 追加: 頭向き不可の理由を条件ごとに明示する。
+        if (!headLookState_.enabledCondition)
+        {
+            headLookState_.reason = "Disabled";
+        }
+        else if (!headLookState_.hasTargetCondition)
+        {
+            headLookState_.reason = "NoTarget";
+        }
+        else if (!headLookState_.inDetectCondition)
+        {
+            headLookState_.reason = "OutOfDetectRange";
+        }
+        else if (!headLookState_.deathCondition)
+        {
+            headLookState_.reason = "Dead";
+        }
+        else
+        {
+            headLookState_.reason = "Unknown";
+        }
     }
 
     const float headRet = std::clamp(deltaTime * headLook_.lerpSpeed, 0.0f, 1.0f);
@@ -430,6 +458,8 @@ void MidRangeEnemy::UpdateVisualAnimation(float deltaTime)
     headLookState_.currentPitch += (headLookState_.targetPitch - headLookState_.currentPitch) * headRet;
     parts_[head].transform.rotate_.y = ToRad(headLookState_.currentYaw);
     parts_[head].transform.rotate_.x = ToRad(headLookState_.currentPitch);
+    // 追加: パーツ回転をObject3Dへ反映するため、最後に階層更新する。
+    UpdateVisualHierarchy();
 }
 
 void MidRangeEnemy::StartHitReaction(const Vector3& hitDirection)
@@ -675,8 +705,17 @@ void MidRangeEnemy::DrawImGui()
         ImGui::Text("現在Pitch: %.2f", headLookState_.currentPitch);
         ImGui::Text("目標Yaw: %.2f", headLookState_.targetYaw);
         ImGui::Text("目標Pitch: %.2f", headLookState_.targetPitch);
+        ImGui::Text("ターゲットを見る条件OK: %s", headLookState_.targetVisible ? "はい" : "いいえ");
+        ImGui::Text("enabled条件: %s", headLookState_.enabledCondition ? "はい" : "いいえ");
+        ImGui::Text("targetあり条件: %s", headLookState_.hasTargetCondition ? "はい" : "いいえ");
+        ImGui::Text("検知範囲内条件: %s", headLookState_.inDetectCondition ? "はい" : "いいえ");
+        ImGui::Text("死亡していない条件: %s", headLookState_.deathCondition ? "はい" : "いいえ");
         ImGui::Text("頭がターゲットを見ているか: %s", headLookState_.targetVisible ? "はい" : "いいえ");
         ImGui::Text("頭向き理由: %s", headLookState_.reason.c_str());
+        ImGui::Text("ターゲットとの差分X: %.2f", headLookState_.toTarget.x);
+        ImGui::Text("ターゲットとの差分Y: %.2f", headLookState_.toTarget.y);
+        ImGui::Text("ターゲットとの差分Z: %.2f", headLookState_.toTarget.z);
+        ImGui::Text("水平距離: %.2f", headLookState_.horizontalDistance);
     }
     if (ImGui::CollapsingHeader("状態表示"))
     {

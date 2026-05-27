@@ -173,6 +173,12 @@ private:
         float targetYaw = 0.0f;
         float targetPitch = 0.0f;
         bool targetVisible = false;
+        bool enabledCondition = false;
+        bool hasTargetCondition = false;
+        bool inDetectCondition = false;
+        bool deathCondition = false;
+        K4E::Vector3 toTarget{};
+        float horizontalDistance = 0.0f;
         std::string reason = "Disabled";
     };
 
