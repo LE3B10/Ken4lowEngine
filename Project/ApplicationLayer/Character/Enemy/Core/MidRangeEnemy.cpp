@@ -1,8 +1,8 @@
 #include "MidRangeEnemy.h"
-#include <BulletManager.h>
-#include <Bullet.h>
-#include <CollisionTypeIdDef.h>
+#include <Collider.h>
+#include <Wireframe.h>
 #include <fstream>
+#include <cmath>
 #include <json.hpp>
 #ifdef USE_IMGUI
 #include <imgui.h>
@@ -12,86 +12,81 @@ using namespace Ken4lowEngine;
 
 namespace
 {
-	float LengthXZ(const Vector3& v) { return std::sqrt(v.x * v.x + v.z * v.z); }
-	Vector3 NormalizeXZ(const Vector3& v) { float l = LengthXZ(v); return l > 0.0001f ? Vector3{ v.x / l, 0.0f, v.z / l } : Vector3{ 0.0f,0.0f,1.0f }; }
+	float LengthXZ(const Vector3& v)
+	{
+		return std::sqrt(v.x * v.x + v.z * v.z);
+	}
+
+	Vector3 NormalizeXZ(const Vector3& v)
+	{
+		float l = LengthXZ(v);
+		return l > 0.0001f ? Vector3{ v.x / l, 0.0f, v.z / l } : Vector3{ 0.0f, 0.0f, 1.0f };
+	}
 }
 
 void MidRangeEnemy::Initialize()
 {
-	// 追加: 中距離敵の初期化
 	EnemyBase::Initialize();
 	SetMaxHp(120);
-	LoadTuningFromJson(tuningIo_.jsonPath, &tuningIo_.lastLoadResult);
+	LoadTuningFromJson(jsonPath_, nullptr);
 }
 
 void MidRangeEnemy::Update(float deltaTime)
 {
-	if (IsDead()) { actionState_ = ActionState::DeadAction; }
-	if (cooldownTimer_ > 0.0f) cooldownTimer_ -= deltaTime;
+	if (cooldownTimer_ > 0.0f) { cooldownTimer_ -= deltaTime; }
 	UpdateAction(deltaTime);
+	activeBomb_.Update(deltaTime, floorAABBs_, wallObstacleAABBs_);
+	if (activeBomb_.ConsumeExplosionEvent())
+	{
+		// 追加: ダメージ接続先が未確定のため、理由を保持してImGuiで確認可能にする。
+		lastThrowReason_ = activeBomb_.GetDebugLastReason();
+	}
 	EnemyBase::Update(deltaTime);
 }
 
 void MidRangeEnemy::UpdateAction(float deltaTime)
 {
-	if (!target_ || IsDead()) return;
+	if (!target_ || IsDead()) { return; }
 	const Vector3 toTarget = target_->GetCenterPosition() - GetCenterPosition();
 	const float distance = LengthXZ(toTarget);
-	if (distance > distanceSettings_.detectRange) { actionState_ = ActionState::CombatIdleAction; SetVelocity({0,GetVelocity().y,0}); return; }
-	if (distance < distanceSettings_.tooCloseDistance) actionState_ = ActionState::RetreatAction;
-	else if (distance > distanceSettings_.attackMaxRange || distance > distanceSettings_.resumeChaseDistance) actionState_ = ActionState::ChaseTargetAction;
-	else if (distance >= distanceSettings_.attackMinRange && distance <= distanceSettings_.attackMaxRange) actionState_ = ActionState::MidRangeAttackAction;
-	else actionState_ = ActionState::KeepDistanceAction;
-	UpdateMoveAndFacing(deltaTime, toTarget, distance);
-	UpdateAttack(deltaTime, toTarget, distance);
-}
-
-void MidRangeEnemy::UpdateMoveAndFacing(float deltaTime, const Vector3& toTarget, float)
-{
 	const Vector3 dir = NormalizeXZ(toTarget);
-	Vector3 vel{0.0f, GetVelocity().y, 0.0f};
-	if (actionState_ == ActionState::ChaseTargetAction) vel = { dir.x * moveSettings_.moveSpeed, GetVelocity().y, dir.z * moveSettings_.moveSpeed };
-	if (actionState_ == ActionState::RetreatAction) vel = { -dir.x * moveSettings_.retreatSpeed, GetVelocity().y, -dir.z * moveSettings_.retreatSpeed };
-	if (actionState_ == ActionState::KeepDistanceAction) vel = {0.0f, GetVelocity().y, 0.0f};
-	if (actionState_ == ActionState::MidRangeAttackAction) vel = {0.0f, GetVelocity().y, 0.0f};
+
+	Vector3 vel = { 0.0f, GetVelocity().y, 0.0f };
+	if (distance > bombAttackSettings_.attackMaxRange) { actionState_ = ActionState::Chase; vel = { dir.x * moveSettings_.moveSpeed, GetVelocity().y, dir.z * moveSettings_.moveSpeed }; }
+	else if (distance < bombAttackSettings_.tooCloseRange) { actionState_ = ActionState::Retreat; vel = { -dir.x * moveSettings_.retreatSpeed, GetVelocity().y, -dir.z * moveSettings_.retreatSpeed }; }
+	else { actionState_ = ActionState::CastBomb; }
 	SetVelocity(vel);
-	yaw_ = std::atan2(dir.x, dir.z);
-	SetOrientation({0.0f, yaw_, 0.0f});
-	UpdateAnimation(deltaTime, LengthXZ(vel) > 0.1f, castTimer_ > 0.0f);
-	UpdateHeadLook(deltaTime, toTarget);
+	SetOrientation({ 0.0f, std::atan2(dir.x, dir.z), 0.0f });
+	UpdateAttack(deltaTime, toTarget, distance);
 }
 
 void MidRangeEnemy::UpdateAttack(float deltaTime, const Vector3& toTarget, float distance)
 {
-	if (actionState_ != ActionState::MidRangeAttackAction) { castTimer_ = 0.0f; return; }
-	if (distance < distanceSettings_.attackMinRange || distance > distanceSettings_.attackMaxRange) return;
-	if (cooldownTimer_ > 0.0f) return;
-	castTimer_ += deltaTime;
-	if (castTimer_ >= attackSettings_.castTime)
+	if (actionState_ != ActionState::CastBomb || cooldownTimer_ > 0.0f)
 	{
-		// 追加: 中距離弾を発射
-		FireProjectile(toTarget);
 		castTimer_ = 0.0f;
-		cooldownTimer_ = attackSettings_.cooldown;
+		castingBomb_ = false;
+		return;
+	}
+	if (distance < bombAttackSettings_.attackMinRange || distance > bombAttackSettings_.attackMaxRange || activeBomb_.IsAlive()) { return; }
+	castingBomb_ = true;
+	castTimer_ += deltaTime;
+	if (castTimer_ >= bombAttackSettings_.castTime)
+	{
+		ThrowBomb(toTarget);
+		castTimer_ = 0.0f;
+		cooldownTimer_ = bombAttackSettings_.cooldown;
+		castingBomb_ = false;
 	}
 }
 
-void MidRangeEnemy::FireProjectile(const Vector3& toTarget)
+void MidRangeEnemy::ThrowBomb(const Vector3& toTarget)
 {
-	if (!bulletManager_) return;
-	const Vector3 dir = NormalizeXZ(toTarget);
-	// 既存のBulletManager::Spawn APIに合わせて中距離敵弾を生成する。
-	Vector3 muzzle = GetCenterPosition() + Vector3{ 0.0f, 1.2f, 0.0f };
-	muzzle = muzzle + dir * 1.0f;
-	bulletManager_->Spawn(
-		muzzle,
-		dir,
-		attackSettings_.projectileSpeed,
-		attackSettings_.damage,
-		attackSettings_.projectileLifeTime,
-		GetCenterPosition(),
-		GetUniqueID(),
-		static_cast<uint32_t>(CollisionTypeIdDef::kEnemyBullet));
+	// 追加: MidRangeEnemy専用の爆弾投擲を行う。
+	Vector3 startPos = GetCenterPosition();
+	startPos.y += bombAttackSettings_.throwHeightOffset;
+	activeBomb_.Launch(startPos, startPos + toTarget, bombProjectileSettings_, this, target_);
+	lastThrowReason_ = "通常投擲";
 }
 
 void MidRangeEnemy::DrawImGui()
@@ -100,71 +95,71 @@ void MidRangeEnemy::DrawImGui()
 #ifdef USE_IMGUI
 	if (ImGui::TreeNode("中距離雑魚敵"))
 	{
-		if (ImGui::Button("読み込み")) { LoadTuningFromJson(tuningIo_.jsonPath, &tuningIo_.lastLoadResult); }
+		if (ImGui::Button("読み込み")) { LoadTuningFromJson(jsonPath_, nullptr); }
 		ImGui::SameLine();
-		if (ImGui::Button("保存")) { SaveTuningToJson(tuningIo_.jsonPath, &tuningIo_.lastSaveResult); }
-		ImGui::Separator();
-		ImGui::SliderInt("最大HP", &maxHp_, 1, 500);
-		ImGui::SliderFloat("検知範囲", &distanceSettings_.detectRange, 1.0f, 50.0f);
-		ImGui::SliderFloat("攻撃最小距離", &distanceSettings_.attackMinRange, 1.0f, 20.0f);
-		ImGui::SliderFloat("攻撃最大距離", &distanceSettings_.attackMaxRange, 1.0f, 30.0f);
-		ImGui::SliderFloat("理想距離", &distanceSettings_.keepDistance, 1.0f, 20.0f);
-		ImGui::SliderFloat("近すぎる距離", &distanceSettings_.tooCloseDistance, 1.0f, 10.0f);
-		ImGui::SliderFloat("移動速度", &moveSettings_.moveSpeed, 0.1f, 10.0f);
-		ImGui::SliderFloat("後退速度", &moveSettings_.retreatSpeed, 0.1f, 10.0f);
-		ImGui::SliderFloat("回転速度", &moveSettings_.rotateSpeed, 1.0f, 20.0f);
-		ImGui::SliderFloat("攻撃クールダウン", &attackSettings_.cooldown, 0.1f, 5.0f);
-		ImGui::SliderFloat("構え時間", &attackSettings_.castTime, 0.05f, 3.0f);
-		ImGui::SliderFloat("弾速", &attackSettings_.projectileSpeed, 1.0f, 40.0f);
-		ImGui::SliderFloat("弾寿命", &attackSettings_.projectileLifeTime, 0.1f, 10.0f);
-		ImGui::SliderInt("ダメージ", &attackSettings_.damage, 1, 200);
-		ImGui::Text("状態表示: %s", GetCurrentBehaviorName());
-		ImGui::Text("読み込み結果: %s", tuningIo_.lastLoadResult.c_str());
-		ImGui::Text("保存結果: %s", tuningIo_.lastSaveResult.c_str());
+		if (ImGui::Button("保存")) { SaveTuningToJson(jsonPath_, nullptr); }
+		if (ImGui::TreeNode("爆弾攻撃"))
+		{
+			ImGui::SliderFloat("攻撃最小距離", &bombAttackSettings_.attackMinRange, 1.0f, 30.0f);
+			ImGui::SliderFloat("攻撃最大距離", &bombAttackSettings_.attackMaxRange, 1.0f, 30.0f);
+			ImGui::SliderFloat("理想距離", &bombAttackSettings_.idealRange, 1.0f, 20.0f);
+			ImGui::SliderFloat("近すぎる距離", &bombAttackSettings_.tooCloseRange, 1.0f, 20.0f);
+			ImGui::SliderFloat("攻撃クールダウン", &bombAttackSettings_.cooldown, 0.1f, 10.0f);
+			ImGui::SliderFloat("構え時間", &bombAttackSettings_.castTime, 0.05f, 5.0f);
+			ImGui::SliderFloat("投げ開始高さ", &bombAttackSettings_.throwHeightOffset, 0.1f, 5.0f);
+			ImGui::SliderFloat("爆弾初速", &bombProjectileSettings_.initialSpeed, 1.0f, 40.0f);
+			ImGui::SliderFloat("爆弾上方向速度", &bombProjectileSettings_.upwardVelocity, 0.1f, 20.0f);
+			ImGui::SliderFloat("爆弾重力", &bombProjectileSettings_.gravity, 0.1f, 40.0f);
+			ImGui::SliderFloat("爆弾寿命", &bombProjectileSettings_.lifeTime, 0.1f, 10.0f);
+			ImGui::SliderFloat("爆発半径", &bombProjectileSettings_.explosionRadius, 0.1f, 10.0f);
+			ImGui::SliderInt("直撃ダメージ", &bombProjectileSettings_.directHitDamage, 1, 999);
+			ImGui::SliderInt("爆発ダメージ", &bombProjectileSettings_.explosionDamage, 1, 999);
+			ImGui::SliderFloat("直撃判定半径", &bombProjectileSettings_.hitRadius, 0.1f, 3.0f);
+			ImGui::TreePop();
+		}
+		ImGui::Text("現在行動: %d", static_cast<int>(actionState_));
+		ImGui::Text("攻撃クールダウン残り: %.2f", cooldownTimer_);
+		ImGui::Text("構え中か: %s", castingBomb_ ? "はい" : "いいえ");
+		ImGui::Text("最後に爆弾を投げた理由: %s", lastThrowReason_.c_str());
+		ImGui::Text("現在の爆弾数: %d", activeBomb_.IsAlive() ? 1 : 0);
 		ImGui::TreePop();
 	}
 #endif
-}
-
-const char* MidRangeEnemy::GetCurrentBehaviorName() const
-{
-	switch (actionState_) { case ActionState::ChaseTargetAction: return "ChaseTargetAction"; case ActionState::KeepDistanceAction: return "KeepDistanceAction"; case ActionState::RetreatAction: return "RetreatAction"; case ActionState::MidRangeAttackAction: return "MidRangeAttackAction"; case ActionState::CombatIdleAction: return "CombatIdleAction"; case ActionState::DeadAction: return "DeadAction"; default: return "Unknown"; }
+	activeBomb_.DrawDebug();
 }
 
 void MidRangeEnemy::TakeDamage(int amount) { EnemyBase::TakeDamage(amount); }
-void MidRangeEnemy::UpdateAnimation(float, bool, bool) {}
-void MidRangeEnemy::UpdateHeadLook(float, const Vector3&) {}
 
-bool MidRangeEnemy::LoadTuningFromJson(const std::filesystem::path& path, std::string* outMessage)
+bool MidRangeEnemy::LoadTuningFromJson(const std::filesystem::path& path, std::string*)
 {
-	std::ifstream ifs(path); if (!ifs.is_open()) { if (outMessage) *outMessage = "ファイルなし"; return false; }
+	std::ifstream ifs(path);
+	if (!ifs.is_open()) { return false; }
 	nlohmann::json j; ifs >> j;
-	distanceSettings_.detectRange = j["distance"].value("detectRange", distanceSettings_.detectRange);
-	distanceSettings_.attackMinRange = j["distance"].value("attackMinRange", distanceSettings_.attackMinRange);
-	distanceSettings_.attackMaxRange = j["distance"].value("attackMaxRange", distanceSettings_.attackMaxRange);
-	distanceSettings_.keepDistance = j["distance"].value("keepDistance", distanceSettings_.keepDistance);
-	distanceSettings_.tooCloseDistance = j["distance"].value("tooCloseDistance", distanceSettings_.tooCloseDistance);
-	moveSettings_.moveSpeed = j["move"].value("moveSpeed", moveSettings_.moveSpeed);
-	moveSettings_.retreatSpeed = j["move"].value("retreatSpeed", moveSettings_.retreatSpeed);
-	attackSettings_.cooldown = j["attack"].value("cooldown", attackSettings_.cooldown);
-	attackSettings_.castTime = j["attack"].value("castTime", attackSettings_.castTime);
-	attackSettings_.projectileSpeed = j["attack"].value("projectileSpeed", attackSettings_.projectileSpeed);
-	attackSettings_.projectileLifeTime = j["attack"].value("projectileLifeTime", attackSettings_.projectileLifeTime);
-	attackSettings_.damage = j["attack"].value("damage", attackSettings_.damage);
-	if (outMessage) *outMessage = "読み込み成功";
+	bombAttackSettings_.attackMinRange = j["bombAttack"].value("attackMinRange", bombAttackSettings_.attackMinRange);
+	bombAttackSettings_.attackMaxRange = j["bombAttack"].value("attackMaxRange", bombAttackSettings_.attackMaxRange);
+	bombAttackSettings_.idealRange = j["bombAttack"].value("idealRange", bombAttackSettings_.idealRange);
+	bombAttackSettings_.tooCloseRange = j["bombAttack"].value("tooCloseRange", bombAttackSettings_.tooCloseRange);
+	bombAttackSettings_.cooldown = j["bombAttack"].value("cooldown", bombAttackSettings_.cooldown);
+	bombAttackSettings_.castTime = j["bombAttack"].value("castTime", bombAttackSettings_.castTime);
+	bombAttackSettings_.throwHeightOffset = j["bombAttack"].value("throwHeightOffset", bombAttackSettings_.throwHeightOffset);
+	bombProjectileSettings_.initialSpeed = j["bombProjectile"].value("initialSpeed", bombProjectileSettings_.initialSpeed);
+	bombProjectileSettings_.upwardVelocity = j["bombProjectile"].value("upwardVelocity", bombProjectileSettings_.upwardVelocity);
+	bombProjectileSettings_.gravity = j["bombProjectile"].value("gravity", bombProjectileSettings_.gravity);
+	bombProjectileSettings_.lifeTime = j["bombProjectile"].value("lifeTime", bombProjectileSettings_.lifeTime);
+	bombProjectileSettings_.explosionRadius = j["bombProjectile"].value("explosionRadius", bombProjectileSettings_.explosionRadius);
+	bombProjectileSettings_.directHitDamage = j["bombProjectile"].value("directHitDamage", bombProjectileSettings_.directHitDamage);
+	bombProjectileSettings_.explosionDamage = j["bombProjectile"].value("explosionDamage", bombProjectileSettings_.explosionDamage);
+	bombProjectileSettings_.hitRadius = j["bombProjectile"].value("hitRadius", bombProjectileSettings_.hitRadius);
 	return true;
 }
 
-bool MidRangeEnemy::SaveTuningToJson(const std::filesystem::path& path, std::string* outMessage) const
+bool MidRangeEnemy::SaveTuningToJson(const std::filesystem::path& path, std::string*) const
 {
 	nlohmann::json j;
-	j["basicStats"] = { {"maxHp", maxHp_} };
-	j["distance"] = {{"detectRange", distanceSettings_.detectRange},{"attackMinRange", distanceSettings_.attackMinRange},{"attackMaxRange", distanceSettings_.attackMaxRange},{"keepDistance", distanceSettings_.keepDistance},{"tooCloseDistance", distanceSettings_.tooCloseDistance},{"resumeChaseDistance", distanceSettings_.resumeChaseDistance}};
-	j["move"] = {{"moveSpeed", moveSettings_.moveSpeed},{"retreatSpeed", moveSettings_.retreatSpeed},{"rotateSpeed", moveSettings_.rotateSpeed}};
-	j["attack"] = {{"cooldown", attackSettings_.cooldown},{"castTime", attackSettings_.castTime},{"projectileSpeed", attackSettings_.projectileSpeed},{"projectileLifeTime", attackSettings_.projectileLifeTime},{"damage", attackSettings_.damage},{"attackRadius", attackSettings_.attackRadius}};
+	j["bombAttack"] = {{"attackMinRange", bombAttackSettings_.attackMinRange},{"attackMaxRange", bombAttackSettings_.attackMaxRange},{"idealRange", bombAttackSettings_.idealRange},{"tooCloseRange", bombAttackSettings_.tooCloseRange},{"cooldown", bombAttackSettings_.cooldown},{"castTime", bombAttackSettings_.castTime},{"throwHeightOffset", bombAttackSettings_.throwHeightOffset}};
+	j["bombProjectile"] = {{"initialSpeed", bombProjectileSettings_.initialSpeed},{"upwardVelocity", bombProjectileSettings_.upwardVelocity},{"gravity", bombProjectileSettings_.gravity},{"lifeTime", bombProjectileSettings_.lifeTime},{"explosionRadius", bombProjectileSettings_.explosionRadius},{"directHitDamage", bombProjectileSettings_.directHitDamage},{"explosionDamage", bombProjectileSettings_.explosionDamage},{"hitRadius", bombProjectileSettings_.hitRadius}};
 	std::filesystem::create_directories(path.parent_path());
 	std::ofstream ofs(path);
 	ofs << j.dump(2);
-	if (outMessage) *outMessage = "保存成功";
 	return true;
 }
