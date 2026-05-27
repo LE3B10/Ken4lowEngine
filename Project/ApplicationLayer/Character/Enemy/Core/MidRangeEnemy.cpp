@@ -166,6 +166,16 @@ void MidRangeEnemy::Update(float deltaTime)
 {
     // 追加: まず基礎更新を行う。
     EnemyBase::Update(deltaTime);
+    // 追加: 自爆後の死亡遅延タイマーを死亡中returnより前に更新する。
+    if (suicideBombState_.exploded && suicideBombState_.deathDelayTimer > 0.0f)
+    {
+        suicideBombState_.deathDelayTimer = std::max(0.0f, suicideBombState_.deathDelayTimer - deltaTime);
+        if (suicideBombState_.deathDelayTimer <= 0.0f && !IsDeathActive())
+        {
+            SetCurrentHp(0);
+            StartDeathAnimation("SuicideBombExploded");
+        }
+    }
     // 追加: 時限爆弾モード中のHP0は通常死亡より自爆を優先する。
     if (!IsDeathActive() && GetHp() <= 0)
     {
@@ -174,7 +184,10 @@ void MidRangeEnemy::Update(float deltaTime)
             ExplodeSuicideBomb("HpZeroSuicideBomb");
             return;
         }
-        StartDeathAnimation("HpZero");
+        if (!suicideBombState_.exploded)
+        {
+            StartDeathAnimation("HpZero");
+        }
     }
 
     bombAttackState_.cooldownTimer = std::max(0.0f, bombAttackState_.cooldownTimer - deltaTime);
@@ -376,6 +389,7 @@ void MidRangeEnemy::StartSuicideBombMode()
     suicideBombState_.active = true;
     suicideBombState_.exploded = false;
     suicideBombState_.timer = suicideBomb_.timeLimit;
+    suicideBombState_.deathDelayTimer = 0.0f;
     suicideBombState_.blinkTimer = 0.0f;
     suicideBombState_.lastReason = "HP低下で時限爆弾モード";
     behaviorState_.currentBehaviorName = "SuicideBomb";
@@ -438,8 +452,11 @@ void MidRangeEnemy::ExplodeSuicideBomb(const std::string& reason)
         explosionPos.y = suicideBomb_.explosionPositionMinY;
     }
     // 追加: 自爆の見た目を死亡演出より先に確定する。
+    // 追加: 設定値が0でも爆発描画が見えるよう最短表示時間を保証する。
+    const float drawTime = std::max(suicideBomb_.explosionDebugDrawTime, 0.35f);
     suicideBombState_.explosionPosition = explosionPos;
-    suicideBombState_.explosionDrawTimer = suicideBomb_.explosionDebugDrawTime;
+    suicideBombState_.explosionDrawTimer = drawTime;
+    suicideBombState_.deathDelayTimer = std::max(0.0f, suicideBomb_.deathDelayAfterExplosion);
     suicideBombState_.active = false;
     suicideBombState_.exploded = true;
     suicideBombState_.lastReason = reason;
@@ -458,9 +475,12 @@ void MidRangeEnemy::ExplodeSuicideBomb(const std::string& reason)
     }
     // 追加: 爆発直後は視認しやすい爆発色を反映する。
     SetColor({ 1.0f, 0.2f, 0.0f, 1.0f });
-    // 追加: 自爆後は自身を死亡扱いにする。
-    SetCurrentHp(0);
-    StartDeathAnimation("SuicideBombExploded");
+    // 追加: 自爆後は遅延設定に応じて死亡演出へ移る。
+    if (suicideBombState_.deathDelayTimer <= 0.0f)
+    {
+        SetCurrentHp(0);
+        StartDeathAnimation("SuicideBombExploded");
+    }
 }
 
 void MidRangeEnemy::UpdateVisualAnimation(float deltaTime)
@@ -749,7 +769,13 @@ void MidRangeEnemy::Draw()
     if (suicideBombState_.explosionDrawTimer > 0.0f)
     {
         // 追加: 自爆直後は爆発地点に範囲表示を残す。
-        Wireframe::GetInstance()->DrawSphere(suicideBombState_.explosionPosition, suicideBomb_.explosionRadius, { 1.0f, 0.5f, 0.1f, 0.45f });
+        Vector3 drawPos = suicideBombState_.explosionPosition;
+        if (drawPos.y < suicideBomb_.explosionPositionMinY)
+        {
+            drawPos.y = suicideBomb_.explosionPositionMinY;
+        }
+        Wireframe::GetInstance()->DrawSphere(drawPos, suicideBomb_.explosionRadius, { 1.0f, 0.0f, 0.0f, 0.9f });
+        Wireframe::GetInstance()->DrawSphere(drawPos, suicideBomb_.explosionRadius * 0.5f, { 1.0f, 0.8f, 0.0f, 0.9f });
     }
 
     const Vector3 faceEnd = GetCenterPosition() + animationState_.faceDirection * 2.0f;
@@ -837,6 +863,7 @@ void MidRangeEnemy::DrawImGui()
         ImGui::SliderFloat("点滅速度", &suicideBomb_.blinkSpeed, 0.0f, 40.0f);
         ImGui::Checkbox("爆発まで死亡演出を遅らせる", &suicideBomb_.delayDeathAnimationUntilExplosion);
         ImGui::SliderFloat("爆発位置の最低Y", &suicideBomb_.explosionPositionMinY, 0.0f, 5.0f);
+        ImGui::SliderFloat("爆発後死亡遅延", &suicideBomb_.deathDelayAfterExplosion, 0.0f, 0.5f);
         ImGui::ColorEdit4("点滅色A", &suicideBomb_.blinkColorA.x);
         ImGui::ColorEdit4("点滅色B", &suicideBomb_.blinkColorB.x);
         ImGui::Text("時限爆弾モード中: %s", suicideBombState_.active ? "はい" : "いいえ");
@@ -844,6 +871,7 @@ void MidRangeEnemy::DrawImGui()
         ImGui::Text("残り時間: %.2f", suicideBombState_.timer);
         ImGui::Text("時間切れ条件: %s", suicideBombState_.timer <= 0.0f ? "成立" : "未成立");
         ImGui::Text("距離爆発条件: %s", targetState_.distance <= suicideBomb_.explodeDistance ? "成立" : "未成立");
+        ImGui::Text("爆発表示時間設定: %.2f", suicideBomb_.explosionDebugDrawTime);
         ImGui::Text("最後の理由: %s", suicideBombState_.lastReason.c_str());
         ImGui::Text("爆発範囲表示残り: %.2f", suicideBombState_.explosionDrawTimer);
         ImGui::Text("爆発位置X: %.2f", suicideBombState_.explosionPosition.x);
@@ -854,6 +882,9 @@ void MidRangeEnemy::DrawImGui()
         ImGui::Text("点滅タイマー: %.2f", suicideBombState_.blinkTimer);
         ImGui::Text("現在HP割合: %.2f", GetHpRate());
         ImGui::Text("死亡演出中か: %s", IsDeathActive() ? "はい" : "いいえ");
+        ImGui::Text("HP0か: %s", GetHp() <= 0 ? "はい" : "いいえ");
+        ImGui::Text("自爆済みなので死亡演出中か: %s", (suicideBombState_.exploded && IsDeathActive()) ? "はい" : "いいえ");
+        ImGui::Text("現在行動: %s", behaviorState_.currentBehaviorName.c_str());
         ImGui::Text("ターゲット距離: %.2f", targetState_.distance);
         ImGui::Text("経路が見つかったか: %s", pathState_.pathFound ? "はい" : "いいえ");
         ImGui::Text("経路失敗理由: %s", pathState_.failureReason.c_str());
@@ -869,6 +900,19 @@ void MidRangeEnemy::DrawImGui()
         if (ImGui::Button("現在位置で自爆"))
         {
             ExplodeSuicideBomb("DebugCurrentPosition");
+        }
+        if (ImGui::Button("爆発表示だけ再生"))
+        {
+            // 追加: HP変更なしで爆発描画のみを検証できるようにする。
+            Vector3 debugExplosionPos = GetCenterPosition();
+            if (debugExplosionPos.y < suicideBomb_.explosionPositionMinY)
+            {
+                debugExplosionPos.y = suicideBomb_.explosionPositionMinY;
+            }
+            const float drawTime = std::max(suicideBomb_.explosionDebugDrawTime, 0.35f);
+            suicideBombState_.explosionPosition = debugExplosionPos;
+            suicideBombState_.explosionDrawTimer = drawTime;
+            suicideBombState_.lastReason = "DebugExplosionDrawOnly";
         }
     }
     if (ImGui::CollapsingHeader("爆弾Projectile"))
@@ -1047,6 +1091,7 @@ void MidRangeEnemy::ValidateTuningValues()
     suicideBomb_.explodeDistance = std::max(0.1f, suicideBomb_.explodeDistance);
     suicideBomb_.explosionRadius = std::max(0.1f, suicideBomb_.explosionRadius);
     suicideBomb_.explosionPositionMinY = std::max(0.0f, suicideBomb_.explosionPositionMinY);
+    suicideBomb_.deathDelayAfterExplosion = std::max(0.0f, suicideBomb_.deathDelayAfterExplosion);
     if (std::abs(headLook_.pitchSign) < 0.001f)
     {
         headLook_.pitchSign = 1.0f;
@@ -1146,6 +1191,7 @@ bool MidRangeEnemy::SaveTuningToJson(const std::filesystem::path& path, std::str
         j["suicideBomb"]["blinkSpeed"] = suicideBomb_.blinkSpeed;
         j["suicideBomb"]["delayDeathAnimationUntilExplosion"] = suicideBomb_.delayDeathAnimationUntilExplosion;
         j["suicideBomb"]["explosionPositionMinY"] = suicideBomb_.explosionPositionMinY;
+        j["suicideBomb"]["deathDelayAfterExplosion"] = suicideBomb_.deathDelayAfterExplosion;
         j["suicideBomb"]["blinkColorA"] = { suicideBomb_.blinkColorA.x, suicideBomb_.blinkColorA.y, suicideBomb_.blinkColorA.z, suicideBomb_.blinkColorA.w };
         j["suicideBomb"]["blinkColorB"] = { suicideBomb_.blinkColorB.x, suicideBomb_.blinkColorB.y, suicideBomb_.blinkColorB.z, suicideBomb_.blinkColorB.w };
 
@@ -1258,6 +1304,7 @@ bool MidRangeEnemy::LoadTuningFromJson(const std::filesystem::path& path, std::s
         animation_.returnSpeed = animationJson.value("returnSpeed", animation_.returnSpeed);
         headLook_.enabled = headLookJson.value("enabled", headLook_.enabled);
         headLook_.yawLimitDeg = headLookJson.value("yawLimitDeg", headLook_.yawLimitDeg);
+        suicideBomb_.deathDelayAfterExplosion = suicideBombJson.value("deathDelayAfterExplosion", suicideBomb_.deathDelayAfterExplosion);
         headLook_.pitchMinDeg = headLookJson.value("pitchMinDeg", headLook_.pitchMinDeg);
         headLook_.pitchMaxDeg = headLookJson.value("pitchMaxDeg", headLook_.pitchMaxDeg);
         headLook_.pitchSign = headLookJson.value("pitchSign", headLook_.pitchSign);
