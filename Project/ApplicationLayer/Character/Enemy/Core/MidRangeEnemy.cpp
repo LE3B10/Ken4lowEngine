@@ -166,18 +166,8 @@ void MidRangeEnemy::Update(float deltaTime)
 {
     // 追加: まず基礎更新を行う。
     EnemyBase::Update(deltaTime);
-    // 追加: 自爆後の死亡遅延タイマーを死亡中returnより前に更新する。
-    if (suicideBombState_.exploded && suicideBombState_.deathDelayTimer > 0.0f)
-    {
-        suicideBombState_.deathDelayTimer = std::max(0.0f, suicideBombState_.deathDelayTimer - deltaTime);
-        if (suicideBombState_.deathDelayTimer <= 0.0f && !IsDeathActive())
-        {
-            SetCurrentHp(0);
-            StartDeathAnimation("SuicideBombExploded");
-        }
-    }
     // 追加: 時限爆弾モード中のHP0は通常死亡より自爆を優先する。
-    if (!IsDeathActive() && GetHp() <= 0)
+    if (!IsDead() && !IsDeathActive() && GetHp() <= 0)
     {
         if (suicideBombState_.active && !suicideBombState_.exploded && suicideBomb_.delayDeathAnimationUntilExplosion)
         {
@@ -219,7 +209,14 @@ void MidRangeEnemy::Update(float deltaTime)
                 return !bomb->IsAlive();
             }),
         bombs_.end());
-    // 追加: 死亡中は死亡演出と既存爆弾更新のみ行う。
+    // 追加: 死亡中はEnemyBaseの分裂死亡更新を優先し、爆発表示だけ継続する。
+    if (IsDead())
+    {
+        UpdateDeathAnimation(deltaTime);
+        return;
+    }
+
+    // 追加: 非分裂死亡演出中は専用更新のみ継続する。
     if (IsDeathActive())
     {
         UpdateDeathAnimation(deltaTime);
@@ -456,7 +453,7 @@ void MidRangeEnemy::ExplodeSuicideBomb(const std::string& reason)
     const float drawTime = std::max(suicideBomb_.explosionDebugDrawTime, 0.35f);
     suicideBombState_.explosionPosition = explosionPos;
     suicideBombState_.explosionDrawTimer = drawTime;
-    suicideBombState_.deathDelayTimer = std::max(0.0f, suicideBomb_.deathDelayAfterExplosion);
+    suicideBombState_.deathDelayTimer = 0.0f;
     suicideBombState_.active = false;
     suicideBombState_.exploded = true;
     suicideBombState_.lastReason = reason;
@@ -475,16 +472,46 @@ void MidRangeEnemy::ExplodeSuicideBomb(const std::string& reason)
     }
     // 追加: 爆発直後は視認しやすい爆発色を反映する。
     SetColor({ 1.0f, 0.2f, 0.0f, 1.0f });
-    // 追加: 自爆後は遅延設定に応じて死亡演出へ移る。
-    if (suicideBombState_.deathDelayTimer <= 0.0f)
+    // 追加: 自爆死はEnemyBaseの分裂死亡処理を必ず通す。
+    KillBySuicideExplosion();
+}
+
+K4E::Vector3 MidRangeEnemy::CalculateSuicideBreakApartDirection() const
+{
+    // 追加: 自爆分裂方向の既定値を前方にする。
+    Vector3 breakApartDirection = { 0.0f, 0.0f, 1.0f };
+    if (suicideBomb_.useTargetDirectionForBreakApart && targetState_.hasTarget)
     {
-        SetCurrentHp(0);
-        StartDeathAnimation("SuicideBombExploded");
+        breakApartDirection = NormalizeXZ(targetState_.position - GetCenterPosition());
     }
+    if (LengthXZ(breakApartDirection) <= kEpsilon)
+    {
+        breakApartDirection = { 0.0f, 0.0f, 1.0f };
+    }
+    return breakApartDirection;
+}
+
+void MidRangeEnemy::KillBySuicideExplosion()
+{
+    if (IsDead())
+    {
+        return;
+    }
+    // 追加: 自爆死は派生の無敵判定を回避するため基底のTakeDamageを直接呼ぶ。
+    const int lethalDamage = std::max(GetHp(), GetMaxHp());
+    Vector3 breakApartDirection = CalculateSuicideBreakApartDirection();
+    lastSuicideBreakApartDirection_ = breakApartDirection;
+    usedEnemyBaseDeathForSuicide_ = true;
+    EnemyBase::TakeDamage(lethalDamage, breakApartDirection, suicideBomb_.breakApartPower);
 }
 
 void MidRangeEnemy::UpdateVisualAnimation(float deltaTime)
 {
+    if (IsDead() || suicideBombState_.exploded)
+    {
+        // 追加: 自爆後の分裂パーツ姿勢を通常アニメで上書きしない。
+        return;
+    }
     if (parts_.size() < 5 || !body_.object)
     {
         return;
@@ -864,6 +891,9 @@ void MidRangeEnemy::DrawImGui()
         ImGui::Checkbox("爆発まで死亡演出を遅らせる", &suicideBomb_.delayDeathAnimationUntilExplosion);
         ImGui::SliderFloat("爆発位置の最低Y", &suicideBomb_.explosionPositionMinY, 0.0f, 5.0f);
         ImGui::SliderFloat("爆発後死亡遅延", &suicideBomb_.deathDelayAfterExplosion, 0.0f, 0.5f);
+        ImGui::SliderFloat("自爆分裂威力", &suicideBomb_.breakApartPower, 0.1f, 10.0f);
+        ImGui::SliderFloat("自爆上方向威力", &suicideBomb_.breakApartUpPower, 0.0f, 10.0f);
+        ImGui::Checkbox("ターゲット方向へ分裂", &suicideBomb_.useTargetDirectionForBreakApart);
         ImGui::ColorEdit4("点滅色A", &suicideBomb_.blinkColorA.x);
         ImGui::ColorEdit4("点滅色B", &suicideBomb_.blinkColorB.x);
         ImGui::Text("時限爆弾モード中: %s", suicideBombState_.active ? "はい" : "いいえ");
@@ -874,6 +904,12 @@ void MidRangeEnemy::DrawImGui()
         ImGui::Text("爆発表示時間設定: %.2f", suicideBomb_.explosionDebugDrawTime);
         ImGui::Text("最後の理由: %s", suicideBombState_.lastReason.c_str());
         ImGui::Text("爆発範囲表示残り: %.2f", suicideBombState_.explosionDrawTimer);
+        ImGui::Text("自爆でEnemyBase死亡を使用: %s", usedEnemyBaseDeathForSuicide_ ? "はい" : "いいえ");
+        ImGui::Text("IsDead(): %s", IsDead() ? "はい" : "いいえ");
+        ImGui::Text("IsRemovable(): %s", IsRemovable() ? "はい" : "いいえ");
+        ImGui::Text("自爆分裂方向X: %.2f", lastSuicideBreakApartDirection_.x);
+        ImGui::Text("自爆分裂方向Y: %.2f", lastSuicideBreakApartDirection_.y);
+        ImGui::Text("自爆分裂方向Z: %.2f", lastSuicideBreakApartDirection_.z);
         ImGui::Text("爆発位置X: %.2f", suicideBombState_.explosionPosition.x);
         ImGui::Text("爆発位置Y: %.2f", suicideBombState_.explosionPosition.y);
         ImGui::Text("爆発位置Z: %.2f", suicideBombState_.explosionPosition.z);
@@ -900,6 +936,11 @@ void MidRangeEnemy::DrawImGui()
         if (ImGui::Button("現在位置で自爆"))
         {
             ExplodeSuicideBomb("DebugCurrentPosition");
+        }
+        if (ImGui::Button("自爆分裂だけテスト"))
+        {
+            // 追加: 自爆分裂処理のみを即時確認する。
+            KillBySuicideExplosion();
         }
         if (ImGui::Button("爆発表示だけ再生"))
         {
@@ -1192,6 +1233,9 @@ bool MidRangeEnemy::SaveTuningToJson(const std::filesystem::path& path, std::str
         j["suicideBomb"]["delayDeathAnimationUntilExplosion"] = suicideBomb_.delayDeathAnimationUntilExplosion;
         j["suicideBomb"]["explosionPositionMinY"] = suicideBomb_.explosionPositionMinY;
         j["suicideBomb"]["deathDelayAfterExplosion"] = suicideBomb_.deathDelayAfterExplosion;
+        j["suicideBomb"]["breakApartPower"] = suicideBomb_.breakApartPower;
+        j["suicideBomb"]["breakApartUpPower"] = suicideBomb_.breakApartUpPower;
+        j["suicideBomb"]["useTargetDirectionForBreakApart"] = suicideBomb_.useTargetDirectionForBreakApart;
         j["suicideBomb"]["blinkColorA"] = { suicideBomb_.blinkColorA.x, suicideBomb_.blinkColorA.y, suicideBomb_.blinkColorA.z, suicideBomb_.blinkColorA.w };
         j["suicideBomb"]["blinkColorB"] = { suicideBomb_.blinkColorB.x, suicideBomb_.blinkColorB.y, suicideBomb_.blinkColorB.z, suicideBomb_.blinkColorB.w };
 
@@ -1324,6 +1368,9 @@ bool MidRangeEnemy::LoadTuningFromJson(const std::filesystem::path& path, std::s
         suicideBomb_.blinkSpeed = suicideBombJson.value("blinkSpeed", suicideBomb_.blinkSpeed);
         suicideBomb_.delayDeathAnimationUntilExplosion = suicideBombJson.value("delayDeathAnimationUntilExplosion", suicideBomb_.delayDeathAnimationUntilExplosion);
         suicideBomb_.explosionPositionMinY = suicideBombJson.value("explosionPositionMinY", suicideBomb_.explosionPositionMinY);
+        suicideBomb_.breakApartPower = suicideBombJson.value("breakApartPower", suicideBomb_.breakApartPower);
+        suicideBomb_.breakApartUpPower = suicideBombJson.value("breakApartUpPower", suicideBomb_.breakApartUpPower);
+        suicideBomb_.useTargetDirectionForBreakApart = suicideBombJson.value("useTargetDirectionForBreakApart", suicideBomb_.useTargetDirectionForBreakApart);
         if (suicideBombJson.contains("blinkColorA"))
         {
             const auto& color = suicideBombJson["blinkColorA"];
