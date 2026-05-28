@@ -23,6 +23,11 @@ float WrapAngle(float angle)
 	while (angle < -3.14159265f) { angle += 6.28318530f; }
 	return angle;
 }
+
+float LengthXZ(const Vector3& v)
+{
+	return std::sqrt(v.x * v.x + v.z * v.z);
+}
 }
 
 void GuardianBoss::SetupBoss()
@@ -69,9 +74,12 @@ void GuardianBoss::UpdateMovement(float deltaTime)
 		if (lenSq <= 0.0001f) { return; }
 		const float len = std::sqrt(lenSq);
 		to.x /= len; to.z /= len;
-		SetVelocity({ to.x * speed, GetVelocity().y, to.z * speed });
+		movementVelocity_ = Vector3{ to.x * speed, 0.0f, to.z * speed };
 	}
-	SetPosition({ GetPosition().x + GetVelocity().x * deltaTime, GetPosition().y, GetPosition().z + GetVelocity().z * deltaTime });
+	Vector3 nextPos = GetPosition();
+	nextPos.x += movementVelocity_.x * deltaTime;
+	nextPos.z += movementVelocity_.z * deltaTime;
+	SetPosition(nextPos);
 	const bool landedOnObstacleTop = TryLandOnObstacleTop(deltaTime);
 	if (!landedOnObstacleTop) { ResolveObstaclePenetrationXZ(deltaTime); }
 }
@@ -208,25 +216,26 @@ bool GuardianBoss::MoveAlongPath(float deltaTime)
 	const Vector3 targetPos = GetTargetPosition();
 	pathState_.targetMovedDistanceForRepath = LengthXZ(targetPos - pathState_.lastPathTargetPos);
 	if (pathState_.targetMovedDistanceForRepath >= pathSettings_.targetRepathThreshold || isStuck_) { navigator_.Reset(); }
-	if (navigator_.GetNextWaypoint(GetCenterPosition(), targetPos, GetCenterPosition().y, deltaTime, pathState_.currentWaypoint))
+	const Vector3 selfPos = GetPosition();
+	if (navigator_.GetNextWaypoint(selfPos, targetPos, selfPos.y, deltaTime, pathState_.currentWaypoint))
 	{
 		pathState_.found = true;
 		pathState_.failureReason = "None";
 		pathState_.lastPathTargetPos = targetPos;
-		Vector3 dir = pathState_.currentWaypoint - GetCenterPosition();
+		Vector3 dir = pathState_.currentWaypoint - selfPos;
 		dir.y = 0.0f;
 		const float dirLenSq = dir.x * dir.x + dir.z * dir.z;
-		if (dirLenSq <= 0.0001f) { SetVelocity({ 0.0f, GetVelocity().y, 0.0f }); return false; }
+		if (dirLenSq <= 0.0001f) { movementVelocity_ = Vector3{ 0.0f, 0.0f, 0.0f }; return false; }
 		const float dirLen = std::sqrt(dirLenSq);
 		dir.x /= dirLen;
 		dir.z /= dirLen;
 		const float speed = (runtime_.currentActionName == "Charge") ? GetCurrentMoveSpeed() * 2.3f : GetCurrentMoveSpeed();
-		SetVelocity({ dir.x * speed, GetVelocity().y, dir.z * speed });
+		movementVelocity_ = Vector3{ dir.x * speed, 0.0f, dir.z * speed };
 		return true;
 	}
 	pathState_.found = false;
 	pathState_.failureReason = "PathNotFound";
-	SetVelocity({ 0.0f, GetVelocity().y, 0.0f });
+	movementVelocity_ = Vector3{ 0.0f, 0.0f, 0.0f };
 	return false;
 }
 
@@ -234,12 +243,12 @@ void GuardianBoss::UpdateStuckState(float deltaTime)
 {
 	stuckTimer_ += deltaTime;
 	if (stuckTimer_ < 0.8f) { return; }
-	const float moved = LengthXZ(GetCenterPosition() - pathState_.lastStuckCheckPosition);
+	const float moved = LengthXZ(GetPosition() - pathState_.lastStuckCheckPosition);
 	isStuck_ = (GetState() == BossState::Move) && moved <= 0.2f && GetDistanceToTargetXZ() > attackSettings_.moveStopDistance;
 	pathState_.lastMovedDistance = moved;
 	if (isStuck_)
 	{
-		navigator_.AddTemporaryBlockedArea(GetCenterPosition(), pathSettings_.temporaryBlockRadius, pathSettings_.temporaryBlockDuration, "StuckPosition");
+		navigator_.AddTemporaryBlockedArea(GetPosition(), pathSettings_.temporaryBlockRadius, pathSettings_.temporaryBlockDuration, "StuckPosition");
 		navigator_.Reset();
 		pathSettings_.stuckRepathExpandBonus = std::min(pathSettings_.stuckRepathExpandBonus + 0.1f, pathSettings_.maxStuckRepathExpandBonus);
 	}
@@ -247,7 +256,7 @@ void GuardianBoss::UpdateStuckState(float deltaTime)
 	{
 		pathSettings_.stuckRepathExpandBonus = std::max(0.0f, pathSettings_.stuckRepathExpandBonus - 0.05f);
 	}
-	pathState_.lastStuckCheckPosition = GetCenterPosition();
+	pathState_.lastStuckCheckPosition = GetPosition();
 	stuckTimer_ = 0.0f;
 }
 

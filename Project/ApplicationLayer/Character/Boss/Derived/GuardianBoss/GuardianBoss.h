@@ -2,7 +2,6 @@
 #include "BaseTypes/HumanoidBossBase.h"
 #include "BehaviorTree/IBTNode.h"
 #include "ApplicationLayer/Character/Enemy/Navigation/EnemyAStarNavigator.h"
-#include "Math/MathUtils.h"
 
 #include <memory>
 #include <string>
@@ -128,4 +127,5 @@ private:
 	std::vector<K4E::AABB> climbableObstacleAABBs_{};
 	float stuckTimer_ = 0.0f;
 	bool isStuck_ = false;
+	K4E::Vector3 movementVelocity_{};
 };
