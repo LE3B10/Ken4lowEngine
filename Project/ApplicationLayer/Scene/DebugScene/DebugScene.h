@@ -112,6 +112,7 @@ private: /// ---------- メンバ変数 ---------- ///
 	std::vector<std::unique_ptr<K4E::Object3D>> cullingTestObjects_;
 
 	K4E::Collider meleeDummyTarget_{};
+	bool debugBossUseDummyTarget_ = true;
 	bool meleeDummyWireVisible_ = true;
 	float meleeDummyWireRadius_ = 0.5f;
 
