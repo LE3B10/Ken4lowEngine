@@ -60,13 +60,20 @@ void GuardianBoss::UpdateState(float deltaTime)
 void GuardianBoss::UpdateMovement(float deltaTime)
 {
 	if (GetState() != BossState::Move && runtime_.currentActionName != "Charge") { return; }
-	Vector3 to{ GetTargetPosition().x - GetPosition().x, 0.0f, GetTargetPosition().z - GetPosition().z };
-	const float lenSq = to.x * to.x + to.z * to.z;
-	if (lenSq <= 0.0001f) { return; }
-	const float len = std::sqrt(lenSq);
-	to.x /= len; to.z /= len;
+	UpdateStuckState(deltaTime);
 	const float speed = (runtime_.currentActionName == "Charge") ? GetCurrentMoveSpeed() * 2.3f : GetCurrentMoveSpeed();
-	SetPosition({ GetPosition().x + to.x * speed * deltaTime, GetPosition().y, GetPosition().z + to.z * speed * deltaTime });
+	if (!MoveAlongPath(deltaTime))
+	{
+		Vector3 to{ GetTargetPosition().x - GetPosition().x, 0.0f, GetTargetPosition().z - GetPosition().z };
+		const float lenSq = to.x * to.x + to.z * to.z;
+		if (lenSq <= 0.0001f) { return; }
+		const float len = std::sqrt(lenSq);
+		to.x /= len; to.z /= len;
+		SetVelocity({ to.x * speed, GetVelocity().y, to.z * speed });
+	}
+	SetPosition({ GetPosition().x + GetVelocity().x * deltaTime, GetPosition().y, GetPosition().z + GetVelocity().z * deltaTime });
+	const bool landedOnObstacleTop = TryLandOnObstacleTop(deltaTime);
+	if (!landedOnObstacleTop) { ResolveObstaclePenetrationXZ(deltaTime); }
 }
 
 void GuardianBoss::UpdateAttack(float deltaTime) { BossBase::UpdateAttack(deltaTime); (void)deltaTime; }
@@ -180,4 +187,96 @@ void GuardianBoss::DrawImGui()
 	ImGui::Text("Cooldown: %.2f", runtime_.attackCooldownTimer);
 	ImGui::End();
 #endif
+}
+
+
+bool GuardianBoss::MoveAlongPath(float deltaTime)
+{
+	if (!pathSettings_.enabled || !wallObstacleAABBs_) { return false; }
+	EnemyAStarNavigator::Settings s = navigator_.GetSettings();
+	s.cellSize = pathSettings_.gridSize;
+	s.agentRadius = pathSettings_.obstacleExpandRadius + pathSettings_.stuckRepathExpandBonus;
+	s.searchRangeCells = static_cast<int>(pathSettings_.searchRadius);
+	s.repathIntervalSec = pathSettings_.repathInterval;
+	s.waypointReachDistance = pathSettings_.waypointReachDistance;
+	s.disableCornerCutting = pathSettings_.cornerCuttingDisabled;
+	navigator_.SetSettings(s);
+	pathBlockingObstacleAABBs_ = *wallObstacleAABBs_;
+	navigator_.SetWorldAABBs(&pathBlockingObstacleAABBs_);
+	pathState_.lastRepathTimer += deltaTime;
+	navigator_.TickTemporaryBlocks(deltaTime);
+	const Vector3 targetPos = GetTargetPosition();
+	pathState_.targetMovedDistanceForRepath = LengthXZ(targetPos - pathState_.lastPathTargetPos);
+	if (pathState_.targetMovedDistanceForRepath >= pathSettings_.targetRepathThreshold || isStuck_) { navigator_.Reset(); }
+	if (navigator_.GetNextWaypoint(GetCenterPosition(), targetPos, GetCenterPosition().y, deltaTime, pathState_.currentWaypoint))
+	{
+		pathState_.found = true;
+		pathState_.failureReason = "None";
+		pathState_.lastPathTargetPos = targetPos;
+		Vector3 dir = pathState_.currentWaypoint - GetCenterPosition();
+		dir.y = 0.0f;
+		const float dirLenSq = dir.x * dir.x + dir.z * dir.z;
+		if (dirLenSq <= 0.0001f) { SetVelocity({ 0.0f, GetVelocity().y, 0.0f }); return false; }
+		const float dirLen = std::sqrt(dirLenSq);
+		dir.x /= dirLen;
+		dir.z /= dirLen;
+		const float speed = (runtime_.currentActionName == "Charge") ? GetCurrentMoveSpeed() * 2.3f : GetCurrentMoveSpeed();
+		SetVelocity({ dir.x * speed, GetVelocity().y, dir.z * speed });
+		return true;
+	}
+	pathState_.found = false;
+	pathState_.failureReason = "PathNotFound";
+	SetVelocity({ 0.0f, GetVelocity().y, 0.0f });
+	return false;
+}
+
+void GuardianBoss::UpdateStuckState(float deltaTime)
+{
+	stuckTimer_ += deltaTime;
+	if (stuckTimer_ < 0.8f) { return; }
+	const float moved = LengthXZ(GetCenterPosition() - pathState_.lastStuckCheckPosition);
+	isStuck_ = (GetState() == BossState::Move) && moved <= 0.2f && GetDistanceToTargetXZ() > attackSettings_.moveStopDistance;
+	pathState_.lastMovedDistance = moved;
+	if (isStuck_)
+	{
+		navigator_.AddTemporaryBlockedArea(GetCenterPosition(), pathSettings_.temporaryBlockRadius, pathSettings_.temporaryBlockDuration, "StuckPosition");
+		navigator_.Reset();
+		pathSettings_.stuckRepathExpandBonus = std::min(pathSettings_.stuckRepathExpandBonus + 0.1f, pathSettings_.maxStuckRepathExpandBonus);
+	}
+	else
+	{
+		pathSettings_.stuckRepathExpandBonus = std::max(0.0f, pathSettings_.stuckRepathExpandBonus - 0.05f);
+	}
+	pathState_.lastStuckCheckPosition = GetCenterPosition();
+	stuckTimer_ = 0.0f;
+}
+
+bool GuardianBoss::TryLandOnObstacleTop(float)
+{
+	return false;
+}
+
+bool GuardianBoss::ResolveObstaclePenetrationXZ(float)
+{
+	if (!wallObstacleAABBs_) { return false; }
+	Vector3 pos = GetPosition();
+	const float half = 1.1f;
+	bool resolved = false;
+	for (const auto& o : *wallObstacleAABBs_)
+	{
+		if (pos.x + half <= o.min.x || pos.x - half >= o.max.x || pos.z + half <= o.min.z || pos.z - half >= o.max.z) { continue; }
+		const float pushLeft = o.min.x - (pos.x + half);
+		const float pushRight = o.max.x - (pos.x - half);
+		const float pushBack = o.min.z - (pos.z + half);
+		const float pushFront = o.max.z - (pos.z - half);
+		float minAbs = std::abs(pushLeft);
+		Vector3 push{ pushLeft, 0.0f, 0.0f };
+		if (std::abs(pushRight) < minAbs) { minAbs = std::abs(pushRight); push = { pushRight, 0.0f, 0.0f }; }
+		if (std::abs(pushBack) < minAbs) { minAbs = std::abs(pushBack); push = { 0.0f, 0.0f, pushBack }; }
+		if (std::abs(pushFront) < minAbs) { push = { 0.0f, 0.0f, pushFront }; }
+		pos.x += push.x; pos.z += push.z;
+		resolved = true;
+	}
+	if (resolved) { SetPosition(pos); }
+	return resolved;
 }
