@@ -5,35 +5,40 @@
 #include <memory>
 #include <string>
 
-struct PlainsBossPhaseSettings
-{
-	float phase2HpRate = 0.5f;
-	float phase2MoveSpeedMultiplier = 1.25f;
-	float phase2CooldownMultiplier = 0.65f;
-};
-
-struct PlainsBossAttackSettings
-{
-	float meleeRange = 4.5f;
-	float chargeRange = 11.5f;
-	float shockwaveRange = 21.0f;
-	float moveStartDistance = 6.0f;
-	float moveStopDistance = 3.5f;
-	float attackCooldown = 1.8f;
-	float chargeCooldown = 2.8f;
-	float shockwaveCooldown = 3.4f;
-};
-
-struct PlainsBossRuntimeState
-{
-	bool isPhase2 = false;
-	float attackCooldownTimer = 0.0f;
-	float stateTimer = 0.0f;
-	std::string currentActionName = "Idle";
-};
-
+/// ----------------------------------------------------------------
+///						ガーディアンボス
+/// ----------------------------------------------------------------
 class GuardianBoss : public HumanoidBossBase
 {
+private:
+
+	struct PlainsBossPhaseSettings
+	{
+		float phase2HpRate = 0.5f;
+		float phase2MoveSpeedMultiplier = 1.25f;
+		float phase2CooldownMultiplier = 0.65f;
+	};
+
+	struct PlainsBossAttackSettings
+	{
+		float meleeRange = 4.5f;
+		float chargeRange = 11.5f;
+		float shockwaveRange = 21.0f;
+		float moveStartDistance = 6.0f;
+		float moveStopDistance = 3.5f;
+		float attackCooldown = 1.8f;
+		float chargeCooldown = 2.8f;
+		float shockwaveCooldown = 3.4f;
+	};
+
+	struct PlainsBossRuntimeState
+	{
+		bool isPhase2 = false;
+		float attackCooldownTimer = 0.0f;
+		float stateTimer = 0.0f;
+		std::string currentActionName = "Idle";
+	};
+
 public:
 	void SetupBoss() override;
 	void OnDamaged(float damage) override;
