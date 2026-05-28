@@ -187,12 +187,58 @@ float GuardianBoss::GetCurrentMoveSpeed() const
 void GuardianBoss::DrawImGui()
 {
 #ifdef USE_IMGUI
-	ImGui::Begin("PlainsGuardianBoss");
-	ImGui::Text("State: %d", static_cast<int>(GetState()));
-	ImGui::Text("Phase2: %s", runtime_.isPhase2 ? "true" : "false");
-	ImGui::Text("Action: %s", runtime_.currentActionName.c_str());
-	ImGui::Text("HP: %.1f/%.1f", GetHP(), GetMaxHP());
-	ImGui::Text("Cooldown: %.2f", runtime_.attackCooldownTimer);
+	if (ImGui::Begin("PlainsGuardianBoss"))
+	{
+		BossBase::DrawImGui();
+		if (ImGui::CollapsingHeader("基本情報", ImGuiTreeNodeFlags_DefaultOpen))
+		{
+			ImGui::Text("State: %d", static_cast<int>(GetState()));
+			ImGui::Text("Phase2: %s", runtime_.isPhase2 ? "true" : "false");
+			ImGui::Text("Action: %s", runtime_.currentActionName.c_str());
+			ImGui::Text("HP: %.1f/%.1f", GetHP(), GetMaxHP());
+			ImGui::Text("Cooldown: %.2f", runtime_.attackCooldownTimer);
+		}
+		if (ImGui::CollapsingHeader("移動・フェーズ", ImGuiTreeNodeFlags_DefaultOpen))
+		{
+			ImGui::SliderFloat("旋回速度", &rotateSpeed_, 0.1f, 20.0f);
+			ImGui::SliderFloat("フェーズ2移動倍率", &phaseSettings_.phase2MoveSpeedMultiplier, 0.5f, 2.5f);
+			ImGui::SliderFloat("フェーズ2移行HP比率", &phaseSettings_.phase2HpRate, 0.1f, 0.9f);
+			ImGui::SliderFloat("フェーズ2クールダウン倍率", &phaseSettings_.phase2CooldownMultiplier, 0.1f, 1.0f);
+		}
+		if (ImGui::CollapsingHeader("攻撃設定", ImGuiTreeNodeFlags_DefaultOpen))
+		{
+			ImGui::SliderFloat("近接攻撃距離", &attackSettings_.meleeRange, 0.5f, 20.0f);
+			ImGui::SliderFloat("突進距離", &attackSettings_.chargeRange, 0.5f, 30.0f);
+			ImGui::SliderFloat("衝撃波距離", &attackSettings_.shockwaveRange, 0.5f, 40.0f);
+			ImGui::SliderFloat("追跡開始距離", &attackSettings_.moveStartDistance, 0.5f, 20.0f);
+			ImGui::SliderFloat("追跡停止距離", &attackSettings_.moveStopDistance, 0.5f, 20.0f);
+			ImGui::SliderFloat("通常攻撃CT", &attackSettings_.attackCooldown, 0.0f, 8.0f);
+			ImGui::SliderFloat("突進CT", &attackSettings_.chargeCooldown, 0.0f, 8.0f);
+			ImGui::SliderFloat("衝撃波CT", &attackSettings_.shockwaveCooldown, 0.0f, 8.0f);
+		}
+		if (ImGui::CollapsingHeader("経路探索", ImGuiTreeNodeFlags_DefaultOpen))
+		{
+			ImGui::Checkbox("経路探索を使う", &pathSettings_.enabled);
+			ImGui::SliderFloat("再探索間隔", &pathSettings_.repathInterval, 0.05f, 2.0f);
+			ImGui::SliderFloat("到達判定距離", &pathSettings_.waypointReachDistance, 0.5f, 2.5f);
+			ImGui::SliderFloat("グリッドサイズ", &pathSettings_.gridSize, 0.5f, 2.5f);
+			ImGui::SliderFloat("探索半径", &pathSettings_.searchRadius, 6.0f, 120.0f);
+			ImGui::SliderFloat("障害物拡張半径", &pathSettings_.obstacleExpandRadius, 0.1f, 3.0f);
+			ImGui::SliderFloat("一時ブロック時間", &pathSettings_.temporaryBlockDuration, 0.2f, 6.0f);
+			ImGui::SliderFloat("一時ブロック半径", &pathSettings_.temporaryBlockRadius, 0.2f, 3.0f);
+			ImGui::Checkbox("角抜け無効", &pathSettings_.cornerCuttingDisabled);
+			ImGui::SliderFloat("再探索ターゲット閾値", &pathSettings_.targetRepathThreshold, 0.1f, 10.0f);
+			ImGui::SliderFloat("スタック再探索拡張", &pathSettings_.stuckRepathExpandBonus, 0.0f, 4.0f);
+			ImGui::SliderFloat("スタック再探索拡張最大", &pathSettings_.maxStuckRepathExpandBonus, 0.0f, 8.0f);
+			const auto* resolved = GetResolvedNavigationObstacleAABBs();
+			const int sourceObstacleCount = wallObstacleAABBs_ ? static_cast<int>(wallObstacleAABBs_->size()) : (resolved ? static_cast<int>(resolved->size()) : 0);
+			ImGui::Text("navigatorに渡している障害物数: %d", static_cast<int>(pathBlockingObstacleAABBs_.size()));
+			ImGui::Text("元の障害物数: %d", sourceObstacleCount);
+			ImGui::Text("経路発見: %s", pathState_.found ? "true" : "false");
+			ImGui::Text("失敗理由: %s", pathState_.failureReason.c_str());
+			ImGui::Text("再探索理由: %s", pathState_.lastRepathReason.c_str());
+		}
+	}
 	ImGui::End();
 #endif
 }
@@ -200,7 +246,7 @@ void GuardianBoss::DrawImGui()
 
 bool GuardianBoss::MoveAlongPath(float deltaTime)
 {
-	if (!pathSettings_.enabled || !wallObstacleAABBs_) { return false; }
+	if (!pathSettings_.enabled) { StopMove(); return false; }
 	EnemyAStarNavigator::Settings s = navigator_.GetSettings();
 	s.cellSize = pathSettings_.gridSize;
 	s.agentRadius = pathSettings_.obstacleExpandRadius + pathSettings_.stuckRepathExpandBonus;
@@ -209,33 +255,69 @@ bool GuardianBoss::MoveAlongPath(float deltaTime)
 	s.waypointReachDistance = pathSettings_.waypointReachDistance;
 	s.disableCornerCutting = pathSettings_.cornerCuttingDisabled;
 	navigator_.SetSettings(s);
-	pathBlockingObstacleAABBs_ = *wallObstacleAABBs_;
+	const auto* obstacleAabbs = wallObstacleAABBs_ ? wallObstacleAABBs_ : GetResolvedNavigationObstacleAABBs();
+	if (obstacleAabbs) { pathBlockingObstacleAABBs_ = *obstacleAabbs; }
+	else { pathBlockingObstacleAABBs_.clear(); }
 	navigator_.SetWorldAABBs(&pathBlockingObstacleAABBs_);
 	pathState_.lastRepathTimer += deltaTime;
 	navigator_.TickTemporaryBlocks(deltaTime);
 	const Vector3 targetPos = GetTargetPosition();
 	pathState_.targetMovedDistanceForRepath = LengthXZ(targetPos - pathState_.lastPathTargetPos);
-	if (pathState_.targetMovedDistanceForRepath >= pathSettings_.targetRepathThreshold || isStuck_) { navigator_.Reset(); }
+	if (pathState_.targetMovedDistanceForRepath >= pathSettings_.targetRepathThreshold || isStuck_) { navigator_.Reset(); pathState_.lastRepathReason = isStuck_ ? "StuckForceRepath" : "TargetMoved"; }
 	const Vector3 selfPos = GetPosition();
 	if (navigator_.GetNextWaypoint(selfPos, targetPos, selfPos.y, deltaTime, pathState_.currentWaypoint))
 	{
 		pathState_.found = true;
 		pathState_.failureReason = "None";
 		pathState_.lastPathTargetPos = targetPos;
+		pathState_.lastRepathReason = "Periodic";
+		int blockedIdx = -1;
+		if (navigator_.IsSegmentBlockedByObstacle(selfPos, pathState_.currentWaypoint, selfPos.y, &blockedIdx))
+		{
+			pathState_.lineBlocked = true;
+			pathState_.blockedWaypointIndex = navigator_.GetCurrentPathIndex();
+			pathState_.blockedObstacleName = (blockedIdx >= 0) ? ("Obstacle[" + std::to_string(blockedIdx) + "]") : "Unknown";
+			pathState_.blockedSegmentFrom = selfPos;
+			pathState_.blockedSegmentTo = pathState_.currentWaypoint;
+			navigator_.Reset();
+			navigator_.AddTemporaryBlockedArea(pathState_.currentWaypoint, pathSettings_.temporaryBlockRadius, pathSettings_.temporaryBlockDuration, "WaypointSegmentBlocked");
+			pathState_.lastRepathReason = "WaypointSegmentBlocked";
+			StopMove();
+			return false;
+		}
+		pathState_.lineBlocked = false;
+		pathState_.blockedWaypointIndex = navigator_.GetCurrentPathIndex();
+		pathState_.blockedObstacleName = "None";
 		Vector3 dir = pathState_.currentWaypoint - selfPos;
 		dir.y = 0.0f;
 		const float dirLenSq = dir.x * dir.x + dir.z * dir.z;
-		if (dirLenSq <= 0.0001f) { movementVelocity_ = Vector3{ 0.0f, 0.0f, 0.0f }; return false; }
+		if (dirLenSq <= 0.0001f) { StopMove(); return false; }
 		const float dirLen = std::sqrt(dirLenSq);
 		dir.x /= dirLen;
 		dir.z /= dirLen;
 		const float speed = (runtime_.currentActionName == "Charge") ? GetCurrentMoveSpeed() * 2.3f : GetCurrentMoveSpeed();
 		movementVelocity_ = Vector3{ dir.x * speed, 0.0f, dir.z * speed };
+		ChangeBossState(BossState::Walk);
+		runtime_.currentActionName = "Chase";
 		return true;
 	}
 	pathState_.found = false;
 	pathState_.failureReason = "PathNotFound";
-	movementVelocity_ = Vector3{ 0.0f, 0.0f, 0.0f };
+	pathState_.retryTimer += deltaTime;
+	pathState_.failedWaitTimer = std::max(0.0f, pathState_.failedWaitTimer - deltaTime);
+	if (pathState_.failedWaitTimer > 0.0f)
+	{
+		pathState_.lastRepathReason = "PathFailedWait";
+		StopMove();
+		return false;
+	}
+	if (pathState_.retryTimer >= pathSettings_.repathInterval)
+	{
+		navigator_.Reset();
+		pathState_.retryTimer = 0.0f;
+		pathState_.lastRepathReason = "RetryAfterFailure";
+	}
+	StopMove();
 	return false;
 }
 
