@@ -39,7 +39,19 @@ namespace Ken4lowEngine
 		stageModel->Initialize(modelName);
 		stageModel->SetTranslate(offset);
 		stageModel->SetRotate({ 0.0f, 0.0f, 0.0f });
-		stageModel->SetScale({ 1.0f, 1.0f, 1.0f });
+
+		Vector3 stageScale{ 1.0f, 1.0f, 1.0f };
+
+		for (const ObjectData& data : levelData.objects)
+		{
+			if (IsStageMeshType(data.type))
+			{
+				stageScale = data.scale;
+				break;
+			}
+		}
+
+		stageModel->SetScale(stageScale); // JSON側のステージスケールを描画にも反映する
 		stageModel->SetStageObjectCullingUnit(true);
 
 		return stageModel;

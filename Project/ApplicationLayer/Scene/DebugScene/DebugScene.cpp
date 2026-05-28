@@ -136,20 +136,6 @@ void DebugScene::Initialize()
 
 	meleeDummyTarget_.SetCenterPosition({ 0.0f, 2.0f, 24.0f });
 	meleeDummyTarget_.SetOBBHalfSize({ 0.8f, 1.0f, 0.8f });
-	// 複数体同時検証のため、DebugScene起動時に近接敵を2〜3体まとめて生成する。
-	debugMeleeEnemy_ = std::make_unique<MeleeEnemy>();
-	debugMeleeEnemy_->Initialize();
-	debugMeleeEnemy_->SetCenterPosition({ -3.0f, 2.5f, 18.0f });
-	debugMeleeEnemy_->SetTarget(&meleeDummyTarget_);
-	collisionManager_->AddCollider(debugMeleeEnemy_.get());
-	// 中距離敵は近接敵と独立したunique_ptrで管理する。
-	debugMidRangeEnemy_ = std::make_unique<MidRangeEnemy>();
-	debugMidRangeEnemy_->Initialize();
-	debugMidRangeEnemy_->SetCenterPosition({ 3.0f, 2.5f, 18.0f });
-	debugMidRangeEnemy_->SetTarget(meleeDummyTarget_.GetCenterPosition());
-	// 追加: 中距離敵にも床/障害物AABBを近接敵と同じ参照元で渡す。
-	debugMidRangeEnemy_->SetFloorAABBs(&stage_->GetFloorAABBs());
-	debugMidRangeEnemy_->SetWallObstacleAABBs(&stage_->GetWallObstacleAABBs());
 
 	disintegrationDebug_ = std::make_unique<DisintegrationDebugController>();
 	// Disintegration系の確認処理は専用コントローラへ委譲し、DebugScene本体の責務を絞る。
@@ -166,11 +152,6 @@ void DebugScene::Initialize()
 	// DebugSceneでもステージAABBを共有し、EnemyBase系の敵が床と障害物に衝突できるようにする。
 	EnemyBase::SetGlobalStageWorldAABBs(&stage_->GetWorldAABBs());
 	EnemyBase::SetGlobalStageNavigationObstacleAABBs(&stage_->GetNavigationObstacleAABBs());
-	if (debugMeleeEnemy_)
-	{
-		debugMeleeEnemy_->SetFloorAABBs(&stage_->GetFloorAABBs());
-		debugMeleeEnemy_->SetWallObstacleAABBs(&stage_->GetWallObstacleAABBs());
-	}
 }
 
 void DebugScene::Update()
@@ -190,19 +171,6 @@ void DebugScene::Update()
 		// とりあえずプレイヤー位置をターゲットに渡す
 		debugBoss_->SetTargetPosition({});
 		debugBoss_->Update(deltaTime);
-	}
-
-	if (debugMeleeEnemy_)
-	{
-		debugMeleeEnemy_->Update(deltaTime);
-	}
-	if (debugMidRangeEnemy_)
-	{
-		debugMidRangeEnemy_->SetTarget(meleeDummyTarget_.GetCenterPosition());
-	// 追加: 中距離敵にも床/障害物AABBを近接敵と同じ参照元で渡す。
-	debugMidRangeEnemy_->SetFloorAABBs(&stage_->GetFloorAABBs());
-	debugMidRangeEnemy_->SetWallObstacleAABBs(&stage_->GetWallObstacleAABBs());
-		debugMidRangeEnemy_->Update(deltaTime);
 	}
 
 	UpdateDebugBossHitTest();
@@ -257,15 +225,6 @@ void DebugScene::Draw3DObjects()
 	{
 		debugBoss_->Draw();
 	}
-	if (debugMeleeEnemy_)
-	{
-		debugMeleeEnemy_->Draw();
-	}
-	if (debugMidRangeEnemy_)
-	{
-		debugMidRangeEnemy_->Draw();
-	}
-
 	if (stage_)
 	{
 		stage_->Draw();
@@ -278,7 +237,7 @@ void DebugScene::Draw3DObjects()
 
 #ifdef _DEBUG
 	// ワイヤーフレームの描画
-	Wireframe::GetInstance()->DrawGrid(100.0f, 50.0f, { 0.25f, 0.25f, 0.25f,1.0f });
+	Wireframe::GetInstance()->DrawGrid(100.0f, 50.0f, { 0.25f, 0.25f, 0.25f, 1.0f });
 	if (meleeDummyWireVisible_)
 	{
 		const Vector3 c = meleeDummyTarget_.GetCenterPosition();
@@ -307,10 +266,7 @@ void DebugScene::DrawShadowObjects()
 	{
 		debugBoss_->DrawShadow();
 	}
-	if (debugMeleeEnemy_)
-	{
-		debugMeleeEnemy_->DrawShadow();
-	}
+
 	if (stage_)
 	{
 		stage_->DrawShadow();
@@ -347,8 +303,7 @@ void DebugScene::Finalize()
 	disintegrationDebug_.reset();
 	EnemyBase::SetGlobalStageWorldAABBs(nullptr);
 	debugBoss_.reset();
-	debugMidRangeEnemy_.reset();
-	debugMeleeEnemy_.reset();
+
 	collisionManager_.reset();
 	stage_.reset();
 
@@ -365,14 +320,6 @@ void DebugScene::DrawImGui()
 	if (debugBoss_)
 	{
 		debugBoss_->DrawImGui();
-	}
-	if (debugMeleeEnemy_)
-	{
-		debugMeleeEnemy_->DrawImGui();
-	}
-	if (debugMidRangeEnemy_)
-	{
-		debugMidRangeEnemy_->DrawImGui();
 	}
 
 	if (frustumCullingDebug_)
@@ -519,15 +466,6 @@ void DebugScene::DrawImGui()
 		ImGui::Text("Pillar: %d", colliderTypeCounts["Pillar"]);
 		ImGui::Text("Fence: %d", colliderTypeCounts["Fence"]);
 		ImGui::Text("Tree: %d", colliderTypeCounts["Tree"]);
-
-		if (debugMeleeEnemy_)
-		{
-			const Vector3 enemyPos = debugMeleeEnemy_->GetCenterPosition();
-			ImGui::Text("MeleeEnemy Count: 1");
-			ImGui::Text("Selected Pos: (%.2f, %.2f, %.2f)", enemyPos.x, enemyPos.y, enemyPos.z);
-			ImGui::Text("Selected Action: %s", debugMeleeEnemy_->GetCurrentBehaviorName());
-			ImGui::Text("Grounded: %s", debugMeleeEnemy_->GetVelocity().y == 0.0f ? "Likely grounded" : "Falling/Moving");
-		}
 
 		ImGui::End();
 	}

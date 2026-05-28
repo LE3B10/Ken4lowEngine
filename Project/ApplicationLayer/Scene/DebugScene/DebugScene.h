@@ -88,8 +88,8 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	// 描画確認用ボス
 	std::unique_ptr<GuardianBoss> debugBoss_;
-	std::unique_ptr<MeleeEnemy> debugMeleeEnemy_;
-	std::unique_ptr<MidRangeEnemy> debugMidRangeEnemy_;
+	//std::unique_ptr<MeleeEnemy> debugMeleeEnemy_;
+	//std::unique_ptr<MidRangeEnemy> debugMidRangeEnemy_;
 
 	// ステージ確認用（見た目＋衝突）
 	std::unique_ptr<K4E::Stage> stage_;
