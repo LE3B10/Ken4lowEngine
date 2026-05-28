@@ -80,6 +80,7 @@ void GamePlayWorld::Initialize(GamePlayStageContext& stageContext)
 	stage_->Update();
 
 	EnemyBase::SetGlobalStageWorldAABBs(&stage_->GetWorldAABBs());
+	EnemyBase::SetGlobalStageNavigationObstacleAABBs(&stage_->GetNavigationObstacleAABBs());
 
 	if (auto* player = characters_.GetPlayer())
 	{
@@ -159,6 +160,7 @@ void GamePlayWorld::Finalize()
 	hudManager_.reset();
 
 	EnemyBase::SetGlobalStageWorldAABBs(nullptr);
+	EnemyBase::SetGlobalStageNavigationObstacleAABBs(nullptr);
 	itemManager_.Clear();
 
 	characters_.Finalize();

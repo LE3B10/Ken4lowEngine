@@ -70,14 +70,16 @@ private:
 		float targetMovedDistanceForRepath = 0.0f;
 		float lastMovedDistance = 0.0f;
 		std::string lastRepathReason = "None";
+		int sourceObstacleAABBCount = 0;
+		int blockingObstacleAABBCount = 0;
+		bool lineBlocked = false;
+		int blockedWaypointIndex = -1;
 		std::string blockedObstacleName = "None";
 		K4E::Vector3 lastStuckCheckPosition{};
 		K4E::Vector3 lastPathTargetPos{};
 		K4E::Vector3 currentWaypoint{};
 		K4E::Vector3 blockedSegmentFrom{};
 		K4E::Vector3 blockedSegmentTo{};
-		int blockedWaypointIndex = -1;
-		bool lineBlocked = false;
 	};
 
 public:
@@ -87,6 +89,7 @@ public:
 	void OnDamaged(float damage) override;
 	void OnDead() override;
 	void OnCollision(K4E::Collider* other) override;
+	void Draw() override;
 	void DrawImGui() override;
 
 protected:
@@ -100,7 +103,9 @@ protected:
 
 private:
 	void FaceTarget(float deltaTime);
+	void UpdateNavigationObstacleList();
 	bool MoveAlongPath(float deltaTime);
+	void StopMove();
 	void UpdateStuckState(float deltaTime);
 	bool ResolveObstaclePenetrationXZ(float deltaTime);
 	bool TryLandOnObstacleTop(float deltaTime);
@@ -128,6 +133,8 @@ private:
 	const std::vector<K4E::AABB>* wallObstacleAABBs_ = nullptr;
 	std::vector<K4E::AABB> pathBlockingObstacleAABBs_{};
 	std::vector<K4E::AABB> climbableObstacleAABBs_{};
+	bool pathDebugDrawEnabled_ = true;
+	bool obstacleDebugDrawEnabled_ = true;
 	float stuckTimer_ = 0.0f;
 	bool isStuck_ = false;
 	K4E::Vector3 movementVelocity_{};

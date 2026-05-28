@@ -152,6 +152,11 @@ void DebugScene::Initialize()
 	// DebugSceneでもステージAABBを共有し、EnemyBase系の敵が床と障害物に衝突できるようにする。
 	EnemyBase::SetGlobalStageWorldAABBs(&stage_->GetWorldAABBs());
 	EnemyBase::SetGlobalStageNavigationObstacleAABBs(&stage_->GetNavigationObstacleAABBs());
+	if (debugBoss_)
+	{
+		debugBoss_->SetFloorAABBs(&stage_->GetFloorAABBs());
+		debugBoss_->SetWallObstacleAABBs(&stage_->GetNavigationObstacleAABBs());
+	}
 }
 
 void DebugScene::Update()
@@ -302,6 +307,7 @@ void DebugScene::Finalize()
 	frustumCullingDebug_.reset();
 	disintegrationDebug_.reset();
 	EnemyBase::SetGlobalStageWorldAABBs(nullptr);
+	EnemyBase::SetGlobalStageNavigationObstacleAABBs(nullptr);
 	debugBoss_.reset();
 
 	collisionManager_.reset();
