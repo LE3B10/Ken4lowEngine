@@ -54,6 +54,9 @@ void GuardianBoss::SetupBoss()
 	SetPhase(BossPhase::Phase1);
 	runtime_ = {};
 	targetState_ = {};
+	pathState_ = {};
+	traversalState_ = {};
+	traversalSettings_.groundY = GetPosition().y;
 	chargeTimer_ = 0.0f;
 	phaseTransitionTimer_ = 0.0f;
 	ChangeBossState(BossState::Idle);
@@ -166,6 +169,20 @@ void GuardianBoss::Draw()
 				{ 1.0f, 0.9f, 0.1f, 1.0f });
 		}
 
+		if (traversalState_.hasJumpCandidate || traversalState_.isJumpingObstacle)
+		{
+			Wireframe::GetInstance()->DrawAABB(traversalState_.selectedObstacleAABB, { 0.2f, 1.0f, 0.35f, 0.85f });
+		}
+
+		if (traversalState_.isJumpingObstacle)
+		{
+			const Vector3 from = GetPosition() + Vector3{ 0.0f, 0.75f, 0.0f };
+			Wireframe::GetInstance()->DrawLine(
+				from,
+				from + traversalState_.jumpDirection * 4.0f,
+				{ 0.2f, 1.0f, 0.35f, 1.0f });
+		}
+
 		if (pathState_.lineBlocked)
 		{
 			Wireframe::GetInstance()->DrawLine(
@@ -256,6 +273,7 @@ void GuardianBoss::UpdateTargetState(float)
 		targetState_.direction = { 0.0f, 0.0f, 1.0f };
 		targetState_.directDistance = 0.0f;
 		targetState_.pathDistance = 0.0f;
+		pathState_.currentPathDistance = 0.0f;
 		targetState_.isTargetVisible = false;
 		targetState_.isInMeleeRange = false;
 		targetState_.isInMidRange = false;
@@ -274,6 +292,7 @@ void GuardianBoss::UpdateTargetState(float)
 	int blockedIdx = -1;
 	targetState_.isTargetVisible = !navigator_.IsSegmentBlockedByObstacle(GetPosition(), selectedPosition, GetPosition().y, &blockedIdx);
 	targetState_.pathDistance = CalculateCurrentPathDistance();
+	pathState_.currentPathDistance = targetState_.pathDistance;
 	const float melee = attackSettings_.meleeRange * GetRangeMultiplier();
 	const float mid = attackSettings_.midRange * GetRangeMultiplier();
 	const float far = attackSettings_.farRange * GetRangeMultiplier();
@@ -332,7 +351,7 @@ bool GuardianBoss::FindReachableApproachPointNearTarget(Vector3& outPoint)
 	const Vector3 targetPos = targetState_.position;
 	const Vector3 bossPos = GetPosition();
 	const float approachRadius = std::max(attackSettings_.meleeRange * 0.85f, 2.5f);
-	constexpr int sampleCount = 16;
+	constexpr int sampleCount = 24;
 	constexpr float pi2 = 6.2831853f;
 
 	bool found = false;
@@ -375,6 +394,7 @@ bool GuardianBoss::FindReachableApproachPointNearTarget(Vector3& outPoint)
 	navigator_.Reset();
 	pathState_.hasReachableApproachPoint = found;
 	pathState_.approachPointReason = found ? "Found" : "NoReachableApproachPoint";
+	pathState_.bestCandidatePathDistance = found ? bestScore : 0.0f;
 	if (!found)
 	{
 		return false;
@@ -385,6 +405,123 @@ bool GuardianBoss::FindReachableApproachPointNearTarget(Vector3& outPoint)
 	return true;
 }
 
+bool GuardianBoss::IsObstacleJumpable(const K4E::AABB& obstacle, int index)
+{
+	if (!traversalSettings_.enabled || !traversalSettings_.allowJumpOverLowObstacles)
+	{
+		return false;
+	}
+
+	if (traversalState_.jumpCooldownTimer > 0.0f)
+	{
+		return false;
+	}
+
+	const Vector3 pos = GetPosition();
+	const float obstacleHeight = obstacle.max.y - pos.y;
+	if (obstacleHeight < traversalSettings_.minJumpObstacleHeight || obstacleHeight > traversalSettings_.maxJumpObstacleHeight)
+	{
+		return false;
+	}
+
+	const Vector3 obstacleCenter = (obstacle.min + obstacle.max) * 0.5f;
+	const Vector3 toObstacle = NormalizeXZSafe(obstacleCenter - pos, runtime_.lastMoveDirection);
+	Vector3 forward = runtime_.lastMoveDirection;
+	if (targetState_.hasTarget)
+	{
+		forward = NormalizeXZSafe(targetState_.position - pos, runtime_.lastMoveDirection);
+	}
+
+	const float dot = toObstacle.x * forward.x + toObstacle.z * forward.z;
+	if (dot < 0.2f)
+	{
+		return false;
+	}
+
+	const float distance = LengthXZ(obstacleCenter - pos);
+	if (distance > traversalSettings_.jumpTriggerDistance)
+	{
+		return false;
+	}
+
+	traversalState_.selectedObstacleIndex = index;
+	traversalState_.selectedObstacleHeight = obstacleHeight;
+	traversalState_.selectedObstacleAABB = obstacle;
+	traversalState_.jumpDirection = forward;
+	traversalState_.lastTraversalReason = "JumpableObstacleFound";
+	return true;
+}
+
+bool GuardianBoss::FindJumpableObstacleAhead()
+{
+	traversalState_.hasJumpCandidate = false;
+
+	if (traversalState_.jumpCooldownTimer > 0.0f)
+	{
+		return false;
+	}
+
+	for (int i = 0; i < static_cast<int>(pathBlockingObstacleAABBs_.size()); ++i)
+	{
+		if (IsObstacleJumpable(pathBlockingObstacleAABBs_[i], i))
+		{
+			traversalState_.hasJumpCandidate = true;
+			return true;
+		}
+	}
+
+	traversalState_.selectedObstacleIndex = -1;
+	traversalState_.selectedObstacleHeight = 0.0f;
+	traversalState_.lastTraversalReason = "NoJumpableObstacle";
+	return false;
+}
+
+bool GuardianBoss::TryJumpOverObstacle(float deltaTime)
+{
+	(void)deltaTime;
+	if (!FindJumpableObstacleAhead())
+	{
+		return false;
+	}
+
+	traversalState_.isJumpingObstacle = true;
+	traversalState_.currentVerticalVelocity = traversalSettings_.jumpVerticalVelocity;
+	traversalState_.jumpCooldownTimer = traversalSettings_.jumpCooldown;
+	movementVelocity_ = Vector3{ traversalState_.jumpDirection.x * traversalSettings_.jumpForwardSpeed, traversalSettings_.jumpVerticalVelocity, traversalState_.jumpDirection.z * traversalSettings_.jumpForwardSpeed };
+	runtime_.isMoving = true;
+	runtime_.lastMoveDirection = traversalState_.jumpDirection;
+	runtime_.currentActionName = "ObstacleJump";
+	return true;
+}
+
+void GuardianBoss::UpdateObstacleJump(float deltaTime)
+{
+	if (!traversalState_.isJumpingObstacle)
+	{
+		return;
+	}
+
+	Vector3 pos = GetPosition();
+	traversalState_.currentVerticalVelocity -= traversalSettings_.gravity * deltaTime;
+	pos.y += traversalState_.currentVerticalVelocity * deltaTime;
+	pos.x += traversalState_.jumpDirection.x * traversalSettings_.jumpForwardSpeed * deltaTime;
+	pos.z += traversalState_.jumpDirection.z * traversalSettings_.jumpForwardSpeed * deltaTime;
+
+	if (pos.y <= traversalSettings_.groundY)
+	{
+		pos.y = traversalSettings_.groundY;
+		traversalState_.isJumpingObstacle = false;
+		traversalState_.currentVerticalVelocity = 0.0f;
+		traversalState_.lastTraversalReason = "Landed";
+	}
+
+	SetPosition(pos);
+	movementVelocity_ = Vector3{ traversalState_.jumpDirection.x * traversalSettings_.jumpForwardSpeed, traversalState_.currentVerticalVelocity, traversalState_.jumpDirection.z * traversalSettings_.jumpForwardSpeed };
+	runtime_.isMoving = true;
+	runtime_.lastMoveDirection = traversalState_.jumpDirection;
+	runtime_.currentActionName = "ObstacleJump";
+}
+
 void GuardianBoss::UpdateCooldownTimers(float deltaTime)
 {
 	runtime_.attackCooldownTimer = std::max(0.0f, runtime_.attackCooldownTimer - deltaTime);
@@ -392,6 +529,7 @@ void GuardianBoss::UpdateCooldownTimers(float deltaTime)
 	runtime_.chargeCooldownTimer = std::max(0.0f, runtime_.chargeCooldownTimer - deltaTime);
 	runtime_.shockwaveCooldownTimer = std::max(0.0f, runtime_.shockwaveCooldownTimer - deltaTime);
 	runtime_.farShotCooldownTimer = std::max(0.0f, runtime_.farShotCooldownTimer - deltaTime);
+	traversalState_.jumpCooldownTimer = std::max(0.0f, traversalState_.jumpCooldownTimer - deltaTime);
 	chargeTimer_ = std::max(0.0f, chargeTimer_ - deltaTime);
 }
 
@@ -734,6 +872,29 @@ void GuardianBoss::DrawImGui()
 				ImGui::Text("HasReachableApproachPoint: %s", pathState_.hasReachableApproachPoint ? "true" : "false");
 				ImGui::Text("ApproachPointReason: %s", pathState_.approachPointReason.c_str());
 				ImGui::Text("PathDistance: %.2f", targetState_.pathDistance);
+			ImGui::Text("CurrentPathDistance: %.2f", pathState_.currentPathDistance);
+			ImGui::Text("BestCandidatePathDistance: %.2f", pathState_.bestCandidatePathDistance);
+			ImGui::Text("LineBlocked: %s", pathState_.lineBlocked ? "true" : "false");
+			ImGui::Text("LastRepathReason: %s", pathState_.lastRepathReason.c_str());
+			ImGui::Text("FailureReason: %s", pathState_.failureReason.c_str());
+			ImGui::Text("JumpCandidate: %s", traversalState_.hasJumpCandidate ? "true" : "false");
+			ImGui::Text("JumpingObstacle: %s", traversalState_.isJumpingObstacle ? "true" : "false");
+			ImGui::Text("SelectedObstacleHeight: %.2f", traversalState_.selectedObstacleHeight);
+			ImGui::Text("TraversalReason: %s", traversalState_.lastTraversalReason.c_str());
+			ImGui::Text("UsedLocalAvoidance: %s", pathState_.usedLocalAvoidance ? "true" : "false");
+			ImGui::Text("AvoidanceReason: %s", pathState_.lastAvoidanceReason.c_str());
+		}
+		if (ImGui::CollapsingHeader("障害物ジャンプ", ImGuiTreeNodeFlags_DefaultOpen))
+		{
+			ImGui::Checkbox("低障害物ジャンプ有効", &traversalSettings_.enabled);
+			ImGui::Checkbox("低障害物をジャンプ", &traversalSettings_.allowJumpOverLowObstacles);
+			ImGui::SliderFloat("ジャンプ可能最小高さ", &traversalSettings_.minJumpObstacleHeight, 0.0f, 1.0f);
+			ImGui::SliderFloat("ジャンプ可能最大高さ", &traversalSettings_.maxJumpObstacleHeight, 0.5f, 5.0f);
+			ImGui::SliderFloat("ジャンプ開始距離", &traversalSettings_.jumpTriggerDistance, 0.5f, 6.0f);
+			ImGui::SliderFloat("ジャンプ上方向速度", &traversalSettings_.jumpVerticalVelocity, 1.0f, 25.0f);
+			ImGui::SliderFloat("ジャンプ前方向速度", &traversalSettings_.jumpForwardSpeed, 1.0f, 15.0f);
+			ImGui::SliderFloat("重力", &traversalSettings_.gravity, 1.0f, 60.0f);
+			ImGui::SliderFloat("地面Y", &traversalSettings_.groundY, -10.0f, 10.0f);
 		}
 		if (ImGui::CollapsingHeader("経路探索", ImGuiTreeNodeFlags_DefaultOpen))
 		{
@@ -758,6 +919,11 @@ void GuardianBoss::DrawImGui()
 			ImGui::Text("LastRepathReason: %s", pathState_.lastRepathReason.c_str());
 			ImGui::Text("LineBlocked: %s", pathState_.lineBlocked ? "true" : "false");
 			ImGui::Text("BlockedObstacle: %s", pathState_.blockedObstacleName.c_str());
+			ImGui::Text("CurrentMoveGoal: %.2f, %.2f, %.2f", pathState_.currentMoveGoal.x, pathState_.currentMoveGoal.y, pathState_.currentMoveGoal.z);
+			ImGui::Text("HasReachableApproachPoint: %s", pathState_.hasReachableApproachPoint ? "true" : "false");
+			ImGui::Text("ApproachPointReason: %s", pathState_.approachPointReason.c_str());
+			ImGui::Text("UsedLocalAvoidance: %s", pathState_.usedLocalAvoidance ? "true" : "false");
+			ImGui::Text("AvoidanceReason: %s", pathState_.lastAvoidanceReason.c_str());
 		}
 	}
 	ImGui::End();
@@ -831,6 +997,17 @@ bool GuardianBoss::MoveAlongPath(float deltaTime)
 
 	UpdateNavigationObstacleList();
 
+	if (traversalState_.isJumpingObstacle)
+	{
+		UpdateObstacleJump(deltaTime);
+		return true;
+	}
+
+	if (TryJumpOverObstacle(deltaTime))
+	{
+		return true;
+	}
+
 	EnemyAStarNavigator::Settings settings = navigator_.GetSettings();
 	settings.cellSize = pathSettings_.gridSize;
 	settings.agentRadius = pathSettings_.obstacleExpandRadius + pathSettings_.stuckRepathExpandBonus;
@@ -893,6 +1070,8 @@ bool GuardianBoss::MoveAlongPath(float deltaTime)
 	pathState_.currentWaypoint = waypoint;
 	pathState_.lastPathTargetPos = targetState_.position;
 	pathState_.retryTimer = 0.0f;
+	targetState_.pathDistance = CalculateCurrentPathDistance();
+	pathState_.currentPathDistance = targetState_.pathDistance;
 
 	int blockedIdx = -1;
 	if (navigator_.IsSegmentBlockedByObstacle(currentPos, waypoint, currentPos.y, &blockedIdx))
@@ -947,6 +1126,8 @@ bool GuardianBoss::MoveAlongPath(float deltaTime)
 	runtime_.lastMoveDirection = dir;
 	movementVelocity_ = Vector3{ dir.x * moveSpeed, 0.0f, dir.z * moveSpeed };
 	runtime_.currentActionName = "Chase";
+	pathState_.usedLocalAvoidance = false;
+	pathState_.lastAvoidanceReason = "None";
 	hasLastLocalAvoidanceDirection_ = false;
 
 	return true;
@@ -1006,6 +1187,8 @@ bool GuardianBoss::TryLocalAvoidanceMove(float deltaTime)
 	movementVelocity_ = Vector3{ avoidDir.x * moveSpeed, 0.0f, avoidDir.z * moveSpeed };
 	lastLocalAvoidanceDirection_ = avoidDir;
 	hasLastLocalAvoidanceDirection_ = true;
+	pathState_.usedLocalAvoidance = true;
+	pathState_.lastAvoidanceReason = "AStarFailedOrLineBlocked";
 
 	// 追加: A*が一時的に失敗した時も停止せず、左右へ回り込むことで追跡を継続する。
 	return true;

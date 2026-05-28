@@ -128,8 +128,39 @@ private:
 		K4E::Vector3 currentMoveGoal{};
 		bool hasReachableApproachPoint = false;
 		std::string approachPointReason = "None";
+		float currentPathDistance = 0.0f;
+		float bestCandidatePathDistance = 0.0f;
+		bool usedLocalAvoidance = false;
+		std::string lastAvoidanceReason = "None";
 		K4E::Vector3 blockedSegmentFrom{};
 		K4E::Vector3 blockedSegmentTo{};
+	};
+
+	struct BossTraversalSettings
+	{
+		bool enabled = true;
+		bool allowJumpOverLowObstacles = true;
+		float minJumpObstacleHeight = 0.15f;
+		float maxJumpObstacleHeight = 2.2f;
+		float jumpTriggerDistance = 2.2f;
+		float jumpVerticalVelocity = 11.0f;
+		float jumpForwardSpeed = 5.5f;
+		float jumpCooldown = 1.0f;
+		float gravity = 24.0f;
+		float groundY = 0.0f;
+	};
+
+	struct BossTraversalState
+	{
+		bool hasJumpCandidate = false;
+		bool isJumpingObstacle = false;
+		float jumpCooldownTimer = 0.0f;
+		float currentVerticalVelocity = 0.0f;
+		int selectedObstacleIndex = -1;
+		float selectedObstacleHeight = 0.0f;
+		K4E::AABB selectedObstacleAABB{};
+		K4E::Vector3 jumpDirection{ 0.0f, 0.0f, 1.0f };
+		std::string lastTraversalReason = "None";
 	};
 
 public:
@@ -161,6 +192,10 @@ private:
 	bool FindReachableApproachPointNearTarget(K4E::Vector3& outPoint);
 	bool IsPointInsideNavigationObstacle(const K4E::Vector3& point) const;
 	bool TryLocalAvoidanceMove(float deltaTime);
+	bool FindJumpableObstacleAhead();
+	bool IsObstacleJumpable(const K4E::AABB& obstacle, int index);
+	bool TryJumpOverObstacle(float deltaTime);
+	void UpdateObstacleJump(float deltaTime);
 	void UpdateCooldownTimers(float deltaTime);
 	float GetCooldownMultiplier() const;
 	float GetRangeMultiplier() const;
@@ -217,6 +252,8 @@ private:
 	std::unique_ptr<IBTNode> behaviorRoot_;
 	PathSettings pathSettings_{};
 	PathState pathState_{};
+	BossTraversalSettings traversalSettings_{};
+	BossTraversalState traversalState_{};
 	EnemyAStarNavigator navigator_{};
 	const std::vector<K4E::AABB>* floorAABBs_ = nullptr;
 	const std::vector<K4E::AABB>* wallObstacleAABBs_ = nullptr;
