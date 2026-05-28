@@ -75,10 +75,13 @@ void GuardianBoss::UpdateMovement(float deltaTime)
 		const float len = std::sqrt(lenSq);
 		to.x /= len; to.z /= len;
 		movementVelocity_ = Vector3{ to.x * speed, 0.0f, to.z * speed };
+		runtime_.isMoving = true;
+		runtime_.lastMoveDirection = Vector3{ to.x, 0.0f, to.z };
 	}
 	Vector3 nextPos = GetPosition();
 	nextPos.x += movementVelocity_.x * deltaTime;
 	nextPos.z += movementVelocity_.z * deltaTime;
+	runtime_.walkAnimTimer += deltaTime;
 	SetPosition(nextPos);
 	const bool landedOnObstacleTop = TryLandOnObstacleTop(deltaTime);
 	if (!landedOnObstacleTop) { ResolveObstaclePenetrationXZ(deltaTime); }
@@ -230,8 +233,7 @@ void GuardianBoss::DrawImGui()
 			ImGui::SliderFloat("再探索ターゲット閾値", &pathSettings_.targetRepathThreshold, 0.1f, 10.0f);
 			ImGui::SliderFloat("スタック再探索拡張", &pathSettings_.stuckRepathExpandBonus, 0.0f, 4.0f);
 			ImGui::SliderFloat("スタック再探索拡張最大", &pathSettings_.maxStuckRepathExpandBonus, 0.0f, 8.0f);
-			const auto* resolved = GetResolvedNavigationObstacleAABBs();
-			const int sourceObstacleCount = wallObstacleAABBs_ ? static_cast<int>(wallObstacleAABBs_->size()) : (resolved ? static_cast<int>(resolved->size()) : 0);
+			const int sourceObstacleCount = wallObstacleAABBs_ ? static_cast<int>(wallObstacleAABBs_->size()) : 0;
 			ImGui::Text("navigatorに渡している障害物数: %d", static_cast<int>(pathBlockingObstacleAABBs_.size()));
 			ImGui::Text("元の障害物数: %d", sourceObstacleCount);
 			ImGui::Text("経路発見: %s", pathState_.found ? "true" : "false");
@@ -246,7 +248,12 @@ void GuardianBoss::DrawImGui()
 
 bool GuardianBoss::MoveAlongPath(float deltaTime)
 {
-	if (!pathSettings_.enabled) { StopMove(); return false; }
+	if (!pathSettings_.enabled)
+	{
+		movementVelocity_ = Vector3{};
+		runtime_.isMoving = false;
+		return false;
+	}
 	EnemyAStarNavigator::Settings s = navigator_.GetSettings();
 	s.cellSize = pathSettings_.gridSize;
 	s.agentRadius = pathSettings_.obstacleExpandRadius + pathSettings_.stuckRepathExpandBonus;
@@ -255,7 +262,7 @@ bool GuardianBoss::MoveAlongPath(float deltaTime)
 	s.waypointReachDistance = pathSettings_.waypointReachDistance;
 	s.disableCornerCutting = pathSettings_.cornerCuttingDisabled;
 	navigator_.SetSettings(s);
-	const auto* obstacleAabbs = wallObstacleAABBs_ ? wallObstacleAABBs_ : GetResolvedNavigationObstacleAABBs();
+	const std::vector<K4E::AABB>* obstacleAabbs = wallObstacleAABBs_;
 	if (obstacleAabbs) { pathBlockingObstacleAABBs_ = *obstacleAabbs; }
 	else { pathBlockingObstacleAABBs_.clear(); }
 	navigator_.SetWorldAABBs(&pathBlockingObstacleAABBs_);
@@ -282,7 +289,8 @@ bool GuardianBoss::MoveAlongPath(float deltaTime)
 			navigator_.Reset();
 			navigator_.AddTemporaryBlockedArea(pathState_.currentWaypoint, pathSettings_.temporaryBlockRadius, pathSettings_.temporaryBlockDuration, "WaypointSegmentBlocked");
 			pathState_.lastRepathReason = "WaypointSegmentBlocked";
-			StopMove();
+			movementVelocity_ = Vector3{};
+			runtime_.isMoving = false;
 			return false;
 		}
 		pathState_.lineBlocked = false;
@@ -291,13 +299,19 @@ bool GuardianBoss::MoveAlongPath(float deltaTime)
 		Vector3 dir = pathState_.currentWaypoint - selfPos;
 		dir.y = 0.0f;
 		const float dirLenSq = dir.x * dir.x + dir.z * dir.z;
-		if (dirLenSq <= 0.0001f) { StopMove(); return false; }
+		if (dirLenSq <= 0.0001f)
+		{
+			movementVelocity_ = Vector3{};
+			runtime_.isMoving = false;
+			return false;
+		}
 		const float dirLen = std::sqrt(dirLenSq);
 		dir.x /= dirLen;
 		dir.z /= dirLen;
 		const float speed = (runtime_.currentActionName == "Charge") ? GetCurrentMoveSpeed() * 2.3f : GetCurrentMoveSpeed();
 		movementVelocity_ = Vector3{ dir.x * speed, 0.0f, dir.z * speed };
-		ChangeBossState(BossState::Walk);
+		runtime_.isMoving = true;
+		runtime_.lastMoveDirection = dir;
 		runtime_.currentActionName = "Chase";
 		return true;
 	}
@@ -308,7 +322,8 @@ bool GuardianBoss::MoveAlongPath(float deltaTime)
 	if (pathState_.failedWaitTimer > 0.0f)
 	{
 		pathState_.lastRepathReason = "PathFailedWait";
-		StopMove();
+		movementVelocity_ = Vector3{};
+		runtime_.isMoving = false;
 		return false;
 	}
 	if (pathState_.retryTimer >= pathSettings_.repathInterval)
@@ -317,7 +332,8 @@ bool GuardianBoss::MoveAlongPath(float deltaTime)
 		pathState_.retryTimer = 0.0f;
 		pathState_.lastRepathReason = "RetryAfterFailure";
 	}
-	StopMove();
+	movementVelocity_ = Vector3{};
+	runtime_.isMoving = false;
 	return false;
 }
 

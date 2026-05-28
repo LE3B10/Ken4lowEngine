@@ -36,6 +36,9 @@ private:
 	struct PlainsBossRuntimeState
 	{
 		bool isPhase2 = false;
+		bool isMoving = false;
+		K4E::Vector3 lastMoveDirection{ 0.0f, 0.0f, 1.0f };
+		float walkAnimTimer = 0.0f;
 		float attackCooldownTimer = 0.0f;
 		float stateTimer = 0.0f;
 		std::string currentActionName = "Idle";
