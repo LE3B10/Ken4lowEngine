@@ -133,6 +133,7 @@ void DebugScene::Initialize()
 	// 見やすい位置に置く
 	debugBoss_->SetPosition({ 0.0f, 2.25f, 30.0f });
 	debugBoss_->SetYaw(3.141592f); // 必要ならプレイヤー側へ向ける
+	debugBoss_->SetPreferredTargetType(GuardianBoss::BossTargetType::DummyTarget);
 
 	meleeDummyTarget_.SetCenterPosition({ 0.0f, 2.0f, 24.0f });
 	meleeDummyTarget_.SetOBBHalfSize({ 0.8f, 1.0f, 0.8f });
@@ -173,8 +174,13 @@ void DebugScene::Update()
 	// ボス更新
 	if (debugBoss_)
 	{
-		// とりあえずプレイヤー位置をターゲットに渡す
-		debugBoss_->SetTargetPosition({});
+		// DebugScene上ではDummyTargetを明示ターゲットとして渡し、ボスAIの距離分岐を確認する。
+		debugBoss_->SetDebugDummyTarget(meleeDummyTarget_.GetCenterPosition(), true);
+		debugBoss_->SetPreferredTargetType(debugBossUseDummyTarget_ ? GuardianBoss::BossTargetType::DummyTarget : GuardianBoss::BossTargetType::Player);
+		if (!debugBossUseDummyTarget_)
+		{
+			debugBoss_->SetTargetPosition({});
+		}
 		debugBoss_->Update(deltaTime);
 	}
 
@@ -346,6 +352,7 @@ void DebugScene::DrawImGui()
 	ImGui::End();
 
 	ImGui::Begin("MeleeEnemy Debug Target");
+	ImGui::Checkbox("GuardianBoss targets DummyTarget", &debugBossUseDummyTarget_);
 	Vector3 targetPos = meleeDummyTarget_.GetCenterPosition();
 	float targetPosArray[3] = { targetPos.x, targetPos.y, targetPos.z };
 	if (ImGui::DragFloat3("Dummy Target Position", targetPosArray, 0.05f))

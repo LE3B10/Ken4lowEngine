@@ -12,36 +12,83 @@
 /// ----------------------------------------------------------------
 class GuardianBoss : public HumanoidBossBase
 {
+public:
+	enum class BossTargetType
+	{
+		None,
+		Player,
+		DummyTarget,
+	};
+
 private:
+
+	struct BossTargetState
+	{
+		BossTargetType targetType = BossTargetType::None;
+		bool hasTarget = false;
+		bool isTargetVisible = false;
+		bool isInMeleeRange = false;
+		bool isInMidRange = false;
+		bool isInFarRange = false;
+		float directDistance = 0.0f;
+		float pathDistance = 0.0f;
+		K4E::Vector3 position{};
+		K4E::Vector3 direction{};
+		std::string targetName = "None";
+	};
 
 	struct PlainsBossPhaseSettings
 	{
 		float phase2HpRate = 0.5f;
+		float phaseChangeDuration = 2.0f;
 		float phase2MoveSpeedMultiplier = 1.25f;
-		float phase2CooldownMultiplier = 0.65f;
+		float phase2CooldownMultiplier = 0.7f;
+		float phase2AttackRangeMultiplier = 1.15f;
 	};
 
 	struct PlainsBossAttackSettings
 	{
+		bool enableMelee = true;
+		bool enableStepAttack = true;
+		bool enableCharge = true;
+		bool enableShockwave = true;
+		bool enableFarShot = true;
 		float meleeRange = 4.5f;
-		float chargeRange = 11.5f;
-		float shockwaveRange = 21.0f;
-		float moveStartDistance = 6.0f;
-		float moveStopDistance = 3.5f;
+		float midRange = 12.0f;
+		float farRange = 24.0f;
 		float attackCooldown = 1.8f;
-		float chargeCooldown = 2.8f;
-		float shockwaveCooldown = 3.4f;
+		float stepAttackCooldown = 2.4f;
+		float chargeCooldown = 3.5f;
+		float shockwaveCooldown = 4.0f;
+		float farShotCooldown = 3.0f;
+		float stepAttackDistance = 5.0f;
+		float stepAttackSpeed = 10.0f;
+		float stepAttackRadius = 5.4f;
+		float stepAttackDuration = 0.45f;
+		float stepAttackRecovery = 0.35f;
+		float chargeSpeed = 12.0f;
+		float chargeDuration = 0.8f;
+		float shockwaveWindup = 0.55f;
+		float shockwaveRadius = 8.0f;
+		float shockwaveDuration = 0.85f;
+		float farShotSpeed = 16.0f;
+		float farShotLifetime = 1.2f;
 	};
 
 	struct PlainsBossRuntimeState
 	{
 		bool isPhase2 = false;
+		bool isChangingPhase = false;
 		bool isMoving = false;
-		K4E::Vector3 lastMoveDirection{ 0.0f, 0.0f, 1.0f };
-		float walkAnimTimer = 0.0f;
 		float attackCooldownTimer = 0.0f;
-		float stateTimer = 0.0f;
+		float stepAttackCooldownTimer = 0.0f;
+		float chargeCooldownTimer = 0.0f;
+		float shockwaveCooldownTimer = 0.0f;
+		float farShotCooldownTimer = 0.0f;
+		float actionTimer = 0.0f;
+		float walkAnimTimer = 0.0f;
 		std::string currentActionName = "Idle";
+		K4E::Vector3 lastMoveDirection{ 0.0f, 0.0f, 1.0f };
 	};
 
 	struct PathSettings
@@ -86,6 +133,9 @@ public:
 	void SetupBoss() override;
 	void SetFloorAABBs(const std::vector<K4E::AABB>* aabbs) { floorAABBs_ = aabbs; }
 	void SetWallObstacleAABBs(const std::vector<K4E::AABB>* aabbs) { wallObstacleAABBs_ = aabbs; }
+	void SetDebugDummyTarget(const K4E::Vector3& position, bool exists);
+	void SetPreferredTargetType(BossTargetType type) { preferredTargetType_ = type; }
+	BossTargetType GetCurrentTargetType() const { return targetState_.targetType; }
 	void OnDamaged(float damage) override;
 	void OnDead() override;
 	void OnCollision(K4E::Collider* other) override;
@@ -103,6 +153,11 @@ protected:
 
 private:
 	void FaceTarget(float deltaTime);
+	void UpdateTargetState(float deltaTime);
+	float CalculateCurrentPathDistance() const;
+	void UpdateCooldownTimers(float deltaTime);
+	float GetCooldownMultiplier() const;
+	float GetRangeMultiplier() const;
 	void UpdateNavigationObstacleList();
 	bool MoveAlongPath(float deltaTime);
 	void StopMove();
@@ -113,17 +168,45 @@ private:
 	void EnterIdle();
 	void EnterMove();
 	void EnterAttack(const char* actionName);
-	void UpdatePhaseTransition();
-	bool StartAttackByDistance();
 	BTNodeResult TickBehaviorTree(float deltaTime);
 	void BuildBehaviorTree();
+	BTNodeResult TickContinueCurrentAction(float deltaTime);
+	BTNodeResult TickMeleeAttack(float deltaTime);
+	BTNodeResult TickStepAttack(float deltaTime);
+	void StartStepAttack();
+	void UpdateStepAttack(float deltaTime);
+	bool CanUseStepAttack() const;
+	BTNodeResult TickShockwaveAttack(float deltaTime);
+	void StartShockwaveAttack();
+	void UpdateShockwaveAttack(float deltaTime);
+	bool CanUseShockwave() const;
+	BTNodeResult TickFarShotAttack(float deltaTime);
+	void StartFarShotAttack();
+	void UpdateFarShotAttack(float deltaTime);
+	bool CanUseFarShot() const;
+	BTNodeResult TickPhase2Transition(float deltaTime);
+	bool ShouldEnterPhase2() const;
+	void StartPhase2();
+	void UpdatePhase2Transition(float deltaTime);
+	BTNodeResult TickChaseTarget(float deltaTime);
 	float GetCurrentMoveSpeed() const;
 
 	PlainsBossPhaseSettings phaseSettings_{};
 	PlainsBossAttackSettings attackSettings_{};
 	PlainsBossRuntimeState runtime_{};
+	BossTargetState targetState_{};
+	BossTargetType preferredTargetType_ = BossTargetType::DummyTarget;
+	bool hasDebugDummyTarget_ = false;
+	K4E::Vector3 debugDummyTargetPosition_{};
 	float rotateSpeed_ = 5.5f;
 	float chargeTimer_ = 0.0f;
+	K4E::Vector3 stepAttackDirection_{ 0.0f, 0.0f, 1.0f };
+	K4E::Vector3 stepAttackStartPosition_{};
+	K4E::Vector3 shockwaveDirection_{ 0.0f, 0.0f, 1.0f };
+	K4E::Vector3 shockwaveOrigin_{};
+	K4E::Vector3 farShotDirection_{ 0.0f, 0.0f, 1.0f };
+	K4E::Vector3 farShotOrigin_{};
+	float phaseTransitionTimer_ = 0.0f;
 
 	std::unique_ptr<IBTNode> behaviorRoot_;
 	PathSettings pathSettings_{};
