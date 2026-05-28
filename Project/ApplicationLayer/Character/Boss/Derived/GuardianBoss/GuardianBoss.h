@@ -24,7 +24,6 @@ private:
 
 	struct BossTargetState
 	{
-		BossTargetType targetType = BossTargetType::None;
 		bool hasTarget = false;
 		bool isTargetVisible = false;
 		bool isInMeleeRange = false;
@@ -33,7 +32,8 @@ private:
 		float directDistance = 0.0f;
 		float pathDistance = 0.0f;
 		K4E::Vector3 position{};
-		K4E::Vector3 direction{};
+		K4E::Vector3 direction{ 0.0f, 0.0f, 1.0f };
+		BossTargetType type = BossTargetType::None;
 		std::string targetName = "None";
 	};
 
@@ -102,7 +102,7 @@ private:
 		float temporaryBlockDuration = 1.5f;
 		float temporaryBlockRadius = 1.5f;
 		bool cornerCuttingDisabled = true;
-		float targetRepathThreshold = 1.5f;
+		float targetRepathThreshold = 0.5f;
 		float stuckRepathExpandBonus = 0.35f;
 		float maxStuckRepathExpandBonus = 1.5f;
 	};
@@ -125,6 +125,9 @@ private:
 		K4E::Vector3 lastStuckCheckPosition{};
 		K4E::Vector3 lastPathTargetPos{};
 		K4E::Vector3 currentWaypoint{};
+		K4E::Vector3 currentMoveGoal{};
+		bool hasReachableApproachPoint = false;
+		std::string approachPointReason = "None";
 		K4E::Vector3 blockedSegmentFrom{};
 		K4E::Vector3 blockedSegmentTo{};
 	};
@@ -135,7 +138,7 @@ public:
 	void SetWallObstacleAABBs(const std::vector<K4E::AABB>* aabbs) { wallObstacleAABBs_ = aabbs; }
 	void SetDebugDummyTarget(const K4E::Vector3& position, bool exists);
 	void SetPreferredTargetType(BossTargetType type) { preferredTargetType_ = type; }
-	BossTargetType GetCurrentTargetType() const { return targetState_.targetType; }
+	BossTargetType GetCurrentTargetType() const { return targetState_.type; }
 	void OnDamaged(float damage) override;
 	void OnDead() override;
 	void OnCollision(K4E::Collider* other) override;
@@ -155,6 +158,9 @@ private:
 	void FaceTarget(float deltaTime);
 	void UpdateTargetState(float deltaTime);
 	float CalculateCurrentPathDistance() const;
+	bool FindReachableApproachPointNearTarget(K4E::Vector3& outPoint);
+	bool IsPointInsideNavigationObstacle(const K4E::Vector3& point) const;
+	bool TryLocalAvoidanceMove(float deltaTime);
 	void UpdateCooldownTimers(float deltaTime);
 	float GetCooldownMultiplier() const;
 	float GetRangeMultiplier() const;
@@ -216,6 +222,9 @@ private:
 	const std::vector<K4E::AABB>* wallObstacleAABBs_ = nullptr;
 	std::vector<K4E::AABB> pathBlockingObstacleAABBs_{};
 	std::vector<K4E::AABB> climbableObstacleAABBs_{};
+	std::vector<K4E::Vector3> approachPointCandidates_{};
+	K4E::Vector3 lastLocalAvoidanceDirection_{};
+	bool hasLastLocalAvoidanceDirection_ = false;
 	bool pathDebugDrawEnabled_ = true;
 	bool obstacleDebugDrawEnabled_ = true;
 	float stuckTimer_ = 0.0f;

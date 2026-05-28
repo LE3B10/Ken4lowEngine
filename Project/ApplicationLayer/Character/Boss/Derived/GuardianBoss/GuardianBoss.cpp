@@ -8,6 +8,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <limits>
 
 #ifdef USE_IMGUI
 #include <imgui.h>
@@ -138,10 +139,32 @@ void GuardianBoss::Draw()
 				{ 0.2f, 0.8f, 1.0f, 1.0f });
 		}
 
+		for (const auto& candidate : approachPointCandidates_)
+		{
+			Wireframe::GetInstance()->DrawSphere(
+				candidate + Vector3{ 0.0f, 0.12f, 0.0f },
+				0.18f,
+				{ 0.55f, 0.55f, 1.0f, 0.85f });
+		}
+
+		Wireframe::GetInstance()->DrawSphere(
+			pathState_.currentMoveGoal + Vector3{ 0.0f, 0.25f, 0.0f },
+			pathState_.hasReachableApproachPoint ? 0.55f : 0.35f,
+			pathState_.hasReachableApproachPoint ? Vector4{ 0.1f, 1.0f, 0.95f, 1.0f } : Vector4{ 1.0f, 1.0f, 0.1f, 1.0f });
+
 		Wireframe::GetInstance()->DrawSphere(
 			pathState_.currentWaypoint + Vector3{ 0.0f, 0.2f, 0.0f },
 			0.4f,
 			{ 1.0f, 0.3f, 0.1f, 1.0f });
+
+		if (hasLastLocalAvoidanceDirection_)
+		{
+			const Vector3 from = GetPosition() + Vector3{ 0.0f, 0.45f, 0.0f };
+			Wireframe::GetInstance()->DrawLine(
+				from,
+				from + lastLocalAvoidanceDirection_ * 3.0f,
+				{ 1.0f, 0.9f, 0.1f, 1.0f });
+		}
 
 		if (pathState_.lineBlocked)
 		{
@@ -224,13 +247,13 @@ void GuardianBoss::UpdateTargetState(float)
 		selectedPosition = debugDummyTargetPosition_;
 	}
 
-	targetState_.targetType = selected;
+	targetState_.type = selected;
 	targetState_.hasTarget = selected != BossTargetType::None;
 	targetState_.targetName = ToTargetTypeName(selected);
 	if (!targetState_.hasTarget)
 	{
 		targetState_.position = {};
-		targetState_.direction = {};
+		targetState_.direction = { 0.0f, 0.0f, 1.0f };
 		targetState_.directDistance = 0.0f;
 		targetState_.pathDistance = 0.0f;
 		targetState_.isTargetVisible = false;
@@ -246,33 +269,120 @@ void GuardianBoss::UpdateTargetState(float)
 	toTarget.y = 0.0f;
 	targetState_.directDistance = LengthXZ(toTarget);
 	targetState_.direction = NormalizeXZSafe(toTarget, runtime_.lastMoveDirection);
-	targetState_.pathDistance = CalculateCurrentPathDistance();
 	navigator_.SetWorldAABBs(&pathBlockingObstacleAABBs_);
 
 	int blockedIdx = -1;
 	targetState_.isTargetVisible = !navigator_.IsSegmentBlockedByObstacle(GetPosition(), selectedPosition, GetPosition().y, &blockedIdx);
+	targetState_.pathDistance = CalculateCurrentPathDistance();
 	const float melee = attackSettings_.meleeRange * GetRangeMultiplier();
 	const float mid = attackSettings_.midRange * GetRangeMultiplier();
 	const float far = attackSettings_.farRange * GetRangeMultiplier();
-	targetState_.isInMeleeRange = targetState_.directDistance <= melee;
-	targetState_.isInMidRange = targetState_.directDistance > melee && targetState_.directDistance <= mid;
-	targetState_.isInFarRange = targetState_.directDistance > mid && targetState_.directDistance <= far;
+	targetState_.isInMeleeRange = targetState_.directDistance <= melee && targetState_.isTargetVisible && !pathState_.lineBlocked;
+	targetState_.isInMidRange = targetState_.pathDistance > melee && targetState_.pathDistance <= mid;
+	targetState_.isInFarRange = targetState_.pathDistance > mid && targetState_.pathDistance <= far;
 }
 
 float GuardianBoss::CalculateCurrentPathDistance() const
 {
 	const auto& path = navigator_.GetCurrentPath();
-	if (path.size() < 2)
+	if (path.empty())
 	{
 		return targetState_.directDistance;
 	}
 
 	float total = 0.0f;
-	for (size_t i = 1; i < path.size(); ++i)
+	Vector3 prev = GetPosition();
+	for (const auto& point : path)
 	{
-		total += LengthXZ(path[i] - path[i - 1]);
+		total += LengthXZ(point - prev);
+		prev = point;
 	}
+
+	total += LengthXZ(targetState_.position - prev);
 	return total;
+}
+
+bool GuardianBoss::IsPointInsideNavigationObstacle(const Vector3& point) const
+{
+	const float margin = std::max(0.2f, pathSettings_.obstacleExpandRadius);
+
+	for (const auto& obstacle : pathBlockingObstacleAABBs_)
+	{
+		if (point.x >= obstacle.min.x - margin && point.x <= obstacle.max.x + margin &&
+			point.z >= obstacle.min.z - margin && point.z <= obstacle.max.z + margin &&
+			point.y >= obstacle.min.y - 2.0f && point.y <= obstacle.max.y + 2.0f)
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
+bool GuardianBoss::FindReachableApproachPointNearTarget(Vector3& outPoint)
+{
+	approachPointCandidates_.clear();
+	if (!targetState_.hasTarget)
+	{
+		pathState_.hasReachableApproachPoint = false;
+		pathState_.approachPointReason = "NoTarget";
+		return false;
+	}
+
+	const Vector3 targetPos = targetState_.position;
+	const Vector3 bossPos = GetPosition();
+	const float approachRadius = std::max(attackSettings_.meleeRange * 0.85f, 2.5f);
+	constexpr int sampleCount = 16;
+	constexpr float pi2 = 6.2831853f;
+
+	bool found = false;
+	float bestScore = std::numeric_limits<float>::max();
+	Vector3 bestPoint = targetPos;
+
+	for (int i = 0; i < sampleCount; ++i)
+	{
+		const float angle = static_cast<float>(i) / static_cast<float>(sampleCount) * pi2;
+		Vector3 candidate = targetPos;
+		candidate.x += std::cos(angle) * approachRadius;
+		candidate.z += std::sin(angle) * approachRadius;
+		candidate.y = bossPos.y;
+		approachPointCandidates_.push_back(candidate);
+
+		if (IsPointInsideNavigationObstacle(candidate))
+		{
+			continue;
+		}
+
+		Vector3 testWaypoint = candidate;
+		navigator_.Reset();
+		// 追加: ターゲット周辺の候補地点へ到達できるか確認し、最も短い経路になりそうな点を選ぶ。
+		if (!navigator_.GetNextWaypoint(bossPos, candidate, bossPos.y, 0.016f, testWaypoint))
+		{
+			continue;
+		}
+
+		const float directScore = LengthXZ(candidate - bossPos);
+		const float targetScore = LengthXZ(candidate - targetPos);
+		const float score = directScore + targetScore * 0.25f;
+		if (score < bestScore)
+		{
+			bestScore = score;
+			bestPoint = candidate;
+			found = true;
+		}
+	}
+
+	navigator_.Reset();
+	pathState_.hasReachableApproachPoint = found;
+	pathState_.approachPointReason = found ? "Found" : "NoReachableApproachPoint";
+	if (!found)
+	{
+		return false;
+	}
+
+	outPoint = bestPoint;
+	pathState_.currentMoveGoal = bestPoint;
+	return true;
 }
 
 void GuardianBoss::UpdateCooldownTimers(float deltaTime)
@@ -409,8 +519,9 @@ void GuardianBoss::UpdateStepAttack(float deltaTime)
 
 bool GuardianBoss::CanUseStepAttack() const
 {
-	return attackSettings_.enableStepAttack && targetState_.hasTarget && targetState_.isTargetVisible &&
-		targetState_.isInMidRange && runtime_.stepAttackCooldownTimer <= 0.0f && GetState() != BossState::Attack;
+	return attackSettings_.enableStepAttack && targetState_.hasTarget &&
+		targetState_.pathDistance <= attackSettings_.midRange * GetRangeMultiplier() &&
+		runtime_.stepAttackCooldownTimer <= 0.0f && GetState() != BossState::Attack;
 }
 
 BTNodeResult GuardianBoss::TickShockwaveAttack(float)
@@ -443,7 +554,7 @@ bool GuardianBoss::CanUseShockwave() const
 		return false;
 	}
 	const float far = attackSettings_.farRange * GetRangeMultiplier();
-	const bool usefulByDistance = targetState_.directDistance > attackSettings_.meleeRange && targetState_.directDistance <= far;
+	const bool usefulByDistance = targetState_.pathDistance > attackSettings_.meleeRange && targetState_.pathDistance <= far;
 	return usefulByDistance && (!targetState_.isTargetVisible || targetState_.isInFarRange || runtime_.isPhase2);
 }
 
@@ -472,7 +583,7 @@ void GuardianBoss::UpdateFarShotAttack(float)
 
 bool GuardianBoss::CanUseFarShot() const
 {
-	return attackSettings_.enableFarShot && targetState_.hasTarget && targetState_.directDistance > attackSettings_.farRange * 0.85f &&
+	return attackSettings_.enableFarShot && targetState_.hasTarget && targetState_.pathDistance > attackSettings_.farRange * 0.85f &&
 		runtime_.farShotCooldownTimer <= 0.0f && GetState() != BossState::Attack;
 }
 
@@ -556,11 +667,11 @@ void GuardianBoss::DrawImGui()
 				preferredTargetType_ = static_cast<BossTargetType>(preferred);
 			}
 			ImGui::Text("Target: %s", targetState_.targetName.c_str());
-			ImGui::Text("TargetType: %s", ToTargetTypeName(targetState_.targetType));
+			ImGui::Text("TargetType: %d (%s)", static_cast<int>(targetState_.type), ToTargetTypeName(targetState_.type));
 			ImGui::Text("HasTarget: %s", targetState_.hasTarget ? "true" : "false");
 			ImGui::Text("DirectDistance: %.2f", targetState_.directDistance);
 			ImGui::Text("PathDistance: %.2f", targetState_.pathDistance);
-			ImGui::Text("Visible: %s", targetState_.isTargetVisible ? "true" : "false");
+			ImGui::Text("TargetVisible: %s", targetState_.isTargetVisible ? "true" : "false");
 			ImGui::Text("Melee/Mid/Far: %s / %s / %s", targetState_.isInMeleeRange ? "true" : "false", targetState_.isInMidRange ? "true" : "false", targetState_.isInFarRange ? "true" : "false");
 		}
 		if (ImGui::CollapsingHeader("基本情報", ImGuiTreeNodeFlags_DefaultOpen))
@@ -619,7 +730,10 @@ void GuardianBoss::DrawImGui()
 			ImGui::Text("lineBlocked: %s", pathState_.lineBlocked ? "true" : "false");
 			ImGui::Text("Obstacle AABB Count: %d", pathState_.blockingObstacleAABBCount);
 			ImGui::Text("Waypoint: (%.2f, %.2f, %.2f)", pathState_.currentWaypoint.x, pathState_.currentWaypoint.y, pathState_.currentWaypoint.z);
-			ImGui::Text("PathDistance: %.2f", targetState_.pathDistance);
+				ImGui::Text("CurrentMoveGoal: %.2f, %.2f, %.2f", pathState_.currentMoveGoal.x, pathState_.currentMoveGoal.y, pathState_.currentMoveGoal.z);
+				ImGui::Text("HasReachableApproachPoint: %s", pathState_.hasReachableApproachPoint ? "true" : "false");
+				ImGui::Text("ApproachPointReason: %s", pathState_.approachPointReason.c_str());
+				ImGui::Text("PathDistance: %.2f", targetState_.pathDistance);
 		}
 		if (ImGui::CollapsingHeader("経路探索", ImGuiTreeNodeFlags_DefaultOpen))
 		{
@@ -632,7 +746,7 @@ void GuardianBoss::DrawImGui()
 			ImGui::SliderFloat("一時ブロック時間", &pathSettings_.temporaryBlockDuration, 0.2f, 6.0f);
 			ImGui::SliderFloat("一時ブロック半径", &pathSettings_.temporaryBlockRadius, 0.2f, 3.0f);
 			ImGui::Checkbox("角抜け無効", &pathSettings_.cornerCuttingDisabled);
-			ImGui::SliderFloat("再探索ターゲット閾値", &pathSettings_.targetRepathThreshold, 0.1f, 10.0f);
+			ImGui::SliderFloat("ターゲット再探索閾値", &pathSettings_.targetRepathThreshold, 0.1f, 5.0f);
 			ImGui::SliderFloat("スタック再探索拡張", &pathSettings_.stuckRepathExpandBonus, 0.0f, 4.0f);
 			ImGui::SliderFloat("スタック再探索拡張最大", &pathSettings_.maxStuckRepathExpandBonus, 0.0f, 8.0f);
 			ImGui::Checkbox("経路デバッグ描画", &pathDebugDrawEnabled_);
@@ -640,9 +754,9 @@ void GuardianBoss::DrawImGui()
 			ImGui::Text("元の障害物AABB数: %d", pathState_.sourceObstacleAABBCount);
 			ImGui::Text("A*へ渡す障害物AABB数: %d", pathState_.blockingObstacleAABBCount);
 			ImGui::Text("経路あり: %s", pathState_.found ? "はい" : "いいえ");
-			ImGui::Text("失敗理由: %s", pathState_.failureReason.c_str());
-			ImGui::Text("最後のリパス理由: %s", pathState_.lastRepathReason.c_str());
-			ImGui::Text("LineBlocked: %s", pathState_.lineBlocked ? "はい" : "いいえ");
+			ImGui::Text("FailureReason: %s", pathState_.failureReason.c_str());
+			ImGui::Text("LastRepathReason: %s", pathState_.lastRepathReason.c_str());
+			ImGui::Text("LineBlocked: %s", pathState_.lineBlocked ? "true" : "false");
 			ImGui::Text("BlockedObstacle: %s", pathState_.blockedObstacleName.c_str());
 		}
 	}
@@ -683,6 +797,8 @@ void GuardianBoss::UpdateNavigationObstacleList()
 			continue;
 		}
 
+		// 追加: DummyTargetやキャラクター系AABBは経路障害物から除外する。
+		// wallObstacleAABBs_ はDebugSceneから壁・柱などだけを受け取り、床/プレイヤー/敵/DummyTargetは渡さない。
 		// 極端に小さいAABBはノイズとして除外し、経路探索の誤反応を減らす。
 		if (sizeX <= 0.05f || sizeZ <= 0.05f)
 		{
@@ -712,7 +828,6 @@ bool GuardianBoss::MoveAlongPath(float deltaTime)
 	}
 
 	const Vector3 currentPos = GetPosition();
-	const Vector3 targetPos = targetState_.position;
 
 	UpdateNavigationObstacleList();
 
@@ -730,26 +845,35 @@ bool GuardianBoss::MoveAlongPath(float deltaTime)
 	navigator_.TickTemporaryBlocks(deltaTime);
 	pathState_.lastRepathTimer += deltaTime;
 
-	pathState_.targetMovedDistanceForRepath = LengthXZ(targetPos - pathState_.lastPathTargetPos);
+	Vector3 moveGoal = targetState_.position;
+	if (!FindReachableApproachPointNearTarget(moveGoal))
+	{
+		moveGoal = targetState_.position;
+		pathState_.currentMoveGoal = moveGoal;
+	}
+
+	pathState_.targetMovedDistanceForRepath = LengthXZ(targetState_.position - pathState_.lastPathTargetPos);
 	if (pathState_.targetMovedDistanceForRepath >= pathSettings_.targetRepathThreshold || isStuck_)
 	{
 		navigator_.Reset();
-		pathState_.lastRepathReason = isStuck_ ? "StuckForceRepath" : "TargetMoved";
+		pathState_.lastRepathReason = isStuck_ ? "StuckForceRepath" : "DummyTargetMoved";
 	}
 
-	Vector3 waypoint = targetPos;
-	if (!navigator_.GetNextWaypoint(currentPos, targetPos, currentPos.y, deltaTime, waypoint))
+	Vector3 waypoint = moveGoal;
+	if (!navigator_.GetNextWaypoint(currentPos, moveGoal, currentPos.y, deltaTime, waypoint))
 	{
 		pathState_.found = false;
 		pathState_.failureReason = "PathNotFound";
 		pathState_.retryTimer += deltaTime;
-		pathState_.failedWaitTimer = std::max(0.0f, pathState_.failedWaitTimer - deltaTime);
+		navigator_.AddTemporaryBlockedArea(
+			currentPos,
+			pathSettings_.temporaryBlockRadius,
+			pathSettings_.temporaryBlockDuration,
+			"BossPathFailedPosition");
 
-		if (pathState_.failedWaitTimer > 0.0f)
+		if (TryLocalAvoidanceMove(deltaTime))
 		{
-			pathState_.lastRepathReason = "PathFailedWait";
-			StopMove();
-			return false;
+			return true;
 		}
 
 		if (pathState_.retryTimer >= pathSettings_.repathInterval)
@@ -759,6 +883,7 @@ bool GuardianBoss::MoveAlongPath(float deltaTime)
 			pathState_.lastRepathReason = "RetryAfterFailure";
 		}
 
+		runtime_.currentActionName = "Repath";
 		StopMove();
 		return false;
 	}
@@ -766,11 +891,8 @@ bool GuardianBoss::MoveAlongPath(float deltaTime)
 	pathState_.found = true;
 	pathState_.failureReason = "None";
 	pathState_.currentWaypoint = waypoint;
-	pathState_.lastPathTargetPos = targetPos;
+	pathState_.lastPathTargetPos = targetState_.position;
 	pathState_.retryTimer = 0.0f;
-	pathState_.lineBlocked = false;
-	pathState_.blockedWaypointIndex = -1;
-	pathState_.blockedObstacleName = "None";
 
 	int blockedIdx = -1;
 	if (navigator_.IsSegmentBlockedByObstacle(currentPos, waypoint, currentPos.y, &blockedIdx))
@@ -781,28 +903,34 @@ bool GuardianBoss::MoveAlongPath(float deltaTime)
 		pathState_.blockedSegmentFrom = currentPos;
 		pathState_.blockedSegmentTo = waypoint;
 
-		navigator_.Reset();
 		navigator_.AddTemporaryBlockedArea(
 			waypoint,
 			pathSettings_.temporaryBlockRadius,
 			pathSettings_.temporaryBlockDuration,
 			"BossWaypointSegmentBlocked");
 
+		navigator_.Reset();
 		pathState_.lastRepathReason = "WaypointSegmentBlocked";
+
+		if (TryLocalAvoidanceMove(deltaTime))
+		{
+			return true;
+		}
+
 		StopMove();
 		return false;
 	}
 
-	Vector3 dir = waypoint - currentPos;
-	dir.y = 0.0f;
-	const float dirLen = LengthXZ(dir);
-	if (dirLen <= 0.0001f)
+	pathState_.lineBlocked = false;
+	pathState_.blockedWaypointIndex = -1;
+	pathState_.blockedObstacleName = "None";
+
+	const Vector3 dir = NormalizeXZSafe(waypoint - currentPos, runtime_.lastMoveDirection);
+	if (LengthXZ(dir) <= 0.0001f)
 	{
 		StopMove();
 		return false;
 	}
-	dir.x /= dirLen;
-	dir.z /= dirLen;
 
 	const float moveSpeed = GetCurrentMoveSpeed();
 	Vector3 nextPos = currentPos;
@@ -819,7 +947,67 @@ bool GuardianBoss::MoveAlongPath(float deltaTime)
 	runtime_.lastMoveDirection = dir;
 	movementVelocity_ = Vector3{ dir.x * moveSpeed, 0.0f, dir.z * moveSpeed };
 	runtime_.currentActionName = "Chase";
+	hasLastLocalAvoidanceDirection_ = false;
 
+	return true;
+}
+
+bool GuardianBoss::TryLocalAvoidanceMove(float deltaTime)
+{
+	if (!targetState_.hasTarget)
+	{
+		return false;
+	}
+
+	const Vector3 currentPos = GetPosition();
+	const Vector3 toTarget = NormalizeXZSafe(targetState_.position - currentPos, runtime_.lastMoveDirection);
+	Vector3 left{ -toTarget.z, 0.0f, toTarget.x };
+	Vector3 right{ toTarget.z, 0.0f, -toTarget.x };
+
+	Vector3 leftPos = currentPos;
+	leftPos.x += left.x * pathSettings_.gridSize;
+	leftPos.z += left.z * pathSettings_.gridSize;
+
+	Vector3 rightPos = currentPos;
+	rightPos.x += right.x * pathSettings_.gridSize;
+	rightPos.z += right.z * pathSettings_.gridSize;
+
+	const bool leftFree = !IsPointInsideNavigationObstacle(leftPos);
+	const bool rightFree = !IsPointInsideNavigationObstacle(rightPos);
+
+	Vector3 avoidDir{};
+	if (leftFree && !rightFree)
+	{
+		avoidDir = left;
+	}
+	else if (!leftFree && rightFree)
+	{
+		avoidDir = right;
+	}
+	else if (leftFree && rightFree)
+	{
+		avoidDir = LengthXZ(leftPos - targetState_.position) < LengthXZ(rightPos - targetState_.position) ? left : right;
+	}
+	else
+	{
+		return false;
+	}
+
+	Vector3 nextPos = currentPos;
+	const float moveSpeed = GetCurrentMoveSpeed() * 0.6f;
+	nextPos.x += avoidDir.x * moveSpeed * deltaTime;
+	nextPos.z += avoidDir.z * moveSpeed * deltaTime;
+	SetPosition(nextPos);
+	ResolveObstaclePenetrationXZ(deltaTime);
+
+	runtime_.isMoving = true;
+	runtime_.currentActionName = "LocalAvoidance";
+	runtime_.lastMoveDirection = avoidDir;
+	movementVelocity_ = Vector3{ avoidDir.x * moveSpeed, 0.0f, avoidDir.z * moveSpeed };
+	lastLocalAvoidanceDirection_ = avoidDir;
+	hasLastLocalAvoidanceDirection_ = true;
+
+	// 追加: A*が一時的に失敗した時も停止せず、左右へ回り込むことで追跡を継続する。
 	return true;
 }
 
