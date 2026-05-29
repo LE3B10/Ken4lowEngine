@@ -88,8 +88,8 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	// 描画確認用ボス
 	std::unique_ptr<GuardianBoss> debugBoss_;
-	//std::unique_ptr<MeleeEnemy> debugMeleeEnemy_;
-	//std::unique_ptr<MidRangeEnemy> debugMidRangeEnemy_;
+	std::unique_ptr<MeleeEnemy> debugMeleeEnemy_;
+	std::unique_ptr<MidRangeEnemy> debugMidRangeEnemy_;
 
 	// ステージ確認用（見た目＋衝突）
 	std::unique_ptr<K4E::Stage> stage_;
@@ -112,7 +112,6 @@ private: /// ---------- メンバ変数 ---------- ///
 	std::vector<std::unique_ptr<K4E::Object3D>> cullingTestObjects_;
 
 	K4E::Collider meleeDummyTarget_{};
-	bool debugBossUseDummyTarget_ = true;
 	bool meleeDummyWireVisible_ = true;
 	float meleeDummyWireRadius_ = 0.5f;
 
