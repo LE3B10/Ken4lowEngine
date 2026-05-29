@@ -1,7 +1,7 @@
 #include "BossHeavyPunchAttackAnimation.h"
-#include "Components/BossAnimationComponent.h"
-#include "Attacks/BossHeavyPunchAttack.h"
-#include "Core/BossBase.h"
+#include "BossAnimationComponent.h"
+#include "BossHeavyPunchAttack.h"
+#include "BossBase.h"
 
 /// -------------------------------------------------------------
 ///				　		　 判定処理
