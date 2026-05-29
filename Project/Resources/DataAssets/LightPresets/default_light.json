@@ -7,21 +7,21 @@
       1.0
     ],
     "directionalDirection": [
-      0.0,
-      -0.866025447845459,
-      0.4999999701976776
+      0.28221628069877625,
+      -0.9407208561897278,
+      0.18814417719841003
     ],
     "enableShadow": true,
     "intensity": 1.0,
     "normalBias": 0.02500000037252903,
     "shadowBias": 0.0,
-    "shadowFarZ": 120.0,
+    "shadowFarZ": 180.0,
     "shadowFocusMode": 2,
-    "shadowHeight": 150.0,
+    "shadowHeight": 120.0,
     "shadowMapSize": 2048,
     "shadowNearZ": 0.10000000149011612,
     "shadowStrength": 0.6000000238418579,
-    "shadowWidth": 150.0
+    "shadowWidth": 120.0
   },
   "displayName": "default_light",
   "id": "default_light",

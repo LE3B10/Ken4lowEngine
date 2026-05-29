@@ -295,10 +295,10 @@ void GuardianBoss::UpdateTargetState(float)
 	pathState_.currentPathDistance = targetState_.pathDistance;
 	const float melee = attackSettings_.meleeRange * GetRangeMultiplier();
 	const float mid = attackSettings_.midRange * GetRangeMultiplier();
-	const float far = attackSettings_.farRange * GetRangeMultiplier();
+	const float far_ = attackSettings_.farRange * GetRangeMultiplier();
 	targetState_.isInMeleeRange = targetState_.directDistance <= melee && targetState_.isTargetVisible && !pathState_.lineBlocked;
 	targetState_.isInMidRange = targetState_.pathDistance > melee && targetState_.pathDistance <= mid;
-	targetState_.isInFarRange = targetState_.pathDistance > mid && targetState_.pathDistance <= far;
+	targetState_.isInFarRange = targetState_.pathDistance > mid && targetState_.pathDistance <= far_;
 }
 
 float GuardianBoss::CalculateCurrentPathDistance() const
@@ -691,8 +691,8 @@ bool GuardianBoss::CanUseShockwave() const
 	{
 		return false;
 	}
-	const float far = attackSettings_.farRange * GetRangeMultiplier();
-	const bool usefulByDistance = targetState_.pathDistance > attackSettings_.meleeRange && targetState_.pathDistance <= far;
+	const float far_ = attackSettings_.farRange * GetRangeMultiplier();
+	const bool usefulByDistance = targetState_.pathDistance > attackSettings_.meleeRange && targetState_.pathDistance <= far_;
 	return usefulByDistance && (!targetState_.isTargetVisible || targetState_.isInFarRange || runtime_.isPhase2);
 }
 

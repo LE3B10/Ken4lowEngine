@@ -15,6 +15,31 @@
     "name": "scene",
     "objects": [
         {
+            "type": "PlayerSpawn",
+            "name": "PlayerSpawn_001",
+            "collection": "Scene Collection",
+            "collections": [
+                "Scene Collection"
+            ],
+            "transform": {
+                "translation": [
+                    0.0,
+                    60.0,
+                    2.0
+                ],
+                "rotation": [
+                    0.0,
+                    -0.0,
+                    0.0
+                ],
+                "scaling": [
+                    1.0,
+                    1.0,
+                    1.0
+                ]
+            }
+        },
+        {
             "type": "MESH",
             "name": "Scenery_GrassTerrain_001",
             "collection": "Collection",
@@ -29928,7 +29953,33 @@
         }
     ],
     "entities": {
-        "player_spawns": [],
+        "player_spawns": [
+            {
+                "type": "PlayerSpawn",
+                "name": "PlayerSpawn_001",
+                "collection": "Scene Collection",
+                "collections": [
+                    "Scene Collection"
+                ],
+                "transform": {
+                    "translation": [
+                        0.0,
+                        60.0,
+                        2.0
+                    ],
+                    "rotation": [
+                        0.0,
+                        -0.0,
+                        0.0
+                    ],
+                    "scaling": [
+                        1.0,
+                        1.0,
+                        1.0
+                    ]
+                }
+            }
+        ],
         "enemy_spawns": [],
         "items": [
             {
