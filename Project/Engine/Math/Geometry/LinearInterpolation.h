@@ -9,9 +9,30 @@
 namespace Ken4lowEngine
 {
 	// ---------- 度をラジアンに変換する関数 ---------- ///
-	static float DegToRad(float deg) { return deg * std::numbers::pi_v<float> / 180.0f; }
-	static float RadToDeg(float r) { return r * (180.0f / std::numbers::pi_v<float>); }
+	[[nodiscard]] constexpr float DegToRad(float deg) noexcept
+	{
+		return deg * std::numbers::pi_v<float> / 180.0f;
+	}
 
+	[[nodiscard]] constexpr float RadToDeg(float r) noexcept
+	{
+		return r * (180.0f / std::numbers::pi_v<float>);
+	}
+
+	static float WrapAngle(float angle)
+	{
+		constexpr float pi = std::numbers::pi_v<float>;
+		constexpr float two_pi = pi * 2.0f;
+
+		// 一度 0 ～ 2π の範囲（または -2π ～ 0）に落とし込む
+		angle = std::fmod(angle, two_pi);
+
+		// その後、-π ～ π の範囲にシフトする
+		if (angle > pi)   angle -= two_pi;
+		if (angle < -pi)  angle += two_pi;
+
+		return angle;
+	}
 
 	/// -------------------------------------------------------------
 	///						線形補間を行う関数
@@ -58,8 +79,6 @@ namespace Ken4lowEngine
 			Lerp(a.w, b.w, t)
 		);
 	}
-
-	static float clamp01(float x) { return x < 0 ? 0 : (x > 1 ? 1 : x); }
 
 	/// ---------- Catmull-Romスプライン補間を行う関数 ---------- ///
 	inline Vector3 CatmullRom(const Vector3& p0, const Vector3& p1, const Vector3& p2, const Vector3& p3, float t)

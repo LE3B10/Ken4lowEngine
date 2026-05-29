@@ -129,10 +129,6 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClCompile Include="ApplicationLayer\Character\Boss\Components\BossAttackComponent.cpp" />
     <ClCompile Include="ApplicationLayer\Character\Boss\Core\BossBase.cpp" />
     <ClCompile Include="ApplicationLayer\Character\Boss\Components\BossMovementComponent.cpp" />
-    <ClCompile Include="ApplicationLayer\Character\Boss\BehaviorTree\BTActionNode.cpp" />
-    <ClCompile Include="ApplicationLayer\Character\Boss\BehaviorTree\BTConditionNode.cpp" />
-    <ClCompile Include="ApplicationLayer\Character\Boss\BehaviorTree\BTSelectorNode.cpp" />
-    <ClCompile Include="ApplicationLayer\Character\Boss\BehaviorTree\BTSequenceNode.cpp" />
     <ClCompile Include="ApplicationLayer\Character\Boss\Attacks\BossPunchAttack.cpp" />
     <ClCompile Include="ApplicationLayer\Character\Boss\Attacks\BossHeavyPunchAttack.cpp" />
     <ClCompile Include="ApplicationLayer\Character\Boss\Animations\BossPunchAttackAnimation.cpp" />
@@ -286,7 +282,6 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClCompile Include="ApplicationLayer\Scene\GamePlayScene\Core\GamePlayStageContext.cpp" />
     <ClCompile Include="ApplicationLayer\Scene\GamePlayScene\World\GamePlayWorld.cpp" />
     <ClCompile Include="ApplicationLayer\Scene\GamePlayScene\PostEffect\PlayerHealthPostEffectController.cpp" />
-    <ClCompile Include="ApplicationLayer\Character\Boss\BehaviorTree\IBTNode.cpp" />
     <ClCompile Include="ApplicationLayer\Character\Boss\Derived\GuardianBoss\GuardianBoss.cpp" />
     <ClCompile Include="ApplicationLayer\Character\Boss\BaseTypes\HumanoidBossBase.cpp" />
     <ClCompile Include="ApplicationLayer\Character\Player\Component\PlayerBrainComponent.cpp" />
@@ -759,7 +754,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
     </ClInclude>
-    <ClInclude Include="ApplicationLayer\Character\BaseCharacter\BehaviorStatus.h">
+    <ClInclude Include="ApplicationLayer\Character\Boss\BehaviorTree\BehaviorStatus.h">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
     </ClInclude>

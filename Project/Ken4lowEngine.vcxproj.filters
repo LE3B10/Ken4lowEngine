@@ -358,21 +358,6 @@
     <ClCompile Include="ApplicationLayer\Character\Boss\Components\BossWeakPointComponent.cpp">
       <Filter>ApplicationLayer\Character\Boss\Components</Filter>
     </ClCompile>
-    <ClCompile Include="ApplicationLayer\Character\Boss\BehaviorTree\BTActionNode.cpp">
-      <Filter>ApplicationLayer\Character\Boss\BehaviorTree</Filter>
-    </ClCompile>
-    <ClCompile Include="ApplicationLayer\Character\Boss\BehaviorTree\BTConditionNode.cpp">
-      <Filter>ApplicationLayer\Character\Boss\BehaviorTree</Filter>
-    </ClCompile>
-    <ClCompile Include="ApplicationLayer\Character\Boss\BehaviorTree\BTSelectorNode.cpp">
-      <Filter>ApplicationLayer\Character\Boss\BehaviorTree</Filter>
-    </ClCompile>
-    <ClCompile Include="ApplicationLayer\Character\Boss\BehaviorTree\BTSequenceNode.cpp">
-      <Filter>ApplicationLayer\Character\Boss\BehaviorTree</Filter>
-    </ClCompile>
-    <ClCompile Include="ApplicationLayer\Character\Boss\BehaviorTree\IBTNode.cpp">
-      <Filter>ApplicationLayer\Character\Boss\BehaviorTree</Filter>
-    </ClCompile>
     <ClCompile Include="ApplicationLayer\Character\Boss\Derived\GuardianBoss\GuardianBoss.cpp">
       <Filter>ApplicationLayer\Character\Boss\Derived</Filter>
     </ClCompile>
@@ -904,14 +889,30 @@
     <ClCompile Include="ApplicationLayer\Character\Enemy\AI\EnemyTacticalPointDebugDrawer.cpp">
       <Filter>ApplicationLayer\Character\Enemy\AI</Filter>
     </ClCompile>
-    <ClCompile Include="Engine\System\JsonAssets\DataAssetPresets.cpp" />
-    <ClCompile Include="Engine\System\JsonAssets\ExampleJsonAsset.cpp" />
-    <ClCompile Include="Engine\System\JsonAssets\JsonAssetRegistry.cpp" />
-    <ClCompile Include="Engine\System\JsonAssets\JsonDataManager.cpp" />
-    <ClCompile Include="Engine\System\JsonAssets\JsonEditorWindow.cpp" />
-    <ClCompile Include="ApplicationLayer\Character\Enemy\Core\MidRangeEnemy.cpp" />
-    <ClCompile Include="ApplicationLayer\Character\Enemy\Projectile\MidRangeBombProjectile.cpp" />
-    <ClCompile Include="ApplicationLayer\Character\Enemy\Effects\MidRangeBombEffectController.cpp" />
+    <ClCompile Include="Engine\System\JsonAssets\DataAssetPresets.cpp">
+      <Filter>ApplicationLayer</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\System\JsonAssets\ExampleJsonAsset.cpp">
+      <Filter>ApplicationLayer</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\System\JsonAssets\JsonAssetRegistry.cpp">
+      <Filter>ApplicationLayer</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\System\JsonAssets\JsonDataManager.cpp">
+      <Filter>ApplicationLayer</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\System\JsonAssets\JsonEditorWindow.cpp">
+      <Filter>ApplicationLayer</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\Character\Enemy\Effects\MidRangeBombEffectController.cpp">
+      <Filter>ApplicationLayer</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\Character\Enemy\Projectile\MidRangeBombProjectile.cpp">
+      <Filter>ApplicationLayer</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\Character\Enemy\Core\MidRangeEnemy.cpp">
+      <Filter>ApplicationLayer</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ApplicationLayer\UISystem\Crosshair\Crosshair.h">
@@ -1034,7 +1035,7 @@
     <ClInclude Include="ApplicationLayer\Scene\StageSelectScene\State\StageSelectLoadState.h">
       <Filter>ApplicationLayer\Scene\StageSelectScene\State</Filter>
     </ClInclude>
-    <ClInclude Include="ApplicationLayer\Character\BaseCharacter\BehaviorStatus.h">
+    <ClInclude Include="ApplicationLayer\Character\Boss\BehaviorTree\BehaviorStatus.h">
       <Filter>ApplicationLayer\Character\BaseCharacter</Filter>
     </ClInclude>
     <ClInclude Include="ApplicationLayer\EffectLayer\BaseGpuVfx.h">
@@ -1910,16 +1911,36 @@
     <ClInclude Include="ApplicationLayer\Character\Enemy\AI\EnemyTacticalPointDebugDrawer.h">
       <Filter>ApplicationLayer\Character\Enemy\AI</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\System\JsonAssets\DataAssetPresets.h" />
-    <ClInclude Include="Engine\System\JsonAssets\ExampleJsonAsset.h" />
-    <ClInclude Include="Engine\System\JsonAssets\JsonAssetEntry.h" />
-    <ClInclude Include="Engine\System\JsonAssets\JsonAssetRegistry.h" />
-    <ClInclude Include="Engine\System\JsonAssets\JsonDataManager.h" />
-    <ClInclude Include="Engine\System\JsonAssets\JsonEditorWindow.h" />
-    <ClInclude Include="Engine\System\JsonAssets\JsonSerializable.h" />
-    <ClInclude Include="ApplicationLayer\Character\Enemy\Core\MidRangeEnemy.h" />
-    <ClInclude Include="ApplicationLayer\Character\Enemy\Projectile\MidRangeBombProjectile.h" />
-    <ClInclude Include="ApplicationLayer\Character\Enemy\Effects\MidRangeBombEffectController.h" />
+    <ClInclude Include="ApplicationLayer\Character\Enemy\Core\MidRangeEnemy.h">
+      <Filter>ApplicationLayer</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\System\JsonAssets\DataAssetPresets.h">
+      <Filter>ApplicationLayer</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\System\JsonAssets\ExampleJsonAsset.h">
+      <Filter>ApplicationLayer</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\System\JsonAssets\JsonAssetEntry.h">
+      <Filter>ApplicationLayer</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\System\JsonAssets\JsonAssetRegistry.h">
+      <Filter>ApplicationLayer</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\System\JsonAssets\JsonDataManager.h">
+      <Filter>ApplicationLayer</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\System\JsonAssets\JsonEditorWindow.h">
+      <Filter>ApplicationLayer</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\System\JsonAssets\JsonSerializable.h">
+      <Filter>ApplicationLayer</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Character\Enemy\Effects\MidRangeBombEffectController.h">
+      <Filter>ApplicationLayer</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Character\Enemy\Projectile\MidRangeBombProjectile.h">
+      <Filter>ApplicationLayer</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Shader">

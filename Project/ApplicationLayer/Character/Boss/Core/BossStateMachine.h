@@ -1,20 +1,11 @@
 #pragma once
-#include "Core/BossTypes.h"
+#include "BossTypes.h"
 
+/// ---------- 前方宣言 ---------- ///
 class BossBase;
 
 /// -------------------------------------------------------------
-/// ボス用ステートマシン
-///
-/// 役割:
-/// - 現在状態 / 前回状態 を保持する
-/// - 状態遷移の入口を一本化する
-/// - 状態に入った瞬間 / 抜けた瞬間 / 状態中更新を管理する
-///
-/// 方針:
-/// - 状態定義そのものは BossBase 側の BossState を使う
-/// - まずは「状態の流れ」を安定させることを優先する
-/// - 攻撃本体や移動本体は別コンポーネントに任せる
+///						ボス用ステートマシン
 /// -------------------------------------------------------------
 class BossStateMachine
 {
@@ -48,7 +39,10 @@ public: /// ---------- 状態変更 ---------- ///
 
 public: /// ---------- 参照 ---------- ///
 
+	// 現在状態を取得
 	BossState GetCurrentState() const { return currentState_; }
+
+	// 前回状態を取得
 	BossState GetPrevState() const { return prevState_; }
 
 	/// <summary>
@@ -80,7 +74,7 @@ private: /// ---------- 内部処理 ---------- ///
 
 private: /// ---------- 内部状態 ---------- ///
 
-	BossState currentState_ = BossState::Intro;
-	BossState prevState_ = BossState::Intro;
-	float stateTime_ = 0.0f;
+	BossState currentState_ = BossState::Intro; // 現在状態
+	BossState prevState_ = BossState::Intro;	// 前回状態
+	float stateTime_ = 0.0f;					// 現在状態に入ってからの経過時間
 };

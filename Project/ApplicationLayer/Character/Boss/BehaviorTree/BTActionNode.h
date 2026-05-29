@@ -4,18 +4,29 @@
 #include <functional>
 #include <utility>
 
+/// -------------------------------------------------------------
+///				ビヘイビアツリーのアクションノード
+/// -------------------------------------------------------------
 class BTActionNode : public IBTNode
 {
-public:
-	using ActionFunc = std::function<BTNodeResult(float)>;
+public: /// ---------- 基本構造 ---------- ///
 
+	// アクション関数の型
+	using ActionFunc = std::function<BehaviorStatus(float)>;
+
+	// アクション関数を受け取るコンストラクタ
 	explicit BTActionNode(ActionFunc func) : func_(std::move(func)) {}
-	BTNodeResult Tick(float dt) override
+
+	// ビヘイビアツリーの更新
+	BehaviorStatus Tick(float dt) override
 	{
+		// アクション関数を呼び出して、その結果を返す
 		return func_(dt);
 	}
 
-private:
+private: /// ---------- メンバ変数 ---------- ///
+
+	// アクション関数
 	ActionFunc func_;
 };
 

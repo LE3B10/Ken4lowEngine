@@ -1,7 +1,7 @@
 #pragma once
-#include "BaseTypes/HumanoidBossBase.h"
-#include "BehaviorTree/IBTNode.h"
-#include "ApplicationLayer/Character/Enemy/Navigation/EnemyAStarNavigator.h"
+#include "HumanoidBossBase.h"
+#include "IBTNode.h"
+#include "EnemyAStarNavigator.h"
 
 #include <memory>
 #include <string>
@@ -12,16 +12,19 @@
 /// ----------------------------------------------------------------
 class GuardianBoss : public HumanoidBossBase
 {
-public:
+public: /// ---------- 列挙型 ---------- ///
+
+	/// ---------- ターゲットタイプ ---------- ///
 	enum class BossTargetType
 	{
-		None,
-		Player,
-		DummyTarget,
+		None,		 // ターゲットなし
+		Player,		 // プレイヤー
+		DummyTarget, // デバッグ用のダミーターゲット
 	};
 
-private:
+private: /// ---------- 構造体 ---------- ///
 
+	/// ---------- ターゲット状態 ---------- ///
 	struct BossTargetState
 	{
 		bool hasTarget = false;
@@ -37,6 +40,7 @@ private:
 		std::string targetName = "None";
 	};
 
+	/// ---------- フェーズ設定 ---------- ///
 	struct PlainsBossPhaseSettings
 	{
 		float phase2HpRate = 0.5f;
@@ -46,6 +50,7 @@ private:
 		float phase2AttackRangeMultiplier = 1.15f;
 	};
 
+	/// ---------- 攻撃設定 ---------- ///
 	struct PlainsBossAttackSettings
 	{
 		bool enableMelee = true;
@@ -75,6 +80,7 @@ private:
 		float farShotLifetime = 1.2f;
 	};
 
+	/// ---------- 実行状態 ---------- ///
 	struct PlainsBossRuntimeState
 	{
 		bool isPhase2 = false;
@@ -91,6 +97,7 @@ private:
 		K4E::Vector3 lastMoveDirection{ 0.0f, 0.0f, 1.0f };
 	};
 
+	/// --------- 経路設定 ---------- ///
 	struct PathSettings
 	{
 		bool enabled = true;
@@ -107,6 +114,7 @@ private:
 		float maxStuckRepathExpandBonus = 1.5f;
 	};
 
+	/// ---------- 経路状態 ---------- ///
 	struct PathState
 	{
 		bool found = false;
@@ -136,6 +144,7 @@ private:
 		K4E::Vector3 blockedSegmentTo{};
 	};
 
+	/// ---------- トラバース設定 ---------- ///
 	struct BossTraversalSettings
 	{
 		bool enabled = true;
@@ -150,6 +159,7 @@ private:
 		float groundY = 0.0f;
 	};
 
+	/// ---------- トラバース状態 ---------- ///
 	struct BossTraversalState
 	{
 		bool hasJumpCandidate = false;
@@ -164,6 +174,7 @@ private:
 	};
 
 public:
+
 	void SetupBoss() override;
 	void SetFloorAABBs(const std::vector<K4E::AABB>* aabbs) { floorAABBs_ = aabbs; }
 	void SetWallObstacleAABBs(const std::vector<K4E::AABB>* aabbs) { wallObstacleAABBs_ = aabbs; }
@@ -177,6 +188,7 @@ public:
 	void DrawImGui() override;
 
 protected:
+
 	void UpdateState(float deltaTime) override;
 	void UpdateMovement(float deltaTime) override;
 	void UpdateAttack(float deltaTime) override;
@@ -186,6 +198,7 @@ protected:
 	void SetupWeakPoints() override;
 
 private:
+
 	void FaceTarget(float deltaTime);
 	void UpdateTargetState(float deltaTime);
 	float CalculateCurrentPathDistance() const;
@@ -209,28 +222,30 @@ private:
 	void EnterIdle();
 	void EnterMove();
 	void EnterAttack(const char* actionName);
-	BTNodeResult TickBehaviorTree(float deltaTime);
+	BehaviorStatus TickBehaviorTree(float deltaTime);
 	void BuildBehaviorTree();
-	BTNodeResult TickContinueCurrentAction(float deltaTime);
-	BTNodeResult TickMeleeAttack(float deltaTime);
-	BTNodeResult TickStepAttack(float deltaTime);
+	BehaviorStatus TickContinueCurrentAction(float deltaTime);
+	BehaviorStatus TickMeleeAttack(float deltaTime);
+	BehaviorStatus TickStepAttack(float deltaTime);
 	void StartStepAttack();
 	void UpdateStepAttack(float deltaTime);
 	bool CanUseStepAttack() const;
-	BTNodeResult TickShockwaveAttack(float deltaTime);
+	BehaviorStatus TickShockwaveAttack(float deltaTime);
 	void StartShockwaveAttack();
 	void UpdateShockwaveAttack(float deltaTime);
 	bool CanUseShockwave() const;
-	BTNodeResult TickFarShotAttack(float deltaTime);
+	BehaviorStatus TickFarShotAttack(float deltaTime);
 	void StartFarShotAttack();
 	void UpdateFarShotAttack(float deltaTime);
 	bool CanUseFarShot() const;
-	BTNodeResult TickPhase2Transition(float deltaTime);
+	BehaviorStatus TickPhase2Transition(float deltaTime);
 	bool ShouldEnterPhase2() const;
 	void StartPhase2();
 	void UpdatePhase2Transition(float deltaTime);
-	BTNodeResult TickChaseTarget(float deltaTime);
+	BehaviorStatus TickChaseTarget(float deltaTime);
 	float GetCurrentMoveSpeed() const;
+
+private: /// ---------- メンバ変数 ---------- ///
 
 	PlainsBossPhaseSettings phaseSettings_{};
 	PlainsBossAttackSettings attackSettings_{};

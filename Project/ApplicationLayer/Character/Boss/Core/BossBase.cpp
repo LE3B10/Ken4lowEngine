@@ -405,11 +405,17 @@ void BossBase::UpdateAttack(float deltaTime)
 	attackComponent_->Update(deltaTime);
 }
 
+/// -------------------------------------------------------------
+///							弱点更新
+/// --------------------------------------------------------------
 void BossBase::UpdateWeakPoints(float deltaTime)
 {
 	(void)deltaTime;
 }
 
+/// -------------------------------------------------------------
+///							死亡確認
+/// --------------------------------------------------------------
 void BossBase::CheckDeath()
 {
 	if (IsDead() && state_ != BossState::Dead)
@@ -419,8 +425,7 @@ void BossBase::CheckDeath()
 }
 
 /// -------------------------------------------------------------
-/// 指定部位のワールド座標を取得
-/// BodyPart の transform を更新して worldTranslate_ を返す
+///				 指定部位のワールド座標を取得
 /// -------------------------------------------------------------
 K4E::Vector3 BossBase::GetPartWorldPosition(size_t partIndex)
 {
@@ -444,8 +449,7 @@ K4E::Vector3 BossBase::GetPartWorldPosition(size_t partIndex)
 }
 
 /// -------------------------------------------------------------
-/// 簡易球ヒット判定
-/// 攻撃球 と 対象球 が重なっているかを見る
+///						簡易球ヒット判定
 /// -------------------------------------------------------------
 bool BossBase::IsSphereHit(const K4E::Vector3& attackCenter, float attackRadius, const K4E::Vector3& targetCenter, float targetRadius) const
 {
@@ -460,26 +464,14 @@ bool BossBase::IsSphereHit(const K4E::Vector3& attackCenter, float attackRadius,
 }
 
 /// -------------------------------------------------------------
-/// デバッグ用の簡易球ヒット判定
-/// 
-/// 優先順位:
-/// 1. 頭
-/// 2. 胴体
-/// 3. 腕
-/// 4. 脚
-/// 
-/// まずは「当たった / 頭に当たった」確認用の簡易実装
-/// 将来的には OBB や各部位 Collider に置き換えてOK
+///					デバッグ用の簡易球ヒット判定
 /// -------------------------------------------------------------
 BossHitResult BossBase::CheckDebugHitSphere(const K4E::Vector3& attackCenter, float attackRadius)
 {
 	BossHitResult result{};
 
 	// 死んでいたら判定しない
-	if (IsDead())
-	{
-		return result;
-	}
+	if (IsDead()) return result;
 
 	// 部位インデックス取得
 	const auto& indices = GetPartIndices();
@@ -491,82 +483,45 @@ BossHitResult BossBase::CheckDebugHitSphere(const K4E::Vector3& attackCenter, fl
 	const float armRadius = 0.45f;
 	const float legRadius = 0.50f;
 
-	// --- 頭 ---
+	// 部位ごとの当たり判定の情報
+	struct HitCheckInfo
 	{
-		const K4E::Vector3 headPos = GetPartWorldPosition(indices.head);
-		if (IsSphereHit(attackCenter, attackRadius, headPos, headRadius))
-		{
-			result.isHit = true;
-			result.part = BossHitPart::Head;
-			result.hitPosition = headPos;
-			result.damageMultiplier = 2.0f; // 頭は大きめダメージ
-			return result;
-		}
-	}
+		BossHitPart part;		// 部位
+		Vector3 position;		// 判定位置
+		float radius;			// 判定半径
+		float damageMultiplier; // ダメージ倍率
+	};
 
-	// --- 胴体 ---
-	{
-		const K4E::Vector3 bodyPos = GetCenterPosition();
-		if (IsSphereHit(attackCenter, attackRadius, bodyPos, bodyRadius))
-		{
-			result.isHit = true;
-			result.part = BossHitPart::Body;
-			result.hitPosition = bodyPos;
-			result.damageMultiplier = 1.0f;
-			return result;
-		}
-	}
+	// 判定優先度順に部位情報を並べる
+	const HitCheckInfo hitChecks[] = {
+		// 頭は大きめダメージ
+		{ BossHitPart::Head, GetPartWorldPosition(indices.head), headRadius, 2.0f },
 
-	// --- 左腕 ---
-	{
-		const K4E::Vector3 pos = GetPartWorldPosition(indices.leftArm);
-		if (IsSphereHit(attackCenter, attackRadius, pos, armRadius))
-		{
-			result.isHit = true;
-			result.part = BossHitPart::LeftArm;
-			result.hitPosition = pos;
-			result.damageMultiplier = 0.8f;
-			return result;
-		}
-	}
+		// 胴体は通常ダメージ
+		{ BossHitPart::Body, GetCenterPosition(), bodyRadius, 1.0f },
 
-	// --- 右腕 ---
-	{
-		const K4E::Vector3 pos = GetPartWorldPosition(indices.rightArm);
-		if (IsSphereHit(attackCenter, attackRadius, pos, armRadius))
-		{
-			result.isHit = true;
-			result.part = BossHitPart::RightArm;
-			result.hitPosition = pos;
-			result.damageMultiplier = 0.8f;
-			return result;
-		}
-	}
+		// 腕は少し小さめダメージ
+		{ BossHitPart::LeftArm, GetPartWorldPosition(indices.leftArm), armRadius, 0.8f },
+		{ BossHitPart::RightArm, GetPartWorldPosition(indices.rightArm), armRadius, 0.8f },
 
-	// --- 左脚 ---
-	{
-		const K4E::Vector3 pos = GetPartWorldPosition(indices.leftLeg);
-		if (IsSphereHit(attackCenter, attackRadius, pos, legRadius))
-		{
-			result.isHit = true;
-			result.part = BossHitPart::LeftLeg;
-			result.hitPosition = pos;
-			result.damageMultiplier = 0.9f;
-			return result;
-		}
-	}
+		// 脚はやや小さめダメージ
+		{ BossHitPart::LeftLeg, GetPartWorldPosition(indices.leftLeg), legRadius, 0.9f },
+		{ BossHitPart::RightLeg, GetPartWorldPosition(indices.rightLeg), legRadius, 0.9f },
+	};
 
-	// --- 右脚 ---
+	// 優先度順に部位の球判定を行う
+	for (const HitCheckInfo& check : hitChecks)
 	{
-		const K4E::Vector3 pos = GetPartWorldPosition(indices.rightLeg);
-		if (IsSphereHit(attackCenter, attackRadius, pos, legRadius))
-		{
-			result.isHit = true;
-			result.part = BossHitPart::RightLeg;
-			result.hitPosition = pos;
-			result.damageMultiplier = 0.9f;
-			return result;
-		}
+		// 攻撃球と部位球が当たっていなければ次の部位を見る
+		if (!IsSphereHit(attackCenter, attackRadius, check.position, check.radius))
+			continue;
+
+		// 当たった部位の情報を結果に設定する
+		result.isHit = true;							  // 何かしら当たった
+		result.part = check.part;						  // 当たった部位
+		result.hitPosition = check.position;			  // 簡易的に部位の中心を当たり位置とする
+		result.damageMultiplier = check.damageMultiplier; // 部位ごとのダメージ倍率を設定
+		return result; // 優先度が高い部位から返す
 	}
 
 	// 何にも当たらなかった
@@ -574,17 +529,14 @@ BossHitResult BossBase::CheckDebugHitSphere(const K4E::Vector3& attackCenter, fl
 }
 
 /// -------------------------------------------------------------
-/// デバッグ用ヒット結果からダメージ適用
-/// 
-/// baseDamage に部位倍率を掛けて最終ダメージを決める
+///			   デバッグ用ヒット結果からダメージ適用
 /// -------------------------------------------------------------
 void BossBase::ApplyDebugHitResult(const BossHitResult& hitResult, float baseDamage)
 {
-	if (!hitResult.isHit)
-	{
-		return;
-	}
+	// 何も当たっていなければダメージ適用しない
+	if (!hitResult.isHit) return;
 
+	// 部位ごとのダメージ倍率を掛けて最終ダメージを算出
 	const float finalDamage = baseDamage * hitResult.damageMultiplier;
 	OnDamaged(finalDamage);
 }

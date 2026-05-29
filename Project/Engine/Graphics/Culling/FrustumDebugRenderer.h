@@ -7,13 +7,17 @@
 
 namespace Ken4lowEngine
 {
-	/// <summary>
-	/// ViewProjection 逆行列から視錐台 8 頂点を復元し、Wireframe で描画するデバッグ補助。
-	/// </summary>
+	/// -------------------------------------------------------------
+	///          フラスタムのワイヤーフレーム描画クラス
+	/// -------------------------------------------------------------
 	class FrustumDebugRenderer
 	{
-	public:
+	public: /// ---------- メンバ関数 ---------- ///
+
+		// 8点のコーナーを結ぶ線分を描画する処理
 		std::array<Vector3, 8> BuildCorners(const Matrix4x4& viewProjection) const;
+
+		// 描画処理
 		void Draw(const Matrix4x4& viewProjection, const Vector4& color) const;
 	};
 }

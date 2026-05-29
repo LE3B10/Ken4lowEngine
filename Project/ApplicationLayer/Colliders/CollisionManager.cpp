@@ -5,7 +5,6 @@
 #include <CollisionTypeIdDef.h>
 
 #include <algorithm>
-#include <unordered_set>
 #include <limits>
 
 #ifdef USE_IMGUI

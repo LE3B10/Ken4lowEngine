@@ -29,31 +29,49 @@ namespace Ken4lowEngine
 	/// -------------------------------------------------------------
 	///            PostEffect Graphics 用契約の検証
 	/// -------------------------------------------------------------
-	void PostEffectPipelineBuilder::ValidatePostEffectGraphicsContracts(
-		const ShaderDescriptor& vsDesc,
-		const ShaderDescriptor& psDesc,
-		ID3D12RootSignature* rootSignature)
+	void PostEffectPipelineBuilder::ValidatePostEffectGraphicsContracts(const ShaderDescriptor& vsDesc, const ShaderDescriptor& psDesc, ID3D12RootSignature* rootSignature)
 	{
-		assert(rootSignature != nullptr);
+		// ルートシグネチャは null であってはならない
+		if (rootSignature == nullptr)
+		{
+			assert(false && "RootSignature must not be null for PostEffect graphics pipeline");
+		}
 
-		assert(vsDesc.stage == ShaderStage::Vertex);
-		assert(psDesc.stage == ShaderStage::Pixel);
+		// PostEffect Graphics Pipeline では、頂点シェーダーは Vertex ステージ、ピクセルシェーダーは Pixel ステージである必要がある
+		if (vsDesc.stage != ShaderStage::Vertex || psDesc.stage != ShaderStage::Pixel)
+		{
+			assert(false && "Invalid shader stages for PostEffect graphics pipeline");
+		}
 
-		assert(vsDesc.rootSignature == RootSignatureType::PostEffect);
-		assert(psDesc.rootSignature == RootSignatureType::PostEffect);
+		// PostEffect Graphics Pipeline では、両方のシェーダーが PostEffect 用ルートシグネチャに関連付けられている必要がある
+		if (vsDesc.rootSignature != RootSignatureType::PostEffect || psDesc.rootSignature != RootSignatureType::PostEffect)
+		{
+			assert(false && "Shaders must be associated with PostEffect root signature for PostEffect graphics pipeline");
+		}
 	}
 
 	/// -------------------------------------------------------------
 	///            PostEffect Compute 用契約の検証
 	/// -------------------------------------------------------------
-	void PostEffectPipelineBuilder::ValidatePostEffectComputeContracts(
-		const ShaderDescriptor& csDesc,
-		ID3D12RootSignature* rootSignature)
+	void PostEffectPipelineBuilder::ValidatePostEffectComputeContracts(const ShaderDescriptor& csDesc, ID3D12RootSignature* rootSignature)
 	{
-		assert(rootSignature != nullptr);
+		// ルートシグネチャは null であってはならない
+		if (rootSignature == nullptr)
+		{
+			assert(false && "RootSignature must not be null for PostEffect compute pipeline");
+		}
 
-		assert(csDesc.stage == ShaderStage::Compute);
-		assert(csDesc.rootSignature == RootSignatureType::Compute);
+		// PostEffect Compute Pipeline では、コンピュートシェーダーは Compute ステージである必要がある
+		if (csDesc.stage != ShaderStage::Compute)
+		{
+			assert(false && "Invalid shader stage for PostEffect compute pipeline");
+		}
+
+		// PostEffect Compute Pipeline では、コンピュートシェーダーは Compute 用ルートシグネチャに関連付けられている必要がある
+		if (csDesc.rootSignature != RootSignatureType::Compute)
+		{
+			assert(false && "Shader must be associated with Compute root signature for PostEffect compute pipeline");
+		}
 	}
 
 	/// -------------------------------------------------------------
@@ -159,10 +177,7 @@ namespace Ken4lowEngine
 	/// -------------------------------------------------------------
 	///             グラフィックスパイプラインの生成
 	/// -------------------------------------------------------------
-	ComPtr<ID3D12PipelineState> PostEffectPipelineBuilder::CreateGraphicsPipeline(
-		PostEffectGraphicsShaderId pixelShaderId,
-		ID3D12RootSignature* rootSignature,
-		bool enableDepth)
+	ComPtr<ID3D12PipelineState> PostEffectPipelineBuilder::CreateGraphicsPipeline(PostEffectGraphicsShaderId pixelShaderId, ID3D12RootSignature* rootSignature, bool enableDepth)
 	{
 		assert(dxCommon_ != nullptr);
 		assert(rootSignature != nullptr);
@@ -247,9 +262,8 @@ namespace Ken4lowEngine
 		}
 
 		ComPtr<ID3D12PipelineState> pso;
-		HRESULT hr = dxCommon_->GetDevice()->CreateGraphicsPipelineState(
-			&desc,
-			IID_PPV_ARGS(&pso));
+		HRESULT hr;
+		hr = dxCommon_->GetDevice()->CreateGraphicsPipelineState(&desc, IID_PPV_ARGS(&pso));
 		assert(SUCCEEDED(hr));
 
 		return pso;
@@ -372,9 +386,8 @@ namespace Ken4lowEngine
 		desc.CS = { cs->GetBufferPointer(), cs->GetBufferSize() };
 
 		ComPtr<ID3D12PipelineState> pso;
-		HRESULT hr = dxCommon_->GetDevice()->CreateComputePipelineState(
-			&desc,
-			IID_PPV_ARGS(&pso));
+		HRESULT hr{};
+		hr = dxCommon_->GetDevice()->CreateComputePipelineState(&desc, IID_PPV_ARGS(&pso));
 		assert(SUCCEEDED(hr) && "CreateComputePipelineState Failed");
 
 		return pso;

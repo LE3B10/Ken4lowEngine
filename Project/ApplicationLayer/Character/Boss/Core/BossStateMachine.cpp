@@ -1,19 +1,14 @@
 #include "BossStateMachine.h"
 #include "BossBase.h"
 
-#include <Windows.h>
-#include <string>
+#ifdef _DEBUG
+#include <LogString.h>
+#endif // _DEBUG
 
-namespace
-{
-	void DebugLog(const std::string& text)
-	{
-		OutputDebugStringA(text.c_str());
-	}
-}
+using namespace Ken4lowEngine;
 
 /// -------------------------------------------------------------
-/// 初期化
+///						　初期化処理
 /// -------------------------------------------------------------
 void BossStateMachine::Initialize(BossState initialState)
 {
@@ -23,7 +18,7 @@ void BossStateMachine::Initialize(BossState initialState)
 }
 
 /// -------------------------------------------------------------
-/// 更新
+///							更新処理
 /// -------------------------------------------------------------
 void BossStateMachine::Update(BossBase& boss, float deltaTime)
 {
@@ -32,7 +27,7 @@ void BossStateMachine::Update(BossBase& boss, float deltaTime)
 }
 
 /// -------------------------------------------------------------
-/// 状態変更
+///							状態変更
 /// -------------------------------------------------------------
 void BossStateMachine::ChangeState(BossBase& boss, BossState newState)
 {
@@ -52,7 +47,7 @@ void BossStateMachine::ChangeState(BossBase& boss, BossState newState)
 }
 
 /// -------------------------------------------------------------
-/// 状態に入った瞬間
+///						状態に入った瞬間
 /// -------------------------------------------------------------
 void BossStateMachine::OnEnter(BossBase& boss, BossState state)
 {
@@ -61,35 +56,35 @@ void BossStateMachine::OnEnter(BossBase& boss, BossState state)
 	switch (state)
 	{
 	case BossState::Intro:
-		DebugLog("[BossStateMachine] Enter Intro\n");
+		Log("[BossStateMachine] Enter Intro\n");
 		break;
 
 	case BossState::Idle:
-		DebugLog("[BossStateMachine] Enter Idle\n");
+		Log("[BossStateMachine] Enter Idle\n");
 		break;
 
 	case BossState::Move:
-		DebugLog("[BossStateMachine] Enter Move\n");
+		Log("[BossStateMachine] Enter Move\n");
 		break;
 
 	case BossState::Attack:
-		DebugLog("[BossStateMachine] Enter Attack\n");
+		Log("[BossStateMachine] Enter Attack\n");
 		break;
 
 	case BossState::Stagger:
-		DebugLog("[BossStateMachine] Enter Stagger\n");
+		Log("[BossStateMachine] Enter Stagger\n");
 		break;
 
 	case BossState::Down:
-		DebugLog("[BossStateMachine] Enter Down\n");
+		Log("[BossStateMachine] Enter Down\n");
 		break;
 
 	case BossState::PhaseTransition:
-		DebugLog("[BossStateMachine] Enter PhaseTransition\n");
+		Log("[BossStateMachine] Enter PhaseTransition\n");
 		break;
 
 	case BossState::Dead:
-		DebugLog("[BossStateMachine] Enter Dead\n");
+		Log("[BossStateMachine] Enter Dead\n");
 		break;
 
 	default:
@@ -98,7 +93,7 @@ void BossStateMachine::OnEnter(BossBase& boss, BossState state)
 }
 
 /// -------------------------------------------------------------
-/// 状態を抜ける瞬間
+///						状態を抜ける瞬間
 /// -------------------------------------------------------------
 void BossStateMachine::OnExit(BossBase& boss, BossState state)
 {
@@ -107,7 +102,7 @@ void BossStateMachine::OnExit(BossBase& boss, BossState state)
 }
 
 /// -------------------------------------------------------------
-/// 状態中更新
+///							状態中更新
 /// -------------------------------------------------------------
 void BossStateMachine::OnUpdate(BossBase& boss, BossState state, float deltaTime)
 {
@@ -116,14 +111,14 @@ void BossStateMachine::OnUpdate(BossBase& boss, BossState state, float deltaTime
 
 	switch (state)
 	{
-	case BossState::Intro:
-	case BossState::Idle:
-	case BossState::Move:
-	case BossState::Attack:
-	case BossState::Stagger:
-	case BossState::Down:
-	case BossState::PhaseTransition:
-	case BossState::Dead:
+	case BossState::Intro:			 // 登場演出中
+	case BossState::Idle:			 // 待機
+	case BossState::Move:			 // 移動
+	case BossState::Attack:			 // 攻撃
+	case BossState::Stagger:		 // タイミングミス
+	case BossState::Down:			 // 倒れ
+	case BossState::PhaseTransition: // フェーズ遷移
+	case BossState::Dead:			 // 死亡
 	default:
 		break;
 	}

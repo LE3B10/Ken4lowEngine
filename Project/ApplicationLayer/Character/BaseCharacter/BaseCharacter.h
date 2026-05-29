@@ -3,13 +3,12 @@
 #include "Object3D.h"
 #include "WorldTransformEx.h"
 
+#include <cstdint>
+#include <memory>
 #include <string>
 #include <vector>
 
 namespace K4E = ::Ken4lowEngine;
-
-/// ---------- 前方宣言 ---------- ///
-namespace Ken4lowEngine { class Camera; }
 
 /// -------------------------------------------------------------
 ///					　キャラクター基底クラス
@@ -22,17 +21,17 @@ public: /// ---------- 構造体 ---------- ///
 	struct BodyPart
 	{
 		std::unique_ptr<K4E::Object3D> object; // 部位の3Dオブジェクト
-		K4E::WorldTransformEx transform;		  // 部位のワールド変換情報
-		bool active = true;				  // 描画/非描画
+		K4E::WorldTransformEx transform;	   // 部位のワールド変換情報
+		bool active = true;					   // 描画/非描画
 	};
 
-	// 各部位のインデックス
+	/// ---------- 各部位のインデックス ---------- ///
 	struct PartIndices
 	{
-		uint32_t head = 0;	 // 頭
+		uint32_t head = 0;	   // 頭
 		uint32_t leftArm = 1;  // 左腕
 		uint32_t rightArm = 2; // 右腕
-		uint32_t leftLeg = 3;	 // 左脚
+		uint32_t leftLeg = 3;  // 左脚
 		uint32_t rightLeg = 4; // 右脚
 	};
 
@@ -62,36 +61,31 @@ public: /// ---------- メンバ関数 ---------- ///
 	// 衝突判定を行う
 	virtual void OnCollision(K4E::Collider* other) override = 0;
 
-	// 体幹部位のワールド変換行列を取得
-	const K4E::WorldTransformEx* GetWorldTransform() const { return &body_.transform; }
+public: /// ---------- アクセッサ ---------- ///
 
 	// 中心座標を取得
 	virtual K4E::Vector3 GetCenterPosition() const override;
 
-	// 全部位にスキンを適用する静的関数
-	static void ApplySkinTo(K4E::Object3D* obj, const std::string& texPath)
-	{
-		if (!obj) return; // nullチェック
-
-		// 全サブメッシュを同じテクスチャに差し替える
-		obj->SetTextureForAll(texPath);
-	}
-
-public: /// ---------- アクセッサ ---------- ///
+	// 体幹部位のワールド変換行列を取得
+	const K4E::WorldTransformEx* GetWorldTransform() const { return &body_.transform; }
 
 	// 体幹部位のアクセス
 	BodyPart& GetBody() { return body_; }
+
+	// 体幹部位のアクセス（const版）
 	const BodyPart& GetBody() const { return body_; }
 
 	// 各部位のアクセス
 	std::vector<BodyPart>& GetBodyParts() { return parts_; }
+
+	// 各部位のアクセス（const版）
 	const std::vector<BodyPart>& GetBodyParts() const { return parts_; }
 
 	// 各部位のインデックスを取得
 	PartIndices& GetPartIndices() { return partIndices_; }
-	const PartIndices& GetPartIndices() const { return partIndices_; }
 
-public: /// ---------- メンバ関数 ---------- ///
+	// 各部位のインデックスを取得（const版）
+	const PartIndices& GetPartIndices() const { return partIndices_; }
 
 	// 体幹部位の描画/非描画設定
 	void SetBodyActive(bool a) { body_.active = a; }
@@ -102,21 +96,13 @@ public: /// ---------- メンバ関数 ---------- ///
 	// 指定部位の描画/非描画設定
 	void SetPartActive(size_t i, bool a) { if (i < parts_.size()) parts_[i].active = a; }
 
-	// 全部位にスキンを適用
-	void ApplySkinToAllParts(const std::string& texPath)
-	{
-		// 体幹部位
-		if (body_.object) {
-			ApplySkinTo(body_.object.get(), texPath);
-		}
+public: /// ---------- スキン適用 ---------- ///
 
-		// 各部位
-		for (auto& part : parts_) {
-			if (part.object) {
-				ApplySkinTo(part.object.get(), texPath);
-			}
-		}
-	}
+	// 全部位にスキンを適用
+	void ApplySkinToAllParts(const std::string& texPath);
+	
+	// 全部位にスキンを適用する静的関数
+	static void ApplySkinTo(K4E::Object3D* obj, const std::string& texPath);
 
 private: /// ---------- メンバ関数 ---------- ///
 

@@ -1,5 +1,6 @@
 #define NOMINMAX
 #include "HumanoidBossBase.h"
+#include <LinearInterpolation.h>
 
 #include <algorithm>
 #include <cmath>
@@ -10,112 +11,73 @@
 
 using namespace Ken4lowEngine;
 
-namespace
-{
-	float Clamp(float v, float minValue, float maxValue)
-	{
-		return (v < minValue) ? minValue : (v > maxValue ? maxValue : v);
-	}
-
-	float WrapAngle(float angle)
-	{
-		while (angle > 3.14159265f) { angle -= 6.28318530f; }
-		while (angle < -3.14159265f) { angle += 6.28318530f; }
-		return angle;
-	}
-}
-
 /// -------------------------------------------------------------
-/// 人型部位構築
-///
-/// body_ を本体とし、各部位を body の子としてぶら下げる
-/// ここは HumanoidBossBase の中核責務なのでそのまま残す
+///							人型部位構築
 /// -------------------------------------------------------------
 void HumanoidBossBase::BuildBossParts()
 {
+	// ボディと部位の初期化
 	GetBody().object.reset();
 	GetBodyParts().clear();
 
-	// ---------------------------------------------------------
 	// 胴体
-	// ---------------------------------------------------------
-	{
-		auto& body = GetBody();
-		body.object = std::make_unique<Object3D>();
-		body.object->Initialize(GetBodyModelPath());
+	auto& body = GetBody();
+	body.object = std::make_unique<Object3D>();
+	body.object->Initialize(GetBodyModelPath());
 
-		body.transform.translate_ = GetInitialBodyPosition();
-		body.transform.rotate_ = { 0.0f, 0.0f, 0.0f };
+	body.transform.translate_ = GetInitialBodyPosition();
+	body.transform.rotate_ = { 0.0f, 0.0f, 0.0f };
 
-		body.object->SetTranslate(body.transform.translate_);
-		body.object->SetRotate(body.transform.rotate_);
-		body.object->SetScale(GetInitialBodyScale());
-	}
+	body.object->SetTranslate(body.transform.translate_);
+	body.object->SetRotate(body.transform.rotate_);
+	body.object->SetScale(GetInitialBodyScale());
 
-	// ---------------------------------------------------------
 	// 子部位追加ラムダ
-	// ---------------------------------------------------------
-	auto AddPart =
-		[this](const std::string& modelPath,
-			const Vector3& localOffset,
-			const Vector3& scale)
-		{
-			BaseCharacter::BodyPart part{};
+	auto AddPart = [this](const std::string& modelPath, const Vector3& localOffset, const Vector3& scale) {
+		BaseCharacter::BodyPart part{};
 
-			part.object = std::make_unique<Object3D>();
-			part.object->Initialize(modelPath);
+		part.object = std::make_unique<Object3D>();
+		part.object->Initialize(modelPath);
 
-			part.transform.translate_ = localOffset;
-			part.transform.rotate_ = { 0.0f, 0.0f, 0.0f };
-			part.transform.parent_ = &GetBody().transform;
+		part.transform.translate_ = localOffset;
+		part.transform.rotate_ = { 0.0f, 0.0f, 0.0f };
+		part.transform.parent_ = &GetBody().transform;
 
-			part.object->SetTranslate(localOffset);
-			part.object->SetRotate(part.transform.rotate_);
-			part.object->SetScale(scale);
+		part.object->SetTranslate(localOffset);
+		part.object->SetRotate(part.transform.rotate_);
+		part.object->SetScale(scale);
 
-			GetBodyParts().push_back(std::move(part));
+		GetBodyParts().push_back(std::move(part));
 		};
 
-	// BaseCharacter 側の PartIndices 前提:
-	// head=0, leftArm=1, rightArm=2, leftLeg=3, rightLeg=4
-	AddPart(GetHeadModelPath(), GetHeadLocalOffset(), GetHeadScale());
-	AddPart(GetLeftArmModelPath(), GetLeftArmLocalOffset(), GetArmScale());
-	AddPart(GetRightArmModelPath(), GetRightArmLocalOffset(), GetArmScale());
-	AddPart(GetLeftLegModelPath(), GetLeftLegLocalOffset(), GetLegScale());
-	AddPart(GetRightLegModelPath(), GetRightLegLocalOffset(), GetLegScale());
+	// 頭と四肢を追加
+	AddPart(GetHeadModelPath(), GetHeadLocalOffset(), GetHeadScale());		  // 頭
+	AddPart(GetLeftArmModelPath(), GetLeftArmLocalOffset(), GetArmScale());	  // 左腕
+	AddPart(GetRightArmModelPath(), GetRightArmLocalOffset(), GetArmScale()); // 右腕
+	AddPart(GetLeftLegModelPath(), GetLeftLegLocalOffset(), GetLegScale());	  // 左脚
+	AddPart(GetRightLegModelPath(), GetRightLegLocalOffset(), GetLegScale()); // 右脚
 }
 
 /// -------------------------------------------------------------
-/// 人型ボス共通設定
-///
-/// ここでは最低限の初期状態だけ整える
-/// 細かい戦闘ロジックや状態開始は派生クラス側で調整する
+///						人型ボス共通設定
 /// -------------------------------------------------------------
 void HumanoidBossBase::SetupBoss()
 {
-	// ---------------------------------------------------------
-	// BossBase 側の状態値とフェーズだけ軽く整える
-	// 実際の開始状態は派生側で StateMachine 経由に合わせる
-	// ---------------------------------------------------------
+	// 状態とフェーズの初期化
 	SetState(BossState::Idle);
 	SetPhase(BossPhase::Phase1);
 
-	// ---------------------------------------------------------
-	// AnimationComponent を使う方針なので、
-	// 旧 walkAnimTime / attackAnimTime 系の初期化は持たない
-	// 必要な見た目リセットだけ行う
-	// ---------------------------------------------------------
+	// ターゲット初期化
 	if (GetAnimationComponent())
 	{
-		GetAnimationComponent()->ResetWalkTimer();
-		GetAnimationComponent()->ResetAttackTimer();
-		GetAnimationComponent()->ResetAllPose(1.0f);
+		GetAnimationComponent()->ResetWalkTimer();	 // 歩行アニメ時間リセット
+		GetAnimationComponent()->ResetAttackTimer(); // 攻撃アニメ時間リセット
+		GetAnimationComponent()->ResetAllPose(1.0f); // 全部位を初期ポーズにリセット
 	}
 }
 
 /// -------------------------------------------------------------
-/// 衝突
-/// 現段階では空実装
+///								衝突
 /// -------------------------------------------------------------
 void HumanoidBossBase::OnCollision(Collider* other)
 {
@@ -123,10 +85,7 @@ void HumanoidBossBase::OnCollision(Collider* other)
 }
 
 /// -------------------------------------------------------------
-/// 状態更新
-///
-/// HumanoidBossBase ではもう状態ロジックを持たない
-/// GuardianBoss などの派生側が担当する
+///							状態更新
 /// -------------------------------------------------------------
 void HumanoidBossBase::UpdateState(float deltaTime)
 {
@@ -134,10 +93,7 @@ void HumanoidBossBase::UpdateState(float deltaTime)
 }
 
 /// -------------------------------------------------------------
-/// 移動更新
-///
-/// HumanoidBossBase ではもう移動ロジックを持たない
-/// 派生ボスまたは BossMovementComponent 側へ任せる
+///							移動更新
 /// -------------------------------------------------------------
 void HumanoidBossBase::UpdateMovement(float deltaTime)
 {
@@ -145,10 +101,7 @@ void HumanoidBossBase::UpdateMovement(float deltaTime)
 }
 
 /// -------------------------------------------------------------
-/// 攻撃更新
-///
-/// HumanoidBossBase ではもう攻撃ロジックを持たない
-/// 派生ボスまたは BossAttackComponent 側へ任せる
+///							攻撃更新
 /// -------------------------------------------------------------
 void HumanoidBossBase::UpdateAttack(float deltaTime)
 {
@@ -156,23 +109,20 @@ void HumanoidBossBase::UpdateAttack(float deltaTime)
 }
 
 /// -------------------------------------------------------------
-/// 死亡チェック
-///
-/// 共通の死亡判定は BossBase 側にあるため、
-/// ここでは基底の処理をそのまま使う
+///						 死亡チェック
 /// -------------------------------------------------------------
 void HumanoidBossBase::CheckDeath()
 {
+	// 基底の死亡処理を呼び出す
 	BossBase::CheckDeath();
 }
 
 /// -------------------------------------------------------------
-/// ターゲットへ向く
-///
-/// 人型ボス共通で使いやすい補助関数として残す
+///						ターゲットへ向く
 /// -------------------------------------------------------------
 void HumanoidBossBase::FaceTarget(float deltaTime, float rotateSpeed)
 {
+	// ターゲットへのベクトルをXZ平面で計算
 	Vector3 toTarget
 	{
 		GetTargetPosition().x - GetPosition().x,
@@ -180,20 +130,25 @@ void HumanoidBossBase::FaceTarget(float deltaTime, float rotateSpeed)
 		GetTargetPosition().z - GetPosition().z
 	};
 
+	// ベクトルの長さがほとんどない場合は回転しない
 	const float lenSq = toTarget.x * toTarget.x + toTarget.z * toTarget.z;
-	if (lenSq <= 0.0001f)
-	{
-		return;
-	}
-
+	if (lenSq <= 0.0001f) return;
+	
+	// 目標の向きを計算
 	const float desiredYaw = std::atan2(toTarget.x, toTarget.z);
 	float currentYaw = GetYaw();
 
+	// 角度の差を求め、回転速度に基づいて補間
 	float diff = WrapAngle(desiredYaw - currentYaw);
 	const float step = rotateSpeed * deltaTime;
-	diff = Clamp(diff, -step, step);
 
+	// 角度の差を回転速度で制限
+	diff = std::clamp(diff, -step, step);
+
+	// 現在の向きを更新
 	currentYaw += diff;
+
+	// 更新した向きをセット
 	SetYaw(currentYaw);
 }
 

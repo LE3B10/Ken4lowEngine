@@ -2,21 +2,13 @@
 #include "Core/BossBase.h"
 
 /// -------------------------------------------------------------
-/// 人型ボス共通基底
-///
-/// 役割:
-/// - 頭、胴体、左右腕、左右脚の構築
-/// - 人型ボス共通の初期スケール / ローカル配置
-/// - 共通の向き制御
-///
-/// 方針:
-/// - 状態更新 / 移動更新 / 攻撃更新 / アニメ更新は持たない
-/// - それらは BossBase + 各Component + 派生クラスへ任せる
-/// - このクラスは「人型ボスの見た目の土台」に徹する
+///						人型ボス共通基底
 /// -------------------------------------------------------------
 class HumanoidBossBase : public BossBase
 {
-public:
+public: /// ---------- 基本構造 ---------- ///
+
+	// デストラクタは仮想関数にしておく
 	virtual ~HumanoidBossBase() = default;
 
 public: /// ---------- BossBase override ---------- ///
@@ -103,19 +95,30 @@ protected: /// ---------- 共通補助 ---------- ///
 
 protected: /// ---------- 派生で調整しやすい数値 ---------- ///
 
+	// 移動速度
 	virtual float GetMoveSpeed() const { return 2.2f; }
+
+	// 回転速度
 	virtual float GetRotateSpeed() const { return 4.0f; }
 
+	// プレイヤーを追いかける距離
 	virtual float GetIdleToMoveDistance() const { return 6.0f; }
+
+	// プレイヤーを追いかけるのをやめる距離
 	virtual float GetAttackRange() const { return 2.8f; }
 
+	// 攻撃の持続時間
 	virtual float GetAttackDuration() const { return 0.75f; }
+
+	// 攻撃後の硬直時間
 	virtual float GetAttackCooldown() const { return 1.2f; }
 
+	// ダメージを受けたときの硬直時間
 	virtual float GetStaggerTime() const { return 0.25f; }
 
 protected: /// ---------- モデルパス取得 ---------- ///
 
+	// モデルパス
 	virtual std::string GetBodyModelPath() const { return "Characters/body.gltf"; }
 	virtual std::string GetHeadModelPath() const { return "Characters/head.gltf"; }
 	virtual std::string GetLeftArmModelPath() const { return "Characters/left_arm.gltf"; }
@@ -125,15 +128,22 @@ protected: /// ---------- モデルパス取得 ---------- ///
 
 protected: /// ---------- 初期配置取得 ---------- ///
 
+	// 初期位置やスケール
+
+	// ボディの初期位置
 	virtual K4E::Vector3 GetInitialBodyPosition() const { return { 0.0f, 2.25f, 0.0f }; }
+
+	// ボディの初期スケール
 	virtual K4E::Vector3 GetInitialBodyScale() const { return { 1.0f, 1.0f, 1.0f }; }
 
+	// 各部位のローカルオフセット
 	virtual K4E::Vector3 GetHeadLocalOffset() const { return { 0.0f,  0.75f, 0.0f }; }
 	virtual K4E::Vector3 GetLeftArmLocalOffset() const { return { -0.75f, 0.75f, 0.0f }; }
 	virtual K4E::Vector3 GetRightArmLocalOffset() const { return { 0.75f, 0.75f, 0.0f }; }
 	virtual K4E::Vector3 GetLeftLegLocalOffset() const { return { -0.25f,-0.75f, 0.0f }; }
 	virtual K4E::Vector3 GetRightLegLocalOffset() const { return { 0.25f,-0.75f, 0.0f }; }
 
+	// 各部位のスケール
 	virtual K4E::Vector3 GetHeadScale() const { return { 1.0f, 1.0f, 1.0f }; }
 	virtual K4E::Vector3 GetArmScale() const { return { 1.0f, 1.0f, 1.0f }; }
 	virtual K4E::Vector3 GetLegScale() const { return { 1.0f, 1.0f, 1.0f }; }

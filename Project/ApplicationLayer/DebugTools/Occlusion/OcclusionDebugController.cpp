@@ -95,11 +95,14 @@ namespace
 #endif
 }
 
+/// -------------------------------------------------------------
+///							ImGui描画処理
+/// -------------------------------------------------------------
 void OcclusionDebugController::DrawImGui(K4E::Stage* stage)
 {
 #ifdef USE_IMGUI
 	// 単体表示時もDocking可能な通常ウィンドウとして開く。
-	if (ImGui::Begin("Occlusion Culling Debug"))
+	if (ImGui::Begin("オクルージョンカリングデバッグ"))
 	{
 		DrawImGuiContent(stage);
 	}

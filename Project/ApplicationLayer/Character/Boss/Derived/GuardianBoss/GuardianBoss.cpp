@@ -1,10 +1,12 @@
 #define NOMINMAX
 #include "GuardianBoss.h"
-#include "Attacks/BossPunchAttack.h"
-#include "Attacks/BossHeavyPunchAttack.h"
-#include "BehaviorTree/BTActionNode.h"
-#include "BehaviorTree/BTSelectorNode.h"
+#include "BossPunchAttack.h"
+#include "BossHeavyPunchAttack.h"
+#include "BTActionNode.h"
+#include "BTSelectorNode.h"
 #include "Wireframe.h"
+#include <LinearInterpolation.h>
+#include <Vector3.h>
 
 #include <algorithm>
 #include <cmath>
@@ -16,36 +18,18 @@
 
 using namespace Ken4lowEngine;
 
-namespace {
-float WrapAngle(float angle)
+namespace
 {
-	while (angle > 3.14159265f) { angle -= 6.28318530f; }
-	while (angle < -3.14159265f) { angle += 6.28318530f; }
-	return angle;
-}
-
-float LengthXZ(const Vector3& v)
-{
-	return std::sqrt(v.x * v.x + v.z * v.z);
-}
-
-Vector3 NormalizeXZSafe(const Vector3& v, const Vector3& fallback = { 0.0f, 0.0f, 1.0f })
-{
-	const float len = LengthXZ(v);
-	if (len <= 0.0001f) { return fallback; }
-	return { v.x / len, 0.0f, v.z / len };
-}
-
-const char* ToTargetTypeName(GuardianBoss::BossTargetType type)
-{
-	switch (type)
+	const char* ToTargetTypeName(GuardianBoss::BossTargetType type)
 	{
-	case GuardianBoss::BossTargetType::Player: return "Player";
-	case GuardianBoss::BossTargetType::DummyTarget: return "DummyTarget";
-	case GuardianBoss::BossTargetType::None:
-	default: return "None";
+		switch (type)
+		{
+		case GuardianBoss::BossTargetType::Player: return "Player";
+		case GuardianBoss::BossTargetType::DummyTarget: return "DummyTarget";
+		case GuardianBoss::BossTargetType::None:
+		default: return "None";
+		}
 	}
-}
 }
 
 void GuardianBoss::SetupBoss()
@@ -242,7 +226,7 @@ void GuardianBoss::UpdateTargetState(float)
 	BossTargetType selected = BossTargetType::None;
 	Vector3 selectedPosition{};
 
-	const bool hasPlayerTarget = LengthXZ(GetTargetPosition()) > 0.0001f;
+	const bool hasPlayerTarget = Vector3::LengthXZ(GetTargetPosition()) > 0.0001f;
 	if (preferredTargetType_ == BossTargetType::DummyTarget && hasDebugDummyTarget_)
 	{
 		selected = BossTargetType::DummyTarget;
@@ -285,8 +269,8 @@ void GuardianBoss::UpdateTargetState(float)
 	targetState_.position = selectedPosition;
 	Vector3 toTarget = selectedPosition - GetPosition();
 	toTarget.y = 0.0f;
-	targetState_.directDistance = LengthXZ(toTarget);
-	targetState_.direction = NormalizeXZSafe(toTarget, runtime_.lastMoveDirection);
+	targetState_.directDistance = Vector3::LengthXZ(toTarget);
+	targetState_.direction = Vector3::NormalizeXZSafe(toTarget, runtime_.lastMoveDirection);
 	navigator_.SetWorldAABBs(&pathBlockingObstacleAABBs_);
 
 	int blockedIdx = -1;
@@ -313,11 +297,11 @@ float GuardianBoss::CalculateCurrentPathDistance() const
 	Vector3 prev = GetPosition();
 	for (const auto& point : path)
 	{
-		total += LengthXZ(point - prev);
+		total += Vector3::LengthXZ(point - prev);
 		prev = point;
 	}
 
-	total += LengthXZ(targetState_.position - prev);
+	total += Vector3::LengthXZ(targetState_.position - prev);
 	return total;
 }
 
@@ -380,8 +364,8 @@ bool GuardianBoss::FindReachableApproachPointNearTarget(Vector3& outPoint)
 			continue;
 		}
 
-		const float directScore = LengthXZ(candidate - bossPos);
-		const float targetScore = LengthXZ(candidate - targetPos);
+		const float directScore = Vector3::LengthXZ(candidate - bossPos);
+		const float targetScore = Vector3::LengthXZ(candidate - targetPos);
 		const float score = directScore + targetScore * 0.25f;
 		if (score < bestScore)
 		{
@@ -425,11 +409,11 @@ bool GuardianBoss::IsObstacleJumpable(const K4E::AABB& obstacle, int index)
 	}
 
 	const Vector3 obstacleCenter = (obstacle.min + obstacle.max) * 0.5f;
-	const Vector3 toObstacle = NormalizeXZSafe(obstacleCenter - pos, runtime_.lastMoveDirection);
+	const Vector3 toObstacle = Vector3::NormalizeXZSafe(obstacleCenter - pos, runtime_.lastMoveDirection);
 	Vector3 forward = runtime_.lastMoveDirection;
 	if (targetState_.hasTarget)
 	{
-		forward = NormalizeXZSafe(targetState_.position - pos, runtime_.lastMoveDirection);
+		forward = Vector3::NormalizeXZSafe(targetState_.position - pos, runtime_.lastMoveDirection);
 	}
 
 	const float dot = toObstacle.x * forward.x + toObstacle.z * forward.z;
@@ -438,7 +422,7 @@ bool GuardianBoss::IsObstacleJumpable(const K4E::AABB& obstacle, int index)
 		return false;
 	}
 
-	const float distance = LengthXZ(obstacleCenter - pos);
+	const float distance = Vector3::LengthXZ(obstacleCenter - pos);
 	if (distance > traversalSettings_.jumpTriggerDistance)
 	{
 		return false;
@@ -553,16 +537,16 @@ void GuardianBoss::EnterIdle() { ChangeBossState(BossState::Idle); runtime_.acti
 void GuardianBoss::EnterMove() { ChangeBossState(BossState::Move); runtime_.actionTimer = 0.0f; runtime_.currentActionName = "Move"; }
 void GuardianBoss::EnterAttack(const char* actionName) { ChangeBossState(BossState::Attack); runtime_.actionTimer = 0.0f; runtime_.isMoving = false; runtime_.currentActionName = actionName; }
 
-BTNodeResult GuardianBoss::TickBehaviorTree(float deltaTime)
+BehaviorStatus GuardianBoss::TickBehaviorTree(float deltaTime)
 {
-	if (!behaviorRoot_) { return BTNodeResult::Failure; }
+	if (!behaviorRoot_) { return BehaviorStatus::Failure; }
 	return behaviorRoot_->Tick(deltaTime);
 }
 
 void GuardianBoss::BuildBehaviorTree()
 {
 	auto root = std::make_unique<BTSelectorNode>();
-	root->AddChild(std::make_unique<BTActionNode>([this](float) { return GetState() == BossState::Dead ? BTNodeResult::Success : BTNodeResult::Failure; }));
+	root->AddChild(std::make_unique<BTActionNode>([this](float) { return GetState() == BossState::Dead ? BehaviorStatus::Success : BehaviorStatus::Failure; }));
 	root->AddChild(std::make_unique<BTActionNode>([this](float dt) { return TickPhase2Transition(dt); }));
 	root->AddChild(std::make_unique<BTActionNode>([this](float dt) { return TickContinueCurrentAction(dt); }));
 	root->AddChild(std::make_unique<BTActionNode>([this](float dt) { return TickMeleeAttack(dt); }));
@@ -570,26 +554,26 @@ void GuardianBoss::BuildBehaviorTree()
 	root->AddChild(std::make_unique<BTActionNode>([this](float dt) { return TickShockwaveAttack(dt); }));
 	root->AddChild(std::make_unique<BTActionNode>([this](float dt) { return TickFarShotAttack(dt); }));
 	root->AddChild(std::make_unique<BTActionNode>([this](float dt) { return TickChaseTarget(dt); }));
-	root->AddChild(std::make_unique<BTActionNode>([this](float) { EnterIdle(); return BTNodeResult::Success; }));
+	root->AddChild(std::make_unique<BTActionNode>([this](float) { EnterIdle(); return BehaviorStatus::Success; }));
 	behaviorRoot_ = std::move(root);
 }
 
-BTNodeResult GuardianBoss::TickContinueCurrentAction(float deltaTime)
+BehaviorStatus GuardianBoss::TickContinueCurrentAction(float deltaTime)
 {
 	if (runtime_.currentActionName == "StepAttack")
 	{
 		UpdateStepAttack(deltaTime);
-		return BTNodeResult::Running;
+		return BehaviorStatus::Running;
 	}
 	if (runtime_.currentActionName == "Shockwave")
 	{
 		UpdateShockwaveAttack(deltaTime);
-		return BTNodeResult::Running;
+		return BehaviorStatus::Running;
 	}
 	if (runtime_.currentActionName == "FarShot")
 	{
 		UpdateFarShotAttack(deltaTime);
-		return BTNodeResult::Running;
+		return BehaviorStatus::Running;
 	}
 	if (GetState() == BossState::Attack)
 	{
@@ -597,30 +581,30 @@ BTNodeResult GuardianBoss::TickContinueCurrentAction(float deltaTime)
 		{
 			runtime_.attackCooldownTimer = attackSettings_.attackCooldown * GetCooldownMultiplier();
 			EnterIdle();
-			return BTNodeResult::Success;
+			return BehaviorStatus::Success;
 		}
-		return BTNodeResult::Running;
+		return BehaviorStatus::Running;
 	}
-	return BTNodeResult::Failure;
+	return BehaviorStatus::Failure;
 }
 
-BTNodeResult GuardianBoss::TickMeleeAttack(float)
+BehaviorStatus GuardianBoss::TickMeleeAttack(float)
 {
-	if (!attackSettings_.enableMelee || !targetState_.hasTarget || !targetState_.isInMeleeRange || !targetState_.isTargetVisible) { return BTNodeResult::Failure; }
-	if (runtime_.attackCooldownTimer > 0.0f || !GetAttackComponent() || GetAttackComponent()->IsAttacking()) { return BTNodeResult::Failure; }
+	if (!attackSettings_.enableMelee || !targetState_.hasTarget || !targetState_.isInMeleeRange || !targetState_.isTargetVisible) { return BehaviorStatus::Failure; }
+	if (runtime_.attackCooldownTimer > 0.0f || !GetAttackComponent() || GetAttackComponent()->IsAttacking()) { return BehaviorStatus::Failure; }
 	if (GetAttackComponent()->StartAttackByName("HeavyPunch") || GetAttackComponent()->StartAttackByName("Punch"))
 	{
 		EnterAttack("MeleeAttack");
-		return BTNodeResult::Running;
+		return BehaviorStatus::Running;
 	}
-	return BTNodeResult::Failure;
+	return BehaviorStatus::Failure;
 }
 
-BTNodeResult GuardianBoss::TickStepAttack(float)
+BehaviorStatus GuardianBoss::TickStepAttack(float)
 {
-	if (!CanUseStepAttack()) { return BTNodeResult::Failure; }
+	if (!CanUseStepAttack()) { return BehaviorStatus::Failure; }
 	StartStepAttack();
-	return BTNodeResult::Running;
+	return BehaviorStatus::Running;
 }
 
 void GuardianBoss::StartStepAttack()
@@ -662,11 +646,11 @@ bool GuardianBoss::CanUseStepAttack() const
 		runtime_.stepAttackCooldownTimer <= 0.0f && GetState() != BossState::Attack;
 }
 
-BTNodeResult GuardianBoss::TickShockwaveAttack(float)
+BehaviorStatus GuardianBoss::TickShockwaveAttack(float)
 {
-	if (!CanUseShockwave()) { return BTNodeResult::Failure; }
+	if (!CanUseShockwave()) { return BehaviorStatus::Failure; }
 	StartShockwaveAttack();
-	return BTNodeResult::Running;
+	return BehaviorStatus::Running;
 }
 
 void GuardianBoss::StartShockwaveAttack()
@@ -696,11 +680,11 @@ bool GuardianBoss::CanUseShockwave() const
 	return usefulByDistance && (!targetState_.isTargetVisible || targetState_.isInFarRange || runtime_.isPhase2);
 }
 
-BTNodeResult GuardianBoss::TickFarShotAttack(float)
+BehaviorStatus GuardianBoss::TickFarShotAttack(float)
 {
-	if (!CanUseFarShot()) { return BTNodeResult::Failure; }
+	if (!CanUseFarShot()) { return BehaviorStatus::Failure; }
 	StartFarShotAttack();
-	return BTNodeResult::Running;
+	return BehaviorStatus::Running;
 }
 
 void GuardianBoss::StartFarShotAttack()
@@ -725,16 +709,16 @@ bool GuardianBoss::CanUseFarShot() const
 		runtime_.farShotCooldownTimer <= 0.0f && GetState() != BossState::Attack;
 }
 
-BTNodeResult GuardianBoss::TickPhase2Transition(float deltaTime)
+BehaviorStatus GuardianBoss::TickPhase2Transition(float deltaTime)
 {
 	if (runtime_.isChangingPhase)
 	{
 		UpdatePhase2Transition(deltaTime);
-		return BTNodeResult::Running;
+		return BehaviorStatus::Running;
 	}
-	if (!ShouldEnterPhase2()) { return BTNodeResult::Failure; }
+	if (!ShouldEnterPhase2()) { return BehaviorStatus::Failure; }
 	StartPhase2();
-	return BTNodeResult::Running;
+	return BehaviorStatus::Running;
 }
 
 bool GuardianBoss::ShouldEnterPhase2() const
@@ -766,18 +750,18 @@ void GuardianBoss::UpdatePhase2Transition(float deltaTime)
 	}
 }
 
-BTNodeResult GuardianBoss::TickChaseTarget(float deltaTime)
+BehaviorStatus GuardianBoss::TickChaseTarget(float deltaTime)
 {
 	(void)deltaTime;
-	if (!targetState_.hasTarget) { EnterIdle(); return BTNodeResult::Failure; }
+	if (!targetState_.hasTarget) { EnterIdle(); return BehaviorStatus::Failure; }
 	const float stopDistance = std::max(attackSettings_.meleeRange * 0.75f, 1.0f);
 	if (targetState_.pathDistance <= stopDistance && targetState_.isTargetVisible)
 	{
 		EnterIdle();
-		return BTNodeResult::Success;
+		return BehaviorStatus::Success;
 	}
 	EnterMove();
-	return BTNodeResult::Success;
+	return BehaviorStatus::Success;
 }
 
 float GuardianBoss::GetCurrentMoveSpeed() const
@@ -868,10 +852,10 @@ void GuardianBoss::DrawImGui()
 			ImGui::Text("lineBlocked: %s", pathState_.lineBlocked ? "true" : "false");
 			ImGui::Text("Obstacle AABB Count: %d", pathState_.blockingObstacleAABBCount);
 			ImGui::Text("Waypoint: (%.2f, %.2f, %.2f)", pathState_.currentWaypoint.x, pathState_.currentWaypoint.y, pathState_.currentWaypoint.z);
-				ImGui::Text("CurrentMoveGoal: %.2f, %.2f, %.2f", pathState_.currentMoveGoal.x, pathState_.currentMoveGoal.y, pathState_.currentMoveGoal.z);
-				ImGui::Text("HasReachableApproachPoint: %s", pathState_.hasReachableApproachPoint ? "true" : "false");
-				ImGui::Text("ApproachPointReason: %s", pathState_.approachPointReason.c_str());
-				ImGui::Text("PathDistance: %.2f", targetState_.pathDistance);
+			ImGui::Text("CurrentMoveGoal: %.2f, %.2f, %.2f", pathState_.currentMoveGoal.x, pathState_.currentMoveGoal.y, pathState_.currentMoveGoal.z);
+			ImGui::Text("HasReachableApproachPoint: %s", pathState_.hasReachableApproachPoint ? "true" : "false");
+			ImGui::Text("ApproachPointReason: %s", pathState_.approachPointReason.c_str());
+			ImGui::Text("PathDistance: %.2f", targetState_.pathDistance);
 			ImGui::Text("CurrentPathDistance: %.2f", pathState_.currentPathDistance);
 			ImGui::Text("BestCandidatePathDistance: %.2f", pathState_.bestCandidatePathDistance);
 			ImGui::Text("LineBlocked: %s", pathState_.lineBlocked ? "true" : "false");
@@ -1029,7 +1013,7 @@ bool GuardianBoss::MoveAlongPath(float deltaTime)
 		pathState_.currentMoveGoal = moveGoal;
 	}
 
-	pathState_.targetMovedDistanceForRepath = LengthXZ(targetState_.position - pathState_.lastPathTargetPos);
+	pathState_.targetMovedDistanceForRepath = Vector3::LengthXZ(targetState_.position - pathState_.lastPathTargetPos);
 	if (pathState_.targetMovedDistanceForRepath >= pathSettings_.targetRepathThreshold || isStuck_)
 	{
 		navigator_.Reset();
@@ -1104,8 +1088,8 @@ bool GuardianBoss::MoveAlongPath(float deltaTime)
 	pathState_.blockedWaypointIndex = -1;
 	pathState_.blockedObstacleName = "None";
 
-	const Vector3 dir = NormalizeXZSafe(waypoint - currentPos, runtime_.lastMoveDirection);
-	if (LengthXZ(dir) <= 0.0001f)
+	const Vector3 dir = Vector3::NormalizeXZSafe(waypoint - currentPos, runtime_.lastMoveDirection);
+	if (Vector3::LengthXZ(dir) <= 0.0001f)
 	{
 		StopMove();
 		return false;
@@ -1141,7 +1125,7 @@ bool GuardianBoss::TryLocalAvoidanceMove(float deltaTime)
 	}
 
 	const Vector3 currentPos = GetPosition();
-	const Vector3 toTarget = NormalizeXZSafe(targetState_.position - currentPos, runtime_.lastMoveDirection);
+	const Vector3 toTarget = Vector3::NormalizeXZSafe(targetState_.position - currentPos, runtime_.lastMoveDirection);
 	Vector3 left{ -toTarget.z, 0.0f, toTarget.x };
 	Vector3 right{ toTarget.z, 0.0f, -toTarget.x };
 
@@ -1167,7 +1151,7 @@ bool GuardianBoss::TryLocalAvoidanceMove(float deltaTime)
 	}
 	else if (leftFree && rightFree)
 	{
-		avoidDir = LengthXZ(leftPos - targetState_.position) < LengthXZ(rightPos - targetState_.position) ? left : right;
+		avoidDir = Vector3::LengthXZ(leftPos - targetState_.position) < Vector3::LengthXZ(rightPos - targetState_.position) ? left : right;
 	}
 	else
 	{
@@ -1198,7 +1182,7 @@ void GuardianBoss::UpdateStuckState(float deltaTime)
 {
 	stuckTimer_ += deltaTime;
 	if (stuckTimer_ < 0.8f) { return; }
-	const float moved = LengthXZ(GetPosition() - pathState_.lastStuckCheckPosition);
+	const float moved = Vector3::LengthXZ(GetPosition() - pathState_.lastStuckCheckPosition);
 	isStuck_ = (GetState() == BossState::Move) && moved <= 0.2f && targetState_.pathDistance > attackSettings_.meleeRange;
 	pathState_.lastMovedDistance = moved;
 	if (isStuck_)

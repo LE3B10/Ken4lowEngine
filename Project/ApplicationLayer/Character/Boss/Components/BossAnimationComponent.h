@@ -1,6 +1,5 @@
 #pragma once
-#include "Core/BossTypes.h"
-#include "Animations/IBossAttackAnimation.h"
+#include "IBossAttackAnimation.h"
 
 #include <memory>
 #include <vector>
@@ -10,42 +9,28 @@ class BossBase;
 class IBossAttack;
 
 /// -------------------------------------------------------------
-/// ボス用アニメーションコンポーネント
-///
-/// 役割:
-/// - Boss の状態に応じて見た目のポーズを更新する
-/// - 歩行アニメ / 攻撃アニメ / 待機姿勢への復帰を担当する
-///
-/// ポイント:
-/// - まだ「本物のアニメーションクリップ再生」ではなく、
-///   各部位の回転値を直接いじる簡易方式
-/// - 後で AnimationClip / StateGraph に差し替えやすいよう
-///   Boss 本体から分離しておく
+///				ボス用アニメーションコンポーネント
 /// -------------------------------------------------------------
 class BossAnimationComponent
 {
 private: /// ---------- 内部ポーズ構造 ---------- ///
 
-	/// <summary>
-	/// 1フレーム分の目標ポーズ
-	/// 目標値だけを持つ
-	/// 実際のDamp適用は ApplyPose() で行う
-	/// </summary>
+	/// ---------- ポーズ構造 ---------- ///
 	struct BossPose
 	{
-		float bodyPitch = 0.0f;
-		float bodyRoll = 0.0f;
+		float bodyPitch = 0.0f;	  // 前後の傾き
+		float bodyRoll = 0.0f;	  // 左右の傾き
 
-		float headYaw = 0.0f;
-		float headPitch = 0.0f;
+		float headYaw = 0.0f;	  // 左右の回転
+		float headPitch = 0.0f;	  // 前後の傾き
 
-		float leftArmX = -0.05f;
-		float rightArmX = -0.05f;
-		float leftArmZ = 0.0f;
-		float rightArmZ = 0.0f;
+		float leftArmX = -0.05f;  // 腕の前後の傾き。歩行アニメで少し前に出すために初期値は -0.05f
+		float rightArmX = -0.05f; // 腕の前後の傾き。歩行アニメで少し前に出すために初期値は -0.05f
+		float leftArmZ = 0.0f;	  // 腕の内外の回転
+		float rightArmZ = 0.0f;   // 腕の内外の回転
 
-		float leftLegX = 0.0f;
-		float rightLegX = 0.0f;
+		float leftLegX = 0.0f;	  // 脚の前後の傾き
+		float rightLegX = 0.0f;   // 脚の前後の傾き
 	};
 
 public: /// ---------- ライフサイクル ---------- ///
@@ -117,10 +102,19 @@ public: /// ---------- 外部から使う制御 ---------- ///
 
 private: /// ---------- 状態別更新 ---------- ///
 
+	// アイドル状態のアニメ更新
 	void UpdateIdle(BossBase& boss, float deltaTime);
+
+	// 移動状態のアニメ更新
 	void UpdateMove(BossBase& boss, float deltaTime);
+
+	// 攻撃状態のアニメ更新
 	void UpdateAttack(BossBase& boss, float deltaTime);
+
+	// ダメージを受けたときの硬直アニメ更新
 	void UpdateStagger(BossBase& boss, float deltaTime);
+
+	// 死亡状態のアニメ更新
 	void UpdateDead(BossBase& boss, float deltaTime);
 
 private: /// ---------- 実アニメ処理 ---------- ///
@@ -196,6 +190,7 @@ private: /// ---------- 補助 ---------- ///
 
 private: /// ---------- 参照 ---------- ///
 
+	// アニメ対象のボス本体。Pose の反映などで必要
 	BossBase* owner_ = nullptr;
 
 private: /// ---------- 攻撃アニメ一覧 ---------- ///
@@ -207,12 +202,13 @@ private: /// ---------- 攻撃アニメ一覧 ---------- ///
 
 private: /// ---------- 時間 ---------- ///
 
-	float walkAnimTime_ = 0.0f;
-	float attackAnimTime_ = 0.0f;
-	float breathTime_ = 0.0f;
+	float walkAnimTime_ = 0.0f;	  // 歩行アニメの時間
+	float attackAnimTime_ = 0.0f; // 攻撃アニメの時間
+	float breathTime_ = 0.0f;	  // 呼吸アニメの時間
 
 private: /// ---------- パラメータ ---------- ///
 
+	// 歩行アニメの速度
 	float walkAnimSpeed_ = 5.0f;
 	float walkSwingAmplitude_ = 0.55f;
 	float attackDuration_ = 0.85f;

@@ -1,25 +1,21 @@
 #pragma once
 #include "BaseCharacter.h"
-#include "Core/BossTypes.h"
+#include "BossTypes.h"
 
 #include <Vector3.h>
-#include <Object3D.h>
 
-#include "Core/BossBrain.h"						// ボスの思考を担当するクラス
-#include "Components/BossAnimationComponent.h"  // アニメーションを管理するクラス
-#include "Components/BossAttackComponent.h"		// 攻撃を管理するクラス
-#include "Components/BossMovementComponent.h"	// 移動を管理するクラス
-#include "Components/BossPhaseComponent.h"		// フェーズ移行を管理するクラス
-#include "Components/BossWeakPointComponent.h"	// 弱点を管理するクラス
-#include "Components/BossStatusComponent.h"		// HP やステータスを管理するクラス
-#include "Core/BossStateMachine.h"				// 状態遷移を管理するクラス
-
-#include "Attacks/IBossAttack.h"				// 攻撃のインターフェース
+#include "BossBrain.h"				// ボスの思考を担当するクラス
+#include "BossAnimationComponent.h" // アニメーションを管理するクラス
+#include "BossAttackComponent.h"	// 攻撃を管理するクラス
+#include "BossMovementComponent.h"	// 移動を管理するクラス
+#include "BossPhaseComponent.h"		// フェーズ移行を管理するクラス
+#include "BossWeakPointComponent.h"	// 弱点を管理するクラス
+#include "BossStatusComponent.h"	// HP やステータスを管理するクラス
+#include "BossStateMachine.h"		// 状態遷移を管理するクラス
+#include "IBossAttack.h"			// 攻撃のインターフェース
 
 #include <memory>
-#include <string>
 #include <vector>
-#include <optional>
 
 namespace K4E = Ken4lowEngine;
 
@@ -44,33 +40,21 @@ enum class BossHitPart
 /// -----------------------------------------------------------
 struct BossHitResult
 {
-	bool isHit = false;                 // 何かしら当たったか
+	bool isHit = false;					  // 何かしら当たったか
 	BossHitPart part = BossHitPart::None; // どこに当たったか
-	K4E::Vector3 hitPosition{};         // 当たったとみなした位置
-	float damageMultiplier = 1.0f;      // 部位倍率（頭なら 2.0f など）
+	K4E::Vector3 hitPosition{};           // 当たったとみなした位置
+	float damageMultiplier = 1.0f;        // 部位倍率（頭なら 2.0f など）
 };
 
 /// -----------------------------------------------------------
-/// ボス共通の基底クラス
-/// 
-/// 役割:
-/// - ボス全体の司令塔
-/// - 各コンポーネントの初期化 / 更新 / 描画順を制御
-/// - 共通情報（位置、向き、状態、フェーズ）を管理
-/// 
-/// ポイント:
-/// - 個別ボスの攻撃内容はこのクラスに書き込まない
-/// - 攻撃やAIは別クラスへ分離する
-/// - 派生クラスは「どんなボスか」だけ決める
+///					 ボス共通の基底クラス
 /// -----------------------------------------------------------
 class BossBase : public BaseCharacter
 {
-public: /// ---------- 基本構造 ---------- ///
+public: /// ---------- ライフサイクル ---------- ///
 
 	// デストラクタは仮想関数にしておく
 	virtual ~BossBase() = default;
-
-public: /// ---------- ライフサイクル ---------- ///
 
 	/// <summary>
 	/// 初期化
@@ -133,10 +117,16 @@ public: /// ---------- ダメージ / 死亡 ---------- ///
 
 public: /// ---------- 状態 / フェーズ管理 ---------- ///
 
+	// 状態を取得
 	BossState GetState() const { return state_; }
+
+	// 状態を設定
 	void SetState(BossState state) { state_ = state; }
 
+	// フェーズを取得
 	BossPhase GetPhase() const { return phase_; }
+
+	// フェーズを設定
 	void SetPhase(BossPhase phase) { phase_ = phase; }
 
 public: /// ---------- 位置 / 向き ---------- ///
@@ -169,8 +159,13 @@ public: /// ---------- 位置 / 向き ---------- ///
 
 public: /// ---------- HP / ステータス ---------- ///
 
+	// HP を取得
 	float GetHP() const;
+
+	// 最大HP を取得
 	float GetMaxHP() const;
+
+	// HP率を取得
 	float GetHPRate() const;
 
 public: /// ---------- ターゲット情報 ---------- ///
@@ -300,10 +295,7 @@ public: /// ---------- 腕周り補助 ---------- ///
 	{
 		auto& parts = GetBodyParts();
 		const auto idx = GetPartIndices().leftArm;
-		if (idx >= parts.size())
-		{
-			return GetCenterPosition();
-		}
+		if (idx >= parts.size()) return GetCenterPosition();
 
 		auto& body = GetBody();
 		body.transform.Update();

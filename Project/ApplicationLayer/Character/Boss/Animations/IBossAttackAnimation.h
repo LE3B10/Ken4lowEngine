@@ -6,29 +6,18 @@ class IBossAttack;
 class BossAnimationComponent;
 
 /// -------------------------------------------------------------
-/// 攻撃アニメーションの共通インターフェース
-///
-/// 役割:
-/// - 攻撃種別ごとの見た目ポーズ構築を担当する
-/// - BossAnimationComponent から共通の形で呼べるようにする
+///			 攻撃アニメーションの共通インターフェース
 /// -------------------------------------------------------------
 class IBossAttackAnimation
 {
-public:
+public: /// ---------- 純粋仮想関数 ---------- ///
+
+	// デストラクタは仮想関数にしておく
 	virtual ~IBossAttackAnimation() = default;
 
-	/// <summary>
-	/// このアニメクラスが対象攻撃を扱えるか
-	/// </summary>
+	// このアニメがこの攻撃を扱えるか判定
 	virtual bool CanHandle(const IBossAttack* attack) const = 0;
 
-	/// <summary>
-	/// 攻撃ポーズを更新する
-	/// 実際の ApplyPose は BossAnimationComponent 側に任せる
-	/// </summary>
-	virtual void UpdatePose(
-		BossAnimationComponent& animationComponent,
-		BossBase& boss,
-		IBossAttack* attack,
-		float deltaTime) = 0;
+	// 攻撃の見た目ポーズを更新
+	virtual void UpdatePose(BossAnimationComponent& animationComponent, BossBase& boss, IBossAttack* attack, float deltaTime) = 0;
 };

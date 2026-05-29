@@ -1,23 +1,11 @@
 #pragma once
-#include "Attacks/IBossAttack.h"
-#include <Vector3.h>
+#include "IBossAttack.h"
 
-namespace K4E = Ken4lowEngine;
-
+/// ---------- 前方宣言 ---------- ///
 class BossBase;
 
 /// ---------------------------------------------------------------
-/// 重攻撃パンチ
-///
-/// 役割:
-/// - 通常 Punch より重い近接攻撃
-/// - 発生は遅いが高威力
-/// - 攻撃後の硬直も大きい
-/// - Guardian の「避けるべき一撃」として使う
-///
-/// 方針:
-/// - 基本構造は BossPunchAttack と揃える
-/// - 後でノックバックやエフェクトを足しやすいようにする
+///						ボスの重攻撃パンチ
 /// ---------------------------------------------------------------
 class BossHeavyPunchAttack : public IBossAttack
 {
@@ -35,11 +23,12 @@ public: /// ---------- 列挙型 ---------- ///
 		Recovery    // 攻撃後の硬直
 	};
 
-public: /// ---------- 基本構造 ---------- ///
-
-	~BossHeavyPunchAttack() override = default;
-
 public: /// ---------- 初期化 ---------- ///
+
+	/// <summary>
+	/// デストラクタ
+	/// </summary>
+	~BossHeavyPunchAttack() override = default;
 
 	/// <summary>
 	/// 所有者を受け取って初期化
@@ -117,14 +106,24 @@ public: /// ---------- 参照用情報 ---------- ///
 
 public: /// ---------- デバッグ参照 ---------- ///
 
+	// 現在のフェーズ
 	Phase GetPhase() const { return phase_; }
+
+	// フェーズ内経過時間
 	float GetPhaseTimer() const { return phaseTimer_; }
+
+	// ヒット判定をすでに出したか
 	bool HasHit() const { return hasHit_; }
 
 public: /// ---------- 描画 ---------- ///
 
+	// 攻撃固有の描画
 	void Draw() override;
+
+	// シャドウ描画は特にない想定
 	void DrawShadow() override {}
+
+	// デバッグ用 ImGui 描画
 	void DrawImGui() override;
 
 private: /// ---------- 内部処理 ---------- ///
@@ -173,17 +172,18 @@ private: /// ---------- 内部処理 ---------- ///
 
 private: /// ---------- 参照 ---------- ///
 
+	// 攻撃所有者
 	BossBase* owner_ = nullptr;
 
 private: /// ---------- 実行状態 ---------- ///
 
-	bool isActive_ = false;
-	bool isFinished_ = false;
-	bool hasHit_ = false;
+	bool isActive_ = false;	  // 実行中か
+	bool isFinished_ = false; // 今回の実行が終わったか
+	bool hasHit_ = false;	  // 発生中にすでにヒット判定を出したか
 
-	Phase phase_ = Phase::None;
-	float phaseTimer_ = 0.0f;
-	float totalTimer_ = 0.0f;
+	Phase phase_ = Phase::None; // 現在フェーズ
+	float phaseTimer_ = 0.0f;   // フェーズ内経過時間
+	float totalTimer_ = 0.0f;	// 攻撃開始からの合計時間
 
 private: /// ---------- 距離条件 ---------- ///
 
@@ -213,10 +213,10 @@ private: /// ---------- ヒット判定 ---------- ///
 
 private: /// ---------- クールダウン ---------- ///
 
-	float cooldownSec_ = 2.20f;
-	float cooldownRemaining_ = 0.0f;
+	float cooldownSec_ = 2.20f;		 // 通常パンチより長めのクールダウン
+	float cooldownRemaining_ = 0.0f; // クールダウン残り時間
 
 private: /// ---------- 優先度 ---------- ///
 
-	int priority_ = 80;
+	int priority_ = 80; // Punch より高く、他の攻撃よりも優先されるように
 };

@@ -1,14 +1,14 @@
 #include "BossAttackComponent.h"
-#include "Attacks/IBossAttack.h"
-#include "Core/BossBase.h"
-#include "Components/BossAnimationComponent.h"
+#include "IBossAttack.h"
+#include "BossBase.h"
+#include "BossAnimationComponent.h"
 
 #ifdef USE_IMGUI
 #include <imgui.h>
 #endif
 
 /// -------------------------------------------------------------
-/// 初期化
+///							初期化処理
 /// -------------------------------------------------------------
 void BossAttackComponent::Initialize(BossBase* owner)
 {
@@ -26,7 +26,7 @@ void BossAttackComponent::Initialize(BossBase* owner)
 }
 
 /// -------------------------------------------------------------
-/// 終了処理
+///							終了処理
 /// -------------------------------------------------------------
 void BossAttackComponent::Finalize()
 {
@@ -42,14 +42,12 @@ void BossAttackComponent::Finalize()
 }
 
 /// -------------------------------------------------------------
-/// 攻撃登録
+///							攻撃登録
 /// -------------------------------------------------------------
 void BossAttackComponent::RegisterAttack(std::unique_ptr<IBossAttack> attack)
 {
-	if (!attack)
-	{
-		return;
-	}
+	// null チェック
+	if (!attack) return;
 
 	// すでに owner が確定している場合は、その場で初期化してよい
 	if (owner_)
@@ -57,21 +55,20 @@ void BossAttackComponent::RegisterAttack(std::unique_ptr<IBossAttack> attack)
 		attack->Initialize(owner_);
 	}
 
+	// 攻撃を登録
 	attacks_.push_back(std::move(attack));
 }
 
 /// -------------------------------------------------------------
-/// 更新
+///							更新処理
 /// -------------------------------------------------------------
 void BossAttackComponent::Update(float deltaTime)
 {
 	// 実行中でない攻撃のクールダウンだけ進める
 	for (auto& attack : attacks_)
 	{
-		if (!attack)
-		{
-			continue;
-		}
+		// null チェック
+		if (!attack) continue;
 
 		// 今アクティブな攻撃には TickCooldown しない
 		// End() 側でクールダウン開始させる想定
@@ -82,10 +79,7 @@ void BossAttackComponent::Update(float deltaTime)
 	}
 
 	// 実行中の攻撃が無ければここで終了
-	if (!currentAttack_)
-	{
-		return;
-	}
+	if (!currentAttack_) return;
 
 	// 実行中攻撃を更新
 	currentAttack_->Update(deltaTime);
@@ -99,7 +93,7 @@ void BossAttackComponent::Update(float deltaTime)
 }
 
 /// -------------------------------------------------------------
-/// 名前で攻撃開始
+///						名前で攻撃開始
 /// -------------------------------------------------------------
 bool BossAttackComponent::StartAttackByName(const std::string& attackName)
 {
@@ -108,7 +102,7 @@ bool BossAttackComponent::StartAttackByName(const std::string& attackName)
 }
 
 /// -------------------------------------------------------------
-/// インデックスで攻撃開始
+///					インデックスで攻撃開始
 /// -------------------------------------------------------------
 bool BossAttackComponent::StartAttackByIndex(size_t index)
 {
@@ -117,43 +111,37 @@ bool BossAttackComponent::StartAttackByIndex(size_t index)
 }
 
 /// -------------------------------------------------------------
-/// 現在攻撃中のものを強制終了
+///					現在攻撃中のものを強制終了
 /// -------------------------------------------------------------
 void BossAttackComponent::ForceEndCurrentAttack()
 {
-	if (!currentAttack_)
-	{
-		return;
-	}
+	// 実行中の攻撃が無ければここで終了
+	if (!currentAttack_) return;
 
 	currentAttack_->End();
 	currentAttack_ = nullptr;
 }
 
 /// -------------------------------------------------------------
-/// インデックスで攻撃取得
+///					インデックスで攻撃取得
 /// -------------------------------------------------------------
 IBossAttack* BossAttackComponent::GetAttack(size_t index) const
 {
-	if (index >= attacks_.size())
-	{
-		return nullptr;
-	}
+	// 範囲外チェック
+	if (index >= attacks_.size()) return nullptr;
 
+	// 範囲内で攻撃が登録されていればそれを返す
 	return attacks_[index].get();
 }
 
 /// -------------------------------------------------------------
-/// 名前で攻撃取得
+///						名前で攻撃取得
 /// -------------------------------------------------------------
 IBossAttack* BossAttackComponent::FindAttackByName(const char* attackName) const
 {
 	for (const auto& attack : attacks_)
 	{
-		if (!attack)
-		{
-			continue;
-		}
+		if (!attack) continue;
 
 		if (std::strcmp(attack->GetName(), attackName) == 0)
 		{
@@ -165,24 +153,18 @@ IBossAttack* BossAttackComponent::FindAttackByName(const char* attackName) const
 }
 
 /// -------------------------------------------------------------
-/// 開始可能攻撃一覧を収集
+///					開始可能攻撃一覧を収集
 /// -------------------------------------------------------------
 std::vector<IBossAttack*> BossAttackComponent::CollectStartableAttacks() const
 {
 	std::vector<IBossAttack*> result;
 
 	// すでに攻撃中なら新規攻撃は始めない前提
-	if (currentAttack_)
-	{
-		return result;
-	}
+	if (currentAttack_) return result;
 
 	for (const auto& attack : attacks_)
 	{
-		if (!attack)
-		{
-			continue;
-		}
+		if (!attack) continue;
 
 		if (attack->CanStart())
 		{
@@ -194,7 +176,7 @@ std::vector<IBossAttack*> BossAttackComponent::CollectStartableAttacks() const
 }
 
 /// -------------------------------------------------------------
-/// 攻撃描画
+///						攻撃描画
 /// -------------------------------------------------------------
 void BossAttackComponent::Draw()
 {
@@ -208,7 +190,7 @@ void BossAttackComponent::Draw()
 }
 
 /// -------------------------------------------------------------
-/// 攻撃シャドウ描画
+///					攻撃シャドウ描画
 /// -------------------------------------------------------------
 void BossAttackComponent::DrawShadow()
 {
@@ -222,15 +204,13 @@ void BossAttackComponent::DrawShadow()
 }
 
 /// -------------------------------------------------------------
-/// デバッグ描画
+///						デバッグ描画
 /// -------------------------------------------------------------
 void BossAttackComponent::DrawImGui()
 {
 #ifdef USE_IMGUI
 	if (!ImGui::CollapsingHeader("Boss Attack Component", ImGuiTreeNodeFlags_DefaultOpen))
-	{
 		return;
-	}
 
 	ImGui::Text("IsAttacking : %s", currentAttack_ ? "true" : "false");
 	ImGui::Text("AttackCount : %d", static_cast<int>(attacks_.size()));
@@ -289,27 +269,18 @@ void BossAttackComponent::DrawImGui()
 }
 
 /// -------------------------------------------------------------
-/// 攻撃開始共通処理
+///						攻撃開始共通処理
 /// -------------------------------------------------------------
 bool BossAttackComponent::StartAttackInternal(IBossAttack* attack)
 {
 	// null は開始不可
-	if (!attack)
-	{
-		return false;
-	}
+	if (!attack) return false;
 
 	// すでに別の攻撃中なら開始しない
-	if (currentAttack_)
-	{
-		return false;
-	}
+	if (currentAttack_)	return false;
 
 	// 攻撃条件を満たしていないなら開始しない
-	if (!attack->CanStart())
-	{
-		return false;
-	}
+	if (!attack->CanStart()) return false;
 
 	attack->Start();
 	currentAttack_ = attack;

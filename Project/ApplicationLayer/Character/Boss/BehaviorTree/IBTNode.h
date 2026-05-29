@@ -1,14 +1,16 @@
 #pragma once
-enum class BTNodeResult
-{
-    Success,
-    Failure,
-    Running
-};
+#include <BehaviorStatus.h>
 
+/// -------------------------------------------------------------
+///			ビヘイビアツリーのノードインターフェース
+/// -------------------------------------------------------------
 class IBTNode
 {
-public:
+public: /// ---------- 基本構造 ---------- ///
+
+	// デストラクタは仮想関数にしておく
     virtual ~IBTNode() = default;
-    virtual BTNodeResult Tick(float deltaTime) = 0;
+
+	// ビヘイビアツリーの更新
+    virtual BehaviorStatus Tick(float deltaTime) = 0;
 };

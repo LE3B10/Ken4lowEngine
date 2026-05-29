@@ -1,60 +1,53 @@
 #define NOMINMAX
 #include "BossHeavyPunchAttack.h"
-#include "Core/BossBase.h"
+#include "BossBase.h"
 
-#include <Windows.h>
-#include <cmath>
-#include <string>
+#ifdef _DEBUG
+#include <LogString.h>
+#endif // _DEBUG
 
 #ifdef USE_IMGUI
 #include <imgui.h>
 #endif
 
-namespace
-{
-	/// <summary>
-	/// デバッグログ出力
-	/// </summary>
-	void DebugLog(const std::string& text)
-	{
-		OutputDebugStringA(text.c_str());
-	}
-}
+using namespace Ken4lowEngine;
 
 /// ---------------------------------------------------------------
-/// 初期化
-/// BossAttackComponent 側から owner を受け取る
+///							初期化処理
 /// ---------------------------------------------------------------
 void BossHeavyPunchAttack::Initialize(BossBase* owner)
 {
+	// 攻撃所有者を受け取って初期化
 	owner_ = owner;
 
+	// 攻撃状態を初期化
 	isActive_ = false;
 	isFinished_ = false;
 	hasHit_ = false;
 
+	// フェーズを初期化
 	phase_ = Phase::None;
 	phaseTimer_ = 0.0f;
 	totalTimer_ = 0.0f;
 
+	// クールダウンを初期化
 	cooldownRemaining_ = 0.0f;
 }
 
 /// ---------------------------------------------------------------
-/// 攻撃開始
-/// 条件を満たす場合のみ開始
+///							攻撃開始
 /// ---------------------------------------------------------------
 void BossHeavyPunchAttack::Start()
 {
-	if (!CanStart())
-	{
-		return;
-	}
+	// 条件を満たさないときは開始しない
+	if (!CanStart()) return;
 
+	// 状態リセット
 	isActive_ = true;
 	isFinished_ = false;
 	hasHit_ = false;
 
+	// フェーズリセット
 	phase_ = Phase::None;
 	phaseTimer_ = 0.0f;
 	totalTimer_ = 0.0f;
@@ -62,19 +55,16 @@ void BossHeavyPunchAttack::Start()
 	// HeavyPunch は最初に Windup から始まる
 	ChangePhase(Phase::Windup);
 
-	DebugLog("[BossHeavyPunchAttack] Start\n");
+	Log("[BossHeavyPunchAttack] Start\n");
 }
 
 /// ---------------------------------------------------------------
-/// 攻撃更新
-/// フェーズごとに分岐する
+///						  攻撃更新
 /// ---------------------------------------------------------------
 void BossHeavyPunchAttack::Update(float deltaTime)
 {
-	if (!isActive_)
-	{
-		return;
-	}
+	// 実行中でないときは更新しない
+	if (!isActive_)	return;
 
 	totalTimer_ += deltaTime;
 	phaseTimer_ += deltaTime;
@@ -104,15 +94,12 @@ void BossHeavyPunchAttack::Update(float deltaTime)
 }
 
 /// ---------------------------------------------------------------
-/// 攻撃終了
-/// クールダウン開始
+///							攻撃終了
 /// ---------------------------------------------------------------
 void BossHeavyPunchAttack::End()
 {
-	if (!isActive_)
-	{
-		return;
-	}
+	// 実行中でないときは何もしない
+	if (!isActive_)	return;
 
 	isActive_ = false;
 	isFinished_ = true;
@@ -121,68 +108,50 @@ void BossHeavyPunchAttack::End()
 	phase_ = Phase::None;
 	phaseTimer_ = 0.0f;
 
-	DebugLog("[BossHeavyPunchAttack] End\n");
+	Log("[BossHeavyPunchAttack] End\n");
 }
 
 /// ---------------------------------------------------------------
-/// 今この攻撃を開始できるか
+///					今この攻撃を開始できるか
 /// ---------------------------------------------------------------
 bool BossHeavyPunchAttack::CanStart() const
 {
-	if (owner_ == nullptr)
-	{
-		return false;
-	}
+	// 所有者がいないときは不可
+	if (owner_ == nullptr) return false;
 
 	// 実行中は不可
-	if (isActive_)
-	{
-		return false;
-	}
+	if (isActive_) return false;
 
 	// クールダウン中は不可
-	if (cooldownRemaining_ > 0.0f)
-	{
-		return false;
-	}
+	if (cooldownRemaining_ > 0.0f) return false;
 
 	// 死亡中は不可
-	if (owner_->IsDead())
-	{
-		return false;
-	}
+	if (owner_->IsDead()) return false;
 
 	// 射程内にターゲットがいないと不可
-	if (!IsTargetInValidRange())
-	{
-		return false;
-	}
+	if (!IsTargetInValidRange()) return false;
 
+	// それ以外は開始可能
 	return true;
 }
 
 /// ---------------------------------------------------------------
-/// クールダウン更新
-/// 実行中ではないときに進める
+///						クールダウン更新
 /// ---------------------------------------------------------------
 void BossHeavyPunchAttack::TickCooldown(float deltaTime)
 {
-	if (cooldownRemaining_ <= 0.0f)
-	{
-		return;
-	}
+	// 実行中はクールダウンしない
+	if (cooldownRemaining_ <= 0.0f) return;
 
+	// クールダウンを進める
 	cooldownRemaining_ -= deltaTime;
-	if (cooldownRemaining_ < 0.0f)
-	{
-		cooldownRemaining_ = 0.0f;
-	}
+
+	// クールダウンが0未満にならないようにする
+	if (cooldownRemaining_ < 0.0f) cooldownRemaining_ = 0.0f;
 }
 
 /// ---------------------------------------------------------------
-/// 溜め更新
-/// 両腕を上げる予兆フェーズ
-/// 終了後は Hold に入る
+///							溜め更新
 /// ---------------------------------------------------------------
 void BossHeavyPunchAttack::UpdateWindup(float deltaTime)
 {
@@ -194,6 +163,7 @@ void BossHeavyPunchAttack::UpdateWindup(float deltaTime)
 	// - 体の震え
 	// なども入れられる
 
+	// 溜め時間が終わったら発生に移る
 	if (phaseTimer_ >= windupTime_)
 	{
 		// すぐ殴らず、一瞬止めて予兆を見せる
@@ -202,9 +172,7 @@ void BossHeavyPunchAttack::UpdateWindup(float deltaTime)
 }
 
 /// ---------------------------------------------------------------
-/// Hold 更新
-/// 溜め切った姿勢を短時間だけ維持する
-/// ここが「エヴォーカー風の腕上げ」を見せる時間
+///							Hold 更新
 /// ---------------------------------------------------------------
 void BossHeavyPunchAttack::UpdateHold(float deltaTime)
 {
@@ -212,16 +180,17 @@ void BossHeavyPunchAttack::UpdateHold(float deltaTime)
 
 	if (phaseTimer_ >= holdTime_)
 	{
+		// 予兆を見せる時間が終わったら攻撃発生
 		ChangePhase(Phase::Active);
 	}
 }
 
 /// ---------------------------------------------------------------
-/// 発生更新
-/// 発生中に1回だけヒットを試す
+///							発生更新
 /// ---------------------------------------------------------------
 void BossHeavyPunchAttack::UpdateActive(float deltaTime)
 {
+	// 今は特に攻撃中の挙動はない想定
 	(void)deltaTime;
 
 	// 発生した瞬間に1回だけヒット判定
@@ -231,31 +200,28 @@ void BossHeavyPunchAttack::UpdateActive(float deltaTime)
 		hasHit_ = true;
 	}
 
-	if (phaseTimer_ >= activeTime_)
-	{
-		ChangePhase(Phase::Recovery);
-	}
+	// 発生時間が終わったら硬直に移る
+	if (phaseTimer_ >= activeTime_) ChangePhase(Phase::Recovery);
 }
 
 /// ---------------------------------------------------------------
-/// 硬直更新
+///								硬直更新
 /// ---------------------------------------------------------------
 void BossHeavyPunchAttack::UpdateRecovery(float deltaTime)
 {
+	// 今は特に硬直中の挙動はない想定
 	(void)deltaTime;
 
-	if (phaseTimer_ >= recoveryTime_)
-	{
-		End();
-	}
+	// 硬直時間が終わったら攻撃終了
+	if (phaseTimer_ >= recoveryTime_) End();
 }
 
 /// ---------------------------------------------------------------
-/// フェーズ切り替え
-/// phaseTimer を毎回リセットする
+///							フェーズ切り替え
 /// ---------------------------------------------------------------
 void BossHeavyPunchAttack::ChangePhase(Phase newPhase)
 {
+	// フェーズを切り替える
 	phase_ = newPhase;
 	phaseTimer_ = 0.0f;
 
@@ -263,33 +229,31 @@ void BossHeavyPunchAttack::ChangePhase(Phase newPhase)
 	switch (phase_)
 	{
 	case Phase::Windup:
-		OutputDebugStringA("[BossHeavyPunchAttack] Phase -> Windup\n");
+		Log("[BossHeavyPunchAttack] Phase -> Windup\n");
 		break;
 
 	case Phase::Hold:
-		OutputDebugStringA("[BossHeavyPunchAttack] Phase -> Hold\n");
+		Log("[BossHeavyPunchAttack] Phase -> Hold\n");
 		break;
 
 	case Phase::Active:
-		OutputDebugStringA("[BossHeavyPunchAttack] Phase -> Active\n");
+		Log("[BossHeavyPunchAttack] Phase -> Active\n");
 		break;
 
 	case Phase::Recovery:
-		OutputDebugStringA("[BossHeavyPunchAttack] Phase -> Recovery\n");
+		Log("[BossHeavyPunchAttack] Phase -> Recovery\n");
 		break;
 
 	case Phase::None:
 	default:
-		OutputDebugStringA("[BossHeavyPunchAttack] Phase -> None\n");
+		Log("[BossHeavyPunchAttack] Phase -> None\n");
 		break;
 	}
 #endif
 }
 
 /// ---------------------------------------------------------------
-/// 描画
-/// 今は未実装
-/// 将来的に予兆表示や当たり判定デバッグ描画を置く
+///							描画処理
 /// ---------------------------------------------------------------
 void BossHeavyPunchAttack::Draw()
 {
@@ -299,8 +263,7 @@ void BossHeavyPunchAttack::Draw()
 }
 
 /// ---------------------------------------------------------------
-/// ImGui
-/// デバッグ確認用
+///						ImGui描画処理
 /// ---------------------------------------------------------------
 void BossHeavyPunchAttack::DrawImGui()
 {
@@ -320,18 +283,12 @@ void BossHeavyPunchAttack::DrawImGui()
 }
 
 /// ---------------------------------------------------------------
-/// ヒット判定
-/// 発生中に一度だけ行う
-///
-/// 右腕根本座標 + 前方オフセット位置に攻撃球を置き、
-/// プレイヤー仮想球との重なりで簡易判定する
+///							ヒット判定
 /// ---------------------------------------------------------------
 void BossHeavyPunchAttack::TryHitPlayer()
 {
-	if (owner_ == nullptr)
-	{
-		return;
-	}
+	// 所有者がいないときは何もしない
+	if (owner_ == nullptr) return;
 
 	// -----------------------------------------------------------
 	// 攻撃中心
@@ -368,7 +325,7 @@ void BossHeavyPunchAttack::TryHitPlayer()
 	if (distanceSq <= (sumRadius * sumRadius))
 	{
 #ifdef _DEBUG
-		OutputDebugStringA("[BossHeavyPunchAttack] Heavy hit success.\n");
+		Log("[BossHeavyPunchAttack] Heavy hit success.\n");
 #endif
 
 		// -------------------------------------------------------
@@ -384,38 +341,38 @@ void BossHeavyPunchAttack::TryHitPlayer()
 	else
 	{
 #ifdef _DEBUG
-		OutputDebugStringA("[BossHeavyPunchAttack] Heavy hit miss.\n");
+		Log("[BossHeavyPunchAttack] Heavy hit miss.\n");
 #endif
 	}
 }
 
 /// ---------------------------------------------------------------
-/// 射程内判定
-/// HeavyPunch は近～中近距離向け
+///							射程内判定
 /// ---------------------------------------------------------------
 bool BossHeavyPunchAttack::IsTargetInValidRange() const
 {
-	if (owner_ == nullptr)
-	{
-		return false;
-	}
+	// 所有者がいないときは射程外とみなす
+	if (owner_ == nullptr) return false;
 
+	// ターゲットとの水平距離を計算して、射程内かどうかを判断する
 	const float distance = owner_->GetDistanceToTargetXZ();
+
+	// 射程内かどうかを判断
 	return (distance >= minRange_ && distance <= maxRange_);
 }
 
 /// ---------------------------------------------------------------
-/// デバッグ用フェーズ名
+///					デバッグ用フェーズ名
 /// ---------------------------------------------------------------
 const char* BossHeavyPunchAttack::GetPhaseName() const
 {
 	switch (phase_)
 	{
-	case Phase::Windup:   return "Windup";
-	case Phase::Hold:     return "Hold";
-	case Phase::Active:   return "Active";
-	case Phase::Recovery: return "Recovery";
+	case Phase::Windup:   return "Windup";	 // 溜め
+	case Phase::Hold:     return "Hold";	 // 溜め切って一瞬止める
+	case Phase::Active:   return "Active";	 // 発生
+	case Phase::Recovery: return "Recovery"; // 攻撃後の硬直
 	case Phase::None:
-	default:              return "None";
+	default:              return "None";	 // 未使用
 	}
 }

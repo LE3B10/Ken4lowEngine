@@ -17,7 +17,7 @@ enum class BossState
 /// ---------- ボスのフェーズ ---------- ///
 enum class BossPhase
 {
-	Phase1,
-	Phase2,
-	Phase3
+	Phase1, // フェーズ1
+	Phase2,	// フェーズ2
+	Phase3	// フェーズ3
 };

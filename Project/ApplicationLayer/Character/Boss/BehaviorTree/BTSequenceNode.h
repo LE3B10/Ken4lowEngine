@@ -4,28 +4,44 @@
 #include <memory>
 #include <vector>
 
+/// -------------------------------------------------------------
+///				ビヘイビアツリーのシーケンスノード
+/// -------------------------------------------------------------
 class BTSequenceNode : public IBTNode
 {
-public:
-    void AddChild(std::unique_ptr<IBTNode> child)
-    {
-        children_.push_back(std::move(child));
-    }
+public: /// ---------- 基本構造 ---------- ///
 
-    BTNodeResult Tick(float deltaTime) override
-    {
-        for (auto& child : children_)
-        {
-            const BTNodeResult result = child->Tick(deltaTime);
-            if (result != BTNodeResult::Success)
-            {
-                return result;
-            }
-        }
+	// デストラクタは仮想関数にしておく
+	~BTSequenceNode() override = default;
 
-        return BTNodeResult::Success;
-    }
+	// 子ノードを追加
+	void AddChild(std::unique_ptr<IBTNode> child)
+	{
+		children_.push_back(std::move(child));
+	}
 
-private:
-    std::vector<std::unique_ptr<IBTNode>> children_;
+	// ビヘイビアツリーの更新
+	BehaviorStatus Tick(float deltaTime) override
+	{
+		// 子ノードを順番に更新
+		for (auto& child : children_)
+		{
+			// 子ノードの更新結果を取得
+			const BehaviorStatus result = child->Tick(deltaTime);
+
+			// 子ノードが失敗したらシーケンス全体も失敗
+			if (result != BehaviorStatus::Success)
+			{
+				return result;
+			}
+		}
+
+		// 全ての子ノードが成功したらシーケンス全体も成功
+		return BehaviorStatus::Success;
+	}
+
+private: /// ---------- メンバ変数 ---------- ///
+
+	// 子ノードのリスト
+	std::vector<std::unique_ptr<IBTNode>> children_;
 };

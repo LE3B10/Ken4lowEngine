@@ -1,22 +1,17 @@
 #pragma once
 #include <string>
-#include <vector>
 
 /// ---------- 前方宣言 ---------- ///
 class BossBase;
 class IBossAttack;
 
 /// -------------------------------------------------------------
-/// BossBrain
-///
-/// 役割:
-/// - 今の状況から「どの攻撃を選ぶか」を判断する
-/// - 実際の攻撃開始は行わない
-/// - まずは攻撃選択だけを担当し、状態遷移は Boss 側に任せる
+/// 					　ボスの思考クラス
 /// -------------------------------------------------------------
 class BossBrain
 {
-public:
+public: /// ---------- メンバ関数 ---------- ///
+
 	/// <summary>
 	/// 初期化
 	/// owner は思考対象のボス本体
@@ -46,17 +41,22 @@ public:
 	/// </summary>
 	float GetLastBestScore() const { return lastBestScore_; }
 
-private:
+private: /// ---------- 内部処理 ---------- ///
+
 	/// <summary>
 	/// 攻撃1つ分のスコアを計算
 	/// 基本は priority を土台にし、状況補正を足す
 	/// </summary>
 	float EvaluateAttackScore(const IBossAttack& attack) const;
 
-private:
+private: /// ---------- メンバ変数 ---------- ///
+
+	// 思考対象のボス本体
 	BossBase* owner_ = nullptr;
 
 	// デバッグ表示用
 	mutable std::string lastBestAttackName_ = "None";
+
+	// 最後に評価したスコア
 	mutable float lastBestScore_ = -999999.0f;
 };

@@ -85,6 +85,14 @@ namespace Ken4lowEngine
 
 		static Vector3 NormalizeSafe(const Vector3& v, const Vector3& fallback = Vector3{ 0.0f, 0.0f, 0.0f });
 
+		static Vector3 NormalizeXZSafe(const Vector3& v, const Vector3& fallback = { 0.0f, 0.0f, 1.0f })
+		{
+			const float len = LengthXZ(v);
+			if (len <= 0.0001f) { return fallback; }
+			return { v.x / len, 0.0f, v.z / len };
+		}
+
+
 		/// <summary>
 		/// 4x4 行列を用いて 3D ベクトルを変換します。
 		/// 内部的には w = 1 として同次座標に拡張し、w で割り戻します。
