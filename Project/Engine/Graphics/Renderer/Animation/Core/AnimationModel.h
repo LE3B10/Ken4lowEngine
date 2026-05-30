@@ -43,6 +43,17 @@ namespace Ken4lowEngine
 			Vector3 worldPosition; // ワールド座標系でのカメラ位置
 		};
 
+		struct ShadowParameterForGPU
+		{
+			Matrix4x4 lightViewProjection; // ライトのビュー射影行列
+			float shadowBias;              // シャドウバイアス
+			float normalBias;              // 法線方向オフセット量
+			float shadowStrength;          // 影の濃さ（DirectLight のみへ適用）
+			uint32_t shadowMode;           // 0:Off 1:Directional 2:Spot
+			uint32_t shadowDebugMode;      // 0:None 1:ShadowMap 2:ShadowFactor
+			float padding[1];              // パディング
+		};
+
 
 		// 互換用：旧 AnimationModel::BodyPartCollider 名を維持
 		using BodyPartCollider = ::Ken4lowEngine::BodyPartCollider;
@@ -332,6 +343,7 @@ namespace Ken4lowEngine
 		/// 現在のアニメーション時刻に基づいて、ジョイント変換などを更新します。
 		/// </summary>
 		void UpdateAnimation();
+		void UpdateShadowParameters();
 
 	public: /// ---------- ボーン情報の初期化 ---------- ///
 
@@ -385,9 +397,12 @@ namespace Ken4lowEngine
 		// バッファリソースの作成
 		TransformationAnimationMatrix* wvpData_ = nullptr;
 		CameraForGPU* cameraData = nullptr;
+		ShadowParameterForGPU* shadowParameterData_ = nullptr;
 
 		ComPtr <ID3D12Resource> wvpResource;	// 定数バッファ : ワールド変換行列
 		ComPtr <ID3D12Resource> cameraResource; // 定数バッファ : カメラ情報
+		ComPtr<ID3D12Resource> shadowParameterResource_; // Skinning PS 用 ShadowParameter
+		D3D12_GPU_DESCRIPTOR_HANDLE shadowMapHandle_{};
 
 		bool hideHead_ = false; // デフォルトは表示
 		float scaleFactor = 1.0f; // スケールファクター
