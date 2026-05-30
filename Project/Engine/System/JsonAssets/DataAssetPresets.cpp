@@ -14,8 +14,73 @@ namespace Ken4lowEngine
 		void FromJ(const nlohmann::json& j, Vector4& v) { if (j.is_array() && j.size() >= 4) { v.x = j[0].get<float>(); v.y = j[1].get<float>(); v.z = j[2].get<float>(); v.w = j[3].get<float>(); } }
 	}
 #define READ_NUM(name) if(inJson.contains(#name)){ name = inJson[#name].get<decltype(name)>(); }
-	void LightPreset::ToJson(nlohmann::json& outJson) const { outJson = {{"directionalDirection",ToJ(directionalDirection)},{"color",ToJ(color)},{"intensity",intensity},{"enableShadow",enableShadow},{"shadowBias",shadowBias},{"normalBias",normalBias},{"shadowStrength",shadowStrength},{"shadowMapSize",shadowMapSize},{"shadowWidth",shadowWidth},{"shadowHeight",shadowHeight},{"shadowNearZ",shadowNearZ},{"shadowFarZ",shadowFarZ},{"shadowFocusMode",shadowFocusMode}}; }
-	void LightPreset::FromJson(const nlohmann::json& inJson) { FromJ(inJson.value("directionalDirection", nlohmann::json::array()), directionalDirection); FromJ(inJson.value("color", nlohmann::json::array()), color); READ_NUM(intensity); READ_NUM(enableShadow); READ_NUM(shadowBias); READ_NUM(normalBias); READ_NUM(shadowStrength); READ_NUM(shadowMapSize); READ_NUM(shadowWidth); READ_NUM(shadowHeight); READ_NUM(shadowNearZ); READ_NUM(shadowFarZ); READ_NUM(shadowFocusMode); }
+	void LightPreset::ToJson(nlohmann::json& outJson) const
+	{
+		outJson = {
+			{"directionalDirection",ToJ(directionalDirection)},
+			{"color",ToJ(color)},
+			{"intensity",intensity},
+			{"enableShadow",enableShadow},
+			{"shadowBias",shadowBias},
+			{"normalBias",normalBias},
+			{"shadowStrength",shadowStrength},
+			{"shadowMapSize",shadowMapSize},
+			{"shadowWidth",shadowWidth},
+			{"shadowHeight",shadowHeight},
+			{"shadowNearZ",shadowNearZ},
+			{"shadowFarZ",shadowFarZ},
+			{"shadowFocusMode",shadowFocusMode},
+			{"ambientColor",ToJ(ambientColor)},
+			{"fogColor",ToJ(fogColor)},
+			{"exposure",exposure},
+			{"contrast",contrast},
+			{"fogStart",fogStart},
+			{"fogEnd",fogEnd},
+			{"enableFog",enableFog},
+			{"specularStrength",specularStrength},
+			{"diffuseStrength",diffuseStrength},
+			{"specularPowerScale",specularPowerScale},
+			{"rimLightStrength",rimLightStrength},
+			{"rimLightPower",rimLightPower},
+			{"enableRimLight",enableRimLight},
+			{"enableHalfLambert",enableHalfLambert},
+			{"rimLightColor",ToJ(rimLightColor)},
+			{"shadingMode",shadingMode}
+		};
+	}
+
+	void LightPreset::FromJson(const nlohmann::json& inJson)
+	{
+		FromJ(inJson.value("directionalDirection", nlohmann::json::array()), directionalDirection);
+		FromJ(inJson.value("color", nlohmann::json::array()), color);
+		READ_NUM(intensity);
+		READ_NUM(enableShadow);
+		READ_NUM(shadowBias);
+		READ_NUM(normalBias);
+		READ_NUM(shadowStrength);
+		READ_NUM(shadowMapSize);
+		READ_NUM(shadowWidth);
+		READ_NUM(shadowHeight);
+		READ_NUM(shadowNearZ);
+		READ_NUM(shadowFarZ);
+		READ_NUM(shadowFocusMode);
+		FromJ(inJson.value("ambientColor", nlohmann::json::array()), ambientColor);
+		FromJ(inJson.value("fogColor", nlohmann::json::array()), fogColor);
+		READ_NUM(exposure);
+		READ_NUM(contrast);
+		READ_NUM(fogStart);
+		READ_NUM(fogEnd);
+		READ_NUM(enableFog);
+		READ_NUM(specularStrength);
+		READ_NUM(diffuseStrength);
+		READ_NUM(specularPowerScale);
+		READ_NUM(rimLightStrength);
+		READ_NUM(rimLightPower);
+		READ_NUM(enableRimLight);
+		READ_NUM(enableHalfLambert);
+		FromJ(inJson.value("rimLightColor", nlohmann::json::array()), rimLightColor);
+		READ_NUM(shadingMode);
+	}
 	void PostEffectPreset::ToJson(nlohmann::json& outJson) const { outJson = {{"enabled",enabled},{"activeEffect",activeEffect},{"bloomIntensity",bloomIntensity},{"vignetteIntensity",vignetteIntensity},{"grayscale",grayscale},{"sepia",sepia},{"fade",fade}}; }
 	void PostEffectPreset::FromJson(const nlohmann::json& inJson) { READ_NUM(enabled); if(inJson.contains("activeEffect")) activeEffect=inJson["activeEffect"].get<std::string>(); READ_NUM(bloomIntensity); READ_NUM(vignetteIntensity); READ_NUM(grayscale); READ_NUM(sepia); READ_NUM(fade); }
 	void Object3DPreset::ToJson(nlohmann::json& outJson) const { outJson={{"modelPath",modelPath},{"texturePath",texturePath},{"position",ToJ(position)},{"rotation",ToJ(rotation)},{"scale",ToJ(scale)},{"visible",visible},{"castShadow",castShadow},{"receiveShadow",receiveShadow}}; }

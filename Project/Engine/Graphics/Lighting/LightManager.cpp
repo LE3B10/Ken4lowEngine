@@ -383,6 +383,36 @@ namespace Ken4lowEngine
 			ImGui::ColorEdit3("Fog Color", &lightingSettings_.fogColor.x);
 			ImGui::SliderFloat("Fog Start", &lightingSettings_.fogStart, 0.0f, 250.0f);
 			ImGui::SliderFloat("Fog End", &lightingSettings_.fogEnd, lightingSettings_.fogStart + 1.0f, 500.0f);
+
+			if (ImGui::TreeNodeEx("Shading", ImGuiTreeNodeFlags_DefaultOpen))
+			{
+				// モデルごとの光の乗り方を実行中に切り分けるための調整UI。
+				const char* shadingModes[] = { "Normal", "HalfLambert", "ToonLike" };
+				int shadingMode = static_cast<int>(lightingSettings_.shadingMode);
+				if (ImGui::Combo("Shading Mode", &shadingMode, shadingModes, IM_ARRAYSIZE(shadingModes)))
+				{
+					lightingSettings_.shadingMode = static_cast<uint32_t>(shadingMode);
+				}
+
+				ImGui::SliderFloat("Diffuse Strength", &lightingSettings_.diffuseStrength, 0.0f, 3.0f);
+				ImGui::SliderFloat("Specular Power Scale", &lightingSettings_.specularPowerScale, 0.05f, 4.0f);
+				bool enableHalfLambert = lightingSettings_.enableHalfLambert != 0;
+				if (ImGui::Checkbox("Half Lambert Enable", &enableHalfLambert))
+				{
+					lightingSettings_.enableHalfLambert = enableHalfLambert ? 1u : 0u;
+				}
+
+				ImGui::SeparatorText("Rim Light");
+				bool enableRimLight = lightingSettings_.enableRimLight != 0;
+				if (ImGui::Checkbox("Rim Light Enable", &enableRimLight))
+				{
+					lightingSettings_.enableRimLight = enableRimLight ? 1u : 0u;
+				}
+				ImGui::SliderFloat("Rim Light Strength", &lightingSettings_.rimLightStrength, 0.0f, 2.0f);
+				ImGui::SliderFloat("Rim Light Power", &lightingSettings_.rimLightPower, 0.1f, 8.0f);
+				ImGui::ColorEdit4("Rim Light Color", &lightingSettings_.rimLightColor.x);
+				ImGui::TreePop();
+			}
 		}
 
 		if (ImGui::Button("+ Add Light"))
@@ -759,7 +789,7 @@ namespace Ken4lowEngine
 
 		if (lightingSettingsData_)
 		{
-			// HLSLのLightingSettingsへ最新のAmbient/Exposure/Contrast/Fogを送る。
+			// HLSLのLightingSettingsへ最新のAmbient/Exposure/Contrast/Fog/Shadingを送る。
 			*lightingSettingsData_ = lightingSettings_;
 		}
 
@@ -805,6 +835,22 @@ namespace Ken4lowEngine
 		preset.shadowNearZ = directionalShadowNearZ_;
 		preset.shadowFarZ = directionalShadowFarZ_;
 		preset.shadowFocusMode = static_cast<uint32_t>(shadowFocusMode_);
+		preset.ambientColor = lightingSettings_.ambientColor;
+		preset.fogColor = lightingSettings_.fogColor;
+		preset.exposure = lightingSettings_.exposure;
+		preset.contrast = lightingSettings_.contrast;
+		preset.fogStart = lightingSettings_.fogStart;
+		preset.fogEnd = lightingSettings_.fogEnd;
+		preset.enableFog = lightingSettings_.enableFog;
+		preset.specularStrength = lightingSettings_.specularStrength;
+		preset.diffuseStrength = lightingSettings_.diffuseStrength;
+		preset.specularPowerScale = lightingSettings_.specularPowerScale;
+		preset.rimLightStrength = lightingSettings_.rimLightStrength;
+		preset.rimLightPower = lightingSettings_.rimLightPower;
+		preset.enableRimLight = lightingSettings_.enableRimLight;
+		preset.enableHalfLambert = lightingSettings_.enableHalfLambert;
+		preset.rimLightColor = lightingSettings_.rimLightColor;
+		preset.shadingMode = lightingSettings_.shadingMode;
 		preset.ToJson(entry.data);
 		return JsonDataManager::SafeSave(entry);
 	}
@@ -838,6 +884,22 @@ namespace Ken4lowEngine
 		directionalShadowNearZ_ = preset.shadowNearZ;
 		directionalShadowFarZ_ = preset.shadowFarZ;
 		shadowFocusMode_ = static_cast<ShadowFocusMode>(preset.shadowFocusMode);
+		lightingSettings_.ambientColor = preset.ambientColor;
+		lightingSettings_.fogColor = preset.fogColor;
+		lightingSettings_.exposure = preset.exposure;
+		lightingSettings_.contrast = preset.contrast;
+		lightingSettings_.fogStart = preset.fogStart;
+		lightingSettings_.fogEnd = preset.fogEnd;
+		lightingSettings_.enableFog = preset.enableFog;
+		lightingSettings_.specularStrength = preset.specularStrength;
+		lightingSettings_.diffuseStrength = preset.diffuseStrength;
+		lightingSettings_.specularPowerScale = preset.specularPowerScale;
+		lightingSettings_.rimLightStrength = preset.rimLightStrength;
+		lightingSettings_.rimLightPower = preset.rimLightPower;
+		lightingSettings_.enableRimLight = preset.enableRimLight;
+		lightingSettings_.enableHalfLambert = preset.enableHalfLambert;
+		lightingSettings_.rimLightColor = preset.rimLightColor;
+		lightingSettings_.shadingMode = preset.shadingMode;
 		return true;
 	}
 } // namespace Ken4lowEngine
