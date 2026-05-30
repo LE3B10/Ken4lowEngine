@@ -10,6 +10,7 @@
 #include <SRVManager.h>
 #include <UAVManager.h>
 #include <GameTimer.h>
+#include <LightManager.h>
 
 #include "AnimationLoader.h"
 #include "AnimationSampler.h"
@@ -126,6 +127,17 @@ namespace Ken4lowEngine
 		cameraResource = ResourceManager::CreateBufferResource(dxCommon_->GetDevice(), sizeof(CameraForGPU));
 		cameraResource->Map(0, nullptr, reinterpret_cast<void**>(&cameraData));
 		cameraData->worldPosition = camera_ ? CameraManager::GetInstance()->GetActiveCameraPosition() : Vector3{ 0.0f, 0.0f, 0.0f };
+
+		// Skinning PS でも LightingCommon の影パラメータを Object3D と同じ b4 に渡す。
+		shadowParameterResource_ = ResourceManager::CreateBufferResource(dxCommon_->GetDevice(), sizeof(ShadowParameterForGPU));
+		shadowParameterResource_->Map(0, nullptr, reinterpret_cast<void**>(&shadowParameterData_));
+		shadowParameterData_->lightViewProjection = Matrix4x4::MakeIdentity();
+		shadowParameterData_->shadowBias = 0.015f;
+		shadowParameterData_->normalBias = 0.02f;
+		shadowParameterData_->shadowStrength = 0.6f;
+		shadowParameterData_->shadowMode = 0u;
+		shadowParameterData_->shadowDebugMode = 0u;
+		shadowMapHandle_ = dxCommon_->GetShadowMapSrvHandleGPU();
 	}
 
 	/// -------------------------------------------------------------
@@ -299,6 +311,7 @@ namespace Ken4lowEngine
 
 		// アニメーション行列の更新
 		UpdateAnimation();
+		UpdateShadowParameters();
 
 		// マテリアルの更新処理
 		material_.Update();
@@ -406,8 +419,11 @@ namespace Ken4lowEngine
 
 		wvpResource.Reset();
 		cameraResource.Reset();
+		shadowParameterResource_.Reset();
 		wvpData_ = nullptr;
 		cameraData = nullptr;
+		shadowParameterData_ = nullptr;
+		shadowMapHandle_ = {};
 
 		// --- LOD 側で確保した UAV ヒープの SRV/UAV インデックスを解放 ---
 		for (auto& L : lods_)
@@ -540,6 +556,26 @@ namespace Ken4lowEngine
 	}
 
 	/// -------------------------------------------------------------
+	///				　		シャドウパラメータ更新
+	/// -------------------------------------------------------------
+	void AnimationModel::UpdateShadowParameters()
+	{
+		if (!shadowParameterData_) { return; }
+
+		const auto* lightMgr = LightManager::GetInstance();
+		const Vector3 focusPos = cameraData ? cameraData->worldPosition : CameraManager::GetInstance()->GetActiveCameraPosition();
+		shadowParameterData_->lightViewProjection = lightMgr->BuildShadowLightViewProjection(focusPos);
+		shadowParameterData_->shadowBias = lightMgr->GetShadowBias();
+		shadowParameterData_->normalBias = lightMgr->GetNormalBias();
+		shadowParameterData_->shadowStrength = lightMgr->GetShadowStrength();
+		const auto casterType = lightMgr->GetActiveShadowCasterType();
+		shadowParameterData_->shadowMode = lightMgr->IsShadowEnabled()
+			? (casterType == LightManager::ShadowCasterType::Spot ? 2u : (casterType == LightManager::ShadowCasterType::Directional ? 1u : 0u))
+			: 0u;
+		shadowParameterData_->shadowDebugMode = lightMgr->IsShadowMapDebugEnabled() ? 1u : (lightMgr->IsShadowFactorDebugEnabled() ? 2u : 0u);
+	}
+
+	/// -------------------------------------------------------------
 	///				　		ボーン初期化処理
 	/// -------------------------------------------------------------
 	void AnimationModel::InitializeBones()
@@ -607,7 +643,9 @@ namespace Ken4lowEngine
 
 		auto& L = lods_[lodIndex];
 
-		TextureManager::GetInstance()->SetGraphicsRootDescriptorTable(commandList, 4, environmentMapHandle_); // t4: 環境マップ
+		TextureManager::GetInstance()->SetGraphicsRootDescriptorTable(commandList, 4, environmentMapHandle_); // t1: 環境マップ
+		commandList->SetGraphicsRootConstantBufferView(7, shadowParameterResource_->GetGPUVirtualAddress());
+		commandList->SetGraphicsRootDescriptorTable(8, shadowMapHandle_);
 
 		// VB/IB
 		if (skinningCS_.IsSkinningModel())

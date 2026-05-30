@@ -67,6 +67,7 @@ namespace Ken4lowEngine
 		commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
 		LightManager::GetInstance()->BindPunctualLights(5, 6);
+		LightManager::GetInstance()->BindLightingSettings(9);
 	}
 
 	/// ---------------------------------------------------------------
@@ -88,7 +89,7 @@ namespace Ken4lowEngine
 		D3D12_ROOT_SIGNATURE_DESC descriptionRootSignature{};
 		descriptionRootSignature.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
 
-		D3D12_STATIC_SAMPLER_DESC staticSamplers[1] = {};
+		D3D12_STATIC_SAMPLER_DESC staticSamplers[2] = {};
 		staticSamplers[0].Filter = D3D12_FILTER_MIN_MAG_MIP_LINEAR;
 		staticSamplers[0].AddressU = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
 		staticSamplers[0].AddressV = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
@@ -97,6 +98,17 @@ namespace Ken4lowEngine
 		staticSamplers[0].MaxLOD = D3D12_FLOAT32_MAX;
 		staticSamplers[0].ShaderRegister = 0;
 		staticSamplers[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+		staticSamplers[1] = {};
+		staticSamplers[1].Filter = D3D12_FILTER_COMPARISON_MIN_MAG_LINEAR_MIP_POINT;
+		staticSamplers[1].AddressU = D3D12_TEXTURE_ADDRESS_MODE_BORDER;
+		staticSamplers[1].AddressV = D3D12_TEXTURE_ADDRESS_MODE_BORDER;
+		staticSamplers[1].AddressW = D3D12_TEXTURE_ADDRESS_MODE_BORDER;
+		staticSamplers[1].ComparisonFunc = D3D12_COMPARISON_FUNC_LESS_EQUAL;
+		staticSamplers[1].BorderColor = D3D12_STATIC_BORDER_COLOR_OPAQUE_WHITE;
+		staticSamplers[1].MaxLOD = D3D12_FLOAT32_MAX;
+		staticSamplers[1].ShaderRegister = 1;
+		staticSamplers[1].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+
 		descriptionRootSignature.pStaticSamplers = staticSamplers;
 		descriptionRootSignature.NumStaticSamplers = _countof(staticSamplers);
 
@@ -118,7 +130,13 @@ namespace Ken4lowEngine
 		lightArrayRange.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
 		lightArrayRange.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
 
-		D3D12_ROOT_PARAMETER rootParameters[7] = {};
+		D3D12_DESCRIPTOR_RANGE shadowMapRange{};
+		shadowMapRange.BaseShaderRegister = 4;
+		shadowMapRange.NumDescriptors = 1;
+		shadowMapRange.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
+		shadowMapRange.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+
+		D3D12_ROOT_PARAMETER rootParameters[10] = {};
 
 		rootParameters[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
 		rootParameters[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
@@ -150,6 +168,20 @@ namespace Ken4lowEngine
 		rootParameters[6].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
 		rootParameters[6].DescriptorTable.pDescriptorRanges = &lightArrayRange;
 		rootParameters[6].DescriptorTable.NumDescriptorRanges = 1;
+
+		rootParameters[7].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
+		rootParameters[7].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
+		rootParameters[7].Descriptor.ShaderRegister = 4;
+
+		rootParameters[8].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+		rootParameters[8].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+		rootParameters[8].DescriptorTable.pDescriptorRanges = &shadowMapRange;
+		rootParameters[8].DescriptorTable.NumDescriptorRanges = 1;
+
+		// Skinning PS も Object3D と同じ Ambient/Exposure/Contrast/Fog を参照する。
+		rootParameters[9].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
+		rootParameters[9].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+		rootParameters[9].Descriptor.ShaderRegister = 5;
 
 		descriptionRootSignature.pParameters = rootParameters;
 		descriptionRootSignature.NumParameters = _countof(rootParameters);
