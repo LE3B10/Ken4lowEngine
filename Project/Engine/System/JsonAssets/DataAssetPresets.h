@@ -26,6 +26,22 @@ namespace Ken4lowEngine
 		float shadowNearZ = 0.1f;
 		float shadowFarZ = 120.0f;
 		uint32_t shadowFocusMode = 0;
+		Vector4 ambientColor = { 0.10f, 0.10f, 0.10f, 0.15f };
+		Vector4 fogColor = { 0.58f, 0.64f, 0.70f, 1.0f };
+		float exposure = 1.0f;
+		float contrast = 1.0f;
+		float fogStart = 45.0f;
+		float fogEnd = 140.0f;
+		uint32_t enableFog = 0;
+		float specularStrength = 0.08f;
+		float diffuseStrength = 1.0f;
+		float specularPowerScale = 1.0f;
+		float rimLightStrength = 0.0f;
+		float rimLightPower = 2.0f;
+		uint32_t enableRimLight = 0;
+		uint32_t enableHalfLambert = 0;
+		Vector4 rimLightColor = { 1.0f, 1.0f, 1.0f, 1.0f };
+		uint32_t shadingMode = 0;
 
 		void ToJson(nlohmann::json& outJson) const override;
 		void FromJson(const nlohmann::json& inJson) override;

@@ -83,7 +83,15 @@ namespace Ken4lowEngine
 			float fogEnd = 140.0f;
 			uint32_t enableFog = 0;
 			float specularStrength = 0.08f;
-			float pad[2] = {};
+			float diffuseStrength = 1.0f;
+			float specularPowerScale = 1.0f;
+			float rimLightStrength = 0.0f;
+			float rimLightPower = 2.0f;
+			uint32_t enableRimLight = 0;
+			uint32_t enableHalfLambert = 0;
+			Vector4 rimLightColor = { 1.0f, 1.0f, 1.0f, 1.0f };
+			uint32_t shadingMode = 0;
+			float pad[3] = {};
 		};
 
 	public: /// ---------- メンバ関数 ---------- ///

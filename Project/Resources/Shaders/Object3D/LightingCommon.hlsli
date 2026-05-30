@@ -13,6 +13,10 @@ static const uint LIGHT_TYPE_SPOT = 3;
 static const uint LIGHT_TYPE_RECT_AREA = 4;
 static const uint LIGHT_TYPE_SPHERE_AREA = 5;
 
+static const uint SHADING_MODE_NORMAL = 0;
+static const uint SHADING_MODE_HALF_LAMBERT = 1;
+static const uint SHADING_MODE_TOON_LIKE = 2;
+
 struct PunctualLight
 {
     uint lightType;
@@ -39,7 +43,15 @@ struct LightingSettings
     float fogEnd;
     uint enableFog;
     float specularStrength;
-    float2 padding;
+    float diffuseStrength;
+    float specularPowerScale;
+    float rimLightStrength;
+    float rimLightPower;
+    uint enableRimLight;
+    uint enableHalfLambert;
+    float4 rimLightColor;
+    uint shadingMode;
+    float3 padding;
 };
 
 struct LightingTerms
@@ -48,16 +60,47 @@ struct LightingTerms
     float3 specular;
 };
 
-float3 ComputeSpecular(float3 normal, float3 lightDir, float3 viewDir, float shininess)
+float CalculateDiffuseFactor(float3 normal, float3 lightDir, LightingSettings lightingSettings)
+{
+    float lambert = saturate(dot(normal, lightDir));
+
+    if (lightingSettings.shadingMode == SHADING_MODE_TOON_LIKE)
+    {
+        // ToonLikeはライト境界を段階化して、影の違和感をデバッグしやすくする。
+        return saturate(floor(lambert * 3.0f) / 2.0f);
+    }
+
+    if (lightingSettings.enableHalfLambert != 0 || lightingSettings.shadingMode == SHADING_MODE_HALF_LAMBERT)
+    {
+        float halfLambert = dot(normal, lightDir) * 0.5f + 0.5f;
+        return saturate(halfLambert * halfLambert);
+    }
+
+    return lambert;
+}
+
+float3 ComputeSpecular(float3 normal, float3 lightDir, float3 viewDir, float shininess, LightingSettings lightingSettings)
 {
     float3 halfVector = normalize(lightDir + viewDir);
     float NdotH = saturate(dot(normal, halfVector));
 
-    // ちょっとだけ扱いやすくする
-    float specPower = max(shininess, 4.0f);
+    // ImGuiからハイライト幅を補正してモデルごとの光沢差を吸収する。
+    float specPower = max(shininess * max(lightingSettings.specularPowerScale, 0.01f), 4.0f);
     float specular = pow(NdotH, specPower);
 
     return specular.xxx;
+}
+
+float3 ComputeRimLight(float3 normal, float3 viewDir, LightingSettings lightingSettings)
+{
+    if (lightingSettings.enableRimLight == 0)
+    {
+        return 0.0.xxx;
+    }
+
+    float rimBase = 1.0f - saturate(dot(normal, viewDir));
+    float rim = pow(rimBase, max(lightingSettings.rimLightPower, 0.01f)) * lightingSettings.rimLightStrength;
+    return lightingSettings.rimLightColor.rgb * rim * lightingSettings.rimLightColor.a;
 }
 
 LightingTerms MakeEmptyLightingTerms()
@@ -75,14 +118,14 @@ LightingTerms EvaluateDirectionalLight(
     float3 viewDir,
     ShadowParameter shadowParam,
     float shininess,
+    LightingSettings lightingSettings,
     Texture2D<float> shadowMap,
     SamplerComparisonState shadowSampler)
 {
     LightingTerms terms = MakeEmptyLightingTerms();
 
     float3 lightDir = normalize(-light.direction);
-    // 通常Lambertで面の向きによる明暗差を出す。
-    float NdotL = saturate(dot(normal, lightDir));
+    float NdotL = CalculateDiffuseFactor(normal, lightDir, lightingSettings);
     float3 lightColor = light.color.rgb * light.intensity;
 
     float shadow = CalculateShadow(
@@ -94,7 +137,7 @@ LightingTerms EvaluateDirectionalLight(
         shadowSampler);
 
     terms.diffuse = lightColor * NdotL * shadow;
-    terms.specular = lightColor * ComputeSpecular(normal, lightDir, viewDir, shininess) * shadow;
+    terms.specular = lightColor * ComputeSpecular(normal, lightDir, viewDir, shininess, lightingSettings) * shadow;
     return terms;
 }
 
@@ -103,7 +146,8 @@ LightingTerms EvaluatePointLight(
     float3 worldPosition,
     float3 normal,
     float3 viewDir,
-    float shininess)
+    float shininess,
+    LightingSettings lightingSettings)
 {
     LightingTerms terms = MakeEmptyLightingTerms();
 
@@ -116,11 +160,11 @@ LightingTerms EvaluatePointLight(
     float atten = pow(saturate(1.0f - d / range), max(light.decay, kMinRange)) * rangeMask;
 
     // ライト範囲外はDirect Lightを0にしてAmbientだけ残す。
-    float NdotL = saturate(dot(normal, lightDir));
+    float NdotL = CalculateDiffuseFactor(normal, lightDir, lightingSettings);
     float3 lightColor = light.color.rgb * (light.intensity * atten);
 
     terms.diffuse = lightColor * NdotL;
-    terms.specular = lightColor * ComputeSpecular(normal, lightDir, viewDir, shininess) * NdotL;
+    terms.specular = lightColor * ComputeSpecular(normal, lightDir, viewDir, shininess, lightingSettings) * NdotL;
     return terms;
 }
 
@@ -131,6 +175,7 @@ LightingTerms EvaluateSpotLight(
     float3 viewDir,
     ShadowParameter shadowParam,
     float shininess,
+    LightingSettings lightingSettings,
     Texture2D<float> shadowMap,
     SamplerComparisonState shadowSampler)
 {
@@ -148,17 +193,16 @@ LightingTerms EvaluateSpotLight(
     float ct = dot(-dir, lightDir);
     float spot = smoothstep(light.cosAngle, light.cosFalloffStart, ct) * step(light.cosAngle, ct);
 
-    // スポット光もHalf Lambertではなく通常Lambertを基本にする。
-    float NdotL = saturate(dot(normal, lightDir));
+    float NdotL = CalculateDiffuseFactor(normal, lightDir, lightingSettings);
     float3 lightColor = light.color.rgb * (light.intensity * atten * spot);
 
     float shadow = (shadowParam.shadowMode == 2) ? CalculateShadow(worldPosition, normal, lightDir, shadowParam, shadowMap, shadowSampler) : 1.0f;
     terms.diffuse = lightColor * NdotL * shadow;
-    terms.specular = lightColor * ComputeSpecular(normal, lightDir, viewDir, shininess) * NdotL * shadow;
+    terms.specular = lightColor * ComputeSpecular(normal, lightDir, viewDir, shininess, lightingSettings) * NdotL * shadow;
     return terms;
 }
 
-LightingTerms EvaluateRectAreaLightApprox(PunctualLight light, float3 worldPosition, float3 normal, float3 viewDir, float shininess)
+LightingTerms EvaluateRectAreaLightApprox(PunctualLight light, float3 worldPosition, float3 normal, float3 viewDir, float shininess, LightingSettings lightingSettings)
 {
     LightingTerms terms = MakeEmptyLightingTerms();
     float3 dir = normalize(light.direction);
@@ -176,10 +220,10 @@ LightingTerms EvaluateRectAreaLightApprox(PunctualLight light, float3 worldPosit
     float3 lightDir = toL / max(d, kMinLightLength);
     float range = max(light.distance, kMinRange);
     float atten = pow(saturate(1.0f - d / range), max(light.decay, kMinRange)) * step(d, range);
-    float NdotL = saturate(dot(normal, lightDir));
+    float NdotL = CalculateDiffuseFactor(normal, lightDir, lightingSettings);
     float3 lightColor = light.color.rgb * (light.intensity * atten);
     terms.diffuse = lightColor * NdotL;
-    terms.specular = lightColor * ComputeSpecular(normal, lightDir, viewDir, shininess) * NdotL;
+    terms.specular = lightColor * ComputeSpecular(normal, lightDir, viewDir, shininess, lightingSettings) * NdotL;
     return terms;
 }
 
@@ -215,6 +259,7 @@ float3 AccumulateLighting(
                 viewDir,
                 shadowParam,
                 shininess,
+                lightingSettings,
                 shadowMap,
                 shadowSampler);
             activeLightCount++;
@@ -227,7 +272,8 @@ float3 AccumulateLighting(
                 worldPosition,
                 normal,
                 viewDir,
-                shininess);
+                shininess,
+                lightingSettings);
             activeLightCount++;
         }
         else if (light.lightType == LIGHT_TYPE_SPOT)
@@ -239,13 +285,14 @@ float3 AccumulateLighting(
                 viewDir,
                 shadowParam,
                 shininess,
+                lightingSettings,
                 shadowMap,
                 shadowSampler);
             activeLightCount++;
         }
         else if (light.lightType == LIGHT_TYPE_RECT_AREA || light.lightType == LIGHT_TYPE_SPHERE_AREA)
         {
-            terms = EvaluateRectAreaLightApprox(light, worldPosition, normal, viewDir, shininess);
+            terms = EvaluateRectAreaLightApprox(light, worldPosition, normal, viewDir, shininess, lightingSettings);
             activeLightCount++;
         }
         else
@@ -257,11 +304,14 @@ float3 AccumulateLighting(
         specularSum += terms.specular;
     }
 
-    // CPUから渡したAmbientをそのまま使い、強すぎる環境光を調整できるようにする。
+    // CPUから渡したシェーディング係数で、Direct/Ambient/Rimをリアルタイム調整する。
     float3 ambient = lightingSettings.ambientColor.rgb * lightingSettings.ambientColor.a;
+    float3 direct = diffuseSum * lightingSettings.diffuseStrength;
+    float3 specular = specularSum * lightingSettings.specularStrength;
+    float3 rim = ComputeRimLight(normal, viewDir, lightingSettings);
 
     // ライト0本時だけ旧挙動に近い明るさを残し、ライトありではAmbientを明示値に抑える。
-    return (activeLightCount == 0) ? 1.0.xxx : (ambient + diffuseSum + specularSum * lightingSettings.specularStrength);
+    return (activeLightCount == 0) ? 1.0.xxx : (ambient + direct + specular + rim);
 }
 
 float3 ApplySimpleToneMapping(float3 color, LightingSettings lightingSettings)
