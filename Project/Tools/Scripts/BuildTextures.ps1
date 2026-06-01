@@ -2,7 +2,9 @@
     [string]$ProjectDir = ".",
     [string]$Configuration = "Debug",
     [string]$Platform = "x64",
-    [int]$MipLevel = 0
+    [int]$MipLevel = 0,
+    [switch]$Force,
+    [int]$BuildVersion = 2
 )
 
 $ErrorActionPreference = "Stop"
@@ -48,6 +50,77 @@ function Test-PixelArtTexture {
            $fileName.EndsWith("_nomip")
 }
 
+
+function Get-BuildMetaPath {
+    param(
+        [string]$OutputPath
+    )
+
+    return ($OutputPath + ".buildmeta.json")
+}
+
+function Test-TextureBuildRequired {
+    param(
+        [System.IO.FileInfo]$SourceFile,
+        [string]$OutputPath,
+        [string]$MetaPath,
+        [int]$MipLevel,
+        [bool]$DisableMipMap,
+        [string]$ConverterPath,
+        [int]$BuildVersion,
+        [bool]$Force
+    )
+
+    # 変換済み・設定一致・元ファイル未更新なら TextureConverter を呼ばない。
+    if ($Force) { return "Force rebuild" }
+    if (!(Test-Path $OutputPath)) { return "Missing output" }
+    if (!(Test-Path $MetaPath)) { return "Missing metadata" }
+
+    try {
+        $meta = Get-Content -Path $MetaPath -Raw -Encoding UTF8 | ConvertFrom-Json
+    }
+    catch {
+        return "Broken metadata"
+    }
+
+    $converterFile = Get-Item $ConverterPath
+
+    if ([int]$meta.BuildVersion -ne $BuildVersion) { return "BuildVersion changed" }
+    if ([string]$meta.SourceLastWriteUtc -ne $SourceFile.LastWriteTimeUtc.ToString("o")) { return "Source timestamp changed" }
+    if ([int64]$meta.SourceSizeBytes -ne [int64]$SourceFile.Length) { return "Source size changed" }
+    if ([int]$meta.MipLevel -ne $MipLevel) { return "MipLevel changed" }
+    if ([bool]$meta.DisableMipMap -ne $DisableMipMap) { return "DisableMipMap changed" }
+    if ([string]$meta.ConverterLastWriteUtc -ne $converterFile.LastWriteTimeUtc.ToString("o")) { return "Converter changed" }
+
+    return $null
+}
+
+function Write-TextureBuildMeta {
+    param(
+        [System.IO.FileInfo]$SourceFile,
+        [string]$OutputPath,
+        [string]$MetaPath,
+        [int]$MipLevel,
+        [bool]$DisableMipMap,
+        [string]$ConverterPath,
+        [int]$BuildVersion
+    )
+
+    $converterFile = Get-Item $ConverterPath
+    $meta = [ordered]@{
+        BuildVersion          = $BuildVersion
+        SourcePath            = $SourceFile.FullName
+        OutputPath            = $OutputPath
+        SourceLastWriteUtc    = $SourceFile.LastWriteTimeUtc.ToString("o")
+        SourceSizeBytes       = $SourceFile.Length
+        MipLevel              = $MipLevel
+        DisableMipMap         = $DisableMipMap
+        ConverterLastWriteUtc = $converterFile.LastWriteTimeUtc.ToString("o")
+    }
+
+    $meta | ConvertTo-Json -Depth 4 | Set-Content -Path $MetaPath -Encoding UTF8
+}
+
 function Invoke-TextureConverter {
     param(
         [string]$ExePath,
@@ -90,6 +163,8 @@ Write-Host "[BuildTextures] ProjectDir    : $ProjectDir"
 Write-Host "[BuildTextures] Configuration : $Configuration"
 Write-Host "[BuildTextures] Platform      : $Platform"
 Write-Host "[BuildTextures] MipLevel      : $MipLevel"
+Write-Host "[BuildTextures] Force         : $Force"
+Write-Host "[BuildTextures] BuildVersion  : $BuildVersion"
 
 try {
     $ProjectDir = (Resolve-Path $ProjectDir).Path
@@ -159,6 +234,7 @@ Write-Host "[BuildTextures] Source file count: $($sourceFiles.Count)"
 $successCount = 0
 $skipCount = 0
 $copyCount = 0
+$upToDateCount = 0
 
 foreach ($file in $sourceFiles) {
     $ext = $_ = $null
@@ -183,6 +259,15 @@ foreach ($file in $sourceFiles) {
     # DDS はそのままコピー
     # --------------------------------------------------------
     if ($copyExtensions -contains $ext) {
+        if ((Test-Path $finalOutputPath) -and -not $Force) {
+            $outFile = Get-Item $finalOutputPath
+            if ($outFile.LastWriteTimeUtc -ge $file.LastWriteTimeUtc -and $outFile.Length -eq $file.Length) {
+                Write-Host "[BuildTextures] Skip DDS: $relative"
+                $upToDateCount++
+                continue
+            }
+        }
+
         Write-Host "[BuildTextures] Copy DDS: $relative"
         Copy-Item -Path $file.FullName -Destination $finalOutputPath -Force
         $copyCount++
@@ -196,15 +281,33 @@ foreach ($file in $sourceFiles) {
     $sourceBaseName = [System.IO.Path]::GetFileNameWithoutExtension($file.Name)
     $generatedDdsPath = Join-Path $sourceDir ($sourceBaseName + ".dds")
 
+    $isPixelArt = Test-PixelArtTexture -RelativePath $relative
+    $metaPath = Get-BuildMetaPath -OutputPath $finalOutputPath
+    $buildReason = Test-TextureBuildRequired `
+        -SourceFile $file `
+        -OutputPath $finalOutputPath `
+        -MetaPath $metaPath `
+        -MipLevel $MipLevel `
+        -DisableMipMap $isPixelArt `
+        -ConverterPath $textureConverterExe `
+        -BuildVersion $BuildVersion `
+        -Force $Force
+
+    if ($null -eq $buildReason) {
+        Write-Host "[BuildTextures] Skip: $relative"
+        $upToDateCount++
+        continue
+    }
+
     if (Test-Path $generatedDdsPath) {
         Remove-Item $generatedDdsPath -Force
     }
 
     # PNG→DDS の最終配置先も出し、Sources と Compiled の対応を追跡できるようにする。
     Write-Host "[BuildTextures] Convert: $relative"
+    Write-Host "[BuildTextures] Reason : $buildReason"
     Write-Host "[BuildTextures] Output : $finalOutputPath"
 
-    $isPixelArt = Test-PixelArtTexture -RelativePath $relative
     if ($isPixelArt) {
         Write-Host "[BuildTextures] PixelArt(no mip): $relative"
     }
@@ -228,8 +331,16 @@ foreach ($file in $sourceFiles) {
     }
 
     Move-Item -Path $generatedDdsPath -Destination $finalOutputPath -Force
+    Write-TextureBuildMeta `
+        -SourceFile $file `
+        -OutputPath $finalOutputPath `
+        -MetaPath $metaPath `
+        -MipLevel $MipLevel `
+        -DisableMipMap $isPixelArt `
+        -ConverterPath $textureConverterExe `
+        -BuildVersion $BuildVersion
     $successCount++
 }
 
-Write-Host "[BuildTextures] Texture conversion completed. Converted=$successCount CopiedDDS=$copyCount Skip=$skipCount"
+Write-Host "[BuildTextures] Texture conversion completed. Converted=$successCount CopiedDDS=$copyCount UpToDate=$upToDateCount Skip=$skipCount"
 exit 0
