@@ -1,6 +1,10 @@
 #include "DataAssetPresets.h"
 
+#include "SkyBox.h"
 #include "Sprite.h"
+
+#include <algorithm>
+#include <utility>
 
 namespace Ken4lowEngine
 {
@@ -14,6 +18,84 @@ namespace Ken4lowEngine
 		void FromJ(const nlohmann::json& j, Vector4& v) { if (j.is_array() && j.size() >= 4) { v.x = j[0].get<float>(); v.y = j[1].get<float>(); v.z = j[2].get<float>(); v.w = j[3].get<float>(); } }
 	}
 #define READ_NUM(name) if(inJson.contains(#name)){ name = inJson[#name].get<decltype(name)>(); }
+	void SkyBoxPreset::ToJson(nlohmann::json& outJson) const
+	{
+		outJson = {
+			{"name",name},
+			{"enabled",enabled},
+			{"texturePath",texturePath},
+			{"rotation",ToJ(rotation)},
+			{"scale",ToJ(scale)},
+			{"brightness",brightness},
+			{"tintColor",ToJ(tintColor)}
+		};
+	}
+
+	void SkyBoxPreset::FromJson(const nlohmann::json& inJson)
+	{
+		if (inJson.contains("name")) name = inJson["name"].get<std::string>();
+		READ_NUM(enabled);
+		if (inJson.contains("texturePath")) texturePath = inJson["texturePath"].get<std::string>();
+		FromJ(inJson.value("rotation", nlohmann::json::array()), rotation);
+		FromJ(inJson.value("scale", nlohmann::json::array()), scale);
+		READ_NUM(brightness);
+		FromJ(inJson.value("tintColor", nlohmann::json::array()), tintColor);
+	}
+
+	SkyBoxPreset* SkyBoxPresetCollection::FindActivePreset()
+	{
+		auto it = std::find_if(presets.begin(), presets.end(), [this](const SkyBoxPreset& preset) { return preset.name == activePresetName; });
+		return it != presets.end() ? &(*it) : nullptr;
+	}
+
+	const SkyBoxPreset* SkyBoxPresetCollection::FindActivePreset() const
+	{
+		auto it = std::find_if(presets.begin(), presets.end(), [this](const SkyBoxPreset& preset) { return preset.name == activePresetName; });
+		return it != presets.end() ? &(*it) : nullptr;
+	}
+
+	void SkyBoxPresetCollection::ToJson(nlohmann::json& outJson) const
+	{
+		outJson = nlohmann::json::object();
+		outJson["activePresetName"] = activePresetName;
+		outJson["presets"] = nlohmann::json::array();
+		for (const SkyBoxPreset& preset : presets)
+		{
+			nlohmann::json presetJson;
+			preset.ToJson(presetJson);
+			outJson["presets"].push_back(presetJson);
+		}
+	}
+
+	void SkyBoxPresetCollection::FromJson(const nlohmann::json& inJson)
+	{
+		if (inJson.contains("activePresetName")) activePresetName = inJson["activePresetName"].get<std::string>();
+		if (inJson.contains("presets") && inJson["presets"].is_array())
+		{
+			std::vector<SkyBoxPreset> loadedPresets;
+			for (const auto& presetJson : inJson["presets"])
+			{
+				SkyBoxPreset preset;
+				preset.FromJson(presetJson);
+				loadedPresets.push_back(preset);
+			}
+			if (!loadedPresets.empty()) presets = std::move(loadedPresets);
+		}
+		if (!FindActivePreset() && !presets.empty()) activePresetName = presets.front().name;
+	}
+
+	void ApplySkyBoxPreset(SkyBox& skyBox, const SkyBoxPreset& preset, bool reloadTexture)
+	{
+		skyBox.SetTexture(preset.texturePath, reloadTexture);
+		skyBox.GetWorldTransform().rotate_ = preset.rotation;
+		skyBox.GetWorldTransform().scale_ = preset.scale;
+		skyBox.SetColor({
+			preset.tintColor.x * preset.brightness,
+			preset.tintColor.y * preset.brightness,
+			preset.tintColor.z * preset.brightness,
+			preset.tintColor.w
+		});
+	}
 	void LightPreset::ToJson(nlohmann::json& outJson) const
 	{
 		outJson = {

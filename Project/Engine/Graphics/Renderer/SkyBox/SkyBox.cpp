@@ -20,10 +20,7 @@ namespace Ken4lowEngine
 		camera_ = CameraManager::GetInstance()->GetMainCamera();
 
 		// 環境テクスチャを読み込む
-		TextureManager::GetInstance()->LoadTexture(filePath);
-
-		// 読み込んだテクスチャの SRV index を保存する
-		textureIndex_ = TextureManager::GetInstance()->GetSrvIndex(filePath);
+		SetTexture(filePath);
 
 		// SkyBox は十分大きなキューブとして配置する
 		worldTransform_.scale_ = { 10000.0f, 10000.0f, 10000.0f };
@@ -91,6 +88,35 @@ namespace Ken4lowEngine
 
 		// キューブをインデックス描画する
 		commandList->DrawIndexedInstanced(kNumIndex, 1, 0, 0, 0);
+	}
+
+	void SkyBox::SetTexture(const std::string& filePath, bool reloadTexture)
+	{
+		if (filePath.empty())
+		{
+			return;
+		}
+
+		TextureManager* textureManager = TextureManager::GetInstance();
+		if (reloadTexture)
+		{
+			textureManager->ReloadTexture(filePath);
+		}
+		else
+		{
+			textureManager->LoadTexture(filePath);
+		}
+		texturePath_ = filePath;
+		textureIndex_ = textureManager->GetSrvIndex(filePath);
+		gpuHandle_ = textureManager->GetSrvHandleGPU(filePath);
+	}
+
+	void SkyBox::SetColor(const Vector4& color)
+	{
+		if (materialData_)
+		{
+			materialData_->color = color;
+		}
 	}
 
 	/// -------------------------------------------------------------

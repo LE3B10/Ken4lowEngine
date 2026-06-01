@@ -128,6 +128,13 @@ namespace Ken4lowEngine
 		WorldTransform& GetWorldTransform() { return worldTransform_; }
 		void SetWorldTransform(const WorldTransform& worldTransform) { worldTransform_ = worldTransform; }
 
+		/// 環境テクスチャを切り替え、必要に応じてディスクから再読み込みする。
+		void SetTexture(const std::string& filePath, bool reloadTexture = false);
+		const std::string& GetTexturePath() const { return texturePath_; }
+
+		/// 色味と明るさを合成した描画色を設定する。
+		void SetColor(const Vector4& color);
+
 	private: /// ---------- 内部メンバ関数 ---------- ///
 
 		/// <summary>
@@ -187,6 +194,9 @@ namespace Ken4lowEngine
 
 		/// 使用中の環境テクスチャ index
 		uint32_t textureIndex_ = 0;
+
+		/// 使用中の環境テクスチャパス
+		std::string texturePath_;
 	};
 
 } // namespace Ken4lowEngine

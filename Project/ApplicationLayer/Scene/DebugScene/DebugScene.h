@@ -12,7 +12,9 @@
 #include "Vector3.h"
 #include "Vector4.h"
 #include "Stage.h"
+#include "DataAssetPresets.h"
 
+#include <array>
 #include <memory>
 #include <string>
 #include <vector>
@@ -20,6 +22,7 @@
 /// ---------- 前方宣言 ---------- ///
 namespace Ken4lowEngine { class DirectXCommon; }
 namespace Ken4lowEngine { class Input; }
+namespace Ken4lowEngine { class SkyBox; }
 namespace K4E = ::Ken4lowEngine;
 
 /// -------------------------------------------------------------
@@ -72,6 +75,13 @@ private: /// ---------- メンバ関数 ---------- ///
 	// カリング確認用 Object3D を初期化
 	void InitializeCullingTestObjects();
 
+	// SkyBox 設定はファイル欠落時だけ既定値へフォールバックする。
+	void InitializeSkyBox();
+	void ApplyActiveSkyBoxPreset(bool reloadTexture = false);
+	bool LoadSkyBoxPresets();
+	bool SaveSkyBoxPresets();
+	void DrawSkyBoxImGui();
+
 	/// -------------------------------------------------------------
 	/// BossHitPart を文字列へ変換
 	/// ログ確認用
@@ -93,6 +103,11 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	// ステージ確認用（見た目＋衝突）
 	std::unique_ptr<K4E::Stage> stage_;
+
+	std::unique_ptr<K4E::SkyBox> skyBox_;
+	K4E::SkyBoxPresetCollection skyBoxPresets_{};
+	std::array<char, 256> skyBoxTexturePathBuffer_{};
+	std::string skyBoxPresetLog_ = "SkyBox設定は未読み込みです。";
 
 	// --- 仮ヒット確認用パラメータ ---
 	bool debugBossHitTestEnabled_ = true; // 仮ヒット確認ON/OFF
