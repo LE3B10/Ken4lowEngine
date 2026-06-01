@@ -1,8 +1,6 @@
 #pragma once
 
 #include "Vector3.h"
-class MidRangeBombEffectController;
-
 struct BombProjectileSettings
 {
     // 追加: 距離に応じた初速調整の基本値。
@@ -42,7 +40,6 @@ public:
     void Draw() const;
     void Explode();
     bool IsAlive() const;
-    void SetEffectController(MidRangeBombEffectController* effectController);
 
 private:
     Ken4lowEngine::Vector3 position_{};
@@ -51,8 +48,6 @@ private:
     BombProjectileSettings settings_{};
     float lifeTimer_ = 0.0f;
     float explosionDrawTimer_ = 0.0f;
-    float trailEffectTimer_ = 0.0f;
     bool exploded_ = false;
     bool alive_ = false;
-    MidRangeBombEffectController* effectController_ = nullptr;
 };
