@@ -907,9 +907,6 @@
     <ClCompile Include="Engine\System\JsonAssets\JsonEditorWindow.cpp">
       <Filter>ApplicationLayer</Filter>
     </ClCompile>
-    <ClCompile Include="ApplicationLayer\Character\Enemy\Effects\MidRangeBombEffectController.cpp">
-      <Filter>ApplicationLayer</Filter>
-    </ClCompile>
     <ClCompile Include="ApplicationLayer\Character\Enemy\Projectile\MidRangeBombProjectile.cpp">
       <Filter>ApplicationLayer</Filter>
     </ClCompile>
@@ -1939,9 +1936,6 @@
       <Filter>ApplicationLayer</Filter>
     </ClInclude>
     <ClInclude Include="Engine\System\JsonAssets\JsonSerializable.h">
-      <Filter>ApplicationLayer</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Character\Enemy\Effects\MidRangeBombEffectController.h">
       <Filter>ApplicationLayer</Filter>
     </ClInclude>
     <ClInclude Include="ApplicationLayer\Character\Enemy\Projectile\MidRangeBombProjectile.h">

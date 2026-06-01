@@ -133,7 +133,6 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClCompile Include="ApplicationLayer\Character\Boss\Attacks\BossHeavyPunchAttack.cpp" />
     <ClCompile Include="ApplicationLayer\Character\Boss\Animations\BossPunchAttackAnimation.cpp" />
     <ClCompile Include="ApplicationLayer\Character\Boss\Animations\BossHeavyPunchAttackAnimation.cpp" />
-    <ClCompile Include="ApplicationLayer\Character\Enemy\Effects\MidRangeBombEffectController.cpp" />
     <ClCompile Include="ApplicationLayer\Character\Enemy\HPBar\EnemyHPBar.cpp" />
     <ClCompile Include="ApplicationLayer\Character\Enemy\HPBar\EnemyHPBarManager.cpp" />
     <ClCompile Include="ApplicationLayer\Character\Enemy\HPBar\EnemyHPBarProjector.cpp" />
@@ -720,7 +719,6 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="ApplicationLayer\Character\Boss\Attacks\BossHeavyPunchAttack.h" />
     <ClInclude Include="ApplicationLayer\Character\Boss\Animations\BossPunchAttackAnimation.h" />
     <ClInclude Include="ApplicationLayer\Character\Boss\Animations\BossHeavyPunchAttackAnimation.h" />
-    <ClInclude Include="ApplicationLayer\Character\Enemy\Effects\MidRangeBombEffectController.h" />
     <ClInclude Include="ApplicationLayer\Character\Enemy\HPBar\EnemyHPBar.h" />
     <ClInclude Include="ApplicationLayer\Character\Enemy\HPBar\EnemyHPBarManager.h" />
     <ClInclude Include="ApplicationLayer\Character\Enemy\HPBar\EnemyHPBarProjector.h" />

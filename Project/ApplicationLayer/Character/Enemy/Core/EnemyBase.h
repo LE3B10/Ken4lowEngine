@@ -133,6 +133,7 @@ public:
 	const PartIndices& GetPartIndices() const { return partIndices_; }
 
 	void SetParticleEffectSystem(EnemyParticleEffectSystem* effectSystem) { particleEffectSystem_ = effectSystem; }
+	void SetParticleEffectsEnabled(bool enabled) { particleEffectsEnabled_ = enabled; }
 
 	void SpawnHitEffectAt(const K4E::Vector3& worldPos);
 
@@ -226,6 +227,7 @@ protected:
 	std::vector<DeathPiece> deathPieces_;
 
 	EnemyParticleEffectSystem* particleEffectSystem_ = nullptr;
+	bool particleEffectsEnabled_ = true;
 
 private:
 	static const std::vector<K4E::AABB>* g_worldAABBs_;

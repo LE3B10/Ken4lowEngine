@@ -405,7 +405,7 @@ void EnemyBase::SetGlobalStageNavigationObstacleAABBs(const std::vector<K4E::AAB
 
 void EnemyBase::SpawnHitEffectAt(const K4E::Vector3& worldPos)
 {
-	if (!particleEffectSystem_)
+	if (!particleEffectsEnabled_ || !particleEffectSystem_)
 	{
 		return;
 	}
@@ -419,7 +419,7 @@ void EnemyBase::SpawnHitEffectAt(const K4E::Vector3& worldPos)
 void EnemyBase::OnKilled()
 {
 	// 死亡パーティクル
-	if (particleEffectSystem_)
+	if (particleEffectsEnabled_ && particleEffectSystem_)
 	{
 		particleEffectSystem_->SpawnDeathEffect(GetCenterPosition());
 	}
@@ -695,7 +695,7 @@ void EnemyBase::OnBulletHit(Collider* bulletCollider)
 	}
 
 	// 被弾パーティクル
-	if (particleEffectSystem_)
+	if (particleEffectsEnabled_ && particleEffectSystem_)
 	{
 		particleEffectSystem_->SpawnHitEffect(hitPos);
 	}
