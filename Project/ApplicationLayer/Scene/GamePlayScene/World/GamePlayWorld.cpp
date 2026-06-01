@@ -7,6 +7,7 @@
 
 #include "LightManager.h"
 #include "SkyBoxManager.h"
+#include "JsonDataManager.h"
 #include "Wireframe.h"
 #include "Player.h"
 #include "EnemyBase.h"
@@ -36,6 +37,16 @@ void GamePlayWorld::Initialize(GamePlayStageContext& stageContext)
 
 	skyBox_ = std::make_unique<K4E::SkyBox>();
 	skyBox_->Initialize("SkyBox/skybox.dds");
+	K4E::JsonAssetEntry skyBoxPresetEntry;
+	if (K4E::JsonDataManager::SafeLoad("Resources/DataAssets/SkyBoxPresets/debug_skybox.json", skyBoxPresetEntry))
+	{
+		skyBoxPresets_.FromJson(skyBoxPresetEntry.data);
+		if (const K4E::SkyBoxPreset* skyBoxPreset = skyBoxPresets_.FindActivePreset())
+		{
+			// GamePlayでもJSONの雲パスを適用し、変換済みDDSが実描画へ到達するようにする。
+			K4E::ApplySkyBoxPreset(*skyBox_, *skyBoxPreset);
+		}
+	}
 
 	collisionManager_ = std::make_unique<CollisionManager>();
 	collisionManager_->Initialize();
@@ -200,6 +211,7 @@ void GamePlayWorld::Update(float deltaTime)
 	if (skyBox_)
 	{
 		skyBox_->Update();
+		skyBox_->AdvanceCloudLayer(deltaTime);
 	}
 
 	if (auto* player = characters_.GetPlayer())
@@ -320,6 +332,7 @@ void GamePlayWorld::UpdateEquipIntro(float deltaTime)
 	if (skyBox_)
 	{
 		skyBox_->Update();
+		skyBox_->AdvanceCloudLayer(deltaTime);
 	}
 }
 
@@ -329,6 +342,7 @@ void GamePlayWorld::Draw3D(bool hideCharactersDuringIntro)
 	if (skyBox_)
 	{
 		skyBox_->Draw();
+		skyBox_->DrawCloudLayer();
 	}
 
 	if (!hideCharactersDuringIntro)

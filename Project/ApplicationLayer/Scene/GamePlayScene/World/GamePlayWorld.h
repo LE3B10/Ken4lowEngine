@@ -7,6 +7,7 @@
 #include "Stage.h"
 #include "StageObjectiveManager.h"
 #include <SkyBox.h>
+#include "DataAssetPresets.h"
 #include "EnemyHPBarManager.h"
 #include "ItemManager.h"
 
@@ -90,6 +91,7 @@ private: /// ---------- メンバ変数 ---------- ///
 	CharacterWorld characters_;
 
 	std::unique_ptr<K4E::SkyBox> skyBox_ = nullptr;
+	K4E::SkyBoxPresetCollection skyBoxPresets_{};
 	std::unique_ptr<K4E::Stage> stage_ = nullptr;
 	std::unique_ptr<WaveManager> waveManager_ = nullptr;
 	std::unique_ptr<HUDManager> hudManager_ = nullptr;

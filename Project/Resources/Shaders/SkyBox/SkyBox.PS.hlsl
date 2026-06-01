@@ -24,6 +24,7 @@ struct Material
 static const uint textureCount = 1024;
 ConstantBuffer<Material> gMaterial : register(b0);
 TextureCube<float4> gTexture[textureCount] : register(t0);
+Texture2D<float4> gCloudTexture[textureCount] : register(t1024);
 SamplerState gSampler : register(s0);
 
 PixelShaderOutput main(VertexShaderOutput input)
@@ -48,12 +49,18 @@ PixelShaderOutput main(VertexShaderOutput input)
     }
     else
     {
-        float angle = gMaterial.uvOffset.x * 6.2831853f;
-        float cosine = cos(angle);
-        float sine = sin(angle);
-        float3 cloudDirection = float3(direction.x * cosine - direction.z * sine, direction.y, direction.x * sine + direction.z * cosine);
-        cloudDirection.y = cloudDirection.y * max(gMaterial.cloudScale, 0.001f) + gMaterial.uvOffset.y + gMaterial.cloudHeight * 0.0001f;
-        output.color = gTexture[gMaterial.textureIndex].Sample(gSampler, cloudDirection) * gMaterial.color;
+        if (gMaterial.skyType == 3)
+        {
+            float2 cloudUv;
+            cloudUv.x = atan2(direction.z, direction.x) / 6.2831853f + 0.5f;
+            cloudUv.y = acos(clamp(direction.y, -1.0f, 1.0f)) / 3.1415927f;
+            cloudUv = frac((cloudUv - 0.5f) * max(gMaterial.cloudScale, 0.001f) + 0.5f + gMaterial.uvOffset + float2(0.0f, gMaterial.cloudHeight * 0.0001f));
+            output.color = gCloudTexture[gMaterial.textureIndex].Sample(gSampler, cloudUv) * gMaterial.color;
+        }
+        else
+        {
+            output.color = gTexture[gMaterial.textureIndex].Sample(gSampler, direction) * gMaterial.color;
+        }
     }
     return output;
 }

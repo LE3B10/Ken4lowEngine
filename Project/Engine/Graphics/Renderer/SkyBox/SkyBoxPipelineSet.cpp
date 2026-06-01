@@ -33,18 +33,22 @@ namespace Ken4lowEngine
 		/// [0] PS b0 : Material
 		/// [1] VS b0 : TransformationMatrix
 		/// [2] PS t0 : 環境テクスチャ SRV テーブル
+		/// [3] PS t1024 : 2D 雲テクスチャ SRV テーブル
 		/// </summary>
-		D3D12_ROOT_SIGNATURE_DESC MakeSkyBoxRootSignatureDesc(D3D12_DESCRIPTOR_RANGE* descriptorRange, D3D12_ROOT_PARAMETER* rootParameters, D3D12_STATIC_SAMPLER_DESC* staticSampler)
+		D3D12_ROOT_SIGNATURE_DESC MakeSkyBoxRootSignatureDesc(D3D12_DESCRIPTOR_RANGE* descriptorRanges, D3D12_ROOT_PARAMETER* rootParameters, D3D12_STATIC_SAMPLER_DESC* staticSampler)
 		{
-			assert(descriptorRange != nullptr);
+			assert(descriptorRanges != nullptr);
 			assert(rootParameters != nullptr);
 			assert(staticSampler != nullptr);
 
-			descriptorRange[0] = {};
-			descriptorRange[0].BaseShaderRegister = 0;
-			descriptorRange[0].NumDescriptors = SRVManager::GetInstance()->GetkMaxSRVCount();
-			descriptorRange[0].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
-			descriptorRange[0].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+			descriptorRanges[0] = {};
+			descriptorRanges[0].BaseShaderRegister = 0;
+			descriptorRanges[0].NumDescriptors = SRVManager::GetInstance()->GetkMaxSRVCount();
+			descriptorRanges[0].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
+			descriptorRanges[0].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+
+			descriptorRanges[1] = descriptorRanges[0];
+			descriptorRanges[1].BaseShaderRegister = SRVManager::GetInstance()->GetkMaxSRVCount();
 
 			rootParameters[0] = {};
 			rootParameters[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
@@ -59,8 +63,11 @@ namespace Ken4lowEngine
 			rootParameters[2] = {};
 			rootParameters[2].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
 			rootParameters[2].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
-			rootParameters[2].DescriptorTable.pDescriptorRanges = descriptorRange;
+			rootParameters[2].DescriptorTable.pDescriptorRanges = &descriptorRanges[0];
 			rootParameters[2].DescriptorTable.NumDescriptorRanges = 1;
+
+			rootParameters[3] = rootParameters[2];
+			rootParameters[3].DescriptorTable.pDescriptorRanges = &descriptorRanges[1];
 
 			*staticSampler = {};
 			staticSampler->Filter = D3D12_FILTER_MIN_MAG_MIP_LINEAR;
@@ -74,7 +81,7 @@ namespace Ken4lowEngine
 
 			D3D12_ROOT_SIGNATURE_DESC desc{};
 			desc.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
-			desc.NumParameters = 3;
+			desc.NumParameters = 4;
 			desc.pParameters = rootParameters;
 			desc.NumStaticSamplers = 1;
 			desc.pStaticSamplers = staticSampler;
@@ -122,11 +129,11 @@ namespace Ken4lowEngine
 		ComPtr<IDxcBlob> vertexShaderBlob = ShaderCompiler::CompileShader(vsDesc, dxcManager);
 		ComPtr<IDxcBlob> pixelShaderBlob = ShaderCompiler::CompileShader(psDesc, dxcManager);
 
-		D3D12_DESCRIPTOR_RANGE descriptorRange{};
-		D3D12_ROOT_PARAMETER rootParameters[3]{};
+		D3D12_DESCRIPTOR_RANGE descriptorRanges[2]{};
+		D3D12_ROOT_PARAMETER rootParameters[4]{};
 		D3D12_STATIC_SAMPLER_DESC staticSampler{};
 
-		D3D12_ROOT_SIGNATURE_DESC rootSigDesc = MakeSkyBoxRootSignatureDesc(&descriptorRange, rootParameters, &staticSampler);
+		D3D12_ROOT_SIGNATURE_DESC rootSigDesc = MakeSkyBoxRootSignatureDesc(descriptorRanges, rootParameters, &staticSampler);
 
 		GraphicsPipelineDesc desc = MakeBaseSkyBoxDesc(rtvFormat, dsvFormat, inputLayout);
 		desc.debugName = L"SkyBox.Default";

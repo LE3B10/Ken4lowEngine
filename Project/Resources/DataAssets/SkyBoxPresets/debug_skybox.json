@@ -15,8 +15,8 @@
         "scale": [10000.0, 10000.0, 10000.0],
         "tintColor": [1.0, 1.0, 1.0, 1.0],
         "cloud": {
-          "enabled": false,
-          "texturePath": "",
+          "enabled": true,
+          "texturePath": "SkyBox/Cloud.dds",
           "height": 160.0,
           "scale": 1.5,
           "scrollSpeed": [0.002, 0.0005],

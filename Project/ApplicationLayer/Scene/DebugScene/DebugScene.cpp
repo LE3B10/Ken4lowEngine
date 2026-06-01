@@ -901,7 +901,9 @@ void DebugScene::DrawSkyBoxImGui()
 		if (ImGui::Button("Apply Cloud Texture Path")) { preset->cloud.texturePath = cloudTexturePathBuffer_.data(); ApplyActiveSkyBoxPreset(); }
 		ImGui::SameLine();
 		if (ImGui::Button("Reload Cloud Texture")) { preset->cloud.texturePath = cloudTexturePathBuffer_.data(); ApplyActiveSkyBoxPreset(true); }
-		ImGui::TextWrapped("Cloud Texture Path / Reload: 透過を持つシンプルな雲用Cubeテクスチャを変更、再読み込みします。");
+		ImGui::TextWrapped("Cloud Texture Path / Reload: 透過を持つシンプルな雲用2Dテクスチャを変更、再読み込みします。");
+		ImGui::Text("Actual Cloud DDS: Resources/Textures/Compiled/%s", skyBox_->GetCloudTexturePath().c_str());
+		ImGui::Text("Cloud Load Result: enabled=%s available=%s srvIndex=%u", skyBox_->IsCloudEnabled() ? "true" : "false", skyBox_->IsCloudTextureAvailable() ? "true" : "false", skyBox_->GetCloudTextureIndex());
 		if (ImGui::DragFloat("Cloud Height", &preset->cloud.height, 1.0f, 0.0f, 10000.0f)) ApplyActiveSkyBoxPreset();
 		ImGui::TextWrapped("Cloud Height: 雲レイヤーの見かけ上の高さを調整します。");
 		if (ImGui::DragFloat("Cloud Scale", &preset->cloud.scale, 0.01f, 0.01f, 20.0f)) ApplyActiveSkyBoxPreset();

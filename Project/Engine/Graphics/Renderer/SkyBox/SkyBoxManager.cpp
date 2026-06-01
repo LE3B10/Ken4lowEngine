@@ -35,6 +35,8 @@ namespace Ken4lowEngine
 			commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 			SRVManager::GetInstance()->PreDraw();
 			SRVManager::GetInstance()->SetGraphicsRootDescriptorTable(2, 0);
+			// PNG 由来の雲 DDS は 2D SRV のため、CubeMap と分離したテーブルへ同じヒープ先頭を公開する。
+			SRVManager::GetInstance()->SetGraphicsRootDescriptorTable(3, 0);
 		}
 	}
 
