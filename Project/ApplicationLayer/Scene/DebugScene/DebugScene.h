@@ -15,6 +15,7 @@
 #include "DataAssetPresets.h"
 
 #include <array>
+#include <cstddef>
 #include <memory>
 #include <string>
 #include <vector>
@@ -72,6 +73,11 @@ private: /// ---------- メンバ関数 ---------- ///
 	// 近接敵同士のXZ分離をまとめて解決する
 	void ResolveMeleeEnemySeparation(float deltaTime);
 
+	// 大量敵の負荷検証用に、ImGuiから生成数を調整できるようにする。
+	void ApplyEnemyStressTestCounts();
+	void ClearStressTestEnemies();
+	K4E::Vector3 GetStressTestEnemyPosition(size_t index, bool isMidRange) const;
+
 	// SkyBox 設定はファイル欠落時だけ既定値へフォールバックする。
 	void InitializeSkyBox();
 	void ApplyActiveSkyBoxPreset(bool reloadTexture = false);
@@ -97,6 +103,14 @@ private: /// ---------- メンバ変数 ---------- ///
 	std::unique_ptr<GuardianBoss> debugBoss_;
 	std::unique_ptr<MeleeEnemy> debugMeleeEnemy_;
 	std::unique_ptr<MidRangeEnemy> debugMidRangeEnemy_;
+
+	// 通常確認用の敵と混ざらないよう、負荷検証用の敵は専用コンテナで保持する。
+	std::vector<std::unique_ptr<MeleeEnemy>> stressTestMeleeEnemies_;
+	std::vector<std::unique_ptr<MidRangeEnemy>> stressTestMidRangeEnemies_;
+	bool enemyStressTestEnabled_ = false;
+	int requestedStressTestMeleeCount_ = 0;
+	int requestedStressTestMidRangeCount_ = 0;
+	std::string enemyStressTestLog_ = "Stress test enemies have not been applied.";
 
 	// ステージ確認用（見た目＋衝突）
 	std::unique_ptr<K4E::Stage> stage_;

@@ -32,6 +32,8 @@
 #include <cstdio>
 #include <array>
 #include <numbers>
+#include <new>
+#include <exception>
 #include <unordered_map>
 #include <cmath>
 
@@ -263,6 +265,18 @@ void DebugScene::Update()
 		debugMidRangeEnemy_->SetWallObstacleAABBs(&stage_->GetWallObstacleAABBs());
 		debugMidRangeEnemy_->Update(deltaTime);
 	}
+	for (auto& enemy : stressTestMeleeEnemies_)
+	{
+		if (enemy) { enemy->Update(deltaTime); }
+	}
+	for (auto& enemy : stressTestMidRangeEnemies_)
+	{
+		if (enemy)
+		{
+			enemy->SetTarget(meleeDummyTarget_.GetCenterPosition());
+			enemy->Update(deltaTime);
+		}
+	}
 
 	UpdateDebugBossHitTest();
 
@@ -328,6 +342,14 @@ void DebugScene::Draw3DObjects()
 	{
 		debugMidRangeEnemy_->Draw();
 	}
+	for (const auto& enemy : stressTestMeleeEnemies_)
+	{
+		if (enemy) { enemy->Draw(); }
+	}
+	for (const auto& enemy : stressTestMidRangeEnemies_)
+	{
+		if (enemy) { enemy->Draw(); }
+	}
 
 	if (stage_)
 	{
@@ -374,6 +396,10 @@ void DebugScene::DrawShadowObjects()
 	{
 		debugMeleeEnemy_->DrawShadow();
 	}
+	for (const auto& enemy : stressTestMeleeEnemies_)
+	{
+		if (enemy) { enemy->DrawShadow(); }
+	}
 	if (stage_)
 	{
 		stage_->DrawShadow();
@@ -409,6 +435,7 @@ void DebugScene::Finalize()
 	disintegrationDebug_.reset();
 	skyBox_.reset();
 	EnemyBase::SetGlobalStageWorldAABBs(nullptr);
+	ClearStressTestEnemies();
 	debugBoss_.reset();
 	debugMidRangeEnemy_.reset();
 	debugMeleeEnemy_.reset();
@@ -417,6 +444,99 @@ void DebugScene::Finalize()
 
 	input_ = nullptr;
 	dxCommon_ = nullptr;
+}
+
+
+void DebugScene::ApplyEnemyStressTestCounts()
+{
+	constexpr size_t kMaxEnemyCountPerType = 5000;
+	const size_t meleeTarget = enemyStressTestEnabled_ ? static_cast<size_t>(std::clamp(requestedStressTestMeleeCount_, 0, static_cast<int>(kMaxEnemyCountPerType))) : 0;
+	const size_t midRangeTarget = enemyStressTestEnabled_ ? static_cast<size_t>(std::clamp(requestedStressTestMidRangeCount_, 0, static_cast<int>(kMaxEnemyCountPerType))) : 0;
+
+	auto shrinkMelee = [this](size_t target)
+		{
+			while (stressTestMeleeEnemies_.size() > target)
+			{
+				if (collisionManager_ && stressTestMeleeEnemies_.back())
+				{
+					collisionManager_->RemoveCollider(stressTestMeleeEnemies_.back().get());
+				}
+				stressTestMeleeEnemies_.pop_back();
+			}
+		};
+	shrinkMelee(meleeTarget);
+	if (stressTestMidRangeEnemies_.size() > midRangeTarget) { stressTestMidRangeEnemies_.resize(midRangeTarget); }
+
+	try
+	{
+		stressTestMeleeEnemies_.reserve(meleeTarget);
+		stressTestMidRangeEnemies_.reserve(midRangeTarget);
+		while (stressTestMeleeEnemies_.size() < meleeTarget)
+		{
+			auto enemy = std::make_unique<MeleeEnemy>();
+			if (!enemy) { break; }
+			enemy->Initialize();
+			enemy->SetCenterPosition(GetStressTestEnemyPosition(stressTestMeleeEnemies_.size(), false));
+			enemy->SetTarget(&meleeDummyTarget_);
+			if (stage_)
+			{
+				enemy->SetFloorAABBs(&stage_->GetFloorAABBs());
+				enemy->SetWallObstacleAABBs(&stage_->GetWallObstacleAABBs());
+			}
+			stressTestMeleeEnemies_.push_back(std::move(enemy));
+			if (collisionManager_) { collisionManager_->AddCollider(stressTestMeleeEnemies_.back().get()); }
+		}
+		while (stressTestMidRangeEnemies_.size() < midRangeTarget)
+		{
+			auto enemy = std::make_unique<MidRangeEnemy>();
+			if (!enemy) { break; }
+			enemy->Initialize();
+			enemy->SetCenterPosition(GetStressTestEnemyPosition(stressTestMidRangeEnemies_.size(), true));
+			enemy->SetTarget(meleeDummyTarget_.GetCenterPosition());
+			if (stage_)
+			{
+				enemy->SetFloorAABBs(&stage_->GetFloorAABBs());
+				enemy->SetWallObstacleAABBs(&stage_->GetWallObstacleAABBs());
+			}
+			stressTestMidRangeEnemies_.push_back(std::move(enemy));
+		}
+		enemyStressTestLog_ = "Applied stress test enemy counts.";
+	}
+	catch (const std::bad_alloc&)
+	{
+		enemyStressTestLog_ = "Stopped spawning: memory allocation failed.";
+	}
+	catch (const std::exception& e)
+	{
+		enemyStressTestLog_ = std::string("Stopped spawning: ") + e.what();
+	}
+}
+
+void DebugScene::ClearStressTestEnemies()
+{
+	if (collisionManager_)
+	{
+		for (const auto& enemy : stressTestMeleeEnemies_)
+		{
+			if (enemy) { collisionManager_->RemoveCollider(enemy.get()); }
+		}
+	}
+	stressTestMeleeEnemies_.clear();
+	stressTestMidRangeEnemies_.clear();
+	enemyStressTestLog_ = "Cleared stress test enemies.";
+}
+
+K4E::Vector3 DebugScene::GetStressTestEnemyPosition(size_t index, bool isMidRange) const
+{
+	constexpr size_t kGridColumns = 100;
+	constexpr float kGridSpacing = 3.5f;
+	const float baseX = isMidRange ? 20.0f : -360.0f;
+	const float baseZ = -220.0f;
+	return {
+		baseX + static_cast<float>(index % kGridColumns) * kGridSpacing,
+		2.5f,
+		baseZ + static_cast<float>(index / kGridColumns) * kGridSpacing
+	};
 }
 
 void DebugScene::DrawImGui()
@@ -443,6 +563,22 @@ void DebugScene::DrawImGui()
 	{
 		frustumCullingDebug_->DrawImGui();
 	}
+
+	ImGui::Begin("Enemy Stress Test");
+	ImGui::Checkbox("Enable Enemy Stress Test", &enemyStressTestEnabled_);
+	ImGui::SliderInt("Melee Enemy Count", &requestedStressTestMeleeCount_, 0, 5000);
+	ImGui::SliderInt("MidRange Enemy Count", &requestedStressTestMidRangeCount_, 0, 5000);
+	if (ImGui::Button("Apply Enemy Count")) { ApplyEnemyStressTestCounts(); }
+	if (ImGui::Button("Clear Stress Test Enemies")) { ClearStressTestEnemies(); }
+	ImGui::Separator();
+	ImGui::Text("Current Melee Count: %zu", stressTestMeleeEnemies_.size());
+	ImGui::Text("Current MidRange Count: %zu", stressTestMidRangeEnemies_.size());
+	ImGui::Text("Total Enemy Count: %zu", stressTestMeleeEnemies_.size() + stressTestMidRangeEnemies_.size());
+	const auto* timer = K4E::GameTimer::GetInstance();
+	ImGui::Text("FPS: %.1f", timer ? timer->GetFPS() : 0.0f);
+	ImGui::Text("FrameTime: %.3f ms", timer ? timer->GetDeltaTime() * 1000.0f : 0.0f);
+	ImGui::TextWrapped("%s", enemyStressTestLog_.c_str());
+	ImGui::End();
 
 	ImGui::Begin("Debug Boss Hit Test");
 
