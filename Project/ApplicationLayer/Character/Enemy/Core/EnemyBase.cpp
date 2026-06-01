@@ -22,6 +22,9 @@ bool EnemyBase::performanceDebugDrawEnabled_ = true;
 bool EnemyBase::performanceCollisionEnabled_ = true;
 bool EnemyBase::performanceAIEnabled_ = true;
 bool EnemyBase::performanceAttackEnabled_ = true;
+bool EnemyBase::performanceMovementEnabled_ = true;
+bool EnemyBase::performanceNavigationEnabled_ = true;
+bool EnemyBase::performanceTransformUpdateEnabled_ = true;
 
 namespace
 {
@@ -193,12 +196,14 @@ void EnemyBase::Initialize()
 /// -------------------------------------------------------------
 void EnemyBase::SetCenterPosition(const Vector3& pos)
 {
+	if (EnemyPerformanceProfiler::IsEnemyUpdating() && !performanceMovementEnabled_) return;
 	Collider::SetCenterPosition(pos);
 	body_.transform.translate_ = pos;
 
 	// 死亡演出中は階層に戻したくない
-	if (!deathBreakActive_)
+	if (!deathBreakActive_ && (!EnemyPerformanceProfiler::IsEnemyUpdating() || performanceTransformUpdateEnabled_))
 	{
+		EnemyPerformanceProfiler::SectionScope transformTimer(EnemyPerformanceProfiler::Section::Transform);
 		UpdateVisualHierarchy();
 	}
 }
@@ -218,8 +223,9 @@ void EnemyBase::SetOrientation(const Vector3& rot)
 {
 	orientation_ = rot;
 
-	if (!deathBreakActive_)
+	if (!deathBreakActive_ && (!EnemyPerformanceProfiler::IsEnemyUpdating() || performanceTransformUpdateEnabled_))
 	{
+		EnemyPerformanceProfiler::SectionScope transformTimer(EnemyPerformanceProfiler::Section::Transform);
 		UpdateVisualHierarchy();
 	}
 }
@@ -257,8 +263,9 @@ void EnemyBase::Update(float deltaTime)
 	const auto* aabbs = (worldAABBs_ ? worldAABBs_ : g_worldAABBs_);
 	const auto& s = worldColOverride_ ? worldCol_ : worldCol_;
 
-	if (performanceCollisionEnabled_ && useWorldResolve_ && aabbs && !aabbs->empty())
+	if (performanceMovementEnabled_ && performanceCollisionEnabled_ && useWorldResolve_ && aabbs && !aabbs->empty())
 	{
+		EnemyPerformanceProfiler::SectionScope collisionTimer(EnemyPerformanceProfiler::Section::Collision);
 		float vy = velocity_.y;
 
 		auto res = Ken4lowEngine::WorldCollisionResolver::Resolve(
@@ -279,7 +286,11 @@ void EnemyBase::Update(float deltaTime)
 		newPos = res.fixedCenter + s.centerOffset;
 	}
 
-	SetCenterPosition(newPos);
+	if (performanceMovementEnabled_)
+	{
+		EnemyPerformanceProfiler::SectionScope moveTimer(EnemyPerformanceProfiler::Section::Move);
+		SetCenterPosition(newPos);
+	}
 	UpdateHitFlash(deltaTime);
 }
 

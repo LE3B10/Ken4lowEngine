@@ -732,6 +732,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="ApplicationLayer\Character\Enemy\AI\MeleeAttackController.h" />
     <ClInclude Include="ApplicationLayer\Character\Enemy\AI\MeleeAttackPattern.h" />
     <ClInclude Include="ApplicationLayer\Character\Enemy\Core\EnemyBase.h" />
+    <ClInclude Include="ApplicationLayer\Character\Enemy\Core\EnemyPerformanceProfiler.h" />
     <ClInclude Include="ApplicationLayer\Character\CharacterWorld\CharacterWorld.h" />
     <ClInclude Include="ApplicationLayer\OverlaySystem\BaseOverlay.h" />
     <ClInclude Include="ApplicationLayer\OverlaySystem\ConfirmQuitOverlay.h" />
