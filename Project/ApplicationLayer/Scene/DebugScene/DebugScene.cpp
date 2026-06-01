@@ -157,7 +157,6 @@ void DebugScene::Initialize()
 
 	frustumCullingDebug_ = std::make_unique<FrustumCullingDebugController>();
 	frustumCullingDebug_->Initialize(true);
-	InitializeCullingTestObjects();
 
 	stage_ = std::make_unique<K4E::Stage>();
 	stage_->Initialize("Stages/hajimarinoheigen.json", "Stages/hajimarinoheigen.gltf");
@@ -279,11 +278,6 @@ void DebugScene::Update()
 		frustumCullingDebug_->Update(deltaTime);
 	}
 
-	for (auto& object : cullingTestObjects_)
-	{
-		object->Update();
-	}
-
 	collisionManager_->Update();
 	collisionManager_->CheckAllCollisions();
 
@@ -319,11 +313,6 @@ void DebugScene::Draw3DObjects()
 	if (disintegrationDebug_)
 	{
 		disintegrationDebug_->Draw3DObjects();
-	}
-
-	for (auto& object : cullingTestObjects_)
-	{
-		object->Draw();
 	}
 
 	// ボス描画
@@ -416,7 +405,6 @@ void DebugScene::Finalize()
 	input_->SetLockCursor(false);
 	input_->SetCursorVisible(true);
 
-	cullingTestObjects_.clear();
 	frustumCullingDebug_.reset();
 	disintegrationDebug_.reset();
 	skyBox_.reset();
@@ -926,40 +914,6 @@ void DebugScene::DrawSkyBoxImGui()
 	ImGui::TextWrapped("%s", skyBoxPresetLog_.c_str());
 	ImGui::End();
 #endif // USE_IMGUI
-}
-
-void DebugScene::InitializeCullingTestObjects()
-{
-	cullingTestObjects_.clear();
-
-	struct CullingTestObjectDesc
-	{
-		Vector3 position;
-		Vector3 scale;
-		Vector4 color;
-	};
-
-	const CullingTestObjectDesc objectDescs[] = {
-		{ { 0.0f, 1.0f, 10.0f }, { 1.5f, 1.5f, 1.5f }, { 0.2f, 1.0f, 0.2f, 1.0f } },
-		{ { -18.0f, 1.0f, 18.0f }, { 1.5f, 1.5f, 1.5f }, { 1.0f, 0.25f, 0.25f, 1.0f } },
-		{ { 18.0f, 1.0f, 18.0f }, { 1.5f, 1.5f, 1.5f }, { 0.25f, 0.45f, 1.0f, 1.0f } },
-		{ { 0.0f, 1.0f, 95.0f }, { 2.0f, 2.0f, 2.0f }, { 1.0f, 0.8f, 0.2f, 1.0f } },
-		{ { 0.0f, 1.0f, -9.0f }, { 1.5f, 1.5f, 1.5f }, { 1.0f, 0.2f, 1.0f, 1.0f } },
-		{ { 0.0f, 5.0f, 22.0f }, { 1.5f, 1.5f, 1.5f }, { 0.2f, 1.0f, 1.0f, 1.0f } },
-	};
-
-	cullingTestObjects_.reserve(sizeof(objectDescs) / sizeof(objectDescs[0]));
-	for (const CullingTestObjectDesc& desc : objectDescs)
-	{
-		auto object = std::make_unique<Object3D>();
-		object->Initialize("Test/cube.gltf");
-		object->SetTranslate(desc.position);
-		object->SetScale(desc.scale);
-		object->SetColor(desc.color);
-		// Object3D のデフォルト設定で共通カリング経路を確認する。
-		object->Update();
-		cullingTestObjects_.push_back(std::move(object));
-	}
 }
 
 void DebugScene::UpdateDebug()
