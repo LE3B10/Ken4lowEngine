@@ -318,6 +318,21 @@ void EnemyBase::Draw()
 	}
 }
 
+void EnemyBase::DrawStressTestBatchProxy()
+{
+	if (removable_ || (isDead_ && !deathBreakActive_)) return;
+	// 大量敵描画の負荷を抑えるため、Stress TestではInstancing移行可能な同一モデルの胴体Proxyへ簡略化する。
+	if (body_.active && body_.object) body_.object->Draw();
+}
+
+size_t EnemyBase::GetDrawCallCount() const
+{
+	if (removable_ || (isDead_ && !deathBreakActive_)) return 0;
+	size_t count = body_.active && body_.object ? 1u : 0u;
+	for (const auto& part : parts_) if (part.active && part.object) ++count;
+	return count;
+}
+
 /// -------------------------------------------------------------
 /// ImGui描画
 /// -------------------------------------------------------------

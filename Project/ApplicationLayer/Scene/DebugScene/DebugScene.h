@@ -16,6 +16,7 @@
 
 #include <array>
 #include <cstddef>
+#include <cstdint>
 #include <memory>
 #include <string>
 #include <vector>
@@ -108,6 +109,10 @@ private: /// ---------- メンバ変数 ---------- ///
 	std::vector<std::unique_ptr<MeleeEnemy>> stressTestMeleeEnemies_;
 	std::vector<std::unique_ptr<MidRangeEnemy>> stressTestMidRangeEnemies_;
 	bool enemyStressTestEnabled_ = false;
+	bool useEnemyInstancingProxy_ = true;
+	bool useSimpleStressTestCollision_ = true;
+	int enemyUpdateInterval_ = 1;
+	uint64_t enemyUpdateFrame_ = 0;
 	int requestedStressTestMeleeCount_ = 0;
 	int requestedStressTestMidRangeCount_ = 0;
 	std::string enemyStressTestLog_ = "Stress test enemies have not been applied.";
@@ -127,6 +132,7 @@ private: /// ---------- メンバ変数 ---------- ///
 	bool enableFrustumCullingDebugDraw_ = true;
 	int lastEnemyUpdateCount_ = 0;
 	int lastEnemyDrawCount_ = 0;
+	int lastEnemyDrawCallCount_ = 0;
 	int lastEnemyDebugDrawCount_ = 0;
 
 	// ステージ確認用（見た目＋衝突）
