@@ -133,6 +133,12 @@ private: /// ---------- メンバ変数 ---------- ///
 	int lastEnemyUpdateCount_ = 0;
 	int lastEnemyDrawCount_ = 0;
 	int lastEnemyDrawCallCount_ = 0;
+	int lastEnemyMeshDrawCount_ = 0;
+	int lastEnemyInstanceCount_ = 0;
+	int lastEnemyInstancedBatchCount_ = 0;
+	int lastEnemyNormalDrawCount_ = 0;
+	int lastEnemyShadowDrawCount_ = 0;
+	double lastEnemyDrawSubmitMs_ = 0.0;
 	int lastEnemyDebugDrawCount_ = 0;
 
 	// ステージ確認用（見た目＋衝突）

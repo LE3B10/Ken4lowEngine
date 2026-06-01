@@ -375,7 +375,12 @@ void DebugScene::Draw3DObjects()
 	}
 	lastEnemyDrawCount_ = 0;
 	lastEnemyDrawCallCount_ = 0;
+	lastEnemyMeshDrawCount_ = 0;
+	lastEnemyInstanceCount_ = 0;
+	lastEnemyInstancedBatchCount_ = 0;
+	lastEnemyNormalDrawCount_ = 0;
 	lastEnemyDebugDrawCount_ = 0;
+	const auto enemyDrawStart = std::chrono::steady_clock::now();
 	if (enableEnemyDraw_)
 	{
 		auto drawEnemy = [this](EnemyBase* enemy)
@@ -383,23 +388,51 @@ void DebugScene::Draw3DObjects()
 				if (!enemy) return;
 				enemy->Draw();
 				++lastEnemyDrawCount_;
-				lastEnemyDrawCallCount_ += static_cast<int>(enemy->GetDrawCallCount());
+				const int meshDrawCount = static_cast<int>(enemy->GetDrawCallCount());
+				lastEnemyDrawCallCount_ += meshDrawCount;
+				lastEnemyMeshDrawCount_ += meshDrawCount;
+				lastEnemyNormalDrawCount_ += meshDrawCount;
 				if (enableEnemyDebugDraw_) ++lastEnemyDebugDrawCount_;
 			};
-		auto drawStressEnemy = [this, &drawEnemy](EnemyBase* enemy)
+		auto drawStressProxy = [this](EnemyBase* enemy)
 			{
 				if (!enemy) return;
-				if (!useEnemyInstancingProxy_) { drawEnemy(enemy); return; }
-				// 大量敵描画の負荷を抑えるため、同一モデル単位で回し、Instancing移行用Proxyを描画する。
-				enemy->DrawStressTestBatchProxy();
+				const int meshDrawCount = static_cast<int>(enemy->DrawStressTestBatchProxy());
 				++lastEnemyDrawCount_;
-				++lastEnemyDrawCallCount_;
+				lastEnemyDrawCallCount_ += meshDrawCount;
+				lastEnemyMeshDrawCount_ += meshDrawCount;
+				lastEnemyNormalDrawCount_ += meshDrawCount;
 			};
 		drawEnemy(debugMeleeEnemy_.get());
 		drawEnemy(debugMidRangeEnemy_.get());
-		for (const auto& enemy : stressTestMeleeEnemies_) drawStressEnemy(enemy.get());
-		for (const auto& enemy : stressTestMidRangeEnemies_) drawStressEnemy(enemy.get());
+		if (useEnemyInstancingProxy_)
+		{
+			std::vector<K4E::Matrix4x4> meleeWorldMatrices;
+			meleeWorldMatrices.reserve(stressTestMeleeEnemies_.size());
+			EnemyBase* representative = nullptr;
+			for (const auto& enemy : stressTestMeleeEnemies_)
+			{
+				if (enemy && enemy->AppendStressTestInstanceWorldMatrix(meleeWorldMatrices)) representative = representative ? representative : enemy.get();
+			}
+			if (representative && !meleeWorldMatrices.empty())
+			{
+				const int meshDrawCount = static_cast<int>(representative->DrawStressTestInstanced(meleeWorldMatrices));
+				lastEnemyDrawCount_ += static_cast<int>(meleeWorldMatrices.size());
+				lastEnemyInstanceCount_ += static_cast<int>(meleeWorldMatrices.size());
+				lastEnemyDrawCallCount_ += meshDrawCount;
+				lastEnemyMeshDrawCount_ += meshDrawCount;
+				++lastEnemyInstancedBatchCount_;
+			}
+			// 中距離敵はパーティクルを復活させず、既存の胴体Proxy描画を維持する。
+			for (const auto& enemy : stressTestMidRangeEnemies_) drawStressProxy(enemy.get());
+		}
+		else
+		{
+			for (const auto& enemy : stressTestMeleeEnemies_) drawEnemy(enemy.get());
+			for (const auto& enemy : stressTestMidRangeEnemies_) drawEnemy(enemy.get());
+		}
 	}
+	lastEnemyDrawSubmitMs_ = std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - enemyDrawStart).count();
 
 	if (stage_)
 	{
@@ -445,12 +478,19 @@ void DebugScene::DrawShadowObjects()
 	{
 		debugBoss_->DrawShadow();
 	}
+	lastEnemyShadowDrawCount_ = 0;
 	if (enableEnemyShadow_)
 	{
-		if (debugMeleeEnemy_) { debugMeleeEnemy_->DrawShadow(); }
-		if (debugMidRangeEnemy_) { debugMidRangeEnemy_->DrawShadow(); }
-		for (const auto& enemy : stressTestMeleeEnemies_) { if (enemy) { enemy->DrawShadow(); } }
-		for (const auto& enemy : stressTestMidRangeEnemies_) { if (enemy) { enemy->DrawShadow(); } }
+		auto drawEnemyShadow = [this](EnemyBase* enemy)
+			{
+				if (!enemy) return;
+				enemy->DrawShadow();
+				lastEnemyShadowDrawCount_ += static_cast<int>(enemy->GetDrawCallCount());
+			};
+		drawEnemyShadow(debugMeleeEnemy_.get());
+		drawEnemyShadow(debugMidRangeEnemy_.get());
+		for (const auto& enemy : stressTestMeleeEnemies_) drawEnemyShadow(enemy.get());
+		for (const auto& enemy : stressTestMidRangeEnemies_) drawEnemyShadow(enemy.get());
 	}
 	if (stage_)
 	{
@@ -634,7 +674,9 @@ void DebugScene::DrawImGui()
 		enableEnemyShadow_ = false;
 	}
 	ImGui::Checkbox("Use Enemy Instancing", &useEnemyInstancingProxy_);
-	ImGui::TextDisabled("Stress Test proxy path: body model only; GPU instanced draw is the next stage.");
+	ImGui::TextDisabled(useEnemyInstancingProxy_
+		? "Stress Test melee path: body model only; GPU DrawIndexedInstanced enabled."
+		: "Stress Test path: normal enemy Draw().");
 	ImGui::Checkbox("Use Simple Stress Test Collision", &useSimpleStressTestCollision_);
 	ImGui::SliderInt("Enemy Update Interval", &enemyUpdateInterval_, 1, 60);
 	ImGui::SliderInt("Melee Enemy Count", &requestedStressTestMeleeCount_, 0, 5000);
@@ -664,6 +706,12 @@ void DebugScene::DrawImGui()
 	ImGui::Text("Enemy Update Count: %d", lastEnemyUpdateCount_);
 	ImGui::Text("Enemy Draw Count: %d", lastEnemyDrawCount_);
 	ImGui::Text("Enemy Draw Call Count: %d", lastEnemyDrawCallCount_);
+	ImGui::Text("Enemy Mesh Draw Count: %d", lastEnemyMeshDrawCount_);
+	ImGui::Text("Enemy Instance Count: %d", lastEnemyInstanceCount_);
+	ImGui::Text("Enemy Instanced Batch Count: %d", lastEnemyInstancedBatchCount_);
+	ImGui::Text("Enemy Normal Draw Count: %d", lastEnemyNormalDrawCount_);
+	ImGui::Text("Enemy Shadow Draw Count: %d", lastEnemyShadowDrawCount_);
+	ImGui::Text("Enemy Draw Submit Time: %.3f ms", lastEnemyDrawSubmitMs_);
 	ImGui::Text("Enemy DebugDraw Count: %d", lastEnemyDebugDrawCount_);
 	ImGui::Text("Enemy Collision Count: %d", collisionManager_ ? collisionManager_->GetLastEnemyCollisionCount() : 0);
 	ImGui::Text("  Enemy vs Player: %d", collisionManager_ ? collisionManager_->GetLastEnemyPlayerCollisionCount() : 0);
@@ -674,7 +722,7 @@ void DebugScene::DrawImGui()
 	const auto& midRangePerf = enemyPerf.types[static_cast<size_t>(EnemyPerformanceProfiler::EnemyType::MidRange)];
 	auto sectionMs = [&enemyPerf](EnemyPerformanceProfiler::Section section) { return enemyPerf.GetSectionMs(section); };
 	ImGui::SeparatorText("Enemy Update Timing (Debug Build)");
-	ImGui::Text("Total Enemy Update Time: %.3f ms", enemyPerf.GetTotalMs());
+	ImGui::Text("Enemy CPU Update Time: %.3f ms", enemyPerf.GetTotalMs());
 	ImGui::Text("Melee Enemy Update Time: %.3f ms", meleePerf.totalMs);
 	ImGui::Text("MidRange Enemy Update Time: %.3f ms", midRangePerf.totalMs);
 	ImGui::Text("Enemy AI Time: %.3f ms", sectionMs(EnemyPerformanceProfiler::Section::AI));

@@ -52,7 +52,9 @@ public:
 	virtual void Update(float deltaTime);
 	virtual void Draw();
 	// Stress Test用: 同一モデル単位のInstancingへ移行しやすい胴体Proxyだけを描画する。
-	void DrawStressTestBatchProxy();
+	size_t DrawStressTestBatchProxy();
+	bool AppendStressTestInstanceWorldMatrix(std::vector<K4E::Matrix4x4>& worldMatrices) const;
+	size_t DrawStressTestInstanced(const std::vector<K4E::Matrix4x4>& worldMatrices);
 	size_t GetDrawCallCount() const;
 	virtual void DrawImGui();
 	virtual void UpdateShadowMatrix(const K4E::Matrix4x4& lightViewProjection);

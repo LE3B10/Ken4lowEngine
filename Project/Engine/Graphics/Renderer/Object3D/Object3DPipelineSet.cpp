@@ -52,7 +52,8 @@ namespace Ken4lowEngine
 		D3D12_ROOT_SIGNATURE_DESC MakeObject3DRootSignatureDesc(
 			std::array<D3D12_DESCRIPTOR_RANGE, 5>& ranges,
 			std::array<D3D12_ROOT_PARAMETER, Object3DRootParameterIndex::kCount>& rootParameters,
-			std::array<D3D12_STATIC_SAMPLER_DESC, 3>& staticSamplers)
+			std::array<D3D12_STATIC_SAMPLER_DESC, 3>& staticSamplers,
+			bool instanced = false)
 		{
 			ranges[0] = {};
 			ranges[0].BaseShaderRegister = 0;
@@ -90,9 +91,9 @@ namespace Ken4lowEngine
 			rootParameters[kMaterialCBV].Descriptor.ShaderRegister = 0;
 
 			rootParameters[kTransformCBV] = {};
-			rootParameters[kTransformCBV].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
+			rootParameters[kTransformCBV].ParameterType = instanced ? D3D12_ROOT_PARAMETER_TYPE_SRV : D3D12_ROOT_PARAMETER_TYPE_CBV;
 			rootParameters[kTransformCBV].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
-			rootParameters[kTransformCBV].Descriptor.ShaderRegister = 0;
+			rootParameters[kTransformCBV].Descriptor.ShaderRegister = instanced ? 5 : 0;
 
 			rootParameters[kBaseTextureSRV] = {};
 			rootParameters[kBaseTextureSRV].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
@@ -250,14 +251,17 @@ namespace Ken4lowEngine
 		inputLayout.NumElements = static_cast<UINT>(inputElements.size());
 
 		const ShaderDescriptor& objectVs = Object3DShaderManifest::Get(Object3DShaderId::Object3DVS);
+		const ShaderDescriptor& objectInstancedVs = Object3DShaderManifest::Get(Object3DShaderId::Object3DInstancedVS);
 		const ShaderDescriptor& objectPs = Object3DShaderManifest::Get(Object3DShaderId::Object3DPS);
 		const ShaderDescriptor& shadowVs = Object3DShaderManifest::Get(Object3DShaderId::ShadowMapVS);
 
 		assert(objectVs.stage == ShaderStage::Vertex);
+		assert(objectInstancedVs.stage == ShaderStage::Vertex);
 		assert(objectPs.stage == ShaderStage::Pixel);
 		assert(shadowVs.stage == ShaderStage::Vertex);
 
 		ComPtr<IDxcBlob> objectVsBlob = ShaderCompiler::CompileShader(objectVs, dxcManager);
+		ComPtr<IDxcBlob> objectInstancedVsBlob = ShaderCompiler::CompileShader(objectInstancedVs, dxcManager);
 		ComPtr<IDxcBlob> objectPsBlob = ShaderCompiler::CompileShader(objectPs, dxcManager);
 		ComPtr<IDxcBlob> shadowVsBlob = ShaderCompiler::CompileShader(shadowVs, dxcManager);
 
@@ -287,6 +291,25 @@ namespace Ken4lowEngine
 		}
 
 		{
+			std::array<D3D12_DESCRIPTOR_RANGE, 5> ranges{};
+			std::array<D3D12_ROOT_PARAMETER, Object3DRootParameterIndex::kCount> rootParameters{};
+			std::array<D3D12_STATIC_SAMPLER_DESC, 3> staticSamplers{};
+
+			D3D12_ROOT_SIGNATURE_DESC rootSigDesc =
+				MakeObject3DRootSignatureDesc(ranges, rootParameters, staticSamplers, true);
+
+			GraphicsPipelineDesc desc = MakeBaseObject3DDesc(rtvFormat, dsvFormat, inputLayout);
+			desc.debugName = L"Object3D.Instanced";
+			desc.shaders.vertexShader.blob = objectInstancedVsBlob;
+			desc.shaders.pixelShader.blob = objectPsBlob;
+
+			instancedPipeline_ = factory.CreateGraphicsPipeline(desc, rootSigDesc);
+
+			if (instancedPipeline_.rootSignature) instancedPipeline_.rootSignature->SetName(L"Object3D.Instanced.RootSignature");
+			if (instancedPipeline_.pipelineState) instancedPipeline_.pipelineState->SetName(L"Object3D.Instanced.PSO");
+		}
+
+		{
 			std::array<D3D12_ROOT_PARAMETER, 1> rootParameters{};
 			D3D12_ROOT_SIGNATURE_DESC rootSigDesc = MakeShadowRootSignatureDesc(rootParameters);
 
@@ -310,6 +333,7 @@ namespace Ken4lowEngine
 	void Object3DPipelineSet::Finalize()
 	{
 		defaultPipeline_.Reset();
+		instancedPipeline_.Reset();
 		shadowPipeline_.Reset();
 	}
 }

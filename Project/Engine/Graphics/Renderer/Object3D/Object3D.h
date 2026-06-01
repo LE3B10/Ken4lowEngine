@@ -64,6 +64,7 @@ namespace Ken4lowEngine
 		void UpdateShadowMatrix(const Matrix4x4& lightViewProjection);
 		void DrawImGui();
 		void Draw();
+		size_t DrawInstanced(const std::vector<Matrix4x4>& worldMatrices);
 		void DrawMeshes(const std::vector<size_t>& meshIndices);
 		void DrawShadow();
 
@@ -113,6 +114,7 @@ namespace Ken4lowEngine
 		bool HasMeshWorldBounds(size_t meshIndex) const;
 		void DrawInternal(const std::vector<size_t>* meshIndices);
 		void DrawBoundsDebug(const BoundingSphere& bounds, bool visible) const;
+		void EnsureInstanceBufferCapacity(size_t instanceCount);
 
 	private: /// ---------- メンバ変数 ---------- ///
 
@@ -152,6 +154,10 @@ namespace Ken4lowEngine
 		D3D12_GPU_DESCRIPTOR_HANDLE dissolveMaskHandle_{};
 
 		// ディゾルブの設定
+		Microsoft::WRL::ComPtr<ID3D12Resource> instanceTransformResource_;
+		TransformationMatrix* instanceTransformData_ = nullptr;
+		size_t instanceTransformCapacity_ = 0;
+
 		Microsoft::WRL::ComPtr<ID3D12Resource> constantBuffer_;
 		DissolveSetting* dissolveSetting_ = nullptr;
 

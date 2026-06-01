@@ -31,6 +31,7 @@ namespace Ken4lowEngine
 	public: /// ---------- 描画設定関数 ---------- ///
 
 		void SetRenderSetting();
+		void SetInstancedRenderSetting();
 		void SetShadowMapRenderSetting();
 		bool ShouldDrawObject(const BoundingSphere& worldBounds, bool objectCullingEnabled, bool hasBounds, bool isStageObject = false);
 		bool ShouldDrawMesh(const BoundingSphere& worldBounds, bool objectCullingEnabled, bool hasBounds);

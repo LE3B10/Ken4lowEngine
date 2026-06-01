@@ -37,6 +37,9 @@
     <FxCompile Include="Resources\Shaders\PostEffect\FullScreen.VS.hlsl">
       <Filter>Shader\VertexShader</Filter>
     </FxCompile>
+    <FxCompile Include="Resources\Shaders\Object3D\Object3DInstanced.VS.hlsl">
+      <Filter>Shader\VertexShader</Filter>
+    </FxCompile>
     <FxCompile Include="Resources\Shaders\Object3D\Object3d.VS.hlsl">
       <Filter>Shader\VertexShader</Filter>
     </FxCompile>

@@ -318,18 +318,34 @@ void EnemyBase::Draw()
 	}
 }
 
-void EnemyBase::DrawStressTestBatchProxy()
+size_t EnemyBase::DrawStressTestBatchProxy()
 {
-	if (removable_ || (isDead_ && !deathBreakActive_)) return;
+	if (removable_ || (isDead_ && !deathBreakActive_)) return 0;
 	// 大量敵描画の負荷を抑えるため、Stress TestではInstancing移行可能な同一モデルの胴体Proxyへ簡略化する。
-	if (body_.active && body_.object) body_.object->Draw();
+	if (!body_.active || !body_.object) return 0;
+	body_.object->Draw();
+	return body_.object->GetSubmeshCount();
+}
+
+bool EnemyBase::AppendStressTestInstanceWorldMatrix(std::vector<K4E::Matrix4x4>& worldMatrices) const
+{
+	if (removable_ || (isDead_ && !deathBreakActive_) || !body_.active || !body_.object) return false;
+	worldMatrices.push_back(body_.transform.worldMatrix_);
+	return true;
+}
+
+size_t EnemyBase::DrawStressTestInstanced(const std::vector<K4E::Matrix4x4>& worldMatrices)
+{
+	if (worldMatrices.empty() || !body_.active || !body_.object) return 0;
+	// StressTest用の同一モデル敵はDrawCall削減のためInstancing描画にまとめる。
+	return body_.object->DrawInstanced(worldMatrices);
 }
 
 size_t EnemyBase::GetDrawCallCount() const
 {
 	if (removable_ || (isDead_ && !deathBreakActive_)) return 0;
-	size_t count = body_.active && body_.object ? 1u : 0u;
-	for (const auto& part : parts_) if (part.active && part.object) ++count;
+	size_t count = body_.active && body_.object ? body_.object->GetSubmeshCount() : 0u;
+	for (const auto& part : parts_) if (part.active && part.object) count += part.object->GetSubmeshCount();
 	return count;
 }
 

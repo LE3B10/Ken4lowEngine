@@ -27,6 +27,7 @@ public: /// ---------- メンバ関数 ---------- ///
 	/// 描画処理
 	/// </summary>
 	void Draw();
+	void DrawInstanced(uint32_t instanceCount);
 
 private: /// ---------- メンバ変数 ---------- ///
 

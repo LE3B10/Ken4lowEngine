@@ -84,6 +84,19 @@ namespace Ken4lowEngine
 		LightManager::GetInstance()->BindLightingSettings(11);
 	}
 
+	void Object3DCommon::SetInstancedRenderSetting()
+	{
+		auto* commandList = dxCommon_->GetCommandManager()->GetCommandList();
+		const PipelineBundle& pipeline = pipelineSet_.GetInstanced();
+
+		commandList->SetGraphicsRootSignature(pipeline.rootSignature.Get());
+		commandList->SetPipelineState(pipeline.pipelineState.Get());
+		commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+		LightManager::GetInstance()->BindPunctualLights(5, 6);
+		LightManager::GetInstance()->BindLightingSettings(11);
+	}
+
 	bool Object3DCommon::ShouldDrawObject(const BoundingSphere& worldBounds, bool objectCullingEnabled, bool hasBounds, bool isStageObject)
 	{
 		const auto unit = isStageObject ? FrustumCullingSystem::CullingUnit::StageObject : FrustumCullingSystem::CullingUnit::Object;

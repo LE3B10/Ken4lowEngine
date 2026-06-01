@@ -11,6 +11,7 @@ namespace Ken4lowEngine
 	enum class Object3DShaderId : uint32_t
 	{
 		Object3DVS,
+		Object3DInstancedVS,
 		Object3DPS,
 		ShadowMapVS,
 	};
@@ -30,6 +31,18 @@ namespace Ken4lowEngine
 				static const ShaderDescriptor desc{
 					L"Object3DVS",
 					L"Resources/Shaders/Object3D/Object3D.VS.hlsl",
+					L"main",
+					L"vs_6_0",
+					ShaderStage::Vertex,
+					RootSignatureType::Object3D
+				};
+				return desc;
+			}
+			case Object3DShaderId::Object3DInstancedVS:
+			{
+				static const ShaderDescriptor desc{
+					L"Object3DInstancedVS",
+					L"Resources/Shaders/Object3D/Object3DInstanced.VS.hlsl",
 					L"main",
 					L"vs_6_0",
 					ShaderStage::Vertex,

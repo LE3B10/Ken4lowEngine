@@ -166,6 +166,53 @@ namespace Ken4lowEngine
 		DrawInternal(&meshIndices);
 	}
 
+	void Object3D::EnsureInstanceBufferCapacity(size_t instanceCount)
+	{
+		if (instanceCount <= instanceTransformCapacity_) return;
+		instanceTransformCapacity_ = std::max(instanceCount, instanceTransformCapacity_ * 2u);
+		instanceTransformResource_ = ResourceManager::CreateBufferResource(dxCommon_->GetDevice(), sizeof(TransformationMatrix) * instanceTransformCapacity_);
+		instanceTransformResource_->Map(0, nullptr, reinterpret_cast<void**>(&instanceTransformData_));
+		instanceTransformResource_->SetName(L"Object3D::InstanceTransforms");
+	}
+
+	size_t Object3D::DrawInstanced(const std::vector<Matrix4x4>& worldMatrices)
+	{
+		if (!model_ || worldMatrices.empty()) return 0;
+		EnsureInstanceBufferCapacity(worldMatrices.size());
+		const Matrix4x4 viewProjection = CameraManager::GetInstance()->GetActiveViewProjectionMatrix();
+		for (size_t i = 0; i < worldMatrices.size(); ++i)
+		{
+			instanceTransformData_[i].World = worldMatrices[i];
+			instanceTransformData_[i].WVP = Matrix4x4::Multiply(worldMatrices[i], viewProjection);
+			instanceTransformData_[i].WorldInversedTranspose = Matrix4x4::Transpose(Matrix4x4::Inverse(worldMatrices[i]));
+		}
+
+		ID3D12GraphicsCommandList* commandList = dxCommon_->GetCommandManager()->GetCommandList();
+		Object3DCommon::GetInstance()->SetInstancedRenderSetting();
+		material_.SetPipeline();
+		commandList->SetGraphicsRootShaderResourceView(1, instanceTransformResource_->GetGPUVirtualAddress());
+		commandList->SetGraphicsRootConstantBufferView(3, cameraResource->GetGPUVirtualAddress());
+		TextureManager::GetInstance()->SetGraphicsRootDescriptorTable(commandList, 4, environmentMapHandle_);
+		commandList->SetGraphicsRootConstantBufferView(7, constantBuffer_->GetGPUVirtualAddress());
+		TextureManager::GetInstance()->SetGraphicsRootDescriptorTable(commandList, 8, dissolveMaskHandle_);
+		commandList->SetGraphicsRootConstantBufferView(9, shadowParameterResource_->GetGPUVirtualAddress());
+		commandList->SetGraphicsRootDescriptorTable(10, shadowMapHandle_);
+
+		auto& meshes = model_->GetMeshes();
+		for (size_t i = 0; i < meshes.size(); ++i)
+		{
+			if (i < materialSRVs_.size())
+			{
+				TextureManager::GetInstance()->SetGraphicsRootDescriptorTable(commandList, 2, materialSRVs_[i]);
+				material_.SetUsePointSampling(i < materialUsePointSampling_.size() ? materialUsePointSampling_[i] : false);
+				material_.Update();
+			}
+			meshes[i].DrawInstanced(static_cast<uint32_t>(worldMatrices.size()));
+		}
+		return meshes.size();
+	}
+
+
 	void Object3D::DrawInternal(const std::vector<size_t>* meshIndices)
 	{
 		if (!model_) { return; }
