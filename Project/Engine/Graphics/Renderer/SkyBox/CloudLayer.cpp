@@ -1,3 +1,4 @@
+#define NOMINMAX
 #include "CloudLayer.h"
 #include "CameraManager.h"
 #include "DirectXCommon.h"
