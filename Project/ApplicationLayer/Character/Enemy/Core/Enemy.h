@@ -338,6 +338,8 @@ private: /// ---------- 内部処理 ---------- ///
 	void RegisterDamageStimulus(const K4E::Vector3& hitPos, const K4E::Vector3& attackOrigin, const K4E::Vector3& hitDir);
 	void UpdateReloadTimer(float deltaTime);
 
+	void SetPerformanceDebugDrawEnabled(bool enabled) { performanceDebugDrawEnabled_ = enabled; }
+
 #if defined(_DEBUG) || defined(USE_IMGUI)
 	void DrawTacticalDebugPoints();
 #endif
@@ -367,6 +369,7 @@ private: /// ---------- メンバ変数 ---------- ///
 	// 戦闘候補点の表示設定はDebug/ImGui有効時だけ保持します。
 	EnemyTacticalDebugPointBuilder::Config tacticalDebugPointConfig_{};
 #endif
+	bool performanceDebugDrawEnabled_ = true;
 
 	EnemyMemory memory_{};
 

@@ -24,7 +24,7 @@ public: /// ---------- メンバ関数 ---------- ///
 	void Update();
 
 	// 描画処理
-	void Draw();
+	void Draw(bool drawEnemyColliders = true);
 
 	// Collision Debugパネル用のImGui表示処理
 	void DrawImGui();

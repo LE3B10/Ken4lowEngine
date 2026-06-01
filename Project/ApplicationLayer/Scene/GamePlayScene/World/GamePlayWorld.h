@@ -68,6 +68,7 @@ public: /// ---------- メンバ関数 ---------- ///
 	}
 
 	bool CheckCrosshairTargetingEnemy() const;
+	bool IsFrustumCullingDebugDrawEnabled() const { return enableFrustumCullingDebugDraw_; }
 
 	// TODO: 実オブジェクト接触判定が入るまでの仮API。
 	void AddActivatedDeviceCount(int amount = 1);
@@ -116,4 +117,12 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	float lastBulletUpdateMs_ = 0.0f;
 	float lastCollisionUpdateMs_ = 0.0f;
+
+	bool enableEnemyUpdate_ = true;
+	bool enableEnemyDraw_ = true;
+	bool enableEnemyDebugDraw_ = true;
+	bool enableEnemyCollisionDebugDraw_ = true;
+	bool enableEnemyShadow_ = true;
+	bool enableStageBoundsDebugDraw_ = true;
+	bool enableFrustumCullingDebugDraw_ = true;
 };

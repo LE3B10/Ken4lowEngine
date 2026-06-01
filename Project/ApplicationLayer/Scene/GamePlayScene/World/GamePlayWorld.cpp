@@ -172,6 +172,10 @@ void GamePlayWorld::Finalize()
 
 void GamePlayWorld::Update(float deltaTime)
 {
+	characters_.SetEnemyUpdateEnabled(enableEnemyUpdate_);
+	characters_.SetEnemyDebugDrawEnabled(enableEnemyDebugDraw_);
+	characters_.SetEnemyShadowEnabled(enableEnemyShadow_);
+
 	if (stage_)
 	{
 		stage_->Update();
@@ -347,13 +351,14 @@ void GamePlayWorld::Draw3D(bool hideCharactersDuringIntro)
 
 	if (!hideCharactersDuringIntro)
 	{
+		characters_.SetEnemyDrawEnabled(enableEnemyDraw_);
 		characters_.Draw();
 	}
 
 	if (stage_)
 	{
 		stage_->Draw();
-		stage_->DrawChunkDebug();
+		if (enableStageBoundsDebugDraw_) { stage_->DrawChunkDebug(); }
 	}
 
 	if (bulletManager_)
@@ -366,7 +371,7 @@ void GamePlayWorld::Draw3D(bool hideCharactersDuringIntro)
 #ifdef _DEBUG
 	if (collisionManager_)
 	{
-		collisionManager_->Draw();
+		collisionManager_->Draw(enableEnemyCollisionDebugDraw_);
 	}
 
 	K4E::Wireframe::GetInstance()->DrawGrid(
@@ -467,6 +472,28 @@ void GamePlayWorld::DrawGameDebugImGui()
 void GamePlayWorld::DrawEnemyDebugImGui()
 {
 #ifdef USE_IMGUI
+	// 大量敵の負荷原因を切り分けるため、更新・描画・デバッグ描画を個別に切り替える。
+	if (ImGui::CollapsingHeader("Enemy Performance Debug", ImGuiTreeNodeFlags_DefaultOpen))
+	{
+		ImGui::Checkbox("Enable Enemy Update", &enableEnemyUpdate_);
+		ImGui::Checkbox("Enable Enemy Draw", &enableEnemyDraw_);
+		ImGui::Checkbox("Enable Enemy Debug Draw", &enableEnemyDebugDraw_);
+		ImGui::Checkbox("Enable Enemy Collision Debug Draw", &enableEnemyCollisionDebugDraw_);
+		ImGui::Checkbox("Enable Enemy Shadow", &enableEnemyShadow_);
+		ImGui::Checkbox("Enable Stage Bounds Debug Draw", &enableStageBoundsDebugDraw_);
+		ImGui::Checkbox("Enable Frustum Culling Debug Draw", &enableFrustumCullingDebugDraw_);
+		ImGui::Separator();
+		ImGui::Text("Melee Enemy Count: %d", characters_.GetMeleeEnemyCount());
+		ImGui::Text("MidRange Enemy Count: %d", characters_.GetMidRangeEnemyCount());
+		ImGui::Text("Total Enemy Count: %d", characters_.GetEnemyCount());
+		ImGui::Text("Enemy Update Count: %d", characters_.GetLastEnemyUpdateCount());
+		ImGui::Text("Enemy Draw Count: %d", characters_.GetLastEnemyDrawCount());
+		ImGui::Text("Enemy Debug Draw Count: %d", characters_.GetLastEnemyDebugDrawCount());
+		const auto* timer = K4E::GameTimer::GetInstance();
+		ImGui::Text("FPS: %.1f", timer ? timer->GetFPS() : 0.0f);
+		ImGui::Text("FrameTime: %.3f ms", timer ? timer->GetDeltaTime() * 1000.0f : 0.0f);
+	}
+
 	// Enemy DebugにはEnemy HPBar Managerの軽量統計を追加する。
 	if (ImGui::CollapsingHeader("HPBar Debug", ImGuiTreeNodeFlags_DefaultOpen))
 	{

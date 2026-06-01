@@ -141,10 +141,18 @@ void CharacterWorld::Update(float dt)
 {
 	if (player_) player_->Update(dt);
 
+	lastEnemyUpdateCount_ = 0;
+	lastEnemyDebugDrawCount_ = 0;
 	for (auto& e : enemies_)
 	{
 		const bool wasAlreadyNotified = notifiedKilledEnemies_.contains(e.get());
-		e->Update(dt);
+		e->SetPerformanceDebugDrawEnabled(enableEnemyDebugDraw_);
+		if (enableEnemyUpdate_)
+		{
+			e->Update(dt);
+			++lastEnemyUpdateCount_;
+			if (enableEnemyDebugDraw_) { ++lastEnemyDebugDrawCount_; }
+		}
 
 		// 衝突更新で死亡した敵も次フレームに1回だけ通知して、ドロップ生成の取り逃しを防ぐ。
 		if (!wasAlreadyNotified && e->IsDead())
@@ -210,7 +218,13 @@ void CharacterWorld::SetStartGameplayVisualsVisible(bool visible)
 void CharacterWorld::Draw()
 {
 	if (player_) player_->Draw();
-	for (auto& e : enemies_) e->Draw();
+	lastEnemyDrawCount_ = 0;
+	if (!enableEnemyDraw_) { return; }
+	for (auto& e : enemies_)
+	{
+		e->Draw();
+		++lastEnemyDrawCount_;
+	}
 }
 
 void CharacterWorld::DrawImGui()
@@ -251,6 +265,7 @@ void CharacterWorld::DrawEnemyDebugImGui()
 void CharacterWorld::DrawShadow()
 {
 	if (player_) { player_->DrawShadow(); }
+	if (!enableEnemyShadow_) { return; }
 	for (auto& e : enemies_)
 	{
 		e->DrawShadow();
@@ -261,6 +276,7 @@ void CharacterWorld::UpdateShadowMatrix(const K4E::Matrix4x4& lightViewProjectio
 {
 	if (player_) { player_->UpdateShadowMatrix(lightViewProjection); }
 
+	if (!enableEnemyShadow_) { return; }
 	for (auto& e : enemies_)
 	{
 		e->UpdateShadowMatrix(lightViewProjection);

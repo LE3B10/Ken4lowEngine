@@ -483,7 +483,7 @@ void GamePlayScene::Draw3DObjects()
 		world_->Draw3D(ShouldHideCharactersDuringIntro());
 	}
 
-	if (frustumCullingDebug_)
+	if (frustumCullingDebug_ && world_ && world_->IsFrustumCullingDebugDrawEnabled())
 	{
 		frustumCullingDebug_->DrawDebug();
 	}
