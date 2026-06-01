@@ -247,7 +247,7 @@ void Enemy::Update(float deltaTime)
 #if defined(_DEBUG) || defined(USE_IMGUI)
 void Enemy::DrawTacticalDebugPoints()
 {
-	if (!tacticalDebugPointConfig_.enabled || IsDead() || !HasTarget() || !IsTargetAware())
+	if (!performanceDebugDrawEnabled_ || !tacticalDebugPointConfig_.enabled || IsDead() || !HasTarget() || !IsTargetAware())
 	{
 		return;
 	}

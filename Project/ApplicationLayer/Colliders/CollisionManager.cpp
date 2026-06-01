@@ -40,12 +40,16 @@ void CollisionManager::Update()
 /// -------------------------------------------------------------
 ///                         描画処理
 /// -------------------------------------------------------------
-void CollisionManager::Draw()
+void CollisionManager::Draw(bool drawEnemyColliders)
 {
 	if (!isCollider_) return;
 
+	const uint32_t enemyType = static_cast<uint32_t>(CollisionTypeIdDef::kEnemy);
 	for (K4E::Collider* collider : all_)
+	{
+		if (!collider || (!drawEnemyColliders && collider->GetTypeID() == enemyType)) { continue; }
 		collider->Draw();
+	}
 }
 
 

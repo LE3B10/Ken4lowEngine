@@ -51,6 +51,21 @@ public: /// ---------- メンバ関数 ---------- ///
 
 	void DrawShadow();
 
+	// 大量敵の負荷原因を切り分けるため、更新・描画・デバッグ描画・影を個別に切り替える。
+	void SetEnemyUpdateEnabled(bool enabled) { enableEnemyUpdate_ = enabled; }
+	void SetEnemyDrawEnabled(bool enabled) { enableEnemyDraw_ = enabled; }
+	void SetEnemyDebugDrawEnabled(bool enabled) { enableEnemyDebugDraw_ = enabled; }
+	void SetEnemyShadowEnabled(bool enabled) { enableEnemyShadow_ = enabled; }
+	bool IsEnemyUpdateEnabled() const { return enableEnemyUpdate_; }
+	bool IsEnemyDrawEnabled() const { return enableEnemyDraw_; }
+	bool IsEnemyDebugDrawEnabled() const { return enableEnemyDebugDraw_; }
+	bool IsEnemyShadowEnabled() const { return enableEnemyShadow_; }
+	int GetMeleeEnemyCount() const { return 0; }
+	int GetMidRangeEnemyCount() const { return static_cast<int>(enemies_.size()); }
+	int GetLastEnemyUpdateCount() const { return lastEnemyUpdateCount_; }
+	int GetLastEnemyDrawCount() const { return lastEnemyDrawCount_; }
+	int GetLastEnemyDebugDrawCount() const { return lastEnemyDebugDrawCount_; }
+
 	void UpdateShadowMatrix(const K4E::Matrix4x4& lightViewProjection);
 
 	Player* GetPlayer() { return player_.get(); }
@@ -95,5 +110,12 @@ private: /// ---------- メンバ変数 ---------- ///
 private: /// ---------- デバッグ用 ---------- ///
 
 	bool isDebug_ = false;
+	bool enableEnemyUpdate_ = true;
+	bool enableEnemyDraw_ = true;
+	bool enableEnemyDebugDraw_ = true;
+	bool enableEnemyShadow_ = true;
+	int lastEnemyUpdateCount_ = 0;
+	int lastEnemyDrawCount_ = 0;
+	int lastEnemyDebugDrawCount_ = 0;
 
 };
