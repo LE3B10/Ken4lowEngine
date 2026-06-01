@@ -13,15 +13,35 @@ namespace Ken4lowEngine
 	class SkyBox;
 	class Sprite;
 
+	struct CloudLayerPreset
+	{
+		bool enabled = false;
+		std::string texturePath;
+		float height = 160.0f;
+		float scale = 1.5f;
+		Vector2 scrollSpeed = { 0.002f, 0.0005f };
+		Vector2 uvOffset{};
+		float alpha = 0.55f;
+		Vector4 tintColor = { 1.0f, 1.0f, 1.0f, 1.0f };
+
+		void ToJson(nlohmann::json& outJson) const;
+		void FromJson(const nlohmann::json& inJson);
+	};
+
 	struct SkyBoxPreset : public JsonSerializable
 	{
 		std::string name = "DefaultSky";
 		bool enabled = true;
-		std::string texturePath = "SkyBox/skybox.dds";
+		std::string skyType = "Gradient";
+		std::string texturePath;
+		Vector4 topColor = { 0.20f, 0.55f, 0.95f, 1.0f };
+		Vector4 bottomColor = { 0.72f, 0.88f, 1.0f, 1.0f };
+		Vector4 horizonColor = { 0.92f, 0.96f, 1.0f, 1.0f };
 		Vector3 rotation{};
 		Vector3 scale = { 10000.0f, 10000.0f, 10000.0f };
 		float brightness = 1.0f;
 		Vector4 tintColor = { 1.0f, 1.0f, 1.0f, 1.0f };
+		CloudLayerPreset cloud{};
 
 		void ToJson(nlohmann::json& outJson) const override;
 		void FromJson(const nlohmann::json& inJson) override;

@@ -6,8 +6,18 @@
 #include "DebugCamera.h"
 #include <SkyBoxManager.h>
 
+#include <filesystem>
+#include <cmath>
+
 namespace Ken4lowEngine
 {
+	namespace
+	{
+		bool TextureFileExists(const std::string& filePath)
+		{
+			return !filePath.empty() && std::filesystem::exists(std::filesystem::path("Resources/Textures/Compiled") / filePath);
+		}
+	}
 	/// -------------------------------------------------------------
 	///                         初期化処理
 	/// -------------------------------------------------------------
@@ -71,52 +81,94 @@ namespace Ken4lowEngine
 	void SkyBox::Draw()
 	{
 		ID3D12GraphicsCommandList* commandList = dxCommon_->GetCommandManager()->GetCommandList();
-
-		// SkyBox 用の共通描画設定を反映する
 		SkyBoxManager::GetInstance()->SetRenderSetting();
-
-		// 使用テクスチャ index を Material 側へ反映する
+		materialData_->color = baseColor_;
+		materialData_->topColor = topColor_;
+		materialData_->bottomColor = bottomColor_;
+		materialData_->horizonColor = horizonColor_;
 		materialData_->textureIndex = textureIndex_;
-
-		// 頂点 / インデックスバッファを設定する
+		materialData_->skyType = skyType_;
+		materialData_->uvOffset = {};
+		materialData_->cloudHeight = cloudHeight_;
+		materialData_->cloudScale = cloudScale_;
+		materialData_->textureAvailable = textureAvailable_ ? 1u : 0u;
 		commandList->IASetVertexBuffers(0, 1, &vertexBufferView);
 		commandList->IASetIndexBuffer(&indexBufferView);
-
-		// Material と WVP の定数バッファを設定する
 		commandList->SetGraphicsRootConstantBufferView(0, materialResource.Get()->GetGPUVirtualAddress());
 		commandList->SetGraphicsRootConstantBufferView(1, wvpResource->GetGPUVirtualAddress());
+		commandList->DrawIndexedInstanced(kNumIndex, 1, 0, 0, 0);
+	}
 
-		// キューブをインデックス描画する
+	void SkyBox::DrawCloudLayer()
+	{
+		if (!cloudEnabled_ || !cloudTextureAvailable_)
+		{
+			return;
+		}
+		ID3D12GraphicsCommandList* commandList = dxCommon_->GetCommandManager()->GetCommandList();
+		// 雲は背景SkyBoxの直後に半透明レイヤーとして描画し、ステージより手前へ出さない。
+		SkyBoxManager::GetInstance()->SetCloudRenderSetting();
+		materialData_->textureIndex = cloudTextureIndex_;
+		materialData_->skyType = 3;
+		materialData_->uvOffset = cloudUvOffset_;
+		materialData_->cloudHeight = cloudHeight_;
+		materialData_->cloudScale = cloudScale_;
+		materialData_->textureAvailable = 1u;
+		materialData_->color = { cloudTintColor_.x, cloudTintColor_.y, cloudTintColor_.z, cloudTintColor_.w * cloudAlpha_ };
+		commandList->IASetVertexBuffers(0, 1, &vertexBufferView);
+		commandList->IASetIndexBuffer(&indexBufferView);
+		commandList->SetGraphicsRootConstantBufferView(0, materialResource.Get()->GetGPUVirtualAddress());
+		commandList->SetGraphicsRootConstantBufferView(1, wvpResource->GetGPUVirtualAddress());
 		commandList->DrawIndexedInstanced(kNumIndex, 1, 0, 0, 0);
 	}
 
 	void SkyBox::SetTexture(const std::string& filePath, bool reloadTexture)
 	{
-		if (filePath.empty())
+		texturePath_ = filePath;
+		textureAvailable_ = TextureFileExists(filePath);
+		if (!textureAvailable_)
 		{
 			return;
 		}
-
 		TextureManager* textureManager = TextureManager::GetInstance();
-		if (reloadTexture)
-		{
-			textureManager->ReloadTexture(filePath);
-		}
-		else
-		{
-			textureManager->LoadTexture(filePath);
-		}
-		texturePath_ = filePath;
+		if (reloadTexture) textureManager->ReloadTexture(filePath); else textureManager->LoadTexture(filePath);
 		textureIndex_ = textureManager->GetSrvIndex(filePath);
 		gpuHandle_ = textureManager->GetSrvHandleGPU(filePath);
 	}
 
 	void SkyBox::SetColor(const Vector4& color)
 	{
-		if (materialData_)
-		{
-			materialData_->color = color;
-		}
+		baseColor_ = color;
+		if (materialData_) materialData_->color = color;
+	}
+
+	void SkyBox::SetSkyType(const std::string& skyType)
+	{
+		skyType_ = skyType == "ColorOnly" ? 0u : skyType == "Texture" ? 2u : 1u;
+	}
+
+	void SkyBox::SetGradientColors(const Vector4& topColor, const Vector4& bottomColor, const Vector4& horizonColor)
+	{
+		topColor_ = topColor; bottomColor_ = bottomColor; horizonColor_ = horizonColor;
+		if (materialData_) { materialData_->topColor = topColor_; materialData_->bottomColor = bottomColor_; materialData_->horizonColor = horizonColor_; }
+	}
+
+	void SkyBox::SetCloudLayer(bool enabled, const std::string& texturePath, float height, float scale,
+		const Vector2& scrollSpeed, const Vector2& uvOffset, float alpha, const Vector4& tintColor, bool reloadTexture)
+	{
+		cloudEnabled_ = enabled; cloudTexturePath_ = texturePath; cloudHeight_ = height; cloudScale_ = scale;
+		cloudScrollSpeed_ = scrollSpeed; cloudUvOffset_ = uvOffset; cloudAlpha_ = alpha; cloudTintColor_ = tintColor;
+		cloudTextureAvailable_ = TextureFileExists(texturePath);
+		if (!cloudTextureAvailable_) return;
+		TextureManager* textureManager = TextureManager::GetInstance();
+		if (reloadTexture) textureManager->ReloadTexture(texturePath); else textureManager->LoadTexture(texturePath);
+		cloudTextureIndex_ = textureManager->GetSrvIndex(texturePath);
+	}
+
+	void SkyBox::AdvanceCloudLayer(float deltaTime)
+	{
+		cloudUvOffset_.x = std::fmod(cloudUvOffset_.x + cloudScrollSpeed_.x * deltaTime, 1.0f);
+		cloudUvOffset_.y = std::fmod(cloudUvOffset_.y + cloudScrollSpeed_.y * deltaTime, 1.0f);
 	}
 
 	/// -------------------------------------------------------------
@@ -133,7 +185,15 @@ namespace Ken4lowEngine
 		// 初期値を設定する
 		materialData_->color = { 1.0f, 1.0f, 1.0f, 1.0f };
 		materialData_->uvTransform = Matrix4x4::MakeIdentity();
+		materialData_->topColor = topColor_;
+		materialData_->bottomColor = bottomColor_;
+		materialData_->horizonColor = horizonColor_;
 		materialData_->textureIndex = textureIndex_;
+		materialData_->skyType = skyType_;
+		materialData_->uvOffset = {};
+		materialData_->cloudHeight = cloudHeight_;
+		materialData_->cloudScale = cloudScale_;
+		materialData_->textureAvailable = textureAvailable_ ? 1u : 0u;
 	}
 
 	/// -------------------------------------------------------------

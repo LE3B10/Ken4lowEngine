@@ -18,16 +18,33 @@ namespace Ken4lowEngine
 		void FromJ(const nlohmann::json& j, Vector4& v) { if (j.is_array() && j.size() >= 4) { v.x = j[0].get<float>(); v.y = j[1].get<float>(); v.z = j[2].get<float>(); v.w = j[3].get<float>(); } }
 	}
 #define READ_NUM(name) if(inJson.contains(#name)){ name = inJson[#name].get<decltype(name)>(); }
-	void SkyBoxPreset::ToJson(nlohmann::json& outJson) const
+	void CloudLayerPreset::ToJson(nlohmann::json& outJson) const
 	{
 		outJson = {
-			{"name",name},
-			{"enabled",enabled},
-			{"texturePath",texturePath},
-			{"rotation",ToJ(rotation)},
-			{"scale",ToJ(scale)},
-			{"brightness",brightness},
-			{"tintColor",ToJ(tintColor)}
+			{"enabled",enabled}, {"texturePath",texturePath}, {"height",height}, {"scale",scale},
+			{"scrollSpeed",ToJ(scrollSpeed)}, {"uvOffset",ToJ(uvOffset)}, {"alpha",alpha}, {"tintColor",ToJ(tintColor)}
+		};
+	}
+
+	void CloudLayerPreset::FromJson(const nlohmann::json& inJson)
+	{
+		READ_NUM(enabled);
+		if (inJson.contains("texturePath")) texturePath = inJson["texturePath"].get<std::string>();
+		READ_NUM(height); READ_NUM(scale); READ_NUM(alpha);
+		FromJ(inJson.value("scrollSpeed", nlohmann::json::array()), scrollSpeed);
+		FromJ(inJson.value("uvOffset", nlohmann::json::array()), uvOffset);
+		FromJ(inJson.value("tintColor", nlohmann::json::array()), tintColor);
+	}
+
+	void SkyBoxPreset::ToJson(nlohmann::json& outJson) const
+	{
+		nlohmann::json cloudJson;
+		cloud.ToJson(cloudJson);
+		outJson = {
+			{"name",name}, {"enabled",enabled}, {"skyType",skyType}, {"texturePath",texturePath},
+			{"topColor",ToJ(topColor)}, {"bottomColor",ToJ(bottomColor)}, {"horizonColor",ToJ(horizonColor)},
+			{"rotation",ToJ(rotation)}, {"scale",ToJ(scale)}, {"brightness",brightness},
+			{"tintColor",ToJ(tintColor)}, {"cloud",cloudJson}
 		};
 	}
 
@@ -35,11 +52,16 @@ namespace Ken4lowEngine
 	{
 		if (inJson.contains("name")) name = inJson["name"].get<std::string>();
 		READ_NUM(enabled);
+		if (inJson.contains("skyType")) skyType = inJson["skyType"].get<std::string>();
 		if (inJson.contains("texturePath")) texturePath = inJson["texturePath"].get<std::string>();
+		FromJ(inJson.value("topColor", nlohmann::json::array()), topColor);
+		FromJ(inJson.value("bottomColor", nlohmann::json::array()), bottomColor);
+		FromJ(inJson.value("horizonColor", nlohmann::json::array()), horizonColor);
 		FromJ(inJson.value("rotation", nlohmann::json::array()), rotation);
 		FromJ(inJson.value("scale", nlohmann::json::array()), scale);
 		READ_NUM(brightness);
 		FromJ(inJson.value("tintColor", nlohmann::json::array()), tintColor);
+		if (inJson.contains("cloud") && inJson["cloud"].is_object()) cloud.FromJson(inJson["cloud"]);
 	}
 
 	SkyBoxPreset* SkyBoxPresetCollection::FindActivePreset()
@@ -86,9 +108,13 @@ namespace Ken4lowEngine
 
 	void ApplySkyBoxPreset(SkyBox& skyBox, const SkyBoxPreset& preset, bool reloadTexture)
 	{
+		skyBox.SetSkyType(preset.skyType);
 		skyBox.SetTexture(preset.texturePath, reloadTexture);
 		skyBox.GetWorldTransform().rotate_ = preset.rotation;
 		skyBox.GetWorldTransform().scale_ = preset.scale;
+		skyBox.SetGradientColors(preset.topColor, preset.bottomColor, preset.horizonColor);
+		skyBox.SetCloudLayer(preset.cloud.enabled, preset.cloud.texturePath, preset.cloud.height, preset.cloud.scale,
+			preset.cloud.scrollSpeed, preset.cloud.uvOffset, preset.cloud.alpha, preset.cloud.tintColor, reloadTexture);
 		skyBox.SetColor({
 			preset.tintColor.x * preset.brightness,
 			preset.tintColor.y * preset.brightness,

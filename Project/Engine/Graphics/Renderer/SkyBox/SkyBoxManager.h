@@ -22,6 +22,7 @@ namespace Ken4lowEngine
 		/// SkyBox 描画前の共通設定を行う。
 		/// </summary>
 		void SetRenderSetting();
+		void SetCloudRenderSetting();
 
 	private:
 		DirectXCommon* dxCommon_ = nullptr;

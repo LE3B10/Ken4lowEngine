@@ -135,6 +135,10 @@ namespace Ken4lowEngine
 
 		defaultPipeline_ = factory.CreateGraphicsPipeline(desc, rootSigDesc);
 
+		desc.blendState = PipelineStatePresets::MakeBlendAlpha();
+		desc.debugName = L"SkyBox.Cloud";
+		cloudPipeline_ = factory.CreateGraphicsPipeline(desc, rootSigDesc);
+
 		if (defaultPipeline_.rootSignature)
 		{
 			defaultPipeline_.rootSignature->SetName(L"SkyBox.Default.RootSignature");
@@ -148,5 +152,6 @@ namespace Ken4lowEngine
 	void SkyBoxPipelineSet::Finalize()
 	{
 		defaultPipeline_.Reset();
+		cloudPipeline_.Reset();
 	}
 }
