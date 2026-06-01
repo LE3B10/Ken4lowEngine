@@ -37,6 +37,8 @@ public: /// ---------- メンバ関数 ---------- ///
 
 	// 敵を含む衝突ペアを負荷計測時に停止する。
 	void SetEnemyCollisionEnabled(bool enabled) { enableEnemyCollision_ = enabled; }
+	// Stress TestではSpatial Hashで近傍候補だけを調べ、Enemy x Worldの総当たりを避ける。
+	void SetUseSimpleStressTestCollision(bool enabled) { useSimpleStressTestCollision_ = enabled; }
 	int GetLastEnemyCollisionCount() const { return lastEnemyCollisionCount_; }
 	int GetLastEnemyPlayerCollisionCount() const { return lastEnemyPlayerCollisionCount_; }
 	int GetLastBulletEnemyCollisionCount() const { return lastBulletEnemyCollisionCount_; }
@@ -98,6 +100,7 @@ private: /// ---------- メンバ変数 ---------- ///
 	// コライダーの可視化フラグ
 	bool isCollider_ = true;
 	bool enableEnemyCollision_ = true;
+	bool useSimpleStressTestCollision_ = false;
 	int lastEnemyCollisionCount_ = 0;
 	int lastEnemyPlayerCollisionCount_ = 0;
 	int lastBulletEnemyCollisionCount_ = 0;
