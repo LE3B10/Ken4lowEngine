@@ -6,10 +6,40 @@
 #include "Vector4.h"
 
 #include <string>
+#include <vector>
 
 namespace Ken4lowEngine
 {
+	class SkyBox;
 	class Sprite;
+
+	struct SkyBoxPreset : public JsonSerializable
+	{
+		std::string name = "DefaultSky";
+		bool enabled = true;
+		std::string texturePath = "SkyBox/skybox.dds";
+		Vector3 rotation{};
+		Vector3 scale = { 10000.0f, 10000.0f, 10000.0f };
+		float brightness = 1.0f;
+		Vector4 tintColor = { 1.0f, 1.0f, 1.0f, 1.0f };
+
+		void ToJson(nlohmann::json& outJson) const override;
+		void FromJson(const nlohmann::json& inJson) override;
+	};
+
+	struct SkyBoxPresetCollection : public JsonSerializable
+	{
+		std::string activePresetName = "DefaultSky";
+		std::vector<SkyBoxPreset> presets = { SkyBoxPreset{} };
+
+		SkyBoxPreset* FindActivePreset();
+		const SkyBoxPreset* FindActivePreset() const;
+		void ToJson(nlohmann::json& outJson) const override;
+		void FromJson(const nlohmann::json& inJson) override;
+	};
+
+	// SkyBox の見た目だけを共通適用し、表示可否は描画側で扱う。
+	void ApplySkyBoxPreset(SkyBox& skyBox, const SkyBoxPreset& preset, bool reloadTexture = false);
 
 	struct LightPreset : public JsonSerializable
 	{

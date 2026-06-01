@@ -9,6 +9,9 @@
 #include "Wireframe.h"
 #include "Object3D.h"
 #include "Camera.h"
+#include "SkyBox.h"
+#include "JsonAssetEntry.h"
+#include "JsonDataManager.h"
 #include "WinApp.h"
 #include <LightManager.h>
 #include <GameTimer.h>
@@ -119,6 +122,7 @@ void DebugScene::Initialize()
 
 	dxCommon_ = DirectXCommon::GetInstance();
 	input_ = Input::GetInstance();
+	InitializeSkyBox();
 
 	/*input_->SetLockCursor(true);
 	input_->SetCursorVisible(false);*/
@@ -147,10 +151,6 @@ void DebugScene::Initialize()
 	debugMidRangeEnemy_->Initialize();
 	debugMidRangeEnemy_->SetCenterPosition({ 3.0f, 2.5f, 18.0f });
 	debugMidRangeEnemy_->SetTarget(meleeDummyTarget_.GetCenterPosition());
-	// 追加: 中距離敵にも床/障害物AABBを近接敵と同じ参照元で渡す。
-	debugMidRangeEnemy_->SetFloorAABBs(&stage_->GetFloorAABBs());
-	debugMidRangeEnemy_->SetWallObstacleAABBs(&stage_->GetWallObstacleAABBs());
-
 	disintegrationDebug_ = std::make_unique<DisintegrationDebugController>();
 	// Disintegration系の確認処理は専用コントローラへ委譲し、DebugScene本体の責務を絞る。
 	disintegrationDebug_->Initialize();
@@ -171,6 +171,65 @@ void DebugScene::Initialize()
 		debugMeleeEnemy_->SetFloorAABBs(&stage_->GetFloorAABBs());
 		debugMeleeEnemy_->SetWallObstacleAABBs(&stage_->GetWallObstacleAABBs());
 	}
+	if (debugMidRangeEnemy_)
+	{
+		debugMidRangeEnemy_->SetFloorAABBs(&stage_->GetFloorAABBs());
+		debugMidRangeEnemy_->SetWallObstacleAABBs(&stage_->GetWallObstacleAABBs());
+	}
+}
+
+void DebugScene::InitializeSkyBox()
+{
+	LoadSkyBoxPresets();
+	K4E::SkyBoxPreset* preset = skyBoxPresets_.FindActivePreset();
+	if (!preset)
+	{
+		return;
+	}
+
+	skyBox_ = std::make_unique<K4E::SkyBox>();
+	skyBox_->Initialize(preset->texturePath);
+	ApplyActiveSkyBoxPreset();
+}
+
+void DebugScene::ApplyActiveSkyBoxPreset(bool reloadTexture)
+{
+	K4E::SkyBoxPreset* preset = skyBoxPresets_.FindActivePreset();
+	if (!skyBox_ || !preset)
+	{
+		return;
+	}
+
+	// 読み込んだプリセットを優先し、毎フレーム既定値で上書きしない。
+	K4E::ApplySkyBoxPreset(*skyBox_, *preset, reloadTexture);
+	std::snprintf(skyBoxTexturePathBuffer_.data(), skyBoxTexturePathBuffer_.size(), "%s", preset->texturePath.c_str());
+}
+
+bool DebugScene::LoadSkyBoxPresets()
+{
+	K4E::JsonAssetEntry entry;
+	if (!K4E::JsonDataManager::SafeLoad("Resources/DataAssets/SkyBoxPresets/debug_skybox.json", entry))
+	{
+		skyBoxPresetLog_ = "設定ファイルがないため、デフォルト設定で表示します。";
+		return false;
+	}
+
+	skyBoxPresets_.FromJson(entry.data);
+	skyBoxPresetLog_ = "SkyBox設定を読み込みました。";
+	return true;
+}
+
+bool DebugScene::SaveSkyBoxPresets()
+{
+	K4E::JsonAssetEntry entry;
+	entry.id = "debug_skybox";
+	entry.displayName = "Debug Scene SkyBox";
+	entry.type = "SkyBoxPresetCollection";
+	entry.path = "Resources/DataAssets/SkyBoxPresets/debug_skybox.json";
+	skyBoxPresets_.ToJson(entry.data);
+	const bool saved = K4E::JsonDataManager::SafeSave(entry);
+	skyBoxPresetLog_ = saved ? "SkyBox設定を保存しました。" : "SkyBox設定の保存に失敗しました。";
+	return saved;
 }
 
 void DebugScene::Update()
@@ -199,9 +258,9 @@ void DebugScene::Update()
 	if (debugMidRangeEnemy_)
 	{
 		debugMidRangeEnemy_->SetTarget(meleeDummyTarget_.GetCenterPosition());
-	// 追加: 中距離敵にも床/障害物AABBを近接敵と同じ参照元で渡す。
-	debugMidRangeEnemy_->SetFloorAABBs(&stage_->GetFloorAABBs());
-	debugMidRangeEnemy_->SetWallObstacleAABBs(&stage_->GetWallObstacleAABBs());
+		// 中距離敵にも床/障害物AABBを近接敵と同じ参照元で渡す。
+		debugMidRangeEnemy_->SetFloorAABBs(&stage_->GetFloorAABBs());
+		debugMidRangeEnemy_->SetWallObstacleAABBs(&stage_->GetWallObstacleAABBs());
 		debugMidRangeEnemy_->Update(deltaTime);
 	}
 
@@ -231,6 +290,10 @@ void DebugScene::Update()
 	{
 		stage_->Update();
 	}
+	if (skyBox_)
+	{
+		skyBox_->Update();
+	}
 
 }
 
@@ -242,6 +305,13 @@ void DebugScene::ResolveMeleeEnemySeparation(float deltaTime)
 
 void DebugScene::Draw3DObjects()
 {
+	const K4E::SkyBoxPreset* skyBoxPreset = skyBoxPresets_.FindActivePreset();
+	if (skyBox_ && skyBoxPreset && skyBoxPreset->enabled)
+	{
+		// SkyBox は深度読み取り専用 PSO で先に描画し、ステージ描画を妨げない。
+		skyBox_->Draw();
+	}
+
 	if (disintegrationDebug_)
 	{
 		disintegrationDebug_->Draw3DObjects();
@@ -345,6 +415,7 @@ void DebugScene::Finalize()
 	cullingTestObjects_.clear();
 	frustumCullingDebug_.reset();
 	disintegrationDebug_.reset();
+	skyBox_.reset();
 	EnemyBase::SetGlobalStageWorldAABBs(nullptr);
 	debugBoss_.reset();
 	debugMidRangeEnemy_.reset();
@@ -361,6 +432,7 @@ void DebugScene::DrawImGui()
 #ifdef USE_IMGUI
 
 	LightManager::GetInstance()->DrawImGui();
+	DrawSkyBoxImGui();
 
 	if (debugBoss_)
 	{
@@ -769,6 +841,75 @@ void DebugScene::DrawImGui()
 
 #endif // USE_IMGUI
 
+}
+
+void DebugScene::DrawSkyBoxImGui()
+{
+#ifdef USE_IMGUI
+	K4E::SkyBoxPreset* preset = skyBoxPresets_.FindActivePreset();
+	ImGui::Begin("SkyBox Settings");
+	ImGui::TextWrapped("DebugSceneの背景SkyBoxを調整します。保存済みJsonがない場合はデフォルト設定を使用します。");
+	ImGui::Separator();
+
+	if (ImGui::BeginCombo("Active Preset", skyBoxPresets_.activePresetName.c_str()))
+	{
+		for (const K4E::SkyBoxPreset& candidate : skyBoxPresets_.presets)
+		{
+			const bool selected = candidate.name == skyBoxPresets_.activePresetName;
+			if (ImGui::Selectable(candidate.name.c_str(), selected))
+			{
+				skyBoxPresets_.activePresetName = candidate.name;
+				ApplyActiveSkyBoxPreset();
+				preset = skyBoxPresets_.FindActivePreset();
+			}
+			if (selected) ImGui::SetItemDefaultFocus();
+		}
+		ImGui::EndCombo();
+	}
+	ImGui::TextWrapped("Active Preset: 現在使用する名前付きSkyBox設定を選択します。");
+
+	if (preset)
+	{
+		if (ImGui::Checkbox("Enabled", &preset->enabled)) ApplyActiveSkyBoxPreset();
+		ImGui::TextWrapped("Enabled: SkyBox背景の表示ON/OFFを切り替えます。");
+		ImGui::Text("Current Texture: %s", preset->texturePath.c_str());
+		ImGui::TextWrapped("Texture Path: Resources/Textures/Compiledからの相対パスを指定します。");
+		ImGui::InputText("Texture Path", skyBoxTexturePathBuffer_.data(), skyBoxTexturePathBuffer_.size());
+		if (ImGui::Button("Apply Texture Path"))
+		{
+			preset->texturePath = skyBoxTexturePathBuffer_.data();
+			ApplyActiveSkyBoxPreset();
+		}
+		ImGui::SameLine();
+		if (ImGui::Button("Reload Texture"))
+		{
+			preset->texturePath = skyBoxTexturePathBuffer_.data();
+			ApplyActiveSkyBoxPreset(true);
+		}
+		ImGui::TextWrapped("Reload Texture: 編集したテクスチャをディスクから再読み込みします。");
+
+		if (ImGui::DragFloat3("Rotation", &preset->rotation.x, 0.01f)) ApplyActiveSkyBoxPreset();
+		ImGui::TextWrapped("Rotation: SkyBoxの向きをラジアン単位で調整します。");
+		if (ImGui::DragFloat3("Scale", &preset->scale.x, 10.0f, 1.0f, 50000.0f)) ApplyActiveSkyBoxPreset();
+		ImGui::TextWrapped("Scale: 背景キューブの大きさを調整します。");
+		if (ImGui::DragFloat("Brightness", &preset->brightness, 0.01f, 0.0f, 10.0f)) ApplyActiveSkyBoxPreset();
+		ImGui::TextWrapped("Brightness: SkyBoxの明るさ倍率を調整します。");
+		if (ImGui::ColorEdit4("Tint Color", &preset->tintColor.x)) ApplyActiveSkyBoxPreset();
+		ImGui::TextWrapped("Tint Color: SkyBoxへ重ねる色味を調整します。");
+	}
+
+	ImGui::Separator();
+	if (ImGui::Button("Save Settings")) SaveSkyBoxPresets();
+	ImGui::SameLine();
+	if (ImGui::Button("Load Settings"))
+	{
+		LoadSkyBoxPresets();
+		ApplyActiveSkyBoxPreset();
+	}
+	ImGui::TextWrapped("Save / Load Settings: SkyBox設定をJsonへ保存、またはJsonから復元します。");
+	ImGui::TextWrapped("%s", skyBoxPresetLog_.c_str());
+	ImGui::End();
+#endif // USE_IMGUI
 }
 
 void DebugScene::InitializeCullingTestObjects()
