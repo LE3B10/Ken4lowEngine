@@ -790,6 +790,9 @@
     <ClCompile Include="Engine\Graphics\Renderer\Sprite\SpritePipelineSet.cpp">
       <Filter>Engine\Graphics\Renderer\Sprite</Filter>
     </ClCompile>
+    <ClCompile Include="Engine\Graphics\Renderer\SkyBox\CloudLayer.cpp">
+      <Filter>Engine\Graphics\Renderer\SkyBox</Filter>
+    </ClCompile>
     <ClCompile Include="Engine\Graphics\Renderer\SkyBox\SkyBox.cpp">
       <Filter>Engine\Graphics\Renderer\SkyBox</Filter>
     </ClCompile>
@@ -1781,6 +1784,9 @@
     </ClInclude>
     <ClInclude Include="Engine\Graphics\Renderer\Sprite\SpritePipelineSet.h">
       <Filter>Engine\Graphics\Renderer\Sprite</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Graphics\Renderer\SkyBox\CloudLayer.h">
+      <Filter>Engine\Graphics\Renderer\SkyBox</Filter>
     </ClInclude>
     <ClInclude Include="Engine\Graphics\Renderer\SkyBox\SkyBox.h">
       <Filter>Engine\Graphics\Renderer\SkyBox</Filter>
