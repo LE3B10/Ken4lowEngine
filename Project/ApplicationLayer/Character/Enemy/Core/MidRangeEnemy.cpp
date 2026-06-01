@@ -126,6 +126,8 @@ void MidRangeEnemy::FaceToMoveDirection(const Vector3& moveDirection, float delt
 
 void MidRangeEnemy::MoveAlongPath(float deltaTime, float moveSpeed)
 {
+    if (!IsPerformanceNavigationEnabled()) return;
+    EnemyPerformanceProfiler::SectionScope navigationTimer(EnemyPerformanceProfiler::Section::Navigation);
     if (!path_.pathFindEnabled)
     {
         pathState_.pathFound = false;
@@ -163,6 +165,7 @@ void MidRangeEnemy::MoveAlongPath(float deltaTime, float moveSpeed)
     }
     const Vector3 moveDir = NormalizeXZ(waypoint - pos);
     animationState_.moveDirection = moveDir;
+    EnemyPerformanceProfiler::SectionScope moveTimer(EnemyPerformanceProfiler::Section::Move);
     SetCenterPosition(pos + moveDir * moveSpeed * deltaTime);
 }
 
@@ -175,6 +178,7 @@ void MidRangeEnemy::Update(float deltaTime)
         UpdateVisualAnimation(deltaTime);
         return;
     }
+    EnemyPerformanceProfiler::SectionScope aiTimer(EnemyPerformanceProfiler::Section::AI);
     // 追加: 時限爆弾モード中のHP0は通常死亡より自爆を優先する。
     if (!IsDead() && !IsDeathActive() && GetHp() <= 0)
     {
@@ -206,6 +210,7 @@ void MidRangeEnemy::Update(float deltaTime)
 
     if (IsPerformanceAttackEnabled())
     {
+        EnemyPerformanceProfiler::SectionScope attackTimer(EnemyPerformanceProfiler::Section::Attack);
         for (auto& bomb : bombs_)
         {
             bomb->Update(deltaTime);
@@ -282,6 +287,8 @@ void MidRangeEnemy::Update(float deltaTime)
 
     if (IsPerformanceAttackEnabled() && bombAttackState_.casting && targetState_.inDetectRange)
     {
+        EnemyPerformanceProfiler::SectionScope attackTimer(EnemyPerformanceProfiler::Section::Attack);
+        EnemyPerformanceProfiler::SectionScope attackCheckTimer(EnemyPerformanceProfiler::Section::BulletSpawnAttackCheck);
         animationState_.animState = AnimState::Cast;
         if (bombAttackState_.castTimer >= bombAttack_.castTime && !bombAttackState_.thrownThisCast)
         {
@@ -623,6 +630,7 @@ void MidRangeEnemy::KillBySuicideExplosion()
 
 void MidRangeEnemy::UpdateVisualAnimation(float deltaTime)
 {
+    if (!IsPerformanceTransformUpdateEnabled()) { return; }
     if (IsDead() || suicideBombState_.exploded)
     {
         // 追加: 自爆後の分裂パーツ姿勢を通常アニメで上書きしない。
@@ -793,6 +801,7 @@ void MidRangeEnemy::UpdateVisualAnimation(float deltaTime)
     parts_[head].transform.rotate_.y = ToRad(headLookState_.currentYaw);
     parts_[head].transform.rotate_.x = ToRad(headLookState_.currentPitch);
     // 追加: パーツ回転をObject3Dへ反映するため、最後に階層更新する。
+    EnemyPerformanceProfiler::SectionScope transformTimer(EnemyPerformanceProfiler::Section::Transform);
     UpdateVisualHierarchy();
 }
 

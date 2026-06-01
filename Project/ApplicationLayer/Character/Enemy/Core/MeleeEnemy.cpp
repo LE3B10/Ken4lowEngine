@@ -82,7 +82,12 @@ void MeleeEnemy::Initialize()
 void MeleeEnemy::Update(float deltaTime)
 {
 	const Vector3 beforePos = GetCenterPosition();
-	if (IsPerformanceAttackEnabled()) { attackController_.Update(*this, deltaTime); }
+	if (IsPerformanceAttackEnabled())
+	{
+		EnemyPerformanceProfiler::SectionScope attackTimer(EnemyPerformanceProfiler::Section::Attack);
+		EnemyPerformanceProfiler::SectionScope attackCheckTimer(EnemyPerformanceProfiler::Section::BulletSpawnAttackCheck);
+		attackController_.Update(*this, deltaTime);
+	}
 	// 被ダメージリアクションと死亡演出のタイマー更新を先に行う。
 	UpdateHitReaction(deltaTime);
 	UpdateDeathAnimation(deltaTime);
@@ -93,7 +98,11 @@ void MeleeEnemy::Update(float deltaTime)
 	attackSelectState_.lungeSelectCooldownTimer = std::max(0.0f, attackSelectState_.lungeSelectCooldownTimer - deltaTime);
 
 	// 優先度の高い行動から順に評価して近接敵の行動を決定する
-	if (IsPerformanceAIEnabled()) { EvaluateBehavior(deltaTime); }
+	if (IsPerformanceAIEnabled())
+	{
+		EnemyPerformanceProfiler::SectionScope aiTimer(EnemyPerformanceProfiler::Section::AI);
+		EvaluateBehavior(deltaTime);
+	}
 	EnemyBase::Update(deltaTime);
 
 	if (!IsPerformanceCollisionEnabled())
@@ -101,6 +110,7 @@ void MeleeEnemy::Update(float deltaTime)
 		UpdateVisualAnimation(deltaTime);
 		return;
 	}
+	EnemyPerformanceProfiler::SectionScope collisionTimer(EnemyPerformanceProfiler::Section::Collision);
 
 	collision_.usingWorldAABBCount = GetResolvedWorldAABBs() ? static_cast<int>(GetResolvedWorldAABBs()->size()) : 0;
 	collision_.usingObstacleAABBCount = GetResolvedNavigationObstacleAABBs() ? static_cast<int>(GetResolvedNavigationObstacleAABBs()->size()) : 0;
@@ -1037,6 +1047,8 @@ void MeleeEnemy::ChaseTargetAction()
 
 bool MeleeEnemy::MoveAlongPath(float deltaTime)
 {
+	if (!IsPerformanceNavigationEnabled()) return false;
+	EnemyPerformanceProfiler::SectionScope navigationTimer(EnemyPerformanceProfiler::Section::Navigation);
 	EnemyAStarNavigator::Settings s = navigator_.GetSettings();
 	s.cellSize = pathSettings_.gridSize;
 	s.agentRadius = pathSettings_.obstacleExpandRadius + pathSettings_.stuckRepathExpandBonus;
@@ -1500,6 +1512,7 @@ void MeleeEnemy::ResetAttackCooldown()
 
 void MeleeEnemy::UpdateVisualAnimation(float deltaTime)
 {
+	if (!IsPerformanceTransformUpdateEnabled()) { return; }
 	if (parts_.size() < 5 || !body_.object) { return; }
 	const uint32_t lArm = partIndices_.leftArm;
 	const uint32_t rArm = partIndices_.rightArm;
@@ -1680,6 +1693,7 @@ void MeleeEnemy::UpdateVisualAnimation(float deltaTime)
 		headLookState_.reason = "Dead";
 	}
 	body_.transform.rotate_.x = bodyLean;
+	EnemyPerformanceProfiler::SectionScope transformTimer(EnemyPerformanceProfiler::Section::Transform);
 	UpdateVisualHierarchy();
 }
 

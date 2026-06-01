@@ -38,6 +38,9 @@ public: /// ---------- メンバ関数 ---------- ///
 	// 敵を含む衝突ペアを負荷計測時に停止する。
 	void SetEnemyCollisionEnabled(bool enabled) { enableEnemyCollision_ = enabled; }
 	int GetLastEnemyCollisionCount() const { return lastEnemyCollisionCount_; }
+	int GetLastEnemyPlayerCollisionCount() const { return lastEnemyPlayerCollisionCount_; }
+	int GetLastBulletEnemyCollisionCount() const { return lastBulletEnemyCollisionCount_; }
+	int GetLastEnemyWorldCollisionCount() const { return lastEnemyWorldCollisionCount_; }
 
 	// コライダーを追加
 	void AddCollider(K4E::Collider* other);
@@ -96,4 +99,7 @@ private: /// ---------- メンバ変数 ---------- ///
 	bool isCollider_ = true;
 	bool enableEnemyCollision_ = true;
 	int lastEnemyCollisionCount_ = 0;
+	int lastEnemyPlayerCollisionCount_ = 0;
+	int lastBulletEnemyCollisionCount_ = 0;
+	int lastEnemyWorldCollisionCount_ = 0;
 };

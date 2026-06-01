@@ -93,6 +93,9 @@ void CollisionManager::Reset()
 void CollisionManager::CheckAllCollisions()
 {
 	lastEnemyCollisionCount_ = 0;
+	lastEnemyPlayerCollisionCount_ = 0;
+	lastBulletEnemyCollisionCount_ = 0;
+	lastEnemyWorldCollisionCount_ = 0;
 	using CId = uint32_t;
 	const CId kPlayer = static_cast<CId>(CollisionTypeIdDef::kPlayer);
 	const CId kEnemy = static_cast<CId>(CollisionTypeIdDef::kEnemy);
@@ -146,14 +149,20 @@ void CollisionManager::CheckAllCollisions()
 
 	// ここは片方向だけ回す（CheckCollisionPair 内で両者に登録するため）
 	pairLoop(kBoss, kPlayer);
+	const int beforeEnemyPlayer = lastEnemyCollisionCount_;
 	pairLoop(kEnemy, kPlayer);
+	lastEnemyPlayerCollisionCount_ = lastEnemyCollisionCount_ - beforeEnemyPlayer;
+	const int beforeBulletEnemy = lastEnemyCollisionCount_;
 	pairLoop(kBullet, kEnemy);
+	lastBulletEnemyCollisionCount_ = lastEnemyCollisionCount_ - beforeBulletEnemy;
 	pairLoop(kBoss, kBullet);
 	pairLoop(kEnemyBullet, kPlayer);
 	pairLoop(kPlayer, kBossBullet);
 	pairLoop(kPlayer, kItem);
 	pairLoop(kPlayer, kWorld);
+	const int beforeEnemyWorld = lastEnemyCollisionCount_;
 	pairLoop(kEnemy, kWorld);
+	lastEnemyWorldCollisionCount_ = lastEnemyCollisionCount_ - beforeEnemyWorld;
 	pairLoop(kBoss, kWorld);
 	// Bullet vs World（壁に当てて消す）
 	pairLoop(kBullet, kWorld);

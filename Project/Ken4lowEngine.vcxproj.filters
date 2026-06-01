@@ -1293,6 +1293,9 @@
     <ClInclude Include="ApplicationLayer\Character\Enemy\Core\EnemyBase.h">
       <Filter>ApplicationLayer\Character\Enemy\Core</Filter>
     </ClInclude>
+    <ClInclude Include="ApplicationLayer\Character\Enemy\Core\EnemyPerformanceProfiler.h">
+      <Filter>ApplicationLayer\Character\Enemy\Core</Filter>
+    </ClInclude>
     <ClInclude Include="ApplicationLayer\Character\Enemy\Effects\EnemyParticleEffectSystem.h">
       <Filter>ApplicationLayer\Character\Enemy\Effects</Filter>
     </ClInclude>

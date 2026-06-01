@@ -119,6 +119,9 @@ private: /// ---------- メンバ変数 ---------- ///
 	bool enableEnemyCollision_ = true;
 	bool enableEnemyAI_ = true;
 	bool enableEnemyAttack_ = true;
+	bool enableEnemyMovement_ = true;
+	bool enableEnemyNavigation_ = true;
+	bool enableEnemyTransformUpdate_ = true;
 	bool enableEnemyShadow_ = true;
 	bool enableStageBoundsDebugDraw_ = true;
 	bool enableFrustumCullingDebugDraw_ = true;

@@ -36,6 +36,7 @@
 #include <exception>
 #include <unordered_map>
 #include <cmath>
+#include <chrono>
 
 using namespace Ken4lowEngine;
 
@@ -257,14 +258,32 @@ void DebugScene::Update()
 	EnemyBase::SetPerformanceCollisionEnabled(enableEnemyCollision_);
 	EnemyBase::SetPerformanceAIEnabled(enableEnemyAI_);
 	EnemyBase::SetPerformanceAttackEnabled(enableEnemyAttack_);
+	EnemyBase::SetPerformanceMovementEnabled(enableEnemyMovement_);
+	EnemyBase::SetPerformanceNavigationEnabled(enableEnemyNavigation_);
+	EnemyBase::SetPerformanceTransformUpdateEnabled(enableEnemyTransformUpdate_);
 	if (collisionManager_) { collisionManager_->SetEnemyCollisionEnabled(enableEnemyCollision_); }
 	lastEnemyUpdateCount_ = 0;
+	EnemyPerformanceProfiler::BeginFrame();
+	auto updateMeleeEnemy = [deltaTime, this](MeleeEnemy* enemy)
+		{
+			if (!enemy) return;
+			EnemyPerformanceProfiler::EnemyUpdateScope timer(EnemyPerformanceProfiler::EnemyType::Melee);
+			enemy->Update(deltaTime);
+			++lastEnemyUpdateCount_;
+		};
+	auto updateMidRangeEnemy = [deltaTime, this](MidRangeEnemy* enemy)
+		{
+			if (!enemy) return;
+			enemy->SetTarget(meleeDummyTarget_.GetCenterPosition());
+			EnemyPerformanceProfiler::EnemyUpdateScope timer(EnemyPerformanceProfiler::EnemyType::MidRange);
+			enemy->Update(deltaTime);
+			++lastEnemyUpdateCount_;
+		};
 	if (enableEnemyUpdate_)
 	{
 		if (debugMeleeEnemy_)
 		{
-			debugMeleeEnemy_->Update(deltaTime);
-			++lastEnemyUpdateCount_;
+			updateMeleeEnemy(debugMeleeEnemy_.get());
 		}
 		if (debugMidRangeEnemy_)
 		{
@@ -272,20 +291,17 @@ void DebugScene::Update()
 			// 中距離敵にも床/障害物AABBを近接敵と同じ参照元で渡す。
 			debugMidRangeEnemy_->SetFloorAABBs(&stage_->GetFloorAABBs());
 			debugMidRangeEnemy_->SetWallObstacleAABBs(&stage_->GetWallObstacleAABBs());
-			debugMidRangeEnemy_->Update(deltaTime);
-			++lastEnemyUpdateCount_;
+			updateMidRangeEnemy(debugMidRangeEnemy_.get());
 		}
 		for (auto& enemy : stressTestMeleeEnemies_)
 		{
-			if (enemy) { enemy->Update(deltaTime); ++lastEnemyUpdateCount_; }
+			updateMeleeEnemy(enemy.get());
 		}
 		for (auto& enemy : stressTestMidRangeEnemies_)
 		{
 			if (enemy)
 			{
-				enemy->SetTarget(meleeDummyTarget_.GetCenterPosition());
-				enemy->Update(deltaTime);
-				++lastEnemyUpdateCount_;
+				updateMidRangeEnemy(enemy.get());
 			}
 		}
 	}
@@ -305,7 +321,14 @@ void DebugScene::Update()
 	}
 
 	collisionManager_->Update();
+#ifdef _DEBUG
+	const auto enemyCollisionStart = std::chrono::steady_clock::now();
+#endif
 	collisionManager_->CheckAllCollisions();
+#ifdef _DEBUG
+	const double enemyCollisionMs = std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - enemyCollisionStart).count();
+	EnemyPerformanceProfiler::AddFrameSectionMs(EnemyPerformanceProfiler::Section::Collision, enemyCollisionMs);
+#endif
 
 	if (stage_)
 	{
@@ -445,6 +468,9 @@ void DebugScene::Finalize()
 	EnemyBase::SetPerformanceCollisionEnabled(true);
 	EnemyBase::SetPerformanceAIEnabled(true);
 	EnemyBase::SetPerformanceAttackEnabled(true);
+	EnemyBase::SetPerformanceMovementEnabled(true);
+	EnemyBase::SetPerformanceNavigationEnabled(true);
+	EnemyBase::SetPerformanceTransformUpdateEnabled(true);
 	// 入力状態を必ず戻す（ロック/非表示のまま終了しない）
 	input_->SetLockCursor(false);
 	input_->SetCursorVisible(true);
@@ -595,6 +621,9 @@ void DebugScene::DrawImGui()
 	ImGui::Checkbox("Enable Enemy Collision", &enableEnemyCollision_);
 	ImGui::Checkbox("Enable Enemy AI", &enableEnemyAI_);
 	ImGui::Checkbox("Enable Enemy Attack", &enableEnemyAttack_);
+	ImGui::Checkbox("Enable Enemy Movement", &enableEnemyMovement_);
+	ImGui::Checkbox("Enable Enemy Navigation", &enableEnemyNavigation_);
+	ImGui::Checkbox("Enable Enemy Transform Update", &enableEnemyTransformUpdate_);
 	ImGui::Checkbox("Enable Enemy Shadow", &enableEnemyShadow_);
 	ImGui::Checkbox("Enable Stage Bounds Debug Draw", &enableStageBoundsDebugDraw_);
 	ImGui::Checkbox("Enable Frustum Culling Debug Draw", &enableFrustumCullingDebugDraw_);
@@ -609,6 +638,27 @@ void DebugScene::DrawImGui()
 	ImGui::Text("Enemy Draw Count: %d", lastEnemyDrawCount_);
 	ImGui::Text("Enemy DebugDraw Count: %d", lastEnemyDebugDrawCount_);
 	ImGui::Text("Enemy Collision Count: %d", collisionManager_ ? collisionManager_->GetLastEnemyCollisionCount() : 0);
+	ImGui::Text("  Enemy vs Player: %d", collisionManager_ ? collisionManager_->GetLastEnemyPlayerCollisionCount() : 0);
+	ImGui::Text("  Bullet vs Enemy: %d", collisionManager_ ? collisionManager_->GetLastBulletEnemyCollisionCount() : 0);
+	ImGui::Text("  Enemy vs World: %d", collisionManager_ ? collisionManager_->GetLastEnemyWorldCollisionCount() : 0);
+	const auto& enemyPerf = EnemyPerformanceProfiler::GetFrameStats();
+	const auto& meleePerf = enemyPerf.types[static_cast<size_t>(EnemyPerformanceProfiler::EnemyType::Melee)];
+	const auto& midRangePerf = enemyPerf.types[static_cast<size_t>(EnemyPerformanceProfiler::EnemyType::MidRange)];
+	auto sectionMs = [&enemyPerf](EnemyPerformanceProfiler::Section section) { return enemyPerf.GetSectionMs(section); };
+	ImGui::SeparatorText("Enemy Update Timing (Debug Build)");
+	ImGui::Text("Total Enemy Update Time: %.3f ms", enemyPerf.GetTotalMs());
+	ImGui::Text("Melee Enemy Update Time: %.3f ms", meleePerf.totalMs);
+	ImGui::Text("MidRange Enemy Update Time: %.3f ms", midRangePerf.totalMs);
+	ImGui::Text("Enemy AI Time: %.3f ms", sectionMs(EnemyPerformanceProfiler::Section::AI));
+	ImGui::Text("Enemy Move Time: %.3f ms", sectionMs(EnemyPerformanceProfiler::Section::Move));
+	ImGui::Text("Enemy Attack Time: %.3f ms", sectionMs(EnemyPerformanceProfiler::Section::Attack));
+	ImGui::Text("Enemy Collision Time: %.3f ms", sectionMs(EnemyPerformanceProfiler::Section::Collision));
+	ImGui::Text("Enemy Navigation Time: %.3f ms", sectionMs(EnemyPerformanceProfiler::Section::Navigation));
+	ImGui::Text("Enemy Transform Update Time: %.3f ms", sectionMs(EnemyPerformanceProfiler::Section::Transform));
+	ImGui::Text("Enemy Bullet Spawn / Attack Check Time: %.3f ms", sectionMs(EnemyPerformanceProfiler::Section::BulletSpawnAttackCheck));
+	ImGui::Text("Average Update Time Per Enemy: %.3f ms", enemyPerf.GetEnemyCount() > 0 ? enemyPerf.GetTotalMs() / enemyPerf.GetEnemyCount() : 0.0);
+	ImGui::Text("Melee AI / Collision: %.3f / %.3f ms", meleePerf.sectionMs[static_cast<size_t>(EnemyPerformanceProfiler::Section::AI)], meleePerf.sectionMs[static_cast<size_t>(EnemyPerformanceProfiler::Section::Collision)]);
+	ImGui::Text("MidRange AI / Collision: %.3f / %.3f ms", midRangePerf.sectionMs[static_cast<size_t>(EnemyPerformanceProfiler::Section::AI)], midRangePerf.sectionMs[static_cast<size_t>(EnemyPerformanceProfiler::Section::Collision)]);
 	const auto* timer = K4E::GameTimer::GetInstance();
 	ImGui::Text("FPS: %.1f", timer ? timer->GetFPS() : 0.0f);
 	ImGui::Text("FrameTime: %.3f ms", timer ? timer->GetDeltaTime() * 1000.0f : 0.0f);

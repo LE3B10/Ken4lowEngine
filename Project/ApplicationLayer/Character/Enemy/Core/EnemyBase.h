@@ -12,6 +12,7 @@
 
 #include "AABB.h"
 #include "WorldCollisionResolver.h"
+#include "EnemyPerformanceProfiler.h"
 
 namespace K4E = ::Ken4lowEngine;
 
@@ -59,10 +60,16 @@ public:
 	static void SetPerformanceCollisionEnabled(bool enabled) { performanceCollisionEnabled_ = enabled; }
 	static void SetPerformanceAIEnabled(bool enabled) { performanceAIEnabled_ = enabled; }
 	static void SetPerformanceAttackEnabled(bool enabled) { performanceAttackEnabled_ = enabled; }
+	static void SetPerformanceMovementEnabled(bool enabled) { performanceMovementEnabled_ = enabled; }
+	static void SetPerformanceNavigationEnabled(bool enabled) { performanceNavigationEnabled_ = enabled; }
+	static void SetPerformanceTransformUpdateEnabled(bool enabled) { performanceTransformUpdateEnabled_ = enabled; }
 	static bool IsPerformanceDebugDrawEnabled() { return performanceDebugDrawEnabled_; }
 	static bool IsPerformanceCollisionEnabled() { return performanceCollisionEnabled_; }
 	static bool IsPerformanceAIEnabled() { return performanceAIEnabled_; }
 	static bool IsPerformanceAttackEnabled() { return performanceAttackEnabled_; }
+	static bool IsPerformanceMovementEnabled() { return performanceMovementEnabled_; }
+	static bool IsPerformanceNavigationEnabled() { return performanceNavigationEnabled_; }
+	static bool IsPerformanceTransformUpdateEnabled() { return performanceTransformUpdateEnabled_; }
 
 public:
 	// HP
@@ -246,4 +253,7 @@ private:
 	static bool performanceCollisionEnabled_;
 	static bool performanceAIEnabled_;
 	static bool performanceAttackEnabled_;
+	static bool performanceMovementEnabled_;
+	static bool performanceNavigationEnabled_;
+	static bool performanceTransformUpdateEnabled_;
 };
