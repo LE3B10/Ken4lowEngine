@@ -313,6 +313,8 @@ public: /// ---------- アクセサ ---------- ///
 	void PlaySearchAnimation(float moveSpeed = -1.0f);
 	void PlayDeadAnimation();
 
+	void SetPerformanceDebugDrawEnabled(bool enabled) { performanceDebugDrawEnabled_ = enabled; }
+
 protected: /// ---------- EnemyBaseからの通知 ---------- ///
 
 	// EnemyBaseからの弾ヒット
@@ -337,8 +339,6 @@ private: /// ---------- 内部処理 ---------- ///
 	void UpdateTraitProfile();
 	void RegisterDamageStimulus(const K4E::Vector3& hitPos, const K4E::Vector3& attackOrigin, const K4E::Vector3& hitDir);
 	void UpdateReloadTimer(float deltaTime);
-
-	void SetPerformanceDebugDrawEnabled(bool enabled) { performanceDebugDrawEnabled_ = enabled; }
 
 #if defined(_DEBUG) || defined(USE_IMGUI)
 	void DrawTacticalDebugPoints();
