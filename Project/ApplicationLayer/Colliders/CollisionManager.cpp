@@ -6,6 +6,9 @@
 
 #include <algorithm>
 #include <limits>
+#include <cmath>
+#include <unordered_set>
+#include <unordered_map>
 
 #ifdef USE_IMGUI
 #include <imgui.h>
@@ -131,18 +134,58 @@ void CollisionManager::CheckAllCollisions()
 			auto& B = buckets_[bId];
 			if (A.empty() || B.empty()) return;
 
+			const bool hasEnemy = aId == kEnemy || bId == kEnemy;
+			if (hasEnemy && !enableEnemyCollision_) return;
+			auto checkPair = [&](K4E::Collider* a, K4E::Collider* b)
+				{
+					if (!a || !b) return;
+					if (hasEnemy) ++lastEnemyCollisionCount_;
+					CheckCollisionPair(a, b);
+				};
+
+			if (!hasEnemy || !useSimpleStressTestCollision_)
+			{
+				for (K4E::Collider* a : A)
+				{
+					for (K4E::Collider* b : B) checkPair(a, b);
+				}
+				return;
+			}
+
+			constexpr float kCellSize = 8.0f;
+			auto cellCoordinate = [](float value) { return static_cast<int>(std::floor(value / kCellSize)); };
+			auto cellKey = [](int x, int z)
+				{
+					return (static_cast<uint64_t>(static_cast<uint32_t>(x)) << 32) | static_cast<uint32_t>(z);
+				};
+			std::unordered_map<uint64_t, std::vector<K4E::Collider*>> spatialHash;
+			spatialHash.reserve(B.size() * 2);
+			for (K4E::Collider* b : B)
+			{
+				if (!b) continue;
+				const K4E::Vector3 center = b->GetCenterPosition();
+				const K4E::Vector3 half = b->GetOBBHalfSize();
+				for (int x = cellCoordinate(center.x - half.x); x <= cellCoordinate(center.x + half.x); ++x)
+				{
+					for (int z = cellCoordinate(center.z - half.z); z <= cellCoordinate(center.z + half.z); ++z) spatialHash[cellKey(x, z)].push_back(b);
+				}
+			}
+
+			// 大量敵衝突の負荷を抑えるため、Spatial Hashの同一セルにいる候補だけ判定する。
 			for (K4E::Collider* a : A)
 			{
 				if (!a) continue;
-				for (K4E::Collider* b : B)
+				const K4E::Vector3 center = a->GetCenterPosition();
+				const K4E::Vector3 half = a->GetOBBHalfSize();
+				std::unordered_set<K4E::Collider*> checked;
+				for (int x = cellCoordinate(center.x - half.x); x <= cellCoordinate(center.x + half.x); ++x)
 				{
-					if (!b) continue;
-					if (aId == kEnemy || bId == kEnemy)
+					for (int z = cellCoordinate(center.z - half.z); z <= cellCoordinate(center.z + half.z); ++z)
 					{
-						if (!enableEnemyCollision_) { continue; }
-						++lastEnemyCollisionCount_;
+						auto it = spatialHash.find(cellKey(x, z));
+						if (it == spatialHash.end()) continue;
+						for (K4E::Collider* b : it->second) if (checked.insert(b).second) checkPair(a, b);
 					}
-					CheckCollisionPair(a, b);
 				}
 			}
 		};

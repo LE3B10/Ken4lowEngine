@@ -261,7 +261,11 @@ void DebugScene::Update()
 	EnemyBase::SetPerformanceMovementEnabled(enableEnemyMovement_);
 	EnemyBase::SetPerformanceNavigationEnabled(enableEnemyNavigation_);
 	EnemyBase::SetPerformanceTransformUpdateEnabled(enableEnemyTransformUpdate_);
-	if (collisionManager_) { collisionManager_->SetEnemyCollisionEnabled(enableEnemyCollision_); }
+	if (collisionManager_)
+	{
+		collisionManager_->SetEnemyCollisionEnabled(enableEnemyCollision_);
+		collisionManager_->SetUseSimpleStressTestCollision(enemyStressTestEnabled_ && useSimpleStressTestCollision_);
+	}
 	lastEnemyUpdateCount_ = 0;
 	EnemyPerformanceProfiler::BeginFrame();
 	auto updateMeleeEnemy = [deltaTime, this](MeleeEnemy* enemy)
@@ -293,18 +297,18 @@ void DebugScene::Update()
 			debugMidRangeEnemy_->SetWallObstacleAABBs(&stage_->GetWallObstacleAABBs());
 			updateMidRangeEnemy(debugMidRangeEnemy_.get());
 		}
-		for (auto& enemy : stressTestMeleeEnemies_)
+		const uint64_t updateInterval = static_cast<uint64_t>(std::max(1, enemyUpdateInterval_));
+		for (size_t i = 0; i < stressTestMeleeEnemies_.size(); ++i)
 		{
-			updateMeleeEnemy(enemy.get());
+			// 更新フレームを敵ごとにずらし、大量敵のAI負荷が同じフレームへ集中しないようにする。
+			if ((enemyUpdateFrame_ + i) % updateInterval == 0) updateMeleeEnemy(stressTestMeleeEnemies_[i].get());
 		}
-		for (auto& enemy : stressTestMidRangeEnemies_)
+		for (size_t i = 0; i < stressTestMidRangeEnemies_.size(); ++i)
 		{
-			if (enemy)
-			{
-				updateMidRangeEnemy(enemy.get());
-			}
+			if ((enemyUpdateFrame_ + stressTestMeleeEnemies_.size() + i) % updateInterval == 0) updateMidRangeEnemy(stressTestMidRangeEnemies_[i].get());
 		}
 	}
+	++enemyUpdateFrame_;
 
 	UpdateDebugBossHitTest();
 
@@ -370,20 +374,31 @@ void DebugScene::Draw3DObjects()
 		debugBoss_->Draw();
 	}
 	lastEnemyDrawCount_ = 0;
+	lastEnemyDrawCallCount_ = 0;
 	lastEnemyDebugDrawCount_ = 0;
 	if (enableEnemyDraw_)
 	{
 		auto drawEnemy = [this](EnemyBase* enemy)
-		{
-			if (!enemy) { return; }
-			enemy->Draw();
-			++lastEnemyDrawCount_;
-			if (enableEnemyDebugDraw_) { ++lastEnemyDebugDrawCount_; }
-		};
+			{
+				if (!enemy) return;
+				enemy->Draw();
+				++lastEnemyDrawCount_;
+				lastEnemyDrawCallCount_ += static_cast<int>(enemy->GetDrawCallCount());
+				if (enableEnemyDebugDraw_) ++lastEnemyDebugDrawCount_;
+			};
+		auto drawStressEnemy = [this, &drawEnemy](EnemyBase* enemy)
+			{
+				if (!enemy) return;
+				if (!useEnemyInstancingProxy_) { drawEnemy(enemy); return; }
+				// 大量敵描画の負荷を抑えるため、同一モデル単位で回し、Instancing移行用Proxyを描画する。
+				enemy->DrawStressTestBatchProxy();
+				++lastEnemyDrawCount_;
+				++lastEnemyDrawCallCount_;
+			};
 		drawEnemy(debugMeleeEnemy_.get());
 		drawEnemy(debugMidRangeEnemy_.get());
-		for (const auto& enemy : stressTestMeleeEnemies_) { drawEnemy(enemy.get()); }
-		for (const auto& enemy : stressTestMidRangeEnemies_) { drawEnemy(enemy.get()); }
+		for (const auto& enemy : stressTestMeleeEnemies_) drawStressEnemy(enemy.get());
+		for (const auto& enemy : stressTestMidRangeEnemies_) drawStressEnemy(enemy.get());
 	}
 
 	if (stage_)
@@ -609,7 +624,19 @@ void DebugScene::DrawImGui()
 	}
 
 	ImGui::Begin("Enemy Stress Test");
-	ImGui::Checkbox("Enable Enemy Stress Test", &enemyStressTestEnabled_);
+	if (ImGui::Checkbox("Enable Enemy Stress Test", &enemyStressTestEnabled_) && enemyStressTestEnabled_)
+	{
+		// Stress Test開始時は重複描画を既定OFFにし、敵本体の負荷を測定しやすくする。
+		enableEnemyDebugDraw_ = false;
+		enableStageBoundsDebugDraw_ = false;
+		enableFrustumCullingDebugDraw_ = false;
+		meleeDummyWireVisible_ = false;
+		enableEnemyShadow_ = false;
+	}
+	ImGui::Checkbox("Use Enemy Instancing", &useEnemyInstancingProxy_);
+	ImGui::TextDisabled("Stress Test proxy path: body model only; GPU instanced draw is the next stage.");
+	ImGui::Checkbox("Use Simple Stress Test Collision", &useSimpleStressTestCollision_);
+	ImGui::SliderInt("Enemy Update Interval", &enemyUpdateInterval_, 1, 60);
 	ImGui::SliderInt("Melee Enemy Count", &requestedStressTestMeleeCount_, 0, 5000);
 	ImGui::SliderInt("MidRange Enemy Count", &requestedStressTestMidRangeCount_, 0, 5000);
 	if (ImGui::Button("Apply Enemy Count")) { ApplyEnemyStressTestCounts(); }
@@ -636,6 +663,7 @@ void DebugScene::DrawImGui()
 	ImGui::Text("Total Enemy Count: %zu", meleeEnemyCount + midRangeEnemyCount);
 	ImGui::Text("Enemy Update Count: %d", lastEnemyUpdateCount_);
 	ImGui::Text("Enemy Draw Count: %d", lastEnemyDrawCount_);
+	ImGui::Text("Enemy Draw Call Count: %d", lastEnemyDrawCallCount_);
 	ImGui::Text("Enemy DebugDraw Count: %d", lastEnemyDebugDrawCount_);
 	ImGui::Text("Enemy Collision Count: %d", collisionManager_ ? collisionManager_->GetLastEnemyCollisionCount() : 0);
 	ImGui::Text("  Enemy vs Player: %d", collisionManager_ ? collisionManager_->GetLastEnemyPlayerCollisionCount() : 0);
