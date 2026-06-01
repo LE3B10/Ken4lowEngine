@@ -107,6 +107,7 @@ private: /// ---------- メンバ変数 ---------- ///
 	std::unique_ptr<K4E::SkyBox> skyBox_;
 	K4E::SkyBoxPresetCollection skyBoxPresets_{};
 	std::array<char, 256> skyBoxTexturePathBuffer_{};
+	std::array<char, 256> cloudTexturePathBuffer_{};
 	std::string skyBoxPresetLog_ = "SkyBox設定は未読み込みです。";
 
 	// --- 仮ヒット確認用パラメータ ---

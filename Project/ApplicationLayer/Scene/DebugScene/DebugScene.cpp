@@ -203,6 +203,7 @@ void DebugScene::ApplyActiveSkyBoxPreset(bool reloadTexture)
 	// 読み込んだプリセットを優先し、毎フレーム既定値で上書きしない。
 	K4E::ApplySkyBoxPreset(*skyBox_, *preset, reloadTexture);
 	std::snprintf(skyBoxTexturePathBuffer_.data(), skyBoxTexturePathBuffer_.size(), "%s", preset->texturePath.c_str());
+	std::snprintf(cloudTexturePathBuffer_.data(), cloudTexturePathBuffer_.size(), "%s", preset->cloud.texturePath.c_str());
 }
 
 bool DebugScene::LoadSkyBoxPresets()
@@ -293,6 +294,8 @@ void DebugScene::Update()
 	if (skyBox_)
 	{
 		skyBox_->Update();
+		skyBox_->AdvanceCloudLayer(deltaTime);
+		if (K4E::SkyBoxPreset* skyPreset = skyBoxPresets_.FindActivePreset()) skyPreset->cloud.uvOffset = skyBox_->GetCloudUvOffset();
 	}
 
 }
@@ -310,6 +313,7 @@ void DebugScene::Draw3DObjects()
 	{
 		// SkyBox は深度読み取り専用 PSO で先に描画し、ステージ描画を妨げない。
 		skyBox_->Draw();
+		skyBox_->DrawCloudLayer();
 	}
 
 	if (disintegrationDebug_)
@@ -848,7 +852,7 @@ void DebugScene::DrawSkyBoxImGui()
 #ifdef USE_IMGUI
 	K4E::SkyBoxPreset* preset = skyBoxPresets_.FindActivePreset();
 	ImGui::Begin("SkyBox Settings");
-	ImGui::TextWrapped("DebugSceneの背景SkyBoxを調整します。保存済みJsonがない場合はデフォルト設定を使用します。");
+	ImGui::TextWrapped("DebugSceneの背景を、写真ではなくシンプルな空と独立した雲レイヤーとして調整します。");
 	ImGui::Separator();
 
 	if (ImGui::BeginCombo("Active Preset", skyBoxPresets_.activePresetName.c_str()))
@@ -856,12 +860,7 @@ void DebugScene::DrawSkyBoxImGui()
 		for (const K4E::SkyBoxPreset& candidate : skyBoxPresets_.presets)
 		{
 			const bool selected = candidate.name == skyBoxPresets_.activePresetName;
-			if (ImGui::Selectable(candidate.name.c_str(), selected))
-			{
-				skyBoxPresets_.activePresetName = candidate.name;
-				ApplyActiveSkyBoxPreset();
-				preset = skyBoxPresets_.FindActivePreset();
-			}
+			if (ImGui::Selectable(candidate.name.c_str(), selected)) { skyBoxPresets_.activePresetName = candidate.name; ApplyActiveSkyBoxPreset(); preset = skyBoxPresets_.FindActivePreset(); }
 			if (selected) ImGui::SetItemDefaultFocus();
 		}
 		ImGui::EndCombo();
@@ -872,41 +871,56 @@ void DebugScene::DrawSkyBoxImGui()
 	{
 		if (ImGui::Checkbox("Enabled", &preset->enabled)) ApplyActiveSkyBoxPreset();
 		ImGui::TextWrapped("Enabled: SkyBox背景の表示ON/OFFを切り替えます。");
-		ImGui::Text("Current Texture: %s", preset->texturePath.c_str());
-		ImGui::TextWrapped("Texture Path: Resources/Textures/Compiledからの相対パスを指定します。");
+		const char* skyTypes[] = { "ColorOnly", "Gradient", "Texture" };
+		int skyTypeIndex = preset->skyType == "ColorOnly" ? 0 : preset->skyType == "Texture" ? 2 : 1;
+		if (ImGui::Combo("Sky Type", &skyTypeIndex, skyTypes, IM_ARRAYSIZE(skyTypes))) { preset->skyType = skyTypes[skyTypeIndex]; ApplyActiveSkyBoxPreset(); }
+		ImGui::TextWrapped("Sky Type: 空の描画方式を切り替えます。Gradientは上下の色と地平線色からシンプルな空を作ります。");
 		ImGui::InputText("Texture Path", skyBoxTexturePathBuffer_.data(), skyBoxTexturePathBuffer_.size());
-		if (ImGui::Button("Apply Texture Path"))
-		{
-			preset->texturePath = skyBoxTexturePathBuffer_.data();
-			ApplyActiveSkyBoxPreset();
-		}
+		if (ImGui::Button("Apply Texture Path")) { preset->texturePath = skyBoxTexturePathBuffer_.data(); ApplyActiveSkyBoxPreset(); }
 		ImGui::SameLine();
-		if (ImGui::Button("Reload Texture"))
-		{
-			preset->texturePath = skyBoxTexturePathBuffer_.data();
-			ApplyActiveSkyBoxPreset(true);
-		}
-		ImGui::TextWrapped("Reload Texture: 編集したテクスチャをディスクから再読み込みします。");
-
+		if (ImGui::Button("Reload Texture")) { preset->texturePath = skyBoxTexturePathBuffer_.data(); ApplyActiveSkyBoxPreset(true); }
+		ImGui::TextWrapped("Texture Path / Reload Texture: Texture方式で使う従来SkyBoxテクスチャを変更、再読み込みします。");
+		if (ImGui::ColorEdit4("Top Color", &preset->topColor.x)) ApplyActiveSkyBoxPreset();
+		ImGui::TextWrapped("Top Color: 空の上側の色を調整します。ColorOnlyではこの色を使います。");
+		if (ImGui::ColorEdit4("Bottom Color", &preset->bottomColor.x)) ApplyActiveSkyBoxPreset();
+		ImGui::TextWrapped("Bottom Color: 空の下側の色を調整します。");
+		if (ImGui::ColorEdit4("Horizon Color", &preset->horizonColor.x)) ApplyActiveSkyBoxPreset();
+		ImGui::TextWrapped("Horizon Color: 地平線付近の色を調整します。");
+		if (ImGui::DragFloat("Brightness", &preset->brightness, 0.01f, 0.0f, 10.0f)) ApplyActiveSkyBoxPreset();
+		ImGui::TextWrapped("Brightness: SkyBoxの明るさ倍率を調整します。");
 		if (ImGui::DragFloat3("Rotation", &preset->rotation.x, 0.01f)) ApplyActiveSkyBoxPreset();
 		ImGui::TextWrapped("Rotation: SkyBoxの向きをラジアン単位で調整します。");
 		if (ImGui::DragFloat3("Scale", &preset->scale.x, 10.0f, 1.0f, 50000.0f)) ApplyActiveSkyBoxPreset();
 		ImGui::TextWrapped("Scale: 背景キューブの大きさを調整します。");
-		if (ImGui::DragFloat("Brightness", &preset->brightness, 0.01f, 0.0f, 10.0f)) ApplyActiveSkyBoxPreset();
-		ImGui::TextWrapped("Brightness: SkyBoxの明るさ倍率を調整します。");
-		if (ImGui::ColorEdit4("Tint Color", &preset->tintColor.x)) ApplyActiveSkyBoxPreset();
-		ImGui::TextWrapped("Tint Color: SkyBoxへ重ねる色味を調整します。");
+
+		ImGui::SeparatorText("Cloud Layer");
+		ImGui::TextWrapped("Cloud Layer: SkyBoxとは別に、上空の雲レイヤーを背景寄りに描画します。");
+		if (ImGui::Checkbox("Cloud Enabled", &preset->cloud.enabled)) ApplyActiveSkyBoxPreset();
+		ImGui::TextWrapped("Cloud Enabled: 雲レイヤーの表示ON/OFFを切り替えます。テクスチャがない場合は安全のため描画しません。");
+		ImGui::InputText("Cloud Texture Path", cloudTexturePathBuffer_.data(), cloudTexturePathBuffer_.size());
+		if (ImGui::Button("Apply Cloud Texture Path")) { preset->cloud.texturePath = cloudTexturePathBuffer_.data(); ApplyActiveSkyBoxPreset(); }
+		ImGui::SameLine();
+		if (ImGui::Button("Reload Cloud Texture")) { preset->cloud.texturePath = cloudTexturePathBuffer_.data(); ApplyActiveSkyBoxPreset(true); }
+		ImGui::TextWrapped("Cloud Texture Path / Reload: 透過を持つシンプルな雲用Cubeテクスチャを変更、再読み込みします。");
+		if (ImGui::DragFloat("Cloud Height", &preset->cloud.height, 1.0f, 0.0f, 10000.0f)) ApplyActiveSkyBoxPreset();
+		ImGui::TextWrapped("Cloud Height: 雲レイヤーの見かけ上の高さを調整します。");
+		if (ImGui::DragFloat("Cloud Scale", &preset->cloud.scale, 0.01f, 0.01f, 20.0f)) ApplyActiveSkyBoxPreset();
+		ImGui::TextWrapped("Cloud Scale: 雲模様の広がりを調整します。");
+		if (ImGui::DragFloat2("Cloud Scroll Speed", &preset->cloud.scrollSpeed.x, 0.0001f, -1.0f, 1.0f)) ApplyActiveSkyBoxPreset();
+		ImGui::TextWrapped("Cloud Scroll Speed: UVスクロールで雲が流れる速度を調整します。");
+		if (ImGui::DragFloat("Cloud Alpha", &preset->cloud.alpha, 0.01f, 0.0f, 1.0f)) ApplyActiveSkyBoxPreset();
+		ImGui::TextWrapped("Cloud Alpha: 雲の透明度を調整します。");
+		if (ImGui::ColorEdit4("Cloud Tint Color", &preset->cloud.tintColor.x)) ApplyActiveSkyBoxPreset();
+		ImGui::TextWrapped("Cloud Tint Color: 雲へ重ねる色味を調整します。");
+		if (ImGui::Button("Reset Cloud UV Offset")) { preset->cloud.uvOffset = {}; ApplyActiveSkyBoxPreset(); }
+		ImGui::TextWrapped("Reset Cloud UV Offset: 流れた雲のUV位置を初期位置へ戻します。");
 	}
 
 	ImGui::Separator();
 	if (ImGui::Button("Save Settings")) SaveSkyBoxPresets();
 	ImGui::SameLine();
-	if (ImGui::Button("Load Settings"))
-	{
-		LoadSkyBoxPresets();
-		ApplyActiveSkyBoxPreset();
-	}
-	ImGui::TextWrapped("Save / Load Settings: SkyBox設定をJsonへ保存、またはJsonから復元します。");
+	if (ImGui::Button("Load Settings")) { LoadSkyBoxPresets(); ApplyActiveSkyBoxPreset(); }
+	ImGui::TextWrapped("Save / Load Settings: SkyBoxとCloudLayer設定をJsonへ保存、またはJsonから復元します。");
 	ImGui::TextWrapped("%s", skyBoxPresetLog_.c_str());
 	ImGui::End();
 #endif // USE_IMGUI

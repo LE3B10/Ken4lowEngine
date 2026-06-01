@@ -5,29 +5,25 @@
       {
         "name": "DefaultSky",
         "enabled": true,
-        "texturePath": "SkyBox/skybox.dds",
-        "rotation": [0.0, 0.0, 0.0],
-        "scale": [10000.0, 10000.0, 10000.0],
+        "skyType": "Gradient",
+        "texturePath": "",
+        "topColor": [0.2, 0.55, 0.95, 1.0],
+        "bottomColor": [0.72, 0.88, 1.0, 1.0],
+        "horizonColor": [0.92, 0.96, 1.0, 1.0],
         "brightness": 1.0,
-        "tintColor": [1.0, 1.0, 1.0, 1.0]
-      },
-      {
-        "name": "NightSky",
-        "enabled": true,
-        "texturePath": "SkyBox/skybox.dds",
         "rotation": [0.0, 0.0, 0.0],
         "scale": [10000.0, 10000.0, 10000.0],
-        "brightness": 0.45,
-        "tintColor": [0.55, 0.65, 1.0, 1.0]
-      },
-      {
-        "name": "BossStageSky",
-        "enabled": true,
-        "texturePath": "SkyBox/skybox.dds",
-        "rotation": [0.0, 0.35, 0.0],
-        "scale": [10000.0, 10000.0, 10000.0],
-        "brightness": 0.8,
-        "tintColor": [1.0, 0.55, 0.45, 1.0]
+        "tintColor": [1.0, 1.0, 1.0, 1.0],
+        "cloud": {
+          "enabled": false,
+          "texturePath": "",
+          "height": 160.0,
+          "scale": 1.5,
+          "scrollSpeed": [0.002, 0.0005],
+          "uvOffset": [0.0, 0.0],
+          "alpha": 0.55,
+          "tintColor": [1.0, 1.0, 1.0, 1.0]
+        }
       }
     ]
   },

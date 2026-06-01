@@ -41,8 +41,16 @@ namespace Ken4lowEngine
 		{
 			Vector4 color;
 			Matrix4x4 uvTransform;
+			Vector4 topColor;
+			Vector4 bottomColor;
+			Vector4 horizonColor;
 			uint32_t textureIndex;
-			float padding[3];
+			uint32_t skyType;
+			Vector2 uvOffset;
+			float cloudHeight;
+			float cloudScale;
+			uint32_t textureAvailable;
+			float padding;
 		};
 
 		/// <summary>
@@ -104,6 +112,9 @@ namespace Ken4lowEngine
 		/// - DrawIndexedInstanced でキューブを描画する
 		void Draw();
 
+		/// SkyBox の直後に半透明の雲レイヤーを描画する。
+		void DrawCloudLayer();
+
 		/// <summary>
 		/// デバッグカメラを使用するかを設定する。
 		/// </summary>
@@ -134,6 +145,13 @@ namespace Ken4lowEngine
 
 		/// 色味と明るさを合成した描画色を設定する。
 		void SetColor(const Vector4& color);
+		void SetSkyType(const std::string& skyType);
+		void SetGradientColors(const Vector4& topColor, const Vector4& bottomColor, const Vector4& horizonColor);
+		void SetCloudLayer(bool enabled, const std::string& texturePath, float height, float scale,
+			const Vector2& scrollSpeed, const Vector2& uvOffset, float alpha, const Vector4& tintColor, bool reloadTexture = false);
+		void AdvanceCloudLayer(float deltaTime);
+		Vector2 GetCloudUvOffset() const { return cloudUvOffset_; }
+		bool IsCloudTextureAvailable() const { return cloudTextureAvailable_; }
 
 	private: /// ---------- 内部メンバ関数 ---------- ///
 
@@ -197,6 +215,22 @@ namespace Ken4lowEngine
 
 		/// 使用中の環境テクスチャパス
 		std::string texturePath_;
+		uint32_t skyType_ = 2;
+		Vector4 baseColor_ = { 1.0f, 1.0f, 1.0f, 1.0f };
+		Vector4 topColor_ = { 0.20f, 0.55f, 0.95f, 1.0f };
+		Vector4 bottomColor_ = { 0.72f, 0.88f, 1.0f, 1.0f };
+		Vector4 horizonColor_ = { 0.92f, 0.96f, 1.0f, 1.0f };
+		bool textureAvailable_ = false;
+		bool cloudEnabled_ = false;
+		bool cloudTextureAvailable_ = false;
+		std::string cloudTexturePath_;
+		uint32_t cloudTextureIndex_ = 0;
+		float cloudHeight_ = 160.0f;
+		float cloudScale_ = 1.5f;
+		Vector2 cloudScrollSpeed_ = { 0.002f, 0.0005f };
+		Vector2 cloudUvOffset_{};
+		float cloudAlpha_ = 0.55f;
+		Vector4 cloudTintColor_ = { 1.0f, 1.0f, 1.0f, 1.0f };
 	};
 
 } // namespace Ken4lowEngine

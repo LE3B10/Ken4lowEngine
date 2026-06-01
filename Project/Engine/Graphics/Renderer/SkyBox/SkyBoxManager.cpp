@@ -26,16 +26,25 @@ namespace Ken4lowEngine
 		dxCommon_ = nullptr;
 	}
 
+	namespace
+	{
+		void SetPipeline(ID3D12GraphicsCommandList* commandList, const PipelineBundle& pipeline)
+		{
+			commandList->SetGraphicsRootSignature(pipeline.rootSignature.Get());
+			commandList->SetPipelineState(pipeline.pipelineState.Get());
+			commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+			SRVManager::GetInstance()->PreDraw();
+			SRVManager::GetInstance()->SetGraphicsRootDescriptorTable(2, 0);
+		}
+	}
+
 	void SkyBoxManager::SetRenderSetting()
 	{
-		auto commandList = dxCommon_->GetCommandManager()->GetCommandList();
-		const auto& pipeline = pipelineSet_.GetDefault();
+		SetPipeline(dxCommon_->GetCommandManager()->GetCommandList(), pipelineSet_.GetDefault());
+	}
 
-		commandList->SetGraphicsRootSignature(pipeline.rootSignature.Get());
-		commandList->SetPipelineState(pipeline.pipelineState.Get());
-		commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-
-		SRVManager::GetInstance()->PreDraw();
-		SRVManager::GetInstance()->SetGraphicsRootDescriptorTable(2, 0);
+	void SkyBoxManager::SetCloudRenderSetting()
+	{
+		SetPipeline(dxCommon_->GetCommandManager()->GetCommandList(), pipelineSet_.GetCloud());
 	}
 }

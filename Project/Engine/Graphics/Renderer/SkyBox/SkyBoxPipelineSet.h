@@ -29,10 +29,12 @@ namespace Ken4lowEngine
 		/// SkyBox 描画用パイプラインを取得する。
 		/// </summary>
 		const PipelineBundle& GetDefault() const { return defaultPipeline_; }
+		const PipelineBundle& GetCloud() const { return cloudPipeline_; }
 
 	private: /// ---------- メンバ変数 ---------- ///
 
 		// SkyBox 描画用の PSO / RootSignature のまとまり
 		PipelineBundle defaultPipeline_{};
+		PipelineBundle cloudPipeline_{};
 	};
 }
