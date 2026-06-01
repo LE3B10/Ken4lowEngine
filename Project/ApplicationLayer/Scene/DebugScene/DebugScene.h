@@ -112,6 +112,20 @@ private: /// ---------- メンバ変数 ---------- ///
 	int requestedStressTestMidRangeCount_ = 0;
 	std::string enemyStressTestLog_ = "Stress test enemies have not been applied.";
 
+	// 敵の負荷原因を切り分けるため、更新・描画・AI・デバッグ描画を個別に制御する。
+	bool enableEnemyUpdate_ = true;
+	bool enableEnemyDraw_ = true;
+	bool enableEnemyDebugDraw_ = true;
+	bool enableEnemyCollision_ = true;
+	bool enableEnemyAI_ = true;
+	bool enableEnemyAttack_ = true;
+	bool enableEnemyShadow_ = true;
+	bool enableStageBoundsDebugDraw_ = true;
+	bool enableFrustumCullingDebugDraw_ = true;
+	int lastEnemyUpdateCount_ = 0;
+	int lastEnemyDrawCount_ = 0;
+	int lastEnemyDebugDrawCount_ = 0;
+
 	// ステージ確認用（見た目＋衝突）
 	std::unique_ptr<K4E::Stage> stage_;
 

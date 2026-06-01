@@ -82,7 +82,7 @@ void MeleeEnemy::Initialize()
 void MeleeEnemy::Update(float deltaTime)
 {
 	const Vector3 beforePos = GetCenterPosition();
-	attackController_.Update(*this, deltaTime);
+	if (IsPerformanceAttackEnabled()) { attackController_.Update(*this, deltaTime); }
 	// 被ダメージリアクションと死亡演出のタイマー更新を先に行う。
 	UpdateHitReaction(deltaTime);
 	UpdateDeathAnimation(deltaTime);
@@ -93,8 +93,14 @@ void MeleeEnemy::Update(float deltaTime)
 	attackSelectState_.lungeSelectCooldownTimer = std::max(0.0f, attackSelectState_.lungeSelectCooldownTimer - deltaTime);
 
 	// 優先度の高い行動から順に評価して近接敵の行動を決定する
-	EvaluateBehavior(deltaTime);
+	if (IsPerformanceAIEnabled()) { EvaluateBehavior(deltaTime); }
 	EnemyBase::Update(deltaTime);
+
+	if (!IsPerformanceCollisionEnabled())
+	{
+		UpdateVisualAnimation(deltaTime);
+		return;
+	}
 
 	collision_.usingWorldAABBCount = GetResolvedWorldAABBs() ? static_cast<int>(GetResolvedWorldAABBs()->size()) : 0;
 	collision_.usingObstacleAABBCount = GetResolvedNavigationObstacleAABBs() ? static_cast<int>(GetResolvedNavigationObstacleAABBs()->size()) : 0;
@@ -414,6 +420,7 @@ void MeleeEnemy::AddSeparationOverlapCount(int count)
 void MeleeEnemy::Draw()
 {
 	EnemyBase::Draw();
+	if (!IsPerformanceDebugDrawEnabled()) { return; }
 	if (!detailDebugDrawEnabled_) { return; }
 	const float colorPhase = pathDebugColorOffset_;
 	const Vector4 pathLineColor = pathDebugSelected_ ? Vector4{ 0.15f, 1.0f, 0.75f, 1.0f } : Vector4{ 0.2f + 0.25f * std::sin(colorPhase), 0.75f, 0.7f + 0.2f * std::cos(colorPhase), 0.9f };
@@ -880,6 +887,7 @@ void MeleeEnemy::StartDeathAnimation()
 
 void MeleeEnemy::MeleeAttackAction()
 {
+	if (!IsPerformanceAttackEnabled()) { CombatIdleAction(); return; }
 	FaceToTarget(1.0f / 60.0f);
 	StopMove();
 	if (!attackController_.IsAttacking() && attackController_.CanStartAttack())

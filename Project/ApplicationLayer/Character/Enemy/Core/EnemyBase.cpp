@@ -18,6 +18,10 @@ using namespace Ken4lowEngine;
 
 const std::vector<Ken4lowEngine::AABB>* EnemyBase::g_worldAABBs_ = nullptr;
 const std::vector<Ken4lowEngine::AABB>* EnemyBase::g_navigationObstacleAABBs_ = nullptr;
+bool EnemyBase::performanceDebugDrawEnabled_ = true;
+bool EnemyBase::performanceCollisionEnabled_ = true;
+bool EnemyBase::performanceAIEnabled_ = true;
+bool EnemyBase::performanceAttackEnabled_ = true;
 
 namespace
 {
@@ -253,7 +257,7 @@ void EnemyBase::Update(float deltaTime)
 	const auto* aabbs = (worldAABBs_ ? worldAABBs_ : g_worldAABBs_);
 	const auto& s = worldColOverride_ ? worldCol_ : worldCol_;
 
-	if (useWorldResolve_ && aabbs && !aabbs->empty())
+	if (performanceCollisionEnabled_ && useWorldResolve_ && aabbs && !aabbs->empty())
 	{
 		float vy = velocity_.y;
 

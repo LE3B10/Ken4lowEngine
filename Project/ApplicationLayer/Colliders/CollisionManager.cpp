@@ -92,6 +92,7 @@ void CollisionManager::Reset()
 /// -------------------------------------------------------------
 void CollisionManager::CheckAllCollisions()
 {
+	lastEnemyCollisionCount_ = 0;
 	using CId = uint32_t;
 	const CId kPlayer = static_cast<CId>(CollisionTypeIdDef::kPlayer);
 	const CId kEnemy = static_cast<CId>(CollisionTypeIdDef::kEnemy);
@@ -133,6 +134,11 @@ void CollisionManager::CheckAllCollisions()
 				for (K4E::Collider* b : B)
 				{
 					if (!b) continue;
+					if (aId == kEnemy || bId == kEnemy)
+					{
+						if (!enableEnemyCollision_) { continue; }
+						++lastEnemyCollisionCount_;
+					}
 					CheckCollisionPair(a, b);
 				}
 			}
