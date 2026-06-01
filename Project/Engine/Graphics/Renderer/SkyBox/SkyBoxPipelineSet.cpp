@@ -143,6 +143,7 @@ namespace Ken4lowEngine
 		defaultPipeline_ = factory.CreateGraphicsPipeline(desc, rootSigDesc);
 
 		desc.blendState = PipelineStatePresets::MakeBlendAlpha();
+		desc.rasterizerState.CullMode = D3D12_CULL_MODE_NONE;
 		desc.debugName = L"SkyBox.Cloud";
 		cloudPipeline_ = factory.CreateGraphicsPipeline(desc, rootSigDesc);
 

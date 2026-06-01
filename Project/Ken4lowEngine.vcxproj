@@ -394,6 +394,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClCompile Include="Engine\Graphics\Renderer\Object3D\Object3DCommon.cpp" />
     <ClCompile Include="Engine\Graphics\Renderer\Particle\Core\ParticleFactory.cpp" />
     <ClCompile Include="Engine\Graphics\Renderer\Particle\Manager\ParticleManager.cpp" />
+    <ClCompile Include="Engine\Graphics\Renderer\SkyBox\CloudLayer.cpp" />
     <ClCompile Include="Engine\Graphics\Renderer\SkyBox\SkyBox.cpp" />
     <ClCompile Include="Engine\Graphics\Renderer\SkyBox\SkyBoxManager.cpp" />
     <ClCompile Include="Engine\Graphics\Renderer\Sprite\NumberSpriteDrawer.cpp" />
@@ -1052,6 +1053,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="Engine\Graphics\Renderer\Particle\Core\ParticleEffectType.h" />
     <ClInclude Include="Engine\Graphics\Renderer\Particle\Core\ParticleFactory.h" />
     <ClInclude Include="Engine\Graphics\Renderer\Particle\Manager\ParticleManager.h" />
+    <ClInclude Include="Engine\Graphics\Renderer\SkyBox\CloudLayer.h" />
     <ClInclude Include="Engine\Graphics\Renderer\SkyBox\SkyBox.h" />
     <ClInclude Include="Engine\Graphics\Renderer\SkyBox\SkyBoxManager.h" />
     <ClInclude Include="Engine\Graphics\Renderer\Sprite\NumberSpriteDrawer.h" />

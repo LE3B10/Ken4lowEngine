@@ -2,6 +2,7 @@
 #include "DX12Include.h"
 #include "WorldTransform.h"
 #include "Camera.h"
+#include "CloudLayer.h"
 
 #include "Vector2.h"
 #include "Vector4.h"
@@ -150,11 +151,11 @@ namespace Ken4lowEngine
 		void SetCloudLayer(bool enabled, const std::string& texturePath, float height, float scale,
 			const Vector2& scrollSpeed, const Vector2& uvOffset, float alpha, const Vector4& tintColor, bool reloadTexture = false);
 		void AdvanceCloudLayer(float deltaTime);
-		Vector2 GetCloudUvOffset() const { return cloudUvOffset_; }
-		bool IsCloudTextureAvailable() const { return cloudTextureAvailable_; }
-		bool IsCloudEnabled() const { return cloudEnabled_; }
-		const std::string& GetCloudTexturePath() const { return cloudTexturePath_; }
-		uint32_t GetCloudTextureIndex() const { return cloudTextureIndex_; }
+		Vector2 GetCloudUvOffset() const { return cloudLayer_->GetUvOffset(); }
+		bool IsCloudTextureAvailable() const { return cloudLayer_->IsTextureAvailable(); }
+		bool IsCloudEnabled() const { return cloudLayer_->IsEnabled(); }
+		const std::string& GetCloudTexturePath() const { return cloudLayer_->GetTexturePath(); }
+		uint32_t GetCloudTextureIndex() const { return cloudLayer_->GetTextureIndex(); }
 
 	private: /// ---------- 内部メンバ関数 ---------- ///
 
@@ -224,16 +225,7 @@ namespace Ken4lowEngine
 		Vector4 bottomColor_ = { 0.72f, 0.88f, 1.0f, 1.0f };
 		Vector4 horizonColor_ = { 0.92f, 0.96f, 1.0f, 1.0f };
 		bool textureAvailable_ = false;
-		bool cloudEnabled_ = false;
-		bool cloudTextureAvailable_ = false;
-		std::string cloudTexturePath_;
-		uint32_t cloudTextureIndex_ = 0;
-		float cloudHeight_ = 160.0f;
-		float cloudScale_ = 1.5f;
-		Vector2 cloudScrollSpeed_ = { 0.002f, 0.0005f };
-		Vector2 cloudUvOffset_{};
-		float cloudAlpha_ = 0.55f;
-		Vector4 cloudTintColor_ = { 1.0f, 1.0f, 1.0f, 1.0f };
+		std::unique_ptr<CloudLayer> cloudLayer_;
 	};
 
 } // namespace Ken4lowEngine

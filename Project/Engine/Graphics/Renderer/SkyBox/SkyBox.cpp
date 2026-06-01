@@ -7,8 +7,6 @@
 #include <SkyBoxManager.h>
 
 #include <filesystem>
-#include <cmath>
-#include <iostream>
 
 namespace Ken4lowEngine
 {
@@ -37,6 +35,10 @@ namespace Ken4lowEngine
 		worldTransform_.scale_ = { 10000.0f, 10000.0f, 10000.0f };
 		worldTransform_.rotate_ = { 0.0f, 0.0f, 0.0f };
 		worldTransform_.translate_ = { 0.0f, 0.0f, 0.0f };
+
+		// SkyBox と別メッシュの CloudLayer を初期化する
+		cloudLayer_ = std::make_unique<CloudLayer>();
+		cloudLayer_->Initialize();
 
 		// Material 定数バッファを初期化する
 		InitializeMaterial();
@@ -74,6 +76,7 @@ namespace Ken4lowEngine
 
 		wvpData->WVP = worldViewProjectionMatrix;
 		wvpData->World = worldMatrix;
+		cloudLayer_->Update();
 	}
 
 	/// -------------------------------------------------------------
@@ -90,8 +93,8 @@ namespace Ken4lowEngine
 		materialData_->textureIndex = textureIndex_;
 		materialData_->skyType = skyType_;
 		materialData_->uvOffset = {};
-		materialData_->cloudHeight = cloudHeight_;
-		materialData_->cloudScale = cloudScale_;
+		materialData_->cloudHeight = 0.0f;
+		materialData_->cloudScale = 1.0f;
 		materialData_->textureAvailable = textureAvailable_ ? 1u : 0u;
 		commandList->IASetVertexBuffers(0, 1, &vertexBufferView);
 		commandList->IASetIndexBuffer(&indexBufferView);
@@ -102,25 +105,7 @@ namespace Ken4lowEngine
 
 	void SkyBox::DrawCloudLayer()
 	{
-		if (!cloudEnabled_ || !cloudTextureAvailable_)
-		{
-			return;
-		}
-		ID3D12GraphicsCommandList* commandList = dxCommon_->GetCommandManager()->GetCommandList();
-		// 雲は背景SkyBoxの直後に半透明レイヤーとして描画し、ステージより手前へ出さない。
-		SkyBoxManager::GetInstance()->SetCloudRenderSetting();
-		materialData_->textureIndex = cloudTextureIndex_;
-		materialData_->skyType = 3;
-		materialData_->uvOffset = cloudUvOffset_;
-		materialData_->cloudHeight = cloudHeight_;
-		materialData_->cloudScale = cloudScale_;
-		materialData_->textureAvailable = 1u;
-		materialData_->color = { cloudTintColor_.x, cloudTintColor_.y, cloudTintColor_.z, cloudTintColor_.w * cloudAlpha_ };
-		commandList->IASetVertexBuffers(0, 1, &vertexBufferView);
-		commandList->IASetIndexBuffer(&indexBufferView);
-		commandList->SetGraphicsRootConstantBufferView(0, materialResource.Get()->GetGPUVirtualAddress());
-		commandList->SetGraphicsRootConstantBufferView(1, wvpResource->GetGPUVirtualAddress());
-		commandList->DrawIndexedInstanced(kNumIndex, 1, 0, 0, 0);
+		cloudLayer_->Draw();
 	}
 
 	void SkyBox::SetTexture(const std::string& filePath, bool reloadTexture)
@@ -157,25 +142,12 @@ namespace Ken4lowEngine
 	void SkyBox::SetCloudLayer(bool enabled, const std::string& texturePath, float height, float scale,
 		const Vector2& scrollSpeed, const Vector2& uvOffset, float alpha, const Vector4& tintColor, bool reloadTexture)
 	{
-		cloudEnabled_ = enabled; cloudTexturePath_ = texturePath; cloudHeight_ = height; cloudScale_ = scale;
-		cloudScrollSpeed_ = scrollSpeed; cloudUvOffset_ = uvOffset; cloudAlpha_ = alpha; cloudTintColor_ = tintColor;
-		cloudTextureAvailable_ = TextureFileExists(texturePath);
-		if (cloudTextureAvailable_)
-		{
-			TextureManager* textureManager = TextureManager::GetInstance();
-			if (reloadTexture) textureManager->ReloadTexture(texturePath); else textureManager->LoadTexture(texturePath);
-			cloudTextureIndex_ = textureManager->GetSrvIndex(texturePath);
-		}
-		std::cout << "[SkyBox] Cloud texture path=Resources/Textures/Compiled/" << cloudTexturePath_
-			<< " enabled=" << (cloudEnabled_ ? "true" : "false")
-			<< " available=" << (cloudTextureAvailable_ ? "true" : "false")
-			<< " srvIndex=" << cloudTextureIndex_ << std::endl;
+		cloudLayer_->SetSettings(enabled, texturePath, height, scale, scrollSpeed, uvOffset, alpha, tintColor, reloadTexture);
 	}
 
 	void SkyBox::AdvanceCloudLayer(float deltaTime)
 	{
-		cloudUvOffset_.x = std::fmod(cloudUvOffset_.x + cloudScrollSpeed_.x * deltaTime, 1.0f);
-		cloudUvOffset_.y = std::fmod(cloudUvOffset_.y + cloudScrollSpeed_.y * deltaTime, 1.0f);
+		cloudLayer_->Advance(deltaTime);
 	}
 
 	/// -------------------------------------------------------------
@@ -198,8 +170,8 @@ namespace Ken4lowEngine
 		materialData_->textureIndex = textureIndex_;
 		materialData_->skyType = skyType_;
 		materialData_->uvOffset = {};
-		materialData_->cloudHeight = cloudHeight_;
-		materialData_->cloudScale = cloudScale_;
+		materialData_->cloudHeight = 0.0f;
+		materialData_->cloudScale = 1.0f;
 		materialData_->textureAvailable = textureAvailable_ ? 1u : 0u;
 	}
 

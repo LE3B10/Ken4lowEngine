@@ -51,10 +51,8 @@ PixelShaderOutput main(VertexShaderOutput input)
     {
         if (gMaterial.skyType == 3)
         {
-            float2 cloudUv;
-            cloudUv.x = atan2(direction.z, direction.x) / 6.2831853f + 0.5f;
-            cloudUv.y = acos(clamp(direction.y, -1.0f, 1.0f)) / 3.1415927f;
-            cloudUv = frac((cloudUv - 0.5f) * max(gMaterial.cloudScale, 0.001f) + 0.5f + gMaterial.uvOffset + float2(0.0f, gMaterial.cloudHeight * 0.0001f));
+            // CloudLayer は水平平面の UV をスクロールし、透明部分から背景の空を見せる。
+            float2 cloudUv = frac(input.texcoord.xy + gMaterial.uvOffset);
             output.color = gCloudTexture[gMaterial.textureIndex].Sample(gSampler, cloudUv) * gMaterial.color;
         }
         else
