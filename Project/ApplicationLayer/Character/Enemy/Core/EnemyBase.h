@@ -54,6 +54,16 @@ public:
 	virtual void UpdateShadowMatrix(const K4E::Matrix4x4& lightViewProjection);
 	virtual void DrawShadow();
 
+	// 敵の負荷原因を切り分けるため、更新・描画・AI・攻撃・衝突・デバッグ描画を個別に制御する。
+	static void SetPerformanceDebugDrawEnabled(bool enabled) { performanceDebugDrawEnabled_ = enabled; }
+	static void SetPerformanceCollisionEnabled(bool enabled) { performanceCollisionEnabled_ = enabled; }
+	static void SetPerformanceAIEnabled(bool enabled) { performanceAIEnabled_ = enabled; }
+	static void SetPerformanceAttackEnabled(bool enabled) { performanceAttackEnabled_ = enabled; }
+	static bool IsPerformanceDebugDrawEnabled() { return performanceDebugDrawEnabled_; }
+	static bool IsPerformanceCollisionEnabled() { return performanceCollisionEnabled_; }
+	static bool IsPerformanceAIEnabled() { return performanceAIEnabled_; }
+	static bool IsPerformanceAttackEnabled() { return performanceAttackEnabled_; }
+
 public:
 	// HP
 	void SetMaxHp(int v) { maxHp_ = v; hp_ = v; }
@@ -232,4 +242,8 @@ protected:
 private:
 	static const std::vector<K4E::AABB>* g_worldAABBs_;
 	static const std::vector<K4E::AABB>* g_navigationObstacleAABBs_;
+	static bool performanceDebugDrawEnabled_;
+	static bool performanceCollisionEnabled_;
+	static bool performanceAIEnabled_;
+	static bool performanceAttackEnabled_;
 };

@@ -253,28 +253,40 @@ void DebugScene::Update()
 		debugBoss_->Update(deltaTime);
 	}
 
-	if (debugMeleeEnemy_)
+	EnemyBase::SetPerformanceDebugDrawEnabled(enableEnemyDebugDraw_);
+	EnemyBase::SetPerformanceCollisionEnabled(enableEnemyCollision_);
+	EnemyBase::SetPerformanceAIEnabled(enableEnemyAI_);
+	EnemyBase::SetPerformanceAttackEnabled(enableEnemyAttack_);
+	if (collisionManager_) { collisionManager_->SetEnemyCollisionEnabled(enableEnemyCollision_); }
+	lastEnemyUpdateCount_ = 0;
+	if (enableEnemyUpdate_)
 	{
-		debugMeleeEnemy_->Update(deltaTime);
-	}
-	if (debugMidRangeEnemy_)
-	{
-		debugMidRangeEnemy_->SetTarget(meleeDummyTarget_.GetCenterPosition());
-		// 中距離敵にも床/障害物AABBを近接敵と同じ参照元で渡す。
-		debugMidRangeEnemy_->SetFloorAABBs(&stage_->GetFloorAABBs());
-		debugMidRangeEnemy_->SetWallObstacleAABBs(&stage_->GetWallObstacleAABBs());
-		debugMidRangeEnemy_->Update(deltaTime);
-	}
-	for (auto& enemy : stressTestMeleeEnemies_)
-	{
-		if (enemy) { enemy->Update(deltaTime); }
-	}
-	for (auto& enemy : stressTestMidRangeEnemies_)
-	{
-		if (enemy)
+		if (debugMeleeEnemy_)
 		{
-			enemy->SetTarget(meleeDummyTarget_.GetCenterPosition());
-			enemy->Update(deltaTime);
+			debugMeleeEnemy_->Update(deltaTime);
+			++lastEnemyUpdateCount_;
+		}
+		if (debugMidRangeEnemy_)
+		{
+			debugMidRangeEnemy_->SetTarget(meleeDummyTarget_.GetCenterPosition());
+			// 中距離敵にも床/障害物AABBを近接敵と同じ参照元で渡す。
+			debugMidRangeEnemy_->SetFloorAABBs(&stage_->GetFloorAABBs());
+			debugMidRangeEnemy_->SetWallObstacleAABBs(&stage_->GetWallObstacleAABBs());
+			debugMidRangeEnemy_->Update(deltaTime);
+			++lastEnemyUpdateCount_;
+		}
+		for (auto& enemy : stressTestMeleeEnemies_)
+		{
+			if (enemy) { enemy->Update(deltaTime); ++lastEnemyUpdateCount_; }
+		}
+		for (auto& enemy : stressTestMidRangeEnemies_)
+		{
+			if (enemy)
+			{
+				enemy->SetTarget(meleeDummyTarget_.GetCenterPosition());
+				enemy->Update(deltaTime);
+				++lastEnemyUpdateCount_;
+			}
 		}
 	}
 
@@ -334,30 +346,33 @@ void DebugScene::Draw3DObjects()
 	{
 		debugBoss_->Draw();
 	}
-	if (debugMeleeEnemy_)
+	lastEnemyDrawCount_ = 0;
+	lastEnemyDebugDrawCount_ = 0;
+	if (enableEnemyDraw_)
 	{
-		debugMeleeEnemy_->Draw();
-	}
-	if (debugMidRangeEnemy_)
-	{
-		debugMidRangeEnemy_->Draw();
-	}
-	for (const auto& enemy : stressTestMeleeEnemies_)
-	{
-		if (enemy) { enemy->Draw(); }
-	}
-	for (const auto& enemy : stressTestMidRangeEnemies_)
-	{
-		if (enemy) { enemy->Draw(); }
+		auto drawEnemy = [this](EnemyBase* enemy)
+		{
+			if (!enemy) { return; }
+			enemy->Draw();
+			++lastEnemyDrawCount_;
+			if (enableEnemyDebugDraw_) { ++lastEnemyDebugDrawCount_; }
+		};
+		drawEnemy(debugMeleeEnemy_.get());
+		drawEnemy(debugMidRangeEnemy_.get());
+		for (const auto& enemy : stressTestMeleeEnemies_) { drawEnemy(enemy.get()); }
+		for (const auto& enemy : stressTestMidRangeEnemies_) { drawEnemy(enemy.get()); }
 	}
 
 	if (stage_)
 	{
 		stage_->Draw();
 		// Stage Debugの茶色ワイヤーはNavigation/Wall用AABBではなくCollider由来OBBで描画する。
-		for (const auto& obstacleObb : stage_->GetWallObstacleOBBs())
+		if (enableStageBoundsDebugDraw_)
 		{
-			Wireframe::GetInstance()->DrawOBB(obstacleObb, { 0.60f, 0.35f, 0.12f, 0.90f });
+			for (const auto& obstacleObb : stage_->GetWallObstacleOBBs())
+			{
+				Wireframe::GetInstance()->DrawOBB(obstacleObb, { 0.60f, 0.35f, 0.12f, 0.90f });
+			}
 		}
 	}
 
@@ -372,12 +387,12 @@ void DebugScene::Draw3DObjects()
 		Wireframe::GetInstance()->DrawLine(c + Vector3{ 0.0f, -0.2f, 0.0f }, c + Vector3{ 0.0f, 0.2f, 0.0f }, { 0.8f, 1.0f, 0.2f, 1.0f });
 		Wireframe::GetInstance()->DrawLine(c + Vector3{ 0.0f, 0.0f, -0.2f }, c + Vector3{ 0.0f, 0.0f, 0.2f }, { 0.8f, 1.0f, 0.2f, 1.0f });
 	}
-	if (frustumCullingDebug_)
+	if (enableFrustumCullingDebugDraw_ && frustumCullingDebug_)
 	{
 		frustumCullingDebug_->DrawDebug();
 	}
 
-	collisionManager_->Draw();
+	collisionManager_->Draw(enableEnemyDebugDraw_);
 #endif // _DEBUG
 }
 
@@ -392,13 +407,12 @@ void DebugScene::DrawShadowObjects()
 	{
 		debugBoss_->DrawShadow();
 	}
-	if (debugMeleeEnemy_)
+	if (enableEnemyShadow_)
 	{
-		debugMeleeEnemy_->DrawShadow();
-	}
-	for (const auto& enemy : stressTestMeleeEnemies_)
-	{
-		if (enemy) { enemy->DrawShadow(); }
+		if (debugMeleeEnemy_) { debugMeleeEnemy_->DrawShadow(); }
+		if (debugMidRangeEnemy_) { debugMidRangeEnemy_->DrawShadow(); }
+		for (const auto& enemy : stressTestMeleeEnemies_) { if (enemy) { enemy->DrawShadow(); } }
+		for (const auto& enemy : stressTestMidRangeEnemies_) { if (enemy) { enemy->DrawShadow(); } }
 	}
 	if (stage_)
 	{
@@ -427,6 +441,10 @@ void DebugScene::Draw2DSprites()
 
 void DebugScene::Finalize()
 {
+	EnemyBase::SetPerformanceDebugDrawEnabled(true);
+	EnemyBase::SetPerformanceCollisionEnabled(true);
+	EnemyBase::SetPerformanceAIEnabled(true);
+	EnemyBase::SetPerformanceAttackEnabled(true);
 	// 入力状態を必ず戻す（ロック/非表示のまま終了しない）
 	input_->SetLockCursor(false);
 	input_->SetCursorVisible(true);
@@ -570,10 +588,27 @@ void DebugScene::DrawImGui()
 	ImGui::SliderInt("MidRange Enemy Count", &requestedStressTestMidRangeCount_, 0, 5000);
 	if (ImGui::Button("Apply Enemy Count")) { ApplyEnemyStressTestCounts(); }
 	if (ImGui::Button("Clear Stress Test Enemies")) { ClearStressTestEnemies(); }
+	ImGui::SeparatorText("Enemy Performance Debug");
+	ImGui::Checkbox("Enable Enemy Update", &enableEnemyUpdate_);
+	ImGui::Checkbox("Enable Enemy Draw", &enableEnemyDraw_);
+	ImGui::Checkbox("Enable Enemy Debug Draw", &enableEnemyDebugDraw_);
+	ImGui::Checkbox("Enable Enemy Collision", &enableEnemyCollision_);
+	ImGui::Checkbox("Enable Enemy AI", &enableEnemyAI_);
+	ImGui::Checkbox("Enable Enemy Attack", &enableEnemyAttack_);
+	ImGui::Checkbox("Enable Enemy Shadow", &enableEnemyShadow_);
+	ImGui::Checkbox("Enable Stage Bounds Debug Draw", &enableStageBoundsDebugDraw_);
+	ImGui::Checkbox("Enable Frustum Culling Debug Draw", &enableFrustumCullingDebugDraw_);
+	ImGui::Checkbox("Enable Dummy Target Wire Draw", &meleeDummyWireVisible_);
 	ImGui::Separator();
-	ImGui::Text("Current Melee Count: %zu", stressTestMeleeEnemies_.size());
-	ImGui::Text("Current MidRange Count: %zu", stressTestMidRangeEnemies_.size());
-	ImGui::Text("Total Enemy Count: %zu", stressTestMeleeEnemies_.size() + stressTestMidRangeEnemies_.size());
+	const size_t meleeEnemyCount = stressTestMeleeEnemies_.size() + (debugMeleeEnemy_ ? 1u : 0u);
+	const size_t midRangeEnemyCount = stressTestMidRangeEnemies_.size() + (debugMidRangeEnemy_ ? 1u : 0u);
+	ImGui::Text("Melee Enemy Count: %zu", meleeEnemyCount);
+	ImGui::Text("MidRange Enemy Count: %zu", midRangeEnemyCount);
+	ImGui::Text("Total Enemy Count: %zu", meleeEnemyCount + midRangeEnemyCount);
+	ImGui::Text("Enemy Update Count: %d", lastEnemyUpdateCount_);
+	ImGui::Text("Enemy Draw Count: %d", lastEnemyDrawCount_);
+	ImGui::Text("Enemy DebugDraw Count: %d", lastEnemyDebugDrawCount_);
+	ImGui::Text("Enemy Collision Count: %d", collisionManager_ ? collisionManager_->GetLastEnemyCollisionCount() : 0);
 	const auto* timer = K4E::GameTimer::GetInstance();
 	ImGui::Text("FPS: %.1f", timer ? timer->GetFPS() : 0.0f);
 	ImGui::Text("FrameTime: %.3f ms", timer ? timer->GetDeltaTime() * 1000.0f : 0.0f);
@@ -599,7 +634,6 @@ void DebugScene::DrawImGui()
 	{
 		meleeDummyTarget_.SetCenterPosition({ targetPosArray[0], targetPosArray[1], targetPosArray[2] });
 	}
-	ImGui::Checkbox("DummyTarget wire visible", &meleeDummyWireVisible_);
 	ImGui::SliderFloat("DummyTarget wire radius", &meleeDummyWireRadius_, 0.1f, 2.0f);
 	ImGui::Text("MeleeEnemy and dummy target are for BT behavior verification.");
 	ImGui::End();

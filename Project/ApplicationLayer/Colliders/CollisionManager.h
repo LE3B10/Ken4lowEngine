@@ -35,6 +35,10 @@ public: /// ---------- メンバ関数 ---------- ///
 	// すべての当たり判定を確認する処理
 	void CheckAllCollisions();
 
+	// 敵を含む衝突ペアを負荷計測時に停止する。
+	void SetEnemyCollisionEnabled(bool enabled) { enableEnemyCollision_ = enabled; }
+	int GetLastEnemyCollisionCount() const { return lastEnemyCollisionCount_; }
+
 	// コライダーを追加
 	void AddCollider(K4E::Collider* other);
 
@@ -90,4 +94,6 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	// コライダーの可視化フラグ
 	bool isCollider_ = true;
+	bool enableEnemyCollision_ = true;
+	int lastEnemyCollisionCount_ = 0;
 };

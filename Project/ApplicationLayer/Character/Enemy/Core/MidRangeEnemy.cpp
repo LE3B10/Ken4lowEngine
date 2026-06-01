@@ -170,6 +170,11 @@ void MidRangeEnemy::Update(float deltaTime)
 {
     // 追加: まず基礎更新を行う。
     EnemyBase::Update(deltaTime);
+    if (!IsPerformanceAIEnabled())
+    {
+        UpdateVisualAnimation(deltaTime);
+        return;
+    }
     // 追加: 時限爆弾モード中のHP0は通常死亡より自爆を優先する。
     if (!IsDead() && !IsDeathActive() && GetHp() <= 0)
     {
@@ -199,9 +204,12 @@ void MidRangeEnemy::Update(float deltaTime)
         suicideBombState_.explosionDrawTimer = std::max(0.0f, suicideBombState_.explosionDrawTimer - deltaTime);
     }
 
-    for (auto& bomb : bombs_)
+    if (IsPerformanceAttackEnabled())
     {
-        bomb->Update(deltaTime);
+        for (auto& bomb : bombs_)
+        {
+            bomb->Update(deltaTime);
+        }
     }
 
     bombs_.erase(
@@ -228,7 +236,8 @@ void MidRangeEnemy::Update(float deltaTime)
         return;
     }
     // 追加: HP低下時の時限爆弾モード移行を通常行動より先に判定する。
-    if (suicideBomb_.enabled
+    if (IsPerformanceAttackEnabled()
+        && suicideBomb_.enabled
         && !suicideBombState_.active
         && !suicideBombState_.exploded
         && GetMaxHp() > 0
@@ -237,7 +246,7 @@ void MidRangeEnemy::Update(float deltaTime)
     {
         StartSuicideBombMode();
     }
-    if (suicideBombState_.active)
+    if (IsPerformanceAttackEnabled() && suicideBombState_.active)
     {
         // 追加: 時限爆弾モード中は通常AIより優先して更新する。
         UpdateSuicideBombMode(deltaTime);
@@ -271,7 +280,7 @@ void MidRangeEnemy::Update(float deltaTime)
         UpdateWanderBehavior(deltaTime);
     }
 
-    if (bombAttackState_.casting && targetState_.inDetectRange)
+    if (IsPerformanceAttackEnabled() && bombAttackState_.casting && targetState_.inDetectRange)
     {
         animationState_.animState = AnimState::Cast;
         if (bombAttackState_.castTimer >= bombAttack_.castTime && !bombAttackState_.thrownThisCast)
@@ -339,7 +348,7 @@ void MidRangeEnemy::UpdateCombatBehavior(float deltaTime)
     animationState_.animState = AnimState::Idle;
     behaviorState_.currentBehaviorName = "AttackReady";
     behaviorState_.lastReason = "攻撃距離内";
-    if (!bombAttackState_.casting && bombAttackState_.cooldownTimer <= 0.0f)
+    if (IsPerformanceAttackEnabled() && !bombAttackState_.casting && bombAttackState_.cooldownTimer <= 0.0f)
     {
         // 追加: 通常戦闘でのみ爆弾構えを開始する。
         bombAttackState_.casting = true;
@@ -882,6 +891,7 @@ void MidRangeEnemy::Draw()
     {
         bomb->Draw();
     }
+    if (!IsPerformanceDebugDrawEnabled()) { return; }
 
     if (pathState_.pathFound)
     {
