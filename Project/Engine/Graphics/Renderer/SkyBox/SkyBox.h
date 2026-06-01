@@ -152,6 +152,9 @@ namespace Ken4lowEngine
 		void AdvanceCloudLayer(float deltaTime);
 		Vector2 GetCloudUvOffset() const { return cloudUvOffset_; }
 		bool IsCloudTextureAvailable() const { return cloudTextureAvailable_; }
+		bool IsCloudEnabled() const { return cloudEnabled_; }
+		const std::string& GetCloudTexturePath() const { return cloudTexturePath_; }
+		uint32_t GetCloudTextureIndex() const { return cloudTextureIndex_; }
 
 	private: /// ---------- 内部メンバ関数 ---------- ///
 

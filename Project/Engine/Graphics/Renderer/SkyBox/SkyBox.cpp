@@ -8,6 +8,7 @@
 
 #include <filesystem>
 #include <cmath>
+#include <iostream>
 
 namespace Ken4lowEngine
 {
@@ -159,10 +160,16 @@ namespace Ken4lowEngine
 		cloudEnabled_ = enabled; cloudTexturePath_ = texturePath; cloudHeight_ = height; cloudScale_ = scale;
 		cloudScrollSpeed_ = scrollSpeed; cloudUvOffset_ = uvOffset; cloudAlpha_ = alpha; cloudTintColor_ = tintColor;
 		cloudTextureAvailable_ = TextureFileExists(texturePath);
-		if (!cloudTextureAvailable_) return;
-		TextureManager* textureManager = TextureManager::GetInstance();
-		if (reloadTexture) textureManager->ReloadTexture(texturePath); else textureManager->LoadTexture(texturePath);
-		cloudTextureIndex_ = textureManager->GetSrvIndex(texturePath);
+		if (cloudTextureAvailable_)
+		{
+			TextureManager* textureManager = TextureManager::GetInstance();
+			if (reloadTexture) textureManager->ReloadTexture(texturePath); else textureManager->LoadTexture(texturePath);
+			cloudTextureIndex_ = textureManager->GetSrvIndex(texturePath);
+		}
+		std::cout << "[SkyBox] Cloud texture path=Resources/Textures/Compiled/" << cloudTexturePath_
+			<< " enabled=" << (cloudEnabled_ ? "true" : "false")
+			<< " available=" << (cloudTextureAvailable_ ? "true" : "false")
+			<< " srvIndex=" << cloudTextureIndex_ << std::endl;
 	}
 
 	void SkyBox::AdvanceCloudLayer(float deltaTime)
