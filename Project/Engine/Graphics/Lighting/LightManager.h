@@ -149,6 +149,9 @@ namespace Ken4lowEngine
 		/// デフォルトの指向性ライトを追加します。
 		/// </summary>
 		void AddDefaultDirectionalLight();
+
+		/// <summary>既定プリセットを優先して初期ライトを再構成します。</summary>
+		void ResetToDefaultLighting();
 		bool SaveLightPreset(const std::string& assetId);
 		bool ApplyLightPresetByPath(const std::string& filePath);
 
