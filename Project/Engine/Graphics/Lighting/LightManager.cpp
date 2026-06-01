@@ -108,6 +108,11 @@ namespace Ken4lowEngine
 
 		CreatePunctualLight();
 
+		if (punctualLights_.empty())
+		{
+			ResetToDefaultLighting();
+		}
+
 		punctualBuffer_->SetName(L"PunctualLightBuffer");
 		lightInfoResource_->SetName(L"LightInfoConstantBuffer");
 		if (lightingSettingsResource_)
@@ -387,6 +392,7 @@ namespace Ken4lowEngine
 			if (ImGui::TreeNodeEx("Shading", ImGuiTreeNodeFlags_DefaultOpen))
 			{
 				// モデルごとの光の乗り方を実行中に切り分けるための調整UI。
+				ImGui::TextUnformatted("シェーディング表現を調整します。Directional Light の向きによる明暗差を確認できます。");
 				const char* shadingModes[] = { "Normal", "HalfLambert", "ToonLike" };
 				int shadingMode = static_cast<int>(lightingSettings_.shadingMode);
 				if (ImGui::Combo("Shading Mode", &shadingMode, shadingModes, IM_ARRAYSIZE(shadingModes)))
@@ -394,13 +400,18 @@ namespace Ken4lowEngine
 					lightingSettings_.shadingMode = static_cast<uint32_t>(shadingMode);
 				}
 
+				ImGui::TextUnformatted("Shading Mode：陰影の計算方法を切り替えます。");
 				ImGui::SliderFloat("Diffuse Strength", &lightingSettings_.diffuseStrength, 0.0f, 3.0f);
+				ImGui::TextUnformatted("Diffuse Strength：ライトによる拡散光の強さを調整します。");
 				ImGui::SliderFloat("Specular Power Scale", &lightingSettings_.specularPowerScale, 0.05f, 4.0f);
+				ImGui::TextUnformatted("Specular Power Scale：ハイライトの鋭さを調整します。");
 				bool enableHalfLambert = lightingSettings_.enableHalfLambert != 0;
 				if (ImGui::Checkbox("Half Lambert Enable", &enableHalfLambert))
 				{
 					lightingSettings_.enableHalfLambert = enableHalfLambert ? 1u : 0u;
 				}
+
+				ImGui::TextUnformatted("Half Lambert Enable：暗い面を少し明るく見せる補正を有効にします。");
 
 				ImGui::SeparatorText("Rim Light");
 				bool enableRimLight = lightingSettings_.enableRimLight != 0;
@@ -408,9 +419,12 @@ namespace Ken4lowEngine
 				{
 					lightingSettings_.enableRimLight = enableRimLight ? 1u : 0u;
 				}
+				ImGui::TextUnformatted("Rim Light Enable：輪郭部分に光を足す表現を有効にします。");
 				ImGui::SliderFloat("Rim Light Strength", &lightingSettings_.rimLightStrength, 0.0f, 2.0f);
+				ImGui::TextUnformatted("Rim Light Strength：輪郭光の強さを調整します。");
 				ImGui::SliderFloat("Rim Light Power", &lightingSettings_.rimLightPower, 0.1f, 8.0f);
 				ImGui::ColorEdit4("Rim Light Color", &lightingSettings_.rimLightColor.x);
+				ImGui::TextUnformatted("Rim Light Color：輪郭光の色を調整します。");
 				ImGui::TreePop();
 			}
 		}
@@ -800,15 +814,29 @@ namespace Ken4lowEngine
 	{
 		PunctualLightGPU light{};
 		light.lightType = 1; // Directional
-		light.color = { 1.0f, 1.0f, 1.0f, 1.0f };
-		light.intensity = 1.0f;
-		light.direction = Vector3::Normalize({ 0.3f, -1.0f, 0.2f });
+		light.color = { 1.0f, 0.97f, 0.92f, 1.0f };
+		light.intensity = 0.90f;
+		light.direction = Vector3::Normalize({ 0.45f, -1.0f, 0.35f });
 		light.enabled = 1u;
 
 		punctualLights_.clear();
 		punctualLights_.push_back(light);
+		lightingSettings_ = LightingSettingsGPU{};
+		lightingSettings_.ambientColor = { 0.10f, 0.11f, 0.13f, 0.18f };
+		lightingSettings_.diffuseStrength = 0.95f;
+		lightingSettings_.specularStrength = 0.10f;
+		lightingSettings_.rimLightStrength = 0.55f;
 	}
 
+	void LightManager::ResetToDefaultLighting()
+	{
+		punctualLights_.clear();
+		// 保存済み設定を優先し、ファイルがない場合だけ確認用の初期ライトを生成する。
+		if (!ApplyLightPresetByPath("Resources/DataAssets/LightPresets/default_light.json"))
+		{
+			AddDefaultDirectionalLight();
+		}
+	}
 
 	bool LightManager::SaveLightPreset(const std::string& assetId)
 	{

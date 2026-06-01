@@ -33,7 +33,7 @@ using namespace Ken4lowEngine;
 /// -------------------------------------------------------------
 void TitleScene::Initialize()
 {
-	LightManager::GetInstance()->AddDefaultDirectionalLight();
+	LightManager::GetInstance()->ResetToDefaultLighting();
 
 	dxCommon_ = DirectXCommon::GetInstance();
 	input_ = Input::GetInstance();

@@ -29,21 +29,10 @@ void GamePlayWorld::Initialize(GamePlayStageContext& stageContext)
 	const auto stageAssets = stageContext.GetCurrentStageAssets();
 	auto* lightManager = LightManager::GetInstance();
 
-	// GamePlayScene開始時に前シーンのライト状態が残らないよう、基本ライトを明示的に再構成する。
-	auto& gameplayLights = lightManager->GetMutablePunctualLightsForEditor();
-	gameplayLights.clear();
-	lightManager->AddDefaultDirectionalLight();
+	// GamePlayScene開始時は保存済みプリセットを優先し、なければ確認用ライトへ戻す。
+	lightManager->ResetToDefaultLighting();
 	lightManager->SetShadowCasterLightIndex(-1);
-	lightManager->SetShadowFocusMode(K4E::LightManager::ShadowFocusMode::StageCenter);
 	lightManager->SetManualShadowFocusPosition({ 0.0f, 0.0f, 0.0f });
-	lightManager->SetDirectionalShadowFrustum(120.0f, 120.0f, 0.1f, 180.0f);
-	lightManager->SetShadowMapSize(2048);
-
-	K4E::Vector3 dummy{};
-	if (!TryGetDirectionalLightFromManager(dummy))
-	{
-		lightManager->AddDefaultDirectionalLight();
-	}
 
 	skyBox_ = std::make_unique<K4E::SkyBox>();
 	skyBox_->Initialize("SkyBox/skybox.dds");
@@ -120,13 +109,6 @@ void GamePlayWorld::Initialize(GamePlayStageContext& stageContext)
 		characters_.Update(0.0f);
 	}
 
-	{
-		// 空だけ明るく地面が沈む見え方を避けるため、LightEditor互換の設定値をGamePlay初期値として少しだけ持ち上げる。
-		auto& lighting = LightManager::GetInstance()->GetMutableLightingSettingsForEditor();
-		lighting.ambientColor.w = std::max(lighting.ambientColor.w, 0.22f);
-		lighting.exposure = std::max(lighting.exposure, 1.10f);
-		lighting.specularStrength = std::max(lighting.specularStrength, 0.08f);
-	}
 
 	if (stage_)
 	{
