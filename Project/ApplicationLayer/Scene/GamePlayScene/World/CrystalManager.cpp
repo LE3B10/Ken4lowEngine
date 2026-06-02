@@ -10,6 +10,11 @@
 #include <imgui.h>
 #endif
 
+namespace
+{
+	constexpr float kMinimumSpawnInterval = 0.05f;
+}
+
 void CrystalManager::Initialize(const std::vector<CrystalSpawnPoint>& spawnPoints)
 {
 	crystals_.clear();
@@ -22,6 +27,12 @@ void CrystalManager::Initialize(const std::vector<CrystalSpawnPoint>& spawnPoint
 	}
 
 	selectedCrystalIndex_ = 0;
+	nextSpawnCrystalIndex_ = 0;
+	enableCrystalEnemySpawn_ = true;
+	maxTotalCrystalSpawnEnemies_ = 9;
+	globalSpawnInterval_ = 5.0f;
+	globalSpawnTimer_ = 0.0f;
+	maxSpawnPerInterval_ = 1;
 	shouldSpawnBoss_ = false;
 	hasBossSpawned_ = false;
 }
@@ -30,9 +41,35 @@ void CrystalManager::Update(CharacterWorld& characters, float deltaTime)
 {
 	for (EnemySpawnCrystal& crystal : crystals_)
 	{
-		crystal.Update(characters, deltaTime);
+		crystal.Update(characters);
 	}
+
 	NotifyBossSpawnIfNeeded();
+	if (!enableCrystalEnemySpawn_ || AreAllCrystalsDestroyed() || GetAliveCrystalCount() <= 0 ||
+		GetAliveCrystalSpawnEnemyCount() >= maxTotalCrystalSpawnEnemies_)
+	{
+		globalSpawnTimer_ = 0.0f;
+		return;
+	}
+
+	globalSpawnTimer_ += std::max(0.0f, deltaTime);
+	if (globalSpawnTimer_ < globalSpawnInterval_)
+	{
+		return;
+	}
+
+	globalSpawnTimer_ = 0.0f;
+	// 敵が増えすぎないよう、クリスタル由来の生存敵数がステージ全体の上限未満のときだけ補充する。
+	for (int spawnedCount = 0; spawnedCount < maxSpawnPerInterval_ &&
+		GetAliveCrystalSpawnEnemyCount() < maxTotalCrystalSpawnEnemies_; ++spawnedCount)
+	{
+		EnemySpawnCrystal* crystal = FindNextSpawnableCrystal();
+		if (!crystal)
+		{
+			break;
+		}
+		crystal->SpawnEnemy(characters);
+	}
 }
 
 void CrystalManager::Draw() const
@@ -47,6 +84,16 @@ int CrystalManager::GetAliveCrystalCount() const
 {
 	return static_cast<int>(std::count_if(crystals_.begin(), crystals_.end(),
 		[](const EnemySpawnCrystal& crystal) { return crystal.IsAlive(); }));
+}
+
+int CrystalManager::GetAliveCrystalSpawnEnemyCount() const
+{
+	int totalCount = 0;
+	for (const EnemySpawnCrystal& crystal : crystals_)
+	{
+		totalCount += crystal.GetAliveSpawnedEnemyCount();
+	}
+	return totalCount;
 }
 
 bool CrystalManager::AreAllCrystalsDestroyed() const
@@ -77,6 +124,20 @@ const EnemySpawnCrystal* CrystalManager::GetSelectedCrystal() const
 	return selectedCrystalIndex_ < crystals_.size() ? &crystals_[selectedCrystalIndex_] : nullptr;
 }
 
+EnemySpawnCrystal* CrystalManager::FindNextSpawnableCrystal()
+{
+	for (size_t offset = 0; offset < crystals_.size(); ++offset)
+	{
+		const size_t crystalIndex = (nextSpawnCrystalIndex_ + offset) % crystals_.size();
+		if (crystals_[crystalIndex].CanSpawnEnemy())
+		{
+			nextSpawnCrystalIndex_ = (crystalIndex + 1) % crystals_.size();
+			return &crystals_[crystalIndex];
+		}
+	}
+	return nullptr;
+}
+
 void CrystalManager::DrawImGui()
 {
 #ifdef USE_IMGUI
@@ -85,6 +146,15 @@ void CrystalManager::DrawImGui()
 		return;
 	}
 
+	ImGui::Checkbox("クリスタル敵スポーン有効", &enableCrystalEnemySpawn_);
+	ImGui::DragInt("クリスタル由来の最大敵数", &maxTotalCrystalSpawnEnemies_, 1.0f, 0, 100);
+	maxTotalCrystalSpawnEnemies_ = std::max(0, maxTotalCrystalSpawnEnemies_);
+	ImGui::Text("現在のクリスタル由来敵数: %d", GetAliveCrystalSpawnEnemyCount());
+	ImGui::DragFloat("スポーン間隔", &globalSpawnInterval_, 0.1f, kMinimumSpawnInterval, 60.0f, "%.2f 秒");
+	globalSpawnInterval_ = std::max(kMinimumSpawnInterval, globalSpawnInterval_);
+	ImGui::Text("スポーンタイマー: %.2f / %.2f 秒", globalSpawnTimer_, globalSpawnInterval_);
+	ImGui::DragInt("1回の最大スポーン数", &maxSpawnPerInterval_, 1.0f, 1, 9);
+	maxSpawnPerInterval_ = std::max(1, maxSpawnPerInterval_);
 	ImGui::Text("クリスタル数: %d", GetCrystalCount());
 	ImGui::Text("生存クリスタル数: %d", GetAliveCrystalCount());
 	ImGui::Text("全クリスタル破壊済み: %s", AreAllCrystalsDestroyed() ? "はい" : "いいえ");
@@ -109,7 +179,7 @@ void CrystalManager::DrawImGui()
 	}
 
 	bool enableInfiniteSpawn = crystal->IsInfiniteSpawnEnabled();
-	if (ImGui::Checkbox("クリスタル敵スポーン有効", &enableInfiniteSpawn))
+	if (ImGui::Checkbox("選択中クリスタルの敵スポーン有効", &enableInfiniteSpawn))
 	{
 		crystal->SetInfiniteSpawnEnabled(enableInfiniteSpawn);
 	}
@@ -121,20 +191,14 @@ void CrystalManager::DrawImGui()
 		crystal->SetSpawnEnemyType(static_cast<EnemyType>(enemyTypeIndex));
 	}
 
-	float spawnInterval = crystal->GetSpawnInterval();
-	if (ImGui::DragFloat("敵出現間隔", &spawnInterval, 0.1f, 0.05f, 60.0f, "%.2f 秒"))
-	{
-		crystal->SetSpawnInterval(spawnInterval);
-	}
-
 	int maxAliveEnemies = crystal->GetMaxAliveEnemies();
-	if (ImGui::DragInt("同時出現上限", &maxAliveEnemies, 1.0f, 0, 100))
+	if (ImGui::DragInt("選択中クリスタルの同時出現上限", &maxAliveEnemies, 1.0f, 0, 100))
 	{
 		crystal->SetMaxAliveEnemies(maxAliveEnemies);
 	}
 
-	ImGui::Text("現在の生存スポーン敵数: %d", crystal->GetAliveSpawnedEnemyCount());
-	ImGui::Text("合計スポーン数: %d", crystal->GetTotalSpawnedCount());
+	ImGui::Text("選択中クリスタル由来の生存敵数: %d", crystal->GetAliveSpawnedEnemyCount());
+	ImGui::Text("選択中クリスタルの合計スポーン数: %d", crystal->GetTotalSpawnedCount());
 	ImGui::Text("選択中クリスタルHP: %d", crystal->GetHp());
 	if (ImGui::Button("選択中クリスタルへダメージ"))
 	{

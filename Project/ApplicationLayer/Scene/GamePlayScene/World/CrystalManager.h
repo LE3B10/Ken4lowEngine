@@ -18,6 +18,7 @@ public:
 
 	int GetCrystalCount() const { return static_cast<int>(crystals_.size()); }
 	int GetAliveCrystalCount() const;
+	int GetAliveCrystalSpawnEnemyCount() const;
 	bool AreAllCrystalsDestroyed() const;
 	bool ShouldSpawnBoss() const { return shouldSpawnBoss_; }
 	bool HasBossSpawned() const { return hasBossSpawned_; }
@@ -25,11 +26,18 @@ public:
 private:
 	EnemySpawnCrystal* GetSelectedCrystal();
 	const EnemySpawnCrystal* GetSelectedCrystal() const;
+	EnemySpawnCrystal* FindNextSpawnableCrystal();
 	void NotifyBossSpawnIfNeeded();
 
 private:
 	std::vector<EnemySpawnCrystal> crystals_;
 	size_t selectedCrystalIndex_ = 0;
+	size_t nextSpawnCrystalIndex_ = 0;
+	bool enableCrystalEnemySpawn_ = true;
+	int maxTotalCrystalSpawnEnemies_ = 9;
+	float globalSpawnInterval_ = 5.0f;
+	float globalSpawnTimer_ = 0.0f;
+	int maxSpawnPerInterval_ = 1;
 	bool shouldSpawnBoss_ = false;
 	bool hasBossSpawned_ = false;
 };
