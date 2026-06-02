@@ -3,7 +3,6 @@
 #include "EnemyBase.h"
 #include "ApplicationLayer/Character/Enemy/Navigation/EnemyAStarNavigator.h"
 #include "ApplicationLayer/Character/Enemy/Projectile/MidRangeBombProjectile.h"
-#include "ApplicationLayer/Character/Enemy/Effects/MidRangeBombEffectController.h"
 
 #include <filesystem>
 #include <memory>
@@ -325,7 +324,6 @@ private:
     BombAttackState bombAttackState_{};
     SuicideBombState suicideBombState_{};
     WanderState wanderState_{};
-    float suicideChargeEffectTimer_ = 0.0f;
     TargetState targetState_{};
     AnimationStateData animationState_{};
     HeadLookState headLookState_{};
@@ -335,8 +333,8 @@ private:
     BehaviorState behaviorState_{};
     bool usedEnemyBaseDeathForSuicide_ = false;
     K4E::Vector3 lastSuicideBreakApartDirection_{ 0.0f, 0.0f, 1.0f };
+    // 使用中の雑魚敵だけを残し、大量敵対応に向けてEnemy周りの責務を整理する。
     std::vector<std::unique_ptr<MidRangeBombProjectile>> bombs_{};
-    MidRangeBombEffectController bombEffectController_{};
     const std::vector<K4E::AABB>* floorAABBs_ = nullptr;
     const std::vector<K4E::AABB>* wallObstacleAABBs_ = nullptr;
 };
