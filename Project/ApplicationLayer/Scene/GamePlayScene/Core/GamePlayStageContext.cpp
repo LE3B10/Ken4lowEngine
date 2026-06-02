@@ -247,9 +247,10 @@ void GamePlayStageContext::LoadSpawnPointsFromLevel(const std::string& jsonPath)
 				info.wave = (object.spawnProps.wave > 0) ? object.spawnProps.wave : 1;
 				info.group = object.spawnProps.group;
 				info.count = (object.spawnProps.count > 0) ? object.spawnProps.count : 1;
-				if (object.spawnProps.hasArchetype)
+				// stage JSONから敵種別を受け取り、Wave生成時にFactoryへ渡す。
+				if (object.spawnProps.hasEnemyType)
 				{
-					info.enemyType = ParseEnemyType(object.spawnProps.archetype);
+					info.enemyType = ParseEnemyType(object.spawnProps.enemyType);
 				}
 			}
 

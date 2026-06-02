@@ -249,6 +249,11 @@ namespace Ken4lowEngine
 					objectData->spawnProps.archetype = props["archetype"].get<std::string>();
 					objectData->spawnProps.hasArchetype = true;
 				}
+				if (props.contains("enemyType") && props["enemyType"].is_string())
+				{
+					objectData->spawnProps.enemyType = props["enemyType"].get<std::string>();
+					objectData->spawnProps.hasEnemyType = true;
+				}
 			}
 
 			if (object.contains("props") && object["props"].is_object())
