@@ -1,3 +1,4 @@
+#define NOMINMAX
 #include "CrystalManager.h"
 
 #include "CharacterWorld.h"
