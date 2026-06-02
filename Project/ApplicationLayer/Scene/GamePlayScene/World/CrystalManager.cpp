@@ -3,6 +3,8 @@
 
 #include "CharacterWorld.h"
 #include "CameraManager.h"
+#include "CollisionManager.h"
+#include "EnemyBase.h"
 
 #include <algorithm>
 #include <iostream>
@@ -17,15 +19,32 @@ namespace
 	constexpr float kMinimumSpawnInterval = 0.05f;
 }
 
-void CrystalManager::Initialize(const std::vector<CrystalSpawnPoint>& spawnPoints)
+void CrystalManager::Initialize(const std::vector<CrystalSpawnPoint>& spawnPoints, CollisionManager* collisionManager)
 {
+	if (collisionManager_)
+	{
+		for (EnemySpawnCrystal& crystal : crystals_)
+		{
+			collisionManager_->RemoveCollider(&crystal);
+		}
+	}
+
 	crystals_.clear();
+	collisionManager_ = collisionManager;
 	crystals_.reserve(spawnPoints.size());
 	for (const CrystalSpawnPoint& spawnPoint : spawnPoints)
 	{
 		EnemySpawnCrystal crystal;
 		crystal.Initialize(spawnPoint);
 		crystals_.push_back(std::move(crystal));
+	}
+
+	if (collisionManager_)
+	{
+		for (EnemySpawnCrystal& crystal : crystals_)
+		{
+			collisionManager_->AddCollider(&crystal);
+		}
 	}
 
 	selectedCrystalIndex_ = 0;
@@ -54,7 +73,9 @@ void CrystalManager::Update(CharacterWorld& characters, float deltaTime)
 		return;
 	}
 
-	globalSpawnTimer_ += std::max(0.0f, deltaTime);
+	// フレーム落ち時にスポーン更新が一気に進まないよう、Crystal更新用deltaTimeを制限する。
+	const float safeDeltaTime = std::clamp(deltaTime, 0.0f, kMaxUpdateDeltaTime);
+	globalSpawnTimer_ += safeDeltaTime;
 	if (globalSpawnTimer_ < globalSpawnInterval_)
 	{
 		return;
@@ -161,6 +182,9 @@ void CrystalManager::DrawImGui()
 	ImGui::Text("生存クリスタル数: %d", GetAliveCrystalCount());
 	ImGui::Text("全クリスタル破壊済み: %s", AreAllCrystalsDestroyed() ? "はい" : "いいえ");
 	ImGui::Text("ボス出現済み: %s", HasBossSpawned() ? "はい" : "いいえ");
+	ImGui::Text("更新用deltaTime上限: %.4f 秒", kMaxUpdateDeltaTime);
+	ImGui::Text("敵のGround Snap有効: %s", EnemyBase::IsGroundSnapEnabled() ? "はい" : "いいえ");
+	ImGui::Text("敵の場外制限有効: %s", EnemyBase::IsWorldBoundsEnabled() ? "はい" : "いいえ");
 
 	if (crystals_.empty())
 	{
@@ -206,12 +230,22 @@ void CrystalManager::DrawImGui()
 	ImGui::Text("クリスタルScale: (%.2f, %.2f, %.2f)", crystalScale.x, crystalScale.y, crystalScale.z);
 	ImGui::Text("選択中クリスタルHP: %d", crystal->GetHp());
 	ImGui::Text("生存状態: %s", crystal->IsAlive() ? "生存" : "破壊済み");
+	ImGui::Text("クリスタル破壊済み: %s", crystal->IsDestroyed() ? "はい" : "いいえ");
+	ImGui::Text("クリスタルCollider有効: %s", crystal->IsColliderEnabled() ? "はい" : "いいえ");
+	ImGui::Text("クリスタル被弾回数: %d", crystal->GetHitCount());
 	ImGui::Text("カメラ座標: (%.2f, %.2f, %.2f)", cameraPosition.x, cameraPosition.y, cameraPosition.z);
 	ImGui::Text("選択中クリスタル由来の生存敵数: %d", crystal->GetAliveSpawnedEnemyCount());
 	ImGui::Text("選択中クリスタルの合計スポーン数: %d", crystal->GetTotalSpawnedCount());
-	if (ImGui::Button("選択中クリスタルへダメージ"))
+	if (ImGui::Button("選択中クリスタルに10ダメージ"))
 	{
-		crystal->TakeDamage(25);
+		crystal->ApplyDamage(10);
+	}
+	if (ImGui::Button("全クリスタルに10ダメージ"))
+	{
+		for (EnemySpawnCrystal& target : crystals_)
+		{
+			target.ApplyDamage(10);
+		}
 	}
 #endif
 }

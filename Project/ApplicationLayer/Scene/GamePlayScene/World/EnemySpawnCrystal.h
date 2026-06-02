@@ -1,6 +1,7 @@
 #pragma once
 
 #include "EnemyType.h"
+#include "Collider.h"
 #include "Object3D.h"
 #include "Vector3.h"
 
@@ -28,17 +29,22 @@ struct CrystalSpawnPoint
 };
 
 /// 破壊されるまで、上限付きで雑魚敵を生成し続ける仮クリスタル。
-class EnemySpawnCrystal
+class EnemySpawnCrystal : public K4E::Collider
 {
 public:
 	void Initialize(const CrystalSpawnPoint& spawnPoint);
 	void Update(const CharacterWorld& characters);
 	void Draw() const;
-	void TakeDamage(int damage);
+	void ApplyDamage(int damage);
+	void TakeDamage(int damage) { ApplyDamage(damage); }
+	void OnCollisionEnter(K4E::Collider* other) override;
 	bool CanSpawnEnemy() const;
 	void SpawnEnemy(CharacterWorld& characters);
 
 	bool IsAlive() const { return isAlive; }
+	bool IsDestroyed() const { return !isAlive; }
+	bool IsColliderEnabled() const { return isAlive; }
+	int GetHitCount() const { return hitCount_; }
 	int GetHp() const { return hp; }
 	EnemyType GetSpawnEnemyType() const { return spawnEnemyType; }
 	float GetSpawnRadius() const { return spawnRadius; }
@@ -72,6 +78,7 @@ private:
 	K4E::Vector3 rotation_{};
 	K4E::Vector3 scale_{ 1.0f, 1.0f, 1.0f };
 	bool spawnBossTrigger_ = true;
+	int hitCount_ = 0;
 	std::unique_ptr<K4E::Object3D> debugCube_;
 	std::vector<const EnemyBase*> spawnedEnemies_;
 };

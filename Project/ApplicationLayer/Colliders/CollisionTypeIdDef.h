@@ -16,4 +16,5 @@ enum class CollisionTypeIdDef : uint32_t
 	kBossBullet,	 // ボス弾ID 9
 	kWorld,			 // ワールドID 10
 	kTragetLock,	 // ターゲットロック用ID 11
+	kCrystal,		 // 敵スポーンクリスタルID 12
 };

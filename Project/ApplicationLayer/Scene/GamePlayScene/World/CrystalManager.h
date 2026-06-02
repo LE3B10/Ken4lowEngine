@@ -6,12 +6,13 @@
 #include <vector>
 
 class CharacterWorld;
+class CollisionManager;
 
 /// 複数クリスタルの進行、雑魚敵生成要求、ボス通知を集約する。
 class CrystalManager
 {
 public:
-	void Initialize(const std::vector<CrystalSpawnPoint>& spawnPoints);
+	void Initialize(const std::vector<CrystalSpawnPoint>& spawnPoints, CollisionManager* collisionManager = nullptr);
 	void Update(CharacterWorld& characters, float deltaTime);
 	void Draw() const;
 	void DrawImGui();
@@ -22,6 +23,7 @@ public:
 	bool AreAllCrystalsDestroyed() const;
 	bool ShouldSpawnBoss() const { return shouldSpawnBoss_; }
 	bool HasBossSpawned() const { return hasBossSpawned_; }
+	static constexpr float GetMaxUpdateDeltaTime() { return kMaxUpdateDeltaTime; }
 
 private:
 	EnemySpawnCrystal* GetSelectedCrystal();
@@ -30,7 +32,9 @@ private:
 	void NotifyBossSpawnIfNeeded();
 
 private:
+	static constexpr float kMaxUpdateDeltaTime = 1.0f / 30.0f;
 	std::vector<EnemySpawnCrystal> crystals_;
+	CollisionManager* collisionManager_ = nullptr;
 	size_t selectedCrystalIndex_ = 0;
 	size_t nextSpawnCrystalIndex_ = 0;
 	bool enableCrystalEnemySpawn_ = true;

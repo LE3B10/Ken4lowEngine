@@ -400,12 +400,13 @@ void Bullet::OnCollisionEnter(K4E::Collider* other)
 	const uint32_t kEnemy = static_cast<uint32_t>(CollisionTypeIdDef::kEnemy);
 	const uint32_t kBoss = static_cast<uint32_t>(CollisionTypeIdDef::kBoss);
 	const uint32_t kWorld = static_cast<uint32_t>(CollisionTypeIdDef::kWorld);
+	const uint32_t kCrystal = static_cast<uint32_t>(CollisionTypeIdDef::kCrystal);
 
 	bool shouldHit = false;
 	if (selfType == static_cast<uint32_t>(CollisionTypeIdDef::kBullet))
 	{
-		// プレイヤー弾：敵/ボス/ワールド
-		shouldHit = (otherType == kEnemy || otherType == kBoss || otherType == kWorld);
+		// プレイヤー弾：敵/ボス/クリスタル/ワールド
+		shouldHit = (otherType == kEnemy || otherType == kBoss || otherType == kCrystal || otherType == kWorld);
 	}
 	else if (selfType == static_cast<uint32_t>(CollisionTypeIdDef::kEnemyBullet) ||
 		selfType == static_cast<uint32_t>(CollisionTypeIdDef::kBossBullet))
