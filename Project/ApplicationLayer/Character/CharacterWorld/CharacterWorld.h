@@ -97,5 +97,6 @@ private: /// ---------- メンバ変数 ---------- ///
 private: /// ---------- デバッグ用 ---------- ///
 
 	bool isDebug_ = false;
+	EnemyType debugSpawnEnemyType_ = EnemyType::Legacy;
 
 };

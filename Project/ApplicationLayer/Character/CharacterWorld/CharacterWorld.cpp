@@ -252,6 +252,22 @@ void CharacterWorld::DrawEnemyDebugImGui()
 #ifdef USE_IMGUI
 	// Enemy DebugにはEnemy Manager相当の一覧と各Enemy個体の詳細をまとめる。
 	ImGui::Text("Enemy Count: %d", static_cast<int>(enemies_.size()));
+
+	// 通常ゲーム側でもFactory接続を確認できるよう、生成する雑魚敵派生を一時的に切り替える。
+	constexpr const char* kEnemyTypeLabels[] = { "Legacy", "Melee", "MidRange" };
+	int debugSpawnEnemyTypeIndex = static_cast<int>(debugSpawnEnemyType_);
+	if (ImGui::Combo("Spawn Enemy Type", &debugSpawnEnemyTypeIndex, kEnemyTypeLabels, IM_ARRAYSIZE(kEnemyTypeLabels)))
+	{
+		debugSpawnEnemyType_ = static_cast<EnemyType>(debugSpawnEnemyTypeIndex);
+	}
+
+	if (player_ && ImGui::Button("Spawn Selected Enemy"))
+	{
+		const K4E::Vector3 spawnPosition = player_->GetCenterPosition() + K4E::Vector3{ 0.0f, 0.0f, 3.0f };
+		SpawnEnemyAt(spawnPosition, debugSpawnEnemyType_);
+	}
+
+	ImGui::Separator();
 	for (size_t i = 0; i < enemies_.size(); ++i)
 	{
 		ImGui::PushID(static_cast<int>(i));
