@@ -9,6 +9,7 @@
 #include "Derived/GuardianBoss/GuardianBoss.h"
 #include "DisintegrationDebugController.h"
 #include "ApplicationLayer/DebugTools/FrustumCulling/FrustumCullingDebugController.h"
+#include "ApplicationLayer/DebugTools/EnemyScalability/EnemyScalabilitySystem.h"
 #include "Vector3.h"
 #include "Vector4.h"
 #include "Stage.h"
@@ -81,6 +82,7 @@ private: /// ---------- メンバ関数 ---------- ///
 	bool LoadSkyBoxPresets();
 	bool SaveSkyBoxPresets();
 	void DrawSkyBoxImGui();
+	void DrawEnemyStressTestImGui();
 
 	/// -------------------------------------------------------------
 	/// BossHitPart を文字列へ変換
@@ -123,6 +125,14 @@ private: /// ---------- メンバ変数 ---------- ///
 	std::unique_ptr<DisintegrationDebugController> disintegrationDebug_;
 
 	std::unique_ptr<FrustumCullingDebugController> frustumCullingDebug_;
+
+	// 通常 Enemy と混在させない StressTest 専用の軽量敵管理。
+	K4E::EnemyScalabilitySystem enemyScalabilitySystem_{};
+	int stressTestMeleeEnemyCount_ = 100;
+	int stressTestMidRangeEnemyCount_ = 100;
+	bool stageBoundsDebugDraw_ = true;
+	bool frustumCullingDebugDraw_ = true;
+	bool enemyShadowEnabled_ = true;
 
 	// Frustum Culling の挙動確認用 Object3D 群
 	std::vector<std::unique_ptr<K4E::Object3D>> cullingTestObjects_;

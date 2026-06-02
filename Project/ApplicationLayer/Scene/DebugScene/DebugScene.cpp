@@ -265,6 +265,8 @@ void DebugScene::Update()
 		debugMidRangeEnemy_->Update(deltaTime);
 	}
 
+	enemyScalabilitySystem_.Update(deltaTime, meleeDummyTarget_.GetCenterPosition());
+
 	UpdateDebugBossHitTest();
 
 	UpdateDebugParticleTest();
@@ -344,7 +346,7 @@ void DebugScene::Draw3DObjects()
 	{
 		stage_->Draw();
 		// Stage Debugの茶色ワイヤーはNavigation/Wall用AABBではなくCollider由来OBBで描画する。
-		for (const auto& obstacleObb : stage_->GetWallObstacleOBBs())
+		if (stageBoundsDebugDraw_) for (const auto& obstacleObb : stage_->GetWallObstacleOBBs())
 		{
 			Wireframe::GetInstance()->DrawOBB(obstacleObb, { 0.60f, 0.35f, 0.12f, 0.90f });
 		}
@@ -361,10 +363,11 @@ void DebugScene::Draw3DObjects()
 		Wireframe::GetInstance()->DrawLine(c + Vector3{ 0.0f, -0.2f, 0.0f }, c + Vector3{ 0.0f, 0.2f, 0.0f }, { 0.8f, 1.0f, 0.2f, 1.0f });
 		Wireframe::GetInstance()->DrawLine(c + Vector3{ 0.0f, 0.0f, -0.2f }, c + Vector3{ 0.0f, 0.0f, 0.2f }, { 0.8f, 1.0f, 0.2f, 1.0f });
 	}
-	if (frustumCullingDebug_)
+	if (frustumCullingDebug_ && frustumCullingDebugDraw_)
 	{
 		frustumCullingDebug_->DrawDebug();
 	}
+	enemyScalabilitySystem_.DrawDebugInstances();
 
 	collisionManager_->Draw();
 #endif // _DEBUG
@@ -381,7 +384,7 @@ void DebugScene::DrawShadowObjects()
 	{
 		debugBoss_->DrawShadow();
 	}
-	if (debugMeleeEnemy_)
+	if (debugMeleeEnemy_ && enemyShadowEnabled_)
 	{
 		debugMeleeEnemy_->DrawShadow();
 	}
@@ -431,12 +434,85 @@ void DebugScene::Finalize()
 	dxCommon_ = nullptr;
 }
 
+void DebugScene::DrawEnemyStressTestImGui()
+{
+#ifdef USE_IMGUI
+	K4E::EnemyUpdateLodSettings& settings = enemyScalabilitySystem_.GetUpdateLodSettings();
+	const K4E::EnemyScalabilityMetrics& metrics = enemyScalabilitySystem_.GetMetrics();
+	bool useSimpleCollision = enemyScalabilitySystem_.IsSimpleCollisionEnabled();
+	bool enemyDebugDraw = enemyScalabilitySystem_.IsEnemyDebugDrawEnabled();
+
+	ImGui::Begin("Enemy Stress Test");
+	ImGui::TextWrapped("StressTest enemies use lightweight data only. Normal enemies and the boss remain managed by their existing classes.");
+	ImGui::InputInt("Melee Enemy Count", &stressTestMeleeEnemyCount_);
+	ImGui::InputInt("MidRange Enemy Count", &stressTestMidRangeEnemyCount_);
+	stressTestMeleeEnemyCount_ = std::clamp(stressTestMeleeEnemyCount_, 0, 10000);
+	stressTestMidRangeEnemyCount_ = std::clamp(stressTestMidRangeEnemyCount_, 0, 10000);
+	if (ImGui::Button("Apply"))
+	{
+		enemyScalabilitySystem_.ApplyStressTestCounts(
+			static_cast<uint32_t>(stressTestMeleeEnemyCount_),
+			static_cast<uint32_t>(stressTestMidRangeEnemyCount_));
+		// StressTest 中は大量描画を避けるため、重いデバッグ表示と敵シャドウを既定で無効化する。
+		enemyScalabilitySystem_.SetEnemyDebugDrawEnabled(false);
+		stageBoundsDebugDraw_ = false;
+		frustumCullingDebugDraw_ = false;
+		meleeDummyWireVisible_ = false;
+		enemyShadowEnabled_ = false;
+	}
+	ImGui::SameLine();
+	if (ImGui::Button("Clear"))
+	{
+		enemyScalabilitySystem_.Clear();
+	}
+
+	ImGui::SeparatorText("Update LOD");
+	ImGui::Checkbox("Use Enemy Update LOD", &settings.useEnemyUpdateLod);
+	ImGui::DragFloat("Near Update Distance", &settings.nearUpdateDistance, 1.0f, 0.0f, 1000.0f);
+	ImGui::DragFloat("Mid Update Distance", &settings.midUpdateDistance, 1.0f, settings.nearUpdateDistance, 2000.0f);
+	ImGui::DragFloat("Far Update Distance", &settings.farUpdateDistance, 1.0f, settings.midUpdateDistance, 4000.0f);
+	int nearInterval = static_cast<int>(settings.nearUpdateInterval);
+	int midInterval = static_cast<int>(settings.midUpdateInterval);
+	int farInterval = static_cast<int>(settings.farUpdateInterval);
+	ImGui::DragInt("Near Update Interval", &nearInterval, 1.0f, 1, 120);
+	ImGui::DragInt("Mid Update Interval", &midInterval, 1.0f, 1, 120);
+	ImGui::DragInt("Far Update Interval", &farInterval, 1.0f, 1, 120);
+	settings.nearUpdateInterval = static_cast<uint32_t>(std::max(nearInterval, 1));
+	settings.midUpdateInterval = static_cast<uint32_t>(std::max(midInterval, 1));
+	settings.farUpdateInterval = static_cast<uint32_t>(std::max(farInterval, 1));
+
+	ImGui::SeparatorText("Collision and Debug Draw");
+	if (ImGui::Checkbox("Simple Collision", &useSimpleCollision)) enemyScalabilitySystem_.SetSimpleCollisionEnabled(useSimpleCollision);
+	if (ImGui::Checkbox("Enemy Debug Draw", &enemyDebugDraw)) enemyScalabilitySystem_.SetEnemyDebugDrawEnabled(enemyDebugDraw);
+	ImGui::Checkbox("Stage Bounds Debug Draw", &stageBoundsDebugDraw_);
+	ImGui::Checkbox("Frustum Culling Debug Draw", &frustumCullingDebugDraw_);
+	ImGui::Checkbox("Dummy Target Wire Draw", &meleeDummyWireVisible_);
+	ImGui::Checkbox("Enemy Shadow", &enemyShadowEnabled_);
+
+	ImGui::SeparatorText("Metrics");
+	ImGui::Text("Total Enemy Count: %u", metrics.totalEnemyCount);
+	ImGui::Text("Melee Enemy Count: %u", metrics.meleeEnemyCount);
+	ImGui::Text("MidRange Enemy Count: %u", metrics.midRangeEnemyCount);
+	ImGui::Text("Updated Enemy Count This Frame: %u", metrics.updatedEnemyCountThisFrame);
+	ImGui::Text("Skipped Enemy Count This Frame: %u", metrics.skippedEnemyCountThisFrame);
+	ImGui::Text("Draw Enemy Count: %u", metrics.drawEnemyCount);
+	ImGui::Text("Collision Check Count: %u", metrics.collisionCheckCount);
+	ImGui::Text("FPS: %.1f", ImGui::GetIO().Framerate);
+	ImGui::Text("FrameTime: %.3f ms", ImGui::GetIO().DeltaTime * 1000.0f);
+	ImGui::Text("Enemy Update Time: %.3f ms", metrics.enemyUpdateTimeMs);
+	ImGui::Text("Enemy Draw Submit Time: %.3f ms", metrics.enemyDrawSubmitTimeMs);
+	ImGui::Text("Enemy Collision Time: %.3f ms", metrics.enemyCollisionTimeMs);
+	ImGui::End();
+#endif // USE_IMGUI
+}
+
 void DebugScene::DrawImGui()
 {
 #ifdef USE_IMGUI
 
 	LightManager::GetInstance()->DrawImGui();
 	DrawSkyBoxImGui();
+	DrawEnemyStressTestImGui();
 
 	if (debugBoss_)
 	{
