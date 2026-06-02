@@ -2,6 +2,7 @@
 #include "CrystalManager.h"
 
 #include "CharacterWorld.h"
+#include "CameraManager.h"
 
 #include <algorithm>
 #include <iostream>
@@ -198,9 +199,16 @@ void CrystalManager::DrawImGui()
 		crystal->SetMaxAliveEnemies(maxAliveEnemies);
 	}
 
+	const Ken4lowEngine::Vector3& crystalPosition = crystal->GetPosition();
+	const Ken4lowEngine::Vector3& crystalScale = crystal->GetScale();
+	const Ken4lowEngine::Vector3 cameraPosition = Ken4lowEngine::CameraManager::GetInstance()->GetActiveCameraPosition();
+	ImGui::Text("選択中クリスタル座標: (%.2f, %.2f, %.2f)", crystalPosition.x, crystalPosition.y, crystalPosition.z);
+	ImGui::Text("クリスタルScale: (%.2f, %.2f, %.2f)", crystalScale.x, crystalScale.y, crystalScale.z);
+	ImGui::Text("選択中クリスタルHP: %d", crystal->GetHp());
+	ImGui::Text("生存状態: %s", crystal->IsAlive() ? "生存" : "破壊済み");
+	ImGui::Text("カメラ座標: (%.2f, %.2f, %.2f)", cameraPosition.x, cameraPosition.y, cameraPosition.z);
 	ImGui::Text("選択中クリスタル由来の生存敵数: %d", crystal->GetAliveSpawnedEnemyCount());
 	ImGui::Text("選択中クリスタルの合計スポーン数: %d", crystal->GetTotalSpawnedCount());
-	ImGui::Text("選択中クリスタルHP: %d", crystal->GetHp());
 	if (ImGui::Button("選択中クリスタルへダメージ"))
 	{
 		crystal->TakeDamage(25);

@@ -143,11 +143,11 @@ void GamePlayWorld::Initialize(GamePlayStageContext& stageContext)
 	prevWaveInProgress_ = false;
 	prevAllWavesCleared_ = false;
 
-	// Blender 側の設定読み込みを追加するまでは、C++ の仮スポーン地点を使用する。
+	// Blender 側の設定読み込みを追加するまでは、C++ でステージ上の固定ワールド座標へ仮配置する。
 	crystalManager_.Initialize({
-		{ { -8.0f, 1.0f, 8.0f }, {}, { 1.5f, 2.5f, 1.5f }, 100, EnemyType::Melee, 2.0f, 10, 4.0f, true, true },
-		{ {  0.0f, 1.0f, 14.0f }, {}, { 1.5f, 2.5f, 1.5f }, 100, EnemyType::MidRange, 3.0f, 6, 4.0f, true, true },
-		{ {  8.0f, 1.0f, 8.0f }, {}, { 1.5f, 2.5f, 1.5f }, 100, EnemyType::Melee, 2.0f, 10, 4.0f, true, true },
+		{ {   0.0f, 2.0f, 20.0f }, {}, { 1.5f, 2.5f, 1.5f }, 100, EnemyType::Melee, 2.0f, 10, 4.0f, true, true },
+		{ {  10.0f, 2.0f, 30.0f }, {}, { 1.5f, 2.5f, 1.5f }, 100, EnemyType::MidRange, 3.0f, 6, 4.0f, true, true },
+		{ { -10.0f, 2.0f, 30.0f }, {}, { 1.5f, 2.5f, 1.5f }, 100, EnemyType::Melee, 2.0f, 10, 4.0f, true, true },
 	});
 
 	enemyHpBarManager_.Initialize();
