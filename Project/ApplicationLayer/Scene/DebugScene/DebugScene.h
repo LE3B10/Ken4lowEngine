@@ -73,9 +73,6 @@ private: /// ---------- メンバ関数 ---------- ///
 	// 近接敵同士のXZ分離をまとめて解決する
 	void ResolveMeleeEnemySeparation(float deltaTime);
 
-	// カリング確認用 Object3D を初期化
-	void InitializeCullingTestObjects();
-
 	// SkyBox 設定はファイル欠落時だけ既定値へフォールバックする。
 	void InitializeSkyBox();
 	void ApplyActiveSkyBoxPreset(bool reloadTexture = false);
@@ -133,9 +130,6 @@ private: /// ---------- メンバ変数 ---------- ///
 	bool stageBoundsDebugDraw_ = true;
 	bool frustumCullingDebugDraw_ = true;
 	bool enemyShadowEnabled_ = true;
-
-	// Frustum Culling の挙動確認用 Object3D 群
-	std::vector<std::unique_ptr<K4E::Object3D>> cullingTestObjects_;
 
 	K4E::Collider meleeDummyTarget_{};
 	bool meleeDummyWireVisible_ = true;

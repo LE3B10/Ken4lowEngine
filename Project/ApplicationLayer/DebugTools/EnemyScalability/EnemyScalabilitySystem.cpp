@@ -1,3 +1,4 @@
+#define NOMINMAX
 #include "EnemyScalabilitySystem.h"
 
 #include "Wireframe.h"
