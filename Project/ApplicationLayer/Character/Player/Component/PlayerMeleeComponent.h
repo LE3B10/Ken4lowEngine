@@ -9,6 +9,7 @@ namespace K4E = ::Ken4lowEngine;
 class CollisionManager;
 class PlayerViewComponent;
 class EnemyBase;
+class EnemySpawnCrystal;
 
 class PlayerMeleeComponent
 {

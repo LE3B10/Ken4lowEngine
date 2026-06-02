@@ -236,6 +236,9 @@ void EnemyBase::Update(float deltaTime)
 {
 	if (removable_) return;
 
+	// フレーム落ち時の移動暴走を防ぐため、敵更新用deltaTimeを制限する。
+	deltaTime = std::clamp(deltaTime, 0.0f, kMaxUpdateDeltaTime);
+
 	// 死亡演出
 	if (isDead_)
 	{
@@ -274,6 +277,19 @@ void EnemyBase::Update(float deltaTime)
 		grounded_ = res.grounded;
 		newPos = res.fixedCenter + s.centerOffset;
 	}
+
+	// 仮の安全処理として、敵の足元が基準床Yより下なら地面上へ戻す。
+	const float minimumCenterY = kGroundY + obbHalf_.y;
+	if (newPos.y < minimumCenterY)
+	{
+		newPos.y = minimumCenterY;
+		velocity_.y = 0.0f;
+		grounded_ = true;
+	}
+
+	// ステージ外へ落ち続けないよう、生存中の敵XZ座標を安全範囲へ制限する。
+	newPos.x = std::clamp(newPos.x, kWorldBoundsMinX, kWorldBoundsMaxX);
+	newPos.z = std::clamp(newPos.z, kWorldBoundsMinZ, kWorldBoundsMaxZ);
 
 	SetCenterPosition(newPos);
 	UpdateHitFlash(deltaTime);

@@ -97,6 +97,7 @@ void CollisionManager::CheckAllCollisions()
 	const CId kBossBullet = static_cast<CId>(CollisionTypeIdDef::kBossBullet);
 	const CId kItem = static_cast<CId>(CollisionTypeIdDef::kItem);
 	const CId kWorld = static_cast<CId>(CollisionTypeIdDef::kWorld);
+	const CId kCrystal = static_cast<CId>(CollisionTypeIdDef::kCrystal);
 
 	// --- スナップショット（イベント中の追加/削除に備える） ---
 	std::vector<K4E::Collider*> snapshot = all_;
@@ -138,6 +139,7 @@ void CollisionManager::CheckAllCollisions()
 	pairLoop(kBoss, kPlayer);
 	pairLoop(kEnemy, kPlayer);
 	pairLoop(kBullet, kEnemy);
+	pairLoop(kBullet, kCrystal);
 	pairLoop(kBoss, kBullet);
 	pairLoop(kEnemyBullet, kPlayer);
 	pairLoop(kPlayer, kBossBullet);
@@ -288,6 +290,7 @@ void CollisionManager::RegisterCollisionFuncsions()
 	constexpr CollisionType kItem = static_cast<CollisionType>(CollisionTypeIdDef::kItem);
 	constexpr CollisionType kBoss = static_cast<CollisionType>(CollisionTypeIdDef::kBoss);
 	constexpr CollisionType kWorld = static_cast<CollisionType>(CollisionTypeIdDef::kWorld);
+	constexpr CollisionType kCrystal = static_cast<CollisionType>(CollisionTypeIdDef::kCrystal);
 
 	auto AddCollisionFunc = [&](CollisionType a, CollisionType b, const CollisionFunc& func) {
 		collisionTable_[{a, b}] = func;
@@ -323,6 +326,7 @@ void CollisionManager::RegisterCollisionFuncsions()
 	//  - 弾は Segment、キャラ/ワールドは OBB として扱う
 	for (auto [seg, obb] : std::initializer_list<std::pair<CollisionType, CollisionType>>{
 		{kBullet, kEnemy},
+		{kBullet, kCrystal},
 		{kBullet, kBoss},
 		{kBullet, kWorld},
 		{kEnemyBullet, kPlayer},

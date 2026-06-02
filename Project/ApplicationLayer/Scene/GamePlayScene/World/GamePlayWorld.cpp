@@ -148,14 +148,14 @@ void GamePlayWorld::Initialize(GamePlayStageContext& stageContext)
 		{ {   0.0f, 2.0f, 20.0f }, {}, { 1.5f, 2.5f, 1.5f }, 100, EnemyType::Melee, 2.0f, 10, 4.0f, true, true },
 		{ {  10.0f, 2.0f, 30.0f }, {}, { 1.5f, 2.5f, 1.5f }, 100, EnemyType::MidRange, 3.0f, 6, 4.0f, true, true },
 		{ { -10.0f, 2.0f, 30.0f }, {}, { 1.5f, 2.5f, 1.5f }, 100, EnemyType::Melee, 2.0f, 10, 4.0f, true, true },
-	});
+	}, collisionManager_.get());
 
 	enemyHpBarManager_.Initialize();
 }
 
 void GamePlayWorld::Finalize()
 {
-	crystalManager_.Initialize({});
+	crystalManager_.Initialize({}, nullptr);
 	stageObjectiveManager_.reset();
 	waveManager_.reset();
 	hudManager_.reset();

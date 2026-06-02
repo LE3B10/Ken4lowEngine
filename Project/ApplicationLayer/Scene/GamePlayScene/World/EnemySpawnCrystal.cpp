@@ -3,6 +3,8 @@
 
 #include "CharacterWorld.h"
 #include "EnemyBase.h"
+#include "Bullet.h"
+#include "CollisionTypeIdDef.h"
 
 #include <algorithm>
 #include <cmath>
@@ -34,6 +36,13 @@ void EnemySpawnCrystal::Initialize(const CrystalSpawnPoint& spawnPoint)
 	enableInfiniteSpawn = spawnPoint.enableInfiniteSpawn;
 	spawnBossTrigger_ = spawnPoint.spawnBossTrigger;
 	spawnedEnemies_.clear();
+	hitCount_ = 0;
+
+	SetTypeID(static_cast<uint32_t>(CollisionTypeIdDef::kCrystal));
+	SetOwner(this);
+	SetCenterPosition(position_);
+	SetOBBHalfSize(scale_);
+	SetOrientation(rotation_);
 
 	debugCube_ = std::make_unique<Object3D>();
 	debugCube_->Initialize("Test/cube.gltf");
@@ -66,17 +75,35 @@ void EnemySpawnCrystal::Draw() const
 	}
 }
 
-void EnemySpawnCrystal::TakeDamage(int damage)
+void EnemySpawnCrystal::ApplyDamage(int damage)
 {
 	if (!isAlive || damage <= 0)
 	{
 		return;
 	}
 
+	// プレイヤー攻撃でクリスタルを破壊できるよう、被弾回数とHPを一か所で更新する。
+	++hitCount_;
 	hp = std::max(0, hp - damage);
 	if (hp <= 0)
 	{
 		isAlive = false;
+		// 破壊後のColliderが近接攻撃や弾を遮らないよう、判定だけを場外へ退避する。
+		SetCenterPosition({ 1.0e9f, 1.0e9f, 1.0e9f });
+	}
+}
+
+
+void EnemySpawnCrystal::OnCollisionEnter(K4E::Collider* other)
+{
+	if (!isAlive || !other || other->GetTypeID() != static_cast<uint32_t>(CollisionTypeIdDef::kBullet))
+	{
+		return;
+	}
+
+	if (auto* bullet = other->GetOwner<Bullet>())
+	{
+		ApplyDamage(bullet->GetDamage());
 	}
 }
 
@@ -106,6 +133,11 @@ void EnemySpawnCrystal::RemoveInactiveSpawnedEnemies(const CharacterWorld& chara
 
 void EnemySpawnCrystal::SpawnEnemy(CharacterWorld& characters)
 {
+	if (!CanSpawnEnemy())
+	{
+		return;
+	}
+
 	const float angle = RandomRange(0.0f, 6.28318530718f);
 	const float distance = RandomRange(0.0f, spawnRadius);
 	const Vector3 spawnPosition{

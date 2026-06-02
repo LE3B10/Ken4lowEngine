@@ -174,10 +174,11 @@ void CharacterWorld::Update(float dt)
 {
 	if (player_) player_->Update(dt);
 
+	const float enemyDeltaTime = std::clamp(dt, 0.0f, EnemyBase::GetMaxUpdateDeltaTime());
 	for (auto& e : enemies_)
 	{
 		const bool wasAlreadyNotified = notifiedKilledEnemies_.contains(e.get());
-		e->Update(dt);
+		e->Update(enemyDeltaTime);
 
 		// 衝突更新で死亡した敵も次フレームに1回だけ通知して、ドロップ生成の取り逃しを防ぐ。
 		if (!wasAlreadyNotified && e->IsDead())

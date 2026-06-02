@@ -4,6 +4,8 @@
 #include "CollisionTypeIdDef.h"
 #include "Collider.h"
 #include "EnemyBase.h"
+#include "EnemySpawnCrystal.h"
+#include "BossBase.h"
 
 namespace
 {
@@ -91,6 +93,7 @@ void PlayerMeleeComponent::EvaluateHit(const K4E::Vector3& playerPos)
 
 	K4E::Collider* enemyHit = nullptr;
 	K4E::Collider* bossHit = nullptr;
+	K4E::Collider* crystalHit = nullptr;
 
 	const bool hitEnemy = collisionManager_->SegmentCast(
 		static_cast<uint32_t>(CollisionTypeIdDef::kEnemy), seg, &enemyHit);
@@ -98,30 +101,34 @@ void PlayerMeleeComponent::EvaluateHit(const K4E::Vector3& playerPos)
 	const bool hitBoss = collisionManager_->SegmentCast(
 		static_cast<uint32_t>(CollisionTypeIdDef::kBoss), seg, &bossHit);
 
-	K4E::Collider* bestHit = nullptr;
+	const bool hitCrystal = collisionManager_->SegmentCast(
+		static_cast<uint32_t>(CollisionTypeIdDef::kCrystal), seg, &crystalHit);
 
-	if (hitEnemy && enemyHit && hitBoss && bossHit)
-	{
-		const float enemyDist = DistSq(enemyHit->GetCenterPosition(), start);
-		const float bossDist = DistSq(bossHit->GetCenterPosition(), start);
-		bestHit = (enemyDist <= bossDist) ? enemyHit : bossHit;
-	}
-	else if (hitEnemy && enemyHit)
-	{
-		bestHit = enemyHit;
-	}
-	else if (hitBoss && bossHit)
-	{
-		bestHit = bossHit;
-	}
+	K4E::Collider* bestHit = nullptr;
+	float bestDist = 0.0f;
+	auto selectNearest = [&](bool hit, K4E::Collider* candidate)
+		{
+			if (!hit || !candidate) return;
+			const float dist = DistSq(candidate->GetCenterPosition(), start);
+			if (!bestHit || dist < bestDist)
+			{
+				bestHit = candidate;
+				bestDist = dist;
+			}
+		};
+
+	selectNearest(hitEnemy, enemyHit);
+	selectNearest(hitBoss, bossHit);
+	selectNearest(hitCrystal, crystalHit);
 
 	if (!bestHit)
 	{
 		return;
 	}
 
-	if (auto* enemyBase = bestHit->GetOwner<EnemyBase>())
+	if (bestHit->GetTypeID() == static_cast<uint32_t>(CollisionTypeIdDef::kEnemy))
 	{
+		auto* enemyBase = bestHit->GetOwner<EnemyBase>();
 		const bool wasDead = enemyBase->IsDead();
 
 		// 近接ヒット位置
@@ -149,5 +156,16 @@ void PlayerMeleeComponent::EvaluateHit(const K4E::Vector3& playerPos)
 		{
 			onHit_();
 		}
+	}
+	else if (bestHit->GetTypeID() == static_cast<uint32_t>(CollisionTypeIdDef::kCrystal))
+	{
+		// 敵だけでなく、近接攻撃の最寄り対象がクリスタルならHPを減らす。
+		bestHit->GetOwner<EnemySpawnCrystal>()->ApplyDamage(damage_);
+		if (onHit_) onHit_();
+	}
+	else if (bestHit->GetTypeID() == static_cast<uint32_t>(CollisionTypeIdDef::kBoss))
+	{
+		bestHit->GetOwner<BossBase>()->OnDamaged(static_cast<float>(damage_));
+		if (onHit_) onHit_();
 	}
 }

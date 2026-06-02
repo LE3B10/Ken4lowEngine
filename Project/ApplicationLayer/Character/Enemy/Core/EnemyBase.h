@@ -126,6 +126,9 @@ public:
 
 	static void SetGlobalStageWorldAABBs(const std::vector<K4E::AABB>* aabbs);
 	static void SetGlobalStageNavigationObstacleAABBs(const std::vector<K4E::AABB>* aabbs);
+	static constexpr float GetMaxUpdateDeltaTime() { return kMaxUpdateDeltaTime; }
+	static constexpr bool IsGroundSnapEnabled() { return true; }
+	static constexpr bool IsWorldBoundsEnabled() { return true; }
 
 	// 参照用
 	BodyPart& GetBody() { return body_; }
@@ -175,6 +178,13 @@ protected:
 	std::vector<BodyPart> parts_;
 	PartIndices partIndices_{};
 	K4E::Vector3 orientation_{ 0.0f, 0.0f, 0.0f };
+
+	static constexpr float kMaxUpdateDeltaTime = 1.0f / 30.0f;
+	static constexpr float kGroundY = 0.0f;
+	static constexpr float kWorldBoundsMinX = -100.0f;
+	static constexpr float kWorldBoundsMaxX = 100.0f;
+	static constexpr float kWorldBoundsMinZ = -100.0f;
+	static constexpr float kWorldBoundsMaxZ = 100.0f;
 
 	// HP
 	int maxHp_ = 240;
