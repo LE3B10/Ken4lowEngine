@@ -16,6 +16,20 @@
 
 using namespace Ken4lowEngine;
 
+namespace
+{
+	size_t ToEnemyTypeIndex(EnemyType enemyType)
+	{
+		switch (enemyType)
+		{
+		case EnemyType::Melee: return 1;
+		case EnemyType::MidRange: return 2;
+		case EnemyType::Legacy:
+		default: return 0;
+		}
+	}
+}
+
 void CharacterWorld::Initialize(GameContext& ctx)
 {
 	ctx_ = ctx;
@@ -38,6 +52,7 @@ void CharacterWorld::Initialize(GameContext& ctx)
 
 	enemies_.clear();
 	notifiedKilledEnemies_.clear();
+	spawnedEnemyCounts_.fill(0);
 }
 
 void CharacterWorld::Finalize()
@@ -129,6 +144,7 @@ EnemyBase& CharacterWorld::SpawnEnemy(const EnemySpawnRequest& request)
 	}
 
 	enemies_.push_back(std::move(e));
+	++spawnedEnemyCounts_[ToEnemyTypeIndex(request.enemyType)];
 	return *enemies_.back();
 }
 
@@ -250,18 +266,43 @@ void CharacterWorld::DrawPlayerDebugImGui()
 void CharacterWorld::DrawEnemyDebugImGui()
 {
 #ifdef USE_IMGUI
-	// Enemy DebugにはEnemy Manager相当の一覧と各Enemy個体の詳細をまとめる。
-	ImGui::Text("Enemy Count: %d", static_cast<int>(enemies_.size()));
+	// 旧Enemyを段階的に置き換えるため、通常ゲーム上の敵種別ごとの生成数を確認する。
+	std::array<int, 3> liveEnemyCounts{};
+	for (const auto& enemy : enemies_)
+	{
+		if (dynamic_cast<const MeleeEnemy*>(enemy.get()))
+		{
+			++liveEnemyCounts[ToEnemyTypeIndex(EnemyType::Melee)];
+		}
+		else if (dynamic_cast<const MidRangeEnemy*>(enemy.get()))
+		{
+			++liveEnemyCounts[ToEnemyTypeIndex(EnemyType::MidRange)];
+		}
+		else
+		{
+			++liveEnemyCounts[ToEnemyTypeIndex(EnemyType::Legacy)];
+		}
+	}
+
+	ImGui::Text("現在の敵数: %d", static_cast<int>(enemies_.size()));
+	ImGui::Text("現在の旧Enemy数: %d", liveEnemyCounts[ToEnemyTypeIndex(EnemyType::Legacy)]);
+	ImGui::Text("現在の近接雑魚敵数: %d", liveEnemyCounts[ToEnemyTypeIndex(EnemyType::Melee)]);
+	ImGui::Text("現在の中距離雑魚敵数: %d", liveEnemyCounts[ToEnemyTypeIndex(EnemyType::MidRange)]);
+	ImGui::Separator();
+	ImGui::Text("生成済み敵数: %d", spawnedEnemyCounts_[0] + spawnedEnemyCounts_[1] + spawnedEnemyCounts_[2]);
+	ImGui::Text("旧Enemy数: %d", spawnedEnemyCounts_[ToEnemyTypeIndex(EnemyType::Legacy)]);
+	ImGui::Text("近接雑魚敵数: %d", spawnedEnemyCounts_[ToEnemyTypeIndex(EnemyType::Melee)]);
+	ImGui::Text("中距離雑魚敵数: %d", spawnedEnemyCounts_[ToEnemyTypeIndex(EnemyType::MidRange)]);
 
 	// 通常ゲーム側でもFactory接続を確認できるよう、生成する雑魚敵派生を一時的に切り替える。
-	constexpr const char* kEnemyTypeLabels[] = { "Legacy", "Melee", "MidRange" };
+	constexpr const char* kEnemyTypeLabels[] = { "旧Enemy", "近接雑魚敵", "中距離雑魚敵" };
 	int debugSpawnEnemyTypeIndex = static_cast<int>(debugSpawnEnemyType_);
-	if (ImGui::Combo("Spawn Enemy Type", &debugSpawnEnemyTypeIndex, kEnemyTypeLabels, IM_ARRAYSIZE(kEnemyTypeLabels)))
+	if (ImGui::Combo("敵種別", &debugSpawnEnemyTypeIndex, kEnemyTypeLabels, IM_ARRAYSIZE(kEnemyTypeLabels)))
 	{
 		debugSpawnEnemyType_ = static_cast<EnemyType>(debugSpawnEnemyTypeIndex);
 	}
 
-	if (player_ && ImGui::Button("Spawn Selected Enemy"))
+	if (player_ && ImGui::Button("選択した敵を生成"))
 	{
 		const K4E::Vector3 spawnPosition = player_->GetCenterPosition() + K4E::Vector3{ 0.0f, 0.0f, 3.0f };
 		SpawnEnemyAt(spawnPosition, debugSpawnEnemyType_);
