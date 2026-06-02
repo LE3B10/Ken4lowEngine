@@ -1,4 +1,5 @@
 #pragma once
+#include <array>
 #include <functional>
 #include <memory>
 #include <vector>
@@ -93,6 +94,7 @@ private: /// ---------- メンバ変数 ---------- ///
 	EnemyParticleEffectSystem enemyParticleEffectSystem_;
 	std::function<void(const K4E::Vector3&)> onEnemyKilled_{};
 	std::unordered_set<const EnemyBase*> notifiedKilledEnemies_;
+	std::array<int, 3> spawnedEnemyCounts_{}; // 通常ゲーム中に生成した敵種別ごとの累計
 
 private: /// ---------- デバッグ用 ---------- ///
 

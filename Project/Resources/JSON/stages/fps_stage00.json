@@ -1551,7 +1551,8 @@
                 "wave": 1,
                 "group": 0,
                 "count": 1,
-                "archetype": "RifleGrunt"
+                "archetype": "RifleGrunt",
+                "enemyType": "Melee"
             }
         },
         {
@@ -1582,7 +1583,8 @@
                 "wave": 1,
                 "group": 0,
                 "count": 1,
-                "archetype": "RifleGrunt"
+                "archetype": "RifleGrunt",
+                "enemyType": "Melee"
             }
         },
         {
@@ -1613,7 +1615,8 @@
                 "wave": 1,
                 "group": 0,
                 "count": 1,
-                "archetype": "RifleGrunt"
+                "archetype": "RifleGrunt",
+                "enemyType": "Melee"
             }
         },
         {
@@ -1644,7 +1647,8 @@
                 "wave": 1,
                 "group": 0,
                 "count": 1,
-                "archetype": "Scout"
+                "archetype": "Scout",
+                "enemyType": "MidRange"
             }
         },
         {
@@ -1675,7 +1679,8 @@
                 "wave": 1,
                 "group": 0,
                 "count": 1,
-                "archetype": "Scout"
+                "archetype": "Scout",
+                "enemyType": "MidRange"
             }
         },
         {
