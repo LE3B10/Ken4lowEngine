@@ -145,6 +145,12 @@ namespace Ken4lowEngine
 	/// -------------------------------------------------------------
 	void Wireframe::Draw()
 	{
+		if (!debugDrawEnabled_)
+		{
+			Reset();
+			return;
+		}
+
 		auto commandList = dxCommon_->GetCommandManager()->GetCommandList();
 
 #pragma region ---------- 線の描画 ----------
@@ -188,6 +194,16 @@ namespace Ken4lowEngine
 	/// -------------------------------------------------------------
 	///				　	          リセット処理
 	/// -------------------------------------------------------------
+	void Wireframe::SetDebugDrawEnabled(bool enabled)
+	{
+#ifdef _DEBUG
+		debugDrawEnabled_ = enabled;
+#else
+		(void)enabled;
+		debugDrawEnabled_ = false;
+#endif
+	}
+
 	void Wireframe::Reset()
 	{
 		triangleIndex_ = 0;

@@ -121,6 +121,18 @@ public: /// ---------- メンバ関数 ---------- ///
 	/// </summary>
 	void Reset();
 
+	/// Releaseビルドではゲームプレイに不要なデバッグワイヤーを描画しない。
+	void SetDebugDrawEnabled(bool enabled);
+	bool IsDebugDrawEnabled() const { return debugDrawEnabled_; }
+	static constexpr bool IsDebugDrawSupported()
+	{
+#ifdef _DEBUG
+		return true;
+#else
+		return false;
+#endif
+	}
+
 public: /// ---------- 2D用の線の描画 ---------- ///
 
 	/// <summary>
@@ -665,6 +677,11 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	// デバッグカメラの有無
 	bool isDebugCamera_ = false;
+#ifdef _DEBUG
+	bool debugDrawEnabled_ = true;
+#else
+	bool debugDrawEnabled_ = false;
+#endif
 
 	// 三角形
 	uint32_t triangleIndex_ = 0; // 三角形のインデックス

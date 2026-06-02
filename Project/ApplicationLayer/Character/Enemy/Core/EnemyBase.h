@@ -125,10 +125,14 @@ public:
 	void OnCollisionExit(K4E::Collider* other) override { (void)other; }
 
 	static void SetGlobalStageWorldAABBs(const std::vector<K4E::AABB>* aabbs);
+	static void SetGlobalStageFloorAABBs(const std::vector<K4E::AABB>* aabbs);
 	static void SetGlobalStageNavigationObstacleAABBs(const std::vector<K4E::AABB>* aabbs);
 	static constexpr float GetMaxUpdateDeltaTime() { return kMaxUpdateDeltaTime; }
 	static constexpr bool IsGroundSnapEnabled() { return true; }
 	static constexpr bool IsWorldBoundsEnabled() { return true; }
+	static constexpr float GetMaxPushOutPerFrame() { return kMaxPushOutPerFrame; }
+	int GetStuckDetectionCount() const { return stuckDetectionCount_; }
+	int GetStuckRecoveryCount() const { return stuckRecoveryCount_; }
 
 	// 参照用
 	BodyPart& GetBody() { return body_; }
@@ -152,6 +156,9 @@ protected:
 	void UpdateVisualHierarchy();
 	void SetVisualColorAll(const K4E::Vector4& color);
 	void MoveVisualFar(const K4E::Vector3& pos);
+	K4E::Vector3 CorrectSpawnPosition(const K4E::Vector3& requestedPosition) const;
+	float FindGroundY(const K4E::Vector3& position) const;
+	bool OverlapsNavigationObstacle(const K4E::Vector3& center) const;
 
 private:
 	// コライダーだけ無効化（見た目は残す）
@@ -181,6 +188,8 @@ protected:
 
 	static constexpr float kMaxUpdateDeltaTime = 1.0f / 30.0f;
 	static constexpr float kGroundY = 0.0f;
+	static constexpr float kMaxPushOutPerFrame = 0.45f;
+	static constexpr int kStuckRecoveryThreshold = 45;
 	static constexpr float kWorldBoundsMinX = -100.0f;
 	static constexpr float kWorldBoundsMaxX = 100.0f;
 	static constexpr float kWorldBoundsMinZ = -100.0f;
@@ -217,6 +226,11 @@ protected:
 	bool worldColOverride_ = false;
 	bool useWorldResolve_ = true;
 	bool grounded_ = false;
+	K4E::Vector3 spawnPosition_{};
+	K4E::Vector3 lastSafePosition_{};
+	int consecutivePushOutFrames_ = 0;
+	int stuckDetectionCount_ = 0;
+	int stuckRecoveryCount_ = 0;
 
 	// ---- last hit info (for death impulse) ----
 	K4E::Vector3 lastHitDir_{ 0.0f, 0.0f, 0.0f };
@@ -239,5 +253,6 @@ protected:
 
 private:
 	static const std::vector<K4E::AABB>* g_worldAABBs_;
+	static const std::vector<K4E::AABB>* g_floorAABBs_;
 	static const std::vector<K4E::AABB>* g_navigationObstacleAABBs_;
 };

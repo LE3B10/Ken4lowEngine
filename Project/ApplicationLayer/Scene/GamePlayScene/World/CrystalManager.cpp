@@ -19,7 +19,7 @@ namespace
 	constexpr float kMinimumSpawnInterval = 0.05f;
 }
 
-void CrystalManager::Initialize(const std::vector<CrystalSpawnPoint>& spawnPoints, CollisionManager* collisionManager)
+void CrystalManager::Initialize(const std::vector<CrystalSpawnPoint>& spawnPoints, CollisionManager* collisionManager, const std::vector<Ken4lowEngine::AABB>* floorAABBs, const std::vector<Ken4lowEngine::AABB>* obstacleAABBs)
 {
 	if (collisionManager_)
 	{
@@ -35,7 +35,7 @@ void CrystalManager::Initialize(const std::vector<CrystalSpawnPoint>& spawnPoint
 	for (const CrystalSpawnPoint& spawnPoint : spawnPoints)
 	{
 		EnemySpawnCrystal crystal;
-		crystal.Initialize(spawnPoint);
+		crystal.Initialize(spawnPoint, floorAABBs, obstacleAABBs);
 		crystals_.push_back(std::move(crystal));
 	}
 
@@ -183,7 +183,9 @@ void CrystalManager::DrawImGui()
 	ImGui::Text("全クリスタル破壊済み: %s", AreAllCrystalsDestroyed() ? "はい" : "いいえ");
 	ImGui::Text("ボス出現済み: %s", HasBossSpawned() ? "はい" : "いいえ");
 	ImGui::Text("更新用deltaTime上限: %.4f 秒", kMaxUpdateDeltaTime);
-	ImGui::Text("敵のGround Snap有効: %s", EnemyBase::IsGroundSnapEnabled() ? "はい" : "いいえ");
+	ImGui::Text("敵Ground Snap有効: %s", EnemyBase::IsGroundSnapEnabled() ? "はい" : "いいえ");
+	ImGui::Text("クリスタルGround Snap有効: %s", EnemySpawnCrystal::IsGroundSnapEnabled() ? "はい" : "いいえ");
+	ImGui::Text("最大押し出し量: %.2f", EnemyBase::GetMaxPushOutPerFrame());
 	ImGui::Text("敵の場外制限有効: %s", EnemyBase::IsWorldBoundsEnabled() ? "はい" : "いいえ");
 
 	if (crystals_.empty())

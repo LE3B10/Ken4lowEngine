@@ -14,6 +14,44 @@ using namespace Ken4lowEngine;
 
 namespace
 {
+	bool OverlapsObstacle(const Vector3& center, const Vector3& half, const std::vector<AABB>* obstacles)
+	{
+		if (!obstacles) { return false; }
+		for (const AABB& obstacle : *obstacles)
+		{
+			if (center.x + half.x > obstacle.min.x && center.x - half.x < obstacle.max.x &&
+				center.y + half.y > obstacle.min.y && center.y - half.y < obstacle.max.y &&
+				center.z + half.z > obstacle.min.z && center.z - half.z < obstacle.max.z) { return true; }
+		}
+		return false;
+	}
+
+	Vector3 SnapCrystalPosition(const Vector3& requested, const Vector3& scale, const std::vector<AABB>* floors, const std::vector<AABB>* obstacles)
+	{
+		const Vector3 half{ std::fabs(scale.x) * 0.5f, std::fabs(scale.y) * 0.5f, std::fabs(scale.z) * 0.5f };
+		constexpr Vector3 offsets[] = { {}, { 2.0f, 0.0f, 0.0f }, { -2.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 2.0f }, { 0.0f, 0.0f, -2.0f } };
+		for (const Vector3& offset : offsets)
+		{
+			Vector3 candidate = requested + offset;
+			float groundY = 0.0f;
+			if (floors)
+			{
+				for (const AABB& floor : *floors)
+				{
+					if (candidate.x >= floor.min.x - half.x && candidate.x <= floor.max.x + half.x &&
+						candidate.z >= floor.min.z - half.z && candidate.z <= floor.max.z + half.z && floor.max.y <= requested.y + half.y + 0.5f)
+					{ groundY = std::max(groundY, floor.max.y); }
+				}
+			}
+			// Cube仮モデルは中心基準なので、半高さを足して足元を地面へ載せる。
+			candidate.y = groundY + half.y;
+			if (!OverlapsObstacle(candidate, half, obstacles)) { return candidate; }
+		}
+		Vector3 fallback = requested;
+		fallback.y = half.y;
+		return fallback;
+	}
+
 	float RandomRange(float minValue, float maxValue)
 	{
 		const float t = static_cast<float>(std::rand()) / static_cast<float>(RAND_MAX);
@@ -21,9 +59,9 @@ namespace
 	}
 }
 
-void EnemySpawnCrystal::Initialize(const CrystalSpawnPoint& spawnPoint)
+void EnemySpawnCrystal::Initialize(const CrystalSpawnPoint& spawnPoint, const std::vector<AABB>* floorAABBs, const std::vector<AABB>* obstacleAABBs)
 {
-	position_ = spawnPoint.position;
+	position_ = SnapCrystalPosition(spawnPoint.position, spawnPoint.scale, floorAABBs, obstacleAABBs);
 	rotation_ = spawnPoint.rotation;
 	scale_ = spawnPoint.scale;
 	isAlive = true;
@@ -41,7 +79,7 @@ void EnemySpawnCrystal::Initialize(const CrystalSpawnPoint& spawnPoint)
 	SetTypeID(static_cast<uint32_t>(CollisionTypeIdDef::kCrystal));
 	SetOwner(this);
 	SetCenterPosition(position_);
-	SetOBBHalfSize(scale_);
+	SetOBBHalfSize({ std::fabs(scale_.x) * 0.5f, std::fabs(scale_.y) * 0.5f, std::fabs(scale_.z) * 0.5f });
 	SetOrientation(rotation_);
 
 	debugCube_ = std::make_unique<Object3D>();

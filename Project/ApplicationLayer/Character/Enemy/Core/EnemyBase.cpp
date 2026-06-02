@@ -17,6 +17,7 @@
 using namespace Ken4lowEngine;
 
 const std::vector<Ken4lowEngine::AABB>* EnemyBase::g_worldAABBs_ = nullptr;
+const std::vector<Ken4lowEngine::AABB>* EnemyBase::g_floorAABBs_ = nullptr;
 const std::vector<Ken4lowEngine::AABB>* EnemyBase::g_navigationObstacleAABBs_ = nullptr;
 
 namespace
@@ -182,6 +183,11 @@ void EnemyBase::Initialize()
 	worldCol_.half = obbHalf_;
 	worldCol_.centerOffset = { 0, 0, 0 };
 	worldColOverride_ = true;
+	spawnPosition_ = CorrectSpawnPosition(GetCenterPosition());
+	lastSafePosition_ = spawnPosition_;
+	consecutivePushOutFrames_ = 0;
+	stuckDetectionCount_ = 0;
+	stuckRecoveryCount_ = 0;
 }
 
 /// -------------------------------------------------------------
@@ -204,7 +210,60 @@ void EnemyBase::SetCenterPosition(const Vector3& pos)
 /// -------------------------------------------------------------
 void EnemyBase::SetPosition(const Vector3& p)
 {
-	SetCenterPosition(p);
+	// 初期配置で地面や障害物に埋まらないよう、足元と簡易障害物重なりを補正する。
+	spawnPosition_ = CorrectSpawnPosition(p);
+	lastSafePosition_ = spawnPosition_;
+	SetCenterPosition(spawnPosition_);
+}
+
+float EnemyBase::FindGroundY(const Vector3& position) const
+{
+	float groundY = kGroundY;
+	if (!g_floorAABBs_) { return groundY; }
+	for (const AABB& floor : *g_floorAABBs_)
+	{
+		if (position.x >= floor.min.x - obbHalf_.x && position.x <= floor.max.x + obbHalf_.x &&
+			position.z >= floor.min.z - obbHalf_.z && position.z <= floor.max.z + obbHalf_.z &&
+			floor.max.y <= position.y + obbHalf_.y + 0.5f)
+		{
+			groundY = std::max(groundY, floor.max.y);
+		}
+	}
+	return groundY;
+}
+
+bool EnemyBase::OverlapsNavigationObstacle(const Vector3& center) const
+{
+	const auto* obstacles = GetResolvedNavigationObstacleAABBs();
+	if (!obstacles) { return false; }
+	for (const AABB& obstacle : *obstacles)
+	{
+		if (center.x + obbHalf_.x > obstacle.min.x && center.x - obbHalf_.x < obstacle.max.x &&
+			center.y + obbHalf_.y > obstacle.min.y && center.y - obbHalf_.y < obstacle.max.y &&
+			center.z + obbHalf_.z > obstacle.min.z && center.z - obbHalf_.z < obstacle.max.z)
+		{
+			return true;
+		}
+	}
+	return false;
+}
+
+Vector3 EnemyBase::CorrectSpawnPosition(const Vector3& requestedPosition) const
+{
+	constexpr Vector3 offsets[] = {
+		{ 0.0f, 0.0f, 0.0f }, { 2.5f, 0.0f, 0.0f }, { -2.5f, 0.0f, 0.0f },
+		{ 0.0f, 0.0f, 2.5f }, { 0.0f, 0.0f, -2.5f }, { 3.5f, 0.0f, 3.5f },
+		{ -3.5f, 0.0f, 3.5f }, { 3.5f, 0.0f, -3.5f }, { -3.5f, 0.0f, -3.5f }
+	};
+	for (const Vector3& offset : offsets)
+	{
+		Vector3 candidate = requestedPosition + offset;
+		candidate.y = FindGroundY(candidate) + obbHalf_.y;
+		if (!OverlapsNavigationObstacle(candidate)) { return candidate; }
+	}
+	Vector3 fallback = requestedPosition;
+	fallback.y = FindGroundY(fallback) + obbHalf_.y;
+	return fallback;
 }
 
 /// -------------------------------------------------------------
@@ -275,7 +334,41 @@ void EnemyBase::Update(float deltaTime)
 
 		velocity_.y = vy;
 		grounded_ = res.grounded;
-		newPos = res.fixedCenter + s.centerOffset;
+		const Vector3 resolvedPos = res.fixedCenter + s.centerOffset;
+		Vector3 pushOut = resolvedPos - newPos;
+		pushOut.y = 0.0f; // 地面補正はY、壁・障害物の押し出しはXZとして分離する。
+		const float pushOutLength = std::sqrt(pushOut.x * pushOut.x + pushOut.z * pushOut.z);
+		if (pushOutLength > kMaxPushOutPerFrame)
+		{
+			// 押し出し暴走を防ぐため、1フレームのXZ補正量を制限する。
+			const float scale = kMaxPushOutPerFrame / pushOutLength;
+			pushOut.x *= scale;
+			pushOut.z *= scale;
+		}
+		newPos.x += pushOut.x;
+		newPos.z += pushOut.z;
+		newPos.y = resolvedPos.y;
+
+		if (pushOutLength > 0.0001f)
+		{
+			++consecutivePushOutFrames_;
+			++stuckDetectionCount_;
+			velocity_.x = 0.0f;
+			velocity_.z = 0.0f;
+		}
+		else
+		{
+			consecutivePushOutFrames_ = 0;
+			lastSafePosition_ = newPos;
+		}
+	}
+
+	if (consecutivePushOutFrames_ >= kStuckRecoveryThreshold)
+	{
+		newPos = !OverlapsNavigationObstacle(lastSafePosition_) ? lastSafePosition_ : spawnPosition_;
+		velocity_ = {};
+		consecutivePushOutFrames_ = 0;
+		++stuckRecoveryCount_;
 	}
 
 	// 仮の安全処理として、敵の足元が基準床Yより下なら地面上へ戻す。
@@ -412,6 +505,11 @@ void EnemyBase::TakeDamage(int amount, const Vector3& hitDir, float hitPower)
 void EnemyBase::SetGlobalStageWorldAABBs(const std::vector<K4E::AABB>* aabbs)
 {
 	g_worldAABBs_ = aabbs;
+}
+
+void EnemyBase::SetGlobalStageFloorAABBs(const std::vector<K4E::AABB>* aabbs)
+{
+	g_floorAABBs_ = aabbs;
 }
 
 void EnemyBase::SetGlobalStageNavigationObstacleAABBs(const std::vector<K4E::AABB>* aabbs)

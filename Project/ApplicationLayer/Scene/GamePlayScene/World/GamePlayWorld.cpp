@@ -80,6 +80,7 @@ void GamePlayWorld::Initialize(GamePlayStageContext& stageContext)
 	stage_->Update();
 
 	EnemyBase::SetGlobalStageWorldAABBs(&stage_->GetWorldAABBs());
+	EnemyBase::SetGlobalStageFloorAABBs(&stage_->GetFloorAABBs());
 	EnemyBase::SetGlobalStageNavigationObstacleAABBs(&stage_->GetNavigationObstacleAABBs());
 
 	if (auto* player = characters_.GetPlayer())
@@ -148,7 +149,7 @@ void GamePlayWorld::Initialize(GamePlayStageContext& stageContext)
 		{ {   0.0f, 2.0f, 20.0f }, {}, { 1.5f, 2.5f, 1.5f }, 100, EnemyType::Melee, 2.0f, 10, 4.0f, true, true },
 		{ {  10.0f, 2.0f, 30.0f }, {}, { 1.5f, 2.5f, 1.5f }, 100, EnemyType::MidRange, 3.0f, 6, 4.0f, true, true },
 		{ { -10.0f, 2.0f, 30.0f }, {}, { 1.5f, 2.5f, 1.5f }, 100, EnemyType::Melee, 2.0f, 10, 4.0f, true, true },
-	}, collisionManager_.get());
+	}, collisionManager_.get(), &stage_->GetFloorAABBs(), &stage_->GetNavigationObstacleAABBs());
 
 	enemyHpBarManager_.Initialize();
 }
@@ -161,6 +162,7 @@ void GamePlayWorld::Finalize()
 	hudManager_.reset();
 
 	EnemyBase::SetGlobalStageWorldAABBs(nullptr);
+	EnemyBase::SetGlobalStageFloorAABBs(nullptr);
 	EnemyBase::SetGlobalStageNavigationObstacleAABBs(nullptr);
 	itemManager_.Clear();
 
@@ -362,7 +364,9 @@ void GamePlayWorld::Draw3D(bool hideCharactersDuringIntro)
 	if (stage_)
 	{
 		stage_->Draw();
+#ifdef _DEBUG
 		stage_->DrawChunkDebug();
+#endif
 	}
 
 	crystalManager_.Draw();
@@ -437,6 +441,18 @@ void GamePlayWorld::DrawGameDebugImGui()
 	ImGui::Text("Player Dead: %s", IsPlayerDead() ? "true" : "false");
 	ImGui::Text("Enemies: %d", characters_.GetEnemyCount());
 	crystalManager_.DrawImGui();
+
+	auto* wireframe = K4E::Wireframe::GetInstance();
+	bool debugDrawEnabled = wireframe->IsDebugDrawEnabled();
+#ifdef _DEBUG
+	if (ImGui::Checkbox("デバッグ描画有効", &debugDrawEnabled))
+	{
+		wireframe->SetDebugDrawEnabled(debugDrawEnabled);
+	}
+#else
+	ImGui::Text("デバッグ描画有効: いいえ");
+#endif
+	ImGui::Text("Release時デバッグ描画無効: %s", K4E::Wireframe::IsDebugDrawSupported() ? "Debugビルド" : "はい");
 
 	const float fps = K4E::GameTimer::GetInstance()->GetFPS();
 	const auto* particleManager = K4E::ParticleManager::GetInstance();
