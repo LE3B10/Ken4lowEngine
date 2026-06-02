@@ -156,7 +156,7 @@ void GamePlayDebugTools::DrawImGui(GamePlayWorld* world)
 			ImGui::Text("Debug Freeze (F10): %s", isImGuiFreeze_ ? "ON" : "OFF");
 			if (performanceDisplayMode_ == PerformanceDisplayMode::FPS)
 			{
-				ImGui::Text("FPS: %.1f", perfStats.fps);
+				ImGui::Text("Instant FPS: %.1f | Average FPS: %.1f", perfStats.instantFps, perfStats.fps);
 			}
 			else
 			{
@@ -180,13 +180,15 @@ void GamePlayDebugTools::DrawImGui(GamePlayWorld* world)
 
 			if (performanceDisplayMode_ == PerformanceDisplayMode::FPS)
 			{
-				ImGui::Text("FPS: %.1f", perfStats.fps);
+				ImGui::Text("Instant FPS: %.1f | Average FPS: %.1f", perfStats.instantFps, perfStats.fps);
 			}
 			else
 			{
 				ImGui::Text("Frame: %.2f ms", perfStats.frameTimeMs);
 			}
 
+			ImGui::Text("Instant FPS: %.1f", perfStats.instantFps);
+			ImGui::Text("Average FPS: %.1f", perfStats.fps);
 			ImGui::Text("FrameTime: %.2f ms", perfStats.frameTimeMs);
 			ImGui::Text("CPU Usage: %.1f%%", perfStats.cpuUsagePercent);
 			ImGui::Text("Process CPU Usage: %.1f%%", perfStats.processCpuUsagePercent);

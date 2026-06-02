@@ -7,7 +7,8 @@ namespace Ken4lowEngine
 {
 	struct PerformanceStats
 	{
-		float fps = 0.0f;
+		float fps = 0.0f; // 1秒単位で集計した平均FPS
+		float instantFps = 0.0f; // frameTimeMs と同じ deltaSeconds から算出した瞬間FPS
 		float frameTimeMs = 0.0f;
 		float cpuUsagePercent = 0.0f;
 		float processCpuUsagePercent = 0.0f;

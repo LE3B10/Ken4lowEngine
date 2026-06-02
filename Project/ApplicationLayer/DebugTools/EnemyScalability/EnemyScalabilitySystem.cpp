@@ -2,10 +2,12 @@
 #include "EnemyScalabilitySystem.h"
 
 #include "Wireframe.h"
+#include "LogString.h"
 
 #include <algorithm>
 #include <chrono>
 #include <cmath>
+#include <format>
 
 namespace Ken4lowEngine
 {
@@ -24,21 +26,25 @@ namespace Ken4lowEngine
 		}
 	}
 
-	void EnemyScalabilitySystem::ApplyStressTestCounts(uint32_t meleeEnemyCount, uint32_t midRangeEnemyCount)
+	void EnemyScalabilitySystem::ApplyStressTestCounts(uint32_t meleeEnemyCount, uint32_t midRangeEnemyCount, const Vector3& centerPosition)
 	{
-		Clear();
+		enemies_.clear();
+		meleeEnemyInstanceData_.clear();
+		midRangeEnemyInstanceData_.clear();
+		metrics_ = {};
 		enemies_.reserve(static_cast<size_t>(meleeEnemyCount) + midRangeEnemyCount);
 		meleeEnemyInstanceData_.reserve(meleeEnemyCount);
 		midRangeEnemyInstanceData_.reserve(midRangeEnemyCount);
 		for (uint32_t index = 0; index < meleeEnemyCount; ++index)
 		{
-			SpawnEnemy(index, ScalableEnemyType::Melee);
+			SpawnEnemy(index, ScalableEnemyType::Melee, centerPosition);
 		}
 		for (uint32_t index = 0; index < midRangeEnemyCount; ++index)
 		{
-			SpawnEnemy(meleeEnemyCount + index, ScalableEnemyType::MidRange);
+			SpawnEnemy(meleeEnemyCount + index, ScalableEnemyType::MidRange, centerPosition);
 		}
 		RebuildInstanceData();
+		Log(std::format("[EnemyStressTest] 適用: 近接={}, 中距離={}, 合計={}\n", meleeEnemyCount, midRangeEnemyCount, meleeEnemyCount + midRangeEnemyCount));
 	}
 
 	void EnemyScalabilitySystem::Clear()
@@ -47,22 +53,28 @@ namespace Ken4lowEngine
 		meleeEnemyInstanceData_.clear();
 		midRangeEnemyInstanceData_.clear();
 		metrics_ = {};
+		Log("[EnemyStressTest] クリアしました\n");
 	}
 
-	void EnemyScalabilitySystem::SpawnEnemy(uint32_t spawnIndex, ScalableEnemyType enemyType)
+	void EnemyScalabilitySystem::SpawnEnemy(uint32_t spawnIndex, ScalableEnemyType enemyType, const Vector3& centerPosition)
 	{
-		constexpr float goldenAngle = 2.39996323f;
-		const float angle = goldenAngle * static_cast<float>(spawnIndex);
-		const float radius = 8.0f + std::sqrt(static_cast<float>(spawnIndex)) * 2.25f;
+		constexpr uint32_t gridColumns = 20;
+		constexpr float gridSpacing = 3.0f;
+		const uint32_t row = spawnIndex / gridColumns;
+		const uint32_t column = spawnIndex % gridColumns;
+		const float x = (static_cast<float>(column) - (static_cast<float>(gridColumns) - 1.0f) * 0.5f) * gridSpacing;
+		const float z = (static_cast<float>(row) + 1.0f) * gridSpacing;
 
 		ScalableEnemyData enemy{};
-		enemy.position = { std::cos(angle) * radius, 1.0f, 24.0f + std::sin(angle) * radius };
-		enemy.rotation = { 0.0f, angle + 3.14159265f, 0.0f };
+		// StressTest の増加を目視確認しやすくするため、敵をターゲット周辺の地表グリッドへ配置する。
+		enemy.position = { centerPosition.x + x, centerPosition.y, centerPosition.z + z };
+		enemy.rotation = { 0.0f, 3.14159265f, 0.0f };
 		enemy.scale = enemyType == ScalableEnemyType::Melee ? Vector3{ 0.75f, 0.75f, 0.75f } : Vector3{ 0.9f, 0.9f, 0.9f };
 		enemy.enemyType = enemyType;
 		enemy.state = ScalableEnemyState::Moving;
 		enemy.hp = enemyType == ScalableEnemyType::Melee ? 100.0f : 80.0f;
 		enemy.updateGroupId = spawnIndex;
+		enemy.distanceToPlayer = LengthXZ(centerPosition - enemy.position);
 		enemies_.push_back(enemy);
 	}
 
@@ -71,13 +83,20 @@ namespace Ken4lowEngine
 		const Clock::time_point updateBegin = Clock::now();
 		++frameCount_;
 		metrics_.updatedEnemyCountThisFrame = 0;
+		metrics_.nearUpdatedEnemyCount = 0;
+		metrics_.midUpdatedEnemyCount = 0;
+		metrics_.farUpdatedEnemyCount = 0;
 		metrics_.skippedEnemyCountThisFrame = 0;
+		metrics_.intervalSkippedEnemyCount = 0;
+		metrics_.outOfRangeSkippedEnemyCount = 0;
+		metrics_.inactiveSkippedEnemyCount = 0;
 
 		for (ScalableEnemyData& enemy : enemies_)
 		{
 			if (!enemy.isActive)
 			{
 				++metrics_.skippedEnemyCountThisFrame;
+				++metrics_.inactiveSkippedEnemyCount;
 				continue;
 			}
 
@@ -90,16 +109,21 @@ namespace Ken4lowEngine
 				enemy.velocity = {};
 				enemy.state = ScalableEnemyState::Dormant;
 				++metrics_.skippedEnemyCountThisFrame;
+				++metrics_.outOfRangeSkippedEnemyCount;
 				continue;
 			}
 			if ((enemy.updateGroupId + frameCount_) % updateInterval != 0)
 			{
 				++metrics_.skippedEnemyCountThisFrame;
+				++metrics_.intervalSkippedEnemyCount;
 				continue;
 			}
 
 			UpdateEnemy(enemy, deltaTime * static_cast<float>(updateInterval), playerPosition);
 			++metrics_.updatedEnemyCountThisFrame;
+			if (enemy.distanceToPlayer <= updateLodSettings_.nearUpdateDistance) ++metrics_.nearUpdatedEnemyCount;
+			else if (enemy.distanceToPlayer <= updateLodSettings_.midUpdateDistance) ++metrics_.midUpdatedEnemyCount;
+			else ++metrics_.farUpdatedEnemyCount;
 		}
 		metrics_.enemyUpdateTimeMs = ToMilliseconds(updateBegin, Clock::now());
 
@@ -193,27 +217,36 @@ namespace Ken4lowEngine
 		midRangeEnemyInstanceData_.clear();
 		metrics_.meleeEnemyCount = 0;
 		metrics_.midRangeEnemyCount = 0;
+		metrics_.visibleEnemyCount = 0;
+		metrics_.culledEnemyCount = 0;
+		metrics_.nearEnemyCount = 0;
+		metrics_.midEnemyCount = 0;
+		metrics_.farEnemyCount = 0;
+		metrics_.outOfRangeEnemyCount = 0;
 
+		// Update LODの効果を確認しやすくするため、距離帯ごとの敵数と更新数を表示する。
 		for (uint32_t index = 0; index < enemies_.size(); ++index)
 		{
 			const ScalableEnemyData& enemy = enemies_[index];
 			if (!enemy.isActive)
 			{
+				++metrics_.culledEnemyCount;
 				continue;
 			}
-			if (enemy.enemyType == ScalableEnemyType::Melee)
-			{
-				++metrics_.meleeEnemyCount;
-			}
+			if (enemy.enemyType == ScalableEnemyType::Melee) ++metrics_.meleeEnemyCount;
+			else ++metrics_.midRangeEnemyCount;
+
+			if (enemy.distanceToPlayer <= updateLodSettings_.nearUpdateDistance) ++metrics_.nearEnemyCount;
+			else if (enemy.distanceToPlayer <= updateLodSettings_.midUpdateDistance) ++metrics_.midEnemyCount;
+			else if (enemy.distanceToPlayer <= updateLodSettings_.farUpdateDistance) ++metrics_.farEnemyCount;
 			else
 			{
-				++metrics_.midRangeEnemyCount;
-			}
-			if (enemy.distanceToPlayer > updateLodSettings_.farUpdateDistance)
-			{
+				++metrics_.outOfRangeEnemyCount;
+				++metrics_.culledEnemyCount;
 				continue;
 			}
 
+			++metrics_.visibleEnemyCount;
 			EnemyInstanceData instance{};
 			instance.worldMatrix = Matrix4x4::MakeAffineMatrix(enemy.scale, enemy.rotation, enemy.position);
 			instance.enemyIndex = index;
@@ -221,7 +254,7 @@ namespace Ken4lowEngine
 			instances.push_back(instance);
 		}
 		metrics_.totalEnemyCount = static_cast<uint32_t>(enemies_.size());
-		metrics_.drawEnemyCount = static_cast<uint32_t>(meleeEnemyInstanceData_.size() + midRangeEnemyInstanceData_.size());
+		metrics_.drawEnemyCount = enemyDebugDraw_ ? metrics_.visibleEnemyCount : 0;
 	}
 
 	void EnemyScalabilitySystem::DrawDebugInstances() const
@@ -239,7 +272,21 @@ namespace Ken4lowEngine
 			const Vector4 color = enemy.enemyType == ScalableEnemyType::Melee
 				? Vector4{ 1.0f, 0.25f, 0.15f, 0.8f }
 				: Vector4{ 0.25f, 0.55f, 1.0f, 0.8f };
-			Wireframe::GetInstance()->DrawSphere(enemy.position, 0.6f, color);
+			if (enemy.enemyType == ScalableEnemyType::Melee)
+			{
+				Wireframe::GetInstance()->DrawSphere(enemy.position, 0.6f, color);
+			}
+			else
+			{
+				const Vector3 halfExtent{ 0.65f, 0.65f, 0.65f };
+				Wireframe::GetInstance()->DrawAABB({ enemy.position - halfExtent, enemy.position + halfExtent }, color);
+			}
+			// 一部の敵には番号代わりの目印を付け、グリッド内で個体を追跡しやすくする。
+			if (enemy.updateGroupId % 10 == 0)
+			{
+				Wireframe::GetInstance()->DrawLine(enemy.position, enemy.position + Vector3{ 0.0f, 2.0f, 0.0f }, { 1.0f, 1.0f, 0.2f, 1.0f });
+			}
+
 		}
 	}
 }
