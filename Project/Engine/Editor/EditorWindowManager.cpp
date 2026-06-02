@@ -106,13 +106,13 @@ namespace Ken4lowEngine
 		{
 			if (mode == EditorWindowManager::OutputLogPerformanceDisplayMode::FPS)
 			{
-				ImGui::Text("FPS: %.1f | Frame: %.2fms | CPU: %.1f%% | Proc: %.1f%% | Mem: %.1fMB",
-					stats.fps, stats.frameTimeMs, stats.cpuUsagePercent, stats.processCpuUsagePercent, stats.memoryUsageMB);
+				ImGui::Text("Instant FPS: %.1f | Average FPS: %.1f | FrameTime: %.2fms | VSync: ON | CPU: %.1f%% | Proc: %.1f%% | Mem: %.1fMB",
+					stats.instantFps, stats.fps, stats.frameTimeMs, stats.cpuUsagePercent, stats.processCpuUsagePercent, stats.memoryUsageMB);
 			}
 			else
 			{
-				ImGui::Text("Frame: %.2fms | FPS: %.1f | CPU: %.1f%% | Proc: %.1f%% | Mem: %.1fMB",
-					stats.frameTimeMs, stats.fps, stats.cpuUsagePercent, stats.processCpuUsagePercent, stats.memoryUsageMB);
+				ImGui::Text("FrameTime: %.2fms | Instant FPS: %.1f | Average FPS: %.1f | VSync: ON | CPU: %.1f%% | Proc: %.1f%% | Mem: %.1fMB",
+					stats.frameTimeMs, stats.instantFps, stats.fps, stats.cpuUsagePercent, stats.processCpuUsagePercent, stats.memoryUsageMB);
 			}
 		}
 
@@ -553,8 +553,10 @@ namespace Ken4lowEngine
 					}
 					else
 					{
-						ImGui::Text("FPS: %.1f", stats.fps);
-						ImGui::Text("Frame: %.2f ms", stats.frameTimeMs);
+						ImGui::Text("Instant FPS: %.1f", stats.instantFps);
+						ImGui::Text("Average FPS: %.1f", stats.fps);
+						ImGui::Text("FrameTime: %.2f ms", stats.frameTimeMs);
+						ImGui::Text("VSync: ON");
 						ImGui::Text("CPU: %.1f%%", stats.cpuUsagePercent);
 						ImGui::Text("Mem: %.1f MB", stats.memoryUsageMB);
 					}
@@ -1270,7 +1272,8 @@ namespace Ken4lowEngine
 					DrawPerformanceCompactLine(performanceStats, outputLogPerformanceDisplayMode_);
 					if (ImGui::CollapsingHeader("Performance Details"))
 					{
-						ImGui::Text("FPS: %.1f", performanceStats.fps);
+						ImGui::Text("Instant FPS: %.1f", performanceStats.instantFps);
+						ImGui::Text("Average FPS: %.1f", performanceStats.fps);
 						ImGui::Text("FrameTime: %.2f ms", performanceStats.frameTimeMs);
 						ImGui::Text("CPU Usage: %.1f %%", performanceStats.cpuUsagePercent);
 						ImGui::Text("Process CPU Usage: %.1f %%", performanceStats.processCpuUsagePercent);

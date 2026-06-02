@@ -429,67 +429,95 @@ void DebugScene::DrawEnemyStressTestImGui()
 	const K4E::EnemyScalabilityMetrics& metrics = enemyScalabilitySystem_.GetMetrics();
 	bool useSimpleCollision = enemyScalabilitySystem_.IsSimpleCollisionEnabled();
 	bool enemyDebugDraw = enemyScalabilitySystem_.IsEnemyDebugDrawEnabled();
+	const K4E::GameTimer* gameTimer = K4E::GameTimer::GetInstance();
+	const float frameTimeMs = gameTimer->GetDeltaTime() * 1000.0f;
+	const float instantFps = frameTimeMs > 0.0f ? 1000.0f / frameTimeMs : 0.0f;
 
-	ImGui::Begin("Enemy Stress Test");
-	ImGui::TextWrapped("StressTest enemies use lightweight data only. Normal enemies and the boss remain managed by their existing classes.");
-	ImGui::InputInt("Melee Enemy Count", &stressTestMeleeEnemyCount_);
-	ImGui::InputInt("MidRange Enemy Count", &stressTestMidRangeEnemyCount_);
+	ImGui::Begin("敵ストレステスト");
+	ImGui::TextWrapped("ストレステスト用の敵は軽量データのみで管理します。通常敵とボスは既存クラスで管理します。");
+	ImGui::TextWrapped("適用後は、近接雑魚敵を赤い球、中距離雑魚敵を青い箱としてグリッド表示します。黄色い線は10体ごとの目印です。");
+	ImGui::InputInt("近接雑魚敵数", &stressTestMeleeEnemyCount_);
+	ImGui::InputInt("中距離雑魚敵数", &stressTestMidRangeEnemyCount_);
 	stressTestMeleeEnemyCount_ = std::clamp(stressTestMeleeEnemyCount_, 0, 10000);
 	stressTestMidRangeEnemyCount_ = std::clamp(stressTestMidRangeEnemyCount_, 0, 10000);
-	if (ImGui::Button("Apply"))
+	if (ImGui::Button("適用"))
 	{
+		enemyScalabilitySystem_.SetEnemyDebugDrawEnabled(true);
 		enemyScalabilitySystem_.ApplyStressTestCounts(
 			static_cast<uint32_t>(stressTestMeleeEnemyCount_),
-			static_cast<uint32_t>(stressTestMidRangeEnemyCount_));
-		// StressTest 中は大量描画を避けるため、重いデバッグ表示と敵シャドウを既定で無効化する。
-		enemyScalabilitySystem_.SetEnemyDebugDrawEnabled(false);
+			static_cast<uint32_t>(stressTestMidRangeEnemyCount_),
+			meleeDummyTarget_.GetCenterPosition());
+		// StressTest 中は敵の確認用描画だけを残し、無関係な重いデバッグ表示と敵シャドウを無効化する。
 		stageBoundsDebugDraw_ = false;
 		frustumCullingDebugDraw_ = false;
 		meleeDummyWireVisible_ = false;
 		enemyShadowEnabled_ = false;
 	}
 	ImGui::SameLine();
-	if (ImGui::Button("Clear"))
+	if (ImGui::Button("クリア"))
 	{
 		enemyScalabilitySystem_.Clear();
 	}
 
-	ImGui::SeparatorText("Update LOD");
-	ImGui::Checkbox("Use Enemy Update LOD", &settings.useEnemyUpdateLod);
-	ImGui::DragFloat("Near Update Distance", &settings.nearUpdateDistance, 1.0f, 0.0f, 1000.0f);
-	ImGui::DragFloat("Mid Update Distance", &settings.midUpdateDistance, 1.0f, settings.nearUpdateDistance, 2000.0f);
-	ImGui::DragFloat("Far Update Distance", &settings.farUpdateDistance, 1.0f, settings.midUpdateDistance, 4000.0f);
+	ImGui::SeparatorText("更新LOD");
+	ImGui::Checkbox("敵の更新LODを使用", &settings.useEnemyUpdateLod);
+	ImGui::DragFloat("近距離更新距離", &settings.nearUpdateDistance, 1.0f, 0.0f, 1000.0f);
+	ImGui::DragFloat("中距離更新距離", &settings.midUpdateDistance, 1.0f, settings.nearUpdateDistance, 2000.0f);
+	ImGui::DragFloat("遠距離更新距離", &settings.farUpdateDistance, 1.0f, settings.midUpdateDistance, 4000.0f);
 	int nearInterval = static_cast<int>(settings.nearUpdateInterval);
 	int midInterval = static_cast<int>(settings.midUpdateInterval);
 	int farInterval = static_cast<int>(settings.farUpdateInterval);
-	ImGui::DragInt("Near Update Interval", &nearInterval, 1.0f, 1, 120);
-	ImGui::DragInt("Mid Update Interval", &midInterval, 1.0f, 1, 120);
-	ImGui::DragInt("Far Update Interval", &farInterval, 1.0f, 1, 120);
+	ImGui::DragInt("近距離更新間隔", &nearInterval, 1.0f, 1, 120);
+	ImGui::DragInt("中距離更新間隔", &midInterval, 1.0f, 1, 120);
+	ImGui::DragInt("遠距離更新間隔", &farInterval, 1.0f, 1, 120);
 	settings.nearUpdateInterval = static_cast<uint32_t>(std::max(nearInterval, 1));
 	settings.midUpdateInterval = static_cast<uint32_t>(std::max(midInterval, 1));
 	settings.farUpdateInterval = static_cast<uint32_t>(std::max(farInterval, 1));
 
-	ImGui::SeparatorText("Collision and Debug Draw");
-	if (ImGui::Checkbox("Simple Collision", &useSimpleCollision)) enemyScalabilitySystem_.SetSimpleCollisionEnabled(useSimpleCollision);
-	if (ImGui::Checkbox("Enemy Debug Draw", &enemyDebugDraw)) enemyScalabilitySystem_.SetEnemyDebugDrawEnabled(enemyDebugDraw);
-	ImGui::Checkbox("Stage Bounds Debug Draw", &stageBoundsDebugDraw_);
-	ImGui::Checkbox("Frustum Culling Debug Draw", &frustumCullingDebugDraw_);
-	ImGui::Checkbox("Dummy Target Wire Draw", &meleeDummyWireVisible_);
-	ImGui::Checkbox("Enemy Shadow", &enemyShadowEnabled_);
+	ImGui::SeparatorText("衝突判定とデバッグ描画");
+	if (ImGui::Checkbox("簡易衝突判定", &useSimpleCollision)) enemyScalabilitySystem_.SetSimpleCollisionEnabled(useSimpleCollision);
+	if (ImGui::Checkbox("敵デバッグ描画", &enemyDebugDraw)) enemyScalabilitySystem_.SetEnemyDebugDrawEnabled(enemyDebugDraw);
+	ImGui::Checkbox("ステージ境界デバッグ描画", &stageBoundsDebugDraw_);
+	ImGui::Checkbox("視錐台カリングデバッグ描画", &frustumCullingDebugDraw_);
+	ImGui::Checkbox("ダミーターゲットワイヤー描画", &meleeDummyWireVisible_);
+	ImGui::Checkbox("敵の影描画", &enemyShadowEnabled_);
 
-	ImGui::SeparatorText("Metrics");
-	ImGui::Text("Total Enemy Count: %u", metrics.totalEnemyCount);
-	ImGui::Text("Melee Enemy Count: %u", metrics.meleeEnemyCount);
-	ImGui::Text("MidRange Enemy Count: %u", metrics.midRangeEnemyCount);
-	ImGui::Text("Updated Enemy Count This Frame: %u", metrics.updatedEnemyCountThisFrame);
-	ImGui::Text("Skipped Enemy Count This Frame: %u", metrics.skippedEnemyCountThisFrame);
-	ImGui::Text("Draw Enemy Count: %u", metrics.drawEnemyCount);
-	ImGui::Text("Collision Check Count: %u", metrics.collisionCheckCount);
-	ImGui::Text("FPS: %.1f", ImGui::GetIO().Framerate);
-	ImGui::Text("FrameTime: %.3f ms", ImGui::GetIO().DeltaTime * 1000.0f);
-	ImGui::Text("Enemy Update Time: %.3f ms", metrics.enemyUpdateTimeMs);
-	ImGui::Text("Enemy Draw Submit Time: %.3f ms", metrics.enemyDrawSubmitTimeMs);
-	ImGui::Text("Enemy Collision Time: %.3f ms", metrics.enemyCollisionTimeMs);
+	ImGui::SeparatorText("描画メトリクス");
+	ImGui::Text("合計敵数: %u", metrics.totalEnemyCount);
+	ImGui::Text("表示対象敵数: %u", metrics.visibleEnemyCount);
+	ImGui::Text("カリングされた敵数: %u", metrics.culledEnemyCount);
+	ImGui::Text("描画した敵数: %u", metrics.drawEnemyCount);
+	ImGui::Text("近距離敵数: %u", metrics.nearEnemyCount);
+	ImGui::Text("中距離敵数: %u", metrics.midEnemyCount);
+	ImGui::Text("遠距離敵数: %u", metrics.farEnemyCount);
+	ImGui::Text("距離範囲外敵数: %u", metrics.outOfRangeEnemyCount);
+	ImGui::TextWrapped("表示対象 = 合計 - カリング。現在の軽量敵では、カリングは遠距離更新距離より外側、または無効な敵です。描画数が0の場合は敵デバッグ描画を有効にしてください。");
+
+	ImGui::SeparatorText("更新LODメトリクス");
+	ImGui::Text("近距離合計数: %u", metrics.nearEnemyCount);
+	ImGui::Text("中距離合計数: %u", metrics.midEnemyCount);
+	ImGui::Text("遠距離合計数: %u", metrics.farEnemyCount);
+	ImGui::Text("近距離更新数: %u", metrics.nearUpdatedEnemyCount);
+	ImGui::Text("中距離更新数: %u", metrics.midUpdatedEnemyCount);
+	ImGui::Text("遠距離更新数: %u", metrics.farUpdatedEnemyCount);
+	ImGui::Text("今フレームで更新した敵数: %u", metrics.updatedEnemyCountThisFrame);
+	ImGui::Text("今フレームで更新をスキップした敵数: %u", metrics.skippedEnemyCountThisFrame);
+	ImGui::Text("更新間隔によりスキップした敵数: %u", metrics.intervalSkippedEnemyCount);
+	ImGui::Text("距離範囲外によりスキップした敵数: %u", metrics.outOfRangeSkippedEnemyCount);
+	ImGui::Text("無効状態によりスキップした敵数: %u", metrics.inactiveSkippedEnemyCount);
+	ImGui::TextWrapped("スキップ数 = 更新間隔による分散更新 + 距離範囲外 + 無効状態。更新LODが無効な場合、距離範囲内の有効な敵は毎フレーム更新されます。");
+	ImGui::Text("近接雑魚敵数: %u", metrics.meleeEnemyCount);
+	ImGui::Text("中距離雑魚敵数: %u", metrics.midRangeEnemyCount);
+	ImGui::Text("衝突判定回数: %u", metrics.collisionCheckCount);
+
+	ImGui::SeparatorText("フレームメトリクス");
+	ImGui::Text("瞬間FPS: %.1f", instantFps);
+	ImGui::Text("平均FPS: %.1f", gameTimer->GetFPS());
+	ImGui::Text("フレーム時間: %.3f ms", frameTimeMs);
+	ImGui::Text("VSync: ON");
+	ImGui::Text("敵更新時間: %.3f ms", metrics.enemyUpdateTimeMs);
+	ImGui::Text("敵描画登録時間: %.3f ms", metrics.enemyDrawSubmitTimeMs);
+	ImGui::Text("敵衝突判定時間: %.3f ms", metrics.enemyCollisionTimeMs);
 	ImGui::End();
 #endif // USE_IMGUI
 }

@@ -59,9 +59,21 @@ namespace Ken4lowEngine
 		uint32_t totalEnemyCount = 0;
 		uint32_t meleeEnemyCount = 0;
 		uint32_t midRangeEnemyCount = 0;
-		uint32_t updatedEnemyCountThisFrame = 0;
-		uint32_t skippedEnemyCountThisFrame = 0;
+		uint32_t visibleEnemyCount = 0;
+		uint32_t culledEnemyCount = 0;
 		uint32_t drawEnemyCount = 0;
+		uint32_t nearEnemyCount = 0;
+		uint32_t midEnemyCount = 0;
+		uint32_t farEnemyCount = 0;
+		uint32_t outOfRangeEnemyCount = 0;
+		uint32_t updatedEnemyCountThisFrame = 0;
+		uint32_t nearUpdatedEnemyCount = 0;
+		uint32_t midUpdatedEnemyCount = 0;
+		uint32_t farUpdatedEnemyCount = 0;
+		uint32_t skippedEnemyCountThisFrame = 0;
+		uint32_t intervalSkippedEnemyCount = 0;
+		uint32_t outOfRangeSkippedEnemyCount = 0;
+		uint32_t inactiveSkippedEnemyCount = 0;
 		uint32_t collisionCheckCount = 0;
 		float enemyUpdateTimeMs = 0.0f;
 		float enemyDrawSubmitTimeMs = 0.0f;
@@ -74,7 +86,7 @@ namespace Ken4lowEngine
 	public:
 		void Update(float deltaTime, const Vector3& playerPosition);
 		void Clear();
-		void ApplyStressTestCounts(uint32_t meleeEnemyCount, uint32_t midRangeEnemyCount);
+		void ApplyStressTestCounts(uint32_t meleeEnemyCount, uint32_t midRangeEnemyCount, const Vector3& centerPosition);
 		void DrawDebugInstances() const;
 
 		EnemyUpdateLodSettings& GetUpdateLodSettings() { return updateLodSettings_; }
@@ -89,7 +101,7 @@ namespace Ken4lowEngine
 		void SetEnemyDebugDrawEnabled(bool enabled) { enemyDebugDraw_ = enabled; }
 
 	private:
-		void SpawnEnemy(uint32_t spawnIndex, ScalableEnemyType enemyType);
+		void SpawnEnemy(uint32_t spawnIndex, ScalableEnemyType enemyType, const Vector3& centerPosition);
 		uint32_t GetUpdateInterval(const ScalableEnemyData& enemy) const;
 		void UpdateEnemy(ScalableEnemyData& enemy, float deltaTime, const Vector3& playerPosition);
 		void UpdateSimpleCollisions(const Vector3& playerPosition);

@@ -21,8 +21,9 @@ void PerformanceMonitor::Update(float deltaSeconds, float fps)
 {
 	stats_.fps = fps;
 	stats_.frameTimeMs = (deltaSeconds > 0.0f) ? (deltaSeconds * 1000.0f) : 0.0f;
+	stats_.instantFps = (deltaSeconds > 0.0f) ? (1.0f / deltaSeconds) : 0.0f;
 
-	fpsHistory_[historyWriteIndex_] = stats_.fps;
+	fpsHistory_[historyWriteIndex_] = stats_.instantFps;
 	frameTimeHistory_[historyWriteIndex_] = stats_.frameTimeMs;
 	historyWriteIndex_ = (historyWriteIndex_ + 1) % kHistorySize;
 
