@@ -1,3 +1,4 @@
+#define NOMINMAX
 #include "EnemySpawnCrystal.h"
 
 #include "CharacterWorld.h"

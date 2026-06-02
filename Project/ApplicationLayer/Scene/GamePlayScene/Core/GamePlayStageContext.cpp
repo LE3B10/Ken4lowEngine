@@ -129,7 +129,7 @@ GamePlayStageContext::StageAssetPaths GamePlayStageContext::GetStageAssetPaths(i
 {
 	switch (stageIndex)
 	{
-	case 0: return { "stages/fps_stage00.json", "Stages/fps_stage00.gltf" };
+	case 0: return { "stages/hajimarinoheigen.json", "Stages/hajimarinoheigen.gltf" };
 	case 1: return { "stages/fps_stage01.json", "Stages/fps_stage01.gltf" };
 	case 2: return { "stages/fps_stage02.json", "Stages/fps_stage02.gltf" };
 	case 3: return { "stages/fps_stage03.json", "Stages/fps_stage03.gltf" };
