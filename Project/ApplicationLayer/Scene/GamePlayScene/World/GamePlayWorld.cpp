@@ -143,11 +143,19 @@ void GamePlayWorld::Initialize(GamePlayStageContext& stageContext)
 	prevWaveInProgress_ = false;
 	prevAllWavesCleared_ = false;
 
+	// Blender 側の設定読み込みを追加するまでは、C++ の仮スポーン地点を使用する。
+	crystalManager_.Initialize({
+		{ { -8.0f, 1.0f, 8.0f }, {}, { 1.5f, 2.5f, 1.5f }, 100, EnemyType::Melee, 2.0f, 10, 4.0f, true, true },
+		{ {  0.0f, 1.0f, 14.0f }, {}, { 1.5f, 2.5f, 1.5f }, 100, EnemyType::MidRange, 3.0f, 6, 4.0f, true, true },
+		{ {  8.0f, 1.0f, 8.0f }, {}, { 1.5f, 2.5f, 1.5f }, 100, EnemyType::Melee, 2.0f, 10, 4.0f, true, true },
+	});
+
 	enemyHpBarManager_.Initialize();
 }
 
 void GamePlayWorld::Finalize()
 {
+	crystalManager_.Initialize({});
 	stageObjectiveManager_.reset();
 	waveManager_.reset();
 	hudManager_.reset();
@@ -178,6 +186,7 @@ void GamePlayWorld::Update(float deltaTime)
 	}
 
 	characters_.Update(deltaTime);
+	crystalManager_.Update(characters_, deltaTime);
 	if (auto* player = characters_.GetPlayer())
 	{
 		itemManager_.Update(player, deltaTime);
@@ -356,6 +365,8 @@ void GamePlayWorld::Draw3D(bool hideCharactersDuringIntro)
 		stage_->DrawChunkDebug();
 	}
 
+	crystalManager_.Draw();
+
 	if (bulletManager_)
 	{
 		bulletManager_->Draw();
@@ -425,6 +436,7 @@ void GamePlayWorld::DrawGameDebugImGui()
 	}
 	ImGui::Text("Player Dead: %s", IsPlayerDead() ? "true" : "false");
 	ImGui::Text("Enemies: %d", characters_.GetEnemyCount());
+	crystalManager_.DrawImGui();
 
 	const float fps = K4E::GameTimer::GetInstance()->GetFPS();
 	const auto* particleManager = K4E::ParticleManager::GetInstance();

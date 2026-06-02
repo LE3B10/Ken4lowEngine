@@ -253,6 +253,12 @@
     <ClCompile Include="ApplicationLayer\Character\Player\PlayerHurtbox.cpp">
       <Filter>ApplicationLayer\Character\Player</Filter>
     </ClCompile>
+    <ClCompile Include="ApplicationLayer\Scene\GamePlayScene\World\EnemySpawnCrystal.cpp">
+      <Filter>ApplicationLayer\Scene\GamePlayScene\World</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\Scene\GamePlayScene\World\CrystalManager.cpp">
+      <Filter>ApplicationLayer\Scene\GamePlayScene\World</Filter>
+    </ClCompile>
     <ClCompile Include="ApplicationLayer\Character\CharacterWorld\CharacterWorld.cpp">
       <Filter>ApplicationLayer\Character\CharacterWorld</Filter>
     </ClCompile>
@@ -1094,6 +1100,12 @@
     </ClInclude>
     <ClInclude Include="ApplicationLayer\Character\Player\PlayerHurtbox.h">
       <Filter>ApplicationLayer\Character\Player</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Scene\GamePlayScene\World\EnemySpawnCrystal.h">
+      <Filter>ApplicationLayer\Scene\GamePlayScene\World</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Scene\GamePlayScene\World\CrystalManager.h">
+      <Filter>ApplicationLayer\Scene\GamePlayScene\World</Filter>
     </ClInclude>
     <ClInclude Include="ApplicationLayer\Character\CharacterWorld\CharacterWorld.h">
       <Filter>ApplicationLayer\Character\CharacterWorld</Filter>

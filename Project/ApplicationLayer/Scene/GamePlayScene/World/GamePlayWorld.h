@@ -10,6 +10,7 @@
 #include "DataAssetPresets.h"
 #include "EnemyHPBarManager.h"
 #include "ItemManager.h"
+#include "CrystalManager.h"
 
 #include <memory>
 
@@ -98,6 +99,7 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	EnemyHPBarManager enemyHpBarManager_;
 	ItemManager itemManager_;
+	CrystalManager crystalManager_;
 
 	int prevWaveNumber_ = 0;
 	bool prevWaveInProgress_ = false;
