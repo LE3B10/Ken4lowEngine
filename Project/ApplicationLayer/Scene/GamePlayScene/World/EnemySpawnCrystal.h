@@ -48,6 +48,7 @@ public:
 	bool IsInfiniteSpawnEnabled() const { return enableInfiniteSpawn; }
 	bool IsBossSpawnTrigger() const { return spawnBossTrigger_; }
 	const K4E::Vector3& GetPosition() const { return position_; }
+	const K4E::Vector3& GetScale() const { return scale_; }
 
 	void SetInfiniteSpawnEnabled(bool enabled) { enableInfiniteSpawn = enabled; }
 	void SetSpawnEnemyType(EnemyType enemyType) { spawnEnemyType = enemyType; }
@@ -68,6 +69,8 @@ private:
 
 private:
 	K4E::Vector3 position_{};
+	K4E::Vector3 rotation_{};
+	K4E::Vector3 scale_{ 1.0f, 1.0f, 1.0f };
 	bool spawnBossTrigger_ = true;
 	std::unique_ptr<K4E::Object3D> debugCube_;
 	std::vector<const EnemyBase*> spawnedEnemies_;

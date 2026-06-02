@@ -22,6 +22,8 @@ namespace
 void EnemySpawnCrystal::Initialize(const CrystalSpawnPoint& spawnPoint)
 {
 	position_ = spawnPoint.position;
+	rotation_ = spawnPoint.rotation;
+	scale_ = spawnPoint.scale;
 	isAlive = true;
 	hp = std::max(1, spawnPoint.hp);
 	spawnEnemyType = spawnPoint.spawnEnemyType;
@@ -35,9 +37,9 @@ void EnemySpawnCrystal::Initialize(const CrystalSpawnPoint& spawnPoint)
 
 	debugCube_ = std::make_unique<Object3D>();
 	debugCube_->Initialize("Test/cube.gltf");
-	debugCube_->SetTranslate(spawnPoint.position);
-	debugCube_->SetRotate(spawnPoint.rotation);
-	debugCube_->SetScale(spawnPoint.scale);
+	debugCube_->SetTranslate(position_);
+	debugCube_->SetRotate(rotation_);
+	debugCube_->SetScale(scale_);
 	debugCube_->SetColor({ 0.25f, 0.85f, 1.0f, 1.0f });
 	debugCube_->Update();
 }
@@ -45,6 +47,15 @@ void EnemySpawnCrystal::Initialize(const CrystalSpawnPoint& spawnPoint)
 void EnemySpawnCrystal::Update(const CharacterWorld& characters)
 {
 	RemoveInactiveSpawnedEnemies(characters);
+
+	if (debugCube_)
+	{
+		// クリスタルはカメラ基準ではなく、ステージ上の固定ワールド座標に配置する。
+		debugCube_->SetTranslate(position_);
+		debugCube_->SetRotate(rotation_);
+		debugCube_->SetScale(scale_);
+		debugCube_->Update();
+	}
 }
 
 void EnemySpawnCrystal::Draw() const
