@@ -1,6 +1,10 @@
 #include "CharacterWorld.h"
 #include "CollisionManager.h"
 #include "BulletManager.h"
+#include "EnemyFactory.h"
+#include "Enemy.h"
+#include "MeleeEnemy.h"
+#include "MidRangeEnemy.h"
 #include <algorithm>
 
 #ifdef USE_IMGUI
@@ -74,16 +78,27 @@ void CharacterWorld::InjectPlayerDeps(Player& p)
 		});
 }
 
-void CharacterWorld::InjectEnemyDeps(Enemy& e)
+void CharacterWorld::InjectEnemyDeps(EnemyBase& e)
 {
-	e.SetCollisionManager(ctx_.collisionManager_);
-	e.SetBulletManager(ctx_.bulletManager_);
-
-	e.SetParticleEffectSystem(&enemyParticleEffectSystem_);
-
-	if (player_)
+	// MidRangeEnemy固有パーティクルは復活させず、既存方針を維持する。
+	if (dynamic_cast<MidRangeEnemy*>(&e) == nullptr)
 	{
-		e.SetTarget(player_.get());
+		e.SetParticleEffectSystem(&enemyParticleEffectSystem_);
+	}
+
+	if (auto* legacyEnemy = dynamic_cast<Enemy*>(&e))
+	{
+		legacyEnemy->SetCollisionManager(ctx_.collisionManager_);
+		legacyEnemy->SetBulletManager(ctx_.bulletManager_);
+		if (player_) { legacyEnemy->SetTarget(player_.get()); }
+	}
+	else if (auto* meleeEnemy = dynamic_cast<MeleeEnemy*>(&e))
+	{
+		if (player_) { meleeEnemy->SetTarget(player_.get()); }
+	}
+	else if (auto* midRangeEnemy = dynamic_cast<MidRangeEnemy*>(&e))
+	{
+		if (player_) { midRangeEnemy->SetTarget(player_.get()); }
 	}
 }
 
@@ -100,9 +115,10 @@ std::vector<EnemyBase*> CharacterWorld::GetEnemyRawList() const
 	return result;
 }
 
-Enemy& CharacterWorld::SpawnEnemy(const EnemySpawnRequest& request)
+EnemyBase& CharacterWorld::SpawnEnemy(const EnemySpawnRequest& request)
 {
-	auto e = std::make_unique<Enemy>();
+	// 通常ゲームでも近接・中距離雑魚敵を生成できるよう、EnemyFactory経由で敵を作成する。
+	auto e = EnemyFactory::Create(request.enemyType);
 	InjectEnemyDeps(*e);
 	e->Initialize();
 	e->SetPosition(request.position);
@@ -116,10 +132,11 @@ Enemy& CharacterWorld::SpawnEnemy(const EnemySpawnRequest& request)
 	return *enemies_.back();
 }
 
-Enemy& CharacterWorld::SpawnEnemyAt(const K4E::Vector3& position)
+EnemyBase& CharacterWorld::SpawnEnemyAt(const K4E::Vector3& position, EnemyType enemyType)
 {
 	EnemySpawnRequest request{};
 	request.position = position;
+	request.enemyType = enemyType;
 	return SpawnEnemy(request);
 }
 
@@ -161,7 +178,7 @@ void CharacterWorld::Update(float dt)
 	{
 		enemies_.erase(
 			std::remove_if(enemies_.begin(), enemies_.end(),
-				[&](const std::unique_ptr<Enemy>& e)
+				[&](const std::unique_ptr<EnemyBase>& e)
 				{
 					if (e && e->IsRemovable())
 					{

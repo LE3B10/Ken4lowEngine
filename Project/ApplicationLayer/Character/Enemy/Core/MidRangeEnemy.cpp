@@ -1560,6 +1560,13 @@ bool MidRangeEnemy::LoadTuningFromJson(const std::filesystem::path& path, std::s
 
 void MidRangeEnemy::UpdateTargetState()
 {
+    // 通常ゲームでは移動するプレイヤーの最新位置をCollider参照から追跡する。
+    if (targetCollider_)
+    {
+        targetState_.position = targetCollider_->GetCenterPosition();
+        targetState_.hasTarget = true;
+    }
+
     // 追加: ターゲット情報更新を通常行動と時限爆弾で共通化する。
     if (!targetState_.hasTarget)
     {
