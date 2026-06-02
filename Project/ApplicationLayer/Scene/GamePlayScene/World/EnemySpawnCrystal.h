@@ -20,8 +20,8 @@ struct CrystalSpawnPoint
 	K4E::Vector3 scale{ 1.0f, 1.0f, 1.0f };
 	int hp = 100;
 	EnemyType spawnEnemyType = EnemyType::Melee;
-	float spawnInterval = 2.0f;
-	int maxAliveEnemies = 10;
+	float spawnInterval = 5.0f; // 互換性維持用。生成間隔は CrystalManager がステージ全体で管理する。
+	int maxAliveEnemies = 9;
 	float spawnRadius = 3.0f;
 	bool enableInfiniteSpawn = true;
 	bool spawnBossTrigger = true;
@@ -32,14 +32,15 @@ class EnemySpawnCrystal
 {
 public:
 	void Initialize(const CrystalSpawnPoint& spawnPoint);
-	void Update(CharacterWorld& characters, float deltaTime);
+	void Update(const CharacterWorld& characters);
 	void Draw() const;
 	void TakeDamage(int damage);
+	bool CanSpawnEnemy() const;
+	void SpawnEnemy(CharacterWorld& characters);
 
 	bool IsAlive() const { return isAlive; }
 	int GetHp() const { return hp; }
 	EnemyType GetSpawnEnemyType() const { return spawnEnemyType; }
-	float GetSpawnInterval() const { return spawnInterval; }
 	float GetSpawnRadius() const { return spawnRadius; }
 	int GetMaxAliveEnemies() const { return maxAliveEnemies; }
 	int GetTotalSpawnedCount() const { return totalSpawnedCount; }
@@ -50,24 +51,20 @@ public:
 
 	void SetInfiniteSpawnEnabled(bool enabled) { enableInfiniteSpawn = enabled; }
 	void SetSpawnEnemyType(EnemyType enemyType) { spawnEnemyType = enemyType; }
-	void SetSpawnInterval(float interval);
 	void SetMaxAliveEnemies(int count);
-
-private:
-	void RemoveInactiveSpawnedEnemies(const CharacterWorld& characters);
-	void SpawnEnemy(CharacterWorld& characters);
 
 public: // Blender 読み込み対応時にも維持するランタイム設定値。
 	bool isAlive = true;
 	int hp = 100;
 	EnemyType spawnEnemyType = EnemyType::Melee;
-	float spawnInterval = 2.0f;
-	float spawnTimer = 0.0f;
 	float spawnRadius = 3.0f;
-	int maxAliveEnemies = 10;
+	int maxAliveEnemies = 9;
 	int totalSpawnedCount = 0;
 	int aliveSpawnedEnemyCount = 0;
 	bool enableInfiniteSpawn = true;
+
+private:
+	void RemoveInactiveSpawnedEnemies(const CharacterWorld& characters);
 
 private:
 	K4E::Vector3 position_{};

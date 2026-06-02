@@ -12,8 +12,6 @@ using namespace Ken4lowEngine;
 
 namespace
 {
-	constexpr float kMinimumSpawnInterval = 0.05f;
-
 	float RandomRange(float minValue, float maxValue)
 	{
 		const float t = static_cast<float>(std::rand()) / static_cast<float>(RAND_MAX);
@@ -27,8 +25,6 @@ void EnemySpawnCrystal::Initialize(const CrystalSpawnPoint& spawnPoint)
 	isAlive = true;
 	hp = std::max(1, spawnPoint.hp);
 	spawnEnemyType = spawnPoint.spawnEnemyType;
-	spawnInterval = std::max(kMinimumSpawnInterval, spawnPoint.spawnInterval);
-	spawnTimer = 0.0f;
 	spawnRadius = std::max(0.0f, spawnPoint.spawnRadius);
 	maxAliveEnemies = std::max(0, spawnPoint.maxAliveEnemies);
 	totalSpawnedCount = 0;
@@ -46,23 +42,9 @@ void EnemySpawnCrystal::Initialize(const CrystalSpawnPoint& spawnPoint)
 	debugCube_->Update();
 }
 
-void EnemySpawnCrystal::Update(CharacterWorld& characters, float deltaTime)
+void EnemySpawnCrystal::Update(const CharacterWorld& characters)
 {
 	RemoveInactiveSpawnedEnemies(characters);
-	if (!isAlive || !enableInfiniteSpawn || maxAliveEnemies <= 0)
-	{
-		return;
-	}
-
-	// クリスタルが破壊されるまで一定間隔で敵を出し続ける。
-	spawnTimer += std::max(0.0f, deltaTime);
-	if (spawnTimer < spawnInterval || aliveSpawnedEnemyCount >= maxAliveEnemies)
-	{
-		return;
-	}
-
-	spawnTimer = 0.0f;
-	SpawnEnemy(characters);
 }
 
 void EnemySpawnCrystal::Draw() const
@@ -84,13 +66,12 @@ void EnemySpawnCrystal::TakeDamage(int damage)
 	if (hp <= 0)
 	{
 		isAlive = false;
-		spawnTimer = 0.0f;
 	}
 }
 
-void EnemySpawnCrystal::SetSpawnInterval(float interval)
+bool EnemySpawnCrystal::CanSpawnEnemy() const
 {
-	spawnInterval = std::max(kMinimumSpawnInterval, interval);
+	return isAlive && enableInfiniteSpawn && aliveSpawnedEnemyCount < maxAliveEnemies;
 }
 
 void EnemySpawnCrystal::SetMaxAliveEnemies(int count)
