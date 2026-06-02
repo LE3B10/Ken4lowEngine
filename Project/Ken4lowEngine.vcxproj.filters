@@ -217,6 +217,9 @@
     <ClCompile Include="ApplicationLayer\EffectLayer\BossEnemyVfx.cpp">
       <Filter>ApplicationLayer\EffectLayer</Filter>
     </ClCompile>
+    <ClCompile Include="ApplicationLayer\DebugTools\EnemyScalability\EnemyScalabilitySystem.cpp">
+      <Filter>ApplicationLayer\DebugTools</Filter>
+    </ClCompile>
     <ClCompile Include="ApplicationLayer\Scene\DebugScene\DebugScene.cpp">
       <Filter>ApplicationLayer\Scene\DebugScene</Filter>
     </ClCompile>
@@ -1046,6 +1049,9 @@
     </ClInclude>
     <ClInclude Include="ApplicationLayer\EffectLayer\BossEnemyVfx.h">
       <Filter>ApplicationLayer\EffectLayer</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\DebugTools\EnemyScalability\EnemyScalabilitySystem.h">
+      <Filter>ApplicationLayer\DebugTools</Filter>
     </ClInclude>
     <ClInclude Include="ApplicationLayer\Scene\DebugScene\DebugScene.h">
       <Filter>ApplicationLayer\Scene\DebugScene</Filter>
