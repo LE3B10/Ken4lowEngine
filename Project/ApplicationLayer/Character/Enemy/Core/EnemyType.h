@@ -10,13 +10,13 @@ enum class EnemyType
 	MidRange,
 };
 
-inline EnemyType ParseEnemyType(std::string_view archetype)
+inline EnemyType ParseEnemyType(std::string_view enemyType)
 {
-	if (archetype == "Melee" || archetype == "melee")
+	if (enemyType == "Melee" || enemyType == "melee")
 	{
 		return EnemyType::Melee;
 	}
-	if (archetype == "MidRange" || archetype == "midRange" || archetype == "midrange")
+	if (enemyType == "MidRange" || enemyType == "midRange" || enemyType == "midrange")
 	{
 		return EnemyType::MidRange;
 	}
