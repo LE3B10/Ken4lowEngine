@@ -6,7 +6,8 @@
 #include <unordered_set>
 
 #include "Player.h"
-#include "Enemy.h"
+#include "EnemyBase.h"
+#include "EnemyType.h"
 #include "EnemyParticleEffectSystem.h"
 
 // 前方宣言
@@ -33,6 +34,7 @@ private: /// ---------- 構造体 ---------- ///
 		K4E::Vector3 position = {};
 		float yawRad = 0.0f;
 		float maxHp = 240.0f;
+		EnemyType enemyType = EnemyType::Legacy;
 	};
 
 public: /// ---------- メンバ関数 ---------- ///
@@ -55,14 +57,14 @@ public: /// ---------- メンバ関数 ---------- ///
 
 	Player* GetPlayer() { return player_.get(); }
 	const Player* GetPlayer() const { return player_.get(); }
-	const std::vector<std::unique_ptr<Enemy>>& GetEnemies() const { return enemies_; }
+	const std::vector<std::unique_ptr<EnemyBase>>& GetEnemies() const { return enemies_; }
 
 	// HPバーやロックオンみたいな「EnemyBase* 配列」が欲しい処理用
 	std::vector<EnemyBase*> GetEnemyRawList() const;
 
 	// 生成
-	Enemy& SpawnEnemy(const EnemySpawnRequest& request);
-	Enemy& SpawnEnemyAt(const K4E::Vector3& position);
+	EnemyBase& SpawnEnemy(const EnemySpawnRequest& request);
+	EnemyBase& SpawnEnemyAt(const K4E::Vector3& position, EnemyType enemyType = EnemyType::Legacy);
 
 	// 全消し
 	void ClearEnemies();
@@ -78,19 +80,19 @@ public: /// ---------- デバッグ用 ---------- ///
 private: /// ---------- 内部処理 ---------- ///
 
 	void InjectPlayerDeps(Player& p);
-	void InjectEnemyDeps(Enemy& e);
+	void InjectEnemyDeps(EnemyBase& e);
 
 private: /// ---------- メンバ変数 ---------- ///
 
 	GameContext ctx_{}; // ポインタ保持しない（Scene側ローカルctxの寿命問題を避ける）
 
 	std::unique_ptr<Player> player_;
-	std::vector<std::unique_ptr<Enemy>> enemies_;
+	std::vector<std::unique_ptr<EnemyBase>> enemies_;
 
 	// 敵の被弾エフェクトシステム
 	EnemyParticleEffectSystem enemyParticleEffectSystem_;
 	std::function<void(const K4E::Vector3&)> onEnemyKilled_{};
-	std::unordered_set<const Enemy*> notifiedKilledEnemies_;
+	std::unordered_set<const EnemyBase*> notifiedKilledEnemies_;
 
 private: /// ---------- デバッグ用 ---------- ///
 

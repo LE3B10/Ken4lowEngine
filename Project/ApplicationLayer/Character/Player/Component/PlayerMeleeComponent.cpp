@@ -4,7 +4,6 @@
 #include "CollisionTypeIdDef.h"
 #include "Collider.h"
 #include "EnemyBase.h"
-#include "Enemy.h"
 
 namespace
 {
@@ -145,13 +144,6 @@ void PlayerMeleeComponent::EvaluateHit(const K4E::Vector3& playerPos)
 			enemyBase->SetVelocity(knock);
 		}
 
-		if (auto* enemy = bestHit->GetOwner<Enemy>())
-		{
-			if (!enemy->IsDead())
-			{
-				//enemy->RequestStun(0.18f);
-			}
-		}
 
 		if (!wasDead && onHit_)
 		{

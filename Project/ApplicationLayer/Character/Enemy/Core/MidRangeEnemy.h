@@ -262,6 +262,7 @@ public:
     void Draw() override;
     void DrawImGui() override;
     void SetTarget(const K4E::Vector3& target);
+    void SetTarget(K4E::Collider* target) { targetCollider_ = target; }
 
     void SetFloorAABBs(const std::vector<K4E::AABB>* aabbs)
     {
@@ -325,6 +326,7 @@ private:
     SuicideBombState suicideBombState_{};
     WanderState wanderState_{};
     TargetState targetState_{};
+    K4E::Collider* targetCollider_ = nullptr;
     AnimationStateData animationState_{};
     HeadLookState headLookState_{};
     HitReactionState hitReactionState_{};

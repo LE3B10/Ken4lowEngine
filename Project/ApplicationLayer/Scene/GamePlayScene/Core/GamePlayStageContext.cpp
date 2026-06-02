@@ -247,6 +247,10 @@ void GamePlayStageContext::LoadSpawnPointsFromLevel(const std::string& jsonPath)
 				info.wave = (object.spawnProps.wave > 0) ? object.spawnProps.wave : 1;
 				info.group = object.spawnProps.group;
 				info.count = (object.spawnProps.count > 0) ? object.spawnProps.count : 1;
+				if (object.spawnProps.hasArchetype)
+				{
+					info.enemyType = ParseEnemyType(object.spawnProps.archetype);
+				}
 			}
 
 			enemySpawnInfos_.push_back(info);
@@ -353,6 +357,7 @@ void GamePlayStageContext::SetupWaves(WaveManager* waveManager) const
 
 			WaveSpawnEntry entry{};
 			entry.position = spawn.position;
+			entry.enemyType = spawn.enemyType;
 
 			const int spawnCount = std::max(1, spawn.count);
 			for (int i = 0; i < spawnCount; ++i)

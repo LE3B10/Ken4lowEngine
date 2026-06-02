@@ -2,6 +2,7 @@
 #include <vector>
 #include <algorithm>
 #include "Vector3.h"
+#include "EnemyType.h"
 
 namespace K4E = ::Ken4lowEngine;
 
@@ -12,6 +13,7 @@ class CharacterWorld;
 struct WaveSpawnEntry
 {
 	K4E::Vector3 position = { 0.0f, 0.0f, 0.0f }; // スポーン位置
+	EnemyType enemyType = EnemyType::Legacy; // 未指定の既存ステージは従来Enemyを生成
 };
 
 /// ---------- 1ウェーブ分の定義 ---------- ///
