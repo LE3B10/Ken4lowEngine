@@ -170,6 +170,31 @@ void CrystalManager::DrawImGui()
 	}
 
 	ImGui::Checkbox("クリスタル敵スポーン有効", &enableCrystalEnemySpawn_);
+	float crystalYOffset = EnemySpawnCrystal::GetSpawnYOffset();
+	if (ImGui::DragFloat("クリスタルY補正", &crystalYOffset, 0.01f, 0.0f, 0.5f, "%.2f"))
+	{
+		EnemySpawnCrystal::SetSpawnYOffset(crystalYOffset);
+	}
+	float enemySpawnYOffset = EnemyBase::GetSpawnYOffset();
+	if (ImGui::DragFloat("敵スポーンY補正", &enemySpawnYOffset, 0.01f, 0.0f, 0.5f, "%.2f"))
+	{
+		EnemyBase::SetSpawnYOffset(enemySpawnYOffset);
+	}
+	float deathMaxSpeed = EnemyBase::GetDeathMaxSpeed();
+	if (ImGui::DragFloat("死亡破片 最大速度", &deathMaxSpeed, 0.1f, 0.5f, 20.0f, "%.2f"))
+	{
+		EnemyBase::SetDeathMaxSpeed(deathMaxSpeed);
+	}
+	float deathMaxAngularSpeed = EnemyBase::GetDeathMaxAngularSpeed();
+	if (ImGui::DragFloat("死亡破片 最大回転速度", &deathMaxAngularSpeed, 0.1f, 0.5f, 20.0f, "%.2f"))
+	{
+		EnemyBase::SetDeathMaxAngularSpeed(deathMaxAngularSpeed);
+	}
+	float deathPieceLifetime = EnemyBase::GetDeathPieceLifetime();
+	if (ImGui::DragFloat("死亡破片 寿命", &deathPieceLifetime, 0.1f, 0.2f, 5.0f, "%.2f 秒"))
+	{
+		EnemyBase::SetDeathPieceLifetime(deathPieceLifetime);
+	}
 	ImGui::DragInt("クリスタル由来の最大敵数", &maxTotalCrystalSpawnEnemies_, 1.0f, 0, 100);
 	maxTotalCrystalSpawnEnemies_ = std::max(0, maxTotalCrystalSpawnEnemies_);
 	ImGui::Text("現在のクリスタル由来敵数: %d", GetAliveCrystalSpawnEnemyCount());

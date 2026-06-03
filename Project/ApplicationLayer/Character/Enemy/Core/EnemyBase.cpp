@@ -19,6 +19,10 @@ using namespace Ken4lowEngine;
 const std::vector<Ken4lowEngine::AABB>* EnemyBase::g_worldAABBs_ = nullptr;
 const std::vector<Ken4lowEngine::AABB>* EnemyBase::g_floorAABBs_ = nullptr;
 const std::vector<Ken4lowEngine::AABB>* EnemyBase::g_navigationObstacleAABBs_ = nullptr;
+float EnemyBase::s_spawnYOffset_ = 0.15f;
+float EnemyBase::s_deathMaxSpeed_ = 7.0f;
+float EnemyBase::s_deathMaxAngularSpeed_ = 5.0f;
+float EnemyBase::s_deathPieceLifetime_ = 1.8f;
 
 namespace
 {
@@ -56,6 +60,17 @@ namespace
 		// 簡易：立方体→正規化
 		Vector3 v{ RandRange(-1.0f, 1.0f), RandRange(-1.0f, 1.0f), RandRange(-1.0f, 1.0f) };
 		return NormalizeSafe(v, { 0.0f, 1.0f, 0.0f });
+	}
+
+	static Vector3 ClampVectorLength(const Vector3& v, float maxLength)
+	{
+		const float safeMaxLength = std::max(0.0f, maxLength);
+		const float len = Length(v);
+		if (len <= safeMaxLength || len < 1e-6f)
+		{
+			return v;
+		}
+		return v * (safeMaxLength / len);
 	}
 }
 
@@ -258,11 +273,12 @@ Vector3 EnemyBase::CorrectSpawnPosition(const Vector3& requestedPosition) const
 	for (const Vector3& offset : offsets)
 	{
 		Vector3 candidate = requestedPosition + offset;
-		candidate.y = FindGroundY(candidate) + obbHalf_.y;
+		// 地面への埋まりを防ぐため、スポーン時にモデルの高さ分と微小なY補正を足す。
+		candidate.y = FindGroundY(candidate) + obbHalf_.y + s_spawnYOffset_;
 		if (!OverlapsNavigationObstacle(candidate)) { return candidate; }
 	}
 	Vector3 fallback = requestedPosition;
-	fallback.y = FindGroundY(fallback) + obbHalf_.y;
+	fallback.y = FindGroundY(fallback) + obbHalf_.y + s_spawnYOffset_;
 	return fallback;
 }
 
@@ -517,6 +533,26 @@ void EnemyBase::SetGlobalStageNavigationObstacleAABBs(const std::vector<K4E::AAB
 	g_navigationObstacleAABBs_ = aabbs;
 }
 
+void EnemyBase::SetSpawnYOffset(float offset)
+{
+	s_spawnYOffset_ = std::clamp(offset, 0.0f, 0.5f);
+}
+
+void EnemyBase::SetDeathMaxSpeed(float speed)
+{
+	s_deathMaxSpeed_ = std::clamp(speed, 0.5f, 20.0f);
+}
+
+void EnemyBase::SetDeathMaxAngularSpeed(float speed)
+{
+	s_deathMaxAngularSpeed_ = std::clamp(speed, 0.5f, 20.0f);
+}
+
+void EnemyBase::SetDeathPieceLifetime(float lifetime)
+{
+	s_deathPieceLifetime_ = std::clamp(lifetime, 0.2f, 5.0f);
+}
+
 void EnemyBase::SpawnHitEffectAt(const K4E::Vector3& worldPos)
 {
 	if (!particleEffectSystem_)
@@ -621,8 +657,14 @@ void EnemyBase::DetachAllPartsToWorldSpace()
 /// -------------------------------------------------------------
 void EnemyBase::StartBreakApartDeath()
 {
+	if (deathBreakActive_ && !deathPieces_.empty())
+	{
+		return;
+	}
+
 	deathPieces_.clear();
 	deathBreakActive_ = true;
+	deathSimDuration_ = s_deathPieceLifetime_;
 	deathTimer_ = deathSimDuration_;
 
 	DetachAllPartsToWorldSpace();
@@ -632,8 +674,9 @@ void EnemyBase::StartBreakApartDeath()
 
 	const Vector3 center = GetCenterPosition();
 	const Vector3 hitDir = NormalizeSafe(lastHitDir_, { 0, 0, 1 });
-	const float power = (lastHitPower_ > 0.0f) ? lastHitPower_ : 1.0f;
-	const float upPower = std::max(0.0f, lastHitUpPower_);
+	const float power = std::clamp((lastHitPower_ > 0.0f) ? lastHitPower_ : 1.0f, 0.2f, 1.2f);
+	const float upPower = std::clamp(lastHitUpPower_, 0.2f, 1.2f);
+	deathGroundY_ = FindGroundY(center) + 0.05f;
 
 	// 体（重め）
 	{
@@ -643,8 +686,8 @@ void EnemyBase::StartBreakApartDeath()
 		const Vector3 fromCenter = NormalizeSafe(body_.transform.translate_ - center);
 		const Vector3 dir = NormalizeSafe(fromCenter + RandomUnit() * 0.35f + hitDir * p.hitBias);
 		const float speed = RandRange(2.0f, 4.5f) * power;
-		p.velocity = dir * speed + Vector3{ 0.0f, RandRange(1.0f, 3.0f) * upPower, 0.0f };
-		p.angularVel = Vector3{ RandRange(-5.0f, 5.0f), RandRange(-7.0f, 7.0f), RandRange(-5.0f, 5.0f) };
+		p.velocity = ClampVectorLength(dir * speed + Vector3{ 0.0f, RandRange(1.0f, 3.0f) * upPower, 0.0f }, s_deathMaxSpeed_);
+		p.angularVel = ClampVectorLength(Vector3{ RandRange(-3.0f, 3.0f), RandRange(-4.0f, 4.0f), RandRange(-3.0f, 3.0f) }, s_deathMaxAngularSpeed_);
 		deathPieces_.push_back(p);
 	}
 
@@ -663,8 +706,8 @@ void EnemyBase::StartBreakApartDeath()
 		const float speed = RandRange(3.0f, 6.5f) * power;
 		const float up = (i == partIndices_.head) ? RandRange(2.0f, 4.0f) : RandRange(1.2f, 3.2f);
 
-		p.velocity = dir * speed + Vector3{ 0.0f, up * upPower, 0.0f };
-		p.angularVel = Vector3{ RandRange(-10.0f, 10.0f), RandRange(-14.0f, 14.0f), RandRange(-10.0f, 10.0f) };
+		p.velocity = ClampVectorLength(dir * speed + Vector3{ 0.0f, up * upPower, 0.0f }, s_deathMaxSpeed_);
+		p.angularVel = ClampVectorLength(Vector3{ RandRange(-4.0f, 4.0f), RandRange(-5.0f, 5.0f), RandRange(-4.0f, 4.0f) }, s_deathMaxAngularSpeed_);
 		deathPieces_.push_back(p);
 	}
 }
@@ -674,6 +717,8 @@ void EnemyBase::StartBreakApartDeath()
 /// -------------------------------------------------------------
 void EnemyBase::UpdateBreakApartDeath(float dt)
 {
+	// 死亡演出が暴れないように、破片の速度と回転速度を制限する。
+	dt = std::clamp(dt, 0.0f, kMaxUpdateDeltaTime);
 	// 念のため：死亡した瞬間に OnKilled が呼ばれない派生があっても演出を走らせる
 	if (!deathBreakActive_)
 	{
@@ -702,12 +747,14 @@ void EnemyBase::UpdateBreakApartDeath(float dt)
 
 		// 重力
 		p.velocity.y -= gravity_ * dt;
+		p.velocity = ClampVectorLength(p.velocity, s_deathMaxSpeed_);
+		p.angularVel = ClampVectorLength(p.angularVel, s_deathMaxAngularSpeed_);
 
 		// 減衰
 		const float linD = std::max(0.0f, 1.0f - deathLinearDamping_ * dt);
 		const float angD = std::max(0.0f, 1.0f - deathAngularDamping_ * dt);
-		p.velocity = p.velocity * linD;
-		p.angularVel = p.angularVel * angD;
+		p.velocity = ClampVectorLength(p.velocity * linD, s_deathMaxSpeed_);
+		p.angularVel = ClampVectorLength(p.angularVel * angD, s_deathMaxAngularSpeed_);
 
 		// 位置・回転
 		p.part->transform.translate_ = p.part->transform.translate_ + p.velocity * dt;

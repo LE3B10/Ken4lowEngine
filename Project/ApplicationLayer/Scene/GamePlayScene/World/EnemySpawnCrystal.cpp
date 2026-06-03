@@ -12,6 +12,8 @@
 
 using namespace Ken4lowEngine;
 
+float EnemySpawnCrystal::s_spawnYOffset_ = 0.15f;
+
 namespace
 {
 	bool OverlapsObstacle(const Vector3& center, const Vector3& half, const std::vector<AABB>* obstacles)
@@ -26,7 +28,7 @@ namespace
 		return false;
 	}
 
-	Vector3 SnapCrystalPosition(const Vector3& requested, const Vector3& scale, const std::vector<AABB>* floors, const std::vector<AABB>* obstacles)
+	Vector3 SnapCrystalPosition(const Vector3& requested, const Vector3& scale, const std::vector<AABB>* floors, const std::vector<AABB>* obstacles, float spawnYOffset)
 	{
 		const Vector3 half{ std::fabs(scale.x) * 0.5f, std::fabs(scale.y) * 0.5f, std::fabs(scale.z) * 0.5f };
 		const Vector3 offsets[] = { {}, { 2.0f, 0.0f, 0.0f }, { -2.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 2.0f }, { 0.0f, 0.0f, -2.0f } };
@@ -43,12 +45,22 @@ namespace
 					{ groundY = std::max(groundY, floor.max.y); }
 				}
 			}
-			// Cube仮モデルは中心基準なので、半高さを足して足元を地面へ載せる。
-			candidate.y = groundY + half.y;
+			// Cube仮モデルは中心基準なので、半高さとY補正を足して足元を地面へ載せる。
+			candidate.y = groundY + half.y + spawnYOffset;
 			if (!OverlapsObstacle(candidate, half, obstacles)) { return candidate; }
 		}
 		Vector3 fallback = requested;
-		fallback.y = half.y;
+		float fallbackGroundY = 0.0f;
+		if (floors)
+		{
+			for (const AABB& floor : *floors)
+			{
+				if (fallback.x >= floor.min.x - half.x && fallback.x <= floor.max.x + half.x &&
+					fallback.z >= floor.min.z - half.z && fallback.z <= floor.max.z + half.z && floor.max.y <= requested.y + half.y + 0.5f)
+				{ fallbackGroundY = std::max(fallbackGroundY, floor.max.y); }
+			}
+		}
+		fallback.y = fallbackGroundY + half.y + spawnYOffset;
 		return fallback;
 	}
 
@@ -61,7 +73,7 @@ namespace
 
 void EnemySpawnCrystal::Initialize(const CrystalSpawnPoint& spawnPoint, const std::vector<AABB>* floorAABBs, const std::vector<AABB>* obstacleAABBs)
 {
-	position_ = SnapCrystalPosition(spawnPoint.position, spawnPoint.scale, floorAABBs, obstacleAABBs);
+	position_ = SnapCrystalPosition(spawnPoint.position, spawnPoint.scale, floorAABBs, obstacleAABBs, s_spawnYOffset_);
 	rotation_ = spawnPoint.rotation;
 	scale_ = spawnPoint.scale;
 	isAlive = true;
@@ -153,6 +165,11 @@ bool EnemySpawnCrystal::CanSpawnEnemy() const
 void EnemySpawnCrystal::SetMaxAliveEnemies(int count)
 {
 	maxAliveEnemies = std::max(0, count);
+}
+
+void EnemySpawnCrystal::SetSpawnYOffset(float offset)
+{
+	s_spawnYOffset_ = std::clamp(offset, 0.0f, 0.5f);
 }
 
 void EnemySpawnCrystal::RemoveInactiveSpawnedEnemies(const CharacterWorld& characters)

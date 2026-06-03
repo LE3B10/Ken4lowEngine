@@ -131,6 +131,14 @@ public:
 	static constexpr bool IsGroundSnapEnabled() { return true; }
 	static constexpr bool IsWorldBoundsEnabled() { return true; }
 	static constexpr float GetMaxPushOutPerFrame() { return kMaxPushOutPerFrame; }
+	static float GetSpawnYOffset() { return s_spawnYOffset_; }
+	static void SetSpawnYOffset(float offset);
+	static float GetDeathMaxSpeed() { return s_deathMaxSpeed_; }
+	static void SetDeathMaxSpeed(float speed);
+	static float GetDeathMaxAngularSpeed() { return s_deathMaxAngularSpeed_; }
+	static void SetDeathMaxAngularSpeed(float speed);
+	static float GetDeathPieceLifetime() { return s_deathPieceLifetime_; }
+	static void SetDeathPieceLifetime(float lifetime);
 	int GetStuckDetectionCount() const { return stuckDetectionCount_; }
 	int GetStuckRecoveryCount() const { return stuckRecoveryCount_; }
 
@@ -248,6 +256,11 @@ protected:
 	float deathFriction_ = 0.7f;      // 0..1
 	float deathGroundY_ = 0.0f;       // とりあえず床はY=0想定（必要なら拡張）
 	std::vector<DeathPiece> deathPieces_;
+
+	static float s_spawnYOffset_;
+	static float s_deathMaxSpeed_;
+	static float s_deathMaxAngularSpeed_;
+	static float s_deathPieceLifetime_;
 
 	EnemyParticleEffectSystem* particleEffectSystem_ = nullptr;
 

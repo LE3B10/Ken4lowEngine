@@ -1212,6 +1212,25 @@ void MidRangeEnemy::DrawImGui()
         ImGui::Text("構え中: %s", bombAttackState_.casting ? "はい" : "いいえ");
         ImGui::Text("クールダウン残り: %.2f", bombAttackState_.cooldownTimer);
         ImGui::Text("現在爆弾数: %d", static_cast<int>(bombs_.size()));
+        bool bombCubeVisible = MidRangeBombProjectile::IsDebugCubeVisible();
+        if (ImGui::Checkbox("爆弾Cube表示", &bombCubeVisible))
+        {
+            MidRangeBombProjectile::SetDebugCubeVisible(bombCubeVisible);
+        }
+        float bombCubeSize = MidRangeBombProjectile::GetDebugCubeSize();
+        if (ImGui::DragFloat("爆弾Cubeサイズ", &bombCubeSize, 0.05f, 0.1f, 2.0f, "%.2f"))
+        {
+            MidRangeBombProjectile::SetDebugCubeSize(bombCubeSize);
+        }
+        if (!bombs_.empty())
+        {
+            const Vector3& bombPosition = bombs_.front()->GetPosition();
+            ImGui::Text("爆弾座標: (%.2f, %.2f, %.2f)", bombPosition.x, bombPosition.y, bombPosition.z);
+        }
+        else
+        {
+            ImGui::Text("爆弾座標: なし");
+        }
         ImGui::Text("経路が見つかったか: %s", pathState_.pathFound ? "はい" : "いいえ");
         ImGui::Text("現在ウェイポイント: (%.2f, %.2f, %.2f)", pathState_.currentWaypoint.x, pathState_.currentWaypoint.y, pathState_.currentWaypoint.z);
     }

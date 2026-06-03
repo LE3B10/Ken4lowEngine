@@ -1,6 +1,9 @@
 #pragma once
 
 #include "Vector3.h"
+#include "Object3D.h"
+
+#include <memory>
 struct BombProjectileSettings
 {
     // 追加: 距離に応じた初速調整の基本値。
@@ -41,6 +44,15 @@ public:
     void Explode();
     bool IsAlive() const;
 
+    const Ken4lowEngine::Vector3& GetPosition() const { return position_; }
+    static bool IsDebugCubeVisible() { return s_debugCubeVisible_; }
+    static void SetDebugCubeVisible(bool visible) { s_debugCubeVisible_ = visible; }
+    static float GetDebugCubeSize() { return s_debugCubeSize_; }
+    static void SetDebugCubeSize(float size);
+
+private:
+    void UpdateDebugCube();
+
 private:
     Ken4lowEngine::Vector3 position_{};
     Ken4lowEngine::Vector3 velocity_{};
@@ -50,4 +62,8 @@ private:
     float explosionDrawTimer_ = 0.0f;
     bool exploded_ = false;
     bool alive_ = false;
+    std::unique_ptr<Ken4lowEngine::Object3D> debugCube_;
+
+    static bool s_debugCubeVisible_;
+    static float s_debugCubeSize_;
 };
