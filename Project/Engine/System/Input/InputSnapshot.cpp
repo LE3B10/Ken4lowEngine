@@ -60,7 +60,6 @@ namespace Ken4lowEngine
 		snap.firePressed = input.TriggerMouse(0);
 
 		snap.reloadPressed = input.TriggerKey(DIK_R);
-		snap.meleePressed = input.TriggerKey(DIK_F);
 
 		// --------------------------------------------------
 		// 武器切替

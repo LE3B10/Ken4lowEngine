@@ -39,7 +39,7 @@
         "lungeSelectCooldown": 2.0,
         "maxConsecutiveLunge": 2,
         "maxConsecutiveScratch": 3,
-        "selectedAttackType": 1
+        "selectedAttackType": 0
     },
     "attackPatterns": {
         "lungeScratch": {
@@ -49,7 +49,7 @@
             "forwardMoveDuration": 0.44999998807907104,
             "forwardMoveSpeed": 1.7999999523162842,
             "radius": 0.75,
-            "range": 2.0,
+            "range": 6.011000156402588,
             "recoveryTime": 0.44999998807907104,
             "startTime": 0.1599999964237213
         },
@@ -58,7 +58,7 @@
             "cooldown": 0.25,
             "damage": 8,
             "radius": 0.800000011920929,
-            "range": 2.200000047683716,
+            "range": 3.688999891281128,
             "recoveryTime": 0.3499999940395355,
             "startTime": 0.18000000715255737
         }
@@ -78,12 +78,12 @@
         "deathAnimationStopMoveOnDeath": true
     },
     "detection": {
-        "attackStartRange": 3.503999948501587,
-        "detectRange": 18.0,
-        "meleeAttackRange": 2.799999952316284,
+        "attackStartRange": 4.290999889373779,
+        "detectRange": 25.579999923706055,
+        "meleeAttackRange": 4.122000217437744,
         "minLungeForwardDistance": 1.600000023841858,
         "resumeChaseDistance": 2.799999952316284,
-        "stopDistance": 1.7999999523162842
+        "stopDistance": 2.5290000438690186
     },
     "headLook": {
         "enabled": true,
@@ -111,7 +111,7 @@
     "move": {
         "maxHorizontalPushPerFrame": 0.44999998807907104,
         "maxResolvePushPerFrame": 0.75,
-        "moveSpeed": 3.200000047683716,
+        "moveSpeed": 4.019999980926514,
         "obstacleTopLandingEnabled": true,
         "obstacleTopLandingMaxHeight": 3.5,
         "obstacleTopLandingMinHorizontalOverlap": 0.20000000298023224,
