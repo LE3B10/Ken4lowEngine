@@ -93,9 +93,6 @@ private: /// ---------- 初期化 / 終了系 ---------- ///
 	// HP連動ポストエフェクトを初期化して被弾通知を接続する
 	void InitializeHealthPostEffectController();
 
-	// GamePlaySceneから敵パラメータ調整ImGuiをまとめて開く。
-	void DrawEnemyTuningImGui();
-
 	// 生成済みオブジェクトの破棄
 	void ReleaseGameplayObjects();
 
