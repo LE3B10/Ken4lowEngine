@@ -357,59 +357,57 @@ void CharacterWorld::DrawEnemyDebugImGui()
 #endif
 }
 
-void CharacterWorld::DrawMeleeEnemyTuningImGuiContent()
+void CharacterWorld::DrawEnemyTuningImGui()
 {
 #ifdef USE_IMGUI
 	MeleeEnemy* representativeMelee = nullptr;
+	MidRangeEnemy* representativeMidRange = nullptr;
+	EnemyBase* representativeLegacy = nullptr;
+
 	for (const auto& enemy : enemies_)
 	{
 		if (!enemy) { continue; }
-		representativeMelee = dynamic_cast<MeleeEnemy*>(enemy.get());
-		if (representativeMelee) { break; }
+
+		if (!representativeMelee)
+		{
+			representativeMelee = dynamic_cast<MeleeEnemy*>(enemy.get());
+		}
+		if (!representativeMidRange)
+		{
+			representativeMidRange = dynamic_cast<MidRangeEnemy*>(enemy.get());
+		}
+		if (!representativeLegacy && !dynamic_cast<MeleeEnemy*>(enemy.get()) && !dynamic_cast<MidRangeEnemy*>(enemy.get()))
+		{
+			representativeLegacy = enemy.get();
+		}
 	}
 
+	// GamePlaySceneから各敵のパラメータ調整ImGuiを呼び出せるようにする。
+	ImGui::SeparatorText("近接雑魚敵パラメータ");
 	if (representativeMelee)
 	{
-		representativeMelee->DrawTuningImGuiContent();
+		representativeMelee->DrawImGui();
 	}
 	else
 	{
 		ImGui::TextUnformatted("近接雑魚敵の代表個体がいません。");
 	}
-#endif
-}
 
-void CharacterWorld::DrawMidRangeEnemyTuningImGuiContent()
-{
-#ifdef USE_IMGUI
-	MidRangeEnemy* representativeMidRange = nullptr;
-	for (const auto& enemy : enemies_)
-	{
-		if (!enemy) { continue; }
-		representativeMidRange = dynamic_cast<MidRangeEnemy*>(enemy.get());
-		if (representativeMidRange) { break; }
-	}
-
+	ImGui::SeparatorText("中距離雑魚敵パラメータ");
 	if (representativeMidRange)
 	{
-		representativeMidRange->DrawTuningImGuiContent();
+		representativeMidRange->DrawImGui();
 	}
 	else
 	{
 		ImGui::TextUnformatted("中距離雑魚敵の代表個体がいません。");
 	}
-#endif
-}
 
-void CharacterWorld::DrawEnemyTuningImGui()
-{
-#ifdef USE_IMGUI
-	// GamePlayScene側の共通ウィンドウ内から呼ばれる中身専用描画をまとめて呼ぶ。
-	ImGui::SeparatorText("近接雑魚敵パラメータ");
-	DrawMeleeEnemyTuningImGuiContent();
-
-	ImGui::SeparatorText("中距離雑魚敵パラメータ");
-	DrawMidRangeEnemyTuningImGuiContent();
+	if (representativeLegacy)
+	{
+		ImGui::SeparatorText("旧Enemy代表パラメータ");
+		representativeLegacy->DrawImGui();
+	}
 #endif
 }
 
