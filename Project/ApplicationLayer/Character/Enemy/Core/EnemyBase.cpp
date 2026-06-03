@@ -20,8 +20,8 @@ const std::vector<Ken4lowEngine::AABB>* EnemyBase::g_worldAABBs_ = nullptr;
 const std::vector<Ken4lowEngine::AABB>* EnemyBase::g_floorAABBs_ = nullptr;
 const std::vector<Ken4lowEngine::AABB>* EnemyBase::g_navigationObstacleAABBs_ = nullptr;
 float EnemyBase::s_spawnYOffset_ = 0.15f;
-float EnemyBase::s_deathMaxSpeed_ = 7.0f;
-float EnemyBase::s_deathMaxAngularSpeed_ = 5.0f;
+float EnemyBase::s_deathMaxSpeed_ = 2.4f;
+float EnemyBase::s_deathMaxAngularSpeed_ = 3.0f;
 float EnemyBase::s_deathPieceLifetime_ = 1.8f;
 Vector3 EnemyBase::s_lastDebugPlayerPosition_ = { 0.0f, 0.0f, 0.0f };
 Vector3 EnemyBase::s_lastDebugAttackCenter_ = { 0.0f, 0.0f, 0.0f };
@@ -194,8 +194,11 @@ void EnemyBase::Initialize()
 	deathEnemyPosition_ = GetCenterPosition();
 	deathEffectOrigin_ = deathEnemyPosition_;
 	deathEffectRotation_ = orientation_;
+	deathEffectScale_ = body_.transform.scale_;
+	CaptureDeathPartInitialTransforms();
 	deathDebugPlayerPosition_ = s_lastDebugPlayerPosition_;
 	deathDebugAttackCenter_ = s_lastDebugAttackCenter_;
+	deathBreakInitializeCount_ = 0;
 	deathTimer_ = 0.0f;
 	deathPieces_.clear();
 	lastHitDir_ = { 0, 0, 0 };
@@ -445,6 +448,13 @@ void EnemyBase::DrawImGui()
 #ifdef USE_IMGUI
 	ImGui::Text("死亡敵座標: %.2f, %.2f, %.2f", deathEnemyPosition_.x, deathEnemyPosition_.y, deathEnemyPosition_.z);
 	ImGui::Text("死亡演出原点: %.2f, %.2f, %.2f", deathEffectOrigin_.x, deathEffectOrigin_.y, deathEffectOrigin_.z);
+	ImGui::Text("胴体初期座標: %.2f, %.2f, %.2f", deathBodyInitialPosition_.x, deathBodyInitialPosition_.y, deathBodyInitialPosition_.z);
+	ImGui::Text("頭初期座標: %.2f, %.2f, %.2f", deathHeadInitialPosition_.x, deathHeadInitialPosition_.y, deathHeadInitialPosition_.z);
+	ImGui::Text("左腕初期座標: %.2f, %.2f, %.2f", deathLeftArmInitialPosition_.x, deathLeftArmInitialPosition_.y, deathLeftArmInitialPosition_.z);
+	ImGui::Text("右腕初期座標: %.2f, %.2f, %.2f", deathRightArmInitialPosition_.x, deathRightArmInitialPosition_.y, deathRightArmInitialPosition_.z);
+	ImGui::Text("左脚初期座標: %.2f, %.2f, %.2f", deathLeftLegInitialPosition_.x, deathLeftLegInitialPosition_.y, deathLeftLegInitialPosition_.z);
+	ImGui::Text("右脚初期座標: %.2f, %.2f, %.2f", deathRightLegInitialPosition_.x, deathRightLegInitialPosition_.y, deathRightLegInitialPosition_.z);
+	ImGui::Text("死亡演出初期化回数: %d", deathBreakInitializeCount_);
 	ImGui::Text("プレイヤー座標: %.2f, %.2f, %.2f", deathDebugPlayerPosition_.x, deathDebugPlayerPosition_.y, deathDebugPlayerPosition_.z);
 	ImGui::Text("攻撃判定中心: %.2f, %.2f, %.2f", deathDebugAttackCenter_.x, deathDebugAttackCenter_.y, deathDebugAttackCenter_.z);
 	ImGui::Text("DeathHitPower: %.2f Up: %.2f", lastHitPower_, lastHitUpPower_);
@@ -554,12 +564,12 @@ void EnemyBase::SetSpawnYOffset(float offset)
 
 void EnemyBase::SetDeathMaxSpeed(float speed)
 {
-	s_deathMaxSpeed_ = std::clamp(speed, 0.5f, 20.0f);
+	s_deathMaxSpeed_ = std::clamp(speed, 0.3f, 6.0f);
 }
 
 void EnemyBase::SetDeathMaxAngularSpeed(float speed)
 {
-	s_deathMaxAngularSpeed_ = std::clamp(speed, 0.5f, 20.0f);
+	s_deathMaxAngularSpeed_ = std::clamp(speed, 0.3f, 8.0f);
 }
 
 void EnemyBase::SetDeathPieceLifetime(float lifetime)
@@ -684,15 +694,46 @@ void EnemyBase::CaptureDeathEffectOrigin()
 	deathEnemyPosition_ = GetCenterPosition();
 	deathEffectOrigin_ = deathEnemyPosition_;
 	deathEffectRotation_ = orientation_;
+	deathEffectScale_ = body_.transform.scale_;
+	CaptureDeathPartInitialTransforms();
 	deathDebugPlayerPosition_ = s_lastDebugPlayerPosition_;
 	deathDebugAttackCenter_ = s_lastDebugAttackCenter_;
 	hasDeathEffectOrigin_ = true;
+}
+
+void EnemyBase::CaptureDeathPartInitialTransforms()
+{
+	deathBodyInitialPosition_ = deathEffectOrigin_;
+	deathHeadInitialPosition_ = deathEffectOrigin_;
+	deathLeftArmInitialPosition_ = deathEffectOrigin_;
+	deathRightArmInitialPosition_ = deathEffectOrigin_;
+	deathLeftLegInitialPosition_ = deathEffectOrigin_;
+	deathRightLegInitialPosition_ = deathEffectOrigin_;
+
+	for (size_t i = 0; i < parts_.size(); ++i)
+	{
+		const Vector3 worldPosition = deathEffectOrigin_ + RotateLocalOffsetByDeathRotation(ApplyDeathScale(parts_[i].transform.translate_));
+		if (i == partIndices_.head) { deathHeadInitialPosition_ = worldPosition; }
+		else if (i == partIndices_.leftArm) { deathLeftArmInitialPosition_ = worldPosition; }
+		else if (i == partIndices_.rightArm) { deathRightArmInitialPosition_ = worldPosition; }
+		else if (i == partIndices_.leftLeg) { deathLeftLegInitialPosition_ = worldPosition; }
+		else if (i == partIndices_.rightLeg) { deathRightLegInitialPosition_ = worldPosition; }
+	}
 }
 
 Vector3 EnemyBase::RotateLocalOffsetByDeathRotation(const Vector3& localOffset) const
 {
 	const Matrix4x4 rotationMatrix = Matrix4x4::MakeRotateMatrix(deathEffectRotation_);
 	return Matrix4x4::Transform(localOffset, rotationMatrix);
+}
+
+Vector3 EnemyBase::ApplyDeathScale(const Vector3& localOffset) const
+{
+	return Vector3{
+		localOffset.x * deathEffectScale_.x,
+		localOffset.y * deathEffectScale_.y,
+		localOffset.z * deathEffectScale_.z
+	};
 }
 
 /// -------------------------------------------------------------
@@ -709,12 +750,13 @@ void EnemyBase::StartBreakApartDeath()
 	deathPieces_.clear();
 	deathBreakActive_ = true;
 	deathBreakInitialized_ = true;
+	++deathBreakInitializeCount_;
 	deathSimDuration_ = s_deathPieceLifetime_;
 	deathTimer_ = deathSimDuration_;
 
-	// 四肢分解演出は攻撃者位置ではなく、敵が死亡したワールド座標を基準に生成する。
+	// すべての死亡部位は敵の死亡時World座標を基準にして、その場で崩れるようにする。
 	body_.transform.parent_ = nullptr;
-	body_.transform.translate_ = deathEffectOrigin_;
+	body_.transform.translate_ = deathBodyInitialPosition_;
 	body_.transform.rotate_ = deathEffectRotation_;
 	body_.transform.Update();
 	if (body_.object)
@@ -724,18 +766,24 @@ void EnemyBase::StartBreakApartDeath()
 		body_.object->Update();
 	}
 
-	for (auto& part : parts_)
+	for (size_t i = 0; i < parts_.size(); ++i)
 	{
-		const Vector3 localOffset = part.transform.translate_;
-		part.transform.parent_ = nullptr;
-		part.transform.translate_ = deathEffectOrigin_ + RotateLocalOffsetByDeathRotation(localOffset);
-		part.transform.rotate_ = deathEffectRotation_;
-		part.transform.Update();
-		if (part.object)
+		Vector3 initialPosition = deathEffectOrigin_ + RotateLocalOffsetByDeathRotation(ApplyDeathScale(parts_[i].transform.translate_));
+		if (i == partIndices_.head) { initialPosition = deathHeadInitialPosition_; }
+		else if (i == partIndices_.leftArm) { initialPosition = deathLeftArmInitialPosition_; }
+		else if (i == partIndices_.rightArm) { initialPosition = deathRightArmInitialPosition_; }
+		else if (i == partIndices_.leftLeg) { initialPosition = deathLeftLegInitialPosition_; }
+		else if (i == partIndices_.rightLeg) { initialPosition = deathRightLegInitialPosition_; }
+
+		parts_[i].transform.parent_ = nullptr;
+		parts_[i].transform.translate_ = initialPosition;
+		parts_[i].transform.rotate_ = deathEffectRotation_;
+		parts_[i].transform.Update();
+		if (parts_[i].object)
 		{
-			part.object->SetTranslate(part.transform.translate_);
-			part.object->SetRotate(part.transform.rotate_);
-			part.object->Update();
+			parts_[i].object->SetTranslate(parts_[i].transform.translate_);
+			parts_[i].object->SetRotate(parts_[i].transform.rotate_);
+			parts_[i].object->Update();
 		}
 	}
 
@@ -754,9 +802,10 @@ void EnemyBase::StartBreakApartDeath()
 		p.hitBias = 0.75f;
 		const Vector3 fromCenter = NormalizeSafe(body_.transform.translate_ - center);
 		const Vector3 dir = NormalizeSafe(fromCenter + RandomUnit() * 0.25f);
-		const float speed = RandRange(1.4f, 2.8f) * power;
-		p.velocity = ClampVectorLength(dir * speed + Vector3{ 0.0f, RandRange(0.8f, 1.8f) * upPower, 0.0f }, s_deathMaxSpeed_);
-		p.angularVel = ClampVectorLength(Vector3{ RandRange(-3.0f, 3.0f), RandRange(-4.0f, 4.0f), RandRange(-3.0f, 3.0f) }, s_deathMaxAngularSpeed_);
+		const float speed = RandRange(0.25f, 0.55f) * power;
+		p.velocity = ClampVectorLength(dir * speed + Vector3{ 0.0f, RandRange(0.25f, 0.55f) * upPower, 0.0f }, s_deathMaxSpeed_);
+		p.angularVel = ClampVectorLength(Vector3{ RandRange(-0.8f, 0.8f), RandRange(-1.0f, 1.0f), RandRange(-0.8f, 0.8f) }, s_deathMaxAngularSpeed_);
+		p.initialPosition = body_.transform.translate_;
 		deathPieces_.push_back(p);
 	}
 
@@ -772,11 +821,12 @@ void EnemyBase::StartBreakApartDeath()
 		const Vector3 fromCenter = NormalizeSafe(parts_[i].transform.translate_ - center);
 		const Vector3 dir = NormalizeSafe(fromCenter + RandomUnit() * 0.35f);
 
-		const float speed = RandRange(1.8f, 3.4f) * power;
-		const float up = (i == partIndices_.head) ? RandRange(1.2f, 2.2f) : RandRange(0.9f, 1.9f);
+		const float speed = RandRange(0.35f, 0.95f) * power;
+		const float up = (i == partIndices_.head) ? RandRange(0.45f, 0.85f) : RandRange(0.35f, 0.75f);
 
 		p.velocity = ClampVectorLength(dir * speed + Vector3{ 0.0f, up * upPower, 0.0f }, s_deathMaxSpeed_);
-		p.angularVel = ClampVectorLength(Vector3{ RandRange(-4.0f, 4.0f), RandRange(-5.0f, 5.0f), RandRange(-4.0f, 4.0f) }, s_deathMaxAngularSpeed_);
+		p.angularVel = ClampVectorLength(Vector3{ RandRange(-1.0f, 1.0f), RandRange(-1.3f, 1.3f), RandRange(-1.0f, 1.0f) }, s_deathMaxAngularSpeed_);
+		p.initialPosition = parts_[i].transform.translate_;
 		deathPieces_.push_back(p);
 	}
 }
@@ -825,9 +875,21 @@ void EnemyBase::UpdateBreakApartDeath(float dt)
 		p.velocity = ClampVectorLength(p.velocity * linD, s_deathMaxSpeed_);
 		p.angularVel = ClampVectorLength(p.angularVel * angD, s_deathMaxAngularSpeed_);
 
-		// 位置・回転
-		p.part->transform.translate_ = p.part->transform.translate_ + p.velocity * dt;
-		p.part->transform.rotate_ = p.part->transform.rotate_ + p.angularVel * dt;
+		// 位置・回転（1フレームの移動量と総移動距離を抑え、爆発ではなくその場で崩す）
+		Vector3 frameMove = ClampVectorLength(p.velocity * dt, 0.08f);
+		p.part->transform.translate_ = p.part->transform.translate_ + frameMove;
+		Vector3 fromInitial = p.part->transform.translate_ - p.initialPosition;
+		const float maxCollapseRadius = 1.35f;
+		const float horizontalDistance = std::sqrt(fromInitial.x * fromInitial.x + fromInitial.z * fromInitial.z);
+		if (horizontalDistance > maxCollapseRadius)
+		{
+			const float inv = maxCollapseRadius / horizontalDistance;
+			p.part->transform.translate_.x = p.initialPosition.x + fromInitial.x * inv;
+			p.part->transform.translate_.z = p.initialPosition.z + fromInitial.z * inv;
+			p.velocity.x *= 0.2f;
+			p.velocity.z *= 0.2f;
+		}
+		p.part->transform.rotate_ = p.part->transform.rotate_ + ClampVectorLength(p.angularVel * dt, 0.10f);
 
 		// 簡易床
 		if (p.part->transform.translate_.y < deathGroundY_)

@@ -462,7 +462,7 @@ void MidRangeEnemy::TakeDamage(int amount)
         fallbackDir = NormalizeXZ(GetCenterPosition() - targetState_.position);
     }
     StartHitReaction(fallbackDir);
-    if (GetHp() <= 0)
+    if (!IsDead() && GetHp() <= 0)
     {
         StartDeathAnimation("DamagedNoDir");
     }
@@ -479,7 +479,7 @@ void MidRangeEnemy::TakeDamage(int amount, const Vector3& hitDir, float hitPower
     // 追加: 被弾方向がある場合は逆方向へノックバックする。
     EnemyBase::TakeDamage(amount, hitDir, hitPower);
     StartHitReaction(hitDir * -1.0f);
-    if (GetHp() <= 0)
+    if (!IsDead() && GetHp() <= 0)
     {
         StartDeathAnimation("DamagedWithDir");
     }
@@ -846,8 +846,9 @@ void MidRangeEnemy::StartDeathAnimation(const std::string& reason)
 
 void MidRangeEnemy::UpdateDeathAnimation(float deltaTime)
 {
-    if (!deathAnimationState_.active)
+    if (!deathAnimationState_.active || IsDead())
     {
+        // EnemyBaseの死亡崩壊中は保存済みWorld座標を動かさない。
         return;
     }
     deathAnimationState_.timer += deltaTime;

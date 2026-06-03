@@ -181,6 +181,7 @@ private:
 		BodyPart* part = nullptr;
 		K4E::Vector3 velocity{ 0, 0, 0 };
 		K4E::Vector3 angularVel{ 0, 0, 0 };
+		K4E::Vector3 initialPosition{ 0, 0, 0 };
 		float hitBias = 0.5f; // 被弾方向の影響（部位ごとに調整）
 	};
 
@@ -188,7 +189,9 @@ private:
 	void UpdateBreakApartDeath(float dt);
 	void DetachAllPartsToWorldSpace();
 	void CaptureDeathEffectOrigin();
+	void CaptureDeathPartInitialTransforms();
 	K4E::Vector3 RotateLocalOffsetByDeathRotation(const K4E::Vector3& localOffset) const;
+	K4E::Vector3 ApplyDeathScale(const K4E::Vector3& localOffset) const;
 
 protected:
 	// ----- humanoid visual -----
@@ -255,15 +258,23 @@ protected:
 	K4E::Vector3 deathEnemyPosition_{};
 	K4E::Vector3 deathEffectOrigin_{};
 	K4E::Vector3 deathEffectRotation_{};
+	K4E::Vector3 deathEffectScale_{ 1.0f, 1.0f, 1.0f };
+	K4E::Vector3 deathBodyInitialPosition_{};
+	K4E::Vector3 deathHeadInitialPosition_{};
+	K4E::Vector3 deathLeftArmInitialPosition_{};
+	K4E::Vector3 deathRightArmInitialPosition_{};
+	K4E::Vector3 deathLeftLegInitialPosition_{};
+	K4E::Vector3 deathRightLegInitialPosition_{};
 	K4E::Vector3 deathDebugPlayerPosition_{};
 	K4E::Vector3 deathDebugAttackCenter_{};
+	int deathBreakInitializeCount_ = 0;
 	float deathTimer_ = 0.0f;
 	float deathSimDuration_ = 1.8f;   // 破片が残る時間
 	float deathFadeDuration_ = 0.6f;  // 最後にフェードする時間
-	float deathLinearDamping_ = 2.0f; // 大きいほどすぐ止まる
-	float deathAngularDamping_ = 2.5f;
-	float deathBounce_ = 0.25f;       // 0..1
-	float deathFriction_ = 0.7f;      // 0..1
+	float deathLinearDamping_ = 4.0f; // 大きいほどすぐ止まる
+	float deathAngularDamping_ = 5.0f;
+	float deathBounce_ = 0.08f;       // 0..1
+	float deathFriction_ = 0.45f;     // 0..1
 	float deathGroundY_ = 0.0f;       // とりあえず床はY=0想定（必要なら拡張）
 	std::vector<DeathPiece> deathPieces_;
 
