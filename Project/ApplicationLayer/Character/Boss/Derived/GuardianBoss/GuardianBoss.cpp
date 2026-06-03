@@ -850,3 +850,8 @@ void GuardianBoss::DrawImGui()
 	ImGui::End();
 #endif
 }
+
+int GuardianBoss::GetMeleeHitCount() const
+{
+	return std::max(0, receivedHitCount_ - bulletHitCount_);
+}

@@ -1,3 +1,4 @@
+#define NOMINMAX
 #include "PlayerMeleeComponent.h"
 #include "PlayerViewComponent.h"
 #include "CollisionManager.h"
@@ -12,6 +13,8 @@
 #include <cmath>
 #include <sstream>
 #include <string>
+
+using namespace Ken4lowEngine;
 
 namespace
 {
