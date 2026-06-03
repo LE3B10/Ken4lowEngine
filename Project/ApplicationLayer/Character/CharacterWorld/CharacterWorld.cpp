@@ -267,6 +267,21 @@ void CharacterWorld::DrawPlayerDebugImGui()
 void CharacterWorld::DrawEnemyDebugImGui()
 {
 #ifdef USE_IMGUI
+	int totalStuckDetections = 0;
+	int totalStuckRecoveries = 0;
+	for (const auto& enemy : enemies_)
+	{
+		if (!enemy) { continue; }
+		totalStuckDetections += enemy->GetStuckDetectionCount();
+		totalStuckRecoveries += enemy->GetStuckRecoveryCount();
+	}
+	ImGui::Text("スタック検出回数: %d", totalStuckDetections);
+	ImGui::Text("スタック復帰回数: %d", totalStuckRecoveries);
+	if (!enemies_.empty() && enemies_.front())
+	{
+		const Vector3 pos = enemies_.front()->GetCenterPosition();
+		ImGui::Text("敵の現在座標: (%.2f, %.2f, %.2f)", pos.x, pos.y, pos.z);
+	}
 	// 旧Enemyを段階的に置き換えるため、通常ゲーム上の敵種別ごとの生成数を確認する。
 	std::array<int, 3> liveEnemyCounts{};
 	for (const auto& enemy : enemies_)

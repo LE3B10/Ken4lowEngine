@@ -4,6 +4,7 @@
 #include "Collider.h"
 #include "Object3D.h"
 #include "Vector3.h"
+#include "AABB.h"
 
 #include <memory>
 #include <vector>
@@ -32,7 +33,7 @@ struct CrystalSpawnPoint
 class EnemySpawnCrystal : public K4E::Collider
 {
 public:
-	void Initialize(const CrystalSpawnPoint& spawnPoint);
+	void Initialize(const CrystalSpawnPoint& spawnPoint, const std::vector<K4E::AABB>* floorAABBs = nullptr, const std::vector<K4E::AABB>* obstacleAABBs = nullptr);
 	void Update(const CharacterWorld& characters);
 	void Draw() const;
 	void ApplyDamage(int damage);
@@ -55,6 +56,7 @@ public:
 	bool IsBossSpawnTrigger() const { return spawnBossTrigger_; }
 	const K4E::Vector3& GetPosition() const { return position_; }
 	const K4E::Vector3& GetScale() const { return scale_; }
+	static constexpr bool IsGroundSnapEnabled() { return true; }
 
 	void SetInfiniteSpawnEnabled(bool enabled) { enableInfiniteSpawn = enabled; }
 	void SetSpawnEnemyType(EnemyType enemyType) { spawnEnemyType = enemyType; }

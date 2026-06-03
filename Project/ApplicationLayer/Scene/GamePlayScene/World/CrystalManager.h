@@ -12,7 +12,7 @@ class CollisionManager;
 class CrystalManager
 {
 public:
-	void Initialize(const std::vector<CrystalSpawnPoint>& spawnPoints, CollisionManager* collisionManager = nullptr);
+	void Initialize(const std::vector<CrystalSpawnPoint>& spawnPoints, CollisionManager* collisionManager = nullptr, const std::vector<K4E::AABB>* floorAABBs = nullptr, const std::vector<K4E::AABB>* obstacleAABBs = nullptr);
 	void Update(CharacterWorld& characters, float deltaTime);
 	void Draw() const;
 	void DrawImGui();

@@ -18,7 +18,11 @@ namespace K4E = ::Ken4lowEngine;
 /// -------------------------------------------------------------
 void CollisionManager::Initialize()
 {
+#ifdef _DEBUG
 	isCollider_ = true;
+#else
+	isCollider_ = false;
+#endif
 	K4E::ParameterManager::GetInstance()->CreateGroup("K4E::Collider");
 	K4E::ParameterManager::GetInstance()->AddItem("K4E::Collider", "isCollider", isCollider_);
 
@@ -31,7 +35,12 @@ void CollisionManager::Initialize()
 /// -------------------------------------------------------------
 void CollisionManager::Update()
 {
+#ifdef _DEBUG
 	isCollider_ = K4E::ParameterManager::GetInstance()->GetValue<bool>("K4E::Collider", "isCollider");
+#else
+	// Releaseビルドでは保存済みパラメータがtrueでもColliderワイヤーを復活させない。
+	isCollider_ = false;
+#endif
 
 	// Collider 本体の Update はデバッグ用（Wireframeなど）
 	for (K4E::Collider* collider : all_) collider->Update();
@@ -42,6 +51,9 @@ void CollisionManager::Update()
 /// -------------------------------------------------------------
 void CollisionManager::Draw()
 {
+#ifndef _DEBUG
+	return;
+#endif
 	if (!isCollider_) return;
 
 	for (K4E::Collider* collider : all_)
