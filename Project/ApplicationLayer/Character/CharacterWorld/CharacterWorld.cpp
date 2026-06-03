@@ -156,6 +156,25 @@ EnemyBase& CharacterWorld::SpawnEnemyAt(const K4E::Vector3& position, EnemyType 
 	return SpawnEnemy(request);
 }
 
+int CharacterWorld::GetAliveNormalEnemyCount() const
+{
+	int aliveCount = 0;
+	for (const auto& enemy : enemies_)
+	{
+		if (!enemy || enemy->IsDead())
+		{
+			continue;
+		}
+
+		// ボスやクリスタルはCharacterWorldの雑魚敵配列に入れず、近接/中距離雑魚敵だけを進行条件に使う。
+		if (dynamic_cast<const MeleeEnemy*>(enemy.get()) || dynamic_cast<const MidRangeEnemy*>(enemy.get()))
+		{
+			++aliveCount;
+		}
+	}
+	return aliveCount;
+}
+
 void CharacterWorld::ClearEnemies()
 {
 	notifiedKilledEnemies_.clear();
