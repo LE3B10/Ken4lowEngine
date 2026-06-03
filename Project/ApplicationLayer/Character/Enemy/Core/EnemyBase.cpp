@@ -20,6 +20,9 @@ const std::vector<Ken4lowEngine::AABB>* EnemyBase::g_worldAABBs_ = nullptr;
 const std::vector<Ken4lowEngine::AABB>* EnemyBase::g_floorAABBs_ = nullptr;
 const std::vector<Ken4lowEngine::AABB>* EnemyBase::g_navigationObstacleAABBs_ = nullptr;
 float EnemyBase::s_spawnYOffset_ = 0.15f;
+bool EnemyBase::s_deathExplosionEnabled_ = true;
+float EnemyBase::s_deathExplodePower_ = 3.0f;
+float EnemyBase::s_deathUpwardPower_ = 1.4f;
 float EnemyBase::s_deathMaxSpeed_ = 7.0f;
 float EnemyBase::s_deathMaxAngularSpeed_ = 5.0f;
 float EnemyBase::s_deathPieceLifetime_ = 1.8f;
@@ -488,6 +491,18 @@ void EnemyBase::DrawImGui()
 	ImGui::Text("プレイヤー座標(比較のみ): %.2f, %.2f, %.2f", deathDebugPlayerPosition_.x, deathDebugPlayerPosition_.y, deathDebugPlayerPosition_.z);
 	ImGui::Text("攻撃判定中心(比較のみ): %.2f, %.2f, %.2f", deathDebugAttackCenter_.x, deathDebugAttackCenter_.y, deathDebugAttackCenter_.z);
 	ImGui::Text("DeathHitPower: %.2f Up: %.2f", lastHitPower_, lastHitUpPower_);
+	ImGui::SeparatorText("死亡部位 爆散調整");
+	ImGui::Checkbox("死亡部位 爆散有効", &s_deathExplosionEnabled_);
+	ImGui::SliderFloat("死亡部位 爆散力", &s_deathExplodePower_, 0.0f, 8.0f, "%.2f");
+	ImGui::SliderFloat("死亡部位 上方向力", &s_deathUpwardPower_, 0.0f, 5.0f, "%.2f");
+	ImGui::SliderFloat("死亡部位 最大速度", &s_deathMaxSpeed_, 0.5f, 12.0f, "%.2f");
+	ImGui::SliderFloat("死亡部位 最大回転速度", &s_deathMaxAngularSpeed_, 0.5f, 10.0f, "%.2f");
+	ImGui::SliderFloat("死亡部位 寿命", &s_deathPieceLifetime_, 0.2f, 5.0f, "%.2f 秒");
+	SetDeathExplodePower(s_deathExplodePower_);
+	SetDeathUpwardPower(s_deathUpwardPower_);
+	SetDeathMaxSpeed(s_deathMaxSpeed_);
+	SetDeathMaxAngularSpeed(s_deathMaxAngularSpeed_);
+	SetDeathPieceLifetime(s_deathPieceLifetime_);
 	if (body_.object) body_.object->DrawImGui();
 
 	for (auto& part : parts_)
@@ -592,6 +607,21 @@ void EnemyBase::SetGlobalStageNavigationObstacleAABBs(const std::vector<K4E::AAB
 void EnemyBase::SetSpawnYOffset(float offset)
 {
 	s_spawnYOffset_ = std::clamp(offset, 0.0f, 0.5f);
+}
+
+void EnemyBase::SetDeathExplosionEnabled(bool enabled)
+{
+	s_deathExplosionEnabled_ = enabled;
+}
+
+void EnemyBase::SetDeathExplodePower(float power)
+{
+	s_deathExplodePower_ = std::clamp(power, 0.0f, 12.0f);
+}
+
+void EnemyBase::SetDeathUpwardPower(float power)
+{
+	s_deathUpwardPower_ = std::clamp(power, 0.0f, 8.0f);
 }
 
 void EnemyBase::SetDeathMaxSpeed(float speed)
@@ -851,7 +881,7 @@ void EnemyBase::StartBreakApartDeath(const Vector3& deathOrigin, const Vector3& 
 	const Vector3 center = deathEffectOrigin_;
 	deathGroundY_ = FindGroundY(center) + 0.05f;
 
-	auto makeCollapsePiece = [this, &center](BodyPart* part, bool isHead, float scatterScale, float liftMin, float liftMax, float speedMin, float speedMax) {
+	auto makeCollapsePiece = [this, &center](BodyPart* part, float outwardScale, float upwardScale, float angularScale) {
 		DeathPiece p{};
 		p.part = part;
 		if (!part)
@@ -860,29 +890,38 @@ void EnemyBase::StartBreakApartDeath(const Vector3& deathOrigin, const Vector3& 
 		}
 
 		Vector3 fromCenter = part->transform.translate_ - center;
-		fromCenter.y = 0.0f;
 		Vector3 outward = NormalizeSafe(fromCenter, { 0.0f, 0.0f, 1.0f });
-		Vector3 jitter = RandomUnit();
-		jitter.y = 0.0f;
-		jitter = NormalizeSafe(jitter, outward);
-		const Vector3 dir = NormalizeSafe(outward * 0.85f + jitter * 0.15f, outward);
-		const float speed = RandRange(speedMin, speedMax) * scatterScale;
-		const float lift = RandRange(liftMin, liftMax);
+		Vector3 horizontalJitter = RandomUnit();
+		horizontalJitter.y = 0.0f;
+		horizontalJitter = NormalizeSafe(horizontalJitter, { outward.x, 0.0f, outward.z });
+		const Vector3 dir = NormalizeSafe(outward * 0.9f + horizontalJitter * 0.1f, outward);
+		const float enabledScale = s_deathExplosionEnabled_ ? 1.0f : 0.15f;
+		const float speed = s_deathExplodePower_ * outwardScale * enabledScale * RandRange(0.85f, 1.15f);
+		const float lift = s_deathUpwardPower_ * upwardScale * enabledScale * RandRange(0.85f, 1.15f);
+		// 死亡位置を基準にしたまま、各部位へ外向きの初速度を与えて爆散感を出す。
 		p.velocity = ClampVectorLength(dir * speed + Vector3{ 0.0f, lift, 0.0f }, s_deathMaxSpeed_);
-		const float angular = isHead ? 1.15f : 0.85f;
 		p.angularVel = ClampVectorLength(Vector3{
-			RandRange(-1.2f, 1.2f) * angular,
-			RandRange(-1.6f, 1.6f) * angular,
-			RandRange(-1.2f, 1.2f) * angular }, s_deathMaxAngularSpeed_);
+			RandRange(-1.1f, 1.1f) * angularScale,
+			RandRange(-1.4f, 1.4f) * angularScale,
+			RandRange(-1.1f, 1.1f) * angularScale }, s_deathMaxAngularSpeed_);
 		return p;
 	};
 
-	// 自爆崩壊と同じ「現在位置を原点に小さく持ち上げて落とす」考え方に寄せ、攻撃者方向の爆散は使わない。
-	deathPieces_.push_back(makeCollapsePiece(&body_, false, 0.55f, 0.45f, 0.85f, 0.25f, 0.65f));
+	deathPieces_.push_back(makeCollapsePiece(&body_, 0.20f, 0.25f, 0.35f));
 	for (size_t i = 0; i < parts_.size(); ++i)
 	{
-		const bool isHead = (i == partIndices_.head);
-		deathPieces_.push_back(makeCollapsePiece(&parts_[i], isHead, 0.75f, isHead ? 0.65f : 0.45f, isHead ? 1.05f : 0.85f, 0.35f, 0.95f));
+		if (i == partIndices_.head)
+		{
+			deathPieces_.push_back(makeCollapsePiece(&parts_[i], 0.85f, 1.35f, 0.70f));
+		}
+		else if (i == partIndices_.leftArm || i == partIndices_.rightArm)
+		{
+			deathPieces_.push_back(makeCollapsePiece(&parts_[i], 1.15f, 0.85f, 1.00f));
+		}
+		else
+		{
+			deathPieces_.push_back(makeCollapsePiece(&parts_[i], 0.85f, 0.55f, 0.80f));
+		}
 	}
 }
 
@@ -891,7 +930,7 @@ void EnemyBase::StartBreakApartDeath(const Vector3& deathOrigin, const Vector3& 
 /// -------------------------------------------------------------
 void EnemyBase::UpdateBreakApartDeath(float dt)
 {
-	// 死亡演出が暴れないように、破片の速度と回転速度を制限する。
+	// 死亡演出が暴れないように、deltaTime・破片速度・回転速度を制限する。
 	dt = std::clamp(dt, 0.0f, kMaxUpdateDeltaTime);
 	// 念のため：死亡した瞬間に OnKilled が呼ばれない派生があっても演出を走らせる
 	if (!deathBreakActive_)
