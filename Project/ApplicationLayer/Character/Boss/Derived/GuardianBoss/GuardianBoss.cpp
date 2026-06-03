@@ -585,11 +585,9 @@ bool GuardianBoss::StartAttackByNameSafe(const char* attackName)
 /// -------------------------------------------------------------
 /// ImGui
 /// -------------------------------------------------------------
-void GuardianBoss::DrawImGui()
+void GuardianBoss::DrawTuningImGuiContent()
 {
 #ifdef USE_IMGUI
-	ImGui::Begin("GuardianBoss");
-
 	// ---------------------------------------------------------
 	// 基本状態
 	// ---------------------------------------------------------
@@ -846,6 +844,19 @@ void GuardianBoss::DrawImGui()
 		ImGui::Separator();
 		GetAttackComponent()->DrawImGui();
 	}
+#endif
+}
+
+void GuardianBoss::DrawImGui()
+{
+#ifdef USE_IMGUI
+	if (!ImGui::Begin("GuardianBoss"))
+	{
+		ImGui::End();
+		return;
+	}
+
+	DrawTuningImGuiContent();
 
 	ImGui::End();
 #endif

@@ -499,271 +499,282 @@ void MeleeEnemy::Draw()
 	}
 }
 
+void MeleeEnemy::DrawTuningImGuiContent()
+{
+#ifdef USE_IMGUI
+	EnemyBase::DrawImGui();
+	if (ImGui::CollapsingHeader("データ保存/読み込み", ImGuiTreeNodeFlags_DefaultOpen))
+	{
+		if (ImGui::Button("読み込み")) { LoadTuningFromJson(tuningIo_.jsonPath, &tuningIo_.lastLoadResult); }
+		ImGui::SameLine();
+		if (ImGui::Button("保存")) { SaveTuningToJson(tuningIo_.jsonPath, &tuningIo_.lastSaveResult); }
+		ImGui::SameLine();
+		if (ImGui::Button("デフォルトに戻す")) { ResetTuningToDefault(); tuningIo_.lastLoadResult = "デフォルト値へ復帰"; }
+		ImGui::Text("保存先: %s", tuningIo_.jsonPath.string().c_str());
+		ImGui::Text("読み込み結果: %s", tuningIo_.lastLoadResult.c_str());
+		ImGui::Text("保存結果: %s", tuningIo_.lastSaveResult.c_str());
+		// 調整JSONの運用情報をデバッグ表示する。
+		ImGui::Text("現在のJSON形式バージョン: v%d", tuningIo_.jsonFormatVersion);
+		ImGui::Text("保存対象カテゴリ数: %d", tuningIo_.savedCategoryCount);
+	}
+	if (ImGui::CollapsingHeader("基本ステータス", ImGuiTreeNodeFlags_DefaultOpen))
+	{
+		// 近接敵の最大HPを調整しやすいよう、基本ステータスを専用カテゴリで編集できるようにする。
+		ImGui::SliderInt("最大HP", &basicStats_.maxHp, 1, 1000);
+		ImGui::Checkbox("読み込み時にHPを最大に戻す", &basicStats_.resetHpOnLoad);
+		ImGui::Text("現在HP: %d", GetHp());
+		ImGui::Text("最大HP(現在適用): %d", GetMaxHp());
+		if (ImGui::Button("10ダメージを与える")) { TakeDamage(10, animationState_.visualForward, 1.0f); }
+		ImGui::SameLine();
+		if (ImGui::Button("死亡演出を再生")) { SetCurrentHp(0); StartDeathAnimation(); }
+	}
+	if (ImGui::CollapsingHeader("被ダメージリアクション", ImGuiTreeNodeFlags_DefaultOpen))
+	{
+		ImGui::Checkbox("被ダメージリアクションを使う", &hitReactionSettings_.enabled);
+		ImGui::SliderFloat("ひるみ時間", &hitReactionSettings_.duration, 0.01f, 1.0f);
+		ImGui::SliderFloat("ノックバック力", &hitReactionSettings_.knockbackPower, 0.0f, 8.0f);
+		ImGui::SliderFloat("上方向ノックバック", &hitReactionSettings_.knockbackUpPower, 0.0f, 5.0f);
+		ImGui::SliderFloat("のけぞり量", &hitReactionSettings_.bodyLean, -1.2f, 1.2f);
+		ImGui::SliderFloat("フラッシュ時間", &hitReactionSettings_.flashDuration, 0.01f, 0.8f);
+		ImGui::Checkbox("攻撃を中断する", &hitReactionSettings_.interruptAttack);
+		ImGui::Checkbox("リアクション中は行動停止", &hitReactionSettings_.stopBehaviorWhileActive);
+		ImGui::Text("リアクション中: %s", hitReactionState_.active ? "はい" : "いいえ");
+		ImGui::Text("リアクション残り時間: %.2f", hitReactionState_.timer);
+		ImGui::Text("最後のリアクション理由: %s", hitReactionState_.lastReason.c_str());
+	}
+	if (ImGui::CollapsingHeader("死亡演出", ImGuiTreeNodeFlags_DefaultOpen))
+	{
+		ImGui::Checkbox("死亡演出を使う", &deathAnimationSettings_.enabled);
+		ImGui::SliderFloat("死亡演出時間", &deathAnimationSettings_.duration, 0.1f, 4.0f);
+		ImGui::SliderFloat("倒れる角度X", &deathAnimationSettings_.fallRotateX, -3.14f, 3.14f);
+		ImGui::SliderFloat("沈む距離", &deathAnimationSettings_.sinkDistance, 0.0f, 2.0f);
+		ImGui::SliderFloat("フェード開始時間", &deathAnimationSettings_.fadeDelay, 0.0f, 3.0f);
+		ImGui::SliderFloat("フェード時間", &deathAnimationSettings_.fadeDuration, 0.0f, 3.0f);
+		ImGui::Checkbox("死亡時にコリジョン無効", &deathAnimationSettings_.disableCollisionOnDeath);
+		ImGui::Checkbox("死亡時に移動停止", &deathAnimationSettings_.stopMoveOnDeath);
+		ImGui::Text("死亡演出中: %s", deathAnimationState_.active ? "はい" : "いいえ");
+		ImGui::Text("死亡演出時間: %.2f", deathAnimationState_.timer);
+		ImGui::Text("最後の死亡理由: %s", deathAnimationState_.lastReason.c_str());
+	}
+	if (ImGui::CollapsingHeader("検知・攻撃距離", ImGuiTreeNodeFlags_DefaultOpen)) {
+		ImGui::SliderFloat("検知範囲", &detection_.detectRange, 1.0f, 50.0f);
+		ImGui::SliderFloat("近接攻撃距離", &detection_.meleeAttackRange, 0.5f, 10.0f);
+		ImGui::SliderFloat("停止距離", &detection_.stopDistance, 0.5f, 6.0f);
+		ImGui::SliderFloat("攻撃開始距離", &detection_.attackStartRange, 0.5f, 8.0f);
+		ImGui::SliderFloat("追跡再開距離", &detection_.resumeChaseDistance, 0.5f, 10.0f);
+		ImGui::SliderFloat("踏み込み前進最小距離", &detection_.minLungeForwardDistance, 0.1f, 5.0f);
+	}
+	if (ImGui::CollapsingHeader("移動", ImGuiTreeNodeFlags_DefaultOpen)) {
+		ImGui::SliderFloat("移動速度", &move_.moveSpeed, 0.1f, 10.0f);
+		ImGui::SliderFloat("回転速度", &move_.rotateSpeed, 0.1f, 20.0f);
+		ImGui::SliderFloat("最大押し戻し量", &move_.maxResolvePushPerFrame, 0.05f, 2.0f);
+		ImGui::SliderFloat("水平押し戻し量", &move_.maxHorizontalPushPerFrame, 0.05f, 2.0f);
+		ImGui::Checkbox("上面着地を有効", &move_.obstacleTopLandingEnabled);
+		ImGui::SliderFloat("上面着地高さ許容", &move_.obstacleTopLandingTolerance, 0.01f, 1.5f);
+		ImGui::SliderFloat("上面着地最大高さ", &move_.obstacleTopLandingMaxHeight, 0.1f, 8.0f);
+		ImGui::SliderFloat("上面着地最小重なり", &move_.obstacleTopLandingMinHorizontalOverlap, 0.01f, 1.0f);
+	}
+	if (ImGui::CollapsingHeader("個体間分離", ImGuiTreeNodeFlags_DefaultOpen)) {
+		ImGui::Checkbox("個体間分離を使う", &separationSettings_.enabled);
+		ImGui::SliderFloat("分離半径", &separationSettings_.radius, 0.2f, 4.0f);
+		ImGui::SliderFloat("分離強度", &separationSettings_.strength, 0.0f, 2.0f);
+		ImGui::SliderFloat("1フレーム最大押し出し", &separationSettings_.maxPushPerFrame, 0.01f, 0.6f);
+		ImGui::SliderFloat("攻撃中の押し出し倍率", &separationSettings_.attackPushScale, 0.0f, 1.0f);
+		ImGui::Checkbox("ターゲット付近の横ずれ補正", &separationSettings_.targetNearLateralEnabled);
+		ImGui::SliderFloat("横ずれ補正の強さ", &separationSettings_.targetNearLateralStrength, 0.0f, 1.5f);
+		ImGui::SliderFloat("横ずれ補正距離", &separationSettings_.targetNearLateralOffset, 0.0f, 1.0f);
+		ImGui::Text("重なっている敵数: %d", separationState_.overlappingEnemyCount);
+		ImGui::Text("最後の分離押し出し量: (%.3f, %.3f, %.3f)", separationState_.lastSeparationPush.x, separationState_.lastSeparationPush.y, separationState_.lastSeparationPush.z);
+	}
+	if (ImGui::CollapsingHeader("ジャンプ", ImGuiTreeNodeFlags_DefaultOpen)) {
+		ImGui::Checkbox("ジャンプを使う", &jump_.enabled);
+		ImGui::SliderFloat("ジャンプ力", &jump_.baseVelocity, 2.0f, 18.0f);
+		ImGui::SliderFloat("ジャンプ最大速度", &jump_.maxVelocity, 2.0f, 28.0f);
+		ImGui::SliderFloat("ジャンプクールダウン", &jump_.cooldown, 0.0f, 3.0f);
+		// 接触ジャンプの強制実行でジャンプ力そのものの効きだけを確認できるようにする
+		if (ImGui::Button("接触ジャンプを強制"))
+		{
+			Vector3 forcedVel = GetVelocity();
+			forcedVel.y = jump_.baseVelocity;
+			SetVelocity(forcedVel);
+			jumpState_.appliedVelocity = forcedVel.y;
+			jumpState_.lastReason = "ForcedContactJump";
+		}
+		ImGui::Text("クールダウン残り: %.2f", jumpState_.cooldownTimer);
+		ImGui::Text("最後のジャンプ理由: %s", jumpState_.lastReason.c_str());
+		ImGui::Text("適用ジャンプ力: %.2f", jumpState_.appliedVelocity);
+		ImGui::Text("高さ依存ジャンプ: OFF (通常近接雑魚固定)");
+	}
+	if (ImGui::CollapsingHeader("経路探索", ImGuiTreeNodeFlags_DefaultOpen)) {
+		ImGui::Checkbox("経路探索を使う", &pathSettings_.enabled);
+		ImGui::SliderFloat("再探索間隔", &pathSettings_.repathInterval, 0.05f, 2.0f);
+		ImGui::SliderFloat("到達判定距離", &pathSettings_.waypointReachDistance, 0.5f, 1.5f);
+		ImGui::SliderFloat("グリッドサイズ", &pathSettings_.gridSize, 0.5f, 2.0f);
+		ImGui::SliderFloat("探索半径", &pathSettings_.searchRadius, 6.0f, 80.0f);
+		ImGui::SliderFloat("障害物拡張半径", &pathSettings_.obstacleExpandRadius, 0.7f, 1.6f);
+		ImGui::SliderFloat("一時ブロック時間", &pathSettings_.temporaryBlockDuration, 0.3f, 4.0f);
+		ImGui::SliderFloat("一時ブロック半径", &pathSettings_.temporaryBlockRadius, 0.4f, 2.2f);
+		ImGui::Checkbox("角抜け無効", &pathSettings_.cornerCuttingDisabled);
+		ImGui::SliderFloat("再探索ターゲット閾値", &pathSettings_.targetRepathThreshold, 0.1f, 8.0f);
+		ImGui::SliderFloat("スタック再探索拡張", &pathSettings_.stuckRepathExpandBonus, 0.0f, 3.0f);
+		ImGui::SliderFloat("スタック再探索拡張最大", &pathSettings_.maxStuckRepathExpandBonus, 0.0f, 6.0f);
+		const int sourceObstacleCount = wallObstacleAABBs_ ? static_cast<int>(wallObstacleAABBs_->size()) : (GetResolvedNavigationObstacleAABBs() ? static_cast<int>(GetResolvedNavigationObstacleAABBs()->size()) : 0);
+		ImGui::Text("navigatorに渡している障害物数: %d", static_cast<int>(pathBlockingObstacleAABBs_.size()));
+		ImGui::Text("元の障害物数: %d", sourceObstacleCount);
+		ImGui::Text("乗り越え除外後の障害物数: %d", static_cast<int>(pathBlockingObstacleAABBs_.size()));
+	}
+
+	if (ImGui::CollapsingHeader("乗り越え", ImGuiTreeNodeFlags_DefaultOpen)) {
+		ImGui::Checkbox("乗り越えを使う", &traversal_.enabled);
+		ImGui::Checkbox("直線乗り越えを優先", &traversal_.preferDirectClimb);
+		ImGui::Checkbox("低障害物ジャンプを許可", &traversal_.allowJumpOverLowObstacles);
+		ImGui::SliderFloat("最大乗り越え高さ", &traversal_.maxClimbHeight, 0.2f, 5.0f);
+		ImGui::SliderFloat("最小乗り越え高さ", &traversal_.minClimbHeight, 0.0f, 1.0f);
+		ImGui::SliderFloat("最大乗り越え幅", &traversal_.maxClimbObstacleWidth, 0.2f, 8.0f);
+		ImGui::SliderFloat("最大乗り越え奥行き", &traversal_.maxClimbObstacleDepth, 0.2f, 8.0f);
+		ImGui::SliderFloat("直線乗り越え最大距離", &traversal_.directClimbDistanceMax, 1.0f, 20.0f);
+		ImGui::SliderFloat("乗り越え開始距離", &traversal_.climbJumpTriggerDistance, 0.3f, 6.0f);
+		ImGui::SliderFloat("乗り越え水平距離上限", &traversal_.climbHorizontalDistanceMax, 0.5f, 10.0f);
+		ImGui::SliderFloat("直線判定幅", &traversal_.directLineWidth, 0.2f, 4.0f);
+		ImGui::Text("乗り越え可能障害物数: %d", traversalState_.climbableObstacleCount);
+		ImGui::Text("回避対象障害物数: %d", traversalState_.blockingObstacleCount);
+		ImGui::Text("近くに乗り越え可能障害物あり: %s", traversalState_.nearClimbableObstacle ? "はい" : "いいえ");
+		ImGui::Text("直線乗り越え候補あり: %s", traversalState_.directClimbCandidateFound ? "はい" : "いいえ");
+		ImGui::Text("最後の乗り越え理由: %s", traversalState_.lastReason.c_str());
+		ImGui::Text("選択中の乗り越え障害物Index: %d", traversalState_.selectedClimbObstacleIndex);
+		ImGui::Text("選択中障害物の高さ: %.2f", traversalState_.selectedObstacleHeight);
+		ImGui::Text("選択中障害物の判定理由: %s", traversalState_.selectedObstacleJudgeReason.c_str());
+		ImGui::Text("climb不可理由: %s", traversalState_.selectedObstacleRejectReason.c_str());
+		ImGui::Text("obstacleWidth: %.2f obstacleDepth: %.2f", traversalState_.selectedObstacleWidth, traversalState_.selectedObstacleDepth);
+		ImGui::Text("enemyFootY: %.2f obstacleTopY: %.2f", traversalState_.selectedEnemyFootY, traversalState_.selectedObstacleTopY);
+		ImGui::Text("接触中の障害物あり: %s", contactObstacleState_.hasContact ? "はい" : "いいえ");
+		ImGui::Text("接触障害物は乗り越え可能: %s", contactObstacleState_.climbable ? "はい" : "いいえ");
+		ImGui::Text("接触障害物は高さ的に乗れる: %s", contactObstacleState_.climbableByHeight ? "はい" : "いいえ");
+		ImGui::Text("接触障害物は幅/奥行きで除外された: %s", contactObstacleState_.rejectedByWidthDepth ? "はい" : "いいえ");
+		ImGui::Text("AABB全体サイズで除外したか: %s", contactObstacleState_.rejectedByAABBSize ? "はい" : "いいえ");
+		ImGui::Text("接触面基準で判定したか: %s", contactObstacleState_.judgedByContactFace ? "はい" : "いいえ");
+		ImGui::Text("最終的な乗り越え可否: %s", contactObstacleState_.climbable ? "可能" : "不可");
+		ImGui::Text("接触ジャンプ関数が呼ばれたか: %s", contactJumpDebugState_.calledThisFrame ? "はい(このフレーム)" : (contactJumpDebugState_.everCalled ? "過去に呼ばれた" : "いいえ"));
+		ImGui::Text("最後にジャンプしなかった理由: %s", contactJumpDebugState_.lastReason.c_str());
+		ImGui::Text("grounded: %s", grounded_ ? "true" : "false");
+		ImGui::Text("isOverlappingWallObstacle: %s", collision_.isOverlappingWallObstacle ? "true" : "false");
+		ImGui::Text("velocity.y: %.2f", GetVelocity().y);
+		ImGui::Text("接触障害物Index: %d", contactObstacleState_.obstacleIndex);
+		ImGui::Text("接触障害物の高さ: %.2f", contactObstacleState_.obstacleHeightFromFoot);
+		ImGui::Text("接触障害物の幅: %.2f", contactObstacleState_.obstacleWidth);
+		ImGui::Text("接触障害物の奥行き: %.2f", contactObstacleState_.obstacleDepth);
+		ImGui::Text("接触方向厚み: %.2f", contactObstacleState_.obstacleForwardThickness);
+		ImGui::Text("接触面までの距離: %.2f", contactObstacleState_.contactFaceDistance);
+		ImGui::Text("足元Y: %.2f", contactObstacleState_.enemyFootY);
+		ImGui::Text("接触障害物の上面Y: %.2f", contactObstacleState_.obstacleTopY);
+		ImGui::Text("障害物上面Y: %.2f", contactObstacleState_.obstacleTopY);
+		ImGui::Text("足元から見た上面高さ: %.2f", contactObstacleState_.obstacleHeightFromFoot);
+		ImGui::Text("最大乗り越え高さ: %.2f", traversal_.maxClimbHeight);
+		ImGui::Text("ジャンプクールダウン残り: %.2f", jumpState_.cooldownTimer);
+		ImGui::Text("適用予定ジャンプ力: %.2f", contactJumpDebugState_.plannedJumpVelocity);
+		ImGui::Text("接触障害物の判定理由: %s", contactObstacleState_.reason.c_str());
+		ImGui::Text("乗り越え不可理由: %s", contactObstacleState_.notClimbableReason.c_str());
+		ImGui::Text("最後の可能理由: %s", contactObstacleState_.possibleReason.c_str());
+		ImGui::Text("最後のジャンプ理由: %s", jumpState_.lastReason.c_str());
+		ImGui::Text("最後の乗り越え理由: %s", traversalState_.lastReason.c_str());
+	}
+if (ImGui::CollapsingHeader("スタック", ImGuiTreeNodeFlags_DefaultOpen)) {
+		ImGui::SliderFloat("判定時間", &stuckSettings_.checkTime, 0.1f, 3.0f);
+		ImGui::SliderFloat("判定距離", &stuckSettings_.distance, 0.01f, 2.0f);
+		ImGui::SliderFloat("移動閾値", &stuckSettings_.moveThreshold, 0.03f, 1.2f);
+	}
+	if (ImGui::CollapsingHeader("攻撃選択", ImGuiTreeNodeFlags_DefaultOpen)) {
+		ImGui::Checkbox("攻撃選択を使う", &attackSelectSettings_.enabled);
+		ImGui::Checkbox("確率選択を使う", &attackSelectSettings_.useProbability);
+		ImGui::SliderFloat("踏み込みひっかき確率", &attackSelectSettings_.lungeChance, 0.0f, 1.0f);
+		ImGui::SliderFloat("踏み込み最小距離", &attackSelectSettings_.lungeMinDistance, 0.1f, 8.0f);
+		ImGui::SliderFloat("踏み込み最大距離", &attackSelectSettings_.lungeMaxDistance, 0.1f, 10.0f);
+		ImGui::SliderFloat("踏み込み選択クールダウン", &attackSelectSettings_.lungeSelectCooldown, 0.0f, 6.0f);
+		ImGui::Text("踏み込み選択クールダウン残り: %.2f", attackSelectState_.lungeSelectCooldownTimer);
+		ImGui::SliderInt("踏み込み最大連続回数", &attackSelectSettings_.maxConsecutiveLunge, 1, 4);
+		ImGui::SliderInt("通常ひっかき最大連続回数", &attackSelectSettings_.maxConsecutiveScratch, 1, 8);
+		ImGui::Checkbox("踏み込み後は通常ひっかきを優先", &attackSelectSettings_.forceScratchAfterLunge);
+		ImGui::Text("最後の乱数: %.3f", attackSelectState_.lastRoll);
+		ImGui::Text("最後の踏み込み確率: %.3f", attackSelectState_.lastLungeChance);
+		ImGui::Text("連続通常ひっかき回数: %d", attackSelectState_.consecutiveScratchCount);
+		ImGui::Text("連続踏み込み回数: %d", attackSelectState_.consecutiveLungeCount);
+		ImGui::Text("最後に選ばれた攻撃: %s", attackSelectState_.lastSelectedAttack == MeleeAttackType::LungeScratch ? "踏み込みひっかき" : "ひっかき");
+		ImGui::Text("最後の攻撃選択理由: %s", attackSelectState_.lastReason.c_str());
+		const char* attackAnimName = "なし";
+		if (attackController_.IsAttacking())
+		{
+			attackAnimName = (attackController_.GetCurrentAttackType() == MeleeAttackType::LungeScratch) ? "踏み込みひっかき" : "ひっかき";
+		}
+		ImGui::Text("現在攻撃アニメーション: %s", attackAnimName);
+		ImGui::Text("攻撃進行度: %.2f", attackController_.GetCurrentAttackNormalizedTime());
+	}
+	if (ImGui::CollapsingHeader("攻撃パターン", ImGuiTreeNodeFlags_DefaultOpen)) {
+		ImGui::SliderFloat("攻撃ロック時間", &attackSettings_.lockTime, 0.0f, 1.0f);
+		int attackSelect = static_cast<int>(attackSettings_.selectedAttackType);
+		const char* items[] = { "ひっかき", "踏み込みひっかき" };
+		if (ImGui::Combo("選択攻撃", &attackSelect, items, IM_ARRAYSIZE(items))) { attackSettings_.selectedAttackType = static_cast<MeleeAttackType>(attackSelect); }
+		if (MeleeAttackPattern* scratch = attackController_.FindPattern(MeleeAttackType::Scratch)) { MeleeAttackStep& st = scratch->steps[0]; ImGui::SliderInt("ひっかき ダメージ", &st.damage, 1, 50); ImGui::SliderFloat("ひっかき 射程", &st.range, 0.5f, 6.0f); ImGui::SliderFloat("ひっかき 半径", &st.radius, 0.1f, 3.0f); ImGui::SliderFloat("ひっかき 開始", &st.startTime, 0.01f, 1.5f); ImGui::SliderFloat("ひっかき 有効", &st.activeTime, 0.01f, 1.0f); ImGui::SliderFloat("ひっかき 硬直", &scratch->recoveryTime, 0.01f, 2.0f); ImGui::SliderFloat("ひっかき CT", &scratch->cooldown, 0.01f, 3.0f); }
+		if (MeleeAttackPattern* lunge = attackController_.FindPattern(MeleeAttackType::LungeScratch)) { MeleeAttackStep& st = lunge->steps[0]; ImGui::SliderInt("踏み込みひっかき ダメージ", &st.damage, 1, 50); ImGui::SliderFloat("踏み込みひっかき 射程", &st.range, 0.5f, 8.0f); ImGui::SliderFloat("踏み込みひっかき 半径", &st.radius, 0.1f, 3.0f); ImGui::SliderFloat("踏み込みひっかき 開始", &st.startTime, 0.01f, 2.0f); ImGui::SliderFloat("踏み込みひっかき 有効", &st.activeTime, 0.01f, 1.2f); ImGui::SliderFloat("踏み込みひっかき 前進速度", &lunge->forwardMoveSpeed, 0.0f, 8.0f); ImGui::SliderFloat("踏み込みひっかき 前進時間", &lunge->forwardMoveDuration, 0.0f, 2.0f); ImGui::SliderFloat("踏み込みひっかき 硬直", &lunge->recoveryTime, 0.01f, 3.0f); ImGui::SliderFloat("踏み込みひっかき CT", &lunge->cooldown, 0.01f, 4.0f); }
+	}
+	if (ImGui::CollapsingHeader("アニメーション", ImGuiTreeNodeFlags_DefaultOpen))
+	{
+		ImGui::SliderFloat("歩行速度", &animation_.walkAnimSpeed, 1.0f, 18.0f);
+		ImGui::SliderFloat("腕振り", &animation_.walkArmSwing, 0.0f, 1.5f);
+		ImGui::SliderFloat("脚振り", &animation_.walkLegSwing, 0.0f, 1.5f);
+		// 通常ひっかきは 構え→振り下ろし→戻り の3段階パラメータを個別調整する。
+		ImGui::SliderFloat("通常ひっかき 構え腕X", &animation_.scratch.prepareArmX, -2.5f, 2.5f);
+		ImGui::SliderFloat("通常ひっかき 構え腕Y", &animation_.scratch.prepareArmY, -2.5f, 2.5f);
+		ImGui::SliderFloat("通常ひっかき 構え腕Z", &animation_.scratch.prepareArmZ, -2.5f, 2.5f);
+		ImGui::SliderFloat("通常ひっかき 振り下ろし腕X", &animation_.scratch.strikeArmX, -2.5f, 2.5f);
+		ImGui::SliderFloat("通常ひっかき 振り下ろし腕Y", &animation_.scratch.strikeArmY, -2.5f, 2.5f);
+		ImGui::SliderFloat("通常ひっかき 振り下ろし腕Z", &animation_.scratch.strikeArmZ, -2.5f, 2.5f);
+		ImGui::SliderFloat("通常ひっかき 構え終了割合", &animation_.scratch.prepareEndRate, 0.05f, 0.9f);
+		ImGui::SliderFloat("通常ひっかき 振り終了割合", &animation_.scratch.strikeEndRate, 0.1f, 0.98f);
+		ImGui::SliderFloat("通常ひっかき 構え体傾き", &animation_.scratch.bodyPrepareLean, -0.6f, 0.6f);
+		ImGui::SliderFloat("通常ひっかき 振り体傾き", &animation_.scratch.bodyStrikeLean, -0.6f, 0.6f);
+		ImGui::SliderFloat("通常ひっかき戻り速度", &animation_.scratch.returnSpeed, 1.0f, 30.0f);
+		// 踏み込みひっかきは振りかぶり/振り下ろしを段階的に調整できるようにする。
+		ImGui::SliderFloat("踏み込み 構え腕X", &animation_.lunge.prepareArmX, -2.5f, 2.5f);
+		ImGui::SliderFloat("踏み込み 構え腕Y", &animation_.lunge.prepareArmY, -2.5f, 2.5f);
+		ImGui::SliderFloat("踏み込み 構え腕Z", &animation_.lunge.prepareArmZ, -2.5f, 2.5f);
+		ImGui::SliderFloat("踏み込み 振り下ろし腕X", &animation_.lunge.strikeArmX, -2.5f, 2.5f);
+		ImGui::SliderFloat("踏み込み 振り下ろし腕Y", &animation_.lunge.strikeArmY, -2.5f, 2.5f);
+		ImGui::SliderFloat("踏み込み 振り下ろし腕Z", &animation_.lunge.strikeArmZ, -2.5f, 2.5f);
+		ImGui::SliderFloat("踏み込み 構え体傾き", &animation_.lunge.bodyPrepareLean, -0.8f, 0.8f);
+		ImGui::SliderFloat("踏み込み 振り体傾き", &animation_.lunge.bodyStrikeLean, -0.8f, 0.8f);
+		ImGui::SliderFloat("踏み込み 構え終了割合", &animation_.lunge.prepareEndRate, 0.05f, 0.9f);
+		ImGui::SliderFloat("踏み込み 振り終了割合", &animation_.lunge.strikeEndRate, 0.1f, 0.98f);
+		ImGui::SliderFloat("踏み込み 戻り速度", &animation_.lunge.returnSpeed, 1.0f, 24.0f);
+		ImGui::SliderFloat("踏み込み 脚の踏み込み量", &animation_.lunge.legStepAmount, 0.0f, 0.8f);
+		const float p = attackController_.GetCurrentAttackNormalizedTime();
+		const bool isScratchAttack = attackController_.IsAttacking() && attackController_.GetCurrentAttackType() == MeleeAttackType::Scratch;
+		const float prepareEnd = isScratchAttack ? animation_.scratch.prepareEndRate : animation_.lunge.prepareEndRate;
+		const float strikeEnd = isScratchAttack ? animation_.scratch.strikeEndRate : animation_.lunge.strikeEndRate;
+		const char* phase = !attackController_.IsAttacking() ? "なし" : (p < prepareEnd ? "構え" : (p < strikeEnd ? "振り下ろし" : "戻り"));
+		ImGui::Text("現在攻撃: %s", attackController_.IsAttacking() ? ((attackController_.GetCurrentAttackType() == MeleeAttackType::LungeScratch) ? "踏み込みひっかき" : "通常ひっかき") : "なし");
+		ImGui::Text("攻撃進行度: %.2f", animationState_.attackAnimProgress);
+		ImGui::Text("現在フェーズ: %s", phase);
+		ImGui::Text("Scratch使用腕: %s", scratchArmState_.useLeftArm ? "左" : "右");
+	}
+	if (ImGui::CollapsingHeader("頭向き", ImGuiTreeNodeFlags_DefaultOpen)) { ImGui::Checkbox("頭をターゲットへ向ける", &headLookSettings_.enabled); ImGui::SliderFloat("ヨー制限", &headLookSettings_.yawLimitDeg, 10.0f, 120.0f); ImGui::SliderFloat("ピッチ最小", &headLookSettings_.pitchMinDeg, -80.0f, 0.0f); ImGui::SliderFloat("ピッチ最大", &headLookSettings_.pitchMaxDeg, 0.0f, 80.0f); ImGui::SliderFloat("補間速度", &headLookSettings_.lerpSpeed, 1.0f, 30.0f); }
+	if (ImGui::CollapsingHeader("状態表示", ImGuiTreeNodeFlags_DefaultOpen)) { ImGui::Text("現在行動: %s", currentBehaviorName_); ImGui::Text("攻撃中: %s", attackController_.IsAttacking() ? "はい" : "いいえ"); ImGui::Text("ターゲット距離: %.2f", GetDistanceToTarget()); }
+	if (ImGui::CollapsingHeader("敵攻撃ダメージ確認", ImGuiTreeNodeFlags_DefaultOpen)) { ImGui::Text("近接攻撃ヒット回数: %d", enemyDamageDebug_.meleeHitCount); ImGui::Text("最後に受けたダメージ: %d", enemyDamageDebug_.lastDamage); ImGui::Text("Player HP: %.1f", enemyDamageDebug_.lastPlayerHp); ImGui::Text("最後の命中種別: %s", enemyDamageDebug_.lastHitSource.c_str()); }
+#endif // USE_IMGUI
+}
+
 void MeleeEnemy::DrawImGui()
 {
 #ifdef USE_IMGUI
-	if (ImGui::Begin("MeleeEnemy Debug"))
+	if (!ImGui::Begin("MeleeEnemy Debug"))
 	{
-		EnemyBase::DrawImGui();
-		if (ImGui::CollapsingHeader("データ保存/読み込み", ImGuiTreeNodeFlags_DefaultOpen))
-		{
-			if (ImGui::Button("読み込み")) { LoadTuningFromJson(tuningIo_.jsonPath, &tuningIo_.lastLoadResult); }
-			ImGui::SameLine();
-			if (ImGui::Button("保存")) { SaveTuningToJson(tuningIo_.jsonPath, &tuningIo_.lastSaveResult); }
-			ImGui::SameLine();
-			if (ImGui::Button("デフォルトに戻す")) { ResetTuningToDefault(); tuningIo_.lastLoadResult = "デフォルト値へ復帰"; }
-			ImGui::Text("保存先: %s", tuningIo_.jsonPath.string().c_str());
-			ImGui::Text("読み込み結果: %s", tuningIo_.lastLoadResult.c_str());
-			ImGui::Text("保存結果: %s", tuningIo_.lastSaveResult.c_str());
-			// 調整JSONの運用情報をデバッグ表示する。
-			ImGui::Text("現在のJSON形式バージョン: v%d", tuningIo_.jsonFormatVersion);
-			ImGui::Text("保存対象カテゴリ数: %d", tuningIo_.savedCategoryCount);
-		}
-		if (ImGui::CollapsingHeader("基本ステータス", ImGuiTreeNodeFlags_DefaultOpen))
-		{
-			// 近接敵の最大HPを調整しやすいよう、基本ステータスを専用カテゴリで編集できるようにする。
-			ImGui::SliderInt("最大HP", &basicStats_.maxHp, 1, 1000);
-			ImGui::Checkbox("読み込み時にHPを最大に戻す", &basicStats_.resetHpOnLoad);
-			ImGui::Text("現在HP: %d", GetHp());
-			ImGui::Text("最大HP(現在適用): %d", GetMaxHp());
-			if (ImGui::Button("10ダメージを与える")) { TakeDamage(10, animationState_.visualForward, 1.0f); }
-			ImGui::SameLine();
-			if (ImGui::Button("死亡演出を再生")) { SetCurrentHp(0); StartDeathAnimation(); }
-		}
-		if (ImGui::CollapsingHeader("被ダメージリアクション", ImGuiTreeNodeFlags_DefaultOpen))
-		{
-			ImGui::Checkbox("被ダメージリアクションを使う", &hitReactionSettings_.enabled);
-			ImGui::SliderFloat("ひるみ時間", &hitReactionSettings_.duration, 0.01f, 1.0f);
-			ImGui::SliderFloat("ノックバック力", &hitReactionSettings_.knockbackPower, 0.0f, 8.0f);
-			ImGui::SliderFloat("上方向ノックバック", &hitReactionSettings_.knockbackUpPower, 0.0f, 5.0f);
-			ImGui::SliderFloat("のけぞり量", &hitReactionSettings_.bodyLean, -1.2f, 1.2f);
-			ImGui::SliderFloat("フラッシュ時間", &hitReactionSettings_.flashDuration, 0.01f, 0.8f);
-			ImGui::Checkbox("攻撃を中断する", &hitReactionSettings_.interruptAttack);
-			ImGui::Checkbox("リアクション中は行動停止", &hitReactionSettings_.stopBehaviorWhileActive);
-			ImGui::Text("リアクション中: %s", hitReactionState_.active ? "はい" : "いいえ");
-			ImGui::Text("リアクション残り時間: %.2f", hitReactionState_.timer);
-			ImGui::Text("最後のリアクション理由: %s", hitReactionState_.lastReason.c_str());
-		}
-		if (ImGui::CollapsingHeader("死亡演出", ImGuiTreeNodeFlags_DefaultOpen))
-		{
-			ImGui::Checkbox("死亡演出を使う", &deathAnimationSettings_.enabled);
-			ImGui::SliderFloat("死亡演出時間", &deathAnimationSettings_.duration, 0.1f, 4.0f);
-			ImGui::SliderFloat("倒れる角度X", &deathAnimationSettings_.fallRotateX, -3.14f, 3.14f);
-			ImGui::SliderFloat("沈む距離", &deathAnimationSettings_.sinkDistance, 0.0f, 2.0f);
-			ImGui::SliderFloat("フェード開始時間", &deathAnimationSettings_.fadeDelay, 0.0f, 3.0f);
-			ImGui::SliderFloat("フェード時間", &deathAnimationSettings_.fadeDuration, 0.0f, 3.0f);
-			ImGui::Checkbox("死亡時にコリジョン無効", &deathAnimationSettings_.disableCollisionOnDeath);
-			ImGui::Checkbox("死亡時に移動停止", &deathAnimationSettings_.stopMoveOnDeath);
-			ImGui::Text("死亡演出中: %s", deathAnimationState_.active ? "はい" : "いいえ");
-			ImGui::Text("死亡演出時間: %.2f", deathAnimationState_.timer);
-			ImGui::Text("最後の死亡理由: %s", deathAnimationState_.lastReason.c_str());
-		}
-		if (ImGui::CollapsingHeader("検知・攻撃距離", ImGuiTreeNodeFlags_DefaultOpen)) {
-			ImGui::SliderFloat("検知範囲", &detection_.detectRange, 1.0f, 50.0f);
-			ImGui::SliderFloat("近接攻撃距離", &detection_.meleeAttackRange, 0.5f, 10.0f);
-			ImGui::SliderFloat("停止距離", &detection_.stopDistance, 0.5f, 6.0f);
-			ImGui::SliderFloat("攻撃開始距離", &detection_.attackStartRange, 0.5f, 8.0f);
-			ImGui::SliderFloat("追跡再開距離", &detection_.resumeChaseDistance, 0.5f, 10.0f);
-			ImGui::SliderFloat("踏み込み前進最小距離", &detection_.minLungeForwardDistance, 0.1f, 5.0f);
-		}
-		if (ImGui::CollapsingHeader("移動", ImGuiTreeNodeFlags_DefaultOpen)) {
-			ImGui::SliderFloat("移動速度", &move_.moveSpeed, 0.1f, 10.0f);
-			ImGui::SliderFloat("回転速度", &move_.rotateSpeed, 0.1f, 20.0f);
-			ImGui::SliderFloat("最大押し戻し量", &move_.maxResolvePushPerFrame, 0.05f, 2.0f);
-			ImGui::SliderFloat("水平押し戻し量", &move_.maxHorizontalPushPerFrame, 0.05f, 2.0f);
-			ImGui::Checkbox("上面着地を有効", &move_.obstacleTopLandingEnabled);
-			ImGui::SliderFloat("上面着地高さ許容", &move_.obstacleTopLandingTolerance, 0.01f, 1.5f);
-			ImGui::SliderFloat("上面着地最大高さ", &move_.obstacleTopLandingMaxHeight, 0.1f, 8.0f);
-			ImGui::SliderFloat("上面着地最小重なり", &move_.obstacleTopLandingMinHorizontalOverlap, 0.01f, 1.0f);
-		}
-		if (ImGui::CollapsingHeader("個体間分離", ImGuiTreeNodeFlags_DefaultOpen)) {
-			ImGui::Checkbox("個体間分離を使う", &separationSettings_.enabled);
-			ImGui::SliderFloat("分離半径", &separationSettings_.radius, 0.2f, 4.0f);
-			ImGui::SliderFloat("分離強度", &separationSettings_.strength, 0.0f, 2.0f);
-			ImGui::SliderFloat("1フレーム最大押し出し", &separationSettings_.maxPushPerFrame, 0.01f, 0.6f);
-			ImGui::SliderFloat("攻撃中の押し出し倍率", &separationSettings_.attackPushScale, 0.0f, 1.0f);
-			ImGui::Checkbox("ターゲット付近の横ずれ補正", &separationSettings_.targetNearLateralEnabled);
-			ImGui::SliderFloat("横ずれ補正の強さ", &separationSettings_.targetNearLateralStrength, 0.0f, 1.5f);
-			ImGui::SliderFloat("横ずれ補正距離", &separationSettings_.targetNearLateralOffset, 0.0f, 1.0f);
-			ImGui::Text("重なっている敵数: %d", separationState_.overlappingEnemyCount);
-			ImGui::Text("最後の分離押し出し量: (%.3f, %.3f, %.3f)", separationState_.lastSeparationPush.x, separationState_.lastSeparationPush.y, separationState_.lastSeparationPush.z);
-		}
-		if (ImGui::CollapsingHeader("ジャンプ", ImGuiTreeNodeFlags_DefaultOpen)) {
-			ImGui::Checkbox("ジャンプを使う", &jump_.enabled);
-			ImGui::SliderFloat("ジャンプ力", &jump_.baseVelocity, 2.0f, 18.0f);
-			ImGui::SliderFloat("ジャンプ最大速度", &jump_.maxVelocity, 2.0f, 28.0f);
-			ImGui::SliderFloat("ジャンプクールダウン", &jump_.cooldown, 0.0f, 3.0f);
-			// 接触ジャンプの強制実行でジャンプ力そのものの効きだけを確認できるようにする
-			if (ImGui::Button("接触ジャンプを強制"))
-			{
-				Vector3 forcedVel = GetVelocity();
-				forcedVel.y = jump_.baseVelocity;
-				SetVelocity(forcedVel);
-				jumpState_.appliedVelocity = forcedVel.y;
-				jumpState_.lastReason = "ForcedContactJump";
-			}
-			ImGui::Text("クールダウン残り: %.2f", jumpState_.cooldownTimer);
-			ImGui::Text("最後のジャンプ理由: %s", jumpState_.lastReason.c_str());
-			ImGui::Text("適用ジャンプ力: %.2f", jumpState_.appliedVelocity);
-			ImGui::Text("高さ依存ジャンプ: OFF (通常近接雑魚固定)");
-		}
-		if (ImGui::CollapsingHeader("経路探索", ImGuiTreeNodeFlags_DefaultOpen)) {
-			ImGui::Checkbox("経路探索を使う", &pathSettings_.enabled);
-			ImGui::SliderFloat("再探索間隔", &pathSettings_.repathInterval, 0.05f, 2.0f);
-			ImGui::SliderFloat("到達判定距離", &pathSettings_.waypointReachDistance, 0.5f, 1.5f);
-			ImGui::SliderFloat("グリッドサイズ", &pathSettings_.gridSize, 0.5f, 2.0f);
-			ImGui::SliderFloat("探索半径", &pathSettings_.searchRadius, 6.0f, 80.0f);
-			ImGui::SliderFloat("障害物拡張半径", &pathSettings_.obstacleExpandRadius, 0.7f, 1.6f);
-			ImGui::SliderFloat("一時ブロック時間", &pathSettings_.temporaryBlockDuration, 0.3f, 4.0f);
-			ImGui::SliderFloat("一時ブロック半径", &pathSettings_.temporaryBlockRadius, 0.4f, 2.2f);
-			ImGui::Checkbox("角抜け無効", &pathSettings_.cornerCuttingDisabled);
-			ImGui::SliderFloat("再探索ターゲット閾値", &pathSettings_.targetRepathThreshold, 0.1f, 8.0f);
-			ImGui::SliderFloat("スタック再探索拡張", &pathSettings_.stuckRepathExpandBonus, 0.0f, 3.0f);
-			ImGui::SliderFloat("スタック再探索拡張最大", &pathSettings_.maxStuckRepathExpandBonus, 0.0f, 6.0f);
-			const int sourceObstacleCount = wallObstacleAABBs_ ? static_cast<int>(wallObstacleAABBs_->size()) : (GetResolvedNavigationObstacleAABBs() ? static_cast<int>(GetResolvedNavigationObstacleAABBs()->size()) : 0);
-			ImGui::Text("navigatorに渡している障害物数: %d", static_cast<int>(pathBlockingObstacleAABBs_.size()));
-			ImGui::Text("元の障害物数: %d", sourceObstacleCount);
-			ImGui::Text("乗り越え除外後の障害物数: %d", static_cast<int>(pathBlockingObstacleAABBs_.size()));
-		}
-		
-		if (ImGui::CollapsingHeader("乗り越え", ImGuiTreeNodeFlags_DefaultOpen)) {
-			ImGui::Checkbox("乗り越えを使う", &traversal_.enabled);
-			ImGui::Checkbox("直線乗り越えを優先", &traversal_.preferDirectClimb);
-			ImGui::Checkbox("低障害物ジャンプを許可", &traversal_.allowJumpOverLowObstacles);
-			ImGui::SliderFloat("最大乗り越え高さ", &traversal_.maxClimbHeight, 0.2f, 5.0f);
-			ImGui::SliderFloat("最小乗り越え高さ", &traversal_.minClimbHeight, 0.0f, 1.0f);
-			ImGui::SliderFloat("最大乗り越え幅", &traversal_.maxClimbObstacleWidth, 0.2f, 8.0f);
-			ImGui::SliderFloat("最大乗り越え奥行き", &traversal_.maxClimbObstacleDepth, 0.2f, 8.0f);
-			ImGui::SliderFloat("直線乗り越え最大距離", &traversal_.directClimbDistanceMax, 1.0f, 20.0f);
-			ImGui::SliderFloat("乗り越え開始距離", &traversal_.climbJumpTriggerDistance, 0.3f, 6.0f);
-			ImGui::SliderFloat("乗り越え水平距離上限", &traversal_.climbHorizontalDistanceMax, 0.5f, 10.0f);
-			ImGui::SliderFloat("直線判定幅", &traversal_.directLineWidth, 0.2f, 4.0f);
-			ImGui::Text("乗り越え可能障害物数: %d", traversalState_.climbableObstacleCount);
-			ImGui::Text("回避対象障害物数: %d", traversalState_.blockingObstacleCount);
-			ImGui::Text("近くに乗り越え可能障害物あり: %s", traversalState_.nearClimbableObstacle ? "はい" : "いいえ");
-			ImGui::Text("直線乗り越え候補あり: %s", traversalState_.directClimbCandidateFound ? "はい" : "いいえ");
-			ImGui::Text("最後の乗り越え理由: %s", traversalState_.lastReason.c_str());
-			ImGui::Text("選択中の乗り越え障害物Index: %d", traversalState_.selectedClimbObstacleIndex);
-			ImGui::Text("選択中障害物の高さ: %.2f", traversalState_.selectedObstacleHeight);
-			ImGui::Text("選択中障害物の判定理由: %s", traversalState_.selectedObstacleJudgeReason.c_str());
-			ImGui::Text("climb不可理由: %s", traversalState_.selectedObstacleRejectReason.c_str());
-			ImGui::Text("obstacleWidth: %.2f obstacleDepth: %.2f", traversalState_.selectedObstacleWidth, traversalState_.selectedObstacleDepth);
-			ImGui::Text("enemyFootY: %.2f obstacleTopY: %.2f", traversalState_.selectedEnemyFootY, traversalState_.selectedObstacleTopY);
-			ImGui::Text("接触中の障害物あり: %s", contactObstacleState_.hasContact ? "はい" : "いいえ");
-			ImGui::Text("接触障害物は乗り越え可能: %s", contactObstacleState_.climbable ? "はい" : "いいえ");
-			ImGui::Text("接触障害物は高さ的に乗れる: %s", contactObstacleState_.climbableByHeight ? "はい" : "いいえ");
-			ImGui::Text("接触障害物は幅/奥行きで除外された: %s", contactObstacleState_.rejectedByWidthDepth ? "はい" : "いいえ");
-			ImGui::Text("AABB全体サイズで除外したか: %s", contactObstacleState_.rejectedByAABBSize ? "はい" : "いいえ");
-			ImGui::Text("接触面基準で判定したか: %s", contactObstacleState_.judgedByContactFace ? "はい" : "いいえ");
-			ImGui::Text("最終的な乗り越え可否: %s", contactObstacleState_.climbable ? "可能" : "不可");
-			ImGui::Text("接触ジャンプ関数が呼ばれたか: %s", contactJumpDebugState_.calledThisFrame ? "はい(このフレーム)" : (contactJumpDebugState_.everCalled ? "過去に呼ばれた" : "いいえ"));
-			ImGui::Text("最後にジャンプしなかった理由: %s", contactJumpDebugState_.lastReason.c_str());
-			ImGui::Text("grounded: %s", grounded_ ? "true" : "false");
-			ImGui::Text("isOverlappingWallObstacle: %s", collision_.isOverlappingWallObstacle ? "true" : "false");
-			ImGui::Text("velocity.y: %.2f", GetVelocity().y);
-			ImGui::Text("接触障害物Index: %d", contactObstacleState_.obstacleIndex);
-			ImGui::Text("接触障害物の高さ: %.2f", contactObstacleState_.obstacleHeightFromFoot);
-			ImGui::Text("接触障害物の幅: %.2f", contactObstacleState_.obstacleWidth);
-			ImGui::Text("接触障害物の奥行き: %.2f", contactObstacleState_.obstacleDepth);
-			ImGui::Text("接触方向厚み: %.2f", contactObstacleState_.obstacleForwardThickness);
-			ImGui::Text("接触面までの距離: %.2f", contactObstacleState_.contactFaceDistance);
-			ImGui::Text("足元Y: %.2f", contactObstacleState_.enemyFootY);
-			ImGui::Text("接触障害物の上面Y: %.2f", contactObstacleState_.obstacleTopY);
-			ImGui::Text("障害物上面Y: %.2f", contactObstacleState_.obstacleTopY);
-			ImGui::Text("足元から見た上面高さ: %.2f", contactObstacleState_.obstacleHeightFromFoot);
-			ImGui::Text("最大乗り越え高さ: %.2f", traversal_.maxClimbHeight);
-			ImGui::Text("ジャンプクールダウン残り: %.2f", jumpState_.cooldownTimer);
-			ImGui::Text("適用予定ジャンプ力: %.2f", contactJumpDebugState_.plannedJumpVelocity);
-			ImGui::Text("接触障害物の判定理由: %s", contactObstacleState_.reason.c_str());
-			ImGui::Text("乗り越え不可理由: %s", contactObstacleState_.notClimbableReason.c_str());
-			ImGui::Text("最後の可能理由: %s", contactObstacleState_.possibleReason.c_str());
-			ImGui::Text("最後のジャンプ理由: %s", jumpState_.lastReason.c_str());
-			ImGui::Text("最後の乗り越え理由: %s", traversalState_.lastReason.c_str());
-		}
-if (ImGui::CollapsingHeader("スタック", ImGuiTreeNodeFlags_DefaultOpen)) {
-			ImGui::SliderFloat("判定時間", &stuckSettings_.checkTime, 0.1f, 3.0f);
-			ImGui::SliderFloat("判定距離", &stuckSettings_.distance, 0.01f, 2.0f);
-			ImGui::SliderFloat("移動閾値", &stuckSettings_.moveThreshold, 0.03f, 1.2f);
-		}
-		if (ImGui::CollapsingHeader("攻撃選択", ImGuiTreeNodeFlags_DefaultOpen)) {
-			ImGui::Checkbox("攻撃選択を使う", &attackSelectSettings_.enabled);
-			ImGui::Checkbox("確率選択を使う", &attackSelectSettings_.useProbability);
-			ImGui::SliderFloat("踏み込みひっかき確率", &attackSelectSettings_.lungeChance, 0.0f, 1.0f);
-			ImGui::SliderFloat("踏み込み最小距離", &attackSelectSettings_.lungeMinDistance, 0.1f, 8.0f);
-			ImGui::SliderFloat("踏み込み最大距離", &attackSelectSettings_.lungeMaxDistance, 0.1f, 10.0f);
-			ImGui::SliderFloat("踏み込み選択クールダウン", &attackSelectSettings_.lungeSelectCooldown, 0.0f, 6.0f);
-			ImGui::Text("踏み込み選択クールダウン残り: %.2f", attackSelectState_.lungeSelectCooldownTimer);
-			ImGui::SliderInt("踏み込み最大連続回数", &attackSelectSettings_.maxConsecutiveLunge, 1, 4);
-			ImGui::SliderInt("通常ひっかき最大連続回数", &attackSelectSettings_.maxConsecutiveScratch, 1, 8);
-			ImGui::Checkbox("踏み込み後は通常ひっかきを優先", &attackSelectSettings_.forceScratchAfterLunge);
-			ImGui::Text("最後の乱数: %.3f", attackSelectState_.lastRoll);
-			ImGui::Text("最後の踏み込み確率: %.3f", attackSelectState_.lastLungeChance);
-			ImGui::Text("連続通常ひっかき回数: %d", attackSelectState_.consecutiveScratchCount);
-			ImGui::Text("連続踏み込み回数: %d", attackSelectState_.consecutiveLungeCount);
-			ImGui::Text("最後に選ばれた攻撃: %s", attackSelectState_.lastSelectedAttack == MeleeAttackType::LungeScratch ? "踏み込みひっかき" : "ひっかき");
-			ImGui::Text("最後の攻撃選択理由: %s", attackSelectState_.lastReason.c_str());
-			const char* attackAnimName = "なし";
-			if (attackController_.IsAttacking())
-			{
-				attackAnimName = (attackController_.GetCurrentAttackType() == MeleeAttackType::LungeScratch) ? "踏み込みひっかき" : "ひっかき";
-			}
-			ImGui::Text("現在攻撃アニメーション: %s", attackAnimName);
-			ImGui::Text("攻撃進行度: %.2f", attackController_.GetCurrentAttackNormalizedTime());
-		}
-		if (ImGui::CollapsingHeader("攻撃パターン", ImGuiTreeNodeFlags_DefaultOpen)) {
-			ImGui::SliderFloat("攻撃ロック時間", &attackSettings_.lockTime, 0.0f, 1.0f);
-			int attackSelect = static_cast<int>(attackSettings_.selectedAttackType);
-			const char* items[] = { "ひっかき", "踏み込みひっかき" };
-			if (ImGui::Combo("選択攻撃", &attackSelect, items, IM_ARRAYSIZE(items))) { attackSettings_.selectedAttackType = static_cast<MeleeAttackType>(attackSelect); }
-			if (MeleeAttackPattern* scratch = attackController_.FindPattern(MeleeAttackType::Scratch)) { MeleeAttackStep& st = scratch->steps[0]; ImGui::SliderInt("ひっかき ダメージ", &st.damage, 1, 50); ImGui::SliderFloat("ひっかき 射程", &st.range, 0.5f, 6.0f); ImGui::SliderFloat("ひっかき 半径", &st.radius, 0.1f, 3.0f); ImGui::SliderFloat("ひっかき 開始", &st.startTime, 0.01f, 1.5f); ImGui::SliderFloat("ひっかき 有効", &st.activeTime, 0.01f, 1.0f); ImGui::SliderFloat("ひっかき 硬直", &scratch->recoveryTime, 0.01f, 2.0f); ImGui::SliderFloat("ひっかき CT", &scratch->cooldown, 0.01f, 3.0f); }
-			if (MeleeAttackPattern* lunge = attackController_.FindPattern(MeleeAttackType::LungeScratch)) { MeleeAttackStep& st = lunge->steps[0]; ImGui::SliderInt("踏み込みひっかき ダメージ", &st.damage, 1, 50); ImGui::SliderFloat("踏み込みひっかき 射程", &st.range, 0.5f, 8.0f); ImGui::SliderFloat("踏み込みひっかき 半径", &st.radius, 0.1f, 3.0f); ImGui::SliderFloat("踏み込みひっかき 開始", &st.startTime, 0.01f, 2.0f); ImGui::SliderFloat("踏み込みひっかき 有効", &st.activeTime, 0.01f, 1.2f); ImGui::SliderFloat("踏み込みひっかき 前進速度", &lunge->forwardMoveSpeed, 0.0f, 8.0f); ImGui::SliderFloat("踏み込みひっかき 前進時間", &lunge->forwardMoveDuration, 0.0f, 2.0f); ImGui::SliderFloat("踏み込みひっかき 硬直", &lunge->recoveryTime, 0.01f, 3.0f); ImGui::SliderFloat("踏み込みひっかき CT", &lunge->cooldown, 0.01f, 4.0f); }
-		}
-		if (ImGui::CollapsingHeader("アニメーション", ImGuiTreeNodeFlags_DefaultOpen))
-		{
-			ImGui::SliderFloat("歩行速度", &animation_.walkAnimSpeed, 1.0f, 18.0f);
-			ImGui::SliderFloat("腕振り", &animation_.walkArmSwing, 0.0f, 1.5f);
-			ImGui::SliderFloat("脚振り", &animation_.walkLegSwing, 0.0f, 1.5f);
-			// 通常ひっかきは 構え→振り下ろし→戻り の3段階パラメータを個別調整する。
-			ImGui::SliderFloat("通常ひっかき 構え腕X", &animation_.scratch.prepareArmX, -2.5f, 2.5f);
-			ImGui::SliderFloat("通常ひっかき 構え腕Y", &animation_.scratch.prepareArmY, -2.5f, 2.5f);
-			ImGui::SliderFloat("通常ひっかき 構え腕Z", &animation_.scratch.prepareArmZ, -2.5f, 2.5f);
-			ImGui::SliderFloat("通常ひっかき 振り下ろし腕X", &animation_.scratch.strikeArmX, -2.5f, 2.5f);
-			ImGui::SliderFloat("通常ひっかき 振り下ろし腕Y", &animation_.scratch.strikeArmY, -2.5f, 2.5f);
-			ImGui::SliderFloat("通常ひっかき 振り下ろし腕Z", &animation_.scratch.strikeArmZ, -2.5f, 2.5f);
-			ImGui::SliderFloat("通常ひっかき 構え終了割合", &animation_.scratch.prepareEndRate, 0.05f, 0.9f);
-			ImGui::SliderFloat("通常ひっかき 振り終了割合", &animation_.scratch.strikeEndRate, 0.1f, 0.98f);
-			ImGui::SliderFloat("通常ひっかき 構え体傾き", &animation_.scratch.bodyPrepareLean, -0.6f, 0.6f);
-			ImGui::SliderFloat("通常ひっかき 振り体傾き", &animation_.scratch.bodyStrikeLean, -0.6f, 0.6f);
-			ImGui::SliderFloat("通常ひっかき戻り速度", &animation_.scratch.returnSpeed, 1.0f, 30.0f);
-			// 踏み込みひっかきは振りかぶり/振り下ろしを段階的に調整できるようにする。
-			ImGui::SliderFloat("踏み込み 構え腕X", &animation_.lunge.prepareArmX, -2.5f, 2.5f);
-			ImGui::SliderFloat("踏み込み 構え腕Y", &animation_.lunge.prepareArmY, -2.5f, 2.5f);
-			ImGui::SliderFloat("踏み込み 構え腕Z", &animation_.lunge.prepareArmZ, -2.5f, 2.5f);
-			ImGui::SliderFloat("踏み込み 振り下ろし腕X", &animation_.lunge.strikeArmX, -2.5f, 2.5f);
-			ImGui::SliderFloat("踏み込み 振り下ろし腕Y", &animation_.lunge.strikeArmY, -2.5f, 2.5f);
-			ImGui::SliderFloat("踏み込み 振り下ろし腕Z", &animation_.lunge.strikeArmZ, -2.5f, 2.5f);
-			ImGui::SliderFloat("踏み込み 構え体傾き", &animation_.lunge.bodyPrepareLean, -0.8f, 0.8f);
-			ImGui::SliderFloat("踏み込み 振り体傾き", &animation_.lunge.bodyStrikeLean, -0.8f, 0.8f);
-			ImGui::SliderFloat("踏み込み 構え終了割合", &animation_.lunge.prepareEndRate, 0.05f, 0.9f);
-			ImGui::SliderFloat("踏み込み 振り終了割合", &animation_.lunge.strikeEndRate, 0.1f, 0.98f);
-			ImGui::SliderFloat("踏み込み 戻り速度", &animation_.lunge.returnSpeed, 1.0f, 24.0f);
-			ImGui::SliderFloat("踏み込み 脚の踏み込み量", &animation_.lunge.legStepAmount, 0.0f, 0.8f);
-			const float p = attackController_.GetCurrentAttackNormalizedTime();
-			const bool isScratchAttack = attackController_.IsAttacking() && attackController_.GetCurrentAttackType() == MeleeAttackType::Scratch;
-			const float prepareEnd = isScratchAttack ? animation_.scratch.prepareEndRate : animation_.lunge.prepareEndRate;
-			const float strikeEnd = isScratchAttack ? animation_.scratch.strikeEndRate : animation_.lunge.strikeEndRate;
-			const char* phase = !attackController_.IsAttacking() ? "なし" : (p < prepareEnd ? "構え" : (p < strikeEnd ? "振り下ろし" : "戻り"));
-			ImGui::Text("現在攻撃: %s", attackController_.IsAttacking() ? ((attackController_.GetCurrentAttackType() == MeleeAttackType::LungeScratch) ? "踏み込みひっかき" : "通常ひっかき") : "なし");
-			ImGui::Text("攻撃進行度: %.2f", animationState_.attackAnimProgress);
-			ImGui::Text("現在フェーズ: %s", phase);
-			ImGui::Text("Scratch使用腕: %s", scratchArmState_.useLeftArm ? "左" : "右");
-		}
-		if (ImGui::CollapsingHeader("頭向き", ImGuiTreeNodeFlags_DefaultOpen)) { ImGui::Checkbox("頭をターゲットへ向ける", &headLookSettings_.enabled); ImGui::SliderFloat("ヨー制限", &headLookSettings_.yawLimitDeg, 10.0f, 120.0f); ImGui::SliderFloat("ピッチ最小", &headLookSettings_.pitchMinDeg, -80.0f, 0.0f); ImGui::SliderFloat("ピッチ最大", &headLookSettings_.pitchMaxDeg, 0.0f, 80.0f); ImGui::SliderFloat("補間速度", &headLookSettings_.lerpSpeed, 1.0f, 30.0f); }
-		if (ImGui::CollapsingHeader("状態表示", ImGuiTreeNodeFlags_DefaultOpen)) { ImGui::Text("現在行動: %s", currentBehaviorName_); ImGui::Text("攻撃中: %s", attackController_.IsAttacking() ? "はい" : "いいえ"); ImGui::Text("ターゲット距離: %.2f", GetDistanceToTarget()); }
-		if (ImGui::CollapsingHeader("敵攻撃ダメージ確認", ImGuiTreeNodeFlags_DefaultOpen)) { ImGui::Text("近接攻撃ヒット回数: %d", enemyDamageDebug_.meleeHitCount); ImGui::Text("最後に受けたダメージ: %d", enemyDamageDebug_.lastDamage); ImGui::Text("Player HP: %.1f", enemyDamageDebug_.lastPlayerHp); ImGui::Text("最後の命中種別: %s", enemyDamageDebug_.lastHitSource.c_str()); }
+		ImGui::End();
+		return;
 	}
+
+	DrawTuningImGuiContent();
+
 	ImGui::End();
-#endif
+#endif // USE_IMGUI
 }
 
 bool MeleeEnemy::HasTarget() const { return target_ != nullptr; }

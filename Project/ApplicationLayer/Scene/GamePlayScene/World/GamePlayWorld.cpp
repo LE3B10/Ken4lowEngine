@@ -733,24 +733,51 @@ void GamePlayWorld::DrawEnemyDebugImGui()
 #endif
 }
 
+void GamePlayWorld::DrawMeleeEnemyTuningImGuiContent()
+{
+#ifdef USE_IMGUI
+	characters_.DrawMeleeEnemyTuningImGuiContent();
+#endif
+}
+
+void GamePlayWorld::DrawMidRangeEnemyTuningImGuiContent()
+{
+#ifdef USE_IMGUI
+	characters_.DrawMidRangeEnemyTuningImGuiContent();
+#endif
+}
+
+void GamePlayWorld::DrawBossTuningImGuiContent()
+{
+#ifdef USE_IMGUI
+	if (guardianBoss_)
+	{
+		guardianBoss_->DrawTuningImGuiContent();
+	}
+	else
+	{
+		ImGui::TextUnformatted("ボスはまだ出現していません。");
+	}
+#endif
+}
+
 void GamePlayWorld::DrawEnemyTuningImGui()
 {
 #ifdef USE_IMGUI
-	if (ImGui::CollapsingHeader("近接雑魚敵・中距離雑魚敵パラメータ", ImGuiTreeNodeFlags_DefaultOpen))
+	// GamePlayScene側でImGuiウィンドウを作成し、各敵の調整項目はその内側で描画する。
+	if (ImGui::CollapsingHeader("近接雑魚敵", ImGuiTreeNodeFlags_DefaultOpen))
 	{
-		characters_.DrawEnemyTuningImGui();
+		DrawMeleeEnemyTuningImGuiContent();
 	}
 
-	if (ImGui::CollapsingHeader("ボスパラメータ", ImGuiTreeNodeFlags_DefaultOpen))
+	if (ImGui::CollapsingHeader("中距離雑魚敵", ImGuiTreeNodeFlags_DefaultOpen))
 	{
-		if (guardianBoss_)
-		{
-			guardianBoss_->DrawImGui();
-		}
-		else
-		{
-			ImGui::TextUnformatted("ボスはまだ出現していません。");
-		}
+		DrawMidRangeEnemyTuningImGuiContent();
+	}
+
+	if (ImGui::CollapsingHeader("ボス", ImGuiTreeNodeFlags_DefaultOpen))
+	{
+		DrawBossTuningImGuiContent();
 	}
 
 	if (ImGui::CollapsingHeader("クリスタル状態", ImGuiTreeNodeFlags_DefaultOpen))
