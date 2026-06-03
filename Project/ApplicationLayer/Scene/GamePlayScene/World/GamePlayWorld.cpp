@@ -582,18 +582,7 @@ void GamePlayWorld::DrawHUD(bool hideDuringIntro)
 	if (hideDuringIntro) { return; }
 
 	enemyHpBarManager_.Draw();
-	if (auto* player = characters_.GetPlayer())
-	{
-		if (auto* camera = player->GetCamera())
-		{
-			crystalManager_.DrawHpBars(
-				camera->GetViewMatrix(),
-				camera->GetProjectionMatrix(),
-				static_cast<float>(K4E::GameViewportConstants::Width),
-				static_cast<float>(K4E::GameViewportConstants::Height));
-		}
-	}
-
+	
 	if (hudManager_)
 	{
 		hudManager_->Draw();
