@@ -272,7 +272,6 @@ public:
     void Update(float deltaTime) override;
     void Draw() override;
     void DrawImGui() override;
-    void DrawTuningImGuiContent();
     void SetTarget(const K4E::Vector3& target);
     void SetTarget(K4E::Collider* target) { targetCollider_ = target; }
 

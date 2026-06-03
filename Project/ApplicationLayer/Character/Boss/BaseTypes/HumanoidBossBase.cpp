@@ -174,11 +174,7 @@ float HumanoidBossBase::GetDistanceToTargetXZ() const
 void HumanoidBossBase::DrawImGui()
 {
 #ifdef USE_IMGUI
-	if (!ImGui::Begin("HumanoidBoss Debug"))
-	{
-		ImGui::End();
-		return;
-	}
+	ImGui::Begin("HumanoidBoss Debug");
 
 	const Vector3 center = GetCenterPosition();
 	ImGui::Text("Center : (%.2f, %.2f, %.2f)", center.x, center.y, center.z);

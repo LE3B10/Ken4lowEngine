@@ -148,20 +148,13 @@ void BossBase::DrawShadow()
 /// -------------------------------------------------------------
 /// ImGui描画
 /// -------------------------------------------------------------
-void BossBase::DrawTuningImGuiContent()
+void BossBase::DrawImGui()
 {
 #ifdef USE_IMGUI
 	if (attackComponent_)
 	{
 		attackComponent_->DrawImGui();
 	}
-#endif
-}
-
-void BossBase::DrawImGui()
-{
-#ifdef USE_IMGUI
-	DrawTuningImGuiContent();
 #endif
 }
 
