@@ -1263,6 +1263,9 @@
     <ClInclude Include="ApplicationLayer\Character\Boss\Attacks\BossPunchAttack.h">
       <Filter>ApplicationLayer\Character\Boss\Attacks</Filter>
     </ClInclude>
+    <ClInclude Include="ApplicationLayer\Character\Boss\Attacks\BossAttackDebugSettings.h">
+      <Filter>ApplicationLayer\Character\Boss\Attacks</Filter>
+    </ClInclude>
     <ClInclude Include="ApplicationLayer\Character\Boss\Core\BossTypes.h">
       <Filter>ApplicationLayer\Character\Boss\Core</Filter>
     </ClInclude>

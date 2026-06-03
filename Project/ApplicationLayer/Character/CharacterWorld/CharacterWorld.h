@@ -51,6 +51,7 @@ public: /// ---------- メンバ関数 ---------- ///
 	void DrawImGui();
 	void DrawPlayerDebugImGui();
 	void DrawEnemyDebugImGui();
+	void DrawEnemyTuningImGui();
 
 	void DrawShadow();
 

@@ -644,6 +644,8 @@ void GamePlayScene::DrawImGui()
 		ImGui::End();
 	}
 
+	DrawEnemyTuningImGui();
+
 	if (hpPostEffectController_ && editorWindowState.showPlayerDebug)
 	{
 		// Player DebugへHP/Damage系ポストエフェクト調整を追加し、単独浮遊ウィンドウを出さない。
@@ -655,6 +657,24 @@ void GamePlayScene::DrawImGui()
 		ImGui::End();
 	}
 #endif // USE_IMGUI
+}
+
+void GamePlayScene::DrawEnemyTuningImGui()
+{
+#ifdef USE_IMGUI
+	auto& editorWindowState = K4E::EditorWindowManager::GetInstance()->GetWindowState();
+	if (!editorWindowState.showEnemyDebug || !world_)
+	{
+		return;
+	}
+
+	ImGui::SetNextWindowSize(ImVec2(560.0f, 620.0f), ImGuiCond_FirstUseEver);
+	if (ImGui::Begin("Enemy Parameter Tuning", &editorWindowState.showEnemyDebug))
+	{
+		world_->DrawEnemyTuningImGui();
+	}
+	ImGui::End();
+#endif
 }
 
 void GamePlayScene::StartLoad()
