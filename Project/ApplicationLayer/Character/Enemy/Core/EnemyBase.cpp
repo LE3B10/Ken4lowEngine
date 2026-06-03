@@ -250,7 +250,7 @@ bool EnemyBase::OverlapsNavigationObstacle(const Vector3& center) const
 
 Vector3 EnemyBase::CorrectSpawnPosition(const Vector3& requestedPosition) const
 {
-	constexpr Vector3 offsets[] = {
+	const Vector3 offsets[] = {
 		{ 0.0f, 0.0f, 0.0f }, { 2.5f, 0.0f, 0.0f }, { -2.5f, 0.0f, 0.0f },
 		{ 0.0f, 0.0f, 2.5f }, { 0.0f, 0.0f, -2.5f }, { 3.5f, 0.0f, 3.5f },
 		{ -3.5f, 0.0f, 3.5f }, { 3.5f, 0.0f, -3.5f }, { -3.5f, 0.0f, -3.5f }

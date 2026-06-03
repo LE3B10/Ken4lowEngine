@@ -29,7 +29,7 @@ namespace
 	Vector3 SnapCrystalPosition(const Vector3& requested, const Vector3& scale, const std::vector<AABB>* floors, const std::vector<AABB>* obstacles)
 	{
 		const Vector3 half{ std::fabs(scale.x) * 0.5f, std::fabs(scale.y) * 0.5f, std::fabs(scale.z) * 0.5f };
-		constexpr Vector3 offsets[] = { {}, { 2.0f, 0.0f, 0.0f }, { -2.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 2.0f }, { 0.0f, 0.0f, -2.0f } };
+		const Vector3 offsets[] = { {}, { 2.0f, 0.0f, 0.0f }, { -2.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 2.0f }, { 0.0f, 0.0f, -2.0f } };
 		for (const Vector3& offset : offsets)
 		{
 			Vector3 candidate = requested + offset;
