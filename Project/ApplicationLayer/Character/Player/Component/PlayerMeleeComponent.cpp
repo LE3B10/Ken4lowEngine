@@ -86,6 +86,7 @@ void PlayerMeleeComponent::EvaluateHit(const K4E::Vector3& playerPos)
 	// 胸あたりから少し前へ
 	const K4E::Vector3 start = playerPos + K4E::Vector3{ 0.0f, 1.2f, 0.0f };
 	const K4E::Vector3 end = start + forward * range_;
+	const K4E::Vector3 attackCenter = start + (end - start) * 0.5f;
 
 	K4E::Segment seg{};
 	seg.origin = start;
@@ -129,6 +130,7 @@ void PlayerMeleeComponent::EvaluateHit(const K4E::Vector3& playerPos)
 	if (bestHit->GetTypeID() == static_cast<uint32_t>(CollisionTypeIdDef::kEnemy))
 	{
 		auto* enemyBase = bestHit->GetOwner<EnemyBase>();
+		EnemyBase::SetDeathDebugComparePositions(playerPos, attackCenter);
 		const bool wasDead = enemyBase->IsDead();
 
 		// 近接ヒット位置
