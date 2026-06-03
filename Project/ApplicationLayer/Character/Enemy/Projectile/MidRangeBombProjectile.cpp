@@ -1,5 +1,7 @@
 #define NOMINMAX
 #include "MidRangeBombProjectile.h"
+
+#include "ApplicationLayer/Character/Player/Player.h"
 #include "Wireframe.h"
 
 #include <algorithm>
@@ -20,6 +22,8 @@ void MidRangeBombProjectile::Initialize()
     explosionDrawTimer_ = 0.0f;
     exploded_ = false;
     alive_ = false;
+    directDamageApplied_ = false;
+    explosionDamageApplied_ = false;
 
     debugCube_ = std::make_unique<Object3D>();
     debugCube_->Initialize("Test/cube.gltf");
@@ -41,6 +45,8 @@ void MidRangeBombProjectile::Launch(
     explosionDrawTimer_ = 0.0f;
     exploded_ = false;
     alive_ = true;
+    directDamageApplied_ = false;
+    explosionDamageApplied_ = false;
 
     Vector3 directionXZ = target - start;
     directionXZ.y = 0.0f;
@@ -148,6 +154,53 @@ void MidRangeBombProjectile::UpdateDebugCube()
     debugCube_->SetRotate({ lifeTimer_ * 2.0f, lifeTimer_ * 3.5f, lifeTimer_ * 1.5f });
     debugCube_->SetScale({ s_debugCubeSize_, s_debugCubeSize_, s_debugCubeSize_ });
     debugCube_->Update();
+}
+
+
+MidRangeBombProjectile::PlayerHitResult MidRangeBombProjectile::TryApplyPlayerDamage(Player& player)
+{
+    auto* playerTransform = player.GetWorldTransform();
+    if (!playerTransform)
+    {
+        return PlayerHitResult::None;
+    }
+
+    PlayerHitResult result = PlayerHitResult::None;
+    const Vector3 playerPosition = playerTransform->translate_;
+
+    if (alive_ && !directDamageApplied_)
+    {
+        const float directDistance = Vector3::Length(playerPosition - position_);
+        if (directDistance <= settings_.hitRadius)
+        {
+            // 中距離雑魚敵の爆弾Cubeがプレイヤーへ直撃した瞬間だけHPを減らす。
+            player.ApplyDamage(static_cast<float>(settings_.directHitDamage), &position_);
+            directDamageApplied_ = true;
+            result = PlayerHitResult::Direct;
+            Explode();
+        }
+    }
+
+    if (exploded_ && !explosionDamageApplied_)
+    {
+        const float explosionDistance = Vector3::Length(playerPosition - explosionPosition_);
+        if (explosionDistance <= settings_.explosionRadius)
+        {
+            if (result != PlayerHitResult::Direct || settings_.directHitAlsoExplosionDamage)
+            {
+                // 中距離雑魚敵の爆弾範囲内にプレイヤーが入った場合のみダメージを与える。
+                player.ApplyDamage(static_cast<float>(settings_.explosionDamage), &explosionPosition_);
+                explosionDamageApplied_ = true;
+                result = (result == PlayerHitResult::Direct) ? PlayerHitResult::DirectAndExplosion : PlayerHitResult::Explosion;
+            }
+            else
+            {
+                explosionDamageApplied_ = true;
+            }
+        }
+    }
+
+    return result;
 }
 
 bool MidRangeBombProjectile::IsAlive() const

@@ -1,6 +1,7 @@
 #define NOMINMAX
 #include "MidRangeEnemy.h"
 
+#include "ApplicationLayer/Character/Player/Player.h"
 #include "Wireframe.h"
 
 #include <imgui.h>
@@ -9,6 +10,7 @@
 #include <algorithm>
 #include <cmath>
 #include <fstream>
+#include <iostream>
 
 using namespace Ken4lowEngine;
 
@@ -200,6 +202,34 @@ void MidRangeEnemy::Update(float deltaTime)
     for (auto& bomb : bombs_)
     {
         bomb->Update(deltaTime);
+        if (targetCollider_)
+        {
+            if (auto* player = targetCollider_->GetOwner<Player>())
+            {
+                const MidRangeBombProjectile::PlayerHitResult hitResult = bomb->TryApplyPlayerDamage(*player);
+                if (hitResult != MidRangeBombProjectile::PlayerHitResult::None)
+                {
+                    ++enemyDamageDebug_.midRangeHitCount;
+                    enemyDamageDebug_.lastPlayerHp = player->GetHP();
+                    if (hitResult == MidRangeBombProjectile::PlayerHitResult::Direct || hitResult == MidRangeBombProjectile::PlayerHitResult::DirectAndExplosion)
+                    {
+                        ++enemyDamageDebug_.bombDirectHitCount;
+                        enemyDamageDebug_.lastDamage = bombProjectile_.directHitDamage;
+                        enemyDamageDebug_.lastHitSource = "爆弾直撃";
+                        std::cout << "[中距離雑魚敵] 爆弾直撃: ダメージ=" << bombProjectile_.directHitDamage
+                            << " Player HP=" << enemyDamageDebug_.lastPlayerHp << std::endl;
+                    }
+                    if (hitResult == MidRangeBombProjectile::PlayerHitResult::Explosion || hitResult == MidRangeBombProjectile::PlayerHitResult::DirectAndExplosion)
+                    {
+                        ++enemyDamageDebug_.bombExplosionHitCount;
+                        enemyDamageDebug_.lastDamage = bombProjectile_.explosionDamage;
+                        enemyDamageDebug_.lastHitSource = (hitResult == MidRangeBombProjectile::PlayerHitResult::DirectAndExplosion) ? "爆弾直撃+爆発" : "爆弾爆発";
+                        std::cout << "[中距離雑魚敵] 爆弾爆発ヒット: ダメージ=" << bombProjectile_.explosionDamage
+                            << " Player HP=" << enemyDamageDebug_.lastPlayerHp << std::endl;
+                    }
+                }
+            }
+        }
     }
 
     bombs_.erase(
@@ -571,7 +601,18 @@ void MidRangeEnemy::ExplodeSuicideBomb(const std::string& reason)
         const float distanceToTarget = LengthXZ(targetState_.position - suicideBombState_.explosionPosition);
         if (distanceToTarget <= suicideBomb_.explosionRadius)
         {
-            // 追加: TODO 既存のプレイヤーダメージ接続先が確定したら範囲ダメージを適用する。
+            if (auto* player = targetCollider_ ? targetCollider_->GetOwner<Player>() : nullptr)
+            {
+                // 中距離雑魚敵の自爆範囲内にプレイヤーがいる場合のみHPを減らす。
+                player->ApplyDamage(static_cast<float>(suicideBomb_.explosionDamage), &suicideBombState_.explosionPosition);
+                ++enemyDamageDebug_.midRangeHitCount;
+                ++enemyDamageDebug_.suicideHitCount;
+                enemyDamageDebug_.lastDamage = suicideBomb_.explosionDamage;
+                enemyDamageDebug_.lastPlayerHp = player->GetHP();
+                enemyDamageDebug_.lastHitSource = "自爆";
+                std::cout << "[中距離雑魚敵] 自爆ヒット: ダメージ=" << suicideBomb_.explosionDamage
+                    << " Player HP=" << enemyDamageDebug_.lastPlayerHp << std::endl;
+            }
             behaviorState_.lastReason = "自爆範囲内";
         }
     }
@@ -1081,6 +1122,16 @@ void MidRangeEnemy::DrawImGui()
             suicideBombState_.explosionDrawTimer = drawTime;
             suicideBombState_.lastReason = "DebugExplosionDrawOnly";
         }
+    }
+    if (ImGui::CollapsingHeader("敵攻撃ダメージ確認", ImGuiTreeNodeFlags_DefaultOpen))
+    {
+        ImGui::Text("中距離攻撃ヒット回数: %d", enemyDamageDebug_.midRangeHitCount);
+        ImGui::Text("爆弾直撃ヒット回数: %d", enemyDamageDebug_.bombDirectHitCount);
+        ImGui::Text("爆弾爆発ヒット回数: %d", enemyDamageDebug_.bombExplosionHitCount);
+        ImGui::Text("自爆ヒット回数: %d", enemyDamageDebug_.suicideHitCount);
+        ImGui::Text("最後に受けたダメージ: %d", enemyDamageDebug_.lastDamage);
+        ImGui::Text("Player HP: %.1f", enemyDamageDebug_.lastPlayerHp);
+        ImGui::Text("最後の命中種別: %s", enemyDamageDebug_.lastHitSource.c_str());
     }
     if (ImGui::CollapsingHeader("爆弾Projectile"))
     {

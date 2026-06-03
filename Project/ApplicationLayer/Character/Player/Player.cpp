@@ -600,6 +600,52 @@ void Player::OnHitByEnemyBullet(K4E::Collider* bullet, PlayerHitPart part, float
 		cameraRight);
 }
 
+
+void Player::ApplyDamage(float amount, const K4E::Vector3* attackerPosition)
+{
+	// 敵の近接・爆弾攻撃は既存のHP/死亡フィードバック経路へ集約して処理する。
+	const auto fb = damage_.ApplyDamage(
+		*this,
+		amount,
+		view_,
+		weaponController_,
+		death_,
+		inputSnap_,
+		runtime_.runCarry,
+		audio_.onHit,
+		audio_.onDeath);
+
+	ApplyDamageFeedback(fb);
+
+	if (!fb.tookDamage || !refs_.hudManager || !attackerPosition)
+	{
+		return;
+	}
+
+	auto* cam = view_.GetCamera();
+	if (!cam)
+	{
+		return;
+	}
+
+	K4E::Vector3 playerPos = GetWorldTransform()->translate_;
+	K4E::Vector3 cameraForward = cam->GetForward();
+	cameraForward.y = 0.0f;
+	const float forwardLenSq = cameraForward.x * cameraForward.x + cameraForward.z * cameraForward.z;
+	if (forwardLenSq <= 0.0001f)
+	{
+		cameraForward = { 0.0f, 0.0f, 1.0f };
+	}
+	else
+	{
+		cameraForward = K4E::Vector3::Normalize(cameraForward);
+	}
+	K4E::Vector3 cameraRight = { cameraForward.z, 0.0f, -cameraForward.x };
+	cameraRight = K4E::Vector3::Normalize(cameraRight);
+
+	refs_.hudManager->AddDamageIndicator(playerPos, *attackerPosition, cameraForward, cameraRight);
+}
+
 void Player::NotifyEnemyHitUI(bool isHeadshot)
 {
 	if (refs_.hudManager)

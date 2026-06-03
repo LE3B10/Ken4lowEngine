@@ -4,6 +4,9 @@
 #include "Object3D.h"
 
 #include <memory>
+
+class Player;
+
 struct BombProjectileSettings
 {
     // 追加: 距離に応じた初速調整の基本値。
@@ -31,6 +34,14 @@ struct BombProjectileSettings
 class MidRangeBombProjectile
 {
 public:
+    enum class PlayerHitResult
+    {
+        None,
+        Direct,
+        Explosion,
+        DirectAndExplosion,
+    };
+
     void Initialize();
 
     void Launch(
@@ -42,6 +53,7 @@ public:
     void Update(float deltaTime);
     void Draw() const;
     void Explode();
+    PlayerHitResult TryApplyPlayerDamage(Player& player);
     bool IsAlive() const;
 
     const Ken4lowEngine::Vector3& GetPosition() const { return position_; }
@@ -62,6 +74,8 @@ private:
     float explosionDrawTimer_ = 0.0f;
     bool exploded_ = false;
     bool alive_ = false;
+    bool directDamageApplied_ = false;
+    bool explosionDamageApplied_ = false;
     std::unique_ptr<Ken4lowEngine::Object3D> debugCube_;
 
     static bool s_debugCubeVisible_;

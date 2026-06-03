@@ -256,6 +256,17 @@ private:
         std::string lastReason = "None";
     };
 
+    struct EnemyDamageDebugState
+    {
+        int midRangeHitCount = 0;
+        int bombDirectHitCount = 0;
+        int bombExplosionHitCount = 0;
+        int suicideHitCount = 0;
+        int lastDamage = 0;
+        float lastPlayerHp = 0.0f;
+        std::string lastHitSource = "なし";
+    };
+
 public:
     void Initialize() override;
     void Update(float deltaTime) override;
@@ -333,6 +344,7 @@ private:
     DeathAnimationState deathAnimationState_{};
     TuningIoState tuningIo_{};
     BehaviorState behaviorState_{};
+    EnemyDamageDebugState enemyDamageDebug_{};
     bool usedEnemyBaseDeathForSuicide_ = false;
     K4E::Vector3 lastSuicideBreakApartDirection_{ 0.0f, 0.0f, 1.0f };
     // 使用中の雑魚敵だけを残し、大量敵対応に向けてEnemy周りの責務を整理する。
