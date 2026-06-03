@@ -150,6 +150,7 @@ public:
 	void SetParticleEffectSystem(EnemyParticleEffectSystem* effectSystem) { particleEffectSystem_ = effectSystem; }
 
 	void SpawnHitEffectAt(const K4E::Vector3& worldPos);
+	static void SetDeathDebugComparePositions(const K4E::Vector3& playerPosition, const K4E::Vector3& attackCenter);
 
 	const std::vector<K4E::AABB>* GetResolvedWorldAABBs() const { return worldAABBs_ ? worldAABBs_ : g_worldAABBs_; }
 	const std::vector<K4E::AABB>* GetResolvedNavigationObstacleAABBs() const { return g_navigationObstacleAABBs_ ? g_navigationObstacleAABBs_ : GetResolvedWorldAABBs(); }
@@ -186,6 +187,8 @@ private:
 	void StartBreakApartDeath();
 	void UpdateBreakApartDeath(float dt);
 	void DetachAllPartsToWorldSpace();
+	void CaptureDeathEffectOrigin();
+	K4E::Vector3 RotateLocalOffsetByDeathRotation(const K4E::Vector3& localOffset) const;
 
 protected:
 	// ----- humanoid visual -----
@@ -247,6 +250,13 @@ protected:
 
 	// ---- break apart sim ----
 	bool deathBreakActive_ = false;
+	bool deathBreakInitialized_ = false;
+	bool hasDeathEffectOrigin_ = false;
+	K4E::Vector3 deathEnemyPosition_{};
+	K4E::Vector3 deathEffectOrigin_{};
+	K4E::Vector3 deathEffectRotation_{};
+	K4E::Vector3 deathDebugPlayerPosition_{};
+	K4E::Vector3 deathDebugAttackCenter_{};
 	float deathTimer_ = 0.0f;
 	float deathSimDuration_ = 1.8f;   // 破片が残る時間
 	float deathFadeDuration_ = 0.6f;  // 最後にフェードする時間
@@ -261,6 +271,8 @@ protected:
 	static float s_deathMaxSpeed_;
 	static float s_deathMaxAngularSpeed_;
 	static float s_deathPieceLifetime_;
+	static K4E::Vector3 s_lastDebugPlayerPosition_;
+	static K4E::Vector3 s_lastDebugAttackCenter_;
 
 	EnemyParticleEffectSystem* particleEffectSystem_ = nullptr;
 

@@ -23,6 +23,8 @@ float EnemyBase::s_spawnYOffset_ = 0.15f;
 float EnemyBase::s_deathMaxSpeed_ = 7.0f;
 float EnemyBase::s_deathMaxAngularSpeed_ = 5.0f;
 float EnemyBase::s_deathPieceLifetime_ = 1.8f;
+Vector3 EnemyBase::s_lastDebugPlayerPosition_ = { 0.0f, 0.0f, 0.0f };
+Vector3 EnemyBase::s_lastDebugAttackCenter_ = { 0.0f, 0.0f, 0.0f };
 
 namespace
 {
@@ -187,6 +189,13 @@ void EnemyBase::Initialize()
 	removable_ = false;
 
 	deathBreakActive_ = false;
+	deathBreakInitialized_ = false;
+	hasDeathEffectOrigin_ = false;
+	deathEnemyPosition_ = GetCenterPosition();
+	deathEffectOrigin_ = deathEnemyPosition_;
+	deathEffectRotation_ = orientation_;
+	deathDebugPlayerPosition_ = s_lastDebugPlayerPosition_;
+	deathDebugAttackCenter_ = s_lastDebugAttackCenter_;
 	deathTimer_ = 0.0f;
 	deathPieces_.clear();
 	lastHitDir_ = { 0, 0, 0 };
@@ -434,6 +443,10 @@ void EnemyBase::Draw()
 void EnemyBase::DrawImGui()
 {
 #ifdef USE_IMGUI
+	ImGui::Text("死亡敵座標: %.2f, %.2f, %.2f", deathEnemyPosition_.x, deathEnemyPosition_.y, deathEnemyPosition_.z);
+	ImGui::Text("死亡演出原点: %.2f, %.2f, %.2f", deathEffectOrigin_.x, deathEffectOrigin_.y, deathEffectOrigin_.z);
+	ImGui::Text("プレイヤー座標: %.2f, %.2f, %.2f", deathDebugPlayerPosition_.x, deathDebugPlayerPosition_.y, deathDebugPlayerPosition_.z);
+	ImGui::Text("攻撃判定中心: %.2f, %.2f, %.2f", deathDebugAttackCenter_.x, deathDebugAttackCenter_.y, deathDebugAttackCenter_.z);
 	ImGui::Text("DeathHitPower: %.2f Up: %.2f", lastHitPower_, lastHitUpPower_);
 	if (body_.object) body_.object->DrawImGui();
 
@@ -510,6 +523,7 @@ void EnemyBase::TakeDamage(int amount, const Vector3& hitDir, float hitPower)
 	if (hp_ <= 0)
 	{
 		hp_ = 0;
+		CaptureDeathEffectOrigin();
 		isDead_ = true;
 		removable_ = false;
 
@@ -553,6 +567,12 @@ void EnemyBase::SetDeathPieceLifetime(float lifetime)
 	s_deathPieceLifetime_ = std::clamp(lifetime, 0.2f, 5.0f);
 }
 
+void EnemyBase::SetDeathDebugComparePositions(const Vector3& playerPosition, const Vector3& attackCenter)
+{
+	s_lastDebugPlayerPosition_ = playerPosition;
+	s_lastDebugAttackCenter_ = attackCenter;
+}
+
 void EnemyBase::SpawnHitEffectAt(const K4E::Vector3& worldPos)
 {
 	if (!particleEffectSystem_)
@@ -568,10 +588,12 @@ void EnemyBase::SpawnHitEffectAt(const K4E::Vector3& worldPos)
 /// -------------------------------------------------------------
 void EnemyBase::OnKilled()
 {
+	CaptureDeathEffectOrigin();
+
 	// 死亡パーティクル
 	if (particleEffectSystem_)
 	{
-		particleEffectSystem_->SpawnDeathEffect(GetCenterPosition());
+		particleEffectSystem_->SpawnDeathEffect(deathEffectOrigin_);
 	}
 
 	StartBreakApartDeath();
@@ -652,30 +674,77 @@ void EnemyBase::DetachAllPartsToWorldSpace()
 	}
 }
 
+void EnemyBase::CaptureDeathEffectOrigin()
+{
+	if (hasDeathEffectOrigin_)
+	{
+		return;
+	}
+
+	deathEnemyPosition_ = GetCenterPosition();
+	deathEffectOrigin_ = deathEnemyPosition_;
+	deathEffectRotation_ = orientation_;
+	deathDebugPlayerPosition_ = s_lastDebugPlayerPosition_;
+	deathDebugAttackCenter_ = s_lastDebugAttackCenter_;
+	hasDeathEffectOrigin_ = true;
+}
+
+Vector3 EnemyBase::RotateLocalOffsetByDeathRotation(const Vector3& localOffset) const
+{
+	const Matrix4x4 rotationMatrix = Matrix4x4::MakeRotateMatrix(deathEffectRotation_);
+	return Matrix4x4::Transform(localOffset, rotationMatrix);
+}
+
 /// -------------------------------------------------------------
 /// death: 開始
 /// -------------------------------------------------------------
 void EnemyBase::StartBreakApartDeath()
 {
-	if (deathBreakActive_ && !deathPieces_.empty())
+	if (deathBreakInitialized_)
 	{
 		return;
 	}
 
+	CaptureDeathEffectOrigin();
 	deathPieces_.clear();
 	deathBreakActive_ = true;
+	deathBreakInitialized_ = true;
 	deathSimDuration_ = s_deathPieceLifetime_;
 	deathTimer_ = deathSimDuration_;
 
-	DetachAllPartsToWorldSpace();
+	// 四肢分解演出は攻撃者位置ではなく、敵が死亡したワールド座標を基準に生成する。
+	body_.transform.parent_ = nullptr;
+	body_.transform.translate_ = deathEffectOrigin_;
+	body_.transform.rotate_ = deathEffectRotation_;
+	body_.transform.Update();
+	if (body_.object)
+	{
+		body_.object->SetTranslate(body_.transform.translate_);
+		body_.object->SetRotate(body_.transform.rotate_);
+		body_.object->Update();
+	}
+
+	for (auto& part : parts_)
+	{
+		const Vector3 localOffset = part.transform.translate_;
+		part.transform.parent_ = nullptr;
+		part.transform.translate_ = deathEffectOrigin_ + RotateLocalOffsetByDeathRotation(localOffset);
+		part.transform.rotate_ = deathEffectRotation_;
+		part.transform.Update();
+		if (part.object)
+		{
+			part.object->SetTranslate(part.transform.translate_);
+			part.object->SetRotate(part.transform.rotate_);
+			part.object->Update();
+		}
+	}
 
 	// 色を戻してからフェードを制御する
 	SetVisualColorAll(baseColor_);
 
-	const Vector3 center = GetCenterPosition();
-	const Vector3 hitDir = NormalizeSafe(lastHitDir_, { 0, 0, 1 });
-	const float power = std::clamp((lastHitPower_ > 0.0f) ? lastHitPower_ : 1.0f, 0.2f, 1.2f);
-	const float upPower = std::clamp(lastHitUpPower_, 0.2f, 1.2f);
+	const Vector3 center = deathEffectOrigin_;
+	const float power = std::clamp((lastHitPower_ > 0.0f) ? lastHitPower_ : 1.0f, 0.2f, 1.0f);
+	const float upPower = std::clamp(lastHitUpPower_, 0.2f, 1.0f);
 	deathGroundY_ = FindGroundY(center) + 0.05f;
 
 	// 体（重め）
@@ -684,9 +753,9 @@ void EnemyBase::StartBreakApartDeath()
 		p.part = &body_;
 		p.hitBias = 0.75f;
 		const Vector3 fromCenter = NormalizeSafe(body_.transform.translate_ - center);
-		const Vector3 dir = NormalizeSafe(fromCenter + RandomUnit() * 0.35f + hitDir * p.hitBias);
-		const float speed = RandRange(2.0f, 4.5f) * power;
-		p.velocity = ClampVectorLength(dir * speed + Vector3{ 0.0f, RandRange(1.0f, 3.0f) * upPower, 0.0f }, s_deathMaxSpeed_);
+		const Vector3 dir = NormalizeSafe(fromCenter + RandomUnit() * 0.25f);
+		const float speed = RandRange(1.4f, 2.8f) * power;
+		p.velocity = ClampVectorLength(dir * speed + Vector3{ 0.0f, RandRange(0.8f, 1.8f) * upPower, 0.0f }, s_deathMaxSpeed_);
 		p.angularVel = ClampVectorLength(Vector3{ RandRange(-3.0f, 3.0f), RandRange(-4.0f, 4.0f), RandRange(-3.0f, 3.0f) }, s_deathMaxAngularSpeed_);
 		deathPieces_.push_back(p);
 	}
@@ -701,10 +770,10 @@ void EnemyBase::StartBreakApartDeath()
 		p.hitBias = (i == partIndices_.head) ? 0.9f : 0.55f;
 
 		const Vector3 fromCenter = NormalizeSafe(parts_[i].transform.translate_ - center);
-		const Vector3 dir = NormalizeSafe(fromCenter + RandomUnit() * 0.55f + hitDir * p.hitBias);
+		const Vector3 dir = NormalizeSafe(fromCenter + RandomUnit() * 0.35f);
 
-		const float speed = RandRange(3.0f, 6.5f) * power;
-		const float up = (i == partIndices_.head) ? RandRange(2.0f, 4.0f) : RandRange(1.2f, 3.2f);
+		const float speed = RandRange(1.8f, 3.4f) * power;
+		const float up = (i == partIndices_.head) ? RandRange(1.2f, 2.2f) : RandRange(0.9f, 1.9f);
 
 		p.velocity = ClampVectorLength(dir * speed + Vector3{ 0.0f, up * upPower, 0.0f }, s_deathMaxSpeed_);
 		p.angularVel = ClampVectorLength(Vector3{ RandRange(-4.0f, 4.0f), RandRange(-5.0f, 5.0f), RandRange(-4.0f, 4.0f) }, s_deathMaxAngularSpeed_);
