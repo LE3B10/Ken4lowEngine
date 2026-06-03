@@ -87,6 +87,17 @@ public:
 		bool& runCarry,
 		std::function<void()> onDeathSE);
 
+	DamageFeedback ApplyDamage(
+		Player& player,
+		float damage,
+		PlayerViewComponent& view,
+		PlayerWeaponController& weaponController,
+		PlayerDeathComponent& death,
+		InputSnapshot& inputSnap,
+		bool& runCarry,
+		std::function<void()> onHitSE,
+		std::function<void()> onDeathSE);
+
 	float GetHP() const { return state_.hp; }
 	float GetMaxHP() const { return state_.maxHp; }
 	void Heal(float amount);

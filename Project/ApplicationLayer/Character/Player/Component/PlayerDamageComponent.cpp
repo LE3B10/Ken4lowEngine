@@ -237,6 +237,72 @@ PlayerDamageComponent::DamageFeedback PlayerDamageComponent::ApplyFallDamage(
 	return fb;
 }
 
+
+PlayerDamageComponent::DamageFeedback PlayerDamageComponent::ApplyDamage(
+	Player& player,
+	float damage,
+	PlayerViewComponent& view,
+	PlayerWeaponController& weaponController,
+	PlayerDeathComponent& death,
+	InputSnapshot& inputSnap,
+	bool& runCarry,
+	std::function<void()> onHitSE,
+	std::function<void()> onDeathSE)
+{
+	DamageFeedback fb{};
+	fb.hpAfter = state_.hp;
+	fb.maxHp = state_.maxHp;
+
+	if (death.IsActive() || damage <= 0.0f || state_.hp <= 0.0f)
+	{
+		return fb;
+	}
+
+	const bool wasAlive = (state_.hp > 0.0f);
+	state_.hp -= damage;
+	if (state_.hp < 0.0f)
+	{
+		state_.hp = 0.0f;
+	}
+
+	fb.tookDamage = true;
+	fb.hpChanged = true;
+	fb.notifyPlayerHit = true;
+	fb.damage = damage;
+	fb.hpAfter = state_.hp;
+	fb.maxHp = state_.maxHp;
+	fb.hitStrength01 = CalcHitStrength01(damage);
+
+	if (onHitSE)
+	{
+		onHitSE();
+	}
+
+	if (wasAlive && state_.hp <= 0.0f)
+	{
+		if (onDeathSE)
+		{
+			onDeathSE();
+		}
+
+		K4E::Vector3 launchDir = { 0.0f, 0.0f, -1.0f };
+		if (auto* cam = view.GetCamera())
+		{
+			launchDir = -cam->GetForward();
+			launchDir.y = 0.0f;
+			if (K4E::Vector3::Length(launchDir) > 0.0001f)
+			{
+				launchDir = K4E::Vector3::Normalize(launchDir);
+			}
+		}
+
+		StartDeath(player, view, weaponController, death, inputSnap, runCarry, launchDir);
+		fb.startedDeath = true;
+	}
+
+	return fb;
+}
+
 void PlayerDamageComponent::StartDeath(
 	Player& player,
 	PlayerViewComponent& view,

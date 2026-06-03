@@ -1,12 +1,15 @@
 #define NOMINMAX
 #include "MeleeEnemy.h"
 
+#include "ApplicationLayer/Character/Player/Player.h"
+
 #include <cmath>
 #include <algorithm>
 #include <cstdlib>
 #include "Wireframe.h"
 #include "CollisionTypeIdDef.h"
 #include <fstream>
+#include <iostream>
 #include <json.hpp>
 
 #ifdef USE_IMGUI
@@ -757,6 +760,7 @@ if (ImGui::CollapsingHeader("スタック", ImGuiTreeNodeFlags_DefaultOpen)) {
 		}
 		if (ImGui::CollapsingHeader("頭向き", ImGuiTreeNodeFlags_DefaultOpen)) { ImGui::Checkbox("頭をターゲットへ向ける", &headLookSettings_.enabled); ImGui::SliderFloat("ヨー制限", &headLookSettings_.yawLimitDeg, 10.0f, 120.0f); ImGui::SliderFloat("ピッチ最小", &headLookSettings_.pitchMinDeg, -80.0f, 0.0f); ImGui::SliderFloat("ピッチ最大", &headLookSettings_.pitchMaxDeg, 0.0f, 80.0f); ImGui::SliderFloat("補間速度", &headLookSettings_.lerpSpeed, 1.0f, 30.0f); }
 		if (ImGui::CollapsingHeader("状態表示", ImGuiTreeNodeFlags_DefaultOpen)) { ImGui::Text("現在行動: %s", currentBehaviorName_); ImGui::Text("攻撃中: %s", attackController_.IsAttacking() ? "はい" : "いいえ"); ImGui::Text("ターゲット距離: %.2f", GetDistanceToTarget()); }
+		if (ImGui::CollapsingHeader("敵攻撃ダメージ確認", ImGuiTreeNodeFlags_DefaultOpen)) { ImGui::Text("近接攻撃ヒット回数: %d", enemyDamageDebug_.meleeHitCount); ImGui::Text("最後に受けたダメージ: %d", enemyDamageDebug_.lastDamage); ImGui::Text("Player HP: %.1f", enemyDamageDebug_.lastPlayerHp); ImGui::Text("最後の命中種別: %s", enemyDamageDebug_.lastHitSource.c_str()); }
 	}
 	ImGui::End();
 #endif
@@ -1384,9 +1388,25 @@ void MeleeEnemy::ApplyAttackMove(const Vector3& horizontalVelocity)
 	}
 }
 
-void MeleeEnemy::NotifyAttackHit(int, const Vector3&)
+void MeleeEnemy::NotifyAttackHit(int damage, const Vector3&)
 {
-	// TODO: Playerへの実ダメージ処理の接続先が確定したらここで適用する
+	if (damage <= 0 || !target_)
+	{
+		return;
+	}
+
+	if (auto* player = target_->GetOwner<Player>())
+	{
+		const Vector3 attackerPosition = GetCenterPosition();
+		// 近接雑魚敵の攻撃発生中だけプレイヤーとの距離を判定し、命中時にHPを減らす。
+		player->ApplyDamage(static_cast<float>(damage), &attackerPosition);
+		++enemyDamageDebug_.meleeHitCount;
+		enemyDamageDebug_.lastDamage = damage;
+		enemyDamageDebug_.lastPlayerHp = player->GetHP();
+		enemyDamageDebug_.lastHitSource = "近接攻撃";
+		std::cout << "[近接雑魚敵] 近接攻撃ヒット: ダメージ=" << damage
+			<< " Player HP=" << enemyDamageDebug_.lastPlayerHp << std::endl;
+	}
 }
 
 void MeleeEnemy::EvaluateBehavior(float deltaTime)

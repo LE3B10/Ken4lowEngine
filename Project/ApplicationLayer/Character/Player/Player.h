@@ -128,6 +128,7 @@ public: /// ---------- メンバ関数 ---------- ///
 
 	float GetHP() const { return damage_.GetHP(); }
 	float GetMaxHP() const { return damage_.GetMaxHP(); }
+	void ApplyDamage(float amount, const K4E::Vector3* attackerPosition = nullptr);
 	void Heal(float amount) { damage_.Heal(amount); }
 	int AddReserveAmmo(int amount) { return weapon_.AddReserveAmmo(amount); }
 	int GetCurrentWeaponMagazineAmmo() const { return weapon_.GetMagazineAmmo(); }

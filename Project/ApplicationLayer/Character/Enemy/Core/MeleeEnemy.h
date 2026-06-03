@@ -208,6 +208,14 @@ private: /// ---------- 構造体 ---------- ///
 		bool shouldChase = true; // 攻撃中に追いかけるかどうか
 	};
 
+	struct EnemyDamageDebugState
+	{
+		int meleeHitCount = 0;
+		int lastDamage = 0;
+		float lastPlayerHp = 0.0f;
+		std::string lastHitSource = "なし";
+	};
+
 	// 攻撃選択の設定
 	struct AttackSelectSettings
 	{
@@ -710,6 +718,9 @@ private: /// ---------- メンバ変数 ---------- //
 
 	// 攻撃の状態管理
 	AttackState attackState_{};
+
+	// 敵攻撃がPlayerへ届いたかをImGui/ログで確認するための状態
+	EnemyDamageDebugState enemyDamageDebug_{};
 
 	// 攻撃選択の設定
 	AttackSelectSettings attackSelectSettings_{};
