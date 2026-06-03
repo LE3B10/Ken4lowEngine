@@ -2,9 +2,13 @@
 #include "MidRangeBombProjectile.h"
 #include "Wireframe.h"
 
+#include <algorithm>
 #include <cmath>
 
 using namespace Ken4lowEngine;
+
+bool MidRangeBombProjectile::s_debugCubeVisible_ = true;
+float MidRangeBombProjectile::s_debugCubeSize_ = 0.4f;
 
 void MidRangeBombProjectile::Initialize()
 {
@@ -16,6 +20,11 @@ void MidRangeBombProjectile::Initialize()
     explosionDrawTimer_ = 0.0f;
     exploded_ = false;
     alive_ = false;
+
+    debugCube_ = std::make_unique<Object3D>();
+    debugCube_->Initialize("Test/cube.gltf");
+    debugCube_->SetColor({ 0.15f, 0.02f, 0.22f, 1.0f });
+    UpdateDebugCube();
 }
 
 void MidRangeBombProjectile::Launch(
@@ -47,19 +56,24 @@ void MidRangeBombProjectile::Launch(
         directionXZ = { 0.0f, 0.0f, 1.0f };
     }
 
-    velocity_ = directionXZ * settings_.initialSpeed;
-    velocity_.y = settings_.upwardVelocity;
+    const float maxInitialSpeed = std::max(0.0f, settings_.maxInitialSpeed);
+    velocity_ = directionXZ * std::clamp(settings_.initialSpeed, 0.0f, maxInitialSpeed);
+    velocity_.y = std::clamp(settings_.upwardVelocity, 0.0f, 12.0f);
+    UpdateDebugCube();
 }
 
 void MidRangeBombProjectile::Update(float deltaTime)
 {
     constexpr float kFloorY = 0.0f;
+    constexpr float kMaxDeltaTime = 1.0f / 30.0f;
+    deltaTime = std::clamp(deltaTime, 0.0f, kMaxDeltaTime);
 
     if (alive_)
     {
         lifeTimer_ += deltaTime;
-        velocity_.y -= settings_.gravity * deltaTime;
+        velocity_.y -= std::clamp(settings_.gravity, 0.0f, 30.0f) * deltaTime;
         position_ += velocity_ * deltaTime;
+        UpdateDebugCube();
 
         bool shouldExplode = false;
         if (lifeTimer_ >= settings_.lifeTime)
@@ -68,6 +82,8 @@ void MidRangeBombProjectile::Update(float deltaTime)
         }
         if (position_.y <= kFloorY)
         {
+            position_.y = kFloorY + s_debugCubeSize_ * 0.5f;
+            UpdateDebugCube();
             shouldExplode = true;
         }
 
@@ -90,7 +106,11 @@ void MidRangeBombProjectile::Draw() const
 {
     if (alive_)
     {
-        Wireframe::GetInstance()->DrawSphere(position_, settings_.hitRadius, { 1.0f, 0.4f, 0.1f, 1.0f });
+        // 中距離雑魚敵の爆弾挙動を確認しやすくするため、仮Cubeで描画する。
+        if (s_debugCubeVisible_ && debugCube_)
+        {
+            debugCube_->Draw();
+        }
     }
 
     if (exploded_ && explosionDrawTimer_ > 0.0f)
@@ -112,6 +132,24 @@ void MidRangeBombProjectile::Explode()
     alive_ = false;
     explosionDrawTimer_ = 0.2f;
 }
+void MidRangeBombProjectile::SetDebugCubeSize(float size)
+{
+    s_debugCubeSize_ = std::clamp(size, 0.1f, 2.0f);
+}
+
+void MidRangeBombProjectile::UpdateDebugCube()
+{
+    if (!debugCube_)
+    {
+        return;
+    }
+
+    debugCube_->SetTranslate(position_);
+    debugCube_->SetRotate({ lifeTimer_ * 2.0f, lifeTimer_ * 3.5f, lifeTimer_ * 1.5f });
+    debugCube_->SetScale({ s_debugCubeSize_, s_debugCubeSize_, s_debugCubeSize_ });
+    debugCube_->Update();
+}
+
 bool MidRangeBombProjectile::IsAlive() const
 {
     bool aliveOrExploding = alive_;

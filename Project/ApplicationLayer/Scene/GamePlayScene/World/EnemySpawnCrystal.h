@@ -57,6 +57,8 @@ public:
 	const K4E::Vector3& GetPosition() const { return position_; }
 	const K4E::Vector3& GetScale() const { return scale_; }
 	static constexpr bool IsGroundSnapEnabled() { return true; }
+	static float GetSpawnYOffset() { return s_spawnYOffset_; }
+	static void SetSpawnYOffset(float offset);
 
 	void SetInfiniteSpawnEnabled(bool enabled) { enableInfiniteSpawn = enabled; }
 	void SetSpawnEnemyType(EnemyType enemyType) { spawnEnemyType = enemyType; }
@@ -83,4 +85,5 @@ private:
 	int hitCount_ = 0;
 	std::unique_ptr<K4E::Object3D> debugCube_;
 	std::vector<const EnemyBase*> spawnedEnemies_;
+	static float s_spawnYOffset_;
 };
