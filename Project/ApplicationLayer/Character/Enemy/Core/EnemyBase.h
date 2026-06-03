@@ -133,6 +133,12 @@ public:
 	static constexpr float GetMaxPushOutPerFrame() { return kMaxPushOutPerFrame; }
 	static float GetSpawnYOffset() { return s_spawnYOffset_; }
 	static void SetSpawnYOffset(float offset);
+	static bool IsDeathExplosionEnabled() { return s_deathExplosionEnabled_; }
+	static void SetDeathExplosionEnabled(bool enabled);
+	static float GetDeathExplodePower() { return s_deathExplodePower_; }
+	static void SetDeathExplodePower(float power);
+	static float GetDeathUpwardPower() { return s_deathUpwardPower_; }
+	static void SetDeathUpwardPower(float power);
 	static float GetDeathMaxSpeed() { return s_deathMaxSpeed_; }
 	static void SetDeathMaxSpeed(float speed);
 	static float GetDeathMaxAngularSpeed() { return s_deathMaxAngularSpeed_; }
@@ -282,6 +288,9 @@ protected:
 	std::vector<DeathPiece> deathPieces_;
 
 	static float s_spawnYOffset_;
+	static bool s_deathExplosionEnabled_;
+	static float s_deathExplodePower_;
+	static float s_deathUpwardPower_;
 	static float s_deathMaxSpeed_;
 	static float s_deathMaxAngularSpeed_;
 	static float s_deathPieceLifetime_;

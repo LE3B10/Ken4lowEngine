@@ -180,18 +180,33 @@ void CrystalManager::DrawImGui()
 	{
 		EnemyBase::SetSpawnYOffset(enemySpawnYOffset);
 	}
+	bool deathExplosionEnabled = EnemyBase::IsDeathExplosionEnabled();
+	if (ImGui::Checkbox("死亡部位 爆散有効", &deathExplosionEnabled))
+	{
+		EnemyBase::SetDeathExplosionEnabled(deathExplosionEnabled);
+	}
+	float deathExplodePower = EnemyBase::GetDeathExplodePower();
+	if (ImGui::DragFloat("死亡部位 爆散力", &deathExplodePower, 0.1f, 0.0f, 8.0f, "%.2f"))
+	{
+		EnemyBase::SetDeathExplodePower(deathExplodePower);
+	}
+	float deathUpwardPower = EnemyBase::GetDeathUpwardPower();
+	if (ImGui::DragFloat("死亡部位 上方向力", &deathUpwardPower, 0.1f, 0.0f, 5.0f, "%.2f"))
+	{
+		EnemyBase::SetDeathUpwardPower(deathUpwardPower);
+	}
 	float deathMaxSpeed = EnemyBase::GetDeathMaxSpeed();
-	if (ImGui::DragFloat("死亡破片 最大速度", &deathMaxSpeed, 0.1f, 0.5f, 20.0f, "%.2f"))
+	if (ImGui::DragFloat("死亡部位 最大速度", &deathMaxSpeed, 0.1f, 0.5f, 20.0f, "%.2f"))
 	{
 		EnemyBase::SetDeathMaxSpeed(deathMaxSpeed);
 	}
 	float deathMaxAngularSpeed = EnemyBase::GetDeathMaxAngularSpeed();
-	if (ImGui::DragFloat("死亡破片 最大回転速度", &deathMaxAngularSpeed, 0.1f, 0.5f, 20.0f, "%.2f"))
+	if (ImGui::DragFloat("死亡部位 最大回転速度", &deathMaxAngularSpeed, 0.1f, 0.5f, 20.0f, "%.2f"))
 	{
 		EnemyBase::SetDeathMaxAngularSpeed(deathMaxAngularSpeed);
 	}
 	float deathPieceLifetime = EnemyBase::GetDeathPieceLifetime();
-	if (ImGui::DragFloat("死亡破片 寿命", &deathPieceLifetime, 0.1f, 0.2f, 5.0f, "%.2f 秒"))
+	if (ImGui::DragFloat("死亡部位 寿命", &deathPieceLifetime, 0.1f, 0.2f, 5.0f, "%.2f 秒"))
 	{
 		EnemyBase::SetDeathPieceLifetime(deathPieceLifetime);
 	}
