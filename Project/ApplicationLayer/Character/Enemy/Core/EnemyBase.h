@@ -188,6 +188,7 @@ private:
 	void UpdateBreakApartDeath(float dt);
 	void DetachAllPartsToWorldSpace();
 	void CaptureDeathEffectOrigin();
+	void CaptureDeathPartWorldTransforms();
 	K4E::Vector3 RotateLocalOffsetByDeathRotation(const K4E::Vector3& localOffset) const;
 
 protected:
@@ -252,11 +253,18 @@ protected:
 	bool deathBreakActive_ = false;
 	bool deathBreakInitialized_ = false;
 	bool hasDeathEffectOrigin_ = false;
+	bool hasDeathPartWorldTransforms_ = false;
+	bool deathUsesMidRangeSuicideCollapseStyle_ = true;
+	int deathEffectInitializeCount_ = 0;
 	K4E::Vector3 deathEnemyPosition_{};
 	K4E::Vector3 deathEffectOrigin_{};
 	K4E::Vector3 deathEffectRotation_{};
 	K4E::Vector3 deathDebugPlayerPosition_{};
 	K4E::Vector3 deathDebugAttackCenter_{};
+	K4E::Vector3 deathInitialBodyPosition_{};
+	K4E::Vector3 deathInitialBodyRotation_{};
+	std::vector<K4E::Vector3> deathInitialPartPositions_{};
+	std::vector<K4E::Vector3> deathInitialPartRotations_{};
 	float deathTimer_ = 0.0f;
 	float deathSimDuration_ = 1.8f;   // 破片が残る時間
 	float deathFadeDuration_ = 0.6f;  // 最後にフェードする時間
@@ -265,6 +273,7 @@ protected:
 	float deathBounce_ = 0.25f;       // 0..1
 	float deathFriction_ = 0.7f;      // 0..1
 	float deathGroundY_ = 0.0f;       // とりあえず床はY=0想定（必要なら拡張）
+	float deathMaxMovePerFrame_ = 0.25f;
 	std::vector<DeathPiece> deathPieces_;
 
 	static float s_spawnYOffset_;
