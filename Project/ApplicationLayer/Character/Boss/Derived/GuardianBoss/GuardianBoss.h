@@ -1,6 +1,7 @@
 #pragma once
 #include "BaseTypes/HumanoidBossBase.h"
 
+#include <algorithm>
 #include <memory>
 #include <string>
 #include <vector>
@@ -19,9 +20,15 @@ public: /// ---------- Boss固有初期化 ---------- ///
 
 	void SetupBoss() override;
 	void OnDamaged(float damage) override;
+	void OnBulletDamaged(float damage) override;
 	void OnDead() override;
 	void OnCollision(K4E::Collider* other) override;
 	void DrawImGui() override;
+	int GetMeleeHitCount() const { return std::max(0, receivedHitCount_ - bulletHitCount_); }
+	int GetBulletHitCount() const { return bulletHitCount_; }
+	float GetLastReceivedDamage() const { return lastReceivedDamage_; }
+	int GetBossAttackHitCount() const { return bossAttackHitCount_; }
+	float GetLastPlayerDamage() const { return lastPlayerDamage_; }
 
 protected: /// ---------- BossBase override ---------- ///
 
@@ -29,6 +36,7 @@ protected: /// ---------- BossBase override ---------- ///
 	void UpdateMovement(float deltaTime) override;
 	void UpdateAttack(float deltaTime) override;
 	void CheckDeath() override;
+	void OnTargetPlayerDamaged(float damage) override;
 
 	void SetupAttacks() override;
 	void SetupPhaseData() override;
@@ -108,7 +116,10 @@ protected: /// ---------- Guardian固有パラメータ ---------- ///
 	bool hasAppliedAttackHit_ = false;
 
 	int receivedHitCount_ = 0;
+	int bulletHitCount_ = 0;
+	int bossAttackHitCount_ = 0;
 	float lastReceivedDamage_ = 0.0f;
+	float lastPlayerDamage_ = 0.0f;
 
 	/// <summary>
 	/// 最後に選ばれた攻撃名

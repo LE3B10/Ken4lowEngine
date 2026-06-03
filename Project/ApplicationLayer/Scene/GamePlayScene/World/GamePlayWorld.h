@@ -12,10 +12,42 @@
 #include "ItemManager.h"
 #include "CrystalManager.h"
 #include "Derived/GuardianBoss/GuardianBoss.h"
+#include "Object3D.h"
 
 #include <memory>
 
 namespace K4E = ::Ken4lowEngine;
+
+class Player;
+
+class BossClearItem : public K4E::Collider
+{
+public:
+	void Initialize(const K4E::Vector3& position);
+	void Update(float deltaTime);
+	void Draw();
+	bool CheckPickup(const Player& player) const;
+	void MarkCollected();
+
+	bool IsSpawned() const { return spawned_; }
+	bool IsCollected() const { return collected_; }
+	const K4E::Vector3& GetPosition() const { return position_; }
+
+	void OnCollision(K4E::Collider* other) override;
+	K4E::Vector3 GetCenterPosition() const override { return position_; }
+	void SetCenterPosition(const K4E::Vector3& pos) override { position_ = pos; }
+
+private:
+	std::unique_ptr<K4E::Object3D> object3d_;
+	K4E::Vector3 position_{};
+	K4E::Vector3 basePosition_{};
+	K4E::Vector3 rotation_{};
+	K4E::Vector3 halfSize_{ 0.9f, 0.9f, 0.9f };
+	float pickupRadius_ = 2.1f;
+	float floatTimer_ = 0.0f;
+	bool spawned_ = false;
+	bool collected_ = false;
+};
 
 class GamePlayWorld
 {
@@ -47,6 +79,7 @@ public: /// ---------- メンバ関数 ---------- ///
 
 	bool IsStageObjectiveCleared() const;
 	bool IsStageObjectiveFailed() const;
+	bool IsGameClearRequested() const { return isGameClear_; }
 
 	void SetDebugCameraEnabled(bool enabled);
 
@@ -86,6 +119,9 @@ private: /// ---------- メンバ関数 ---------- ///
 	bool IsSightBlocked(const K4E::Segment& seg) const;
 	void UpdateCrystalBossSpawnProgress();
 	void SpawnGuardianBoss();
+	void UpdateBossClearProgress(float deltaTime);
+	void SpawnClearItem(const K4E::Vector3& bossPosition);
+	void CollectClearItem();
 
 
 private: /// ---------- メンバ変数 ---------- ///
@@ -104,6 +140,7 @@ private: /// ---------- メンバ変数 ---------- ///
 	ItemManager itemManager_;
 	CrystalManager crystalManager_;
 	std::unique_ptr<GuardianBoss> guardianBoss_;
+	std::unique_ptr<BossClearItem> clearItem_;
 
 	int prevWaveNumber_ = 0;
 	bool prevWaveInProgress_ = false;
@@ -125,4 +162,8 @@ private: /// ---------- メンバ変数 ---------- ///
 	K4E::Vector3 bossSpawnPosition_{ 0.0f, 2.25f, 30.0f };
 	bool bossSpawned_ = false;
 	bool bossSpawnConditionMet_ = false;
+	bool bossDefeated_ = false;
+	bool clearItemSpawned_ = false;
+	bool clearItemCollected_ = false;
+	bool isGameClear_ = false;
 };

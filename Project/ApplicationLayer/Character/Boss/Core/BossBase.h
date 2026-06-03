@@ -49,6 +49,8 @@ struct BossHitResult
 /// -----------------------------------------------------------
 ///					 ボス共通の基底クラス
 /// -----------------------------------------------------------
+class Player;
+
 class BossBase : public BaseCharacter
 {
 public: /// ---------- ライフサイクル ---------- ///
@@ -103,6 +105,11 @@ public: /// ---------- ダメージ / 死亡 ---------- ///
 	/// ダメージを受けたとき
 	/// </summary>
 	virtual void OnDamaged(float damage);
+
+	/// <summary>
+	/// プレイヤー銃弾でダメージを受けたとき
+	/// </summary>
+	virtual void OnBulletDamaged(float damage);
 
 	/// <summary>
 	/// 死亡時
@@ -175,6 +182,11 @@ public: /// ---------- ターゲット情報 ---------- ///
 
 	// ターゲットの位置をセット
 	void SetTargetPosition(const K4E::Vector3& targetPosition) { targetPosition_ = targetPosition; }
+
+	// ボス攻撃が実際にプレイヤーHPへ届くよう、ターゲットPlayer本体も保持する。
+	void SetTargetPlayer(Player* player) { targetPlayer_ = player; }
+	Player* GetTargetPlayer() const { return targetPlayer_; }
+	bool ApplyDamageToTargetPlayer(float damage, const K4E::Vector3* attackPosition = nullptr);
 
 public: /// ---------- 攻撃距離 / 判定補助 ---------- ///
 
@@ -258,6 +270,10 @@ public: /// ---------- 攻撃登録 ---------- ///
 	/// 実体は BossAttackComponent に持たせる
 	/// </summary>
 	void RegisterAttack(std::unique_ptr<IBossAttack> attack);
+
+protected: /// ---------- ダメージ通知 ---------- ///
+
+	virtual void OnTargetPlayerDamaged(float damage);
 
 public: /// ---------- 腕周り補助 ---------- ///
 
@@ -411,6 +427,7 @@ protected: /// ---------- 共通情報群 ---------- ///
 
 	// 追跡対象
 	K4E::Vector3 targetPosition_{};
+	Player* targetPlayer_ = nullptr;
 
 	// 状態
 	BossState state_ = BossState::Intro;

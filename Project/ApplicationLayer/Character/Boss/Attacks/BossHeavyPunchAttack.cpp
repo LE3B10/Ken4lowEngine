@@ -328,15 +328,11 @@ void BossHeavyPunchAttack::TryHitPlayer()
 		Log("[BossHeavyPunchAttack] Heavy hit success.\n");
 #endif
 
-		// -------------------------------------------------------
-		// TODO:
-		// 将来的にここで
-		// - プレイヤーへダメージ
-		// - ノックバック
-		// - ヒットストップ
-		// - 画面揺れ
-		// を追加する
-		// -------------------------------------------------------
+		// ボス重攻撃の範囲判定が成立した瞬間だけPlayerへダメージを流す。
+		if (owner_->ApplyDamageToTargetPlayer(damage_, &attackCenter))
+		{
+			Log("[BossHeavyPunchAttack] Player damage applied.\n");
+		}
 	}
 	else
 	{

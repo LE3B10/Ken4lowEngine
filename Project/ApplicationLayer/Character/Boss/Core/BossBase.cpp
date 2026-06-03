@@ -1,5 +1,6 @@
 #include "BossBase.h"
 #include "CollisionTypeIdDef.h"
+#include "Player.h"
 #include <LogString.h>
 
 #include <sstream>
@@ -225,6 +226,32 @@ void BossBase::OnDamaged(float damage)
 		<< ", HP=" << statusComponent_->GetHP() << "/" << statusComponent_->GetMaxHP()
 		<< ", before=" << hpBefore;
 	Log(oss.str() + "\n");
+}
+
+void BossBase::OnBulletDamaged(float damage)
+{
+	OnDamaged(damage);
+}
+
+
+/// -------------------------------------------------------------
+/// ターゲットプレイヤーへのダメージ
+/// -------------------------------------------------------------
+bool BossBase::ApplyDamageToTargetPlayer(float damage, const K4E::Vector3* attackPosition)
+{
+	if (!targetPlayer_ || damage <= 0.0f || IsDead())
+	{
+		return false;
+	}
+
+	targetPlayer_->ApplyDamage(damage, attackPosition);
+	OnTargetPlayerDamaged(damage);
+	return true;
+}
+
+void BossBase::OnTargetPlayerDamaged(float damage)
+{
+	(void)damage;
 }
 
 /// -------------------------------------------------------------

@@ -27,6 +27,85 @@
 
 using namespace Ken4lowEngine;
 
+
+void BossClearItem::Initialize(const K4E::Vector3& position)
+{
+	K4E::Vector3 spawnPosition = position;
+	spawnPosition.y += 1.25f;
+
+	position_ = spawnPosition;
+	basePosition_ = spawnPosition;
+	rotation_ = {};
+	floatTimer_ = 0.0f;
+	spawned_ = true;
+	collected_ = false;
+
+	SetTypeID(static_cast<uint32_t>(CollisionTypeIdDef::kItem));
+	SetOwner<BossClearItem>(this);
+	SetOBBHalfSize(halfSize_);
+	SetCenterPosition(position_);
+
+	object3d_ = std::make_unique<K4E::Object3D>();
+	object3d_->Initialize("Test/cube.gltf");
+	object3d_->SetScale({ 1.8f, 1.8f, 1.8f });
+	object3d_->SetTranslate(position_);
+	object3d_->SetColor({ 1.0f, 0.85f, 0.05f, 1.0f });
+	object3d_->Update();
+}
+
+void BossClearItem::Update(float deltaTime)
+{
+	if (!spawned_ || collected_)
+	{
+		return;
+	}
+
+	floatTimer_ += deltaTime * 3.0f;
+	position_ = basePosition_;
+	position_.y += std::sinf(floatTimer_) * 0.25f;
+	rotation_.y += deltaTime * 1.2f;
+
+	SetCenterPosition(position_);
+	SetOrientation(rotation_);
+
+	if (object3d_)
+	{
+		object3d_->SetTranslate(position_);
+		object3d_->SetRotate(rotation_);
+		object3d_->Update();
+	}
+}
+
+void BossClearItem::Draw()
+{
+	if (spawned_ && !collected_ && object3d_)
+	{
+		object3d_->Draw();
+	}
+}
+
+bool BossClearItem::CheckPickup(const Player& player) const
+{
+	if (!spawned_ || collected_)
+	{
+		return false;
+	}
+
+	const K4E::Vector3 diff = position_ - player.GetCenterPosition();
+	return K4E::Vector3::Length(diff) <= pickupRadius_;
+}
+
+void BossClearItem::MarkCollected()
+{
+	collected_ = true;
+	SetCenterPosition({ 1.0e9f, 1.0e9f, 1.0e9f });
+}
+
+void BossClearItem::OnCollision(K4E::Collider* other)
+{
+	(void)other;
+}
+
 void GamePlayWorld::Initialize(GamePlayStageContext& stageContext)
 {
 	const auto stageAssets = stageContext.GetCurrentStageAssets();
@@ -153,6 +232,11 @@ void GamePlayWorld::Initialize(GamePlayStageContext& stageContext)
 	}
 	bossSpawned_ = false;
 	bossSpawnConditionMet_ = false;
+	bossDefeated_ = false;
+	clearItemSpawned_ = false;
+	clearItemCollected_ = false;
+	isGameClear_ = false;
+	clearItem_.reset();
 
 	// C++側の仮クリスタル配置を明示的なvectorにして、初期化型の不一致を防ぐ。
 	std::vector<CrystalSpawnPoint> crystalSpawnPoints;
@@ -210,7 +294,12 @@ void GamePlayWorld::Finalize()
 	{
 		collisionManager_->RemoveCollider(guardianBoss_.get());
 	}
+	if (clearItem_ && collisionManager_)
+	{
+		collisionManager_->RemoveCollider(clearItem_.get());
+	}
 	guardianBoss_.reset();
+	clearItem_.reset();
 	const std::vector<CrystalSpawnPoint> emptyCrystalSpawnPoints;
 	crystalManager_.Initialize(emptyCrystalSpawnPoints, nullptr);
 	stageObjectiveManager_.reset();
@@ -251,9 +340,11 @@ void GamePlayWorld::Update(float deltaTime)
 		if (auto* player = characters_.GetPlayer())
 		{
 			guardianBoss_->SetTargetPosition(player->GetCenterPosition());
+			guardianBoss_->SetTargetPlayer(player);
 		}
 		guardianBoss_->Update(deltaTime);
 	}
+	UpdateBossClearProgress(deltaTime);
 	crystalManager_.SetProgressDebugStatus(characters_.GetAliveNormalEnemyCount(), bossSpawnConditionMet_, bossSpawned_, bossSpawnPosition_);
 	if (auto* player = characters_.GetPlayer())
 	{
@@ -451,6 +542,10 @@ void GamePlayWorld::Draw3D(bool hideCharactersDuringIntro)
 	}
 
 	itemManager_.Draw();
+	if (clearItem_)
+	{
+		clearItem_->Draw();
+	}
 
 #ifdef _DEBUG
 	if (collisionManager_)
@@ -537,7 +632,11 @@ void GamePlayWorld::DrawGameDebugImGui()
 		ImGui::Text("ボスHP: %.1f", guardianBoss_->GetHP());
 		ImGui::Text("ボス最大HP: %.1f", guardianBoss_->GetMaxHP());
 		ImGui::Text("ボスHP割合: %.1f%%", guardianBoss_->GetHPRate() * 100.0f);
-		guardianBoss_->DrawImGui();
+		ImGui::Text("近接攻撃ヒット回数: %d", guardianBoss_->GetMeleeHitCount());
+		ImGui::Text("銃弾ヒット回数: %d", guardianBoss_->GetBulletHitCount());
+		ImGui::Text("最後にボスへ与えたダメージ: %.1f", guardianBoss_->GetLastReceivedDamage());
+		ImGui::Text("ボス攻撃ヒット回数: %d", guardianBoss_->GetBossAttackHitCount());
+		ImGui::Text("最後にプレイヤーが受けたボスダメージ: %.1f", guardianBoss_->GetLastPlayerDamage());
 	}
 	else
 	{
@@ -545,6 +644,31 @@ void GamePlayWorld::DrawGameDebugImGui()
 		ImGui::Text("ボスHP: 0.0");
 		ImGui::Text("ボス最大HP: 0.0");
 		ImGui::Text("ボスHP割合: 0.0%%");
+		ImGui::Text("近接攻撃ヒット回数: 0");
+		ImGui::Text("銃弾ヒット回数: 0");
+		ImGui::Text("最後にボスへ与えたダメージ: 0.0");
+		ImGui::Text("ボス攻撃ヒット回数: 0");
+		ImGui::Text("最後にプレイヤーが受けたボスダメージ: 0.0");
+	}
+	if (auto* player = characters_.GetPlayer())
+	{
+		ImGui::Text("Player HP: %.1f / %.1f", player->GetHP(), player->GetMaxHP());
+	}
+	else
+	{
+		ImGui::Text("Player HP: 0.0 / 0.0");
+	}
+
+	ImGui::SeparatorText("クリアCube状態");
+	ImGui::Text("クリアCube出現済み: %s", clearItemSpawned_ ? "はい" : "いいえ");
+	ImGui::Text("クリアCube取得済み: %s", clearItemCollected_ ? "はい" : "いいえ");
+	const K4E::Vector3 clearPos = clearItem_ ? clearItem_->GetPosition() : K4E::Vector3{};
+	ImGui::Text("クリアCube座標: %.2f, %.2f, %.2f", clearPos.x, clearPos.y, clearPos.z);
+	ImGui::Text("ゲームクリア判定: %s", isGameClear_ ? "はい" : "いいえ");
+	ImGui::Text("ボス撃破済み: %s", bossDefeated_ ? "はい" : "いいえ");
+	if (guardianBoss_)
+	{
+		guardianBoss_->DrawImGui();
 	}
 	crystalManager_.DrawImGui();
 
@@ -689,6 +813,7 @@ void GamePlayWorld::SpawnGuardianBoss()
 	if (auto* player = characters_.GetPlayer())
 	{
 		guardianBoss_->SetTargetPosition(player->GetCenterPosition());
+		guardianBoss_->SetTargetPlayer(player);
 	}
 	guardianBoss_->Update(0.0f);
 	if (collisionManager_)
@@ -699,6 +824,78 @@ void GamePlayWorld::SpawnGuardianBoss()
 	bossSpawned_ = true;
 }
 
+
+void GamePlayWorld::UpdateBossClearProgress(float deltaTime)
+{
+	if (guardianBoss_ && guardianBoss_->IsDead() && !bossDefeated_)
+	{
+		bossDefeated_ = true;
+		SetBossDefeated(false);
+	}
+
+	if (bossDefeated_ && !clearItemSpawned_ && guardianBoss_)
+	{
+		SpawnClearItem(guardianBoss_->GetPosition());
+	}
+
+	if (clearItem_ && !clearItemCollected_)
+	{
+		clearItem_->Update(deltaTime);
+		if (auto* player = characters_.GetPlayer())
+		{
+			if (clearItem_->CheckPickup(*player))
+			{
+				CollectClearItem();
+			}
+		}
+	}
+}
+
+void GamePlayWorld::SpawnClearItem(const K4E::Vector3& bossPosition)
+{
+	if (clearItemSpawned_)
+	{
+		return;
+	}
+
+	K4E::Vector3 spawnPosition = bossPosition;
+	spawnPosition.z -= 2.0f;
+	spawnPosition.y = std::max(spawnPosition.y, 0.75f);
+
+	clearItem_ = std::make_unique<BossClearItem>();
+	clearItem_->Initialize(spawnPosition);
+	if (collisionManager_)
+	{
+		collisionManager_->AddCollider(clearItem_.get());
+	}
+
+	clearItemSpawned_ = true;
+	Log("[GameClear] BossClearItem spawned.\n");
+}
+
+void GamePlayWorld::CollectClearItem()
+{
+	if (clearItemCollected_ || isGameClear_)
+	{
+		return;
+	}
+
+	clearItemCollected_ = true;
+	isGameClear_ = true;
+	if (clearItem_)
+	{
+		clearItem_->MarkCollected();
+		if (collisionManager_)
+		{
+			collisionManager_->RemoveCollider(clearItem_.get());
+		}
+	}
+
+	// ボス撃破後に出現するクリアCubeを取得したらゲームクリアへ進める。
+	SetBossDefeated(true);
+	Log("[GameClear] Clear item collected.\n");
+}
+
 bool GamePlayWorld::IsAllWavesCleared() const
 {
 	return waveManager_ && waveManager_->IsAllWavesCleared();
@@ -706,7 +903,7 @@ bool GamePlayWorld::IsAllWavesCleared() const
 
 bool GamePlayWorld::IsStageObjectiveCleared() const
 {
-	return stageObjectiveManager_ && stageObjectiveManager_->IsStageObjectiveCleared(IsAllWavesCleared());
+	return isGameClear_ || (stageObjectiveManager_ && stageObjectiveManager_->IsStageObjectiveCleared(IsAllWavesCleared()));
 }
 
 bool GamePlayWorld::IsStageObjectiveFailed() const
