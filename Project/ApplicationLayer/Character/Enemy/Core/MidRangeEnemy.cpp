@@ -607,6 +607,7 @@ void MidRangeEnemy::KillBySuicideExplosion()
     Vector3 breakApartDirection = CalculateSuicideBreakApartDirection();
     lastSuicideBreakApartDirection_ = breakApartDirection;
     usedEnemyBaseDeathForSuicide_ = true;
+    // 追加: 自爆崩壊も通常死亡と同じEnemyBaseのその場崩れ処理へ集約する。
     EnemyBase::TakeDamage(lethalDamage, breakApartDirection, suicideBomb_.breakApartPower);
 }
 
