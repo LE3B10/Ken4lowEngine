@@ -1,5 +1,9 @@
 #include "BossBase.h"
 #include "CollisionTypeIdDef.h"
+#include <LogString.h>
+
+#include <sstream>
+#include <string>
 
 using namespace Ken4lowEngine;
 
@@ -10,7 +14,9 @@ void BossBase::Initialize()
 {
 	// コライダータイプの設定
 	Collider::SetTypeID(static_cast<uint32_t>(CollisionTypeIdDef::kBoss));
-	Collider::SetOBBHalfSize({ 1.0f, 1.0f, 1.0f }); // 仮。後でボスごとに差し替え
+	Collider::SetOwner<BossBase>(this);
+	// プレイヤー近接攻撃が胴体を拾えるように、ボス本体を覆う大きめのOBBを登録する。
+	Collider::SetOBBHalfSize({ 1.25f, 1.75f, 1.25f });
 
 	// ボス用部位を構築
 	BuildBossParts();
@@ -103,7 +109,8 @@ void BossBase::Update(float deltaTime)
 	// 死亡確認
 	CheckDeath();
 
-	Collider::SetCenterPosition(GetBody().object->GetTranslate());
+	Collider::SetCenterPosition(GetCenterPosition());
+	Collider::SetOrientation({ 0.0f, GetYaw(), 0.0f });
 
 	// 最後に部位階層更新
 	BaseCharacter::Update(deltaTime);
@@ -210,7 +217,14 @@ void BossBase::OnDamaged(float damage)
 		return;
 	}
 
+	const float hpBefore = statusComponent_->GetHP();
 	statusComponent_->ApplyDamage(damage);
+
+	std::ostringstream oss;
+	oss << "[GuardianBoss] TakeDamage: damage=" << damage
+		<< ", HP=" << statusComponent_->GetHP() << "/" << statusComponent_->GetMaxHP()
+		<< ", before=" << hpBefore;
+	Log(oss.str() + "\n");
 }
 
 /// -------------------------------------------------------------

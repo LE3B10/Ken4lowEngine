@@ -6,6 +6,12 @@
 #include "EnemyBase.h"
 #include "EnemySpawnCrystal.h"
 #include "BossBase.h"
+#include <LogString.h>
+
+#include <algorithm>
+#include <cmath>
+#include <sstream>
+#include <string>
 
 namespace
 {
@@ -15,6 +21,27 @@ namespace
 		const float dy = a.y - b.y;
 		const float dz = a.z - b.z;
 		return dx * dx + dy * dy + dz * dz;
+	}
+
+	float DistancePointToSegmentSq(const K4E::Vector3& point, const K4E::Segment& seg)
+	{
+		const float lenSq = seg.diff.x * seg.diff.x + seg.diff.y * seg.diff.y + seg.diff.z * seg.diff.z;
+		if (lenSq <= 0.0001f)
+		{
+			return DistSq(point, seg.origin);
+		}
+
+		const K4E::Vector3 toPoint = point - seg.origin;
+		float t = (toPoint.x * seg.diff.x + toPoint.y * seg.diff.y + toPoint.z * seg.diff.z) / lenSq;
+		t = std::clamp(t, 0.0f, 1.0f);
+
+		const K4E::Vector3 nearest = seg.origin + seg.diff * t;
+		return DistSq(point, nearest);
+	}
+
+	void LogPlayerAttack(const std::string& message)
+	{
+		Log(message + "\n");
 	}
 }
 
@@ -29,6 +56,7 @@ void PlayerMeleeComponent::StartAttack(const K4E::Vector3& /*playerPos*/)
 	isAttacking_ = true;
 	activeHitDone_ = false;
 	timer_ = 0.0f;
+	hitColliderIds_.clear();
 }
 
 void PlayerMeleeComponent::Tick(float dt, const K4E::Vector3& playerPos)
@@ -99,8 +127,37 @@ void PlayerMeleeComponent::EvaluateHit(const K4E::Vector3& playerPos)
 	const bool hitEnemy = collisionManager_->SegmentCast(
 		static_cast<uint32_t>(CollisionTypeIdDef::kEnemy), seg, &enemyHit);
 
-	const bool hitBoss = collisionManager_->SegmentCast(
+	bool hitBoss = collisionManager_->SegmentCast(
 		static_cast<uint32_t>(CollisionTypeIdDef::kBoss), seg, &bossHit);
+
+	int bossCandidateCount = 0;
+	const auto& bossColliders = collisionManager_->GetCollidersByType(static_cast<uint32_t>(CollisionTypeIdDef::kBoss));
+	for (K4E::Collider* bossCollider : bossColliders)
+	{
+		if (!bossCollider) continue;
+
+		const K4E::Vector3 halfSize = bossCollider->GetOBBHalfSize();
+		const float bossRadius = std::max({ halfSize.x, halfSize.y, halfSize.z });
+		const float hitRadius = radius_ + bossRadius;
+		if (DistancePointToSegmentSq(bossCollider->GetCenterPosition(), seg) > hitRadius * hitRadius)
+		{
+			continue;
+		}
+
+		++bossCandidateCount;
+		if (!bossHit || DistSq(bossCollider->GetCenterPosition(), start) < DistSq(bossHit->GetCenterPosition(), start))
+		{
+			bossHit = bossCollider;
+		}
+	}
+	hitBoss = hitBoss || bossHit != nullptr;
+	{
+		std::ostringstream oss;
+		oss << "[PlayerAttack] Boss candidate count = " << bossCandidateCount
+			<< ", registered = " << bossColliders.size()
+			<< ", segmentHit = " << (hitBoss ? "true" : "false");
+		LogPlayerAttack(oss.str());
+	}
 
 	const bool hitCrystal = collisionManager_->SegmentCast(
 		static_cast<uint32_t>(CollisionTypeIdDef::kCrystal), seg, &crystalHit);
@@ -127,9 +184,17 @@ void PlayerMeleeComponent::EvaluateHit(const K4E::Vector3& playerPos)
 		return;
 	}
 
+	if (hitColliderIds_.find(bestHit->GetUniqueID()) != hitColliderIds_.end())
+	{
+		LogPlayerAttack("[PlayerAttack] Same collider already hit in this attack. Skip.");
+		return;
+	}
+
 	if (bestHit->GetTypeID() == static_cast<uint32_t>(CollisionTypeIdDef::kEnemy))
 	{
 		auto* enemyBase = bestHit->GetOwner<EnemyBase>();
+		if (!enemyBase) return;
+		hitColliderIds_.insert(bestHit->GetUniqueID());
 		EnemyBase::SetDeathDebugComparePositions(playerPos, attackCenter);
 		const bool wasDead = enemyBase->IsDead();
 
@@ -162,12 +227,27 @@ void PlayerMeleeComponent::EvaluateHit(const K4E::Vector3& playerPos)
 	else if (bestHit->GetTypeID() == static_cast<uint32_t>(CollisionTypeIdDef::kCrystal))
 	{
 		// 敵だけでなく、近接攻撃の最寄り対象がクリスタルならHPを減らす。
-		bestHit->GetOwner<EnemySpawnCrystal>()->ApplyDamage(damage_);
+		auto* crystal = bestHit->GetOwner<EnemySpawnCrystal>();
+		if (!crystal) return;
+		hitColliderIds_.insert(bestHit->GetUniqueID());
+		crystal->ApplyDamage(damage_);
 		if (onHit_) onHit_();
 	}
 	else if (bestHit->GetTypeID() == static_cast<uint32_t>(CollisionTypeIdDef::kBoss))
 	{
-		bestHit->GetOwner<BossBase>()->OnDamaged(static_cast<float>(damage_));
+		// ボス出現後もプレイヤー攻撃対象に含めるため、BossColliderへのヒット判定を追加する。
+		auto* boss = bestHit->GetOwner<BossBase>();
+		if (!boss || boss->IsDead()) return;
+		hitColliderIds_.insert(bestHit->GetUniqueID());
+		const BossHitResult bossPartHit = boss->CheckDebugHitSphere(attackCenter, radius_);
+		const float bossDamage = bossPartHit.isHit ? static_cast<float>(damage_) * bossPartHit.damageMultiplier : static_cast<float>(damage_);
+		{
+			std::ostringstream oss;
+			oss << "[PlayerAttack] Boss hit damage=" << bossDamage
+				<< ", hpBefore=" << boss->GetHP() << "/" << boss->GetMaxHP();
+			LogPlayerAttack(oss.str());
+		}
+		boss->OnDamaged(bossDamage);
 		if (onHit_) onHit_();
 	}
 }

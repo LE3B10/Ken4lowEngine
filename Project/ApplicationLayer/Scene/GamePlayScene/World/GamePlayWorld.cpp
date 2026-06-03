@@ -14,6 +14,7 @@
 #include "GpuParticleManager.h"
 #include "ParticleManager.h"
 #include "CollisionTypeIdDef.h"
+#include <LogString.h>
 
 #include <chrono>
 #include <cmath>
@@ -528,6 +529,23 @@ void GamePlayWorld::DrawGameDebugImGui()
 	}
 	ImGui::Text("Player Dead: %s", IsPlayerDead() ? "true" : "false");
 	ImGui::Text("Enemies: %d", characters_.GetEnemyCount());
+	ImGui::SeparatorText("ボス状態");
+	ImGui::Text("ボス出現済み: %s", bossSpawned_ ? "はい" : "いいえ");
+	if (guardianBoss_)
+	{
+		ImGui::Text("ボス生存中: %s", guardianBoss_->IsAlive() ? "はい" : "いいえ");
+		ImGui::Text("ボスHP: %.1f", guardianBoss_->GetHP());
+		ImGui::Text("ボス最大HP: %.1f", guardianBoss_->GetMaxHP());
+		ImGui::Text("ボスHP割合: %.1f%%", guardianBoss_->GetHPRate() * 100.0f);
+		guardianBoss_->DrawImGui();
+	}
+	else
+	{
+		ImGui::Text("ボス生存中: いいえ");
+		ImGui::Text("ボスHP: 0.0");
+		ImGui::Text("ボス最大HP: 0.0");
+		ImGui::Text("ボスHP割合: 0.0%%");
+	}
 	crystalManager_.DrawImGui();
 
 	auto* wireframe = K4E::Wireframe::GetInstance();
@@ -676,6 +694,7 @@ void GamePlayWorld::SpawnGuardianBoss()
 	if (collisionManager_)
 	{
 		collisionManager_->AddCollider(guardianBoss_.get());
+		Log("[GuardianBoss] Collider registered as kBoss.\n");
 	}
 	bossSpawned_ = true;
 }

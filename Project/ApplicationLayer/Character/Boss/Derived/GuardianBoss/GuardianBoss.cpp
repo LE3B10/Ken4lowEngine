@@ -3,9 +3,12 @@
 #include "BossPunchAttack.h"
 #include "BossHeavyPunchAttack.h"
 #include <LinearInterpolation.h>
+#include <LogString.h>
 
 #include <algorithm>
 #include <cmath>
+#include <sstream>
+#include <string>
 
 #ifdef USE_IMGUI
 #include <imgui.h>
@@ -67,8 +70,24 @@ void GuardianBoss::OnDamaged(float damage)
 		return;
 	}
 
+	const float hpBefore = GetHP();
+
 	// HP減算は基底側に任せる
 	BossBase::OnDamaged(damage);
+
+	if (GetHP() < hpBefore)
+	{
+		++receivedHitCount_;
+		lastReceivedDamage_ = damage;
+	}
+
+	{
+		std::ostringstream oss;
+		oss << "[GuardianBoss] HP=" << GetHP() << "/" << GetMaxHP()
+			<< ", hitCount=" << receivedHitCount_
+			<< ", lastDamage=" << lastReceivedDamage_;
+		Log(oss.str() + "\n");
+	}
 
 	// 生きていたらひるみへ
 	if (!IsDead())
@@ -547,6 +566,15 @@ void GuardianBoss::DrawImGui()
 	ImGui::Text("State: %d", static_cast<int>(GetState()));
 	ImGui::Text("HP: %.1f / %.1f", GetHP(), GetMaxHP());
 	ImGui::Text("DistanceToTargetXZ: %.2f", GetDistanceToTargetXZ());
+
+	ImGui::SeparatorText("ボス被弾確認");
+	ImGui::Text("ボス出現済み: はい");
+	ImGui::Text("ボス生存中: %s", IsAlive() ? "はい" : "いいえ");
+	ImGui::Text("ボスHP: %.1f", GetHP());
+	ImGui::Text("ボス最大HP: %.1f", GetMaxHP());
+	ImGui::Text("ボスHP割合: %.1f%%", GetHPRate() * 100.0f);
+	ImGui::Text("ボス被弾回数: %d", receivedHitCount_);
+	ImGui::Text("最後にボスへ与えたダメージ: %.1f", lastReceivedDamage_);
 
 	ImGui::Separator();
 	ImGui::Text("StateTimer      : %.2f", stateTimer_);
