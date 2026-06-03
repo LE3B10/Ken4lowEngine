@@ -74,6 +74,11 @@ namespace
 		}
 		return v * (safeMaxLength / len);
 	}
+
+	static bool IsNearlyZeroVector(const Vector3& v)
+	{
+		return Length(v) < 1e-4f;
+	}
 }
 
 /// -------------------------------------------------------------
@@ -450,7 +455,7 @@ void EnemyBase::Draw()
 void EnemyBase::DrawImGui()
 {
 #ifdef USE_IMGUI
-	ImGui::Text("死亡敵座標: %.2f, %.2f, %.2f", deathEnemyPosition_.x, deathEnemyPosition_.y, deathEnemyPosition_.z);
+	ImGui::Text("敵死亡座標: %.2f, %.2f, %.2f", deathEnemyPosition_.x, deathEnemyPosition_.y, deathEnemyPosition_.z);
 	ImGui::Text("死亡演出原点: %.2f, %.2f, %.2f", deathEffectOrigin_.x, deathEffectOrigin_.y, deathEffectOrigin_.z);
 	ImGui::Text("胴体初期座標: %.2f, %.2f, %.2f", deathInitialBodyPosition_.x, deathInitialBodyPosition_.y, deathInitialBodyPosition_.z);
 	const char* deathPartLabels[] = { "頭初期座標", "左腕初期座標", "右腕初期座標", "左脚初期座標", "右脚初期座標" };
@@ -539,7 +544,9 @@ void EnemyBase::TakeDamage(int amount, const Vector3& hitDir, float hitPower)
 	if (hp_ <= 0)
 	{
 		hp_ = 0;
-		CaptureDeathEffectOrigin();
+		const Vector3 deathOrigin = GetCenterPosition();
+		const Vector3 deathRotation = orientation_;
+		CaptureDeathEffectOrigin(deathOrigin, deathRotation);
 		isDead_ = true;
 		removable_ = false;
 
@@ -604,7 +611,7 @@ void EnemyBase::SpawnHitEffectAt(const K4E::Vector3& worldPos)
 /// -------------------------------------------------------------
 void EnemyBase::OnKilled()
 {
-	CaptureDeathEffectOrigin();
+	CaptureDeathEffectOrigin(deathEffectOrigin_, deathEffectRotation_);
 
 	// 死亡パーティクル
 	if (particleEffectSystem_)
@@ -612,7 +619,7 @@ void EnemyBase::OnKilled()
 		particleEffectSystem_->SpawnDeathEffect(deathEffectOrigin_);
 	}
 
-	StartBreakApartDeath();
+	StartBreakApartDeath(deathEffectOrigin_, deathEffectRotation_);
 }
 
 /// -------------------------------------------------------------
@@ -690,16 +697,40 @@ void EnemyBase::DetachAllPartsToWorldSpace()
 	}
 }
 
-void EnemyBase::CaptureDeathEffectOrigin()
+Vector3 EnemyBase::ResolveDeathOrigin(const Vector3& requestedOrigin)
+{
+	if (!IsNearlyZeroVector(requestedOrigin))
+	{
+		return requestedOrigin;
+	}
+
+	UpdateVisualHierarchy();
+	if (!IsNearlyZeroVector(body_.transform.worldTranslate_))
+	{
+		return body_.transform.worldTranslate_;
+	}
+	if (!IsNearlyZeroVector(GetCenterPosition()))
+	{
+		return GetCenterPosition();
+	}
+	if (!IsNearlyZeroVector(lastSafePosition_))
+	{
+		return lastSafePosition_;
+	}
+	return spawnPosition_;
+}
+
+void EnemyBase::CaptureDeathEffectOrigin(const Vector3& deathOrigin, const Vector3& deathRotation)
 {
 	if (hasDeathEffectOrigin_)
 	{
 		return;
 	}
 
-	deathEnemyPosition_ = GetCenterPosition();
+	// 部位が原点へ飛ばないよう、敵の死亡時World座標を基準に崩壊演出を生成する。
+	deathEnemyPosition_ = ResolveDeathOrigin(deathOrigin);
 	deathEffectOrigin_ = deathEnemyPosition_;
-	deathEffectRotation_ = orientation_;
+	deathEffectRotation_ = deathRotation;
 	deathDebugPlayerPosition_ = s_lastDebugPlayerPosition_;
 	deathDebugAttackCenter_ = s_lastDebugAttackCenter_;
 	CaptureDeathPartWorldTransforms();
@@ -738,14 +769,14 @@ Vector3 EnemyBase::RotateLocalOffsetByDeathRotation(const Vector3& localOffset) 
 /// -------------------------------------------------------------
 /// death: 開始
 /// -------------------------------------------------------------
-void EnemyBase::StartBreakApartDeath()
+void EnemyBase::StartBreakApartDeath(const Vector3& deathOrigin, const Vector3& deathRotation)
 {
 	if (deathBreakInitialized_)
 	{
 		return;
 	}
 
-	CaptureDeathEffectOrigin();
+	CaptureDeathEffectOrigin(deathOrigin, deathRotation);
 	if (!hasDeathPartWorldTransforms_)
 	{
 		CaptureDeathPartWorldTransforms();
@@ -843,7 +874,7 @@ void EnemyBase::UpdateBreakApartDeath(float dt)
 	// 念のため：死亡した瞬間に OnKilled が呼ばれない派生があっても演出を走らせる
 	if (!deathBreakActive_)
 	{
-		StartBreakApartDeath();
+		StartBreakApartDeath(GetCenterPosition(), orientation_);
 	}
 
 	// タイマー進行
