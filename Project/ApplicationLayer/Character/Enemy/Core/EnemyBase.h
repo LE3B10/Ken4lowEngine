@@ -191,6 +191,7 @@ private:
 	K4E::Vector3 ResolveDeathOrigin(const K4E::Vector3& requestedOrigin);
 	void CaptureDeathPartWorldTransforms();
 	K4E::Vector3 RotateLocalOffsetByDeathRotation(const K4E::Vector3& localOffset) const;
+	K4E::Vector3 BuildDeathPartWorldPosition(const K4E::Vector3& localOffset) const;
 
 protected:
 	// ----- humanoid visual -----
@@ -266,6 +267,9 @@ protected:
 	K4E::Vector3 deathInitialBodyRotation_{};
 	std::vector<K4E::Vector3> deathInitialPartPositions_{};
 	std::vector<K4E::Vector3> deathInitialPartRotations_{};
+	std::vector<K4E::Vector3> deathInitialPartLocalOffsets_{};
+	K4E::Vector3 deathDrawBodyPosition_{};
+	std::vector<K4E::Vector3> deathDrawPartPositions_{};
 	float deathTimer_ = 0.0f;
 	float deathSimDuration_ = 1.8f;   // 破片が残る時間
 	float deathFadeDuration_ = 0.6f;  // 最後にフェードする時間

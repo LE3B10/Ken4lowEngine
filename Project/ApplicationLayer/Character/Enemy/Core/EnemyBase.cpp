@@ -208,6 +208,9 @@ void EnemyBase::Initialize()
 	deathInitialBodyRotation_ = deathEffectRotation_;
 	deathInitialPartPositions_.clear();
 	deathInitialPartRotations_.clear();
+	deathInitialPartLocalOffsets_.clear();
+	deathDrawBodyPosition_ = deathEffectOrigin_;
+	deathDrawPartPositions_.clear();
 	deathTimer_ = 0.0f;
 	deathPieces_.clear();
 	lastHitDir_ = { 0, 0, 0 };
@@ -437,13 +440,20 @@ void EnemyBase::Draw()
 
 	if (body_.active && body_.object)
 	{
+		deathDrawBodyPosition_ = body_.object->GetTranslate();
 		body_.object->Draw();
 	}
 
-	for (const auto& part : parts_)
+	if (deathDrawPartPositions_.size() != parts_.size())
 	{
+		deathDrawPartPositions_.assign(parts_.size(), {});
+	}
+	for (size_t i = 0; i < parts_.size(); ++i)
+	{
+		const auto& part = parts_[i];
 		if (part.active && part.object)
 		{
+			deathDrawPartPositions_[i] = part.object->GetTranslate();
 			part.object->Draw();
 		}
 	}
@@ -458,11 +468,20 @@ void EnemyBase::DrawImGui()
 	ImGui::Text("敵死亡座標: %.2f, %.2f, %.2f", deathEnemyPosition_.x, deathEnemyPosition_.y, deathEnemyPosition_.z);
 	ImGui::Text("死亡演出原点: %.2f, %.2f, %.2f", deathEffectOrigin_.x, deathEffectOrigin_.y, deathEffectOrigin_.z);
 	ImGui::Text("胴体初期座標: %.2f, %.2f, %.2f", deathInitialBodyPosition_.x, deathInitialBodyPosition_.y, deathInitialBodyPosition_.z);
-	const char* deathPartLabels[] = { "頭初期座標", "左腕初期座標", "右腕初期座標", "左脚初期座標", "右脚初期座標" };
+	ImGui::SeparatorText("死亡部位 Draw直前WorldTransform.translation");
+	ImGui::Text("deathOrigin: %.2f, %.2f, %.2f", deathEffectOrigin_.x, deathEffectOrigin_.y, deathEffectOrigin_.z);
+	ImGui::Text("body.worldTransform.translation: %.2f, %.2f, %.2f", deathDrawBodyPosition_.x, deathDrawBodyPosition_.y, deathDrawBodyPosition_.z);
+	const char* deathPartLabels[] = { "head", "leftArm", "rightArm", "leftLeg", "rightLeg" };
+	for (size_t i = 0; i < deathDrawPartPositions_.size() && i < 5; ++i)
+	{
+		const Vector3& p = deathDrawPartPositions_[i];
+		ImGui::Text("%s.worldTransform.translation: %.2f, %.2f, %.2f", deathPartLabels[i], p.x, p.y, p.z);
+	}
+	ImGui::SeparatorText("死亡部位 初期World座標");
 	for (size_t i = 0; i < deathInitialPartPositions_.size() && i < 5; ++i)
 	{
 		const Vector3& p = deathInitialPartPositions_[i];
-		ImGui::Text("%s: %.2f, %.2f, %.2f", deathPartLabels[i], p.x, p.y, p.z);
+		ImGui::Text("%s初期座標: %.2f, %.2f, %.2f", deathPartLabels[i], p.x, p.y, p.z);
 	}
 	ImGui::Text("死亡演出初期化回数: %d", deathEffectInitializeCount_);
 	ImGui::Text("中距離自爆崩壊処理を使用中: %s", deathUsesMidRangeSuicideCollapseStyle_ ? "はい" : "いいえ");
@@ -744,18 +763,22 @@ void EnemyBase::CaptureDeathPartWorldTransforms()
 		return;
 	}
 
-	// 死亡部位が別座標へ飛ばないよう、死亡瞬間のWorld座標を保存して崩壊演出に使用する。
+	// localOffsetをWorld座標として使わず、死亡瞬間のdeathOriginからDraw用World座標を再構築する。
 	UpdateVisualHierarchy();
 	deathInitialBodyPosition_ = body_.transform.worldTranslate_;
 	deathInitialBodyRotation_ = body_.transform.worldRotate_;
 	deathInitialPartPositions_.clear();
 	deathInitialPartRotations_.clear();
+	deathInitialPartLocalOffsets_.clear();
 	deathInitialPartPositions_.reserve(parts_.size());
 	deathInitialPartRotations_.reserve(parts_.size());
+	deathInitialPartLocalOffsets_.reserve(parts_.size());
 	for (auto& part : parts_)
 	{
-		deathInitialPartPositions_.push_back(part.transform.worldTranslate_);
-		deathInitialPartRotations_.push_back(part.transform.worldRotate_);
+		const Vector3 localOffset = part.transform.parent_ ? part.transform.translate_ : (part.transform.translate_ - deathEffectOrigin_);
+		deathInitialPartLocalOffsets_.push_back(localOffset);
+		deathInitialPartPositions_.push_back(BuildDeathPartWorldPosition(localOffset));
+		deathInitialPartRotations_.push_back(deathEffectRotation_ + part.transform.rotate_);
 	}
 	hasDeathPartWorldTransforms_ = true;
 }
@@ -764,6 +787,11 @@ Vector3 EnemyBase::RotateLocalOffsetByDeathRotation(const Vector3& localOffset) 
 {
 	const Matrix4x4 rotationMatrix = Matrix4x4::MakeRotateMatrix(deathEffectRotation_);
 	return Matrix4x4::Transform(localOffset, rotationMatrix);
+}
+
+Vector3 EnemyBase::BuildDeathPartWorldPosition(const Vector3& localOffset) const
+{
+	return deathEffectOrigin_ + RotateLocalOffsetByDeathRotation(localOffset);
 }
 
 /// -------------------------------------------------------------
@@ -788,10 +816,11 @@ void EnemyBase::StartBreakApartDeath(const Vector3& deathOrigin, const Vector3& 
 	deathSimDuration_ = s_deathPieceLifetime_;
 	deathTimer_ = deathSimDuration_;
 
-	// 通常死亡も中距離雑魚敵の自爆崩壊と同じ座標基準でその場に崩す。
+	// 死亡部位の最終描画座標が原点へ戻らないよう、deathOriginから各部位のWorldTransformを直接構築する。
 	body_.transform.parent_ = nullptr;
-	body_.transform.translate_ = deathInitialBodyPosition_;
+	body_.transform.translate_ = deathEffectOrigin_;
 	body_.transform.rotate_ = deathInitialBodyRotation_;
+	deathInitialBodyPosition_ = body_.transform.translate_;
 	body_.transform.Update();
 	if (body_.object)
 	{
@@ -804,15 +833,8 @@ void EnemyBase::StartBreakApartDeath(const Vector3& deathOrigin, const Vector3& 
 	{
 		auto& part = parts_[i];
 		part.transform.parent_ = nullptr;
-		if (i < deathInitialPartPositions_.size())
-		{
-			part.transform.translate_ = deathInitialPartPositions_[i];
-		}
-		else
-		{
-			const Vector3 localOffset = part.transform.translate_;
-			part.transform.translate_ = deathEffectOrigin_ + RotateLocalOffsetByDeathRotation(localOffset);
-		}
+		const Vector3 localOffset = (i < deathInitialPartLocalOffsets_.size()) ? deathInitialPartLocalOffsets_[i] : part.transform.translate_;
+		part.transform.translate_ = BuildDeathPartWorldPosition(localOffset);
 		part.transform.rotate_ = (i < deathInitialPartRotations_.size()) ? deathInitialPartRotations_[i] : deathEffectRotation_;
 		part.transform.Update();
 		if (part.object)
