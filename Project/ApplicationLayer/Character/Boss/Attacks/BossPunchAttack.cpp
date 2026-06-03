@@ -312,16 +312,11 @@ void BossPunchAttack::TryHitPlayer()
 		OutputDebugStringA("[BossPunchAttack] Melee hit success.\n");
 #endif
 
-		// -------------------------------------------------------
-		// TODO:
-		// 将来的にはここでプレイヤーへ本当にダメージを与える
-		//
-		// 例:
-		// if (Player* player = owner_->GetTargetPlayer())
-		// {
-		//     player->OnDamaged(damage_);
-		// }
-		// -------------------------------------------------------
+		// ボス近接攻撃の発生フレームで1回だけPlayerへダメージを流す。
+		if (owner_->ApplyDamageToTargetPlayer(damage_, &attackCenter))
+		{
+			DebugLog("[BossPunchAttack] Player damage applied.\n");
+		}
 	}
 	else
 	{

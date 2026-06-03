@@ -30,6 +30,11 @@ void GuardianBoss::SetupBoss()
 	stateTimer_ = 0.0f;
 	attackCooldownTimer_ = 0.0f;
 	hasAppliedAttackHit_ = false;
+	receivedHitCount_ = 0;
+	bulletHitCount_ = 0;
+	bossAttackHitCount_ = 0;
+	lastReceivedDamage_ = 0.0f;
+	lastPlayerDamage_ = 0.0f;
 
 	// HeavyPunch 連打抑制初期化
 	lastSelectedAttack_ = "None";
@@ -111,12 +116,37 @@ void GuardianBoss::OnDead()
 }
 
 /// -------------------------------------------------------------
+/// 銃弾ダメージ
+/// -------------------------------------------------------------
+void GuardianBoss::OnBulletDamaged(float damage)
+{
+	++bulletHitCount_;
+	OnDamaged(damage);
+
+	std::ostringstream oss;
+	oss << "[GuardianBoss] Player bullet hit: damage=" << damage
+		<< ", bulletHitCount=" << bulletHitCount_
+		<< ", HP=" << GetHP() << "/" << GetMaxHP();
+	Log(oss.str() + "\n");
+}
+
+/// -------------------------------------------------------------
 /// 衝突
-/// 今は空実装
 /// -------------------------------------------------------------
 void GuardianBoss::OnCollision(Collider* other)
 {
 	(void)other;
+}
+
+void GuardianBoss::OnTargetPlayerDamaged(float damage)
+{
+	++bossAttackHitCount_;
+	lastPlayerDamage_ = damage;
+
+	std::ostringstream oss;
+	oss << "[GuardianBoss] Boss attack damaged player: damage=" << damage
+		<< ", hitCount=" << bossAttackHitCount_;
+	Log(oss.str() + "\n");
 }
 
 /// -------------------------------------------------------------
@@ -573,8 +603,11 @@ void GuardianBoss::DrawImGui()
 	ImGui::Text("ボスHP: %.1f", GetHP());
 	ImGui::Text("ボス最大HP: %.1f", GetMaxHP());
 	ImGui::Text("ボスHP割合: %.1f%%", GetHPRate() * 100.0f);
-	ImGui::Text("ボス被弾回数: %d", receivedHitCount_);
+	ImGui::Text("近接攻撃ヒット回数: %d", GetMeleeHitCount());
+	ImGui::Text("銃弾ヒット回数: %d", bulletHitCount_);
 	ImGui::Text("最後にボスへ与えたダメージ: %.1f", lastReceivedDamage_);
+	ImGui::Text("ボス攻撃ヒット回数: %d", bossAttackHitCount_);
+	ImGui::Text("最後にプレイヤーが受けたボスダメージ: %.1f", lastPlayerDamage_);
 
 	ImGui::Separator();
 	ImGui::Text("StateTimer      : %.2f", stateTimer_);

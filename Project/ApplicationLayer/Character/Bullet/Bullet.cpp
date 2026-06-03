@@ -3,6 +3,7 @@
 #include "CollisionTypeIdDef.h"
 #include "CollisionManager.h"
 #include "EnemyBase.h"
+#include "BossBase.h"
 #include "GpuParticleManager.h"
 
 #include <algorithm>
@@ -283,6 +284,10 @@ void Bullet::ApplySplashDamageToType(uint32_t targetType, const K4E::Vector3& ce
 			enemy->TakeDamage(finalDamage, hitDir, 1.8f);
 			enemy->SpawnHitEffectAt(col->GetCenterPosition());
 		}
+		else if (auto* boss = col->GetOwner<BossBase>())
+		{
+			boss->OnBulletDamaged(static_cast<float>(finalDamage));
+		}
 	}
 }
 
@@ -421,6 +426,15 @@ void Bullet::OnCollisionEnter(K4E::Collider* other)
 	const uint32_t otherId = other->GetUniqueID();
 	if (contactRecord_.Check(otherId)) return;
 	contactRecord_.Add(otherId);
+
+	if (otherType == kBoss)
+	{
+		if (auto* boss = other->GetOwner<BossBase>())
+		{
+			// プレイヤー銃弾がボスへ当たったら、非貫通弾として1回だけダメージを与える。
+			boss->OnBulletDamaged(static_cast<float>(damage_));
+		}
+	}
 
 	if (HasSplashDamage())
 	{
