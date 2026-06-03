@@ -669,10 +669,28 @@ void GamePlayScene::DrawEnemyTuningImGui()
 	}
 
 	ImGui::SetNextWindowSize(ImVec2(560.0f, 620.0f), ImGuiCond_FirstUseEver);
-	if (ImGui::Begin("Enemy Parameter Tuning", &editorWindowState.showEnemyDebug))
+	if (!ImGui::Begin("敵パラメータ調整", &editorWindowState.showEnemyDebug))
 	{
-		world_->DrawEnemyTuningImGui();
+		ImGui::End();
+		return;
 	}
+
+	// GamePlayScene側でImGuiウィンドウを作成し、各敵の調整項目はその内側で描画する。
+	if (ImGui::CollapsingHeader("近接雑魚敵", ImGuiTreeNodeFlags_DefaultOpen))
+	{
+		world_->DrawMeleeEnemyTuningImGuiContent();
+	}
+
+	if (ImGui::CollapsingHeader("中距離雑魚敵", ImGuiTreeNodeFlags_DefaultOpen))
+	{
+		world_->DrawMidRangeEnemyTuningImGuiContent();
+	}
+
+	if (ImGui::CollapsingHeader("ボス", ImGuiTreeNodeFlags_DefaultOpen))
+	{
+		world_->DrawBossTuningImGuiContent();
+	}
+
 	ImGui::End();
 #endif
 }

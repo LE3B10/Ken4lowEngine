@@ -85,6 +85,7 @@ public: /// ---------- ライフサイクル ---------- ///
 	/// デバッグ描画 / ImGui
 	/// </summary>
 	virtual void DrawImGui() override;
+	virtual void DrawTuningImGuiContent();
 
 	/// <summary>
 	/// 終了処理

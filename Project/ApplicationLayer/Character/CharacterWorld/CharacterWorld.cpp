@@ -357,57 +357,59 @@ void CharacterWorld::DrawEnemyDebugImGui()
 #endif
 }
 
-void CharacterWorld::DrawEnemyTuningImGui()
+void CharacterWorld::DrawMeleeEnemyTuningImGuiContent()
 {
 #ifdef USE_IMGUI
 	MeleeEnemy* representativeMelee = nullptr;
-	MidRangeEnemy* representativeMidRange = nullptr;
-	EnemyBase* representativeLegacy = nullptr;
-
 	for (const auto& enemy : enemies_)
 	{
 		if (!enemy) { continue; }
-
-		if (!representativeMelee)
-		{
-			representativeMelee = dynamic_cast<MeleeEnemy*>(enemy.get());
-		}
-		if (!representativeMidRange)
-		{
-			representativeMidRange = dynamic_cast<MidRangeEnemy*>(enemy.get());
-		}
-		if (!representativeLegacy && !dynamic_cast<MeleeEnemy*>(enemy.get()) && !dynamic_cast<MidRangeEnemy*>(enemy.get()))
-		{
-			representativeLegacy = enemy.get();
-		}
+		representativeMelee = dynamic_cast<MeleeEnemy*>(enemy.get());
+		if (representativeMelee) { break; }
 	}
 
-	// GamePlaySceneから各敵のパラメータ調整ImGuiを呼び出せるようにする。
-	ImGui::SeparatorText("近接雑魚敵パラメータ");
 	if (representativeMelee)
 	{
-		representativeMelee->DrawImGui();
+		representativeMelee->DrawTuningImGuiContent();
 	}
 	else
 	{
 		ImGui::TextUnformatted("近接雑魚敵の代表個体がいません。");
 	}
+#endif
+}
 
-	ImGui::SeparatorText("中距離雑魚敵パラメータ");
+void CharacterWorld::DrawMidRangeEnemyTuningImGuiContent()
+{
+#ifdef USE_IMGUI
+	MidRangeEnemy* representativeMidRange = nullptr;
+	for (const auto& enemy : enemies_)
+	{
+		if (!enemy) { continue; }
+		representativeMidRange = dynamic_cast<MidRangeEnemy*>(enemy.get());
+		if (representativeMidRange) { break; }
+	}
+
 	if (representativeMidRange)
 	{
-		representativeMidRange->DrawImGui();
+		representativeMidRange->DrawTuningImGuiContent();
 	}
 	else
 	{
 		ImGui::TextUnformatted("中距離雑魚敵の代表個体がいません。");
 	}
+#endif
+}
 
-	if (representativeLegacy)
-	{
-		ImGui::SeparatorText("旧Enemy代表パラメータ");
-		representativeLegacy->DrawImGui();
-	}
+void CharacterWorld::DrawEnemyTuningImGui()
+{
+#ifdef USE_IMGUI
+	// GamePlayScene側の共通ウィンドウ内から呼ばれる中身専用描画をまとめて呼ぶ。
+	ImGui::SeparatorText("近接雑魚敵パラメータ");
+	DrawMeleeEnemyTuningImGuiContent();
+
+	ImGui::SeparatorText("中距離雑魚敵パラメータ");
+	DrawMidRangeEnemyTuningImGuiContent();
 #endif
 }
 

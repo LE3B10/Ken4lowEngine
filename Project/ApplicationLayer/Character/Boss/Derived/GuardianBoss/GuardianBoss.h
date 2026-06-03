@@ -24,6 +24,7 @@ public: /// ---------- Boss固有初期化 ---------- ///
 	void OnDead() override;
 	void OnCollision(K4E::Collider* other) override;
 	void DrawImGui() override;
+	void DrawTuningImGuiContent();
 	int GetMeleeHitCount() const;
 	int GetBulletHitCount() const { return bulletHitCount_; }
 	float GetLastReceivedDamage() const { return lastReceivedDamage_; }

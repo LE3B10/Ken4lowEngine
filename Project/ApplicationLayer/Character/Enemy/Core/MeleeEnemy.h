@@ -464,6 +464,7 @@ public: /// ---------- メンバ関数 ---------- ///
 
 	// ImGui描画処理
 	void DrawImGui() override;
+	void DrawTuningImGuiContent();
 
 	// 衝突開始の処理（ターゲットとの接触やステージの衝突など）
 	void OnCollisionEnter(K4E::Collider* other) override;

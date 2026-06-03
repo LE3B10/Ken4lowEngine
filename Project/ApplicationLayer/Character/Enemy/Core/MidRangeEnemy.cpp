@@ -962,15 +962,9 @@ void MidRangeEnemy::Draw()
     Wireframe::GetInstance()->DrawLine(GetCenterPosition(), faceEnd, { 0.7f, 1.0f, 0.2f, 1.0f });
 }
 
-void MidRangeEnemy::DrawImGui()
+void MidRangeEnemy::DrawTuningImGuiContent()
 {
 #ifdef USE_IMGUI
-    if (!ImGui::Begin("MidRangeEnemy Debug"))
-    {
-        ImGui::End();
-        return;
-    }
-
     if (ImGui::CollapsingHeader("データ保存/読み込み"))
     {
         if (ImGui::Button("保存"))
@@ -1286,9 +1280,21 @@ void MidRangeEnemy::DrawImGui()
         ImGui::Text("経路が見つかったか: %s", pathState_.pathFound ? "はい" : "いいえ");
         ImGui::Text("現在ウェイポイント: (%.2f, %.2f, %.2f)", pathState_.currentWaypoint.x, pathState_.currentWaypoint.y, pathState_.currentWaypoint.z);
     }
+#endif // USE_IMGUI
+}
+
+void MidRangeEnemy::DrawImGui()
+{
+#ifdef USE_IMGUI
+    if (!ImGui::Begin("MidRangeEnemy Debug"))
+    {
+        ImGui::End();
+        return;
+    }
+
+    DrawTuningImGuiContent();
 
     ImGui::End();
-
 #endif // USE_IMGUI
 }
 

@@ -71,6 +71,9 @@ public: /// ---------- メンバ関数 ---------- ///
 	void DrawCollisionDebugImGui();
 	void DrawEnemyDebugImGui();
 	void DrawEnemyTuningImGui();
+	void DrawMeleeEnemyTuningImGuiContent();
+	void DrawMidRangeEnemyTuningImGuiContent();
+	void DrawBossTuningImGuiContent();
 
 	void SyncAfterPlayerSpawn();
 	void StartWaves();
