@@ -107,6 +107,9 @@ protected: /// ---------- Guardian固有パラメータ ---------- ///
 
 	bool hasAppliedAttackHit_ = false;
 
+	int receivedHitCount_ = 0;
+	float lastReceivedDamage_ = 0.0f;
+
 	/// <summary>
 	/// 最後に選ばれた攻撃名
 	/// HeavyPunch 連打抑制にも使う

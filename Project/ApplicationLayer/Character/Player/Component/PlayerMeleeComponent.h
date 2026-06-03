@@ -1,6 +1,6 @@
 #pragma once
 #include <functional>
-#include <unordered_map>
+#include <unordered_set>
 #include <Vector3.h>
 #include <Segment.h>
 
@@ -47,4 +47,7 @@ private: /// ---------- メンバ変数 ---------- ///
 	int damage_ = 35;
 
 	std::function<void()> onHit_;
+
+	// 同じ攻撃中に同一Colliderへ複数回ダメージが入らないようにする。
+	std::unordered_set<uint32_t> hitColliderIds_;
 };
