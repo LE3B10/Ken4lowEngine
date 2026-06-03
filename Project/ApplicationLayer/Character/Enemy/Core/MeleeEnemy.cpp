@@ -81,6 +81,12 @@ void MeleeEnemy::Initialize()
 
 void MeleeEnemy::Update(float deltaTime)
 {
+	if (IsDead())
+	{
+		EnemyBase::Update(deltaTime);
+		return;
+	}
+
 	const Vector3 beforePos = GetCenterPosition();
 	attackController_.Update(*this, deltaTime);
 	// 被ダメージリアクションと死亡演出のタイマー更新を先に行う。
@@ -95,6 +101,10 @@ void MeleeEnemy::Update(float deltaTime)
 	// 優先度の高い行動から順に評価して近接敵の行動を決定する
 	EvaluateBehavior(deltaTime);
 	EnemyBase::Update(deltaTime);
+	if (IsDead())
+	{
+		return;
+	}
 
 	collision_.usingWorldAABBCount = GetResolvedWorldAABBs() ? static_cast<int>(GetResolvedWorldAABBs()->size()) : 0;
 	collision_.usingObstacleAABBCount = GetResolvedNavigationObstacleAABBs() ? static_cast<int>(GetResolvedNavigationObstacleAABBs()->size()) : 0;
