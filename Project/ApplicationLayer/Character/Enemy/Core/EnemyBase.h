@@ -184,10 +184,11 @@ private:
 		float hitBias = 0.5f; // 被弾方向の影響（部位ごとに調整）
 	};
 
-	void StartBreakApartDeath();
+	void StartBreakApartDeath(const K4E::Vector3& deathOrigin, const K4E::Vector3& deathRotation);
 	void UpdateBreakApartDeath(float dt);
 	void DetachAllPartsToWorldSpace();
-	void CaptureDeathEffectOrigin();
+	void CaptureDeathEffectOrigin(const K4E::Vector3& deathOrigin, const K4E::Vector3& deathRotation);
+	K4E::Vector3 ResolveDeathOrigin(const K4E::Vector3& requestedOrigin);
 	void CaptureDeathPartWorldTransforms();
 	K4E::Vector3 RotateLocalOffsetByDeathRotation(const K4E::Vector3& localOffset) const;
 
