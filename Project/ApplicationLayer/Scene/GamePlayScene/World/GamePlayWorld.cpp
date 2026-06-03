@@ -17,6 +17,7 @@
 
 #include <chrono>
 #include <cmath>
+#include <vector>
 
 #ifdef USE_IMGUI
 #include <imgui.h>
@@ -152,12 +153,51 @@ void GamePlayWorld::Initialize(GamePlayStageContext& stageContext)
 	bossSpawned_ = false;
 	bossSpawnConditionMet_ = false;
 
-	// Blender 側の設定読み込みを追加するまでは、C++ でステージ上の固定ワールド座標へ仮配置する。
-	crystalManager_.Initialize({
-		{ {   0.0f, 2.0f, 20.0f }, {}, { 1.5f, 2.5f, 1.5f }, 100, EnemyType::Melee, 2.0f, 10, 4.0f, true, true },
-		{ {  10.0f, 2.0f, 30.0f }, {}, { 1.5f, 2.5f, 1.5f }, 100, EnemyType::MidRange, 3.0f, 6, 4.0f, true, true },
-		{ { -10.0f, 2.0f, 30.0f }, {}, { 1.5f, 2.5f, 1.5f }, 100, EnemyType::Melee, 2.0f, 10, 4.0f, true, true },
-	}, collisionManager_.get(), &stage_->GetFloorAABBs(), &stage_->GetNavigationObstacleAABBs());
+	// C++側の仮クリスタル配置を明示的なvectorにして、初期化型の不一致を防ぐ。
+	std::vector<CrystalSpawnPoint> crystalSpawnPoints;
+	CrystalSpawnPoint centerCrystalSpawnPoint;
+	centerCrystalSpawnPoint.position = { 0.0f, 2.0f, 20.0f };
+	centerCrystalSpawnPoint.rotation = {};
+	centerCrystalSpawnPoint.scale = { 1.5f, 2.5f, 1.5f };
+	centerCrystalSpawnPoint.hp = 100;
+	centerCrystalSpawnPoint.maxHp = 100;
+	centerCrystalSpawnPoint.spawnEnemyType = EnemyType::Melee;
+	centerCrystalSpawnPoint.spawnInterval = 2.0f;
+	centerCrystalSpawnPoint.maxAliveEnemies = 10;
+	centerCrystalSpawnPoint.spawnRadius = 4.0f;
+	centerCrystalSpawnPoint.enableInfiniteSpawn = true;
+	centerCrystalSpawnPoint.spawnBossTrigger = true;
+	crystalSpawnPoints.push_back(centerCrystalSpawnPoint);
+
+	CrystalSpawnPoint rightCrystalSpawnPoint;
+	rightCrystalSpawnPoint.position = { 10.0f, 2.0f, 30.0f };
+	rightCrystalSpawnPoint.rotation = {};
+	rightCrystalSpawnPoint.scale = { 1.5f, 2.5f, 1.5f };
+	rightCrystalSpawnPoint.hp = 100;
+	rightCrystalSpawnPoint.maxHp = 100;
+	rightCrystalSpawnPoint.spawnEnemyType = EnemyType::MidRange;
+	rightCrystalSpawnPoint.spawnInterval = 3.0f;
+	rightCrystalSpawnPoint.maxAliveEnemies = 6;
+	rightCrystalSpawnPoint.spawnRadius = 4.0f;
+	rightCrystalSpawnPoint.enableInfiniteSpawn = true;
+	rightCrystalSpawnPoint.spawnBossTrigger = true;
+	crystalSpawnPoints.push_back(rightCrystalSpawnPoint);
+
+	CrystalSpawnPoint leftCrystalSpawnPoint;
+	leftCrystalSpawnPoint.position = { -10.0f, 2.0f, 30.0f };
+	leftCrystalSpawnPoint.rotation = {};
+	leftCrystalSpawnPoint.scale = { 1.5f, 2.5f, 1.5f };
+	leftCrystalSpawnPoint.hp = 100;
+	leftCrystalSpawnPoint.maxHp = 100;
+	leftCrystalSpawnPoint.spawnEnemyType = EnemyType::Melee;
+	leftCrystalSpawnPoint.spawnInterval = 2.0f;
+	leftCrystalSpawnPoint.maxAliveEnemies = 10;
+	leftCrystalSpawnPoint.spawnRadius = 4.0f;
+	leftCrystalSpawnPoint.enableInfiniteSpawn = true;
+	leftCrystalSpawnPoint.spawnBossTrigger = true;
+	crystalSpawnPoints.push_back(leftCrystalSpawnPoint);
+
+	crystalManager_.Initialize(crystalSpawnPoints, collisionManager_.get(), &stage_->GetFloorAABBs(), &stage_->GetNavigationObstacleAABBs());
 	crystalManager_.SetProgressDebugStatus(characters_.GetAliveNormalEnemyCount(), bossSpawnConditionMet_, bossSpawned_, bossSpawnPosition_);
 
 	enemyHpBarManager_.Initialize();
@@ -170,7 +210,8 @@ void GamePlayWorld::Finalize()
 		collisionManager_->RemoveCollider(guardianBoss_.get());
 	}
 	guardianBoss_.reset();
-	crystalManager_.Initialize({}, nullptr);
+	const std::vector<CrystalSpawnPoint> emptyCrystalSpawnPoints;
+	crystalManager_.Initialize(emptyCrystalSpawnPoints, nullptr);
 	stageObjectiveManager_.reset();
 	waveManager_.reset();
 	hudManager_.reset();
