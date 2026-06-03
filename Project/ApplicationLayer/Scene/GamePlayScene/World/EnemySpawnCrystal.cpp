@@ -77,7 +77,8 @@ void EnemySpawnCrystal::Initialize(const CrystalSpawnPoint& spawnPoint, const st
 	rotation_ = spawnPoint.rotation;
 	scale_ = spawnPoint.scale;
 	isAlive = true;
-	hp = std::max(1, spawnPoint.hp);
+	maxHp = std::max(1, spawnPoint.hp);
+	hp = maxHp;
 	spawnEnemyType = spawnPoint.spawnEnemyType;
 	spawnRadius = std::max(0.0f, spawnPoint.spawnRadius);
 	maxAliveEnemies = std::max(0, spawnPoint.maxAliveEnemies);
@@ -132,7 +133,7 @@ void EnemySpawnCrystal::ApplyDamage(int damage)
 		return;
 	}
 
-	// プレイヤー攻撃でクリスタルを破壊できるよう、被弾回数とHPを一か所で更新する。
+	// クリスタルの残りHPを確認できるよう、HP割合を表示用に公開する。
 	++hitCount_;
 	hp = std::max(0, hp - damage);
 	if (hp <= 0)

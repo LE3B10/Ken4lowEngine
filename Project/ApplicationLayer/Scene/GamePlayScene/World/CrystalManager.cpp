@@ -5,10 +5,12 @@
 #include "CameraManager.h"
 #include "CollisionManager.h"
 #include "EnemyBase.h"
+#include "EnemyHPBarProjector.h"
 
 #include <algorithm>
-#include <iostream>
+#include <cmath>
 #include <utility>
+#include <string>
 
 #ifdef USE_IMGUI
 #include <imgui.h>
@@ -54,8 +56,10 @@ void CrystalManager::Initialize(const std::vector<CrystalSpawnPoint>& spawnPoint
 	globalSpawnInterval_ = 5.0f;
 	globalSpawnTimer_ = 0.0f;
 	maxSpawnPerInterval_ = 1;
-	shouldSpawnBoss_ = false;
-	hasBossSpawned_ = false;
+	debugAliveNormalEnemyCount_ = 0;
+	debugBossSpawnConditionMet_ = false;
+	debugBossSpawned_ = false;
+	debugBossSpawnPosition_ = {};
 }
 
 void CrystalManager::Update(CharacterWorld& characters, float deltaTime)
@@ -65,7 +69,6 @@ void CrystalManager::Update(CharacterWorld& characters, float deltaTime)
 		crystal.Update(characters);
 	}
 
-	NotifyBossSpawnIfNeeded();
 	if (!enableCrystalEnemySpawn_ || AreAllCrystalsDestroyed() || GetAliveCrystalCount() <= 0 ||
 		GetAliveCrystalSpawnEnemyCount() >= maxTotalCrystalSpawnEnemies_)
 	{
@@ -103,6 +106,53 @@ void CrystalManager::Draw() const
 	}
 }
 
+void CrystalManager::DrawHpBars(const Ken4lowEngine::Matrix4x4& viewMatrix, const Ken4lowEngine::Matrix4x4& projMatrix, float screenWidth, float screenHeight) const
+{
+#ifdef USE_IMGUI
+	ImDrawList* drawList = ImGui::GetBackgroundDrawList();
+	if (!drawList)
+	{
+		return;
+	}
+
+	for (const EnemySpawnCrystal& crystal : crystals_)
+	{
+		if (crystal.IsDestroyed())
+		{
+			continue;
+		}
+
+		const Ken4lowEngine::Vector3& pos = crystal.GetPosition();
+		const Ken4lowEngine::Vector3& scale = crystal.GetScale();
+		const Ken4lowEngine::Vector3 hpBarWorldPos{ pos.x, pos.y + std::abs(scale.y) * 0.65f + 0.35f, pos.z };
+		const HpBarProjectResult projected = ProjectWorldToScreen(hpBarWorldPos, viewMatrix, projMatrix, screenWidth, screenHeight);
+		if (!projected.inFront || !projected.inScreen)
+		{
+			continue;
+		}
+
+		const float hpRate = std::clamp(crystal.GetHpRate(), 0.0f, 1.0f);
+		const ImVec2 barSize{ 82.0f, 9.0f };
+		const ImVec2 barMin{ projected.screenPos.x - barSize.x * 0.5f, projected.screenPos.y - 20.0f };
+		const ImVec2 barMax{ barMin.x + barSize.x, barMin.y + barSize.y };
+		const ImVec2 fillMax{ barMin.x + barSize.x * hpRate, barMax.y };
+
+		drawList->AddRectFilled(barMin, barMax, IM_COL32(25, 25, 25, 210), 3.0f);
+		drawList->AddRectFilled(barMin, fillMax, IM_COL32(60, 220, 255, 235), 3.0f);
+		drawList->AddRect(barMin, barMax, IM_COL32(255, 255, 255, 230), 3.0f);
+
+		const std::string hpText = std::to_string(crystal.GetHp()) + "/" + std::to_string(crystal.GetMaxHp());
+		const ImVec2 textSize = ImGui::CalcTextSize(hpText.c_str());
+		drawList->AddText({ projected.screenPos.x - textSize.x * 0.5f, barMin.y - textSize.y - 2.0f }, IM_COL32(255, 255, 255, 255), hpText.c_str());
+	}
+#else
+	(void)viewMatrix;
+	(void)projMatrix;
+	(void)screenWidth;
+	(void)screenHeight;
+#endif
+}
+
 int CrystalManager::GetAliveCrystalCount() const
 {
 	return static_cast<int>(std::count_if(crystals_.begin(), crystals_.end(),
@@ -124,17 +174,12 @@ bool CrystalManager::AreAllCrystalsDestroyed() const
 	return !crystals_.empty() && GetAliveCrystalCount() == 0;
 }
 
-void CrystalManager::NotifyBossSpawnIfNeeded()
+void CrystalManager::SetProgressDebugStatus(int aliveNormalEnemyCount, bool bossSpawnConditionMet, bool bossSpawned, const Ken4lowEngine::Vector3& bossSpawnPosition)
 {
-	if (!AreAllCrystalsDestroyed() || hasBossSpawned_)
-	{
-		return;
-	}
-
-	shouldSpawnBoss_ = true;
-	hasBossSpawned_ = true;
-	// 既存ボス進行へ安全に接続するまでは、全破壊時に一度だけ仮通知する。
-	std::clog << "[CrystalManager] すべてのクリスタルが破壊されました。ボスを出現させます。\n";
+	debugAliveNormalEnemyCount_ = aliveNormalEnemyCount;
+	debugBossSpawnConditionMet_ = bossSpawnConditionMet;
+	debugBossSpawned_ = bossSpawned;
+	debugBossSpawnPosition_ = bossSpawnPosition;
 }
 
 EnemySpawnCrystal* CrystalManager::GetSelectedCrystal()
@@ -221,7 +266,11 @@ void CrystalManager::DrawImGui()
 	ImGui::Text("クリスタル数: %d", GetCrystalCount());
 	ImGui::Text("生存クリスタル数: %d", GetAliveCrystalCount());
 	ImGui::Text("全クリスタル破壊済み: %s", AreAllCrystalsDestroyed() ? "はい" : "いいえ");
-	ImGui::Text("ボス出現済み: %s", HasBossSpawned() ? "はい" : "いいえ");
+	ImGui::Text("クリスタル敵スポーン有効(実効): %s", (enableCrystalEnemySpawn_ && !AreAllCrystalsDestroyed()) ? "はい" : "いいえ");
+	ImGui::Text("生存雑魚敵数: %d", debugAliveNormalEnemyCount_);
+	ImGui::Text("ボス出現条件成立: %s", debugBossSpawnConditionMet_ ? "はい" : "いいえ");
+	ImGui::Text("ボス出現済み: %s", debugBossSpawned_ ? "はい" : "いいえ");
+	ImGui::Text("ボス出現位置: (%.2f, %.2f, %.2f)", debugBossSpawnPosition_.x, debugBossSpawnPosition_.y, debugBossSpawnPosition_.z);
 	ImGui::Text("更新用deltaTime上限: %.4f 秒", kMaxUpdateDeltaTime);
 	ImGui::Text("敵Ground Snap有効: %s", EnemyBase::IsGroundSnapEnabled() ? "はい" : "いいえ");
 	ImGui::Text("クリスタルGround Snap有効: %s", EnemySpawnCrystal::IsGroundSnapEnabled() ? "はい" : "いいえ");
@@ -271,6 +320,8 @@ void CrystalManager::DrawImGui()
 	ImGui::Text("選択中クリスタル座標: (%.2f, %.2f, %.2f)", crystalPosition.x, crystalPosition.y, crystalPosition.z);
 	ImGui::Text("クリスタルScale: (%.2f, %.2f, %.2f)", crystalScale.x, crystalScale.y, crystalScale.z);
 	ImGui::Text("選択中クリスタルHP: %d", crystal->GetHp());
+	ImGui::Text("選択中クリスタル最大HP: %d", crystal->GetMaxHp());
+	ImGui::Text("選択中クリスタルHP割合: %.2f", crystal->GetHpRate());
 	ImGui::Text("生存状態: %s", crystal->IsAlive() ? "生存" : "破壊済み");
 	ImGui::Text("クリスタル破壊済み: %s", crystal->IsDestroyed() ? "はい" : "いいえ");
 	ImGui::Text("クリスタルCollider有効: %s", crystal->IsColliderEnabled() ? "はい" : "いいえ");

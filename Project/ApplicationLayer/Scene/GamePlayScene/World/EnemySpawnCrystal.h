@@ -21,6 +21,7 @@ struct CrystalSpawnPoint
 	K4E::Vector3 rotation{};
 	K4E::Vector3 scale{ 1.0f, 1.0f, 1.0f };
 	int hp = 100;
+	int maxHp = 100;
 	EnemyType spawnEnemyType = EnemyType::Melee;
 	float spawnInterval = 5.0f; // 互換性維持用。生成間隔は CrystalManager がステージ全体で管理する。
 	int maxAliveEnemies = 9;
@@ -47,6 +48,8 @@ public:
 	bool IsColliderEnabled() const { return isAlive; }
 	int GetHitCount() const { return hitCount_; }
 	int GetHp() const { return hp; }
+	int GetMaxHp() const { return maxHp; }
+	float GetHpRate() const { return maxHp > 0 ? static_cast<float>(hp) / static_cast<float>(maxHp) : 0.0f; }
 	EnemyType GetSpawnEnemyType() const { return spawnEnemyType; }
 	float GetSpawnRadius() const { return spawnRadius; }
 	int GetMaxAliveEnemies() const { return maxAliveEnemies; }
@@ -67,6 +70,7 @@ public:
 public: // Blender 読み込み対応時にも維持するランタイム設定値。
 	bool isAlive = true;
 	int hp = 100;
+	int maxHp = 100;
 	EnemyType spawnEnemyType = EnemyType::Melee;
 	float spawnRadius = 3.0f;
 	int maxAliveEnemies = 9;

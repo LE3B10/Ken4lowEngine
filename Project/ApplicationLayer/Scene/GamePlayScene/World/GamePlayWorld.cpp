@@ -143,6 +143,14 @@ void GamePlayWorld::Initialize(GamePlayStageContext& stageContext)
 	prevWaveNumber_ = 0;
 	prevWaveInProgress_ = false;
 	prevAllWavesCleared_ = false;
+	bossSpawnPosition_ = stageContext.HasBossSpawnPoint() ? stageContext.GetBossSpawnPoint() : K4E::Vector3{ 0.0f, 2.25f, 30.0f };
+	if (!stageContext.HasBossSpawnPoint())
+	{
+		// Blender側BossSpawnPointが未設定の間は、DebugSceneと同じ仮固定座標を使う。
+		bossSpawnPosition_ = { 0.0f, 2.25f, 30.0f };
+	}
+	bossSpawned_ = false;
+	bossSpawnConditionMet_ = false;
 
 	// Blender 側の設定読み込みを追加するまでは、C++ でステージ上の固定ワールド座標へ仮配置する。
 	crystalManager_.Initialize({
@@ -150,12 +158,18 @@ void GamePlayWorld::Initialize(GamePlayStageContext& stageContext)
 		{ {  10.0f, 2.0f, 30.0f }, {}, { 1.5f, 2.5f, 1.5f }, 100, EnemyType::MidRange, 3.0f, 6, 4.0f, true, true },
 		{ { -10.0f, 2.0f, 30.0f }, {}, { 1.5f, 2.5f, 1.5f }, 100, EnemyType::Melee, 2.0f, 10, 4.0f, true, true },
 	}, collisionManager_.get(), &stage_->GetFloorAABBs(), &stage_->GetNavigationObstacleAABBs());
+	crystalManager_.SetProgressDebugStatus(characters_.GetAliveNormalEnemyCount(), bossSpawnConditionMet_, bossSpawned_, bossSpawnPosition_);
 
 	enemyHpBarManager_.Initialize();
 }
 
 void GamePlayWorld::Finalize()
 {
+	if (guardianBoss_ && collisionManager_)
+	{
+		collisionManager_->RemoveCollider(guardianBoss_.get());
+	}
+	guardianBoss_.reset();
 	crystalManager_.Initialize({}, nullptr);
 	stageObjectiveManager_.reset();
 	waveManager_.reset();
@@ -189,6 +203,16 @@ void GamePlayWorld::Update(float deltaTime)
 
 	characters_.Update(deltaTime);
 	crystalManager_.Update(characters_, deltaTime);
+	UpdateCrystalBossSpawnProgress();
+	if (guardianBoss_)
+	{
+		if (auto* player = characters_.GetPlayer())
+		{
+			guardianBoss_->SetTargetPosition(player->GetCenterPosition());
+		}
+		guardianBoss_->Update(deltaTime);
+	}
+	crystalManager_.SetProgressDebugStatus(characters_.GetAliveNormalEnemyCount(), bossSpawnConditionMet_, bossSpawned_, bossSpawnPosition_);
 	if (auto* player = characters_.GetPlayer())
 	{
 		itemManager_.Update(player, deltaTime);
@@ -205,6 +229,10 @@ void GamePlayWorld::Update(float deltaTime)
 		stage_->UpdateShadowMatrix(shadowLightViewProjection_);
 	}
 	characters_.UpdateShadowMatrix(shadowLightViewProjection_);
+	if (guardianBoss_)
+	{
+		guardianBoss_->UpdateShadowMatrix(shadowLightViewProjection_);
+	}
 
 	if (bulletManager_)
 	{
@@ -359,6 +387,10 @@ void GamePlayWorld::Draw3D(bool hideCharactersDuringIntro)
 	if (!hideCharactersDuringIntro)
 	{
 		characters_.Draw();
+		if (guardianBoss_)
+		{
+			guardianBoss_->Draw();
+		}
 	}
 
 	if (stage_)
@@ -401,6 +433,10 @@ void GamePlayWorld::DrawShadow(bool hideCharactersDuringIntro)
 	if (!hideCharactersDuringIntro)
 	{
 		characters_.DrawShadow();
+		if (guardianBoss_)
+		{
+			guardianBoss_->DrawShadow();
+		}
 	}
 }
 
@@ -409,6 +445,17 @@ void GamePlayWorld::DrawHUD(bool hideDuringIntro)
 	if (hideDuringIntro) { return; }
 
 	enemyHpBarManager_.Draw();
+	if (auto* player = characters_.GetPlayer())
+	{
+		if (auto* camera = player->GetCamera())
+		{
+			crystalManager_.DrawHpBars(
+				camera->GetViewMatrix(),
+				camera->GetProjectionMatrix(),
+				static_cast<float>(K4E::GameViewportConstants::Width),
+				static_cast<float>(K4E::GameViewportConstants::Height));
+		}
+	}
 
 	if (hudManager_)
 	{
@@ -555,6 +602,41 @@ bool GamePlayWorld::IsPlayerDead()
 {
 	const auto* player = characters_.GetPlayer();
 	return player && player->GetHP() <= 0;
+}
+
+void GamePlayWorld::UpdateCrystalBossSpawnProgress()
+{
+	const int aliveNormalEnemyCount = characters_.GetAliveNormalEnemyCount();
+	bossSpawnConditionMet_ = crystalManager_.AreAllCrystalsDestroyed() && aliveNormalEnemyCount == 0 && !bossSpawned_;
+
+	// 全クリスタル破壊後、残った雑魚敵がいなくなったタイミングでボスを1回だけ出現させる。
+	if (bossSpawnConditionMet_)
+	{
+		SpawnGuardianBoss();
+	}
+}
+
+void GamePlayWorld::SpawnGuardianBoss()
+{
+	if (bossSpawned_)
+	{
+		return;
+	}
+
+	guardianBoss_ = std::make_unique<GuardianBoss>();
+	guardianBoss_->Initialize();
+	guardianBoss_->SetPosition(bossSpawnPosition_);
+	guardianBoss_->SetYaw(3.141592f);
+	if (auto* player = characters_.GetPlayer())
+	{
+		guardianBoss_->SetTargetPosition(player->GetCenterPosition());
+	}
+	guardianBoss_->Update(0.0f);
+	if (collisionManager_)
+	{
+		collisionManager_->AddCollider(guardianBoss_.get());
+	}
+	bossSpawned_ = true;
 }
 
 bool GamePlayWorld::IsAllWavesCleared() const

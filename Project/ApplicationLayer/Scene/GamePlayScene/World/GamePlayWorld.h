@@ -11,6 +11,7 @@
 #include "EnemyHPBarManager.h"
 #include "ItemManager.h"
 #include "CrystalManager.h"
+#include "Derived/GuardianBoss/GuardianBoss.h"
 
 #include <memory>
 
@@ -83,6 +84,8 @@ private: /// ---------- メンバ関数 ---------- ///
 	void UpdateShadowLightViewProjection();
 	bool TryGetDirectionalLightFromManager(K4E::Vector3& outDirection) const;
 	bool IsSightBlocked(const K4E::Segment& seg) const;
+	void UpdateCrystalBossSpawnProgress();
+	void SpawnGuardianBoss();
 
 
 private: /// ---------- メンバ変数 ---------- ///
@@ -100,6 +103,7 @@ private: /// ---------- メンバ変数 ---------- ///
 	EnemyHPBarManager enemyHpBarManager_;
 	ItemManager itemManager_;
 	CrystalManager crystalManager_;
+	std::unique_ptr<GuardianBoss> guardianBoss_;
 
 	int prevWaveNumber_ = 0;
 	bool prevWaveInProgress_ = false;
@@ -118,4 +122,7 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	float lastBulletUpdateMs_ = 0.0f;
 	float lastCollisionUpdateMs_ = 0.0f;
+	K4E::Vector3 bossSpawnPosition_{ 0.0f, 2.25f, 30.0f };
+	bool bossSpawned_ = false;
+	bool bossSpawnConditionMet_ = false;
 };
