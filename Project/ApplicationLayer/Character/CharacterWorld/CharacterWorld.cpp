@@ -357,6 +357,60 @@ void CharacterWorld::DrawEnemyDebugImGui()
 #endif
 }
 
+void CharacterWorld::DrawEnemyTuningImGui()
+{
+#ifdef USE_IMGUI
+	MeleeEnemy* representativeMelee = nullptr;
+	MidRangeEnemy* representativeMidRange = nullptr;
+	EnemyBase* representativeLegacy = nullptr;
+
+	for (const auto& enemy : enemies_)
+	{
+		if (!enemy) { continue; }
+
+		if (!representativeMelee)
+		{
+			representativeMelee = dynamic_cast<MeleeEnemy*>(enemy.get());
+		}
+		if (!representativeMidRange)
+		{
+			representativeMidRange = dynamic_cast<MidRangeEnemy*>(enemy.get());
+		}
+		if (!representativeLegacy && !dynamic_cast<MeleeEnemy*>(enemy.get()) && !dynamic_cast<MidRangeEnemy*>(enemy.get()))
+		{
+			representativeLegacy = enemy.get();
+		}
+	}
+
+	// GamePlaySceneから各敵のパラメータ調整ImGuiを呼び出せるようにする。
+	ImGui::SeparatorText("近接雑魚敵パラメータ");
+	if (representativeMelee)
+	{
+		representativeMelee->DrawImGui();
+	}
+	else
+	{
+		ImGui::TextUnformatted("近接雑魚敵の代表個体がいません。");
+	}
+
+	ImGui::SeparatorText("中距離雑魚敵パラメータ");
+	if (representativeMidRange)
+	{
+		representativeMidRange->DrawImGui();
+	}
+	else
+	{
+		ImGui::TextUnformatted("中距離雑魚敵の代表個体がいません。");
+	}
+
+	if (representativeLegacy)
+	{
+		ImGui::SeparatorText("旧Enemy代表パラメータ");
+		representativeLegacy->DrawImGui();
+	}
+#endif
+}
+
 void CharacterWorld::DrawShadow()
 {
 	if (player_) { player_->DrawShadow(); }

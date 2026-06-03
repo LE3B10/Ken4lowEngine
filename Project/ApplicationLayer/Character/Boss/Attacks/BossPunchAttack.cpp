@@ -1,6 +1,11 @@
 #define NOMINMAX
 #include "BossPunchAttack.h"
 #include "BossBase.h"
+#include "Player.h"
+
+#ifdef _DEBUG
+#include <Wireframe.h>
+#endif
 
 #include <Windows.h>
 #include <cmath>
@@ -33,6 +38,8 @@ void BossPunchAttack::Initialize(BossBase* owner)
 	isActive_ = false;
 	isFinished_ = false;
 	hasHit_ = false;
+	attackHitApplied_ = false;
+	damageDebugState_ = {};
 
 	// フェーズを初期化
 	phase_ = Phase::None;
@@ -55,6 +62,7 @@ void BossPunchAttack::Start()
 	isActive_ = true;
 	isFinished_ = false;
 	hasHit_ = false;
+	attackHitApplied_ = false;
 
 	// フェーズリセット
 	phase_ = Phase::None;
@@ -78,6 +86,21 @@ void BossPunchAttack::Update(float deltaTime)
 
 	totalTimer_ += deltaTime; // 攻撃開始からの総時間
 	phaseTimer_ += deltaTime; // 現在フェーズに入ってからの時間
+	damageDebugState_.attackCenter = CalculateAttackCenter();
+	damageDebugState_.isAttackActive = IsAttackWindowActive();
+	if (owner_)
+	{
+		const K4E::Vector3 targetCenter = owner_->GetTargetPosition();
+		const float dx = targetCenter.x - damageDebugState_.attackCenter.x;
+		const float dy = targetCenter.y - damageDebugState_.attackCenter.y;
+		const float dz = targetCenter.z - damageDebugState_.attackCenter.z;
+		damageDebugState_.distanceToPlayer = std::sqrt(dx * dx + dy * dy + dz * dz);
+		if (auto* player = owner_->GetTargetPlayer())
+		{
+			damageDebugState_.playerHp = player->GetHP();
+		}
+	}
+
 
 	// フェーズごとに更新
 	switch (phase_)
@@ -180,11 +203,10 @@ void BossPunchAttack::UpdateActive(float deltaTime)
 	// 今は特に発生中の挙動はないので、時間だけ進める
 	(void)deltaTime;
 
-	// 発生中に一度だけヒット判定
-	if (!hasHit_)
+	// 攻撃判定時間内だけヒット判定を試み、命中後はattackHitApplied_で多段ヒットを防ぐ。
+	if (!attackHitApplied_ && IsAttackWindowActive())
 	{
-		TryHitPlayer(); // ヒット判定を試みる
-		hasHit_ = true; // これ以降はヒット判定しない
+		TryHitPlayer();
 	}
 
 	// 発生時間を過ぎたら硬直へ
@@ -240,10 +262,7 @@ void BossPunchAttack::ChangePhase(Phase newPhase)
 /// ---------------------------------------------------------------
 void BossPunchAttack::Draw()
 {
-	// 例:
-	// - Windup 中に拳の前に予兆球
-	// - Active 中に当たり判定球を赤で表示
-	// 今は未実装
+	DrawAttackRangeDebug();
 }
 
 /// ---------------------------------------------------------------
@@ -257,12 +276,26 @@ void BossPunchAttack::DrawImGui()
 	ImGui::Text("Active            : %s", isActive_ ? "true" : "false");
 	ImGui::Text("Finished          : %s", isFinished_ ? "true" : "false");
 	ImGui::Text("HasHit            : %s", hasHit_ ? "true" : "false");
+	ImGui::Text("attackHitApplied  : %s", attackHitApplied_ ? "true" : "false");
 	ImGui::Text("Phase             : %s", GetPhaseName());
 	ImGui::Text("PhaseTimer        : %.2f", phaseTimer_);
 	ImGui::Text("TotalTimer        : %.2f", totalTimer_);
 	ImGui::Text("CooldownRemaining : %.2f", cooldownRemaining_);
 	ImGui::Text("Range             : %.2f - %.2f", minRange_, maxRange_);
-	ImGui::Text("Damage            : %.2f", damage_);
+	ImGui::Text("攻撃判定中か: %s", damageDebugState_.isAttackActive ? "はい" : "いいえ");
+	ImGui::Text("ボス攻撃ヒット回数: %d", damageDebugState_.bossAttackHitCount);
+	ImGui::Text("最後にプレイヤーへ与えたボスダメージ: %.1f", damageDebugState_.lastPlayerDamage);
+	ImGui::Text("Player HP: %.1f", damageDebugState_.playerHp);
+	ImGui::Text("攻撃判定中心座標: %.2f, %.2f, %.2f", damageDebugState_.attackCenter.x, damageDebugState_.attackCenter.y, damageDebugState_.attackCenter.z);
+	ImGui::Text("プレイヤーとの距離: %.2f", damageDebugState_.distanceToPlayer);
+	ImGui::DragFloat("ボス攻撃半径", &attackSettings_.attackRadius, 0.05f, 0.1f, 20.0f);
+	ImGui::DragFloat("ボス攻撃距離", &attackSettings_.attackDistance, 0.05f, 0.0f, 30.0f);
+	ImGui::DragFloat("ボス攻撃高さ", &attackSettings_.attackHeight, 0.05f, -5.0f, 10.0f);
+	ImGui::DragFloat("ボス攻撃前方オフセット", &attackSettings_.attackForwardOffset, 0.05f, -10.0f, 10.0f);
+	ImGui::DragInt("ボス攻撃ダメージ", &attackSettings_.attackDamage, 1, 0, 999);
+	ImGui::DragFloat("攻撃判定開始時間", &attackSettings_.attackActiveStartTime, 0.01f, 0.0f, 10.0f);
+	ImGui::DragFloat("攻撃判定終了時間", &attackSettings_.attackActiveEndTime, 0.01f, 0.0f, 10.0f);
+	ImGui::Checkbox("ボス攻撃範囲表示", &debugSettings_.showAttackRange);
 #endif
 }
 
@@ -271,60 +304,84 @@ void BossPunchAttack::DrawImGui()
 /// ---------------------------------------------------------------
 void BossPunchAttack::TryHitPlayer()
 {
-	if (owner_ == nullptr) return;
+	if (owner_ == nullptr || attackHitApplied_ || !IsAttackWindowActive()) return;
 
-	// 攻撃の中心座標を計算する
-	const K4E::Vector3 armRoot = owner_->GetRightArmRootWorldPosition();
-	const float yaw = owner_->GetYaw();
-
-	// Yaw から前方ベクトルを計算
-	K4E::Vector3 forward
-	{
-		std::sin(yaw),
-		0.0f,
-		std::cos(yaw)
-	};
-
-	// 攻撃中心は腕の根元から前方に少しオフセットした位置
-	K4E::Vector3 attackCenter = armRoot;
-	attackCenter.x += forward.x * hitForwardOffset_;
-	attackCenter.y += 0.25f;
-	attackCenter.z += forward.z * hitForwardOffset_;
-
-	// ターゲットの中心座標を取得
+	// ボス攻撃範囲を調整しやすくするため、前方オフセット付きの球判定としてImGuiから編集できるようにする。
+	const K4E::Vector3 attackCenter = CalculateAttackCenter();
 	const K4E::Vector3 targetCenter = owner_->GetTargetPosition();
 
-	const float dx = targetCenter.x - attackCenter.x; // XZ 平面での距離を計算
-	const float dy = targetCenter.y - attackCenter.y; // Y 軸の距離も考慮する場合はこれも使う
-	const float dz = targetCenter.z - attackCenter.z; // XZ 平面での距離を計算
-
-	// 攻撃中心とターゲット中心の距離の二乗を計算
+	const float dx = targetCenter.x - attackCenter.x;
+	const float dy = targetCenter.y - attackCenter.y;
+	const float dz = targetCenter.z - attackCenter.z;
 	const float distanceSq = dx * dx + dy * dy + dz * dz;
+	const float distance = std::sqrt(distanceSq);
+	const float sumRadius = attackSettings_.attackRadius + targetRadius_;
 
-	// 攻撃の当たり判定半径とターゲットの半径を足した値の二乗と比較してヒット判定
-	const float sumRadius = hitRadius_ + targetRadius_;
+	damageDebugState_.attackCenter = attackCenter;
+	damageDebugState_.distanceToPlayer = distance;
+	damageDebugState_.isAttackActive = true;
 
-	// 距離の二乗が半径の二乗以下ならヒットと判定
 	if (distanceSq <= (sumRadius * sumRadius))
 	{
 #ifdef _DEBUG
-		// ヒットしたときのデバッグログ
 		OutputDebugStringA("[BossPunchAttack] Melee hit success.\n");
 #endif
 
-		// ボス近接攻撃の発生フレームで1回だけPlayerへダメージを流す。
-		if (owner_->ApplyDamageToTargetPlayer(damage_, &attackCenter))
+		if (owner_->ApplyDamageToTargetPlayer(static_cast<float>(attackSettings_.attackDamage), &attackCenter))
 		{
+			attackHitApplied_ = true;
+			hasHit_ = true;
+			++damageDebugState_.bossAttackHitCount;
+			damageDebugState_.lastPlayerDamage = static_cast<float>(attackSettings_.attackDamage);
+			if (auto* player = owner_->GetTargetPlayer())
+			{
+				damageDebugState_.playerHp = player->GetHP();
+			}
 			DebugLog("[BossPunchAttack] Player damage applied.\n");
 		}
 	}
 	else
 	{
 #ifdef _DEBUG
-		// ヒットしなかったときのデバッグログ
 		OutputDebugStringA("[BossPunchAttack] Melee hit miss.\n");
 #endif
 	}
+}
+
+K4E::Vector3 BossPunchAttack::CalculateAttackCenter() const
+{
+	if (!owner_) return {};
+
+	const float yaw = owner_->GetYaw();
+	const K4E::Vector3 forward{ std::sin(yaw), 0.0f, std::cos(yaw) };
+	const float forwardDistance = attackSettings_.attackDistance + attackSettings_.attackForwardOffset;
+	K4E::Vector3 attackCenter = owner_->GetPosition();
+	attackCenter.x += forward.x * forwardDistance;
+	attackCenter.y += attackSettings_.attackHeight;
+	attackCenter.z += forward.z * forwardDistance;
+	return attackCenter;
+}
+
+bool BossPunchAttack::IsAttackWindowActive() const
+{
+	return isActive_
+		&& totalTimer_ >= attackSettings_.attackActiveStartTime
+		&& totalTimer_ <= attackSettings_.attackActiveEndTime;
+}
+
+void BossPunchAttack::DrawAttackRangeDebug()
+{
+#ifdef _DEBUG
+	if (!debugSettings_.showAttackRange || !owner_) return;
+
+	auto* wireframe = K4E::Wireframe::GetInstance();
+	if (!wireframe || !wireframe->IsDebugDrawEnabled()) return;
+
+	const K4E::Vector3 center = CalculateAttackCenter();
+	const K4E::Vector4 color = IsAttackWindowActive() ? K4E::Vector4{ 1.0f, 0.05f, 0.05f, 1.0f } : K4E::Vector4{ 1.0f, 0.55f, 0.25f, 0.35f };
+	wireframe->DrawSphere(center, attackSettings_.attackRadius, color);
+	wireframe->DrawLine(owner_->GetPosition(), center, color);
+#endif
 }
 
 /// ---------------------------------------------------------------
@@ -337,7 +394,7 @@ bool BossPunchAttack::IsTargetInValidRange() const
 
 	// ターゲットまでの距離を取得して、有効距離内か判定
 	const float distance = owner_->GetDistanceToTargetXZ();
-	return (distance >= minRange_ && distance <= maxRange_);
+	return (distance >= minRange_ && distance <= attackSettings_.attackDistance + attackSettings_.attackRadius + targetRadius_);
 }
 
 /// ---------------------------------------------------------------

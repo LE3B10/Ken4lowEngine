@@ -733,6 +733,41 @@ void GamePlayWorld::DrawEnemyDebugImGui()
 #endif
 }
 
+void GamePlayWorld::DrawEnemyTuningImGui()
+{
+#ifdef USE_IMGUI
+	if (ImGui::CollapsingHeader("近接雑魚敵・中距離雑魚敵パラメータ", ImGuiTreeNodeFlags_DefaultOpen))
+	{
+		characters_.DrawEnemyTuningImGui();
+	}
+
+	if (ImGui::CollapsingHeader("ボスパラメータ", ImGuiTreeNodeFlags_DefaultOpen))
+	{
+		if (guardianBoss_)
+		{
+			guardianBoss_->DrawImGui();
+		}
+		else
+		{
+			ImGui::TextUnformatted("ボスはまだ出現していません。");
+		}
+	}
+
+	if (ImGui::CollapsingHeader("クリスタル状態", ImGuiTreeNodeFlags_DefaultOpen))
+	{
+		crystalManager_.DrawImGui();
+	}
+
+	if (ImGui::CollapsingHeader("ボス戦状態", ImGuiTreeNodeFlags_DefaultOpen))
+	{
+		ImGui::Text("ボス出現済み: %s", bossSpawned_ ? "はい" : "いいえ");
+		ImGui::Text("ボス撃破済み: %s", bossDefeated_ ? "はい" : "いいえ");
+		ImGui::Text("クリアCube出現済み: %s", clearItemSpawned_ ? "はい" : "いいえ");
+		ImGui::Text("クリアCube取得済み: %s", clearItemCollected_ ? "はい" : "いいえ");
+	}
+#endif
+}
+
 void GamePlayWorld::DrawCollisionDebugImGui()
 {
 #ifdef USE_IMGUI

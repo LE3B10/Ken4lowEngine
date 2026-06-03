@@ -1,5 +1,6 @@
 #pragma once
 #include "IBossAttack.h"
+#include "BossAttackDebugSettings.h"
 
 /// ---------- 前方宣言 ---------- ///
 class BossBase;
@@ -142,6 +143,21 @@ private: /// ---------- 内部処理 ---------- ///
 	void TryHitPlayer();
 
 	/// <summary>
+	/// 現在の設定から攻撃中心を計算する
+	/// </summary>
+	K4E::Vector3 CalculateAttackCenter() const;
+
+	/// <summary>
+	/// 攻撃判定時間内か
+	/// </summary>
+	bool IsAttackWindowActive() const;
+
+	/// <summary>
+	/// 攻撃範囲のDebugワイヤーを描画する
+	/// </summary>
+	void DrawAttackRangeDebug();
+
+	/// <summary>
 	/// 攻撃開始条件に必要な距離内か
 	/// </summary>
 	bool IsTargetInValidRange() const;
@@ -160,6 +176,7 @@ private: /// ---------- 実行状態 ---------- ///
 	bool isActive_ = false;     // 実行中か
 	bool isFinished_ = false;   // 今回の実行が終わったか
 	bool hasHit_ = false;       // 今回すでにヒットを出したか
+	bool attackHitApplied_ = false; // 1回の攻撃で多段ヒットしないようにするためのフラグ
 
 	Phase phase_ = Phase::None; // 現在フェーズ
 	float phaseTimer_ = 0.0f;   // フェーズ内経過時間
@@ -183,9 +200,9 @@ private: /// ---------- フェーズ時間 ---------- ///
 
 private: /// ---------- ヒット判定 ---------- ///
 
-	float damage_ = 20.0f;              // 将来プレイヤーに与えるダメージ
-	float hitRadius_ = 1.15f;           // パンチ球の半径
-	float hitForwardOffset_ = 1.35f;    // 右腕根本から前方へずらす距離
+	BossAttackSettings attackSettings_{}; // 将来JSON保存しやすい攻撃範囲設定
+	BossDebugSettings debugSettings_{};   // Debug表示設定
+	BossDamageDebugState damageDebugState_{}; // ヒット確認用状態
 	float targetRadius_ = 0.65f;        // 仮のプレイヤー半径
 
 private: /// ---------- クールダウン ---------- ///
