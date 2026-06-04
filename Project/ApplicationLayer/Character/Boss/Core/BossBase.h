@@ -91,6 +91,11 @@ public: /// ---------- ライフサイクル ---------- ///
 	/// </summary>
 	virtual void Finalize();
 
+	/// <summary>
+	/// ParameterManager の共通ボス値を実行中のインスタンスへ反映する
+	/// </summary>
+	virtual void ApplyParameters();
+
 public: /// ---------- 衝突 ---------- ///
 
 	/// <summary>
