@@ -57,7 +57,8 @@ public: /// ---------- メンバ関数 ---------- ///
 	/// ファイルに書き出し
 	/// </summary>
 	/// <param name="groupName">グループ名</param>
-	void SaveFile(const std::string& groupName);
+	/// <returns>保存できた場合はtrue、失敗時はfalse</returns>
+	bool SaveFile(const std::string& groupName);
 
 	/// <summary>
 	/// ディレクトリの全ファイル読み込み

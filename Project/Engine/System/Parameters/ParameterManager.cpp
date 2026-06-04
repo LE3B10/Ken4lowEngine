@@ -3,6 +3,43 @@
 #include <fstream>
 #include <LogString.h>
 #include <exception>
+#include <filesystem>
+#include <system_error>
+
+
+namespace
+{
+
+bool HasInvalidFileNameChars(const std::string& fileName)
+{
+	for (unsigned char c : fileName)
+	{
+		if (c < 0x20)
+		{
+			return true;
+		}
+
+		switch (c)
+		{
+		case '<':
+		case '>':
+		case ':':
+		case '"':
+		case '/':
+		case '\\':
+		case '|':
+		case '?':
+		case '*':
+			return true;
+		default:
+			break;
+		}
+	}
+
+	return false;
+}
+
+} // namespace
 
 namespace Ken4lowEngine
 {
@@ -133,13 +170,17 @@ void ParameterManager::Update(bool* pOpen)
 /// -------------------------------------------------------------
 ///			　			ファイルを保存する処理
 /// -------------------------------------------------------------
-void ParameterManager::SaveFile(const std::string& groupName)
+bool ParameterManager::SaveFile(const std::string& groupName)
 {
 	// グループ検索
 	auto itGroup = datas_.find(groupName);
 
-	// 未登録チェック
-	assert(itGroup != datas_.end());
+	// 未登録グループでは保存対象が無いため、停止せずログを残して呼び出し側へ失敗を返す。
+	if (itGroup == datas_.end())
+	{
+		Log("[ParameterManager] Failed to save unregistered group: " + groupName + "\n");
+		return false;
+	}
 
 	// JSONオブジェクト作成
 	json root = json::object();
@@ -193,29 +234,58 @@ void ParameterManager::SaveFile(const std::string& groupName)
 		}
 	}
 
-	// ディレクトリの作成（存在しない場合）
+	// 親ディレクトリが無い環境でも保存できるよう、保存先ディレクトリを再帰的に作成する。
 	std::filesystem::path dir(kDirectoryPath);
-	if (!std::filesystem::exists(kDirectoryPath))
+	std::error_code errorCode;
+	if (!std::filesystem::exists(dir, errorCode))
 	{
-		std::filesystem::create_directory(kDirectoryPath);
+		std::filesystem::create_directories(dir, errorCode);
+	}
+
+	if (errorCode)
+	{
+		Log("[ParameterManager] Failed to create save directory: " + dir.string() + ": " + errorCode.message() + "\n");
+		return false;
+	}
+
+	if (!std::filesystem::is_directory(dir, errorCode))
+	{
+		Log("[ParameterManager] Save path is not a directory: " + dir.string() + "\n");
+		return false;
 	}
 
 	// JSONファイルのパス
 	std::string filePath = kDirectoryPath + groupName + ".json";
 
-	// ファイルストリームで書き込み
+	if (HasInvalidFileNameChars(groupName))
+	{
+		Log("[ParameterManager] Warning: groupName contains characters that may be invalid for a file name: " + groupName + " (path: " + filePath + ")\n");
+	}
+
+	// ファイルを開けない場合も停止せず、保存できなかったパスをログに残す。
 	std::ofstream ofs(filePath);
 	if (ofs.fail())
 	{
-		std::string message = "Failed to open data file for write";
-		MessageBoxA(nullptr, message.c_str(), "GlobalVariables", 0);
-		assert(0);
-		return;
+		Log("[ParameterManager] Failed to open data file for write: " + filePath + "\n");
+		return false;
 	}
 
 	// JSONデータをファイルに書き込む
 	ofs << std::setw(4) << root << std::endl;
+	if (ofs.fail())
+	{
+		Log("[ParameterManager] Failed to write data file: " + filePath + "\n");
+		return false;
+	}
+
 	ofs.close();
+	if (ofs.fail())
+	{
+		Log("[ParameterManager] Failed to close data file after write: " + filePath + "\n");
+		return false;
+	}
+
+	return true;
 }
 
 
