@@ -2,10 +2,12 @@
 #include "BossAnimationComponent.h"
 #include "BossBase.h"
 #include "BossAttackComponent.h"
-#include "BossPunchAttack.h"
-#include "BossHeavyPunchAttack.h"
 #include "BossPunchAttackAnimation.h"
 #include "BossHeavyPunchAttackAnimation.h"
+
+#include "BossPunchAttack.h"
+#include "BossHeavyPunchAttack.h"
+
 #include <LinearInterpolation.h>
 
 #include <algorithm>

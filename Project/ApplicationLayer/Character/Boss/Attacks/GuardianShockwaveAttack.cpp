@@ -2,32 +2,26 @@
 #include "GuardianShockwaveAttack.h"
 #include "BossBase.h"
 #include "Wireframe.h"
+#include <LogString.h>
 
-#include <Windows.h>
 #include <algorithm>
 #include <cmath>
-#include <string>
+#include <numbers>
 
 #ifdef USE_IMGUI
 #include <imgui.h>
 #endif
 
+using namespace Ken4lowEngine;
+
 namespace
 {
-	/// <summary>
-	/// デバッグログ出力
-	/// </summary>
-	void DebugLog(const std::string& text)
-	{
-		OutputDebugStringA(text.c_str());
-	}
-
 	/// <summary>
 	/// 度数法をラジアンへ変換する
 	/// </summary>
 	float DegToRad(float degree)
 	{
-		constexpr float kDegToRad = 3.14159265358979323846f / 180.0f;
+		constexpr float kDegToRad = std::numbers::pi_v<float> / 180.0f;
 		return degree * kDegToRad;
 	}
 }
@@ -70,7 +64,7 @@ void GuardianShockwaveAttack::Start()
 	// 衝撃波は叩きつけ前の予備動作から開始する。
 	ChangePhase(Phase::Windup);
 
-	DebugLog("[GuardianShockwaveAttack] Start\n");
+	Log("[GuardianShockwaveAttack] Start\n");
 }
 
 /// ---------------------------------------------------------------
@@ -116,7 +110,7 @@ void GuardianShockwaveAttack::End()
 	phase_ = Phase::None;
 	phaseTimer_ = 0.0f;
 
-	DebugLog("[GuardianShockwaveAttack] End\n");
+	Log("[GuardianShockwaveAttack] End\n");
 }
 
 /// ---------------------------------------------------------------
@@ -332,19 +326,19 @@ void GuardianShockwaveAttack::TryHitPlayer()
 		hitPosition.z += forward.z * std::clamp(forwardDistance, 0.0f, clampedRange);
 
 #ifdef _DEBUG
-		OutputDebugStringA("[GuardianShockwaveAttack] Shockwave hit success.\n");
+		Log("[GuardianShockwaveAttack] Shockwave hit success.\n");
 #endif
 
 		// 衝撃波の発生フレームで1回だけPlayerへダメージを流す。
 		if (owner_->ApplyDamageToTargetPlayer(damage_, &hitPosition))
 		{
-			DebugLog("[GuardianShockwaveAttack] Player damage applied.\n");
+			Log("[GuardianShockwaveAttack] Player damage applied.\n");
 		}
 	}
 	else
 	{
 #ifdef _DEBUG
-		OutputDebugStringA("[GuardianShockwaveAttack] Shockwave hit miss.\n");
+		Log("[GuardianShockwaveAttack] Shockwave hit miss.\n");
 #endif
 	}
 }
