@@ -4,9 +4,11 @@
 #include "BossHeavyPunchAttack.h"
 #include <LinearInterpolation.h>
 #include <LogString.h>
+#include <ParameterManager.h>
 
 #include <algorithm>
 #include <cmath>
+#include <filesystem>
 #include <sstream>
 #include <string>
 
@@ -16,6 +18,68 @@
 
 using namespace Ken4lowEngine;
 
+namespace
+{
+	constexpr const char* kGuardianBossGroup = "GuardianBoss";
+
+	void EnsureGuardianBossParameters()
+	{
+		static bool isInitialized = false;
+		if (isInitialized)
+		{
+			return;
+		}
+		isInitialized = true;
+
+		auto* parameters = ParameterManager::GetInstance();
+		parameters->CreateGroup(kGuardianBossGroup);
+
+		// Guardian固有JSONがあれば読み込み、不足分は現行挙動と同じ既定値で補完する。
+		if (std::filesystem::exists("Resources/ParameterManager/GuardianBoss.json"))
+		{
+			parameters->LoadFile(kGuardianBossGroup);
+		}
+		else
+		{
+			Log("[GuardianBoss] GuardianBoss.json not found. Use built-in default guardian parameters.\n");
+		}
+
+		parameters->AddItem(kGuardianBossGroup, "moveSpeed", 2.0f);
+		parameters->AddItem(kGuardianBossGroup, "rotateSpeed", 4.0f);
+		parameters->AddItem(kGuardianBossGroup, "attackRange", 5.75f);
+		parameters->AddItem(kGuardianBossGroup, "moveStartDistance", 4.8f);
+		parameters->AddItem(kGuardianBossGroup, "moveStopDistance", 4.8f);
+		parameters->AddItem(kGuardianBossGroup, "attackDuration", 0.85f);
+		parameters->AddItem(kGuardianBossGroup, "attackCooldown", 1.20f);
+		parameters->AddItem(kGuardianBossGroup, "staggerDuration", 0.30f);
+		parameters->AddItem(kGuardianBossGroup, "heavyPunchReuseDelay", 1.0f);
+		parameters->AddItem(kGuardianBossGroup, "animationWalkSpeed", 6.0f);
+		parameters->AddItem(kGuardianBossGroup, "animationWalkAmplitude", 0.55f);
+		parameters->AddItem(kGuardianBossGroup, "skinPath", std::string("Characters/zombie.dds"));
+	}
+
+	template<typename T>
+	T GetGuardianParameterOrDefault(const std::string& key, const T& defaultValue)
+	{
+		try
+		{
+			return ParameterManager::GetInstance()->GetValue<T>(kGuardianBossGroup, key);
+		}
+		catch (const std::exception& e)
+		{
+			Log("[GuardianBoss] Failed to read GuardianBoss." + key + ": " + e.what() + ". Use default.\n");
+			return defaultValue;
+		}
+	}
+}
+
+
+std::string GuardianBoss::GetGuardianSkinPath() const
+{
+	EnsureGuardianBossParameters();
+	return GetGuardianParameterOrDefault("skinPath", std::string("Characters/zombie.dds")); // スキンもJSONから参照し、失敗時は既定テクスチャへ戻す
+}
+
 /// -------------------------------------------------------------
 /// Guardian 固有初期化
 /// -------------------------------------------------------------
@@ -23,6 +87,19 @@ void GuardianBoss::SetupBoss()
 {
 	// 人型ボス共通初期化
 	HumanoidBossBase::SetupBoss();
+
+	EnsureGuardianBossParameters();
+	moveSpeed_ = GetGuardianParameterOrDefault("moveSpeed", moveSpeed_); // Guardianの移動速度をJSON調整値から復元する
+	rotateSpeed_ = GetGuardianParameterOrDefault("rotateSpeed", rotateSpeed_); // Guardianの旋回速度をJSON調整値から復元する
+	attackRange_ = GetGuardianParameterOrDefault("attackRange", attackRange_); // Guardianの攻撃開始距離をJSON調整値から復元する
+	moveStartDistance_ = GetGuardianParameterOrDefault("moveStartDistance", moveStartDistance_); // Guardianの移動開始距離をJSON調整値から復元する
+	moveStopDistance_ = GetGuardianParameterOrDefault("moveStopDistance", moveStopDistance_); // Guardianの移動停止距離をJSON調整値から復元する
+	attackDuration_ = GetGuardianParameterOrDefault("attackDuration", attackDuration_); // Guardianの攻撃時間をJSON調整値から復元する
+	attackCooldown_ = GetGuardianParameterOrDefault("attackCooldown", attackCooldown_); // Guardianの攻撃後クールタイムをJSON調整値から復元する
+	staggerDuration_ = GetGuardianParameterOrDefault("staggerDuration", staggerDuration_); // Guardianのひるみ時間をJSON調整値から復元する
+	heavyPunchReuseDelay_ = GetGuardianParameterOrDefault("heavyPunchReuseDelay", heavyPunchReuseDelay_); // HeavyPunch再使用間隔をJSON調整値から復元する
+	animationWalkSpeed_ = GetGuardianParameterOrDefault("animationWalkSpeed", animationWalkSpeed_); // 歩行アニメ速度をJSON調整値から復元する
+	animationWalkAmplitude_ = GetGuardianParameterOrDefault("animationWalkAmplitude", animationWalkAmplitude_); // 歩行アニメ振幅をJSON調整値から復元する
 
 	// フェーズ初期化
 	SetPhase(BossPhase::Phase1);
@@ -51,8 +128,8 @@ void GuardianBoss::SetupBoss()
 	// ---------------------------------------------------------
 	if (GetAnimationComponent())
 	{
-		GetAnimationComponent()->SetWalkSpeed(6.0f);
-		GetAnimationComponent()->SetWalkAmplitude(0.55f);
+		GetAnimationComponent()->SetWalkSpeed(animationWalkSpeed_);
+		GetAnimationComponent()->SetWalkAmplitude(animationWalkAmplitude_);
 		GetAnimationComponent()->SetAttackDuration(attackDuration_);
 
 		GetAnimationComponent()->ResetWalkTimer();
@@ -219,7 +296,7 @@ void GuardianBoss::UpdateState(float deltaTime)
 				BeginAttackState();
 			}
 			// 十分近づいたら待機
-			else if (distance <= moveStartDistance_)
+			else if (distance <= moveStopDistance_)
 			{
 				BeginIdleState();
 			}
@@ -623,6 +700,7 @@ void GuardianBoss::DrawImGui()
 	ImGui::DragFloat("Move Speed", &moveSpeed_, 0.01f, 0.1f, 20.0f);
 	ImGui::DragFloat("Rotate Speed", &rotateSpeed_, 0.01f, 0.1f, 20.0f);
 	ImGui::DragFloat("Move Start Dist", &moveStartDistance_, 0.01f, 0.1f, 50.0f);
+	ImGui::DragFloat("Move Stop Dist", &moveStopDistance_, 0.01f, 0.1f, 50.0f);
 	ImGui::DragFloat("Attack Range", &attackRange_, 0.01f, 0.1f, 20.0f);
 	ImGui::DragFloat("Attack Duration", &attackDuration_, 0.01f, 0.05f, 10.0f);
 	ImGui::DragFloat("Attack Cooldown", &attackCooldown_, 0.01f, 0.0f, 10.0f);

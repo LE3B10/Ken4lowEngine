@@ -1,0 +1,16 @@
+{
+    "GuardianBoss": {
+        "moveSpeed": 2.0,
+        "rotateSpeed": 4.0,
+        "attackRange": 5.75,
+        "moveStartDistance": 4.8,
+        "moveStopDistance": 4.8,
+        "attackDuration": 0.85,
+        "attackCooldown": 1.2,
+        "staggerDuration": 0.3,
+        "heavyPunchReuseDelay": 1.0,
+        "animationWalkSpeed": 6.0,
+        "animationWalkAmplitude": 0.55,
+        "skinPath": "Characters/zombie.dds"
+    }
+}

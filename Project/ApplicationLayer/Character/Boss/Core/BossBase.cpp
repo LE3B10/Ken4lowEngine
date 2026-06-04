@@ -2,17 +2,77 @@
 #include "CollisionTypeIdDef.h"
 #include "Player.h"
 #include <LogString.h>
+#include <ParameterManager.h>
 
+#include <filesystem>
 #include <sstream>
 #include <string>
 
 using namespace Ken4lowEngine;
+
+namespace
+{
+	constexpr const char* kBossCommonGroup = "BossCommon";
+	constexpr float kDefaultBossMaxHP = 300.0f;
+	constexpr float kDefaultBossMoveSpeed = 2.0f;
+	constexpr float kDefaultBossTurnSpeed = 4.0f;
+	constexpr float kDefaultBossStopDistance = 3.0f;
+	constexpr float kDefaultBossAttackRange = 3.0f;
+	constexpr float kDefaultBossAttackCooldown = 1.2f;
+
+	void EnsureBossCommonParameters()
+	{
+		static bool isInitialized = false;
+		if (isInitialized)
+		{
+			return;
+		}
+		isInitialized = true;
+
+		auto* parameters = ParameterManager::GetInstance();
+		parameters->CreateGroup(kBossCommonGroup);
+
+		// JSONが存在する場合は先に読み込み、欠けている項目だけ安全な既定値で補完する。
+		if (std::filesystem::exists("Resources/ParameterManager/BossCommon.json"))
+		{
+			parameters->LoadFile(kBossCommonGroup);
+		}
+		else
+		{
+			Log("[BossBase] BossCommon.json not found. Use built-in default boss parameters.\n");
+		}
+
+		parameters->AddItem(kBossCommonGroup, "maxHP", kDefaultBossMaxHP);
+		parameters->AddItem(kBossCommonGroup, "moveSpeed", kDefaultBossMoveSpeed);
+		parameters->AddItem(kBossCommonGroup, "turnSpeed", kDefaultBossTurnSpeed);
+		parameters->AddItem(kBossCommonGroup, "stopDistance", kDefaultBossStopDistance);
+		parameters->AddItem(kBossCommonGroup, "attackRange", kDefaultBossAttackRange);
+		parameters->AddItem(kBossCommonGroup, "attackCooldownSec", kDefaultBossAttackCooldown);
+	}
+
+	template<typename T>
+	T GetBossParameterOrDefault(const std::string& key, const T& defaultValue)
+	{
+		try
+		{
+			return ParameterManager::GetInstance()->GetValue<T>(kBossCommonGroup, key);
+		}
+		catch (const std::exception& e)
+		{
+			Log("[BossBase] Failed to read BossCommon." + key + ": " + e.what() + ". Use default.\n");
+			return defaultValue;
+		}
+	}
+}
+
 
 /// -------------------------------------------------------------
 /// 初期化
 /// -------------------------------------------------------------
 void BossBase::Initialize()
 {
+	EnsureBossCommonParameters();
+
 	// コライダータイプの設定
 	Collider::SetTypeID(static_cast<uint32_t>(CollisionTypeIdDef::kBoss));
 	Collider::SetOwner<BossBase>(this);
@@ -28,7 +88,7 @@ void BossBase::Initialize()
 
 	// ステータス生成
 	statusComponent_ = std::make_unique<BossStatusComponent>();
-	statusComponent_->Initialize(300.0f); // 仮。後でボスごとに差し替え
+	statusComponent_->Initialize(GetBossParameterOrDefault("maxHP", kDefaultBossMaxHP)); // HPはJSON調整値を優先し、失敗時だけ既定値を使う
 
 	// 状態遷移生成
 	stateMachine_ = std::make_unique<BossStateMachine>();
@@ -36,7 +96,10 @@ void BossBase::Initialize()
 
 	// 移動コンポーネント生成
 	movementComponent_ = std::make_unique<BossMovementComponent>();
-	movementComponent_->Initialize(2.0f, 4.0f, 3.0f); // 仮。後でボスごとに差し替え
+	movementComponent_->Initialize(
+		GetBossParameterOrDefault("moveSpeed", kDefaultBossMoveSpeed),
+		GetBossParameterOrDefault("turnSpeed", kDefaultBossTurnSpeed),
+		GetBossParameterOrDefault("stopDistance", kDefaultBossStopDistance)); // 移動共通値はJSONから読み込んで調整しやすくする
 
 	// ---------------------------------------------------------
 	// アニメーションコンポーネント生成
@@ -49,8 +112,8 @@ void BossBase::Initialize()
 	attackComponent_ = std::make_unique<BossAttackComponent>();
 
 	// 攻撃距離・クールタイム初期値
-	attackRange_ = 3.0f;
-	attackCooldownSec_ = 1.2f;
+	attackRange_ = GetBossParameterOrDefault("attackRange", kDefaultBossAttackRange); // 共通攻撃距離をJSON化してボス調整を容易にする
+	attackCooldownSec_ = GetBossParameterOrDefault("attackCooldownSec", kDefaultBossAttackCooldown); // 共通クールタイムをJSON化してボス調整を容易にする
 	attackCooldownTimer_ = 0.0f;
 
 	// 派生側設定
