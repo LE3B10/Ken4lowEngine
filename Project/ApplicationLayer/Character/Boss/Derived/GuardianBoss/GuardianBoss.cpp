@@ -23,6 +23,7 @@ using namespace Ken4lowEngine;
 namespace
 {
 	constexpr const char* kGuardianBossGroup = "GuardianBoss";
+	constexpr float kDegToRad = 3.14159265358979323846f / 180.0f;
 
 	void EnsureGuardianBossParameters()
 	{
@@ -84,6 +85,7 @@ namespace
 		parameters->AddItem(kGuardianBossGroup, "heavyPunchReuseDelay", 1.0f, 0.0f, 30.0f);
 		parameters->AddItem(kGuardianBossGroup, "animationWalkSpeed", 6.0f, 0.0f, 30.0f);
 		parameters->AddItem(kGuardianBossGroup, "animationWalkAmplitude", 0.55f, 0.0f, 5.0f);
+		parameters->AddItem(kGuardianBossGroup, "GuardianModelYawOffsetDeg", 180.0f, -360.0f, 360.0f);
 		parameters->AddItem(kGuardianBossGroup, "skinPath", std::string("Characters/zombie.dds"));
 		// 内部キーとは別にImGui専用の日本語ラベルを登録する。
 		parameters->SetDisplayName(kGuardianBossGroup, "moveSpeed", "ガーディアン移動速度");
@@ -123,6 +125,7 @@ namespace
 		parameters->SetDisplayName(kGuardianBossGroup, "heavyPunchReuseDelay", "強攻撃再使用間隔");
 		parameters->SetDisplayName(kGuardianBossGroup, "animationWalkSpeed", "歩行アニメ速度");
 		parameters->SetDisplayName(kGuardianBossGroup, "animationWalkAmplitude", "歩行アニメ振幅");
+		parameters->SetDisplayName(kGuardianBossGroup, "GuardianModelYawOffsetDeg", "ガーディアンモデル向き補正");
 		parameters->SetDisplayName(kGuardianBossGroup, "skinPath", "スキンパス");
 	}
 
@@ -196,6 +199,7 @@ void GuardianBoss::ApplyParameters()
 	heavyPunchReuseDelay_ = GetGuardianParameterOrDefault("heavyPunchReuseDelay", heavyPunchReuseDelay_);
 	animationWalkSpeed_ = GetGuardianParameterOrDefault("animationWalkSpeed", animationWalkSpeed_);
 	animationWalkAmplitude_ = GetGuardianParameterOrDefault("animationWalkAmplitude", animationWalkAmplitude_);
+	guardianModelYawOffsetDeg_ = GetGuardianParameterOrDefault("GuardianModelYawOffsetDeg", guardianModelYawOffsetDeg_);
 	if (GetAnimationComponent())
 	{
 		GetAnimationComponent()->SetWalkSpeed(animationWalkSpeed_);
@@ -211,6 +215,11 @@ std::string GuardianBoss::GetGuardianSkinPath() const
 {
 	EnsureGuardianBossParameters();
 	return GetGuardianParameterOrDefault("skinPath", std::string("Characters/zombie.dds")); // スキンもJSONから参照し、失敗時は既定テクスチャへ戻す
+}
+
+float GuardianBoss::GetModelYawOffsetRad() const
+{
+	return guardianModelYawOffsetDeg_ * kDegToRad;
 }
 
 /// -------------------------------------------------------------
@@ -259,6 +268,7 @@ void GuardianBoss::SetupBoss()
 	heavyPunchReuseDelay_ = GetGuardianParameterOrDefault("heavyPunchReuseDelay", heavyPunchReuseDelay_); // HeavyPunch再使用間隔をJSON調整値から復元する
 	animationWalkSpeed_ = GetGuardianParameterOrDefault("animationWalkSpeed", animationWalkSpeed_); // 歩行アニメ速度をJSON調整値から復元する
 	animationWalkAmplitude_ = GetGuardianParameterOrDefault("animationWalkAmplitude", animationWalkAmplitude_); // 歩行アニメ振幅をJSON調整値から復元する
+	guardianModelYawOffsetDeg_ = GetGuardianParameterOrDefault("GuardianModelYawOffsetDeg", guardianModelYawOffsetDeg_); // 攻撃forwardは変えず、Guardianメッシュの見た目正面だけ補正する。
 
 	// フェーズ初期化
 	SetPhase(BossPhase::Phase1);

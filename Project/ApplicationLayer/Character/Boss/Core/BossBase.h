@@ -164,6 +164,11 @@ public: /// ---------- 位置 / 向き ---------- ///
 	void SetYaw(float yaw) { body_.transform.rotate_.y = yaw; }
 
 	/// <summary>
+	/// 論理Yawとは別にモデル表示だけへ足すY回転補正を返す
+	/// </summary>
+	virtual float GetModelYawOffsetRad() const { return 0.0f; }
+
+	/// <summary>
 	/// origin からターゲットへ向かうXZ正規化方向を返す
 	/// </summary>
 	K4E::Vector3 GetDirectionToTargetXZOrForward(const K4E::Vector3& origin) const;
@@ -172,6 +177,11 @@ public: /// ---------- 位置 / 向き ---------- ///
 	/// 共通の向き制御としてXZ方向へ即時にYawを合わせる
 	/// </summary>
 	void FaceDirectionXZImmediate(const K4E::Vector3& direction);
+
+	/// <summary>
+	/// 攻撃判定用の論理Yawを変えず、Object3Dへ渡す表示Yawだけ補正する
+	/// </summary>
+	void ApplyModelYawOffsetToVisuals();
 
 	/// <summary>
 	/// 中心座標は BaseCharacter の実装をそのまま使う

@@ -40,6 +40,7 @@ protected: /// ---------- BossBase override ---------- ///
 	void UpdateAttack(float deltaTime) override;
 	void CheckDeath() override;
 	void OnTargetPlayerDamaged(float damage) override;
+	float GetModelYawOffsetRad() const override;
 
 	void SetupAttacks() override;
 	void SetupPhaseData() override;
@@ -144,6 +145,7 @@ protected: /// ---------- Guardian固有パラメータ ---------- ///
 	float staggerDuration_ = 0.30f;   // ひるみ時間
 	float animationWalkSpeed_ = 6.0f;   // 歩行アニメ速度
 	float animationWalkAmplitude_ = 0.55f; // 歩行アニメ振幅
+	float guardianModelYawOffsetDeg_ = 180.0f; // Guardianモデルの見た目正面を論理forwardへ合わせるY補正
 
 	float stateTimer_ = 0.0f;         // 状態滞在時間
 	float attackCooldownTimer_ = 0.0f;// クールダウン残り
