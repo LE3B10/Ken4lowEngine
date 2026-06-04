@@ -376,18 +376,8 @@ void BossHeavyPunchAttack::LockAttackDirection()
 	}
 
 	const K4E::Vector3 origin = owner_->GetCenterPosition();
-	K4E::Vector3 toTarget{ owner_->GetTargetPosition().x - origin.x, 0.0f, owner_->GetTargetPosition().z - origin.z };
-	const float lenSq = toTarget.x * toTarget.x + toTarget.z * toTarget.z;
-	if (lenSq > 0.0001f)
-	{
-		const float invLen = 1.0f / std::sqrt(lenSq);
-		lockedForward_ = { toTarget.x * invLen, 0.0f, toTarget.z * invLen };
-		owner_->SetYaw(std::atan2(lockedForward_.x, lockedForward_.z));
-	}
-	else
-	{
-		lockedForward_ = { std::sin(owner_->GetYaw()), 0.0f, std::cos(owner_->GetYaw()) };
-	}
+	lockedForward_ = owner_->GetDirectionToTargetXZOrForward(origin);
+	owner_->FaceDirectionXZImmediate(lockedForward_); // 攻撃開始時だけ共通処理でプレイヤー方向へ向け、判定方向を固定する。
 	hasLockedDirection_ = true;
 }
 

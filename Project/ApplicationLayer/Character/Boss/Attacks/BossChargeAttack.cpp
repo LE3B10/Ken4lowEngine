@@ -134,18 +134,8 @@ void BossChargeAttack::LockChargeDirection()
 	}
 
 	startPosition_ = owner_->GetPosition();
-	Vector3 toTarget{ owner_->GetTargetPosition().x - startPosition_.x, 0.0f, owner_->GetTargetPosition().z - startPosition_.z };
-	const float lenSq = toTarget.x * toTarget.x + toTarget.z * toTarget.z;
-	if (lenSq > 0.0001f)
-	{
-		const float invLen = 1.0f / std::sqrt(lenSq);
-		lockedForward_ = { toTarget.x * invLen, 0.0f, toTarget.z * invLen };
-		owner_->SetYaw(std::atan2(lockedForward_.x, lockedForward_.z));
-	}
-	else
-	{
-		lockedForward_ = { std::sin(owner_->GetYaw()), 0.0f, std::cos(owner_->GetYaw()) };
-	}
+	lockedForward_ = owner_->GetDirectionToTargetXZOrForward(startPosition_);
+	owner_->FaceDirectionXZImmediate(lockedForward_); // 突進は開始時の前方へだけ進み、移動中の急な追尾回転を避ける。
 	hasLockedDirection_ = true;
 }
 

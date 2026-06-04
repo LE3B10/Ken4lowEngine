@@ -435,8 +435,10 @@ void GuardianBoss::UpdateState(float deltaTime)
 
 			FaceTarget(deltaTime);
 
-			// 攻撃条件成立
-			if (distance <= farAttackRange_)
+			const bool hasStartableAttack = GetAttackComponent() && !GetAttackComponent()->CollectStartableAttacks().empty();
+
+			// 実際に開始可能な攻撃がある時だけAttackへ入り、候補なしAttackで歩行アニメが止まる状態を避ける。
+			if (hasStartableAttack)
 			{
 				BeginAttackState();
 			}
@@ -453,9 +455,10 @@ void GuardianBoss::UpdateState(float deltaTime)
 			FaceTarget(deltaTime);
 
 			const float distance = GetDistanceToTargetXZ();
+			const bool hasStartableAttack = GetAttackComponent() && !GetAttackComponent()->CollectStartableAttacks().empty();
 
-			// 攻撃条件成立
-			if (distance <= farAttackRange_ && attackCooldownTimer_ <= 0.0f)
+			// 移動中も開始可能な攻撃だけをAttackへ渡し、歩行と攻撃選択の責務を分ける。
+			if (attackCooldownTimer_ <= 0.0f && hasStartableAttack)
 			{
 				BeginAttackState();
 			}

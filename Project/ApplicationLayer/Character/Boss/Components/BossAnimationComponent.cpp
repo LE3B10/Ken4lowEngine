@@ -51,6 +51,13 @@ void BossAnimationComponent::Finalize()
 /// -------------------------------------------------------------
 void BossAnimationComponent::Update(BossBase& boss, float deltaTime)
 {
+	if (!HasRequiredParts(boss))
+	{
+		return;
+	}
+
+	breathTime_ += deltaTime; // Idle/Walkの周期時間を毎フレーム進め、停止していた呼吸・歩行揺れを復旧する。
+
 	switch (boss.GetState())
 	{
 	case BossState::Idle:
@@ -88,30 +95,7 @@ void BossAnimationComponent::Update(BossBase& boss, float deltaTime)
 /// -------------------------------------------------------------
 void BossAnimationComponent::UpdateIdle(BossBase& boss, float deltaTime)
 {
-	auto& body = boss.GetBody();
-	auto& parts = boss.GetBodyParts();
-	const auto& idx = boss.GetPartIndices();
-
-	const float breath = std::sin(breathTime_ * 2.2f);
-	const float breath01 = (breath * 0.5f) + 0.5f;
-	const float headSway = std::sin(breathTime_ * 1.4f + 0.8f);
-
-	const float targetBodyPitch = idleBreathPitch_ * breath;
-	const float targetHeadPitch = -idleBreathPitch_ * 0.6f * breath01;
-	const float targetHeadYaw = idleHeadSway_ * headSway;
-
-	// 実座標Yは触らない
-	Damp(body.transform.rotate_.x, targetBodyPitch, bodyDampSpeed_, deltaTime);
-	Damp(body.transform.rotate_.z, 0.0f, bodyDampSpeed_, deltaTime);
-
-	Damp(parts[idx.head].transform.rotate_.x, targetHeadPitch, headDampSpeed_, deltaTime);
-	Damp(parts[idx.head].transform.rotate_.y, targetHeadYaw, headDampSpeed_, deltaTime);
-	Damp(parts[idx.head].transform.rotate_.z, 0.0f, headDampSpeed_, deltaTime);
-
-	Damp(parts[idx.leftArm].transform.rotate_.x, -0.05f, limbDampSpeed_, deltaTime);
-	Damp(parts[idx.rightArm].transform.rotate_.x, -0.05f, limbDampSpeed_, deltaTime);
-	Damp(parts[idx.leftLeg].transform.rotate_.x, 0.0f, limbDampSpeed_, deltaTime);
-	Damp(parts[idx.rightLeg].transform.rotate_.x, 0.0f, limbDampSpeed_, deltaTime);
+	UpdateIdleAnimation(boss, deltaTime); // Idle状態は専用関数へ集約し、重複実装で呼吸時間が止まる不具合を防ぐ。
 }
 
 /// -------------------------------------------------------------
@@ -173,13 +157,11 @@ void BossAnimationComponent::UpdateIdleAnimation(BossBase& boss, float deltaTime
 	const float headSway = std::sin(breathTime_ * 1.4f + 0.8f);
 
 	// 目標値
-	const float targetBodyY = idleBreathHeight_ * breath;
 	const float targetBodyPitch = idleBreathPitch_ * breath;
 	const float targetHeadPitch = -idleBreathPitch_ * 0.6f * breath01;
 	const float targetHeadYaw = idleHeadSway_ * headSway;
 
-	Damp(body.transform.translate_.y, targetBodyY, bodyDampSpeed_, deltaTime);
-	Damp(body.transform.rotate_.x, targetBodyPitch, bodyDampSpeed_, deltaTime);
+	Damp(body.transform.rotate_.x, targetBodyPitch, bodyDampSpeed_, deltaTime); // Idle呼吸は回転だけに留め、ワールドY座標をアニメ側で潰さない。
 
 	// ---------------------------------------------------------
 	// Yaw は触らない
@@ -329,6 +311,7 @@ BossAnimationComponent::BossPose BossAnimationComponent::BuildPunchPose() const
 	BossPose pose = BuildDefaultAttackPose();
 
 	BossPunchAttack::Phase punchPhase = BossPunchAttack::Phase::None;
+	float phaseTime = 0.0f;
 	bool hasPunchPhase = false;
 
 	if (owner_)
@@ -338,6 +321,7 @@ BossAnimationComponent::BossPose BossAnimationComponent::BuildPunchPose() const
 			if (auto* punch = dynamic_cast<BossPunchAttack*>(current))
 			{
 				punchPhase = punch->GetPhase();
+				phaseTime = punch->GetPhaseTimer();
 				hasPunchPhase = true;
 			}
 		}
@@ -346,13 +330,13 @@ BossAnimationComponent::BossPose BossAnimationComponent::BuildPunchPose() const
 	// PunchAttackでなければ基本姿勢のまま返す
 	if (!hasPunchPhase) return pose;
 
-	// フェーズごとに目標ポーズを切り替える
+	// フェーズごとの経過時間で補間し、前フェーズのattackAnimTime_残りでポーズが固まる問題を防ぐ。
 	switch (punchPhase)
 	{
 	case BossPunchAttack::Phase::Windup:
 		{
 			// 両手を上に振りかざす
-			const float t = Smoothstep01(attackAnimTime_ / 0.30f);
+			const float t = Smoothstep01(phaseTime / 0.30f);
 
 			pose.bodyPitch = Lerp(0.03f, -0.18f, t);
 			pose.bodyRoll = Lerp(0.0f, 0.0f, t);
@@ -374,7 +358,7 @@ BossAnimationComponent::BossPose BossAnimationComponent::BuildPunchPose() const
 	case BossPunchAttack::Phase::Active:
 		{
 			// 両腕を一気に振り下ろす
-			const float t = Smoothstep01(attackAnimTime_ / 0.12f);
+			const float t = Smoothstep01(phaseTime / 0.12f);
 
 			pose.bodyPitch = Lerp(-0.18f, 0.28f, t);
 			pose.bodyRoll = 0.0f;
@@ -397,7 +381,7 @@ BossAnimationComponent::BossPose BossAnimationComponent::BuildPunchPose() const
 	case BossPunchAttack::Phase::None:
 	default:
 		{
-			const float t = Smoothstep01(attackAnimTime_ / 0.40f);
+			const float t = Smoothstep01(phaseTime / 0.40f);
 
 			pose.bodyPitch = Lerp(0.28f, 0.03f, t);
 			pose.bodyRoll = 0.0f;
