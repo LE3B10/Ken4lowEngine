@@ -47,6 +47,13 @@ namespace
 		parameters->AddItem(kHumanoidBossModelsGroup, "rightArmModelPath", std::string("Characters/right_arm.gltf"));
 		parameters->AddItem(kHumanoidBossModelsGroup, "leftLegModelPath", std::string("Characters/left_leg.gltf"));
 		parameters->AddItem(kHumanoidBossModelsGroup, "rightLegModelPath", std::string("Characters/right_leg.gltf"));
+		// モデルパスのJSONキーは互換性維持のため英数字のまま、表示名だけ日本語にする。
+		parameters->SetDisplayName(kHumanoidBossModelsGroup, "bodyModelPath", "胴体モデルパス");
+		parameters->SetDisplayName(kHumanoidBossModelsGroup, "headModelPath", "頭モデルパス");
+		parameters->SetDisplayName(kHumanoidBossModelsGroup, "leftArmModelPath", "左腕モデルパス");
+		parameters->SetDisplayName(kHumanoidBossModelsGroup, "rightArmModelPath", "右腕モデルパス");
+		parameters->SetDisplayName(kHumanoidBossModelsGroup, "leftLegModelPath", "左脚モデルパス");
+		parameters->SetDisplayName(kHumanoidBossModelsGroup, "rightLegModelPath", "右脚モデルパス");
 	}
 
 	std::string GetModelPathOrDefault(const std::string& key, const std::string& defaultValue)

@@ -49,6 +49,13 @@ namespace
 		parameters->AddItem(kBossCommonGroup, "stopDistance", kDefaultBossStopDistance, 0.0f, 100.0f);
 		parameters->AddItem(kBossCommonGroup, "attackRange", kDefaultBossAttackRange, 0.0f, 100.0f);
 		parameters->AddItem(kBossCommonGroup, "attackCooldownSec", kDefaultBossAttackCooldown, 0.0f, 30.0f);
+		// JSONキーを英数字のまま維持し、ImGui表示だけ日本語化する。
+		parameters->SetDisplayName(kBossCommonGroup, "maxHP", "ボス最大HP");
+		parameters->SetDisplayName(kBossCommonGroup, "moveSpeed", "ボス移動速度");
+		parameters->SetDisplayName(kBossCommonGroup, "turnSpeed", "ボス旋回速度");
+		parameters->SetDisplayName(kBossCommonGroup, "stopDistance", "ボス停止距離");
+		parameters->SetDisplayName(kBossCommonGroup, "attackRange", "ボス攻撃距離");
+		parameters->SetDisplayName(kBossCommonGroup, "attackCooldownSec", "ボス攻撃クールタイム");
 	}
 
 	template<typename T>
@@ -64,6 +71,13 @@ namespace
 			return defaultValue;
 		}
 	}
+}
+
+
+BossBase::~BossBase()
+{
+	// 破棄済みボスへParameterManagerの反映コールバックが飛ばないよう解除する。
+	ParameterManager::GetInstance()->UnregisterParameterApplier(kBossCommonGroup, this);
 }
 
 
@@ -125,6 +139,8 @@ void BossBase::Initialize()
 
 	// 攻撃初期化
 	attackComponent_->Initialize(this);
+
+	ParameterManager::GetInstance()->RegisterParameterApplier(kBossCommonGroup, this, [this]() { ApplyParameters(); }); // 保存/反映後に共通ボス値を実行中のインスタンスへ再適用する。
 }
 
 /// -------------------------------------------------------------
@@ -223,10 +239,36 @@ void BossBase::DrawImGui()
 }
 
 /// -------------------------------------------------------------
+/// ParameterManager値の反映
+/// -------------------------------------------------------------
+void BossBase::ApplyParameters()
+{
+	EnsureBossCommonParameters();
+	const float maxHP = GetBossParameterOrDefault("maxHP", kDefaultBossMaxHP);
+	if (statusComponent_)
+	{
+		statusComponent_->SetMaxHP(maxHP); // 最大HPだけを更新し、現在HPはコンポーネント側で範囲内に丸める。
+	}
+
+	if (movementComponent_)
+	{
+		movementComponent_->SetMoveSpeed(GetBossParameterOrDefault("moveSpeed", kDefaultBossMoveSpeed));
+		movementComponent_->SetTurnSpeed(GetBossParameterOrDefault("turnSpeed", kDefaultBossTurnSpeed));
+		movementComponent_->SetStopDistance(GetBossParameterOrDefault("stopDistance", kDefaultBossStopDistance));
+	}
+
+	attackRange_ = GetBossParameterOrDefault("attackRange", kDefaultBossAttackRange);
+	attackCooldownSec_ = GetBossParameterOrDefault("attackCooldownSec", kDefaultBossAttackCooldown);
+}
+
+
+/// -------------------------------------------------------------
 /// 終了処理
 /// -------------------------------------------------------------
 void BossBase::Finalize()
 {
+	ParameterManager::GetInstance()->UnregisterParameterApplier(kBossCommonGroup, this); // Finalize後の無効ポインタ呼び出しを防ぐ。
+
 	if (attackComponent_)
 	{
 		attackComponent_->Finalize();

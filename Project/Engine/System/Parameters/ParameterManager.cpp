@@ -87,11 +87,21 @@ void ParameterManager::Update(bool* pOpen)
 	// --- Menu bar（必要なら） ---
 	if (ImGui::BeginMenuBar())
 	{
-		if (ImGui::BeginMenu("File"))
+		if (ImGui::BeginMenu("ファイル"))
 		{
-			if (ImGui::MenuItem("Save All"))
+			if (ImGui::MenuItem("すべて保存"))
 			{
-				for (auto& [name, _] : datas_) { SaveFile(name); }
+				bool allSaved = true;
+				for (auto& [name, _] : datas_) { allSaved = SaveFile(name) && allSaved; }
+				if (allSaved)
+				{
+					ApplyAllParameters(); // 全保存後に登録済みオブジェクトへ明示反映する。
+					SetStatusMessage("保存しました / ゲームに反映しました");
+				}
+				else
+				{
+					SetStatusMessage("保存に失敗しました。ログを確認してください");
+				}
 			}
 			ImGui::EndMenu();
 		}
@@ -100,7 +110,12 @@ void ParameterManager::Update(bool* pOpen)
 
 	// --- 検索 ---
 	static char filter[64] = {};
-	ImGui::InputTextWithHint("##filter", "search group...", filter, IM_ARRAYSIZE(filter));
+	ImGui::InputTextWithHint("##filter", "グループ検索...", filter, IM_ARRAYSIZE(filter));
+	if (!statusMessage_.empty() && ImGui::GetTime() < statusMessageExpireTime_)
+	{
+		// 操作結果はMessageBoxではなくParametersウィンドウ内に数秒表示する。
+		ImGui::TextColored(ImVec4(0.3f, 1.0f, 0.3f, 1.0f), "%s", statusMessage_.c_str());
+	}
 	ImGui::Separator();
 
 	// --- 選択グループ ---
@@ -142,6 +157,32 @@ void ParameterManager::Update(bool* pOpen)
 		auto& group = it->second;
 
 		ImGui::Text("Group: %s", selectedGroup.c_str());
+		if (ImGui::Button("保存"))
+		{
+			const bool saved = SaveFile(selectedGroup);
+			if (saved)
+			{
+				ApplyParameters(selectedGroup); // 保存直後にゲーム側がParameterManagerから再取得して反映できるようにする。
+				SetStatusMessage("保存しました / ゲームに反映しました");
+			}
+			else
+			{
+				SetStatusMessage("保存に失敗しました。ログを確認してください");
+			}
+		}
+		ImGui::SameLine();
+		if (ImGui::Button("読み込み"))
+		{
+			LoadFile(selectedGroup);
+			ApplyParameters(selectedGroup); // 読み込み後も既存成功挙動を保ちつつゲーム側へ明示反映する。
+			SetStatusMessage("読み込みました / ゲームに反映しました");
+		}
+		ImGui::SameLine();
+		if (ImGui::Button("反映"))
+		{
+			ApplyParameters(selectedGroup); // 保存せず現在のParameterManager値だけをゲーム側へ反映する。
+			SetStatusMessage("ゲームに反映しました");
+		}
 		ImGui::Separator();
 
 		// 1) 自動パラメータ（CollisionManager方式）
@@ -168,6 +209,32 @@ void ParameterManager::Update(bool* pOpen)
 }
 
 
+void ParameterManager::SetStatusMessage(const std::string& message, float seconds)
+{
+#ifdef USE_IMGUI
+	// ImGui内で一時通知するため、現在時刻から表示期限を計算する。
+	statusMessage_ = message;
+	statusMessageExpireTime_ = static_cast<float>(ImGui::GetTime()) + seconds;
+#else
+	(void)message;
+	(void)seconds;
+#endif
+}
+
+std::string ParameterManager::BuildImGuiLabel(const std::string& itemName, const ParameterManager::Item& item) const
+{
+	// 日本語ラベル未設定時は従来通り内部キーをImGui表示にも使う。
+	const std::string& visibleName = item.displayName.empty() ? itemName : item.displayName;
+	return visibleName + "##" + itemName;
+}
+
+void ParameterManager::SetDisplayName(const std::string& groupName, const std::string& key, const std::string& displayName)
+{
+	// JSON保存キーを変えず、ImGui表示専用ラベルだけを差し替える。
+	datas_[groupName].items[key].displayName = displayName;
+}
+
+
 /// -------------------------------------------------------------
 ///			　			ファイルを保存する処理
 /// -------------------------------------------------------------
@@ -179,7 +246,8 @@ bool ParameterManager::SaveFile(const std::string& groupName)
 	// 未登録グループでは保存対象が無いため、停止せずログを残して呼び出し側へ失敗を返す。
 	if (itGroup == datas_.end())
 	{
-		Log("[ParameterManager] Failed to save unregistered group: " + groupName + "\n");
+		const std::string filePath = kDirectoryPath + groupName + ".json";
+		Log("[ParameterManager] Failed to save unregistered group: " + groupName + " (path: " + filePath + ")\n");
 		return false;
 	}
 
@@ -245,7 +313,7 @@ bool ParameterManager::SaveFile(const std::string& groupName)
 
 	if (errorCode)
 	{
-		Log("[ParameterManager] Failed to create save directory: " + dir.string() + ": " + errorCode.message() + "\n");
+		Log("[ParameterManager] Failed to create save directory for save path: " + dir.string() + ": " + errorCode.message() + "\n");
 		return false;
 	}
 
@@ -436,6 +504,62 @@ void ParameterManager::RegisterCustomDraw(const std::string& groupName, std::fun
 	datas_[groupName].customDraw = std::move(fn);
 }
 
+void ParameterManager::RegisterParameterApplier(const std::string& groupName, const void* owner, std::function<void()> fn)
+{
+	if (owner == nullptr || !fn)
+	{
+		return;
+	}
+	CreateGroup(groupName);
+	datas_[groupName].appliers[owner] = std::move(fn); // 所有者単位で上書き登録し、同一オブジェクトの重複呼び出しを避ける。
+}
+
+void ParameterManager::UnregisterParameterApplier(const std::string& groupName, const void* owner)
+{
+	auto groupIt = datas_.find(groupName);
+	if (groupIt == datas_.end())
+	{
+		return;
+	}
+	groupIt->second.appliers.erase(owner); // 破棄済みオブジェクトへ反映しないよう登録を解除する。
+}
+
+bool ParameterManager::ApplyParameters(const std::string& groupName)
+{
+	auto groupIt = datas_.find(groupName);
+	if (groupIt == datas_.end())
+	{
+		Log("[ParameterManager] Failed to apply unregistered group: " + groupName + "\n");
+		return false;
+	}
+
+	bool succeeded = true;
+	for (auto& [owner, applier] : groupIt->second.appliers)
+	{
+		(void)owner;
+		try
+		{
+			applier(); // 利用側がGetValueで再取得し、ゲーム内の実体へ反映する。
+		}
+		catch (const std::exception& e)
+		{
+			Log("[ParameterManager] Failed to apply group: " + groupName + ": " + e.what() + "\n");
+			succeeded = false;
+		}
+	}
+	return succeeded;
+}
+
+bool ParameterManager::ApplyAllParameters()
+{
+	bool succeeded = true;
+	for (const auto& [groupName, _] : datas_)
+	{
+		succeeded = ApplyParameters(groupName) && succeeded; // 全グループを順番に明示反映し、一部失敗も呼び出し側へ伝える。
+	}
+	return succeeded;
+}
+
 
 /// -------------------------------------------------------------
 ///                 アイテムを描画する関数
@@ -450,6 +574,8 @@ void ParameterManager::DrawItem(const std::string& itemName, ParameterManager::I
 	constexpr float kDefaultFloatMin = 0.0f;
 	constexpr float kDefaultFloatMax = 10000.0f;
 
+	const std::string imguiLabel = BuildImGuiLabel(itemName, item);
+
 	/// ---------- int32_t型を保持している場合 ---------- ///
 	if (std::holds_alternative<int32_t>(item.value))
 	{
@@ -463,7 +589,7 @@ void ParameterManager::DrawItem(const std::string& itemName, ParameterManager::I
 		}
 		int sliderValue = static_cast<int>(value);
 		// SliderIntはint範囲内の実用的なmin/maxだけを渡し、符号なし最大値相当の値を避ける。
-		if (ImGui::SliderInt(itemName.c_str(), &sliderValue, static_cast<int>(minValue), static_cast<int>(maxValue)))
+		if (ImGui::SliderInt(imguiLabel.c_str(), &sliderValue, static_cast<int>(minValue), static_cast<int>(maxValue)))
 		{
 			value = static_cast<int32_t>(sliderValue);
 		}
@@ -481,7 +607,7 @@ void ParameterManager::DrawItem(const std::string& itemName, ParameterManager::I
 		}
 		float speed = 1.0f;
 		// uint32_tはSliderIntに渡さず、U32対応のDragScalarで符号なし範囲を安全に扱う。
-		ImGui::DragScalar(itemName.c_str(), ImGuiDataType_U32, &value, speed, &minValue, &maxValue);
+		ImGui::DragScalar(imguiLabel.c_str(), ImGuiDataType_U32, &value, speed, &minValue, &maxValue);
 	}
 	/// ---------- float型を保持している場合 ---------- ///
 	else if (std::holds_alternative<float>(item.value))
@@ -495,7 +621,7 @@ void ParameterManager::DrawItem(const std::string& itemName, ParameterManager::I
 			maxValue = std::get<float>(item.range->max);
 		}
 		// SliderFloatは巨大すぎる最大値ではなく、指定範囲または安全な既定範囲で調整しやすくする。
-		ImGui::SliderFloat(itemName.c_str(), &value, minValue, maxValue);
+		ImGui::SliderFloat(imguiLabel.c_str(), &value, minValue, maxValue);
 	}
 	/// ---------- Vector3を保持している場合 ---------- ///
 	else if (std::holds_alternative<Vector3>(item.value))
@@ -509,25 +635,26 @@ void ParameterManager::DrawItem(const std::string& itemName, ParameterManager::I
 			maxValue = std::get<Vector3>(item.range->max);
 		}
 		// Vector3も項目ごとのmin/maxをDragFloat3へ渡し、座標系などの実用範囲を設定可能にする。
-		ImGui::DragFloat3(itemName.c_str(), reinterpret_cast<float*>(&value), 0.1f, minValue.x, maxValue.x);
+		ImGui::DragFloat3(imguiLabel.c_str(), reinterpret_cast<float*>(&value), 0.1f, minValue.x, maxValue.x);
 	}
 	/// ------- Vector4を保持している場合 ---------- ///
 	else if (std::holds_alternative<Vector4>(item.value))
 	{
 		Vector4& value = std::get<Vector4>(item.value);
-		ImGui::ColorEdit4(itemName.c_str(), reinterpret_cast<float*>(&value));
+		ImGui::ColorEdit4(imguiLabel.c_str(), reinterpret_cast<float*>(&value));
 	}
 	/// ---------- bool型を保持している場合 ---------- ///
 	else if (std::holds_alternative<bool>(item.value))
 	{
 		bool& value = std::get<bool>(item.value);
-		ImGui::Checkbox(itemName.c_str(), &value);
+		ImGui::Checkbox(imguiLabel.c_str(), &value);
 	}
 	/// ---------- string型を保持している場合 ---------- ///
 	else if (std::holds_alternative<std::string>(item.value))
 	{
 		const std::string& value = std::get<std::string>(item.value);
-		ImGui::Text("%s: %s", itemName.c_str(), value.c_str());
+		const std::string& visibleName = item.displayName.empty() ? itemName : item.displayName;
+		ImGui::Text("%s: %s", visibleName.c_str(), value.c_str());
 	}
 	else
 	{
