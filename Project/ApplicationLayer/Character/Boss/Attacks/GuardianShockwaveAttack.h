@@ -2,6 +2,9 @@
 #include "IBossAttack.h"
 
 #include <cstdint>
+#include <Vector3.h>
+
+namespace K4E = Ken4lowEngine;
 
 /// ---------- 前方宣言 ---------- ///
 class BossBase;
