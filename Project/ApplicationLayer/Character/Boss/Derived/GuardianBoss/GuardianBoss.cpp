@@ -51,6 +51,7 @@ namespace
 		parameters->AddItem(kGuardianBossGroup, "GuardianAttackHitRange", 6.0f, 0.0f, 100.0f);
 		parameters->AddItem(kGuardianBossGroup, "GuardianAttackHitRadius", 2.0f, 0.0f, 30.0f);
 		parameters->AddItem(kGuardianBossGroup, "GuardianAttackForwardOffset", 3.0f, 0.0f, 100.0f);
+		parameters->AddItem(kGuardianBossGroup, "GuardianAttackHitAngleDeg", 90.0f, 0.0f, 360.0f);
 		parameters->AddItem(kGuardianBossGroup, "moveStartDistance", 4.8f, 0.0f, 100.0f);
 		parameters->AddItem(kGuardianBossGroup, "moveStopDistance", 4.8f, 0.0f, 100.0f);
 		parameters->AddItem(kGuardianBossGroup, "attackDuration", 0.85f, 0.0f, 30.0f);
@@ -67,6 +68,7 @@ namespace
 		parameters->SetDisplayName(kGuardianBossGroup, "GuardianAttackHitRange", "攻撃判定リーチ");
 		parameters->SetDisplayName(kGuardianBossGroup, "GuardianAttackHitRadius", "攻撃判定半径");
 		parameters->SetDisplayName(kGuardianBossGroup, "GuardianAttackForwardOffset", "攻撃判定前方オフセット");
+		parameters->SetDisplayName(kGuardianBossGroup, "GuardianAttackHitAngleDeg", "攻撃判定角度");
 		parameters->SetDisplayName(kGuardianBossGroup, "moveStartDistance", "移動開始距離");
 		parameters->SetDisplayName(kGuardianBossGroup, "moveStopDistance", "移動停止距離");
 		parameters->SetDisplayName(kGuardianBossGroup, "attackDuration", "攻撃時間");
@@ -117,6 +119,7 @@ void GuardianBoss::ApplyParameters()
 	attackHitRange_ = GetGuardianParameterOrDefault("GuardianAttackHitRange", attackHitRange_);
 	attackHitRadius_ = GetGuardianParameterOrDefault("GuardianAttackHitRadius", attackHitRadius_);
 	attackForwardOffset_ = GetGuardianParameterOrDefault("GuardianAttackForwardOffset", attackForwardOffset_);
+	attackHitAngleDeg_ = GetGuardianParameterOrDefault("GuardianAttackHitAngleDeg", attackHitAngleDeg_);
 	moveStartDistance_ = GetGuardianParameterOrDefault("moveStartDistance", moveStartDistance_);
 	moveStopDistance_ = GetGuardianParameterOrDefault("moveStopDistance", moveStopDistance_);
 	attackDuration_ = GetGuardianParameterOrDefault("attackDuration", attackDuration_);
@@ -157,6 +160,7 @@ void GuardianBoss::SetupBoss()
 	attackHitRange_ = GetGuardianParameterOrDefault("GuardianAttackHitRange", attackHitRange_); // Guardianの攻撃判定リーチをJSON調整値から復元する
 	attackHitRadius_ = GetGuardianParameterOrDefault("GuardianAttackHitRadius", attackHitRadius_); // Guardianの攻撃判定半径をJSON調整値から復元する
 	attackForwardOffset_ = GetGuardianParameterOrDefault("GuardianAttackForwardOffset", attackForwardOffset_); // Guardianの攻撃判定前方オフセットをJSON調整値から復元する
+	attackHitAngleDeg_ = GetGuardianParameterOrDefault("GuardianAttackHitAngleDeg", attackHitAngleDeg_); // Guardianの攻撃判定角度をJSON調整値から復元する
 	moveStartDistance_ = GetGuardianParameterOrDefault("moveStartDistance", moveStartDistance_); // Guardianの移動開始距離をJSON調整値から復元する
 	moveStopDistance_ = GetGuardianParameterOrDefault("moveStopDistance", moveStopDistance_); // Guardianの移動停止距離をJSON調整値から復元する
 	attackDuration_ = GetGuardianParameterOrDefault("attackDuration", attackDuration_); // Guardianの攻撃時間をJSON調整値から復元する
@@ -659,13 +663,13 @@ void GuardianBoss::ApplyAttackHitParametersToAttacks()
 	if (auto* punch = dynamic_cast<BossPunchAttack*>(GetAttackComponent()->FindAttackByName("Punch")))
 	{
 		punch->SetValidRange(0.0f, attackRange_);
-		punch->SetHitParameters(attackHitRange_, attackHitRadius_, attackForwardOffset_);
+		punch->SetHitParameters(attackHitRange_, attackHitRadius_, attackForwardOffset_, attackHitAngleDeg_);
 	}
 
 	if (auto* heavy = dynamic_cast<BossHeavyPunchAttack*>(GetAttackComponent()->FindAttackByName("HeavyPunch")))
 	{
 		heavy->SetValidRange(0.0f, attackRange_);
-		heavy->SetHitParameters(attackHitRange_, attackHitRadius_, attackForwardOffset_);
+		heavy->SetHitParameters(attackHitRange_, attackHitRadius_, attackForwardOffset_, attackHitAngleDeg_);
 	}
 }
 
@@ -797,6 +801,7 @@ void GuardianBoss::DrawImGui()
 	attackHitTuningChanged |= ImGui::DragFloat("攻撃判定リーチ", &attackHitRange_, 0.01f, 0.0f, 30.0f);
 	attackHitTuningChanged |= ImGui::DragFloat("攻撃判定半径", &attackHitRadius_, 0.01f, 0.0f, 20.0f);
 	attackHitTuningChanged |= ImGui::DragFloat("攻撃判定前方オフセット", &attackForwardOffset_, 0.01f, 0.0f, 30.0f);
+	attackHitTuningChanged |= ImGui::DragFloat("攻撃判定角度", &attackHitAngleDeg_, 0.1f, 0.0f, 360.0f);
 	if (attackHitTuningChanged)
 	{
 		ApplyAttackHitParametersToAttacks(); // GuardianBossデバッグUIで直接変えた値も現在の攻撃判定へ即時反映する。
@@ -933,6 +938,7 @@ void GuardianBoss::DrawImGui()
 		ImGui::Text("AttackHitRange    : %.2f", attackHitRange_);
 		ImGui::Text("AttackHitRadius   : %.2f", attackHitRadius_);
 		ImGui::Text("AttackForwardOff  : %.2f", attackForwardOffset_);
+		ImGui::Text("AttackHitAngleDeg : %.2f", attackHitAngleDeg_);
 
 		if (punch)
 		{

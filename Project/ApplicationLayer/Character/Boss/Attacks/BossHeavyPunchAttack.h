@@ -130,6 +130,11 @@ public: /// ---------- デバッグ参照 ---------- ///
 	/// </summary>
 	float GetHitForwardOffset() const { return hitForwardOffset_; }
 
+	/// <summary>
+	/// 攻撃判定角度を取得
+	/// </summary>
+	float GetHitAngleDeg() const { return hitAngleDeg_; }
+
 public: /// ---------- パラメータ反映 ---------- ///
 
 	/// <summary>
@@ -140,7 +145,7 @@ public: /// ---------- パラメータ反映 ---------- ///
 	/// <summary>
 	/// 実際の攻撃判定用パラメータを設定
 	/// </summary>
-	void SetHitParameters(float hitRange, float hitRadius, float hitForwardOffset);
+	void SetHitParameters(float hitRange, float hitRadius, float hitForwardOffset, float hitAngleDeg);
 
 public: /// ---------- 描画 ---------- ///
 
@@ -237,6 +242,7 @@ private: /// ---------- ヒット判定 ---------- ///
 	float hitRange_ = 6.0f;             // ボス正面方向に届く攻撃判定リーチ
 	float hitRadius_ = 2.0f;            // 重攻撃判定の半径
 	float hitForwardOffset_ = 3.0f;     // ボス中心から前方へ判定開始位置をずらす距離
+	float hitAngleDeg_ = 90.0f;         // 正面から左右へ広がる攻撃判定の全角度
 	float targetRadius_ = 0.65f;        // 仮プレイヤー半径
 
 private: /// ---------- クールダウン ---------- ///

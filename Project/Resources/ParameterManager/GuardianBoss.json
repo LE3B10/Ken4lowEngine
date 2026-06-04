@@ -6,6 +6,7 @@
         "GuardianAttackHitRange": 6.0,
         "GuardianAttackHitRadius": 2.0,
         "GuardianAttackForwardOffset": 3.0,
+        "GuardianAttackHitAngleDeg": 90.0,
         "moveStartDistance": 4.8,
         "moveStopDistance": 4.8,
         "attackDuration": 0.85,
