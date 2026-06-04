@@ -1,6 +1,8 @@
 #pragma once
 #include "IBossAttack.h"
 
+#include <cstdint>
+
 /// ---------- 前方宣言 ---------- ///
 class BossBase;
 
@@ -147,6 +149,11 @@ public: /// ---------- パラメータ反映 ---------- ///
 	/// </summary>
 	void SetHitParameters(float hitRange, float hitRadius, float hitForwardOffset, float hitAngleDeg);
 
+	/// <summary>
+	/// ヒット時GPUパーティクル調整値を設定
+	/// </summary>
+	void SetImpactParticleParameters(uint32_t spawnCount, float spawnRadius, float lifetimeScale, float initialSpeedScale);
+
 public: /// ---------- 描画 ---------- ///
 
 	// 攻撃固有の描画
@@ -243,6 +250,11 @@ private: /// ---------- ヒット判定 ---------- ///
 	float hitRadius_ = 2.0f;            // 重攻撃判定の半径
 	float hitForwardOffset_ = 3.0f;     // ボス中心から前方へ判定開始位置をずらす距離
 	float hitAngleDeg_ = 90.0f;         // 正面から左右へ広がる攻撃判定の全角度
+	uint32_t particleSpawnCount_ = 36;   // ヒット時GPUパーティクル数
+	float particleSpawnRadius_ = 0.35f; // ヒット時GPUパーティクル発生半径
+	float particleLifetimeScale_ = 1.0f; // ヒット時GPUパーティクル寿命倍率
+	float particleInitialSpeedScale_ = 1.0f; // ヒット時GPUパーティクル初速倍率
+
 	float targetRadius_ = 0.65f;        // 仮プレイヤー半径
 
 private: /// ---------- クールダウン ---------- ///

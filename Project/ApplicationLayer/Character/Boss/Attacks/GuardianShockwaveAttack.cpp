@@ -2,6 +2,8 @@
 #include "GuardianShockwaveAttack.h"
 #include "BossBase.h"
 #include "Wireframe.h"
+#include "GpuParticleManager.h"
+#include "GpuParticleEmitter.h"
 #include <LogString.h>
 
 #include <algorithm>
@@ -37,12 +39,14 @@ void GuardianShockwaveAttack::Initialize(BossBase* owner)
 	isActive_ = false;
 	isFinished_ = false;
 	hasHit_ = false;
+	hasTelegraphEffect_ = false;
 
 	phase_ = Phase::None;
 	phaseTimer_ = 0.0f;
 	totalTimer_ = 0.0f;
 
 	cooldownRemaining_ = 0.0f;
+	hasLockedDirection_ = false;
 }
 
 /// ---------------------------------------------------------------
@@ -56,10 +60,13 @@ void GuardianShockwaveAttack::Start()
 	isActive_ = true;
 	isFinished_ = false;
 	hasHit_ = false;
+	hasTelegraphEffect_ = false;
 
 	phase_ = Phase::None;
 	phaseTimer_ = 0.0f;
 	totalTimer_ = 0.0f;
+
+	LockShockwaveDirection(); // 開始時点のプレイヤー方向をワールド座標で固定し、攻撃中の反転を防ぐ。
 
 	// 衝撃波は叩きつけ前の予備動作から開始する。
 	ChangePhase(Phase::Windup);
@@ -151,8 +158,37 @@ void GuardianShockwaveAttack::TickCooldown(float deltaTime)
 /// ---------------------------------------------------------------
 void GuardianShockwaveAttack::UpdateWindup(float deltaTime)
 {
-	// 予備動作中はタイマーだけ進め、叩きつけタイミングで判定発生へ移る。
+	// 予備動作中に一度だけ予兆エフェクトを出し、叩きつけタイミングで判定発生へ移る。
 	(void)deltaTime;
+	if (!hasTelegraphEffect_ && owner_ != nullptr)
+	{
+		hasTelegraphEffect_ = true;
+		if (auto* particleManager = K4E::GpuParticleManager::GetInstance())
+		{
+			K4E::Vector3 telegraphPos = lockedOrigin_;
+			telegraphPos.y += 0.10f;
+			// 発生前の溜め位置に小さなリングを出して、回避タイミングを読ませる。
+			K4E::GpuParticleEmitter::EmitterInfo info{};
+			info.textureFilePath = "Effects/white.dds";
+			info.radius = std::max(0.3f, particleSpawnRadius_ * 0.75f);
+			info.kind = K4E::GpuParticleKind::Sprite;
+			info.spriteType = K4E::GpuParticleType::Shockwave;
+			info.billboardFlags = K4E::BillboardMode::Camera;
+			info.lifeScale = std::max(0.2f, startupTime_);
+			info.speedScale = 0.25f;
+			if (auto* emitter = particleManager->GetEmitter("GuardianShockwaveTelegraph"))
+			{
+				emitter->GetInfoMutable() = info;
+				emitter->SetPosition(telegraphPos);
+				emitter->RequestEmit(std::max<uint32_t>(8, particleSpawnCount_ / 3));
+			}
+			else if (auto* created = particleManager->CreateEmitter("GuardianShockwaveTelegraph", info))
+			{
+				created->SetPosition(telegraphPos);
+				created->RequestEmit(std::max<uint32_t>(8, particleSpawnCount_ / 3));
+			}
+		}
+	}
 
 	if (phaseTimer_ >= startupTime_) ChangePhase(Phase::Active);
 }
@@ -223,8 +259,9 @@ void GuardianShockwaveAttack::Draw()
 	if (owner_ == nullptr || !isActive_) return;
 
 	// Debugビルドでは衝撃波の前方扇形をワイヤーで可視化する。
-	const K4E::Vector3 bossCenter = owner_->GetCenterPosition();
-	const float yaw = owner_->GetYaw();
+	const K4E::Vector3 bossCenter = hasLockedDirection_ ? lockedOrigin_ : owner_->GetCenterPosition();
+	const K4E::Vector3 forward = hasLockedDirection_ ? lockedForward_ : K4E::Vector3{ std::sin(owner_->GetYaw()), 0.0f, std::cos(owner_->GetYaw()) };
+	const float yaw = std::atan2(forward.x, forward.z);
 	const float clampedRange = std::max(0.0f, shockwaveRange_);
 	const float clampedAngle = std::clamp(shockwaveAngleDeg_, 0.0f, 360.0f);
 	const float halfAngleRad = DegToRad(clampedAngle * 0.5f);
@@ -292,16 +329,9 @@ void GuardianShockwaveAttack::TryHitPlayer()
 	if (owner_ == nullptr) return;
 
 	// 衝撃波判定はボス正面を中心とした前方扇形で、攻撃開始距離とは別に計算する。
-	const K4E::Vector3 bossCenter = owner_->GetCenterPosition();
-	const float yaw = owner_->GetYaw();
+	const K4E::Vector3 bossCenter = hasLockedDirection_ ? lockedOrigin_ : owner_->GetCenterPosition();
 	const K4E::Vector3 targetCenter = owner_->GetTargetPosition();
-
-	K4E::Vector3 forward
-	{
-		std::sin(yaw),
-		0.0f,
-		std::cos(yaw)
-	};
+	const K4E::Vector3 forward = hasLockedDirection_ ? lockedForward_ : K4E::Vector3{ std::sin(owner_->GetYaw()), 0.0f, std::cos(owner_->GetYaw()) };
 
 	const float toTargetX = targetCenter.x - bossCenter.x;
 	const float toTargetZ = targetCenter.z - bossCenter.z;
@@ -332,6 +362,29 @@ void GuardianShockwaveAttack::TryHitPlayer()
 		// 衝撃波の発生フレームで1回だけPlayerへダメージを流す。
 		if (owner_->ApplyDamageToTargetPlayer(damage_, &hitPosition))
 		{
+			if (auto* particleManager = K4E::GpuParticleManager::GetInstance())
+			{
+				// Shockwave専用GPUパーティクルをヒット位置から発生させ、パンチと演出を分ける。
+				K4E::GpuParticleEmitter::EmitterInfo info{};
+				info.textureFilePath = "Effects/white.dds";
+				info.radius = particleSpawnRadius_;
+				info.kind = K4E::GpuParticleKind::Sprite;
+				info.spriteType = K4E::GpuParticleType::Shockwave;
+				info.billboardFlags = K4E::BillboardMode::Camera;
+				info.lifeScale = particleLifetimeScale_;
+				info.speedScale = particleInitialSpeedScale_;
+				if (auto* emitter = particleManager->GetEmitter("GuardianShockwaveImpact"))
+				{
+					emitter->GetInfoMutable() = info;
+					emitter->SetPosition(hitPosition);
+					emitter->RequestEmit(particleSpawnCount_);
+				}
+				else if (auto* created = particleManager->CreateEmitter("GuardianShockwaveImpact", info))
+				{
+					created->SetPosition(hitPosition);
+					created->RequestEmit(particleSpawnCount_);
+				}
+			}
 			Log("[GuardianShockwaveAttack] Player damage applied.\n");
 		}
 	}
@@ -341,6 +394,35 @@ void GuardianShockwaveAttack::TryHitPlayer()
 		Log("[GuardianShockwaveAttack] Shockwave hit miss.\n");
 #endif
 	}
+}
+
+
+void GuardianShockwaveAttack::LockShockwaveDirection()
+{
+	if (owner_ == nullptr)
+	{
+		hasLockedDirection_ = false;
+		return;
+	}
+
+	lockedOrigin_ = owner_->GetCenterPosition();
+	K4E::Vector3 toTarget{
+		owner_->GetTargetPosition().x - lockedOrigin_.x,
+		0.0f,
+		owner_->GetTargetPosition().z - lockedOrigin_.z
+	};
+	const float lenSq = toTarget.x * toTarget.x + toTarget.z * toTarget.z;
+	if (lenSq > 0.0001f)
+	{
+		const float invLen = 1.0f / std::sqrt(lenSq);
+		lockedForward_ = { toTarget.x * invLen, 0.0f, toTarget.z * invLen };
+		owner_->SetYaw(std::atan2(lockedForward_.x, lockedForward_.z));
+	}
+	else
+	{
+		lockedForward_ = { std::sin(owner_->GetYaw()), 0.0f, std::cos(owner_->GetYaw()) };
+	}
+	hasLockedDirection_ = true;
 }
 
 /// ---------------------------------------------------------------
@@ -401,4 +483,13 @@ void GuardianShockwaveAttack::SetTimingParameters(float startupSec, float active
 	activeTime_ = std::max(0.0f, activeSec);
 	recoveryTime_ = std::max(0.0f, recoverySec);
 	cooldownSec_ = std::max(0.0f, cooldownSec);
+}
+
+void GuardianShockwaveAttack::SetImpactParticleParameters(uint32_t spawnCount, float spawnRadius, float lifetimeScale, float initialSpeedScale)
+{
+	// ParameterManagerのヒット演出値を、次回Shockwave命中時のGPUパーティクルへ反映する。
+	particleSpawnCount_ = spawnCount;
+	particleSpawnRadius_ = std::max(0.0f, spawnRadius);
+	particleLifetimeScale_ = std::max(0.01f, lifetimeScale);
+	particleInitialSpeedScale_ = std::max(0.0f, initialSpeedScale);
 }

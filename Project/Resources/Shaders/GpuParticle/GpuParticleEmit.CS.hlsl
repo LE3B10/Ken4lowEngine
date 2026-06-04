@@ -206,8 +206,9 @@ void InitParticleCommon(uint i, float3 seed, ParticleSpawnParam param, inout Par
     }
 
     p.translate = gEmitter.translate + offset;
-    p.velocity = dir * RandRange(seed + 21.7f, param.speedMin, param.speedMax);
-    p.lifeTime = RandRange(seed + 31.9f, param.lifeMin, param.lifeMax);
+    // エミッター単位の調整倍率で、同じGPUタイプでも攻撃ごとに寿命と初速を変えられるようにする。
+    p.velocity = dir * RandRange(seed + 21.7f, param.speedMin, param.speedMax) * max(gEmitter.speedScale, 0.0f);
+    p.lifeTime = RandRange(seed + 31.9f, param.lifeMin, param.lifeMax) * max(gEmitter.lifeScale, 0.01f);
 
     if (param.scaleMode == GPU_PARTICLE_SCALE_STRETCH)
     {

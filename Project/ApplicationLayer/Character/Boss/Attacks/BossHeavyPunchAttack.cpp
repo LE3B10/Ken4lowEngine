@@ -1,6 +1,8 @@
 #define NOMINMAX
 #include "BossHeavyPunchAttack.h"
 #include "BossBase.h"
+#include "GpuParticleManager.h"
+#include "GpuParticleEmitter.h"
 
 #include <algorithm>
 #include <cmath>
@@ -357,6 +359,29 @@ void BossHeavyPunchAttack::TryHitPlayer()
 		// ボス近接攻撃の発生フレームで1回だけPlayerへダメージを流す。
 		if (owner_->ApplyDamageToTargetPlayer(damage_, &attackCenter))
 		{
+			if (auto* particleManager = K4E::GpuParticleManager::GetInstance())
+			{
+				// ヒット位置に専用GPUパーティクルを出し、パンチ命中の手応えを強める。
+				K4E::GpuParticleEmitter::EmitterInfo info{};
+				info.textureFilePath = "Effects/white.dds";
+				info.radius = particleSpawnRadius_;
+				info.kind = K4E::GpuParticleKind::Sprite;
+				info.spriteType = K4E::GpuParticleType::Debris;
+				info.billboardFlags = K4E::BillboardMode::Camera;
+				info.lifeScale = particleLifetimeScale_;
+				info.speedScale = particleInitialSpeedScale_;
+				if (auto* emitter = particleManager->GetEmitter("GuardianHeavyPunchImpact"))
+				{
+					emitter->GetInfoMutable() = info;
+					emitter->SetPosition(attackCenter);
+					emitter->RequestEmit(particleSpawnCount_);
+				}
+				else if (auto* created = particleManager->CreateEmitter("GuardianHeavyPunchImpact", info))
+				{
+					created->SetPosition(attackCenter);
+					created->RequestEmit(particleSpawnCount_);
+				}
+			}
 			Log("[BossHeavyPunchAttack] Player damage applied.\n");
 		}
 	}
@@ -417,4 +442,13 @@ void BossHeavyPunchAttack::SetHitParameters(float hitRange, float hitRadius, flo
 	hitRadius_ = std::max(0.0f, hitRadius);
 	hitForwardOffset_ = std::max(0.0f, hitForwardOffset);
 	hitAngleDeg_ = std::clamp(hitAngleDeg, 0.0f, 360.0f);
+}
+
+void BossHeavyPunchAttack::SetImpactParticleParameters(uint32_t spawnCount, float spawnRadius, float lifetimeScale, float initialSpeedScale)
+{
+	// ParameterManagerのヒット演出値を、次回命中時のGPUパーティクルへ反映する。
+	particleSpawnCount_ = spawnCount;
+	particleSpawnRadius_ = std::max(0.0f, spawnRadius);
+	particleLifetimeScale_ = std::max(0.01f, lifetimeScale);
+	particleInitialSpeedScale_ = std::max(0.0f, initialSpeedScale);
 }

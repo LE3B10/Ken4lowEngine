@@ -22,6 +22,12 @@
         "moveStopDistance": 4.800000190734863,
         "rotateSpeed": 4.0,
         "skinPath": "Characters/zombie.dds",
-        "staggerDuration": 0.30000001192092896
+        "staggerDuration": 0.30000001192092896,
+        "HitFlashDuration": 0.18,
+        "HitFlashIntensity": 2.2,
+        "ParticleSpawnCount": 48,
+        "ParticleSpawnRadius": 0.5,
+        "ParticleLifetime": 1.0,
+        "ParticleInitialSpeed": 1.0
     }
 }

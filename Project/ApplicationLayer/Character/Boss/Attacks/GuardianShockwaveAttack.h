@@ -1,6 +1,8 @@
 #pragma once
 #include "IBossAttack.h"
 
+#include <cstdint>
+
 /// ---------- 前方宣言 ---------- ///
 class BossBase;
 
@@ -148,6 +150,11 @@ public: /// ---------- パラメータ反映 ---------- ///
 	/// </summary>
 	void SetTimingParameters(float startupSec, float activeSec, float recoverySec, float cooldownSec);
 
+	/// <summary>
+	/// ヒット時GPUパーティクル調整値を設定
+	/// </summary>
+	void SetImpactParticleParameters(uint32_t spawnCount, float spawnRadius, float lifetimeScale, float initialSpeedScale);
+
 public: /// ---------- 描画 ---------- ///
 
 	void Draw() override;
@@ -179,6 +186,11 @@ private: /// ---------- 内部処理 ---------- ///
 	bool IsTargetInValidRange() const;
 
 	/// <summary>
+	/// 攻撃開始時点のプレイヤー方向をワールド前方として固定する
+	/// </summary>
+	void LockShockwaveDirection();
+
+	/// <summary>
 	/// デバッグ用フェーズ名
 	/// </summary>
 	const char* GetPhaseName() const;
@@ -192,10 +204,15 @@ private: /// ---------- 実行状態 ---------- ///
 	bool isActive_ = false;     // 実行中か
 	bool isFinished_ = false;   // 今回の実行が終わったか
 	bool hasHit_ = false;       // 今回すでにヒットを出したか
+	bool hasTelegraphEffect_ = false; // 予備動作の予兆エフェクトを一度だけ出したか
 
 	Phase phase_ = Phase::None; // 現在フェーズ
 	float phaseTimer_ = 0.0f;   // フェーズ内経過時間
 	float totalTimer_ = 0.0f;   // 攻撃開始からの合計時間
+
+	K4E::Vector3 lockedOrigin_{};                 // 攻撃開始時のワールド原点
+	K4E::Vector3 lockedForward_{ 0.0f, 0.0f, 1.0f }; // 攻撃中に反転させない固定前方
+	bool hasLockedDirection_ = false;             // 固定方向を取得済みか
 
 private: /// ---------- 距離条件 ---------- ///
 
@@ -213,6 +230,11 @@ private: /// ---------- ヒット判定 ---------- ///
 	float damage_ = 15.0f;             // 衝撃波ダメージ
 	float shockwaveRange_ = 10.0f;     // ボス正面方向へ届く衝撃波リーチ
 	float shockwaveAngleDeg_ = 70.0f;  // 正面から左右へ広がる衝撃波の全角度
+	uint32_t particleSpawnCount_ = 56;   // ヒット時GPUパーティクル数
+	float particleSpawnRadius_ = 0.8f;  // ヒット時GPUパーティクル発生半径
+	float particleLifetimeScale_ = 1.0f; // ヒット時GPUパーティクル寿命倍率
+	float particleInitialSpeedScale_ = 1.0f; // ヒット時GPUパーティクル初速倍率
+
 	float targetRadius_ = 0.65f;       // 仮のプレイヤー半径
 
 private: /// ---------- クールダウン ---------- ///

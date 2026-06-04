@@ -4,8 +4,10 @@
 #include "BossAttackComponent.h"
 #include "IBossAttack.h"
 
+#include <algorithm>
 #include <cstring>
 #include <limits>
+#include <random>
 
 /// -------------------------------------------------------------
 ///							初期化処理
@@ -15,6 +17,7 @@ void BossBrain::Initialize(BossBase* owner)
 	owner_ = owner;
 	lastBestAttackName_ = "None";
 	lastBestScore_ = -999999.0f;
+	previousSelectedAttackName_ = "None";
 }
 
 /// -------------------------------------------------------------
@@ -25,6 +28,7 @@ void BossBrain::Finalize()
 	owner_ = nullptr;
 	lastBestAttackName_ = "None";
 	lastBestScore_ = -999999.0f;
+	previousSelectedAttackName_ = "None";
 }
 
 /// -------------------------------------------------------------
@@ -53,28 +57,9 @@ std::string BossBrain::SelectBestAttackName() const
 	// 候補がいないときは選択できない
 	if (candidates.empty())	return "";
 
-	// 候補の中からスコアを計算して最適なものを選ぶ
-	IBossAttack* bestAttack = nullptr;
-
-	// スコアの初期値は非常に低くしておく（負の無限大）
-	float bestScore = -std::numeric_limits<float>::max();
-
-	// 候補をループしてスコアを計算
-	for (IBossAttack* attack : candidates)
-	{
-		// 攻撃が nullptr ならスコア計算できないのでスキップ
-		if (!attack) continue;
-
-		// スコアを計算
-		const float score = EvaluateAttackScore(*attack);
-
-		// スコアが最高のものを選ぶ
-		if (!bestAttack || score > bestScore)
-		{
-			bestAttack = attack;
-			bestScore = score;
-		}
-	}
+	// 候補の中から距離帯補正済みスコアを重みとして抽選し、同じ攻撃の連打感を抑える。
+	IBossAttack* bestAttack = SelectWeightedAttack(candidates);
+	const float bestScore = bestAttack ? EvaluateAttackScore(*bestAttack) : -std::numeric_limits<float>::max();
 
 	// 最適な攻撃が見つからないときは空文字
 	if (!bestAttack) return "";
@@ -84,9 +69,56 @@ std::string BossBrain::SelectBestAttackName() const
 
 	// デバッグ用にスコアも保存しておく
 	lastBestScore_ = bestScore;
+	previousSelectedAttackName_ = bestAttack->GetName();
 
 	// 最適な攻撃の名前を返す
 	return bestAttack->GetName();
+}
+
+
+IBossAttack* BossBrain::SelectWeightedAttack(const std::vector<IBossAttack*>& candidates) const
+{
+	struct WeightedCandidate
+	{
+		IBossAttack* attack = nullptr;
+		float weight = 0.0f;
+	};
+
+	std::vector<WeightedCandidate> weighted;
+	weighted.reserve(candidates.size());
+	float totalWeight = 0.0f;
+
+	for (IBossAttack* attack : candidates)
+	{
+		if (!attack) continue;
+
+		float weight = std::max(1.0f, EvaluateAttackScore(*attack));
+		if (previousSelectedAttackName_ == attack->GetName())
+		{
+			weight *= 0.35f;
+		}
+
+		weighted.push_back({ attack, weight });
+		totalWeight += weight;
+	}
+
+	if (weighted.empty() || totalWeight <= 0.0f)
+	{
+		return nullptr;
+	}
+
+	std::uniform_real_distribution<float> dist(0.0f, totalWeight);
+	float roll = dist(rng_);
+	for (const WeightedCandidate& candidate : weighted)
+	{
+		roll -= candidate.weight;
+		if (roll <= 0.0f)
+		{
+			return candidate.attack;
+		}
+	}
+
+	return weighted.back().attack;
 }
 
 /// -------------------------------------------------------------
