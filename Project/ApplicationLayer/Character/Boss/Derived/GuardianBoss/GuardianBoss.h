@@ -113,6 +113,7 @@ protected: /// ---------- Guardian固有パラメータ ---------- ///
 	float attackHitRange_ = 6.0f;     // 実際の攻撃判定がボス正面へ届く距離
 	float attackHitRadius_ = 2.0f;    // 実際の攻撃判定の太さ
 	float attackForwardOffset_ = 3.0f;// 実際の攻撃判定をボス正面へずらす距離
+	float attackHitAngleDeg_ = 90.0f; // 実際の攻撃判定を正面から左右へ広げる全角度
 	float moveStartDistance_ = 4.8f;  // この距離より離れたら移動開始
 	float moveStopDistance_ = 4.8f;   // この距離より近づいたら移動停止
 
