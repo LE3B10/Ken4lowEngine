@@ -1,3 +1,4 @@
+#define NOMINMAX
 #include "BossAttackEffects.h"
 #include "GpuParticleType.h"
 #include "GpuParticleManager.h"

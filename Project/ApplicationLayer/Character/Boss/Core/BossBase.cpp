@@ -440,7 +440,7 @@ void BossBase::FaceDirectionXZImmediate(const K4E::Vector3& direction)
 	}
 
 	// 攻撃開始時だけ共通処理でYawを確定し、攻撃クラスごとの毎フレーム回転上書きを避ける。
-	SetYaw(std::atan2(direction.x, direction.z));
+	SetYaw(std::atan2(-direction.x, direction.z));
 }
 
 /// -------------------------------------------------------------

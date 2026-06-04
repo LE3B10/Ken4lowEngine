@@ -228,7 +228,7 @@ void HumanoidBossBase::FaceTarget(float deltaTime, float rotateSpeed)
 	if (lenSq <= 0.0001f) return;
 	
 	// 目標の向きを計算
-	const float desiredYaw = std::atan2(toTarget.x, toTarget.z);
+	const float desiredYaw = std::atan2(-toTarget.x, toTarget.z);
 	float currentYaw = GetYaw();
 
 	// 角度の差を求め、回転速度に基づいて補間

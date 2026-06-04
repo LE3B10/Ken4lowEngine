@@ -161,6 +161,14 @@ void GuardianBoss::ApplyParameters()
 	EnsureGuardianBossParameters();
 	moveSpeed_ = GetGuardianParameterOrDefault("moveSpeed", moveSpeed_);
 	rotateSpeed_ = GetGuardianParameterOrDefault("rotateSpeed", rotateSpeed_);
+
+	if (movementComponent_)
+	{
+		// Guardian固有の移動速度を実際に移動するMovementComponentへ反映する
+		GetMovementComponent()->SetMoveSpeed(moveSpeed_);
+		GetMovementComponent()->SetTurnSpeed(rotateSpeed_);
+	}
+
 	attackRange_ = GetGuardianParameterOrDefault("attackRange", attackRange_);
 	attackHitRange_ = GetGuardianParameterOrDefault("GuardianAttackHitRange", attackHitRange_);
 	attackHitRadius_ = GetGuardianParameterOrDefault("GuardianAttackHitRadius", attackHitRadius_);
@@ -630,7 +638,7 @@ void GuardianBoss::FaceTarget(float deltaTime)
 		return;
 	}
 
-	const float desiredYaw = std::atan2(toTarget.x, toTarget.z); // forward(sinYaw, cosYaw)と同じワールド座標系でターゲットへ向ける。
+	const float desiredYaw = std::atan2(-toTarget.x, toTarget.z); // forward(sinYaw, cosYaw)と同じワールド座標系でターゲットへ向ける。
 	float currentYaw = GetYaw();
 
 	float diff = WrapAngle(desiredYaw - currentYaw);
@@ -852,6 +860,9 @@ bool GuardianBoss::StartAttackByNameSafe(const char* attackName)
 		return false;
 	}
 
+	// 攻撃開始直前に最新の調整値を攻撃クラスへ反映する
+	ApplyAttackHitParametersToAttacks();
+
 	// 指定名の攻撃を開始
 	if (!GetAttackComponent()->StartAttackByName(attackName))
 	{
@@ -905,10 +916,42 @@ void GuardianBoss::DrawImGui()
 	ImGui::Separator();
 	ImGui::Text("Tuning");
 
-	ImGui::DragFloat("Move Speed", &moveSpeed_, 0.01f, 0.1f, 20.0f);
-	ImGui::DragFloat("Rotate Speed", &rotateSpeed_, 0.01f, 0.1f, 20.0f);
-	ImGui::DragFloat("Move Start Dist", &moveStartDistance_, 0.01f, 0.1f, 50.0f);
-	ImGui::DragFloat("Move Stop Dist", &moveStopDistance_, 0.01f, 0.1f, 50.0f);
+	bool moveTuningChanged = false;
+	moveTuningChanged |= ImGui::DragFloat("Move Speed", &moveSpeed_, 0.01f, 0.1f, 50.0f);
+	moveTuningChanged |= ImGui::DragFloat("Rotate Speed", &rotateSpeed_, 0.01f, 0.1f, 30.0f);
+	moveTuningChanged |= ImGui::DragFloat("Move Start Dist", &moveStartDistance_, 0.01f, 0.1f, 100.0f);
+	moveTuningChanged |= ImGui::DragFloat("Move Stop Dist", &moveStopDistance_, 0.01f, 0.1f, 100.0f);
+
+	if (moveTuningChanged)
+	{
+		// 移動パラメータ変更を通常移動と攻撃選択の両方へ即時反映する
+		if (GetMovementComponent())
+		{
+			GetMovementComponent()->SetMoveSpeed(moveSpeed_);
+			GetMovementComponent()->SetTurnSpeed(rotateSpeed_);
+			GetMovementComponent()->SetStopDistance(moveStopDistance_);
+		}
+
+		if (moveStopDistance_ > moveStartDistance_)
+		{
+			moveStopDistance_ = moveStartDistance_;
+		}
+	}
+
+	bool chargeTuningChanged = false;
+	chargeTuningChanged |= ImGui::DragFloat("突進速度", &chargeSpeed_, 0.1f, 0.0f, 100.0f);
+	chargeTuningChanged |= ImGui::DragFloat("突進距離", &chargeDistance_, 0.1f, 0.0f, 100.0f);
+	chargeTuningChanged |= ImGui::DragFloat("突進ダメージ", &chargeDamage_, 0.1f, 0.0f, 999.0f);
+	chargeTuningChanged |= ImGui::DragFloat("突進予備動作", &chargeStartupSec_, 0.01f, 0.0f, 10.0f);
+	chargeTuningChanged |= ImGui::DragFloat("突進後隙", &chargeRecoverySec_, 0.01f, 0.0f, 10.0f);
+	chargeTuningChanged |= ImGui::DragFloat("突進クールタイム", &chargeCooldown_, 0.01f, 0.0f, 60.0f);
+
+	if (chargeTuningChanged)
+	{
+		// デバッグUIで変更した突進値を現在の攻撃クラスへ即時反映する
+		ApplyAttackHitParametersToAttacks();
+	}
+
 	bool attackHitTuningChanged = false;
 	attackHitTuningChanged |= ImGui::DragFloat("Attack Range", &attackRange_, 0.01f, 0.1f, 20.0f);
 	attackHitTuningChanged |= ImGui::DragFloat("攻撃判定リーチ", &attackHitRange_, 0.01f, 0.0f, 30.0f);
