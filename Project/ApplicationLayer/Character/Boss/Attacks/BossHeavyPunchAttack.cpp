@@ -2,6 +2,9 @@
 #include "BossHeavyPunchAttack.h"
 #include "BossBase.h"
 
+#include <algorithm>
+#include <cmath>
+
 #ifdef _DEBUG
 #include <LogString.h>
 #endif // _DEBUG
@@ -278,6 +281,9 @@ void BossHeavyPunchAttack::DrawImGui()
 	ImGui::Text("TotalTimer        : %.2f", totalTimer_);
 	ImGui::Text("CooldownRemaining : %.2f", cooldownRemaining_);
 	ImGui::Text("Range             : %.2f - %.2f", minRange_, maxRange_);
+	ImGui::Text("HitRange          : %.2f", hitRange_);
+	ImGui::Text("HitRadius         : %.2f", hitRadius_);
+	ImGui::Text("HitForwardOffset  : %.2f", hitForwardOffset_);
 	ImGui::Text("Damage            : %.2f", damage_);
 #endif
 }
@@ -290,11 +296,8 @@ void BossHeavyPunchAttack::TryHitPlayer()
 	// 所有者がいないときは何もしない
 	if (owner_ == nullptr) return;
 
-	// -----------------------------------------------------------
-	// 攻撃中心
-	// HeavyPunch は Punch より前に届くよう少し伸ばす
-	// -----------------------------------------------------------
-	const K4E::Vector3 armRoot = owner_->GetRightArmRootWorldPosition();
+	// 攻撃判定は攻撃開始距離とは別に、ParameterManager由来のリーチ・半径・前方オフセットで計算する。
+	const K4E::Vector3 bossCenter = owner_->GetCenterPosition();
 	const float yaw = owner_->GetYaw();
 
 	K4E::Vector3 forward
@@ -304,10 +307,14 @@ void BossHeavyPunchAttack::TryHitPlayer()
 		std::cos(yaw)
 	};
 
-	K4E::Vector3 attackCenter = armRoot;
-	attackCenter.x += forward.x * hitForwardOffset_;
+	const float clampedForwardOffset = std::max(0.0f, hitForwardOffset_);
+	const float clampedHitRange = std::max(clampedForwardOffset, hitRange_);
+	const float clampedHitRadius = std::max(0.0f, hitRadius_);
+
+	K4E::Vector3 attackCenter = bossCenter;
+	attackCenter.x += forward.x * clampedForwardOffset;
 	attackCenter.y += 0.30f;
-	attackCenter.z += forward.z * hitForwardOffset_;
+	attackCenter.z += forward.z * clampedForwardOffset;
 
 	// -----------------------------------------------------------
 	// 仮のプレイヤー中心
@@ -315,12 +322,23 @@ void BossHeavyPunchAttack::TryHitPlayer()
 	// -----------------------------------------------------------
 	const K4E::Vector3 targetCenter = owner_->GetTargetPosition();
 
-	const float dx = targetCenter.x - attackCenter.x;
-	const float dy = targetCenter.y - attackCenter.y;
-	const float dz = targetCenter.z - attackCenter.z;
+	const float toTargetX = targetCenter.x - bossCenter.x;
+	const float toTargetZ = targetCenter.z - bossCenter.z;
+	const float forwardDistance = toTargetX * forward.x + toTargetZ * forward.z;
+	const float closestForwardDistance = std::clamp(forwardDistance, clampedForwardOffset, clampedHitRange);
 
+	K4E::Vector3 closestPoint = bossCenter;
+	closestPoint.x += forward.x * closestForwardDistance;
+	closestPoint.y = attackCenter.y;
+	closestPoint.z += forward.z * closestForwardDistance;
+
+	const float dx = targetCenter.x - closestPoint.x;
+	const float dy = targetCenter.y - closestPoint.y;
+	const float dz = targetCenter.z - closestPoint.z;
+
+	// 攻撃判定リーチ上の最近点とターゲット中心の距離で、重攻撃の前方判定を伸ばす。
 	const float distanceSq = dx * dx + dy * dy + dz * dz;
-	const float sumRadius = hitRadius_ + targetRadius_;
+	const float sumRadius = clampedHitRadius + targetRadius_;
 
 	if (distanceSq <= (sumRadius * sumRadius))
 	{
@@ -371,4 +389,23 @@ const char* BossHeavyPunchAttack::GetPhaseName() const
 	case Phase::None:
 	default:              return "None";	 // 未使用
 	}
+}
+/// ---------------------------------------------------------------
+///						攻撃開始距離を設定
+/// ---------------------------------------------------------------
+void BossHeavyPunchAttack::SetValidRange(float minRange, float maxRange)
+{
+	minRange_ = std::max(0.0f, minRange);
+	maxRange_ = std::max(minRange_, maxRange);
+}
+
+/// ---------------------------------------------------------------
+///					実際の攻撃判定パラメータを設定
+/// ---------------------------------------------------------------
+void BossHeavyPunchAttack::SetHitParameters(float hitRange, float hitRadius, float hitForwardOffset)
+{
+	// ParameterManagerの反映ボタンから、攻撃判定の届く距離だけを実行中攻撃へ差し替える。
+	hitRange_ = std::max(0.0f, hitRange);
+	hitRadius_ = std::max(0.0f, hitRadius);
+	hitForwardOffset_ = std::max(0.0f, hitForwardOffset);
 }

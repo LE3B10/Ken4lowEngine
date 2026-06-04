@@ -3,6 +3,7 @@
 #include "BossBase.h"
 
 #include <Windows.h>
+#include <algorithm>
 #include <cmath>
 #include <string>
 
@@ -262,6 +263,9 @@ void BossPunchAttack::DrawImGui()
 	ImGui::Text("TotalTimer        : %.2f", totalTimer_);
 	ImGui::Text("CooldownRemaining : %.2f", cooldownRemaining_);
 	ImGui::Text("Range             : %.2f - %.2f", minRange_, maxRange_);
+	ImGui::Text("HitRange          : %.2f", hitRange_);
+	ImGui::Text("HitRadius         : %.2f", hitRadius_);
+	ImGui::Text("HitForwardOffset  : %.2f", hitForwardOffset_);
 	ImGui::Text("Damage            : %.2f", damage_);
 #endif
 }
@@ -273,8 +277,8 @@ void BossPunchAttack::TryHitPlayer()
 {
 	if (owner_ == nullptr) return;
 
-	// 攻撃の中心座標を計算する
-	const K4E::Vector3 armRoot = owner_->GetRightArmRootWorldPosition();
+	// 攻撃判定は攻撃開始距離とは別に、ParameterManager由来のリーチ・半径・前方オフセットで計算する。
+	const K4E::Vector3 bossCenter = owner_->GetCenterPosition();
 	const float yaw = owner_->GetYaw();
 
 	// Yaw から前方ベクトルを計算
@@ -285,26 +289,37 @@ void BossPunchAttack::TryHitPlayer()
 		std::cos(yaw)
 	};
 
-	// 攻撃中心は腕の根元から前方に少しオフセットした位置
-	K4E::Vector3 attackCenter = armRoot;
-	attackCenter.x += forward.x * hitForwardOffset_;
+	const float clampedForwardOffset = std::max(0.0f, hitForwardOffset_);
+	const float clampedHitRange = std::max(clampedForwardOffset, hitRange_);
+	const float clampedHitRadius = std::max(0.0f, hitRadius_);
+
+	// 攻撃中心はボス中心から正面方向へオフセットし、見た目の拳位置に寄せる
+	K4E::Vector3 attackCenter = bossCenter;
+	attackCenter.x += forward.x * clampedForwardOffset;
 	attackCenter.y += 0.25f;
-	attackCenter.z += forward.z * hitForwardOffset_;
+	attackCenter.z += forward.z * clampedForwardOffset;
 
 	// ターゲットの中心座標を取得
 	const K4E::Vector3 targetCenter = owner_->GetTargetPosition();
 
-	const float dx = targetCenter.x - attackCenter.x; // XZ 平面での距離を計算
-	const float dy = targetCenter.y - attackCenter.y; // Y 軸の距離も考慮する場合はこれも使う
-	const float dz = targetCenter.z - attackCenter.z; // XZ 平面での距離を計算
+	const float toTargetX = targetCenter.x - bossCenter.x;
+	const float toTargetZ = targetCenter.z - bossCenter.z;
+	const float forwardDistance = toTargetX * forward.x + toTargetZ * forward.z;
+	const float closestForwardDistance = std::clamp(forwardDistance, clampedForwardOffset, clampedHitRange);
 
-	// 攻撃中心とターゲット中心の距離の二乗を計算
+	K4E::Vector3 closestPoint = bossCenter;
+	closestPoint.x += forward.x * closestForwardDistance;
+	closestPoint.y = attackCenter.y;
+	closestPoint.z += forward.z * closestForwardDistance;
+
+	const float dx = targetCenter.x - closestPoint.x;
+	const float dy = targetCenter.y - closestPoint.y;
+	const float dz = targetCenter.z - closestPoint.z;
+
+	// 攻撃判定リーチ上の最近点とターゲット中心の距離で、前方に伸びる近接判定を作る
 	const float distanceSq = dx * dx + dy * dy + dz * dz;
+	const float sumRadius = clampedHitRadius + targetRadius_;
 
-	// 攻撃の当たり判定半径とターゲットの半径を足した値の二乗と比較してヒット判定
-	const float sumRadius = hitRadius_ + targetRadius_;
-
-	// 距離の二乗が半径の二乗以下ならヒットと判定
 	if (distanceSq <= (sumRadius * sumRadius))
 	{
 #ifdef _DEBUG
@@ -354,4 +369,23 @@ const char* BossPunchAttack::GetPhaseName() const
 	case Phase::None:
 	default:              return "None";	 // 無効
 	}
+}
+/// ---------------------------------------------------------------
+///						攻撃開始距離を設定
+/// ---------------------------------------------------------------
+void BossPunchAttack::SetValidRange(float minRange, float maxRange)
+{
+	minRange_ = std::max(0.0f, minRange);
+	maxRange_ = std::max(minRange_, maxRange);
+}
+
+/// ---------------------------------------------------------------
+///					実際の攻撃判定パラメータを設定
+/// ---------------------------------------------------------------
+void BossPunchAttack::SetHitParameters(float hitRange, float hitRadius, float hitForwardOffset)
+{
+	// ParameterManagerの反映ボタンから、攻撃判定の届く距離だけを実行中攻撃へ差し替える。
+	hitRange_ = std::max(0.0f, hitRange);
+	hitRadius_ = std::max(0.0f, hitRadius);
+	hitForwardOffset_ = std::max(0.0f, hitForwardOffset);
 }

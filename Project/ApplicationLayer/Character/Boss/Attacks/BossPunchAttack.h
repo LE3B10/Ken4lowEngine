@@ -116,6 +116,33 @@ public: /// ---------- デバッグ参照 ---------- ///
 	/// </summary>
 	bool HasHit() const { return hasHit_; }
 
+	/// <summary>
+	/// 攻撃判定リーチを取得
+	/// </summary>
+	float GetHitRange() const { return hitRange_; }
+
+	/// <summary>
+	/// 攻撃判定半径を取得
+	/// </summary>
+	float GetHitRadius() const { return hitRadius_; }
+
+	/// <summary>
+	/// 攻撃判定前方オフセットを取得
+	/// </summary>
+	float GetHitForwardOffset() const { return hitForwardOffset_; }
+
+public: /// ---------- パラメータ反映 ---------- ///
+
+	/// <summary>
+	/// 攻撃開始距離を設定
+	/// </summary>
+	void SetValidRange(float minRange, float maxRange);
+
+	/// <summary>
+	/// 実際の攻撃判定用パラメータを設定
+	/// </summary>
+	void SetHitParameters(float hitRange, float hitRadius, float hitForwardOffset);
+
 public: /// ---------- 描画 ---------- ///
 
 	void Draw() override;
@@ -184,8 +211,9 @@ private: /// ---------- フェーズ時間 ---------- ///
 private: /// ---------- ヒット判定 ---------- ///
 
 	float damage_ = 20.0f;              // 将来プレイヤーに与えるダメージ
-	float hitRadius_ = 1.15f;           // パンチ球の半径
-	float hitForwardOffset_ = 1.35f;    // 右腕根本から前方へずらす距離
+	float hitRange_ = 6.0f;             // ボス正面方向に届く攻撃判定リーチ
+	float hitRadius_ = 2.0f;            // パンチ判定の半径
+	float hitForwardOffset_ = 3.0f;     // ボス中心から前方へ判定開始位置をずらす距離
 	float targetRadius_ = 0.65f;        // 仮のプレイヤー半径
 
 private: /// ---------- クールダウン ---------- ///

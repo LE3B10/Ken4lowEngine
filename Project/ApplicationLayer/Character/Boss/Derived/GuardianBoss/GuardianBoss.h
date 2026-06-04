@@ -99,12 +99,20 @@ protected: /// ---------- Guardian専用補助 ---------- ///
 	/// </summary>
 	bool StartAttackByNameSafe(const char* attackName);
 
+	/// <summary>
+	/// Guardian専用の攻撃判定パラメータを登録済み攻撃へ反映する
+	/// </summary>
+	void ApplyAttackHitParametersToAttacks();
+
 protected: /// ---------- Guardian固有パラメータ ---------- ///
 
 	float moveSpeed_ = 2.0f;          // 接近速度
 	float rotateSpeed_ = 4.0f;        // 旋回速度
 
 	float attackRange_ = 5.75f;       // この距離以下で攻撃開始
+	float attackHitRange_ = 6.0f;     // 実際の攻撃判定がボス正面へ届く距離
+	float attackHitRadius_ = 2.0f;    // 実際の攻撃判定の太さ
+	float attackForwardOffset_ = 3.0f;// 実際の攻撃判定をボス正面へずらす距離
 	float moveStartDistance_ = 4.8f;  // この距離より離れたら移動開始
 	float moveStopDistance_ = 4.8f;   // この距離より近づいたら移動停止
 
