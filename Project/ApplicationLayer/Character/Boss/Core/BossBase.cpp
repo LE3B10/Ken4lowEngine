@@ -42,12 +42,13 @@ namespace
 			Log("[BossBase] BossCommon.json not found. Use built-in default boss parameters.\n");
 		}
 
-		parameters->AddItem(kBossCommonGroup, "maxHP", kDefaultBossMaxHP);
-		parameters->AddItem(kBossCommonGroup, "moveSpeed", kDefaultBossMoveSpeed);
-		parameters->AddItem(kBossCommonGroup, "turnSpeed", kDefaultBossTurnSpeed);
-		parameters->AddItem(kBossCommonGroup, "stopDistance", kDefaultBossStopDistance);
-		parameters->AddItem(kBossCommonGroup, "attackRange", kDefaultBossAttackRange);
-		parameters->AddItem(kBossCommonGroup, "attackCooldownSec", kDefaultBossAttackCooldown);
+		// HPや速度などはParameterManager上で実用的な範囲だけ調整できるようにする。
+		parameters->AddItem(kBossCommonGroup, "maxHP", kDefaultBossMaxHP, 1.0f, 10000.0f);
+		parameters->AddItem(kBossCommonGroup, "moveSpeed", kDefaultBossMoveSpeed, 0.0f, 50.0f);
+		parameters->AddItem(kBossCommonGroup, "turnSpeed", kDefaultBossTurnSpeed, 0.0f, 30.0f);
+		parameters->AddItem(kBossCommonGroup, "stopDistance", kDefaultBossStopDistance, 0.0f, 100.0f);
+		parameters->AddItem(kBossCommonGroup, "attackRange", kDefaultBossAttackRange, 0.0f, 100.0f);
+		parameters->AddItem(kBossCommonGroup, "attackCooldownSec", kDefaultBossAttackCooldown, 0.0f, 30.0f);
 	}
 
 	template<typename T>
