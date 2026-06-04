@@ -52,8 +52,8 @@ void CrystalManager::Initialize(const std::vector<CrystalSpawnPoint>& spawnPoint
 	selectedCrystalIndex_ = 0;
 	nextSpawnCrystalIndex_ = 0;
 	enableCrystalEnemySpawn_ = true;
-	maxTotalCrystalSpawnEnemies_ = 9;
-	globalSpawnInterval_ = 5.0f;
+	maxTotalCrystalSpawnEnemies_ = 15;
+	globalSpawnInterval_ = 2.0f;
 	globalSpawnTimer_ = 0.0f;
 	maxSpawnPerInterval_ = 1;
 	debugAliveNormalEnemyCount_ = 0;

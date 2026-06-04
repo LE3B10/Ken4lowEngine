@@ -1,6 +1,6 @@
 {
     "BossCommon": {
-        "maxHP": 300.0,
+        "maxHP": 3000.0,
         "moveSpeed": 2.0,
         "turnSpeed": 4.0,
         "stopDistance": 3.0,
