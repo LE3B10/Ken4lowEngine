@@ -44,17 +44,18 @@ namespace
 			Log("[GuardianBoss] GuardianBoss.json not found. Use built-in default guardian parameters.\n");
 		}
 
-		parameters->AddItem(kGuardianBossGroup, "moveSpeed", 2.0f);
-		parameters->AddItem(kGuardianBossGroup, "rotateSpeed", 4.0f);
-		parameters->AddItem(kGuardianBossGroup, "attackRange", 5.75f);
-		parameters->AddItem(kGuardianBossGroup, "moveStartDistance", 4.8f);
-		parameters->AddItem(kGuardianBossGroup, "moveStopDistance", 4.8f);
-		parameters->AddItem(kGuardianBossGroup, "attackDuration", 0.85f);
-		parameters->AddItem(kGuardianBossGroup, "attackCooldown", 1.20f);
-		parameters->AddItem(kGuardianBossGroup, "staggerDuration", 0.30f);
-		parameters->AddItem(kGuardianBossGroup, "heavyPunchReuseDelay", 1.0f);
-		parameters->AddItem(kGuardianBossGroup, "animationWalkSpeed", 6.0f);
-		parameters->AddItem(kGuardianBossGroup, "animationWalkAmplitude", 0.55f);
+		// 速度・攻撃範囲・時間系パラメータは巨大な範囲ではなく実用的な範囲で編集する。
+		parameters->AddItem(kGuardianBossGroup, "moveSpeed", 2.0f, 0.0f, 50.0f);
+		parameters->AddItem(kGuardianBossGroup, "rotateSpeed", 4.0f, 0.0f, 30.0f);
+		parameters->AddItem(kGuardianBossGroup, "attackRange", 5.75f, 0.0f, 100.0f);
+		parameters->AddItem(kGuardianBossGroup, "moveStartDistance", 4.8f, 0.0f, 100.0f);
+		parameters->AddItem(kGuardianBossGroup, "moveStopDistance", 4.8f, 0.0f, 100.0f);
+		parameters->AddItem(kGuardianBossGroup, "attackDuration", 0.85f, 0.0f, 30.0f);
+		parameters->AddItem(kGuardianBossGroup, "attackCooldown", 1.20f, 0.0f, 30.0f);
+		parameters->AddItem(kGuardianBossGroup, "staggerDuration", 0.30f, 0.0f, 30.0f);
+		parameters->AddItem(kGuardianBossGroup, "heavyPunchReuseDelay", 1.0f, 0.0f, 30.0f);
+		parameters->AddItem(kGuardianBossGroup, "animationWalkSpeed", 6.0f, 0.0f, 30.0f);
+		parameters->AddItem(kGuardianBossGroup, "animationWalkAmplitude", 0.55f, 0.0f, 5.0f);
 		parameters->AddItem(kGuardianBossGroup, "skinPath", std::string("Characters/zombie.dds"));
 	}
 

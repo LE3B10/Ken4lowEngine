@@ -6,6 +6,7 @@
 #include <limits>
 #include <functional>
 #include <type_traits>
+#include <optional>
 
 #include "Vector3.h"
 #include "Vector4.h"
@@ -23,11 +24,22 @@ class ParameterManager
 {
 private: /// ---------- 構造体 ---------- ///
 
+	using ItemValue = std::variant<int32_t, uint32_t, float, Vector3, Vector4, bool, std::string>;
+	using RangeValue = std::variant<int32_t, uint32_t, float, Vector3>;
+
+	// 項目ごとのImGui調整範囲
+	struct Range
+	{
+		RangeValue min;
+		RangeValue max;
+	};
+
 	// 項目構造体
 	struct Item
 	{
 		// 項目の値
-		std::variant<int32_t, uint32_t, float, Vector3, Vector4, bool, std::string> value;
+		ItemValue value;
+		std::optional<Range> range;
 	};
 
 	// グループ構造体
@@ -90,11 +102,21 @@ public: /// ---------- 項目の設定 ---------- ///
 			std::is_same_v<T, Vector3> || std::is_same_v<T, Vector4> || std::is_same_v<T, bool> || std::is_same_v<T, std::string>,
 			"Unsupported type for SetValue"); // サポートされていない型の場合はコンパイルエラー
 
-		// グループを取得し、新しい項目を作成して設定する
+		// 既存項目の調整範囲を残したまま値だけ更新する。
 		Group& group = datas_[groupName];
-		Item newItem{};
-		newItem.value = value;
-		group.items[key] = newItem;
+		Item& item = group.items[key];
+		item.value = value;
+		if constexpr (std::is_same_v<T, int32_t> || std::is_same_v<T, uint32_t> || std::is_same_v<T, float> || std::is_same_v<T, Vector3>)
+		{
+			if (item.range && (!std::holds_alternative<T>(item.range->min) || !std::holds_alternative<T>(item.range->max)))
+			{
+				item.range.reset();
+			}
+		}
+		else
+		{
+			item.range.reset();
+		}
 	}
 
 public: /// ---------- 項目の追加 ---------- ///
@@ -114,6 +136,32 @@ public: /// ---------- 項目の追加 ---------- ///
 		{
 			SetValue(groupName, key, value);
 		}
+	}
+
+	/// <summary>
+	/// ImGuiの調整範囲付きで項目を追加するテンプレート関数
+	/// </summary>
+	template<typename T>
+	void AddItem(const std::string& groupName, const std::string& key, const T& value, const T& minValue, const T& maxValue)
+	{
+		static_assert(std::is_same_v<T, int32_t> || std::is_same_v<T, uint32_t> || std::is_same_v<T, float> || std::is_same_v<T, Vector3>,
+			"Unsupported type for ranged AddItem"); // サポートされていない型の場合はコンパイルエラー
+
+		AddItem(groupName, key, value);
+		SetRange(groupName, key, minValue, maxValue);
+	}
+
+	/// <summary>
+	/// 既存項目のImGui調整範囲を設定するテンプレート関数
+	/// </summary>
+	template<typename T>
+	void SetRange(const std::string& groupName, const std::string& key, const T& minValue, const T& maxValue)
+	{
+		static_assert(std::is_same_v<T, int32_t> || std::is_same_v<T, uint32_t> || std::is_same_v<T, float> || std::is_same_v<T, Vector3>,
+			"Unsupported type for SetRange"); // サポートされていない型の場合はコンパイルエラー
+
+		Item& item = datas_[groupName].items[key];
+		item.range = Range{ minValue, maxValue };
 	}
 
 public: /// ---------- 項目の取得 ---------- ///

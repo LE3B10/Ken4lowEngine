@@ -5,6 +5,7 @@
 #include <exception>
 #include <filesystem>
 #include <system_error>
+#include <cstdint>
 
 
 namespace
@@ -442,29 +443,73 @@ void ParameterManager::RegisterCustomDraw(const std::string& groupName, std::fun
 void ParameterManager::DrawItem(const std::string& itemName, ParameterManager::Item& item)
 {
 #ifdef USE_IMGUI
+	constexpr int32_t kDefaultIntMin = 0;
+	constexpr int32_t kDefaultIntMax = 10000;
+	constexpr uint32_t kDefaultUIntMin = 0u;
+	constexpr uint32_t kDefaultUIntMax = 10000u;
+	constexpr float kDefaultFloatMin = 0.0f;
+	constexpr float kDefaultFloatMax = 10000.0f;
+
 	/// ---------- int32_t型を保持している場合 ---------- ///
 	if (std::holds_alternative<int32_t>(item.value))
 	{
 		int32_t& value = std::get<int32_t>(item.value);
-		ImGui::SliderInt(itemName.c_str(), &value, 0, 100);
+		int32_t minValue = kDefaultIntMin;
+		int32_t maxValue = kDefaultIntMax;
+		if (item.range && std::holds_alternative<int32_t>(item.range->min) && std::holds_alternative<int32_t>(item.range->max))
+		{
+			minValue = std::get<int32_t>(item.range->min);
+			maxValue = std::get<int32_t>(item.range->max);
+		}
+		int sliderValue = static_cast<int>(value);
+		// SliderIntはint範囲内の実用的なmin/maxだけを渡し、符号なし最大値相当の値を避ける。
+		if (ImGui::SliderInt(itemName.c_str(), &sliderValue, static_cast<int>(minValue), static_cast<int>(maxValue)))
+		{
+			value = static_cast<int32_t>(sliderValue);
+		}
 	}
 	/// ---------- uint32_t型を保持している場合 ---------- ///
 	else if (std::holds_alternative<uint32_t>(item.value))
 	{
 		uint32_t& value = std::get<uint32_t>(item.value);
-		ImGui::Combo(itemName.c_str(), reinterpret_cast<int*>(&value), "NoLight\0DirectionalLight\0PointLight\0SpotLight\0");
+		uint32_t minValue = kDefaultUIntMin;
+		uint32_t maxValue = kDefaultUIntMax;
+		if (item.range && std::holds_alternative<uint32_t>(item.range->min) && std::holds_alternative<uint32_t>(item.range->max))
+		{
+			minValue = std::get<uint32_t>(item.range->min);
+			maxValue = std::get<uint32_t>(item.range->max);
+		}
+		float speed = 1.0f;
+		// uint32_tはSliderIntに渡さず、U32対応のDragScalarで符号なし範囲を安全に扱う。
+		ImGui::DragScalar(itemName.c_str(), ImGuiDataType_U32, &value, speed, &minValue, &maxValue);
 	}
 	/// ---------- float型を保持している場合 ---------- ///
 	else if (std::holds_alternative<float>(item.value))
 	{
 		float& value = std::get<float>(item.value);
-		ImGui::SliderFloat(itemName.c_str(), &value, 0.0f, 100.0f);
+		float minValue = kDefaultFloatMin;
+		float maxValue = kDefaultFloatMax;
+		if (item.range && std::holds_alternative<float>(item.range->min) && std::holds_alternative<float>(item.range->max))
+		{
+			minValue = std::get<float>(item.range->min);
+			maxValue = std::get<float>(item.range->max);
+		}
+		// SliderFloatは巨大すぎる最大値ではなく、指定範囲または安全な既定範囲で調整しやすくする。
+		ImGui::SliderFloat(itemName.c_str(), &value, minValue, maxValue);
 	}
 	/// ---------- Vector3を保持している場合 ---------- ///
 	else if (std::holds_alternative<Vector3>(item.value))
 	{
 		Vector3& value = std::get<Vector3>(item.value);
-		ImGui::DragFloat3(itemName.c_str(), reinterpret_cast<float*>(&value));
+		Vector3 minValue = { kDefaultFloatMin, kDefaultFloatMin, kDefaultFloatMin };
+		Vector3 maxValue = { kDefaultFloatMax, kDefaultFloatMax, kDefaultFloatMax };
+		if (item.range && std::holds_alternative<Vector3>(item.range->min) && std::holds_alternative<Vector3>(item.range->max))
+		{
+			minValue = std::get<Vector3>(item.range->min);
+			maxValue = std::get<Vector3>(item.range->max);
+		}
+		// Vector3も項目ごとのmin/maxをDragFloat3へ渡し、座標系などの実用範囲を設定可能にする。
+		ImGui::DragFloat3(itemName.c_str(), reinterpret_cast<float*>(&value), 0.1f, minValue.x, maxValue.x);
 	}
 	/// ------- Vector4を保持している場合 ---------- ///
 	else if (std::holds_alternative<Vector4>(item.value))
@@ -493,5 +538,4 @@ void ParameterManager::DrawItem(const std::string& itemName, ParameterManager::I
 	(void)item;
 #endif // USE_IMGUI
 }
-
 } // namespace Ken4lowEngine
