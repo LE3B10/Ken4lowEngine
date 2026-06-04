@@ -401,22 +401,8 @@ void GuardianShockwaveAttack::LockShockwaveDirection()
 	}
 
 	lockedOrigin_ = owner_->GetCenterPosition();
-	K4E::Vector3 toTarget{
-		owner_->GetTargetPosition().x - lockedOrigin_.x,
-		0.0f,
-		owner_->GetTargetPosition().z - lockedOrigin_.z
-	};
-	const float lenSq = toTarget.x * toTarget.x + toTarget.z * toTarget.z;
-	if (lenSq > 0.0001f)
-	{
-		const float invLen = 1.0f / std::sqrt(lenSq);
-		lockedForward_ = { toTarget.x * invLen, 0.0f, toTarget.z * invLen };
-		owner_->SetYaw(std::atan2(lockedForward_.x, lockedForward_.z));
-	}
-	else
-	{
-		lockedForward_ = { std::sin(owner_->GetYaw()), 0.0f, std::cos(owner_->GetYaw()) };
-	}
+	lockedForward_ = owner_->GetDirectionToTargetXZOrForward(lockedOrigin_);
+	owner_->FaceDirectionXZImmediate(lockedForward_); // 衝撃波は開始時に固定した前方だけで判定・エフェクトを出す。
 	hasLockedDirection_ = true;
 }
 

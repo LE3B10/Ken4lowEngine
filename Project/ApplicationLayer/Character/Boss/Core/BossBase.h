@@ -164,6 +164,16 @@ public: /// ---------- 位置 / 向き ---------- ///
 	void SetYaw(float yaw) { body_.transform.rotate_.y = yaw; }
 
 	/// <summary>
+	/// origin からターゲットへ向かうXZ正規化方向を返す
+	/// </summary>
+	K4E::Vector3 GetDirectionToTargetXZOrForward(const K4E::Vector3& origin) const;
+
+	/// <summary>
+	/// 共通の向き制御としてXZ方向へ即時にYawを合わせる
+	/// </summary>
+	void FaceDirectionXZImmediate(const K4E::Vector3& direction);
+
+	/// <summary>
 	/// 中心座標は BaseCharacter の実装をそのまま使う
 	/// 必要なら派生側で override 可
 	/// </summary>
