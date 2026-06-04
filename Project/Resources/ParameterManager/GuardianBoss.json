@@ -28,7 +28,6 @@
         "ParticleSpawnCount": 48,
         "ParticleSpawnRadius": 0.5,
         "ParticleLifetime": 1.0,
-        "ParticleInitialSpeed": 1.0,
-        "GuardianModelYawOffsetDeg": 180.0
+        "ParticleInitialSpeed": 1.0
     }
 }
