@@ -21,6 +21,7 @@ public: /// ---------- 列挙型 ---------- ///
 	{
 		None,       // 無効
 		Windup,     // 予備動作
+		Charge,     // 溜め
 		Active,     // 判定発生
 		Recovery    // 後隙
 	};
@@ -170,6 +171,7 @@ private: /// ---------- 内部処理 ---------- ///
 	/// 3段階フェーズ更新
 	/// </summary>
 	void UpdateWindup(float deltaTime);
+	void UpdateCharge(float deltaTime);
 	void UpdateActive(float deltaTime);
 	void UpdateRecovery(float deltaTime);
 
@@ -224,7 +226,8 @@ private: /// ---------- 距離条件 ---------- ///
 
 private: /// ---------- フェーズ時間 ---------- ///
 
-	float startupTime_ = 0.80f;  // 予備動作
+	float startupTime_ = 0.55f;  // 予備動作
+	float chargeTime_ = 0.25f;   // 溜め
 	float activeTime_ = 0.25f;   // 判定時間
 	float recoveryTime_ = 1.00f; // 後隙
 
