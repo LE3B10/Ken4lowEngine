@@ -13,6 +13,7 @@ class EnemyParticleEffectSystem
 {
 public:
     void Initialize();
+    bool IsInitialized() const { return isInitialized_; }
 
     // 被弾位置が取れている場合はこちら
     void SpawnHitEffect(const K4E::Vector3& hitWorldPos);

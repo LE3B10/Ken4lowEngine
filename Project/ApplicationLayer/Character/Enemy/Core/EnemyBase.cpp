@@ -647,7 +647,8 @@ void EnemyBase::SetDeathDebugComparePositions(const Vector3& playerPosition, con
 
 void EnemyBase::SpawnHitEffectAt(const K4E::Vector3& worldPos)
 {
-	if (!particleEffectSystem_)
+	// 死亡済み/未初期化の敵から壊れたエフェクト参照を呼ばないようにする。
+	if (isDead_ || removable_ || !particleEffectSystem_ || !particleEffectSystem_->IsInitialized())
 	{
 		return;
 	}
@@ -663,7 +664,7 @@ void EnemyBase::OnKilled()
 	CaptureDeathEffectOrigin(deathEffectOrigin_, deathEffectRotation_);
 
 	// 死亡パーティクル
-	if (particleEffectSystem_)
+	if (particleEffectSystem_ && particleEffectSystem_->IsInitialized())
 	{
 		particleEffectSystem_->SpawnDeathEffect(deathEffectOrigin_);
 	}
@@ -1071,10 +1072,7 @@ void EnemyBase::OnBulletHit(Collider* bulletCollider)
 	}
 
 	// 被弾パーティクル
-	if (particleEffectSystem_)
-	{
-		particleEffectSystem_->SpawnHitEffect(hitPos);
-	}
+	SpawnHitEffectAt(hitPos);
 
 	TakeDamage(damage, hitDir, hitPower);
 }
