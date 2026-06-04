@@ -1,8 +1,8 @@
 #define NOMINMAX
 #include "BossHeavyPunchAttack.h"
 #include "BossBase.h"
-#include "GpuParticleManager.h"
-#include "GpuParticleEmitter.h"
+#include "BossAttackEffects.h"
+#include "GpuParticleType.h"
 
 #include <algorithm>
 #include <cmath>
@@ -56,6 +56,8 @@ void BossHeavyPunchAttack::Start()
 	phase_ = Phase::None;
 	phaseTimer_ = 0.0f;
 	totalTimer_ = 0.0f;
+
+	LockAttackDirection(); // 攻撃中に毎フレーム向き直らないよう、開始時の前方を固定する。
 
 	// HeavyPunch は最初に Windup から始まる
 	ChangePhase(Phase::Windup);
@@ -300,14 +302,7 @@ void BossHeavyPunchAttack::TryHitPlayer()
 
 	// 攻撃判定は攻撃開始距離とは別に、ParameterManager由来のリーチ・半径・前方オフセット・扇形角度で計算する。
 	const K4E::Vector3 bossCenter = owner_->GetCenterPosition();
-	const float yaw = owner_->GetYaw();
-
-	K4E::Vector3 forward
-	{
-		std::sin(yaw),
-		0.0f,
-		std::cos(yaw)
-	};
+	K4E::Vector3 forward = hasLockedDirection_ ? lockedForward_ : K4E::Vector3{ std::sin(owner_->GetYaw()), 0.0f, std::cos(owner_->GetYaw()) };
 
 	const float clampedForwardOffset = std::max(0.0f, hitForwardOffset_);
 	const float clampedHitRange = std::max(clampedForwardOffset, hitRange_);
@@ -359,29 +354,7 @@ void BossHeavyPunchAttack::TryHitPlayer()
 		// ボス近接攻撃の発生フレームで1回だけPlayerへダメージを流す。
 		if (owner_->ApplyDamageToTargetPlayer(damage_, &attackCenter))
 		{
-			if (auto* particleManager = K4E::GpuParticleManager::GetInstance())
-			{
-				// ヒット位置に専用GPUパーティクルを出し、パンチ命中の手応えを強める。
-				K4E::GpuParticleEmitter::EmitterInfo info{};
-				info.textureFilePath = "Effects/white.dds";
-				info.radius = particleSpawnRadius_;
-				info.kind = K4E::GpuParticleKind::Sprite;
-				info.spriteType = K4E::GpuParticleType::Debris;
-				info.billboardFlags = K4E::BillboardMode::Camera;
-				info.lifeScale = particleLifetimeScale_;
-				info.speedScale = particleInitialSpeedScale_;
-				if (auto* emitter = particleManager->GetEmitter("GuardianHeavyPunchImpact"))
-				{
-					emitter->GetInfoMutable() = info;
-					emitter->SetPosition(attackCenter);
-					emitter->RequestEmit(particleSpawnCount_);
-				}
-				else if (auto* created = particleManager->CreateEmitter("GuardianHeavyPunchImpact", info))
-				{
-					created->SetPosition(attackCenter);
-					created->RequestEmit(particleSpawnCount_);
-				}
-			}
+			BossAttackEffects::EmitGuardianHitEffect("GuardianHeavyPunchImpact", K4E::GpuParticleType::Debris, attackCenter, particleSpawnCount_, particleSpawnRadius_, particleLifetimeScale_, particleInitialSpeedScale_);
 			Log("[BossHeavyPunchAttack] Player damage applied.\n");
 		}
 	}
@@ -391,6 +364,31 @@ void BossHeavyPunchAttack::TryHitPlayer()
 		Log("[BossHeavyPunchAttack] Heavy hit miss.\n");
 #endif
 	}
+}
+
+
+void BossHeavyPunchAttack::LockAttackDirection()
+{
+	if (owner_ == nullptr)
+	{
+		hasLockedDirection_ = false;
+		return;
+	}
+
+	const K4E::Vector3 origin = owner_->GetCenterPosition();
+	K4E::Vector3 toTarget{ owner_->GetTargetPosition().x - origin.x, 0.0f, owner_->GetTargetPosition().z - origin.z };
+	const float lenSq = toTarget.x * toTarget.x + toTarget.z * toTarget.z;
+	if (lenSq > 0.0001f)
+	{
+		const float invLen = 1.0f / std::sqrt(lenSq);
+		lockedForward_ = { toTarget.x * invLen, 0.0f, toTarget.z * invLen };
+		owner_->SetYaw(std::atan2(lockedForward_.x, lockedForward_.z));
+	}
+	else
+	{
+		lockedForward_ = { std::sin(owner_->GetYaw()), 0.0f, std::cos(owner_->GetYaw()) };
+	}
+	hasLockedDirection_ = true;
 }
 
 /// ---------------------------------------------------------------

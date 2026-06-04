@@ -132,8 +132,16 @@ float BossBrain::EvaluateAttackScore(const IBossAttack& attack) const
 	// 基本スコアは攻撃の優先度
 	float score = static_cast<float>(attack.GetPriority());
 
-	// 攻撃距離が有効範囲内ならスコアを上げる
+	// 攻撃距離が有効範囲内ならスコアを上げ、有効外なら候補内でも選ばれにくくする。
 	const float distance = owner_->GetDistanceToTargetXZ();
+	if (distance >= attack.GetMinRange() && distance <= attack.GetMaxRange())
+	{
+		score += 20.0f;
+	}
+	else
+	{
+		score -= 50.0f;
+	}
 
 	// 攻撃名で状況補正をかける
 	if (std::strcmp(attack.GetName(), "HeavyPunch") == 0)
@@ -154,9 +162,16 @@ float BossBrain::EvaluateAttackScore(const IBossAttack& attack) const
 	// Shockwave は中距離で選ばれやすくし、近距離ではパンチ系へ譲る。
 	else if (std::strcmp(attack.GetName(), "GuardianShockwave") == 0)
 	{
-		if (distance >= 5.0f) score += 28.0f;
-		else if (distance >= 3.0f) score += 10.0f;
-		else score -= 25.0f;
+		if (distance >= attack.GetMinRange() && distance <= attack.GetMaxRange()) score += 40.0f;
+		else if (distance < attack.GetMinRange()) score -= 30.0f;
+		else score -= 45.0f;
+	}
+
+	// ChargeAttack は遠距離で距離を詰めるため、遠距離帯では強く優遇する。
+	else if (std::strcmp(attack.GetName(), "ChargeAttack") == 0)
+	{
+		if (distance >= attack.GetMinRange() && distance <= attack.GetMaxRange()) score += 45.0f;
+		else score -= 35.0f;
 	}
 
 	// Punch は Heavy より少し遠めでも届く想定で、近距離以外でもそこそこ優遇

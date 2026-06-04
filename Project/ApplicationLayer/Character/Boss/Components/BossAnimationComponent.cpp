@@ -7,6 +7,8 @@
 
 #include "BossPunchAttack.h"
 #include "BossHeavyPunchAttack.h"
+#include "GuardianShockwaveAttack.h"
+#include "BossChargeAttack.h"
 
 #include <LinearInterpolation.h>
 
@@ -269,6 +271,18 @@ void BossAnimationComponent::UpdateAttackAnimation(BossBase& boss, float deltaTi
 		}
 	}
 
+	// 専用クラス未登録のGuardian攻撃はここで既存ポーズを流用して分かりやすい予備動作を出す。
+	if (dynamic_cast<GuardianShockwaveAttack*>(currentAttack))
+	{
+		ApplyPose(boss, BuildShockwavePose(), deltaTime);
+		return;
+	}
+	if (dynamic_cast<BossChargeAttack*>(currentAttack))
+	{
+		ApplyPose(boss, BuildChargePose(), deltaTime);
+		return;
+	}
+
 	// 該当アニメがない場合は最低限の姿勢だけを適用
 	ApplyPose(boss, BuildDefaultAttackPose(), deltaTime);
 }
@@ -526,6 +540,149 @@ BossAnimationComponent::BossPose BossAnimationComponent::BuildHeavyPunchPose() c
 		break;
 	}
 
+	return pose;
+}
+
+
+/// -------------------------------------------------------------
+///			Shockwave は重攻撃の溜めを流用し、叩きつけを強調する
+/// -------------------------------------------------------------
+BossAnimationComponent::BossPose BossAnimationComponent::BuildShockwavePose() const
+{
+	BossPose pose = BuildDefaultAttackPose();
+	GuardianShockwaveAttack::Phase phase = GuardianShockwaveAttack::Phase::None;
+	float phaseTime = 0.0f;
+	if (owner_)
+	{
+		if (IBossAttack* current = GetCurrentAttack(*owner_))
+		{
+			if (auto* shockwave = dynamic_cast<GuardianShockwaveAttack*>(current))
+			{
+				phase = shockwave->GetPhase();
+				phaseTime = shockwave->GetPhaseTimer();
+			}
+		}
+	}
+
+	switch (phase)
+	{
+	case GuardianShockwaveAttack::Phase::Windup:
+		{
+			const float t = Smoothstep01(phaseTime / 0.80f);
+			pose.bodyPitch = Lerp(0.03f, -0.24f, t);
+			pose.headPitch = Lerp(0.0f, -0.12f, t);
+			pose.leftArmX = Lerp(-0.05f, -2.25f, t);
+			pose.rightArmX = Lerp(-0.05f, -2.25f, t);
+			pose.leftArmZ = Lerp(0.0f, 0.55f, t);
+			pose.rightArmZ = Lerp(0.0f, -0.55f, t);
+			pose.leftLegX = Lerp(0.0f, 0.12f, t);
+			pose.rightLegX = Lerp(0.0f, 0.12f, t);
+			break;
+		}
+	case GuardianShockwaveAttack::Phase::Charge:
+		{
+			const float t = Smoothstep01(phaseTime / 0.25f);
+			pose.bodyPitch = Lerp(-0.24f, -0.30f, t);
+			pose.headPitch = -0.12f;
+			pose.leftArmX = Lerp(-2.25f, -2.45f, t);
+			pose.rightArmX = Lerp(-2.25f, -2.45f, t);
+			pose.leftArmZ = 0.55f;
+			pose.rightArmZ = -0.55f;
+			pose.leftLegX = 0.14f;
+			pose.rightLegX = 0.14f;
+			break;
+		}
+	case GuardianShockwaveAttack::Phase::Active:
+		{
+			const float t = Smoothstep01(phaseTime / 0.25f);
+			pose.bodyPitch = Lerp(-0.24f, 0.48f, t);
+			pose.headPitch = Lerp(-0.12f, 0.14f, t);
+			pose.leftArmX = Lerp(-2.25f, 1.15f, t);
+			pose.rightArmX = Lerp(-2.25f, 1.15f, t);
+			pose.leftArmZ = Lerp(0.55f, 0.05f, t);
+			pose.rightArmZ = Lerp(-0.55f, -0.05f, t);
+			pose.leftLegX = -0.10f;
+			pose.rightLegX = -0.10f;
+			break;
+		}
+	case GuardianShockwaveAttack::Phase::Recovery:
+		{
+			const float t = Smoothstep01(phaseTime / 1.00f);
+			pose.bodyPitch = Lerp(0.48f, 0.03f, t);
+			pose.headPitch = Lerp(0.14f, 0.0f, t);
+			pose.leftArmX = Lerp(1.15f, -0.05f, t);
+			pose.rightArmX = Lerp(1.15f, -0.05f, t);
+			pose.leftLegX = Lerp(-0.10f, 0.0f, t);
+			pose.rightLegX = Lerp(-0.10f, 0.0f, t);
+			break;
+		}
+	case GuardianShockwaveAttack::Phase::None:
+	default:
+		break;
+	}
+	return pose;
+}
+
+/// -------------------------------------------------------------
+///			ChargeAttack は低く構えてから突進する姿勢を作る
+/// -------------------------------------------------------------
+BossAnimationComponent::BossPose BossAnimationComponent::BuildChargePose() const
+{
+	BossPose pose = BuildDefaultAttackPose();
+	BossChargeAttack::Phase phase = BossChargeAttack::Phase::None;
+	float phaseTime = 0.0f;
+	if (owner_)
+	{
+		if (IBossAttack* current = GetCurrentAttack(*owner_))
+		{
+			if (auto* charge = dynamic_cast<BossChargeAttack*>(current))
+			{
+				phase = charge->GetPhase();
+				phaseTime = charge->GetPhaseTimer();
+			}
+		}
+	}
+
+	switch (phase)
+	{
+	case BossChargeAttack::Phase::Windup:
+		{
+			const float t = Smoothstep01(phaseTime / 0.60f);
+			pose.bodyPitch = Lerp(0.03f, 0.32f, t);
+			pose.headPitch = Lerp(0.0f, -0.10f, t);
+			pose.leftArmX = Lerp(-0.05f, -0.90f, t);
+			pose.rightArmX = Lerp(-0.05f, -0.90f, t);
+			pose.leftArmZ = Lerp(0.0f, 0.35f, t);
+			pose.rightArmZ = Lerp(0.0f, -0.35f, t);
+			pose.leftLegX = Lerp(0.0f, 0.22f, t);
+			pose.rightLegX = Lerp(0.0f, -0.18f, t);
+			break;
+		}
+	case BossChargeAttack::Phase::Charging:
+		pose.bodyPitch = 0.42f;
+		pose.headPitch = -0.06f;
+		pose.leftArmX = -0.65f;
+		pose.rightArmX = -0.65f;
+		pose.leftArmZ = 0.20f;
+		pose.rightArmZ = -0.20f;
+		pose.leftLegX = 0.30f;
+		pose.rightLegX = -0.25f;
+		break;
+	case BossChargeAttack::Phase::Recovery:
+		{
+			const float t = Smoothstep01(phaseTime / 1.00f);
+			pose.bodyPitch = Lerp(0.42f, 0.03f, t);
+			pose.headPitch = Lerp(-0.06f, 0.0f, t);
+			pose.leftArmX = Lerp(-0.65f, -0.05f, t);
+			pose.rightArmX = Lerp(-0.65f, -0.05f, t);
+			pose.leftLegX = Lerp(0.30f, 0.0f, t);
+			pose.rightLegX = Lerp(-0.25f, 0.0f, t);
+			break;
+		}
+	case BossChargeAttack::Phase::None:
+	default:
+		break;
+	}
 	return pose;
 }
 

@@ -2,6 +2,9 @@
 #include "IBossAttack.h"
 
 #include <cstdint>
+#include <Vector3.h>
+
+namespace K4E = Ken4lowEngine;
 
 /// ---------- 前方宣言 ---------- ///
 class BossBase;
@@ -190,6 +193,9 @@ private: /// ---------- 内部処理 ---------- ///
 	/// </summary>
 	const char* GetPhaseName() const;
 
+	/// <summary>攻撃開始時のターゲット方向を固定する</summary>
+	void LockAttackDirection();
+
 private: /// ---------- 参照 ---------- ///
 
 	BossBase* owner_ = nullptr;
@@ -203,6 +209,9 @@ private: /// ---------- 実行状態 ---------- ///
 	Phase phase_ = Phase::None; // 現在フェーズ
 	float phaseTimer_ = 0.0f;   // フェーズ内経過時間
 	float totalTimer_ = 0.0f;   // 攻撃開始からの合計時間
+
+	K4E::Vector3 lockedForward_{ 0.0f, 0.0f, 1.0f }; // 攻撃開始時に固定した前方
+	bool hasLockedDirection_ = false; // 攻撃中の向き反転防止用
 
 private: /// ---------- 距離条件 ---------- ///
 

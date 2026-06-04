@@ -3,6 +3,7 @@
 #include "BossPunchAttack.h"
 #include "BossHeavyPunchAttack.h"
 #include "GuardianShockwaveAttack.h"
+#include "BossChargeAttack.h"
 #include <LinearInterpolation.h>
 #include <LogString.h>
 #include <ParameterManager.h>
@@ -60,6 +61,15 @@ namespace
 		parameters->AddItem(kGuardianBossGroup, "GuardianShockwaveStartupSec", 0.8f, 0.0f, 10.0f);
 		parameters->AddItem(kGuardianBossGroup, "GuardianShockwaveActiveSec", 0.25f, 0.0f, 10.0f);
 		parameters->AddItem(kGuardianBossGroup, "GuardianShockwaveRecoverySec", 1.0f, 0.0f, 10.0f);
+		parameters->AddItem(kGuardianBossGroup, "GuardianCloseAttackRange", 4.0f, 0.0f, 100.0f);
+		parameters->AddItem(kGuardianBossGroup, "GuardianMiddleAttackRange", 10.0f, 0.0f, 100.0f);
+		parameters->AddItem(kGuardianBossGroup, "GuardianFarAttackRange", 20.0f, 0.0f, 100.0f);
+		parameters->AddItem(kGuardianBossGroup, "GuardianChargeSpeed", 18.0f, 0.0f, 100.0f);
+		parameters->AddItem(kGuardianBossGroup, "GuardianChargeDistance", 12.0f, 0.0f, 100.0f);
+		parameters->AddItem(kGuardianBossGroup, "GuardianChargeDamage", 20.0f, 0.0f, 999.0f);
+		parameters->AddItem(kGuardianBossGroup, "GuardianChargeStartupSec", 0.6f, 0.0f, 10.0f);
+		parameters->AddItem(kGuardianBossGroup, "GuardianChargeRecoverySec", 1.0f, 0.0f, 10.0f);
+		parameters->AddItem(kGuardianBossGroup, "GuardianChargeCooldown", 8.0f, 0.0f, 60.0f);
 		parameters->AddItem(kGuardianBossGroup, "HitFlashDuration", 0.18f, 0.0f, 3.0f);
 		parameters->AddItem(kGuardianBossGroup, "HitFlashIntensity", 2.2f, 0.0f, 10.0f);
 		parameters->AddItem(kGuardianBossGroup, "ParticleSpawnCount", 48, 0, 1000);
@@ -90,6 +100,15 @@ namespace
 		parameters->SetDisplayName(kGuardianBossGroup, "GuardianShockwaveStartupSec", "衝撃波予備動作");
 		parameters->SetDisplayName(kGuardianBossGroup, "GuardianShockwaveActiveSec", "衝撃波判定時間");
 		parameters->SetDisplayName(kGuardianBossGroup, "GuardianShockwaveRecoverySec", "衝撃波後隙");
+		parameters->SetDisplayName(kGuardianBossGroup, "GuardianCloseAttackRange", "近距離攻撃範囲");
+		parameters->SetDisplayName(kGuardianBossGroup, "GuardianMiddleAttackRange", "中距離攻撃範囲");
+		parameters->SetDisplayName(kGuardianBossGroup, "GuardianFarAttackRange", "遠距離検知範囲");
+		parameters->SetDisplayName(kGuardianBossGroup, "GuardianChargeSpeed", "突進速度");
+		parameters->SetDisplayName(kGuardianBossGroup, "GuardianChargeDistance", "突進距離");
+		parameters->SetDisplayName(kGuardianBossGroup, "GuardianChargeDamage", "突進ダメージ");
+		parameters->SetDisplayName(kGuardianBossGroup, "GuardianChargeStartupSec", "突進予備動作");
+		parameters->SetDisplayName(kGuardianBossGroup, "GuardianChargeRecoverySec", "突進後隙");
+		parameters->SetDisplayName(kGuardianBossGroup, "GuardianChargeCooldown", "突進クールタイム");
 		parameters->SetDisplayName(kGuardianBossGroup, "HitFlashDuration", "被弾点滅時間");
 		parameters->SetDisplayName(kGuardianBossGroup, "HitFlashIntensity", "被弾点滅強度");
 		parameters->SetDisplayName(kGuardianBossGroup, "ParticleSpawnCount", "ヒット粒子数");
@@ -154,6 +173,17 @@ void GuardianBoss::ApplyParameters()
 	shockwaveStartupSec_ = GetGuardianParameterOrDefault("GuardianShockwaveStartupSec", shockwaveStartupSec_); // Guardian衝撃波予備動作をJSON調整値から復元する
 	shockwaveActiveSec_ = GetGuardianParameterOrDefault("GuardianShockwaveActiveSec", shockwaveActiveSec_); // Guardian衝撃波判定時間をJSON調整値から復元する
 	shockwaveRecoverySec_ = GetGuardianParameterOrDefault("GuardianShockwaveRecoverySec", shockwaveRecoverySec_); // Guardian衝撃波後隙をJSON調整値から復元する
+	closeAttackRange_ = GetGuardianParameterOrDefault("GuardianCloseAttackRange", closeAttackRange_);
+	middleAttackRange_ = GetGuardianParameterOrDefault("GuardianMiddleAttackRange", middleAttackRange_);
+	farAttackRange_ = GetGuardianParameterOrDefault("GuardianFarAttackRange", farAttackRange_);
+	chargeSpeed_ = GetGuardianParameterOrDefault("GuardianChargeSpeed", chargeSpeed_);
+	chargeDistance_ = GetGuardianParameterOrDefault("GuardianChargeDistance", chargeDistance_);
+	chargeDamage_ = GetGuardianParameterOrDefault("GuardianChargeDamage", chargeDamage_);
+	chargeStartupSec_ = GetGuardianParameterOrDefault("GuardianChargeStartupSec", chargeStartupSec_);
+	chargeRecoverySec_ = GetGuardianParameterOrDefault("GuardianChargeRecoverySec", chargeRecoverySec_);
+	chargeCooldown_ = GetGuardianParameterOrDefault("GuardianChargeCooldown", chargeCooldown_);
+	middleAttackRange_ = std::max(closeAttackRange_, middleAttackRange_); // 距離帯が逆転した設定でも近距離→中距離→遠距離の順を保つ。
+	farAttackRange_ = std::max(middleAttackRange_, farAttackRange_);
 	particleSpawnCount_ = static_cast<uint32_t>(std::max(0, GetGuardianParameterOrDefault("ParticleSpawnCount", static_cast<int>(particleSpawnCount_))));
 	particleSpawnRadius_ = GetGuardianParameterOrDefault("ParticleSpawnRadius", particleSpawnRadius_);
 	particleLifetime_ = GetGuardianParameterOrDefault("ParticleLifetime", particleLifetime_);
@@ -206,6 +236,17 @@ void GuardianBoss::SetupBoss()
 	shockwaveStartupSec_ = GetGuardianParameterOrDefault("GuardianShockwaveStartupSec", shockwaveStartupSec_); // Guardian衝撃波予備動作をJSON調整値から復元する
 	shockwaveActiveSec_ = GetGuardianParameterOrDefault("GuardianShockwaveActiveSec", shockwaveActiveSec_); // Guardian衝撃波判定時間をJSON調整値から復元する
 	shockwaveRecoverySec_ = GetGuardianParameterOrDefault("GuardianShockwaveRecoverySec", shockwaveRecoverySec_); // Guardian衝撃波後隙をJSON調整値から復元する
+	closeAttackRange_ = GetGuardianParameterOrDefault("GuardianCloseAttackRange", closeAttackRange_);
+	middleAttackRange_ = GetGuardianParameterOrDefault("GuardianMiddleAttackRange", middleAttackRange_);
+	farAttackRange_ = GetGuardianParameterOrDefault("GuardianFarAttackRange", farAttackRange_);
+	chargeSpeed_ = GetGuardianParameterOrDefault("GuardianChargeSpeed", chargeSpeed_);
+	chargeDistance_ = GetGuardianParameterOrDefault("GuardianChargeDistance", chargeDistance_);
+	chargeDamage_ = GetGuardianParameterOrDefault("GuardianChargeDamage", chargeDamage_);
+	chargeStartupSec_ = GetGuardianParameterOrDefault("GuardianChargeStartupSec", chargeStartupSec_);
+	chargeRecoverySec_ = GetGuardianParameterOrDefault("GuardianChargeRecoverySec", chargeRecoverySec_);
+	chargeCooldown_ = GetGuardianParameterOrDefault("GuardianChargeCooldown", chargeCooldown_);
+	middleAttackRange_ = std::max(closeAttackRange_, middleAttackRange_); // 距離帯が逆転した設定でも近距離→中距離→遠距離の順を保つ。
+	farAttackRange_ = std::max(middleAttackRange_, farAttackRange_);
 	particleSpawnCount_ = static_cast<uint32_t>(std::max(0, GetGuardianParameterOrDefault("ParticleSpawnCount", static_cast<int>(particleSpawnCount_))));
 	particleSpawnRadius_ = GetGuardianParameterOrDefault("ParticleSpawnRadius", particleSpawnRadius_);
 	particleLifetime_ = GetGuardianParameterOrDefault("ParticleLifetime", particleLifetime_);
@@ -395,7 +436,7 @@ void GuardianBoss::UpdateState(float deltaTime)
 			FaceTarget(deltaTime);
 
 			// 攻撃条件成立
-			if (distance <= std::max(attackRange_, shockwaveStartRange_))
+			if (distance <= farAttackRange_)
 			{
 				BeginAttackState();
 			}
@@ -414,7 +455,7 @@ void GuardianBoss::UpdateState(float deltaTime)
 			const float distance = GetDistanceToTargetXZ();
 
 			// 攻撃条件成立
-			if (distance <= std::max(attackRange_, shockwaveStartRange_) && attackCooldownTimer_ <= 0.0f)
+			if (distance <= farAttackRange_ && attackCooldownTimer_ <= 0.0f)
 			{
 				BeginAttackState();
 			}
@@ -428,7 +469,7 @@ void GuardianBoss::UpdateState(float deltaTime)
 
 	case BossState::Attack:
 		{
-			FaceTarget(deltaTime);
+			// 攻撃中は各攻撃が開始時に固定した向きを使うため、毎フレームの向き直りは行わない。
 
 			// ---------------------------------------------------------
 			// 手動デバッグ中でない場合のみ、自動で攻撃を選ぶ
@@ -549,6 +590,7 @@ void GuardianBoss::SetupAttacks()
 	RegisterAttack(std::make_unique<BossPunchAttack>());
 	RegisterAttack(std::make_unique<BossHeavyPunchAttack>());
 	RegisterAttack(std::make_unique<GuardianShockwaveAttack>()); // 中距離にも圧をかけるGuardian専用衝撃波を登録する。
+	RegisterAttack(std::make_unique<BossChargeAttack>()); // 遠距離では開始方向固定の突進で距離を詰める。
 }
 
 /// -------------------------------------------------------------
@@ -712,25 +754,32 @@ void GuardianBoss::ApplyAttackHitParametersToAttacks()
 	// Guardianの攻撃開始距離と実ヒット判定値を分けて、登録済みPunch系へ即時反映する。
 	if (auto* punch = dynamic_cast<BossPunchAttack*>(GetAttackComponent()->FindAttackByName("Punch")))
 	{
-		punch->SetValidRange(0.0f, attackRange_);
+		punch->SetValidRange(0.0f, closeAttackRange_);
 		punch->SetHitParameters(attackHitRange_, attackHitRadius_, attackForwardOffset_, attackHitAngleDeg_);
 		punch->SetImpactParticleParameters(particleSpawnCount_, particleSpawnRadius_, particleLifetime_, particleInitialSpeed_);
 	}
 
 	if (auto* heavy = dynamic_cast<BossHeavyPunchAttack*>(GetAttackComponent()->FindAttackByName("HeavyPunch")))
 	{
-		heavy->SetValidRange(0.0f, attackRange_);
+		heavy->SetValidRange(0.0f, closeAttackRange_);
 		heavy->SetHitParameters(attackHitRange_, attackHitRadius_, attackForwardOffset_, attackHitAngleDeg_);
 		heavy->SetImpactParticleParameters(particleSpawnCount_ + particleSpawnCount_ / 2, particleSpawnRadius_ * 1.2f, particleLifetime_, particleInitialSpeed_ * 1.1f);
 	}
 
 	if (auto* shockwave = dynamic_cast<GuardianShockwaveAttack*>(GetAttackComponent()->FindAttackByName("GuardianShockwave")))
 	{
-		shockwaveStartRange_ = std::max(attackRange_, shockwaveRange_); // 開始条件はAI用、実ヒット範囲はSetShockwaveParameters側で別管理する。
-		shockwave->SetValidRange(attackRange_, shockwaveStartRange_);
+		shockwaveStartRange_ = middleAttackRange_; // 開始条件はAI用、実ヒット範囲はSetShockwaveParameters側で別管理する。
+		shockwave->SetValidRange(closeAttackRange_, middleAttackRange_);
 		shockwave->SetShockwaveParameters(shockwaveRange_, shockwaveAngleDeg_, shockwaveDamage_);
 		shockwave->SetTimingParameters(shockwaveStartupSec_, shockwaveActiveSec_, shockwaveRecoverySec_, shockwaveCooldown_);
 		shockwave->SetImpactParticleParameters(particleSpawnCount_ * 2, std::max(particleSpawnRadius_, 0.8f), particleLifetime_, particleInitialSpeed_);
+	}
+
+	if (auto* charge = dynamic_cast<BossChargeAttack*>(GetAttackComponent()->FindAttackByName("ChargeAttack")))
+	{
+		charge->SetValidRange(middleAttackRange_, farAttackRange_);
+		charge->SetChargeParameters(chargeSpeed_, chargeDistance_, chargeDamage_, chargeStartupSec_, chargeRecoverySec_, chargeCooldown_);
+		charge->SetImpactParticleParameters(particleSpawnCount_ * 2, std::max(particleSpawnRadius_, 0.75f), particleLifetime_, particleInitialSpeed_ * 1.2f);
 	}
 }
 
@@ -913,7 +962,8 @@ void GuardianBoss::DrawImGui()
 	{
 			"Punch",
 			"HeavyPunch",
-			"GuardianShockwave"
+			"GuardianShockwave",
+			"ChargeAttack"
 	};
 	ImGui::Combo("Manual Attack", &manualAttackIndex_, attackItems, IM_ARRAYSIZE(attackItems));
 
@@ -962,6 +1012,13 @@ void GuardianBoss::DrawImGui()
 				if (StartAttackByNameSafe("GuardianShockwave"))
 				{
 					lastSelectedAttack_ = "GuardianShockwave";
+				}
+			}
+			else if (manualAttackIndex_ == 3)
+			{
+				if (StartAttackByNameSafe("ChargeAttack"))
+				{
+					lastSelectedAttack_ = "ChargeAttack";
 				}
 			}
 		}

@@ -3,6 +3,8 @@
 #include "BossBase.h"
 #include "BossAnimationComponent.h"
 
+#include <cstring>
+
 #ifdef USE_IMGUI
 #include <imgui.h>
 #endif

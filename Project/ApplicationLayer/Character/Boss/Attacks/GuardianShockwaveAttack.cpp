@@ -1,6 +1,7 @@
 #define NOMINMAX
 #include "GuardianShockwaveAttack.h"
 #include "BossBase.h"
+#include "BossAttackEffects.h"
 #include "Wireframe.h"
 #include "GpuParticleManager.h"
 #include "GpuParticleEmitter.h"
@@ -89,6 +90,9 @@ void GuardianShockwaveAttack::Update(float deltaTime)
 	{
 	case Phase::Windup:
 		UpdateWindup(deltaTime);
+		break;
+	case Phase::Charge:
+		UpdateCharge(deltaTime);
 		break;
 	case Phase::Active:
 		UpdateActive(deltaTime);
@@ -190,7 +194,17 @@ void GuardianShockwaveAttack::UpdateWindup(float deltaTime)
 		}
 	}
 
-	if (phaseTimer_ >= startupTime_) ChangePhase(Phase::Active);
+	if (phaseTimer_ >= startupTime_) ChangePhase(Phase::Charge);
+}
+
+/// ---------------------------------------------------------------
+///                 溜め更新
+/// ---------------------------------------------------------------
+void GuardianShockwaveAttack::UpdateCharge(float deltaTime)
+{
+	(void)deltaTime;
+	// 叩きつけ直前の溜めで攻撃発生タイミングを読みやすくする。
+	if (phaseTimer_ >= chargeTime_) ChangePhase(Phase::Active);
 }
 
 /// ---------------------------------------------------------------
@@ -235,6 +249,9 @@ void GuardianShockwaveAttack::ChangePhase(Phase newPhase)
 	{
 	case Phase::Windup:
 		OutputDebugStringA("[GuardianShockwaveAttack] Phase -> Windup\n");
+		break;
+	case Phase::Charge:
+		OutputDebugStringA("[GuardianShockwaveAttack] Phase -> Charge\n");
 		break;
 	case Phase::Active:
 		OutputDebugStringA("[GuardianShockwaveAttack] Phase -> Active\n");
@@ -317,7 +334,7 @@ void GuardianShockwaveAttack::DrawImGui()
 	ImGui::Text("ShockwaveRange    : %.2f", shockwaveRange_);
 	ImGui::Text("ShockwaveAngleDeg : %.2f", shockwaveAngleDeg_);
 	ImGui::Text("Damage            : %.2f", damage_);
-	ImGui::Text("Startup/Active/Recovery : %.2f / %.2f / %.2f", startupTime_, activeTime_, recoveryTime_);
+	ImGui::Text("Startup/Charge/Active/Recovery : %.2f / %.2f / %.2f / %.2f", startupTime_, chargeTime_, activeTime_, recoveryTime_);
 #endif
 }
 
@@ -362,29 +379,7 @@ void GuardianShockwaveAttack::TryHitPlayer()
 		// 衝撃波の発生フレームで1回だけPlayerへダメージを流す。
 		if (owner_->ApplyDamageToTargetPlayer(damage_, &hitPosition))
 		{
-			if (auto* particleManager = K4E::GpuParticleManager::GetInstance())
-			{
-				// Shockwave専用GPUパーティクルをヒット位置から発生させ、パンチと演出を分ける。
-				K4E::GpuParticleEmitter::EmitterInfo info{};
-				info.textureFilePath = "Effects/white.dds";
-				info.radius = particleSpawnRadius_;
-				info.kind = K4E::GpuParticleKind::Sprite;
-				info.spriteType = K4E::GpuParticleType::Shockwave;
-				info.billboardFlags = K4E::BillboardMode::Camera;
-				info.lifeScale = particleLifetimeScale_;
-				info.speedScale = particleInitialSpeedScale_;
-				if (auto* emitter = particleManager->GetEmitter("GuardianShockwaveImpact"))
-				{
-					emitter->GetInfoMutable() = info;
-					emitter->SetPosition(hitPosition);
-					emitter->RequestEmit(particleSpawnCount_);
-				}
-				else if (auto* created = particleManager->CreateEmitter("GuardianShockwaveImpact", info))
-				{
-					created->SetPosition(hitPosition);
-					created->RequestEmit(particleSpawnCount_);
-				}
-			}
+			BossAttackEffects::EmitGuardianHitEffect("GuardianShockwaveImpact", K4E::GpuParticleType::Shockwave, hitPosition, particleSpawnCount_, particleSpawnRadius_, particleLifetimeScale_, particleInitialSpeedScale_);
 			Log("[GuardianShockwaveAttack] Player damage applied.\n");
 		}
 	}
@@ -445,6 +440,7 @@ const char* GuardianShockwaveAttack::GetPhaseName() const
 	switch (phase_)
 	{
 	case Phase::Windup:   return "Windup";
+	case Phase::Charge:   return "Charge";
 	case Phase::Active:   return "Active";
 	case Phase::Recovery: return "Recovery";
 	case Phase::None:
@@ -479,7 +475,9 @@ void GuardianShockwaveAttack::SetShockwaveParameters(float range, float angleDeg
 void GuardianShockwaveAttack::SetTimingParameters(float startupSec, float activeSec, float recoverySec, float cooldownSec)
 {
 	// 予備動作・判定時間・後隙・クールタイムをParameterManagerから調整可能にする。
-	startupTime_ = std::max(0.0f, startupSec);
+	const float clampedStartup = std::max(0.0f, startupSec);
+	startupTime_ = clampedStartup * 0.7f;
+	chargeTime_ = clampedStartup * 0.3f;
 	activeTime_ = std::max(0.0f, activeSec);
 	recoveryTime_ = std::max(0.0f, recoverySec);
 	cooldownSec_ = std::max(0.0f, cooldownSec);
