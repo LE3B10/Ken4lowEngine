@@ -114,6 +114,14 @@ protected: /// ---------- Guardian固有パラメータ ---------- ///
 	float attackHitRadius_ = 2.0f;    // 実際の攻撃判定の太さ
 	float attackForwardOffset_ = 3.0f;// 実際の攻撃判定をボス正面へずらす距離
 	float attackHitAngleDeg_ = 90.0f; // 実際の攻撃判定を正面から左右へ広げる全角度
+	float shockwaveRange_ = 10.0f;    // 衝撃波の実ヒット判定リーチ
+	float shockwaveAngleDeg_ = 70.0f; // 衝撃波の前方扇形全角度
+	float shockwaveDamage_ = 15.0f;   // 衝撃波ダメージ
+	float shockwaveCooldown_ = 6.0f;  // 衝撃波専用クールタイム
+	float shockwaveStartupSec_ = 0.8f;  // 衝撃波予備動作
+	float shockwaveActiveSec_ = 0.25f;  // 衝撃波判定時間
+	float shockwaveRecoverySec_ = 1.0f; // 衝撃波後隙
+	float shockwaveStartRange_ = 10.0f; // 衝撃波の攻撃開始上限（実リーチとは別にAI開始条件へ使う）
 	float moveStartDistance_ = 4.8f;  // この距離より離れたら移動開始
 	float moveStopDistance_ = 4.8f;   // この距離より近づいたら移動停止
 
@@ -151,7 +159,7 @@ protected: /// ---------- Guardian固有パラメータ ---------- ///
 	float heavyPunchReuseTimer_ = 0.0f;
 
 	bool useManualAttackDebug_ = false;   // true の間は自動攻撃選択を止める
-	int manualAttackIndex_ = 0;           // 0: Punch / 1: HeavyPunch
+	int manualAttackIndex_ = 0;           // 0: Punch / 1: HeavyPunch / 2: GuardianShockwave
 
 protected: /// ---------- モデルや体格差分 ---------- ///
 

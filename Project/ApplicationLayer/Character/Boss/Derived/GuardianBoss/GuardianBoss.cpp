@@ -2,6 +2,7 @@
 #include "GuardianBoss.h"
 #include "BossPunchAttack.h"
 #include "BossHeavyPunchAttack.h"
+#include "GuardianShockwaveAttack.h"
 #include <LinearInterpolation.h>
 #include <LogString.h>
 #include <ParameterManager.h>
@@ -52,6 +53,13 @@ namespace
 		parameters->AddItem(kGuardianBossGroup, "GuardianAttackHitRadius", 2.0f, 0.0f, 30.0f);
 		parameters->AddItem(kGuardianBossGroup, "GuardianAttackForwardOffset", 3.0f, 0.0f, 100.0f);
 		parameters->AddItem(kGuardianBossGroup, "GuardianAttackHitAngleDeg", 90.0f, 0.0f, 360.0f);
+		parameters->AddItem(kGuardianBossGroup, "GuardianShockwaveRange", 10.0f, 0.0f, 100.0f);
+		parameters->AddItem(kGuardianBossGroup, "GuardianShockwaveAngleDeg", 70.0f, 0.0f, 360.0f);
+		parameters->AddItem(kGuardianBossGroup, "GuardianShockwaveDamage", 15.0f, 0.0f, 999.0f);
+		parameters->AddItem(kGuardianBossGroup, "GuardianShockwaveCooldown", 6.0f, 0.0f, 60.0f);
+		parameters->AddItem(kGuardianBossGroup, "GuardianShockwaveStartupSec", 0.8f, 0.0f, 10.0f);
+		parameters->AddItem(kGuardianBossGroup, "GuardianShockwaveActiveSec", 0.25f, 0.0f, 10.0f);
+		parameters->AddItem(kGuardianBossGroup, "GuardianShockwaveRecoverySec", 1.0f, 0.0f, 10.0f);
 		parameters->AddItem(kGuardianBossGroup, "moveStartDistance", 4.8f, 0.0f, 100.0f);
 		parameters->AddItem(kGuardianBossGroup, "moveStopDistance", 4.8f, 0.0f, 100.0f);
 		parameters->AddItem(kGuardianBossGroup, "attackDuration", 0.85f, 0.0f, 30.0f);
@@ -69,6 +77,13 @@ namespace
 		parameters->SetDisplayName(kGuardianBossGroup, "GuardianAttackHitRadius", "攻撃判定半径");
 		parameters->SetDisplayName(kGuardianBossGroup, "GuardianAttackForwardOffset", "攻撃判定前方オフセット");
 		parameters->SetDisplayName(kGuardianBossGroup, "GuardianAttackHitAngleDeg", "攻撃判定角度");
+		parameters->SetDisplayName(kGuardianBossGroup, "GuardianShockwaveRange", "衝撃波リーチ");
+		parameters->SetDisplayName(kGuardianBossGroup, "GuardianShockwaveAngleDeg", "衝撃波角度");
+		parameters->SetDisplayName(kGuardianBossGroup, "GuardianShockwaveDamage", "衝撃波ダメージ");
+		parameters->SetDisplayName(kGuardianBossGroup, "GuardianShockwaveCooldown", "衝撃波クールタイム");
+		parameters->SetDisplayName(kGuardianBossGroup, "GuardianShockwaveStartupSec", "衝撃波予備動作");
+		parameters->SetDisplayName(kGuardianBossGroup, "GuardianShockwaveActiveSec", "衝撃波判定時間");
+		parameters->SetDisplayName(kGuardianBossGroup, "GuardianShockwaveRecoverySec", "衝撃波後隙");
 		parameters->SetDisplayName(kGuardianBossGroup, "moveStartDistance", "移動開始距離");
 		parameters->SetDisplayName(kGuardianBossGroup, "moveStopDistance", "移動停止距離");
 		parameters->SetDisplayName(kGuardianBossGroup, "attackDuration", "攻撃時間");
@@ -120,6 +135,13 @@ void GuardianBoss::ApplyParameters()
 	attackHitRadius_ = GetGuardianParameterOrDefault("GuardianAttackHitRadius", attackHitRadius_);
 	attackForwardOffset_ = GetGuardianParameterOrDefault("GuardianAttackForwardOffset", attackForwardOffset_);
 	attackHitAngleDeg_ = GetGuardianParameterOrDefault("GuardianAttackHitAngleDeg", attackHitAngleDeg_);
+	shockwaveRange_ = GetGuardianParameterOrDefault("GuardianShockwaveRange", shockwaveRange_); // Guardian衝撃波リーチをJSON調整値から復元する
+	shockwaveAngleDeg_ = GetGuardianParameterOrDefault("GuardianShockwaveAngleDeg", shockwaveAngleDeg_); // Guardian衝撃波角度をJSON調整値から復元する
+	shockwaveDamage_ = GetGuardianParameterOrDefault("GuardianShockwaveDamage", shockwaveDamage_); // Guardian衝撃波ダメージをJSON調整値から復元する
+	shockwaveCooldown_ = GetGuardianParameterOrDefault("GuardianShockwaveCooldown", shockwaveCooldown_); // Guardian衝撃波クールタイムをJSON調整値から復元する
+	shockwaveStartupSec_ = GetGuardianParameterOrDefault("GuardianShockwaveStartupSec", shockwaveStartupSec_); // Guardian衝撃波予備動作をJSON調整値から復元する
+	shockwaveActiveSec_ = GetGuardianParameterOrDefault("GuardianShockwaveActiveSec", shockwaveActiveSec_); // Guardian衝撃波判定時間をJSON調整値から復元する
+	shockwaveRecoverySec_ = GetGuardianParameterOrDefault("GuardianShockwaveRecoverySec", shockwaveRecoverySec_); // Guardian衝撃波後隙をJSON調整値から復元する
 	moveStartDistance_ = GetGuardianParameterOrDefault("moveStartDistance", moveStartDistance_);
 	moveStopDistance_ = GetGuardianParameterOrDefault("moveStopDistance", moveStopDistance_);
 	attackDuration_ = GetGuardianParameterOrDefault("attackDuration", attackDuration_);
@@ -161,6 +183,13 @@ void GuardianBoss::SetupBoss()
 	attackHitRadius_ = GetGuardianParameterOrDefault("GuardianAttackHitRadius", attackHitRadius_); // Guardianの攻撃判定半径をJSON調整値から復元する
 	attackForwardOffset_ = GetGuardianParameterOrDefault("GuardianAttackForwardOffset", attackForwardOffset_); // Guardianの攻撃判定前方オフセットをJSON調整値から復元する
 	attackHitAngleDeg_ = GetGuardianParameterOrDefault("GuardianAttackHitAngleDeg", attackHitAngleDeg_); // Guardianの攻撃判定角度をJSON調整値から復元する
+	shockwaveRange_ = GetGuardianParameterOrDefault("GuardianShockwaveRange", shockwaveRange_); // Guardian衝撃波リーチをJSON調整値から復元する
+	shockwaveAngleDeg_ = GetGuardianParameterOrDefault("GuardianShockwaveAngleDeg", shockwaveAngleDeg_); // Guardian衝撃波角度をJSON調整値から復元する
+	shockwaveDamage_ = GetGuardianParameterOrDefault("GuardianShockwaveDamage", shockwaveDamage_); // Guardian衝撃波ダメージをJSON調整値から復元する
+	shockwaveCooldown_ = GetGuardianParameterOrDefault("GuardianShockwaveCooldown", shockwaveCooldown_); // Guardian衝撃波クールタイムをJSON調整値から復元する
+	shockwaveStartupSec_ = GetGuardianParameterOrDefault("GuardianShockwaveStartupSec", shockwaveStartupSec_); // Guardian衝撃波予備動作をJSON調整値から復元する
+	shockwaveActiveSec_ = GetGuardianParameterOrDefault("GuardianShockwaveActiveSec", shockwaveActiveSec_); // Guardian衝撃波判定時間をJSON調整値から復元する
+	shockwaveRecoverySec_ = GetGuardianParameterOrDefault("GuardianShockwaveRecoverySec", shockwaveRecoverySec_); // Guardian衝撃波後隙をJSON調整値から復元する
 	moveStartDistance_ = GetGuardianParameterOrDefault("moveStartDistance", moveStartDistance_); // Guardianの移動開始距離をJSON調整値から復元する
 	moveStopDistance_ = GetGuardianParameterOrDefault("moveStopDistance", moveStopDistance_); // Guardianの移動停止距離をJSON調整値から復元する
 	attackDuration_ = GetGuardianParameterOrDefault("attackDuration", attackDuration_); // Guardianの攻撃時間をJSON調整値から復元する
@@ -346,7 +375,7 @@ void GuardianBoss::UpdateState(float deltaTime)
 			FaceTarget(deltaTime);
 
 			// 攻撃条件成立
-			if (distance <= attackRange_)
+			if (distance <= std::max(attackRange_, shockwaveStartRange_))
 			{
 				BeginAttackState();
 			}
@@ -365,7 +394,7 @@ void GuardianBoss::UpdateState(float deltaTime)
 			const float distance = GetDistanceToTargetXZ();
 
 			// 攻撃条件成立
-			if (distance <= attackRange_ && attackCooldownTimer_ <= 0.0f)
+			if (distance <= std::max(attackRange_, shockwaveStartRange_) && attackCooldownTimer_ <= 0.0f)
 			{
 				BeginAttackState();
 			}
@@ -499,6 +528,7 @@ void GuardianBoss::SetupAttacks()
 {
 	RegisterAttack(std::make_unique<BossPunchAttack>());
 	RegisterAttack(std::make_unique<BossHeavyPunchAttack>());
+	RegisterAttack(std::make_unique<GuardianShockwaveAttack>()); // 中距離にも圧をかけるGuardian専用衝撃波を登録する。
 }
 
 /// -------------------------------------------------------------
@@ -670,6 +700,14 @@ void GuardianBoss::ApplyAttackHitParametersToAttacks()
 	{
 		heavy->SetValidRange(0.0f, attackRange_);
 		heavy->SetHitParameters(attackHitRange_, attackHitRadius_, attackForwardOffset_, attackHitAngleDeg_);
+	}
+
+	if (auto* shockwave = dynamic_cast<GuardianShockwaveAttack*>(GetAttackComponent()->FindAttackByName("GuardianShockwave")))
+	{
+		shockwaveStartRange_ = std::max(attackRange_, shockwaveRange_); // 開始条件はAI用、実ヒット範囲はSetShockwaveParameters側で別管理する。
+		shockwave->SetValidRange(attackRange_, shockwaveStartRange_);
+		shockwave->SetShockwaveParameters(shockwaveRange_, shockwaveAngleDeg_, shockwaveDamage_);
+		shockwave->SetTimingParameters(shockwaveStartupSec_, shockwaveActiveSec_, shockwaveRecoverySec_, shockwaveCooldown_);
 	}
 }
 
@@ -850,8 +888,9 @@ void GuardianBoss::DrawImGui()
 
 	const char* attackItems[] =
 	{
-		"Punch",
-		"HeavyPunch"
+			"Punch",
+			"HeavyPunch",
+			"GuardianShockwave"
 	};
 	ImGui::Combo("Manual Attack", &manualAttackIndex_, attackItems, IM_ARRAYSIZE(attackItems));
 
@@ -895,6 +934,13 @@ void GuardianBoss::DrawImGui()
 					heavyPunchReuseTimer_ = heavyPunchReuseDelay_;
 				}
 			}
+			else if (manualAttackIndex_ == 2)
+			{
+				if (StartAttackByNameSafe("GuardianShockwave"))
+				{
+					lastSelectedAttack_ = "GuardianShockwave";
+				}
+			}
 		}
 
 		if (!canManualTrigger)
@@ -931,6 +977,7 @@ void GuardianBoss::DrawImGui()
 
 		IBossAttack* punch = GetAttackComponent()->FindAttackByName("Punch");
 		IBossAttack* heavy = GetAttackComponent()->FindAttackByName("HeavyPunch");
+		IBossAttack* shockwave = GetAttackComponent()->FindAttackByName("GuardianShockwave");
 
 		ImGui::Text("LastSelectedAttack : %s", lastSelectedAttack_.c_str());
 		ImGui::Text("HeavyReuseTimer    : %.2f", heavyPunchReuseTimer_);
@@ -939,6 +986,11 @@ void GuardianBoss::DrawImGui()
 		ImGui::Text("AttackHitRadius   : %.2f", attackHitRadius_);
 		ImGui::Text("AttackForwardOff  : %.2f", attackForwardOffset_);
 		ImGui::Text("AttackHitAngleDeg : %.2f", attackHitAngleDeg_);
+		ImGui::Text("ShockwaveStart    : %.2f", shockwaveStartRange_);
+		ImGui::Text("ShockwaveRange    : %.2f", shockwaveRange_);
+		ImGui::Text("ShockwaveAngleDeg : %.2f", shockwaveAngleDeg_);
+		ImGui::Text("ShockwaveDamage   : %.2f", shockwaveDamage_);
+		ImGui::Text("ShockwaveCooldown : %.2f", shockwaveCooldown_);
 
 		if (punch)
 		{
@@ -972,11 +1024,25 @@ void GuardianBoss::DrawImGui()
 		{
 			ImGui::Text("[HeavyPunch] Not Registered");
 		}
+
+		if (shockwave)
+		{
+			ImGui::Separator();
+			ImGui::Text("[GuardianShockwave]");
+			ImGui::Text("Priority           : %d", shockwave->GetPriority());
+			ImGui::Text("CanStart(Attack)   : %s", shockwave->CanStart() ? "true" : "false");
+			ImGui::Text("CooldownRemaining  : %.2f", shockwave->GetCooldownRemaining());
+			ImGui::Text("Range              : %.2f - %.2f", shockwave->GetMinRange(), shockwave->GetMaxRange());
+		}
+		else
+		{
+			ImGui::Text("[GuardianShockwave] Not Registered");
+		}
 	}
 
 	// ---------------------------------------------------------
 	// 現在攻撃中の詳細
-	// Punch / HeavyPunch のフェーズ確認
+	// Punch / HeavyPunch / Shockwave のフェーズ確認
 	// ---------------------------------------------------------
 	if (GetAttackComponent())
 	{
@@ -1003,6 +1069,13 @@ void GuardianBoss::DrawImGui()
 				ImGui::Text("HeavyPhase         : %d", static_cast<int>(heavy->GetPhase()));
 				ImGui::Text("HeavyPhaseTimer    : %.2f", heavy->GetPhaseTimer());
 				ImGui::Text("HeavyHasHit        : %s", heavy->HasHit() ? "true" : "false");
+			}
+
+			if (auto* shockwave = dynamic_cast<GuardianShockwaveAttack*>(current))
+			{
+				ImGui::Text("ShockwavePhase      : %d", static_cast<int>(shockwave->GetPhase()));
+				ImGui::Text("ShockwavePhaseTimer : %.2f", shockwave->GetPhaseTimer());
+				ImGui::Text("ShockwaveHasHit     : %s", shockwave->HasHit() ? "true" : "false");
 			}
 		}
 		else
