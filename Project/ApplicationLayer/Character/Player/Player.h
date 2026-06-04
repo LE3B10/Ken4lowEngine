@@ -270,6 +270,8 @@ private: /// ---------- メンバ関数 ---------- ///
 	bool IsDead() const { return death_.IsActive(); }
 
 	void ApplyDamageFeedback(const PlayerDamageComponent::DamageFeedback& fb);
+	void StartHitFlash();
+	void UpdateHitFlash(float deltaTime);
 
 	bool IsCurrentWeaponMeleeForView() const;
 
@@ -308,6 +310,10 @@ private: /// ----------メンバ変数 ---------- ///
 
 	FallDamageSettings fallDamageSettings_{};
 	std::function<void()> onDamageTaken_{};
+
+	float hitFlashTimer_ = 0.0f;
+	float hitFlashDuration_ = 0.18f;
+	float hitFlashIntensity_ = 2.2f;
 
 	PlayerAudioCallbacks audio_{};
 };

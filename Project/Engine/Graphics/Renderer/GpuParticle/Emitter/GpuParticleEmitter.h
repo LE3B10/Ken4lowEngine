@@ -42,6 +42,10 @@ public: /// ---------- 構造体 ---------- ///
 
 		// ★下位16bitのフラグ（Camera/YAxis など）
 		BillboardMode billboardFlags = BillboardMode::Camera;
+
+		// 攻撃ヒットなど同一タイプ内の差別化用に、寿命と初速度だけエミッター単位で上書きする。
+		float lifeScale = 1.0f;
+		float speedScale = 1.0f;
 	};
 
 public: /// ---------- メンバ関数 ---------- ///

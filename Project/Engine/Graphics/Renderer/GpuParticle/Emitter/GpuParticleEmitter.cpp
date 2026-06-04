@@ -63,7 +63,7 @@ void GpuParticleEmitter::UpdateActivity(float deltaTime)
 float GpuParticleEmitter::EstimateParticleLifeTimeSec() const
 {
 	// HLSL の lifeMax と合わせ、寿命後は Draw 対象から外して常時フル描画を避ける。
-	return EstimateGpuParticleLifeTimeSec(static_cast<GpuParticleType>(GetEffectiveType())) + 0.10f;
+	return EstimateGpuParticleLifeTimeSec(static_cast<GpuParticleType>(GetEffectiveType())) * std::max(info_.lifeScale, 0.01f) + 0.10f;
 }
 
 void GpuParticleEmitter::RegisterActiveBatch(uint32_t count)
@@ -108,6 +108,8 @@ bool GpuParticleEmitter::BuildCB(GpuEmitterCBData& out, float deltaTime)
 	// kindに応じた type / packed billboardMode
 	out.type = GetEffectiveType();
 	out.billboardMode = GetPackedBillboardMode();
+	out.lifeScale = std::max(info_.lifeScale, 0.01f);
+	out.speedScale = std::max(info_.speedScale, 0.0f);
 
 	// ------------------------------
 	// Emitしない

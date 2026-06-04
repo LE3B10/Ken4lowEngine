@@ -1,5 +1,7 @@
 #pragma once
+#include <random>
 #include <string>
+#include <vector>
 
 /// ---------- 前方宣言 ---------- ///
 class BossBase;
@@ -49,6 +51,11 @@ private: /// ---------- 内部処理 ---------- ///
 	/// </summary>
 	float EvaluateAttackScore(const IBossAttack& attack) const;
 
+	/// <summary>
+	/// 距離帯と直前攻撃を加味した重み付き抽選から1件選ぶ
+	/// </summary>
+	IBossAttack* SelectWeightedAttack(const std::vector<IBossAttack*>& candidates) const;
+
 private: /// ---------- メンバ変数 ---------- ///
 
 	// 思考対象のボス本体
@@ -59,4 +66,10 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	// 最後に評価したスコア
 	mutable float lastBestScore_ = -999999.0f;
+
+	// 直前と同じ攻撃の重みを下げるため、Brain側で最後の選択を記憶する
+	mutable std::string previousSelectedAttackName_ = "None";
+
+	// 攻撃選択に揺らぎを出すための乱数エンジン
+	mutable std::mt19937 rng_{ std::random_device{}() };
 };

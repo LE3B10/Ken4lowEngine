@@ -60,6 +60,12 @@ namespace
 		parameters->AddItem(kGuardianBossGroup, "GuardianShockwaveStartupSec", 0.8f, 0.0f, 10.0f);
 		parameters->AddItem(kGuardianBossGroup, "GuardianShockwaveActiveSec", 0.25f, 0.0f, 10.0f);
 		parameters->AddItem(kGuardianBossGroup, "GuardianShockwaveRecoverySec", 1.0f, 0.0f, 10.0f);
+		parameters->AddItem(kGuardianBossGroup, "HitFlashDuration", 0.18f, 0.0f, 3.0f);
+		parameters->AddItem(kGuardianBossGroup, "HitFlashIntensity", 2.2f, 0.0f, 10.0f);
+		parameters->AddItem(kGuardianBossGroup, "ParticleSpawnCount", 48, 0, 1000);
+		parameters->AddItem(kGuardianBossGroup, "ParticleSpawnRadius", 0.5f, 0.0f, 20.0f);
+		parameters->AddItem(kGuardianBossGroup, "ParticleLifetime", 1.0f, 0.01f, 10.0f);
+		parameters->AddItem(kGuardianBossGroup, "ParticleInitialSpeed", 1.0f, 0.0f, 10.0f);
 		parameters->AddItem(kGuardianBossGroup, "moveStartDistance", 4.8f, 0.0f, 100.0f);
 		parameters->AddItem(kGuardianBossGroup, "moveStopDistance", 4.8f, 0.0f, 100.0f);
 		parameters->AddItem(kGuardianBossGroup, "attackDuration", 0.85f, 0.0f, 30.0f);
@@ -84,6 +90,12 @@ namespace
 		parameters->SetDisplayName(kGuardianBossGroup, "GuardianShockwaveStartupSec", "衝撃波予備動作");
 		parameters->SetDisplayName(kGuardianBossGroup, "GuardianShockwaveActiveSec", "衝撃波判定時間");
 		parameters->SetDisplayName(kGuardianBossGroup, "GuardianShockwaveRecoverySec", "衝撃波後隙");
+		parameters->SetDisplayName(kGuardianBossGroup, "HitFlashDuration", "被弾点滅時間");
+		parameters->SetDisplayName(kGuardianBossGroup, "HitFlashIntensity", "被弾点滅強度");
+		parameters->SetDisplayName(kGuardianBossGroup, "ParticleSpawnCount", "ヒット粒子数");
+		parameters->SetDisplayName(kGuardianBossGroup, "ParticleSpawnRadius", "ヒット粒子発生半径");
+		parameters->SetDisplayName(kGuardianBossGroup, "ParticleLifetime", "ヒット粒子寿命倍率");
+		parameters->SetDisplayName(kGuardianBossGroup, "ParticleInitialSpeed", "ヒット粒子初速倍率");
 		parameters->SetDisplayName(kGuardianBossGroup, "moveStartDistance", "移動開始距離");
 		parameters->SetDisplayName(kGuardianBossGroup, "moveStopDistance", "移動停止距離");
 		parameters->SetDisplayName(kGuardianBossGroup, "attackDuration", "攻撃時間");
@@ -142,6 +154,10 @@ void GuardianBoss::ApplyParameters()
 	shockwaveStartupSec_ = GetGuardianParameterOrDefault("GuardianShockwaveStartupSec", shockwaveStartupSec_); // Guardian衝撃波予備動作をJSON調整値から復元する
 	shockwaveActiveSec_ = GetGuardianParameterOrDefault("GuardianShockwaveActiveSec", shockwaveActiveSec_); // Guardian衝撃波判定時間をJSON調整値から復元する
 	shockwaveRecoverySec_ = GetGuardianParameterOrDefault("GuardianShockwaveRecoverySec", shockwaveRecoverySec_); // Guardian衝撃波後隙をJSON調整値から復元する
+	particleSpawnCount_ = static_cast<uint32_t>(std::max(0, GetGuardianParameterOrDefault("ParticleSpawnCount", static_cast<int>(particleSpawnCount_))));
+	particleSpawnRadius_ = GetGuardianParameterOrDefault("ParticleSpawnRadius", particleSpawnRadius_);
+	particleLifetime_ = GetGuardianParameterOrDefault("ParticleLifetime", particleLifetime_);
+	particleInitialSpeed_ = GetGuardianParameterOrDefault("ParticleInitialSpeed", particleInitialSpeed_);
 	moveStartDistance_ = GetGuardianParameterOrDefault("moveStartDistance", moveStartDistance_);
 	moveStopDistance_ = GetGuardianParameterOrDefault("moveStopDistance", moveStopDistance_);
 	attackDuration_ = GetGuardianParameterOrDefault("attackDuration", attackDuration_);
@@ -190,6 +206,10 @@ void GuardianBoss::SetupBoss()
 	shockwaveStartupSec_ = GetGuardianParameterOrDefault("GuardianShockwaveStartupSec", shockwaveStartupSec_); // Guardian衝撃波予備動作をJSON調整値から復元する
 	shockwaveActiveSec_ = GetGuardianParameterOrDefault("GuardianShockwaveActiveSec", shockwaveActiveSec_); // Guardian衝撃波判定時間をJSON調整値から復元する
 	shockwaveRecoverySec_ = GetGuardianParameterOrDefault("GuardianShockwaveRecoverySec", shockwaveRecoverySec_); // Guardian衝撃波後隙をJSON調整値から復元する
+	particleSpawnCount_ = static_cast<uint32_t>(std::max(0, GetGuardianParameterOrDefault("ParticleSpawnCount", static_cast<int>(particleSpawnCount_))));
+	particleSpawnRadius_ = GetGuardianParameterOrDefault("ParticleSpawnRadius", particleSpawnRadius_);
+	particleLifetime_ = GetGuardianParameterOrDefault("ParticleLifetime", particleLifetime_);
+	particleInitialSpeed_ = GetGuardianParameterOrDefault("ParticleInitialSpeed", particleInitialSpeed_);
 	moveStartDistance_ = GetGuardianParameterOrDefault("moveStartDistance", moveStartDistance_); // Guardianの移動開始距離をJSON調整値から復元する
 	moveStopDistance_ = GetGuardianParameterOrDefault("moveStopDistance", moveStopDistance_); // Guardianの移動停止距離をJSON調整値から復元する
 	attackDuration_ = GetGuardianParameterOrDefault("attackDuration", attackDuration_); // Guardianの攻撃時間をJSON調整値から復元する
@@ -565,7 +585,7 @@ void GuardianBoss::FaceTarget(float deltaTime)
 		return;
 	}
 
-	const float desiredYaw = std::atan2(-toTarget.x, toTarget.z);
+	const float desiredYaw = std::atan2(toTarget.x, toTarget.z); // forward(sinYaw, cosYaw)と同じワールド座標系でターゲットへ向ける。
 	float currentYaw = GetYaw();
 
 	float diff = WrapAngle(desiredYaw - currentYaw);
@@ -694,12 +714,14 @@ void GuardianBoss::ApplyAttackHitParametersToAttacks()
 	{
 		punch->SetValidRange(0.0f, attackRange_);
 		punch->SetHitParameters(attackHitRange_, attackHitRadius_, attackForwardOffset_, attackHitAngleDeg_);
+		punch->SetImpactParticleParameters(particleSpawnCount_, particleSpawnRadius_, particleLifetime_, particleInitialSpeed_);
 	}
 
 	if (auto* heavy = dynamic_cast<BossHeavyPunchAttack*>(GetAttackComponent()->FindAttackByName("HeavyPunch")))
 	{
 		heavy->SetValidRange(0.0f, attackRange_);
 		heavy->SetHitParameters(attackHitRange_, attackHitRadius_, attackForwardOffset_, attackHitAngleDeg_);
+		heavy->SetImpactParticleParameters(particleSpawnCount_ + particleSpawnCount_ / 2, particleSpawnRadius_ * 1.2f, particleLifetime_, particleInitialSpeed_ * 1.1f);
 	}
 
 	if (auto* shockwave = dynamic_cast<GuardianShockwaveAttack*>(GetAttackComponent()->FindAttackByName("GuardianShockwave")))
@@ -708,6 +730,7 @@ void GuardianBoss::ApplyAttackHitParametersToAttacks()
 		shockwave->SetValidRange(attackRange_, shockwaveStartRange_);
 		shockwave->SetShockwaveParameters(shockwaveRange_, shockwaveAngleDeg_, shockwaveDamage_);
 		shockwave->SetTimingParameters(shockwaveStartupSec_, shockwaveActiveSec_, shockwaveRecoverySec_, shockwaveCooldown_);
+		shockwave->SetImpactParticleParameters(particleSpawnCount_ * 2, std::max(particleSpawnRadius_, 0.8f), particleLifetime_, particleInitialSpeed_);
 	}
 }
 

@@ -19,5 +19,8 @@ struct GpuEmitterCBData
 	uint32_t emit; 			// 発生フラグ
 	uint32_t type;			// エミッターの種類
 	uint32_t billboardMode; // ビルボードモード
+	float lifeScale = 1.0f;	// 寿命倍率
+	float speedScale = 1.0f;	// 初速度倍率
+	float padding[2]{};		// 16byte境界調整
 };
 } // namespace Ken4lowEngine

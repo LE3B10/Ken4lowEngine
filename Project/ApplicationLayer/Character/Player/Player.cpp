@@ -8,6 +8,10 @@
 #include "CollisionManager.h"
 #include "HUDManager.h"
 #include "GpuParticleManager.h"
+#include <ParameterManager.h>
+
+#include <algorithm>
+#include <cmath>
 
 #ifdef USE_IMGUI
 #include <imgui.h>
@@ -24,6 +28,18 @@
 
 namespace
 {
+	constexpr const char* kGuardianBossGroup = "GuardianBoss";
+
+	void EnsurePlayerHitFlashParameters()
+	{
+		auto* parameters = Ken4lowEngine::ParameterManager::GetInstance();
+		parameters->CreateGroup(kGuardianBossGroup);
+		parameters->AddItem(kGuardianBossGroup, "HitFlashDuration", 0.18f, 0.0f, 3.0f);
+		parameters->AddItem(kGuardianBossGroup, "HitFlashIntensity", 2.2f, 0.0f, 10.0f);
+		parameters->SetDisplayName(kGuardianBossGroup, "HitFlashDuration", "被弾点滅時間");
+		parameters->SetDisplayName(kGuardianBossGroup, "HitFlashIntensity", "被弾点滅強度");
+	}
+
 	static bool IsMovingInput(const InputSnapshot& in)
 	{
 		return (in.moveX * in.moveX + in.moveZ * in.moveZ) > 0.01f;
@@ -176,6 +192,8 @@ void Player::BindDependencies(const PlayerDependencies& deps)
 /// -------------------------------------------------------------
 void Player::Update(float deltaTime)
 {
+	UpdateHitFlash(deltaTime); // 多重ヒット時も残り時間を延長しながら、毎フレーム点滅色を復元する。
+
 	if (runtime_.isDebugCamera)
 	{
 		BaseCharacter::Update(deltaTime);
@@ -793,6 +811,40 @@ void Player::UpdateDeath(float deltaTime)
 		damage_.GetMaxHP());
 }
 
+
+void Player::StartHitFlash()
+{
+	EnsurePlayerHitFlashParameters();
+	auto* parameters = K4E::ParameterManager::GetInstance();
+	hitFlashDuration_ = parameters->GetValue<float>(kGuardianBossGroup, "HitFlashDuration");
+	hitFlashIntensity_ = parameters->GetValue<float>(kGuardianBossGroup, "HitFlashIntensity");
+	hitFlashTimer_ = std::max(hitFlashTimer_, hitFlashDuration_);
+}
+
+void Player::UpdateHitFlash(float deltaTime)
+{
+	if (hitFlashTimer_ > 0.0f)
+	{
+		hitFlashTimer_ = std::max(0.0f, hitFlashTimer_ - deltaTime);
+	}
+
+	const bool flashOn = hitFlashTimer_ > 0.0f && std::fmod(hitFlashTimer_ * 28.0f, 2.0f) >= 1.0f;
+	const float intensity = flashOn ? std::max(1.0f, hitFlashIntensity_) : 1.0f;
+	const K4E::Vector4 color{ intensity, intensity, intensity, 1.0f };
+
+	if (body_.object)
+	{
+		body_.object->SetColor(color);
+	}
+	for (auto& part : parts_)
+	{
+		if (part.object)
+		{
+			part.object->SetColor(color);
+		}
+	}
+}
+
 void Player::ApplyDamageFeedback(const PlayerDamageComponent::DamageFeedback& fb)
 {
 	if (!fb.tookDamage)
@@ -801,6 +853,8 @@ void Player::ApplyDamageFeedback(const PlayerDamageComponent::DamageFeedback& fb
 	}
 
 	vfx_.OnDamaged(fb.damage, fb.maxHp);
+
+	StartHitFlash(); // プレイヤーへ攻撃が通った瞬間に短時間の点滅フィードバックを開始する。
 
 	if (onDamageTaken_)
 	{
