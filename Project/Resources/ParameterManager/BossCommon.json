@@ -1,10 +1,10 @@
 {
     "BossCommon": {
+        "attackCooldownSec": 1.2000000476837158,
+        "attackRange": 3.0,
         "maxHP": 3000.0,
         "moveSpeed": 2.0,
-        "turnSpeed": 4.0,
         "stopDistance": 3.0,
-        "attackRange": 3.0,
-        "attackCooldownSec": 1.2
+        "turnSpeed": 4.0
     }
 }

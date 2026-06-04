@@ -5,6 +5,7 @@
 #include <memory>
 #include <string>
 #include <vector>
+#include <cstdint>
 
 /// ----------------------------------------------------------------
 ///						ガーディアンボス
@@ -122,6 +123,19 @@ protected: /// ---------- Guardian固有パラメータ ---------- ///
 	float shockwaveActiveSec_ = 0.25f;  // 衝撃波判定時間
 	float shockwaveRecoverySec_ = 1.0f; // 衝撃波後隙
 	float shockwaveStartRange_ = 10.0f; // 衝撃波の攻撃開始上限（実リーチとは別にAI開始条件へ使う）
+	float closeAttackRange_ = 4.0f;  // 近距離攻撃帯
+	float middleAttackRange_ = 10.0f; // 中距離攻撃帯
+	float farAttackRange_ = 20.0f;    // 遠距離検知帯
+	float chargeSpeed_ = 18.0f;       // 突進速度
+	float chargeDistance_ = 12.0f;    // 突進距離
+	float chargeDamage_ = 20.0f;      // 突進ダメージ
+	float chargeStartupSec_ = 0.6f;   // 突進予備動作
+	float chargeRecoverySec_ = 1.0f;  // 突進後隙
+	float chargeCooldown_ = 8.0f;     // 突進クールタイム
+	uint32_t particleSpawnCount_ = 48; // 攻撃ヒット時GPUパーティクル数
+	float particleSpawnRadius_ = 0.5f; // 攻撃ヒット時GPUパーティクル発生半径
+	float particleLifetime_ = 1.0f;    // 攻撃ヒット時GPUパーティクル寿命倍率
+	float particleInitialSpeed_ = 1.0f;// 攻撃ヒット時GPUパーティクル初速倍率
 	float moveStartDistance_ = 4.8f;  // この距離より離れたら移動開始
 	float moveStopDistance_ = 4.8f;   // この距離より近づいたら移動停止
 

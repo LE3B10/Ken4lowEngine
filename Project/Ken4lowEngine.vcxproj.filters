@@ -400,6 +400,12 @@
     <ClCompile Include="ApplicationLayer\Character\Boss\Attacks\GuardianShockwaveAttack.cpp">
       <Filter>ApplicationLayer\Character\Boss\Attacks</Filter>
     </ClCompile>
+    <ClCompile Include="ApplicationLayer\Character\Boss\Attacks\BossChargeAttack.cpp">
+      <Filter>ApplicationLayer\Character\Boss\Attacks</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\Character\Boss\Attacks\BossAttackEffects.cpp">
+      <Filter>ApplicationLayer\Character\Boss\Attacks</Filter>
+    </ClCompile>
     <ClCompile Include="ApplicationLayer\Character\Player\Component\PlayerBrainComponent.cpp">
       <Filter>ApplicationLayer\Character\Player\Component</Filter>
     </ClCompile>
@@ -1282,6 +1288,12 @@
       <Filter>ApplicationLayer\Character\Boss\Attacks</Filter>
     </ClInclude>
     <ClInclude Include="ApplicationLayer\Character\Boss\Attacks\GuardianShockwaveAttack.h">
+      <Filter>ApplicationLayer\Character\Boss\Attacks</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Character\Boss\Attacks\BossChargeAttack.h">
+      <Filter>ApplicationLayer\Character\Boss\Attacks</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Character\Boss\Attacks\BossAttackEffects.h">
       <Filter>ApplicationLayer\Character\Boss\Attacks</Filter>
     </ClInclude>
     <ClInclude Include="ApplicationLayer\Character\Player\Component\PlayerBrainComponent.h">

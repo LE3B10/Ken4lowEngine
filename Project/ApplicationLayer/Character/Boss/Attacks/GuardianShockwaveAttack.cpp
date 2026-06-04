@@ -1,33 +1,30 @@
 #define NOMINMAX
 #include "GuardianShockwaveAttack.h"
 #include "BossBase.h"
+#include "BossAttackEffects.h"
 #include "Wireframe.h"
+#include "GpuParticleManager.h"
+#include "GpuParticleEmitter.h"
+#include <LogString.h>
 
-#include <Windows.h>
 #include <algorithm>
 #include <cmath>
-#include <string>
+#include <numbers>
 
 #ifdef USE_IMGUI
 #include <imgui.h>
 #endif
 
+using namespace Ken4lowEngine;
+
 namespace
 {
-	/// <summary>
-	/// デバッグログ出力
-	/// </summary>
-	void DebugLog(const std::string& text)
-	{
-		OutputDebugStringA(text.c_str());
-	}
-
 	/// <summary>
 	/// 度数法をラジアンへ変換する
 	/// </summary>
 	float DegToRad(float degree)
 	{
-		constexpr float kDegToRad = 3.14159265358979323846f / 180.0f;
+		constexpr float kDegToRad = std::numbers::pi_v<float> / 180.0f;
 		return degree * kDegToRad;
 	}
 }
@@ -43,12 +40,14 @@ void GuardianShockwaveAttack::Initialize(BossBase* owner)
 	isActive_ = false;
 	isFinished_ = false;
 	hasHit_ = false;
+	hasTelegraphEffect_ = false;
 
 	phase_ = Phase::None;
 	phaseTimer_ = 0.0f;
 	totalTimer_ = 0.0f;
 
 	cooldownRemaining_ = 0.0f;
+	hasLockedDirection_ = false;
 }
 
 /// ---------------------------------------------------------------
@@ -62,15 +61,18 @@ void GuardianShockwaveAttack::Start()
 	isActive_ = true;
 	isFinished_ = false;
 	hasHit_ = false;
+	hasTelegraphEffect_ = false;
 
 	phase_ = Phase::None;
 	phaseTimer_ = 0.0f;
 	totalTimer_ = 0.0f;
 
+	LockShockwaveDirection(); // 開始時点のプレイヤー方向をワールド座標で固定し、攻撃中の反転を防ぐ。
+
 	// 衝撃波は叩きつけ前の予備動作から開始する。
 	ChangePhase(Phase::Windup);
 
-	DebugLog("[GuardianShockwaveAttack] Start\n");
+	Log("[GuardianShockwaveAttack] Start\n");
 }
 
 /// ---------------------------------------------------------------
@@ -88,6 +90,9 @@ void GuardianShockwaveAttack::Update(float deltaTime)
 	{
 	case Phase::Windup:
 		UpdateWindup(deltaTime);
+		break;
+	case Phase::Charge:
+		UpdateCharge(deltaTime);
 		break;
 	case Phase::Active:
 		UpdateActive(deltaTime);
@@ -116,7 +121,7 @@ void GuardianShockwaveAttack::End()
 	phase_ = Phase::None;
 	phaseTimer_ = 0.0f;
 
-	DebugLog("[GuardianShockwaveAttack] End\n");
+	Log("[GuardianShockwaveAttack] End\n");
 }
 
 /// ---------------------------------------------------------------
@@ -157,10 +162,49 @@ void GuardianShockwaveAttack::TickCooldown(float deltaTime)
 /// ---------------------------------------------------------------
 void GuardianShockwaveAttack::UpdateWindup(float deltaTime)
 {
-	// 予備動作中はタイマーだけ進め、叩きつけタイミングで判定発生へ移る。
+	// 予備動作中に一度だけ予兆エフェクトを出し、叩きつけタイミングで判定発生へ移る。
 	(void)deltaTime;
+	if (!hasTelegraphEffect_ && owner_ != nullptr)
+	{
+		hasTelegraphEffect_ = true;
+		if (auto* particleManager = K4E::GpuParticleManager::GetInstance())
+		{
+			K4E::Vector3 telegraphPos = lockedOrigin_;
+			telegraphPos.y += 0.10f;
+			// 発生前の溜め位置に小さなリングを出して、回避タイミングを読ませる。
+			K4E::GpuParticleEmitter::EmitterInfo info{};
+			info.textureFilePath = "Effects/white.dds";
+			info.radius = std::max(0.3f, particleSpawnRadius_ * 0.75f);
+			info.kind = K4E::GpuParticleKind::Sprite;
+			info.spriteType = K4E::GpuParticleType::Shockwave;
+			info.billboardFlags = K4E::BillboardMode::Camera;
+			info.lifeScale = std::max(0.2f, startupTime_);
+			info.speedScale = 0.25f;
+			if (auto* emitter = particleManager->GetEmitter("GuardianShockwaveTelegraph"))
+			{
+				emitter->GetInfoMutable() = info;
+				emitter->SetPosition(telegraphPos);
+				emitter->RequestEmit(std::max<uint32_t>(8, particleSpawnCount_ / 3));
+			}
+			else if (auto* created = particleManager->CreateEmitter("GuardianShockwaveTelegraph", info))
+			{
+				created->SetPosition(telegraphPos);
+				created->RequestEmit(std::max<uint32_t>(8, particleSpawnCount_ / 3));
+			}
+		}
+	}
 
-	if (phaseTimer_ >= startupTime_) ChangePhase(Phase::Active);
+	if (phaseTimer_ >= startupTime_) ChangePhase(Phase::Charge);
+}
+
+/// ---------------------------------------------------------------
+///                 溜め更新
+/// ---------------------------------------------------------------
+void GuardianShockwaveAttack::UpdateCharge(float deltaTime)
+{
+	(void)deltaTime;
+	// 叩きつけ直前の溜めで攻撃発生タイミングを読みやすくする。
+	if (phaseTimer_ >= chargeTime_) ChangePhase(Phase::Active);
 }
 
 /// ---------------------------------------------------------------
@@ -206,6 +250,9 @@ void GuardianShockwaveAttack::ChangePhase(Phase newPhase)
 	case Phase::Windup:
 		OutputDebugStringA("[GuardianShockwaveAttack] Phase -> Windup\n");
 		break;
+	case Phase::Charge:
+		OutputDebugStringA("[GuardianShockwaveAttack] Phase -> Charge\n");
+		break;
 	case Phase::Active:
 		OutputDebugStringA("[GuardianShockwaveAttack] Phase -> Active\n");
 		break;
@@ -229,8 +276,9 @@ void GuardianShockwaveAttack::Draw()
 	if (owner_ == nullptr || !isActive_) return;
 
 	// Debugビルドでは衝撃波の前方扇形をワイヤーで可視化する。
-	const K4E::Vector3 bossCenter = owner_->GetCenterPosition();
-	const float yaw = owner_->GetYaw();
+	const K4E::Vector3 bossCenter = hasLockedDirection_ ? lockedOrigin_ : owner_->GetCenterPosition();
+	const K4E::Vector3 forward = hasLockedDirection_ ? lockedForward_ : K4E::Vector3{ std::sin(owner_->GetYaw()), 0.0f, std::cos(owner_->GetYaw()) };
+	const float yaw = std::atan2(forward.x, forward.z);
 	const float clampedRange = std::max(0.0f, shockwaveRange_);
 	const float clampedAngle = std::clamp(shockwaveAngleDeg_, 0.0f, 360.0f);
 	const float halfAngleRad = DegToRad(clampedAngle * 0.5f);
@@ -286,7 +334,7 @@ void GuardianShockwaveAttack::DrawImGui()
 	ImGui::Text("ShockwaveRange    : %.2f", shockwaveRange_);
 	ImGui::Text("ShockwaveAngleDeg : %.2f", shockwaveAngleDeg_);
 	ImGui::Text("Damage            : %.2f", damage_);
-	ImGui::Text("Startup/Active/Recovery : %.2f / %.2f / %.2f", startupTime_, activeTime_, recoveryTime_);
+	ImGui::Text("Startup/Charge/Active/Recovery : %.2f / %.2f / %.2f / %.2f", startupTime_, chargeTime_, activeTime_, recoveryTime_);
 #endif
 }
 
@@ -298,16 +346,9 @@ void GuardianShockwaveAttack::TryHitPlayer()
 	if (owner_ == nullptr) return;
 
 	// 衝撃波判定はボス正面を中心とした前方扇形で、攻撃開始距離とは別に計算する。
-	const K4E::Vector3 bossCenter = owner_->GetCenterPosition();
-	const float yaw = owner_->GetYaw();
+	const K4E::Vector3 bossCenter = hasLockedDirection_ ? lockedOrigin_ : owner_->GetCenterPosition();
 	const K4E::Vector3 targetCenter = owner_->GetTargetPosition();
-
-	K4E::Vector3 forward
-	{
-		std::sin(yaw),
-		0.0f,
-		std::cos(yaw)
-	};
+	const K4E::Vector3 forward = hasLockedDirection_ ? lockedForward_ : K4E::Vector3{ std::sin(owner_->GetYaw()), 0.0f, std::cos(owner_->GetYaw()) };
 
 	const float toTargetX = targetCenter.x - bossCenter.x;
 	const float toTargetZ = targetCenter.z - bossCenter.z;
@@ -332,21 +373,37 @@ void GuardianShockwaveAttack::TryHitPlayer()
 		hitPosition.z += forward.z * std::clamp(forwardDistance, 0.0f, clampedRange);
 
 #ifdef _DEBUG
-		OutputDebugStringA("[GuardianShockwaveAttack] Shockwave hit success.\n");
+		Log("[GuardianShockwaveAttack] Shockwave hit success.\n");
 #endif
 
 		// 衝撃波の発生フレームで1回だけPlayerへダメージを流す。
 		if (owner_->ApplyDamageToTargetPlayer(damage_, &hitPosition))
 		{
-			DebugLog("[GuardianShockwaveAttack] Player damage applied.\n");
+			BossAttackEffects::EmitGuardianHitEffect("GuardianShockwaveImpact", K4E::GpuParticleType::Shockwave, hitPosition, particleSpawnCount_, particleSpawnRadius_, particleLifetimeScale_, particleInitialSpeedScale_);
+			Log("[GuardianShockwaveAttack] Player damage applied.\n");
 		}
 	}
 	else
 	{
 #ifdef _DEBUG
-		OutputDebugStringA("[GuardianShockwaveAttack] Shockwave hit miss.\n");
+		Log("[GuardianShockwaveAttack] Shockwave hit miss.\n");
 #endif
 	}
+}
+
+
+void GuardianShockwaveAttack::LockShockwaveDirection()
+{
+	if (owner_ == nullptr)
+	{
+		hasLockedDirection_ = false;
+		return;
+	}
+
+	lockedOrigin_ = owner_->GetCenterPosition();
+	lockedForward_ = owner_->GetDirectionToTargetXZOrForward(lockedOrigin_);
+	owner_->FaceDirectionXZImmediate(lockedForward_); // 衝撃波は開始時に固定した前方だけで判定・エフェクトを出す。
+	hasLockedDirection_ = true;
 }
 
 /// ---------------------------------------------------------------
@@ -369,6 +426,7 @@ const char* GuardianShockwaveAttack::GetPhaseName() const
 	switch (phase_)
 	{
 	case Phase::Windup:   return "Windup";
+	case Phase::Charge:   return "Charge";
 	case Phase::Active:   return "Active";
 	case Phase::Recovery: return "Recovery";
 	case Phase::None:
@@ -403,8 +461,19 @@ void GuardianShockwaveAttack::SetShockwaveParameters(float range, float angleDeg
 void GuardianShockwaveAttack::SetTimingParameters(float startupSec, float activeSec, float recoverySec, float cooldownSec)
 {
 	// 予備動作・判定時間・後隙・クールタイムをParameterManagerから調整可能にする。
-	startupTime_ = std::max(0.0f, startupSec);
+	const float clampedStartup = std::max(0.0f, startupSec);
+	startupTime_ = clampedStartup * 0.7f;
+	chargeTime_ = clampedStartup * 0.3f;
 	activeTime_ = std::max(0.0f, activeSec);
 	recoveryTime_ = std::max(0.0f, recoverySec);
 	cooldownSec_ = std::max(0.0f, cooldownSec);
+}
+
+void GuardianShockwaveAttack::SetImpactParticleParameters(uint32_t spawnCount, float spawnRadius, float lifetimeScale, float initialSpeedScale)
+{
+	// ParameterManagerのヒット演出値を、次回Shockwave命中時のGPUパーティクルへ反映する。
+	particleSpawnCount_ = spawnCount;
+	particleSpawnRadius_ = std::max(0.0f, spawnRadius);
+	particleLifetimeScale_ = std::max(0.01f, lifetimeScale);
+	particleInitialSpeedScale_ = std::max(0.0f, initialSpeedScale);
 }

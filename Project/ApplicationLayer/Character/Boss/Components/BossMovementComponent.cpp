@@ -70,7 +70,7 @@ void BossMovementComponent::FaceToTarget(BossBase& boss, float deltaTime) const
 		return;
 
 	// +Z前方想定
-	const float targetYaw = std::atan2(dx, dz);
+	const float targetYaw = std::atan2(-dx, dz);
 
 	// 現在の向き
 	float currentYaw = boss.GetYaw();

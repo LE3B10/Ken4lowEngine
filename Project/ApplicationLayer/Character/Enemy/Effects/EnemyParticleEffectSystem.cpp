@@ -124,6 +124,12 @@ void EnemyParticleEffectSystem::CreateEmitterIfNeeded(
 
 void EnemyParticleEffectSystem::SpawnHitEffect(const Vector3& hitWorldPos)
 {
+    // 未初期化のエフェクトシステムからプール番号を触らないようにする。
+    if (!isInitialized_)
+    {
+        return;
+    }
+
     auto* pm = GpuParticleManager::GetInstance();
     if (!pm)
     {
@@ -151,6 +157,12 @@ void EnemyParticleEffectSystem::SpawnHitEffect(const Vector3& hitWorldPos)
 
 void EnemyParticleEffectSystem::SpawnDeathEffect(const Vector3& deathWorldPos)
 {
+    // 初期化前や終了後相当の状態では共有エミッターへアクセスしない。
+    if (!isInitialized_)
+    {
+        return;
+    }
+
     auto* pm = GpuParticleManager::GetInstance();
     if (!pm)
     {

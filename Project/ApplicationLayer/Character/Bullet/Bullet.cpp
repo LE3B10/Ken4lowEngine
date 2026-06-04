@@ -278,15 +278,27 @@ void Bullet::ApplySplashDamageToType(uint32_t targetType, const K4E::Vector3& ce
 		const float damageRate = 1.0f - t;
 		const int finalDamage = std::max(1, static_cast<int>(std::round(static_cast<float>(splashDamage_) * damageRate)));
 
-		if (auto* enemy = col->GetOwner<EnemyBase>())
+		// Colliderのownerはvoid*なので、タイプ別に取得してボスをEnemyBaseとして誤解釈しない。
+		if (targetType == static_cast<uint32_t>(CollisionTypeIdDef::kEnemy))
 		{
-			const K4E::Vector3 hitDir = NormalizeSafe(toTarget, NormalizeSafe(moveVelocity_, { 0.0f, 0.0f, 1.0f }));
-			enemy->TakeDamage(finalDamage, hitDir, 1.8f);
-			enemy->SpawnHitEffectAt(col->GetCenterPosition());
+			if (auto* enemy = col->GetOwner<EnemyBase>())
+			{
+				if (enemy->IsDead())
+				{
+					continue;
+				}
+
+				const K4E::Vector3 hitDir = NormalizeSafe(toTarget, NormalizeSafe(moveVelocity_, { 0.0f, 0.0f, 1.0f }));
+				enemy->SpawnHitEffectAt(col->GetCenterPosition());
+				enemy->TakeDamage(finalDamage, hitDir, 1.8f);
+			}
 		}
-		else if (auto* boss = col->GetOwner<BossBase>())
+		else if (targetType == static_cast<uint32_t>(CollisionTypeIdDef::kBoss))
 		{
-			boss->OnBulletDamaged(static_cast<float>(finalDamage));
+			if (auto* boss = col->GetOwner<BossBase>(); boss && boss->IsAlive())
+			{
+				boss->OnBulletDamaged(static_cast<float>(finalDamage));
+			}
 		}
 	}
 }
@@ -300,30 +312,33 @@ void Bullet::TriggerSplashDamageAt(const K4E::Vector3& center)
 	ApplySplashDamageToType(static_cast<uint32_t>(CollisionTypeIdDef::kEnemy), center);
 	ApplySplashDamageToType(static_cast<uint32_t>(CollisionTypeIdDef::kBoss), center);
 
-	K4E::GpuParticleManager::GetInstance()->EmitBurst(
-		"HeavySplashImpact",
-		K4E::GpuParticleType::DeathBurstCore,
-		center,
-		52);
-
-	// 範囲攻撃であることを見せる外周リング。
-	// splashRadius と同じ大きさに近づけるため、発生前にエミッター半径を上書きする。
-	if (auto* shockwave = K4E::GpuParticleManager::GetInstance()->EmitBurst(
-		"RocketSplashRadiusRing",
-		K4E::GpuParticleType::Shockwave,
-		center,
-		96))
+	if (auto* particleManager = K4E::GpuParticleManager::GetInstance())
 	{
-		shockwave->GetInfoMutable().radius = std::max(1.0f, splashRadius_);
-		shockwave->SetPosition(center);
-	}
+		particleManager->EmitBurst(
+			"HeavySplashImpact",
+			K4E::GpuParticleType::DeathBurstCore,
+			center,
+			52);
 
-	// 煙を減らし、破片と範囲リングが隠れないようにする。
-	K4E::GpuParticleManager::GetInstance()->EmitBurst(
-		"HeavySplashSmoke",
-		K4E::GpuParticleType::Smoke,
-		center,
-		18);
+		// 範囲攻撃であることを見せる外周リング。
+		// splashRadius と同じ大きさに近づけるため、発生前にエミッター半径を上書きする。
+		if (auto* shockwave = particleManager->EmitBurst(
+			"RocketSplashRadiusRing",
+			K4E::GpuParticleType::Shockwave,
+			center,
+			96))
+		{
+			shockwave->GetInfoMutable().radius = std::max(1.0f, splashRadius_);
+			shockwave->SetPosition(center);
+		}
+
+		// 煙を減らし、破片と範囲リングが隠れないようにする。
+		particleManager->EmitBurst(
+			"HeavySplashSmoke",
+			K4E::GpuParticleType::Smoke,
+			center,
+			18);
+	}
 
 	// ロケットランチャー用：着弾時に小さな砂粒・小石を飛ばす
 	if (auto* debrisEmitter = PrepareRocketDebrisMeshEmitter(center))

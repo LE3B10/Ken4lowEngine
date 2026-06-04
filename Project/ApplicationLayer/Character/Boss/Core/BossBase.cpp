@@ -409,6 +409,40 @@ float BossBase::GetHPRate() const
 	return statusComponent_ ? statusComponent_->GetHPRate() : 0.0f;
 }
 
+
+/// -------------------------------------------------------------
+/// ターゲット方向の取得 / 即時反映
+/// -------------------------------------------------------------
+K4E::Vector3 BossBase::GetDirectionToTargetXZOrForward(const K4E::Vector3& origin) const
+{
+	K4E::Vector3 toTarget{
+		targetPosition_.x - origin.x,
+		0.0f,
+		targetPosition_.z - origin.z
+	};
+
+	const float lenSq = toTarget.x * toTarget.x + toTarget.z * toTarget.z;
+	if (lenSq > 0.0001f)
+	{
+		const float invLen = 1.0f / std::sqrt(lenSq);
+		return { toTarget.x * invLen, 0.0f, toTarget.z * invLen };
+	}
+
+	return { std::sin(GetYaw()), 0.0f, std::cos(GetYaw()) };
+}
+
+void BossBase::FaceDirectionXZImmediate(const K4E::Vector3& direction)
+{
+	const float lenSq = direction.x * direction.x + direction.z * direction.z;
+	if (lenSq <= 0.0001f)
+	{
+		return;
+	}
+
+	// 攻撃開始時だけ共通処理でYawを確定し、攻撃クラスごとの毎フレーム回転上書きを避ける。
+	SetYaw(std::atan2(-direction.x, direction.z));
+}
+
 /// -------------------------------------------------------------
 /// ターゲットまでのXZ距離
 /// -------------------------------------------------------------

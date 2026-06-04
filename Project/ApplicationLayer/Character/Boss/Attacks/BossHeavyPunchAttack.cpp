@@ -1,6 +1,8 @@
 #define NOMINMAX
 #include "BossHeavyPunchAttack.h"
 #include "BossBase.h"
+#include "BossAttackEffects.h"
+#include "GpuParticleType.h"
 
 #include <algorithm>
 #include <cmath>
@@ -54,6 +56,8 @@ void BossHeavyPunchAttack::Start()
 	phase_ = Phase::None;
 	phaseTimer_ = 0.0f;
 	totalTimer_ = 0.0f;
+
+	LockAttackDirection(); // 攻撃中に毎フレーム向き直らないよう、開始時の前方を固定する。
 
 	// HeavyPunch は最初に Windup から始まる
 	ChangePhase(Phase::Windup);
@@ -298,14 +302,7 @@ void BossHeavyPunchAttack::TryHitPlayer()
 
 	// 攻撃判定は攻撃開始距離とは別に、ParameterManager由来のリーチ・半径・前方オフセット・扇形角度で計算する。
 	const K4E::Vector3 bossCenter = owner_->GetCenterPosition();
-	const float yaw = owner_->GetYaw();
-
-	K4E::Vector3 forward
-	{
-		std::sin(yaw),
-		0.0f,
-		std::cos(yaw)
-	};
+	K4E::Vector3 forward = hasLockedDirection_ ? lockedForward_ : K4E::Vector3{ std::sin(owner_->GetYaw()), 0.0f, std::cos(owner_->GetYaw()) };
 
 	const float clampedForwardOffset = std::max(0.0f, hitForwardOffset_);
 	const float clampedHitRange = std::max(clampedForwardOffset, hitRange_);
@@ -357,6 +354,7 @@ void BossHeavyPunchAttack::TryHitPlayer()
 		// ボス近接攻撃の発生フレームで1回だけPlayerへダメージを流す。
 		if (owner_->ApplyDamageToTargetPlayer(damage_, &attackCenter))
 		{
+			BossAttackEffects::EmitGuardianHitEffect("GuardianHeavyPunchImpact", K4E::GpuParticleType::Debris, attackCenter, particleSpawnCount_, particleSpawnRadius_, particleLifetimeScale_, particleInitialSpeedScale_);
 			Log("[BossHeavyPunchAttack] Player damage applied.\n");
 		}
 	}
@@ -366,6 +364,21 @@ void BossHeavyPunchAttack::TryHitPlayer()
 		Log("[BossHeavyPunchAttack] Heavy hit miss.\n");
 #endif
 	}
+}
+
+
+void BossHeavyPunchAttack::LockAttackDirection()
+{
+	if (owner_ == nullptr)
+	{
+		hasLockedDirection_ = false;
+		return;
+	}
+
+	const K4E::Vector3 origin = owner_->GetCenterPosition();
+	lockedForward_ = owner_->GetDirectionToTargetXZOrForward(origin);
+	owner_->FaceDirectionXZImmediate(lockedForward_); // 攻撃開始時だけ共通処理でプレイヤー方向へ向け、判定方向を固定する。
+	hasLockedDirection_ = true;
 }
 
 /// ---------------------------------------------------------------
@@ -417,4 +430,13 @@ void BossHeavyPunchAttack::SetHitParameters(float hitRange, float hitRadius, flo
 	hitRadius_ = std::max(0.0f, hitRadius);
 	hitForwardOffset_ = std::max(0.0f, hitForwardOffset);
 	hitAngleDeg_ = std::clamp(hitAngleDeg, 0.0f, 360.0f);
+}
+
+void BossHeavyPunchAttack::SetImpactParticleParameters(uint32_t spawnCount, float spawnRadius, float lifetimeScale, float initialSpeedScale)
+{
+	// ParameterManagerのヒット演出値を、次回命中時のGPUパーティクルへ反映する。
+	particleSpawnCount_ = spawnCount;
+	particleSpawnRadius_ = std::max(0.0f, spawnRadius);
+	particleLifetimeScale_ = std::max(0.01f, lifetimeScale);
+	particleInitialSpeedScale_ = std::max(0.0f, initialSpeedScale);
 }

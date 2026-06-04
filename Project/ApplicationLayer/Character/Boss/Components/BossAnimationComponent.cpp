@@ -2,10 +2,14 @@
 #include "BossAnimationComponent.h"
 #include "BossBase.h"
 #include "BossAttackComponent.h"
-#include "BossPunchAttack.h"
-#include "BossHeavyPunchAttack.h"
 #include "BossPunchAttackAnimation.h"
 #include "BossHeavyPunchAttackAnimation.h"
+
+#include "BossPunchAttack.h"
+#include "BossHeavyPunchAttack.h"
+#include "GuardianShockwaveAttack.h"
+#include "BossChargeAttack.h"
+
 #include <LinearInterpolation.h>
 
 #include <algorithm>
@@ -47,6 +51,13 @@ void BossAnimationComponent::Finalize()
 /// -------------------------------------------------------------
 void BossAnimationComponent::Update(BossBase& boss, float deltaTime)
 {
+	if (!HasRequiredParts(boss))
+	{
+		return;
+	}
+
+	breathTime_ += deltaTime; // Idle/Walkの周期時間を毎フレーム進め、停止していた呼吸・歩行揺れを復旧する。
+
 	switch (boss.GetState())
 	{
 	case BossState::Idle:
@@ -84,30 +95,7 @@ void BossAnimationComponent::Update(BossBase& boss, float deltaTime)
 /// -------------------------------------------------------------
 void BossAnimationComponent::UpdateIdle(BossBase& boss, float deltaTime)
 {
-	auto& body = boss.GetBody();
-	auto& parts = boss.GetBodyParts();
-	const auto& idx = boss.GetPartIndices();
-
-	const float breath = std::sin(breathTime_ * 2.2f);
-	const float breath01 = (breath * 0.5f) + 0.5f;
-	const float headSway = std::sin(breathTime_ * 1.4f + 0.8f);
-
-	const float targetBodyPitch = idleBreathPitch_ * breath;
-	const float targetHeadPitch = -idleBreathPitch_ * 0.6f * breath01;
-	const float targetHeadYaw = idleHeadSway_ * headSway;
-
-	// 実座標Yは触らない
-	Damp(body.transform.rotate_.x, targetBodyPitch, bodyDampSpeed_, deltaTime);
-	Damp(body.transform.rotate_.z, 0.0f, bodyDampSpeed_, deltaTime);
-
-	Damp(parts[idx.head].transform.rotate_.x, targetHeadPitch, headDampSpeed_, deltaTime);
-	Damp(parts[idx.head].transform.rotate_.y, targetHeadYaw, headDampSpeed_, deltaTime);
-	Damp(parts[idx.head].transform.rotate_.z, 0.0f, headDampSpeed_, deltaTime);
-
-	Damp(parts[idx.leftArm].transform.rotate_.x, -0.05f, limbDampSpeed_, deltaTime);
-	Damp(parts[idx.rightArm].transform.rotate_.x, -0.05f, limbDampSpeed_, deltaTime);
-	Damp(parts[idx.leftLeg].transform.rotate_.x, 0.0f, limbDampSpeed_, deltaTime);
-	Damp(parts[idx.rightLeg].transform.rotate_.x, 0.0f, limbDampSpeed_, deltaTime);
+	UpdateIdleAnimation(boss, deltaTime); // Idle状態は専用関数へ集約し、重複実装で呼吸時間が止まる不具合を防ぐ。
 }
 
 /// -------------------------------------------------------------
@@ -169,13 +157,11 @@ void BossAnimationComponent::UpdateIdleAnimation(BossBase& boss, float deltaTime
 	const float headSway = std::sin(breathTime_ * 1.4f + 0.8f);
 
 	// 目標値
-	const float targetBodyY = idleBreathHeight_ * breath;
 	const float targetBodyPitch = idleBreathPitch_ * breath;
 	const float targetHeadPitch = -idleBreathPitch_ * 0.6f * breath01;
 	const float targetHeadYaw = idleHeadSway_ * headSway;
 
-	Damp(body.transform.translate_.y, targetBodyY, bodyDampSpeed_, deltaTime);
-	Damp(body.transform.rotate_.x, targetBodyPitch, bodyDampSpeed_, deltaTime);
+	Damp(body.transform.rotate_.x, targetBodyPitch, bodyDampSpeed_, deltaTime); // Idle呼吸は回転だけに留め、ワールドY座標をアニメ側で潰さない。
 
 	// ---------------------------------------------------------
 	// Yaw は触らない
@@ -267,6 +253,18 @@ void BossAnimationComponent::UpdateAttackAnimation(BossBase& boss, float deltaTi
 		}
 	}
 
+	// 専用クラス未登録のGuardian攻撃はここで既存ポーズを流用して分かりやすい予備動作を出す。
+	if (dynamic_cast<GuardianShockwaveAttack*>(currentAttack))
+	{
+		ApplyPose(boss, BuildShockwavePose(), deltaTime);
+		return;
+	}
+	if (dynamic_cast<BossChargeAttack*>(currentAttack))
+	{
+		ApplyPose(boss, BuildChargePose(), deltaTime);
+		return;
+	}
+
 	// 該当アニメがない場合は最低限の姿勢だけを適用
 	ApplyPose(boss, BuildDefaultAttackPose(), deltaTime);
 }
@@ -313,6 +311,7 @@ BossAnimationComponent::BossPose BossAnimationComponent::BuildPunchPose() const
 	BossPose pose = BuildDefaultAttackPose();
 
 	BossPunchAttack::Phase punchPhase = BossPunchAttack::Phase::None;
+	float phaseTime = 0.0f;
 	bool hasPunchPhase = false;
 
 	if (owner_)
@@ -322,6 +321,7 @@ BossAnimationComponent::BossPose BossAnimationComponent::BuildPunchPose() const
 			if (auto* punch = dynamic_cast<BossPunchAttack*>(current))
 			{
 				punchPhase = punch->GetPhase();
+				phaseTime = punch->GetPhaseTimer();
 				hasPunchPhase = true;
 			}
 		}
@@ -330,13 +330,13 @@ BossAnimationComponent::BossPose BossAnimationComponent::BuildPunchPose() const
 	// PunchAttackでなければ基本姿勢のまま返す
 	if (!hasPunchPhase) return pose;
 
-	// フェーズごとに目標ポーズを切り替える
+	// フェーズごとの経過時間で補間し、前フェーズのattackAnimTime_残りでポーズが固まる問題を防ぐ。
 	switch (punchPhase)
 	{
 	case BossPunchAttack::Phase::Windup:
 		{
 			// 両手を上に振りかざす
-			const float t = Smoothstep01(attackAnimTime_ / 0.30f);
+			const float t = Smoothstep01(phaseTime / 0.30f);
 
 			pose.bodyPitch = Lerp(0.03f, -0.18f, t);
 			pose.bodyRoll = Lerp(0.0f, 0.0f, t);
@@ -358,7 +358,7 @@ BossAnimationComponent::BossPose BossAnimationComponent::BuildPunchPose() const
 	case BossPunchAttack::Phase::Active:
 		{
 			// 両腕を一気に振り下ろす
-			const float t = Smoothstep01(attackAnimTime_ / 0.12f);
+			const float t = Smoothstep01(phaseTime / 0.12f);
 
 			pose.bodyPitch = Lerp(-0.18f, 0.28f, t);
 			pose.bodyRoll = 0.0f;
@@ -381,7 +381,7 @@ BossAnimationComponent::BossPose BossAnimationComponent::BuildPunchPose() const
 	case BossPunchAttack::Phase::None:
 	default:
 		{
-			const float t = Smoothstep01(attackAnimTime_ / 0.40f);
+			const float t = Smoothstep01(phaseTime / 0.40f);
 
 			pose.bodyPitch = Lerp(0.28f, 0.03f, t);
 			pose.bodyRoll = 0.0f;
@@ -524,6 +524,149 @@ BossAnimationComponent::BossPose BossAnimationComponent::BuildHeavyPunchPose() c
 		break;
 	}
 
+	return pose;
+}
+
+
+/// -------------------------------------------------------------
+///			Shockwave は重攻撃の溜めを流用し、叩きつけを強調する
+/// -------------------------------------------------------------
+BossAnimationComponent::BossPose BossAnimationComponent::BuildShockwavePose() const
+{
+	BossPose pose = BuildDefaultAttackPose();
+	GuardianShockwaveAttack::Phase phase = GuardianShockwaveAttack::Phase::None;
+	float phaseTime = 0.0f;
+	if (owner_)
+	{
+		if (IBossAttack* current = GetCurrentAttack(*owner_))
+		{
+			if (auto* shockwave = dynamic_cast<GuardianShockwaveAttack*>(current))
+			{
+				phase = shockwave->GetPhase();
+				phaseTime = shockwave->GetPhaseTimer();
+			}
+		}
+	}
+
+	switch (phase)
+	{
+	case GuardianShockwaveAttack::Phase::Windup:
+		{
+			const float t = Smoothstep01(phaseTime / 0.80f);
+			pose.bodyPitch = Lerp(0.03f, -0.24f, t);
+			pose.headPitch = Lerp(0.0f, -0.12f, t);
+			pose.leftArmX = Lerp(-0.05f, -2.25f, t);
+			pose.rightArmX = Lerp(-0.05f, -2.25f, t);
+			pose.leftArmZ = Lerp(0.0f, 0.55f, t);
+			pose.rightArmZ = Lerp(0.0f, -0.55f, t);
+			pose.leftLegX = Lerp(0.0f, 0.12f, t);
+			pose.rightLegX = Lerp(0.0f, 0.12f, t);
+			break;
+		}
+	case GuardianShockwaveAttack::Phase::Charge:
+		{
+			const float t = Smoothstep01(phaseTime / 0.25f);
+			pose.bodyPitch = Lerp(-0.24f, -0.30f, t);
+			pose.headPitch = -0.12f;
+			pose.leftArmX = Lerp(-2.25f, -2.45f, t);
+			pose.rightArmX = Lerp(-2.25f, -2.45f, t);
+			pose.leftArmZ = 0.55f;
+			pose.rightArmZ = -0.55f;
+			pose.leftLegX = 0.14f;
+			pose.rightLegX = 0.14f;
+			break;
+		}
+	case GuardianShockwaveAttack::Phase::Active:
+		{
+			const float t = Smoothstep01(phaseTime / 0.25f);
+			pose.bodyPitch = Lerp(-0.24f, 0.48f, t);
+			pose.headPitch = Lerp(-0.12f, 0.14f, t);
+			pose.leftArmX = Lerp(-2.25f, 1.15f, t);
+			pose.rightArmX = Lerp(-2.25f, 1.15f, t);
+			pose.leftArmZ = Lerp(0.55f, 0.05f, t);
+			pose.rightArmZ = Lerp(-0.55f, -0.05f, t);
+			pose.leftLegX = -0.10f;
+			pose.rightLegX = -0.10f;
+			break;
+		}
+	case GuardianShockwaveAttack::Phase::Recovery:
+		{
+			const float t = Smoothstep01(phaseTime / 1.00f);
+			pose.bodyPitch = Lerp(0.48f, 0.03f, t);
+			pose.headPitch = Lerp(0.14f, 0.0f, t);
+			pose.leftArmX = Lerp(1.15f, -0.05f, t);
+			pose.rightArmX = Lerp(1.15f, -0.05f, t);
+			pose.leftLegX = Lerp(-0.10f, 0.0f, t);
+			pose.rightLegX = Lerp(-0.10f, 0.0f, t);
+			break;
+		}
+	case GuardianShockwaveAttack::Phase::None:
+	default:
+		break;
+	}
+	return pose;
+}
+
+/// -------------------------------------------------------------
+///			ChargeAttack は低く構えてから突進する姿勢を作る
+/// -------------------------------------------------------------
+BossAnimationComponent::BossPose BossAnimationComponent::BuildChargePose() const
+{
+	BossPose pose = BuildDefaultAttackPose();
+	BossChargeAttack::Phase phase = BossChargeAttack::Phase::None;
+	float phaseTime = 0.0f;
+	if (owner_)
+	{
+		if (IBossAttack* current = GetCurrentAttack(*owner_))
+		{
+			if (auto* charge = dynamic_cast<BossChargeAttack*>(current))
+			{
+				phase = charge->GetPhase();
+				phaseTime = charge->GetPhaseTimer();
+			}
+		}
+	}
+
+	switch (phase)
+	{
+	case BossChargeAttack::Phase::Windup:
+		{
+			const float t = Smoothstep01(phaseTime / 0.60f);
+			pose.bodyPitch = Lerp(0.03f, 0.32f, t);
+			pose.headPitch = Lerp(0.0f, -0.10f, t);
+			pose.leftArmX = Lerp(-0.05f, -0.90f, t);
+			pose.rightArmX = Lerp(-0.05f, -0.90f, t);
+			pose.leftArmZ = Lerp(0.0f, 0.35f, t);
+			pose.rightArmZ = Lerp(0.0f, -0.35f, t);
+			pose.leftLegX = Lerp(0.0f, 0.22f, t);
+			pose.rightLegX = Lerp(0.0f, -0.18f, t);
+			break;
+		}
+	case BossChargeAttack::Phase::Charging:
+		pose.bodyPitch = 0.42f;
+		pose.headPitch = -0.06f;
+		pose.leftArmX = -0.65f;
+		pose.rightArmX = -0.65f;
+		pose.leftArmZ = 0.20f;
+		pose.rightArmZ = -0.20f;
+		pose.leftLegX = 0.30f;
+		pose.rightLegX = -0.25f;
+		break;
+	case BossChargeAttack::Phase::Recovery:
+		{
+			const float t = Smoothstep01(phaseTime / 1.00f);
+			pose.bodyPitch = Lerp(0.42f, 0.03f, t);
+			pose.headPitch = Lerp(-0.06f, 0.0f, t);
+			pose.leftArmX = Lerp(-0.65f, -0.05f, t);
+			pose.rightArmX = Lerp(-0.65f, -0.05f, t);
+			pose.leftLegX = Lerp(0.30f, 0.0f, t);
+			pose.rightLegX = Lerp(-0.25f, 0.0f, t);
+			break;
+		}
+	case BossChargeAttack::Phase::None:
+	default:
+		break;
+	}
 	return pose;
 }
 

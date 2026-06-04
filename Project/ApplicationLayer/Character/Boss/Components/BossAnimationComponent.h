@@ -166,6 +166,12 @@ public: /// --------- ポーズ構築 / 適用 ---------- ///
 	/// </summary>
 	BossPose BuildHeavyPunchPose() const;
 
+	/// <summary>Shockwave の溜め・叩きつけポーズを構築</summary>
+	BossPose BuildShockwavePose() const;
+
+	/// <summary>ChargeAttack の溜め・突進ポーズを構築</summary>
+	BossPose BuildChargePose() const;
+
 	/// <summary>
 	/// 作った目標ポーズを各部位へ反映
 	/// </summary>

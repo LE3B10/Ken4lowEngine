@@ -93,6 +93,9 @@ struct EmitterCBData
     uint emit;
     uint type;
     uint billboardMode;
+    float lifeScale;
+    float speedScale;
+    float2 padding;
 };
 
 /// ---------- 時間制御 ---------- ///

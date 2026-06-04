@@ -1,6 +1,11 @@
 #pragma once
 #include "IBossAttack.h"
 
+#include <cstdint>
+#include <Vector3.h>
+
+namespace K4E = Ken4lowEngine;
+
 /// ---------- 前方宣言 ---------- ///
 class BossBase;
 
@@ -147,6 +152,11 @@ public: /// ---------- パラメータ反映 ---------- ///
 	/// </summary>
 	void SetHitParameters(float hitRange, float hitRadius, float hitForwardOffset, float hitAngleDeg);
 
+	/// <summary>
+	/// ヒット時GPUパーティクル調整値を設定
+	/// </summary>
+	void SetImpactParticleParameters(uint32_t spawnCount, float spawnRadius, float lifetimeScale, float initialSpeedScale);
+
 public: /// ---------- 描画 ---------- ///
 
 	// 攻撃固有の描画
@@ -202,6 +212,9 @@ private: /// ---------- 内部処理 ---------- ///
 	/// </summary>
 	const char* GetPhaseName() const;
 
+	/// <summary>攻撃開始時のターゲット方向を固定する</summary>
+	void LockAttackDirection();
+
 private: /// ---------- 参照 ---------- ///
 
 	// 攻撃所有者
@@ -216,6 +229,9 @@ private: /// ---------- 実行状態 ---------- ///
 	Phase phase_ = Phase::None; // 現在フェーズ
 	float phaseTimer_ = 0.0f;   // フェーズ内経過時間
 	float totalTimer_ = 0.0f;	// 攻撃開始からの合計時間
+
+	K4E::Vector3 lockedForward_{ 0.0f, 0.0f, 1.0f }; // 攻撃開始時に固定した前方
+	bool hasLockedDirection_ = false; // 攻撃中の向き反転防止用
 
 private: /// ---------- 距離条件 ---------- ///
 
@@ -243,6 +259,11 @@ private: /// ---------- ヒット判定 ---------- ///
 	float hitRadius_ = 2.0f;            // 重攻撃判定の半径
 	float hitForwardOffset_ = 3.0f;     // ボス中心から前方へ判定開始位置をずらす距離
 	float hitAngleDeg_ = 90.0f;         // 正面から左右へ広がる攻撃判定の全角度
+	uint32_t particleSpawnCount_ = 36;   // ヒット時GPUパーティクル数
+	float particleSpawnRadius_ = 0.35f; // ヒット時GPUパーティクル発生半径
+	float particleLifetimeScale_ = 1.0f; // ヒット時GPUパーティクル寿命倍率
+	float particleInitialSpeedScale_ = 1.0f; // ヒット時GPUパーティクル初速倍率
+
 	float targetRadius_ = 0.65f;        // 仮プレイヤー半径
 
 private: /// ---------- クールダウン ---------- ///
