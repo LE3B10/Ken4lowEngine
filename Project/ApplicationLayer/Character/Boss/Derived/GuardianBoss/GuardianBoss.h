@@ -14,11 +14,13 @@ class GuardianBoss : public HumanoidBossBase
 public:
 
 	GuardianBoss() = default;
-	~GuardianBoss() override = default;
+	~GuardianBoss() override;
 
 public: /// ---------- Boss固有初期化 ---------- ///
 
 	void SetupBoss() override;
+	void Finalize() override;
+	void ApplyParameters() override;
 	void OnDamaged(float damage) override;
 	void OnBulletDamaged(float damage) override;
 	void OnDead() override;

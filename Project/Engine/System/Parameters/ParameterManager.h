@@ -40,6 +40,7 @@ private: /// ---------- 構造体 ---------- ///
 		// 項目の値
 		ItemValue value;
 		std::optional<Range> range;
+		std::string displayName; // JSONキーとは別にImGui専用の表示名を保持する。
 	};
 
 	// グループ構造体
@@ -47,6 +48,7 @@ private: /// ---------- 構造体 ---------- ///
 	{
 		std::map<std::string, Item> items;
 		std::function<void()> customDraw; // このグループ専用UI
+		std::map<const void*, std::function<void()>> appliers; // 保存後に明示的に再取得して反映する最小構成の適用先。
 	};
 
 public: /// ---------- メンバ関数 ---------- ///
@@ -85,6 +87,18 @@ public: /// ---------- メンバ関数 ---------- ///
 
 	// カスタム描画関数登録
 	void RegisterCustomDraw(const std::string& groupName, std::function<void()> fn);
+
+	/// <summary>保存済みパラメータをゲーム側へ反映する関数を登録します。</summary>
+	void RegisterParameterApplier(const std::string& groupName, const void* owner, std::function<void()> fn);
+
+	/// <summary>登録済みの反映関数を解除します。</summary>
+	void UnregisterParameterApplier(const std::string& groupName, const void* owner);
+
+	/// <summary>指定グループの保存済み値をゲーム側へ明示的に反映します。</summary>
+	bool ApplyParameters(const std::string& groupName);
+
+	/// <summary>全グループの保存済み値をゲーム側へ明示的に反映します。</summary>
+	bool ApplyAllParameters();
 
 public: /// ---------- 項目の設定 ---------- ///
 
@@ -164,6 +178,9 @@ public: /// ---------- 項目の追加 ---------- ///
 		item.range = Range{ minValue, maxValue };
 	}
 
+	/// <summary>ImGui表示専用の日本語ラベルを設定します。</summary>
+	void SetDisplayName(const std::string& groupName, const std::string& key, const std::string& displayName);
+
 public: /// ---------- 項目の取得 ---------- ///
 
 	/// <summary>
@@ -216,6 +233,12 @@ private: /// ---------- メンバ関数 ---------- ///
 	/// <param name="item">描画に使用するアイテムデータ。非const参照で渡され、関数内で読み取り／更新される可能性がある（ParameterManager::Item&）</param>
 	void DrawItem(const std::string& itemName, ParameterManager::Item& item);
 
+	/// <summary>ImGui表示用ラベルを内部キーから分離したID付きラベルとして返します。</summary>
+	std::string BuildImGuiLabel(const std::string& itemName, const ParameterManager::Item& item) const;
+
+	/// <summary>ImGui上に数秒だけステータスメッセージを表示します。</summary>
+	void SetStatusMessage(const std::string& message, float seconds = 3.0f);
+
 private: /// ---------- メンバ変数 ---------- ///
 
 	// 全データ
@@ -223,6 +246,10 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	// グローバル変数の保存先ファイルパス
 	const std::string kDirectoryPath = "Resources/ParameterManager/";
+
+	// Save/Load/Applyの結果をMessageBoxではなくImGui内に一時表示する。
+	std::string statusMessage_;
+	float statusMessageExpireTime_ = 0.0f;
 
 private: /// ---------- コピー禁止 ---------- ///
 

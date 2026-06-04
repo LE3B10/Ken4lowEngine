@@ -25,6 +25,14 @@ void CollisionManager::Initialize()
 #endif
 	K4E::ParameterManager::GetInstance()->CreateGroup("K4E::Collider");
 	K4E::ParameterManager::GetInstance()->AddItem("K4E::Collider", "isCollider", isCollider_);
+	K4E::ParameterManager::GetInstance()->SetDisplayName("K4E::Collider", "isCollider", "コライダー表示");
+	K4E::ParameterManager::GetInstance()->RegisterParameterApplier("K4E::Collider", this, [this]() {
+#ifdef _DEBUG
+		isCollider_ = K4E::ParameterManager::GetInstance()->GetValue<bool>("K4E::Collider", "isCollider");
+#else
+		isCollider_ = false;
+#endif
+	}); // 反映ボタンでCollider表示フラグをParameterManagerから再取得する。
 
 	// 衝突判定関数の登録
 	RegisterCollisionFuncsions();

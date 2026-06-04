@@ -57,6 +57,19 @@ namespace
 		parameters->AddItem(kGuardianBossGroup, "animationWalkSpeed", 6.0f, 0.0f, 30.0f);
 		parameters->AddItem(kGuardianBossGroup, "animationWalkAmplitude", 0.55f, 0.0f, 5.0f);
 		parameters->AddItem(kGuardianBossGroup, "skinPath", std::string("Characters/zombie.dds"));
+		// 内部キーとは別にImGui専用の日本語ラベルを登録する。
+		parameters->SetDisplayName(kGuardianBossGroup, "moveSpeed", "ガーディアン移動速度");
+		parameters->SetDisplayName(kGuardianBossGroup, "rotateSpeed", "ガーディアン旋回速度");
+		parameters->SetDisplayName(kGuardianBossGroup, "attackRange", "ガーディアン攻撃距離");
+		parameters->SetDisplayName(kGuardianBossGroup, "moveStartDistance", "移動開始距離");
+		parameters->SetDisplayName(kGuardianBossGroup, "moveStopDistance", "移動停止距離");
+		parameters->SetDisplayName(kGuardianBossGroup, "attackDuration", "攻撃時間");
+		parameters->SetDisplayName(kGuardianBossGroup, "attackCooldown", "攻撃クールタイム");
+		parameters->SetDisplayName(kGuardianBossGroup, "staggerDuration", "ひるみ時間");
+		parameters->SetDisplayName(kGuardianBossGroup, "heavyPunchReuseDelay", "強攻撃再使用間隔");
+		parameters->SetDisplayName(kGuardianBossGroup, "animationWalkSpeed", "歩行アニメ速度");
+		parameters->SetDisplayName(kGuardianBossGroup, "animationWalkAmplitude", "歩行アニメ振幅");
+		parameters->SetDisplayName(kGuardianBossGroup, "skinPath", "スキンパス");
 	}
 
 	template<typename T>
@@ -72,6 +85,44 @@ namespace
 			return defaultValue;
 		}
 	}
+}
+
+
+GuardianBoss::~GuardianBoss()
+{
+	// Guardian固有コールバックを破棄時に解除し、無効ポインタへの反映を防ぐ。
+	ParameterManager::GetInstance()->UnregisterParameterApplier(kGuardianBossGroup, this);
+}
+
+void GuardianBoss::Finalize()
+{
+	ParameterManager::GetInstance()->UnregisterParameterApplier(kGuardianBossGroup, this); // Finalize後にGuardian固有値を無効な部位へ反映しないよう解除する。
+	BossBase::Finalize();
+}
+
+
+void GuardianBoss::ApplyParameters()
+{
+	BossBase::ApplyParameters();
+	EnsureGuardianBossParameters();
+	moveSpeed_ = GetGuardianParameterOrDefault("moveSpeed", moveSpeed_);
+	rotateSpeed_ = GetGuardianParameterOrDefault("rotateSpeed", rotateSpeed_);
+	attackRange_ = GetGuardianParameterOrDefault("attackRange", attackRange_);
+	moveStartDistance_ = GetGuardianParameterOrDefault("moveStartDistance", moveStartDistance_);
+	moveStopDistance_ = GetGuardianParameterOrDefault("moveStopDistance", moveStopDistance_);
+	attackDuration_ = GetGuardianParameterOrDefault("attackDuration", attackDuration_);
+	attackCooldown_ = GetGuardianParameterOrDefault("attackCooldown", attackCooldown_);
+	staggerDuration_ = GetGuardianParameterOrDefault("staggerDuration", staggerDuration_);
+	heavyPunchReuseDelay_ = GetGuardianParameterOrDefault("heavyPunchReuseDelay", heavyPunchReuseDelay_);
+	animationWalkSpeed_ = GetGuardianParameterOrDefault("animationWalkSpeed", animationWalkSpeed_);
+	animationWalkAmplitude_ = GetGuardianParameterOrDefault("animationWalkAmplitude", animationWalkAmplitude_);
+	if (GetAnimationComponent())
+	{
+		GetAnimationComponent()->SetWalkSpeed(animationWalkSpeed_);
+		GetAnimationComponent()->SetWalkAmplitude(animationWalkAmplitude_);
+		GetAnimationComponent()->SetAttackDuration(attackDuration_);
+	}
+	ApplySkinToAllParts(GetGuardianSkinPath()); // スキンパス変更は保存/反映後に実行中モデルへ再適用する。
 }
 
 
@@ -140,6 +191,8 @@ void GuardianBoss::SetupBoss()
 
 	// スキン一括適用
 	ApplySkinToAllParts(GetGuardianSkinPath());
+
+	ParameterManager::GetInstance()->RegisterParameterApplier(kGuardianBossGroup, this, [this]() { ApplyParameters(); }); // 保存/反映後にGuardian固有値を実行中のボスへ再適用する。
 }
 
 /// -------------------------------------------------------------

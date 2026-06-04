@@ -56,7 +56,7 @@ class BossBase : public BaseCharacter
 public: /// ---------- ライフサイクル ---------- ///
 
 	// デストラクタは仮想関数にしておく
-	virtual ~BossBase() = default;
+	~BossBase() override;
 
 	/// <summary>
 	/// 初期化
