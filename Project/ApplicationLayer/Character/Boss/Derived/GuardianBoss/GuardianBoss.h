@@ -104,11 +104,13 @@ protected: /// ---------- Guardian固有パラメータ ---------- ///
 
 	float attackRange_ = 5.75f;       // この距離以下で攻撃開始
 	float moveStartDistance_ = 4.8f;  // この距離より離れたら移動開始
-	float moveStopDistance_ = 4.2f;   // この距離より近づいたら移動停止
+	float moveStopDistance_ = 4.8f;   // この距離より近づいたら移動停止
 
 	float attackDuration_ = 0.85f;    // 攻撃アニメ全体時間
 	float attackCooldown_ = 1.20f;    // 攻撃後クールダウン
 	float staggerDuration_ = 0.30f;   // ひるみ時間
+	float animationWalkSpeed_ = 6.0f;   // 歩行アニメ速度
+	float animationWalkAmplitude_ = 0.55f; // 歩行アニメ振幅
 
 	float stateTimer_ = 0.0f;         // 状態滞在時間
 	float attackCooldownTimer_ = 0.0f;// クールダウン残り
@@ -159,5 +161,5 @@ protected: /// ---------- Guardian 専用モデル ---------- ///
 	/// <summary>
 	/// Guardian 用スキン
 	/// </summary>
-	virtual std::string GetGuardianSkinPath() const { return "Characters/zombie.dds"; }
+	virtual std::string GetGuardianSkinPath() const;
 };

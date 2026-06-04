@@ -1,9 +1,13 @@
 #define NOMINMAX
 #include "HumanoidBossBase.h"
 #include <LinearInterpolation.h>
+#include <LogString.h>
+#include <ParameterManager.h>
 
 #include <algorithm>
 #include <cmath>
+#include <filesystem>
+#include <string>
 
 #ifdef USE_IMGUI
 #include <imgui.h>
@@ -11,11 +15,63 @@
 
 using namespace Ken4lowEngine;
 
+namespace
+{
+	constexpr const char* kHumanoidBossModelsGroup = "HumanoidBossModels";
+
+	void EnsureHumanoidModelParameters()
+	{
+		static bool isInitialized = false;
+		if (isInitialized)
+		{
+			return;
+		}
+		isInitialized = true;
+
+		auto* parameters = ParameterManager::GetInstance();
+		parameters->CreateGroup(kHumanoidBossModelsGroup);
+
+		// モデルパスJSONがあれば読み込み、不足分だけ既定モデルで補完する。
+		if (std::filesystem::exists("Resources/ParameterManager/HumanoidBossModels.json"))
+		{
+			parameters->LoadFile(kHumanoidBossModelsGroup);
+		}
+		else
+		{
+			Log("[HumanoidBossBase] HumanoidBossModels.json not found. Use built-in default model paths.\n");
+		}
+
+		parameters->AddItem(kHumanoidBossModelsGroup, "bodyModelPath", std::string("Characters/body.gltf"));
+		parameters->AddItem(kHumanoidBossModelsGroup, "headModelPath", std::string("Characters/head.gltf"));
+		parameters->AddItem(kHumanoidBossModelsGroup, "leftArmModelPath", std::string("Characters/left_arm.gltf"));
+		parameters->AddItem(kHumanoidBossModelsGroup, "rightArmModelPath", std::string("Characters/right_arm.gltf"));
+		parameters->AddItem(kHumanoidBossModelsGroup, "leftLegModelPath", std::string("Characters/left_leg.gltf"));
+		parameters->AddItem(kHumanoidBossModelsGroup, "rightLegModelPath", std::string("Characters/right_leg.gltf"));
+	}
+
+	std::string GetModelPathOrDefault(const std::string& key, const std::string& defaultValue)
+	{
+		EnsureHumanoidModelParameters();
+		try
+		{
+			return ParameterManager::GetInstance()->GetValue<std::string>(kHumanoidBossModelsGroup, key);
+		}
+		catch (const std::exception& e)
+		{
+			Log("[HumanoidBossBase] Failed to read HumanoidBossModels." + key + ": " + e.what() + ". Use default.\n");
+			return defaultValue;
+		}
+	}
+}
+
+
 /// -------------------------------------------------------------
 ///							人型部位構築
 /// -------------------------------------------------------------
 void HumanoidBossBase::BuildBossParts()
 {
+	EnsureHumanoidModelParameters();
+
 	// ボディと部位の初期化
 	GetBody().object.reset();
 	GetBodyParts().clear();
@@ -56,6 +112,36 @@ void HumanoidBossBase::BuildBossParts()
 	AddPart(GetRightArmModelPath(), GetRightArmLocalOffset(), GetArmScale()); // 右腕
 	AddPart(GetLeftLegModelPath(), GetLeftLegLocalOffset(), GetLegScale());	  // 左脚
 	AddPart(GetRightLegModelPath(), GetRightLegLocalOffset(), GetLegScale()); // 右脚
+}
+
+std::string HumanoidBossBase::GetBodyModelPath() const
+{
+	return GetModelPathOrDefault("bodyModelPath", "Characters/body.gltf"); // 胴体モデルはJSONから参照し、読み込み失敗時は既定モデルへ戻す
+}
+
+std::string HumanoidBossBase::GetHeadModelPath() const
+{
+	return GetModelPathOrDefault("headModelPath", "Characters/head.gltf"); // 頭モデルはJSONから参照し、読み込み失敗時は既定モデルへ戻す
+}
+
+std::string HumanoidBossBase::GetLeftArmModelPath() const
+{
+	return GetModelPathOrDefault("leftArmModelPath", "Characters/left_arm.gltf"); // 左腕モデルはJSONから参照し、読み込み失敗時は既定モデルへ戻す
+}
+
+std::string HumanoidBossBase::GetRightArmModelPath() const
+{
+	return GetModelPathOrDefault("rightArmModelPath", "Characters/right_arm.gltf"); // 右腕モデルはJSONから参照し、読み込み失敗時は既定モデルへ戻す
+}
+
+std::string HumanoidBossBase::GetLeftLegModelPath() const
+{
+	return GetModelPathOrDefault("leftLegModelPath", "Characters/left_leg.gltf"); // 左脚モデルはJSONから参照し、読み込み失敗時は既定モデルへ戻す
+}
+
+std::string HumanoidBossBase::GetRightLegModelPath() const
+{
+	return GetModelPathOrDefault("rightLegModelPath", "Characters/right_leg.gltf"); // 右脚モデルはJSONから参照し、読み込み失敗時は既定モデルへ戻す
 }
 
 /// -------------------------------------------------------------

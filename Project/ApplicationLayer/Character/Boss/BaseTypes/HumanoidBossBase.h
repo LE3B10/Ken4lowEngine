@@ -119,12 +119,12 @@ protected: /// ---------- 派生で調整しやすい数値 ---------- ///
 protected: /// ---------- モデルパス取得 ---------- ///
 
 	// モデルパス
-	virtual std::string GetBodyModelPath() const { return "Characters/body.gltf"; }
-	virtual std::string GetHeadModelPath() const { return "Characters/head.gltf"; }
-	virtual std::string GetLeftArmModelPath() const { return "Characters/left_arm.gltf"; }
-	virtual std::string GetRightArmModelPath() const { return "Characters/right_arm.gltf"; }
-	virtual std::string GetLeftLegModelPath() const { return "Characters/left_leg.gltf"; }
-	virtual std::string GetRightLegModelPath() const { return "Characters/right_leg.gltf"; }
+	virtual std::string GetBodyModelPath() const;
+	virtual std::string GetHeadModelPath() const;
+	virtual std::string GetLeftArmModelPath() const;
+	virtual std::string GetRightArmModelPath() const;
+	virtual std::string GetLeftLegModelPath() const;
+	virtual std::string GetRightLegModelPath() const;
 
 protected: /// ---------- 初期配置取得 ---------- ///
 

@@ -1,6 +1,8 @@
 #include "ParameterManager.h"
 #include <ImGuiManager.h>
 #include <fstream>
+#include <LogString.h>
+#include <exception>
 
 namespace Ken4lowEngine
 {
@@ -183,6 +185,12 @@ void ParameterManager::SaveFile(const std::string& groupName)
 		{
 			root[groupName][itemName] = std::get<bool>(item.value);
 		}
+
+		/// ---------- string型を保持している場合 ---------- ///
+		else if (std::holds_alternative<std::string>(item.value))
+		{
+			root[groupName][itemName] = std::get<std::string>(item.value);
+		}
 	}
 
 	// ディレクトリの作成（存在しない場合）
@@ -256,17 +264,25 @@ void ParameterManager::LoadFile(const std::string& groupName)
 	// ファイルオープンが失敗した場合
 	if (ifs.fail())
 	{
-		std::string message = "Failed to open data file: " + filePath;
-		MessageBoxA(nullptr, message.c_str(), "GlobalVariables", 0);
-		assert(0);
+		// 読み込み失敗時も既定値で続行できるようにログだけ残す。
+		Log("[ParameterManager] Failed to open data file: " + filePath + "\n");
 		return;
 	}
 
 	// JSON文字列の読み込み
 	json root;
 
-	// json文字列からjsonのデータ構造に展開
-	ifs >> root;
+	// json文字列からjsonのデータ構造に展開し、失敗時は既定値で続行できるようにする。
+	try
+	{
+		ifs >> root;
+	}
+	catch (const std::exception& e)
+	{
+		Log("[ParameterManager] Failed to parse data file: " + filePath + ": " + e.what() + "\n");
+		ifs.close();
+		return;
+	}
 
 	// ファイルを閉じる
 	ifs.close();
@@ -274,8 +290,12 @@ void ParameterManager::LoadFile(const std::string& groupName)
 	// グループを検索
 	json::iterator itGroup = root.find(groupName);
 
-	// 未登録チェック
-	assert(itGroup != root.end());
+	// グループが無い場合も既定値で続行できるようにログだけ残す。
+	if (itGroup == root.end())
+	{
+		Log("[ParameterManager] Group not found in file: " + groupName + " (" + filePath + ")\n");
+		return;
+	}
 
 	// 各アイテムについて
 	for (json::iterator itItem = itGroup->begin(); itItem != itGroup->end(); ++itItem)
@@ -324,12 +344,17 @@ void ParameterManager::LoadFile(const std::string& groupName)
 			bool value = itItem->get<bool>();
 			SetValue(groupName, itemName, value);
 		}
+
+		/// ---------- string型を保持している場合 ---------- ///
+		else if (itItem->is_string())
+		{
+			std::string value = itItem->get<std::string>();
+			SetValue(groupName, itemName, value);
+		}
 		else
 		{
-			// 不明な型の場合のエラー処理
-			std::string message = "Unknown data type in file: " + filePath + " for item: " + itemName;
-			MessageBoxA(nullptr, message.c_str(), "GlobalVariables", 0);
-			assert(0);
+			// 不明な型は既定値を残して原因をログに出す。
+			Log("[ParameterManager] Unknown data type in file: " + filePath + " for item: " + itemName + "\n");
 		}
 	}
 }
@@ -382,6 +407,12 @@ void ParameterManager::DrawItem(const std::string& itemName, ParameterManager::I
 	{
 		bool& value = std::get<bool>(item.value);
 		ImGui::Checkbox(itemName.c_str(), &value);
+	}
+	/// ---------- string型を保持している場合 ---------- ///
+	else if (std::holds_alternative<std::string>(item.value))
+	{
+		const std::string& value = std::get<std::string>(item.value);
+		ImGui::Text("%s: %s", itemName.c_str(), value.c_str());
 	}
 	else
 	{
