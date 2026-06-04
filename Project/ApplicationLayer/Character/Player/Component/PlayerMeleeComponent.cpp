@@ -250,6 +250,7 @@ void PlayerMeleeComponent::EvaluateHit(const K4E::Vector3& playerPos)
 				<< ", hpBefore=" << boss->GetHP() << "/" << boss->GetMaxHP();
 			LogPlayerAttack(oss.str());
 		}
+		// プレイヤー近接の連続ヒットでも、怯み可否はボス側クールダウンに任せてダメージは通す。
 		boss->OnDamaged(bossDamage);
 		if (onHit_) onHit_();
 	}

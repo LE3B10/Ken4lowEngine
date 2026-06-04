@@ -10,6 +10,7 @@ void BossStatusComponent::Initialize(float maxHP)
 
 	isInvincible_ = false;
 	invincibleTimer_ = 0.0f;
+	hitStunCooldownTimer_ = 0.0f;
 }
 
 /// -------------------------------------------------------------
@@ -26,6 +27,9 @@ void BossStatusComponent::Update(float deltaTime)
 		// 無敵時間が0未満にならないように丸める
 		if (invincibleTimer_ < 0.0f) invincibleTimer_ = 0.0f;
 	}
+
+	// 怯みクールダウン中でもHP処理は通常通り行い、再怯みだけを遅らせる。
+	hitStunCooldownTimer_ = std::max(0.0f, hitStunCooldownTimer_ - deltaTime);
 }
 
 /// -------------------------------------------------------------
@@ -117,4 +121,29 @@ float BossStatusComponent::GetHPRate() const
 
 	// HP割合を計算して返す
 	return hp_ / maxHP_;
+}
+
+/// -------------------------------------------------------------
+///					怯みクールダウン可否
+/// -------------------------------------------------------------
+bool BossStatusComponent::CanStartHitStun() const
+{
+	return hitStunCooldownTimer_ <= 0.0f;
+}
+
+/// -------------------------------------------------------------
+///					怯みクールダウン開始
+/// -------------------------------------------------------------
+void BossStatusComponent::StartHitStunCooldown()
+{
+	hitStunCooldownTimer_ = hitStunCooldownSec_;
+}
+
+/// -------------------------------------------------------------
+///					怯みクールダウン秒数設定
+/// -------------------------------------------------------------
+void BossStatusComponent::SetHitStunCooldownSec(float cooldownSec)
+{
+	hitStunCooldownSec_ = std::max(0.0f, cooldownSec);
+	hitStunCooldownTimer_ = std::min(hitStunCooldownTimer_, hitStunCooldownSec_);
 }

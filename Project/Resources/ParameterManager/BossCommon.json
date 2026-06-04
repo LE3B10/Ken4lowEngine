@@ -5,6 +5,7 @@
         "turnSpeed": 4.0,
         "stopDistance": 3.0,
         "attackRange": 3.0,
-        "attackCooldownSec": 1.2
+        "attackCooldownSec": 1.2,
+        "BossHitStunCooldownSec": 1.0
     }
 }

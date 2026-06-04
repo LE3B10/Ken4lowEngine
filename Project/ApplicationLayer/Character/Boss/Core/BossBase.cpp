@@ -19,6 +19,7 @@ namespace
 	constexpr float kDefaultBossStopDistance = 3.0f;
 	constexpr float kDefaultBossAttackRange = 3.0f;
 	constexpr float kDefaultBossAttackCooldown = 1.2f;
+	constexpr float kDefaultBossHitStunCooldownSec = 1.0f;
 
 	void EnsureBossCommonParameters()
 	{
@@ -49,6 +50,7 @@ namespace
 		parameters->AddItem(kBossCommonGroup, "stopDistance", kDefaultBossStopDistance, 0.0f, 100.0f);
 		parameters->AddItem(kBossCommonGroup, "attackRange", kDefaultBossAttackRange, 0.0f, 100.0f);
 		parameters->AddItem(kBossCommonGroup, "attackCooldownSec", kDefaultBossAttackCooldown, 0.0f, 30.0f);
+		parameters->AddItem(kBossCommonGroup, "BossHitStunCooldownSec", kDefaultBossHitStunCooldownSec, 0.0f, 10.0f);
 		// JSONキーを英数字のまま維持し、ImGui表示だけ日本語化する。
 		parameters->SetDisplayName(kBossCommonGroup, "maxHP", "ボス最大HP");
 		parameters->SetDisplayName(kBossCommonGroup, "moveSpeed", "ボス移動速度");
@@ -56,6 +58,7 @@ namespace
 		parameters->SetDisplayName(kBossCommonGroup, "stopDistance", "ボス停止距離");
 		parameters->SetDisplayName(kBossCommonGroup, "attackRange", "ボス攻撃距離");
 		parameters->SetDisplayName(kBossCommonGroup, "attackCooldownSec", "ボス攻撃クールタイム");
+		parameters->SetDisplayName(kBossCommonGroup, "BossHitStunCooldownSec", "ボス怯みクールタイム");
 	}
 
 	template<typename T>
@@ -104,6 +107,7 @@ void BossBase::Initialize()
 	// ステータス生成
 	statusComponent_ = std::make_unique<BossStatusComponent>();
 	statusComponent_->Initialize(GetBossParameterOrDefault("maxHP", kDefaultBossMaxHP)); // HPはJSON調整値を優先し、失敗時だけ既定値を使う
+	statusComponent_->SetHitStunCooldownSec(GetBossParameterOrDefault("BossHitStunCooldownSec", kDefaultBossHitStunCooldownSec)); // 初期化時からボス怯みクールタイムを反映する。
 
 	// 状態遷移生成
 	stateMachine_ = std::make_unique<BossStateMachine>();
@@ -248,6 +252,7 @@ void BossBase::ApplyParameters()
 	if (statusComponent_)
 	{
 		statusComponent_->SetMaxHP(maxHP); // 最大HPだけを更新し、現在HPはコンポーネント側で範囲内に丸める。
+		statusComponent_->SetHitStunCooldownSec(GetBossParameterOrDefault("BossHitStunCooldownSec", kDefaultBossHitStunCooldownSec)); // ボスの連続怯み防止時間をParameterManagerから反映する。
 	}
 
 	if (movementComponent_)

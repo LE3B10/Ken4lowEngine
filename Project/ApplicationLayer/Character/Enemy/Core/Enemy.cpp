@@ -729,8 +729,10 @@ void Enemy::OnBulletHit(K4E::Collider* bulletCollider)
 	EnemyBase::OnBulletHit(bulletCollider);
 	suppressNextDamageStimulus_ = false;
 
-	if (!IsDead())
+	// 怯みクール中の追撃はHP/演出だけ通し、行動停止の再発動は抑制する。
+	if (!IsDead() && CanStartHitStun())
 	{
+		StartHitStunCooldown();
 		hitReactionTimer_ = reaction_.hitReactionTime * traits_.reactionDelayScale;
 		hitChainTimer_ = reaction_.hitChainWindow;
 		++consecutiveHitCount_;

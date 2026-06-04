@@ -6,8 +6,12 @@
 #include <vector>
 #include "EnemyParticleEffectSystem.h"
 #include <Bullet.h>
+#include <LogString.h>
+#include <ParameterManager.h>
 
 #include "CollisionTypeIdDef.h"
+
+#include <filesystem>
 
 #ifdef USE_IMGUI
 #include "imgui.h"
@@ -31,6 +35,47 @@ Vector3 EnemyBase::s_lastDebugAttackCenter_ = { 0.0f, 0.0f, 0.0f };
 
 namespace
 {
+
+	constexpr const char* kEnemyCommonGroup = "EnemyCommon";
+	constexpr float kDefaultEnemyHitStunCooldownSec = 0.5f;
+
+	void EnsureEnemyCommonParameters()
+	{
+		static bool isInitialized = false;
+		if (isInitialized)
+		{
+			return;
+		}
+		isInitialized = true;
+
+		auto* parameters = ParameterManager::GetInstance();
+		parameters->CreateGroup(kEnemyCommonGroup);
+		if (std::filesystem::exists("Resources/ParameterManager/EnemyCommon.json"))
+		{
+			parameters->LoadFile(kEnemyCommonGroup);
+		}
+		else
+		{
+			Log("[EnemyBase] EnemyCommon.json not found. Use built-in default enemy parameters.\n");
+		}
+
+		parameters->AddItem(kEnemyCommonGroup, "EnemyHitStunCooldownSec", kDefaultEnemyHitStunCooldownSec, 0.0f, 10.0f);
+		parameters->SetDisplayName(kEnemyCommonGroup, "EnemyHitStunCooldownSec", "敵怯みクールタイム");
+	}
+
+	template<typename T>
+	T GetEnemyParameterOrDefault(const std::string& key, const T& defaultValue)
+	{
+		try
+		{
+			return ParameterManager::GetInstance()->GetValue<T>(kEnemyCommonGroup, key);
+		}
+		catch (const std::exception& e)
+		{
+			Log("[EnemyBase] Failed to read EnemyCommon." + key + ": " + e.what() + ". Use default.\n");
+			return defaultValue;
+		}
+	}
 	static float Clamp01(float v)
 	{
 		if (v < 0.0f) return 0.0f;
@@ -176,11 +221,20 @@ void EnemyBase::MoveVisualFar(const Vector3& pos)
 	}
 }
 
+EnemyBase::~EnemyBase()
+{
+	ParameterManager::GetInstance()->UnregisterParameterApplier(kEnemyCommonGroup, this);
+}
+
 /// -------------------------------------------------------------
 /// 初期化
 /// -------------------------------------------------------------
 void EnemyBase::Initialize()
 {
+	EnsureEnemyCommonParameters();
+	ApplyParameters();
+	ParameterManager::GetInstance()->RegisterParameterApplier(kEnemyCommonGroup, this, [this]() { ApplyParameters(); }); // 保存/反映後に通常敵の怯みクールタイムを再適用する。
+
 	SetTypeID(static_cast<uint32_t>(CollisionTypeIdDef::kEnemy));
 	SetOwner(this);
 
@@ -190,6 +244,7 @@ void EnemyBase::Initialize()
 	InitializeHumanoidVisual();
 	SetColor(baseColor_);
 	hitFlashTimer_ = 0.0f;
+	hitStunCooldownTimer_ = 0.0f;
 
 	SetCenterPosition({ 0.0f, 0.0f, 0.0f });
 
@@ -341,6 +396,9 @@ void EnemyBase::Update(float deltaTime)
 	// フレーム落ち時の移動暴走を防ぐため、敵更新用deltaTimeを制限する。
 	deltaTime = std::clamp(deltaTime, 0.0f, kMaxUpdateDeltaTime);
 
+	// 怯みクールダウン中でもダメージやヒット演出は通し、再怯みだけを遅延させる。
+	hitStunCooldownTimer_ = std::max(0.0f, hitStunCooldownTimer_ - deltaTime);
+
 	// 死亡演出
 	if (isDead_)
 	{
@@ -429,6 +487,26 @@ void EnemyBase::Update(float deltaTime)
 
 	SetCenterPosition(newPos);
 	UpdateHitFlash(deltaTime);
+}
+
+/// -------------------------------------------------------------
+/// ParameterManager値の反映
+/// -------------------------------------------------------------
+void EnemyBase::ApplyParameters()
+{
+	EnsureEnemyCommonParameters();
+	hitStunCooldownSec_ = std::max(0.0f, GetEnemyParameterOrDefault("EnemyHitStunCooldownSec", kDefaultEnemyHitStunCooldownSec));
+	hitStunCooldownTimer_ = std::min(hitStunCooldownTimer_, hitStunCooldownSec_);
+}
+
+bool EnemyBase::CanStartHitStun() const
+{
+	return hitStunCooldownTimer_ <= 0.0f;
+}
+
+void EnemyBase::StartHitStunCooldown()
+{
+	hitStunCooldownTimer_ = hitStunCooldownSec_;
 }
 
 /// -------------------------------------------------------------

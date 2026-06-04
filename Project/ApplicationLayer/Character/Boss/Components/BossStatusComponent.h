@@ -77,6 +77,15 @@ public: /// ---------- 無敵状態 ---------- ///
 	/// </summary>
 	bool IsInvincible() const { return isInvincible_; }
 
+public: /// ---------- 怯みクールダウン ---------- ///
+
+	// 怯みだけを間引くため、HPダメージとは独立した再発動可否を返す。
+	bool CanStartHitStun() const;
+	void StartHitStunCooldown();
+	void SetHitStunCooldownSec(float cooldownSec);
+	float GetHitStunCooldownSec() const { return hitStunCooldownSec_; }
+	float GetHitStunCooldownTimer() const { return hitStunCooldownTimer_; }
+
 public: /// ---------- 参照 ---------- ///
 
 	// 現在HP
@@ -114,4 +123,8 @@ private: /// ---------- 内部状態 ---------- ///
 
 	// 一定時間の無敵
 	float invincibleTimer_ = 0.0f;
+
+	// 連続ヒット時にボスが怯み状態へ固定されないよう、怯み専用の再発動待ち時間を持つ。
+	float hitStunCooldownSec_ = 1.0f;
+	float hitStunCooldownTimer_ = 0.0f;
 };

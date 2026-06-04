@@ -45,7 +45,7 @@ public:
 
 public:
 	EnemyBase() = default;
-	virtual ~EnemyBase() = default;
+	virtual ~EnemyBase();
 
 	virtual void Initialize();
 	virtual void Update(float deltaTime);
@@ -53,6 +53,7 @@ public:
 	virtual void DrawImGui();
 	virtual void UpdateShadowMatrix(const K4E::Matrix4x4& lightViewProjection);
 	virtual void DrawShadow();
+	virtual void ApplyParameters();
 
 public:
 	// HP
@@ -118,6 +119,10 @@ public:
 	void SetHitFlashFrequency(float hz) { hitFlashFrequencyHz_ = hz; }
 	void SetHitFlashColor(const K4E::Vector4& c) { hitFlashColor_ = c; }
 	void StartHitFlash();
+
+	// 怯みだけを間引くため、ダメージ処理とは独立してクールダウン可否を判定する。
+	bool CanStartHitStun() const;
+	void StartHitStunCooldown();
 
 	// Collider events
 	void OnCollisionEnter(K4E::Collider* other) override;
@@ -237,6 +242,10 @@ protected:
 	float hitFlashDuration_ = 0.12f;
 	float hitFlashFrequencyHz_ = 18.0f;
 	bool hitFlashEnabled_ = true;
+
+	// 連続ヒットで怯みが上書きされ続けないよう、怯み専用の再発動待ち時間を持つ。
+	float hitStunCooldownSec_ = 0.5f;
+	float hitStunCooldownTimer_ = 0.0f;
 
 	// stage AABB
 	const std::vector<K4E::AABB>* worldAABBs_ = nullptr;

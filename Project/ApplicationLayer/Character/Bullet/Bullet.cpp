@@ -290,6 +290,7 @@ void Bullet::ApplySplashDamageToType(uint32_t targetType, const K4E::Vector3& ce
 
 				const K4E::Vector3 hitDir = NormalizeSafe(toTarget, NormalizeSafe(moveVelocity_, { 0.0f, 0.0f, 1.0f }));
 				enemy->SpawnHitEffectAt(col->GetCenterPosition());
+				// SplashDamageでも怯み可否は敵側で判定し、範囲内のHPダメージは通常通り通す。
 				enemy->TakeDamage(finalDamage, hitDir, 1.8f);
 			}
 		}
@@ -297,6 +298,7 @@ void Bullet::ApplySplashDamageToType(uint32_t targetType, const K4E::Vector3& ce
 		{
 			if (auto* boss = col->GetOwner<BossBase>(); boss && boss->IsAlive())
 			{
+				// SplashDamageでも怯み可否はボス側で判定し、範囲内のHPダメージは通常通り通す。
 				boss->OnBulletDamaged(static_cast<float>(finalDamage));
 			}
 		}

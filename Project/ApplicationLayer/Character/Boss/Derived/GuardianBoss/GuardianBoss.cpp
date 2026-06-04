@@ -335,9 +335,10 @@ void GuardianBoss::OnDamaged(float damage)
 		Log(oss.str() + "\n");
 	}
 
-	// 生きていたらひるみへ
-	if (!IsDead())
+	// 怯みクール中はダメージ/ヒット演出を維持しつつ、Staggerへの再遷移だけを抑える。
+	if (!IsDead() && GetStatusComponent() && GetStatusComponent()->CanStartHitStun())
 	{
+		GetStatusComponent()->StartHitStunCooldown();
 		BeginStaggerState();
 	}
 }

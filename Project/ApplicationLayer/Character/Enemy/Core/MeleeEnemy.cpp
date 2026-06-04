@@ -857,8 +857,9 @@ void MeleeEnemy::TakeDamage(int amount, const Vector3& hitDir, float hitPower)
 
 void MeleeEnemy::StartHitReaction(const Vector3& hitDirection)
 {
-	// 被ダメージ時にのけぞり状態を開始する。
-	if (!hitReactionSettings_.enabled || IsDead()) { return; }
+	// 怯みクール中はダメージ/ヒット演出を維持しつつ、のけぞり再開だけを抑える。
+	if (!hitReactionSettings_.enabled || IsDead() || !CanStartHitStun()) { return; }
+	StartHitStunCooldown();
 	Vector3 dir = NormalizeXZ(hitDirection * -1.0f);
 	if (LengthXZ(dir) <= kEpsilon)
 	{

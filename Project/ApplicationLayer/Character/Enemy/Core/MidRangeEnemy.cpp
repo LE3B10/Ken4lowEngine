@@ -829,12 +829,18 @@ void MidRangeEnemy::UpdateVisualAnimation(float deltaTime)
 
 void MidRangeEnemy::StartHitReaction(const Vector3& hitDirection)
 {
-    // 追加: 被ダメージリアクション開始。
+    // 怯みクール中はダメージ/ヒット演出を維持しつつ、被ダメージリアクションだけを抑える。
     if (!hitReaction_.enabled)
     {
         hitReactionState_.lastReason = "Disabled";
         return;
     }
+    if (!CanStartHitStun())
+    {
+        hitReactionState_.lastReason = "Cooldown";
+        return;
+    }
+    StartHitStunCooldown();
     hitReactionState_.active = true;
     hitReactionState_.timer = hitReaction_.duration;
     hitReactionState_.knockbackDirection = NormalizeXZ(hitDirection);
