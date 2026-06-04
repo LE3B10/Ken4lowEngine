@@ -119,6 +119,14 @@ float BossBrain::EvaluateAttackScore(const IBossAttack& attack) const
 		else score -= 40.0f;
 	}
 
+	// Shockwave は中距離で選ばれやすくし、近距離ではパンチ系へ譲る。
+	else if (std::strcmp(attack.GetName(), "GuardianShockwave") == 0)
+	{
+		if (distance >= 5.0f) score += 28.0f;
+		else if (distance >= 3.0f) score += 10.0f;
+		else score -= 25.0f;
+	}
+
 	// Punch は Heavy より少し遠めでも届く想定で、近距離以外でもそこそこ優遇
 	else if (std::strcmp(attack.GetName(), "Punch") == 0)
 	{
