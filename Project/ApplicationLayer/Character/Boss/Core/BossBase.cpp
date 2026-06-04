@@ -4,6 +4,7 @@
 #include <LogString.h>
 #include <ParameterManager.h>
 
+#include <cmath>
 #include <filesystem>
 #include <sstream>
 #include <string>
@@ -195,6 +196,7 @@ void BossBase::Update(float deltaTime)
 
 	// 最後に部位階層更新
 	BaseCharacter::Update(deltaTime);
+	ApplyModelYawOffsetToVisuals();
 }
 
 /// -------------------------------------------------------------
@@ -429,6 +431,37 @@ K4E::Vector3 BossBase::GetDirectionToTargetXZOrForward(const K4E::Vector3& origi
 	}
 
 	return { std::sin(GetYaw()), 0.0f, std::cos(GetYaw()) };
+}
+
+void BossBase::ApplyModelYawOffsetToVisuals()
+{
+	const float modelYawOffset = GetModelYawOffsetRad();
+	if (std::fabs(modelYawOffset) <= 0.0001f)
+	{
+		return;
+	}
+
+	if (body_.object)
+	{
+		K4E::Vector3 visualRotate = body_.transform.rotate_;
+		visualRotate.y += modelYawOffset; // 論理forwardは維持し、メッシュの正面軸だけ表示用Yawで合わせる。
+		body_.object->SetRotate(visualRotate);
+		body_.object->Update();
+	}
+
+	for (auto& part : parts_)
+	{
+		if (!part.object || part.transform.useQuaternionRotation_)
+		{
+			continue;
+		}
+
+		K4E::Vector3 visualRotate = part.transform.worldRotate_;
+		visualRotate.y += modelYawOffset;
+		part.object->SetTranslate(part.transform.worldTranslate_);
+		part.object->SetRotate(visualRotate);
+		part.object->Update();
+	}
 }
 
 void BossBase::FaceDirectionXZImmediate(const K4E::Vector3& direction)
