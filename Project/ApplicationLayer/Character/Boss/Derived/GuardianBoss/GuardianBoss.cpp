@@ -159,56 +159,56 @@ void GuardianBoss::ApplyParameters()
 {
 	BossBase::ApplyParameters();
 	EnsureGuardianBossParameters();
-	moveSpeed_ = GetGuardianParameterOrDefault("moveSpeed", moveSpeed_);
-	rotateSpeed_ = GetGuardianParameterOrDefault("rotateSpeed", rotateSpeed_);
+	movementTuning_.moveSpeed = GetGuardianParameterOrDefault("moveSpeed", movementTuning_.moveSpeed);
+	movementTuning_.rotateSpeed = GetGuardianParameterOrDefault("rotateSpeed", movementTuning_.rotateSpeed);
 
 	if (movementComponent_)
 	{
 		// Guardian固有の移動速度を実際に移動するMovementComponentへ反映する
-		GetMovementComponent()->SetMoveSpeed(moveSpeed_);
-		GetMovementComponent()->SetTurnSpeed(rotateSpeed_);
+		GetMovementComponent()->SetMoveSpeed(movementTuning_.moveSpeed);
+		GetMovementComponent()->SetTurnSpeed(movementTuning_.rotateSpeed);
 	}
 
-	attackRange_ = GetGuardianParameterOrDefault("attackRange", attackRange_);
-	attackHitRange_ = GetGuardianParameterOrDefault("GuardianAttackHitRange", attackHitRange_);
-	attackHitRadius_ = GetGuardianParameterOrDefault("GuardianAttackHitRadius", attackHitRadius_);
-	attackForwardOffset_ = GetGuardianParameterOrDefault("GuardianAttackForwardOffset", attackForwardOffset_);
-	attackHitAngleDeg_ = GetGuardianParameterOrDefault("GuardianAttackHitAngleDeg", attackHitAngleDeg_);
-	shockwaveRange_ = GetGuardianParameterOrDefault("GuardianShockwaveRange", shockwaveRange_); // Guardian衝撃波リーチをJSON調整値から復元する
-	shockwaveAngleDeg_ = GetGuardianParameterOrDefault("GuardianShockwaveAngleDeg", shockwaveAngleDeg_); // Guardian衝撃波角度をJSON調整値から復元する
-	shockwaveDamage_ = GetGuardianParameterOrDefault("GuardianShockwaveDamage", shockwaveDamage_); // Guardian衝撃波ダメージをJSON調整値から復元する
-	shockwaveCooldown_ = GetGuardianParameterOrDefault("GuardianShockwaveCooldown", shockwaveCooldown_); // Guardian衝撃波クールタイムをJSON調整値から復元する
-	shockwaveStartupSec_ = GetGuardianParameterOrDefault("GuardianShockwaveStartupSec", shockwaveStartupSec_); // Guardian衝撃波予備動作をJSON調整値から復元する
-	shockwaveActiveSec_ = GetGuardianParameterOrDefault("GuardianShockwaveActiveSec", shockwaveActiveSec_); // Guardian衝撃波判定時間をJSON調整値から復元する
-	shockwaveRecoverySec_ = GetGuardianParameterOrDefault("GuardianShockwaveRecoverySec", shockwaveRecoverySec_); // Guardian衝撃波後隙をJSON調整値から復元する
-	closeAttackRange_ = GetGuardianParameterOrDefault("GuardianCloseAttackRange", closeAttackRange_);
-	middleAttackRange_ = GetGuardianParameterOrDefault("GuardianMiddleAttackRange", middleAttackRange_);
-	farAttackRange_ = GetGuardianParameterOrDefault("GuardianFarAttackRange", farAttackRange_);
-	chargeSpeed_ = GetGuardianParameterOrDefault("GuardianChargeSpeed", chargeSpeed_);
-	chargeDistance_ = GetGuardianParameterOrDefault("GuardianChargeDistance", chargeDistance_);
-	chargeDamage_ = GetGuardianParameterOrDefault("GuardianChargeDamage", chargeDamage_);
-	chargeStartupSec_ = GetGuardianParameterOrDefault("GuardianChargeStartupSec", chargeStartupSec_);
-	chargeRecoverySec_ = GetGuardianParameterOrDefault("GuardianChargeRecoverySec", chargeRecoverySec_);
-	chargeCooldown_ = GetGuardianParameterOrDefault("GuardianChargeCooldown", chargeCooldown_);
-	middleAttackRange_ = std::max(closeAttackRange_, middleAttackRange_); // 距離帯が逆転した設定でも近距離→中距離→遠距離の順を保つ。
-	farAttackRange_ = std::max(middleAttackRange_, farAttackRange_);
-	particleSpawnCount_ = static_cast<uint32_t>(std::max(0, GetGuardianParameterOrDefault("ParticleSpawnCount", static_cast<int>(particleSpawnCount_))));
-	particleSpawnRadius_ = GetGuardianParameterOrDefault("ParticleSpawnRadius", particleSpawnRadius_);
-	particleLifetime_ = GetGuardianParameterOrDefault("ParticleLifetime", particleLifetime_);
-	particleInitialSpeed_ = GetGuardianParameterOrDefault("ParticleInitialSpeed", particleInitialSpeed_);
-	moveStartDistance_ = GetGuardianParameterOrDefault("moveStartDistance", moveStartDistance_);
-	moveStopDistance_ = GetGuardianParameterOrDefault("moveStopDistance", moveStopDistance_);
-	attackDuration_ = GetGuardianParameterOrDefault("attackDuration", attackDuration_);
-	attackCooldown_ = GetGuardianParameterOrDefault("attackCooldown", attackCooldown_);
-	staggerDuration_ = GetGuardianParameterOrDefault("staggerDuration", staggerDuration_);
-	heavyPunchReuseDelay_ = GetGuardianParameterOrDefault("heavyPunchReuseDelay", heavyPunchReuseDelay_);
-	animationWalkSpeed_ = GetGuardianParameterOrDefault("animationWalkSpeed", animationWalkSpeed_);
-	animationWalkAmplitude_ = GetGuardianParameterOrDefault("animationWalkAmplitude", animationWalkAmplitude_);
+	attackHitTuning_.attackRange = GetGuardianParameterOrDefault("attackRange", attackHitTuning_.attackRange);
+	attackHitTuning_.hitRange = GetGuardianParameterOrDefault("GuardianAttackHitRange", attackHitTuning_.hitRange);
+	attackHitTuning_.hitRadius = GetGuardianParameterOrDefault("GuardianAttackHitRadius", attackHitTuning_.hitRadius);
+	attackHitTuning_.forwardOffset = GetGuardianParameterOrDefault("GuardianAttackForwardOffset", attackHitTuning_.forwardOffset);
+	attackHitTuning_.hitAngleDeg = GetGuardianParameterOrDefault("GuardianAttackHitAngleDeg", attackHitTuning_.hitAngleDeg);
+	shockwaveTuning_.range = GetGuardianParameterOrDefault("GuardianShockwaveRange", shockwaveTuning_.range); // Guardian衝撃波リーチをJSON調整値から復元する
+	shockwaveTuning_.angleDeg = GetGuardianParameterOrDefault("GuardianShockwaveAngleDeg", shockwaveTuning_.angleDeg); // Guardian衝撃波角度をJSON調整値から復元する
+	shockwaveTuning_.damage = GetGuardianParameterOrDefault("GuardianShockwaveDamage", shockwaveTuning_.damage); // Guardian衝撃波ダメージをJSON調整値から復元する
+	shockwaveTuning_.cooldown = GetGuardianParameterOrDefault("GuardianShockwaveCooldown", shockwaveTuning_.cooldown); // Guardian衝撃波クールタイムをJSON調整値から復元する
+	shockwaveTuning_.startupSec = GetGuardianParameterOrDefault("GuardianShockwaveStartupSec", shockwaveTuning_.startupSec); // Guardian衝撃波予備動作をJSON調整値から復元する
+	shockwaveTuning_.activeSec = GetGuardianParameterOrDefault("GuardianShockwaveActiveSec", shockwaveTuning_.activeSec); // Guardian衝撃波判定時間をJSON調整値から復元する
+	shockwaveTuning_.recoverySec = GetGuardianParameterOrDefault("GuardianShockwaveRecoverySec", shockwaveTuning_.recoverySec); // Guardian衝撃波後隙をJSON調整値から復元する
+	attackHitTuning_.closeRange = GetGuardianParameterOrDefault("GuardianCloseAttackRange", attackHitTuning_.closeRange);
+	attackHitTuning_.middleRange = GetGuardianParameterOrDefault("GuardianMiddleAttackRange", attackHitTuning_.middleRange);
+	attackHitTuning_.farRange = GetGuardianParameterOrDefault("GuardianFarAttackRange", attackHitTuning_.farRange);
+	chargeTuning_.speed = GetGuardianParameterOrDefault("GuardianChargeSpeed", chargeTuning_.speed);
+	chargeTuning_.distance = GetGuardianParameterOrDefault("GuardianChargeDistance", chargeTuning_.distance);
+	chargeTuning_.damage = GetGuardianParameterOrDefault("GuardianChargeDamage", chargeTuning_.damage);
+	chargeTuning_.startupSec = GetGuardianParameterOrDefault("GuardianChargeStartupSec", chargeTuning_.startupSec);
+	chargeTuning_.recoverySec = GetGuardianParameterOrDefault("GuardianChargeRecoverySec", chargeTuning_.recoverySec);
+	chargeTuning_.cooldown = GetGuardianParameterOrDefault("GuardianChargeCooldown", chargeTuning_.cooldown);
+	attackHitTuning_.middleRange = std::max(attackHitTuning_.closeRange, attackHitTuning_.middleRange); // 距離帯が逆転した設定でも近距離→中距離→遠距離の順を保つ。
+	attackHitTuning_.farRange = std::max(attackHitTuning_.middleRange, attackHitTuning_.farRange);
+	particleTuning_.spawnCount = static_cast<uint32_t>(std::max(0, GetGuardianParameterOrDefault("ParticleSpawnCount", static_cast<int>(particleTuning_.spawnCount))));
+	particleTuning_.spawnRadius = GetGuardianParameterOrDefault("ParticleSpawnRadius", particleTuning_.spawnRadius);
+	particleTuning_.lifetime = GetGuardianParameterOrDefault("ParticleLifetime", particleTuning_.lifetime);
+	particleTuning_.initialSpeed = GetGuardianParameterOrDefault("ParticleInitialSpeed", particleTuning_.initialSpeed);
+	movementTuning_.moveStartDistance = GetGuardianParameterOrDefault("moveStartDistance", movementTuning_.moveStartDistance);
+	movementTuning_.moveStopDistance = GetGuardianParameterOrDefault("moveStopDistance", movementTuning_.moveStopDistance);
+	animationTuning_.attackDuration = GetGuardianParameterOrDefault("attackDuration", animationTuning_.attackDuration);
+	animationTuning_.attackCooldown = GetGuardianParameterOrDefault("attackCooldown", animationTuning_.attackCooldown);
+	animationTuning_.staggerDuration = GetGuardianParameterOrDefault("staggerDuration", animationTuning_.staggerDuration);
+	attackSelectState_.heavyPunchReuseDelay = GetGuardianParameterOrDefault("heavyPunchReuseDelay", attackSelectState_.heavyPunchReuseDelay);
+	animationTuning_.walkSpeed = GetGuardianParameterOrDefault("animationWalkSpeed", animationTuning_.walkSpeed);
+	animationTuning_.walkAmplitude = GetGuardianParameterOrDefault("animationWalkAmplitude", animationTuning_.walkAmplitude);
 	if (GetAnimationComponent())
 	{
-		GetAnimationComponent()->SetWalkSpeed(animationWalkSpeed_);
-		GetAnimationComponent()->SetWalkAmplitude(animationWalkAmplitude_);
-		GetAnimationComponent()->SetAttackDuration(attackDuration_);
+		GetAnimationComponent()->SetWalkSpeed(animationTuning_.walkSpeed);
+		GetAnimationComponent()->SetWalkAmplitude(animationTuning_.walkAmplitude);
+		GetAnimationComponent()->SetAttackDuration(animationTuning_.attackDuration);
 	}
 	ApplyAttackHitParametersToAttacks(); // 攻撃判定リーチ変更は保存/反映後に実行中の攻撃処理へ再適用する。
 	ApplySkinToAllParts(GetGuardianSkinPath()); // スキンパス変更は保存/反映後に実行中モデルへ再適用する。
@@ -230,59 +230,59 @@ void GuardianBoss::SetupBoss()
 	HumanoidBossBase::SetupBoss();
 
 	EnsureGuardianBossParameters();
-	moveSpeed_ = GetGuardianParameterOrDefault("moveSpeed", moveSpeed_); // Guardianの移動速度をJSON調整値から復元する
-	rotateSpeed_ = GetGuardianParameterOrDefault("rotateSpeed", rotateSpeed_); // Guardianの旋回速度をJSON調整値から復元する
-	attackRange_ = GetGuardianParameterOrDefault("attackRange", attackRange_); // Guardianの攻撃開始距離をJSON調整値から復元する
-	attackHitRange_ = GetGuardianParameterOrDefault("GuardianAttackHitRange", attackHitRange_); // Guardianの攻撃判定リーチをJSON調整値から復元する
-	attackHitRadius_ = GetGuardianParameterOrDefault("GuardianAttackHitRadius", attackHitRadius_); // Guardianの攻撃判定半径をJSON調整値から復元する
-	attackForwardOffset_ = GetGuardianParameterOrDefault("GuardianAttackForwardOffset", attackForwardOffset_); // Guardianの攻撃判定前方オフセットをJSON調整値から復元する
-	attackHitAngleDeg_ = GetGuardianParameterOrDefault("GuardianAttackHitAngleDeg", attackHitAngleDeg_); // Guardianの攻撃判定角度をJSON調整値から復元する
-	shockwaveRange_ = GetGuardianParameterOrDefault("GuardianShockwaveRange", shockwaveRange_); // Guardian衝撃波リーチをJSON調整値から復元する
-	shockwaveAngleDeg_ = GetGuardianParameterOrDefault("GuardianShockwaveAngleDeg", shockwaveAngleDeg_); // Guardian衝撃波角度をJSON調整値から復元する
-	shockwaveDamage_ = GetGuardianParameterOrDefault("GuardianShockwaveDamage", shockwaveDamage_); // Guardian衝撃波ダメージをJSON調整値から復元する
-	shockwaveCooldown_ = GetGuardianParameterOrDefault("GuardianShockwaveCooldown", shockwaveCooldown_); // Guardian衝撃波クールタイムをJSON調整値から復元する
-	shockwaveStartupSec_ = GetGuardianParameterOrDefault("GuardianShockwaveStartupSec", shockwaveStartupSec_); // Guardian衝撃波予備動作をJSON調整値から復元する
-	shockwaveActiveSec_ = GetGuardianParameterOrDefault("GuardianShockwaveActiveSec", shockwaveActiveSec_); // Guardian衝撃波判定時間をJSON調整値から復元する
-	shockwaveRecoverySec_ = GetGuardianParameterOrDefault("GuardianShockwaveRecoverySec", shockwaveRecoverySec_); // Guardian衝撃波後隙をJSON調整値から復元する
-	closeAttackRange_ = GetGuardianParameterOrDefault("GuardianCloseAttackRange", closeAttackRange_);
-	middleAttackRange_ = GetGuardianParameterOrDefault("GuardianMiddleAttackRange", middleAttackRange_);
-	farAttackRange_ = GetGuardianParameterOrDefault("GuardianFarAttackRange", farAttackRange_);
-	chargeSpeed_ = GetGuardianParameterOrDefault("GuardianChargeSpeed", chargeSpeed_);
-	chargeDistance_ = GetGuardianParameterOrDefault("GuardianChargeDistance", chargeDistance_);
-	chargeDamage_ = GetGuardianParameterOrDefault("GuardianChargeDamage", chargeDamage_);
-	chargeStartupSec_ = GetGuardianParameterOrDefault("GuardianChargeStartupSec", chargeStartupSec_);
-	chargeRecoverySec_ = GetGuardianParameterOrDefault("GuardianChargeRecoverySec", chargeRecoverySec_);
-	chargeCooldown_ = GetGuardianParameterOrDefault("GuardianChargeCooldown", chargeCooldown_);
-	middleAttackRange_ = std::max(closeAttackRange_, middleAttackRange_); // 距離帯が逆転した設定でも近距離→中距離→遠距離の順を保つ。
-	farAttackRange_ = std::max(middleAttackRange_, farAttackRange_);
-	particleSpawnCount_ = static_cast<uint32_t>(std::max(0, GetGuardianParameterOrDefault("ParticleSpawnCount", static_cast<int>(particleSpawnCount_))));
-	particleSpawnRadius_ = GetGuardianParameterOrDefault("ParticleSpawnRadius", particleSpawnRadius_);
-	particleLifetime_ = GetGuardianParameterOrDefault("ParticleLifetime", particleLifetime_);
-	particleInitialSpeed_ = GetGuardianParameterOrDefault("ParticleInitialSpeed", particleInitialSpeed_);
-	moveStartDistance_ = GetGuardianParameterOrDefault("moveStartDistance", moveStartDistance_); // Guardianの移動開始距離をJSON調整値から復元する
-	moveStopDistance_ = GetGuardianParameterOrDefault("moveStopDistance", moveStopDistance_); // Guardianの移動停止距離をJSON調整値から復元する
-	attackDuration_ = GetGuardianParameterOrDefault("attackDuration", attackDuration_); // Guardianの攻撃時間をJSON調整値から復元する
-	attackCooldown_ = GetGuardianParameterOrDefault("attackCooldown", attackCooldown_); // Guardianの攻撃後クールタイムをJSON調整値から復元する
-	staggerDuration_ = GetGuardianParameterOrDefault("staggerDuration", staggerDuration_); // Guardianのひるみ時間をJSON調整値から復元する
-	heavyPunchReuseDelay_ = GetGuardianParameterOrDefault("heavyPunchReuseDelay", heavyPunchReuseDelay_); // HeavyPunch再使用間隔をJSON調整値から復元する
-	animationWalkSpeed_ = GetGuardianParameterOrDefault("animationWalkSpeed", animationWalkSpeed_); // 歩行アニメ速度をJSON調整値から復元する
-	animationWalkAmplitude_ = GetGuardianParameterOrDefault("animationWalkAmplitude", animationWalkAmplitude_); // 歩行アニメ振幅をJSON調整値から復元する
+	movementTuning_.moveSpeed = GetGuardianParameterOrDefault("moveSpeed", movementTuning_.moveSpeed); // Guardianの移動速度をJSON調整値から復元する
+	movementTuning_.rotateSpeed = GetGuardianParameterOrDefault("rotateSpeed", movementTuning_.rotateSpeed); // Guardianの旋回速度をJSON調整値から復元する
+	attackHitTuning_.attackRange = GetGuardianParameterOrDefault("attackRange", attackHitTuning_.attackRange); // Guardianの攻撃開始距離をJSON調整値から復元する
+	attackHitTuning_.hitRange = GetGuardianParameterOrDefault("GuardianAttackHitRange", attackHitTuning_.hitRange); // Guardianの攻撃判定リーチをJSON調整値から復元する
+	attackHitTuning_.hitRadius = GetGuardianParameterOrDefault("GuardianAttackHitRadius", attackHitTuning_.hitRadius); // Guardianの攻撃判定半径をJSON調整値から復元する
+	attackHitTuning_.forwardOffset = GetGuardianParameterOrDefault("GuardianAttackForwardOffset", attackHitTuning_.forwardOffset); // Guardianの攻撃判定前方オフセットをJSON調整値から復元する
+	attackHitTuning_.hitAngleDeg = GetGuardianParameterOrDefault("GuardianAttackHitAngleDeg", attackHitTuning_.hitAngleDeg); // Guardianの攻撃判定角度をJSON調整値から復元する
+	shockwaveTuning_.range = GetGuardianParameterOrDefault("GuardianShockwaveRange", shockwaveTuning_.range); // Guardian衝撃波リーチをJSON調整値から復元する
+	shockwaveTuning_.angleDeg = GetGuardianParameterOrDefault("GuardianShockwaveAngleDeg", shockwaveTuning_.angleDeg); // Guardian衝撃波角度をJSON調整値から復元する
+	shockwaveTuning_.damage = GetGuardianParameterOrDefault("GuardianShockwaveDamage", shockwaveTuning_.damage); // Guardian衝撃波ダメージをJSON調整値から復元する
+	shockwaveTuning_.cooldown = GetGuardianParameterOrDefault("GuardianShockwaveCooldown", shockwaveTuning_.cooldown); // Guardian衝撃波クールタイムをJSON調整値から復元する
+	shockwaveTuning_.startupSec = GetGuardianParameterOrDefault("GuardianShockwaveStartupSec", shockwaveTuning_.startupSec); // Guardian衝撃波予備動作をJSON調整値から復元する
+	shockwaveTuning_.activeSec = GetGuardianParameterOrDefault("GuardianShockwaveActiveSec", shockwaveTuning_.activeSec); // Guardian衝撃波判定時間をJSON調整値から復元する
+	shockwaveTuning_.recoverySec = GetGuardianParameterOrDefault("GuardianShockwaveRecoverySec", shockwaveTuning_.recoverySec); // Guardian衝撃波後隙をJSON調整値から復元する
+	attackHitTuning_.closeRange = GetGuardianParameterOrDefault("GuardianCloseAttackRange", attackHitTuning_.closeRange);
+	attackHitTuning_.middleRange = GetGuardianParameterOrDefault("GuardianMiddleAttackRange", attackHitTuning_.middleRange);
+	attackHitTuning_.farRange = GetGuardianParameterOrDefault("GuardianFarAttackRange", attackHitTuning_.farRange);
+	chargeTuning_.speed = GetGuardianParameterOrDefault("GuardianChargeSpeed", chargeTuning_.speed);
+	chargeTuning_.distance = GetGuardianParameterOrDefault("GuardianChargeDistance", chargeTuning_.distance);
+	chargeTuning_.damage = GetGuardianParameterOrDefault("GuardianChargeDamage", chargeTuning_.damage);
+	chargeTuning_.startupSec = GetGuardianParameterOrDefault("GuardianChargeStartupSec", chargeTuning_.startupSec);
+	chargeTuning_.recoverySec = GetGuardianParameterOrDefault("GuardianChargeRecoverySec", chargeTuning_.recoverySec);
+	chargeTuning_.cooldown = GetGuardianParameterOrDefault("GuardianChargeCooldown", chargeTuning_.cooldown);
+	attackHitTuning_.middleRange = std::max(attackHitTuning_.closeRange, attackHitTuning_.middleRange); // 距離帯が逆転した設定でも近距離→中距離→遠距離の順を保つ。
+	attackHitTuning_.farRange = std::max(attackHitTuning_.middleRange, attackHitTuning_.farRange);
+	particleTuning_.spawnCount = static_cast<uint32_t>(std::max(0, GetGuardianParameterOrDefault("ParticleSpawnCount", static_cast<int>(particleTuning_.spawnCount))));
+	particleTuning_.spawnRadius = GetGuardianParameterOrDefault("ParticleSpawnRadius", particleTuning_.spawnRadius);
+	particleTuning_.lifetime = GetGuardianParameterOrDefault("ParticleLifetime", particleTuning_.lifetime);
+	particleTuning_.initialSpeed = GetGuardianParameterOrDefault("ParticleInitialSpeed", particleTuning_.initialSpeed);
+	movementTuning_.moveStartDistance = GetGuardianParameterOrDefault("moveStartDistance", movementTuning_.moveStartDistance); // Guardianの移動開始距離をJSON調整値から復元する
+	movementTuning_.moveStopDistance = GetGuardianParameterOrDefault("moveStopDistance", movementTuning_.moveStopDistance); // Guardianの移動停止距離をJSON調整値から復元する
+	animationTuning_.attackDuration = GetGuardianParameterOrDefault("attackDuration", animationTuning_.attackDuration); // Guardianの攻撃時間をJSON調整値から復元する
+	animationTuning_.attackCooldown = GetGuardianParameterOrDefault("attackCooldown", animationTuning_.attackCooldown); // Guardianの攻撃後クールタイムをJSON調整値から復元する
+	animationTuning_.staggerDuration = GetGuardianParameterOrDefault("staggerDuration", animationTuning_.staggerDuration); // Guardianのひるみ時間をJSON調整値から復元する
+	attackSelectState_.heavyPunchReuseDelay = GetGuardianParameterOrDefault("heavyPunchReuseDelay", attackSelectState_.heavyPunchReuseDelay); // HeavyPunch再使用間隔をJSON調整値から復元する
+	animationTuning_.walkSpeed = GetGuardianParameterOrDefault("animationWalkSpeed", animationTuning_.walkSpeed); // 歩行アニメ速度をJSON調整値から復元する
+	animationTuning_.walkAmplitude = GetGuardianParameterOrDefault("animationWalkAmplitude", animationTuning_.walkAmplitude); // 歩行アニメ振幅をJSON調整値から復元する
 
 	// フェーズ初期化
 	SetPhase(BossPhase::Phase1);
 
-	stateTimer_ = 0.0f;
-	attackCooldownTimer_ = 0.0f;
-	hasAppliedAttackHit_ = false;
-	receivedHitCount_ = 0;
-	bulletHitCount_ = 0;
-	bossAttackHitCount_ = 0;
-	lastReceivedDamage_ = 0.0f;
-	lastPlayerDamage_ = 0.0f;
+	runtimeState_.stateTimer = 0.0f;
+	runtimeState_.attackCooldownTimer = 0.0f;
+	runtimeState_.hasAppliedAttackHit = false;
+	runtimeState_.receivedHitCount = 0;
+	runtimeState_.bulletHitCount = 0;
+	runtimeState_.bossAttackHitCount = 0;
+	runtimeState_.lastReceivedDamage = 0.0f;
+	runtimeState_.lastPlayerDamage = 0.0f;
 
 	// HeavyPunch 連打抑制初期化
-	lastSelectedAttack_ = "None";
-	heavyPunchReuseTimer_ = 0.0f;
+	attackSelectState_.lastSelectedAttack = "None";
+	attackSelectState_.heavyPunchReuseTimer = 0.0f;
 
 	// ---------------------------------------------------------
 	// 初期状態は Idle
@@ -295,9 +295,9 @@ void GuardianBoss::SetupBoss()
 	// ---------------------------------------------------------
 	if (GetAnimationComponent())
 	{
-		GetAnimationComponent()->SetWalkSpeed(animationWalkSpeed_);
-		GetAnimationComponent()->SetWalkAmplitude(animationWalkAmplitude_);
-		GetAnimationComponent()->SetAttackDuration(attackDuration_);
+		GetAnimationComponent()->SetWalkSpeed(animationTuning_.walkSpeed);
+		GetAnimationComponent()->SetWalkAmplitude(animationTuning_.walkAmplitude);
+		GetAnimationComponent()->SetAttackDuration(animationTuning_.attackDuration);
 
 		GetAnimationComponent()->ResetWalkTimer();
 		GetAnimationComponent()->ResetAttackTimer();
@@ -331,15 +331,15 @@ void GuardianBoss::OnDamaged(float damage)
 
 	if (GetHP() < hpBefore)
 	{
-		++receivedHitCount_;
-		lastReceivedDamage_ = damage;
+		++runtimeState_.receivedHitCount;
+		runtimeState_.lastReceivedDamage = damage;
 	}
 
 	{
 		std::ostringstream oss;
 		oss << "[GuardianBoss] HP=" << GetHP() << "/" << GetMaxHP()
-			<< ", hitCount=" << receivedHitCount_
-			<< ", lastDamage=" << lastReceivedDamage_;
+			<< ", hitCount=" << runtimeState_.receivedHitCount
+			<< ", lastDamage=" << runtimeState_.lastReceivedDamage;
 		Log(oss.str() + "\n");
 	}
 
@@ -356,7 +356,7 @@ void GuardianBoss::OnDamaged(float damage)
 void GuardianBoss::OnDead()
 {
 	ChangeBossState(BossState::Dead);
-	stateTimer_ = 0.0f;
+	runtimeState_.stateTimer = 0.0f;
 
 	if (GetAnimationComponent())
 	{
@@ -369,12 +369,12 @@ void GuardianBoss::OnDead()
 /// -------------------------------------------------------------
 void GuardianBoss::OnBulletDamaged(float damage)
 {
-	++bulletHitCount_;
+	++runtimeState_.bulletHitCount;
 	OnDamaged(damage);
 
 	std::ostringstream oss;
 	oss << "[GuardianBoss] Player bullet hit: damage=" << damage
-		<< ", bulletHitCount=" << bulletHitCount_
+		<< ", bulletHitCount=" << runtimeState_.bulletHitCount
 		<< ", HP=" << GetHP() << "/" << GetMaxHP();
 	Log(oss.str() + "\n");
 }
@@ -389,12 +389,12 @@ void GuardianBoss::OnCollision(Collider* other)
 
 void GuardianBoss::OnTargetPlayerDamaged(float damage)
 {
-	++bossAttackHitCount_;
-	lastPlayerDamage_ = damage;
+	++runtimeState_.bossAttackHitCount;
+	runtimeState_.lastPlayerDamage = damage;
 
 	std::ostringstream oss;
 	oss << "[GuardianBoss] Boss attack damaged player: damage=" << damage
-		<< ", hitCount=" << bossAttackHitCount_;
+		<< ", hitCount=" << runtimeState_.bossAttackHitCount;
 	Log(oss.str() + "\n");
 }
 
@@ -404,13 +404,13 @@ void GuardianBoss::OnTargetPlayerDamaged(float damage)
 /// -------------------------------------------------------------
 void GuardianBoss::UpdateState(float deltaTime)
 {
-	stateTimer_ += deltaTime;
-	attackCooldownTimer_ = std::max(0.0f, attackCooldownTimer_ - deltaTime);
+	runtimeState_.stateTimer += deltaTime;
+	runtimeState_.attackCooldownTimer = std::max(0.0f, runtimeState_.attackCooldownTimer - deltaTime);
 
 	// ---------------------------------------------------------
 	// HeavyPunch の連打抑制タイマー
 	// ---------------------------------------------------------
-	heavyPunchReuseTimer_ = std::max(0.0f, heavyPunchReuseTimer_ - deltaTime);
+	attackSelectState_.heavyPunchReuseTimer = std::max(0.0f, attackSelectState_.heavyPunchReuseTimer - deltaTime);
 
 	CheckDeath();
 	if (GetState() == BossState::Dead)
@@ -436,7 +436,7 @@ void GuardianBoss::UpdateState(float deltaTime)
 			// ・向き直りもしない
 			// ・攻撃もしない
 			// ---------------------------------------------------------
-			if (attackCooldownTimer_ > 0.0f)
+			if (runtimeState_.attackCooldownTimer > 0.0f)
 			{
 				break;
 			}
@@ -451,7 +451,7 @@ void GuardianBoss::UpdateState(float deltaTime)
 				BeginAttackState();
 			}
 			// 遠ければ移動へ
-			else if (distance > moveStartDistance_)
+			else if (distance > movementTuning_.moveStartDistance)
 			{
 				BeginMoveState();
 			}
@@ -466,12 +466,12 @@ void GuardianBoss::UpdateState(float deltaTime)
 			const bool hasStartableAttack = GetAttackComponent() && !GetAttackComponent()->CollectStartableAttacks().empty();
 
 			// 移動中も開始可能な攻撃だけをAttackへ渡し、歩行と攻撃選択の責務を分ける。
-			if (attackCooldownTimer_ <= 0.0f && hasStartableAttack)
+			if (runtimeState_.attackCooldownTimer <= 0.0f && hasStartableAttack)
 			{
 				BeginAttackState();
 			}
 			// 十分近づいたら待機
-			else if (distance <= moveStopDistance_)
+			else if (distance <= movementTuning_.moveStopDistance)
 			{
 				BeginIdleState();
 			}
@@ -485,11 +485,11 @@ void GuardianBoss::UpdateState(float deltaTime)
 			// ---------------------------------------------------------
 			// 手動デバッグ中でない場合のみ、自動で攻撃を選ぶ
 			// ---------------------------------------------------------
-			if (!useManualAttackDebug_)
+			if (!attackSelectState_.useManualAttackDebug)
 			{
 				if (GetAttackComponent() && !GetAttackComponent()->IsAttacking())
 				{
-					if (stateTimer_ <= 0.10f)
+					if (runtimeState_.stateTimer <= 0.10f)
 					{
 						TryStartBestAttack();
 					}
@@ -500,12 +500,12 @@ void GuardianBoss::UpdateState(float deltaTime)
 			// 少し待ってから攻撃終了判定
 			// 手動デバッグ中でも、攻撃が終わったら Idle に戻す
 			// ---------------------------------------------------------
-			if (stateTimer_ >= 0.05f)
+			if (runtimeState_.stateTimer >= 0.05f)
 			{
 				if (GetAttackComponent() && !GetAttackComponent()->IsAttacking())
 				{
-					attackCooldownTimer_ = attackCooldown_;
-					hasAppliedAttackHit_ = false;
+					runtimeState_.attackCooldownTimer = animationTuning_.attackCooldown;
+					runtimeState_.hasAppliedAttackHit = false;
 					BeginIdleState();
 				}
 			}
@@ -514,7 +514,7 @@ void GuardianBoss::UpdateState(float deltaTime)
 
 	case BossState::Stagger:
 		{
-			if (stateTimer_ >= staggerDuration_)
+			if (runtimeState_.stateTimer >= animationTuning_.staggerDuration)
 			{
 				BeginIdleState();
 			}
@@ -543,7 +543,7 @@ void GuardianBoss::UpdateMovement(float deltaTime)
 	}
 
 	// 攻撃直後のクールタイム中は絶対に動かない
-	if (attackCooldownTimer_ > 0.0f)
+	if (runtimeState_.attackCooldownTimer > 0.0f)
 	{
 		return;
 	}
@@ -566,8 +566,8 @@ void GuardianBoss::UpdateMovement(float deltaTime)
 	toTarget.z /= len;
 
 	Vector3 newPos = GetPosition();
-	newPos.x += toTarget.x * moveSpeed_ * deltaTime;
-	newPos.z += toTarget.z * moveSpeed_ * deltaTime;
+	newPos.x += toTarget.x * movementTuning_.moveSpeed * deltaTime;
+	newPos.z += toTarget.z * movementTuning_.moveSpeed * deltaTime;
 	SetPosition(newPos);
 }
 
@@ -642,7 +642,7 @@ void GuardianBoss::FaceTarget(float deltaTime)
 	float currentYaw = GetYaw();
 
 	float diff = WrapAngle(desiredYaw - currentYaw);
-	const float maxStep = rotateSpeed_ * deltaTime;
+	const float maxStep = movementTuning_.rotateSpeed * deltaTime;
 	diff = std::clamp(diff, -maxStep, maxStep);
 
 	currentYaw += diff;
@@ -686,8 +686,8 @@ void GuardianBoss::ChangeBossState(BossState newState)
 void GuardianBoss::BeginAttackState()
 {
 	ChangeBossState(BossState::Attack);
-	stateTimer_ = 0.0f;
-	hasAppliedAttackHit_ = false;
+	runtimeState_.stateTimer = 0.0f;
+	runtimeState_.hasAppliedAttackHit = false;
 
 	if (GetAnimationComponent())
 	{
@@ -698,7 +698,7 @@ void GuardianBoss::BeginAttackState()
 	// 手動デバッグ中はここで自動開始しない
 	// ImGuiから手動で開始させる
 	// ---------------------------------------------------------
-	if (!useManualAttackDebug_)
+	if (!attackSelectState_.useManualAttackDebug)
 	{
 		TryStartBestAttack();
 	}
@@ -710,7 +710,7 @@ void GuardianBoss::BeginAttackState()
 void GuardianBoss::BeginMoveState()
 {
 	ChangeBossState(BossState::Move);
-	stateTimer_ = 0.0f;
+	runtimeState_.stateTimer = 0.0f;
 
 	if (GetAnimationComponent())
 	{
@@ -724,7 +724,7 @@ void GuardianBoss::BeginMoveState()
 void GuardianBoss::BeginIdleState()
 {
 	ChangeBossState(BossState::Idle);
-	stateTimer_ = 0.0f;
+	runtimeState_.stateTimer = 0.0f;
 
 	if (GetAnimationComponent())
 	{
@@ -742,7 +742,7 @@ void GuardianBoss::BeginIdleState()
 void GuardianBoss::BeginStaggerState()
 {
 	ChangeBossState(BossState::Stagger);
-	stateTimer_ = 0.0f;
+	runtimeState_.stateTimer = 0.0f;
 }
 
 /// -------------------------------------------------------------
@@ -765,32 +765,32 @@ void GuardianBoss::ApplyAttackHitParametersToAttacks()
 	// Guardianの攻撃開始距離と実ヒット判定値を分けて、登録済みPunch系へ即時反映する。
 	if (auto* punch = dynamic_cast<BossPunchAttack*>(GetAttackComponent()->FindAttackByName("Punch")))
 	{
-		punch->SetValidRange(0.0f, closeAttackRange_);
-		punch->SetHitParameters(attackHitRange_, attackHitRadius_, attackForwardOffset_, attackHitAngleDeg_);
-		punch->SetImpactParticleParameters(particleSpawnCount_, particleSpawnRadius_, particleLifetime_, particleInitialSpeed_);
+		punch->SetValidRange(0.0f, attackHitTuning_.closeRange);
+		punch->SetHitParameters(attackHitTuning_.hitRange, attackHitTuning_.hitRadius, attackHitTuning_.forwardOffset, attackHitTuning_.hitAngleDeg);
+		punch->SetImpactParticleParameters(particleTuning_.spawnCount, particleTuning_.spawnRadius, particleTuning_.lifetime, particleTuning_.initialSpeed);
 	}
 
 	if (auto* heavy = dynamic_cast<BossHeavyPunchAttack*>(GetAttackComponent()->FindAttackByName("HeavyPunch")))
 	{
-		heavy->SetValidRange(0.0f, closeAttackRange_);
-		heavy->SetHitParameters(attackHitRange_, attackHitRadius_, attackForwardOffset_, attackHitAngleDeg_);
-		heavy->SetImpactParticleParameters(particleSpawnCount_ + particleSpawnCount_ / 2, particleSpawnRadius_ * 1.2f, particleLifetime_, particleInitialSpeed_ * 1.1f);
+		heavy->SetValidRange(0.0f, attackHitTuning_.closeRange);
+		heavy->SetHitParameters(attackHitTuning_.hitRange, attackHitTuning_.hitRadius, attackHitTuning_.forwardOffset, attackHitTuning_.hitAngleDeg);
+		heavy->SetImpactParticleParameters(particleTuning_.spawnCount + particleTuning_.spawnCount / 2, particleTuning_.spawnRadius * 1.2f, particleTuning_.lifetime, particleTuning_.initialSpeed * 1.1f);
 	}
 
 	if (auto* shockwave = dynamic_cast<GuardianShockwaveAttack*>(GetAttackComponent()->FindAttackByName("GuardianShockwave")))
 	{
-		shockwaveStartRange_ = middleAttackRange_; // 開始条件はAI用、実ヒット範囲はSetShockwaveParameters側で別管理する。
-		shockwave->SetValidRange(closeAttackRange_, middleAttackRange_);
-		shockwave->SetShockwaveParameters(shockwaveRange_, shockwaveAngleDeg_, shockwaveDamage_);
-		shockwave->SetTimingParameters(shockwaveStartupSec_, shockwaveActiveSec_, shockwaveRecoverySec_, shockwaveCooldown_);
-		shockwave->SetImpactParticleParameters(particleSpawnCount_ * 2, std::max(particleSpawnRadius_, 0.8f), particleLifetime_, particleInitialSpeed_);
+		shockwaveTuning_.startRange = attackHitTuning_.middleRange; // 開始条件はAI用、実ヒット範囲はSetShockwaveParameters側で別管理する。
+		shockwave->SetValidRange(attackHitTuning_.closeRange, attackHitTuning_.middleRange);
+		shockwave->SetShockwaveParameters(shockwaveTuning_.range, shockwaveTuning_.angleDeg, shockwaveTuning_.damage);
+		shockwave->SetTimingParameters(shockwaveTuning_.startupSec, shockwaveTuning_.activeSec, shockwaveTuning_.recoverySec, shockwaveTuning_.cooldown);
+		shockwave->SetImpactParticleParameters(particleTuning_.spawnCount * 2, std::max(particleTuning_.spawnRadius, 0.8f), particleTuning_.lifetime, particleTuning_.initialSpeed);
 	}
 
 	if (auto* charge = dynamic_cast<BossChargeAttack*>(GetAttackComponent()->FindAttackByName("ChargeAttack")))
 	{
-		charge->SetValidRange(middleAttackRange_, farAttackRange_);
-		charge->SetChargeParameters(chargeSpeed_, chargeDistance_, chargeDamage_, chargeStartupSec_, chargeRecoverySec_, chargeCooldown_);
-		charge->SetImpactParticleParameters(particleSpawnCount_ * 2, std::max(particleSpawnRadius_, 0.75f), particleLifetime_, particleInitialSpeed_ * 1.2f);
+		charge->SetValidRange(attackHitTuning_.middleRange, attackHitTuning_.farRange);
+		charge->SetChargeParameters(chargeTuning_.speed, chargeTuning_.distance, chargeTuning_.damage, chargeTuning_.startupSec, chargeTuning_.recoverySec, chargeTuning_.cooldown);
+		charge->SetImpactParticleParameters(particleTuning_.spawnCount * 2, std::max(particleTuning_.spawnRadius, 0.75f), particleTuning_.lifetime, particleTuning_.initialSpeed * 1.2f);
 	}
 }
 
@@ -799,7 +799,7 @@ bool GuardianBoss::TryStartBestAttack()
 	// AttackComponent が無いなら何もできない
 	if (!GetAttackComponent())
 	{
-		lastSelectedAttack_ = "None";
+		attackSelectState_.lastSelectedAttack = "None";
 		return false;
 	}
 
@@ -812,7 +812,7 @@ bool GuardianBoss::TryStartBestAttack()
 	// Brain が無いなら判断できない
 	if (!GetBrain())
 	{
-		lastSelectedAttack_ = "None";
+		attackSelectState_.lastSelectedAttack = "None";
 		return false;
 	}
 
@@ -822,7 +822,7 @@ bool GuardianBoss::TryStartBestAttack()
 	const std::string selectedAttack = GetBrain()->SelectBestAttackName();
 	if (selectedAttack.empty())
 	{
-		lastSelectedAttack_ = "None";
+		attackSelectState_.lastSelectedAttack = "None";
 		return false;
 	}
 
@@ -832,16 +832,16 @@ bool GuardianBoss::TryStartBestAttack()
 	// ---------------------------------------------------------
 	if (!StartAttackByNameSafe(selectedAttack.c_str()))
 	{
-		lastSelectedAttack_ = "None";
+		attackSelectState_.lastSelectedAttack = "None";
 		return false;
 	}
 
-	lastSelectedAttack_ = selectedAttack;
+	attackSelectState_.lastSelectedAttack = selectedAttack;
 
 	// HeavyPunch だけ軽い再使用待ちを残す
 	if (selectedAttack == "HeavyPunch")
 	{
-		heavyPunchReuseTimer_ = heavyPunchReuseDelay_;
+		attackSelectState_.heavyPunchReuseTimer = attackSelectState_.heavyPunchReuseDelay;
 	}
 
 	return true;
@@ -900,15 +900,15 @@ void GuardianBoss::DrawImGui()
 	ImGui::Text("ボス最大HP: %.1f", GetMaxHP());
 	ImGui::Text("ボスHP割合: %.1f%%", GetHPRate() * 100.0f);
 	ImGui::Text("近接攻撃ヒット回数: %d", GetMeleeHitCount());
-	ImGui::Text("銃弾ヒット回数: %d", bulletHitCount_);
-	ImGui::Text("最後にボスへ与えたダメージ: %.1f", lastReceivedDamage_);
-	ImGui::Text("ボス攻撃ヒット回数: %d", bossAttackHitCount_);
-	ImGui::Text("最後にプレイヤーが受けたボスダメージ: %.1f", lastPlayerDamage_);
+	ImGui::Text("銃弾ヒット回数: %d", runtimeState_.bulletHitCount);
+	ImGui::Text("最後にボスへ与えたダメージ: %.1f", runtimeState_.lastReceivedDamage);
+	ImGui::Text("ボス攻撃ヒット回数: %d", runtimeState_.bossAttackHitCount);
+	ImGui::Text("最後にプレイヤーが受けたボスダメージ: %.1f", runtimeState_.lastPlayerDamage);
 
 	ImGui::Separator();
-	ImGui::Text("StateTimer      : %.2f", stateTimer_);
-	ImGui::Text("AttackCooldown  : %.2f", attackCooldownTimer_);
-	ImGui::Text("IsCoolingDown   : %s", (attackCooldownTimer_ > 0.0f) ? "true" : "false");
+	ImGui::Text("StateTimer      : %.2f", runtimeState_.stateTimer);
+	ImGui::Text("AttackCooldown  : %.2f", runtimeState_.attackCooldownTimer);
+	ImGui::Text("IsCoolingDown   : %s", (runtimeState_.attackCooldownTimer > 0.0f) ? "true" : "false");
 
 	// ---------------------------------------------------------
 	// 調整パラメータ
@@ -917,34 +917,34 @@ void GuardianBoss::DrawImGui()
 	ImGui::Text("Tuning");
 
 	bool moveTuningChanged = false;
-	moveTuningChanged |= ImGui::DragFloat("Move Speed", &moveSpeed_, 0.01f, 0.1f, 50.0f);
-	moveTuningChanged |= ImGui::DragFloat("Rotate Speed", &rotateSpeed_, 0.01f, 0.1f, 30.0f);
-	moveTuningChanged |= ImGui::DragFloat("Move Start Dist", &moveStartDistance_, 0.01f, 0.1f, 100.0f);
-	moveTuningChanged |= ImGui::DragFloat("Move Stop Dist", &moveStopDistance_, 0.01f, 0.1f, 100.0f);
+	moveTuningChanged |= ImGui::DragFloat("Move Speed", &movementTuning_.moveSpeed, 0.01f, 0.1f, 50.0f);
+	moveTuningChanged |= ImGui::DragFloat("Rotate Speed", &movementTuning_.rotateSpeed, 0.01f, 0.1f, 30.0f);
+	moveTuningChanged |= ImGui::DragFloat("Move Start Dist", &movementTuning_.moveStartDistance, 0.01f, 0.1f, 100.0f);
+	moveTuningChanged |= ImGui::DragFloat("Move Stop Dist", &movementTuning_.moveStopDistance, 0.01f, 0.1f, 100.0f);
 
 	if (moveTuningChanged)
 	{
 		// 移動パラメータ変更を通常移動と攻撃選択の両方へ即時反映する
 		if (GetMovementComponent())
 		{
-			GetMovementComponent()->SetMoveSpeed(moveSpeed_);
-			GetMovementComponent()->SetTurnSpeed(rotateSpeed_);
-			GetMovementComponent()->SetStopDistance(moveStopDistance_);
+			GetMovementComponent()->SetMoveSpeed(movementTuning_.moveSpeed);
+			GetMovementComponent()->SetTurnSpeed(movementTuning_.rotateSpeed);
+			GetMovementComponent()->SetStopDistance(movementTuning_.moveStopDistance);
 		}
 
-		if (moveStopDistance_ > moveStartDistance_)
+		if (movementTuning_.moveStopDistance > movementTuning_.moveStartDistance)
 		{
-			moveStopDistance_ = moveStartDistance_;
+			movementTuning_.moveStopDistance = movementTuning_.moveStartDistance;
 		}
 	}
 
 	bool chargeTuningChanged = false;
-	chargeTuningChanged |= ImGui::DragFloat("突進速度", &chargeSpeed_, 0.1f, 0.0f, 100.0f);
-	chargeTuningChanged |= ImGui::DragFloat("突進距離", &chargeDistance_, 0.1f, 0.0f, 100.0f);
-	chargeTuningChanged |= ImGui::DragFloat("突進ダメージ", &chargeDamage_, 0.1f, 0.0f, 999.0f);
-	chargeTuningChanged |= ImGui::DragFloat("突進予備動作", &chargeStartupSec_, 0.01f, 0.0f, 10.0f);
-	chargeTuningChanged |= ImGui::DragFloat("突進後隙", &chargeRecoverySec_, 0.01f, 0.0f, 10.0f);
-	chargeTuningChanged |= ImGui::DragFloat("突進クールタイム", &chargeCooldown_, 0.01f, 0.0f, 60.0f);
+	chargeTuningChanged |= ImGui::DragFloat("突進速度", &chargeTuning_.speed, 0.1f, 0.0f, 100.0f);
+	chargeTuningChanged |= ImGui::DragFloat("突進距離", &chargeTuning_.distance, 0.1f, 0.0f, 100.0f);
+	chargeTuningChanged |= ImGui::DragFloat("突進ダメージ", &chargeTuning_.damage, 0.1f, 0.0f, 999.0f);
+	chargeTuningChanged |= ImGui::DragFloat("突進予備動作", &chargeTuning_.startupSec, 0.01f, 0.0f, 10.0f);
+	chargeTuningChanged |= ImGui::DragFloat("突進後隙", &chargeTuning_.recoverySec, 0.01f, 0.0f, 10.0f);
+	chargeTuningChanged |= ImGui::DragFloat("突進クールタイム", &chargeTuning_.cooldown, 0.01f, 0.0f, 60.0f);
 
 	if (chargeTuningChanged)
 	{
@@ -953,18 +953,18 @@ void GuardianBoss::DrawImGui()
 	}
 
 	bool attackHitTuningChanged = false;
-	attackHitTuningChanged |= ImGui::DragFloat("Attack Range", &attackRange_, 0.01f, 0.1f, 20.0f);
-	attackHitTuningChanged |= ImGui::DragFloat("攻撃判定リーチ", &attackHitRange_, 0.01f, 0.0f, 30.0f);
-	attackHitTuningChanged |= ImGui::DragFloat("攻撃判定半径", &attackHitRadius_, 0.01f, 0.0f, 20.0f);
-	attackHitTuningChanged |= ImGui::DragFloat("攻撃判定前方オフセット", &attackForwardOffset_, 0.01f, 0.0f, 30.0f);
-	attackHitTuningChanged |= ImGui::DragFloat("攻撃判定角度", &attackHitAngleDeg_, 0.1f, 0.0f, 360.0f);
+	attackHitTuningChanged |= ImGui::DragFloat("Attack Range", &attackHitTuning_.attackRange, 0.01f, 0.1f, 20.0f);
+	attackHitTuningChanged |= ImGui::DragFloat("攻撃判定リーチ", &attackHitTuning_.hitRange, 0.01f, 0.0f, 30.0f);
+	attackHitTuningChanged |= ImGui::DragFloat("攻撃判定半径", &attackHitTuning_.hitRadius, 0.01f, 0.0f, 20.0f);
+	attackHitTuningChanged |= ImGui::DragFloat("攻撃判定前方オフセット", &attackHitTuning_.forwardOffset, 0.01f, 0.0f, 30.0f);
+	attackHitTuningChanged |= ImGui::DragFloat("攻撃判定角度", &attackHitTuning_.hitAngleDeg, 0.1f, 0.0f, 360.0f);
 	if (attackHitTuningChanged)
 	{
 		ApplyAttackHitParametersToAttacks(); // GuardianBossデバッグUIで直接変えた値も現在の攻撃判定へ即時反映する。
 	}
-	ImGui::DragFloat("Attack Duration", &attackDuration_, 0.01f, 0.05f, 10.0f);
-	ImGui::DragFloat("Attack Cooldown", &attackCooldown_, 0.01f, 0.0f, 10.0f);
-	ImGui::DragFloat("Stagger Duration", &staggerDuration_, 0.01f, 0.0f, 10.0f);
+	ImGui::DragFloat("Attack Duration", &animationTuning_.attackDuration, 0.01f, 0.05f, 10.0f);
+	ImGui::DragFloat("Attack Cooldown", &animationTuning_.attackCooldown, 0.01f, 0.0f, 10.0f);
+	ImGui::DragFloat("Stagger Duration", &animationTuning_.staggerDuration, 0.01f, 0.0f, 10.0f);
 
 	// ---------------------------------------------------------
 	// Guardian 専用補助情報
@@ -972,8 +972,8 @@ void GuardianBoss::DrawImGui()
 	ImGui::Separator();
 	ImGui::Text("Guardian Attack Context");
 
-	ImGui::Text("LastSelectedAttack : %s", lastSelectedAttack_.c_str());
-	ImGui::Text("HeavyReuseTimer    : %.2f", heavyPunchReuseTimer_);
+	ImGui::Text("LastSelectedAttack : %s", attackSelectState_.lastSelectedAttack.c_str());
+	ImGui::Text("HeavyReuseTimer    : %.2f", attackSelectState_.heavyPunchReuseTimer);
 
 	// ---------------------------------------------------------
 	// Brain の判断確認
@@ -996,13 +996,13 @@ void GuardianBoss::DrawImGui()
 
 	// ---------------------------------------------------------
 	// 手動攻撃デバッグ
-	// useManualAttackDebug_ が true の間は、
+	// attackSelectState_.useManualAttackDebug が true の間は、
 	// BeginAttackState / UpdateState 側でも AI 自動選択を止める前提
 	// ---------------------------------------------------------
 	ImGui::Separator();
 	ImGui::Text("Guardian Manual Attack Debug");
 
-	ImGui::Checkbox("Use Manual Attack Debug", &useManualAttackDebug_);
+	ImGui::Checkbox("Use Manual Attack Debug", &attackSelectState_.useManualAttackDebug);
 
 	const char* attackItems[] =
 	{
@@ -1011,7 +1011,7 @@ void GuardianBoss::DrawImGui()
 			"GuardianShockwave",
 			"ChargeAttack"
 	};
-	ImGui::Combo("Manual Attack", &manualAttackIndex_, attackItems, IM_ARRAYSIZE(attackItems));
+	ImGui::Combo("Manual Attack", &attackSelectState_.manualAttackIndex, attackItems, IM_ARRAYSIZE(attackItems));
 
 	if (GetAttackComponent())
 	{
@@ -1038,33 +1038,33 @@ void GuardianBoss::DrawImGui()
 
 		if (ImGui::Button("Start Selected Attack"))
 		{
-			if (manualAttackIndex_ == 0)
+			if (attackSelectState_.manualAttackIndex == 0)
 			{
 				if (StartAttackByNameSafe("Punch"))
 				{
-					lastSelectedAttack_ = "Punch";
+					attackSelectState_.lastSelectedAttack = "Punch";
 				}
 			}
-			else if (manualAttackIndex_ == 1)
+			else if (attackSelectState_.manualAttackIndex == 1)
 			{
 				if (StartAttackByNameSafe("HeavyPunch"))
 				{
-					lastSelectedAttack_ = "HeavyPunch";
-					heavyPunchReuseTimer_ = heavyPunchReuseDelay_;
+					attackSelectState_.lastSelectedAttack = "HeavyPunch";
+					attackSelectState_.heavyPunchReuseTimer = attackSelectState_.heavyPunchReuseDelay;
 				}
 			}
-			else if (manualAttackIndex_ == 2)
+			else if (attackSelectState_.manualAttackIndex == 2)
 			{
 				if (StartAttackByNameSafe("GuardianShockwave"))
 				{
-					lastSelectedAttack_ = "GuardianShockwave";
+					attackSelectState_.lastSelectedAttack = "GuardianShockwave";
 				}
 			}
-			else if (manualAttackIndex_ == 3)
+			else if (attackSelectState_.manualAttackIndex == 3)
 			{
 				if (StartAttackByNameSafe("ChargeAttack"))
 				{
-					lastSelectedAttack_ = "ChargeAttack";
+					attackSelectState_.lastSelectedAttack = "ChargeAttack";
 				}
 			}
 		}
@@ -1105,18 +1105,18 @@ void GuardianBoss::DrawImGui()
 		IBossAttack* heavy = GetAttackComponent()->FindAttackByName("HeavyPunch");
 		IBossAttack* shockwave = GetAttackComponent()->FindAttackByName("GuardianShockwave");
 
-		ImGui::Text("LastSelectedAttack : %s", lastSelectedAttack_.c_str());
-		ImGui::Text("HeavyReuseTimer    : %.2f", heavyPunchReuseTimer_);
+		ImGui::Text("LastSelectedAttack : %s", attackSelectState_.lastSelectedAttack.c_str());
+		ImGui::Text("HeavyReuseTimer    : %.2f", attackSelectState_.heavyPunchReuseTimer);
 		ImGui::Text("DistanceToTargetXZ : %.2f", GetDistanceToTargetXZ());
-		ImGui::Text("AttackHitRange    : %.2f", attackHitRange_);
-		ImGui::Text("AttackHitRadius   : %.2f", attackHitRadius_);
-		ImGui::Text("AttackForwardOff  : %.2f", attackForwardOffset_);
-		ImGui::Text("AttackHitAngleDeg : %.2f", attackHitAngleDeg_);
-		ImGui::Text("ShockwaveStart    : %.2f", shockwaveStartRange_);
-		ImGui::Text("ShockwaveRange    : %.2f", shockwaveRange_);
-		ImGui::Text("ShockwaveAngleDeg : %.2f", shockwaveAngleDeg_);
-		ImGui::Text("ShockwaveDamage   : %.2f", shockwaveDamage_);
-		ImGui::Text("ShockwaveCooldown : %.2f", shockwaveCooldown_);
+		ImGui::Text("AttackHitRange    : %.2f", attackHitTuning_.hitRange);
+		ImGui::Text("AttackHitRadius   : %.2f", attackHitTuning_.hitRadius);
+		ImGui::Text("AttackForwardOff  : %.2f", attackHitTuning_.forwardOffset);
+		ImGui::Text("AttackHitAngleDeg : %.2f", attackHitTuning_.hitAngleDeg);
+		ImGui::Text("ShockwaveStart    : %.2f", shockwaveTuning_.startRange);
+		ImGui::Text("ShockwaveRange    : %.2f", shockwaveTuning_.range);
+		ImGui::Text("ShockwaveAngleDeg : %.2f", shockwaveTuning_.angleDeg);
+		ImGui::Text("ShockwaveDamage   : %.2f", shockwaveTuning_.damage);
+		ImGui::Text("ShockwaveCooldown : %.2f", shockwaveTuning_.cooldown);
 
 		if (punch)
 		{
@@ -1143,8 +1143,8 @@ void GuardianBoss::DrawImGui()
 
 			// HeavyPunch が Guardian 側で落ちる理由
 			ImGui::Text("HeavyDistanceOK    : %s", (GetDistanceToTargetXZ() <= 2.8f) ? "true" : "false");
-			ImGui::Text("HeavyReuseOK       : %s", (heavyPunchReuseTimer_ <= 0.0f) ? "true" : "false");
-			ImGui::Text("HeavyLastAttackOK  : %s", (lastSelectedAttack_ != "HeavyPunch") ? "true" : "false");
+			ImGui::Text("HeavyReuseOK       : %s", (attackSelectState_.heavyPunchReuseTimer <= 0.0f) ? "true" : "false");
+			ImGui::Text("HeavyLastAttackOK  : %s", (attackSelectState_.lastSelectedAttack != "HeavyPunch") ? "true" : "false");
 		}
 		else
 		{
@@ -1238,5 +1238,5 @@ void GuardianBoss::DrawImGui()
 
 int GuardianBoss::GetMeleeHitCount() const
 {
-	return std::max(0, receivedHitCount_ - bulletHitCount_);
+	return std::max(0, runtimeState_.receivedHitCount - runtimeState_.bulletHitCount);
 }

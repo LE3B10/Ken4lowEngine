@@ -28,10 +28,10 @@ public: /// ---------- Boss固有初期化 ---------- ///
 	void OnCollision(K4E::Collider* other) override;
 	void DrawImGui() override;
 	int GetMeleeHitCount() const;
-	int GetBulletHitCount() const { return bulletHitCount_; }
-	float GetLastReceivedDamage() const { return lastReceivedDamage_; }
-	int GetBossAttackHitCount() const { return bossAttackHitCount_; }
-	float GetLastPlayerDamage() const { return lastPlayerDamage_; }
+	int GetBulletHitCount() const { return runtimeState_.bulletHitCount; }
+	float GetLastReceivedDamage() const { return runtimeState_.lastReceivedDamage; }
+	int GetBossAttackHitCount() const { return runtimeState_.bossAttackHitCount; }
+	float GetLastPlayerDamage() const { return runtimeState_.lastPlayerDamage; }
 
 protected: /// ---------- BossBase override ---------- ///
 
@@ -107,73 +107,95 @@ protected: /// ---------- Guardian専用補助 ---------- ///
 
 protected: /// ---------- Guardian固有パラメータ ---------- ///
 
-	float moveSpeed_ = 2.0f;          // 接近速度
-	float rotateSpeed_ = 4.0f;        // 旋回速度
+	struct MovementTuning
+	{
+		float moveSpeed = 2.0f;          // 接近速度
+		float rotateSpeed = 4.0f;        // 旋回速度
+		float moveStartDistance = 4.8f;  // この距離より離れたら移動開始
+		float moveStopDistance = 4.8f;   // この距離より近づいたら移動停止
+	};
 
-	float attackRange_ = 5.75f;       // この距離以下で攻撃開始
-	float attackHitRange_ = 6.0f;     // 実際の攻撃判定がボス正面へ届く距離
-	float attackHitRadius_ = 2.0f;    // 実際の攻撃判定の太さ
-	float attackForwardOffset_ = 3.0f;// 実際の攻撃判定をボス正面へずらす距離
-	float attackHitAngleDeg_ = 90.0f; // 実際の攻撃判定を正面から左右へ広げる全角度
-	float shockwaveRange_ = 10.0f;    // 衝撃波の実ヒット判定リーチ
-	float shockwaveAngleDeg_ = 70.0f; // 衝撃波の前方扇形全角度
-	float shockwaveDamage_ = 15.0f;   // 衝撃波ダメージ
-	float shockwaveCooldown_ = 6.0f;  // 衝撃波専用クールタイム
-	float shockwaveStartupSec_ = 0.8f;  // 衝撃波予備動作
-	float shockwaveActiveSec_ = 0.25f;  // 衝撃波判定時間
-	float shockwaveRecoverySec_ = 1.0f; // 衝撃波後隙
-	float shockwaveStartRange_ = 10.0f; // 衝撃波の攻撃開始上限（実リーチとは別にAI開始条件へ使う）
-	float closeAttackRange_ = 4.0f;  // 近距離攻撃帯
-	float middleAttackRange_ = 10.0f; // 中距離攻撃帯
-	float farAttackRange_ = 20.0f;    // 遠距離検知帯
-	float chargeSpeed_ = 18.0f;       // 突進速度
-	float chargeDistance_ = 12.0f;    // 突進距離
-	float chargeDamage_ = 20.0f;      // 突進ダメージ
-	float chargeStartupSec_ = 0.6f;   // 突進予備動作
-	float chargeRecoverySec_ = 1.0f;  // 突進後隙
-	float chargeCooldown_ = 8.0f;     // 突進クールタイム
-	uint32_t particleSpawnCount_ = 48; // 攻撃ヒット時GPUパーティクル数
-	float particleSpawnRadius_ = 0.5f; // 攻撃ヒット時GPUパーティクル発生半径
-	float particleLifetime_ = 1.0f;    // 攻撃ヒット時GPUパーティクル寿命倍率
-	float particleInitialSpeed_ = 1.0f;// 攻撃ヒット時GPUパーティクル初速倍率
-	float moveStartDistance_ = 4.8f;  // この距離より離れたら移動開始
-	float moveStopDistance_ = 4.8f;   // この距離より近づいたら移動停止
+	struct AttackHitTuning
+	{
+		float attackRange = 5.75f;       // この距離以下で攻撃開始
+		float hitRange = 6.0f;           // 実際の攻撃判定がボス正面へ届く距離
+		float hitRadius = 2.0f;          // 実際の攻撃判定の太さ
+		float forwardOffset = 3.0f;      // 実際の攻撃判定をボス正面へずらす距離
+		float hitAngleDeg = 90.0f;       // 実際の攻撃判定を正面から左右へ広げる全角度
+		float closeRange = 4.0f;         // 近距離攻撃帯
+		float middleRange = 10.0f;       // 中距離攻撃帯
+		float farRange = 20.0f;          // 遠距離検知帯
+	};
 
-	float attackDuration_ = 0.85f;    // 攻撃アニメ全体時間
-	float attackCooldown_ = 1.20f;    // 攻撃後クールダウン
-	float staggerDuration_ = 0.30f;   // ひるみ時間
-	float animationWalkSpeed_ = 6.0f;   // 歩行アニメ速度
-	float animationWalkAmplitude_ = 0.55f; // 歩行アニメ振幅
+	struct ShockwaveTuning
+	{
+		float range = 10.0f;             // 衝撃波の実ヒット判定リーチ
+		float angleDeg = 70.0f;          // 衝撃波の前方扇形全角度
+		float damage = 15.0f;            // 衝撃波ダメージ
+		float cooldown = 6.0f;           // 衝撃波専用クールタイム
+		float startupSec = 0.8f;         // 衝撃波予備動作
+		float activeSec = 0.25f;         // 衝撃波判定時間
+		float recoverySec = 1.0f;        // 衝撃波後隙
+		float startRange = 10.0f;        // 衝撃波の攻撃開始上限（実リーチとは別にAI開始条件へ使う）
+	};
 
-	float stateTimer_ = 0.0f;         // 状態滞在時間
-	float attackCooldownTimer_ = 0.0f;// クールダウン残り
+	struct ChargeTuning
+	{
+		float speed = 18.0f;             // 突進速度
+		float distance = 12.0f;          // 突進距離
+		float damage = 20.0f;            // 突進ダメージ
+		float startupSec = 0.6f;         // 突進予備動作
+		float recoverySec = 1.0f;        // 突進後隙
+		float cooldown = 8.0f;           // 突進クールタイム
+	};
 
-	bool hasAppliedAttackHit_ = false;
+	struct ParticleTuning
+	{
+		uint32_t spawnCount = 48;         // 攻撃ヒット時GPUパーティクル数
+		float spawnRadius = 0.5f;         // 攻撃ヒット時GPUパーティクル発生半径
+		float lifetime = 1.0f;            // 攻撃ヒット時GPUパーティクル寿命倍率
+		float initialSpeed = 1.0f;        // 攻撃ヒット時GPUパーティクル初速倍率
+	};
 
-	int receivedHitCount_ = 0;
-	int bulletHitCount_ = 0;
-	int bossAttackHitCount_ = 0;
-	float lastReceivedDamage_ = 0.0f;
-	float lastPlayerDamage_ = 0.0f;
+	struct AnimationTuning
+	{
+		float attackDuration = 0.85f;     // 攻撃アニメ全体時間
+		float attackCooldown = 1.20f;     // 攻撃後クールダウン
+		float staggerDuration = 0.30f;    // ひるみ時間
+		float walkSpeed = 6.0f;           // 歩行アニメ速度
+		float walkAmplitude = 0.55f;      // 歩行アニメ振幅
+	};
 
-	/// <summary>
-	/// 最後に選ばれた攻撃名
-	/// HeavyPunch 連打抑制にも使う
-	/// </summary>
-	std::string lastSelectedAttack_ = "None";
+	struct RuntimeState
+	{
+		float stateTimer = 0.0f;          // 状態滞在時間
+		float attackCooldownTimer = 0.0f; // クールダウン残り
+		bool hasAppliedAttackHit = false;
 
-	/// <summary>
-	/// HeavyPunch を再使用できるまでの待ち時間
-	/// </summary>
-	float heavyPunchReuseDelay_ = 1.0f;
+		int receivedHitCount = 0;
+		int bulletHitCount = 0;
+		int bossAttackHitCount = 0;
+		float lastReceivedDamage = 0.0f;
+		float lastPlayerDamage = 0.0f;
+	};
 
-	/// <summary>
-	/// HeavyPunch 連打防止タイマー
-	/// </summary>
-	float heavyPunchReuseTimer_ = 0.0f;
+	struct AttackSelectState
+	{
+		std::string lastSelectedAttack = "None"; // HeavyPunch 連打抑制にも使う
+		float heavyPunchReuseDelay = 1.0f;       // HeavyPunch を再使用できるまでの待ち時間
+		float heavyPunchReuseTimer = 0.0f;       // HeavyPunch 連打防止タイマー
+		bool useManualAttackDebug = false;       // true の間は自動攻撃選択を止める
+		int manualAttackIndex = 0;               // 0: Punch / 1: HeavyPunch / 2: GuardianShockwave
+	};
 
-	bool useManualAttackDebug_ = false;   // true の間は自動攻撃選択を止める
-	int manualAttackIndex_ = 0;           // 0: Punch / 1: HeavyPunch / 2: GuardianShockwave
+	MovementTuning movementTuning_;
+	AttackHitTuning attackHitTuning_;
+	ShockwaveTuning shockwaveTuning_;
+	ChargeTuning chargeTuning_;
+	ParticleTuning particleTuning_;
+	AnimationTuning animationTuning_;
+	RuntimeState runtimeState_;
+	AttackSelectState attackSelectState_;
 
 protected: /// ---------- モデルや体格差分 ---------- ///
 
