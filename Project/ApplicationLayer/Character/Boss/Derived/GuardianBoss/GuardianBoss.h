@@ -105,6 +105,11 @@ protected: /// ---------- Guardian専用補助 ---------- ///
 	/// </summary>
 	void ApplyAttackHitParametersToAttacks();
 
+	/// <summary>
+	/// Guardian専用の見た目パラメータをParameterManagerから取得する
+	/// </summary>
+	void ApplyVisualParameters();
+
 protected: /// ---------- Guardian固有パラメータ ---------- ///
 
 	struct MovementTuning
@@ -166,6 +171,17 @@ protected: /// ---------- Guardian固有パラメータ ---------- ///
 		float walkAmplitude = 0.55f;      // 歩行アニメ振幅
 	};
 
+	struct VisualTuning
+	{
+		std::string bodyModelPath = "Characters/body.gltf";
+		std::string headModelPath = "Characters/head.gltf";
+		std::string leftArmModelPath = "Characters/left_arm.gltf";
+		std::string rightArmModelPath = "Characters/right_arm.gltf";
+		std::string leftLegModelPath = "Characters/left_leg.gltf";
+		std::string rightLegModelPath = "Characters/right_leg.gltf";
+		std::string skinPath = "Characters/zombie.dds";
+	};
+
 	struct RuntimeState
 	{
 		float stateTimer = 0.0f;          // 状態滞在時間
@@ -194,6 +210,7 @@ protected: /// ---------- Guardian固有パラメータ ---------- ///
 	ChargeTuning chargeTuning_;
 	ParticleTuning particleTuning_;
 	AnimationTuning animationTuning_;
+	VisualTuning visualTuning_;
 	RuntimeState runtimeState_;
 	AttackSelectState attackSelectState_;
 
@@ -206,12 +223,12 @@ protected: /// ---------- モデルや体格差分 ---------- ///
 
 protected: /// ---------- Guardian 専用モデル ---------- ///
 
-	/*std::string GetBodyModelPath() const override { return "Boss/Guardian/body.gltf"; }
-	std::string GetHeadModelPath() const override { return "Boss/Guardian/head.gltf"; }
-	std::string GetLeftArmModelPath() const override { return "Boss/Guardian/left_arm.gltf"; }
-	std::string GetRightArmModelPath() const override { return "Boss/Guardian/right_arm.gltf"; }
-	std::string GetLeftLegModelPath() const override { return "Boss/Guardian/left_leg.gltf"; }
-	std::string GetRightLegModelPath() const override { return "Boss/Guardian/right_leg.gltf"; }*/
+	std::string GetBodyModelPath() const override;
+	std::string GetHeadModelPath() const override;
+	std::string GetLeftArmModelPath() const override;
+	std::string GetRightArmModelPath() const override;
+	std::string GetLeftLegModelPath() const override;
+	std::string GetRightLegModelPath() const override;
 
 	/// <summary>
 	/// Guardian 用スキン

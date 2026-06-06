@@ -9,10 +9,13 @@
 #include <ParameterManager.h>
 
 #include <algorithm>
+#include <cctype>
 #include <cmath>
 #include <filesystem>
 #include <sstream>
 #include <string>
+#include <system_error>
+#include <vector>
 
 #ifdef USE_IMGUI
 #include <imgui.h>
@@ -23,6 +26,66 @@ using namespace Ken4lowEngine;
 namespace
 {
 	constexpr const char* kGuardianBossGroup = "GuardianBoss";
+
+	std::string ToLowerExtension(std::string extension)
+	{
+		std::transform(extension.begin(), extension.end(), extension.begin(),
+			[](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+		return extension;
+	}
+
+	std::vector<std::string> CollectAssetFiles(const std::vector<std::filesystem::path>& rootDirectories, const std::vector<std::string>& extensions)
+	{
+		std::vector<std::string> result;
+
+		for (const std::filesystem::path& rootDirectory : rootDirectories)
+		{
+			std::error_code errorCode;
+			if (!std::filesystem::exists(rootDirectory, errorCode) || !std::filesystem::is_directory(rootDirectory, errorCode))
+			{
+				continue;
+			}
+
+			std::filesystem::recursive_directory_iterator it(rootDirectory, std::filesystem::directory_options::skip_permission_denied, errorCode);
+			std::filesystem::recursive_directory_iterator end;
+			for (; it != end && !errorCode; it.increment(errorCode))
+			{
+				if (!it->is_regular_file(errorCode))
+				{
+					continue;
+				}
+
+				const std::string extension = ToLowerExtension(it->path().extension().string());
+				if (std::find(extensions.begin(), extensions.end(), extension) == extensions.end())
+				{
+					continue;
+				}
+
+				std::error_code relativeError;
+				std::filesystem::path relativePath = std::filesystem::relative(it->path(), rootDirectory, relativeError);
+				if (relativeError)
+				{
+					relativePath = it->path();
+				}
+
+				// モデル/テクスチャローダーへ渡す形式に合わせ、Resources配下からの相対パスを候補にする。
+				result.push_back(relativePath.generic_string());
+			}
+		}
+
+		std::sort(result.begin(), result.end());
+		result.erase(std::unique(result.begin(), result.end()), result.end());
+		return result;
+	}
+
+	void AddFallbackOption(std::vector<std::string>& options, const std::string& fallback)
+	{
+		if (std::find(options.begin(), options.end(), fallback) == options.end())
+		{
+			options.push_back(fallback);
+			std::sort(options.begin(), options.end());
+		}
+	}
 
 	void EnsureGuardianBossParameters()
 	{
@@ -84,7 +147,35 @@ namespace
 		parameters->AddItem(kGuardianBossGroup, "heavyPunchReuseDelay", 1.0f, 0.0f, 30.0f);
 		parameters->AddItem(kGuardianBossGroup, "animationWalkSpeed", 6.0f, 0.0f, 30.0f);
 		parameters->AddItem(kGuardianBossGroup, "animationWalkAmplitude", 0.55f, 0.0f, 5.0f);
+		std::vector<std::string> modelOptions = CollectAssetFiles(
+			{ "Resources/Models", "Resources/Model" },
+			{ ".gltf", ".glb", ".obj" });
+		std::vector<std::string> textureOptions = CollectAssetFiles(
+			{ "Resources/Textures", "Resources/Texture" },
+			{ ".dds", ".png", ".jpg", ".jpeg" });
+
+		AddFallbackOption(modelOptions, "Characters/body.gltf");
+		AddFallbackOption(modelOptions, "Characters/head.gltf");
+		AddFallbackOption(modelOptions, "Characters/left_arm.gltf");
+		AddFallbackOption(modelOptions, "Characters/right_arm.gltf");
+		AddFallbackOption(modelOptions, "Characters/left_leg.gltf");
+		AddFallbackOption(modelOptions, "Characters/right_leg.gltf");
+		AddFallbackOption(textureOptions, "Characters/zombie.dds");
+
+		parameters->AddItem(kGuardianBossGroup, "bodyModelPath", std::string("Characters/body.gltf"));
+		parameters->SetStringOptions(kGuardianBossGroup, "bodyModelPath", modelOptions);
+		parameters->AddItem(kGuardianBossGroup, "headModelPath", std::string("Characters/head.gltf"));
+		parameters->SetStringOptions(kGuardianBossGroup, "headModelPath", modelOptions);
+		parameters->AddItem(kGuardianBossGroup, "leftArmModelPath", std::string("Characters/left_arm.gltf"));
+		parameters->SetStringOptions(kGuardianBossGroup, "leftArmModelPath", modelOptions);
+		parameters->AddItem(kGuardianBossGroup, "rightArmModelPath", std::string("Characters/right_arm.gltf"));
+		parameters->SetStringOptions(kGuardianBossGroup, "rightArmModelPath", modelOptions);
+		parameters->AddItem(kGuardianBossGroup, "leftLegModelPath", std::string("Characters/left_leg.gltf"));
+		parameters->SetStringOptions(kGuardianBossGroup, "leftLegModelPath", modelOptions);
+		parameters->AddItem(kGuardianBossGroup, "rightLegModelPath", std::string("Characters/right_leg.gltf"));
+		parameters->SetStringOptions(kGuardianBossGroup, "rightLegModelPath", modelOptions);
 		parameters->AddItem(kGuardianBossGroup, "skinPath", std::string("Characters/zombie.dds"));
+		parameters->SetStringOptions(kGuardianBossGroup, "skinPath", textureOptions);
 		// 内部キーとは別にImGui専用の日本語ラベルを登録する。
 		parameters->SetDisplayName(kGuardianBossGroup, "moveSpeed", "ガーディアン移動速度");
 		parameters->SetDisplayName(kGuardianBossGroup, "rotateSpeed", "ガーディアン旋回速度");
@@ -123,6 +214,12 @@ namespace
 		parameters->SetDisplayName(kGuardianBossGroup, "heavyPunchReuseDelay", "強攻撃再使用間隔");
 		parameters->SetDisplayName(kGuardianBossGroup, "animationWalkSpeed", "歩行アニメ速度");
 		parameters->SetDisplayName(kGuardianBossGroup, "animationWalkAmplitude", "歩行アニメ振幅");
+		parameters->SetDisplayName(kGuardianBossGroup, "bodyModelPath", "胴体モデルパス");
+		parameters->SetDisplayName(kGuardianBossGroup, "headModelPath", "頭モデルパス");
+		parameters->SetDisplayName(kGuardianBossGroup, "leftArmModelPath", "左腕モデルパス");
+		parameters->SetDisplayName(kGuardianBossGroup, "rightArmModelPath", "右腕モデルパス");
+		parameters->SetDisplayName(kGuardianBossGroup, "leftLegModelPath", "左脚モデルパス");
+		parameters->SetDisplayName(kGuardianBossGroup, "rightLegModelPath", "右脚モデルパス");
 		parameters->SetDisplayName(kGuardianBossGroup, "skinPath", "スキンパス");
 	}
 
@@ -159,6 +256,7 @@ void GuardianBoss::ApplyParameters()
 {
 	BossBase::ApplyParameters();
 	EnsureGuardianBossParameters();
+	ApplyVisualParameters();
 	movementTuning_.moveSpeed = GetGuardianParameterOrDefault("moveSpeed", movementTuning_.moveSpeed);
 	movementTuning_.rotateSpeed = GetGuardianParameterOrDefault("rotateSpeed", movementTuning_.rotateSpeed);
 
@@ -204,6 +302,7 @@ void GuardianBoss::ApplyParameters()
 	attackSelectState_.heavyPunchReuseDelay = GetGuardianParameterOrDefault("heavyPunchReuseDelay", attackSelectState_.heavyPunchReuseDelay);
 	animationTuning_.walkSpeed = GetGuardianParameterOrDefault("animationWalkSpeed", animationTuning_.walkSpeed);
 	animationTuning_.walkAmplitude = GetGuardianParameterOrDefault("animationWalkAmplitude", animationTuning_.walkAmplitude);
+	ApplyVisualParameters();
 	if (GetAnimationComponent())
 	{
 		GetAnimationComponent()->SetWalkSpeed(animationTuning_.walkSpeed);
@@ -214,11 +313,58 @@ void GuardianBoss::ApplyParameters()
 	ApplySkinToAllParts(GetGuardianSkinPath()); // スキンパス変更は保存/反映後に実行中モデルへ再適用する。
 }
 
+void GuardianBoss::ApplyVisualParameters()
+{
+	visualTuning_.bodyModelPath = GetGuardianParameterOrDefault("bodyModelPath", visualTuning_.bodyModelPath);
+	visualTuning_.headModelPath = GetGuardianParameterOrDefault("headModelPath", visualTuning_.headModelPath);
+	visualTuning_.leftArmModelPath = GetGuardianParameterOrDefault("leftArmModelPath", visualTuning_.leftArmModelPath);
+	visualTuning_.rightArmModelPath = GetGuardianParameterOrDefault("rightArmModelPath", visualTuning_.rightArmModelPath);
+	visualTuning_.leftLegModelPath = GetGuardianParameterOrDefault("leftLegModelPath", visualTuning_.leftLegModelPath);
+	visualTuning_.rightLegModelPath = GetGuardianParameterOrDefault("rightLegModelPath", visualTuning_.rightLegModelPath);
+	visualTuning_.skinPath = GetGuardianParameterOrDefault("skinPath", visualTuning_.skinPath);
+}
+
+std::string GuardianBoss::GetBodyModelPath() const
+{
+	EnsureGuardianBossParameters();
+	return GetGuardianParameterOrDefault("bodyModelPath", visualTuning_.bodyModelPath);
+}
+
+std::string GuardianBoss::GetHeadModelPath() const
+{
+	EnsureGuardianBossParameters();
+	return GetGuardianParameterOrDefault("headModelPath", visualTuning_.headModelPath);
+}
+
+std::string GuardianBoss::GetLeftArmModelPath() const
+{
+	EnsureGuardianBossParameters();
+	return GetGuardianParameterOrDefault("leftArmModelPath", visualTuning_.leftArmModelPath);
+}
+
+std::string GuardianBoss::GetRightArmModelPath() const
+{
+	EnsureGuardianBossParameters();
+	return GetGuardianParameterOrDefault("rightArmModelPath", visualTuning_.rightArmModelPath);
+}
+
+std::string GuardianBoss::GetLeftLegModelPath() const
+{
+	EnsureGuardianBossParameters();
+	return GetGuardianParameterOrDefault("leftLegModelPath", visualTuning_.leftLegModelPath);
+}
+
+std::string GuardianBoss::GetRightLegModelPath() const
+{
+	EnsureGuardianBossParameters();
+	return GetGuardianParameterOrDefault("rightLegModelPath", visualTuning_.rightLegModelPath);
+}
+
 
 std::string GuardianBoss::GetGuardianSkinPath() const
 {
 	EnsureGuardianBossParameters();
-	return GetGuardianParameterOrDefault("skinPath", std::string("Characters/zombie.dds")); // スキンもJSONから参照し、失敗時は既定テクスチャへ戻す
+	return GetGuardianParameterOrDefault("skinPath", visualTuning_.skinPath); // スキンもJSONから参照し、失敗時は既定テクスチャへ戻す
 }
 
 /// -------------------------------------------------------------
@@ -230,6 +376,7 @@ void GuardianBoss::SetupBoss()
 	HumanoidBossBase::SetupBoss();
 
 	EnsureGuardianBossParameters();
+	ApplyVisualParameters();
 	movementTuning_.moveSpeed = GetGuardianParameterOrDefault("moveSpeed", movementTuning_.moveSpeed); // Guardianの移動速度をJSON調整値から復元する
 	movementTuning_.rotateSpeed = GetGuardianParameterOrDefault("rotateSpeed", movementTuning_.rotateSpeed); // Guardianの旋回速度をJSON調整値から復元する
 	attackHitTuning_.attackRange = GetGuardianParameterOrDefault("attackRange", attackHitTuning_.attackRange); // Guardianの攻撃開始距離をJSON調整値から復元する
