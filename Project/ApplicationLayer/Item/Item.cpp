@@ -1,9 +1,11 @@
 #define NOMINMAX
 #include "Item.h"
 #include "Player.h"
+#include <CollisionPreset.h>
 #include <CollisionTypeIdDef.h>
 
 #include <algorithm>
+#include <cassert>
 #include <cmath>
 #include <string>
 
@@ -26,7 +28,11 @@ namespace
 
 void Item::Initialize(ItemType type, const K4E::Vector3& pos, int healAmount, int ammoAmount, float pickupRadius)
 {
-	K4E::Collider::SetTypeID(static_cast<uint32_t>(CollisionTypeIdDef::kItem));
+	const uint32_t legacyItemTypeId = static_cast<uint32_t>(CollisionTypeIdDef::kItem);
+	ApplyCollisionPreset(*this, ECollisionPresetId::Item); // Preset適用テストとして、従来のkItem TypeIDと同じ設定を反映する。
+#ifdef _DEBUG
+	assert(K4E::Collider::GetTypeID() == legacyItemTypeId && "Item preset must keep legacy kItem TypeID.");
+#endif
 	K4E::Collider::SetOBBHalfSize(scale_);
 
 	type_ = type;

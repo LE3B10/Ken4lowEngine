@@ -2,6 +2,7 @@
 #include <cstdint>
 
 /// ---------- 識別IDの定義 ---------- ///
+// 既存TypeIDは第1段階ではそのまま残し、EObjectChannelへの対応元として扱う。
 enum class CollisionTypeIdDef : uint32_t
 {
 	kDefault,		 // デフォルトID 0
@@ -11,7 +12,7 @@ enum class CollisionTypeIdDef : uint32_t
 	kBullet,		 // 弾丸ID 4
 	kEnemyBullet,	 // 敵弾ID 5
 	kItem,			 // アイテムID 6
-	kDummy,			 // ダミー
+	kDummy,			 // ダミーID 7
 	kBoss,			 // ボスID 8
 	kBossBullet,	 // ボス弾ID 9
 	kWorld,			 // ワールドID 10

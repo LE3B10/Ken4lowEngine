@@ -31,6 +31,12 @@ namespace Ken4lowEngine
 		// 旧来の衝突通知（互換用）
 		virtual void OnCollision([[maybe_unused]] Collider* other) {}
 
+		/*
+		Collision Event naming policy:
+		- OnCollisionEnter/Stay/Exit は当面Block/Overlap兼用の互換イベントとして残す。
+		- 将来のBlock専用イベントは OnCollisionEnter/Stay/Exit を物理的に遮る接触として扱う。
+		- 将来のOverlap専用イベントは OnOverlapEnter/Stay/Exit をすり抜け接触通知として追加する。
+		*/
 		// Enter/Stay/Exit（デフォルトは互換のため OnCollision を呼ぶ）
 		virtual void OnCollisionEnter(Collider* other) { OnCollision(other); }
 		virtual void OnCollisionStay(Collider* other) { OnCollision(other); }

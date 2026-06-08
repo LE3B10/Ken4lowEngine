@@ -3,6 +3,7 @@
 
 #include <CollisionManager.h>
 #include <CollisionTypeIdDef.h>
+#include <Segment.h> // ローカルで生成するAI遮蔽判定用Segmentの定義を明示する。
 
 #include <algorithm>
 #include <cmath>
