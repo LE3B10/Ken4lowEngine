@@ -9,8 +9,11 @@
 #include <UAVManager.h>
 #include <DSVManager.h>
 #include <RTVManager.h>
+#include <LogString.h>
 
 #include <cassert>
+#include <cstdint>
+#include <string>
 
 #ifdef USE_IMGUI
 #include <imgui.h>
@@ -172,6 +175,10 @@ namespace Ken4lowEngine
 		SRVManager::GetInstance()->PreDraw();
 		TransitionTo(srcRT, commandList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 		TransitionTo(dstRT, commandList, D3D12_RESOURCE_STATE_RENDER_TARGET);
+		if (!ValidateRenderTargetForDraw(dstRT, false, "CopyRenderTarget"))
+		{
+			return;
+		}
 		commandList->OMSetRenderTargets(1, &dstRT.rtvHandle, false, nullptr);
 		commandList->SetPipelineState(pipelineBuilder_->GetCopyPipelineState().Get());
 		commandList->SetGraphicsRootSignature(pipelineBuilder_->GetCopyRootSignature().Get());
@@ -203,6 +210,50 @@ namespace Ken4lowEngine
 		commandList->DrawInstanced(3, 1, 0, 0);
 	}
 
+	bool PostEffectManager::ValidateRenderTargetForDraw(const RenderTarget& renderTarget, bool requireDepth, const char* caller) const
+	{
+		bool valid = true;
+		std::string message = "[PostEffectManager] Invalid render target before ";
+		message += (caller != nullptr) ? caller : "unknown";
+		message += ": ";
+
+		if (!renderTarget.resource)
+		{
+			message += "resource=null ";
+			valid = false;
+		}
+		if (renderTarget.rtvHandle.ptr == 0)
+		{
+			message += "rtvHandle=0 ";
+			valid = false;
+		}
+		if (requireDepth)
+		{
+			if (!depthResource_)
+			{
+				message += "depthResource=null ";
+				valid = false;
+			}
+			if (dsvHandle.ptr == 0)
+			{
+				message += "dsvHandle=0 ";
+				valid = false;
+			}
+		}
+
+		if (!valid)
+		{
+			message += "rtvIndex=" + std::to_string(renderTarget.rtvIndex);
+			message += " srvIndex=" + std::to_string(renderTarget.srvIndex);
+			message += " uavIndex=" + std::to_string(renderTarget.uavIndex);
+			message += " dsvSrvIndex=" + std::to_string(dsvSrvIndex_);
+			message += "\n";
+			Log(message); // 無効なRTV/DSVをGPUへ渡す前に、原因追跡用のハンドル情報をログへ残す。
+		}
+
+		return valid;
+	}
+
 
 	/// -------------------------------------------------------------
 	///				　	ポストエフェクトの更新処理
@@ -226,7 +277,17 @@ namespace Ken4lowEngine
 	void PostEffectManager::BeginDraw()
 	{
 		auto commandList = dxCommon_->GetCommandManager()->GetCommandList();
+		if (renderTargets_.empty())
+		{
+			Log("[PostEffectManager] BeginDraw skipped: renderTargets is empty.\n");
+			return;
+		}
 		auto& rt = renderTargets_[0];
+
+		if (!commandList || !ValidateRenderTargetForDraw(rt, true, "BeginDraw"))
+		{
+			return;
+		}
 
 		// SceneRenderTarget_GameViewportRenderTargetを描画先にする直前でSRVからRTVへ戻す。
 		TransitionTo(rt, commandList, D3D12_RESOURCE_STATE_RENDER_TARGET);
@@ -420,6 +481,10 @@ namespace Ken4lowEngine
 				// 書き込み
 				TransitionTo(inRT, commandList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 				TransitionTo(outRT, commandList, D3D12_RESOURCE_STATE_RENDER_TARGET);
+				if (!ValidateRenderTargetForDraw(outRT, true, "RenderPostEffect"))
+				{
+					continue;
+				}
 				commandList->OMSetRenderTargets(1, &outRT.rtvHandle, false, &dsvHandle);
 
 				// エフェクト適用
@@ -467,10 +532,19 @@ namespace Ken4lowEngine
 	void PostEffectManager::BeginGameRenderTargetOverlay()
 	{
 		auto commandList = dxCommon_->GetCommandManager()->GetCommandList();
+		if (renderTargets_.empty())
+		{
+			Log("[PostEffectManager] BeginGameRenderTargetOverlay skipped: renderTargets is empty.\n");
+			return;
+		}
 		auto& gameRT = renderTargets_[0];
 
 		// SceneRenderTarget_GameViewportRenderTargetへ2Dを重ねる直前でSRVからRTVへ戻す。
 		TransitionTo(gameRT, commandList, D3D12_RESOURCE_STATE_RENDER_TARGET);
+		if (!ValidateRenderTargetForDraw(gameRT, false, "BeginGameRenderTargetOverlay"))
+		{
+			return;
+		}
 		commandList->OMSetRenderTargets(1, &gameRT.rtvHandle, false, nullptr);
 		commandList->RSSetViewports(1, &viewport);
 		commandList->RSSetScissorRects(1, &scissorRect);
@@ -488,7 +562,17 @@ namespace Ken4lowEngine
 	void PostEffectManager::BindSceneRenderTarget()
 	{
 		auto commandList = dxCommon_->GetCommandManager()->GetCommandList();
+		if (renderTargets_.empty())
+		{
+			Log("[PostEffectManager] BindSceneRenderTarget skipped: renderTargets is empty.\n");
+			return;
+		}
 		auto& rt = renderTargets_[0];
+
+		if (!commandList || !ValidateRenderTargetForDraw(rt, true, "BindSceneRenderTarget"))
+		{
+			return;
+		}
 
 		// SceneRenderTarget_GameViewportRenderTargetを再バインドする直前でRTV状態を保証する。
 		TransitionTo(rt, commandList, D3D12_RESOURCE_STATE_RENDER_TARGET);

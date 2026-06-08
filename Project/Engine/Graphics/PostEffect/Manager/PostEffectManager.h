@@ -190,6 +190,7 @@ private: /// ---------- メンバ関数 ---------- ///
 	/// </summary>
 	void CopyRenderTarget(RenderTarget& srcRT, RenderTarget& dstRT, ID3D12GraphicsCommandList* commandList);
 	void CopyRenderTargetToBackBuffer(RenderTarget& srcRT, ID3D12GraphicsCommandList* commandList);
+	bool ValidateRenderTargetForDraw(const RenderTarget& renderTarget, bool requireDepth, const char* caller) const;
 
 private: /// ---------- メンバ関数 ---------- ///
 

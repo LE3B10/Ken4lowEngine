@@ -154,6 +154,10 @@ namespace Ken4lowEngine
 		void ResetToDefaultLighting();
 		bool SaveLightPreset(const std::string& assetId);
 		bool ApplyLightPresetByPath(const std::string& filePath);
+		void RegisterLightParameters();
+		void ApplyLightParameters();
+		void SyncLightParametersFromCurrentState();
+		void UnregisterLightParameters();
 
 
 	public: /// ---------- ゲッター ---------- ///
@@ -262,6 +266,7 @@ namespace Ken4lowEngine
 		mutable float currentShadowFrustumFarZ_ = 120.0f;
 		float spotShadowNearZ_ = 0.1f;
 		int32_t shadowCasterLightIndex_ = -1;
+		bool lightParametersRegistered_ = false;
 
 	private: /// ---------- コピー禁止 ---------- ///
 
