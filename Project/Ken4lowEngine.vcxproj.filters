@@ -121,6 +121,12 @@
     <Filter Include="ApplicationLayer\DebugTools">
       <UniqueIdentifier>{1dfe6894-ffe2-4b9d-8269-e0ab589e5f55}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Engine\System\JsonAssets">
+      <UniqueIdentifier>{e868caf1-6af1-41cb-a34d-efa37d9bd34d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ApplicationLayer\Character\Enemy\Projectile">
+      <UniqueIdentifier>{690331fb-552d-4d8a-b6c3-ca74d0902f48}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="WinMain.cpp" />
@@ -914,25 +920,25 @@
       <Filter>ApplicationLayer\Character\Enemy\AI</Filter>
     </ClCompile>
     <ClCompile Include="Engine\System\JsonAssets\DataAssetPresets.cpp">
-      <Filter>ApplicationLayer</Filter>
+      <Filter>Engine\System\JsonAssets</Filter>
     </ClCompile>
     <ClCompile Include="Engine\System\JsonAssets\ExampleJsonAsset.cpp">
-      <Filter>ApplicationLayer</Filter>
+      <Filter>Engine\System\JsonAssets</Filter>
     </ClCompile>
     <ClCompile Include="Engine\System\JsonAssets\JsonAssetRegistry.cpp">
-      <Filter>ApplicationLayer</Filter>
+      <Filter>Engine\System\JsonAssets</Filter>
     </ClCompile>
     <ClCompile Include="Engine\System\JsonAssets\JsonDataManager.cpp">
-      <Filter>ApplicationLayer</Filter>
+      <Filter>Engine\System\JsonAssets</Filter>
     </ClCompile>
     <ClCompile Include="Engine\System\JsonAssets\JsonEditorWindow.cpp">
-      <Filter>ApplicationLayer</Filter>
-    </ClCompile>
-    <ClCompile Include="ApplicationLayer\Character\Enemy\Projectile\MidRangeBombProjectile.cpp">
-      <Filter>ApplicationLayer</Filter>
+      <Filter>Engine\System\JsonAssets</Filter>
     </ClCompile>
     <ClCompile Include="ApplicationLayer\Character\Enemy\Core\MidRangeEnemy.cpp">
-      <Filter>ApplicationLayer</Filter>
+      <Filter>ApplicationLayer\Character\Enemy\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\Character\Enemy\Projectile\MidRangeBombProjectile.cpp">
+      <Filter>ApplicationLayer\Character\Enemy\Projectile</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -1959,32 +1965,32 @@
     <ClInclude Include="ApplicationLayer\Character\Enemy\AI\EnemyTacticalPointDebugDrawer.h">
       <Filter>ApplicationLayer\Character\Enemy\AI</Filter>
     </ClInclude>
-    <ClInclude Include="ApplicationLayer\Character\Enemy\Core\MidRangeEnemy.h">
-      <Filter>ApplicationLayer</Filter>
-    </ClInclude>
     <ClInclude Include="Engine\System\JsonAssets\DataAssetPresets.h">
-      <Filter>ApplicationLayer</Filter>
+      <Filter>Engine\System\JsonAssets</Filter>
     </ClInclude>
     <ClInclude Include="Engine\System\JsonAssets\ExampleJsonAsset.h">
-      <Filter>ApplicationLayer</Filter>
+      <Filter>Engine\System\JsonAssets</Filter>
     </ClInclude>
     <ClInclude Include="Engine\System\JsonAssets\JsonAssetEntry.h">
-      <Filter>ApplicationLayer</Filter>
+      <Filter>Engine\System\JsonAssets</Filter>
     </ClInclude>
     <ClInclude Include="Engine\System\JsonAssets\JsonAssetRegistry.h">
-      <Filter>ApplicationLayer</Filter>
+      <Filter>Engine\System\JsonAssets</Filter>
     </ClInclude>
     <ClInclude Include="Engine\System\JsonAssets\JsonDataManager.h">
-      <Filter>ApplicationLayer</Filter>
+      <Filter>Engine\System\JsonAssets</Filter>
     </ClInclude>
     <ClInclude Include="Engine\System\JsonAssets\JsonEditorWindow.h">
-      <Filter>ApplicationLayer</Filter>
+      <Filter>Engine\System\JsonAssets</Filter>
     </ClInclude>
     <ClInclude Include="Engine\System\JsonAssets\JsonSerializable.h">
-      <Filter>ApplicationLayer</Filter>
+      <Filter>Engine\System\JsonAssets</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Character\Enemy\Core\MidRangeEnemy.h">
+      <Filter>ApplicationLayer\Character\Enemy\Core</Filter>
     </ClInclude>
     <ClInclude Include="ApplicationLayer\Character\Enemy\Projectile\MidRangeBombProjectile.h">
-      <Filter>ApplicationLayer</Filter>
+      <Filter>ApplicationLayer\Character\Enemy\Projectile</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
