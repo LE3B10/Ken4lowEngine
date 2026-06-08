@@ -1062,9 +1062,6 @@
     <ClInclude Include="ApplicationLayer\Scene\StageSelectScene\State\StageSelectLoadState.h">
       <Filter>ApplicationLayer\Scene\StageSelectScene\State</Filter>
     </ClInclude>
-    <ClInclude Include="ApplicationLayer\Character\Boss\BehaviorTree\BehaviorStatus.h">
-      <Filter>ApplicationLayer\Character\BaseCharacter</Filter>
-    </ClInclude>
     <ClInclude Include="ApplicationLayer\EffectLayer\BaseGpuVfx.h">
       <Filter>ApplicationLayer\EffectLayer</Filter>
     </ClInclude>
@@ -1991,6 +1988,9 @@
     </ClInclude>
     <ClInclude Include="ApplicationLayer\Character\Enemy\Projectile\MidRangeBombProjectile.h">
       <Filter>ApplicationLayer\Character\Enemy\Projectile</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Character\Boss\BehaviorTree\BehaviorStatus.h">
+      <Filter>ApplicationLayer\Character\Boss\BehaviorTree</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
