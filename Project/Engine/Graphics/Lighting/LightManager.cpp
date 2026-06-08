@@ -3,7 +3,6 @@
 #include "DirectXCommon.h"
 #include <ResourceManager.h>
 #include "ImGuiManager.h"
-#include "ParameterManager.h"
 #include <SRVManager.h>
 #include "Wireframe.h"
 #include "JsonDataManager.h"
@@ -12,75 +11,13 @@
 #include <numbers>    // 円周率（C++20）
 #include <algorithm>  // std::clamp
 #include <cmath>      // sin/cos/atan2/asin/acos
-#include <array>
-#include <filesystem>
 
 namespace Ken4lowEngine
 {
 	namespace
 	{
-		constexpr const char* kLightManagerGroup = "LightManager";
 		constexpr float kRadToDeg = 180.0f / std::numbers::pi_v<float>;
 		constexpr float kDegToRad = std::numbers::pi_v<float> / 180.0f;
-
-		float ClampFinite(float value, float fallback, float minValue, float maxValue)
-		{
-			if (!std::isfinite(value))
-			{
-				return fallback;
-			}
-			return std::clamp(value, minValue, maxValue);
-		}
-
-		Vector3 ClampFiniteVector3(const Vector3& value, const Vector3& fallback, const Vector3& minValue, const Vector3& maxValue)
-		{
-			return {
-				ClampFinite(value.x, fallback.x, minValue.x, maxValue.x),
-				ClampFinite(value.y, fallback.y, minValue.y, maxValue.y),
-				ClampFinite(value.z, fallback.z, minValue.z, maxValue.z)
-			};
-		}
-
-		Vector4 SanitizeVector4(const Vector4& value, const Vector4& fallback)
-		{
-			return {
-				std::isfinite(value.x) ? value.x : fallback.x,
-				std::isfinite(value.y) ? value.y : fallback.y,
-				std::isfinite(value.z) ? value.z : fallback.z,
-				std::isfinite(value.w) ? value.w : fallback.w
-			};
-		}
-
-		template<typename T>
-		T GetLightParameterOrDefault(ParameterManager* parameters, const std::string& key, const T& fallback)
-		{
-			try
-			{
-				return parameters->GetValue<T>(kLightManagerGroup, key);
-			}
-			catch (const std::exception&)
-			{
-				return fallback;
-			}
-		}
-
-		uint32_t NormalizeShadowMapSize(int32_t value)
-		{
-			constexpr std::array<int32_t, 4> kSafeSizes = { 512, 1024, 2048, 4096 };
-			value = std::clamp(value, kSafeSizes.front(), kSafeSizes.back());
-			int32_t bestSize = kSafeSizes.front();
-			int32_t bestDistance = std::abs(value - bestSize);
-			for (int32_t safeSize : kSafeSizes)
-			{
-				const int32_t distance = std::abs(value - safeSize);
-				if (distance < bestDistance)
-				{
-					bestSize = safeSize;
-					bestDistance = distance;
-				}
-			}
-			return static_cast<uint32_t>(bestSize);
-		}
 
 		Vector3 DirectionToEulerDeg(const Vector3& dir)
 		{
@@ -173,7 +110,9 @@ namespace Ken4lowEngine
 		{
 			ResetToDefaultLighting();
 		}
-		RegisterLightParameters();
+		lightParameterController_.Initialize(this);
+		lightParameterController_.RegisterParameters();
+		lightParameterController_.ApplyParameters();
 
 		punctualBuffer_->SetName(L"PunctualLightBuffer");
 		lightInfoResource_->SetName(L"LightInfoConstantBuffer");
@@ -185,7 +124,7 @@ namespace Ken4lowEngine
 
 	void LightManager::Finalize()
 	{
-		UnregisterLightParameters();
+		lightParameterController_.Finalize();
 
 		// SRV インデックス返却（二重Free防止のためフラグと無効値を戻す）
 		if (punctualSRVAllocated_ && punctualSRVIndex_ != UINT32_MAX)
@@ -221,6 +160,71 @@ namespace Ken4lowEngine
 
 		// 借り物参照
 		dxCommon_ = nullptr;
+	}
+
+	void LightManager::EnsureDefaultLightForParameter()
+	{
+		if (punctualLights_.empty())
+		{
+			// ParameterManagerが保存対象にしているLight #0の反映先を必ず用意する。
+			AddDefaultDirectionalLight();
+		}
+	}
+
+	LightManager::ShadowSettings LightManager::GetShadowSettingsForParameter() const
+	{
+		ShadowSettings settings{};
+		settings.enableShadow = enableShadow_;
+		settings.shadowBias = shadowBias_;
+		settings.normalBias = normalBias_;
+		settings.shadowStrength = shadowStrength_;
+		settings.shadowMapSize = shadowMapSize_;
+		settings.showShadowMapDebug = showShadowMapDebug_;
+		settings.showShadowFactorDebug = showShadowFactorDebug_;
+		settings.shadowCasterLightIndex = shadowCasterLightIndex_;
+		settings.shadowFocusMode = shadowFocusMode_;
+		settings.manualShadowFocusPosition = manualShadowFocusPosition_;
+		settings.directionalShadowDistance = directionalShadowDistance_;
+		settings.directionalShadowWidth = directionalShadowWidth_;
+		settings.directionalShadowHeight = directionalShadowHeight_;
+		settings.directionalShadowNearZ = directionalShadowNearZ_;
+		settings.directionalShadowFarZ = directionalShadowFarZ_;
+		settings.directionalShadowFocusOffset = directionalShadowFocusOffset_;
+		settings.spotShadowNearZ = spotShadowNearZ_;
+		return settings;
+	}
+
+	void LightManager::SetShadowSettingsFromParameter(const ShadowSettings& settings)
+	{
+		enableShadow_ = settings.enableShadow;
+		shadowBias_ = settings.shadowBias;
+		normalBias_ = settings.normalBias;
+		shadowStrength_ = settings.shadowStrength;
+		ApplyShadowMapSizeFromParameter(settings.shadowMapSize);
+		showShadowMapDebug_ = settings.showShadowMapDebug;
+		showShadowFactorDebug_ = settings.showShadowFactorDebug;
+		shadowCasterLightIndex_ = settings.shadowCasterLightIndex;
+		shadowFocusMode_ = settings.shadowFocusMode;
+		manualShadowFocusPosition_ = settings.manualShadowFocusPosition;
+		directionalShadowDistance_ = settings.directionalShadowDistance;
+		directionalShadowWidth_ = settings.directionalShadowWidth;
+		directionalShadowHeight_ = settings.directionalShadowHeight;
+		directionalShadowNearZ_ = settings.directionalShadowNearZ;
+		directionalShadowFarZ_ = settings.directionalShadowFarZ;
+		directionalShadowFocusOffset_ = settings.directionalShadowFocusOffset;
+		spotShadowNearZ_ = settings.spotShadowNearZ;
+	}
+
+	void LightManager::ApplyShadowMapSizeFromParameter(uint32_t size)
+	{
+		if (dxCommon_ && shadowMapSize_ != size)
+		{
+			// ShadowMapの再生成は実際にサイズが変わった時だけ行い、GPUリソース更新を最小化する。
+			shadowMapSize_ = size;
+			dxCommon_->SetShadowMapSize(shadowMapSize_, shadowMapSize_);
+			return;
+		}
+		shadowMapSize_ = size;
 	}
 
 	/// -------------------------------------------------------------
@@ -420,214 +424,6 @@ namespace Ken4lowEngine
 #endif // _DEBUG
 	}
 
-
-	/// -------------------------------------------------------------
-	///				　		　	ImGui
-	/// -------------------------------------------------------------
-	void LightManager::RegisterLightParameters()
-	{
-		auto* parameters = ParameterManager::GetInstance();
-		parameters->CreateGroup(kLightManagerGroup);
-
-		// LightManagerの実データをParameterManagerへ集約し、通常ImGuiとの二重管理を避ける。
-		parameters->AddItem(kLightManagerGroup, "ambientColor", lightingSettings_.ambientColor);
-		parameters->AddItem(kLightManagerGroup, "fogColor", lightingSettings_.fogColor);
-		parameters->AddItem(kLightManagerGroup, "exposure", lightingSettings_.exposure, 0.25f, 2.0f);
-		parameters->AddItem(kLightManagerGroup, "contrast", lightingSettings_.contrast, 0.50f, 1.75f);
-		parameters->AddItem(kLightManagerGroup, "fogStart", lightingSettings_.fogStart, 0.0f, 250.0f);
-		parameters->AddItem(kLightManagerGroup, "fogEnd", lightingSettings_.fogEnd, 1.0f, 500.0f);
-		parameters->AddItem(kLightManagerGroup, "enableFog", lightingSettings_.enableFog != 0u);
-		parameters->AddItem(kLightManagerGroup, "specularStrength", lightingSettings_.specularStrength, 0.0f, 0.5f);
-		parameters->AddItem(kLightManagerGroup, "diffuseStrength", lightingSettings_.diffuseStrength, 0.0f, 3.0f);
-		parameters->AddItem(kLightManagerGroup, "specularPowerScale", lightingSettings_.specularPowerScale, 0.05f, 4.0f);
-		parameters->AddItem(kLightManagerGroup, "rimLightStrength", lightingSettings_.rimLightStrength, 0.0f, 2.0f);
-		parameters->AddItem(kLightManagerGroup, "rimLightPower", lightingSettings_.rimLightPower, 0.1f, 8.0f);
-		parameters->AddItem(kLightManagerGroup, "enableRimLight", lightingSettings_.enableRimLight != 0u);
-		parameters->AddItem(kLightManagerGroup, "enableHalfLambert", lightingSettings_.enableHalfLambert != 0u);
-		parameters->AddItem(kLightManagerGroup, "rimLightColor", lightingSettings_.rimLightColor);
-		parameters->AddItem(kLightManagerGroup, "shadingMode", static_cast<int32_t>(lightingSettings_.shadingMode), 0, 2);
-
-		parameters->AddItem(kLightManagerGroup, "enableShadow", enableShadow_);
-		parameters->AddItem(kLightManagerGroup, "shadowBias", shadowBias_, 0.0f, 0.01f);
-		parameters->AddItem(kLightManagerGroup, "normalBias", normalBias_, 0.0f, 0.1f);
-		parameters->AddItem(kLightManagerGroup, "shadowStrength", shadowStrength_, 0.0f, 1.0f);
-		parameters->AddItem(kLightManagerGroup, "shadowMapSize", static_cast<int32_t>(shadowMapSize_), 512, 4096);
-		parameters->AddItem(kLightManagerGroup, "showShadowMapDebug", showShadowMapDebug_);
-		parameters->AddItem(kLightManagerGroup, "showShadowFactorDebug", showShadowFactorDebug_);
-		parameters->AddItem(kLightManagerGroup, "shadowCasterLightIndex", shadowCasterLightIndex_, -1, 31);
-		parameters->AddItem(kLightManagerGroup, "shadowFocusMode", static_cast<int32_t>(shadowFocusMode_), 0, 3);
-		parameters->AddItem(kLightManagerGroup, "manualShadowFocusPosition", manualShadowFocusPosition_, Vector3{ -500.0f, -500.0f, -500.0f }, Vector3{ 500.0f, 500.0f, 500.0f });
-		parameters->AddItem(kLightManagerGroup, "directionalShadowDistance", directionalShadowDistance_, 1.0f, 500.0f);
-		parameters->AddItem(kLightManagerGroup, "directionalShadowWidth", directionalShadowWidth_, 5.0f, 300.0f);
-		parameters->AddItem(kLightManagerGroup, "directionalShadowHeight", directionalShadowHeight_, 5.0f, 300.0f);
-		parameters->AddItem(kLightManagerGroup, "directionalShadowNearZ", directionalShadowNearZ_, 0.01f, 50.0f);
-		parameters->AddItem(kLightManagerGroup, "directionalShadowFarZ", directionalShadowFarZ_, 1.01f, 1000.0f);
-		parameters->AddItem(kLightManagerGroup, "directionalShadowFocusOffset", directionalShadowFocusOffset_, -200.0f, 200.0f);
-		parameters->AddItem(kLightManagerGroup, "spotShadowNearZ", spotShadowNearZ_, 0.01f, 50.0f);
-
-		if (punctualLights_.empty())
-		{
-			AddDefaultDirectionalLight();
-		}
-		const auto& light = punctualLights_.front();
-		parameters->AddItem(kLightManagerGroup, "light0.lightType", static_cast<int32_t>(light.lightType), 0, 5);
-		parameters->AddItem(kLightManagerGroup, "light0.enabled", light.enabled != 0u);
-		parameters->AddItem(kLightManagerGroup, "light0.color", light.color);
-		parameters->AddItem(kLightManagerGroup, "light0.intensity", light.intensity, 0.0f, 20.0f);
-		parameters->AddItem(kLightManagerGroup, "light0.direction", light.direction, Vector3{ -1.0f, -1.0f, -1.0f }, Vector3{ 1.0f, 1.0f, 1.0f });
-		parameters->AddItem(kLightManagerGroup, "light0.position", light.position, Vector3{ -50.0f, -50.0f, -50.0f }, Vector3{ 50.0f, 50.0f, 50.0f });
-		parameters->AddItem(kLightManagerGroup, "light0.radius", light.radius, 0.0f, 200.0f);
-		parameters->AddItem(kLightManagerGroup, "light0.decay", light.decay, 0.0f, 10.0f);
-		parameters->AddItem(kLightManagerGroup, "light0.distance", light.distance, 0.0f, 200.0f);
-		parameters->AddItem(kLightManagerGroup, "light0.cosFalloffStart", light.cosFalloffStart, 0.0f, 1.0f);
-		parameters->AddItem(kLightManagerGroup, "light0.cosAngle", light.cosAngle, 0.0f, 1.0f);
-		parameters->AddItem(kLightManagerGroup, "light0.areaSize", light.areaSize, Vector3{ 0.0f, 0.0f, 0.0f }, Vector3{ 50.0f, 50.0f, 50.0f });
-
-		if (std::filesystem::exists("Resources/ParameterManager/LightManager.json"))
-		{
-			parameters->LoadFile(kLightManagerGroup);
-		}
-		parameters->RegisterParameterApplier(kLightManagerGroup, this, [this]() { ApplyLightParameters(); }); // Parametersウィンドウの保存/読み込み/反映を実データへ接続する。
-		lightParametersRegistered_ = true;
-		ApplyLightParameters();
-	}
-
-	void LightManager::ApplyLightParameters()
-	{
-		auto* parameters = ParameterManager::GetInstance();
-		lightingSettings_.ambientColor = SanitizeVector4(GetLightParameterOrDefault(parameters, "ambientColor", lightingSettings_.ambientColor), LightingSettingsGPU{}.ambientColor);
-		lightingSettings_.fogColor = SanitizeVector4(GetLightParameterOrDefault(parameters, "fogColor", lightingSettings_.fogColor), LightingSettingsGPU{}.fogColor);
-		lightingSettings_.exposure = ClampFinite(GetLightParameterOrDefault(parameters, "exposure", lightingSettings_.exposure), 1.0f, 0.05f, 8.0f);
-		lightingSettings_.contrast = ClampFinite(GetLightParameterOrDefault(parameters, "contrast", lightingSettings_.contrast), 1.0f, 0.05f, 4.0f);
-		lightingSettings_.fogStart = ClampFinite(GetLightParameterOrDefault(parameters, "fogStart", lightingSettings_.fogStart), 45.0f, 0.0f, 10000.0f);
-		lightingSettings_.fogEnd = ClampFinite(GetLightParameterOrDefault(parameters, "fogEnd", lightingSettings_.fogEnd), 140.0f, lightingSettings_.fogStart + 1.0f, 20000.0f);
-		lightingSettings_.enableFog = GetLightParameterOrDefault(parameters, "enableFog", lightingSettings_.enableFog != 0u) ? 1u : 0u;
-		lightingSettings_.specularStrength = ClampFinite(GetLightParameterOrDefault(parameters, "specularStrength", lightingSettings_.specularStrength), 0.08f, 0.0f, 4.0f);
-		lightingSettings_.diffuseStrength = ClampFinite(GetLightParameterOrDefault(parameters, "diffuseStrength", lightingSettings_.diffuseStrength), 1.0f, 0.0f, 8.0f);
-		lightingSettings_.specularPowerScale = ClampFinite(GetLightParameterOrDefault(parameters, "specularPowerScale", lightingSettings_.specularPowerScale), 1.0f, 0.01f, 16.0f);
-		lightingSettings_.rimLightStrength = ClampFinite(GetLightParameterOrDefault(parameters, "rimLightStrength", lightingSettings_.rimLightStrength), 0.0f, 0.0f, 8.0f);
-		lightingSettings_.rimLightPower = ClampFinite(GetLightParameterOrDefault(parameters, "rimLightPower", lightingSettings_.rimLightPower), 2.0f, 0.01f, 32.0f);
-		lightingSettings_.enableRimLight = GetLightParameterOrDefault(parameters, "enableRimLight", lightingSettings_.enableRimLight != 0u) ? 1u : 0u;
-		lightingSettings_.enableHalfLambert = GetLightParameterOrDefault(parameters, "enableHalfLambert", lightingSettings_.enableHalfLambert != 0u) ? 1u : 0u;
-		lightingSettings_.rimLightColor = SanitizeVector4(GetLightParameterOrDefault(parameters, "rimLightColor", lightingSettings_.rimLightColor), LightingSettingsGPU{}.rimLightColor);
-		lightingSettings_.shadingMode = static_cast<uint32_t>(std::clamp(GetLightParameterOrDefault<int32_t>(parameters, "shadingMode", static_cast<int32_t>(lightingSettings_.shadingMode)), 0, 2));
-
-		enableShadow_ = GetLightParameterOrDefault(parameters, "enableShadow", enableShadow_);
-		shadowBias_ = ClampFinite(GetLightParameterOrDefault(parameters, "shadowBias", shadowBias_), 0.0f, 0.0f, 0.1f);
-		normalBias_ = ClampFinite(GetLightParameterOrDefault(parameters, "normalBias", normalBias_), 0.025f, 0.0f, 1.0f);
-		shadowStrength_ = ClampFinite(GetLightParameterOrDefault(parameters, "shadowStrength", shadowStrength_), 0.6f, 0.0f, 1.0f);
-		const uint32_t sanitizedShadowMapSize = NormalizeShadowMapSize(GetLightParameterOrDefault<int32_t>(parameters, "shadowMapSize", static_cast<int32_t>(shadowMapSize_)));
-		if (dxCommon_ && shadowMapSize_ != sanitizedShadowMapSize)
-		{
-			// ShadowMapの再生成は安全なサイズへ丸めたうえで、実際に変更がある時だけ行う。
-			shadowMapSize_ = sanitizedShadowMapSize;
-			dxCommon_->SetShadowMapSize(shadowMapSize_, shadowMapSize_);
-		}
-		else
-		{
-			shadowMapSize_ = sanitizedShadowMapSize;
-		}
-		showShadowMapDebug_ = GetLightParameterOrDefault(parameters, "showShadowMapDebug", showShadowMapDebug_);
-		showShadowFactorDebug_ = GetLightParameterOrDefault(parameters, "showShadowFactorDebug", showShadowFactorDebug_);
-		shadowCasterLightIndex_ = GetLightParameterOrDefault(parameters, "shadowCasterLightIndex", shadowCasterLightIndex_);
-		shadowFocusMode_ = static_cast<ShadowFocusMode>(std::clamp(GetLightParameterOrDefault<int32_t>(parameters, "shadowFocusMode", static_cast<int32_t>(shadowFocusMode_)), 0, 3));
-		manualShadowFocusPosition_ = ClampFiniteVector3(GetLightParameterOrDefault(parameters, "manualShadowFocusPosition", manualShadowFocusPosition_), { 0.0f, 0.0f, 0.0f }, { -10000.0f, -10000.0f, -10000.0f }, { 10000.0f, 10000.0f, 10000.0f });
-		directionalShadowDistance_ = ClampFinite(GetLightParameterOrDefault(parameters, "directionalShadowDistance", directionalShadowDistance_), 60.0f, 1.0f, 5000.0f);
-		directionalShadowWidth_ = ClampFinite(GetLightParameterOrDefault(parameters, "directionalShadowWidth", directionalShadowWidth_), 35.0f, 1.0f, 5000.0f);
-		directionalShadowHeight_ = ClampFinite(GetLightParameterOrDefault(parameters, "directionalShadowHeight", directionalShadowHeight_), 35.0f, 1.0f, 5000.0f);
-		directionalShadowNearZ_ = ClampFinite(GetLightParameterOrDefault(parameters, "directionalShadowNearZ", directionalShadowNearZ_), 0.1f, 0.001f, 5000.0f);
-		directionalShadowFarZ_ = ClampFinite(GetLightParameterOrDefault(parameters, "directionalShadowFarZ", directionalShadowFarZ_), 120.0f, directionalShadowNearZ_ + 0.001f, 20000.0f);
-		directionalShadowFocusOffset_ = ClampFinite(GetLightParameterOrDefault(parameters, "directionalShadowFocusOffset", directionalShadowFocusOffset_), 0.0f, -10000.0f, 10000.0f);
-		spotShadowNearZ_ = ClampFinite(GetLightParameterOrDefault(parameters, "spotShadowNearZ", spotShadowNearZ_), 0.1f, 0.001f, 5000.0f);
-
-		if (punctualLights_.empty())
-		{
-			AddDefaultDirectionalLight();
-		}
-		auto& light = punctualLights_.front();
-		light.lightType = static_cast<uint32_t>(std::clamp(GetLightParameterOrDefault<int32_t>(parameters, "light0.lightType", static_cast<int32_t>(light.lightType)), 0, 5));
-		light.enabled = GetLightParameterOrDefault(parameters, "light0.enabled", light.enabled != 0u) ? 1u : 0u;
-		light.color = SanitizeVector4(GetLightParameterOrDefault(parameters, "light0.color", light.color), { 1.0f, 1.0f, 1.0f, 1.0f });
-		light.intensity = ClampFinite(GetLightParameterOrDefault(parameters, "light0.intensity", light.intensity), 1.0f, 0.0f, 100.0f);
-		light.direction = Vector3::NormalizeSafe(ClampFiniteVector3(GetLightParameterOrDefault(parameters, "light0.direction", light.direction), { 0.0f, -1.0f, 0.0f }, { -1.0f, -1.0f, -1.0f }, { 1.0f, 1.0f, 1.0f }), { 0.0f, -1.0f, 0.0f });
-		light.position = ClampFiniteVector3(GetLightParameterOrDefault(parameters, "light0.position", light.position), { 0.0f, 0.0f, 0.0f }, { -10000.0f, -10000.0f, -10000.0f }, { 10000.0f, 10000.0f, 10000.0f });
-		light.radius = ClampFinite(GetLightParameterOrDefault(parameters, "light0.radius", light.radius), 0.0f, 0.0f, 10000.0f);
-		light.decay = ClampFinite(GetLightParameterOrDefault(parameters, "light0.decay", light.decay), 1.0f, 0.0f, 100.0f);
-		light.distance = ClampFinite(GetLightParameterOrDefault(parameters, "light0.distance", light.distance), 10.0f, 0.0f, 10000.0f);
-		light.cosFalloffStart = ClampFinite(GetLightParameterOrDefault(parameters, "light0.cosFalloffStart", light.cosFalloffStart), 1.0f, 0.0f, 1.0f);
-		light.cosAngle = ClampFinite(GetLightParameterOrDefault(parameters, "light0.cosAngle", light.cosAngle), 0.5f, 0.0f, 1.0f);
-		if (light.cosFalloffStart < light.cosAngle) { light.cosFalloffStart = light.cosAngle; }
-		light.areaSize = ClampFiniteVector3(GetLightParameterOrDefault(parameters, "light0.areaSize", light.areaSize), { 2.0f, 2.0f, 1.0f }, { 0.0f, 0.0f, 0.0f }, { 10000.0f, 10000.0f, 10000.0f });
-		shadowCasterLightIndex_ = std::clamp(shadowCasterLightIndex_, -1, static_cast<int32_t>(punctualLights_.size()) - 1);
-		SyncLightParametersFromCurrentState(); // クランプや正規化後の値をParameterManager表示にも戻す。
-	}
-
-	void LightManager::SyncLightParametersFromCurrentState()
-	{
-		if (!lightParametersRegistered_)
-		{
-			return;
-		}
-		auto* parameters = ParameterManager::GetInstance();
-		parameters->SetValue(kLightManagerGroup, "ambientColor", lightingSettings_.ambientColor);
-		parameters->SetValue(kLightManagerGroup, "fogColor", lightingSettings_.fogColor);
-		parameters->SetValue(kLightManagerGroup, "exposure", lightingSettings_.exposure);
-		parameters->SetValue(kLightManagerGroup, "contrast", lightingSettings_.contrast);
-		parameters->SetValue(kLightManagerGroup, "fogStart", lightingSettings_.fogStart);
-		parameters->SetValue(kLightManagerGroup, "fogEnd", lightingSettings_.fogEnd);
-		parameters->SetValue(kLightManagerGroup, "enableFog", lightingSettings_.enableFog != 0u);
-		parameters->SetValue(kLightManagerGroup, "specularStrength", lightingSettings_.specularStrength);
-		parameters->SetValue(kLightManagerGroup, "diffuseStrength", lightingSettings_.diffuseStrength);
-		parameters->SetValue(kLightManagerGroup, "specularPowerScale", lightingSettings_.specularPowerScale);
-		parameters->SetValue(kLightManagerGroup, "rimLightStrength", lightingSettings_.rimLightStrength);
-		parameters->SetValue(kLightManagerGroup, "rimLightPower", lightingSettings_.rimLightPower);
-		parameters->SetValue(kLightManagerGroup, "enableRimLight", lightingSettings_.enableRimLight != 0u);
-		parameters->SetValue(kLightManagerGroup, "enableHalfLambert", lightingSettings_.enableHalfLambert != 0u);
-		parameters->SetValue(kLightManagerGroup, "rimLightColor", lightingSettings_.rimLightColor);
-		parameters->SetValue(kLightManagerGroup, "shadingMode", static_cast<int32_t>(lightingSettings_.shadingMode));
-
-		parameters->SetValue(kLightManagerGroup, "enableShadow", enableShadow_);
-		parameters->SetValue(kLightManagerGroup, "shadowBias", shadowBias_);
-		parameters->SetValue(kLightManagerGroup, "normalBias", normalBias_);
-		parameters->SetValue(kLightManagerGroup, "shadowStrength", shadowStrength_);
-		parameters->SetValue(kLightManagerGroup, "shadowMapSize", static_cast<int32_t>(shadowMapSize_));
-		parameters->SetValue(kLightManagerGroup, "showShadowMapDebug", showShadowMapDebug_);
-		parameters->SetValue(kLightManagerGroup, "showShadowFactorDebug", showShadowFactorDebug_);
-		parameters->SetValue(kLightManagerGroup, "shadowCasterLightIndex", shadowCasterLightIndex_);
-		parameters->SetValue(kLightManagerGroup, "shadowFocusMode", static_cast<int32_t>(shadowFocusMode_));
-		parameters->SetValue(kLightManagerGroup, "manualShadowFocusPosition", manualShadowFocusPosition_);
-		parameters->SetValue(kLightManagerGroup, "directionalShadowDistance", directionalShadowDistance_);
-		parameters->SetValue(kLightManagerGroup, "directionalShadowWidth", directionalShadowWidth_);
-		parameters->SetValue(kLightManagerGroup, "directionalShadowHeight", directionalShadowHeight_);
-		parameters->SetValue(kLightManagerGroup, "directionalShadowNearZ", directionalShadowNearZ_);
-		parameters->SetValue(kLightManagerGroup, "directionalShadowFarZ", directionalShadowFarZ_);
-		parameters->SetValue(kLightManagerGroup, "directionalShadowFocusOffset", directionalShadowFocusOffset_);
-		parameters->SetValue(kLightManagerGroup, "spotShadowNearZ", spotShadowNearZ_);
-
-		if (punctualLights_.empty())
-		{
-			return;
-		}
-		const auto& light = punctualLights_.front();
-		parameters->SetValue(kLightManagerGroup, "light0.lightType", static_cast<int32_t>(light.lightType));
-		parameters->SetValue(kLightManagerGroup, "light0.enabled", light.enabled != 0u);
-		parameters->SetValue(kLightManagerGroup, "light0.color", light.color);
-		parameters->SetValue(kLightManagerGroup, "light0.intensity", light.intensity);
-		parameters->SetValue(kLightManagerGroup, "light0.direction", light.direction);
-		parameters->SetValue(kLightManagerGroup, "light0.position", light.position);
-		parameters->SetValue(kLightManagerGroup, "light0.radius", light.radius);
-		parameters->SetValue(kLightManagerGroup, "light0.decay", light.decay);
-		parameters->SetValue(kLightManagerGroup, "light0.distance", light.distance);
-		parameters->SetValue(kLightManagerGroup, "light0.cosFalloffStart", light.cosFalloffStart);
-		parameters->SetValue(kLightManagerGroup, "light0.cosAngle", light.cosAngle);
-		parameters->SetValue(kLightManagerGroup, "light0.areaSize", light.areaSize);
-	}
-
-	void LightManager::UnregisterLightParameters()
-	{
-		ParameterManager::GetInstance()->UnregisterParameterApplier(kLightManagerGroup, this); // Finalize後に破棄済みLightManagerへ反映しないよう解除する。
-		lightParametersRegistered_ = false;
-	}
 
 	void LightManager::DrawPunctualLightsInspector()
 	{
@@ -1056,31 +852,61 @@ namespace Ken4lowEngine
 		lightingSettings_.shadingMode = preset.shadingMode;
 
 		// プリセットJSON由来の不正値も描画リソースへ渡る前に安全範囲へ補正する。
-		lightingSettings_.ambientColor = SanitizeVector4(lightingSettings_.ambientColor, LightingSettingsGPU{}.ambientColor);
-		lightingSettings_.fogColor = SanitizeVector4(lightingSettings_.fogColor, LightingSettingsGPU{}.fogColor);
-		lightingSettings_.exposure = ClampFinite(lightingSettings_.exposure, 1.0f, 0.05f, 8.0f);
-		lightingSettings_.contrast = ClampFinite(lightingSettings_.contrast, 1.0f, 0.05f, 4.0f);
-		lightingSettings_.fogStart = ClampFinite(lightingSettings_.fogStart, 45.0f, 0.0f, 10000.0f);
-		lightingSettings_.fogEnd = ClampFinite(lightingSettings_.fogEnd, 140.0f, lightingSettings_.fogStart + 1.0f, 20000.0f);
-		lightingSettings_.specularStrength = ClampFinite(lightingSettings_.specularStrength, 0.08f, 0.0f, 4.0f);
-		lightingSettings_.diffuseStrength = ClampFinite(lightingSettings_.diffuseStrength, 1.0f, 0.0f, 8.0f);
-		lightingSettings_.specularPowerScale = ClampFinite(lightingSettings_.specularPowerScale, 1.0f, 0.01f, 16.0f);
-		lightingSettings_.rimLightStrength = ClampFinite(lightingSettings_.rimLightStrength, 0.0f, 0.0f, 8.0f);
-		lightingSettings_.rimLightPower = ClampFinite(lightingSettings_.rimLightPower, 2.0f, 0.01f, 32.0f);
-		lightingSettings_.rimLightColor = SanitizeVector4(lightingSettings_.rimLightColor, LightingSettingsGPU{}.rimLightColor);
+		const auto clampFiniteValue = [](float value, float fallback, float minValue, float maxValue)
+			{
+				return std::isfinite(value) ? std::clamp(value, minValue, maxValue) : fallback;
+			};
+		const auto sanitizeVector4Value = [](const Vector4& value, const Vector4& fallback)
+			{
+				return Vector4{
+					std::isfinite(value.x) ? value.x : fallback.x,
+					std::isfinite(value.y) ? value.y : fallback.y,
+					std::isfinite(value.z) ? value.z : fallback.z,
+					std::isfinite(value.w) ? value.w : fallback.w
+				};
+			};
+		const auto normalizeShadowMapSizeValue = [](int32_t value)
+			{
+				constexpr int32_t kSafeSizes[] = { 512, 1024, 2048, 4096 };
+				value = std::clamp(value, kSafeSizes[0], kSafeSizes[3]);
+				int32_t bestSize = kSafeSizes[0];
+				int32_t bestDistance = std::abs(value - bestSize);
+				for (int32_t safeSize : kSafeSizes)
+				{
+					const int32_t distance = std::abs(value - safeSize);
+					if (distance < bestDistance)
+					{
+						bestSize = safeSize;
+						bestDistance = distance;
+					}
+				}
+				return static_cast<uint32_t>(bestSize);
+			};
+		lightingSettings_.ambientColor = sanitizeVector4Value(lightingSettings_.ambientColor, LightingSettingsGPU{}.ambientColor);
+		lightingSettings_.fogColor = sanitizeVector4Value(lightingSettings_.fogColor, LightingSettingsGPU{}.fogColor);
+		lightingSettings_.exposure = clampFiniteValue(lightingSettings_.exposure, 1.0f, 0.05f, 8.0f);
+		lightingSettings_.contrast = clampFiniteValue(lightingSettings_.contrast, 1.0f, 0.05f, 4.0f);
+		lightingSettings_.fogStart = clampFiniteValue(lightingSettings_.fogStart, 45.0f, 0.0f, 10000.0f);
+		lightingSettings_.fogEnd = clampFiniteValue(lightingSettings_.fogEnd, 140.0f, lightingSettings_.fogStart + 1.0f, 20000.0f);
+		lightingSettings_.specularStrength = clampFiniteValue(lightingSettings_.specularStrength, 0.08f, 0.0f, 4.0f);
+		lightingSettings_.diffuseStrength = clampFiniteValue(lightingSettings_.diffuseStrength, 1.0f, 0.0f, 8.0f);
+		lightingSettings_.specularPowerScale = clampFiniteValue(lightingSettings_.specularPowerScale, 1.0f, 0.01f, 16.0f);
+		lightingSettings_.rimLightStrength = clampFiniteValue(lightingSettings_.rimLightStrength, 0.0f, 0.0f, 8.0f);
+		lightingSettings_.rimLightPower = clampFiniteValue(lightingSettings_.rimLightPower, 2.0f, 0.01f, 32.0f);
+		lightingSettings_.rimLightColor = sanitizeVector4Value(lightingSettings_.rimLightColor, LightingSettingsGPU{}.rimLightColor);
 		lightingSettings_.shadingMode = std::clamp(lightingSettings_.shadingMode, 0u, 2u);
-		shadowBias_ = ClampFinite(shadowBias_, 0.0f, 0.0f, 0.1f);
-		normalBias_ = ClampFinite(normalBias_, 0.025f, 0.0f, 1.0f);
-		shadowStrength_ = ClampFinite(shadowStrength_, 0.6f, 0.0f, 1.0f);
-		const uint32_t sanitizedShadowMapSize = NormalizeShadowMapSize(static_cast<int32_t>(shadowMapSize_));
-		directionalShadowWidth_ = ClampFinite(directionalShadowWidth_, 35.0f, 1.0f, 5000.0f);
-		directionalShadowHeight_ = ClampFinite(directionalShadowHeight_, 35.0f, 1.0f, 5000.0f);
-		directionalShadowNearZ_ = ClampFinite(directionalShadowNearZ_, 0.1f, 0.001f, 5000.0f);
-		directionalShadowFarZ_ = ClampFinite(directionalShadowFarZ_, 120.0f, directionalShadowNearZ_ + 0.001f, 20000.0f);
+		shadowBias_ = clampFiniteValue(shadowBias_, 0.0f, 0.0f, 0.1f);
+		normalBias_ = clampFiniteValue(normalBias_, 0.025f, 0.0f, 1.0f);
+		shadowStrength_ = clampFiniteValue(shadowStrength_, 0.6f, 0.0f, 1.0f);
+		const uint32_t sanitizedShadowMapSize = normalizeShadowMapSizeValue(static_cast<int32_t>(shadowMapSize_));
+		directionalShadowWidth_ = clampFiniteValue(directionalShadowWidth_, 35.0f, 1.0f, 5000.0f);
+		directionalShadowHeight_ = clampFiniteValue(directionalShadowHeight_, 35.0f, 1.0f, 5000.0f);
+		directionalShadowNearZ_ = clampFiniteValue(directionalShadowNearZ_, 0.1f, 0.001f, 5000.0f);
+		directionalShadowFarZ_ = clampFiniteValue(directionalShadowFarZ_, 120.0f, directionalShadowNearZ_ + 0.001f, 20000.0f);
 		shadowFocusMode_ = static_cast<ShadowFocusMode>(std::clamp(static_cast<int32_t>(shadowFocusMode_), 0, 3));
 		light.direction = Vector3::NormalizeSafe(light.direction, { 0.0f, -1.0f, 0.0f });
-		light.color = SanitizeVector4(light.color, { 1.0f, 1.0f, 1.0f, 1.0f });
-		light.intensity = ClampFinite(light.intensity, 1.0f, 0.0f, 100.0f);
+		light.color = sanitizeVector4Value(light.color, { 1.0f, 1.0f, 1.0f, 1.0f });
+		light.intensity = clampFiniteValue(light.intensity, 1.0f, 0.0f, 100.0f);
 		if (dxCommon_ && shadowMapSize_ != sanitizedShadowMapSize)
 		{
 			shadowMapSize_ = sanitizedShadowMapSize;
@@ -1090,7 +916,7 @@ namespace Ken4lowEngine
 		{
 			shadowMapSize_ = sanitizedShadowMapSize;
 		}
-		SyncLightParametersFromCurrentState(); // 既存プリセット適用後もParameters側の表示と保存値候補を最新化する。
+		lightParameterController_.SyncFromCurrentState(); // 既存プリセット適用後もParameters側の表示と保存値候補を最新化する。
 		return true;
 	}
 } // namespace Ken4lowEngine

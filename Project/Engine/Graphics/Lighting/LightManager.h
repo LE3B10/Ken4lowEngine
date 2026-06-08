@@ -3,6 +3,7 @@
 #include "Vector3.h" 
 #include "Vector4.h"
 #include "Matrix4x4.h"
+#include "LightParameterController.h"
 #include <string>
 
 namespace Ken4lowEngine
@@ -49,7 +50,7 @@ namespace Ken4lowEngine
 			uint32_t enabled;		// 0: disabled, 1: enabled
 		};
 
-		
+
 		// シャドウ行列の生成対象を明示するための種別。
 		enum class ShadowCasterType : uint32_t
 		{
@@ -65,7 +66,7 @@ namespace Ken4lowEngine
 			StageCenter = 2,
 			Manual = 3,
 		};
-// ライト数CB
+		// ライト数CB
 		struct LightInfo
 		{
 			uint32_t lightCount; // ライトの数
@@ -92,6 +93,31 @@ namespace Ken4lowEngine
 			Vector4 rimLightColor = { 1.0f, 1.0f, 1.0f, 1.0f };
 			uint32_t shadingMode = 0;
 			float pad[3] = {};
+		};
+
+		/// <summary>
+		/// ParameterManagerとShadow設定をまとめて受け渡すための値オブジェクトです。<br/>
+		/// GPU用構造体ではなく、LightParameterControllerからprivateメンバを直接触らせないための窓口として使います。
+		/// </summary>
+		struct ShadowSettings
+		{
+			bool enableShadow = true;
+			float shadowBias = 0.0f;
+			float normalBias = 0.025f;
+			float shadowStrength = 0.6f;
+			uint32_t shadowMapSize = 2048;
+			bool showShadowMapDebug = false;
+			bool showShadowFactorDebug = false;
+			int32_t shadowCasterLightIndex = -1;
+			ShadowFocusMode shadowFocusMode = ShadowFocusMode::Camera;
+			Vector3 manualShadowFocusPosition = { 0.0f, 0.0f, 0.0f };
+			float directionalShadowDistance = 60.0f;
+			float directionalShadowWidth = 35.0f;
+			float directionalShadowHeight = 35.0f;
+			float directionalShadowNearZ = 0.1f;
+			float directionalShadowFarZ = 120.0f;
+			float directionalShadowFocusOffset = 0.0f;
+			float spotShadowNearZ = 0.1f;
 		};
 
 	public: /// ---------- メンバ関数 ---------- ///
@@ -154,11 +180,6 @@ namespace Ken4lowEngine
 		void ResetToDefaultLighting();
 		bool SaveLightPreset(const std::string& assetId);
 		bool ApplyLightPresetByPath(const std::string& filePath);
-		void RegisterLightParameters();
-		void ApplyLightParameters();
-		void SyncLightParametersFromCurrentState();
-		void UnregisterLightParameters();
-
 
 	public: /// ---------- ゲッター ---------- ///
 
@@ -188,6 +209,56 @@ namespace Ken4lowEngine
 
 		// Editor Detailsから選択中ライトだけを書き換えるため、index検証付きヘルパー経由でのみ利用する。
 		std::vector<PunctualLightGPU>& GetMutablePunctualLightsForEditor() { return punctualLights_; }
+
+	public: /// ---------- ParameterManager連携用の窓口 ---------- ///
+
+		/// <summary>
+		/// ParameterManager登録時に現在のLighting設定を読み取るための参照を返します。<br/>
+		/// LightParameterController専用の窓口で、個別メンバを公開しすぎないためカテゴリ単位で受け渡します。
+		/// </summary>
+		const LightingSettingsGPU& GetLightingSettingsForParameter() const { return lightingSettings_; }
+
+		/// <summary>
+		/// ParameterManagerから読み込んだLighting設定を反映するための編集用参照を返します。<br/>
+		/// LightManager本体はGPU転送に集中し、保存値の検証はLightParameterController側で行います。
+		/// </summary>
+		LightingSettingsGPU& GetMutableLightingSettingsForParameter() { return lightingSettings_; }
+
+		/// <summary>
+		/// ParameterManager登録・同期用にパンクチュアルライト配列を読み取ります。<br/>
+		/// 現状の保存対象はLight #0のみですが、配列全体の所有はLightManagerに残します。
+		/// </summary>
+		const std::vector<PunctualLightGPU>& GetPunctualLightsForParameter() const { return punctualLights_; }
+
+		/// <summary>
+		/// ParameterManagerからLight #0を反映するための編集用ライト配列を返します。<br/>
+		/// LightParameterControllerは必要な最小範囲だけを更新し、追加/削除UIの責務はLightManager側に残します。
+		/// </summary>
+		std::vector<PunctualLightGPU>& GetMutablePunctualLightsForParameter() { return punctualLights_; }
+
+		/// <summary>
+		/// Light #0保存対象が空配列で欠けている場合に、既定のDirectionalLightを補います。<br/>
+		/// 保存済みJSONの反映先を必ず用意し、空配列アクセスによるクラッシュを防ぎます。
+		/// </summary>
+		void EnsureDefaultLightForParameter();
+
+		/// <summary>
+		/// ParameterManagerへ登録・同期するShadow設定をカテゴリ単位で取得します。<br/>
+		/// privateメンバを直接公開せず、LightParameterControllerとの境界を狭く保つための窓口です。
+		/// </summary>
+		ShadowSettings GetShadowSettingsForParameter() const;
+
+		/// <summary>
+		/// ParameterManagerから検証済みのShadow設定をLightManagerへまとめて反映します。<br/>
+		/// shadowMapSizeはGPUリソース再生成が必要なため、専用関数経由で適用します。
+		/// </summary>
+		void SetShadowSettingsFromParameter(const ShadowSettings& settings);
+
+		/// <summary>
+		/// ParameterManager由来のshadowMapSizeをLightManagerへ反映します。<br/>
+		/// サイズ変更時だけShadowMapリソースを再生成し、毎回の無駄なGPUリソース更新を避けます。
+		/// </summary>
+		void ApplyShadowMapSizeFromParameter(uint32_t size);
 
 	private: /// ---------- メンバ関数 ---------- ///
 
@@ -266,7 +337,7 @@ namespace Ken4lowEngine
 		mutable float currentShadowFrustumFarZ_ = 120.0f;
 		float spotShadowNearZ_ = 0.1f;
 		int32_t shadowCasterLightIndex_ = -1;
-		bool lightParametersRegistered_ = false;
+		LightParameterController lightParameterController_;
 
 	private: /// ---------- コピー禁止 ---------- ///
 

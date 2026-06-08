@@ -619,6 +619,9 @@
     <ClCompile Include="Engine\Graphics\Lighting\LightManager.cpp">
       <Filter>Engine\Graphics\Lighting</Filter>
     </ClCompile>
+    <ClCompile Include="Engine\Graphics\Lighting\LightParameterController.cpp">
+      <Filter>Engine\Graphics\Lighting</Filter>
+    </ClCompile>
     <ClCompile Include="Engine\Graphics\Material\Material.cpp">
       <Filter>Engine\Graphics\Material</Filter>
     </ClCompile>
@@ -1579,6 +1582,9 @@
       <Filter>Engine\Graphics\Common</Filter>
     </ClInclude>
     <ClInclude Include="Engine\Graphics\Lighting\LightManager.h">
+      <Filter>Engine\Graphics\Lighting</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Graphics\Lighting\LightParameterController.h">
       <Filter>Engine\Graphics\Lighting</Filter>
     </ClInclude>
     <ClInclude Include="Engine\Graphics\Material\Material.h">
