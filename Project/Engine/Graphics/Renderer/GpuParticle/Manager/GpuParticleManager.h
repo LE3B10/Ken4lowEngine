@@ -36,7 +36,7 @@ namespace Ken4lowEngine
 		/// デバッグ用 Mesh Asset 読み込みUIの既定モデルパスです。
 		/// AssimpLoader 側の仕様に合わせて "Resources/Models/" からの相対指定を前提とします。
 		/// </summary>
-		static inline constexpr const char* kDefaultMeshModelPath = "cube.gltf";
+		static inline constexpr const char* kDefaultMeshModelPath = "Test/cube.gltf";
 
 		/// <summary>
 		/// デバッグ用 Mesh Asset 登録時に使用する既定のベース MeshId です。
@@ -363,6 +363,22 @@ namespace Ken4lowEngine
 
 		bool RemoveEmitter(const std::string& name);
 
+		/// <summary>
+		/// GPUパーティクルの調整値をParameterManagerへ登録します。<br/>
+		/// グループ名は "GPUParticle/エミッター名" にして、エミッター単位でJson保存できるようにします。
+		/// </summary>
+		void RegisterEmitterParameters(GpuParticleEmitter& emitter);
+
+		/// <summary>
+		/// ParameterManagerで編集・読み込みされた値を、対象エミッターへ反映します。
+		/// </summary>
+		void ApplyEmitterParameters(GpuParticleEmitter& emitter);
+
+		/// <summary>
+		/// エミッター破棄前にParameterManagerの反映コールバックを解除します。
+		/// </summary>
+		void UnregisterEmitterParameters(const GpuParticleEmitter& emitter);
+
 		GpuParticleEmitterAsset BuildAssetFromEmitter(const std::string& name) const;
 		GpuParticleEmitter* CreateEmitterFromAsset(const GpuParticleEmitterAsset& asset, bool overwrite = true);
 
@@ -403,6 +419,7 @@ namespace Ken4lowEngine
 		MeshParticleAsset CreateMeshAssetFromSubMesh(const SubMesh& subMesh, bool loadTexture);
 
 		static std::string BuildEmitterJsonPath(const std::string& directoryPath, const std::string& emitterName);
+		static std::string BuildEmitterParameterGroupName(const std::string& emitterName);
 		std::string MakeUniqueEmitterName(const std::string& baseName) const;
 
 	private: /// ---------- メンバ変数 ---------- ///

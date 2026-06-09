@@ -12,6 +12,7 @@
 #include "GpuParticleEmitterSerializer.h"
 
 #include "AssimpLoader.h"
+#include "ParameterManager.h"
 #include "ResourceManager.h"
 #include <TextureManager.h>
 #include <d3dx12.h>
@@ -22,12 +23,47 @@
 #include <cstdint>
 #include <string>
 #include <unordered_set>
+#include <algorithm>
 
 namespace Ken4lowEngine
 {
 	namespace
 	{
 		constexpr int kRibbonTypeCount = 3;
+
+		uint32_t ClampU32(uint32_t value, uint32_t minValue, uint32_t maxValue)
+		{
+			return std::min(std::max(value, minValue), maxValue);
+		}
+
+		/// <summary>
+		/// Jsonから不正値が入った場合も、GPUへ渡す列挙値が範囲外にならないように丸めます。
+		/// </summary>
+		GpuParticleKind ToSafeParticleKind(uint32_t value)
+		{
+			return static_cast<GpuParticleKind>(ClampU32(value, 0u, 3u));
+		}
+
+		/// <summary>
+		/// SpriteTypeはCount未満に丸め、既存HLSL側の分岐外へ飛ばないようにします。
+		/// </summary>
+		GpuParticleType ToSafeSpriteType(uint32_t value)
+		{
+			const uint32_t maxValue = static_cast<uint32_t>(GpuParticleType::Count) - 1u;
+			return static_cast<GpuParticleType>(ClampU32(value, 0u, maxValue));
+		}
+
+		/// <summary>
+		/// BillboardModeは下位フラグだけを使うため、現在対応している値に丸めます。
+		/// </summary>
+		BillboardMode ToSafeBillboardMode(uint32_t value)
+		{
+			constexpr uint32_t kSupportedFlags =
+				static_cast<uint32_t>(BillboardMode::Camera) |
+				static_cast<uint32_t>(BillboardMode::YAxis) |
+				static_cast<uint32_t>(BillboardMode::Ribbon);
+			return static_cast<BillboardMode>(value & kSupportedFlags);
+		}
 	}
 
 	/// -------------------------------------------------------------
@@ -73,6 +109,14 @@ namespace Ken4lowEngine
 
 	void GpuParticleManager::Finalize()
 	{
+		for (const auto& [name, emitter] : emitters_)
+		{
+			(void)name;
+			if (emitter)
+			{
+				UnregisterEmitterParameters(*emitter);
+			}
+		}
 		emitters_.clear();
 
 		ClearMeshAssets();
@@ -158,8 +202,6 @@ namespace Ken4lowEngine
 	{
 #ifdef USE_IMGUI
 
-		auto ToU32 = [](auto e) { return static_cast<uint32_t>(e); };
-
 		const uint32_t spritePresetCount = GpuParticleEmitterPresetTable::GetSpritePresetCount();
 
 		static char newName[128] = "NewEmitter";
@@ -176,8 +218,6 @@ namespace Ken4lowEngine
 
 		static bool newEmitterPresetInitialized = false;
 
-		static char jsonDir[256] = "Resources/JSON/GpuParticles";
-		static bool overwriteOnLoad = true;
 		static bool createAndSave = false;
 
 		auto ApplyCreateEmitterPreset = [&](int spriteIndex)
@@ -205,24 +245,11 @@ namespace Ken4lowEngine
 		};
 
 		static std::string selected;
-		static std::string lastSelected;
-		static char textureBuf[256] = {};
 
 		ImGui::Begin("GPU Particle");
 
-		ImGui::SeparatorText("Emitter Json");
-		ImGui::InputText("Json Dir", jsonDir, IM_ARRAYSIZE(jsonDir));
-		ImGui::Checkbox("Overwrite On Load", &overwriteOnLoad);
-
-		if (ImGui::Button("Load All Json"))
-		{
-			LoadEmittersFromDirectory(jsonDir, overwriteOnLoad);
-		}
-		ImGui::SameLine();
-		if (ImGui::Button("Save All Json"))
-		{
-			SaveAllEmittersToDirectory(jsonDir);
-		}
+		ImGui::SeparatorText("ParameterManager");
+		ImGui::TextDisabled("Emitter settings are edited/saved in the Parameters window.");
 
 		ImGui::SeparatorText("Mesh Assets");
 
@@ -384,12 +411,10 @@ namespace Ken4lowEngine
 			if (GpuParticleEmitter* created = CreateEmitter(newName, ci))
 			{
 				selected = newName;
-				lastSelected.clear();
 
 				if (createAndSave)
 				{
-					const std::string filePath = BuildEmitterJsonPath(jsonDir, newName);
-					SaveEmitterToFile(newName, filePath);
+					ParameterManager::GetInstance()->SaveFile(BuildEmitterParameterGroupName(created->GetName()));
 				}
 			}
 		}
@@ -423,14 +448,6 @@ namespace Ken4lowEngine
 		{
 			if (auto* e = GetEmitter(selected))
 			{
-				auto& info = e->GetInfoMutable();
-
-				if (lastSelected != selected)
-				{
-					lastSelected = selected;
-					std::snprintf(textureBuf, sizeof(textureBuf), "%s", info.textureFilePath.c_str());
-				}
-
 				ImGui::SeparatorText("Selected Emitter");
 				ImGui::Text("Name: %s", selected.c_str());
 
@@ -439,35 +456,23 @@ namespace Ken4lowEngine
 				{
 					RemoveEmitter(selected);
 					selected.clear();
-					lastSelected.clear();
 					ImGui::End();
 					return;
 				}
 
-				const std::string selectedFilePath = BuildEmitterJsonPath(jsonDir, selected);
+				const std::string parameterGroupName = BuildEmitterParameterGroupName(selected);
 
 				ImGui::SameLine();
-				if (ImGui::Button("Save Json"))
+				if (ImGui::Button("Save Parameters"))
 				{
-					SaveEmitterToFile(selected, selectedFilePath);
+					ParameterManager::GetInstance()->SaveFile(parameterGroupName);
 				}
 
 				ImGui::SameLine();
-				if (ImGui::Button("Reload Json"))
+				if (ImGui::Button("Load Parameters"))
 				{
-					if (GpuParticleEmitter* reloaded = LoadEmitterFromFile(selectedFilePath, true))
-					{
-						selected = reloaded->GetName();
-						lastSelected.clear();
-					}
-					else
-					{
-						selected.clear();
-						lastSelected.clear();
-					}
-
-					ImGui::End();
-					return;
+					ParameterManager::GetInstance()->LoadFile(parameterGroupName);
+					ApplyEmitterParameters(*e);
 				}
 
 				ImGui::SameLine();
@@ -478,181 +483,17 @@ namespace Ken4lowEngine
 					if (CreateEmitterFromAsset(dup, false))
 					{
 						selected = dup.name;
-						lastSelected.clear();
 					}
 				}
 
-				{
-					Vector3 pos = e->GetPosition();
-					float p[3] = { pos.x, pos.y, pos.z };
-					if (ImGui::DragFloat3("Position", p, GpuParticleDebugPresets::kSelectedRadiusDragSpeed))
-					{
-						e->SetPosition({ p[0], p[1], p[2] });
-					}
-				}
-
-				ImGui::DragFloat(
-					"Radius##Selected",
-					&info.radius,
-					GpuParticleDebugPresets::kSelectedRadiusDragSpeed,
-					GpuParticleDebugPresets::kMinRadius,
-					GpuParticleDebugPresets::kMaxRadius);
-
-				int loopCount = static_cast<int>(info.loopCount);
-				if (ImGui::DragInt(
-					"Loop Count##Selected",
-					&loopCount,
-					GpuParticleDebugPresets::kSelectedLoopCountStep,
-					GpuParticleDebugPresets::kMinLoopCount,
-					GpuParticleDebugPresets::kMaxLoopCount))
-				{
-					if (loopCount < 0) loopCount = 0;
-					info.loopCount = static_cast<uint32_t>(loopCount);
-				}
-
-				ImGui::DragFloat(
-					"Loop Frequency (sec)##Selected",
-					&info.loopFrequency,
-					GpuParticleDebugPresets::kSelectedLoopFrequencyDragSpeed,
-					GpuParticleDebugPresets::kMinLoopFrequency,
-					GpuParticleDebugPresets::kMaxLoopFrequency);
-
-				{
-					int drawType = static_cast<int>(info.drawType);
-					if (ImGui::InputInt("DrawType (0=Use EffectiveType)", &drawType))
-					{
-						if (drawType < 0) drawType = 0;
-						info.drawType = static_cast<uint32_t>(drawType);
-					}
-				}
-
-				{
-					int mode = static_cast<int>(info.kind);
-					if (ImGui::Combo("Mode##Selected", &mode, kModeNames, IM_ARRAYSIZE(kModeNames)))
-					{
-						if (mode < 0) mode = 0;
-						if (mode > 3) mode = 0;
-						info.kind = static_cast<GpuParticleKind>(mode);
-
-						if (info.kind == GpuParticleKind::Mesh)
-						{
-							info.billboardFlags = BillboardMode::None;
-						}
-						else if (info.billboardFlags == BillboardMode::None)
-						{
-							info.billboardFlags = BillboardMode::Camera;
-						}
-					}
-				}
-
-				if (info.kind == GpuParticleKind::Sprite)
-				{
-					int spriteIndex = static_cast<int>(
-						GpuParticleEmitterPresetTable::GetSpriteIndexByType(info.spriteType));
-
-					const GpuParticleType previewType =
-						GpuParticleEmitterPresetTable::GetSpriteTypeByIndex(static_cast<uint32_t>(spriteIndex));
-
-					if (ImGui::BeginCombo(
-						"Sprite Type##Selected",
-						GpuParticleEmitterPresetTable::GetSpriteDisplayName(previewType)))
-					{
-						for (uint32_t i = 0; i < spritePresetCount; ++i)
-						{
-							const GpuParticleType type = GpuParticleEmitterPresetTable::GetSpriteTypeByIndex(i);
-							const bool isSelected = (spriteIndex == static_cast<int>(i));
-
-							if (ImGui::Selectable(
-								GpuParticleEmitterPresetTable::GetSpriteDisplayName(type),
-								isSelected))
-							{
-								info.spriteType = type;
-							}
-
-							if (isSelected)
-							{
-								ImGui::SetItemDefaultFocus();
-							}
-						}
-						ImGui::EndCombo();
-					}
-
-					if (ImGui::Button("Apply Sprite Preset"))
-					{
-						const auto presetInfo = GpuParticleEmitterPresetTable::MakeEmitterInfo(info.spriteType);
-
-						info.textureFilePath = presetInfo.textureFilePath;
-						info.radius = presetInfo.radius;
-						info.loopCount = presetInfo.loopCount;
-						info.loopFrequency = presetInfo.loopFrequency;
-						info.drawType = presetInfo.drawType;
-						info.billboardFlags = presetInfo.billboardFlags;
-
-						std::snprintf(textureBuf, sizeof(textureBuf), "%s", info.textureFilePath.c_str());
-					}
-				}
-				else if (info.kind == GpuParticleKind::Ribbon)
-				{
-					int ribbonIndex = static_cast<int>(info.ribbonType);
-					if (ImGui::Combo("Ribbon Type##Selected", &ribbonIndex, kRibbonTypeNames, IM_ARRAYSIZE(kRibbonTypeNames)))
-					{
-						if (ribbonIndex < 0) ribbonIndex = 0;
-						ribbonIndex %= kRibbonTypeCount;
-						info.ribbonType = static_cast<GpuRibbonType>(ribbonIndex);
-					}
-				}
-				else
-				{
-					ImGui::TextDisabled("Type UI for this mode is not implemented yet.");
-				}
-
-				{
-					uint32_t flags = ToU32(info.billboardFlags);
-					bool bbCamera = (flags & ToU32(BillboardMode::Camera)) != 0;
-					bool bbYAxis = (flags & ToU32(BillboardMode::YAxis)) != 0;
-
-					bool changed = false;
-					if (info.kind == GpuParticleKind::Mesh)
-					{
-						ImGui::TextDisabled("Billboard flags are disabled in Mesh mode.");
-					}
-					else
-					{
-						changed |= ImGui::Checkbox("BB: Camera", &bbCamera);
-						changed |= ImGui::Checkbox("BB: YAxis", &bbYAxis);
-					}
-
-					if (changed)
-					{
-						flags = 0;
-						if (bbCamera) flags |= ToU32(BillboardMode::Camera);
-						if (bbYAxis)  flags |= ToU32(BillboardMode::YAxis);
-						info.billboardFlags = static_cast<BillboardMode>(flags);
-					}
-				}
-
-				ImGui::InputText("Texture##Selected", textureBuf, IM_ARRAYSIZE(textureBuf));
-				ImGui::SameLine();
-				if (ImGui::Button("Apply Texture"))
-				{
-					info.textureFilePath = textureBuf;
-				}
-
-				uint32_t effectiveType = 0;
-				if (info.kind == GpuParticleKind::Sprite)
-				{
-					effectiveType = static_cast<uint32_t>(info.spriteType);
-				}
-				else if (info.kind == GpuParticleKind::Ribbon)
-				{
-					effectiveType = static_cast<uint32_t>(ToGpuParticleType(info.ribbonType));
-				}
-				else
-				{
-					effectiveType = static_cast<uint32_t>(info.spriteType);
-				}
-
+				const auto& info = e->GetInfo();
+				const uint32_t effectiveType = (info.kind == GpuParticleKind::Ribbon)
+					? static_cast<uint32_t>(ToGpuParticleType(info.ribbonType))
+					: static_cast<uint32_t>(info.spriteType);
 				const uint32_t packed = PackBillboardMode(info.kind, static_cast<uint32_t>(info.billboardFlags));
+				ImGui::Text("Parameter Group: %s", parameterGroupName.c_str());
+				ImGui::Text("Edit values in: Parameters window");
+				ImGui::Text("Texture: %s", info.textureFilePath.c_str());
 				ImGui::Text("EffectiveType (sent to GPU): %u", effectiveType);
 				ImGui::Text("Packed billboardMode: 0x%08X", packed);
 
@@ -764,6 +605,7 @@ namespace Ken4lowEngine
 		auto emitter = std::make_unique<GpuParticleEmitter>(name, info);
 		auto* emitterPtr = emitter.get();
 		emitters_[name] = std::move(emitter);
+		RegisterEmitterParameters(*emitterPtr);
 
 		// 作成したエミッターのポインタを返す
 		return emitterPtr;
@@ -1128,8 +970,111 @@ namespace Ken4lowEngine
 			return false;
 		}
 
+		UnregisterEmitterParameters(*it->second);
 		emitters_.erase(it);
 		return true;
+	}
+
+	std::string GpuParticleManager::BuildEmitterParameterGroupName(const std::string& emitterName)
+	{
+		// ParameterManagerの保存先を階層化し、エミッター単位のJsonに分ける。
+		return "GPUParticle/" + emitterName;
+	}
+
+	void GpuParticleManager::RegisterEmitterParameters(GpuParticleEmitter& emitter)
+	{
+		auto* parameters = ParameterManager::GetInstance();
+		const std::string groupName = BuildEmitterParameterGroupName(emitter.GetName());
+		const auto& info = emitter.GetInfo();
+
+		parameters->CreateGroup(groupName);
+
+		// GPUへ送るエミッター調整値をParameterManagerへ集約し、ImGuiとJson保存の入口を一本化する。
+		parameters->SetValue(groupName, "position", emitter.GetPosition());
+		parameters->SetRange(groupName, "position", Vector3{ -1000.0f, -1000.0f, -1000.0f }, Vector3{ 1000.0f, 1000.0f, 1000.0f });
+		parameters->SetValue(groupName, "textureFilePath", info.textureFilePath);
+		parameters->SetValue(groupName, "radius", info.radius);
+		parameters->SetRange(groupName, "radius", GpuParticleDebugPresets::kMinRadius, GpuParticleDebugPresets::kMaxRadius);
+		parameters->SetValue(groupName, "loopCount", info.loopCount);
+		parameters->SetRange(groupName, "loopCount", static_cast<uint32_t>(GpuParticleDebugPresets::kMinLoopCount), static_cast<uint32_t>(GpuParticleDebugPresets::kMaxLoopCount));
+		parameters->SetValue(groupName, "loopFrequency", info.loopFrequency);
+		parameters->SetRange(groupName, "loopFrequency", GpuParticleDebugPresets::kMinLoopFrequency, GpuParticleDebugPresets::kMaxLoopFrequency);
+		parameters->SetValue(groupName, "drawType", info.drawType);
+		parameters->SetRange(groupName, "drawType", 0u, 1000000u);
+		parameters->SetValue(groupName, "kind", static_cast<uint32_t>(info.kind));
+		parameters->SetRange(groupName, "kind", 0u, 3u);
+		parameters->SetValue(groupName, "spriteType", static_cast<uint32_t>(info.spriteType));
+		parameters->SetRange(groupName, "spriteType", 0u, static_cast<uint32_t>(GpuParticleType::Count) - 1u);
+		parameters->SetValue(groupName, "ribbonType", static_cast<uint32_t>(info.ribbonType));
+		parameters->SetRange(groupName, "ribbonType", 0u, static_cast<uint32_t>(kRibbonTypeCount - 1));
+		parameters->SetValue(groupName, "billboardFlags", static_cast<uint32_t>(info.billboardFlags));
+		parameters->SetRange(groupName, "billboardFlags", 0u, 7u);
+		parameters->SetValue(groupName, "lifeScale", info.lifeScale);
+		parameters->SetRange(groupName, "lifeScale", 0.01f, 10.0f);
+		parameters->SetValue(groupName, "speedScale", info.speedScale);
+		parameters->SetRange(groupName, "speedScale", 0.0f, 10.0f);
+
+		parameters->SetDisplayName(groupName, "position", "発生位置");
+		parameters->SetDisplayName(groupName, "textureFilePath", "テクスチャ");
+		parameters->SetDisplayName(groupName, "radius", "発生半径");
+		parameters->SetDisplayName(groupName, "loopCount", "ループ発生数");
+		parameters->SetDisplayName(groupName, "loopFrequency", "ループ間隔(秒)");
+		parameters->SetDisplayName(groupName, "drawType", "描画タイプ(0=自動)");
+		parameters->SetDisplayName(groupName, "kind", "描画モード");
+		parameters->SetDisplayName(groupName, "spriteType", "スプライト種別");
+		parameters->SetDisplayName(groupName, "ribbonType", "リボン種別");
+		parameters->SetDisplayName(groupName, "billboardFlags", "ビルボードフラグ");
+		parameters->SetDisplayName(groupName, "lifeScale", "寿命倍率");
+		parameters->SetDisplayName(groupName, "speedScale", "初速倍率");
+
+		parameters->RegisterParameterApplier(groupName, &emitter, [this, emitterName = emitter.GetName()]()
+			{
+				if (auto* target = GetEmitter(emitterName))
+				{
+					ApplyEmitterParameters(*target);
+				}
+			});
+
+		// 起動時にLoadFiles済みでも、後から生成されたエミッターはここで自分のJsonを読み直す。
+		parameters->LoadFile(groupName);
+		ApplyEmitterParameters(emitter);
+	}
+
+	void GpuParticleManager::ApplyEmitterParameters(GpuParticleEmitter& emitter)
+	{
+		auto* parameters = ParameterManager::GetInstance();
+		const std::string groupName = BuildEmitterParameterGroupName(emitter.GetName());
+		auto& info = emitter.GetInfoMutable();
+
+		// ParameterManagerに登録された値だけを取得し、エミッター本体へ反映する。
+		emitter.SetPosition(parameters->GetValue<Vector3>(groupName, "position"));
+		info.textureFilePath = parameters->GetValue<std::string>(groupName, "textureFilePath");
+		info.radius = std::max(parameters->GetValue<float>(groupName, "radius"), 0.0f);
+		info.loopCount = parameters->GetValue<uint32_t>(groupName, "loopCount");
+		info.loopFrequency = std::max(parameters->GetValue<float>(groupName, "loopFrequency"), 0.0f);
+		info.drawType = parameters->GetValue<uint32_t>(groupName, "drawType");
+		info.kind = ToSafeParticleKind(parameters->GetValue<uint32_t>(groupName, "kind"));
+		info.spriteType = ToSafeSpriteType(parameters->GetValue<uint32_t>(groupName, "spriteType"));
+		info.ribbonType = static_cast<GpuRibbonType>(ClampU32(parameters->GetValue<uint32_t>(groupName, "ribbonType"), 0u, static_cast<uint32_t>(kRibbonTypeCount - 1)));
+		info.billboardFlags = ToSafeBillboardMode(parameters->GetValue<uint32_t>(groupName, "billboardFlags"));
+		info.lifeScale = std::max(parameters->GetValue<float>(groupName, "lifeScale"), 0.01f);
+		info.speedScale = std::max(parameters->GetValue<float>(groupName, "speedScale"), 0.0f);
+
+		if (info.kind == GpuParticleKind::Mesh)
+		{
+			info.billboardFlags = BillboardMode::None;
+		}
+		else if (info.billboardFlags == BillboardMode::None)
+		{
+			info.billboardFlags = BillboardMode::Camera;
+		}
+	}
+
+	void GpuParticleManager::UnregisterEmitterParameters(const GpuParticleEmitter& emitter)
+	{
+		ParameterManager::GetInstance()->UnregisterParameterApplier(
+			BuildEmitterParameterGroupName(emitter.GetName()),
+			&emitter);
 	}
 
 	GpuParticleEmitterAsset GpuParticleManager::BuildAssetFromEmitter(const std::string& name) const
@@ -1176,6 +1121,7 @@ namespace Ken4lowEngine
 				return nullptr;
 			}
 
+			UnregisterEmitterParameters(*it->second);
 			emitters_.erase(it);
 		}
 

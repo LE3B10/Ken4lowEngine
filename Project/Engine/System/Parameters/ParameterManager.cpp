@@ -7,6 +7,7 @@
 #include <system_error>
 #include <cstdint>
 #include <cstring>
+#include <cstdio>
 
 
 namespace
@@ -317,7 +318,9 @@ namespace Ken4lowEngine
 		}
 
 		// 親ディレクトリが無い環境でも保存できるよう、保存先ディレクトリを再帰的に作成する。
-		std::filesystem::path dir(kDirectoryPath);
+		// "GPUParticle/Hit" のように階層付きグループ名を使う場合も、中間フォルダまで作る。
+		const std::string filePath = kDirectoryPath + groupName + ".json";
+		std::filesystem::path dir = std::filesystem::path(filePath).parent_path();
 		std::error_code errorCode;
 		if (!std::filesystem::exists(dir, errorCode))
 		{
@@ -335,9 +338,6 @@ namespace Ken4lowEngine
 			Log("[ParameterManager] Save path is not a directory: " + dir.string() + "\n");
 			return false;
 		}
-
-		// JSONファイルのパス
-		std::string filePath = kDirectoryPath + groupName + ".json";
 
 		if (HasInvalidFileNameChars(groupName))
 		{
@@ -380,8 +380,8 @@ namespace Ken4lowEngine
 		std::filesystem::path dir(kDirectoryPath);
 		if (!std::filesystem::exists(kDirectoryPath)) return;
 
-		// 各ファイルの処理
-		std::filesystem::directory_iterator dir_it(kDirectoryPath);
+		// 各ファイルの処理。階層付きグループ名（例: GPUParticle/Hit）も拾うため再帰的に見る。
+		std::filesystem::recursive_directory_iterator dir_it(kDirectoryPath);
 		for (const std::filesystem::directory_entry& entry : dir_it)
 		{
 			// ファイルパスを取得
@@ -393,8 +393,10 @@ namespace Ken4lowEngine
 			// .jsonファイル以外はスキップ
 			if (extension.compare(".json") != 0) continue;
 
-			// ファイル読み込み
-			LoadFile(filePath.stem().string());
+			// ファイル読み込み。保存先ディレクトリからの相対パスをグループ名へ戻す。
+			std::filesystem::path relativePath = std::filesystem::relative(filePath, kDirectoryPath);
+			relativePath.replace_extension();
+			LoadFile(relativePath.generic_string());
 		}
 	}
 
@@ -453,6 +455,59 @@ namespace Ken4lowEngine
 		{
 			// アイテム名を取得
 			const std::string& itemName = itItem.key();
+
+			auto dataGroupIt = datas_.find(groupName);
+			auto dataItemIt = (dataGroupIt != datas_.end()) ? dataGroupIt->second.items.find(itemName) : datas_[groupName].items.end();
+			if (dataGroupIt != datas_.end() && dataItemIt != dataGroupIt->second.items.end())
+			{
+				const ItemValue& currentValue = dataItemIt->second.value;
+				try
+				{
+					// 既にコード側で登録済みの項目は、その型を優先して読み込む。
+					// Jsonの整数は符号付き/符号なしの判定だけでは既存型を復元できないため、ここで型崩れを防ぐ。
+					if (std::holds_alternative<uint32_t>(currentValue) && itItem->is_number_integer())
+					{
+						SetValue(groupName, itemName, itItem->get<uint32_t>());
+						continue;
+					}
+					if (std::holds_alternative<int32_t>(currentValue) && itItem->is_number_integer())
+					{
+						SetValue(groupName, itemName, itItem->get<int32_t>());
+						continue;
+					}
+					if (std::holds_alternative<float>(currentValue) && itItem->is_number())
+					{
+						SetValue(groupName, itemName, itItem->get<float>());
+						continue;
+					}
+					if (std::holds_alternative<Vector3>(currentValue) && itItem->is_array() && itItem->size() == 3)
+					{
+						Vector3 value = { itItem->at(0), itItem->at(1), itItem->at(2) };
+						SetValue(groupName, itemName, value);
+						continue;
+					}
+					if (std::holds_alternative<Vector4>(currentValue) && itItem->is_array() && itItem->size() == 4)
+					{
+						Vector4 value = { itItem->at(0), itItem->at(1), itItem->at(2), itItem->at(3) };
+						SetValue(groupName, itemName, value);
+						continue;
+					}
+					if (std::holds_alternative<bool>(currentValue) && itItem->is_boolean())
+					{
+						SetValue(groupName, itemName, itItem->get<bool>());
+						continue;
+					}
+					if (std::holds_alternative<std::string>(currentValue) && itItem->is_string())
+					{
+						SetValue(groupName, itemName, itItem->get<std::string>());
+						continue;
+					}
+				} catch (const std::exception& e)
+				{
+					Log("[ParameterManager] Failed to read typed item: " + itemName + " from " + filePath + ": " + e.what() + "\n");
+					continue;
+				}
+			}
 
 			/// ---------- int32_t型を保持している場合 ---------- ///
 			if (itItem->is_number_integer())
@@ -689,8 +744,13 @@ namespace Ken4lowEngine
 			}
 			else
 			{
-				const std::string& visibleName = item.displayName.empty() ? itemName : item.displayName;
-				ImGui::Text("%s: %s", visibleName.c_str(), value.c_str());
+				char buffer[256] = {};
+				std::snprintf(buffer, sizeof(buffer), "%s", value.c_str());
+				// テクスチャ名などの短い文字列はParameterManager上で直接編集できるようにする。
+				if (ImGui::InputText(imguiLabel.c_str(), buffer, IM_ARRAYSIZE(buffer)))
+				{
+					value = buffer;
+				}
 			}
 		}
 		else
