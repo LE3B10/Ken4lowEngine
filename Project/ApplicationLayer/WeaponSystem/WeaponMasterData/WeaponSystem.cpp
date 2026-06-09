@@ -123,7 +123,7 @@ bool WeaponSystem::EquipById(int32_t weaponId, std::string* outError)
 	WeaponParams p = BuildParams(md);
 	weapon_.Equip(p);
 
-	// 追加：HUD用に現在武器のレティクル設定を保持
+	// HUD用に現在武器のレティクル設定を保持
 	equippedReticleData_ = md.reticleData;
 
 	equippedWeaponId_ = weaponId;

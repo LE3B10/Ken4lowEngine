@@ -25,12 +25,15 @@ struct WaveDefinition
 
 /// -------------------------------------------------------------
 ///				　	　ウェーブ管理クラス
+///
+/// GamePlayWorldが所有し、WaveDefense系ステージで敵スポーンの進行を管理する。
+/// 敵の実体はCharacterWorldへ生成し、このクラスは「いつ、どのWaveを開始したか」の状態だけを持つ。
 /// -------------------------------------------------------------
 class WaveManager
 {
 public: /// ---------- メンバ関数 ---------- ///
 
-	// ウェーブ管理をリセット
+	// 設定済みWaveは保持したまま、開始状態・現在Wave・待機タイマーを初期状態へ戻す。
 	void Reset();
 
 	/// <summary>
@@ -40,12 +43,12 @@ public: /// ---------- メンバ関数 ---------- ///
 	void SetWaves(const std::vector<WaveDefinition>& waves);
 
 	/// <summary>
-	/// 処理を開始します。
+	/// Wave進行を開始します。以後Updateで待機時間を消化して敵をスポーンします。
 	/// </summary>
 	void Start();
 
 	/// <summary>
-	/// キャラクターワールドを更新します。
+	/// Wave待機タイマーと敵残数を見て、必要なら次WaveをCharacterWorldへスポーンします。
 	/// </summary>
 	/// <param name="characters">更新するキャラクターワールドへの参照。</param>
 	/// <param name="deltaTime">前回の更新からの経過時間(秒)。</param>

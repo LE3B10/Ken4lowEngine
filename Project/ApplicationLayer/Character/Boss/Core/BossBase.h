@@ -48,6 +48,10 @@ struct BossHitResult
 
 /// -----------------------------------------------------------
 ///					 ボス共通の基底クラス
+///
+/// GamePlayWorldまたはデバッグシーンから派生ボスとして生成される共通基盤。
+/// 体パーツ、HP、状態、ターゲット、攻撃、移動、アニメーションの所有権を持ち、
+/// 個別ボスはSetup系overrideでモデル、攻撃、フェーズ、弱点を差し替える。
 /// -----------------------------------------------------------
 class Player;
 
@@ -60,13 +64,13 @@ public: /// ---------- ライフサイクル ---------- ///
 
 	/// <summary>
 	/// 初期化
-	/// BaseCharacter の共通構造を利用しつつ、ボス用部位を構築する
+	/// 共通コンポーネントを生成し、派生クラスのSetup系処理でボス固有データを構築する。
 	/// </summary>
 	virtual void Initialize() override;
 
 	/// <summary>
 	/// 更新
-	/// 共通の更新順を制御する
+	/// 状態、フェーズ、移動、攻撃、弱点、死亡判定をボス共通の順序で1フレーム進める。
 	/// </summary>
 	virtual void Update(float deltaTime) override;
 
@@ -88,6 +92,7 @@ public: /// ---------- ライフサイクル ---------- ///
 
 	/// <summary>
 	/// 終了処理
+	/// 登録済み攻撃や各コンポーネントを解放し、Worldからの破棄に備える。
 	/// </summary>
 	virtual void Finalize();
 
@@ -108,16 +113,19 @@ public: /// ---------- ダメージ / 死亡 ---------- ///
 
 	/// <summary>
 	/// ダメージを受けたとき
+	/// HPを減らし、フェーズ遷移や死亡判定に必要な共通通知を行う。
 	/// </summary>
 	virtual void OnDamaged(float damage);
 
 	/// <summary>
 	/// プレイヤー銃弾でダメージを受けたとき
+	/// 銃弾由来の統計やリアクションを派生側で分けたい場合の入口。
 	/// </summary>
 	virtual void OnBulletDamaged(float damage);
 
 	/// <summary>
 	/// 死亡時
+	/// HPが尽きた後の状態固定、攻撃停止、クリア条件通知に使う派生拡張点。
 	/// </summary>
 	virtual void OnDead();
 

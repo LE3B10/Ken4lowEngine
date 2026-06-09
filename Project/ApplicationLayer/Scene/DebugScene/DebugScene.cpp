@@ -905,7 +905,7 @@ void DebugScene::DrawImGui()
 				weaponDB.RemoveByID(weaponID);
 			};
 
-		// 追加予約は今は使わないなら空でOK
+		// DebugSceneでは武器追加フローを接続しないため、追加要求は空実装で受け流す。
 		hooks.RequestAdd = [](const std::string&, int32_t) {};
 
 		// 初期データを2つだけ作る（任意）

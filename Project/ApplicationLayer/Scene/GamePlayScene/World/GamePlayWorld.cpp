@@ -138,6 +138,8 @@ void GamePlayWorld::Initialize(GamePlayStageContext& stageContext)
 	collisionManager_ = std::make_unique<CollisionManager>();
 	collisionManager_->Initialize();
 
+	// 弾、キャラクター、アイテム、ステージは同じCollisionManagerへ登録し、
+	// World更新の最後にまとめて衝突解決できるようにする。
 	bulletManager_ = std::make_unique<BulletManager>();
 	bulletManager_->Initialize(collisionManager_.get());
 
@@ -166,6 +168,8 @@ void GamePlayWorld::Initialize(GamePlayStageContext& stageContext)
 	stage_->RegisterColliders(collisionManager_.get());
 	stage_->Update();
 
+	// 敵AIとプレイヤー移動はステージAABBを参照して壁抜けや地面補正を行う。
+	// Stageが所有する配列なので、World解放時に必ずnullptrへ戻す。
 	EnemyBase::SetGlobalStageWorldAABBs(&stage_->GetWorldAABBs());
 	EnemyBase::SetGlobalStageFloorAABBs(&stage_->GetFloorAABBs());
 	EnemyBase::SetGlobalStageNavigationObstacleAABBs(&stage_->GetNavigationObstacleAABBs());
@@ -244,7 +248,8 @@ void GamePlayWorld::Initialize(GamePlayStageContext& stageContext)
 	isGameClear_ = false;
 	clearItem_.reset();
 
-	// C++側の仮クリスタル配置を明示的なvectorにして、初期化型の不一致を防ぐ。
+	// 現状のクリスタルはLevelDataではなくC++側の固定配置で、全破壊後にボス出現へ進む。
+	// 明示的なvectorを使い、初期化子の型差で意図しない変換が起きないようにする。
 	std::vector<CrystalSpawnPoint> crystalSpawnPoints;
 	CrystalSpawnPoint centerCrystalSpawnPoint;
 	centerCrystalSpawnPoint.position = { 0.0f, 2.0f, 20.0f };
@@ -338,6 +343,7 @@ void GamePlayWorld::Update(float deltaTime)
 		stage_->Update();
 	}
 
+	// 先にキャラクターとクリスタルを更新し、敵残数とクリスタル破壊状態からボス出現条件を評価する。
 	characters_.Update(deltaTime);
 	crystalManager_.Update(characters_, deltaTime);
 	UpdateCrystalBossSpawnProgress();
@@ -375,6 +381,7 @@ void GamePlayWorld::Update(float deltaTime)
 
 	if (bulletManager_)
 	{
+		// 弾更新と衝突更新はデバッグ表示用に処理時間を保存する。
 		const auto begin = std::chrono::steady_clock::now();
 		bulletManager_->Update(deltaTime);
 		lastBulletUpdateMs_ = std::chrono::duration<float, std::milli>(std::chrono::steady_clock::now() - begin).count();
@@ -414,6 +421,7 @@ void GamePlayWorld::Update(float deltaTime)
 
 	if (hudManager_ && characters_.GetPlayer())
 	{
+		// 照準先判定、HP、Wave状態などWorld側でしか分からない情報をHUDへ集約する。
 		const bool isTargetingEnemy = CheckCrosshairTargetingEnemy();
 		hudManager_->SetCrosshairTargetingEnemy(isTargetingEnemy);
 
@@ -824,12 +832,14 @@ void GamePlayWorld::UpdateBossClearProgress(float deltaTime)
 {
 	if (guardianBoss_ && guardianBoss_->IsDead() && !bossDefeated_)
 	{
+		// ボス死亡だけでは即クリアにせず、取得アイテムを出すための中間状態にする。
 		bossDefeated_ = true;
 		SetBossDefeated(false);
 	}
 
 	if (bossDefeated_ && !clearItemSpawned_ && guardianBoss_)
 	{
+		// 撃破位置を基準にクリアアイテムを出し、プレイヤーが取りに行く余地を残す。
 		SpawnClearItem(guardianBoss_->GetPosition());
 	}
 
@@ -945,6 +955,7 @@ bool GamePlayWorld::CheckCrosshairTargetingEnemy() const
 	seg.origin = origin;
 	seg.diff = forward * aimRange;
 
+	// HUDの照準色変更用なので、命中詳細ではなく「敵に遮られているか」だけを問い合わせる。
 	return collisionManager_->SegmentCast(
 		(uint32_t)CollisionTypeIdDef::kEnemy,
 		seg,

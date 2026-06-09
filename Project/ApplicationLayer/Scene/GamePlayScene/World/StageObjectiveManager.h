@@ -3,12 +3,17 @@
 
 /// -------------------------------------------------------------
 ///                 ステージ目的の進行状態管理クラス
+///
+/// GamePlayWorldから使われ、StageRuleに基づくクリア/失敗条件と経過時間を集約する。
+/// 実オブジェクトの当たり判定や破壊通知はWorld経由で受け取り、このクラスは状態判定だけを担当する。
 /// -------------------------------------------------------------
 class StageObjectiveManager
 {
 public: /// ---------- メンバ関数 ---------- ///
 
+	// StageContextから現在ステージのルールと配置数を読み取り、進行カウンタを初期化する。
 	void Initialize(const GamePlayStageContext& stageContext);
+	// ステージ全体時間と防衛時間を進め、時間制限系の判定材料を更新する。
 	void Update(float deltaTime);
 
 	bool UsesWaveSystem() const { return stageRule_.useWaveSystem; }
@@ -24,13 +29,13 @@ public: /// ---------- メンバ関数 ---------- ///
 	bool IsStageObjectiveCleared(bool allWavesCleared) const;
 	bool IsStageObjectiveFailed() const;
 
-	// TODO: 実オブジェクト接触判定が入るまでの仮API。
+	// 装置接触イベントが実装されたら、各装置から呼ぶ進行加算APIとして使う。
 	void AddActivatedDeviceCount(int amount = 1);
-	// TODO: 実オブジェクト接触判定が入るまでの仮API。
+	// ゴール接触イベントが実装されたら、ゴール側から到達状態を通知する。
 	void SetReachedGoal(bool reached);
-	// TODO: 実オブジェクト接触判定が入るまでの仮API。
+	// ボス死亡またはクリアアイテム取得の結果を、目的条件へ反映する。
 	void SetBossDefeated(bool defeated);
-	// TODO: 実オブジェクト破壊判定が入るまでの仮API。
+	// 防衛対象の破壊イベントが接続されたら、対象側から失敗状態を通知する。
 	void SetDefenseTargetDestroyed(bool destroyed);
 
 private: /// ---------- メンバ関数 ---------- ///

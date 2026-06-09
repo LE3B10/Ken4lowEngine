@@ -21,36 +21,37 @@ namespace K4E = ::Ken4lowEngine;
 /// ゲームプレイシーン
 /// 
 /// 役割:
-/// - ゲームプレイ全体の司令塔
-/// - 各サブシステムの初期化 / 更新 / 描画順制御
-/// - フローごとの分岐管理
+/// - ゲームプレイ全体の司令塔として、Flow / World / Intro / Debug / Fade を所有する。
+/// - SceneManager から呼ばれるライフサイクルに合わせて、各サブシステムの初期化 / 更新 / 描画順を制御する。
+/// - ポーズ、イントロ、リトライ、リザルトなど「Worldを進めるかどうか」の分岐を管理する。
 /// 
-/// なるべく「中身を全部持つ」のではなく、
-/// 「各クラスを呼び分ける」ことに集中させる
+/// 所有権:
+/// - unique_ptrで保持しているゲームプレイ構成要素は、このシーンの開始から終了までが寿命。
+/// - 再試行時はFadeManagerだけ残し、WorldやFlowは再生成してステージ状態を初期化する。
 /// -------------------------------------------------------------
 class GamePlayScene : public BaseScene
 {
 public: /// ---------- BaseScene override ---------- ///
 
-	// 初期化
+	// エンジン入力やフェード管理を準備し、段階ロード前の空のゲームプレイ状態へ戻す。
 	void Initialize() override;
 
-	// 更新
+	// フェード、イントロ、ポーズ、リザルト、通常World更新を現在フローに応じて1フレーム進める。
 	void Update() override;
 
 	// Editor中は敵/弾/Wave/Player操作を止め、描画確認に必要な軽い更新だけ行う。
 	void UpdateEditor(float deltaTime) override;
 
-	// 3D描画
+	// ステージ、キャラクター、弾、アイテムなどWorld側の3D要素を描画する。
 	void Draw3DObjects() override;
 
-	// シャドウ描画
+	// ステージとキャラクターのシャドウ描画を、イントロ表示状態に合わせて行う。
 	void DrawShadowObjects() override;
 
-	// 2D描画
+	// HUD、ポーズ/リザルトUI、フェードを2D描画順に沿って描画する。
 	void Draw2DSprites() override;
 
-	// 終了処理
+	// カーソル状態を復帰し、GamePlaySceneが所有するWorld/Flow/Debug/Fadeを解放する。
 	void Finalize() override;
 
 	// ImGui描画
@@ -62,18 +63,22 @@ public: /// ---------- BaseScene override ---------- ///
 	// FPS操作が必要なGamePlaySceneだけF8入力キャプチャを許可する。
 	EditorInputPolicy GetEditorInputPolicy() const override;
 
-	// 段階ロード
+	// SceneManagerのフェード遷移中に、GamePlay構成要素を複数フレームへ分けて生成する準備。
 	void StartLoad() override;
 
+	// Flow、StageContext、World、Debug、Introを順番に生成し、完了後にゲーム開始状態へ進める。
 	void UpdateLoad() override;
 
-	// 段階アンロード
+	// SceneManagerの遷移中に、重い解放処理を複数フレームへ分ける準備。
 	void StartUnload() override;
 	
+	// 入力復帰、Debug解放、World解放、Fade解放を順番に行い、解放完了フラグを立てる。
 	void UpdateUnload() override;
 
+	// ロード済みになり、画面覆いを外してもよいかをSceneManagerへ返す。
 	bool IsReadyToStartUncover() const override;
 
+	// アンロード済みになり、次シーンへ差し替えてもよいかをSceneManagerへ返す。
 	bool IsReadyToSwapOut() const override;
 
 private: /// ---------- 初期化 / 終了系 ---------- ///

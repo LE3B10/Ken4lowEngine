@@ -75,10 +75,10 @@ namespace
 void MidRangeEnemy::Initialize()
 {
     EnemyBase::Initialize();
-    // 追加: 初期設定の最大HPをEnemyBaseへ反映する。
+    // 初期設定の最大HPをEnemyBaseへ反映する。
     ApplyBasicStatsToEnemyBase();
     LoadTuningFromJson(tuningIo_.jsonPath, &tuningIo_.lastLoadResult);
-    // 追加: 初期配置を徘徊基準地点として保存する。
+    // 初期配置を徘徊基準地点として保存する。
     wanderState_.spawnPosition = GetCenterPosition();
 }
 
@@ -153,7 +153,7 @@ void MidRangeEnemy::MoveAlongPath(float deltaTime, float moveSpeed)
     pathState_.pathFound = hasWaypoint;
     pathState_.currentWaypoint = waypoint;
     pathState_.lineBlocked = !hasWaypoint;
-    // 追加: 経路未取得時は壁抜け防止のため直進フォールバックを無効化する。
+    // 経路未取得時は壁抜け防止のため直進フォールバックを無効化する。
     pathState_.lastRepathReason = hasWaypoint ? "WaypointAcquired" : "NoWaypointStop";
     pathState_.failureReason = hasWaypoint ? "None" : "PathNotFound";
     if (!hasWaypoint)
@@ -168,9 +168,9 @@ void MidRangeEnemy::MoveAlongPath(float deltaTime, float moveSpeed)
 
 void MidRangeEnemy::Update(float deltaTime)
 {
-    // 追加: まず基礎更新を行う。
+    // まず基礎更新を行う。
     EnemyBase::Update(deltaTime);
-    // 追加: 時限爆弾モード中のHP0は通常死亡より自爆を優先する。
+    // 時限爆弾モード中のHP0は通常死亡より自爆を優先する。
     if (!IsDead() && !IsDeathActive() && GetHp() <= 0)
     {
         if (suicideBombState_.active && !suicideBombState_.exploded && suicideBomb_.delayDeathAnimationUntilExplosion)
@@ -195,7 +195,7 @@ void MidRangeEnemy::Update(float deltaTime)
     }
     if (suicideBombState_.explosionDrawTimer > 0.0f)
     {
-        // 追加: 爆発デバッグ描画の残り時間を更新する。
+        // 爆発デバッグ描画の残り時間を更新する。
         suicideBombState_.explosionDrawTimer = std::max(0.0f, suicideBombState_.explosionDrawTimer - deltaTime);
     }
 
@@ -241,21 +241,21 @@ void MidRangeEnemy::Update(float deltaTime)
                 return !bomb->IsAlive();
             }),
         bombs_.end());
-    // 追加: 死亡中はEnemyBaseの分裂死亡更新を優先し、爆発表示だけ継続する。
+    // 死亡中はEnemyBaseの分裂死亡更新を優先し、爆発表示だけ継続する。
     if (IsDead())
     {
         UpdateDeathAnimation(deltaTime);
         return;
     }
 
-    // 追加: 非分裂死亡演出中は専用更新のみ継続する。
+    // 非分裂死亡演出中は専用更新のみ継続する。
     if (IsDeathActive())
     {
         UpdateDeathAnimation(deltaTime);
         UpdateVisualAnimation(deltaTime);
         return;
     }
-    // 追加: HP低下時の時限爆弾モード移行を通常行動より先に判定する。
+    // HP低下時の時限爆弾モード移行を通常行動より先に判定する。
     if (suicideBomb_.enabled
         && !suicideBombState_.active
         && !suicideBombState_.exploded
@@ -267,12 +267,12 @@ void MidRangeEnemy::Update(float deltaTime)
     }
     if (suicideBombState_.active)
     {
-        // 追加: 時限爆弾モード中は通常AIより優先して更新する。
+        // 時限爆弾モード中は通常AIより優先して更新する。
         UpdateSuicideBombMode(deltaTime);
         UpdateVisualAnimation(deltaTime);
         return;
     }
-    // 追加: 被ダメージリアクション中は専用更新を行う。
+    // 被ダメージリアクション中は専用更新を行う。
     UpdateHitReaction(deltaTime);
     if (hitReactionState_.active && hitReaction_.stopBehaviorWhileActive)
     {
@@ -283,11 +283,11 @@ void MidRangeEnemy::Update(float deltaTime)
         return;
     }
 
-    // 追加: 通常行動用にターゲット状態を共通関数で更新する。
+    // 通常行動用にターゲット状態を共通関数で更新する。
     UpdateTargetState();
     if (targetState_.inDetectRange)
     {
-        // 追加: 検知復帰時は徘徊状態を即座に中断する。
+        // 検知復帰時は徘徊状態を即座に中断する。
         wanderState_.active = false;
         wanderState_.waiting = false;
         wanderState_.hasPoint = false;
@@ -295,7 +295,7 @@ void MidRangeEnemy::Update(float deltaTime)
     }
     else
     {
-        // 追加: 検知範囲外では徘徊行動へ遷移する。
+        // 検知範囲外では徘徊行動へ遷移する。
         UpdateWanderBehavior(deltaTime);
     }
 
@@ -308,7 +308,7 @@ void MidRangeEnemy::Update(float deltaTime)
             bomb->Initialize();
             Vector3 start = GetCenterPosition();
             start.y += bombAttack_.throwHeightOffset;
-            // 追加: 発射時だけ距離に応じた初速を反映する。
+            // 発射時だけ距離に応じた初速を反映する。
             BombProjectileSettings launchSettings = bombProjectile_;
             launchSettings.initialSpeed = CalculateBombInitialSpeed(targetState_.distance);
             bomb->Launch(start, targetState_.position, launchSettings);
@@ -369,7 +369,7 @@ void MidRangeEnemy::UpdateCombatBehavior(float deltaTime)
     behaviorState_.lastReason = "攻撃距離内";
     if (!bombAttackState_.casting && bombAttackState_.cooldownTimer <= 0.0f)
     {
-        // 追加: 通常戦闘でのみ爆弾構えを開始する。
+        // 通常戦闘でのみ爆弾構えを開始する。
         bombAttackState_.casting = true;
         bombAttackState_.castTimer = 0.0f;
         bombAttackState_.thrownThisCast = false;
@@ -418,7 +418,7 @@ void MidRangeEnemy::UpdateWanderBehavior(float deltaTime)
     behaviorState_.lastReason = wanderState_.lastReason;
     if (LengthXZ(GetCenterPosition() - wanderState_.currentPoint) <= wander_.pointReachDistance)
     {
-        // 追加: 徘徊地点に到達したら待機に切り替える。
+        // 徘徊地点に到達したら待機に切り替える。
         wanderState_.waiting = true;
         wanderState_.waitTimer = wander_.waitTime;
         wanderState_.hasPoint = false;
@@ -428,7 +428,7 @@ void MidRangeEnemy::UpdateWanderBehavior(float deltaTime)
 
 bool MidRangeEnemy::RequestPathTo(const Vector3& destination, const std::string& reason)
 {
-    // 追加: 経路探索先をターゲット以外にも切り替えられるようにする。
+    // 経路探索先をターゲット以外にも切り替えられるようにする。
     pathState_.destination = destination;
     pathState_.lastRepathReason = reason;
     return true;
@@ -463,7 +463,7 @@ bool MidRangeEnemy::TrySelectWanderPoint(const std::string& reason)
     candidate.z += std::sin(angle) * dist;
     candidate.y = currentPos.y;
 
-    // 追加: RequestPathToは現在失敗判定を持たないため、到達不能分岐を作らず候補を採用する。
+    // RequestPathToは現在失敗判定を持たないため、到達不能分岐を作らず候補を採用する。
     RequestPathTo(candidate, reason);
 
     wanderState_.currentPoint = candidate;
@@ -480,11 +480,11 @@ void MidRangeEnemy::TakeDamage(int amount)
 {
     if (suicideBombState_.active && suicideBomb_.invincibleWhileActive)
     {
-        // 追加: 時限爆弾モード中は無敵化する。
+        // 時限爆弾モード中は無敵化する。
         hitReactionState_.lastReason = "SuicideBombInvincible";
         return;
     }
-    // 追加: 方向不明時はターゲット逆方向でリアクションする。
+    // 方向不明時はターゲット逆方向でリアクションする。
     EnemyBase::TakeDamage(amount);
     Vector3 fallbackDir = { 0.0f, 0.0f, -1.0f };
     if (targetState_.hasTarget)
@@ -502,11 +502,11 @@ void MidRangeEnemy::TakeDamage(int amount, const Vector3& hitDir, float hitPower
 {
     if (suicideBombState_.active && suicideBomb_.invincibleWhileActive)
     {
-        // 追加: 時限爆弾モード中は無敵化する。
+        // 時限爆弾モード中は無敵化する。
         hitReactionState_.lastReason = "SuicideBombInvincible";
         return;
     }
-    // 追加: 被弾方向がある場合は逆方向へノックバックする。
+    // 被弾方向がある場合は逆方向へノックバックする。
     EnemyBase::TakeDamage(amount, hitDir, hitPower);
     StartHitReaction(hitDir * -1.0f);
     if (GetHp() <= 0)
@@ -517,7 +517,7 @@ void MidRangeEnemy::TakeDamage(int amount, const Vector3& hitDir, float hitPower
 
 void MidRangeEnemy::StartSuicideBombMode()
 {
-    // 追加: 時限爆弾モードの開始状態を設定する。
+    // 時限爆弾モードの開始状態を設定する。
     suicideBombState_.active = true;
     suicideBombState_.exploded = false;
     suicideBombState_.timer = suicideBomb_.timeLimit;
@@ -538,17 +538,17 @@ void MidRangeEnemy::UpdateSuicideBombMode(float deltaTime)
     {
         return;
     }
-    // 追加: 時限爆弾モードのタイマーを毎フレーム更新する。
+    // 時限爆弾モードのタイマーを毎フレーム更新する。
     suicideBombState_.timer = std::max(0.0f, suicideBombState_.timer - deltaTime);
-    // 追加: 時間切れ自爆を最優先で処理する。
+    // 時間切れ自爆を最優先で処理する。
     if (suicideBombState_.timer <= 0.0f)
     {
         ExplodeSuicideBomb("TimeLimit");
         return;
     }
-    // 追加: 時限爆弾モード中の点滅タイマーを進める。
+    // 時限爆弾モード中の点滅タイマーを進める。
     suicideBombState_.blinkTimer += deltaTime;
-    // 追加: 通常行動と共通のターゲット状態更新を使用する。
+    // 通常行動と共通のターゲット状態更新を使用する。
     UpdateTargetState();
     if (HasTarget())
     {
@@ -559,7 +559,7 @@ void MidRangeEnemy::UpdateSuicideBombMode(float deltaTime)
             ExplodeSuicideBomb("NearTarget");
             return;
         }
-        // 追加: 時限爆弾モード中も経路探索移動を使って壁抜けを防止する。
+        // 時限爆弾モード中も経路探索移動を使って壁抜けを防止する。
         MoveAlongPath(deltaTime, suicideBomb_.chaseSpeed);
     }
     const float originalRotateSpeed = move_.rotateSpeed;
@@ -577,14 +577,14 @@ void MidRangeEnemy::ExplodeSuicideBomb(const std::string& reason)
     {
         return;
     }
-    // 追加: 爆発位置を地面下に埋まらないよう補正する。
+    // 爆発位置を地面下に埋まらないよう補正する。
     Vector3 explosionPos = GetCenterPosition();
     if (explosionPos.y < suicideBomb_.explosionPositionMinY)
     {
         explosionPos.y = suicideBomb_.explosionPositionMinY;
     }
-    // 追加: 自爆の見た目を死亡演出より先に確定する。
-    // 追加: 設定値が0でも爆発描画が見えるよう最短表示時間を保証する。
+    // 自爆の見た目を死亡演出より先に確定する。
+    // 設定値が0でも爆発描画が見えるよう最短表示時間を保証する。
     const float drawTime = std::max(suicideBomb_.explosionDebugDrawTime, 0.35f);
     suicideBombState_.explosionPosition = explosionPos;
     suicideBombState_.explosionDrawTimer = drawTime;
@@ -594,7 +594,7 @@ void MidRangeEnemy::ExplodeSuicideBomb(const std::string& reason)
     suicideBombState_.lastReason = reason;
     behaviorState_.currentBehaviorName = "SuicideBombExploded";
     behaviorState_.lastReason = reason;
-    // 追加: 自爆時点のターゲット情報を共通関数で更新する。
+    // 自爆時点のターゲット情報を共通関数で更新する。
     UpdateTargetState();
     if (HasTarget())
     {
@@ -616,15 +616,15 @@ void MidRangeEnemy::ExplodeSuicideBomb(const std::string& reason)
             behaviorState_.lastReason = "自爆範囲内";
         }
     }
-    // 追加: 爆発直後は視認しやすい爆発色を反映する。
+    // 爆発直後は視認しやすい爆発色を反映する。
     SetColor({ 1.0f, 0.2f, 0.0f, 1.0f });
-    // 追加: 自爆死はEnemyBaseの分裂死亡処理を必ず通す。
+    // 自爆死はEnemyBaseの分裂死亡処理を必ず通す。
     KillBySuicideExplosion();
 }
 
 K4E::Vector3 MidRangeEnemy::CalculateSuicideBreakApartDirection() const
 {
-    // 追加: 自爆分裂方向の既定値を前方にする。
+    // 自爆分裂方向の既定値を前方にする。
     Vector3 breakApartDirection = { 0.0f, 0.0f, 1.0f };
     if (suicideBomb_.useTargetDirectionForBreakApart && targetState_.hasTarget)
     {
@@ -643,12 +643,12 @@ void MidRangeEnemy::KillBySuicideExplosion()
     {
         return;
     }
-    // 追加: 自爆死は派生の無敵判定を回避するため基底のTakeDamageを直接呼ぶ。
+    // 自爆死は派生の無敵判定を回避するため基底のTakeDamageを直接呼ぶ。
     const int lethalDamage = std::max(GetHp(), GetMaxHp());
     Vector3 breakApartDirection = CalculateSuicideBreakApartDirection();
     lastSuicideBreakApartDirection_ = breakApartDirection;
     usedEnemyBaseDeathForSuicide_ = true;
-    // 追加: 自爆崩壊も通常死亡と同じEnemyBaseのその場崩れ処理へ集約する。
+    // 自爆崩壊も通常死亡と同じEnemyBaseのその場崩れ処理へ集約する。
     EnemyBase::TakeDamage(lethalDamage, breakApartDirection, suicideBomb_.breakApartPower);
 }
 
@@ -656,7 +656,7 @@ void MidRangeEnemy::UpdateVisualAnimation(float deltaTime)
 {
     if (IsDead() || suicideBombState_.exploded)
     {
-        // 追加: 自爆後の分裂パーツ姿勢を通常アニメで上書きしない。
+        // 自爆後の分裂パーツ姿勢を通常アニメで上書きしない。
         return;
     }
     if (parts_.size() < 5 || !body_.object)
@@ -724,12 +724,12 @@ void MidRangeEnemy::UpdateVisualAnimation(float deltaTime)
     parts_[rArm].transform.rotate_.y += ((rightArmYaw) - parts_[rArm].transform.rotate_.y) * ret;
     parts_[lLeg].transform.rotate_.x += ((-legSwing) - parts_[lLeg].transform.rotate_.x) * ret;
     parts_[rLeg].transform.rotate_.x += ((legSwing) - parts_[rLeg].transform.rotate_.x) * ret;
-    // 追加: 被ダメージ中はのけぞり量を加算する。
+    // 被ダメージ中はのけぞり量を加算する。
     if (hitReactionState_.active)
     {
         bodyLean += hitReaction_.bodyLean;
     }
-    // 追加: 死亡演出中は倒れ角を優先する。
+    // 死亡演出中は倒れ角を優先する。
     if (IsDeathActive())
     {
         const float t = std::clamp(deathAnimationState_.timer / std::max(deathAnimation_.duration, kEpsilon), 0.0f, 1.0f);
@@ -738,7 +738,7 @@ void MidRangeEnemy::UpdateVisualAnimation(float deltaTime)
     body_.transform.rotate_.x += (bodyLean - body_.transform.rotate_.x) * ret;
     if (suicideBombState_.active && suicideBomb_.blinkEnabled)
     {
-        // 追加: 時限爆弾モード中は本体色を点滅させる。
+        // 時限爆弾モード中は本体色を点滅させる。
         const float blink = std::sin(suicideBombState_.blinkTimer * suicideBomb_.blinkSpeed);
         if (blink >= 0.0f)
         {
@@ -751,11 +751,11 @@ void MidRangeEnemy::UpdateVisualAnimation(float deltaTime)
     }
     else if (!hitReactionState_.active)
     {
-        // 追加: 非点滅時は通常色へ戻す。
+        // 非点滅時は通常色へ戻す。
         SetColor({ 1.0f, 1.0f, 1.0f, 1.0f });
     }
 
-    // 追加: 頭向き可否の各条件をデバッグ表示用に個別保存する。
+    // 頭向き可否の各条件をデバッグ表示用に個別保存する。
     headLookState_.enabledCondition = headLook_.enabled;
     headLookState_.hasTargetCondition = targetState_.hasTarget;
     headLookState_.inDetectCondition = targetState_.inDetectRange;
@@ -769,7 +769,7 @@ void MidRangeEnemy::UpdateVisualAnimation(float deltaTime)
     headLookState_.horizontalDistance = std::max(LengthXZ(headLookState_.toTarget), kEpsilon);
     if (canLook)
     {
-        // 追加: MeleeEnemy同様にターゲットへの生ベクトルから頭向きを算出する。
+        // MeleeEnemy同様にターゲットへの生ベクトルから頭向きを算出する。
         const Vector3 toTarget = headLookState_.toTarget;
         const float desiredYaw = std::atan2(-toTarget.x, toTarget.z);
         const float bodyYaw = orientation_.y;
@@ -780,10 +780,10 @@ void MidRangeEnemy::UpdateVisualAnimation(float deltaTime)
             headLook_.yawLimitDeg
         );
 
-        // 追加: 生の水平距離を使ってPitchを計算し、上下追従を正しく反映する。
+        // 生の水平距離を使ってPitchを計算し、上下追従を正しく反映する。
         const float rawPitchDeg = -ToDeg(std::atan2(toTarget.y, headLookState_.horizontalDistance));
         const float signedPitchDeg = rawPitchDeg * headLook_.pitchSign;
-        // 追加: Pitch範囲が逆転していても安全にClampできるようにする。
+        // Pitch範囲が逆転していても安全にClampできるようにする。
         headLookState_.targetPitch = ClampWithSortedRange(
             signedPitchDeg,
             headLook_.pitchMinDeg,
@@ -795,7 +795,7 @@ void MidRangeEnemy::UpdateVisualAnimation(float deltaTime)
     {
         headLookState_.targetYaw = 0.0f;
         headLookState_.targetPitch = 0.0f;
-        // 追加: 頭向き不可の理由を条件ごとに明示する。
+        // 頭向き不可の理由を条件ごとに明示する。
         if (!headLookState_.enabledCondition)
         {
             headLookState_.reason = "Disabled";
@@ -823,13 +823,13 @@ void MidRangeEnemy::UpdateVisualAnimation(float deltaTime)
     headLookState_.currentPitch += (headLookState_.targetPitch - headLookState_.currentPitch) * headRet;
     parts_[head].transform.rotate_.y = ToRad(headLookState_.currentYaw);
     parts_[head].transform.rotate_.x = ToRad(headLookState_.currentPitch);
-    // 追加: パーツ回転をObject3Dへ反映するため、最後に階層更新する。
+    // パーツ回転をObject3Dへ反映するため、最後に階層更新する。
     UpdateVisualHierarchy();
 }
 
 void MidRangeEnemy::StartHitReaction(const Vector3& hitDirection)
 {
-    // 追加: 被ダメージリアクション開始。
+    // 被ダメージリアクション開始。
     if (!hitReaction_.enabled)
     {
         hitReactionState_.lastReason = "Disabled";
@@ -930,7 +930,7 @@ void MidRangeEnemy::Draw()
     }
     if (wander_.debugDrawEnabled)
     {
-        // 追加: 徘徊デバッグとして初期位置と目的地を表示する。
+        // 徘徊デバッグとして初期位置と目的地を表示する。
         Wireframe::GetInstance()->DrawSphere(wanderState_.spawnPosition, 0.3f, { 0.1f, 1.0f, 0.1f, 1.0f });
         Wireframe::GetInstance()->DrawSphere(wanderState_.currentPoint, 0.3f, { 1.0f, 0.4f, 0.1f, 1.0f });
         Wireframe::GetInstance()->DrawLine(wanderState_.spawnPosition, wanderState_.currentPoint, { 0.3f, 1.0f, 0.3f, 1.0f });
@@ -985,7 +985,7 @@ void MidRangeEnemy::DrawImGui()
         {
             ResetTuningToDefault();
         }
-        // 追加: 保存先パスを常時表示してI/O不整合を可視化する。
+        // 保存先パスを常時表示してI/O不整合を可視化する。
         ImGui::Text("保存先: %s", tuningIo_.jsonPath.string().c_str());
         ImGui::Text("読み込み結果: %s", tuningIo_.lastLoadResult.c_str());
         ImGui::Text("保存結果: %s", tuningIo_.lastSaveResult.c_str());
@@ -998,12 +998,12 @@ void MidRangeEnemy::DrawImGui()
         ImGui::Text("最大HP: %d", GetMaxHp());
         if (ImGui::Button("10ダメージを与える"))
         {
-            // 追加: デバッグ用ダメージボタン。
+            // デバッグ用ダメージボタン。
             TakeDamage(10);
         }
         if (ImGui::Button("死亡演出を再生"))
         {
-            // 追加: デバッグ用死亡演出ボタン。
+            // デバッグ用死亡演出ボタン。
             StartDeathAnimation("DebugButton");
         }
     }
@@ -1106,12 +1106,12 @@ void MidRangeEnemy::DrawImGui()
         }
         if (ImGui::Button("自爆分裂だけテスト"))
         {
-            // 追加: 自爆分裂処理のみを即時確認する。
+            // 自爆分裂処理のみを即時確認する。
             KillBySuicideExplosion();
         }
         if (ImGui::Button("爆発表示だけ再生"))
         {
-            // 追加: HP変更なしで爆発描画のみを検証できるようにする。
+            // HP変更なしで爆発描画のみを検証できるようにする。
             Vector3 debugExplosionPos = GetCenterPosition();
             if (debugExplosionPos.y < suicideBomb_.explosionPositionMinY)
             {
@@ -1145,7 +1145,7 @@ void MidRangeEnemy::DrawImGui()
         ImGui::SliderFloat("重力", &bombProjectile_.gravity, 0.0f, 40.0f);
         ImGui::SliderFloat("寿命", &bombProjectile_.lifeTime, 0.1f, 15.0f);
         ImGui::SliderFloat("直撃判定半径", &bombProjectile_.hitRadius, 0.1f, 5.0f);
-        // 追加: 通常爆弾の爆発半径の調整上限を拡張する。
+        // 通常爆弾の爆発半径の調整上限を拡張する。
         ImGui::SliderFloat("爆発半径", &bombProjectile_.explosionRadius, 0.1f, 30.0f);
         ImGui::SliderInt("直撃ダメージ", &bombProjectile_.directHitDamage, 1, 999);
         ImGui::SliderInt("爆発ダメージ", &bombProjectile_.explosionDamage, 1, 999);
@@ -1205,7 +1205,7 @@ void MidRangeEnemy::DrawImGui()
         ImGui::SliderFloat("Yaw制限", &headLook_.yawLimitDeg, 0.0f, 180.0f);
         ImGui::SliderFloat("Pitch最小", &headLook_.pitchMinDeg, -180.0f, 180.0f);
         ImGui::SliderFloat("Pitch最大", &headLook_.pitchMaxDeg, -180.0f, 180.0f);
-        // 追加: Pitch符号を2択化して0.0fを防ぐ。
+        // Pitch符号を2択化して0.0fを防ぐ。
         const char* pitchSignItems[] = { "通常", "反転" };
         int pitchSignIndex = headLook_.pitchSign < 0.0f ? 1 : 0;
         if (ImGui::Combo("Pitch向き", &pitchSignIndex, pitchSignItems, IM_ARRAYSIZE(pitchSignItems)))
@@ -1227,7 +1227,7 @@ void MidRangeEnemy::DrawImGui()
         ImGui::Text("実際に使うPitch最大: %.2f", effectivePitchMax);
         if (ImGui::Button("Pitch範囲を整列"))
         {
-            // 追加: 逆転したPitch範囲を明示的に整列できるようにする。
+            // 逆転したPitch範囲を明示的に整列できるようにする。
             if (headLook_.pitchMinDeg > headLook_.pitchMaxDeg)
             {
                 std::swap(headLook_.pitchMinDeg, headLook_.pitchMaxDeg);
@@ -1300,22 +1300,22 @@ void MidRangeEnemy::ResetTuningToDefault()
     bombAttack_ = BombAttackSettings{};
     bombProjectile_ = BombProjectileSettings{};
     path_ = PathSettings{};
-    // 追加: 徘徊設定のデフォルト復元を追加する。
+    // 徘徊設定のデフォルト復元を追加する。
     wander_ = WanderSettings{};
     animation_ = AnimationSettings{};
     headLook_ = HeadLookSettings{};
     hitReaction_ = HitReactionSettings{};
     deathAnimation_ = DeathAnimationSettings{};
     suicideBomb_ = SuicideBombSettings{};
-    // 追加: デフォルト復帰後も最大HPをEnemyBaseへ反映する。
+    // デフォルト復帰後も最大HPをEnemyBaseへ反映する。
     ApplyBasicStatsToEnemyBase();
-    // 追加: デフォルト復帰後に各値を再検証して破綻を防ぐ。
+    // デフォルト復帰後に各値を再検証して破綻を防ぐ。
     ValidateTuningValues();
 }
 
 void MidRangeEnemy::ApplyBasicStatsToEnemyBase()
 {
-    // 追加: JSON/デフォルト反映時に最大HPをEnemyBaseへ同期する。
+    // JSON/デフォルト反映時に最大HPをEnemyBaseへ同期する。
     SetMaxHp(basicStats_.maxHp);
     if (basicStats_.resetHpOnLoad)
     {
@@ -1325,7 +1325,7 @@ void MidRangeEnemy::ApplyBasicStatsToEnemyBase()
 
 void MidRangeEnemy::ValidateTuningValues()
 {
-    // 追加: 頭向き設定の範囲・符号を安全な値へ補正する。
+    // 頭向き設定の範囲・符号を安全な値へ補正する。
     headLook_.yawLimitDeg = std::clamp(headLook_.yawLimitDeg, 0.0f, 180.0f);
     suicideBomb_.triggerHpRate = std::clamp(suicideBomb_.triggerHpRate, 0.01f, 1.0f);
     suicideBomb_.timeLimit = std::max(0.1f, suicideBomb_.timeLimit);
@@ -1402,7 +1402,7 @@ bool MidRangeEnemy::SaveTuningToJson(const std::filesystem::path& path, std::str
         j["path"]["pathSearchRadius"] = path_.pathSearchRadius;
         j["path"]["obstacleExpandRadius"] = path_.obstacleExpandRadius;
         j["path"]["cornerCuttingDisabled"] = path_.cornerCuttingDisabled;
-        // 追加: 徘徊設定をJSONへ保存する。
+        // 徘徊設定をJSONへ保存する。
         j["wander"]["enabled"] = wander_.enabled;
         j["wander"]["radius"] = wander_.radius;
         j["wander"]["interval"] = wander_.interval;
@@ -1484,7 +1484,7 @@ bool MidRangeEnemy::LoadTuningFromJson(const std::filesystem::path& path, std::s
 
         nlohmann::json j{};
         ifs >> j;
-        // 追加: JSONカテゴリ欠損時も既定値で安全に読み込む。
+        // JSONカテゴリ欠損時も既定値で安全に読み込む。
         const auto basicStatsJson = j.value("basicStats", nlohmann::json::object());
         const auto distanceJson = j.value("distance", nlohmann::json::object());
         const auto moveJson = j.value("move", nlohmann::json::object());
@@ -1548,7 +1548,7 @@ bool MidRangeEnemy::LoadTuningFromJson(const std::filesystem::path& path, std::s
         path_.pathSearchRadius = pathJson.value("pathSearchRadius", path_.pathSearchRadius);
         path_.obstacleExpandRadius = pathJson.value("obstacleExpandRadius", path_.obstacleExpandRadius);
         path_.cornerCuttingDisabled = pathJson.value("cornerCuttingDisabled", path_.cornerCuttingDisabled);
-        // 追加: wanderカテゴリが無い古いJSONでは既定値を維持する。
+        // wanderカテゴリが無い古いJSONでは既定値を維持する。
         wander_.enabled = wanderJson.value("enabled", wander_.enabled);
         wander_.radius = wanderJson.value("radius", wander_.radius);
         wander_.interval = wanderJson.value("interval", wander_.interval);
@@ -1608,9 +1608,9 @@ bool MidRangeEnemy::LoadTuningFromJson(const std::filesystem::path& path, std::s
                 suicideBomb_.blinkColorB = { color[0].get<float>(), color[1].get<float>(), color[2].get<float>(), color[3].get<float>() };
             }
         }
-        // 追加: JSON読み込み後に危険値を補正する。
+        // JSON読み込み後に危険値を補正する。
         ValidateTuningValues();
-        // 追加: 読み込んだ最大HP設定をEnemyBaseへ反映する。
+        // 読み込んだ最大HP設定をEnemyBaseへ反映する。
         ApplyBasicStatsToEnemyBase();
 
         if (outMessage)
@@ -1638,7 +1638,7 @@ void MidRangeEnemy::UpdateTargetState()
         targetState_.hasTarget = true;
     }
 
-    // 追加: ターゲット情報更新を通常行動と時限爆弾で共通化する。
+    // ターゲット情報更新を通常行動と時限爆弾で共通化する。
     if (!targetState_.hasTarget)
     {
         targetState_.inDetectRange = false;

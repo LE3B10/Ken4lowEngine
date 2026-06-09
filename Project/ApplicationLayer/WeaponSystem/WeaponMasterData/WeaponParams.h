@@ -74,7 +74,7 @@ struct WeaponParams
 	// --- ADS ---
 	float adsZoomFov = 60.0f;
 	float adsTransitionSpeed = 10.0f;
-	float adsMoveSpeedMultiplier = 0.85f; // 追加：ADS中の移動倍率
+	float adsMoveSpeedMultiplier = 0.85f; // ADS中の移動倍率
 
 	// --- Pellet ---
 	int32_t pelletCount = 1;

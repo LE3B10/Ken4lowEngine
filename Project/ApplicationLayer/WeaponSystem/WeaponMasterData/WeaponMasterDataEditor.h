@@ -29,7 +29,7 @@ struct WeaponEditorHooks
 	// 現在装備ならランタイムへ反映
 	std::function<void(int32_t weaponID, const FWeaponMasterData&)> ApplyToRuntimeIfCurrent;
 
-	// 追加予約
+	// 新規武器要求をUI操作中に即時反映せず、エディタ側で安全なタイミングに遅延実行する。
 	std::function<void(const std::string& newDisplayName, int32_t baseWeaponIDOrZero)> RequestAdd;
 
 	// 削除予約

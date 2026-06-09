@@ -8,7 +8,7 @@
 /// -------------------------------------------------------------
 void HUDManager::Initialize()
 {
-	// リロード円の初期化
+	// 個別HUDはHUDManagerが所有し、GamePlayWorldからはHUDManager経由でまとめて更新/描画する。
 	reloadCircle_ = std::make_unique<ReloadCircle>();
 	reloadCircle_->Initialize("UI/Common/reload-circle.dds");
 
@@ -20,7 +20,7 @@ void HUDManager::Initialize()
 	hpWidget_ = std::make_unique<HPWidget>();
 	hpWidget_->Initialize();
 
-	// 位置やサイズは好みで調整OK
+	// HPは固定内部解像度に合わせた左下寄り配置で、ハート数が増えても横方向に伸びる。
 	hpWidget_->SetAnchorTopLeft({ 560.0f, 880.0f });
 	hpWidget_->SetIconSize({ 22.0f, 22.0f });
 	hpWidget_->SetPadding(6.0f);
@@ -31,8 +31,7 @@ void HUDManager::Initialize()
 	weaponSlot_->Initialize("UI/Common/slot_frame.dds", "UI/Common/slot_frame_selected.dds");
 	weaponSlot_->InitializeSlotNumbers("UI/Common/numbers02.dds", 50.0f, 50.0f, { 8.0f, 8.0f }, 2.0f, 32, 32);
 
-	// キューブアイコン
-	// 武器カテゴリ別アイコン（スロット0..5）
+	// 武器カテゴリ別アイコン（スロット0..5）をまとめて渡し、WeaponSlot側で選択状態を描き分ける。
 	const std::array<std::string, WeaponSlot::kSlotCount> weaponIcons = {
 		"UI/Icons/primary_icon.dds",
 		"UI/Icons/backup_icon.dds",
@@ -103,10 +102,10 @@ void HUDManager::Update(float deltaTime)
 		}
 		else
 		{
-			// リロード開始時に「reloadTimerが残り時間か経過時間か」を判定
+			// 武器側のreloadTimer表現差を吸収し、HUDでは常に0→1の進捗として扱う。
 			if (isReloading && !prevReloading_)
 			{
-				// start直後に timer が reloadSec に近ければ「残り時間」扱い、0 に近ければ「経過時間」扱い
+				// start直後にtimerがreloadSecに近ければ「残り時間」、0に近ければ「経過時間」とみなす。
 				reloadTimerIsRemaining_ = (reloadTimer > reloadSec * 0.5f);
 			}
 
@@ -133,7 +132,7 @@ void HUDManager::Update(float deltaTime)
 
 		if (player_->GetReticleUI(r, spread, isADS))
 		{
-			// 基本
+			// 武器マスタ由来のレティクル設定を毎フレーム反映し、Editor調整を即時確認できるようにする。
 			crosshair_->SetReticleType(static_cast<int>(r.reticleType));
 			crosshair_->SetReticleTexture(r.reticleTexturePath);
 			crosshair_->SetBaseSize(r.reticleBaseSize);
@@ -142,7 +141,7 @@ void HUDManager::Update(float deltaTime)
 			crosshair_->SetRecoverSpeed(r.reticleRecoverSpeed);
 			crosshair_->SetSpreadValue(spread);
 
-			// 移動拡散（移動状態そのものは GamePlayScene などから SetCrosshairMovementState で渡す）
+			// 移動状態そのものはPlayer側から渡されるため、ここでは倍率だけをレティクルへ反映する。
 			crosshair_->SetMoveExpandEnabled(r.bEnableMoveReticleExpand);
 			crosshair_->SetMoveExpandMultipliers(
 				r.moveExpandMultiplier,
@@ -150,7 +149,7 @@ void HUDManager::Update(float deltaTime)
 				r.airExpandMultiplier,
 				r.landExpandImpulse);
 
-			// ADS切替
+			// ADS時は通常照準を隠す/専用照準へ差し替えるなど、武器ごとの見え方を同期する。
 			crosshair_->SetHideInADS(r.bHideReticleInADS);
 			crosshair_->SetADSState(isADS);
 			crosshair_->SetHideWhileReload(true);
@@ -161,7 +160,7 @@ void HUDManager::Update(float deltaTime)
 			crosshair_->SetADSCenterDotTexture(r.adsCenterDotTexturePath);
 			crosshair_->SetADSBlendTime(r.adsReticleBlendTime);
 
-			// ヒット / 撃破マーカー
+			// ヒット/撃破マーカーは通知時に使う素材と表示時間だけをここで最新化しておく。
 			crosshair_->SetShowHitMarker(r.bShowHitMarker);
 			crosshair_->SetHitMarkerTexture(r.hitMarkerTexturePath);
 			crosshair_->SetUseHeadshotMarker(r.bUseHeadshotMarker);

@@ -14,7 +14,7 @@ float MidRangeBombProjectile::s_debugCubeSize_ = 0.4f;
 
 void MidRangeBombProjectile::Initialize()
 {
-    // 追加: 爆弾ランタイム状態の初期化。
+    // 爆弾ランタイム状態の初期化。
     position_ = {};
     velocity_ = {};
     explosionPosition_ = {};
@@ -37,7 +37,7 @@ void MidRangeBombProjectile::Launch(
     const BombProjectileSettings& settings
 )
 {
-    // 追加: 爆弾設定と放物線初速の設定。
+    // 爆弾設定と放物線初速の設定。
     settings_ = settings;
     position_ = start;
     explosionPosition_ = start;
@@ -127,11 +127,11 @@ void MidRangeBombProjectile::Draw() const
 
 void MidRangeBombProjectile::Explode()
 {
-    // 追加: 爆発位置を記録して範囲表示タイマーを開始。
+    // 爆発位置を記録して範囲表示タイマーを開始。
     explosionPosition_ = position_;
     if (explosionPosition_.y < 0.2f)
     {
-        // 追加: 爆発演出が地面下に埋まらないよう高さを補正する。
+        // 爆発演出が地面下に埋まらないよう高さを補正する。
         explosionPosition_.y = 0.2f;
     }
     exploded_ = true;

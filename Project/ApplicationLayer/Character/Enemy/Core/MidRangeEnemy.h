@@ -11,6 +11,13 @@
 
 namespace K4E = ::Ken4lowEngine;
 
+/// -------------------------------------------------------------
+/// 中距離雑魚敵
+///
+/// EnemyFactory/CharacterWorldから生成され、爆弾投擲、徘徊、A*経路移動、
+/// HP低下時の時限爆弾モード、被弾/死亡演出をまとめて管理する。
+/// ステージ床・障害物AABBは外部から参照を受け取るだけで所有しない。
+/// -------------------------------------------------------------
 class MidRangeEnemy final : public EnemyBase
 {
 private:
@@ -268,22 +275,28 @@ private:
     };
 
 public:
+    // EnemyBaseの見た目/Collider初期化後、JSONチューニングと徘徊基準位置を設定する。
     void Initialize() override;
+    // 通常戦闘、徘徊、爆弾、時限爆弾、被弾/死亡演出を優先順に更新する。
     void Update(float deltaTime) override;
+    // 本体、爆弾、デバッグ用爆発範囲を描画する。
     void Draw() override;
+    // 中距離敵専用のAI/爆弾/経路/チューニングDebug UIを描画する。
     void DrawImGui() override;
+    // ターゲット座標だけを更新する。Collider参照がないデバッグ用途でも使える。
     void SetTarget(const K4E::Vector3& target);
+    // プレイヤーColliderなど、命中処理に使うターゲット実体を参照として保持する。
     void SetTarget(K4E::Collider* target) { targetCollider_ = target; }
 
     void SetFloorAABBs(const std::vector<K4E::AABB>* aabbs)
     {
-        // 追加: 床AABBを外部から受け取る。
+        // 床AABBはStageが所有するため、ここでは参照だけ保持する。
         floorAABBs_ = aabbs;
     }
 
     void SetWallObstacleAABBs(const std::vector<K4E::AABB>* aabbs)
     {
-        // 追加: 壁障害物AABBを外部から受け取る。
+        // 経路探索用の壁障害物AABBはStage/World側の寿命に従う参照として扱う。
         wallObstacleAABBs_ = aabbs;
     }
 

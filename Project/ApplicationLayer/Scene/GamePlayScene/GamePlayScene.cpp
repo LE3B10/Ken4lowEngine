@@ -180,19 +180,20 @@ void GamePlayScene::Update()
 	// フレーム開始時に FPSCounter を更新して deltaTime を取得
 	const float deltaTime = K4E::GameTimer::GetInstance()->GetDeltaTime();
 
-	// FadeManager は常に更新
+	// フェードはロード未完了やポーズ中でも見た目を進めたいので、ゲーム進行より先に更新する。
 	if (fadeManager_)
 	{
 		fadeManager_->Update(deltaTime);
 	}
 
-	// ロード中は通常ゲームプレイ更新をしない
+	// 段階ロード中にWorldへ触ると未生成サブシステムが混ざるため、通常更新は開始しない。
 	if (!isLoadReady_)
 	{
 		return;
 	}
 
-	// デバッグ停止系
+	// 以降は「このフレームでWorldを進めるか」を優先度順に判定する。
+	// 早期returnする分岐は、UIや演出だけを進めてゲーム本体を止めるためのもの。
 	if (HandleDebugFreeze()) return;
 
 	// リトライ遷移中
@@ -266,7 +267,7 @@ bool GamePlayScene::UpdateRetryTransition()
 		return false;
 	}
 
-	// フェードアウト完了待ち
+	// 画面が完全に覆われてからWorldを破棄/再生成し、再初期化中の見た目が露出しないようにする。
 	if (!isRetryRestartDone_)
 	{
 		if (IsRetryFadeOutFinished())
@@ -280,7 +281,7 @@ bool GamePlayScene::UpdateRetryTransition()
 		return true;
 	}
 
-	// フェードイン完了待ち
+	// 再生成後の開く演出が完了したら通常更新へ戻す。
 	if (IsRetryFadeInFinished())
 	{
 		isRetryTransitionActive_ = false;
@@ -668,18 +669,21 @@ void GamePlayScene::UpdateLoad()
 	switch (loadStep_)
 	{
 	case 0:
+		// フローは後続のWorld生成やイントロ開始判定から参照されるため最初に作る。
 		flow_ = std::make_unique<GamePlayFlow>();
 		flow_->Initialize();
 		++loadStep_;
 		break;
 
 	case 1:
+		// StageContextはステージ選択結果とLevelData由来のスポーン/Wave設定をまとめる。
 		stageContext_ = std::make_unique<GamePlayStageContext>();
 		stageContext_->InitializeFromRepository();
 		++loadStep_;
 		break;
 
 	case 2:
+		// World生成はステージ、衝突、キャラクターなど重い初期化を含むため単独ステップにする。
 		world_ = std::make_unique<GamePlayWorld>();
 		world_->Initialize(*stageContext_);
 		++loadStep_;
@@ -691,6 +695,7 @@ void GamePlayScene::UpdateLoad()
 		break;
 
 	case 4:
+		// Debug系とHPポストエフェクトはWorldのPlayer参照が必要なのでWorld生成後に接続する。
 		debugTools_ = std::make_unique<GamePlayDebugTools>();
 		debugTools_->Initialize();
 		frustumCullingDebug_ = std::make_unique<FrustumCullingDebugController>();
@@ -701,7 +706,8 @@ void GamePlayScene::UpdateLoad()
 		break;
 
 	case 5:
-		SetupNewGame(false); // 初回はイントロあり
+		// 初回ロードはステージ側にイントロ点があればイントロありで開始する。
+		SetupNewGame(false);
 		isLoadReady_ = true;
 		++loadStep_;
 		break;
@@ -722,13 +728,13 @@ void GamePlayScene::UpdateUnload()
 	switch (unloadStep_)
 	{
 	case 0:
-		// まず入力系を軽く戻す
+		// シーン遷移中にカーソルがロックされたまま残らないよう、最初に入力状態を戻す。
 		RestoreCursorState();
 		++unloadStep_;
 		break;
 
 	case 1:
-		// デバッグツール解放
+		// Debug系はWorld参照を持つため、World本体より先に破棄して古い参照を残さない。
 		if (debugTools_)
 		{
 			debugTools_->Finalize();
@@ -744,7 +750,7 @@ void GamePlayScene::UpdateUnload()
 		break;
 
 	case 2:
-		// フローとイントロ系を解放
+		// UI/イントロ系はWorldを直接所有しないが、更新順上はWorldより先に止めておく。
 		introDirector_.reset();
 
 		if (flow_)
@@ -756,7 +762,7 @@ void GamePlayScene::UpdateUnload()
 		break;
 
 	case 3:
-		// 一番重そうな world を単独フレームで解放
+		// World解放は衝突、弾、ステージ、キャラクターをまとめて落とすため単独フレームにする。
 		if (world_)
 		{
 			world_->Finalize();
@@ -766,13 +772,13 @@ void GamePlayScene::UpdateUnload()
 		break;
 
 	case 4:
-		// ステージ文脈を最後に解放
+		// StageContextはWorldの初期化元なので、World破棄後に最後に解放する。
 		stageContext_.reset();
 		++unloadStep_;
 		break;
 
 	case 5:
-		// FadeManager は SceneManager 側のフェードがあるので、ここで消してもよい
+		// SceneManager側の遷移フェードへ制御が移るため、Scene内Fadeはここで解放する。
 		if (fadeManager_)
 		{
 			fadeManager_->Finalize();

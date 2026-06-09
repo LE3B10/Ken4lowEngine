@@ -9,6 +9,10 @@
 
 /// ----------------------------------------------------------------
 ///						ガーディアンボス
+///
+/// GamePlayWorldのクリスタル破壊後に出現する人型ボス。
+/// HumanoidBossBaseの部位構成を利用し、Guardian専用の攻撃選択、近接判定、
+/// 衝撃波/突進/ひるみ/デバッグ統計を管理する。
 /// ----------------------------------------------------------------
 class GuardianBoss : public HumanoidBossBase
 {
@@ -19,12 +23,19 @@ public:
 
 public: /// ---------- Boss固有初期化 ---------- ///
 
+	// Guardian専用の初期パラメータ、モデル、攻撃、Collider設定を構築する。
 	void SetupBoss() override;
+	// 攻撃やエフェクトなどGuardianが保持する派生リソースを解放する。
 	void Finalize() override;
+	// ParameterManager上のGuardian調整値を実行中インスタンスへ反映する。
 	void ApplyParameters() override;
+	// 近接/ギミックなど銃弾以外の被ダメージ統計を更新し、ボス共通処理へ渡す。
 	void OnDamaged(float damage) override;
+	// プレイヤー銃弾ヒット数と最後の被ダメージを記録してからHPへ反映する。
 	void OnBulletDamaged(float damage) override;
+	// 死亡状態へ遷移し、World側のクリア進行が検知できる状態にする。
 	void OnDead() override;
+	// プレイヤー弾・近接などCollider種別に応じてGuardianへのダメージ処理へ振り分ける。
 	void OnCollision(K4E::Collider* other) override;
 	void DrawImGui() override;
 	int GetMeleeHitCount() const;

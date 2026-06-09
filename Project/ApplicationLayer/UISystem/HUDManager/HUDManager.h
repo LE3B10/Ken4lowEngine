@@ -15,33 +15,38 @@ class Player;
 
 /// -------------------------------------------------------------
 ///                     HUDマネージャークラス
+///
+/// GamePlayWorldが所有し、プレイヤーHP、照準、リロード、武器スロット、
+/// Wave表示、被弾方向、弾切れ、操作ガイドなどGamePlay中のHUDをまとめて管理する。
+/// Playerは参照のみ保持し、寿命はCharacterWorld/GamePlayWorld側に従う。
 /// -------------------------------------------------------------
 class HUDManager
 {
 public: /// ---------- メンバ関数 ---------- ///
 
-	// 初期化処理
+	// 各HUD部品を生成し、テクスチャパス・初期位置・表示状態を設定する。
 	void Initialize();
 
-	// 更新処理
+	// Playerから現在HP/武器/リロード/弾切れ状態を取得し、HUD部品を1フレーム更新する。
 	void Update(float deltaTime);
 
-	// 描画処理
+	// 可視状態のHUD部品を、画面上の重なり順に描画する。
 	void Draw();
 
 public: /// ---------- セッタ ---------- ///
 
 	void SetPlayer(Player* player) { player_ = player; }
 
-	// HUDへ渡す値（GamePlaySceneなどから呼ぶ）
+	// GamePlayWorldから渡された現在HP/最大HPをHPWidgetへ反映する。
 	void SetHP(float hp, float maxHp);
+	// 被弾時のHP表示リアクションを発火する。
 	void NotifyPlayerHit(float strength01 = 1.0f);
 
-	// クロスヘア（敵ヒット/撃破通知）
+	// 敵命中/撃破時のクロスヘアマーカーを発火する。
 	void NotifyEnemyHit(bool isHeadshot = false);
 	void NotifyEnemyKill(bool isHeadshot = false);
 
-	// クロスヘア（移動状態は外部から渡す：APEX風拡散）
+	// Player移動状態をクロスヘア拡散へ反映する。移動判定そのものはPlayer側が持つ。
 	void SetCrosshairMovementState(bool isMoving, bool isSprinting, bool isAirborne);
 	void NotifyCrosshairLanded();
 
@@ -53,16 +58,21 @@ public: /// ---------- セッタ ---------- ///
 	// WeaponSlot のHUDスナップショットを受け取る（HUD側でWeaponSlotの状態を参照して描画するため）
 	void SetWeaponSlotSnapshot(const WeaponSlot::HudSnapshot& snapshot) { weaponSlotSnapshot_ = snapshot; }
 
+	// WaveManagerの進行状態をWaveUIへ反映する。
 	void SetWaveDisplayState(const WaveUI::DisplayState& state);
+	// Wave開始演出を通知する。最終Waveかどうかで表示文言を切り替える。
 	void NotifyWaveStarted(int waveNumber, bool isFinalWave);
+	// 全Wave完了演出を通知する。
 	void NotifyAllWavesCleared();
 	void SetWaveUIVisible(bool v);
 
+	// 攻撃方向を画面上の被弾インジケータへ変換して追加する。
 	void AddDamageIndicator(const K4E::Vector3& playerPos,
 		const K4E::Vector3& attackerPos,
 		const K4E::Vector3& cameraForward,
 		const K4E::Vector3& cameraRight);
 
+	// 照準線上に敵がいるかをクロスヘア色/状態へ反映する。
 	void SetCrosshairTargetingEnemy(bool v);
 	void SetControlGuideVisible(bool v) { if (controlGuideUI_) controlGuideUI_->SetVisible(v); }
 

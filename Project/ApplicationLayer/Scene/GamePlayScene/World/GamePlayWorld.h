@@ -20,13 +20,24 @@ namespace K4E = ::Ken4lowEngine;
 
 class Player;
 
+/// -------------------------------------------------------------
+/// ボス撃破後に出現するクリア用アイテム
+///
+/// GamePlayWorldが生成・所有し、CollisionManagerへ登録する。
+/// 取得後は遠方へ移動して当たり判定から外し、World側のクリア判定へ通知する。
+/// -------------------------------------------------------------
 class BossClearItem : public K4E::Collider
 {
 public:
+	// ボス位置を基準に表示モデルとItem判定を生成する。CollisionManager登録は呼び出し側が行う。
 	void Initialize(const K4E::Vector3& position);
+	// 浮遊・回転演出とCollider中心を同期する。
 	void Update(float deltaTime);
+	// 未取得かつ生成済みのときだけモデルを描画する。
 	void Draw();
+	// プレイヤー中心との距離で取得可能か判定する。実取得処理はGamePlayWorld側で行う。
 	bool CheckPickup(const Player& player) const;
+	// 取得済みにして判定を遠方へ逃がす。CollisionManagerからの削除は呼び出し側が行う。
 	void MarkCollected();
 
 	bool IsSpawned() const { return spawned_; }
@@ -49,22 +60,39 @@ private:
 	bool collected_ = false;
 };
 
+/// -------------------------------------------------------------
+/// GamePlayScene内のランタイムWorld管理クラス
+///
+/// ステージ、キャラクター、弾、HUD、Wave、クリスタル、ボス、アイテム、衝突を所有し、
+/// GamePlaySceneから1フレームごとに更新・描画される。
+/// GamePlaySceneより短い寿命で、リトライ時には丸ごと再生成される前提。
+/// -------------------------------------------------------------
 class GamePlayWorld
 {
 public: /// ---------- メンバ関数 ---------- ///
 
+	// StageContextのステージ情報をもとに、ステージ/キャラクター/衝突/HUD/目的管理を生成する。
 	void Initialize(GamePlayStageContext& stageContext);
+	// CollisionManager登録を外し、所有するWorld内オブジェクトとグローバル参照を解放する。
 	void Finalize();
 
+	// World内のステージ、キャラクター、ボス、弾、当たり判定、HUD、目的条件を1フレーム進める。
 	void Update(float deltaTime);
 
+	// イントロ中に表示に必要なステージ・影・空だけを更新する。
 	void UpdateIntroVisuals();
+	// 武器構えイントロ中に、通常AIは止めたままプレイヤー表示だけを更新する。
 	void UpdateEquipIntro(float deltaTime);
+	// イントロ終了直後の初回フレーム負荷を避けるため、敵や武器表示を非表示で事前更新する。
 	void WarmupStartGameplayForIntro();
+	// イントロ用に非表示で温めたプレイヤー/武器/敵の見た目を切り替える。
 	void SetStartGameplayVisualsVisible(bool visible);
 
+	// 3D要素を描画する。イントロ中はキャラクターだけを隠して背景確認を優先できる。
 	void Draw3D(bool hideCharactersDuringIntro);
+	// シャドウ用描画を行う。通常描画と同じイントロ非表示条件を使う。
 	void DrawShadow(bool hideCharactersDuringIntro);
+	// HUDと敵HPバーを描画する。イントロ中は呼び出し側から隠せる。
 	void DrawHUD(bool hideDuringIntro);
 	void DrawImGui();
 	void DrawGameDebugImGui();
@@ -83,7 +111,7 @@ public: /// ---------- メンバ関数 ---------- ///
 
 	void SetDebugCameraEnabled(bool enabled);
 
-	// TODO: 実オブジェクト破壊判定が入るまでの仮API。
+	// 防衛対象の実オブジェクト破壊イベントが接続されるまで、デバッグ/仮実装から失敗条件を反映する窓口。
 	void SetDefenseTargetDestroyed(bool destroyed);
 
 	CharacterWorld& GetCharacters() { return characters_; }
@@ -104,11 +132,11 @@ public: /// ---------- メンバ関数 ---------- ///
 
 	bool CheckCrosshairTargetingEnemy() const;
 
-	// TODO: 実オブジェクト接触判定が入るまでの仮API。
+	// 装置オブジェクトの接触イベント実装後は、各装置から呼ばれる想定の進行加算窓口。
 	void AddActivatedDeviceCount(int amount = 1);
-	// TODO: 実オブジェクト接触判定が入るまでの仮API。
+	// ゴール接触判定が実オブジェクト側へ移るまで、到達フラグを外部から反映する窓口。
 	void SetReachedGoal(bool reached);
-	// TODO: 実オブジェクト接触判定が入るまでの仮API。
+	// ボス撃破/クリアアイテム取得の結果をステージ目的管理へ反映する。
 	void SetBossDefeated(bool defeated);
 
 private: /// ---------- メンバ関数 ---------- ///
