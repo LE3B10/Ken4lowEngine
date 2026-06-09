@@ -159,9 +159,9 @@ namespace Ken4lowEngine
 		//最近接点を求める
 		Vector3 clossestPoint
 		{
-			std::clamp(sphere.center.x,aabb.min.x,aabb.max.x), // x座標
-			std::clamp(sphere.center.y,aabb.min.y,aabb.max.y), // y座標
-			std::clamp(sphere.center.z,aabb.min.z,aabb.max.z)  // z座標
+			std::clamp(sphere.center.x, aabb.min.x, aabb.max.x), // x座標
+			std::clamp(sphere.center.y, aabb.min.y, aabb.max.y), // y座標
+			std::clamp(sphere.center.z, aabb.min.z, aabb.max.z)  // z座標
 		};
 		//最近接点と球の中途の距離を求める
 		float distance = Vector3::Length(Vector3::Subtract(clossestPoint, sphere.center));
@@ -348,7 +348,7 @@ namespace Ken4lowEngine
 			obb.orientations[0].x, obb.orientations[0].y, obb.orientations[0].z, 0.0f,
 			obb.orientations[1].x, obb.orientations[1].y, obb.orientations[1].z, 0.0f,
 			obb.orientations[2].x, obb.orientations[2].y, obb.orientations[2].z, 0.0f,
-			0.0f,                   0.0f,                   0.0f,                   1.0f
+			0.0f, 0.0f, 0.0f, 1.0f
 		};
 		Matrix4x4 world = rot;
 		world.m[3][0] = obb.center.x;
@@ -369,7 +369,7 @@ namespace Ken4lowEngine
 			{ aabb.max.x, aabb.max.y, aabb.max.z },
 		};
 
-		Vector3 mn = { FLT_MAX,  FLT_MAX,  FLT_MAX };
+		Vector3 mn = { FLT_MAX, FLT_MAX, FLT_MAX };
 		Vector3 mx = { -FLT_MAX, -FLT_MAX, -FLT_MAX };
 		for (int i = 0; i < 8; ++i) {
 			Vector3 p = Vector3::Transform(corners[i], inv);  // ← OBBローカルへ変換

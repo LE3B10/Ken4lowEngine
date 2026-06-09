@@ -4,9 +4,7 @@
 
 #include "CollisionTypes.h"
 
-/// -------------------------------------------------------------
-///                     衝突反応行列クラス
-/// -------------------------------------------------------------
+/// ObjectChannel同士のIgnore/Overlap/Blockを保持し、既存TypeID判定からUE風Responseへ移るための表。
 class CollisionResponseMatrix
 {
 public:

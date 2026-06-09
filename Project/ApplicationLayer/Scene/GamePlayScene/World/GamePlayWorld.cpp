@@ -13,9 +13,11 @@
 #include "EnemyBase.h"
 #include "GpuParticleManager.h"
 #include "ParticleManager.h"
+#include "CollisionPreset.h"
 #include "CollisionTypeIdDef.h"
 #include <LogString.h>
 
+#include <cassert>
 #include <chrono>
 #include <cmath>
 #include <vector>
@@ -40,7 +42,11 @@ void BossClearItem::Initialize(const K4E::Vector3& position)
 	spawned_ = true;
 	collected_ = false;
 
-	SetTypeID(static_cast<uint32_t>(CollisionTypeIdDef::kItem));
+	ApplyCollisionPreset(*this, ECollisionPresetId::Item); // BossClearItemは通常Itemと同じkItem判定を保つPreset移行対象にする。
+#ifdef _DEBUG
+	const uint32_t legacyItemTypeId = static_cast<uint32_t>(CollisionTypeIdDef::kItem);
+	assert(GetTypeID() == legacyItemTypeId && "BossClearItem preset must keep legacy kItem TypeID.");
+#endif
 	SetOwner<BossClearItem>(this);
 	SetOBBHalfSize(halfSize_);
 	SetCenterPosition(position_);

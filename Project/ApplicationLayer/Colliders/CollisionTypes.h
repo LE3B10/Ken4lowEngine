@@ -26,9 +26,9 @@ enum class EObjectChannel : uint32_t
 /// UEのIgnore / Overlap / Blockに相当する衝突反応の定義。
 enum class ECollisionResponse : uint8_t
 {
-	Ignore,
-	Overlap,
-	Block
+	Ignore,  // 判定・イベント対象から外す。
+	Overlap, // すり抜けるが接触イベント対象にする予定地。
+	Block    // 物理的に遮る接触として扱う予定地。
 };
 
 /// UEのTrace Channel相当で、Raycast/SegmentCastなどの問い合わせ目的を表す。

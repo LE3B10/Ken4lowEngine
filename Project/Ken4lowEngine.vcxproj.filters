@@ -136,6 +136,9 @@
     <ClCompile Include="ApplicationLayer\Colliders\CollisionManager.cpp">
       <Filter>ApplicationLayer\Colliders</Filter>
     </ClCompile>
+    <ClCompile Include="ApplicationLayer\Colliders\CollisionPresetLibrary.cpp">
+      <Filter>ApplicationLayer\Colliders</Filter>
+    </ClCompile>
     <ClCompile Include="ApplicationLayer\Item\Item.cpp">
       <Filter>ApplicationLayer\Item</Filter>
     </ClCompile>
@@ -951,6 +954,9 @@
     <ClInclude Include="ApplicationLayer\Colliders\CollisionManager.h">
       <Filter>ApplicationLayer\Colliders</Filter>
     </ClInclude>
+    <ClInclude Include="ApplicationLayer\Colliders\CollisionBroadPhase.h">
+      <Filter>ApplicationLayer\Colliders</Filter>
+    </ClInclude>
     <ClInclude Include="ApplicationLayer\Colliders\CollisionResponseMatrix.h">
       <Filter>ApplicationLayer\Colliders</Filter>
     </ClInclude>
@@ -958,6 +964,9 @@
       <Filter>ApplicationLayer\Colliders</Filter>
     </ClInclude>
     <ClInclude Include="ApplicationLayer\Colliders\CollisionPreset.h">
+      <Filter>ApplicationLayer\Colliders</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Colliders\CollisionPresetLibrary.h">
       <Filter>ApplicationLayer\Colliders</Filter>
     </ClInclude>
     <ClInclude Include="ApplicationLayer\Colliders\CollisionTypes.h">

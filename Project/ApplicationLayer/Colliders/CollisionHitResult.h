@@ -15,8 +15,8 @@ namespace K4E = ::Ken4lowEngine;
 struct CollisionHitResult
 {
 	bool hit = false;
-	K4E::Vector3 point{};
-	K4E::Vector3 normal{};
+	K4E::Vector3 point{};  // 現段階で正確な交点が取れない問い合わせは近似点を入れる。
+	K4E::Vector3 normal{}; // 法線はPrimitive判定が返せる段階で埋める。
 	float distance = 0.0f;
 	K4E::Collider* collider = nullptr;
 	uint32_t typeId = 0u;

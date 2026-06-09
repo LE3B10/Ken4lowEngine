@@ -174,6 +174,7 @@ namespace Ken4lowEngine
 
 	void Stage::RegisterColliders(CollisionManager* collisionManager)
 	{
+		// 汎用CollisionSystem向け登録。StageCollisionの移動押し戻しはAABB配列側が担当する。
 		if (!collisionManager)
 		{
 			return;

@@ -9,6 +9,7 @@ namespace Ken4lowEngine
 	{
 		AABB BuildAABBFromRotatedOBB(const Vector3& center, const Vector3& half, const Vector3& rotationRad)
 		{
+			// StageCollision専用: 回転BOXを移動解決向けAABBへ保守的に変換する。
 			const Matrix4x4 rotation = Matrix4x4::MakeRotateMatrix(rotationRad);
 			AABB aabb{};
 			aabb.min = { std::numeric_limits<float>::max(), std::numeric_limits<float>::max(), std::numeric_limits<float>::max() };
@@ -41,6 +42,7 @@ namespace Ken4lowEngine
 
 	StageCollisionBuildResult StageCollisionBuilder::Build(const LevelData& levelData, const Vector3& offset)
 	{
+		// LevelData上のステージColliderを、移動解決・Navigation・汎用通知の用途別データへ分解する。
 		StageCollisionBuildResult result{};
 		result.worldAABBs.reserve(levelData.objects.size());
 		result.floorAABBs.reserve(levelData.objects.size());
@@ -91,10 +93,12 @@ namespace Ken4lowEngine
 			const std::string& collisionType = data.collider.collisionType;
 			if (collisionType == "Floor")
 			{
+				// Floorは接地・スポーン補正向けに分け、壁押し戻しやNavigation障害物とは混ぜない。
 				result.floorAABBs.push_back(aabb);
 			}
 			else if (collisionType == "Obstacle" || collisionType == "Pillar" || collisionType == "Fence" || collisionType == "Tree")
 			{
+				// Obstacle系は横押し戻しとNavigation回避に使うため、Floorとは別のAABB群へ分類する。
 				result.wallObstacleAABBs.push_back(aabb);
 				result.navigationObstacleAABBs.push_back(aabb);
 				// 表示用ワイヤーはAABBではなくCollider::GetOBB()由来の姿勢をそのまま使う。

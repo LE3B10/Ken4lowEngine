@@ -1,6 +1,8 @@
 #pragma once
 #include <array>
+#include <string>
 #include <string_view>
+#include <vector>
 
 #include "Collider.h"
 #include "CollisionTypes.h"
@@ -12,7 +14,7 @@ struct CollisionPreset
 {
 	static constexpr uint32_t kMaxObjectChannels = static_cast<uint32_t>(EObjectChannel::Count);
 
-	std::string_view name{};
+	std::string name{};
 	EObjectChannel objectChannel = EObjectChannel::Default;
 	bool queryEnabled = true;
 	bool physicsEnabled = true;
@@ -40,7 +42,7 @@ enum class ECollisionPresetId : uint8_t
 inline CollisionPreset MakeCollisionPreset(std::string_view name, EObjectChannel objectChannel, bool queryEnabled, bool physicsEnabled)
 {
 	CollisionPreset preset{};
-	preset.name = name;
+	preset.name = std::string(name);
 	preset.objectChannel = objectChannel;
 	preset.queryEnabled = queryEnabled;
 	preset.physicsEnabled = physicsEnabled;
@@ -122,10 +124,25 @@ inline CollisionPreset GetCollisionPreset(ECollisionPresetId presetId)
 	}
 }
 
+inline std::vector<CollisionPreset> GetDefaultCollisionPresets()
+{
+	// コード固定の既定プリセットはJson読み込み失敗時の安全なフォールバックとして必ず残す。
+	return {
+		GetCollisionPreset(ECollisionPresetId::WorldStatic),
+		GetCollisionPreset(ECollisionPresetId::WorldDynamic),
+		GetCollisionPreset(ECollisionPresetId::Player),
+		GetCollisionPreset(ECollisionPresetId::Enemy),
+		GetCollisionPreset(ECollisionPresetId::Item),
+		GetCollisionPreset(ECollisionPresetId::Projectile),
+		GetCollisionPreset(ECollisionPresetId::Trigger),
+	};
+}
+
 inline void ApplyCollisionPreset(K4E::Collider& collider, const CollisionPreset& preset)
 {
-	// 現段階ではColliderが保持できるTypeIDだけを反映し、Response配列は将来の個別設定用に残す。
+	// 現段階ではTypeIDとPreset名だけを反映し、Query/Physics/Responseは既存挙動維持のため自動変更しない。
 	collider.SetTypeID(ToCollisionTypeId(preset.objectChannel));
+	collider.SetCollisionPresetName(preset.name); // Preset名は挙動に使わず、段階移行時の確認情報として保持する。
 }
 
 inline void ApplyCollisionPreset(K4E::Collider& collider, ECollisionPresetId presetId)
