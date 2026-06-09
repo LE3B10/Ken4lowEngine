@@ -36,6 +36,18 @@ struct CrystalSpawnPoint
 	bool spawnBossTrigger = true;
 };
 
+/// クリスタルのヒット/破壊演出をParameterManagerから調整するための値。
+struct CrystalReactionSettings
+{
+	float hitFlashTime = 0.18f;
+	float hitShakePower = 0.18f;
+	float hitShakeTime = 0.20f;
+	float breakingDuration = 1.4f;
+	float breakEffectScale = 1.45f;
+	float damagedHpRate = 0.70f;
+	float criticalHpRate = 0.20f;
+};
+
 /// -------------------------------------------------------------
 /// 破壊されるまで、上限付きで雑魚敵を生成し続けるクリスタル。
 ///
@@ -45,8 +57,18 @@ struct CrystalSpawnPoint
 class EnemySpawnCrystal : public K4E::Collider
 {
 public:
+	enum class State
+	{
+		Normal,
+		Damaged,
+		Critical,
+		Breaking,
+		Broken,
+	};
+
+public:
 	void Initialize(const CrystalSpawnPoint& spawnPoint, const std::vector<K4E::AABB>* floorAABBs = nullptr, const std::vector<K4E::AABB>* obstacleAABBs = nullptr);
-	void Update(const CharacterWorld& characters);
+	void Update(const CharacterWorld& characters, float deltaTime, const CrystalReactionSettings& reactionSettings);
 	void Draw() const;
 	void ApplyDamage(int damage);
 	void TakeDamage(int damage) { ApplyDamage(damage); }
@@ -61,7 +83,12 @@ public:
 	void ResetSpawnRuntime();
 
 	bool IsAlive() const { return isActive_ && isAlive; }
-	bool IsDestroyed() const { return !IsAlive(); }
+	bool IsDestroyed() const { return state_ == State::Broken; }
+	bool IsBreaking() const { return state_ == State::Breaking; }
+	bool IsBroken() const { return state_ == State::Broken; }
+	bool WasJustBroken() const { return justBroken_; }
+	void ClearJustBrokenFlag() { justBroken_ = false; }
+	State GetState() const { return state_; }
 	bool IsActive() const { return isActive_; }
 	const std::string& GetCrystalName() const { return crystalName_; }
 	bool IsColliderEnabled() const { return IsAlive(); }
@@ -107,6 +134,15 @@ public: // Blender 読み込み対応時にも維持するランタイム設定�
 private:
 	void RemoveInactiveSpawnedEnemies(const CharacterWorld& characters);
 	void SyncTransformToRuntime(const std::vector<K4E::AABB>* floorAABBs, const std::vector<K4E::AABB>* obstacleAABBs);
+	void BeginHitReaction();
+	void BeginBreaking(const CrystalReactionSettings& reactionSettings);
+	void UpdateStateFromHpRate(const CrystalReactionSettings& reactionSettings);
+	void UpdateReactionTimers(float deltaTime, const CrystalReactionSettings& reactionSettings);
+	K4E::Vector4 BuildVisualColor(const CrystalReactionSettings& reactionSettings) const;
+	K4E::Vector3 BuildVisualPosition(const CrystalReactionSettings& reactionSettings) const;
+	K4E::Vector3 BuildVisualScale(const CrystalReactionSettings& reactionSettings) const;
+	const char* GetHitSoundName() const;
+	const char* GetBreakSoundName() const;
 
 private:
 	std::string crystalName_ = "Crystal_01";
@@ -121,6 +157,12 @@ private:
 	std::string spawnPattern_ = "Interval";
 	float spawnTimer_ = 0.0f;
 	bool initialDelayElapsed_ = false;
+	CrystalReactionSettings reactionSettings_{};
+	State state_ = State::Normal;
+	float hitFlashTimer_ = 0.0f;
+	float hitShakeTimer_ = 0.0f;
+	float breakingTimer_ = 0.0f;
+	bool justBroken_ = false;
 	int hitCount_ = 0;
 	std::unique_ptr<K4E::Object3D> debugCube_;
 	std::vector<const EnemyBase*> spawnedEnemies_;

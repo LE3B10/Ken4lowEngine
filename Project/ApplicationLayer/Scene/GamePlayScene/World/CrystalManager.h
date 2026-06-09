@@ -7,6 +7,7 @@
 #include <vector>
 
 #include "Matrix4x4.h"
+#include "LightManager.h"
 
 class CharacterWorld;
 class CollisionManager;
@@ -33,6 +34,10 @@ public:
 	int GetAliveCrystalSpawnEnemyCount() const;
 	bool AreAllCrystalsDestroyed() const;
 	bool IsCrystalEnemySpawnEnabled() const { return enableCrystalEnemySpawn_; }
+	bool HasCrystalBroken() const { return hasCrystalBroken_; }
+	bool IsFinalPhaseReady() const { return isFinalPhaseReady_; }
+	bool IsBossAppearRequested() const { return requestBossAppear_; }
+	bool IsWorldColorChangeComplete() const { return worldColorChangeComplete_; }
 	void SetProgressDebugStatus(int aliveNormalEnemyCount, bool bossSpawnConditionMet, bool bossSpawned, const K4E::Vector3& bossSpawnPosition);
 	static constexpr float GetMaxUpdateDeltaTime() { return kMaxUpdateDeltaTime; }
 
@@ -45,6 +50,13 @@ private:
 	void ApplyParameterToSpawnPoint(CrystalSpawnPoint& spawnPoint);
 	void SyncCrystalsFromParameterManager();
 	void SyncCrystalFromSpawnPoint(size_t index);
+	void RegisterReactionParameters();
+	void UnregisterReactionParameters();
+	void ApplyReactionParameters();
+	void HandleCrystalBreakEvents();
+	void BeginWorldColorChange();
+	void UpdateWorldColorChange(float deltaTime);
+	void RestoreWorldColor();
 	std::string BuildCrystalGroupName(const CrystalSpawnPoint& spawnPoint) const;
 	const char* ToEnemyTypeName(EnemyType enemyType) const;
 	EnemyType ParseCrystalEnemyType(const std::string& enemyTypeName) const;
@@ -53,6 +65,7 @@ private:
 	static constexpr float kMaxUpdateDeltaTime = 1.0f / 30.0f;
 	std::vector<CrystalSpawnPoint> spawnPoints_;
 	std::vector<std::string> parameterGroupNames_;
+	CrystalReactionSettings reactionSettings_{};
 	std::vector<EnemySpawnCrystal> crystals_;
 	CollisionManager* collisionManager_ = nullptr;
 	const std::vector<K4E::AABB>* floorAABBs_ = nullptr;
@@ -61,6 +74,16 @@ private:
 	size_t nextSpawnCrystalIndex_ = 0;
 	bool enableCrystalEnemySpawn_ = true;
 	int maxSpawnPerInterval_ = 1;
+	bool hasCrystalBroken_ = false;
+	bool isFinalPhaseReady_ = false;
+	bool requestBossAppear_ = false;
+	bool worldColorChanging_ = false;
+	bool worldColorChangeComplete_ = false;
+	float worldColorChangeTimer_ = 0.0f;
+	float worldColorChangeTime_ = 3.0f;
+	float worldDarkness_ = 0.45f;
+	float worldRedTint_ = 0.35f;
+	K4E::LightManager::LightingSettingsGPU baseLightingSettings_{};
 	int debugAliveNormalEnemyCount_ = 0;
 	bool debugBossSpawnConditionMet_ = false;
 	bool debugBossSpawned_ = false;

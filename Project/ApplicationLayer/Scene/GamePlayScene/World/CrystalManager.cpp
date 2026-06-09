@@ -21,6 +21,7 @@ namespace
 {
 	constexpr float kMinimumSpawnInterval = 0.05f;
 	constexpr const char* kCrystalSpawnerRootGroup = "CrystalSpawner";
+	constexpr const char* kCrystalReactionGroup = "CrystalEffect/CrystalReaction";
 
 	const std::vector<std::string>& CrystalEnemyTypeOptions()
 	{
@@ -52,6 +53,10 @@ CrystalManager::~CrystalManager()
 void CrystalManager::Initialize(const std::vector<CrystalSpawnPoint>& spawnPoints, CollisionManager* collisionManager, const std::vector<Ken4lowEngine::AABB>* floorAABBs, const std::vector<Ken4lowEngine::AABB>* obstacleAABBs)
 {
 	Finalize();
+
+	baseLightingSettings_ = Ken4lowEngine::LightManager::GetInstance()->GetLightingSettings();
+	RegisterReactionParameters();
+	ApplyReactionParameters();
 
 	collisionManager_ = collisionManager;
 	floorAABBs_ = floorAABBs;
@@ -86,6 +91,12 @@ void CrystalManager::Initialize(const std::vector<CrystalSpawnPoint>& spawnPoint
 	nextSpawnCrystalIndex_ = 0;
 	enableCrystalEnemySpawn_ = true;
 	maxSpawnPerInterval_ = 1;
+	hasCrystalBroken_ = false;
+	isFinalPhaseReady_ = false;
+	requestBossAppear_ = false;
+	worldColorChanging_ = false;
+	worldColorChangeComplete_ = false;
+	worldColorChangeTimer_ = 0.0f;
 	debugAliveNormalEnemyCount_ = 0;
 	debugBossSpawnConditionMet_ = false;
 	debugBossSpawned_ = false;
@@ -103,6 +114,8 @@ void CrystalManager::Finalize()
 	}
 
 	UnregisterCrystalParameters();
+	UnregisterReactionParameters();
+	RestoreWorldColor();
 	crystals_.clear();
 	spawnPoints_.clear();
 	parameterGroupNames_.clear();
@@ -114,11 +127,14 @@ void CrystalManager::Finalize()
 void CrystalManager::Update(CharacterWorld& characters, float deltaTime)
 {
 	SyncCrystalsFromParameterManager();
+	ApplyReactionParameters();
 
 	for (EnemySpawnCrystal& crystal : crystals_)
 	{
-		crystal.Update(characters);
+		crystal.Update(characters, deltaTime, reactionSettings_);
 	}
+	HandleCrystalBreakEvents();
+	UpdateWorldColorChange(deltaTime);
 
 	if (!enableCrystalEnemySpawn_ || AreAllCrystalsDestroyed() || GetAliveCrystalCount() <= 0)
 	{
@@ -355,6 +371,138 @@ void CrystalManager::SyncCrystalFromSpawnPoint(size_t index)
 	crystals_[index].ApplySpawnerSettings(spawnPoints_[index], floorAABBs_, obstacleAABBs_);
 }
 
+void CrystalManager::RegisterReactionParameters()
+{
+	auto* parameters = Ken4lowEngine::ParameterManager::GetInstance();
+	parameters->CreateGroup(kCrystalReactionGroup);
+
+	parameters->AddItem(kCrystalReactionGroup, "hitFlashTime", reactionSettings_.hitFlashTime, 0.0f, 2.0f);
+	parameters->AddItem(kCrystalReactionGroup, "hitShakePower", reactionSettings_.hitShakePower, 0.0f, 2.0f);
+	parameters->AddItem(kCrystalReactionGroup, "hitShakeTime", reactionSettings_.hitShakeTime, 0.0f, 2.0f);
+	parameters->AddItem(kCrystalReactionGroup, "breakingDuration", reactionSettings_.breakingDuration, 0.05f, 5.0f);
+	parameters->AddItem(kCrystalReactionGroup, "breakEffectScale", reactionSettings_.breakEffectScale, 1.0f, 4.0f);
+	parameters->AddItem(kCrystalReactionGroup, "worldColorChangeTime", worldColorChangeTime_, 0.1f, 10.0f);
+	parameters->AddItem(kCrystalReactionGroup, "worldDarkness", worldDarkness_, 0.0f, 1.0f);
+	parameters->AddItem(kCrystalReactionGroup, "worldRedTint", worldRedTint_, 0.0f, 1.0f);
+	parameters->AddItem(kCrystalReactionGroup, "criticalHpRate", reactionSettings_.criticalHpRate, 0.0f, 1.0f);
+	parameters->AddItem(kCrystalReactionGroup, "damagedHpRate", reactionSettings_.damagedHpRate, 0.0f, 1.0f);
+
+	parameters->SetDisplayName(kCrystalReactionGroup, "hitFlashTime", "ヒット点滅時間");
+	parameters->SetDisplayName(kCrystalReactionGroup, "hitShakePower", "ヒット揺れ強度");
+	parameters->SetDisplayName(kCrystalReactionGroup, "hitShakeTime", "ヒット揺れ時間");
+	parameters->SetDisplayName(kCrystalReactionGroup, "breakingDuration", "破壊演出時間");
+	parameters->SetDisplayName(kCrystalReactionGroup, "breakEffectScale", "破壊拡大率");
+	parameters->SetDisplayName(kCrystalReactionGroup, "worldColorChangeTime", "世界色変化時間");
+	parameters->SetDisplayName(kCrystalReactionGroup, "worldDarkness", "世界暗さ");
+	parameters->SetDisplayName(kCrystalReactionGroup, "worldRedTint", "世界赤み");
+	parameters->SetDisplayName(kCrystalReactionGroup, "criticalHpRate", "瀕死HP割合");
+	parameters->SetDisplayName(kCrystalReactionGroup, "damagedHpRate", "損傷HP割合");
+
+	parameters->RegisterParameterApplier(kCrystalReactionGroup, this, [this]() { ApplyReactionParameters(); });
+	parameters->LoadFile(kCrystalReactionGroup);
+}
+
+void CrystalManager::UnregisterReactionParameters()
+{
+	Ken4lowEngine::ParameterManager::GetInstance()->UnregisterParameterApplier(kCrystalReactionGroup, this);
+}
+
+void CrystalManager::ApplyReactionParameters()
+{
+	auto* parameters = Ken4lowEngine::ParameterManager::GetInstance();
+	reactionSettings_.hitFlashTime = parameters->GetValue<float>(kCrystalReactionGroup, "hitFlashTime");
+	reactionSettings_.hitShakePower = parameters->GetValue<float>(kCrystalReactionGroup, "hitShakePower");
+	reactionSettings_.hitShakeTime = parameters->GetValue<float>(kCrystalReactionGroup, "hitShakeTime");
+	reactionSettings_.breakingDuration = parameters->GetValue<float>(kCrystalReactionGroup, "breakingDuration");
+	reactionSettings_.breakEffectScale = parameters->GetValue<float>(kCrystalReactionGroup, "breakEffectScale");
+	worldColorChangeTime_ = parameters->GetValue<float>(kCrystalReactionGroup, "worldColorChangeTime");
+	worldDarkness_ = parameters->GetValue<float>(kCrystalReactionGroup, "worldDarkness");
+	worldRedTint_ = parameters->GetValue<float>(kCrystalReactionGroup, "worldRedTint");
+	reactionSettings_.criticalHpRate = parameters->GetValue<float>(kCrystalReactionGroup, "criticalHpRate");
+	reactionSettings_.damagedHpRate = parameters->GetValue<float>(kCrystalReactionGroup, "damagedHpRate");
+	reactionSettings_.criticalHpRate = std::clamp(reactionSettings_.criticalHpRate, 0.0f, 1.0f);
+	reactionSettings_.damagedHpRate = std::clamp(reactionSettings_.damagedHpRate, reactionSettings_.criticalHpRate, 1.0f);
+}
+
+void CrystalManager::HandleCrystalBreakEvents()
+{
+	for (EnemySpawnCrystal& crystal : crystals_)
+	{
+		if (!crystal.WasJustBroken())
+		{
+			continue;
+		}
+
+		hasCrystalBroken_ = true;
+		requestBossAppear_ = AreAllCrystalsDestroyed();
+		isFinalPhaseReady_ = requestBossAppear_;
+		BeginWorldColorChange(); // クリスタル破壊イベントから世界色変化を開始する。
+		crystal.ClearJustBrokenFlag();
+	}
+}
+
+void CrystalManager::BeginWorldColorChange()
+{
+	if (worldColorChanging_ || worldColorChangeComplete_)
+	{
+		return;
+	}
+
+	// 破壊時に急変させず、LightManagerの環境色を補間する世界演出へ入る。
+	worldColorChanging_ = true;
+	worldColorChangeComplete_ = false;
+	worldColorChangeTimer_ = 0.0f;
+	baseLightingSettings_ = Ken4lowEngine::LightManager::GetInstance()->GetLightingSettings();
+}
+
+void CrystalManager::UpdateWorldColorChange(float deltaTime)
+{
+	if (!worldColorChanging_)
+	{
+		return;
+	}
+
+	worldColorChangeTimer_ += deltaTime;
+	const float t = std::clamp(worldColorChangeTimer_ / std::max(0.1f, worldColorChangeTime_), 0.0f, 1.0f);
+	auto& lighting = Ken4lowEngine::LightManager::GetInstance()->GetMutableLightingSettingsForEditor();
+
+	const float dark = std::clamp(worldDarkness_, 0.0f, 1.0f) * t;
+	const float red = std::clamp(worldRedTint_, 0.0f, 1.0f) * t;
+	lighting.ambientColor = {
+		baseLightingSettings_.ambientColor.x * (1.0f - dark) + red,
+		baseLightingSettings_.ambientColor.y * (1.0f - dark * 0.9f),
+		baseLightingSettings_.ambientColor.z * (1.0f - dark),
+		baseLightingSettings_.ambientColor.w
+	};
+	lighting.fogColor = {
+		baseLightingSettings_.fogColor.x * (1.0f - dark) + red * 0.45f,
+		baseLightingSettings_.fogColor.y * (1.0f - dark),
+		baseLightingSettings_.fogColor.z * (1.0f - dark),
+		baseLightingSettings_.fogColor.w
+	};
+	lighting.exposure = std::max(0.15f, baseLightingSettings_.exposure * (1.0f - dark * 0.55f));
+	lighting.diffuseStrength = std::max(0.2f, baseLightingSettings_.diffuseStrength * (1.0f - dark * 0.35f));
+
+	if (t >= 1.0f)
+	{
+		worldColorChanging_ = false;
+		worldColorChangeComplete_ = true;
+	}
+}
+
+void CrystalManager::RestoreWorldColor()
+{
+	if (!worldColorChanging_ && !worldColorChangeComplete_)
+	{
+		return;
+	}
+
+	Ken4lowEngine::LightManager::GetInstance()->GetMutableLightingSettingsForEditor() = baseLightingSettings_;
+	worldColorChanging_ = false;
+	worldColorChangeComplete_ = false;
+	worldColorChangeTimer_ = 0.0f;
+}
+
 std::string CrystalManager::BuildCrystalGroupName(const CrystalSpawnPoint& spawnPoint) const
 {
 	return std::string(kCrystalSpawnerRootGroup) + "/" + spawnPoint.crystalName;
@@ -444,6 +592,11 @@ void CrystalManager::DrawImGui()
 	ImGui::Text("ボス出現条件成立: %s", debugBossSpawnConditionMet_ ? "はい" : "いいえ");
 	ImGui::Text("ボス出現済み: %s", debugBossSpawned_ ? "はい" : "いいえ");
 	ImGui::Text("ボス出現位置: (%.2f, %.2f, %.2f)", debugBossSpawnPosition_.x, debugBossSpawnPosition_.y, debugBossSpawnPosition_.z);
+	ImGui::Text("クリスタル破壊イベント発生済み: %s", hasCrystalBroken_ ? "はい" : "いいえ");
+	ImGui::Text("最終局面準備完了: %s", isFinalPhaseReady_ ? "はい" : "いいえ");
+	ImGui::Text("ボス登場要求フラグ: %s", requestBossAppear_ ? "はい" : "いいえ");
+	ImGui::Text("世界色変化: %.2f / %.2f 秒", worldColorChangeTimer_, worldColorChangeTime_);
+	ImGui::Text("世界色変化完了: %s", worldColorChangeComplete_ ? "はい" : "いいえ");
 	ImGui::Text("更新用deltaTime上限: %.4f 秒", kMaxUpdateDeltaTime);
 	ImGui::Text("敵Ground Snap有効: %s", EnemyBase::IsGroundSnapEnabled() ? "はい" : "いいえ");
 	ImGui::Text("クリスタルGround Snap有効: %s", EnemySpawnCrystal::IsGroundSnapEnabled() ? "はい" : "いいえ");
@@ -496,6 +649,17 @@ void CrystalManager::DrawImGui()
 	ImGui::Text("選択中クリスタル最大HP: %d", crystal->GetMaxHp());
 	ImGui::Text("選択中クリスタルHP割合: %.2f", crystal->GetHpRate());
 	ImGui::Text("生存状態: %s", crystal->IsAlive() ? "生存" : "破壊済み");
+	const char* stateLabel = "Normal";
+	switch (crystal->GetState())
+	{
+	case EnemySpawnCrystal::State::Damaged: stateLabel = "Damaged"; break;
+	case EnemySpawnCrystal::State::Critical: stateLabel = "Critical"; break;
+	case EnemySpawnCrystal::State::Breaking: stateLabel = "Breaking"; break;
+	case EnemySpawnCrystal::State::Broken: stateLabel = "Broken"; break;
+	case EnemySpawnCrystal::State::Normal:
+	default: break;
+	}
+	ImGui::Text("クリスタル状態: %s", stateLabel);
 	ImGui::Text("クリスタル破壊済み: %s", crystal->IsDestroyed() ? "はい" : "いいえ");
 	ImGui::Text("クリスタルCollider有効: %s", crystal->IsColliderEnabled() ? "はい" : "いいえ");
 	ImGui::Text("クリスタル被弾回数: %d", crystal->GetHitCount());

@@ -138,6 +138,11 @@ public: /// ---------- メンバ関数 ---------- ///
 	void SetReachedGoal(bool reached);
 	// ボス撃破/クリアアイテム取得の結果をステージ目的管理へ反映する。
 	void SetBossDefeated(bool defeated);
+	// クリスタル破壊イベントから将来のボス登場演出へつなぐための読み取り口。
+	bool HasCrystalBroken() const { return crystalManager_.HasCrystalBroken(); }
+	bool IsFinalPhaseReady() const { return crystalManager_.IsFinalPhaseReady(); }
+	bool IsBossAppearRequested() const { return crystalManager_.IsBossAppearRequested(); }
+	bool IsWorldColorChangeComplete() const { return crystalManager_.IsWorldColorChangeComplete(); }
 
 private: /// ---------- メンバ関数 ---------- ///
 

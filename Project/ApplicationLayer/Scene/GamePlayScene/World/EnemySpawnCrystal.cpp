@@ -5,6 +5,7 @@
 #include "EnemyBase.h"
 #include "Bullet.h"
 #include "CollisionTypeIdDef.h"
+#include "AudioManager.h"
 
 #include <algorithm>
 #include <cmath>
@@ -69,11 +70,32 @@ namespace
 		const float t = static_cast<float>(std::rand()) / static_cast<float>(RAND_MAX);
 		return minValue + (maxValue - minValue) * t;
 	}
+
+	float Clamp01(float value)
+	{
+		return std::clamp(value, 0.0f, 1.0f);
+	}
+
+	Vector4 LerpColor(const Vector4& a, const Vector4& b, float t)
+	{
+		t = Clamp01(t);
+		return {
+			a.x + (b.x - a.x) * t,
+			a.y + (b.y - a.y) * t,
+			a.z + (b.z - a.z) * t,
+			a.w + (b.w - a.w) * t
+		};
+	}
 }
 
 void EnemySpawnCrystal::Initialize(const CrystalSpawnPoint& spawnPoint, const std::vector<AABB>* floorAABBs, const std::vector<AABB>* obstacleAABBs)
 {
 	isAlive = true;
+	state_ = State::Normal;
+	justBroken_ = false;
+	hitFlashTimer_ = 0.0f;
+	hitShakeTimer_ = 0.0f;
+	breakingTimer_ = 0.0f;
 	totalSpawnedCount = 0;
 	aliveSpawnedEnemyCount = 0;
 	spawnedEnemies_.clear();
@@ -92,16 +114,20 @@ void EnemySpawnCrystal::Initialize(const CrystalSpawnPoint& spawnPoint, const st
 	SyncTransformToRuntime(floorAABBs, obstacleAABBs);
 }
 
-void EnemySpawnCrystal::Update(const CharacterWorld& characters)
+void EnemySpawnCrystal::Update(const CharacterWorld& characters, float deltaTime, const CrystalReactionSettings& reactionSettings)
 {
+	reactionSettings_ = reactionSettings;
 	RemoveInactiveSpawnedEnemies(characters);
+	UpdateReactionTimers(deltaTime, reactionSettings);
+	UpdateStateFromHpRate(reactionSettings); // HP割合からNormal/Damaged/Criticalへ状態を切り替える。
 
 	if (debugCube_)
 	{
 		// クリスタルはカメラ基準ではなく、ステージ上の固定ワールド座標に配置する。
-		debugCube_->SetTranslate(position_);
+		debugCube_->SetTranslate(BuildVisualPosition(reactionSettings));
 		debugCube_->SetRotate(rotation_);
-		debugCube_->SetScale(scale_);
+		debugCube_->SetScale(BuildVisualScale(reactionSettings));
+		debugCube_->SetColor(BuildVisualColor(reactionSettings));
 		debugCube_->Update();
 	}
 }
@@ -124,11 +150,10 @@ void EnemySpawnCrystal::ApplyDamage(int damage)
 	// クリスタルの残りHPを確認できるよう、HP割合を表示用に公開する。
 	++hitCount_;
 	hp = std::max(0, hp - damage);
+	BeginHitReaction(); // ダメージを受けた時の点滅・揺れ・SEリアクションを開始する。
 	if (hp <= 0)
 	{
-		isAlive = false;
-		// 破壊後のColliderが近接攻撃や弾を遮らないよう、判定だけを場外へ退避する。
-		SetCenterPosition({ 1.0e9f, 1.0e9f, 1.0e9f });
+		BeginBreaking(reactionSettings_); // HP0からBreaking状態へ移行し、即消滅を避ける。
 	}
 }
 
@@ -149,7 +174,8 @@ void EnemySpawnCrystal::OnCollisionEnter(K4E::Collider* other)
 bool EnemySpawnCrystal::CanSpawnEnemy() const
 {
 	const bool underTotalLimit = (maxSpawnCount_ <= 0) || (totalSpawnedCount < maxSpawnCount_);
-	return isActive_ && isAlive && enableInfiniteSpawn && underTotalLimit && aliveSpawnedEnemyCount < maxAliveEnemies;
+	// Breaking/Broken中は破壊済み扱いとして、このクリスタルからのスポーンを停止する。
+	return isActive_ && isAlive && state_ != State::Breaking && state_ != State::Broken && enableInfiniteSpawn && underTotalLimit && aliveSpawnedEnemyCount < maxAliveEnemies;
 }
 
 void EnemySpawnCrystal::SetMaxAliveEnemies(int count)
@@ -281,9 +307,143 @@ void EnemySpawnCrystal::SyncTransformToRuntime(const std::vector<AABB>* floorAAB
 
 	if (debugCube_)
 	{
-		debugCube_->SetTranslate(position_);
+		debugCube_->SetTranslate(BuildVisualPosition(reactionSettings_));
 		debugCube_->SetRotate(rotation_);
 		debugCube_->SetScale(scale_);
 		debugCube_->Update();
 	}
+}
+
+void EnemySpawnCrystal::BeginHitReaction()
+{
+	hitFlashTimer_ = std::max(hitFlashTimer_, reactionSettings_.hitFlashTime);
+	hitShakeTimer_ = std::max(hitShakeTimer_, reactionSettings_.hitShakeTime);
+	Ken4lowEngine::AudioManager::GetInstance()->PlaySE(GetHitSoundName(), 0.16f);
+}
+
+void EnemySpawnCrystal::BeginBreaking(const CrystalReactionSettings& reactionSettings)
+{
+	if (state_ == State::Breaking || state_ == State::Broken)
+	{
+		return;
+	}
+
+	// HP0からBreakingへ入り、破壊演出中は見た目を残しつつ敵スポーンを止める。
+	state_ = State::Breaking;
+	isAlive = true;
+	enableInfiniteSpawn = false;
+	breakingTimer_ = 0.0f;
+	hitFlashTimer_ = std::max(hitFlashTimer_, reactionSettings.hitFlashTime);
+	hitShakeTimer_ = std::max(hitShakeTimer_, reactionSettings.breakingDuration);
+	Ken4lowEngine::AudioManager::GetInstance()->PlaySE(GetBreakSoundName(), 0.35f, 0.85f);
+}
+
+void EnemySpawnCrystal::UpdateStateFromHpRate(const CrystalReactionSettings& reactionSettings)
+{
+	if (state_ == State::Breaking || state_ == State::Broken)
+	{
+		return;
+	}
+
+	const float hpRate = GetHpRate();
+	if (hpRate <= reactionSettings.criticalHpRate)
+	{
+		state_ = State::Critical;
+	}
+	else if (hpRate <= reactionSettings.damagedHpRate)
+	{
+		state_ = State::Damaged;
+	}
+	else
+	{
+		state_ = State::Normal;
+	}
+}
+
+void EnemySpawnCrystal::UpdateReactionTimers(float deltaTime, const CrystalReactionSettings& reactionSettings)
+{
+	hitFlashTimer_ = std::max(0.0f, hitFlashTimer_ - deltaTime);
+	hitShakeTimer_ = std::max(0.0f, hitShakeTimer_ - deltaTime);
+
+	if (state_ != State::Breaking)
+	{
+		return;
+	}
+
+	breakingTimer_ += deltaTime;
+	if (breakingTimer_ >= std::max(0.05f, reactionSettings.breakingDuration))
+	{
+		state_ = State::Broken;
+		isAlive = false;
+		justBroken_ = true;
+		SetCenterPosition({ 1.0e9f, 1.0e9f, 1.0e9f });
+	}
+}
+
+K4E::Vector4 EnemySpawnCrystal::BuildVisualColor(const CrystalReactionSettings& reactionSettings) const
+{
+	Vector4 color{ 0.25f, 0.85f, 1.0f, 1.0f };
+	switch (state_)
+	{
+	case State::Damaged:
+		color = { 0.35f, 0.55f, 1.0f, 1.0f };
+		break;
+	case State::Critical:
+		color = { 1.0f, 0.25f, 0.20f, 1.0f };
+		break;
+	case State::Breaking:
+	{
+		const float t = Clamp01(breakingTimer_ / std::max(0.05f, reactionSettings.breakingDuration));
+		color = LerpColor({ 1.0f, 0.15f, 0.08f, 1.0f }, { 0.05f, 0.05f, 0.05f, 0.0f }, t);
+		break;
+	}
+	case State::Broken:
+		color = { 0.0f, 0.0f, 0.0f, 0.0f };
+		break;
+	case State::Normal:
+	default:
+		break;
+	}
+
+	if (hitFlashTimer_ > 0.0f)
+	{
+		color = LerpColor(color, { 1.0f, 1.0f, 1.0f, color.w }, 0.75f);
+	}
+
+	return color;
+}
+
+K4E::Vector3 EnemySpawnCrystal::BuildVisualPosition(const CrystalReactionSettings& reactionSettings) const
+{
+	Vector3 visualPosition = position_;
+	if (hitShakeTimer_ > 0.0f || state_ == State::Breaking)
+	{
+		const float power = (state_ == State::Breaking) ? reactionSettings.hitShakePower * 1.6f : reactionSettings.hitShakePower;
+		visualPosition.x += RandomRange(-power, power);
+		visualPosition.y += RandomRange(-power * 0.5f, power * 0.5f);
+		visualPosition.z += RandomRange(-power, power);
+	}
+	return visualPosition;
+}
+
+K4E::Vector3 EnemySpawnCrystal::BuildVisualScale(const CrystalReactionSettings& reactionSettings) const
+{
+	Vector3 visualScale = scale_;
+	if (state_ == State::Breaking)
+	{
+		const float t = Clamp01(breakingTimer_ / std::max(0.05f, reactionSettings.breakingDuration));
+		const float scaleBoost = 1.0f + (reactionSettings.breakEffectScale - 1.0f) * (1.0f - std::abs(t * 2.0f - 1.0f));
+		visualScale = visualScale * scaleBoost;
+	}
+	return visualScale;
+}
+
+const char* EnemySpawnCrystal::GetHitSoundName() const
+{
+	return "enemy_hit.mp3";
+}
+
+const char* EnemySpawnCrystal::GetBreakSoundName() const
+{
+	return "enemy_death.mp3";
 }
