@@ -6,6 +6,7 @@
 #include "CollisionManager.h"
 #include "EnemyBase.h"
 #include "EnemyHPBarProjector.h"
+#include "ParameterManager.h"
 
 #include <algorithm>
 #include <cmath>
@@ -19,25 +20,57 @@
 namespace
 {
 	constexpr float kMinimumSpawnInterval = 0.05f;
+	constexpr const char* kCrystalSpawnerRootGroup = "CrystalSpawner";
+
+	const std::vector<std::string>& CrystalEnemyTypeOptions()
+	{
+		static const std::vector<std::string> options = {
+			"Legacy",
+			"Melee",
+			"MidRange",
+			"GuardianBoss"
+		};
+		return options;
+	}
+
+	const std::vector<std::string>& CrystalSpawnPatternOptions()
+	{
+		static const std::vector<std::string> options = {
+			"Single",
+			"Interval",
+			"Burst"
+		};
+		return options;
+	}
+}
+
+CrystalManager::~CrystalManager()
+{
+	Finalize();
 }
 
 void CrystalManager::Initialize(const std::vector<CrystalSpawnPoint>& spawnPoints, CollisionManager* collisionManager, const std::vector<Ken4lowEngine::AABB>* floorAABBs, const std::vector<Ken4lowEngine::AABB>* obstacleAABBs)
 {
-	if (collisionManager_)
+	Finalize();
+
+	collisionManager_ = collisionManager;
+	floorAABBs_ = floorAABBs;
+	obstacleAABBs_ = obstacleAABBs;
+	spawnPoints_ = spawnPoints;
+	parameterGroupNames_.clear();
+	parameterGroupNames_.reserve(spawnPoints_.size());
+
+	for (CrystalSpawnPoint& spawnPoint : spawnPoints_)
 	{
-		for (EnemySpawnCrystal& crystal : crystals_)
-		{
-			collisionManager_->RemoveCollider(&crystal);
-		}
+		RegisterCrystalParameters(spawnPoint);
+		ApplyParameterToSpawnPoint(spawnPoint);
 	}
 
-	crystals_.clear();
-	collisionManager_ = collisionManager;
-	crystals_.reserve(spawnPoints.size());
-	for (const CrystalSpawnPoint& spawnPoint : spawnPoints)
+	crystals_.reserve(spawnPoints_.size());
+	for (const CrystalSpawnPoint& spawnPoint : spawnPoints_)
 	{
 		EnemySpawnCrystal crystal;
-		crystal.Initialize(spawnPoint, floorAABBs, obstacleAABBs);
+		crystal.Initialize(spawnPoint, floorAABBs_, obstacleAABBs_);
 		crystals_.push_back(std::move(crystal));
 	}
 
@@ -52,9 +85,6 @@ void CrystalManager::Initialize(const std::vector<CrystalSpawnPoint>& spawnPoint
 	selectedCrystalIndex_ = 0;
 	nextSpawnCrystalIndex_ = 0;
 	enableCrystalEnemySpawn_ = true;
-	maxTotalCrystalSpawnEnemies_ = 15;
-	globalSpawnInterval_ = 2.0f;
-	globalSpawnTimer_ = 0.0f;
 	maxSpawnPerInterval_ = 1;
 	debugAliveNormalEnemyCount_ = 0;
 	debugBossSpawnConditionMet_ = false;
@@ -62,39 +92,67 @@ void CrystalManager::Initialize(const std::vector<CrystalSpawnPoint>& spawnPoint
 	debugBossSpawnPosition_ = {};
 }
 
+void CrystalManager::Finalize()
+{
+	if (collisionManager_)
+	{
+		for (EnemySpawnCrystal& crystal : crystals_)
+		{
+			collisionManager_->RemoveCollider(&crystal);
+		}
+	}
+
+	UnregisterCrystalParameters();
+	crystals_.clear();
+	spawnPoints_.clear();
+	parameterGroupNames_.clear();
+	collisionManager_ = nullptr;
+	floorAABBs_ = nullptr;
+	obstacleAABBs_ = nullptr;
+}
+
 void CrystalManager::Update(CharacterWorld& characters, float deltaTime)
 {
+	SyncCrystalsFromParameterManager();
+
 	for (EnemySpawnCrystal& crystal : crystals_)
 	{
 		crystal.Update(characters);
 	}
 
-	if (!enableCrystalEnemySpawn_ || AreAllCrystalsDestroyed() || GetAliveCrystalCount() <= 0 ||
-		GetAliveCrystalSpawnEnemyCount() >= maxTotalCrystalSpawnEnemies_)
+	if (!enableCrystalEnemySpawn_ || AreAllCrystalsDestroyed() || GetAliveCrystalCount() <= 0)
 	{
-		globalSpawnTimer_ = 0.0f;
 		return;
 	}
 
 	// フレーム落ち時にスポーン更新が一気に進まないよう、Crystal更新用deltaTimeを制限する。
 	const float safeDeltaTime = std::clamp(deltaTime, 0.0f, kMaxUpdateDeltaTime);
-	globalSpawnTimer_ += safeDeltaTime;
-	if (globalSpawnTimer_ < globalSpawnInterval_)
+	for (EnemySpawnCrystal& crystal : crystals_)
 	{
-		return;
+		crystal.AdvanceSpawnTimer(safeDeltaTime);
 	}
 
-	globalSpawnTimer_ = 0.0f;
-	// 敵が増えすぎないよう、クリスタル由来の生存敵数がステージ全体の上限未満のときだけ補充する。
-	for (int spawnedCount = 0; spawnedCount < maxSpawnPerInterval_ &&
-		GetAliveCrystalSpawnEnemyCount() < maxTotalCrystalSpawnEnemies_; ++spawnedCount)
+	// 各クリスタルのTransformをスポーン基準にして、個別の間隔/初回遅延で敵を補充する。
+	for (int spawnedCount = 0; spawnedCount < maxSpawnPerInterval_; ++spawnedCount)
 	{
 		EnemySpawnCrystal* crystal = FindNextSpawnableCrystal();
 		if (!crystal)
 		{
 			break;
 		}
-		crystal->SpawnEnemy(characters);
+
+		if (crystal->GetSpawnPattern() == "Burst")
+		{
+			while (crystal->CanSpawnEnemy())
+			{
+				crystal->SpawnEnemy(characters);
+			}
+		}
+		else
+		{
+			crystal->SpawnEnemy(characters);
+		}
+		crystal->ConsumeSpawnTimer();
 	}
 }
 
@@ -197,13 +255,133 @@ EnemySpawnCrystal* CrystalManager::FindNextSpawnableCrystal()
 	for (size_t offset = 0; offset < crystals_.size(); ++offset)
 	{
 		const size_t crystalIndex = (nextSpawnCrystalIndex_ + offset) % crystals_.size();
-		if (crystals_[crystalIndex].CanSpawnEnemy())
+		if (crystals_[crystalIndex].IsSpawnReady())
 		{
 			nextSpawnCrystalIndex_ = (crystalIndex + 1) % crystals_.size();
 			return &crystals_[crystalIndex];
 		}
 	}
 	return nullptr;
+}
+
+void CrystalManager::RegisterCrystalParameters(CrystalSpawnPoint& spawnPoint)
+{
+	const std::string groupName = BuildCrystalGroupName(spawnPoint);
+	parameterGroupNames_.push_back(groupName);
+
+	auto* parameters = Ken4lowEngine::ParameterManager::GetInstance();
+	parameters->CreateGroup(groupName);
+
+	// クリスタル自体をスポナーとしてParameterManagerへ登録し、既存のJson保存/読み込みに乗せる。
+	parameters->AddItem(groupName, "isActive", spawnPoint.isActive);
+	parameters->AddItem(groupName, "position", spawnPoint.position, Ken4lowEngine::Vector3{ -200.0f, -50.0f, -200.0f }, Ken4lowEngine::Vector3{ 200.0f, 80.0f, 200.0f });
+	parameters->AddItem(groupName, "rotation", spawnPoint.rotation, Ken4lowEngine::Vector3{ -3.141592f, -3.141592f, -3.141592f }, Ken4lowEngine::Vector3{ 3.141592f, 3.141592f, 3.141592f });
+	parameters->AddItem(groupName, "scale", spawnPoint.scale, Ken4lowEngine::Vector3{ 0.1f, 0.1f, 0.1f }, Ken4lowEngine::Vector3{ 10.0f, 10.0f, 10.0f });
+	parameters->AddItem(groupName, "hp", spawnPoint.hp, 1, 10000);
+	parameters->AddItem(groupName, "maxHp", spawnPoint.maxHp, 1, 10000);
+	parameters->AddStringItem(groupName, "enemyType", ToEnemyTypeName(spawnPoint.spawnEnemyType), CrystalEnemyTypeOptions());
+	parameters->AddItem(groupName, "spawnInterval", spawnPoint.spawnInterval, 0.05f, 60.0f);
+	parameters->AddItem(groupName, "initialDelay", spawnPoint.initialDelay, 0.0f, 60.0f);
+	parameters->AddItem(groupName, "maxSpawnCount", spawnPoint.maxSpawnCount, 0, 1000);
+	parameters->AddItem(groupName, "maxAliveCount", spawnPoint.maxAliveEnemies, 0, 100);
+	parameters->AddItem(groupName, "spawnRadius", spawnPoint.spawnRadius, 0.0f, 50.0f);
+	parameters->AddStringItem(groupName, "spawnPattern", spawnPoint.spawnPattern, CrystalSpawnPatternOptions());
+
+	parameters->SetDisplayName(groupName, "isActive", "有効");
+	parameters->SetDisplayName(groupName, "position", "座標");
+	parameters->SetDisplayName(groupName, "rotation", "回転");
+	parameters->SetDisplayName(groupName, "scale", "スケール");
+	parameters->SetDisplayName(groupName, "hp", "初期HP");
+	parameters->SetDisplayName(groupName, "maxHp", "最大HP");
+	parameters->SetDisplayName(groupName, "enemyType", "敵タイプ");
+	parameters->SetDisplayName(groupName, "spawnInterval", "湧き間隔");
+	parameters->SetDisplayName(groupName, "initialDelay", "初回湧き遅延");
+	parameters->SetDisplayName(groupName, "maxSpawnCount", "最大湧き数");
+	parameters->SetDisplayName(groupName, "maxAliveCount", "同時出現数");
+	parameters->SetDisplayName(groupName, "spawnRadius", "湧き半径");
+	parameters->SetDisplayName(groupName, "spawnPattern", "湧き方");
+
+	parameters->RegisterParameterApplier(groupName, this, [this]() { SyncCrystalsFromParameterManager(); });
+	parameters->LoadFile(groupName);
+}
+
+void CrystalManager::UnregisterCrystalParameters()
+{
+	auto* parameters = Ken4lowEngine::ParameterManager::GetInstance();
+	for (const std::string& groupName : parameterGroupNames_)
+	{
+		parameters->UnregisterParameterApplier(groupName, this);
+	}
+}
+
+void CrystalManager::ApplyParameterToSpawnPoint(CrystalSpawnPoint& spawnPoint)
+{
+	const std::string groupName = BuildCrystalGroupName(spawnPoint);
+	auto* parameters = Ken4lowEngine::ParameterManager::GetInstance();
+
+	spawnPoint.isActive = parameters->GetValue<bool>(groupName, "isActive");
+	spawnPoint.position = parameters->GetValue<Ken4lowEngine::Vector3>(groupName, "position");
+	spawnPoint.rotation = parameters->GetValue<Ken4lowEngine::Vector3>(groupName, "rotation");
+	spawnPoint.scale = parameters->GetValue<Ken4lowEngine::Vector3>(groupName, "scale");
+	spawnPoint.hp = std::max(1, parameters->GetValue<int32_t>(groupName, "hp"));
+	spawnPoint.maxHp = std::max(1, parameters->GetValue<int32_t>(groupName, "maxHp"));
+	spawnPoint.spawnEnemyType = ParseCrystalEnemyType(parameters->GetValue<std::string>(groupName, "enemyType"));
+	spawnPoint.spawnInterval = std::max(kMinimumSpawnInterval, parameters->GetValue<float>(groupName, "spawnInterval"));
+	spawnPoint.initialDelay = std::max(0.0f, parameters->GetValue<float>(groupName, "initialDelay"));
+	spawnPoint.maxSpawnCount = std::max(0, parameters->GetValue<int32_t>(groupName, "maxSpawnCount"));
+	spawnPoint.maxAliveEnemies = std::max(0, parameters->GetValue<int32_t>(groupName, "maxAliveCount"));
+	spawnPoint.spawnRadius = std::max(0.0f, parameters->GetValue<float>(groupName, "spawnRadius"));
+	spawnPoint.spawnPattern = parameters->GetValue<std::string>(groupName, "spawnPattern");
+	spawnPoint.enableInfiniteSpawn = spawnPoint.isActive;
+}
+
+void CrystalManager::SyncCrystalsFromParameterManager()
+{
+	for (size_t i = 0; i < spawnPoints_.size() && i < crystals_.size(); ++i)
+	{
+		ApplyParameterToSpawnPoint(spawnPoints_[i]);
+		SyncCrystalFromSpawnPoint(i);
+	}
+}
+
+void CrystalManager::SyncCrystalFromSpawnPoint(size_t index)
+{
+	if (index >= spawnPoints_.size() || index >= crystals_.size())
+	{
+		return;
+	}
+
+	// ParameterManagerのTransformをクリスタル本体へ反映し、描画・Collider・敵スポーン位置を同じ座標へ揃える。
+	crystals_[index].ApplySpawnerSettings(spawnPoints_[index], floorAABBs_, obstacleAABBs_);
+}
+
+std::string CrystalManager::BuildCrystalGroupName(const CrystalSpawnPoint& spawnPoint) const
+{
+	return std::string(kCrystalSpawnerRootGroup) + "/" + spawnPoint.crystalName;
+}
+
+const char* CrystalManager::ToEnemyTypeName(EnemyType enemyType) const
+{
+	switch (enemyType)
+	{
+	case EnemyType::Melee:
+		return "Melee";
+	case EnemyType::MidRange:
+		return "MidRange";
+	case EnemyType::Legacy:
+	default:
+		return "Legacy";
+	}
+}
+
+EnemyType CrystalManager::ParseCrystalEnemyType(const std::string& enemyTypeName) const
+{
+	if (enemyTypeName == "GuardianBoss")
+	{
+		// 今回はボス生成へ接続せず、将来のBossCrystal用指定としてLegacyへフォールバックする。
+		return EnemyType::Legacy;
+	}
+	return ParseEnemyType(enemyTypeName);
 }
 
 void CrystalManager::DrawImGui()
@@ -255,12 +433,7 @@ void CrystalManager::DrawImGui()
 	{
 		EnemyBase::SetDeathPieceLifetime(deathPieceLifetime);
 	}
-	ImGui::DragInt("クリスタル由来の最大敵数", &maxTotalCrystalSpawnEnemies_, 1.0f, 0, 100);
-	maxTotalCrystalSpawnEnemies_ = std::max(0, maxTotalCrystalSpawnEnemies_);
 	ImGui::Text("現在のクリスタル由来敵数: %d", GetAliveCrystalSpawnEnemyCount());
-	ImGui::DragFloat("スポーン間隔", &globalSpawnInterval_, 0.1f, kMinimumSpawnInterval, 60.0f, "%.2f 秒");
-	globalSpawnInterval_ = std::max(kMinimumSpawnInterval, globalSpawnInterval_);
-	ImGui::Text("スポーンタイマー: %.2f / %.2f 秒", globalSpawnTimer_, globalSpawnInterval_);
 	ImGui::DragInt("1回の最大スポーン数", &maxSpawnPerInterval_, 1.0f, 1, 9);
 	maxSpawnPerInterval_ = std::max(1, maxSpawnPerInterval_);
 	ImGui::Text("クリスタル数: %d", GetCrystalCount());
@@ -327,6 +500,12 @@ void CrystalManager::DrawImGui()
 	ImGui::Text("クリスタルCollider有効: %s", crystal->IsColliderEnabled() ? "はい" : "いいえ");
 	ImGui::Text("クリスタル被弾回数: %d", crystal->GetHitCount());
 	ImGui::Text("カメラ座標: (%.2f, %.2f, %.2f)", cameraPosition.x, cameraPosition.y, cameraPosition.z);
+	ImGui::Text("湧き間隔: %.2f 秒", crystal->GetSpawnInterval());
+	ImGui::Text("初回湧き遅延: %.2f 秒", crystal->GetInitialDelay());
+	ImGui::Text("湧きタイマー: %.2f 秒", crystal->GetSpawnTimer());
+	ImGui::Text("湧き方: %s", crystal->GetSpawnPattern().c_str());
+	ImGui::Text("最大湧き数: %d", crystal->GetMaxSpawnCount());
+	ImGui::Text("湧き半径: %.2f", crystal->GetSpawnRadius());
 	ImGui::Text("選択中クリスタル由来の生存敵数: %d", crystal->GetAliveSpawnedEnemyCount());
 	ImGui::Text("選択中クリスタルの合計スポーン数: %d", crystal->GetTotalSpawnedCount());
 	if (ImGui::Button("選択中クリスタルに10ダメージ"))

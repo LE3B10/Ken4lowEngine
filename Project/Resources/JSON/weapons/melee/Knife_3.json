@@ -12,6 +12,13 @@
         "weaponID": 3,
         "weaponName": "Knife"
     },
+    "deathReaction": {
+        "explosionRadius": 0.0,
+        "impulseScale": 1.0,
+        "power": 6.0,
+        "type": "light",
+        "upPower": 1.5
+    },
     "defaultFireMode": "semi",
     "economyData": {
         "bIsLimitedTime": false,
@@ -163,12 +170,5 @@
         "shellEjectVfxPath": "",
         "tracerScale": 1.0,
         "tracerVfxPath": ""
-    },
-    "deathReaction": {
-        "type": "light",
-        "power": 6.0,
-        "upPower": 1.5,
-        "explosionRadius": 0.0,
-        "impulseScale": 1.0
     }
 }

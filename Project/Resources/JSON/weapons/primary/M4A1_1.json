@@ -12,6 +12,13 @@
         "weaponID": 1,
         "weaponName": "M4A1"
     },
+    "deathReaction": {
+        "explosionRadius": 0.0,
+        "impulseScale": 1.0,
+        "power": 8.0,
+        "type": "default",
+        "upPower": 2.0
+    },
     "defaultFireMode": "fullauto",
     "economyData": {
         "bIsLimitedTime": false,
@@ -160,12 +167,5 @@
         "shellEjectVfxPath": "",
         "tracerScale": 1.0,
         "tracerVfxPath": ""
-    },
-    "deathReaction": {
-        "type": "default",
-        "power": 8.0,
-        "upPower": 2.0,
-        "explosionRadius": 0.0,
-        "impulseScale": 1.0
     }
 }

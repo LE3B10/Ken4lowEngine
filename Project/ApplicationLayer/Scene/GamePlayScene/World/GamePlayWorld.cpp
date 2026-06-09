@@ -252,6 +252,7 @@ void GamePlayWorld::Initialize(GamePlayStageContext& stageContext)
 	// 明示的なvectorを使い、初期化子の型差で意図しない変換が起きないようにする。
 	std::vector<CrystalSpawnPoint> crystalSpawnPoints;
 	CrystalSpawnPoint centerCrystalSpawnPoint;
+	centerCrystalSpawnPoint.crystalName = "Crystal_01";
 	centerCrystalSpawnPoint.position = { 0.0f, 2.0f, 20.0f };
 	centerCrystalSpawnPoint.rotation = {};
 	centerCrystalSpawnPoint.scale = { 1.5f, 2.5f, 1.5f };
@@ -266,6 +267,7 @@ void GamePlayWorld::Initialize(GamePlayStageContext& stageContext)
 	crystalSpawnPoints.push_back(centerCrystalSpawnPoint);
 
 	CrystalSpawnPoint rightCrystalSpawnPoint;
+	rightCrystalSpawnPoint.crystalName = "Crystal_02";
 	rightCrystalSpawnPoint.position = { 10.0f, 2.0f, 30.0f };
 	rightCrystalSpawnPoint.rotation = {};
 	rightCrystalSpawnPoint.scale = { 1.5f, 2.5f, 1.5f };
@@ -280,6 +282,7 @@ void GamePlayWorld::Initialize(GamePlayStageContext& stageContext)
 	crystalSpawnPoints.push_back(rightCrystalSpawnPoint);
 
 	CrystalSpawnPoint leftCrystalSpawnPoint;
+	leftCrystalSpawnPoint.crystalName = "BossCrystal_01";
 	leftCrystalSpawnPoint.position = { -10.0f, 2.0f, 30.0f };
 	leftCrystalSpawnPoint.rotation = {};
 	leftCrystalSpawnPoint.scale = { 1.5f, 2.5f, 1.5f };
@@ -311,8 +314,7 @@ void GamePlayWorld::Finalize()
 	}
 	guardianBoss_.reset();
 	clearItem_.reset();
-	const std::vector<CrystalSpawnPoint> emptyCrystalSpawnPoints;
-	crystalManager_.Initialize(emptyCrystalSpawnPoints, nullptr);
+	crystalManager_.Finalize();
 	stageObjectiveManager_.reset();
 	waveManager_.reset();
 	hudManager_.reset();
