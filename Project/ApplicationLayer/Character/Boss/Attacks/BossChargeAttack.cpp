@@ -105,6 +105,13 @@ void BossChargeAttack::UpdateCharging(float deltaTime)
 	owner_->SetPosition(pos); // 固定方向へ直進して、遠距離時の距離詰めを攻撃行動として成立させる。
 	traveledDistance_ += step;
 
+	Vector3 trailPosition = owner_->GetCenterPosition();
+	trailPosition.x -= lockedForward_.x * 1.2f;
+	trailPosition.y += 0.25f;
+	trailPosition.z -= lockedForward_.z * 1.2f;
+	// 突進中の背後へ残像トレイルを出し、ボスが高速で迫ってくる視覚的な圧を作る。
+	BossAttackEffects::EmitGuardianAttackPresenceEffect("GuardianChargeTrail", GpuParticleType::Trail, trailPosition, 10, 0.35f, 0.75f, 1.15f);
+
 	TryHitPlayer();
 
 	if (hasHit_ || traveledDistance_ >= chargeDistance_)
