@@ -1,12 +1,19 @@
 #include "BossBase.h"
 #include "CollisionTypeIdDef.h"
 #include "Player.h"
+#include "BossAttackEffects.h"
+#include "GpuParticleType.h"
 #include <LogString.h>
 #include <ParameterManager.h>
 
+#include <algorithm>
+#include <cmath>
+#include <cstdlib>
 #include <filesystem>
 #include <sstream>
 #include <string>
+#include <unordered_map>
+#include <vector>
 
 using namespace Ken4lowEngine;
 
@@ -19,6 +26,62 @@ namespace
 	constexpr float kDefaultBossStopDistance = 3.0f;
 	constexpr float kDefaultBossAttackRange = 3.0f;
 	constexpr float kDefaultBossAttackCooldown = 1.2f;
+	constexpr float kBossDeathPresentationSeconds = 3.0f;
+	constexpr float kBossDeathGravity = 9.8f;
+	constexpr float kBossDeathFloorY = 0.05f;
+
+	struct BossDeathPiece
+	{
+		BaseCharacter::BodyPart* part = nullptr;
+		K4E::Vector3 velocity{};
+		K4E::Vector3 angularVelocity{};
+	};
+
+	struct BossDeathRuntime
+	{
+		bool initialized = false;
+		bool startBurstDone = false;
+		float timer = 0.0f;
+		float soulEmitTimer = 0.0f;
+		std::vector<BossDeathPiece> pieces{};
+	};
+
+	std::unordered_map<const BossBase*, BossDeathRuntime> g_bossDeathRuntimes;
+
+	float Rand01()
+	{
+		return static_cast<float>(std::rand()) / static_cast<float>(RAND_MAX);
+	}
+
+	float RandRange(float minValue, float maxValue)
+	{
+		return minValue + (maxValue - minValue) * Rand01();
+	}
+
+	float Length(const K4E::Vector3& value)
+	{
+		return std::sqrt(value.x * value.x + value.y * value.y + value.z * value.z);
+	}
+
+	K4E::Vector3 NormalizeSafe(const K4E::Vector3& value, const K4E::Vector3& fallback = { 0.0f, 1.0f, 0.0f })
+	{
+		const float length = Length(value);
+		if (length <= 0.0001f)
+		{
+			return fallback;
+		}
+		return value * (1.0f / length);
+	}
+
+	K4E::Vector3 ClampVectorLength(const K4E::Vector3& value, float maxLength)
+	{
+		const float length = Length(value);
+		if (length <= maxLength || length <= 0.0001f)
+		{
+			return value;
+		}
+		return value * (maxLength / length);
+	}
 
 	void EnsureBossCommonParameters()
 	{
@@ -71,6 +134,155 @@ namespace
 			return defaultValue;
 		}
 	}
+
+	bool IsBossStatusDead(const BossBase& boss)
+	{
+		const BossStatusComponent* status = boss.GetStatusComponent();
+		return status ? status->IsDead() : true;
+	}
+
+	BossDeathRuntime& GetBossDeathRuntime(const BossBase& boss)
+	{
+		return g_bossDeathRuntimes[&boss];
+	}
+
+	K4E::Vector3 MakeBossDeathCenter(BossBase& boss)
+	{
+		auto& body = boss.GetBody();
+		body.transform.Update();
+		return body.transform.worldTranslate_;
+	}
+
+	BossDeathPiece MakeBossDeathPiece(BaseCharacter::BodyPart& part, const K4E::Vector3& center, float powerScale, float upwardScale)
+	{
+		BossDeathPiece piece{};
+		piece.part = &part;
+
+		const K4E::Vector3 outward = NormalizeSafe(part.transform.translate_ - center, { 0.0f, 0.0f, 1.0f });
+		K4E::Vector3 randomHorizontal{ RandRange(-1.0f, 1.0f), 0.0f, RandRange(-1.0f, 1.0f) };
+		randomHorizontal = NormalizeSafe(randomHorizontal, outward);
+		const K4E::Vector3 direction = NormalizeSafe(outward * 0.8f + randomHorizontal * 0.2f, outward);
+
+		// 雑魚敵と同じように部位を飛ばして、倒れて終わるだけの死亡演出にしない。
+		piece.velocity = ClampVectorLength(direction * RandRange(3.2f, 6.0f) * powerScale + K4E::Vector3{ 0.0f, RandRange(2.2f, 4.8f) * upwardScale, 0.0f }, 9.0f);
+		piece.angularVelocity = ClampVectorLength(K4E::Vector3{ RandRange(-3.0f, 3.0f), RandRange(-4.0f, 4.0f), RandRange(-3.0f, 3.0f) }, 7.0f);
+		return piece;
+	}
+
+	void StartBossBreakApartDeath(BossBase& boss, BossDeathRuntime& runtime)
+	{
+		if (runtime.initialized)
+		{
+			return;
+		}
+
+		runtime.initialized = true;
+		runtime.timer = 0.0f;
+		runtime.soulEmitTimer = 0.0f;
+		runtime.pieces.clear();
+
+		auto& body = boss.GetBody();
+		auto& parts = boss.GetBodyParts();
+		body.transform.Update();
+		const K4E::Vector3 center = body.transform.worldTranslate_;
+
+		body.transform.parent_ = nullptr;
+		body.transform.translate_ = center;
+		body.transform.Update();
+		if (body.object)
+		{
+			body.object->SetTranslate(body.transform.translate_);
+			body.object->SetRotate(body.transform.rotate_);
+			body.object->SetColor({ 1.0f, 0.45f, 0.35f, 1.0f });
+			body.object->Update();
+		}
+		runtime.pieces.push_back(MakeBossDeathPiece(body, center, 0.45f, 0.55f));
+
+		for (auto& part : parts)
+		{
+			part.transform.worldRotate_ = body.transform.worldRotate_;
+			part.transform.Update();
+			part.transform.parent_ = nullptr;
+			part.transform.translate_ = part.transform.worldTranslate_;
+			part.transform.rotate_ = part.transform.worldRotate_;
+			part.transform.Update();
+			if (part.object)
+			{
+				part.object->SetTranslate(part.transform.translate_);
+				part.object->SetRotate(part.transform.rotate_);
+				part.object->SetColor({ 1.0f, 0.45f, 0.35f, 1.0f });
+				part.object->Update();
+			}
+			runtime.pieces.push_back(MakeBossDeathPiece(part, center, 1.15f, 1.15f));
+		}
+
+		K4E::Vector3 burstPosition = center;
+		burstPosition.y += 1.0f;
+		BossAttackEffects::EmitGuardianHitEffect("GuardianBossDeathStartBurst", K4E::GpuParticleType::Shockwave, burstPosition, 96, 3.5f, 1.3f, 2.4f);
+		BossAttackEffects::EmitGuardianMeshDebrisEffect("GuardianBossDeathBreakDebris", K4E::GpuParticleType::Debris, center, 180, 4.0f, 1.8f, 2.8f);
+	}
+
+	void UpdateBossBreakApartDeath(BossBase& boss, float deltaTime)
+	{
+		BossDeathRuntime& runtime = GetBossDeathRuntime(boss);
+		StartBossBreakApartDeath(boss, runtime);
+
+		deltaTime = std::clamp(deltaTime, 0.0f, 0.05f);
+		runtime.timer += deltaTime;
+		runtime.soulEmitTimer += deltaTime;
+
+		const K4E::Vector3 center = MakeBossDeathCenter(boss);
+		K4E::Vector3 soulPosition = center;
+		soulPosition.y += 1.8f + runtime.timer * 0.85f;
+
+		// 魂が抜けて上へ昇るように、死亡中は上方向へ継続パーティクルを出す。
+		if (runtime.soulEmitTimer >= 0.06f && runtime.timer < kBossDeathPresentationSeconds)
+		{
+			runtime.soulEmitTimer = 0.0f;
+			BossAttackEffects::EmitGuardianAttackPresenceEffect("GuardianBossSoulRise", K4E::GpuParticleType::Trail, soulPosition, 5, 0.45f, 0.75f, 0.55f);
+			BossAttackEffects::EmitGuardianAttackPresenceEffect("GuardianBossDeathSmoke", K4E::GpuParticleType::Dust, center, 4, 1.8f, 0.65f, 0.8f);
+		}
+
+		if (!runtime.startBurstDone && runtime.timer >= 0.35f)
+		{
+			runtime.startBurstDone = true;
+			K4E::Vector3 secondBurst = center;
+			secondBurst.y += 1.2f;
+			BossAttackEffects::EmitGuardianHitEffect("GuardianBossDeathSecondBurst", K4E::GpuParticleType::Shockwave, secondBurst, 72, 4.2f, 1.0f, 2.2f);
+		}
+
+		for (BossDeathPiece& piece : runtime.pieces)
+		{
+			if (!piece.part || !piece.part->object)
+			{
+				continue;
+			}
+
+			piece.velocity.y -= kBossDeathGravity * deltaTime;
+			piece.velocity = ClampVectorLength(piece.velocity * std::max(0.0f, 1.0f - 0.55f * deltaTime), 9.0f);
+			piece.angularVelocity = ClampVectorLength(piece.angularVelocity * std::max(0.0f, 1.0f - 0.35f * deltaTime), 7.0f);
+
+			piece.part->transform.translate_ = piece.part->transform.translate_ + piece.velocity * deltaTime;
+			piece.part->transform.rotate_ = piece.part->transform.rotate_ + piece.angularVelocity * deltaTime;
+
+			if (piece.part->transform.translate_.y < kBossDeathFloorY)
+			{
+				piece.part->transform.translate_.y = kBossDeathFloorY;
+				if (piece.velocity.y < 0.0f)
+				{
+					piece.velocity.y = -piece.velocity.y * 0.30f;
+					piece.velocity.x *= 0.65f;
+					piece.velocity.z *= 0.65f;
+				}
+			}
+
+			piece.part->transform.parent_ = nullptr;
+			piece.part->transform.Update();
+			piece.part->object->SetTranslate(piece.part->transform.translate_);
+			piece.part->object->SetRotate(piece.part->transform.rotate_);
+			piece.part->object->Update();
+		}
+	}
 }
 
 
@@ -78,6 +290,7 @@ BossBase::~BossBase()
 {
 	// 破棄済みボスへParameterManagerの反映コールバックが飛ばないよう解除する。
 	ParameterManager::GetInstance()->UnregisterParameterApplier(kBossCommonGroup, this);
+	g_bossDeathRuntimes.erase(this);
 }
 
 
@@ -87,6 +300,7 @@ BossBase::~BossBase()
 void BossBase::Initialize()
 {
 	EnsureBossCommonParameters();
+	g_bossDeathRuntimes.erase(this);
 
 	// コライダータイプの設定
 	Collider::SetTypeID(static_cast<uint32_t>(CollisionTypeIdDef::kBoss));
@@ -116,28 +330,19 @@ void BossBase::Initialize()
 		GetBossParameterOrDefault("turnSpeed", kDefaultBossTurnSpeed),
 		GetBossParameterOrDefault("stopDistance", kDefaultBossStopDistance)); // 移動共通値はJSONから読み込んで調整しやすくする
 
-	// ---------------------------------------------------------
-	// アニメーションコンポーネント生成
-	// 見た目の歩行 / 攻撃 / 待機を担当させる
-	// ---------------------------------------------------------
 	animationComponent_ = std::make_unique<BossAnimationComponent>();
 	animationComponent_->Initialize(this);
 
-	// 攻撃コンポーネント生成
 	attackComponent_ = std::make_unique<BossAttackComponent>();
-
-	// 攻撃距離・クールタイム初期値
 	attackRange_ = GetBossParameterOrDefault("attackRange", kDefaultBossAttackRange); // 共通攻撃距離をJSON化してボス調整を容易にする
 	attackCooldownSec_ = GetBossParameterOrDefault("attackCooldownSec", kDefaultBossAttackCooldown); // 共通クールタイムをJSON化してボス調整を容易にする
 	attackCooldownTimer_ = 0.0f;
 
-	// 派生側設定
 	SetupAttacks();
 	SetupPhaseData();
 	SetupWeakPoints();
 	SetupBoss();
 
-	// 攻撃初期化
 	attackComponent_->Initialize(this);
 
 	ParameterManager::GetInstance()->RegisterParameterApplier(kBossCommonGroup, this, [this]() { ApplyParameters(); }); // 保存/反映後に共通ボス値を実行中のインスタンスへ再適用する。
@@ -148,6 +353,24 @@ void BossBase::Initialize()
 /// -------------------------------------------------------------
 void BossBase::Update(float deltaTime)
 {
+	if (statusComponent_)
+	{
+		statusComponent_->Update(deltaTime);
+	}
+
+	// HPが0になった後はAI/移動/攻撃を止め、死亡分裂と魂VFXだけを進める。
+	if (IsBossStatusDead(*this))
+	{
+		if (state_ != BossState::Dead)
+		{
+			OnDead();
+		}
+		UpdateBossBreakApartDeath(*this, deltaTime);
+		Collider::SetCenterPosition(GetCenterPosition());
+		Collider::SetOrientation({ 0.0f, GetYaw(), 0.0f });
+		return;
+	}
+
 	// 攻撃クールタイム更新
 	if (attackCooldownTimer_ > 0.0f)
 	{
@@ -158,42 +381,28 @@ void BossBase::Update(float deltaTime)
 		}
 	}
 
-	// ステータス更新
-	if (statusComponent_)
-	{
-		statusComponent_->Update(deltaTime);
-	}
-
-	// ステートマシン更新
 	if (stateMachine_)
 	{
 		stateMachine_->Update(*this, deltaTime);
-
-		// BossBase 側の状態変数もステートマシンに合わせる
 		state_ = stateMachine_->GetCurrentState();
 	}
 
-	// 状態ごとの更新
 	UpdateState(deltaTime);
 	UpdatePhase(deltaTime);
 	UpdateMovement(deltaTime);
 	UpdateAttack(deltaTime);
 
-	// アニメーション更新
 	if (animationComponent_)
 	{
 		animationComponent_->Update(*this, deltaTime);
 	}
 
 	UpdateWeakPoints(deltaTime);
-
-	// 死亡確認
 	CheckDeath();
 
 	Collider::SetCenterPosition(GetCenterPosition());
 	Collider::SetOrientation({ 0.0f, GetYaw(), 0.0f });
 
-	// 最後に部位階層更新
 	BaseCharacter::Update(deltaTime);
 }
 
@@ -202,10 +411,8 @@ void BossBase::Update(float deltaTime)
 /// -------------------------------------------------------------
 void BossBase::Draw()
 {
-	// 本体と部位描画
 	BaseCharacter::Draw();
 
-	// 攻撃描画
 	if (attackComponent_)
 	{
 		attackComponent_->Draw();
@@ -216,8 +423,6 @@ void BossBase::ForceSyncWorldTransform()
 {
 	Collider::SetCenterPosition(GetCenterPosition());
 	Collider::SetOrientation({ 0.0f, GetYaw(), 0.0f });
-
-	// AIや攻撃状態は進めず、現在のCameraManager ViewProjectionで描画用WVPだけ更新する。
 	BaseCharacter::Update(0.0f);
 }
 
@@ -246,9 +451,6 @@ void BossBase::DrawShadow()
 	}
 }
 
-/// -------------------------------------------------------------
-/// ImGui描画
-/// -------------------------------------------------------------
 void BossBase::DrawImGui()
 {
 #ifdef USE_IMGUI
@@ -259,9 +461,6 @@ void BossBase::DrawImGui()
 #endif
 }
 
-/// -------------------------------------------------------------
-/// ParameterManager値の反映
-/// -------------------------------------------------------------
 void BossBase::ApplyParameters()
 {
 	EnsureBossCommonParameters();
@@ -282,13 +481,10 @@ void BossBase::ApplyParameters()
 	attackCooldownSec_ = GetBossParameterOrDefault("attackCooldownSec", kDefaultBossAttackCooldown);
 }
 
-
-/// -------------------------------------------------------------
-/// 終了処理
-/// -------------------------------------------------------------
 void BossBase::Finalize()
 {
 	ParameterManager::GetInstance()->UnregisterParameterApplier(kBossCommonGroup, this); // Finalize後の無効ポインタ呼び出しを防ぐ。
+	g_bossDeathRuntimes.erase(this);
 
 	if (attackComponent_)
 	{
@@ -326,21 +522,13 @@ void BossBase::Finalize()
 		brain_.reset();
 	}
 
-	//phaseComponent_.reset();
-	//weakPointComponent_.reset();
-
-	// BaseCharacter 側の body_ / parts_ は unique_ptr 管理なので、
-	// 必要なら明示的にクリアしてもよい
 	GetBodyParts().clear();
 	GetBody().object.reset();
 }
 
-/// -------------------------------------------------------------
-/// ダメージ
-/// -------------------------------------------------------------
 void BossBase::OnDamaged(float damage)
 {
-	if (!statusComponent_)
+	if (!statusComponent_ || IsBossStatusDead(*this))
 	{
 		return;
 	}
@@ -360,13 +548,9 @@ void BossBase::OnBulletDamaged(float damage)
 	OnDamaged(damage);
 }
 
-
-/// -------------------------------------------------------------
-/// ターゲットプレイヤーへのダメージ
-/// -------------------------------------------------------------
 bool BossBase::ApplyDamageToTargetPlayer(float damage, const K4E::Vector3* attackPosition)
 {
-	if (!targetPlayer_ || damage <= 0.0f || IsDead())
+	if (!targetPlayer_ || damage <= 0.0f || IsBossStatusDead(*this))
 	{
 		return false;
 	}
@@ -381,9 +565,6 @@ void BossBase::OnTargetPlayerDamaged(float damage)
 	(void)damage;
 }
 
-/// -------------------------------------------------------------
-/// 死亡
-/// -------------------------------------------------------------
 void BossBase::OnDead()
 {
 	state_ = BossState::Dead;
@@ -397,11 +578,11 @@ void BossBase::OnDead()
 	{
 		attackComponent_->ForceEndCurrentAttack();
 	}
+
+	BossDeathRuntime& runtime = GetBossDeathRuntime(*this);
+	StartBossBreakApartDeath(*this, runtime);
 }
 
-/// -------------------------------------------------------------
-/// 生死
-/// -------------------------------------------------------------
 bool BossBase::IsAlive() const
 {
 	return statusComponent_ ? statusComponent_->IsAlive() : false;
@@ -409,12 +590,21 @@ bool BossBase::IsAlive() const
 
 bool BossBase::IsDead() const
 {
-	return statusComponent_ ? statusComponent_->IsDead() : true;
+	if (!IsBossStatusDead(*this))
+	{
+		return false;
+	}
+
+	const auto it = g_bossDeathRuntimes.find(this);
+	if (it == g_bossDeathRuntimes.end())
+	{
+		return true;
+	}
+
+	// GamePlayWorldはIsDead()でクリアアイテムを出すので、死亡演出が数秒進むまで外部には死亡完了を返さない。
+	return it->second.timer >= kBossDeathPresentationSeconds;
 }
 
-/// -------------------------------------------------------------
-/// HP参照
-/// -------------------------------------------------------------
 float BossBase::GetHP() const
 {
 	return statusComponent_ ? statusComponent_->GetHP() : 0.0f;
@@ -430,10 +620,6 @@ float BossBase::GetHPRate() const
 	return statusComponent_ ? statusComponent_->GetHPRate() : 0.0f;
 }
 
-
-/// -------------------------------------------------------------
-/// ターゲット方向の取得 / 即時反映
-/// -------------------------------------------------------------
 K4E::Vector3 BossBase::GetDirectionToTargetXZOrForward(const K4E::Vector3& origin) const
 {
 	K4E::Vector3 toTarget{
@@ -460,13 +646,9 @@ void BossBase::FaceDirectionXZImmediate(const K4E::Vector3& direction)
 		return;
 	}
 
-	// 攻撃開始時だけ共通処理でYawを確定し、攻撃クラスごとの毎フレーム回転上書きを避ける。
 	SetYaw(std::atan2(-direction.x, direction.z));
 }
 
-/// -------------------------------------------------------------
-/// ターゲットまでのXZ距離
-/// -------------------------------------------------------------
 float BossBase::GetDistanceToTargetXZ() const
 {
 	const K4E::Vector3 from = GetPosition();
@@ -478,17 +660,11 @@ float BossBase::GetDistanceToTargetXZ() const
 	return std::sqrt(dx * dx + dz * dz);
 }
 
-/// -------------------------------------------------------------
-/// ターゲットが攻撃範囲内か
-/// -------------------------------------------------------------
 bool BossBase::IsTargetInAttackRange() const
 {
 	return GetDistanceToTargetXZ() <= attackRange_;
 }
 
-/// -------------------------------------------------------------
-/// 攻撃登録
-/// -------------------------------------------------------------
 void BossBase::RegisterAttack(std::unique_ptr<IBossAttack> attack)
 {
 	if (!attack)
@@ -502,10 +678,6 @@ void BossBase::RegisterAttack(std::unique_ptr<IBossAttack> attack)
 	}
 }
 
-/// -------------------------------------------------------------
-/// 共通更新群
-/// 中身は後で肉付けしていく
-/// -------------------------------------------------------------
 void BossBase::UpdateState(float deltaTime)
 {
 	(void)deltaTime;
@@ -515,8 +687,7 @@ void BossBase::UpdateState(float deltaTime)
 		return;
 	}
 
-	// 死亡していたら Dead を優先
-	if (IsDead())
+	if (IsBossStatusDead(*this))
 	{
 		stateMachine_->ChangeState(*this, BossState::Dead);
 		state_ = stateMachine_->GetCurrentState();
@@ -526,12 +697,10 @@ void BossBase::UpdateState(float deltaTime)
 	switch (stateMachine_->GetCurrentState())
 	{
 	case BossState::Intro:
-		// 仮: 登場演出後すぐ待機へ
 		stateMachine_->ChangeState(*this, BossState::Idle);
 		break;
 
 	case BossState::Idle:
-		// 攻撃範囲内 かつ クールタイムが終わっているなら攻撃へ
 		if (IsTargetInAttackRange() && !IsAttackCoolingDown())
 		{
 			stateMachine_->ChangeState(*this, BossState::Attack);
@@ -543,7 +712,6 @@ void BossBase::UpdateState(float deltaTime)
 		break;
 
 	case BossState::Move:
-		// 攻撃範囲に入ったら攻撃へ
 		if (IsTargetInAttackRange() && !IsAttackCoolingDown())
 		{
 			stateMachine_->ChangeState(*this, BossState::Attack);
@@ -551,7 +719,6 @@ void BossBase::UpdateState(float deltaTime)
 		break;
 
 	case BossState::Attack:
-		// 攻撃終了判定は AttackComponent 側を参照
 		if (attackComponent_ && !attackComponent_->IsAttacking())
 		{
 			attackCooldownTimer_ = attackCooldownSec_;
@@ -598,51 +765,33 @@ void BossBase::UpdateAttack(float deltaTime)
 		return;
 	}
 
-	// ---------------------------------------------------------
-	// 実行中攻撃の更新だけを担当する
-	// 攻撃の「選択」は派生 Boss や Brain 側で行う
-	// ここで勝手に startableAttacks[0] を始めると、
-	// Guardian の判断と二重化してしまうのでやめる
-	// ---------------------------------------------------------
 	attackComponent_->Update(deltaTime);
 }
 
-/// -------------------------------------------------------------
-///							弱点更新
-/// --------------------------------------------------------------
 void BossBase::UpdateWeakPoints(float deltaTime)
 {
 	(void)deltaTime;
 }
 
-/// -------------------------------------------------------------
-///							死亡確認
-/// --------------------------------------------------------------
 void BossBase::CheckDeath()
 {
-	if (IsDead() && state_ != BossState::Dead)
+	if (IsBossStatusDead(*this) && state_ != BossState::Dead)
 	{
 		OnDead();
 	}
 }
 
-/// -------------------------------------------------------------
-///				 指定部位のワールド座標を取得
-/// -------------------------------------------------------------
 K4E::Vector3 BossBase::GetPartWorldPosition(size_t partIndex)
 {
 	auto& parts = GetBodyParts();
 	if (partIndex >= parts.size())
 	{
-		// 範囲外なら本体中心を返す
 		return GetCenterPosition();
 	}
 
-	// 本体Transformを先に更新
 	auto& body = GetBody();
 	body.transform.Update();
 
-	// 部位Transformを本体基準で更新
 	auto& part = parts[partIndex];
 	part.transform.worldRotate_ = body.transform.worldRotate_;
 	part.transform.Update();
@@ -650,9 +799,6 @@ K4E::Vector3 BossBase::GetPartWorldPosition(size_t partIndex)
 	return part.transform.worldTranslate_;
 }
 
-/// -------------------------------------------------------------
-///						簡易球ヒット判定
-/// -------------------------------------------------------------
 bool BossBase::IsSphereHit(const K4E::Vector3& attackCenter, float attackRadius, const K4E::Vector3& targetCenter, float targetRadius) const
 {
 	const float dx = attackCenter.x - targetCenter.x;
@@ -665,80 +811,55 @@ bool BossBase::IsSphereHit(const K4E::Vector3& attackCenter, float attackRadius,
 	return distanceSq <= (sumRadius * sumRadius);
 }
 
-/// -------------------------------------------------------------
-///					デバッグ用の簡易球ヒット判定
-/// -------------------------------------------------------------
 BossHitResult BossBase::CheckDebugHitSphere(const K4E::Vector3& attackCenter, float attackRadius)
 {
 	BossHitResult result{};
+	if (IsBossStatusDead(*this)) return result;
 
-	// 死んでいたら判定しない
-	if (IsDead()) return result;
-
-	// 部位インデックス取得
 	const auto& indices = GetPartIndices();
-
-	// 仮半径
-	// 実モデルに合わせて後で調整する
 	const float headRadius = 0.45f;
 	const float bodyRadius = 0.85f;
 	const float armRadius = 0.45f;
 	const float legRadius = 0.50f;
 
-	// 部位ごとの当たり判定の情報
 	struct HitCheckInfo
 	{
-		BossHitPart part;		// 部位
-		Vector3 position;		// 判定位置
-		float radius;			// 判定半径
-		float damageMultiplier; // ダメージ倍率
+		BossHitPart part;
+		Vector3 position;
+		float radius;
+		float damageMultiplier;
 	};
 
-	// 判定優先度順に部位情報を並べる
 	const HitCheckInfo hitChecks[] = {
-		// 頭は大きめダメージ
 		{ BossHitPart::Head, GetPartWorldPosition(indices.head), headRadius, 2.0f },
-
-		// 胴体は通常ダメージ
 		{ BossHitPart::Body, GetCenterPosition(), bodyRadius, 1.0f },
-
-		// 腕は少し小さめダメージ
 		{ BossHitPart::LeftArm, GetPartWorldPosition(indices.leftArm), armRadius, 0.8f },
 		{ BossHitPart::RightArm, GetPartWorldPosition(indices.rightArm), armRadius, 0.8f },
-
-		// 脚はやや小さめダメージ
 		{ BossHitPart::LeftLeg, GetPartWorldPosition(indices.leftLeg), legRadius, 0.9f },
 		{ BossHitPart::RightLeg, GetPartWorldPosition(indices.rightLeg), legRadius, 0.9f },
 	};
 
-	// 優先度順に部位の球判定を行う
 	for (const HitCheckInfo& check : hitChecks)
 	{
-		// 攻撃球と部位球が当たっていなければ次の部位を見る
 		if (!IsSphereHit(attackCenter, attackRadius, check.position, check.radius))
+		{
 			continue;
+		}
 
-		// 当たった部位の情報を結果に設定する
-		result.isHit = true;							  // 何かしら当たった
-		result.part = check.part;						  // 当たった部位
-		result.hitPosition = check.position;			  // 簡易的に部位の中心を当たり位置とする
-		result.damageMultiplier = check.damageMultiplier; // 部位ごとのダメージ倍率を設定
-		return result; // 優先度が高い部位から返す
+		result.isHit = true;
+		result.part = check.part;
+		result.hitPosition = check.position;
+		result.damageMultiplier = check.damageMultiplier;
+		return result;
 	}
 
-	// 何にも当たらなかった
 	return result;
 }
 
-/// -------------------------------------------------------------
-///			   デバッグ用ヒット結果からダメージ適用
-/// -------------------------------------------------------------
 void BossBase::ApplyDebugHitResult(const BossHitResult& hitResult, float baseDamage)
 {
-	// 何も当たっていなければダメージ適用しない
 	if (!hitResult.isHit) return;
 
-	// 部位ごとのダメージ倍率を掛けて最終ダメージを算出
 	const float finalDamage = baseDamage * hitResult.damageMultiplier;
 	OnDamaged(finalDamage);
 }
