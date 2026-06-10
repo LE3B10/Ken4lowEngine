@@ -95,19 +95,39 @@ static K4E::Vector3 MakeShockwavePosition(const K4E::Vector3& center)
 
 void BossEnemyVfx::UpdateDeathEffect(const K4E::Vector3& center, float deathTimer, bool& startBurstDone)
 {
+	K4E::Vector3 core = center;
+	core.y += 1.0f;
+
 	if (!startBurstDone)
 	{
-		if (deathExplosionEmitter_) SetPositionAndEmit(deathExplosionEmitter_, center, 12);
-		if (deathShockwaveEmitter_) SetPositionAndEmit(deathShockwaveEmitter_, MakeShockwavePosition(center), 6);
-		if (debrisDustEmitter_) SetPositionAndEmit(debrisDustEmitter_, center, 48);
+		// 死亡開始時は爆発・衝撃波・Mesh破片を同時に大量発生させ、ボス撃破の達成感を強める。
+		if (deathExplosionEmitter_) SetPositionAndEmit(deathExplosionEmitter_, core, 48);
+		if (deathShockwaveEmitter_) SetPositionAndEmit(deathShockwaveEmitter_, MakeShockwavePosition(center), 18);
+		if (debrisDustEmitter_) SetPositionAndEmit(debrisDustEmitter_, center, 160);
+
+		K4E::Vector3 leftBurst = core;
+		leftBurst.x -= 1.8f;
+		if (deathExplosionEmitter_) SetPositionAndEmit(deathExplosionEmitter_, leftBurst, 18);
+		K4E::Vector3 rightBurst = core;
+		rightBurst.x += 1.8f;
+		if (deathExplosionEmitter_) SetPositionAndEmit(deathExplosionEmitter_, rightBurst, 18);
+		K4E::Vector3 backBurst = core;
+		backBurst.z -= 1.8f;
+		if (deathExplosionEmitter_) SetPositionAndEmit(deathExplosionEmitter_, backBurst, 18);
+		K4E::Vector3 frontBurst = core;
+		frontBurst.z += 1.8f;
+		if (deathExplosionEmitter_) SetPositionAndEmit(deathExplosionEmitter_, frontBurst, 18);
+
 		startBurstDone = true;
 	}
 
-	if (deathSoulEmitter_ && deathTimer < 1.6f)
+	if (deathTimer < 1.8f)
 	{
-		K4E::Vector3 c = center;
-		c.y += 1.2f;
-		SetPositionAndEmit(deathSoulEmitter_, c, 2);
+		// 死亡中は中心から煙・魂・破片を継続的に出し、消滅中も画面に迫力を残す。
+		if (deathSoulEmitter_) SetPositionAndEmit(deathSoulEmitter_, core, 4);
+		if (debrisDustEmitter_) SetPositionAndEmit(debrisDustEmitter_, center, 8);
+		if (deathExplosionEmitter_ && deathTimer > 0.35f && deathTimer < 0.55f) SetPositionAndEmit(deathExplosionEmitter_, core, 14);
+		if (deathShockwaveEmitter_ && deathTimer > 0.70f && deathTimer < 0.90f) SetPositionAndEmit(deathShockwaveEmitter_, MakeShockwavePosition(center), 10);
 	}
 }
 
@@ -181,9 +201,11 @@ void BossEnemyVfx::RegisterEmitters()
 		K4E::GpuParticleEmitter::EmitterInfo info{};
 		info.kind = K4E::GpuParticleKind::Sprite;
 		info.spriteType = K4E::GpuParticleType::Default;
-		info.radius = 0.5f;
+		info.radius = 1.4f;
 		info.billboardFlags = K4E::BillboardMode::Camera;
 		info.textureFilePath = kDefaultTex;
+		info.lifeScale = 1.2f;
+		info.speedScale = 2.2f;
 		deathExplosionEmitter_ = GetOrCreateEmitter("BossDeathExplosion", info);
 	}
 
@@ -191,9 +213,11 @@ void BossEnemyVfx::RegisterEmitters()
 		K4E::GpuParticleEmitter::EmitterInfo info{};
 		info.kind = K4E::GpuParticleKind::Sprite;
 		info.spriteType = K4E::GpuParticleType::Shockwave;
-		info.radius = 0.15f;
+		info.radius = 0.35f;
 		info.billboardFlags = K4E::BillboardMode::Camera;
 		info.textureFilePath = kDefaultTex;
+		info.lifeScale = 1.1f;
+		info.speedScale = 1.8f;
 		deathShockwaveEmitter_ = GetOrCreateEmitter("BossDeathShockwave", info);
 	}
 
@@ -201,9 +225,11 @@ void BossEnemyVfx::RegisterEmitters()
 		K4E::GpuParticleEmitter::EmitterInfo info{};
 		info.kind = K4E::GpuParticleKind::Sprite;
 		info.spriteType = K4E::GpuParticleType::Default;
-		info.radius = 0.35f;
+		info.radius = 0.75f;
 		info.billboardFlags = K4E::BillboardMode::Camera;
 		info.textureFilePath = kDefaultTex;
+		info.lifeScale = 1.6f;
+		info.speedScale = 0.7f;
 		deathSoulEmitter_ = GetOrCreateEmitter("BossDeathSoul", info);
 	}
 
@@ -211,11 +237,11 @@ void BossEnemyVfx::RegisterEmitters()
 		K4E::GpuParticleEmitter::EmitterInfo info{};
 		info.kind = K4E::GpuParticleKind::Mesh;
 		info.spriteType = K4E::GpuParticleType::Debris;
-		info.radius = 1.5f;
+		info.radius = 3.2f;
 		info.billboardFlags = K4E::BillboardMode::Camera;
 		info.textureFilePath = kDefaultTex;
-		info.lifeScale = 1.4f;
-		info.speedScale = 1.5f;
+		info.lifeScale = 1.8f;
+		info.speedScale = 2.4f;
 		debrisDustEmitter_ = GetOrCreateEmitter("BossDebrisDust", info);
 	}
 }
