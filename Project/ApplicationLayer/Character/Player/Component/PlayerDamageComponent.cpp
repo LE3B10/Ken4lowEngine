@@ -13,6 +13,62 @@
 #include <Camera.h>
 #include <Vector3.h>
 
+#include <algorithm>
+#include <cmath>
+
+namespace
+{
+	K4E::Vector3 NormalizeXZOrFallback(K4E::Vector3 direction, const K4E::Vector3& fallback)
+	{
+		direction.y = 0.0f;
+		const float lenSq = direction.x * direction.x + direction.z * direction.z;
+		if (lenSq <= 0.0001f)
+		{
+			return fallback;
+		}
+
+		const float invLen = 1.0f / std::sqrt(lenSq);
+		return { direction.x * invLen, 0.0f, direction.z * invLen };
+	}
+
+	K4E::Vector3 MakeCameraBackDirection(PlayerViewComponent& view)
+	{
+		if (auto* cam = view.GetCamera())
+		{
+			K4E::Vector3 direction = -cam->GetForward();
+			direction.y = 0.0f;
+			return NormalizeXZOrFallback(direction, { 0.0f, 0.0f, -1.0f });
+		}
+
+		return { 0.0f, 0.0f, -1.0f };
+	}
+
+	void ApplyDamageKnockback(Player& player, PlayerViewComponent& view, const K4E::Vector3* attackerPosition, float hitStrength01)
+	{
+		auto* tr = player.GetWorldTransform();
+		if (!tr)
+		{
+			return;
+		}
+
+		K4E::Vector3 knockbackDir = MakeCameraBackDirection(view);
+		if (attackerPosition)
+		{
+			// 攻撃元が分かる場合は、攻撃元からプレイヤーを押し出す方向にする。
+			knockbackDir = NormalizeXZOrFallback(tr->translate_ - *attackerPosition, knockbackDir);
+		}
+
+		const float strength = std::clamp(hitStrength01, 0.10f, 1.00f);
+		const float horizontalDistance = 0.45f + strength * 0.85f;
+		const float verticalLift = 0.04f + strength * 0.16f;
+
+		// 被弾時に少しだけ即時押し出し、ダメージを受けた手応えを作る。
+		tr->translate_.x += knockbackDir.x * horizontalDistance;
+		tr->translate_.z += knockbackDir.z * horizontalDistance;
+		tr->translate_.y += verticalLift;
+		player.SetCenterPosition(tr->translate_);
+	}
+}
 
 void PlayerDamageComponent::Heal(float amount)
 {
@@ -94,9 +150,11 @@ PlayerDamageComponent::DamageFeedback PlayerDamageComponent::OnHitByEnemyBullet(
 	MarkRecentBulletHit(bulletId);
 
 	int baseDmg = 1;
+	K4E::Vector3 attackerPosition = bullet->GetCenterPosition();
 	if (auto* b = bullet->GetOwner<Bullet>())
 	{
 		baseDmg = b->GetDamage();
+		attackerPosition = b->GetShooterPosition();
 	}
 
 	const float dmg = static_cast<float>(baseDmg) * mul;
@@ -149,6 +207,8 @@ PlayerDamageComponent::DamageFeedback PlayerDamageComponent::OnHitByEnemyBullet(
 		fb.startedDeath = true;
 		return fb;
 	}
+
+	ApplyDamageKnockback(player, view, &attackerPosition, fb.hitStrength01);
 
 	float stunSec = 0.08f;
 	switch (part)
@@ -298,7 +358,10 @@ PlayerDamageComponent::DamageFeedback PlayerDamageComponent::ApplyDamage(
 
 		StartDeath(player, view, weaponController, death, inputSnap, runCarry, launchDir);
 		fb.startedDeath = true;
+		return fb;
 	}
+
+	ApplyDamageKnockback(player, view, nullptr, fb.hitStrength01);
 
 	return fb;
 }
