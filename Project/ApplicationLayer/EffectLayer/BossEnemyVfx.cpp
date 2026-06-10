@@ -12,6 +12,8 @@ void BossEnemyVfx::UpdateAppearDust(const K4E::Vector3& position, uint32_t count
 	}
 
 	SetPositionAndEmit(appearDustEmitter_, position, count);
+	// 登場土煙と同時にMesh破片も発生させ、地面から出てきた重量感を足す。
+	UpdateAppearMeshDebris(position, std::max<uint32_t>(3, count / 3));
 }
 
 void BossEnemyVfx::UpdateAppearMeshDebris(const K4E::Vector3& position, uint32_t count)
