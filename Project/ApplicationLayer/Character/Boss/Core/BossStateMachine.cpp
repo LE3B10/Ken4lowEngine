@@ -31,6 +31,15 @@ void BossStateMachine::Update(BossBase& boss, float deltaTime)
 /// -------------------------------------------------------------
 void BossStateMachine::ChangeState(BossBase& boss, BossState newState)
 {
+	// ボスはプレイヤー攻撃で怯ませない。攻撃中断によるハメ防止のため、Stagger/Down遷移は無視する。
+	if (newState == BossState::Stagger || newState == BossState::Down)
+	{
+#ifdef _DEBUG
+		Log("[BossStateMachine] Ignore Stagger/Down transition.\n");
+#endif
+		return;
+	}
+
 	// 同じ状態なら何もしない
 	if (currentState_ == newState)
 	{
