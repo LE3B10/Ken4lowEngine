@@ -212,6 +212,27 @@ void BossBase::Draw()
 	}
 }
 
+void BossBase::ForceSyncWorldTransform()
+{
+	Collider::SetCenterPosition(GetCenterPosition());
+	Collider::SetOrientation({ 0.0f, GetYaw(), 0.0f });
+
+	// AIや攻撃状態は進めず、現在のCameraManager ViewProjectionで描画用WVPだけ更新する。
+	BaseCharacter::Update(0.0f);
+}
+
+void BossBase::ClearRootParentKeepingWorldPosition()
+{
+	auto& bodyTransform = GetBody().transform;
+	bodyTransform.Update();
+	const K4E::Vector3 worldPosition = bodyTransform.worldTranslate_;
+
+	// 演出終了時にボスの親Transformを解除し、ローカル座標をワールド座標へ戻す。
+	bodyTransform.parent_ = nullptr;
+	bodyTransform.translate_ = worldPosition;
+	bodyTransform.Update();
+}
+
 /// -------------------------------------------------------------
 /// シャドウ描画
 /// -------------------------------------------------------------

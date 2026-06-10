@@ -11,6 +11,7 @@
 #include "EnemyHPBarManager.h"
 #include "ItemManager.h"
 #include "CrystalManager.h"
+#include "BossIntroController.h"
 #include "Derived/GuardianBoss/GuardianBoss.h"
 #include "Object3D.h"
 
@@ -143,6 +144,8 @@ public: /// ---------- メンバ関数 ---------- ///
 	bool IsFinalPhaseReady() const { return crystalManager_.IsFinalPhaseReady(); }
 	bool IsBossAppearRequested() const { return crystalManager_.IsBossAppearRequested(); }
 	bool IsWorldColorChangeComplete() const { return crystalManager_.IsWorldColorChangeComplete(); }
+	bool IsBossIntroActive() const { return bossIntroController_.IsRunning(); }
+	bool IsBossIntroGameplayPaused() const { return bossIntroController_.IsGameplayPaused(); }
 
 private: /// ---------- メンバ関数 ---------- ///
 
@@ -151,7 +154,11 @@ private: /// ---------- メンバ関数 ---------- ///
 	bool TryGetDirectionalLightFromManager(K4E::Vector3& outDirection) const;
 	bool IsSightBlocked(const K4E::Segment& seg) const;
 	void UpdateCrystalBossSpawnProgress();
-	void SpawnGuardianBoss();
+	void UpdateBossIntro(float deltaTime);
+	void UpdateBossIntroPausedWorld(float deltaTime);
+	void SpawnGuardianBoss(bool registerCollider);
+	void RegisterGuardianBossCollider();
+	void ResetBossIntroForDebug();
 	void UpdateBossClearProgress(float deltaTime);
 	void SpawnClearItem(const K4E::Vector3& bossPosition);
 	void CollectClearItem();
@@ -193,7 +200,9 @@ private: /// ---------- メンバ変数 ---------- ///
 	float lastBulletUpdateMs_ = 0.0f;
 	float lastCollisionUpdateMs_ = 0.0f;
 	K4E::Vector3 bossSpawnPosition_{ 0.0f, 2.25f, 30.0f };
+	BossIntroController bossIntroController_;
 	bool bossSpawned_ = false;
+	bool bossColliderRegistered_ = false;
 	bool bossSpawnConditionMet_ = false;
 	bool bossDefeated_ = false;
 	bool clearItemSpawned_ = false;

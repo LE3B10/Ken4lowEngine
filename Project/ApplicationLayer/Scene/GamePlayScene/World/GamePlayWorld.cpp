@@ -6,6 +6,7 @@
 #include "GameViewportConstants.h"
 
 #include "LightManager.h"
+#include "CameraManager.h"
 #include "SkyBoxManager.h"
 #include "JsonDataManager.h"
 #include "Wireframe.h"
@@ -194,6 +195,7 @@ void GamePlayWorld::Initialize(GamePlayStageContext& stageContext)
 	{
 		if (auto* camera = player->GetCamera())
 		{
+			K4E::CameraManager::GetInstance()->SetMainCamera(camera);
 			// 遠景のステージパーツが途中で消えないように、GamePlay中のみFarClipを安全側に広げる。
 			camera->SetFarClip(1600.0f);
 		}
@@ -241,6 +243,7 @@ void GamePlayWorld::Initialize(GamePlayStageContext& stageContext)
 		bossSpawnPosition_ = { 0.0f, 2.25f, 30.0f };
 	}
 	bossSpawned_ = false;
+	bossColliderRegistered_ = false;
 	bossSpawnConditionMet_ = false;
 	bossDefeated_ = false;
 	clearItemSpawned_ = false;
@@ -298,6 +301,7 @@ void GamePlayWorld::Initialize(GamePlayStageContext& stageContext)
 
 	crystalManager_.Initialize(crystalSpawnPoints, collisionManager_.get(), &stage_->GetFloorAABBs(), &stage_->GetNavigationObstacleAABBs());
 	crystalManager_.SetProgressDebugStatus(characters_.GetAliveNormalEnemyCount(), bossSpawnConditionMet_, bossSpawned_, bossSpawnPosition_);
+	bossIntroController_.Initialize(bossSpawnPosition_);
 
 	enemyHpBarManager_.Initialize();
 }
@@ -314,6 +318,7 @@ void GamePlayWorld::Finalize()
 	}
 	guardianBoss_.reset();
 	clearItem_.reset();
+	bossIntroController_.Finalize();
 	crystalManager_.Finalize();
 	stageObjectiveManager_.reset();
 	waveManager_.reset();
@@ -345,10 +350,18 @@ void GamePlayWorld::Update(float deltaTime)
 		stage_->Update();
 	}
 
+	if (bossIntroController_.IsGameplayPaused())
+	{
+		// ボス登場演出中は通常ゲーム進行を止め、カメラとボス登場Transformだけを進める。
+		UpdateBossIntroPausedWorld(deltaTime);
+		return;
+	}
+
 	// 先にキャラクターとクリスタルを更新し、敵残数とクリスタル破壊状態からボス出現条件を評価する。
 	characters_.Update(deltaTime);
 	crystalManager_.Update(characters_, deltaTime);
 	UpdateCrystalBossSpawnProgress();
+	UpdateBossIntro(deltaTime);
 	if (guardianBoss_)
 	{
 		if (auto* player = characters_.GetPlayer())
@@ -538,6 +551,8 @@ void GamePlayWorld::Draw3D(bool hideCharactersDuringIntro)
 		characters_.Draw();
 		if (guardianBoss_)
 		{
+			// Draw直前に現在の通常ViewProjectionでWVPを更新し、演出用ViewProjectionの残留を防ぐ。
+			guardianBoss_->ForceSyncWorldTransform();
 			guardianBoss_->Draw();
 		}
 	}
@@ -631,6 +646,14 @@ void GamePlayWorld::DrawGameDebugImGui()
 	ImGui::Text("Enemies: %d", characters_.GetEnemyCount());
 	ImGui::SeparatorText("ボス状態");
 	ImGui::Text("ボス出現済み: %s", bossSpawned_ ? "はい" : "いいえ");
+	ImGui::Text("ボスCollider登録済み: %s", bossColliderRegistered_ ? "はい" : "いいえ");
+	ImGui::Text("ボス登場演出中: %s", bossIntroController_.IsRunning() ? "はい" : "いいえ");
+	ImGui::Text("ボス登場による進行停止: %s", bossIntroController_.IsGameplayPaused() ? "はい" : "いいえ");
+	{
+		auto* debugPlayer = characters_.GetPlayer();
+		bossIntroController_.SetDebugSnapshot(guardianBoss_.get(), debugPlayer ? debugPlayer->GetCamera() : nullptr);
+	}
+	bossIntroController_.DrawImGui();
 	if (guardianBoss_)
 	{
 		ImGui::Text("ボス生存中: %s", guardianBoss_->IsAlive() ? "はい" : "いいえ");
@@ -794,17 +817,122 @@ bool GamePlayWorld::IsPlayerDead()
 
 void GamePlayWorld::UpdateCrystalBossSpawnProgress()
 {
-	const int aliveNormalEnemyCount = characters_.GetAliveNormalEnemyCount();
-	bossSpawnConditionMet_ = crystalManager_.AreAllCrystalsDestroyed() && aliveNormalEnemyCount == 0 && !bossSpawned_;
+	bossSpawnConditionMet_ = crystalManager_.AreAllCrystalsDestroyed() && !bossSpawned_;
 
-	// 全クリスタル破壊後、残った雑魚敵がいなくなったタイミングでボスを1回だけ出現させる。
-	if (bossSpawnConditionMet_)
+	// 全クリスタル破壊を検知し、即スポーンではなくボス登場遅延を開始する。
+	if (bossSpawnConditionMet_ && !bossIntroController_.HasPlayed() && !bossIntroController_.IsRunning())
 	{
-		SpawnGuardianBoss();
+		bossIntroController_.RequestStart(bossSpawnPosition_);
 	}
 }
 
-void GamePlayWorld::SpawnGuardianBoss()
+void GamePlayWorld::UpdateBossIntro(float deltaTime)
+{
+	if (bossIntroController_.ConsumeDebugResetRequest())
+	{
+		ResetBossIntroForDebug();
+	}
+
+	if (bossIntroController_.ConsumeDebugStartRequest())
+	{
+		ResetBossIntroForDebug();
+		bossIntroController_.RequestStart(bossIntroController_.GetBossAppearPosition());
+	}
+
+	if (bossIntroController_.ConsumeDebugClearBossParentRequest() && guardianBoss_)
+	{
+		// 検証用: 親子Transformが原因か切り分けるため、ワールド座標を維持して親を外す。
+		guardianBoss_->ClearRootParentKeepingWorldPosition();
+		guardianBoss_->ForceSyncWorldTransform();
+	}
+
+	if (bossIntroController_.ConsumeDebugForceBossToAppearRequest() && guardianBoss_)
+	{
+		guardianBoss_->ClearRootParentKeepingWorldPosition();
+		// 検証用: ボスを最終ワールド座標へ固定して、カメラ追従に見える原因がTransformか確認する。
+		guardianBoss_->SetPosition(bossIntroController_.GetBossAppearPosition());
+		guardianBoss_->SetYaw(3.141592f);
+		guardianBoss_->ForceSyncWorldTransform();
+	}
+
+	if (bossIntroController_.ConsumeDebugUseGameplayViewProjectionRequest())
+	{
+		if (auto* debugPlayer = characters_.GetPlayer())
+		{
+			if (auto* gameplayCamera = debugPlayer->GetCamera())
+			{
+				// 検証用: 演出用ViewProjectionから通常ViewProjectionへ戻して、描画行列側の問題を切り分ける。
+				K4E::CameraManager::GetInstance()->SetMainCamera(gameplayCamera);
+				gameplayCamera->Update();
+			}
+		}
+		if (guardianBoss_)
+		{
+			guardianBoss_->ForceSyncWorldTransform();
+		}
+	}
+
+	if (!bossIntroController_.IsRunning())
+	{
+		return;
+	}
+
+	auto* player = characters_.GetPlayer();
+	auto* camera = player ? player->GetCamera() : nullptr;
+	if (camera)
+	{
+		K4E::CameraManager::GetInstance()->SetMainCamera(camera);
+	}
+	bossIntroController_.Update(deltaTime, guardianBoss_.get(), camera);
+
+	if (bossIntroController_.ConsumeBossSpawnRequest())
+	{
+		bossSpawnPosition_ = bossIntroController_.GetBossAppearPosition();
+		SpawnGuardianBoss(false);
+	}
+
+	if (bossIntroController_.ConsumeBossColliderEnableRequest())
+	{
+		RegisterGuardianBossCollider();
+		if (player)
+		{
+			player->SyncViewToPlayer();
+			if (auto* resumedCamera = player->GetCamera())
+			{
+				// Completed後は演出用更新を止め、通常FPSカメラを描画用MainCameraへ戻す。
+				K4E::CameraManager::GetInstance()->SetMainCamera(resumedCamera);
+				resumedCamera->Update();
+			}
+		}
+	}
+}
+
+void GamePlayWorld::UpdateBossIntroPausedWorld(float deltaTime)
+{
+	crystalManager_.UpdatePresentationOnly(characters_, deltaTime);
+	UpdateBossIntro(deltaTime);
+	UpdateBossClearProgress(0.0f);
+	crystalManager_.SetProgressDebugStatus(characters_.GetAliveNormalEnemyCount(), bossSpawnConditionMet_, bossSpawned_, bossSpawnPosition_);
+
+	if (skyBox_)
+	{
+		skyBox_->Update();
+		skyBox_->AdvanceCloudLayer(deltaTime);
+	}
+
+	UpdateShadowLightViewProjection();
+	if (stage_)
+	{
+		stage_->UpdateShadowMatrix(shadowLightViewProjection_);
+	}
+	characters_.UpdateShadowMatrix(shadowLightViewProjection_);
+	if (guardianBoss_)
+	{
+		guardianBoss_->UpdateShadowMatrix(shadowLightViewProjection_);
+	}
+}
+
+void GamePlayWorld::SpawnGuardianBoss(bool registerCollider)
 {
 	if (bossSpawned_)
 	{
@@ -813,7 +941,7 @@ void GamePlayWorld::SpawnGuardianBoss()
 
 	guardianBoss_ = std::make_unique<GuardianBoss>();
 	guardianBoss_->Initialize();
-	guardianBoss_->SetPosition(bossSpawnPosition_);
+	guardianBoss_->SetPosition(registerCollider ? bossSpawnPosition_ : bossIntroController_.GetBossStartPosition());
 	guardianBoss_->SetYaw(3.141592f);
 	if (auto* player = characters_.GetPlayer())
 	{
@@ -821,14 +949,44 @@ void GamePlayWorld::SpawnGuardianBoss()
 		guardianBoss_->SetTargetPlayer(player);
 	}
 	guardianBoss_->Update(0.0f);
-	if (collisionManager_)
-	{
-		collisionManager_->AddCollider(guardianBoss_.get());
-		Log("[GuardianBoss] Collider registered as kBoss.\n");
-	}
 	bossSpawned_ = true;
+	if (registerCollider)
+	{
+		RegisterGuardianBossCollider();
+	}
 }
 
+void GamePlayWorld::RegisterGuardianBossCollider()
+{
+	if (!guardianBoss_ || !collisionManager_ || bossColliderRegistered_)
+	{
+		return;
+	}
+
+	guardianBoss_->ClearRootParentKeepingWorldPosition();
+	guardianBoss_->SetPosition(bossIntroController_.GetBossAppearPosition());
+	guardianBoss_->SetYaw(3.141592f);
+	guardianBoss_->ForceSyncWorldTransform();
+	// 登場完了後にボスAI/攻撃/当たり判定を有効化するため、このタイミングでCollider登録する。
+	collisionManager_->AddCollider(guardianBoss_.get());
+	bossColliderRegistered_ = true;
+	Log("[GuardianBoss] Collider registered as kBoss.\n");
+}
+
+void GamePlayWorld::ResetBossIntroForDebug()
+{
+	if (guardianBoss_ && collisionManager_ && bossColliderRegistered_)
+	{
+		collisionManager_->RemoveCollider(guardianBoss_.get());
+	}
+
+	guardianBoss_.reset();
+	bossSpawned_ = false;
+	bossColliderRegistered_ = false;
+	bossDefeated_ = false;
+	bossSpawnConditionMet_ = false;
+	bossIntroController_.Reset();
+}
 
 void GamePlayWorld::UpdateBossClearProgress(float deltaTime)
 {

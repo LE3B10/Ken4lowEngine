@@ -172,6 +172,20 @@ void CrystalManager::Update(CharacterWorld& characters, float deltaTime)
 	}
 }
 
+void CrystalManager::UpdatePresentationOnly(CharacterWorld& characters, float deltaTime)
+{
+	SyncCrystalsFromParameterManager();
+	ApplyReactionParameters();
+
+	for (EnemySpawnCrystal& crystal : crystals_)
+	{
+		crystal.Update(characters, deltaTime, reactionSettings_);
+	}
+
+	HandleCrystalBreakEvents();
+	UpdateWorldColorChange(deltaTime);
+}
+
 void CrystalManager::Draw() const
 {
 	for (const EnemySpawnCrystal& crystal : crystals_)

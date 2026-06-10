@@ -80,6 +80,9 @@ public: /// ---------- ライフサイクル ---------- ///
 	/// </summary>
 	virtual void Draw() override;
 
+	// カメラ復帰後など、現在のViewProjectionで描画用WVPだけを再同期する。
+	void ForceSyncWorldTransform();
+
 	/// <summary>
 	/// シャドウ描画
 	/// </summary>
@@ -160,6 +163,12 @@ public: /// ---------- 位置 / 向き ---------- ///
 	/// ボス本体の位置を設定する
 	/// </summary>
 	void SetPosition(const K4E::Vector3& position) { body_.transform.translate_ = position; }
+
+	// 演出用の親Transformが残っていた場合に、現在のワールド座標を保ったまま親を外す。
+	void ClearRootParentKeepingWorldPosition();
+	bool HasRootParent() const { return body_.transform.parent_ != nullptr; }
+	K4E::Vector3 GetRootLocalPosition() const { return body_.transform.translate_; }
+	K4E::Vector3 GetRootWorldPosition() const { return body_.transform.worldTranslate_; }
 
 	/// <summary>
 	/// Yaw は body_.transform.rotate_.y を使う

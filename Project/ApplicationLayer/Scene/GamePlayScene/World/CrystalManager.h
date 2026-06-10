@@ -25,6 +25,8 @@ public:
 	void Initialize(const std::vector<CrystalSpawnPoint>& spawnPoints, CollisionManager* collisionManager = nullptr, const std::vector<K4E::AABB>* floorAABBs = nullptr, const std::vector<K4E::AABB>* obstacleAABBs = nullptr);
 	void Finalize();
 	void Update(CharacterWorld& characters, float deltaTime);
+	// ボス登場演出中など、敵スポーンを止めたまま破壊演出と世界色変化だけ進める。
+	void UpdatePresentationOnly(CharacterWorld& characters, float deltaTime);
 	void Draw() const;
 	void DrawHpBars(const K4E::Matrix4x4& viewMatrix, const K4E::Matrix4x4& projMatrix, float screenWidth, float screenHeight) const;
 	void DrawImGui();
@@ -38,6 +40,7 @@ public:
 	bool IsFinalPhaseReady() const { return isFinalPhaseReady_; }
 	bool IsBossAppearRequested() const { return requestBossAppear_; }
 	bool IsWorldColorChangeComplete() const { return worldColorChangeComplete_; }
+	void SetCrystalEnemySpawnEnabled(bool enabled) { enableCrystalEnemySpawn_ = enabled; }
 	void SetProgressDebugStatus(int aliveNormalEnemyCount, bool bossSpawnConditionMet, bool bossSpawned, const K4E::Vector3& bossSpawnPosition);
 	static constexpr float GetMaxUpdateDeltaTime() { return kMaxUpdateDeltaTime; }
 

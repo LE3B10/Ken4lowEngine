@@ -1,0 +1,121 @@
+#pragma once
+
+#include "Vector3.h"
+
+#include <string>
+
+namespace Ken4lowEngine
+{
+	class Camera;
+}
+
+class GuardianBoss;
+
+namespace K4E = ::Ken4lowEngine;
+
+/// -------------------------------------------------------------
+/// クリスタル全破壊後のボス登場演出を管理する。
+///
+/// GamePlayWorldから開始条件と実体だけを受け取り、遅延、カメラ移動、
+/// ボス上昇、通常プレイ再開までの状態遷移をここへ集約する。
+/// -------------------------------------------------------------
+class BossIntroController
+{
+public:
+	/// ボス登場演出の進行状態。
+	enum class State
+	{
+		None,
+		WaitingAfterCrystalsBroken,
+		StartCutscene,
+		CameraMoveToBoss,
+		BossRising,
+		FinishCutscene,
+		Completed,
+	};
+
+	/// ParameterManagerで調整するボス登場演出パラメータ。
+	struct Settings
+	{
+		float bossAppearDelay = 2.0f;
+		K4E::Vector3 bossAppearPosition{ 0.0f, 2.25f, 30.0f };
+		float bossStartOffsetY = -20.0f;
+		float bossRiseTime = 3.0f;
+		float cameraMoveTime = 1.5f;
+		float cameraReturnTime = 1.0f;
+		bool bossIntroPauseGame = true;
+		bool enableBossIntroCamera = true;
+		bool enableBossRiseEffect = true;
+	};
+
+	void Initialize(const K4E::Vector3& defaultBossPosition);
+	void Finalize();
+
+	void RequestStart(const K4E::Vector3& bossPosition);
+	void Reset();
+	void Update(float deltaTime, GuardianBoss* boss, K4E::Camera* camera);
+	void SetDebugSnapshot(const GuardianBoss* boss, const K4E::Camera* camera);
+	void DrawImGui();
+
+	bool IsRunning() const { return state_ != State::None && state_ != State::Completed; }
+	bool IsWaitingDelay() const { return state_ == State::WaitingAfterCrystalsBroken; }
+	bool IsGameplayPaused() const;
+	bool HasPlayed() const { return hasPlayedBossIntro_; }
+	bool IsCompleted() const { return state_ == State::Completed; }
+	bool ShouldRegisterBossCollider() const { return bossColliderEnableRequested_; }
+	bool ConsumeBossSpawnRequest();
+	bool ConsumeBossColliderEnableRequest();
+	bool ConsumeDebugStartRequest();
+	bool ConsumeDebugResetRequest();
+	bool ConsumeDebugForceBossToAppearRequest();
+	bool ConsumeDebugClearBossParentRequest();
+	bool ConsumeDebugUseGameplayViewProjectionRequest();
+
+	State GetState() const { return state_; }
+	const Settings& GetSettings() const { return settings_; }
+	const K4E::Vector3& GetBossAppearPosition() const { return settings_.bossAppearPosition; }
+	K4E::Vector3 GetBossStartPosition() const;
+
+private:
+	void RegisterParameters();
+	void UnregisterParameters();
+	void ApplyParameters();
+	void ChangeState(State state);
+	void BeginCutscene(K4E::Camera* camera);
+	void UpdateCameraMove(float deltaTime, K4E::Camera* camera);
+	void UpdateBossRising(float deltaTime, GuardianBoss* boss, K4E::Camera* camera);
+	void UpdateCameraReturn(float deltaTime, GuardianBoss* boss, K4E::Camera* camera);
+	void CompleteIntro(GuardianBoss* boss, K4E::Camera* camera);
+	void ApplyCameraLookAtBoss(K4E::Camera* camera, const K4E::Vector3& cameraPosition, const K4E::Vector3& targetPosition) const;
+	static K4E::Vector3 Lerp(const K4E::Vector3& a, const K4E::Vector3& b, float t);
+	static float Clamp01(float value);
+	static const char* ToStateLabel(State state);
+
+private:
+	static constexpr const char* kParameterGroupName = "BossIntro";
+
+	Settings settings_{};
+	State state_ = State::None;
+	float stateTimer_ = 0.0f;
+	bool hasPlayedBossIntro_ = false;
+	bool bossSpawnRequested_ = false;
+	bool bossColliderEnableRequested_ = false;
+	bool debugStartRequested_ = false;
+	bool debugResetRequested_ = false;
+	bool debugForceBossToAppearRequested_ = false;
+	bool debugClearBossParentRequested_ = false;
+	bool debugUseGameplayViewProjectionRequested_ = false;
+	K4E::Vector3 savedCameraPosition_{};
+	K4E::Vector3 savedCameraRotation_{};
+	K4E::Vector3 introCameraPosition_{ 0.0f, 9.0f, 18.0f };
+	K4E::Vector3 introCameraTarget_{};
+	K4E::Vector3 debugBossPosition_{};
+	K4E::Vector3 debugBossLocalPosition_{};
+	K4E::Vector3 debugBossWorldPosition_{};
+	K4E::Vector3 debugCameraPosition_{};
+	float debugBossCameraDistance_ = 0.0f;
+	bool debugHasBoss_ = false;
+	bool debugHasCamera_ = false;
+	bool debugBossHasParent_ = false;
+	const char* debugViewProjectionKind_ = "Unknown";
+};

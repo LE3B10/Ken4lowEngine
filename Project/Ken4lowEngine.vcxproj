@@ -153,6 +153,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClCompile Include="ApplicationLayer\Scene\GamePlayScene\World\EnemySpawnCrystal.cpp" />
     <ClCompile Include="ApplicationLayer\Scene\GamePlayScene\World\EnemySpawnerManager.cpp" />
     <ClCompile Include="ApplicationLayer\Scene\GamePlayScene\World\CrystalManager.cpp" />
+    <ClCompile Include="ApplicationLayer\Scene\GamePlayScene\World\BossIntroController.cpp" />
     <ClCompile Include="ApplicationLayer\OverlaySystem\BaseOverlay.cpp" />
     <ClCompile Include="ApplicationLayer\OverlaySystem\ConfirmQuitOverlay.cpp" />
     <ClCompile Include="ApplicationLayer\OverlaySystem\PauseOverlay.cpp" />
@@ -751,6 +752,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="ApplicationLayer\Scene\GamePlayScene\World\EnemySpawnCrystal.h" />
     <ClInclude Include="ApplicationLayer\Scene\GamePlayScene\World\EnemySpawnerManager.h" />
     <ClInclude Include="ApplicationLayer\Scene\GamePlayScene\World\CrystalManager.h" />
+    <ClInclude Include="ApplicationLayer\Scene\GamePlayScene\World\BossIntroController.h" />
     <ClInclude Include="ApplicationLayer\OverlaySystem\BaseOverlay.h" />
     <ClInclude Include="ApplicationLayer\OverlaySystem\ConfirmQuitOverlay.h" />
     <ClInclude Include="ApplicationLayer\OverlaySystem\PauseOverlay.h" />
