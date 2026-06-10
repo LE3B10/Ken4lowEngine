@@ -20,6 +20,7 @@
 #include <BlendStateFactory.h>
 #include "GpuParticleManager.h"
 #include <GameTimer.h>
+#include <ResolutionManager.h>
 
 #ifdef USE_IMGUI
 #include <Editor/EditorWindowManager.h>
@@ -82,7 +83,13 @@ namespace Ken4lowEngine
 			if (winApp_->ConsumeResize(newWidth, newHeight))
 			{
 				dxCommon_->Resize(newWidth, newHeight);
-				// アプリ全体のウィンドウリサイズではGameViewportRenderTargetの1920x1080固定を維持する。
+				// 現在解像度を集約し、UI座標変換とCameraのProjectionを同じ基準へ揃える。
+				ResolutionManager::GetInstance()->SetScreenSize(static_cast<float>(newWidth), static_cast<float>(newHeight));
+
+				if (defaultCamera_)
+				{
+					defaultCamera_->SetAspectRatio(ResolutionManager::GetInstance()->GetAspectRatio());
+				}
 			}
 
 			// 毎フレーム更新
@@ -98,7 +105,7 @@ namespace Ken4lowEngine
 
 
 	/// -------------------------------------------------------------
-	///				　　 　ゲーム全体の初期化処理
+	///				　　	 　ゲーム全体の初期化処理
 	/// -------------------------------------------------------------
 	void Framework::Initialize()
 	{
@@ -115,6 +122,11 @@ namespace Ken4lowEngine
 		ds.monitorIndex = 0;
 
 		winApp_->CreateMainWindow(ds);
+		// 起動時の実クライアントサイズを記録し、解像度非依存のUI/入力変換へ使う。
+		ResolutionManager::GetInstance()->SetScreenSize(
+			static_cast<float>(winApp_->GetClientWidth()),
+			static_cast<float>(winApp_->GetClientHeight())
+		);
 #pragma endregion ---------------------------------------------------------
 
 
@@ -153,6 +165,8 @@ namespace Ken4lowEngine
 		defaultCamera_ = std::make_unique<Camera>();
 		defaultCamera_->SetRotate({ 0.3f,0.0f,0.0f });
 		defaultCamera_->SetTranslate({ 0.0f,10.0f,-20.0f });
+		// CameraのProjectionも現在解像度のAspectへ合わせ、レイ判定と見た目のズレを防ぐ。
+		defaultCamera_->SetAspectRatio(ResolutionManager::GetInstance()->GetAspectRatio());
 		defaultCamera_->Update();
 
 		// カメラの司令塔の初期化
