@@ -112,6 +112,13 @@ void BossChargeAttack::UpdateCharging(float deltaTime)
 	// 突進中の背後へ残像トレイルを出し、ボスが高速で迫ってくる視覚的な圧を作る。
 	BossAttackEffects::EmitGuardianAttackPresenceEffect("GuardianChargeTrail", GpuParticleType::Trail, trailPosition, 10, 0.35f, 0.75f, 1.15f);
 
+	Vector3 footDustPosition = owner_->GetPosition();
+	footDustPosition.x -= lockedForward_.x * 0.45f;
+	footDustPosition.y = 0.08f;
+	footDustPosition.z -= lockedForward_.z * 0.45f;
+	// 突進中の足元へ砂埃とMesh破片を出し、重い体が地面を削りながら進む印象を作る。
+	BossAttackEffects::EmitGuardianAttackPresenceEffect("GuardianChargeFootDust", GpuParticleType::Dust, footDustPosition, 14, 0.85f, 0.55f, 1.45f);
+
 	TryHitPlayer();
 
 	if (hasHit_ || traveledDistance_ >= chargeDistance_)
