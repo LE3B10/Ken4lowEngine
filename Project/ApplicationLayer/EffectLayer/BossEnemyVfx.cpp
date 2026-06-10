@@ -1,5 +1,6 @@
 #include "BossEnemyVfx.h"
 #include <algorithm>
+#include <cmath>
 
 namespace K4E = ::Ken4lowEngine;
 
