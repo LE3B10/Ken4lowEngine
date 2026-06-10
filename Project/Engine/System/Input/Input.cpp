@@ -1,5 +1,6 @@
 #include "Input.h"
 #include "WinApp.h"
+#include <ResolutionManager.h>
 #include <cassert>
 #include <cstring> // memcpyを使うために追加
 
@@ -357,11 +358,11 @@ namespace Ken4lowEngine
 			// Editor座標と入力許可が有効な時だけGameViewportRenderTarget基準の座標を返す。
 			return CanUseGameMouseInput() ? editorViewportMousePosition_ : Vector2(-1.0f, -1.0f);
 		}
-#else
-		// Release/GameではMain Viewport変換を使わずWin32クライアント座標をそのまま返す。
 #endif // USE_IMGUI
 
-		return Vector2(float(mousePosition_.x), float(mousePosition_.y));
+		const Vector2 screenMousePos = { float(mousePosition_.x), float(mousePosition_.y) };
+		// UI判定は内部1920x1080基準で行うため、現在ウィンドウ座標を内部座標へ戻して返す。
+		return ResolutionManager::GetInstance()->ToLogical(screenMousePos);
 	}
 
 	void Input::SetEditorViewportMousePosition(const Vector2& position, bool valid)
