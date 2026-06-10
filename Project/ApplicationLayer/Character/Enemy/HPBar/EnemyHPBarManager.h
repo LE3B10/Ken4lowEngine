@@ -26,7 +26,10 @@ public:
 		const K4E::Matrix4x4& projMatrix,
 		float screenWidth,
 		float screenHeight,
-		float deltaTime);
+		float deltaTime,
+		const EnemyBase* aimedEnemy = nullptr,
+		bool showOnlyWhenAimed = true,
+		float visibleHoldTime = 0.3f);
 
 	void Draw();
 	void DrawImGuiContent() const;
@@ -44,6 +47,7 @@ private:
 		bool updatedThisFrame = false;
 		bool deathStarted = false;
 		bool removeRequested = false;
+		float aimVisibleTimer = 0.0f;
 	};
 
 private:

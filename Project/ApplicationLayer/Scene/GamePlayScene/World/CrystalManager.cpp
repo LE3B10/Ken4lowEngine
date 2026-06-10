@@ -7,6 +7,7 @@
 #include "EnemyBase.h"
 #include "EnemyHPBarProjector.h"
 #include "ParameterManager.h"
+#include "SkyBox.h"
 
 #include <algorithm>
 #include <cmath>
@@ -23,6 +24,7 @@ namespace
 	constexpr const char* kCrystalSpawnerRootGroup = "CrystalSpawner";
 	constexpr const char* kCrystalReactionGroup = "CrystalEffect/CrystalReaction";
 	constexpr const char* kCrystalHpBarGroup = "CrystalHpBar";
+	constexpr const char* kSkyColorGroup = "SkyColorEffect";
 
 	const std::vector<std::string>& CrystalEnemyTypeOptions()
 	{
@@ -60,6 +62,9 @@ void CrystalManager::Initialize(const std::vector<CrystalSpawnPoint>& spawnPoint
 	ApplyReactionParameters();
 	RegisterHpBarParameters();
 	ApplyHpBarParameters();
+	RegisterSkyColorParameters();
+	ApplySkyColorParameters();
+	ApplySkyColor(normalSkyColor_);
 
 	collisionManager_ = collisionManager;
 	floorAABBs_ = floorAABBs;
@@ -81,6 +86,16 @@ void CrystalManager::Initialize(const std::vector<CrystalSpawnPoint>& spawnPoint
 		crystal.Initialize(spawnPoint, floorAABBs_, obstacleAABBs_);
 		crystals_.push_back(std::move(crystal));
 	}
+	crystalHpBars_.clear();
+	crystalHpBars_.reserve(crystals_.size());
+	for (size_t i = 0; i < crystals_.size(); ++i)
+	{
+		auto bar = std::make_unique<EnemyHPBar>();
+		bar->Initialize();
+		crystalHpBars_.push_back(std::move(bar));
+	}
+	crystalHpBarDebugInfos_.resize(crystals_.size());
+	crystalHpBarAimTimers_.assign(crystals_.size(), 0.0f);
 
 	if (collisionManager_)
 	{
@@ -119,8 +134,12 @@ void CrystalManager::Finalize()
 	UnregisterCrystalParameters();
 	UnregisterReactionParameters();
 	UnregisterHpBarParameters();
+	UnregisterSkyColorParameters();
 	RestoreWorldColor();
 	crystals_.clear();
+	crystalHpBars_.clear();
+	crystalHpBarDebugInfos_.clear();
+	crystalHpBarAimTimers_.clear();
 	spawnPoints_.clear();
 	parameterGroupNames_.clear();
 	collisionManager_ = nullptr;
@@ -133,6 +152,7 @@ void CrystalManager::Update(CharacterWorld& characters, float deltaTime)
 	SyncCrystalsFromParameterManager();
 	ApplyReactionParameters();
 	ApplyHpBarParameters();
+	ApplySkyColorParameters();
 
 	for (EnemySpawnCrystal& crystal : crystals_)
 	{
@@ -140,6 +160,7 @@ void CrystalManager::Update(CharacterWorld& characters, float deltaTime)
 	}
 	HandleCrystalBreakEvents();
 	UpdateWorldColorChange(deltaTime);
+	UpdateSkyColorChange(deltaTime);
 
 	if (!enableCrystalEnemySpawn_ || AreAllCrystalsDestroyed() || GetAliveCrystalCount() <= 0)
 	{
@@ -189,6 +210,7 @@ void CrystalManager::UpdatePresentationOnly(CharacterWorld& characters, float de
 
 	HandleCrystalBreakEvents();
 	UpdateWorldColorChange(deltaTime);
+	UpdateSkyColorChange(deltaTime);
 }
 
 void CrystalManager::Draw() const
@@ -199,62 +221,116 @@ void CrystalManager::Draw() const
 	}
 }
 
-void CrystalManager::DrawHpBars(const Ken4lowEngine::Matrix4x4& viewMatrix, const Ken4lowEngine::Matrix4x4& projMatrix, float screenWidth, float screenHeight) const
+void CrystalManager::UpdateHpBars(const Ken4lowEngine::Matrix4x4& viewMatrix, const Ken4lowEngine::Matrix4x4& projMatrix, float screenWidth, float screenHeight, float deltaTime, const EnemySpawnCrystal* aimedCrystal, bool showOnlyWhenAimed, float visibleHoldTime)
 {
-#ifdef USE_IMGUI
+	crystalHpBarDrawCalled_ = false;
+	crystalHpBarVisibleCount_ = 0;
+	if (crystalHpBarDebugInfos_.size() != crystals_.size())
+	{
+		crystalHpBarDebugInfos_.resize(crystals_.size());
+	}
+	if (crystalHpBarAimTimers_.size() != crystals_.size())
+	{
+		crystalHpBarAimTimers_.assign(crystals_.size(), 0.0f);
+	}
+	if (crystalHpBars_.size() != crystals_.size())
+	{
+		crystalHpBars_.clear();
+		crystalHpBars_.reserve(crystals_.size());
+		for (size_t i = 0; i < crystals_.size(); ++i)
+		{
+			auto bar = std::make_unique<EnemyHPBar>();
+			bar->Initialize();
+			crystalHpBars_.push_back(std::move(bar));
+		}
+		crystalHpBarAimTimers_.assign(crystals_.size(), 0.0f);
+	}
+
 	if (!crystalHpBarVisible_)
 	{
+		for (auto& bar : crystalHpBars_)
+		{
+			if (bar) { bar->SetVisible(false); }
+		}
 		return;
 	}
 
-	ImDrawList* drawList = ImGui::GetBackgroundDrawList();
-	if (!drawList)
+	for (size_t i = 0; i < crystals_.size(); ++i)
 	{
-		return;
-	}
+		const EnemySpawnCrystal& crystal = crystals_[i];
+		CrystalHpBarDebugInfo debug{};
+		debug.hp = crystal.GetHp();
+		debug.maxHp = crystal.GetMaxHp();
+		debug.hpRate = std::clamp(crystal.GetHpRate(), 0.0f, 1.0f);
+		debug.active = crystal.IsAlive();
+		debug.broken = crystal.IsDestroyed();
 
-	for (const EnemySpawnCrystal& crystal : crystals_)
-	{
+		bool visible = true;
+		if (&crystal == aimedCrystal)
+		{
+			crystalHpBarAimTimers_[i] = std::max(0.0f, visibleHoldTime);
+		}
+		else if (crystalHpBarAimTimers_[i] > 0.0f)
+		{
+			crystalHpBarAimTimers_[i] = std::max(0.0f, crystalHpBarAimTimers_[i] - deltaTime);
+		}
 		if (crystal.IsDestroyed())
 		{
-			continue;
+			visible = false;
+			debug.hiddenReason = "Broken";
 		}
-		if (!crystalHpBarAlwaysVisible_ && crystal.GetHp() >= crystal.GetMaxHp())
+		else if (showOnlyWhenAimed && &crystal != aimedCrystal && crystalHpBarAimTimers_[i] <= 0.0f)
 		{
-			continue;
+			// 照準対象だけHPバーを表示する処理。短い保持時間で外れ際のチラつきを抑える。
+			visible = false;
+			debug.hiddenReason = "Not aimed";
+		}
+		else if (!crystalHpBarAlwaysVisible_ && crystal.GetHp() >= crystal.GetMaxHp())
+		{
+			visible = false;
+			debug.hiddenReason = "Full HP";
 		}
 
 		const Ken4lowEngine::Vector3& pos = crystal.GetPosition();
 		const Ken4lowEngine::Vector3& scale = crystal.GetScale();
 		// クリスタル頭上HPバーの表示位置をParameterManager調整値込みで計算する。
 		const Ken4lowEngine::Vector3 hpBarWorldPos{ pos.x, pos.y + std::abs(scale.y) * 0.65f + crystalHpBarOffsetY_, pos.z };
+		debug.worldPosition = hpBarWorldPos;
 		const HpBarProjectResult projected = ProjectWorldToScreen(hpBarWorldPos, viewMatrix, projMatrix, screenWidth, screenHeight);
-		if (!projected.inFront || !projected.inScreen)
+		debug.screenPosition = projected.screenPos;
+		debug.inFront = projected.inFront;
+		debug.inScreen = projected.inScreen;
+		if (visible && (!projected.inFront || !projected.inScreen))
 		{
-			continue;
+			visible = false;
+			debug.hiddenReason = projected.inFront ? "Out of screen" : "Behind camera";
 		}
 
 		// クリスタルHP率を計算し、最大HPが不正でも0除算しないようGetter側の安全値を使う。
-		const float hpRate = std::clamp(crystal.GetHpRate(), 0.0f, 1.0f);
-		const ImVec2 barSize{ crystalHpBarWidth_, crystalHpBarHeight_ };
-		const ImVec2 barMin{ projected.screenPos.x - barSize.x * 0.5f, projected.screenPos.y - 20.0f };
-		const ImVec2 barMax{ barMin.x + barSize.x, barMin.y + barSize.y };
-		const ImVec2 fillMax{ barMin.x + barSize.x * hpRate, barMax.y };
-
-		drawList->AddRectFilled(barMin, barMax, IM_COL32(25, 25, 25, 210), 3.0f);
-		drawList->AddRectFilled(barMin, fillMax, IM_COL32(60, 220, 255, 235), 3.0f);
-		drawList->AddRect(barMin, barMax, IM_COL32(255, 255, 255, 230), 3.0f);
-
-		const std::string hpText = std::to_string(crystal.GetHp()) + "/" + std::to_string(crystal.GetMaxHp());
-		const ImVec2 textSize = ImGui::CalcTextSize(hpText.c_str());
-		drawList->AddText({ projected.screenPos.x - textSize.x * 0.5f, barMin.y - textSize.y - 2.0f }, IM_COL32(255, 255, 255, 255), hpText.c_str());
+		const float hpRate = debug.hpRate;
+		debug.visible = visible;
+		if (visible)
+		{
+			++crystalHpBarVisibleCount_;
+		}
+		if (i < crystalHpBars_.size() && crystalHpBars_[i])
+		{
+			crystalHpBars_[i]->Update(projected.screenPos, hpRate, visible, deltaTime, crystalHpBarWidth_, crystalHpBarHeight_);
+		}
+		crystalHpBarDebugInfos_[i] = debug;
 	}
-#else
-	(void)viewMatrix;
-	(void)projMatrix;
-	(void)screenWidth;
-	(void)screenHeight;
-#endif
+}
+
+void CrystalManager::DrawHpBars()
+{
+	crystalHpBarDrawCalled_ = true;
+	for (auto& bar : crystalHpBars_)
+	{
+		if (bar)
+		{
+			bar->Draw();
+		}
+	}
 }
 
 int CrystalManager::GetAliveCrystalCount() const
@@ -490,6 +566,49 @@ void CrystalManager::ApplyHpBarParameters()
 	crystalHpBarShowTime_ = std::max(0.0f, parameters->GetValue<float>(kCrystalHpBarGroup, "crystalHpBarShowTime"));
 }
 
+void CrystalManager::RegisterSkyColorParameters()
+{
+	auto* parameters = Ken4lowEngine::ParameterManager::GetInstance();
+	parameters->CreateGroup(kSkyColorGroup);
+	parameters->AddItem(kSkyColorGroup, "skyColorChangeEnabled", skyColorChangeEnabled_);
+	parameters->AddItem(kSkyColorGroup, "skyColorChangeTime", skyColorChangeTime_, 0.1f, 10.0f);
+	parameters->AddItem(kSkyColorGroup, "normalSkyColor", normalSkyColor_);
+	parameters->AddItem(kSkyColorGroup, "brokenSkyColor", brokenSkyColor_);
+	parameters->AddItem(kSkyColorGroup, "skyDarkness", skyDarkness_, 0.0f, 1.0f);
+	parameters->AddItem(kSkyColorGroup, "skyRedTint", skyRedTint_, 0.0f, 1.0f);
+	parameters->AddItem(kSkyColorGroup, "skyPurpleTint", skyPurpleTint_, 0.0f, 1.0f);
+	parameters->AddItem(kSkyColorGroup, "changeSkyOnAllCrystalsBroken", changeSkyOnAllCrystalsBroken_);
+	parameters->SetDisplayName(kSkyColorGroup, "skyColorChangeEnabled", "空色変化ON");
+	parameters->SetDisplayName(kSkyColorGroup, "skyColorChangeTime", "空色変化時間");
+	parameters->SetDisplayName(kSkyColorGroup, "normalSkyColor", "通常空色");
+	parameters->SetDisplayName(kSkyColorGroup, "brokenSkyColor", "破壊後空色");
+	parameters->SetDisplayName(kSkyColorGroup, "skyDarkness", "空の暗さ");
+	parameters->SetDisplayName(kSkyColorGroup, "skyRedTint", "赤み");
+	parameters->SetDisplayName(kSkyColorGroup, "skyPurpleTint", "紫み");
+	parameters->SetDisplayName(kSkyColorGroup, "changeSkyOnAllCrystalsBroken", "全破壊時に空色変化");
+	parameters->RegisterParameterApplier(kSkyColorGroup, this, [this]() { ApplySkyColorParameters(); });
+	parameters->LoadFile(kSkyColorGroup);
+}
+
+void CrystalManager::UnregisterSkyColorParameters()
+{
+	Ken4lowEngine::ParameterManager::GetInstance()->UnregisterParameterApplier(kSkyColorGroup, this);
+}
+
+void CrystalManager::ApplySkyColorParameters()
+{
+	auto* parameters = Ken4lowEngine::ParameterManager::GetInstance();
+	// ParameterManagerから空色設定を反映する処理。
+	skyColorChangeEnabled_ = parameters->GetValue<bool>(kSkyColorGroup, "skyColorChangeEnabled");
+	skyColorChangeTime_ = std::max(0.1f, parameters->GetValue<float>(kSkyColorGroup, "skyColorChangeTime"));
+	normalSkyColor_ = parameters->GetValue<K4E::Vector4>(kSkyColorGroup, "normalSkyColor");
+	brokenSkyColor_ = parameters->GetValue<K4E::Vector4>(kSkyColorGroup, "brokenSkyColor");
+	skyDarkness_ = std::clamp(parameters->GetValue<float>(kSkyColorGroup, "skyDarkness"), 0.0f, 1.0f);
+	skyRedTint_ = std::clamp(parameters->GetValue<float>(kSkyColorGroup, "skyRedTint"), 0.0f, 1.0f);
+	skyPurpleTint_ = std::clamp(parameters->GetValue<float>(kSkyColorGroup, "skyPurpleTint"), 0.0f, 1.0f);
+	changeSkyOnAllCrystalsBroken_ = parameters->GetValue<bool>(kSkyColorGroup, "changeSkyOnAllCrystalsBroken");
+}
+
 void CrystalManager::HandleCrystalBreakEvents()
 {
 	for (EnemySpawnCrystal& crystal : crystals_)
@@ -503,6 +622,10 @@ void CrystalManager::HandleCrystalBreakEvents()
 		requestBossAppear_ = AreAllCrystalsDestroyed();
 		isFinalPhaseReady_ = requestBossAppear_;
 		BeginWorldColorChange(); // クリスタル破壊イベントから世界色変化を開始する。
+		if (requestBossAppear_ && changeSkyOnAllCrystalsBroken_)
+		{
+			BeginSkyColorChange(); // 全クリスタル破壊時に空色変化を開始する処理。
+		}
 		crystal.ClearJustBrokenFlag();
 	}
 }
@@ -556,17 +679,95 @@ void CrystalManager::UpdateWorldColorChange(float deltaTime)
 	}
 }
 
-void CrystalManager::RestoreWorldColor()
+void CrystalManager::BeginSkyColorChange()
 {
-	if (!worldColorChanging_ && !worldColorChangeComplete_)
+	if (!skyColorChangeEnabled_ || skyColorChanging_ || skyColorChangeComplete_)
 	{
 		return;
 	}
 
-	Ken4lowEngine::LightManager::GetInstance()->GetMutableLightingSettingsForEditor() = baseLightingSettings_;
+	skyColorChanging_ = true;
+	skyColorChangeComplete_ = false;
+	skyColorChangeTimer_ = 0.0f;
+}
+
+void CrystalManager::UpdateSkyColorChange(float deltaTime)
+{
+	if (!skyColorChanging_)
+	{
+		return;
+	}
+
+	skyColorChangeTimer_ += deltaTime;
+	const float t = std::clamp(skyColorChangeTimer_ / std::max(0.1f, skyColorChangeTime_), 0.0f, 1.0f);
+	// 空色をLerpで補間する処理。暗さ/赤み/紫みは最終色側に混ぜて不穏さを調整する。
+	K4E::Vector4 target = brokenSkyColor_;
+	target.x = std::clamp(target.x + skyRedTint_, 0.0f, 1.0f);
+	target.y = std::clamp(target.y * (1.0f - skyDarkness_), 0.0f, 1.0f);
+	target.z = std::clamp(target.z + skyPurpleTint_, 0.0f, 1.0f);
+	const K4E::Vector4 color = LerpColor(normalSkyColor_, target, t);
+	ApplySkyColor(color);
+
+	if (t >= 1.0f)
+	{
+		skyColorChanging_ = false;
+		skyColorChangeComplete_ = true;
+	}
+}
+
+void CrystalManager::ApplySkyColor(const K4E::Vector4& color)
+{
+	if (!skyBox_)
+	{
+		return;
+	}
+
+	skyBox_->SetColor(color);
+	const K4E::Vector4 top{ color.x, color.y, color.z, color.w };
+	const K4E::Vector4 horizon{
+		std::min(1.0f, color.x + 0.08f),
+		std::min(1.0f, color.y + 0.04f),
+		std::min(1.0f, color.z + 0.08f),
+		color.w
+	};
+	const K4E::Vector4 bottom{
+		std::max(0.0f, color.x * 0.65f),
+		std::max(0.0f, color.y * 0.55f),
+		std::max(0.0f, color.z * 0.70f),
+		color.w
+	};
+	skyBox_->SetGradientColors(top, bottom, horizon);
+}
+
+K4E::Vector4 CrystalManager::LerpColor(const K4E::Vector4& a, const K4E::Vector4& b, float t) const
+{
+	t = std::clamp(t, 0.0f, 1.0f);
+	return {
+		a.x + (b.x - a.x) * t,
+		a.y + (b.y - a.y) * t,
+		a.z + (b.z - a.z) * t,
+		a.w + (b.w - a.w) * t
+	};
+}
+
+void CrystalManager::RestoreWorldColor()
+{
+	if (!worldColorChanging_ && !worldColorChangeComplete_ && !skyColorChanging_ && !skyColorChangeComplete_)
+	{
+		return;
+	}
+
+	if (worldColorChanging_ || worldColorChangeComplete_)
+	{
+		Ken4lowEngine::LightManager::GetInstance()->GetMutableLightingSettingsForEditor() = baseLightingSettings_;
+	}
 	worldColorChanging_ = false;
 	worldColorChangeComplete_ = false;
 	worldColorChangeTimer_ = 0.0f;
+	skyColorChanging_ = false;
+	skyColorChangeComplete_ = false;
+	skyColorChangeTimer_ = 0.0f;
+	ApplySkyColor(normalSkyColor_);
 }
 
 std::string CrystalManager::BuildCrystalGroupName(const CrystalSpawnPoint& spawnPoint) const
@@ -668,6 +869,43 @@ void CrystalManager::DrawImGui()
 	ImGui::Text("常時表示: %s", crystalHpBarAlwaysVisible_ ? "ON" : "OFF");
 	ImGui::Text("OffsetY / Size: %.2f / %.1f x %.1f", crystalHpBarOffsetY_, crystalHpBarWidth_, crystalHpBarHeight_);
 	ImGui::Text("被弾後表示時間: %.2f 秒", crystalHpBarShowTime_);
+	ImGui::Text("Draw呼び出し: %s", crystalHpBarDrawCalled_ ? "はい" : "いいえ");
+	ImGui::Text("表示対象数: %d / %d", crystalHpBarVisibleCount_, static_cast<int>(crystalHpBarDebugInfos_.size()));
+	for (size_t i = 0; i < crystalHpBarDebugInfos_.size(); ++i)
+	{
+		const auto& info = crystalHpBarDebugInfos_[i];
+		ImGui::Text(
+			"CrystalHPBar[%d] HP:%d/%d Rate:%.2f World:(%.2f,%.2f,%.2f) Screen:(%.1f,%.1f) visible:%s reason:%s",
+			static_cast<int>(i),
+			info.hp,
+			info.maxHp,
+			info.hpRate,
+			info.worldPosition.x,
+			info.worldPosition.y,
+			info.worldPosition.z,
+			info.screenPosition.x,
+			info.screenPosition.y,
+			info.visible ? "true" : "false",
+			info.hiddenReason.empty() ? "-" : info.hiddenReason.c_str());
+	}
+	ImGui::SeparatorText("Sky Color Effect");
+	ImGui::Text("空色変化ON: %s", skyColorChangeEnabled_ ? "ON" : "OFF");
+	ImGui::Text("全クリスタル破壊時に変化: %s", changeSkyOnAllCrystalsBroken_ ? "ON" : "OFF");
+	ImGui::Text("空色変化: %.2f / %.2f 秒 complete:%s", skyColorChangeTimer_, skyColorChangeTime_, skyColorChangeComplete_ ? "はい" : "いいえ");
+	ImGui::Text("通常空色: %.2f %.2f %.2f %.2f", normalSkyColor_.x, normalSkyColor_.y, normalSkyColor_.z, normalSkyColor_.w);
+	ImGui::Text("破壊後空色: %.2f %.2f %.2f %.2f", brokenSkyColor_.x, brokenSkyColor_.y, brokenSkyColor_.z, brokenSkyColor_.w);
+	if (ImGui::Button("Sky Color Debug Start"))
+	{
+		BeginSkyColorChange();
+	}
+	ImGui::SameLine();
+	if (ImGui::Button("Sky Color Reset"))
+	{
+		skyColorChanging_ = false;
+		skyColorChangeComplete_ = false;
+		skyColorChangeTimer_ = 0.0f;
+		ApplySkyColor(normalSkyColor_);
+	}
 	ImGui::Text("更新用deltaTime上限: %.4f 秒", kMaxUpdateDeltaTime);
 	ImGui::Text("敵Ground Snap有効: %s", EnemyBase::IsGroundSnapEnabled() ? "はい" : "いいえ");
 	ImGui::Text("クリスタルGround Snap有効: %s", EnemySpawnCrystal::IsGroundSnapEnabled() ? "はい" : "いいえ");

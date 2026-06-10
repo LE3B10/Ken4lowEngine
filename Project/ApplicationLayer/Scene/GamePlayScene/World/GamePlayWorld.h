@@ -12,6 +12,7 @@
 #include "ItemManager.h"
 #include "CrystalManager.h"
 #include "BossIntroController.h"
+#include "AimTargetDetector.h"
 #include "Derived/GuardianBoss/GuardianBoss.h"
 #include "Object3D.h"
 
@@ -135,8 +136,6 @@ public: /// ---------- メンバ関数 ---------- ///
 		return shadowLightViewProjection_;
 	}
 
-	bool CheckCrosshairTargetingEnemy() const;
-
 	// 装置オブジェクトの接触イベント実装後は、各装置から呼ばれる想定の進行加算窓口。
 	void AddActivatedDeviceCount(int amount = 1);
 	// ゴール接触判定が実オブジェクト側へ移るまで、到達フラグを外部から反映する窓口。
@@ -185,6 +184,7 @@ private: /// ---------- メンバ変数 ---------- ///
 	EnemyHPBarManager enemyHpBarManager_;
 	ItemManager itemManager_;
 	CrystalManager crystalManager_;
+	AimTargetDetector aimTargetDetector_;
 	std::unique_ptr<GuardianBoss> guardianBoss_;
 	std::unique_ptr<BossClearItem> clearItem_;
 

@@ -147,11 +147,9 @@ void Crosshair::Update()
 		sprite_->SetPosition({ clientWidth / 2.0f, clientHeight / 2.0f });
 		sprite_->SetSize(size_);
 
-		const float r = 1.0f;
-		const float g = isTargetingEnemy_ ? 0.2f : 1.0f;
-		const float b = isTargetingEnemy_ ? 0.2f : 1.0f;
+		const K4E::Vector4 color = isTargetingEnemy_ ? targetColor_ : normalColor_;
 
-		sprite_->SetColor({ r, g, b, Clamp01(hipAlpha) });
+		sprite_->SetColor({ color.x, color.y, color.z, Clamp01(hipAlpha) * color.w });
 		sprite_->Update();
 	}
 	if (shadow_)
@@ -168,11 +166,9 @@ void Crosshair::Update()
 		adsSprite_->SetPosition({ clientWidth / 2.0f, clientHeight / 2.0f });
 		adsSprite_->SetSize(size_);
 
-		const float r = isTargetingEnemy_ ? 1.0f : 1.0f;
-		const float g = isTargetingEnemy_ ? 0.2f : 1.0f;
-		const float b = isTargetingEnemy_ ? 0.2f : 1.0f;
+		const K4E::Vector4 color = isTargetingEnemy_ ? targetColor_ : normalColor_;
 
-		adsSprite_->SetColor({ r, g, b, Clamp01(adsRetAlpha) });
+		adsSprite_->SetColor({ color.x, color.y, color.z, Clamp01(adsRetAlpha) * color.w });
 		adsSprite_->Update();
 	}
 
@@ -190,11 +186,9 @@ void Crosshair::Update()
 		adsDotSprite_->SetPosition({ clientWidth / 2.0f, clientHeight / 2.0f });
 		adsDotSprite_->SetSize(adsDotSize);
 
-		const float r = isTargetingEnemy_ ? 1.0f : 1.0f;
-		const float g = isTargetingEnemy_ ? 0.2f : 1.0f;
-		const float b = isTargetingEnemy_ ? 0.2f : 1.0f;
+		const K4E::Vector4 color = isTargetingEnemy_ ? targetColor_ : normalColor_;
 
-		adsDotSprite_->SetColor({ r, g, b, Clamp01(adsDotAlpha) });
+		adsDotSprite_->SetColor({ color.x, color.y, color.z, Clamp01(adsDotAlpha) * color.w });
 		adsDotSprite_->Update();
 	}
 

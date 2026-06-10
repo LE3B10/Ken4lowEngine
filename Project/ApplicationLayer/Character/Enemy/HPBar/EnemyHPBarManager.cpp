@@ -1,3 +1,4 @@
+#define NOMINMAX
 #include "EnemyHPBarManager.h"
 #include "EnemyBase.h"
 
@@ -62,7 +63,10 @@ void EnemyHPBarManager::Update(
 	const K4E::Matrix4x4& projMatrix,
 	float screenWidth,
 	float screenHeight,
-	float deltaTime)
+	float deltaTime,
+	const EnemyBase* aimedEnemy,
+	bool showOnlyWhenAimed,
+	float visibleHoldTime)
 {
 	// まず全Entryを未更新にする
 	for (auto& entry : entries_)
@@ -116,7 +120,17 @@ void EnemyHPBarManager::Update(
 
 		// 画面内にいる間だけ表示更新
 		// 死亡後も最後のスクリーン位置で描き続ける
-		const bool visible = entry.visibleThisFrame || entry.deathStarted;
+		if (enemy == aimedEnemy)
+		{
+			entry.aimVisibleTimer = std::max(0.0f, visibleHoldTime);
+		}
+		else if (entry.aimVisibleTimer > 0.0f)
+		{
+			entry.aimVisibleTimer = std::max(0.0f, entry.aimVisibleTimer - deltaTime);
+		}
+		// 照準対象だけHPバーを表示する処理。保持時間中だけ照準外れのチラつきを抑える。
+		const bool aimVisible = !showOnlyWhenAimed || enemy == aimedEnemy || entry.aimVisibleTimer > 0.0f;
+		const bool visible = (entry.visibleThisFrame || entry.deathStarted) && aimVisible;
 
 		entry.bar->Update(
 			entry.cachedScreenPos,
@@ -147,7 +161,7 @@ void EnemyHPBarManager::Update(
 			entry.bar->Update(
 				entry.cachedScreenPos,
 				0.0f,
-				true,
+				!showOnlyWhenAimed || entry.aimVisibleTimer > 0.0f,
 				deltaTime,
 				72.0f,
 				8.0f);

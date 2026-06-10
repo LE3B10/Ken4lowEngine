@@ -8,6 +8,7 @@
 #include "NoAmmoUI.h"
 #include "ControlGuideUI.h"
 #include "Vector3.h"
+#include "Vector4.h"
 
 #include <memory>
 #include <string>
@@ -80,6 +81,7 @@ public: /// ---------- セッタ ---------- ///
 
 	// 照準線上に敵がいるかをクロスヘア色/状態へ反映する。
 	void SetCrosshairTargetingEnemy(bool v);
+	void SetCrosshairTargetColors(const K4E::Vector4& normalColor, const K4E::Vector4& targetColor);
 	void SetControlGuideVisible(bool v) { if (controlGuideUI_) controlGuideUI_->SetVisible(v); }
 
 public: /// ---------- ゲッタ ---------- ///
@@ -117,7 +119,7 @@ private: /// ---------- メンバ変数 ---------- ///
 	std::unique_ptr<Crosshair> crosshair_; // 十字照準
 	std::unique_ptr<HPWidget> hpWidget_; // HPウィジェット
 
-	//std::unique_ptr<WaveUI> waveUI_; // ウェーブUI（WaveDefense用）
+	std::unique_ptr<WaveUI> waveUI_; // ウェーブUI（WaveDefense用）
 	std::unique_ptr<ControlGuideUI> controlGuideUI_; // コントロールガイドUI
 
 	std::unique_ptr<WeaponSlot> weaponSlot_; // 武器スロット

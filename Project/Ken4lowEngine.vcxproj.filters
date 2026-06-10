@@ -274,6 +274,9 @@
     <ClCompile Include="ApplicationLayer\Scene\GamePlayScene\World\BossIntroController.cpp">
       <Filter>ApplicationLayer\Scene\GamePlayScene\World</Filter>
     </ClCompile>
+    <ClCompile Include="ApplicationLayer\Scene\GamePlayScene\World\AimTargetDetector.cpp">
+      <Filter>ApplicationLayer\Scene\GamePlayScene\World</Filter>
+    </ClCompile>
     <ClCompile Include="ApplicationLayer\Character\CharacterWorld\CharacterWorld.cpp">
       <Filter>ApplicationLayer\Character\CharacterWorld</Filter>
     </ClCompile>
@@ -1156,6 +1159,9 @@
       <Filter>ApplicationLayer\Scene\GamePlayScene\World</Filter>
     </ClInclude>
     <ClInclude Include="ApplicationLayer\Scene\GamePlayScene\World\BossIntroController.h">
+      <Filter>ApplicationLayer\Scene\GamePlayScene\World</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Scene\GamePlayScene\World\AimTargetDetector.h">
       <Filter>ApplicationLayer\Scene\GamePlayScene\World</Filter>
     </ClInclude>
     <ClInclude Include="ApplicationLayer\Character\CharacterWorld\CharacterWorld.h">

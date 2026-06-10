@@ -1,16 +1,20 @@
 #pragma once
 
 #include "EnemySpawnCrystal.h"
+#include "EnemyHPBar.h"
 
 #include <cstddef>
+#include <memory>
 #include <string>
 #include <vector>
 
 #include "Matrix4x4.h"
 #include "LightManager.h"
+#include "Vector2.h"
 
 class CharacterWorld;
 class CollisionManager;
+namespace Ken4lowEngine { class SkyBox; }
 
 /// -------------------------------------------------------------
 /// 複数クリスタルの進行、雑魚敵生成要求、ボス通知を集約する。
@@ -28,8 +32,10 @@ public:
 	// ボス登場演出中など、敵スポーンを止めたまま破壊演出と世界色変化だけ進める。
 	void UpdatePresentationOnly(CharacterWorld& characters, float deltaTime);
 	void Draw() const;
-	void DrawHpBars(const K4E::Matrix4x4& viewMatrix, const K4E::Matrix4x4& projMatrix, float screenWidth, float screenHeight) const;
+	void UpdateHpBars(const K4E::Matrix4x4& viewMatrix, const K4E::Matrix4x4& projMatrix, float screenWidth, float screenHeight, float deltaTime, const EnemySpawnCrystal* aimedCrystal = nullptr, bool showOnlyWhenAimed = true, float visibleHoldTime = 0.3f);
+	void DrawHpBars();
 	void DrawImGui();
+	void SetSkyBox(K4E::SkyBox* skyBox) { skyBox_ = skyBox; }
 
 	int GetCrystalCount() const { return static_cast<int>(crystals_.size()); }
 	int GetAliveCrystalCount() const;
@@ -59,9 +65,16 @@ private:
 	void RegisterHpBarParameters();
 	void UnregisterHpBarParameters();
 	void ApplyHpBarParameters();
+	void RegisterSkyColorParameters();
+	void UnregisterSkyColorParameters();
+	void ApplySkyColorParameters();
 	void HandleCrystalBreakEvents();
 	void BeginWorldColorChange();
 	void UpdateWorldColorChange(float deltaTime);
+	void BeginSkyColorChange();
+	void UpdateSkyColorChange(float deltaTime);
+	void ApplySkyColor(const K4E::Vector4& color);
+	K4E::Vector4 LerpColor(const K4E::Vector4& a, const K4E::Vector4& b, float t) const;
 	void RestoreWorldColor();
 	std::string BuildCrystalGroupName(const CrystalSpawnPoint& spawnPoint) const;
 	const char* ToEnemyTypeName(EnemyType enemyType) const;
@@ -95,6 +108,37 @@ private:
 	float crystalHpBarWidth_ = 82.0f;
 	float crystalHpBarHeight_ = 9.0f;
 	float crystalHpBarShowTime_ = 3.0f;
+	struct CrystalHpBarDebugInfo
+	{
+		int hp = 0;
+		int maxHp = 0;
+		float hpRate = 0.0f;
+		K4E::Vector3 worldPosition{};
+		K4E::Vector2 screenPosition{};
+		bool active = false;
+		bool broken = false;
+		bool inFront = false;
+		bool inScreen = false;
+		bool visible = false;
+		std::string hiddenReason;
+	};
+	std::vector<std::unique_ptr<EnemyHPBar>> crystalHpBars_;
+	std::vector<CrystalHpBarDebugInfo> crystalHpBarDebugInfos_;
+	std::vector<float> crystalHpBarAimTimers_;
+	bool crystalHpBarDrawCalled_ = false;
+	int crystalHpBarVisibleCount_ = 0;
+	K4E::SkyBox* skyBox_ = nullptr;
+	bool skyColorChangeEnabled_ = true;
+	bool changeSkyOnAllCrystalsBroken_ = true;
+	bool skyColorChanging_ = false;
+	bool skyColorChangeComplete_ = false;
+	float skyColorChangeTime_ = 3.0f;
+	float skyColorChangeTimer_ = 0.0f;
+	float skyDarkness_ = 0.35f;
+	float skyRedTint_ = 0.25f;
+	float skyPurpleTint_ = 0.25f;
+	K4E::Vector4 normalSkyColor_{ 1.0f, 1.0f, 1.0f, 1.0f };
+	K4E::Vector4 brokenSkyColor_{ 0.55f, 0.18f, 0.28f, 1.0f };
 	K4E::LightManager::LightingSettingsGPU baseLightingSettings_{};
 	int debugAliveNormalEnemyCount_ = 0;
 	bool debugBossSpawnConditionMet_ = false;

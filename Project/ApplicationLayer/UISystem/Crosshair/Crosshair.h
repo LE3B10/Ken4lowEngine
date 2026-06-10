@@ -1,5 +1,6 @@
 #pragma once
 #include <Sprite.h>
+#include "Vector4.h"
 
 #include <memory>
 #include <string>
@@ -74,6 +75,11 @@ public:
 	void NotifyLanded();
 	
 	void SetTargetingEnemy(bool flag) { isTargetingEnemy_ = flag; }
+	void SetTargetColors(const K4E::Vector4& normalColor, const K4E::Vector4& targetColor)
+	{
+		normalColor_ = normalColor;
+		targetColor_ = targetColor;
+	}
 
 private:
 	enum class EHitMarkerKind
@@ -169,4 +175,6 @@ private:
 	float hitBaseSize_ = 112.0f;
 
 	bool isTargetingEnemy_ = false;
+	K4E::Vector4 normalColor_{ 1.0f, 1.0f, 1.0f, 1.0f };
+	K4E::Vector4 targetColor_{ 1.0f, 0.2f, 0.2f, 1.0f };
 };

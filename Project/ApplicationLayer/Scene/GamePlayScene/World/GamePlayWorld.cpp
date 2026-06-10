@@ -299,11 +299,13 @@ void GamePlayWorld::Initialize(GamePlayStageContext& stageContext)
 	leftCrystalSpawnPoint.spawnBossTrigger = true;
 	crystalSpawnPoints.push_back(leftCrystalSpawnPoint);
 
+	crystalManager_.SetSkyBox(skyBox_.get());
 	crystalManager_.Initialize(crystalSpawnPoints, collisionManager_.get(), &stage_->GetFloorAABBs(), &stage_->GetNavigationObstacleAABBs());
 	crystalManager_.SetProgressDebugStatus(characters_.GetAliveNormalEnemyCount(), bossSpawnConditionMet_, bossSpawned_, bossSpawnPosition_);
 	bossIntroController_.Initialize(bossSpawnPosition_);
 
 	enemyHpBarManager_.Initialize();
+	aimTargetDetector_.Initialize();
 }
 
 void GamePlayWorld::Finalize()
@@ -414,6 +416,17 @@ void GamePlayWorld::Update(float deltaTime)
 		skyBox_->AdvanceCloudLayer(deltaTime);
 	}
 
+	if (collisionManager_)
+	{
+		if (auto* player = characters_.GetPlayer())
+		{
+			if (auto* camera = player->GetCamera())
+			{
+				aimTargetDetector_.Update(*camera, *collisionManager_);
+			}
+		}
+	}
+
 	if (auto* player = characters_.GetPlayer())
 	{
 		if (auto* camera = player->GetCamera())
@@ -429,15 +442,30 @@ void GamePlayWorld::Update(float deltaTime)
 				camera->GetProjectionMatrix(),
 				width,
 				height,
-				deltaTime
+				deltaTime,
+				aimTargetDetector_.GetTargetEnemy(),
+				aimTargetDetector_.ShouldShowHpBarOnlyWhenAimed(),
+				aimTargetDetector_.GetHpBarVisibleHoldTime()
 			);
+			crystalManager_.UpdateHpBars(
+				camera->GetViewMatrix(),
+				camera->GetProjectionMatrix(),
+				width,
+				height,
+				deltaTime,
+				aimTargetDetector_.GetTargetCrystal(),
+				aimTargetDetector_.ShouldShowHpBarOnlyWhenAimed(),
+				aimTargetDetector_.GetHpBarVisibleHoldTime());
 		}
 	}
 
 	if (hudManager_ && characters_.GetPlayer())
 	{
 		// 照準先判定、HP、Wave状態などWorld側でしか分からない情報をHUDへ集約する。
-		const bool isTargetingEnemy = CheckCrosshairTargetingEnemy();
+		const bool isTargetingEnemy = aimTargetDetector_.HasDamageableTarget();
+		hudManager_->SetCrosshairTargetColors(
+			aimTargetDetector_.GetCrosshairNormalColor(),
+			aimTargetDetector_.GetCrosshairTargetColor());
 		hudManager_->SetCrosshairTargetingEnemy(isTargetingEnemy);
 
 		hudManager_->SetHP(
@@ -654,18 +682,8 @@ void GamePlayWorld::DrawHUD(bool hideDuringIntro)
 {
 	if (hideDuringIntro) { return; }
 
-	if (auto* player = characters_.GetPlayer())
-	{
-		if (auto* camera = player->GetCamera())
-		{
-			// クリスタル頭上HPバーは3D描画後、画面固定HUDより前に重ねる。
-			crystalManager_.DrawHpBars(
-				camera->GetViewMatrix(),
-				camera->GetProjectionMatrix(),
-				static_cast<float>(K4E::GameViewportConstants::Width),
-				static_cast<float>(K4E::GameViewportConstants::Height));
-		}
-	}
+	// クリスタル頭上HPバーは3D描画後、画面固定HUDより前に重ねる。
+	crystalManager_.DrawHpBars();
 
 	enemyHpBarManager_.Draw();
 	
@@ -750,6 +768,8 @@ void GamePlayWorld::DrawGameDebugImGui()
 	{
 		ImGui::Text("Player HP: 0.0 / 0.0");
 	}
+
+	aimTargetDetector_.DrawImGui();
 
 	ImGui::SeparatorText("クリアCube状態");
 	ImGui::Text("クリアCube出現済み: %s", clearItemSpawned_ ? "はい" : "いいえ");
@@ -1164,32 +1184,6 @@ void GamePlayWorld::SetDefenseTargetDestroyed(bool destroyed)
 	{
 		stageObjectiveManager_->SetDefenseTargetDestroyed(destroyed);
 	}
-}
-
-bool GamePlayWorld::CheckCrosshairTargetingEnemy() const
-{
-	if (!collisionManager_) return false;
-
-	const auto* player = characters_.GetPlayer();
-	if (!player) return false;
-
-	const auto* camera = player->GetCamera();
-	if (!camera) return false;
-
-	const K4E::Vector3 origin = camera->GetTranslate();
-	const K4E::Vector3 forward = K4E::Vector3::Normalize(camera->GetForward());
-	const float aimRange = 1000.0f;
-
-	K4E::Segment seg{};
-	seg.origin = origin;
-	seg.diff = forward * aimRange;
-
-	// HUDの照準色変更用なので、命中詳細ではなく「敵に遮られているか」だけを問い合わせる。
-	return collisionManager_->SegmentCast(
-		(uint32_t)CollisionTypeIdDef::kEnemy,
-		seg,
-		nullptr
-	);
 }
 
 void GamePlayWorld::AddActivatedDeviceCount(int amount)

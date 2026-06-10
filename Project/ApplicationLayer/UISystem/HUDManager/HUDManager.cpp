@@ -235,7 +235,7 @@ void HUDManager::Draw()
 	if (reloadCircle_ && reloadCircle_->IsVisible()) reloadCircle_->Draw();
 	if (crosshair_ && crosshair_->IsVisible()) crosshair_->Draw();
 	if (weaponSlot_) weaponSlot_->Draw();
-	//if (waveUI_ && IsWaveUIDrawEnabled()) waveUI_->Draw();
+	if (waveUI_ && IsWaveUIDrawEnabled()) waveUI_->Draw();
 	DrawBossHpBar();
 
 	if (damageIndicatorManager_) damageIndicatorManager_->Draw();
@@ -293,22 +293,22 @@ void HUDManager::NotifyCrosshairLanded()
 
 void HUDManager::SetWaveDisplayState(const WaveUI::DisplayState& state)
 {
-	//if (waveUI_) waveUI_->SetDisplayState(state);
+	if (waveUI_) waveUI_->SetDisplayState(state);
 }
 
 void HUDManager::NotifyWaveStarted(int waveNumber, bool isFinalWave)
 {
-	//if (waveUI_) waveUI_->NotifyWaveStarted(waveNumber, isFinalWave);
+	if (waveUI_) waveUI_->NotifyWaveStarted(waveNumber, isFinalWave);
 }
 
 void HUDManager::NotifyAllWavesCleared()
 {
-	//if (waveUI_) waveUI_->NotifyAllWavesCleared();
+	if (waveUI_) waveUI_->NotifyAllWavesCleared();
 }
 
 void HUDManager::SetWaveUIVisible(bool v)
 {
-	//if (waveUI_) waveUI_->SetVisible(v);
+	if (waveUI_) waveUI_->SetVisible(v);
 }
 
 bool HUDManager::IsWaveUIDrawEnabled() const
@@ -318,7 +318,7 @@ bool HUDManager::IsWaveUIDrawEnabled() const
 	{
 		return false;
 	}
-	//return waveUI_ && waveUI_->IsVisible();
+	return waveUI_ && waveUI_->IsVisible();
 }
 
 void HUDManager::AddDamageIndicator(const K4E::Vector3& playerPos, const K4E::Vector3& attackerPos, const K4E::Vector3& cameraForward, const K4E::Vector3& cameraRight)
@@ -332,7 +332,14 @@ void HUDManager::AddDamageIndicator(const K4E::Vector3& playerPos, const K4E::Ve
 void HUDManager::SetCrosshairTargetingEnemy(bool v)
 {
 	if (!crosshair_) return;
+	// クロスヘア色を切り替える処理。Detectorで遮蔽済みの直接対象だけtrueになる。
 	crosshair_->SetTargetingEnemy(v);
+}
+
+void HUDManager::SetCrosshairTargetColors(const K4E::Vector4& normalColor, const K4E::Vector4& targetColor)
+{
+	if (!crosshair_) return;
+	crosshair_->SetTargetColors(normalColor, targetColor);
 }
 
 void HUDManager::RegisterBossHpBarParameters()
