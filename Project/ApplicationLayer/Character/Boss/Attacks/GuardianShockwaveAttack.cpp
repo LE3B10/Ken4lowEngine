@@ -9,6 +9,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstdio>
 #include <numbers>
 
 #ifdef USE_IMGUI
@@ -26,6 +27,73 @@ namespace
 	{
 		constexpr float kDegToRad = std::numbers::pi_v<float> / 180.0f;
 		return degree * kDegToRad;
+	}
+
+	float Clamp01(float value)
+	{
+		return std::clamp(value, 0.0f, 1.0f);
+	}
+
+	K4E::Vector3 MakeShockwavePoint(const K4E::Vector3& origin, float yaw, float localAngle, float distance)
+	{
+		const float worldAngle = yaw + localAngle;
+		K4E::Vector3 point = origin;
+		point.x += std::sin(worldAngle) * distance;
+		point.z += std::cos(worldAngle) * distance;
+		return point;
+	}
+
+	void EmitShockwaveRangeTelegraph(
+		const char* emitterPrefix,
+		const K4E::Vector3& origin,
+		const K4E::Vector3& forward,
+		float range,
+		float angleDeg,
+		float progress,
+		uint32_t emitCount,
+		float radius,
+		float lifeScale,
+		float speedScale)
+	{
+		if (emitterPrefix == nullptr || emitCount == 0) return;
+
+		const float clampedRange = std::max(0.0f, range);
+		if (clampedRange <= 0.01f) return;
+
+		const float clampedAngleDeg = std::clamp(angleDeg, 0.0f, 360.0f);
+		const float halfAngle = DegToRad(clampedAngleDeg * 0.5f);
+		const float yaw = std::atan2(forward.x, forward.z);
+		const float visibleRange = std::max(1.0f, clampedRange * Clamp01(progress));
+
+		K4E::Vector3 base = origin;
+		base.y += 0.12f;
+
+		// 扇形の外周を複数点で光らせ、ショックウェーブの攻撃範囲をプレイヤーに見せる。
+		constexpr int kArcSegments = 8;
+		for (int i = 0; i <= kArcSegments; ++i)
+		{
+			const float t = static_cast<float>(i) / static_cast<float>(kArcSegments);
+			const float localAngle = -halfAngle + (halfAngle * 2.0f * t);
+			const K4E::Vector3 pos = MakeShockwavePoint(base, yaw, localAngle, visibleRange);
+
+			char emitterName[96]{};
+			std::snprintf(emitterName, sizeof(emitterName), "%sArc%02d", emitterPrefix, i);
+			BossAttackEffects::EmitGuardianAttackPresenceEffect(emitterName, K4E::GpuParticleType::Shockwave, pos, emitCount, radius, lifeScale, speedScale);
+		}
+
+		// 中央ラインにも粒子を置き、範囲が徐々に前へ伸びてくることを分かりやすくする。
+		constexpr int kForwardSegments = 4;
+		for (int i = 1; i <= kForwardSegments; ++i)
+		{
+			const float t = static_cast<float>(i) / static_cast<float>(kForwardSegments);
+			K4E::Vector3 pos = base;
+			pos.x += forward.x * visibleRange * t;
+			pos.z += forward.z * visibleRange * t;
+
+			char emitterName[96]{};
+			std::snprintf(emitterName, sizeof(emitterName), "%sLine%02d", emitterPrefix, i);
+			BossAttackEffects::EmitGuardianAttackPresenceEffect(emitterName, K4E::GpuParticleType::Trail, pos, emitCount, radius * 0.75f, lifeScale, speedScale);
+		}
 	}
 }
 
@@ -162,36 +230,29 @@ void GuardianShockwaveAttack::TickCooldown(float deltaTime)
 /// ---------------------------------------------------------------
 void GuardianShockwaveAttack::UpdateWindup(float deltaTime)
 {
-	// 予備動作中に一度だけ予兆エフェクトを出し、叩きつけタイミングで判定発生へ移る。
 	(void)deltaTime;
+
+	const float progress = startupTime_ <= 0.0f ? 1.0f : Clamp01(phaseTimer_ / startupTime_);
+	// Windup中は攻撃範囲を小さく出し始め、これからショックウェーブが来ることを予告する。
+	EmitShockwaveRangeTelegraph(
+		"GuardianShockwaveWarn",
+		lockedOrigin_,
+		lockedForward_,
+		shockwaveRange_,
+		shockwaveAngleDeg_,
+		0.25f + progress * 0.35f,
+		1,
+		0.28f + progress * 0.18f,
+		0.22f,
+		0.25f + progress * 0.35f);
+
 	if (!hasTelegraphEffect_ && owner_ != nullptr)
 	{
 		hasTelegraphEffect_ = true;
-		if (auto* particleManager = K4E::GpuParticleManager::GetInstance())
-		{
-			K4E::Vector3 telegraphPos = lockedOrigin_;
-			telegraphPos.y += 0.10f;
-			// 発生前の溜め位置に小さなリングを出して、回避タイミングを読ませる。
-			K4E::GpuParticleEmitter::EmitterInfo info{};
-			info.textureFilePath = "Effects/white.dds";
-			info.radius = std::max(0.3f, particleSpawnRadius_ * 0.75f);
-			info.kind = K4E::GpuParticleKind::Sprite;
-			info.spriteType = K4E::GpuParticleType::Shockwave;
-			info.billboardFlags = K4E::BillboardMode::Camera;
-			info.lifeScale = std::max(0.2f, startupTime_);
-			info.speedScale = 0.25f;
-			if (auto* emitter = particleManager->GetEmitter("GuardianShockwaveTelegraph"))
-			{
-				emitter->GetInfoMutable() = info;
-				emitter->SetPosition(telegraphPos);
-				emitter->RequestEmit(std::max<uint32_t>(8, particleSpawnCount_ / 3));
-			}
-			else if (auto* created = particleManager->CreateEmitter("GuardianShockwaveTelegraph", info))
-			{
-				created->SetPosition(telegraphPos);
-				created->RequestEmit(std::max<uint32_t>(8, particleSpawnCount_ / 3));
-			}
-		}
+		K4E::Vector3 telegraphPos = lockedOrigin_;
+		telegraphPos.y += 0.10f;
+		// 発生前の溜め位置に小さなリングを出して、回避タイミングを読ませる。
+		BossAttackEffects::EmitGuardianAttackPresenceEffect("GuardianShockwaveTelegraph", K4E::GpuParticleType::Shockwave, telegraphPos, std::max<uint32_t>(8, particleSpawnCount_ / 3), std::max(0.3f, particleSpawnRadius_ * 0.75f), std::max(0.2f, startupTime_), 0.25f);
 	}
 
 	if (phaseTimer_ >= startupTime_) ChangePhase(Phase::Charge);
@@ -203,6 +264,21 @@ void GuardianShockwaveAttack::UpdateWindup(float deltaTime)
 void GuardianShockwaveAttack::UpdateCharge(float deltaTime)
 {
 	(void)deltaTime;
+
+	const float progress = chargeTime_ <= 0.0f ? 1.0f : Clamp01(phaseTimer_ / chargeTime_);
+	// Charge中は範囲を最大まで広げ、発生直前に粒子密度を上げて危険度を強調する。
+	EmitShockwaveRangeTelegraph(
+		"GuardianShockwaveCharge",
+		lockedOrigin_,
+		lockedForward_,
+		shockwaveRange_,
+		shockwaveAngleDeg_,
+		0.60f + progress * 0.40f,
+		2,
+		0.42f + progress * 0.28f,
+		0.18f,
+		0.65f + progress * 0.55f);
+
 	// 叩きつけ直前の溜めで攻撃発生タイミングを読みやすくする。
 	if (phaseTimer_ >= chargeTime_) ChangePhase(Phase::Active);
 }
@@ -217,6 +293,19 @@ void GuardianShockwaveAttack::UpdateActive(float deltaTime)
 
 	if (!hasHit_)
 	{
+		// Active開始時は最大範囲へ強い粒子を出し、ここが実際の攻撃判定であることを明確にする。
+		EmitShockwaveRangeTelegraph(
+			"GuardianShockwaveActive",
+			lockedOrigin_,
+			lockedForward_,
+			shockwaveRange_,
+			shockwaveAngleDeg_,
+			1.0f,
+			4,
+			0.75f,
+			0.35f,
+			1.35f);
+
 		TryHitPlayer();
 		hasHit_ = true;
 	}
@@ -390,7 +479,6 @@ void GuardianShockwaveAttack::TryHitPlayer()
 #endif
 	}
 }
-
 
 void GuardianShockwaveAttack::LockShockwaveDirection()
 {
