@@ -103,18 +103,23 @@ void TitleAttractState::Update(TitleScene* scene, float deltaTime)
 		const float wobble = sinf(clickHintUI.phase * 4.0f) * clickHintUI.wobblePx;
 		const float pulse = 1.0f + clickHintUI.pulseMag * sinf(clickHintUI.phase * 2.0f);
 
+		// Click表示を大きくして、タイトル画面で視認しやすく押しやすい導線にする。
+		constexpr float kClickHintEmphasisScale = 2.25f;
+		constexpr float kClickHitPaddingX = 48.0f;
+		constexpr float kClickHitPaddingY = 24.0f;
+
 		// いまの“見た目”でヒットテスト（前フレームの押し/ホバー値を反映）
 		const float scaleNow =
-			(pulse + clickHintUI.scaleHover * clickHintUI.hoverAnim) -
-			(clickHintUI.scalePress * clickHintUI.pressAnim);
+			((pulse + clickHintUI.scaleHover * clickHintUI.hoverAnim) -
+			(clickHintUI.scalePress * clickHintUI.pressAnim)) * kClickHintEmphasisScale;
 		Vector2 posNow = { basePos.x, basePos.y + wobble + clickHintUI.offsetPressY * clickHintUI.pressAnim };
-		posNow.y = std::min(posNow.y, static_cast<float>(GameViewportConstants::Height) - 60.0f); // クリック判定も固定内部解像度1920x1080基準でクランプする。
+		posNow.y = std::min(posNow.y, static_cast<float>(GameViewportConstants::Height) - 120.0f); // クリック表示が大きくなっても画面下へはみ出さないようにする。
 
 		const Vector2 sizeNow = { clickHintUI.baseSize.x * scaleNow, clickHintUI.baseSize.y * scaleNow };
-		const float minX = posNow.x - sizeNow.x * 0.5f; // アンカー(0.5,0.0)
-		const float minY = posNow.y;                    // 上端
-		const float maxX = minX + sizeNow.x;
-		const float maxY = minY + sizeNow.y;
+		const float minX = posNow.x - sizeNow.x * 0.5f - kClickHitPaddingX; // アンカー(0.5,0.0)
+		const float minY = posNow.y - kClickHitPaddingY;                    // 上端
+		const float maxX = posNow.x + sizeNow.x * 0.5f + kClickHitPaddingX;
+		const float maxY = posNow.y + sizeNow.y + kClickHitPaddingY;
 
 		// マウス
 		const Vector2 mp = input->GetMousePosition();
@@ -138,17 +143,17 @@ void TitleAttractState::Update(TitleScene* scene, float deltaTime)
 
 		//“更新後”の見た目で描画セット（次フレームの ③ で使われる）
 		const float scaleDraw =
-			(pulse + clickHintUI.scaleHover * clickHintUI.hoverAnim) -
-			(clickHintUI.scalePress * clickHintUI.pressAnim);
+			((pulse + clickHintUI.scaleHover * clickHintUI.hoverAnim) -
+			(clickHintUI.scalePress * clickHintUI.pressAnim)) * kClickHintEmphasisScale;
 		Vector2 posDraw = {
 			basePos.x,
 			basePos.y + wobble + clickHintUI.offsetPressY * clickHintUI.pressAnim
 		};
-		posDraw.y = std::min(posDraw.y, 720.0f - 60.0f);
+		posDraw.y = std::min(posDraw.y, static_cast<float>(GameViewportConstants::Height) - 120.0f);
 
 		clickHintUI.hintSprite->SetPosition({ snap(posDraw.x), snap(posDraw.y) });
 		clickHintUI.hintSprite->SetSize({ clickHintUI.baseSize.x * scaleDraw, clickHintUI.baseSize.y * scaleDraw });
-		clickHintUI.hintSprite->SetColor({ 1.0f, 0.95f, 0.25f, blink });
+		clickHintUI.hintSprite->SetColor({ 1.0f, 0.95f, 0.25f, std::max(0.75f, blink) });
 		clickHintUI.hintSprite->Update();
 	}
 
