@@ -27,6 +27,23 @@ namespace
 {
 	constexpr const char* kGuardianBossGroup = "GuardianBoss";
 
+	float LengthSqXZ(const K4E::Vector3& v)
+	{
+		return v.x * v.x + v.z * v.z;
+	}
+
+	K4E::Vector3 NormalizeNavigationDirection(const K4E::Vector3& direction)
+	{
+		const float lenSq = LengthSqXZ(direction);
+		if (lenSq <= 0.0001f)
+		{
+			return {};
+		}
+
+		const float invLen = 1.0f / std::sqrt(lenSq);
+		return { direction.x * invLen, 0.0f, direction.z * invLen };
+	}
+
 	std::string ToLowerExtension(std::string extension)
 	{
 		std::transform(extension.begin(), extension.end(), extension.begin(),
@@ -147,6 +164,14 @@ namespace
 		parameters->AddItem(kGuardianBossGroup, "heavyPunchReuseDelay", 1.0f, 0.0f, 30.0f);
 		parameters->AddItem(kGuardianBossGroup, "animationWalkSpeed", 6.0f, 0.0f, 30.0f);
 		parameters->AddItem(kGuardianBossGroup, "animationWalkAmplitude", 0.55f, 0.0f, 5.0f);
+		parameters->AddItem(kGuardianBossGroup, "NavigationEnabled", true);
+		parameters->AddItem(kGuardianBossGroup, "NavigationProbeDistance", 4.5f, 0.1f, 20.0f);
+		parameters->AddItem(kGuardianBossGroup, "NavigationSideProbeDistance", 3.5f, 0.1f, 20.0f);
+		parameters->AddItem(kGuardianBossGroup, "NavigationCandidateBlend", 0.80f, 0.0f, 1.0f);
+		parameters->AddItem(kGuardianBossGroup, "NavigationBypassMargin", 2.2f, 0.0f, 10.0f);
+		parameters->AddItem(kGuardianBossGroup, "NavigationBypassReachDistance", 1.25f, 0.1f, 10.0f);
+		parameters->AddItem(kGuardianBossGroup, "NavigationBypassMaxDuration", 3.0f, 0.1f, 10.0f);
+
 		std::vector<std::string> modelOptions = CollectAssetFiles(
 			{ "Resources/Models", "Resources/Model" },
 			{ ".gltf", ".glb", ".obj" });
@@ -221,6 +246,13 @@ namespace
 		parameters->SetDisplayName(kGuardianBossGroup, "leftLegModelPath", "左脚モデルパス");
 		parameters->SetDisplayName(kGuardianBossGroup, "rightLegModelPath", "右脚モデルパス");
 		parameters->SetDisplayName(kGuardianBossGroup, "skinPath", "スキンパス");
+		parameters->SetDisplayName(kGuardianBossGroup, "NavigationEnabled", "障害物回避Navigation有効");
+		parameters->SetDisplayName(kGuardianBossGroup, "NavigationProbeDistance", "前方障害物確認距離");
+		parameters->SetDisplayName(kGuardianBossGroup, "NavigationSideProbeDistance", "左右回避確認距離");
+		parameters->SetDisplayName(kGuardianBossGroup, "NavigationCandidateBlend", "候補方向混合比率");
+		parameters->SetDisplayName(kGuardianBossGroup, "NavigationBypassMargin", "障害物端回り込み余白");
+		parameters->SetDisplayName(kGuardianBossGroup, "NavigationBypassReachDistance", "バイパス到達距離");
+		parameters->SetDisplayName(kGuardianBossGroup, "NavigationBypassMaxDuration", "バイパス最大継続時間");
 	}
 
 	template<typename T>
@@ -229,8 +261,7 @@ namespace
 		try
 		{
 			return ParameterManager::GetInstance()->GetValue<T>(kGuardianBossGroup, key);
-		}
-		catch (const std::exception& e)
+		} catch (const std::exception& e)
 		{
 			Log("[GuardianBoss] Failed to read GuardianBoss." + key + ": " + e.what() + ". Use default.\n");
 			return defaultValue;
@@ -302,6 +333,13 @@ void GuardianBoss::ApplyParameters()
 	attackSelectState_.heavyPunchReuseDelay = GetGuardianParameterOrDefault("heavyPunchReuseDelay", attackSelectState_.heavyPunchReuseDelay);
 	animationTuning_.walkSpeed = GetGuardianParameterOrDefault("animationWalkSpeed", animationTuning_.walkSpeed);
 	animationTuning_.walkAmplitude = GetGuardianParameterOrDefault("animationWalkAmplitude", animationTuning_.walkAmplitude);
+	navigationTuning_.enabled = ParameterManager::GetInstance()->GetValue<bool>(kGuardianBossGroup, "NavigationEnabled");
+	navigationTuning_.probeDistance = ParameterManager::GetInstance()->GetValue<float>(kGuardianBossGroup, "NavigationProbeDistance");
+	navigationTuning_.sideProbeDistance = ParameterManager::GetInstance()->GetValue<float>(kGuardianBossGroup, "NavigationSideProbeDistance");
+	navigationTuning_.candidateBlend = ParameterManager::GetInstance()->GetValue<float>(kGuardianBossGroup, "NavigationCandidateBlend");
+	navigationTuning_.bypassMargin = ParameterManager::GetInstance()->GetValue<float>(kGuardianBossGroup, "NavigationBypassMargin");
+	navigationTuning_.bypassReachDistance = ParameterManager::GetInstance()->GetValue<float>(kGuardianBossGroup, "NavigationBypassReachDistance");
+	navigationTuning_.bypassMaxDuration = ParameterManager::GetInstance()->GetValue<float>(kGuardianBossGroup, "NavigationBypassMaxDuration");
 	ApplyVisualParameters();
 	if (GetAnimationComponent())
 	{
@@ -322,6 +360,383 @@ void GuardianBoss::ApplyVisualParameters()
 	visualTuning_.leftLegModelPath = GetGuardianParameterOrDefault("leftLegModelPath", visualTuning_.leftLegModelPath);
 	visualTuning_.rightLegModelPath = GetGuardianParameterOrDefault("rightLegModelPath", visualTuning_.rightLegModelPath);
 	visualTuning_.skinPath = GetGuardianParameterOrDefault("skinPath", visualTuning_.skinPath);
+}
+
+K4E::Vector3 GuardianBoss::GetDirectDirectionToTargetXZ() const
+{
+	Vector3 direction
+	{
+		GetTargetPosition().x - GetPosition().x,
+		0.0f,
+		GetTargetPosition().z - GetPosition().z
+	};
+
+	const float lenSq = direction.x * direction.x + direction.z * direction.z;
+	if (lenSq <= 0.0001f)
+	{
+		return {};
+	}
+
+	const float invLen = 1.0f / std::sqrt(lenSq);
+	direction.x *= invLen;
+	direction.z *= invLen;
+	return direction;
+}
+
+K4E::Vector3 GuardianBoss::BuildNavigationMoveDirection(float deltaTime)
+{
+	const Vector3 directDirection = GetDirectDirectionToTargetXZ();
+	const float directLenSq = directDirection.x * directDirection.x + directDirection.z * directDirection.z;
+
+	if (directLenSq <= 0.0001f)
+	{
+		ClearBypassNavigation();
+		navigationRuntime_.selectedDirection = {};
+		navigationRuntime_.selectedCandidateIndex = -1;
+		return {};
+	}
+
+	if (!navigationTuning_.enabled)
+	{
+		ClearBypassNavigation();
+		navigationRuntime_.selectedDirection = directDirection;
+		navigationRuntime_.selectedCandidateIndex = 0;
+		return directDirection;
+	}
+
+	// バイパス移動中は、まず障害物の端へ向かって回り込む。
+	if (navigationRuntime_.isBypassing)
+	{
+		navigationRuntime_.bypassTimer += deltaTime;
+
+		const Vector3 toBypass = navigationRuntime_.bypassTarget - GetPosition();
+		const float bypassDistSq = toBypass.x * toBypass.x + toBypass.z * toBypass.z;
+		const float reach = std::max(0.1f, navigationTuning_.bypassReachDistance);
+
+		if (bypassDistSq <= reach * reach || navigationRuntime_.bypassTimer >= navigationTuning_.bypassMaxDuration)
+		{
+			ClearBypassNavigation();
+		}
+		else
+		{
+			// すでにプレイヤーへ直進できるなら、バイパスをやめて最短方向へ戻す。
+			if (!IsMoveDirectionBlocked(directDirection, navigationTuning_.probeDistance * 0.75f))
+			{
+				ClearBypassNavigation();
+			}
+			else
+			{
+				const Vector3 bypassDirection = GetDirectionToBypassTarget();
+				navigationRuntime_.selectedDirection = bypassDirection;
+				navigationRuntime_.selectedCandidateIndex = 100;
+				return bypassDirection;
+			}
+		}
+	}
+
+	// 直進できるなら最短距離でプレイヤーへ向かう。
+	if (!IsMoveDirectionBlocked(directDirection, navigationTuning_.probeDistance))
+	{
+		navigationRuntime_.selectedDirection = directDirection;
+		navigationRuntime_.selectedCandidateIndex = 0;
+		return directDirection;
+	}
+
+	K4E::AABB blockingObstacle{};
+	if (FindBlockingObstacle(directDirection, navigationTuning_.probeDistance, blockingObstacle))
+	{
+		Vector3 bypassTarget{};
+		if (TryBuildBypassTarget(blockingObstacle, directDirection, bypassTarget))
+		{
+			navigationRuntime_.isBypassing = true;
+			navigationRuntime_.bypassTimer = 0.0f;
+			navigationRuntime_.bypassTarget = bypassTarget;
+
+			const Vector3 bypassDirection = GetDirectionToBypassTarget();
+			navigationRuntime_.selectedDirection = bypassDirection;
+			navigationRuntime_.selectedCandidateIndex = 100;
+			return bypassDirection;
+		}
+	}
+
+	// バイパス地点が作れない時だけ、従来の候補方向スコア方式へフォールバックする。
+	const Vector3 bestDirection = SelectBestNavigationDirection(directDirection);
+	const float bestLenSq = bestDirection.x * bestDirection.x + bestDirection.z * bestDirection.z;
+
+	if (bestLenSq <= 0.0001f)
+	{
+		navigationRuntime_.selectedDirection = {};
+		navigationRuntime_.selectedCandidateIndex = -1;
+		++navigationRuntime_.blockedCount;
+		return {};
+	}
+
+	navigationRuntime_.selectedDirection = bestDirection;
+	return bestDirection;
+}
+
+bool GuardianBoss::IsMoveDirectionBlocked(const K4E::Vector3& direction, float probeDistance) const
+{
+	K4E::AABB ignoredObstacle{};
+	return FindBlockingObstacle(direction, probeDistance, ignoredObstacle);
+}
+
+K4E::Vector3 GuardianBoss::SelectBestNavigationDirection(const K4E::Vector3& directDirection)
+{
+	const Vector3 rightDirection
+	{
+		directDirection.z,
+		0.0f,
+		-directDirection.x
+	};
+
+	const Vector3 leftDirection
+	{
+		-directDirection.z,
+		0.0f,
+		directDirection.x
+	};
+
+	const float forwardBlend = std::clamp(navigationTuning_.candidateBlend, 0.0f, 1.0f);
+	const float sideBlend = 1.0f - forwardBlend;
+
+	std::vector<Vector3> candidates;
+	candidates.reserve(5);
+
+	candidates.push_back(directDirection);
+	candidates.push_back(NormalizeNavigationDirection({
+		directDirection.x * forwardBlend + rightDirection.x * sideBlend,
+		0.0f,
+		directDirection.z * forwardBlend + rightDirection.z * sideBlend
+		}));
+	candidates.push_back(NormalizeNavigationDirection({
+		directDirection.x * forwardBlend + leftDirection.x * sideBlend,
+		0.0f,
+		directDirection.z * forwardBlend + leftDirection.z * sideBlend
+		}));
+	candidates.push_back(rightDirection);
+	candidates.push_back(leftDirection);
+
+	float bestScore = -FLT_MAX;
+	Vector3 bestDirection{};
+	int bestIndex = -1;
+
+	for (int i = 0; i < static_cast<int>(candidates.size()); ++i)
+	{
+		const Vector3& candidate = candidates[i];
+
+		if (IsMoveDirectionBlocked(candidate, navigationTuning_.probeDistance))
+		{
+			continue;
+		}
+
+		const float score = EvaluateMoveDirectionScore(candidate);
+
+		if (score > bestScore)
+		{
+			bestScore = score;
+			bestDirection = candidate;
+			bestIndex = i;
+		}
+	}
+
+	navigationRuntime_.selectedCandidateIndex = bestIndex;
+	return bestDirection;
+}
+
+float GuardianBoss::EvaluateMoveDirectionScore(const K4E::Vector3& direction) const
+{
+	const Vector3 currentPosition = GetPosition();
+	const Vector3 targetPosition = GetTargetPosition();
+
+	const float currentDx = targetPosition.x - currentPosition.x;
+	const float currentDz = targetPosition.z - currentPosition.z;
+	const float currentDistanceSq = currentDx * currentDx + currentDz * currentDz;
+
+	Vector3 nextPosition = currentPosition;
+	nextPosition.x += direction.x * movementTuning_.moveSpeed;
+	nextPosition.z += direction.z * movementTuning_.moveSpeed;
+
+	const float nextDx = targetPosition.x - nextPosition.x;
+	const float nextDz = targetPosition.z - nextPosition.z;
+	const float nextDistanceSq = nextDx * nextDx + nextDz * nextDz;
+
+	const float distanceGain = currentDistanceSq - nextDistanceSq;
+
+	const Vector3 directDirection = GetDirectDirectionToTargetXZ();
+	const float forwardDot =
+		direction.x * directDirection.x +
+		direction.z * directDirection.z;
+
+	return distanceGain + forwardDot * 0.25f; // 距離短縮量を主軸にしつつ、プレイヤー正面へ向かう候補を少し優遇する。
+}
+
+bool GuardianBoss::FindBlockingObstacle(const K4E::Vector3& direction, float probeDistance, K4E::AABB& outObstacle) const
+{
+	const float lenSq = direction.x * direction.x + direction.z * direction.z;
+	if (lenSq <= 0.0001f)
+	{
+		return false;
+	}
+
+	if (stageObstacleAABBs_ == nullptr || stageObstacleAABBs_->empty())
+	{
+		return false;
+	}
+
+	const Vector3 normalized = NormalizeNavigationDirection(direction);
+	const Vector3 current = GetPosition();
+	const Vector3 half = worldCollisionSettings_.half;
+
+	bool found = false;
+	float nearestDistSq = FLT_MAX;
+
+	constexpr int kProbeSteps = 6;
+	for (int stepIndex = 1; stepIndex <= kProbeSteps; ++stepIndex)
+	{
+		const float t = static_cast<float>(stepIndex) / static_cast<float>(kProbeSteps);
+		const float distance = probeDistance * t;
+
+		const Vector3 probeCenter
+		{
+			current.x + normalized.x * distance,
+			current.y,
+			current.z + normalized.z * distance
+		};
+
+		for (const K4E::AABB& obstacle : *stageObstacleAABBs_)
+		{
+			const bool hit =
+				probeCenter.x + half.x > obstacle.min.x &&
+				probeCenter.x - half.x < obstacle.max.x &&
+				probeCenter.y + half.y > obstacle.min.y &&
+				probeCenter.y - half.y < obstacle.max.y &&
+				probeCenter.z + half.z > obstacle.min.z &&
+				probeCenter.z - half.z < obstacle.max.z;
+
+			if (!hit)
+			{
+				continue;
+			}
+
+			const float dx = probeCenter.x - current.x;
+			const float dz = probeCenter.z - current.z;
+			const float distSq = dx * dx + dz * dz;
+
+			if (distSq < nearestDistSq)
+			{
+				nearestDistSq = distSq;
+				outObstacle = obstacle;
+				found = true;
+			}
+		}
+	}
+
+	return found;
+}
+
+bool GuardianBoss::TryBuildBypassTarget(const K4E::AABB& obstacle, const K4E::Vector3& directDirection, K4E::Vector3& outTarget)
+{
+	const Vector3 current = GetPosition();
+	const Vector3 target = GetTargetPosition();
+
+	const Vector3 rightDirection
+	{
+		directDirection.z,
+		0.0f,
+		-directDirection.x
+	};
+
+	const Vector3 leftDirection
+	{
+		-directDirection.z,
+		0.0f,
+		directDirection.x
+	};
+
+	const float margin = std::max(0.0f, navigationTuning_.bypassMargin);
+	const Vector3 obstacleCenter
+	{
+		(obstacle.min.x + obstacle.max.x) * 0.5f,
+		current.y,
+		(obstacle.min.z + obstacle.max.z) * 0.5f
+	};
+
+	const auto makeCandidate = [&](const Vector3& sideDirection)
+		{
+			Vector3 candidate = obstacleCenter;
+
+			if (std::fabs(sideDirection.x) >= std::fabs(sideDirection.z))
+			{
+				candidate.x = sideDirection.x >= 0.0f
+					? obstacle.max.x + worldCollisionSettings_.half.x + margin
+					: obstacle.min.x - worldCollisionSettings_.half.x - margin;
+			}
+			else
+			{
+				candidate.z = sideDirection.z >= 0.0f
+					? obstacle.max.z + worldCollisionSettings_.half.z + margin
+					: obstacle.min.z - worldCollisionSettings_.half.z - margin;
+			}
+
+			// 障害物の角を抜けた後に前へ進みやすいよう、少しプレイヤー方向へ押し出す。
+			candidate.x += directDirection.x * margin;
+			candidate.z += directDirection.z * margin;
+			return candidate;
+		};
+
+	const Vector3 rightCandidate = makeCandidate(rightDirection);
+	const Vector3 leftCandidate = makeCandidate(leftDirection);
+
+	const auto scoreCandidate = [&](const Vector3& candidate)
+		{
+			const Vector3 toCandidate = NormalizeNavigationDirection(candidate - current);
+
+			if (IsMoveDirectionBlocked(toCandidate, navigationTuning_.sideProbeDistance))
+			{
+				return -FLT_MAX;
+			}
+
+			const float toTargetX = target.x - candidate.x;
+			const float toTargetZ = target.z - candidate.z;
+			const float targetDistSq = toTargetX * toTargetX + toTargetZ * toTargetZ;
+
+			const float toCandidateX = candidate.x - current.x;
+			const float toCandidateZ = candidate.z - current.z;
+			const float candidateDistSq = toCandidateX * toCandidateX + toCandidateZ * toCandidateZ;
+
+			return -targetDistSq - candidateDistSq * 0.15f;
+		};
+
+	const float rightScore = scoreCandidate(rightCandidate);
+	const float leftScore = scoreCandidate(leftCandidate);
+
+	if (rightScore == -FLT_MAX && leftScore == -FLT_MAX)
+	{
+		return false;
+	}
+
+	outTarget = rightScore >= leftScore ? rightCandidate : leftCandidate;
+	return true;
+}
+
+K4E::Vector3 GuardianBoss::GetDirectionToBypassTarget() const
+{
+	Vector3 direction
+	{
+		navigationRuntime_.bypassTarget.x - GetPosition().x,
+		0.0f,
+		navigationRuntime_.bypassTarget.z - GetPosition().z
+	};
+
+	return NormalizeNavigationDirection(direction);
+}
+
+void GuardianBoss::ClearBypassNavigation()
+{
+	navigationRuntime_.isBypassing = false;
+	navigationRuntime_.bypassTimer = 0.0f;
+	navigationRuntime_.bypassTarget = {};
 }
 
 std::string GuardianBoss::GetBodyModelPath() const
@@ -695,33 +1110,42 @@ void GuardianBoss::UpdateMovement(float deltaTime)
 		return;
 	}
 
-	Vector3 toTarget
-	{
-		GetTargetPosition().x - GetPosition().x,
-		0.0f,
-		GetTargetPosition().z - GetPosition().z
-	};
+	Vector3 moveDirection = BuildNavigationMoveDirection(deltaTime);
+	const float dirLenSq = moveDirection.x * moveDirection.x + moveDirection.z * moveDirection.z;
 
-	const float lenSq = toTarget.x * toTarget.x + toTarget.z * toTarget.z;
-	if (lenSq <= 0.0001f)
+	if (dirLenSq <= 0.0001f)
 	{
 		return;
 	}
 
-	const float len = std::sqrt(lenSq);
-	toTarget.x /= len;
-	toTarget.z /= len;
-
 	Vector3 newPos = GetPosition();
-	newPos.x += toTarget.x * movementTuning_.moveSpeed * deltaTime;
-	newPos.z += toTarget.z * movementTuning_.moveSpeed * deltaTime;
+	newPos.x += moveDirection.x * movementTuning_.moveSpeed * deltaTime;
+	newPos.z += moveDirection.z * movementTuning_.moveSpeed * deltaTime;
 
-	const bool blocked = MoveWithWorldCollision(newPos); // 通常移動もステージ障害物で押し戻し、壁抜けを防ぐ。
+	const bool blocked = MoveWithWorldCollision(newPos); // Navigation後の移動も最終的に押し戻しへ通し、壁抜けを防ぐ。
 
 	if (blocked)
 	{
-		BeginIdleState();
+		++navigationRuntime_.blockedCount;
+
+		K4E::AABB blockingObstacle{};
+		const Vector3 directDirection = GetDirectDirectionToTargetXZ();
+
+		if (FindBlockingObstacle(directDirection, navigationTuning_.probeDistance, blockingObstacle))
+		{
+			Vector3 bypassTarget{};
+			if (TryBuildBypassTarget(blockingObstacle, directDirection, bypassTarget))
+			{
+				navigationRuntime_.isBypassing = true;
+				navigationRuntime_.bypassTimer = 0.0f;
+				navigationRuntime_.bypassTarget = bypassTarget;
+			}
+		}
+
+		return;
 	}
+
+	navigationRuntime_.blockedCount = 0;
 }
 
 /// -------------------------------------------------------------
@@ -1159,10 +1583,10 @@ void GuardianBoss::DrawImGui()
 
 	const char* attackItems[] =
 	{
-			"Punch",
-			"HeavyPunch",
-			"GuardianShockwave",
-			"ChargeAttack"
+		"Punch",
+		"HeavyPunch",
+		"GuardianShockwave",
+		"ChargeAttack"
 	};
 	ImGui::Combo("Manual Attack", &attackSelectState_.manualAttackIndex, attackItems, IM_ARRAYSIZE(attackItems));
 
@@ -1384,6 +1808,26 @@ void GuardianBoss::DrawImGui()
 		ImGui::Separator();
 		GetAttackComponent()->DrawImGui();
 	}
+	// ---------------------------------------------------------
+	// Guardian 専用ナビゲーション情報
+	// ナビゲーションのオンオフ、障害物回避中か、回避方向など
+	// ---------------------------------------------------------
+	ImGui::SeparatorText("Guardian Navigation");
+	ImGui::Text("Navigation Enabled : %s", navigationTuning_.enabled ? "true" : "false");
+	ImGui::Text("Bypassing          : %s", navigationRuntime_.isBypassing ? "true" : "false");
+	ImGui::Text("Bypass Timer       : %.2f", navigationRuntime_.bypassTimer);
+	ImGui::Text("Selected Candidate : %d", navigationRuntime_.selectedCandidateIndex);
+	ImGui::Text("Blocked Count      : %d", navigationRuntime_.blockedCount);
+	ImGui::Text("Selected Direction : %.2f, %.2f, %.2f",
+		navigationRuntime_.selectedDirection.x,
+		navigationRuntime_.selectedDirection.y,
+		navigationRuntime_.selectedDirection.z);
+	ImGui::Text("Bypass Target      : %.2f, %.2f, %.2f",
+		navigationRuntime_.bypassTarget.x,
+		navigationRuntime_.bypassTarget.y,
+		navigationRuntime_.bypassTarget.z);
+	ImGui::Text("Candidate Blend    : %.2f", navigationTuning_.candidateBlend);
+	ImGui::Text("Bypass Margin      : %.2f", navigationTuning_.bypassMargin);
 
 	ImGui::End();
 #endif

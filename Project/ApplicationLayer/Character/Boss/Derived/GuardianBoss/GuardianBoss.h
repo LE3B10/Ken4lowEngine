@@ -6,6 +6,7 @@
 #include <string>
 #include <vector>
 #include <cstdint>
+#include <AABB.h>
 
 /// ----------------------------------------------------------------
 ///						ガーディアンボス
@@ -121,6 +122,51 @@ protected: /// ---------- Guardian専用補助 ---------- ///
 	/// </summary>
 	void ApplyVisualParameters();
 
+	/// <summary>
+	/// プレイヤー方向を元に、障害物回避を含めた移動方向を返す
+	/// </summary>
+	K4E::Vector3 BuildNavigationMoveDirection(float deltaTime);
+
+	/// <summary>
+	/// 現在位置からターゲット方向へのXZ正規化ベクトルを返す
+	/// </summary>
+	K4E::Vector3 GetDirectDirectionToTargetXZ() const;
+
+	/// <summary>
+	/// 指定方向の先に障害物があるか調べる
+	/// </summary>
+	bool IsMoveDirectionBlocked(const K4E::Vector3& direction, float probeDistance) const;
+
+	/// <summary>
+	/// 候補方向の中から、障害物を避けつつターゲットへ一番近づく方向を選ぶ
+	/// </summary>
+	K4E::Vector3 SelectBestNavigationDirection(const K4E::Vector3& directDirection);
+
+	/// <summary>
+	/// 指定方向へ進んだ場合にターゲットとの距離がどれだけ縮むかを評価する
+	/// </summary>
+	float EvaluateMoveDirectionScore(const K4E::Vector3& direction) const;
+
+	/// <summary>
+	/// 現在の進行方向上で最初に邪魔になる障害物を探す
+	/// </summary>
+	bool FindBlockingObstacle(const K4E::Vector3& direction, float probeDistance, K4E::AABB& outObstacle) const;
+
+	/// <summary>
+	/// 障害物の左右端から、プレイヤーへ近づきやすいバイパス地点を作る
+	/// </summary>
+	bool TryBuildBypassTarget(const K4E::AABB& obstacle, const K4E::Vector3& directDirection, K4E::Vector3& outTarget);
+
+	/// <summary>
+	/// バイパス地点へ向かう方向を返す
+	/// </summary>
+	K4E::Vector3 GetDirectionToBypassTarget() const;
+
+	/// <summary>
+	/// バイパス状態を解除する
+	/// </summary>
+	void ClearBypassNavigation();
+
 protected: /// ---------- Guardian固有パラメータ ---------- ///
 
 	struct MovementTuning
@@ -215,15 +261,59 @@ protected: /// ---------- Guardian固有パラメータ ---------- ///
 		int manualAttackIndex = 0;               // 0: Punch / 1: HeavyPunch / 2: GuardianShockwave
 	};
 
+	struct NavigationTuning
+	{
+		bool enabled = true;                 // 簡易Navigationを使うか
+		float probeDistance = 4.5f;          // 前方の障害物確認距離
+		float sideProbeDistance = 3.5f;      // 左右回避方向の確認距離
+		float candidateBlend = 0.80f;        // プレイヤー方向と横方向を混ぜる比率
+		float bypassMargin = 2.2f;           // 障害物の角からどれだけ外側を通るか
+		float bypassReachDistance = 1.25f;   // バイパス地点へ到達した扱いにする距離
+		float bypassMaxDuration = 3.0f;      // バイパス移動を続けられる最大時間
+	};
+
+	struct NavigationRuntime
+	{
+		bool isBypassing = false;            // 障害物の端へ回り込み中か
+		float bypassTimer = 0.0f;            // バイパス継続時間
+		K4E::Vector3 bypassTarget{};         // 回り込み用の中継地点
+		K4E::Vector3 selectedDirection{};    // 最終的に選ばれた移動方向
+		int selectedCandidateIndex = -1;     // デバッグ用の候補番号
+		int blockedCount = 0;                // 障害物に詰まった回数
+	};
+
+	// 移動関連
 	MovementTuning movementTuning_;
+
+	// 攻撃ヒット関連
 	AttackHitTuning attackHitTuning_;
+
+	// 攻撃調整パラメータ
 	ShockwaveTuning shockwaveTuning_;
+
+	// 突進攻撃調整パラメータ
 	ChargeTuning chargeTuning_;
+
+	// パーティクル調整パラメータ
 	ParticleTuning particleTuning_;
+
+	// アニメーション調整パラメータ
 	AnimationTuning animationTuning_;
+
+	// 見た目調整パラメータ
 	VisualTuning visualTuning_;
+
+	// 実行時状態
 	RuntimeState runtimeState_;
+
+	// 攻撃選択状態
 	AttackSelectState attackSelectState_;
+
+	// 簡易Navigation関連
+	NavigationTuning navigationTuning_;
+
+	// 簡易Navigation実行時状態
+	NavigationRuntime navigationRuntime_;
 
 protected: /// ---------- モデルや体格差分 ---------- ///
 
