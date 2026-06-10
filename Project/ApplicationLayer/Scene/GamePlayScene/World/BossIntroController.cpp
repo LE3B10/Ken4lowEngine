@@ -4,6 +4,7 @@
 #include "Camera.h"
 #include "CameraManager.h"
 #include "Derived/GuardianBoss/GuardianBoss.h"
+#include "GpuParticleManager.h"
 #include "ParameterManager.h"
 #include <LogString.h>
 
@@ -22,6 +23,8 @@ namespace
 void BossIntroController::Initialize(const K4E::Vector3& defaultBossPosition)
 {
 	settings_.bossAppearPosition = defaultBossPosition;
+	// ボス登場演出で使う土煙GPUパーティクルを、カットシーン管理側でまとめて登録する。
+	bossEnemyVfx_.Initialize(K4E::GpuParticleManager::GetInstance(), "BossIntro");
 	RegisterParameters();
 	ApplyParameters();
 	Reset();
@@ -30,6 +33,9 @@ void BossIntroController::Initialize(const K4E::Vector3& defaultBossPosition)
 void BossIntroController::Finalize()
 {
 	UnregisterParameters();
+	// リトライやシーン破棄時に、古いEmitter参照を保持し続けないようにする。
+	bossEnemyVfx_.Reset();
+	ResetBossIntroDustState();
 }
 
 void BossIntroController::RequestStart(const K4E::Vector3& bossPosition)
@@ -42,8 +48,9 @@ void BossIntroController::RequestStart(const K4E::Vector3& bossPosition)
 	settings_.bossAppearPosition = bossPosition;
 	ApplyParameters();
 	stateTimer_ = 0.0f;
+	ResetBossIntroDustState();
 	ChangeState(State::WaitingAfterCrystalsBroken);
-		K4E::Log("[BossIntro] Waiting after all crystals broken.\n");
+	K4E::Log("[BossIntro] Waiting after all crystals broken.\n");
 }
 
 void BossIntroController::Reset()
@@ -58,6 +65,7 @@ void BossIntroController::Reset()
 	debugForceBossToAppearRequested_ = false;
 	debugClearBossParentRequested_ = false;
 	debugUseGameplayViewProjectionRequested_ = false;
+	ResetBossIntroDustState();
 }
 
 void BossIntroController::Update(float deltaTime, GuardianBoss* boss, K4E::Camera* camera)
@@ -140,6 +148,8 @@ void BossIntroController::DrawImGui()
 		debugCameraPosition_.x, debugCameraPosition_.y, debugCameraPosition_.z, debugHasCamera_ ? "" : " (none)");
 	ImGui::Text("ViewProjection: %s", debugViewProjectionKind_);
 	ImGui::Text("Boss-Camera Distance: %.2f", debugBossCameraDistance_);
+	ImGui::Text("Dust Enabled: %s", settings_.enableBossIntroDust ? "true" : "false");
+	ImGui::Text("Dust Timer: %.2f", bossIntroDustEmitTimer_);
 
 	if (ImGui::Button("Start Boss Intro"))
 	{
@@ -252,6 +262,12 @@ void BossIntroController::RegisterParameters()
 	parameters->AddItem(kParameterGroupName, "bossIntroPauseGame", settings_.bossIntroPauseGame);
 	parameters->AddItem(kParameterGroupName, "enableBossIntroCamera", settings_.enableBossIntroCamera);
 	parameters->AddItem(kParameterGroupName, "enableBossRiseEffect", settings_.enableBossRiseEffect);
+	parameters->AddItem(kParameterGroupName, "enableBossIntroDust", settings_.enableBossIntroDust);
+	parameters->AddItem(kParameterGroupName, "dustGroundOffsetY", settings_.dustGroundOffsetY, 0.0f, 10.0f);
+	parameters->AddItem(kParameterGroupName, "dustEmitInterval", settings_.dustEmitInterval, 0.01f, 1.0f);
+	parameters->AddItem(kParameterGroupName, "dustStartBurstCount", static_cast<int>(settings_.dustStartBurstCount), 0, 512);
+	parameters->AddItem(kParameterGroupName, "dustLoopEmitCount", static_cast<int>(settings_.dustLoopEmitCount), 0, 128);
+	parameters->AddItem(kParameterGroupName, "dustEndBurstCount", static_cast<int>(settings_.dustEndBurstCount), 0, 512);
 
 	parameters->SetDisplayName(kParameterGroupName, "bossAppearDelay", "ボス登場までの遅延");
 	parameters->SetDisplayName(kParameterGroupName, "bossAppearPosition", "ボス最終出現座標");
@@ -262,6 +278,12 @@ void BossIntroController::RegisterParameters()
 	parameters->SetDisplayName(kParameterGroupName, "bossIntroPauseGame", "登場中ゲーム進行停止");
 	parameters->SetDisplayName(kParameterGroupName, "enableBossIntroCamera", "登場カメラ有効");
 	parameters->SetDisplayName(kParameterGroupName, "enableBossRiseEffect", "下から登場有効");
+	parameters->SetDisplayName(kParameterGroupName, "enableBossIntroDust", "登場土煙有効");
+	parameters->SetDisplayName(kParameterGroupName, "dustGroundOffsetY", "土煙の足元Y補正");
+	parameters->SetDisplayName(kParameterGroupName, "dustEmitInterval", "土煙の連続発生間隔");
+	parameters->SetDisplayName(kParameterGroupName, "dustStartBurstCount", "登場開始土煙数");
+	parameters->SetDisplayName(kParameterGroupName, "dustLoopEmitCount", "登場中土煙数");
+	parameters->SetDisplayName(kParameterGroupName, "dustEndBurstCount", "登場完了土煙数");
 	parameters->LoadFile(kParameterGroupName);
 	parameters->RegisterParameterApplier(kParameterGroupName, this, [this]() { ApplyParameters(); });
 }
@@ -283,6 +305,12 @@ void BossIntroController::ApplyParameters()
 	settings_.bossIntroPauseGame = parameters->GetValue<bool>(kParameterGroupName, "bossIntroPauseGame");
 	settings_.enableBossIntroCamera = parameters->GetValue<bool>(kParameterGroupName, "enableBossIntroCamera");
 	settings_.enableBossRiseEffect = parameters->GetValue<bool>(kParameterGroupName, "enableBossRiseEffect");
+	settings_.enableBossIntroDust = parameters->GetValue<bool>(kParameterGroupName, "enableBossIntroDust");
+	settings_.dustGroundOffsetY = std::max(0.0f, parameters->GetValue<float>(kParameterGroupName, "dustGroundOffsetY"));
+	settings_.dustEmitInterval = std::max(0.01f, parameters->GetValue<float>(kParameterGroupName, "dustEmitInterval"));
+	settings_.dustStartBurstCount = static_cast<uint32_t>(std::max(0, parameters->GetValue<int>(kParameterGroupName, "dustStartBurstCount")));
+	settings_.dustLoopEmitCount = static_cast<uint32_t>(std::max(0, parameters->GetValue<int>(kParameterGroupName, "dustLoopEmitCount")));
+	settings_.dustEndBurstCount = static_cast<uint32_t>(std::max(0, parameters->GetValue<int>(kParameterGroupName, "dustEndBurstCount")));
 }
 
 void BossIntroController::ChangeState(State state)
@@ -303,7 +331,8 @@ void BossIntroController::BeginCutscene(K4E::Camera* camera)
 	introCameraTarget_.y += 2.5f;
 	introCameraPosition_ = settings_.bossAppearPosition + K4E::Vector3{ 0.0f, 7.0f, -18.0f };
 
-	// ボス登場カットシーン中は通常ゲーム進行を止めるため、World側がこの状態を参照する。
+	// ボス登場カットシーンの開始に合わせ、足元の土煙演出も初期化する。
+	ResetBossIntroDustState();
 	bossSpawnRequested_ = true;
 	ChangeState(settings_.enableBossIntroCamera ? State::CameraMoveToBoss : State::BossRising);
 	K4E::Log("[BossIntro] Cutscene started.\n");
@@ -331,6 +360,9 @@ void BossIntroController::UpdateBossRising(float deltaTime, GuardianBoss* boss, 
 {
 	stateTimer_ += deltaTime;
 	const float t = settings_.bossRiseTime <= 0.0f ? 1.0f : Clamp01(stateTimer_ / settings_.bossRiseTime);
+
+	// ボスが地面から上がる間、足元へ土煙を出して登場演出の密度を上げる。
+	UpdateBossIntroDust(deltaTime, t);
 
 	if (boss)
 	{
@@ -394,6 +426,13 @@ void BossIntroController::CompleteIntro(GuardianBoss* boss, K4E::Camera* camera)
 		boss->ForceSyncWorldTransform();
 	}
 
+	// 登場完了時に大きめの土煙を一度だけ出し、地面を突き破って出た印象を作る。
+	if (!bossIntroEndDustDone_)
+	{
+		EmitBossIntroDustBurst(settings_.dustEndBurstCount);
+		bossIntroEndDustDone_ = true;
+	}
+
 	SetDebugSnapshot(boss, camera);
 	// 登場完了後にボスAIを有効化するため、WorldへCollider登録と通常Update再開を通知する。
 	bossColliderEnableRequested_ = true;
@@ -408,6 +447,53 @@ void BossIntroController::CompleteIntro(GuardianBoss* boss, K4E::Camera* camera)
 		") camera=(" +
 		std::to_string(cameraPosition.x) + "," + std::to_string(cameraPosition.y) + "," + std::to_string(cameraPosition.z) +
 		") state=Completed active=false played=true\n");
+}
+
+void BossIntroController::UpdateBossIntroDust(float deltaTime, float riseT)
+{
+	if (!settings_.enableBossIntroDust)
+	{
+		return;
+	}
+
+	if (!bossIntroStartDustDone_)
+	{
+		// 上昇開始直後に強めの土煙を出し、地面が崩れ始めた印象を作る。
+		EmitBossIntroDustBurst(settings_.dustStartBurstCount);
+		bossIntroStartDustDone_ = true;
+	}
+
+	bossIntroDustEmitTimer_ += deltaTime;
+	if (bossIntroDustEmitTimer_ >= settings_.dustEmitInterval && riseT < 1.0f)
+	{
+		bossIntroDustEmitTimer_ = 0.0f;
+		bossEnemyVfx_.UpdateAppearDust(MakeBossIntroDustPosition(), settings_.dustLoopEmitCount);
+	}
+}
+
+void BossIntroController::EmitBossIntroDustBurst(uint32_t emitCount)
+{
+	if (!settings_.enableBossIntroDust || emitCount == 0)
+	{
+		return;
+	}
+
+	bossEnemyVfx_.UpdateAppearDust(MakeBossIntroDustPosition(), emitCount);
+}
+
+K4E::Vector3 BossIntroController::MakeBossIntroDustPosition() const
+{
+	K4E::Vector3 dustPosition = settings_.bossAppearPosition;
+	// BossSpawnPointはボス中心寄りなので、土煙は地面付近へ下げて発生させる。
+	dustPosition.y = std::max(0.05f, dustPosition.y - settings_.dustGroundOffsetY);
+	return dustPosition;
+}
+
+void BossIntroController::ResetBossIntroDustState()
+{
+	bossIntroDustEmitTimer_ = 0.0f;
+	bossIntroStartDustDone_ = false;
+	bossIntroEndDustDone_ = false;
 }
 
 void BossIntroController::ApplyCameraLookAtBoss(K4E::Camera* camera, const K4E::Vector3& cameraPosition, const K4E::Vector3& targetPosition) const
