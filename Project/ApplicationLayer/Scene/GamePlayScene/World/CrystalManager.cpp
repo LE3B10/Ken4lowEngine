@@ -22,6 +22,7 @@ namespace
 	constexpr float kMinimumSpawnInterval = 0.05f;
 	constexpr const char* kCrystalSpawnerRootGroup = "CrystalSpawner";
 	constexpr const char* kCrystalReactionGroup = "CrystalEffect/CrystalReaction";
+	constexpr const char* kCrystalHpBarGroup = "CrystalHpBar";
 
 	const std::vector<std::string>& CrystalEnemyTypeOptions()
 	{
@@ -57,6 +58,8 @@ void CrystalManager::Initialize(const std::vector<CrystalSpawnPoint>& spawnPoint
 	baseLightingSettings_ = Ken4lowEngine::LightManager::GetInstance()->GetLightingSettings();
 	RegisterReactionParameters();
 	ApplyReactionParameters();
+	RegisterHpBarParameters();
+	ApplyHpBarParameters();
 
 	collisionManager_ = collisionManager;
 	floorAABBs_ = floorAABBs;
@@ -115,6 +118,7 @@ void CrystalManager::Finalize()
 
 	UnregisterCrystalParameters();
 	UnregisterReactionParameters();
+	UnregisterHpBarParameters();
 	RestoreWorldColor();
 	crystals_.clear();
 	spawnPoints_.clear();
@@ -128,6 +132,7 @@ void CrystalManager::Update(CharacterWorld& characters, float deltaTime)
 {
 	SyncCrystalsFromParameterManager();
 	ApplyReactionParameters();
+	ApplyHpBarParameters();
 
 	for (EnemySpawnCrystal& crystal : crystals_)
 	{
@@ -197,6 +202,11 @@ void CrystalManager::Draw() const
 void CrystalManager::DrawHpBars(const Ken4lowEngine::Matrix4x4& viewMatrix, const Ken4lowEngine::Matrix4x4& projMatrix, float screenWidth, float screenHeight) const
 {
 #ifdef USE_IMGUI
+	if (!crystalHpBarVisible_)
+	{
+		return;
+	}
+
 	ImDrawList* drawList = ImGui::GetBackgroundDrawList();
 	if (!drawList)
 	{
@@ -209,18 +219,24 @@ void CrystalManager::DrawHpBars(const Ken4lowEngine::Matrix4x4& viewMatrix, cons
 		{
 			continue;
 		}
+		if (!crystalHpBarAlwaysVisible_ && crystal.GetHp() >= crystal.GetMaxHp())
+		{
+			continue;
+		}
 
 		const Ken4lowEngine::Vector3& pos = crystal.GetPosition();
 		const Ken4lowEngine::Vector3& scale = crystal.GetScale();
-		const Ken4lowEngine::Vector3 hpBarWorldPos{ pos.x, pos.y + std::abs(scale.y) * 0.65f + 0.35f, pos.z };
+		// クリスタル頭上HPバーの表示位置をParameterManager調整値込みで計算する。
+		const Ken4lowEngine::Vector3 hpBarWorldPos{ pos.x, pos.y + std::abs(scale.y) * 0.65f + crystalHpBarOffsetY_, pos.z };
 		const HpBarProjectResult projected = ProjectWorldToScreen(hpBarWorldPos, viewMatrix, projMatrix, screenWidth, screenHeight);
 		if (!projected.inFront || !projected.inScreen)
 		{
 			continue;
 		}
 
+		// クリスタルHP率を計算し、最大HPが不正でも0除算しないようGetter側の安全値を使う。
 		const float hpRate = std::clamp(crystal.GetHpRate(), 0.0f, 1.0f);
-		const ImVec2 barSize{ 82.0f, 9.0f };
+		const ImVec2 barSize{ crystalHpBarWidth_, crystalHpBarHeight_ };
 		const ImVec2 barMin{ projected.screenPos.x - barSize.x * 0.5f, projected.screenPos.y - 20.0f };
 		const ImVec2 barMax{ barMin.x + barSize.x, barMin.y + barSize.y };
 		const ImVec2 fillMax{ barMin.x + barSize.x * hpRate, barMax.y };
@@ -438,6 +454,42 @@ void CrystalManager::ApplyReactionParameters()
 	reactionSettings_.damagedHpRate = std::clamp(reactionSettings_.damagedHpRate, reactionSettings_.criticalHpRate, 1.0f);
 }
 
+void CrystalManager::RegisterHpBarParameters()
+{
+	auto* parameters = Ken4lowEngine::ParameterManager::GetInstance();
+	parameters->CreateGroup(kCrystalHpBarGroup);
+	parameters->AddItem(kCrystalHpBarGroup, "crystalHpBarVisible", crystalHpBarVisible_);
+	parameters->AddItem(kCrystalHpBarGroup, "crystalHpBarAlwaysVisible", crystalHpBarAlwaysVisible_);
+	parameters->AddItem(kCrystalHpBarGroup, "crystalHpBarOffsetY", crystalHpBarOffsetY_, -2.0f, 8.0f);
+	parameters->AddItem(kCrystalHpBarGroup, "crystalHpBarWidth", crystalHpBarWidth_, 20.0f, 240.0f);
+	parameters->AddItem(kCrystalHpBarGroup, "crystalHpBarHeight", crystalHpBarHeight_, 2.0f, 40.0f);
+	parameters->AddItem(kCrystalHpBarGroup, "crystalHpBarShowTime", crystalHpBarShowTime_, 0.0f, 10.0f);
+	parameters->SetDisplayName(kCrystalHpBarGroup, "crystalHpBarVisible", "クリスタルHPバー表示");
+	parameters->SetDisplayName(kCrystalHpBarGroup, "crystalHpBarAlwaysVisible", "常時表示");
+	parameters->SetDisplayName(kCrystalHpBarGroup, "crystalHpBarOffsetY", "頭上オフセットY");
+	parameters->SetDisplayName(kCrystalHpBarGroup, "crystalHpBarWidth", "バー幅");
+	parameters->SetDisplayName(kCrystalHpBarGroup, "crystalHpBarHeight", "バー高さ");
+	parameters->SetDisplayName(kCrystalHpBarGroup, "crystalHpBarShowTime", "被弾後表示時間");
+	parameters->RegisterParameterApplier(kCrystalHpBarGroup, this, [this]() { ApplyHpBarParameters(); });
+	parameters->LoadFile(kCrystalHpBarGroup);
+}
+
+void CrystalManager::UnregisterHpBarParameters()
+{
+	Ken4lowEngine::ParameterManager::GetInstance()->UnregisterParameterApplier(kCrystalHpBarGroup, this);
+}
+
+void CrystalManager::ApplyHpBarParameters()
+{
+	auto* parameters = Ken4lowEngine::ParameterManager::GetInstance();
+	crystalHpBarVisible_ = parameters->GetValue<bool>(kCrystalHpBarGroup, "crystalHpBarVisible");
+	crystalHpBarAlwaysVisible_ = parameters->GetValue<bool>(kCrystalHpBarGroup, "crystalHpBarAlwaysVisible");
+	crystalHpBarOffsetY_ = parameters->GetValue<float>(kCrystalHpBarGroup, "crystalHpBarOffsetY");
+	crystalHpBarWidth_ = std::max(1.0f, parameters->GetValue<float>(kCrystalHpBarGroup, "crystalHpBarWidth"));
+	crystalHpBarHeight_ = std::max(1.0f, parameters->GetValue<float>(kCrystalHpBarGroup, "crystalHpBarHeight"));
+	crystalHpBarShowTime_ = std::max(0.0f, parameters->GetValue<float>(kCrystalHpBarGroup, "crystalHpBarShowTime"));
+}
+
 void CrystalManager::HandleCrystalBreakEvents()
 {
 	for (EnemySpawnCrystal& crystal : crystals_)
@@ -611,6 +663,11 @@ void CrystalManager::DrawImGui()
 	ImGui::Text("ボス登場要求フラグ: %s", requestBossAppear_ ? "はい" : "いいえ");
 	ImGui::Text("世界色変化: %.2f / %.2f 秒", worldColorChangeTimer_, worldColorChangeTime_);
 	ImGui::Text("世界色変化完了: %s", worldColorChangeComplete_ ? "はい" : "いいえ");
+	ImGui::SeparatorText("Crystal HP Bar");
+	ImGui::Text("表示: %s", crystalHpBarVisible_ ? "ON" : "OFF");
+	ImGui::Text("常時表示: %s", crystalHpBarAlwaysVisible_ ? "ON" : "OFF");
+	ImGui::Text("OffsetY / Size: %.2f / %.1f x %.1f", crystalHpBarOffsetY_, crystalHpBarWidth_, crystalHpBarHeight_);
+	ImGui::Text("被弾後表示時間: %.2f 秒", crystalHpBarShowTime_);
 	ImGui::Text("更新用deltaTime上限: %.4f 秒", kMaxUpdateDeltaTime);
 	ImGui::Text("敵Ground Snap有効: %s", EnemyBase::IsGroundSnapEnabled() ? "はい" : "いいえ");
 	ImGui::Text("クリスタルGround Snap有効: %s", EnemySpawnCrystal::IsGroundSnapEnabled() ? "はい" : "いいえ");

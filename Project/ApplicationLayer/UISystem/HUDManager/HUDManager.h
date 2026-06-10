@@ -7,8 +7,10 @@
 #include "DamageIndicatorManager.h"
 #include "NoAmmoUI.h"
 #include "ControlGuideUI.h"
+#include "Vector3.h"
 
 #include <memory>
+#include <string>
 
 /// ---------- 前方宣言 ---------- ///
 class Player;
@@ -23,6 +25,8 @@ class Player;
 class HUDManager
 {
 public: /// ---------- メンバ関数 ---------- ///
+
+	~HUDManager();
 
 	// 各HUD部品を生成し、テクスチャパス・初期位置・表示状態を設定する。
 	void Initialize();
@@ -39,6 +43,8 @@ public: /// ---------- セッタ ---------- ///
 
 	// GamePlayWorldから渡された現在HP/最大HPをHPWidgetへ反映する。
 	void SetHP(float hp, float maxHp);
+	// ボス本体のHPを参照し、ボス戦用の大型HPバーへ反映する。
+	void SetBossHP(float hp, float maxHp, bool bossBattleActive);
 	// 被弾時のHP表示リアクションを発火する。
 	void NotifyPlayerHit(float strength01 = 1.0f);
 
@@ -83,8 +89,27 @@ public: /// ---------- ゲッタ ---------- ///
 	HPWidget* GetHPWidget() const { return hpWidget_.get(); }
 	WeaponSlot* GetWeaponSlot() const { return weaponSlot_.get(); }
 	ControlGuideUI* GetControlGuideUI() const { return controlGuideUI_.get(); }
+	bool IsBossHPBarDrawEnabled() const { return bossHpBarRuntimeVisible_; }
+	bool IsWaveUIDrawEnabled() const;
 
 private: /// ---------- メンバ変数 ---------- ///
+	struct BossHpBarSettings
+	{
+		bool visible = true;
+		K4E::Vector3 position{ 960.0f, 54.0f, 0.0f };
+		float width = 760.0f;
+		float height = 22.0f;
+		K4E::Vector3 nameOffset{ 0.0f, -28.0f, 0.0f };
+		std::string displayName = "GUARDIAN";
+		bool showAfterIntro = true;
+		bool hideWaveUI = true;
+	};
+
+	void RegisterBossHpBarParameters();
+	void ApplyBossHpBarParameters();
+	void InitializeBossHpBarSprites();
+	void UpdateBossHpBarSprites();
+	void DrawBossHpBar();
 
 	Player* player_ = nullptr; // プレイヤーへの参照（HUDがゲーム状態を参照するため）
 
@@ -92,7 +117,7 @@ private: /// ---------- メンバ変数 ---------- ///
 	std::unique_ptr<Crosshair> crosshair_; // 十字照準
 	std::unique_ptr<HPWidget> hpWidget_; // HPウィジェット
 
-	std::unique_ptr<WaveUI> waveUI_; // ウェーブUI（WaveDefense用）
+	//std::unique_ptr<WaveUI> waveUI_; // ウェーブUI（WaveDefense用）
 	std::unique_ptr<ControlGuideUI> controlGuideUI_; // コントロールガイドUI
 
 	std::unique_ptr<WeaponSlot> weaponSlot_; // 武器スロット
@@ -104,4 +129,15 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	bool reloadTimerIsRemaining_ = true; // リロードタイマーが「残り時間」か「経過時間」かのフラグ
 	bool prevReloading_ = false; // 前フレームのリロード状態（HUDの更新に使う）
+	BossHpBarSettings bossHpBarSettings_{};
+	std::unique_ptr<K4E::Sprite> bossHpFrameSprite_;
+	std::unique_ptr<K4E::Sprite> bossHpBackSprite_;
+	std::unique_ptr<K4E::Sprite> bossHpDelaySprite_;
+	std::unique_ptr<K4E::Sprite> bossHpFillSprite_;
+	bool bossBattleActive_ = false;
+	bool bossHpBarRuntimeVisible_ = false;
+	float bossHp_ = 0.0f;
+	float bossMaxHp_ = 0.0f;
+	float bossHpRate_ = 0.0f;
+	float bossDelayedHpRate_ = 0.0f;
 };

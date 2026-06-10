@@ -443,6 +443,13 @@ void GamePlayWorld::Update(float deltaTime)
 		hudManager_->SetHP(
 			characters_.GetPlayer()->GetHP(),
 			characters_.GetPlayer()->GetMaxHP());
+
+		const bool bossBattleActive =
+			guardianBoss_ && bossColliderRegistered_ && guardianBoss_->IsAlive() && !bossIntroController_.IsGameplayPaused();
+		hudManager_->SetBossHP(
+			guardianBoss_ ? guardianBoss_->GetHP() : 0.0f,
+			guardianBoss_ ? guardianBoss_->GetMaxHP() : 0.0f,
+			bossBattleActive);
 		hudManager_->Update(deltaTime);
 	}
 
@@ -646,6 +653,19 @@ void GamePlayWorld::DrawBossIntroShadow()
 void GamePlayWorld::DrawHUD(bool hideDuringIntro)
 {
 	if (hideDuringIntro) { return; }
+
+	if (auto* player = characters_.GetPlayer())
+	{
+		if (auto* camera = player->GetCamera())
+		{
+			// クリスタル頭上HPバーは3D描画後、画面固定HUDより前に重ねる。
+			crystalManager_.DrawHpBars(
+				camera->GetViewMatrix(),
+				camera->GetProjectionMatrix(),
+				static_cast<float>(K4E::GameViewportConstants::Width),
+				static_cast<float>(K4E::GameViewportConstants::Height));
+		}
+	}
 
 	enemyHpBarManager_.Draw();
 	

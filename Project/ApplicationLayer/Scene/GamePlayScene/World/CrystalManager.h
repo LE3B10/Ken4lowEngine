@@ -56,6 +56,9 @@ private:
 	void RegisterReactionParameters();
 	void UnregisterReactionParameters();
 	void ApplyReactionParameters();
+	void RegisterHpBarParameters();
+	void UnregisterHpBarParameters();
+	void ApplyHpBarParameters();
 	void HandleCrystalBreakEvents();
 	void BeginWorldColorChange();
 	void UpdateWorldColorChange(float deltaTime);
@@ -86,6 +89,12 @@ private:
 	float worldColorChangeTime_ = 3.0f;
 	float worldDarkness_ = 0.45f;
 	float worldRedTint_ = 0.35f;
+	bool crystalHpBarVisible_ = true;
+	bool crystalHpBarAlwaysVisible_ = true;
+	float crystalHpBarOffsetY_ = 0.35f;
+	float crystalHpBarWidth_ = 82.0f;
+	float crystalHpBarHeight_ = 9.0f;
+	float crystalHpBarShowTime_ = 3.0f;
 	K4E::LightManager::LightingSettingsGPU baseLightingSettings_{};
 	int debugAliveNormalEnemyCount_ = 0;
 	bool debugBossSpawnConditionMet_ = false;
