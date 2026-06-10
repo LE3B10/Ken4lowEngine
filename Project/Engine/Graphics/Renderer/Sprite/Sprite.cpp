@@ -4,7 +4,7 @@
 #include "TextureManager.h"
 #include "ResourceManager.h"
 #include "PostEffectManager.h"
-#include "GameViewportConstants.h"
+#include <ResolutionManager.h>
 
 namespace Ken4lowEngine
 {
@@ -48,7 +48,7 @@ void Sprite::Update()
 	// アンカーポイント
 	float left = 0.0f - anchorPoint_.x;   // 左端
 	float right = 1.0f - anchorPoint_.x;  // 右端
-	float top = 0.0f - anchorPoint_.y;	  // 上端
+	float top = 0.0f - anchorPoint_.y;    // 上端
 	float bottom = 1.0f - anchorPoint_.y; // 下端
 
 	// 左右反転
@@ -61,7 +61,7 @@ void Sprite::Update()
 	// 上下反転
 	if (isFlipY_)
 	{
-		top = -top;		  // 上端
+		top = -top;       // 上端
 		bottom = -bottom; // 下端
 	}
 
@@ -69,9 +69,9 @@ void Sprite::Update()
 	const DirectX::TexMetadata& metaData = TextureManager::GetInstance()->GetMetaData(filePath_);
 
 	// テクスチャ範囲指定
-	float tex_left = textureLeftTop_.x / metaData.width;					   // テクスチャ左端
+	float tex_left = textureLeftTop_.x / metaData.width;                      // テクスチャ左端
 	float tex_right = (textureLeftTop_.x + textureSize_.x) / metaData.width;   // テクスチャ右端
-	float tex_top = textureLeftTop_.y / metaData.height;					   // テクスチャ上端
+	float tex_top = textureLeftTop_.y / metaData.height;                      // テクスチャ上端
 	float tex_bottom = (textureLeftTop_.y + textureSize_.y) / metaData.height; // テクスチャ下端
 
 	/// ---------- 頂点データ設定 ---------- ///
@@ -101,9 +101,12 @@ void Sprite::Update()
 	// ワールド行列の計算
 	Matrix4x4 worldMatrixSprite = Matrix4x4::MakeAffineMatrix(worldTransform.scale_, worldTransform.rotate_, worldTransform.translate_);
 
-	// スプライトUIは固定GameViewportRenderTarget(1920x1080)基準で射影する。
+	const float screenWidth = ResolutionManager::GetInstance()->GetScreenWidth();
+	const float screenHeight = ResolutionManager::GetInstance()->GetScreenHeight();
+
+	// スプライトUIの射影も現在解像度へ合わせ、位置を変えても固定1920x1080へ潰される問題を防ぐ。
 	Matrix4x4 viewMatrixSprite = Matrix4x4::MakeIdentity();
-	Matrix4x4 projectionMatrixSprite = Matrix4x4::MakeOrthographicMatrix(0.0f, 0.0f, static_cast<float>(GameViewportConstants::Width), static_cast<float>(GameViewportConstants::Height), 0.0f, 100.0f);
+	Matrix4x4 projectionMatrixSprite = Matrix4x4::MakeOrthographicMatrix(0.0f, 0.0f, screenWidth, screenHeight, 0.0f, 100.0f);
 	Matrix4x4 worldViewProjectionMatrixSprite = Matrix4x4::Multiply(worldMatrixSprite, Matrix4x4::Multiply(viewMatrixSprite, projectionMatrixSprite));
 
 	// 座標変換行列を更新
@@ -242,7 +245,7 @@ void Sprite::CreateIndexBuffer()
 }
 
 /// -------------------------------------------------------------
-///			　テクスチャサイズをイメージに合わせる
+///				　テクスチャサイズをイメージに合わせる
 /// -------------------------------------------------------------
 void Sprite::AdjustTextureSize()
 {
@@ -257,7 +260,7 @@ void Sprite::AdjustTextureSize()
 }
 
 /// -------------------------------------------------------------
-///		　			リロード進捗の初期化処理
+///			　			リロード進捗の初期化処理
 /// -------------------------------------------------------------
 void Sprite::InitializeReloadProgress()
 {
@@ -275,7 +278,7 @@ void Sprite::InitializeReloadProgress()
 	effectParamsData->crackProgress = 0.0f;
 
 	effectParamsData->crackHitUV = { 0.5f, 0.5f };
-	effectParamsData->crackScale = 18.0f;
+	effectParamsData->crackScale = 8.0f;
 	effectParamsData->crackThickness = 0.03f;
 	effectParamsData->crackIntensity = 1.0f;
 }
