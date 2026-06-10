@@ -102,8 +102,15 @@ void BossChargeAttack::UpdateCharging(float deltaTime)
 	Vector3 pos = owner_->GetPosition();
 	pos.x += lockedForward_.x * step;
 	pos.z += lockedForward_.z * step;
-	owner_->SetPosition(pos); // 固定方向へ直進して、遠距離時の距離詰めを攻撃行動として成立させる。
+
+	const bool blocked = owner_->MoveWithWorldCollision(pos); // 突進中も障害物を貫通しないよう、移動を押し戻し判定に通す。
 	traveledDistance_ += step;
+
+	if (blocked)
+	{
+		ChangePhase(Phase::Recovery);
+		return;
+	}
 
 	Vector3 trailPosition = owner_->GetCenterPosition();
 	trailPosition.x -= lockedForward_.x * 1.2f;

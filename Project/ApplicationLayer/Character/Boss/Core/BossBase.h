@@ -1,7 +1,8 @@
 #pragma once
 #include "BaseCharacter.h"
 #include "BossTypes.h"
-
+#include "AABB.h"
+#include "WorldCollisionResolver.h"
 #include <Vector3.h>
 
 #include "BossBrain.h"				// ボスの思考を担当するクラス
@@ -163,6 +164,21 @@ public: /// ---------- 位置 / 向き ---------- ///
 	/// ボス本体の位置を設定する
 	/// </summary>
 	void SetPosition(const K4E::Vector3& position) { body_.transform.translate_ = position; }
+
+	/// <summary>
+	/// ステージ障害物AABBをボス移動の押し戻し判定へ渡す
+	/// </summary>
+	void SetStageObstacleAABBs(const std::vector<K4E::AABB>* obstacleAABBs) { stageObstacleAABBs_ = obstacleAABBs; }
+
+	/// <summary>
+	/// ボス移動用のワールド衝突設定を変更する
+	/// </summary>
+	void SetWorldCollisionSettings(const K4E::WorldCollisionSettings& settings) { worldCollisionSettings_ = settings; }
+
+	/// <summary>
+	/// 障害物を考慮してボス本体を移動させる
+	/// </summary>
+	bool MoveWithWorldCollision(const K4E::Vector3& desiredPosition);
 
 	// 演出用の親Transformが残っていた場合に、現在のワールド座標を保ったまま親を外す。
 	void ClearRootParentKeepingWorldPosition();
@@ -464,6 +480,12 @@ protected: /// ---------- 共通情報群 ---------- ///
 	// 状態
 	BossState state_ = BossState::Intro;
 	BossPhase phase_ = BossPhase::Phase1;
+
+	// ボス移動時に参照するステージ障害物AABB
+	const std::vector<K4E::AABB>* stageObstacleAABBs_ = nullptr;
+
+	// ボス本体の押し戻し判定サイズ
+	K4E::WorldCollisionSettings worldCollisionSettings_{};
 
 protected: /// ---------- 攻撃まわり共通値 ---------- ///
 

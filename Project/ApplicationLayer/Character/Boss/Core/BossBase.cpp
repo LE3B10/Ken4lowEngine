@@ -309,6 +309,11 @@ void BossBase::Initialize()
 	// プレイヤー近接攻撃が胴体を拾えるように、ボス本体を覆う大きめのOBBを登録する。
 	Collider::SetOBBHalfSize({ 1.25f, 1.75f, 1.25f });
 
+	// 衝突設定
+	worldCollisionSettings_.half = { 1.25f, 1.75f, 1.25f };
+	worldCollisionSettings_.centerOffset = { 0.0f, 0.0f, 0.0f };
+	worldCollisionSettings_.eps = 0.002f; // ボスが壁に密着した時の再侵入を防ぐため、少しだけ隙間を空ける。
+
 	// ボス用部位を構築
 	BuildBossParts();
 
@@ -425,6 +430,36 @@ void BossBase::ForceSyncWorldTransform()
 	Collider::SetCenterPosition(GetCenterPosition());
 	Collider::SetOrientation({ 0.0f, GetYaw(), 0.0f });
 	BaseCharacter::Update(0.0f);
+}
+
+bool BossBase::MoveWithWorldCollision(const K4E::Vector3& desiredPosition)
+{
+	const K4E::Vector3 oldPosition = GetPosition();
+
+	if (!stageObstacleAABBs_ || stageObstacleAABBs_->empty())
+	{
+		SetPosition(desiredPosition);
+		return false;
+	}
+
+	const K4E::WorldCollisionResult result = K4E::WorldCollisionResolver::Resolve(
+		*stageObstacleAABBs_,
+		worldCollisionSettings_,
+		oldPosition,
+		desiredPosition,
+		false,
+		nullptr
+	);
+
+	const K4E::Vector3 resolvedPosition = result.fixedCenter + worldCollisionSettings_.centerOffset;
+
+	SetPosition(resolvedPosition);
+
+	const float dx = resolvedPosition.x - desiredPosition.x;
+	const float dz = resolvedPosition.z - desiredPosition.z;
+	const bool blocked = (dx * dx + dz * dz) > 0.0001f;
+
+	return blocked;
 }
 
 void BossBase::ClearRootParentKeepingWorldPosition()

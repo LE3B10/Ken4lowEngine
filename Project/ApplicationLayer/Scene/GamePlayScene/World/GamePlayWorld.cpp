@@ -30,6 +30,10 @@
 
 using namespace Ken4lowEngine;
 
+namespace
+{
+	static constexpr float kPi = std::numbers::pi_v<float>;
+}
 
 void BossClearItem::Initialize(const K4E::Vector3& position)
 {
@@ -1030,8 +1034,20 @@ void GamePlayWorld::SpawnGuardianBoss(bool registerCollider)
 
 	guardianBoss_ = std::make_unique<GuardianBoss>();
 	guardianBoss_->Initialize();
+
+	if (stage_)
+	{
+		guardianBoss_->SetStageObstacleAABBs(&stage_->GetWallObstacleAABBs());
+
+		K4E::WorldCollisionSettings bossCollisionSettings{};
+		bossCollisionSettings.half = { 1.25f, 1.75f, 1.25f };
+		bossCollisionSettings.centerOffset = { 0.0f, 0.0f, 0.0f };
+		bossCollisionSettings.eps = 0.002f; // ボス本体のColliderサイズに合わせて、障害物との押し戻しサイズを設定する。
+		guardianBoss_->SetWorldCollisionSettings(bossCollisionSettings);
+	}
+
 	guardianBoss_->SetPosition(registerCollider ? bossSpawnPosition_ : bossIntroController_.GetBossStartPosition());
-	guardianBoss_->SetYaw(3.141592f);
+	guardianBoss_->SetYaw(kPi);
 	if (auto* player = characters_.GetPlayer())
 	{
 		guardianBoss_->SetTargetPosition(player->GetCenterPosition());
@@ -1054,7 +1070,7 @@ void GamePlayWorld::RegisterGuardianBossCollider()
 
 	guardianBoss_->ClearRootParentKeepingWorldPosition();
 	guardianBoss_->SetPosition(bossIntroController_.GetBossAppearPosition());
-	guardianBoss_->SetYaw(3.141592f);
+	guardianBoss_->SetYaw(kPi);
 	guardianBoss_->ForceSyncWorldTransform();
 	// 登場完了後にボスAI/攻撃/当たり判定を有効化するため、このタイミングでCollider登録する。
 	collisionManager_->AddCollider(guardianBoss_.get());

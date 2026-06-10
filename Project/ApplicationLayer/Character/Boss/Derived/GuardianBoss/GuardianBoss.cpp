@@ -715,7 +715,13 @@ void GuardianBoss::UpdateMovement(float deltaTime)
 	Vector3 newPos = GetPosition();
 	newPos.x += toTarget.x * movementTuning_.moveSpeed * deltaTime;
 	newPos.z += toTarget.z * movementTuning_.moveSpeed * deltaTime;
-	SetPosition(newPos);
+
+	const bool blocked = MoveWithWorldCollision(newPos); // 通常移動もステージ障害物で押し戻し、壁抜けを防ぐ。
+
+	if (blocked)
+	{
+		BeginIdleState();
+	}
 }
 
 /// -------------------------------------------------------------
