@@ -1,3 +1,4 @@
+#define NOMINMAX
 #include "BossBase.h"
 #include "CollisionTypeIdDef.h"
 #include "Player.h"
