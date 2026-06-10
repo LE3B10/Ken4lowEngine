@@ -955,6 +955,7 @@
     <ClCompile Include="ApplicationLayer\Character\Enemy\Projectile\MidRangeBombProjectile.cpp">
       <Filter>ApplicationLayer\Character\Enemy\Projectile</Filter>
     </ClCompile>
+    <ClCompile Include="ResolutionManager.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ApplicationLayer\UISystem\Crosshair\Crosshair.h">
@@ -2040,6 +2041,7 @@
     <ClInclude Include="ApplicationLayer\Character\Boss\BehaviorTree\BehaviorStatus.h">
       <Filter>ApplicationLayer\Character\Boss\BehaviorTree</Filter>
     </ClInclude>
+    <ClInclude Include="ResolutionManager.h" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Shader">

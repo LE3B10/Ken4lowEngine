@@ -454,6 +454,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClCompile Include="Engine\Graphics\Renderer\Sprite\FontAtlasLoader.cpp" />
     <ClCompile Include="Engine\Graphics\Renderer\Sprite\TextSpriteDrawer.cpp" />
     <ClCompile Include="ApplicationLayer\Character\Player\Component\PlayerMeleeComponent.cpp" />
+    <ClCompile Include="ResolutionManager.cpp" />
     <ClCompile Include="WinMain.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
@@ -1178,6 +1179,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="Engine\Math\GeometryTypes.h" />
     <ClInclude Include="Engine\Math\Ken4lowMath.h" />
     <ClInclude Include="Engine\Math\MathTypes.h" />
+    <ClInclude Include="ResolutionManager.h" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="externals\DirectXTex\DirectXTex_Desktop_2022_Win10.vcxproj">

@@ -91,7 +91,16 @@ namespace Ken4lowEngine
 		/// </summary>
 		HINSTANCE GetHInstance() const { return wc.hInstance; }
 
+		/// <summary>
+		/// クライアント領域の幅を取得します。
+		/// </summary>
+		/// <returns>クライアント領域の幅。</returns>
 		uint32_t GetClientWidth() const { return clientWidth_; }
+
+		/// <summary>
+		/// クライアント領域の高さを取得します。
+		/// </summary>
+		/// <returns>クライアント領域の高さ。</returns>
 		uint32_t GetClientHeight() const { return clientHeight_; }
 
 		/// <summary>
@@ -99,6 +108,11 @@ namespace Ken4lowEngine
 		/// DisplaySettings の既定解像度を参照することで、WinApp 内での解像度直書きを防ぎます。
 		/// </summary>
 		static inline constexpr UINT32 kClientWidth = DisplaySettings::kDefaultResolution.width;
+
+		/// <summary>
+		/// クライアント領域の高さの既定値です。
+		/// DisplaySettings の既定解像度を参照することで、WinApp 内での解像度直書きを防ぎます。
+		/// </summary>
 		static inline constexpr UINT32 kClientHeight = DisplaySettings::kDefaultResolution.height;
 
 	private: /// ---------- メンバ関数 ---------- ///
