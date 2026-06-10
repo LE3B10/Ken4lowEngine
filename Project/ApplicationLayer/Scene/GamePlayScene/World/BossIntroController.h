@@ -1,7 +1,9 @@
 #pragma once
 
 #include "Vector3.h"
+#include "BossEnemyVfx.h"
 
+#include <cstdint>
 #include <string>
 
 namespace Ken4lowEngine
@@ -46,6 +48,12 @@ public:
 		bool bossIntroPauseGame = true;
 		bool enableBossIntroCamera = true;
 		bool enableBossRiseEffect = true;
+		bool enableBossIntroDust = true;
+		float dustGroundOffsetY = 2.2f;
+		float dustEmitInterval = 0.08f;
+		uint32_t dustStartBurstCount = 96;
+		uint32_t dustLoopEmitCount = 10;
+		uint32_t dustEndBurstCount = 128;
 	};
 
 	void Initialize(const K4E::Vector3& defaultBossPosition);
@@ -86,6 +94,10 @@ private:
 	void UpdateBossRising(float deltaTime, GuardianBoss* boss, K4E::Camera* camera);
 	void UpdateCameraReturn(float deltaTime, GuardianBoss* boss, K4E::Camera* camera);
 	void CompleteIntro(GuardianBoss* boss, K4E::Camera* camera);
+	void UpdateBossIntroDust(float deltaTime, float riseT);
+	void EmitBossIntroDustBurst(uint32_t emitCount);
+	K4E::Vector3 MakeBossIntroDustPosition() const;
+	void ResetBossIntroDustState();
 	void ApplyCameraLookAtBoss(K4E::Camera* camera, const K4E::Vector3& cameraPosition, const K4E::Vector3& targetPosition) const;
 	static K4E::Vector3 Lerp(const K4E::Vector3& a, const K4E::Vector3& b, float t);
 	static float Clamp01(float value);
@@ -118,4 +130,8 @@ private:
 	bool debugHasCamera_ = false;
 	bool debugBossHasParent_ = false;
 	const char* debugViewProjectionKind_ = "Unknown";
+	BossEnemyVfx bossEnemyVfx_{};
+	float bossIntroDustEmitTimer_ = 0.0f;
+	bool bossIntroStartDustDone_ = false;
+	bool bossIntroEndDustDone_ = false;
 };
