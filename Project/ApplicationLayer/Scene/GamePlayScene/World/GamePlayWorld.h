@@ -91,8 +91,12 @@ public: /// ---------- メンバ関数 ---------- ///
 
 	// 3D要素を描画する。イントロ中はキャラクターだけを隠して背景確認を優先できる。
 	void Draw3D(bool hideCharactersDuringIntro);
+	// ボス登場演出中に必要な空・ステージ・ボスだけを描画する。
+	void DrawBossIntro3D();
 	// シャドウ用描画を行う。通常描画と同じイントロ非表示条件を使う。
 	void DrawShadow(bool hideCharactersDuringIntro);
+	// ボス登場演出中に必要なステージ・ボスだけの影を描画する。
+	void DrawBossIntroShadow();
 	// HUDと敵HPバーを描画する。イントロ中は呼び出し側から隠せる。
 	void DrawHUD(bool hideDuringIntro);
 	void DrawImGui();
@@ -146,6 +150,8 @@ public: /// ---------- メンバ関数 ---------- ///
 	bool IsWorldColorChangeComplete() const { return crystalManager_.IsWorldColorChangeComplete(); }
 	bool IsBossIntroActive() const { return bossIntroController_.IsRunning(); }
 	bool IsBossIntroGameplayPaused() const { return bossIntroController_.IsGameplayPaused(); }
+	// カメラ演出中は通常3D/HUDを止め、専用描画だけに切り替える。
+	bool IsBossIntroPresentationActive() const { return bossIntroController_.IsGameplayPaused(); }
 
 private: /// ---------- メンバ関数 ---------- ///
 

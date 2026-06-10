@@ -140,6 +140,8 @@ private: /// ---------- 補助系 ---------- ///
 
 	// イントロ中はキャラクター表示を抑制したいか
 	bool ShouldHideCharactersDuringIntro() const;
+	// ボス登場演出中は通常HUDを表示しない
+	bool ShouldHideGameplayUI() const;
 
 	// リトライ要求開始
 	void RequestRetryWithFade();

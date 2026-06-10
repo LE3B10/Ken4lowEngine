@@ -481,6 +481,14 @@ void GamePlayScene::Draw3DObjects()
 {
 	if (world_)
 	{
+		if (world_->IsBossIntroPresentationActive())
+		{
+			// ボス登場演出中に通常3D描画を止め、演出に必要な最小構成だけ描画する。
+			world_->DrawBossIntro3D();
+			return;
+		}
+
+		// 演出終了後は通常ゲーム描画へ戻す。
 		world_->Draw3D(ShouldHideCharactersDuringIntro());
 	}
 
@@ -497,6 +505,12 @@ void GamePlayScene::DrawShadowObjects()
 {
 	if (world_)
 	{
+		if (world_->IsBossIntroPresentationActive())
+		{
+			world_->DrawBossIntroShadow();
+			return;
+		}
+
 		world_->DrawShadow(ShouldHideCharactersDuringIntro());
 	}
 }
@@ -509,13 +523,15 @@ void GamePlayScene::Draw2DSprites()
 	K4E::SpriteManager::GetInstance()->SetRenderSetting_Background();
 	K4E::SpriteManager::GetInstance()->SetRenderSetting_UI();
 
+	const bool hideGameplayUI = ShouldHideGameplayUI();
 	if (world_)
 	{
 		// ReleaseのBackBuffer直接描画でもHUDManager/Reticle/Ammo/HPをここで描画する。
-		world_->DrawHUD(ShouldHideCharactersDuringIntro());
+		// ボス登場演出中にUI描画をOFFにする処理。
+		world_->DrawHUD(hideGameplayUI);
 	}
 
-	if (flow_)
+	if (flow_ && !hideGameplayUI)
 	{
 		flow_->DrawUI();
 	}
@@ -534,6 +550,11 @@ void GamePlayScene::Draw2DSprites()
 bool GamePlayScene::ShouldHideCharactersDuringIntro() const
 {
 	return (flow_ && flow_->IsIntro());
+}
+
+bool GamePlayScene::ShouldHideGameplayUI() const
+{
+	return ShouldHideCharactersDuringIntro() || (world_ && world_->IsBossIntroPresentationActive());
 }
 
 void GamePlayScene::RequestRetryWithFade()

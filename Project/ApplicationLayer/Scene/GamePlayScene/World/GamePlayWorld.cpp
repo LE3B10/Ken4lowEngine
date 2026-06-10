@@ -591,6 +591,28 @@ void GamePlayWorld::Draw3D(bool hideCharactersDuringIntro)
 #endif
 }
 
+void GamePlayWorld::DrawBossIntro3D()
+{
+	K4E::SkyBoxManager::GetInstance()->SetRenderSetting();
+	if (skyBox_)
+	{
+		skyBox_->Draw();
+		skyBox_->DrawCloudLayer();
+	}
+
+	if (stage_)
+	{
+		stage_->Draw();
+	}
+
+	if (guardianBoss_)
+	{
+		// ボス登場演出中に通常3D描画を止め、ボスだけを現在の演出用ViewProjectionへ同期する。
+		guardianBoss_->ForceSyncWorldTransform();
+		guardianBoss_->Draw();
+	}
+}
+
 void GamePlayWorld::DrawShadow(bool hideCharactersDuringIntro)
 {
 	if (stage_)
@@ -605,6 +627,19 @@ void GamePlayWorld::DrawShadow(bool hideCharactersDuringIntro)
 		{
 			guardianBoss_->DrawShadow();
 		}
+	}
+}
+
+void GamePlayWorld::DrawBossIntroShadow()
+{
+	if (stage_)
+	{
+		stage_->DrawShadow();
+	}
+
+	if (guardianBoss_)
+	{
+		guardianBoss_->DrawShadow();
 	}
 }
 
@@ -654,6 +689,15 @@ void GamePlayWorld::DrawGameDebugImGui()
 		bossIntroController_.SetDebugSnapshot(guardianBoss_.get(), debugPlayer ? debugPlayer->GetCamera() : nullptr);
 	}
 	bossIntroController_.DrawImGui();
+	ImGui::SeparatorText("Boss Intro Draw Debug");
+	const bool bossIntroPresentationActive = IsBossIntroPresentationActive();
+	ImGui::Text("isBossIntroActive: %s", bossIntroController_.IsRunning() ? "true" : "false");
+	ImGui::Text("Camera Kind: %s", bossIntroPresentationActive ? "BossIntro Camera" : "Gameplay Camera");
+	ImGui::Text("ViewProjection Kind: %s", bossIntroPresentationActive ? "BossIntro ViewProjection" : "Gameplay ViewProjection");
+	ImGui::Text("Draw Gameplay 3D: %s", bossIntroPresentationActive ? "false" : "true");
+	ImGui::Text("Draw Gameplay UI: %s", bossIntroPresentationActive ? "false" : "true");
+	ImGui::Text("Draw BossIntro 3D: %s", bossIntroPresentationActive ? "true" : "false");
+	ImGui::Text("Draw Gameplay Route: %s", bossIntroPresentationActive ? "false" : "true");
 	if (guardianBoss_)
 	{
 		ImGui::Text("ボス生存中: %s", guardianBoss_->IsAlive() ? "はい" : "いいえ");
@@ -911,6 +955,11 @@ void GamePlayWorld::UpdateBossIntroPausedWorld(float deltaTime)
 {
 	crystalManager_.UpdatePresentationOnly(characters_, deltaTime);
 	UpdateBossIntro(deltaTime);
+	if (stage_)
+	{
+		// 演出用カメラと通常カメラを切り替えた後、最低限表示するステージのWVPを現在カメラへ合わせる。
+		stage_->Update();
+	}
 	UpdateBossClearProgress(0.0f);
 	crystalManager_.SetProgressDebugStatus(characters_.GetAliveNormalEnemyCount(), bossSpawnConditionMet_, bossSpawned_, bossSpawnPosition_);
 
